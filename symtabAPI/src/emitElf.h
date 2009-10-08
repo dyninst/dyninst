@@ -32,7 +32,9 @@
 #if !defined(_emit_Elf_h_)
 #define _emit_Elf_h_
 
+#include "Symtab.h"
 #include "Object.h"
+#include "Archive.h"
 #include <vector>
 using namespace std;
 
@@ -109,6 +111,10 @@ class emitElf{
     Offset currEndOffset;
     Address currEndAddress;
 
+    // Pointer to all dependency code and data allocated 
+    // during a static link, to be deleted after written out
+    char *linkedStaticData;
+
     //flags
     // Expand NOBITS sections within the object file to their size
     bool BSSExpandFlag;
@@ -141,6 +147,31 @@ class emitElf{
     void createSymbolVersions(Symtab *obj, Elf32_Half *&symVers, char*&verneedSecData, unsigned &verneedSecSize, char *&verdefSecData, unsigned &verdefSecSize, unsigned &dynSymbolNamesLength, std::vector<std::string> &dynStrs);
     void createHashSection(Symtab *obj, Elf32_Word *&hashsecData, unsigned &hashsecSize, std::vector<Symbol *>&dynSymbols);
     void createDynamicSection(void *dynData, unsigned size, Elf32_Dyn *&dynsecData, unsigned &dynsecSize, unsigned &dynSymbolNamesLength, std::vector<std::string> &dynStrs);
+
+    // START static binary case
+
+    enum StaticLinkError {
+        No_Static_Link_Error,
+        Instrument_Location_Error,
+        Symbol_Resolution_Failure,
+        Relocation_Computation_Failure,
+        Storage_Allocation_Failure
+    };
+
+    char *linkStaticCode(Symtab *, StaticLinkError &, std::string &);
+    bool resolveSymbols(Symtab *, std::vector<Symtab *> &, StaticLinkError &, std::string &);
+    char *allocateStorage(Symtab *,std::vector<Symtab *> &, std::map<Region *, Offset> &, Offset, StaticLinkError &, std::string &);
+    Offset copyRegions(char *, std::vector<Region *> &, std::map<Region *, Offset> &, Offset);
+    bool computeRelocations(char *, std::vector<Symtab *> &, std::map<Region *, Offset> &, Offset, StaticLinkError &, std::string &);
+    bool archSpecificRelocation(char *, ELFRelocation &, Offset, Offset);
+    void computeInstrumentRelocations(Region *, std::map<Symbol *, std::vector<Address> >&);
+
+    bool findDotOs(Symtab *, std::vector<Archive *> &, vector<Symtab *> &);
+    std::string getLibCArchive();
+    std::string printStaticLinkError(StaticLinkError);
+
+    // END static binary case
+
 #endif 
 
     void log_elferror(void (*err_func)(const char *), const char* msg);

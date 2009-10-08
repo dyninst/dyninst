@@ -352,7 +352,7 @@ SYMTAB_EXPORT bool Symtab::isStripped()
 {
 #if defined(os_linux) || defined(os_solaris)
     Region *sec;
-    return findRegion(sec,".symtab");
+    return !findRegion(sec,".symtab");
 #else
     return (no_of_symbols==0);
 #endif

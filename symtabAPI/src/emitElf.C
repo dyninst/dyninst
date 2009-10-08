@@ -213,10 +213,16 @@ emitElf::emitElf(Elf_X &oldElfHandle_, bool isStripped_, Object *obj_, void (*er
   // changes to the binary, and isn't well tested.
   library_adjust = 0;
 
-
+  linkedStaticData = NULL;
+   
   oldElf = oldElfHandle.e_elfp();
   curVersionNum = 2;
   setVersion();
+}
+
+emitElf::~emitElf() {
+    // This is allocated by the linkStaticCode methods for the new code
+    if( linkedStaticData ) delete linkedStaticData;
 }
 
 bool emitElf::createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf32_Sym *> &symbols, bool dynSymFlag)
@@ -1833,40 +1839,18 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
 
 #if !defined(os_solaris) 
   }else{
-    // Insert static re-linker code here
+      // Static binary case
 
-    char *data = NULL;
-    std::map<Symbol *, std::vector<Address> >::iterator sym_it;
-    for( sym_it = obj->interModuleSymRefs_.begin(); 
-         sym_it != obj->interModuleSymRefs_.end();
-         ++sym_it) {
-        // Storage allocation
-       fprintf(stderr, "InterSymbolModuleRef: Member: %s Symbol: %s Address: %x\n",
-           sym_it->first->getSymtab()->member_name_.c_str(), sym_it->first->getPrettyName().c_str(),
-           sym_it->second[0]);
-       Symtab *curSymtab = sym_it->first->getSymtab();
-       Region *text;
-       if( !curSymtab->findRegion(text, ".text") ) {
-           fprintf(stderr, "Failed to find .text region\n");
-           continue;
-       }
+      StaticLinkError err;
+      std::string errMsg;
+      linkedStaticData = linkStaticCode(obj, err, errMsg);
+      if ( linkedStaticData == NULL ) {
+           fprintf(stderr, "Failed to link in static library code: %s\n",
+                 printStaticLinkError(err).c_str());
+           log_elferror(err_func_, "Failed to link in static library code.");   
+           return false;
+      }
 
-       obj->addRegion(0, text->getPtrToRawData(),
-               text->getRegionSize(), ".dyninstDep",
-               Region::RT_TEXTDATA, true);
-
-       Region *rodata;
-       if( !curSymtab->findRegion(rodata, ".rodata") ) {
-           fprintf(stderr, "Failed to find .rodata region\n");
-           continue;
-       }
-
-       obj->addRegion(0, rodata->getPtrToRawData(),
-               rodata->getRegionSize(), ".dyninstData",
-               Region::RT_TEXTDATA, true);
-    }
-
-    // Relocation processing
 #endif
   }
 

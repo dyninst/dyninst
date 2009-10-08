@@ -347,7 +347,8 @@ class Object : public AObject {
   void getDependencies(std::vector<std::string> &deps);
 
   bool addRelocationEntry(relocationEntry &re);
-  void getELFRelocations(std::map<Symbol *, ELFRelocation> &);
+  void getELFRelocations(std::map<Symbol *, std::vector<ELFRelocation> > &);
+  void setELFRelocations(std::map<Symbol *, std::vector<ELFRelocation> > &);
 
   //getLoadAddress may return 0 on shared objects
   Offset getLoadAddress() const { return loadAddress_; }
@@ -533,7 +534,7 @@ class Object : public AObject {
   std::vector<relocationEntry> fbt_;
 
   // Relocations are connected to symbols
-  std::map<Symbol *, ELFRelocation> elfRelocations;
+  std::map<Symbol *, std::vector<ELFRelocation> > elfRelocations;
 
   // all section headers, sorted by address
   // we use these to do a better job of finding the end of symbols
@@ -636,8 +637,8 @@ class ELFRelocation : public relocationEntry {
         ELFRelocation();
         ELFRelocation(Region *targetRegion, Offset relOffset,
             std::string symbolName, unsigned long relType,
-            unsigned long symbolShndx,
-            Offset addend = 0, Symbol *dynRef = NULL, 
+            bool symUndefined, Offset addend = 0, 
+            Symbol *dynRef = NULL, 
             Region::RegionType regType = Region::RT_REL);
         bool operator==(const ELFRelocation &) const;
 
@@ -648,13 +649,12 @@ class ELFRelocation : public relocationEntry {
 
         Region *getTargetRegion() const;
         void setTargetRegion(Region *);
-        unsigned long getSymbolShndx() const;
-        void setSymbolShndx(unsigned long);
+        bool isSymbolUndefined() const;
+        void setSymbolUndefined(bool);
 
     private:
-        Region * targetRegion_;
-        unsigned long symbolShndx_; // Use to interpret the value field
-
+        Region *targetRegion_;
+        bool symUndefined_;
 };
 
 //const char *pdelf_get_shnames(Elf *elfp, bool is64);

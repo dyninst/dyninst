@@ -95,7 +95,7 @@ Archive::Archive(std::string& filename, bool& err)
     err = true;
 }
 
-Archive::Archive(char *mem_image, size_t size, bool & err) 
+Archive::Archive(char *, size_t, bool &err) 
     : basePtr(NULL), symbolTableParsed(false) 
 {
     err = false;

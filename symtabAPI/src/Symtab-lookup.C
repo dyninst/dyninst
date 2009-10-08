@@ -121,18 +121,21 @@ bool Symtab::findSymbol(std::vector<Symbol *> &ret, const std::string name,
     std::vector<Symbol *> allSyms;
     
     for (unsigned i = 0; i < symsMangled.size(); i++) {
-        if ((sType == Symbol::ST_UNKNOWN) ||
-            (symsMangled[i]->getType() == sType))
+        if (   (sType == Symbol::ST_UNKNOWN) 
+            || (sType == Symbol::ST_NOTYPE)
+            || (symsMangled[i]->getType() == sType))
             allSyms.push_back(symsMangled[i]);
     }
     for (unsigned i = 0; i < symsPretty.size(); i++) {
-        if ((sType == Symbol::ST_UNKNOWN) ||
-            (symsPretty[i]->getType() == sType))
+        if    ((sType == Symbol::ST_UNKNOWN) 
+           || (sType == Symbol::ST_NOTYPE)
+           || (symsPretty[i]->getType() == sType))
             allSyms.push_back(symsPretty[i]);
     }
     for (unsigned i = 0; i < symsTyped.size(); i++) {
-        if ((sType == Symbol::ST_UNKNOWN) ||
-            (symsTyped[i]->getType() == sType))
+        if     ((sType == Symbol::ST_UNKNOWN) 
+            || (sType == Symbol::ST_NOTYPE)
+            || (symsTyped[i]->getType() == sType))
             allSyms.push_back(symsTyped[i]);
     }
     

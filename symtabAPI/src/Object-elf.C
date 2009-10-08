@@ -3232,8 +3232,12 @@ bool Object::addRelocationEntry(relocationEntry &re)
   return true;
 }
 
-void Object::getELFRelocations(std::map<Symbol *, ELFRelocation> &rels) {
+void Object::getELFRelocations(std::map<Symbol *, std::vector<ELFRelocation> > &rels) {
     rels = elfRelocations;
+}
+
+void Object::setELFRelocations(std::map<Symbol *, std::vector<ELFRelocation> > &rels) {
+    elfRelocations = rels;
 }
 
 #ifdef DEBUG
@@ -5215,18 +5219,18 @@ void Object::insertDynamicEntry(long name, long value)
 ELFRelocation::ELFRelocation() :
     relocationEntry(),
     targetRegion_(NULL),
-    symbolShndx_(0)
+    symUndefined_(false)
 {}
 
 ELFRelocation::ELFRelocation(Region * targetRegion, Offset relOffset,
         std::string symbolName, unsigned long relType,
-        unsigned long symbolShndx,
+        bool symbolUndefined,
         Offset addend, Symbol *dynRef,
         Region::RegionType regType) :
     relocationEntry(0, relOffset, addend, symbolName, dynRef,
             relType, regType),
     targetRegion_(targetRegion),
-    symbolShndx_(symbolShndx)
+    symUndefined_(symbolUndefined)
 {}
 
 bool ELFRelocation::operator==(const ELFRelocation &rel) const 
@@ -5234,19 +5238,19 @@ bool ELFRelocation::operator==(const ELFRelocation &rel) const
     if( !relocationEntry::operator==(static_cast<relocationEntry>(rel)) )
         return false;
 
-    if( rel.symbolShndx_ != symbolShndx_ ) return false;
+    if( rel.symUndefined_ != symUndefined_ ) return false;
     if( rel.targetRegion_ != targetRegion_ ) return false;
 
     return true;
 }
 
 
-unsigned long ELFRelocation::getSymbolShndx() const {
-    return symbolShndx_;
+bool ELFRelocation::isSymbolUndefined() const {
+    return symUndefined_;
 }
 
-void ELFRelocation::setSymbolShndx(unsigned long val) {
-    symbolShndx_ = val;
+void ELFRelocation::setSymbolUndefined(bool symbolUndefined) {
+    symUndefined_ = symbolUndefined;
 }
 
 Region *ELFRelocation::getTargetRegion() const {
@@ -5279,6 +5283,32 @@ bool Object::parseELFRelocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
         }
         dynsym = dynsym_data.get_sym();
         dynstr = dynstr_data.get_string();
+    }
+
+    // Symbols are only truly uniquely idenfitied by their index in their
+    // respective symbol table (this really applies to the symbols associated
+    // with sections) So, a map for each symbol table needs to be built so a
+    // relocation can be associated with the correct symbol
+    dyn_hash_map<int, Symbol *> symtabByIndex;
+    dyn_hash_map<int, Symbol *> dynsymByIndex;
+
+    dyn_hash_map<std::string, std::vector<Symbol *> >::iterator symVec_it;
+    for(symVec_it = symbols_.begin(); symVec_it != symbols_.end(); ++symVec_it) {
+        std::vector<Symbol *>::iterator sym_it;
+        for(sym_it = symVec_it->second.begin(); sym_it != symVec_it->second.end(); ++sym_it) {
+            // Skip any symbols pointing to the undefined symbol entry
+            if( (*sym_it)->getIndex() == STN_UNDEF ) continue;
+
+            std::pair<dyn_hash_map<int, Symbol *>::iterator, bool> result;
+            if( (*sym_it)->isInDynSymtab() ) {
+                result = dynsymByIndex.insert(std::make_pair((*sym_it)->getIndex(), (*sym_it)));
+            }else{
+                result = symtabByIndex.insert(std::make_pair((*sym_it)->getIndex(), (*sym_it)));
+            }
+
+            // A symbol should be uniquely identified by its index in the symbol table
+            assert(result.second);
+        }
     }
 
     Offset symtab_offset = 0;
@@ -5336,14 +5366,19 @@ bool Object::parseELFRelocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
             }
 
             // Determine which symbol table to use
-            bool inDynSymtab = false;
+            Symbol *sym = NULL;
             if( curSymHdr->sh_offset() == dynsym_offset ) {
                 name = string( &dynstr[dynsym.st_name(symbol_index)] );
                 symbolShndx = dynsym.st_shndx(symbol_index);
-                inDynSymtab = true;
+                if( dynsymByIndex.count(symbol_index) ) {
+                    sym = dynsymByIndex[symbol_index];
+                }
             }else if( curSymHdr->sh_offset() == symtab_offset ) {
                 name = string( &strtab[symtab.st_name(symbol_index)] );
                 symbolShndx = symtab.st_shndx(symbol_index);
+                if( symtabByIndex.count(symbol_index) ) {
+                    sym = symtabByIndex[symbol_index];
+                }
             }else{
                 fprintf(stderr, "%s[%d]: warning: unknown symbol table "
                         "referenced in relocation entry: sh_offset = %lu symtab_offset = %lu "
@@ -5352,28 +5387,10 @@ bool Object::parseELFRelocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
                 continue;
             }
 
-            // Need to find the exact symbol referred to by this relocation
-            Symbol *sym = NULL;
-            if( symbols_.count(name) ) {
-                std::vector<Symbol *>::iterator sym_it;
-                for(sym_it = symbols_[name].begin(); sym_it != symbols_[name].end();
-                    ++sym_it) {
-                    // The symbol is the correct one if it has the same string index
-                    // and it is in the same symbol table
-                    if(    symbol_index == (*sym_it)->getStrIndex() 
-                        && (inDynSymtab == (*sym_it)->isInDynSymtab()) ) {
-                        sym = *sym_it;
-                        break;
-                    }
-                }
-            }
-
-            // If this remains NULL, it should generate a "link-time" error later on
-            // but not right now
             Region *targetRegion = NULL;
             string targetRegionName(&shnames[targetHdr->sh_name()]);
 
-            // Need to find target region TODO efficiency
+            // Need to find target region TODO more efficient?
             std::vector<Region *>::iterator reg_it;
             for(reg_it = regions_.begin(); reg_it != regions_.end(); ++reg_it) {
                 // A section is equivalent to a Region if it has the same name
@@ -5383,14 +5400,16 @@ bool Object::parseELFRelocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
                 }
             }
 
-            ELFRelocation elfRel(targetRegion, relOff, name, relType, symbolShndx, 
-                    addend, sym, regType);
+            assert(targetRegion != NULL);
+
+            ELFRelocation elfRel(targetRegion, relOff, name, relType, 
+                    (symbolShndx == SHN_UNDEF), addend, sym, regType);
 
             // A relocation is somewhat useless unless it is linked to a Symbol
-            if( sym ) elfRelocations.insert(std::make_pair(sym, elfRel));
+            if( sym ) elfRelocations[sym].push_back(elfRel);
 
-            ELFRelocation::printELFRel(std::cout, elfRel);
-            std::cout << std::endl;
+            //ELFRelocation::printELFRel(std::cout, elfRel);
+            //std::cout << std::endl;
         }
     }
 
@@ -5412,9 +5431,7 @@ void ELFRelocation::printELFRel(std::ostream& os, const ELFRelocation& r) {
        << " Addend: " << r.addend()
        << " Region: " << Region::regionType2Str(r.regionType())
        << " Type: " << setw(15) << ELFRelocation::relType2Str(r.getRelType())
-       << "(" << r.getRelType() << ")"
-       << " Shndx: " << ELFRelocation::shndx2Str(r.getSymbolShndx())
-       << "(" << r.getSymbolShndx() << ")";
+       << "(" << r.getRelType() << ")";
 }
 
 const char* ELFRelocation::relType2Str(unsigned long r) {
