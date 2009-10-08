@@ -48,7 +48,7 @@ namespace Dyninst
     /// For the purposes of representing a single operand of an instruction, the %BinaryFunctions of interest are addition and multiplication of
     /// integer values; this allows a %Expression to represent all addressing modes on the architectures currently
     /// supported by the %Instruction API.
-    class BinaryFunction : public Expression
+    class INSTRUCTION_EXPORT BinaryFunction : public Expression
     {
     public:
       class funcT
@@ -73,7 +73,7 @@ namespace Dyninst
       };
       
       
-      class addResult : public funcT
+      class INSTRUCTION_EXPORT addResult : public funcT
       {
       public:
 	addResult() : funcT("+") 
@@ -87,7 +87,7 @@ namespace Dyninst
 	  return arg1 + arg2;
 	}
       };
-      class multResult : public funcT
+      class INSTRUCTION_EXPORT multResult : public funcT
       {
       public:
 	multResult() : funcT("*")
@@ -138,23 +138,7 @@ namespace Dyninst
       /// outside information to override the results of the %BinaryFunction's internal computation.
       /// If the cached result exists, it is guaranteed to be returned even if the arguments or the function
       /// are not evaluable.
-      virtual const Result& eval() const
-      {
-	Expression::Ptr arg1 = dyn_detail::boost::dynamic_pointer_cast<Expression>(m_arg1);
-	Expression::Ptr arg2 = dyn_detail::boost::dynamic_pointer_cast<Expression>(m_arg2);
-	if(arg1 && arg2)
-	{
-	  Result x = arg1->eval();
-	  Result y = arg2->eval();
-	  Result oracularResult = Expression::eval();
-	  if(x.defined && y.defined && !oracularResult.defined)
-	  {
-	    Result result = (*m_funcPtr)(x, y);
-	    const_cast<BinaryFunction*>(this)->setValue(result);
-	  }
-	}
-	return Expression::eval();
-      }
+      virtual const Result& eval() const;
     
       /// The children of a %BinaryFunction are its two arguments.
       /// \param children Appends the children of this %BinaryFunction to \c children.
@@ -185,6 +169,10 @@ namespace Dyninst
 	retVal << m_arg1->format() << " " << m_funcPtr->format() << " " << m_arg2->format();
 	return retVal.str();
       }
+      virtual bool bind(Expression* expr, const Result& value);
+      virtual void apply(Visitor* v);
+      bool isAdd() const;
+      bool isMultiply() const;
     protected:
       virtual bool isStrictEqual(const InstructionAST& rhs) const
       {

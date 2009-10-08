@@ -200,6 +200,12 @@ bool InstrucIter::isAnneal()
   return false;
 }
 
+bool InstrucIter::isAnInterruptInstruction()
+{
+    // TODO: not implemented
+    return false;
+}
+
 bool InstrucIter::isAnAbortInstruction()
 {
   // FIXME this is sufficient for the common glibc illegal instruction,
@@ -815,3 +821,10 @@ bool InstrucIter::isANopInstruction()
 {
    return false;
 }
+
+bool InstrucIter::isSyscall()
+{
+  // not implemented
+  return false;
+}
+

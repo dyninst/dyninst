@@ -68,6 +68,7 @@ class BPatch_instruction;
 class process;
 class AddressSpace;
 
+
 /*
    VG (02/19/02): New abstraction layer for instruction parsing.
 
@@ -286,6 +287,7 @@ class InstrucIter {
   bool isANopInstruction();
   bool isAnAbortInstruction();
   bool isAnAllocInstruction();
+  bool isAnInterruptInstruction(); 
   bool isDelaySlot();
   bool isSyscall();
   

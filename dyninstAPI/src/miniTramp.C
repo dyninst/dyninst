@@ -127,6 +127,7 @@ bool miniTramp::uninstrument() {
     topDownDelete_ = true;
     for (int i = instances.size() ; i > 0 ; i--)
         instances[i-1]->removeCode(NULL);
+
     // When all instances are successfully deleted, the miniTramp
     // will be deleted as well.
     
@@ -284,15 +285,16 @@ void miniTrampInstance::removeCode(generatedCodeObject *subObject) {
     // behavior depending on the type.
 
     if (subObject == NULL) {
-        baseTI->removeCode(this);
-        
-        // Make sure our previous guy jumps to the next guy
+	// Make sure our previous guy jumps to the next guy
         if (mini->prev) {
             miniTrampInstance *prevI = mini->prev->getMTInstanceByBTI(baseTI, false);
             if(prevI != NULL)
                 prevI->linkCode();
         }
-        delete this;
+
+        baseTI->removeCode(this);
+        
+	delete this;
 
     }
     else {

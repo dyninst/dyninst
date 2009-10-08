@@ -453,7 +453,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 	}
   }
 
-  if (foundInterp) {
+  if (elfHdr.e_type() == ET_DYN || foundInterp) {
 	is_static_binary_ = false;	
   } else {
 	is_static_binary_ = true;	
@@ -534,7 +534,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 	secTagSizeMapping[DT_RELA] = dynsecData.d_val(j);
 	break;
       case DT_PLTRELSZ:
-	secTagSizeMapping[DT_JMPREL] = dynsecData.d_val(j);
+	//secTagSizeMapping[DT_JMPREL] = dynsecData.d_val(j);
 	break;
       case DT_STRSZ:
 	secTagSizeMapping[DT_STRTAB] = dynsecData.d_val(j);
@@ -3634,10 +3634,7 @@ struct  exception_compare: public binary_function<const ExceptionBlock &, const 
   bool operator()(const ExceptionBlock &e1, const ExceptionBlock &e2) {
     if (e1.tryStart() < e2.tryStart())
       return true;
-    else if (e1.tryStart() > e2.tryStart())
-      return false;
-    else
-      return true;
+    return false;
   }
 };
 
@@ -3743,7 +3740,7 @@ ObjectType Object::objType() const
 void Object::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *mod_langs)
 { 
   string working_module;
-  char *ptr;
+  const char *ptr;
   // check .stabs section to get language info for modules:
   //   int stab_nsyms;
   //   char *stabstr_nextoffset;
@@ -3832,7 +3829,7 @@ void Object::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *mod
 	    }
 	  else
 	    {
-	      working_name = const_cast<char*>(stabptr->name(i));
+	      working_name = stabptr->name(i);
 	      ptr = strrchr(working_name, '/');
 	      if (ptr)
 		{

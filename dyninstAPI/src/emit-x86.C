@@ -1370,6 +1370,8 @@ bool EmitterAMD64Dyn::emitCallInstruction(codeGen &gen, int_function *callee) {
     //emitSimpleInsn(0xff, gen); // group 5
     //emitSimpleInsn(0xd0, gen); // mod = 11, reg = 2 (call Ev), r/m = 0 (RAX)
 
+    emitMovImmToReg64(REGNUM_RAX, 0, true, gen);
+
     Register ptr = gen.rs()->allocateRegister(gen, false);
     Register effective = ptr;
     emitMovImmToReg64(ptr, callee->getAddress(), true, gen);

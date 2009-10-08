@@ -77,7 +77,7 @@ namespace Dyninst
       INSTRUCTION_EXPORT InstructionDecoder();
       
       INSTRUCTION_EXPORT ~InstructionDecoder();
-
+      INSTRUCTION_EXPORT InstructionDecoder(const InstructionDecoder& o);
       /// Decode the current instruction in this %InstructionDecoder object's buffer, interpreting it as 
       /// machine language of the type understood by this %InstructionDecoder.
       /// If the buffer does not contain a valid instruction stream, an invalid %Instruction object
@@ -92,7 +92,7 @@ namespace Dyninst
       INSTRUCTION_EXPORT void setMode(bool is64);
       
     protected:
-      void resetBuffer(const unsigned char* buffer);
+      void resetBuffer(const unsigned char* buffer, unsigned int size);
       
       bool decodeOperands(std::vector<Expression::Ptr>& operands);
 

@@ -49,7 +49,10 @@ SRCS = 		../src/aix.C \
 		../src/unix.C \
 		../src/arch-power.C \
 		../src/InstrucIter-power.C \
-		../src/syscall-solproc.C
+		../src/syscall-solproc.C \
+		../src/IA_InstrucIter.C \
+		../src/InstrucIter-xplat.C \
+		../src/InstrucIter-Function.C
 
 # Add preprocessor and special link information for G++
 G_PTHREAD       = -pthread

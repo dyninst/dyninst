@@ -159,6 +159,7 @@ class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
 						    void*address,
                                                     BPatch_function* bpf = NULL);
     // Create a set of points, all that match a given op in the given instruciter.
+
     static BPatch_Vector<BPatch_point *> *getPoints(const BPatch_Set<BPatch_opCode> &ops,
                                                     InstrucIter &ii,
                                                     BPatch_function *bpf);

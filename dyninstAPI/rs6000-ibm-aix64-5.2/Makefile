@@ -50,7 +50,9 @@ SRCS = 		../src/aix.C \
 		../src/arch-power.C \
 		../src/InstrucIter-power.C \
 		../src/writeBackXCOFF.C  \
-		../src/syscall-solproc.C
+		../src/syscall-solproc.C \
+		../src/IA_InstrucIter.C \
+		../src/InstrucIter-xplat.C
 #		../src/addLibraryXCOFF.C 
 
 # Add preprocessor and special link information for G++

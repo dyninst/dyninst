@@ -447,6 +447,7 @@ Symbol::Symbol () :
   offset_(0),
   ptr_offset_(0),
   region_(NULL),
+  referring_(NULL),
   size_(0),
   isDynamic_(false),
   isAbsolute_(false),
@@ -479,6 +480,7 @@ Symbol::Symbol(const std::string name,
   offset_(o),
   ptr_offset_(0),
   region_(r),
+  referring_(NULL),
   size_(s),
   isDynamic_(d),
   isAbsolute_(a),
@@ -490,4 +492,12 @@ Symbol::Symbol(const std::string name,
   index_(index),
   strindex_(strindex)
 {
+}
+
+void Symbol::setReferringSymbol(Symbol* referringSymbol) {
+	referring_= referringSymbol;
+}
+
+Symbol* Symbol::getReferringSymbol() {
+	return referring_;
 }

@@ -5,10 +5,12 @@ BUILD_NUM=-576
 
 #Are any alternatives to g++ available?
 
-M_intel_CC = @_ICC_@
+M_intel_cc = @_ICC_@
+M_intel_CC = @_ICPC_@
 
 ifdef M_intel_CC
-ICC = 1
+ICC = @_ICC_@
+ICPC = @_ICPC_@
 endif
 
 M_pg_cc = @_PGC_@
@@ -65,6 +67,20 @@ AC_DEF 	       = @DEFS@
 
 prefix = @prefix@
 exec_prefix = @exec_prefix@/${PLATFORM}
+libdir ?= @prefix@/lib
+bindir ?= @prefix@/bin
+includedir ?= @prefix@/include
+builddir = @builddir@
+abs_builddir = @abs_builddir@
+top_build_prefix = @top_build_prefix@
+abs_top_builddir = @abs_top_builddir@
+top_srcdir = @top_srcdir@
+srcdir = @srcdir@
+abs_top_srcdir = @abs_top_srcdir@
+abs_srcdir = @abs_srcdir@
+
 LIBRARY_DEST = @libdir@
 PROGRAM_DEST = @bindir@
 INCLUDE_DEST = @includedir@
+
+@TESTSUITE@

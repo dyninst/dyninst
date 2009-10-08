@@ -177,6 +177,8 @@ class Symbol : public Serializable,
    SYMTAB_EXPORT bool setIndex(int index) { index_ = index; return true; }
    SYMTAB_EXPORT int getStrIndex() const { return strindex_; }
    SYMTAB_EXPORT bool setStrIndex(int strindex) { strindex_ = strindex; return true; }
+   SYMTAB_EXPORT void setReferringSymbol (Symbol *referringSymbol);
+   SYMTAB_EXPORT Symbol* getReferringSymbol ();
 
    //////////////// Modification
    SYMTAB_EXPORT bool setOffset (Offset newOffset);
@@ -227,6 +229,7 @@ class Symbol : public Serializable,
    Offset        offset_;
    Offset        ptr_offset_;  // Function descriptor offset.  Not available on all platforms.
    Region*       region_;
+   Symbol* 	 referring_;
    unsigned      size_;  // size of this symbol. This is NOT available on all platforms.
 
    bool          isDynamic_;

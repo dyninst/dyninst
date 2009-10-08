@@ -698,7 +698,8 @@ ia32_instruction& ia32_decode(unsigned int capabilities, const unsigned char* ad
 
 enum dynamic_call_address_mode {
   REGISTER_DIRECT, REGISTER_INDIRECT,
-  REGISTER_INDIRECT_DISPLACED, SIB, DISPLACED
+  REGISTER_INDIRECT_DISPLACED, SIB, DISPLACED, 
+  IP_INDIRECT_DISPLACED
 };
 
 /*

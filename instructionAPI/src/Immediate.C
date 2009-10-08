@@ -30,7 +30,8 @@
  */
 
 #include "Immediate.h"
-#include "singleton_object_pool.h"
+#include "../../common/h/singleton_object_pool.h"
+#include "Visitor.h"
 
 namespace Dyninst
 {
@@ -83,7 +84,10 @@ namespace Dyninst
     {
       return rhs.eval() == eval();
     }
-    
+    void Immediate::apply(Visitor* v)
+    {
+        v->visit(this);
+    }
   
   };
 };

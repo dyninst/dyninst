@@ -102,7 +102,7 @@ class BPATCH_DLL_EXPORT BPatch_loopTreeNode : public BPatch_eventLock {
 
     //Returns a vector of the functions called by this loop.
     API_EXPORT(Int, (v, p),
-    bool, getCallees, (BPatch_Vector<BPatch_function *> &v, BPatch_process *p))
+    bool, getCallees, (BPatch_Vector<BPatch_function *> &v, BPatch_addressSpace *p))
 
     //  BPatch_loopTreeNode::findLoop
     //  find loop by hierarchical name

@@ -59,7 +59,14 @@
 #include "arch.h"
 #include "util.h"
 #include "debug.h"
+
+#if defined(cap_instruction_api)
+#include "InstructionDecoder.h"
+#include "Instruction.h"
+#else
 #include "InstrucIter.h"
+#endif
+
 #include "dyninstAPI/src/emit-x86.h"
 #include "process.h"
 #include "inst-x86.h"
@@ -4233,7 +4240,11 @@ int get_instruction_operand(const unsigned char *ptr, Register& base_reg,
             else if(RM == 5){ //The disp32 field from Table 2-2 of IA guide
                displacement = *( ( const unsigned int * ) ptr );
                ptr+= wordSzB;
-               return DISPLACED;
+               #if defined(arch_x86_64)
+                  return IP_INDIRECT_DISPLACED;
+               #else
+                  return DISPLACED;
+               #endif
             }
             else {
                base_reg = (Register) RM;
@@ -5033,19 +5044,21 @@ bool instruction::generate(codeGen &gen,
       }
       else if (addrSpace->isValidAddress(target)) {
          // Get us an instrucIter
-         InstrucIter callTarget(target, addrSpace);
-         instruction firstInsn = callTarget.getInstruction();
-         callTarget++;
-         instruction secondInsn = callTarget.getInstruction();
-         if (firstInsn.isMoveRegMemToRegMem() &&
-             secondInsn.isReturn()) {
-            // We need to fake this by figuring out the register
+          const unsigned char* buf = reinterpret_cast<const unsigned char*>(addrSpace->getPtrToInstruction(target));
+          InstructionDecoder d(buf, 32);
+          Instruction::Ptr firstInsn = d.decode();
+          Instruction::Ptr secondInsn = d.decode();
+          if(firstInsn && firstInsn->getOperation().getID() == e_mov
+             && firstInsn->readsMemory() && !firstInsn->writesMemory()
+             && secondInsn && secondInsn->getCategory() == c_ReturnInsn)
+          {
+              // We need to fake this by figuring out the register
             // target (assuming we're moving stack->reg),
             // and constructing an immediate with the value of the
             // original address of the call (+size)
             // This was copied from function relocation code... I 
             // don't understand most of it -- bernat
-            const unsigned char *ptr = firstInsn.ptr();
+              const unsigned char *ptr = (const unsigned char*)(firstInsn->ptr());
             unsigned char modrm = *(ptr + 1);
             unsigned char reg = static_cast<unsigned char>((modrm >> 3) & 0x3);
             // Source register... 

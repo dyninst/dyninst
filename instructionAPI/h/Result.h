@@ -69,6 +69,7 @@ namespace Dyninst
       int64_t s48val : 48;
       void * m512val;
       void* dbl128val;
+      void * m14val;
       
     };
     enum Result_Type
@@ -88,7 +89,8 @@ namespace Dyninst
       dp_float,
       // 48-bit pointers...yay Intel
       m512,
-      dbl128
+      dbl128,
+      m14
     };
     
     template < Result_Type t > struct Result_type2type
@@ -171,6 +173,7 @@ namespace Dyninst
     /// - \c bit_flag: a single bit (individual flags)
     /// - \c m512: a 512-bit memory value
     /// - \c dbl128: a 128-bit integer, which often contains packed floating point values
+   /// - \c m14: a 14 byte memory value
     ///
     // The %Instruction API's model of %Results is a simple one, and may seem overly aggressive about
     // making an %Expression's %Result undefined.  It follows the same basic rule as the rest of the API:
@@ -243,6 +246,9 @@ namespace Dyninst
 	  break;
         case dbl128:
 	  val.dbl128val = (void*) v;
+	  break;
+	case m14:
+	  val.m14val = (void*) v;
 	  break;
 	  // Floats should be constructed with float types
 	default:
@@ -320,7 +326,10 @@ namespace Dyninst
 	  return memcmp(val.m512val, o.val.m512val, 512) < 0;
 	  break;
 	case dbl128:
-	  return memcmp(val.dbl128val, o.val.dbl128val, 128) < 0;
+	  return memcmp(val.dbl128val, o.val.dbl128val, 128 / 8) < 0;
+	  break;
+	case m14:
+	  return memcmp(val.m14val, o.val.m14val, 14) < 0;
 	  break;
 	default:
 	  assert(!"Invalid type!");
@@ -399,6 +408,9 @@ namespace Dyninst
 	    break;
      case m512:
         ret << val.m512val;
+        break;
+     case m14:
+        ret << val.m14val;
         break;
      case dbl128:
        ret << val.dbl128val;

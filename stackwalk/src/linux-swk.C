@@ -1451,7 +1451,7 @@ gcframe_ret_t BottomOfStackStepperImpl::getCallerFrame(const Frame &in, Frame & 
    std::vector<std::pair<Address, Address> >::iterator i;
    for (i = ra_stack_tops.begin(); i != ra_stack_tops.end(); i++)
    {
-      if (in.getRA() >= (*i).first && in.getRA() < (*i).second)
+      if (in.getRA() >= (*i).first && in.getRA() <= (*i).second)
          return gcf_stackbottom;
    }
 
@@ -1526,7 +1526,7 @@ void BottomOfStackStepperImpl::initialize()
    for (i = funcs.begin(); i != funcs.end(); i++) {
       Address start = (*i)->getOffset() + aout_libaddr.second;
       Address end = start + (*i)->getSize();
-      sw_printf("[%s:%u] - Adding _start stack bottom [0x%lx, 0x%lx)\n",
+      sw_printf("[%s:%u] - Adding _start stack bottom [0x%lx, 0x%lx]\n",
                 __FILE__, __LINE__, start, end);
       ra_stack_tops.push_back(std::pair<Address, Address>(start, end));
    }
@@ -1537,6 +1537,9 @@ void BottomOfStackStepperImpl::initialize()
 
    LibAddrPair start_thread_libaddr;
    Symtab *start_thread_symtab = NULL;
+
+   LibAddrPair ld_libaddr;
+   Symtab *ld_symtab = NULL;
    
    //Find __clone function in libc
    libs.clear();
@@ -1573,6 +1576,13 @@ void BottomOfStackStepperImpl::initialize()
                       __FILE__, __LINE__, start_thread_libaddr.first.c_str());
             start_thread_symtab = SymtabWrapper::getSymtab(start_thread_libaddr.first);
          }
+         if (strstr((*i).first.c_str(), "ld-"))
+         {
+            ld_libaddr = (*i);
+            sw_printf("[%s:%u] - Looking for _start in %s\n", 
+                      __FILE__, __LINE__, ld_libaddr.first.c_str());
+            ld_symtab = SymtabWrapper::getSymtab(ld_libaddr.first);
+         }
       }
       if (!clone_symtab) {
          sw_printf("[%s:%u] - Looking for clone in a.out\n", __FILE__, __LINE__);
@@ -1586,6 +1596,23 @@ void BottomOfStackStepperImpl::initialize()
       }
    }
 
+   if (ld_symtab) {
+      std::vector<Symbol *> syms;
+      std::vector<Symbol *>::iterator si;
+      result = ld_symtab->findSymbol(syms, "_start");
+      if (result) {
+        for (si = syms.begin(); si != syms.end(); si++)
+        {
+          Address start = (*si)->getOffset() + ld_libaddr.second;
+          // TODO There should be a better way of getting the size.
+          Address end = start + 8;
+          sw_printf("[%s:%u] - Adding ld _start stack bottom [0x%lx, 0x%lx]\n",
+                    __FILE__, __LINE__, start, end);
+          ra_stack_tops.push_back(std::pair<Address, Address>(start, end));
+        }
+      }
+   }
+
    if (clone_symtab) {
       funcs.clear();
       result = clone_symtab->findFunctionsByName(funcs, "__clone");
@@ -1594,7 +1621,7 @@ void BottomOfStackStepperImpl::initialize()
       for (i = funcs.begin(); i != funcs.end(); i++) {
          Address start = (*i)->getOffset() + clone_libaddr.second;
          Address end = start + (*i)->getSize();
-         sw_printf("[%s:%u] - Adding __clone stack bottom [0x%lx, 0x%lx)\n",
+         sw_printf("[%s:%u] - Adding __clone stack bottom [0x%lx, 0x%lx]\n",
                    __FILE__, __LINE__, start, end);
          ra_stack_tops.push_back(std::pair<Address, Address>(start, end));
       }
@@ -1608,7 +1635,7 @@ void BottomOfStackStepperImpl::initialize()
       for (i = funcs.begin(); i != funcs.end(); i++) {
          Address start = (*i)->getOffset() + start_thread_libaddr.second;
          Address end = start + (*i)->getSize();
-         sw_printf("[%s:%u] - Adding start_thread stack bottom [0x%lx, 0x%lx)\n",
+         sw_printf("[%s:%u] - Adding start_thread stack bottom [0x%lx, 0x%lx]\n",
                    __FILE__, __LINE__, start, end);
          ra_stack_tops.push_back(std::pair<Address, Address>(start, end));
       }

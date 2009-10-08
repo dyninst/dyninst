@@ -102,9 +102,11 @@ test_results_t test_mem_6_Mutator::executeTest() {
   if(!res1)
     failtest(testnum, testdesc, "Unable to find function \"loadsnstores\".\n");
 
-  if((*res1).size() != naxses)
-    failtest(testnum, testdesc,
-             "Number of accesses seems wrong in function \"loadsnstores\".\n");
+  if((*res1).size() != naxses) {
+      logerror("Expected %d accesses, got %d\n", naxses, (*res1).size());
+      failtest(testnum, testdesc,
+               "Number of accesses seems wrong in function \"loadsnstores\".\n");
+  }
 
   //logerror("Doing test %d!!!!!!\n", testnum);
   if (instByteCnt(appThread, "ByteCnt", res1, false) < 0) {

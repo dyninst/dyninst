@@ -332,7 +332,7 @@ enum {
 #endif
 
 
-void ia32_set_mode_64(bool mode);
+INSTRUCTION_EXPORT void ia32_set_mode_64(bool mode);
 INSTRUCTION_EXPORT bool ia32_is_mode_64();
 
 // addressing methods (see appendix A-2)
@@ -346,7 +346,8 @@ enum { am_A=1, am_C, am_D, am_E, am_F, am_G, am_I, am_J, am_M, am_O, // 10
 
 // operand types - idem, but I invented quite a few to make implicit operands explicit.
 enum { op_a=1, op_b, op_c, op_d, op_dq, op_p, op_pd, op_pi, op_ps, // 9 
-       op_q, op_s, op_sd, op_ss, op_si, op_v, op_w, op_z, op_lea, op_allgprs, op_512 };
+       op_q, op_s, op_sd, op_ss, op_si, op_v, op_w, op_z, op_lea, op_allgprs, op_512,
+       op_f, op_dbl, op_14, op_28};
 
 
 // tables and pseudotables
@@ -707,7 +708,8 @@ INSTRUCTION_EXPORT ia32_instruction& ia32_decode(unsigned int capabilities, cons
 
 enum dynamic_call_address_mode {
   REGISTER_DIRECT, REGISTER_INDIRECT,
-  REGISTER_INDIRECT_DISPLACED, SIB, DISPLACED
+  REGISTER_INDIRECT_DISPLACED, SIB, DISPLACED,
+  IP_INDIRECT_DISPLACED
 };
 
 /*

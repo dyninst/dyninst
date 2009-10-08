@@ -45,6 +45,7 @@
 #include "BPatch_Vector.h"
 #include "BPatch_sourceObj.h"
 #include "BPatch_eventLock.h"
+#include "dyntypes.h"
 #include <vector>
 #include <map>
 #if defined(IBM_BPATCH_COMPAT)
@@ -244,6 +245,9 @@ public:
     // of the first function.
     API_EXPORT(Int, (),
     void *,getBaseAddr,(void));
+
+    API_EXPORT(Int, (),
+               Dyninst::Address, getLoadAddr, (void));
 
     // BPatch_module::getSize
     // Returns the size of the module; defined as the end of the last

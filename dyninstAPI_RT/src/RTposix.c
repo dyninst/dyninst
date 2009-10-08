@@ -128,9 +128,7 @@ int DYNINSTasyncConnect(int pid)
 #if defined (cap_async_events)
 
   int sock_fd;
-  int err = 0;
   struct sockaddr_un sadr;
-  rtBPatch_asyncEventRecord ev;
    int res;
    int mutatee_pid;
    uid_t euid;

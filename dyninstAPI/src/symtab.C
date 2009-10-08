@@ -976,8 +976,8 @@ int image::destroy() {
 void image::enterFunctionInTables(image_func *func) {
     if (!func) return;
 
-    parsing_printf("[%s:%u] entering function at 0x%lx (%s) (%p) in tables\n",
-        FILE__,__LINE__,func->getOffset(),func->symTabName().c_str(),func);
+    parsing_printf("[%s:%u] entering function at 0x%lx (%s) in tables\n",
+        FILE__,__LINE__,func->getOffset(),func->symTabName().c_str());
 
     funcsByEntryAddr[func->getOffset()] = func;
    
@@ -1692,8 +1692,9 @@ void *image::getPtrToData(Address offset) const {
 // return a pointer to the instruction at address adr
 void *image::getPtrToInstruction(Address offset) const 
 {
-   if (!isValidAddress(offset))
-      return NULL;
+    // isCode and isData cover this already, no point in duplicating effort
+//   if (!isValidAddress(offset))
+//      return NULL;
 
    if (isCode(offset)) {
       Region *reg = linkedFile->findEnclosingRegion(offset);

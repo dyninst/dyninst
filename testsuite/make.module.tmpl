@@ -150,7 +150,7 @@ dyninst_COMPONENT_LIB = $(LIBDYNINSTCOMP)
 #######################################################
 SRCS_SYMTABCOMP_LIB = symtab/symtab_comp.C
 OBJS_SYMTABCOMP_LIB = $(notdir $(SRCS_SYMTABCOMP_LIB:%.C=%.o))
-symtab_MUTATOR_FLAGS = -L. -ltestsymtab -lsymtabAPI -lcommon
+symtab_MUTATOR_FLAGS = -L. -ltestsymtab -lcommon
 
 ifdef USE_LIBTESTSUITE_EXT_A
 LIBSYMTABCOMP = libtestsymtab.a
@@ -215,7 +215,7 @@ CXXTFLAGS := $(filter-out -fno-implicit-templates, $(CXXFLAGS))
 ###  High level targets
 #######################################################################
 
-MUTATOR_LDFLAGS := -L. -ltestSuite $(LIBDIR) $(MUTATOR_LIBS) $(MUTATOR_LDFLAGS) -lpthread
+MUTATOR_LDFLAGS := $(LIBDIR) $(MUTATOR_LIBS) $(MUTATOR_LDFLAGS) -lpthread
 MUTATOR_SO_LDFLAGS = $(filter-out -liberty, $(MUTATOR_LDFLAGS))
 
 
@@ -458,7 +458,7 @@ test_driver_static.o: ../src/test_driver.C $(DEPENDDIR)/test_driver_static.dep
 	$(CXX) -c -o $@ -DSTATIC_TEST_DRIVER $(CXXFLAGS) $(MUTATEE_DEFS) ../src/test_driver.C
 
 test_driver: test_driver.o test_driver_templates.o test_info_new.gen.o $(DEPENDDIR)/test_driver.dep $(LIBTESTSUITE)
-	$(CXX) -o $@ test_driver.o test_driver_templates.o test_info_new.gen.o $(MUTATOR_LDFLAGS) $(LIBS) $(TESTDRIVER_LDFLAGS)
+	$(CXX) -o $@ test_driver.o test_driver_templates.o test_info_new.gen.o -L. -ltestSuite $(MUTATOR_LDFLAGS) $(LIBS) $(TESTDRIVER_LDFLAGS)
 
 ######################################################################
 ### Output Drivers
@@ -469,8 +469,8 @@ OUTPUT_DRIVERS = DatabaseOutputDriver.so
 DatabaseOutputDriver.o : ../src/DatabaseOutputDriver.C # $(DEPENDDIR)/DatabaseOutputDriver.dep
 	$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/$*.C
 
-DatabaseOutputDriver.so: DatabaseOutputDriver.o # $(DEPENDDIR)/DatabaseOutputDriver.dep
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS)
+DatabaseOutputDriver.so: DatabaseOutputDriver.o $(LIBTESTSUITE) # $(DEPENDDIR)/DatabaseOutputDriver.dep
+	$(CXX) -o $@ -shared $(filter %.o,$^) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -L. -ltestSuite
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@

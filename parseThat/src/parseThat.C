@@ -363,7 +363,7 @@ void parseArgs(int argc, char **argv)
 
    int i = 0;
    while (++i < argc && *argv[i] == '-') {
-      const char *ptr = argv[i];
+     char *ptr = argv[i];
       while (*(++ptr)) {
          switch (*ptr) {
             case 'a':

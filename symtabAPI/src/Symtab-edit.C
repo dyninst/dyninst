@@ -243,6 +243,8 @@ bool Symtab::addSymbol(Symbol *newSym, Symbol *referringSymbol)
     if (!newSym->isInDynSymtab())
         return false;
 
+    newSym->setReferringSymbol(referringSymbol);
+
     string filename = referringSymbol->getModule()->exec()->name();
     vector<string> *vers, *newSymVers = new vector<string>;
     newSym->setVersionFileName(filename);

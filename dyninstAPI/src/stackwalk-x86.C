@@ -166,8 +166,12 @@ static bool isPrevInstrACall(Address addr, process *p, int_function **callee)
 
      // Argh. We need to check for each call site in each
      // instantiation of the function.
+#if defined(cap_instruction_api)     
+     if (site->match(addr - site->insn()->size())) {
+#else
      if (site->match(addr - site->insn().size())) {
-        *callee = site->findCallee();
+#endif         
+    *callee = site->findCallee();
         return true;
      }
    }   

@@ -108,7 +108,7 @@ BPatch_loopTreeNode::findLoopInt(const char *name)
 }
 
 bool BPatch_loopTreeNode::getCalleesInt(BPatch_Vector<BPatch_function *> &v,
-                                        BPatch_process *p)
+                                        BPatch_addressSpace *p)
 {
    for (unsigned i=0; i<callees.size(); i++) {
       //  get() will not allocate a NULL entry in the map

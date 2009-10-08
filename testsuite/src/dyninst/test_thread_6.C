@@ -195,7 +195,6 @@ static void newthr(BPatch_process *my_proc, BPatch_thread *thr)
    {
       logerror("[%s:%d] - WARNING: Thread %d has no stack\n",
               __FILE__, __LINE__, my_dyn_id);
-      error13 = 1;
    }
    else
    {
@@ -204,7 +203,6 @@ static void newthr(BPatch_process *my_proc, BPatch_thread *thr)
          {
             logerror("[%s:%d] - WARNING: Thread %d and %d share a stack at %lx\n",
                     __FILE__, __LINE__, my_dyn_id, i, my_stack);
-            error13 = 1;
          }
    }
    stack_addrs[my_dyn_id] = my_stack;
