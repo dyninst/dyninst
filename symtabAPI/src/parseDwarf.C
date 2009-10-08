@@ -1105,6 +1105,11 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
   fieldListType * newEnclosure = currentEnclosure;
 
   Object *elfobj = objFile->getObject();
+  if (!elfobj)
+  {
+	  fprintf(stderr, "%s[%d]:  requested object does not exist!\n", FILE__, __LINE__);
+	  return false;
+  }
 
   bool parsedChild = false;
 

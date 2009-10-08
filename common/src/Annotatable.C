@@ -45,10 +45,12 @@
 #include "dynutil/h/dyntypes.h"
 #include "dynutil/h/Annotatable.h"
 #include "dynutil/h/Serialization.h"
+#include "common/h/serialize.h"
 
 using namespace Dyninst;
 
 COMMON_EXPORT AnnotatableSparse::annos_t AnnotatableSparse::annos;
+COMMON_EXPORT dyn_hash_map<void *, unsigned short> AnnotatableSparse::ser_ndx_map;
 
 namespace Dyninst {
 
@@ -60,12 +62,14 @@ bool void_ptr_cmp_func(void *v1, void *v2)
 }
 };
 
-std::vector<AnnotationClassBase *> *AnnotationClassBase::annotation_types;
-dyn_hash_map<std::string, AnnotationClassID> *AnnotationClassBase::annotation_ids_by_name;
+std::vector<AnnotationClassBase *> *AnnotationClassBase::annotation_types = NULL;
+dyn_hash_map<std::string, AnnotationClassID> *AnnotationClassBase::annotation_ids_by_name = NULL;
 
-AnnotationClassBase::AnnotationClassBase(std::string n, anno_cmp_func_t cmp_func_) :
+AnnotationClassBase::AnnotationClassBase(std::string n, 
+		anno_cmp_func_t cmp_func_, 
+		ser_func_t sf_) :
    name(n),
-   serialize_func(NULL)
+   serialize_func(sf_)
 {
     // Using a static vector led to the following pattern on AIX:
     //   dyninstAPI static initialization
@@ -95,18 +99,25 @@ AnnotationClassBase::AnnotationClassBase(std::string n, anno_cmp_func_t cmp_func
    {
       id = iter->second;
    }
+
+   if (id >= annotation_types->size())
+	   assert(0 && "bad anno id");
 }
 
 Dyninst::AnnotationClassBase* AnnotationClassBase::findAnnotationClass(unsigned int id)
 {
 	if(id > annotation_types->size())
 	{
-		fprintf(stderr, "%s[%d]:  cannot find annotation class base for id %d, max is %d\n", FILE__, __LINE__, id, annotation_types->size() -1);
+		fprintf(stderr, "%s[%d]:  cannot find annotation class base for id %lu, max is %d\n", FILE__, __LINE__, id, annotation_types->size() -1);
 		return NULL;
 	}
 	if (NULL == (*annotation_types)[id])
 	{
 		fprintf(stderr, "%s[%d]:  FIXME:  have NULL slot\n", FILE__, __LINE__);
+	}
+	if ((*annotation_types)[id]->getID() != id)
+	{
+		fprintf(stderr, "%s[%d]:  FIXME:  have bad id in annotation class: %d, not %d\n", FILE__, __LINE__, (*annotation_types)[id]->getID(), id);
 	}
 	return (*annotation_types)[id];
 }
@@ -532,7 +543,8 @@ bool is_output(SerializerBase *sb)
 }
 bool serialize_annotation_list(void *id, std::vector<ser_rec_t> &sers, SerializerBase *sb, const char *tag)
 {
-	fprintf(stderr, "%s[%d]:  welcome to serialize_annotation_list, size %d, id = %p\n", FILE__, __LINE__, sers.size(), id);
+	if (sers.size())
+		fprintf(stderr, "%s[%d]:  welcome to serialize_annotation_list, size %lu, id = %p\n", FILE__, __LINE__, sers.size(), id);
 	assert(sb);
 	assert(id);
 	try {
@@ -546,9 +558,32 @@ bool serialize_annotation_list(void *id, std::vector<ser_rec_t> &sers, Serialize
 	return true;
 }
 
+bool serialize_post_annotation(void *parent, void *anno, SerializerBase *sb, AnnotationClassBase *acb, sparse_or_dense_anno_t sod, const char *tag)
+{
+	fprintf(stderr, "%s[%d]:  welcome to serialize_post_annotation_list, id = %p\n", 
+			FILE__, __LINE__, parent);
+	assert(parent);
+	assert(anno);
+	if (!sb)
+	{
+		fprintf(stderr, "%s[%d]:  no existing output serializer\n", FILE__, __LINE__);
+		return true;
+	}
+	try {
+		sb->serialize_post_annotation(parent, anno, acb, sod, tag);
+	}
+	catch (const SerializerError &err)
+	{
+		fprintf(stderr, "%s[%d]:  serializer error translating annotations\n", FILE__, __LINE__);
+		return false;
+	}
+	return true;
+}
+
 bool add_annotations(SerializerBase *sb, AnnotatableSparse *an, std::vector<ser_rec_t> &sers)
 {
-	fprintf(stderr, "%s[%d]:  welcome to addAnnotations: got %d\n", FILE__, __LINE__, sers.size());
+	if (sers.size())
+		fprintf(stderr, "%s[%d]:  welcome to addAnnotations: got %lu\n", FILE__, __LINE__, sers.size());
 	//  if we are not doing deserialization, there is nothing to do here, just return true
 	//  to keep from triggering error handling.
 	if (sb->isOutput())
@@ -569,6 +604,8 @@ bool add_annotations(SerializerBase *sb, AnnotatableSparse *an, std::vector<ser_
 			err = true;
 			continue;
 		}
+		fprintf(stderr, "%s[%d]:  adding pre annotation: %p, parent = %p\n", FILE__, __LINE__, sr.data, an);
+
 		if (!an->addAnnotation(sr.data, sr.acb->getID()))
 		{
 			fprintf(stderr, "%s[%d]:  failed to add deserialized annotation here\n", FILE__, __LINE__);
@@ -579,7 +616,7 @@ bool add_annotations(SerializerBase *sb, AnnotatableSparse *an, std::vector<ser_
 }
 bool add_annotations(SerializerBase *sb, AnnotatableDense *an, std::vector<ser_rec_t> &sers)
 {
-	fprintf(stderr, "%s[%d]:  welcome to addAnnotations: got %d\n", FILE__, __LINE__, sers.size());
+	fprintf(stderr, "%s[%d]:  welcome to addAnnotations: got %lu\n", FILE__, __LINE__, sers.size());
 	//  if we are not doing deserialization, there is nothing to do here, just return true
 	//  to keep from triggering error handling.
 	if (sb->isOutput())
@@ -600,6 +637,7 @@ bool add_annotations(SerializerBase *sb, AnnotatableDense *an, std::vector<ser_r
 			err = true;
 			continue;
 		}
+		fprintf(stderr, "%s[%d]:  adding pre annotation\n", FILE__, __LINE__);
 		if (!an->addAnnotation(sr.data, sr.acb->getID()))
 		{
 			fprintf(stderr, "%s[%d]:  failed to add deserialized annotation here\n", FILE__, __LINE__);

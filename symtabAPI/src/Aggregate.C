@@ -422,7 +422,7 @@ void Aggregate::restore_module_by_name(SerializerBase *sb,
 	if (!st->findModuleByName(module_, mname) || !(module_))
 	{
 		//  This should probably throw, but let's play nice for now
-		fprintf(stderr, "%s[%d]:  FIXME: aggregate w/out module\n", FILE__, __LINE__);
+		fprintf(stderr, "%s[%d]:  FIXME: aggregate w/out module: %s\n", FILE__, __LINE__, mname.c_str());
 	}
 }
 
@@ -459,25 +459,25 @@ void Aggregate::rebuild_symbol_vector(SerializerBase *sb,
 
 	if (!st)
 	{
-		//fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
 		SER_ERR("FIXME");
 	}
 
 	if (!sym_offsets)
 	{
 		//  can't have any aggregates w/out symbols
-		//fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
 		SER_ERR("FIXME");
 	}
 
 	if (!sym_offsets->size())
 	{
 		//  can't have any aggregates w/out symbols
-		//fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
 		SER_ERR("FIXME");
 	}
 
-	symbols_.resize(sym_offsets->size());
+	//symbols_.resize(sym_offsets->size());
 
 	for (unsigned int i = 0; i < sym_offsets->size(); ++i)
 	{
@@ -486,16 +486,26 @@ void Aggregate::rebuild_symbol_vector(SerializerBase *sb,
 		if (!syms)
 		{
 			//  Should throw here, but for now let's just scream
-			//fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+			fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
 		}
 		else
 		{
-			if (syms->size() > 1)
+			//  Not sure if we should interpret multiple symbols sharing that same offset
+			//  as an error (probably not)
+			for (unsigned int i = 0; i < syms->size(); ++i)
 			{
-				//fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+				Symbol *s = (*syms)[i];
+				assert(s);
+				symbols_.push_back(s);
+				if (!s->aggregate_)
+				{
+					s->aggregate_ = this;
+				}
+				else
+				{
+					fprintf(stderr, "%s[%d]:  WARNING:  symbol %s already has aggregate!!\n", FILE__, __LINE__, s->getName().c_str());
+				}
 			}
-
-			symbols_[i] = (*syms)[0];
 		}
 
 	}

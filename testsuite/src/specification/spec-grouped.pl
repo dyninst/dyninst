@@ -2117,6 +2117,7 @@ mutator('test_lookup_var', ['test_lookup_var.C']).
 test_runmode('test_lookup_var', 'createProcess').
 test_start_state('test_lookup_var', 'stopped').
 tests_module('test_lookup_var', 'symtab').
+test_serializable('test_lookup_var').
 
 test('test_line_info', 'test_line_info', 'symtab_group_test').
 test_description('test_line_info', 'SymtabAPI Line Information').

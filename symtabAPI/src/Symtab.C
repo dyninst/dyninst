@@ -573,7 +573,13 @@ bool Symtab::fixSymModules(std::vector<Symbol *> &raw_syms)
     for (unsigned i = 0; i < raw_syms.size(); i++) {
         fixSymModule(raw_syms[i]);
     }
-    const std::vector<std::pair<std::string, Offset> > &mods = getObject()->modules_;
+	Object *obj = getObject();
+	if (!obj)
+	{
+		fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
+		return false;
+	}
+    const std::vector<std::pair<std::string, Offset> > &mods = obj->modules_;
     for (unsigned i=0; i< mods.size(); i++) {
        getOrCreateModule(mods[i].first, mods[i].second);
     }
@@ -642,7 +648,13 @@ bool Symtab::fixSymModule(Symbol *&sym)
         mod = getDefaultModule();
     }
     else {
-        std::string modName = getObject()->findModuleForSym(sym);
+		Object *obj = getObject();
+		if (!obj)
+		{
+			fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
+			return false;
+		}
+        std::string modName = obj->findModuleForSym(sym);
         if (modName.length() == 0) {
             mod = getDefaultModule();
         }
@@ -1297,7 +1309,13 @@ bool Symtab::extractInfo(Object *linkedFile)
         serr = Syms_To_Functions;
         return false;
     }
-    getObject()->clearSymsToMods();
+	Object *obj = getObject();
+	if (!obj)
+	{
+		fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
+		return false;
+	}
+    obj->clearSymsToMods();
 
     // wait until all modules are defined before applying languages to
     // them we want to do it this way so that module information comes
@@ -1599,8 +1617,17 @@ bool Symtab::exportXML(string file)
 #if defined (cap_serialization)
    try 
    {
+	   SerContext<Symtab> *scs = new SerContext<Symtab>(this);
+	   serialize(file, scs, ser_xml);
+#if 0
+	   SerContext<Symtab> *scs = new SerContext<Symtab>(this);
+	   SerializerXML *ser = new SerializerXML(scs, "XMLTranslator", file, sd_serialize, true);
+	   serialize(ser, "Symtab");
+#endif
+#if 0
       SerializerXML sb("XMLTranslator", file, sd_serialize, true);
       serialize(&sb, "Symtab");
+#endif
    } 
    catch (const SerializerError &err) 
    {
@@ -1618,11 +1645,43 @@ bool Symtab::exportXML(string file)
 #if defined (cap_serialization)
 bool Symtab::exportBin(string file)
 {
+#if 0
+	char *ser_env = getenv(SERIALIZE_CONTROL_ENV_VAR);
+	if (!ser_env)
+	{
+		fprintf(stderr, "%s[%d]:  serialization not enabled\n", FILE__, __LINE__);
+		return false;
+	}
+	if (!strcmp(ser_env, SERIALIZE_DISABLE)) 
+	{
+		fprintf(stderr, "%s[%d]:  serialization is disabled\n", FILE__, __LINE__);
+		return false;
+	}
+#endif
+#if 0
+	   std::string ser_name = file + std::string("_SymtabSerializer");
+      bool verbose = false;
+	  fprintf(stderr, "%s[%d]:  about to create serializer '%s' for file %s\n", FILE__, __LINE__, ser_name.c_str(), file.c_str());
+	  SerializerBase *ser = newSerializer(this, ser_name, file, ser_bin, sd_serialize, verbose);
+	  if (!ser)
+	  {
+		  //  newSerializer does checks on whether serialization is disabled, so we need to
+		  //  fail cleanly here in case it is simply disabled by the nev.
+		  fprintf(stderr, "%s[%d]:  failed to create serializer\n", FILE__, __LINE__);
+		  return false;
+	  }
+#endif
+#if 0
    try
    {
       //  This needs some work (probably want to do object cacheing and retrieval)
+#if 0
       SerializerBin sb("BinSerializer", file, sd_serialize, true);
       serialize(&sb, "Symtab");
+#endif
+	   SerContext<Symtab> *scs = new SerContext<Symtab>(this);
+	   SerializerBin *ser = new SerializerBin(scs, "BinTranslator", file, sd_serialize, true);
+	   serialize(ser, "Symtab");
 
       fprintf(stderr, "%s[%d]:  binary serialization ok\n", __FILE__, __LINE__);
       return true;
@@ -1641,6 +1700,38 @@ bool Symtab::exportBin(string file)
                err.what(), err.file().c_str(), err.line(), err.code());
       }
    }
+#endif
+   try
+   {
+	   SerContext<Symtab> *scs = new SerContext<Symtab>(this);
+	   serialize(file, scs, ser_bin);
+#if 0
+	   this->serialize(ser, "Symtab");
+#endif
+	   return true;
+#if 0
+	   SerContext<Symtab> *scs = new SerContext<Symtab>(st);
+	   SerializerBin *ser = new SerializerBin(scs, ser_name, file, sd_deserialize, true);
+	   st->serialize(ser, "Symtab");
+#endif
+#if 0
+      SerializerBin sb("BinTranslator", file, sd_deserialize, true);
+      st->serialize(&sb);
+#endif
+   }
+
+   catch (const SerializerError &err)
+   {
+      if (err.code() == SerializerError::ser_err_disabled) 
+      {
+         fprintf(stderr, "%s[%d]:  WARN:  serialization is disabled for file %s\n",
+               FILE__, __LINE__, file.c_str());
+         return false;
+      }
+
+      fprintf(stderr, "%s[%d]: %s\n\tfrom: %s[%d]\n", FILE__, __LINE__,
+            err.what(), err.file().c_str(), err.line());
+   }
 
    fprintf(stderr, "%s[%d]:  error doing binary serialization\n", __FILE__, __LINE__);
    return false;
@@ -1656,6 +1747,25 @@ bool Symtab::exportBin(string)
 Symtab *Symtab::importBin(std::string file)
 {
 #if defined (cap_serialization)
+	fprintf(stderr, "%s[%d]:  welcome to importBin\n", FILE__, __LINE__);
+#if 0
+	char *ser_env = getenv(SERIALIZE_CONTROL_ENV_VAR);
+	if (!ser_env)
+	{
+		fprintf(stderr, "%s[%d]:  serialization not enabled\n", FILE__, __LINE__);
+		return NULL;
+	}
+	if (!strcmp(ser_env, SERIALIZE_DISABLE)) 
+	{
+		fprintf(stderr, "%s[%d]:  serialization is disabled\n", FILE__, __LINE__);
+		return NULL;
+	}
+	if (!strcmp(ser_env, SERIALIZE_ONLY)) 
+	{
+		fprintf(stderr, "%s[%d]:  deserialization not enabled: %s=%s\n", FILE__, __LINE__, SERIALIZE_CONTROL_ENV_VAR, ser_env);
+		return NULL;
+	}
+#endif
    MappedFile *mf= MappedFile::createMappedFile(file);
    if (!mf) 
    {
@@ -1665,12 +1775,42 @@ Symtab *Symtab::importBin(std::string file)
 
    Symtab *st = new Symtab(mf);
 
+#if 0
+	   std::string ser_name = file + std::string("_SymtabDeserializer");
+      bool verbose = false;
+      if (strstr(file.c_str(), "ld-")) 
+		  verbose = true;
+	  fprintf(stderr, "%s[%d]:  about to create deserializer '%s' for file %s\n", FILE__, __LINE__, ser_name.c_str(), file.c_str());
+	  SerializerBase *ser = newSerializer(st, ser_name, file, ser_bin, sd_deserialize, verbose);
+	  if (!ser)
+	  {
+		  //  newSerializer does checks on whether serialization is disabled, so we need to
+		  //  fail cleanly here in case it is simply disabled by the nev.
+		  fprintf(stderr, "%s[%d]:  failed to create serializer\n", FILE__, __LINE__);
+		  return NULL;
+	  }
+#endif
    try
    {
-      bool verbose = false;
-      if (strstr(file.c_str(), "ld-")) verbose = true;
+	   SerContext<Symtab> *scs = new SerContext<Symtab>(st);
+	   if (!st->deserialize(file, scs))
+	   {
+		   delete st;
+		   return NULL;
+	   }
+#if 0
+	   st->serialize(ser, "Symtab");
+#endif
+	   return st;
+#if 0
+	   SerContext<Symtab> *scs = new SerContext<Symtab>(st);
+	   SerializerBin *ser = new SerializerBin(scs, ser_name, file, sd_deserialize, true);
+	   st->serialize(ser, "Symtab");
+#endif
+#if 0
       SerializerBin sb("BinTranslator", file, sd_deserialize, true);
       st->serialize(&sb);
+#endif
    }
 
    catch (const SerializerError &err)
@@ -1729,6 +1869,37 @@ bool Symtab::openFile(Symtab *&obj, char *mem_image, size_t size)
     return !err;
 }
 
+void Symtab::closeSymtab(Symtab *st)
+{
+	assert(st);
+	int numSymtabs = allSymtabs.size();
+
+	for (int i=(numSymtabs -1); i > 0; --i) 
+	{
+		assert(allSymtabs[i]);
+		if (allSymtabs[i] == st)
+		{
+			allSymtabs.erase(allSymtabs.begin()+i);
+			delete st;
+		}
+	}   
+}
+
+Symtab *Symtab::findOpenSymtab(std::string filename)
+{
+   unsigned numSymtabs = allSymtabs.size();
+	for (unsigned u=0; u<numSymtabs; u++) 
+	{
+		assert(allSymtabs[u]);
+		if (filename == allSymtabs[u]->file()) 
+		{
+			// return it
+			return allSymtabs[u];
+		}
+	}   
+	return NULL;
+}
+
 bool Symtab::openFile(Symtab *&obj, std::string filename)
 {
    bool err = false;
@@ -1736,24 +1907,20 @@ bool Symtab::openFile(Symtab *&obj, std::string filename)
    struct timeval starttime;
    gettimeofday(&starttime, NULL);
 #endif
-   unsigned numSymtabs = allSymtabs.size();
 
    // AIX: it's possible that we're reparsing a file with better information
    // about it. If so, yank the old one out of the allSymtabs std::vector -- replace
    // it, basically.
    if ( filename.find("/proc") == std::string::npos)
    {
-      for (unsigned u=0; u<numSymtabs; u++) 
-      {
-         assert(allSymtabs[u]);
-         if (filename == allSymtabs[u]->file()) 
-         {
-            // return it
-            obj = allSymtabs[u];
-            return true;
-         }
-      }   
+	   obj = findOpenSymtab(filename);
+	   if (obj)
+	   {
+		   fprintf(stderr, "%s[%d]:  have existing symtab obj for %s\n", FILE__, __LINE__, filename.c_str());
+		   return true;
    }
+   }
+
 
 #if defined (cap_serialization)
    obj = importBin(filename);
@@ -1915,7 +2082,13 @@ void Symtab::parseLineInformation()
 {
    dyn_hash_map<std::string, LineInformation> *lineInfo = new dyn_hash_map <std::string, LineInformation>;
 
+
    Object *linkedFile = getObject();
+	if (!linkedFile)
+	{
+		fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
+		return;
+	}
    linkedFile->parseFileLineInfo(this, *lineInfo);
 
    isLineInfoValid_ = true;	
@@ -2039,6 +2212,11 @@ SYMTAB_EXPORT bool Symtab::addAddressRange( Offset lowInclusiveAddr, Offset high
 void Symtab::parseTypes()
 {
    Object *linkedFile = getObject();
+	if (!linkedFile)
+	{
+		fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
+		return;
+	}
    linkedFile->parseTypeInfo(this);
    isTypeInfoValid_ = true;
 }
@@ -2225,7 +2403,13 @@ SYMTAB_EXPORT bool Symtab::emitSymbols(Object *linkedFile,std::string filename, 
 
 SYMTAB_EXPORT bool Symtab::emit(std::string filename, unsigned flag)
 {
-    return emitSymbols(getObject(), filename, flag);
+	Object *obj = getObject();
+	if (!obj)
+	{
+		fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
+		return false;
+	}
+    return emitSymbols(obj, filename, flag);
 }
 
 SYMTAB_EXPORT void Symtab::addDynLibSubstitution(std::string oldName, std::string newName)
@@ -2312,7 +2496,11 @@ SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size)
    Offset prevSecoffset = 0;
 
    Object *linkedFile = getObject();
-   assert(linkedFile);
+	if (!linkedFile)
+	{
+		fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
+		return 0;
+	}
 
    for (unsigned i = 0; i < regions_.size(); i++) 
    {
@@ -2364,9 +2552,14 @@ SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size)
    }
 
    //   return highWaterMark;
-
 #if defined (os_windows)
-	unsigned pgSize = getObject()-> getSecAlign();
+	Object *obj = getObject();
+	if (!obj)
+	{
+		fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
+		return 0;
+	}
+	unsigned pgSize = obj->getSecAlign();
 	//printf("pgSize:0x%x\n", pgSize);
 	Offset newaddr = highWaterMark  - (highWaterMark & (pgSize-1));
 	while(newaddr < highWaterMark)
@@ -2441,8 +2634,48 @@ bool Symtab::fixup_relocation_symbols(SerializerBase *, Symtab *st)
    return true;
 }
 
+void Symtab::rebuild_symbol_hashes()
+{
+	for (unsigned int i = 0; i < everyDefinedSymbol.size(); ++i)
+	{
+		Symbol *s = everyDefinedSymbol[i];
+		assert(s);
+			const std::string &pn = s->getPrettyName();
+			const std::string &mn = s->getMangledName();
+			const std::string tn = s->getTypedName();
+			
+			symsByPrettyName[pn].push_back(s);
+			symsByMangledName[mn].push_back(s);
+			symsByTypedName[tn].push_back(s);
+			symsByOffset[s->getOffset()].push_back(s);
+	}
+}
+
+void Symtab::rebuild_funcvar_hashes()
+{
+	for (unsigned int i = 0; i < everyFunction.size(); ++i)
+	{
+		Function *f = everyFunction[i];
+		funcsByOffset[f->getOffset()] = f;
+	}
+	for (unsigned int i = 0; i < everyVariable.size(); ++i)
+	{
+		Variable *v = everyVariable[i];
+		varsByOffset[v->getOffset()] = v;
+	}
+}
+void Symtab::rebuild_module_hashes()
+{
+	for (unsigned int i = 0; i < _mods.size(); ++i)
+	{
+		Module *m = _mods[i];
+		modsByFileName[m->fileName()] = m;
+		modsByFullName[m->fullName()] = m;
+	}
+}
 void Symtab::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
+	fprintf(stderr, "%s[%d]:  welcome to Symtab::serialize_impl\n", FILE__, __LINE__);
    try 
    {
       ifxml_start_element(sb, tag);
@@ -2452,7 +2685,30 @@ void Symtab::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (Ser
       gtranslate(sb, dataLen_, "dataLen");
       gtranslate(sb, is_a_out, "isExec");
       gtranslate(sb, _mods, "Modules", "Module");
-      //gtranslate(sb, everyUniqueFunction, "EveryUniqueFunction", "UniqueFunction");
+	  if (is_input(sb))
+	  {
+		  //  need to rebuild module hashes before deserializing higher level stuff
+		  // (Aggregates, Functions, Variables, which lookup modules by name)
+		  rebuild_module_hashes();
+
+		  //  problem:  if isTypeInfoValid_ is not true, we can trigger type parsing
+		  //  for an object class that does not exist.  Need to introduce logic to 
+		  //  recreate the object in this case
+		  isTypeInfoValid_ = true;
+	  }
+      gtranslate(sb, everyDefinedSymbol, "EveryDefinedSymbol", "Symbol");
+	  if (is_input(sb))
+	  {
+		  //  need to rebuild symbol hashes before deserializing higher level stuff
+		  // (Aggregates, Functions, Variables, which lookup symbols by offset)
+		  rebuild_symbol_hashes();
+	  }
+      gtranslate(sb, everyFunction, "EveryFunction", "Function");
+      gtranslate(sb, everyVariable, "EveryVariable", "Variable");
+	  if (is_input(sb))
+	  {
+		  rebuild_funcvar_hashes();
+	  }
       //gtranslate(sb, everyUniqueVariable, "EveryUniqueVariable", "UniqueVariable");
       //gtranslate(sb, modSyms, "ModuleSymbols", "ModuleSymbol");
       gtranslate(sb, excpBlocks, "ExceptionBlocks", "ExceptionBlock");
@@ -2468,6 +2724,7 @@ void Symtab::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (Ser
       //if (getSD().iomode() == sd_deserialize)
       //   param.exec_ = parent_symtab;
    } SER_CATCH("Symtab");
+	fprintf(stderr, "%s[%d]:  leaving Symtab::serialize_impl\n", FILE__, __LINE__);
 }
 
 SYMTAB_EXPORT LookupInterface::LookupInterface() 
@@ -2810,7 +3067,14 @@ const char *Symbol::symbolVisibility2Str(SymbolVisibility t)
 
 bool Symtab::hasStackwalkDebugInfo()
 {
-   return getObject()->hasFrameDebugInfo();
+
+	Object *obj = getObject();
+	if (!obj)
+	{
+		fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
+		return false;
+	}
+   return obj->hasFrameDebugInfo();
 }
 
 bool Symtab::getRegValueAtFrame(Address pc, 
@@ -2818,7 +3082,13 @@ bool Symtab::getRegValueAtFrame(Address pc,
                                 Dyninst::MachRegisterVal &reg_result,
                                 MemRegReader *reader)
 {
-   return getObject()->getRegValueAtFrame(pc, reg, reg_result, reader);
+	Object *obj = getObject();
+	if (!obj)
+	{
+		fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
+		return false;
+	}
+   return obj->getRegValueAtFrame(pc, reg, reg_result, reader);
 }
 
 Object *Symtab::getObject()
@@ -2831,9 +3101,10 @@ Object *Symtab::getObject()
    // the on disk object.  We should create a new 'Object' from data
    // (likely a file path) serialized in.
    
-   assert(0);
+   fprintf(stderr, "%s[%d]:  FIXME:  request for object that does not exist!\n", FILE__, __LINE__);
+   return NULL;
    //obj_private = new Object();
-   return obj_private;
+   //return obj_private;
 }
 
 void Symtab::parseTypesNow()
@@ -2906,7 +3177,13 @@ SYMTAB_EXPORT void nonpublic_free_bin_symtab_serializer(SerializerBase *sb)
 SYMTAB_EXPORT Offset Symtab::getElfDynamicOffset()
 {
 #if defined(os_linux)
-   return getObject()->getDynamicAddr();
+	Object *obj = getObject();
+	if (!obj)
+	{
+		fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
+		return 0;
+	}
+   return obj->getDynamicAddr();
 #else
    return 0;
 #endif
@@ -2915,7 +3192,13 @@ SYMTAB_EXPORT Offset Symtab::getElfDynamicOffset()
 SYMTAB_EXPORT bool Symtab::addLibraryPrereq(std::string name)
 {
 #if defined(os_linux)
-   getObject()->insertPrereqLibrary(name);
+	Object *obj = getObject();
+	if (!obj)
+	{
+		fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
+		return false;
+	}
+   obj->insertPrereqLibrary(name);
    return true;
 #else
    return false;
@@ -2925,7 +3208,13 @@ SYMTAB_EXPORT bool Symtab::addLibraryPrereq(std::string name)
 SYMTAB_EXPORT bool Symtab::addSysVDynamic(long name, long value)
 {
 #if defined(os_linux)
-   getObject()->insertDynamicEntry(name, value);
+	Object *obj = getObject();
+	if (!obj)
+	{
+		fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
+		return false;
+	}
+  obj->insertDynamicEntry(name, value);
    return true;
 #else
    return false;

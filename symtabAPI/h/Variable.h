@@ -90,7 +90,7 @@ class Symbol;
 class Symtab;
 class Aggregate;
 
-class Variable : public Aggregate, public Serializable {
+class Variable : public Aggregate, public Serializable, public AnnotatableSparse {
 	friend class Symtab;
 	friend std::ostream &::operator<<(std::ostream &os, const Dyninst::SymtabAPI::Variable &);
 

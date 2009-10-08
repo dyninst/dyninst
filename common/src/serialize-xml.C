@@ -498,7 +498,7 @@ void SerDesXML::hash_map_end()
 #endif
 }
 
-void SerDesXML::annotation_start(Dyninst::AnnotationClassID &a_id, const char * /*id*/, const char * tag) 
+void SerDesXML::annotation_start(Dyninst::AnnotationClassID &a_id, void *& parent_id, sparse_or_dense_anno_t &sod, const char * /*id*/, const char * tag) 
 {
    bool rc = ::start_xml_elem(writer, tag);
 
@@ -507,6 +507,12 @@ void SerDesXML::annotation_start(Dyninst::AnnotationClassID &a_id, const char * 
         SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
    }
    translate(a_id, "annotationID");
+   translate((Address &)parent_id, "annotatableID");
+   translate((int &) sod, "SparseOrDense");
+   //char sodstr[12];
+   //sprintf(sodstr, "%s", sod == sparse ? "sparse" : "dense");
+   //const char *sodstr = (sod == sparse) ? "sparse" : "dense";
+   //translate((const char *&)const_cast<const char *>(sodstr), 12, "SparseOrDense");
 }
 
 void SerDesXML::annotation_end()
@@ -519,7 +525,47 @@ void SerDesXML::annotation_end()
 
 }
 
+void SerDesXML::annotation_container_start(void *& id) 
+{
+   bool rc = ::start_xml_elem(writer, "AnnotationContainer");
 
+   if (!rc)
+   {
+        SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
+   }
+   translate((Address &)id, "containerID");
+}
+
+void SerDesXML::annotation_container_end()
+{
+   bool rc = ::end_xml_elem(writer);
+   if (!rc) 
+   {
+      SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
+   }
+
+}
+
+void SerDesXML::annotation_container_item_start(void *& id) 
+{
+   bool rc = ::start_xml_elem(writer, "AnnotationContainerItem");
+
+   if (!rc)
+   {
+        SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
+   }
+   translate((Address &)id, "containerID");
+}
+
+void SerDesXML::annotation_container_item_end()
+{
+   bool rc = ::end_xml_elem(writer);
+   if (!rc) 
+   {
+      SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
+   }
+
+}
 void SerDesXML::annotation_list_start(Address &/*id*/, int &nelem, const char * tag) 
 {
    bool rc = ::start_xml_elem(writer, tag);

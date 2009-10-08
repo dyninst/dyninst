@@ -34,6 +34,7 @@
 
 #include "Type.h"
 #include "Variable.h"
+#include "Serialization.h"
 
 using namespace std;
 namespace Dyninst {
@@ -50,11 +51,12 @@ class localVar;
  * This object will store all the local variables within this function.
  * Note: This class is unaware of scope.
  */
-class localVarCollection : public Serializable, public AnnotatableSparse {
+class localVarCollection : public AnnotationContainer<localVar *> {
   
   dyn_hash_map<std::string, localVar *> localVariablesByName;
   vector<localVar *> localVars;
 
+  SYMTAB_EXPORT bool addItem_impl(localVar *);
 public:
   SYMTAB_EXPORT localVarCollection(){}
   SYMTAB_EXPORT ~localVarCollection();
@@ -63,7 +65,7 @@ public:
   SYMTAB_EXPORT localVar * findLocalVar(std::string &name);
   SYMTAB_EXPORT vector<localVar *> *getAllVars();  
 
-  SYMTAB_EXPORT void serialize_impl(SerializerBase *, const char * = "localVarCollection") THROW_SPEC (SerializerError);
+  SYMTAB_EXPORT void ac_serialize_impl(SerializerBase *, const char * = "localVarCollection") THROW_SPEC (SerializerError);
 };
   
 

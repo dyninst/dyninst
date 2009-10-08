@@ -2448,6 +2448,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_gcc_32_none", STOPPED, DESERIALIZE, false, "symtab", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", false, "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: gcc, run_mode: deserialize}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", false, "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: gcc, run_mode: deserialize}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -2466,6 +2467,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_gcc_64_none", STOPPED, DESERIALIZE, false, "symtab", "gcc", "none", "64");
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", false, "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 64, mutatee: symtab_group_test, optimization: none, compiler: gcc, run_mode: deserialize}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", false, "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 64, mutatee: symtab_group_test, optimization: none, compiler: gcc, run_mode: deserialize}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -2484,6 +2486,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_gcc_32_low", STOPPED, DESERIALIZE, false, "symtab", "gcc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", false, "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: gcc, run_mode: deserialize}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", false, "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: gcc, run_mode: deserialize}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -2502,6 +2505,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_gcc_64_low", STOPPED, DESERIALIZE, false, "symtab", "gcc", "low", "64");
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", false, "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 64, mutatee: symtab_group_test, optimization: low, compiler: gcc, run_mode: deserialize}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", false, "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 64, mutatee: symtab_group_test, optimization: low, compiler: gcc, run_mode: deserialize}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -2520,6 +2524,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_gcc_32_high", STOPPED, DESERIALIZE, false, "symtab", "gcc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", false, "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: gcc, run_mode: deserialize}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", false, "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: gcc, run_mode: deserialize}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -2538,6 +2543,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_gcc_64_high", STOPPED, DESERIALIZE, false, "symtab", "gcc", "high", "64");
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", false, "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 64, mutatee: symtab_group_test, optimization: high, compiler: gcc, run_mode: deserialize}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", false, "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 64, mutatee: symtab_group_test, optimization: high, compiler: gcc, run_mode: deserialize}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -2556,6 +2562,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_gcc_32_max", STOPPED, DESERIALIZE, false, "symtab", "gcc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", false, "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: gcc, run_mode: deserialize}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", false, "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: gcc, run_mode: deserialize}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -2574,6 +2581,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_gcc_64_max", STOPPED, DESERIALIZE, false, "symtab", "gcc", "max", "64");
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", false, "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 64, mutatee: symtab_group_test, optimization: max, compiler: gcc, run_mode: deserialize}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", false, "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 64, mutatee: symtab_group_test, optimization: max, compiler: gcc, run_mode: deserialize}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -2592,6 +2600,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_g++_32_none", STOPPED, DESERIALIZE, false, "symtab", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", false, "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: g++, run_mode: deserialize}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", false, "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: none, compiler: g++, run_mode: deserialize}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -2610,6 +2619,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_g++_64_none", STOPPED, DESERIALIZE, false, "symtab", "g++", "none", "64");
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", false, "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 64, mutatee: symtab_group_test, optimization: none, compiler: g++, run_mode: deserialize}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", false, "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 64, mutatee: symtab_group_test, optimization: none, compiler: g++, run_mode: deserialize}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -2628,6 +2638,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_g++_32_low", STOPPED, DESERIALIZE, false, "symtab", "g++", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", false, "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: g++, run_mode: deserialize}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", false, "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: low, compiler: g++, run_mode: deserialize}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -2646,6 +2657,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_g++_64_low", STOPPED, DESERIALIZE, false, "symtab", "g++", "low", "64");
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", false, "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 64, mutatee: symtab_group_test, optimization: low, compiler: g++, run_mode: deserialize}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", false, "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 64, mutatee: symtab_group_test, optimization: low, compiler: g++, run_mode: deserialize}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -2664,6 +2676,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_g++_32_high", STOPPED, DESERIALIZE, false, "symtab", "g++", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", false, "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: g++, run_mode: deserialize}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", false, "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: high, compiler: g++, run_mode: deserialize}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -2682,6 +2695,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_g++_64_high", STOPPED, DESERIALIZE, false, "symtab", "g++", "high", "64");
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", false, "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 64, mutatee: symtab_group_test, optimization: high, compiler: g++, run_mode: deserialize}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", false, "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 64, mutatee: symtab_group_test, optimization: high, compiler: g++, run_mode: deserialize}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -2700,6 +2714,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_g++_32_max", STOPPED, DESERIALIZE, false, "symtab", "g++", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", false, "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: g++, run_mode: deserialize}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", false, "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 32, mutatee: symtab_group_test, optimization: max, compiler: g++, run_mode: deserialize}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -2718,6 +2733,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   test_count = 0;
   rg = new RunGroup("symtab_group_test.mutatee_solo_g++_64_max", STOPPED, DESERIALIZE, false, "symtab", "g++", "max", "64");
   rg->tests.push_back(new TestInfo(test_count++, "test_lookup_func", "test_lookup_func", "test_lookup_func.so", false, "{test: test_lookup_func, mutator: test_lookup_func, grouped: false, start_state: stopped, abi: 64, mutatee: symtab_group_test, optimization: max, compiler: g++, run_mode: deserialize}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_lookup_var", "test_lookup_var", "test_lookup_var.so", false, "{test: test_lookup_var, mutator: test_lookup_var, grouped: false, start_state: stopped, abi: 64, mutatee: symtab_group_test, optimization: max, compiler: g++, run_mode: deserialize}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;

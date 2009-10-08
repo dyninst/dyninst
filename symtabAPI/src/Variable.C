@@ -357,9 +357,11 @@ bool localVar::operator==(const localVar &l)
 
 void localVar::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
 {
+	fprintf(stderr, "%s[%d]:  %sserializing localVar %s\n", FILE__, __LINE__, sb->isInput() ? "de" : "", name_.c_str());
 	//  Use typeID as unique identifier
 	//  magic numbers stink, but we use both positive and negative numbers for type ids
-	unsigned int t_id = type_ ? type_->getID() : (unsigned int) 0xdeadbeef; 
+	unsigned int t_id = (unsigned int) 0xdeadbeef;
+	if (sb->isOutput()) t_id = type_ ? type_->getID() : (unsigned int) 0xdeadbeef; 
 
 	ifxml_start_element(sb, tag);
 	gtranslate(sb, name_, "Name");
@@ -369,6 +371,7 @@ void localVar::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC(Se
 	gtranslate(sb, locs_, "Locations", "Location");
 	ifxml_end_element(sb, tag);
 
+	fprintf(stderr, "%s[%d]:  %sserialized localVar %s, fixing up\n", FILE__, __LINE__, sb->isInput() ? "de" : "", name_.c_str());
 	if (sb->isInput())
 	{
 		if (t_id == 0xdeadbeef)
@@ -377,18 +380,6 @@ void localVar::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC(Se
 		}
 		else 
 		{
-#if 0
-			ScopedSerializerBase<Symtab> *ssb = dynamic_cast<ScopedSerializerBase<Symtab> *>(sb);
-
-			if (!ssb)
-			{
-				fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
-				SER_ERR("FIXME");
-			}
-
-			Symtab *st = ssb->getScope();
-#endif
-
 			SerContextBase *scb = sb->getContext();
 			if (!scb)
 			{
@@ -422,5 +413,6 @@ void localVar::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC(Se
 		}
 
 	}
+	fprintf(stderr, "%s[%d]:  %sserialized localVar %s, done\n", FILE__, __LINE__, sb->isInput() ? "de" : "", name_.c_str());
 }
 

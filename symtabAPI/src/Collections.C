@@ -37,8 +37,10 @@
 #include "Collections.h"
 #include "Symtab.h"
 #include "Module.h"
+#include "Serialization.h"
 
 #include "common/h/headers.h"
+#include "common/h/serialize.h"
 
 using namespace std;
 using namespace Dyninst;
@@ -71,10 +73,19 @@ localVarCollection::~localVarCollection()
  * for function.
  */
 
-void localVarCollection::addLocalVar(localVar * var)
+bool localVarCollection::addItem_impl(localVar * var)
 {
   localVariablesByName[var->getName()] = var;
   localVars.push_back(var);
+  return true;
+}
+
+void localVarCollection::addLocalVar(localVar * var)
+{
+	if (!addItem(var))
+	{
+		fprintf(stderr, "%s[%d]:  ERROR adding localVar\n", FILE__, __LINE__);
+	}
 }
 
 /*
@@ -95,13 +106,31 @@ localVar *localVarCollection::findLocalVar(std::string &name){
  * localVarCollection::getAllVars()
  * this function returns all the local variables in the collection.
  */
-std::vector<localVar *> *localVarCollection::getAllVars() {
+std::vector<localVar *> *localVarCollection::getAllVars() 
+{
     return &localVars;
 }
   
-void localVarCollection::serialize_impl(SerializerBase *, const char *) THROW_SPEC (SerializerError)
+void localVarCollection::ac_serialize_impl(SerializerBase *s, const char *tag) THROW_SPEC (SerializerError)
 {
-   fprintf(stderr, "%s[%d]:  IMPLEMENT ME\n", FILE__, __LINE__);
+	ifxml_start_element(s, tag);
+	gtranslate(s, localVars, "LocalVariables");
+	ifxml_end_element(s, tag);
+
+	if (s->isInput())
+	{
+		//  rebuild name->variable mapping
+		for (unsigned int i = 0; i < localVars.size(); ++i)
+		{
+			localVar *lv = localVars[i];
+			assert(lv);
+			localVariablesByName[lv->getName()] = lv;
+		}
+		fprintf(stderr, "%s[%d]:  deserialized %d local vars\n", FILE__, __LINE__, localVars.size());
+	}
+	else
+		fprintf(stderr, "%s[%d]:  serialized %d local vars\n", FILE__, __LINE__, localVars.size());
+
 }
 
 // Could be somewhere else... for DWARF-work.

@@ -54,7 +54,7 @@ class Symtab;
 class Region; 
 class Aggregate; 
 
-class Aggregate : public AnnotatableSparse 
+class Aggregate /*: public AnnotatableSparse  */
 {
     friend class Symtab;
 	friend std::ostream &::operator<<(std::ostream &os, const Dyninst::SymtabAPI::Aggregate &);
