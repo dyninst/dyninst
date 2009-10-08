@@ -1097,6 +1097,7 @@ int_function *AddressSpace::findJumpTargetFuncByAddr(Address addr) {
 #if defined(cap_instruction_api)
     using namespace Dyninst::InstructionAPI;
     InstructionDecoder decoder;
+    decoder.setMode(getAddressWidth() == 8);
     Instruction::Ptr curInsn = decoder.decode((const unsigned char*)getPtrToInstruction(addr));
     
     Expression::Ptr target = curInsn->getControlFlowTarget();

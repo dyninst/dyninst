@@ -539,7 +539,7 @@ bool BPatch_basicBlock::getInstructionsInt(std::vector<InstructionAPI::Instructi
   using namespace InstructionAPI;
 
   InstructionDecoder d((const unsigned char*)(iblock->proc()->getPtrToInstruction(getStartAddress())), size());
-
+  d.setMode(iblock->proc()->getAddressWidth() == 8);
   do {
       insns.push_back(d.decode());
   } while (insns.back() && insns.back()->isValid());
@@ -556,6 +556,7 @@ bool BPatch_basicBlock::getInstructionsAddrs(std::vector<std::pair<InstructionAP
   const unsigned char *ptr = (const unsigned char *)iblock->proc()->getPtrToInstruction(addr);
   if (ptr == NULL) return false;
   InstructionDecoder d(ptr, size());
+  d.setMode(iblock->proc()->getAddressWidth() == 8);
 
   while (addr < getEndAddress()) {
       insnInstances.push_back(std::make_pair(d.decode(), addr));

@@ -172,6 +172,7 @@ void image_basicBlock::summarizeBlockLivenessInfo()
    Address current = firstInsnOffset();
    InstructionDecoder decoder(reinterpret_cast<const unsigned char*>(getPtrToInstruction(firstInsnOffset())), 
                               getSize());
+   decoder.setMode(getFirstFunc()->img()->getAddressWidth() == 8);
    Instruction::Ptr curInsn = decoder.decode();
    while(curInsn && curInsn->isValid())
    {
@@ -339,6 +340,7 @@ void instPoint::calcLiveness() {
       reinterpret_cast<const unsigned char*>(block()->origInstance()->getPtrToInstruction(blockBegin));
     
    InstructionDecoder decoder(insnBuffer, block()->origInstance()->getSize());
+   decoder.setMode(proc()->getAddressWidth() == 8);
    Address curInsnAddr = blockBegin;
    do
    {
@@ -479,7 +481,8 @@ bitArray instPoint::liveRegisters(callWhen when) {
       using namespace Dyninst::InstructionAPI;
       
       InstructionDecoder decoder;
-      const unsigned char* bufferToDecode = 
+      decoder.setMode(proc()->getAddressWidth() == 8);
+      const unsigned char* bufferToDecode =
       reinterpret_cast<const unsigned char*>(proc()->getPtrToInstruction(addr()));
       Instruction::Ptr currentInsn = decoder.decode(bufferToDecode);
 

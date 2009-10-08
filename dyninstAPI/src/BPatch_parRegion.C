@@ -112,6 +112,7 @@ bool BPatch_parRegion::getInstructionsInt(std::vector<InstructionAPI::Instructio
   (const unsigned char*)(lowlevel_region()->intFunc()->proc()->getPtrToInstruction(getStartAddress()));
   
   InstructionDecoder d(buffer, size());
+  d.setMode(lowlevel_region()->intFunc()->proc()->getAddressWidth() == 8);
   Instruction::Ptr curInsn = d.decode();
   while(curInsn && curInsn->isValid())
   {

@@ -628,6 +628,7 @@ bool bblInstance::relocationSetup(bblInstance *orig, pdvector<funcMod *> &mods) 
 #if defined(cap_instruction_api)
    using namespace Dyninst::InstructionAPI;
    InstructionDecoder d;
+   d.setMode(orig->proc()->getAddressWidth() == 8);
    unsigned char* buffer = reinterpret_cast<unsigned char*>(orig->proc()->getPtrToInstruction(orig->firstInsnAddr()));
    
    size_t offset = 0;
