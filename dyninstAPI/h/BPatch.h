@@ -143,6 +143,8 @@ class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
        which will trigger full parsing. This should be looked into. */
     bool delayedParsing_;
 
+    bool instrFrames;
+
     BPatch_stats stats;
     void updateStats();
 
@@ -433,6 +435,12 @@ public:
     API_EXPORT_V(Int, (x),
 
     void,setTypeChecking,(bool x));
+
+    API_EXPORT_V(Int, (b),
+    void,setInstrStackFrames,(bool b));
+
+    API_EXPORT(Int, (),
+    bool,getInstrStackFrames,());
 
     //  BPatch::setTypeChecking:
     //  Turn on/off line info truncating
