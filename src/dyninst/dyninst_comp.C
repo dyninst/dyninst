@@ -266,11 +266,12 @@ test_results_t DyninstComponent::group_teardown(RunGroup *group,
       bool printLabels = (bool) params["printlabels"]->getInt();
       bool debugPrint = (bool) params["debugPrint"]->getInt();
       char *humanlogname = params["humanlogname"]->getString();
+      bool noClean = (bool) params["noClean"]->getInt();
       
       test_results_t test_result;
       runBinaryTest(bpatch, group, appBinEdit,
                     logfilename, humanlogname, verboseFormat, printLabels,
-                    debugPrint, getPIDFilename(), test_result);
+                    debugPrint, getPIDFilename(), noClean, test_result);
       return test_result;
    }
 

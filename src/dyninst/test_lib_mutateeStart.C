@@ -387,7 +387,7 @@ bool runBinaryTest(BPatch *bpatch, RunGroup *group,
                    char *logfilename, char *humanlogname,
                    bool verboseFormat, bool printLabels,
                    int debugPrint, char *pidfilename,
-                   test_results_t &test_result)
+                   bool noClean, test_results_t &test_result)
 {
    bool cd_done = false;
    bool file_written = false;
@@ -492,7 +492,7 @@ bool runBinaryTest(BPatch *bpatch, RunGroup *group,
       test_result = FAILED;
    if (cd_done)
       cdBack();
-   if (file_written)
+   if (file_written && !noClean)
       clearBinEditFiles();
    if (file_running)
       killWaywardChild(pid);
