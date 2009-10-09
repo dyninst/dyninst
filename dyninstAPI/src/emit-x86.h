@@ -66,7 +66,7 @@ class EmitterIA32 : public Emitter {
 public:
     virtual ~EmitterIA32() {};
     static const int mt_offset;
-    codeBufIndex_t emitIf(Register expr_reg, Register target, codeGen &gen);
+    codeBufIndex_t emitIf(Register expr_reg, Register target, RegControl rc, codeGen &gen);
     void emitOp(unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen);
     void emitRelOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen);
     void emitDiv(Register dest, Register src1, Register src2, codeGen &gen);
@@ -118,8 +118,8 @@ public:
     void emitPushFlags(codeGen &gen);
     void emitRestoreFlags(codeGen &gen, unsigned offset);
     void emitRestoreFlagsFromStackSlot(codeGen &gen);
-    bool emitBTSaves(baseTramp* bt, codeGen &gen);
-    bool emitBTRestores(baseTramp* bt, codeGen &gen);
+    bool emitBTSaves(baseTramp* bt, baseTrampInstance *, codeGen &gen);
+    bool emitBTRestores(baseTramp* bt, baseTrampInstance *bti, codeGen &gen);
     void emitLoadEffectiveAddress(Register base, Register index, unsigned int scale, int disp,
 				  Register dest, codeGen &gen);
     void emitStoreImm(Address addr, int imm, codeGen &gen, bool noCost);
@@ -177,7 +177,7 @@ class EmitterAMD64 : public Emitter {
 public:
     virtual ~EmitterAMD64() {};
     static const int mt_offset;
-    codeBufIndex_t emitIf(Register expr_reg, Register target, codeGen &gen);
+    codeBufIndex_t emitIf(Register expr_reg, Register target, RegControl rc, codeGen &gen);
     void emitOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen);
     void emitRelOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen);
     void emitDiv(Register dest, Register src1, Register src2, codeGen &gen);
@@ -222,8 +222,8 @@ public:
     void emitPushFlags(codeGen &gen);
     void emitRestoreFlags(codeGen &gen, unsigned offset);
     void emitRestoreFlagsFromStackSlot(codeGen &gen);
-    bool emitBTSaves(baseTramp* bt, codeGen &gen);
-    bool emitBTRestores(baseTramp* bt, codeGen &gen);
+    bool emitBTSaves(baseTramp* bt, baseTrampInstance *, codeGen &gen);
+    bool emitBTRestores(baseTramp* bt, baseTrampInstance *bti, codeGen &gen);
     void emitStoreImm(Address addr, int imm, codeGen &gen, bool noCost);
     void emitAddSignedImm(Address addr, int imm, codeGen &gen, bool noCost);
     /* The DWARF register numbering does not correspond to the architecture's

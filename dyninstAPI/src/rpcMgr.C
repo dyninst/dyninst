@@ -947,7 +947,8 @@ Address rpcMgr::createRPCImage(AstNodePtr action,
 bool rpcMgr::emitInferiorRPCheader(codeGen &gen) 
 {
     assert(irpcTramp);
-    irpcTramp->generateSaves(gen, gen.rs());
+    gen.beginTrackRegDefs();
+    irpcTramp->generateSaves(gen, gen.rs(), NULL);
     return true;
 }
 
@@ -965,7 +966,7 @@ bool rpcMgr::emitInferiorRPCtrailer(codeGen &gen,
     assert(irpcTramp);
     //irpcTramp->generateBT(gen);
     // Should already be built by the call to generateBT in emit... header
-    irpcTramp->generateRestores(gen, gen.rs());
+    irpcTramp->generateRestores(gen, gen.rs(), NULL);
 
     breakOffset = gen.used();
     instruction::generateTrap(gen);
@@ -981,6 +982,7 @@ bool rpcMgr::emitInferiorRPCtrailer(codeGen &gen,
      }
      breakOffset += 1;
 #endif
+     gen.endTrackRegDefs();
 
     return true;
 }

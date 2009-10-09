@@ -1994,7 +1994,7 @@ int EmitterIA32::emitCallParams(codeGen &gen,
                                                   noCost, 
                                                   unused, ecx_target)) assert(0);
         }
-        
+        srcs.push_back(Null_Register);
         //Push other registers onto the stack
         for (unsigned u = 1; u < operands.size(); u++) {
               Register src = REG_NULL;
@@ -2028,7 +2028,9 @@ int EmitterIA32::emitCallParams(codeGen &gen,
             if (!operands[1]->generateCode_phase2(gen, 
                                                   noCost, unused, edx_target)) assert(0);
         }
-        
+        srcs.push_back(Null_Register);
+        srcs.push_back(Null_Register);
+
         //Push other registers onto the stack
         for (unsigned u = 2; u < operands.size(); u++) {
               Register src = REG_NULL;
@@ -2046,22 +2048,21 @@ int EmitterIA32::emitCallParams(codeGen &gen,
     // push arguments in reverse order, last argument first
     // must use int instead of unsigned to avoid nasty underflow problem:
     for (int i=srcs.size() - 1; i >= 0; i--) {
-        emitOpRMReg(PUSH_RM_OPC1, REGNUM_EBP, -( (int) srcs[i]*4), PUSH_RM_OPC2, gen);
-        estimatedFrameSize += 4;
-        gen.rs()->freeRegister(srcs[i]);
+       if (srcs[i] == Null_Register) continue;
+	   RealRegister r = gen.rs()->loadVirtual(srcs[i], gen);
+	   ::emitPush(r, gen);
+       estimatedFrameSize += 4;
+       if (operands[i]->decRefCount())
+          gen.rs()->freeRegister(srcs[i]);
     }
 
-    if (ecx_target) {
+    if (ecx_target != REG_NULL) {
         //Store the parameter in ecx
-        emitMovRMToReg(REGNUM_ECX, REGNUM_EBP, -4 * ecx_target, gen);
+		gen.rs()->loadVirtualToSpecific(ecx_target, RealRegister(REGNUM_ECX), gen);
     }
 
-    if (edx_target) {
-        //Store the parameter in edx
-        emitMovRMToReg(REGNUM_EDX, REGNUM_EBP, -4 * edx_target, gen);
-        /*if (edx_target != REGNUM_EDX) {
-            emitMovRegToReg(REGNUM_EDX, edx_target, gen);
-        }*/
+    if (edx_target != REG_NULL) {
+		gen.rs()->loadVirtualToSpecific(edx_target, RealRegister(REGNUM_EDX), gen);
     }
     return estimatedFrameSize;
 }
@@ -2073,7 +2074,7 @@ bool EmitterIA32::emitCallCleanup(codeGen &gen, int_function *target,
     if ((call_conv == unknown_call || call_conv == cdecl_call) && frame_size)
     {
         //Caller clean-up
-        emitOpRegImm(0, REGNUM_ESP, frame_size, gen); // add esp, frame_size        
+        emitOpRegImm(0, RealRegister(REGNUM_ESP), frame_size, gen); // add esp, frame_size        
     }
 
     //Restore extra registers we may have saved when storing parameters in

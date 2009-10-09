@@ -161,7 +161,9 @@ registerSpace *registerSpace::optimisticRegSpace(AddressSpace *proc) {
 }
 
 registerSpace *registerSpace::irpcRegSpace(AddressSpace *proc) {
-    return conservativeRegSpace(proc);
+   registerSpace *rspace = conservativeRegSpace(proc);
+   rspace->initRealRegSpace();
+   return rspace;
 }
 
 registerSpace *registerSpace::savedRegSpace(AddressSpace *proc) {
@@ -304,8 +306,6 @@ void registerSpace::createRegSpaceInt(pdvector<registerSlot *> &registers,
 
 }
 
-
-
 bool registerSpace::trySpecificRegister(codeGen &gen, Register num, 
 					bool noCost)
 {
@@ -364,6 +364,8 @@ Register registerSpace::getScratchRegister(codeGen &gen, bool noCost) {
 }
 
 Register registerSpace::getScratchRegister(codeGen &gen, pdvector<Register> &excluded, bool noCost) {
+   static int num_allocs = 0;
+
     pdvector<registerSlot *> couldBeStolen;
     pdvector<registerSlot *> couldBeSpilled;
 
@@ -437,6 +439,9 @@ Register registerSpace::getScratchRegister(codeGen &gen, pdvector<Register> &exc
         return REG_NULL;
     }
 
+    toUse->alloc_num = num_allocs;
+    num_allocs++;
+
     toUse->markUsed(false);
     return toUse->number;
 }
@@ -499,6 +504,7 @@ bool registerSpace::saveVolatileRegisters(codeGen &gen) {
         // Okay, save.
         
         // save flags (PUSHFQ)
+        
         emitSimpleInsn(0x9C, gen);
         
         // And mark flags as spilled. Another for loop.
@@ -511,9 +517,13 @@ bool registerSpace::saveVolatileRegisters(codeGen &gen) {
     else {
         assert(addr_width == 4);
         if (registers_[IA32_FLAG_VIRTUAL_REGISTER]->liveState == registerSlot::live) {
-            emitSimpleInsn(PUSHFD, gen);
-            registers_[IA32_FLAG_VIRTUAL_REGISTER]->liveState = registerSlot::spilled;
-            return true;
+           emitPush(RealRegister(REGNUM_EAX), gen);
+           emitSimpleInsn(0x9f, gen);
+           emitSaveO(gen);
+		   gen.markRegDefined(REGNUM_EAX);
+           //emitSimpleInsn(PUSHFD, gen);
+           registers_[IA32_FLAG_VIRTUAL_REGISTER]->liveState = registerSlot::spilled;
+           return true;
         }
         else {
             return false;
@@ -553,9 +563,11 @@ bool registerSpace::restoreVolatileRegisters(codeGen &gen) {
     else {
         assert(addr_width == 4);
         if (registers_[IA32_FLAG_VIRTUAL_REGISTER]->liveState == registerSlot::spilled) {
-            emitSimpleInsn(POPFD, gen);
-            // State stays at spilled, which is incorrect - but will never matter.
-            return true;
+           emitRestoreO(gen);
+           emitSimpleInsn(0x9E, gen);
+           emitPop(RealRegister(REGNUM_EAX), gen);
+           // State stays at spilled, which is incorrect - but will never matter.
+           return true;
         }
         else
             return false;
@@ -579,12 +591,18 @@ void registerSpace::freeRegister(Register num)
     regalloc_printf("Freed register %d: refcount now %d\n", num, reg->refCount);
 
     if( reg->refCount < 0 ) {
-#if !defined(arch_ia_64)
+#if !defined(arch_ia64)
         // IA-64 gets this with the frame pointer...
         bperr( "Freed free register!\n" );
 #endif
         reg->refCount = 0;
     }
+
+#if defined(arch_x86)
+    if (reg->refCount == 0 && !registers_[num]->keptValue) {
+       markVirtualDead(num);
+    }
+#endif
     return;
 
 }
@@ -628,116 +646,23 @@ void registerSpace::cleanSpace() {
     for (regDictIter i = registers_.begin(); i != registers_.end(); i++) {
         i.currval()->cleanSlot();
     }
+    for (unsigned i=0; i<realRegisters_.size(); i++) {
+       realRegisters_[i]->cleanSlot();
+    }
 }
 
 bool registerSpace::restoreAllRegisters(codeGen &, bool) {
-#if 0
-    // This will only restore "saved" registers, not "spilled" registers.
-    // We should do both, but the individual "restoreRegister" can't build
-    // the list necessary for popping registers...
-    
-    // We have some registers saved off the frame pointer, some saved
-    // on the stack, and some unsaved. We want to go over the list
-    // of registers and build up the spill list (in order so we can pop
-    // em), then pop all and then spill from the frame pointer.
-    
-    int numPushed = currStackPointer;
-
-    int pushedReg[numPushed];
-
-    for (int i = 0; i < numPushed; i++) pushedReg[i] = -1;
-    
-    for (regDictIter i = registers.begin(); i != registers.end(); i++) {
-        switch(i.currval().origValueSpilled_) {
-        case registerSlot::unspilled:
-            break;
-         case registerSlot::stackPointer: {
-             assert(i.currval().saveOffset <= numPushed);
-             pushedReg[i.currval().saveOffset] = i.currkey();
-             break;
-        }
-        case registerSlot::framePointer:
-            restoreRegister(i.currkey(), gen, noCost);
-            break;
-        default:
-            assert(0);
-            break;
-        }
-    }
-    for (int i = 0; i < numPushed; i++) {
-        if (pushedReg[i] != -1)
-            popRegister(pushedReg[i], gen, noCost);
-    }
-    
-    // Oh, right. FP and SPR. :)
-    for (regDictIter i = fpRegisters.begin(); i != fpRegisters.end(); i++) {
-        restoreRegister(i.currkey(), gen, noCost);
-    }
-    for (regDictIter i = spRegisters.begin(); i != spRegisters.end(); i++) {
-        restoreRegister(i.currkey(), gen, noCost);
-    }
-    
-#if defined(arch_x86) || defined(arch_x86_64)
-    if (currStackPointer > 0) {
-        gen.codeEmitter()->emitAdjustStackPointer(currStackPointer, gen);
-    }
-#endif
-    currStackPointer = 0;
-#endif
     assert(0);
     return true;
 }
 
 bool registerSpace::restoreRegister(Register, codeGen &, bool /*noCost*/) 
 {
-#if 0
-    // We can get an index > than the number of registers - we use those as fake
-    // slots for (e.g.) flags register.
-    // TODO: push register info and methods into a register slot class... hey....
-
-    if (registers[reg].origValueSpilled_ == registerSlot::unspilled) return true;
-    if (registers[reg].origValueSpilled_ == registerSlot::stackPointer) {
-        // We don't know how to handle this in an individual restore yet...
-        return false;
-    }
-    
-    if (!readRegister(gen, reg, reg))
-        return false;
-    
-    registers[reg].mustRestore = false;
-    registers[reg].needsSaving = true;
-    registers[reg].origValueSpilled_ = registerSlot::unspilled;
-#endif
     assert(0);
     return true;
 }
 
 bool registerSpace::popRegister(Register, codeGen &, bool) {
-#if 0
-    assert(!registers[reg].offLimits);
-    
-    // Make sure we're at the right point... currStackPointer should
-    // be 1 greater than the register.
-    while (currStackPointer > (registers[reg].saveOffset+1)) {
-        emitV(loadRegOp, 0, 0, registers[reg].number, gen, noCost);
-        currStackPointer--;
-    }
-    
-    assert((currStackPointer == (registers[reg].saveOffset-1)) ||
-           (currStackPointer == (registers[reg].saveOffset+1)));
-    
-    // TODO for other platforms that build a stack frame for saving
-    
-    emitV(loadRegOp, 0, 0, registers[reg].number, gen, noCost);
-    
-    registers[reg].mustRestore = false; // Need to restore later
-    registers[reg].needsSaving = true; // And don't save at func call (?)
-    registers[reg].origValueSpilled_ = registerSlot::unspilled;
-    registers[reg].saveOffset = 0;
-
-    // Push architecture, so popping modified the SP
-    currStackPointer--;
-#endif
     assert(0);
     return true;
 }
@@ -756,7 +681,7 @@ bool registerSpace::readProgramRegister(codeGen &gen,
 #endif  
 ) 
 {
-#if !defined(arch_x86_64) && !defined(arch_power)
+#if !defined(arch_power)
     emitLoadPreviousStackFrameRegister((Address)source,
                                        destination,
                                        gen,
@@ -765,18 +690,6 @@ bool registerSpace::readProgramRegister(codeGen &gen,
     return true;
 #else
     // Real version that uses stored information
-
-#if defined(arch_x86_64) 
-    // If we're in 32-bit mode, use emitLoadPrevious...
-    if (gen.addrSpace()->getAddressWidth() == 4) {
-        emitLoadPreviousStackFrameRegister((Address) source,
-                                           destination,
-                                           gen,
-                                           size,
-                                           true);
-        return true;
-    }
-#endif
 
     // First step: identify the registerSlot that contains information
     // about the source register.
@@ -797,7 +710,7 @@ bool registerSpace::readProgramRegister(codeGen &gen,
         return true;
         break;
     case registerSlot::framePointer: {
-        registerSlot *frame = registers_[FRAME_POINTER];
+        registerSlot *frame = registers_[framePointer()];
         assert(frame);
 
         // We can't use existing mechanisms because they're all built
@@ -812,8 +725,6 @@ bool registerSpace::readProgramRegister(codeGen &gen,
         return false;
         break;
     }
-    
-
 #endif         
     
 }
@@ -821,11 +732,11 @@ bool registerSpace::writeProgramRegister(codeGen &gen,
                                          Register destination,
                                          Register source,
                                          unsigned 
-#if !defined(arch_power)
-size
+#if !defined(arch_x86) && !defined(arch_power)
+                                         size
 #endif
 ) {
-#if !defined(arch_x86_64) && !defined(arch_power)
+#if !defined(arch_x86) && !defined(arch_power)
     emitStorePreviousStackFrameRegister((Address) destination,
                                         source,
                                         gen,
@@ -833,19 +744,6 @@ size
                                         true);
     return true;
 #else
-
-#if defined(arch_x86_64) 
-    // If we're in 32-bit mode, use emitLoadPrevious...
-    if (gen.addrSpace()->getAddressWidth() == 4) {
-        emitStorePreviousStackFrameRegister((Address) destination,
-                                            source,
-                                            gen,
-                                            size,
-                                            true);
-        return true;
-    }
-#endif
-
     registerSlot *src = registers_[source];
     assert(source);
     registerSlot *dest = registers_[destination];
@@ -863,7 +761,7 @@ size
         return true;
         break;
     case registerSlot::framePointer: {
-        registerSlot *frame = registers_[FRAME_POINTER];
+        registerSlot *frame = registers_[framePointer()];
         assert(frame);
 
         // When this register was saved we stored its offset from the base pointer.
@@ -890,12 +788,26 @@ registerSlot *registerSpace::findRegister(Register source) {
     return reg;
 }
 
+registerSlot *registerSpace::findRegister(RealRegister source) {
+    return realRegisters_[source.reg()];
+}
+
+bool registerSpace::markSavedRegister(RealRegister num, int offsetFromFP) {
+   regalloc_printf("Marking register %d as saved, %d from frame pointer\n",
+                   num.reg(), offsetFromFP);
+   registerSlot *s = findRegister(num);
+   return markSavedRegister(s, offsetFromFP);   
+}
 
 bool registerSpace::markSavedRegister(Register num, int offsetFromFP) {
     regalloc_printf("Marking register %d as saved, %d from frame pointer\n",
                     num, offsetFromFP);
     // Find the register slot
     registerSlot *s = findRegister(num);
+    return markSavedRegister(s, offsetFromFP);
+}
+
+bool registerSpace::markSavedRegister(registerSlot *s, int offsetFromFP) {
     if (s == NULL)  {
         // We get this on platforms where we save registers we don't use in
         // code generation... like, say, RSP or RBP on AMD-64.
@@ -921,7 +833,7 @@ void registerSlot::debugPrint(const char *prefix) {
     if (!dyn_debug_regalloc) return;
 
 	if (prefix) fprintf(stderr, "%s", prefix);
-	fprintf(stderr, "Num: %d, name %s, type %s, refCount %d, liveState %s, beenUsed %d, initialState %s, offLimits %d, keptValue %d\n",
+	fprintf(stderr, "Num: %d, name %s, type %s, refCount %d, liveState %s, beenUsed %d, initialState %s, offLimits %d, keptValue %d, alloc %d\n",
                 number, 
                 name.c_str(),
                 (type == GPR) ? "GPR" : ((type == FPR) ? "FPR" : "SPR"),
@@ -930,7 +842,8 @@ void registerSlot::debugPrint(const char *prefix) {
                 beenUsed, 
                 (initialState == deadAlways) ? "always dead" : ((initialState == deadABI) ? "ABI dead" : "always live"),
                 offLimits, 
-                keptValue);
+                keptValue,
+                alloc_num);
 }
 
 void registerSpace::debugPrint() {
@@ -957,13 +870,13 @@ void registerSpace::debugPrint() {
 
 bool registerSpace::markKeptRegister(Register reg) {
 	regalloc_printf("Marking register %d as kept\n", reg);
-        registers_[reg]->keptValue = true;
-        return false;
+   registers_[reg]->keptValue = true;
+   return false;
 }
 
 void registerSpace::unKeepRegister(Register reg) {
 	regalloc_printf("Marking register %d as unkept\n", reg);
-        registers_[reg]->keptValue = false;
+   registers_[reg]->keptValue = false;
 }
 
 
@@ -1018,6 +931,15 @@ bool registerSpace::anyLiveSPRsAtEntry() const {
             return true;
     }
     return false;
+}
+
+pdvector<registerSlot *>& registerSpace::trampRegs()
+{
+#if defined(arch_x86) || defined(arch_x86_64)
+   if (addr_width == 4)
+      return realRegs();
+#endif
+   return GPRs_;
 }
 
 registerSlot *registerSpace::operator[](Register reg) {
@@ -1092,6 +1014,7 @@ const bitArray &registerSpace::getAllRegs() const
    }   
 }
 
+#endif
 
 bitArray registerSpace::getBitArray()  {
 #if defined(arch_x86) || defined(arch_x86_64)
@@ -1103,9 +1026,6 @@ bitArray registerSpace::getBitArray()  {
     return bitArray();
 #endif
 }
-
-#endif
-
 
 // Big honkin' name->register map
 
@@ -1131,8 +1051,400 @@ std::string registerSpace::getRegByNumber(Register reg) {
 // return that. Otherwise return GPRs. 
 pdvector<registerSlot *> &registerSpace::realRegs() {
     if (realRegisters_.size())
-        return realRegisters_;
+       return realRegisters_;
     else
-        return GPRs();
+       return GPRs();
 }
 
+RealRegister registerSpace::findReal(registerSlot *virt_r, bool &already_setup)
+{
+   assert(virt_r);
+   
+   int oldest_reg = -1;
+   int oldest_free_reg = -1;
+   int used_free_reg = -1;
+   already_setup = false;
+   
+   for (unsigned i=0; i<regState().size(); i++) {
+      RealRegsState &real_reg = regState()[i];
+      if (!real_reg.is_allocatable)
+         continue;
+
+      if (virt_r == real_reg.contains) {
+         //We already have this virtual register stored in a real register.
+         // just return it.
+         real_reg.last_used = timeline()++;
+         already_setup = true;
+         return RealRegister(i);
+      }
+      if (!real_reg.contains &&
+          real_reg.been_used)
+      {
+         used_free_reg = i;
+      }
+      if (!real_reg.contains && 
+          (oldest_free_reg == -1 || 
+           real_reg.last_used < regState()[oldest_free_reg].last_used)) 
+      {
+         //There's a free register, remember it.
+         oldest_free_reg = i;
+      }
+      if (real_reg.contains && 
+          (oldest_reg == -1 ||
+           real_reg.last_used < regState()[oldest_reg].last_used))
+      {
+         //Keep track of the LRU register, in case we don't
+         // have anything free.  LRU isn't ideal for register
+         // allocation, but we're trying to keep this single pass.
+         oldest_reg = i;
+      }
+   }
+
+   //We shouldn't have no free registers and no oldest alloced registers.
+   assert(oldest_free_reg != -1 || oldest_reg != -1 || used_free_reg != -1);
+   if (used_free_reg != -1)
+      return RealRegister(used_free_reg);
+   if (oldest_free_reg != -1) {
+      return RealRegister(oldest_free_reg);
+   }
+   return RealRegister(oldest_reg);
+}
+
+void registerSpace::spillReal(RealRegister r, codeGen &gen)
+{
+   if (!regState()[r.reg()].is_allocatable)
+      return;
+   if (!regState()[r.reg()].contains)
+      return;
+   regs_been_spilled.insert(regState()[r.reg()].contains);
+   spillToVReg(r, regState()[r.reg()].contains, gen);
+   freeReal(r);
+}
+
+void registerSpace::loadReal(RealRegister r, registerSlot *virt_r, codeGen &gen)
+{
+   
+   assert(!regState()[r.reg()].contains);
+   if (regs_been_spilled.count(virt_r)) {
+      movVRegToReal(virt_r, r, gen);
+   }
+   regState()[r.reg()].contains = virt_r;
+   regState()[r.reg()].last_used = timeline()++;
+}
+
+void registerSpace::freeReal(RealRegister r)
+{
+   assert(regState()[r.reg()].contains);
+   regState()[r.reg()].contains = NULL;
+   regState()[r.reg()].last_used = timeline()++;
+}
+
+RealRegister registerSpace::loadVirtual(registerSlot *virt_r, codeGen &gen)
+{
+   assert(virt_r);
+   bool done;
+
+   RealRegister reg_to_use = findReal(virt_r, done);
+   if (done) {
+      return reg_to_use;
+   }
+
+   spillReal(reg_to_use, gen);
+   loadReal(reg_to_use, virt_r, gen);
+
+   return reg_to_use;
+}
+
+RealRegister registerSpace::loadVirtual(Register virt_r, codeGen &gen)
+{
+   return loadVirtual((*this)[virt_r], gen);
+}
+
+RealRegister registerSpace::loadVirtualForWrite(registerSlot *virt_r, codeGen &gen)
+{
+   assert(virt_r);
+   bool done;
+
+   RealRegister reg_to_use = findReal(virt_r, done);
+   if (done) {
+      return reg_to_use;
+   }
+
+   spillReal(reg_to_use, gen);
+   regState()[reg_to_use.reg()].contains = virt_r;
+   regState()[reg_to_use.reg()].last_used = timeline()++;
+
+   gen.markRegDefined(reg_to_use.reg());
+   return reg_to_use;
+}
+
+RealRegister registerSpace::loadVirtualForWrite(Register virt_r, codeGen &gen)
+{
+   return loadVirtualForWrite((*this)[virt_r], gen);
+}
+
+void registerSpace::makeRegisterAvail(RealRegister r, codeGen &gen) {
+   spillReal(r, gen);
+}
+
+void registerSpace::noteVirtualInReal(registerSlot *v_r, RealRegister r_r)
+{
+   int reg = r_r.reg();
+
+   bool already_allocd;
+   RealRegister old_location = findReal(v_r, already_allocd);
+   if (already_allocd) {
+      regState()[old_location.reg()].contains = NULL;
+      regState()[old_location.reg()].last_used = timeline()++;
+   }
+
+   assert (!regState()[reg].contains);
+   regState()[reg].contains = v_r;
+   regState()[reg].last_used = timeline()++;
+}
+
+void registerSpace::noteVirtualInReal(Register v_r, RealRegister r_r)
+{
+   noteVirtualInReal((*this)[v_r], r_r);
+}
+
+void registerSpace::loadVirtualToSpecific(registerSlot *virt_r, RealRegister real_r, codeGen &gen)
+{
+   bool already_in_reg;
+   RealRegister old_loc = findReal(virt_r, already_in_reg);
+   if (already_in_reg && old_loc.reg() == real_r.reg()) {
+      return;
+   }
+
+   spillReal(real_r, gen);
+
+   if (already_in_reg) {
+      movRegToReg(real_r, old_loc, gen);
+      freeReal(old_loc);
+   }
+   else {
+      loadReal(real_r, virt_r, gen);
+   }
+}
+
+void registerSpace::loadVirtualToSpecific(Register virt_r, RealRegister real_r, codeGen &gen)
+{
+   loadVirtualToSpecific((*this)[virt_r], real_r, gen);
+}
+
+void registerSpace::markVirtualDead(Register num)
+{
+   registerSlot *slot = (*this)[num];
+   for (unsigned i=0; i<regState().size(); i++) {
+      if (regState()[i].contains == slot) {
+         regState()[i].contains = NULL;
+         regState()[i].last_used = 0;
+      }
+   }
+}
+
+bool registerSpace::spilledAnything()
+{
+   return regs_been_spilled.size() != 0;
+}
+
+/**
+ * This handles merging register states at merges
+ * in the generated code CFG.  Used for things like
+ * 'if' statements.  
+ * Takes the top level registerState (e.g, the code that was
+ * generated in an 'if') and emits the saves/restores such to
+ * takes us back to the preceding registerState (e.g, the code
+ * we would be in if the 'if' hadn't executed).
+ **/
+void registerSpace::unifyTopRegStates(codeGen &gen)
+{
+   if (addr_width == 8) {
+      //Not implemented on x86_64 yet
+      return;
+   }
+   if (regStateStack.size() == 0)
+      return;
+   assert(regStateStack.size() >= 2);
+   regState_t *src = regStateStack[regStateStack.size() - 1];
+   regState_t *dest = regStateStack[regStateStack.size() - 2];
+
+   assert(src->registerStates.size() == dest->registerStates.size());
+   
+   //Make a map of loaded dest virtuals -> reals
+   std::map<registerSlot*, unsigned> dest_virts;
+   for (unsigned i=0; i<dest->registerStates.size(); i++) {
+      RealRegsState &rrs = dest->registerStates[i];
+      if (!rrs.is_allocatable || !rrs.contains)
+         continue;
+      dest_virts[rrs.contains] = i;
+   }
+
+   //For any loaded virtual in src that's not loaded or not loaded in the 
+   // proper place in dest,  unload that virtual in src.
+   for (unsigned i=0; i<src->registerStates.size(); i++) {
+      RealRegsState &rrs = src->registerStates[i];
+      if (!rrs.is_allocatable || !rrs.contains) {
+         //Unloaded in src or uninteresting register
+         continue;
+      }
+      std::map<registerSlot*, unsigned>::iterator j = dest_virts.find(rrs.contains);
+      if (j != dest_virts.end() && (*j).second == i) {
+         //Loaded in the same place in dest and src
+         continue;
+      }
+      spillReal(RealRegister(i), gen);
+   }
+
+   //Make a map of loaded src virtuals -> reals
+   std::map<registerSlot*, unsigned> src_virts;
+   for (unsigned i=0; i<src->registerStates.size(); i++) {
+      RealRegsState &rrs = src->registerStates[i];
+      if (!rrs.is_allocatable || !rrs.contains)
+         continue;
+      src_virts[rrs.contains] = i;
+   }
+
+   //For any loaded virtual in dest that's not loaded in src, 
+   // load that virtual in src. 
+   for (unsigned i=0; i<dest->registerStates.size(); i++) {
+      RealRegsState &rrs = dest->registerStates[i];
+      if (!rrs.is_allocatable || !rrs.contains) {
+         //Unloaded in src or uninteresting register
+         continue;
+      }
+      std::map<registerSlot*, unsigned>::iterator j = src_virts.find(rrs.contains);
+      if (j != src_virts.end()) {
+         //Loaded in src
+         assert((*j).second == i); //assert it's loaded in the same place
+         continue;
+      }
+      loadReal(RealRegister(i), rrs.contains, gen);
+   }
+
+   for (unsigned i=0; i<src->registerStates.size(); i++) {
+      assert(src->registerStates[i].contains == dest->registerStates[i].contains);
+   }
+
+   if (dest->pc_rel_offset == -1 && src->pc_rel_offset != -1) {
+      //src allocated a register for the PCREL operations.  We'll
+      // have to free that bad boy.
+      gen.rs()->freeRegister(gen.rs()->pc_rel_reg);
+   }
+   regStateStack.pop_back();
+   delete src;
+}
+
+void registerSpace::pushNewRegState()
+{
+   if (regStateStack.size() == 0)
+      return;
+   regState_t *new_top = new regState_t();
+   regState_t *old_top = regStateStack[regStateStack.size()-1];
+   new_top->pc_rel_offset = old_top->pc_rel_offset;
+   new_top->timeline = old_top->timeline;
+   new_top->registerStates = old_top->registerStates;
+   new_top->stack_height = old_top->stack_height;
+   regStateStack.push_back(new_top);
+}
+
+#if defined(arch_x86) || defined(arch_x86_64)
+int& registerSpace::pc_rel_offset()
+{
+   if (!regStateStack.size())
+      initRealRegSpace();
+   return regStateStack[regStateStack.size()-1]->pc_rel_offset;
+}
+
+int& registerSpace::timeline()
+{
+   if (!regStateStack.size())
+      initRealRegSpace();
+   return regStateStack[regStateStack.size()-1]->timeline;
+}
+
+std::vector<RealRegsState>& registerSpace::regState()
+{
+   if (!regStateStack.size())
+      initRealRegSpace();
+
+   std::vector<RealRegsState> &rs = regStateStack[regStateStack.size()-1]->registerStates;
+   return regStateStack[regStateStack.size()-1]->registerStates;
+}
+
+void registerSpace::incStack(int val) {
+   if (!regStateStack.size())
+      initRealRegSpace();
+   regStateStack[regStateStack.size()-1]->stack_height += val;
+}
+
+void registerSpace::setStackHeight(int val) {
+   if (!regStateStack.size())
+      initRealRegSpace();
+   regStateStack[regStateStack.size()-1]->stack_height = val;
+}
+
+int registerSpace::getStackHeight()
+{
+   if (!regStateStack.size())
+      initRealRegSpace();
+   return regStateStack[regStateStack.size()-1]->stack_height;
+}
+#endif
+
+#if !defined(arch_x86) && !defined(arch_x86_64)
+void registerSpace::initRealRegSpace()
+{
+}
+
+void registerSpace::spillToVReg(RealRegister /*reg*/, registerSlot * /*v_reg*/, 
+                                codeGen & /*gen*/)
+{
+   assert(0);
+}
+
+void registerSpace::movVRegToReal(registerSlot * /*v_reg*/, RealRegister /*r*/, 
+                                  codeGen & /*gen*/)
+{
+   assert(0);
+}
+
+void registerSpace::movRegToReg(RealRegister /*dest*/, RealRegister /*src*/, codeGen & /*gen*/)
+{
+   assert(0);
+}
+
+regState_t::regState_t()
+{
+   assert(0);
+}
+
+int& registerSpace::pc_rel_offset()
+{
+   static int none = 0;
+   return none;
+}
+
+int& registerSpace::timeline()
+{
+   static int none = 0;
+   return none;
+}
+
+std::vector<RealRegsState>& registerSpace::regState()
+{
+   static std::vector<RealRegsState> none;
+   return none;
+}
+
+void registerSpace::incStack(int) {
+}
+
+void registerSpace::setStackHeight(int) {
+}
+
+int registerSpace::getStackHeight()
+{
+   return 0;
+}
+#endif

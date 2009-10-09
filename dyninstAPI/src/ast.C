@@ -100,8 +100,7 @@ AstNode::AstNode() {
 #if defined(ASTDEBUG)
    ASTcounter();
 #endif
-   // used in mdl.C
-   referenceCount = 1;
+   referenceCount = 0;
    useCount = 0;
    // "operands" is left as an empty vector
    size = 4;
@@ -278,6 +277,21 @@ AstOperatorNode::AstOperatorNode(opCode opC, AstNodePtr l, AstNodePtr r, AstNode
             }
         }
     }
+    if (l != AstNodePtr())
+    {
+       //Unfortunate hack.  storeOp with a loperand of DataIndir
+       // don't actually reference their loperand--they reference
+       // the child of the loperand.  Handle that here to keep
+       // reference counts sane.
+       if (op == storeOp && loperand->getoType() == DataIndir)
+          l->operand()->referenceCount++;
+       else
+          l->referenceCount++;
+    }
+    if (r != AstNodePtr())
+       r->referenceCount++;
+    if (e != AstNodePtr())
+       e->referenceCount++;
 };
 
     // Direct operand
@@ -302,6 +316,7 @@ AstOperandNode::AstOperandNode(operandType ot, AstNodePtr l) :
     oVar(NULL),
     operand_(l)
 {
+   l->referenceCount++;
 }
 
 AstOperandNode::AstOperandNode(operandType ot, const image_variable* iv) :
@@ -323,6 +338,7 @@ AstCallNode::AstCallNode(int_function *func,
     constFunc_(false)
 {
     for (unsigned i = 0; i < args.size(); i++) {
+        args[i]->referenceCount++; 
         args_.push_back(args[i]);
     }
 }
@@ -336,6 +352,7 @@ AstCallNode::AstCallNode(const std::string &func,
     constFunc_(false)
 {
     for (unsigned i = 0; i < args.size(); i++) {
+        args[i]->referenceCount++; 
         args_.push_back(args[i]);
     }
 }
@@ -348,6 +365,7 @@ AstCallNode::AstCallNode(Address addr,
     constFunc_(false)
 {
     for (unsigned i = 0; i < args.size(); i++) {
+        args[i]->referenceCount++; 
         args_.push_back(args[i]);
     }
 }
@@ -356,6 +374,7 @@ AstSequenceNode::AstSequenceNode(pdvector<AstNodePtr > &sequence) :
     AstNode()
 {
     for (unsigned i = 0; i < sequence.size(); i++) {
+        sequence[i]->referenceCount++;
         sequence_.push_back(sequence[i]);
     }
 }
@@ -363,6 +382,10 @@ AstSequenceNode::AstSequenceNode(pdvector<AstNodePtr > &sequence) :
 AstVariableNode::AstVariableNode(vector<AstNodePtr>&ast_wrappers, vector<pair<Offset, Offset> > *ranges) :
     ast_wrappers_(ast_wrappers), ranges_(ranges), index(0)
 {
+   vector<AstNodePtr>::iterator i;
+   for (i = ast_wrappers.begin(); i != ast_wrappers.end(); i++) {
+      (*i)->referenceCount++;
+   }
 }
 
 AstInsnNode::AstInsnNode(instruction *insn, Address addr) :
@@ -670,7 +693,7 @@ bool AstNode::previousComputationValid(Register &reg,
 		ast_printf("Returning previously used register %d for node %p\n", reg, this);
 		return true;
 	}
-    return false;
+   return false;
 }
 
 // We're going to use this fragment over and over and over...
@@ -716,14 +739,14 @@ bool AstNullNode::generateCode_phase2(codeGen &gen, bool,
     retAddr = ADDR_NULL;
     retReg = REG_NULL;
 
-	decUseCount(gen);
-
+    decUseCount(gen);
+   
     return true;
 }
 
 bool AstLabelNode::generateCode_phase2(codeGen &gen, bool,
-                                          Address &retAddr,
-                                          Register &retReg) {
+                                       Address &retAddr,
+                                       Register &retReg) {
 	assert(generatedAddr_ == 0);
     // Pick up the address we were added at
     generatedAddr_ = gen.currAddr();
@@ -781,43 +804,43 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, bool noCost)
 {
    //Recognize the common case of 'a = a op constant' and try to 
    // generate optimized code for this case.
-  Address laddr;
+   Address laddr;
   
    if (loperand->getoType() == DataAddr)
    {
-     laddr = (Address) loperand->getOValue();
+      laddr = (Address) loperand->getOValue();
    }
    else
    {
-     if(loperand->getoType() == variableValue)
-     {
-       dyn_detail::boost::shared_ptr<AstOperandNode> lnode = 
-       dyn_detail::boost::dynamic_pointer_cast<AstOperandNode>(loperand);
+      if(loperand->getoType() == variableValue)
+      {
+         dyn_detail::boost::shared_ptr<AstOperandNode> lnode = 
+            dyn_detail::boost::dynamic_pointer_cast<AstOperandNode>(loperand);
        
-       int_variable* var = lnode->lookUpVar(gen.addrSpace());
-       if(gen.addrSpace()->proc())
-       {
-	 if(var)
-	   laddr = var->getAddress();
-	 else
-	   return false;
-       }
-       else
-       {
-	 // Rewriter algorithm:
-	 // allocate temp register
-	 // EmitLoadShared with a loadConstOp to get the variable address into a temp register
-	 // Proceed with the below, using the temp register instead of an immediate
-	 // deallocate temp register
-	 return false;
-       }
+         int_variable* var = lnode->lookUpVar(gen.addrSpace());
+         if(gen.addrSpace()->proc())
+         {
+            if(var)
+               laddr = var->getAddress();
+            else
+               return false;
+         }
+         else
+         {
+            // Rewriter algorithm:
+            // allocate temp register
+            // EmitLoadShared with a loadConstOp to get the variable address into a temp register
+            // Proceed with the below, using the temp register instead of an immediate
+            // deallocate temp register
+            return false;
+         }
        
-     }
-     else
-     {
-       //Deal with global writes for now.
-       return false;
-     }
+      }
+      else
+      {
+         //Deal with global writes for now.
+         return false;
+      }
      
    }
 
@@ -843,12 +866,8 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, bool noCost)
    if (roper->op != plusOp && roper->op != minusOp)
       return false;
    
-   AstNode *arithl = dynamic_cast<AstOperandNode *>(roper->loperand.get());
-   AstNode *arithr = dynamic_cast<AstOperandNode *>(roper->roperand.get());
-   if(!arithl)
-      arithl = dynamic_cast<AstVariableNode *>(roper->loperand.get());
-   if(!arithr)
-      arithl = dynamic_cast<AstVariableNode *>(roper->roperand.get());
+   AstOperandNode *arithl = dynamic_cast<AstOperandNode *>(roper->loperand.get());
+   AstOperandNode *arithr = dynamic_cast<AstOperandNode *>(roper->roperand.get());
    if (!arithl || !arithr)
       return false;
    
@@ -859,11 +878,39 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, bool noCost)
       data_oper = arithl;
       const_oper = arithr;
    }
+   else if (arithl->getoType() == variableValue && arithr->getoType() == Constant)
+   {
+      Address addr = 0;
+      int_variable* var = arithl->lookUpVar(gen.addrSpace());
+      if(gen.addrSpace()->proc()) {
+         if(!var)
+            return false;
+         addr = var->getAddress();
+      }
+      if (addr == laddr) {
+         data_oper = arithl;
+         const_oper = arithr;
+      }
+   }
    else if (arithr->getoType() == DataAddr && arithl->getoType() == Constant &&
             laddr == (Address) arithr->getOValue() && roper->op == plusOp)
    {
       data_oper = arithr;
       const_oper = arithl;
+   }
+   else if (arithl->getoType() == variableValue && arithr->getoType() == Constant)
+   {
+      Address addr = 0;
+      int_variable* var = arithl->lookUpVar(gen.addrSpace());
+      if(gen.addrSpace()->proc()) {
+         if(!var)
+            return false;
+         addr = var->getAddress();
+      }
+      if (addr == laddr) {
+         data_oper = arithr;
+         const_oper = arithl;
+      }
    }
    else
    {
@@ -896,408 +943,475 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                                           Address &retAddr,
                                           Register &retReg) {
 
-    retAddr = ADDR_NULL; // We won't be setting this...
-    // retReg may have a value or be the (register) equivalent of NULL.
-    // In either case, we don't touch it...
+   retAddr = ADDR_NULL; // We won't be setting this...
+   // retReg may have a value or be the (register) equivalent of NULL.
+   // In either case, we don't touch it...
 
 	RETURN_KEPT_REG(retReg);
 
     
-    Address addr = ADDR_NULL;
+   Address addr = ADDR_NULL;
  
-    Register src1 = Null_Register;
-    Register src2 = Null_Register;
+   Register src1 = Null_Register;
+   Register src2 = Null_Register;
 
-    Register right_dest = Null_Register;
-    Register tmp = Null_Register;
+   Register right_dest = Null_Register;
+   Register tmp = Null_Register;
     
-    switch(op) {
-    case branchOp: {
-        assert(loperand->getoType() == Constant);
-        unsigned offset = (Register) (long) loperand->getOValue();
-        // We are not calling loperand->generateCode_phase2,
-        // so we decrement its useCount by hand.
-        // Would be nice to allow register branches...
-        loperand->decUseCount(gen);
-        (void)emitA(branchOp, 0, 0, (Register)offset, gen, noCost);
-        retReg = REG_NULL; // No return register
-        break;
-    }
-    case ifOp: {
-        // This ast cannot be shared because it doesn't return a register
-        if (!loperand->generateCode_phase2(gen, noCost, addr, src1)) ERROR_RETURN;
+   switch(op) {
+      case branchOp: {
+         assert(loperand->getoType() == Constant);
+         unsigned offset = (Register) (long) loperand->getOValue();
+         // We are not calling loperand->generateCode_phase2,
+         // so we decrement its useCount by hand.
+         // Would be nice to allow register branches...
+         loperand->decUseCount(gen);
+         (void)emitA(branchOp, 0, 0, (Register)offset, gen, rc_no_control, noCost);
+         retReg = REG_NULL; // No return register
+         break;
+      }
+      case ifOp: {
+         // This ast cannot be shared because it doesn't return a register
+         if (!loperand->generateCode_phase2(gen, noCost, addr, src1)) ERROR_RETURN;
         
-        REGISTER_CHECK(src1);
-        codeBufIndex_t ifIndex= gen.getIndex();
-        codeBufIndex_t thenSkipStart = emitA(op, src1, 0, 0, gen, noCost);
-        // DO NOT FREE THE REGISTER HERE!!! we use it later to regenerate the
-        // jump once code has been generated. This is annoying, since we
-        // don't really need the register... we just want it allocated.
+         REGISTER_CHECK(src1);
+         codeBufIndex_t ifIndex= gen.getIndex();
+
+         size_t preif_patches_size = gen.allPatches().size();
+         codeBufIndex_t thenSkipStart = emitA(op, src1, 0, 0, gen, rc_before_jump, noCost);
+         size_t postif_patches_size = gen.allPatches().size();
+         // DO NOT FREE THE REGISTER HERE!!! we use it later to regenerate the
+         // jump once code has been generated. This is annoying, since we
+         // don't really need the register... we just want it allocated.
         
-        // I'm ignoring the above; we'll keep the _value_ of src1, but free it
-        // for internal code.
-        Register src1_copy = src1;
-        gen.rs()->freeRegister(src1);
+         // I'm ignoring the above; we'll keep the _value_ of src1, but free it
+         // for internal code.
+         Register src1_copy = src1;
+         if (loperand->decRefCount())
+            gen.rs()->freeRegister(src1);
         
-        // The flow of control forks. We need to add the forked node to 
-        // the path
-        gen.tracker()->increaseConditionalLevel();
-        if (!roperand->generateCode_phase2(gen, noCost, addr, src2)) ERROR_RETURN;
-        gen.rs()->freeRegister(src2);
-        gen.tracker()->decreaseAndClean(gen);
+         // The flow of control forks. We need to add the forked node to 
+         // the path
+         gen.tracker()->increaseConditionalLevel();
+         if (!roperand->generateCode_phase2(gen, noCost, addr, src2)) ERROR_RETURN;
+         if (roperand->decRefCount())
+            gen.rs()->freeRegister(src2);
+         gen.tracker()->decreaseAndClean(gen);
+         gen.rs()->unifyTopRegStates(gen); //Join the registerState for the if
         
-        // Is there an else clause?  If yes, generate branch over it
-        codeBufIndex_t elseSkipStart = 0;
-        codeBufIndex_t elseSkipIndex = gen.getIndex();
-        if (eoperand) 
+         // Is there an else clause?  If yes, generate branch over it
+         codeBufIndex_t elseSkipStart = 0;
+         codeBufIndex_t elseSkipIndex = gen.getIndex();
+         size_t preelse_patches_size = 0, postelse_patches_size = 0;
+         if (eoperand) {
+            gen.rs()->pushNewRegState(); //Create registerState for else
+            preelse_patches_size = gen.allPatches().size();
             elseSkipStart = emitA(branchOp, 0, 0, 0,
-                                  gen, noCost);
-        // Now that we've generated the "then" section, rewrite the if
-        // conditional branch.
-        codeBufIndex_t elseStartIndex = gen.getIndex();
+                                  gen, rc_no_control, noCost);
+            postelse_patches_size = gen.allPatches().size();
+         }
+
+         // Now that we've generated the "then" section, rewrite the if
+         // conditional branch.
+         codeBufIndex_t elseStartIndex = gen.getIndex();
+
+         if (preif_patches_size != postif_patches_size) {
+            assert(postif_patches_size > preif_patches_size);
+            ifTargetPatch if_targ(elseStartIndex + gen.startAddr());
+            for (unsigned i=preif_patches_size; i < postif_patches_size; i++) {
+               gen.allPatches()[i].setTarget(&if_targ);
+            }
+            for (unsigned i=preif_patches_size; i < postif_patches_size; i++) {
+               gen.allPatches()[i].applyPatch();
+            }
+         }
+         else {
+            gen.setIndex(ifIndex);
+            // call emit again now with correct offset.
+            // This backtracks over current code.
+            // If/when we vectorize, we can do this in a two-pass arrangement
+            (void) emitA(op, src1_copy, 0, 
+                         (Register) codeGen::getDisplacement(thenSkipStart, elseStartIndex),
+                         gen, rc_no_control, noCost);
+            // Now we can free the register
+            // Register has already been freed; we're just re-using it.
+            //gen.rs()->freeRegister(src1);
         
-        gen.setIndex(ifIndex);
-        // call emit again now with correct offset.
-        // This backtracks over current code.
-        // If/when we vectorize, we can do this in a two-pass arrangement
-        (void) emitA(op, src1_copy, 0, 
-                     (Register) codeGen::getDisplacement(thenSkipStart, elseStartIndex),
-                     gen, noCost);
-        // Now we can free the register
-        // Register has already been freed; we're just re-using it.
-        //gen.rs()->freeRegister(src1);
-        
-        gen.setIndex(elseStartIndex);
-        
-        if (eoperand) {
+            gen.setIndex(elseStartIndex);
+         }
+
+         if (eoperand) {
             // If there's an else clause, we need to generate code for it.
-			gen.tracker()->increaseConditionalLevel();
+            gen.tracker()->increaseConditionalLevel();
             if (!eoperand->generateCode_phase2(gen,
                                                noCost, 
                                                addr,
                                                src2)) ERROR_RETURN;
-            gen.rs()->freeRegister(src2);
-			gen.tracker()->decreaseAndClean(gen);
+            if (eoperand->decRefCount())
+               gen.rs()->freeRegister(src2);
+            gen.tracker()->decreaseAndClean(gen);
+            gen.rs()->unifyTopRegStates(gen); //Join the registerState for the else
             
             // We also need to fix up the branch at the end of the "true"
             // clause to jump around the "else" clause.
             codeBufIndex_t endIndex = gen.getIndex();
-            gen.setIndex(elseSkipIndex);
-            emitA(branchOp, 0, 0, 
-                  (Register) codeGen::getDisplacement(elseSkipStart, endIndex),
-                  gen, noCost);
-            gen.setIndex(endIndex);
-        }
-        retReg = REG_NULL; 
-        break;
-    }
-    case ifMCOp: {
-        assert(gen.point());
+            if (preelse_patches_size != postelse_patches_size) {
+               assert(postif_patches_size > preif_patches_size);
+               ifTargetPatch else_targ(endIndex + gen.startAddr());
+               for (unsigned i=preelse_patches_size; i < postelse_patches_size; i++) {
+                  gen.allPatches()[i].setTarget(&else_targ);
+               }
+               for (unsigned i=preelse_patches_size; i < postelse_patches_size; i++) {
+                  gen.allPatches()[i].applyPatch();
+               }
+            }
+            else {        
+               gen.setIndex(elseSkipIndex);
+               emitA(branchOp, 0, 0, 
+                     (Register) codeGen::getDisplacement(elseSkipStart, endIndex),
+                     gen, rc_no_control, noCost);
+               gen.setIndex(endIndex);
+            }
+         }
+         retReg = REG_NULL; 
+         break;
+      }
+      case ifMCOp: {
+         assert(gen.point());
         
-        // TODO: Right now we get the condition from the memory access info,
-        // because scanning for memory accesses is the only way to detect these
-        // conditional instructions. The right way(TM) would be to attach that
-        // info directly to the point...
-        // Okay. The info we need is stored in the BPatch_point. We have the instPoint. 
-        // Yay.
+         // TODO: Right now we get the condition from the memory access info,
+         // because scanning for memory accesses is the only way to detect these
+         // conditional instructions. The right way(TM) would be to attach that
+         // info directly to the point...
+         // Okay. The info we need is stored in the BPatch_point. We have the instPoint. 
+         // Yay.
         
-        BPatch_addressSpace *bproc = (BPatch_addressSpace *) gen.addrSpace()->up_ptr();
-        BPatch_point *bpoint = bproc->findOrCreateBPPoint(NULL, gen.point());
+         BPatch_addressSpace *bproc = (BPatch_addressSpace *) gen.addrSpace()->up_ptr();
+         BPatch_point *bpoint = bproc->findOrCreateBPPoint(NULL, gen.point());
         
-        const BPatch_memoryAccess* ma = bpoint->getMemoryAccess();
-        assert(ma);
-        int cond = ma->conditionCode_NP();
-        if(cond > -1) {
+         const BPatch_memoryAccess* ma = bpoint->getMemoryAccess();
+         assert(ma);
+         int cond = ma->conditionCode_NP();
+         if(cond > -1) {
             codeBufIndex_t startIndex = gen.getIndex();
             emitJmpMC(cond, 0 /* target, changed later */, gen);
             codeBufIndex_t fromIndex = gen.getIndex();
             // Add the snippet to the tracker, as AM has indicated...
- 			gen.tracker()->increaseConditionalLevel();
+            gen.tracker()->increaseConditionalLevel();
             // generate code with the right path
             if (!loperand->generateCode_phase2(gen,
                                                noCost,
                                                addr,
                                                src1)) ERROR_RETURN;
-            gen.rs()->freeRegister(src1);
-			gen.tracker()->decreaseAndClean(gen);
+            if (loperand->decRefCount())
+               gen.rs()->freeRegister(src1);
+            gen.tracker()->decreaseAndClean(gen);
             codeBufIndex_t endIndex = gen.getIndex();
             // call emit again now with correct offset.
             gen.setIndex(startIndex);
             emitJmpMC(cond, codeGen::getDisplacement(fromIndex, endIndex), gen);
             gen.setIndex(endIndex);
-        }
-        else {
+         }
+         else {
             if (!loperand->generateCode_phase2(gen,
                                                noCost,
                                                addr, 
                                                src1)) ERROR_RETURN;
-            gen.rs()->freeRegister(src1);
-        }
+            if (loperand->decRefCount())
+               gen.rs()->freeRegister(src1);
+         }
 
-        break;
-    }
-    case whileOp: {
-        codeBufIndex_t top = gen.getIndex();
-        if (!loperand->generateCode_phase2(gen, noCost, addr, src1)) ERROR_RETURN;
-        REGISTER_CHECK(src1);
-        codeBufIndex_t startIndex = gen.getIndex();
-        codeBufIndex_t fromIndex = emitA(ifOp, src1, 0, 0, gen, noCost);
-        gen.rs()->freeRegister(src1);
-        if (roperand) {
-			gen.tracker()->increaseConditionalLevel();
+         break;
+      }
+      case whileOp: {
+         codeBufIndex_t top = gen.getIndex();
+         if (!loperand->generateCode_phase2(gen, noCost, addr, src1)) ERROR_RETURN;
+         REGISTER_CHECK(src1);
+         codeBufIndex_t startIndex = gen.getIndex();
+         codeBufIndex_t fromIndex = emitA(ifOp, src1, 0, 0, gen, rc_no_control, noCost);
+         if (loperand->decRefCount())
+            gen.rs()->freeRegister(src1);
+         if (roperand) {
+            gen.tracker()->increaseConditionalLevel();
             if (!roperand->generateCode_phase2(gen, noCost,
                                                addr,
                                                src1)) ERROR_RETURN;
-            gen.rs()->freeRegister(src1);
-			gen.tracker()->decreaseAndClean(gen);
-        }
-        //jump back
-        (void) emitA(branchOp, 0, 0, codeGen::getDisplacement(top, gen.getIndex()),
-                     gen, noCost);
+            if (roperand->decRefCount())
+               gen.rs()->freeRegister(src1);
+            gen.tracker()->decreaseAndClean(gen);
+         }
+         //jump back
+         (void) emitA(branchOp, 0, 0, codeGen::getDisplacement(top, gen.getIndex()),
+                      gen, rc_no_control, noCost);
         
-        // Rewind and replace the skip jump
-        codeBufIndex_t endIndex = gen.getIndex();
-        gen.setIndex(startIndex);
-        (void) emitA(ifOp, src1, 0, (Register) codeGen::getDisplacement(fromIndex, endIndex), 
-                     gen, noCost);
-        gen.setIndex(endIndex);
-        // sprintf(errorLine,"branch forward %d\n", base - fromAddr);
-        break;
-    }
-    case doOp: {
-        fprintf(stderr, "[%s:%d] WARNING: do AST node unimplemented!\n", __FILE__, __LINE__);
-        return false;
-    }
-    case getAddrOp: {
-        switch(loperand->getoType()) {
-	case variableAddr:
-	  if (retReg == REG_NULL) {
-	    retReg = allocateAndKeep(gen, noCost);
-	  }
-	  assert (loperand->getOVar());
-	  loperand->emitVariableLoad(loadConstOp, retReg, retReg, gen, noCost, gen.rs(), size,
-				     gen.point(), gen.addrSpace());
-	  break;
-	case variableValue:
-	  if (retReg == REG_NULL) {
-	    retReg = allocateAndKeep(gen, noCost);
-	  }
-	  assert (loperand->getOVar());
-	  loperand->emitVariableLoad(loadOp, retReg, retReg, gen, noCost, gen.rs(), size,
-				     gen.point(), gen.addrSpace());
-	  break;
-	case DataAddr:
-	  {
-            addr = reinterpret_cast<Address>(loperand->getOValue());
-            if (retReg == REG_NULL) {
-	      retReg = allocateAndKeep(gen, noCost);
-            }
-	    assert(!loperand->getOVar());
-	    emitVload(loadConstOp, addr, retReg, retReg, gen,
-		      noCost, gen.rs(), size, gen.point(), gen.addrSpace());
-	  }
-            break;
-        case FrameAddr: {
-            // load the address fp + addr into dest
-            if (retReg == REG_NULL)
-                retReg = allocateAndKeep(gen, noCost);
-            Register temp = gen.rs()->getScratchRegister(gen, noCost);
-            addr = (Address) loperand->getOValue();
+         // Rewind and replace the skip jump
+         codeBufIndex_t endIndex = gen.getIndex();
+         gen.setIndex(startIndex);
+         (void) emitA(ifOp, src1, 0, (Register) codeGen::getDisplacement(fromIndex, endIndex), 
+                      gen, rc_no_control, noCost);
+         gen.setIndex(endIndex);
+         // sprintf(errorLine,"branch forward %d\n", base - fromAddr);
+         break;
+      }
+      case doOp: {
+         fprintf(stderr, "[%s:%d] WARNING: do AST node unimplemented!\n", __FILE__, __LINE__);
+         return false;
+      }
+      case getAddrOp: {
+         switch(loperand->getoType()) {
+            case variableAddr:
+               if (retReg == REG_NULL) {
+                  retReg = allocateAndKeep(gen, noCost);
+               }
+               assert (loperand->getOVar());
+               loperand->emitVariableLoad(loadConstOp, retReg, retReg, gen, noCost, gen.rs(), size,
+                                          gen.point(), gen.addrSpace());
+               break;
+            case variableValue:
+               if (retReg == REG_NULL) {
+                  retReg = allocateAndKeep(gen, noCost);
+               }
+               assert (loperand->getOVar());
+               loperand->emitVariableLoad(loadOp, retReg, retReg, gen, noCost, gen.rs(), size,
+                                          gen.point(), gen.addrSpace());
+               break;
+            case DataAddr:
+               {
+                  addr = reinterpret_cast<Address>(loperand->getOValue());
+                  if (retReg == REG_NULL) {
+                     retReg = allocateAndKeep(gen, noCost);
+                  }
+                  assert(!loperand->getOVar());
+                  emitVload(loadConstOp, addr, retReg, retReg, gen,
+                            noCost, gen.rs(), size, gen.point(), gen.addrSpace());
+               }
+               break;
+            case FrameAddr: {
+               // load the address fp + addr into dest
+               if (retReg == REG_NULL)
+                  retReg = allocateAndKeep(gen, noCost);
+               Register temp = gen.rs()->getScratchRegister(gen, noCost);
+               addr = (Address) loperand->getOValue();
 	    
-            emitVload(loadFrameAddr, addr, temp, retReg, gen,
-                      noCost, gen.rs(), size, gen.point(), gen.addrSpace());
-            break;
-        }
-        case RegOffset: {
-            assert(loperand);
-            assert(loperand->operand());
+               emitVload(loadFrameAddr, addr, temp, retReg, gen,
+                         noCost, gen.rs(), size, gen.point(), gen.addrSpace());
+               break;
+            }
+            case RegOffset: {
+               assert(loperand);
+               assert(loperand->operand());
             
-            // load the address reg + addr into dest
-            if (retReg == REG_NULL) {
-                retReg = allocateAndKeep(gen, noCost);
-            }
-            addr = (Address) loperand->operand()->getOValue();
+               // load the address reg + addr into dest
+               if (retReg == REG_NULL) {
+                  retReg = allocateAndKeep(gen, noCost);
+               }
+               addr = (Address) loperand->operand()->getOValue();
 	    
-            emitVload(loadRegRelativeAddr, addr, (long)loperand->getOValue(), retReg, gen,
-                      noCost, gen.rs(), size, gen.point(), gen.addrSpace());
+               emitVload(loadRegRelativeAddr, addr, (long)loperand->getOValue(), retReg, gen,
+                         noCost, gen.rs(), size, gen.point(), gen.addrSpace());
+               break;
+            }
+            case DataIndir:
+               // taking address of pointer de-ref returns the original
+               //    expression, so we simple generate the left child's 
+               //    code to get the address 
+               if (!loperand->operand()->generateCode_phase2(gen,
+                                                             noCost, 
+                                                             addr,
+                                                             retReg)) ERROR_RETURN;
+               // Broken refCounts?
+               break;
+            default:
+               assert(0);
+         }
+         break;
+      }
+      case storeOp: {
+         bool result = generateOptimizedAssignment(gen, noCost);
+         if (result)
             break;
-        }
-        case DataIndir:
-            // taking address of pointer de-ref returns the original
-            //    expression, so we simple generate the left child's 
-            //    code to get the address 
-            if (!loperand->operand()->generateCode_phase2(gen,
-                                                          noCost, 
-                                                          addr,
-                                                          retReg)) ERROR_RETURN;
-            // Broken refCounts?
-            break;
-        default:
-            assert(0);
-        }
-        break;
-    }
-    case storeOp: {
-        bool result = generateOptimizedAssignment(gen, noCost);
-        if (result)
-           break;
        
-        // This ast cannot be shared because it doesn't return a register
-        if (!roperand->generateCode_phase2(gen,
-                                          noCost,
-                                          addr,
-                                          src1))  { 
-			fprintf(stderr, "ERROR: failure generating roperand\n"); 
-			ERROR_RETURN; 
-		}
-        REGISTER_CHECK(src1);
-        // We will access loperand's children directly. They do not expect
-        // it, so we need to bump up their useCounts
-        loperand->fixChildrenCounts();
+         // This ast cannot be shared because it doesn't return a register
+         if (!roperand->generateCode_phase2(gen,
+                                            noCost,
+                                            addr,
+                                            src1))  { 
+            fprintf(stderr, "ERROR: failure generating roperand\n"); 
+            ERROR_RETURN; 
+         }
+         REGISTER_CHECK(src1);
+         // We will access loperand's children directly. They do not expect
+         // it, so we need to bump up their useCounts
+         loperand->fixChildrenCounts();
         
-        src2 = gen.rs()->allocateRegister(gen, noCost);
-        switch (loperand->getoType()) {
-	case variableValue:
-	      loperand->emitVariableStore(storeOp, src1, src2, gen,
-			 noCost, gen.rs(), size, gen.point(), gen.addrSpace());
-	      loperand->decUseCount(gen);
-	      break;
-        case DataAddr:
-            addr = (Address) loperand->getOValue();
-	    assert(loperand->getOVar() == NULL);
-	    emitVstore(storeOp, src1, src2, addr, gen,
-		       noCost, gen.rs(), size, gen.point(), gen.addrSpace());
-            // We are not calling generateCode for the left branch,
-            // so need to decrement the refcount by hand
-            loperand->decUseCount(gen);
-            break;
-        case FrameAddr:
-            addr = (Address) loperand->getOValue();
-            emitVstore(storeFrameRelativeOp, src1, src2, addr, gen, 
-                       noCost, gen.rs(), size, gen.point(), gen.addrSpace());
-            loperand->decUseCount(gen);
-            break;
-        case RegOffset: {
-            assert(loperand->operand());
-            addr = (Address) loperand->operand()->getOValue();
+         src2 = gen.rs()->allocateRegister(gen, noCost);
+         switch (loperand->getoType()) {
+            case variableValue:
+               loperand->emitVariableStore(storeOp, src1, src2, gen,
+                                           noCost, gen.rs(), size, gen.point(), gen.addrSpace());
+               loperand->decUseCount(gen);
+               break;
+            case DataAddr:
+               addr = (Address) loperand->getOValue();
+               assert(loperand->getOVar() == NULL);
+               emitVstore(storeOp, src1, src2, addr, gen,
+                          noCost, gen.rs(), size, gen.point(), gen.addrSpace());
+               // We are not calling generateCode for the left branch,
+               // so need to decrement the refcount by hand
+               loperand->decUseCount(gen);
+               break;
+            case FrameAddr:
+               addr = (Address) loperand->getOValue();
+               emitVstore(storeFrameRelativeOp, src1, src2, addr, gen, 
+                          noCost, gen.rs(), size, gen.point(), gen.addrSpace());
+               loperand->decUseCount(gen);
+               break;
+            case RegOffset: {
+               assert(loperand->operand());
+               addr = (Address) loperand->operand()->getOValue();
             
-            // This is cheating, but I need to pass 4 data values into emitVstore, and
-            // it only allows for 3.  Prepare the dest address in scratch register src2.
+               // This is cheating, but I need to pass 4 data values into emitVstore, and
+               // it only allows for 3.  Prepare the dest address in scratch register src2.
             
-            emitVload(loadRegRelativeAddr, addr, (long)loperand->getOValue(), src2,
-                      gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
+               emitVload(loadRegRelativeAddr, addr, (long)loperand->getOValue(), src2,
+                         gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
             
-            // Same as DataIndir at this point.
-            emitV(storeIndirOp, src1, 0, src2, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
-            loperand->decUseCount(gen);
-            break;
-        }
-        case DataIndir: {
-            // store to a an expression (e.g. an array or field use)
-            // *(+ base offset) = src1
-            if (!loperand->operand()->generateCode_phase2(gen,
-                                                          noCost,
-                                                          addr,
-                                                          tmp)) ERROR_RETURN;
-            REGISTER_CHECK(tmp);
+               // Same as DataIndir at this point.
+               emitV(storeIndirOp, src1, 0, src2, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
+               loperand->decUseCount(gen);
+               break;
+            }
+            case DataIndir: {
+               // store to a an expression (e.g. an array or field use)
+               // *(+ base offset) = src1
+               if (!loperand->operand()->generateCode_phase2(gen,
+                                                             noCost,
+                                                             addr,
+                                                             tmp)) ERROR_RETURN;
+               REGISTER_CHECK(tmp);
 
-            // tmp now contains address to store into
-            emitV(storeIndirOp, src1, 0, tmp, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
-            gen.rs()->freeRegister(tmp);
-            loperand->decUseCount(gen);
-            break;
-        }
-        case origRegister:
-           gen.rs()->writeProgramRegister(gen, (Register)(long)loperand->getOValue(),
-                                           src1, getSize());
-            //emitStorePreviousStackFrameRegister((Address) loperand->getOValue(),
-            //src1, gen, getSize(), noCost);
-            loperand->decUseCount(gen);
-            break;
-        default: {
-            // Could be an error, could be an attempt to load based on an arithmetic expression
-            // Generate the left hand side, store the right to that address
-            if (!loperand->generateCode_phase2(gen, noCost, addr, tmp)) ERROR_RETURN;
-            REGISTER_CHECK(tmp);
+               // tmp now contains address to store into
+               emitV(storeIndirOp, src1, 0, tmp, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
+               if (loperand->operand()->decRefCount())
+                  gen.rs()->freeRegister(tmp);
+               loperand->decUseCount(gen);
+               break;
+            }
+            case origRegister:
+               gen.rs()->writeProgramRegister(gen, (Register)(long)loperand->getOValue(),
+                                              src1, getSize());
+               //emitStorePreviousStackFrameRegister((Address) loperand->getOValue(),
+               //src1, gen, getSize(), noCost);
+               loperand->decUseCount(gen);
+               break;
+            default: {
+               // Could be an error, could be an attempt to load based on an arithmetic expression
+               // Generate the left hand side, store the right to that address
+               if (!loperand->generateCode_phase2(gen, noCost, addr, tmp)) ERROR_RETURN;
+               REGISTER_CHECK(tmp);
 
-            emitV(storeIndirOp, src1, 0, tmp, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
-            gen.rs()->freeRegister(tmp);
-            break;
-        }
-        }
-        gen.rs()->freeRegister(src1);
-        gen.rs()->freeRegister(src2);
-        retReg = REG_NULL;
-        break;
-    }
-    case storeIndirOp: {
+               emitV(storeIndirOp, src1, 0, tmp, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
+               if (loperand->decRefCount())
+                  gen.rs()->freeRegister(tmp);
+               break;
+            }
+         }
+         if (roperand->decRefCount())
+            gen.rs()->freeRegister(src1);
+         gen.rs()->freeRegister(src2);
+         retReg = REG_NULL;
+         break;
+      }
+      case storeIndirOp: {
         
-        if (!roperand->generateCode_phase2(gen, noCost, addr, src1)) ERROR_RETURN;
-        if (!loperand->generateCode_phase2(gen, noCost, addr, src2)) ERROR_RETURN;
-        REGISTER_CHECK(src1);
-        REGISTER_CHECK(src2);
-        emitV(op, src1, 0, src2, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
-        gen.rs()->freeRegister(src1);
-        gen.rs()->freeRegister(src2);
-        retReg = REG_NULL;
-        break;
-    }
-    case trampPreamble: {
-        // This ast cannot be shared because it doesn't return a register
-#if defined(i386_unknown_solaris2_5) \
- || defined(sparc_sun_solaris2_4)
-        // loperand is a constant AST node with the cost, in cycles.
-        //int cost = noCost ? 0 : (int) loperand->getOValue();
-        Address costAddr = 0; // for now... (won't change if noCost is set)
-        loperand->decUseCount(gen);
-        costAddr = gen.addrSpace()->getObservedCostAddr();
-        retAddr = emitA(op, 0, 0, 0, gen, noCost);
+         if (!roperand->generateCode_phase2(gen, noCost, addr, src1)) ERROR_RETURN;
+         if (!loperand->generateCode_phase2(gen, noCost, addr, src2)) ERROR_RETURN;
+         REGISTER_CHECK(src1);
+         REGISTER_CHECK(src2);
+         emitV(op, src1, 0, src2, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
+         if (roperand->decRefCount())
+            gen.rs()->freeRegister(src1);
+         if (loperand->decRefCount())
+            gen.rs()->freeRegister(src2);
+         retReg = REG_NULL;
+         break;
+      }
+      case trampPreamble: {
+         // This ast cannot be shared because it doesn't return a register
+#if defined(i386_unknown_solaris2_5)            \
+   || defined(sparc_sun_solaris2_4)
+         // loperand is a constant AST node with the cost, in cycles.
+         //int cost = noCost ? 0 : (int) loperand->getOValue();
+         Address costAddr = 0; // for now... (won't change if noCost is set)
+         loperand->decUseCount(gen);
+         costAddr = gen.addrSpace()->getObservedCostAddr();
+         retAddr = emitA(op, 0, 0, 0, gen, rc_no_control, noCost);
 #endif
-        retReg = REG_NULL;
-        break;
-    }
-    default: {
-        src1 = Null_Register;
-        right_dest = Null_Register;
-        if (loperand) {
+         retReg = REG_NULL;
+         break;
+      }
+      case plusOp:
+      case minusOp:
+      case timesOp:
+      case divOp:
+      case orOp:
+      case andOp:
+      case eqOp:
+      case neOp:
+      case lessOp:
+      case leOp:
+      case greaterOp:
+      case geOp:
+      default: 
+      {
+         src1 = Null_Register;
+         right_dest = Null_Register;
+         if (loperand) {
             if (!loperand->generateCode_phase2(gen,
                                                noCost, addr, src1)) ERROR_RETURN;
             REGISTER_CHECK(src1);
-        }
-        
-        if (roperand &&
-            (roperand->getoType() == Constant) &&
-            doNotOverflow((Register) (long) roperand->getOValue())) {
-            gen.rs()->freeRegister(src1); // may be able to reuse it for dest
+         }
+         
+         if (roperand &&
+             (roperand->getoType() == Constant) &&
+             doNotOverflow((Register) (long) roperand->getOValue())) {
             if (retReg == REG_NULL) {
-                retReg = allocateAndKeep(gen, noCost);
-				ast_printf("Operator node, const RHS, allocated register %d\n", retReg);
+               retReg = allocateAndKeep(gen, noCost);
+               ast_printf("Operator node, const RHS, allocated register %d\n", retReg);
             }
-			else
-				ast_printf("Operator node, const RHS, keeping register %d\n", retReg);
+            else
+               ast_printf("Operator node, const RHS, keeping register %d\n", retReg);
 				
             emitImm(op, src1, (Register) (long) roperand->getOValue(), retReg, gen, noCost, gen.rs());
+
+            if (src1 != Null_Register && loperand->decRefCount())
+               gen.rs()->freeRegister(src1); 
+
             // We do not .generateCode for roperand, so need to update its
             // refcounts manually
             roperand->decUseCount(gen);
-        }
-        else {
+         }
+         else {
             if (roperand) {
-                if (!roperand->generateCode_phase2(gen, noCost, addr, right_dest)) ERROR_RETURN;
-                REGISTER_CHECK(right_dest);
+               if (!roperand->generateCode_phase2(gen, noCost, addr, right_dest)) ERROR_RETURN;
+               REGISTER_CHECK(right_dest);
             }
             if (retReg == REG_NULL) {
-                retReg = allocateAndKeep(gen, noCost);
+               retReg = allocateAndKeep(gen, noCost);
             }
             emitV(op, src1, right_dest, retReg, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
-	    gen.rs()->freeRegister(src1); // Don't free inputs until afterwards; we have _no_ idea
-	    // what the underlying code might do with a temporary register.
-	    gen.rs()->freeRegister(right_dest); 
-        }
-    }
-    }
+            if (src1 != Null_Register && loperand->decRefCount()) {
+               // Don't free inputs until afterwards; we have _no_ idea
+               gen.rs()->freeRegister(src1); 
+            }
+            // what the underlying code might do with a temporary register.
+            if (right_dest != Null_Register && roperand->decRefCount())
+               gen.rs()->freeRegister(right_dest); 
+         }
+      }
+   }
 	decUseCount(gen);
-    return true;
+   return true;
 }
 
 bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
@@ -1339,7 +1453,8 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
       else
          tSize = sizeof(long);
       emitV(loadIndirOp, src, 0, retReg, gen, noCost, gen.rs(), tSize, gen.point(), gen.addrSpace()); 
-      gen.rs()->freeRegister(src);
+      if (operand_->decRefCount())
+         gen.rs()->freeRegister(src);
       break;
    case DataReg:
        retReg = (Register) (long) oValue;
@@ -1633,7 +1748,8 @@ bool AstSequenceNode::generateCode_phase2(codeGen &gen, bool noCost,
                                                noCost, 
                                                unused,
                                                tmp)) ERROR_RETURN;
-        gen.rs()->freeRegister(tmp);
+        if (sequence_[i]->decRefCount())
+           gen.rs()->freeRegister(tmp);
         tmp = REG_NULL;
     }
 
@@ -2527,9 +2643,9 @@ void AstMiniTrampNode::setVariableAST(codeGen &g){
     if(ast_) ast_->setVariableAST(g);
 }
 
-bool AstNode::containsFuncCall() const { 
+/*bool AstNode::containsFuncCall() const { 
    return false; 
-}
+   }*/
 
 bool AstCallNode::containsFuncCall() const {
    return true;
@@ -2572,6 +2688,131 @@ bool AstInsnMemoryNode::containsFuncCall() const {
     if (load_ && load_->containsFuncCall()) return true;
     if (store_ && store_->containsFuncCall()) return true;
     return false;
+}
+
+bool AstNullNode::containsFuncCall() const
+{
+   return false;
+}
+
+bool AstLabelNode::containsFuncCall() const
+{
+   return false;
+}
+
+bool AstMemoryNode::containsFuncCall() const
+{
+   return false;
+}
+
+bool AstInsnNode::containsFuncCall() const
+{
+   return false;
+}
+
+bool AstOriginalAddrNode::containsFuncCall() const
+{
+   return false;
+}
+
+bool AstActualAddrNode::containsFuncCall() const
+{
+   return false;
+}
+
+bool AstDynamicTargetNode::containsFuncCall() const
+{
+   return false;
+}
+
+bool AstCallNode::usesAppRegister() const {
+   for (unsigned i=0; i<args_.size(); i++) {
+      if (args_[i] && args_[i]->usesAppRegister()) return true;
+   }
+   return false;
+}
+
+bool AstReplacementNode::usesAppRegister() const {
+   return false;
+}
+
+bool AstOperatorNode::usesAppRegister() const {
+	if (loperand && loperand->usesAppRegister()) return true;
+	if (roperand && roperand->usesAppRegister()) return true;
+	if (eoperand && eoperand->usesAppRegister()) return true;
+	return false;
+}
+
+bool AstOperandNode::usesAppRegister() const {
+   if (oType == AstNode::FrameAddr ||
+       oType == AstNode::RegOffset ||
+       oType == AstNode::origRegister ||
+       oType == AstNode::Param ||
+       oType == AstNode::ReturnVal)
+   {
+      return true;
+   }
+
+	if (operand_ && operand_->usesAppRegister()) return true;
+	return false;
+}
+
+bool AstMiniTrampNode::usesAppRegister() const {
+	if (ast_ && ast_->usesAppRegister()) return true;
+	return false;
+}
+
+bool AstSequenceNode::usesAppRegister() const {
+	for (unsigned i = 0; i < sequence_.size(); i++) {
+		if (sequence_[i]->usesAppRegister()) return true;
+	}
+	return false;
+}
+
+bool AstVariableNode::usesAppRegister() const 
+{
+    return ast_wrappers_[index]->usesAppRegister();
+}
+
+bool AstInsnMemoryNode::usesAppRegister() const {
+    if (load_ && load_->usesAppRegister()) return true;
+    if (store_ && store_->usesAppRegister()) return true;
+    return false;
+}
+
+bool AstNullNode::usesAppRegister() const
+{
+   return false;
+}
+
+bool AstLabelNode::usesAppRegister() const
+{
+   return false;
+}
+
+bool AstDynamicTargetNode::usesAppRegister() const
+{
+   return false;
+}
+
+bool AstActualAddrNode::usesAppRegister() const
+{
+   return false;
+}
+
+bool AstOriginalAddrNode::usesAppRegister() const
+{
+   return false;
+}
+
+bool AstMemoryNode::usesAppRegister() const
+{
+   return true;
+}
+
+bool AstInsnNode::usesAppRegister() const
+{
+   return true;
 }
 
 void regTracker_t::addKeptRegister(codeGen &gen, AstNode *n, Register reg) {
@@ -2671,12 +2912,7 @@ void AstNode::debugPrint(unsigned level) {
     else if (dynamic_cast<AstMemoryNode *>(this)) type = "memoryNode";
     else type = "unknownNode";
     
-    if (dynamic_cast<AstNode *>(this)) {
-        ast_printf("AstNode <no data>\n");
-    }
-    else {
-        ast_printf("Node %s: ptr %p, useCount is %d, canBeKept %d, type %s\n", type.c_str(), this, useCount, canBeKept(), getType() ? getType()->getName() : "<NULL TYPE>");
-    }
+    ast_printf("Node %s: ptr %p, useCount is %d, canBeKept %d, type %s\n", type.c_str(), this, useCount, canBeKept(), getType() ? getType()->getName() : "<NULL TYPE>");
 
     pdvector<AstNodePtr> children;
     getChildren(children);
@@ -2753,4 +2989,11 @@ void AstOperandNode::emitVariableStore(opCode op, Register src1, Register src2, 
   {
     gen.codeEmitter()->emitStoreShared(src1, oVar, (var!=NULL), size, gen);
   }  
+}
+
+bool AstNode::decRefCount()
+{
+   referenceCount--;
+   //return referenceCount <= 0;
+   return true;
 }

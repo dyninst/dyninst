@@ -602,9 +602,9 @@ void dyn_lwp::dumpRegisters()
       return;
    }
 
-   fprintf(stderr, "PC:   %lx\n", GETREG_PC(regs.theIntRegs));
-   fprintf(stderr, "FP:   %lx\n", GETREG_FP(regs.theIntRegs));
-   fprintf(stderr, "INFO: %lx\n", GETREG_INFO(regs.theIntRegs));
+   fprintf(stderr, "PC:   %lx\n", (unsigned long) GETREG_PC(regs.theIntRegs));
+   fprintf(stderr, "FP:   %lx\n", (unsigned long) GETREG_FP(regs.theIntRegs));
+   fprintf(stderr, "INFO: %lx\n", (unsigned long) GETREG_INFO(regs.theIntRegs));
    //  plenty more register if we want to print em....
 }
 

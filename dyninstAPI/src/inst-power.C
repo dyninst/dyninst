@@ -1166,7 +1166,8 @@ bool baseTrampInstance::finalizeGuardBranch(codeGen &gen,
        
 
 bool baseTramp::generateSaves(codeGen &gen,
-                              registerSpace *)
+                              registerSpace *,
+                              baseTrampInstance *)
 {
     regalloc_printf("========== baseTramp::generateSaves\n");
     
@@ -1205,7 +1206,8 @@ bool baseTramp::generateSaves(codeGen &gen,
 }
 
 bool baseTramp::generateRestores(codeGen &gen,
-                                 registerSpace *)
+                                 registerSpace *,
+                                 baseTrampInstance *)
 {
 
     regalloc_printf("========== baseTramp::generateRestores\n");
@@ -1712,7 +1714,7 @@ Register EmitterPOWERDyn::emitCall(opCode /* ocode */,
 
  
 codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, Register dest,
-	      codeGen &gen, bool /*noCost*/)
+	      codeGen &gen, RegControl, bool /*noCost*/)
 {
     //bperr("emitA(op=%d,src1=%d,src2=XX,dest=%d)\n",op,src1,dest);
     codeBufIndex_t retval = 0;

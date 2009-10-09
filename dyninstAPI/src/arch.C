@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2004 Barton P. Miller
+ * Copyright (c) 1996-2009 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -61,6 +61,7 @@
 #include "function.h"
 #include "dyn_thread.h"
 #include "instPoint.h"
+#include "registerSpace.h"
 
 #if defined(arch_x86) || defined(arch_x86_64)
 #define CODE_GEN_OFFSET_SIZE 1
@@ -86,7 +87,9 @@ codeGen::codeGen() :
     addr_((Address)-1),
     ip_(NULL),
     f_(NULL),
+    bti_(NULL),
     isPadded_(true),
+    trackRegDefs_(false),
     obj_(NULL)
 {}
 
@@ -105,6 +108,7 @@ codeGen::codeGen(unsigned size) :
     addr_((Address)-1),
     ip_(NULL),
     f_(NULL),
+    bti_(NULL),
     isPadded_(true),
     obj_(NULL)
 {
@@ -136,6 +140,7 @@ codeGen::codeGen(const codeGen &g) :
     addr_(g.addr_),
     ip_(g.ip_),
     f_(g.f_),
+    bti_(g.bti_),
     isPadded_(g.isPadded_),
     obj_(g.obj_)
 {
@@ -485,9 +490,8 @@ pcRelRegion::~pcRelRegion()
 {
 }
 
-void codeGen::addPatch(const relocPatch &p)
-{
-   patches_.push_back(p);
+std::vector<relocPatch>& codeGen::allPatches() {
+   return patches_;
 }
 
 void codeGen::addPatch(void *dest, patchTarget *source, 
@@ -521,7 +525,8 @@ relocPatch::relocPatch(void *d, patchTarget *s, patch_type_t ptype,
 
 void relocPatch::applyPatch()
 {
-   assert(!applied_);
+   if (applied_)
+      return;
 
    Address addr = source_->get_address();
 
@@ -615,4 +620,31 @@ Emitter *codeGen::codeEmitter() {
 
 generatedCodeObject *codeGen::obj() {
     return obj_;
+}
+
+void codeGen::beginTrackRegDefs()
+{
+   trackRegDefs_ = true;
+   regsDefined_ = registerSpace::getBitArray();
+}
+
+void codeGen::endTrackRegDefs()
+{
+   trackRegDefs_ = false;
+}
+ 
+const bitArray &codeGen::getRegsDefined()
+{
+   return regsDefined_;
+}
+
+void codeGen::markRegDefined(Register r) {
+   if (!trackRegDefs_)
+      return;
+   regsDefined_[r] = true;
+}
+
+bool codeGen::isRegDefined(Register r) {
+   assert(trackRegDefs_);
+   return regsDefined_[r];
 }

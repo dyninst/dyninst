@@ -634,7 +634,7 @@ unsigned relocatedInstruction::maxSizeRequired() {
 
 
 bool baseTramp::generateSaves(codeGen &gen,
-                              registerSpace *) {
+                              registerSpace*, baseTrampInstance *) {
     if (isConservative()) {
         // Yadda
     }
@@ -682,7 +682,8 @@ bool baseTramp::generateSaves(codeGen &gen,
 }
 
 bool baseTramp::generateRestores(codeGen &gen,
-                                 registerSpace *) {
+                                 registerSpace *,
+                                 baseTrampInstance *) {
     if (isConservative() && BPatch::bpatch->isSaveFPROn()) {
         for (unsigned f_iter = 0; f_iter <= 30; f_iter += 2) {
             // std %f[iter], [%fp + -(40 + iter*4)]
@@ -925,8 +926,9 @@ Register emitFuncCall(opCode op,
 /****************************************************************************/
 /****************************************************************************/
 
+
 codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, Register dest, 
-              codeGen &gen, bool /*noCost*/)
+              codeGen &gen, RegControl, bool /*noCost*/)
 {
     //bperr("emitA(op=%d,src1=%d,src2=XX,dest=%d)\n",op,src1,dest);
     codeBufIndex_t retval;

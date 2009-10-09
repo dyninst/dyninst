@@ -152,6 +152,7 @@ class baseTrampInstance : public generatedCodeObject {
 
     ~baseTrampInstance();
 
+    int numDefinedRegs();
     Address miniTrampReturnAddr();
 
     bool isEmpty() const;
@@ -159,6 +160,8 @@ class baseTrampInstance : public generatedCodeObject {
     void updateTrampCost(unsigned cost);
 
     instPoint *findInstPointByAddr(Address addr);
+
+    bool shouldRegenBaseTramp(registerSpace *rs);
 
     unsigned genVersion;
 
@@ -172,6 +175,11 @@ class baseTrampInstance : public generatedCodeObject {
     // either directly (via removeCode) or during deletion -- but
     // don't do it twice!!!
     bool alreadyDeleted_;
+
+    bool hasDefinedRegs_;
+    bool spilledRegisters_;
+    bool hasStackFrame_;
+    bitArray definedRegs_;
 };
 
 class baseTramp {
@@ -196,13 +204,18 @@ class baseTramp {
 
     bool doOptimizations();
     bool generateSaves(codeGen &,
-                       registerSpace *);
+                       registerSpace *,
+                       baseTrampInstance *inst);
     bool generateRestores(codeGen &,
-                          registerSpace *);
+                          registerSpace *,
+                          baseTrampInstance *inst);
 
     bool isConservative();
     bool isCallsite();
     bool isEntryExit();
+
+    void setCreateFrame(bool frame);
+    bool createFrame();
 
     unsigned getBTCost();
 
@@ -267,12 +280,15 @@ class baseTramp {
     bool guarded() const { return (guardState_ == guarded_BTR); }
 
  private:
-
+    
+    bool createFrame_;
     unsigned instVersion_;
     callWhen when_;
 };
 
 extern baseTramp baseTemplate;
+
+#define X86_REGS_SAVE_LIMIT 3
 
 #endif
 

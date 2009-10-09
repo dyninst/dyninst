@@ -1766,7 +1766,8 @@ int EmitterIA32::emitCallParams(codeGen &gen,
 {
     pdvector <Register> srcs;
     unsigned frame_size = 0;
-    for (unsigned u = 0; u < operands.size(); u++) {
+    unsigned u;
+    for (u = 0; u < operands.size(); u++) {
         Address unused = ADDR_NULL;
         Register reg = REG_NULL;
         if (!operands[u]->generateCode_phase2(gen,
@@ -1780,9 +1781,11 @@ int EmitterIA32::emitCallParams(codeGen &gen,
     // push arguments in reverse order, last argument first
     // must use int instead of unsigned to avoid nasty underflow problem:
     for (int i=srcs.size() - 1; i >= 0; i--) {
-        emitOpRMReg(PUSH_RM_OPC1, REGNUM_EBP, -( (int) srcs[i]*4), PUSH_RM_OPC2, gen);
-        frame_size += 4;
-        gen.rs()->freeRegister(srcs[i]);
+       RealRegister r = gen.rs()->loadVirtual(srcs[i], gen);
+       ::emitPush(r, gen);
+       frame_size += 4;
+       if (operands[i]->decRefCount())
+          gen.rs()->freeRegister(srcs[i]);
     }
     return frame_size;
 }
@@ -1792,9 +1795,10 @@ bool EmitterIA32::emitCallCleanup(codeGen &gen,
                                 int frame_size, 
                                 pdvector<Register> &/*extra_saves*/)
 {
-    if (frame_size)
-        emitOpRegImm(0, REGNUM_ESP, frame_size, gen); // add esp, frame_size
-    return true;
+   if (frame_size)
+      emitOpRegImm(0, RealRegister(REGNUM_ESP), frame_size, gen); // add esp, frame_size
+   gen.rs()->incStack(-1 * frame_size);
+   return true;
 }
 
 Frame process::preStackWalkInit(Frame startFrame) 
