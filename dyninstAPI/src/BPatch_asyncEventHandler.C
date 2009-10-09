@@ -621,31 +621,31 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
 
   if (event_queue.size()) 
   {
-    // we already have one (from last call of this func)
-    //
-    //  this might result in an event reordering, not sure if important
-    //   (since we are removing from the end of the list)
-    //ev = event_queue[event_queue.size() - 1];
-    //event_queue.pop_back();
-    ev = event_queue[0];
-    VECTOR_ERASE(event_queue,0,0);
-    bool found = false;
-    for (unsigned i=0; i<process_fds.size(); i++) 
-	{
-       if (process_fds[i].proc &&
-           process_fds[i].proc->getPid() == ev.proc->getPid()) 
-       {
-          found = true;
-          break;
-       }
-       
-    }
-    if (found) 
-	{
-       __UNLOCK;
-       return true;
-    }
-    event_queue.push_back(ev);
+     // we already have one (from last call of this func)
+     //
+     //  this might result in an event reordering, not sure if important
+     //   (since we are removing from the end of the list)
+     //ev = event_queue[event_queue.size() - 1];
+     //event_queue.pop_back();
+     ev = event_queue[0];
+     VECTOR_ERASE(event_queue,0,0);
+     bool found = false;
+     for (unsigned i=0; i<process_fds.size(); i++) 
+     {
+        if (process_fds[i].proc &&
+            process_fds[i].proc->getPid() == ev.proc->getPid()) 
+        {
+           found = true;
+           break;
+        }
+        
+     }
+     if (found) 
+     {
+        __UNLOCK;
+        return true;
+     }
+     event_queue.push_back(ev);
   }
 
   int width = 0;
@@ -1212,15 +1212,15 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
    for (j = 0; j < process_fds.size(); ++j) 
    {
       if (!process_fds[j].proc) 
-	  {
+      {
          fprintf(stderr, "%s[%d]:  invalid process record!\n", FILE__, __LINE__);
          continue;
       }
 
       int process_pid = process_fds[j].proc->getPid();
 
-      if (process_pid == ev.proc->getPid()) 
-	  {
+      if (ev.proc && process_pid == ev.proc->getPid()) 
+      {
          event_fd = process_fds[j].fd;
          appProc = process_fds[j].proc; 
          break;
