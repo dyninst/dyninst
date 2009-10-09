@@ -234,7 +234,9 @@ COMPLIB_DLL_EXPORT bool runBinaryTest(BPatch *bpatch, RunGroup *group,
                                       BPatch_binaryEdit *binEdit,
                                       char *logfilename, char *humanlogname,
                                       bool verboseFormat, bool printLabels,
-                                      int debugPrint, char *pidfilename,
+                                      int debugPrint, 
+                                      char *pidfilename,
+                                      bool noClean,
                                       test_results_t &test_result);
 
 // COMPLIB_DLL_EXPORT BPatch_thread *startMutateeTestSet(BPatch *bpatch, char *pathname, 

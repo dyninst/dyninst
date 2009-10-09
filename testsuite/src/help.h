@@ -39,6 +39,8 @@ static void print_help()
    fprintf(stderr, "Create/Attach modes\n");
    fprintf(stderr, "  -create                           Run tests using create mode\n");
    fprintf(stderr, "  -attach                           Run tests using attach mode\n");
+   fprintf(stderr, "  -rewriter                         Run tests in binary rewriter tests\n");
+   fprintf(stderr, "  -noclean                          Do no clean rewriter produced binaries\n");
    fprintf(stderr, "  -allmode                          Run all create modes\n");
    fprintf(stderr, "\n");
    fprintf(stderr, "Components\n");
