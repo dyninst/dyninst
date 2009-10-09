@@ -253,21 +253,6 @@ void multiTramp::removeCode(generatedCodeObject *subObject) {
             doWeDelete = true;
         }
         
-#if 0
-#if defined (cap_use_pdvector)
-        unsigned exists_at;
-        if(! find(deletedObjs, subObject, exists_at)) {
-           deletedObjs.push_back(bti);
-        }
-#else
-        if (deletedObjs.end() == std::find(deletedObjs.begin(), 
-                 deletedObjs.end(), subObject)) 
-        {
-           deletedObjs.push_back(bti);
-        }
-
-#endif
-#endif
         int found_index = -1;
         for (unsigned int i = 0; i <deletedObjs.size(); ++i) {
            if (subObject == deletedObjs[i]) {
@@ -303,20 +288,6 @@ void multiTramp::removeCode(generatedCodeObject *subObject) {
         generatedCodeObject *obj = NULL;
 
         while ((obj = cfgIter++)) {
-#if 0
-           unsigned exists_at;
-#if defined (cap_use_pdvector)
-           if(! find(deletedObjs, obj, exists_at)) {
-              deletedObjs.push_back(obj);
-              obj->removeCode(this);
-           }
-#else
-           if (deletedObjs.end() == std::find(deletedObjs.begin(), deletedObjs.end(), obj)) {
-              deletedObjs.push_back(obj);
-              obj->removeCode(this);
-           }
-#endif
-#endif
            int found_index = -1;
            for (unsigned int i = 0; i <deletedObjs.size(); ++i) {
               if (obj == deletedObjs[i]) {
@@ -842,17 +813,6 @@ void multiTramp::updateInstInstances() {
         prev = obj;
     }
 
-#if 0
-    fprintf(stderr, "Updated:\n");
-
-    cfgIter.initialize(generatedCFG_);
-    while ((obj = cfgIter++)) {
-        fprintf(stderr, "obj: %p (prev %p, next %p)...", obj,
-                obj->previous_, obj->fallthrough_);
-	fprintf(stderr, "%s\n", obj->getTypeString().c_str());
-    }
-    fprintf(stderr, "-----\n");
-#endif
     updateInsnDict();
 
 }
@@ -1927,18 +1887,6 @@ generatedCodeObject *generatedCFG_t::copy_int(generatedCodeObject *obj,
     generatedCodeObject *newObj = obj->replaceCode(newMulti);
 
     if (newObj != obj) {
-#if 0
-        unsigned exists_at;
-#if defined (cap_use_pdvector)
-        if (! find(unused, obj, exists_at)) {
-           unused.push_back(obj);
-        }
-#else
-        if (unused.end() == std::find(unused.begin(), unused.end(), obj)) {
-           unused.push_back(obj);
-        }
-#endif
-#endif
         int found_index = -1;
         for (unsigned int i = 0; i <unused.size(); ++i) {
            if (obj == unused[i]) {
@@ -2179,23 +2127,7 @@ bool multiTramp::hasChanged() {
     
     while ((obj = cfgIter++)) {
         if (obj->hasChanged()) {
-#if 0
-            fprintf(stderr, "Obj %p changed\n",
-                    obj);
-            relocatedInstruction *insn = dynamic_cast<relocatedInstruction *>(obj);
-            baseTrampInstance *bti = dynamic_cast<baseTrampInstance *>(obj);
-            trampEnd *end = dynamic_cast<trampEnd *>(obj);
-            if (insn) fprintf(stderr, "insn\n");
-            if (bti) fprintf(stderr, "bti\n");
-            if (end) fprintf(stderr, "end\n");
-#endif            
             return true;
-        }
-        else {
-#if 0
-            fprintf(stderr, "Obj %p not changed\n",
-                    obj);
-#endif
         }
     }
     return false;

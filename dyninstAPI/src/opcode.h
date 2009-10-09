@@ -45,50 +45,50 @@
 #define OPCODE_H
 
 typedef enum { 
-               invalidOp,
-               plusOp,
-               minusOp,
-               timesOp,
-               divOp,
-               lessOp,
-               leOp,
-               greaterOp,
-               geOp,
-               eqOp,
-               neOp,
-               loadOp,           
-               loadConstOp,
-	       loadFrameRelativeOp,
-	       loadFrameAddr,
-	       loadRegRelativeOp,	// More general form of loadFrameRelativeOp
-	       loadRegRelativeAddr,	// More general form of loadFrameAddr
-               storeOp,
-	       storeFrameRelativeOp,
-               ifOp,
-	       whileOp,  // Simple control structures will be useful
-	       doOp,     // Zhichen
-	       callOp,
-	       trampPreamble,
-	       noOp,
-	       orOp,
-	       andOp,
-	       getRetValOp,
-	       getSysRetValOp,
-	       getParamOp,
-	       getSysParamOp,	   
-	       getAddrOp,	// return the address of the operand
-	       loadIndirOp,
-	       storeIndirOp,
-	       saveRegOp,
-               loadRegOp,
-               saveStateOp,  // For saving of non-register state (flags reg, condition reg)
-               loadStateOp,  // And the corresponding load
-	       updateCostOp,
-	       funcJumpOp,        // Jump to function without linkage
-	       branchOp,
-               ifMCOp,
-               breakOp,
-	       undefOp
+   invalidOp,
+   plusOp,
+   minusOp,
+   timesOp,
+   divOp,
+   lessOp,
+   leOp,
+   greaterOp,
+   geOp,
+   eqOp,
+   neOp,
+   loadOp,           
+   loadConstOp,
+   loadFrameRelativeOp,
+   loadFrameAddr,
+   loadRegRelativeOp,	// More general form of loadFrameRelativeOp
+   loadRegRelativeAddr,	// More general form of loadFrameAddr
+   storeOp,
+   storeFrameRelativeOp,
+   ifOp,
+   whileOp,  // Simple control structures will be useful
+   doOp,     // Zhichen
+   callOp,
+   trampPreamble,
+   noOp,
+   orOp,
+   andOp,
+   getRetValOp,
+   getSysRetValOp,
+   getParamOp,
+   getSysParamOp,	   
+   getAddrOp,	// return the address of the operand
+   loadIndirOp,
+   storeIndirOp,
+   saveRegOp,
+   loadRegOp,
+   saveStateOp,  // For saving of non-register state (flags reg, condition reg)
+   loadStateOp,  // And the corresponding load
+   updateCostOp,
+   funcJumpOp,        // Jump to function without linkage
+   branchOp,
+   ifMCOp,
+   breakOp,
+   undefOp
 } opCode;
 
 
