@@ -64,6 +64,7 @@ class IA_IAPI : public InstructionAdapter
                 outEdges, image_basicBlock* currBlk,
                 unsigned int num_insns,
                 dictionary_hash<Address, std::string> *pltFuncs) const;
+        virtual InstrumentableLevel getInstLevel( unsigned int num_insns ) const;
         virtual bool isDynamicCall() const;
         virtual bool isAbsoluteCall() const;
         virtual bool simulateJump() const;
@@ -87,13 +88,13 @@ class IA_IAPI : public InstructionAdapter
                             std::vector<std::pair< Address, EdgeTypeEnum > >& outEdges) const;
         bool isIPRelativeBranch() const;
         bool isMovAPSTable(std::vector<std::pair< Address, EdgeTypeEnum > >& outEdges) const;
-        Address findThunkAndOffset(image_basicBlock* start) const;
+        std::pair<Address, Address> findThunkAndOffset(image_basicBlock* start) const;
         bool isTableInsn(Dyninst::InstructionAPI::Instruction::Ptr i) const;
         std::map<Address, Dyninst::InstructionAPI::Instruction::Ptr>::const_iterator findTableInsn() const;
         boost::tuple<Dyninst::InstructionAPI::Instruction::Ptr,
         Dyninst::InstructionAPI::Instruction::Ptr,
         bool> findMaxSwitchInsn(image_basicBlock *start) const;
-        bool findThunkInBlock(image_basicBlock* curBlock, Address& thunkOffset) const;
+        Address findThunkInBlock(image_basicBlock* curBlock, Address& thunkOffset) const;
         bool computeTableBounds(Dyninst::InstructionAPI::Instruction::Ptr maxSwitchInsn,
                                 Dyninst::InstructionAPI::Instruction::Ptr branchInsn,
                                 Dyninst::InstructionAPI::Instruction::Ptr tableInsn,
