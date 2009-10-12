@@ -286,6 +286,7 @@ void IA_IAPI::getNewEdges(
                 {
                     parsing_printf("%s[%d]: PLT tail call to %x\n", FILE__, __LINE__, getCFT());
                     outEdges.push_back(std::make_pair(getCFT(), ET_NOEDGE));
+                    tailCall.second = true;
                 }
             }
             else

@@ -978,7 +978,7 @@ bool image_func::buildCFG(
                                 {
                                     parsing_printf("%s: tail call %x -> %x inheriting return status of target\n",
                                             FILE__, currAddr, curEdge->first);
-                                    if(targetFunc && retStatus_ == RS_UNSET &&
+                                    if(targetFunc && retStatus_ != RS_RETURN &&
                                        targetFunc->returnStatus() != RS_NORETURN)
                                     {
                                         retStatus_ = targetFunc->returnStatus();
