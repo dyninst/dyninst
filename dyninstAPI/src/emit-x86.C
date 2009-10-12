@@ -137,13 +137,16 @@ void EmitterIA32::emitRelOp(unsigned op, Register dest, Register src1, Register 
 
 void EmitterIA32::emitDiv(Register dest, Register src1, Register src2, codeGen &gen)
 {
+   Register scratch = gen.rs()->allocateRegister(gen, true);
    gen.rs()->loadVirtualToSpecific(src1, RealRegister(REGNUM_EAX), gen);
    gen.rs()->makeRegisterAvail(RealRegister(REGNUM_EDX), gen);
+   gen.rs()->noteVirtualInReal(scratch, RealRegister(REGNUM_EDX));
    RealRegister src2_r = gen.rs()->loadVirtual(src2, gen);                          
    gen.rs()->makeRegisterAvail(RealRegister(REGNUM_EAX), gen);
    emitSimpleInsn(0x99, gen);            //cdq (src1 -> eax:edx)
    emitOpExtReg(0xF7, 0x7, src2_r, gen); //idiv eax:edx,src2 -> eax
    gen.rs()->noteVirtualInReal(dest, RealRegister(REGNUM_EAX));
+   gen.rs()->freeRegister(scratch);
 }
 
 void EmitterIA32::emitOpImm(unsigned opcode1, unsigned opcode2, Register dest, Register src1, 
