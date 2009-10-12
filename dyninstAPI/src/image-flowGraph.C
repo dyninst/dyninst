@@ -916,12 +916,12 @@ bool image_func::buildCFG(
                         case NORMAL: 
                                 break;
                         case HAS_BR_INDIR:
-                            //parsing_printf("[%s]: Setting %s to HAS_BR_INDIR at 0x%x\n", FILE__,
-                            //               prettyName().c_str(), currAddr);
+                            parsing_printf("[%s]: Setting %s to HAS_BR_INDIR at 0x%x\n", FILE__,
+                                           prettyName().c_str(), currAddr);
                             break;
                         case UNINSTRUMENTABLE:
-//                             parsing_printf("[%s]: Setting %s to UNINSTRUMENTABLE at 0x%x\n", FILE__,
-//                                            prettyName().c_str(), currAddr);
+                             parsing_printf("[%s]: Setting %s to UNINSTRUMENTABLE at 0x%x\n", FILE__,
+                                            prettyName().c_str(), currAddr);
                             break;
                         default:
                             assert(!"Bad inst level enum!\n");
@@ -932,8 +932,8 @@ bool image_func::buildCFG(
                 }
                 if(!ah.isRelocatable(insnInstLevel))
                 {
-/*                    parsing_printf("%s[%d]: setting relocatable FALSE at 0x%x\n",
-                                   FILE__, __LINE__, currAddr);*/
+                    parsing_printf("%s[%d]: setting relocatable FALSE for %s at 0x%x\n",
+                                   FILE__, __LINE__, prettyName().c_str(), currAddr);
                     currBlk->canBeRelocated_ = false;
                     canBeRelocated_ = false;
                 }

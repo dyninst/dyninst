@@ -163,8 +163,8 @@ void image_basicBlock::summarizeBlockLivenessInfo()
    def = in;
    use = in;
 
-   //liveness_printf("%s[%d]: Getting liveness summary for block starting at 0x%lx\n", 
-   //                FILE__, __LINE__, firstInsnOffset());
+   liveness_printf("%s[%d]: Getting liveness summary for block starting at 0x%lx\n",
+                   FILE__, __LINE__, firstInsnOffset());
 
 
 #if defined(cap_instruction_api)
@@ -186,14 +186,14 @@ void image_basicBlock::summarizeBlockLivenessInfo()
      // And if written, then was defined
      def |= curInsnRW.written;
       
-     //liveness_printf("%s[%d] After instruction %s at address 0x%lx:\n", 
-     //                FILE__, __LINE__, curInsn.format().c_str(), current);
-     //liveness_cerr << "        " << "?XXXXXXXXMMMMMMMMRNDITCPAZSOF11111100DSBSBDCA" << endl;
-     //liveness_cerr << "        " << "?7654321076543210FTFFFFFFFFFP54321098IIPPXXXX" << endl;
-     //liveness_cerr << "Read    " << curInsnRW.read << endl;
-     //liveness_cerr << "Written " << curInsnRW.written << endl;
-     //liveness_cerr << "Used    " << use << endl;
-     //liveness_cerr << "Defined " << def << endl;
+/*     liveness_printf("%s[%d] After instruction %s at address 0x%lx:\n",
+                     FILE__, __LINE__, curInsn->format().c_str(), current);
+     liveness_cerr << "        " << "?XXXXXXXXMMMMMMMMRNDITCPAZSOF11111100DSBSBDCA" << endl;
+     liveness_cerr << "        " << "?7654321076543210FTFFFFFFFFFP54321098IIPPXXXX" << endl;
+     liveness_cerr << "Read    " << curInsnRW.read << endl;
+     liveness_cerr << "Written " << curInsnRW.written << endl;
+     liveness_cerr << "Used    " << use << endl;
+     liveness_cerr << "Defined " << def << endl;*/
 
       current += curInsn->size();
       curInsn = decoder.decode();
@@ -377,13 +377,15 @@ void instPoint::calcLiveness() {
       ReadWriteInfo rwAtCurrent;
       if(block()->llb()->cachedLivenessInfo.getLivenessInfo(*current, func()->ifunc(), rwAtCurrent))
       {
-	//liveness_printf("%s[%d] Calculating liveness for iP 0x%lx, insn at 0x%lx\n",
-	//		FILE__, __LINE__, addr(), *current);
-	//liveness_cerr << "Pre: " << postLiveRegisters_ << endl;
+	liveness_printf("%s[%d] Calculating liveness for iP 0x%lx, insn at 0x%lx\n",
+			FILE__, __LINE__, addr(), *current);
+        liveness_cerr << "        " << "?XXXXXXXXMMMMMMMMRNDITCPAZSOF11111100DSBSBDCA" << endl;
+        liveness_cerr << "        " << "?7654321076543210FTFFFFFFFFFP54321098IIPPXXXX" << endl;
+        liveness_cerr << "Pre:    " << postLiveRegisters_ << endl;
 	
 	postLiveRegisters_ &= (~rwAtCurrent.written);
 	postLiveRegisters_ |= rwAtCurrent.read;
-	//liveness_cerr << "Post: " << postLiveRegisters_ << endl;
+	liveness_cerr << "Post:   " << postLiveRegisters_ << endl;
       
 	++current;
       }
@@ -391,14 +393,14 @@ void instPoint::calcLiveness() {
       {
 	Instruction::Ptr tmp = decoder.decode((const unsigned char*)(block()->origInstance()->getPtrToInstruction(*current)));
 	rwAtCurrent = calcRWSets(tmp, block()->llb(), width);
-	//assert(!"SERIOUS ERROR: read/write info cache state inconsistent");
-	//liveness_printf("%s[%d] Calculating liveness for iP 0x%lx, insn at 0x%lx\n",
-	//		FILE__, __LINE__, addr(), *current);
-	//liveness_cerr << "Pre: " << postLiveRegisters_ << endl;
+	assert(!"SERIOUS ERROR: read/write info cache state inconsistent");
+	liveness_printf("%s[%d] Calculating liveness for iP 0x%lx, insn at 0x%lx\n",
+			FILE__, __LINE__, addr(), *current);
+	liveness_cerr << "Pre:  " << postLiveRegisters_ << endl;
 	
 	postLiveRegisters_ &= (~rwAtCurrent.written);
 	postLiveRegisters_ |= rwAtCurrent.read;
-	//liveness_cerr << "Post: " << postLiveRegisters_ << endl;
+	liveness_cerr << "Post: " << postLiveRegisters_ << endl;
 	
 	++current;
       }
@@ -502,13 +504,13 @@ bitArray instPoint::liveRegisters(callWhen when) {
     ret &= (~curInsnRW.written);
     ret |= curInsnRW.read;
 
-    //liveness_printf("Liveness out for instruction at 0x%lx\n",
-    //                  addr());
-    //liveness_cerr << "        " << "?XXXXXXXXMMMMMMMMRNDITCPAZSOF11111100DSBSBDCA" << endl;
-    //liveness_cerr << "        " << "?7654321076543210FTFFFFFFFFFP54321098IIPPXXXX" << endl;
-    //liveness_cerr << "Read    " << curInsnRW.read << endl;
-    //liveness_cerr << "Written " << curInsnRW.written << endl;
-    //liveness_cerr << "Live    " << ret << endl;
+    liveness_printf("Liveness out for instruction at 0x%lx\n",
+                      addr());
+    liveness_cerr << "        " << "?XXXXXXXXMMMMMMMMRNDITCPAZSOF11111100DSBSBDCA" << endl;
+    liveness_cerr << "        " << "?7654321076543210FTFFFFFFFFFP54321098IIPPXXXX" << endl;
+    liveness_cerr << "Read    " << curInsnRW.read << endl;
+    liveness_cerr << "Written " << curInsnRW.written << endl;
+    liveness_cerr << "Live    " << ret << endl;
 
     return ret;
 }
