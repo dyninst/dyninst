@@ -258,8 +258,19 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
    API_EXPORT(Int, (_startLine, _endLine),
               bool,getLineNumbers,(unsigned int &_startLine, unsigned int  &_endLine));       
 #endif
+        /** BPatch_basicBlock::findEntryPoint   */
+        /** return point at the start of the basic block */
 
-	/** BPatch_basicBlock::findPoint   */
+   API_EXPORT(Int, (),
+              BPatch_point*, findEntryPoint,());
+
+        /** BPatch_basicBlock::findExitPoint   */
+        /** return point at the start of the basic block */
+   
+    API_EXPORT(Int, (),
+              BPatch_point*, findExitPoint,());
+
+   /** BPatch_basicBlock::findPoint   */
 	/** return a set of points within the basic block */
 
    API_EXPORT(Int, (ops),

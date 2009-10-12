@@ -438,6 +438,18 @@ struct findInsns : public insnPredicate
 };
 #endif
         
+BPatch_point* BPatch_basicBlock::findEntryPointInt()
+{
+    return BPatch_point::createInstructionInstPoint(flowGraph->getAddSpace(), (void*)this->getStartAddressInt(),
+        flowGraph->getBFunction());
+}
+
+BPatch_point* BPatch_basicBlock::findExitPointInt()
+{
+    return BPatch_point::createInstructionInstPoint(flowGraph->getAddSpace(), (void*)this->getEndAddressInt(),
+            flowGraph->getBFunction());
+}
+        
 BPatch_Vector<BPatch_point*>*
     BPatch_basicBlock::findPointByPredicate(insnPredicate& f)
 {
