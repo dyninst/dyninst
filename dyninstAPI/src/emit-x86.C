@@ -1568,8 +1568,17 @@ bool EmitterAMD64Dyn::emitCallInstruction(codeGen &gen, int_function *callee) {
     //emitSimpleInsn(0xff, gen); // group 5
     //emitSimpleInsn(0xd0, gen); // mod = 11, reg = 2 (call Ev), r/m = 0 (RAX)
 
+   
+   if (gen.startAddr() != (Address) -1) {
+      signed long disp = callee->getAddress() - (gen.currAddr() + 5);
+      int disp_i = (int) disp;
+      if (disp == (signed long) disp_i) {
+         emitCallRel32(disp_i, gen);
+         return true;
+      }
+   }
+       
     emitMovImmToReg64(REGNUM_RAX, 0, true, gen);
-
     Register ptr = gen.rs()->allocateRegister(gen, false);
     gen.markRegDefined(ptr);
     Register effective = ptr;
@@ -1605,26 +1614,27 @@ bool EmitterAMD64Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
        dest = getInterModuleFuncAddr(callee, gen);
        
        emitMovPCRMToReg64(REGNUM_R11, dest-gen.currAddr(), 8, gen);   
+       gen.markRegDefined(REGNUM_R11);
+       emitMovImmToReg64(REGNUM_RAX, 0, true, gen);
+       gen.markRegDefined(REGNUM_RAX);
+       
+       // emit call
+       Register temp_r11 = REGNUM_R11;
+       
+       emitRex(false, NULL, NULL, &temp_r11, gen);
+       
+       GET_PTR(insn, gen);
+       *insn++ = 0xFF;
+       *insn++ = static_cast<unsigned char>(0xD0 | REGNUM_RBX);
+       SET_PTR(insn, gen);
     } else {
        dest = callee->getAddress();
-       
-       // load register with function address
-       emitMovImmToReg64(REGNUM_R11, dest, true, gen);
+       signed long disp = dest - (gen.currAddr() + 5);
+       int disp_i = (int) disp;
+       assert(disp == (signed long) disp_i);
+       emitCallRel32(disp_i, gen);
+       return true;
     }
-    gen.markRegDefined(REGNUM_R11);
-    emitMovImmToReg64(REGNUM_RAX, 0, true, gen);
-       gen.markRegDefined(REGNUM_RAX);
-    
-    // emit call
-    Register temp_r11 = REGNUM_R11;
-    
-    emitRex(false, NULL, NULL, &temp_r11, gen);
-    
-    GET_PTR(insn, gen);
-    *insn++ = 0xFF;
-    *insn++ = static_cast<unsigned char>(0xD0 | REGNUM_RBX);
-    SET_PTR(insn, gen);
-
     return true;
 }
 
@@ -2284,24 +2294,28 @@ bool EmitterIA32Dyn::emitCallInstruction(codeGen &gen, int_function *callee)
    gen.markRegDefined(REGNUM_EAX);
    gen.markRegDefined(REGNUM_ECX);
    gen.markRegDefined(REGNUM_EDX);
-   emitMovImmToReg(RealRegister(REGNUM_EAX), callee->getAddress(), gen);  // mov eax, addr
-   emitOpExtReg(CALL_RM_OPC1, CALL_RM_OPC2, RealRegister(REGNUM_EAX), gen);   // call *(eax)
+
+   if (gen.startAddr() == (Address) -1) {
+      emitMovImmToReg(RealRegister(REGNUM_EAX), callee->getAddress(), gen);
+      emitOpExtReg(CALL_RM_OPC1, CALL_RM_OPC2, RealRegister(REGNUM_EAX), gen);
+   }
+   else {
+      Address dest = callee->getAddress();
+      Address src = gen.currAddr() + 5;
+      emitCallRel32(dest - src, gen);
+   }
    return true;
 }
 
 bool EmitterIA32Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
    AddressSpace *addrSpace = gen.addrSpace();
    Address dest;
-#if defined(os_linux)   
    gen.rs()->makeRegisterAvail(RealRegister(REGNUM_EAX), gen); //caller saved regs
    gen.rs()->makeRegisterAvail(RealRegister(REGNUM_ECX), gen);
    gen.rs()->makeRegisterAvail(RealRegister(REGNUM_EDX), gen);
    gen.markRegDefined(REGNUM_EAX);
    gen.markRegDefined(REGNUM_ECX);
    gen.markRegDefined(REGNUM_EDX);
-#else
-   assert(0);
-#endif   
    // find int_function reference in address space
    // (refresh func_map)
    pdvector<int_function *> funcs;
@@ -2311,19 +2325,18 @@ bool EmitterIA32Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
    if (gen.func()->obj() != callee->obj()) {
       // create or retrieve jump slot
       dest = getInterModuleFuncAddr(callee, gen);
-      
       // load register with address from jump slot
       emitMovPCRMToReg(RealRegister(REGNUM_EAX), dest-gen.currAddr(), gen);
+      // emit call *(e_x)
+      emitOpRegReg(CALL_RM_OPC1, RealRegister(CALL_RM_OPC2), 
+                   RealRegister(REGNUM_EAX), gen);
+   
    } else {
       dest = callee->getAddress();
-      
-      // load register with function address
-      emitMovImmToReg(RealRegister(REGNUM_EAX), dest, gen);                    // mov e_x, addr
+      Address src = gen.currAddr() + 5;
+      emitCallRel32(dest - src, gen);
    }
 
-   // emit call
-   emitOpRegReg(CALL_RM_OPC1, RealRegister(CALL_RM_OPC2), RealRegister(REGNUM_EAX), gen);     // call *(e_x)
-   
    return true;
 }
 

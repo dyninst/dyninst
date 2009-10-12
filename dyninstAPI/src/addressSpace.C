@@ -1574,3 +1574,22 @@ void AddressSpace::setUseTraps(bool usetraps)
 {
    useTraps_ = usetraps;
 }
+
+bool AddressSpace::needsPIC(int_variable *v)
+{
+   return needsPIC(v->mod()->proc());
+}
+
+bool AddressSpace::needsPIC(int_function *f)
+{
+   return needsPIC(f->proc());
+}
+
+bool AddressSpace::needsPIC(AddressSpace *s)
+{
+   if (proc())
+      return false; //Never PIC for dynamic
+   if (this != s)
+      return true; //Use PIC cross module
+   return s->needsPIC(); //Use target module
+}

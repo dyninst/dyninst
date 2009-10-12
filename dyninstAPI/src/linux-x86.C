@@ -898,8 +898,6 @@ bool process::handleTrapAtLibcStartMain(dyn_lwp *trappingLWP)
 }// handleTrapAtLibcStartmain
 
 
-void emitCallRel32(unsigned disp32, unsigned char *&insn);
-
 extern bool isFramePush(instruction &i);
 
 /**

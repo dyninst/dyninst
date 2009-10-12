@@ -818,23 +818,9 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, bool noCost)
             dyn_detail::boost::dynamic_pointer_cast<AstOperandNode>(loperand);
        
          int_variable* var = lnode->lookUpVar(gen.addrSpace());
-         if(gen.addrSpace()->proc())
-         {
-            if(var)
-               laddr = var->getAddress();
-            else
-               return false;
-         }
-         else
-         {
-            // Rewriter algorithm:
-            // allocate temp register
-            // EmitLoadShared with a loadConstOp to get the variable address into a temp register
-            // Proceed with the below, using the temp register instead of an immediate
-            // deallocate temp register
+         if (!var || gen.addrSpace()->needsPIC(var))
             return false;
-         }
-       
+         laddr = var->getAddress();
       }
       else
       {
@@ -882,11 +868,9 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, bool noCost)
    {
       Address addr = 0;
       int_variable* var = arithl->lookUpVar(gen.addrSpace());
-      if(gen.addrSpace()->proc()) {
-         if(!var)
-            return false;
-         addr = var->getAddress();
-      }
+      if (!var || gen.addrSpace()->needsPIC(var))
+         return false;
+      addr = var->getAddress();
       if (addr == laddr) {
          data_oper = arithl;
          const_oper = arithr;
@@ -902,11 +886,9 @@ bool AstOperatorNode::generateOptimizedAssignment(codeGen &gen, bool noCost)
    {
       Address addr = 0;
       int_variable* var = arithl->lookUpVar(gen.addrSpace());
-      if(gen.addrSpace()->proc()) {
-         if(!var)
-            return false;
-         addr = var->getAddress();
-      }
+      if(!var || gen.addrSpace()->needsPIC(var))
+         return false;
+      addr = var->getAddress();
       if (addr == laddr) {
          data_oper = arithr;
          const_oper = arithl;
@@ -1526,13 +1508,13 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
        
        if (!gen.addrSpace()->writeDataSpace((char *)addr, len, (char *)oValue))
            perror("ast.C(1351): writing string value");
-       if(gen.addrSpace()->proc())
+       if(!gen.addrSpace()->needsPIC())
        {
-	 emitVload(loadConstOp, addr, retReg, retReg, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
+          emitVload(loadConstOp, addr, retReg, retReg, gen, noCost, gen.rs(), size, gen.point(), gen.addrSpace());
        }
        else
        {
-	 gen.codeEmitter()->emitLoadShared(loadConstOp, retReg, NULL, true, size, gen, addr);
+          gen.codeEmitter()->emitLoadShared(loadConstOp, retReg, NULL, true, size, gen, addr);
        }
        break;
    default:
@@ -2966,7 +2948,7 @@ void AstOperandNode::emitVariableLoad(opCode op, Register src2, Register dest, c
 				      int size, const instPoint* point, AddressSpace* as)
 {
   int_variable* var = lookUpVar(as);
-  if(as->proc())
+  if(var && !as->needsPIC(var))
   {
     emitVload(op, var->getAddress(), src2, dest, gen, noCost, rs, size, point, as);
   }
@@ -2981,7 +2963,7 @@ void AstOperandNode::emitVariableStore(opCode op, Register src1, Register src2, 
 				      int size, const instPoint* point, AddressSpace* as)
 {
   int_variable* var = lookUpVar(as);
-  if(as->proc())
+  if (var && !as->needsPIC(var))
   {
     emitVstore(op, src1, src2, var->getAddress(), gen, noCost, rs, size, point, as);
   }

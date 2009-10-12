@@ -5783,3 +5783,8 @@ bool process::detachForDebugger(const EventRecord &)
    return false;
 }
 #endif
+
+bool process::needsPIC()
+{
+   return 0;
+}

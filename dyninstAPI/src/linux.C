@@ -585,9 +585,6 @@ bool process::unsetProcessFlags(){
     return true;
 }
 
-
-void emitCallRel32(unsigned disp32, unsigned char *&insn);
-
 static int lwp_kill(int pid, int sig)
 {
   int result = P_tkill(pid, sig);

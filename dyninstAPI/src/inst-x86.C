@@ -1014,6 +1014,19 @@ void emitMovPCRMToReg(RealRegister dest, int offset, codeGen &gen, bool deref_re
 {
     // call next instruction (relative 0x0) and pop PC (EIP) into register
    GET_PTR(insn, gen);
+
+   if (!gen.addrSpace()->needsPIC())
+   {
+      Address target = gen.currAddr() + offset;
+      if (deref_result) {
+         emitMovMToReg(dest, target, gen);
+      }
+      else {
+         emitMovImmToReg(dest, target, gen);
+      }
+      return;
+   }
+
    int used = gen.used();
    RealRegister pc_reg(0);
    if (gen.rs()->pc_rel_offset() == -1) {
@@ -2441,5 +2454,14 @@ void emitRestoreO(codeGen &gen)
    *insn++ = 0x80;
    *insn++ = 0xC0;
    *insn++ = 0x7f;
+   SET_PTR(insn, gen);
+}
+
+void emitCallRel32(unsigned disp32, codeGen &gen)
+{
+   GET_PTR(insn, gen);
+   *insn++ = 0xE8;
+   *((int *) insn) = disp32;
+   insn += sizeof(int);
    SET_PTR(insn, gen);
 }

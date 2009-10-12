@@ -125,6 +125,8 @@ class BinaryEdit : public AddressSpace {
     // we're deleting...
     virtual void deleteGeneratedCode(generatedCodeObject *del);
 
+    bool needsPIC();
+
     BinaryEdit();
     ~BinaryEdit();
 
