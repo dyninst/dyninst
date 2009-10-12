@@ -48,6 +48,7 @@
 #include <stdio.h>
 #include "common/h/Types.h"
 #include "dyninstAPI/src/arch.h"
+#include "dyninstAPI/src/arch-x86.h"
 #include "dyninstAPI/src/emit-x86.h"
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/debug.h"
@@ -68,89 +69,101 @@ const int EmitterAMD64::mt_offset = -8;
 #endif
 
 bool EmitterIA32::emitMoveRegToReg(Register src, Register dest, codeGen &gen) {
-    emitMovRegToReg(dest, src, gen);
-    return true;
+   RealRegister src_r = gen.rs()->loadVirtual(src, gen);
+   RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
+   emitMovRegToReg(dest_r, src_r, gen);
+   return true;
 }
 
-codeBufIndex_t EmitterIA32::emitIf(Register expr_reg, Register target, codeGen &gen)
+codeBufIndex_t EmitterIA32::emitIf(Register expr_reg, Register target, RegControl rc, codeGen &gen)
 {
-    // sub REGNUM_EAX, REGNUM_EAX
-    emitOpRegReg(0x29, REGNUM_EAX, REGNUM_EAX, gen);
-
-    // cmp -(expr*4)[REGNUM_EBP], REGNUM_EAX
-    emitOpRegRM(0x3B, REGNUM_EAX, REGNUM_EBP, -1*(expr_reg*4), gen);
-
-    // Retval: where the jump is in this sequence
-    codeBufIndex_t retval = gen.getIndex();
-
-    // Jump displacements are from the end of the insn, not start. The
-    // one we're emitting has a size of 6.
-    int disp = target - 6;
-
-    GET_PTR(insn, gen);
-    // je dest
-    *insn++ = 0x0F;
-    *insn++ = 0x84;
-    *((int *)insn) = disp;
-    insn += sizeof(int);
-    SET_PTR(insn, gen);
-
-    return retval;
+   RealRegister r = gen.rs()->loadVirtual(expr_reg, gen);
+   emitOpRegReg(TEST_EV_GV, r, r, gen);
+   
+   // Retval: where the jump is in this sequence
+   codeBufIndex_t retval = gen.getIndex();
+   
+   // Jump displacements are from the end of the insn, not start. The
+   // one we're emitting has a size of 6.
+   int disp = 0;
+   if (target)
+      disp = target - 6;
+   
+   if (rc == rc_before_jump)
+      gen.rs()->pushNewRegState();
+   GET_PTR(insn, gen);
+   // je dest
+   *insn++ = 0x0F;
+   *insn++ = 0x84;
+   *((int *)insn) = disp;
+   if (disp == 0) {
+      gen.addPatch((void *) insn, NULL, sizeof(int), relocPatch::pcrel, 
+                   gen.used() + 6);
+   }
+   insn += sizeof(int);
+   SET_PTR(insn, gen);
+   
+   return retval;
 }
 
 void EmitterIA32::emitOp(unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen)
 {
-      emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -1*(src1*4), gen);
-      emitOpRegRM(opcode, REGNUM_EAX, REGNUM_EBP, -1*(src2*4), gen);
-      emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);
+   RealRegister src1_r = gen.rs()->loadVirtual(src1, gen);
+   RealRegister src2_r = gen.rs()->loadVirtual(src2, gen);
+   RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
+   emitMovRegToReg(dest_r, src1_r, gen);
+   emitOpRegReg(opcode, dest_r, src2_r, gen);
 }
 
 void EmitterIA32::emitRelOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen)
 {
-    emitOpRegReg(0x29, REGNUM_ECX, REGNUM_ECX, gen);           // clear REGNUM_ECX
-    emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -1*(src1*4), gen);    // mov eax, -(src1*4)[ebp]
-    emitOpRegRM(0x3B, REGNUM_EAX, REGNUM_EBP, -1*(src2*4), gen); // cmp eax, -(src2*4)[ebp]
-    unsigned char opcode = jccOpcodeFromRelOp(op);
-    GET_PTR(insn, gen);
-    *insn++ = opcode; *insn++ = 1;                // jcc 1
-    SET_PTR(insn, gen);
-    emitSimpleInsn(0x40+REGNUM_ECX, gen);               // inc REGNUM_ECX
-    emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_ECX, gen);    // mov -(dest*4)[ebp], ecx
+   RealRegister src1_r = gen.rs()->loadVirtual(src1, gen);
+   RealRegister src2_r = gen.rs()->loadVirtual(src2, gen);
+   RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);   
+   Register scratch = gen.rs()->allocateRegister(gen, true);
+   RealRegister scratch_r = gen.rs()->loadVirtualForWrite(scratch, gen);
+
+   emitOpRegReg(XOR_R32_RM32, dest_r, dest_r, gen); //XOR dest,dest
+   emitMovImmToReg(scratch_r, 0x1, gen);            //MOV $1,scratch
+   emitOpRegReg(CMP_GV_EV, src1_r, src2_r, gen);    //CMP src1, src2
+   
+   unsigned char opcode = cmovOpcodeFromRelOp(op); 
+   GET_PTR(insn, gen);
+   *insn++ = 0x0f;
+   SET_PTR(insn, gen);
+   emitOpRegReg(opcode, dest_r, scratch_r, gen);               //CMOVcc scratch,dest
+   gen.rs()->freeRegister(scratch);
 }
 
 void EmitterIA32::emitDiv(Register dest, Register src1, Register src2, codeGen &gen)
 {
-    // mov eax, src1
-    // cdq   ; edx = sign extend of eax
-    // idiv eax, src2 ; eax = edx:eax div src2, edx = edx:eax mod src2
-    // mov dest, eax
-    emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -1*(src1*4), gen);
-    emitSimpleInsn(0x99, gen);
-    emitOpRegRM(0xF7, 0x7 /*opcode extension*/, REGNUM_EBP, -1*(src2*4), gen);
-    emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);
+   gen.rs()->loadVirtualToSpecific(src1, RealRegister(REGNUM_EAX), gen);
+   gen.rs()->makeRegisterAvail(RealRegister(REGNUM_EDX), gen);
+   RealRegister src2_r = gen.rs()->loadVirtual(src2, gen);                          
+   gen.rs()->makeRegisterAvail(RealRegister(REGNUM_EAX), gen);
+   emitSimpleInsn(0x99, gen);            //cdq (src1 -> eax:edx)
+   emitOpExtReg(0xF7, 0x7, src2_r, gen); //idiv eax:edx,src2 -> eax
+   gen.rs()->noteVirtualInReal(dest, RealRegister(REGNUM_EAX));
 }
 
-void EmitterIA32::emitOpImm(unsigned opcode1, unsigned opcode2, Register dest, Register src1, RegValue src2imm,
-			  codeGen &gen)
+void EmitterIA32::emitOpImm(unsigned opcode1, unsigned opcode2, Register dest, Register src1, 
+                            RegValue src2imm, codeGen &gen)
 {
-    if (src1 != dest) {
-	emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -1*(src1*4), gen);
-	emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);
-    }
-    emitOpRMImm(opcode1, opcode2, REGNUM_EBP, -1*(dest*4), src2imm, gen);
+   RealRegister src1_r = gen.rs()->loadVirtual(src1, gen);
+   RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
+   if (src1 != dest) {
+      emitMovRegToReg(dest_r, src1_r, gen);
+   }
+   emitOpExtRegImm(opcode1, (char) opcode2, dest_r, src2imm, gen);
 }
 
 void EmitterIA32::emitRelOpImm(unsigned op, Register dest, Register src1, RegValue src2imm, codeGen &gen)
 {
-   emitOpRegReg(0x29, REGNUM_ECX, REGNUM_ECX, gen);           // clear REGNUM_ECX
-   emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -1*(src1*4), gen);    // mov eax, -(src1*4)[ebp]
-   emitOpRegImm(0x3D, REGNUM_EAX, src2imm, gen);       // cmp eax, src2
-   unsigned char opcode = jccOpcodeFromRelOp(op);
-   GET_PTR(insn, gen);
-   *insn++ = opcode; *insn++ = 1;                // jcc 1
-   SET_PTR(insn, gen);
-   emitSimpleInsn(0x40+REGNUM_ECX, gen);               // inc REGNUM_ECX
-   emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_ECX, gen);    // mov -(dest*4)[ebp], ecx   
+
+   Register src2 = gen.rs()->allocateRegister(gen, true);
+   emitLoadConst(src2, src2imm, gen);
+   emitRelOp(op, dest, src1, src2, gen);
+   gen.rs()->freeRegister(src2);
 }
 
 // where is this defined?
@@ -158,97 +171,102 @@ extern bool isPowerOf2(int value, int &result);
 
 void EmitterIA32::emitTimesImm(Register dest, Register src1, RegValue src2imm, codeGen &gen)
 {
-    int result = -1;
+   int result;
+   
+   RealRegister src1_r = gen.rs()->loadVirtual(src1, gen);
+   RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
 
-    if (src2imm == 1)
-	return;
+   if (src2imm == 1) {
+      emitMovRegToReg(dest_r, src1_r, gen);
+      return;
+   }
 
-    if (isPowerOf2(src2imm, result) && result <= MAX_IMM8) {
-	if (src1 != dest) {
-	    emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -1*(src1*4), gen);
-	    emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);
-	}
-	// sal dest, result
-	emitOpRMImm8(0xC1, 4, REGNUM_EBP, -1*(dest*4), static_cast<char>(result), gen);
-    }
-    else {
-	// imul REGNUM_EAX, -(src1*4)[ebp], src2imm
-	emitOpRegRMImm(0x69, REGNUM_EAX, REGNUM_EBP, -1*(src1*4), src2imm, gen);
-	emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);
-    } 
+
+   if (isPowerOf2(src2imm, result) && result <= MAX_IMM8) {
+      // sal dest, result
+      if (src1 != dest)
+         emitMovRegToReg(dest_r, src1_r, gen);
+      emitOpExtRegImm8(0xC1, 4, dest_r, static_cast<char>(result), gen);
+   }
+   else {
+      // imul src1 * src2imm -> dest_r
+      emitOpRegRegImm(0x69, dest_r, src1_r, src2imm, gen);
+   } 
 }
 
 void EmitterIA32::emitDivImm(Register dest, Register src1, RegValue src2imm, codeGen &gen)
 {
-    int result = -1;
-    if (isPowerOf2(src2imm, result) && result <= MAX_IMM8) {
-	if (src1 != dest) {
-	    emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -1*(src1*4), gen);
-	    emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);
-	}
-	// sar dest, result
-	emitOpRMImm8(0xC1, 7, REGNUM_EBP, -1*(dest*4), static_cast<unsigned char>(result), gen);
-    }
-    else {
-	// dest = src1 div src2imm
-	// mov eax, src1
-	// cdq   ; edx = sign extend of eax
-	// mov ebx, src2imm
-	// idiv eax, ebx ; eax = edx:eax div src2, edx = edx:eax mod src2
-	// mov dest, eax
-	emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -1*(src1*4), gen);
-	emitSimpleInsn(0x99, gen);
-	emitMovImmToReg(REGNUM_EBX, src2imm, gen);
-	// idiv eax, ebx
-	emitOpRegReg(0xF7, 0x7 /*opcode extension*/, REGNUM_EBX, gen); 
-	emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);
-    }
+   int result;
+   if (src2imm == 1)
+      return;
+
+   if (isPowerOf2(src2imm, result) && result <= MAX_IMM8) {
+      // sar dest, result
+      RealRegister src1_r = gen.rs()->loadVirtual(src1, gen);
+      RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
+
+      if (src1 != dest)
+         emitMovRegToReg(src1_r, dest_r, gen);
+      emitOpExtRegImm8(0xC1, 4, dest_r, static_cast<unsigned char>(result), gen);
+   }
+   else {
+      Register src2 = gen.rs()->allocateRegister(gen, true);
+      emitLoadConst(src2, src2imm, gen);
+      emitDiv(dest, src1, src2, gen);
+      gen.rs()->freeRegister(src2);
+   }
 }
 
 void EmitterIA32::emitLoad(Register dest, Address addr, int size, codeGen &gen)
 {
+   RealRegister r = gen.rs()->loadVirtualForWrite(dest, gen);
    if (size == 1) {
-      emitMovMBToReg(REGNUM_EAX, addr, gen);               // movsbl eax, addr
+      emitMovMBToReg(r, addr, gen);               // movsbl eax, addr
    } else if (size == 2) {
-      emitMovMWToReg(REGNUM_EAX, addr, gen);               // movswl eax, addr
+      emitMovMWToReg(r, addr, gen);               // movswl eax, addr
    } else {
-      emitMovMToReg(REGNUM_EAX, addr, gen);               // mov eax, addr
+      emitMovMToReg(r, addr, gen);               // mov eax, addr
    }
-   emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);    // mov -(dest*4)[ebp], eax
 }
 
 void EmitterIA32::emitLoadConst(Register dest, Address imm, codeGen &gen)
 {
-    emitMovImmToRM(REGNUM_EBP, -1*(dest*4), imm, gen);
+   RealRegister r = gen.rs()->loadVirtualForWrite(dest, gen);
+   emitMovImmToReg(r, imm, gen);
 }
 
 void EmitterIA32::emitLoadIndir(Register dest, Register addr_reg, int /*size*/, codeGen &gen)
 {
-    emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -1*(addr_reg*4), gen); // mov eax, -(addr_reg*4)[ebp]
-    emitMovRMToReg(REGNUM_EAX, REGNUM_EAX, 0, gen);         // mov eax, [eax]
-    emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen); // mov -(dest*4)[ebp], eax
+   RealRegister dest_r(-1);
+   RealRegister src_r = gen.rs()->loadVirtual(addr_reg, gen);
+   if (dest != addr_reg)
+      dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
+   else
+      dest_r = src_r;
+   emitMovRMToReg(dest_r, src_r, 0, gen);
 }
 
 void EmitterIA32::emitLoadOrigFrameRelative(Register dest, Address offset, codeGen &gen)
 {
-    // eax = [ebp]	- saved bp
-    // dest = [eax](offset)
-    emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, 0, gen);       // mov (%ebp), %eax 
-    emitMovRMToReg(REGNUM_EAX, REGNUM_EAX, offset, gen);    // mov <offset>(%eax), %eax 
-    emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);    // mov -(dest*4)[ebp], eax
+   if (gen.bti()->hasStackFrame_) {
+      Register scratch = gen.rs()->allocateRegister(gen, true);
+      RealRegister scratch_r = gen.rs()->loadVirtualForWrite(scratch, gen);
+      RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
+      emitMovRMToReg(scratch_r, RealRegister(REGNUM_EBP), 0, gen);
+      emitMovRMToReg(dest_r, scratch_r, offset, gen);
+      gen.rs()->freeRegister(scratch);
+      return;
+   }
+
+   RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
+   emitMovRMToReg(dest_r, RealRegister(REGNUM_EBP), offset, gen);
 }
 
-bool EmitterIA32::emitLoadRelative(Register dest, Address offset, Register /*base*/, 
-                                   codeGen &gen)
+bool EmitterIA32::emitLoadRelative(Register /*dest*/, Address /*offset*/, Register /*base*/, 
+                                   codeGen &/*gen*/)
 {
     assert(0);
     return false;
-    // Unimplemented
-    // eax = [ebp]	- saved bp
-    // dest = [eax](offset)
-    emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, 0, gen);       // mov (%ebp), %eax 
-    emitMovRMToReg(REGNUM_EAX, REGNUM_EAX, offset, gen);    // mov <offset>(%eax), %eax 
-    emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);    // mov -(dest*4)[ebp], eax
 }
 
 void EmitterIA32::emitStoreRelative(Register /*src*/, Address /*offset*/, 
@@ -262,139 +280,217 @@ void EmitterIA32::emitLoadOrigRegRelative(Register dest, Address offset,
                                           Register base, codeGen &gen,
                                           bool store)
 {
-    GET_GPR(base,gen);  // loads value of stored register 'base' into EAX
-    // either load the address or the contents at that address
-    if(store) 
-    {
-        // dest = [reg](offset)
-        emitMovRMToReg(REGNUM_EAX, REGNUM_EAX, offset, gen);
-    }
-    else
-    {
-        // dest = [reg] + offset
-        emitAddRegImm32(REGNUM_EAX, offset, gen);
-    }
-    emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);
+
+   RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
+   restoreGPRtoGPR(RealRegister(base), dest_r, gen);
+   // either load the address or the contents at that address
+   if(store) 
+   {
+      // dest = [reg](offset)
+      emitMovRMToReg(dest_r, dest_r, offset, gen);
+   }
+   else //calc address
+   {
+      //add offset,eax
+      emitAddRegImm32(dest_r, offset, gen);
+   }
 } 
 
 void EmitterIA32::emitLoadFrameAddr(Register dest, Address offset, codeGen &gen)
 {
-    emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, 0, gen);       // mov (%ebp), %eax 
-    emitAddRegImm32(REGNUM_EAX, offset, gen);        // add #<offset>, %eax
-    emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);    // mov -(dest*4)[ebp], eax
+   RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
+   
+   emitMovRMToReg(dest_r, RealRegister(REGNUM_EBP), 0, gen);
+   emitAddRegImm32(dest_r, offset, gen);
 }
 
 
 
 void EmitterIA32::emitLoadOrigRegister(Address register_num, Register dest, codeGen &gen)
 {
-    //Previous stack frame register is stored on the stack,
-    //it was stored there at the begining of the base tramp.
-    
-    //Calculate the register's offset from the frame pointer in REGNUM_EBP
-    unsigned offset = SAVED_EAX_OFFSET - (register_num * 4);
-
-    emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, offset, gen); //mov eax, offset[ebp]
-    emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen); //mov dest, 0[eax]
+   RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
+   restoreGPRtoGPR(RealRegister(register_num), dest_r, gen);
 }
 
 void EmitterIA32::emitStoreOrigRegister(Address register_num, Register src, codeGen &gen) {
 
+   assert(0); //MATT TODO
    //Previous stack frame register is stored on the stack,
     //it was stored there at the begining of the base tramp.
     
     //Calculate the register's offset from the frame pointer in REGNUM_EBP
     unsigned offset = SAVED_EAX_OFFSET - (register_num * 4);
 
-    emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -1*(src*4), gen);
-    emitMovRegToRM(REGNUM_EBP, offset, REGNUM_EAX, gen);
+    emitMovRMToReg(RealRegister(REGNUM_EAX), RealRegister(REGNUM_EBP), -1*(src*4), gen);
+    gen.markRegDefined(REGNUM_EAX);
+    emitMovRegToRM(RealRegister(REGNUM_EBP), offset, RealRegister(REGNUM_EAX), gen);
 }
 
-void EmitterIA32::emitStore(Address addr, Register src, int /*size*/, codeGen &gen)
+void EmitterIA32::emitStore(Address addr, Register src, int size, codeGen &gen)
 {
-      emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -1*(src*4), gen);    // mov eax, -(src*4)[ebp]
-      emitMovRegToM(addr, REGNUM_EAX, gen);               // mov addr, eax
+   RealRegister r = gen.rs()->loadVirtual(src, gen);
+   if (size == 1) {
+      emitMovRegToMB(addr, r, gen);
+   } else if (size == 2) {
+      emitMovRegToMW(addr, r, gen);
+   } else {
+      emitMovRegToM(addr, r, gen);
+   }
 }
 
 void EmitterIA32::emitStoreIndir(Register addr_reg, Register src, int /*size*/, codeGen &gen)
 {
-    emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -1*(src*4), gen);   // mov eax, -(src*4)[ebp]
-    emitMovRMToReg(REGNUM_ECX, REGNUM_EBP, -1*(addr_reg*4), gen);   // mov ecx, -(addr_reg*4)[ebp]
-    emitMovRegToRM(REGNUM_ECX, 0, REGNUM_EAX, gen);           // mov [ecx], eax
+   RealRegister src_r = gen.rs()->loadVirtual(src, gen);
+   RealRegister addr_r = gen.rs()->loadVirtual(addr_reg, gen);
+   emitMovRegToRM(addr_r, 0, src_r, gen);
 }
 
 void EmitterIA32::emitStoreFrameRelative(Address offset, Register src, Register scratch, int /*size*/, codeGen &gen)
 {
-      // scratch = [ebp]	- saved bp
-      // (offset)[scratch] = src
-      emitMovRMToReg(scratch, REGNUM_EBP, 0, gen);    	    // mov scratch, (ebp)
-      emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -1*(src*4), gen);    // mov eax, -(src*4)[ebp]
-      emitMovRegToRM(scratch, offset, REGNUM_EAX, gen);        // mov (offset)[scratch], eax
+   if (gen.bti()->hasStackFrame_) 
+   {
+      RealRegister src_r = gen.rs()->loadVirtual(src, gen);
+      RealRegister scratch_r = gen.rs()->loadVirtual(scratch, gen);
+      emitMovRMToReg(scratch_r, RealRegister(REGNUM_EBP), 0, gen);
+      emitMovRegToRM(scratch_r, offset, src_r, gen);
+      return;
+   }
+   RealRegister src_r = gen.rs()->loadVirtual(src, gen);
+   emitMovRegToRM(RealRegister(REGNUM_EBP), offset, src_r, gen);
 }
 
 void EmitterIA32::emitGetRetVal(Register dest, codeGen &gen)
 {
-    emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, SAVED_EAX_OFFSET, gen);
-    emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);
+   RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
+   restoreGPRtoGPR(RealRegister(REGNUM_EAX), dest_r, gen);
 }
 
 void EmitterIA32::emitGetParam(Register dest, Register param_num, instPointType_t pt_type, codeGen &gen)
 {
-    // Parameters are addressed by a positive offset from ebp,
-    // the first is PARAM_OFFSET[ebp]
+   // Parameters are addressed by a positive offset from ebp,
+   // the first is PARAM_OFFSET[ebp]
+   
+   int offset = 0;
+   
+   //Count saved registers
+   pdvector<registerSlot *> &regs = gen.rs()->trampRegs();
+   for (int i=regs.size()-1; i>=0; i--) {
+      if (regs[i]->spilledState != registerSlot::unspilled) {
+         offset += 4;
+      }
+   }
+   
+   //Stack padding
+   offset += STACK_PAD_CONSTANT;
 
-    int offset = 0;
-    if (pt_type == callSite) {
-        offset = CALLSITE_PARAM_OFFSET + param_num*4;
-    }
-    else {
-        offset = FUNC_PARAM_OFFSET + param_num*4;
-    }
+   if (pt_type != callSite) {
+      offset += 4;
+   }
 
-    if ((*gen.rs())[IA32_FLAG_VIRTUAL_REGISTER]->liveState == registerSlot::dead) {
-        // Adjust down because we didn't save the flags
-        offset -= 4;
-    }
-    
-    emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, offset, gen);
-    emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);
+   if ((*gen.rs())[IA32_FLAG_VIRTUAL_REGISTER]->liveState != registerSlot::dead) {
+      // Adjust down because we saved the flags
+      offset += 4;
+   }
+
+   offset += param_num*4;
+
+   RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
+   if (gen.bti() &&
+       gen.bti()->hasStackFrame_)
+   {
+      offset += 8;
+      emitMovRMToReg(dest_r, RealRegister(REGNUM_EBP), offset, gen);
+   }
+   else {
+      offset += gen.rs()->getStackHeight();
+      emitMovRMToReg(dest_r, RealRegister(REGNUM_ESP), offset, gen);
+   }
 }
 
-bool EmitterIA32::emitBTSaves(baseTramp* bt, codeGen &gen)
+bool EmitterIA32::emitBTSaves(baseTramp* bt, baseTrampInstance *inst, codeGen &gen)
 {
     // Magic stack pad to avoid stepping on badly-written programs
     // that go underneath the stack pointer.
     if (STACK_PAD_CONSTANT)
-        emitLEA(REGNUM_ESP, Null_Register, 0, -STACK_PAD_CONSTANT, REGNUM_ESP, gen);
+       emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0, -STACK_PAD_CONSTANT, 
+               RealRegister(REGNUM_ESP), gen);
 
     // These crank the saves forward
-    //emitSimpleInsn(PUSHFD, gen);
-    gen.rs()->saveVolatileRegisters(gen);
-    emitSimpleInsn(PUSHAD, gen);
-    // For now, we'll do all saves then do the guard. Could inline
-    // Return addr for stack frame walking; for lack of a better idea,
-    // we grab the original instPoint address
-    if (bt->instP()) {
-        emitPushImm(bt->instP()->addr(), gen);
+    bool flags_saved = gen.rs()->saveVolatileRegisters(gen);
+
+    int num_saved = 0;
+    int numRegsUsed = inst ? inst->numDefinedRegs() : -1;
+    if (numRegsUsed == -1 || 
+        numRegsUsed > X86_REGS_SAVE_LIMIT)
+    {
+       emitSimpleInsn(PUSHAD, gen);
+       num_saved = 8;
+       gen.rs()->markSavedRegister(RealRegister(REGNUM_EAX), 8 + (flags_saved ? 1 : 0));
+       gen.rs()->markSavedRegister(RealRegister(REGNUM_ECX), 7);
+       gen.rs()->markSavedRegister(RealRegister(REGNUM_EDX), 6);
+       gen.rs()->markSavedRegister(RealRegister(REGNUM_EBX), 5);
+       gen.rs()->markSavedRegister(RealRegister(REGNUM_ESP), 4);
+       gen.rs()->markSavedRegister(RealRegister(REGNUM_EBP), 3);
+       gen.rs()->markSavedRegister(RealRegister(REGNUM_ESI), 2);
+       gen.rs()->markSavedRegister(RealRegister(REGNUM_EDI), 1);       
     }
-    else {
-        assert(bt->rpcMgr_);
+    else
+    {
+       if (inst->definedRegs_[REGNUM_ESP]) {
+          ::emitPush(RealRegister(REGNUM_ESP), gen);
+          gen.rs()->markSavedRegister(RealRegister(REGNUM_ESP), numRegsUsed - num_saved);
+          num_saved++;
+       }
+       pdvector<registerSlot *> &regs = gen.rs()->trampRegs();
+       for (unsigned i=0; i<regs.size(); i++) {
+          registerSlot *reg = regs[i];          
+          if (reg->encoding() == REGNUM_ESP)
+             continue;
+          if (inst->definedRegs_[reg->encoding()]) {
+             ::emitPush(RealRegister(reg->encoding()), gen);
+             gen.rs()->markSavedRegister(RealRegister(reg->encoding()), 
+                                         numRegsUsed - num_saved);
+             num_saved++;
+          }
+       }
+       assert(num_saved == numRegsUsed);
     }
 
-    emitSimpleInsn(PUSH_EBP, gen);
-    emitMovRegToReg(REGNUM_EBP, REGNUM_ESP, gen);
-    
-    bool useFPRs = gen.rs()->anyLiveFPRsAtEntry();
+    gen.rs()->setStackHeight(0);
+
+    bool useFPRs = gen.rs()->anyLiveFPRsAtEntry() && 
+       bt->isConservative() && 
+       BPatch::bpatch->isSaveFPROn();
+
+    if (!inst ||
+        bt->createFrame() ||
+        useFPRs || 
+        !inst->hasDefinedRegs_ ||
+        (inst->hasDefinedRegs_ && inst->spilledRegisters_))
+    {
+       if (inst)
+          inst->hasStackFrame_ = true;
+       // For now, we'll do all saves then do the guard. Could inline
+       // Return addr for stack frame walking; for lack of a better idea,
+       // we grab the original instPoint address
+       if (bt->instP()) {
+          emitPushImm(bt->instP()->addr(), gen);
+       }
+       
+       emitSimpleInsn(PUSH_EBP, gen);
+       emitMovRegToReg(RealRegister(REGNUM_EBP), RealRegister(REGNUM_ESP), gen);
+    }
+    else 
+       inst->hasStackFrame_ = false;
 
     // Not sure liveness touches this yet, so not using
     //bool liveFPRs = (gen.rs()->FPRs()[0]->liveState == registerSlot:live);
 
-    if (bt->isConservative() && 
-        BPatch::bpatch->isSaveFPROn() &&
-        useFPRs) {
+    if (useFPRs) {
         if (gen.rs()->hasXMM) {
             // Allocate space for temporaries
-            emitOpRegImm(EXTENDED_0x81_SUB, REGNUM_ESP, TRAMP_FRAME_SIZE, gen);
+           emitOpExtRegImm(0x81, EXTENDED_0x81_SUB, RealRegister(REGNUM_ESP), 
+                           TRAMP_FRAME_SIZE, gen);
             
             // need to save the floating point state (x87, MMX, SSE)
             // we do this on the stack, but the problem is that the save
@@ -406,9 +502,10 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, codeGen &gen)
             //   fxsave (%esp)           ; save the state
             //   push %eax               ; save the old stack pointer
             
-            emitMovRegToReg(REGNUM_EAX, REGNUM_ESP, gen);
-            emitOpRegImm(EXTENDED_0x81_SUB, REGNUM_ESP, 512, gen);
-            emitOpRegImm(EXTENDED_0x81_AND, REGNUM_ESP, -16, gen);
+           emitMovRegToReg(RealRegister(REGNUM_EAX), RealRegister(REGNUM_ESP), gen);
+           gen.markRegDefined(REGNUM_EAX);
+           emitOpExtRegImm(0x81, EXTENDED_0x81_SUB, RealRegister(REGNUM_ESP), 512, gen);
+           emitOpExtRegImm(0x81, EXTENDED_0x81_AND, RealRegister(REGNUM_ESP), -16, gen);
             
             // fxsave (%rsp) ; 0x0f 0xae 0x04 0x24
             GET_PTR(insn, gen);
@@ -419,20 +516,22 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, codeGen &gen)
             SET_PTR(insn, gen);
             
             emitSimpleInsn(0x50 + REGNUM_EAX, gen); /* Push EAX */
+            
         }
         else {
             // Allocate space for temporaries and floating points
-            emitOpRegImm(EXTENDED_0x81_SUB, REGNUM_ESP, TRAMP_FRAME_SIZE+FSAVE_STATE_SIZE, gen);
-            emitOpRegRM(FSAVE, FSAVE_OP, REGNUM_EBP, -(TRAMP_FRAME_SIZE) - FSAVE_STATE_SIZE, gen);
+           emitOpExtRegImm(0x81, EXTENDED_0x81_SUB, RealRegister(REGNUM_ESP), TRAMP_FRAME_SIZE+FSAVE_STATE_SIZE, gen);
+           emitOpRegRM(FSAVE, RealRegister(FSAVE_OP), RealRegister(REGNUM_EBP), -(TRAMP_FRAME_SIZE) - FSAVE_STATE_SIZE, gen);
         }
     } else {
         // Allocate space for temporaries
-        emitOpRegImm(EXTENDED_0x81_SUB, REGNUM_ESP, TRAMP_FRAME_SIZE, gen);
+       if (inst->hasStackFrame_)
+          emitOpExtRegImm(0x81, EXTENDED_0x81_SUB, RealRegister(REGNUM_ESP), TRAMP_FRAME_SIZE, gen);
     }
     return true;
 }
 
-bool EmitterIA32::emitBTRestores(baseTramp* bt, codeGen &gen)
+bool EmitterIA32::emitBTRestores(baseTramp* bt, baseTrampInstance *bti, codeGen &gen)
 {
     bool useFPRs = gen.rs()->anyLiveFPRsAtEntry();
     // Not sure liveness touches this yet, so not using
@@ -444,6 +543,7 @@ bool EmitterIA32::emitBTRestores(baseTramp* bt, codeGen &gen)
         if (gen.rs()->hasXMM) {
             // pop the old ESP value into EAX
             emitSimpleInsn(0x58 + REGNUM_EAX, gen);
+            gen.markRegDefined(REGNUM_EAX);   
             
             // restore saved FP state
             // fxrstor (%rsp) ; 0x0f 0xae 0x04 0x24
@@ -455,23 +555,27 @@ bool EmitterIA32::emitBTRestores(baseTramp* bt, codeGen &gen)
             SET_PTR(insn, gen);
             
             // restore stack pointer (deallocates FP save area)
-            emitMovRegToReg(REGNUM_ESP, REGNUM_EAX, gen);
+            emitMovRegToReg(RealRegister(REGNUM_ESP), RealRegister(REGNUM_EAX), gen);
         }
-        else
-            emitOpRegRM(FRSTOR, FRSTOR_OP, REGNUM_EBP, -TRAMP_FRAME_SIZE - FSAVE_STATE_SIZE, gen);
+        else 
+           emitOpRegRM(FRSTOR, RealRegister(FRSTOR_OP), RealRegister(REGNUM_EBP), -TRAMP_FRAME_SIZE - FSAVE_STATE_SIZE, gen);
     }
     
-    emitSimpleInsn(LEAVE, gen);
-    if (bt->rpcMgr_ == NULL)
-	emitSimpleInsn(POP_EAX, gen);
-    emitSimpleInsn(POPAD, gen);
-    //emitSimpleInsn(POPFD, gen);
-    gen.rs()->restoreVolatileRegisters(gen);
-
+    if (!bti || bti->hasStackFrame_)
+    {
+       emitSimpleInsn(LEAVE, gen);
+       if (bt->instP())
+          emitSimpleInsn(POP_EAX, gen);
+    }
+    
+    //popa or pop each register, plus optional popf
+    emitBTRegRestores32(bti, gen);
+    
     // Red zone skip - see comment in emitBTsaves
     if (STACK_PAD_CONSTANT)
-        emitLEA(REGNUM_ESP, Null_Register, 0, STACK_PAD_CONSTANT, REGNUM_ESP, gen);
-
+       emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0, 
+               STACK_PAD_CONSTANT, RealRegister(REGNUM_ESP), gen);
+    
     return true;
 }
 
@@ -528,14 +632,27 @@ void emitAddMem(Address addr, int imm, codeGen &gen) {
    // pc-relative data addressing mode.  Our helper functions will
    // not correctly emit what we want, and we want this very specific
    // mode for the add instruction.  So I'm just writing raw bytes.
+
    GET_PTR(insn, gen);
-   if (imm == 1) 
-      *insn++ = 0xFF; //incl 
-   else
+   if (imm == 1) {
+      if (gen.rs()->getAddressWidth() == 4)
+      {
+         *insn++ = 0xFF; //incl 
+         *insn++ = 0x05;
+      }
+      else {
+         assert(gen.rs()->getAddressWidth() == 8);
+         *insn++ = 0xFF; //inlc with SIB
+         *insn++ = 0x04;
+         *insn++ = 0x25;
+      }
+   }
+   else {
       *insn++ = 0x81; //addl
-               
-   *insn++ = 0x04; *insn++ = 0x25; //Add to an absolute memory address
-   
+      *insn++ = 0x4;
+      *insn++ = 0x25;
+   }
+
    *((int *)insn) = addr; //Write address
    insn += sizeof(int);
 
@@ -557,6 +674,7 @@ void EmitterIA32::emitAddSignedImm(Address addr, int imm, codeGen &gen,
 void emitMovImmToReg64(Register dest, long imm, bool is_64, codeGen &gen)
 {
    Register tmp_dest = dest;
+   gen.markRegDefined(dest);
    emitRex(is_64, NULL, NULL, &tmp_dest, gen);
    if (is_64) {
       GET_PTR(insn, gen);
@@ -566,7 +684,7 @@ void emitMovImmToReg64(Register dest, long imm, bool is_64, codeGen &gen)
       SET_PTR(insn, gen);
    }
    else
-      emitMovImmToReg(tmp_dest, imm, gen);
+      emitMovImmToReg(RealRegister(tmp_dest), imm, gen);
 }
 
 // on 64-bit x86_64 targets, the DWARF register number does not
@@ -617,7 +735,8 @@ void emitMovRegToReg64(Register dest, Register src, bool is_64, codeGen &gen)
     Register tmp_dest = dest;
     Register tmp_src = src;
     emitRex(is_64, &tmp_dest, NULL, &tmp_src, gen);
-    emitMovRegToReg(tmp_dest, tmp_src, gen);
+    emitMovRegToReg(RealRegister(tmp_dest), RealRegister(tmp_src), gen);
+    gen.markRegDefined(dest);
 }
 
 void emitMovPCRMToReg64(Register dest, int offset, int size, codeGen &gen)
@@ -632,6 +751,7 @@ void emitMovPCRMToReg64(Register dest, int offset, int size, codeGen &gen)
    *insn++ = static_cast<unsigned char>(((dest & 0x7) << 3) | 0x5); // ModRM byte
    *((int *)insn) = offset-7;                                       // offset
    insn += sizeof(int);
+   gen.markRegDefined(dest);
    SET_PTR(insn, gen);
 }
 
@@ -645,7 +765,9 @@ void emitLEA64(Register base, Register index, unsigned int scale, int disp,
 	    tmp_index == Null_Register ? NULL : &tmp_index,
 	    tmp_base == Null_Register ? NULL : &tmp_base,
 	    gen);
-    emitLEA(tmp_base, tmp_index, scale, disp, tmp_dest, gen);
+    emitLEA(RealRegister(tmp_base), RealRegister(tmp_index), scale, disp, 
+            RealRegister(tmp_dest), gen);
+    gen.markRegDefined(dest);
 }
 
 static void emitMovRMToReg64(Register dest, Register base, int disp, int size, codeGen &gen)
@@ -653,6 +775,7 @@ static void emitMovRMToReg64(Register dest, Register base, int disp, int size, c
     Register tmp_dest = dest;
     Register tmp_base = base;
 
+    gen.markRegDefined(dest);
     if (size == 1 || size == 2)
     {
        emitRex(true, &tmp_dest, NULL, &tmp_base, gen);
@@ -668,7 +791,7 @@ static void emitMovRMToReg64(Register dest, Register base, int disp, int size, c
     if (size == 4 || size == 8)
     {
        emitRex((size == 8), &tmp_dest, NULL, &tmp_base, gen);
-       emitMovRMToReg(tmp_dest, tmp_base, disp, gen);
+       emitMovRMToReg(RealRegister(tmp_dest), RealRegister(tmp_base), disp, gen);
     }
 }
 
@@ -680,9 +803,10 @@ static void emitMovRegToRM64(Register base, int disp, Register src, int size, co
     if (size == 1 || size == 2) {
        //mov src, rax
        //mov a[l/x], (dest)
+       gen.markRegDefined(REGNUM_RAX);
        if (tmp_src != REGNUM_RAX) {
           emitRex(true, &tmp_src, NULL, &rax, gen);
-          emitMovRegToReg(rax, tmp_src, gen);
+          emitMovRegToReg(RealRegister(rax), RealRegister(tmp_src), gen);
        }
 
        emitRex(false, NULL, NULL, &tmp_base, gen);
@@ -698,7 +822,7 @@ static void emitMovRegToRM64(Register base, int disp, Register src, int size, co
     if (size == 4 || size == 8)
     {
       emitRex((size == 8), &tmp_src, NULL, &tmp_base, gen);
-      emitMovRegToRM(tmp_base, disp, tmp_src, gen);
+      emitMovRegToRM(RealRegister(tmp_base), disp, RealRegister(tmp_src), gen);
     }
 }
 
@@ -707,7 +831,8 @@ static void emitOpRegReg64(unsigned opcode, Register dest, Register src, bool is
     Register tmp_dest = dest;
     Register tmp_src = src;
     emitRex(is_64, &tmp_dest, NULL, &tmp_src, gen);
-    emitOpRegReg(opcode, tmp_dest, tmp_src, gen);
+    emitOpRegReg(opcode, RealRegister(tmp_dest), RealRegister(tmp_src), gen);
+    gen.markRegDefined(dest);
 }
 
 static void emitOpRegRM64(unsigned opcode, Register dest, Register base, int disp, bool is_64, codeGen &gen)
@@ -715,7 +840,8 @@ static void emitOpRegRM64(unsigned opcode, Register dest, Register base, int dis
     Register tmp_dest = dest;
     Register tmp_base = base;
     emitRex(is_64, &tmp_dest, NULL, &tmp_base, gen);
-    emitOpRegRM(opcode, tmp_dest, tmp_base, disp, gen);
+    emitOpRegRM(opcode, RealRegister(tmp_dest), RealRegister(tmp_base), disp, gen);
+    gen.markRegDefined(dest);
 }
 
 static void emitOpRegImm64(unsigned opcode, unsigned opcode_ext, Register rm_reg, int imm,
@@ -730,6 +856,7 @@ static void emitOpRegImm64(unsigned opcode, unsigned opcode_ext, Register rm_reg
     *((int *)insn) = imm;
     insn+= sizeof(int);
     SET_PTR(insn, gen);
+    gen.markRegDefined(rm_reg);
 }
 
 // operation on memory location specified with a base register
@@ -756,6 +883,7 @@ static void emitOpRegRegImm64(unsigned opcode, Register dest, Register src1, int
     *((int *)insn) = imm;
     insn+= sizeof(int);
     SET_PTR(insn, gen);
+    gen.markRegDefined(dest);
 }
 
 static void emitOpRegImm8_64(unsigned opcode, unsigned opcode_ext, Register dest,
@@ -768,18 +896,21 @@ static void emitOpRegImm8_64(unsigned opcode, unsigned opcode_ext, Register dest
     *insn++ = 0xC0 | ((opcode_ext & 0x7) << 3) | tmp_dest;
     *insn++ = imm;
     SET_PTR(insn, gen);
+    gen.markRegDefined(dest);
 }
 
 void emitPushReg64(Register src, codeGen &gen)
 {
     emitRex(false, NULL, NULL, &src, gen);
     emitSimpleInsn(0x50 + src, gen);
+    gen.rs()->incStack(8);
 }
 
 void emitPopReg64(Register dest, codeGen &gen)
 {
     emitRex(false, NULL, NULL, &dest, gen);    
     emitSimpleInsn(0x58 + dest, gen);
+    gen.rs()->incStack(-8);
 }
 
 void emitMovImmToRM64(Register base, int disp, int imm, bool is_64, 
@@ -817,6 +948,7 @@ void emitAddRM64(Register dest, int imm, bool is_64, codeGen &gen)
    }
    emitRex(is_64, &dest, NULL, NULL, gen);
    emitOpMemImm64(0x81, 0x0, dest, imm, true, gen);
+   gen.markRegDefined(dest);
    //   *((int*)insn) = imm;
    //insn += sizeof(int);
 }
@@ -824,6 +956,7 @@ void emitAddRM64(Register dest, int imm, bool is_64, codeGen &gen)
 
 bool EmitterAMD64::emitMoveRegToReg(Register src, Register dest, codeGen &gen) {
     emitMovRegToReg64(dest, src, true, gen);
+    gen.markRegDefined(dest);
     return true;
 }
 
@@ -833,7 +966,7 @@ bool EmitterAMD64::emitMoveRegToReg(registerSlot *source, registerSlot *dest, co
     return emitMoveRegToReg(source->encoding(), dest->encoding(), gen);
 }
 
-codeBufIndex_t EmitterAMD64::emitIf(Register expr_reg, Register target, codeGen &gen)
+codeBufIndex_t EmitterAMD64::emitIf(Register expr_reg, Register target, RegControl, codeGen &gen)
 {
     pdvector<Register> excluded;
     excluded.push_back(expr_reg);
@@ -842,6 +975,7 @@ codeBufIndex_t EmitterAMD64::emitIf(Register expr_reg, Register target, codeGen 
 
     // sub RAX, RAX
     emitOpRegReg64(0x29, scratchReg, scratchReg, true, gen);
+    gen.markRegDefined(scratchReg);
 
     assert(scratchReg != expr_reg);
 
@@ -870,17 +1004,19 @@ void EmitterAMD64::emitOp(unsigned opcode, Register dest, Register src1, Registe
 {
     // TODO: optimize this further for ops where order doesn't matter
     if (src1 != dest)
-	emitMovRegToReg64(dest, src1, true, gen);
+       emitMovRegToReg64(dest, src1, true, gen);
     emitOpRegReg64(opcode, dest, src2, true, gen);
+    gen.markRegDefined(dest);
 }
 
 void EmitterAMD64::emitOpImm(unsigned opcode1, unsigned opcode2, Register dest, Register src1, RegValue src2imm,
 			  codeGen &gen)
 {
-    if (src1 != dest) {
-	emitMovRegToReg64(dest, src1, true, gen);
-    }
-    emitOpRegImm64(opcode1, opcode2, dest, src2imm, true, gen);
+   if (src1 != dest) {
+      emitMovRegToReg64(dest, src1, true, gen);
+   }
+   emitOpRegImm64(opcode1, opcode2, dest, src2imm, true, gen);
+   gen.markRegDefined(dest);
 }
 
 void EmitterAMD64::emitRelOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen)
@@ -891,6 +1027,7 @@ void EmitterAMD64::emitRelOp(unsigned op, Register dest, Register src1, Register
     // mov $0, $dest ; done now in case src1 == dest or src2 == dest
     // (we can do this since mov doesn't mess w/ flags)
     emitMovImmToReg64(dest, 0, false, gen);
+    gen.markRegDefined(dest);
 
     // jcc by two or three, depdending on size of mov
     unsigned char jcc_opcode = jccOpcodeFromRelOp(op);
@@ -920,6 +1057,7 @@ void EmitterAMD64::emitRelOpImm(unsigned op, Register dest, Register src1, RegVa
     // mov $0, $dest ; done now in case src1 == dest
     // (we can do this since mov doesn't mess w/ flags)
     emitMovImmToReg64(dest, 0, false, gen);
+    gen.markRegDefined(dest);
 
     // jcc by two or three, depdending on size of mov
     unsigned char opcode = jccOpcodeFromRelOp(op);
@@ -945,115 +1083,123 @@ void EmitterAMD64::emitDiv(Register dest, Register src1, Register src2, codeGen 
     // TODO: fix so that we don't always use RAX
 
     // push RDX if it's in use, since we will need it
-    bool save_rdx = false;
-    if (!gen.rs()->isFreeRegister(REGNUM_RDX) && (dest != REGNUM_RDX)) {
-	save_rdx = true;
-	emitPushReg64(REGNUM_RDX, gen);
-    }
-
-    // If src2 is RDX we need to move it into a scratch register, as the sign extend
-    // will overwrite RDX.
-    // Note that this does not imply RDX is not free; both inputs are free if they
-    // are not used after this call.
-    Register scratchReg = src2;
-    if (scratchReg == REGNUM_RDX) {
-        pdvector<Register> dontUse;
-        dontUse.push_back(REGNUM_RAX);
-        dontUse.push_back(src2);
-        dontUse.push_back(dest);
-        dontUse.push_back(src1);
-        scratchReg = gen.rs()->getScratchRegister(gen, dontUse);
-        emitMovRegToReg64(scratchReg, src2, true, gen);
-    }
-
-    // mov %src1, %rax
-    emitMovRegToReg64(REGNUM_RAX, src1, true, gen);
-
-    // cqo (sign extend RAX into RDX)
-    emitSimpleInsn(0x48, gen); // REX.W
-    emitSimpleInsn(0x99, gen);
-
-    // idiv %src2
-    emitOpRegReg64(0xF7, 0x7, scratchReg, true, gen);
-
-    // mov %rax, %dest
-    emitMovRegToReg64(dest, REGNUM_RAX, true, gen);
-
-    // pop rdx if it needed to be saved
-    if (save_rdx)
-	emitPopReg64(REGNUM_RDX, gen);
+   bool save_rdx = false;
+   if (!gen.rs()->isFreeRegister(REGNUM_RDX) && (dest != REGNUM_RDX)) {
+      save_rdx = true;
+      emitPushReg64(REGNUM_RDX, gen);
+   }
+   else {
+      gen.markRegDefined(REGNUM_RDX);
+   }
+   
+   // If src2 is RDX we need to move it into a scratch register, as the sign extend
+   // will overwrite RDX.
+   // Note that this does not imply RDX is not free; both inputs are free if they
+   // are not used after this call.
+   Register scratchReg = src2;
+   if (scratchReg == REGNUM_RDX) {
+      pdvector<Register> dontUse;
+      dontUse.push_back(REGNUM_RAX);
+      dontUse.push_back(src2);
+      dontUse.push_back(dest);
+      dontUse.push_back(src1);
+      scratchReg = gen.rs()->getScratchRegister(gen, dontUse);
+      emitMovRegToReg64(scratchReg, src2, true, gen);
+   }
+   gen.markRegDefined(scratchReg);
+   
+   // mov %src1, %rax
+   emitMovRegToReg64(REGNUM_RAX, src1, true, gen);
+   gen.markRegDefined(REGNUM_RAX);
+   
+   // cqo (sign extend RAX into RDX)
+   emitSimpleInsn(0x48, gen); // REX.W
+   emitSimpleInsn(0x99, gen);
+   
+   // idiv %src2
+   emitOpRegReg64(0xF7, 0x7, scratchReg, true, gen);
+   
+   // mov %rax, %dest
+   emitMovRegToReg64(dest, REGNUM_RAX, true, gen);
+   gen.markRegDefined(dest);
+   
+   // pop rdx if it needed to be saved
+   if (save_rdx)
+      emitPopReg64(REGNUM_RDX, gen);
 }
 
 void EmitterAMD64::emitTimesImm(Register dest, Register src1, RegValue src2imm, codeGen &gen)
 {
     int result = -1;
 
+    gen.markRegDefined(dest);
     if (isPowerOf2(src2imm, result) && result <= MAX_IMM8) {
-
-	// immediate is a power of two - use a shift
-
-	// mov %src1, %dest (if needed)
-	if (src1 != dest) {
-	    emitMovRegToReg64(dest, src1, true, gen);
-	}
-	// sal dest, result
-	emitOpRegImm8_64(0xC1, 4, dest, result, true, gen);
+       // immediate is a power of two - use a shift
+       // mov %src1, %dest (if needed)
+       if (src1 != dest) {
+          emitMovRegToReg64(dest, src1, true, gen);
+       }
+       // sal dest, result
+       emitOpRegImm8_64(0xC1, 4, dest, result, true, gen);
     }
     else {
-
-	// imul %dest, %src1, $src2imm
-	emitOpRegRegImm64(0x69, dest, src1, src2imm, true, gen);
+       // imul %dest, %src1, $src2imm
+       emitOpRegRegImm64(0x69, dest, src1, src2imm, true, gen);
     } 
 }
 
 void EmitterAMD64::emitDivImm(Register dest, Register src1, RegValue src2imm, codeGen &gen)
 {
-    int result = -1;
-    if (isPowerOf2(src2imm, result) && result <= MAX_IMM8) {
-
-	// divisor is a power of two - use a shift instruction
-
-	// mov %src1, %dest (if needed)
-	if (src1 != dest) {
-	    emitMovRegToReg64(dest, src1, true, gen);
-	}
-
-	// sar $result, %dest
-	emitOpRegImm8_64(0xC1, 7, dest, result, true, gen);
+   int result = -1;
+   gen.markRegDefined(dest);
+   if (isPowerOf2(src2imm, result) && result <= MAX_IMM8) {
+      // divisor is a power of two - use a shift instruction
+      // mov %src1, %dest (if needed)
+      if (src1 != dest) {
+         emitMovRegToReg64(dest, src1, true, gen);
+      }
+      
+      // sar $result, %dest
+      emitOpRegImm8_64(0xC1, 7, dest, result, true, gen);
     }
-    else {
-
-	// push RDX if it's in use, since we will need it
-	bool save_rdx = false;
-	if (!gen.rs()->isFreeRegister(REGNUM_RDX) && (dest != REGNUM_RDX)) {
-	    save_rdx = true;
+   else {
+      
+      // push RDX if it's in use, since we will need it
+      bool save_rdx = false;
+      if (!gen.rs()->isFreeRegister(REGNUM_RDX) && (dest != REGNUM_RDX)) {
+         save_rdx = true;
 	    emitPushReg64(REGNUM_RDX, gen);
-	}
+      }
+      else {
+         gen.markRegDefined(REGNUM_RDX);
+      }
 
-	// need to put dividend in RDX:RAX
-	// mov %src1, %rax
-	// cqo
-	emitMovRegToReg64(REGNUM_EAX, src1, true, gen);
-	emitSimpleInsn(0x48, gen); // REX.W
-	emitSimpleInsn(0x99, gen);
-
-	// push immediate operand on the stack (no IDIV $imm)
-	emitPushImm(src2imm, gen);
-
-	// idiv (%rsp)
-	emitOpRegRM64(0xF7, 0x7 /* opcode extension */, REGNUM_RSP, 0, true, gen);
-
-	// mov %rax, %dest ; set the result
-	emitMovRegToReg64(dest, REGNUM_RAX, true, gen);
-
-	// pop the immediate off the stack
-	// add $8, %rsp
-	emitOpRegImm8_64(0x83, 0x0, REGNUM_RSP, 8, true, gen);
-
-	// pop rdx if it needed to be saved
-	if (save_rdx)
-	    emitPopReg64(REGNUM_RDX, gen);
-    }
+      // need to put dividend in RDX:RAX
+      // mov %src1, %rax
+      // cqo
+      emitMovRegToReg64(REGNUM_EAX, src1, true, gen);
+      gen.markRegDefined(REGNUM_RAX);
+      emitSimpleInsn(0x48, gen); // REX.W
+      emitSimpleInsn(0x99, gen);
+      
+      // push immediate operand on the stack (no IDIV $imm)
+      emitPushImm(src2imm, gen);
+      
+      // idiv (%rsp)
+      emitOpRegRM64(0xF7, 0x7 /* opcode extension */, REGNUM_RSP, 0, true, gen);
+      
+      // mov %rax, %dest ; set the result
+      emitMovRegToReg64(dest, REGNUM_RAX, true, gen);
+      
+      // pop the immediate off the stack
+      // add $8, %rsp
+      emitOpRegImm8_64(0x83, 0x0, REGNUM_RSP, 8, true, gen);
+      gen.rs()->incStack(-8);
+      
+      // pop rdx if it needed to be saved
+      if (save_rdx)
+         emitPopReg64(REGNUM_RDX, gen);
+   }
 }
 
 void EmitterAMD64::emitLoad(Register dest, Address addr, int size, codeGen &gen)
@@ -1066,34 +1212,43 @@ void EmitterAMD64::emitLoad(Register dest, Address addr, int size, codeGen &gen)
 	
    // mov (%rax), %dest
    emitMovRMToReg64(dest, scratch, 0, size, gen);
+   gen.rs()->freeRegister(scratch);
+   gen.markRegDefined(dest);
 }
 
 void EmitterAMD64::emitLoadConst(Register dest, Address imm, codeGen &gen)
 {
     emitMovImmToReg64(dest, imm, true, gen);
+    gen.markRegDefined(dest);
 }
 
 void EmitterAMD64::emitLoadIndir(Register dest, Register addr_src, int size, codeGen &gen)
 {
    emitMovRMToReg64(dest, addr_src, 0, size, gen);
+   gen.markRegDefined(dest);
 }
 
 void EmitterAMD64::emitLoadOrigFrameRelative(Register dest, Address offset, codeGen &gen)
 {
-    Register scratch = gen.rs()->getScratchRegister(gen);
-    // mov (%rbp), %rax
-    emitMovRMToReg64(scratch, REGNUM_RBP, 0, 8, gen);
-
-    // mov offset(%rax), %dest
-    emitMovRMToReg64(dest, scratch, offset, 4, gen);
+   if (gen.bti()->hasStackFrame_) {
+      Register scratch = gen.rs()->getScratchRegister(gen);
+      // mov (%rbp), %rax
+      emitMovRMToReg64(scratch, REGNUM_RBP, 0, 8, gen);
+      
+      // mov offset(%rax), %dest
+      emitMovRMToReg64(dest, scratch, offset, 4, gen);
+      return;
+   }
+   emitMovRMToReg64(dest, REGNUM_RBP, offset, 4, gen);
 }
 
 bool EmitterAMD64::emitLoadRelative(Register dest, Address offset, Register base, codeGen &gen)
 {
     // mov offset(%base), %dest
-    emitMovRMToReg64(dest, base, offset*gen.addrSpace()->getAddressWidth(), 
-                     gen.addrSpace()->getAddressWidth(), gen);
-    return true;
+   emitMovRMToReg64(dest, base, offset,
+                    gen.addrSpace()->getAddressWidth(), gen);
+   gen.markRegDefined(dest);
+   return true;
 }
 
 bool EmitterAMD64::emitLoadRelative(registerSlot *dest, Address offset, registerSlot *base, codeGen &gen)
@@ -1104,42 +1259,72 @@ bool EmitterAMD64::emitLoadRelative(registerSlot *dest, Address offset, register
 void EmitterAMD64::emitLoadFrameAddr(Register dest, Address offset, codeGen &gen)
 {
     // mov (%rbp), %dest
-    emitMovRMToReg64(dest, REGNUM_RBP, 0, 8, gen);
-
-    // add $offset, %dest
-    emitOpRegImm64(0x81, 0x0, dest, offset, 8, gen);
+   if (gen.bti()->hasStackFrame_) {
+      emitMovRMToReg64(dest, REGNUM_RBP, 0, 8, gen);
+      
+      // add $offset, %dest
+      emitOpRegImm64(0x81, 0x0, dest, offset, 8, gen);
+      gen.markRegDefined(dest);
+      return;
+   }
+   emitLEA64(REGNUM_RBP, Null_Register, 0, offset, dest, true, gen);
 }
 
 void EmitterAMD64::emitLoadOrigRegRelative(Register dest, Address offset,
                                         Register base, codeGen &gen,
                                         bool store)
 {
-    Register scratch = gen.rs()->getScratchRegister(gen);
-    // either load the address or the contents at that address
-    if(store) 
-    {
-        // load the stored register 'base' into RAX
-        emitLoadOrigRegister(base, scratch, gen);
-        // move offset(%rax), %dest
-        emitMovRMToReg64(dest, scratch, offset, 4, gen);
-    }
-    else
-    {
-        // load the stored register 'base' into dest
-        emitLoadOrigRegister(base, dest, gen);
-        // add $offset, %dest
-        emitOpRegImm64(0x81, 0x0, dest, offset, true, gen);
-    }
+   Register scratch = gen.rs()->getScratchRegister(gen);
+   gen.markRegDefined(scratch);
+   gen.markRegDefined(dest);
+   // either load the address or the contents at that address
+   if(store) 
+   {
+      // load the stored register 'base' into RAX
+      emitLoadOrigRegister(base, scratch, gen);
+      // move offset(%rax), %dest
+      emitMovRMToReg64(dest, scratch, offset, 4, gen);
+   }
+   else
+   {
+      // load the stored register 'base' into dest
+      emitLoadOrigRegister(base, dest, gen);
+      // add $offset, %dest
+      emitOpRegImm64(0x81, 0x0, dest, offset, true, gen);
+   }
 } 
+
 // this is the distance on the basetramp stack frame from the
 // start of the GPR save region to where the base pointer is,
 // in 8-byte quadwords
 #define GPR_SAVE_REGION_OFFSET 18
 
-void EmitterAMD64::emitLoadOrigRegister(Address register_num, Register dest, codeGen &gen)
+void EmitterAMD64::emitLoadOrigRegister(Address register_num, Register destination, codeGen &gen)
 {
-    unsigned size = (gen.addrSpace()->getAddressWidth());
-    gen.rs()->readProgramRegister(gen, register_num, dest, size);
+    registerSlot *src = (*gen.rs())[register_num];
+    assert(src);
+    registerSlot *dest = (*gen.rs())[destination];
+    assert(dest);
+
+    if (src->spilledState == registerSlot::unspilled)
+    {
+       emitMoveRegToReg((Register) register_num, destination, gen);
+       return;
+    }
+
+    int offset = src->saveOffset*8;
+    if (gen.bti() && gen.bti()->hasStackFrame_) 
+    {
+       registerSlot *frame = (*gen.rs())[REGNUM_RBP];
+       emitLoadRelative(dest, offset, frame, gen);
+       return;
+    }
+
+    registerSlot *stack = (*gen.rs())[REGNUM_RSP];
+    offset += gen.rs()->getStackHeight();
+    emitLoadRelative(dest, offset, stack, gen);
+    gen.markRegDefined(destination);
+    return;
 }
 
 void EmitterAMD64::emitStoreOrigRegister(Address register_num, Register src, codeGen &gen) {
@@ -1150,6 +1335,7 @@ void EmitterAMD64::emitStoreOrigRegister(Address register_num, Register src, cod
 void EmitterAMD64::emitStore(Address addr, Register src, int size, codeGen &gen)
 {
     Register scratch = gen.rs()->getScratchRegister(gen);
+    gen.markRegDefined(scratch);
 
     // mov $addr, %rax
     emitMovImmToReg64(scratch, addr, true, gen);
@@ -1165,14 +1351,17 @@ void EmitterAMD64::emitStoreIndir(Register addr_reg, Register src, int size, cod
 
 void EmitterAMD64::emitStoreFrameRelative(Address offset, Register src, Register /*scratch*/, int size, codeGen &gen)
 {
-    Register scratch = gen.rs()->getScratchRegister(gen);
-    // FIXME: we assume int (size == 4) for now
-
-    // mov (%rbp), %rax
-    emitMovRMToReg64(scratch, REGNUM_RBP, 0, 8, gen);
-    
-    // mov %src, offset(%rax)
-    emitMovRegToRM64(scratch, offset, src, size, gen);
+   if (gen.bti()->hasStackFrame_) {
+      Register scratch = gen.rs()->getScratchRegister(gen);
+      gen.markRegDefined(scratch);
+      // mov (%rbp), %rax
+      emitMovRMToReg64(scratch, REGNUM_RBP, 0, 8, gen);
+      // mov %src, offset(%rax)
+      emitMovRegToRM64(scratch, offset, src, size, gen);
+      gen.rs()->freeRegister(scratch);
+      return;
+   }
+   emitMovRegToRM64(REGNUM_RBP, offset, src, size, gen);
 }
 
 void EmitterAMD64::emitStoreRelative(Register src, Address offset, Register base, codeGen &gen) {
@@ -1189,14 +1378,14 @@ void EmitterAMD64::emitStoreRelative(registerSlot *src, Address offset, register
     
 void EmitterAMD64::setFPSaveOrNot(const int * liveFPReg,bool saveOrNot)
 {
-  if (liveFPReg != NULL)
-    {
+   if (liveFPReg != NULL)
+   {
       if (liveFPReg[0] == 0 && saveOrNot)
-	{
-	  int * temp = const_cast<int *>(liveFPReg);
-	  temp[0] = 1;
-	}
-    }
+      {
+         int * temp = const_cast<int *>(liveFPReg);
+         temp[0] = 1;
+      }
+   }
 }
 
 
@@ -1212,30 +1401,30 @@ bool EmitterAMD64::clobberAllFuncCall( registerSpace *rs,
 				    int_function *callee)
 		   
 {
-    if (callee == NULL) return false;
+   if (callee == NULL) return false;
+   
+   /* This will calculate the values if the first time around, otherwise
+      will check preparsed, stored values.
+      True - FP Writes are present
+      False - No FP Writes
+   */
 
-  /* This will calculate the values if the first time around, otherwise
-     will check preparsed, stored values.
-     True - FP Writes are present
-     False - No FP Writes
-  */
-
-  stats_codegen.startTimer(CODEGEN_LIVENESS_TIMER);  
-  if (callee->ifunc()->writesFPRs()) {
+   stats_codegen.startTimer(CODEGEN_LIVENESS_TIMER);  
+   if (callee->ifunc()->writesFPRs()) {
       for (unsigned i = 0; i < rs->FPRs().size(); i++) {
-          // We might want this to be another flag, actually
-          rs->FPRs()[i]->beenUsed = true;
+         // We might want this to be another flag, actually
+         rs->FPRs()[i]->beenUsed = true;
       }
-  }
+   }
 
-  // Since we are making a call, mark all caller-saved registers
-  // as used (therefore we will save them if they are live)
-  for (int i = 0; i < rs->numGPRs(); i++) {
+   // Since we are making a call, mark all caller-saved registers
+   // as used (therefore we will save them if they are live)
+   for (int i = 0; i < rs->numGPRs(); i++) {
       rs->GPRs()[i]->beenUsed = true;
-  }
-
-  stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);
-  return true;
+   }
+   
+   stats_codegen.stopTimer(CODEGEN_LIVENESS_TIMER);
+   return true;
 }
 
 
@@ -1244,124 +1433,133 @@ static Register amd64_arg_regs[] = {REGNUM_RDI, REGNUM_RSI, REGNUM_RDX, REGNUM_R
 Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodePtr> &operands,
                                 bool noCost, int_function *callee)
 {
-    assert(op == callOp);
-    pdvector <Register> srcs;
+   assert(op == callOp);
+   pdvector <Register> srcs;
+   
+   bool inInstrumentation = true;
+   if (gen.obj() &&
+       dynamic_cast<replacedInstruction *>(gen.obj())) {
+      // We're replacing an instruction - so don't do anything
+      // that requires a base tramp.
+      inInstrumentation = false;
+   }
+   
+   
+   //  Sanity check for NULL address arg
+   if (!callee) {
+      char msg[256];
+      sprintf(msg, "%s[%d]:  internal error:  emitFuncCall called w/out"
+              "callee argument", __FILE__, __LINE__);
+      showErrorCallback(80, msg);
+      assert(0);
+   }
+   
+   // Before we generate argument code, save any register that's live across
+   // the call. 
+   pdvector<pair<unsigned,int> > savedRegsToRestore;
+   if (inInstrumentation) {
+      bitArray regsClobberedByCall = registerSpace::getRegisterSpace(8)->getCallWrittenRegisters();
+      for (int i = 0; i < gen.rs()->numGPRs(); i++) {
+         registerSlot *reg = gen.rs()->GPRs()[i];
+         regalloc_printf("%s[%d]: pre-call, register %d has refcount %d, keptValue %d, liveState %s\n",
+                         FILE__, __LINE__, reg->number,
+                         reg->refCount,
+                         reg->keptValue,
+                         (reg->liveState == registerSlot::live) ? "live" : ((reg->liveState == registerSlot::spilled) ? "spilled" : "dead"));
+         if (reg->refCount > 0 ||  // Currently active
+             reg->keptValue || // Has a kept value
+             (reg->liveState == registerSlot::live)) { // needs to be saved pre-call
+            pair<unsigned, unsigned> regToSave;
+            regToSave.first = reg->number;
+            
+            regToSave.second = reg->refCount;
+            // We can have both a keptValue and a refCount - so I invert
+            // the refCount if there's a keptValue
+            if (reg->keptValue)
+               regToSave.second *= -1;
+            
+            savedRegsToRestore.push_back(regToSave);
+            
+            // The register is live; save it. 
+            emitPushReg64(reg->encoding(), gen);
+            // And now that it's saved, nuke it
+            reg->refCount = 0;
+            reg->keptValue = false;
+         }
+         else {
+            Register r = reg->encoding();
+            if (regsClobberedByCall.test(r))
+               gen.markRegDefined(r);
+         }
+      }
+   }
 
-    bool inInstrumentation = true;
-    if (gen.obj() &&
-        dynamic_cast<replacedInstruction *>(gen.obj())) {
-        // We're replacing an instruction - so don't do anything
-        // that requires a base tramp.
-        inInstrumentation = false;
-    }
+   // generate code for arguments
+   // Now, it would be _really_ nice to emit into 
+   // the correct register so we don't need to move it. 
+   // So try and allocate the correct one. 
+   // We should be able to - we saved them all up above.
+   for (unsigned u = 0; u < operands.size(); u++) {
+      Address unused = ADDR_NULL;
+      unsigned reg = REG_NULL;
+
+      if (gen.rs()->allocateSpecificRegister(gen, (unsigned) amd64_arg_regs[u], true))
+         reg = amd64_arg_regs[u];
+      else
+         assert(0);
+      gen.markRegDefined(reg);
+      if (!operands[u]->generateCode_phase2(gen,
+                                            noCost, 
+                                            unused,
+                                            reg)) assert(0);
+   }
+
+   emitCallInstruction(gen, callee);
+
+   // Now clear whichever registers were "allocated" for a return value
+   for (unsigned i = 0; i < operands.size(); i++) {
+      if (operands[i]->decRefCount())
+         gen.rs()->freeRegister(amd64_arg_regs[i]);
+   }
+
+   if (!inInstrumentation) return REG_NULL;
 
 
-    //  Sanity check for NULL address arg
-    if (!callee) {
-	char msg[256];
-	sprintf(msg, "%s[%d]:  internal error:  emitFuncCall called w/out"
-           "callee argument", __FILE__, __LINE__);
-	showErrorCallback(80, msg);
-	assert(0);
-    }
+   // We now have a bit of an ordering problem.
+   // The RS thinks all registers are free; this is not the case
+   // We've saved the incoming registers, and it's likely that
+   // the return value is co-occupying one. 
+   // We need to restore the registers, but _first_ we need to 
+   // restore the RS state and allocate a keeper register.
+   // Now restore any registers live over the call
 
-    // Before we generate argument code, save any register that's live across
-    // the call. 
-    pdvector<pair<unsigned,int> > savedRegsToRestore;
-    if (inInstrumentation) {
-        for (int i = 0; i < gen.rs()->numGPRs(); i++) {
-            registerSlot *reg = gen.rs()->GPRs()[i];
-            regalloc_printf("%s[%d]: pre-call, register %d has refcount %d, keptValue %d, liveState %s\n",
-                            FILE__, __LINE__, reg->number,
-                            reg->refCount,
-                            reg->keptValue,
-                            (reg->liveState == registerSlot::live) ? "live" : ((reg->liveState == registerSlot::spilled) ? "spilled" : "dead"));
-            if (reg->refCount > 0 ||  // Currently active
-                reg->keptValue || // Has a kept value
-                (reg->liveState == registerSlot::live)) { // needs to be saved pre-call
-                pair<unsigned, unsigned> regToSave;
-                regToSave.first = reg->number;
-                
-                regToSave.second = reg->refCount;
-                // We can have both a keptValue and a refCount - so I invert
-                // the refCount if there's a keptValue
-                if (reg->keptValue)
-                    regToSave.second *= -1;
-                
-                savedRegsToRestore.push_back(regToSave);
-                
-                // The register is live; save it. 
-                emitPushReg64(reg->encoding(), gen);
-                // And now that it's saved, nuke it
-                reg->refCount = 0;
-                reg->keptValue = false;
-            }
-        }
-    }
-
-    // generate code for arguments
-    // Now, it would be _really_ nice to emit into 
-    // the correct register so we don't need to move it. 
-    // So try and allocate the correct one. 
-    // We should be able to - we saved them all up above.
-    for (unsigned u = 0; u < operands.size(); u++) {
-        Address unused = ADDR_NULL;
-        unsigned reg = REG_NULL;
-
-        if (gen.rs()->allocateSpecificRegister(gen, (unsigned) amd64_arg_regs[u], true))
-            reg = amd64_arg_regs[u];
-        else
-            assert(0);
-        if (!operands[u]->generateCode_phase2(gen,
-                                              noCost, 
-                                              unused,
-                                              reg)) assert(0);
-    }
-
-    emitCallInstruction(gen, callee);
-
-    // Now clear whichever registers were "allocated" for a return value
-    for (unsigned i = 0; i < operands.size(); i++) {
-        gen.rs()->freeRegister(amd64_arg_regs[i]);
-    }
-
-    if (!inInstrumentation) return REG_NULL;
-
-
-    // We now have a bit of an ordering problem.
-    // The RS thinks all registers are free; this is not the case
-    // We've saved the incoming registers, and it's likely that
-    // the return value is co-occupying one. 
-    // We need to restore the registers, but _first_ we need to 
-    // restore the RS state and allocate a keeper register.
-    // Now restore any registers live over the call
-
-    for (int i = savedRegsToRestore.size() - 1; i >= 0; i--) {
-        registerSlot *reg = (*gen.rs())[savedRegsToRestore[i].first];
+   for (int i = savedRegsToRestore.size() - 1; i >= 0; i--) {
+      registerSlot *reg = (*gen.rs())[savedRegsToRestore[i].first];
         
-        if (savedRegsToRestore[i].second < 1) {
-            reg->refCount = -1*(savedRegsToRestore[i].second);
-            reg->keptValue = true;
-        }
-        else
-                reg->refCount = savedRegsToRestore[i].second;
-    }
+      if (savedRegsToRestore[i].second < 1) {
+         reg->refCount = -1*(savedRegsToRestore[i].second);
+         reg->keptValue = true;
+      }
+      else
+         reg->refCount = savedRegsToRestore[i].second;
+   }
 
-    // allocate a (virtual) register to store the return value
-    // We do this now because the state is correct again in the RS.
+   // allocate a (virtual) register to store the return value
+   // We do this now because the state is correct again in the RS.
 
-    Register ret = gen.rs()->allocateRegister(gen, noCost);
-    emitMovRegToReg64(ret, REGNUM_EAX, true, gen);
+   Register ret = gen.rs()->allocateRegister(gen, noCost);
+   gen.markRegDefined(ret);
+   emitMovRegToReg64(ret, REGNUM_EAX, true, gen);
 
     
-    // Now restore any registers live over the call
-    for (int i = savedRegsToRestore.size() - 1; i >= 0; i--) {
-        registerSlot *reg = (*gen.rs())[savedRegsToRestore[i].first];
+   // Now restore any registers live over the call
+   for (int i = savedRegsToRestore.size() - 1; i >= 0; i--) {
+      registerSlot *reg = (*gen.rs())[savedRegsToRestore[i].first];
 
-        emitPopReg64(reg->encoding(), gen);
-    }
+      emitPopReg64(reg->encoding(), gen);
+   }
 
-    return ret;
+   return ret;
 }
 
 bool EmitterAMD64Dyn::emitCallInstruction(codeGen &gen, int_function *callee) {
@@ -1370,7 +1568,19 @@ bool EmitterAMD64Dyn::emitCallInstruction(codeGen &gen, int_function *callee) {
     //emitSimpleInsn(0xff, gen); // group 5
     //emitSimpleInsn(0xd0, gen); // mod = 11, reg = 2 (call Ev), r/m = 0 (RAX)
 
+   
+   if (gen.startAddr() != (Address) -1) {
+      signed long disp = callee->getAddress() - (gen.currAddr() + 5);
+      int disp_i = (int) disp;
+      if (disp == (signed long) disp_i) {
+         emitCallRel32(disp_i, gen);
+         return true;
+      }
+   }
+       
+    emitMovImmToReg64(REGNUM_RAX, 0, true, gen);
     Register ptr = gen.rs()->allocateRegister(gen, false);
+    gen.markRegDefined(ptr);
     Register effective = ptr;
     emitMovImmToReg64(ptr, callee->getAddress(), true, gen);
     if(ptr >= REGNUM_R8) {
@@ -1400,29 +1610,31 @@ bool EmitterAMD64Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
     // test to see if callee is in a shared module
     assert(gen.func());
     if (gen.func()->obj() != callee->obj()) {
-        // create or retrieve jump slot
-        dest = getInterModuleFuncAddr(callee, gen);
-
-        emitMovPCRMToReg64(REGNUM_R11, dest-gen.currAddr(), 8, gen);
-
+       // create or retrieve jump slot
+       dest = getInterModuleFuncAddr(callee, gen);
+       
+       emitMovPCRMToReg64(REGNUM_R11, dest-gen.currAddr(), 8, gen);   
+       gen.markRegDefined(REGNUM_R11);
+       emitMovImmToReg64(REGNUM_RAX, 0, true, gen);
+       gen.markRegDefined(REGNUM_RAX);
+       
+       // emit call
+       Register temp_r11 = REGNUM_R11;
+       
+       emitRex(false, NULL, NULL, &temp_r11, gen);
+       
+       GET_PTR(insn, gen);
+       *insn++ = 0xFF;
+       *insn++ = static_cast<unsigned char>(0xD0 | REGNUM_RBX);
+       SET_PTR(insn, gen);
     } else {
-        dest = callee->getAddress();
-
-        // load register with function address
-        emitMovImmToReg64(REGNUM_R11, dest, true, gen);
+       dest = callee->getAddress();
+       signed long disp = dest - (gen.currAddr() + 5);
+       int disp_i = (int) disp;
+       assert(disp == (signed long) disp_i);
+       emitCallRel32(disp_i, gen);
+       return true;
     }
-    emitMovImmToReg64(REGNUM_RAX, 0, true, gen);
-    
-    // emit call
-    Register temp_r11 = REGNUM_R11;
-    
-    emitRex(false, NULL, NULL, &temp_r11, gen);
-    
-    GET_PTR(insn, gen);
-    *insn++ = 0xFF;
-    *insn++ = static_cast<unsigned char>(0xD0 | REGNUM_RBX);
-    SET_PTR(insn, gen);
-
     return true;
 }
 
@@ -1430,12 +1642,14 @@ bool EmitterAMD64Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
 void EmitterAMD64::emitGetRetVal(Register dest, codeGen &gen)
 {
     emitLoadOrigRegister(REGNUM_RAX, dest, gen);
+    gen.markRegDefined(dest);
 }
 
 void EmitterAMD64::emitGetParam(Register dest, Register param_num, instPointType_t /*pt_type*/, codeGen &gen)
 {
     assert(param_num <= 6);
     emitLoadOrigRegister(amd64_arg_regs[param_num], dest, gen);
+    gen.markRegDefined(dest);
 }
 
 static void emitPushImm16_64(unsigned short imm, codeGen &gen)
@@ -1476,35 +1690,37 @@ void EmitterAMD64::emitFuncJump(Address addr, instPointType_t ptType, codeGen &g
          emitMovRegToReg64(REGNUM_RSP, REGNUM_RAX, true, gen);
     }
     
-    // tear down the stack frame (LEAVE)
-    emitSimpleInsn(0xC9, gen);
+    if (gen.bti() && gen.bti()->hasStackFrame_) {
+       // tear down the stack frame (LEAVE)
+       emitSimpleInsn(0xC9, gen);
+       
+       // pop "fake" return address
+       emitPopReg64(REGNUM_RAX, gen);
 
-    // pop "fake" return address
-    emitPopReg64(REGNUM_RAX, gen);
-
-    // Count the saved registers
-    int num_saved = 0; // RAX, RSP, RBP always saved
-    for (int i = gen.rs()->numGPRs() - 1; i >= 0; i--) {
-        registerSlot *reg = gen.rs()->GPRs()[i];
-        if (reg->liveState == registerSlot::spilled) {
-            num_saved++;
-        }
-    }
-
-   if ((*gen.rs())[REGNUM_OF]->liveState == registerSlot::spilled)
-       num_saved++;
-    
-    int reg_pad = 8 * (17 - num_saved);
-    if (reg_pad != 0) {
-        // we always allocate space on the stack for all the GPRs (helps stack walk)
-        if (reg_pad > 127) {
-            // Can't use a signed char... at 127 we invert and add. 
-            // Since (signed) 128 = -128. 
-            emitOpRegImm64(0x81, EXTENDED_0x81_ADD, REGNUM_RSP, reg_pad, true, gen);
-        }
-        else {
-            emitOpRegImm8_64(0x83, 0x0, REGNUM_RSP, reg_pad, true, gen);
-        }
+       // Count the saved registers
+       int num_saved = 0; // RAX, RSP, RBP always saved
+       for (int i = gen.rs()->numGPRs() - 1; i >= 0; i--) {
+          registerSlot *reg = gen.rs()->GPRs()[i];
+          if (reg->liveState == registerSlot::spilled) {
+             num_saved++;
+          }
+       }
+       
+       if ((*gen.rs())[REGNUM_OF]->liveState == registerSlot::spilled)
+          num_saved++;
+       
+       int reg_pad = 8 * (17 - num_saved);
+       if (reg_pad != 0) {
+          // we always allocate space on the stack for all the GPRs (helps stack walk)
+          if (reg_pad > 127) {
+             // Can't use a signed char... at 127 we invert and add. 
+             // Since (signed) 128 = -128. 
+             emitOpRegImm64(0x81, EXTENDED_0x81_ADD, REGNUM_RSP, reg_pad, true, gen);
+          }
+          else {
+             emitOpRegImm8_64(0x83, 0x0, REGNUM_RSP, reg_pad, true, gen);
+          }
+       }
     }
       
    // restore saved registers
@@ -1548,6 +1764,7 @@ void EmitterAMD64::emitASload(int ra, int rb, int sc, long imm, Register dest, c
 
     // if ra is specified, move its inst-point value into our
     // destination register
+    gen.markRegDefined(dest);
     if(havera) {
         if (ra == mRIP) {
             // special case: rip-relative data addressing
@@ -1561,6 +1778,7 @@ void EmitterAMD64::emitASload(int ra, int rb, int sc, long imm, Register dest, c
     // if rb is specified, move its inst-point value into RAX
     if(haverb) {
         scratch = gen.rs()->getScratchRegister(gen);
+        gen.markRegDefined(scratch);
         emitLoadOrigRegister(rb, scratch, gen);
     }
     // emitLEA64 will not handle the [disp32] case properly, so
@@ -1578,120 +1796,121 @@ void EmitterAMD64::emitCSload(int ra, int rb, int sc, long imm, Register dest, c
    // count is at most 1 register or constant or hack (aka pseudoregister)
    assert((ra == -1) &&
           ((rb == -1) ||
-            ((imm == 0) && (rb == 1 /*REGNUM_ECX */ || rb >= IA32_EMULATE))));
-
-   if(rb >= IA32_EMULATE) {
-       
-       // need to emulate repeated SCAS or CMPS to figure out byte count
-
-       // TODO: firewall code to ensure that direction is up
-
-       bool neg = false;
-       unsigned char opcode_small, opcode_large;
-       bool restore_rax = false;
-       bool restore_rsi = false;
-
-       bool rax_wasUsed = false;
-       bool rsi_wasUsed = false;
-       bool rdi_wasUsed = false;
-       bool rcx_wasUsed = false;
+           ((imm == 0) && (rb == 1 /*REGNUM_ECX */ || rb >= IA32_EMULATE))));
+   
+   gen.markRegDefined(dest);
+   if(rb >= IA32_EMULATE) {      
+      // need to emulate repeated SCAS or CMPS to figure out byte count
       
-       switch(rb) {
-       case IA32_NESCAS:
-           neg = true;
-       case IA32_ESCAS:
-	   opcode_small = 0xAE;
-	   opcode_large = 0xAF;
-	   restore_rax = true;
-	   break;
-       case IA32_NECMPS:
-           neg = true;
-       case IA32_ECMPS:
-	   opcode_small = 0xA6;
-	   opcode_large = 0xA7;
-	   restore_rsi = true;
-	   break;
-       default:
-           assert(!"Wrong emulation!");
-       }
+      // TODO: firewall code to ensure that direction is up
       
-       // restore flags (needed for direction flag)
-       gen.codeEmitter()->emitRestoreFlagsFromStackSlot(gen);
+      bool neg = false;
+      unsigned char opcode_small, opcode_large;
+      bool restore_rax = false;
+      bool restore_rsi = false;
+      
+      bool rax_wasUsed = false;
+      bool rsi_wasUsed = false;
+      bool rdi_wasUsed = false;
+      bool rcx_wasUsed = false;
+      
+      switch(rb) {
+         case IA32_NESCAS:
+            neg = true;
+         case IA32_ESCAS:
+            opcode_small = 0xAE;
+            opcode_large = 0xAF;
+            restore_rax = true;
+            break;
+         case IA32_NECMPS:
+            neg = true;
+         case IA32_ECMPS:
+            opcode_small = 0xA6;
+            opcode_large = 0xA7;
+            restore_rsi = true;
+            break;
+         default:
+            assert(!"Wrong emulation!");
+      }
+      
+      // restore flags (needed for direction flag)
+      gen.codeEmitter()->emitRestoreFlagsFromStackSlot(gen);
 
-       // restore needed registers to values at the inst point
-       // (push current values on the stack in case they're in use)
-       if (restore_rax) {
-           // We often use RAX as a destination register - in this case,
-           // it's allocated but by us. And we really don't want to save 
-           // it and then restore...
-           if (!gen.rs()->isFreeRegister(REGNUM_RAX) && (dest != REGNUM_RAX)) {
-               rax_wasUsed = true;
-               emitPushReg64(REGNUM_RAX, gen);
-           }
-	   emitLoadOrigRegister(REGNUM_RAX, REGNUM_RAX, gen);
-       }
-       if (restore_rsi) {
-           if (!gen.rs()->isFreeRegister(REGNUM_RSI) && (dest != REGNUM_RSI)) {
-               rsi_wasUsed = true;
-               emitPushReg64(REGNUM_RSI, gen);
-           }
-           emitLoadOrigRegister(REGNUM_RSI, REGNUM_RSI, gen);
-       }
-       if (!gen.rs()->isFreeRegister(REGNUM_RDI) && (dest != REGNUM_RDI)) {
-           rdi_wasUsed = true;
-           emitPushReg64(REGNUM_RDI, gen);
-       }
-       emitLoadOrigRegister(REGNUM_RDI, REGNUM_RDI, gen);
-       if (!gen.rs()->isFreeRegister(REGNUM_RCX) && (dest != REGNUM_RCX)) {
-           rcx_wasUsed = true;
-           emitPushReg64(REGNUM_RCX, gen);
-       }
-       emitLoadOrigRegister(REGNUM_RCX, REGNUM_RCX, gen);
+      // restore needed registers to values at the inst point
+      // (push current values on the stack in case they're in use)
+      if (restore_rax) {
+         // We often use RAX as a destination register - in this case,
+         // it's allocated but by us. And we really don't want to save 
+         // it and then restore...
+         if (!gen.rs()->isFreeRegister(REGNUM_RAX) && (dest != REGNUM_RAX)) {
+            rax_wasUsed = true;
+            emitPushReg64(REGNUM_RAX, gen);
+         }
+         emitLoadOrigRegister(REGNUM_RAX, REGNUM_RAX, gen);
+      }
+      if (restore_rsi) {
+         if (!gen.rs()->isFreeRegister(REGNUM_RSI) && (dest != REGNUM_RSI)) {
+            rsi_wasUsed = true;
+            emitPushReg64(REGNUM_RSI, gen);
+         }
+         emitLoadOrigRegister(REGNUM_RSI, REGNUM_RSI, gen);
+      }
+      if (!gen.rs()->isFreeRegister(REGNUM_RDI) && (dest != REGNUM_RDI)) {
+         rdi_wasUsed = true;
+         emitPushReg64(REGNUM_RDI, gen);
+      }
+      emitLoadOrigRegister(REGNUM_RDI, REGNUM_RDI, gen);
+      if (!gen.rs()->isFreeRegister(REGNUM_RCX) && (dest != REGNUM_RCX)) {
+         rcx_wasUsed = true;
+         emitPushReg64(REGNUM_RCX, gen);
+      }
+      emitLoadOrigRegister(REGNUM_RCX, REGNUM_RCX, gen);
 
-       // emulate the string instruction
-       emitSimpleInsn(neg ? 0xF2 : 0xF3, gen); // rep(n)e
-       if (sc == 0)
-	  emitSimpleInsn(opcode_small, gen);
-       else {
-	   if (sc == 1)
-	       emitSimpleInsn(0x66, gen); // operand size prefix
-	   else if (sc == 3)
-	       emitSimpleInsn(0x48, gen); // REX.W
-	   emitSimpleInsn(opcode_large, gen);
-       }
+      // emulate the string instruction
+      emitSimpleInsn(neg ? 0xF2 : 0xF3, gen); // rep(n)e
+      if (sc == 0)
+         emitSimpleInsn(opcode_small, gen);
+      else {
+         if (sc == 1)
+            emitSimpleInsn(0x66, gen); // operand size prefix
+         else if (sc == 3)
+            emitSimpleInsn(0x48, gen); // REX.W
+         emitSimpleInsn(opcode_large, gen);
+      }
 
-       // RCX has now been decremented by the number of repititions
-       // load old RCX into RAX and compute difference
-       emitLoadOrigRegister(REGNUM_RCX, dest, gen);
-       emitOp(0x2B, dest, dest, REGNUM_RCX, gen);
+      // RCX has now been decremented by the number of repititions
+      // load old RCX into RAX and compute difference
+      emitLoadOrigRegister(REGNUM_RCX, dest, gen);
+      emitOp(0x2B, dest, dest, REGNUM_RCX, gen);
 
-       // restore registers we stomped on
-       if (rcx_wasUsed)
-           emitPopReg64(REGNUM_RCX, gen);
-       if (rdi_wasUsed)
-           emitPopReg64(REGNUM_RDI, gen);
-       if (rsi_wasUsed)
-	   emitPopReg64(REGNUM_RSI, gen);       
-       if (rax_wasUsed)
-           emitPopReg64(REGNUM_RAX, gen);
+      // restore registers we stomped on
+      if (rcx_wasUsed)
+         emitPopReg64(REGNUM_RCX, gen);
+      if (rdi_wasUsed)
+         emitPopReg64(REGNUM_RDI, gen);
+      if (rsi_wasUsed)
+         emitPopReg64(REGNUM_RSI, gen);       
+      if (rax_wasUsed)
+         emitPopReg64(REGNUM_RAX, gen);
    }
    else if(rb > -1) {
 
-       // count spec is simple register with scale
-       // TODO: 16-bit pseudoregisters
-       assert(rb < 16);
+      // count spec is simple register with scale
+      // TODO: 16-bit pseudoregisters
+      assert(rb < 16);
 
-       // store the register into RAX
-       Register scratch = gen.rs()->getScratchRegister(gen);
-       emitLoadOrigRegister(rb, scratch, gen);
+      // store the register into RAX
+      Register scratch = gen.rs()->getScratchRegister(gen);
+      gen.markRegDefined(scratch);
+      emitLoadOrigRegister(rb, scratch, gen);
 
-       // shift left by the given scale
-       // emitTimesImm will do the right thing
-       if(sc > 0)
-	   emitTimesImm(dest, scratch, 1 << sc, gen);
+      // shift left by the given scale
+      // emitTimesImm will do the right thing
+      if(sc > 0)
+         emitTimesImm(dest, scratch, 1 << sc, gen);
    }
    else
-       emitMovImmToReg64(dest, (int)imm, true, gen);       
+      emitMovImmToReg64(dest, (int)imm, true, gen);       
 }
 
 // this is the distance in 8-byte quadwords from the frame pointer
@@ -1702,7 +1921,7 @@ void EmitterAMD64::emitCSload(int ra, int rb, int sc, long imm, Register dest, c
 void EmitterAMD64::emitRestoreFlags(codeGen &gen, unsigned offset)
 {
     if (offset)
-        emitOpRMReg(PUSH_RM_OPC1, REGNUM_EBP, offset*8, PUSH_RM_OPC2, gen);
+       emitOpRMReg(PUSH_RM_OPC1, RealRegister(REGNUM_EBP), offset*8, RealRegister(PUSH_RM_OPC2), gen);
     emitSimpleInsn(0x9D, gen);
 }
 
@@ -1716,114 +1935,132 @@ void EmitterAMD64::emitRestoreFlagsFromStackSlot(codeGen &gen)
     emitRestoreFlags(gen, SAVED_RFLAGS_OFFSET);
 }
 
-bool EmitterAMD64::emitBTSaves(baseTramp* bt, codeGen &gen)
+bool shouldSaveReg(registerSlot *reg, baseTrampInstance *inst)
+{
+   if (reg->liveState != registerSlot::live)
+      return false;
+   if (inst && inst->hasDefinedRegs_ && !inst->definedRegs_[reg->encoding()])
+      return false;
+   return true;
+}
+
+bool EmitterAMD64::emitBTSaves(baseTramp* bt, baseTrampInstance *inst, codeGen &gen)
 {
    // skip past the red zone
    // (we use LEA to avoid overwriting the flags)
-    if (STACK_PAD_CONSTANT)
-        emitLEA64(REGNUM_RSP, Null_Register, 0, -STACK_PAD_CONSTANT, REGNUM_RSP, true, gen);
-
+   if (STACK_PAD_CONSTANT)
+      emitLEA64(REGNUM_RSP, Null_Register, 0, -STACK_PAD_CONSTANT, REGNUM_RSP, true, gen);
+   
     // save flags (PUSHFQ)
     //emitSimpleInsn(0x9C, gen);
+   
+   bool flagsSaved = gen.rs()->saveVolatileRegisters(gen);
+   
+   // We use RAX implicitly all over the place... so mark it read-only
+   //gen.rs()->markReadOnly(REGNUM_RAX);
+   // This was done in registerSpace::initialize64()
+   
+   // We make a 128-byte skip (16*8) and push the flags register;
+   // so the first register saved starts 17 slots down from the frame
+   // pointer.
+   
+   //	printf("Saving registers ...\n");
+   int num_saved = 0;
+   int num_to_save = 0;
+   //Calculate the number of registers we'll save
+   for (int i = 0; i < gen.rs()->numGPRs(); i++) {
+      registerSlot *reg = gen.rs()->GPRs()[i];
+      if (shouldSaveReg(reg, inst))
+         num_to_save++;
+   }
+   if (flagsSaved) {
+      num_saved++;
+      num_to_save++;
+   }
+   if (bt->createFrame()) {
+      num_to_save++; //will save rbp
+   }
+   if (bt->createFrame() && bt->instP()) {
+      num_to_save++; //Stack slot for return value, no actual save though
+   }
+      
+   // Save the live ones
+   for (int i = 0; i < gen.rs()->numGPRs(); i++) {
+      registerSlot *reg = gen.rs()->GPRs()[i];
+      if (!shouldSaveReg(reg, inst))
+         continue;
+          
+      emitPushReg64(reg->encoding(),gen);
+      // We move the FP down to just under here, so we're actually
+      // measuring _up_ from the FP. 
+      assert((18-num_saved) > 0);
+      num_saved++;
+      gen.rs()->markSavedRegister(reg->encoding(), num_to_save-num_saved);
+   }
 
-    bool flagsSaved = gen.rs()->saveVolatileRegisters(gen);
+   // push a return address for stack walking
+   if (bt->instP() && bt->createFrame()) {
+      // FIXME use a scratch register!
+      emitMovImmToReg64(REGNUM_RAX, bt->instP()->addr(), true, gen);
+      emitPushReg64(REGNUM_RAX, gen);
+      gen.markRegDefined(REGNUM_RAX);
+      num_saved++;
+   }
 
-    // We use RAX implicitly all over the place... so mark it read-only
-    //gen.rs()->markReadOnly(REGNUM_RAX);
-    // This was done in registerSpace::initialize64()
+   // Push RBP...
+   if (bt->createFrame())
+   {
+      // set up a fresh stack frame
+      // pushl %rbp        (0x55)
+      // movl  %rsp, %rbp  (0x48 0x89 0xe5)      
+      emitSimpleInsn(0x55, gen);
+      // And track where it went
+      (*gen.rs())[REGNUM_RBP]->liveState = registerSlot::spilled;
+      (*gen.rs())[REGNUM_RBP]->spilledState = registerSlot::framePointer;
+      (*gen.rs())[REGNUM_RBP]->saveOffset = 0;
+      num_saved++;
 
-    // We make a 128-byte skip (16*8) and push the flags register;
-    // so the first register saved starts 17 slots down from the frame
-    // pointer.
+      emitMovRegToReg64(REGNUM_RBP, REGNUM_RSP, true, gen);
+   }
+   assert(num_saved == num_to_save);
+   
+   gen.rs()->setStackHeight(0);
 
-    //	printf("Saving registers ...\n");
-    // Save the live ones
-    int num_saved = 0;
-    if (flagsSaved) num_saved++;
-    for (int i = 0; i < gen.rs()->numGPRs(); i++) {
-        registerSlot *reg = gen.rs()->GPRs()[i];
+   bool useFPRs = gen.rs()->anyLiveFPRsAtEntry();
 
-        if (reg->liveState == registerSlot::live) {
-            emitPushReg64(reg->encoding(),gen);
-            // We move the FP down to just under here, so we're actually
-            // measuring _up_ from the FP. 
-            assert((18-num_saved) > 0);
-            gen.rs()->markSavedRegister(reg->encoding(), 18-num_saved);
-
-            num_saved++;
-        }
-    }
-
-    // 17 - 16 GPRs + a flags register
-    int reg_pad = 8 * (17 - num_saved);
-    if (reg_pad != 0) {
-    // we always allocate space on the stack for all the GPRs (helps stack walk)
-        if (reg_pad > 128) {
-            // Can't use a signed char... at 128 we invert and add. 
-            emitOpRegImm64(0x81, EXTENDED_0x81_SUB, REGNUM_RSP, reg_pad, true, gen);
-        }
-        else {
-            emitOpRegImm8_64(0x83, 0x0, REGNUM_RSP, -1 * reg_pad, true, gen);
-        }
-    }
+   if (bt->isConservative() && 
+       BPatch::bpatch->isSaveFPROn() && 
+       useFPRs) {
+      // need to save the floating point state (x87, MMX, SSE)
+      // we do this on the stack, but the problem is that the save
+      // area must be 16-byte aligned. the following sequence does
+      // the job:
+      //   mov %rsp, %rax          ; copy the current stack pointer
+      //   sub $512, %rsp          ; allocate space
+      //   and $0xfffffff0, %rsp   ; make sure we're aligned (allocates some more space)
+        
+        
+      emitMovRegToReg64(REGNUM_RAX, REGNUM_RSP, true, gen);
+      gen.markRegDefined(REGNUM_RAX);
+      emitOpRegImm64(0x81, EXTENDED_0x81_SUB, REGNUM_RSP, 512, true, gen);
+      emitOpRegImm64(0x81, EXTENDED_0x81_AND, REGNUM_RSP, -16, true, gen);
+        
+      // fxsave (%rsp) ; 0x0f 0xae 0x04 0x24
+      // Change to REGET if we go back to magic LEA emission
+      GET_PTR(buffer, gen);
+      *buffer++ = 0x0f;
+      *buffer++ = 0xae;
+      *buffer++ = 0x04;
+      *buffer++ = 0x24;
+      SET_PTR(buffer, gen);
+        
+      emitPushReg64(REGNUM_RAX, gen);
+   }
     
-    // push a return address for stack walking
-    if (bt->instP()) {
-        // FIXME use a scratch register!
-	emitMovImmToReg64(REGNUM_RAX, bt->instP()->addr(), true, gen);
-	emitPushReg64(REGNUM_RAX, gen);
-    }
-    else {
-	assert(bt->rpcMgr_);
-    }
+   return true;
+ }
 
-    // set up a fresh stack frame
-    // pushl %rbp        (0x55)
-    // movl  %rsp, %rbp  (0x48 0x89 0xe5)
-
-    // Push RBP...
-    emitSimpleInsn(0x55, gen);
-    // And track where it went
-    (*gen.rs())[REGNUM_RBP]->liveState = registerSlot::spilled;
-    (*gen.rs())[REGNUM_RBP]->spilledState = registerSlot::framePointer;
-    (*gen.rs())[REGNUM_RBP]->saveOffset = 0;
-
-    emitMovRegToReg64(REGNUM_RBP, REGNUM_RSP, true, gen);
-    
-    bool useFPRs = gen.rs()->anyLiveFPRsAtEntry();
-
-    if (bt->isConservative() && 
-        BPatch::bpatch->isSaveFPROn() && 
-        useFPRs) {
-        // need to save the floating point state (x87, MMX, SSE)
-        // we do this on the stack, but the problem is that the save
-        // area must be 16-byte aligned. the following sequence does
-        // the job:
-        //   mov %rsp, %rax          ; copy the current stack pointer
-        //   sub $512, %rsp          ; allocate space
-        //   and $0xfffffff0, %rsp   ; make sure we're aligned (allocates some more space)
-        
-        
-        emitMovRegToReg64(REGNUM_RAX, REGNUM_RSP, true, gen);
-        emitOpRegImm64(0x81, EXTENDED_0x81_SUB, REGNUM_RSP, 512, true, gen);
-        emitOpRegImm64(0x81, EXTENDED_0x81_AND, REGNUM_RSP, -16, true, gen);
-        
-        // fxsave (%rsp) ; 0x0f 0xae 0x04 0x24
-        // Change to REGET if we go back to magic LEA emission
-        GET_PTR(buffer, gen);
-        *buffer++ = 0x0f;
-        *buffer++ = 0xae;
-        *buffer++ = 0x04;
-        *buffer++ = 0x24;
-        SET_PTR(buffer, gen);
-        
-        emitPushReg64(REGNUM_RAX, gen);
-    }
-    
-    return true;
-}
-
-bool EmitterAMD64::emitBTRestores(baseTramp* bt, codeGen &gen)
+bool EmitterAMD64::emitBTRestores(baseTramp* bt, baseTrampInstance * /*bti*/, codeGen &gen)
 {
     bool useFPRs = gen.rs()->anyLiveFPRsAtEntry();
 
@@ -1836,47 +2073,27 @@ bool EmitterAMD64::emitBTRestores(baseTramp* bt, codeGen &gen)
         // restore saved FP state
         // fxrstor (%rsp) ; 0x0f 0xae 0x04 0x24
         GET_PTR(buffer, gen);
-         *buffer++ = 0x0f;
-         *buffer++ = 0xae;
-         *buffer++ = 0x0c;
-         *buffer++ = 0x24;
+        *buffer++ = 0x0f;
+        *buffer++ = 0xae;
+        *buffer++ = 0x0c;
+        *buffer++ = 0x24;
          SET_PTR(buffer, gen);
          
          // restore stack pointer (deallocates FP save area)
          emitMovRegToReg64(REGNUM_RSP, REGNUM_RAX, true, gen);
+         gen.markRegDefined(REGNUM_RAX);
    }
 
-   // tear down the stack frame (LEAVE)
-   emitSimpleInsn(0xC9, gen);
+   if (bt->createFrame())
+   {
+      // tear down the stack frame (LEAVE)
+      emitSimpleInsn(0xC9, gen);
    
-   // pop "fake" return address
-   if (!bt->rpcMgr_)
-      emitPopReg64(REGNUM_RAX, gen);
+      // pop "fake" return address
+      if (!bt->rpcMgr_)
+         emitPopReg64(REGNUM_RAX, gen);
+   }
    
-   // Count the saved registers
-   int num_saved = 0; // RAX, RBX, RSP, RBP always saved
-   for (int i = gen.rs()->numGPRs() - 1; i >= 0; i--) {
-       registerSlot *reg = gen.rs()->GPRs()[i];
-       if (reg->liveState == registerSlot::spilled) {
-           num_saved++;
-       }
-   }      
-   if ((*gen.rs())[REGNUM_OF]->liveState == registerSlot::spilled)
-       num_saved++;
-
-    int reg_pad = 8 * (17 - num_saved);
-    if (reg_pad != 0) {
-        // we always allocate space on the stack for all the GPRs (helps stack walk)
-        if (reg_pad > 127) {
-            // Can't use a signed char... at 127 we invert and add. 
-            // Since (signed) 128 = -128. 
-            emitOpRegImm64(0x81, EXTENDED_0x81_ADD, REGNUM_RSP, reg_pad, true, gen);
-        }
-        else {
-            emitOpRegImm8_64(0x83, 0x0, REGNUM_RSP, reg_pad, true, gen);
-        }
-    }
-      
    // restore saved registers
    for (int i = gen.rs()->numGPRs() - 1; i >= 0; i--) {
        registerSlot *reg = gen.rs()->GPRs()[i];
@@ -1891,7 +2108,7 @@ bool EmitterAMD64::emitBTRestores(baseTramp* bt, codeGen &gen)
 
    // restore stack pointer (use LEA to not affect flags)
    if (STACK_PAD_CONSTANT)
-       emitLEA64(REGNUM_RSP, Null_Register, 0, STACK_PAD_CONSTANT, REGNUM_RSP, true, gen);
+      emitLEA64(REGNUM_RSP, Null_Register, 0, STACK_PAD_CONSTANT, REGNUM_RSP, true, gen);
    return true;
 }
 
@@ -1901,7 +2118,8 @@ void EmitterAMD64::emitStoreImm(Address addr, int imm, codeGen &gen, bool noCost
       emitMovImmToMem(addr, imm, gen);
    }
    else {
-      Register r = gen.rs()->allocateRegister(gen, noCost);      
+      Register r = gen.rs()->allocateRegister(gen, noCost);
+      gen.markRegDefined(r);
       emitMovImmToReg64(r, addr, true, gen);
       emitMovImmToRM64(r, 0, imm, true, gen);
       gen.rs()->freeRegister(r);
@@ -1915,6 +2133,7 @@ void EmitterAMD64::emitAddSignedImm(Address addr, int imm, codeGen &gen,bool noC
    }
    else {
       Register r = gen.rs()->allocateRegister(gen, noCost);      
+      gen.markRegDefined(r);
       emitMovImmToReg64(r, addr, true, gen);
       emitAddRM64(r, imm, true, gen);
       gen.rs()->freeRegister(r);
@@ -1949,6 +2168,7 @@ bool EmitterAMD64::emitAdjustStackPointer(int index, codeGen &gen) {
 	// invert.
 	int popVal = index * gen.addrSpace()->getAddressWidth();
 	emitOpRegImm64(0x81, EXTENDED_0x81_ADD, REGNUM_ESP, popVal, true, gen);
+   gen.rs()->incStack(-1 * popVal);
 	return true;
 }
 
@@ -2060,113 +2280,112 @@ Address Emitter::getInterModuleVarAddr(const image_variable *var, codeGen& gen)
 
 bool EmitterIA32Dyn::emitCallInstruction(codeGen &gen, int_function *callee) 
 {
-    // make the call
-    // we are using an indirect call here because we don't know the
-    // address of this instruction, so we can't use a relative call.
+   // make the call
+   // we are using an indirect call here because we don't know the
+   // address of this instruction, so we can't use a relative call.
 	// The only direct, absolute calls available on x86 are far calls,
 	// which require the callee to be aware that they're being far-called.
 	// So we grit our teeth and deal with the indirect call.
 	// Physical register
-    emitMovImmToReg(REGNUM_EAX, callee->getAddress(), gen);  // mov eax, addr
-    emitOpRegReg(CALL_RM_OPC1, CALL_RM_OPC2, REGNUM_EAX, gen);   // call *(eax)
-    return true;
+   //Same regs on Win/x86 and linux/x86
+   gen.rs()->makeRegisterAvail(RealRegister(REGNUM_EAX), gen); //caller saved regs
+   gen.rs()->makeRegisterAvail(RealRegister(REGNUM_ECX), gen);
+   gen.rs()->makeRegisterAvail(RealRegister(REGNUM_EDX), gen);
+   gen.markRegDefined(REGNUM_EAX);
+   gen.markRegDefined(REGNUM_ECX);
+   gen.markRegDefined(REGNUM_EDX);
+
+   if (gen.startAddr() == (Address) -1) {
+      emitMovImmToReg(RealRegister(REGNUM_EAX), callee->getAddress(), gen);
+      emitOpExtReg(CALL_RM_OPC1, CALL_RM_OPC2, RealRegister(REGNUM_EAX), gen);
+   }
+   else {
+      Address dest = callee->getAddress();
+      Address src = gen.currAddr() + 5;
+      emitCallRel32(dest - src, gen);
+   }
+   return true;
 }
 
 bool EmitterIA32Stat::emitCallInstruction(codeGen &gen, int_function *callee) {
-    //fprintf(stdout, "at emitCallInstruction: callee=%s\n", callee->prettyName().c_str());
-    
-    AddressSpace *addrSpace = gen.addrSpace();
-    Address dest;
+   AddressSpace *addrSpace = gen.addrSpace();
+   Address dest;
+   gen.rs()->makeRegisterAvail(RealRegister(REGNUM_EAX), gen); //caller saved regs
+   gen.rs()->makeRegisterAvail(RealRegister(REGNUM_ECX), gen);
+   gen.rs()->makeRegisterAvail(RealRegister(REGNUM_EDX), gen);
+   gen.markRegDefined(REGNUM_EAX);
+   gen.markRegDefined(REGNUM_ECX);
+   gen.markRegDefined(REGNUM_EDX);
+   // find int_function reference in address space
+   // (refresh func_map)
+   pdvector<int_function *> funcs;
+   addrSpace->findFuncsByAll(callee->prettyName(), funcs);
+   
+   // test to see if callee is in a shared module
+   if (gen.func()->obj() != callee->obj()) {
+      // create or retrieve jump slot
+      dest = getInterModuleFuncAddr(callee, gen);
+      // load register with address from jump slot
+      emitMovPCRMToReg(RealRegister(REGNUM_EAX), dest-gen.currAddr(), gen);
+      // emit call *(e_x)
+      emitOpRegReg(CALL_RM_OPC1, RealRegister(CALL_RM_OPC2), 
+                   RealRegister(REGNUM_EAX), gen);
+   
+   } else {
+      dest = callee->getAddress();
+      Address src = gen.currAddr() + 5;
+      emitCallRel32(dest - src, gen);
+   }
 
-    // find int_function reference in address space
-    // (refresh func_map)
-    pdvector<int_function *> funcs;
-    addrSpace->findFuncsByAll(callee->prettyName(), funcs);
-
-    // test to see if callee is in a shared module
-    if (gen.func()->obj() != callee->obj()) {
-        // create or retrieve jump slot
-        dest = getInterModuleFuncAddr(callee, gen);
-
-        // load register with address from jump slot
-        emitMovPCRMToReg(REGNUM_EAX, dest-gen.currAddr(), gen);
-
-    } else {
-        dest = callee->getAddress();
-
-        // load register with function address
-        emitMovImmToReg(REGNUM_EAX, dest, gen);                    // mov e_x, addr
-    }
-
-    // emit call
-    emitOpRegReg(CALL_RM_OPC1, CALL_RM_OPC2, REGNUM_EAX, gen);     // call *(e_x)
-
-    return true;
+   return true;
 }
 
 void EmitterIA32::emitLoadShared(opCode op, Register dest, const image_variable *var, bool is_local, int /*size*/, codeGen &gen, Address offset)
 {
-  // create or retrieve jump slot
-  Address addr;
-  if(var == NULL)
-  {
-    addr = offset;
-  }
-  else if(!is_local)
-  {
-    addr = getInterModuleVarAddr(var, gen);
-  }  
-  else
-  {
-      addr = (Address)var ->getOffset();
-  }
+   RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
+
+   // create or retrieve jump slot
+   Address addr;
+   if(var == NULL) {
+      addr = offset;
+   }
+   else if(!is_local) {
+      addr = getInterModuleVarAddr(var, gen);
+   }  
+   else {
+      addr = (Address)var->getOffset();
+   }
   
-  // load register with address from jump slot
-  
-  if(!is_local && (var != NULL)){
-   // get the variable with an indirect load
-    emitMovPCRMToReg(REGNUM_EAX, addr - gen.currAddr(), gen, true);
-    emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);
-    if(op == loadOp) {
-       emitLoadIndir(dest, dest, 4, gen);
-    }
-  }
-  else
-  {
-    emitMovPCRMToReg(REGNUM_EAX, addr - gen.currAddr(), gen, false);
-    emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);
-    if(op == loadOp) {
-       emitLoadIndir(dest, dest, 4, gen);
-    }
-  }
+   emitMovPCRMToReg(dest_r, addr - gen.currAddr(), gen, (!is_local && var != NULL));
+   if (op == loadOp) {
+      emitLoadIndir(dest, dest, 4, gen);
+   }
 }
 
-void EmitterIA32::emitStoreShared(Register source, const image_variable *var, bool is_local, int /*size*/, codeGen &gen)
+void EmitterIA32::emitStoreShared(Register source, const image_variable *var, bool is_local, 
+                                  int /*size*/, codeGen &gen)
 {
-    // create or retrieve jump slot
-    //Address addr = getInterModuleVarAddr(var, gen);
-  Address addr;
-  if(!is_local)
-    addr = getInterModuleVarAddr(var, gen);
-  else
-    addr = (Address)var->getOffset();
-    
-  // temporary virtual register for storing destination address
-  Register dest = gen.rs()->allocateRegister(gen, false);
-  
-  // load register with address from jump slot
-  emitMovPCRMToReg(REGNUM_EAX, addr-gen.currAddr(), gen, !is_local);
-  emitMovRegToRM(REGNUM_EBP, -1*(dest*4), REGNUM_EAX, gen);
-
-  // get the variable with an indirect load
-  emitStoreIndir(dest, source, 4, gen);
-  gen.rs()->freeRegister(dest);
+   // create or retrieve jump slot
+   //Address addr = getInterModuleVarAddr(var, gen);
+   Address addr;
+   if(!is_local)
+      addr = getInterModuleVarAddr(var, gen);
+   else
+      addr = (Address)var->getOffset();
+   
+   // temporary virtual register for storing destination address
+   Register dest = gen.rs()->allocateRegister(gen, false);
+   RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
+   emitMovPCRMToReg(dest_r, addr-gen.currAddr(), gen, !is_local);
+   emitStoreIndir(dest, source, 4, gen);
+   gen.rs()->freeRegister(dest);
 }
 
 #if defined(arch_x86_64)
 void EmitterAMD64::emitLoadShared(opCode op, Register dest, const image_variable *var, bool is_local, int size, codeGen &gen, Address offset)
 {
   Address addr;
+  gen.markRegDefined(dest);
   if(!var)
   {
     addr = offset;
@@ -2200,7 +2419,6 @@ void EmitterAMD64::emitLoadShared(opCode op, Register dest, const image_variable
   else {
      emitMovPCRMToReg64(dest, addr - gen.currAddr(), size, gen);
   }
-
 }
 
 void EmitterAMD64::emitStoreShared(Register source, const image_variable *var, bool is_local, int size, codeGen &gen)
@@ -2215,8 +2433,9 @@ void EmitterAMD64::emitStoreShared(Register source, const image_variable *var, b
   }
   
   // temporary virtual register for storing destination address
-  Register dest = gen.rs()->allocateRegister(gen, false);
-  
+  Register dest = gen.rs()->allocateRegister(gen, false); 
+  gen.markRegDefined(dest);
+ 
   // load register with address from jump slot
   emitLEA64(Null_Register, Null_Register, 0, addr-gen.currAddr() - 7, dest, true, gen);
   //emitMovPCRMToReg64(dest, addr-gen.currAddr(), gen);

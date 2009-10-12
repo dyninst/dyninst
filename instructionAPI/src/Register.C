@@ -34,6 +34,8 @@
 #include <vector>
 #include <set>
 #include <sstream>
+#include "Visitor.h"
+#include "../../common/h/singleton_object_pool.h"
 
 using namespace std;
 using namespace dyn_detail::boost;
@@ -77,25 +79,12 @@ namespace Dyninst
     }
     bool RegisterAST::isUsed(InstructionAST::Ptr findMe) const
     {
+  		RegisterAST::Ptr promotedThis = RegisterAST::promote(this);
       if(*findMe == *this)
       {
-	return true;
+		return true;
       }
-      if(registerID == r_ALLGPRS)
-      {
-	if(findMe->checkRegID(registerID) == r_EAX ||
-	   findMe->checkRegID(registerID) == r_EDX ||
-	   findMe->checkRegID(registerID) == r_ECX ||
-	   findMe->checkRegID(registerID) == r_EBX ||
-	   findMe->checkRegID(registerID) == r_ESP ||
-	   findMe->checkRegID(registerID) == r_EBP ||
-	   findMe->checkRegID(registerID) == r_ESI ||
-	   findMe->checkRegID(registerID) == r_EDI)
-	{
-	  return true;
-	}
-      }
-      return false;
+	  return findMe->checkRegID(promotedThis->getID());
     }
     unsigned int RegisterAST::getID() const
     {
@@ -130,17 +119,12 @@ namespace Dyninst
     {
       return rhs.checkRegID(registerID);
     }
-
-    InstructionAST::Ptr RegisterAST::promote(InstructionAST::Ptr regPtr) {
-        // If this isn't a register, return NULL
-        RegisterAST::Ptr reg = dyn_detail::boost::dynamic_pointer_cast<RegisterAST>(regPtr);
-        if (!reg) return InstructionAST::Ptr();
-
-        unsigned registerID = reg->getID();
-
-        // We want to upconvert the register ID to the maximal containing
-        // register for the platform - either EAX or RAX as appropriate.
-
+    RegisterAST::Ptr RegisterAST::promote(const InstructionAST::Ptr regPtr) {
+        const RegisterAST::Ptr r = dyn_detail::boost::dynamic_pointer_cast<RegisterAST>(regPtr);
+        return RegisterAST::promote(r);
+    }
+    int RegisterAST::getPromotedID() const
+    {
         unsigned int convertedID = 0;
         if (/*(registerID >= r_AH) && */(registerID <= r_DH)) {
             convertedID = registerID + (r_EAX-r_AH);
@@ -185,7 +169,18 @@ namespace Dyninst
                 convertedID = convertedID - r_RSP + r_ESP;
             }
         }
-        return Ptr(new RegisterAST(convertedID));
+        return convertedID;
+    }
+
+    RegisterAST::Ptr RegisterAST::promote(const RegisterAST* regPtr) {
+        if (!regPtr) return RegisterAST::Ptr();
+
+        unsigned convertedID = regPtr->getPromotedID();
+
+        // We want to upconvert the register ID to the maximal containing
+        // register for the platform - either EAX or RAX as appropriate.
+
+        return make_shared(singleton_object_pool<RegisterAST>::construct(convertedID));
     }
     bool RegisterAST::isFlag() const
     {
@@ -193,8 +188,55 @@ namespace Dyninst
     }
     bool RegisterAST::checkRegID(unsigned int id) const
     {
-      return id == registerID;
+        if(registerID == r_ALLGPRS)
+        {
+            if(id == r_EAX ||
+               id == r_EDX ||
+               id == r_ECX ||
+               id == r_EBX ||
+               id == r_ESP ||
+               id == r_EBP ||
+               id == r_ESI ||
+               id == r_EDI ||
+               id == r_RAX ||
+               id == r_RDX ||
+               id == r_RCX ||
+               id == r_RBX ||
+               id == r_RSP ||
+               id == r_RBP ||
+               id == r_RSI ||
+               id == r_RDI)
+            {
+                return true;
+            }
+        }
+        if(id == r_ALLGPRS)
+        {
+            if(registerID == r_EAX ||
+               registerID == r_EDX ||
+               registerID == r_ECX ||
+               registerID == r_EBX ||
+               registerID == r_ESP ||
+               registerID == r_EBP ||
+               registerID == r_ESI ||
+               registerID == r_EDI ||
+               registerID == r_RAX ||
+               registerID == r_RDX ||
+               registerID == r_RCX ||
+               registerID == r_RBX ||
+               registerID == r_RSP ||
+               registerID == r_RBP ||
+               registerID == r_RSI ||
+               registerID == r_RDI)
+            {
+                return true;
+            }
+        }
+        return (id == registerID) || (id == getPromotedID());
     }
-    
+    void RegisterAST::apply(Visitor* v)
+    {
+        v->visit(this);
+    }
   };
 };

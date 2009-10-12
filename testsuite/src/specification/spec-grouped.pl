@@ -782,7 +782,8 @@ test_start_state('test3_4', 'selfstart').
 tests_module('test3_4', 'dyninst').
 
 test('test3_5', 'test3_5', 'test3_5').
-test_runs_everywhere('test3_5').
+test_platform('test3_5', Platform) :-
+    platform(_, OS, _, Platform), OS \= 'windows'.
 mutator('test3_5', ['test3_5.C']).
 mutatee('test3_5', ['test3_5_mutatee.c']).
 compiler_for_mutatee('test3_5', C) :- comp_lang(C, 'c').
@@ -2229,8 +2230,8 @@ test('test_instruction_profile', 'test_instruction_profile', none).
 test_description('test_instruction_profile', 'Collect profiling data from decoding 1M bytes of random memory.').
 test_platform('test_instruction_profile', Platform) :-
         platform(Platform),
-        platform('i386', _, _, Platform);
-        platform('x86_64', _, _, Platform).
+        platform('i386', OS, _, Platform), OS \= 'windows';
+        platform('x86_64', OS, _, Platform), OS \= 'windows'.
 mutator('test_instruction_profile', ['test_instruction_profile.C']).
 test_runmode('test_instruction_profile', 'createProcess').
 test_start_state('test_instruction_profile', 'stopped').

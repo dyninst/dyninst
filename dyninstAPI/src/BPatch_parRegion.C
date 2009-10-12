@@ -59,10 +59,11 @@
 #include "BPatch_thread.h"
 #include "BPatch_function.h"
 #include "BPatch_parRegion.h"
-#include "InstrucIter.h"
 #if defined(cap_instruction_api)
 #include "instructionAPI/h/Instruction.h"
 #include "instructionAPI/h/InstructionDecoder.h"
+#else
+#include "InstrucIter.h"
 #endif
 #include "callbacks.h"
 
@@ -80,9 +81,11 @@ void BPatch_parRegion::printDetails()
 {
   parReg->printDetails();
 }
-
 BPatch_Vector<BPatch_instruction*> *BPatch_parRegion::getInstructionsInt(void) {
 
+#if defined(cap_instruction_api)
+	return NULL;
+#else
   if (!instructions) {
 
     instructions = new BPatch_Vector<BPatch_instruction*>;
@@ -99,6 +102,7 @@ BPatch_Vector<BPatch_instruction*> *BPatch_parRegion::getInstructionsInt(void) {
   }
 
   return instructions;
+#endif
 }
 
 #if defined(cap_instruction_api)

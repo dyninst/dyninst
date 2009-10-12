@@ -7,6 +7,7 @@ char *chomp(char *);
 char *fgets_static(FILE *);
 char *sprintf_static(const char *, ...);
 char *strcat_static(char *, char *);
+char *strcat_static(const char *, const char *);
 char *encodeStr(const char *);
 char *decodeStr(const char *, char ** = NULL);
 

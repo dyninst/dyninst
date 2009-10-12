@@ -47,17 +47,11 @@
 #include <stdio.h>
 #include <string>
 #include <map>
+#include <set>
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
 #include "common/h/Types.h"
 #include "inst.h" // callWhen...
-
-#if defined(ia64_unknown_linux2_4)
-#include "inst-ia64.h"
-#elif defined(arch_x86_64)
-#include "inst-x86.h"
-#endif
-
 
 #if defined(cap_liveness)
 #include "bitArray.h"
@@ -86,8 +80,28 @@ class image_basicBlock;
 // "Live" : contains a value outside of instrumentation, and so must be saved before use
 // "Used" : used by instrumentation code. 
 
+class RealRegister {
+   //This is currently only used on x86_32 to represent the 
+   // virtual/real register difference.  'Register' still refers
+   // to virtual registers on this platform.  Contained in a struct
+   // so that no one can accidently cast a Register into a RealRegister
+   friend class registerSpace;
+   signed int r;
+ public:
+   RealRegister() { r = 0; }
+   explicit RealRegister(int reg) { r = reg; }
+   int reg() const { return r; }
+};
+
+#if defined(ia64_unknown_linux2_4)
+#include "inst-ia64.h"
+#elif defined(arch_x86_64)
+#include "inst-x86.h"
+#endif
+
 class registerSlot {
  public:
+   int alloc_num; //MATT TODO: Remove
     const Register number;    // what register is it, using our Register enum
     const std::string name;
 
@@ -147,6 +161,7 @@ class registerSlot {
 
     // Don't want to use this...
     registerSlot() :
+       alloc_num(0),
         number(REG_NULL),
         name("DEFAULT REGISTER"),
         initialState(deadAlways),
@@ -159,6 +174,7 @@ class registerSlot {
                  bool offLimits_,
                  initialLiveness_t initial,
                  regType_t type_) : 
+       alloc_num(0),
         number(num),
         name(name_),
         initialState(initial),
@@ -175,7 +191,25 @@ class registerSlot {
 
 class instPoint;
 
+typedef struct {
+   bool is_allocatable;
+   bool been_used;
+   int last_used;
+   registerSlot *contains;
+} RealRegsState;
+
+
+class regState_t {
+ public:
+   regState_t();
+   int pc_rel_offset;
+   int timeline;
+   int stack_height;
+   std::vector<RealRegsState> registerStates;
+};
+
 class registerSpace {
+   friend class baseTrampInstance;
  private:
     // A global mapping of register names to slots
     static registerSpace *globalRegSpace_;
@@ -248,6 +282,8 @@ class registerSpace {
 
     // For now, we save registers elsewhere and mark them here. 
     bool markSavedRegister(Register num, int offsetFromFP);
+    bool markSavedRegister(RealRegister num, int offsetFromFP);
+
     // 
     bool markKeptRegister(Register num);
 
@@ -290,7 +326,7 @@ class registerSpace {
     // Used for assertion checking.
     void checkLeaks(Register to_exclude);
     
-
+    int getAddressWidth() { return addr_width; }
     void debugPrint();
     void printAllocedRegisters();
 
@@ -305,6 +341,8 @@ class registerSpace {
 
     pdvector <registerSlot *> &realRegs();
 
+    pdvector <registerSlot *> &trampRegs(); //realRegs() on x86-32, GPRs on all others
+
     registerSlot *operator[](Register);
 
     // For platforms with "save all" semantics...
@@ -312,10 +350,71 @@ class registerSpace {
     bool anyLiveFPRsAtEntry() const;
     bool anyLiveSPRsAtEntry() const;
 
-#if defined(cap_liveness)
     // And for the bitarrays we use to track these
     static bitArray getBitArray();
-#endif
+
+    /**
+     * The following set of 'public' and 'private' methods and data deal with
+     * virtual registers, currently used only on x86.  The above 'Register' class
+     * allocates and uses virtual registers, these methods provide mappings from 
+     * virtual registers to real registers.
+     **/
+ public:
+    //Put VReg into RReg
+    RealRegister loadVirtual(registerSlot *virt_r, codeGen &gen); 
+    RealRegister loadVirtual(Register virt_r, codeGen &gen);
+
+    //Put VReg into specific real register
+    void loadVirtualToSpecific(registerSlot *virt_r, RealRegister real_r, codeGen &gen);
+    void loadVirtualToSpecific(Register virt_r, RealRegister real_r, codeGen &gen);
+
+    //Spill away any virtual register in a real so that the real
+    // can be used freely.  Careful with this, no guarentee it won't
+    // be reallocated in the next step.
+    void makeRegisterAvail(RealRegister r, codeGen &gen);
+
+    //Tell the tracker that we've manually put some virtual into a real
+    void noteVirtualInReal(Register v_r, RealRegister r_r);
+    void noteVirtualInReal(registerSlot *v_r, RealRegister r_r);
+
+    //Like loadVirtual, but don't load orig value first
+    RealRegister loadVirtualForWrite(Register virt_r, codeGen &gen);
+    RealRegister loadVirtualForWrite(registerSlot *virt_r, codeGen &gen);
+
+    void markVirtualDead(Register num);
+    bool spilledAnything();
+
+    Register pc_rel_reg;
+    int pc_rel_use_count;
+    int& pc_rel_offset();
+    void incStack(int val);
+    int getStackHeight();
+    void setStackHeight(int val);
+
+    void unifyTopRegStates(codeGen &gen);
+    void pushNewRegState();
+
+ private:
+    std::vector<regState_t *> regStateStack;
+    int cur_register_state;
+
+    std::vector<RealRegsState>& regState();
+    int& timeline();
+
+    std::set<registerSlot *> regs_been_spilled;
+
+    void initRealRegSpace();
+
+    //High-level functions that track data structures and call code gen
+    RealRegister findReal(registerSlot *virt_r, bool &already_setup);
+    void spillReal(RealRegister r, codeGen &gen);
+    void loadReal(RealRegister r, registerSlot *v_r, codeGen &gen);
+    void freeReal(RealRegister r);
+
+    //low-level functions for code gen
+    void spillToVReg(RealRegister reg, registerSlot *v_reg, codeGen &gen);
+    void movVRegToReal(registerSlot *v_reg, RealRegister r, codeGen &gen); 
+    void movRegToReg(RealRegister dest, RealRegister src, codeGen &gen);
 
  private:
 
@@ -324,12 +423,15 @@ class registerSpace {
     registerSlot &getRegisterSlot(Register reg);
 
     registerSlot *findRegister(Register reg); 
+    registerSlot *findRegister(RealRegister reg);
 
     bool spillRegister(Register reg, codeGen &gen, bool noCost);
     bool stealRegister(Register reg, codeGen &gen, bool noCost);
 
     bool restoreRegister(Register reg, codeGen &gen, bool noCost); 
     bool popRegister(Register reg, codeGen &gen, bool noCost);
+
+    bool markSavedRegister(registerSlot *num, int offsetFromFP);
     
     int currStackPointer; 
 
@@ -394,15 +496,11 @@ class registerSpace {
     static unsigned GPR(Register x) { return x; }
     static unsigned FPR(Register x) { return x - fpr0; }
     static unsigned SPR(Register x);
+    int framePointer() { return r1; }
 #endif
-
-    // Which is the frame pointer?
-#if defined(arch_power)
-    typedef enum { FRAME_POINTER = r1 } specialRegisters_t;
-#elif defined(arch_x86_64)
-    typedef enum { FRAME_POINTER = REGNUM_RBP } specialRegisters_t;
+#if defined(arch_x86) || defined(arch_x86_64)
+    int framePointer();
 #endif
-
     // Create a map of register names to register numbers
     std::map<std::string, Register> registersByName;
     // The reverse map can be handled by doing a rs[x]->name

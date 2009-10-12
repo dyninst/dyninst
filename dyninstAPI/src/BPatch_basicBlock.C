@@ -51,7 +51,9 @@
 #include "BPatch_basicBlock.h"
 #include "process.h"
 #include "function.h"
+#if !defined(cap_instruction_api)
 #include "InstrucIter.h"
+#endif
 #include "BPatch_instruction.h"
 #include "Instruction.h"
 #include "InstructionDecoder.h"
@@ -367,18 +369,126 @@ ostream& operator<<(ostream& os,BPatch_basicBlock& bb)
  * ops          The points within the basic block to return. A set of op codes
  *              defined in BPatch_opCode (BPatch_point.h)
  */
-BPatch_Vector<BPatch_point*> *BPatch_basicBlock::findPointInt(const BPatch_Set<BPatch_opCode>& ops) {
+#if defined(cap_instruction_api)
+using namespace Dyninst::InstructionAPI;
+bool isLoad(Instruction::Ptr i)
+{
+    return i->readsMemory();
+} 
+bool isStore(Instruction::Ptr i)
+{
+    return i->writesMemory();
+}
+bool isPrefetch(Instruction::Ptr i)
+{
+    return i->getCategory() == c_PrefetchInsn;
+}
+
+struct funcPtrPredicate : public insnPredicate
+{
+    result_type(*m_func)(argument_type);
+    funcPtrPredicate(result_type(*func)(argument_type)) :
+            m_func(func) {}
+    result_type operator()(argument_type arg) {
+        return m_func(arg);
+    }
+};
+
+struct findInsns : public insnPredicate
+{
+    findInsns(const BPatch_Set<BPatch_opCode>& ops)
+    : findLoads(false), findStores(false), findPrefetch(false)
+    {
+        BPatch_opCode* opa = new BPatch_opCode[ops.size()];
+        ops.elements(opa);
+    
+    
+        for(unsigned int i=0; i<ops.size(); ++i) {
+            switch(opa[i]) {
+                case BPatch_opLoad: findLoads = true; break;
+                case BPatch_opStore: findStores = true; break;
+                case BPatch_opPrefetch: findPrefetch = true; break;
+            }
+        }
+        delete[] opa;
+    }
+    result_type operator()(argument_type i)
+    {
+        if(findLoads && isLoad(i))
+        {
+	//  	  fprintf(stderr, "Instruction %s is a load\n", i->format().c_str());
+            return true;
+        }
+        if(findStores && isStore(i))
+        {
+	   //         fprintf(stderr, "Instruction %s is a store\n", i->format().c_str());
+	  return true;
+        }
+        if(findPrefetch && isPrefetch(i))
+        {
+	 //             fprintf(stderr, "Instruction %s is a prefetch\n", i->format().c_str());
+            return true;
+        }
+	//	fprintf(stderr, "Instruction %s failed filter\n", i->format().c_str());
+        return false;
+    }
+    bool findLoads;
+    bool findStores;
+    bool findPrefetch;
+};
+#endif
+        
+BPatch_Vector<BPatch_point*>*
+    BPatch_basicBlock::findPointByPredicate(insnPredicate& f)
+{
+    BPatch_Vector<BPatch_point*>* ret = new BPatch_Vector<BPatch_point*>;
+    std::vector<std::pair<Dyninst::InstructionAPI::Instruction::Ptr, Address> > insns;
+    getInstructions(insns);
+    for(std::vector<std::pair<Dyninst::InstructionAPI::Instruction::Ptr, Address> >::iterator curInsn = insns.begin();
+        curInsn != insns.end();
+        ++curInsn)
+    {
+//        fprintf(stderr, "Checking insn at 0x%lx...", curInsn->second);
+        if(f(curInsn->first))
+        {
+            BPatch_point* tmp = BPatch_point::createInstructionInstPoint(flowGraph->getAddSpace(), (void*) curInsn->second,
+                    flowGraph->getBFunction());
+            if(!tmp) fprintf(stderr, "WARNING: failed to create instpoint for load/store/prefetch at 0x%lx\n",
+            curInsn->second);
+            ret->push_back(tmp);
+        }
+    }
+    return ret;
+    
+}
+        
+BPatch_Vector<BPatch_point*> *BPatch_basicBlock::findPointInt(const BPatch_Set<BPatch_opCode>& ops) 
+{
 
     // function is generally uninstrumentable (with current technology)
     if (!flowGraph->getBFunction()->func->isInstrumentable())
         return NULL;
     
+#if defined(cap_instruction_api)
+    findInsns filter(ops);
+    return findPointByPredicate(filter);
+#else
     // Use an instruction iterator
     InstrucIter ii(this);
     BPatch_function *func = flowGraph->getBFunction();
     
     return BPatch_point::getPoints(ops, ii, func);
+#endif
 }
+
+#if defined(cap_instruction_api)
+BPatch_Vector<BPatch_point*> *BPatch_basicBlock::findPointInt(bool(*filter)(Instruction::Ptr))
+{
+
+    funcPtrPredicate filterPtr(filter);
+    return findPointByPredicate(filterPtr);
+}
+#endif
 
 /*
  * BPatch_basicBlock::getInstructions
@@ -386,7 +496,13 @@ BPatch_Vector<BPatch_point*> *BPatch_basicBlock::findPointInt(const BPatch_Set<B
  * Returns a vector of the instructions contained within this block
  *
  */
+#if defined(cap_instruction_api)
+BPatch_Vector<BPatch_instruction*> *BPatch_basicBlock::getInstructionsInt(void) {
+  return NULL;
+  
+}
 
+#else
 BPatch_Vector<BPatch_instruction*> *BPatch_basicBlock::getInstructionsInt(void) {
 
   if (!instructions) {
@@ -404,6 +520,7 @@ BPatch_Vector<BPatch_instruction*> *BPatch_basicBlock::getInstructionsInt(void) 
 
   return instructions;
 }
+#endif
 
 /*
  * BPatch_basicBlock::getInstructions

@@ -470,7 +470,7 @@ bool Symtab::buildDemangledName( const std::string &mangled,
 
 #if !defined(os_windows)
 
-   char *atat;
+   const char *atat;
 
    if (NULL != (atat = strstr(mangled.c_str(), "@@"))) 
    {
@@ -2910,6 +2910,15 @@ SYMTAB_EXPORT bool Symtab::addSysVDynamic(long name, long value)
    return true;
 #else
    return false;
+#endif
+}
+
+SYMTAB_EXPORT Address Symtab::getLoadAddress()
+{
+#if defined(os_linux) || defined(os_aix)
+   return getObject()->getLoadAddress();
+#else
+   return 0x0;
 #endif
 }
 

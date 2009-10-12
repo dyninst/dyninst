@@ -908,3 +908,13 @@ bool BinaryEdit::replaceTrapHandler() {
     
     return success;
 }
+
+bool BinaryEdit::needsPIC()
+{
+   Symtab *symtab = getMappedObject()->parse_img()->getObject();
+   assert(symtab);
+
+   //If there is a fixed load address, then we can calculate 
+   // absolute addresses.
+   return (symtab->getLoadAddress() == 0);  
+}

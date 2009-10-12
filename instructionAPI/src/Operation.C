@@ -36,7 +36,7 @@
 #include "Register.h"
 #include <map>
 #include <boost/assign/list_of.hpp>
-#include "singleton_object_pool.h"
+#include "../../common/h/singleton_object_pool.h"
 
 using namespace boost::assign;
 
@@ -308,6 +308,3 @@ namespace Dyninst
   };
 
 };
-
-
-

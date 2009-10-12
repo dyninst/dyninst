@@ -100,6 +100,7 @@ BPatch::BPatch()
     livenessAnalysisDepth_(3),
     asyncActive(false),
     delayedParsing_(false),
+    instrFrames(false),
     systemPrelinkCommand(NULL),
     mutateeStatusChange(false),
     waitingForStatusChange(false),
@@ -2191,3 +2192,12 @@ BPatch_binaryEdit *BPatch::openBinaryInt(const char *path, bool openDependencies
    return editor;
 }
 
+void BPatch::setInstrStackFramesInt(bool r)
+{
+   instrFrames = r;
+}
+
+bool BPatch::getInstrStackFramesInt()
+{
+   return instrFrames;
+}

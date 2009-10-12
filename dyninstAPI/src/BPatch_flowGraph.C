@@ -60,7 +60,11 @@
 #include "symtab.h"
 #include "instPoint.h"
 
+#if defined(cap_instruction_api)
+#include "Instruction.h"
+#else
 #include "InstrucIter.h"
+#endif
 
 #include "BPatch_statement.h"
 
@@ -556,6 +560,19 @@ bool BPatch_flowGraph::createSourceBlocksInt() {
         BPatch_basicBlock * currentBlock = elements[i];
 	
         BPatch_Vector<BPatch_statement> lines;
+#if defined(cap_instruction_api)
+        using namespace Dyninst::InstructionAPI;
+        std::vector<std::pair< Instruction::Ptr, Address > > insnsByAddr;
+        currentBlock->getInstructions(insnsByAddr);
+        for(std::vector<std::pair< Instruction::Ptr, Address > >::const_iterator cur = insnsByAddr.begin();
+            cur != insnsByAddr.end();
+           ++cur)
+        {
+            if( getAddSpace()->getSourceLines(cur->second, lines ) ) {
+                // /* DEBUG */ fprintf( stderr, "%s[%d]: 0x%lx\n", __FILE__, __LINE__, cur->second );
+            }
+        }
+#else
         InstrucIter insnIterator( currentBlock );
         
         for( ; insnIterator.hasMore(); ++insnIterator ) {
@@ -563,7 +580,7 @@ bool BPatch_flowGraph::createSourceBlocksInt() {
                 // /* DEBUG */ fprintf( stderr, "%s[%d]: 0x%lx\n", __FILE__, __LINE__, * insnIterator );
             }
         }
-        
+#endif        
         if( lines.size() != 0 ) {
             if( ! currentBlock->sourceBlocks ) {
                 currentBlock->sourceBlocks = new BPatch_Vector< BPatch_sourceBlock * >();
@@ -873,16 +890,34 @@ void BPatch_flowGraph::createLoopHierarchy()
 
    dfsCreateLoopHierarchy(loopRoot, outerLoops, "");
 
-   const pdvector<instPoint*> &instPs = ll_func()->funcCalls();
-
-   for (unsigned i = 0; i < instPs.size(); i++) {
-      int_function *f = instPs[i]->findCallee();
-
-      if (f != NULL) 
+   //Callees
+   {
+     const pdvector<instPoint*> &instPs = ll_func()->funcCalls();
+     for (unsigned i = 0; i < instPs.size(); i++) {
+       int_function *f = instPs[i]->findCallee();
+       if (f != NULL) 
          insertCalleeIntoLoopHierarchy(f, instPs[i]->addr());
-      // 	else 
-      // 	    fprintf(stderr, "BPatch_flowGraph::createLoopHierarchy "
-      //                     "couldn't find callee by inst point.\n");
+     }
+   }
+
+   //Entry points
+   {
+     const pdvector<instPoint*> &instPs = ll_func()->funcEntries();
+     for (unsigned i = 0; i < instPs.size(); i++) {
+       int_function *f = instPs[i]->findCallee();
+       if (f != NULL) 
+         insertCalleeIntoLoopHierarchy(f, instPs[i]->addr());
+     }
+   }
+
+   //Exit points
+   {
+     const pdvector<instPoint*> &instPs = ll_func()->funcExits();
+     for (unsigned i = 0; i < instPs.size(); i++) {
+       int_function *f = instPs[i]->findCallee();
+       if (f != NULL) 
+         insertCalleeIntoLoopHierarchy(f, instPs[i]->addr());
+     }
    }
 }
 

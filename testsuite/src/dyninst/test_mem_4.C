@@ -105,9 +105,12 @@ test_results_t test_mem_4_Mutator::executeTest() {
   // dumpvect(res1, "Accesses");
 
   if((*res1).size() != naxses)
+  {
+    logerror("Expected %d accesses, got %d\n", naxses, (*res1).size());
     failtest(testnum, testdesc,
              "Number of accesses seems wrong in function \"loadsnstores\".\n");
-
+  }
+  
   if (instCall(appThread, "Access", res1) < 0) {
     return FAILED;
   }

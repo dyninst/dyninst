@@ -133,9 +133,19 @@ namespace Dyninst
       (r_BPL, RegInfo(u8, "BPL"))
       (r_SIL, RegInfo(u8, "SIL"))
       (r_DIL, RegInfo(u8, "DIL"))
+      (r_RIP, RegInfo(u64, "RIP"))
 #endif
       (r_EFLAGS, RegInfo(u32, "EFLAGS"))
+      (r_ST0, RegInfo(dp_float, "ST0"))
+      (r_ST1, RegInfo(dp_float, "ST1"))
+      (r_ST2, RegInfo(dp_float, "ST2"))
+      (r_ST3, RegInfo(dp_float, "ST3"))
+      (r_ST4, RegInfo(dp_float, "ST4"))
+      (r_ST5, RegInfo(dp_float, "ST5"))
+      (r_ST6, RegInfo(dp_float, "ST6"))
+      (r_ST7, RegInfo(dp_float, "ST7"))
       (r_ALLGPRS, RegInfo(u32, "ALLGPRS_PSEUDOREGISTER"));
+      
 
     }
   }

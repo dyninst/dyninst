@@ -223,6 +223,7 @@ typedef int dword_t;   /* a double word (32-bit) operand */
 #define CMP_AL_LB (0x3C)
 #define CMP_RAX_LZ (0x3D)
 
+#define TEST_EV_GV (0x85)
 //   (0x3E)
 //   (0x3F)
 
@@ -698,7 +699,8 @@ ia32_instruction& ia32_decode(unsigned int capabilities, const unsigned char* ad
 
 enum dynamic_call_address_mode {
   REGISTER_DIRECT, REGISTER_INDIRECT,
-  REGISTER_INDIRECT_DISPLACED, SIB, DISPLACED
+  REGISTER_INDIRECT_DISPLACED, SIB, DISPLACED, 
+  IP_INDIRECT_DISPLACED
 };
 
 /*

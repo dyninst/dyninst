@@ -152,7 +152,7 @@ namespace Dyninst
 	buffer = m_RawInsn.large_insn;
       }
       std::vector<Expression::Ptr> opSrc;
-      d.resetBuffer(buffer);
+      d.resetBuffer(buffer, size());
       d.doIA32Decode();
       d.decodeOperands(opSrc);
       m_Operands.reserve(opSrc.size());
@@ -163,7 +163,7 @@ namespace Dyninst
 	  ++i)
       {
 	m_Operands.push_back(Operand(opSrc[i], readsOperand(opsema, i), writesOperand(opsema, i)));
-      }      
+      }
     }
     
     INSTRUCTION_EXPORT Instruction::Instruction(Operation::Ptr what, 
@@ -284,6 +284,17 @@ namespace Dyninst
         return m_Operands[index];
      }
 
+     INSTRUCTION_EXPORT const void* Instruction::ptr() const
+     {
+         if(m_size > sizeof(unsigned int))
+         {
+             return m_RawInsn.large_insn;
+         }
+         else
+         {
+             return reinterpret_cast<const void*>(&m_RawInsn.small_insn);
+         }
+     }
     INSTRUCTION_EXPORT unsigned char Instruction::rawByte(unsigned int index) const
     {
       if(index > m_size) return 0;
@@ -377,6 +388,10 @@ namespace Dyninst
       {
 	decodeOperands();
       }
+      if(getCategory() == c_PrefetchInsn)
+      {
+          return false;
+      }
       for(std::vector<Operand>::const_iterator curOperand = m_Operands.begin();
 	  curOperand != m_Operands.end();
 	  ++curOperand)
@@ -439,30 +454,38 @@ namespace Dyninst
     
     INSTRUCTION_EXPORT Expression::Ptr Instruction::getControlFlowTarget() const
     {
-      // We assume control flow transfer instructions have the PC as
-      // an implicit write, and that we have decoded the control flow
-      // target's full location as the first and only operand.
-      // If this is not the case, we'll squawk for the time being...
-      static Expression::Ptr thePC(new RegisterAST(RegisterAST::makePC()));
-      if(!m_InsnOp->isWritten(thePC))
-      {
-	return Expression::Ptr();
-      }
-      if(m_InsnOp->getID() == e_ret_near || m_InsnOp->getID() == e_ret_far)
-      {
-	return makeReturnExpression();
-      }
-      if(m_Operands.empty())
-      {
-	decodeOperands();
-      }
-      
-      if(!(m_Operands[0].isRead(thePC) || m_Operands.size() == 1))
-      {
-	fprintf(stderr, "WARNING: control flow target for instruction %s may be incorrect\n", format().c_str());
-      }
-      
-      return m_Operands[0].getValue();
+        // We assume control flow transfer instructions have the PC as
+        // an implicit write, and that we have decoded the control flow
+        // target's full location as the first and only operand.
+        // If this is not the case, we'll squawk for the time being...
+        static Expression::Ptr thePC(new RegisterAST(RegisterAST::makePC()));
+        if(getCategory() == c_NoCategory)
+        {
+            return Expression::Ptr();
+        }
+        if(getCategory() == c_ReturnInsn)
+        {
+            return makeReturnExpression();
+        }
+        if(m_Operands.empty())
+        {
+            decodeOperands();
+        }
+    #if defined(DEBUG_LOG)      
+        if(!(m_Operands[0].isRead(thePC) || m_Operands.size() == 1))
+        {
+            fprintf(stderr, "WARNING: control flow target for instruction %s may be incorrect\n", format().c_str());
+        }
+    #endif      
+        if(getCategory() == c_BranchInsn ||
+        getCategory() == c_CallInsn)
+        {
+#if defined(NO_OPT_FLAG)            
+            assert(m_InsnOp->isWritten(thePC));
+#endif //defined(NO_OPT_FLAG)
+            return m_Operands[0].getValue();
+        }
+        return Expression::Ptr();
     }
     
     INSTRUCTION_EXPORT std::string Instruction::format() const

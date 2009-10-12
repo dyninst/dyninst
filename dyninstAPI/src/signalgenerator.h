@@ -60,11 +60,16 @@ class fileDescriptor;
 typedef enum { unsetRequest, stopRequest, runRequest, ignoreRequest } processRunState_t;
 const char *processRunStateStr(processRunState_t);
 
+class global_wait_list_init_t {
+ public:
+  global_wait_list_init_t();
+};
+
 class SignalGeneratorCommon : public EventHandler<EventRecord> {
  friend class process;
  friend class SignalHandler;
  friend class dyn_lwp;
-
+ friend class global_wait_list_init_t;
  public:
    static process *newProcess(std::string file_, std::string dir, 
                                             pdvector<std::string> *argv,
@@ -208,8 +213,13 @@ class SignalGeneratorCommon : public EventHandler<EventRecord> {
    bool waiting_for_active_process;
 
    // And for all signal handlers.
-   static pdvector<EventGate *> global_wait_list;
-   static eventLock global_wait_list_lock;
+   // Made these static pointers due to a race where a user would
+   // call exit while we still have threads running, the global_wait_list
+   // would be destructed, and the other thread would terminate the
+   // app with a fault.  
+   static pdvector<EventGate *> *global_wait_list;
+   static eventLock *global_wait_list_lock;
+   static global_wait_list_init_t wlinit;
 
    pdvector<SignalHandler *> handlers;
    

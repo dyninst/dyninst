@@ -56,6 +56,7 @@
 #include "symtabAPI/h/Symbol.h"
 #include "dyninstAPI/src/bitArray.h"
 #include "InstructionCache.h"
+#include "InstructionAdapter.h"
 #include <set>
 
 #include "symtabAPI/h/Function.h"
@@ -73,6 +74,12 @@ class image_instPoint;
 
 // CFG edges are typed
 class image_edge;
+   
+
+class InstructionAdapter;
+#if !defined(ESSENTIAL_PARSING_ENUMS)
+#define ESSENTIAL_PARSING_ENUMS
+
    
 enum EdgeTypeEnum {
    ET_CALL,
@@ -98,15 +105,6 @@ enum FuncReturnStatus {
     RS_RETURN
 };
 
-// Indicates the source of this function, e.g. whether
-// it was listed in a symbol table, discovered with
-// recursive traversal, speculatively found in gap parsing, etc
-enum FuncSource {
-    FS_SYMTAB,
-    FS_RT,
-    FS_GAP,
-    FS_ONDEMAND
-};
 
 // There are three levels of function-level "instrumentability":
 // 1) The function can be instrumented normally with no problems (normal case)
@@ -118,6 +116,18 @@ enum InstrumentableLevel {
     NORMAL,
     HAS_BR_INDIR,
     UNINSTRUMENTABLE
+};
+#endif //!defined(ESSENTIAL_PARSING_ENUMS)
+
+
+// Indicates the source of this function, e.g. whether
+// it was listed in a symbol table, discovered with
+// recursive traversal, speculatively found in gap parsing, etc
+enum FuncSource {
+    FS_SYMTAB,
+    FS_RT,
+    FS_GAP,
+    FS_ONDEMAND
 };
 
 class image_edge {
@@ -243,7 +253,6 @@ class image_basicBlock : public codeRange {
 #endif
 
    private:
-
     // Try to shrink memory usage down.
     void finalize();
 
@@ -428,6 +437,7 @@ class image_func : public codeRange,
    // Check the targets of _call_ instrumentation points and link up
    // dangling targets, if possible
    void checkCallPoints();
+   void checkCallPoints(pdvector<image_instPoint *> &points);
     
    Address newCallPoint(Address adr, const instruction code, bool &err);
 
@@ -437,7 +447,6 @@ class image_func : public codeRange,
 
     bool archIsUnparseable();
     bool archAvoidParsing();
-    void archGetFuncEntryAddr(Address &funcEntryAddr);
     bool archNoRelocate();
     void archSetFrameSize(int frameSize);
     bool archGetMultipleJumpTargets( 
@@ -446,15 +455,17 @@ class image_func : public codeRange,
              InstrucIter &ah,
              pdvector< instruction >& allInstructions);
     bool archProcExceptionBlock(Address &catchStart, Address a);
+#if !defined(cap_instruction_api)    
     bool archIsATailCall(InstrucIter &ah,
              pdvector< instruction >& allInstructions);
     bool archIsIndirectTailCall(InstrucIter &ah);
-    bool archIsAbortOrInvalid(InstrucIter &ah);
-    bool archIsRealCall(InstrucIter &ah, bool &validTarget, bool &simulateJump);
+    bool archIsRealCall(InstrucIter &ah, bool &validTarget, bool
+&simulateJump);
     bool archCheckEntry(InstrucIter &ah, image_func *func );
-    void archInstructionProc(InstrucIter &ah);
-	bool archIsIPRelativeBranch(InstrucIter& ah);
-	void processJump(InstrucIter& ah, 
+    bool archIsIPRelativeBranch(InstrucIter& ah);
+#endif    
+    void archInstructionProc(InstructionAdapter &ah);
+    /*void processJump(InstructionAdapter& ah,
 		image_basicBlock* currBlk,
 		Address& funcBegin,
 		Address& funcEnd,
@@ -462,7 +473,7 @@ class image_func : public codeRange,
 		BPatch_Set<Address>& leaders,
 		pdvector<Address>& worklist,
 		dictionary_hash<Address, image_basicBlock*>& leadersToBlock,
-		dictionary_hash<Address, std::string> *pltFuncs);
+    dictionary_hash<Address, std::string> *pltFuncs);*/
 
    
    ////////////////////////////////////////////////
@@ -569,6 +580,14 @@ class image_func : public codeRange,
    bool containsBlock(image_basicBlock *);
 
  private:
+     void markBlockEnd(image_basicBlock* curBlock,
+                       InstructionAdapter& ah,
+                       Address& funcEnd);
+     bool isNonReturningCall(image_func* targetFunc,
+                             bool isInPLT,
+                             std::string pltEntryForTarget,
+                             Address currAddr,
+                             Address target);
    
    void calcUsedRegs();/* Does one time calculation of registers used in a function, if called again
                           it just refers to the stored values and returns that */

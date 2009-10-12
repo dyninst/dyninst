@@ -204,9 +204,9 @@ char *strlist2char(strlist *list)
 {
     char *data = strlist_get(list, 0);
 
-    data = strcat_static(encodeStr(data), "");
+    data = strcat_static(encodeStr(data), const_cast<char *>(""));
     for (unsigned i = 1; i < list->count; ++i) {
-	data = strcat_static(data, " ");
+      data = strcat_static(data, const_cast<char *>(" "));
 	data = strcat_static(data, encodeStr(strlist_get(list, i)));
     }
     return data;

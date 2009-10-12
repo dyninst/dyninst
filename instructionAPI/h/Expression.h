@@ -46,7 +46,7 @@ namespace Dyninst
   {
  
     class Expression;
-
+    class Visitor;
     /// An %Expression is an AST representation of how the value of an
     /// operand is computed.
     ///
@@ -153,13 +153,27 @@ namespace Dyninst
       /// the same value.  For example, if a dereference of 0xDEADBEEF is bound to
       /// 0, and a register is bound to 0xDEADBEEF, a dereference of that register is not
       /// bound to 0.
-      bool bind(Expression* expr, const Result& value);
+      virtual bool bind(Expression* expr, const Result& value);
+      
+      virtual void apply(Visitor*) {}
 
     protected:
       virtual bool isFlag() const;
     private:
       Result userSetValue;
       
+    };
+    class INSTRUCTION_EXPORT DummyExpr : public Expression
+    {
+        public:
+            virtual void getChildren(vector<InstructionAST::Ptr>& ) const {};
+            virtual void getUses(set<InstructionAST::Ptr>& ) {};
+            virtual bool isUsed(InstructionAST::Ptr ) const { return true;};
+            virtual std::string format() const { return "[WILDCARD]";};
+            DummyExpr() : Expression(u8) {}
+        protected:
+            virtual bool isStrictEqual(const InstructionAST& rhs) const;
+            virtual bool checkRegID(unsigned int id) const;
     };
 
   };

@@ -11,6 +11,7 @@ AC_CONFIG_MACRO_DIR([autodyninst])
 
 AC_PROG_CXX(g++)
 AC_PATH_PROG(_ICC_, icc)
+AC_PATH_PROG(_ICPC_, icpc)
 AC_PATH_PROG(_PGC_, pgcc)
 AC_PATH_PROG(_PGCXX_, pgCC)
 AC_PATH_PROG(_CC_, cc)
@@ -151,7 +152,7 @@ else
    AC_SUBST(LIBIBERTY_DYNAMIC)
 fi
 
-if test "$host_cpu" != "ia-64" ; then
+if test "$host_cpu" != "ia64" ; then
    AC_MSG_NOTICE([Not IA-64, skipping libunwind...])
 else
    AC_ARG_WITH(libunwind-incdir,

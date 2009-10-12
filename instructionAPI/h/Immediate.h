@@ -76,7 +76,7 @@ namespace Dyninst
     /// and \c clearValue interface are disabled on %Immediate objects.
     /// If an immediate value is being modified, a new %Immediate object should
     /// be created to represent the new value.
-    class Immediate : public Expression
+    class INSTRUCTION_EXPORT Immediate : public Expression
     {
     public:
       Immediate(const Result& val);
@@ -96,6 +96,7 @@ namespace Dyninst
 
       virtual std::string format() const;
       static Immediate::Ptr makeImmediate(const Result& val);
+      virtual void apply(Visitor* v);
       
     protected:
       virtual bool isStrictEqual(const InstructionAST& rhs) const;

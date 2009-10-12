@@ -73,7 +73,8 @@ typedef enum frameStatus_t {
     frame_no_use_fp,             //Function doesn't allocate a frame and doesn't
                                  // use the frame pointer (also result of gcc's
                                  // -fomit-frame-pointer) 
-    frame_tramp,                 //Trampoline
+    frame_tramp,                 //Trampoline with stack frame
+    frameless_tramp,             //Trampoline without a stack frame
     frame_vsyscall               //PC is in the vsyscall page (linux only)
 } frameStatus_t;
 
@@ -121,10 +122,14 @@ static frameStatus_t getFrameStatus(process *p, unsigned long pc)
        base = multi->getBaseTrampInstanceByAddr(pc);
 
    if (base) {
-       if (base->isInInstru(pc))
-           return frame_tramp;
-       else
-           func = base->multiT->func();
+      if (base->isInInstru(pc)) {
+         if (base->baseT->createFrame())
+            return frame_tramp;
+         else
+            return frameless_tramp;
+      }
+      else
+         func = base->multiT->func();
    }
    else if (multi) {
        // Not in base tramp instrumented... we're effectively in the func
@@ -166,8 +171,12 @@ static bool isPrevInstrACall(Address addr, process *p, int_function **callee)
 
      // Argh. We need to check for each call site in each
      // instantiation of the function.
+#if defined(cap_instruction_api)     
+     if (site->match(addr - site->insn()->size())) {
+#else
      if (site->match(addr - site->insn().size())) {
-        *callee = site->findCallee();
+#endif         
+    *callee = site->findCallee();
         return true;
      }
    }   
@@ -469,57 +478,72 @@ Frame Frame::getCallerFrame()
       pcLoc = sp_ + pc_offset;
       goto done;
    }   
-   else if ((status == frame_allocates_frame || status == frame_tramp))
+   else if (status == frame_allocates_frame || status == frame_tramp)
    {
      stackwalk_printf("%s[%d]: walking with allocated frame\n", FILE__, __LINE__);      
      /**
-       * The function that created this frame uses the standard 
-       * prolog: push %ebp; mov %esp->ebp .  We can read the 
-       * appropriate data	   stackwalk_printf("%s[%d]: Failed to read memory at addrs.fp 0x%lx\n", FILE__, __LINE__, addrs.fp);
- from the frame pointer.
-       **/
-      int offset = 0;
-      // FIXME: for tramps, we need to check if we've saved the FP yet
-      if ((status != frame_tramp && 
-           !hasAllocatedFrame(pc_, getProc(), offset)) || 
-          (prevFrameValid && isInEntryExitInstrumentation(prevFrame)))
-      {
-         addrs.fp = offset + sp_;
-         if (!getProc()->readDataSpace((caddr_t) addrs.fp, addr_size, 
-				       &addrs.rtn, true)) {
-	   stackwalk_printf("%s[%d]: Failed to read memory at addrs.fp 0x%lx\n", FILE__, __LINE__, addrs.fp);
-	   return Frame();
-	 }
-	 newPC = addrs.rtn;
-         newFP = fp_;
-         newSP = addrs.fp + getProc()->getAddressWidth();
-         pcLoc = addrs.fp;
-      }
-      else
-      {
-	if (!fp_) {
-	   stackwalk_printf("%s[%d]: No frame pointer!\n", FILE__, __LINE__);	  
-	   return Frame();
-	}
-         if (!getProc()->readDataSpace((caddr_t) fp_, addr_size, 
-                                       &addrs.fp, false)) {
-	   stackwalk_printf("%s[%d]: Failed to read memory at fp_ 0x%lx\n", FILE__, __LINE__, fp_);	   
-	   return Frame();
-	 }
-         if (!getProc()->readDataSpace((caddr_t) (fp_ + addr_size), addr_size, 
-                                       &addrs.rtn, false)) {
-	   stackwalk_printf("%s[%d]: Failed to read memory at pc (fp_+addr_size) 0x%lx\n", FILE__, __LINE__, fp_+addr_size);
-	   return Frame();
-	 }
-         newFP = addrs.fp;
-         newPC = addrs.rtn;
-         newSP = fp_+ (2 * addr_size);
-         pcLoc = fp_ + addr_size;
-      }
-      if (status == frame_tramp)
-         newSP += getProc()->getAddressWidth() == 8 ? 
-            tramp_pre_frame_size_64 : tramp_pre_frame_size_32;
-      goto done;
+      * The function that created this frame uses the standard 
+      * prolog: push %ebp; mov %esp->ebp .  We can read the 
+      * appropriate data from the frame pointer.
+      **/
+     int offset = 0;
+     // FIXME: for tramps, we need to check if we've saved the FP yet
+     if ((status != frame_tramp && 
+          !hasAllocatedFrame(pc_, getProc(), offset)) || 
+         (prevFrameValid && isInEntryExitInstrumentation(prevFrame)))
+     {
+        addrs.fp = offset + sp_;
+        if (!getProc()->readDataSpace((caddr_t) addrs.fp, addr_size, 
+                                      &addrs.rtn, true)) {
+           stackwalk_printf("%s[%d]: Failed to read memory at addrs.fp 0x%lx\n", 
+                            FILE__, __LINE__, addrs.fp);
+           return Frame();
+        }
+        newPC = addrs.rtn;
+        newFP = fp_;
+        newSP = addrs.fp + getProc()->getAddressWidth();
+        pcLoc = addrs.fp;
+     }
+     else
+     {
+        if (!fp_) {
+           stackwalk_printf("%s[%d]: No frame pointer!\n", FILE__, __LINE__);	  
+           return Frame();
+        }
+        if (!getProc()->readDataSpace((caddr_t) fp_, addr_size, 
+                                      &addrs.fp, false)) {
+           stackwalk_printf("%s[%d]: Failed to read memory at fp_ 0x%lx\n", 
+                            FILE__, __LINE__, fp_);	   
+           return Frame();
+        }
+        if (!getProc()->readDataSpace((caddr_t) (fp_ + addr_size), addr_size, 
+                                      &addrs.rtn, false)) {
+           stackwalk_printf("%s[%d]: Failed to read memory at pc (fp_+addr_size) 0x%lx\n",
+                            FILE__, __LINE__, fp_+addr_size);
+           return Frame();
+        }
+        newFP = addrs.fp;
+        newPC = addrs.rtn;
+        newSP = fp_+ (2 * addr_size);
+        pcLoc = fp_ + addr_size;
+     }
+     if (status == frame_tramp)
+        newSP += getProc()->getAddressWidth() == 8 ? 
+           tramp_pre_frame_size_64 : tramp_pre_frame_size_32;
+     goto done;
+   }
+   else if (status == frameless_tramp)
+   {
+      codeRange *range = getProc()->findOrigByAddr(pc_);
+      multiTramp *mtramp = range->is_multitramp();
+      assert(mtramp);
+      baseTrampInstance *tramp = mtramp->getBaseTrampInstanceByAddr(pc_);
+      assert(tramp);
+
+      newPC = tramp->baseT->origInstAddr();
+      newFP = fp_;
+      newSP = sp_; //Not really correct, but difficult to compute and unlikely to matter
+      pcLoc = 0x0;
    }
    else if (status ==  frame_saves_fp_noframe || status == frame_no_use_fp ||
             status == frame_unknown)

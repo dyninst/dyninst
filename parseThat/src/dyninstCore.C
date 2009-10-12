@@ -902,11 +902,11 @@ void readTracePipe()
 
       BPatch_point *point = (BPatch_point *)traceMsg;
 
-      char *pType = "Unknown ";
+      const char *pType = "Unknown ";
       if (point->getPointType() == BPatch_entry) pType = "Entering ";
       if (point->getPointType() == BPatch_exit)  pType = "Exiting ";
 
-      char *pName = "anonymous function";
+      const char *pName = "anonymous function";
       BPatch_function *pFunc = (*iter).second;
       if (pFunc) {
          if (pFunc->getName(buf, sizeof(buf)))
@@ -917,7 +917,7 @@ void readTracePipe()
 
       if (config.pipefd > 0) {
          // Could have been interrupted by mutatee exit.
-         sendMsg(config.outfd, ID_TRACE_POINT, INFO, ID_INFO, strcat_static(pType, pName));
+	sendMsg(config.outfd, ID_TRACE_POINT, INFO, ID_INFO, strcat_static(pType, pName));
       }
    } while (errno == 0);
 }
@@ -937,7 +937,7 @@ bool generateInstrumentation(dynHandle *dh, BPatch_function *func, BPatch_snippe
 
       // config.inst_function is of the format library:function_name
       char *instLibrary  = (char *) malloc (1024);
-      char *instFunction;
+      const char *instFunction;
 
       instFunction = strchr(config.inst_function, ':');
       if (!instFunction) {

@@ -90,12 +90,16 @@ namespace Dyninst
       /// Utility function to hide aliasing complexity on platforms (IA-32) that allow addressing part 
       /// or all of a register
       /// Note: not const because it may return *this...
-      static InstructionAST::Ptr promote(InstructionAST::Ptr reg);
+      static RegisterAST::Ptr promote(const InstructionAST::Ptr reg);
+      static RegisterAST::Ptr promote(const RegisterAST* reg);
+      
+      virtual void apply(Visitor* v);
 
     protected:
       virtual bool isStrictEqual(const InstructionAST& rhs) const;
       virtual bool isFlag() const;
       virtual bool checkRegID(unsigned int id) const;
+      int getPromotedID() const;
       
     private:
       unsigned int registerID;

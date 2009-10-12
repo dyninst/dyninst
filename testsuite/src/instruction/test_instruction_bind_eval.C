@@ -187,7 +187,7 @@ test_results_t test_instruction_bind_eval_Mutator::executeTest()
   Result five(u32, 5);
   
   if(!theCFT->bind(eax, three)) {
-    logerror("FAILED: bind of EAX failed\n");
+      logerror("FAILED: bind of EAX failed (insn %s)\n", decodedInsns[0]->format().c_str());
     return FAILED;
   }
   if(verifyCFT(theCFT, false, 0x1000, u32) == FAILED)

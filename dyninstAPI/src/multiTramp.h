@@ -400,8 +400,6 @@ class replacedInstruction : public relocatedCode {
     unsigned size_;
 };
 
-
-
 // Code generation. Code generation is really just a special case
 // of a baby control flow graph, and we treat it as such. This is
 // going to look very similar to the various CFG classes, and it's not

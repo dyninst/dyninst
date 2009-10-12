@@ -273,6 +273,7 @@ class Symtab : public LookupInterface,
    SYMTAB_EXPORT Offset getEntryOffset() const;
    SYMTAB_EXPORT Offset getBaseOffset() const;
    SYMTAB_EXPORT Offset getTOCoffset() const;
+   SYMTAB_EXPORT Address getLoadAddress();
 
    SYMTAB_EXPORT std::string getDefaultNamespacePrefix() const;
 

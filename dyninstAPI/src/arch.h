@@ -70,6 +70,8 @@
 
 #endif
 
+#include "dyninstAPI/src/bitArray.h"
+
 class dyn_lwp;
 class dyn_thread;
 class process;
@@ -82,6 +84,7 @@ class Emitter;
 class pcRelRegion;
 class int_function;
 class generatedCodeObject;
+class baseTrampInstance;
 
 // Code generation
 // This class wraps the actual code generation mechanism: we keep a buffer
@@ -197,6 +200,8 @@ class codeGen {
                   relocPatch::patch_type_t ptype = relocPatch::abs,
                   Dyninst::Offset off = 0);
 
+    std::vector<relocPatch> &allPatches();
+
     //Apply all patches that have been added
     void applyPatches();
 
@@ -211,6 +216,7 @@ class codeGen {
     void setCodeEmitter(Emitter *emitter) { emitter_ = emitter; }
     void setFunction(int_function *f) { f_ = f; }
     void setObj(generatedCodeObject *object) { obj_ = object; }
+    void setBTI(baseTrampInstance *i) { bti_ = i; }
 
     dyn_lwp *lwp();
     dyn_thread *thread();
@@ -218,6 +224,7 @@ class codeGen {
     AddressSpace *addrSpace();
     Address startAddr() const { return addr_; }
     instPoint *point();
+    baseTrampInstance *bti() const { return bti_; }
     int_function *func();
     registerSpace *rs();
     regTracker_t *tracker();
@@ -226,10 +233,19 @@ class codeGen {
 
     generatedCodeObject *obj();
 
+    void beginTrackRegDefs();
+    void endTrackRegDefs();
+    const bitArray &getRegsDefined();
+    void markRegDefined(Register r);
+    bool isRegDefined(Register r);
+
+    void setPCRelUseCount(int c) { pc_rel_use_count = c; }
+    int getPCRelUseCount() const { return pc_rel_use_count; }
  private:
     codeBuf_t *buffer_;
     codeBufIndex_t offset_;
     unsigned size_;
+    int pc_rel_use_count;
 
     Emitter *emitter_;
     bool allocated_;
@@ -243,7 +259,11 @@ class codeGen {
     Address addr_;
     instPoint *ip_;
     int_function *f_;
+    baseTrampInstance *bti_;
     bool isPadded_;
+
+    bitArray regsDefined_;
+    bool trackRegDefs_;
 
     generatedCodeObject *obj_;
 

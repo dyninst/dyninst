@@ -189,6 +189,12 @@ bool InstrucIter::isANopInstruction()
   return getInstruction().isNop();
 }
 
+bool  InstrucIter::isAnInterruptInstruction()
+{
+  const unsigned char *ptr = getInstruction().op_ptr();
+  return (*ptr == 0xcc) || (*ptr == 0xcd);
+}
+
 bool InstrucIter::isAnAbortInstruction()
 {
   const unsigned char *ptr = getInstruction().op_ptr();
@@ -611,13 +617,15 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result,
                        i, tableEntry, jumpAddress);
         continue;
     }
+    // FIXME: this really should go before the isExecutableAddress check.
+    // Replicating previous buggy behavior to get block numbers to match...
+    if(tableOffsetFromThunk)
+    {
+        jumpAddress += tableOffsetFromThunk;
+    }
 
     parsing_printf("\tentry %d [0x%lx] -> 0x%x\n",i,tableEntry,jumpAddress);
 
-    if(tableOffsetFromThunk)
-    {
-		jumpAddress += tableOffsetFromThunk;
-    }
     result += jumpAddress;
     
   }

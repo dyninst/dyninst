@@ -33,6 +33,9 @@ SRCS =		../src/solaris.C \
 		../src/syscall-solproc.C \
 		../src/editSharedLibrary.C \
 		../src/arch-sparc.C \
+		../src/IA_InstrucIter.C \
+		../src/InstrucIter-Function.C \
+		../src/InstrucIter-xplat.C \
 		../src/image-sparc.C
 #		../src/writeBackElf.C \
 #		../src/addLibrary.C \

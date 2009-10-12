@@ -3030,7 +3030,7 @@ float getPointFrequency( instPoint * point ) {
 
 /* Required by inst.C, ast.C */
 codeBufIndex_t emitA( opCode op, Register src1, Register /*src2*/, Register dest,
-					  codeGen &gen,  bool /*noCost*/ ) {  // FIXME: cost?
+					  codeGen &gen, RegControl, bool /*noCost*/ ) {  // FIXME: cost?
   /* Emit the given opcode, returning its relative offset.  For
 	 multi-bundle opcodes, return the offset of the branch itself;
 	 the code generator will insert the fall-through case directly
@@ -3269,7 +3269,7 @@ unsigned relocatedInstruction::maxSizeRequired() {
 	return 48; // bundles. I think. Might be 3.
 	}
 
-bool baseTramp::generateSaves( codeGen & gen, registerSpace * ) {
+bool baseTramp::generateSaves( codeGen & gen, registerSpace *, baseTrampInstance * ) {
 	assert( baseTrampRegion == NULL );
 
 	/* Operations for the base tramp proper; this (probably) grossly overestimates the number of operations. */
@@ -3309,7 +3309,7 @@ bool baseTramp::generateSaves( codeGen & gen, registerSpace * ) {
 		}
 	} /* end generateSaves() */
 
-bool baseTramp::generateRestores( codeGen & gen, registerSpace * ) {
+bool baseTramp::generateRestores( codeGen & gen, registerSpace *, baseTrampInstance * ) {
 	assert( baseTrampRegion != NULL );
 	
 	/* Determine this instrumentation point's gen.rs() and deadRegisterList (global variables)

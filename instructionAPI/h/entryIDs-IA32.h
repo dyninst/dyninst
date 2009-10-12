@@ -35,7 +35,50 @@
 #include "dyntypes.h"
 
 enum entryID {
-  e_No_Entry = 0,
+  e_jb = 0,
+  e_jb_jnaej_j,
+  e_jbe,
+  e_jcxz_jec,
+  e_jl,
+  e_jle,
+  e_jmp,
+  e_jmpe,
+  e_jnb,
+  e_jnb_jae_j,
+  e_jnbe,
+  e_jnl,
+  e_jnle,
+  e_jno,
+  e_jnp,
+  e_jns,
+  e_jnz,
+  e_jo,
+  e_jp,
+  e_js,
+  e_jz,
+  e_loop,
+  e_loope,
+  e_loopn,
+  e_call,
+  e_cmp,
+  e_cmppd,
+  e_cmpps,
+  e_cmpsb,
+  e_cmpsd,
+  e_cmpss,
+  e_cmpsw,
+  e_cmpxch,
+  e_cmpxch8b,
+  e_ret_far,
+  e_ret_near,
+  e_prefetch,
+  e_prefetchNTA,
+  e_prefetchT0,
+  e_prefetchT1,
+  e_prefetchT2,
+  e_prefetch_w,
+  e_prefetchw,
+  e_No_Entry,
   e_aaa,
   e_aad,
   e_aam,
@@ -62,7 +105,6 @@ enum entryID {
   e_btc,
   e_btr,
   e_bts,
-  e_call,
   e_cbw_cwde,
   e_clc,
   e_cld,
@@ -85,15 +127,6 @@ enum entryID {
   e_cmovpe,
   e_cmovpo,
   e_cmovs,
-  e_cmp,
-  e_cmppd,
-  e_cmpps,
-  e_cmpsb,
-  e_cmpsd,
-  e_cmpss,
-  e_cmpsw,
-  e_cmpxch,
-  e_cmpxch8b,
   e_comisd,
   e_comiss,
   e_cpuid,
@@ -131,7 +164,41 @@ enum entryID {
   e_emms,
   e_enter,
   e_extrq,
+  e_fadd,
+  e_fbld,
+  e_fbstp,
+  e_fcom,
+  e_fcomp,
+  e_fdiv,
+  e_fdivr,
   e_femms,
+  e_fiadd,
+  e_ficom,
+  e_ficomp,
+  e_fidiv,
+  e_fidivr,
+  e_fild,
+  e_fimul,
+  e_fist,
+  e_fistp,
+  e_fisttp,
+  e_fisub,
+  e_fisubr,
+  e_fld,
+  e_fldcw,
+  e_fldenv,
+  e_fmul,
+  e_fnop,
+  e_frstor,
+  e_fsave,
+  e_fst,
+  e_fstcw,
+  e_fstenv,
+  e_fstp,
+  e_fstsw,
+  e_fsub,
+  e_fsubr,
+  e_fucomp,
   e_fxrstor,
   e_fxsave,
   e_haddpd,
@@ -153,27 +220,6 @@ enum entryID {
   e_invd,
   e_invlpg,
   e_iret,
-  e_jb,
-  e_jb_jnaej_j,
-  e_jbe,
-  e_jcxz_jec,
-  e_jl,
-  e_jle,
-  e_jmp,
-  e_jmpe,
-  e_jnb,
-  e_jnb_jae_j,
-  e_jnbe,
-  e_jnl,
-  e_jnle,
-  e_jno,
-  e_jnp,
-  e_jns,
-  e_jnz,
-  e_jo,
-  e_jp,
-  e_js,
-  e_jz,
   e_lahf,
   e_lar,
   e_lddqu,
@@ -191,9 +237,6 @@ enum entryID {
   e_lmsw,
   e_lodsb,
   e_lodsw,
-  e_loop,
-  e_loope,
-  e_loopn,
   e_lsl,
   e_lss,
   e_ltr,
@@ -297,13 +340,6 @@ enum entryID {
   e_popf_d,
   e_popcnt,
   e_por,
-  e_prefetch,
-  e_prefetchNTA,
-  e_prefetchT0,
-  e_prefetchT1,
-  e_prefetchT2,
-  e_prefetch_w,
-  e_prefetchw,
   e_psadbw,
   e_pshufd,
   e_pshufhw,
@@ -345,8 +381,6 @@ enum entryID {
   e_rdmsr,
   e_rdpmc,
   e_rdtsc,
-  e_ret_far,
-  e_ret_near,
   e_rol,
   e_ror,
   e_rsm,
@@ -427,28 +461,42 @@ enum entryID {
   e_xlat,
   e_xor,
   e_xorpd,
-  e_xorps
+  e_xorps,
+  e_fp_generic,
+  e_3dnow_generic
 };
 
 #if defined(__GNUC__)
-  //***************** GCC ***********************
-   #if !((__GNUC__ > 4) || \
-      (__GNUC__ == 4 && __GNUC_MINOR__ >= 3))
-      //**************** GCC < 4.3.0 ************
-      namespace __gnu_cxx {
- 
-        template<> struct hash<entryID> {
-           hash<unsigned int> h;
-           unsigned operator()(const entryID &e) const 
-	   {
-             return h(static_cast<unsigned int>(e));
-           };
-        };
-      }
-
-   #endif
+//***************** GCC ***********************
+  #if !defined(cap_tr1)
+  //**************** GCC < 4.3.0 ************
+  namespace __gnu_cxx {
+    
+    template<> struct hash<entryID> {
+      hash<unsigned int> h;
+      unsigned operator()(const entryID &e) const 
+      {
+	return h(static_cast<unsigned int>(e));
+      };
+    };
+  }
+	#else
+  namespace std
+  {
+    namespace tr1
+    {
+      template <>
+      struct hash<entryID>
+      {
+	size_t operator()(const entryID &eid) const
+	{
+	  return static_cast<size_t>(eid);
+	}
+      };
+    }
+  }
+	#endif
 #endif
-
 extern dyn_hash_map<entryID, std::string> entryNames_IAPI;
 
 #endif // defined(ENTRYIDS_IA32_H)

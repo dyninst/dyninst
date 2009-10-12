@@ -742,322 +742,324 @@ void emitElf64::updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned l
 
 bool emitElf64::createLoadableSections(Elf64_Shdr* &shdr, unsigned &loadSecTotalSize, unsigned &extraAlignSize, dyn_hash_map<std::string, unsigned> &newNameIndexMapping, unsigned &sectionNumber)
 {
-  Elf_Scn *newscn;
-  Elf_Data *newdata = NULL;
-  Elf64_Shdr *newshdr;
-  std::vector<Elf64_Shdr *> updateDynLinkShdr;
-  std::vector<Elf64_Shdr *> updateStrLinkShdr;
-  firstNewLoadSec = NULL;
-  unsigned pgSize = getpagesize();
-  unsigned strtabIndex = 0;
-  unsigned dynsymIndex = 0;
-  Elf64_Shdr *prevshdr = NULL;
+   Elf_Scn *newscn;
+   Elf_Data *newdata = NULL;
+   Elf64_Shdr *newshdr;
+   std::vector<Elf64_Shdr *> updateDynLinkShdr;
+   std::vector<Elf64_Shdr *> updateStrLinkShdr;
+   firstNewLoadSec = NULL;
+   unsigned pgSize = getpagesize();
+   unsigned strtabIndex = 0;
+   unsigned dynsymIndex = 0;
+   Elf64_Shdr *prevshdr = NULL;
 
-  for(unsigned i=0; i < newSecs.size(); i++)
-    {
+   for(unsigned i=0; i < newSecs.size(); i++)
+   {
       if(newSecs[i]->isLoadable())
     	{
-	  secNames.push_back(newSecs[i]->getRegionName());
-	  newNameIndexMapping[newSecs[i]->getRegionName()] = secNames.size() -1;
-	  sectionNumber++;
-	  // Add a new loadable section
-	  if((newscn = elf_newscn(newElf)) == NULL)
-	    {  
-	      log_elferror(err_func_, "unable to create new function");	
-	      return false;
-	    } 	
-	  if ((newdata = elf_newdata(newscn)) == NULL)
-	    {
-	      log_elferror(err_func_, "unable to create section data");	
-	      return false;
-	    } 
-	  memset(newdata, 0, sizeof(Elf_Data));
+         secNames.push_back(newSecs[i]->getRegionName());
+         newNameIndexMapping[newSecs[i]->getRegionName()] = secNames.size() -1;
+         sectionNumber++;
+         // Add a new loadable section
+         if((newscn = elf_newscn(newElf)) == NULL)
+         {  
+            log_elferror(err_func_, "unable to create new function");	
+            return false;
+         } 	
+         if ((newdata = elf_newdata(newscn)) == NULL)
+         {
+            log_elferror(err_func_, "unable to create section data");	
+            return false;
+         } 
+         memset(newdata, 0, sizeof(Elf_Data));
 
-	  // Fill out the new section header	
-	  newshdr = elf64_getshdr(newscn);
-	  newshdr->sh_name = secNameIndex;
-	  newshdr->sh_flags = 0;
-	  switch(newSecs[i]->getRegionType()){
-	  case Region::RT_TEXTDATA:
-	    newshdr->sh_flags = SHF_EXECINSTR | SHF_ALLOC | SHF_WRITE;
-	    break;
-	  case Region::RT_TEXT:
-	    newshdr->sh_flags = SHF_EXECINSTR | SHF_ALLOC;
-	    break;
-	  case Region::RT_DATA:
-	    newshdr->sh_flags = SHF_WRITE | SHF_ALLOC;
-	    break;
-	  default:
-	    break;
-	  }
-	  newshdr->sh_type = SHT_PROGBITS;
+         // Fill out the new section header	
+         newshdr = elf64_getshdr(newscn);
+         newshdr->sh_name = secNameIndex;
+         newshdr->sh_flags = 0;
+         switch(newSecs[i]->getRegionType()){
+            case Region::RT_TEXTDATA:
+               newshdr->sh_flags = SHF_EXECINSTR | SHF_ALLOC | SHF_WRITE;
+               break;
+            case Region::RT_TEXT:
+               newshdr->sh_flags = SHF_EXECINSTR | SHF_ALLOC;
+               break;
+            case Region::RT_DATA:
+               newshdr->sh_flags = SHF_WRITE | SHF_ALLOC;
+               break;
+            default:
+               break;
+         }
+         newshdr->sh_type = SHT_PROGBITS;
 
-	  // TODO - compute the correct offset && address. This is wrong!!
-	  if(shdr->sh_type == SHT_NOBITS)
-	    newshdr->sh_offset = shdr->sh_offset;
-	  else
-	    newshdr->sh_offset = shdr->sh_offset+shdr->sh_size;
-	  if(newSecs[i]->getDiskOffset())
-	    newshdr->sh_addr = newSecs[i]->getDiskOffset();
-	  else{
-	    newshdr->sh_addr = prevshdr->sh_addr+ prevshdr->sh_size;
-	  }
+         // TODO - compute the correct offset && address. This is wrong!!
+         if(shdr->sh_type == SHT_NOBITS)
+            newshdr->sh_offset = shdr->sh_offset;
+         else
+            newshdr->sh_offset = shdr->sh_offset+shdr->sh_size;
+         if(newSecs[i]->getDiskOffset())
+            newshdr->sh_addr = newSecs[i]->getDiskOffset();
+         else{
+            newshdr->sh_addr = prevshdr->sh_addr+ prevshdr->sh_size;
+         }
     	    
-	  newshdr->sh_link = SHN_UNDEF;
-	  newshdr->sh_info = 0;
-	  newshdr->sh_addralign = 4;
-	  newshdr->sh_entsize = 0;
+         newshdr->sh_link = SHN_UNDEF;
+         newshdr->sh_info = 0;
+         newshdr->sh_addralign = 4;
+         newshdr->sh_entsize = 0;
             
-	  if(newSecs[i]->getRegionType() == Region::RT_REL)    //Relocation section
-            {
-	      newshdr->sh_type = SHT_REL;
-	      newshdr->sh_flags = SHF_ALLOC;
-	      newshdr->sh_entsize = sizeof(Elf64_Rel);
-	      updateDynLinkShdr.push_back(newshdr);
-	      newdata->d_type = ELF_T_REL;
-	      newdata->d_align = 4;
+         if(newSecs[i]->getRegionType() == Region::RT_REL)    //Relocation section
+         {
+            newshdr->sh_type = SHT_REL;
+            newshdr->sh_flags = SHF_ALLOC;
+            newshdr->sh_entsize = sizeof(Elf64_Rel);
+            updateDynLinkShdr.push_back(newshdr);
+            newdata->d_type = ELF_T_REL;
+            newdata->d_align = 4;
 #if !defined(os_solaris)
-	      updateDynamic(DT_REL, newshdr->sh_addr);
+            updateDynamic(DT_REL, newshdr->sh_addr);
 #endif
-            }
-	  else if(newSecs[i]->getRegionType() == Region::RT_RELA)    //Relocation section
-            {
-	      newshdr->sh_type = SHT_RELA;
-	      newshdr->sh_flags = SHF_ALLOC;
-	      newshdr->sh_entsize = sizeof(Elf64_Rela);
-	      updateDynLinkShdr.push_back(newshdr);
-	      newdata->d_type = ELF_T_RELA;
-	      newdata->d_align = 4;
+         }
+         else if(newSecs[i]->getRegionType() == Region::RT_RELA)    //Relocation section
+         {
+            newshdr->sh_type = SHT_RELA;
+            newshdr->sh_flags = SHF_ALLOC;
+            newshdr->sh_entsize = sizeof(Elf64_Rela);
+            updateDynLinkShdr.push_back(newshdr);
+            newdata->d_type = ELF_T_RELA;
+            newdata->d_align = 4;
 #if !defined(os_solaris)
-	      updateDynamic(DT_RELA, newshdr->sh_addr);
+            updateDynamic(DT_RELA, newshdr->sh_addr);
 #endif
-            }
+         }
 
-	  else if(newSecs[i]->getRegionType() == Region::RT_STRTAB)    //String table Section
-            {
-	      newshdr->sh_type = SHT_STRTAB;
-	      newshdr->sh_entsize = 1;
-	      newdata->d_type = ELF_T_BYTE;
-	      newshdr->sh_link = SHN_UNDEF;
-	      newshdr->sh_flags=  SHF_ALLOC;
-	      newdata->d_align = 1;
-	      strtabIndex = secNames.size()-1;
-	      newshdr->sh_addralign = 1;
+         else if(newSecs[i]->getRegionType() == Region::RT_STRTAB)    //String table Section
+         {
+            newshdr->sh_type = SHT_STRTAB;
+            newshdr->sh_entsize = 1;
+            newdata->d_type = ELF_T_BYTE;
+            newshdr->sh_link = SHN_UNDEF;
+            newshdr->sh_flags=  SHF_ALLOC;
+            newdata->d_align = 1;
+            strtabIndex = secNames.size()-1;
+            newshdr->sh_addralign = 1;
 #if !defined(os_solaris)
-	      updateDynamic(DT_STRTAB, newshdr->sh_addr);
-	      updateDynamic(DT_STRSZ, newSecs[i]->getDiskSize());
+            updateDynamic(DT_STRTAB, newshdr->sh_addr);
+            updateDynamic(DT_STRSZ, newSecs[i]->getDiskSize());
 #endif
-            }
-	  else if(newSecs[i]->getRegionType() == Region::RT_SYMTAB)
-            {
-	      newshdr->sh_type = SHT_DYNSYM;
-	      newshdr->sh_entsize = sizeof(Elf64_Sym);
-	      newdata->d_type = ELF_T_SYM;
-	      newdata->d_align = 4;
-	      newshdr->sh_link = secNames.size();   //.symtab section should have sh_link = index of .strtab for .dynsym
-	      newshdr->sh_flags = SHF_ALLOC ;
-	      dynsymIndex = secNames.size()-1;
+         }
+         else if(newSecs[i]->getRegionType() == Region::RT_SYMTAB)
+         {
+            newshdr->sh_type = SHT_DYNSYM;
+            newshdr->sh_entsize = sizeof(Elf64_Sym);
+            newdata->d_type = ELF_T_SYM;
+            newdata->d_align = 4;
+            newshdr->sh_link = secNames.size();   //.symtab section should have sh_link = index of .strtab for .dynsym
+            newshdr->sh_flags = SHF_ALLOC ;
+            dynsymIndex = secNames.size()-1;
 #if !defined(os_solaris)
-	      updateDynamic(DT_SYMTAB, newshdr->sh_addr);
+            updateDynamic(DT_SYMTAB, newshdr->sh_addr);
 #endif
-            }
-	  else if(newSecs[i]->getRegionType() == Region::RT_DYNAMIC)
-            {
+         }
+         else if(newSecs[i]->getRegionType() == Region::RT_DYNAMIC)
+         {
 #if !defined(os_solaris)
-	      newshdr->sh_entsize = sizeof(Elf64_Dyn);
+            newshdr->sh_entsize = sizeof(Elf64_Dyn);
 #endif            
-	      newshdr->sh_type = SHT_DYNAMIC;
-	      newdata->d_type = ELF_T_DYN;
-	      newdata->d_align = 4;
-	      updateStrLinkShdr.push_back(newshdr);
-	      newshdr->sh_flags=  SHF_ALLOC | SHF_WRITE;
-	      dynSegOff = newshdr->sh_offset;
-	      dynSegAddr = newshdr->sh_addr;
-	      dynSegSize = newSecs[i]->getDiskSize();
-            }
-	  else if(newSecs[i]->getRegionType() == Region::RT_HASH)
-            {
-	      newshdr->sh_entsize = sizeof(Elf64_Word);
-	      newshdr->sh_type = SHT_HASH;
-	      newdata->d_type = ELF_T_WORD;
-	      newdata->d_align = 4;
-	      updateDynLinkShdr.push_back(newshdr);
-	      newshdr->sh_flags=  SHF_ALLOC;
-	      newshdr->sh_info = 0;
+            newshdr->sh_type = SHT_DYNAMIC;
+            newdata->d_type = ELF_T_DYN;
+            newdata->d_align = 4;
+            updateStrLinkShdr.push_back(newshdr);
+            newshdr->sh_flags=  SHF_ALLOC | SHF_WRITE;
+            dynSegOff = newshdr->sh_offset;
+            dynSegAddr = newshdr->sh_addr;
+            dynSegSize = newSecs[i]->getDiskSize();
+         }
+         else if(newSecs[i]->getRegionType() == Region::RT_HASH)
+         {
+            newshdr->sh_entsize = sizeof(Elf64_Word);
+            newshdr->sh_type = SHT_HASH;
+            newdata->d_type = ELF_T_WORD;
+            newdata->d_align = 4;
+            updateDynLinkShdr.push_back(newshdr);
+            newshdr->sh_flags=  SHF_ALLOC;
+            newshdr->sh_info = 0;
 #if !defined(os_solaris)
-	      updateDynamic(DT_HASH, newshdr->sh_addr);
+            updateDynamic(DT_HASH, newshdr->sh_addr);
 #endif
-            }
+         }
 #if !defined(os_solaris)
-	  else if(newSecs[i]->getRegionType() == Region::RT_SYMVERSIONS)
-            {
-	      newshdr->sh_type = SHT_GNU_versym;
-	      newshdr->sh_entsize = sizeof(Elf64_Half);
-	      newshdr->sh_addralign = 2;
-	      newdata->d_type = ELF_T_HALF;
-	      newdata->d_align = 2;
-	      updateDynLinkShdr.push_back(newshdr);
-	      newshdr->sh_flags = SHF_ALLOC ;
-	      updateDynamic(DT_VERSYM, newshdr->sh_addr);
-            }
-	  else if(newSecs[i]->getRegionType() == Region::RT_SYMVERNEEDED)
-            {
-	      newshdr->sh_type = SHT_GNU_verneed;
-	      newshdr->sh_entsize = 0;
-	      newshdr->sh_addralign = 4;
-	      newdata->d_type = ELF_T_VNEED;
-	      newdata->d_align = 4;
-	      updateStrLinkShdr.push_back(newshdr);
-	      newshdr->sh_flags = SHF_ALLOC ;
-	      newshdr->sh_info = 2;
-	      updateDynamic(DT_VERNEED, newshdr->sh_addr);
-            }
-	  else if(newSecs[i]->getRegionType() == Region::RT_SYMVERDEF)
-            {
-	      newshdr->sh_type = SHT_GNU_verdef;
-	      newshdr->sh_entsize = 0;
-	      newdata->d_type = ELF_T_VDEF;
-	      newdata->d_align = 4;
-	      updateStrLinkShdr.push_back(newshdr);
-	      newshdr->sh_flags = SHF_ALLOC ;
-	      updateDynamic(DT_VERDEF, newshdr->sh_addr);
-            }
+         else if(newSecs[i]->getRegionType() == Region::RT_SYMVERSIONS)
+         {
+            newshdr->sh_type = SHT_GNU_versym;
+            newshdr->sh_entsize = sizeof(Elf64_Half);
+            newshdr->sh_addralign = 2;
+            newdata->d_type = ELF_T_HALF;
+            newdata->d_align = 2;
+            updateDynLinkShdr.push_back(newshdr);
+            newshdr->sh_flags = SHF_ALLOC ;
+            updateDynamic(DT_VERSYM, newshdr->sh_addr);
+         }
+         else if(newSecs[i]->getRegionType() == Region::RT_SYMVERNEEDED)
+         {
+            newshdr->sh_type = SHT_GNU_verneed;
+            newshdr->sh_entsize = 0;
+            newshdr->sh_addralign = 4;
+            newdata->d_type = ELF_T_VNEED;
+            newdata->d_align = 4;
+            updateStrLinkShdr.push_back(newshdr);
+            newshdr->sh_flags = SHF_ALLOC ;
+            newshdr->sh_info = 2;
+            updateDynamic(DT_VERNEED, newshdr->sh_addr);
+         }
+         else if(newSecs[i]->getRegionType() == Region::RT_SYMVERDEF)
+         {
+            newshdr->sh_type = SHT_GNU_verdef;
+            newshdr->sh_entsize = 0;
+            newdata->d_type = ELF_T_VDEF;
+            newdata->d_align = 4;
+            updateStrLinkShdr.push_back(newshdr);
+            newshdr->sh_flags = SHF_ALLOC ;
+            updateDynamic(DT_VERDEF, newshdr->sh_addr);
+         }
 #endif
 
-	  if(addNewSegmentFlag)
-	    {
-	      // Check to make sure the (vaddr for the start of the new segment - the offset) is page aligned
-	      if(!firstNewLoadSec)
-		{
-		  newSegmentStart = newshdr->sh_addr;
-		  Offset newoff = newshdr->sh_offset  - (newshdr->sh_offset & (pgSize-1)) + (newshdr->sh_addr & (pgSize-1));
-		  if(newoff < newshdr->sh_offset)
-		    newoff += pgSize;
-		  extraAlignSize += newoff - newshdr->sh_offset;
-		  newshdr->sh_offset = newoff;
+         if(addNewSegmentFlag)
+         {
+            // Check to make sure the (vaddr for the start of the new segment - the offset) is page aligned
+            if(!firstNewLoadSec)
+            {
+               newSegmentStart = newshdr->sh_addr;
+               Offset newoff = newshdr->sh_offset  - (newshdr->sh_offset & (pgSize-1)) + (newshdr->sh_addr & (pgSize-1));
+               if(newoff < newshdr->sh_offset)
+                  newoff += pgSize;
+               extraAlignSize += newoff - newshdr->sh_offset;
+               newshdr->sh_offset = newoff;
 
-		  /* // Address or Offset
-		     newSegmentStart = newshdr->sh_addr  - (newshdr->sh_addr & (pgSize-1)) + (newshdr->sh_offset & (pgSize-1));
-		     if(newSegmentStart < newshdr->sh_addr)
-		     {
-		     newSegmentStart += pgSize;
-		     extraAlignSize += newSegmentStart - newshdr->sh_addr;
-		     newshdr->sh_addr = newSegmentStart;
-		     } 
-		  */
-		}    
-    	    }	
-	  else{
-	    Offset newoff = newshdr->sh_offset  - (newshdr->sh_offset & (pgSize-1)) + (newshdr->sh_addr & (pgSize-1));
-	    if(newoff < newshdr->sh_offset)
-	      newoff += pgSize;
-	    extraAlignSize += newoff - newshdr->sh_offset;
-	    newshdr->sh_offset = newoff;
-	  }
-	  // Why is this being done -giri??	
-	  // newshdr->sh_offset = shdr->sh_offset;
+               /* // Address or Offset
+                  newSegmentStart = newshdr->sh_addr  - (newshdr->sh_addr & (pgSize-1)) + (newshdr->sh_offset & (pgSize-1));
+                  if(newSegmentStart < newshdr->sh_addr)
+                  {
+                  newSegmentStart += pgSize;
+                  extraAlignSize += newSegmentStart - newshdr->sh_addr;
+                  newshdr->sh_addr = newSegmentStart;
+                  } 
+               */
+            }    
+         }	
+         else{
+            Offset newoff = newshdr->sh_offset  - (newshdr->sh_offset & (pgSize-1)) + (newshdr->sh_addr & (pgSize-1));
+            if(newoff < newshdr->sh_offset)
+               newoff += pgSize;
+            extraAlignSize += newoff - newshdr->sh_offset;
+            newshdr->sh_offset = newoff;
+         }
+         // Why is this being done -giri??	
+         // newshdr->sh_offset = shdr->sh_offset;
 
-	  //Set up the data
-	  newdata->d_buf = malloc(newSecs[i]->getDiskSize());
-	  memcpy(newdata->d_buf, newSecs[i]->getPtrToRawData(), newSecs[i]->getDiskSize());
-	  newdata->d_off = 0;
-	  newdata->d_size = newSecs[i]->getDiskSize();
-	  newshdr->sh_size = newdata->d_size;
-	  loadSecTotalSize += newshdr->sh_size;
+         //Set up the data
+         newdata->d_buf = malloc(newSecs[i]->getDiskSize());
+         memcpy(newdata->d_buf, newSecs[i]->getPtrToRawData(), newSecs[i]->getDiskSize());
+         newdata->d_off = 0;
+         newdata->d_size = newSecs[i]->getDiskSize();
+         if (!newdata->d_align)
+            newdata->d_align = newshdr->sh_addralign;
+         newshdr->sh_size = newdata->d_size;
+         loadSecTotalSize += newshdr->sh_size;
 	    
-	  newdata->d_version = 1;
+         newdata->d_version = 1;
 
-	  if (newshdr->sh_entsize && (newshdr->sh_size % newshdr->sh_entsize != 0))
-		fprintf(stderr, "%s[%d]:  ERROR:  setting size to non multiple of entry size in section %s: %lu/%lu\n", FILE__, __LINE__, newSecs[i]->getRegionName().c_str(), newshdr->sh_size, newshdr->sh_entsize);
+         if (newshdr->sh_entsize && (newshdr->sh_size % newshdr->sh_entsize != 0))
+            fprintf(stderr, "%s[%d]:  ERROR:  setting size to non multiple of entry size in section %s: %lu/%lu\n", FILE__, __LINE__, newSecs[i]->getRegionName().c_str(), newshdr->sh_size, newshdr->sh_entsize);
 
-	  if (0 > elf_update(newElf, ELF_C_NULL))
-	{
-		fprintf(stderr, "%s[%d]:  elf_update failed\n", FILE__, __LINE__);
-		return false;
-	}
+         if (0 > elf_update(newElf, ELF_C_NULL))
+         {
+            fprintf(stderr, "%s[%d]:  elf_update failed\n", FILE__, __LINE__);
+            return false;
+         }
 
-	  shdr = newshdr;
-	  if(!firstNewLoadSec)
-	    firstNewLoadSec = shdr;
-	  secNameIndex += newSecs[i]->getRegionName().size() + 1;
-	  /* DEBUG */
+         shdr = newshdr;
+         if(!firstNewLoadSec)
+            firstNewLoadSec = shdr;
+         secNameIndex += newSecs[i]->getRegionName().size() + 1;
+         /* DEBUG */
 #ifdef BINEDIT_DEBUG
-	  fprintf(stderr, "Added New Section(%s) : secAddr 0x%lx, secOff 0x%lx, secsize 0x%lx, end 0x%lx\n",
-		  newSecs[i]->getRegionName().c_str(), newshdr->sh_addr, newshdr->sh_offset, newshdr->sh_size, newshdr->sh_offset + newshdr->sh_size );
+         fprintf(stderr, "Added New Section(%s) : secAddr 0x%lx, secOff 0x%lx, secsize 0x%lx, end 0x%lx\n",
+                 newSecs[i]->getRegionName().c_str(), newshdr->sh_addr, newshdr->sh_offset, newshdr->sh_size, newshdr->sh_offset + newshdr->sh_size );
 #endif
-	  prevshdr = newshdr;
-	}
+         prevshdr = newshdr;
+      }
       else
-	nonLoadableSecs.push_back(newSecs[i]);
-    }	
+         nonLoadableSecs.push_back(newSecs[i]);
+   }	
     
-  for(unsigned i=0; i < updateDynLinkShdr.size(); i++) {
-    newshdr = updateDynLinkShdr[i];
-    newshdr->sh_link = dynsymIndex;   
-  }
+   for(unsigned i=0; i < updateDynLinkShdr.size(); i++) {
+      newshdr = updateDynLinkShdr[i];
+      newshdr->sh_link = dynsymIndex;   
+   }
     
-  for(unsigned i=0; i < updateStrLinkShdr.size(); i++) {
-    newshdr = updateStrLinkShdr[i];
-    newshdr->sh_link = strtabIndex;   
-  }
+   for(unsigned i=0; i < updateStrLinkShdr.size(); i++) {
+      newshdr = updateStrLinkShdr[i];
+      newshdr->sh_link = strtabIndex;   
+   }
    
-  return true;
+   return true;
 }
 	
 bool emitElf64::addSectionHeaderTable(Elf64_Shdr *shdr) {
-  Elf_Scn *newscn;
-  Elf_Data *newdata = NULL;
-  Elf64_Shdr *newshdr;
+   Elf_Scn *newscn;
+   Elf_Data *newdata = NULL;
+   Elf64_Shdr *newshdr;
    
-  if((newscn = elf_newscn(newElf)) == NULL)
-    {
+   if((newscn = elf_newscn(newElf)) == NULL)
+   {
       log_elferror(err_func_, "unable to create new function");	
       return false;
-    }	
-  if ((newdata = elf_newdata(newscn)) == NULL)
-    {
+   }	
+   if ((newdata = elf_newdata(newscn)) == NULL)
+   {
       log_elferror(err_func_, "unable to create section data");	
       return false;
-    } 
-  //Fill out the new section header
-  newshdr = elf64_getshdr(newscn);
-  newshdr->sh_name = secNameIndex;
-  secNames.push_back(".shstrtab");
-  secNameIndex += 10;
-  newshdr->sh_type = SHT_STRTAB;
-  newshdr->sh_entsize = 1;
-  newdata->d_type = ELF_T_BYTE;
-  newshdr->sh_link = SHN_UNDEF; 
-  newshdr->sh_flags=  0;
+   } 
+   //Fill out the new section header
+   newshdr = elf64_getshdr(newscn);
+   newshdr->sh_name = secNameIndex;
+   secNames.push_back(".shstrtab");
+   secNameIndex += 10;
+   newshdr->sh_type = SHT_STRTAB;
+   newshdr->sh_entsize = 1;
+   newdata->d_type = ELF_T_BYTE;
+   newshdr->sh_link = SHN_UNDEF; 
+   newshdr->sh_flags=  0;
 
-  newshdr->sh_offset = shdr->sh_offset+shdr->sh_size;
-  newshdr->sh_addr = 0;
-  newshdr->sh_info = 0;
-  newshdr->sh_addralign = 4;
+   newshdr->sh_offset = shdr->sh_offset+shdr->sh_size;
+   newshdr->sh_addr = 0;
+   newshdr->sh_info = 0;
+   newshdr->sh_addralign = 4;
    
-  //Set up the data
-  newdata->d_buf = (char *)malloc(secNameIndex);
-  char *ptr = (char *)newdata->d_buf;
-  for(unsigned i=0;i<secNames.size(); i++)
-    {
+   //Set up the data
+   newdata->d_buf = (char *)malloc(secNameIndex);
+   char *ptr = (char *)newdata->d_buf;
+   for(unsigned i=0;i<secNames.size(); i++)
+   {
       memcpy(ptr, secNames[i].c_str(), secNames[i].length());
       memcpy(ptr+secNames[i].length(), "\0", 1);
       ptr += secNames[i].length()+1;
-    }    
+   }    
     
-  newdata->d_size = secNameIndex;
-  newshdr->sh_size = newdata->d_size;
+   newdata->d_size = secNameIndex;
+   newshdr->sh_size = newdata->d_size;
 #ifdef BINEDIT_DEBUG
-  fprintf(stderr, "Added New Section(%s) : secAddr 0x%lx, secOff 0x%lx, secsize 0x%lx, end 0x%lx\n",
-	  ".shstrtab", newshdr->sh_addr, newshdr->sh_offset, newshdr->sh_size, newshdr->sh_offset + newshdr->sh_size );
+   fprintf(stderr, "Added New Section(%s) : secAddr 0x%lx, secOff 0x%lx, secsize 0x%lx, end 0x%lx\n",
+           ".shstrtab", newshdr->sh_addr, newshdr->sh_offset, newshdr->sh_size, newshdr->sh_offset + newshdr->sh_size );
 #endif
-  //elf_update(newElf, ELF_C_NULL);
+   //elf_update(newElf, ELF_C_NULL);
    
-  newdata->d_align = 4;
-  newdata->d_version = 1;
+   newdata->d_align = 4;
+   newdata->d_version = 1;
 	if (newshdr->sh_entsize && (newshdr->sh_size % newshdr->sh_entsize != 0))
 		fprintf(stderr, "%s[%d]:  ERROR:  setting size to non multiple of entry size in section %s: %lu/%lu\n", FILE__, __LINE__, ".shstrtab", newshdr->sh_size, newshdr->sh_entsize);
-  return true;
+   return true;
 }
 
 bool emitElf64::createNonLoadableSections(Elf64_Shdr *&shdr)

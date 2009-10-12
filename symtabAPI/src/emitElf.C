@@ -438,6 +438,7 @@ bool emitElf::driver(Symtab *obj, string fName){
     const char *name = &shnames[shdr->sh_name];
     obj->findRegion(foundSec, shdr->sh_addr, shdr->sh_size);
 
+
     // write the shstrtabsection at the end
     if(!strcmp(name, ".shstrtab"))
       continue;
@@ -454,8 +455,9 @@ bool emitElf::driver(Symtab *obj, string fName){
     memcpy(newshdr, shdr, sizeof(Elf32_Shdr));
     memcpy(newdata,olddata, sizeof(Elf_Data));
 
-    secNames.push_back(name);
-    newshdr->sh_name = secNameIndex;
+
+	secNames.push_back(name);
+	newshdr->sh_name = secNameIndex;
     secNameIndex += strlen(name) + 1;
     
     if(foundSec->isDirty())
@@ -835,26 +837,28 @@ bool emitElf::createLoadableSections(Elf32_Shdr* &shdr, unsigned &loadSecTotalSi
 
 
   for(unsigned i=0; i < newSecs.size(); i++)
-    {
-      if(newSecs[i]->isLoadable())
-    	{
+  {
+     if(newSecs[i]->isLoadable())
+     {
 	  secNames.push_back(newSecs[i]->getRegionName());
 	  newNameIndexMapping[newSecs[i]->getRegionName()] = secNames.size() -1;
 	  sectionNumber++;
 	  // Add a new loadable section
 	  if((newscn = elf_newscn(newElf)) == NULL)
-    	    {
-	      log_elferror(err_func_, "unable to create new function");	
-	      return false;
-    	    }	
+          {
+             log_elferror(err_func_, "unable to create new function");	
+             return false;
+          }	
 	  if ((newdata = elf_newdata(newscn)) == NULL)
-	    {
-	      log_elferror(err_func_, "unable to create section data");	
-	      return false;
-	    } 
+          {
+             log_elferror(err_func_, "unable to create section data");	
+             return false;
+          } 
 	  memset(newdata, 0, sizeof(Elf_Data));
-	  if(!libelfso0Flag)
-	    newdata64 = (Elf_Data64 *)malloc(sizeof(Elf_Data64));
+	  if(!libelfso0Flag) {
+             newdata64 = (Elf_Data64 *)malloc(sizeof(Elf_Data64));
+             memset(newdata64, 0, sizeof(Elf_Data64));
+          }
 
 	  // Fill out the new section header	
 	  newshdr = elf32_getshdr(newscn);
@@ -1056,34 +1060,34 @@ bool emitElf::createLoadableSections(Elf32_Shdr* &shdr, unsigned &loadSecTotalSi
 #endif
 
 	  if(addNewSegmentFlag)
-	    {
-	      // Check to make sure the (vaddr for the start of the new segment - the offset) is page aligned
-	      if(!firstNewLoadSec)
-		{
-		  newSegmentStart = newshdr->sh_addr;
-		  Offset newoff = newshdr->sh_offset  - (newshdr->sh_offset & (pgSize-1)) + (newshdr->sh_addr & (pgSize-1));
-		  if(newoff < newshdr->sh_offset)
-		    newoff += pgSize;
-		  extraAlignSize += newoff - newshdr->sh_offset;
-		  newshdr->sh_offset = newoff;
-
-		  /* // Address or Offset
-		     newSegmentStart = newshdr->sh_addr  - (newshdr->sh_addr & (pgSize-1)) + (newshdr->sh_offset & (pgSize-1));
-		     if(newSegmentStart < newshdr->sh_addr)
-		     {
-		     newSegmentStart += pgSize;
-		     extraAlignSize += newSegmentStart - newshdr->sh_addr;
-		     newshdr->sh_addr = newSegmentStart;
-		     } 
-		  */
-		}    
-    	    }	
+          {
+             // Check to make sure the (vaddr for the start of the new segment - the offset) is page aligned
+             if(!firstNewLoadSec)
+             {
+                newSegmentStart = newshdr->sh_addr;
+                Offset newoff = newshdr->sh_offset  - (newshdr->sh_offset & (pgSize-1)) + (newshdr->sh_addr & (pgSize-1));
+                if(newoff < newshdr->sh_offset)
+                   newoff += pgSize;
+                extraAlignSize += newoff - newshdr->sh_offset;
+                newshdr->sh_offset = newoff;
+                
+                /* // Address or Offset
+                   newSegmentStart = newshdr->sh_addr  - (newshdr->sh_addr & (pgSize-1)) + (newshdr->sh_offset & (pgSize-1));
+                   if(newSegmentStart < newshdr->sh_addr)
+                   {
+                   newSegmentStart += pgSize;
+                   extraAlignSize += newSegmentStart - newshdr->sh_addr;
+                   newshdr->sh_addr = newSegmentStart;
+                   } 
+                */
+             }    
+          }	
 	  else{
-	    Offset newoff = newshdr->sh_offset  - (newshdr->sh_offset & (pgSize-1)) + (newshdr->sh_addr & (pgSize-1));
-	    if(newoff < newshdr->sh_offset)
-	      newoff += pgSize;
-	    extraAlignSize += newoff - newshdr->sh_offset;
-	    newshdr->sh_offset = newoff;
+             Offset newoff = newshdr->sh_offset  - (newshdr->sh_offset & (pgSize-1)) + (newshdr->sh_addr & (pgSize-1));
+             if(newoff < newshdr->sh_offset)
+                newoff += pgSize;
+             extraAlignSize += newoff - newshdr->sh_offset;
+             newshdr->sh_offset = newoff;
 	  }
 	  // Why is this being done -giri??	
 	  // newshdr->sh_offset = shdr->sh_offset;
@@ -1095,6 +1099,8 @@ bool emitElf::createLoadableSections(Elf32_Shdr* &shdr, unsigned &loadSecTotalSi
 	    newdata64->d_off = 0;
 	    newdata64->d_version = 1;
 	    newdata64->d_size = newSecs[i]->getDiskSize();
+            if (!newdata64->d_align)
+               newdata64->d_align = newshdr->sh_addralign;
 	    newshdr->sh_size = newdata64->d_size;
 	    memcpy(newdata, newdata64, sizeof(Elf_Data));
 	  }
@@ -1104,10 +1110,13 @@ bool emitElf::createLoadableSections(Elf32_Shdr* &shdr, unsigned &loadSecTotalSi
 	    newdata->d_off = 0;
 	    newdata->d_version = 1;
 	    newdata->d_size = newSecs[i]->getDiskSize();
+            if (!newdata->d_align)
+               newdata->d_align = newshdr->sh_addralign;
 	    newshdr->sh_size = newdata->d_size;
 	  }
 
 	  loadSecTotalSize += newshdr->sh_size;
+
 	  elf_update(newElf, ELF_C_NULL);
 
 	  shdr = newshdr;

@@ -50,26 +50,16 @@
 #include "instPoint.h"
 #include "symtab.h"
 #include "dyninstAPI/h/BPatch_Set.h"
-#include "InstrucIter.h"
 #include "debug.h"
 #include <deque>
 #include <set>
 #include <algorithm>
 #include "arch.h"
+
+#include "InstructionAdapter.h"
 #if defined(cap_instruction_api)
 #include "instructionAPI/h/Instruction.h"
 #include "instructionAPI/h/InstructionDecoder.h"
-#else
-namespace Dyninst
-{
-	namespace InstructionAPI
-	{
-		struct RegisterAST
-		{
-			typedef boost::shared_ptr<RegisterAST> Ptr;
-		};
-	};
-};
 #endif
 /**************************************************************
  *
@@ -90,6 +80,7 @@ void checkIfRelocatable(instruction insn, bool &canBeRelocated) {
   }
 }
 
+#if 0
 bool image_func::archIsIPRelativeBranch(InstrucIter& ah)
 {
 	// These don't exist on IA32...
@@ -109,8 +100,8 @@ bool image_func::archIsIPRelativeBranch(InstrucIter& ah)
 		ll_insn);
     if(locs.modrm_mod == 0x0 && locs.modrm_rm == 0x05)
     {
-      parsing_printf("%s[%d]: Found RIP-offset indirect branch at 0x%lx\n", FILE__,
-		     __LINE__, *ah);
+      parsing_printf("%s: Found RIP-offset indirect branch at 0x%lx\n", FILE__,
+		     *ah);
       return true;
     }
   }
@@ -231,6 +222,7 @@ bool image_func::archCheckEntry( InstrucIter &ah, image_func * /*func*/ )
     }
   return true;
 }
+#endif
 
 // Architecture-specific a-priori determination that we can't
 // parse this function.
@@ -269,11 +261,6 @@ bool image_func::archAvoidParsing()
         return false;
 }
 
-void image_func::archGetFuncEntryAddr(Address & /* funcEntryAddr */)
-{
-    return;
-}
-
 // Architecture-specific hack to prevent relocation of certain functions.
 bool image_func::archNoRelocate()
 {   
@@ -286,11 +273,12 @@ void image_func::archSetFrameSize(int /* frameSize */)
     return;
 }
 
-void image_func::archInstructionProc(InstrucIter & /* ah */)
+void image_func::archInstructionProc(InstructionAdapter & /* ah */)
 {
     return;
 }
 
+#if 0
 bool findMaxSwitchInsn(image_basicBlock *start, instruction &maxSwitch,
                        instruction &branchInsn, bool &found_along_taken_br,
                        const std::set<Dyninst::InstructionAPI::RegisterAST::Ptr>& /*regsRead*/)
@@ -434,8 +422,8 @@ bool leadsToVisitedBlock(image_edge* e, const std::set<image_basicBlock*>& visit
 
 bool findThunkInBlock(image_func* f, image_basicBlock* curBlock, Address& thunkOffset)
 {
-  InstrucIter ah(curBlock);
-  bool isValidTarget, dummy;
+    InstrucIter ah(curBlock);
+    bool isValidTarget, dummy;
   
   while(ah.hasMore())
   {
@@ -501,6 +489,7 @@ bool findThunkInBlock(image_func* f, image_basicBlock* curBlock, Address& thunkO
       return true;
 	  break;
 	default:
+            parsing_printf("\tunhandled displacement size %d at %x\n", loc.disp_size, *ah);
 	  thunkOffset = 0;
 	  break;	  
 	  }
@@ -780,6 +769,7 @@ bool image_func::archGetMultipleJumpTargets(
                 return targets.size() > 0;
             }
 }
+#endif
 
 bool image_func::archProcExceptionBlock(Address &catchStart, Address a)
 {
@@ -792,7 +782,7 @@ bool image_func::archProcExceptionBlock(Address &catchStart, Address a)
         return false;
     }
 }
-
+#if 0
 bool image_func::archIsATailCall(InstrucIter &ah, 
                                  pdvector< instruction >& allInstructions)
 {
@@ -855,13 +845,10 @@ bool image_func::archIsIndirectTailCall(InstrucIter &ah)
 
   return false;
 }
-
-bool image_func::archIsAbortOrInvalid(InstrucIter &ah)
-{
-    return ah.isAnAbortInstruction();
-}
+#endif
 
 bool image_func::writesFPRs(unsigned level) {
+    using namespace Dyninst::InstructionAPI;
     // Oh, we should be parsed by now...
     if (!parsed_) image_->analyzeIfNeeded();
 
@@ -871,10 +858,11 @@ bool image_func::writesFPRs(unsigned level) {
         // check the instPoints; no reason to iterate over.
         // We also cache callee values here for speed.
 
-        if (level >= 3) return true; // Arbitrarily decided level 3 iteration.
-        
+        if (level >= 3) {
+            return true; // Arbitrarily decided level 3 iteration.
+        }        
         for (unsigned i = 0; i < calls.size(); i++) {
-            if (calls[i]->func()) {
+            if (calls[i]->func() && calls[i]->func() != this) {
                 if (calls[i]->func()->writesFPRs(level+1)) {
                     // One of our kids does... if we're top-level, cache it; in 
                     // any case, return
@@ -883,7 +871,7 @@ bool image_func::writesFPRs(unsigned level) {
                     return true;
                 }
             }
-            else {
+            else if(!calls[i]->func()){
                 // Indirect call... oh, yeah. 
                 if (level == 0)
                     containsFPRWrites_ = used;
@@ -892,23 +880,44 @@ bool image_func::writesFPRs(unsigned level) {
         }
 
         // No kids contain writes. See if our code does.
-        InstrucIter ah(this);
-        while (ah.hasMore()) {
-            if (ah.isFPWrite()) {
+        const unsigned char* buf = (const unsigned char*)(img()->getPtrToInstruction(getOffset()));
+        InstructionDecoder d(buf,
+                             endOffset_ - getOffset());
+        Instruction::Ptr i;
+        static RegisterAST::Ptr st0(new RegisterAST(r_ST0));
+        static RegisterAST::Ptr st1(new RegisterAST(r_ST1));
+        static RegisterAST::Ptr st2(new RegisterAST(r_ST2));
+        static RegisterAST::Ptr st3(new RegisterAST(r_ST3));
+        static RegisterAST::Ptr st4(new RegisterAST(r_ST4));
+        static RegisterAST::Ptr st5(new RegisterAST(r_ST5));
+        static RegisterAST::Ptr st6(new RegisterAST(r_ST6));
+        static RegisterAST::Ptr st7(new RegisterAST(r_ST7));
+        while (i = d.decode()) {
+            if(i->isWritten(st0) ||
+               i->isWritten(st1) ||
+               i->isWritten(st2) ||
+               i->isWritten(st3) ||
+               i->isWritten(st4) ||
+               i->isWritten(st5) ||
+               i->isWritten(st6) ||
+               i->isWritten(st7)
+              )
+            {
                 containsFPRWrites_ = used;
                 return true;
             }
-            ah++;
         }
 
         // No kids do, and we don't. Impressive.
         containsFPRWrites_ = unused;
         return false;
     }
-    else if (containsFPRWrites_ == used)
+    else if (containsFPRWrites_ == used) {
         return true;
-    else if (containsFPRWrites_ == unused)
+    }
+    else if (containsFPRWrites_ == unused) {
         return false;
+    }
 
     fprintf(stderr, "ERROR: function %s, containsFPRWrites_ is %d (illegal value!)\n", 
 	    symTabName().c_str(), containsFPRWrites_);

@@ -74,6 +74,12 @@ class BPatch_flowGraph;
 #undef DYNINST_CLASS_NAME
 #endif
 #define DYNINST_CLASS_NAME BPatch_basicBlock
+struct insnPredicate : public std::unary_function<Dyninst::InstructionAPI::Instruction::Ptr, bool>
+{
+    virtual result_type operator()(argument_type arg) = 0;
+    virtual ~insnPredicate() {}
+    
+};
 
 class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
 	friend class BPatch_flowGraph;
@@ -117,6 +123,11 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
 
    /** constructor of class */
    BPatch_basicBlock(int_basicBlock *ib, BPatch_flowGraph *fg);
+
+
+   
+   BPatch_Vector<BPatch_point*>*
+           findPointByPredicate(insnPredicate& f);
 
  public:
    
@@ -254,7 +265,9 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
    API_EXPORT(Int, (ops),
               BPatch_Vector<BPatch_point*> *,findPoint,(const BPatch_Set<BPatch_opCode>& ops));
 
-	/** BPatch_basicBlock::getInstructions   */
+   API_EXPORT(Int, (filter),
+              BPatch_Vector<BPatch_point*> *,findPoint,(bool(*filter)(Dyninst::InstructionAPI::Instruction::Ptr)));
+   /** BPatch_basicBlock::getInstructions   */
 	/** return the instructions that belong to the block */
 
    API_EXPORT(Int, (),

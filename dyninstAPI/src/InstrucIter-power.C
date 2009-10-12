@@ -947,6 +947,7 @@ bool InstrucIter::isAnneal(){
 #define MK_SI(bytes, i) (MK_SX1((bytes), i, (**i).xform.ra, -1))
 
 struct opCodeInfo {
+    static bool doneInit;
   unsigned int bytes; //: 4;
   unsigned int direc; //: 1; // 0 == load, 1 == store
 public:
@@ -954,10 +955,12 @@ public:
   opCodeInfo() : bytes(0), direc(0) {}
 };
 
+bool opCodeInfo::doneInit = false;
 opCodeInfo *xopCodes[1024];
 
 void initOpCodeInfo()
 {
+    opCodeInfo::doneInit = true;
   memset(xopCodes, sizeof(opCodeInfo *)*1024, 0);
   xopCodes[LWARXxop]	= new opCodeInfo(4, 0);
   xopCodes[LDXxop] 	= new opCodeInfo(8, 0);
@@ -1025,7 +1028,7 @@ void initOpCodeInfo()
 // is 0 then the instruction is most likely a load, else it is likely a store.
 // I also assume that no invalid instructions occur: e.g.: LU with RA=0, etc.
 
-#define logIS_A(x) 
+#define logIS_A(x)
 //#define logIS_A(x) logLine((x))
 
 BPatch_memoryAccess* InstrucIter::isLoadOrStore()
@@ -1092,11 +1095,10 @@ BPatch_memoryAccess* InstrucIter::isLoadOrStore()
   }
   else if(op == LXop) { // X-forms
     unsigned int xop = (**i).xform.xo;
-    //char buf[100];
-
-    //snprintf(buf, 100, "XOP:: %d\n", xop);
-    //logIS_A(buf);
-
+    
+    //logIS_A("XOP::%d\n", xop);
+    if(!opCodeInfo::doneInit)
+        initOpCodeInfo();
     opCodeInfo *oci = xopCodes[xop];
 
     if (oci == NULL)
@@ -1614,6 +1616,12 @@ bool InstrucIter::isFramePush()
 bool InstrucIter::isALeaveInstruction()
 {
   return false;
+}
+
+bool InstrucIter::isAnInterruptInstruction()
+{
+    // TODO: not implemented
+    return false;
 }
 
 bool InstrucIter::isAnAbortInstruction()

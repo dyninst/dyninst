@@ -49,7 +49,7 @@ bool frameChecker::isStackPreamble() const
 
 bool frameChecker::isMovStackToBase(unsigned index_to_check) const
 {
-   if(m_Insns.size() < index_to_check) return false;
+   if(m_Insns.size() <= index_to_check) return false;
   if(m_Insns[index_to_check]->getOperation().getID() == e_mov)
   {
     RegisterAST::Ptr stack_ptr(new RegisterAST(r_ESP));
