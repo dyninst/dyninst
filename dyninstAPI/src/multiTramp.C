@@ -463,6 +463,7 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
       reinterpret_cast<const unsigned char*>(proc->getPtrToInstruction(startAddr));
       
       InstructionDecoder decoder(relocatedInsnBuffer, size);
+      decoder.setMode(proc->getAddressWidth() == 8);
       while(offset < size)
       {
 	Address insnAddr = startAddr + offset;
@@ -633,7 +634,8 @@ bool multiTramp::getMultiTrampFootprint(Address instAddr,
 #if defined(cap_instruction_api)
 	using namespace Dyninst::InstructionAPI;
 	InstructionDecoder decoder;
-	Instruction::Ptr instInsn = decoder.decode((unsigned char*)(proc->getPtrToInstruction(instAddr)));
+        decoder.setMode(proc->getAddressWidth() == 8);
+        Instruction::Ptr instInsn = decoder.decode((unsigned char*)(proc->getPtrToInstruction(instAddr)));
 	size = instInsn->size();
 #else
         InstrucIter ah(instAddr,proc);

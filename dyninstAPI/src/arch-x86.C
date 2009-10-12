@@ -1050,6 +1050,7 @@ bool instruction::generate(codeGen &gen,
          // Get us an instrucIter
           const unsigned char* buf = reinterpret_cast<const unsigned char*>(addrSpace->getPtrToInstruction(target));
           InstructionDecoder d(buf, 32);
+          d.setMode(addrSpace->getAddressWidth() == 8);
           Instruction::Ptr firstInsn = d.decode();
           Instruction::Ptr secondInsn = d.decode();
           if(firstInsn && firstInsn->getOperation().getID() == e_mov

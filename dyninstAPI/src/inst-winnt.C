@@ -171,6 +171,7 @@ int_function *instPoint::findCallee()
       const unsigned char *insnLocalAddr =
         (unsigned char *)(proc()->getPtrToInstruction(callTarget));
       InstructionDecoder d(insnLocalAddr, max_insn_size);
+      d.setMode(proc()->getAddressWidth() == 8);
       Instruction::Ptr insn = d.decode();
       if(insn && (insn->getCategory() == c_BranchInsn))
       {

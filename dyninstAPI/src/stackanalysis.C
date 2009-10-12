@@ -554,6 +554,7 @@ StackAnalysis::Height StackAnalysis::getStackCleanAmount(image_func *func) {
     }
 
     InstructionDecoder decoder;   
+    decoder.setMode(func->img()->getAddressWidth() == 8);
     unsigned char *cur;
 
     std::set<Height> returnCleanVals;

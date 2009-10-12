@@ -247,6 +247,7 @@ instPoint *instPoint::createArbitraryInstPoint(Address addr,
 #if defined(cap_instruction_api)
     const unsigned char* buffer = reinterpret_cast<unsigned char*>(proc->getPtrToInstruction(bbl->firstInsnAddr()));
     InstructionDecoder decoder (buffer, bbl->getSize());
+    decoder.setMode(proc->getAddressWidth() == 8);
     Instruction::Ptr i;
     Address currentInsn = bbl->firstInsnAddr();
     while((i = decoder.decode()) && (currentInsn < addr))
