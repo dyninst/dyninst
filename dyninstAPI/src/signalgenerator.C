@@ -56,8 +56,15 @@
 //  for signal generator threads.  eg SYNC1, SYNC2, SYNC3
 
 unsigned signal_generator_counter = 0;
-eventLock SignalGeneratorCommon::global_wait_list_lock;
-pdvector<EventGate *> SignalGeneratorCommon::global_wait_list;
+eventLock *SignalGeneratorCommon::global_wait_list_lock;
+pdvector<EventGate *> *SignalGeneratorCommon::global_wait_list;
+global_wait_list_init_t SignalGeneratorCommon::wlinit;
+
+global_wait_list_init_t::global_wait_list_init_t()
+{
+  SignalGeneratorCommon::global_wait_list = new pdvector<EventGate *>();
+  SignalGeneratorCommon::global_wait_list_lock = new eventLock();
+}
 
 const char *processRunStateStr(processRunState_t runState) {
     switch (runState) {
@@ -804,13 +811,13 @@ bool SignalGeneratorCommon::signalEvent(EventRecord &ev)
   }
 
   signal_printf("%s[%d]: signalling global wait list\n", FILE__, __LINE__);
-  global_wait_list_lock._Lock(__FILE__, __LINE__);
-  for (unsigned int i = 0; i < global_wait_list.size(); ++i) {
-      if (global_wait_list[i]->signalIfMatch(ev)) {
+  global_wait_list_lock->_Lock(__FILE__, __LINE__);
+  for (unsigned int i = 0; i < global_wait_list->size(); ++i) {
+    if ((*global_wait_list)[i]->signalIfMatch(ev)) {
           ret = true;
       }
   }
-  global_wait_list_lock._Unlock(FILE__, __LINE__);
+  global_wait_list_lock->_Unlock(FILE__, __LINE__);
 
 
   signal_printf("%s[%d]: acquiring activation lock in signalEvent...\n", FILE__, __LINE__);
@@ -925,9 +932,9 @@ eventType SignalGeneratorCommon::globalWaitForOneOf(pdvector<eventType> &evts)
       eg->addEvent(evts[i]);
   }
 
-  global_wait_list_lock._Lock(FILE__, __LINE__);
-  global_wait_list.push_back(eg);
-  global_wait_list_lock._Unlock(FILE__, __LINE__);
+  global_wait_list_lock->_Lock(FILE__, __LINE__);
+  global_wait_list->push_back(eg);
+  global_wait_list_lock->_Unlock(FILE__, __LINE__);
 
   if (global_mutex->depth() > 1)
      signal_printf("%s[%d]:  about to EventGate::wait(), lock depth %d\n", 
@@ -935,17 +942,17 @@ eventType SignalGeneratorCommon::globalWaitForOneOf(pdvector<eventType> &evts)
 
   EventRecord result = eg->wait();
   
-  global_wait_list_lock._Lock(FILE__, __LINE__);
+  global_wait_list_lock->_Lock(FILE__, __LINE__);
   bool found = false;
-  for (int i = global_wait_list.size() -1; i >= 0; i--) {
-    if (global_wait_list[i] == eg) {
+  for (int i = global_wait_list->size() -1; i >= 0; i--) {
+    if ((*global_wait_list)[i] == eg) {
        found = true;
-       VECTOR_ERASE(global_wait_list,i,i);
+       VECTOR_ERASE((*global_wait_list),i,i);
        delete eg;
        break;
     } 
   }
-  global_wait_list_lock._Unlock(FILE__, __LINE__);
+  global_wait_list_lock->_Unlock(FILE__, __LINE__);
   
   if (!found) {
      fprintf(stderr, "%s[%d]:  BAD NEWS, somehow lost a pointer to eg\n", 
