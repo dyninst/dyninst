@@ -110,6 +110,7 @@ codeGen::codeGen(unsigned size) :
     f_(NULL),
     bti_(NULL),
     isPadded_(true),
+    trackRegDefs_(false),
     obj_(NULL)
 {
     buffer_ = (codeBuf_t *)malloc(size+codeGenPadding);
@@ -142,6 +143,7 @@ codeGen::codeGen(const codeGen &g) :
     f_(g.f_),
     bti_(g.bti_),
     isPadded_(g.isPadded_),
+    trackRegDefs_(g.trackRegDefs_),
     obj_(g.obj_)
 {
     if (size_ != 0) {
