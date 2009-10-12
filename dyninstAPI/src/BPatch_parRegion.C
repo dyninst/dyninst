@@ -123,7 +123,7 @@ bool BPatch_parRegion::getInstructionsInt(std::vector<InstructionAPI::Instructio
   
 }
 #else
-bool BPatch_parRegion::getInstructionsInt(std::vector<InstructionAPI::Instruction::Ptr>& insns) {
+bool BPatch_parRegion::getInstructionsInt(std::vector<InstructionAPI::Instruction::Ptr>&) {
   return false;
 }
 #endif // defined(cap_instruction_api)

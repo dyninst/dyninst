@@ -467,8 +467,10 @@ BPatch_Vector<BPatch_point*>*
                     flowGraph->getBFunction());
             if(!tmp)
             {
+#if defined(cap_instruction_api)
                 fprintf(stderr, "WARNING: failed to create instpoint for load/store/prefetch %s at 0x%lx\n",
                     curInsn->first->format().c_str(), curInsn->second);
+#endif //defined(cap_instruction_api)
             }
             else
             {
