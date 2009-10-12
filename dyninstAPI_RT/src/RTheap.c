@@ -154,6 +154,11 @@ static Address constrained_mmap(size_t len, Address lo, Address hi,
 {
    const dyninstmm_t *mlo, *mhi, *p;
    Address beg, end, try;
+#if defined(os_linux && arch_power)
+// DYNINSTheap_loAddr should already be defined in DYNINSTos_malloc. 
+// Redefining here, just in case constrained_mmap is called from a different call path.
+   DYNINSTheap_loAddr = getpagesize();
+#endif
 
    if (lo > DYNINSTheap_hiAddr) return 0;
 
@@ -304,6 +309,9 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
     dyninstmm_t *maps;
 
     /* What if we need to allocate memory not in the area we can mmap? */
+#if defined(os_linux && arch_power)
+   DYNINSTheap_loAddr = getpagesize();
+#endif
     if ((hi < DYNINSTheap_loAddr) || (lo > DYNINSTheap_hiAddr)) {
 #ifdef DEBUG
       fprintf(stderr, "CAN'T MMAP IN RANGE GIVEN\n");

@@ -71,8 +71,7 @@ Address DYNINSTheap_loAddr = 0x4096;
 Address DYNINSTheap_hiAddr = ~0x0;
 #elif defined(arch_power)
 int     DYNINSTheap_align  = 4; /* heaps are word-aligned */
-#include <asm/page.h>
-Address DYNINSTheap_loAddr = PAGE_SIZE;
+Address DYNINSTheap_loAddr = ~(Adress)0; // should be defined by getpagesize() when used.
 Address DYNINSTheap_hiAddr = ~(Address)0;
 #else
 int     DYNINSTheap_align = 4; /* heaps are word-aligned */
