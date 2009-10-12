@@ -29,7 +29,7 @@ void check1()
     test_mem_1_passed = 1;
   } else {
     logerror("**Failed** test_mem_1 (load instrumentation)\n");
-    logerror("    load counter seems wrong\n");
+    logerror("    load counter seems wrong (%d expected, %d counted)\n", loadExp, loadCnt);
   }
 }
 

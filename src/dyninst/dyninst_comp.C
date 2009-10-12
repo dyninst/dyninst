@@ -266,11 +266,12 @@ test_results_t DyninstComponent::group_teardown(RunGroup *group,
       bool printLabels = (bool) params["printlabels"]->getInt();
       bool debugPrint = (bool) params["debugPrint"]->getInt();
       char *humanlogname = params["humanlogname"]->getString();
+      bool noClean = (bool) params["noClean"]->getInt();
       
       test_results_t test_result;
       runBinaryTest(bpatch, group, appBinEdit,
                     logfilename, humanlogname, verboseFormat, printLabels,
-                    debugPrint, getPIDFilename(), test_result);
+                    debugPrint, getPIDFilename(), noClean, test_result);
       return test_result;
    }
 
@@ -1099,8 +1100,8 @@ void dumpvect(BPatch_Vector<BPatch_point*>* res, const char* msg)
 
 static inline void dumpxpct(BPatch_memoryAccess* exp[], unsigned int size, const char* msg)
 {
-	if(!debugPrint)
-		return;
+  //	if(!debugPrint)
+  //	return;
 
 	printf("%s: %d\n", msg, size);
 

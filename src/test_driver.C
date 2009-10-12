@@ -139,6 +139,7 @@ bool runAllABIs = true;
 bool runABI_32 = false;
 bool runABI_64 = false;
 bool limitSkippedTests = false;
+bool noclean = false;
 int limitResumeGroup = -1;
 int limitResumeTest = -1;
 int skipToTest = 0;
@@ -700,21 +701,21 @@ void executeGroup(ComponentTester *tester, RunGroup *group,
 
       if (shouldRunTest(group, group->tests[i])) {
          log_teststart(groupnum, i, test_init_rs);
-	 if(group->tests[i]->mutator)
-	   {
-	     test_results_t setup_res = group->tests[i]->mutator->setup(param);
-	     group->tests[i]->results[test_init_rs] = setup_res;
-	     if (setup_res != PASSED)
-	       {
-		 logerror("%s[%d]:  setup failed (%d) for test %s\n", 
-			  FILE__, __LINE__, (int) setup_res, group->tests[i]->name);
-	       }
-	   }
-	 else
-	   {
-	     logerror("No mutator object found for test: %s\n", group->tests[i]->name);
-	     group->tests[i]->results[test_init_rs] = FAILED;
-	   }
+         if(group->tests[i]->mutator)
+         {
+            test_results_t setup_res = group->tests[i]->mutator->setup(param);
+            group->tests[i]->results[test_init_rs] = setup_res;
+            if (setup_res != PASSED)
+            {
+               logerror("%s[%d]:  setup failed (%d) for test %s\n", 
+                        FILE__, __LINE__, (int) setup_res, group->tests[i]->name);
+            }
+         }
+         else
+         {
+            logerror("No mutator object found for test: %s\n", group->tests[i]->name);
+            group->tests[i]->results[test_init_rs] = FAILED;
+         }
          log_testresult(group->tests[i]->results[test_init_rs]);
       }
    }
@@ -841,6 +842,7 @@ void startAllTests(std::vector<RunGroup *> &groups,
    ParamInt usehuman_p((int) useHumanLog);
    ParamInt printlabels_p((int) printLabels);
    ParamInt debugprint_p((int) debugPrint);
+   ParamInt noclean_p((int) noclean);
    ParamString humanname_p(humanlog_name);
 
    param["logfilename"] = &logfile_p;
@@ -849,6 +851,7 @@ void startAllTests(std::vector<RunGroup *> &groups,
    param["humanlogname"] = &humanname_p;
    param["printlabels"] = &printlabels_p;
    param["debugPrint"] = &debugprint_p;
+   param["noClean"] = &noclean_p;
 
    // Print Test Log Header
    getOutput()->log(LOGINFO, "Commencing test(s) ...\n");
@@ -1215,7 +1218,7 @@ int parseArgs(int argc, char *argv[])
       {
          logfilename = "-";
          if ((i + 1) < argc) {
-            if ((argv[i + 1][0] != '-') || (argv[i + 1][1] != '\0')) {
+            if ((argv[i + 1][0] != '-') || (argv[i + 1][1] == '\0')) {
                i += 1;
                logfilename = argv[i];
             }
@@ -1339,6 +1342,10 @@ int parseArgs(int argc, char *argv[])
          }
          runRewriter = true;
          runDefaultStarts = false;
+      }
+      else if ( strcmp(argv[i], "-noclean") == 0 )
+      {
+         noclean = true;
       }
       else if ( strcmp(argv[i], "-serialize") == 0 )
       {

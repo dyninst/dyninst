@@ -86,12 +86,16 @@ test_results_t test_instruction_profile_Mutator::executeTest()
       curReg != codeRegions.end();
       ++curReg)
   {
+    if((*curReg)->getRegionSize() < 16) continue;
     const unsigned char* decodeBase = reinterpret_cast<const unsigned char*>((*curReg)->getPtrToRawData());
     
     std::vector<Instruction::Ptr > decodedInsns;
     Instruction::Ptr i;
     InstructionDecoder d;
-    unsigned offset = 0;
+    // 32-bit libc; force to 32-bit mode
+    d.setMode(false);
+    long offset = 0;
+    
     // simulate parsing via vector-per-basic-block
     while(offset < (*curReg)->getRegionSize() - 16)
     {
@@ -112,7 +116,7 @@ test_results_t test_instruction_profile_Mutator::executeTest()
       }
     }
   }
-  fprintf(stderr, "Instruction counts: %d total, %d valid, %d control-flow\n", total_count, valid_count, cf_count);
+  //fprintf(stderr, "Instruction counts: %d total, %d valid, %d control-flow\n", total_count, valid_count, cf_count);
   
   BPatch bp;
   BPatch_addressSpace* libc = bp.openBinary("/lib/libc.so.6");
