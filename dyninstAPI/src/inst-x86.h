@@ -273,6 +273,8 @@ void emitSubRegReg(RealRegister dest, RealRegister src, codeGen &gen);
 void emitSHL(RealRegister dest, unsigned char pos, codeGen &gen);
 
 void restoreGPRtoGPR(RealRegister reg, RealRegister dest, codeGen &gen);
+Register restoreGPRtoReg(RealRegister reg, codeGen &gen, RealRegister *dest_to_use = NULL);
+
 //Restore the SP+Imm to a GPR--an optimization for memory instrumentation
 void restoreSPImmToGPR(RealRegister dest, int imm, codeGen &gen);
 

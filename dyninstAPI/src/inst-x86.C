@@ -1543,7 +1543,7 @@ void restoreSPImmToGPR(RealRegister dest, int imm, codeGen &gen)
 }
 
 // Restore mutatee value of GPR reg to dest (real) GPR
-Register restoreGPRtoReg(RealRegister reg, codeGen &gen, RealRegister *dest_to_use = NULL)
+Register restoreGPRtoReg(RealRegister reg, codeGen &gen, RealRegister *dest_to_use)
 {
    Register dest = REG_NULL;
    RealRegister dest_r(-1);

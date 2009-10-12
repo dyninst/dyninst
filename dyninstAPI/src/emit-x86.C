@@ -299,8 +299,7 @@ void EmitterIA32::emitLoadOrigRegRelative(Register dest, Address offset,
 void EmitterIA32::emitLoadFrameAddr(Register dest, Address offset, codeGen &gen)
 {
    RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
-   
-   emitMovRMToReg(dest_r, RealRegister(REGNUM_EBP), 0, gen);
+   restoreGPRtoReg(RealRegister(REGNUM_EBP), gen, &dest_r);
    emitAddRegImm32(dest_r, offset, gen);
 }
 
