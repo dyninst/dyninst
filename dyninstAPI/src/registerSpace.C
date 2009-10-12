@@ -1022,7 +1022,6 @@ bitArray registerSpace::getBitArray()  {
 #elif defined(arch_power)
     return bitArray(lastReg);
 #else
-    assert(0);
     return bitArray();
 #endif
 }
