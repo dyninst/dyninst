@@ -384,6 +384,20 @@ test_runmode('snip_change_shlib_var', 'staticdynamic').
 test_start_state('snip_change_shlib_var', 'stopped').
 tests_module('snip_change_shlib_var', 'dyninst').
 
+% test_snip_remove
+test('test_snip_remove', 'test_snip_remove', 'test_snip_remove').
+test_description('test_snip_remove', 'Tests multiple snippet removal').
+test_runs_everywhere('test_snip_remove').
+groupable_test('test_snip_remove').
+mutator('test_snip_remove', ['test_snip_remove.C']).
+mutatee('test_snip_remove', ['test_snip_remove_mutatee.c']).
+compiler_for_mutatee('test_snip_remove', Compiler) :-
+    comp_lang(Compiler, 'c').
+test_runmode('test_snip_remove', 'dynamic').
+test_start_state('test_snip_remove', 'stopped').
+tests_module('test_snip_remove', 'dyninst').
+
+
 test('test1_23', 'test1_23', 'dyninst_group_test').
 test_description('test1_23', 'Local Variables').
 test_runs_everywhere('test1_23').
