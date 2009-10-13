@@ -146,6 +146,7 @@ typeCollection *typeCollection::getGlobalTypeCollection() {
     return tc;
 }
 
+#if 0
 typeCollection *typeCollection::getModTypeCollection(Module *mod) {
     assert(mod);
 
@@ -164,6 +165,7 @@ typeCollection *typeCollection::getModTypeCollection(Module *mod) {
     newTC->refcount++;
     return newTC;
 }
+#endif
 
 void typeCollection::freeTypeCollection(typeCollection *tc) {
     assert(tc);

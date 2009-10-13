@@ -223,7 +223,7 @@ class AnnotatableDense
 
       bool addAnnotation(const void *a, AnnotationClassID id) 
 	  {
-		  fprintf(stderr, "%s[%d]:  welcome to addAnnotation\n", FILE__, __LINE__);
+		  //fprintf(stderr, "%s[%d]:  welcome to addAnnotation\n", FILE__, __LINE__);
          unsigned size = id + 1;
          if (!annotations)
          {
@@ -273,7 +273,7 @@ class AnnotatableDense
       template<class T> 
       bool addAnnotation(const T *a, AnnotationClass<T> &a_id) 
       {
-		  fprintf(stderr, "%s[%d]:  welcome to addAnnotation\n", FILE__, __LINE__);
+		  //fprintf(stderr, "%s[%d]:  welcome to addAnnotation\n", FILE__, __LINE__);
 
          int id = a_id.getID();
 		 bool ret =  addAnnotation((void *)a, id);
@@ -470,8 +470,9 @@ class AnnotatableSparse
 				  abt->erase(iter);
 			  }
 		  }
-		  fprintf(stderr, "%s[%d]:  AnnotatableSparse dtor:  removed %d elem\n", 
-				  FILE__, __LINE__, n);
+
+		  //fprintf(stderr, "%s[%d]:  AnnotatableSparse dtor:  removed %d elem\n", 
+		//		  FILE__, __LINE__, n);
 	  }
    private:
 

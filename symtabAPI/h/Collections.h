@@ -78,8 +78,6 @@ class typeCollection : public Serializable, public AnnotatableSparse {
     friend class Symtab;
     friend class Object;
     friend class Module;
-    friend class SymtabTranslatorBase;
-    friend class SymtabTranslatorBin;
 
     dyn_hash_map<std::string, Type *> typesByName;
     dyn_hash_map<std::string, Type *> globalVarsByName;
@@ -97,12 +95,15 @@ class typeCollection : public Serializable, public AnnotatableSparse {
     // DWARF...
     bool dwarfParsed_;
 
+	SYMTAB_EXPORT void serialize_impl(SerializerBase *, const char * = "typeCollection") THROW_SPEC (SerializerError);
 	public:
     SYMTAB_EXPORT typeCollection();
 public:
-    SYMTAB_EXPORT void serialize_impl(SerializerBase *, const char * = "typeCollection") THROW_SPEC (SerializerError);
+
     SYMTAB_EXPORT static typeCollection *getGlobalTypeCollection();
+#if 0
     SYMTAB_EXPORT static typeCollection *getModTypeCollection(Module *mod);
+#endif
     SYMTAB_EXPORT static void freeTypeCollection(typeCollection *tc);
 
     // DWARF...

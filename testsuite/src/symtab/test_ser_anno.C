@@ -185,6 +185,7 @@ class AnnotateeDense : public AnnotateeBase, public AnnotatableDense
 		~AnnotateeDense() {}
 };
 
+#if 0
 template <class T>
 class AnnotateeContainer : public Serializable, public AnnotatableSparse
 {
@@ -231,6 +232,7 @@ void test4(AnnotateeContainer<T> &cont, std::vector<T> &elems, std::vector<A> &a
 		cont.addElement(elems[i]);
 	}
 }
+#endif
 
 class MyAnnotationClass : public Serializable
 {
