@@ -82,7 +82,8 @@ namespace Dyninst
     }
     bool Immediate::isStrictEqual(const InstructionAST& rhs) const
     {
-      return rhs.eval() == eval();
+      
+        return (rhs.eval() == eval());
     }
     void Immediate::apply(Visitor* v)
     {

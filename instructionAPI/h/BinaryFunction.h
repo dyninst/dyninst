@@ -161,7 +161,7 @@ namespace Dyninst
       virtual bool isUsed(InstructionAST::Ptr findMe) const
       {
 	return m_arg1->isUsed(findMe) || m_arg2->isUsed(findMe) 
-	|| *m_arg1 == *findMe || *m_arg2 == *findMe;
+                || (*m_arg1 == *findMe) || (*m_arg2 == *findMe) || (*findMe == *this);
       }
       virtual std::string format() const
       {
@@ -177,9 +177,11 @@ namespace Dyninst
       virtual bool isStrictEqual(const InstructionAST& rhs) const
       {
 	const BinaryFunction& other(dynamic_cast<const BinaryFunction&>(rhs));
-	return *(other.m_arg1) == *m_arg1 &&
-	(*other.m_arg2) == *m_arg2;// &&
-	//other.m_funcPtr == m_funcPtr;
+	if(*(other.m_arg1) == *m_arg1 &&
+                    (*other.m_arg2) == *m_arg2) return true;
+        if(*(other.m_arg1) == *m_arg2 &&
+             (*other.m_arg2) == *m_arg1) return true;
+        return false;
       }
   
     private:
