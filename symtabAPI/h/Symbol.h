@@ -139,7 +139,8 @@ class Symbol : public Serializable,
                          bool d = false,
                          bool a = false,
 			 int index= -1,
-			 int strindex = -1);
+			 int strindex = -1,
+                         bool cs = false);
    SYMTAB_EXPORT ~Symbol();
 
    SYMTAB_EXPORT bool          operator== (const Symbol &) const;
@@ -163,6 +164,7 @@ class Symbol : public Serializable,
    SYMTAB_EXPORT bool isInDynSymtab() const { return (type_ != ST_DELETED) && isDynamic_; }
    SYMTAB_EXPORT bool isInSymtab() const { return (type_ != ST_DELETED) && !isDynamic_; }
    SYMTAB_EXPORT bool isAbsolute() const { return isAbsolute_; }
+   SYMTAB_EXPORT bool isCommonStorage() const { return isCommonStorage_; }
 
    SYMTAB_EXPORT bool              isFunction()            const;
    SYMTAB_EXPORT bool              setFunction(Function * func);
@@ -196,6 +198,7 @@ class Symbol : public Serializable,
    SYMTAB_EXPORT SymbolTag            tag ()               const;
    SYMTAB_EXPORT bool  setDynamic(bool d) { isDynamic_ = d; return true;}
    SYMTAB_EXPORT bool  setAbsolute(bool a) { isAbsolute_ = a; return true; }
+   SYMTAB_EXPORT bool  setCommonStorage(bool cs) { isCommonStorage_ = cs; return true; }
 
    SYMTAB_EXPORT bool  setVersionFileName(std::string &fileName);
    SYMTAB_EXPORT bool  setVersions(std::vector<std::string> &vers);
@@ -247,6 +250,8 @@ class Symbol : public Serializable,
    SymbolTag     tag_;
    int index_;
    int strindex_;
+
+   bool          isCommonStorage_;
 
    std::vector<std::string> verNames_;
 

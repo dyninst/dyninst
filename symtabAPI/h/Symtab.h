@@ -638,6 +638,9 @@ class relocationEntry : public Serializable, public AnnotatableSparse {
       SYMTAB_EXPORT Offset rel_addr() const;
       SYMTAB_EXPORT Offset addend() const;
       SYMTAB_EXPORT Region::RegionType regionType() const;
+      SYMTAB_EXPORT void setAddend(const Offset);
+      SYMTAB_EXPORT void setRegionType(const Region::RegionType);
+      SYMTAB_EXPORT void setTargetAddr(const Offset);
       SYMTAB_EXPORT const std::string &name() const;
       SYMTAB_EXPORT Symbol *getDynSym() const;
       SYMTAB_EXPORT bool addDynSym(Symbol *dynref);

@@ -637,24 +637,19 @@ class ELFRelocation : public relocationEntry {
         ELFRelocation();
         ELFRelocation(Region *targetRegion, Offset relOffset,
             std::string symbolName, unsigned long relType,
-            bool symUndefined, Offset addend = 0, 
-            Symbol *dynRef = NULL, 
+            Offset addend = 0, Symbol *dynRef = NULL,
             Region::RegionType regType = Region::RT_REL);
         bool operator==(const ELFRelocation &) const;
 
         // debugging
         static const char* relType2Str(unsigned long);
-        static const char* shndx2Str(unsigned long);
         static void printELFRel(std::ostream &, const ELFRelocation&);
 
         Region *getTargetRegion() const;
         void setTargetRegion(Region *);
-        bool isSymbolUndefined() const;
-        void setSymbolUndefined(bool);
 
     private:
         Region *targetRegion_;
-        bool symUndefined_;
 };
 
 //const char *pdelf_get_shnames(Elf *elfp, bool is64);

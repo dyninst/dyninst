@@ -45,9 +45,9 @@
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
-static const std::string CODE_NAME = ".depCode";
-static const std::string DATA_NAME = ".depData";
-static const std::string BSS_NAME = ".depBss";
+static const std::string CODE_NAME = ".dyninstCode";
+static const std::string DATA_NAME = ".dyninstData";
+static const std::string BSS_NAME = ".dyninstBss";
 
 char *emitElf::linkStaticCode(Symtab *binary, 
         StaticLinkError &err, std::string &errMsg) 
@@ -89,24 +89,63 @@ char *emitElf::linkStaticCode(Symtab *binary,
         errMsg = "failed to locate .dyninstInst instrumentation section";
         return NULL;
     }
-
     fprintf(stderr, "globalOffset = 0x%lx\n", globalOffset);
+
+    // Create a temporary region for COMMON storage
+    Region commonStorage;
+
+    // Stores each common symbol by its alignment
+    std::multimap<Offset, Symbol *> commonAlignments;
 
     // Holds location information for Regions copied into the static executable
     std::map<Region *, Offset> regionOffsets;
+    
     char *rawDependencyData = allocateStorage(binary, dependentObjects, 
-            regionOffsets, globalOffset, err, errMsg);
+            regionOffsets, globalOffset, &commonStorage, commonAlignments, err, errMsg);
 
     if( rawDependencyData == NULL ) {
         return NULL;
     }
 
-    if( !computeRelocations(rawDependencyData, dependentObjects, regionOffsets, globalOffset, err, errMsg) ) {
+    if( !computeRelocations(rawDependencyData, dependentObjects, 
+                regionOffsets, globalOffset, err, errMsg) ) 
+    {
         delete rawDependencyData;
         return NULL;
     }
 
-    computeInstrumentRelocations(instrumentRegion, binary->interModuleSymRefs_);
+    if( !computeInstrumentRelocations(instrumentRegion, binary->interModuleSymRefs_, 
+                err, errMsg) ) 
+    {
+        delete rawDependencyData;
+        return NULL;
+    }
+
+    // Restore original offsets for all defined symbols in all dependent objects
+    std::vector<Symtab *>::iterator obj_it;
+    for(obj_it = dependentObjects.begin(); obj_it != dependentObjects.end(); ++obj_it) {
+        std::vector<Symbol *> definedSyms;
+        if( (*obj_it)->getAllDefinedSymbols(definedSyms) ) {
+            std::vector<Symbol *>::iterator sym_it;
+            for(sym_it = definedSyms.begin(); sym_it != definedSyms.end(); ++sym_it) {
+                if(    regionOffsets.count((*sym_it)->getRegion())
+                    && !(*sym_it)->isCommonStorage() ) 
+                {
+                    Offset symbolOffset = (*sym_it)->getOffset();
+                    symbolOffset -= globalOffset + regionOffsets[(*sym_it)->getRegion()];
+                    (*sym_it)->setOffset(symbolOffset);
+                }
+            }
+        }
+    }
+
+    // Restore alignments for common storage symbols
+    std::multimap<Offset, Symbol *>::iterator align_it;
+    for(align_it = commonAlignments.begin(); 
+        align_it != commonAlignments.end(); ++align_it) 
+    {
+        align_it->second->setOffset(align_it->first);
+    }
 
     err = No_Static_Link_Error;
     errMsg = "";
@@ -152,7 +191,7 @@ bool emitElf::resolveSymbols(Symtab *binary,
             std::vector<Symbol *> foundSyms;
             Symbol *extSymbol = NULL;
             if( !binary->isStripped() && 
-                 binary->findSymbol(foundSyms, curUndefSym->getPrettyName(),
+                 binary->findSymbol(foundSyms, curUndefSym->getMangledName(),
                     curUndefSym->getType()) )
             {
                 // Get the first found symbol TODO make this more exact
@@ -165,7 +204,7 @@ bool emitElf::resolveSymbols(Symtab *binary,
                 //any new object files as dependent objects
                 err = Symbol_Resolution_Failure;
                 errMsg = "failed to locate symbol: " + 
-                    curUndefSym->getPrettyName();
+                    curUndefSym->getMangledName();
                 return false;
             }
 
@@ -201,15 +240,16 @@ bool emitElf::resolveSymbols(Symtab *binary,
 char *emitElf::allocateStorage(Symtab *binary,
         std::vector<Symtab *> & dependentObjects, 
         std::map<Region *, Offset> & regionOffsets, 
-        Offset globalOffset,
+        Offset globalOffset, Region *commonStorage,
+        std::multimap<Offset, Symbol *> &commonAlignments,
         StaticLinkError &err,
         std::string &errMsg) 
 {
 
     unsigned long totalSize = 0;
-    std::vector<Region *> codeRegions;
-    std::vector<Region *> dataRegions;
-    std::vector<Region *> bssRegions;
+    std::deque<Region *> codeRegions;
+    std::deque<Region *> dataRegions;
+    std::deque<Region *> bssRegions;
 
     std::vector<Symtab *>::iterator obj_it;
     for(obj_it = dependentObjects.begin(); obj_it != dependentObjects.end(); ++obj_it) {
@@ -235,7 +275,7 @@ char *emitElf::allocateStorage(Symtab *binary,
                         bssRegions.push_back(*reg_it);
                         break;
                     case Region::RT_TEXTDATA:
-                        dataRegions.push_back(*reg_it);
+                        codeRegions.push_back(*reg_it);
                         break;
                     default:
                         // skip other regions
@@ -243,11 +283,67 @@ char *emitElf::allocateStorage(Symtab *binary,
                 }
             }
         }
+
+        std::vector<Symbol *> definedSyms;
+        if( (*obj_it)->getAllDefinedSymbols(definedSyms) ) {
+            std::vector<Symbol *>::iterator sym_it;
+            for(sym_it = definedSyms.begin(); sym_it != definedSyms.end(); ++sym_it) {
+                if( (*sym_it)->isCommonStorage() ) {
+                    // For a symbol in common storage, the offset/value is the alignment
+
+                    // This should never occur and probably indicates a bad object file
+                    if( (*sym_it)->getOffset() == 0 ) {
+                        err = Storage_Allocation_Failure;
+                        errMsg = string("common symbol ") + (*sym_it)->getPrettyName() +
+                            string(" has 0 alignment value");
+                        return NULL;
+                    }
+
+                    commonAlignments.insert(make_pair((*sym_it)->getOffset(), *sym_it));
+                }
+            }
+        }
     }
+
+    /* START common block processing */
+
+    // Combine all common symbols into a single block
+
+    // The following approach is greedy and suboptimal
+    // (in terms of space in the binary), but it's quick...
+    Offset commonOffset = globalOffset;
+    std::multimap<Offset, Symbol *>::iterator align_it;
+    for(align_it = commonAlignments.begin(); 
+        align_it != commonAlignments.end(); ++align_it)
+    {
+        if( (commonOffset % align_it->first) != 0 ) {
+            Offset padding = align_it->first - (commonOffset % align_it->first);
+            commonOffset += padding;
+        }
+        align_it->second->setOffset(commonOffset);
+        commonOffset += align_it->second->getSize();
+    }
+
+    // Update the size of common storage
+    if( commonAlignments.size() > 0 ) {
+        // Region doesn't have a public constructor, but it does have a public
+        // copy constructor...this isn't clean
+        *commonStorage = *(*bssRegions.begin());
+        commonStorage->setPtrToRawData(NULL, commonOffset - globalOffset);
+        bssRegions.push_front(commonStorage);
+        totalSize += commonOffset - globalOffset;
+    }
+
+    /* END common block processing */
 
     char *rawDependencyData = new char[totalSize];
     Offset currentOffset = 0;
-    
+
+    // Copy in bss regions 
+    Offset bssRegionOffset = currentOffset;
+    currentOffset = copyRegions(rawDependencyData, bssRegions, regionOffsets, 
+            currentOffset);
+
     // Copy in code regions 
     Offset codeRegionOffset = currentOffset;
     currentOffset = copyRegions(rawDependencyData, codeRegions, regionOffsets, 
@@ -257,32 +353,38 @@ char *emitElf::allocateStorage(Symtab *binary,
     Offset dataRegionOffset = currentOffset;
     currentOffset = copyRegions(rawDependencyData, dataRegions, regionOffsets, 
             currentOffset);
-
-    // Copy in bss regions 
-    Offset bssRegionOffset = currentOffset;
-    currentOffset = copyRegions(rawDependencyData, bssRegions, regionOffsets, 
-            currentOffset);
-
+    
     // Add new Regions to the binary
+    binary->addRegion(globalOffset + bssRegionOffset, 
+            reinterpret_cast<void *>(&rawDependencyData[bssRegionOffset]),
+            static_cast<unsigned int>((codeRegionOffset - bssRegionOffset)),
+            BSS_NAME, Region::RT_DATA, true);
+    fprintf(stderr, "placed region %s @ %lx, size = %lx\n", BSS_NAME.c_str(),
+            (globalOffset + bssRegionOffset), (codeRegionOffset - bssRegionOffset));
+
     binary->addRegion(globalOffset + codeRegionOffset, 
             reinterpret_cast<void *>(&rawDependencyData[codeRegionOffset]),
             static_cast<unsigned int>((dataRegionOffset - codeRegionOffset)),
             CODE_NAME, Region::RT_TEXT, true);
+    fprintf(stderr, "placed region %s @ %lx, size = %lx\n", CODE_NAME.c_str(),
+            (globalOffset + codeRegionOffset), (dataRegionOffset - codeRegionOffset));
+
     binary->addRegion(globalOffset + dataRegionOffset, 
             reinterpret_cast<void *>(&rawDependencyData[dataRegionOffset]),
-            static_cast<unsigned int>((bssRegionOffset - dataRegionOffset)),
+            static_cast<unsigned int>((currentOffset - dataRegionOffset)),
             DATA_NAME, Region::RT_DATA, true);
-    binary->addRegion(globalOffset + bssRegionOffset, reinterpret_cast<void *>(&rawDependencyData[bssRegionOffset]),
-            static_cast<unsigned int>((currentOffset - bssRegionOffset)),
-            BSS_NAME, Region::RT_BSS, true);
-
+    fprintf(stderr, "placed region %s @ %lx, size = %lx\n", DATA_NAME.c_str(),
+            (globalOffset + dataRegionOffset), (currentOffset - dataRegionOffset));
+   
     for(obj_it = dependentObjects.begin(); obj_it != dependentObjects.end(); ++obj_it) {
-        // Update all symbols with their new offsets in the binary
+        // Update all relevant symbols with their offsets in the new binary
         std::vector<Symbol *> definedSyms;
         if( (*obj_it)->getAllDefinedSymbols(definedSyms) ) {
             std::vector<Symbol *>::iterator sym_it;
             for(sym_it = definedSyms.begin(); sym_it != definedSyms.end(); ++sym_it) {
-                if( regionOffsets.count((*sym_it)->getRegion()) ) {
+                if(    regionOffsets.count((*sym_it)->getRegion())
+                    && !(*sym_it)->isCommonStorage()) 
+                {
                     Offset symbolOffset = (*sym_it)->getOffset();
                     symbolOffset += globalOffset + regionOffsets[(*sym_it)->getRegion()];
                     (*sym_it)->setOffset(symbolOffset);
@@ -294,11 +396,11 @@ char *emitElf::allocateStorage(Symtab *binary,
     return rawDependencyData;
 }
 
-Offset emitElf::copyRegions(char * rawDependencyData, std::vector<Region *> &regions, 
+Offset emitElf::copyRegions(char * rawDependencyData, std::deque<Region *> &regions, 
         std::map<Region *, Offset> &regionOffsets, Offset currentOffset) {
     Offset retOffset = currentOffset;
 
-    std::vector<Region *>::iterator copyReg_it;
+    std::deque<Region *>::iterator copyReg_it;
     for(copyReg_it = regions.begin(); copyReg_it != regions.end(); ++copyReg_it) {
         // Set up mapping for a new Region in the static binary
         std::pair<std::map<Region *, Offset>::iterator, bool> result;
@@ -307,12 +409,19 @@ Offset emitElf::copyRegions(char * rawDependencyData, std::vector<Region *> &reg
         // If the map already contains this Region, this is a logic error
         assert(result.second);
 
-        fprintf(stderr, "Region %s placed at 0x%lx\n", (*copyReg_it)->getRegionName().c_str(),
-                retOffset);
+        fprintf(stderr, "Region %s placed at 0x%lx, size = 0x%lx\n", (*copyReg_it)->getRegionName().c_str(),
+                retOffset, (*copyReg_it)->getRegionSize());
 
         // Copy in the Region data
         char *rawRegionData = reinterpret_cast<char *>((*copyReg_it)->getPtrToRawData());
-        memcpy(&rawDependencyData[retOffset], rawRegionData, (*copyReg_it)->getRegionSize());
+
+        // Currently, BSS is expanded
+        if( (*copyReg_it)->isBSS() ) {
+            bzero(&rawDependencyData[retOffset], (*copyReg_it)->getRegionSize());
+        }else{
+            memcpy(&rawDependencyData[retOffset], rawRegionData, (*copyReg_it)->getRegionSize());
+        }
+            
         retOffset += (*copyReg_it)->getRegionSize();
     }
 
@@ -320,7 +429,8 @@ Offset emitElf::copyRegions(char * rawDependencyData, std::vector<Region *> &reg
 }
 
 bool emitElf::computeRelocations(char *newRawData, std::vector<Symtab *> & dependentObjects, 
-        std::map<Region *, Offset> & regionOffsets, Offset globalOffset, StaticLinkError &err,
+        std::map<Region *, Offset> & regionOffsets,
+        Offset globalOffset, StaticLinkError &err,
         std::string &errMsg) 
 {
     // Iterate over all relocations in all .o's
@@ -341,8 +451,7 @@ bool emitElf::computeRelocations(char *newRawData, std::vector<Symtab *> & depen
 
                     // Compute destination of relocation
                     Offset dest = regionOffsets[rel_it->getTargetRegion()] + rel_it->rel_addr();
-                    Offset relOffset = globalOffset + 
-                        regionOffsets[rel_it->getTargetRegion()] + rel_it->rel_addr();
+                    Offset relOffset = globalOffset + dest;
                     if( !archSpecificRelocation(newRawData, *rel_it, dest, relOffset) ) {
                         err = Relocation_Computation_Failure;
                         errMsg = "Failed to compute relocation";
@@ -356,7 +465,9 @@ bool emitElf::computeRelocations(char *newRawData, std::vector<Symtab *> & depen
     return true;
 }
 
-bool emitElf::archSpecificRelocation(char *newRawData, ELFRelocation &rel, Offset dest, Offset relOffset) {
+bool emitElf::archSpecificRelocation(char *newRawData, ELFRelocation &rel,
+        Offset dest, Offset relOffset) 
+{
 // This routine is meant to be architecture dependent because relocations are
 // specific to a certain architecture
 #if defined(arch_x86)
@@ -374,9 +485,7 @@ bool emitElf::archSpecificRelocation(char *newRawData, ELFRelocation &rel, Offse
     }
 
     fprintf(stderr, "relocation for %s: S = %lx A = %lx P = %lx\n",
-            rel.name().c_str(), 
-            rel.getDynSym()->getOffset(),
-            addend, relOffset);
+            rel.name().c_str(), rel.getDynSym()->getOffset(), addend, relOffset);
 
     Offset relocation;
     switch(rel.getRelType()) {
@@ -403,8 +512,9 @@ bool emitElf::archSpecificRelocation(char *newRawData, ELFRelocation &rel, Offse
 #endif
 }
 
-void emitElf::computeInstrumentRelocations(Region *instrumentRegion,
-        std::map<Symbol *, std::vector<Address> > &interModSymRefs) 
+bool emitElf::computeInstrumentRelocations(Region *instrumentRegion,
+        std::map<Symbol *, std::vector<Address> > &interModSymRefs,
+        StaticLinkError &err, std::string &errMsg) 
 {
     char *regionData = reinterpret_cast<char *>(instrumentRegion->getPtrToRawData());
     std::map<Symbol *, std::vector<Address> >::iterator symRef_it;
@@ -415,12 +525,34 @@ void emitElf::computeInstrumentRelocations(Region *instrumentRegion,
         for(addr_it = symRef_it->second.begin(); 
             addr_it != symRef_it->second.end(); ++addr_it) 
         {
-            // TODO this probably needs to be architecture dependent
-            Offset symbolOffset = symRef_it->first->getOffset();
-            memcpy(&regionData[*addr_it - instrumentRegion->getRegionAddr()],
-                   &symbolOffset, sizeof(symbolOffset));
+            if( !archSpecificInstrumentRelocation(regionData, 
+                        instrumentRegion->getRegionAddr(),
+                        symRef_it->first, *addr_it) ) 
+            {
+                err = Relocation_Computation_Failure;
+                errMsg = "failed to compute relocation for instrumentation";
+                return false;
+            }
         }    
     }
+
+    return true;
+}
+
+bool emitElf::archSpecificInstrumentRelocation(char *regionData, Offset regionAddr,
+        Symbol *targetSym, Address targetAddr) 
+{
+#if defined(arch_x86)
+    Offset symbolOffset = targetSym->getOffset();
+    memcpy(&regionData[targetAddr - regionAddr],
+            &symbolOffset, sizeof(Offset));
+    fprintf(stderr, "instrument relocation = 0x%lx @ 0x%lx\n", symbolOffset,
+            targetAddr);
+    return true;
+#else
+    fprintf(stderr, "currently, relocations can only be calculated on x86\n");
+    return false;
+#endif
 }
 
 std::string emitElf::printStaticLinkError(StaticLinkError err) {

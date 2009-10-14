@@ -554,7 +554,7 @@ bool Symtab::extractSymbolsFromFile(Object *linkedFile, std::vector<Symbol *> &r
         // relocation entries have references to these undefined dynamic symbols.
         // We also have undefined symbols for the static binary case.
         
-        if (sym->getSec() == NULL && !sym->isAbsolute()) {
+        if (sym->getSec() == NULL && !sym->isAbsolute() && !sym->isCommonStorage()) {
             undefDynSyms[sym->getMangledName()].push_back(sym);
             continue;
         }

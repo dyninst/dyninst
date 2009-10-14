@@ -36,6 +36,7 @@
 #include "Object.h"
 #include "Archive.h"
 #include <vector>
+#include <deque>
 using namespace std;
 
 namespace Dyninst{
@@ -160,11 +161,12 @@ class emitElf{
 
     char *linkStaticCode(Symtab *, StaticLinkError &, std::string &);
     bool resolveSymbols(Symtab *, std::vector<Symtab *> &, StaticLinkError &, std::string &);
-    char *allocateStorage(Symtab *,std::vector<Symtab *> &, std::map<Region *, Offset> &, Offset, StaticLinkError &, std::string &);
-    Offset copyRegions(char *, std::vector<Region *> &, std::map<Region *, Offset> &, Offset);
+    char *allocateStorage(Symtab *,std::vector<Symtab *> &, std::map<Region *, Offset> &, Offset, Region *, std::multimap<Offset, Symbol *>&, StaticLinkError &, std::string &);
+    Offset copyRegions(char *, std::deque<Region *> &, std::map<Region *, Offset> &, Offset);
     bool computeRelocations(char *, std::vector<Symtab *> &, std::map<Region *, Offset> &, Offset, StaticLinkError &, std::string &);
     bool archSpecificRelocation(char *, ELFRelocation &, Offset, Offset);
-    void computeInstrumentRelocations(Region *, std::map<Symbol *, std::vector<Address> >&);
+    bool computeInstrumentRelocations(Region *, std::map<Symbol *, std::vector<Address> >&, StaticLinkError &, std::string &);
+    bool archSpecificInstrumentRelocation(char *, Offset, Symbol *, Address);
 
     bool findDotOs(Symtab *, std::vector<Archive *> &, vector<Symtab *> &);
     std::string getLibCArchive();
