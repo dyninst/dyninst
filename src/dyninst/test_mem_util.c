@@ -184,8 +184,8 @@ int eaExpOffset[] =    { 0, 17,3,1,2,  0,4,2,0,  2,2,2,2,  0,4,4,4,
 unsigned int loadExp=67;
 unsigned int storeExp=27;
 unsigned int prefeExp=2;
-unsigned int accessExp=91;
-unsigned int accessExpCC=90;
+unsigned int accessExp=94;
+unsigned int accessExpCC=93;
 const struct reduction mmxRed = { 2, 1, 0, 3, 49 };
 const struct reduction sseRed = { 2, 0, 1, 3, 53 };
 const struct reduction sse2Red = { 2, 0, 0, 2, 57 };
@@ -193,7 +193,7 @@ const struct reduction amdRed = { 2, 0, 1, 3, 60 };
 
 const struct reduction ccRed = { 0, 0, 0, 1, 87 };
 
-#endif
+#else
 #if defined(i386_unknown_nt4_0_test)
 unsigned int loadExp=67;
 unsigned int storeExp=31;
@@ -207,7 +207,7 @@ const struct reduction sse2Red = { 2, 0, 0, 2, 60 };
 const struct reduction amdRed = { 2, 0, 1, 3, 64 };
 
 const struct reduction ccRed = { 0, 0, 0, 1, 91 };
-
+#endif
 #endif
 
 #if defined(i386_unknown_linux2_0_test) \
@@ -270,7 +270,7 @@ unsigned int bcExp[] = { 4,4,4,4,  4,4,4,4,4,4,4,  4,4,4,4,4,4,4,  4,
 					4,
 #endif
 						 8,8,0,  12,4,16,16,49,4,4,  4,8,10,2,4,8,
-                         4,8,10,2,4,8, 2,2,  28,28,  4,4,4,  4,4,4, 4,4 };
+                         4,8,10,2,4,8, 2,2,  28,28,  4,4,4,  4,4,4, 4,4, 4,4,4 };
 
 void reduce(const struct reduction x)
 {
@@ -755,5 +755,5 @@ void listByteCntCC(unsigned int count)
   else
     doomBCcc = 1;
   accessCntBCcc++;
-  dprintf("?C[%d]:%\n", accessCntBCcc, count);
+  dprintf("?C[%d]:%d\n", accessCntBCcc, count);
 }

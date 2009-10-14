@@ -1098,7 +1098,7 @@ void dumpvect(BPatch_Vector<BPatch_point*>* res, const char* msg)
 	}
 }
 
-static inline void dumpxpct(BPatch_memoryAccess* exp[], unsigned int size, const char* msg)
+static inline void dumpxpct(const BPatch_memoryAccess* exp[], unsigned int size, const char* msg)
 {
   //	if(!debugPrint)
   //	return;
@@ -1127,7 +1127,9 @@ static inline void dumpxpct(BPatch_memoryAccess* exp[], unsigned int size, const
 		}
 	}
 }
-
+#if defined(cap_instruction_api_test)
+#include "Instruction.h"
+#endif
 bool validate(BPatch_Vector<BPatch_point*>* res,
 		BPatch_memoryAccess* acc[], const char* msg)
 {
@@ -1136,11 +1138,21 @@ bool validate(BPatch_Vector<BPatch_point*>* res,
 	for(unsigned int i=0; i<res->size(); ++i) {
 		if (acc[i] != NULL) {
 			BPatch_point* bpoint = (*res)[i];
-			ok = (ok && bpoint->getMemoryAccess()->equals(acc[i]));
+                        const BPatch_memoryAccess* expected_ma = acc[i];
+                        const BPatch_memoryAccess* actual_ma = bpoint->getMemoryAccess();
+                        ok = (ok && actual_ma->equals(expected_ma));
 			if(!ok) {
 				logerror("Validation failed at %s #%d.\n", msg, i+1);
-				dumpxpct(acc, res->size(), "Expected");
-				return ok;
+                                dumpxpct(&expected_ma, 1, "Expected");
+                                dumpxpct(&actual_ma, 1, "Actual");
+#if defined(cap_instruction_api_test)
+                                Dyninst::InstructionAPI::Instruction::Ptr insnAtPoint = bpoint->getInsnAtPoint();
+                                if(insnAtPoint)
+                                {
+                                    logerror("Instruction: %s\n", insnAtPoint->format().c_str());
+                                }
+#endif
+                                return ok;
 			}
 		}
 	}
