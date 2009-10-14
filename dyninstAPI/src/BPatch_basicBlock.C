@@ -414,19 +414,23 @@ struct findInsns : public insnPredicate
     }
     result_type operator()(argument_type i)
     {
+        //static int counter = 0;
         if(findLoads && isLoad(i))
         {
-	//  	  fprintf(stderr, "Instruction %s is a load\n", i->format().c_str());
+            //counter++;
+            //fprintf(stderr, "Instruction #%d %s is a load\n", counter, i->format().c_str());
             return true;
         }
         if(findStores && isStore(i))
         {
-	   //         fprintf(stderr, "Instruction %s is a store\n", i->format().c_str());
+            //counter++;
+            //fprintf(stderr, "Instruction #%d %s is a store\n", counter, i->format().c_str());
 	  return true;
         }
         if(findPrefetch && isPrefetch(i))
         {
-	 //             fprintf(stderr, "Instruction %s is a prefetch\n", i->format().c_str());
+            //counter++;
+            //fprintf(stderr, "Instruction #%d %s is a prefetch\n", counter, i->format().c_str());
             return true;
         }
 	//	fprintf(stderr, "Instruction %s failed filter\n", i->format().c_str());

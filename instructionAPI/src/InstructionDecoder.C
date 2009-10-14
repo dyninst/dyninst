@@ -184,6 +184,7 @@ namespace Dyninst
 	}
 	if(locs->modrm_rm == 0x5)
 	{
+            assert(locs->opcode_position > -1);
 	  unsigned char opcode = rawInstruction[locs->opcode_position];
 	  // treat FP decodes as legacy mode since it appears that's what we've got in our 
 	  // old code...
@@ -203,7 +204,6 @@ namespace Dyninst
           return e;
       }
 	return make_shared(singleton_object_pool<Dereference>::construct(e, makeSizeType(opType)));
-	break;
       case 1:
       case 2:
 	{
@@ -213,7 +213,6 @@ namespace Dyninst
 	Expression::Ptr disp_e = makeAddExpression(e, getModRMDisplacement(), aw);
 	return make_shared(singleton_object_pool<Dereference>::construct(disp_e, makeSizeType(opType)));
 	}
-	break;
       case 3:
 	return e;
       default:
@@ -802,15 +801,18 @@ disp_pos)))));
       if(decodedInstruction == NULL)
       {
 	decodedInstruction = reinterpret_cast<ia32_instruction*>(malloc(sizeof(ia32_instruction)));
+        assert(decodedInstruction);
       }
       if(locs == NULL)
       {
           locs = reinterpret_cast<ia32_locations*>(malloc(sizeof(ia32_locations)));
+          assert(locs);
       }
       
       locs = new(locs) ia32_locations();
+      assert(locs);
       decodedInstruction = new (decodedInstruction) ia32_instruction(NULL, NULL, locs);
-
+      assert(locs);
       ia32_decode(IA32_DECODE_PREFIXES, rawInstruction, *decodedInstruction);
       sizePrefixPresent = (decodedInstruction->getPrefix()->getOperSzPrefix() == 0x66);
     }
@@ -838,6 +840,7 @@ disp_pos)))));
       operands.reserve(3);
       
       if(!decodedInstruction) return false;
+      assert(locs);
       
       for(unsigned i = 0; i < 3; i++)
       {

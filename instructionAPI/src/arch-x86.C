@@ -2642,12 +2642,6 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
                                       const ia32_prefixes* pref,
                                       ia32_locations *pos);
 
-/* shortcut version: just decodes instruction size info */
-static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
-				      const unsigned char* addr)
-{
-    return ia32_decode_modrm(addrSzAttr, addr, NULL, NULL, NULL);
-}
 
 void ia32_memacc::print()
 {
@@ -2954,6 +2948,10 @@ ia32_instruction& ia32_decode_FP(unsigned int opcode, const ia32_prefixes& pref,
                                  const unsigned char* addr, ia32_instruction& instruct,
                                  ia32_entry * entry, ia32_memacc *mac)
 {
+  // addr points after the opcode, and the size has been adjusted accordingly
+  if (instruct.loc) instruct.loc->opcode_size = instruct.size - pref.getCount();
+  if (instruct.loc) instruct.loc->opcode_position = pref.getCount();
+
   unsigned int nib = byteSzB; // modRM
   unsigned int addrSzAttr = (pref.getPrefix(3) == PREFIX_SZADDR ? 1 : 2); // 32-bit mode implicit
   unsigned int operSzAttr = (pref.getPrefix(2) == PREFIX_SZOPER ? 1 : 2); // 32-bit mode implicit
@@ -3652,7 +3650,7 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
     if (mode_64 && operSzAttr == 2)
       operSzAttr = 4;
     mac[0].set(mESP, 0, addrSzAttr);
-    mac[0].size = type2size(gotit.operands[0].optype, operSzAttr);
+    mac[0].size = type2size(op_d, operSzAttr);
     mac[0].read = true;
   }
   if((gotit.id == e_ret_near || gotit.id == e_ret_far) && mac)
@@ -3662,13 +3660,13 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
     if (mode_64 && operSzAttr == 2)
       operSzAttr = 4;
     mac[0].set(mESP, 0, addrSzAttr);
-    mac[0].size = type2size(gotit.operands[0].optype, operSzAttr);
+    mac[0].size = type2size(op_d, operSzAttr);
     mac[0].read = true;
   }
   if((gotit.id == e_call) && mac)
   {
       mac[0].set(mESP, -2 * addrSzAttr, addrSzAttr);
-      mac[0].size = type2size(gotit.operands[0].optype, addrSzAttr);
+      mac[0].size = type2size(op_d, addrSzAttr);
       mac[0].write = true;
             
   }
