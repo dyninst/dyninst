@@ -100,12 +100,13 @@ test_results_t SymtabComponent::group_setup(RunGroup *group, ParameterDict &para
 					//  verify that we have an existing cache for this mutatee from which to deserialize
 					//  set environment variable enabling serialization
 					errno = 0;
-					if (setenv(SERIALIZE_CONTROL_ENV_VAR, SERIALIZE_DESERIALIZE, 1))
+					if (setenv(SERIALIZE_CONTROL_ENV_VAR, SERIALIZE_DESERIALIZE_OR_DIE, 1))
 					{
 						fprintf(stderr, "%s[%d]:  FIXME!: %s\n", FILE__, __LINE__, strerror(errno));
 						return FAILED;
 					}
-					fprintf(stderr, "%s[%d]:  set %s =  %s\n", FILE__, __LINE__, SERIALIZE_CONTROL_ENV_VAR, SERIALIZE_DESERIALIZE);
+					fprintf(stderr, "%s[%d]:  set %s =  %s\n", FILE__, __LINE__, SERIALIZE_CONTROL_ENV_VAR, getenv(SERIALIZE_CONTROL_ENV_VAR));
+
 				}
 				break;
 			case CREATE:
