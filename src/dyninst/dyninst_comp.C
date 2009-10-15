@@ -1127,9 +1127,6 @@ static inline void dumpxpct(const BPatch_memoryAccess* exp[], unsigned int size,
 		}
 	}
 }
-#if defined(cap_instruction_api_test)
-#include "Instruction.h"
-#endif
 bool validate(BPatch_Vector<BPatch_point*>* res,
 		BPatch_memoryAccess* acc[], const char* msg)
 {
@@ -1145,13 +1142,6 @@ bool validate(BPatch_Vector<BPatch_point*>* res,
 				logerror("Validation failed at %s #%d.\n", msg, i+1);
                                 dumpxpct(&expected_ma, 1, "Expected");
                                 dumpxpct(&actual_ma, 1, "Actual");
-#if defined(cap_instruction_api_test)
-                                Dyninst::InstructionAPI::Instruction::Ptr insnAtPoint = bpoint->getInsnAtPoint();
-                                if(insnAtPoint)
-                                {
-                                    logerror("Instruction: %s\n", insnAtPoint->format().c_str());
-                                }
-#endif
                                 return ok;
 			}
 		}
