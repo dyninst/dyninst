@@ -448,7 +448,8 @@ struct compareByEntryAddr
 {
     bool operator()(const BPatch_basicBlock* lhs, const BPatch_basicBlock* rhs)
     {
-        return lhs->getStartAddress() < rhs->getStartAddress();
+        return const_cast<BPatch_basicBlock*>(lhs)->getStartAddress() < 
+			const_cast<BPatch_basicBlock*>(rhs)->getStartAddress();
     }
 };
  
