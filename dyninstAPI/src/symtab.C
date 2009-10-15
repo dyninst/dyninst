@@ -723,7 +723,7 @@ pdmodule *image::findModule(const string &name, bool wildcard)
    return NULL;
 }
 
-const pdvector<image_func*> &image::getAllFunctions() 
+const set<image_func*,image_func::compare> &image::getAllFunctions() 
 {
   analyzeIfNeeded();
   return everyUniqueFunction;
@@ -994,7 +994,7 @@ void image::enterFunctionInTables(image_func *func) {
     }
    
     // List of all image_func objects 
-    everyUniqueFunction.push_back(func);
+    everyUniqueFunction.insert(func);
 
     if(func->howDiscovered() == FS_SYMTAB)
         exportedFunctions.push_back(func);
@@ -1237,8 +1237,10 @@ image::~image()
         delete (iter->second);
     }
 
-    for (i = 0; i < everyUniqueFunction.size(); i++) {
-        delete everyUniqueFunction[i];
+    set<image_func *, image_func::compare>::iterator fit = 
+        everyUniqueFunction.begin();
+    for( ; fit != everyUniqueFunction.end(); ++fit) {
+        delete *fit;
     }
     everyUniqueFunction.clear();
     createdFunctions.clear();
@@ -1336,10 +1338,11 @@ void pdmodule::dumpMangled(std::string &prefix) const
 {
   cerr << fileName() << "::dumpMangled("<< prefix << "): " << endl;
 
-  const pdvector<image_func *> allFuncs = imExec()->getAllFunctions();
+  const set<image_func*,image_func::compare> & allFuncs = imExec()->getAllFunctions();
+  set<image_func*,image_func::compare>::const_iterator fit = allFuncs.begin();
 
-  for (unsigned i = 0; i < allFuncs.size(); i++) {
-      image_func * pdf = allFuncs[i];
+  for( ; fit != allFuncs.end(); ++fit) {
+      image_func * pdf = *fit;
       if (pdf->pdmod() != this) continue;
 
       if( ! strncmp( pdf->symTabName().c_str(), prefix.c_str(), strlen( prefix.c_str() ) ) ) {
@@ -1416,7 +1419,7 @@ image_func *image::addFunctionStub(Address functionEntryAddr, const char *fName)
      func->addSymTabName( funcName ); 
      func->addPrettyName( funcName );
      // funcsByEntryAddr[func->getOffset()] = func;
-     everyUniqueFunction.push_back(func);
+     everyUniqueFunction.insert(func);     
      createdFunctions.push_back(func);
      return func;
 }
@@ -1635,12 +1638,13 @@ const pdvector <image_variable *> *image::findVarVectorByMangled(const std::stri
 
 /* Instrumentable-only, by the last version's source. */
 bool pdmodule::getFunctions(pdvector<image_func *> &funcs)  {
-    pdvector<image_func *> allFuncs = imExec()->getAllFunctions();
+    const set<image_func *,image_func::compare> & allFuncs = imExec()->getAllFunctions();
     unsigned curFuncSize = funcs.size();
 
-    for (unsigned i = 0; i < allFuncs.size(); i++) {
-        if (allFuncs[i]->pdmod() == this)
-            funcs.push_back(allFuncs[i]);
+    set<image_func *,image_func::compare>::const_iterator fit = allFuncs.begin();
+    for( ; fit != allFuncs.end(); ++fit) {
+        if ((*fit)->pdmod() == this)
+            funcs.push_back(*fit);
     }
   
     return (funcs.size() > curFuncSize);

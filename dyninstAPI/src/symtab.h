@@ -54,6 +54,8 @@
 #include <regex.h>
 #endif
 
+#include <set>
+
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
 #include "common/h/List.h"
@@ -398,7 +400,7 @@ class image : public codeRange, public InstructionSource {
    // And used for finding inferior heaps.... hacky, but effective.
    bool findSymByPrefix(const std::string &prefix, pdvector<Symbol *> &ret);
 
-   const pdvector<image_func*> &getAllFunctions();
+   const std::set<image_func*,image_func::compare> &getAllFunctions();
    const pdvector<image_variable*> &getAllVariables();
 
    // Get functions that were in a symbol table (exported funcs)
@@ -479,6 +481,19 @@ class image : public codeRange, public InstructionSource {
    bool parseGaps() { return parseGaps_; }
 
    //
+   //  **** GAP PARSING SUPPORT  ****
+#if defined(cap_stripped_binaries)
+   bool compute_gap(
+        Address,
+        set<image_func *, image_func::compare>::const_iterator &,
+        Address &, Address &);
+   
+   bool gap_heuristics(Address addr); 
+   bool gap_heuristic_GCC(Address addr);
+   bool gap_heuristic_MSVS(Address addr);
+#endif
+
+   //
    //  ****  PRIVATE DATA MEMBERS  ****
    //
  private:
@@ -526,7 +541,7 @@ class image : public codeRange, public InstructionSource {
    pdvector<image_func *> symtabCandidateFuncs;
 
    // A way to iterate over all the functions efficiently
-   pdvector<image_func *> everyUniqueFunction;
+   std::set<image_func *,image_func::compare> everyUniqueFunction;
 
    // We make an initial list of functions based off the symbol table,
    // and may create more when we actually analyze. Keep track of

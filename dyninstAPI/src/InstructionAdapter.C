@@ -54,6 +54,14 @@ InstructionAdapter::InstructionAdapter(Address start, image_func* f)
 {
 }
 
+InstructionAdapter::InstructionAdapter(Address start, image * im)
+    : current(start), previous(-1), parsedJumpTable(false), successfullyParsedJumpTable(false),
+    isDynamicCall_(false), checkedDynamicCall_(false),
+    isInvalidCallTarget_(false), checkedInvalidCallTarget_(false),
+    context(NULL), img(im)
+{
+}
+
 InstructionAdapter::~InstructionAdapter()
 {
 }
@@ -164,7 +172,7 @@ instPointType_t InstructionAdapter::getPointType(unsigned int num_insns,
             {
                 return noneType;
             }
-            if(context->img()->isValidAddress(getCFT())) {
+            if(img->isValidAddress(getCFT())) {
                 return noneType;
             }
         }       

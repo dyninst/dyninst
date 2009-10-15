@@ -755,12 +755,15 @@ const pdvector<mapped_module *> &mapped_object::getModules() {
 bool mapped_object::getAllFunctions(pdvector<int_function *> &funcs) {
     unsigned start = funcs.size();
 
-    const pdvector<image_func *> &img_funcs = parse_img()->getAllFunctions();
-    for (unsigned i = 0; i < img_funcs.size(); i++) {
-        if (!everyUniqueFunction.defines(img_funcs[i])) {
-            findFunction(img_funcs[i]);
+    const set<image_func *,image_func::compare> &img_funcs = 
+        parse_img()->getAllFunctions();
+    set<image_func *,image_func::compare>::const_iterator fit = 
+        img_funcs.begin();
+    for( ; fit != img_funcs.end(); ++fit) {
+        if(!everyUniqueFunction.defines(*fit)) {
+            findFunction(*fit);
         }
-        funcs.push_back(everyUniqueFunction[img_funcs[i]]);
+        funcs.push_back(everyUniqueFunction[*fit]);
     }
     return funcs.size() > start;
 }
