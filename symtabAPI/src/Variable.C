@@ -91,6 +91,13 @@ void Variable::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (S
 		gtranslate(sb, t_id, "typeID");
 		Aggregate::serialize_aggregate(sb);
 		ifxml_end_element(sb, tag);
+
+		serialize_printf("%s[%d]:  %sSERIALIZED VARIABLE %s, %lu syms\n", 
+				FILE__, __LINE__, 
+				sb->isInput() ? "DE" : "", 
+				getAllPrettyNames().size() ? getAllPrettyNames()[0].c_str() : "no_name",
+				symbols_.size()); 
+
 		if (sb->isInput())
 		{
 		   if (t_id == 0xdeadbeef)
@@ -146,6 +153,7 @@ void Variable::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (S
 		}
 	}
 	SER_CATCH(tag);
+
 }
 
 std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Variable &v)
@@ -221,14 +229,16 @@ bool VariableLocation::operator==(const VariableLocation &f)
 }
 void VariableLocation::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
+	fprintf(stderr, "%s[%d]:  welcome to VariableLocation::serialize_impl\n", FILE__, __LINE__);
 	ifxml_start_element(sb, tag);
-	gtranslate(sb, (int &)stClass, "StorageClass");
-	gtranslate(sb, (int &)refClass, "StorageRefClass");
+	gtranslate(sb, stClass, storageClass2Str, "StorageClass");
+	gtranslate(sb, refClass, storageRefClass2Str, "StorageRefClass");
 	gtranslate(sb, reg, "register");
 	gtranslate(sb, frameOffset, "frameOffset");
 	gtranslate(sb, hiPC, "hiPC");
 	gtranslate(sb, lowPC, "lowPC");
 	ifxml_end_element(sb, tag);
+	fprintf(stderr, "%s[%d]:  leaving to VariableLocation::serialize_impl\n", FILE__, __LINE__);
 }
 
 localVar::localVar(std::string name,  Type *typ, std::string fileName, 
@@ -287,7 +297,9 @@ void localVar::fixupUnknown(Module *module)
 	if (type_->getDataClass() == dataUnknownType) 
 	{
 		Type *otype = type_;
-		type_ = module->getModuleTypesPrivate()->findType(type_->getID());
+		typeCollection *tc = typeCollection::getModTypeCollection(module);
+		assert(tc);
+		type_ = tc->findType(type_->getID());
 
 		if (type_)
 		{
@@ -357,7 +369,7 @@ bool localVar::operator==(const localVar &l)
 
 void localVar::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
 {
-	fprintf(stderr, "%s[%d]:  %sserializing localVar %s\n", FILE__, __LINE__, sb->isInput() ? "de" : "", name_.c_str());
+	fprintf(stderr, "%s[%d]:  welcome to localVar::serialize_impl\n", FILE__, __LINE__);
 	//  Use typeID as unique identifier
 	//  magic numbers stink, but we use both positive and negative numbers for type ids
 	unsigned int t_id = (unsigned int) 0xdeadbeef;
@@ -371,7 +383,8 @@ void localVar::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC(Se
 	gtranslate(sb, locs_, "Locations", "Location");
 	ifxml_end_element(sb, tag);
 
-	fprintf(stderr, "%s[%d]:  %sserialized localVar %s, fixing up\n", FILE__, __LINE__, sb->isInput() ? "de" : "", name_.c_str());
+	serialize_printf("%s[%d]:  %sserialize localVar %s\n", FILE__, __LINE__, sb->isInput() ? "de" : "", name_.c_str());
+
 	if (sb->isInput())
 	{
 		if (t_id == 0xdeadbeef)

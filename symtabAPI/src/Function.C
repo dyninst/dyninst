@@ -242,9 +242,7 @@ Function::~Function()
 void Function::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
 	if (!sb) SER_ERR("bad paramater sb");
-	fprintf(stderr, "%s[%d]:  Function(%p--%s)::%s\n", FILE__, __LINE__, this,
-			getAllPrettyNames().size() ? getAllPrettyNames()[0].c_str() : "UNNAMED_FUNCTION",
-			sb->isInput() ? "deserialize" : "serialize");
+
 
 
 	//  Use typeID as unique identifier
@@ -264,8 +262,18 @@ void Function::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (S
 				retType_ = NULL;
 			else
 				restore_type_by_id(sb, retType_, t_id);
+#if 0
+			for (unsigned long i = 0; i < symbols_.size(); ++i)
+			{
+				symbols_[i]->setFunction(this);
+				assert(symbols_[i]->isFunction());
+			}
+#endif
 		}
 
+	serialize_printf("%s[%d]:  Function(%p--%s)::%s\n", FILE__, __LINE__, this,
+			getAllPrettyNames().size() ? getAllPrettyNames()[0].c_str() : "UNNAMED_FUNCTION",
+			sb->isInput() ? "deserialize" : "serialize");
 }
 
 bool Function::removeSymbol(Symbol *sym) 

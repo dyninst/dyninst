@@ -118,19 +118,19 @@ SerializerBase *createSerializer(SerContextBase *scs, std::string ser_name, std:
 	char *ser_env = getenv(SERIALIZE_CONTROL_ENV_VAR);
 	if (!ser_env)
 	{        
-		fprintf(stderr, "%s[%d]:  serialization not enabled\n", FILE__, __LINE__);
+		serialize_printf("%s[%d]:  serialization not enabled\n", FILE__, __LINE__);
 		return NULL;
 	}
 	if (!strcmp(ser_env, SERIALIZE_DISABLE))
 	{
-		fprintf(stderr, "%s[%d]:  serialization is disabled\n", FILE__, __LINE__);
+		serialize_printf("%s[%d]:  serialization is disabled\n", FILE__, __LINE__);
 		return NULL;
 	}
 	if (!strcmp(ser_env, SERIALIZE_ONLY))
 	{
 		if (mode == sd_deserialize)
 		{
-		fprintf(stderr, "%s[%d]:  deserialization not enabled: %s=%s\n", FILE__, __LINE__, 
+		serialize_printf("%s[%d]:  deserialization not enabled: %s=%s\n", FILE__, __LINE__, 
 				SERIALIZE_CONTROL_ENV_VAR, ser_env);
 		return NULL;
 		}
@@ -146,7 +146,7 @@ SerializerBase *createSerializer(SerContextBase *scs, std::string ser_name, std:
 
 		if (ser_type == ser_bin)
 		{
-			fprintf(stderr, "%s[%d]:  creating bin serializer %s/%s, %p\n", FILE__, __LINE__, ser_name.c_str(), file.c_str(), scs);
+			serialize_printf("%s[%d]:  creating bin serializer %s/%s, %p\n", FILE__, __LINE__, ser_name.c_str(), file.c_str(), scs);
 			ret = new SerializerBin(scs, ser_name, file, mode, verbose);
 		}
 		else if (ser_type == ser_xml)
@@ -155,7 +155,7 @@ SerializerBase *createSerializer(SerContextBase *scs, std::string ser_name, std:
 		}
 		else
 		{
-			fprintf(stderr, "%s[%d]:  bad serializer type provided\n", FILE__, __LINE__);
+			serialize_printf("%s[%d]:  bad serializer type provided\n", FILE__, __LINE__);
 			return NULL;
 		}
 	}
@@ -249,7 +249,7 @@ bool Serializable::serialize(std::string file, SerContextBase *scb, ser_type_t m
 
 	if (!serializer)
 	{
-		fprintf(stderr, "%s[%d]:  failed to create serializer\n", FILE__, __LINE__);
+		serialize_printf("%s[%d]:  failed to create serializer\n", FILE__, __LINE__);
 		return false;
 	}
 
@@ -873,7 +873,7 @@ SerDesBin::~SerDesBin()
 
 bool SerDesBin::isEOF()
 {
-	return feof(f);
+	return (0 != feof(f));
 }
 
 bool SerDesBin::getDefaultCacheDir(std::string &path)
@@ -1161,11 +1161,23 @@ void SerDesBin::file_start(std::string &/*full_file_path*/)
 {
 }
 
-void SerDesBin::vector_start(unsigned int &size, const char *) DECLTHROW (SerializerError)
+void SerDesBin::vector_start(unsigned long &size, const char *) DECLTHROW (SerializerError)
 {
+	if (iomode_ == sd_deserialize) 
+		size = 0UL;
+
    //  before reading/writing a vector, we need to read its size
    //  (so we know how many elements to read/alloc on deserialize
+
+	magic_check(FILE__, __LINE__);
    translate(size);
+	magic_check(FILE__, __LINE__);
+	if (iomode_ == sd_deserialize) 
+	{
+		fprintf(stderr, "%s[%d]:  DESERIALIZE VECTOR START:  size = %lu\n", FILE__, __LINE__, size);
+	}
+	else
+		fprintf(stderr, "%s[%d]:  SERIALIZE VECTOR START:  size = %lu\n", FILE__, __LINE__, size);
 }
 
 void SerDesBin::vector_end()
@@ -1173,7 +1185,7 @@ void SerDesBin::vector_end()
    //  don't need to do anything
 }
 
-void SerDesBin::multimap_start(unsigned int &size, const char *) DECLTHROW (SerializerError)
+void SerDesBin::multimap_start(unsigned long &size, const char *) DECLTHROW (SerializerError)
 {
    //  before reading/writing a multimap, we need to read its size
    //  (so we know how many elements to read/alloc on deserialize
@@ -1185,7 +1197,15 @@ void SerDesBin::multimap_end()
    //  don't need to do anything
 }
 
-void SerDesBin::hash_map_start(unsigned int &size, const char *) DECLTHROW (SerializerError)
+void SerDesBin::pair_start(const char *) DECLTHROW (SerializerError)
+{
+}
+
+void SerDesBin::pair_end()
+{
+   //  don't need to do anything
+}
+void SerDesBin::hash_map_start(unsigned long &size, const char *) DECLTHROW (SerializerError)
 {
    //  before reading/writing a hash map, we need to read its size
    //  (so we know how many elements to read/alloc on deserialize
@@ -1196,52 +1216,85 @@ void SerDesBin::hash_map_end()
 {
 }
 
-void SerDesBin::annotation_start(AnnotationClassID &a_id, void *&parent_id, sparse_or_dense_anno_t &sod, const char *, const char *)
+void SerDesBin::annotation_start(AnnotationClassID &a_id, void *&parent_id, 
+		sparse_or_dense_anno_t &sod, const char *, const char *)
 {
-	fprintf(stderr, "%s[%d]:  welcome to  annotation_start: aid = %d\n", FILE__, __LINE__, a_id);
+	//serialize_printf("%s[%d]:  welcome to  annotation_start: aid = %d\n", FILE__, __LINE__, a_id);
+
+	magic_check(FILE__, __LINE__);
 	translate(a_id);
 	assert(sizeof(Address) == sizeof(void *));
 	translate((Address &)parent_id);
 	translate((unsigned short &)sod);
-	fprintf(stderr, "%s[%d]:  leaving %s annotation_start: aid = %d, id = %p\n", FILE__, __LINE__, (iomode_ == sd_serialize) ? "serialize" : "deserialize", a_id, parent_id);
+	magic_check(FILE__, __LINE__);
+
+	serialize_printf("%s[%d]:  leaving %s annotation_start: aid = %d, id = %p\n", 
+			FILE__, __LINE__, 
+			(iomode_ == sd_serialize) ? "serialize" : "deserialize", a_id, parent_id);
 }
 
 void SerDesBin::annotation_end()
 {
+	magic_check(FILE__, __LINE__);
    //  don't need to do anything
 }
 
 void SerDesBin::annotation_container_start(void *&id)
 {
+	magic_check(FILE__, __LINE__);
 	assert(sizeof(Address) == sizeof(void *));
 	translate((Address &)id);
+	magic_check(FILE__, __LINE__);
 }
 
 void SerDesBin::annotation_container_end()
 {
+	magic_check(FILE__, __LINE__);
    //  don't need to do anything
 }
 void SerDesBin::annotation_container_item_start(void *&id)
 {
+	magic_check(FILE__, __LINE__);
 	assert(sizeof(Address) == sizeof(void *));
 	translate((Address &)id);
+	magic_check(FILE__, __LINE__);
 }
 
 void SerDesBin::annotation_container_item_end()
 {
+	magic_check(FILE__, __LINE__);
    //  don't need to do anything
 }
 
-void SerDesBin::annotation_list_start(Address &id, int &nelem, const char *)
+void SerDesBin::magic_check(const char *file__, unsigned int line__)
 {
+	unsigned short magic = 33;
+	translate(magic);
+	if (iomode_ == sd_deserialize)
+	{
+		if (magic != 33)
+		{
+			fprintf(stderr, "%s[%d]:  OUT OF SYNC HERE\n", file__, line__);
+			if (isEOF())
+				fprintf(stderr, "%s[%d]:  GOT EOF\n", file__, line__);
+			abort();
+		}
+	}
+}
+void SerDesBin::annotation_list_start(Address &id, unsigned long &nelem, const char *)
+{
+   if (iomode_ == sd_deserialize) {
+	   nelem = 0UL;
+   }
 	if (nelem)
-		fprintf(stderr, "%s[%d]: enter annotation_list_start id = %p, nelem = %d\n", FILE__, __LINE__, (void *)id, nelem);
+		fprintf(stderr, "%s[%d]: enter annotation_list_start id = %p, nelem = %ld\n", FILE__, __LINE__, (void *)id, nelem);
 
+	magic_check(FILE__, __LINE__);
 	translate(id);
 	translate(nelem);
 
 	if (nelem)
-		fprintf(stderr, "%s[%d]: leave annotation_list_start id = %p, nelem = %d\n", FILE__, __LINE__, (void *)id, nelem);
+		fprintf(stderr, "%s[%d]: leave annotation_list_start id = %p, nelem = %ld\n", FILE__, __LINE__, (void *)id, nelem);
 }
 
 void SerDesBin::annotation_list_end()
@@ -1344,13 +1397,18 @@ void SerDesBin::translate(long &param, const char *tag)
             tag ? tag : "no-tag", param);
 }
 
+#if 0
+void SerDes::translate(unsigned long &param, const char *tag)
+{
+	translate((long &) param, tag);
+}
+#endif
+
 void SerDesBin::translate(unsigned short &param, const char *tag)
 {
-	fprintf(stderr, "%s[%d]:  SerDesBin:: translate (short) %d\n", FILE__, __LINE__, param);
 	short lshort = static_cast<short>(param);
 	translate (lshort, tag);
 	param = static_cast<unsigned short>(lshort);
-	fprintf(stderr, "%s[%d]:  leaving SerDesBin:: translate (short) %d\n", FILE__, __LINE__, param);
 }
 
 void SerDesBin::translate(short &param, const char *tag)
@@ -1439,6 +1497,7 @@ void SerDesBin::translate(Address &param, const char *tag)
          SER_ERR("fwrite");
    }
    else {
+	   memset(&param, 0, sizeof(Address));
       rc = fread(&param, sizeof(Address), 1, f);
 
       if (1 != rc) 
@@ -1504,10 +1563,12 @@ void SerDesBin::translate(const char * &param, int bufsize, const char *tag)
 
       if (len > bufsize) 
       {
-         fprintf(stderr, "%s[%d]:  insufficient buffer\n", FILE__, __LINE__);
-         char msg[128];
-         sprintf(msg, "not enough space in string buffer, %d needed", len);
-         SER_ERR("msg");
+         fprintf(stderr, "%s[%d]:  insufficient buffer: %d, need %d...  truncation....\n", FILE__, __LINE__, bufsize, len);
+		 len = bufsize;
+
+         //char msg[128];
+         //sprintf(msg, "not enough space in string buffer, %d needed", len);
+         //SER_ERR("msg");
       }
 
       if (len < 0) 
@@ -1562,9 +1623,9 @@ void SerDesBin::translate(std::string &param, const char *tag)
    }
    else 
    {
-      char buf[2048];
+      char buf[4096];
       const char *buf2 = buf;
-      translate(buf2, 2048, tag);
+      translate(buf2, 4096, tag);
       param = std::string(buf2);
    }
    if ((iomode_ == sd_deserialize) ||strstr(param.c_str(), "file")) 
@@ -1581,12 +1642,12 @@ void SerDesBin::translate(std::vector<std::string> &param, const char *tag, cons
    //  [1]  length of list, n
    //  [2]  <n> strings
 
-   unsigned int nelem = param.size();
+   unsigned long nelem = param.size();
    translate(nelem, tag);
 
    if (iomode_ == sd_serialize) 
    {
-      for (unsigned int i = 0; i < nelem; ++i) 
+      for (unsigned long i = 0; i < nelem; ++i) 
       {
          translate(param[i], elem_tag);
       }
@@ -1594,7 +1655,7 @@ void SerDesBin::translate(std::vector<std::string> &param, const char *tag, cons
    else 
    {
       param.resize(nelem);
-      for (unsigned int i = 0; i < nelem; ++i) 
+      for (unsigned long i = 0; i < nelem; ++i) 
       {
          param[i] = "";
          translate(param[i], elem_tag);
@@ -1620,7 +1681,7 @@ AnnotatableBase *SerDesBin::findAnnotatee(void *id)
 
 SerializerBase *Serializable::lookupExistingSerializer()
 {
-	fprintf(stderr, "%s[%d]:  lookupExistingSerializer: index = %d, serializers.size() = %lu\n", FILE__, __LINE__, active_serializer_index, SerializerBase::active_serializers.size());
+	//fprintf(stderr, "%s[%d]:  lookupExistingSerializer: index = %d, serializers.size() = %lu\n", FILE__, __LINE__, active_serializer_index, SerializerBase::active_serializers.size());
 	if (active_serializer_index == (unsigned short) -1)
 		return NULL;
 
@@ -1634,7 +1695,9 @@ namespace Dyninst {
 void ser_operation(SerializerBase *sb, ser_post_op_t &op, const char *tag)
 {
 	//unsigned short l_op = op;
+	sb->magic_check(FILE__, __LINE__);
 	gtranslate(sb, op, serPostOp2Str, tag);
+	sb->magic_check(FILE__, __LINE__);
 	//op = (ser_post_op_t) l_op;
 }
 
@@ -1868,17 +1931,20 @@ void SerializerBase::serialize_annotations(void *id, std::vector<ser_rec_t> &ser
 	//fprintf(stderr, "%s[%d]:  enter serialize_annotations: %d to serialize for parent %p\n", 
 //			FILE__, __LINE__,sers.size(), id);
 	Address id_add = (Address) id;
-	int nelem = (int) sers.size();
+	unsigned long nelem = 0UL;
+	if (isOutput())
+		nelem =	sers.size();
+
 	getSD().annotation_list_start(id_add, nelem);
 	if (nelem)
-		fprintf(stderr, "%s[%d]:  need to %s %d annos\n", FILE__, __LINE__, isInput() ? "deserialize" : "serialize", nelem);
+		fprintf(stderr, "%s[%d]:  need to %s %lu annos\n", FILE__, __LINE__, isInput() ? "deserialize" : "serialize", nelem);
 	//getSD().translate(id_add);
 	//getSD().translate(nelem);
 
 	if (sers.size())
-		fprintf(stderr, "%s[%d]: serialize_annotations:  %s, id = %p, nelem = %d\n", FILE__, __LINE__, isInput() ? "deserialize" : "serialize", (void *)id_add, nelem);
+		fprintf(stderr, "%s[%d]: serialize_annotations:  %s, id = %p, nelem = %lu\n", FILE__, __LINE__, isInput() ? "deserialize" : "serialize", (void *)id_add, nelem);
 
-	for (int i = 0; i < nelem; ++i)
+	for (unsigned long i = 0; i < nelem; ++i)
 	{
 		AnnotationClassBase *acb = NULL;
 		void *my_anno = NULL;
@@ -1976,7 +2042,7 @@ void annotation_container_item_end(SerializerBase *sb)
 {
 	sb->annotation_container_item_end();
 }
-void vector_start(SerializerBase *sb, unsigned int &nelem, const char *tag)
+void vector_start(SerializerBase *sb, unsigned long &nelem, const char *tag)
 {	
 	sb->vector_start(nelem, tag);
 }
@@ -2030,6 +2096,11 @@ void SerializerBase::annotation_container_item_end()
 {
 	getSD().annotation_container_item_end();
 }
+void SerializerBase::magic_check(const char *file__, unsigned int line__)
+{
+	getSD().magic_check(file__, line__);
+}
+
 bool SerializerBase::serialize_post_annotation(void *parent_id, void *anno, AnnotationClassBase *acb, sparse_or_dense_anno_t sod, const char *tag)
 {
 	fprintf(stderr, "%s[%d]:  welcome to serialize_post_annotation:  ser_id = %d, parent_id = %p\n", FILE__, __LINE__, ser_index, parent_id);
@@ -2144,7 +2215,7 @@ bool SerializerBase::serialize_post_annotation(void *parent_id, void *anno, Anno
 		return true;
 }
 
-void SerializerBase::vector_start(unsigned int &size, const char *tag) 
+void SerializerBase::vector_start(unsigned long &size, const char *tag) 
 {
    getSD().vector_start(size, tag);
 }
@@ -2155,7 +2226,7 @@ void SerializerBase::vector_end()
    getSD().vector_end();
 }
 
-void SerializerBase::hash_map_start(unsigned int &size, const char *tag) 
+void SerializerBase::hash_map_start(unsigned long &size, const char *tag) 
 {
    getSD().hash_map_start(size, tag);
 }
@@ -2165,6 +2236,36 @@ void SerializerBase::hash_map_end()
    getSD().hash_map_end();
 }
 
+void SerializerBase::multimap_start(unsigned long &size, const char *tag) 
+{
+   getSD().multimap_start(size, tag);
+}
+
+void SerializerBase::multimap_end() 
+{
+   getSD().multimap_end();
+}
+
+void SerializerBase::pair_start(const char *tag) 
+{
+   getSD().pair_start(tag);
+}
+
+SerDes &SerializerBase::getSD()
+{
+	assert(sd);
+	return *sd;
+}
+
+SerFile &SerializerBase::getSF()
+{
+	assert(sf);
+	return *sf;
+}
+void SerializerBase::pair_end() 
+{
+   getSD().pair_end();
+}
 void SerializerBase::translate_base(short &v, const char *&t)
 {
    getSD().translate(v, t);

@@ -85,12 +85,10 @@ class typeCollection : public Serializable, public AnnotatableSparse {
 
     SYMTAB_EXPORT ~typeCollection();
 
-    unsigned refcount;
-
     // DWARF:
     /* Cache type collections on a per-image basis.  (Since
        BPatch_functions are solitons, we don't have to cache them.) */
-    static dyn_hash_map< std::string, typeCollection * > fileToTypesMap;
+    static dyn_hash_map< void *, typeCollection * > fileToTypesMap;
 
     // DWARF...
     bool dwarfParsed_;
@@ -100,11 +98,11 @@ class typeCollection : public Serializable, public AnnotatableSparse {
     SYMTAB_EXPORT typeCollection();
 public:
 
-    SYMTAB_EXPORT static typeCollection *getGlobalTypeCollection();
-#if 0
     SYMTAB_EXPORT static typeCollection *getModTypeCollection(Module *mod);
-#endif
+#if 0
+    SYMTAB_EXPORT static typeCollection *getGlobalTypeCollection();
     SYMTAB_EXPORT static void freeTypeCollection(typeCollection *tc);
+#endif
 
     // DWARF...
     SYMTAB_EXPORT bool dwarfParsed() { return dwarfParsed_; }

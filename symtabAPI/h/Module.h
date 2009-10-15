@@ -46,27 +46,27 @@ class LineInformation;
 class localVar;
 class Symtab;
 
-class Statement : public AnnotatableSparse
+class Statement : public AnnotatableSparse, public Serializable
 {
 	friend class Module;
 	friend class std::vector<Statement>;
 	friend class LineInformation;
-	Statement() {}
+
 	Statement(const char *file, unsigned int line, unsigned int col = 0,
 			Offset start_addr = (Offset) -1L, Offset end_addr = (Offset) -1L):
-		file_(file),
+		file_(file ? std::string(file) : std::string()),
 		line_(line),
 		column_(col),
 		start_addr_(start_addr),
 		end_addr_(end_addr) {}
-
-	const char *file_; // Maybe this should be module?
+	std::string(file_); // Maybe this should be module?
 	unsigned int line_;
 	unsigned int column_;
 	Offset start_addr_;
 	Offset end_addr_;
 
 	public:
+	Statement() {}
 	struct StatementLess {
 		bool operator () ( const Statement &lhs, const Statement &rhs ) const;
 	};
@@ -77,17 +77,17 @@ class Statement : public AnnotatableSparse
 	SYMTAB_EXPORT Offset endAddr() {return end_addr_;}
 	SYMTAB_EXPORT std::string file()
 	{
-		return file_ ? std::string(file_)
-			: std::string();
+		return file_; 
 	}
 
 	SYMTAB_EXPORT unsigned int line() {return line_;}
 	SYMTAB_EXPORT unsigned int column() {return column_;}
 
+	SYMTAB_EXPORT void serialize_impl(SerializerBase *sb, const char *tag = "Statement") THROW_SPEC (SerializerError);
 	//  Does dyninst really need these?
 	SYMTAB_EXPORT void setLine(unsigned int l) {line_ = l;}
 	SYMTAB_EXPORT void setColumn(unsigned int l) {column_ = l;}
-	SYMTAB_EXPORT void setFile(const char * l) {file_ = l;}
+	SYMTAB_EXPORT void setFile(const char * l) {file_ = std::string(l);}
 	SYMTAB_EXPORT void setStartAddr(Offset l) {start_addr_ = l;}
 	SYMTAB_EXPORT void setEndAddr(Offset l) {end_addr_ = l;}
 };

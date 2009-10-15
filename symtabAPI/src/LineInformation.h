@@ -53,12 +53,12 @@ namespace SymtabAPI{
 
 class SourceLineInternalTableWrapper;
 
-class LineInformation : public Serializable, 
-                        public AnnotatableSparse,
+class LineInformation : public AnnotationContainer<Statement>, 
                         private RangeLookup< Statement, Statement::StatementLess > 
 {
+	SYMTAB_EXPORT bool addItem_impl(Statement);
+	SYMTAB_EXPORT void ac_serialize_impl(SerializerBase *, const char * = "lineInformation") THROW_SPEC (SerializerError);
    public:
-      SYMTAB_EXPORT void serialize_impl(SerializerBase *, const char * = "LineInformation") THROW_SPEC (SerializerError);
       typedef RangeLookup< Statement, Statement::StatementLess >::const_iterator const_iterator;
       typedef RangeLookup< Statement, Statement::StatementLess >::AddressRange AddressRange;
 

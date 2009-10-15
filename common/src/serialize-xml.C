@@ -401,7 +401,7 @@ SerDesXML::~SerDesXML()
 
 }
 
-void SerDesXML::vector_start(unsigned int &/*size*/, const char *tag) DECLTHROW(SerializerError)
+void SerDesXML::vector_start(unsigned long &/*size*/, const char *tag) DECLTHROW(SerializerError)
 {
    bool rc = ::start_xml_elem(writer, tag);
 
@@ -434,7 +434,7 @@ void SerDesXML::vector_end()
 #endif
 }
 
-void SerDesXML::multimap_start(unsigned int &/*size*/, const char *tag) DECLTHROW(SerializerError)
+void SerDesXML::multimap_start(unsigned long &/*size*/, const char *tag) DECLTHROW(SerializerError)
 {
    bool rc = ::start_xml_elem(writer, tag);
 
@@ -466,7 +466,38 @@ void SerDesXML::multimap_end()
 #endif
 }
 
-void SerDesXML::hash_map_start(unsigned int &/*size*/, const char *tag) DECLTHROW(SerializerError)
+void SerDesXML::pair_start(const char *tag) DECLTHROW(SerializerError)
+{
+   bool rc = ::start_xml_elem(writer, tag);
+
+   if (!rc)
+   {
+        SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
+   }
+#if 0
+    int rc = my_xmlTextWriterStartElement(writer, XMLCHAR_CAST tag);
+    if (rc < 0) {
+        SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
+    }
+#endif
+}
+
+void SerDesXML::pair_end()
+{
+   bool rc = ::end_xml_elem(writer);
+   if (!rc) 
+   {
+      SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
+   }
+
+#if 0
+    int rc = my_xmlTextWriterEndElement(writer);
+    if (rc < 0) {
+        SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
+    }
+#endif
+}
+void SerDesXML::hash_map_start(unsigned long &/*size*/, const char *tag) DECLTHROW(SerializerError)
 {
    bool rc = ::start_xml_elem(writer,  tag);
 
@@ -566,7 +597,7 @@ void SerDesXML::annotation_container_item_end()
    }
 
 }
-void SerDesXML::annotation_list_start(Address &/*id*/, int &nelem, const char * tag) 
+void SerDesXML::annotation_list_start(Address &/*id*/, unsigned long &/*nelem*/, const char * tag) 
 {
    bool rc = ::start_xml_elem(writer, tag);
 

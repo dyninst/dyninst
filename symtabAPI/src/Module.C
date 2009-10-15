@@ -45,8 +45,8 @@ using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace std;
 
-static AnnotationClass<LineInformation> ModuleLineInfoAnno(std::string("ModuleLineInfoAnno"));
-static AnnotationClass<typeCollection> ModuleTypeInfoAnno(std::string("ModuleTypeInfoAnno"));
+AnnotationClass<LineInformation> ModuleLineInfoAnno(std::string("ModuleLineInfoAnno"));
+AnnotationClass<typeCollection> ModuleTypeInfoAnno(std::string("ModuleTypeInfoAnno"));
 static SymtabError serr;
 
 bool Module::findSymbolByType(std::vector<Symbol *> &found, 
@@ -255,20 +255,6 @@ typeCollection *Module::getModuleTypesPrivate()
    typeCollection *tc = NULL;
    if (!getAnnotation(tc, ModuleTypeInfoAnno))
    {
-      //  add an empty type collection (to be filled in later)
-      tc = new typeCollection();
-      if (!addAnnotation(tc, ModuleTypeInfoAnno))
-      {
-         fprintf(stderr, "%s[%d]:  failed to addAnnotation here\n", FILE__, __LINE__);
-         return NULL;
-      }
-
-      return tc;
-   }
-
-   if (!tc)
-   {
-      fprintf(stderr, "%s[%d]:  failed to addAnnotation here\n", FILE__, __LINE__);
       return NULL;
    }
 
@@ -277,8 +263,10 @@ typeCollection *Module::getModuleTypesPrivate()
 
 bool Module::findType(Type *&type, std::string name)
 {
-   exec_->parseTypesNow();
-   type = getModuleTypesPrivate()->findType(name);
+	typeCollection *tc = getModuleTypes();
+	if (!tc) return false;
+
+   type = tc->findType(name);
 
    if (type == NULL)
       return false;
@@ -288,8 +276,10 @@ bool Module::findType(Type *&type, std::string name)
 
 bool Module::findVariableType(Type *&type, std::string name)
 {
-   exec_->parseTypesNow();
-   type = getModuleTypesPrivate()->findVariableType(name);
+	typeCollection *tc = getModuleTypes();
+	if (!tc) return false;
+
+	type = tc->findVariableType(name);
 
    if (type == NULL)
       return false;
@@ -532,7 +522,7 @@ void Module::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (Ser
    gtranslate(sb, fileName_, "fileName");
    gtranslate(sb, fullName_, "fullName");
    gtranslate(sb, addr_, "Address");
-   gtranslate(sb, (int &) language_, "Language");
+   gtranslate(sb, language_, supportedLanguages2Str, "Language");
    ifxml_end_element(sb, tag);
 
    if (sb->isInput())
@@ -594,3 +584,13 @@ bool Module::findVariablesByName(std::vector<Variable *> &ret, const std::string
   return succ;
 }
   
+SYMTAB_EXPORT void Statement::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
+{
+	ifxml_start_element(sb, tag);
+	gtranslate(sb, file_, "file");
+	gtranslate(sb, line_, "line");
+	gtranslate(sb, column_, "column");
+	gtranslate(sb, start_addr_, "startAddress");
+	gtranslate(sb, end_addr_, "endAddress");
+	ifxml_end_element(sb, tag);
+}

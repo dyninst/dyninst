@@ -68,6 +68,7 @@ using namespace std;
 
 static std::string errMsg;
 extern bool parseCompilerType(Object *);
+extern AnnotationClass<typeCollection> ModuleTypeInfoAnno;
 
 void pd_log_perror(const char *msg)
 {
@@ -276,7 +277,7 @@ void Symtab::setupStdTypes()
 	if (stdTypes)
     	return;
 
-   stdTypes = typeCollection::getGlobalTypeCollection();
+   stdTypes = new typeCollection();
    stdTypes->addType(newType = new typeScalar(-1, sizeof(int), "int"));
    newType->decrRefCount();
 
@@ -1747,25 +1748,6 @@ bool Symtab::exportBin(string)
 Symtab *Symtab::importBin(std::string file)
 {
 #if defined (cap_serialization)
-	fprintf(stderr, "%s[%d]:  welcome to importBin\n", FILE__, __LINE__);
-#if 0
-	char *ser_env = getenv(SERIALIZE_CONTROL_ENV_VAR);
-	if (!ser_env)
-	{
-		fprintf(stderr, "%s[%d]:  serialization not enabled\n", FILE__, __LINE__);
-		return NULL;
-	}
-	if (!strcmp(ser_env, SERIALIZE_DISABLE)) 
-	{
-		fprintf(stderr, "%s[%d]:  serialization is disabled\n", FILE__, __LINE__);
-		return NULL;
-	}
-	if (!strcmp(ser_env, SERIALIZE_ONLY)) 
-	{
-		fprintf(stderr, "%s[%d]:  deserialization not enabled: %s=%s\n", FILE__, __LINE__, SERIALIZE_CONTROL_ENV_VAR, ser_env);
-		return NULL;
-	}
-#endif
    MappedFile *mf= MappedFile::createMappedFile(file);
    if (!mf) 
    {
@@ -1775,21 +1757,6 @@ Symtab *Symtab::importBin(std::string file)
 
    Symtab *st = new Symtab(mf);
 
-#if 0
-	   std::string ser_name = file + std::string("_SymtabDeserializer");
-      bool verbose = false;
-      if (strstr(file.c_str(), "ld-")) 
-		  verbose = true;
-	  fprintf(stderr, "%s[%d]:  about to create deserializer '%s' for file %s\n", FILE__, __LINE__, ser_name.c_str(), file.c_str());
-	  SerializerBase *ser = newSerializer(st, ser_name, file, ser_bin, sd_deserialize, verbose);
-	  if (!ser)
-	  {
-		  //  newSerializer does checks on whether serialization is disabled, so we need to
-		  //  fail cleanly here in case it is simply disabled by the nev.
-		  fprintf(stderr, "%s[%d]:  failed to create serializer\n", FILE__, __LINE__);
-		  return NULL;
-	  }
-#endif
    try
    {
 	   SerContext<Symtab> *scs = new SerContext<Symtab>(st);
@@ -1798,40 +1765,29 @@ Symtab *Symtab::importBin(std::string file)
 		   delete st;
 		   return NULL;
 	   }
-#if 0
-	   st->serialize(ser, "Symtab");
-#endif
+
 	   return st;
-#if 0
-	   SerContext<Symtab> *scs = new SerContext<Symtab>(st);
-	   SerializerBin *ser = new SerializerBin(scs, ser_name, file, sd_deserialize, true);
-	   st->serialize(ser, "Symtab");
-#endif
-#if 0
-      SerializerBin sb("BinTranslator", file, sd_deserialize, true);
-      st->serialize(&sb);
-#endif
    }
 
    catch (const SerializerError &err)
    {
       if (err.code() == SerializerError::ser_err_disabled) 
       {
-         fprintf(stderr, "%s[%d]:  WARN:  serialization is disabled for file %s\n",
+         serialize_printf("%s[%d]:  WARN:  serialization is disabled for file %s\n",
                FILE__, __LINE__, file.c_str());
          return NULL;
       }
 
-      fprintf(stderr, "%s[%d]: %s\n\tfrom: %s[%d]\n", FILE__, __LINE__,
+      serialize_printf("%s[%d]: %s\n\tfrom: %s[%d]\n", FILE__, __LINE__,
             err.what(), err.file().c_str(), err.line());
    }
 
 
-   fprintf(stderr, "%s[%d]:  error doing binary deserialization\n", __FILE__, __LINE__);
+   serialize_printf("%s[%d]:  error doing binary deserialization\n", __FILE__, __LINE__);
    delete st;
    return NULL;
 #else
-   fprintf(stderr, "%s[%d]:  WARNING:  cannot produce %s, serialization not available\n", FILE__, __LINE__, file.c_str());
+   serialize_printf("%s[%d]:  WARNING:  cannot produce %s, serialization not available\n", FILE__, __LINE__, file.c_str());
    return NULL;
 #endif
 }
@@ -1869,11 +1825,25 @@ bool Symtab::openFile(Symtab *&obj, char *mem_image, size_t size)
     return !err;
 }
 
-void Symtab::closeSymtab(Symtab *st)
+bool Symtab::closeSymtab(Symtab *st)
 {
+	bool found = false;
 	assert(st);
-	int numSymtabs = allSymtabs.size();
+	//int numSymtabs = allSymtabs.size();
 
+	std::vector<Symtab *>::reverse_iterator iter;
+	for (iter = allSymtabs.rbegin(); iter != allSymtabs.rend() ; iter++)
+	{
+		if (*iter == st)
+		{
+			fprintf(stderr, "%s[%d]:  before erase\n", FILE__, __LINE__);
+			allSymtabs.erase(iter.base() -1);
+			fprintf(stderr, "%s[%d]:  after erase\n", FILE__, __LINE__);
+			found = true;
+		}
+	}
+	delete(st);
+#if 0
 	for (int i=(numSymtabs -1); i > 0; --i) 
 	{
 		assert(allSymtabs[i]);
@@ -1881,8 +1851,11 @@ void Symtab::closeSymtab(Symtab *st)
 		{
 			allSymtabs.erase(allSymtabs.begin()+i);
 			delete st;
+			found = true;
 		}
 	}   
+#endif
+	return found;
 }
 
 Symtab *Symtab::findOpenSymtab(std::string filename)
@@ -1916,7 +1889,7 @@ bool Symtab::openFile(Symtab *&obj, std::string filename)
 	   obj = findOpenSymtab(filename);
 	   if (obj)
 	   {
-		   fprintf(stderr, "%s[%d]:  have existing symtab obj for %s\n", FILE__, __LINE__, filename.c_str());
+		   //fprintf(stderr, "%s[%d]:  have existing symtab obj for %s\n", FILE__, __LINE__, filename.c_str());
 		   return true;
    }
    }
@@ -1927,7 +1900,16 @@ bool Symtab::openFile(Symtab *&obj, std::string filename)
 
    if (!obj) 
    {
-      fprintf(stderr, "%s[%d]:  importBin failed\n", FILE__, __LINE__);
+      serialize_printf("%s[%d]:  importBin failed\n", FILE__, __LINE__);
+	  const char *ser_var = getenv(SERIALIZE_CONTROL_ENV_VAR);
+	  if (ser_var)
+	  {
+		  if (std::string(ser_var) == std::string(SERIALIZE_DESERIALIZE_OR_DIE))
+		  {
+			  fprintf(stderr, "%s[%d]:  aborting new symtab, expected deserialize failed\n", FILE__, __LINE__);
+			  return false;
+		  }
+	  }
    }
    else 
    {
@@ -1954,15 +1936,15 @@ bool Symtab::openFile(Symtab *&obj, std::string filename)
       obj->setupTypes();	
 
 #if defined (cap_serialization)
-      fprintf(stderr, "%s[%d]:  doing bin-serialize for %s\n", 
+      serialize_printf("%s[%d]:  doing bin-serialize for %s\n", 
             FILE__, __LINE__, filename.c_str());
 
       if (!obj->exportBin(filename))
       {
-         fprintf(stderr, "%s[%d]:  failed to export symtab\n", FILE__, __LINE__);
+         serialize_printf("%s[%d]:  failed to export symtab\n", FILE__, __LINE__);
       }
       else
-         fprintf(stderr, "%s[%d]:  did bin-serialize for %s\n", 
+         serialize_printf("%s[%d]:  did bin-serialize for %s\n", 
                FILE__, __LINE__, filename.c_str());
 #endif
 
@@ -2050,6 +2032,8 @@ bool Symtab::addUserType(Type *t)
 {
    std::vector<Type *> *user_types = NULL;
 
+   //  need to change this to something based on AnnotationContainer
+   //  for it to work with serialization
    if (!getAnnotation(user_types, UserTypesAnno))
    {
       user_types = new std::vector<Type *>();
@@ -2219,6 +2203,21 @@ void Symtab::parseTypes()
 	}
    linkedFile->parseTypeInfo(this);
    isTypeInfoValid_ = true;
+
+   for (unsigned int i = 0; i < _mods.size(); ++i)
+   {
+	   typeCollection *tc = typeCollection::getModTypeCollection(_mods[i]);
+
+	   if (!_mods[i]->addAnnotation(tc, ModuleTypeInfoAnno))
+	   {
+		   fprintf(stderr, "%s[%d]:  failed to addAnnotation here\n", FILE__, __LINE__);
+	   }
+   }
+
+   //  optionally we might want to clear the static data struct in typeCollection
+   //  here....  the parsing is over, and we have added all typeCollections as
+   //  annotations proper.
+
 }
 
 bool Symtab::addType(Type *type)
@@ -2226,9 +2225,6 @@ bool Symtab::addType(Type *type)
   bool result = addUserType(type);
   if (!result)
     return false;
-
-  typeCollection *globaltypes = typeCollection::getGlobalTypeCollection();
-  globaltypes->addType(type);
 
   return true;
 }
@@ -2254,7 +2250,9 @@ SYMTAB_EXPORT bool Symtab::findType(Type *&type, std::string name)
 
    for (unsigned int i = 0; i < _mods.size(); ++i)
    {
-	   type = _mods[i]->getModuleTypesPrivate()->findType(name);
+	   typeCollection *tc = _mods[i]->getModuleTypes();
+	   if (!tc) continue;
+	   type = tc->findType(name);
 	   if (type) return true;
    }
 
@@ -2277,7 +2275,9 @@ SYMTAB_EXPORT Type *Symtab::findType(unsigned type_id)
 
    for (unsigned int i = 0; i < _mods.size(); ++i)
    {
-	   t = _mods[i]->getModuleTypesPrivate()->findType(type_id);
+	   typeCollection *tc = _mods[i]->getModuleTypes();
+	   if (!tc) continue;
+	   t = tc->findType(type_id);
 	   if (t)  break;
    }
 
@@ -2316,7 +2316,14 @@ SYMTAB_EXPORT bool Symtab::findVariableType(Type *&type, std::string name)
    if (!_mods.size())
       return false;
 
-   type = _mods[0]->getModuleTypesPrivate()->findVariableType(name);
+
+   for (unsigned int i = 0; i < _mods.size(); ++i)
+   {
+	   typeCollection *tc = _mods[i]->getModuleTypes();
+	   if (!tc) continue;
+	   type = tc->findVariableType(name);
+	   if (type) break;
+   }
 
    if (type == NULL)
       return false;
@@ -2636,18 +2643,18 @@ bool Symtab::fixup_relocation_symbols(SerializerBase *, Symtab *st)
 
 void Symtab::rebuild_symbol_hashes()
 {
-	for (unsigned int i = 0; i < everyDefinedSymbol.size(); ++i)
+	for (unsigned long i = 0; i < everyDefinedSymbol.size(); ++i)
 	{
 		Symbol *s = everyDefinedSymbol[i];
 		assert(s);
-			const std::string &pn = s->getPrettyName();
-			const std::string &mn = s->getMangledName();
-			const std::string tn = s->getTypedName();
-			
-			symsByPrettyName[pn].push_back(s);
-			symsByMangledName[mn].push_back(s);
-			symsByTypedName[tn].push_back(s);
-			symsByOffset[s->getOffset()].push_back(s);
+		const std::string &pn = s->getPrettyName();
+		const std::string &mn = s->getMangledName();
+		const std::string tn = s->getTypedName();
+
+		symsByPrettyName[pn].push_back(s);
+		symsByMangledName[mn].push_back(s);
+		symsByTypedName[tn].push_back(s);
+		symsByOffset[s->getOffset()].push_back(s);
 	}
 }
 
@@ -2673,12 +2680,40 @@ void Symtab::rebuild_module_hashes()
 		modsByFullName[m->fullName()] = m;
 	}
 }
+void Symtab::rebuild_region_indexes() THROW_SPEC (SerializerError)
+{
+	for (unsigned int i = 0; i < regions_.size(); ++i)
+	{
+		Region *r = regions_[i];
+
+		if (!r) SER_ERR("FIXME:  NULL REGION");
+
+		if ( r->isLoadable() )
+		{
+			if ((r->getRegionPermissions() == Region::RP_RX)
+					|| (r->getRegionPermissions() == Region::RP_RWX))
+				codeRegions_.push_back(r);
+			else
+				dataRegions_.push_back(r);
+		}
+
+		//  entry addr might require some special attn on windows, since it
+		//  is not the disk offset but the actual mem addr, which is going to be
+		//  different after deserialize.  Probably have to look it up again.
+		regionsByEntryAddr[r->getRegionAddr()] = r;
+	}
+
+	std::sort(codeRegions_.begin(), codeRegions_.end(), sort_reg_by_addr);
+	std::sort(dataRegions_.begin(), dataRegions_.end(), sort_reg_by_addr);
+
+
+}
 void Symtab::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
 	fprintf(stderr, "%s[%d]:  welcome to Symtab::serialize_impl\n", FILE__, __LINE__);
-   try 
-   {
-      ifxml_start_element(sb, tag);
+	try 
+	{
+		ifxml_start_element(sb, tag);
       gtranslate(sb, imageOffset_, "imageOffset");
       gtranslate(sb, imageLen_, "imageLen");
       gtranslate(sb, dataOffset_, "dataOff");
@@ -2695,7 +2730,10 @@ void Symtab::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (Ser
 		  //  for an object class that does not exist.  Need to introduce logic to 
 		  //  recreate the object in this case
 		  isTypeInfoValid_ = true;
+		  isLineInfoValid_ = true; //  NOTE:  set this to true after deserializing at least one lineInformaton object
 	  }
+      gtranslate(sb, regions_, "Regions", "Region");
+	  rebuild_region_indexes();
       gtranslate(sb, everyDefinedSymbol, "EveryDefinedSymbol", "Symbol");
 	  if (is_input(sb))
 	  {
@@ -2715,6 +2753,7 @@ void Symtab::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (Ser
       ifxml_end_element(sb, tag);
 
 
+	  sb->magic_check(FILE__, __LINE__);
 #if 0
       ifinput(Symtab::setup_module_up_ptrs, sb, this);
       ifinput(fixup_relocation_symbols, sb, this);
@@ -2901,7 +2940,7 @@ void relocationEntry::serialize_impl(SerializerBase *sb, const char *tag) THROW_
       gtranslate(sb, rel_addr_, "relocationAddress");
       gtranslate(sb, addend_, "Addend");
       gtranslate(sb, name_, "relocationName");
-      gtranslate(sb, (int &) rtype_, "regionType");
+      gtranslate(sb,  rtype_, Region::regionType2Str, "regionType");
       gtranslate(sb, relType_, "relocationType");
       gtranslate(sb, symname, "SymbolName");
       gtranslate(sb, symoff, "SymbolOffset");

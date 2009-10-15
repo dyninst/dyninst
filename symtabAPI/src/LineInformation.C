@@ -46,6 +46,7 @@
 #include "boost/functional/hash.hpp"
 #include "common/h/headers.h"
 #include "Module.h"
+#include "Serialization.h"
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
@@ -111,12 +112,20 @@ SourceLineInternTable &getSourceLineNames(LineInformation *li)
 }
 
 LineInformation::LineInformation() : 
+	AnnotationContainer<Statement>(),
    Dyninst::SymtabAPI::RangeLookup< Statement, Statement::StatementLess >(),
    sourceLineNamesPtr(NULL) 
 {
    size_ = 0;
 } /* end LineInformation constructor */
 
+bool LineInformation::addItem_impl(Statement s)
+{
+   size_++;
+
+   bool ret = addValue( s, s.startAddr(), s.endAddr() );
+	return ret;
+}
 bool LineInformation::addLine( const char * lineSource, 
       unsigned int lineNo, 
       unsigned int lineOffset, 
@@ -147,10 +156,8 @@ bool LineInformation::addLine( const char * lineSource,
    }
 
    assert( lineSourceInternal != NULL );
-   size_++;
 
-   bool ret = addValue( Statement(lineSourceInternal, lineNo, lineOffset, lowInclusiveAddr, highExclusiveAddr), 
-         lowInclusiveAddr, highExclusiveAddr );
+   bool ret = addItem_impl( Statement(lineSourceInternal, lineNo, lineOffset, lowInclusiveAddr, highExclusiveAddr)); 
 
    return ret;
 } /* end setLineToAddressRangeMapping() */
@@ -161,7 +168,7 @@ void LineInformation::addLineInfo(LineInformation *lineInfo)
 
    for (; iter != lineInfo->end(); iter++)
    {
-      addLine(iter->second.file_, iter->second.line_, iter->second.column_, 
+      addLine(iter->second.file_.c_str(), iter->second.line_, iter->second.column_, 
             iter->first.first, iter->first.second);
    }
 }
@@ -208,7 +215,7 @@ bool Statement::StatementLess::operator () ( const Statement &lhs, const Stateme
 {
 	//  dont bother with ordering by column information yet.
 
-	int strcmp_res = strcmp( lhs.file_, rhs.file_);
+	int strcmp_res = strcmp( lhs.file_.c_str(), rhs.file_.c_str());
 
 	if (strcmp_res < 0 )
 		return true;
@@ -228,7 +235,7 @@ bool Statement::operator==(const Statement &cmp) const
 	if (column_ != cmp.column_) return false;
 
 	//  is compare-by-pointer OK here, or do we really have to really strcmp?
-	return (!strcmp(file_,cmp.file_));
+	return (file_ == cmp.file_);
 }
 
 
@@ -273,8 +280,25 @@ LineInformation::~LineInformation()
 } /* end LineInformation destructor */
 
 
-void LineInformation::serialize_impl(SerializerBase *sb, const char *) THROW_SPEC (SerializerError)
+void LineInformation::ac_serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
-   fprintf(stderr, "%s[%d]:  LineInformation::serialize -- IMPLEMENT ME sb = %p\n", 
-         FILE__, __LINE__, sb);
+   //fprintf(stderr, "%s[%d]:  LineInformation::serialize -- IMPLEMENT ME sb = %p\n", 
+   //      FILE__, __LINE__, sb);
+
+	std::pair<int, int> mypair;
+	std::pair<std::pair<int, int>, int> mypair2;
+
+	ifxml_start_element(sb, tag);
+	//gtranslate(sb, mypair);
+	//gtranslate(sb, mypair2);
+	gtranslate(sb, valuesByAddressRangeMap, "valuesByAddressRangeMap", "valueByAddressRange");
+	gtranslate(sb, addressRangesByValueMap, "addressRangesByValueMap", "addressRangeByValue");
+	gtranslate(sb, size_, "size");
+	//multimap_translator<std::pair<Address, Address>, Statement> mt;
+	//mt(sb, valuesByAddressRangeMap, "valuesByAddressRangeMap", "valueByAddressRange");
+	//translate_multimap(sb, valuesByAddressRangeMap, "valuesByAddressRangeMap", "valueByAddressRange");
+
+	//multimap_translator<std::pair<Address, Address>, Statement>(sb, addressRangesByValueMap, "addressRangesByValueMap", "addressRangeByValue");
+	ifxml_end_element(sb, tag);
+
 }

@@ -497,7 +497,9 @@ void typePointer::fixupUnknowns(Module *module)
    if (baseType_->getDataClass() == dataUnknownType) 
    {
       Type *optr = baseType_;
-      baseType_ = module->getModuleTypesPrivate()->findType(baseType_->getID());
+	  typeCollection *tc = typeCollection::getModTypeCollection(module);
+	  assert(tc);
+      baseType_ = tc->findType(baseType_->getID());
       baseType_->incrRefCount();
       optr->decrRefCount();
    }
@@ -607,10 +609,13 @@ bool typeFunction::isCompatible(Type *otype) {
 
 void typeFunction::fixupUnknowns(Module *module) 
 {
-   if (retType_->getDataClass() == dataUnknownType) 
+	typeCollection *tc = typeCollection::getModTypeCollection(module);
+	assert(tc);
+
+	if (retType_->getDataClass() == dataUnknownType) 
    {
       Type *otype = retType_;
-      retType_ = module->getModuleTypesPrivate()->findType(retType_->getID());
+      retType_ = tc->findType(retType_->getID());
       retType_->incrRefCount();
       otype->decrRefCount();
    }
@@ -618,7 +623,7 @@ void typeFunction::fixupUnknowns(Module *module)
    for (unsigned int i = 0; i < params_.size(); i++)
    {
       Type *otype = params_[i];
-      params_[i] = module->getModuleTypesPrivate()->findType(params_[i]->getID());
+      params_[i] = tc->findType(params_[i]->getID());
       params_[i]->incrRefCount();
       otype->decrRefCount();
    }	 
@@ -839,7 +844,9 @@ void typeArray::fixupUnknowns(Module *module)
    if (arrayElem->getDataClass() == dataUnknownType) 
    {
       Type *otype = arrayElem;
-      arrayElem = module->getModuleTypesPrivate()->findType(arrayElem->getID());
+	  typeCollection *tc = typeCollection::getModTypeCollection(module);
+	  assert(tc);
+	  arrayElem = tc->findType(arrayElem->getID());
       arrayElem->incrRefCount();
       otype->decrRefCount();
    }
@@ -1434,7 +1441,9 @@ void typeTypedef::fixupUnknowns(Module *module)
    if (baseType_->getDataClass() == dataUnknownType) 
    {
       Type *otype = baseType_;
-      baseType_ = module->getModuleTypesPrivate()->findType(baseType_->getID());
+	  typeCollection *tc = typeCollection::getModTypeCollection(module);
+	  assert(tc);
+      baseType_ = tc->findType(baseType_->getID());
       baseType_->incrRefCount();
       otype->decrRefCount();
    }
@@ -1508,7 +1517,9 @@ void typeRef::fixupUnknowns(Module *module)
    if (baseType_->getDataClass() == dataUnknownType) 
    {
       Type *otype = baseType_;
-      baseType_ = module->getModuleTypesPrivate()->findType(baseType_->getID());
+	  typeCollection *tc = typeCollection::getModTypeCollection(module);
+	  assert(tc);
+      baseType_ = tc->findType(baseType_->getID());
       baseType_->incrRefCount();
       otype->decrRefCount();
    }
@@ -1900,7 +1911,9 @@ void Field::fixupUnknown(Module *module)
    if (type_->getDataClass() == dataUnknownType) 
    {
       Type *otype = type_;
-      type_ = module->getModuleTypesPrivate()->findType(type_->getID());
+	  typeCollection *tc = typeCollection::getModTypeCollection(module);
+	  assert(tc);
+      type_ = tc->findType(type_->getID());
       type_->incrRefCount();
       otype->decrRefCount();
    }
@@ -1927,7 +1940,7 @@ void Field::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC(Seria
 	ifxml_start_element(sb, tag);
 	gtranslate(sb, fieldName_, "fieldName");
 	gtranslate(sb, t_id, "fieldTypeID");
-	gtranslate(sb, (int &)vis_, "visibility");
+	gtranslate(sb, vis_, visibility2Str, "visibility");
 	gtranslate(sb, offset_, "offset");
 	ifxml_end_element(sb, tag);
 

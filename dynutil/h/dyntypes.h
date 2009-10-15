@@ -41,9 +41,6 @@
 #define FILE__ strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__
 #endif
 
-namespace Dyninst {
-unsigned ptrHash(void * addr);
-}
 
 #if defined (_MSC_VER)
   //**************** Windows ********************
@@ -73,9 +70,12 @@ unsigned ptrHash(void * addr);
       #include <string>
       #define dyn_hash_set __gnu_cxx::hash_set
       #define dyn_hash_map __gnu_cxx::hash_map    
+      namespace Dyninst {
+	     unsigned ptrHash(void * addr);
+      }
       using namespace __gnu_cxx;
       namespace __gnu_cxx {
- 
+
 		  template<> struct hash<std::string> {
 			  hash<char*> h;
 			  unsigned operator()(const std::string &s) const 

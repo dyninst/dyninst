@@ -4536,6 +4536,7 @@ void Object::parseStabTypes(Symtab *obj)
 	int mostRecentLinenum = 0;
 
   Module *mod;
+  typeCollection *tc = NULL;
 
 #if defined(TIMED_PARSE)
   struct timeval starttime;
@@ -4606,20 +4607,22 @@ void Object::parseStabTypes(Symtab *obj)
 	modName = ptr;
       }
       if (obj->findModuleByName(mod, modName)) {
+		  tc = typeCollection::getModTypeCollection(mod);
 	parseActive = true;
 	if (!mod) {
 	  fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
 	}
-	else if (!mod->getModuleTypesPrivate()) 
+	else if (!tc) 
 	  {
 	    fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
 	  }
 	else 
-	  mod->getModuleTypesPrivate()->clearNumberedTypes();
+		tc->clearNumberedTypes();
       } 
       else {
 	//parseActive = false;
 	mod = obj->getDefaultModule();
+	tc = typeCollection::getModTypeCollection(mod);
 	types_printf("\t Warning: failed to find module name matching %s, using %s\n", modName, mod->fileName().c_str());
       }
 
@@ -4732,11 +4735,11 @@ void Object::parseStabTypes(Symtab *obj)
 	if (!commonBlockVar) {
 	  // //bperr("unable to find variable %s\n", commonBlockName);
 	} else {
-	  commonBlock = dynamic_cast<typeCommon *>(mod->getModuleTypesPrivate()->findVariableType(*commonBlockName));
+	  commonBlock = dynamic_cast<typeCommon *>(tc->findVariableType(*commonBlockName));
 	  if (commonBlock == NULL) {
 	    // its still the null type, create a new one for it
 	    commonBlock = new typeCommon(*commonBlockName);
-	    mod->getModuleTypesPrivate()->addGlobalVariable(*commonBlockName, commonBlock);
+	    tc->addGlobalVariable(*commonBlockName, commonBlock);
 	  }
 	  // reset field list
 	  commonBlock->beginCommonBlock();

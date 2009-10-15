@@ -1643,7 +1643,7 @@ Address multiTramp::instToUninstAddr(Address addr) {
     }
 
     // Ran out of iterator... 
-    fprintf(stderr, "Checking %d deleted objects\n", deletedObjs.size());
+    fprintf(stderr, "Checking %ld deleted objects\n", deletedObjs.size());
     for (unsigned i = 0; i < deletedObjs.size(); i++) {
         obj = deletedObjs[i];
         relocatedInstruction *insn = dynamic_cast<relocatedInstruction *>(obj);

@@ -37,6 +37,7 @@
 #include "Collections.h"
 #include "Symtab.h"
 #include "Module.h"
+#include "Variable.h"
 #include "Serialization.h"
 
 #include "common/h/headers.h"
@@ -113,9 +114,21 @@ std::vector<localVar *> *localVarCollection::getAllVars()
   
 void localVarCollection::ac_serialize_impl(SerializerBase *s, const char *tag) THROW_SPEC (SerializerError)
 {
+	unsigned short lvmagic = 72;
+	fprintf(stderr, "%s[%d]:  welcome to localVarCollection: ac_serialize_impl\n", 
+			FILE__, __LINE__);
 	ifxml_start_element(s, tag);
+	gtranslate(s, lvmagic, "LocalVarMagicID");
 	gtranslate(s, localVars, "LocalVariables");
+	s->magic_check(FILE__, __LINE__);
 	ifxml_end_element(s, tag);
+
+	if (lvmagic != 72)
+	{
+		fprintf(stderr, "\n\n%s[%d]: FIXME:  out-of-sync\n\n\n", FILE__, __LINE__);
+	}
+
+	fprintf(stderr, "%s[%d]:  localVarCollection: ac_serialize_impl, translate done\n", FILE__, __LINE__);
 
 	if (s->isInput())
 	{
@@ -126,52 +139,50 @@ void localVarCollection::ac_serialize_impl(SerializerBase *s, const char *tag) T
 			assert(lv);
 			localVariablesByName[lv->getName()] = lv;
 		}
-		fprintf(stderr, "%s[%d]:  deserialized %d local vars\n", FILE__, __LINE__, localVars.size());
+		fprintf(stderr, "%s[%d]:  deserialized %ld local vars\n", FILE__, __LINE__, localVars.size());
 	}
 	else
-		fprintf(stderr, "%s[%d]:  serialized %d local vars\n", FILE__, __LINE__, localVars.size());
+		fprintf(stderr, "%s[%d]:  serialized %ld local vars\n", FILE__, __LINE__, localVars.size());
 
 }
 
 // Could be somewhere else... for DWARF-work.
-dyn_hash_map<std::string, typeCollection *> typeCollection::fileToTypesMap;
+dyn_hash_map<void *, typeCollection *> typeCollection::fileToTypesMap;
 
 /*
  * Reference count
  */
 
-typeCollection *typeCollection::getGlobalTypeCollection() {
-    typeCollection *tc = new typeCollection();
-    tc->refcount++;
-    return tc;
-}
-
 #if 0
-typeCollection *typeCollection::getModTypeCollection(Module *mod) {
-    assert(mod);
-
-//#if defined(USES_DWARF_DEBUG)
-    // TODO: can we use this on other platforms as well?    
-    if( fileToTypesMap.find( mod->exec()->file()) != fileToTypesMap.end()) {
-        // /* DEBUG */ fprintf( stderr, "%s[%d]: found cache for file '%s' (module '%s')\n", __FILE__, __LINE__, fileName, moduleFileName );
-        typeCollection *cachedTC = fileToTypesMap [mod->exec()->file()];
-        cachedTC->refcount++;
-        return cachedTC;
-    }
-//#endif
-
-    typeCollection *newTC = new typeCollection();
-    fileToTypesMap[mod->exec()->file()] = newTC;
-    newTC->refcount++;
-    return newTC;
+typeCollection *typeCollection::getGlobalTypeCollection() 
+{
+    typeCollection *tc = new typeCollection();
+    //tc->refcount++;
+    return tc;
 }
 #endif
 
+typeCollection *typeCollection::getModTypeCollection(Module *mod) 
+{
+	if (!mod) return NULL;
+	dyn_hash_map<void *, typeCollection *>::iterator iter = fileToTypesMap.find((void *)mod);
+
+    if ( iter != fileToTypesMap.end()) 
+	{
+		return iter->second;
+    }
+
+    typeCollection *newTC = new typeCollection();
+    fileToTypesMap[(void *)mod] = newTC;
+    return newTC;
+}
+
+#if 0
 void typeCollection::freeTypeCollection(typeCollection *tc) {
     assert(tc);
     tc->refcount--;
     if (tc->refcount == 0) {
-        dyn_hash_map<std::string, typeCollection *>::iterator iter = fileToTypesMap.begin();
+        dyn_hash_map<Module *, typeCollection *>::iterator iter = fileToTypesMap.begin();
         for (; iter!= fileToTypesMap.end(); iter++) {
             if (iter->second == tc) {
                 fileToTypesMap.erase(iter->first);
@@ -181,6 +192,7 @@ void typeCollection::freeTypeCollection(typeCollection *tc) {
         delete tc;
     }
 }
+#endif
 
 /*
  * typeCollection::typeCollection
@@ -189,7 +201,6 @@ void typeCollection::freeTypeCollection(typeCollection *tc) {
  * for the type, by Name and ID.
  */
 typeCollection::typeCollection():
-    refcount(0),
     dwarfParsed_(false)
 {
   /* Initialize hash tables: typesByName, typesByID */
@@ -205,8 +216,6 @@ typeCollection::~typeCollection()
 {
     // We sometimes directly delete (refcount == 1) or go through the
     // decRefCount (which will delete when refcount == 0)
-    assert(refcount == 0 ||
-           refcount == 1);
     // delete all of the types
     // This doesn't seem to work - jkh 1/31/00
 #if 0
@@ -418,9 +427,41 @@ vector<pair<string, Type *> > *typeCollection::getAllGlobalVariables() {
    return varsVec;
 }
 
-void typeCollection::serialize_impl(SerializerBase *, const char *) THROW_SPEC (SerializerError)
+void typeCollection::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
-   fprintf(stderr, "%s[%d]:  IMPLEMENT ME\n", FILE__, __LINE__);
+	//fprintf(stderr, "%s[%d]:  IMPLEMENT ME\n", FILE__, __LINE__);
+	unsigned short tcmagic = 73;
+	ifxml_start_element(sb, tag);
+	//gtranslate(sb, typesByName, "typesByName");
+	//gtranslate(sb, globalVarsByName, "globalVarsByName");
+	unsigned int sz_count = 0;
+	dyn_hash_map<std::string, Type *>::iterator iter;
+	for (iter = typesByName.begin(); iter != typesByName.end(); iter++)
+		sz_count++;
+	fprintf(stderr, "%s[%d]:  before translate typesByName, size = %lu, count == %d\n", FILE__, __LINE__, typesByName.size(), sz_count);
+	//translate_dyn_hash_map(sb, typesByName, "typesByName", "typesByNameElem");
+	sb->magic_check(FILE__, __LINE__);
+	//translate_dyn_hash_map(sb, globalVarsByName, "globalVarsByName", "globalVarsByNameElem");
+	sb->magic_check(FILE__, __LINE__);
+	gtranslate(sb, dwarfParsed_, "dwarfParsedFlag");
+	gtranslate(sb, tcmagic, "typeCollectionMagicID");
+	sb->magic_check(FILE__, __LINE__);
+	ifxml_end_element(sb, tag);
+
+	if (tcmagic != 73)
+	{
+		fprintf(stderr, "\n\n%s[%d]: FIXME:  out-of-sync\n\n\n", FILE__, __LINE__);
+	}
+
+	if (sb->isInput())
+	{
+		dyn_hash_map<std::string, Type *>::iterator iter;
+		for (iter = typesByName.begin(); iter != typesByName.end(); iter++)
+		{
+			typesByID[iter->second->getID()] = iter->second;
+		}
+	}
+	sb->magic_check(FILE__, __LINE__);
 }
 
 /*

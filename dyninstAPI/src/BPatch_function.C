@@ -462,7 +462,7 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPointByOp(
      curBlk++)
   {
       BPatch_Vector<BPatch_point*>* tmp = (*curBlk)->findPoint(ops);
-      for(int i = 0; i < tmp->size(); i++)
+      for (unsigned int i = 0; i < tmp->size(); i++)
       {
           ret->push_back((*tmp)[i]);
       } 

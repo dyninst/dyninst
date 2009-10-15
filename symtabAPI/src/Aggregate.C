@@ -30,6 +30,7 @@
  */
 
 #include "Annotatable.h"
+#include "Serialization.h"
 #include "common/h/serialize.h"
 
 #include "Symtab.h"
@@ -426,6 +427,87 @@ void Aggregate::restore_module_by_name(SerializerBase *sb,
 	}
 }
 
+
+extern Symbol * getSymForID(SerializerBase *sb, Address id);
+
+void Aggregate::rebuild_symbol_vector(SerializerBase *sb, std::vector<Address> &symids) THROW_SPEC (SerializerError)
+{
+	Offset off_accum = 0;
+	for (unsigned long i = 0; i < symids.size(); ++i)
+	{
+		Symbol *sym = getSymForID(sb, symids[i]);
+		if (!sym)
+		{
+			fprintf(stderr, "%s[%d]:  ERROR rebuilding aggregate: ", __FILE__, __LINE__);
+			fprintf(stderr, "cannot find symbol for id %p\n", (void *) symids[i]);
+			continue;
+		}
+
+		symbols_.push_back(sym);
+
+		//  sanity check to make sure that all our symbols share the same offset
+		if (serializer_debug_flag())
+		{
+			if (!off_accum) 
+				off_accum = sym->getOffset();
+			else
+			{
+				if (sym->getOffset() != off_accum)
+				{
+					fprintf(stderr, "%s[%d]:  INTERNAL ERROR:  mismatch offsets: %p--%p\n", FILE__, __LINE__, (void *)off_accum, (void *)sym->getOffset());
+				}
+			}
+		}
+
+		//  This sucks, but apparently there are symbols that are somehow
+		//  not getting their aggregate fields set properly (before serialize
+		//  presumably), strangely only affects 64bit cases.  Here we try
+		//  to correct for this by setting the aggregate values of all symbols
+		//  at this Offset.  This lookup should be avoided by solving the problem
+		//  somewhere else (at the source, wherever it is that the rogue symbols
+		//  are being created and/or lost)
+		//  
+		//  Maybe it is also somehow possible that spurious symbols are being
+		//  created and indexed during deserialize.
+		SerContextBase *scb = sb->getContext();
+		if (!scb)
+		{
+			fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+			SER_ERR("FIXME");
+		}
+
+		SerContext<Symtab> *scs = dynamic_cast<SerContext<Symtab> *>(scb);
+
+		if (!scs)
+		{
+			fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+			SER_ERR("FIXME");
+		}
+
+		Symtab *st = scs->getScope();
+
+	if (!st)
+	{
+		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+		SER_ERR("FIXME");
+	}
+		std::vector<Symbol *> *syms = st->findSymbolByOffset(sym->getOffset());
+		for (unsigned long j = 0; j < syms->size(); ++j)
+		{
+			(*syms)[j]->aggregate_ = this;
+		}
+#if 0
+		if (sym->aggregate_)
+		{
+			fprintf(stderr, "%s[%d]:  WARNING:  symbol %s already has aggregate!!\n", 
+					FILE__, __LINE__, sym->getName().c_str());
+		}
+
+		sym->aggregate_ = this;
+#endif
+	}
+}
+#if 0
 void Aggregate::rebuild_symbol_vector(SerializerBase *sb,  
 		std::vector<Offset> *sym_offsets) THROW_SPEC (SerializerError)
 {
@@ -492,6 +574,7 @@ void Aggregate::rebuild_symbol_vector(SerializerBase *sb,
 		{
 			//  Not sure if we should interpret multiple symbols sharing that same offset
 			//  as an error (probably not)
+#if 0
 			for (unsigned int i = 0; i < syms->size(); ++i)
 			{
 				Symbol *s = (*syms)[i];
@@ -506,10 +589,45 @@ void Aggregate::rebuild_symbol_vector(SerializerBase *sb,
 					fprintf(stderr, "%s[%d]:  WARNING:  symbol %s already has aggregate!!\n", FILE__, __LINE__, s->getName().c_str());
 				}
 			}
+#endif
+			//  This is annoying...  apparently we have several symbols for a given offset
+			//  ...  while this might be theoretically OK, it's really probably a bug 
+			//  somewhere else where we build up our indexes.
+			if (syms->size())
+			{
+				Symbol *s = (*syms)[0];
+				assert(s);
+				symbols_.push_back(s);
+				if (!s->aggregate_)
+				{
+					s->aggregate_ = this;
+				}
+				else
+				{
+					fprintf(stderr, "%s[%d]:  WARNING:  symbol %s already has aggregate!!\n", FILE__, __LINE__, s->getName().c_str());
+				}
+			}
+			if (syms->size() > 1)
+			{
+				if (*(*syms)[0] == *(*syms)[1])
+				{
+					fprintf(stderr, "%s[%d]:  DESERIALIZE:  symbols are identical\n", FILE__, __LINE__);
+				}
+				else
+				{
+					fprintf(stderr, "%s[%d]:  DESERIALIZE:  symbols are not identical: sym0:\n", FILE__, __LINE__);
+					std::cerr << *((*syms)[0]) << std::endl;
+					std::cerr << "sym1:" << std::endl;
+					std::cerr << *((*syms)[1]) << std::endl;
+
+				}
+
+			}
 		}
 
 	}
 }
+#endif
 
 std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Aggregate &a)
 {
@@ -550,6 +668,15 @@ std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Aggregate &
 void Aggregate::serialize_aggregate(SerializerBase * sb, const char * tag) THROW_SPEC (SerializerError)
 {
 	std::string modname = module_ ? module_->fullName() : std::string("");
+	std::vector<Address> symids;
+	for (unsigned long i = 0; i < symbols_.size(); ++i)
+	{
+		assert(symbols_[i]);
+		assert(sizeof(Address) == sizeof(void *));
+		symids.push_back((Address) symbols_[i]);
+	}
+
+#if 0
 	std::vector<Offset> sym_offsets;
 	sym_offsets.resize(symbols_.size());
 
@@ -560,6 +687,8 @@ void Aggregate::serialize_aggregate(SerializerBase * sb, const char * tag) THROW
 		assert(symbols_[i]);
 		sym_offsets[i] = symbols_[i]->offset_;
 	}
+	fprintf(stderr, "%s[%d]:  serializing modname %s, with %ld symbols\n", FILE__, __LINE__, modname.c_str(), sym_offsets.size());
+#endif
 
 	try
 	{
@@ -570,14 +699,26 @@ void Aggregate::serialize_aggregate(SerializerBase * sb, const char * tag) THROW
 		gtranslate(sb, mangledNames_, "mangledNameList");
 		gtranslate(sb, prettyNames_, "prettyNameList");
 		gtranslate(sb, typedNames_, "typedNameList");
+		gtranslate(sb, symbols_, "aggregatedSymbols", "aggregateSymbol");
+#if 0
 		gtranslate(sb, sym_offsets, "symbolOffsetList");
+#endif
+		gtranslate(sb, symids, "symbolIDList");
 		ifxml_end_element(sb, tag);
 
 		if (sb->isBin() && sb->isInput())
+		{
 			restore_module_by_name(sb, modname);
+			rebuild_symbol_vector(sb, symids);
+		}
 
+#if 0
 		if (sb->isBin() && sb->isInput())
+		{
+			fprintf(stderr, "%s[%d]:  DESERIALIZE AGGREGATE %s, %lu offsets\n", FILE__, __LINE__, prettyNames_.size() ? prettyNames_[0].c_str() : "no_names", sym_offsets.size());
 			rebuild_symbol_vector(sb, &sym_offsets);
+		}
+#endif
 	}
 	SER_CATCH(tag);
 

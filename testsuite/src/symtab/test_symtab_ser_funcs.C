@@ -181,6 +181,10 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 		int maxsym = syms1.size() > syms2.size() ? syms1.size() : syms2.size();
 
 		fprintf(stderr, "%s[%d]:  Symbol List:\n", FILE__, __LINE__);
+		if (syms1.size() != syms2.size())
+		{
+			fprintf(stderr, "%s[%d]:  size discrep:  [%ld -- %ld]\n", FILE__, __LINE__, syms1.size(), syms2.size());
+		}
 
 		for (unsigned int i = 0; i < maxsym; ++i)
 		{
@@ -604,7 +608,8 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 		test_st = sb_deserializer_ptr->getScope();
 		assert(test_st == st);
 
-		sb_deserializer_ptr = nonpublic_make_bin_deserializer<Symtab>(&deserialize_result, file);
+		//sb_deserializer_ptr = nonpublic_make_bin_deserializer<Symtab>(&deserialize_result, file);
+		sb_deserializer_ptr = nonpublic_make_bin_deserializer<Symtab>(st, file);
 #endif
 		assert(sb_deserializer_ptr);
 #if 0

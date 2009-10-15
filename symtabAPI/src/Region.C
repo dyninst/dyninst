@@ -176,6 +176,9 @@ void Region::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (Ser
    ifxml_end_element(sb, tag);
    if (sb->isInput())
    {
+	   //  Might need to put in checks in region-using code for these
+	   //  conditions -- i.e. re-initialize elf, or whatever else for
+	   //  other platforms
 	   buffer_ = NULL;
 	   rawDataPtr_ = NULL;
    }

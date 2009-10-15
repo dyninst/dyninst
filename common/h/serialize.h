@@ -347,12 +347,16 @@ class SerDes {
       COMMON_EXPORT virtual ~SerDes() {}
 
       COMMON_EXPORT virtual void file_start(std::string &/*full_file_path*/) {}
-      COMMON_EXPORT virtual void vector_start(unsigned int &size, 
+      COMMON_EXPORT virtual void vector_start(unsigned long &size, 
             const char *tag = NULL) DECLTHROW(SerializerError) = 0;
       COMMON_EXPORT virtual void vector_end() = 0;
-      COMMON_EXPORT virtual void multimap_start(unsigned int &size, 
+      COMMON_EXPORT virtual void multimap_start(unsigned long &size, 
             const char *tag = NULL) DECLTHROW(SerializerError) = 0;
-      COMMON_EXPORT virtual void hash_map_start(unsigned int &size, 
+      COMMON_EXPORT virtual void multimap_end() = 0;
+	  COMMON_EXPORT virtual void pair_start( 
+			  const char *tag = NULL) DECLTHROW(SerializerError) = 0;
+	  COMMON_EXPORT virtual void pair_end() = 0;
+      COMMON_EXPORT virtual void hash_map_start(unsigned long &size, 
             const char *tag = NULL) DECLTHROW(SerializerError) = 0;
       COMMON_EXPORT virtual void hash_map_end() = 0;
       COMMON_EXPORT virtual void annotation_start(Dyninst::AnnotationClassID &a_id, void *&parent_id, sparse_or_dense_anno_t &, const char *string_id, 
@@ -363,15 +367,15 @@ class SerDes {
       COMMON_EXPORT virtual void annotation_container_end() = 0;
       COMMON_EXPORT virtual void annotation_container_item_start(void *&id) = 0;
       COMMON_EXPORT virtual void annotation_container_item_end() = 0;
-      COMMON_EXPORT virtual void annotation_list_start(Address &id, int &nelem,
+      COMMON_EXPORT virtual void annotation_list_start(Address &id, unsigned long &nelem,
             const char *tag = "AnnotationList") = 0;
       COMMON_EXPORT virtual void annotation_list_end() = 0;
-      COMMON_EXPORT virtual void multimap_end() = 0;
 
       COMMON_EXPORT virtual void translate(bool &param, const char *tag = NULL) = 0;
       COMMON_EXPORT virtual void translate(char &param, const char *tag = NULL) = 0;
       COMMON_EXPORT virtual void translate(int &param, const char *tag = NULL) = 0;
       COMMON_EXPORT virtual void translate(long &param, const char *tag = NULL) = 0;
+      //COMMON_EXPORT virtual void translate(unsigned long &param, const char *tag = NULL);
       COMMON_EXPORT virtual void translate(short &param, const char *tag = NULL) = 0;
       COMMON_EXPORT virtual void translate(unsigned short &param, const char *tag = NULL) = 0; 
       COMMON_EXPORT virtual void translate(unsigned int &param, const char *tag = NULL) = 0;
@@ -386,6 +390,7 @@ class SerDes {
       COMMON_EXPORT virtual void translate(std::string &param, const char *tag = NULL) = 0;
       COMMON_EXPORT virtual void translate(std::vector<std::string> &param, const char *tag = NULL,
             const char *elem_tag = NULL) = 0;
+	  COMMON_EXPORT virtual void magic_check(const char *file__, unsigned int line__) = 0; 
 
       COMMON_EXPORT virtual iomode_t iomode() {return iomode_;} 
       COMMON_EXPORT virtual bool isEOF() {return false;} 
@@ -414,13 +419,16 @@ class SerDesXML : public SerDes {
       COMMON_EXPORT SerDesXML() { assert(0);}
       COMMON_EXPORT virtual ~SerDesXML();
 
-      COMMON_EXPORT virtual void vector_start(unsigned int &size, 
+      COMMON_EXPORT virtual void vector_start(unsigned long &size, 
             const char *tag = NULL) DECLTHROW(SerializerError);
       COMMON_EXPORT virtual void vector_end();
-      COMMON_EXPORT virtual void multimap_start(unsigned int &size, 
+      COMMON_EXPORT virtual void multimap_start(unsigned long &size, 
             const char *tag = NULL) DECLTHROW(SerializerError);
       COMMON_EXPORT virtual void multimap_end();
-      COMMON_EXPORT virtual void hash_map_start(unsigned int &size, 
+	  COMMON_EXPORT virtual void pair_start( 
+			  const char *tag = NULL) DECLTHROW(SerializerError);
+	  COMMON_EXPORT virtual void pair_end();
+      COMMON_EXPORT virtual void hash_map_start(unsigned long &size, 
             const char *tag = NULL) DECLTHROW(SerializerError);
       COMMON_EXPORT virtual void hash_map_end();
       COMMON_EXPORT virtual void annotation_start(Dyninst::AnnotationClassID &a_id, void *&, sparse_or_dense_anno_t &, const char *string_id, const char *tag = NULL);
@@ -429,7 +437,7 @@ class SerDesXML : public SerDes {
       COMMON_EXPORT virtual void annotation_container_end();
       COMMON_EXPORT virtual void annotation_container_item_start(void *&id);
       COMMON_EXPORT virtual void annotation_container_item_end();
-      COMMON_EXPORT virtual void annotation_list_start(Address &id, int &nelem,
+      COMMON_EXPORT virtual void annotation_list_start(Address &id, unsigned long &nelem,
             const char *tag = "AnnotationList");
       COMMON_EXPORT virtual void annotation_list_end();
       COMMON_EXPORT virtual void translate(bool &param, const char *tag = NULL);
@@ -449,6 +457,7 @@ class SerDesXML : public SerDes {
       COMMON_EXPORT virtual void translate(std::string &param, const char *tag = NULL);
       COMMON_EXPORT virtual void translate(std::vector<std::string> &param, const char *tag = NULL,
             const char *elem_tag = NULL);
+	  COMMON_EXPORT virtual void magic_check(const char *, unsigned int ) {}
 
 #if 0
       COMMON_EXPORT void start_element(const char *tag);
@@ -489,13 +498,16 @@ class SerDesBin : public SerDes {
    //COMMON_EXPORT static AnnotatableBase *findAnnotatee(void *id); 
 
    COMMON_EXPORT virtual void file_start(std::string &full_file_path);
-   COMMON_EXPORT virtual void vector_start(unsigned int &size, 
+   COMMON_EXPORT virtual void vector_start(unsigned long &size, 
          const char *tag = NULL) DECLTHROW(SerializerError);
    COMMON_EXPORT virtual void vector_end();
-   COMMON_EXPORT virtual void multimap_start(unsigned int &size, 
+   COMMON_EXPORT virtual void multimap_start(unsigned long &size, 
          const char *tag = NULL) DECLTHROW(SerializerError);
    COMMON_EXPORT virtual void multimap_end();
-   COMMON_EXPORT virtual void hash_map_start(unsigned int &size, 
+   COMMON_EXPORT virtual void pair_start( 
+         const char *tag = NULL) DECLTHROW(SerializerError);
+   COMMON_EXPORT virtual void pair_end();
+   COMMON_EXPORT virtual void hash_map_start(unsigned long &size, 
          const char *tag = NULL) DECLTHROW(SerializerError);
    COMMON_EXPORT virtual void hash_map_end();
    COMMON_EXPORT virtual void annotation_start(Dyninst::AnnotationClassID &a_id, void *&, sparse_or_dense_anno_t &, const char *string_id, const char *tag = NULL);
@@ -504,7 +516,7 @@ class SerDesBin : public SerDes {
    COMMON_EXPORT virtual void annotation_container_end();
    COMMON_EXPORT virtual void annotation_container_item_start(void *&id);
    COMMON_EXPORT virtual void annotation_container_item_end();
-   COMMON_EXPORT virtual void annotation_list_start(Address &id, int &nelem,
+   COMMON_EXPORT virtual void annotation_list_start(Address &id, unsigned long &nelem,
 		   const char *tag = "AnnotationList");
    COMMON_EXPORT virtual void annotation_list_end();
    COMMON_EXPORT virtual void translate(bool &param, const char *tag = NULL);
@@ -524,6 +536,7 @@ class SerDesBin : public SerDes {
    COMMON_EXPORT virtual void translate(std::string &param, const char *tag = NULL);
    COMMON_EXPORT virtual void translate(std::vector<std::string> &param, const char *tag = NULL,
          const char *elem_tag = NULL);
+   COMMON_EXPORT virtual void magic_check(const char *file__, unsigned int line__);
 
    // readHeaderAndVerify just opens, verifies (checksum, magic compare), and closes
    // cache file, unless the FILE * is provided, in which case the file pointer is

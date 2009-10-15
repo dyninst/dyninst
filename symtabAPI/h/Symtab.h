@@ -89,13 +89,14 @@ class Symtab : public LookupInterface,
    SYMTAB_EXPORT static bool openFile(Symtab *&obj, std::string filename);
    SYMTAB_EXPORT static bool openFile(Symtab *&obj,char *mem_image, size_t size);
    SYMTAB_EXPORT static Symtab *findOpenSymtab(std::string filename);
-   SYMTAB_EXPORT static void closeSymtab(Symtab *);
+   SYMTAB_EXPORT static bool closeSymtab(Symtab *);
 
    SYMTAB_EXPORT 
    void serialize_impl(SerializerBase *sb, const char *tag = "Symtab") THROW_SPEC (SerializerError);
    void rebuild_symbol_hashes();
    void rebuild_funcvar_hashes();
    void rebuild_module_hashes();
+   void rebuild_region_indexes() THROW_SPEC(SerializerError);
    static bool setup_module_up_ptrs(SerializerBase *,Symtab *st);
    static bool fixup_relocation_symbols(SerializerBase *,Symtab *st);
 

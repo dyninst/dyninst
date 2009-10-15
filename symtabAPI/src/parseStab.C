@@ -197,6 +197,7 @@ Function *mangledNameMatchKLUDGE(const char *pretty, const char *mangled,
 std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *stabstr, 
       int framePtr, typeCommon *commonBlock)
 {
+	typeCollection *tc = typeCollection::getModTypeCollection(mod);
    int cnt;
    int ID = 0;
    int symdescID = 0;
@@ -255,7 +256,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
 
 		  stabstr = parseTypeDef(mod, (&stabstr[cnt+1]), name.c_str(), ID);
          cnt = 0;
-         ptrType = mod->getModuleTypesPrivate()->findOrCreateType(ID);
+         ptrType = tc->findOrCreateType(ID);
          if (!symt_current_func) 
          {
             // XXX-may want to use N_LBRAC and N_RBRAC to set function scope 
@@ -305,7 +306,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
       else if (symt_current_func) 
       {
          // Try to find the BPatch_Function
-         ptrType = mod->getModuleTypesPrivate()->findOrCreateType( ID);
+         ptrType = tc->findOrCreateType( ID);
 
          locVar = new localVar(name, ptrType, fName, linenum);
          VariableLocation loc;
@@ -367,7 +368,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                { 
                   // Not an embeded function
 
-                  ptrType = mod->getModuleTypesPrivate()->findOrCreateType(funcReturnID);
+                  ptrType = tc->findOrCreateType(funcReturnID);
                   if ( !ptrType) ptrType = mod->exec()->type_Untyped;
 
                   if (!(mod->exec()->findFunctionsByName(bpfv, name)))
@@ -440,7 +441,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                // skip to end - SunPro Compilers output extra info here - jkh 6/9/3
                cnt = strlen(stabstr);
 
-               ptrType = mod->getModuleTypesPrivate()->findOrCreateType(funcReturnID);
+               ptrType = tc->findOrCreateType(funcReturnID);
                if (!ptrType) ptrType = mod->exec()->type_Untyped;
 
                std::vector<Function *>fpv;
@@ -481,7 +482,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
             symdescID = parseTypeUse(mod, stabstr, cnt, name.c_str());
             Type *BPtype;
 
-            BPtype = mod->getModuleTypesPrivate()->findOrCreateType(symdescID);
+            BPtype = tc->findOrCreateType(symdescID);
             if (BPtype) 
             {
 	      Module *toUse = mod;
@@ -496,7 +497,8 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
 		 ret[i]->setType(BPtype);
 	       }
 
-               toUse->getModuleTypesPrivate()->addGlobalVariable(name, BPtype);
+		   typeCollection *tc_to_use = typeCollection::getModTypeCollection(toUse);
+               tc_to_use->addGlobalVariable(name, BPtype);
             }
             else 
             break;
@@ -524,7 +526,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                   //bperr( "\tFull String: %s\n", stabstr);
                //}
 
-               ptrType = mod->getModuleTypesPrivate()->findOrCreateType(symdescID);
+               ptrType = tc->findOrCreateType(symdescID);
                if (!ptrType) ptrType = mod->exec()->type_Untyped;
 
                localVar *param;
@@ -618,7 +620,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                   nameTrailer = name;
                }
 
-               BPtype = mod->getModuleTypesPrivate()->findOrCreateType(symdescID);
+               BPtype = tc->findOrCreateType(symdescID);
 
                if (BPtype) 
                {
@@ -635,7 +637,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                                             true)) 
                   {
 		     
-                     mod->getModuleTypesPrivate()->addGlobalVariable(nameTrailer, BPtype);
+                     tc->addGlobalVariable(nameTrailer, BPtype);
                   }
                }
 
@@ -674,7 +676,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
             {
                //Create Type defined as a pre-exisitng type.
 
-               ptrType = mod->getModuleTypesPrivate()->findOrCreateType(symdescID);
+               ptrType = tc->findOrCreateType(symdescID);
                if (!ptrType)
                {
                   ptrType = mod->exec()->type_Untyped;
@@ -687,7 +689,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
 
                if (newType) 
                {
-				   mod->getModuleTypesPrivate()->addOrUpdateType(newType);
+				   tc->addOrUpdateType(newType);
 			   }
 			}
             break;
@@ -751,7 +753,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
             symdescID = parseTypeUse(mod, stabstr, cnt, name.c_str());
 
             // lookup symbol and set type
-            BPtype = mod->getModuleTypesPrivate()->findOrCreateType(symdescID);
+            BPtype = tc->findOrCreateType(symdescID);
 
             if (!BPtype) 
             {
@@ -1105,6 +1107,7 @@ static char *parseCrossRef(typeCollection *moduleTypes,const char * /*name*/,
 static Type *parseArrayDef(Module *mod, const char *name,
 		     int ID, char *&stabstr, int &cnt, unsigned int sizeHint)
 {
+	typeCollection *tc = typeCollection::getModTypeCollection(mod);
     char *symdesc;
     int symdescID;
     int elementType;
@@ -1121,7 +1124,7 @@ static Type *parseArrayDef(Module *mod, const char *name,
        lowbound = 1;
        hibound = 0;
        elementType = parseSymDesc(stabstr, cnt);
-       ptrType = mod->getModuleTypesPrivate()->findOrCreateType(elementType);
+       ptrType = tc->findOrCreateType(elementType);
     } else {
        // Regular (maybe) array
 
@@ -1182,7 +1185,7 @@ static Type *parseArrayDef(Module *mod, const char *name,
 				   while (stabstr[cnt] != ';') cnt++;
 			   }
 		   }
-		   ptrType = mod->getModuleTypesPrivate()->findOrCreateType(elementType);
+		   ptrType = tc->findOrCreateType(elementType);
 	   }
 	}
 
@@ -1195,7 +1198,7 @@ static Type *parseArrayDef(Module *mod, const char *name,
 
 		typeArray *newAType = new typeArray(ID, ptrType, lowbound, hibound, tName, sizeHint);
 		// Add to Collection
-		newType = mod->getModuleTypesPrivate()->addOrUpdateType((typeArray *) newAType);
+		newType = tc->addOrUpdateType((typeArray *) newAType);
 
 		return newAType;
     }
@@ -1272,14 +1275,15 @@ static char *parseRangeType(Module *mod, const char *name, int ID,
    // range index type - not used
    symdescID = parseSymDesc(stabstr, cnt);
 
-   if (!mod || !mod->getModuleTypesPrivate()) 
+   typeCollection *tc = typeCollection::getModTypeCollection(mod);
+   if (!mod || !tc) 
    {
       fprintf(stderr, "%s[%d]: FIXME\n", FILE__, __LINE__);
       return NULL;
    }
    else 
    {
-      baseType = mod->getModuleTypesPrivate()->findType(symdescID);
+      baseType = tc->findType(symdescID);
    }
 
    // //bperr("\tSymbol Descriptor: %c and Value: %d\n",tmpchar, symdescID);
@@ -1322,7 +1326,7 @@ static char *parseRangeType(Module *mod, const char *name, int ID,
        //Create new type
        Type *newType = new typeScalar(ID, size, name);
        //Add to Collection
-       newType = mod->getModuleTypesPrivate()->addOrUpdateType((typeScalar *) newType);
+       newType = tc->addOrUpdateType((typeScalar *) newType);
    }
    else {
        //Range
@@ -1351,7 +1355,7 @@ static char *parseRangeType(Module *mod, const char *name, int ID,
            newType = new typeSubrange(ID, sizeHint ? sizeHint / 8 : baseType->getSize(), 
 				   low_conv, hi_conv, tName);
        //Add to Collection
-       mod->getModuleTypesPrivate()->addOrUpdateType((typeSubrange *) newType);
+       tc->addOrUpdateType((typeSubrange *) newType);
    }
    free(low);
    free(hi);
@@ -1385,7 +1389,8 @@ static char *parseRangeType(Module *mod, const char *name, int ID,
     // range index type
     symdescID = parseSymDesc(stabstr, cnt);
 
-    baseType = mod->getModuleTypesPrivate()->findType(symdescID);
+	typeCollection *tc = typeCollection::getModTypeCollection(mod);
+    baseType = tc->findType(symdescID);
 
     // //bperr("\tSymbol Descriptor: %c and Value: %d\n",tmpchar, symdescID);
 
@@ -1468,7 +1473,7 @@ static char *parseRangeType(Module *mod, const char *name, int ID,
 			newType = new typeSubrange(ID, sizeHint ? sizeHint / 8 : baseType->getSize(), 
 					low_conv, hi_conv, tname);
 		}
-		newType = mod->getModuleTypesPrivate()->addOrUpdateType((typeSubrange *) newType);
+		newType = tc->addOrUpdateType((typeSubrange *) newType);
 	} 
 	else if( j > 0)
 	{
@@ -1483,7 +1488,7 @@ static char *parseRangeType(Module *mod, const char *name, int ID,
 
 			newType = new typeScalar(ID, size, convertCharToString(name));
 			//Add to Collection
-			newType = mod->getModuleTypesPrivate()->addOrUpdateType((typeScalar *) newType);
+			newType = tc->addOrUpdateType((typeScalar *) newType);
 		} 
 		else 
 		{
@@ -1513,7 +1518,7 @@ static char *parseRangeType(Module *mod, const char *name, int ID,
 			else
 				newType = new typeSubrange(ID, sizeHint ? sizeHint / 8 : baseType->getSize(), 
 						low_conv, hi_conv, tname);
-			newType = mod->getModuleTypesPrivate()->addOrUpdateType((typeSubrange *) newType);
+			newType = tc->addOrUpdateType((typeSubrange *) newType);
         }	
     }
     free(low);
@@ -1642,7 +1647,7 @@ static void parseAttrType(Module *mod, const char *name,
       }
 
       // Add type to collection
-      newType2 = mod->getModuleTypesPrivate()->addOrUpdateType(newType);
+      newType2 = tc->addOrUpdateType(newType);
 
       if (stabstr[cnt]) {
 	  //bperr("More Type Attribute to Parse: %s ID %d : %s\n", name,
@@ -1669,13 +1674,14 @@ static char *parseRefType(Module *mod, const char *name,
     int refID = parseTypeUse(mod, stabstr, cnt, name);
     
     // Create a new B_type that points to a structure
-    Type *ptrType = mod->getModuleTypesPrivate()->findOrCreateType(refID);
+	typeCollection *tc = typeCollection::getModTypeCollection(mod);
+    Type *ptrType = tc->findOrCreateType(refID);
     if (!ptrType) ptrType = mod->exec()->type_Untyped;
     std::string tName = convertCharToString(name); 
     typeRef *newType = new typeRef(ID, ptrType, tName);
 
     // Add to typeCollection
-    newType = mod->getModuleTypesPrivate()->addOrUpdateType(newType);
+    newType = tc->addOrUpdateType(newType);
     
     return(&(stabstr[cnt]));
 }
@@ -1687,13 +1693,15 @@ void addBaseClassToClass(Module *mod, int baseID,
                          fieldListType *newType, int /*offset*/)
 {
 
+	typeCollection *tc = typeCollection::getModTypeCollection(mod);
+
     //Find base class
-    fieldListType *baseCl = dynamic_cast<fieldListType *>(mod->getModuleTypesPrivate()->findType(baseID));
+    fieldListType *baseCl = dynamic_cast<fieldListType *>(tc->findType(baseID));
     if( ! baseCl ) {
         std::string modName = mod->fileName();
         //bpwarn( "can't find base class id %d in module %s\n", baseID, modName);
         baseCl = new typeStruct(baseID);
-        fieldListType *baseCl2 = dynamic_cast<typeStruct *>(mod->getModuleTypesPrivate()->addOrUpdateType( (typeStruct *)baseCl ));
+        fieldListType *baseCl2 = dynamic_cast<typeStruct *>(tc->addOrUpdateType( (typeStruct *)baseCl ));
         std::string fName = "{superclass}";
         newType->addField( fName, baseCl2, -1, visUnknown );
         baseCl->decrRefCount();
@@ -1731,6 +1739,8 @@ static char *parseFieldList(Module *mod, fieldListType *newType,
 	visibility_t _vis = visUnknown;
 	dataClass typedescr;
 	bool hasVirtuals = false;
+	typeCollection *tc = typeCollection::getModTypeCollection(mod);
+	assert(tc);
 
 	if (stabstr[cnt] == '!') 
 	{
@@ -1886,12 +1896,12 @@ static char *parseFieldList(Module *mod, fieldListType *newType,
 		// //bperr("\tType: %d, Starting Offset: %d (bits), Size: %d (bits)\n", comptype, beg_offset, size);
 		// Add struct field to type
 
-		Type *fieldType = mod->getModuleTypesPrivate()->findOrCreateType( comptype );
+		Type *fieldType = tc->findOrCreateType( comptype );
 		if (fieldType == NULL) 
 		{
 			//C++ compilers may add extra fields whose types might not available.
 			//Assign void type to these kind of fields. --Mehmet
-			fieldType = mod->getModuleTypesPrivate()->findType("void");
+			fieldType = tc->findType("void");
 		}
 		std::string fName = convertCharToString(compname);
 		if (_vis == visUnknown) 
@@ -1942,6 +1952,7 @@ static char *parseFieldList(Module *mod, fieldListType *newType,
 static char *parseCPlusPlusInfo(Module *mod,
 		char *stabstr, const char *mangledName, int ID)
 {
+	typeCollection *tc = typeCollection::getModTypeCollection(mod);
 	int cnt;
 	char *name;
 	int structsize;
@@ -2017,11 +2028,11 @@ static char *parseCPlusPlusInfo(Module *mod,
     case dataTypeClass:
     case dataStructure:
        newType = new typeStruct(ID, tName);
-       newType2 = dynamic_cast<fieldListType *>(mod->getModuleTypesPrivate()->addOrUpdateType((typeStruct *) newType));
+       newType2 = dynamic_cast<fieldListType *>(tc->addOrUpdateType((typeStruct *) newType));
        break;
     case dataUnion:
        newType = new typeUnion(ID, tName);
-       newType2 = dynamic_cast<fieldListType *>(mod->getModuleTypesPrivate()->addOrUpdateType((typeUnion *) newType));
+       newType2 = dynamic_cast<fieldListType *>(tc->addOrUpdateType((typeUnion *) newType));
        break;
     default:
        assert(0);
@@ -2078,7 +2089,7 @@ static char *parseCPlusPlusInfo(Module *mod,
 			}
 
 	    // should include position for virtual methods
-	    Type *fieldType = mod->getModuleTypesPrivate()->findType("void");
+	    Type *fieldType = tc->findType("void");
 
 	    std::string fName = convertCharToString(funcName);
 
@@ -2123,6 +2134,7 @@ static char *parseCPlusPlusInfo(Module *mod,
 static char *parseTypeDef(Module *mod, char *stabstr, 
                           const char *name, int ID, unsigned int sizeHint)
 {
+	typeCollection *tc = typeCollection::getModTypeCollection(mod);
     Type * newType = NULL;
     fieldListType * newFieldType = NULL, *newFieldType2 = NULL;
     Type * ptrType = NULL;
@@ -2154,7 +2166,7 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 
         std::string tName = convertCharToString(name);
         newType = new typeScalar(ID, 0, tName);
-		newType = mod->getModuleTypesPrivate()->addOrUpdateType((typeScalar *) newType); 
+		newType = tc->addOrUpdateType((typeScalar *) newType); 
     } 
 	else if (stabstr[cnt] == '=') 
 	{
@@ -2164,26 +2176,26 @@ static char *parseTypeDef(Module *mod, char *stabstr,
         cnt = 0;
         Type *oldType;
 
-        oldType = mod->getModuleTypesPrivate()->findOrCreateType(type);
+        oldType = tc->findOrCreateType(type);
         if (!oldType) oldType = mod->exec()->type_Untyped;
         std::string tName = convertCharToString(name);
         newType = new typeTypedef(ID, oldType, tName, sizeHint);
-		mod->getModuleTypesPrivate()->addOrUpdateType((typeTypedef *) newType);
+		tc->addOrUpdateType((typeTypedef *) newType);
 
 	} 
 	else 
 	{
 		Type *oldType;
         std::string tName = convertCharToString(name);
-        oldType = mod->getModuleTypesPrivate()->findOrCreateType(type);
+        oldType = tc->findOrCreateType(type);
         newType = new typeTypedef(ID, oldType, tName, sizeHint);
-        newType = mod->getModuleTypesPrivate()->addOrUpdateType((typeTypedef *) newType);
+        newType = tc->addOrUpdateType((typeTypedef *) newType);
     }
     } else {
       switch (stabstr[0]) {
 	  case 'x':  //cross reference 
 	  {
-	    parseCrossRef(mod->getModuleTypesPrivate(), name, ID, stabstr, cnt);
+	    parseCrossRef(tc, name, ID, stabstr, cnt);
 	    break;
 	  }   
 	  case '*':
@@ -2193,12 +2205,12 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 	    ptrID = parseTypeUse(mod, stabstr, cnt, NULL);
 
 	    // Create a new B_type that points to a structure
-	    ptrType = mod->getModuleTypesPrivate()->findOrCreateType(ptrID);
+	    ptrType = tc->findOrCreateType(ptrID);
 	    if (!ptrType) ptrType = mod->exec()->type_Untyped;
 
             newType = new typePointer(ID, ptrType);
 	    // Add to typeCollection
-	    newType = mod->getModuleTypesPrivate()->addOrUpdateType((typePointer *) newType);
+	    newType = tc->addOrUpdateType((typePointer *) newType);
 	    return(&(stabstr[cnt]));
 	    break;
 	  }
@@ -2218,7 +2230,7 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 
 		cnt++; /* skip the g */
 	        type = parseTypeUse(mod, stabstr, cnt, name);
-                ptrType = mod->getModuleTypesPrivate()->findOrCreateType(type);
+                ptrType = tc->findOrCreateType(type);
 
                 {
 		   std::string tName = convertCharToString(name);
@@ -2227,7 +2239,7 @@ static char *parseTypeDef(Module *mod, char *stabstr,
                    typeFunction *newFunction2 = NULL;
                    
                    if (newFunction) { 
-                      newFunction2 = dynamic_cast<typeFunction*>(mod->getModuleTypesPrivate()->addOrUpdateType(newFunction)); 
+                      newFunction2 = dynamic_cast<typeFunction*>(tc->addOrUpdateType(newFunction)); 
                       if(newFunction2 != newFunction)
             		      newFunction->decrRefCount();
                    }
@@ -2240,7 +2252,7 @@ static char *parseTypeDef(Module *mod, char *stabstr,
                    while ((stabstr[cnt] != '#') &&  (stabstr[cnt])) {
                       int paramType;
                       paramType = parseTypeUse(mod, stabstr, cnt, name);
-                      newType = mod->getModuleTypesPrivate()->findOrCreateType(paramType);
+                      newType = tc->findOrCreateType(paramType);
 		      newFunction2->addParam(newType);
                       //newFunction2->addField(buffer, newType->getDataClass(), newType, curOffset, newType->getSize());
                    }
@@ -2257,12 +2269,12 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 
 		cnt++; /* skip the f */
 	        type = parseTypeUse(mod, stabstr, cnt, name);
-                ptrType = mod->getModuleTypesPrivate()->findOrCreateType(type);
+                ptrType = tc->findOrCreateType(type);
 
 		
                 std::string tName = convertCharToString(name);
 		newType = new typeFunction(ID, ptrType, tName);
-		newType = mod->getModuleTypesPrivate()->addOrUpdateType((typeFunction *) newType);
+		newType = tc->addOrUpdateType((typeFunction *) newType);
 
 		// skip to end - SunPro Compilers output extra info here - jkh 6/9/3
 		// cnt = strlen(stabstr);
@@ -2293,11 +2305,11 @@ static char *parseTypeDef(Module *mod, char *stabstr,
                     } else
 		      size = parseSymDesc(stabstr, cnt);
 
-		    ptrType = mod->getModuleTypesPrivate()->findOrCreateType(baseType);
+		    ptrType = tc->findOrCreateType(baseType);
 		    std::string tName = convertCharToString(name);
 
 		    Type *newAType = new typeArray(ID, ptrType, 1, size, tName);
-		    newType = mod->getModuleTypesPrivate()->addOrUpdateType((typeArray* ) newAType);
+		    newType = tc->addOrUpdateType((typeArray* ) newAType);
 		}
 		break;
 
@@ -2312,7 +2324,7 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 		int bytes = parseSymDesc(stabstr, cnt);
 
 		newType = new typeScalar(ID, bytes, name);
-		newType = mod->getModuleTypesPrivate()->addOrUpdateType((typeScalar *) newType);
+		newType = tc->addOrUpdateType((typeScalar *) newType);
 
 		if (stabstr[cnt] == ';') cnt++;	// skip the final ';'
 
@@ -2348,7 +2360,7 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 
 		newType = new typeScalar(ID, size, name);
 		//Add to Collection
-		newType = mod->getModuleTypesPrivate()->addOrUpdateType((typeScalar *) newType);
+		newType = tc->addOrUpdateType((typeScalar *) newType);
 
 		return &stabstr[cnt];
 		break;
@@ -2366,7 +2378,7 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 	    std::string tName = convertCharToString(name);
 	    typeEnum *newEnumType = new typeEnum(ID, tName);
 	    // Add type to collection
-	    newEnumType = dynamic_cast<typeEnum *>(mod->getModuleTypesPrivate()->addOrUpdateType(newEnumType));
+	    newEnumType = dynamic_cast<typeEnum *>(tc->addOrUpdateType(newEnumType));
 		
 	    while (stabstr[cnt]) {
 		/* Get enum component value */
@@ -2425,11 +2437,11 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 	    //Create new type
             if (typdescr == dataStructure) {
                newFieldType = new typeStruct(ID, tName);
-	       newFieldType2 = dynamic_cast<fieldListType *>(mod->getModuleTypesPrivate()->addOrUpdateType((typeStruct *) newFieldType));
+	       newFieldType2 = dynamic_cast<fieldListType *>(tc->addOrUpdateType((typeStruct *) newFieldType));
 	    }
             else {
                newFieldType = new typeUnion(ID, tName);
-	       newFieldType2 = dynamic_cast<fieldListType *>(mod->getModuleTypesPrivate()->addOrUpdateType((typeUnion *) newFieldType));
+	       newFieldType2 = dynamic_cast<fieldListType *>(tc->addOrUpdateType((typeUnion *) newFieldType));
 	    }
 	    //add to type collection
 
@@ -2499,17 +2511,18 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 //
 static Type *parseConstantUse(Module *mod, char *stabstr, int &cnt)
 {
+	typeCollection *tc = typeCollection::getModTypeCollection(mod);
     // skip =
     cnt++;
 
     Type *ret;
 
     if (stabstr[cnt] == 'i') {
-	ret = mod->getModuleTypesPrivate()->findType("integer*4");
+	ret = tc->findType("integer*4");
     } else if (stabstr[cnt] == 'r') {
-	ret = mod->getModuleTypesPrivate()->findType("double");
+	ret = tc->findType("double");
     } else if (stabstr[cnt] == 's') {
-        ret = mod->getModuleTypesPrivate()->findType("char *");
+        ret = tc->findType("char *");
     } else {
 	//bperr("unknown constant type %s\n", &stabstr[cnt]);
 	ret = NULL;
