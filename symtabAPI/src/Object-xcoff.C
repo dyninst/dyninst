@@ -2075,7 +2075,9 @@ void Object::parseTypeInfo(Symtab *obj)
             }
          }
          currentSourceFile = std::string(moduleName);
-         mod->getModuleTypesPrivate()->clearNumberedTypes();
+		 typeCollection *tc = typeCollection::getModTypeCollection(mod);
+		 assert(tc);
+         tc->clearNumberedTypes();
          if(!obj->findModuleByName(mod, currentSourceFile) && 
             !obj->findModuleByName(mod,extract_pathname_tail(currentSourceFile)))
          {            
@@ -2157,12 +2159,14 @@ void Object::parseTypeInfo(Symtab *obj)
             if (!commonBlockVar) {
                //bperr("unable to find variable %s\n", commonBlockName);
             } else {
-               commonBlock = dynamic_cast<typeCommon *>(mod->getModuleTypesPrivate()->findVariableType(cbName));
+				typeCollection *tc = typeCollection::getModTypeCollection(mod);
+				assert(tc);
+               commonBlock = dynamic_cast<typeCommon *>(tc->findVariableType(cbName));
                if (commonBlock == NULL) {
                   // its still the null type, create a new one for it
                   //TODO? ? ID for this typeCommon ?
                   commonBlock = new typeCommon(cbName);
-                  mod->getModuleTypesPrivate()->addGlobalVariable(cbName, commonBlock);
+                  tc->addGlobalVariable(cbName, commonBlock);
                }
                // reset field list
                commonBlock->beginCommonBlock();

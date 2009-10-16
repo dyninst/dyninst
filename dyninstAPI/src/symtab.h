@@ -206,8 +206,8 @@ class fileDescriptor {
 
 class image_variable {
  private:
-    image_variable() {};
  public:
+    image_variable() {}
     image_variable(Variable *var,
     		   pdmodule *mod);
 
@@ -615,7 +615,6 @@ class pdmodule {
    const std::set<image_instPoint*> &getUnresolvedControlFlow();
    void addUnresolvedControlFlow(image_instPoint* badPt);
 
-   //LineInformation *getLineInformation();
    Module *mod();
 
    image *imExec() const { return exec_; }

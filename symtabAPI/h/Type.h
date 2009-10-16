@@ -132,7 +132,7 @@ class Field : public Serializable, public AnnotatableSparse  {
    SYMTAB_EXPORT int getOffset();
    
    SYMTAB_EXPORT void fixupUnknown(Module *);
-   SYMTAB_EXPORT void serialize(SerializerBase *sb, 
+   SYMTAB_EXPORT void serialize_impl(SerializerBase *sb, 
 		   const char *tag="Field") THROW_SPEC(SerializerError);
    SYMTAB_EXPORT virtual bool operator==(const Field &) const;
 };
@@ -148,7 +148,7 @@ class Type : public Serializable, public AnnotatableSparse  {
    SYMTAB_EXPORT virtual void serialize_specific(SerializerBase *) 
 	   THROW_SPEC(SerializerError) {}
 
-   SYMTAB_EXPORT void serialize(SerializerBase *, 
+   SYMTAB_EXPORT void serialize_impl(SerializerBase *, 
 		   const char * = "Type") THROW_SPEC (SerializerError);
 
  protected:
@@ -395,7 +395,7 @@ class CBlock : public Serializable, public AnnotatableSparse{
 
    SYMTAB_EXPORT void fixupUnknowns(Module *);
    
-   SYMTAB_EXPORT void serialize(SerializerBase *,
+   SYMTAB_EXPORT void serialize_impl(SerializerBase *,
 		   const char *tag="CBlock") THROW_SPEC(SerializerError);
 };
 

@@ -33,7 +33,7 @@
 #define __SYMTAB_H__
  
 #include "Symbol.h"
-#include "LineInformation.h"
+#include "Module.h"
 #include "Region.h"
 
 #include "Annotatable.h"
@@ -88,9 +88,15 @@ class Symtab : public LookupInterface,
 
    SYMTAB_EXPORT static bool openFile(Symtab *&obj, std::string filename);
    SYMTAB_EXPORT static bool openFile(Symtab *&obj,char *mem_image, size_t size);
+   SYMTAB_EXPORT static Symtab *findOpenSymtab(std::string filename);
+   SYMTAB_EXPORT static bool closeSymtab(Symtab *);
 
    SYMTAB_EXPORT 
-   void serialize(SerializerBase *sb, const char *tag = "Symtab") THROW_SPEC (SerializerError);
+   void serialize_impl(SerializerBase *sb, const char *tag = "Symtab") THROW_SPEC (SerializerError);
+   void rebuild_symbol_hashes();
+   void rebuild_funcvar_hashes();
+   void rebuild_module_hashes();
+   void rebuild_region_indexes() THROW_SPEC(SerializerError);
    static bool setup_module_up_ptrs(SerializerBase *,Symtab *st);
    static bool fixup_relocation_symbols(SerializerBase *,Symtab *st);
 
@@ -202,7 +208,7 @@ class Symtab : public LookupInterface,
    /***** Line Number Information *****/
    SYMTAB_EXPORT bool getAddressRanges(std::vector<std::pair<Offset, Offset> >&ranges,
          std::string lineSource, unsigned int LineNo);
-   SYMTAB_EXPORT bool getSourceLines(std::vector<LineNoTuple> &lines, 
+   SYMTAB_EXPORT bool getSourceLines(std::vector<Statement *> &lines, 
          Offset addressInRange);
    SYMTAB_EXPORT bool addLine(std::string lineSource, unsigned int lineNo,
          unsigned int lineOffset, Offset lowInclAddr,
@@ -564,7 +570,7 @@ class ExceptionBlock : public Serializable, public AnnotatableSparse {
 
    public:
       SYMTAB_EXPORT 
-	  void serialize(SerializerBase *sb, const char *tag = "exceptionBlock") THROW_SPEC (SerializerError);
+	  void serialize_impl(SerializerBase *sb, const char *tag = "exceptionBlock") THROW_SPEC (SerializerError);
       SYMTAB_EXPORT ExceptionBlock(Offset tStart, unsigned tSize, Offset cStart);
       SYMTAB_EXPORT ExceptionBlock(Offset cStart);
       SYMTAB_EXPORT ExceptionBlock(const ExceptionBlock &eb);
@@ -605,7 +611,7 @@ class relocationEntry : public Serializable, public AnnotatableSparse {
 
       SYMTAB_EXPORT const relocationEntry& operator= (const relocationEntry &ra);
 
-	  SYMTAB_EXPORT void serialize(SerializerBase *sb, 
+	  SYMTAB_EXPORT void serialize_impl(SerializerBase *sb, 
 			  const char *tag = "relocationEntry") THROW_SPEC (SerializerError);
 
       SYMTAB_EXPORT Offset target_addr() const;
@@ -638,9 +644,47 @@ class relocationEntry : public Serializable, public AnnotatableSparse {
       unsigned long relType_;
 };
 
+#if 1
+#if 1
 SYMTAB_EXPORT SerializerBase *nonpublic_make_bin_symtab_serializer(Symtab *t, std::string file);
 SYMTAB_EXPORT SerializerBase *nonpublic_make_bin_symtab_deserializer(Symtab *t, std::string file);
 SYMTAB_EXPORT void nonpublic_free_bin_symtab_serializer(SerializerBase *sb);
+#else
+
+template <class T>
+SerializerBase *nonpublic_make_bin_serializer(T *t, std::string file)
+{
+	SerializerBin<T> *ser;
+	ser = new SerializerBin<T>(t, "SerializerBin", file, sd_serialize, true);
+	T *test_st = ser->getScope();
+	assert(test_st == t);
+	return ser;
+}
+
+template <class T>
+SerializerBase *nonpublic_make_bin_deserializer(T *t, std::string file)
+{
+	SerializerBin<T> *ser;
+	ser = new SerializerBin<T>(t, "DeserializerBin", file, sd_deserialize, true);
+	T *test_st = ser->getScope();
+	assert(test_st == t);
+	return ser;
+}
+
+template <class T>
+void nonpublic_free_bin_serializer(SerializerBase *sb)
+{
+	SerializerBin<T> *sbin = dynamic_cast<SerializerBin<T> *>(sb);
+	if (sbin)
+	{
+		delete(sbin);
+	}
+	else
+		fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
+
+}
+#endif
+#endif
 
 }//namespace SymtabAPI
 

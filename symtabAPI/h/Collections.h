@@ -34,6 +34,7 @@
 
 #include "Type.h"
 #include "Variable.h"
+#include "Serialization.h"
 
 using namespace std;
 namespace Dyninst {
@@ -50,11 +51,12 @@ class localVar;
  * This object will store all the local variables within this function.
  * Note: This class is unaware of scope.
  */
-class localVarCollection : public Serializable, public AnnotatableSparse {
+class localVarCollection : public AnnotationContainer<localVar *> {
   
   dyn_hash_map<std::string, localVar *> localVariablesByName;
   vector<localVar *> localVars;
 
+  SYMTAB_EXPORT bool addItem_impl(localVar *);
 public:
   SYMTAB_EXPORT localVarCollection(){}
   SYMTAB_EXPORT ~localVarCollection();
@@ -63,7 +65,7 @@ public:
   SYMTAB_EXPORT localVar * findLocalVar(std::string &name);
   SYMTAB_EXPORT vector<localVar *> *getAllVars();  
 
-  SYMTAB_EXPORT void serialize(SerializerBase *, const char * = "localVarCollection") THROW_SPEC (SerializerError);
+  SYMTAB_EXPORT void ac_serialize_impl(SerializerBase *, const char * = "localVarCollection") THROW_SPEC (SerializerError);
 };
   
 
@@ -76,8 +78,6 @@ class typeCollection : public Serializable, public AnnotatableSparse {
     friend class Symtab;
     friend class Object;
     friend class Module;
-    friend class SymtabTranslatorBase;
-    friend class SymtabTranslatorBin;
 
     dyn_hash_map<std::string, Type *> typesByName;
     dyn_hash_map<std::string, Type *> globalVarsByName;
@@ -85,22 +85,24 @@ class typeCollection : public Serializable, public AnnotatableSparse {
 
     SYMTAB_EXPORT ~typeCollection();
 
-    unsigned refcount;
-    SYMTAB_EXPORT typeCollection();
-
     // DWARF:
     /* Cache type collections on a per-image basis.  (Since
        BPatch_functions are solitons, we don't have to cache them.) */
-    static dyn_hash_map< std::string, typeCollection * > fileToTypesMap;
+    static dyn_hash_map< void *, typeCollection * > fileToTypesMap;
 
     // DWARF...
     bool dwarfParsed_;
 
+	SYMTAB_EXPORT void serialize_impl(SerializerBase *, const char * = "typeCollection") THROW_SPEC (SerializerError);
+	public:
+    SYMTAB_EXPORT typeCollection();
 public:
-    SYMTAB_EXPORT void serialize(SerializerBase *, const char * = "typeCollection") THROW_SPEC (SerializerError);
-    SYMTAB_EXPORT static typeCollection *getGlobalTypeCollection();
+
     SYMTAB_EXPORT static typeCollection *getModTypeCollection(Module *mod);
+#if 0
+    SYMTAB_EXPORT static typeCollection *getGlobalTypeCollection();
     SYMTAB_EXPORT static void freeTypeCollection(typeCollection *tc);
+#endif
 
     // DWARF...
     SYMTAB_EXPORT bool dwarfParsed() { return dwarfParsed_; }

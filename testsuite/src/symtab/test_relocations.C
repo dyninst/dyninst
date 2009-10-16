@@ -154,8 +154,6 @@ test_results_t test_relocations_Mutator::executeTest()
 	{
 		logerror("%s[%d]: - Unable to find relocations\n", 
 				FILE__, __LINE__);
-		fprintf(stderr, "%s[%d]: - Unable to find relocations\n", 
-				FILE__, __LINE__);
 		return FAILED;
 	}
 

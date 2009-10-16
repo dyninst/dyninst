@@ -40,6 +40,7 @@
  */
 
 #include "symtab_comp.h"
+#include <stdlib.h>
 
 using namespace Dyninst;
 using namespace SymtabAPI;
@@ -64,6 +65,68 @@ test_results_t SymtabComponent::program_teardown(ParameterDict &params)
 
 test_results_t SymtabComponent::group_setup(RunGroup *group, ParameterDict &params)
 {
+#if defined (cap_serialization_test)
+	const char *ser_env = getenv(SERIALIZE_CONTROL_ENV_VAR);
+	//  allow user to explicitly disable serialization in environment
+	//  check this before we modify any environment vars
+	if (ser_env && !strcmp(ser_env, SERIALIZE_DISABLE))
+	{
+		logerror( "%s[%d]:  serialization is disabled\n", FILE__, __LINE__);
+	}
+	else
+	{
+		switch (group->useAttach)
+		{
+			case DESERIALIZE:
+				{
+					//fprintf(stderr, "%s[%d]:  runmode DESERIALIZE\n", FILE__, __LINE__);
+					fflush(NULL);
+					//  If we have an open symtab with this name, it will just be returned
+					//  when we call openFile.  If it is sourced from a regular parse, 
+					// this will not trigger deserialization, so
+					//  we need to close the existing open symtab.
+					Symtab *s_open = Symtab::findOpenSymtab(std::string(group->mutatee));
+					if (s_open && !s_open->from_cache())
+					{
+						logerror( "%s[%d]:  closing open symtab for %s\n", FILE__, __LINE__, group->mutatee);
+						Symtab::closeSymtab(s_open);
+						s_open = Symtab::findOpenSymtab(std::string(group->mutatee));
+						if (s_open)
+						{
+							logerror( "%s[%d]:  failed to close symtab\n", FILE__, __LINE__);
+							return FAILED;
+						}
+
+					}
+					//  verify that we have an existing cache for this mutatee from which to deserialize
+					//  set environment variable enabling serialization
+					errno = 0;
+					if (setenv(SERIALIZE_CONTROL_ENV_VAR, SERIALIZE_DESERIALIZE_OR_DIE, 1))
+					{
+						fprintf(stderr, "%s[%d]:  FIXME!: %s\n", FILE__, __LINE__, strerror(errno));
+						return FAILED;
+					}
+					logerror( "%s[%d]:  set %s =  %s\n", FILE__, __LINE__, SERIALIZE_CONTROL_ENV_VAR, getenv(SERIALIZE_CONTROL_ENV_VAR));
+
+				}
+				break;
+			case CREATE:
+				logerror( "%s[%d]:  runmode CREATE\n", FILE__, __LINE__);
+				//  verify that we have an existing cache for this mutatee from which to deserialize
+				//  set environment variable enabling serialization
+				errno = 0;
+				if (setenv(SERIALIZE_CONTROL_ENV_VAR, SERIALIZE_ONLY, 1))
+				{
+					logerror( "%s[%d]:  FIXME!: %s\n", FILE__, __LINE__, strerror(errno));
+					return FAILED;
+				}
+				break;
+			default:
+				logerror( "%s[%d]:  bad runmode!\n", FILE__, __LINE__);
+				return FAILED;
+		}
+	}
+#endif
    symtab = NULL;
    if (group->mutatee && group->state != SELFSTART)
    {

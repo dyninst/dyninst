@@ -41,44 +41,52 @@
 
 #include "BPatch_statement.h"
 #include "BPatch_module.h"
-BPatch_statement::BPatch_statement(BPatch_module *mod, const char *filename,
-                                   int lineno, int lineoff,
-                                   void *startAddr_, void *endAddr_) :
+#include "Module.h"
+#include "mapped_object.h"
+#include "mapped_module.h"
+BPatch_statement::BPatch_statement(BPatch_module *mod, Dyninst::SymtabAPI::Statement *s) :
         module_(mod),
-        lineno_(lineno),
-        lineoff_(lineoff),
-        file_(filename), 
-        start_addr(startAddr_), 
-        end_addr(endAddr_) 
+        statement(s)
 {
 }
 
-BPatch_module *BPatch_statement::moduleInt()
+BPatch_module *BPatch_statement::module()
 {
   return module_;
 }
 
-int BPatch_statement::lineNumberInt()
+int BPatch_statement::lineNumber()
 {
-  return lineno_;
+	assert(statement);
+  return statement->line();
 }
 
-int BPatch_statement::lineOffsetInt()
+int BPatch_statement::lineOffset()
 {
-  return lineoff_;
+	assert(statement);
+  return statement->column();
 }
 
-const char *BPatch_statement::fileNameInt()
+const char *BPatch_statement::fileName()
 {
-  return file_;
+	assert(statement);
+	return statement->file().c_str();
 }
 
-void *BPatch_statement::startAddrInt()
+void *BPatch_statement::startAddr()
 {
-  return start_addr;
+	assert(statement);
+	assert(module_);
+	mapped_object *mmod = module_->mod->obj();
+	assert(mmod);
+	return (void *)(mmod->codeBase() + statement->startAddr());
 }
 
-void *BPatch_statement::endAddrInt()
+void *BPatch_statement::endAddr()
 {
-  return end_addr;
+	assert(module_);
+	assert(statement);
+	mapped_object *mmod = module_->mod->obj();
+	assert(mmod);
+	return (void *)(mmod->codeBase() + statement->endAddr());
 }

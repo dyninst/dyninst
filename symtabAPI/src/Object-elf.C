@@ -4317,207 +4317,226 @@ void Object::parseStabFileLineInfo(Symtab *st, dyn_hash_map<std::string, LineInf
 // Dwarf Debug Format parsing
 void Object::parseDwarfFileLineInfo(dyn_hash_map<std::string, LineInformation> &li) 
 {
-  Dwarf_Debug *dbg_ptr = dwarf.dbg();
-  if (!dbg_ptr)
-    return; 
-  Dwarf_Debug &dbg = *dbg_ptr;
+	Dwarf_Debug *dbg_ptr = dwarf.dbg();
+	if (!dbg_ptr)
+		return; 
+	Dwarf_Debug &dbg = *dbg_ptr;
 
-  /* Itereate over the CU headers. */
-  Dwarf_Unsigned header;
-  while ( dwarf_next_cu_header( dbg, NULL, NULL, NULL, NULL, & header, NULL ) == DW_DLV_OK ) {
-    /* Acquire the CU DIE. */
-    Dwarf_Die cuDIE;
-    int status = dwarf_siblingof( dbg, NULL, & cuDIE, NULL);
-    if ( status != DW_DLV_OK ) { 
-      /* If we can get no (more) CUs, we're done. */
-      break;
-    }
-
-    char * cuName;
-    const char *moduleName;
-    status = dwarf_diename( cuDIE, &cuName, NULL );
-    if ( status == DW_DLV_NO_ENTRY ) {
-      cuName = NULL;
-      moduleName = "DEFAULT_MODULE";
-    }
-    else {
-      moduleName = strrchr(cuName, '/');
-      if (!moduleName)
-	moduleName = strrchr(cuName, '\\');
-      if (moduleName)
-	moduleName++;
-      else
-	moduleName = cuName;
-    }
-    //fprintf(stderr, "[%s:%u] - llparsing for module %s\n", __FILE__, __LINE__, moduleName);
-
-    /* Acquire this CU's source lines. */
-    Dwarf_Line * lineBuffer;
-    Dwarf_Signed lineCount;
-    status = dwarf_srclines( cuDIE, & lineBuffer, & lineCount, NULL );
-
-    /* See if we can get anything useful out of the next CU
-       if this one is corrupt. */
-    assert( status != DW_DLV_ERROR );
-
-    /* It's OK for a CU not to have line information. */
-    if ( status != DW_DLV_OK ) {
-      /* Free this CU's DIE. */
-      dwarf_dealloc( dbg, cuDIE, DW_DLA_DIE );
-      continue;
-    }
-    assert( status == DW_DLV_OK );
-
-    /* The 'lines' returned are actually interval markers; the code
-       generated from lineNo runs from lineAddr up to but not including
-       the lineAddr of the next line. */			   
-    bool isPreviousValid = false;
-    Dwarf_Unsigned previousLineNo = 0;
-    Dwarf_Signed previousLineColumn = 0;
-    Dwarf_Addr previousLineAddr = 0x0;
-    char * previousLineSource = NULL;
-
-    //Offset baseAddr = obj()->codeBase();
-    Offset baseAddr = getBaseAddress();
-
-    /* Iterate over this CU's source lines. */
-    for ( int i = 0; i < lineCount; i++ ) {
-      /* Acquire the line number, address, source, and end of sequence flag. */
-      Dwarf_Unsigned lineNo;
-      status = dwarf_lineno( lineBuffer[i], & lineNo, NULL );
-      if ( status != DW_DLV_OK ) { continue; }
-
-      Dwarf_Signed lineOff;
-      status = dwarf_lineoff( lineBuffer[i], & lineOff, NULL );
-      if ( status != DW_DLV_OK ) { lineOff = 0; }
-
-      Dwarf_Addr lineAddr;
-      status = dwarf_lineaddr( lineBuffer[i], & lineAddr, NULL );
-      if ( status != DW_DLV_OK ) { continue; }
-      lineAddr += baseAddr;
-
-      if (usesDebugFile) {
-	Offset new_lineAddr;
-	bool result = convertDebugOffset(lineAddr, new_lineAddr);
-	if (result)
-	  lineAddr = new_lineAddr;
-      }
-
-      char * lineSource;
-      status = dwarf_linesrc( lineBuffer[i], & lineSource, NULL );
-      if ( status != DW_DLV_OK ) { continue; }
-
-      Dwarf_Bool isEndOfSequence;
-      status = dwarf_lineendsequence( lineBuffer[i], & isEndOfSequence, NULL );
-      if ( status != DW_DLV_OK ) { continue; }
-
-      if ( isPreviousValid ) {
-	/* If we're talking about the same (source file, line number) tuple,
-	   and it isn't the end of the sequence, we can coalesce the range.
-	   (The end of sequence marker marks discontinuities in the ranges.) */
-	if ( lineNo == previousLineNo && strcmp( lineSource, previousLineSource ) == 0 && ! isEndOfSequence ) {
-	  /* Don't update the prev* values; just keep going until we hit the end of a sequence or
-	     a new sourcefile. */
-	  continue;
-	} /* end if we can coalesce this range */
-
-	char *canonicalLineSource;
-	if (truncateLineFilenames) {
-	  canonicalLineSource = strrchr( previousLineSource, '/' );
-	  if( canonicalLineSource == NULL ) { canonicalLineSource = previousLineSource; }
-	  else { ++canonicalLineSource; }
-	}
-	else {
-	  canonicalLineSource = previousLineSource;
-	}
-
-	li[std::string(moduleName)].addLine(canonicalLineSource, 
-					    (unsigned int) previousLineNo, 
-					    (unsigned int) previousLineColumn, 
-					    (Dyninst::Offset) previousLineAddr, 
-					    (Dyninst::Offset) lineAddr );
-	/* The line 'canonicalLineSource:previousLineNo' has an address range of [previousLineAddr, lineAddr). */
-      } /* end if the previous* variables are valid */
-
-      /* If the current line ends the sequence, invalidate previous; otherwise, update. */
-      if ( isEndOfSequence ) 
+	/* Itereate over the CU headers. */
+	Dwarf_Unsigned header;
+	while ( dwarf_next_cu_header( dbg, NULL, NULL, NULL, NULL, & header, NULL ) == DW_DLV_OK ) 
 	{
-	  dwarf_dealloc( dbg, lineSource, DW_DLA_STRING );
-	  isPreviousValid = false;
-	}
-      else {
-	if( isPreviousValid ) { dwarf_dealloc( dbg, previousLineSource, DW_DLA_STRING ); }
-	previousLineNo = lineNo;
-	previousLineSource = lineSource;
-	previousLineAddr = lineAddr;
-	previousLineColumn = lineOff;
+		/* Acquire the CU DIE. */
+		Dwarf_Die cuDIE;
+		int status = dwarf_siblingof( dbg, NULL, & cuDIE, NULL);
+		if ( status != DW_DLV_OK ) { 
+			/* If we can get no (more) CUs, we're done. */
+			break;
+		}
 
-	isPreviousValid = true;
-      } /* end if line was not the end of a sequence */
-    } /* end iteration over source line entries. */
+		char * cuName;
+		const char *moduleName;
+		status = dwarf_diename( cuDIE, &cuName, NULL );
+		if ( status == DW_DLV_NO_ENTRY ) {
+			cuName = NULL;
+			moduleName = "DEFAULT_MODULE";
+		}
+		else {
+			moduleName = strrchr(cuName, '/');
+			if (!moduleName)
+				moduleName = strrchr(cuName, '\\');
+			if (moduleName)
+				moduleName++;
+			else
+				moduleName = cuName;
+		}
+		//fprintf(stderr, "[%s:%u] - llparsing for module %s\n", __FILE__, __LINE__, moduleName);
 
-      /* Free this CU's source lines. */
-    for ( int i = 0; i < lineCount; i++ ) {
-      dwarf_dealloc( dbg, lineBuffer[i], DW_DLA_LINE );
-    }
-    dwarf_dealloc( dbg, lineBuffer, DW_DLA_LIST );
-    if (cuName)
-      dwarf_dealloc( dbg, cuName, DW_DLA_STRING );  
+		/* Acquire this CU's source lines. */
+		Dwarf_Line * lineBuffer;
+		Dwarf_Signed lineCount;
+		status = dwarf_srclines( cuDIE, & lineBuffer, & lineCount, NULL );
 
-    /* Free this CU's DIE. */
-    dwarf_dealloc( dbg, cuDIE, DW_DLA_DIE );
-  } /* end CU header iteration */
-  /* Note that we've parsed this file. */
+		/* See if we can get anything useful out of the next CU
+		   if this one is corrupt. */
+		assert( status != DW_DLV_ERROR );
+
+		/* It's OK for a CU not to have line information. */
+		if ( status != DW_DLV_OK ) {
+			/* Free this CU's DIE. */
+			dwarf_dealloc( dbg, cuDIE, DW_DLA_DIE );
+			continue;
+		}
+		assert( status == DW_DLV_OK );
+
+		/* The 'lines' returned are actually interval markers; the code
+		   generated from lineNo runs from lineAddr up to but not including
+		   the lineAddr of the next line. */			   
+		bool isPreviousValid = false;
+		Dwarf_Unsigned previousLineNo = 0;
+		Dwarf_Signed previousLineColumn = 0;
+		Dwarf_Addr previousLineAddr = 0x0;
+		char * previousLineSource = NULL;
+
+		//Offset baseAddr = obj()->codeBase();
+		Offset baseAddr = getBaseAddress();
+
+		/* Iterate over this CU's source lines. */
+		for ( int i = 0; i < lineCount; i++ ) 
+		{
+			/* Acquire the line number, address, source, and end of sequence flag. */
+			Dwarf_Unsigned lineNo;
+			status = dwarf_lineno( lineBuffer[i], & lineNo, NULL );
+			if ( status != DW_DLV_OK ) { continue; }
+
+			Dwarf_Signed lineOff;
+			status = dwarf_lineoff( lineBuffer[i], & lineOff, NULL );
+			if ( status != DW_DLV_OK ) { lineOff = 0; }
+
+			Dwarf_Addr lineAddr;
+			status = dwarf_lineaddr( lineBuffer[i], & lineAddr, NULL );
+			if ( status != DW_DLV_OK ) 
+			{ 
+				fprintf(stderr, "%s[%d]:  dwarf_lineaddr() failed\n", FILE__, __LINE__);
+				continue; 
+			}
+
+			lineAddr += baseAddr;
+
+			if (usesDebugFile) {
+				Offset new_lineAddr;
+				bool result = convertDebugOffset(lineAddr, new_lineAddr);
+				if (result)
+					lineAddr = new_lineAddr;
+			}
+
+			char * lineSource;
+			status = dwarf_linesrc( lineBuffer[i], & lineSource, NULL );
+			if ( status != DW_DLV_OK ) { continue; }
+
+			Dwarf_Bool isEndOfSequence;
+			status = dwarf_lineendsequence( lineBuffer[i], & isEndOfSequence, NULL );
+			if ( status != DW_DLV_OK ) { continue; }
+
+			if ( isPreviousValid ) 
+			{
+				/* If we're talking about the same (source file, line number) tuple,
+				   and it isn't the end of the sequence, we can coalesce the range.
+				   (The end of sequence marker marks discontinuities in the ranges.) */
+				if ( lineNo == previousLineNo && strcmp( lineSource, previousLineSource ) == 0 
+						&& ! isEndOfSequence ) 
+				{
+					/* Don't update the prev* values; just keep going until we hit the end of 
+					   a sequence or  new sourcefile. */
+					continue;
+				} /* end if we can coalesce this range */
+
+				char *canonicalLineSource;
+				if (truncateLineFilenames) {
+					canonicalLineSource = strrchr( previousLineSource, '/' );
+					if( canonicalLineSource == NULL ) { canonicalLineSource = previousLineSource; }
+					else { ++canonicalLineSource; }
+				}
+				else {
+					canonicalLineSource = previousLineSource;
+				}
+
+
+
+				Dyninst::Offset startAddrToUse = previousLineAddr;
+				Dyninst::Offset endAddrToUse = lineAddr;
+
+				//fprintf(stderr, "%s[%d]:  adding %s[%llu]: %lu to line info: %s\n", FILE__, __LINE__, canonicalLineSource, previousLineNo,  startAddrToUse, fix_addr_mismatch ? "fixed mismatch" : "no mismatch");
+
+				li[std::string(moduleName)].addLine(canonicalLineSource, 
+						(unsigned int) previousLineNo, 
+						(unsigned int) previousLineColumn, 
+						startAddrToUse, 
+						endAddrToUse );
+
+				/* The line 'canonicalLineSource:previousLineNo' has an address range of [previousLineAddr, lineAddr). */
+			} /* end if the previous* variables are valid */
+
+			/* If the current line ends the sequence, invalidate previous; otherwise, update. */
+			if ( isEndOfSequence ) 
+			{
+				dwarf_dealloc( dbg, lineSource, DW_DLA_STRING );
+				isPreviousValid = false;
+			}
+			else {
+				if( isPreviousValid ) { dwarf_dealloc( dbg, previousLineSource, DW_DLA_STRING ); }
+				previousLineNo = lineNo;
+				previousLineSource = lineSource;
+				previousLineAddr = lineAddr;
+				previousLineColumn = lineOff;
+
+				isPreviousValid = true;
+			} /* end if line was not the end of a sequence */
+		} /* end iteration over source line entries. */
+
+		/* Free this CU's source lines. */
+		for ( int i = 0; i < lineCount; i++ ) {
+			dwarf_dealloc( dbg, lineBuffer[i], DW_DLA_LINE );
+		}
+		dwarf_dealloc( dbg, lineBuffer, DW_DLA_LIST );
+		if (cuName)
+			dwarf_dealloc( dbg, cuName, DW_DLA_STRING );  
+
+		/* Free this CU's DIE. */
+		dwarf_dealloc( dbg, cuDIE, DW_DLA_DIE );
+	} /* end CU header iteration */
+	/* Note that we've parsed this file. */
 } /* end parseDwarfFileLineInfo() */
 
 void Object::parseFileLineInfo(Symtab *st, dyn_hash_map<string, LineInformation> &li)
 {
-  parseStabFileLineInfo(st, li);
-  parseDwarfFileLineInfo(li);
+	parseStabFileLineInfo(st, li);
+	parseDwarfFileLineInfo(li);
 }
 
 void Object::parseTypeInfo(Symtab *obj)
 {
 #if defined(TIMED_PARSE)
-  struct timeval starttime;
-  gettimeofday(&starttime, NULL);
+	struct timeval starttime;
+	gettimeofday(&starttime, NULL);
 #endif	 
 
-  parseStabTypes(obj);
-  parseDwarfTypes(obj);
+	parseStabTypes(obj);
+	parseDwarfTypes(obj);
 
 #if defined(TIMED_PARSE)
-  struct timeval endtime;
-  gettimeofday(&endtime, NULL);
-  unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
-  unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
-  unsigned long difftime = lendtime - lstarttime;
-  double dursecs = difftime/(1000 );
-  cout << __FILE__ << ":" << __LINE__ <<": parseTypes("<< obj->file()
-       <<") took "<< dursecs <<" msecs" << endl;
+	struct timeval endtime;
+	gettimeofday(&endtime, NULL);
+	unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+	unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+	unsigned long difftime = lendtime - lstarttime;
+	double dursecs = difftime/(1000 );
+	cout << __FILE__ << ":" << __LINE__ <<": parseTypes("<< obj->file()
+		<<") took "<< dursecs <<" msecs" << endl;
 #endif	 
 }
 
 void Object::parseStabTypes(Symtab *obj)
 {
-  types_printf("Entry to parseStabTypes for %s\n", obj->name().c_str());
-  stab_entry *stabptr = NULL;
-  const char *next_stabstr = NULL;
+	types_printf("Entry to parseStabTypes for %s\n", obj->name().c_str());
+	stab_entry *stabptr = NULL;
+	const char *next_stabstr = NULL;
 
-  unsigned i;
-  char *modName = NULL;
-  string temp;
-  char *ptr = NULL, *ptr2 = NULL, *ptr3 = NULL;
-  bool parseActive = false;
+	unsigned i;
+	char *modName = NULL;
+	string temp;
+	char *ptr = NULL, *ptr2 = NULL, *ptr3 = NULL;
+	bool parseActive = false;
 
-  string* currentFunctionName = NULL;
-  Offset currentFunctionBase = 0;
-  Symbol *commonBlockVar = NULL;
-  string *commonBlockName = NULL;
-  typeCommon *commonBlock = NULL;
-  int mostRecentLinenum = 0;
+	string* currentFunctionName = NULL;
+	Offset currentFunctionBase = 0;
+	Symbol *commonBlockVar = NULL;
+	string *commonBlockName = NULL;
+	typeCommon *commonBlock = NULL;
+	int mostRecentLinenum = 0;
 
   Module *mod;
+  typeCollection *tc = NULL;
 
 #if defined(TIMED_PARSE)
   struct timeval starttime;
@@ -4588,20 +4607,22 @@ void Object::parseStabTypes(Symtab *obj)
 	modName = ptr;
       }
       if (obj->findModuleByName(mod, modName)) {
+		  tc = typeCollection::getModTypeCollection(mod);
 	parseActive = true;
 	if (!mod) {
 	  fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
 	}
-	else if (!mod->getModuleTypesPrivate()) 
+	else if (!tc) 
 	  {
 	    fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
 	  }
 	else 
-	  mod->getModuleTypesPrivate()->clearNumberedTypes();
+		tc->clearNumberedTypes();
       } 
       else {
 	//parseActive = false;
 	mod = obj->getDefaultModule();
+	tc = typeCollection::getModTypeCollection(mod);
 	types_printf("\t Warning: failed to find module name matching %s, using %s\n", modName, mod->fileName().c_str());
       }
 
@@ -4714,11 +4735,11 @@ void Object::parseStabTypes(Symtab *obj)
 	if (!commonBlockVar) {
 	  // //bperr("unable to find variable %s\n", commonBlockName);
 	} else {
-	  commonBlock = dynamic_cast<typeCommon *>(mod->getModuleTypesPrivate()->findVariableType(*commonBlockName));
+	  commonBlock = dynamic_cast<typeCommon *>(tc->findVariableType(*commonBlockName));
 	  if (commonBlock == NULL) {
 	    // its still the null type, create a new one for it
 	    commonBlock = new typeCommon(*commonBlockName);
-	    mod->getModuleTypesPrivate()->addGlobalVariable(*commonBlockName, commonBlock);
+	    tc->addGlobalVariable(*commonBlockName, commonBlock);
 	  }
 	  // reset field list
 	  commonBlock->beginCommonBlock();

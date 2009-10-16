@@ -183,6 +183,8 @@ xmlTextWriterPtr SerDesXML::init(std::string fname, iomode_t /*mode*/, bool /*ve
 
 #endif // defined (cap_have_libxml)
 
+
+namespace Dyninst {
 #if defined (cap_have_libxml)
 //int (*my_xmlTextWriterStartElement)(xmlTextWriterPtr, 
 //      const xmlChar *) = NULL;
@@ -235,6 +237,18 @@ bool write_xml_elem(void * /*writer*/, const char * /*tag*/, const char * /*fmt*
    return false;
 }
 #endif
+}
+
+namespace Dyninst {
+bool start_xml_elem(SerDesXML &s, const char *tag)
+{
+	return start_xml_elem(s.writer, tag);
+}
+bool end_xml_elem(SerDesXML &s)
+{
+	return end_xml_elem(s.writer);
+}
+}
 
 namespace Dyninst {
 bool ifxml_start_element(SerializerBase *sb, const char *tag)
@@ -311,13 +325,29 @@ COMMON_EXPORT bool ifxml_end_element(SerializerBase *sb, const char * /*tag*/)
 }
 }
 
+bool SerializerXML::start_xml_element(SerializerBase *sb, const char *tag)
+{
+	SerializerXML *sxml = dynamic_cast<SerializerXML *>(sb);
+
+	if (!sxml)
+	{
+		fprintf(stderr, "%s[%d]:  FIXME:  called xml function with non xml serializer\n",
+				FILE__, __LINE__);
+		return false;
+	}
+
+	SerDesXML sdxml = sxml->getSD_xml();
+	start_xml_elem(sdxml, tag);
+	return true;
+
+}
 #if 0
 bool SerializerXML::start_xml_element(SerializerBase *sb, const char *tag)
 {
-   SerializerXML *sxml = dynamic_cast<SerializerXML *>(sb);
+	SerializerXML *sxml = dynamic_cast<SerializerXML *>(sb);
 
-   if (!sxml) 
-   {
+	if (!sxml) 
+	{
       fprintf(stderr, "%s[%d]:  FIXME:  called xml function with non xml serializer\n", 
             FILE__, __LINE__);
       return false;
@@ -334,7 +364,15 @@ bool SerializerXML::start_xml_element(SerializerBase *sb, const char *tag)
 }
 #endif
 
-#if 0
+SerDesXML &SerializerXML::getSD_xml()
+{
+	SerializerBase *sb = this;
+	SerDes &sd = sb->getSD();
+	SerDesXML *sdxml = dynamic_cast<SerDesXML *> (&sd);
+	assert(sdxml);
+	return *sdxml;
+}
+
 bool SerializerXML::end_xml_element(SerializerBase * sb, const char  * /*tag*/)
 {
    SerializerXML *sxml = dynamic_cast<SerializerXML *>(sb);
@@ -347,14 +385,14 @@ bool SerializerXML::end_xml_element(SerializerBase * sb, const char  * /*tag*/)
    }
 
    SerDesXML sdxml = sxml->getSD_xml();
-   end_xml_elem(sdxml.writer);
+   end_xml_elem(sdxml);
 
 #if 0
    sdxml.end_element(); 
 #endif
    return true;
 }
-#endif
+
 SerDesXML::~SerDesXML()
 {
 #if defined (cap_have_libxml)
@@ -363,7 +401,7 @@ SerDesXML::~SerDesXML()
 
 }
 
-void SerDesXML::vector_start(unsigned int &/*size*/, const char *tag) DECLTHROW(SerializerError)
+void SerDesXML::vector_start(unsigned long &/*size*/, const char *tag) DECLTHROW(SerializerError)
 {
    bool rc = ::start_xml_elem(writer, tag);
 
@@ -396,7 +434,7 @@ void SerDesXML::vector_end()
 #endif
 }
 
-void SerDesXML::multimap_start(unsigned int &/*size*/, const char *tag) DECLTHROW(SerializerError)
+void SerDesXML::multimap_start(unsigned long &/*size*/, const char *tag) DECLTHROW(SerializerError)
 {
    bool rc = ::start_xml_elem(writer, tag);
 
@@ -428,7 +466,38 @@ void SerDesXML::multimap_end()
 #endif
 }
 
-void SerDesXML::hash_map_start(unsigned int &/*size*/, const char *tag) DECLTHROW(SerializerError)
+void SerDesXML::pair_start(const char *tag) DECLTHROW(SerializerError)
+{
+   bool rc = ::start_xml_elem(writer, tag);
+
+   if (!rc)
+   {
+        SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
+   }
+#if 0
+    int rc = my_xmlTextWriterStartElement(writer, XMLCHAR_CAST tag);
+    if (rc < 0) {
+        SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
+    }
+#endif
+}
+
+void SerDesXML::pair_end()
+{
+   bool rc = ::end_xml_elem(writer);
+   if (!rc) 
+   {
+      SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
+   }
+
+#if 0
+    int rc = my_xmlTextWriterEndElement(writer);
+    if (rc < 0) {
+        SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
+    }
+#endif
+}
+void SerDesXML::hash_map_start(unsigned long &/*size*/, const char *tag) DECLTHROW(SerializerError)
 {
    bool rc = ::start_xml_elem(writer,  tag);
 
@@ -460,7 +529,7 @@ void SerDesXML::hash_map_end()
 #endif
 }
 
-void SerDesXML::annotation_start(const char * /*id*/, const char * tag) 
+void SerDesXML::annotation_start(Dyninst::AnnotationClassID &a_id, void *& parent_id, sparse_or_dense_anno_t &sod, const char * /*id*/, const char * tag) 
 {
    bool rc = ::start_xml_elem(writer, tag);
 
@@ -468,6 +537,13 @@ void SerDesXML::annotation_start(const char * /*id*/, const char * tag)
    {
         SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
    }
+   translate(a_id, "annotationID");
+   translate((Address &)parent_id, "annotatableID");
+   translate((int &) sod, "SparseOrDense");
+   //char sodstr[12];
+   //sprintf(sodstr, "%s", sod == sparse ? "sparse" : "dense");
+   //const char *sodstr = (sod == sparse) ? "sparse" : "dense";
+   //translate((const char *&)const_cast<const char *>(sodstr), 12, "SparseOrDense");
 }
 
 void SerDesXML::annotation_end()
@@ -480,7 +556,66 @@ void SerDesXML::annotation_end()
 
 }
 
+void SerDesXML::annotation_container_start(void *& id) 
+{
+   bool rc = ::start_xml_elem(writer, "AnnotationContainer");
 
+   if (!rc)
+   {
+        SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
+   }
+   translate((Address &)id, "containerID");
+}
+
+void SerDesXML::annotation_container_end()
+{
+   bool rc = ::end_xml_elem(writer);
+   if (!rc) 
+   {
+      SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
+   }
+
+}
+
+void SerDesXML::annotation_container_item_start(void *& id) 
+{
+   bool rc = ::start_xml_elem(writer, "AnnotationContainerItem");
+
+   if (!rc)
+   {
+        SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
+   }
+   translate((Address &)id, "containerID");
+}
+
+void SerDesXML::annotation_container_item_end()
+{
+   bool rc = ::end_xml_elem(writer);
+   if (!rc) 
+   {
+      SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
+   }
+
+}
+void SerDesXML::annotation_list_start(Address &/*id*/, unsigned long &/*nelem*/, const char * tag) 
+{
+   bool rc = ::start_xml_elem(writer, tag);
+
+   if (!rc)
+   {
+        SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
+   }
+}
+
+void SerDesXML::annotation_list_end()
+{
+   bool rc = ::end_xml_elem(writer);
+   if (!rc) 
+   {
+      SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
+   }
+
+}
 void SerDesXML::translate(bool &param, const char *tag)
 {       
    bool rc = write_xml_elem(writer, tag,
@@ -578,6 +713,24 @@ void SerDesXML::translate(short &param, const char *tag)
 #endif
 }
 
+void SerDesXML::translate(unsigned short &param, const char *tag)
+{   
+   bool rc = write_xml_elem(writer, tag,
+         "%h", param);
+
+   if (!rc) 
+   {
+      SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
+   }
+    
+#if 0
+    int rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST tag,
+                                                 "%h", param);
+    if (rc < 0) {
+        SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
+    }
+#endif
+}
 void SerDesXML::translate(unsigned int &param, const char *tag)
 {   
   translate( param, tag);
@@ -652,6 +805,24 @@ void SerDesXML::translate(Address &param, const char *tag)
 #endif
 }
 
+void SerDesXML::translate(void * &param, const char *tag)
+{
+   bool rc = write_xml_elem(writer, tag,
+         "%p", param);
+
+   if (!rc) 
+   {
+      SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
+   }
+
+#if 0
+    int rc = my_xmlTextWriterWriteFormatElement(writer, XMLCHAR_CAST tag,
+                                                 "%p", param);
+    if (rc < 0) {
+        SER_ERR("testXmlwriterDoc: Error at my_xmlTextWriterStartElement");
+    }
+#endif
+}
 void SerDesXML::translate(const char * &param, int /*bufsize*/, const char *tag)
 {
    bool rc = write_xml_elem(writer, tag,

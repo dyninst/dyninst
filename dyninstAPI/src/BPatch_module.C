@@ -657,22 +657,20 @@ bool BPatch_module::getSourceLinesInt(unsigned long addr,
    }
 
    unsigned int originalSize = lines.size();
-   LineInformation *li = mod->getLineInformation();
-   std::vector<LineNoTuple> lines_ll;
+   std::vector<Statement *> lines_ll;
 
-   if (li) 
+   Module *stmod = mod->pmod()->mod();
+   assert(stmod);
+
+   if (!stmod->getSourceLines(lines_ll, addr - mod->obj()->codeBase()))
    {
-      li->getSourceLines( addr - mod->obj()->codeBase(), lines_ll );
-   }
-   else 
-   {
-      return false;
+	   return false;
    }
 
-   for (unsigned int j = 0; j < lines_ll.size(); ++j) 
+   for (unsigned int j = 0; j < lines_ll.size(); ++j)
    {
-      LineNoTuple &t = lines_ll[j];
-      lines.push_back(BPatch_statement(this, t.first, t.second, t.column));
+	   Statement *t = lines_ll[j];
+	   lines.push_back(BPatch_statement(this, t));
    }
 
    return (lines.size() != originalSize);
@@ -680,35 +678,36 @@ bool BPatch_module::getSourceLinesInt(unsigned long addr,
 
 bool BPatch_module::getStatementsInt(BPatch_Vector<BPatch_statement> &statements)
 {
-   // Iterate over each address range in the line information
-   LineInformation *li = mod->getLineInformation();
-   if (!li) {
-      return false;
-   }
+	// Iterate over each address range in the line information
+	SymtabAPI::Module *stmod = mod->pmod()->mod();
+	assert(stmod);
+	std::vector<SymtabAPI::Statement *> statements_ll;
 
-   for (LineInformation::const_iterator i = li->begin();
-         i != li->end();
-         ++i) {
+	if (!stmod->getStatements(statements_ll))
+	{
+		return false;
+	}
 
-      // Form a BPatch_statement object for this entry
-      // Note:  Line information stores offsets, so we need to adjust to
-      //  addresses
-      BPatch_statement statement(this, i->second.first, i->second.second,
-            i->second.column, 
-            (void *)(i->first.first + mod->obj()->codeBase()), 
-            (void *)(i->first.second + mod->obj()->codeBase()));
+	for (unsigned int i = 0; i < statements_ll.size(); ++i)
+	{
+		// Form a BPatch_statement object for this entry
+		// Note:  Line information stores offsets, so we need to adjust to
+		//  addresses
+		SymtabAPI::Statement *stm = statements_ll[i];
+		BPatch_statement statement(this, stm);
 
-      // Add this statement
-      statements.push_back(statement);
+		// Add this statement
+		statements.push_back(statement);
 
-   }
-   return true;
+	}
+	return true;
+
 }
 
 bool BPatch_module::getAddressRangesInt( const char * fileName, 
-      unsigned int lineNo, std::vector< std::pair< Address, Address > > & ranges ) 
+		unsigned int lineNo, std::vector< std::pair< Address, Address > > & ranges ) 
 {
-   unsigned int starting_size = ranges.size();
+	unsigned int starting_size = ranges.size();
 
    if (!isValid()) 
    {
@@ -716,35 +715,31 @@ bool BPatch_module::getAddressRangesInt( const char * fileName,
       return false;
    }
 
-   LineInformation *li = mod->getLineInformation();
-
-   if ( fileName == NULL ) 
+   if ( fileName == NULL )
    {
-      fileName = mod->fileName().c_str(); 
+	   fileName = mod->fileName().c_str();
    }
 
-   if (li) 
+   if (!mod->pmod()->mod()->getAddressRanges(ranges, std::string(fileName), lineNo))
    {
-      bool ok = li->getAddressRanges( fileName, lineNo, ranges );
-      if (!ok)
-         return false;
-
-      //  Iterate over the returned offset ranges to turn them into addresses
-      for (unsigned int i = starting_size; i < ranges.size(); ++i) 
-      {
-         ranges[i].first += mod->obj()->codeBase();
-         ranges[i].second += mod->obj()->codeBase();
-      }
-      
-      return true;
+	   return false;
    }
 
-   return false;
+
+   //  Iterate over the returned offset ranges to turn them into addresses
+   for (unsigned int i = starting_size; i < ranges.size(); ++i)
+   {
+	   ranges[i].first += mod->obj()->codeBase();
+	   ranges[i].second += mod->obj()->codeBase();
+   }
+
+   return true;
+
 } /* end getAddressRanges() */
 
 bool BPatch_module::isSharedLibInt() 
 {
-   return mod->obj()->isSharedLib();
+	return mod->obj()->isSharedLib();
 }
 
 /*
@@ -969,26 +964,29 @@ std::vector<struct BPatch_module::Statement> BPatch_module::getStatementsInt()
    std::vector<struct BPatch_module::Statement> statements;
    if (!mod) return statements;
 
-   LineInformation *li = mod->getLineInformation();
-   if (!li)
-      return statements;
+   Module *stmod = mod->pmod()->mod();
+   assert(stmod);
+   if (!stmod->getStatements(statements_ll))
+   {
+	   return statements;
+   }
 
-   // Iterate over each address range in the line information
-   for (LineInformation::const_iterator i = li->begin(); i != li->end(); ++i) {
-      // Form a Statement object for this entry
-      struct BPatch_module::Statement statement;
-      statement.begin = i->first.first + mod->obj()->codeBase();
-      statement.end = i->first.second + mod->obj()->codeBase();
-      statement.path = i->second.first;
-      statement.line = i->second.second;
-      statement.column = 0;
+   for (unsigned int i = 0; i < statements_ll.size(); ++i)
+   {
+	   // Form a BPatch_statement object for this entry
+	   // Note:  Line information stores offsets, so we need to adjust to
+	   //  addresses
+	   SymtabAPI::Statement &stm = statements_ll[i];
+	   BPatch_statement statement(this, stm.file().c_str(), stm.line(),
+			   stm.column(), (void *)(mod->obj()->codeBase() + stm.startAddr()),
+			   (void *)(mod->obj()->codeBase() + stm.endAddr()));
 
-      // Add this statement
-      statements.push_back(statement);
-
+	   // Add this statement
+	   statements.push_back(statement);
    }
 
    // Return the statements to the caller
    return statements;
+
 }
 #endif

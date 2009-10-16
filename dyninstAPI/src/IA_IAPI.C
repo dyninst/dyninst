@@ -286,6 +286,7 @@ void IA_IAPI::getNewEdges(
                 {
                     parsing_printf("%s[%d]: PLT tail call to %x\n", FILE__, __LINE__, getCFT());
                     outEdges.push_back(std::make_pair(getCFT(), ET_NOEDGE));
+                    tailCall.second = true;
                 }
             }
             else
@@ -502,6 +503,7 @@ bool IA_IAPI::parseJumpTable(image_basicBlock* currBlk,
                 allInsns.find(thunkInsnAddr);
         if(thunkLoc != allInsns.end())
         {
+            tableLoc = thunkLoc;
             tableInsnAddr = thunkInsnAddr;
             tableInsn = thunkLoc->second;
         }
@@ -519,15 +521,69 @@ bool IA_IAPI::parseJumpTable(image_basicBlock* currBlk,
         return false;
     }
     std::map<Address, Instruction::Ptr>::const_iterator cur = allInsns.find(current);
+    
     while(tableLoc != cur)
     {
         tableLoc++;
-        if(tableLoc->second->getOperation().getID() == e_movsxd ||
-           tableLoc->second->getOperation().getID() == e_movsx)
+        if(tableLoc->second->getOperation().getID() == e_lea)
         {
-            parsing_printf("\tFound sign-extending mov, revising table stride to 4\n");
-            tableStride = 4;
-            break;
+            parsing_printf("\tchecking instruction %s at 0x%lx for IP-relative LEA\n", tableLoc->second->format().c_str(),
+                           tableLoc->first);
+            Expression::Ptr IPRelAddr = tableLoc->second->getOperand(1).getValue();
+            static RegisterAST* eip(new RegisterAST(r_EIP));
+            static RegisterAST* rip(new RegisterAST(r_RIP));
+            IPRelAddr->bind(eip, Result(s64, tableLoc->first + tableLoc->second->size()));
+            IPRelAddr->bind(rip, Result(s64, tableLoc->first + tableLoc->second->size()));
+            Result iprel = IPRelAddr->eval();
+            if(iprel.defined)
+            {
+                parsing_printf("\trevising tableInsn to %s at 0x%lx\n",tableLoc->second->format().c_str(), tableLoc->first);
+                tableInsn = tableLoc->second;
+            }
+
+        }
+        else
+        {
+            parsing_printf("\tChecking for sign-extending mov at 0x%lx...\n", tableLoc->first);
+            if(tableLoc->second->getOperation().getID() == e_movsxd ||
+               tableLoc->second->getOperation().getID() == e_movsx)
+            {
+                std::set<Expression::Ptr> movsxReadAddr;
+                tableLoc->second->getMemoryReadOperands(movsxReadAddr);
+                static Immediate::Ptr four(new Immediate(Result(u8, 4)));
+                static Expression::Ptr dummy4(new DummyExpr());
+                static Expression::Ptr dummy2(new DummyExpr());
+                static Immediate::Ptr two(new Immediate(Result(u8, 2)));
+                static BinaryFunction::funcT::Ptr multiplier(new BinaryFunction::multResult());
+                static BinaryFunction::Ptr scaleCheck4(new BinaryFunction(four, dummy4, (tableStride == 8) ? u64: u32,
+                    multiplier));
+                static BinaryFunction::Ptr scaleCheck2(new BinaryFunction(two, dummy2, (tableStride == 8) ? u64: u32,
+                    multiplier));
+                for(std::set<Expression::Ptr>::const_iterator readExp =
+                    movsxReadAddr.begin();
+                    readExp != movsxReadAddr.end();
+                    ++readExp)
+                {
+                    if((*readExp)->isUsed(scaleCheck4))
+                    {
+                        parsing_printf("\tFound sign-extending mov, revising table stride to scale (4)\n");
+                        tableStride = 4;
+                    }
+                    else if((*readExp)->isUsed(scaleCheck2))
+                    {
+                        parsing_printf("\tFound sign-extending mov, revising table stride to scale (2)\n");
+                        tableStride = 2;
+                    }
+                    else
+                    {
+                        parsing_printf("\tFound sign-extending mov insn %s, readExp %s\n",
+                                       tableLoc->second->format().c_str(), (*readExp)->format().c_str());
+                        parsing_printf("\tcouldn't match stride expression %s or %s--HELP!\n",
+                                       scaleCheck2->format().c_str(), scaleCheck4->format().c_str());
+                    }
+                }
+                break;
+            }
         }
     }
     Address tableBase = getTableAddress(tableInsn, thunkOffset);

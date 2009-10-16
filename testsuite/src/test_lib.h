@@ -146,8 +146,9 @@ TESTLIB_DLL_EXPORT ComponentTester *getComponentTester();
 	   err.print(stderr); \
 	   return FAILED; }
 
-class LocErr : public std::runtime_error 
+class LocErr  
 {
+	std::string msg__;
 	std::string file__;
 	int line__;
 
@@ -162,6 +163,8 @@ class LocErr : public std::runtime_error
 	TESTLIB_DLL_EXPORT std::string file() const;
 
 	TESTLIB_DLL_EXPORT int line() const;
+	TESTLIB_DLL_EXPORT std::string msg() const;
+	TESTLIB_DLL_EXPORT const char * what() const;
 
 	TESTLIB_DLL_EXPORT void print(FILE * stream)  const;
 };
@@ -171,16 +174,22 @@ class Tempfile {
 	//  file paths should be generalized to work on windows
 	char *fname;
 #if !defined (os_windows_test)
-	int fd;
+	typedef int fd_type;
 #else
-	HANDLE fd;
+	typedef HANDLE fd_type;
 #endif
+	fd_type fd;
+	static std::vector<std::string> all_open_files;
 
 	public:
 
 	TESTLIB_DLL_EXPORT Tempfile();
 	TESTLIB_DLL_EXPORT ~Tempfile();
 	TESTLIB_DLL_EXPORT const char *getName();
+	TESTLIB_DLL_EXPORT static void deleteAll();
 };
 
+#if defined (os_solaris_test)
+int setenv(const char *envname, const char *envval, int);
+#endif
 #endif

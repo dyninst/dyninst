@@ -73,7 +73,7 @@ Type* Variable::getType()
 	return type_;
 }
 
-void Variable::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
+void Variable::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
 	//fprintf(stderr, "%s[%d]:  welcome to Variable::serialize\n", FILE__, __LINE__);
 	if (!sb)
@@ -91,6 +91,13 @@ void Variable::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (Serial
 		gtranslate(sb, t_id, "typeID");
 		Aggregate::serialize_aggregate(sb);
 		ifxml_end_element(sb, tag);
+
+		serialize_printf("%s[%d]:  %sSERIALIZED VARIABLE %s, %lu syms\n", 
+				FILE__, __LINE__, 
+				sb->isInput() ? "DE" : "", 
+				getAllPrettyNames().size() ? getAllPrettyNames()[0].c_str() : "no_name",
+				symbols_.size()); 
+
 		if (sb->isInput())
 		{
 		   if (t_id == 0xdeadbeef)
@@ -104,15 +111,39 @@ void Variable::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (Serial
 		} 
 		else
 		{
-			ScopedSerializerBase<Symtab> *ssb = dynamic_cast<ScopedSerializerBase<Symtab> *>(sb);
+#if 0
+			Dyninst::ScopedSerializerBase<Dyninst::SymtabAPI::Symtab> *ssb = dynamic_cast<Dyninst::ScopedSerializerBase<Dyninst::SymtabAPI::Symtab> *>(sb);
 
 			if (!ssb)
+			{
+				fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME, sb is_bin = %s, sb = %p\n", FILE__, __LINE__, sb->isBin() ? "true" : "false", sb);
+				SerializerBin<Symtab> *sbst = dynamic_cast<SerializerBin<Symtab> *> (sb);
+				if (NULL == sbst)
+				{
+					fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+				}
+				SER_ERR("FIXME");
+			}
+
+			Symtab *st = ssb->getScope();
+#endif
+			SerContextBase *scb = sb->getContext();
+			if (!scb)
 			{
 				fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
 				SER_ERR("FIXME");
 			}
 
-			Symtab *st = ssb->getScope();
+			SerContext<Symtab> *scs = dynamic_cast<SerContext<Symtab> *>(scb);
+
+			if (!scs)
+			{
+				fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+				SER_ERR("FIXME");
+			}
+
+			Symtab *st = scs->getScope();
+
 
 			//  remove this check
 			if ((t_id != 0xdeadbeef) && !st->findType(t_id))
@@ -122,6 +153,7 @@ void Variable::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (Serial
 		}
 	}
 	SER_CATCH(tag);
+
 }
 
 std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Variable &v)
@@ -195,16 +227,18 @@ bool VariableLocation::operator==(const VariableLocation &f)
 	if (lowPC != f.lowPC) return false;
 	return true;
 }
-void VariableLocation::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
+void VariableLocation::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
+	serialize_printf("%s[%d]:  welcome to VariableLocation::serialize_impl\n", FILE__, __LINE__);
 	ifxml_start_element(sb, tag);
-	gtranslate(sb, (int &)stClass, "StorageClass");
-	gtranslate(sb, (int &)refClass, "StorageRefClass");
+	gtranslate(sb, stClass, storageClass2Str, "StorageClass");
+	gtranslate(sb, refClass, storageRefClass2Str, "StorageRefClass");
 	gtranslate(sb, reg, "register");
 	gtranslate(sb, frameOffset, "frameOffset");
 	gtranslate(sb, hiPC, "hiPC");
 	gtranslate(sb, lowPC, "lowPC");
 	ifxml_end_element(sb, tag);
+	serialize_printf("%s[%d]:  leaving to VariableLocation::serialize_impl\n", FILE__, __LINE__);
 }
 
 localVar::localVar(std::string name,  Type *typ, std::string fileName, 
@@ -263,7 +297,9 @@ void localVar::fixupUnknown(Module *module)
 	if (type_->getDataClass() == dataUnknownType) 
 	{
 		Type *otype = type_;
-		type_ = module->getModuleTypesPrivate()->findType(type_->getID());
+		typeCollection *tc = typeCollection::getModTypeCollection(module);
+		assert(tc);
+		type_ = tc->findType(type_->getID());
 
 		if (type_)
 		{
@@ -331,11 +367,13 @@ bool localVar::operator==(const localVar &l)
 	return true;
 }
 
-void localVar::serialize(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
+void localVar::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
 {
+	serialize_printf("%s[%d]:  welcome to localVar::serialize_impl\n", FILE__, __LINE__);
 	//  Use typeID as unique identifier
 	//  magic numbers stink, but we use both positive and negative numbers for type ids
-	unsigned int t_id = type_ ? type_->getID() : (unsigned int) 0xdeadbeef; 
+	unsigned int t_id = (unsigned int) 0xdeadbeef;
+	if (sb->isOutput()) t_id = type_ ? type_->getID() : (unsigned int) 0xdeadbeef; 
 
 	ifxml_start_element(sb, tag);
 	gtranslate(sb, name_, "Name");
@@ -345,6 +383,8 @@ void localVar::serialize(SerializerBase *sb, const char *tag) THROW_SPEC(Seriali
 	gtranslate(sb, locs_, "Locations", "Location");
 	ifxml_end_element(sb, tag);
 
+	serialize_printf("%s[%d]:  %sserialize localVar %s\n", FILE__, __LINE__, sb->isInput() ? "de" : "", name_.c_str());
+
 	if (sb->isInput())
 	{
 		if (t_id == 0xdeadbeef)
@@ -353,15 +393,22 @@ void localVar::serialize(SerializerBase *sb, const char *tag) THROW_SPEC(Seriali
 		}
 		else 
 		{
-			ScopedSerializerBase<Symtab> *ssb = dynamic_cast<ScopedSerializerBase<Symtab> *>(sb);
-
-			if (!ssb)
+			SerContextBase *scb = sb->getContext();
+			if (!scb)
 			{
 				fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
 				SER_ERR("FIXME");
 			}
 
-			Symtab *st = ssb->getScope();
+			SerContext<Symtab> *scs = dynamic_cast<SerContext<Symtab> *>(scb);
+
+			if (!scs)
+			{
+				fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+				SER_ERR("FIXME");
+			}
+
+			Symtab *st = scs->getScope();
 
 			if (!st)
 			{
@@ -374,10 +421,11 @@ void localVar::serialize(SerializerBase *sb, const char *tag) THROW_SPEC(Seriali
 			if (!type_)
 			{
 				//  This should probably throw, but let's play nice for now
-				fprintf(stderr, "%s[%d]:  FIXME: cannot find type with id %d\n", FILE__, __LINE__, t_id);
+				serialize_printf("%s[%d]:  FIXME: cannot find type with id %d\n", FILE__, __LINE__, t_id);
 			}
 		}
 
 	}
+	serialize_printf("%s[%d]:  %sserialized localVar %s, done\n", FILE__, __LINE__, sb->isInput() ? "de" : "", name_.c_str());
 }
 

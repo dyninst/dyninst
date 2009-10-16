@@ -45,12 +45,118 @@
 using namespace Dyninst;
 using namespace SymtabAPI;
 
+AnnotationClass<dyn_hash_map<Address, Symbol *> > IdToSymAnno("IdToSymMap");
+
+bool addSymID(SerializerBase *sb, Symbol *sym, Address id)
+{
+	assert(id);
+	assert(sym);
+	assert(sb);
+
+	SerContextBase *scb = sb->getContext();
+	if (!scb)
+	{
+		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+		return false;
+	}
+
+	SerContext<Symtab> *scs = dynamic_cast<SerContext<Symtab> *>(scb);
+
+	if (!scs)
+	{
+		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+		return false;
+	}
+
+	Symtab *st = scs->getScope();
+
+	if (!st)
+	{
+		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+		return false;
+	}
+
+	dyn_hash_map<Address, Symbol *> *smap = NULL;
+
+	if (!st->getAnnotation(smap, IdToSymAnno))
+	{
+		smap = new dyn_hash_map<Address, Symbol *>();
+
+		if (!st->addAnnotation(smap, IdToSymAnno))
+		{
+			fprintf(stderr, "%s[%d]:  ERROR:  failed to add IdToSymMap anno to Symtab\n", 
+					FILE__, __LINE__);
+			return false;
+		}
+	}
+
+	assert(smap);
+
+	if (serializer_debug_flag())
+	{
+		dyn_hash_map<Address, Symbol *>::iterator iter = smap->find(id);
+		if (iter != smap->end())
+		{
+			fprintf(stderr, "%s[%d]:  WARNING:  already have mapping for IdToSym\n", 
+					FILE__, __LINE__);
+		}
+	}
+
+	(*smap)[id] = sym;
+	return true;
+}
+
+Symbol * getSymForID(SerializerBase *sb, Address id)
+{
+	assert(id);
+	assert(sb);
+
+	SerContextBase *scb = sb->getContext();
+	if (!scb)
+	{
+		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+		return NULL;
+	}
+
+	SerContext<Symtab> *scs = dynamic_cast<SerContext<Symtab> *>(scb);
+
+	if (!scs)
+	{
+		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+		return NULL;
+	}
+
+	Symtab *st = scs->getScope();
+
+	if (!st)
+	{
+		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+		return NULL;
+	}
+
+	dyn_hash_map<Address, Symbol *> *smap = NULL;
+	if (!st->getAnnotation(smap, IdToSymAnno))
+	{
+		fprintf(stderr, "%s[%d]:  ERROR:  failed to find IdToSymMap anno on Symtab\n", 
+				FILE__, __LINE__);
+		return NULL;
+	}
+	assert(smap);
+	dyn_hash_map<Address, Symbol *>::iterator iter = smap->find(id);
+	if (iter == smap->end())
+	{
+		fprintf(stderr, "%s[%d]:  ERROR:  failed to find id %p in IdToSymMap\n", 
+				FILE__, __LINE__, (void *)id);
+		return NULL;
+	}
+	return iter->second;
+}
 
 Symbol *Symbol::magicEmitElfSymbol() {
-    // I have no idea why this is the way it is,
-    // but emitElf needs it...
-    return new Symbol("",
-                      ST_NOTYPE,
+	// I have no idea why this is the way it is,
+	// but emitElf needs it...
+	return new Symbol("",
+			ST_NOTYPE,
                       SL_LOCAL,
                       SV_DEFAULT,
                       0,
@@ -115,6 +221,7 @@ SYMTAB_EXPORT bool Symbol::setFunction(Function *func)
 
 SYMTAB_EXPORT Function * Symbol::getFunction() const
 {
+	if (aggregate_ == NULL) fprintf(stderr, "%s[%d]:  Aggregate not set!\n", FILE__, __LINE__);
     return dynamic_cast<Function *>(aggregate_);
 }
 
@@ -259,10 +366,11 @@ SYMTAB_EXPORT bool Symbol::getVersions(std::vector<std::string> *&vers)
    return false;
 }
 
-void Symbol::serialize(SerializerBase *s, const char *tag) THROW_SPEC (SerializerError)
+void Symbol::serialize_impl(SerializerBase *s, const char *tag) THROW_SPEC (SerializerError)
 {
 	//  Need to serialize regions before symbols
 	//  Use disk offset as unique identifier
+	Address symid = (Address) this;
 	Region *r = region_;
 	Offset r_off = r ? r->getDiskOffset() : (Offset) 0;
 	std::string modname = "";
@@ -288,17 +396,22 @@ void Symbol::serialize(SerializerBase *s, const char *tag) THROW_SPEC (Serialize
 		gtranslate(s, typedName_, "typedName");
 		gtranslate(s, r_off, "regionDiskOffset");
 		gtranslate(s, modname, "moduleName");
+		gtranslate(s, symid, "symbolID");
 		ifxml_end_element(s, "Symbol");
 
 		//  Now, if we are doing binary deserialization, lookup type and region by unique ids
 		if (s->isBin() && s->isInput())
+		{
 			restore_module_and_region(s, modname, r_off);
+			addSymID(s, this, symid);
+		}
 
 	} SER_CATCH("Symbol");
 }
 
 void Symbol::restore_module_and_region(SerializerBase *s, std::string &modname, Offset r_off) THROW_SPEC (SerializerError)
 {
+#if 0
 	ScopedSerializerBase<Symtab> *ssb = dynamic_cast<ScopedSerializerBase<Symtab> *>(s);
 
 	if (!ssb)
@@ -308,6 +421,24 @@ void Symbol::restore_module_and_region(SerializerBase *s, std::string &modname, 
 	}
 
 	Symtab *st = ssb->getScope();
+#endif
+	SerContextBase *scb = s->getContext();
+	if (!scb)
+	{
+		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+		SER_ERR("FIXME");
+	}
+
+	SerContext<Symtab> *scs = dynamic_cast<SerContext<Symtab> *>(scb);
+
+	if (!scs)
+	{
+		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+		SER_ERR("FIXME");
+	}
+
+	Symtab *st = scs->getScope();
+
 	if (!st)
 	{
 		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);

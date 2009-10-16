@@ -39,12 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#include "symtabAPI/h/LineInformation.h"
+#include "symtabAPI/src/LineInformation.h"
 #include <assert.h>
 #include <list>
 #include <cstring>
 #include "boost/functional/hash.hpp"
 #include "common/h/headers.h"
+#include "Module.h"
+#include "Serialization.h"
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
@@ -110,12 +112,20 @@ SourceLineInternTable &getSourceLineNames(LineInformation *li)
 }
 
 LineInformation::LineInformation() : 
-   Dyninst::SymtabAPI::RangeLookup< LineNoTuple, LineNoTuple::LineNoTupleLess >(),
+	AnnotationContainer<Statement>(),
+   Dyninst::SymtabAPI::RangeLookup< Statement, Statement::StatementLess >(),
    sourceLineNamesPtr(NULL) 
 {
    size_ = 0;
 } /* end LineInformation constructor */
 
+bool LineInformation::addItem_impl(Statement s)
+{
+   size_++;
+
+   bool ret = addValue( s, s.startAddr(), s.endAddr() );
+	return ret;
+}
 bool LineInformation::addLine( const char * lineSource, 
       unsigned int lineNo, 
       unsigned int lineOffset, 
@@ -146,10 +156,8 @@ bool LineInformation::addLine( const char * lineSource,
    }
 
    assert( lineSourceInternal != NULL );
-   size_++;
 
-   bool ret = addValue( LineNoTuple(lineSourceInternal, lineNo, lineOffset), 
-         lowInclusiveAddr, highExclusiveAddr );
+   bool ret = addItem_impl( Statement(lineSourceInternal, lineNo, lineOffset, lowInclusiveAddr, highExclusiveAddr)); 
 
    return ret;
 } /* end setLineToAddressRangeMapping() */
@@ -160,7 +168,7 @@ void LineInformation::addLineInfo(LineInformation *lineInfo)
 
    for (; iter != lineInfo->end(); iter++)
    {
-      addLine(iter->second.first, iter->second.second, iter->second.column, 
+      addLine(iter->second.file_.c_str(), iter->second.line_, iter->second.column_, 
             iter->first.first, iter->first.second);
    }
 }
@@ -175,7 +183,7 @@ bool LineInformation::addAddressRange( Offset lowInclusiveAddr,
 } /* end setAddressRangeToLineMapping() */
 
 bool LineInformation::getSourceLines( Offset addressInRange, 
-      vector< LineNoTuple > & lines ) 
+      vector< Statement *> & lines ) 
 {
    return getValues( addressInRange, lines );
 } /* end getLinesFromAddress() */
@@ -183,19 +191,19 @@ bool LineInformation::getSourceLines( Offset addressInRange,
 bool LineInformation::getAddressRanges( const char * lineSource, 
       unsigned int lineNo, vector< AddressRange > & ranges ) 
 {
-   bool ret = Dyninst::SymtabAPI::RangeLookup< LineNoTuple, LineNoTuple::LineNoTupleLess >::getAddressRanges( LineNoTuple( lineSource, lineNo ), ranges );
+   bool ret = Dyninst::SymtabAPI::RangeLookup< Statement, Statement::StatementLess >::getAddressRanges( Statement( lineSource, lineNo ), ranges );
 
    return ret;
 } /* end getAddressRangesFromLine() */
 
 LineInformation::const_iterator LineInformation::begin() const 
 {
-   return Dyninst::SymtabAPI::RangeLookup< LineNoTuple, LineNoTuple::LineNoTupleLess >::begin();
+   return Dyninst::SymtabAPI::RangeLookup< Statement, Statement::StatementLess >::begin();
 } /* end begin() */
 
 LineInformation::const_iterator LineInformation::end() const 
 {
-   return Dyninst::SymtabAPI::RangeLookup< LineNoTuple, LineNoTuple::LineNoTupleLess >::end();
+   return Dyninst::SymtabAPI::RangeLookup< Statement, Statement::StatementLess >::end();
 } /* end begin() */
 
 unsigned LineInformation::getSize() const
@@ -203,23 +211,34 @@ unsigned LineInformation::getSize() const
    return size_;
 }
 
-bool LineNoTuple::LineNoTupleLess::operator () ( LineNoTuple lhs, LineNoTuple rhs ) const 
+bool Statement::StatementLess::operator () ( const Statement &lhs, const Statement &rhs ) const
 {
-   //  dont bother with ordering by column information yet.
+	//  dont bother with ordering by column information yet.
 
-   int strcmp_res = strcmp( lhs.first, rhs.first);
+	int strcmp_res = strcmp( lhs.file_.c_str(), rhs.file_.c_str());
 
-   if (strcmp_res < 0 ) 
-      return true; 
+	if (strcmp_res < 0 )
+		return true;
 
-   if ( strcmp_res == 0 ) 
-   {
-      if ( lhs.second < rhs.second )  
-         return true; 
-   }
+	if ( strcmp_res == 0 )
+	{
+		if ( lhs.line_ < rhs.line_ )
+			return true;
+	}
 
-   return false; 
-} /* end LineNoTupleLess() */
+	return false;
+} /* end StatementLess() */
+
+bool Statement::operator==(const Statement &cmp) const 
+{
+	if (line_ != cmp.line_) return false;
+	if (column_ != cmp.column_) return false;
+
+	//  is compare-by-pointer OK here, or do we really have to really strcmp?
+	return (file_ == cmp.file_);
+}
+
+
 
 #if ! defined( os_windows )
 bool SourceLineCompare::operator () ( const char * lhs, const char * rhs ) const 
@@ -260,24 +279,26 @@ LineInformation::~LineInformation()
 
 } /* end LineInformation destructor */
 
-LineNoTuple::LineNoTuple(const char *file_, unsigned int line_, unsigned int col_) :
-   first(file_),
-   second(line_),
-   column(col_) 
-{
-}
 
-bool LineNoTuple::operator==(const LineNoTuple &cmp) const 
+void LineInformation::ac_serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
-   if (second != cmp.second) return false;
-   if (column != cmp.column) return false;
+   //fprintf(stderr, "%s[%d]:  LineInformation::serialize -- IMPLEMENT ME sb = %p\n", 
+   //      FILE__, __LINE__, sb);
 
-   //  is compare-by-pointer OK here, or do we really have to really strcmp?
-   return (!strcmp(first,cmp.first)); 
-}
+	std::pair<int, int> mypair;
+	std::pair<std::pair<int, int>, int> mypair2;
 
-void LineInformation::serialize(SerializerBase *sb, const char *) THROW_SPEC (SerializerError)
-{
-   fprintf(stderr, "%s[%d]:  LineInformation::serialize -- IMPLEMENT ME sb = %p\n", 
-         FILE__, __LINE__, sb);
+	ifxml_start_element(sb, tag);
+	//gtranslate(sb, mypair);
+	//gtranslate(sb, mypair2);
+	gtranslate(sb, valuesByAddressRangeMap, "valuesByAddressRangeMap", "valueByAddressRange");
+	gtranslate(sb, addressRangesByValueMap, "addressRangesByValueMap", "addressRangeByValue");
+	gtranslate(sb, size_, "size");
+	//multimap_translator<std::pair<Address, Address>, Statement> mt;
+	//mt(sb, valuesByAddressRangeMap, "valuesByAddressRangeMap", "valueByAddressRange");
+	//translate_multimap(sb, valuesByAddressRangeMap, "valuesByAddressRangeMap", "valueByAddressRange");
+
+	//multimap_translator<std::pair<Address, Address>, Statement>(sb, addressRangesByValueMap, "addressRangesByValueMap", "addressRangeByValue");
+	ifxml_end_element(sb, tag);
+
 }

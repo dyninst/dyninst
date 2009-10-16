@@ -159,7 +159,7 @@ const char *Region::regionType2Str(RegionType rt)
    return "bad_RegionTypeype";
 };
 
-void Region::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
+void Region::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
    ifxml_start_element(sb, tag);
    gtranslate(sb, regNum_, "RegionNumber");
@@ -176,6 +176,9 @@ void Region::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (Serializ
    ifxml_end_element(sb, tag);
    if (sb->isInput())
    {
+	   //  Might need to put in checks in region-using code for these
+	   //  conditions -- i.e. re-initialize elf, or whatever else for
+	   //  other platforms
 	   buffer_ = NULL;
 	   rawDataPtr_ = NULL;
    }

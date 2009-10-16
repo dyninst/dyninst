@@ -38,8 +38,8 @@
 #include "Symtab.h"
 #include "Collections.h"
 
-#include "symtabAPI/h/LineInformation.h"
-#include "symtabAPI/h/RangeLookup.h"
+#include "symtabAPI/src/LineInformation.h"
+#include "symtabAPI/src/RangeLookup.h"
 
 namespace Dyninst {
 namespace SymtabAPI {

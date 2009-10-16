@@ -115,16 +115,6 @@ class mapped_module {
 
       std::string processDirectories(const std::string &fn) const;
 
-      // Have we parsed line information yet?
-      //bool lineInformation() const { 
-       //  Module *m = pmod()->mod();
-       //  return m->hasLineInformation(); 
-     // }
-
-      // We're not generic-asizing line information yet, so this
-      // calls into the pdmodule class to do the work.
-      LineInformation *getLineInformation();
-
       // Given a line in the module, get the set of addresses that it maps
       // to. Calls the internal getAddrFromLine and then adds the base
       // address to the returned list of offsets.

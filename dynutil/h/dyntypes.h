@@ -41,6 +41,7 @@
 #define FILE__ strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__
 #endif
 
+
 #if defined (_MSC_VER)
   //**************** Windows ********************
   #include <hash_map>
@@ -69,20 +70,31 @@
       #include <string>
       #define dyn_hash_set __gnu_cxx::hash_set
       #define dyn_hash_map __gnu_cxx::hash_map    
+      namespace Dyninst {
+	     unsigned ptrHash(void * addr);
+      }
       using namespace __gnu_cxx;
       namespace __gnu_cxx {
- 
-        template<> struct hash<std::string> {
-           hash<char*> h;
-           unsigned operator()(const std::string &s) const 
-	   {
-	   const char *cstr = s.c_str();
-             return h(cstr);
-           };
-        };
-      }
 
-   #endif
+		  template<> struct hash<std::string> {
+			  hash<char*> h;
+			  unsigned operator()(const std::string &s) const 
+			  {
+				  const char *cstr = s.c_str();
+				  return h(cstr);
+			  };
+		  };
+
+		  template<> struct hash<void *> {
+			  unsigned operator()(void *v) const 
+			  {
+				  return Dyninst::ptrHash(v);
+			  };
+		  };
+
+	  }
+
+#endif
 #else
    #error Unknown compiler
 #endif

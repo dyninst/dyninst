@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#include "symtabAPI/h/RangeLookup.h"
+#include "symtabAPI/src/RangeLookup.h"
 
 #include <assert.h>
 #include <list>
@@ -313,7 +313,7 @@ bool Dyninst::SymtabAPI::RangeLookup< Value, ValueRange >::addAddressRange( Offs
 */	   
 template< class Value, class ValueRange > 
 bool Dyninst::SymtabAPI::RangeLookup< Value, ValueRange >::getValues( Offset addressInRange, 
-                                                  std::vector< Value > & values ) 
+                                                  std::vector< Value *> & values ) 
 {
   /* We can't find an address if we have no ranges. */
   if ( valuesByAddressRangeMap.size() == 0 ) 
@@ -338,7 +338,7 @@ bool Dyninst::SymtabAPI::RangeLookup< Value, ValueRange >::getValues( Offset add
      if (   (hHighEnd->first.first <= addressInRange)
            && (addressInRange < hHighEnd->first.second) ) 
      {
-        values.push_back( hHighEnd->second );
+        values.push_back( const_cast<Value *> (& hHighEnd->second) );
      }
 
      if (hHighEnd == valuesByAddressRangeMap.begin() ) 

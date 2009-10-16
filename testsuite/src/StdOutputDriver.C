@@ -91,10 +91,10 @@ void StdOutputDriver::logResult(test_results_t result, int stage) {
    }
    name_align_buffer[i] = '\0';
 #if defined(cap_32_64_test)
-   fprintf(out, "%s:%s compiler: %s\topt: %s\tabi: %s\tmode: %s\tresult: ",
+   fprintf(out, "%s:%s compiler: %s\topt: %s\tabi: %s\tmode: %-10s\tresult: ",
            last_test->name, name_align_buffer, last_group->compiler, last_group->optlevel, last_group->abi, run_mode_str);
 #else
-   fprintf(out, "%s:%s compiler: %s\topt: %s\tmode: %s\tresult: ",
+   fprintf(out, "%s:%s compiler: %s\topt: %s\tmode: %-10s\tresult: ",
            last_test->name, name_align_buffer, last_group->compiler, last_group->optlevel, run_mode_str);
 #endif
    free(name_align_buffer);

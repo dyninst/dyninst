@@ -47,7 +47,7 @@
 #include <vector>
 
 #include "symtabAPI/h/Symbol.h"
-#include "symtabAPI/h/LineInformation.h"
+#include "symtabAPI/src/LineInformation.h"
 #include "common/h/headers.h"
 #include "common/h/MappedFile.h"
 #include "common/h/lprintf.h"

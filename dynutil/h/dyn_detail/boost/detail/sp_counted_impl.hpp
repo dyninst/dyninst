@@ -69,16 +69,16 @@ public:
     explicit sp_counted_impl_p( X * px ): px_( px )
     {
 #if defined(DYN_DETAIL_BOOST_SP_ENABLE_DEBUG_HOOKS)
-        dyn_detail::boost::sp_scalar_constructor_hook( px, sizeof(X), this );
+        ::dyn_detail::boost::sp_scalar_constructor_hook( px, sizeof(X), this );
 #endif
     }
 
     virtual void dispose() // nothrow
     {
 #if defined(DYN_DETAIL_BOOST_SP_ENABLE_DEBUG_HOOKS)
-        dyn_detail::boost::sp_scalar_destructor_hook( px_, sizeof(X), this );
+        ::dyn_detail::boost::sp_scalar_destructor_hook( px_, sizeof(X), this );
 #endif
-        dyn_detail::boost::checked_delete( px_ );
+        ::dyn_detail::boost::checked_delete( px_ );
     }
 
     virtual void * get_deleter( detail::sp_typeinfo const & )

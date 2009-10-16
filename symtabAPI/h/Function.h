@@ -51,7 +51,7 @@ class Symbol;
 class Type;
 
 
-class Function : public Aggregate, public Serializable
+class Function : public Aggregate, public Serializable, public AnnotatableSparse
 {
    friend class Symtab;
 	friend std::ostream &::operator<<(std::ostream &os, const Dyninst::SymtabAPI::Function &);
@@ -84,7 +84,7 @@ class Function : public Aggregate, public Serializable
    SYMTAB_EXPORT bool getLocalVariables(std::vector<localVar *>&vars);
    SYMTAB_EXPORT bool getParams(std::vector<localVar *>&params);
    
-   SYMTAB_EXPORT void serialize(SerializerBase *sb, 
+   SYMTAB_EXPORT void serialize_impl(SerializerBase *sb, 
                                 const char *tag = "Function") THROW_SPEC (SerializerError);
 
    SYMTAB_EXPORT unsigned getSize();

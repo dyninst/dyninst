@@ -95,7 +95,7 @@ void remove_anno(TC &tcs, const char *anno_prefix_to_use = NULL) THROW_SPEC (Loc
 		an = prefix + an;
 	}
 
-   AnnotationClass<T> my_ac(an.c_str());
+   AnnotationClass<T> my_ac(an);
 
    if (!tcs.removeAnnotation(my_ac))
       EFAIL("failed to remove annotation here");
@@ -121,7 +121,7 @@ void verify_anno(TC &tcs, const T &test_val,
 		an = prefix + an;
 	}
 
-   AnnotationClass<T> my_ac(an.c_str());
+   AnnotationClass<T> my_ac(an);
 
    T *out = NULL;
 
@@ -152,7 +152,7 @@ void add_get_and_verify_anno(TC &tcs, const T &test_val,
 		an = prefix + an;
 	}
 
-   AnnotationClass<T> my_ac(an.c_str());
+   AnnotationClass<T> my_ac(an);
 
    if (!tcs.addAnnotation(&test_val, my_ac))
       EFAIL("failed to add annotation here");

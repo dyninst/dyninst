@@ -775,6 +775,11 @@ struct groupcmp
 {
    bool operator()(const RunGroup* lv, const RunGroup* rv)
    {
+	   //  deserialize tests must always come last (well, at least after create)
+	   //  so that the initial serialization can be performed before the deserialize
+	   //  test is executed.
+	   if ((lv->useAttach == DESERIALIZE) && (rv->useAttach != DESERIALIZE))
+		   return false;
       if (!lv->mod)
          return false;
       if (!rv->mod)

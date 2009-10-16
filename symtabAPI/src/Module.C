@@ -36,6 +36,8 @@
 #include "Collections.h"
 #include "Function.h"
 #include "Variable.h"
+#include "LineInformation.h"
+#include "symutil.h"
 
 #include "common/h/pathName.h"
 #include "common/h/serialize.h"
@@ -44,8 +46,8 @@ using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace std;
 
-static AnnotationClass<LineInformation> ModuleLineInfoAnno(std::string("ModuleLineInfoAnno"));
-static AnnotationClass<typeCollection> ModuleTypeInfoAnno(std::string("ModuleTypeInfoAnno"));
+AnnotationClass<LineInformation> ModuleLineInfoAnno(std::string("ModuleLineInfoAnno"));
+AnnotationClass<typeCollection> ModuleTypeInfoAnno(std::string("ModuleTypeInfoAnno"));
 static SymtabError serr;
 
 bool Module::findSymbolByType(std::vector<Symbol *> &found, 
@@ -149,35 +151,6 @@ bool Module::hasLineInformation()
    return false;
 }
 
-LineInformation *Module::getLineInformation()
-{
-   if (!exec_->isLineInfoValid_)
-      exec_->parseLineInformation();
-
-   if (!exec_->isLineInfoValid_) 
-   {
-      return NULL;
-   }
-
-   LineInformation *li =  NULL;
-   if (getAnnotation(li, ModuleLineInfoAnno)) 
-   {
-      if (!li) 
-      {
-         fprintf(stderr, "%s[%d]:  weird inconsistency with getAnnotation here\n", 
-               FILE__, __LINE__);
-         return NULL;
-      }
-
-      if (!li->getSize())
-      {
-         return NULL;
-      }
-   }
-
-   return li;
-}
-
 bool Module::getAddressRanges(std::vector<pair<Offset, Offset> >&ranges,
       std::string lineSource, unsigned int lineNo)
 {
@@ -190,12 +163,13 @@ bool Module::getAddressRanges(std::vector<pair<Offset, Offset> >&ranges,
    if ( ranges.size() != originalSize )
       return true;
 
-   fprintf(stderr, "%s[%d]:  failing to getAddressRanges fr %s[%d]\n", FILE__, __LINE__, lineSource.c_str(), lineNo);
+   serialize_printf("%s[%d]:  failing to getAddressRanges fr %s[%d]\n", 
+		   FILE__, __LINE__, lineSource.c_str(), lineNo);
 
    return false;
 }
 
-bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRange)
+bool Module::getSourceLines(std::vector<Statement *> &lines, Offset addressInRange)
 {
    unsigned int originalSize = lines.size();
 
@@ -209,30 +183,57 @@ bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRan
    return false;
 }
 
+bool Module::getStatements(std::vector<Statement *> &statements)
+{
+	unsigned initial_size = statements.size();
+	LineInformation *li = getLineInformation();
+
+	if (!li) 
+	{
+		return false;
+	}
+
+	statements.resize(initial_size + li->getSize());
+
+	int index = initial_size; 
+
+	for (LineInformation::const_iterator i = li->begin();
+			i != li->end();
+			++i)
+	{ 
+		//statements[index].start_addr = (*i).first.first;
+		//statements[index].end_addr = (*i).first.second;
+		statements[index] = const_cast<Statement *>(&(*i).second);
+		index++;
+	}
+
+	return (statements.size() > initial_size);
+}
+
 vector<Type *> *Module::getAllTypes()
 {
 	exec_->parseTypesNow();
 
-   typeCollection *tc = NULL;
-   if (!getAnnotation(tc, ModuleTypeInfoAnno))
-   {
-      return NULL;
-   }
-   if (!tc)
-   {
-      fprintf(stderr, "%s[%d]:  failed to getAnnotation here\n", FILE__, __LINE__);
-      return NULL;
-   }
+	typeCollection *tc = NULL;
+	if (!getAnnotation(tc, ModuleTypeInfoAnno))
+	{
+		return NULL;
+	}
+	if (!tc)
+	{
+		fprintf(stderr, "%s[%d]:  failed to getAnnotation here\n", FILE__, __LINE__);
+		return NULL;
+	}
 
-   return tc->getAllTypes();
+	return tc->getAllTypes();
 }
 
 vector<pair<string, Type *> > *Module::getAllGlobalVars()
 {
 	exec_->parseTypesNow();
 
-   typeCollection *tc = NULL;
-   if (!getAnnotation(tc, ModuleTypeInfoAnno))
+	typeCollection *tc = NULL;
+	if (!getAnnotation(tc, ModuleTypeInfoAnno))
    {
       return NULL;
    }
@@ -256,20 +257,6 @@ typeCollection *Module::getModuleTypesPrivate()
    typeCollection *tc = NULL;
    if (!getAnnotation(tc, ModuleTypeInfoAnno))
    {
-      //  add an empty type collection (to be filled in later)
-      tc = new typeCollection();
-      if (!addAnnotation(tc, ModuleTypeInfoAnno))
-      {
-         fprintf(stderr, "%s[%d]:  failed to addAnnotation here\n", FILE__, __LINE__);
-         return NULL;
-      }
-
-      return tc;
-   }
-
-   if (!tc)
-   {
-      fprintf(stderr, "%s[%d]:  failed to addAnnotation here\n", FILE__, __LINE__);
       return NULL;
    }
 
@@ -278,8 +265,10 @@ typeCollection *Module::getModuleTypesPrivate()
 
 bool Module::findType(Type *&type, std::string name)
 {
-   exec_->parseTypesNow();
-   type = getModuleTypesPrivate()->findType(name);
+	typeCollection *tc = getModuleTypes();
+	if (!tc) return false;
+
+   type = tc->findType(name);
 
    if (type == NULL)
       return false;
@@ -289,8 +278,10 @@ bool Module::findType(Type *&type, std::string name)
 
 bool Module::findVariableType(Type *&type, std::string name)
 {
-   exec_->parseTypesNow();
-   type = getModuleTypesPrivate()->findVariableType(name);
+	typeCollection *tc = getModuleTypes();
+	if (!tc) return false;
+
+	type = tc->findVariableType(name);
 
    if (type == NULL)
       return false;
@@ -329,26 +320,55 @@ bool Module::setLineInfo(LineInformation *lineInfo)
    return false;
 }
 
+LineInformation *Module::getLineInformation()
+{
+	if (!exec_->isLineInfoValid_)
+		exec_->parseLineInformation();
+
+	if (!exec_->isLineInfoValid_) 
+	{
+		return NULL;
+	}
+
+	LineInformation *li =  NULL;
+	if (getAnnotation(li, ModuleLineInfoAnno))
+	{
+		if (!li) 
+		{
+			fprintf(stderr, "%s[%d]:  weird inconsistency with getAnnotation here\n",
+					FILE__, __LINE__);
+			return NULL;
+		}
+
+		if (!li->getSize())
+		{
+			return NULL;
+		}
+	}
+
+	return li;
+}
+
 bool Module::findLocalVariable(std::vector<localVar *>&vars, std::string name)
 {
-   std::vector<Function *>mod_funcs;
+	std::vector<Function *>mod_funcs;
 
-   if (!exec_->getAllFunctions(mod_funcs))
-   {
-      return false;
-   }
+	if (!exec_->getAllFunctions(mod_funcs))
+	{
+		return false;
+	}
 
-   unsigned origSize = vars.size();
+	unsigned origSize = vars.size();
 
-   for (unsigned int i = 0; i < mod_funcs.size(); i++)
-   {
-      mod_funcs[i]->findLocalVariable(vars, name);
-   }
+	for (unsigned int i = 0; i < mod_funcs.size(); i++)
+	{
+		mod_funcs[i]->findLocalVariable(vars, name);
+	}
 
-   if (vars.size() > origSize)
-      return true;
+	if (vars.size() > origSize)
+		return true;
 
-   return false;
+	return false;
 }
 
 Module::Module(supportedLanguages lang, Offset adr,
@@ -498,17 +518,18 @@ bool Module::setDefaultNamespacePrefix(string str)
     return exec_->setDefaultNamespacePrefix(str);
 }
 
-void Module::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
+void Module::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
    ifxml_start_element(sb, tag);
    gtranslate(sb, fileName_, "fileName");
    gtranslate(sb, fullName_, "fullName");
    gtranslate(sb, addr_, "Address");
-   gtranslate(sb, (int &) language_, "Language");
+   gtranslate(sb, language_, supportedLanguages2Str, "Language");
    ifxml_end_element(sb, tag);
 
    if (sb->isInput())
    {
+#if 0
 	   ScopedSerializerBase<Symtab> *ssb = dynamic_cast<ScopedSerializerBase<Symtab> *>(sb);
 	   if (!ssb)
 	   {
@@ -517,6 +538,25 @@ void Module::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (Serializ
 	   }
 
 	   Symtab *st = ssb->getScope();
+#endif
+
+	   SerContextBase *scb = sb->getContext();
+	   if (!scb)
+	   {
+		   fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+		   SER_ERR("FIXME");
+	   }
+
+	   SerContext<Symtab> *scs = dynamic_cast<SerContext<Symtab> *>(scb);
+
+	   if (!scs)
+	   {
+		   fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
+		   SER_ERR("FIXME");
+	   }
+
+	   Symtab *st = scs->getScope();
+
 	   if (!st)
 	   {
 		   fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
@@ -546,3 +586,13 @@ bool Module::findVariablesByName(std::vector<Variable *> &ret, const std::string
   return succ;
 }
   
+SYMTAB_EXPORT void Statement::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
+{
+	ifxml_start_element(sb, tag);
+	gtranslate(sb, file_, "file");
+	gtranslate(sb, line_, "line");
+	gtranslate(sb, column_, "column");
+	gtranslate(sb, start_addr_, "startAddress");
+	gtranslate(sb, end_addr_, "endAddress");
+	ifxml_end_element(sb, tag);
+}

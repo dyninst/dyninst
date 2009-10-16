@@ -146,6 +146,7 @@ mutatee('symtab_group_test', [
 	'test_module_mutatee.c',
 	'test_relocations_mutatee.c',
 	'test_symtab_ser_funcs_mutatee.c',
+	'test_ser_anno_mutatee.c',
 	'test_type_info_mutatee.c',
    'test_anno_basic_types_mutatee.c'
    ]).
@@ -383,6 +384,20 @@ mutator('snip_change_shlib_var', ['snip_change_shlib_var.C']).
 test_runmode('snip_change_shlib_var', 'staticdynamic').
 test_start_state('snip_change_shlib_var', 'stopped').
 tests_module('snip_change_shlib_var', 'dyninst').
+
+% test_snip_remove
+test('test_snip_remove', 'test_snip_remove', 'test_snip_remove').
+test_description('test_snip_remove', 'Tests multiple snippet removal').
+test_runs_everywhere('test_snip_remove').
+groupable_test('test_snip_remove').
+mutator('test_snip_remove', ['test_snip_remove.C']).
+%mutatee('test_snip_remove', ['test_snip_remove_mutatee.c']).
+%compiler_for_mutatee('test_snip_remove', Compiler) :-
+%    comp_lang(Compiler, 'c').
+test_runmode('test_snip_remove', 'dynamic').
+test_start_state('test_snip_remove', 'stopped').
+tests_module('test_snip_remove', 'dyninst').
+
 
 test('test1_23', 'test1_23', 'dyninst_group_test').
 test_description('test1_23', 'Local Variables').
@@ -2117,6 +2132,7 @@ mutator('test_lookup_var', ['test_lookup_var.C']).
 test_runmode('test_lookup_var', 'createProcess').
 test_start_state('test_lookup_var', 'stopped').
 tests_module('test_lookup_var', 'symtab').
+test_serializable('test_lookup_var').
 
 test('test_line_info', 'test_line_info', 'symtab_group_test').
 test_description('test_line_info', 'SymtabAPI Line Information').
@@ -2126,6 +2142,7 @@ mutator('test_line_info', ['test_line_info.C']).
 test_runmode('test_line_info', 'createProcess').
 test_start_state('test_line_info', 'stopped').
 tests_module('test_line_info', 'symtab').
+test_serializable('test_line_info').
 
 test('test_module', 'test_module', 'symtab_group_test').
 test_description('test_module', 'SymtabAPI Module detection & management').
@@ -2135,10 +2152,11 @@ mutator('test_module', ['test_module.C']).
 test_runmode('test_module', 'createProcess').
 test_start_state('test_module', 'stopped').
 tests_module('test_module', 'symtab').
+test_serializable('test_module').
 
 test('test_relocations', 'test_relocations', 'symtab_group_test').
 test_description('test_relocations', 'SymtabAPI relocation table parsing').
-test_platform('test_symtab_ser_funcs', Platform) :-
+test_platform('test_relocations', Platform) :-
     platform(_, OS, _, Platform),
     member(OS, ['linux']).
 groupable_test('test_relocations').
@@ -2147,6 +2165,7 @@ test_runmode('test_relocations', 'createProcess').
 test_start_state('test_relocations', 'stopped').
 tests_module('test_relocations', 'symtab').
 mutatee_requires_libs('symtab_group_test', ['testA']).
+test_serializable('test_relocations').
 
 test('test_type_info', 'test_type_info', 'symtab_group_test').
 test_description('test_type_info', 'SymtabAPI Type Information').
@@ -2156,17 +2175,25 @@ mutator('test_type_info', ['test_type_info.C']).
 test_runmode('test_type_info', 'createProcess').
 test_start_state('test_type_info', 'stopped').
 tests_module('test_type_info', 'symtab').
+test_serializable('test_type_info').
 
 test('test_symtab_ser_funcs', 'test_symtab_ser_funcs', 'symtab_group_test').
 test_description('test_symtab_ser_funcs', 'Base SymtabAPI seialization function sanity checks').
-test_platform('test_symtab_ser_funcs', Platform) :-
-    platform(_, OS, _, Platform),
-    member(OS, ['linux']).
+test_runs_everywhere('test_symtab_ser_funcs').
 groupable_test('test_symtab_ser_funcs').
 mutator('test_symtab_ser_funcs', ['test_symtab_ser_funcs.C']).
 test_runmode('test_symtab_ser_funcs', 'createProcess').
 test_start_state('test_symtab_ser_funcs', 'stopped').
 tests_module('test_symtab_ser_funcs', 'symtab').
+
+test('test_ser_anno', 'test_ser_anno', 'symtab_group_test').
+test_description('test_ser_anno', 'Base SymtabAPI seialization function sanity checks').
+test_runs_everywhere('test_ser_anno').
+groupable_test('test_ser_anno').
+mutator('test_ser_anno', ['test_ser_anno.C']).
+test_runmode('test_ser_anno', 'createProcess').
+test_start_state('test_ser_anno', 'stopped').
+tests_module('test_ser_anno', 'symtab').
 
 % should this really be groupable?
 test('test_anno_basic_types', 'test_anno_basic_types', 'symtab_group_test').
@@ -2183,6 +2210,7 @@ test_description('test_exception', 'SymtabAPI C++ Exception detection and sanity
 groupable_test('test_exception').
 mutator('test_exception', ['test_exception.C']).
 test_runmode('test_exception', 'createProcess').
+test_serializable('test_exception').
 test_start_state('test_exception', 'stopped').
 tests_module('test_exception', 'symtab').
 test_platform('test_exception', 'i386-unknown-linux2.4').

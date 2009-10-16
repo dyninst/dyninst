@@ -101,7 +101,7 @@ const char *outlogname = "-";
 const char *errlogname = "-";
 
 LocErr::LocErr(const char *__file__, const int __line__, const std::string msg) :
-	runtime_error(msg),
+	msg__(msg),
 	file__(std::string(__file__)),
 	line__(__line__)
 {}
@@ -114,16 +114,26 @@ std::string LocErr::file() const
 	return file__;
 }
 
+std::string LocErr::msg() const
+{
+	return msg__;
+}
+const char * LocErr::what() const
+{
+	return msg__.c_str();
+}
 int LocErr::line() const
 {
 	return line__;
 }
 
-void LocErr::print(FILE *stream) const
+void LocErr::print(FILE * /*stream*/) const
 {
-	fprintf(stream, "Error thrown from %s[%d]:\n\t\"%s\"\n",
+	logerror( "Error thrown from %s[%d]:\n\t\"%s\"\n",
 			file__.c_str(), line__, what());
 }
+
+std::vector<std::string> Tempfile::all_open_files;
 
 Tempfile::Tempfile()
 {
@@ -190,6 +200,7 @@ Tempfile::Tempfile()
 		abort();
 	}
 #endif
+	all_open_files.push_back(std::string(fname));
 }
 
 Tempfile::~Tempfile()
@@ -202,6 +213,7 @@ Tempfile::~Tempfile()
 	}
 	delete [] fname;
 #else
+	logerror( "%s[%d]:  unlinking %s\n", FILE__, __LINE__, fname);
 	if (0 != unlink (fname))
 	{
 		fprintf(stderr, "%s[%d]:  unlink failed: %s\n",
@@ -216,7 +228,29 @@ const char *Tempfile::getName()
 	return fname;
 }
 
-
+void Tempfile::deleteAll()
+{
+	for (unsigned int i = (all_open_files.size() - 1); i > 0; --i)
+	{
+		const char *fn = all_open_files[i].c_str();
+		assert(fn);
+#if defined (os_windows_test)
+		if (0 == DeleteFile(fn))
+		{
+			fprintf(stderr, "%s[%d]:  DeleteFile failed: %s\n",
+					__FILE__, __LINE__, strerror(errno));
+		}
+#else
+		fprintf(stderr, "%s[%d]:  unlinking %s\n", FILE__, __LINE__, fn);
+		if (0 != unlink (fn))
+		{
+			fprintf(stderr, "%s[%d]:  unlink failed: %s\n",
+					__FILE__, __LINE__, strerror(errno));
+		}
+#endif
+	}
+	all_open_files.clear();
+}
 
 TestOutputDriver * output = NULL;
 
@@ -853,5 +887,17 @@ extern "C" char *cplus_demangle(char *, int);
 void use_liberty()
 {
    cplus_demangle("a", 0);
+}
+#endif
+
+#if defined (os_solaris_test)
+//  solaris does not provide setenv, so we provide an ersatz replacement.
+// yes it's leaky, but we don't plan on using it too much, so who cares?
+int setenv(const char *envname, const char *envval, int)
+{
+	std::string *alloc_env = new std::string(std::string(envname) 
+			+ std::string("=") + std::string(envval));
+	return putenv((char *)alloc_env->c_str());
+
 }
 #endif

@@ -300,26 +300,6 @@ AddressSpace *mapped_module::proc() const
    return obj()->proc(); 
 }
 
-LineInformation *mapped_module::getLineInformation() 
-{
-   LineInformation *li = NULL;
-
-   pdmodule *pm = pmod();
-   if (!pm) {
-      fprintf(stderr, "%s[%d]:FIXME\n", FILE__, __LINE__);
-      return NULL;
-   }
-   Module *m = pm->mod();
-   if (!m) {
-      fprintf(stderr, "%s[%d]:FIXME\n", FILE__, __LINE__);
-      return NULL;
-   }
-
-   li = m->getLineInformation();
-   return li;
-}
-
-
 int_variable* mapped_module::createVariable(std::string name, Address addr, int size)
 {
   Address base = obj()->dataBase();

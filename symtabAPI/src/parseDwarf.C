@@ -45,6 +45,7 @@
 #include "Variable.h"
 #include "Type-mem.h"
 #include <stdarg.h>
+#include "dynutil/h/Annotatable.h"
 
 #ifndef DW_FRAME_CFA_COL3
 //  This is a newer feature of libdwarf (which has been causing some other 
@@ -262,7 +263,7 @@ bool decipherBound( Dwarf_Debug & dbg, Dwarf_Attribute boundAttribute, std::stri
 /* We don't have a sane way of dealing with DW_TAG_enumeration bounds, so
    just put the name of the enumeration, or {enum} if none, in the string. */
 void parseSubRangeDIE( Dwarf_Debug & dbg, Dwarf_Die subrangeDIE, 
-		       std::string & loBound, std::string & hiBound, Module * module ) 
+		       std::string & loBound, std::string & hiBound, Module * module, typeCollection *tc ) 
 {
   loBound = "{unknown or default}";
   hiBound = "{unknown or default}";
@@ -363,12 +364,12 @@ void parseSubRangeDIE( Dwarf_Debug & dbg, Dwarf_Die subrangeDIE,
   std::string srName = subrangeName;
   typeSubrange * rangeType = new typeSubrange( (int) subrangeOffset, 0, low_conv, hi_conv, srName );
   assert( rangeType != NULL );
-  rangeType = module->getModuleTypesPrivate()->addOrUpdateType( rangeType );
+  rangeType = tc->addOrUpdateType( rangeType );
   if ( dwarvenName == DW_DLV_OK ) { dwarf_dealloc( dbg, subrangeName, DW_DLA_STRING ); }	
 } /* end parseSubRangeDIE() */
 
 typeArray *parseMultiDimensionalArray( Dwarf_Debug & dbg, Dwarf_Die range, 
-				       Type * elementType, Module * module ) 
+				       Type * elementType, Module * module, typeCollection *tc) 
 {
   char buf[32];
   /* Get the (negative) typeID for this range/subarray. */
@@ -379,7 +380,7 @@ typeArray *parseMultiDimensionalArray( Dwarf_Debug & dbg, Dwarf_Die range,
   /* Determine the range. */
   std::string loBound;
   std::string hiBound;
-  parseSubRangeDIE( dbg, range, loBound, hiBound, module );
+  parseSubRangeDIE( dbg, range, loBound, hiBound, module, tc);
 
   /* Does the recursion continue? */
   Dwarf_Die nextSibling;
@@ -396,19 +397,19 @@ typeArray *parseMultiDimensionalArray( Dwarf_Debug & dbg, Dwarf_Die range,
     std::string aName = convertCharToString(buf);
     typeArray* innermostType = new typeArray( elementType, atoi( loBound.c_str() ), atoi( hiBound.c_str() ), aName );
     assert( innermostType != NULL );
-    Type * typ = module->getModuleTypesPrivate()->addOrUpdateType( innermostType );
+    Type * typ = tc->addOrUpdateType( innermostType );
     innermostType = dynamic_cast<typeArray *>(typ);
     return innermostType;
   } /* end base-case of recursion. */
 
   /* If it does, build this array type out of the array type returned from the next recusion. */
-  typeArray * innerType = parseMultiDimensionalArray( dbg, nextSibling, elementType, module );
+  typeArray * innerType = parseMultiDimensionalArray( dbg, nextSibling, elementType, module, tc);
   assert( innerType != NULL );
   // same here - type id ignored    jmo
   std::string aName = convertCharToString(buf);
   typeArray * outerType = new typeArray( innerType, atoi(loBound.c_str()), atoi(hiBound.c_str()), aName);
   assert( outerType != NULL );
-  Type *typ = module->getModuleTypesPrivate()->addOrUpdateType( outerType );
+  Type *typ = tc->addOrUpdateType( outerType );
   outerType = dynamic_cast<typeArray *>(typ);
 
   dwarf_dealloc( dbg, nextSibling, DW_DLA_DIE );
@@ -1075,6 +1076,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
                      )
 {
   /* optimization */ tail_recursion:
+	typeCollection *tc = typeCollection::getModTypeCollection(module);
   bool walk_error = false;
   Dwarf_Half dieTag;
   int status = dwarf_tag( dieEntry, & dieTag, NULL );
@@ -1104,6 +1106,11 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
   fieldListType * newEnclosure = currentEnclosure;
 
   Object *elfobj = objFile->getObject();
+  if (!elfobj)
+  {
+	  fprintf(stderr, "%s[%d]:  requested object does not exist!\n", FILE__, __LINE__);
+	  return false;
+  }
 
   bool parsedChild = false;
 
@@ -1370,7 +1377,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 				"%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 		Type * returnType = NULL;
-		Type *voidType = module->getModuleTypesPrivate()->findType("void");
+		Type *voidType = tc->findType("void");
 
 		if ( status == DW_DLV_NO_ENTRY ) 
 		{
@@ -1395,7 +1402,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 			//parsing_printf("%s/%d: ret type %d\n",
 			//			   __FILE__, __LINE__, typeOffset);
 
-			returnType = module->getModuleTypesPrivate()->findOrCreateType( (int) typeOffset );
+			returnType = tc->findOrCreateType( (int) typeOffset );
 			newFunction->setReturnType( returnType );
 
 			dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
@@ -1516,11 +1523,11 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 		if (!commonBlockVar) {
 			//bperr("unable to find variable %s\n", commonBlockName);
 		} else {
-			commonBlockType = dynamic_cast<typeCommon *>(module->getModuleTypesPrivate()->findVariableType(cBName));
+			commonBlockType = dynamic_cast<typeCommon *>(tc->findVariableType(cBName));
 			if (commonBlockType == NULL) {
 				commonBlockType = new typeCommon( (typeId_t) dieOffset, cBName );
 				assert( commonBlockType != NULL );
-				module->getModuleTypesPrivate()->addGlobalVariable( cBName, commonBlockType );
+				tc->addGlobalVariable( cBName, commonBlockType );
 			}	
 		}
 		dwarf_dealloc( dbg, commonBlockName, DW_DLA_STRING );
@@ -1649,7 +1656,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
          
       /* The typeOffset forms a module-unique type identifier,
          so the Type look-ups by it rather than name. */
-      Type * variableType = module->getModuleTypesPrivate()->findOrCreateType( (int) typeOffset );
+      Type * variableType = tc->findOrCreateType( (int) typeOffset );
       dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
       
       Dwarf_Unsigned variableLineNo;
@@ -1703,7 +1710,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
             var->setType(variableType);
          }
             
-         module->getModuleTypesPrivate()->addGlobalVariable( vName, variableType);
+         tc->addGlobalVariable( vName, variableType);
       } /* end if this variable is a global */
       else if (currentFunction) {
          /* We now have the variable name, type, offset, and line number.
@@ -1856,7 +1863,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
       /* The typeOffset forms a module-unique type identifier,
 	 so the Type look-ups by it rather than name. */
       dwarf_printf( "%s[%d]: found formal parameter %s with type %ld\n", __FILE__, __LINE__, parameterName, typeOffset );
-      Type * parameterType = module->getModuleTypesPrivate()->findOrCreateType( (int) typeOffset );
+      Type * parameterType = tc->findOrCreateType( (int) typeOffset );
          
       dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
          
@@ -1958,8 +1965,8 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 	assert( baseType != NULL );
 
 	/* Add the basic type to our collection. */
-	dwarf_printf( "Adding base type '%s' (%lu) of size %lu to type collection %p\n", typeName, (unsigned long)dieOffset, (unsigned long)byteSize, module->getModuleTypesPrivate() );
-	baseType = module->getModuleTypesPrivate()->addOrUpdateType( baseType );
+	dwarf_printf( "Adding base type '%s' (%lu) of size %lu to type collection %p\n", typeName, (unsigned long)dieOffset, (unsigned long)byteSize, tc );
+	baseType = tc->addOrUpdateType( baseType );
 
 	dwarf_dealloc( dbg, typeName, DW_DLA_STRING );
       }
@@ -1982,7 +1989,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 	   cause us to issue a lot of true but spurious-looking warnings about incomplete types.
 	   So instead of ignoring this entry, point it to the void type.  (This is also more
 	   in line with our handling of absent DW_AT_type tags everywhere else.) */
-	referencedType = module->getModuleTypesPrivate()->findType( "void" );
+	referencedType = tc->findType( "void" );
       }
       else {
 	Dwarf_Off typeOffset;
@@ -1996,12 +2003,12 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 	    fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
 	    break;
 	  }
-	if (!module->getModuleTypesPrivate()) 
+	if (!tc) 
 	  {
 	    fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
 	    break;
 	  }
-	referencedType = module->getModuleTypesPrivate()->findOrCreateType( (int) typeOffset );
+	referencedType = tc->findOrCreateType( (int) typeOffset );
       }
       string tName;
       if(!definedName) {
@@ -2022,7 +2029,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
       }
 
       typeTypedef * typedefType = new typeTypedef( (typeId_t) dieOffset, referencedType, tName);
-      typedefType = module->getModuleTypesPrivate()->addOrUpdateType( typedefType );
+      typedefType = tc->addOrUpdateType( typedefType );
 
       /* Sanity check: typedefs should not have children. */
       Dwarf_Die childDwarf;
@@ -2065,13 +2072,13 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 
       //parsing_printf("%s/%d: %s/%d\n",
       //			   __FILE__, __LINE__, arrayName, typeOffset);
-      Type * elementType = module->getModuleTypesPrivate()->findOrCreateType( (int) typeOffset );
+      Type * elementType = tc->findOrCreateType( (int) typeOffset );
 
       /* Find the range(s) of the elements. */
       Dwarf_Die firstRange;
       status = dwarf_child( dieEntry, & firstRange, NULL );
       DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-      typeArray * baseArrayType = parseMultiDimensionalArray( dbg, firstRange, elementType, module );
+      typeArray * baseArrayType = parseMultiDimensionalArray( dbg, firstRange, elementType, module, tc);
       assert( baseArrayType != NULL );
 
       /* The baseArrayType is an anonymous type with its own typeID.  Extract
@@ -2081,7 +2088,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 					    baseArrayType->getHigh(), aName);
       assert( arrayType != NULL );
       //setArraySize( arrayType, baseArrayType->getLow(), baseArrayType->getHigh() );
-      arrayType = module->getModuleTypesPrivate()->addOrUpdateType( arrayType );
+      arrayType = tc->addOrUpdateType( arrayType );
 
       /* Don't parse the children again. */
       parsedChild = true;
@@ -2095,7 +2102,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 		dwarf_printf(" DW_TAG_subrange \n");
       std::string loBound;
       std::string hiBound;
-      parseSubRangeDIE( dbg, dieEntry, loBound, hiBound, module );
+      parseSubRangeDIE( dbg, dieEntry, loBound, hiBound, module, tc);
     } break;
 
   case DW_TAG_enumeration_type: 
@@ -2108,7 +2115,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
       std::string tName = convertCharToString(typeName);
       typeEnum* enumerationType = new typeEnum( (typeId_t) dieOffset, tName);
       assert( enumerationType != NULL );
-      enumerationType = dynamic_cast<typeEnum *>(module->getModuleTypesPrivate()->addOrUpdateType( enumerationType ));
+      enumerationType = dynamic_cast<typeEnum *>(tc->addOrUpdateType( enumerationType ));
       newEnum = enumerationType;
 
       dwarf_dealloc( dbg, typeName, DW_DLA_STRING );
@@ -2130,7 +2137,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 
       //parsing_printf("%s/%d: inherited %d\n",
       //			   __FILE__, __LINE__, scOffset);
-      Type * superClass = module->getModuleTypesPrivate()->findOrCreateType( (int) scOffset );
+      Type * superClass = tc->findOrCreateType( (int) scOffset );
 
       /* Acquire the visibility, if any.  DWARF calls it accessibility
 	 to distinguish it from symbol table visibility. */
@@ -2188,13 +2195,13 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
       case DW_TAG_structure_type: 
       case DW_TAG_class_type: {
 	typeStruct *ts = new typeStruct( (typeId_t) dieOffset, tName);
-	containingType = dynamic_cast<fieldListType *>(module->getModuleTypesPrivate()->addOrUpdateType(ts));
+	containingType = dynamic_cast<fieldListType *>(tc->addOrUpdateType(ts));
 	break;
       }
 	  case DW_TAG_union_type: 
 	  {
 		  typeUnion *tu = new typeUnion( (typeId_t) dieOffset, tName);
-		  containingType = dynamic_cast<fieldListType *>(module->getModuleTypesPrivate()->addOrUpdateType(tu));
+		  containingType = dynamic_cast<fieldListType *>(tc->addOrUpdateType(tu));
 		  dwarf_printf("%s[%d]:  new union %s\n", FILE__, __LINE__, tName.c_str());
 		  break;
 	  }
@@ -2271,7 +2278,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 		//parsing_printf("%s/%d: %s/%d\n",
 		//			   __FILE__, __LINE__, memberName, typeOffset);
 
-		Type *memberType = module->getModuleTypesPrivate()->findOrCreateType((int) typeOffset );
+		Type *memberType = tc->findOrCreateType((int) typeOffset );
 
 		Dwarf_Attribute locationAttr;
 		status = dwarf_attr( dieEntry, DW_AT_data_member_location, & locationAttr, NULL );
@@ -2398,13 +2405,13 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
     Type * typeModified = NULL;
     if( status == DW_DLV_NO_ENTRY ) {
       /* Presumably, a pointer or reference to void. */
-      typeModified = module->getModuleTypesPrivate()->findType( "void" );
+      typeModified = tc->findType( "void" );
     } else {			
       status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
       DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
       //parsing_printf("%s/%d: %s/%d\n",
       //			   __FILE__, __LINE__, typeName, typeOffset);
-      typeModified = module->getModuleTypesPrivate()->findOrCreateType( (int) typeOffset );
+      typeModified = tc->findOrCreateType( (int) typeOffset );
       typeSize = typeModified->getSize();
 
       dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
@@ -2431,7 +2438,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
     typeTypedef * modifierType = new typeTypedef((typeId_t) dieOffset, typeModified, tName);
     assert( modifierType != NULL );
     // //bperr ( "Adding modifier type '%s' (%lu) modifying (%lu)\n", typeName, (unsigned long)dieOffset, (unsigned long)typeOffset );
-    modifierType = module->getModuleTypesPrivate()->addOrUpdateType( modifierType );
+    modifierType = tc->addOrUpdateType( modifierType );
     dwarf_dealloc( dbg, typeName, DW_DLA_STRING );
   } break;
 
@@ -2456,13 +2463,13 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
     Type * typePointedTo = NULL;
     if( status == DW_DLV_NO_ENTRY ) {
       /* Presumably, a pointer or reference to void. */
-      typePointedTo = module->getModuleTypesPrivate()->findType("void");
+      typePointedTo = tc->findType("void");
     } else {			
       status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
       DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
       //parsing_printf("%s/%d: %s/%d\n",
       //			   __FILE__, __LINE__, typeName, typeOffset);
-      typePointedTo = module->getModuleTypesPrivate()->findOrCreateType( (int) typeOffset );
+      typePointedTo = tc->findOrCreateType( (int) typeOffset );
 
       dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
     } /* end if typePointedTo is not void */
@@ -2472,16 +2479,16 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
     switch ( dieTag ) {
     case DW_TAG_subroutine_type:
       indirectType = new typeFunction((typeId_t) dieOffset, typePointedTo, tName);
-      indirectType = module->getModuleTypesPrivate()->addOrUpdateType((typeFunction *) indirectType );
+      indirectType = tc->addOrUpdateType((typeFunction *) indirectType );
       break;
     case DW_TAG_ptr_to_member_type:
     case DW_TAG_pointer_type:
       indirectType = new typePointer((typeId_t) dieOffset, typePointedTo, tName);
-      indirectType = module->getModuleTypesPrivate()->addOrUpdateType((typePointer *) indirectType );
+      indirectType = tc->addOrUpdateType((typePointer *) indirectType );
       break;
     case DW_TAG_reference_type:
       indirectType = new typeRef((typeId_t) dieOffset, typePointedTo, tName);
-      indirectType = module->getModuleTypesPrivate()->addOrUpdateType((typeRef *) indirectType );
+      indirectType = tc->addOrUpdateType((typeRef *) indirectType );
       break;
     }
 
@@ -2704,7 +2711,7 @@ void Object::parseDwarfTypes( Symtab *objFile)
 		return;
 
 	/* Fix type list. */
-	typeCollection *moduleTypes = fixUnknownMod->getModuleTypesPrivate();
+	typeCollection *moduleTypes = typeCollection::getModTypeCollection(fixUnknownMod);
 	assert(moduleTypes);
 	dyn_hash_map< int, Type * >::iterator typeIter =  moduleTypes->typesByID.begin();
 	for (;typeIter!=moduleTypes->typesByID.end();typeIter++)

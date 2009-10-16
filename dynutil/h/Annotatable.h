@@ -42,6 +42,9 @@
 #ifndef __ANNOTATABLE_H__
 #define __ANNOTATABLE_H__
 
+#if defined (MSC_VER)
+#define DYN_DETAIL_BOOST_NO_INTRINSIC_WCHAR_T 1
+#endif
 #include <vector>
 #include <map>
 #include <typeinfo>
@@ -52,20 +55,27 @@
 #include <stdlib.h>
 #include "dyntypes.h"
 #include "util.h"
+#include "dyn_detail/boost/type_traits/is_base_of.hpp"
+#include "dyn_detail/boost/type_traits/is_pointer.hpp"
+#include "dyn_detail/boost/type_traits/remove_pointer.hpp"
+#define serialize_printf serializer_printf
 
 namespace Dyninst
 {
 
-typedef short AnnotationClassID;
-typedef bool (*anno_cmp_func_t)(void *, void*);
 
-// since can't have a single static in a temlated class that spans all template instances.
-//COMMON_EXPORT extern int AnnotationClass_nextId;
+COMMON_EXPORT int serializer_printf(const char *format, ...);
+
+typedef unsigned short AnnotationClassID;
+typedef bool (*anno_cmp_func_t)(void *, void*);
 
 extern int newAnnotationClass();
 extern bool void_ptr_cmp_func(void *, void *);
 
 class SerializerBase;
+class Serializable;
+typedef void (*ser_func_t) (void *, SerializerBase *, const char *);
+COMMON_EXPORT void ser_func_wrapper(void *it, SerializerBase *sb,  const char *tag);
 
 class AnnotationClassBase
 {
@@ -77,51 +87,124 @@ class AnnotationClassBase
       std::string name;
 
    protected:
+
+	  ser_func_t serialize_func;
+
       COMMON_EXPORT AnnotationClassBase(std::string n, 
-            anno_cmp_func_t cmp_func_ = NULL);
+            anno_cmp_func_t cmp_func_ = NULL, ser_func_t sf_ = NULL);
+
+	  COMMON_EXPORT virtual ~AnnotationClassBase() {}
 
    public:
 
-      static AnnotationClassBase *findAnnotationClass(unsigned int id);
+      COMMON_EXPORT static AnnotationClassBase *findAnnotationClass(unsigned int id);
+      COMMON_EXPORT static void dumpAnnotationClasses();
 
-      anno_cmp_func_t getCmpFunc()
-      {
-         return cmp_func;
-      }
-
-      AnnotationClassID getID() { return id; }
-      std::string &getName() {return name;}
+      COMMON_EXPORT AnnotationClassID getID() { return id; }
+      COMMON_EXPORT std::string &getName() {return name;}
+      COMMON_EXPORT anno_cmp_func_t getCmpFunc() {return cmp_func;}
+	  COMMON_EXPORT ser_func_t getSerializeFunc() {return serialize_func;}
+	  COMMON_EXPORT virtual const char *getTypeName() = 0;
+	  COMMON_EXPORT virtual void *allocate() = 0;
 };
 
 template <class T> 
 class AnnotationClass : public AnnotationClassBase {
    public:
-      typedef bool (*ser_func_t) (SerializerBase &, T &);
-      // typedef T annotation_realtype;
 
-      AnnotationClass(std::string n, 
-            anno_cmp_func_t cmp_func_ = NULL, 
-            bool (*serializer)(SerializerBase &, T&) = NULL) :
-         AnnotationClassBase(n, cmp_func_),
-         serialize_func(serializer)
-      {}
+	  AnnotationClass(std::string n, 
+			  anno_cmp_func_t cmp_func_ = NULL, 
+			  ser_func_t s = NULL) :
+		  AnnotationClassBase(n, cmp_func_, s)
+	  {
+		if (NULL == s)
+		{
+			//  if the type is Serializable, use its serialization function
+			//  otherwise, leave it NULL so we don't accidentally dereference
+			//  a random pointer as if it were automatcally descended from
+			//  Serializable
 
+			if (dyn_detail::boost::is_base_of<Serializable, T>::value)
+			{
+				serialize_func = ser_func_wrapper;
+			}
+			else if (dyn_detail::boost::is_pointer<T>::value)
+			{
+				if (dyn_detail::boost::is_base_of<Serializable, 
+						typename dyn_detail::boost::remove_pointer<T>::type>::value)
+				{
+					serialize_func = ser_func_wrapper;
+				}
+			}
+		}
+	  }
 
-      ser_func_t getSerializeFunc()
-      {
-         return serialize_func;
-      }
+	  const char *getTypeName() { return typeid(T).name();}
+	  void *allocate() 
+	  {
+		  //  If T is (Serializable *) need to allocate a new object, not a new pointer
+		  //  
 
+		  if (dyn_detail::boost::is_pointer<T>::value)
+		  {
+				if (dyn_detail::boost::is_base_of<Serializable, 
+						typename dyn_detail::boost::remove_pointer<T>::type>::value)
+				{
+					return (void *) new (typename dyn_detail::boost::remove_pointer<T>::type)();
+				}
+		  }
 
-   private:
-      ser_func_t serialize_func;
+		  return (void *) new T();
+	  }
+
+	  void *size() {return sizeof(T);}
+	  bool isSparselyAnnotatable(); 
+	  bool isDenselyAnnotatable(); 
 };
 
-typedef void *anno_list_t;
+
+typedef enum {
+	    sparse,
+		dense,
+} sparse_or_dense_anno_t;
+
+typedef struct {
+	AnnotationClassBase *acb;
+	void *data;
+	void *parent_id;
+	sparse_or_dense_anno_t sod;
+} ser_rec_t;
+
+typedef enum {
+	sp_add_anno = 2,
+	sp_rem_anno = 3,
+	sp_add_cont_item = 4,
+	sp_rem_cont_item = 5
+} ser_post_op_t;
+
+COMMON_EXPORT const char *serPostOp2Str(ser_post_op_t);
+
+
+class AnnotatableDense;
+class AnnotatableSparse;
+COMMON_EXPORT bool is_input(SerializerBase *sb);
+COMMON_EXPORT bool is_output(SerializerBase *sb);
+COMMON_EXPORT unsigned short get_serializer_index(SerializerBase *sb);
+COMMON_EXPORT void ser_operation(SerializerBase *, ser_post_op_t &, const char *);
+COMMON_EXPORT bool add_annotations(SerializerBase *, AnnotatableDense *, std::vector<ser_rec_t> &);
+COMMON_EXPORT bool add_annotations(SerializerBase *, AnnotatableSparse *, std::vector<ser_rec_t> &);
+COMMON_EXPORT bool serialize_annotation_list(void *, std::vector<ser_rec_t> &, SerializerBase *sb, const char *);
+COMMON_EXPORT SerializerBase *getExistingOutputSB(unsigned short);
+COMMON_EXPORT bool serialize_post_annotation(void *, void *, SerializerBase *, AnnotationClassBase *acb, sparse_or_dense_anno_t, const char *);
 
 class AnnotatableDense
 {
-   /**
+	friend COMMON_EXPORT bool add_annotations(SerializerBase *, AnnotatableDense *, std::vector<ser_rec_t> &);
+	friend class SerializerBase;
+	friend class Serializable;
+	typedef void *anno_list_t;
+
+	/**
     * Inheriting from this class adds a pointer to each object.  Multiple
     * types of annotations are stored under this pointer in a 
     * annotation_type -> anno_list_t map.
@@ -133,49 +216,111 @@ class AnnotatableDense
 
       struct aInfo {
          anno_map_t *data;
-         int max;
+         AnnotationClassID max;
+		 unsigned short serializer_index;
       };
 
       aInfo *annotations;
 
+	  //  private version of addAnnotation exists for deserialize functions
+	  //  to reconstruct annotations without explicit type info -- don't use in 
+	  //  other contexts
+
+      COMMON_EXPORT bool addAnnotation(const void *a, AnnotationClassID id) 
+	  {
+         unsigned size = id + 1;
+         if (!annotations)
+         {
+            annotations = (aInfo *) malloc(sizeof(aInfo));
+			annotations->data = NULL;
+			annotations->serializer_index = (unsigned short) -1;
+		 }
+
+		 //  can have case where we have allocated annotations struct but not the
+		 //  actual annotations data array in case where we have performed serialization
+
+		 if (annotations->data == NULL) 
+		 {
+			annotations->data = (anno_list_t *) calloc(sizeof(anno_list_t *), (size));
+			annotations->max = size;
+			for (unsigned i=0; i<size; i++)
+				annotations->data[i] = NULL;
+		 } 
+		 else if (id >= annotations->max) 
+		 {
+			 int old_max = annotations->max;
+			 size = annotations->max * 2;
+			 annotations->max = size;
+			 annotations->data = (anno_list_t *) realloc(annotations->data, sizeof(anno_list_t *) * size);
+			 for (unsigned i=old_max; i<size; i++)
+				 annotations->data[i] = NULL;
+		 }
+
+		 annotations->data[id] = const_cast<void *>(a);
+
+         return true;
+      }
    public:
-      AnnotatableDense() : annotations(NULL)
+      COMMON_EXPORT AnnotatableDense() : annotations(NULL)
       {
       }
+
+	  COMMON_EXPORT ~AnnotatableDense()
+	  {
+		  if (annotations)
+		  {
+			  if (annotations->data)
+				  free(annotations->data);
+			  free(annotations);
+		  }
+	  }
 
       template<class T> 
       bool addAnnotation(const T *a, AnnotationClass<T> &a_id) 
       {
-         unsigned size;
+
          int id = a_id.getID();
+		 bool ret =  addAnnotation((void *)a, id);
+		 if (!ret)
+		 {
+			 fprintf(stderr, "%s[%d]:  failed to add annotation\n", FILE__, __LINE__);
+			 return ret;
+		 }
 
-         if (!annotations) 
-         {
-	    size = id+1;
-            annotations = (aInfo *) malloc(sizeof(aInfo));
 
-            annotations->data = (anno_list_t *) calloc(sizeof(anno_list_t *), (size));
-            annotations->max = size;
-	    for (unsigned i=0; i<size; i++)
-	      annotations->data[i] = NULL;
-         } 
-         else if (id >= annotations->max) 
-         {
-            int old_max = annotations->max;
-            size = annotations->max * 2;
-            annotations->max = size;
-            annotations->data = (anno_list_t *) realloc(annotations->data, sizeof(anno_list_t *) * size);
-	    for (unsigned i=old_max; i<size; i++)
-	      annotations->data[i] = NULL;
-         }
+		 //  If serialization is not enabled, there will be no serializer specified,
+		 //  so none of the below code will be executed.
 
-         annotations->data[id] = (void *) a;
+		 serialize_printf("%s[%d]:  %p addAnnotation:  serializer_index = %d\n", 
+				 FILE__, __LINE__, this, annotations->serializer_index);
 
-         return true;
-      }
+		 if (annotations && ( (unsigned short) -1 != annotations->serializer_index))
+		 {
+			 SerializerBase *sb = getExistingOutputSB(annotations->serializer_index);
+			 if (!sb)
+			 {
+				 //  definitely should have a serializer since we have an index
+				 fprintf(stderr, "%s[%d]:  FIXME:  no existing serializer!\n", FILE__, __LINE__);
+				 return false;
+			 }
+			 ser_func_t sf = a_id.getSerializeFunc();
+			 if (sf)
+			 {
+				 //  FIXME:  for xml support, ser_operation should have a corresponding 
+				 //  "ser_operation_end()" routine to close out the xml field.
+				 ser_post_op_t op = sp_add_anno;
+				 ser_operation(sb, op, "AnnotationAdd");
+				 void * aa = (void *) const_cast<T *>(a);
+				 serialize_post_annotation(this, aa, sb, &a_id, dense, "PostAnnotation");
+			 }
+		 }
+
+		 return true;
+	  }
+
 
       template<class T> 
-      bool getAnnotation(T *&a, AnnotationClass<T> &a_id) const
+      inline bool getAnnotation(T *&a, AnnotationClass<T> &a_id) const
       {
          if (!annotations)
             return false;
@@ -194,7 +339,7 @@ class AnnotatableDense
       }
 
       template<class T> 
-      bool removeAnnotation(AnnotationClass<T> &a_id)
+      inline bool removeAnnotation(AnnotationClass<T> &a_id)
       {
          if (!annotations) return false;
 
@@ -212,10 +357,85 @@ class AnnotatableDense
          return true;
       }
 
+	  COMMON_EXPORT void serializeAnnotations(SerializerBase *sb, const char *tag)
+	  {
+		  serialize_printf("%s[%d]:  welcome to serializeAnotations:\n", FILE__, __LINE__);
+		  //  iterator over possible annotation types
+		  //  if we have any, lookup the serialization function and call it
+
+		  std::vector<ser_rec_t> my_sers;
+		  if (is_output(sb))
+		  {
+			  //  need to figure out how many annotations will be serialized apriori
+			  //  so we can output the size of the list as a header.
+			  //  To avoid iterating over the full list twice, make a local copy
+			  //  of all serializations/deserializations that need to be performed
+			  //  as we go, and do them in bulk afterwards.
+
+			  if (annotations)
+			  {
+				  for (AnnotationClassID id = 0; id < annotations->max; ++id)
+				  {
+					  void *anno = annotations->data[id];
+					  if (anno)
+					  {
+						  AnnotationClassBase *acb = AnnotationClassBase::findAnnotationClass(id);
+
+						  if (!acb)
+						  {
+							  fprintf(stderr, "%s[%d]:  FIXME:  no annotation class for id %d\n", 
+									  FILE__, __LINE__, id);
+							  continue;
+						  }
+
+						  ser_func_t sf = acb->getSerializeFunc();
+
+						  if (NULL != sf)
+						  {
+							  ser_rec_t sr;
+							  sr.data = anno;
+							  sr.acb = acb;
+							  sr.parent_id = (void *) this;
+							  sr.sod = dense;
+							  my_sers.push_back(sr);
+						  }
+					  }
+				  }
+
+				  annotations->serializer_index = get_serializer_index(sb);
+				  serialize_printf("%s[%d]:  %p set serializer index to %d\n", 
+						  FILE__, __LINE__, this, annotations->serializer_index);
+			  }
+			  else
+			  {
+				  //  need to alloc struct to store serializer index
+				  annotations = (aInfo *) malloc(sizeof(aInfo));
+				  annotations->data = NULL;
+				  annotations->max = 0;
+				  annotations->serializer_index = get_serializer_index(sb);
+				  serialize_printf("%s[%d]:  %p set serializer index to %d\n", 
+						  FILE__, __LINE__, this, annotations->serializer_index);
+			  }
+		  }
+
+		  if (!serialize_annotation_list(this, my_sers, sb, tag))
+		  {
+			  fprintf(stderr, "%s[%d]:  FIXME:  failed to serialize annotation list\n", 
+					  FILE__, __LINE__);
+		  }
+		  if (!add_annotations(sb, this, my_sers))
+		  {
+			  fprintf(stderr, "%s[%d]:  failed to update annotation list after deserialize\n", 
+					  FILE__, __LINE__);
+		  }
+	  }
 };
 
 class AnnotatableSparse
 {
+	friend COMMON_EXPORT bool add_annotations(SerializerBase *, AnnotatableSparse *, std::vector<ser_rec_t> &);
+	friend class SerializerBase;
+	friend class Serializable;
    public:
       struct void_ptr_hasher
       {
@@ -233,15 +453,40 @@ class AnnotatableSparse
 
       typedef std::vector<annos_by_type_t *> annos_t;
 
+	  COMMON_EXPORT ~AnnotatableSparse()
+	  {
+		  //  We need to remove annotations from the static map when objects
+		  //  are destroyed:  (1)  memory may be reclaimed and reused at the same
+		  //  place, and (2) regardless of 1, the map can possibly explode to 
+		  //  unmanageable sizes, with a lot of unused junk in it if a lot of i
+		  //  annotatable objects are created and destroyed.
+
+		  //  Alas this is kinda expensive right now, but the data structure is
+		  //  set up to minimize search time, not deletion time.  It could
+		  //  be changed if this becomes a significant time drain.
+
+		  unsigned int n = 0;
+		  for (unsigned int i = 0; i < annos.size(); ++i)
+		  {
+			  annos_by_type_t *abt = annos[i];
+			  if (!abt) continue;
+
+			  annos_by_type_t::iterator iter = abt->find(this);
+			  if (iter != abt->end())
+			  {
+				  n++;
+				  abt->erase(iter);
+			  }
+		  }
+	  }
+
    private:
 
       COMMON_EXPORT static annos_t annos;
+	  COMMON_EXPORT static dyn_hash_map<void *, unsigned short> ser_ndx_map;
 
-      template <class T>
-      annos_by_type_t *getAnnosOfType(AnnotationClass<T> &a_id, bool do_create =false) const
-      {
-         int aid = a_id.getID();
-
+      COMMON_EXPORT annos_by_type_t *getAnnosOfType(AnnotationClassID aid, bool do_create =false) const
+	  {
          long nelems_to_create = aid - annos.size() + 1;
 
          if (nelems_to_create > 0)
@@ -264,7 +509,16 @@ class AnnotatableSparse
          return abt;
       }
 
-      void *getAnnosForObject(annos_by_type_t *abt,
+      template <class T>
+      inline annos_by_type_t *getAnnosOfType(AnnotationClass<T> &a_id, bool do_create =false) const
+      {
+         AnnotationClassID aid = a_id.getID();
+
+		 return getAnnosOfType(aid, do_create);
+	  }
+
+
+      COMMON_EXPORT void *getAnnosForObject(annos_by_type_t *abt,
             void *obj, bool do_create = false) const 
       {
          assert(abt);
@@ -291,10 +545,47 @@ class AnnotatableSparse
          return target;
       }
 
+	  //  private version of addAnnotation used by deserialize function to restore
+	  //  annotation set without explicitly specifying types
+	  COMMON_EXPORT inline bool addAnnotation(const void *a, AnnotationClassID aid)
+	  {
+		  void *obj = this;
+		  annos_by_type_t *abt = getAnnosOfType(aid, true /*do create if needed*/);
+		  assert(abt);
+
+		  annos_by_type_t::iterator iter = abt->find(obj);
+		  if (iter == abt->end())
+		  {
+			  (*abt)[obj] = const_cast<void *>(a);
+		  }
+		  else
+		  {
+			  //  do silent replacement -- this case can arise if an annotatable object
+			  //  is destroyed and then reallocated as a new object at the same address.
+			  //  Given the sparse map data structure, it would be rather expensive to 
+			  //  go through the map in the dtor to eliminate references to the 
+			  //  destroyed object.
+
+			  //  Added annotation removal in dtor...  so this case should _not_ arise,
+			  //  do the replacement, but make some noise:
+
+			  if (a != iter->second)
+			  {
+				  serialize_printf("%s[%d]:  WEIRD:  already have annotation of this type: %p, replacing with %p\n", FILE__, __LINE__, iter->second, a);
+				  iter->second = const_cast<void *>(a);
+			  }
+
+			  return true;
+		  }
+
+		  return true;
+	  }
+
    public:
-      bool operator==(AnnotatableSparse &cmp)
-      {
-         unsigned this_ntypes = annos.size();
+
+	  COMMON_EXPORT bool operator==(AnnotatableSparse &cmp)
+	  {
+		  unsigned this_ntypes = annos.size();
          unsigned cmp_ntypes = cmp.annos.size();
          unsigned ntypes = (cmp_ntypes > this_ntypes) ? cmp_ntypes : this_ntypes;
 
@@ -349,7 +640,7 @@ class AnnotatableSparse
 
             if (!acb)
             {
-               fprintf(stderr, "%s[%d]:  cannot find annotation class for id %d\n", 
+               serialize_printf("%s[%d]:  cannot find annotation class for id %d\n", 
                      FILE__, __LINE__, i);
                return false;
             }
@@ -379,7 +670,7 @@ class AnnotatableSparse
       }
 
       template<class T>
-      bool addAnnotation(const T *a, AnnotationClass<T> &a_id)
+      inline bool addAnnotation(const T *a, AnnotationClass<T> &a_id)
          {
             void *obj = this;
             annos_by_type_t *abt = getAnnosOfType(a_id, true /*do create if needed*/);
@@ -392,26 +683,54 @@ class AnnotatableSparse
             }
             else
             {
-               //  if the annotation already exists and is identical (by pointer, of course)
-               //  what is the best solution?  Replacement makes no sense, since it is the
-               //  same.  The question is -- do we fail and report this situation as a logic
-               //  error?  This is probably the most conservative and hence safest approach,
-               //  but, since the pointer is identical, let's play nice and just report 
-               //  success?
+				//  do silent replacement -- this case can arise if an annotatable object
+				//  is destroyed and then reallocated as a new object at the same address.
+				//  Given the sparse map data structure, it would be rather expensive to 
+				//  go through the map in the dtor to eliminate references to the 
+				//  destroyed object.
 
-               return true;
+				//  Added annotation removal in dtor...  so this case should _not_ arise,
+				//  do the replacement, but make some noise:
 
-               //  maybe want to do (silent) replace here?
-               //fprintf(stderr, "%s[%d]:  failing to add already existing annotation here\n", FILE__, __LINE__);
-               //return false;
+				if (iter->second != a) 
+				{
+					//fprintf(stderr, "%s[%d]:  WEIRD:  already have annotation of type %s: %p, replacing with %p\n", FILE__, __LINE__, a_id.getName().c_str(), iter->second, a);
+					iter->second = (void *)const_cast<T *>(a);
+				}
 
+				return true;
             }
 
+			dyn_hash_map<void *, unsigned short>::iterator seriter;
+			seriter = ser_ndx_map.find(this);
+			if (seriter != ser_ndx_map.end())
+			{
+				if (seriter->second != (unsigned short) -1)
+				{
+					SerializerBase *sb = getExistingOutputSB(seriter->second);
+					if (!sb)
+					{
+						fprintf(stderr, "%s[%d]:  FIXME:  no existing output SB\n", 
+								FILE__, __LINE__);
+						return false;
+					}
+
+					ser_func_t sf = a_id.getSerializeFunc();
+					if (sf)
+					{
+						ser_post_op_t op = sp_add_anno;
+						ser_operation(sb, op, "AnnotationAdd");
+						void *aa = (void *) const_cast<T *>(a);
+						serialize_post_annotation(this, aa, sb, &a_id, sparse, "PostAnnotation");
+					}
+				}
+			}
+				
             return true;
          }
 
       template<class T>
-      bool getAnnotation(T *&a, AnnotationClass<T> &a_id) const 
+      inline bool getAnnotation(T *&a, AnnotationClass<T> &a_id) const 
       {
          a = NULL;
 
@@ -419,8 +738,6 @@ class AnnotatableSparse
 
          if (!abt)
          {
-            //fprintf(stderr, "%s[%d]:  no annotations of type %s\n",
-            //      FILE__, __LINE__, a_id.getName().c_str());
             return false;
          }
 
@@ -430,8 +747,6 @@ class AnnotatableSparse
 
          if (!annos_for_object)
          {
-            //fprintf(stderr, "%s[%d]:  no annotations of type %s\n", 
-            //      FILE__, __LINE__, a_id->getName().c_str());
             return false;
          }
 
@@ -440,7 +755,7 @@ class AnnotatableSparse
       }
 
 	  template<class T>
-	  bool removeAnnotation(AnnotationClass<T> &a_id)
+	  inline bool removeAnnotation(AnnotationClass<T> &a_id)
 	  {
 		  void *obj = this;
 		  annos_by_type_t *abt = getAnnosOfType(a_id, false /*do create if needed*/);
@@ -455,67 +770,77 @@ class AnnotatableSparse
 		  else
 		  {
 			  abt->erase(iter);
-			  //  if the annotation already exists and is identical (by pointer, of course)
-			  //  what is the best solution?  Replacement makes no sense, since it is the
-			  //  same.  The question is -- do we fail and report this situation as a logic
-			  //  error?  This is probably the most conservative and hence safest approach,
-			  //  but, since the pointer is identical, let's play nice and just report 
-			  //  success?
-
 			  return true;
-
-			  //  maybe want to do (silent) replace here?
-			  //fprintf(stderr, "%s[%d]:  failing to add already existing annotation here\n", FILE__, __LINE__);
-			  //return false;
-
 		  }
 	      return false;
 	  }
 
-#if 0
-	  int nelems_to_create = aid - annos.size() + 1;
-
-	  if (nelems_to_create > 0)
+	  COMMON_EXPORT void serializeAnnotations(SerializerBase *sb, const char *tag)
 	  {
-		  if (!do_create)
-		  {
-			  return NULL;
-		  }
+		  std::vector<ser_rec_t> my_sers;
+            void *obj = this;
+			if (is_output(sb))
+			{
+				for (AnnotationClassID id = 0; id < annos.size(); ++id)
+				{
+					annos_by_type_t *abt = getAnnosOfType(id, false /*don't do create */);
+					if (NULL == abt) continue;
 
-            while (nelems_to_create)
-            {
-               annos_by_type_t *newl = new annos_by_type_t();
-               annos.push_back(newl);
-               nelems_to_create--;
-            }
-         }
+					annos_by_type_t::iterator iter = abt->find(obj);
 
-         annos_by_type_t *abt = annos[aid];
-         annos_by_type_t *abt = getAnnosOfType(a_id, false /*don't create if none*/);
+					if (iter == abt->end()) 
+					{
+						//	fprintf(stderr, "%s[%d]:  nothing for this obj\n", FILE__, __LINE__);
+						continue;
+					}
 
-         if (!abt)
-         {
-            return false;
-         }
+					//  we have an annotation of this type for this object, find the serialization
+					//  function and call it (if it exists)
 
-         annos_by_type_t::iterator iter = abt->find(obj);
-         if (iter == abt->end())
-         {
-            fprintf(stderr, "%s[%d]:  failing to remove already nonexistant annotation here\n", FILE__, __LINE__);
-            return false;
-         }
-         else
-         {
-            abt->erase(iter);
-         }
+					AnnotationClassBase *acb =  AnnotationClassBase::findAnnotationClass(id);
+					if (!acb)
+					{
+						serialize_printf("%s[%d]:  FIXME, cannot find annotation class base for id %d, mode = %s\n", FILE__, __LINE__, id, is_input(sb) ? "deserialize" : "serialize");
+						continue;
+					}
 
-#endif
+					ser_func_t sf = acb->getSerializeFunc();
 
+					if (NULL == sf)
+					{
+						serialize_printf("%s[%d]:  no serialization function for this anno: type: %s, name: %s\n", FILE__, __LINE__, acb->getTypeName(), acb->getName().c_str());
+						continue;
+					}
+
+					ser_rec_t sr;
+					sr.acb = acb;
+					sr.data = iter->second;
+					sr.parent_id = (void *) this;
+					sr.sod = sparse;
+					my_sers.push_back(sr);
+				}
+
+				if (my_sers.size())
+					serialize_printf("%s[%d]:  found %lu req'd serializations for obj %p\n", 
+							FILE__, __LINE__, my_sers.size(), this);
+
+				ser_ndx_map[this] = get_serializer_index(sb);
+			}
+
+			if (!serialize_annotation_list(this, my_sers, sb, tag))
+			{
+				fprintf(stderr, "%s[%d]:  FIXME:  failed to serialize annotation list\n", 
+						FILE__, __LINE__);
+			}
+
+			if (!add_annotations(sb, this, my_sers))
+			{
+				fprintf(stderr, "%s[%d]:  failed to update annotation list after deserialize\n", 
+						FILE__, __LINE__);
+			}
+	  }
 };
 
-//COMMON_EXPORT AnnotatableSparse::annos_t annos;
-
-//AnnotatableSparse::annos_t AnnotatableSparse::annos;
 } // namespace
 
 #endif

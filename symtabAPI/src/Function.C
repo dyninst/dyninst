@@ -239,20 +239,15 @@ Function::~Function()
 {
 }
 
-void Function::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
+void Function::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
-	//fprintf(stderr, "%s[%d]:  welcome to Function::serialize\n", FILE__, __LINE__);
+	if (!sb) SER_ERR("bad paramater sb");
 
-	if (!sb)
-	{
-		SER_ERR("bad paramater sb");
-	}
+
 
 	//  Use typeID as unique identifier
 	unsigned int t_id = retType_ ? retType_->getID() : (unsigned int) 0xdeadbeef;
 
-	try
-	{
 		ifxml_start_element(sb, tag);
 		gtranslate(sb, t_id, "typeID");
 		gtranslate(sb, framePtrRegNum_, "framePointerRegister");
@@ -267,10 +262,18 @@ void Function::serialize(SerializerBase *sb, const char *tag) THROW_SPEC (Serial
 				retType_ = NULL;
 			else
 				restore_type_by_id(sb, retType_, t_id);
+#if 0
+			for (unsigned long i = 0; i < symbols_.size(); ++i)
+			{
+				symbols_[i]->setFunction(this);
+				assert(symbols_[i]->isFunction());
+			}
+#endif
 		}
-	}
-	SER_CATCH(tag);
 
+	serialize_printf("%s[%d]:  Function(%p--%s)::%s\n", FILE__, __LINE__, this,
+			getAllPrettyNames().size() ? getAllPrettyNames()[0].c_str() : "UNNAMED_FUNCTION",
+			sb->isInput() ? "deserialize" : "serialize");
 }
 
 bool Function::removeSymbol(Symbol *sym) 

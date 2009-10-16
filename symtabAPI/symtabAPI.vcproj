@@ -169,15 +169,6 @@ copy $(TargetDir)libsymtabAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\Symbol.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath=".\src\Aggregate.C">
 				<FileConfiguration
 					Name="Debug|Win32">
@@ -272,6 +263,15 @@ copy $(TargetDir)libsymtabAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 			</File>
 			<File
 				RelativePath=".\src\Region.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\Symbol.C">
 				<FileConfiguration
 					Name="Debug|Win32">
 					<Tool
