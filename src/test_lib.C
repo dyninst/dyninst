@@ -213,7 +213,7 @@ Tempfile::~Tempfile()
 	}
 	delete [] fname;
 #else
-	fprintf(stderr, "%s[%d]:  unlinking %s\n", FILE__, __LINE__, fname);
+	logerror( "%s[%d]:  unlinking %s\n", FILE__, __LINE__, fname);
 	if (0 != unlink (fname))
 	{
 		fprintf(stderr, "%s[%d]:  unlink failed: %s\n",
@@ -887,5 +887,17 @@ extern "C" char *cplus_demangle(char *, int);
 void use_liberty()
 {
    cplus_demangle("a", 0);
+}
+#endif
+
+#if defined (os_solaris_test)
+//  solaris does not provide setenv, so we provide an ersatz replacement.
+// yes it's leaky, but we don't plan on using it too much, so who cares?
+int setenv(const char *envname, const char *envval, int)
+{
+	std::string *alloc_env = new std::string(std::string(envname) 
+			+ std::string("=") + std::string(envval));
+	return putenv((char *)alloc_env->c_str());
+
 }
 #endif

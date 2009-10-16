@@ -92,7 +92,7 @@ class AnnotateeBase : public Serializable
 
 		void print()
 		{
-			fprintf(stderr, "%s[%d]:  AnnotateeBase[%d, %lu, %p, %f, %s]\n", 
+			logerror( "%s[%d]:  AnnotateeBase[%d, %lu, %p, %f, %s]\n", 
 					FILE__, __LINE__, somestuff1, somestuff2, (void *) somestuff3, 
 					somestuff4, somestuff5.c_str());
 		}
@@ -288,7 +288,7 @@ class MyAnnotationContainer : public AnnotationContainer<T>
 
 	MyAnnotationContainer() : AnnotationContainer<T>() 
 	{
-		fprintf(stderr, "%s[%d]:  MyAnnotationContainer ctor: %p\n", FILE__, __LINE__, this);
+		//fprintf(stderr, "%s[%d]:  MyAnnotationContainer ctor: %p\n", FILE__, __LINE__, this);
 	}
 
 	bool operator==(MyAnnotationContainer &src)
@@ -328,11 +328,11 @@ class MyAnnotationContainer : public AnnotationContainer<T>
 
 	void ac_serialize_impl(SerializerBase *sb, const char *a) THROW_SPEC(SerializerError)
 	{
-		fprintf(stderr, "%s[%d]:  welcome to MyAnnotationContainer::ac_serialize_impl %s: vec.size() = %d, this = %p\n", FILE__, __LINE__, sb_is_input(sb) ? "deserialize" : "serialize", vec.size(), this);
+		//fprintf(stderr, "%s[%d]:  welcome to MyAnnotationContainer::ac_serialize_impl %s: vec.size() = %d, this = %p\n", FILE__, __LINE__, sb_is_input(sb) ? "deserialize" : "serialize", vec.size(), this);
 
 		gtranslate(sb, vec, "MyAnnotationContainer");
 
-		fprintf(stderr, "%s[%d]:  leaving MyAnnotationContainer::ac_serialize_impl, vec.size() = %d\n", FILE__, __LINE__, vec.size());
+		//fprintf(stderr, "%s[%d]:  leaving MyAnnotationContainer::ac_serialize_impl, vec.size() = %d\n", FILE__, __LINE__, vec.size());
 	}
 };
 
@@ -573,10 +573,8 @@ void serialize_test2(A &annotatee, C &control) THROW_SPEC(LocErr)
 	if (NULL == my_ac.getSerializeFunc())
 		EFAIL("annotation class has no serialize func");
 
-	fprintf(stderr, "\n\n%s[%d]:adding post annotation:\n\n", FILE__, __LINE__);
 	if (!annotatee.addAnnotation(&control, my_ac))
 		EFAIL("failed to add annotation");
-	fprintf(stderr, "\n\n%s[%d]:added post annotation: parent = %p, anno = %p\n\n", FILE__, __LINE__, &annotatee, &control);
 
 	//  It is necessary to flush the file buffers to make sure the cache file is
 	//  fully synchronized before we do deserialize.
@@ -587,20 +585,9 @@ void serialize_test2(A &annotatee, C &control) THROW_SPEC(LocErr)
 
 	dprintf(stderr, "%s[%d]:  after serialize\n", FILE__, __LINE__);
 
-	fprintf(stderr, "%s[%d]:  annotation id = %d\n", FILE__, __LINE__, my_ac.getID());
 
 	A deserialize_result;
-	fprintf(stderr, "%s[%d]:  address of deserialize result = %p\n", FILE__, __LINE__, &deserialize_result);
 	Serializable &c_serial = (Serializable &) deserialize_result;
-#if 0
-	std::string desername = std::string("DeserializerBinTest2") + std::string(typeid(A).name());
-
-	SerializerBase *deserializer = newSerializer(&deserialize_result, desername, 
-			file, ser_bin, sd_deserialize);
-
-	if (!deserializer)
-		EFAIL("failed to create deserializer\n");
-#endif
 
 
 	//  Do the deserialize
@@ -679,10 +666,8 @@ void serialize_test3(A &annotatee, C &container, I item) THROW_SPEC(LocErr)
 	if (NULL == my_ac.getSerializeFunc())
 		EFAIL("annotation class has no serialize func");
 
-	fprintf(stderr, "\n\n%s[%d]:adding post annotation:\n\n", FILE__, __LINE__);
 	if (!annotatee.addAnnotation(&container, my_ac))
 		EFAIL("failed to add annotation");
-	fprintf(stderr, "\n\n%s[%d]:added post annotation: parent = %p, anno = %p\n\n", FILE__, __LINE__, &annotatee, &container);
 
 	//  Do the serialization
 	//annotatee.serialize(serializer, NULL);
@@ -701,16 +686,11 @@ void serialize_test3(A &annotatee, C &container, I item) THROW_SPEC(LocErr)
 	//  It is necessary to flush the file buffers to make sure the cache file is
 	//  fully synchronized before we do deserialize.
 	if (0 !=fflush(NULL))
-	{
-		fprintf(stderr, "%s[%d]:  fflush failed: %s\n", FILE__, __LINE__, strerror(errno));
-	}
 
 	dprintf(stderr, "%s[%d]:  after serialize\n", FILE__, __LINE__);
 
-	fprintf(stderr, "%s[%d]:  annotation id = %d\n", FILE__, __LINE__, my_ac.getID());
 
 	A deserialize_result;
-	fprintf(stderr, "%s[%d]:  address of deserialize result = %p\n", FILE__, __LINE__, &deserialize_result);
 	Serializable &c_serial = (Serializable &) deserialize_result;
 
 
@@ -767,7 +747,7 @@ test_results_t test_ser_anno_Mutator::executeTest()
 		return FAILED;
 	}
 
-	fprintf(stderr, "%s[%d]:  set %s =  %s\n", FILE__, __LINE__, 
+	logerror( "%s[%d]:  set %s =  %s\n", FILE__, __LINE__, 
 			SERIALIZE_CONTROL_ENV_VAR, SERIALIZE_DESERIALIZE);
 
 	try 
@@ -993,7 +973,6 @@ test_results_t test_ser_anno_Mutator::executeTest()
 		return FAILED;
 	}
 		
-//	REPORT_EFAIL;
 
 	return PASSED;
 }
