@@ -210,13 +210,13 @@ bool BPatch_asyncEventHandler::connectToProcess(process *p)
    pdvector<AstNodePtr> the_args;
    the_args.push_back(AstNode::operandNode(AstNode::Constant, (void*)mutator_pid));
    AstNodePtr dynInit = AstNode::funcCallNode("DYNINSTasyncConnect", the_args);
-   unsigned rpc_id = llproc->getRpcMgr()->postRPCtoDo(dynInit,
-		   true, // Don't update cost
-		   NULL /*no callback*/,
-		   NULL, // No user data
-		   false, // Don't run when done
-		   true, // Use reserved memory
-		   NULL, NULL);// No particular thread or LWP
+   llproc->getRpcMgr()->postRPCtoDo(dynInit,
+                                    true, // Don't update cost
+                                    NULL /*no callback*/,
+                                    NULL, // No user data
+                                    false, // Don't run when done
+                                    true, // Use reserved memory
+                                    NULL, NULL);// No particular thread or LWP
 
 
    llproc->sh->overrideSyncContinueState(ignoreRequest);
@@ -1517,13 +1517,13 @@ bool BPatch_asyncEventHandler::mutateeDetach(process *p)
 
    pdvector<AstNodePtr> the_args;
    AstNodePtr dynInit = AstNode::funcCallNode("DYNINSTasyncDisconnect", the_args);
-   unsigned rpc_id = p->getRpcMgr()->postRPCtoDo(dynInit,
-		   true, // Don't update cost
-		   NULL /*no callback*/,
-		   NULL, // No user data
-		   false, // Don't run when done
-		   true, // Use reserved memory
-		   NULL, NULL);// No particular thread or LWP
+   p->getRpcMgr()->postRPCtoDo(dynInit,
+                               true, // Don't update cost
+                               NULL /*no callback*/,
+                               NULL, // No user data
+                               false, // Don't run when done
+                               true, // Use reserved memory
+                               NULL, NULL);// No particular thread or LWP
 
 
    p->sh->overrideSyncContinueState(ignoreRequest);

@@ -1173,7 +1173,7 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
    }*/
 
    string msg;
-   // give luser some feedback....
+   // give user some feedback....
    msg = string("Parsing object file: ") + desc.file();
 
    statusLine(msg.c_str());

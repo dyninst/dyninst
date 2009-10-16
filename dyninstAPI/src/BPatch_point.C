@@ -542,7 +542,6 @@ int BPatch_point::getDisplacedInstructionsInt(int maxSize, void* insns)
 #if defined(cap_instruction_api)
     Dyninst::InstructionAPI::Instruction::Ptr insn = point->insn();
     unsigned size = (maxSize < (int)insn->size()) ? maxSize : insn->size();
-    unsigned char* tmp = (unsigned char*)(insns);
     memcpy(insns, (const void *)insn->ptr(), size);
     return insn->size();
 #else
@@ -699,12 +698,18 @@ BPatch_point *BPatch_point::createInstructionInstPoint(BPatch_addressSpace *addS
 }
 
 // findPoint refactoring
+#if defined(cap_instruction_api)
+BPatch_Vector<BPatch_point*> *BPatch_point::getPoints(const BPatch_Set<BPatch_opCode>&,
+                                                      InstrucIter &, 
+                                                      BPatch_function *)
+{
+    return NULL;
+}
+#else
 BPatch_Vector<BPatch_point*> *BPatch_point::getPoints(const BPatch_Set<BPatch_opCode>& ops,
                                         InstrucIter &ii, 
-                                        BPatch_function *bpf) {
-#if defined(cap_instruction_api)
-    return NULL;
-#else
+                                        BPatch_function *bpf) 
+{
     BPatch_Vector<BPatch_point*> *result = new BPatch_Vector<BPatch_point *>;
     
     int osize = ops.size();
@@ -774,8 +779,8 @@ BPatch_Vector<BPatch_point*> *BPatch_point::getPoints(const BPatch_Set<BPatch_op
         }
     }
     return result;
-#endif
 }
+#endif
                                                           
 /*  BPatch_point::getCFTarget
  *  Returns true if the point corresponds to a control flow
