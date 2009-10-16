@@ -77,7 +77,7 @@ bool resolve_libc_name(char *buf)
 			if ( 0 != strncmp(dp->d_name, "libc.so", nelem))
 				continue;
 
-			fprintf(stderr, "found %s\n", dp->d_name);
+			dprintf("found %s\n", dp->d_name);
 			sprintf(buf, "/lib/%s", dp->d_name);
 			closedir(dirp);
 			return true;
