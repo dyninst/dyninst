@@ -127,9 +127,9 @@ int LocErr::line() const
 	return line__;
 }
 
-void LocErr::print(FILE *stream) const
+void LocErr::print(FILE * /*stream*/) const
 {
-	fprintf(stream, "Error thrown from %s[%d]:\n\t\"%s\"\n",
+	logerror( "Error thrown from %s[%d]:\n\t\"%s\"\n",
 			file__.c_str(), line__, what());
 }
 
