@@ -110,8 +110,8 @@ public:
                        bool noCost);
     bool emitCallCleanup(codeGen &gen, int_function *target, 
                          int frame_size, pdvector<Register> &extra_saves);
-    void emitGetRetVal(Register dest, codeGen &gen);
-    void emitGetParam(Register dest, Register param_num, instPointType_t pt_type, codeGen &gen);
+    void emitGetRetVal(Register dest, bool addr_of, codeGen &gen);
+    void emitGetParam(Register dest, Register param_num, instPointType_t pt_type, bool addr_of, codeGen &gen);
     void emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen);
     void emitASload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen);
     void emitCSload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen);
@@ -135,7 +135,7 @@ public:
 
 
  protected:
-    virtual bool emitCallInstruction(codeGen &gen, int_function *target) = 0;
+    virtual bool emitCallInstruction(codeGen &gen, int_function *target, Register ret) = 0;
 
 };
 
@@ -144,7 +144,7 @@ class EmitterIA32Dyn : public EmitterIA32 {
     ~EmitterIA32Dyn() {};
     
  protected:
-    bool emitCallInstruction(codeGen &gen, int_function *target);
+    bool emitCallInstruction(codeGen &gen, int_function *target, Register ret);
 };
 
 class EmitterIA32Stat : public EmitterIA32 {
@@ -153,7 +153,7 @@ class EmitterIA32Stat : public EmitterIA32 {
     ~EmitterIA32Stat() {};
     
  protected:
-    bool emitCallInstruction(codeGen &gen, int_function *target);
+    bool emitCallInstruction(codeGen &gen, int_function *target, Register ret);
 };
 
 extern EmitterIA32Dyn emitterIA32Dyn;
@@ -214,8 +214,8 @@ public:
     virtual Register emitCall(opCode op, codeGen &gen,
                               const pdvector<AstNodePtr> &operands,
                               bool noCost, int_function *callee);
-    void emitGetRetVal(Register dest, codeGen &gen);
-    void emitGetParam(Register dest, Register param_num, instPointType_t pt_type, codeGen &gen);
+    void emitGetRetVal(Register dest, bool addr_of, codeGen &gen);
+    void emitGetParam(Register dest, Register param_num, instPointType_t pt_type, bool addr_of, codeGen &gen);
     void emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen);
     void emitASload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen);
     void emitCSload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen);
@@ -240,7 +240,7 @@ public:
     bool emitMoveRegToReg(registerSlot *src, registerSlot *dest, codeGen &gen);
 
  protected:
-    virtual bool emitCallInstruction(codeGen &gen, int_function *target) = 0;
+    virtual bool emitCallInstruction(codeGen &gen, int_function *target, Register ret) = 0;
 
 };
 
@@ -248,14 +248,14 @@ class EmitterAMD64Dyn : public EmitterAMD64 {
  public:
     ~EmitterAMD64Dyn() {}
 
-    bool emitCallInstruction(codeGen &gen, int_function *target);
+    bool emitCallInstruction(codeGen &gen, int_function *target, Register ret);
 };
 
 class EmitterAMD64Stat : public EmitterAMD64 {
  public:
     ~EmitterAMD64Stat() {};
     
-    bool emitCallInstruction(codeGen &gen, int_function *target);
+    bool emitCallInstruction(codeGen &gen, int_function *target, Register ret);
 };
 
 extern EmitterAMD64Dyn emitterAMD64Dyn;

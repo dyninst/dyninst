@@ -124,22 +124,22 @@ void registerSpace::initialize32() {
     // When we use 
     registerSlot *eax = new registerSlot(REGNUM_EAX,
                                         "eax",
-                                        true, // Off-limits due to our "stack slot" register mechanism
+                                        false, // Off-limits due to our "stack slot" register mechanism
                                         registerSlot::liveAlways,
                                         registerSlot::realReg);
     registerSlot *ecx = new registerSlot(REGNUM_ECX,
                                         "ecx",
-                                        true,
+                                        false,
                                         registerSlot::liveAlways,
                                         registerSlot::realReg);
     registerSlot *edx = new registerSlot(REGNUM_EDX,
                                         "edx",
-                                        true,
+                                        false,
                                         registerSlot::liveAlways,
                                         registerSlot::realReg);
     registerSlot *ebx = new registerSlot(REGNUM_EBX,
                                         "ebx",
-                                        true,
+                                        false,
                                         registerSlot::liveAlways,
                                         registerSlot::realReg);
     registerSlot *esp = new registerSlot(REGNUM_ESP,
@@ -154,12 +154,12 @@ void registerSpace::initialize32() {
                                         registerSlot::realReg);
     registerSlot *esi = new registerSlot(REGNUM_ESI,
                                         "esi",
-                                        true,
+                                        false,
                                         registerSlot::liveAlways,
                                         registerSlot::realReg);
     registerSlot *edi = new registerSlot(REGNUM_EDI,
                                         "edi",
-                                        true,
+                                        false,
                                         registerSlot::liveAlways,
                                         registerSlot::realReg);
     
@@ -687,7 +687,7 @@ void emitJcc(int condition, int offset,
  * C++ scoping rules for const are stupid.
  **/
 
-int tramp_pre_frame_size_32 = 36 + STACK_PAD_CONSTANT; //Stack space allocated by 'pushf; pusha'
+int tramp_pre_frame_size_32 = 36; //Stack space allocated by 'pushf; pusha'
 
 int tramp_pre_frame_size_64 = 8 + 16 * 8 + STACK_PAD_CONSTANT; // stack space allocated by pushing flags and 16 GPRs
                                                 // and skipping the 128-byte red zone
@@ -990,7 +990,8 @@ void emitMovIRegToReg(RealRegister dest, RealRegister src,
 void emitLEA(RealRegister base, RealRegister index, unsigned int scale,
              RegValue disp, RealRegister dest, codeGen &gen)
 {
-   gen.markRegDefined(dest.reg());
+   if (dest.reg() != REGNUM_ESP)
+      gen.markRegDefined(dest.reg());
    GET_PTR(insn, gen);
    *insn++ = 0x8D;
    SET_PTR(insn, gen);
@@ -1227,12 +1228,20 @@ void emitAddMemImm32(Address addr, int imm, codeGen &gen)
 // emit Add reg, imm32
 void emitAddRegImm32(RealRegister reg, int imm, codeGen &gen)
 {
-    GET_PTR(insn, gen);
-   *insn++ = 0x81;
-   *insn++ = makeModRMbyte(3, 0, reg.reg());
-   *((int *)insn) = imm;
-   insn += sizeof(int);
-    SET_PTR(insn, gen);
+   GET_PTR(insn, gen);
+   if (imm >= -128 && imm <= 127) {
+      *insn++ = 0x83;
+      *insn++ = makeModRMbyte(3, 0, reg.reg());
+      *((char *)insn) = (char) imm;
+      insn += sizeof(char);
+   }
+   else {
+      *insn++ = 0x81;
+      *insn++ = makeModRMbyte(3, 0, reg.reg());
+      *((int *)insn) = imm;
+      insn += sizeof(int);
+   }
+   SET_PTR(insn, gen);
 }
 
 // emit Sub reg, reg
@@ -1375,7 +1384,9 @@ Register EmitterIA32::emitCall(opCode op,
 
    param_size = emitCallParams(gen, operands, callee, saves, noCost);
 
-   emitCallInstruction(gen, callee);
+   Register ret = gen.rs()->allocateRegister(gen, noCost);
+
+   emitCallInstruction(gen, callee, ret);
 
    emitCallCleanup(gen, callee, param_size, saves);
 
@@ -1383,9 +1394,6 @@ Register EmitterIA32::emitCall(opCode op,
 
    // allocate a (virtual) register to store the return value
    // Virtual register
-   Register ret = gen.rs()->allocateRegister(gen, noCost);
-   gen.markRegDefined(REGNUM_EAX);
-   gen.rs()->noteVirtualInReal(ret, RealRegister(REGNUM_EAX));
 
    return ret;
 }
@@ -1434,7 +1442,8 @@ codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, Register dest,
 
 Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
                codeGen &gen, bool /*noCost*/,
-               const instPoint *location, bool /*for_multithreaded*/)
+               const instPoint *location, bool /*for_multithreaded*/, 
+               bool get_addr_of)
 {
     //bperr("emitR(op=%d,src1=%d,src2=XX,dest=%d)\n",op,src1,dest);
 
@@ -1442,13 +1451,14 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
       case getRetValOp: {
          // dest is a register where we can store the value
          // the return value is in the saved EAX
-          gen.codeEmitter()->emitGetRetVal(dest, gen);
+          gen.codeEmitter()->emitGetRetVal(dest, get_addr_of, gen);
           return dest;
       }
       case getParamOp: {
          // src1 is the number of the argument
          // dest is a register where we can store the value
-          gen.codeEmitter()->emitGetParam(dest, src1, location->getPointType(), gen);
+          gen.codeEmitter()->emitGetParam(dest, src1, location->getPointType(), 
+                                          get_addr_of, gen);
           return dest;
       }
     case loadRegOp: {
@@ -1509,37 +1519,85 @@ void emitJmpMC(int condition, int offset, codeGen &gen)
     emitJcc(condition, offset, gen);
 }
 
-void restoreSPImmToGPR(RealRegister dest, int imm, codeGen &gen) 
+stackItemLocation getHeightOf(stackItem sitem, codeGen &gen)
 {
-   int size = imm;
-   /**
-    * Calculate the size of the stack before the stack frame into 'size'
-    **/
-   //Stack padding
-   size += STACK_PAD_CONSTANT;
-   //Flags save slot
-   registerSlot *flag_slot = (*gen.rs())[IA32_FLAG_VIRTUAL_REGISTER];
-   if (flag_slot->liveState == registerSlot::spilled)
-      size += 4;
-   //Saved GPR registers
-   pdvector<registerSlot *> &regs = gen.rs()->trampRegs();
-   for (unsigned i=0; i<regs.size(); i++) {
-      registerSlot *reg = regs[i];
-      if (reg->spilledState != registerSlot::unspilled)
-         size += 4;
+   int offset = 0;
+   RealRegister reg;
+
+   int addr_width = gen.addrSpace()->getAddressWidth();
+   RealRegister plat_bp(addr_width == 4 ? REGNUM_EBP : REGNUM_RBP);
+   RealRegister plat_sp(addr_width == 4 ? REGNUM_ESP : REGNUM_RSP); 
+
+   if (sitem.item == stackItem::reg_item && sitem.reg.reg() == plat_sp.reg())
+   {
+      sitem.item = stackItem::stacktop;
    }
-   
-   if (gen.bti()->hasStackFrame_) {
-      //We have a stack frame: lea size(ebp), dest
-      size += 4; //(Fake return address size)
-      emitLEA(RealRegister(REGNUM_EBP), size, dest, gen);
+
+   switch (sitem.item)
+   {
+      case stackItem::reg_item:
+      {
+         registerSlot *r = NULL;
+         pdvector<registerSlot *> &regs = gen.rs()->trampRegs();
+         for (unsigned i=0; i<regs.size(); i++) {
+            if (regs[i]->number == (unsigned) sitem.reg.reg()) {
+               r = regs[i];
+               break;
+            }
+         }
+         if (!r && addr_width == 8) {
+            r = (*gen.rs())[sitem.reg.reg()];
+         }
+         assert(r);
+         offset = r->saveOffset * addr_width;
+         if (gen.bti()->hasStackFrame()) {
+            reg = plat_bp;
+            return stackItemLocation(plat_bp, offset);
+         }
+         if (gen.bti()->hasLocalSpace()) {
+            offset += TRAMP_FRAME_SIZE;
+         }
+         offset += gen.rs()->getStackHeight();
+         return stackItemLocation(plat_sp, offset);
+      }
+      case stackItem::stacktop:
+      {
+         if (addr_width == 8)
+            offset += STACK_PAD_CONSTANT;
+         if (!gen.bti() || gen.bti()->flagsSaved())
+            offset += addr_width;
+         pdvector<registerSlot *> &regs = gen.rs()->trampRegs();
+         for (unsigned i=0; i<regs.size(); i++) {
+            registerSlot *reg = regs[i];
+            if (reg->spilledState != registerSlot::unspilled)
+               offset += addr_width;
+         }
+         if (gen.bti()->hasStackFrame()) {
+            //Save of EBP adds addr_width--ebp may have been counted once above
+            // and here again if a pusha and frame were created, but that's
+            // okay.
+            offset += addr_width; 
+            return stackItemLocation(plat_bp, offset);
+         }
+         if (gen.bti()->hasLocalSpace()) {
+            offset += TRAMP_FRAME_SIZE;
+         }
+         offset += gen.rs()->getStackHeight();
+         return stackItemLocation(plat_sp, offset);
+      }
+      case stackItem::framebase: {
+         if (!gen.bti() || gen.bti()->hasStackFrame()) {
+            return stackItemLocation(plat_bp, 0);
+         }
+         offset = gen.rs()->getStackHeight();
+         if (gen.bti()->hasLocalSpace()) {
+            offset += TRAMP_FRAME_SIZE;
+         }
+         return stackItemLocation(plat_sp, offset);
+      }
    }
-   else {
-      //Use the calculated stack height: lea size+height(esp), dest
-      size += gen.rs()->getStackHeight();
-      emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0, 
-              size, dest, gen);
-   }
+   assert(0);
+   return stackItemLocation(RealRegister(REG_NULL), 0);
 }
 
 // Restore mutatee value of GPR reg to dest (real) GPR
@@ -1558,12 +1616,12 @@ Register restoreGPRtoReg(RealRegister reg, codeGen &gen, RealRegister *dest_to_u
       //Special handling for EBP with and without instr stack frame
       if (dest_r.reg() == -1)
          dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
-      if (gen.bti()->hasStackFrame_) {
+      if (gen.bti()->hasStackFrame()) {
          emitMovRMToReg(dest_r, RealRegister(REGNUM_EBP), 0, gen);
       }
       else {
          if (reg.reg() != dest_r.reg()) {
-            //MATT TODO: Major optimization here, allow ebp to be used
+            //TODO: Future optimization here, allow ebp to be used
             // though not allocated
             emitMovRegToReg(dest_r, reg, gen);
          }
@@ -1575,7 +1633,14 @@ Register restoreGPRtoReg(RealRegister reg, codeGen &gen, RealRegister *dest_to_u
       //Special handling for ESP 
       if (dest_r.reg() == -1)
          dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
-      restoreSPImmToGPR(dest_r, 0, gen);
+      stackItemLocation loc = getHeightOf(stackItem(stackItem::stacktop), gen);
+      if (loc.reg.reg() == REGNUM_EBP) {
+         emitLEA(RealRegister(REGNUM_EBP), loc.offset, dest_r, gen);
+      }
+      else {
+         emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0, 
+                 loc.offset, dest_r, gen);
+      }
       return dest;
    }
 
@@ -1591,21 +1656,9 @@ Register restoreGPRtoReg(RealRegister reg, codeGen &gen, RealRegister *dest_to_u
       return dest;
    }
 
-   int offset = r->saveOffset * 4;
-   if (gen.bti()->hasStackFrame_) {
-      //Register has been spilled and we have a stack frame.
-      if (dest_r.reg() == -1)
-         dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
-      emitMovRMToReg(dest_r, RealRegister(REGNUM_EBP), offset+4, gen);
-      return dest;
-   }
-
-   //Register has been spilled but there is no stack frame.
-   offset += gen.rs()->getStackHeight();
-   offset -= 4; //No return value above stack frame.
-   if (dest_r.reg() == -1)
-      dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
-   emitMovRMToReg(dest_r, RealRegister(REGNUM_ESP), offset, gen);
+   //Load register from its saved location
+   stackItemLocation loc = getHeightOf(stackItem(reg), gen);
+   emitMovRMToReg(dest_r, loc.reg, loc.offset, gen);
    return dest;
 }
 
@@ -1636,7 +1689,14 @@ void EmitterIA32::emitASload(int ra, int rb, int sc, long imm, Register dest, co
    if (ra == REGNUM_ESP && !haverb && sc == 0) {
       //Optimization, common for push/pop
       RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
-      restoreSPImmToGPR(dest_r, imm, gen);
+      stackItemLocation loc = getHeightOf(stackItem(stackItem::stacktop), gen);
+      if (loc.reg.reg() == REGNUM_EBP) {
+         emitLEA(RealRegister(REGNUM_EBP), loc.offset + imm, dest_r, gen);
+      }
+      else {
+         emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0, 
+                 loc.offset + imm, dest_r, gen);
+      }
       return;
    }
 
@@ -2158,23 +2218,10 @@ void emitFuncJump(opCode op,
     gen.codeEmitter()->emitFuncJump(addr, ptType, gen);
 }
 
-void EmitterIA32::emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen)
+void EmitterIA32::emitFuncJump(Address addr, instPointType_t /*ptType*/, codeGen &gen)
 {       
-    if (ptType == otherPoint)
-       emitOpRegRM(FRSTOR, RealRegister(FRSTOR_OP), RealRegister(REGNUM_EBP), 
-                   -TRAMP_FRAME_SIZE - FSAVE_STATE_SIZE, gen);
     assert(gen.bti());
-    if (gen.bti()->hasStackFrame_) {
-       emitSimpleInsn(LEAVE, gen);     // leave
-       emitOpExtRegImm8(0x83, 0x0, RealRegister(REGNUM_RSP), 4, gen); //add $4,%esp
-    }
-
-    emitBTRegRestores32(gen.bti(), gen);
-
-    // Red zone skip - see comment in emitBTsaves
-    if (STACK_PAD_CONSTANT)
-       emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0, STACK_PAD_CONSTANT, 
-               RealRegister(REGNUM_ESP), gen);    
+    emitBTRestores(gen.bti()->baseT, gen.bti(), gen);
     
     GET_PTR(insn, gen);
     *insn++ = 0x68; /* push 32 bit immediate */
@@ -2375,6 +2422,7 @@ void registerSpace::initRealRegSpace()
 
    regState_t *new_regState = new regState_t();
    regStateStack.push_back(new_regState);
+   regs_been_spilled.clear();
    
    pc_rel_reg = Null_Register;
    pc_rel_use_count = 0;
@@ -2388,13 +2436,17 @@ void registerSpace::movRegToReg(RealRegister dest, RealRegister src, codeGen &ge
 
 void registerSpace::spillToVReg(RealRegister reg, registerSlot *v_reg, codeGen &gen)
 {
-   emitMovRegToRM(RealRegister(REGNUM_EBP), -4*v_reg->encoding(), reg, gen);
+   stackItemLocation loc = getHeightOf(stackItem::framebase, gen);
+   loc.offset += -4*v_reg->encoding();
+   emitMovRegToRM(loc.reg, loc.offset, reg, gen);
 }
 
 void registerSpace::movVRegToReal(registerSlot *v_reg, RealRegister r, codeGen &gen)
 {
+   stackItemLocation loc = getHeightOf(stackItem::framebase, gen);
+   loc.offset += -4*v_reg->encoding();
    gen.markRegDefined(r.reg());
-   emitMovRMToReg(r, RealRegister(REGNUM_EBP), -4*v_reg->encoding(), gen);
+   emitMovRMToReg(r, loc.reg, loc.offset, gen);
 }
 
 void emitBTRegRestores32(baseTrampInstance *bti, codeGen &gen)
@@ -2410,15 +2462,12 @@ void emitBTRegRestores32(baseTrampInstance *bti, codeGen &gen)
       for (int i=regs.size()-1; i>=0; i--) {
          reg = regs[i];          
          if (reg->encoding() != REGNUM_ESP && 
+             reg->encoding() != REGNUM_EBP &&
              reg->spilledState != registerSlot::unspilled)
          {
             emitPop(RealRegister(reg->encoding()), gen);
          }
       }
-      reg = regs[REGNUM_ESP];
-      assert(reg->encoding() == REGNUM_ESP);
-      if (reg->spilledState != registerSlot::unspilled)
-         emitPop(RealRegister(REGNUM_ESP), gen);
    }
    
    gen.rs()->restoreVolatileRegisters(gen);

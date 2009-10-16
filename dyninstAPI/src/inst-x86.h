@@ -275,9 +275,6 @@ void emitSHL(RealRegister dest, unsigned char pos, codeGen &gen);
 void restoreGPRtoGPR(RealRegister reg, RealRegister dest, codeGen &gen);
 Register restoreGPRtoReg(RealRegister reg, codeGen &gen, RealRegister *dest_to_use = NULL);
 
-//Restore the SP+Imm to a GPR--an optimization for memory instrumentation
-void restoreSPImmToGPR(RealRegister dest, int imm, codeGen &gen);
-
 void emitLEA(RealRegister base, RealRegister index, unsigned int scale,
 	     RegValue disp, RealRegister dest, codeGen &gen);
 
@@ -305,5 +302,25 @@ unsigned char jccOpcodeFromRelOp(unsigned op);
 bool xmmCapable();
 
 void emitBTRegRestores32(baseTrampInstance *bti, codeGen &gen);
+
+struct stackItem {
+   enum stackItem_t {
+      reg_item,
+      stacktop,
+      framebase
+   } item;
+   RealRegister reg;
+   stackItem(stackItem_t i) { assert(i != reg_item); item = i; }
+   stackItem(RealRegister r) { item = reg_item; reg = r; }
+   stackItem() {}
+};
+
+struct stackItemLocation {
+   RealRegister reg;
+   int offset;
+   stackItemLocation(RealRegister r, int o) { reg = r; offset = o; }
+};
+
+stackItemLocation getHeightOf(stackItem sitem, codeGen &gen);
 
 #endif
