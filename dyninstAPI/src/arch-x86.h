@@ -223,6 +223,7 @@ typedef int dword_t;   /* a double word (32-bit) operand */
 #define CMP_AL_LB (0x3C)
 #define CMP_RAX_LZ (0x3D)
 
+#define TEST_EV_GV (0x85)
 //   (0x3E)
 //   (0x3F)
 

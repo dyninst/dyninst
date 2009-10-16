@@ -315,6 +315,14 @@ class AddressSpace : public InstructionSource {
     // we're deleting...
     virtual void deleteGeneratedCode(generatedCodeObject *del);
 
+    //True if any reference to this address space needs PIC
+    virtual bool needsPIC() = 0;
+    //True if we need PIC to reference the given variable or function
+    // from this addressSpace.
+    bool needsPIC(int_variable *v); 
+    bool needsPIC(int_function *f);
+    bool needsPIC(AddressSpace *s);
+    
     //////////////////////////////////////////////////////
     // BPatch-level stuff
     //////////////////////////////////////////////////////

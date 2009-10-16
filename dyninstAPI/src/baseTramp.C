@@ -73,7 +73,10 @@ baseTrampInstance::baseTrampInstance(baseTramp *tramp,
     baseT(tramp),
     multiT(multi),
     genVersion(0),
-    alreadyDeleted_(false)
+    alreadyDeleted_(false),
+    hasDefinedRegs_(false),
+    spilledRegisters_(false),
+    hasStackFrame_(false)
 {
 }
 
@@ -92,7 +95,12 @@ baseTrampInstance::baseTrampInstance(const baseTrampInstance *parBTI,
     baseT(cBT),
     multiT(cMT),
     genVersion(parBTI->genVersion),
-    alreadyDeleted_(parBTI->alreadyDeleted_)
+    alreadyDeleted_(parBTI->alreadyDeleted_),
+    hasDefinedRegs_(parBTI->hasDefinedRegs_),
+    spilledRegisters_(parBTI->spilledRegisters_),
+    hasStackFrame_(parBTI->hasStackFrame_),
+    definedRegs_(parBTI->definedRegs_)
+
 {
     // Register with parent
     cBT->instances.push_back(this);
@@ -130,6 +138,58 @@ void baseTramp::unregisterInstance(baseTrampInstance *inst) {
     }
 }
 
+bool baseTrampInstance::shouldRegenBaseTramp(registerSpace *rs)
+{
+#if !defined(cap_tramp_liveness)
+   return false;
+#endif
+
+   int saved_unneeded = 0;
+   unsigned actually_saved = 0;
+   int needed_saved = 0;
+   
+   if (spilledRegisters_ && !hasStackFrame_)
+      return true;
+
+   pdvector<registerSlot *> &regs = rs->trampRegs();
+   for (unsigned i = 0; i < regs.size(); i++) {
+      registerSlot *reg = regs[i];
+      if (reg->spilledState != registerSlot::unspilled) {
+         actually_saved++;
+      }
+      if (definedRegs_[reg->encoding()]) {
+         needed_saved++;
+      }
+
+      if (reg->spilledState != registerSlot::unspilled &&
+          !definedRegs_[reg->encoding()])
+      {
+         saved_unneeded++;
+         regalloc_printf("[%s:%u] - baseTramp saved unneeded register %d, "
+                         "suggesting regen\n", __FILE__, __LINE__, i);
+      }
+      if (!reg->liveState == registerSlot::spilled &&
+          definedRegs_[reg->encoding()])
+      {
+         regalloc_printf("[%s:%u] - Decided not to save a defined register %d. "
+                         "App liveness?\n",  __FILE__, __LINE__, reg->encoding());         
+      }
+   }
+   regalloc_printf("[%s:%u] - Should regen found %d unneeded saves\n",
+                   __FILE__, __LINE__, saved_unneeded);
+#if defined(arch_x86_64) || defined(arch_x86)
+   if (baseT->proc()->getAddressWidth() == 4)
+   {
+      //No regen if we did a pusha and saved more regs than the 
+      // X86_REGS_SAVE_LIMIT recommended limit.
+      if (actually_saved == regs.size() &&
+          needed_saved > X86_REGS_SAVE_LIMIT)
+         return false;
+   }
+#endif
+   return (saved_unneeded != 0);
+}
+
 #define PRE_TRAMP_SIZE 4096
 #define POST_TRAMP_SIZE 4096
 
@@ -145,6 +205,7 @@ baseTramp::baseTramp(instPoint *iP, callWhen when) :
     optimized_out_guards(false),
     guardState_(guarded_BTR),
     suppress_threads_(false),
+    createFrame_(true),
     instVersion_(),
     when_(when)
 {
@@ -204,6 +265,7 @@ baseTramp::baseTramp(const baseTramp *pt, process *child) :
     optimized_out_guards(false),
     guardState_(pt->guardState_),
     suppress_threads_(pt->suppress_threads_),
+    createFrame_(pt->createFrame_),
     instVersion_(pt->instVersion_),
     when_(pt->when_)
 {
@@ -270,13 +332,43 @@ bool baseTrampInstance::generateCode(codeGen &gen,
     }
 
 
+    gen.setPCRelUseCount(0);
+    gen.setBTI(this);
     if (baseT->instP()) {
        //iRPCs already have this set
        gen.setPoint(baseT->instP());
        gen.setRegisterSpace(registerSpace::actualRegSpace(baseT->instP(), baseT->when_));
     }
-    
-    return generateCodeInlined(gen, baseInMutatee, unwindRegion);
+    int count = 0;
+
+    for (;;) {
+       regalloc_printf("[%s:%u] - Beginning baseTramp generate iteration # %d\n",
+                       __FILE__, __LINE__, ++count);
+       GET_PTR(insn, gen);
+       gen.beginTrackRegDefs();
+
+       gen.rs()->initRealRegSpace();
+       bool result = generateCodeInlined(gen, baseInMutatee, unwindRegion);
+       if (!result)
+          return false;
+
+       gen.endTrackRegDefs();
+
+       definedRegs_ = gen.getRegsDefined();
+       if (!spilledRegisters_)
+          spilledRegisters_ = gen.rs()->spilledAnything();
+       hasDefinedRegs_ = true;
+
+       if (!shouldRegenBaseTramp(gen.rs()))
+          break;
+
+       gen.setPCRelUseCount(gen.rs()->pc_rel_use_count);
+       
+       markChanged(true);
+       SET_PTR(insn, gen);
+    }
+    gen.setBTI(NULL);
+    return true;
 }
 
 
@@ -453,7 +545,7 @@ bool baseTrampInstance::generateCodeInlined(codeGen &gen,
     // be reset until AFTER THE RESTORES.
     baseTramp->initRegisters(gen);
     saveStartOffset = gen.used();
-    baseT->generateSaves(gen, gen.rs());
+    baseT->generateSaves(gen, gen.rs(), this);
     saveEndOffset = gen.used();
     bool retval = true;
 
@@ -464,7 +556,7 @@ bool baseTrampInstance::generateCodeInlined(codeGen &gen,
 
     trampPostOffset = gen.used();
     restoreStartOffset = 0;
-    baseT->generateRestores(gen, gen.rs());
+    baseT->generateRestores(gen, gen.rs(), this);
     restoreEndOffset = gen.used() - trampPostOffset;
     trampSize_ = gen.currAddr() - trampAddr_;
 
@@ -759,22 +851,24 @@ bool baseTramp::doOptimizations()
 {
    miniTramp *cur_mini = firstMini;
    bool hasFuncCall = false;
+   bool usesReg = false;
 
-   while (cur_mini) 
-   {
-	   if ((!cur_mini->ast_))
-	   {
-		   fprintf(stderr, "%s[%d]:  FIXME!\n", FILE__, __LINE__);
-		   return false;
-	   }
-
-       if (cur_mini->ast_->containsFuncCall()) 
-	   {
-           hasFuncCall = true;
-           break;
-       }
-       cur_mini = cur_mini->next;
+   if (BPatch::bpatch->getInstrStackFrames()) {
+      usesReg = true;
    }
+
+   while (cur_mini) {
+      assert(cur_mini->ast_);
+      if (!hasFuncCall && cur_mini->ast_->containsFuncCall()) {
+         hasFuncCall = true;
+      }
+      //if (!usesReg && cur_mini->ast_->usesAppRegister()) {
+      //   usesReg = true;
+      //}
+      cur_mini = cur_mini->next;
+   }
+   
+   setCreateFrame(usesReg);
    
    if (!hasFuncCall) {
       guardState_ = unset_BTR;
@@ -1007,6 +1101,8 @@ void baseTramp::setThreaded(bool new_val)
    suppress_threads_ = !new_val;
 }
 
+
+
 void *baseTrampInstance::getPtrToInstruction(Address /*addr*/ ) const {
     assert(0); // FIXME if we do out-of-line baseTramps
     return NULL;
@@ -1032,4 +1128,30 @@ Address baseTrampInstance::get_address() const
    }
    
    return 0;
+}
+
+bool baseTramp::createFrame()
+{
+   return createFrame_;
+}
+
+void baseTramp::setCreateFrame(bool frame)
+{
+   createFrame_ = frame;
+}
+
+int baseTrampInstance::numDefinedRegs()
+{
+   int count = 0;
+   if (!hasDefinedRegs_)
+      return -1;
+   registerSpace *rs = registerSpace::getRegisterSpace(proc()->getAddressWidth());
+   pdvector<registerSlot *> &regs = rs->trampRegs();
+   for (unsigned i=0; i<regs.size(); i++) {
+      registerSlot *reg = regs[i];
+      if (definedRegs_[reg->encoding()]) {
+         count++;
+      }
+   }
+   return count;
 }

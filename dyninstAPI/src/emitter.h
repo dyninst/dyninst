@@ -64,7 +64,7 @@ class Emitter {
 
  public:
     virtual ~Emitter() {};
-    virtual codeBufIndex_t emitIf(Register expr_reg, Register target, codeGen &gen) = 0;
+    virtual codeBufIndex_t emitIf(Register expr_reg, Register target, RegControl rc, codeGen &gen) = 0;
     virtual void emitOp(unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen) = 0;
     virtual void emitOpImm(unsigned opcode1, unsigned opcode2, Register dest, Register src1, RegValue src2imm,
 			   codeGen &gen) = 0;
@@ -114,8 +114,8 @@ class Emitter {
     virtual void emitRestoreFlags(codeGen &gen, unsigned offset) = 0;
     // Built-in offset...
     virtual void emitRestoreFlagsFromStackSlot(codeGen &gen) = 0;
-    virtual bool emitBTSaves(baseTramp* bt, codeGen &gen) = 0;
-    virtual bool emitBTRestores(baseTramp* bt, codeGen &gen) = 0;
+    virtual bool emitBTSaves(baseTramp* bt, baseTrampInstance *inst, codeGen &gen) = 0;
+    virtual bool emitBTRestores(baseTramp* bt, baseTrampInstance *bti, codeGen &gen) = 0;
     virtual void emitStoreImm(Address addr, int imm, codeGen &gen, bool noCost) = 0;
     virtual void emitAddSignedImm(Address addr, int imm, codeGen &gen, bool noCost) = 0;
     virtual bool emitPush(codeGen &, Register) = 0;

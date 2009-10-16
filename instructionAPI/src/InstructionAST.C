@@ -49,8 +49,9 @@ namespace Dyninst
     {
       // isStrictEqual assumes rhs and this to be of the same derived type
       // so isSameType enforces this restriction
-        if(typeid(*this) == typeid(DummyExpr()) ||
-           typeid(rhs) == typeid(DummyExpr()))
+        static DummyExpr d;
+        if((typeid(*this) == typeid(d)) ||
+            (typeid(rhs) == typeid(d)))
         {
             return true;
         }

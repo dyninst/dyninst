@@ -89,6 +89,7 @@ public:
 
    void applyPatch();
    bool isApplied();
+   void setTarget(patchTarget *s) { source_ = s; }
 
  private:
    void *dest_;
@@ -99,5 +100,18 @@ public:
    Dyninst::Offset offset_;
    bool applied_;
 };
+
+class ifTargetPatch : public patchTarget
+{
+ private:
+   signed int targetOffset;
+ public:
+   ifTargetPatch(signed int o) { targetOffset = o; }
+   virtual Address get_address() const { return (Address) targetOffset; };
+   virtual unsigned get_size() const { return 0; }
+   virtual std::string get_name() const { return std::string("ifTarget"); }
+   virtual ~ifTargetPatch() { }
+};
+
 
 #endif

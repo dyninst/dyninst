@@ -37,6 +37,7 @@ SRCS =          ../src/linux.C \
 		../src/image-x86.C \
 		../src/syscall-linux.C \
 		../src/frameChecker.C \
+		../src/stackanalysis.C \
 		../src/RegisterConversion-x86.C \
 		../src/BPatch_memoryAccessAdapter.C \
 		../src/IA_IAPI.C \

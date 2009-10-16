@@ -1520,8 +1520,15 @@ void process::deleteProcess()
 
   dyninstlib_brk_addr = 0;
   main_brk_addr = 0;
-
-  deleteAddressSpace();
+  
+  // By definition, these are dangling.
+  for (iter = 0; iter < pendingGCInstrumentation.size(); iter++) {
+      if(pendingGCInstrumentation[iter] != NULL) {
+          delete pendingGCInstrumentation[iter];
+          pendingGCInstrumentation[iter] = NULL;
+      }
+  }
+  pendingGCInstrumentation.clear();
 
   inInferiorMallocDynamic = false;
 
@@ -1545,12 +1552,8 @@ void process::deleteProcess()
   }
   tracingRequests.clear();
 
-  // By definition, these are dangling.
-  for (iter = 0; iter < pendingGCInstrumentation.size(); iter++) {
-      if(pendingGCInstrumentation[iter] != NULL)
-          delete pendingGCInstrumentation[iter];
-  }
-  pendingGCInstrumentation.clear();
+  deleteAddressSpace();
+
 
 #if defined(os_linux)
   vsyscall_start_ = 0;
@@ -5783,3 +5786,8 @@ bool process::detachForDebugger(const EventRecord &)
    return false;
 }
 #endif
+
+bool process::needsPIC()
+{
+   return 0;
+}

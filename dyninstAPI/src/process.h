@@ -844,6 +844,7 @@ private:
    void gcInstrumentation();
    void gcInstrumentation(pdvector<pdvector<Frame> >&stackWalks);
 
+   virtual bool needsPIC();
   ///////////////////////////////////////////////////
   // Process class members
   ///////////////////////////////////////////////////

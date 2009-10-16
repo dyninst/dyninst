@@ -3246,6 +3246,15 @@ SYMTAB_EXPORT bool Symtab::addSysVDynamic(long name, long value)
 #endif
 }
 
+SYMTAB_EXPORT Address Symtab::getLoadAddress()
+{
+#if defined(os_linux) || defined(os_aix)
+   return getObject()->getLoadAddress();
+#else
+   return 0x0;
+#endif
+}
+
 } // namespace SymtabAPI
 } // namespace Dyninst
 

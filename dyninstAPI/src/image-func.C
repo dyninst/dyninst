@@ -483,6 +483,7 @@ void image_basicBlock::split(image_basicBlock * &newBlk)
     reinterpret_cast<const unsigned char*>(getPtrToInstruction(firstInsnOffset_));
     InstructionDecoder decoder(buffer, newBlk->firstInsnOffset() -
 			       firstInsnOffset_);
+    decoder.setMode(getFirstFunc()->img()->getAddressWidth() == 8);
     Instruction::Ptr tmp = decoder.decode();
     lastInsnOffset_ = firstInsnOffset_;
     
@@ -978,6 +979,7 @@ void image_basicBlock::getInsnInstances(std::vector<std::pair<InstructionAPI::In
     const unsigned char *ptr = (const unsigned char *)getPtrToInstruction(off);
     if (ptr == NULL) return;
     InstructionDecoder d(ptr, getSize());
+    d.setMode(getFirstFunc()->img()->getAddressWidth() == 8);
     while (off < endOffset()) {
         instances.push_back(std::make_pair(d.decode(), off));
         off += instances.back().first->size();

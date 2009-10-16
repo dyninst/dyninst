@@ -1255,7 +1255,7 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
 
 		if (in_storage == BPatch_storageFrameOffset && fplocs.size()) 
 		{
-			// Merge varaible and frame pointer's location list
+			// Merge variable and frame pointer's location list
 
 			for (unsigned j=0; j<fplocs.size(); j++) 
 			{

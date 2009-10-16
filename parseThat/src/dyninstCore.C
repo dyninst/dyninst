@@ -1087,7 +1087,6 @@ bool instrumentBasicBlocks(dynHandle *dh, BPatch_function *func)
 {
    BPatch_Set<BPatch_basicBlock*> allBlocks;
    BPatch_snippet incSnippet; 
-   BPatch_Set<BPatch_opCode> ops;
    BPatch_Set<BPatch_basicBlock*>::iterator iter;
    int bb_warn_cnt = 0, bb_pass_cnt = 0;
 
@@ -1122,8 +1121,6 @@ bool instrumentBasicBlocks(dynHandle *dh, BPatch_function *func)
    if (! generateInstrumentation (dh, func, &incSnippet))
     	goto fail;
 
-   ops.insert(BPatch_opLoad);
-   ops.insert(BPatch_opStore);
 
    sendMsg(config.outfd, ID_INST_BB_LIST, VERB3);
    for (iter = allBlocks.begin(); iter != allBlocks.end(); iter++) {
@@ -1131,16 +1128,10 @@ bool instrumentBasicBlocks(dynHandle *dh, BPatch_function *func)
          continue;
 
       sendMsg(config.outfd, ID_INST_GET_BB_POINTS, VERB4);
-      BPatch_Vector<BPatch_point*> *points = (*iter)->findPoint(ops);
-      if (!points) {
+      BPatch_point *entry = (*iter)->findEntryPoint();
+      if (!entry) {
          sendMsg(config.outfd, ID_INST_GET_BB_POINTS, VERB4, ID_WARN,
-                 "Failure in BPatch_basicBlock::findPoint()");
-         ++bb_warn_cnt;
-         continue;
-
-      } else if (points->size() == 0) {
-         sendMsg(config.outfd,  ID_INST_GET_BB_POINTS, VERB4, ID_WARN,
-                 "No instrumentation points found in basic block");
+                 "Failure in BPatch_basicBlock::findEntryPoint()");
          ++bb_warn_cnt;
          continue;
 
@@ -1149,7 +1140,7 @@ bool instrumentBasicBlocks(dynHandle *dh, BPatch_function *func)
       }
 
       sendMsg(config.outfd, ID_INST_INSERT_CODE, VERB4);
-      BPatchSnippetHandle *handle = dh->addSpace->insertSnippet(incSnippet, *(*points)[0]);
+      BPatchSnippetHandle *handle = dh->addSpace->insertSnippet(incSnippet, *entry);
       if (!handle) {
          sendMsg(config.outfd, ID_INST_INSERT_CODE, VERB4, ID_FAIL,
                  "Failure in BPatch_process::insertSnippet()");

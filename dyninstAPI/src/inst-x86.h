@@ -66,6 +66,8 @@
 
 */
 
+#include "dyninstAPI/src/registerSpace.h"
+
 #define NUM_VIRTUAL_REGISTERS (32)   /* number of virtual registers */
 #define NUM_FPR_REGISTERS (1)
 #define IA32_FPR_VIRTUAL_REGISTER (NUM_VIRTUAL_REGISTERS + 1)
@@ -216,8 +218,6 @@ enum AMD64_REG_NUMBERS {
 }
 ;
 
-
-
 class codeGen;
 
 // Define access method for saved register (GPR)
@@ -229,43 +229,60 @@ class codeGen;
 #define LOAD_VIRTUAL64(x, insn) emitMovRMToReg(REGNUM_RAX, REGNUM_RBP, -1*(x*8), insn)
 #define SAVE_VIRTUAL64(x, insn) emitMovRegToRM(REGNUM_RBP, -1*(x*8), REGNUM_RAX, insn)
 
-void emitAddressingMode(Register base, Register index,
+void emitAddressingMode(unsigned base, unsigned index,
                         unsigned int scale, RegValue disp,
                         int reg_opcode, codeGen &gen);
-void emitAddressingMode(Register base, RegValue disp,
-                        int reg_opcode, codeGen &gen);
+void emitAddressingMode(unsigned base, RegValue disp,
+                        unsigned reg_opcode, codeGen &gen);
 
 
 // low-level code generation functions
-void emitOpRegReg(unsigned opcode, Register dest, Register src, codeGen &gen);
-void emitOpRegRM(unsigned opcode, Register dest, Register base, int disp, codeGen &gen);
-void emitOpRegImm(int opcode, Register dest, int imm, codeGen &gen);
-void emitOpRegRMImm(unsigned opcode, Register dest, Register base, int disp, int imm, codeGen &gen);
-void emitOpRMImm(unsigned opcode1, unsigned opcode2, Register base, int disp, int imm, codeGen &gen);
-void emitOpRMImm8( unsigned opcode1, unsigned opcode2, Register base, int disp, char imm, codeGen &gen);
-void emitOpRMReg(unsigned opcode, Register base, int disp,
-                               Register src, codeGen &gen);
+void emitOpRegReg(unsigned opcode, RealRegister dest, RealRegister src, 
+                  codeGen &gen);
+void emitOpExtReg(unsigned opcode, unsigned char ext, RealRegister reg, 
+                  codeGen &gen);
+void emitOpRegRM(unsigned opcode, RealRegister dest, RealRegister base, int disp, 
+                 codeGen &gen);
+void emitOpExtRegImm8(int opcode, char ext, RealRegister dest, unsigned char imm, codeGen &gen);
+void emitOpExtRegImm(int opcode, int opcode2, RealRegister dest, int imm, codeGen &gen);
+void emitOpRMReg(unsigned opcode, RealRegister base, int disp, RealRegister src, codeGen &gen);
+void emitOpRegRegImm(unsigned opcode, RealRegister dest, RealRegister src, unsigned imm, codeGen &gen);
+void emitOpRegImm(int opcode, RealRegister dest, int imm, codeGen &gen);
 
-void emitMovRegToReg(Register dest, Register src, codeGen &gen);
-void emitMovIRegToReg(Register dest, Register src, codeGen &gen);
-void emitMovPCRMToReg(Register dest, int offset, codeGen &gen, bool deref_result = true);
-void emitMovMToReg(Register dest, int disp, codeGen &gen);
-void emitMovMBToReg(Register dest, int disp, codeGen &gen);
-void emitMovMWToReg(Register dest, int disp, codeGen &gen);
-void emitMovRegToM(int disp, Register src, codeGen &gen);
-void emitMovImmToReg(Register dest, int imm, codeGen &gen);
-void emitMovImmToRM(Register base, int disp, int imm, codeGen &gen);
-void emitMovRegToRM(Register base, int disp, Register src, codeGen &gen);
-void emitMovRMToReg(Register dest, Register base, int disp, codeGen &gen);
+void emitMovRegToReg(RealRegister dest, RealRegister src, codeGen &gen);
+void emitMovIRegToReg(RealRegister dest, RealRegister src, codeGen &gen);
+void emitMovPCRMToReg(RealRegister dest, int offset, codeGen &gen, bool deref_result = true);
+void emitMovMToReg(RealRegister dest, int disp, codeGen &gen);
+void emitMovMBToReg(RealRegister dest, int disp, codeGen &gen);
+void emitMovMWToReg(RealRegister dest, int disp, codeGen &gen);
+void emitMovRegToM(int disp, RealRegister src, codeGen &gen);
+void emitMovRegToMB(int disp, RealRegister dest, codeGen &gen);
+void emitMovRegToMW(int disp, RealRegister dest, codeGen &gen);
+void emitMovImmToReg(RealRegister dest, int imm, codeGen &gen);
+void emitMovImmToRM(RealRegister base, int disp, int imm, codeGen &gen);
+void emitMovRegToRM(RealRegister base, int disp, RealRegister src, codeGen &gen);
+void emitMovRMToReg(RealRegister dest, RealRegister base, int disp, codeGen &gen);
 void emitMovImmToMem(Address maddr, int imm, codeGen &gen);
 void emitPushImm(unsigned int imm, codeGen &gen);
-
+void emitSaveO(codeGen &gen);
+void emitRestoreO(codeGen &gen);
 void emitSimpleInsn(unsigned opcode, codeGen &gen);
 
-void emitAddRegImm32(Register dest, int imm, codeGen &gen);
+void emitAddRegImm32(RealRegister dest, int imm, codeGen &gen);
+void emitSubRegReg(RealRegister dest, RealRegister src, codeGen &gen);
+void emitSHL(RealRegister dest, unsigned char pos, codeGen &gen);
 
-void emitLEA(Register base, Register index, unsigned int scale,
-	     RegValue disp, Register dest, codeGen &gen);
+void restoreGPRtoGPR(RealRegister reg, RealRegister dest, codeGen &gen);
+Register restoreGPRtoReg(RealRegister reg, codeGen &gen, RealRegister *dest_to_use = NULL);
+
+//Restore the SP+Imm to a GPR--an optimization for memory instrumentation
+void restoreSPImmToGPR(RealRegister dest, int imm, codeGen &gen);
+
+void emitLEA(RealRegister base, RealRegister index, unsigned int scale,
+	     RegValue disp, RealRegister dest, codeGen &gen);
+
+bool emitPush(RealRegister reg, codeGen &gen);
+bool emitPop(RealRegister reg, codeGen &gen);
 
 
 void emitJump(unsigned disp32, codeGen &gen);
@@ -278,11 +295,15 @@ void emitCallRel32(unsigned disp32, codeGen &gen);
 
 void emitJmpMC(int condition, int offset, codeGen &gen);
 // helper functions for emitters
+
+unsigned char cmovOpcodeFromRelOp(unsigned op);
 unsigned char jccOpcodeFromRelOp(unsigned op);
 
 
 // function that uses cpuid instruction to figure out whether the processor uses 
 // XMM registers
 bool xmmCapable();
+
+void emitBTRegRestores32(baseTrampInstance *bti, codeGen &gen);
 
 #endif

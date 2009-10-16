@@ -77,22 +77,6 @@ extern pdvector<Address> getTrampAddressesAtPoint(process *proc,
 
 class AstNode;
 
-/*
- * Insert instrumentation at the specified codeLocation.
- * TODO: make these methods of class process
- */
-
-// writes to (*mtInfo)
-#if 0
-loadMiniTramp_result loadMergedTramp(miniTramp *&mtHandle,
-                                   process *proc, 
-                                   instPoint *&location,
-                                   AstNodePtr ast, // the ast could be changed 
-                                   callWhen when, callOrder order, bool noCost,
-                                   returnInstance *&retInstance,
-                                   bool trampRecursiveDesired = false,
-                                   bool allowTramp = true);
-#endif
 /* Utility functions */
 
 int getPointCost(process *proc, const instPoint *point);
@@ -188,10 +172,16 @@ unsigned getPrimitiveCost(const std::string &name);
  * functions replace "emit" with more strongly typed versions.
  */
 
+typedef enum gnenum {
+   rc_before_jump,
+   rc_after_jump,
+   rc_no_control
+} RegControl;
+
 // The return value is a magic "hand this in when we update" black box;
 // emitA handles emission of things like ifs that need to be updated later.
 codeBufIndex_t emitA(opCode op, Register src1, Register src2, Register dst, 
-                     codeGen &gen, bool noCost);
+                     codeGen &gen, RegControl rc, bool noCost);
 
 // for operations requiring a Register to be returned
 // (e.g., getRetValOp, getParamOp, getSysRetValOp, getSysParamOp)

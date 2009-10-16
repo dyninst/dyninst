@@ -184,6 +184,7 @@ namespace Dyninst
 	}
 	if(locs->modrm_rm == 0x5)
 	{
+            assert(locs->opcode_position > -1);
 	  unsigned char opcode = rawInstruction[locs->opcode_position];
 	  // treat FP decodes as legacy mode since it appears that's what we've got in our 
 	  // old code...
@@ -203,7 +204,6 @@ namespace Dyninst
           return e;
       }
 	return make_shared(singleton_object_pool<Dereference>::construct(e, makeSizeType(opType)));
-	break;
       case 1:
       case 2:
 	{
@@ -213,7 +213,6 @@ namespace Dyninst
 	Expression::Ptr disp_e = makeAddExpression(e, getModRMDisplacement(), aw);
 	return make_shared(singleton_object_pool<Dereference>::construct(disp_e, makeSizeType(opType)));
 	}
-	break;
       case 3:
 	return e;
       default:
@@ -223,7 +222,7 @@ namespace Dyninst
 	
     }      
 
-    Expression::Ptr InstructionDecoder::decodeImmediate(unsigned int opType, unsigned int position)
+    Expression::Ptr InstructionDecoder::decodeImmediate(unsigned int opType, unsigned int position, bool isSigned)
     {
         const unsigned char* bufferEnd = bufferBegin + (bufferSize ? bufferSize : 16);
         assert(position != (unsigned int)(-1));
@@ -231,18 +230,18 @@ namespace Dyninst
       {
       case op_b:
           assert(rawInstruction + position < bufferEnd);
-	return Immediate::makeImmediate(Result(s8,*(const byte_t*)(rawInstruction + position)));
+          return Immediate::makeImmediate(Result(isSigned ? s8 : u8 ,*(const byte_t*)(rawInstruction + position)));
 	break;
       case op_d:
           assert(rawInstruction + position + 3 < bufferEnd);
-          return Immediate::makeImmediate(Result(s32,*(const dword_t*)(rawInstruction + position)));
+          return Immediate::makeImmediate(Result(isSigned ? s32 : u32,*(const dword_t*)(rawInstruction + position)));
       case op_w:
           assert(rawInstruction + position + 1 < bufferEnd);
-          return Immediate::makeImmediate(Result(s16,*(const word_t*)(rawInstruction + position)));
+          return Immediate::makeImmediate(Result(isSigned ? s16 : u16,*(const word_t*)(rawInstruction + position)));
 	break;
       case op_q:
           assert(rawInstruction + position + 7 < bufferEnd);
-          return Immediate::makeImmediate(Result(s64,*(const int64_t*)(rawInstruction + position)));
+          return Immediate::makeImmediate(Result(isSigned ? s64 : u64,*(const int64_t*)(rawInstruction + position)));
 	break;
       case op_v:
       case op_z:
@@ -251,12 +250,12 @@ namespace Dyninst
 	if(!sizePrefixPresent)
 	{
             assert(rawInstruction + position + 3 < bufferEnd);
-            return Immediate::makeImmediate(Result(s32,*(const dword_t*)(rawInstruction + position)));
+            return Immediate::makeImmediate(Result(isSigned ? s32 : u32,*(const dword_t*)(rawInstruction + position)));
 	}
 	else
 	{
             assert(rawInstruction + position + 1 < bufferEnd);
-            return Immediate::makeImmediate(Result(s16,*(const word_t*)(rawInstruction + position)));
+            return Immediate::makeImmediate(Result(isSigned ? s16 : u16,*(const word_t*)(rawInstruction + position)));
 	}
 	
 	break;
@@ -266,12 +265,12 @@ namespace Dyninst
 	if(!sizePrefixPresent)
 	{
             assert(rawInstruction + position + 5< bufferEnd);
-            return Immediate::makeImmediate(Result(s48,*(const int64_t*)(rawInstruction + position)));
+            return Immediate::makeImmediate(Result(isSigned ? s48 : u48,*(const int64_t*)(rawInstruction + position)));
 	}
 	else
 	{
             assert(rawInstruction + position + 3 < bufferEnd);
-            return Immediate::makeImmediate(Result(s32,*(const dword_t*)(rawInstruction + position)));
+            return Immediate::makeImmediate(Result(isSigned ? s32 : u32,*(const dword_t*)(rawInstruction + position)));
 	}
 	
 	break;
@@ -575,7 +574,7 @@ disp_pos)))));
 	break;
       case am_J:
 	{
-	  Expression::Ptr Offset(decodeImmediate(operand.optype, locs->imm_position));
+	  Expression::Ptr Offset(decodeImmediate(operand.optype, locs->imm_position, true));
 	  Expression::Ptr EIP(make_shared(singleton_object_pool<RegisterAST>::construct(r_EIP)));
 	  Expression::Ptr InsnSize(make_shared(singleton_object_pool<Immediate>::construct(Result(u8, decodedInstruction->getSize()))));
 	  Expression::Ptr postEIP(makeAddExpression(EIP, InsnSize, u32));
@@ -795,30 +794,45 @@ disp_pos)))));
       return true;
     }
 
+    extern ia32_entry invalid;
+    
     void InstructionDecoder::doIA32Decode()
     {
       if(decodedInstruction == NULL)
       {
 	decodedInstruction = reinterpret_cast<ia32_instruction*>(malloc(sizeof(ia32_instruction)));
+        assert(decodedInstruction);
       }
       if(locs == NULL)
       {
           locs = reinterpret_cast<ia32_locations*>(malloc(sizeof(ia32_locations)));
+          assert(locs);
       }
       
       locs = new(locs) ia32_locations();
+      assert(locs);
       decodedInstruction = new (decodedInstruction) ia32_instruction(NULL, NULL, locs);
-
+      assert(locs);
       ia32_decode(IA32_DECODE_PREFIXES, rawInstruction, *decodedInstruction);
       sizePrefixPresent = (decodedInstruction->getPrefix()->getOperSzPrefix() == 0x66);
     }
     
     unsigned int InstructionDecoder::decodeOpcode()
     {
-      doIA32Decode();
-      m_Operation = make_shared(singleton_object_pool<Operation>::construct(decodedInstruction->getEntry(),
-decodedInstruction->getPrefix(), locs));
-      return decodedInstruction->getSize();
+        static ia32_entry invalid = { e_No_Entry, 0, 0, true, { {0,0}, {0,0}, {0,0} }, 0, 0 };
+        doIA32Decode();
+        if(decodedInstruction->getEntry()) {
+            m_Operation = make_shared(singleton_object_pool<Operation>::construct(decodedInstruction->getEntry(),
+                                        decodedInstruction->getPrefix(), locs));
+        }
+        else
+        {
+            fprintf(stderr, "WARNING: couldn't decode instruction from %p, first byte 0x%x\n", rawInstruction,
+                    rawInstruction[0]);
+            m_Operation = make_shared(singleton_object_pool<Operation>::construct(&invalid,
+                                        decodedInstruction->getPrefix(), locs));
+        }
+        return decodedInstruction->getSize();
     }
     
     bool InstructionDecoder::decodeOperands(std::vector<Expression::Ptr>& operands)
@@ -826,6 +840,7 @@ decodedInstruction->getPrefix(), locs));
       operands.reserve(3);
       
       if(!decodedInstruction) return false;
+      assert(locs);
       
       for(unsigned i = 0; i < 3; i++)
       {

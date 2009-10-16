@@ -443,6 +443,16 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPointInt(
  * ops          The points within the procedure to return. A set of op codes
  *              defined in BPatch_opCode (BPatch_point.h)
  */
+
+struct compareByEntryAddr
+{
+    bool operator()(const BPatch_basicBlock* lhs, const BPatch_basicBlock* rhs)
+    {
+        return const_cast<BPatch_basicBlock*>(lhs)->getStartAddress() < 
+			const_cast<BPatch_basicBlock*>(rhs)->getStartAddress();
+    }
+};
+ 
 BPatch_Vector<BPatch_point*> *BPatch_function::findPointByOp(
         const BPatch_Set<BPatch_opCode>& ops)
 {
@@ -454,10 +464,12 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPointByOp(
   // function is generally uninstrumentable (with current technology)
   if (func->funcEntries().size() == 0) return NULL;
 
-  BPatch_Set<BPatch_basicBlock*> blocks;
+  std::set<BPatch_basicBlock*, compareByEntryAddr> blocks;
+  std::set<BPatch_basicBlock*> unsorted_blocks;
+  getCFG()->getAllBasicBlocks(unsorted_blocks);
+  std::copy(unsorted_blocks.begin(), unsorted_blocks.end(), std::inserter(blocks, blocks.begin()));
   BPatch_Vector<BPatch_point*>* ret = new BPatch_Vector<BPatch_point*>;
-  getCFG()->getAllBasicBlocks(blocks);
-  for(BPatch_Set<BPatch_basicBlock*>::iterator curBlk = blocks.begin();
+  for(std::set<BPatch_basicBlock*, compareByEntryAddr>::iterator curBlk = blocks.begin();
       curBlk != blocks.end();
      curBlk++)
   {

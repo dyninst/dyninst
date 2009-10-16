@@ -414,19 +414,23 @@ struct findInsns : public insnPredicate
     }
     result_type operator()(argument_type i)
     {
+        //static int counter = 0;
         if(findLoads && isLoad(i))
         {
-	//  	  fprintf(stderr, "Instruction %s is a load\n", i->format().c_str());
+            //counter++;
+            //fprintf(stderr, "Instruction #%d %s is a load\n", counter, i->format().c_str());
             return true;
         }
         if(findStores && isStore(i))
         {
-	   //         fprintf(stderr, "Instruction %s is a store\n", i->format().c_str());
+            //counter++;
+            //fprintf(stderr, "Instruction #%d %s is a store\n", counter, i->format().c_str());
 	  return true;
         }
         if(findPrefetch && isPrefetch(i))
         {
-	 //             fprintf(stderr, "Instruction %s is a prefetch\n", i->format().c_str());
+            //counter++;
+            //fprintf(stderr, "Instruction #%d %s is a prefetch\n", counter, i->format().c_str());
             return true;
         }
 	//	fprintf(stderr, "Instruction %s failed filter\n", i->format().c_str());
@@ -437,6 +441,18 @@ struct findInsns : public insnPredicate
     bool findPrefetch;
 };
 #endif
+        
+BPatch_point* BPatch_basicBlock::findEntryPointInt()
+{
+    return BPatch_point::createInstructionInstPoint(flowGraph->getAddSpace(), (void*)this->getStartAddressInt(),
+        flowGraph->getBFunction());
+}
+
+BPatch_point* BPatch_basicBlock::findExitPointInt()
+{
+    return BPatch_point::createInstructionInstPoint(flowGraph->getAddSpace(), (void*)this->getEndAddressInt(),
+            flowGraph->getBFunction());
+}
         
 BPatch_Vector<BPatch_point*>*
     BPatch_basicBlock::findPointByPredicate(insnPredicate& f)
@@ -453,9 +469,17 @@ BPatch_Vector<BPatch_point*>*
         {
             BPatch_point* tmp = BPatch_point::createInstructionInstPoint(flowGraph->getAddSpace(), (void*) curInsn->second,
                     flowGraph->getBFunction());
-            if(!tmp) fprintf(stderr, "WARNING: failed to create instpoint for load/store/prefetch at 0x%lx\n",
-            curInsn->second);
-            ret->push_back(tmp);
+            if(!tmp)
+            {
+#if defined(cap_instruction_api)
+                fprintf(stderr, "WARNING: failed to create instpoint for load/store/prefetch %s at 0x%lx\n",
+                    curInsn->first->format().c_str(), curInsn->second);
+#endif //defined(cap_instruction_api)
+            }
+            else
+            {
+                ret->push_back(tmp);
+            }
         }
     }
     return ret;
@@ -533,7 +557,7 @@ bool BPatch_basicBlock::getInstructionsInt(std::vector<InstructionAPI::Instructi
   using namespace InstructionAPI;
 
   InstructionDecoder d((const unsigned char*)(iblock->proc()->getPtrToInstruction(getStartAddress())), size());
-
+  d.setMode(iblock->proc()->getAddressWidth() == 8);
   do {
       insns.push_back(d.decode());
   } while (insns.back() && insns.back()->isValid());
@@ -550,6 +574,7 @@ bool BPatch_basicBlock::getInstructionsAddrs(std::vector<std::pair<InstructionAP
   const unsigned char *ptr = (const unsigned char *)iblock->proc()->getPtrToInstruction(addr);
   if (ptr == NULL) return false;
   InstructionDecoder d(ptr, size());
+  d.setMode(iblock->proc()->getAddressWidth() == 8);
 
   while (addr < getEndAddress()) {
       insnInstances.push_back(std::make_pair(d.decode(), addr));
