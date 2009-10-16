@@ -76,6 +76,7 @@ extern "C" DLLEXPORT TestMutator *test_stack_3_factory() {
 test_results_t test_stack_3_Mutator::executeTest() {
   bool passedTest;
 
+  BPatch::bpatch->setInstrStackFrames(true);
   appThread->continueExecution();
   static const frameInfo_t correct_frame_info[] = {
 	
