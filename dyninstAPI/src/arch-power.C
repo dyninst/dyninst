@@ -729,7 +729,40 @@ bool instruction::generate(codeGen &gen,
     long newOffset = 0;
     Address to;
 
-    if (isUncondBranch()) {
+    if (isThunk()) {
+      // This is actually a "get PC" operation, and we want
+      // to handle it as such. 
+      
+      fprintf(stderr, "INFO: handling a thunk operation at 0x%lx!\n",
+	      origAddr);
+
+      // 1: get the original return address (value stored in LR)
+      // This is origAddr + 4; optionally, check its displacement...
+      Address origRet = origAddr + 4;
+      
+      // 2: find a scratch register and load this value into it
+      instPoint *point = gen.point();
+      // If we do not have a point then we have to invent one
+      if (!point) 
+	point = instPoint::createArbitraryInstPoint(origAddr,
+						    gen.addrSpace(),
+						    gen.func());
+      assert(point);
+      
+      // Could see if the codeGen has it, but right now we have assert
+      // code there and we don't want to hit that.
+      registerSpace *rs = registerSpace::actualRegSpace(point,
+							callPreInsn);
+      
+      Register scratch = rs->getScratchRegister(gen, true);
+      assert(scratch != REG_NULL);
+
+      instruction::loadImmIntoReg(gen, scratch, origRet);
+
+      // 3: push this value into the LR
+      instruction::generateMoveToLR(gen, scratch);
+    }
+    else if (isUncondBranch()) {
         // unconditional pc relative branch.
 
         // This was a check in old code. Assert it isn't the case,
@@ -887,4 +920,40 @@ void instruction::generateMoveToLR(codeGen &gen, Register rs) {
     (*insn).xform.rb = (SPR_LR >> 5) & 0x1f;
     (*insn).xform.xo = MTSPRxop;
     insn.generate(gen);
+}
+
+// A thunk is a "get PC" operation. We consider
+// an instruction to be a thunk if it fulfills the following
+// requirements:
+//  1) It is unconditional or a "branch always" conditional
+//  2) It has an offset of 4
+//  3) It saves the return address in the link register
+bool instruction::isThunk() const {
+  switch (insn_.bform.op) {
+  case Bop:
+    // Unconditional branch, do nothing
+    break;
+  case BCop:
+    // Must be an "always" condition
+    if (!(insn_.bform.bo & 0x14))
+      return false;
+    break;
+  default:
+    return false;
+    break;
+  }
+
+  // 2
+  // The displacement is always right shifted 2 (because you can't
+  // jump to an unaligned address) so we can check if the displacement
+  // encoded is 1...
+  if (insn_.bform.bd != 1) return false;
+
+  // 3
+  if (!insn_.bform.lk) return false;
+
+  // Oh, and it better not be an absolute...
+  if (insn_.bform.aa) return false;
+
+  return true;
 }
