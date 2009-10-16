@@ -50,6 +50,7 @@ class IA_InstrucIter : public InstructionAdapter
     public:
         instruction getInstruction();
         IA_InstrucIter(InstrucIter from, image_func* f);
+        IA_InstrucIter(InstrucIter from, image * im);
         virtual bool hasCFT() const;
         virtual size_t getSize() const;
         virtual bool isFrameSetupInsn() const;

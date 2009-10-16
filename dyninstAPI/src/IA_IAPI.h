@@ -52,6 +52,8 @@ class IA_IAPI : public InstructionAdapter
     public:
         IA_IAPI(Dyninst::InstructionAPI::InstructionDecoder dec_,
                 Address start_, image_func* f);
+        IA_IAPI(Dyninst::InstructionAPI::InstructionDecoder dec_,
+                Address start_, image * im);
         Dyninst::InstructionAPI::Instruction::Ptr getInstruction();
     
         virtual bool hasCFT() const;

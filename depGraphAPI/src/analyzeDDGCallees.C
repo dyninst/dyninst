@@ -221,10 +221,10 @@ void DDGAnalyzer::summarizeLinearGenKill(Address placeholder,
     callee->getCFG()->getAllBasicBlocks(blocks);
 
     for (BlockSet::const_iterator iter = blocks.begin(); iter != blocks.end(); iter++) {
-        std::vector<std::pair<Insn, Address> > insns;
+        std::vector<std::pair<InsnPtr, Address> > insns;
         (*iter)->getInstructions(insns);
 
-        for (std::vector<std::pair<Insn,Address> >::iterator j = insns.begin();
+        for (std::vector<std::pair<InsnPtr,Address> >::iterator j = insns.begin();
              j != insns.end(); 
              j++) {
             DefSet writtenAbslocs = getDefinedAbslocs(j->first, j->second);
@@ -500,10 +500,10 @@ void DDGAnalyzer::summarizeLinearUsed(Address placeholder,
     callee->getCFG()->getAllBasicBlocks(blocks);
 
     for (BlockSet::const_iterator iter = blocks.begin(); iter != blocks.end(); ++iter) {
-        std::vector<std::pair<Insn, Address> > insns;
+        std::vector<std::pair<InsnPtr, Address> > insns;
         (*iter)->getInstructions(insns);
 
-        for (std::vector<std::pair<Insn,Address> >::iterator j = insns.begin();
+        for (std::vector<std::pair<InsnPtr,Address> >::iterator j = insns.begin();
              j != insns.end(); 
              ++j) {
             AbslocSet readAbslocs = getUsedAbslocs(j->first, j->second);

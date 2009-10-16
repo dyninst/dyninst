@@ -68,6 +68,16 @@ IA_IAPI::IA_IAPI(InstructionDecoder dec_, Address where_,
     boost::tuples::tie(curInsnIter, boost::tuples::ignore) = allInsns.insert(std::make_pair(current, dec.decode()));
 }
 
+IA_IAPI::IA_IAPI(InstructionDecoder dec_, Address where_,
+                image * im)
+    : InstructionAdapter(where_, im), dec(dec_),
+    validCFT(false), cachedCFT(0)
+{
+    hascftstatus.first = false;
+    tailCall.first = false;
+    boost::tuples::tie(curInsnIter, boost::tuples::ignore) = allInsns.insert(std::make_pair(current, dec.decode()));
+}
+
 void IA_IAPI::advance()
 {
     if(!curInsn()) return;
@@ -230,6 +240,12 @@ void IA_IAPI::getNewEdges(
         dictionary_hash<Address,
         std::string> *pltFuncs) const
 {
+    if(!context) {
+        fprintf(stderr, "[%s] getNewEdges not supported in non-image_func"
+                        "context\n", FILE__);
+        return;
+    }
+
     // Only call this on control flow instructions!
     if(curInsn()->getCategory() == c_CallInsn)
     {
@@ -610,7 +626,13 @@ Address IA_IAPI::findThunkInBlock(image_basicBlock* curBlock, Address& thunkOffs
             (const unsigned char*)(img->getPtrToInstruction(curBlock->firstInsnOffset()));
     InstructionDecoder dec(buf, curBlock->getSize());
     dec.setMode(img->getAddressWidth() == 8);
-    IA_IAPI block(dec, curBlock->firstInsnOffset(), context);
+    IA_IAPI * blockptr = NULL;
+    if(context) 
+        blockptr = new IA_IAPI(dec,curBlock->firstInsnOffset(),context);
+    else
+        blockptr = new IA_IAPI(dec,curBlock->firstInsnOffset(),img);
+    IA_IAPI & block = *blockptr;
+
     parsing_printf("\tchecking block at 0x%lx for thunk\n", curBlock->firstInsnOffset());
     while(block.getAddr() < curBlock->endOffset())
     {
@@ -627,7 +649,9 @@ Address IA_IAPI::findThunkInBlock(image_basicBlock* curBlock, Address& thunkOffs
                     Address thunkDiff = imm.convert<Address>();
                     parsing_printf("\tsetting thunkOffset to 0x%lx (0x%lx + 0x%lx)\n",
                                    thunkOffset+thunkDiff, thunkOffset, thunkDiff);
-                    return block.getPrevAddr();
+                    Address ret = block.getPrevAddr();
+                    delete blockptr;
+                    return ret;
                 }
             }
             thunkOffset = 0;
@@ -647,11 +671,14 @@ Address IA_IAPI::findThunkInBlock(image_basicBlock* curBlock, Address& thunkOffs
             {
                 thunkOffset = iprel.convert<Address>();
                 parsing_printf("\tsetting thunkOffset to 0x%lx at 0x%lx\n",thunkOffset, block.getAddr());
-                return block.getAddr();
+                Address ret = block.getAddr();
+                delete blockptr;
+                return ret;
             }
         }
         block.advance();
     }
+    delete blockptr;
     return 0;
 }
 

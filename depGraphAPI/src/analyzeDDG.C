@@ -228,10 +228,10 @@ void DDGAnalyzer::summarizeGenKillSets(const BlockSet &blocks) {
 }
 
 void DDGAnalyzer::summarizeBlockGenKill(Block *curBlock) {
-    std::vector<std::pair<Insn,Address> > insns;
+    std::vector<std::pair<InsnPtr,Address> > insns;
     curBlock->getInstructions(insns);
     
-    for (std::vector<std::pair<Insn,Address> >::reverse_iterator i = insns.rbegin();
+    for (std::vector<std::pair<InsnPtr,Address> >::reverse_iterator i = insns.rbegin();
          i != insns.rend(); 
          ++i) {
         const DefSet &writtenAbslocs = getDefinedAbslocs(i->first, i->second);
@@ -300,7 +300,7 @@ void DDGAnalyzer::updateKillSet(const AbslocPtr D,
     }
 }
 
-void DDGAnalyzer::summarizeCallGenKill(const Insn &,
+void DDGAnalyzer::summarizeCallGenKill(const InsnPtr,
                                        const Address &addr,
                                        DefMap &gens,
                                        KillMap &kills) {
@@ -514,14 +514,14 @@ void DDGAnalyzer::generateNodes(const BlockSet &blocks) {
 }
 
 void DDGAnalyzer::generateBlockNodes(Block *B) {
-    std::vector<std::pair<Insn, Address> > insns;
+    std::vector<std::pair<InsnPtr, Address> > insns;
     B->getInstructions(insns);
     DefMap &localReachingDefs = inSets[B];
     //fprintf(stderr, "\tBlock 0x%lx\n", B->getStartAddress());
     
     
     for (unsigned i = 0; i < insns.size(); ++i) {
-        Insn I = insns[i].first;
+        InsnPtr I = insns[i].first;
         Address addr = insns[i].second;
         //fprintf(stderr, "\t\t Insn at 0x%lx\n", addr); 
         
@@ -577,7 +577,7 @@ void DDGAnalyzer::generateBlockNodes(Block *B) {
 // also, rep prefixes. 
 
 
-void DDGAnalyzer::createInsnNodes(const Insn &I, 
+void DDGAnalyzer::createInsnNodes(const InsnPtr I, 
                                   const Address &addr,
                                   const DefSet &def,
                                   DefMap &localReachingDefs) {
@@ -588,13 +588,13 @@ void DDGAnalyzer::createInsnNodes(const Insn &I,
     NodeMap worklist;
 
     // Non-PC handling section
-    switch(I.getOperation().getID()) {
+    switch(I->getOperation().getID()) {
     case e_push: {
         // SP = SP - 4 
         // *SP = <register>
  
         std::vector<Operand> operands;
-        I.getOperands(operands);
+        I->getOperands(operands);
 
         // According to the InstructionAPI, the first operand will be the argument, the second will be ESP.
         assert(operands.size() == 2);
@@ -632,7 +632,7 @@ void DDGAnalyzer::createInsnNodes(const Insn &I,
         // So we need the PC and the SP
         RegisterAST::Ptr pc;
         RegisterAST::Ptr sp;
-        std::set<RegisterAST::Ptr> readRegs = I.getOperation().implicitReads();
+        std::set<RegisterAST::Ptr> readRegs = I->getOperation().implicitReads();
         for (std::set<RegisterAST::Ptr>::iterator iter = readRegs.begin(); iter != readRegs.end(); ++iter) {
             if (RegisterLoc::isSP(*iter))
                 sp = *iter;
@@ -658,7 +658,7 @@ void DDGAnalyzer::createInsnNodes(const Insn &I,
         // As with push, eSP shows up as operand 1. 
 
         std::vector<Operand> operands;
-        I.getOperands(operands);
+        I->getOperands(operands);
 
         // According to the InstructionAPI, the first operand will be the explicit register, the second will be ESP.
         assert(operands.size() == 2);
@@ -695,7 +695,7 @@ void DDGAnalyzer::createInsnNodes(const Insn &I,
         // Leave has no operands...
         RegisterAST::Ptr sp;
         RegisterAST::Ptr bp;
-        std::set<RegisterAST::Ptr> regs = I.getOperation().implicitWrites();
+        std::set<RegisterAST::Ptr> regs = I->getOperation().implicitWrites();
         for (std::set<RegisterAST::Ptr>::iterator iter = regs.begin(); iter != regs.end(); ++iter) {
             if (RegisterLoc::isSP(*iter))
                 sp = *iter;
@@ -706,7 +706,7 @@ void DDGAnalyzer::createInsnNodes(const Insn &I,
         Absloc::Ptr aBP = getAbsloc(bp);
 
         // We need the stack...
-        Operation::VCSet memReads = I.getOperation().getImplicitMemReads();
+        Operation::VCSet memReads = I->getOperation().getImplicitMemReads();
         // Use addr + 1 for now because we need the post-leave stack height...
         // This works because leave has a size of 1. It's ugly. I should fix this...
         Absloc::Ptr aStack = getAbsloc(*(memReads.begin()), addr+1);
@@ -731,7 +731,7 @@ void DDGAnalyzer::createInsnNodes(const Insn &I,
         // So we need the PC and the SP
         RegisterAST::Ptr pc;
         RegisterAST::Ptr sp;
-        std::set<RegisterAST::Ptr> regs = I.getOperation().implicitWrites();
+        std::set<RegisterAST::Ptr> regs = I->getOperation().implicitWrites();
         for (std::set<RegisterAST::Ptr>::iterator iter = regs.begin(); iter != regs.end(); ++iter) {
             if (RegisterLoc::isSP(*iter))
                 sp = *iter;
@@ -810,11 +810,11 @@ void DDGAnalyzer::createInsnNodes(const Insn &I,
 
     if (def.defPC()) {
     // We're some sort of branch...
-        switch(I.getOperation().getID()) {
+        switch(I->getOperation().getID()) {
             case e_ret_near:
             case e_ret_far: {
                 // Read top of stack, define PC
-                std::set<RegisterAST::Ptr> regs = I.getOperation().implicitReads();
+                std::set<RegisterAST::Ptr> regs = I->getOperation().implicitReads();
                 // Only one thing read...
                 RegisterAST::Ptr sp = *(regs.begin());
                 Absloc::Ptr aStack = getAbsloc(sp, addr); 
@@ -829,7 +829,7 @@ void DDGAnalyzer::createInsnNodes(const Insn &I,
                    Absloc::Ptr aPC = RegisterLoc::makePC();
                    NodePtr T = makeNode(cNode(addr, aPC));
                    std::vector<Operand> operands;
-                   I.getOperands(operands);
+                   I->getOperands(operands);
                    for (unsigned i = 0; i < operands.size(); ++i) {
                        std::set<RegisterAST::Ptr> regs;
                        operands[i].getWriteSet(regs);
@@ -1101,11 +1101,11 @@ Absloc::Ptr DDGAnalyzer::getAbsloc(const InstructionAPI::RegisterAST::Ptr reg) {
     return RegisterLoc::getRegLoc(reg);
 }
 
-void DDGAnalyzer::getUsedAbslocs(const InstructionAPI::Instruction insn,
+void DDGAnalyzer::getUsedAbslocs(const InsnPtr insn,
                                  Address addr,
                                  AbslocSet &uses) {
     std::set<RegisterAST::Ptr> regReads;
-    insn.getReadSet(regReads);
+    insn->getReadSet(regReads);
 
     // Registers are nice and easy. The next clause is for memory... now
     // that sucks.
@@ -1118,9 +1118,9 @@ void DDGAnalyzer::getUsedAbslocs(const InstructionAPI::Instruction insn,
     }
 
     // Also handle memory writes
-    if (insn.readsMemory()) {
+    if (insn->readsMemory()) {
         std::set<Expression::Ptr> memReads;
-        insn.getMemoryReadOperands(memReads);
+        insn->getMemoryReadOperands(memReads);
         for (std::set<Expression::Ptr>::const_iterator r = memReads.begin();
              r != memReads.end();
              ++r) {
@@ -1129,15 +1129,11 @@ void DDGAnalyzer::getUsedAbslocs(const InstructionAPI::Instruction insn,
     }
 }
 
-void DDGAnalyzer::getDefinedAbslocsInt(const InstructionAPI::Instruction insn,
+void DDGAnalyzer::getDefinedAbslocsInt(const InsnPtr insn,
                                        Address addr,
                                        DefSet &defs) {
     std::set<RegisterAST::Ptr> regWrites;
-    insn.getWriteSet(regWrites);            
-
-    if (addr == 0x9124d2) {
-        fprintf(stderr, "Here!\n");
-    }
+    insn->getWriteSet(regWrites);            
 
     // Registers are nice and easy. The next clause is for memory... now
     // that sucks.
@@ -1164,9 +1160,9 @@ void DDGAnalyzer::getDefinedAbslocsInt(const InstructionAPI::Instruction insn,
     }
 
     // Also handle memory writes
-    if (insn.writesMemory()) {
+    if (insn->writesMemory()) {
         std::set<Expression::Ptr> memWrites;
-        insn.getMemoryWriteOperands(memWrites);
+        insn->getMemoryWriteOperands(memWrites);
         for (std::set<Expression::Ptr>::const_iterator w = memWrites.begin();
              w != memWrites.end();
              ++w) {
@@ -1360,18 +1356,18 @@ Node::Ptr DDGAnalyzer::makeNode(const cNode &cnode) {
     return nodeMap[cnode];
 }
 
-bool DDGAnalyzer::isCall(Insn i) const {
-    entryID what = i.getOperation().getID();
+bool DDGAnalyzer::isCall(InsnPtr i) const {
+    entryID what = i->getOperation().getID();
     return (what == e_call);
 }
  
-bool DDGAnalyzer::isReturn(Insn i) const {
-    entryID what = i.getOperation().getID();
+bool DDGAnalyzer::isReturn(InsnPtr i) const {
+    entryID what = i->getOperation().getID();
     return ((what == e_ret_far) ||
             (what == e_ret_near));
 }
 
-const DDGAnalyzer::DefSet &DDGAnalyzer::getDefinedAbslocs(const Insn &insn,
+const DDGAnalyzer::DefSet &DDGAnalyzer::getDefinedAbslocs(const InsnPtr insn,
                                                           const Address &a) {
     if (defCache.find(a) == defCache.end()) {
         assert(defCache.find(a) == defCache.end());
@@ -1380,7 +1376,7 @@ const DDGAnalyzer::DefSet &DDGAnalyzer::getDefinedAbslocs(const Insn &insn,
     return defCache[a];
 }
 
-const DDGAnalyzer::AbslocSet &DDGAnalyzer::getUsedAbslocs(const Insn &insn,
+const DDGAnalyzer::AbslocSet &DDGAnalyzer::getUsedAbslocs(const InsnPtr insn,
                                                           const Address &a) {
     if (globalUsed.find(a) == globalUsed.end()) {
         getUsedAbslocs(insn, a, globalUsed[a]);

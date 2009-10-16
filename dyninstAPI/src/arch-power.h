@@ -708,7 +708,7 @@ class instruction {
     
     const unsigned int &raw() const { return insn_.raw; }
     
-    const unsigned opcode() const;
+    unsigned opcode() const;
     
     // For external modification
     instructUnion &operator* () { return insn_; }
@@ -759,7 +759,8 @@ class instruction {
     
     bool isCondBranch() const;
     bool isUncondBranch() const;
-  
+    bool isThunk() const;
+
 
 #if 0
   // Copied from arch-x86... implement as needed

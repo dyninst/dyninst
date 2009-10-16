@@ -169,7 +169,7 @@ void PDGAnalyzer::createEdges(Graph::Ptr graph, Node::Ptr source,
 }
 
 void PDGAnalyzer::mergeWithCDG() {
-    typedef vector<Instruction>::iterator InsIter;
+    typedef vector<Instruction::Ptr>::iterator InsIter;
 
     // get the CDG and all of its nodes.
     Graph::Ptr cdg = CDG::analyze(func_);
@@ -200,9 +200,9 @@ void PDGAnalyzer::mergeWithCDG() {
         Block* block = node->block();
 
         // find last instruction in block
-        vector<Instruction> insns;
+        vector<Instruction::Ptr> insns;
         block->getInstructions(insns);
-        Address lastInstAddr = (Address) (block->getEndAddress() - insns[insns.size() - 1].size());
+        Address lastInstAddr = (Address) (block->getEndAddress() - insns.back()->size());
 
         // Find the node that is related to the EIP register.
         NodeIterator sourcesBegin, sourcesEnd;
@@ -232,7 +232,7 @@ void PDGAnalyzer::mergeWithCDG() {
 
             Block* targetBlock = targetNode->block();
             // for each instruction in block
-            vector<Instruction> targetInsns;
+            vector<Instruction::Ptr> targetInsns;
             targetBlock->getInstructions(targetInsns);
             Address targetAddr = (Address) targetBlock->getStartAddress();
             for (InsIter insIter = targetInsns.begin(); insIter != targetInsns.end(); insIter++) {
@@ -244,7 +244,7 @@ void PDGAnalyzer::mergeWithCDG() {
                 createEdges(pdg, source, targetsBegin, targetsEnd);
 
                 // increment the address by the size of this instruction
-                targetAddr += (*insIter).size();
+                targetAddr += (*insIter)->size();
             }
         }
     }

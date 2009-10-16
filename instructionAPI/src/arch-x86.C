@@ -2716,7 +2716,12 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
         switch(idx) {
         case Grp2:
         case Grp11:
-          // leave table unchanged because operands are in not defined in group map
+          /* leave table unchanged because operands are in not 
+             defined in group map, unless this is an invalid index
+             into the group, in which case we need the instruction
+             to reflect its illegal status */
+          if(groupMap[idx][reg].id == e_No_Entry)
+            gotit = &groupMap[idx][reg];
           nxtab = groupMap[idx][reg].otable;
           assert(nxtab==t_done || nxtab==t_ill);
           break;
