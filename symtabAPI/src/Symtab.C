@@ -1829,32 +1829,17 @@ bool Symtab::closeSymtab(Symtab *st)
 {
 	bool found = false;
 	assert(st);
-	//int numSymtabs = allSymtabs.size();
 
 	std::vector<Symtab *>::reverse_iterator iter;
 	for (iter = allSymtabs.rbegin(); iter != allSymtabs.rend() ; iter++)
 	{
 		if (*iter == st)
 		{
-			fprintf(stderr, "%s[%d]:  before erase\n", FILE__, __LINE__);
 			allSymtabs.erase(iter.base() -1);
-			fprintf(stderr, "%s[%d]:  after erase\n", FILE__, __LINE__);
 			found = true;
 		}
 	}
 	delete(st);
-#if 0
-	for (int i=(numSymtabs -1); i > 0; --i) 
-	{
-		assert(allSymtabs[i]);
-		if (allSymtabs[i] == st)
-		{
-			allSymtabs.erase(allSymtabs.begin()+i);
-			delete st;
-			found = true;
-		}
-	}   
-#endif
 	return found;
 }
 
@@ -2269,7 +2254,7 @@ SYMTAB_EXPORT Type *Symtab::findType(unsigned type_id)
 
    if (!_mods.size())
    {
-	   fprintf(stderr, "%s[%d]:  findType failing due to lack of modules\n", FILE__, __LINE__);
+	   //fprintf(stderr, "%s[%d]:  findType failing due to lack of modules\n", FILE__, __LINE__);
       return NULL;
    }
 
@@ -2290,7 +2275,7 @@ SYMTAB_EXPORT Type *Symtab::findType(unsigned type_id)
 	   }
 	   else
 	   {
-		   fprintf(stderr, "%s[%d]:  no built in types!\n", FILE__, __LINE__);
+		   //fprintf(stderr, "%s[%d]:  no built in types!\n", FILE__, __LINE__);
 	   }
 
 	   if (stdTypes)
@@ -2300,7 +2285,7 @@ SYMTAB_EXPORT Type *Symtab::findType(unsigned type_id)
 	   }
 	   else
 	   {
-		   fprintf(stderr, "%s[%d]:  no std types!\n", FILE__, __LINE__);
+		   //fprintf(stderr, "%s[%d]:  no std types!\n", FILE__, __LINE__);
 	   }
 
 	   return NULL;
@@ -2710,7 +2695,8 @@ void Symtab::rebuild_region_indexes() THROW_SPEC (SerializerError)
 }
 void Symtab::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
-	fprintf(stderr, "%s[%d]:  welcome to Symtab::serialize_impl\n", FILE__, __LINE__);
+	serialize_printf("%s[%d]:  welcome to Symtab::serialize_impl\n", 
+			FILE__, __LINE__);
 	try 
 	{
 		ifxml_start_element(sb, tag);
@@ -2763,7 +2749,7 @@ void Symtab::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (Ser
       //if (getSD().iomode() == sd_deserialize)
       //   param.exec_ = parent_symtab;
    } SER_CATCH("Symtab");
-	fprintf(stderr, "%s[%d]:  leaving Symtab::serialize_impl\n", FILE__, __LINE__);
+	serialize_printf("%s[%d]:  leaving Symtab::serialize_impl\n", FILE__, __LINE__);
 }
 
 SYMTAB_EXPORT LookupInterface::LookupInterface() 

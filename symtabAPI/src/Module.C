@@ -37,6 +37,7 @@
 #include "Function.h"
 #include "Variable.h"
 #include "LineInformation.h"
+#include "symutil.h"
 
 #include "common/h/pathName.h"
 #include "common/h/serialize.h"
@@ -162,7 +163,8 @@ bool Module::getAddressRanges(std::vector<pair<Offset, Offset> >&ranges,
    if ( ranges.size() != originalSize )
       return true;
 
-   fprintf(stderr, "%s[%d]:  failing to getAddressRanges fr %s[%d]\n", FILE__, __LINE__, lineSource.c_str(), lineNo);
+   serialize_printf("%s[%d]:  failing to getAddressRanges fr %s[%d]\n", 
+		   FILE__, __LINE__, lineSource.c_str(), lineNo);
 
    return false;
 }

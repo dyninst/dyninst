@@ -147,7 +147,7 @@ test_results_t test_line_info_Mutator::basic_verification()
 					|| (modname == "solo_mutatee_boilerplate.c")
 					|| (modname == "mutatee_driver.c"))
 			{
-				fprintf(stderr, "%s[%d]:  getStatements failed for module %s\n", 
+				logerror( "%s[%d]:  getStatements failed for module %s\n", 
 						FILE__, __LINE__, modname.c_str());
 				return FAILED;
 			}
@@ -177,7 +177,7 @@ test_results_t test_line_info_Mutator::executeTest()
 
 	if (FAILED == basic_verification())
 	{
-		fprintf(stderr, "%s[%d]:  failed basic verifications, skipping rest...\n", 
+		logerror( "%s[%d]:  failed basic verifications, skipping rest...\n", 
 				FILE__, __LINE__);
 		return FAILED;
 	}

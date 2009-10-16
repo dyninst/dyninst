@@ -81,4 +81,5 @@ COMMON_EXPORT std::string utos(unsigned);
 COMMON_EXPORT bool wildcardEquiv(const std::string &us, const std::string &them, bool checkCase = false );
 
 }
+
 #endif

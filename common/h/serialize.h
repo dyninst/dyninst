@@ -199,21 +199,23 @@ class SerializerBin : public SerializerBase {
 	friend class SerDesBin;
 
 	public:
-	virtual bool isXML() {return false;}
-	virtual bool isBin () {return true;}
+	COMMON_EXPORT virtual bool isXML() {return false;}
+	COMMON_EXPORT virtual bool isBin () {return true;}
 
-	SerializerBin()  :
+	COMMON_EXPORT SerializerBin()  :
 		SerializerBase() {}
 
 
-	SerializerBin(SerContextBase *s, std::string name_, std::string filename,
+	COMMON_EXPORT SerializerBin(SerContextBase *s, std::string name_, std::string filename,
 			iomode_t dir, bool verbose);
 
-	virtual ~SerializerBin();
+	COMMON_EXPORT virtual ~SerializerBin();
 
-	SerDesBin &getSD_bin();
+	COMMON_EXPORT SerDesBin &getSD_bin();
 
+#if 0
 	static SerializerBin *findSerializerByName(const char *name_);
+#endif
 
 };
 

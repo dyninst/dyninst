@@ -229,7 +229,7 @@ bool VariableLocation::operator==(const VariableLocation &f)
 }
 void VariableLocation::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
-	fprintf(stderr, "%s[%d]:  welcome to VariableLocation::serialize_impl\n", FILE__, __LINE__);
+	serialize_printf("%s[%d]:  welcome to VariableLocation::serialize_impl\n", FILE__, __LINE__);
 	ifxml_start_element(sb, tag);
 	gtranslate(sb, stClass, storageClass2Str, "StorageClass");
 	gtranslate(sb, refClass, storageRefClass2Str, "StorageRefClass");
@@ -238,7 +238,7 @@ void VariableLocation::serialize_impl(SerializerBase *sb, const char *tag) THROW
 	gtranslate(sb, hiPC, "hiPC");
 	gtranslate(sb, lowPC, "lowPC");
 	ifxml_end_element(sb, tag);
-	fprintf(stderr, "%s[%d]:  leaving to VariableLocation::serialize_impl\n", FILE__, __LINE__);
+	serialize_printf("%s[%d]:  leaving to VariableLocation::serialize_impl\n", FILE__, __LINE__);
 }
 
 localVar::localVar(std::string name,  Type *typ, std::string fileName, 
@@ -369,7 +369,7 @@ bool localVar::operator==(const localVar &l)
 
 void localVar::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
 {
-	fprintf(stderr, "%s[%d]:  welcome to localVar::serialize_impl\n", FILE__, __LINE__);
+	serialize_printf("%s[%d]:  welcome to localVar::serialize_impl\n", FILE__, __LINE__);
 	//  Use typeID as unique identifier
 	//  magic numbers stink, but we use both positive and negative numbers for type ids
 	unsigned int t_id = (unsigned int) 0xdeadbeef;
@@ -421,11 +421,11 @@ void localVar::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC(Se
 			if (!type_)
 			{
 				//  This should probably throw, but let's play nice for now
-				fprintf(stderr, "%s[%d]:  FIXME: cannot find type with id %d\n", FILE__, __LINE__, t_id);
+				serialize_printf("%s[%d]:  FIXME: cannot find type with id %d\n", FILE__, __LINE__, t_id);
 			}
 		}
 
 	}
-	fprintf(stderr, "%s[%d]:  %sserialized localVar %s, done\n", FILE__, __LINE__, sb->isInput() ? "de" : "", name_.c_str());
+	serialize_printf("%s[%d]:  %sserialized localVar %s, done\n", FILE__, __LINE__, sb->isInput() ? "de" : "", name_.c_str());
 }
 

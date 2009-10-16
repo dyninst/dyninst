@@ -1011,7 +1011,7 @@ test_results_t test_type_info_Mutator::verify_basic_type_lists()
 		      ||(mods[i]->fileName() == std::string("solo_mutatee_boilerplate.c"))
 		      ||(mods[i]->fileName() == std::string("mutatee_driver.c")))
 		   {
-			   fprintf(stderr, "%s[%d]:  module %s has no types\n", FILE__, __LINE__, 
+			   logerror( "%s[%d]:  module %s has no types\n", FILE__, __LINE__, 
 					   mods[i]->fileName().c_str());
 
 			   return FAILED;

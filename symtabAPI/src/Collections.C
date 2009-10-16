@@ -115,7 +115,7 @@ std::vector<localVar *> *localVarCollection::getAllVars()
 void localVarCollection::ac_serialize_impl(SerializerBase *s, const char *tag) THROW_SPEC (SerializerError)
 {
 	unsigned short lvmagic = 72;
-	fprintf(stderr, "%s[%d]:  welcome to localVarCollection: ac_serialize_impl\n", 
+	serialize_printf("%s[%d]:  welcome to localVarCollection: ac_serialize_impl\n", 
 			FILE__, __LINE__);
 	ifxml_start_element(s, tag);
 	gtranslate(s, lvmagic, "LocalVarMagicID");
@@ -128,7 +128,7 @@ void localVarCollection::ac_serialize_impl(SerializerBase *s, const char *tag) T
 		fprintf(stderr, "\n\n%s[%d]: FIXME:  out-of-sync\n\n\n", FILE__, __LINE__);
 	}
 
-	fprintf(stderr, "%s[%d]:  localVarCollection: ac_serialize_impl, translate done\n", FILE__, __LINE__);
+	serialize_printf("%s[%d]:  localVarCollection: ac_serialize_impl, translate done\n", FILE__, __LINE__);
 
 	if (s->isInput())
 	{
@@ -139,10 +139,10 @@ void localVarCollection::ac_serialize_impl(SerializerBase *s, const char *tag) T
 			assert(lv);
 			localVariablesByName[lv->getName()] = lv;
 		}
-		fprintf(stderr, "%s[%d]:  deserialized %ld local vars\n", FILE__, __LINE__, localVars.size());
+		serialize_printf("%s[%d]:  deserialized %ld local vars\n", FILE__, __LINE__, localVars.size());
 	}
 	else
-		fprintf(stderr, "%s[%d]:  serialized %ld local vars\n", FILE__, __LINE__, localVars.size());
+		serialize_printf("%s[%d]:  serialized %ld local vars\n", FILE__, __LINE__, localVars.size());
 
 }
 
@@ -429,7 +429,8 @@ vector<pair<string, Type *> > *typeCollection::getAllGlobalVariables() {
 
 void typeCollection::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
-	//fprintf(stderr, "%s[%d]:  IMPLEMENT ME\n", FILE__, __LINE__);
+	serialize_printf("%s[%d]:  IMPLEMENT ME\n", FILE__, __LINE__);
+#if 0
 	unsigned short tcmagic = 73;
 	ifxml_start_element(sb, tag);
 	//gtranslate(sb, typesByName, "typesByName");
@@ -438,7 +439,7 @@ void typeCollection::serialize_impl(SerializerBase *sb, const char *tag) THROW_S
 	dyn_hash_map<std::string, Type *>::iterator iter;
 	for (iter = typesByName.begin(); iter != typesByName.end(); iter++)
 		sz_count++;
-	fprintf(stderr, "%s[%d]:  before translate typesByName, size = %lu, count == %d\n", FILE__, __LINE__, typesByName.size(), sz_count);
+	serialize_printf("%s[%d]:  before translate typesByName, size = %lu, count == %d\n", FILE__, __LINE__, typesByName.size(), sz_count);
 	//translate_dyn_hash_map(sb, typesByName, "typesByName", "typesByNameElem");
 	sb->magic_check(FILE__, __LINE__);
 	//translate_dyn_hash_map(sb, globalVarsByName, "globalVarsByName", "globalVarsByNameElem");
@@ -462,6 +463,7 @@ void typeCollection::serialize_impl(SerializerBase *sb, const char *tag) THROW_S
 		}
 	}
 	sb->magic_check(FILE__, __LINE__);
+#endif
 }
 
 /*
