@@ -109,13 +109,13 @@ FDG::Ptr FDGAnalyzer::analyze() {
 void FDGAnalyzer::markBlocksWithJump(BlockSet &blocks) {
   for (BlockSet::iterator blockIter = blocks.begin(); blockIter != blocks.end(); blockIter++) {
     Block* block = *blockIter;
-    vector<Instruction> instructions;
+    vector<Instruction::Ptr> instructions;
     block->getInstructions(instructions);
 
     assert(instructions.size() > 0);
 
-    Instruction& lastInst = instructions[ instructions.size() - 1 ];
-    const Operation& opType = lastInst.getOperation();
+    Instruction::Ptr lastInst = instructions.back();
+    const Operation& opType = lastInst->getOperation();
     
     if (isReturnOp(opType) || isBranchOp(opType)) {
       markedBlocks.insert(block);

@@ -189,11 +189,11 @@ void xPDGAnalyzer::mergeWithFDG() {
         Block* block = node->block();
 
         // Find the last instruction.
-        vector<Instruction> insns;
+        vector<Instruction::Ptr> insns;
         block->getInstructions(insns);
-        Instruction& lastInst = insns[insns.size() - 1];
-        Address lastInstAddr = (Address) (block->getEndAddress() - lastInst.size());
-        const Operation& opType = lastInst.getOperation();
+        Instruction::Ptr lastInst = insns.back();
+        Address lastInstAddr = (Address) (block->getEndAddress() - lastInst->size());
+        const Operation& opType = lastInst->getOperation();
         NodePtr source;
         // Process the node if the last instruction is a jump/branch/return instruction.
         if (FDGAnalyzer::isReturnOp(opType) || FDGAnalyzer::isBranchOp(opType)) {
@@ -222,7 +222,7 @@ void xPDGAnalyzer::mergeWithFDG() {
                 NodeIterator tBegin, tEnd;
                 xpdg->Graph::find(targetAddr, tBegin, tEnd);
                 PDGAnalyzer::createEdges(xpdg, source, tBegin, tEnd);
-                targetAddr += insns[i].size();
+                targetAddr += insns[i]->size();
             }
 
             // now add inter-block dependencies!
@@ -232,16 +232,16 @@ void xPDGAnalyzer::mergeWithFDG() {
                 assert(targetNode);
 
                 Block* targetBlock = targetNode->block();
-                vector<Instruction> targetIns;
+                vector<Instruction::Ptr> targetIns;
                 targetBlock->getInstructions(targetIns);
 
                 // check if the last instruction is jump/branch/return (It can't be return, can it?)
-                Instruction& lastTargetInst = targetIns[targetIns.size() - 1];
-                const Operation& targetOpType = lastTargetInst.getOperation();
+                Instruction::Ptr lastTargetInst = targetIns.back();
+                const Operation& targetOpType = lastTargetInst->getOperation();
                 if (FDGAnalyzer::isReturnOp(targetOpType) || FDGAnalyzer::isBranchOp(targetOpType)) {
                     // add an edge only to the last instruction of this block.
                     Address lastTargetAddr =
-                        (Address) (targetBlock->getEndAddress() - lastTargetInst.size());
+                        (Address) (targetBlock->getEndAddress() - lastTargetInst->size());
                     NodeIterator tBegin, tEnd;
                     xpdg->Graph::find(lastTargetAddr, tBegin, tEnd);
                     PDGAnalyzer::createEdges(xpdg, source, tBegin, tEnd);
@@ -254,7 +254,7 @@ void xPDGAnalyzer::mergeWithFDG() {
                         NodeIterator tBegin, tEnd;
                         xpdg->Graph::find(targetAddr, tBegin, tEnd);
                         PDGAnalyzer::createEdges(xpdg, source, tBegin, tEnd);
-                        targetAddr += targetIns[j].size();
+                        targetAddr += targetIns[j]->size();
                     }
                 }
             }
