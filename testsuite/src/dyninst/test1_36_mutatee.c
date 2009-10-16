@@ -78,7 +78,6 @@ int test1_36_func1() {
               test1_36_globalVariable6);
       failure = 1;
    }
-#if !defined(alpha_dec_osf4_0_test) && !defined(arch_x86_64_test)  /* alpha and AMD64 don't handle more than 6 */
    if(test1_36_globalVariable7 != 7) {
       logerror("   for test 36, expecting arg7 value of 7, got %d\n",
               test1_36_globalVariable7);
@@ -104,11 +103,6 @@ int test1_36_func1() {
       failure = 1;
 #endif
    }
-#else
-   logerror("    test 36: AMD64 and alpha currently do not handle referencing more than\n");
-   
-   logerror("    6 callsite args, so not testing past 6 args\n");
-#endif
 
    if(failure == 0) {
       logerror( "Passed test #36 (callsite parameter referencing)\n" );    
