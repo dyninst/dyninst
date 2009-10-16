@@ -1440,37 +1440,40 @@ codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, Register dest,
    return retval;
 }
 
-Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
-               codeGen &gen, bool /*noCost*/,
-               const instPoint *location, bool /*for_multithreaded*/, 
-               bool get_addr_of)
+Register emitR(opCode op, Register src1, Register src2, Register dest,
+               codeGen &gen, bool noCost,
+               const instPoint *location, bool /*for_multithreaded*/)
 {
     //bperr("emitR(op=%d,src1=%d,src2=XX,dest=%d)\n",op,src1,dest);
 
-    switch (op) {
-      case getRetValOp: {
-         // dest is a register where we can store the value
-         // the return value is in the saved EAX
+   bool get_addr_of = (src2 != Null_Register);
+   switch (op) {
+       case getRetValOp:
+          // dest is a register where we can store the value
+          // the return value is in the saved EAX
           gen.codeEmitter()->emitGetRetVal(dest, get_addr_of, gen);
-          return dest;
-      }
-      case getParamOp: {
-         // src1 is the number of the argument
-         // dest is a register where we can store the value
+          if (!get_addr_of)
+             return dest;
+          break;
+       case getParamOp:
+          // src1 is the number of the argument
+          // dest is a register where we can store the value
           gen.codeEmitter()->emitGetParam(dest, src1, location->getPointType(), 
                                           get_addr_of, gen);
+          if (!get_addr_of)
+             return dest;
+          break;
+       case loadRegOp:
+          assert(src1 == 0);
+          assert(0);
           return dest;
-      }
-    case loadRegOp: {
-        assert(src1 == 0);
-
-        assert(0);
-        return dest;
+       default:
+          abort();                  // unexpected op for this emit!
     }
-    default:
-        abort();                  // unexpected op for this emit!
-    }
-    return(Null_Register);        // should never be reached!
+    assert(get_addr_of);
+    emitV(storeIndirOp, src2, 0, dest, gen, noCost, gen.rs(), 
+          gen.addrSpace()->getAddressWidth(), gen.point(), gen.addrSpace());
+    return(Null_Register);
 }
 
 void emitSHL(RealRegister dest, unsigned char pos, codeGen &gen)

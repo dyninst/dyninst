@@ -104,8 +104,8 @@ class EmitterPOWER : public Emitter {
     virtual Register emitCall(opCode, codeGen &, const pdvector<AstNodePtr> &,
 			      bool, int_function *) = 0;
 
-    virtual void emitGetRetVal(Register, codeGen &) { assert(0); }
-    virtual void emitGetParam(Register, Register, instPointType_t, codeGen &) { assert(0); }
+    virtual void emitGetRetVal(Register, bool, codeGen &) { assert(0); }
+    virtual void emitGetParam(Register, Register, instPointType_t, bool, codeGen &) { assert(0); }
     virtual void emitFuncJump(Address, instPointType_t, codeGen &) { assert(0); }
     virtual void emitASload(int, int, int, long, Register, codeGen &) { assert(0); }
     virtual void emitCSload(int, int, int, long, Register, codeGen &) { assert(0); }

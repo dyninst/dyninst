@@ -364,7 +364,29 @@ void EmitterIA32::emitStoreFrameRelative(Address offset, Register src, Register 
 void EmitterIA32::emitGetRetVal(Register dest, bool addr_of, codeGen &gen)
 {
    RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
-   restoreGPRtoGPR(RealRegister(REGNUM_EAX), dest_r, gen);
+   if (!addr_of) {
+      restoreGPRtoGPR(RealRegister(REGNUM_EAX), dest_r, gen);
+      return;
+   }
+  
+   //EAX isn't really defined here, but this will make the code generator
+   //put it onto the stack and thus guarentee that we'll have an
+   //address to access it at.
+   gen.markRegDefined(REGNUM_EAX);
+   stackItemLocation loc = getHeightOf(stackItem::framebase, gen);
+
+   pdvector<registerSlot *> &regs = gen.rs()->trampRegs();
+   registerSlot *eax = NULL;
+   for (unsigned i=0; i<regs.size(); i++) {
+      if (regs[i]->encoding() == REGNUM_EAX) {
+         eax = regs[i];
+         break;
+      }
+   }
+   assert(eax);
+
+   loc.offset += (eax->saveOffset * 4);
+   emitLEA(loc.reg, RealRegister(Null_Register), 0, loc.offset, dest_r, gen);
 }
 
 void EmitterIA32::emitGetParam(Register dest, Register param_num, instPointType_t pt_type, bool addr_of, codeGen &gen)
@@ -380,7 +402,10 @@ void EmitterIA32::emitGetParam(Register dest, Register param_num, instPointType_
    loc.offset += param_num*4;
 
    RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
-   emitMovRMToReg(dest_r, loc.reg, loc.offset, gen);
+   if (!addr_of)
+      emitMovRMToReg(dest_r, loc.reg, loc.offset, gen);
+   else 
+      emitLEA(loc.reg, RealRegister(Null_Register), 0, loc.offset, dest_r, gen);
 }
 
 bool EmitterIA32::emitBTSaves(baseTramp* bt, baseTrampInstance *inst, codeGen &gen)
@@ -1626,15 +1651,50 @@ bool EmitterAMD64Stat::emitCallInstruction(codeGen &gen, int_function *callee, R
 // FIXME: comment here on the stack layout
 void EmitterAMD64::emitGetRetVal(Register dest, bool addr_of, codeGen &gen)
 {
-    emitLoadOrigRegister(REGNUM_RAX, dest, gen);
-    gen.markRegDefined(dest);
+   if (!addr_of) {
+      emitLoadOrigRegister(REGNUM_RAX, dest, gen);
+      gen.markRegDefined(dest);
+      return;
+   }
+   
+   //RAX isn't defined here.  See comment in EmitterIA32::emitGetRetVal
+   gen.markRegDefined(REGNUM_RAX);
+   stackItemLocation loc = getHeightOf(stackItem::framebase, gen);
+   registerSlot *rax = (*gen.rs())[REGNUM_RAX];
+   assert(rax);
+   loc.offset += (rax->saveOffset * 8);
+   emitLEA64(loc.reg.reg(), REG_NULL, 0, loc.offset, dest, true, gen);
 }
 
-void EmitterAMD64::emitGetParam(Register dest, Register param_num, instPointType_t /*pt_type*/, bool addr_of, codeGen &gen)
+
+void EmitterAMD64::emitGetParam(Register dest, Register param_num, instPointType_t pt_type, bool addr_of, codeGen &gen)
 {
-    assert(param_num <= 6);
-    emitLoadOrigRegister(amd64_arg_regs[param_num], dest, gen);
-    gen.markRegDefined(dest);
+   if (!addr_of && param_num < 6) {
+      emitLoadOrigRegister(amd64_arg_regs[param_num], dest, gen);
+      gen.markRegDefined(dest);
+      return;
+   }
+   else if (addr_of && param_num < 6) {
+      Register reg = amd64_arg_regs[param_num];
+      gen.markRegDefined(reg);
+      stackItemLocation loc = getHeightOf(stackItem::framebase, gen);
+      registerSlot *regSlot = (*gen.rs())[reg];
+      assert(regSlot);
+      loc.offset += (regSlot->saveOffset * 8);
+      emitLEA64(loc.reg.reg(), REG_NULL, 0, loc.offset, dest, true, gen);
+      return;
+   }
+   assert(param_num >= 6);
+   stackItemLocation loc = getHeightOf(stackItem::stacktop, gen);
+   if (pt_type != callSite) {
+      //Return value before any parameters
+      loc.offset += 8;
+   }
+   loc.offset += (param_num-6)*8;
+   if (!addr_of)
+      emitMovRMToReg64(dest, loc.reg.reg(), loc.offset, 8, gen);
+   else 
+      emitLEA64(loc.reg.reg(), Null_Register, 0, loc.offset, dest, true, gen);
 }
 
 static void emitPushImm16_64(unsigned short imm, codeGen &gen)
@@ -1654,7 +1714,7 @@ static void emitPushImm16_64(unsigned short imm, codeGen &gen)
     SET_PTR(insn, gen);
 }
 
-void EmitterAMD64::emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen)
+void EmitterAMD64::emitFuncJump(Address addr, instPointType_t /*ptType*/, codeGen &gen)
 {
     baseTrampInstance *inst = gen.bti();
     assert(inst);

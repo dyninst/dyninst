@@ -187,7 +187,7 @@ codeBufIndex_t emitA(opCode op, Register src1, Register src2, Register dst,
 // (e.g., getRetValOp, getParamOp, getSysRetValOp, getSysParamOp)
 Register emitR(opCode op, Register src1, Register src2, Register dst, 
                codeGen &gen, bool noCost, 
-               const instPoint *location, bool for_multithreaded, bool get_addr_of);
+               const instPoint *location, bool for_multithreaded);
 
 // for general arithmetic and logic operations which return nothing
 void     emitV(opCode op, Register src1, Register src2, Register dst, 
