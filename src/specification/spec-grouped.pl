@@ -17,7 +17,7 @@
                   comp_lang/2, platform/4, compiler_opt_trans/3,
                   comp_mut/2, compiler_platform/2,
                   mcomp_plat/2, test_runmode/2, 
-		  test_serializable/1, comp_std_flags_str/2,
+                  test_serializable/1, comp_std_flags_str/2,
                   comp_mutatee_flags_str/2, test_runs_everywhere/1,
                   mutatee_special_make_str/2, mutatee_special_requires/2,
                   groupable_test/1, test_platform/2,
@@ -32,7 +32,7 @@
                   compiler_platform_abi_s/4, test_platform_abi/3,
                   restricted_amd64_abi/1, compiler_presence_def/2,
                   restricted_abi_for_arch/3, insane/2, module/1,
-		  tests_module/2, mutator_requires_libs/2]).
+                  tests_module/2, mutator_requires_libs/2]).
 
 %%%%%%%%%%
 %
@@ -120,8 +120,8 @@ mutatee('dyninst_group_test', ['test1_1_mutatee.c',
 	'test2_9_mutatee.c',
 	'test2_11_mutatee.c',
 	'test2_12_mutatee.c',
-	'test2_13_mutatee.c'
-    
+	'test2_13_mutatee.c',
+   'test_write_param_mutatee.c'
     ]).
 compiler_for_mutatee('dyninst_group_test', Compiler) :-
     comp_lang(Compiler, 'c').
@@ -391,8 +391,8 @@ test_description('test_snip_remove', 'Tests multiple snippet removal').
 test_runs_everywhere('test_snip_remove').
 groupable_test('test_snip_remove').
 mutator('test_snip_remove', ['test_snip_remove.C']).
-%mutatee('test_snip_remove', ['test_snip_remove_mutatee.c']).
-%compiler_for_mutatee('test_snip_remove', Compiler) :-
+mutatee('test_snip_remove', ['test_snip_remove_mutatee.c']).
+compiler_for_mutatee('test_snip_remove', Compiler) :-
 %    comp_lang(Compiler, 'c').
 test_runmode('test_snip_remove', 'dynamic').
 test_start_state('test_snip_remove', 'stopped').
@@ -621,6 +621,17 @@ compiler_for_mutatee('test1_41', Compiler) :-
 test_runmode('test1_41', 'createProcess').
 test_start_state('test1_41', 'selfstart').
 tests_module('test1_41', 'dyninst').
+
+test('test_write_param', 'test_write_param', 'dyninst_group_test').
+test_description('test_write_param', 'writing to parameters').
+test_platform('test_write_param', 'i386-unknown-linux2.4').
+test_platform('test_write_param', 'x86_64-unknown-linux2.4').
+test_platform('test_write_param', 'i386-unknown-nt4.0').
+groupable_test('test_write_param').
+mutator('test_write_param', ['test_write_param.C']).
+test_runmode('test_write_param', 'staticdynamic').
+test_start_state('test_write_param', 'stopped').
+tests_module('test_write_param', 'dyninst').
 
 test('test_pt_ls', 'test_pt_ls', none).
 test_description('test_pt_ls', 'Run parseThat on ls').
