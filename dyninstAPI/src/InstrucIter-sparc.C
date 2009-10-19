@@ -374,17 +374,16 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result){
 	    valid = false;
 	  }
 	  if (!valid) {
-	    setCurrentAddress(oldCurrent);
-	    return false;
+	    break;
 	  }
 	  
-
+	  parsing_printf("\t0x%lx => 0x%lx\n", offset, target);
 	  result += target;
 	  offset += instruction::size();
 	}
 
 	setCurrentAddress(oldCurrent);
-	return true;
+	return !result.empty();
       }
     }
     --(*this);
