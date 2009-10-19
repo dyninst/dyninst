@@ -330,7 +330,7 @@ BPatch_memoryAccess* InstrucIter::isLoadOrStore()
    on the locations of either the cmp.ltu or the mov.ip instructions. */
   
 bool InstrucIter::getMultipleJumpTargets( BPatch_Set<Address> & targetAddresses ) {
-  // /* DEBUG */ fprintf( stderr, "%s[%d]: examining jump table (@ 0x%lx) in %s \n", __FILE__, __LINE__, current, img_->name().c_str() );
+  /* DEBUG */ parsing_printf( "%s[%d]: examining jump table (@ 0x%lx)\n", __FILE__, __LINE__, current);
 
   /* Wind up a new iterator.  This would probably be easier with an explicit
      state table, but for now I don't think a single pattern with many exceptions
@@ -363,18 +363,18 @@ bool InstrucIter::getMultipleJumpTargets( BPatch_Set<Address> & targetAddresses 
 	|| mtbr_tmpl.I21.x != 0 ) { continue; }
 		
     if( mtbr_tmpl.I21.b1 != branchRegister ) {
-      // /* DEBUG */ fprintf( stderr, "%s[%d]: found move to branch register with wrong branch registers (0x%lx, not 0x%lx)\n", __FILE__, __LINE__, mtbr_tmpl.I21.b1, branchRegister );
+      /* DEBUG */ parsing_printf( "%s[%d]: found move to branch register with wrong branch registers (0x%lx, not 0x%lx)\n", __FILE__, __LINE__, mtbr_tmpl.I21.b1, branchRegister );
       continue;
     }
 		
     /* It's the right instruction; extract registerTarget. */
-    // /* DEBUG */ fprintf( stderr, "%s[%d]: located at 0x%lx\n", __FILE__, __LINE__, iter.current );
+    /* DEBUG */ parsing_printf( "%s[%d]: located at 0x%lx\n", __FILE__, __LINE__, iter.current );
     registerTarget = mtbr_tmpl.I21.r2;
     foundMBTR = true;
     break;
   }	 
   if( ! foundMBTR ) {
-    // /* DEBUG */ fprintf( stderr, "%s[%d]: unable to locate move to branch register.\n", __FILE__, __LINE__ );
+    /* DEBUG */ parsing_printf( "%s[%d]: unable to locate move to branch register.\n", __FILE__, __LINE__ );
     return false;
   }
 	
@@ -395,19 +395,19 @@ bool InstrucIter::getMultipleJumpTargets( BPatch_Set<Address> & targetAddresses 
 	|| i5_tmpl.A1.x2b != 0 ) { continue; }
 		
     if( i5_tmpl.A1.r1 != registerTarget ) {
-      // /* DEBUG */ fprintf( stderr, "%s[%d]: found an add instruction with the wrong target at 0x%lx (0x%lx, not 0x%lx)\n", __FILE__, __LINE__, iter.current, i5_tmpl.A1.r1, registerTarget );
+      /* DEBUG */ parsing_printf( "%s[%d]: found an add instruction with the wrong target at 0x%lx (0x%lx, not 0x%lx)\n", __FILE__, __LINE__, iter.current, i5_tmpl.A1.r1, registerTarget );
       continue;
     }
 		
     /* It's the right instruction; extract registerBase and registerOffset. */
-    // /* DEBUG */ fprintf( stderr, "%s[%d]: located at 0x%lx\n", __FILE__, __LINE__, iter.current );
+    /* DEBUG */ parsing_printf( "%s[%d]: located at 0x%lx\n", __FILE__, __LINE__, iter.current );
     registerBase = i5_tmpl.A1.r2;
     registerOffset = i5_tmpl.A1.r3;
     foundInstruction5 = true;
     break;
   }
   if( ! foundInstruction5 ) {
-    // /* DEBUG */ fprintf( stderr, "%s[%d]: unable to locate instruction 5.\n", __FILE__, __LINE__ );
+    /* DEBUG */ parsing_printf( "%s[%d]: unable to locate instruction 5.\n", __FILE__, __LINE__ );
     return false;
   }
 	
@@ -437,18 +437,18 @@ bool InstrucIter::getMultipleJumpTargets( BPatch_Set<Address> & targetAddresses 
     }
 			
     if( i4_tmpl.M1.r1 != registerBase ) {
-      // /* DEBUG */ fprintf( stderr, "%s[%d]: found ld8 instruction with wrong target at 0x%lx (0x%lx. not 0x%lx or 0x%lx)\n", __FILE__, __LINE__, i4_tmpl.M1.r1, iter.current, registerBase, registerOffset );
+      /* DEBUG */ parsing_printf( "%s[%d]: found ld8 instruction with wrong target at 0x%lx (0x%lx. not 0x%lx or 0x%lx)\n", __FILE__, __LINE__, i4_tmpl.M1.r1, iter.current, registerBase, registerOffset );
       continue;
     }
 		
     /* It's the right instruction; extract registerTableEntry. */
-    // /* DEBUG */ fprintf( stderr, "%s[%d]: located at 0x%lx\n", __FILE__, __LINE__, iter.current );
     registerTableEntry = i4_tmpl.M1.r3;
+    /* DEBUG */ parsing_printf( "\tregisterTableEntry %d located at 0x%lx\n", registerTableEntry, iter.current );
     foundInstruction4 = true;
     break;
   }
   if( ! foundInstruction4 ) {
-    // /* DEBUG */ fprintf( stderr, "%s[%d]: unable to locate instruction 4.\n", __FILE__, __LINE__ );
+    /* DEBUG */ parsing_printf( "%s[%d]: unable to locate instruction 4.\n", __FILE__, __LINE__ );
     return false;
   }
 
@@ -471,19 +471,19 @@ bool InstrucIter::getMultipleJumpTargets( BPatch_Set<Address> & targetAddresses 
     else if( i3_tmpl.A1.x4 != 4 ) { continue; }
 		
     if( i3_tmpl.A1.r1 != registerTableEntry ) {
-      // /* DEBUG */ fprintf( stderr, "%s[%d]: found an [shl]add instruction with the wrong target at 0x%lx (0x%lx, not 0x%lx)\n", __FILE__, __LINE__, iter.current, i3_tmpl.A1.r1, registerTarget );
+      /* DEBUG */ parsing_printf( "%s[%d]: found an [shl]add instruction with the wrong target at 0x%lx (0x%lx, not 0x%lx)\n", __FILE__, __LINE__, iter.current, i3_tmpl.A1.r1, registerTarget );
       continue;
     }
 		
     /* It's the right instruction; extract registerTableAddress and registerVariable. */
-    // /* DEBUG */ fprintf( stderr, "%s[%d]: located at 0x%lx\n", __FILE__, __LINE__, iter.current );
     registerTableAddress = i3_tmpl.A1.r3;
     registerVariable = i3_tmpl.A1.r2; // In the shladd case, this is the correct order.
+    /* DEBUG */ parsing_printf( "\tregisterTableAddress %d located at 0x%lx\n", registerTableAddress, iter.current );
     foundInstruction3 = true;
     break;
   }
   if( ! foundInstruction3 ) {
-    // /* DEBUG */ fprintf( stderr, "%s[%d]: unable to locate instruction 3.\n", __FILE__, __LINE__ );
+    /* DEBUG */ parsing_printf( "%s[%d]: unable to locate instruction 3.\n", __FILE__, __LINE__ );
     return false;
   }
 
@@ -513,13 +513,14 @@ bool InstrucIter::getMultipleJumpTargets( BPatch_Set<Address> & targetAddresses 
       }
 		
       if( i2_tmpl.M1.r1 != registerTableAddress ) {
-	// /* DEBUG */ fprintf( stderr, "%s[%d]: found ld8 instruction with the wrong target at 0x%lx (0x%lx, not 0x%lx or 0x%lx)\n", __FILE__, __LINE__, iter.current, i2_tmpl.M1.r1, registerTableAddress, registerVariable );
+	/* DEBUG */ parsing_printf( "%s[%d]: found ld8 instruction with the wrong target at 0x%lx (0x%lx, not 0x%lx or 0x%lx)\n", __FILE__, __LINE__, iter.current, i2_tmpl.M1.r1, registerTableAddress, registerVariable );
 	continue;
       }
 		
       /* It's the right instruction; extract registerTableAddressAddress. */
-      // /* DEBUG */ fprintf( stderr, "%s[%d]: located at 0x%lx\n", __FILE__, __LINE__, iter.current );
       registerTableAddressAddress = i2_tmpl.M1.r3;
+      /* DEBUG */ parsing_printf( "%s[%d]: registerTableAddressAddress %d located at 0x%lx\n", __FILE__, __LINE__, 
+				  registerTableAddressAddress, iter.current );
       foundInstruction2 = true;
       break;
     }
@@ -540,19 +541,24 @@ bool InstrucIter::getMultipleJumpTargets( BPatch_Set<Address> & targetAddresses 
     insn_tmpl awgpi_tmpl = { addWithGPInstruction.getMachineCode() };
     if(	GET_OPCODE( &awgpi_tmpl ) != 0x9 ) { continue; }
 	
+    if( awgpi_tmpl.A5.r3 != 0x1 ) {
+      /* DEBUG */ parsing_printf( "%s[%d]: found add with GP instruction with the wrong source at 0x%lx (0x%lx, not 0x1)\n", __FILE__, __LINE__, iter.current, awgpi_tmpl.A5.r3 );
+      continue;
+    }
     if( awgpi_tmpl.A5.r1 != registerTableAddressAddress ) {
-      // /* DEBUG */ fprintf( stderr, "%s[%d]: found add with GP instruction with wrong the wrong target at 0x%lx (0x%lx, not 0x%lx)\n", __FILE__, __LINE__, iter.current, awgpi_tmpl.A5.r1, registerTableAddressAddress );
+      /* DEBUG */ parsing_printf( "%s[%d]: found add with GP instruction with the wrong target at 0x%lx (0x%lx, not 0x%lx)\n", __FILE__, __LINE__, iter.current, awgpi_tmpl.A5.r1, registerTableAddressAddress );
       continue;
     }
 		
     /* It's the right instruction; extract jumpTableOffset. */
-    // /* DEBUG */ fprintf( stderr, "%s[%d]: located at 0x%lx\n", __FILE__, __LINE__, iter.current );
     jumpTableOffset = GET_A5_IMM( &awgpi_tmpl );
+    /* DEBUG */ parsing_printf( "%s[%d]: add with GP located at 0x%lx, table offset 0x%lx\n", __FILE__, __LINE__, iter.current,
+				jumpTableOffset);
     foundAddWithGP = true;
     break;
   }		
   if( ! foundAddWithGP ) {
-    // /* DEBUG */ fprintf( stderr, "%s[%d]: failed to find the add with GP instruction.\n", __FILE__, __LINE__ );
+    /* DEBUG */ parsing_printf( "%s[%d]: failed to find the add with GP instruction.\n", __FILE__, __LINE__ );
     return false;
   }
 	
@@ -574,7 +580,7 @@ bool InstrucIter::getMultipleJumpTargets( BPatch_Set<Address> & targetAddresses 
     }
   }
   if( gpAddress == 0 ) {
-    // /* DEBUG */ fprintf( stderr, "%s[%d]: unable to find GP for jump table at 0x%lx\n", __FILE__, __LINE__, current );
+    /* DEBUG */ parsing_printf( "%s[%d]: unable to find GP for jump table at 0x%lx\n", __FILE__, __LINE__, current );
     return false;
   }
 
@@ -584,7 +590,7 @@ bool InstrucIter::getMultipleJumpTargets( BPatch_Set<Address> & targetAddresses 
     void *ptr = img->getPtrToData( jumpTableAddressAddress );
     if( ! ptr ) { ptr = img->getPtrToDataInText( jumpTableAddressAddress ); }
     if( !ptr ) {
-      // /* DEBUG */ fprintf( stderr, "%s[%d]: unable to access jump table address pointer\n", __FILE__, __LINE__ );
+      /* DEBUG */ parsing_printf( "%s[%d]: unable to access jump table address pointer\n", __FILE__, __LINE__ );
       return false;
     }
     jumpTableAddress = *((Address *)ptr);
@@ -592,7 +598,7 @@ bool InstrucIter::getMultipleJumpTargets( BPatch_Set<Address> & targetAddresses 
   else if( proc && proc->getAOut()->findCodeRangeByAddress( jumpTableAddressAddress ) && foundInstruction2 ) {
     void * ptr = instructions_->getPtrToInstruction( jumpTableAddressAddress );
     if( !ptr ) {
-      // /* DEBUG */ fprintf( stderr, "%s[%d]: unable to access jump table address pointer\n", __FILE__, __LINE__ );
+      /* DEBUG */ parsing_printf( "%s[%d]: unable to access jump table address pointer\n", __FILE__, __LINE__ );
       return false;
     }
     jumpTableAddress = *((Address *)ptr);
@@ -613,7 +619,7 @@ bool InstrucIter::getMultipleJumpTargets( BPatch_Set<Address> & targetAddresses 
 	|| mfip_tmpl.I25.x3 != 0x0 ) { continue; }
 			
     /* It's the right instruction; extract baseJumpAddress. */
-    // /* DEBUG */ fprintf( stderr, "%s[%d]: mov.ip located at 0x%lx\n", __FILE__, __LINE__, iter.current );
+    /* DEBUG */ parsing_printf( "%s[%d]: mov.ip located at 0x%lx\n", __FILE__, __LINE__, iter.current );
     baseJumpAddress = iter.current & (~0x3);
     foundMovFromIP = true;
     break;
@@ -633,16 +639,17 @@ bool InstrucIter::getMultipleJumpTargets( BPatch_Set<Address> & targetAddresses 
 	|| cmpltu_tmpl.A8.ta != 0x0 ) { continue; }
         
     /* Extract the immediate. */
-    // /* DEBUG */ fprintf( stderr, "%s[%d]: located at 0x%lx\n", __FILE__, __LINE__, iter.current );
     maxTableLength = GET_A8_COUNT( &cmpltu_tmpl );
+    /* DEBUG */ parsing_printf( "%s[%d]: maxTableLength %d located at 0x%lx\n", __FILE__, __LINE__, maxTableLength, iter.current);
     break;
   }
   if( maxTableLength <= 0 ) {
-    // /* DEBUG */ fprintf( stderr, "%s[%d]: maxTableLength negative, aborting parse.\n", __FILE__, __LINE__ );
+    /* DEBUG */ parsing_printf( "%s[%d]: maxTableLength negative, aborting parse.\n", __FILE__, __LINE__ );
     return false;
   }
     	
-  // /* DEBUG */ fprintf( stderr, "%s[%d]: parsed jump table (@ 0x%lx) in %s \n", __FILE__, __LINE__, current, img_->name().c_str() );
+  /* DEBUG */ parsing_printf( "%s[%d]: parsed jump table (@ 0x%lx), base 0x%lx, %d entries\n", __FILE__, __LINE__, current,
+			      baseJumpAddress, maxTableLength);
     	
   /* Extract the jump targets. */
   for( unsigned int i = 0; i < maxTableLength; ++i ) {
@@ -670,11 +677,11 @@ bool InstrucIter::getMultipleJumpTargets( BPatch_Set<Address> & targetAddresses 
         
     if( ! foundMovFromIP ) { finalAddr += i * 8; }
 
-    // /* DEBUG */ fprintf( stderr, "%s[%d]: jump table target address 0x%lx\n", __FILE__, __LINE__, finalAddr );
+    /* DEBUG */ parsing_printf( "\t 0x%lx => 0x%lx\n", jumpTableAddress + (sizeof(uint64_t)*i), finalAddr );
     targetAddresses.insert( finalAddr );
   } /* end jump table iteration */
     
-  // /* DEBUG */ fprintf( stderr, "%s[%d]: located jump table for 0x%lx, at GP + 0x%lx %s\n\n", __FILE__, __LINE__, current, jumpTableOffset, foundInstruction2 ? "with double indirection." : "with single indirection." );
+  /* DEBUG */ parsing_printf( "%s[%d]: located jump table for 0x%lx, at GP + 0x%lx %s\n\n", __FILE__, __LINE__, current, jumpTableOffset, foundInstruction2 ? "with double indirection." : "with single indirection." );
   return true;
 } /* end of getMultipleJumpTargets(). */
 
