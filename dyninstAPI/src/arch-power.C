@@ -733,9 +733,6 @@ bool instruction::generate(codeGen &gen,
       // This is actually a "get PC" operation, and we want
       // to handle it as such. 
       
-      fprintf(stderr, "INFO: handling a thunk operation at 0x%lx!\n",
-	      origAddr);
-
       // 1: get the original return address (value stored in LR)
       // This is origAddr + 4; optionally, check its displacement...
       Address origRet = origAddr + 4;
