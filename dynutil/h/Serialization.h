@@ -255,7 +255,7 @@ class Serializable {
 
 	COMMON_EXPORT virtual ~Serializable() {}
 
-	COMMON_EXPORT virtual void serialize_impl(SerializerBase *,  const char * = NULL) THROW_SPEC(SerializerError) = 0;
+	COMMON_EXPORT virtual Serializable *serialize_impl(SerializerBase *,  const char * = NULL) THROW_SPEC(SerializerError) = 0;
 
 	public:
 
@@ -489,7 +489,7 @@ class Serializable {
 	COMMON_EXPORT SerializerBase *lookupExistingSerializer();
 	COMMON_EXPORT bool from_cache() {return was_deserialized;}
 
-	COMMON_EXPORT virtual void serialize(SerializerBase *sb,  
+	COMMON_EXPORT virtual Serializable *serialize(SerializerBase *sb,  
 			const char *tag = NULL) THROW_SPEC(SerializerError)
 	{
 		//  This function must be implemented in the header file so that
@@ -500,7 +500,7 @@ class Serializable {
 		//  do base serialization for this class
 
 		sb->magic_check(FILE__, __LINE__);
-		serialize_impl(sb, tag);
+		Serializable *res = serialize_impl(sb, tag);
 		sb->magic_check(FILE__, __LINE__);
 
 		//  then serialize all Annotations for which a serialization function has been provided
@@ -589,6 +589,8 @@ class Serializable {
 			was_deserialized = true;
 
 		active_serializer_index = get_serializer_index(sb);
+
+		return res;
 	}
 };
 
@@ -606,17 +608,17 @@ class AnnotationContainerBase : public Serializable
 
 	public:
 
-		COMMON_EXPORT virtual void ac_serialize_impl(SerializerBase *,  
+		COMMON_EXPORT virtual Serializable *ac_serialize_impl(SerializerBase *,  
 				const char * = NULL) THROW_SPEC(SerializerError) = 0;
 
-		COMMON_EXPORT virtual void serialize_impl(SerializerBase *sb,  
+		COMMON_EXPORT virtual Serializable *serialize_impl(SerializerBase *sb,  
 				const char *tag = NULL) THROW_SPEC(SerializerError) 
 		{
 			void *id = this;
 			annotation_container_start(sb, id);
 			//  serialize the id of this container, then call the container serialize func
 			//serialize_annotatable_id(sb, id, "ContainerID");
-			ac_serialize_impl(sb, tag);
+			Serializable *res = ac_serialize_impl(sb, tag);
 			annotation_container_end(sb);
 
 			if (is_input(sb))
@@ -624,6 +626,7 @@ class AnnotationContainerBase : public Serializable
 				//  for deserialize build a hash of container ids
 				containers_by_id[id] = this;
 			}
+			return res;
 		}	
 
 		COMMON_EXPORT static AnnotationContainerBase *getContainer(void *id)
@@ -652,10 +655,11 @@ class AnnotationContainerBase : public Serializable
 
 class SerializerBin;
 template <class T>
-void cont_ser_func_wrapper(void *it, SerializerBase *sb, const char *)
+Serializable *cont_ser_func_wrapper(void *it, SerializerBase *sb, const char *)
 {
 	T *itt =  (T*) it;
 	gtranslate(sb, *itt);
+	return NULL;
 }
 
 template <class T, typename IS_POINTER, typename IS_SERIALIZABLE>
@@ -667,7 +671,7 @@ class SerFuncExecutor
 
 	SerFuncExecutor(AnnotationClass<T> *ac_) : ac(ac_) {}
 
-	void operator()(T &my_item, SerializerBase *sb, const char *tag = NULL) 
+	Serializable *operator()(T &my_item, SerializerBase *sb, const char *tag = NULL) 
 	{
 		ser_func_t sf = ac->getSerializeFunc();
 		assert(sf);
@@ -675,7 +679,8 @@ class SerFuncExecutor
 		serialize_printf("%s[%d]:  calling serialize func for type %s\n",
 				FILE__, __LINE__, ac->getTypeName());
 
-		(*sf)(&my_item, sb, tag);
+		Serializable *res = (*sf)(&my_item, sb, tag);
+		return res;
 	}
 };
 
@@ -698,8 +703,23 @@ class SerFuncExecutor<T, dyn_detail::boost::true_type, dyn_detail::boost::true_t
 		serialize_printf("%s[%d]:  calling serialize func for type %s\n",
 				FILE__, __LINE__, ac->getTypeName());
 
-		(*sf)(my_item, sb, tag);
+		Serializable *sable = (*sf)(my_item, sb, tag);
 
+		T res = dynamic_cast<T>(sable);
+
+		if (sable && !res)
+		{
+			fprintf(stderr, "%s[%d]:  ERROR:  %s not Serializable ??\n", 
+					FILE__, __LINE__, typeid(T).name());
+		}
+
+		if (res && (res != my_item))
+		{
+			fprintf(stderr, "%s[%d]:  serialize func for %s did a realloc\n", 
+					FILE__, __LINE__, typeid(T).name());
+			delete my_item;
+			my_item = res;
+		}
 		serialize_printf("%s[%d]:  called serialize func for type %s\n",
 				FILE__, __LINE__, ac->getTypeName());
 	}
@@ -805,7 +825,7 @@ class AnnotationContainer : public AnnotationContainerBase
 			return ac->getSerializeFunc();
 		}
 
-		virtual void ac_serialize_impl(SerializerBase *, 
+		virtual Serializable *ac_serialize_impl(SerializerBase *, 
 				const char *tag) THROW_SPEC(SerializerError) = 0;
 };
 
@@ -876,13 +896,12 @@ template <class S, class K, class V>
 void translate_dyn_hash_map(S *ser, dyn_hash_map<K, V> &map,
 		const char *tag = NULL, const char *elem_tag = NULL)
 {
-	fprintf(stderr, "%s[%d]:  welcome to translate_dyn_hash_map<%s, %s>, size = %ld\n", 
+	serialize_printf("%s[%d]:  welcome to translate_dyn_hash_map<%s, %s>, size = %ld\n", 
 			FILE__, __LINE__, typeid(K).name(), typeid(V).name(), map.size());
 
 	unsigned long nelem = 0UL;
 	nelem = map.size();
 	ser->hash_map_start(nelem, tag);
-	fprintf(stderr, "%s[%d]:  translate_hash_map, nelem = %lu\n", FILE__, __LINE__, nelem);
 
 	if (ser->iomode() == sd_deserialize)
 	{
@@ -895,6 +914,8 @@ void translate_dyn_hash_map(S *ser, dyn_hash_map<K, V> &map,
 		{
 			K a_k;
 			V a_v;
+			memset(&a_k, 0, sizeof(K));
+			memset(&a_v, 0, sizeof(V));
 			gtranslate(ser, a_k, elem_tag);
 			gtranslate(ser, a_v, elem_tag);
 			map[a_k] = a_v;
@@ -925,7 +946,7 @@ void translate_dyn_hash_map(S *ser, dyn_hash_map<K, V> &map,
 
 	ser->hash_map_end();
 
-	fprintf(stderr, "%s[%d]:  leaving translate_dyn_hash_map<%s, %s>\n", 
+	serialize_printf("%s[%d]:  leaving translate_dyn_hash_map<%s, %s>\n", 
 			FILE__, __LINE__, typeid(K).name(), typeid(V).name());
 }
 
@@ -1085,6 +1106,8 @@ void translate_hash_map(S *ser, dyn_hash_map<K, V> &hash,
 		{
 			K k;
 			V v;
+			memset(&k, 0, sizeof(K));
+			memset(&v, 0, sizeof(V));
 			ser->translate_base(k, key_tag);
 			ser->translate_base(v, value_tag);
 			hash[k] = v;
@@ -1094,6 +1117,7 @@ void translate_hash_map(S *ser, dyn_hash_map<K, V> &hash,
 	ser->hash_map_end();
 }
 
+#if 0
 template <class S, class K, class V>
 void translate_hash_map(S *ser, dyn_hash_map<K, V *> &hash,
 		const char *tag = NULL, const char *key_tag = NULL, const char *value_tag = NULL)
@@ -1136,6 +1160,7 @@ void translate_hash_map(S *ser, dyn_hash_map<K, V *> &hash,
 	}
    ser->hash_map_end();
 }
+#endif
 
 COMMON_EXPORT bool isBinary(Dyninst::SerializerBase *ser);
 COMMON_EXPORT bool isOutput(Dyninst::SerializerBase *ser);
@@ -1243,7 +1268,9 @@ class deref_adaptor<T, true>
 		}
 };
 
-template <class T, bool = dyn_detail::boost::is_pointer<T>::value>
+template <typename T, typename T2 = typename dyn_detail::boost::is_pointer<T>::type, 
+		 typename T3 = typename dyn_detail::boost::is_base_of<Serializable,
+		 typename dyn_detail::boost::remove_pointer<T>::type>::type>
 class ptr_adaptor 
 {
 	public:
@@ -1258,8 +1285,8 @@ class ptr_adaptor
 		}
 };
 
-template <class T>
-class ptr_adaptor<T, true> 
+template <typename T>
+class ptr_adaptor<T, dyn_detail::boost::true_type, dyn_detail::boost::false_type> 
 {
 	typedef typename dyn_detail::boost::remove_pointer<T>::type pointed_to_t;
 
@@ -1274,10 +1301,56 @@ class ptr_adaptor<T, true>
 		}
 };
 
+template <typename T>
+class ptr_adaptor<T, dyn_detail::boost::true_type, dyn_detail::boost::true_type> 
+{
+	typedef typename dyn_detail::boost::remove_pointer<T>::type pointed_to_t;
+	public:
+		ptr_adaptor() {}
+		T * operator()(SerializerBase *sb, T &it, 
+				const char *tag = NULL, const char * = NULL)
+		{
+			if (!isOutput(sb))
+			{
+				if (it)
+					fprintf(stderr, "%s[%d]:  WARNING:  allocating to non-null pointer: %s\n", 
+							FILE__, __LINE__, typeid(T).name());
+				serialize_printf("%s[%d]:  allocating new %s\n", 
+						FILE__, __LINE__, typeid(T).name());
+
+				it = new pointed_to_t();
+			}
+
+			Serializable *res = NULL;
+			res = it->serialize(sb, tag);
+
+			if (!isOutput(sb)) 
+			{
+				T res_typed = dynamic_cast<T>(res);
+
+				if (res && !res_typed)
+				{
+					fprintf(stderr, "%s[%d]:  ERROR:  ser func allocated bad type object! not %s\n", 
+							FILE__, __LINE__, typeid(T).name());
+				}
+
+				if (res_typed && (res_typed != it))
+				{
+					serialize_printf("%s[%d]:  serialize fn for %s reallocated object\n", 
+							FILE__, __LINE__, typeid(T).name());
+					delete it;
+					it = res_typed;
+				}
+			}
+
+			return &it;
+		}
+};
+
 //  Another specialization:  do _not_ dereference any char *'s, they're special
 //  (maybe want to do this for all fundamental types)
 template <>
-class ptr_adaptor<char *, true> 
+class ptr_adaptor<char *, dyn_detail::boost::true_type, dyn_detail::boost::false_type> 
 {
 	public:
 		ptr_adaptor() {}
@@ -1321,7 +1394,7 @@ class const_adaptor<T, true>
 	}
 };
 
-template <class T>
+template <typename T>
 void gtranslate(SerializerBase *ser, T &it, 
 		const char *tag = NULL, const char *tag2 = NULL)
 {
@@ -1356,12 +1429,19 @@ void gtranslate(SerializerBase *ser, std::multimap<K, V, L> &it,
 	translate_multimap(ser, it, tag, tag2);
 }
 
+template <typename K, typename V>
+void gtranslate(SerializerBase *ser, dyn_hash_map<K, V> &it, 
+		const char *tag = NULL, const char *tag2 = NULL)
+{
+	translate_dyn_hash_map(ser, it, tag, tag2);
+}
+
 COMMON_EXPORT bool ifxml_start_element(SerializerBase *sb, const char *tag);
 COMMON_EXPORT bool ifxml_end_element(SerializerBase *sb, const char * /*tag*/);
 COMMON_EXPORT bool sb_is_input(SerializerBase *sb);
 COMMON_EXPORT bool sb_is_output(SerializerBase *sb);
 
-template <class T>
+template <typename T>
 void gtranslate(SerializerBase *ser, 
       T &it, 
       const char * (*to_str_func)(T), 
@@ -1390,8 +1470,9 @@ void gtranslate(SerializerBase *ser,
    }
 }
 
-template <class T>
-bool gtranslate_w_err(SerializerBase *ser, T&it, const char *tag = NULL, const char *tag2 = NULL)
+template <typename T>
+bool gtranslate_w_err(SerializerBase *ser, T &it, 
+		const char *tag = NULL, const char *tag2 = NULL)
 {
    try 
    {

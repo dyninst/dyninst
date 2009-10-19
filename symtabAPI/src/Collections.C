@@ -112,7 +112,7 @@ std::vector<localVar *> *localVarCollection::getAllVars()
     return &localVars;
 }
   
-void localVarCollection::ac_serialize_impl(SerializerBase *s, const char *tag) THROW_SPEC (SerializerError)
+Serializable *localVarCollection::ac_serialize_impl(SerializerBase *s, const char *tag) THROW_SPEC (SerializerError)
 {
 	unsigned short lvmagic = 72;
 	serialize_printf("%s[%d]:  welcome to localVarCollection: ac_serialize_impl\n", 
@@ -144,10 +144,102 @@ void localVarCollection::ac_serialize_impl(SerializerBase *s, const char *tag) T
 	else
 		serialize_printf("%s[%d]:  serialized %ld local vars\n", FILE__, __LINE__, localVars.size());
 
+	return NULL;
 }
 
 // Could be somewhere else... for DWARF-work.
 dyn_hash_map<void *, typeCollection *> typeCollection::fileToTypesMap;
+dyn_hash_map<int, std::vector<std::pair<dataClass, Type **> > > typeCollection::deferred_lookups;
+
+void typeCollection::addDeferredLookup(int tid, dataClass tdc,Type **th)
+{
+	deferred_lookups[tid].push_back(std::pair<dataClass, Type**>(tdc, th));
+}
+
+bool typeCollection::doDeferredLookups(typeCollection *primary_tc)
+{
+	bool err = false;
+	dyn_hash_map<int, std::vector<std::pair<dataClass, Type **> > >::iterator iter;
+	for (iter = deferred_lookups.begin(); iter != deferred_lookups.end(); iter++)
+	{
+		std::vector<std::pair<dataClass, Type **> > &to_assign = iter->second;
+
+		if (!to_assign.size())
+		{
+			fprintf(stderr, "%s[%d]:  No lookups for id %d, weird\n", 
+					FILE__, __LINE__, iter->first);
+			continue;
+		}
+
+		for (unsigned int i = 0; i < to_assign.size(); ++i)
+		{
+			dataClass ldc = to_assign[i].first;
+			Type **th = to_assign[i].second;
+
+			Type *t = primary_tc->findType(iter->first);
+			if (t && (t->getDataClass() != ldc)) t = NULL;
+
+			if (!t)
+			{
+				if (Symtab::builtInTypes)
+				{
+					t = Symtab::builtInTypes->findBuiltInType(iter->first);
+					if (t && (t->getDataClass() != ldc)) t = NULL;
+				}
+			}
+			if (!t)
+			{
+				if (Symtab::stdTypes)
+				{
+					t = Symtab::stdTypes->findType(iter->first);
+					if (t && (t->getDataClass() != ldc)) t = NULL;
+				}
+			}
+			if (!t)
+			{
+				int nfound = 0;
+				dyn_hash_map<void *, typeCollection *>::iterator tciter; 
+				for (tciter = fileToTypesMap.begin(); tciter != fileToTypesMap.end(); tciter++)
+				{
+					Type *localt = NULL;
+					if (tciter->second == primary_tc) continue;
+					localt = tciter->second->findType(iter->first);
+					if (localt)
+					{
+						if (localt->getDataClass() != ldc) 
+							continue;
+						nfound++;
+						if (t)
+						{
+#if 0
+							fprintf(stderr, "%s[%d]: WARN: found %d types w/ID %d (so far)\n", 
+									FILE__, __LINE__, nfound, iter->first);
+							fprintf(stderr, "%s[%d]:  have %s vs, %s\n", FILE__, __LINE__, 
+									dataClass2Str(t->getDataClass()), 
+									dataClass2Str(localt->getDataClass()));
+#endif
+						}
+						t = localt;
+					}
+					//if (t) break;
+				}
+			}
+			if (t)
+			{
+				*th = t;
+			}
+			if (!t)
+			{
+				fprintf(stderr, "%s[%d]:  FIXME:  cannot find type id %d\n", 
+						FILE__, __LINE__, iter->first);
+				err = true;
+				continue;
+			}
+		}
+	}
+	deferred_lookups.clear();
+	return (!err);
+}
 
 /*
  * Reference count
@@ -427,43 +519,46 @@ vector<pair<string, Type *> > *typeCollection::getAllGlobalVariables() {
    return varsVec;
 }
 
-void typeCollection::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
+Serializable *typeCollection::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
-	serialize_printf("%s[%d]:  IMPLEMENT ME\n", FILE__, __LINE__);
-#if 0
-	unsigned short tcmagic = 73;
-	ifxml_start_element(sb, tag);
-	//gtranslate(sb, typesByName, "typesByName");
-	//gtranslate(sb, globalVarsByName, "globalVarsByName");
-	unsigned int sz_count = 0;
+	serialize_printf("%s[%d]:  enter typeCollection::serialize_impl\n", FILE__, __LINE__);
+
+	std::vector<std::pair<std::string, int> >  gvars;
 	dyn_hash_map<std::string, Type *>::iterator iter;
-	for (iter = typesByName.begin(); iter != typesByName.end(); iter++)
-		sz_count++;
-	serialize_printf("%s[%d]:  before translate typesByName, size = %lu, count == %d\n", FILE__, __LINE__, typesByName.size(), sz_count);
-	//translate_dyn_hash_map(sb, typesByName, "typesByName", "typesByNameElem");
-	sb->magic_check(FILE__, __LINE__);
-	//translate_dyn_hash_map(sb, globalVarsByName, "globalVarsByName", "globalVarsByNameElem");
-	sb->magic_check(FILE__, __LINE__);
-	gtranslate(sb, dwarfParsed_, "dwarfParsedFlag");
-	gtranslate(sb, tcmagic, "typeCollectionMagicID");
-	sb->magic_check(FILE__, __LINE__);
+	for (iter = globalVarsByName.begin(); iter != globalVarsByName.end(); iter++)
+		gvars.push_back(std::make_pair(iter->first, iter->second->getID()));
+
+	ifxml_start_element(sb, tag);
+	gtranslate(sb, typesByID, "TypesByIDMap", "TypeToIDMapEntry");
+	gtranslate(sb, gvars, "GlobalVarNameToTypeMap", "GlobalVarType");
+	gtranslate(sb, dwarfParsed_, "DwarfParsedFlag");
 	ifxml_end_element(sb, tag);
 
-	if (tcmagic != 73)
+	if (is_input(sb))
 	{
-		fprintf(stderr, "\n\n%s[%d]: FIXME:  out-of-sync\n\n\n", FILE__, __LINE__);
+		doDeferredLookups(this);
+
+		for (unsigned int i = 0; i < gvars.size(); ++i)
+		{
+			dyn_hash_map<int, Type *>::iterator iter = typesByID.find(gvars[i].second);
+			if (iter == typesByID.end())
+			{
+				fprintf(stderr, "%s[%d]:  cannot find type w/ID %d\n", 
+						FILE__, __LINE__, gvars[i].second);
+				continue;
+			}
+			Type *t = iter->second;
+			globalVarsByName[gvars[i].first] = t;
+		}
+
+		dyn_hash_map<int, Type *>::iterator iter;
+		for (iter = typesByID.begin(); iter != typesByID.end(); iter++)
+			typesByName[iter->second->getName()] = iter->second;
 	}
 
-	if (sb->isInput())
-	{
-		dyn_hash_map<std::string, Type *>::iterator iter;
-		for (iter = typesByName.begin(); iter != typesByName.end(); iter++)
-		{
-			typesByID[iter->second->getID()] = iter->second;
-		}
-	}
-	sb->magic_check(FILE__, __LINE__);
-#endif
+	serialize_printf("%s[%d]:  leave typeCollection::serialize_impl\n", FILE__, __LINE__);
+
+	return NULL;
 }
 
 /*

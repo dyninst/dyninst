@@ -73,7 +73,7 @@ Type* Variable::getType()
 	return type_;
 }
 
-void Variable::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
+Serializable *Variable::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
 	//fprintf(stderr, "%s[%d]:  welcome to Variable::serialize\n", FILE__, __LINE__);
 	if (!sb)
@@ -154,6 +154,7 @@ void Variable::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (S
 	}
 	SER_CATCH(tag);
 
+	return NULL;
 }
 
 std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Variable &v)
@@ -227,7 +228,7 @@ bool VariableLocation::operator==(const VariableLocation &f)
 	if (lowPC != f.lowPC) return false;
 	return true;
 }
-void VariableLocation::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
+Serializable *VariableLocation::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
 	serialize_printf("%s[%d]:  welcome to VariableLocation::serialize_impl\n", FILE__, __LINE__);
 	ifxml_start_element(sb, tag);
@@ -239,6 +240,7 @@ void VariableLocation::serialize_impl(SerializerBase *sb, const char *tag) THROW
 	gtranslate(sb, lowPC, "lowPC");
 	ifxml_end_element(sb, tag);
 	serialize_printf("%s[%d]:  leaving to VariableLocation::serialize_impl\n", FILE__, __LINE__);
+	return NULL;
 }
 
 localVar::localVar(std::string name,  Type *typ, std::string fileName, 
@@ -367,7 +369,7 @@ bool localVar::operator==(const localVar &l)
 	return true;
 }
 
-void localVar::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
+Serializable *localVar::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
 {
 	serialize_printf("%s[%d]:  welcome to localVar::serialize_impl\n", FILE__, __LINE__);
 	//  Use typeID as unique identifier
@@ -427,5 +429,6 @@ void localVar::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC(Se
 
 	}
 	serialize_printf("%s[%d]:  %sserialized localVar %s, done\n", FILE__, __LINE__, sb->isInput() ? "de" : "", name_.c_str());
+	return NULL;
 }
 

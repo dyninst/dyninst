@@ -84,7 +84,7 @@ class Function : public Aggregate, public Serializable, public AnnotatableSparse
    SYMTAB_EXPORT bool getLocalVariables(std::vector<localVar *>&vars);
    SYMTAB_EXPORT bool getParams(std::vector<localVar *>&params);
    
-   SYMTAB_EXPORT void serialize_impl(SerializerBase *sb, 
+   SYMTAB_EXPORT Serializable * serialize_impl(SerializerBase *sb, 
                                 const char *tag = "Function") THROW_SPEC (SerializerError);
 
    SYMTAB_EXPORT unsigned getSize();

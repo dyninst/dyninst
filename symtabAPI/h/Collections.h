@@ -65,7 +65,7 @@ public:
   SYMTAB_EXPORT localVar * findLocalVar(std::string &name);
   SYMTAB_EXPORT vector<localVar *> *getAllVars();  
 
-  SYMTAB_EXPORT void ac_serialize_impl(SerializerBase *, const char * = "localVarCollection") THROW_SPEC (SerializerError);
+  SYMTAB_EXPORT Serializable *ac_serialize_impl(SerializerBase *, const char * = "localVarCollection") THROW_SPEC (SerializerError);
 };
   
 
@@ -78,6 +78,7 @@ class typeCollection : public Serializable, public AnnotatableSparse {
     friend class Symtab;
     friend class Object;
     friend class Module;
+	friend class Type;
 
     dyn_hash_map<std::string, Type *> typesByName;
     dyn_hash_map<std::string, Type *> globalVarsByName;
@@ -89,14 +90,17 @@ class typeCollection : public Serializable, public AnnotatableSparse {
     /* Cache type collections on a per-image basis.  (Since
        BPatch_functions are solitons, we don't have to cache them.) */
     static dyn_hash_map< void *, typeCollection * > fileToTypesMap;
+	static dyn_hash_map<int, std::vector<std::pair<dataClass, Type **> > > deferred_lookups;
+	static bool doDeferredLookups(typeCollection *);
 
     // DWARF...
     bool dwarfParsed_;
 
-	SYMTAB_EXPORT void serialize_impl(SerializerBase *, const char * = "typeCollection") THROW_SPEC (SerializerError);
+	SYMTAB_EXPORT Serializable *serialize_impl(SerializerBase *, const char * = "typeCollection") THROW_SPEC (SerializerError);
 	public:
     SYMTAB_EXPORT typeCollection();
 public:
+	static void addDeferredLookup(int, dataClass, Type **);
 
     SYMTAB_EXPORT static typeCollection *getModTypeCollection(Module *mod);
 #if 0

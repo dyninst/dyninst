@@ -173,19 +173,5 @@ template class pdvector<dictionary_hash<Address, replacedFunctionCall *>::entry>
 class Statistic;
 template class dictionary_hash<std::string, Statistic *>;
 
-
-#if 0
-#include "common/src/Annotatable.C"
-template class Annotatable<BPatch_function>;
-#if defined(arch_x86) || defined(arch_x86_64) || defined(sparc_sun_solaris2_4)
-template class Annotatable<instruction>;
-#endif
-template <class T> int Annotatable<T>::number;
-template <class T> int Annotatable<T>::metadataNum;
-template <class T> dictionary_hash<std::string,int>* Annotatable<T>::annotationTypes;
-template <class T> dictionary_hash<std::string,int>* Annotatable<T>::metadataTypes;
-#endif
-
-
 class registerSlot;
 template class dictionary_hash<unsigned, registerSlot *>;

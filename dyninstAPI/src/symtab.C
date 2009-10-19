@@ -61,6 +61,8 @@
 
 #include "dyninstAPI/h/BPatch_flowGraph.h"
 #include "dynutil/h/util.h"
+#include "dynutil/h/Annotatable.h"
+#include "dynutil/h/Serialization.h"
 
 #if defined(TIMED_PARSE)
 #include <sys/time.h>

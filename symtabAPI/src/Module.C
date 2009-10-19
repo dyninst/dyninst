@@ -518,7 +518,7 @@ bool Module::setDefaultNamespacePrefix(string str)
     return exec_->setDefaultNamespacePrefix(str);
 }
 
-void Module::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
+Serializable * Module::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
    ifxml_start_element(sb, tag);
    gtranslate(sb, fileName_, "fileName");
@@ -565,6 +565,7 @@ void Module::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (Ser
 
 	   exec_ = st;
    }
+   return NULL;
 }
 
 bool Module::findVariablesByName(std::vector<Variable *> &ret, const std::string name,
@@ -586,7 +587,7 @@ bool Module::findVariablesByName(std::vector<Variable *> &ret, const std::string
   return succ;
 }
   
-SYMTAB_EXPORT void Statement::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
+Serializable *Statement::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC(SerializerError)
 {
 	ifxml_start_element(sb, tag);
 	gtranslate(sb, file_, "file");
@@ -595,4 +596,5 @@ SYMTAB_EXPORT void Statement::serialize_impl(SerializerBase *sb, const char *tag
 	gtranslate(sb, start_addr_, "startAddress");
 	gtranslate(sb, end_addr_, "endAddress");
 	ifxml_end_element(sb, tag);
+	return NULL;
 }

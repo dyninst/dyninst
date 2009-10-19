@@ -110,13 +110,13 @@ class test_type_info_Mutator : public SymtabMutator {
    {
 	   if (!got_type_enum)
 	   {
-		   fprintf(stderr, "%s[%d]:  enum was missed\n", FILE__, __LINE__);
+		   logerror( "%s[%d]:  enum was missed\n", FILE__, __LINE__);
 		   return false;
 	   }
 
 	   if (!got_type_pointer)
 	   {
-		   fprintf(stderr, "%s[%d]:  pointer was missed\n", FILE__, __LINE__);
+		   logerror( "%s[%d]:  pointer was missed\n", FILE__, __LINE__);
 		   return false;
 	   }
 
@@ -124,7 +124,7 @@ class test_type_info_Mutator : public SymtabMutator {
 	   //  I think typeFunction is c++ only
 	   if (!got_type_function)
 	   {
-		   fprintf(stderr, "%s[%d]:  function was missed\n", FILE__, __LINE__);
+		   logerror( "%s[%d]:  function was missed\n", FILE__, __LINE__);
 		   return false;
 	   }
 #endif
@@ -133,39 +133,39 @@ class test_type_info_Mutator : public SymtabMutator {
 	   {
 		   //  solaris CC does not appear to produce these
 #if !defined(os_solaris_test) && !defined(os_aix_test) && !defined(os_windows_test)
-		   fprintf(stderr, "%s[%d]:  subrange was missed\n", FILE__, __LINE__);
+		   logerror( "%s[%d]:  subrange was missed\n", FILE__, __LINE__);
 		   return false;
 #endif
 	   }
 
 	   if (!got_type_array)
 	   {
-		   fprintf(stderr, "%s[%d]:  array was missed\n", FILE__, __LINE__);
+		   logerror( "%s[%d]:  array was missed\n", FILE__, __LINE__);
 		   return false;
 	   }
 
 	   if (!got_type_struct)
 	   {
-		   fprintf(stderr, "%s[%d]:  struct was missed\n", FILE__, __LINE__);
+		   logerror( "%s[%d]:  struct was missed\n", FILE__, __LINE__);
 		   return false;
 	   }
 
 	   if (!got_type_union)
 	   {
-		   fprintf(stderr, "%s[%d]:  union was missed\n", FILE__, __LINE__);
+		   logerror( "%s[%d]:  union was missed\n", FILE__, __LINE__);
 		   return false;
 	   }
 
 	   if (!got_type_scalar)
 	   {
-		   fprintf(stderr, "%s[%d]:  scalar was missed\n", FILE__, __LINE__);
+		   logerror( "%s[%d]:  scalar was missed\n", FILE__, __LINE__);
 		   return false;
 	   }
 
 	   if (!got_type_typedef)
 	   {
 #if !defined(os_windows_test)
-		   fprintf(stderr, "%s[%d]:  typedef was missed\n", FILE__, __LINE__);
+		   logerror( "%s[%d]:  typedef was missed\n", FILE__, __LINE__);
 		   return false;
 #endif
 	   }
@@ -190,7 +190,7 @@ bool test_type_info_Mutator::verify_type_enum(typeEnum *t, std::vector<std::pair
 
 	if (!constants.size())
 	{
-		fprintf(stderr, "%s[%d]: empty enum %s\n", FILE__, __LINE__, tn.c_str());
+		logerror( "%s[%d]: empty enum %s\n", FILE__, __LINE__, tn.c_str());
 		return false;
 	}
 
@@ -198,7 +198,7 @@ bool test_type_info_Mutator::verify_type_enum(typeEnum *t, std::vector<std::pair
 	{
 		if (constants[i].first.length() == 0)
 		{
-			fprintf(stderr, "%s[%d]:  enum %s has unnamed element\n", 
+			logerror( "%s[%d]:  enum %s has unnamed element\n", 
 					FILE__, __LINE__, tn.c_str());
 			return false;
 		}
@@ -210,7 +210,7 @@ bool test_type_info_Mutator::verify_type_enum(typeEnum *t, std::vector<std::pair
 
 		if (expected_vals.size() != constants.size())
 		{
-			fprintf(stderr, "%s[%d]:  differing sizes for values: %d vs %d\n", 
+			logerror( "%s[%d]:  differing sizes for values: %d vs %d\n", 
 					FILE__, __LINE__, expected_vals.size(), constants.size());
 			return false;
 		}
@@ -224,14 +224,14 @@ bool test_type_info_Mutator::verify_type_enum(typeEnum *t, std::vector<std::pair
 
 			if (tag1 != tag2)
 			{
-				fprintf(stderr, "%s[%d]:  enum elems[%d] differ: %s != %s\n", 
+				logerror( "%s[%d]:  enum elems[%d] differ: %s != %s\n", 
 						FILE__, __LINE__, i, tag1.c_str(), tag2.c_str());
 				return false;
 			}
 
 			if (val1 != val2)
 			{
-				fprintf(stderr, "%s[%d]:  enum elems[%d] differ: %d != %d\n", 
+				logerror( "%s[%d]:  enum elems[%d] differ: %d != %d\n", 
 						FILE__, __LINE__, i, val1, val2);
 				return false;
 			}
@@ -248,7 +248,7 @@ bool test_type_info_Mutator::verify_type_pointer(typePointer *t, std::string *ex
 	Type *c = t->getConstituentType();
 	if (!c)
 	{
-		fprintf(stderr, "%s[%d]:  NULL constituent type for type %s!\n", 
+		logerror( "%s[%d]:  NULL constituent type for type %s!\n", 
 				FILE__, __LINE__, tn.c_str());
 		return false;
 	}
@@ -257,7 +257,7 @@ bool test_type_info_Mutator::verify_type_pointer(typePointer *t, std::string *ex
 	{
 		if (c->getName() != *exp_base)
 		{
-			fprintf(stderr, "%s[%d]:  unexpected base type %s (not %s) for type %s\n",
+			logerror( "%s[%d]:  unexpected base type %s (not %s) for type %s\n",
 					FILE__, __LINE__, c->getName().c_str(), exp_base->c_str(), tn.c_str());
 			return false;
 		}
@@ -273,7 +273,7 @@ bool test_type_info_Mutator::verify_type_function(typeFunction *t)
 
 	if (!retType)
 	{
-		fprintf(stderr, "%s[%d]:  func type %s has no return type\n", 
+		logerror( "%s[%d]:  func type %s has no return type\n", 
 				FILE__, __LINE__, tn.c_str());
 		return false;
 	}
@@ -286,7 +286,7 @@ bool test_type_info_Mutator::verify_type_function(typeFunction *t)
 	{
 		if (params[i] == NULL)
 		{
-			fprintf(stderr, "%s[%d]:  got NULL param type\n", FILE__, __LINE__);
+			logerror( "%s[%d]:  got NULL param type\n", FILE__, __LINE__);
 			return false;
 		}
 	}
@@ -303,7 +303,7 @@ bool test_type_info_Mutator::verify_type_subrange(typeSubrange *t)
 
 	if (t->getLow() > t->getHigh())
 	{
-		fprintf(stderr, "%s[%d]:  bad range [%d--%d] for type %s!\n", 
+		logerror( "%s[%d]:  bad range [%d--%d] for type %s!\n", 
 				FILE__, __LINE__, t->getLow(), t->getHigh(), tn.c_str());
 		return false;
 	}
@@ -326,7 +326,7 @@ bool test_type_info_Mutator::verify_type_array(typeArray *t, int *exp_low, int *
 		//  ignore
 		if (! (t->getLow() == 0L && t->getHigh() == -1L))
 		{
-			fprintf(stderr, "%s[%d]:  bad ranges [%lu--%lu] for type %s!\n", 
+			logerror( "%s[%d]:  bad ranges [%lu--%lu] for type %s!\n", 
 					FILE__, __LINE__, t->getLow(), t->getHigh(), tn.c_str());
 			return false;
 		}
@@ -335,7 +335,7 @@ bool test_type_info_Mutator::verify_type_array(typeArray *t, int *exp_low, int *
 	Type *b = t->getBaseType();
 	if (!b)
 	{
-		fprintf(stderr, "%s[%d]:  NULL base type for type %s!\n", 
+		logerror( "%s[%d]:  NULL base type for type %s!\n", 
 				FILE__, __LINE__, tn.c_str());
 		return false;
 	}
@@ -344,7 +344,7 @@ bool test_type_info_Mutator::verify_type_array(typeArray *t, int *exp_low, int *
 	{
 		if (*exp_low != t->getLow())
 		{
-			fprintf(stderr, "%s[%d]:  unexpected lowbound %d (not %d) for type %s!\n", 
+			logerror( "%s[%d]:  unexpected lowbound %d (not %d) for type %s!\n", 
 					FILE__, __LINE__, t->getLow(), *exp_low, tn.c_str());
 			return false;
 		}
@@ -354,7 +354,7 @@ bool test_type_info_Mutator::verify_type_array(typeArray *t, int *exp_low, int *
 	{
 		if (*exp_hi != t->getHigh())
 		{
-			fprintf(stderr, "%s[%d]:  unexpected hibound %d (not %d) for type %s!\n", 
+			logerror( "%s[%d]:  unexpected hibound %d (not %d) for type %s!\n", 
 					FILE__, __LINE__, t->getHigh(), *exp_hi, tn.c_str());
 			return false;
 		}
@@ -364,7 +364,7 @@ bool test_type_info_Mutator::verify_type_array(typeArray *t, int *exp_low, int *
 	{
 		if (*base_type_name != b->getName())
 		{
-			fprintf(stderr, "%s[%d]:  unexpected basetype %s (not %s) for type %s!\n", 
+			logerror( "%s[%d]:  unexpected basetype %s (not %s) for type %s!\n", 
 					FILE__, __LINE__, b->getName().c_str(), base_type_name->c_str(), tn.c_str());
 			return false;
 		}
@@ -377,20 +377,20 @@ bool test_type_info_Mutator::verify_field(Field *f)
 {
 	if (!f)
 	{
-		fprintf(stderr, "%s[%d]:  NULL field\n", FILE__, __LINE__);
+		logerror( "%s[%d]:  NULL field\n", FILE__, __LINE__);
 		return false;
 	}
 
 	if (0 == f->getName().length())
 	{
-		fprintf(stderr, "%s[%d]:  unnamed field\n", FILE__, __LINE__);
+		logerror( "%s[%d]:  unnamed field\n", FILE__, __LINE__);
 		return false;
 	}
 
 	Type *ft = f->getType();
 	if (NULL == ft)
 	{
-		fprintf(stderr, "%s[%d]:  field %s has NULL type\n", FILE__, __LINE__, f->getName().c_str());
+		logerror( "%s[%d]:  field %s has NULL type\n", FILE__, __LINE__, f->getName().c_str());
 		return false;
 	}
 
@@ -398,14 +398,14 @@ bool test_type_info_Mutator::verify_field(Field *f)
 	if (0 == f->getOffset())
 	{
 		//  this is probably ok
-		fprintf(stderr, "%s[%d]: field %s has zero offset\n", FILE__, __LINE__, f->getName().c_str());
+		logerror( "%s[%d]: field %s has zero offset\n", FILE__, __LINE__, f->getName().c_str());
 		return false;
 	}
 
 	if (visUnknown == f->getVisibility())
 	{
 		//  this is probably ok
-		fprintf(stderr, "%s[%d]: field %s has unknown visibility\n", FILE__, __LINE__, f->getName().c_str());
+		logerror( "%s[%d]: field %s has unknown visibility\n", FILE__, __LINE__, f->getName().c_str());
 		return false;
 	}
 #endif
@@ -426,7 +426,7 @@ bool test_type_info_Mutator::verify_field_list(fieldListType *t,
 
 	if (comps && !components)
 	{
-		fprintf(stderr, "%s[%d]:  no components for type %s\n", FILE__, __LINE__, tn.c_str());
+		logerror( "%s[%d]:  no components for type %s\n", FILE__, __LINE__, tn.c_str());
 		return false;
 	}
 
@@ -437,7 +437,7 @@ bool test_type_info_Mutator::verify_field_list(fieldListType *t,
 			Field *f = (*components)[i];
 			if (!verify_field(f))
 			{
-				fprintf(stderr, "%s[%d]:  verify field failed for type %s\n", 
+				logerror( "%s[%d]:  verify field failed for type %s\n", 
 						FILE__, __LINE__, tn.c_str());
 				return false;
 			}
@@ -448,7 +448,7 @@ bool test_type_info_Mutator::verify_field_list(fieldListType *t,
 
 	if (efields && !fields)
 	{
-		fprintf(stderr, "%s[%d]:  no fields for type %s\n", FILE__, __LINE__, tn.c_str());
+		logerror( "%s[%d]:  no fields for type %s\n", FILE__, __LINE__, tn.c_str());
 		return false;
 	}
 
@@ -459,7 +459,7 @@ bool test_type_info_Mutator::verify_field_list(fieldListType *t,
 			Field *f = (*fields)[i];
 			if (!verify_field(f))
 			{
-				fprintf(stderr, "%s[%d]:  verify field failed for type %s\n", 
+				logerror( "%s[%d]:  verify field failed for type %s\n", 
 						FILE__, __LINE__, tn.c_str());
 				return false;
 			}
@@ -483,9 +483,9 @@ bool test_type_info_Mutator::verify_field_list(fieldListType *t,
 				// as fields
 			//	if (efields->size() < fields->size())
 			//	{
-			//		fprintf(stderr, "%s[%d]:  bad sizes for expected fields\n", 
+			//		logerror( "%s[%d]:  bad sizes for expected fields\n", 
 			//				FILE__, __LINE__);
-			//		fprintf(stderr, "%s[%d]:  got %d, expected %d\n", FILE__, __LINE__, 
+			//		logerror( "%s[%d]:  got %d, expected %d\n", FILE__, __LINE__, 
 			//				fields->size(), efields->size());
 			//	}
 			//}
@@ -493,18 +493,18 @@ bool test_type_info_Mutator::verify_field_list(fieldListType *t,
 			//{
 			//	if (efields->size() != fields->size())
 			//	{
-			//		fprintf(stderr, "%s[%d]:  WARNING:  differing sizes for expected fields\n", 
+			//		logerror( "%s[%d]:  WARNING:  differing sizes for expected fields\n", 
 			//				FILE__, __LINE__);
-			//		fprintf(stderr, "%s[%d]:  got %d, expected %d\n", FILE__, __LINE__, 
+			//		logerror( "%s[%d]:  got %d, expected %d\n", FILE__, __LINE__, 
 			//				fields->size(), efields->size());
 			//	}
 			//}
 
 			if (efields->size() > fields->size())
 			{
-				fprintf(stderr, "%s[%d]:  bad sizes for expected fields for type %s\n", 
+				logerror( "%s[%d]:  bad sizes for expected fields for type %s\n", 
 						FILE__, __LINE__, tn.c_str());
-				fprintf(stderr, "%s[%d]:  got %d, expected %d\n", FILE__, __LINE__, 
+				logerror( "%s[%d]:  got %d, expected %d\n", FILE__, __LINE__, 
 						fields->size(), efields->size());
 				return false;
 			}
@@ -514,7 +514,7 @@ bool test_type_info_Mutator::verify_field_list(fieldListType *t,
 			{
 				if (fields->size() <= i)
 				{
-					fprintf(stderr, "%s[%d]:  cannot get %dth elem of %d size vec\n", 
+					logerror( "%s[%d]:  cannot get %dth elem of %d size vec\n", 
 							FILE__, __LINE__, i, fields->size());
 					break;
 				}
@@ -526,7 +526,7 @@ bool test_type_info_Mutator::verify_field_list(fieldListType *t,
 
 				//if (lang == lang_CPlusPlus && ft->getFunctionType())
 				//{
-				//	fprintf(stderr, "%s[%d]:  skipping field %s\n", FILE__, __LINE__, 
+				//	logerror( "%s[%d]:  skipping field %s\n", FILE__, __LINE__, 
 				//			fieldname.c_str());
 				//	continue;
 				//}
@@ -545,7 +545,7 @@ bool test_type_info_Mutator::verify_field_list(fieldListType *t,
 				if (fieldtypename != expected_fieldtypename &&
                 fieldtypename != alternate_fieldtypename)
 				{
-					fprintf(stderr, "%s[%d]:  Field type '%s', not expected '%s'\n", FILE__,
+					logerror( "%s[%d]:  Field type '%s', not expected '%s'\n", FILE__,
 							__LINE__, fieldtypename.c_str(), expected_fieldname.c_str());
 					err = true;
 				}
@@ -553,7 +553,7 @@ bool test_type_info_Mutator::verify_field_list(fieldListType *t,
 				if (fieldname != expected_fieldname &&
                 fieldname != alternate_fieldname)
 				{
-					fprintf(stderr, "%s[%d]:  Field type '%s' not expected '%s'\n", FILE__,
+					logerror( "%s[%d]:  Field type '%s' not expected '%s'\n", FILE__,
 							__LINE__, fieldname.c_str(), expected_fieldtypename.c_str());
 					err = true;
 				}
@@ -579,7 +579,7 @@ bool test_type_info_Mutator::verify_type_struct(typeStruct *t,
 
 	if (!verify_field_list(t, ecomps, efields, afields))
 	{
-		fprintf(stderr, "%s[%d]:  verify struct %s failing\n", FILE__, __LINE__, tn.c_str());
+		logerror( "%s[%d]:  verify struct %s failing\n", FILE__, __LINE__, tn.c_str());
 		return false;
 	}
 
@@ -596,7 +596,7 @@ bool test_type_info_Mutator::verify_type_union(typeUnion *t,
 	static bool did_warning = false;
 	if (!did_warning)
 	{
-		fprintf(stderr, "%s[%d]: WARNING:  union verification skipped on this platform\n", 
+		logerror( "%s[%d]: WARNING:  union verification skipped on this platform\n", 
 				FILE__, __LINE__);
 		did_warning = true;
 	}
@@ -608,7 +608,7 @@ bool test_type_info_Mutator::verify_type_union(typeUnion *t,
 
 	if (!verify_field_list(t, ecomps, efields))
 	{
-		fprintf(stderr, "%s[%d]:  verify union %s failing\n", FILE__, __LINE__, tn.c_str());
+		logerror( "%s[%d]:  verify union %s failing\n", FILE__, __LINE__, tn.c_str());
 		return false;
 	}
 
@@ -638,7 +638,7 @@ bool test_type_info_Mutator::verify_type_typedef(typeTypedef *t, std::string *tn
 	Type *c = t->getConstituentType();
 	if (!c)
 	{
-		fprintf(stderr, "%s[%d]:  NULL constituent type for type %s!\n", 
+		logerror( "%s[%d]:  NULL constituent type for type %s!\n", 
 				FILE__, __LINE__, tn.c_str());
 		return false;
 	}
@@ -647,7 +647,7 @@ bool test_type_info_Mutator::verify_type_typedef(typeTypedef *t, std::string *tn
 	{
 		if (c->getName() != *tn_constituent)
 		{
-			fprintf(stderr, "%s[%d]:  unexpected constituent type '%s' (not %s) for type %s!\n", 
+			logerror( "%s[%d]:  unexpected constituent type '%s' (not %s) for type %s!\n", 
 					FILE__, __LINE__, c->getName().c_str(), tn_constituent->c_str(), tn.c_str());
 			return false;
 		}
@@ -665,27 +665,28 @@ bool test_type_info_Mutator::verify_type(Type *t)
 
 	if (!t->getID())
 	{
-		fprintf(stderr, "%s[%d]:  type %s with zero id\n", FILE__, __LINE__, tn.c_str());
+		logerror( "%s[%d]:  type %s with zero id\n", FILE__, __LINE__, tn.c_str());
 		return false;
 	}
 
 	if ( 0 == tn.length())
 	{
-		fprintf(stderr, "%s[%d]:  unnamed type\n", FILE__, __LINE__);
-		return false;
+		logerror( "%s[%d]:  unnamed %s type\n", FILE__, __LINE__, 
+				dataClass2Str(t->getDataClass()));
+		//return false;
 	}
 
 	dataClass dc = t->getDataClass();
 
 	if (dc == dataUnknownType)
 	{
-		fprintf(stderr, "%s[%d]:  type %s has bad data class\n", FILE__, __LINE__, tn.c_str());
+		logerror( "%s[%d]:  type %s has bad data class\n", FILE__, __LINE__, tn.c_str());
 		return false;
 	}
 
 	if (dc == dataNullType)
 	{
-		fprintf(stderr, "%s[%d]:  type %s has bad data class\n", FILE__, __LINE__, tn.c_str());
+		logerror( "%s[%d]:  type %s has bad data class\n", FILE__, __LINE__, tn.c_str());
 		return false;
 	}
 
@@ -711,7 +712,7 @@ bool test_type_info_Mutator::verify_type(Type *t)
 	{
 		// common blocks are fortran only
 		// we don't test that here yet
-		fprintf(stderr, "%s[%d]:  weird, got common type\n", FILE__, __LINE__);
+		logerror( "%s[%d]:  weird, got common type\n", FILE__, __LINE__);
 		return true;
 		//return verify_type_common(t->getCommonType());
 	}
@@ -719,13 +720,13 @@ bool test_type_info_Mutator::verify_type(Type *t)
 	{
 		//  references are c++ only
 		// we don't test that here yet
-		fprintf(stderr, "%s[%d]:  weird, got reference type\n", FILE__, __LINE__);
+		logerror( "%s[%d]:  weird, got reference type\n", FILE__, __LINE__);
 		return true;
 		//return verify_type_ref(t->getRefType());
 	}
 	else
 	{
-		fprintf(stderr, "%s[%d]: uknown type type for %s!\n", FILE__, __LINE__, tn.c_str());
+		logerror( "%s[%d]: uknown type type for %s!\n", FILE__, __LINE__, tn.c_str());
 	}
 	return false;
 }
@@ -737,14 +738,14 @@ bool test_type_info_Mutator::specific_type_tests()
 	std::string tname = "enum1";
 	if (!symtab->findType(t, tname) || (NULL == t))
 	{
-		fprintf(stderr, "%s[%d]:  could not find type %s\n", FILE__, __LINE__, tname.c_str());
+		logerror( "%s[%d]:  could not find type %s\n", FILE__, __LINE__, tname.c_str());
 		return false;
 	}
 
 	typeEnum *te = t->getEnumType();
 	if (!te)
 	{
-		fprintf(stderr, "%s[%d]:  %s: unexpected variety\n", FILE__, __LINE__, tname.c_str());
+		logerror( "%s[%d]:  %s: unexpected variety\n", FILE__, __LINE__, tname.c_str());
 		return false;
 	}
 
@@ -759,14 +760,14 @@ bool test_type_info_Mutator::specific_type_tests()
 	tname = "my_union";
 	if (!symtab->findType(t, tname) || (NULL == t))
 	{
-		fprintf(stderr, "%s[%d]:  could not find type %s\n", FILE__, __LINE__, tname.c_str());
+		logerror( "%s[%d]:  could not find type %s\n", FILE__, __LINE__, tname.c_str());
 		return false;
 	}
 
 	typeUnion *tu = t->getUnionType();
 	if (!tu)
 	{
-		fprintf(stderr, "%s[%d]:  %s: unexpected variety\n", FILE__, __LINE__, tname.c_str());
+		logerror( "%s[%d]:  %s: unexpected variety\n", FILE__, __LINE__, tname.c_str());
 		return false;
 	}
 
@@ -775,21 +776,21 @@ bool test_type_info_Mutator::specific_type_tests()
 	expected_union_fields.push_back(std::pair<std::string, std::string>("int", "my_int"));
 
 	if (!verify_type_union(tu, NULL, &expected_union_fields)) {
-		fprintf(stderr, "%s[%d]:  could not verify union\n", FILE__, __LINE__);
+		logerror( "%s[%d]:  could not verify union\n", FILE__, __LINE__);
 		return false;
    }
 
 	tname = "mystruct";
 	if (!symtab->findType(t, tname) || (NULL == t))
 	{
-		fprintf(stderr, "%s[%d]:  could not find type %s\n", FILE__, __LINE__, tname.c_str());
+		logerror( "%s[%d]:  could not find type %s\n", FILE__, __LINE__, tname.c_str());
 		return false;
 	}
 
 	typeStruct *ts = t->getStructType();
 	if (!ts)
 	{
-		fprintf(stderr, "%s[%d]:  %s: unexpected variety\n", FILE__, __LINE__, tname.c_str());
+		logerror( "%s[%d]:  %s: unexpected variety\n", FILE__, __LINE__, tname.c_str());
 		return false;
 	}
 
@@ -806,21 +807,21 @@ bool test_type_info_Mutator::specific_type_tests()
 	alternate_struct_fields.push_back(std::pair<std::string, std::string>("float", "elem4"));
 
 	if (!verify_type_struct(ts, NULL, &expected_struct_fields, &alternate_struct_fields)) {
-      fprintf(stderr, "[%s:%u] - Could not verify struct\n");
+      logerror( "[%s:%u] - Could not verify struct\n");
 		return false;
    }
 #if !defined(os_windows_test)
 	tname = "int_alias_t";
 	if (!symtab->findType(t, tname) || (NULL == t))
 	{
-		fprintf(stderr, "%s[%d]:  could not find type %s\n", FILE__, __LINE__, tname.c_str());
+		logerror( "%s[%d]:  could not find type %s\n", FILE__, __LINE__, tname.c_str());
 		return false;
 	}
 
 	typeTypedef *ttd = t->getTypedefType();
 	if (!ttd)
 	{
-		fprintf(stderr, "%s[%d]:  %s: unexpected variety\n", FILE__, __LINE__, tname.c_str());
+		logerror( "%s[%d]:  %s: unexpected variety\n", FILE__, __LINE__, tname.c_str());
 		return false;
 	}
 
@@ -831,7 +832,7 @@ bool test_type_info_Mutator::specific_type_tests()
 	tname = "int_array_t";
 	if (!symtab->findType(t, tname) || (NULL == t))
 	{
-		fprintf(stderr, "%s[%d]:  could not find type %s\n", FILE__, __LINE__, tname.c_str());
+		logerror( "%s[%d]:  could not find type %s\n", FILE__, __LINE__, tname.c_str());
 		return false;
 	}
 
@@ -846,7 +847,7 @@ bool test_type_info_Mutator::specific_type_tests()
 		tc = t->getArrayType();
 		if (NULL == tc)
 		{
-			fprintf(stderr, "%s[%d]:  %s: unexpected variety %s\n", 
+			logerror( "%s[%d]:  %s: unexpected variety %s\n", 
 					FILE__, __LINE__, tname.c_str(), t->specificType().c_str());
 			return false;
 		}
@@ -860,20 +861,20 @@ bool test_type_info_Mutator::specific_type_tests()
 	}
 	if (!tc)
 	{
-		fprintf(stderr, "%s[%d]:  %s: no constituent type\n", FILE__, __LINE__, tname.c_str());
+		logerror( "%s[%d]:  %s: no constituent type\n", FILE__, __LINE__, tname.c_str());
 		return false;
 	}
-	//fprintf(stderr, "%s[%d]:  typedef %s constituent typename: %s:%s/id %d, typedef id = %d\n", FILE__, __LINE__, tt->getName().c_str(), tc->specificType().c_str(), tc->getName().c_str(), tc->getID(), tt->getID());
+	//logerror( "%s[%d]:  typedef %s constituent typename: %s:%s/id %d, typedef id = %d\n", FILE__, __LINE__, tt->getName().c_str(), tc->specificType().c_str(), tc->getName().c_str(), tc->getID(), tt->getID());
 
 	typeArray *ta = tc->getArrayType();
 	if (!ta)
 	{
-		fprintf(stderr, "%s[%d]:  %s: unexpected variety: %s--%s\n", FILE__, __LINE__, tname.c_str(), tc->specificType().c_str(), tc->getName().c_str());
+		logerror( "%s[%d]:  %s: unexpected variety: %s--%s\n", FILE__, __LINE__, tname.c_str(), tc->specificType().c_str(), tc->getName().c_str());
 		typeTypedef *ttd = tc->getTypedefType();
 		if (ttd)
 		{
 			Type *ttd_c = ttd->getConstituentType();
-			fprintf(stderr, "%s[%d]:  typedef constituent %s--%s\n", FILE__, __LINE__, ttd_c->getName().c_str(), ttd_c->specificType().c_str());
+			logerror( "%s[%d]:  typedef constituent %s--%s\n", FILE__, __LINE__, ttd_c->getName().c_str(), ttd_c->specificType().c_str());
 					}
 		return false;
 	}
@@ -883,7 +884,7 @@ bool test_type_info_Mutator::specific_type_tests()
 	int expected_hi = 255;
 	if (!verify_type_array(ta, &expected_low, &expected_hi, &expected_array_base)) 
 	{
-		fprintf(stderr, "%s[%d]: failed to verify typeArray\n", FILE__, __LINE__);
+		logerror( "%s[%d]: failed to verify typeArray\n", FILE__, __LINE__);
 		return false;
 	}
 
@@ -892,7 +893,7 @@ bool test_type_info_Mutator::specific_type_tests()
 		tname = "my_intptr_t";
 		if (!symtab->findType(t, tname) || (NULL == t))
 		{
-			fprintf(stderr, "%s[%d]:  could not find type %s\n", 
+			logerror( "%s[%d]:  could not find type %s\n", 
 					FILE__, __LINE__, tname.c_str());
 			return false;
 		}
@@ -900,7 +901,7 @@ bool test_type_info_Mutator::specific_type_tests()
 		tt = t->getTypedefType();
 		if (!tt)
 		{
-			fprintf(stderr, "%s[%d]:  %s: unexpected variety\n", 
+			logerror( "%s[%d]:  %s: unexpected variety\n", 
 					FILE__, __LINE__, tname.c_str());
 			return false;
 		}
@@ -911,7 +912,7 @@ bool test_type_info_Mutator::specific_type_tests()
 		tc = tt->getConstituentType();
 		if (!tc)
 		{
-			fprintf(stderr, "%s[%d]:  %s: no constituent type\n", 
+			logerror( "%s[%d]:  %s: no constituent type\n", 
 					FILE__, __LINE__, tname.c_str());
 			return false;
 		}
@@ -919,8 +920,8 @@ bool test_type_info_Mutator::specific_type_tests()
 		typePointer *tp = tc->getPointerType();
 		if (!tp)
 		{
-			fprintf(stderr, "%s[%d]:  %s: unexpected variety\n", 
-					FILE__, __LINE__, tname.c_str());
+			logerror( "%s[%d]:  %s: unexpected variety: %s\n", 
+					FILE__, __LINE__, tname.c_str(), dataClass2Str(tc->getDataClass()));
 			return false;
 		}
 
@@ -961,13 +962,13 @@ test_results_t test_type_info_Mutator::verify_basic_type_lists()
 	   Type *t = (*std_types)[i];
 	   if (!t)
 	   {
-		   fprintf(stderr, "%s[%d]:  NULL type returned to user\n", FILE__, __LINE__);
+		   logerror( "%s[%d]:  NULL type returned to user\n", FILE__, __LINE__);
 		   return FAILED;
 	   }
 
 	   if (!verify_type(t))
 	   {
-		   fprintf(stderr, "%s[%d]:  failing due to bad type\n", FILE__, __LINE__);
+		   logerror( "%s[%d]:  failing due to bad type\n", FILE__, __LINE__);
 		   return FAILED;
 	   }
    }
@@ -977,13 +978,13 @@ test_results_t test_type_info_Mutator::verify_basic_type_lists()
 	   Type *t = (*builtin_types)[i];
 	   if (!t)
 	   {
-		   fprintf(stderr, "%s[%d]:  NULL type returned to user\n", FILE__, __LINE__);
+		   logerror( "%s[%d]:  NULL type returned to user\n", FILE__, __LINE__);
 		   return FAILED;
 	   }
 
 	   if (!verify_type(t))
 	   {
-		   fprintf(stderr, "%s[%d]:  failing due to bad type\n", FILE__, __LINE__);
+		   logerror( "%s[%d]:  failing due to bad type\n", FILE__, __LINE__);
 		   return FAILED;
 	   }
    }
@@ -1020,7 +1021,7 @@ test_results_t test_type_info_Mutator::verify_basic_type_lists()
 			   continue;
 	   }
 
-	   //fprintf(stderr, "%s[%d]:  examining types in module %s\n", FILE__, __LINE__,
+	   //logerror( "%s[%d]:  examining types in module %s\n", FILE__, __LINE__,
 	   //		   mods[i]->fileName().c_str());
 
 	   for (unsigned int j = 0; j < modtypes->size(); ++j)
@@ -1028,13 +1029,13 @@ test_results_t test_type_info_Mutator::verify_basic_type_lists()
 		   Type *t = (*modtypes)[j];
 		   if (!t)
 		   {
-			   fprintf(stderr, "%s[%d]:  NULL type returned to user\n", FILE__, __LINE__);
+			   logerror( "%s[%d]:  NULL type returned to user\n", FILE__, __LINE__);
 			   return FAILED;
 		   }
 
 		   if (!verify_type(t))
 		   {
-			   fprintf(stderr, "%s[%d]:  failing due to bad type\n", FILE__, __LINE__);
+			   logerror( "%s[%d]:  failing due to bad type\n", FILE__, __LINE__);
 			   return FAILED;
 		   }
 	   }
@@ -1043,13 +1044,13 @@ test_results_t test_type_info_Mutator::verify_basic_type_lists()
 
    if (!specific_type_tests())
    {
-	   fprintf(stderr, "%s[%d]:  specific type test failed... \n", FILE__, __LINE__);
+	   logerror( "%s[%d]:  specific type test failed... \n", FILE__, __LINE__);
 	   return FAILED;
    }
 
    if (!got_all_types())
    {
-	   fprintf(stderr, "%s[%d]:  did not test all types...  failing\n", FILE__, __LINE__);
+	   logerror( "%s[%d]:  did not test all types...  failing\n", FILE__, __LINE__);
 	   return FAILED;
    }
 
@@ -1066,31 +1067,31 @@ test_results_t test_type_info_Mutator::executeTest()
 	
 	if (!symtab->getAllModules(mods))
 	{
-		fprintf(stderr, "%s[%d]:  failed to get all modules\n", FILE__, __LINE__);
+		logerror( "%s[%d]:  failed to get all modules\n", FILE__, __LINE__);
 		return FAILED;
 	}
 
 	for (unsigned int i = 0; i < mods.size(); ++i)
 	{
 		std::string mname = mods[i]->fileName();
-		//fprintf(stderr, "%s[%d]:  considering module %s\n", FILE__, __LINE__, mname.c_str());
+		//logerror( "%s[%d]:  considering module %s\n", FILE__, __LINE__, mname.c_str());
 		if (!strncmp("solo_mutatee", mname.c_str(), strlen("solo_mutatee")) ||	
 		    !strncmp("test_type_info_mutatee", mname.c_str(), strlen("test_type_info_mutatee")))
 		{
 		   if (mod)
-		      fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
+		      logerror( "%s[%d]:  FIXME\n", FILE__, __LINE__);
 		   mod = mods[i];
 		}
 	}
 
 	if (!mod)
 	{
-		fprintf(stderr, "%s[%d]:  failed to find module\n", FILE__, __LINE__);
+		logerror( "%s[%d]:  failed to find module\n", FILE__, __LINE__);
 		return FAILED;
 	}
 
 	lang = mod->language();
-	//fprintf(stderr, "%s[%d]:  lang = %s\n", FILE__, __LINE__, supportedLanguages2Str(lang));
+	//logerror( "%s[%d]:  lang = %s\n", FILE__, __LINE__, supportedLanguages2Str(lang));
 	test_results_t ret = verify_basic_type_lists();
    return ret;
 }
