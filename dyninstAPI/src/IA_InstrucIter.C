@@ -47,6 +47,11 @@ IA_InstrucIter::IA_InstrucIter(InstrucIter from, image_func* f)
 {
 }
 
+IA_InstrucIter::IA_InstrucIter(InstrucIter from, image * im)
+    : InstructionAdapter(*from, im), ii(from)
+{
+}
+
 void IA_InstrucIter::advance()
 {
     InstructionAdapter::advance();
@@ -163,12 +168,22 @@ void IA_InstrucIter::getNewEdges(
         dictionary_hash<Address,
         std::string> *pltFuncs) const
 {
+    if(!context) {
+        fprintf(stderr, "[%s] getNewEdges not supported in non-image_func"
+                        "context\n", FILE__);
+        return;
+    }
+
     if(!hasCFT()) return;
     else if(ii.isACondBranchInstruction())
     {
         outEdges.push_back(std::make_pair(ii.getBranchTargetAddress(NULL),
                            ET_COND_TAKEN));
-        outEdges.push_back(std::make_pair(current + getSize(), ET_COND_NOT_TAKEN));
+        if(ii.isDelaySlot()) {
+	  outEdges.push_back(std::make_pair(current + 2 * getSize(), ET_COND_NOT_TAKEN));
+        } else {
+	  outEdges.push_back(std::make_pair(current + getSize(), ET_COND_NOT_TAKEN));
+	}
         return;
     }
     else if(ii.isAIndirectJumpInstruction())
@@ -265,8 +280,14 @@ void IA_InstrucIter::getNewEdges(
                 }
             }
         }
-        outEdges.push_back(std::make_pair(getAddr() + getSize(),
+        if(ii.isDelaySlot()) {
+	  outEdges.push_back(std::make_pair(getAddr() + 2 * getSize(),
                            ET_FUNLINK));
+	  
+        } else {
+	  outEdges.push_back(std::make_pair(getAddr() + getSize(),
+                           ET_FUNLINK));
+	}
         return;
     }
     return;
@@ -290,6 +311,13 @@ instruction IA_InstrucIter::getInstruction()
 bool IA_InstrucIter::isRealCall() const
 {
     bool ignored;
+
+    if(!context) {
+        fprintf(stderr, "[%s] isRealCall not supported in non-image_func"
+                        "context\n", FILE__);
+        return false;
+    }
+
     return context->archIsRealCall(ii, ignored, ignored);
 }
 
@@ -303,6 +331,12 @@ bool IA_InstrucIter::simulateJump() const
 
 bool IA_InstrucIter::isRelocatable(InstrumentableLevel lvl) const
 {
+    if(!context) {
+        fprintf(stderr, "[%s] isRelocatable not supported in non-image_func"
+                        "context\n", FILE__);
+        return false;
+    }
+
     if(lvl == HAS_BR_INDIR)
     {
         return false;
@@ -324,6 +358,12 @@ bool IA_InstrucIter::isRelocatable(InstrumentableLevel lvl) const
 
 bool IA_InstrucIter::isTailCall(unsigned int num_insns) const
 {
+    if(!context) {
+        fprintf(stderr, "[%s] isTailCall not supported in non-image_func"
+                        "context\n", FILE__);
+        return false;
+    }
+
     if(ii.isACondBranchInstruction()) return false;
     if(ii.isAIndirectJumpInstruction() && context->archIsIndirectTailCall(ii))
     {
@@ -339,6 +379,12 @@ bool IA_InstrucIter::isTailCall(unsigned int num_insns) const
 
 bool IA_InstrucIter::checkEntry() const
 {
+    if(!context) {
+        fprintf(stderr, "[%s] checkEntry not supported in non-image_func"
+                        "context\n", FILE__);
+        return false;
+    }
+
     return context->archCheckEntry(ii, context);
 }
 

@@ -1225,7 +1225,7 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
          // We will access loperand's children directly. They do not expect
          // it, so we need to bump up their useCounts
          loperand->fixChildrenCounts();
-        
+
          src2 = gen.rs()->allocateRegister(gen, noCost);
          switch (loperand->getoType()) {
             case variableValue:
@@ -1284,6 +1284,21 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                                               src1, getSize());
                //emitStorePreviousStackFrameRegister((Address) loperand->getOValue(),
                //src1, gen, getSize(), noCost);
+               loperand->decUseCount(gen);
+               break;
+            case Param: {
+               dyn_detail::boost::shared_ptr<AstOperandNode> lnode = 
+                  dyn_detail::boost::dynamic_pointer_cast<AstOperandNode>(loperand);
+               emitR(getParamOp, (Address)lnode->oValue,
+                     src1, src2, gen, noCost, gen.point(),
+                     gen.addrSpace()->multithread_capable());
+               loperand->decUseCount(gen);
+               break;
+            }
+            case ReturnVal:
+               emitR(getRetValOp, Null_Register,
+                     src1, src2, gen, noCost, gen.point(),
+                     gen.addrSpace()->multithread_capable());
                loperand->decUseCount(gen);
                break;
             default: {
@@ -1454,10 +1469,10 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
    case variableValue:
      assert(oVar);
      emitVariableLoad(loadOp, retReg, retReg, gen,
-		 noCost, gen.rs(), size, gen.point(), gen.addrSpace());
+        noCost, gen.rs(), size, gen.point(), gen.addrSpace());
      break;
    case ReturnVal:
-       src = emitR(getRetValOp, 0, 0, retReg, gen, noCost, gen.point(),
+       src = emitR(getRetValOp, 0, Null_Register, retReg, gen, noCost, gen.point(),
                    gen.addrSpace()->multithread_capable());
        REGISTER_CHECK(src);
        if (src != retReg) {

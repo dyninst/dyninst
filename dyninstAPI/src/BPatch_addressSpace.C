@@ -146,8 +146,6 @@ BPatch_variableExpr *BPatch_addressSpace::findOrCreateVariable(int_variable *v,
    if (mod->var_map.count(v))
       return mod->var_map[v];
 
-   AddressSpace *as = v->mod()->proc();
-   
    if (!type) {
       SymtabAPI::Type *stype = v->ivar()->svar()->getType();
       if (stype)
@@ -746,8 +744,8 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPoints(
 
 #include "registerSpace.h"
 
-bool BPatch_addressSpace::getRegistersInt(std::vector<BPatch_register> &regs) {
 #if defined(cap_registers)
+bool BPatch_addressSpace::getRegistersInt(std::vector<BPatch_register> &regs) {
    if (registers_.size()) {
        regs = registers_;
        return true;
@@ -767,16 +765,18 @@ bool BPatch_addressSpace::getRegistersInt(std::vector<BPatch_register> &regs) {
    }
    regs = registers_;
    return true;
+}
 #else
+bool BPatch_addressSpace::getRegistersInt(std::vector<BPatch_register> &) {
     // Empty vector since we're not supporting register objects on
     // these platforms (yet)
    return false;
-#endif
 }
+#endif
 
+#if defined(cap_registers)
 bool BPatch_addressSpace::createRegister_NPInt(std::string regName,
                                                BPatch_register &reg) {
-#if defined(cap_registers)
     // Build the register list.
     std::vector<BPatch_register> dontcare;
     getRegisters(dontcare);
@@ -787,9 +787,15 @@ bool BPatch_addressSpace::createRegister_NPInt(std::string regName,
             return true;
         }
     }
-#endif
     return false;
 }
+#else
+bool BPatch_addressSpace::createRegister_NPInt(std::string,
+                                               BPatch_register &) 
+{
+   return false;
+}
+#endif
 
 bool BPatch_addressSpace::loadLibraryInt(const char * /*libname*/, bool /*reload*/)
 {

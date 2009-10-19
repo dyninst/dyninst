@@ -81,7 +81,8 @@ namespace DepGraphAPI {
 class DDGAnalyzer {
  public:
     typedef InstructionAPI::Instruction Insn;
-    typedef std::set<Insn> InsnSet;
+    typedef InstructionAPI::Instruction::Ptr InsnPtr;
+    typedef std::set<InsnPtr> InsnSet;
     //typedef Absloc::Ptr AbslocPtr;
     typedef Absloc::Ptr AbslocPtr;
     typedef std::set<AbslocPtr> AbslocSet;
@@ -339,7 +340,7 @@ public:
 
     void updateKillSet(const AbslocPtr D,
                        KillMap &kills);
-    void summarizeCallGenKill(const Insn &,
+    void summarizeCallGenKill(const InsnPtr,
                               const Address &addr,
                               DefMap &gens,
                               KillMap &kills);
@@ -362,7 +363,7 @@ public:
     void generateNodes(const BlockSet &blocks);
     void generateBlockNodes(Block *block);
 
-    void createInsnNodes(const Insn &I, 
+    void createInsnNodes(const InsnPtr I, 
                          const Address &addr,
                          const DefSet &def,
                          DefMap &localReachingDefs);
@@ -383,8 +384,8 @@ public:
 
     NodePtr makeNode(const cNode &cnode);
 
-    bool isCall(Insn i) const;
-    bool isReturn(Insn i) const;
+    bool isCall(InsnPtr i) const;
+    bool isReturn(InsnPtr i) const;
 
     Function *getCallee(const Address &a);
 
@@ -412,13 +413,13 @@ public:
 
 
     
-    const DefSet &getDefinedAbslocs(const Insn &insn, const Address &a);
-    const AbslocSet &getUsedAbslocs(const Insn &insn, const Address &a);
+    const DefSet &getDefinedAbslocs(const InsnPtr insn, const Address &a);
+    const AbslocSet &getUsedAbslocs(const InsnPtr insn, const Address &a);
 
-    void getUsedAbslocs(const InstructionAPI::Instruction insn,
+    void getUsedAbslocs(const InsnPtr insn,
                         Address addr,
                         AbslocSet &uses);
-    void getDefinedAbslocsInt(const InstructionAPI::Instruction insn,
+    void getDefinedAbslocsInt(const InsnPtr insn,
                               Address addr,
                               DefSet &defs);
 
@@ -453,7 +454,7 @@ public:
 
     
     ///////////////////////////
-    void getUsedToDefine(const Insn &I, 
+    void getUsedToDefine(const InsnPtr I, 
                          const Address &addr, 
                          AbslocPtr D,
                          AbslocSet &used);

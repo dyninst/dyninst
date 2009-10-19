@@ -118,7 +118,7 @@ baseTrampInstance *multiTramp::getBaseTrampInstanceByAddr(Address addr) const {
     return NULL;
 }
 
-void multiTramp::updateCode(generatedCodeObject *subObject) {
+void multiTramp::updateCode(generatedCodeObject * /*subObject*/) {
     // One of our baseTramps just went away; let's see what's going on.
     // Or we're going away from a top level.
 
@@ -1605,7 +1605,7 @@ Address multiTramp::instToUninstAddr(Address addr) {
     }
 
     // Ran out of iterator... 
-    fprintf(stderr, "Checking %ld deleted objects\n", deletedObjs.size());
+    fprintf(stderr, "Checking %lu deleted objects\n", (unsigned long) deletedObjs.size());
     for (unsigned i = 0; i < deletedObjs.size(); i++) {
         obj = deletedObjs[i];
         relocatedInstruction *insn = dynamic_cast<relocatedInstruction *>(obj);

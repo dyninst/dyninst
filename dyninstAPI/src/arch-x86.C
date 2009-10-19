@@ -1633,8 +1633,6 @@ bool instruction::isNop() const
    if (!(type_ & IS_NOP)) //NOP or LEA
       return false;
 
-   bool result;
-
    if (*op_ptr_ == NOP) {
       return true;
    }

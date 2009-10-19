@@ -217,129 +217,96 @@ bool image::analyzeImage()
   
 #endif 
 
-#if 0 // stripped binary parsing in its current form is dangerous
 #if defined(cap_stripped_binaries)
+  /* Gap parsing scans for particular instruction patterns that resemble
+     function entry points within unparsed regions of the binary. This
+     method can be prone to false positives for certain binaries. Sanity
+     checking of the parsed "gap functions" is necessary to decrease the
+     likelihood of returning dangerously misparsed image_func objects. */
   if (parseGaps_) {
-     mod = getOrCreateModule("DEFAULT_MODULE", linkedFile->imageOffset());
-    // Sort functions to find gaps
-    VECTOR_SORT(everyUniqueFunction, addrfunccmp);
+     pdmodule *mod = getOrCreateModule(linkedFile->getDefaultModule());
 
-    Address gapStart = linkedFile->imageOffset();
-    Address gapEnd;
-    int funcIdx = 0; // index into everyUniqueFunction (which may be empty)
-    do {
-        /* The everyUniqueFunction vector can be updated in the for
-           loop.  If functions are discovered preceeding the one
-           pointed to by the current 'funcIdx' index, we need to
-           advance funcIdx and gapStart to the correct position */
-        /* (It would be better to use a data structure with an iterator
-           that doesn't break on inserts, such as an ordered set) */
-       while(funcIdx < (int) everyUniqueFunction.size() && 
-             everyUniqueFunction[funcIdx]->getEndOffset() < gapStart)
-          {
-             /*parsing_printf("[%s:%u] advancing gap index (gapstart: 0x%lx, "
-               "offset: 0x%lx)\n", FILE__,__LINE__,
-               gapStart,everyUniqueFunction[funcIdx]->getOffset());*/
-             funcIdx++;
-          }
-       if (funcIdx > 0 && funcIdx < (int) everyUniqueFunction.size() 
-           && gapStart < everyUniqueFunction[funcIdx]->getEndOffset()) {
-          gapStart = everyUniqueFunction[funcIdx]->getEndOffset();
-       }
-       
-       // set gapEnd to start of next function or end of code section, 
-       // on 1st iter, set gapEnd to start of 1st function or end of code section
-       if (funcIdx == 0 && everyUniqueFunction.size() > 0) {
-          gapEnd = everyUniqueFunction[0]->getOffset();
-       }
-       else if(funcIdx+1 < (int)everyUniqueFunction.size()) {
-          gapEnd = everyUniqueFunction[funcIdx + 1]->getOffset();
-       } 
-       // if there is no next function, set gapEnd to end of codeSection
-       else if (funcIdx+1 == (int) everyUniqueFunction.size() || funcIdx == 0) {
-          gapEnd = linkedFile->imageOffset() + linkedFile->imageLength();
-       }
-       else {  
-          break; // advanced gap past the end of the code section
-       }
-       
-       int gap = gapEnd - gapStart;
-       
-       parsing_printf("[%s:%u] scanning for prologues in range 0x%lx-0x%lx\n",
-                      FILE__,__LINE__,gapStart, gapEnd);
-       
-       //gap should be big enough to accomodate a function prologue
-       if(gap >= 5) {
-          Address pos = gapStart;
-          while( pos < gapEnd && isCode( pos ) )
-             {
-                const unsigned char* instPtr;
-                instPtr = (const unsigned char *)getPtrToInstruction( pos );
-                instruction insn;
-                insn.setInstruction( instPtr, pos );
-                
-                if( isFunctionPrologue(insn) && !funcsByEntryAddr.defines(pos))
-                   {
-                      char name[32];
-                      snprintf( name, 32, "gap_%lx", pos );
-                      pdf = new image_func( name, pos, UINT_MAX, mod, this);
-                      
-                      if(pdf->parse()) {
-                         pdf->addSymTabName(name); // newly added
-                         pdf->addPrettyName( name );
-                         
-                         // Update size
-                         // TODO FIXME: should update _all_ symbol sizes....
-                         pdf->getSymtabFunction()->getFirstSymbol()->setSize(pdf->get_size());
+    /* Valid "gaps" exist in unparsed regions from the beginning to the
+       end of the text section, excluding areas such as the PLT:
 
-                         enterFunctionInTables(pdf, false);
-                        
-                        // FIXME this code has not been updated to the reality
-                        // of RT parsing at this point, and will not work
-                        // or even compile  
+        _______     <-- .text begin
+       |       |
+       |-------|
+       |       |
+       |  PLT  |
+       |       |
+       |-------|
+       |       |    <-- gap
+       |-------|
+       | code  |
+       |       |
+       |-------|
+       |       |    <-- gap
+       |-------|
+       .       .
+       . code  .
+       .       .
+       |       |
+       |-------|
+       |       |    <-- gap
+       |       |
+       |-------|    <-- .text end
+       |       |
+       .       .
+       .       .
+    */
 
-                         // If any calls were discovered, adjust our
-                         // position in the function vector accordingly
-                         if(callTargets.size() > 0) {            
-                            while( callTargets.size() > 0 )
-                               {   
-                                  /* parse static call targets */
-                                  parseStaticCallTargets( callTargets, 
-                                                          new_targets, preParseStubs );
-                                  callTargets.clear(); 
-                                  
-                                  VECTOR_APPEND(callTargets,new_targets);
-                                  new_targets.clear();
-                               }
-                            // Maintain sort
-                            VECTOR_SORT(everyUniqueFunction, addrfunccmp);
-                            break;  // Return to for loop
-                         } else {
-                            VECTOR_SORT(everyUniqueFunction, addrfunccmp);
-                         }
-                         
-                         pos = ( gapEnd < pdf->getEndOffset() ?
-                                 gapEnd : pdf->getEndOffset() );
-                      } else {
-                         pos++;
-                      }
-                   } else
-                      pos++;
-             }// end while loop
-       }
-       // set gapStart for next iteration & increment funcIdx
-       if (funcIdx < (int)everyUniqueFunction.size()) {
-          gapStart = everyUniqueFunction[funcIdx]->getEndOffset();
-       }
-       funcIdx++;
-    } while (funcIdx < (int)everyUniqueFunction.size());
-  } // end gap parsing
-#endif
-#endif // if 0
+    Address gapStart = 0;
+    Address gapEnd = 0;
+    Address curAddr = 0;
+
+    // don't touch this iterator; compute_gap uses it
+    set<image_func*,image_func::compare>::const_iterator fit = 
+        everyUniqueFunction.begin();
+    while(compute_gap(curAddr,fit,gapStart,gapEnd)) {
+        parsing_printf("[%s] scanning for prologues in gap 0x%lx-0x%lx\n",
+                      FILE__,gapStart, gapEnd);
+        for(curAddr=gapStart; curAddr < gapEnd; ++curAddr) {
+            if(isCode(curAddr) && gap_heuristics(curAddr)) {
+                // XXX degbugging sanity check; safe to remove
+                assert(!funcsByEntryAddr.defines(curAddr));
+
+                char name[32];
+                snprintf(name, 32, "gap_%lx", curAddr);
+                image_func * gapf = new image_func(name,
+                    curAddr,UINT_MAX,mod,this,FS_GAP);
+
+                if(gapf->parse()) {
+                    recordFunction(gapf);
+                    // one or more functions have been created,
+                    // so the remaining gaps need to be recomputed.
+                    break;
+                } else {
+                    // you'd like to delete gapf, but see commit
+                    // 38e1d30cafa381033d19c11d77b6a801d6a0bb77
+                }
+            }
+        } 
+    }
+
+    /* as in normal parsing, make sure any gap-discovered functions
+       with shared code have correct blocklists.
+       XXX can we just do this once, here? */
+    parsing_printf("[%s] Completing `shared code' gap parsing: %u entries\n",
+        FILE__,reparse_shared.size());
+    for(unsigned i=0;i<reparse_shared.size();++i) {
+        pair<image_basicBlock *,image_func*> & p = reparse_shared[i];
+        (p.second)->parseSharedBlocks(p.first);
+    }
+  } /* parseGaps_ */
+#endif // cap_stripped_binaries
 
     // Bind all intra-module call points
-    for (unsigned b_iter = 0; b_iter < everyUniqueFunction.size(); b_iter++) {
-       everyUniqueFunction[b_iter]->checkCallPoints();
+   
+    set<image_func*,image_func::compare>::iterator fit = 
+        everyUniqueFunction.begin();    
+    for( ; fit != everyUniqueFunction.end(); ++fit) {
+        (*fit)->checkCallPoints();
     }
     
 #if defined(TIMED_PARSE)
@@ -357,6 +324,133 @@ bool image::analyzeImage()
   stats_parse.stopTimer(PARSE_ANALYZE_TIMER);
   return true;
 }
+
+#if defined(cap_stripped_binaries)
+
+/* Finds the next "gap" between functions in the binary, starting
+   with the function pointed to by the provided iterator.
+   Updates the gap range, as well as the function iterator.
+  
+   XXX Currently considering functions as contiguous ranges, which may
+   cause gaps to be missed in the case of discontiguous functions.
+*/
+bool
+image::compute_gap(
+    Address addr,
+    set<image_func *, image_func::compare>::const_iterator & fit,
+    Address & gapStart,
+    Address & gapEnd)
+{
+    image_func *cur = NULL;
+    image_func *next = NULL;
+    long gapsize = 0;
+
+    long MIN_GAP_SIZE = 5;
+
+    // special case for the first gap
+    if(fit == everyUniqueFunction.begin()) {
+        gapStart = imageOffset();
+        gapEnd = (*fit)->getOffset();
+        gapsize = (long)(gapEnd - gapStart);
+    } else {
+        gapStart = 0;
+        gapEnd = 0;
+    }
+
+    while(addr >= gapEnd || 
+          gapsize <= MIN_GAP_SIZE) 
+    {
+        if(fit == everyUniqueFunction.end())
+            return false;
+
+        cur = *fit;
+        gapStart = cur->getEndOffset();
+
+        set<image_func *, image_func::compare>::const_iterator fit2(fit);
+        ++fit2;
+
+        if(fit2 == everyUniqueFunction.end()) {
+            gapEnd = imageOffset() + imageLength();
+        } else {
+            next = *fit2;
+            gapEnd = next->getOffset();
+        }
+
+        gapsize = (long)(gapEnd - gapStart);
+        if(addr >= gapEnd || gapsize <= MIN_GAP_SIZE)
+            ++fit;
+    }
+        
+    parsing_printf("[%s] found code gap [0x%lx,0x%lx) (%ld bytes)\n",
+        FILE__,gapStart,gapEnd,gapsize);
+   
+    return true; 
+}
+
+bool image::gap_heuristics(Address addr)
+{
+    bool ret = false;
+#if defined(i386_unknown_linux2_0) || defined(x86_64_unknown_linux2_4)
+    ret = gap_heuristic_GCC(addr);
+#elif defined(i386_unknown_nt4_0)
+    ret = gap_heuristic_MSVS(addr);
+#endif
+    return ret;
+}
+
+bool image::gap_heuristic_GCC(Address addr)
+{
+#if defined(cap_instruction_api)
+    using namespace Dyninst::InstructionAPI;
+    typedef IA_IAPI InstructionAdapter_t;
+
+     // adjust this if we look before the current address
+    const unsigned char* bufferBegin = (const unsigned char*)(getPtrToInstruction(addr));
+    if(!bufferBegin)
+        return false;
+
+    InstructionDecoder dec(bufferBegin, -1 - (Address)(bufferBegin));
+    dec.setMode(getAddressWidth() == 8);
+    IA_IAPI ah(dec, addr, this);
+#else
+    typedef IA_InstrucIter InstructionAdapter_t;
+    InstrucIter ii(addr, imageLength() - addr, this);
+    IA_InstrucIter ah(ii, this);
+#endif
+
+    int unused_framesize;
+    return ah.isStackFramePreamble(unused_framesize);
+}
+
+bool image::gap_heuristic_MSVS(Address addr)
+{
+#if defined(cap_instruction_api)
+    using namespace Dyninst::InstructionAPI;
+    typedef IA_IAPI InstructionAdapter_t;
+
+     // adjust this if we look before the current address
+    const unsigned char* bufferBegin = (const unsigned char*)(getPtrToInstruction(addr));
+    if(!bufferBegin)
+        return false;
+
+    InstructionDecoder dec(bufferBegin, -1 - (Address)(bufferBegin));
+    dec.setMode(getAddressWidth() == 8);
+    IA_IAPI ah(dec, addr, this);
+#else
+    typedef IA_InstrucIter InstructionAdapter_t;
+    InstrucIter ii(addr, imageLength() - addr, this);
+    IA_InstrucIter ah(ii, this);
+#endif
+    int unused_framesize;
+    if(ah.isStackFramePreamble(unused_framesize)) {
+        return true;
+    } else {
+        // XXX need to write alternative 
+        return false;
+    }
+}
+
+#endif /* cap_stripped_binaries */
 
 void image::recordFunction(image_func *f)
 {
@@ -1269,7 +1363,12 @@ image_func * image_func::bindCallTarget(
     // targetfunc may be parsed or unparsed, and it may not yet have
     // an entry basic block associated with it. `created' indicates
     // whether a new image_func was created
-    targetFunc = FindOrCreateFunc(target,FS_RT,created);
+    //
+    // Gap functions propagate their discovery attribute
+    FuncSource how = FS_RT;
+    if(howDiscovered_ == FS_GAP || howDiscovered_ == FS_GAPRT)
+        how = FS_GAPRT;
+    targetFunc = FindOrCreateFunc(target,how,created);
 
     if(image_->basicBlocksByRange.find(target,tmpRange))
     {

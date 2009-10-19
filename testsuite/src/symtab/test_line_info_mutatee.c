@@ -39,8 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-//  NOTE:  the #line preprocessor directive sets line the number for the NEXT 
-//  line of code, not the current textual (preprocessed) line
+/*  NOTE:  the #line preprocessor directive sets line the number for the NEXT 
+    line of code, not the current textual (preprocessed) line */
 
 #line 1000
 int test_line_info_func(int arg1) {

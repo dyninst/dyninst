@@ -176,10 +176,32 @@ class baseTrampInstance : public generatedCodeObject {
     // don't do it twice!!!
     bool alreadyDeleted_;
 
-    bool hasDefinedRegs_;
+
+    //Information about code generated in this tramp
+ private:
+    bool hasOptInfo_;
     bool spilledRegisters_;
+    bool hasLocalSpace_;
     bool hasStackFrame_;
-    bitArray definedRegs_;
+    bool flags_saved_;
+    bool saved_fprs_;
+    bool saved_orig_addr_;
+ public:
+    bitArray definedRegs;
+    bool hasOptInfo() { return hasOptInfo_; } 
+    bool spilledRegisters() { assert(hasOptInfo_); return spilledRegisters_; }
+    bool hasLocalSpace() { return hasLocalSpace_; }
+    bool hasStackFrame() { return hasStackFrame_; }
+    bool flagsSaved() { return flags_saved_; }
+    bool savedFPRs() { return saved_fprs_; }
+    bool savedOrigAddr() { return saved_orig_addr_; }
+    void setHasOptInfo(bool v) { hasOptInfo_ = v; } 
+    void setSpilledRegisters(bool v) { spilledRegisters_ = v; }
+    void setHasLocalSpace(bool v) { hasLocalSpace_ = v; }
+    void setHasStackFrame(bool v) { hasStackFrame_ = v; }
+    void setFlagsSaved(bool v) { flags_saved_ = v; }
+    void setSavedFPRs(bool v) { saved_fprs_ = v; }
+    void setSavedOrigAddr(bool v) { saved_orig_addr_ = v; }
 };
 
 class baseTramp {

@@ -137,12 +137,12 @@ class StackAnalysis {
         static const range_t infinite;
 
         Range(range_t range,
-              int delta,
+              long delta,
               Offset off) : 
             range_(range), delta_(delta), off_(off) {};
 
         Range(const Range &r, 
-              int delta) :
+              long delta) :
             range_(r.range_),
             delta_(delta),
             off_(r.off_) {};
@@ -177,7 +177,7 @@ class StackAnalysis {
         std::string format() const;
     private:
         range_t range_;
-        int delta_;
+        long delta_;
         Offset off_;
         // Value of the stack when the range was applied
     };
@@ -410,7 +410,7 @@ class StackAnalysis {
         static const long notUnique = MINLONG;
 
         InsnTransferFunc() : delta_(uninitialized), abs_(false), range_(defaultRange) {};
-        InsnTransferFunc(int delta, bool reset) :
+        InsnTransferFunc(long delta, bool reset) :
             delta_(delta), abs_(reset), range_(defaultRange) {};
         InsnTransferFunc(Range &r) :
             delta_(0), abs_(false), range_(r) {};
@@ -432,12 +432,12 @@ class StackAnalysis {
             return !(*this == rhs);
         }
 
-        int &delta() { return delta_; }
+        long &delta() { return delta_; }
         bool &abs() { return abs_; }
         Range &range() { return range_; }
 
     private:
-        int delta_;
+        long delta_;
         bool abs_;
         Range range_;
     };
@@ -475,7 +475,7 @@ class StackAnalysis {
             reset_(false),
             abs_(false)
             {};
-        BlockTransferFunc(int d, 
+        BlockTransferFunc(long d, 
                           bool r,
                           bool a) : 
             delta_(d), 
@@ -529,13 +529,13 @@ class StackAnalysis {
 
         std::string format() const;
 
-        int &delta() { return delta_; }
+        long &delta() { return delta_; }
         bool &reset() { return reset_; }
         bool &abs() { return abs_; }
         Ranges &ranges() { return ranges_; }
 
     private:
-        int delta_;
+        long delta_;
         bool reset_;
         bool abs_;
         Ranges ranges_;

@@ -1184,6 +1184,7 @@ RealRegister registerSpace::loadVirtualForWrite(Register virt_r, codeGen &gen)
 
 void registerSpace::makeRegisterAvail(RealRegister r, codeGen &gen) {
    spillReal(r, gen);
+   gen.markRegDefined(r.reg());
 }
 
 void registerSpace::noteVirtualInReal(registerSlot *v_r, RealRegister r_r)
@@ -1367,7 +1368,6 @@ std::vector<RealRegsState>& registerSpace::regState()
    if (!regStateStack.size())
       initRealRegSpace();
 
-   std::vector<RealRegsState> &rs = regStateStack[regStateStack.size()-1]->registerStates;
    return regStateStack[regStateStack.size()-1]->registerStates;
 }
 

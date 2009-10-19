@@ -87,6 +87,7 @@ class InstructionAdapter
 {
     public:
         InstructionAdapter(Address start, image_func* f);
+        InstructionAdapter(Address start, image* im);
         virtual ~InstructionAdapter();
     // Implemented
     virtual bool hasCFT() const = 0;

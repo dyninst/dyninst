@@ -127,7 +127,8 @@ enum FuncSource {
     FS_SYMTAB,
     FS_RT,
     FS_GAP,
-    FS_ONDEMAND
+    FS_ONDEMAND,
+    FS_GAPRT
 };
 
 class image_edge {
@@ -509,6 +510,13 @@ class image_func : public codeRange,
    ////////////////////////////////////////////////
 
    codeRange *copy() const;
+
+    struct compare {
+        bool operator()(image_func * const &f1,
+                        image_func * const &f2) const {
+            return (f1->getOffset() < f2->getOffset());
+        }
+    };
 
 #if defined(arch_ia64) || defined(arch_x86) || defined(arch_x86_64)
 

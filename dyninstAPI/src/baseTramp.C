@@ -74,9 +74,13 @@ baseTrampInstance::baseTrampInstance(baseTramp *tramp,
     multiT(multi),
     genVersion(0),
     alreadyDeleted_(false),
-    hasDefinedRegs_(false),
+    hasOptInfo_(false),
     spilledRegisters_(false),
-    hasStackFrame_(false)
+    hasLocalSpace_(false),
+    hasStackFrame_(false),
+    flags_saved_(false),
+    saved_fprs_(false),
+    saved_orig_addr_(false)
 {
 }
 
@@ -96,10 +100,13 @@ baseTrampInstance::baseTrampInstance(const baseTrampInstance *parBTI,
     multiT(cMT),
     genVersion(parBTI->genVersion),
     alreadyDeleted_(parBTI->alreadyDeleted_),
-    hasDefinedRegs_(parBTI->hasDefinedRegs_),
+    hasOptInfo_(parBTI->hasOptInfo_),
     spilledRegisters_(parBTI->spilledRegisters_),
+    hasLocalSpace_(parBTI->hasLocalSpace_),
     hasStackFrame_(parBTI->hasStackFrame_),
-    definedRegs_(parBTI->definedRegs_)
+    flags_saved_(parBTI->flags_saved_),
+    saved_fprs_(parBTI->saved_fprs_),
+    saved_orig_addr_(parBTI->saved_orig_addr_)
 
 {
     // Register with parent
@@ -148,7 +155,7 @@ bool baseTrampInstance::shouldRegenBaseTramp(registerSpace *rs)
    unsigned actually_saved = 0;
    int needed_saved = 0;
    
-   if (spilledRegisters_ && !hasStackFrame_)
+   if (spilledRegisters() && !hasLocalSpace())
       return true;
 
    pdvector<registerSlot *> &regs = rs->trampRegs();
@@ -157,19 +164,20 @@ bool baseTrampInstance::shouldRegenBaseTramp(registerSpace *rs)
       if (reg->spilledState != registerSlot::unspilled) {
          actually_saved++;
       }
-      if (definedRegs_[reg->encoding()]) {
+      if (definedRegs[reg->encoding()]) {
          needed_saved++;
       }
 
       if (reg->spilledState != registerSlot::unspilled &&
-          !definedRegs_[reg->encoding()])
+          !definedRegs[reg->encoding()] &&
+          !reg->offLimits)
       {
          saved_unneeded++;
          regalloc_printf("[%s:%u] - baseTramp saved unneeded register %d, "
                          "suggesting regen\n", __FILE__, __LINE__, i);
       }
       if (!reg->liveState == registerSlot::spilled &&
-          definedRegs_[reg->encoding()])
+          definedRegs[reg->encoding()])
       {
          regalloc_printf("[%s:%u] - Decided not to save a defined register %d. "
                          "App liveness?\n",  __FILE__, __LINE__, reg->encoding());         
@@ -354,10 +362,10 @@ bool baseTrampInstance::generateCode(codeGen &gen,
 
        gen.endTrackRegDefs();
 
-       definedRegs_ = gen.getRegsDefined();
-       if (!spilledRegisters_)
-          spilledRegisters_ = gen.rs()->spilledAnything();
-       hasDefinedRegs_ = true;
+       definedRegs = gen.getRegsDefined();
+       setHasOptInfo(true);
+       if (!spilledRegisters())
+          setSpilledRegisters(gen.rs()->spilledAnything());
 
        if (!shouldRegenBaseTramp(gen.rs()))
           break;
@@ -1143,13 +1151,13 @@ void baseTramp::setCreateFrame(bool frame)
 int baseTrampInstance::numDefinedRegs()
 {
    int count = 0;
-   if (!hasDefinedRegs_)
+   if (!hasOptInfo())
       return -1;
    registerSpace *rs = registerSpace::getRegisterSpace(proc()->getAddressWidth());
    pdvector<registerSlot *> &regs = rs->trampRegs();
    for (unsigned i=0; i<regs.size(); i++) {
       registerSlot *reg = regs[i];
-      if (definedRegs_[reg->encoding()]) {
+      if (definedRegs[reg->encoding()]) {
          count++;
       }
    }
