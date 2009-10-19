@@ -179,7 +179,11 @@ void IA_InstrucIter::getNewEdges(
     {
         outEdges.push_back(std::make_pair(ii.getBranchTargetAddress(NULL),
                            ET_COND_TAKEN));
-        outEdges.push_back(std::make_pair(current + getSize(), ET_COND_NOT_TAKEN));
+        if(ii.isDelaySlot()) {
+	  outEdges.push_back(std::make_pair(current + 2 * getSize(), ET_COND_NOT_TAKEN));
+        } else {
+	  outEdges.push_back(std::make_pair(current + getSize(), ET_COND_NOT_TAKEN));
+	}
         return;
     }
     else if(ii.isAIndirectJumpInstruction())
@@ -276,8 +280,14 @@ void IA_InstrucIter::getNewEdges(
                 }
             }
         }
-        outEdges.push_back(std::make_pair(getAddr() + getSize(),
+        if(ii.isDelaySlot()) {
+	  outEdges.push_back(std::make_pair(getAddr() + 2 * getSize(),
                            ET_FUNLINK));
+	  
+        } else {
+	  outEdges.push_back(std::make_pair(getAddr() + getSize(),
+                           ET_FUNLINK));
+	}
         return;
     }
     return;
