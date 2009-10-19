@@ -189,7 +189,7 @@ class Tempfile {
 	TESTLIB_DLL_EXPORT static void deleteAll();
 };
 
-#if defined (os_solaris_test)
-int setenv(const char *envname, const char *envval, int);
+#if defined (os_solaris_test) || defined (os_windows_test)
+TESTLIB_DLL_EXPORT int setenv(const char *envname, const char *envval, int);
 #endif
 #endif
