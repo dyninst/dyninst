@@ -4218,9 +4218,12 @@ void Object::parseStabFileLineInfo(Symtab *st, dyn_hash_map<std::string, LineInf
 
 	    if (funcs.size() > 1) 
 	      {
+#if !defined (os_solaris)
+			  //  we see a lot of these on solaris (solaris only)
 		fprintf(stderr, "%s[%d]:  WARN:  found %lu functions with name %s (stringbuf %s)\n", 
 			FILE__, __LINE__, (unsigned long) funcs.size(), stabEntry->name(i), stringbuf);
 	      }
+#endif
 
 	    currentFunction = funcs[0];
 	    currentLineBase = stabEntry->desc(i);

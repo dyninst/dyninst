@@ -78,7 +78,7 @@ typedef enum {dataEnum,
 	      dataTypeClass
 } dataClass;
 
-const char *dataClass2Str(dataClass dc);
+SYMTAB_EXPORT const char *dataClass2Str(dataClass dc);
 
 typedef int typeId_t;
 

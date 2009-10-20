@@ -543,7 +543,7 @@ Serializable *typeCollection::serialize_impl(SerializerBase *sb, const char *tag
 			dyn_hash_map<int, Type *>::iterator iter = typesByID.find(gvars[i].second);
 			if (iter == typesByID.end())
 			{
-				fprintf(stderr, "%s[%d]:  cannot find type w/ID %d\n", 
+				serialize_printf("%s[%d]:  cannot find type w/ID %d\n", 
 						FILE__, __LINE__, gvars[i].second);
 				continue;
 			}
