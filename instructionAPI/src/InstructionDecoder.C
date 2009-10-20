@@ -780,6 +780,11 @@ disp_pos)))));
         }
         else
         {
+            // Gap parsing can trigger this case; in particular, when it encounters prefixes in an invalid order.
+            // Notably, if a REX prefix (0x40-0x48) appears followed by another prefix (0x66, 0x67, etc)
+            // we'll reject the instruction as invalid and send it back with no entry.  Since this is a common
+            // byte sequence to see in, for example, ASCII strings, we want to simply accept this and move on, not
+            // yell at the user.
             m_Operation = make_shared(singleton_object_pool<Operation>::construct(&invalid,
                                         decodedInstruction->getPrefix(), locs));
         }
