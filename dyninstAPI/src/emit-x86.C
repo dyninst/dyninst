@@ -416,7 +416,12 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, baseTrampInstance *inst, codeGen &g
      emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0, -STACK_PAD_CONSTANT, 
       RealRegister(REGNUM_ESP), gen);*/
 
-    // These crank the saves forward
+    bool needsFuncJumpSlot = gen.addrSpace()->edit() && inst->checkForFuncJumps();
+    if (needsFuncJumpSlot) {
+       emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0,
+               -4, RealRegister(REGNUM_ESP), gen);
+    }
+
     bool flags_saved = gen.rs()->saveVolatileRegisters(gen);
     bool useFPRs = gen.rs()->anyLiveFPRsAtEntry() && 
        bt->isConservative() && 
@@ -599,6 +604,11 @@ bool EmitterIA32::emitBTRestores(baseTramp* bt, baseTrampInstance *bti, codeGen 
       emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0, 
        STACK_PAD_CONSTANT, RealRegister(REGNUM_ESP), gen);*/
     
+    if (bti && bti->hasFuncJump()) {
+       emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0,
+               4, RealRegister(REGNUM_ESP), gen);
+    }
+
     return true;
 }
 
@@ -1714,71 +1724,62 @@ static void emitPushImm16_64(unsigned short imm, codeGen &gen)
     SET_PTR(insn, gen);
 }
 
-void EmitterAMD64::emitFuncJump(Address addr, instPointType_t /*ptType*/, codeGen &gen)
+
+void EmitterAMD64::emitFuncJump(int_function *f, instPointType_t /*ptType*/, codeGen &gen)
 {
-    baseTrampInstance *inst = gen.bti();
-    assert(inst);
-    
-    if (inst->savedFPRs()) {
-       // pop the old RSP value into RAX
-       emitPopReg64(REGNUM_RAX, gen);
-       
-       // restore saved FP state
-       // fxrstor (%rsp) ; 0x0f 0xae 0x04 0x24
-       GET_PTR(buffer, gen);
-       *buffer++ = 0x0f;
-       *buffer++ = 0xae;
-       *buffer++ = 0x0c;
-       *buffer++ = 0x24;
-       SET_PTR(buffer, gen);
-       
-       // restore stack pointer (deallocates FP save area)
-       emitMovRegToReg64(REGNUM_RSP, REGNUM_RAX, true, gen);
-    }
-    
-    if (inst->hasStackFrame()) {
-       // tear down the stack frame (LEAVE)
-       emitSimpleInsn(0xC9, gen);
-    }
-    
-    if (inst->savedOrigAddr()) {
-       // pop "fake" return address
-       emitPopReg64(REGNUM_RAX, gen);
-    }
-
-   // restore saved registers
-   for (int i = gen.rs()->numGPRs() - 1; i >= 0; i--) {
-       registerSlot *reg = gen.rs()->GPRs()[i];
-       if (reg->liveState == registerSlot::spilled) {
-           emitPopReg64(reg->encoding(),gen);
-       }
+   assert(gen.bti());
+   Address addr = f->getAddress();
+   if (f->proc() == gen.addrSpace() &&
+       gen.startAddr() &&
+       (signed int) (addr-(gen.currAddr()+5)) < ((signed int) 0x7fffffff) &&
+       (signed int) (addr-(gen.currAddr()+5)) > ((signed int) 0x80000000))
+   {
+      //Same module or dynamic instrumentation and address and within
+      // jump distance.
+      emitBTRestores(gen.bti()->baseT, gen.bti(), gen);   
+      int disp = addr - (gen.currAddr()+5);
+      emitJump(disp, gen);
    }
-   
-   // restore flags (POPFQ)
-   //emitSimpleInsn(0x9D, gen);
-   gen.rs()->restoreVolatileRegisters(gen);
+   else if (dynamic_cast<process *>(gen.addrSpace())) {
+      //Dynamic instrumentation, emit an absolute jump (push/ret combo)
+      emitBTRestores(gen.bti()->baseT, gen.bti(), gen);   
+      emitPushImm16_64((unsigned short)(addr >> 48), gen);
+      emitPushImm16_64((unsigned short)((addr & 0x0000ffffffffffff) >> 32), gen);
+      emitPushImm16_64((unsigned short)((addr & 0x00000000ffffffff) >> 16), gen);
+      emitPushImm16_64((unsigned short) (addr & 0x000000000000ffff), gen);      
+      // and return
+      emitSimpleInsn(0xc3, gen);
+   }
+   else {
+      //Static instrumentation, calculate and store the target 
+      // value to the top of our instrumentation stack and return to it.
+      assert(gen.bti() && gen.bti()->hasFuncJump());
+      
+      //Get address of target into reg
+      Register reg = gen.rs()->getScratchRegister(gen);
+      Address dest = getInterModuleFuncAddr(f, gen);
+      emitMovPCRMToReg64(reg, dest-gen.currAddr(), 8, gen);
+      
+      //Mov reg to stack slot
+      stackItemLocation loc = getHeightOf(stackItem::stacktop, gen);
+      emitMovRegToRM64(loc.reg.reg(), loc.offset-8, reg, 8, gen);
 
-   // restore stack pointer (use LEA to not affect flags)
-   if (STACK_PAD_CONSTANT)
-      emitLEA64(REGNUM_RSP, Null_Register, 0, STACK_PAD_CONSTANT, REGNUM_RSP, true, gen);
-
-   // push the address to jump to...
-   // (need to do this in 16-bit chunks - weird huh)
-   emitPushImm16_64((unsigned short)(addr >> 48), gen);
-   emitPushImm16_64((unsigned short)((addr & 0x0000ffffffffffff) >> 32), gen);
-   emitPushImm16_64((unsigned short)((addr & 0x00000000ffffffff) >> 16), gen);
-   emitPushImm16_64((unsigned short)(addr & 0x000000000000ffff), gen);
-   
-   // and return
-   emitSimpleInsn(0xc3, gen);
-   
-   // And an illegal just in case we come back here... which we shouldn't.
+      //Temporarily unset the hasFuncJump so that when we restore the BT
+      // the funcJump slot is not cleaned.
+      gen.bti()->setHasFuncJump(false);
+      emitBTRestores(gen.bti()->baseT, gen.bti(), gen);
+      gen.bti()->setHasFuncJump(true);
+      
+      //The address should be left on the stack.  Just return now.
+      GET_PTR(insn, gen);
+      *insn++ = 0xc3;
+      SET_PTR(insn, gen);
+   }
    GET_PTR(insn, gen);
    *insn++ = 0x0f;
    *insn++ = 0x0b;   
    SET_PTR(insn, gen);
 }
-
 
 void EmitterAMD64::emitASload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen)
 {
@@ -1969,14 +1970,24 @@ bool shouldSaveReg(registerSlot *reg, baseTrampInstance *inst)
 
 bool EmitterAMD64::emitBTSaves(baseTramp* bt, baseTrampInstance *inst, codeGen &gen)
 {
-   // skip past the red zone
-   // (we use LEA to avoid overwriting the flags)
-   if (STACK_PAD_CONSTANT)
-      emitLEA64(REGNUM_RSP, Null_Register, 0, -STACK_PAD_CONSTANT, REGNUM_RSP, true, gen);
-   
     // save flags (PUSHFQ)
     //emitSimpleInsn(0x9C, gen);
    
+   bool needsFuncJumpSlot = gen.addrSpace()->edit() && inst->checkForFuncJumps();
+
+   if (needsFuncJumpSlot && STACK_PAD_CONSTANT)
+   {
+      emitLEA64(REGNUM_RSP, Null_Register, 0, -1 * (STACK_PAD_CONSTANT + 8), REGNUM_RSP, true, gen);
+   }
+   else if (needsFuncJumpSlot) {
+      emitLEA64(REGNUM_RSP, Null_Register, 0, -8, REGNUM_RSP, true, gen);
+   }
+   else if (STACK_PAD_CONSTANT) {
+      // skip past the red zone
+      // (we use LEA to avoid overwriting the flags)
+      emitLEA64(REGNUM_RSP, Null_Register, 0, -STACK_PAD_CONSTANT, REGNUM_RSP, true, gen);
+   }
+
    bool flagsSaved = gen.rs()->saveVolatileRegisters(gen);
    bool useFPRs = gen.rs()->anyLiveFPRsAtEntry() &&
       BPatch::bpatch->isSaveFPROn() &&
@@ -2151,8 +2162,14 @@ bool EmitterAMD64::emitBTRestores(baseTramp* bt, baseTrampInstance *bti, codeGen
    gen.rs()->restoreVolatileRegisters(gen);
 
    // restore stack pointer (use LEA to not affect flags)
-   if (STACK_PAD_CONSTANT)
+   if (STACK_PAD_CONSTANT && bti && bti->hasFuncJump())
+      emitLEA64(REGNUM_RSP, Null_Register, 0, STACK_PAD_CONSTANT+8, REGNUM_RSP, true, gen);
+   else if (STACK_PAD_CONSTANT)
       emitLEA64(REGNUM_RSP, Null_Register, 0, STACK_PAD_CONSTANT, REGNUM_RSP, true, gen);
+   else if (bti && bti->hasFuncJump()) {
+      emitLEA64(REGNUM_RSP, Null_Register, 0, 8, REGNUM_RSP, true, gen);
+   }
+
    return true;
 }
 

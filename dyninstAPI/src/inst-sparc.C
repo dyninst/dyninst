@@ -525,8 +525,8 @@ bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
 // this by ensuring that the register context upon entry to CALLEE is
 // the register context of function we are instrumenting, popped once.
 void emitFuncJump(opCode op, codeGen &gen, 
-		  const int_function *callee, AddressSpace * /*proc*/,
-		  const instPoint *, bool)
+                  int_function *callee, AddressSpace * /*proc*/,
+                  const instPoint *, bool)
 {
     assert(op == funcJumpOp);
     Address addr = callee->getAddress();

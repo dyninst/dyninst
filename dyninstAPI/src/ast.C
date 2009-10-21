@@ -2640,10 +2640,6 @@ void AstMiniTrampNode::setVariableAST(codeGen &g){
     if(ast_) ast_->setVariableAST(g);
 }
 
-/*bool AstNode::containsFuncCall() const { 
-   return false; 
-   }*/
-
 bool AstCallNode::containsFuncCall() const {
    return true;
 }
@@ -2718,6 +2714,84 @@ bool AstActualAddrNode::containsFuncCall() const
 }
 
 bool AstDynamicTargetNode::containsFuncCall() const
+{
+   return false;
+}
+
+bool AstCallNode::containsFuncJump() const {
+   return false;
+}
+
+bool AstReplacementNode::containsFuncJump() const {
+   return true;
+}
+
+bool AstOperatorNode::containsFuncJump() const {
+	if (loperand && loperand->containsFuncJump()) return true;
+	if (roperand && roperand->containsFuncJump()) return true;
+	if (eoperand && eoperand->containsFuncJump()) return true;
+	return false;
+}
+
+bool AstOperandNode::containsFuncJump() const {
+	if (operand_ && operand_->containsFuncJump()) return true;
+	return false;
+}
+
+bool AstMiniTrampNode::containsFuncJump() const {
+	if (ast_ && ast_->containsFuncJump()) return true;
+	return false;
+}
+
+bool AstSequenceNode::containsFuncJump() const {
+	for (unsigned i = 0; i < sequence_.size(); i++) {
+		if (sequence_[i]->containsFuncJump()) return true;
+	}
+	return false;
+}
+
+bool AstVariableNode::containsFuncJump() const 
+{
+    return ast_wrappers_[index]->containsFuncJump();
+}
+
+bool AstInsnMemoryNode::containsFuncJump() const {
+    if (load_ && load_->containsFuncJump()) return true;
+    if (store_ && store_->containsFuncJump()) return true;
+    return false;
+}
+
+bool AstNullNode::containsFuncJump() const
+{
+   return false;
+}
+
+bool AstLabelNode::containsFuncJump() const
+{
+   return false;
+}
+
+bool AstMemoryNode::containsFuncJump() const
+{
+   return false;
+}
+
+bool AstInsnNode::containsFuncJump() const
+{
+   return false;
+}
+
+bool AstOriginalAddrNode::containsFuncJump() const
+{
+   return false;
+}
+
+bool AstActualAddrNode::containsFuncJump() const
+{
+   return false;
+}
+
+bool AstDynamicTargetNode::containsFuncJump() const
 {
    return false;
 }
