@@ -82,7 +82,8 @@ class VariableLocation : public Serializable {
 	Address lowPC;
 	Address hiPC;
 	SYMTAB_EXPORT bool operator==(const VariableLocation &);
-	SYMTAB_EXPORT void serialize_impl(SerializerBase *, const char *tag = "VariableLocation") THROW_SPEC (SerializerError);
+	SYMTAB_EXPORT Serializable * serialize_impl(SerializerBase *, 
+			const char *tag = "VariableLocation") THROW_SPEC (SerializerError);
 };
 
 
@@ -106,8 +107,8 @@ class Variable : public Aggregate, public Serializable, public AnnotatableSparse
    SYMTAB_EXPORT void setType(Type *type);
    SYMTAB_EXPORT Type *getType();
 
-   SYMTAB_EXPORT 
-   void serialize_impl(SerializerBase *sb, const char *tag = "Variable") THROW_SPEC (SerializerError);
+   SYMTAB_EXPORT Serializable *serialize_impl(SerializerBase *sb, 
+		   const char *tag = "Variable") THROW_SPEC (SerializerError);
    SYMTAB_EXPORT bool operator==(const Variable &v);
 
  private:
@@ -148,7 +149,7 @@ class localVar : public Serializable, public AnnotatableSparse
 	SYMTAB_EXPORT std::string &getFileName();
 	SYMTAB_EXPORT std::vector<VariableLocation> &getLocationLists();
 	SYMTAB_EXPORT bool operator==(const localVar &l);
-	SYMTAB_EXPORT void serialize_impl(SerializerBase *, 
+	SYMTAB_EXPORT Serializable *serialize_impl(SerializerBase *, 
 			const char * = "localVar") THROW_SPEC(SerializerError);
 };
 

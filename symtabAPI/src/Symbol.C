@@ -366,7 +366,7 @@ SYMTAB_EXPORT bool Symbol::getVersions(std::vector<std::string> *&vers)
    return false;
 }
 
-void Symbol::serialize_impl(SerializerBase *s, const char *tag) THROW_SPEC (SerializerError)
+Serializable *Symbol::serialize_impl(SerializerBase *s, const char *tag) THROW_SPEC (SerializerError)
 {
 	//  Need to serialize regions before symbols
 	//  Use disk offset as unique identifier
@@ -380,7 +380,6 @@ void Symbol::serialize_impl(SerializerBase *s, const char *tag) THROW_SPEC (Seri
 	else
 	    modname = module_->fullName();
 
-	try {
 		ifxml_start_element(s, tag);
 		gtranslate(s, type_, symbolType2Str, "type");
 		gtranslate(s, linkage_, symbolLinkage2Str, "linkage");
@@ -406,7 +405,7 @@ void Symbol::serialize_impl(SerializerBase *s, const char *tag) THROW_SPEC (Seri
 			addSymID(s, this, symid);
 		}
 
-	} SER_CATCH("Symbol");
+		return NULL;
 }
 
 void Symbol::restore_module_and_region(SerializerBase *s, std::string &modname, Offset r_off) THROW_SPEC (SerializerError)

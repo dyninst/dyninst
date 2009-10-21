@@ -83,7 +83,7 @@ class Statement : public AnnotatableSparse, public Serializable
 	SYMTAB_EXPORT unsigned int line() {return line_;}
 	SYMTAB_EXPORT unsigned int column() {return column_;}
 
-	SYMTAB_EXPORT void serialize_impl(SerializerBase *sb, const char *tag = "Statement") THROW_SPEC (SerializerError);
+	SYMTAB_EXPORT Serializable *serialize_impl(SerializerBase *sb, const char *tag = "Statement") THROW_SPEC (SerializerError);
 	//  Does dyninst really need these?
 	SYMTAB_EXPORT void setLine(unsigned int l) {line_ = l;}
 	SYMTAB_EXPORT void setColumn(unsigned int l) {column_ = l;}
@@ -106,7 +106,7 @@ class Module : public LookupInterface,
 	SYMTAB_EXPORT Module(const Module &mod);
 	SYMTAB_EXPORT bool operator==(Module &mod);
 
-	SYMTAB_EXPORT void serialize_impl(SerializerBase *sb, const char *tag = "Module") THROW_SPEC (SerializerError);
+	SYMTAB_EXPORT Serializable * serialize_impl(SerializerBase *sb, const char *tag = "Module") THROW_SPEC (SerializerError);
 
 	SYMTAB_EXPORT const std::string &fileName() const;
 	SYMTAB_EXPORT const std::string &fullName() const;

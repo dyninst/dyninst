@@ -171,3 +171,4 @@ template class BPatch_Set<BPatch_edge*>;
 struct batchInsertionRecord;
 template class BPatch_Vector<batchInsertionRecord *>;
 
+

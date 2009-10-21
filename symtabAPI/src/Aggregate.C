@@ -70,17 +70,35 @@ Aggregate::Aggregate(Symbol *sym) :
 
 Offset Aggregate::getOffset() const 
 { 
-	return getFirstSymbol()->getOffset();
+	Symbol *s = getFirstSymbol();
+	if (!s)
+	{
+		fprintf(stderr, "%s[%d]:  ERROR:  Aggregate w/out symbols\n", FILE__, __LINE__);
+		return (Offset) 0L;
+	}
+	return s->getOffset();
 }
 
 unsigned Aggregate::getSize() const 
 { 
-	return getFirstSymbol()->getSize(); 
+	Symbol *s = getFirstSymbol();
+	if (!s)
+	{
+		fprintf(stderr, "%s[%d]:  ERROR:  Aggregate w/out symbols\n", FILE__, __LINE__);
+		return (unsigned) 0;
+	}
+	return s->getSize(); 
 }
 
 Region * Aggregate::getRegion() const
 {
-   	return getFirstSymbol()->getRegion();
+	Symbol *s = getFirstSymbol();
+	if (!s)
+	{
+		fprintf(stderr, "%s[%d]:  ERROR:  Aggregate w/out symbols\n", FILE__, __LINE__);
+		return NULL;
+	}
+   	return s->getRegion();
 }
 
 const vector<std::string> &Aggregate::getAllMangledNames() 
@@ -165,7 +183,8 @@ bool Aggregate::getSymbols(std::vector<Symbol *> &syms) const
 
 Symbol * Aggregate::getFirstSymbol() const
 {
-    assert( symbols_.size()>0 );
+    if (!symbols_.size())
+		return NULL;
     return symbols_[0];
 }
 

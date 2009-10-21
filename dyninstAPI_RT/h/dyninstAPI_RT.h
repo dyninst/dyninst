@@ -193,7 +193,7 @@ struct trap_mapping_header {
    int32_t pos;
    uint64_t low_entry;
    uint64_t high_entry;
-   trapMapping_t traps[];
+   trapMapping_t *traps;
 };
 
 #include "dyninstRTExport.h"

@@ -78,7 +78,7 @@ typedef enum {dataEnum,
 	      dataTypeClass
 } dataClass;
 
-const char *dataClass2Str(dataClass dc);
+SYMTAB_EXPORT const char *dataClass2Str(dataClass dc);
 
 typedef int typeId_t;
 
@@ -101,7 +101,8 @@ typedef enum {
  
 SYMTAB_EXPORT const char *visibility2Str(visibility_t v);
 
-class Field : public Serializable, public AnnotatableSparse  {
+class Field : public Serializable, public AnnotatableSparse  
+{
    friend class typeStruct;
    friend class typeUnion;
    friend class typeCommon;
@@ -132,12 +133,13 @@ class Field : public Serializable, public AnnotatableSparse  {
    SYMTAB_EXPORT int getOffset();
    
    SYMTAB_EXPORT void fixupUnknown(Module *);
-   SYMTAB_EXPORT void serialize_impl(SerializerBase *sb, 
+   SYMTAB_EXPORT Serializable * serialize_impl(SerializerBase *sb, 
 		   const char *tag="Field") THROW_SPEC(SerializerError);
    SYMTAB_EXPORT virtual bool operator==(const Field &) const;
 };
 				  
-class Type : public Serializable, public AnnotatableSparse  {
+class Type : public Serializable, public AnnotatableSparse  
+{
    friend class typeCollection;
    friend std::string parseStabString(Module *, int linenum, char *, int, 
 				      typeCommon *);
@@ -148,7 +150,7 @@ class Type : public Serializable, public AnnotatableSparse  {
    SYMTAB_EXPORT virtual void serialize_specific(SerializerBase *) 
 	   THROW_SPEC(SerializerError) {}
 
-   SYMTAB_EXPORT void serialize_impl(SerializerBase *, 
+   SYMTAB_EXPORT Serializable * serialize_impl(SerializerBase *, 
 		   const char * = "Type") THROW_SPEC (SerializerError);
 
  protected:
@@ -181,7 +183,7 @@ public:
    SYMTAB_EXPORT virtual bool isCompatible(Type *oType);
    SYMTAB_EXPORT virtual void fixupUnknowns(Module *);
 
-   SYMTAB_EXPORT Type(std::string name, typeId_t ID, dataClass dataTyp = dataNullType);
+   SYMTAB_EXPORT Type(std::string name, typeId_t ID, dataClass dataTyp = dataNullType, unsigned int sz_ = sizeof(int));
    SYMTAB_EXPORT Type(std::string name, dataClass dataTyp = dataNullType);
 
    SYMTAB_EXPORT Type();
@@ -243,7 +245,8 @@ class derivedInterface{
 
 // Intermediate types (interfaces + Type)
 
-class fieldListType : public Type, public fieldListInterface {
+class fieldListType : public Type, public fieldListInterface 
+{
  private:
    void fixupComponents();
  protected:
@@ -315,7 +318,7 @@ class typeEnum : public Type {
 	std::vector<std::pair<std::string, int> > consts;
  public:
    SYMTAB_EXPORT typeEnum();
-   SYMTAB_EXPORT typeEnum(typeId_t ID, std::string name = "");
+   SYMTAB_EXPORT typeEnum(typeId_t ID, std::string name = "", int sz = sizeof(int));
    SYMTAB_EXPORT typeEnum(std::string name);
    SYMTAB_EXPORT static typeEnum *create(std::string &name, std::vector<std::pair<std::string, int> *>&elements, 
    								Symtab *obj = NULL);
@@ -387,6 +390,7 @@ class CBlock : public Serializable, public AnnotatableSparse{
    std::vector<Field *> fieldList;
 
    // which functions use this list
+   //  Should probably be updated to use aggregates
    std::vector<Symbol *> functions;
 
  public:
@@ -395,7 +399,7 @@ class CBlock : public Serializable, public AnnotatableSparse{
 
    SYMTAB_EXPORT void fixupUnknowns(Module *);
    
-   SYMTAB_EXPORT void serialize_impl(SerializerBase *,
+   SYMTAB_EXPORT Serializable * serialize_impl(SerializerBase *,
 		   const char *tag="CBlock") THROW_SPEC(SerializerError);
 };
 

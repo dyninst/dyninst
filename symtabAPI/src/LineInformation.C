@@ -280,7 +280,7 @@ LineInformation::~LineInformation()
 } /* end LineInformation destructor */
 
 
-void LineInformation::ac_serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
+Serializable *LineInformation::ac_serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
    //fprintf(stderr, "%s[%d]:  LineInformation::serialize -- IMPLEMENT ME sb = %p\n", 
    //      FILE__, __LINE__, sb);
@@ -300,5 +300,6 @@ void LineInformation::ac_serialize_impl(SerializerBase *sb, const char *tag) THR
 
 	//multimap_translator<std::pair<Address, Address>, Statement>(sb, addressRangesByValueMap, "addressRangesByValueMap", "addressRangeByValue");
 	ifxml_end_element(sb, tag);
+	return NULL;
 
 }

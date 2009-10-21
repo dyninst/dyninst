@@ -53,6 +53,8 @@
 #include "BPatch_function.h"
 #include "BPatch.h"
 #include "mapped_module.h"
+#include "Annotatable.h"
+#include "Serialization.h"
 
 #ifdef i386_unknown_nt4_0
 #define snprintf _snprintf

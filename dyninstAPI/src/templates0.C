@@ -207,3 +207,4 @@ template class pdvector<funcMod *>;
 #if defined(cap_relocation)
 template class pdvector<bblInstance::reloc_info_t::relocInsn *>;
 #endif
+

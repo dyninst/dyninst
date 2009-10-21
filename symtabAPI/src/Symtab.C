@@ -125,15 +125,17 @@ std::string Symtab::printError(SymtabError serr)
     }		
 }
 
+Type *Symtab::type_Error = NULL;
+Type *Symtab::type_Untyped = NULL;
 void Symtab::setupTypes()
 {
     /*
      * Create the "error" and "untyped" types.
      */
     std::string name = "<error>";
-    type_Error   = Type::createFake(name);
+    if (NULL == type_Error) type_Error   = Type::createFake(name);
     name = "<no type>";
-    type_Untyped = Type::createFake(name);
+    if (NULL == type_Untyped) type_Untyped = Type::createFake(name);
     setupStdTypes();
 }    
 
@@ -999,9 +1001,7 @@ Symtab::Symtab(std::string filename,bool &err) :
    nativeCompiler(false), 
    isLineInfoValid_(false), 
    isTypeInfoValid_(false),
-   obj_private(NULL),
-   type_Error(NULL), 
-   type_Untyped(NULL)
+   obj_private(NULL)
 {
     init_debug_symtabAPI();
    // Initialize error parameter
@@ -1042,9 +1042,7 @@ Symtab::Symtab(char *mem_image, size_t image_size, bool &err) :
    nativeCompiler(false),
    isLineInfoValid_(false),
    isTypeInfoValid_(false),
-   obj_private(NULL),
-   type_Error(NULL), 
-   type_Untyped(NULL)
+   obj_private(NULL)
 {
    // Initialize error parameter
    err = false;
@@ -1085,9 +1083,7 @@ Symtab::Symtab(std::string filename, std::string member_name, Offset offset,
    nativeCompiler(false), 
    isLineInfoValid_(false),
    isTypeInfoValid_(false), 
-   obj_private(NULL),
-   type_Error(NULL), 
-   type_Untyped(NULL)
+   obj_private(NULL)
 {
    mf = MappedFile::createMappedFile(filename);
    assert(mf);
@@ -1110,9 +1106,7 @@ Symtab::Symtab(char *mem_image, size_t image_size, std::string member_name,
    main_call_addr_(0),
    nativeCompiler(false), 
    isLineInfoValid_(false), 
-   isTypeInfoValid_(false), 
-   type_Error(NULL), 
-   type_Untyped(NULL)
+   isTypeInfoValid_(false)
 {
    mf = MappedFile::createMappedFile(mem_image, image_size);
    assert(mf);
@@ -1891,7 +1885,7 @@ bool Symtab::openFile(Symtab *&obj, std::string filename)
 	  {
 		  if (std::string(ser_var) == std::string(SERIALIZE_DESERIALIZE_OR_DIE))
 		  {
-			  fprintf(stderr, "%s[%d]:  aborting new symtab, expected deserialize failed\n", FILE__, __LINE__);
+			  serialize_printf("%s[%d]:  aborting new symtab, expected deserialize failed\n", FILE__, __LINE__);
 			  return false;
 		  }
 	  }
@@ -2626,8 +2620,11 @@ bool Symtab::fixup_relocation_symbols(SerializerBase *, Symtab *st)
    return true;
 }
 
-void Symtab::rebuild_symbol_hashes()
+void Symtab::rebuild_symbol_hashes(SerializerBase *sb)
 {
+	if (!is_input(sb))
+		return;
+
 	for (unsigned long i = 0; i < everyDefinedSymbol.size(); ++i)
 	{
 		Symbol *s = everyDefinedSymbol[i];
@@ -2643,8 +2640,10 @@ void Symtab::rebuild_symbol_hashes()
 	}
 }
 
-void Symtab::rebuild_funcvar_hashes()
+void Symtab::rebuild_funcvar_hashes(SerializerBase *sb)
 {
+	if (!is_input(sb))
+		return;
 	for (unsigned int i = 0; i < everyFunction.size(); ++i)
 	{
 		Function *f = everyFunction[i];
@@ -2656,8 +2655,10 @@ void Symtab::rebuild_funcvar_hashes()
 		varsByOffset[v->getOffset()] = v;
 	}
 }
-void Symtab::rebuild_module_hashes()
+void Symtab::rebuild_module_hashes(SerializerBase *sb)
 {
+	if (!is_input(sb))
+		return;
 	for (unsigned int i = 0; i < _mods.size(); ++i)
 	{
 		Module *m = _mods[i];
@@ -2665,8 +2666,11 @@ void Symtab::rebuild_module_hashes()
 		modsByFullName[m->fullName()] = m;
 	}
 }
-void Symtab::rebuild_region_indexes() THROW_SPEC (SerializerError)
+void Symtab::rebuild_region_indexes(SerializerBase *sb) THROW_SPEC (SerializerError)
 {
+	if (!is_input(sb))
+		return;
+
 	for (unsigned int i = 0; i < regions_.size(); ++i)
 	{
 		Region *r = regions_[i];
@@ -2693,63 +2697,60 @@ void Symtab::rebuild_region_indexes() THROW_SPEC (SerializerError)
 
 
 }
-void Symtab::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
+
+Serializable *Symtab::serialize_impl(SerializerBase *sb, 
+		const char *tag) THROW_SPEC (SerializerError)
 {
 	serialize_printf("%s[%d]:  welcome to Symtab::serialize_impl\n", 
 			FILE__, __LINE__);
-	try 
+	if (is_input(sb))
 	{
-		ifxml_start_element(sb, tag);
-      gtranslate(sb, imageOffset_, "imageOffset");
-      gtranslate(sb, imageLen_, "imageLen");
-      gtranslate(sb, dataOffset_, "dataOff");
-      gtranslate(sb, dataLen_, "dataLen");
-      gtranslate(sb, is_a_out, "isExec");
-      gtranslate(sb, _mods, "Modules", "Module");
-	  if (is_input(sb))
-	  {
-		  //  need to rebuild module hashes before deserializing higher level stuff
-		  // (Aggregates, Functions, Variables, which lookup modules by name)
-		  rebuild_module_hashes();
+		//  don't bother with serializing standard and builtin types.
+		setupTypes();
+	}
 
-		  //  problem:  if isTypeInfoValid_ is not true, we can trigger type parsing
-		  //  for an object class that does not exist.  Need to introduce logic to 
-		  //  recreate the object in this case
-		  isTypeInfoValid_ = true;
-		  isLineInfoValid_ = true; //  NOTE:  set this to true after deserializing at least one lineInformaton object
-	  }
-      gtranslate(sb, regions_, "Regions", "Region");
-	  rebuild_region_indexes();
-      gtranslate(sb, everyDefinedSymbol, "EveryDefinedSymbol", "Symbol");
-	  if (is_input(sb))
-	  {
-		  //  need to rebuild symbol hashes before deserializing higher level stuff
-		  // (Aggregates, Functions, Variables, which lookup symbols by offset)
-		  rebuild_symbol_hashes();
-	  }
-      gtranslate(sb, everyFunction, "EveryFunction", "Function");
-      gtranslate(sb, everyVariable, "EveryVariable", "Variable");
-	  if (is_input(sb))
-	  {
-		  rebuild_funcvar_hashes();
-	  }
-      //gtranslate(sb, everyUniqueVariable, "EveryUniqueVariable", "UniqueVariable");
-      //gtranslate(sb, modSyms, "ModuleSymbols", "ModuleSymbol");
-      gtranslate(sb, excpBlocks, "ExceptionBlocks", "ExceptionBlock");
-      ifxml_end_element(sb, tag);
+	ifxml_start_element(sb, tag);
+	gtranslate(sb, imageOffset_, "imageOffset");
+	gtranslate(sb, imageLen_, "imageLen");
+	gtranslate(sb, dataOffset_, "dataOff");
+	gtranslate(sb, dataLen_, "dataLen");
+	gtranslate(sb, is_a_out, "isExec");
+	gtranslate(sb, _mods, "Modules", "Module");
+	rebuild_module_hashes(sb);
+	if (is_input(sb))
+	{
+		//  problem:  if isTypeInfoValid_ is not true, we can trigger type parsing
+		//  for an object class that does not exist.  Need to introduce logic to 
+		//  recreate the object in this case
+		isTypeInfoValid_ = true;
+		isLineInfoValid_ = true; //  NOTE:  set this to true after deserializing at least one lineInformaton object
+	}
+	gtranslate(sb, regions_, "Regions", "Region");
+	rebuild_region_indexes(sb);
+	gtranslate(sb, everyDefinedSymbol, "EveryDefinedSymbol", "Symbol");
+	rebuild_symbol_hashes(sb);
+	gtranslate(sb, relocation_table_, "RelocationTable", "RelocationTableEntry");
+	gtranslate(sb, everyFunction, "EveryFunction", "Function");
+	gtranslate(sb, everyVariable, "EveryVariable", "Variable");
+	rebuild_funcvar_hashes(sb);
 
+	//gtranslate(sb, everyUniqueVariable, "EveryUniqueVariable", "UniqueVariable");
+	//gtranslate(sb, modSyms, "ModuleSymbols", "ModuleSymbol");
 
-	  sb->magic_check(FILE__, __LINE__);
+	gtranslate(sb, excpBlocks, "ExceptionBlocks", "ExceptionBlock");
+	ifxml_end_element(sb, tag);
+
+	sb->magic_check(FILE__, __LINE__);
 #if 0
-      ifinput(Symtab::setup_module_up_ptrs, sb, this);
-      ifinput(fixup_relocation_symbols, sb, this);
+	ifinput(Symtab::setup_module_up_ptrs, sb, this);
+	ifinput(fixup_relocation_symbols, sb, this);
 #endif
 
-      //  Patch up module's exec_ (pointer to Symtab) at a higher level??
-      //if (getSD().iomode() == sd_deserialize)
+	//  Patch up module's exec_ (pointer to Symtab) at a higher level??
+	//if (getSD().iomode() == sd_deserialize)
       //   param.exec_ = parent_symtab;
-   } SER_CATCH("Symtab");
 	serialize_printf("%s[%d]:  leaving Symtab::serialize_impl\n", FILE__, __LINE__);
+	return NULL;
 }
 
 SYMTAB_EXPORT LookupInterface::LookupInterface() 
@@ -2804,17 +2805,15 @@ SYMTAB_EXPORT bool ExceptionBlock::contains(Offset a) const
    return (a >= tryStart_ && a < tryStart_ + trySize_); 
 }
 
-void ExceptionBlock::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
+Serializable * ExceptionBlock::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
-   try 
-   {
-      ifxml_start_element(sb, tag);
-      gtranslate(sb, tryStart_, "tryStart");
-      gtranslate(sb, trySize_, "trySize");
-      gtranslate(sb, catchStart_, "catchStart");
-      gtranslate(sb, hasTry_, "hasTry");
-      ifxml_end_element(sb, tag);
-   } SER_CATCH("Symtab");
+	ifxml_start_element(sb, tag);
+	gtranslate(sb, tryStart_, "tryStart");
+	gtranslate(sb, trySize_, "trySize");
+	gtranslate(sb, catchStart_, "catchStart");
+	gtranslate(sb, hasTry_, "hasTry");
+	ifxml_end_element(sb, tag);
+	return NULL;
 }
 
 
@@ -2912,15 +2911,13 @@ bool relocationEntry::operator==(const relocationEntry &r) const
 	return true;
 }
 
-void relocationEntry::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
+Serializable *relocationEntry::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
 	//  on deserialize need to rebuild symtab::undefDynSyms before deserializing relocations
 
 	std::string symname = dynref_ ? dynref_->getName() : std::string("");
 	Offset symoff = dynref_ ? dynref_->getOffset() : (Offset) -1;
 
-   try 
-   {
       ifxml_start_element(sb, tag);
       gtranslate(sb, target_addr_, "targetAddress");
       gtranslate(sb, rel_addr_, "relocationAddress");
@@ -2944,17 +2941,6 @@ void relocationEntry::serialize_impl(SerializerBase *sb, const char *tag) THROW_
 						  FILE__, __LINE__);
 			  }
 
-#if 0
-			  ScopedSerializerBase<Symtab> *ssb = dynamic_cast<ScopedSerializerBase<Symtab> *>(sb);
-
-			  if (!ssb)
-			  {
-				  fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
-				  SER_ERR("FIXME");
-			  }
-
-			  Symtab *st = ssb->getScope();
-#endif
 			  SerContextBase *scb = sb->getContext();
 			  if (!scb)
 			  {
@@ -2972,67 +2958,27 @@ void relocationEntry::serialize_impl(SerializerBase *sb, const char *tag) THROW_
 
 			  Symtab *st = scs->getScope();
 
-
 			  if (!st)
 			  {
 				  fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
 				  SER_ERR("FIXME");
 			  }
 
-			  std::map<std::string, std::vector<Symbol *> >::iterator iter;
-			  iter = st->undefDynSyms.find(symname);
-
-			  if (iter != st->undefDynSyms.end())
+			  std::vector<Symbol *> *syms = st->findSymbolByOffset(symoff);
+			  if (!syms || !syms->size())
 			  {
-				  std::vector<Symbol *> &possible_syms = iter->second;
-				  //fprintf(stderr, "%s[%d]:  found %d possible sym matches for %s dynref\n", 
-				//		  FILE__, __LINE__, possible_syms.size(), symname.c_str());
-				  for (unsigned int i = 0; i < possible_syms.size(); ++i)
-				  {
-					  Symbol * s = possible_syms[i];
-					  if (s->getOffset() == symoff)
-					  {
-						  dynref_ = s;
-						  break;
-					  }
-				  }
-			  }
-			  else
-			  {
-				  //  This shouldn't happen, but check to see if we can find the relevant
-				  //  symbol in the regular indexes.
-				  std::vector<Symbol *> possible_syms;
-
-				  if (! st->findSymbol(possible_syms, symname, Symbol::ST_FUNCTION, anyName)
-						  || !possible_syms.size())
-				  {
-					  if (! st->findSymbol(possible_syms, symname, Symbol::ST_UNKNOWN, anyName)
-							  || !possible_syms.size())
-					  {
-						  //fprintf(stderr, "%s[%d]:  can't find symbol named %s for reloc\n", 
-					//			  FILE__, __LINE__, symname.c_str());
-					  }
-				  }
-
-				  if (possible_syms.size())
-				  {
-					  fprintf(stderr, "%s[%d]:  WARN: found %d syms for dynref in ord index\n", 
-                         FILE__, __LINE__, (int) possible_syms.size());
-					  for (unsigned int i = 0; i < possible_syms.size(); ++i)
-					  {
-						  Symbol *s = possible_syms[i];
-						  if (s->getOffset() == symoff)
-						  {
-							  dynref_ = s;
-							  break;
-						  }
-					  }
-				  }
+				  serialize_printf("%s[%d]:  cannot find symbol by offset %p\n", 
+						  FILE__, __LINE__, (void *)symoff);
+				  return NULL;
 			  }
 
+			  //  Might want to try to select the "best" symbol here if there is
+			  //  more than one.  Or Maybe just returning the first is sufficient.
+
+			  dynref_ = (*syms)[0];
 		  }
 	  }
-   } SER_CATCH("relocationEntry");
+	  return NULL;
 }
 
 

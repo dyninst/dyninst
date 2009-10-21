@@ -74,8 +74,8 @@ extern bool void_ptr_cmp_func(void *, void *);
 
 class SerializerBase;
 class Serializable;
-typedef void (*ser_func_t) (void *, SerializerBase *, const char *);
-COMMON_EXPORT void ser_func_wrapper(void *it, SerializerBase *sb,  const char *tag);
+typedef Serializable * (*ser_func_t) (void *, SerializerBase *, const char *);
+COMMON_EXPORT Serializable * ser_func_wrapper(void *it, SerializerBase *sb,  const char *tag);
 
 class AnnotationClassBase
 {
@@ -157,7 +157,7 @@ class AnnotationClass : public AnnotationClassBase {
 		  return (void *) new T();
 	  }
 
-	  void *size() {return sizeof(T);}
+	  size_t size() {return sizeof(T);}
 	  bool isSparselyAnnotatable(); 
 	  bool isDenselyAnnotatable(); 
 };

@@ -47,7 +47,8 @@ using namespace Dyninst;
 COMMON_EXPORT dyn_hash_map<std::string, SerializerBase::subsystem_serializers_t> SerializerBase::all_serializers;
 
 
-namespace Dyninst {
+namespace Dyninst 
+{
 	dyn_hash_map<void *, AnnotationContainerBase *> AnnotationContainerBase::containers_by_id;
 bool dyn_debug_serializer = false;
 bool &serializer_debug_flag()
@@ -57,13 +58,13 @@ bool &serializer_debug_flag()
    return dyn_debug_serializer;
 }
 
-void ser_func_wrapper(void *it, SerializerBase *sb, 
+Serializable * ser_func_wrapper(void *it, SerializerBase *sb, 
 		const char *tag)
 {   
 	assert(it);
 	assert(sb);
 	Serializable *s = (Serializable *) (it);
-	s->serialize(sb, tag);
+	return s->serialize(sb, tag);
 }   
 
 

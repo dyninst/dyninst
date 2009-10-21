@@ -91,12 +91,12 @@ class Symtab : public LookupInterface,
    SYMTAB_EXPORT static Symtab *findOpenSymtab(std::string filename);
    SYMTAB_EXPORT static bool closeSymtab(Symtab *);
 
-   SYMTAB_EXPORT 
-   void serialize_impl(SerializerBase *sb, const char *tag = "Symtab") THROW_SPEC (SerializerError);
-   void rebuild_symbol_hashes();
-   void rebuild_funcvar_hashes();
-   void rebuild_module_hashes();
-   void rebuild_region_indexes() THROW_SPEC(SerializerError);
+   SYMTAB_EXPORT Serializable * serialize_impl(SerializerBase *sb, 
+		   const char *tag = "Symtab") THROW_SPEC (SerializerError);
+   void rebuild_symbol_hashes(SerializerBase *);
+   void rebuild_funcvar_hashes(SerializerBase *);
+   void rebuild_module_hashes(SerializerBase *);
+   void rebuild_region_indexes(SerializerBase *) THROW_SPEC(SerializerError);
    static bool setup_module_up_ptrs(SerializerBase *,Symtab *st);
    static bool fixup_relocation_symbols(SerializerBase *,Symtab *st);
 
@@ -535,8 +535,8 @@ class Symtab : public LookupInterface,
    std::map <std::string, std::string> dynLibSubs;
 
    public:
-   Type *type_Error;
-   Type *type_Untyped;
+   static Type *type_Error;
+   static Type *type_Untyped;
 
  public:
    /********************************************************************/
@@ -569,8 +569,8 @@ SYMTAB_EXPORT  std::ostream &operator<<(std::ostream &os, const ExceptionBlock &
 class ExceptionBlock : public Serializable, public AnnotatableSparse {
 
    public:
-      SYMTAB_EXPORT 
-	  void serialize_impl(SerializerBase *sb, const char *tag = "exceptionBlock") THROW_SPEC (SerializerError);
+	  SYMTAB_EXPORT Serializable * serialize_impl(SerializerBase *sb, 
+			  const char *tag = "exceptionBlock") THROW_SPEC (SerializerError);
       SYMTAB_EXPORT ExceptionBlock(Offset tStart, unsigned tSize, Offset cStart);
       SYMTAB_EXPORT ExceptionBlock(Offset cStart);
       SYMTAB_EXPORT ExceptionBlock(const ExceptionBlock &eb);
@@ -611,7 +611,7 @@ class relocationEntry : public Serializable, public AnnotatableSparse {
 
       SYMTAB_EXPORT const relocationEntry& operator= (const relocationEntry &ra);
 
-	  SYMTAB_EXPORT void serialize_impl(SerializerBase *sb, 
+	  SYMTAB_EXPORT Serializable * serialize_impl(SerializerBase *sb, 
 			  const char *tag = "relocationEntry") THROW_SPEC (SerializerError);
 
       SYMTAB_EXPORT Offset target_addr() const;

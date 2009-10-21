@@ -239,7 +239,7 @@ Function::~Function()
 {
 }
 
-void Function::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
+Serializable *Function::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)
 {
 	if (!sb) SER_ERR("bad paramater sb");
 
@@ -274,6 +274,7 @@ void Function::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (S
 	serialize_printf("%s[%d]:  Function(%p--%s)::%s\n", FILE__, __LINE__, this,
 			getAllPrettyNames().size() ? getAllPrettyNames()[0].c_str() : "UNNAMED_FUNCTION",
 			sb->isInput() ? "deserialize" : "serialize");
+	return NULL;
 }
 
 bool Function::removeSymbol(Symbol *sym) 

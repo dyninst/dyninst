@@ -57,7 +57,7 @@ class LineInformation : public AnnotationContainer<Statement>,
                         private RangeLookup< Statement, Statement::StatementLess > 
 {
 	SYMTAB_EXPORT bool addItem_impl(Statement);
-	SYMTAB_EXPORT void ac_serialize_impl(SerializerBase *, const char * = "lineInformation") THROW_SPEC (SerializerError);
+	SYMTAB_EXPORT Serializable *ac_serialize_impl(SerializerBase *, const char * = "lineInformation") THROW_SPEC (SerializerError);
    public:
       typedef RangeLookup< Statement, Statement::StatementLess >::const_iterator const_iterator;
       typedef RangeLookup< Statement, Statement::StatementLess >::AddressRange AddressRange;
