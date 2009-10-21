@@ -33,7 +33,7 @@ int test1_22_call7(int x);
  * group.
  */
 
-static volatile int _unused; /* move decl here to dump compiler warning - jkh */
+static volatile int unused; /* move decl here to dump compiler warning - jkh */
 
 /* These are copied in libtestA.c and libtestB.c */
 #define MAGIC22_1   2200100
@@ -144,7 +144,7 @@ int test1_22_mutatee()
     void *handleA;
     char dlopenName[128];
     int result;
-    _unused = sprintf(dlopenName, "./%s", libNameA);
+    unused = sprintf(dlopenName, "%s", libNameA);
 
     handleA = loadDynamicLibrary(dlopenName);
     if (! handleA) {
@@ -153,7 +153,7 @@ int test1_22_mutatee()
 	 retval = -1; /* Test failed */
     }
     /* call22_5 = (int(*)(int)) getFuncFromDLL(handleA, "call22_5"); */
-    call22_5 = (call_type) getFuncFromDLL(handleA, "call22_5");
+    call22_5 = (call_type) getFuncFromDLL(handleA, "call22_5a");
     if (! call22_5) {
 	 logerror("**Failed test #22 (replaceFunction)\n");
 	 logerror("  Mutatee couldn't get handle for call22_5 in %s\n", libNameA);
