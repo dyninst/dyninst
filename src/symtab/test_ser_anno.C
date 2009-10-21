@@ -138,7 +138,7 @@ class AnnotateeBase : public Serializable
 		}
 
 
-		void serialize_impl(SerializerBase *sb, const char *) THROW_SPEC(SerializerError)
+		Serializable *serialize_impl(SerializerBase *sb, const char *) THROW_SPEC(SerializerError)
 		{
 			logerror("%s[%d]:  welcome to AnnotateeBase::serialize_impl: %s\n", 
 					FILE__, __LINE__, is_input(sb) ? "deserialize" : "serialize");
@@ -151,6 +151,7 @@ class AnnotateeBase : public Serializable
 			//ifxml_end_element(sb, "AnnotateeBase");
 			logerror("%s[%d]:  leaving to AnnotateeBase::serialize_impl\n", 
 					FILE__, __LINE__);
+			return NULL;
 		}
 };
 
@@ -244,7 +245,7 @@ class MyAnnotationClass : public Serializable
 	~MyAnnotationClass() {}
 
 
-	void serialize_impl(SerializerBase *sb, const char *) THROW_SPEC(SerializerError)
+	Serializable *serialize_impl(SerializerBase *sb, const char *) THROW_SPEC(SerializerError)
 	{
 		logerror("%s[%d]:  welcome to MyAnnotationClass::serialize_impl: val = %d, id = %d\n", 
 				FILE__, __LINE__, val, getID());
@@ -255,6 +256,7 @@ class MyAnnotationClass : public Serializable
 
 		logerror("%s[%d]:  leaving to MyAnnotationClass::serialize_impl, val = %d\n", 
 				FILE__, __LINE__, val);
+		return NULL;
 	}
 
 	bool operator==(MyAnnotationClass &src)
@@ -326,13 +328,14 @@ class MyAnnotationContainer : public AnnotationContainer<T>
 		fprintf(stderr, "]\n");
 	}
 
-	void ac_serialize_impl(SerializerBase *sb, const char *a) THROW_SPEC(SerializerError)
+	Serializable *ac_serialize_impl(SerializerBase *sb, const char *a) THROW_SPEC(SerializerError)
 	{
 		//fprintf(stderr, "%s[%d]:  welcome to MyAnnotationContainer::ac_serialize_impl %s: vec.size() = %d, this = %p\n", FILE__, __LINE__, sb_is_input(sb) ? "deserialize" : "serialize", vec.size(), this);
 
 		gtranslate(sb, vec, "MyAnnotationContainer");
 
 		//fprintf(stderr, "%s[%d]:  leaving MyAnnotationContainer::ac_serialize_impl, vec.size() = %d\n", FILE__, __LINE__, vec.size());
+		return NULL;
 	}
 };
 
@@ -383,13 +386,14 @@ class MyAnnotationContainer2 : public AnnotationContainer<MyAnnotationClass *>
 		fprintf(stderr, "]\n");
 	}
 
-	void ac_serialize_impl(SerializerBase *sb, const char *a) THROW_SPEC(SerializerError)
+	Serializable *ac_serialize_impl(SerializerBase *sb, const char *a) THROW_SPEC(SerializerError)
 	{
 		fprintf(stderr, "%s[%d]:  welcome to MyAnnotationContainer2::ac_serialize_impl %s: vec.size() = %d, this = %p\n", FILE__, __LINE__, sb_is_input(sb) ? "deserialize" : "serialize", vec.size(), this);
 
 		gtranslate(sb, vec, "MyAnnotationContainer2");
 
 		fprintf(stderr, "%s[%d]:  leaving MyAnnotationContainer2::ac_serialize_impl, vec.size() = %d\n", FILE__, __LINE__, vec.size());
+		return NULL;
 	}
 };
 
