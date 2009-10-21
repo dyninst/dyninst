@@ -252,10 +252,13 @@ void parse_resumelog(std::vector<RunGroup *> &groups)
 }
 
 char *mutatee_resumelog_name = "mutatee_resumelog";
+char *alt_mutatee_resumelog_name = "../mutatee_resumelog";
 
 void parse_mutateelog(RunGroup *group)
 {
    FILE *f = fopen(mutatee_resumelog_name, "r");
+   if (!f)
+      f = fopen(alt_mutatee_resumelog_name, "r");
    assert(f);
    char testname[256];
    for (;;)

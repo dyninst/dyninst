@@ -211,7 +211,7 @@ test_results_t test1_22_Mutator::mutatorTest22()
 	// Replace a shlib function with a shlib function
 	bpmv.clear();
 
-	if (NULL == modA->findFunction("call22_5", bpmv) || !bpmv.size()) 
+	if (NULL == modA->findFunction("call22_5a", bpmv) || !bpmv.size()) 
 	{
 		logerror("**Failed test #22 (replace function)\n");
 		logerror("  Mutator couldn't find functions in mutatee\n");
@@ -222,7 +222,7 @@ test_results_t test1_22_Mutator::mutatorTest22()
 
 	bpmv.clear();
 
-	if (NULL == modB->findFunction("call22_5", bpmv) || !bpmv.size()) 
+	if (NULL == modB->findFunction("call22_5b", bpmv) || !bpmv.size()) 
 	{
 		logerror("**Failed test #22 (replace function)\n");
 		logerror("  Mutator couldn't find functions in mutatee\n");
@@ -292,14 +292,14 @@ test_results_t test1_22_Mutator::executeTest()
 	if (! appAddrSpace->loadLibrary(libA)) 
 	{
 		logerror("**Failed test1_22 (findFunction in module)\n");
-		logerror("  Mutator couldn't load %s into mutatee\n", libNameA);
+		logerror("  Mutator couldn't load %s into mutatee\n", libA);
 		return FAILED;
 	}
 
 	if (! appAddrSpace->loadLibrary(libB)) 
 	{
 		logerror("**Failed test1_22 (findFunction in module)\n");
-		logerror("  Mutator couldn't load %s into mutatee\n", libNameB);
+		logerror("  Mutator couldn't load %s into mutatee\n", libB);
 		return FAILED;
 	}
 

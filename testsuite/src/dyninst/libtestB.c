@@ -84,7 +84,7 @@ DLLEXPORT int check_snip_change_shlib_var()
 #define MAGIC22_6   2200600
 #define MAGIC22_7   2200700
 
-DLLEXPORT int call22_5(int x)
+DLLEXPORT int call22_5b(int x)
 {
     return x + MAGIC22_5B;
 }

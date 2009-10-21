@@ -633,6 +633,17 @@ int startNewProcessForAttach(const char *pathname, const char *argv[],
             fprintf(stderr, "Error duplicating log fd(2)\n");
          }
       }
+      char *ld_path = getenv("LD_LIBRARY_PATH");
+      char *new_ld_path = NULL;
+      if (ld_path) {
+         new_ld_path = (char *) malloc(strlen(ld_path) + strlen("./binaries") + 2);
+         strcpy(new_ld_path, "./binaries:");
+         strcat(new_ld_path, ld_path);
+         setenv("LD_LIBRARY_PATH", new_ld_path, 1);
+      }
+      else {
+         setenv("LD_LIBRARY_PATH", "./binaries", 1);
+      }
 
 	  //fprintf(stderr, "%s[%d]:  before exec '%s':  LD_LIBRARY_PATH='%s'\n", 
 	  //FILE__, __LINE__, pathname, getenv("LD_LIBRARY_PATH"));
@@ -642,7 +653,7 @@ int startNewProcessForAttach(const char *pathname, const char *argv[],
       strcpy(newname, "./");
       strcat(newname, pathname);
       execvp(newname, (char * const *)attach_argv);
-	  logerror("%s[%d]:  Exec failed!\n", FILE__, __LINE__);
+      logerror("%s[%d]:  Exec failed!\n", FILE__, __LINE__);
       exit(-1);
    } else if (pid < 0) {
       return -1;
