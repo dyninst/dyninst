@@ -210,14 +210,16 @@ bool emitElf64::createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf64_
 	    {
 	      // add an unversioned dependency
 	      if (fileName != "") 
-		{
-		  if (find(unversionedNeededEntries.begin(),
-			   unversionedNeededEntries.end(),
-			   fileName) == unversionedNeededEntries.end()) 
-		    {
-		      mpos += sprintf(mpos, "  new unversioned: %s\n", fileName.c_str());
-		      unversionedNeededEntries.push_back(fileName);
-		    }
+         {
+            if (!symbol->getReferringSymbol()->getSymtab()->isExec()) {
+               if (find(unversionedNeededEntries.begin(),
+                        unversionedNeededEntries.end(),
+                        fileName) == unversionedNeededEntries.end()) 
+               {
+                  mpos += sprintf(mpos, "  new unversioned: %s\n", fileName.c_str());
+                  unversionedNeededEntries.push_back(fileName);
+               }
+            }
 
 		  if (symbol->getLinkage() == Symbol::SL_GLOBAL) {
 		    versionSymTable.push_back(1);
@@ -1565,104 +1567,103 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
 #if !defined(os_solaris)
 void emitElf64::createSymbolVersions(Symtab *obj, Elf64_Half *&symVers, char*&verneedSecData, unsigned &verneedSecSize, char *&verdefSecData, unsigned &verdefSecSize, unsigned &dynSymbolNamesLength, vector<string> &dynStrs){
 
-  //Add all names to the new .dynstr section
-  map<string, unsigned>::iterator iter = versionNames.begin();
-  for(;iter!=versionNames.end();iter++){
-    iter->second = dynSymbolNamesLength;
-    dynStrs.push_back(iter->first);
-    dynSymbolNamesLength+= iter->first.size()+1;
-  }
+   //Add all names to the new .dynstr section
+   map<string, unsigned>::iterator iter = versionNames.begin();
+   for(;iter!=versionNames.end();iter++){
+      iter->second = dynSymbolNamesLength;
+      dynStrs.push_back(iter->first);
+      dynSymbolNamesLength+= iter->first.size()+1;
+   }
 
-  //reconstruct .gnu_version section
-  symVers = (Elf64_Half *)malloc(versionSymTable.size() * sizeof(Elf64_Half));
-  for(unsigned i=0; i<versionSymTable.size(); i++)
-    symVers[i] = versionSymTable[i];
+   //reconstruct .gnu_version section
+   symVers = (Elf64_Half *)malloc(versionSymTable.size() * sizeof(Elf64_Half));
+   for(unsigned i=0; i<versionSymTable.size(); i++)
+      symVers[i] = versionSymTable[i];
 
-  //reconstruct .gnu.version_r section
-  verneedSecSize = 0;
-  map<string, map<string, unsigned> >::iterator it = verneedEntries.begin();
-  for(; it != verneedEntries.end(); it++)
-    verneedSecSize += sizeof(Elf64_Verneed) + sizeof(Elf64_Vernaux) * it->second.size();
+   //reconstruct .gnu.version_r section
+   verneedSecSize = 0;
+   map<string, map<string, unsigned> >::iterator it = verneedEntries.begin();
+   for(; it != verneedEntries.end(); it++)
+      verneedSecSize += sizeof(Elf64_Verneed) + sizeof(Elf64_Vernaux) * it->second.size();
 
-  verneedSecData = (char *)malloc(verneedSecSize);
-  unsigned curpos = 0;
-  verneednum = 0;
-  std::vector<std::string>::iterator dit;
-  for(dit = unversionedNeededEntries.begin(); dit != unversionedNeededEntries.end(); dit++) {
-    // account for any substitutions due to rewriting a shared lib
-    std::string name = obj->getDynLibSubstitution(*dit);
-    // no need for self-references
-    if (!(obj->name() == name)) {
-      //printf("adding unversioned entry: %s [%s]\n", name.c_str(), obj->name().c_str());
-      versionNames[name] = dynSymbolNamesLength;
-      dynStrs.push_back(name);
-      dynSymbolNamesLength+= (name).size()+1;
-      if(find(DT_NEEDEDEntries.begin(), DT_NEEDEDEntries.end(), name) == DT_NEEDEDEntries.end())
-	DT_NEEDEDEntries.push_back(name);
-    }
-  }
-  for(it = verneedEntries.begin(); it != verneedEntries.end(); it++){
-    Elf64_Verneed *verneed = (Elf64_Verneed *)(void*)(verneedSecData+curpos);
-    verneed->vn_version = 1;
-    verneed->vn_cnt = it->second.size();
-    verneed->vn_file = dynSymbolNamesLength;
-    versionNames[it->first] = dynSymbolNamesLength;
-    dynStrs.push_back(it->first);
-    dynSymbolNamesLength+= it->first.size()+1;
-    if(find(DT_NEEDEDEntries.begin(), DT_NEEDEDEntries.end(), it->first) == DT_NEEDEDEntries.end())
-      DT_NEEDEDEntries.push_back(it->first);
-    verneed->vn_aux = sizeof(Elf64_Verneed);
-    verneed->vn_next = sizeof(Elf64_Verneed) + it->second.size()*sizeof(Elf64_Vernaux);
-    if(curpos + verneed->vn_next == verneedSecSize)
-      verneed->vn_next = 0;
-    verneednum++;
-    int i = 0;
-    for(iter = it->second.begin(); iter!= it->second.end(); iter++){
-      Elf64_Vernaux *vernaux = (Elf64_Vernaux *)(void*)(verneedSecData + curpos + verneed->vn_aux + i*sizeof(Elf64_Vernaux));
-      vernaux->vna_hash = elfHash(iter->first.c_str());
-      vernaux->vna_flags = 0;
-      vernaux->vna_other = iter->second;
-      vernaux->vna_name = versionNames[iter->first];
-      if(i == verneed->vn_cnt-1)
-	vernaux->vna_next = 0;
-      else
-	vernaux->vna_next = sizeof(Elf64_Vernaux);
-      i++;
-    }
-    curpos += verneed->vn_next;
-  }
+   verneedSecData = (char *)malloc(verneedSecSize);
+   unsigned curpos = 0;
+   verneednum = 0;
+   std::vector<std::string>::iterator dit;
+   for(dit = unversionedNeededEntries.begin(); dit != unversionedNeededEntries.end(); dit++) {
+      // account for any substitutions due to rewriting a shared lib
+      std::string name = obj->getDynLibSubstitution(*dit);
+      // no need for self-references
+      if (!(obj->name() == name)) {
+         versionNames[name] = dynSymbolNamesLength;
+         dynStrs.push_back(name);
+         dynSymbolNamesLength+= (name).size()+1;
+         if(find(DT_NEEDEDEntries.begin(), DT_NEEDEDEntries.end(), name) == DT_NEEDEDEntries.end())
+            DT_NEEDEDEntries.push_back(name);
+      }
+   }
+   for(it = verneedEntries.begin(); it != verneedEntries.end(); it++){
+      Elf64_Verneed *verneed = (Elf64_Verneed *)(void*)(verneedSecData+curpos);
+      verneed->vn_version = 1;
+      verneed->vn_cnt = it->second.size();
+      verneed->vn_file = dynSymbolNamesLength;
+      versionNames[it->first] = dynSymbolNamesLength;
+      dynStrs.push_back(it->first);
+      dynSymbolNamesLength+= it->first.size()+1;
+      if(find(DT_NEEDEDEntries.begin(), DT_NEEDEDEntries.end(), it->first) == DT_NEEDEDEntries.end())
+         DT_NEEDEDEntries.push_back(it->first);
+      verneed->vn_aux = sizeof(Elf64_Verneed);
+      verneed->vn_next = sizeof(Elf64_Verneed) + it->second.size()*sizeof(Elf64_Vernaux);
+      if(curpos + verneed->vn_next == verneedSecSize)
+         verneed->vn_next = 0;
+      verneednum++;
+      int i = 0;
+      for(iter = it->second.begin(); iter!= it->second.end(); iter++){
+         Elf64_Vernaux *vernaux = (Elf64_Vernaux *)(void*)(verneedSecData + curpos + verneed->vn_aux + i*sizeof(Elf64_Vernaux));
+         vernaux->vna_hash = elfHash(iter->first.c_str());
+         vernaux->vna_flags = 0;
+         vernaux->vna_other = iter->second;
+         vernaux->vna_name = versionNames[iter->first];
+         if(i == verneed->vn_cnt-1)
+            vernaux->vna_next = 0;
+         else
+            vernaux->vna_next = sizeof(Elf64_Vernaux);
+         i++;
+      }
+      curpos += verneed->vn_next;
+   }
 
-  //reconstruct .gnu.version_d section
-  verdefSecSize = 0;
-  for(iter = verdefEntries.begin(); iter != verdefEntries.end(); iter++)
-    verdefSecSize += sizeof(Elf64_Verdef) + sizeof(Elf64_Verdaux) * verdauxEntries[iter->second].size();
+   //reconstruct .gnu.version_d section
+   verdefSecSize = 0;
+   for(iter = verdefEntries.begin(); iter != verdefEntries.end(); iter++)
+      verdefSecSize += sizeof(Elf64_Verdef) + sizeof(Elf64_Verdaux) * verdauxEntries[iter->second].size();
 
-  verdefSecData = (char *)malloc(verdefSecSize);
-  curpos = 0;
-  verdefnum = 0;
-  for(iter = verdefEntries.begin(); iter != verdefEntries.end(); iter++){
-    Elf64_Verdef *verdef = (Elf64_Verdef *)(void*)(verdefSecData+curpos);
-    verdef->vd_version = 1;
-    verdef->vd_flags = 0;
-    verdef->vd_ndx = iter->second;
-    verdef->vd_cnt = verdauxEntries[iter->second].size();
-    verdef->vd_hash = elfHash(iter->first.c_str());
-    verdef->vd_aux = sizeof(Elf64_Verdef);
-    verdef->vd_next = sizeof(Elf64_Verdef) + verdauxEntries[iter->second].size()*sizeof(Elf64_Verdaux);
-    if(curpos + verdef->vd_next == verdefSecSize)
-      verdef->vd_next = 0;
-    verdefnum++;
-    for(unsigned i = 0; i< verdauxEntries[iter->second].size(); i++){
-      Elf64_Verdaux *verdaux = (Elf64_Verdaux *)(void*)(verdefSecData + curpos + verdef->vd_aux + i*sizeof(Elf64_Verdaux));
-      verdaux->vda_name = versionNames[verdauxEntries[iter->second][0]];
-      if((signed) i == verdef->vd_cnt-1)
-	verdaux->vda_next = 0;
-      else
-	verdaux->vda_next = sizeof(Elf64_Verdaux);
-    }
-    curpos += verdef->vd_next;
-  }
-  return;
+   verdefSecData = (char *)malloc(verdefSecSize);
+   curpos = 0;
+   verdefnum = 0;
+   for(iter = verdefEntries.begin(); iter != verdefEntries.end(); iter++){
+      Elf64_Verdef *verdef = (Elf64_Verdef *)(void*)(verdefSecData+curpos);
+      verdef->vd_version = 1;
+      verdef->vd_flags = 0;
+      verdef->vd_ndx = iter->second;
+      verdef->vd_cnt = verdauxEntries[iter->second].size();
+      verdef->vd_hash = elfHash(iter->first.c_str());
+      verdef->vd_aux = sizeof(Elf64_Verdef);
+      verdef->vd_next = sizeof(Elf64_Verdef) + verdauxEntries[iter->second].size()*sizeof(Elf64_Verdaux);
+      if(curpos + verdef->vd_next == verdefSecSize)
+         verdef->vd_next = 0;
+      verdefnum++;
+      for(unsigned i = 0; i< verdauxEntries[iter->second].size(); i++){
+         Elf64_Verdaux *verdaux = (Elf64_Verdaux *)(void*)(verdefSecData + curpos + verdef->vd_aux + i*sizeof(Elf64_Verdaux));
+         verdaux->vda_name = versionNames[verdauxEntries[iter->second][0]];
+         if((signed) i == verdef->vd_cnt-1)
+            verdaux->vda_next = 0;
+         else
+            verdaux->vda_next = sizeof(Elf64_Verdaux);
+      }
+      curpos += verdef->vd_next;
+   }
+   return;
 }
 
 void emitElf64::createHashSection(Symtab *obj, Elf64_Word *&hashsecData, unsigned &hashsecSize, vector<Symbol *>&dynSymbols)
@@ -1751,7 +1752,7 @@ void emitElf64::createDynamicSection(void *dynData, unsigned size, Elf64_Dyn *&d
   string rpathstr;
   for(unsigned i = 0; i< DT_NEEDEDEntries.size(); i++){
     dynsecData[curpos].d_tag = DT_NEEDED;
-    dynStrs.push_back(DT_NEEDEDEntries[i]);    
+    dynStrs.push_back(DT_NEEDEDEntries[i]);
     dynsecData[curpos].d_un.d_val = dynSymbolNamesLength;
     dynSymbolNamesLength += DT_NEEDEDEntries[i].size()+1;
     dynamicSecData[DT_NEEDED].push_back(dynsecData+curpos);

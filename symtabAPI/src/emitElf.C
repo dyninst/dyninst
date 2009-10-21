@@ -257,15 +257,15 @@ bool emitElf::createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf32_Sy
 	      if (fileName != "") 
 		{
 		  // If the file is not an executable, then add to unversioned entries
-		  if (!symbol->getReferringSymbol()->getSymtab()->isExec()) {
-		  	if (find(unversionedNeededEntries.begin(),
-			   unversionedNeededEntries.end(),
-			   fileName) == unversionedNeededEntries.end()) 
+         if (!symbol->getReferringSymbol()->getSymtab()->isExec()) {
+            if (find(unversionedNeededEntries.begin(),
+                     unversionedNeededEntries.end(),
+                     fileName) == unversionedNeededEntries.end()) 
 		    	{
-		      		mpos += sprintf(mpos, "  new unversioned: %s\n", fileName.c_str());
-		      		unversionedNeededEntries.push_back(fileName);
+               mpos += sprintf(mpos, "  new unversioned: %s\n", fileName.c_str());
+               unversionedNeededEntries.push_back(fileName);
 		    	}
-		  }
+         }
 
 		  if (symbol->getLinkage() == Symbol::SL_GLOBAL) {
 		    mpos += sprintf(mpos, "  global (w/ filename)\n");
@@ -1633,117 +1633,117 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std::
 }
 
 void emitElf::createRelocationSections(Symtab *obj, std::vector<relocationEntry> &relocation_table, dyn_hash_map<std::string, unsigned> &dynSymNameMapping) {
-  unsigned i,j,k;
+   unsigned i,j,k;
 
-  vector<relocationEntry> newRels;
-  if(newSecs.size())
-    newRels = newSecs[0]->getRelocations();
+   vector<relocationEntry> newRels;
+   if(newSecs.size())
+      newRels = newSecs[0]->getRelocations();
     
-  Elf32_Rel *rels = (Elf32_Rel *)malloc(sizeof(Elf32_Rel) * (relocation_table.size()+newRels.size()));
-  Elf32_Rela *relas = (Elf32_Rela *)malloc(sizeof(Elf32_Rela) * (relocation_table.size()+newRels.size()));
-  j=0; k=0;
-  //reconstruct .rel
-  for(i=0;i<relocation_table.size();i++) 
-    {
+   Elf32_Rel *rels = (Elf32_Rel *)malloc(sizeof(Elf32_Rel) * (relocation_table.size()+newRels.size()));
+   Elf32_Rela *relas = (Elf32_Rela *)malloc(sizeof(Elf32_Rela) * (relocation_table.size()+newRels.size()));
+   j=0; k=0;
+   //reconstruct .rel
+   for(i=0;i<relocation_table.size();i++) 
+   {
       if (relocation_table[i].regionType() == Region::RT_REL) {
-	rels[j].r_offset = relocation_table[i].rel_addr();
-	if(dynSymNameMapping.find(relocation_table[i].name()) != dynSymNameMapping.end()) {
-	  rels[j].r_info = ELF32_R_INFO(dynSymNameMapping[relocation_table[i].name()], relocation_table[i].getRelType());
-	} else {
-	  rels[j].r_info = ELF32_R_INFO(STN_UNDEF, relocation_table[i].getRelType());
-	}
-	j++;
+         rels[j].r_offset = relocation_table[i].rel_addr();
+         if(dynSymNameMapping.find(relocation_table[i].name()) != dynSymNameMapping.end()) {
+            rels[j].r_info = ELF32_R_INFO(dynSymNameMapping[relocation_table[i].name()], relocation_table[i].getRelType());
+         } else {
+            rels[j].r_info = ELF32_R_INFO(STN_UNDEF, relocation_table[i].getRelType());
+         }
+         j++;
       } else {
-	relas[k].r_offset = relocation_table[i].rel_addr();
-	relas[k].r_addend = relocation_table[i].addend();
-	if(dynSymNameMapping.find(relocation_table[i].name()) != dynSymNameMapping.end()) {
-	  relas[k].r_info = ELF32_R_INFO(dynSymNameMapping[relocation_table[i].name()], relocation_table[i].getRelType());
-	} else {
-	  relas[k].r_info = ELF32_R_INFO(STN_UNDEF, relocation_table[i].getRelType());
-	}
-	k++;
+         relas[k].r_offset = relocation_table[i].rel_addr();
+         relas[k].r_addend = relocation_table[i].addend();
+         if(dynSymNameMapping.find(relocation_table[i].name()) != dynSymNameMapping.end()) {
+            relas[k].r_info = ELF32_R_INFO(dynSymNameMapping[relocation_table[i].name()], relocation_table[i].getRelType());
+         } else {
+            relas[k].r_info = ELF32_R_INFO(STN_UNDEF, relocation_table[i].getRelType());
+         }
+         k++;
       }
-    }
-  for(i=0;i<newRels.size();i++) 
-    {
+   }
+   for(i=0;i<newRels.size();i++) 
+   {
       if (newRels[i].regionType() == Region::RT_REL) {
-	rels[j].r_offset = newRels[i].rel_addr();
-	if(dynSymNameMapping.find(newRels[i].name()) != dynSymNameMapping.end()) {
+         rels[j].r_offset = newRels[i].rel_addr();
+         if(dynSymNameMapping.find(newRels[i].name()) != dynSymNameMapping.end()) {
 #if defined(arch_x86)
-	  rels[j].r_info = ELF32_R_INFO(dynSymNameMapping[newRels[i].name()], R_386_GLOB_DAT);
+            rels[j].r_info = ELF32_R_INFO(dynSymNameMapping[newRels[i].name()], R_386_GLOB_DAT);
 #elif defined(arch_sparc)
-	  //            rels[j].r_info = ELF32_R_INFO(dynSymNameMapping[newRels[i].name()], R_SPARC_GLOB_DAT);
+            //            rels[j].r_info = ELF32_R_INFO(dynSymNameMapping[newRels[i].name()], R_SPARC_GLOB_DAT);
 #elif defined(arch_x86_64)
-	  rels[j].r_info = ELF32_R_INFO(dynSymNameMapping[newRels[i].name()], R_X86_64_GLOB_DAT);
+            rels[j].r_info = ELF32_R_INFO(dynSymNameMapping[newRels[i].name()], R_X86_64_GLOB_DAT);
 #elif defined(arch_power)
-	  rels[j].r_info = ELF32_R_INFO(dynSymNameMapping[newRels[i].name()], R_PPC_GLOB_DAT);
+            rels[j].r_info = ELF32_R_INFO(dynSymNameMapping[newRels[i].name()], R_PPC_GLOB_DAT);
 #endif
 
-} else {
+         } else {
 #if defined(arch_x86)
-	  rels[j].r_info = ELF32_R_INFO(STN_UNDEF, R_386_GLOB_DAT);
+            rels[j].r_info = ELF32_R_INFO(STN_UNDEF, R_386_GLOB_DAT);
 #elif defined(arch_sparc)
-	  //            rels[j].r_info = ELF32_R_INFO(STN_UNDEF, R_SPARC_GLOB_DAT);
+            //            rels[j].r_info = ELF32_R_INFO(STN_UNDEF, R_SPARC_GLOB_DAT);
 #elif defined(arch_x86_64)
-	  rels[j].r_info = ELF32_R_INFO(STN_UNDEF, R_X86_64_GLOB_DAT);
+            rels[j].r_info = ELF32_R_INFO(STN_UNDEF, R_X86_64_GLOB_DAT);
 #elif defined(arch_power)
-	  rels[j].r_info = ELF32_R_INFO(STN_UNDEF, R_PPC_GLOB_DAT);
+            rels[j].r_info = ELF32_R_INFO(STN_UNDEF, R_PPC_GLOB_DAT);
 #endif
-	}
-	j++;
+         }
+         j++;
       } else {
-	relas[k].r_offset = newRels[i].rel_addr();
-	relas[k].r_addend = newRels[i].addend();
-	if(dynSymNameMapping.find(newRels[i].name()) != dynSymNameMapping.end()) {
+         relas[k].r_offset = newRels[i].rel_addr();
+         relas[k].r_addend = newRels[i].addend();
+         if(dynSymNameMapping.find(newRels[i].name()) != dynSymNameMapping.end()) {
 #if defined(arch_x86)
-	  relas[k].r_info = ELF32_R_INFO(dynSymNameMapping[newRels[i].name()], R_386_GLOB_DAT);
+            relas[k].r_info = ELF32_R_INFO(dynSymNameMapping[newRels[i].name()], R_386_GLOB_DAT);
 #elif defined(arch_sparc)
-	  //            relas[k].r_info = ELF32_R_INFO(dynSymNameMapping[newRels[i].name()], R_SPARC_GLOB_DAT);
+            //            relas[k].r_info = ELF32_R_INFO(dynSymNameMapping[newRels[i].name()], R_SPARC_GLOB_DAT);
 #elif defined(arch_x86_64)
-	  relas[k].r_info = ELF32_R_INFO(dynSymNameMapping[newRels[i].name()], R_X86_64_GLOB_DAT);
+            relas[k].r_info = ELF32_R_INFO(dynSymNameMapping[newRels[i].name()], R_X86_64_GLOB_DAT);
 #elif defined(arch_power)
-	  relas[k].r_info = ELF32_R_INFO(dynSymNameMapping[newRels[i].name()], R_PPC_GLOB_DAT);
+            relas[k].r_info = ELF32_R_INFO(dynSymNameMapping[newRels[i].name()], R_PPC_GLOB_DAT);
 #endif
-	} else {
+         } else {
 #if defined(arch_x86)
-	  relas[k].r_info = ELF32_R_INFO(STN_UNDEF, R_386_GLOB_DAT);
+            relas[k].r_info = ELF32_R_INFO(STN_UNDEF, R_386_GLOB_DAT);
 #elif defined(arch_sparc)
-	  //            relas[k].r_info = ELF32_R_INFO(STN_UNDEF, R_SPARC_GLOB_DAT);
+            //            relas[k].r_info = ELF32_R_INFO(STN_UNDEF, R_SPARC_GLOB_DAT);
 #elif defined(arch_x86_64)
-	  relas[k].r_info = ELF32_R_INFO(STN_UNDEF, R_X86_64_GLOB_DAT);
+            relas[k].r_info = ELF32_R_INFO(STN_UNDEF, R_X86_64_GLOB_DAT);
 #elif defined(arch_power)
-	  relas[k].r_info = ELF32_R_INFO(STN_UNDEF, R_PPC_GLOB_DAT);
+            relas[k].r_info = ELF32_R_INFO(STN_UNDEF, R_PPC_GLOB_DAT);
 #endif
-	}
-	k++;
+         }
+         k++;
       }
-    }
+   }
 
 #if defined (os_solaris)
-  fprintf(stderr, "%s[%d]:  FIXME:  This does not work on solaris\n", FILE__, __LINE__);
+   fprintf(stderr, "%s[%d]:  FIXME:  This does not work on solaris\n", FILE__, __LINE__);
 #else
-  dyn_hash_map<int, Region*> secTagRegionMapping = obj->getObject()->getTagRegionMapping();
-  if (obj->hasReldyn()) {
-    string name;
-    if (secTagRegionMapping.find(DT_REL) != secTagRegionMapping.end()) {
-      name = secTagRegionMapping[DT_REL]->getRegionName();
-    } else {
-      name = ".rel.dyn";
-    }
-    obj->addRegion(0, rels, j*sizeof(Elf32_Rel), name, Region::RT_REL, true);
-    updateDynamic(DT_RELSZ, j*sizeof(Elf32_Rel));
-  }
-  if (obj->hasReladyn()) {
-    string name;
-    if (secTagRegionMapping.find(DT_RELA) != secTagRegionMapping.end()) {
-      name = secTagRegionMapping[DT_REL]->getRegionName();
-    } else {
-      name = ".rela.dyn";
-    }
+   dyn_hash_map<int, Region*> secTagRegionMapping = obj->getObject()->getTagRegionMapping();
+   if (obj->hasReldyn()) {
+      string name;
+      if (secTagRegionMapping.find(DT_REL) != secTagRegionMapping.end()) {
+         name = secTagRegionMapping[DT_REL]->getRegionName();
+      } else {
+         name = ".rel.dyn";
+      }
+      obj->addRegion(0, rels, j*sizeof(Elf32_Rel), name, Region::RT_REL, true);
+      updateDynamic(DT_RELSZ, j*sizeof(Elf32_Rel));
+   }
+   if (obj->hasReladyn()) {
+      string name;
+      if (secTagRegionMapping.find(DT_RELA) != secTagRegionMapping.end()) {
+         name = secTagRegionMapping[DT_REL]->getRegionName();
+      } else {
+         name = ".rela.dyn";
+      }
  
-    obj->addRegion(0, relas, k*sizeof(Elf32_Rela), name, Region::RT_RELA, true);
-    updateDynamic(DT_RELASZ, k*sizeof(Elf32_Rela));
-  }
+      obj->addRegion(0, relas, k*sizeof(Elf32_Rela), name, Region::RT_RELA, true);
+      updateDynamic(DT_RELASZ, k*sizeof(Elf32_Rela));
+   }
 #endif
 
 } 
@@ -1779,7 +1779,6 @@ void emitElf::createSymbolVersions(Symtab *obj, Elf32_Half *&symVers, char*&vern
     std::string name = obj->getDynLibSubstitution(*dit);
     // no need for self-references
     if (!(obj->name() == name)) {
-      //printf("adding unversioned entry: %s [%s]\n", name.c_str(), obj->name().c_str());
       versionNames[name] = dynSymbolNamesLength;
       dynStrs.push_back(name);
       dynSymbolNamesLength+= (name).size()+1;
