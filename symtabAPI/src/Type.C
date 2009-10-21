@@ -1350,7 +1350,7 @@ void typeCommon::endCommonBlock(Symbol *func, void *baseAddr)
 
 	    localVar *locVar;
     	locVar = new localVar(fieldList[j]->getName(), 
-	        			     fieldList[j]->getType(), "", 0);
+	        			     fieldList[j]->getType(), "", 0, (Function *) func);
 #if 0
     	VariableLocation *loc = (VariableLocation *)malloc(sizeof(VariableLocation));
 #endif

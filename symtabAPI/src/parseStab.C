@@ -271,7 +271,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
          } 
          else 
          {
-            locVar = new localVar(name, ptrType, fName, linenum);
+            locVar = new localVar(name, ptrType, fName, linenum, symt_current_func);
             VariableLocation loc;
             loc.stClass = storageRegOffset;
             loc.refClass = storageNoRef;
@@ -308,7 +308,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
          // Try to find the BPatch_Function
          ptrType = tc->findOrCreateType( ID);
 
-         locVar = new localVar(name, ptrType, fName, linenum);
+         locVar = new localVar(name, ptrType, fName, linenum, symt_current_func);
          VariableLocation loc;
          loc.stClass = storageRegOffset;
          loc.refClass = storageNoRef;
@@ -531,7 +531,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
 
                localVar *param;
 
-               param = new localVar(name, ptrType, fName, linenum);
+               param = new localVar(name, ptrType, fName, linenum, symt_current_func);
                VariableLocation loc;
                loc.stClass = storageRegOffset;
                loc.refClass = storageNoRef;
@@ -553,40 +553,36 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
          case 'c': /* constant */
             {
                cnt++; /*move past the 'c' */
+               if (symt_current_mangled_func_name.length()) 
+               {
+                  std::vector<Function *>fpv;
+                  if (mod->exec()->findFunctionsByName(fpv, symt_current_mangled_func_name))
+                  { 
+                     // found function, add parameter
+                     fp = fpv[0];	
+                     symt_current_func = fp;
+                  }
+                  fpv.clear();
+               } 
 
                ptrType = parseConstantUse(mod, stabstr, cnt);
 
                if (!ptrType) ptrType = mod->exec()->type_Untyped;
 
                localVar *var;
-               var = new localVar(name, ptrType, fName, linenum);
+               var = new localVar(name, ptrType, fName, linenum, symt_current_func);
                VariableLocation loc;
                loc.stClass = storageRegOffset;
                loc.refClass = storageNoRef;
                loc.frameOffset = 0;
                loc.reg = -1;
                var->addLocation(loc);
-
-               if (symt_current_mangled_func_name.length()) 
-               {
-                  std::vector<Function *>fpv;
-                  if (!mod->exec()->findFunctionsByName(fpv, symt_current_mangled_func_name))
-                  {
-                     //showInfoCallback(string("missing local function ") + 
-                     //		            symt_current_func_name + "\n");
-                  } 
-                  else 
-                  { 
-                     // found function, add parameter
-                     fp = fpv[0];	
-                     symt_current_func = fp;
+               if (symt_current_func) {
                      if (!symt_current_func->addParam(var)) 
                      {
                         fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
                      }
                   }
-                  fpv.clear();
-               } 
             }
             break;
 
@@ -811,7 +807,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                // put it into the local variable scope
                if (symt_current_func) 
                {
-                  locVar = new localVar(name, BPtype, fName, linenum);
+                  locVar = new localVar(name, BPtype, fName, linenum, symt_current_func);
                   VariableLocation loc;
                   loc.stClass = storageAddr;
                   loc.refClass = storageNoRef;

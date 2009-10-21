@@ -581,7 +581,7 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc **locationList,
 		loc.hiPC = (Offset)location->ld_hipc;
 
 		// if range of the variable is the entire address space, do not add lowpc
-		if (loc.lowPC != (unsigned long) 0 && loc.hiPC != (unsigned long) ~0) 
+		if (loc.lowPC != (unsigned long) 0 || loc.hiPC != (unsigned long) ~0) 
 		{
 			loc.lowPC = (Offset)location->ld_lopc + lowpc;
 			loc.hiPC = (Offset)location->ld_hipc + lowpc;
@@ -1258,6 +1258,17 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 
 		// newFunction is scoped at the function level...
 
+            Dwarf_Addr baseAddr = 0;
+            Offset func_lowpc = 0;
+            bool hasLowPC = false;
+            status = dwarf_lowpc( dieEntry, & baseAddr, NULL );
+            
+            if (status == DW_DLV_OK) 
+            {
+               bool result = elfobj->convertDebugOffset(baseAddr, func_lowpc);
+               hasLowPC = result;
+            }
+
 		if (objFile->findFunctionsByName(ret_funcs, functionName)) 
 		{
 			// Assert a single one?
@@ -1267,22 +1278,12 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 		else 
 		{
 			// Didn't find by name (???), try to look up by address...
-
-			Dwarf_Addr baseAddr = 0;
-			status = dwarf_lowpc( dieEntry, & baseAddr, NULL );
-
-			if (status == DW_DLV_OK) 
+               if (!hasLowPC || !objFile->findFuncByEntryOffset(newFunction, func_lowpc)) 
 			{
-				Offset fixedBaseAddr;
-				bool result = elfobj->convertDebugOffset(baseAddr, fixedBaseAddr);
-
-				if (!result || !objFile->findFuncByEntryOffset(newFunction, fixedBaseAddr)) 
-				{
-					dwarf_printf( "Failed to find function at %lx -> %lx\n", baseAddr, fixedBaseAddr);
+                  dwarf_printf( "Failed to find function at %lx -> %lx\n", func_lowpc, func_lowpc);
 					break;
 				}
 			}
-		}
 
 
 		if (thisFunction == NULL && parseSibling== true) 
@@ -1337,15 +1338,10 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 #endif
 
 			dwarf_printf(" Frame Pointer Variable decodeLocationListForStaticOffsetOrAddress \n");
-#if 0
-			//vector<loc_t> *locs = new vector<loc_t>();
-			vector<VariableLocation> &mlocs = newFunction->getFramePtr();
-			if (mlocs.size())
-				status = false;
-#endif
 			vector<VariableLocation> *funlocs = new vector<VariableLocation>();
 			bool decodedAddressOrOffset = decodeLocationListForStaticOffsetOrAddress( locationList, 
-					listLength, objFile, *funlocs, lowpc, NULL);
+                                                                                         listLength, objFile, *funlocs, 
+                                                                                         lowpc, NULL);
 
 			DWARF_NEXT_IF(!decodedAddressOrOffset, " Frame Pointer Variable - No location list \n");
 
@@ -1353,11 +1349,6 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 			status = newFunction->setFramePtr(funlocs);
 
 			DWARF_NEXT_IF ( !status, "%s[%d]: Frame pointer not set successfully.\n", __FILE__, __LINE__ );
-
-#if 0
-			for (unsigned int i = 0; i < funlocs->size(); ++i)
-				newFunction->addLocation((*funlocs)[i]);
-#endif
 
 			deallocateLocationList( dbg, locationList, listLength );
 		} /* end if this DIE has a frame base attribute */
@@ -1551,6 +1542,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
   case DW_TAG_variable: 
 	{
 		dwarf_printf(" DW_TAG_variable \n");
+            /* Acquire the name, type, and line number. */
 		/* A variable may occur inside a function, as either static or local.
 		   A variable may occur inside a container, as C++ static member.
 		   A variable may not occur in either, as a global. 
@@ -1593,8 +1585,8 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
       }
       
       for (unsigned i=0; i<locs.size(); i++) {
-         if (locs[i].stClass != storageAddr) 
-            continue;
+               //if (locs[i].stClass != storageAddr) 
+               //continue;
          if (locs[i].lowPC) {
             Offset newlowpc = locs[i].lowPC;
             bool result = elfobj->convertDebugOffset(locs[i].lowPC, newlowpc);
@@ -1725,7 +1717,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
          else {
             fileName = srcFiles[fileNameDeclVal-1];
          }
-         localVar * newVariable = new localVar( vName, variableType, fileName, (int) variableLineNo);
+               localVar * newVariable = new localVar( vName, variableType, fileName, (int) variableLineNo, currentFunction);
          for (unsigned int i = 0; i < locs.size(); ++i)
          {
             newVariable->addLocation(locs[i]);
@@ -1903,7 +1895,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
       /* We now have the parameter's location, name, type, and line number.
 	 Tell Dyninst about it. */
       std::string pName = convertCharToString(parameterName);
-      localVar * newParameter = new localVar( pName, parameterType, fileName, (int) parameterLineNo);
+            localVar * newParameter = new localVar( pName, parameterType, fileName, (int) parameterLineNo, currentFunction);
       assert( newParameter != NULL );
 	  for (unsigned int i = 0; i < locs.size(); ++i)
 	  {
@@ -2736,14 +2728,49 @@ void Object::parseDwarfTypes( Symtab *objFile)
 	moduleTypes->setDwarfParsed();
 } /* end parseDwarfTypes() */
 
-Dyninst::MachRegister DwarfToDynReg(Dwarf_Signed reg)
+Dyninst::MachRegister DwarfToDynReg(Dwarf_Signed reg, int word_size = 4)
 {
-	return (Dyninst::MachRegister) (reg);
+#if defined(arch_x86) || defined(arch_x86_64)
+   if (word_size == 4) {
+      //They match.  Yea!
+      return (Dyninst::MachRegister) reg;
+   }
+   switch (reg) {
+      case 0: return x86_64::RAX;
+      case 1: return x86_64::RDX;
+      case 2: return x86_64::RCX;
+      case 3: return x86_64::RBX;
+      case 4: return x86_64::RSI;
+      case 5: return x86_64::RDI;
+      case 6: return x86_64::RBP;
+      case 7: return x86_64::RSP;
+      default:
+         //The rest match
+         return (Dyninst::MachRegister) reg;
+   }
+#endif
 }
 
-Dwarf_Signed DynToDwarfReg(Dyninst::MachRegister reg)
+Dwarf_Signed DynToDwarfReg(Dyninst::MachRegister reg, int word_size = 4)
 {
-	return (Dwarf_Signed) reg;
+#if defined(arch_x86) || defined(arch_x86_64)
+   if (word_size == 4) {
+      return (Dwarf_Signed) (reg & 0xf);
+   }
+   switch (reg & 0xf) {
+      case x86_64::RAX: return (Dwarf_Signed) 0;
+      case x86_64::RCX: return (Dwarf_Signed) 2;
+      case x86_64::RDX: return (Dwarf_Signed) 1;
+      case x86_64::RBX: return (Dwarf_Signed) 3;
+      case x86_64::RSP: return (Dwarf_Signed) 7;
+      case x86_64::RBP: return (Dwarf_Signed) 6;
+      case x86_64::RSI: return (Dwarf_Signed) 4;
+      case x86_64::RDI: return (Dwarf_Signed) 5;
+      default:
+         //The rest match
+         return (Dwarf_Signed) (reg & 0xf);
+   }
+#endif
 }
 
 bool Object::hasFrameDebugInfo()
@@ -2793,7 +2820,6 @@ bool Object::getRegValueAtFrame(Address pc,
          break;
       }
    }
-
    if (!found)
    {
       setSymtabError(No_Frame_Entry);
@@ -2826,7 +2852,7 @@ bool Object::getRegValueAtFrame(Address pc,
       dwarf_reg = DW_FRAME_CFA_COL3;
    }
    else {
-      dwarf_reg = DynToDwarfReg(reg);
+      dwarf_reg = DynToDwarfReg(reg, getAddressWidth());
    }
 
    Dwarf_Small value_type;
@@ -2880,7 +2906,8 @@ bool Object::getRegValueAtFrame(Address pc,
          return true;
       }
       else {
-         Dyninst::MachRegister dyn_registr = DwarfToDynReg(register_num);
+         Dyninst::MachRegister dyn_registr = DwarfToDynReg(register_num, 
+                                                           getAddressWidth());
          bool bresult = reader->GetReg(dyn_registr, register_val);
          if (!bresult) {
             setSymtabError(Frame_Read_Error);

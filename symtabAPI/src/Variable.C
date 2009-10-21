@@ -40,6 +40,7 @@
 #include "Collections.h"
 #include "Variable.h"
 #include "Aggregate.h"
+#include "Function.h"
 
 #include "symtabAPI/src/Object.h"
 
@@ -244,12 +245,13 @@ Serializable *VariableLocation::serialize_impl(SerializerBase *sb, const char *t
 }
 
 localVar::localVar(std::string name,  Type *typ, std::string fileName, 
-		int lineNum, std::vector<VariableLocation> *locs) :
+		int lineNum, Function *f, std::vector<VariableLocation> *locs) :
 	Serializable(),
 	name_(name), 
 	type_(typ), 
 	fileName_(fileName), 
-	lineNum_(lineNum) 
+	lineNum_(lineNum),
+   func_(f)
 {
 	type_->incrRefCount();
 
@@ -257,7 +259,7 @@ localVar::localVar(std::string name,  Type *typ, std::string fileName,
 	{
 		for (unsigned int i = 0; i < locs->size(); ++i)
 		{
-			locs_.push_back((*locs)[i]);
+         addLocation((*locs)[i]);
 		}
 	}
 }
@@ -269,6 +271,7 @@ localVar::localVar(localVar &lvar) :
 	type_ = lvar.type_;
 	fileName_ = lvar.fileName_;
 	lineNum_ = lvar.lineNum_;
+   func_ = lvar.func_;
 
 	for (unsigned int i = 0; i < lvar.locs_.size(); ++i)
 	{
@@ -283,7 +286,68 @@ localVar::localVar(localVar &lvar) :
 
 bool localVar::addLocation(VariableLocation &location)
 {
+   if (!func_) {
 	locs_.push_back(location);
+      return true;
+   }
+   std::vector<VariableLocation> &func_fp = func_->getFramePtr();
+   if (!func_fp.size() || location.stClass != storageRegOffset || location.reg != -1) {
+      locs_.push_back(location);
+      return true;
+   }
+
+   // Merge variable and function frame pointer's location lists
+   std::vector<VariableLocation>::iterator i;
+   for (i = func_fp.begin(); i != func_fp.end(); i++) 
+   {
+      Offset fplowPC = i->lowPC;
+      Offset fphiPC = i->hiPC;
+      Offset varlowPC = location.lowPC;
+      Offset varhiPC = location.hiPC;
+      
+      /* Combine fplocs->frameOffset to loc->frameOffset
+         
+      6 cases
+      1) varlowPC > fphiPC > fplowPC - no overlap - no push
+      2) fphiPC > varlowPC > fplowPC - one push
+      3) fphiPC > fplowPC > varlowPC - one push
+      4) fphiPC > varhiPC > fplowPC - one push
+      5) fphiPC > fplowPC > varhiPC - no overlap - no push
+      6) fphiPC > varhiPC > varlowPC> fpilowPC - one push 
+      
+      */
+
+      VariableLocation newloc;
+      newloc.stClass = location.stClass;
+      newloc.refClass = location.refClass;
+      newloc.reg = location.reg;
+      newloc.frameOffset =location.frameOffset +  i->frameOffset;
+
+      if ( (varlowPC > fplowPC && varlowPC >= fphiPC) || (varhiPC <= fplowPC && varhiPC < fplowPC) ) {
+         //nothing
+      } 
+      else if ( varlowPC >= fplowPC && fphiPC >= varhiPC) 
+      {
+         newloc.lowPC = varlowPC;
+         newloc.hiPC = varhiPC;
+      } 
+      else if (varlowPC >= fplowPC && varlowPC < fphiPC) 
+      {
+         newloc.lowPC = varlowPC;
+         newloc.hiPC = fphiPC;
+      } 
+      else if (varlowPC < fplowPC && varlowPC < fphiPC ) 
+      { // varhiPC > fplowPC && varhiPC > fphiPC
+         newloc.lowPC = fplowPC;
+         newloc.hiPC = fphiPC;
+      } 
+      else if (varhiPC > fplowPC && varhiPC < fphiPC) 
+      {
+         newloc.lowPC = fplowPC;
+         newloc.hiPC = varhiPC;
+      }
+      locs_.push_back(newloc);
+   } // fploc iteration
 
 	return true;
 }
