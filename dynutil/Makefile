@@ -15,6 +15,7 @@ PUBLIC_H = Annotatable.h \
 	   Graph.h \
            Edge.h \
            Node.h \
+           dyn_regs.h \
 	   dyn_detail 
 
 #INSTALL_TARGETS = $(pathsubst %, $(INCLUDE_DEST)/%,$(PUBLIC_H))
