@@ -870,6 +870,7 @@ bool baseTrampInstance::checkForFuncJumps()
          hasFuncJump_ = true;
          return true;         
       }
+      cur = cur->next;
    }
 
    return false;
