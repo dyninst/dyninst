@@ -474,6 +474,9 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, baseTrampInstance *inst, codeGen &g
        assert(num_saved == numRegsUsed);
     }
 
+    if (inst) {
+       inst->setTrampStackHeight((num_saved + flags_saved_i) * 4);
+    }
     gen.rs()->setStackHeight(0);
 
     if (saveOrigAddr) {
@@ -2023,6 +2026,12 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt, baseTrampInstance *inst, codeGen &
    if (flagsSaved) {
       num_saved++;
       num_to_save++;
+   }
+   if (inst) {
+      int height = num_saved * 8;
+      height += STACK_PAD_CONSTANT;
+      height += (needsFuncJumpSlot ? 8 : 0);
+      inst->setTrampStackHeight(height);
    }
    if (createFrame) {
       num_to_save++; //will save rbp
