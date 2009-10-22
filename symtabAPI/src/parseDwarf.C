@@ -2728,10 +2728,9 @@ void Object::parseDwarfTypes( Symtab *objFile)
 	moduleTypes->setDwarfParsed();
 } /* end parseDwarfTypes() */
 
-#if defined(arch_x86) || defined(arch_x86_64)
 Dyninst::MachRegister DwarfToDynReg(Dwarf_Signed reg, int word_size = 4)
 {
-
+#if defined(arch_x86) || defined(arch_x86_64)
    if (word_size == 4) {
       //They match.  Yea!
       return (Dyninst::MachRegister) reg;
@@ -2749,11 +2748,12 @@ Dyninst::MachRegister DwarfToDynReg(Dwarf_Signed reg, int word_size = 4)
          //The rest match
          return (Dyninst::MachRegister) reg;
    }
+#endif
 }
 
 Dwarf_Signed DynToDwarfReg(Dyninst::MachRegister reg, int word_size = 4)
 {
-
+#if defined(arch_x86) || defined(arch_x86_64)
    if (word_size == 4) {
       return (Dwarf_Signed) (reg & 0xf);
    }
@@ -2770,20 +2770,8 @@ Dwarf_Signed DynToDwarfReg(Dyninst::MachRegister reg, int word_size = 4)
          //The rest match
          return (Dwarf_Signed) (reg & 0xf);
    }
-}
-#else
-Dyninst::MachRegister DwarfToDynReg(Dwarf_Signed, int word_size = 4)
-{
-  assert(0);
-  return (Dyninst::MachRegister) word_size;
-}
-
-Dwarf_Signed DynToDwarfReg(Dyninst::MachRegister, int word_size = 4)
-{
-  assert(0);  
-  return (Dwarf_Signed) word_size;
-}
 #endif
+}
 
 bool Object::hasFrameDebugInfo()
 {
