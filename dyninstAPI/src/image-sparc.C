@@ -147,6 +147,8 @@ static inline bool JmpNopTC(instruction instr, instruction nexti,
 bool image_func::archIsRealCall(InstrucIter &ah, bool &validTarget,
                                 bool &simulateJump)
 {
+  simulateJump = false;
+  validTarget = true;
     if(!ah.isADynamicCallInstruction())
     {
         Address callTarget = ah.getBranchTargetAddress();
