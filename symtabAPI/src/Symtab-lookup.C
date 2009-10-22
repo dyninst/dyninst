@@ -670,6 +670,7 @@ bool Symtab::getContainingFunction(Offset offset, Function* &func)
    unsigned high = everyFunction.size();
    unsigned last_mid = high+1;
    unsigned mid;
+   if (!high) return false;
    for (;;)
    {
       mid = (low + high) / 2;
