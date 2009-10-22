@@ -771,16 +771,6 @@ bool strint_lt(const char *lv, const char *rv)
    return false;
 }
 
-struct groupcmp2 
-{
-   bool operator()(const RunGroup* lv, const RunGroup* rv)
-   {
-	   //  deserialize tests must always come last (well, at least after create)
-	   //  so that the initial serialization can be performed before the deserialize
-	   //  test is executed.
-	   return (lv->useAttach < rv->useAttach);
-   }
-};
 struct groupcmp 
 {
    bool operator()(const RunGroup* lv, const RunGroup* rv)
@@ -788,6 +778,10 @@ struct groupcmp
       if (!lv->mod)
          return false;
       if (!rv->mod)
+         return true;
+      if (lv->useAttach == DESERIALIZE && rv->useAttach != DESERIALIZE)
+         return false;
+      if (rv->useAttach == DESERIALIZE && lv->useAttach != DESERIALIZE)
          return true;
       if (lv->mod == rv->mod)
       {
@@ -884,7 +878,6 @@ void startAllTests(std::vector<RunGroup *> &groups,
    // Sets the disable flag on groups and tests that weren't selected by
    // options or have alread been passed according to the resumelog
    std::sort(groups.begin(), groups.end(), groupcmp());
-   std::sort(groups.begin(), groups.end(), groupcmp2());
    for (i=0; i<groups.size(); i++)
       std::sort(groups[i]->tests.begin(), groups[i]->tests.end(), testcmp());
 
