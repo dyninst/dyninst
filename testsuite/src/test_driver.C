@@ -1058,9 +1058,13 @@ void updateSearchPaths(const char *filename) {
       strcat(execpath,filename_copy);
       ::free(filename_copy);
    } else {
-      // If it's just a name, it was found in PATH
+      // If it's just a name, it was found in PATH. 
+      // Add current directory to the search path
       const char *pathenv = getenv("PATH");
-      execpath = searchPath(pathenv, filename);
+      char *newpath = (char *) malloc (strlen(pathenv)+3);
+      strcat(newpath, pathenv);
+      strcat(newpath, ":.");
+      execpath = searchPath(newpath, filename);
       if(execpath == NULL) {
          //  Not found in PATH - we'll assume it should be in CWD
          return;
