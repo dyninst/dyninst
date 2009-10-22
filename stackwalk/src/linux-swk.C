@@ -685,32 +685,8 @@ bool ProcDebugLinux::pollForNewThreads()
                 "for %d", __FILE__, __LINE__, pid);                
       return false;
    }
-   
-   bool had_error = false;
-   std::vector<THR_ID>::iterator i;
-   for (i=thrds.begin(); i != thrds.end(); i++) {
-      if (threads.count(*i)) {
-         continue;
-      }
-      sw_printf("[%s:%u] - Discovered unknown thread %d, in proc %d\n",
-                __FILE__, __LINE__, *i, pid);
-      ThreadState *new_thread = ThreadState::createThreadState(this, *i);
-      if (!new_thread && getLastError() == err_noproc) {
-         //Race condition, get thread ID or running thread, which then 
-         // exits.  Should be rare...
-         sw_printf("[%s:%u] - Error creating thread %d, does not exist\n",
-                   __FILE__, __LINE__, *i);
-         clearLastError();
-         continue;
-      }
-      else if (!new_thread) {
-         sw_printf("[%s:%u] - Unexpected error creating thread %d\n",
-                   __FILE__, __LINE__, *i);
-         had_error = true;
-         continue;
-      }
-   }
-   return had_error;
+
+   return add_new_threads(thrds.begin(), thrds.end());
 }
 
 bool ProcDebugLinux::getDefaultThread(THR_ID &default_tid)
@@ -742,7 +718,7 @@ ProcDebugLinux::~ProcDebugLinux()
 {
 }
    
-ProcDebug *ProcDebug::newProcDebug(PID pid)
+ProcDebug *ProcDebug::newProcDebug(PID pid, std::string)
 {
    ProcDebugLinux *pd = new ProcDebugLinux(pid);
    if (!pd)

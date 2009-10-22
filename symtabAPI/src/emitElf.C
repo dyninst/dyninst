@@ -73,7 +73,7 @@ typedef struct
 bool libelfso0Flag;
 void setVersion(){
   libelfso0Flag = true;
-#if !defined(os_solaris)
+#if defined(os_linux)
   unsigned nEntries;
   map_entries *maps = getLinuxMaps(getpid(), nEntries);
   for(unsigned i=0; i< nEntries; i++){

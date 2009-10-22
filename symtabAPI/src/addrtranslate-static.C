@@ -56,7 +56,7 @@ public:
 using namespace Dyninst;
 using namespace SymtabAPI;
 
-AddressTranslate *AddressTranslate::createAddressTranslator(PID pid_, ProcessReader *)
+AddressTranslate *AddressTranslate::createAddressTranslator(PID pid_, ProcessReader *, PROC_HANDLE)
 {
 	AddressTranslateStatic *new_translate = new AddressTranslateStatic(pid_);
 	return new_translate;
@@ -97,8 +97,8 @@ AddressTranslate *AddressTranslate::createAddressTranslator(const std::vector<Lo
    return NULL;
 }
 
-ProcessReader::ProcessReader(int pid_) :
-   pid(pid_)
+ProcessReader::ProcessReader(int pid_, string exe) :
+   pid(pid_), executable(exe)
 {
 }
 

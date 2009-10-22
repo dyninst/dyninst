@@ -28,19 +28,23 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
+#include "stackwalk/src/bluegene-swk.h"
+using namespace DebuggerInterface;
+
+#include "stackwalk/src/bluegenel-swk.h"
+#include "stackwalk/src/bluegenep-swk.h"
 
 #include "stackwalk/h/swk_errors.h"
 #include "stackwalk/h/symlookup.h"
 #include "stackwalk/h/walker.h"
 #include "stackwalk/h/framestepper.h"
-
 #include "stackwalk/h/procstate.h"
-#include "stackwalk/src/bluegene-swk.h"
 #include "stackwalk/src/symtab-swk.h"
-#include "common/h/linuxKludges.h"
+using namespace Dyninst;
+using namespace Dyninst::Stackwalker;
 
 #include <string>
-
+#include <memory>
 #include <string.h>
 #include <sys/syscall.h>
 #include <unistd.h>
@@ -48,772 +52,839 @@
 #include <signal.h>
 #include <sys/poll.h>
 #include <assert.h>
-
-using namespace Dyninst;
-using namespace Dyninst::Stackwalker;
-using namespace DebuggerInterface;
 using namespace std;
 
-bool ProcSelf::getThreadIds(std::vector<THR_ID> &threads)
-{
-  bool result;
-  THR_ID tid;
 
-  result = getDefaultThread(tid);
-  if (!result) {
-    sw_printf("[%s:%u] - Could not read default thread\n",
-	       __FILE__, __LINE__);
-    return false;
-  }
-  threads.clear();
-  threads.push_back(tid);
-  return true;
-}
+namespace Dyninst {
+  namespace Stackwalker {
 
-ProcSelf::ProcSelf() :
-   ProcessState(getpid())
-{
-}
-
-void ProcSelf::initialize()
-{
-}
-
-bool ProcSelf::getDefaultThread(THR_ID &default_tid)
-{
-  default_tid = 0;
-  return true;
-}
-
-static bool fdHasData(int fd)
-{
-   int result;
-   struct pollfd fds;
-   fds.fd = fd;
-   fds.events = POLLIN;
-   fds.revents = 0;
-   result = poll(&fds, 1, 0);
-   if (result == -1) {
-      int errnum = errno;
-      sw_printf("[%s:%u] - Unable to poll fd %d: %s\n", __FILE__, __LINE__, 
-                fd, strerror(errnum));
-      return false;
-   }
-   return (bool) (fds.revents & POLLIN);
-}
-
-#define SINGLE_STEP_SIG 32064
-
-DebugEvent ProcDebug::debug_get_event(bool block)
-{
-   DebugEvent ev;
-   pid_t pid;
-   int sig_encountered;
-   
-   BGL_Debugger_Msg msg;
-
-
-   if (!block && !fdHasData(BGL_DEBUGGER_READ_PIPE))
-   {
-      ev.dbg = dbg_noevent;
-      return ev;
-   }
-
-   sw_printf("[%s:%u] - Waiting for debug event\n", __FILE__, __LINE__);
-   bool result = BGL_Debugger_Msg::readFromFd(BGL_DEBUGGER_READ_PIPE, msg);
-   if (!result) {
-      sw_printf("[%s:%u] - Unable to wait for debug event on process\n",
-                __FILE__, __LINE__);
-      ev.dbg = dbg_err;
-      return ev;
-   }
-   
-   pid = msg.header.nodeNumber;   
-   sw_printf("[%s:%u] - Recieved debug event %d on %d\n", __FILE__, __LINE__,
-	     msg.header.messageType, pid);
-   std::map<PID, ProcessState *>::iterator i = proc_map.find(pid);
-   if (i == proc_map.end())
-   {
-      sw_printf("[%s:%u] - Error, recieved unknown pid %d\n",
-                __FILE__, __LINE__, pid);
-      setLastError(err_internal, "Error waiting for debug event");
-      ev.dbg = dbg_err;
-      return ev;
-   }
-   ProcDebugBG *procbg = dynamic_cast<ProcDebugBG *>(i->second);
-   assert(procbg);
-   ev.proc = procbg;
-
-   switch (msg.header.messageType)
-   {
-      case PROGRAM_EXITED:
-         ev.proc->initial_thread->setStopped(true);
-         
-         if (msg.dataArea.PROGRAM_EXITED.type == 0) {
-            ev.dbg = dbg_exited;
-         }
-         else if (msg.dataArea.PROGRAM_EXITED.type == 1) {
-            ev.dbg = dbg_crashed;
-         }
-         else {
-            sw_printf("[%s:%u] - Unknown exit code (%d) on process %d\n",
-                      __FILE__, __LINE__, msg.dataArea.PROGRAM_EXITED.type, pid);
-            ev.dbg = dbg_err;
-         }
-         ev.data.idata = msg.dataArea.PROGRAM_EXITED.rc;
-         sw_printf("[%s:%u] - Process %d %s with %d\n", 
-                   __FILE__, __LINE__, pid, 
-                   ev.dbg == dbg_exited ? "exited" : "crashed",
-                   ev.data.idata);
-         break;
-      case SIGNAL_ENCOUNTERED:
-         sw_printf("[%s:%u] - Process %d stopped with %d\n",
-                   __FILE__, __LINE__, pid, msg.dataArea.SIGNAL_ENCOUNTERED.signal);
-         ev.proc->initial_thread->setStopped(true);
-         
-         ev.dbg = dbg_stopped;
-         sig_encountered = msg.dataArea.SIGNAL_ENCOUNTERED.signal;
-         if (sig_encountered == SINGLE_STEP_SIG)
-            sig_encountered = 0;
-         ev.data.idata = msg.dataArea.SIGNAL_ENCOUNTERED.signal;
-         break;
-      case ATTACH_ACK:
-         sw_printf("[%s:%u] - Process %d acknowledged attach\n",
-                   __FILE__, __LINE__, pid);
-         ev.dbg = dbg_attached;
-         break;
-      case CONTINUE_ACK:
-         sw_printf("[%s:%u] - Process %d acknowledged continue\n", 
-                   __FILE__, __LINE__, pid);
-         ev.dbg = dbg_continued;
-         break;
-      case KILL_ACK:
-         sw_printf("[%s:%u] - Process %d acknowledged kill\n", 
-                   __FILE__, __LINE__, pid);
-         ev.dbg = dbg_other;
-         break;
-      case GET_ALL_REGS_ACK:
-         sw_printf("[%s:%u] - RegisterAll ACK on pid %d\n", 
-                   __FILE__, __LINE__, pid);
-         ev.dbg = dbg_allregs_ack;
-         ev.size = msg.header.dataLength;
-         procbg->gprs = msg.dataArea.GET_ALL_REGS_ACK.gprs;
-         break;
-      case GET_MEM_ACK:
-         sw_printf("[%s:%u] - Memread ACK on pid %d\n", 
-                   __FILE__, __LINE__, pid);
-         ev.dbg = dbg_mem_ack;
-         ev.size = msg.header.dataLength;
-         ev.data.pdata = (void *) malloc(msg.header.dataLength);
-         assert(ev.data.pdata);
-         memcpy(ev.data.pdata, &msg.dataArea, msg.header.dataLength);
-         break;
-      case SINGLE_STEP_ACK:
-         sw_printf("[%s:%u] - Process %d recieved SINGLE_STEP\n",
-                   __FILE__, __LINE__, pid, ev.data);
-         assert(!ev.proc->initial_thread->isStopped());
-         ev.proc->initial_thread->setStopped(true);
-         
-         ev.dbg = dbg_stopped;
-         ev.data.idata = 0;
-         break;
-      default:
-         sw_printf("[%s:%u] - Unknown debug message: %d\n",
-                   __FILE__, __LINE__, msg.header.messageType);
-         ev.dbg = dbg_noevent;
-         break;
-   }
-   return ev;
-}
-
-bool ProcDebugBG::debug_handle_event(DebugEvent ev)
-{
-  bool result;
-
-  switch (ev.dbg)
-  {
-     case dbg_stopped:
-        initial_thread->setStopped(true);        
-        
-        if (state() == ps_attached_intermediate) {
-           sw_printf("[%s:%u] - Moving %d to state running\n", 
-                     __FILE__, __LINE__, pid);
-           setState(ps_attached);
-           return true;
-        }
-        
-        if (ev.data.idata == SINGLE_STEP_SIG) {
-           if (!initial_thread->userIsStopped()) {
-              sw_printf("[%s:%u] - handling dbg_stopped SINGLE_STEP on %d\n",
-                        __FILE__, __LINE__, pid);
-              ev.data.idata = 0;
-              result = debug_handle_signal(&ev);
-           }
-        }
-        else if (ev.data.idata != SIGSTOP) {
-           sw_printf("[%s:%u] - handling dbg_stopped SINGLE_STEP on %d\n",
-                     __FILE__,__LINE__, pid);
-           result = debug_handle_signal(&ev);
-           if (!result) {
-              sw_printf("[%s:%u] - Debug continue failed on %d with %d\n", 
-                        __FILE__, __LINE__, pid, ev.data.idata);
-              return false;
-           }
-        }
-        return true;
-    case dbg_crashed:
-      sw_printf("[%s:%u] - Handling process crash on %d\n",
-                __FILE__, __LINE__, pid);
-    case dbg_exited:
-      sw_printf("[%s:%u] - Handling process death on %d\n",
-                __FILE__, __LINE__, pid);
-      setState(ps_exited);
-      return true;
-    case dbg_continued:
-       sw_printf("[%s:%u] - Process %d continued\n", __FILE__, __LINE__, pid);
-       clear_cache();
-       assert(initial_thread->isStopped());
-       initial_thread->setStopped(false);
-       break;
-    case dbg_attached:
-       sw_printf("[%s:%u] - Process %d attached\n", __FILE__, __LINE__, pid);
-       assert(state() == ps_neonatal);
-       setState(ps_attached_intermediate);
-       debug_pause(NULL); //TODO or not TODO?
-       break;
-    case dbg_mem_ack:
-       sw_printf("[%s:%u] - Process %d returned a memory chunck of size %u", 
-                 __FILE__, __LINE__, pid, ev.size);
-       assert(!mem_data);
-       mem_data = ev.data.pdata;
-       mem_data_size = ev.size;
-    case dbg_allregs_ack:
-       sw_printf("[%s:%u] - Process %d returned a register chunck of size %u", 
-                 __FILE__, __LINE__, pid, ev.size);
-       gprs_set = true;
-       break;
-    case dbg_other:
-       sw_printf("[%s:%u] - Skipping unimportant event\n", __FILE__, __LINE__);
-       break;
-    case dbg_err:
-    case dbg_noevent:       
-    default:
-      sw_printf("[%s:%u] - Unexpectedly handling an error event %d on %d\n", 
-                __FILE__, __LINE__, ev.dbg, pid);
-      setLastError(err_internal, "Told to handle an unexpected event.");
-      return false;
-  }
-  return true;
-}
-
-bool ProcDebugBG::debug_create(const std::string &, 
-			       const std::vector<std::string> &)
-{
-  setLastError(err_unsupported, "Create mode not supported on BlueGene");
-  return false;
-}
-
-bool ProcDebugBG::debug_attach(ThreadState *)
-{
-   BGL_Debugger_Msg msg(ATTACH, pid, 0, 0, 0);
-   msg.header.dataLength = sizeof(msg.dataArea.ATTACH);
-
-   sw_printf("[%s:%u] - Attaching to pid\n", __FILE__, __LINE__, pid);
-   bool result = BGL_Debugger_Msg::writeOnFd(BGL_DEBUGGER_WRITE_PIPE, msg);
-   if (!result) {
-      sw_printf("[%s:%u] - Unable to attach to process %d\n",
-                __FILE__, __LINE__, pid);
-      return false;
-   }
-   return true;
-}
-
-bool ProcDebugBG::debug_pause(ThreadState *)
-{
-   BGL_Debugger_Msg msg(KILL, pid, 0, 0, 0);
-   msg.dataArea.KILL.signal = SIGSTOP;
-   msg.header.dataLength = sizeof(msg.dataArea.KILL);
-
-   sw_printf("[%s:%u] - Sending SIGSTOP to pid %d\n", __FILE__, __LINE__, pid);
-   bool result = BGL_Debugger_Msg::writeOnFd(BGL_DEBUGGER_WRITE_PIPE, msg);
-
-   if (!result) {
-      sw_printf("[%s:%u] - Unable to send SIGSTOP to process %d\n",
-                __FILE__, __LINE__, pid);
-      return false;
-   }
-   return true;
-}
-
-bool ProcDebugBG::debug_continue(ThreadState *)
-{
-   return debug_continue_with(NULL, 0);
-}
-
-bool ProcDebugBG::debug_continue_with(ThreadState *, long sig)
-{
-   assert(initial_thread->isStopped());
-   BGL_Debugger_Msg msg(CONTINUE, pid, 0, 0, 0);
-   msg.dataArea.CONTINUE.signal = sig;
-   msg.header.dataLength = sizeof(msg.dataArea.CONTINUE);
-
-
-   sw_printf("[%s:%u] - Sending signal %d to pid %d\n", __FILE__, __LINE__, sig, pid);
-   bool result = BGL_Debugger_Msg::writeOnFd(BGL_DEBUGGER_WRITE_PIPE, msg);
-   if (!result) {
-      sw_printf("[%s:%u] - Unable to send %d to process %d\n",
-                __FILE__, __LINE__, sig, pid);
-      return false;
-   }
-   return true;
-}
-
-bool ProcDebugBG::debug_handle_signal(DebugEvent *ev)
-{
-   assert(ev->dbg == dbg_stopped);
-   sw_printf("[%s:%u] - Handling signal for pid %d\n", 
-	     __FILE__, __LINE__, pid);
-   return debug_continue_with(NULL, ev->data.idata);
-}
-
-#if !defined(BGL_READCACHE_SIZE)
-#define BGL_READCACHE_SIZE 2048
-#endif
-
-bool ProcDebugBG::readMem(void *dest, Address source, size_t size)
-{
-   unsigned char *ucdest = (unsigned char *) dest;
-   bool result;
-
-   for (;;)
-   {
-      if (size == 0)
-         return true;
-
-      sw_printf("[%s:%u] - Reading memory from 0x%lx to 0x%lx (into %p)\n",
-                __FILE__, __LINE__, source, source+size, ucdest);
-      if (source >= read_cache_start && 
-          source+size < read_cache_start + read_cache_size)
-      {
-         //Lucky us, we have everything cached.
-         memcpy(ucdest, read_cache + (source - read_cache_start), size);
-         return true;
+    bool bg_fdHasData(int fd) {
+      int result;
+      struct pollfd fds;
+      fds.fd = fd;
+      fds.events = POLLIN;
+      fds.revents = 0;
+      result = poll(&fds, 1, 0);
+      if (result == -1) {
+        int errnum = errno;
+        sw_printf("[%s:%u] - Unable to poll fd %d: %s\n", __FILE__, __LINE__, 
+                  fd, strerror(errnum));
+        return false;
       }
-      if (source >= read_cache_start &&
-          source < read_cache_start + read_cache_size)
-      {
-         //The beginning is in the cache, read those bytes
-         long cached_bytes = read_cache_start + read_cache_size - source;
-         memcpy(ucdest, read_cache + (source - read_cache_start), cached_bytes);
-         //Change the parameters and continue the read (this is a kind of
-         // optimized tail call).
-         ucdest += cached_bytes;
-         source = read_cache_start + read_cache_size;
-         size -= cached_bytes;
-         continue;
-      }
-      if (source+size > read_cache_start &&
-          source+size <= read_cache_start + read_cache_size)
-      {
-         //The end is in the cache, read those bytes
-         long cached_bytes = (source+size) - read_cache_start;
-         memcpy(ucdest + read_cache_start - source, read_cache, cached_bytes);
-         //Change the parameters and continue the read (this is a kind of
-         // optimized tail call).
-         size -= cached_bytes;
-         continue;
-      }
-      if (source < read_cache_start &&
-          source+size >= read_cache_start+read_cache_size)
-      {
-         //The middle is in the cache
-         unsigned char *dest_start = ucdest + read_cache_start - source;
-         Address old_read_cache_start = read_cache_start;
-         memcpy(dest_start, read_cache, read_cache_size);
-         //Use actual recursion here, as we need to queue up two reads
-         // First read out of the high memory with recursion
-         result = readMem(dest_start + read_cache_size, 
-                          read_cache_start+read_cache_size,
-                          source+size - read_cache_start+read_cache_size);
-         if (!result) {
-            return false;
-         }
-         // Now read out of the low memory
-         size = old_read_cache_start - source;
-         continue;
-      }
-      //The memory isn't cached, read a new cache'd page.
-      assert(source < read_cache_start || 
-             source >= read_cache_start+read_cache_size);
-      
-      if (!read_cache) {
-         read_cache = (unsigned char *) malloc(BGL_READCACHE_SIZE);
-         assert(read_cache);
-      }
+      return (bool) (fds.revents & POLLIN);
+    }
 
-      read_cache_size = BGL_READCACHE_SIZE;
-      read_cache_start = source - (source % read_cache_size);
-      sw_printf("[%s:%u] - Caching memory from 0x%lx to 0x%lx\n",
-             __FILE__, __LINE__, read_cache_start, 
-             read_cache_start+read_cache_size);
-                    
-      //Read read_cache_start to read_cache_start+read_cache_size into our
-      // cache.
-      assert(!mem_data);
-      assert(read_cache_size < BGL_Debugger_Msg_MAX_MEM_SIZE);
 
-      BGL_Debugger_Msg msg(GET_MEM, pid, 0, 0, 0);
-      msg.header.dataLength = sizeof(msg.dataArea.GET_MEM);
-      msg.dataArea.GET_MEM.addr = read_cache_start;
-      msg.dataArea.GET_MEM.len = read_cache_size;
-      bool result = BGL_Debugger_Msg::writeOnFd(BGL_DEBUGGER_WRITE_PIPE, msg);
+    // ============================================================ //
+    // Walker
+    // ============================================================ //
+    bool Walker::createDefaultSteppers() {
+      FrameStepper *stepper = new FrameFuncStepper(this);
+      bool result = addStepper(stepper);
       if (!result) {
-         sw_printf("[%s:%u] - Unable to write to process %d\n",
-                   __FILE__, __LINE__, pid);
-         return true;
+        sw_printf("[%s:%u] - Error adding stepper %p\n", __FILE__, __LINE__, stepper);
       }
-      
-      //Wait for the read to return
-      sw_printf("[%s:%u] - Waiting for read to return on pid %d\n",
-                __FILE__, __LINE__);
-      do {
-         bool handled, result;
-         result = debug_wait_and_handle(true, handled);
-         if (!result)
-         {
-            sw_printf("[%s:%u] - Error while waiting for read to return\n",
-                      __FILE__, __LINE__);
-            return false;
-         }
-      } while (!mem_data);
+      return result;
+    }
 
-      //TODO: How do we detect errors?
-      BGL_Debugger_Msg::DataArea *da = (BGL_Debugger_Msg::DataArea *) mem_data;
-      assert(da->GET_MEM_ACK.addr == read_cache_start);
-      assert(da->GET_MEM_ACK.len == read_cache_size);
-      memcpy(read_cache, da->GET_MEM_ACK.data, read_cache_size);
-      
-      //Free up the memory data
-      free(mem_data);
-      mem_data = NULL;
-   }
-}   
 
-bool ProcDebugBG::getThreadIds(std::vector<THR_ID> &threads)
-{
-   threads.clear();
-   threads.push_back((THR_ID) 0);
-   return true;
-}
+    // ============================================================ //
+    // ProcSelf -- all stubs; this is 3rd-party only
+    // ============================================================ //
+    static bool proc_self_unsupported(const char *file, size_t line) {
+      const char *msg = "ProcSelf not supported for 3rd party BG stackwalkers!";
+      sw_printf("[%s:%u] - %s\n", file, line, msg);
+      setLastError(err_procread, msg);
+      return false;
+    }
 
-bool ProcDebugBG::getDefaultThread(THR_ID &default_tid)
-{
-   default_tid = (THR_ID) 0;
-   return true;
-}
+    bool ProcSelf::getThreadIds(std::vector<THR_ID> &) {
+      return proc_self_unsupported(__FILE__, __LINE__);
+    }
 
-unsigned ProcDebugBG::getAddressWidth()
-{
-   return sizeof(long);
-}
 
-bool ProcDebugBG::getRegValue(Dyninst::MachRegister reg, Dyninst::THR_ID, Dyninst::MachRegisterVal &val)
-{
+    ProcSelf::ProcSelf() : ProcessState(getpid()) {
+      proc_self_unsupported(__FILE__, __LINE__);
+    }
 
-   if (!gprs_set)
-   {
-      BGL_Debugger_Msg msg(GET_ALL_REGS, pid, 0, 0, 0);
-      msg.header.dataLength = sizeof(msg.dataArea.GET_ALL_REGS);
-      bool result = BGL_Debugger_Msg::writeOnFd(BGL_DEBUGGER_WRITE_PIPE, msg);
-      if (!result) {
-         sw_printf("[%s:%u] - Unable to write to process %d\n",
-                   __FILE__, __LINE__, pid);
-         return true;
+
+    void ProcSelf::initialize() {
+      proc_self_unsupported(__FILE__, __LINE__);
+    }
+
+
+    bool ProcSelf::getDefaultThread(THR_ID &) {
+      return proc_self_unsupported(__FILE__, __LINE__);
+    }
+
+
+    bool ProcSelf::readMem(void *, Address, size_t) {
+      return proc_self_unsupported(__FILE__, __LINE__);
+    }
+
+
+    // ============================================================ //
+    // ProcDebug
+    // ============================================================ //
+    ProcDebug *ProcDebug::newProcDebug(PID pid, string executable) {
+      auto_ptr<ProcDebug> pd(ProcDebugBG::createProcDebugBG(pid, executable));
+      if (!pd.get()) {
+        const char *msg = "Error creating new ProcDebug object";
+        sw_printf("[%s:%u] - %s\n", __FILE__, __LINE__, msg);
+        setLastError(err_internal, msg);
+        return NULL;
       }
-      
-      //Wait for the read to return
-      sw_printf("[%s:%u] - Waiting for read to return on pid %d\n",
-                __FILE__, __LINE__);
-      do {
-         bool handled, result;
-         result = debug_wait_and_handle(true, handled);
-         if (!result)
-         {
-            sw_printf("[%s:%u] - Error while waiting for read to return\n",
-                      __FILE__, __LINE__);
-            return false;
-         }
-      } while (!gprs_set);
-   }
-   
-   switch(reg)
-   {
-      case Dyninst::MachRegStackBase:
-         val = 0x0;
-	 break;
-      case Dyninst::MachRegFrameBase:
-         val = gprs.gpr[BGL_GPR1];
-	 break;
-      case Dyninst::MachRegPC:
-         val = gprs.iar;
-	 break;
-      default:
-         sw_printf("[%s:%u] - Request for unsupported register %d\n",
-                   __FILE__, __LINE__, reg);
-         setLastError(err_badparam, "Unknown register passed in reg field");
-         return false;
-   }   
-   return true;
-}
+  
+      bool result = pd->attach();
+      if (!result || pd->state() != ps_running && pd->state() != ps_attached) {
+        pd->setState(ps_errorstate);
+        proc_map.erase(pid);
+        const char *msg = "Error attaching to process";
+        sw_printf("[%s:%u] - %s %d\n", __FILE__, __LINE__, msg, pid);
+        setLastError(err_noproc, msg);
+        return NULL;
+      }
+  
+      return pd.release();
+    }
 
-ProcDebugBG::~ProcDebugBG()
-{
-}
 
-ProcDebugBG::ProcDebugBG(PID pid)
-   : ProcDebug(pid),
-     mem_data(NULL),
-     mem_data_size(0),
-     gprs_set(false),
-     read_cache(NULL),
-     read_cache_start(0x0),
-     read_cache_size(0x0)
-{
-}
+    bool ProcDebug::newProcDebugSet(const vector<Dyninst::PID>&, vector<ProcDebug*>&) {
+      setLastError(err_unsupported, "ERROR: newProcDebugSet not implemented for BlueGene Stackwalker!");
+      return false;
+    }
 
-ProcDebug *ProcDebug::newProcDebug(const std::string &, 
-                                   const std::vector<std::string> &)
-{
-  setLastError(err_unsupported, "Executable launch not supported on BlueGene");
-  return NULL;
-}
 
-ProcDebug *ProcDebug::newProcDebug(PID pid)
-{
-   ProcDebug *pd = new ProcDebugBG(pid);
-   if (!pd)
-   {
-      sw_printf("[%s:%u] - Error creating new ProcDebug object\n",
-                __FILE__, __LINE__);
-      if (pd)
-         delete pd;
+    ProcDebug *ProcDebug::newProcDebug(const std::string &, const std::vector<std::string> &) {
+      setLastError(err_unsupported, "Executable launch not supported on BlueGene");
       return NULL;
-   }
+    }
 
-   bool result = pd->attach();
-   if (!result || pd->state() != ps_running && pd->state() != ps_attached) {
-     pd->setState(ps_errorstate);
-     proc_map.erase(pid);
-     sw_printf("[%s:%u] - Error attaching to process %d\n",
-               __FILE__, __LINE__, pid);
-     delete pd;
-     return NULL;
-   }
 
-   return pd;
-}
+    bool ProcDebugBG::isLibraryTrap(Dyninst::THR_ID) {
+      // Base ProcDebugBG doesn't support dynamic libs.
+      return false;
+    }
 
-bool ProcDebug::newProcDebugSet(const vector<Dyninst::PID> &pids,
-                                vector<ProcDebug *> &out_set)
-{
-   bool result;
-   vector<Dyninst::PID>::const_iterator i;
-   for (i=pids.begin(); i!=pids.end(); i++)
-   {
-      Dyninst::PID pid = *i;
-      ProcDebug *new_pd = new ProcDebugBG(pid);
-      if (!new_pd) {
-         fprintf(stderr, "[%s:%u] - Unable to allocate new ProcDebugBG\n",
-                 __FILE__, __LINE__);
-         return false;
+
+    DebugEvent ProcDebug::debug_get_event(bool block) {
+      DebugEvent ev;   
+      BG_Debugger_Msg msg;
+
+      if (!block && !bg_fdHasData(BG_DEBUGGER_READ_PIPE)) {
+        ev.dbg = dbg_noevent;
+        return ev;
       }
-      out_set.push_back(new_pd);
-   }
 
-   result = multi_attach(out_set);
-   return result;
-}
+      // Read an event from the debug filehandle.
+      sw_printf("[%s:%u] - Waiting for debug event\n", __FILE__, __LINE__);
+      bool result = BG_Debugger_Msg::readFromFd(BG_DEBUGGER_READ_PIPE, msg);
+      if (!result) {
+        sw_printf("[%s:%u] - Unable to wait for debug event on process\n",
+                  __FILE__, __LINE__);
+        ev.dbg = dbg_err;
+        return ev;
+      }
 
-bool Walker::createDefaultSteppers()
-{
-  FrameStepper *stepper;
-  bool result;
+      // extract process and thread id from the BG message.
+      pid_t pid = msg.header.nodeNumber;   
+      THR_ID tid = msg.header.thread;
+      int returnCode = msg.header.returnCode;
+      sw_printf("[%s:%u] - Received debug event %s from pid %d, tid %d, rc %d\n", __FILE__, __LINE__,
+                BG_Debugger_Msg::getMessageName(msg.header.messageType), pid, tid, returnCode);
 
-  stepper = new FrameFuncStepper(this);
-  result = addStepper(stepper);
-  if (!result) {
-    sw_printf("[%s:%u] - Error adding stepper %p\n", __FILE__, __LINE__,
-              stepper);
-    return false;
+      if (returnCode > 0) {
+        // Print out a message if we get a return code we don't expect.  Consult the debugger header
+        // for the meanings of these.
+        sw_printf("[%s:%u] - WARNING: return code for %s on pid %d, tid %d was non-zero: %d\n",
+                  __FILE__, __LINE__, 
+                  BG_Debugger_Msg::getMessageName(msg.header.messageType), pid, tid,
+                  msg.header.returnCode);
+      }
+
+      // Look up the ProcDebugBG from which the event originated.      
+      std::map<PID, ProcessState *>::iterator i = proc_map.find(pid);
+      if (i == proc_map.end()) {
+        sw_printf("[%s:%u] - Error, received unknown pid %d\n", __FILE__, __LINE__, pid);
+        setLastError(err_internal, "Error waiting for debug event");
+        ev.dbg = dbg_err;
+        return ev;
+      }
+      ProcDebugBG *procbg = dynamic_cast<ProcDebugBG*>(i->second);
+      assert(procbg);
+      ev.proc = procbg;
+      
+      // below is some (somewhat nasty) magic to allow stackwalker to discover the 
+      // initial thread's id after it attaches.
+      thread_map_t::iterator t = procbg->threads.find(tid);
+      if (t == procbg->threads.end()) {
+        BGThreadState *initial_thread = dynamic_cast<BGThreadState*>(procbg->initial_thread);
+
+        if (tid != 0) {
+          // Check to see if the initial thread is valid.  If its id is zero, it's a stub
+          // from creation time and we got a signal from the real initial thread.  If it's
+          // not zero, then we're seeing a strange thread id.
+          if (initial_thread->getTid() != 0) {
+            const char *msg = "Saw unknown thread id in ProcDebug::debug_get_evet()!";
+            sw_printf("[%s:%u] - %s on pid %d\n", __FILE__, __LINE__, msg, pid);
+            setLastError(err_internal, msg);
+            ev.dbg = dbg_err;
+            return ev;
+          }
+          
+          // if we see a threadid we don't know about, it's because we got a SIGNAL_ENCOUNTERED
+          // from the main thread.  We default the initial thread id to zero, but this is only because
+          // we need to start somewhere to attach.  This sets the main thread id to the real thread id
+          // for the process.  This should happen relatively early when we stop the thread during attach.
+          procbg->threads.erase(initial_thread->getTid());
+          initial_thread->setTid(tid);
+          procbg->threads[tid] = initial_thread;
+          t = procbg->threads.find(tid);
+
+        } else {
+          // if the thread id we don't know about is zero, we got an ack for something we
+          // did before we discovered what the initial thread id was.  So just point the event
+          // at the initial thread
+          t = procbg->threads.find(initial_thread->getTid());
+        }
+      }
+
+      ThreadState *ts = t->second;
+      assert(ts);
+      ev.thr = ts;
+      
+      procbg->translate_event(msg, ev);
+      return ev;
+    }
+
+
+   int ProcDebug::getNotificationFD() {
+      return BG_DEBUGGER_READ_PIPE;
+    }
+
+
+    // ============================================================ //
+    // ProcDebugBG
+    // ============================================================ /
+    void ProcDebugBG::translate_event(const BG_Debugger_Msg& msg, DebugEvent& ev) {
+      switch (msg.header.messageType) {
+      case PROGRAM_EXITED:
+        {
+          ev.data.idata = msg.dataArea.PROGRAM_EXITED.rc;
+          int exit_type = msg.dataArea.PROGRAM_EXITED.type;
+
+          if (exit_type == 0) {
+            ev.dbg = dbg_exited;
+            sw_printf("[%s:%u] - Process %d exited with %d\n", __FILE__, __LINE__, pid, ev.data.idata);
+          } else if (exit_type == 1) {
+            ev.dbg = dbg_crashed;
+            sw_printf("[%s:%u] - Process %d crashed with %d\n", __FILE__, __LINE__, pid, ev.data.idata);
+          } else {
+            ev.dbg = dbg_err;
+            sw_printf("[%s:%u] - WARNING: Unknown exit type (%d) on process %d. "
+                      "May be using outdated BG Debugger Interface!\n", __FILE__, __LINE__, 
+                      msg.dataArea.PROGRAM_EXITED.type, pid);
+          }
+        }
+        break;
+        
+      case SIGNAL_ENCOUNTERED:
+        ev.dbg = dbg_stopped;
+        ev.data.idata = msg.dataArea.SIGNAL_ENCOUNTERED.signal;
+        sw_printf("[%s:%u] - Process %d stopped with %d\n",
+                  __FILE__, __LINE__, pid, msg.dataArea.SIGNAL_ENCOUNTERED.signal);
+        break;
+
+      case ATTACH_ACK:
+        ev.dbg = dbg_attached;
+        sw_printf("[%s:%u] - Process %d acknowledged attach\n", __FILE__, __LINE__, pid);
+        break;
+
+      case CONTINUE_ACK:
+        ev.dbg = dbg_continued;
+        sw_printf("[%s:%u] - Process %d acknowledged continue\n", __FILE__, __LINE__, pid);
+        break;
+
+      case KILL_ACK:
+        ev.dbg = dbg_other;
+        sw_printf("[%s:%u] - Process %d acknowledged kill\n", __FILE__, __LINE__, pid);
+        break;
+
+      case GET_ALL_REGS_ACK:
+        {
+          ev.dbg = dbg_allregs_ack;
+          ev.size = msg.header.dataLength;
+          BG_GPRSet_t *data = new BG_GPRSet_t();
+          *data = msg.dataArea.GET_ALL_REGS_ACK.gprs;
+          ev.data.pdata = data;
+          sw_printf("[%s:%u] - RegisterAll ACK on pid %d\n", __FILE__, __LINE__, pid);
+        }
+        break;
+
+      case GET_MEM_ACK:
+        ev.dbg = dbg_mem_ack;
+        ev.size = msg.header.dataLength;
+        ev.data.pdata = new unsigned char[msg.header.dataLength];
+        if (!ev.data.pdata) {
+          ev.dbg = dbg_err;
+          sw_printf("[%s:%u] - FATAL: Couldn't allocate enough space for memory read on pid %d\n", 
+                    __FILE__, __LINE__, pid);
+        } else {
+          memcpy(ev.data.pdata, &msg.dataArea, msg.header.dataLength);
+          sw_printf("[%s:%u] - Memory read ACK on pid %d\n", __FILE__, __LINE__, pid);
+        }
+        break;
+
+    case SET_MEM_ACK:
+        ev.dbg = dbg_setmem_ack;
+        ev.size = msg.dataArea.SET_MEM_ACK.len;
+        sw_printf("[%s:%u] - Memory write ACK on pid %d ($d bytes at %x).  \n", __FILE__, __LINE__, 
+                  msg.dataArea.SET_MEM_ACK.len, msg.dataArea.SET_MEM_ACK.addr);
+        break;
+
+      case SINGLE_STEP_ACK:
+        // single step ack is just an ack (like KILL_ACK). We ignore this event and 
+        // handle SINGLE_STEP_SIG specially in debug_handle_signal().
+        ev.dbg = dbg_other;
+        sw_printf("[%s:%u] - Process %d received SINGLE_STEP\n", __FILE__, __LINE__, pid, ev.data);
+        break;
+
+      default:
+        sw_printf("[%s:%u] - Unknown debug message: %s (%d)\n",
+                  __FILE__, __LINE__, 
+                  BG_Debugger_Msg::getMessageName(msg.header.messageType),
+                  msg.header.messageType);
+        ev.dbg = dbg_noevent;
+        break;
+     }
   }
 
-  return true;
-}
 
-bool BGL_Debugger_Msg::writeOnFd(int fd, 
-                                 DebuggerInterface::BGL_Debugger_Msg &msg)
-{
-   int result;
-   result = write(fd, &msg.header, sizeof(msg.header));
-   if (result != -1) {
-      result = write(fd, &msg.dataArea, msg.header.dataLength);
-   }
+    void copy_thread_state(ThreadState *source, ThreadState *dest) {
+      dest->setState(source->state());
+      dest->setStopped(source->isStopped());
+      dest->setShouldResume(source->shouldResume());
+      dest->setUserStopped(source->userIsStopped());
+    }
 
-   if (result == -1) {
-      int errnum = errno;
-      sw_printf("[%s:%u] - Error writing to process: %s\n", 
-                __FILE__, __LINE__, strerror(errnum));
-      setLastError(err_internal, "Error writing message to process");
+    bool ProcDebugBG::pollForNewThreads() {
+      return true;  // by default, we don't find anything.
+    }
+
+
+    // This basic implementation assumes *only* the initial thread.
+    bool ProcDebugBG::getThreadIds(std::vector<THR_ID> &threads) {
+      threads.clear();
+      threads.push_back(initial_thread->getTid());
+      return true;
+    }
+
+
+    bool ProcDebugBG::getDefaultThread(THR_ID &default_tid) {
+      default_tid = initial_thread->getTid();
+      return true;
+    }
+
+
+    unsigned ProcDebugBG::getAddressWidth() {
+      return sizeof(DebuggerInterface::BG_Addr_t);
+    }
+
+
+    bool ProcDebugBG::debug_continue(ThreadState *ts) {
+      return debug_continue_with(ts, 0);
+    }
+
+
+    ProcDebugBG::~ProcDebugBG() {
+      if (read_cache) delete [] read_cache;
+    }
+
+
+    ProcDebugBG::ProcDebugBG(PID pid, string exe)
+      : ProcDebug(pid, exe),
+        mem_data(NULL),
+        read_cache(NULL),
+        read_cache_start(0x0),
+        read_cache_size(0x0)
+    {
+    }
+
+
+    bool ProcDebugBG::debug_create(const std::string &, const std::vector<std::string> &) 
+    {
+      setLastError(err_unsupported, "Create mode not supported on BlueGene");
       return false;
-   }
+    }
+
+
+    struct set_gprs {
+      bool val;
+      set_gprs(bool v) : val(v) { }
+      void operator()(ThreadState *ts) {
+        dynamic_cast<BGThreadState*>(ts)->gprs_set = val;
+      }
+    };
+
+
+    void ProcDebugBG::clear_cache() {
+      for_all_threads(set_gprs(false));
+      read_cache_start = 0x0;
+      read_cache_size = 0x0;
+      mem_data = NULL;
+    }
+
+
+    bool ProcDebugBG::version_msg()
+    {
+      bool result = debug_version_msg();
+      if (!result) {
+        sw_printf("[%s:%u] - Could not version msg debugee %d\n", __FILE__, __LINE__, pid);
+        return false;
+      }
    
-   return true;
-}
+      result = debug_waitfor_version_msg();
+      if (state() == ps_exited) {
+        setLastError(err_procexit, "Process exited unexpectedly during version_msg");
+        return false;
+      }
+      if (!result) {
+        sw_printf("[%s:%u] - Error during process version_msg for %d\n",
+                  __FILE__, __LINE__, pid);
+        return false;
+      }   
+      return true;
+    }
 
-bool BGL_Debugger_Msg::readFromFd(int fd, 
-                                  DebuggerInterface::BGL_Debugger_Msg &msg)
-{
-   int result;
-   result = read(fd, &msg.header, sizeof(msg.header));
-   if (result != -1 && msg.header.dataLength) {
-      result = read(fd, &msg.dataArea, msg.header.dataLength);
-   }
-   if (result == -1) {
-      int errnum = errno;
-      sw_printf("[%s:%u] - Error reading from process: %s\n", 
-                __FILE__, __LINE__, strerror(errnum));
-      setLastError(err_internal, "Error reading message from process");
-      return false;
-   }
-   return true;
-}
 
-bool ProcSelf::readMem(void *dest, Address source, size_t size)
-{
-   memcpy(dest, (void *) source, size);
-   return true;
-}
-
-int ProcDebug::getNotificationFD() {
-  return BGL_DEBUGGER_READ_PIPE;
-}
-
-void ProcDebugBG::clear_cache()
-{
-  gprs_set = false;
-  read_cache_start = 0x0;
-  read_cache_size = 0x0;
-  mem_data = NULL;
-  mem_data_size = 0x0;
-}
-
-bool ProcDebugBG::debug_waitfor_version_msg()
-{
-   sw_printf("[%s:%u] - At debug_waitfor_Version_msg, isStopped = %d\n",
-             __FILE__, __LINE__, initial_thread->isStopped());
-   bool handled, result;
+    bool ProcDebugBG::debug_waitfor_version_msg() {
+      sw_printf("[%s:%u] - At debug_waitfor_Version_msg.\n", __FILE__, __LINE__);
+      bool handled, result;
    
-   result = debug_wait_and_handle(true, handled);
-   if (!result || state() == ps_errorstate) {
-      sw_printf("[%s:%u] - Error,  Process %d errored during version_msg\n",
+      result = debug_wait_and_handle(true, handled);
+      if (!result || state() == ps_errorstate) {
+        sw_printf("[%s:%u] - Error,  Process %d errored during version_msg\n",
+                  __FILE__, __LINE__, pid);
+        return false;
+      }
+      if (state() == ps_exited) {
+        sw_printf("[%s:%u] - Error.  Process %d exited during version_msg\n",
+                  __FILE__, __LINE__, pid);
+        return false;
+      }
+      sw_printf("[%s:%u] - Successfully version_msg %d\n",
                 __FILE__, __LINE__, pid);
-      return false;
-   }
-   if (state() == ps_exited) {
-      sw_printf("[%s:%u] - Error.  Process %d exited during version_msg\n",
-                __FILE__, __LINE__, pid);
-      return false;
-   }
-   sw_printf("[%s:%u] - Successfully version_msg %d\n",
-             __FILE__, __LINE__, pid);
-   return true;      
-}
+      return true;      
+    }
 
-bool ProcDebugBG::debug_version_msg()
-{
-  BGL_Debugger_Msg msg(VERSION_MSG, pid, 0, 0, 0);
-  msg.header.dataLength = sizeof(msg.dataArea.VERSION_MSG);
 
-  sw_printf("[%s:%u] - Sending VERSION_MSG to pid %d\n", __FILE__, __LINE__, pid);
-  bool result = BGL_Debugger_Msg::writeOnFd(BGL_DEBUGGER_WRITE_PIPE, msg);
 
-  if (!result) {
-     sw_printf("[%s:%u] - Unable to send VERSION_MSG to process %d\n",
-               __FILE__, __LINE__, pid);
-     return false;
-  }
-  return true;
-}
+    bool ProcDebugBG::debug_handle_event(DebugEvent ev)
+    {
+      BGThreadState *thr = dynamic_cast<BGThreadState*>(ev.thr);
 
-bool ProcDebugBG::version_msg()
-{
-   bool result = debug_version_msg();
-   if (!result) {
-      sw_printf("[%s:%u] - Could not version msg debugee %d\n",
-                __FILE__, __LINE__, pid);
-      return false;
-   }
+      switch (ev.dbg) {
+      case dbg_stopped:
+        // we got a signal from the process.  Stop all the threads and let 
+        // debug_handle_signal() take care of things.
+        for_all_threads(set_stopped(true));
+        return debug_handle_signal(&ev);
+
+      case dbg_crashed:
+        sw_printf("[%s:%u] - Process %d crashed!\n", __FILE__, __LINE__, pid);
+        // fallthru
+
+      case dbg_exited:
+        sw_printf("[%s:%u] - Handling process exit on %d\n", __FILE__, __LINE__, pid);
+        for_all_threads(set_stopped(true));
+        for_all_threads(set_state(ps_exited));
+        break;
+
+      case dbg_continued:
+        sw_printf("[%s:%u] - Process %d continued\n", __FILE__, __LINE__, pid);
+        clear_cache();
+        assert(thr->isStopped());
+        for_all_threads(set_stopped(false));
+        break;
+
+      case dbg_attached:
+        sw_printf("[%s:%u] - Process %d attached\n", __FILE__, __LINE__, pid);
+        assert(state() == ps_neonatal);
+        for_all_threads(set_state(ps_attached_intermediate));
+        debug_pause(NULL); //immediately after debug_attach, pause the process.
+        break;
+
+      case dbg_mem_ack:
+        sw_printf("[%s:%u] - Process %d returned a memory chunk of size %u\n", 
+                  __FILE__, __LINE__, pid, ev.size);
+        assert(!mem_data);
+        mem_data = static_cast<BG_Debugger_Msg::DataArea*>(ev.data.pdata);
+        break;
+
+      case dbg_setmem_ack:
+        sw_printf("[%s:%u] - Process %d set a chunk of memory of size %u\n", 
+                  __FILE__, __LINE__, pid, ev.size);
+        break;
+
+      case dbg_allregs_ack:
+        {
+          sw_printf("[%s:%u] - Process %d returned a register chunk of size %u\n", 
+                    __FILE__, __LINE__, pid, ev.size);
+          BG_GPRSet_t *data = static_cast<BG_GPRSet_t*>(ev.data.pdata);
+          thr->gprs = *data;
+          thr->gprs_set = true;
+          ev.data.pdata = NULL;
+          delete data;
+        }
+        break;
+
+      case dbg_other:
+        sw_printf("[%s:%u] - Skipping unimportant event\n", __FILE__, __LINE__);
+        break;
+
+      case dbg_err:
+      case dbg_noevent:       
+      default:
+        sw_printf("[%s:%u] - Unexpectedly handling an error event %d on %d\n", 
+                  __FILE__, __LINE__, ev.dbg, pid);
+        setLastError(err_internal, "Told to handle an unexpected event.");
+        return false;
+      }
+
+      return true;
+    }
+
+
+    bool ProcDebugBG::debug_handle_signal(DebugEvent *ev) {
+      assert(ev->dbg == dbg_stopped); 
+      // PRE: we got a signal event, and things are stopped.
+
+      sw_printf("[%s:%u] - Handling signal for pid %d\n", __FILE__, __LINE__, pid);
+      BGThreadState *thr = dynamic_cast<BGThreadState*>(ev->thr);
+
+      switch (ev->data.idata) {
+      case SIGSTOP:
+        // if we're attaching, SIGSTOP tells us we've completed.
+        if (state() == ps_attached_intermediate) {
+          setState(ps_attached);
+          sw_printf("[%s:%u] - Moving %d to state ps_attached\n", __FILE__, __LINE__, pid);
+        }
+        // if we're not attaching, do nothing.  leave the thread stopped.
+        break;
+        
+      case SINGLE_STEP_SIG:
+        // BG uses this special signal to indicate completion of a single step.
+        // Ignore the event and continue if the user didn't stop. TODO: why?
+        // Otherwise, if *we* stopped, just stay stopped.
+        clear_cache();  // took a step, need to clear cache.
+        return thr->userIsStopped() ? true : debug_continue_with(thr, 0);
+        break;
+        
+      default:
+        // by default, pass the signal back to the process being debugged.
+        return debug_continue_with(thr, ev->data.idata);
+      }
+      
+      return true;
+    }
+
+
+    bool ProcDebugBG::debug_attach(ThreadState *ts)
+    {
+      THR_ID tid = ts->getTid();
+      BG_Debugger_Msg msg(ATTACH, pid, tid, 0, 0);
+      msg.header.dataLength = sizeof(msg.dataArea.ATTACH);
+      
+      // send attach message
+      sw_printf("[%s:%u] - Attaching to pid %d, thread %d\n", __FILE__, __LINE__, pid, tid);
+      bool result = BG_Debugger_Msg::writeOnFd(BG_DEBUGGER_WRITE_PIPE, msg);
+      if (!result) {
+        sw_printf("[%s:%u] - Error sending attach to process %d, thread %d\n",
+                  __FILE__, __LINE__, pid, tid);
+      }
+       
+      return result;
+    }
+
+
+    bool ProcDebugBG::detach(bool /* leave_stopped */) {
+      // TODO: send detach message
+      return true;
+    }
+
+
+    bool ProcDebugBG::debug_pause(ThreadState *ts)
+    {
+      THR_ID tid = initial_thread->getTid();  // default to initial thread.
+      if (ts) tid = ts->getTid();
+
+      BG_Debugger_Msg msg(KILL, pid, tid, 0, 0);
+      msg.dataArea.KILL.signal = SIGSTOP;
+      msg.header.dataLength = sizeof(msg.dataArea.KILL);
+      
+      sw_printf("[%s:%u] - Sending SIGSTOP to pid %d, thread %d\n", __FILE__, __LINE__, pid, tid);
+      bool result = BG_Debugger_Msg::writeOnFd(BG_DEBUGGER_WRITE_PIPE, msg);
+      if (!result) {
+        sw_printf("[%s:%u] - Unable to send SIGSTOP to process %d, thread\n", __FILE__, __LINE__, pid, tid);
+      }
+      return result;
+    }
+
+
+    bool ProcDebugBG::debug_continue_with(ThreadState *ts, long sig)
+    {
+      THR_ID tid = ts->getTid();
+      if (!ts->isStopped()) {
+        sw_printf("[%s:%u] - Error in debug_continue_with(): pid %d, thread %d not stopped.\n",
+                  __FILE__, __LINE__, pid, tid);
+        return false;
+      }
+
+      BG_Debugger_Msg msg(CONTINUE, pid, tid, 0, 0);
+      msg.dataArea.CONTINUE.signal = sig;
+      msg.header.dataLength = sizeof(msg.dataArea.CONTINUE);
+
+      sw_printf("[%s:%u] - Sending signal %d to pid %d, thread %d\n", __FILE__, __LINE__, sig, pid, tid);
+      bool result = BG_Debugger_Msg::writeOnFd(BG_DEBUGGER_WRITE_PIPE, msg);
+      if (!result) {
+        sw_printf("[%s:%u] - Unable to send %d to process %d, thread %d\n", __FILE__, __LINE__, sig, pid, tid);
+      }
+      return result;
+    }
+
+
+    bool ProcDebugBG::getRegValue(MachRegister reg, THR_ID tid, MachRegisterVal &val) {
+      assert(threads.count(tid));
+      BGThreadState *thr = dynamic_cast<BGThreadState*>(threads[tid]);
+
+      if (!thr->gprs_set) {
+        BG_Debugger_Msg msg(GET_ALL_REGS, pid, tid, 0, 0);
+        msg.header.dataLength = sizeof(msg.dataArea.GET_ALL_REGS);
+
+        bool result = BG_Debugger_Msg::writeOnFd(BG_DEBUGGER_WRITE_PIPE, msg);
+        if (!result) {
+          sw_printf("[%s:%u] - Unable to write to process %d, thread %d\n",
+                    __FILE__, __LINE__, pid, tid);
+          return true;
+        }
+      
+        //Wait for the read to return
+        sw_printf("[%s:%u] - Waiting for read to return on pid %d, tid %d\n",
+                  __FILE__, __LINE__, pid, tid);
+        
+        do {
+          bool handled, result;
+          result = debug_wait_and_handle(true, handled);
+          if (!result)
+          {
+            sw_printf("[%s:%u] - Error while waiting for read to return\n",
+                      __FILE__, __LINE__);
+            return false;
+          }
+        } while (!thr->gprs_set);
+      }
    
-   result = debug_waitfor_version_msg();
-   if (state() == ps_exited) {
-      setLastError(err_procexit, "Process exited unexpectedly during version_msg");
-      return false;
-   }
-   if (!result) {
-      sw_printf("[%s:%u] - Error during process version_msg for %d\n",
-                __FILE__, __LINE__, pid);
-      return false;
-   }   
-   return true;
-}
+      switch(reg)
+      {
+      case Dyninst::MachRegStackBase:
+        val = 0x0;
+        break;
+      case Dyninst::MachRegFrameBase:
+        val = thr->gprs.gpr[BG_GPR1];
+        break;
+      case Dyninst::MachRegPC:
+        val = thr->gprs.iar;
+        break;
+      default:
+        sw_printf("[%s:%u] - Request for unsupported register %d\n", __FILE__, __LINE__, reg);
+        setLastError(err_badparam, "Unknown register passed in reg field");
+        return false;
+      }   
+      return true;
+    }
 
-ThreadState* ThreadState::createThreadState(ProcDebug *parent,
-                                            Dyninst::THR_ID,
-                                            bool)
-{
-   ThreadState *ts = new ThreadState(parent, 0);
-   return ts;
-}
 
-bool SymtabLibState::updateLibsArch()
-{
-   return true;
-}
+    bool ProcDebugBG::readMem(void *dest, Address source, size_t size)
+    {
+      unsigned char *ucdest = (unsigned char *) dest;
+      bool result;
 
-SigHandlerStepper::SigHandlerStepper(Walker *w) :
-   FrameStepper(w)
-{
-   sw_printf("[%s:%u] - Error, signal handler walker used on unsupported platform\n",
-             __FILE__, __LINE__);
-   assert(0);
-}
+      for (;;)
+      {
+        if (size == 0)
+          return true;
 
-gcframe_ret_t SigHandlerStepper::getCallerFrame(const Frame &, Frame &)
-{
-   sw_printf("[%s:%u] - Error, signal handler walker used on unsupported platform\n",
-             __FILE__, __LINE__);
-   assert(0);
-   return gcf_error;
-}
+        sw_printf("[%s:%u] - Reading memory from 0x%lx to 0x%lx (into %p)\n",
+                  __FILE__, __LINE__, source, source+size, ucdest);
+        if (source >= read_cache_start && 
+            source+size < read_cache_start + read_cache_size)
+        {
+          //Lucky us, we have everything cached.
+          memcpy(ucdest, read_cache + (source - read_cache_start), size);
+          return true;
+        }
+        if (source >= read_cache_start &&
+            source < read_cache_start + read_cache_size)
+        {
+          //The beginning is in the cache, read those bytes
+          long cached_bytes = read_cache_start + read_cache_size - source;
+          memcpy(ucdest, read_cache + (source - read_cache_start), cached_bytes);
+          //Change the parameters and continue the read (this is a kind of
+          // optimized tail call).
+          ucdest += cached_bytes;
+          source = read_cache_start + read_cache_size;
+          size -= cached_bytes;
+          continue;
+        }
+        if (source+size > read_cache_start &&
+            source+size <= read_cache_start + read_cache_size)
+        {
+          //The end is in the cache, read those bytes
+          long cached_bytes = (source+size) - read_cache_start;
+          memcpy(ucdest + read_cache_start - source, read_cache, cached_bytes);
+          //Change the parameters and continue the read (this is a kind of
+          // optimized tail call).
+          size -= cached_bytes;
+          continue;
+        }
+        if (source < read_cache_start &&
+            source+size >= read_cache_start+read_cache_size)
+        {
+          //The middle is in the cache
+          unsigned char *dest_start = ucdest + read_cache_start - source;
+          Address old_read_cache_start = read_cache_start;
+          memcpy(dest_start, read_cache, read_cache_size);
+          //Use actual recursion here, as we need to queue up two reads
+          // First read out of the high memory with recursion
+          result = readMem(dest_start + read_cache_size, 
+                           read_cache_start+read_cache_size,
+                           source+size - read_cache_start+read_cache_size);
+          if (!result) {
+            return false;
+          }
+          // Now read out of the low memory
+          size = old_read_cache_start - source;
+          continue;
+        }
+        //The memory isn't cached, read a new cache'd page.
+        assert(source < read_cache_start || 
+               source >= read_cache_start+read_cache_size);
+      
+        if (!read_cache) {
+          read_cache = new unsigned char[BG_READCACHE_SIZE];
+          assert(read_cache);
+        }
 
-unsigned SigHandlerStepper::getPriority() const
-{
-   sw_printf("[%s:%u] - Error, signal handler walker used on unsupported platform\n",
-             __FILE__, __LINE__);
-   assert(0);
-   return 0;
-}
+        read_cache_size = BG_READCACHE_SIZE;
+        read_cache_start = source - (source % read_cache_size);
+        sw_printf("[%s:%u] - Caching memory from 0x%lx to 0x%lx\n",
+                  __FILE__, __LINE__, read_cache_start, 
+                  read_cache_start+read_cache_size);
+                    
+        //Read read_cache_start to read_cache_start+read_cache_size into our
+        // cache.
+        assert(!mem_data);
+        assert(read_cache_size < BG_Debugger_Msg_MAX_MEM_SIZE);
 
-void SigHandlerStepper::registerStepperGroup(StepperGroup *)
-{
-   sw_printf("[%s:%u] - Error, signal handler walker used on unsupported "
-             "platform\n",  __FILE__, __LINE__);
-   assert(0);
-}
+        BG_Debugger_Msg msg(GET_MEM, pid, 0, 0, 0);
+        msg.header.dataLength = sizeof(msg.dataArea.GET_MEM);
+        msg.dataArea.GET_MEM.addr = read_cache_start;
+        msg.dataArea.GET_MEM.len = read_cache_size;
+        bool result = BG_Debugger_Msg::writeOnFd(BG_DEBUGGER_WRITE_PIPE, msg);
+        if (!result) {
+          sw_printf("[%s:%u] - Unable to write to process %d\n", __FILE__, __LINE__, pid);
+          return true;
+        }
+      
+        //Wait for the read to return
+        sw_printf("[%s:%u] - Waiting for read to return on pid %d\n", __FILE__, __LINE__);
 
-SigHandlerStepper::~SigHandlerStepper()
-{
-   sw_printf("[%s:%u] - Error, signal handler walker used on unsupported "
-             "platform\n",  __FILE__, __LINE__);
-   assert(0);
-}
+        if (!debug_waitfor(dbg_mem_ack)) {
+          sw_printf("[%s:%u] - Error while waiting for read to return\n", __FILE__, __LINE__);
+          return false;
+        }
+
+        sw_printf("[%s:%u] - Asserting mem_data post-read.\n", __FILE__, __LINE__);
+        assert(mem_data->GET_MEM_ACK.addr == read_cache_start);
+        assert(mem_data->GET_MEM_ACK.len == read_cache_size);
+        memcpy(read_cache, mem_data->GET_MEM_ACK.data, read_cache_size);
+      
+        //Free up the memory data
+        delete mem_data;
+        mem_data = NULL;
+      }
+    }   
+
+
+    bool ProcDebugBG::debug_version_msg()
+    {
+      BG_Debugger_Msg msg(VERSION_MSG, pid, 0, 0, 0);
+      msg.header.dataLength = sizeof(msg.dataArea.VERSION_MSG);
+
+      sw_printf("[%s:%u] - Sending VERSION_MSG to pid %d\n", __FILE__, __LINE__, pid);
+      bool result = BG_Debugger_Msg::writeOnFd(BG_DEBUGGER_WRITE_PIPE, msg);
+
+      if (!result) {
+        sw_printf("[%s:%u] - Unable to send VERSION_MSG to process %d\n",
+                  __FILE__, __LINE__, pid);
+        return false;
+      }
+      return true;
+    }
+
+
+    // ============================================================ //
+    // SigHandlerStepper -- unsupported.  All stubs.
+    // ============================================================ //
+#   define sig_handler_stepper_unsupported(file, line) \
+      sw_printf("[%s:%u] - Error, signal handler walker used on unsupported platform\n", file, line); \
+      setLastError(err_unsupported, "Signal handling walking not supported on this platform");
+
+    SigHandlerStepper::SigHandlerStepper(Walker *w) :
+      FrameStepper(w) {
+      sig_handler_stepper_unsupported(__FILE__, __LINE__);
+      assert(0);
+    }
+
+    gcframe_ret_t SigHandlerStepper::getCallerFrame(const Frame &, Frame &) {
+      sig_handler_stepper_unsupported(__FILE__, __LINE__);
+      return gcf_error;
+    }
+    
+    unsigned SigHandlerStepper::getPriority() const {
+      sig_handler_stepper_unsupported(__FILE__, __LINE__);
+      return 0;
+    }
+    
+    void SigHandlerStepper::registerStepperGroup(StepperGroup *) {
+      sig_handler_stepper_unsupported(__FILE__, __LINE__);
+    }
+    
+    SigHandlerStepper::~SigHandlerStepper() { 
+      sig_handler_stepper_unsupported(__FILE__, __LINE__);
+    }
+    
+
+    // ============================================================ //
+    // SymtabLibState -- need to differentiate for P
+    // ============================================================ //
+    bool SymtabLibState::updateLibsArch() {
+      return true;
+    }
+
+
+    // ============================================================ //
+    // ThreadState
+    // ============================================================ //
+    ThreadState* ThreadState::createThreadState(ProcDebug *parent, Dyninst::THR_ID tid, bool) {
+      THR_ID thread_id = tid;
+      if (thread_id == NULL_THR_ID) {
+        thread_id = 0;
+      }
+      BGThreadState *ts = new BGThreadState(parent, thread_id);
+      return ts;
+    }
+
+  } // namespace Stackwalker
+} // namespace Dyninst
+

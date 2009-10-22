@@ -39,6 +39,7 @@
 namespace Dyninst {
 namespace SymtabAPI {
 
+
 class FCNode
 {
    friend class FileCache;
@@ -91,16 +92,14 @@ public:
    bool setAddressSize();
    bool setInterpreterBase();
    
-   virtual bool init();
+   bool init();
    virtual bool refresh();
 
-   Address getTrapAddr();
+   virtual Address getLibraryTrapAddrSysV();
 
    LoadedLib *getAOut();
    AddressTranslateSysV(int pid, ProcessReader *reader_);
    AddressTranslateSysV();
-   Address getLibraryTrapAddrSysV();
-
 private:
    ProcessReader *reader;
    Address interpreter_base;
@@ -114,7 +113,8 @@ private:
    Address r_debug_addr;
    Address trap_addr;
 
-   std::string exec_name;
+   std::string exec_name;   // access this through get_exec_name()
+   const std::string& getExecName();
 
    ProcessReader *createDefaultDebugger(int pid);
 };

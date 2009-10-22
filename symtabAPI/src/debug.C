@@ -42,6 +42,7 @@ int sym_debug_parsing = 0;
 int sym_debug_aggregate = 0;
 int sym_debug_object = 0;
 int sym_debug_types = 0;
+int sym_debug_translate = 0;
 
 bool init_debug_symtabAPI() {
     static bool initialized = false;
@@ -124,6 +125,19 @@ int object_printf(const char *format, ...)
 int types_printf(const char *format, ...)
 {
   if (!sym_debug_types) return 0;
+  if (NULL == format) return -1;
+
+  va_list va;
+  va_start(va, format);
+  int ret = vfprintf(stderr, format, va);
+  va_end(va);
+
+  return ret;
+}
+
+int translate_printf(const char *format, ...)
+{
+  if (!sym_debug_translate) return 0;
   if (NULL == format) return -1;
 
   va_list va;

@@ -106,10 +106,10 @@ Walker* Walker::newWalker()
 Walker *Walker::newWalker(Dyninst::PID pid,
                           const std::string &executable)
 {
-  sw_printf("[%s:%u] - Creating new stackwalker on process %d\n",
+  sw_printf("[%s:%u] - Creating new stackwalker for process %d\n",
 	    __FILE__, __LINE__, (int) pid);
   
-  ProcessState *newproc = createDefaultProcess(pid);
+  ProcessState *newproc = createDefaultProcess(pid, executable);
   if (!newproc) {
     sw_printf("[%s:%u] - Error creating default process\n",
 	      __FILE__, __LINE__);
@@ -456,11 +456,12 @@ bool Walker::getAvailableThreads(std::vector<THR_ID> &threads) const {
          sw_printf("[%s:%u] - getThreadIds error\n", __FILE__, __LINE__);
       }
       else {
-         sw_printf("[%s:%u] - getThreadIds returning %d values:\n", 
+         sw_printf("[%s:%u] - getThreadIds returning %d values:\t\n", 
                    __FILE__, __LINE__, threads.size());
          for (unsigned i=0; i<threads.size(); i++) {
-            sw_printf("\t%d\n", (int) threads[i]);
+            sw_printf("%d ", (int) threads[i]);
          }
+         sw_printf("\n ");
       }
    }
    return result;
@@ -481,9 +482,9 @@ ProcessState *Walker::createDefaultProcess()
    return pself;
 }
 
-ProcessState *Walker::createDefaultProcess(PID pid)
+ProcessState *Walker::createDefaultProcess(PID pid, const std::string& executable)
 {
-   ProcDebug *pdebug = ProcDebug::newProcDebug(pid);
+   ProcDebug *pdebug = ProcDebug::newProcDebug(pid, executable);
    return pdebug;
 }
 

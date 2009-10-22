@@ -109,34 +109,7 @@ bool Walker::createDefaultSteppers()
   return true;
 }
 
-namespace Dyninst {
-namespace Stackwalker {
-void getTrapInstruction(char *buffer, unsigned buf_size, 
-                        unsigned &actual_len, bool include_return)
-{
-   assert(buf_size >= 4);
-   buffer[0] = 0x7d;
-   buffer[1] = 0x82;
-   buffer[2] = 0x10;
-   buffer[3] = 0x08;
-   actual_len = 4;
-   if (include_return)
-   {   
-      assert(buf_size >= 8);
-      buffer[4] = 0x4e;
-      buffer[5] = 0x80;
-      buffer[6] = 0x00;
-      buffer[7] = 0x20;
-      actual_len = 8;
-      return;
-   }
 
-   assert(buf_size >= 1);
-   actual_len = 1;
-   return;
-}
-}
-}
 
 gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame &/*in*/, 
                                                     Frame &/*out*/)

@@ -84,17 +84,13 @@ ProcessState::ProcessState(Dyninst::PID pid_) :
                    "attached process");
       return;
    }
-   if (pid_) {
-      setPid(pid_);
-   }
+   setPid(pid_);
 }
 
 void ProcessState::setPid(Dyninst::PID pid_)
 {
    pid = pid_;
-   if (pid) {
-      proc_map[pid] = this;
-   }
+   proc_map[pid] = this;
 }
 
 Dyninst::PID ProcessState::getProcessId() 
@@ -114,9 +110,13 @@ void ProcessState::setDefaultLibraryTracker()
 {
   if (library_tracker) return;
 #if defined(cap_stackwalker_use_symtab)
-    library_tracker = new SymtabLibState(this);
+  std::string execp("");
+  ProcDebug *pd = dynamic_cast<ProcDebug *>(this);
+  if (pd) 
+     execp = pd->getExecutablePath();
+  library_tracker = new SymtabLibState(this, execp);
 #else
-    library_tracker = new DefaultLibState(this);
+  library_tracker = new DefaultLibState(this);
 #endif
 }
 
@@ -124,17 +124,17 @@ ProcessState::~ProcessState()
 {
    if (library_tracker)
       delete library_tracker;
-   if (pid)
-      proc_map.erase(pid);
+   proc_map.erase(pid);
 }
 
 int ProcDebug::pipe_in = -1;
 int ProcDebug::pipe_out = -1;
 
-ProcDebug::ProcDebug(PID p) : 
+ProcDebug::ProcDebug(PID p, string exe) : 
   ProcessState(p),
   initial_thread(NULL),
-  active_thread(NULL)
+  active_thread(NULL),
+  executable_path(exe)
 {
    initial_thread = ThreadState::createThreadState(this);
    threads[initial_thread->getTid()] = initial_thread;   
@@ -551,10 +551,28 @@ bool ProcDebug::debug_waitfor_pause(ThreadState *thr)
   return true;
 }
 
-bool ProcDebug::debug_wait_and_handle(bool block, bool &handled)
+
+bool ProcDebug::debug_waitfor(dbg_t event_type) {
+  bool handled;
+  dbg_t handled_type;
+  while (debug_wait_and_handle(true, handled, &handled_type)) {
+    if (handled_type == event_type) {
+      return true;
+    }
+  }
+  return false;
+}
+
+
+bool ProcDebug::debug_wait_and_handle(bool block, bool &handled, dbg_t *event_type)
 {
   bool result;
   DebugEvent ev = debug_get_event(block);
+
+  // tell caller what was handled (or not) if he wants to know.
+  if (event_type) {
+    *event_type = ev.dbg;
+  }
 
   if (ev.dbg == dbg_noevent)
   {
@@ -563,6 +581,7 @@ bool ProcDebug::debug_wait_and_handle(bool block, bool &handled)
     handled = false;
     return true;
   }
+
   if (ev.dbg == dbg_err)
   {
     sw_printf("[%s:%u] - Returning from debug_wait_and_handle with error\n",
@@ -571,7 +590,7 @@ bool ProcDebug::debug_wait_and_handle(bool block, bool &handled)
     return false;
   }
 
-  sw_printf("[%s:%u] - Handling event on for pid %d: dbg %d, data %d\n", 
+  sw_printf("[%s:%u] - Handling event for pid %d: dbg %d, data %d\n", 
 	    __FILE__, __LINE__, ev.proc->pid, ev.dbg, ev.data.idata);
   result = ev.proc->debug_handle_event(ev);
 
@@ -587,6 +606,34 @@ bool ProcDebug::debug_wait_and_handle(bool block, bool &handled)
   handled = true;
   return true;
 } 
+
+
+bool ProcDebug::add_new_thread(THR_ID tid) {
+  if (threads.count(tid)) return true;
+
+  sw_printf("[%s:%u] - Adding new thread %d, in proc %d\n",
+            __FILE__, __LINE__, tid, pid);
+
+  ThreadState *new_thread = ThreadState::createThreadState(this, tid);
+  threads[tid] = new_thread;
+  
+  if (!new_thread && getLastError() == err_noproc) {
+    //Race condition, get thread ID or running thread, which then 
+    // exits.  Should be rare...
+    sw_printf("[%s:%u] - Error creating thread %d, does not exist\n",
+              __FILE__, __LINE__, tid);
+    clearLastError();
+    return false;
+
+  } else if (!new_thread) {
+    sw_printf("[%s:%u] - Unexpected error creating thread %d\n",
+              __FILE__, __LINE__, tid);
+    return false;
+  }
+
+  return true;
+}
+
 
 ProcDebug::~ProcDebug()
 {
@@ -626,9 +673,13 @@ void ProcDebug::preStackwalk(Dyninst::THR_ID tid)
    if (tid == NULL_THR_ID)
       tid = initial_thread->getTid();
 
+   sw_printf("[%s:%u] - Calling preStackwalk for thread %d\n", __FILE__, __LINE__, tid);
+
    thread_map_t::iterator i = threads.find(tid);
-   if (i == threads.end())
+   if (i == threads.end()) {
+      sw_printf("[%s:%u] - Couldn't find thread %d!\n", __FILE__, __LINE__, tid);
       return;
+   }
    
    active_thread = (*i).second;
    if (!active_thread->userIsStopped()) {
@@ -643,10 +694,14 @@ void ProcDebug::postStackwalk(Dyninst::THR_ID tid)
    if (tid == NULL_THR_ID)
       tid = initial_thread->getTid();
 
+   sw_printf("[%s:%u] - Calling preStackwalk for thread %d\n", __FILE__, __LINE__, tid);
+
    thread_map_t::iterator i = threads.find(tid);
-   if (i == threads.end())
+   if (i == threads.end()) {
+      sw_printf("[%s:%u] - Couldn't find thread %d!\n", __FILE__, __LINE__, tid);
       return;
-   
+   }
+
    assert(active_thread == (*i).second);
    if (active_thread->shouldResume()) {
       resume_thread(active_thread);
@@ -673,7 +728,7 @@ LibraryState::~LibraryState()
 {
 }
 
-#if !defined(os_bluegene)
+#ifndef os_bg_ion
 bool ProcDebug::newProcDebugSet(const vector<Dyninst::PID> &pids,
                                 vector<ProcDebug *> &out_set)
 {
@@ -691,7 +746,7 @@ bool ProcDebug::newProcDebugSet(const vector<Dyninst::PID> &pids,
    }
    return true;
 }
-#endif
+#endif // !os_bg_ion
 
 LibraryState *ProcessState::getLibraryTracker()
 {
@@ -707,9 +762,13 @@ proc_state ProcDebug::state()
 void ProcDebug::setState(proc_state p)
 {
    assert(initial_thread);
-   sw_printf("[%s:%u] - Setting initial thread for %d to %d\n",
+   sw_printf("[%s:%u] - Setting initial thread for %d to state %d\n",
              __FILE__, __LINE__, pid, p);
    initial_thread->setState(p);
+}
+
+const string& ProcDebug::getExecutablePath() {
+  return executable_path;
 }
 
 ThreadState::ThreadState(ProcDebug *p, Dyninst::THR_ID id) :

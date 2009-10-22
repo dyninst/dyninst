@@ -65,6 +65,8 @@ namespace Stackwalker {
   void setDebugChannel(FILE *f);
   void setDebug(bool enable);
   
+  FILE *getDebugChannel();
+
   extern int sw_printf(const char *format, ...);
   extern int dyn_debug_stackwalk;
 

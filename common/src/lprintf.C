@@ -42,6 +42,7 @@
 #include "common/h/lprintf.h"
 #include <stdio.h>
 #include <stdarg.h>
+#include <errno.h>
 
 /************************************************************************
  * void log_msg(const char* msg)

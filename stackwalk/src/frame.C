@@ -192,7 +192,7 @@ void Frame::setNameValue() {
   
   bool result = lookup->lookupAtAddr(getRA(), sym_name, sym_value);
   if (!result) {
-    sw_printf("[%s:%u] - Error, returned by lookupAddr.\n", __FILE__, __LINE__);
+    sw_printf("[%s:%u] - Error, returned by lookupAtAddr().\n", __FILE__, __LINE__);
     name_val_set = nv_err;
   }
   
@@ -252,8 +252,11 @@ Frame::~Frame() {
   sw_printf("[%s:%u] - Destroying frame %p\n", __FILE__, __LINE__, this);
 }
 
-bool Frame::getLibOffset(std::string &lib, Dyninst::Offset &offset, 
-                         void* &symtab)
+#ifdef cap_stackwalker_use_symtab
+bool Frame::getLibOffset(std::string &lib, Dyninst::Offset &offset, void*& symtab)
+#else
+bool Frame::getLibOffset(std::string &lib, Dyninst::Offset &offset, void*&)
+#endif
 {
   LibraryState *libstate = getWalker()->getProcessState()->getLibraryTracker();
   if (!libstate) {

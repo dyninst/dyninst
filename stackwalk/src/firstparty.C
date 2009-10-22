@@ -49,7 +49,8 @@ SymbolLookup *Walker::createDefaultSymLookup(const std::string &)
    return NULL;
 }
 
-ProcDebug *ProcDebug::newProcDebug(PID)
+
+ProcDebug *ProcDebug::newProcDebug(PID, std::string)
 {
    setLastError(err_unsupported, "Third party stackwalking not supported on " \
                 "this platform");

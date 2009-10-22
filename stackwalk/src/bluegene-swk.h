@@ -32,53 +32,135 @@
 #ifndef BLUEGENE_SWK_H
 #define BLUEGENE_SWK_H
 
-#include "external/bluegene/debugger_interface.h"
-using namespace DebuggerInterface;
+#include "procstate.h"
+#include "stl_utils.h"
+
+#ifndef os_bg_ion
+#error "ERROR: bluegene-swk.h is only for BlueGene ION builds."
+#endif // os_bg_ion
+
+// TODO: these bg debugger headers could be merged w/ifdefs in the headers.
+// TODO: this would make things a little less nasty here.
+#if   defined(os_bgl)
+#include "external/bluegene/bgl-debugger-interface.h"
+#elif defined (os_bgp)
+#include "external/bluegene/bgp-debugger-interface.h"
+#else
+#error "ERROR: No suitable debug interface for this BG ION."
+#endif
+
+#define SINGLE_STEP_SIG 32064
+
+#if !defined(BG_READCACHE_SIZE)
+#define BG_READCACHE_SIZE 2048
+#endif
+
+namespace DebuggerInterface {
+  class DebugEvent;
+}
 
 namespace Dyninst {
-namespace Stackwalker {
+  namespace Stackwalker {
+    
+    ///
+    /// This is a base class for the BlueGene 3rd-party stackwalkers.  
+    /// 
+    /// Common functionality is implemented here, and subclasses should
+    /// provide other features such as threads and dynamic library handling.
+    ///
+    class ProcDebugBG : public ProcDebug {
+    protected:
+      virtual bool debug_continue(ThreadState *);
+      virtual bool version_msg();
+      virtual bool debug_waitfor_version_msg();
+      virtual bool debug_handle_event(DebugEvent ev);
+      virtual bool debug_handle_signal(DebugEvent *ev);
+      virtual bool debug_attach(ThreadState *);
+      virtual bool debug_pause(ThreadState *);
+      virtual bool debug_continue_with(ThreadState *, long sig);
+      virtual bool debug_version_msg();
 
-class ProcDebugBG : public ProcDebug {
-  friend class ProcDebug;
- protected:
-  virtual bool debug_create(const std::string &, 
-			    const std::vector<std::string> &);
-  virtual bool debug_attach(ThreadState *);
-  virtual bool debug_pause(ThreadState *);
-  virtual bool debug_continue(ThreadState *);
-  virtual bool debug_continue_with(ThreadState *, long sig);
-  virtual bool debug_version_msg();
-  virtual bool debug_handle_signal(DebugEvent *ev);
+      // default implementation: this is a no-op.  Subclasses should override.
+      virtual bool pollForNewThreads();
 
-  virtual bool debug_handle_event(DebugEvent ev);
-  virtual bool version_msg();
-  virtual bool debug_waitfor_version_msg();
+      // unsupported -- stub will fail!
+      virtual bool debug_create(const std::string &, const std::vector<std::string> &);
 
- public:
-  ProcDebugBG(Dyninst::PID pid);
-  virtual ~ProcDebugBG();
+      ///
+      /// This implements basic BG debugger event -> stackwalker event translation.  It's
+      /// called by the BG implementation of ProcDebug::debug_get_event().
+      /// 
+      /// Subclasses (future BG architecture implementations) should override to handle new 
+      /// event types, then delegate here to handle old ones.
+      ///
+      friend DebugEvent ProcDebug::debug_get_event(bool);
+      virtual void translate_event(const DebuggerInterface::BG_Debugger_Msg& msg, 
+                                   DebugEvent& ev);
 
-  virtual bool getRegValue(Dyninst::MachRegister reg, Dyninst::THR_ID thread, Dyninst::MachRegisterVal &val);
-  virtual bool readMem(void *dest, Dyninst::Address source, size_t size);
-  virtual bool getThreadIds(std::vector<Dyninst::THR_ID> &threads);
-  virtual bool getDefaultThread(Dyninst::THR_ID &default_tid);
-  virtual unsigned getAddressWidth();
+      /// BG currently has no asynchronous thread control, so the threads are stopped and
+      /// continued all together.  This applies operations to all threads.
+      template<class Functor> void for_all_threads(Functor f) {
+        for_each(threads.begin(), threads.end(), do_to_second(f));
+      }
 
- protected:
-  void *mem_data;
-  unsigned mem_data_size;
+    public:
+      virtual bool detach(bool leave_stopped);
+      virtual bool getThreadIds(std::vector<Dyninst::THR_ID> &threads);
+      virtual bool getDefaultThread(Dyninst::THR_ID &default_tid);
+      virtual unsigned getAddressWidth();
+      virtual bool getRegValue(Dyninst::MachRegister reg, Dyninst::THR_ID thread, Dyninst::MachRegisterVal &val);
+      virtual bool readMem(void *dest, Dyninst::Address source, size_t size);
+      virtual bool isLibraryTrap(Dyninst::THR_ID thrd);
+      
+    protected:
+      ProcDebugBG(Dyninst::PID pid, std::string exe);
+      virtual ~ProcDebugBG();
 
-  void clear_cache();
+      /// Creation function for making platform-specific ProcDebugBG
+      /// Need to include an implementation of this in any build that includes 
+      /// ProcDebugBG.
+      static ProcDebug *createProcDebugBG(PID pid, const std::string& executable);
 
-  bool gprs_set;
-  BGL_GPRSet_t gprs;
+      /// Clears this process's memory read cache along with register caches 
+      /// from all of its threads.
+      virtual void clear_cache();
 
-  unsigned char *read_cache;
-  Dyninst::Address read_cache_start;
-  unsigned read_cache_size;
-};
+      // Protected Data
+      DebuggerInterface::BG_Debugger_Msg::DataArea *mem_data;    // data from memory reads.
 
-}
-}
+      unsigned char *read_cache;
+      Dyninst::Address read_cache_start;
+      unsigned read_cache_size;
+    };
 
-#endif
+    // helper for dealing with filehandles
+    bool bg_fdHasData(int fd);
+
+    //
+    // Like a regular ThreadState, but with a per-thread register cache.
+    // Also porvides ability to set thread id to account for the way the 
+    // BG debug interface handles threads.
+    //
+    class BGThreadState : public ThreadState {
+    private:
+      friend class ProcDebug;
+      void setTid(Dyninst::THR_ID id) { tid = id; }
+
+    public:
+      BGThreadState(ProcDebug *parent, Dyninst::THR_ID id) 
+        : ThreadState(parent, id), gprs_set(false) 
+      { }
+
+      virtual ~BGThreadState() { }
+
+      DebuggerInterface::BG_GPRSet_t gprs;   // Per-thread register cache.
+      bool gprs_set;                         // Valid flag for register cache.
+    };
+
+    /// Copy one thread's state to another.  
+    void copy_thread_state(ThreadState *source, ThreadState *dest);
+
+  } // Stackwalker
+} // Dyninst
+
+#endif // BLUEGENE_SWK_H

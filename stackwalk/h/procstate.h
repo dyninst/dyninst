@@ -107,28 +107,30 @@ class ProcSelf : public ProcessState {
 };
 
 typedef enum {
-  ps_neonatal,
+  ps_neonatal,                // 0
   ps_attached_intermediate,
   ps_attached,
   ps_running,
   ps_exited,
-  ps_errorstate,
+  ps_errorstate,              // 5
 } proc_state;
 
 typedef enum {
-   dbg_err,
-   dbg_exited,
-   dbg_crashed,
-   dbg_stopped,
-   dbg_other,
-   dbg_noevent,
-   dbg_libraryload,
-   //BGL
-   dbg_continued,
-   dbg_mem_ack,
-   dbg_reg_ack,
-   dbg_allregs_ack,
-   dbg_attached,
+  dbg_err,           // 0
+  dbg_exited,
+  dbg_crashed,
+  dbg_stopped,
+  dbg_other,
+  dbg_noevent,      // 5
+  dbg_libraryload,
+  // BG events are below.
+  dbg_continued,
+  dbg_mem_ack,
+  dbg_setmem_ack,
+  dbg_reg_ack,      // 10
+  dbg_allregs_ack,
+  dbg_attached,
+  dbg_thread_info,
 } dbg_t;
 
 class ProcDebug;
@@ -155,7 +157,7 @@ class ProcDebug : public ProcessState {
   friend class Walker;
   friend class ThreadState;
  protected:
-  ProcDebug(Dyninst::PID pid);
+  ProcDebug(Dyninst::PID pid, std::string executable="");
   ProcDebug(const std::string &executable, 
             const std::vector<std::string> &argv);
   
@@ -195,13 +197,15 @@ class ProcDebug : public ProcessState {
   virtual bool debug_handle_event(DebugEvent ev) = 0;
 
   static DebugEvent debug_get_event(bool block);
-  static bool debug_wait_and_handle(bool block, bool &handled);
+  static bool debug_wait_and_handle(bool block, bool &handled, dbg_t *event_type = NULL);
+
+  static bool debug_waitfor(dbg_t event_type);
 
   proc_state state();
   void setState(proc_state p);
  public:
   
-  static ProcDebug *newProcDebug(Dyninst::PID pid);
+  static ProcDebug *newProcDebug(Dyninst::PID pid, std::string executable="");
   static bool newProcDebugSet(const std::vector<Dyninst::PID> &pids,
                               std::vector<ProcDebug *> &out_set);
   static ProcDebug *newProcDebug(const std::string &executable, 
@@ -225,14 +229,38 @@ class ProcDebug : public ProcessState {
   virtual bool detach(bool leave_stopped = false) = 0;
 
   static int getNotificationFD();
+  const std::string& getExecutablePath();
+ protected:
+  /**
+   * Helper for polling for new threads.  Sees if the thread exists, 
+   * creates a ThreadState if not, and handles errors.  Mechanism for 
+   * finding thread ids is left to derived class.
+   **/
+  virtual bool add_new_thread(Dyninst::THR_ID tid);
+
+  /**
+   * Syntactic sugar for add_new_thread.  Use for adding lots of 
+   * threads from your favorite iterable data structure.
+   **/
+  template <class Iterator>
+  bool add_new_threads(Iterator start, Iterator end) 
+  {
+     bool good = true;
+     for (Iterator i=start; i != end; i++) {
+        if (!add_new_thread(*i)) good = false;
+     }
+     return good;
+  }
+   
   static bool handleDebugEvent(bool block = false);
 
   virtual bool isFirstParty();
- protected:
+
   ThreadState *initial_thread;
   ThreadState *active_thread;
   typedef std::map<Dyninst::THR_ID, ThreadState*> thread_map_t;
   thread_map_t threads;
+  std::string executable_path;
  public:
   static int pipe_in;
   static int pipe_out;
@@ -283,6 +311,28 @@ class ThreadState {
    Dyninst::THR_ID tid;
    proc_state thr_state;
    ProcDebug *parent;
+};
+
+// ----- Useful functors for dealing with ThreadStates. -----
+// invokes setStopped on the thread.
+struct set_stopped {
+  bool value;
+  set_stopped(bool v) : value(v) { }
+  void operator()(ThreadState *ts) { ts->setStopped(value); }
+};
+
+// Sets thread state.
+struct set_state {
+  proc_state value;
+  set_state(proc_state v) : value(v) { }
+  void operator()(ThreadState *ts) { ts->setState(value); }
+};
+
+// Sets thread state.
+struct set_should_resume {
+  bool value;
+  set_should_resume(bool v) : value(v) { }
+  void operator()(ThreadState *ts) { ts->setShouldResume(value); }
 };
 
 }

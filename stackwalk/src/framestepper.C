@@ -132,6 +132,7 @@ FrameFuncHelper::~FrameFuncHelper()
 {
 }
 
+#ifndef os_bg
 BottomOfStackStepper::BottomOfStackStepper(Walker *w) :
    FrameStepper(w)
 {
@@ -183,3 +184,4 @@ BottomOfStackStepper::~BottomOfStackStepper()
    if (impl)
       delete impl;
 }
+#endif // os_bg_compute

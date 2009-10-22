@@ -1,3 +1,9 @@
+/**
+ * We've been told that this header is no longer IBM confidential.
+ * The contents are being released and we were given premission to 
+ * redistribute this.
+ **/
+
 /* begin_generated_IBM_copyright_prolog                             */
 /*                                                                  */
 /* This is an automatically generated copyright prolog.             */
@@ -15,6 +21,12 @@
 /* The Source code for this program is not published or otherwise   */
 /* divested of its trade secrets, irrespective of what has been     */
 /* deposited with the U.S. Copyright Office.                        */
+/*                                                                  */
+/*                                                                  */
+/* ---------------------------------------------------------------  */
+/* 3/22/09 Todd Gamblin    Modified to change BGL_ prefixes so that */
+/*                         this matches the BG/P header.  Allows us */
+/*                         to generify BG stackwalker code.         */
 /* ---------------------------------------------------------------  */
 /*                                                                  */
 /* end_generated_IBM_copyright_prolog                               */
@@ -23,100 +35,100 @@
 #include <stdint.h>
 #include <stdio.h>
 namespace DebuggerInterface {
-#define BGL_DEBUGGER_WRITE_PIPE 3
-#define BGL_DEBUGGER_READ_PIPE 4
+#define BG_DEBUGGER_WRITE_PIPE 3
+#define BG_DEBUGGER_READ_PIPE 4
    // Some typedefs to insure consistency later.
-   typedef uint32_t BGL_NodeNum_t; // Which compute node under an I/O node
-   typedef uint32_t BGL_ThreadID_t; // Which thread in the compute node
-   typedef uint32_t BGL_GPR_t; // GPRs are 32 bit unsigned
-   typedef uint32_t BGL_Addr_t; // 32 bit virtual address
+   typedef uint32_t BG_NodeNum_t; // Which compute node under an I/O node
+   typedef uint32_t BG_ThreadID_t; // Which thread in the compute node
+   typedef uint32_t BG_GPR_t; // GPRs are 32 bit unsigned
+   typedef uint32_t BG_Addr_t; // 32 bit virtual address
    /* Register numbers
       The value of each enum is magically the same as the offset in
       words into the GPRSet_t structure. The system is similar to,
       but not necessarily the same as used by ptrace.h.
    */
    typedef enum {
-      BGL_GPR0 = 0,
-      BGL_GPR1,
-      BGL_GPR2,
-      BGL_GPR3,
-      BGL_GPR4,
-      BGL_GPR5,
-      BGL_GPR6,
-      BGL_GPR7,
-      BGL_GPR8,
-      BGL_GPR9,
-      BGL_GPR10,
-      BGL_GPR11,
-      BGL_GPR12,
-      BGL_GPR13,
-      BGL_GPR14,
-      BGL_GPR15,
-      BGL_GPR16,
-      BGL_GPR17,
-      BGL_GPR18,
-      BGL_GPR19,
-      BGL_GPR20,
-      BGL_GPR21,
-      BGL_GPR22,
-      BGL_GPR23,
-      BGL_GPR24,
-      BGL_GPR25,
-      BGL_GPR26,
-      BGL_GPR27,
-      BGL_GPR28,
-      BGL_GPR29,
-      BGL_GPR30,
-      BGL_GPR31 = 31,
-      BGL_FPSCR = 32,
-      BGL_LR = 33,
-      BGL_CR = 34,
-      BGL_XER = 35,
-      BGL_CTR = 36,
-      BGL_IAR = 37,
-      BGL_MSR = 38,
-      BGL_DEAR = 39,
-      BGL_ESR = 40
-   } BGL_GPR_Num_t;
+      BG_GPR0 = 0,
+      BG_GPR1,
+      BG_GPR2,
+      BG_GPR3,
+      BG_GPR4,
+      BG_GPR5,
+      BG_GPR6,
+      BG_GPR7,
+      BG_GPR8,
+      BG_GPR9,
+      BG_GPR10,
+      BG_GPR11,
+      BG_GPR12,
+      BG_GPR13,
+      BG_GPR14,
+      BG_GPR15,
+      BG_GPR16,
+      BG_GPR17,
+      BG_GPR18,
+      BG_GPR19,
+      BG_GPR20,
+      BG_GPR21,
+      BG_GPR22,
+      BG_GPR23,
+      BG_GPR24,
+      BG_GPR25,
+      BG_GPR26,
+      BG_GPR27,
+      BG_GPR28,
+      BG_GPR29,
+      BG_GPR30,
+      BG_GPR31 = 31,
+      BG_FPSCR = 32,
+      BG_LR = 33,
+      BG_CR = 34,
+      BG_XER = 35,
+      BG_CTR = 36,
+      BG_IAR = 37,
+      BG_MSR = 38,
+      BG_DEAR = 39,
+      BG_ESR = 40
+   } BG_GPR_Num_t;
    /* Floating point register numbers
       We have 'double hummer'. We will pretend that we have 32 registers,
       each 128 bits (4 words) wide. Once again, the enum value is the
       offset into the FPRSet_t struct.
    */
    typedef enum {
-      BGL_FPR0 = 0,
-      BGL_FPR1,
-      BGL_FPR2,
-      BGL_FPR3,
-      BGL_FPR4,
-      BGL_FPR5,
-      BGL_FPR6,
-      BGL_FPR7,
-      BGL_FPR8,
-      BGL_FPR9,
-      BGL_FPR10,
-      BGL_FPR11,
-      BGL_FPR12,
-      BGL_FPR13,
-      BGL_FPR14,
-      BGL_FPR15,
-      BGL_FPR16,
-      BGL_FPR17,
-      BGL_FPR18,
-      BGL_FPR19,
-      BGL_FPR20,
-      BGL_FPR21,
-      BGL_FPR22,
-      BGL_FPR23,
-      BGL_FPR24,
-      BGL_FPR25,
-      BGL_FPR26,
-      BGL_FPR27,
-      BGL_FPR28,
-      BGL_FPR29,
-      BGL_FPR30,
-      BGL_FPR31 = 31
-   } BGL_FPR_Num_t;
+      BG_FPR0 = 0,
+      BG_FPR1,
+      BG_FPR2,
+      BG_FPR3,
+      BG_FPR4,
+      BG_FPR5,
+      BG_FPR6,
+      BG_FPR7,
+      BG_FPR8,
+      BG_FPR9,
+      BG_FPR10,
+      BG_FPR11,
+      BG_FPR12,
+      BG_FPR13,
+      BG_FPR14,
+      BG_FPR15,
+      BG_FPR16,
+      BG_FPR17,
+      BG_FPR18,
+      BG_FPR19,
+      BG_FPR20,
+      BG_FPR21,
+      BG_FPR22,
+      BG_FPR23,
+      BG_FPR24,
+      BG_FPR25,
+      BG_FPR26,
+      BG_FPR27,
+      BG_FPR28,
+      BG_FPR29,
+      BG_FPR30,
+      BG_FPR31 = 31
+   } BG_FPR_Num_t;
    /* MsgType
       This doesn't match the ptrace interface very well.
       Ptrace doesn't define most of these primitives.
@@ -160,8 +172,8 @@ namespace DebuggerInterface {
                   SET_DEBUG_REGS,
                   SET_DEBUG_REGS_ACK,
                   THIS_SPACE_FOR_RENT
-   } BGL_MsgType_t;
-   extern const char *BGL_Packet_Names[];
+   } BG_MsgType_t;
+   extern const char *BG_Packet_Names[];
    /* GPRSet_t
       This is the set of general purpose registers.
    */
@@ -176,7 +188,7 @@ namespace DebuggerInterface {
       uint32_t msr; // machine status register
       uint32_t dear; // data exception address register
       uint32_t esr; // exception syndrome register
-   } BGL_GPRSet_t;
+   } BG_GPRSet_t;
    /* FPRSet_t
       Our FPRs are a little bit different because of the double hummer.
       We actually have 2 sets of FPRs.
@@ -188,10 +200,10 @@ namespace DebuggerInterface {
       uint32_t w1; // Second word of FPR in first FPR set
       uint32_t w2; // First word of FPR in second FPR set
       uint32_t w3; // Second word of FPR in second FPR set
-   } BGL_FPR_t;
+   } BG_FPR_t;
    typedef struct {
-      BGL_FPR_t fprs[32];
-   } BGL_FPRSet_t;
+      BG_FPR_t fprs[32];
+   } BG_FPRSet_t;
    typedef struct {
       uint32_t DBCR0; // Debug Control Register 0
       uint32_t DBCR1; // Debug Control Register 1
@@ -205,7 +217,7 @@ namespace DebuggerInterface {
       uint32_t DAC2; // Data Address Compare Register 2
       uint32_t DVC1; // Data Value Compare Register 1
       uint32_t DVC2; // Data Value Compare Register 2
-   } BGL_DebugSet_t;
+   } BG_DebugSet_t;
    typedef enum {
       RC_NO_ERROR = 0,
       RC_NOT_ATTACHED = 1,
@@ -219,7 +231,7 @@ namespace DebuggerInterface {
       RC_DENIED = 9,
       RC_BAD_SIGNAL = 10,
       RC_NOT_STOPPED = 11
-   } BGL_ErrorCode_t;
+   } BG_ErrorCode_t;
    /* Debugger_Msg_t
       This is the packet header for the pipe. All messages use this.
       messageType is self explanatory
@@ -240,16 +252,16 @@ namespace DebuggerInterface {
       'dataStartsHere' is a placeholder. As a result, to get the true size
       of this data structure you have to subtract 1 byte.
    */
-#define BGL_Debugger_Msg_MAX_SIZE 4096
-#define BGL_Debugger_Msg_HEADER_SIZE 24
-#define BGL_Debugger_Msg_MAX_PAYLOAD_SIZE (BGL_Debugger_Msg_MAX_SIZE-BGL_Debugger_Msg_HEADER_SIZE)
-#define BGL_Debugger_Msg_MAX_MEM_SIZE 4064
-   class BGL_Debugger_Msg {
+#define BG_Debugger_Msg_MAX_SIZE 4096
+#define BG_Debugger_Msg_HEADER_SIZE 24
+#define BG_Debugger_Msg_MAX_PAYLOAD_SIZE (BG_Debugger_Msg_MAX_SIZE-BG_Debugger_Msg_HEADER_SIZE)
+#define BG_Debugger_Msg_MAX_MEM_SIZE 4064
+   class BG_Debugger_Msg {
    public:
       typedef struct {
-         BGL_MsgType_t messageType;
-         BGL_NodeNum_t nodeNumber;
-         BGL_ThreadID_t thread;
+         BG_MsgType_t messageType;
+         BG_NodeNum_t nodeNumber;
+         BG_ThreadID_t thread;
          uint32_t sequence;
          uint32_t returnCode;
          uint32_t dataLength; // excluding this header
@@ -257,60 +269,60 @@ namespace DebuggerInterface {
       Header header;
       typedef union {
          struct {
-            BGL_GPR_Num_t registerNumber;
+            BG_GPR_Num_t registerNumber;
          } GET_REG;
          struct {
-            BGL_GPR_Num_t registerNumber;
-            BGL_GPR_t value;
+            BG_GPR_Num_t registerNumber;
+            BG_GPR_t value;
          } GET_REG_ACK;
          struct {
          } GET_ALL_REGS;
          struct {
-            BGL_GPRSet_t gprs;
+            BG_GPRSet_t gprs;
          } GET_ALL_REGS_ACK;
          struct {
-            BGL_GPR_Num_t registerNumber;
-            BGL_GPR_t value;
+            BG_GPR_Num_t registerNumber;
+            BG_GPR_t value;
          } SET_REG;
          struct {
-            BGL_GPR_Num_t registerNumber;
+            BG_GPR_Num_t registerNumber;
          } SET_REG_ACK;
          struct {
-            BGL_Addr_t addr;
+            BG_Addr_t addr;
             uint32_t len;
          } GET_MEM;
          struct {
-            BGL_Addr_t addr;
+            BG_Addr_t addr;
             uint32_t len;
-            unsigned char data[BGL_Debugger_Msg_MAX_MEM_SIZE];
+            unsigned char data[BG_Debugger_Msg_MAX_MEM_SIZE];
          } GET_MEM_ACK;
          struct {
-            BGL_Addr_t addr;
+            BG_Addr_t addr;
             uint32_t len;
-            unsigned char data[BGL_Debugger_Msg_MAX_MEM_SIZE];
+            unsigned char data[BG_Debugger_Msg_MAX_MEM_SIZE];
          } SET_MEM;
          struct {
-            BGL_Addr_t addr;
+            BG_Addr_t addr;
             uint32_t len;
          } SET_MEM_ACK;
          struct {
-            BGL_FPR_Num_t registerNumber;
+            BG_FPR_Num_t registerNumber;
          } GET_FLOAT_REG;
          struct {
-            BGL_FPR_Num_t registerNumber;
-            BGL_FPR_t value;
+            BG_FPR_Num_t registerNumber;
+            BG_FPR_t value;
          } GET_FLOAT_REG_ACK;
          struct {
          } GET_ALL_FLOAT_REGS;
          struct {
-            BGL_FPRSet_t fprs;
+            BG_FPRSet_t fprs;
          } GET_ALL_FLOAT_REGS_ACK;
          struct {
-            BGL_FPR_Num_t registerNumber;
-            BGL_FPR_t value;
+            BG_FPR_Num_t registerNumber;
+            BG_FPR_t value;
          } SET_FLOAT_REG;
          struct {
-            BGL_FPR_Num_t registerNumber;
+            BG_FPR_Num_t registerNumber;
          } SET_FLOAT_REG_ACK;
          struct {
          } SINGLE_STEP;
@@ -351,10 +363,10 @@ namespace DebuggerInterface {
          struct {
          } GET_DEBUG_REGS;
          struct {
-            BGL_DebugSet_t debugRegisters;
+            BG_DebugSet_t debugRegisters;
          } GET_DEBUG_REGS_ACK;
          struct {
-            BGL_DebugSet_t debugRegisters;
+            BG_DebugSet_t debugRegisters;
          } SET_DEBUG_REGS;
          struct {
          } SET_DEBUG_REGS_ACK;
@@ -362,10 +374,10 @@ namespace DebuggerInterface {
       } DataArea;
       DataArea dataArea;
       // Ctor
-      BGL_Debugger_Msg( void ) { header.messageType = THIS_SPACE_FOR_RENT; }
-      BGL_Debugger_Msg( BGL_MsgType_t type,
-                        BGL_NodeNum_t node,
-                        BGL_ThreadID_t thread,
+      BG_Debugger_Msg( void ) { header.messageType = THIS_SPACE_FOR_RENT; }
+      BG_Debugger_Msg( BG_MsgType_t type,
+                        BG_NodeNum_t node,
+                        BG_ThreadID_t thread,
                         uint32_t sequence,
                         uint32_t returnCode )
          {
@@ -375,11 +387,80 @@ namespace DebuggerInterface {
             header.sequence = sequence;
             header.returnCode = returnCode;
          }
-      static BGL_Debugger_Msg generateErrorPacket( BGL_Debugger_Msg &original, BGL_ErrorCode_t ec );
-      static bool readFromFd( int fd, BGL_Debugger_Msg &msg );
-      static bool writeOnFd( int fd, BGL_Debugger_Msg &msg );
-      static void dump( BGL_Debugger_Msg &msg );
-      static void dump( BGL_Debugger_Msg &msg, FILE *outfile );
+      static BG_Debugger_Msg generateErrorPacket( BG_Debugger_Msg &original, BG_ErrorCode_t ec );
+      static void dump( BG_Debugger_Msg &msg );
+      static void dump( BG_Debugger_Msg &msg, FILE *outfile );
+
+      static bool writeOnFd(int fd, BG_Debugger_Msg &msg)
+      {
+        int result;
+        result = write(fd, &msg.header, sizeof(msg.header));
+        if (result != -1) {
+          result = write(fd, &msg.dataArea, msg.header.dataLength);
+        }
+        
+        return (result != -1);
+      }
+      
+      static bool readFromFd(int fd, BG_Debugger_Msg &msg)
+      {
+        int result;
+        result = read(fd, &msg.header, sizeof(msg.header));
+        if (result != -1 && msg.header.dataLength) {
+          result = read(fd, &msg.dataArea, msg.header.dataLength);
+        }
+        return (result != -1);
+      }
+     
+      static const char *getMessageName(BG_MsgType_t type)
+      {
+        static const char *BG_Packet_Names[] = 
+          {
+            "GET_REG",
+            "GET_ALL_REGS",
+            "SET_REG",
+            "GET_MEM", 
+            "SET_MEM", 
+            "GET_FLOAT_REG",
+            "GET_ALL_FLOAT_REGS",
+            "SET_FLOAT_REG",
+            "SINGLE_STEP",
+            "CONTINUE",
+            "KILL", 
+            "ATTACH",
+            "DETACH",
+            "GET_REG_ACK",
+            "GET_ALL_REGS_ACK",
+            "SET_REG_ACK", 
+            "GET_MEM_ACK", 
+            "SET_MEM_ACK", 
+            "GET_FLOAT_REG_ACK",
+            "GET_ALL_FLOAT_REGS_ACK",
+            "SET_FLOAT_REG_ACK", 
+            "SINGLE_STEP_ACK", 
+            "CONTINUE_ACK", 
+            "KILL_ACK", 
+            "ATTACH_ACK", 
+            "DETACH_ACK", 
+            "SIGNAL_ENCOUNTERED",
+            "PROGRAM_EXITED",
+            "VERSION_MSG",
+            "VERSION_MSG_ACK",
+            "GET_DEBUG_REGS",
+            "GET_DEBUG_REGS_ACK",
+            "SET_DEBUG_REGS",
+            "SET_DEBUG_REGS_ACK",
+            "THIS_SPACE_FOR_RENT"
+          };
+  
+        if ((type >= GET_REG) && (type < THIS_SPACE_FOR_RENT)) {
+          return BG_Packet_Names[type];
+        }
+        else {
+          return "UNKNOWN";
+        }
+      }
    };
 }
+
 #endif // DEBUGGER_INTERFACE_H

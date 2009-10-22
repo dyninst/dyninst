@@ -49,12 +49,14 @@ extern int sym_debug_aggregates;
 extern int sym_debug_create;
 extern int sym_debug_object;
 extern int sym_debug_types;
+extern int sym_debug_translate;
 
 extern int parsing_printf(const char *format, ...);
 extern int aggregate_printf(const char *format, ...);
 extern int create_printf(const char *format, ...);
 extern int object_printf(const char *format, ...);
 extern int types_printf(const char *format, ...);
+extern int translate_printf(const char *format, ...);
 
 // And initialization
 extern bool init_debug_symtabAPI();
