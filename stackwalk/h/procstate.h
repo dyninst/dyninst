@@ -197,7 +197,7 @@ class ProcDebug : public ProcessState {
   virtual bool debug_handle_event(DebugEvent ev) = 0;
 
   static DebugEvent debug_get_event(bool block);
-  static bool debug_wait_and_handle(bool block, bool &handled, dbg_t *event_type = NULL);
+  static bool debug_wait_and_handle(bool block, bool flush, bool &handled, dbg_t *event_type = NULL);
 
   static bool debug_waitfor(dbg_t event_type);
 
@@ -230,6 +230,9 @@ class ProcDebug : public ProcessState {
 
   static int getNotificationFD();
   const std::string& getExecutablePath();
+
+  static bool handleDebugEvent(bool block = false);
+  virtual bool isFirstParty();
  protected:
   /**
    * Helper for polling for new threads.  Sees if the thread exists, 
@@ -252,10 +255,6 @@ class ProcDebug : public ProcessState {
      return good;
   }
    
-  static bool handleDebugEvent(bool block = false);
-
-  virtual bool isFirstParty();
-
   ThreadState *initial_thread;
   ThreadState *active_thread;
   typedef std::map<Dyninst::THR_ID, ThreadState*> thread_map_t;

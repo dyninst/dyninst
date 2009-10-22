@@ -176,7 +176,7 @@ namespace Dyninst {
       }
 
       bool handled;
-      if (!debug_wait_and_handle(true, handled) && handled) {
+      if (!debug_wait_and_handle(true, false, handled) && handled) {
         sw_printf("[%s:%u] - Unable to get ack for setmem in registerLibSpotter()\n", __FILE__, __LINE__);
       }
       

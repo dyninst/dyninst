@@ -461,7 +461,7 @@ namespace Dyninst {
       sw_printf("[%s:%u] - At debug_waitfor_Version_msg.\n", __FILE__, __LINE__);
       bool handled, result;
    
-      result = debug_wait_and_handle(true, handled);
+      result = debug_wait_and_handle(true, false, handled);
       if (!result || state() == ps_errorstate) {
         sw_printf("[%s:%u] - Error,  Process %d errored during version_msg\n",
                   __FILE__, __LINE__, pid);

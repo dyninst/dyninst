@@ -193,7 +193,7 @@ bool ProcDebug::debug_waitfor_create()
   for (;;) {
     bool handled, result;
     
-    result = debug_wait_and_handle(true, handled);
+    result = debug_wait_and_handle(true, false, handled);
     if (!result || state() == ps_errorstate) {
       sw_printf("[%s:%u] - Error.  Process %d errored during create\n",
                 __FILE__, __LINE__, pid);
@@ -305,7 +305,7 @@ bool ProcDebug::debug_waitfor_attach(ThreadState *ts)
       return true;
     }
     
-    result = debug_wait_and_handle(true, handled);
+    result = debug_wait_and_handle(true, false, handled);
     if (!result || ts->state() == ps_errorstate) {
       sw_printf("[%s:%u] - Error.  Thread %d/%d errored during attach\n",
                 __FILE__, __LINE__, pid, tid);
@@ -427,7 +427,7 @@ bool ProcDebug::debug_waitfor_continue(ThreadState *thr)
   while (thr->isStopped()) {
     bool handled, result;
     
-    result = debug_wait_and_handle(true, handled);
+    result = debug_wait_and_handle(true, false, handled);
     if (!result || state() == ps_errorstate) {
       sw_printf("[%s:%u] - Error.  Process %d errored during continue\n",
                 __FILE__, __LINE__, pid);
@@ -488,7 +488,7 @@ bool ProcDebug::pause(Dyninst::THR_ID tid)
       sw_printf("[%s:%u] - Pausing thread %d on process %d\n",
                 __FILE__, __LINE__, tid, pid);
       bool result = pause_thread(thr);
-  if (!result) {
+      if (!result) {
          sw_printf("[%s:%u] - Error pausing thread %d on process %d\n",
                 __FILE__, __LINE__, tid, pid);
          had_error = true;
@@ -532,20 +532,20 @@ bool ProcDebug::debug_waitfor_pause(ThreadState *thr)
    Dyninst::THR_ID tid = thr->getTid();
    sw_printf("[%s:%u] - Waiting for %d, %d to stop\n", __FILE__, __LINE__, pid, tid);
    while (!thr->isStopped()) {
-    bool handled, result;
-    
-    result = debug_wait_and_handle(true, handled);
+      bool handled, result;
+      
+      result = debug_wait_and_handle(true, false, handled);
       if (!result || thr->state() == ps_errorstate) {
          sw_printf("[%s:%u] - Error.  Process %d, %d errored during pause\n",
                    __FILE__, __LINE__, pid, tid);
-      return false;
-    }
+         return false;
+      }
       if (thr->state() == ps_exited) {
          sw_printf("[%s:%u] - Error.  Process %d, %d exited during pause\n",
                    __FILE__, __LINE__, pid, tid);
-      return false;
-    }
-  }
+         return false;
+      }
+   }
    sw_printf("[%s:%u] - Successfully stopped %d, %d\n", 
              __FILE__, __LINE__, pid, tid);
   return true;
@@ -555,7 +555,11 @@ bool ProcDebug::debug_waitfor_pause(ThreadState *thr)
 bool ProcDebug::debug_waitfor(dbg_t event_type) {
   bool handled;
   dbg_t handled_type;
-  while (debug_wait_and_handle(true, handled, &handled_type)) {
+  bool flush = false;
+#if defined(os_linux)
+  flush = true;
+#endif
+  while (debug_wait_and_handle(true, flush, handled, &handled_type)) {
     if (handled_type == event_type) {
       return true;
     }
@@ -564,46 +568,52 @@ bool ProcDebug::debug_waitfor(dbg_t event_type) {
 }
 
 
-bool ProcDebug::debug_wait_and_handle(bool block, bool &handled, dbg_t *event_type)
+bool ProcDebug::debug_wait_and_handle(bool block, bool flush, bool &handled, 
+                                      dbg_t *event_type)
 {
   bool result;
-  DebugEvent ev = debug_get_event(block);
-
-  // tell caller what was handled (or not) if he wants to know.
-  if (event_type) {
-    *event_type = ev.dbg;
-  }
-
-  if (ev.dbg == dbg_noevent)
-  {
-    sw_printf("[%s:%u] - Returning from debug_wait_and_handle with nothing to do\n",
-	      __FILE__, __LINE__);
-    handled = false;
-    return true;
-  }
-
-  if (ev.dbg == dbg_err)
-  {
-    sw_printf("[%s:%u] - Returning from debug_wait_and_handle with error\n",
-	      __FILE__, __LINE__);
-    handled = false;
-    return false;
-  }
-
-  sw_printf("[%s:%u] - Handling event for pid %d: dbg %d, data %d\n", 
-	    __FILE__, __LINE__, ev.proc->pid, ev.dbg, ev.data.idata);
-  result = ev.proc->debug_handle_event(ev);
-
-  if (!result) {
-    sw_printf("[%s:%u] - debug_handle_event returned error for ev.dbg = %d, " \
-	      "ev.proc = %d\n", __FILE__, __LINE__, ev.dbg, ev.proc->pid);
-    handled = false;
-    return false;
-  }
+  handled = false;
   
-  sw_printf("[%s:%u] - Event %d on pid %d successfully handled\n", 
-	    __FILE__, __LINE__, ev.dbg, ev.proc->pid);
-  handled = true;
+  for (;;) {
+     DebugEvent ev = debug_get_event(block);
+
+     if (ev.dbg == dbg_noevent)
+     {
+        sw_printf("[%s:%u] - Returning from debug_wait_and_handle, %s.\n",
+                  __FILE__, __LINE__, handled ? "handled event" : "no event");
+        if (!handled && event_type) {
+           *event_type = dbg_noevent;
+        }
+        return true;
+     }
+     if (event_type) {
+        *event_type = ev.dbg;
+     }
+     if (ev.dbg == dbg_err)
+     {
+        sw_printf("[%s:%u] - Returning from debug_wait_and_handle with error\n",
+                  __FILE__, __LINE__);
+        return false;
+     }
+
+     sw_printf("[%s:%u] - Handling event for pid %d: dbg %d, data %d\n", 
+               __FILE__, __LINE__, ev.proc->pid, ev.dbg, ev.data.idata);
+     result = ev.proc->debug_handle_event(ev);
+     if (!result) {
+        sw_printf("[%s:%u] - debug_handle_event returned error for ev.dbg = %d, " \
+                  "ev.proc = %d\n", __FILE__, __LINE__, ev.dbg, ev.proc->pid);
+        handled = false;
+        return false;
+     }
+     
+     sw_printf("[%s:%u] - Event %d on pid %d successfully handled\n", 
+               __FILE__, __LINE__, ev.dbg, ev.proc->pid);
+     handled = true;
+
+     if (!flush)
+        break;
+     block = false;
+  }
   return true;
 } 
 
@@ -658,7 +668,7 @@ bool ProcDebug::handleDebugEvent(bool block)
   bool result;
   bool handled;
   
-  result = debug_wait_and_handle(block, handled);
+  result = debug_wait_and_handle(block, true, handled);
   if (!result) {
     sw_printf("[%s:%u] - Error waiting for event in handleDebugEvent\n",
 	      __FILE__, __LINE__);
