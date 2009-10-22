@@ -38,6 +38,8 @@
 #include <sys/user.h>
 #include <sys/ptrace.h>
 #include <assert.h>
+#include <errno.h>
+#include <string.h>
 
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;

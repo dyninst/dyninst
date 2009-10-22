@@ -136,7 +136,8 @@ namespace Dyninst {
       }
   
       bool result = pd->attach();
-      if (!result || pd->state() != ps_running && pd->state() != ps_attached) {
+      if (!result || (pd->state() != ps_running && pd->state() != ps_attached))
+      {
         pd->setState(ps_errorstate);
         proc_map.erase(pid);
         const char *msg = "Error attaching to process";
@@ -674,7 +675,7 @@ namespace Dyninst {
         
         do {
           bool handled, result;
-          result = debug_wait_and_handle(true, handled);
+          result = debug_wait_and_handle(true, false, handled);
           if (!result)
           {
             sw_printf("[%s:%u] - Error while waiting for read to return\n",

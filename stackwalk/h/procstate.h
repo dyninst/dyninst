@@ -40,6 +40,7 @@
 #include <vector>
 #include <map>
 #include <queue>
+#include <string>
 
 namespace Dyninst {
 namespace Stackwalker {
