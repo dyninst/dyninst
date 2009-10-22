@@ -51,7 +51,8 @@ Frame::Frame(Walker *parent_walker) :
   bottom_frame(false),
   frame_complete(false),
   stepper(NULL),
-  walker(parent_walker)
+  walker(parent_walker),
+  originating_thread(NULL_THR_ID)
 {
   assert(walker);
   ra_loc.location = loc_unknown;
@@ -278,5 +279,15 @@ bool Frame::getLibOffset(std::string &lib, Dyninst::Offset &offset,
 #endif
 
   return true;
+}
+
+THR_ID Frame::getThread() const
+{
+   return originating_thread;
+}
+
+void Frame::setThread(THR_ID t)
+{
+   originating_thread = t;
 }
 

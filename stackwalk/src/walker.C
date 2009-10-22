@@ -288,6 +288,7 @@ Walker::~Walker() {
   frame.setRA(pc); \
   frame.setFP(fp); \
   frame.setSP(sp); \
+  frame.setThread(thread); \
   done_gifi: ; \
 }
 
@@ -429,6 +430,7 @@ bool Walker::walkSingleFrame(const Frame &in, Frame &out)
    }
 
  done:
+   out.setThread(in.getThread());
    callPostStackwalk();
    return result;
 }

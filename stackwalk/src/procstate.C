@@ -72,7 +72,8 @@ public:
 
 std::map<Dyninst::PID, ProcessState *> ProcessState::proc_map;
 
-ProcessState::ProcessState(Dyninst::PID pid_)
+ProcessState::ProcessState(Dyninst::PID pid_) :
+   library_tracker(NULL)
 {
    std::map<PID, ProcessState *>::iterator i = proc_map.find(pid_);
    if (i != proc_map.end())
@@ -112,11 +113,11 @@ void ProcessState::postStackwalk(Dyninst::THR_ID)
 void ProcessState::setDefaultLibraryTracker()
 {
   if (library_tracker) return;
-  #if defined(cap_stackwalker_use_symtab)
+#if defined(cap_stackwalker_use_symtab)
     library_tracker = new SymtabLibState(this);
-  #else
+#else
     library_tracker = new DefaultLibState(this);
-  #endif
+#endif
 }
 
 ProcessState::~ProcessState()
