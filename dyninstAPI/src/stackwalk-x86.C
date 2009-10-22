@@ -281,23 +281,41 @@ class DyninstMemRegReader : public Dyninst::SymtabAPI::MemRegReader
    }
 
    virtual bool GetReg(MachRegister reg, MachRegisterVal &val) {
-      switch (reg) {
-         case MachRegPC:
-         case MachRegReturn:
-            val = orig_frame->getPC();
-            break;
-         case ESP:
-         case RSP:
-         case MachRegStackBase:
-            val = orig_frame->getSP();
-            break;
-         case EBP:
-         case RBP:
-         case MachRegFrameBase:
-            val = orig_frame->getFP();
-            break;
-         default:
-            assert(0);
+      if (proc->getAddressWidth() == 4) {
+         switch (reg) {
+            case MachRegPC:
+            case MachRegReturn:
+               val = orig_frame->getPC();
+               break;
+            case x86::ESP:
+            case MachRegStackBase:
+               val = orig_frame->getSP();
+               break;
+            case x86::EBP:
+            case MachRegFrameBase:
+               val = orig_frame->getFP();
+               break;
+            default:
+               assert(0);
+         }
+      }
+      else {
+         switch (reg) {
+            case MachRegPC:
+            case MachRegReturn:
+               val = orig_frame->getPC();
+               break;
+            case x86_64::RSP:
+            case MachRegStackBase:
+               val = orig_frame->getSP();
+               break;
+            case x86_64::RBP:
+            case MachRegFrameBase:
+               val = orig_frame->getFP();
+               break;
+            default:
+               assert(0);
+         }
       }
       return true;
    }
@@ -419,9 +437,9 @@ Frame Frame::getCallerFrame()
          }         
          Dyninst::MachRegister frame_reg;
          if (getProc()->getAddressWidth() == 4)
-            frame_reg = EBP;
+            frame_reg = x86::EBP;
          else
-            frame_reg = RBP;
+            frame_reg = x86_64::RBP;
 
          result = vsys_obj->getRegValueAtFrame(pc_ - vsys_base, frame_reg,
                                                newFP, &reader);
