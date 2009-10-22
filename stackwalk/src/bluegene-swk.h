@@ -32,6 +32,7 @@
 #ifndef BLUEGENE_SWK_H
 #define BLUEGENE_SWK_H
 
+#include <algorithm>
 #include "procstate.h"
 #include "stl_utils.h"
 
