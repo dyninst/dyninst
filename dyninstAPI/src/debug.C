@@ -61,7 +61,7 @@ void BPatch_reportError(int errLevel, int num, const char *str) {
 }
 
 void
-pd_log_perror(const char* msg) {
+dyninst_log_perror(const char* msg) {
     sprintf(errorLine, "%s: %s\n", msg, strerror(errno));
     logLine(errorLine);
     // fprintf(stderr, "%s", log_buffer);
