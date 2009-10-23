@@ -408,6 +408,8 @@ bool image::gap_heuristic_GCC(Address addr)
     const unsigned char* bufferBegin = (const unsigned char*)(getPtrToInstruction(addr));
     if(!bufferBegin)
         return false;
+    if (!isStackFramePrecheck_gcc(bufferBegin))
+        return false;
 
     InstructionDecoder dec(bufferBegin, -1 - (Address)(bufferBegin));
     dec.setMode(getAddressWidth() == 8);
@@ -431,6 +433,8 @@ bool image::gap_heuristic_MSVS(Address addr)
      // adjust this if we look before the current address
     const unsigned char* bufferBegin = (const unsigned char*)(getPtrToInstruction(addr));
     if(!bufferBegin)
+        return false;
+    if (!isStackFramePrecheck_msvs(bufferBegin))
         return false;
 
     InstructionDecoder dec(bufferBegin, -1 - (Address)(bufferBegin));
