@@ -45,7 +45,7 @@
 #endif
 
 
-extern void pd_log_perror(const char *msg);
+extern void symtab_log_perror(const char *msg);
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace std;
