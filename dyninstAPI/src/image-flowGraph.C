@@ -89,11 +89,6 @@ bool addrfunccmp( image_func* pdf1, image_func* pdf2 )
    if ( pdf1->getOffset() < pdf2->getOffset() )
       return true;
    return false;
-#if 0
-           if ( pdf1->getOffset() < pdf2->getOffset() )
-                      return false;
-               return false;
-#endif
 }
 #endif
 
@@ -544,30 +539,6 @@ bool image_func::parse()
         // XXX This is a heuristic that we should revisit; is it really
         //     a common idiom for redirection to another function? Why
         //     do we need to treat it that way? -- nate & kevin
-#if 0
-        if( ah.isAJumpInstruction() )
-        {
-            Address target = ah.getCFT();
-
-            parsing_printf("[%s:%u] direct jump to 0x%lx at entry point\n",
-                FILE__,__LINE__,target);
-
-            if(img()->isCode(target)) {
-                // Recursively parse this function
-                bindCallTarget(target,NULL);
-            } else {
-                // Create instrumentation point for on-demand parsing
-                p = new image_instPoint(*ah,
-                                        ah.getInstruction(),
-                                        this,
-                                        target,
-                                        false,
-                                        false,
-                                        otherPoint); 
-                pdmod()->addUnresolvedControlFlow(p);
-            }
-        }
-#endif
         if(ah.isBranch() && !ah.isConditional())
         {
             Address target = ah.getCFT();
@@ -664,39 +635,6 @@ bool image_func::parse()
     entryBlock_ = ph_entryBlock;
     entryBlocks_.push_back(ph_entryBlock);
 
-#if 0
-    // The "actual" entry block (alpha)
-    if(funcEntryAddr != funcBegin)
-    {
-        image_basicBlock *tmpBlock;
-        if(image_->basicBlocksByRange.find(funcEntryAddr,tmpRange))
-        {
-            tmpBlock = dynamic_cast<image_basicBlock *>(tmpRange);
-            if(tmpBlock->firstInsnOffset() == funcEntryAddr)
-            {
-                tmpBlock->isEntryBlock_ = true;
-            }
-            else
-            {
-                assert(tmpBlock == ph_entryBlock);
-                tmpBlock = ph_entryBlock->split(funcEntryAddr,this);
-                tmpBlock->isEntryBlock_ = true;
-            }
-        }
-        else
-        {
-            tmpBlock = new image_basicBlock(this, funcEntryAddr);
-            tmpBlock->isStub_ = true;
-            image_->basicBlocksByRange.insert(tmpBlock);
-            tmpBlock->isEntryBlock_ = true;
-        }
-        entryBlocks_.push_back(tmpBlock);
-
-	    // special alpha-case "multiple" entry (really multiple lookup)
-	    image_->funcsByEntryAddr[funcEntryAddr] = this;
-    } 
-    // End alpha-specific weirdness
-#endif
     // Note that the current function is in-progess to avoid
     // spurious duplication for loops in the call graph
     img()->activelyParsing[getOffset()] = this;
