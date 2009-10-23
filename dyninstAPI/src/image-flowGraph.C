@@ -268,7 +268,6 @@ bool image::analyzeImage()
                       FILE__,gapStart, gapEnd);
         for(curAddr=gapStart; curAddr < gapEnd; ++curAddr) {
             if(isCode(curAddr) && gap_heuristics(curAddr)) {
-                // XXX degbugging sanity check; safe to remove
                 assert(!funcsByEntryAddr.defines(curAddr));
 
                 char name[32];
@@ -1650,6 +1649,7 @@ void image_func::parseSharedBlocks(image_basicBlock * firstBlock,
     WL.clear();
     targets.clear();
 #endif
+    endOffset_ = funcEnd;
 }
 
 /* A specialized version for parsing shared blocks when we don't care
@@ -1662,8 +1662,6 @@ void image_func::parseSharedBlocks(image_basicBlock * firstBlock)
     BPatch_Set< Address > leaders;
     dictionary_hash< Address, image_basicBlock * > leadersToBlock( addrHash );
 
-    endOffset_ = getOffset();
-    
     parseSharedBlocks(firstBlock,
                       leaders,          /* unused */
                       leadersToBlock,   /* unused */
