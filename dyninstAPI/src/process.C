@@ -4996,7 +4996,7 @@ bool process::readThreadStruct(Address baseAddr, dyninst_thread_t &struc) {
             return false;
         }
         // We got the first three; slurp the fourth.
-        unsigned int temp;
+        unsigned int temp = 0;
         if (!readDataSpace((void *)(baseAddr + (3*sizeof(int))),
                            sizeof(int),
                            (void *)&temp,
@@ -5070,7 +5070,7 @@ bool process::removeThreadIndexMapping(dynthread_t tid, unsigned index)
             // We must be 64-bit, they're 32.
             assert(getAddressWidth() == 4);
             assert(sizeof(thread_structs_base) == 8);
-            int temp;
+            unsigned int temp = 0;
             if (!readDataSpace((void *)thread_structs_var->getAddress(),
                                getAddressWidth(),
                                (void *)&temp,
