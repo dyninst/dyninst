@@ -466,8 +466,9 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, baseTrampInstance *inst, codeGen &g
           registerSlot *reg = regs[i];
           if (inst->definedRegs[reg->encoding()]) {
              ::emitPush(RealRegister(reg->encoding()), gen);
+			 int eax_flags = (reg->encoding() == REGNUM_EAX) ? flags_saved_i : 0;
              gen.rs()->markSavedRegister(RealRegister(reg->encoding()),
-                                         numRegsUsed - num_saved + base_i - 1);
+                                         numRegsUsed - num_saved + base_i - 1 + eax_flags);
              num_saved++;
           }
        }
