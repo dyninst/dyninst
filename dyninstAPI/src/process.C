@@ -1681,6 +1681,7 @@ process::process(SignalGenerator *sh_) :
     , vsyscall_end_(0)
     , vsyscall_text_(0)
     , auxv_parser(NULL)
+    , started_stopped(false)
     , vsyscall_obj(NULL)
 #endif
 {
@@ -2176,6 +2177,7 @@ process::process(process *parentProc, SignalGenerator *sg_, int childTrace_fd) :
     , vsyscall_end_(parentProc->vsyscall_end_)
     , vsyscall_text_(parentProc->vsyscall_text_)
     , auxv_parser(NULL)
+    , started_stopped(false)
     , vsyscall_obj(parentProc->vsyscall_obj)
 #endif
 {

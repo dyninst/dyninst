@@ -475,6 +475,22 @@ bool SignalHandler::handleForkExit(EventRecord &ev, bool &continueHint)
              // This may have been mucked with during the fork callback
              // If we're still paused, then hit run. It'd be nice if there was a 
              // way to let the user say "stay paused!" -- bernat
+#if defined(os_linux)
+             if (proc->status() == detached && proc->started_stopped) {
+                /** 
+                 * To work around a linux utrace bug we introduced a SIGSTOP
+                 * into the process' signal queue during process startup.  
+                 * Normally this SIGSTOP would go away when the process is continued
+                 * for the first time, but since we detached post-fork, the process
+                 * was never continued out of its starting point.  
+                 *
+                 * We'll throw in an extra continue here to keep it going.  Note
+                 * that we don't use the continueProc() interface because that goes
+                 * through debugger details, and we're already detached.
+                 **/
+                P_kill(SIGCONT, proc->getPid());
+             }
+#endif
              if (proc->sh->syncRunWhenFinished_ != runRequest) {
                 signal_printf("%s[%d]: running parent post-FORK: overriding syncContinueState\n",
                               FILE__, __LINE__);

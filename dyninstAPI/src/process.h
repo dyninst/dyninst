@@ -1062,6 +1062,8 @@ private:
   Address vsyscall_text_;
   AuxvParser *auxv_parser;
   Dyninst::SymtabAPI::Symtab *vsyscall_obj;
+
+  bool started_stopped;
 #endif
 
   ///////////////////
