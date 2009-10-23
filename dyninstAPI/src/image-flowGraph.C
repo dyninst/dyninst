@@ -358,7 +358,10 @@ image::compute_gap(
             return false;
 
         cur = *fit;
-        gapStart = cur->getEndOffset();
+        if(cur->getOffset() == cur->getEndOffset())
+           gapStart = cur->getEndOffset() + 1;
+        else
+           gapStart = cur->getEndOffset();
 
         set<image_func *, image_func::compare>::const_iterator fit2(fit);
         ++fit2;
