@@ -916,6 +916,7 @@ bool doingCatchup = false;
 bool BPatch_process::finalizeInsertionSetInt(bool atomic, bool *modified) 
 {
     // Can't insert code when mutations are not active.
+    bool shouldContinue = false;
     if (!mutationsActive)
         return false;
     
@@ -944,8 +945,15 @@ bool BPatch_process::finalizeInsertionSetInt(bool atomic, bool *modified)
     // Define up here so we don't have gotos causing issues
     std::set<int_function *> instrumentedFunctions;
 
+    if (!isStoppedInt()) {
+       stopExecutionInt();
+       shouldContinue = true;
+    }
+
     if (!llproc->walkStacks(stacks)) {
        inst_printf("%s[%d]:  walkStacks failed\n", FILE__, __LINE__);
+       if (shouldContinue) 
+          continueExecutionInt();
        return false;
     }
 
@@ -997,6 +1005,8 @@ bool BPatch_process::finalizeInsertionSetInt(bool atomic, bool *modified)
        if (!pt->checkInst(pcs)) {
            fprintf(stderr, "%s[%d]:  CANNOT perform code insertion while in instrumentation\n", 
                   FILE__, __LINE__);
+           if (shouldContinue) 
+              continueExecutionInt();
            return false;
        }  
     }
@@ -1215,6 +1225,9 @@ bool BPatch_process::finalizeInsertionSetInt(bool atomic, bool *modified)
       pendingInsertions = NULL;
     }
     catchup_printf("%s[%d]:  leaving finalizeInsertionSet -- CATCHUP DONE\n", FILE__, __LINE__);
+    if (shouldContinue) 
+       continueExecutionInt();
+
     return ret;
 }
 
