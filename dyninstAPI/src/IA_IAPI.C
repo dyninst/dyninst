@@ -80,10 +80,18 @@ IA_IAPI::IA_IAPI(InstructionDecoder dec_, Address where_,
 
 void IA_IAPI::advance()
 {
-    if(!curInsn()) return;
+    if(!curInsn()) {
+        parsing_printf("..... WARNING: failed to advance InstructionAdapter at 0x%lx, allInsns.size() = %d\n", current,
+                       allInsns.size());
+        return;
+    }
     InstructionAdapter::advance();
     current += curInsn()->size();
     boost::tuples::tie(curInsnIter, boost::tuples::ignore) = allInsns.insert(std::make_pair(current, dec.decode()));
+    if(!curInsn())
+    {
+        parsing_printf("......WARNING: after advance at 0x%lx, curInsn() NULL\n", current);
+    }
     validCFT = false;
     hascftstatus.first = false;
     tailCall.first = false;
@@ -624,7 +632,8 @@ Address IA_IAPI::findThunkInBlock(image_basicBlock* curBlock, Address& thunkOffs
 {
     const unsigned char* buf =
             (const unsigned char*)(img->getPtrToInstruction(curBlock->firstInsnOffset()));
-    InstructionDecoder dec(buf, curBlock->getSize());
+    
+    InstructionDecoder dec(buf, curBlock->getSize() + 16);
     dec.setMode(img->getAddressWidth() == 8);
     IA_IAPI * blockptr = NULL;
     if(context) 
@@ -636,26 +645,50 @@ Address IA_IAPI::findThunkInBlock(image_basicBlock* curBlock, Address& thunkOffs
     parsing_printf("\tchecking block at 0x%lx for thunk\n", curBlock->firstInsnOffset());
     while(block.getAddr() < curBlock->endOffset())
     {
-        if(block.getInstruction()->getCategory() == c_CallInsn && !block.isRealCall())
+        if(block.getInstruction()->getCategory() == c_CallInsn)
         {
-            block.advance();
-            thunkOffset = block.getAddr();
-            Instruction::Ptr addInsn = block.getInstruction();
-            if(addInsn && addInsn->getOperation().getID() == e_add)
+            parsing_printf("\tchecking call at 0x%lx for thunk\n", block.getAddr());
+            if(!block.isRealCall())
             {
-                Result imm = addInsn->getOperand(1).getValue()->eval();
-                if(imm.defined)
+                parsing_printf("\tthunk found at 0x%lx, checking for add\n", block.getAddr());
+                block.advance();
+                thunkOffset = block.getAddr();
+                Instruction::Ptr addInsn = block.getInstruction();
+                if(addInsn)
+                    parsing_printf("\tinsn after thunk: %s\n", addInsn->format().c_str());
+                else
+                    parsing_printf("\tNO INSN after thunk at 0x%lx\n", thunkOffset);
+                if(addInsn && (addInsn->getOperation().getID() == e_add))
                 {
-                    Address thunkDiff = imm.convert<Address>();
-                    parsing_printf("\tsetting thunkOffset to 0x%lx (0x%lx + 0x%lx)\n",
-                                   thunkOffset+thunkDiff, thunkOffset, thunkDiff);
-                    Address ret = block.getPrevAddr();
-                    delete blockptr;
-                    return ret;
+                    Result imm = addInsn->getOperand(1).getValue()->eval();
+                    Result imm2 = addInsn->getOperand(0).getValue()->eval();
+                    if(imm.defined)
+                    {
+                        Address thunkDiff = imm.convert<Address>();
+                        parsing_printf("\tsetting thunkOffset to 0x%lx (0x%lx + 0x%lx)\n",
+                                    thunkOffset+thunkDiff, thunkOffset, thunkDiff);
+                        Address ret = block.getPrevAddr();
+                        delete blockptr;
+                        return ret;
+                    }
+                    else if(imm2.defined)
+                    {
+                        Address thunkDiff = imm2.convert<Address>();
+                        parsing_printf("\tsetting thunkOffset to 0x%lx (0x%lx + 0x%lx)\n",
+                                    thunkOffset+thunkDiff, thunkOffset, thunkDiff);
+                        Address ret = block.getPrevAddr();
+                        delete blockptr;
+                        return ret;
+                    }
+                    else
+                    {
+                        parsing_printf("\tadd insn %s found following thunk at 0x%lx, couldn't bind operands!\n",
+                                    addInsn->format().c_str(), thunkOffset);
+                    }
                 }
+                thunkOffset = 0;
             }
-            thunkOffset = 0;
-    }
+        }
         else if(block.getInstruction()->getOperation().getID() == e_lea)
             // Look for an AMD64 IP-relative LEA.  If we find one, it should point to the start of a
         {    // relative jump table.
@@ -1061,15 +1094,28 @@ bool IA_IAPI::isRealCall() const
     targetChecker.setMode(img->getAddressWidth() == 8);
     Instruction::Ptr thunkFirst = targetChecker.decode();
     Instruction::Ptr thunkSecond = targetChecker.decode();
-    if(thunkFirst && thunkFirst->getOperation().getID() == e_mov)
+    parsing_printf("... checking call target for thunk, insns are %s, %s\n", thunkFirst->format().c_str(),
+                   thunkSecond->format().c_str());
+    if(thunkFirst && (thunkFirst->getOperation().getID() == e_mov))
     {
         RegisterAST::Ptr esp(new RegisterAST(r_ESP));
         RegisterAST::Ptr rsp(new RegisterAST(r_RSP));
         if(thunkFirst->isRead(esp) || thunkFirst->isRead(rsp))
         {
-            return (thunkSecond && thunkSecond->getCategory() == c_ReturnInsn);
+            parsing_printf("... checking second insn\n");
+            if(!thunkSecond) {
+                parsing_printf("...no second insn\n");
+                return true;
+            }
+            if(thunkSecond->getCategory() != c_ReturnInsn)
+            {
+                parsing_printf("...insn %s not a return\n", thunkSecond->format().c_str());
+                return true;
+            }
+            return false;
         }
     }
+    parsing_printf("... real call found\n");
     return true;
 }
 
