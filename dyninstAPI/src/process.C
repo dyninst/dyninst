@@ -1681,8 +1681,8 @@ process::process(SignalGenerator *sh_) :
     , vsyscall_end_(0)
     , vsyscall_text_(0)
     , auxv_parser(NULL)
-    , started_stopped(false)
     , vsyscall_obj(NULL)
+    , started_stopped(false)
 #endif
 {
     // Let's try to profile memory usage
@@ -2177,8 +2177,8 @@ process::process(process *parentProc, SignalGenerator *sg_, int childTrace_fd) :
     , vsyscall_end_(parentProc->vsyscall_end_)
     , vsyscall_text_(parentProc->vsyscall_text_)
     , auxv_parser(NULL)
-    , started_stopped(false)
     , vsyscall_obj(parentProc->vsyscall_obj)
+    , started_stopped(false)
 #endif
 {
    dyninstRT_name = parentProc->dyninstRT_name;
