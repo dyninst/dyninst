@@ -175,6 +175,10 @@ test_results_t test_line_info_Mutator::basic_verification()
 test_results_t test_line_info_Mutator::executeTest()
 {
 
+#if defined (os_linux_test) && defined (arch_x86_64_test)
+	if (useAttach == DESERIALIZE)
+		return SKIPPED;
+#endif
 	if (FAILED == basic_verification())
 	{
 		logerror( "%s[%d]:  failed basic verifications, skipping rest...\n", 

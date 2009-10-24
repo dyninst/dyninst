@@ -50,6 +50,8 @@
 #include "Symtab.h"
 
 class COMPLIB_DLL_EXPORT SymtabMutator : public TestMutator {
+	protected:
+		int useAttach;
  public:
    Dyninst::SymtabAPI::Symtab *symtab;
    SymtabMutator();
