@@ -58,6 +58,10 @@
 #include "common/h/pathName.h"
 
 
+#define SERIALIZE_ENABLE_FLAG (short) 1
+#define DESERIALIZE_ENABLE_FLAG (short) 2
+#define DESERIALIZE_ENFORCE_FLAG (short) 4
+
 namespace Dyninst {
 
 #define CACHE_DIR_VAR "DYNINST_CACHE_DIR"

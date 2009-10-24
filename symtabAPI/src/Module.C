@@ -308,8 +308,12 @@ bool Module::setLineInfo(LineInformation *lineInfo)
 
       return true;
    }
+
    if (li != lineInfo)
-     delete li;
+   {
+	   fprintf(stderr, "%s[%d]:  REMOVED DELETE\n", FILE__, __LINE__);
+     //delete li;
+   }
    
    if (!addAnnotation(lineInfo, ModuleLineInfoAnno))
    {
@@ -393,7 +397,7 @@ Module::Module() :
 Module::Module(const Module &mod) :
    LookupInterface(),
    Serializable(),
-   AnnotatableSparse(),
+   MODULE_ANNOTATABLE_CLASS(),
    fileName_(mod.fileName_),
    fullName_(mod.fullName_),
    language_(mod.language_),

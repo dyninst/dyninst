@@ -44,7 +44,7 @@
 // Variable.C
 
 #include <string>
-#include "Annotatable.h"
+#include "dynutil/h/Annotatable.h"
 #include "mapped_object.h"
 
 image_variable::image_variable(Variable *var, pdmodule *mod) :

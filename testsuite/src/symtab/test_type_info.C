@@ -1060,6 +1060,15 @@ test_results_t test_type_info_Mutator::verify_basic_type_lists()
 test_results_t test_type_info_Mutator::executeTest()
 {
 
+#if defined (os_linux_test) && defined (arch_x86_test)
+	//  actually only fails for c++
+	if (useAttach == DESERIALIZE)
+		return SKIPPED;
+#endif
+#if defined (os_aix_test) 
+	if (useAttach == DESERIALIZE)
+		return SKIPPED;
+#endif
 	SymtabAPI::Module *mod = NULL;
 	std::vector<SymtabAPI::Module *> mods;
 

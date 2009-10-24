@@ -101,7 +101,9 @@ typedef enum {
  
 SYMTAB_EXPORT const char *visibility2Str(visibility_t v);
 
-class Field : public Serializable, public AnnotatableSparse  
+#define FIELD_ANNOTATABLE_CLASS AnnotatableDense
+
+class Field : public Serializable, public FIELD_ANNOTATABLE_CLASS 
 {
    friend class typeStruct;
    friend class typeUnion;
@@ -118,7 +120,7 @@ class Field : public Serializable, public AnnotatableSparse
    void copy(Field &);
 
  public:
-   SYMTAB_EXPORT Field() : type_(NULL) {}
+   SYMTAB_EXPORT Field(); 
    SYMTAB_EXPORT Field(std::string name, Type *typ, int offsetVal = -1, 
 		   visibility_t vis = visUnknown);
    
@@ -138,7 +140,9 @@ class Field : public Serializable, public AnnotatableSparse
    SYMTAB_EXPORT virtual bool operator==(const Field &) const;
 };
 				  
-class Type : public Serializable, public AnnotatableSparse  
+#define TYPE_ANNOTATABLE_CLASS AnnotatableDense
+
+class Type : public Serializable, public  TYPE_ANNOTATABLE_CLASS 
 {
    friend class typeCollection;
    friend std::string parseStabString(Module *, int linenum, char *, int, 
@@ -183,7 +187,7 @@ public:
    SYMTAB_EXPORT virtual bool isCompatible(Type *oType);
    SYMTAB_EXPORT virtual void fixupUnknowns(Module *);
 
-   SYMTAB_EXPORT Type(std::string name, typeId_t ID, dataClass dataTyp = dataNullType, unsigned int sz_ = sizeof(int));
+   SYMTAB_EXPORT Type(std::string name, typeId_t ID, dataClass dataTyp = dataNullType);
    SYMTAB_EXPORT Type(std::string name, dataClass dataTyp = dataNullType);
 
    SYMTAB_EXPORT Type();
@@ -318,7 +322,7 @@ class typeEnum : public Type {
 	std::vector<std::pair<std::string, int> > consts;
  public:
    SYMTAB_EXPORT typeEnum();
-   SYMTAB_EXPORT typeEnum(typeId_t ID, std::string name = "", int sz = sizeof(int));
+   SYMTAB_EXPORT typeEnum(typeId_t ID, std::string name = "");
    SYMTAB_EXPORT typeEnum(std::string name);
    SYMTAB_EXPORT static typeEnum *create(std::string &name, std::vector<std::pair<std::string, int> *>&elements, 
    								Symtab *obj = NULL);
@@ -383,7 +387,8 @@ class typeCommon : public fieldListType {
    SYMTAB_EXPORT void serialize_specific(SerializerBase *) THROW_SPEC(SerializerError);
 };
 
-class CBlock : public Serializable, public AnnotatableSparse{
+class CBlock : public Serializable, public AnnotatableSparse
+{
    friend class typeCommon;
  private:
    // the list of fields

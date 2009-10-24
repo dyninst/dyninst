@@ -369,7 +369,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                   // Not an embeded function
 
                   ptrType = tc->findOrCreateType(funcReturnID);
-                  if ( !ptrType) ptrType = mod->exec()->type_Untyped;
+                  if ( !ptrType) ptrType = Symtab::type_Untyped;
 
                   if (!(mod->exec()->findFunctionsByName(bpfv, name)))
                   {
@@ -442,7 +442,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                cnt = strlen(stabstr);
 
                ptrType = tc->findOrCreateType(funcReturnID);
-               if (!ptrType) ptrType = mod->exec()->type_Untyped;
+               if (!ptrType) ptrType = Symtab::type_Untyped;
 
                std::vector<Function *>fpv;
                if (!mod->exec()->findFunctionsByName(fpv, symt_current_mangled_func_name))
@@ -527,7 +527,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                //}
 
                ptrType = tc->findOrCreateType(symdescID);
-               if (!ptrType) ptrType = mod->exec()->type_Untyped;
+               if (!ptrType) ptrType = Symtab::type_Untyped;
 
                localVar *param;
 
@@ -556,7 +556,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
 
                ptrType = parseConstantUse(mod, stabstr, cnt);
 
-               if (!ptrType) ptrType = mod->exec()->type_Untyped;
+               if (!ptrType) ptrType = Symtab::type_Untyped;
 
                localVar *var;
                var = new localVar(name, ptrType, fName, linenum);
@@ -679,7 +679,7 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
                ptrType = tc->findOrCreateType(symdescID);
                if (!ptrType)
                {
-                  ptrType = mod->exec()->type_Untyped;
+                  ptrType = Symtab::type_Untyped;
                }
 
                // We assume that IDs are unique per type. Instead of reusing the 
@@ -1676,7 +1676,7 @@ static char *parseRefType(Module *mod, const char *name,
     // Create a new B_type that points to a structure
 	typeCollection *tc = typeCollection::getModTypeCollection(mod);
     Type *ptrType = tc->findOrCreateType(refID);
-    if (!ptrType) ptrType = mod->exec()->type_Untyped;
+    if (!ptrType) ptrType = Symtab::type_Untyped;
     std::string tName = convertCharToString(name); 
     typeRef *newType = new typeRef(ID, ptrType, tName);
 
@@ -2177,7 +2177,7 @@ static char *parseTypeDef(Module *mod, char *stabstr,
         Type *oldType;
 
         oldType = tc->findOrCreateType(type);
-        if (!oldType) oldType = mod->exec()->type_Untyped;
+        if (!oldType) oldType = Symtab::type_Untyped;
         std::string tName = convertCharToString(name);
         newType = new typeTypedef(ID, oldType, tName, sizeHint);
 		tc->addOrUpdateType((typeTypedef *) newType);
@@ -2206,7 +2206,7 @@ static char *parseTypeDef(Module *mod, char *stabstr,
 
 	    // Create a new B_type that points to a structure
 	    ptrType = tc->findOrCreateType(ptrID);
-	    if (!ptrType) ptrType = mod->exec()->type_Untyped;
+	    if (!ptrType) ptrType = Symtab::type_Untyped;
 
             newType = new typePointer(ID, ptrType);
 	    // Add to typeCollection

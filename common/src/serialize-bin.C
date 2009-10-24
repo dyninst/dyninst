@@ -114,11 +114,272 @@ const char *serPostOp2Str(ser_post_op_t s)
 	return "bad_op";
 }
 
+std::vector<std::pair<std::string, dyn_hash_map<std::string, short>*> >  SerContextBase::ser_control_map;
+dyn_hash_map<std::string, short> *SerContextBase::getMapForType(std::string tname)
+{
+	for (unsigned int i = 0; i < ser_control_map.size(); ++i)
+	{
+		if (std::string(tname) == ser_control_map[i].first)
+			return ser_control_map[i].second;
+	}
+	return NULL;
+}
+
+SerContextBase::SerContextBase(std::string tname, std::string fname_) :
+	fname(fname_)
+{
+	dyn_hash_map<std::string, short> *map_p = getMapForType(tname);
+	if (!map_p)
+	{
+		map_p = new dyn_hash_map<std::string, short>();
+		ser_control_map.push_back(std::make_pair(std::string(tname), map_p));
+		(*map_p)[fname] = 0;
+	}
+	//  If we already have a serialize control specification for this file
+	//  do not reset it here.  This allows us to specify serializer behavior
+	//  in the testsuite apriori.
+}
+
+void SerContextBase::enableSerialize(std::string tname, std::string filename, bool val)
+{
+	dyn_hash_map<std::string, short> *map_p = getMapForType(tname);
+	if (!map_p)
+	{
+		//  This case should not be able to happen, but, anyways....
+		map_p = new dyn_hash_map<std::string, short>();
+		ser_control_map.push_back(std::make_pair(tname, map_p));
+	}
+
+	dyn_hash_map<std::string, short>::iterator iter = map_p->find(filename);
+	if (iter == map_p->end())
+	{
+		if (val)
+			(*map_p)[filename] = SERIALIZE_ENABLE_FLAG;
+		else
+			(*map_p)[filename] = 0;
+	}
+	else
+	{
+		short &flags = iter->second;
+		if (val)
+			flags |= SERIALIZE_ENABLE_FLAG;
+		else
+			flags &= ~SERIALIZE_ENABLE_FLAG;
+	}
+}
+
+void SerContextBase::enableSerialize(bool val)
+{
+	SerContextBase::enableDeserialize(std::string(getRootTypename()), fname, val);
+}
+
+void SerContextBase::enableDeserialize(std::string tname, std::string filename, bool val)
+{
+	dyn_hash_map<std::string, short> *map_p = getMapForType(tname);
+	if (!map_p)
+	{
+		//  This case should not be able to happen, but, anyways....
+		map_p = new dyn_hash_map<std::string, short>();
+		ser_control_map.push_back(std::make_pair(tname, map_p));
+	}
+
+	dyn_hash_map<std::string, short>::iterator iter = map_p->find(filename);
+	if (iter == map_p->end())
+	{
+		if (val)
+			(*map_p)[filename] = DESERIALIZE_ENABLE_FLAG;
+		else
+			(*map_p)[filename] = 0;
+	}
+	else
+	{
+		short &flags = iter->second;
+		if (val)
+			flags |= DESERIALIZE_ENABLE_FLAG;
+		else
+			flags &= ~DESERIALIZE_ENABLE_FLAG;
+	}
+}
+
+void SerContextBase::enableDeserialize(bool val)
+{
+	SerContextBase::enableDeserialize(std::string(getRootTypename()), fname, val);
+}
+
+void SerContextBase::enforceDeserialize(std::string tname, std::string filename, bool val)
+{
+	dyn_hash_map<std::string, short> *map_p = getMapForType(tname);
+	if (!map_p)
+	{
+		//  This case should not be able to happen, but, anyways....
+		map_p = new dyn_hash_map<std::string, short>();
+		ser_control_map.push_back(std::make_pair(tname, map_p));
+	}
+
+	dyn_hash_map<std::string, short>::iterator iter = map_p->find(filename);
+	if (iter == map_p->end())
+	{
+		if (val)
+			(*map_p)[filename] = DESERIALIZE_ENFORCE_FLAG;
+		else
+			(*map_p)[filename] = 0;
+	}
+	else
+	{
+		short &flags = iter->second;
+		if (val)
+			flags |= DESERIALIZE_ENFORCE_FLAG;
+		else
+			flags &= ~DESERIALIZE_ENFORCE_FLAG;
+	}
+}
+
+void SerContextBase::enforceDeserialize(bool val)
+{
+	SerContextBase::enforceDeserialize(std::string(getRootTypename()), fname, val);
+}
+
+void SerContextBase::enableSerDes(std::string tname, std::string filename, bool val)
+{
+	dyn_hash_map<std::string, short> *map_p = getMapForType(tname);
+	if (!map_p)
+	{
+		//  This case should not be able to happen, but, anyways....
+		map_p = new dyn_hash_map<std::string, short>();
+		ser_control_map.push_back(std::make_pair(tname, map_p));
+	}
+
+	dyn_hash_map<std::string, short>::iterator iter = map_p->find(filename);
+	if (iter == map_p->end())
+	{
+		if (val)
+			(*map_p)[filename] = DESERIALIZE_ENABLE_FLAG | SERIALIZE_ENABLE_FLAG;
+		else
+			(*map_p)[filename] = 0;
+	}
+	else
+	{
+		short &flags = iter->second;
+		if (val)
+		{
+			flags |= SERIALIZE_ENABLE_FLAG;
+			flags |= DESERIALIZE_ENABLE_FLAG;
+		}
+		else
+			flags = 0;
+	}
+}
+
+void SerContextBase::enableSerDes(bool val)
+{
+	SerContextBase::enableSerDes(std::string(getRootTypename()), fname, val);
+}
+
+#if 0
+void Serializable::serdesEnable(std::string fname, bool val)
+{
+	fprintf(stderr, "%s[%d]:  enabling serialize/deserialize for type %s\n", 
+			FILE__, __LINE__, typeid(*this).name());
+	SerContextBase::enableSerDes(std::string(typeid(*this).name()), fname, val);
+}
+
+void Serializable::serializeEnable(std::string fname, bool val)
+{
+	fprintf(stderr, "%s[%d]:  enabling serialize/deserialize for type %s\n", 
+			FILE__, __LINE__, typeid(*this).name());
+	SerContextBase::enableSerialize(std::string(typeid(*this).name()), fname, val);
+}
+
+void Serializable::deserializeEnable(std::string fname, bool val)
+{
+	fprintf(stderr, "%s[%d]:  enabling serialize/deserialize for type %s\n", 
+			FILE__, __LINE__, typeid(*this).name());
+	SerContextBase::enableDeserialize(std::string(typeid(*this).name()), fname, val);
+}
+#endif
+bool SerContextBase::serializeEnabled()
+{
+	dyn_hash_map<std::string, short> *map_p = getMapForType(std::string(getRootTypename()));
+	if (!map_p)
+	{
+		//  This case should not be able to happen, but, anyways....
+		return false;
+	}
+
+	dyn_hash_map<std::string, short>::iterator iter = map_p->find(fname);
+	if (iter == map_p->end())
+	{
+		//  This case should not be able to happen, but, anyways....
+		return false;
+	}
+
+	short &flags = iter->second;
+	return (0 != (flags & SERIALIZE_ENABLE_FLAG));
+}
+
+bool SerContextBase::deserializeEnabled()
+{
+	dyn_hash_map<std::string, short> *map_p = getMapForType(std::string(getRootTypename()));
+	if (!map_p)
+	{
+		//  This case should not be able to happen, but, anyways....
+		return false;
+	}
+
+	dyn_hash_map<std::string, short>::iterator iter = map_p->find(fname);
+	if (iter == map_p->end())
+	{
+		//  This case should not be able to happen, but, anyways....
+		return false;
+	}
+
+	short &flags = iter->second;
+	return (0 != (flags & DESERIALIZE_ENABLE_FLAG));
+}
+
+bool SerContextBase::deserializeEnforced(std::string tname, std::string filename)
+{
+	dyn_hash_map<std::string, short> *map_p = getMapForType(tname);
+	if (!map_p)
+	{
+		//  This case should not be able to happen, but, anyways....
+		return false;
+	}
+
+	dyn_hash_map<std::string, short>::iterator iter = map_p->find(filename);
+	if (iter == map_p->end())
+	{
+		//  This case should not be able to happen, but, anyways....
+		return false;
+	}
+
+	short &flags = iter->second;
+	return (0 != (flags & DESERIALIZE_ENFORCE_FLAG));
+}
+
+bool SerContextBase::deserializeEnforced()
+{
+	return SerContextBase::deserializeEnforced(std::string(getRootTypename()), fname);
+}
+
 SerializerBase *createSerializer(SerContextBase *scs, 
 		std::string ser_name, std::string file, ser_type_t ser_type, 
 		iomode_t mode, bool verbose)
 
 {
+	if (!scs->serializeEnabled() && (mode == sd_serialize))
+	{
+		serialize_printf("%s[%d]:  serialization not enabled\n", FILE__, __LINE__);
+		return NULL;
+	}
+
+	if (!scs->deserializeEnabled() && (mode == sd_deserialize))
+	{
+		serialize_printf("%s[%d]:  deserialization not enabled\n", FILE__, __LINE__);
+		return NULL;
+	}
+
+#if 0
 	char *ser_env = getenv(SERIALIZE_CONTROL_ENV_VAR);
 	if (!ser_env)
 	{        
@@ -139,6 +400,7 @@ SerializerBase *createSerializer(SerContextBase *scs,
 		return NULL;
 		}
 	}
+#endif
 
 	SerializerBase *ret = NULL;
 	try {
@@ -975,12 +1237,18 @@ void SerDesBin::annotation_start(AnnotationClassID &a_id, void *&parent_id,
 {
 	//serialize_printf("%s[%d]:  welcome to  annotation_start: aid = %d\n", FILE__, __LINE__, a_id);
 
+	unsigned int lsod = 0;
+	lsod = (int)sod;
 	magic_check(FILE__, __LINE__);
 	translate(a_id);
 	assert(sizeof(Address) == sizeof(void *));
 	translate((Address &)parent_id);
-	translate((unsigned short &)sod);
+	//translate((unsigned short &)sod);
+	translate(lsod);
 	magic_check(FILE__, __LINE__);
+
+	if (iomode() == sd_deserialize)
+		sod = (sparse_or_dense_anno_t)lsod;
 
 	serialize_printf("%s[%d]:  leaving %s annotation_start: aid = %d, id = %p\n", 
 			FILE__, __LINE__, 
@@ -989,7 +1257,7 @@ void SerDesBin::annotation_start(AnnotationClassID &a_id, void *&parent_id,
 
 void SerDesBin::annotation_end()
 {
-	magic_check(FILE__, __LINE__);
+	//magic_check(FILE__, __LINE__);
    //  don't need to do anything
 }
 
@@ -1129,8 +1397,8 @@ void SerDesBin::translate(int &param, const char *tag)
 
       if (1 != rc) 
 	  {
-		  fprintf(stderr, "%s[%d]:  failed to deserialize int-'%s', rc = %d:%s, noisy = %d\n", 
-				  FILE__, __LINE__, tag ? tag : "no_tag", rc, strerror(errno), noisy);
+		  //fprintf(stderr, "%s[%d]:  failed to deserialize int-'%s', rc = %d:%s, noisy = %d\n", 
+		//		  FILE__, __LINE__, tag ? tag : "no_tag", rc, strerror(errno), noisy);
          SER_ERR("fread");
 	  }
    }
@@ -1448,9 +1716,7 @@ namespace Dyninst {
 
 void ser_operation(SerializerBase *sb, ser_post_op_t &op, const char *tag)
 {
-	sb->magic_check(FILE__, __LINE__);
 	gtranslate(sb, op, serPostOp2Str, tag);
-	sb->magic_check(FILE__, __LINE__);
 }
 
 void serialize_annotatable_id(SerializerBase *sb, void *&id, const char *tag)

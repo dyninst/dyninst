@@ -443,7 +443,8 @@ void serialize_test1(A &annotatee, C &control) THROW_SPEC(LocErr)
 		EFAIL("annotation class has no serialize func");
 
 	//  Do the serialization
-	SerContext<A> *scs = new SerContext<A>(&annotatee);
+	SerContext<A> *scs = new SerContext<A>(&annotatee, file);
+	scs->enableSerDes(true);
 
 	if (!annotatee.serialize(file, scs, ser_bin))
 	{
@@ -562,7 +563,8 @@ void serialize_test2(A &annotatee, C &control) THROW_SPEC(LocErr)
 	//  Do the serialization
 	//annotatee.serialize(serializer, NULL);
 	
-	SerContext<A> *scs = new SerContext<A>(&annotatee);
+	SerContext<A> *scs = new SerContext<A>(&annotatee, file);
+	scs->enableSerDes(true);
 	if (!annotatee.serialize(file, scs, ser_bin))
 	{
 		EFAIL("serialize failed");
@@ -675,7 +677,8 @@ void serialize_test3(A &annotatee, C &container, I item) THROW_SPEC(LocErr)
 
 	//  Do the serialization
 	//annotatee.serialize(serializer, NULL);
-	SerContext<A> *scs = new SerContext<A>(&annotatee);
+	SerContext<A> *scs = new SerContext<A>(&annotatee, file);
+	scs->enableSerDes(true);
 	if (!annotatee.serialize(file, scs, ser_bin))
 	{
 		EFAIL("serialize failed");
@@ -745,6 +748,7 @@ test_results_t test_ser_anno_Mutator::executeTest()
 
 	//  set environment variable enabling serialization
 	errno = 0;
+#if 0
 	if (setenv(SERIALIZE_CONTROL_ENV_VAR, SERIALIZE_DESERIALIZE, 1))
 	{
 		fprintf(stderr, "%s[%d]:  FIXME!: %s\n", FILE__, __LINE__, strerror(errno));
@@ -753,6 +757,7 @@ test_results_t test_ser_anno_Mutator::executeTest()
 
 	logerror( "%s[%d]:  set %s =  %s\n", FILE__, __LINE__, 
 			SERIALIZE_CONTROL_ENV_VAR, SERIALIZE_DESERIALIZE);
+#endif
 
 	try 
 	{
@@ -977,6 +982,5 @@ test_results_t test_ser_anno_Mutator::executeTest()
 		return FAILED;
 	}
 		
-
 	return PASSED;
 }

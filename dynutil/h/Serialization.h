@@ -19,34 +19,34 @@
 #include "dyn_detail/boost/type_traits/is_const.hpp"
 #include "dyn_detail/boost/type_traits/remove_cv.hpp"
 #include "dyn_detail/boost/type_traits/is_pointer.hpp"
+#include "dyn_detail/boost/type_traits/is_enum.hpp"
+#include "dyn_detail/boost/type_traits/alignment_of.hpp"
+#include "dyn_detail/boost/type_traits/type_with_alignment.hpp"
 #include "dyn_detail/boost/type_traits/remove_pointer.hpp"
 
 #define SERIALIZE_CONTROL_ENV_VAR "DYNINST_SERIALIZE_ENABLE"
 #define SERIALIZE_DISABLE "disable"
-#define SERIALIZE_ONLY "serialize"
+#define SERIALIZE_ONLY "serialize_but_dont_deserialize"
 #define SERIALIZE_DESERIALIZE "deserialize"
-#define SERIALIZE_DESERIALIZE_OR_DIE "deserialize_or_die"
+#define SERIALIZE_DESERIALIZE_OR_DIE "deser_or_die"
+#define DESERIALIZE_FORCE_ENV_VAR "DYNINST_DESERIALIZE_FORCE"
 
-namespace Dyninst {
+namespace Dyninst 
+{
 //  SER_ERR("msg") -- an attempt at "graceful" failure.  If debug flag is set
 //  it will assert, otherwise it throws...  leaving the "graceful" aspect
 //  to the next (hopefully top-level) exception handler.
-
-#if 0
-	//  moved to Annotatable
-#define serialize_printf serializer_printf
-
-COMMON_EXPORT int serializer_printf(const char *format, ...);
-#endif
-
+//  UPDATE -- due to vtable recognition probs between modules (dyninst libs and
+//  testsuite executables) no longer asserts.
+	
 
 COMMON_EXPORT bool &serializer_debug_flag();
 
 #define SER_ERR(cmsg) \
    do { \
       if (serializer_debug_flag()) { \
-         fprintf(stderr, "%s", cmsg); \
-         assert (0); \
+         serialize_printf("SER_ERR: %s", cmsg); \
+         throw SerializerError(__FILE__, __LINE__, std::string(cmsg)); \
       } else { \
          throw SerializerError(__FILE__, __LINE__, std::string(cmsg)); \
       } \
@@ -108,12 +108,37 @@ typedef enum {
 	ser_xml,
 } ser_type_t;
 
-class SerContextBase {
+#if 0
+#define SERIALIZE_ENABLE_FLAG (short) 1
+#define DESERIALIZE_ENABLE_FLAG (short) 2
+#define DESERIALIZE_ENFORCE_FLAG (short) 4
+#endif
+
+class SerContextBase 
+{
+	friend class Serializable;
+	COMMON_EXPORT static std::vector<std::pair<std::string, dyn_hash_map<std::string, short>*> > ser_control_map;
+	std::string fname;
+	static dyn_hash_map<std::string, short> *getMapForType(std::string);
 	public:
 
-	SerContextBase()  {}
-	virtual ~SerContextBase() {}
-	virtual void *getVoidContext() = 0;
+	COMMON_EXPORT SerContextBase(std::string, std::string); 
+	COMMON_EXPORT virtual ~SerContextBase() {}
+	COMMON_EXPORT virtual void *getVoidContext() = 0;
+	COMMON_EXPORT virtual const char *getRootTypename() = 0;
+	COMMON_EXPORT static void enableSerialize(std::string, std::string, bool);
+	COMMON_EXPORT static void enableDeserialize(std::string, std::string, bool);
+	COMMON_EXPORT static void enforceDeserialize(std::string, std::string, bool);
+	COMMON_EXPORT static void enableSerDes(std::string, std::string, bool);
+	COMMON_EXPORT void enableSerialize(bool);
+	COMMON_EXPORT void enableDeserialize(bool);
+	COMMON_EXPORT void enforceDeserialize(bool);
+	COMMON_EXPORT void enableSerDes(bool);
+
+	COMMON_EXPORT bool serializeEnabled();
+	COMMON_EXPORT bool deserializeEnabled();
+	COMMON_EXPORT static bool deserializeEnforced(std::string, std::string);
+	COMMON_EXPORT bool deserializeEnforced();
 };
 
 template <class T>
@@ -123,9 +148,10 @@ class SerContext : public SerContextBase
 
 	public:
 
-	SerContext(T *scope_) : scope(scope_) {}
+	SerContext(T *scope_, std::string fname) : SerContextBase(std::string(typeid(T).name()), fname), scope(scope_) {}
 	~SerContext() {}
 	void *getVoidContext() {return (void *) scope;}
+	const char *getRootTypename() {return typeid(T).name();}
 	T *getScope() {return scope;}
 };
 
@@ -243,6 +269,44 @@ COMMON_EXPORT void annotation_container_item_start(SerializerBase *, void *&);
 COMMON_EXPORT void annotation_container_item_end(SerializerBase *);
 COMMON_EXPORT bool deserialize_container_item(SerializerBase *, void *);
 
+template <class T>
+void enableSerialize(std::string fname, bool val)
+{
+//	fprintf(stderr, "%s[%d]:  %s serialize for type %s\n", 
+//			FILE__, __LINE__, val ? "enabling" : "disabling", typeid(T).name());
+	SerContextBase::enableSerialize(std::string(typeid(T).name()), fname, val);
+}
+
+template <class T>
+void enableDeserialize(std::string fname, bool val)
+{
+	//fprintf(stderr, "%s[%d]:  %s deserialize for type %s\n", 
+//			FILE__, __LINE__, val ? "enabling" : "disabling", typeid(T).name());
+	SerContextBase::enableDeserialize(std::string(typeid(T).name()), fname, val);
+}
+
+template <class T>
+void enforceDeserialize(std::string fname, bool val)
+{
+//	fprintf(stderr, "%s[%d]:  %s enforced deserialize for type %s\n", 
+//			FILE__, __LINE__, val ? "enabling" : "disabling", typeid(T).name());
+	SerContextBase::enforceDeserialize(std::string(typeid(T).name()), fname, val);
+}
+
+template <class T>
+bool deserializeEnforced(std::string fname)
+{
+	return SerContextBase::deserializeEnforced(std::string(typeid(T).name()), fname);
+}
+
+template <class T>
+void enableSerDes(std::string fname, bool val)
+{
+	//fprintf(stderr, "%s[%d]:  %s serialize/deserialize for type %s\n", 
+//			FILE__, __LINE__, val ? "enabling" : "disabling", typeid(T).name());
+	SerContextBase::enableSerDes(std::string(typeid(T).name()), fname, val);
+}
+
 class Serializable {
 	bool was_deserialized;
 
@@ -258,6 +322,14 @@ class Serializable {
 	COMMON_EXPORT virtual Serializable *serialize_impl(SerializerBase *,  const char * = NULL) THROW_SPEC(SerializerError) = 0;
 
 	public:
+#if 0
+	COMMON_EXPORT bool serializeEnable(bool);
+	COMMON_EXPORT bool deserializeEnable(bool);
+	COMMON_EXPORT static bool globalDeserializeRequire(bool);
+	COMMON_EXPORT bool serializeEnabled();
+	COMMON_EXPORT bool deserializeEnabled();
+	COMMON_EXPORT bool deserializeRequired();
+#endif
 
 	COMMON_EXPORT unsigned short getID() {return active_serializer_index;}
 
@@ -717,6 +789,7 @@ class SerFuncExecutor<T, dyn_detail::boost::true_type, dyn_detail::boost::true_t
 		{
 			fprintf(stderr, "%s[%d]:  serialize func for %s did a realloc\n", 
 					FILE__, __LINE__, typeid(T).name());
+			fprintf(stderr, "%s[%d]:  REMOVED DELETE\n", FILE__, __LINE__);
 			delete my_item;
 			my_item = res;
 		}
@@ -840,7 +913,7 @@ void translate_vector(SerializerBase *ser, std::vector<T> &vec,
 	unsigned long nelem = 0UL;
 
 	if (ser->iomode() == sd_serialize)
-		nelem = vec.size();
+		nelem = (unsigned long) vec.size();
 
 	ser->vector_start(nelem, tag);
 
@@ -857,10 +930,29 @@ void translate_vector(SerializerBase *ser, std::vector<T> &vec,
 			vec.resize(nelem);
 	}
 
-	for (unsigned long i = 0; i < vec.size(); ++i) 
+	for (unsigned long i = 0; i < nelem; ++i) 
 	{
-		T &t = vec[i];
+		gtranslate(ser, vec[i], elem_tag);
+#if 0
+		if (ser->isOutput())
+			gtranslate(ser, vec[i], elem_tag);
+		else
+		{
+			T t;
+			gtranslate(ser, t, elem_tag);
+			vec.push_back(t);
+		}
+#endif
+#if 0
+		T t;
+		if (ser->isOutput())
+			t = vec[i];
+		//T &t = vec[i];
+		//memset(&(vec[i]), 0, sizeof(T));
 		gtranslate(ser, t, elem_tag);
+		if (ser->isInput())
+			vec[i] = t;
+#endif
 	}
 
 	ser->vector_end();
@@ -892,6 +984,46 @@ struct pair_translator {
 }
 };
 
+template <class S, class K, class V>
+void translate_dyn_hash_map(S *ser, dyn_hash_map<K, V> &map,
+		const char *tag = NULL, const char *elem_tag = NULL)
+{
+	serialize_printf("%s[%d]:  welcome to translate_dyn_hash_map<%s, %s>, size = %ld\n", 
+			FILE__, __LINE__, typeid(K).name(), typeid(V).name(), map.size());
+
+	unsigned long nelem = 0UL;
+	nelem = map.size();
+	ser->hash_map_start(nelem, tag);
+
+	if (ser->iomode() == sd_deserialize)
+	{
+		if (map.size())
+			SER_ERR("nonempty vector used to create");
+
+		for (unsigned long i = 0UL; i < nelem; ++i)
+		{
+			typename dyn_hash_map<K, V>::value_type  mapentry;
+			gtranslate(ser, mapentry, elem_tag);
+			map.insert(mapentry);
+		}
+	}
+	else
+	{
+		assert (ser->iomode() == sd_serialize);
+		typename dyn_hash_map<K, V>::iterator iter = map.begin();
+		while (iter != map.end())
+		{
+			gtranslate(ser, *iter, elem_tag);
+			iter++;
+		}
+	}
+
+	ser->hash_map_end();
+
+	serialize_printf("%s[%d]:  leaving translate_dyn_hash_map<%s, %s>\n", 
+			FILE__, __LINE__, typeid(K).name(), typeid(V).name());
+}
+#if 0
 template <class S, class K, class V>
 void translate_dyn_hash_map(S *ser, dyn_hash_map<K, V> &map,
 		const char *tag = NULL, const char *elem_tag = NULL)
@@ -949,6 +1081,7 @@ void translate_dyn_hash_map(S *ser, dyn_hash_map<K, V> &map,
 	serialize_printf("%s[%d]:  leaving translate_dyn_hash_map<%s, %s>\n", 
 			FILE__, __LINE__, typeid(K).name(), typeid(V).name());
 }
+#endif
 
 template <class S, class K, class V>
 void translate_map(S *ser, std::map<K, V> &map,
@@ -1167,8 +1300,8 @@ COMMON_EXPORT bool isOutput(Dyninst::SerializerBase *ser);
 
 typedef void NOTYPE_T;
 
-template<typename T, typename T2 = NOTYPE_T, 
-	bool = dyn_detail::boost::is_base_of<Serializable, T>::value>
+template<typename T, typename T2 = typename dyn_detail::boost::is_enum<T>::type,
+	typename T3 = typename dyn_detail::boost::is_base_of<Serializable, T>::type>
 class trans_adaptor {
    public:
       trans_adaptor()  {}
@@ -1181,8 +1314,10 @@ class trans_adaptor {
       }
 };
 
-template <typename T2>
-class trans_adaptor<char *, T2, false> {
+template <>
+class trans_adaptor<char *, dyn_detail::boost::false_type, 
+	  dyn_detail::boost::false_type> 
+{
    public:
       trans_adaptor()  {}
 
@@ -1195,8 +1330,9 @@ class trans_adaptor<char *, T2, false> {
 	  }
 };
 
-template<typename T, typename T2>
-class trans_adaptor<T, T2, true> 
+template<typename T>
+class trans_adaptor<T, dyn_detail::boost::false_type, 
+	  typename dyn_detail::boost::true_type> 
 {
    public:
       trans_adaptor()  {}
@@ -1218,8 +1354,43 @@ class trans_adaptor<T, T2, true>
       }
 };
 
-template<typename T, typename T2>
-class trans_adaptor<std::vector<T>, T2, false> 
+template<typename T>
+class trans_adaptor<T, dyn_detail::boost::true_type, 
+	  typename dyn_detail::boost::false_type> 
+{
+   public:
+      trans_adaptor()  {}
+
+      Serializable * operator()(SerializerBase *ser, T & it, const char *tag = NULL, 
+            const char * /*tag2*/ = NULL)
+      {
+		  
+		  if (sizeof(T) != sizeof(int)) 
+			  fprintf(stderr, "%s[%d]:  enum size is %d, not %d\n", FILE__, __LINE__, sizeof(T), sizeof(int));
+		  int e_int = (int) it;
+          ser->translate_base(e_int, tag);
+		  if (ser->isInput())
+			  it = (T) e_int;
+#if 0
+         //gtranslate(ser, it, tag);
+
+		  serialize_printf("%s[%d]:  translating serializable: %s\n", 
+				  FILE__, __LINE__, typeid(T).name());
+
+		  it.serialize(ser, tag);
+
+		  serialize_printf("%s[%d]:  translated serializable: %s\n", 
+				  FILE__, __LINE__, typeid(T).name());
+#endif
+
+         return &it;
+      }
+};
+
+#if 0
+template<typename T>
+class trans_adaptor<std::vector<T>, dyn_detail::boost::false_type, 
+	  dyn_detail::boost::false_type> 
 {
    public:
       trans_adaptor() {}
@@ -1231,8 +1402,7 @@ class trans_adaptor<std::vector<T>, T2, false>
          return &v;
       }
 };
-
-typedef void NULL_T;
+#endif
 
 template <typename T, bool = dyn_detail::boost::is_base_of<Serializable, typename dyn_detail::boost::remove_pointer<T>::type>::value>
 class deref_adaptor 
@@ -1413,6 +1583,13 @@ void gtranslate(SerializerBase *ser, T &it,
    }
 }
 
+template <typename T>
+void gtranslate(SerializerBase *ser, std::vector<T> &it, 
+		const char *tag = NULL, const char *tag2 = NULL)
+{
+	translate_vector(ser, it, tag, tag2);
+}
+
 template <typename T, typename T2>
 void gtranslate(SerializerBase *ser, std::pair<T, T2> &it, 
 		const char *tag = NULL, const char *tag2 = NULL)
@@ -1449,7 +1626,8 @@ void gtranslate(SerializerBase *ser,
       const char * /*tag2*/ = NULL)
 {
    assert(ser);
-   int enum_int = (int) it;
+   int enum_int = 0;
+   enum_int = (int) it;
 
    if (!isBinary(ser)) 
    {

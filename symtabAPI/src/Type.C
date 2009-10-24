@@ -121,10 +121,10 @@ Type *Type::createPlaceholder(typeId_t ID, std::string name)
  * EMPTY Constructor for type.  
  * 
  */
-Type::Type(std::string name, typeId_t ID, dataClass dataTyp, unsigned int sz_) :
+Type::Type(std::string name, typeId_t ID, dataClass dataTyp) :
    ID_(ID), 
    name_(name), 
-   size_(sz_), 
+   size_(sizeof(int)), 
    type_(dataTyp), 
    updatingSize(false), 
    refCount(1)
@@ -207,41 +207,53 @@ Serializable * Type::serialize_impl(SerializerBase *s, const char *tag) THROW_SP
 		switch(type_) 
 		{
 			case dataEnum:
-				newt = new typeEnum(ID_, name_, size_);
+				newt = new typeEnum(ID_, name_);
+				assert(newt);
 				break;
 			case dataPointer:
 				newt = new typePointer(ID_, NULL, name_);
+				assert(newt);
 				break;
 			case dataFunction:
 				newt = new typeFunction(ID_, NULL, name_);
+				assert(newt);
 				break;
 			case dataSubrange:
 				newt = new typeSubrange(ID_, size_, 0L, 0L, name_);
+				assert(newt);
 				break;
 			case dataArray:
 				newt = new typeArray(ID_, NULL, 0L, 0L, name_);
+				assert(newt);
 				break;
 			case dataStructure:
 				newt = new typeStruct(ID_, name_);
+				assert(newt);
 				break;
 			case dataUnion:
 				newt = new typeUnion(ID_, name_);
+				assert(newt);
 				break;
 			case dataCommon:
 				newt = new typeCommon(ID_, name_);
+				assert(newt);
 				break;
 			case dataScalar:
 				newt = new typeScalar(ID_, size_, name_);
+				assert(newt);
 				break;
 			case dataTypedef:
 				newt = new typeTypedef(ID_, NULL, name_);
+				assert(newt);
 				break;
 			case dataReference:
 				newt = new typeRef(ID_, NULL, name_);
+				assert(newt);
 				break;
 			case dataUnknownType:
 			case dataNullType:
 			default:
+				fprintf(stderr, "%s[%d]:  WARN:  nonspecific type\n", FILE__, __LINE__);
 				break;
 		};
 	}
@@ -288,8 +300,13 @@ void Type::incrRefCount()
 void Type::decrRefCount() 
 {
 	assert(refCount > 0);
+	refCount--;
+	//if (0 == refCount)
+//		fprintf(stderr, "%s[%d]:  REMOVED DELETE\n", FILE__, __LINE__);
+#if 0
 	if (!--refCount)
 		delete this;
+#endif
 }
 
 std::string &Type::getName()
@@ -384,9 +401,10 @@ bool Type::isCompatible(Type * /*oType*/)
 /*
  * ENUM
  */
-typeEnum::typeEnum(int ID, std::string name, int sz)
-    : Type(name, ID, dataEnum, sz)
+typeEnum::typeEnum(int ID, std::string name)
+    : Type(name, ID, dataEnum)
 {
+	size_ = sizeof(int);
 }
 
 typeEnum::typeEnum(std::string name)
@@ -712,12 +730,12 @@ void typeFunction::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerE
 	ifxml_end_element(sb, "typeFunction");
 	if (sb->isInput()) 
 	{
-		retType_ = Symtab::type_Error;
+		retType_ = NULL; //Symtab::type_Error;
 		typeCollection::addDeferredLookup(t_id, (dataClass) t_dc, &retType_);
 		params_.resize(ptypes.size());
 		for (unsigned int i = 0; i < ptypes.size(); ++i)
 		{
-			params_[i] = Symtab::type_Error;
+			params_[i] = NULL; // Symtab::type_Error;
 			typeCollection::addDeferredLookup(ptypes[i].first, (dataClass) ptypes[i].second, &params_[i]);
 		}
 	}
@@ -783,10 +801,11 @@ typeArray::typeArray(typeId_t ID,
 		std::string name,
 		unsigned int sizeHint) :
 	rangedType(name, ID, dataArray, 0, low, hi), 
-	arrayElem(base ? base : Symtab::type_Error), 
+	arrayElem(base), 
 	sizeHint_(sizeHint) 
 {
-	arrayElem->incrRefCount();
+	//if (!base) arrayElem = Symtab::type_Error;
+	if (base) arrayElem->incrRefCount();
 }
 
 typeArray::typeArray(Type *base,
@@ -944,7 +963,8 @@ void typeArray::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerErro
 
 	if (sb->isInput())
 	{
-		arrayElem = Symtab::type_Error;
+		//arrayElem = Symtab::type_Error;
+		arrayElem = NULL;
 		typeCollection::addDeferredLookup(t_id, (dataClass) t_dc, &arrayElem);
 	}
 }
@@ -1039,7 +1059,8 @@ void typeStruct::updateSize()
    updatingSize = false;
 }
 
-void typeStruct::postFieldInsert(int nsize) { 
+void typeStruct::postFieldInsert(int nsize) 
+{
 	size_ += nsize; 
 }
 
@@ -1091,7 +1112,7 @@ void typeStruct::fixupUnknowns(Module *module)
 void typeStruct::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
 {
 	ifxml_start_element(sb, "typeStruct");
-	serialize_fieldlist(sb);
+	serialize_fieldlist(sb, "structFieldList");
 	ifxml_end_element(sb, "typeStruct");
 }
 
@@ -1232,7 +1253,7 @@ void typeUnion::fixupUnknowns(Module *module) {
 void typeUnion::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerError)
 {
 	ifxml_start_element(sb, "typeUnion");
-	serialize_fieldlist(sb);
+	serialize_fieldlist(sb, "unionFieldList");
 	ifxml_end_element(sb, "typeUnion");
 }
 
@@ -1408,7 +1429,7 @@ void typeCommon::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerErr
 {
 
 	ifxml_start_element(sb, "typeCommon");
-	serialize_fieldlist(sb);
+	serialize_fieldlist(sb, "commonBlockFieldList");
 	gtranslate(sb, cblocks, "CommonBlocks", "CommonBlock");
 	ifxml_end_element(sb, "typeCommon");
 }
@@ -1419,12 +1440,15 @@ void typeCommon::serialize_specific(SerializerBase *sb) THROW_SPEC(SerializerErr
 typeTypedef::typeTypedef(typeId_t ID, Type *base, std::string name, unsigned int sizeHint) :
     derivedType(name, ID, 0, dataTypedef) 
 {
+	baseType_ = base;
+#if 0
 	if (NULL == base)
 		baseType_ = Symtab::type_Error;
 	else
 		baseType_ = base;
+#endif
 	sizeHint_ = sizeHint / 8;
-	baseType_->incrRefCount();
+	if (baseType_) baseType_->incrRefCount();
 }
 
 typeTypedef::typeTypedef(Type *base, std::string name, unsigned int sizeHint) :
@@ -1597,7 +1621,10 @@ fieldListType::fieldListType(std::string &name, typeId_t ID, dataClass typeDes) 
 fieldListType::~fieldListType() 
 {
    if (derivedFieldList != NULL)
-      delete derivedFieldList;
+   {
+	   fprintf(stderr, "%s[%d]:  REMOVED DELETE\n", FILE__, __LINE__);
+      //delete derivedFieldList;
+   }
    fieldList.clear();
 }
 
@@ -1764,14 +1791,14 @@ void fieldListType::serialize_fieldlist(SerializerBase *sb, const char *tag) THR
 derivedType::derivedType(std::string &name, typeId_t id, int size, dataClass typeDes)
    :Type(name, id, typeDes)
 {
-	baseType_ = Symtab::type_Error;
+	baseType_ = NULL; //Symtab::type_Error;
    size_ = size;
 }
 
 derivedType::derivedType(std::string &name, int size, dataClass typeDes)
    :Type(name, USER_TYPE_ID--, typeDes)
 {
-	baseType_ = Symtab::type_Error;
+	baseType_ = NULL; //Symtab::type_Error;
    size_ = size;
 }
 
@@ -1808,7 +1835,7 @@ void derivedType::serialize_derived(SerializerBase *sb, const char *tag) THROW_S
 	{
 		//  save the type lookup for later in case the target type has not yet been
 		//  deserialized
-		baseType_ = Symtab::type_Error;
+		baseType_ = NULL; // Symtab::type_Error;
 		typeCollection::addDeferredLookup(t_id, (dataClass) t_dc, &baseType_);
 	}
 }
@@ -1899,6 +1926,12 @@ static int findIntrensicType(std::string &name)
 }
 
 
+Field::Field() :
+	FIELD_ANNOTATABLE_CLASS(),
+	type_(NULL),
+	vis_(visUnknown),
+	offset_(-1)
+{}
 /*
  * Field::Field
  *
@@ -1907,6 +1940,7 @@ static int findIntrensicType(std::string &name)
  * type = offset = size = 0;
  */
 Field::Field(std::string name, Type *typ, int offsetVal, visibility_t vis) :
+	FIELD_ANNOTATABLE_CLASS(),
    fieldName_(name), 
    type_(typ), 
    vis_(vis), 
@@ -1942,7 +1976,8 @@ unsigned int Field::getSize()
 }
 
 Field::Field(Field &oField) :
-	Serializable()
+	Serializable(),
+	FIELD_ANNOTATABLE_CLASS()
 {
    type_ = oField.type_;
    offset_ = oField.offset_;
@@ -2002,10 +2037,9 @@ Serializable *Field::serialize_impl(SerializerBase *sb, const char *tag) THROW_S
 
 	if (sb->isInput())
 	{
-		type_ = Symtab::type_Error;
+		type_ = NULL; //Symtab::type_Error;
 		typeCollection::addDeferredLookup(t_id, (dataClass) t_dc, &type_);
 	}
-
 	return NULL;
 }
 
@@ -2050,7 +2084,7 @@ Serializable * CBlock::serialize_impl(SerializerBase *sb, const char *tag) THROW
 }
 
 Type::Type() : name_(std::string("unnamedType")), size_(0), type_(dataUnknownType) {}
-fieldListType::fieldListType() {}
+fieldListType::fieldListType() : derivedFieldList(NULL) {}
 rangedType::rangedType() {}
 derivedType::derivedType() {}
 typeEnum::typeEnum() {}

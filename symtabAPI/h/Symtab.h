@@ -51,6 +51,7 @@ class ExceptionBlock;
 class Object;
 class localVar;
 class relocationEntry;
+class Type;
 
 class MemRegReader {
  public:

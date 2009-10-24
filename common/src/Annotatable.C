@@ -49,8 +49,28 @@
 
 using namespace Dyninst;
 
-COMMON_EXPORT AnnotatableSparse::annos_t AnnotatableSparse::annos;
-COMMON_EXPORT dyn_hash_map<void *, unsigned short> AnnotatableSparse::ser_ndx_map;
+#if defined (NON_STATIC_SPARSE_MAP)
+char buffer[1024];
+//AnnotatableSparse::annos_t *AnnotatableSparse::annos = NULL;
+AnnotatableSparse::annos_t *annos = NULL;
+AnnotatableSparse::annos_t *AnnotatableSparse::getAnnos() const
+{
+	if (!annos)
+	{
+		sprintf(buffer, "booga_booga");
+		annos = new annos_t();
+	}
+	return annos;
+}
+#else
+AnnotatableSparse::annos_t AnnotatableSparse::annos;
+AnnotatableSparse::annos_t *AnnotatableSparse::getAnnos() const
+{
+	return &annos;
+}
+#endif
+
+dyn_hash_map<void *, unsigned short> AnnotatableSparse::ser_ndx_map;
 
 namespace Dyninst {
 

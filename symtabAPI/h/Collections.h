@@ -74,7 +74,8 @@ public:
  * Due to DWARF weirdness, this can be shared between multiple BPatch_modules.
  * So we reference-count to make life easier.
  */
-class typeCollection : public Serializable, public AnnotatableSparse {
+class typeCollection : public Serializable//, public AnnotatableSparse 
+{
     friend class Symtab;
     friend class Object;
     friend class Module;
@@ -90,7 +91,7 @@ class typeCollection : public Serializable, public AnnotatableSparse {
     /* Cache type collections on a per-image basis.  (Since
        BPatch_functions are solitons, we don't have to cache them.) */
     static dyn_hash_map< void *, typeCollection * > fileToTypesMap;
-	static dyn_hash_map<int, std::vector<std::pair<dataClass, Type **> > > deferred_lookups;
+	//static dyn_hash_map<int, std::vector<std::pair<dataClass, Type **> > > deferred_lookups;
 	static bool doDeferredLookups(typeCollection *);
 
     // DWARF...

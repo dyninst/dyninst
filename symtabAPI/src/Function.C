@@ -163,10 +163,18 @@ bool Function::getLocalVariables(std::vector<localVar *> &vars)
       return false;
    }
 
+#if 0 
+   fprintf(stderr, "%s[%d]:  FIXME here: localVarCollection = %p\n", FILE__, __LINE__, lvs);
+   std::vector<localVar *> * v  = new std::vector<localVar *>();
+   vars = *v;
+   return true;
+#else
    vars = *(lvs->getAllVars());
 
    if (vars.size())
       return true;
+#endif
+
    fprintf(stderr, "%s[%d]:  NO LOCAL VARS\n", FILE__, __LINE__);
    return false;
 }

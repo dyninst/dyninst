@@ -92,9 +92,11 @@ class Statement : public AnnotatableSparse, public Serializable
 	SYMTAB_EXPORT void setEndAddr(Offset l) {end_addr_ = l;}
 };
 
+#define MODULE_ANNOTATABLE_CLASS AnnotatableSparse
+
 class Module : public LookupInterface,
 			   public Serializable, 
-			   public AnnotatableSparse
+			   public MODULE_ANNOTATABLE_CLASS
 {
 	friend class Symtab;
 

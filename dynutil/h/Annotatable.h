@@ -158,8 +158,10 @@ class AnnotationClass : public AnnotationClassBase {
 	  }
 
 	  size_t size() {return sizeof(T);}
+#if 0
 	  bool isSparselyAnnotatable(); 
 	  bool isDenselyAnnotatable(); 
+#endif
 };
 
 
@@ -280,7 +282,8 @@ class AnnotatableDense
       {
 
          int id = a_id.getID();
-		 bool ret =  addAnnotation((void *)a, id);
+		 T *a_noconst = const_cast<T *>(a);
+		 bool ret = addAnnotation((void *)a_noconst, id);
 		 if (!ret)
 		 {
 			 fprintf(stderr, "%s[%d]:  failed to add annotation\n", FILE__, __LINE__);
@@ -431,6 +434,9 @@ class AnnotatableDense
 	  }
 };
 
+#define NON_STATIC_SPARSE_MAP 1
+#define AN_INLINE
+
 class AnnotatableSparse
 {
 	friend COMMON_EXPORT bool add_annotations(SerializerBase *, AnnotatableSparse *, std::vector<ser_rec_t> &);
@@ -466,15 +472,16 @@ class AnnotatableSparse
 		  //  be changed if this becomes a significant time drain.
 
 		  unsigned int n = 0;
-		  for (unsigned int i = 0; i < annos.size(); ++i)
+		  for (unsigned int i = 0; i < getAnnos()->size(); ++i)
 		  {
-			  annos_by_type_t *abt = annos[i];
+			  annos_by_type_t *abt = (*getAnnos())[i];
 			  if (!abt) continue;
 
 			  annos_by_type_t::iterator iter = abt->find(this);
 			  if (iter != abt->end())
 			  {
 				  n++;
+				  //fprintf(stderr, "%s[%d]:  removing %p\n", FILE__, __LINE__, this);
 				  abt->erase(iter);
 			  }
 		  }
@@ -482,12 +489,18 @@ class AnnotatableSparse
 
    private:
 
+#if defined (NON_STATIC_SPARSE_MAP)
+      //COMMON_EXPORT static annos_t *annos;
+#else
       COMMON_EXPORT static annos_t annos;
+#endif
+	  COMMON_EXPORT annos_t *getAnnos() const;
 	  COMMON_EXPORT static dyn_hash_map<void *, unsigned short> ser_ndx_map;
 
       COMMON_EXPORT annos_by_type_t *getAnnosOfType(AnnotationClassID aid, bool do_create =false) const
 	  {
-         long nelems_to_create = aid - annos.size() + 1;
+		  annos_t &l_annos = *getAnnos();
+         long nelems_to_create = aid - l_annos.size() + 1;
 
          if (nelems_to_create > 0)
          {
@@ -499,18 +512,18 @@ class AnnotatableSparse
             while (nelems_to_create)
             {
                annos_by_type_t *newl = new annos_by_type_t();
-               annos.push_back(newl);
+               l_annos.push_back(newl);
                nelems_to_create--;
             }
          }
 
-         annos_by_type_t *abt = annos[aid];
+         annos_by_type_t *abt = l_annos[aid];
 
          return abt;
       }
 
       template <class T>
-      inline annos_by_type_t *getAnnosOfType(AnnotationClass<T> &a_id, bool do_create =false) const
+      AN_INLINE annos_by_type_t *getAnnosOfType(AnnotationClass<T> &a_id, bool do_create =false) const
       {
          AnnotationClassID aid = a_id.getID();
 
@@ -547,8 +560,10 @@ class AnnotatableSparse
 
 	  //  private version of addAnnotation used by deserialize function to restore
 	  //  annotation set without explicitly specifying types
-	  COMMON_EXPORT inline bool addAnnotation(const void *a, AnnotationClassID aid)
+	  COMMON_EXPORT AN_INLINE bool addAnnotation(const void *a, AnnotationClassID aid)
 	  {
+		  //AnnotationClassBase *acb = AnnotationClassBase::findAnnotationClass(aid);
+		  //fprintf(stderr, "%s[%d]:  addAnnotation %s to %p\n", FILE__, __LINE__, acb ? acb->getName().c_str() :"bad_name", this);
 		  void *obj = this;
 		  annos_by_type_t *abt = getAnnosOfType(aid, true /*do create if needed*/);
 		  assert(abt);
@@ -585,8 +600,9 @@ class AnnotatableSparse
 
 	  COMMON_EXPORT bool operator==(AnnotatableSparse &cmp)
 	  {
-		  unsigned this_ntypes = annos.size();
-         unsigned cmp_ntypes = cmp.annos.size();
+		  annos_t &l_annos = *getAnnos();
+		  unsigned this_ntypes = l_annos.size();
+         unsigned cmp_ntypes = cmp.getAnnos()->size();
          unsigned ntypes = (cmp_ntypes > this_ntypes) ? cmp_ntypes : this_ntypes;
 
          for (unsigned int i = 0; i < ntypes; ++i) 
@@ -598,8 +614,8 @@ class AnnotatableSparse
                break;
             }
 
-            annos_by_type_t *this_abt = annos[i];
-            annos_by_type_t *cmp_abt = cmp.annos[i];
+            annos_by_type_t *this_abt = l_annos[i];
+            annos_by_type_t *cmp_abt = (*cmp.getAnnos())[i];
 
             if (!this_abt) 
             {
@@ -670,8 +686,9 @@ class AnnotatableSparse
       }
 
       template<class T>
-      inline bool addAnnotation(const T *a, AnnotationClass<T> &a_id)
+      AN_INLINE bool addAnnotation(const T *a, AnnotationClass<T> &a_id)
          {
+			 //fprintf(stderr, "%s[%d]:  addAnnotation %s to %p\n", FILE__, __LINE__, a_id.getName().c_str(), this);
             void *obj = this;
             annos_by_type_t *abt = getAnnosOfType(a_id, true /*do create if needed*/);
             assert(abt);
@@ -730,7 +747,7 @@ class AnnotatableSparse
          }
 
       template<class T>
-      inline bool getAnnotation(T *&a, AnnotationClass<T> &a_id) const 
+      AN_INLINE bool getAnnotation(T *&a, AnnotationClass<T> &a_id) const 
       {
          a = NULL;
 
@@ -777,11 +794,12 @@ class AnnotatableSparse
 
 	  COMMON_EXPORT void serializeAnnotations(SerializerBase *sb, const char *tag)
 	  {
+		  annos_t &l_annos = *getAnnos();
 		  std::vector<ser_rec_t> my_sers;
             void *obj = this;
 			if (is_output(sb))
 			{
-				for (AnnotationClassID id = 0; id < annos.size(); ++id)
+				for (AnnotationClassID id = 0; id < l_annos.size(); ++id)
 				{
 					annos_by_type_t *abt = getAnnosOfType(id, false /*don't do create */);
 					if (NULL == abt) continue;

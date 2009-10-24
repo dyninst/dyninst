@@ -127,15 +127,16 @@ std::string Symtab::printError(SymtabError serr)
 
 Type *Symtab::type_Error = NULL;
 Type *Symtab::type_Untyped = NULL;
+
 void Symtab::setupTypes()
 {
     /*
      * Create the "error" and "untyped" types.
      */
     std::string name = "<error>";
-    if (NULL == type_Error) type_Error   = Type::createFake(name);
-    name = "<no type>";
-    if (NULL == type_Untyped) type_Untyped = Type::createFake(name);
+    if (NULL == type_Error) type_Error  = new Type(name, 0, dataUnknownType);
+    name = std::string("<no type>");
+    if (NULL == type_Untyped) type_Untyped = new Type(name, 0, dataUnknownType);
     setupStdTypes();
 }    
 
@@ -1532,6 +1533,7 @@ Symtab::~Symtab()
    // Only called if we fail to create a process.
    // Or delete the a.out...
 
+#if 1 
 
    for (unsigned i = 0; i < regions_.size(); i++) 
    {
@@ -1605,6 +1607,7 @@ Symtab::~Symtab()
    //fprintf(stderr, "%s[%d]:  symtab DTOR, mf = %p: %s\n", FILE__, __LINE__, mf, mf->filename().c_str());
    //if (mf) MappedFile::closeMappedFile(mf);
    //if (mfForDebugInfo) MappedFile::closeMappedFile(mfForDebugInfo);
+#endif
 }	
 
 bool Symtab::exportXML(string file)
@@ -1612,7 +1615,7 @@ bool Symtab::exportXML(string file)
 #if defined (cap_serialization)
    try 
    {
-	   SerContext<Symtab> *scs = new SerContext<Symtab>(this);
+	   SerContext<Symtab> *scs = new SerContext<Symtab>(this, file);
 	   serialize(file, scs, ser_xml);
 #if 0
 	   SerContext<Symtab> *scs = new SerContext<Symtab>(this);
@@ -1698,11 +1701,12 @@ bool Symtab::exportBin(string file)
 #endif
    try
    {
-	   SerContext<Symtab> *scs = new SerContext<Symtab>(this);
+	   SerContext<Symtab> *scs = new SerContext<Symtab>(this, file);
 	   serialize(file, scs, ser_bin);
 #if 0
 	   this->serialize(ser, "Symtab");
 #endif
+	   fprintf(stderr, "%s[%d]:  did serialize\n", FILE__, __LINE__);
 	   return true;
 #if 0
 	   SerContext<Symtab> *scs = new SerContext<Symtab>(st);
@@ -1753,10 +1757,10 @@ Symtab *Symtab::importBin(std::string file)
 
    try
    {
-	   SerContext<Symtab> *scs = new SerContext<Symtab>(st);
+	   SerContext<Symtab> *scs = new SerContext<Symtab>(st, file);
 	   if (!st->deserialize(file, scs))
 	   {
-		   delete st;
+		   //delete st;
 		   return NULL;
 	   }
 
@@ -1769,10 +1773,14 @@ Symtab *Symtab::importBin(std::string file)
       {
          serialize_printf("%s[%d]:  WARN:  serialization is disabled for file %s\n",
                FILE__, __LINE__, file.c_str());
+         fprintf(stderr, "%s[%d]:  WARN:  serialization is disabled for file %s\n",
+               FILE__, __LINE__, file.c_str());
          return NULL;
       }
 
       serialize_printf("%s[%d]: %s\n\tfrom: %s[%d]\n", FILE__, __LINE__,
+            err.what(), err.file().c_str(), err.line());
+      fprintf(stderr, "%s[%d]: %s\n\tfrom: %s[%d]\n", FILE__, __LINE__,
             err.what(), err.file().c_str(), err.line());
    }
 
@@ -1833,7 +1841,7 @@ bool Symtab::closeSymtab(Symtab *st)
 			found = true;
 		}
 	}
-	delete(st);
+	//delete(st);
 	return found;
 }
 
@@ -1877,21 +1885,21 @@ bool Symtab::openFile(Symtab *&obj, std::string filename)
 #if defined (cap_serialization)
    obj = importBin(filename);
 
-   if (!obj) 
+   if (NULL == obj) 
    {
-      serialize_printf("%s[%d]:  importBin failed\n", FILE__, __LINE__);
-	  const char *ser_var = getenv(SERIALIZE_CONTROL_ENV_VAR);
-	  if (ser_var)
+	   if (deserializeEnforced<Symtab>(filename))
 	  {
-		  if (std::string(ser_var) == std::string(SERIALIZE_DESERIALIZE_OR_DIE))
-		  {
-			  serialize_printf("%s[%d]:  aborting new symtab, expected deserialize failed\n", FILE__, __LINE__);
+			  serialize_printf("%s[%d]: aborting new symtab, expected deserialize failed\n",
+					  FILE__, __LINE__);
+			  fprintf(stderr, "%s[%d]: aborting new symtab, expected deserialize failed\n",
+					  FILE__, __LINE__);
 			  return false;
-		  }
 	  }
+	   fprintf(stderr, "%s[%d]:  deserialize failed, but not enforced\n", FILE__, __LINE__);
    }
    else 
    {
+	  fprintf(stderr, "%s[%d]:  deserialize success\n", FILE__, __LINE__);
       return true;
    }
 #endif
@@ -2196,6 +2204,8 @@ void Symtab::parseTypes()
    //  optionally we might want to clear the static data struct in typeCollection
    //  here....  the parsing is over, and we have added all typeCollections as
    //  annotations proper.
+
+   typeCollection::fileToTypesMap.clear();
 
 }
 
@@ -3119,7 +3129,7 @@ namespace Dyninst {
 SYMTAB_EXPORT SerializerBase *nonpublic_make_bin_symtab_serializer(Symtab *t, std::string file)
 {
 	SerializerBin *ser;
-	SerContext<Symtab> *scs = new SerContext<Symtab>(t);
+	SerContext<Symtab> *scs = new SerContext<Symtab>(t, file);
 	ser = new SerializerBin(scs, "SerializerBin", file, sd_serialize, true);
 	return ser;
 }
@@ -3127,7 +3137,7 @@ SYMTAB_EXPORT SerializerBase *nonpublic_make_bin_symtab_serializer(Symtab *t, st
 SYMTAB_EXPORT SerializerBase *nonpublic_make_bin_symtab_deserializer(Symtab *t, std::string file)
 {
 	SerializerBin *ser;
-	SerContext<Symtab> *scs = new SerContext<Symtab>(t);
+	SerContext<Symtab> *scs = new SerContext<Symtab>(t, file);
 	ser = new SerializerBin(scs, "DeserializerBin", file, sd_deserialize, true);
 	return ser;
 }

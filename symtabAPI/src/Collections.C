@@ -63,7 +63,10 @@ localVarCollection::~localVarCollection()
        
    // delete localVariablesByName collection
    for(;li!=localVariablesByName.end();li++)
-	delete li->second;
+   {
+	   fprintf(stderr, "%s[%d]:  REMOVED DELETE\n", FILE__, __LINE__);
+	//delete li->second;
+   }
    
    localVars.clear();
 }
@@ -149,32 +152,49 @@ Serializable *localVarCollection::ac_serialize_impl(SerializerBase *s, const cha
 
 // Could be somewhere else... for DWARF-work.
 dyn_hash_map<void *, typeCollection *> typeCollection::fileToTypesMap;
+#if 0
 dyn_hash_map<int, std::vector<std::pair<dataClass, Type **> > > typeCollection::deferred_lookups;
+#endif
+dyn_hash_map<int, std::vector<std::pair<dataClass, Type **> > *> *deferred_lookups_p = NULL;
 
 void typeCollection::addDeferredLookup(int tid, dataClass tdc,Type **th)
 {
-	deferred_lookups[tid].push_back(std::pair<dataClass, Type**>(tdc, th));
+	if (!deferred_lookups_p)
+		deferred_lookups_p = new dyn_hash_map<int, std::vector<std::pair<dataClass, Type **> > *>();
+	dyn_hash_map<int, std::vector<std::pair<dataClass, Type **> > *> &deferred_lookups = *deferred_lookups_p;
+	dyn_hash_map<int, std::vector<std::pair<dataClass, Type **> > *>::iterator iter;
+
+	iter = deferred_lookups.find(tid);
+	if (iter == deferred_lookups.end())
+		deferred_lookups[tid] = new std::vector<std::pair<dataClass, Type **> >();
+	deferred_lookups[tid]->push_back(std::make_pair(tdc, th));
 }
 
 bool typeCollection::doDeferredLookups(typeCollection *primary_tc)
 {
+	if (!deferred_lookups_p) return true; // nothing to do
+	dyn_hash_map<int, std::vector<std::pair<dataClass, Type **> > *> &deferred_lookups = *deferred_lookups_p;
 	bool err = false;
-	dyn_hash_map<int, std::vector<std::pair<dataClass, Type **> > >::iterator iter;
+	dyn_hash_map<int, std::vector<std::pair<dataClass, Type **> > *>::iterator iter;
 	for (iter = deferred_lookups.begin(); iter != deferred_lookups.end(); iter++)
 	{
-		std::vector<std::pair<dataClass, Type **> > &to_assign = iter->second;
+		std::vector<std::pair<dataClass, Type **> > *to_assign = iter->second;
+		if (!to_assign) 
+		{
+			fprintf(stderr, "%s[%d]:  FIXME!\n", FILE__, __LINE__);
+		}
 
-		if (!to_assign.size())
+		if (!to_assign->size())
 		{
 			fprintf(stderr, "%s[%d]:  No lookups for id %d, weird\n", 
 					FILE__, __LINE__, iter->first);
 			continue;
 		}
 
-		for (unsigned int i = 0; i < to_assign.size(); ++i)
+		for (unsigned int i = 0; i < to_assign->size(); ++i)
 		{
-			dataClass ldc = to_assign[i].first;
-			Type **th = to_assign[i].second;
+			dataClass ldc = (*to_assign)[i].first;
+			Type **th = (*to_assign)[i].second;
 
 			Type *t = primary_tc->findType(iter->first);
 			if (t && (t->getDataClass() != ldc)) t = NULL;
@@ -292,7 +312,10 @@ void typeCollection::freeTypeCollection(typeCollection *tc) {
  * Constructor for typeCollection.  Creates the two dictionaries
  * for the type, by Name and ID.
  */
-typeCollection::typeCollection():
+typeCollection::typeCollection() :
+	typesByName(),
+	globalVarsByName(),
+	typesByID(),
     dwarfParsed_(false)
 {
   /* Initialize hash tables: typesByName, typesByID */
@@ -528,14 +551,30 @@ Serializable *typeCollection::serialize_impl(SerializerBase *sb, const char *tag
 	for (iter = globalVarsByName.begin(); iter != globalVarsByName.end(); iter++)
 		gvars.push_back(std::make_pair(iter->first, iter->second->getID()));
 
+	std::vector<Type *> ltypes;
+	dyn_hash_map<int, Type *>::iterator iter2;
+	for (iter2 = typesByID.begin(); iter2 != typesByID.end(); iter2++)
+	{
+		if (!iter2->second) assert(0);
+		//  try skipping field list types
+		//if (dynamic_cast<fieldListType *>(iter2->second)) continue;
+		assert (iter2->first == iter2->second->getID());
+		ltypes.push_back(iter2->second);
+	}
+
 	ifxml_start_element(sb, tag);
-	gtranslate(sb, typesByID, "TypesByIDMap", "TypeToIDMapEntry");
+	//gtranslate(sb, typesByID, "TypesByIDMap", "TypeToIDMapEntry");
+	gtranslate(sb, ltypes, "TypesInCollection", "TypeEntry");
 	gtranslate(sb, gvars, "GlobalVarNameToTypeMap", "GlobalVarType");
 	gtranslate(sb, dwarfParsed_, "DwarfParsedFlag");
 	ifxml_end_element(sb, tag);
 
 	if (is_input(sb))
 	{
+		for (unsigned int i = 0; i < ltypes.size(); ++i)
+		{
+			typesByID[ltypes[i]->getID()] = ltypes[i];
+		}
 		doDeferredLookups(this);
 
 		for (unsigned int i = 0; i < gvars.size(); ++i)
