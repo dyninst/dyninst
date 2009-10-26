@@ -253,7 +253,8 @@ Serializable * Type::serialize_impl(SerializerBase *s, const char *tag) THROW_SP
 			case dataUnknownType:
 			case dataNullType:
 			default:
-				fprintf(stderr, "%s[%d]:  WARN:  nonspecific type\n", FILE__, __LINE__);
+				serialize_printf("%s[%d]:  WARN:  nonspecific %s type: '%s'\n", 
+						FILE__, __LINE__, dataClass2Str(type_), newt->getName().c_str());
 				break;
 		};
 	}

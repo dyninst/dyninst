@@ -179,6 +179,18 @@ test_results_t test_line_info_Mutator::executeTest()
 	if (useAttach == DESERIALIZE)
 		return SKIPPED;
 #endif
+#if defined (os_solaris_test)
+	if (compiler == std::string("CC") 
+			|| (compiler == std::string("sun_cc")) 
+			||(compiler == std::string("g+")))
+	{
+		return SKIPPED;
+	}
+#endif
+#if defined (os_aix_test)
+	//if (useAttach == DESERIALIZE)
+		return SKIPPED;
+#endif
 	if (FAILED == basic_verification())
 	{
 		logerror( "%s[%d]:  failed basic verifications, skipping rest...\n", 

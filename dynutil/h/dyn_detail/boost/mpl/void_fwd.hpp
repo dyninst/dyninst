@@ -14,7 +14,7 @@
 // $Date: 2008-10-11 02:19:02 -0400 (Sat, 11 Oct 2008) $
 // $Revision: 49267 $
 
-#include <boost/mpl/aux_/adl_barrier.hpp>
+#include <dyn_detail/boost/mpl/aux_/adl_barrier.hpp>
 
 namespace dyn_detail {
 DYN_DETAIL_BOOST_MPL_AUX_ADL_BARRIER_NAMESPACE_OPEN

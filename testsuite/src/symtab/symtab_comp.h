@@ -52,6 +52,8 @@
 class COMPLIB_DLL_EXPORT SymtabMutator : public TestMutator {
 	protected:
 		int useAttach;
+		std::string mutatee;
+		std::string compiler;
  public:
    Dyninst::SymtabAPI::Symtab *symtab;
    SymtabMutator();
@@ -67,6 +69,9 @@ class SymtabComponent : public ComponentTester
 {
  private:
    ParamPtr symtab_ptr;
+   ParamString mutatee_p;
+   ParamString compiler_p;
+
  public:
    Dyninst::SymtabAPI::Symtab *symtab;
 

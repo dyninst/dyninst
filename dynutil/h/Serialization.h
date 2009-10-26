@@ -1366,7 +1366,8 @@ class trans_adaptor<T, dyn_detail::boost::true_type,
       {
 		  
 		  if (sizeof(T) != sizeof(int)) 
-			  fprintf(stderr, "%s[%d]:  enum size is %d, not %d\n", FILE__, __LINE__, sizeof(T), sizeof(int));
+			  fprintf(stderr, "%s[%d]:  enum size is %lu, not %lu\n",
+					  FILE__, __LINE__, sizeof(T), sizeof(int));
 		  int e_int = (int) it;
           ser->translate_base(e_int, tag);
 		  if (ser->isInput())
@@ -1383,7 +1384,8 @@ class trans_adaptor<T, dyn_detail::boost::true_type,
 				  FILE__, __LINE__, typeid(T).name());
 #endif
 
-         return &it;
+		  return NULL;
+         //return &it;
       }
 };
 
@@ -1626,8 +1628,10 @@ void gtranslate(SerializerBase *ser,
       const char * /*tag2*/ = NULL)
 {
    assert(ser);
+#if 0
    int enum_int = 0;
    enum_int = (int) it;
+#endif
 
    if (!isBinary(ser)) 
    {
@@ -1643,8 +1647,11 @@ void gtranslate(SerializerBase *ser,
    else 
    {
       //  just in/output raw binary value 
+      gtranslate(ser, it);
+#if 0
       gtranslate(ser, enum_int, tag, NULL);
       it = (T) enum_int;
+#endif
    }
 }
 

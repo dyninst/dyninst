@@ -1706,7 +1706,7 @@ bool Symtab::exportBin(string file)
 #if 0
 	   this->serialize(ser, "Symtab");
 #endif
-	   fprintf(stderr, "%s[%d]:  did serialize\n", FILE__, __LINE__);
+	   //fprintf(stderr, "%s[%d]:  did serialize\n", FILE__, __LINE__);
 	   return true;
 #if 0
 	   SerContext<Symtab> *scs = new SerContext<Symtab>(st);
@@ -1895,11 +1895,11 @@ bool Symtab::openFile(Symtab *&obj, std::string filename)
 					  FILE__, __LINE__);
 			  return false;
 	  }
-	   fprintf(stderr, "%s[%d]:  deserialize failed, but not enforced\n", FILE__, __LINE__);
+	   //fprintf(stderr, "%s[%d]:  deserialize failed, but not enforced\n", FILE__, __LINE__);
    }
    else 
    {
-	  fprintf(stderr, "%s[%d]:  deserialize success\n", FILE__, __LINE__);
+	  //fprintf(stderr, "%s[%d]:  deserialize success\n", FILE__, __LINE__);
       return true;
    }
 #endif

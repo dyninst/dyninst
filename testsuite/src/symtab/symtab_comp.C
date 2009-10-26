@@ -65,6 +65,8 @@ test_results_t SymtabComponent::program_teardown(ParameterDict &params)
 
 test_results_t SymtabComponent::group_setup(RunGroup *group, ParameterDict &params)
 {
+	//mutatee_p.setString(group->mutatee);
+	compiler_p.setString(group->compiler);
 #if defined (cap_serialization_test)
 	const char *ser_env = getenv(SERIALIZE_CONTROL_ENV_VAR);
 	//  allow user to explicitly disable serialization in environment
@@ -79,7 +81,7 @@ test_results_t SymtabComponent::group_setup(RunGroup *group, ParameterDict &para
 		{
 			case DESERIALIZE:
 				{
-					fprintf(stderr, "%s[%d]:  runmode DESERIALIZE\n", FILE__, __LINE__);
+					logerror("%s[%d]:  runmode DESERIALIZE\n", FILE__, __LINE__);
 					fflush(NULL);
 					//  If we have an open symtab with this name, it will just be returned
 					//  when we call openFile.  If it is sourced from a regular parse, 
@@ -93,7 +95,7 @@ test_results_t SymtabComponent::group_setup(RunGroup *group, ParameterDict &para
 						Symtab::closeSymtab(s_open);
 						s_open = Symtab::findOpenSymtab(std::string(group->mutatee));
 						if (s_open)
-						{
+						{ 
 							logerror( "%s[%d]:  failed to close symtab\n", FILE__, __LINE__);
 							return FAILED;
 						}
@@ -133,6 +135,8 @@ test_results_t SymtabComponent::group_setup(RunGroup *group, ParameterDict &para
    }
    params["Symtab"] = &symtab_ptr;
    params["useAttach"]->setInt(group->useAttach);
+   //params["mutatee"] = &mutatee_p;
+   params["compiler"] = &compiler_p;
    return PASSED;
 }
 
@@ -156,6 +160,8 @@ test_results_t SymtabMutator::setup(ParameterDict &param)
 {
    symtab = (Symtab *) param["Symtab"]->getPtr();
    useAttach = (int) param["useAttach"]->getInt();
+   //mutatee = std::string((const char *)param["mutatee"]->getString());
+   compiler = std::string((const char *)param["compiler"]->getString());
    return PASSED;
 }
 
