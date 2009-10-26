@@ -1069,6 +1069,14 @@ test_results_t test_type_info_Mutator::executeTest()
 	if (useAttach == DESERIALIZE)
 		return SKIPPED;
 #endif
+#if defined (os_solaris_test)
+	if (useAttach == DESERIALIZE)
+	//	if (compiler == std::string("CC") || compiler == std::string("sun_cc"))
+	//	{
+			return SKIPPED;
+	//	}
+#endif
+
 	SymtabAPI::Module *mod = NULL;
 	std::vector<SymtabAPI::Module *> mods;
 
