@@ -9,13 +9,15 @@ CP_DIR = cp -r
 
 TO_INC = h
 PUBLIC_H = Annotatable.h \
-           dyntypes.h \
-           util.h \
-           Serialization.h \
-	   Graph.h \
-           Edge.h \
-           Node.h \
-	   dyn_detail 
+		dyntypes.h \
+		util.h \
+		Serialization.h \
+		Graph.h \
+		Edge.h \
+		Node.h \
+		dyn_regs.h \
+		stl_utils.h \
+		dyn_detail 
 
 #INSTALL_TARGETS = $(pathsubst %, $(INCLUDE_DEST)/%,$(PUBLIC_H))
 INSTALL_TARGETS = $(addprefix $(LOCAL_INCLUDE_DEST)/, $(PUBLIC_H))

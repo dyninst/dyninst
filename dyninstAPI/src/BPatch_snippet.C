@@ -1235,102 +1235,14 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
 	Address baseAddr =  scp->getFunction()->lowlevel_func()->obj()->codeBase();
 	vector<AstNodePtr> variableASTs;
 	vector<pair<Offset, Offset> > *ranges = new vector<pair<Offset, Offset> >;
-	vector<Dyninst::SymtabAPI::VariableLocation> &locsref = lv->getSymtabVar()->getLocationLists();
-	vector<Dyninst::SymtabAPI::VariableLocation> *locs = &locsref;
-	vector<Dyninst::SymtabAPI::VariableLocation> newlocs;
+	vector<Dyninst::SymtabAPI::VariableLocation> &locs = lv->getSymtabVar()->getLocationLists();
 
-	// Get the frame pointer location list for the local variable's function
-
-	vector<Dyninst::SymtabAPI::VariableLocation> &fplocs = 
-		scp->getFunction()->lowlevel_func()->ifunc()->getSymtabFunction()->getFramePtr();
-
-	for (unsigned i=0; i<locs->size(); i++) 
-	{
-
-		Address varlowPC, varhiPC;
-		varlowPC = ((*locs)[i].lowPC) + baseAddr;
-		varhiPC = ((*locs)[i].hiPC) + baseAddr;
-
-		BPatch_storageClass in_storage = lv->convertToBPatchStorage(& (*locs)[i]);
-
-		if (in_storage == BPatch_storageFrameOffset && fplocs.size()) 
-		{
-			// Merge variable and frame pointer's location list
-
-			for (unsigned j=0; j<fplocs.size(); j++) 
-			{
-				Address fplowPC, fphiPC;
-				fplowPC = (fplocs[j].lowPC) + baseAddr;
-				fphiPC = (fplocs[j].hiPC) + baseAddr;
-
-				/* Combine fplocs->frameOffset to loc->frameOffset
-
-				   6 cases
-				   1) varlowPC > fphiPC > fplowPC - no overlap - no push
-				   2) fphiPC > varlowPC > fplowPC - one push
-				   3) fphiPC > fplowPC > varlowPC - one push
-				   4) fphiPC > varhiPC > fplowPC - one push
-				   5) fphiPC > fplowPC > varhiPC - no overlap - no push
-				   6) fphiPC > varhiPC > varlowPC> fpilowPC - one push 
-
-				 */
-
-				Dyninst::SymtabAPI::VariableLocation newloc;
-				newloc.stClass = (*locs)[i].stClass ;
-				newloc.refClass = (*locs)[i].refClass;
-				newloc.reg = (*locs)[i].reg;
-				newloc.frameOffset =(*locs)[i].frameOffset +  fplocs[j].frameOffset;
-
-				if ( (varlowPC > fplowPC && varlowPC >= fphiPC) || (varhiPC <= fplowPC && varhiPC < fplowPC) ) {
-					//nothing
-				} 
-				else if ( varlowPC >= fplowPC && fphiPC >= varhiPC) 
-				{
-					newloc.lowPC = varlowPC;
-					newloc.hiPC = varhiPC;
-					newlocs.push_back(newloc);
-				} 
-				else if (varlowPC >= fplowPC && varlowPC < fphiPC) 
-				{
-					newloc.lowPC = varlowPC;
-					newloc.hiPC = fphiPC;
-					newlocs.push_back(newloc);
-				} 
-				else if (varlowPC < fplowPC && varlowPC < fphiPC ) 
-				{ // varhiPC > fplowPC && varhiPC > fphiPC
-					newloc.lowPC = fplowPC;
-					newloc.hiPC = fphiPC;
-					newlocs.push_back(newloc);
-				} 
-				else if (varhiPC > fplowPC && varhiPC < fphiPC) 
-				{
-					newloc.lowPC = fplowPC;
-					newloc.hiPC = varhiPC;
-					newlocs.push_back(newloc);
-				}
-			} // fploc iteration
-		} else { // if not storageFrameOffset or fplocs == NULL
-
-			Dyninst::SymtabAPI::VariableLocation newloc;
-			newloc.stClass = (*locs)[i].stClass ;
-			newloc.refClass = (*locs)[i].refClass;
-			newloc.reg = (*locs)[i].reg;
-			newloc.frameOffset =(*locs)[i].frameOffset;
-
-			newloc.lowPC = varlowPC;
-			newloc.hiPC = varhiPC;
-
-			newlocs.push_back(newloc);
-
-		}
-	} // loc iteration
-
-	for (unsigned i=0; i<newlocs.size(); i++)
+	for (unsigned i=0; i<locs.size(); i++)
 	{
 		AstNodePtr variableAst;
-		BPatch_storageClass in_storage = lv->convertToBPatchStorage(& newlocs[i]);
-		void *in_address = (void *) newlocs[i].frameOffset;
-		int in_register = newlocs[i].reg;
+		BPatch_storageClass in_storage = lv->convertToBPatchStorage(& locs[i]);
+		void *in_address = (void *) locs[i].frameOffset;
+		int in_register = locs[i].reg;
 		switch (in_storage) {
 			case BPatch_storageAddr:
 				variableAst = AstNode::operandNode(AstNode::DataAddr, in_address);
@@ -1363,7 +1275,8 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_addressSpace *in_addSpace,
 		variableAst->setTypeChecking(BPatch::bpatch->isTypeChecked());
 		variableAst->setType(type);
 		variableASTs.push_back(variableAst);
-		ranges->push_back(pair<Offset, Offset>(newlocs[i].lowPC,newlocs[i].hiPC));
+		ranges->push_back(pair<Offset, Offset>(locs[i].lowPC + baseAddr,
+                                             locs[i].hiPC + baseAddr));
 	}
 	ast_wrapper = AstNodePtr(AstNode::variableNode(variableASTs, ranges));
 	//    ast_wrapper = variableAst;    

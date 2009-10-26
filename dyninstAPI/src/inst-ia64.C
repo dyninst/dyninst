@@ -2842,7 +2842,7 @@ bool process::insertAndRegisterDynamicUnwindInformation( unw_dyn_info_t * baseTr
 } /* end insertAndRegisterDynamicUnwindInformation() */
 
 /* Required by ast.C */
-void emitFuncJump(opCode op, codeGen &gen, const int_function *callee,
+void emitFuncJump(opCode op, codeGen &gen, int_function *callee,
 				  AddressSpace *proc, const instPoint *location, bool) {
 
   assert(op == funcJumpOp);

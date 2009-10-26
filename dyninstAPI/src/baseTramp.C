@@ -80,7 +80,9 @@ baseTrampInstance::baseTrampInstance(baseTramp *tramp,
     hasStackFrame_(false),
     flags_saved_(false),
     saved_fprs_(false),
-    saved_orig_addr_(false)
+    saved_orig_addr_(false),
+    hasFuncJump_(false),
+    trampStackHeight_(0)
 {
 }
 
@@ -106,8 +108,9 @@ baseTrampInstance::baseTrampInstance(const baseTrampInstance *parBTI,
     hasStackFrame_(parBTI->hasStackFrame_),
     flags_saved_(parBTI->flags_saved_),
     saved_fprs_(parBTI->saved_fprs_),
-    saved_orig_addr_(parBTI->saved_orig_addr_)
-
+    saved_orig_addr_(parBTI->saved_orig_addr_),
+    hasFuncJump_(parBTI->hasFuncJump_),
+    trampStackHeight_(parBTI->trampStackHeight_)
 {
     // Register with parent
     cBT->instances.push_back(this);
@@ -855,6 +858,24 @@ baseTrampInstance *baseTramp::findOrCreateInstance(multiTramp *multi) {
     return newInst;
 }
 
+bool baseTrampInstance::checkForFuncJumps()
+{
+   if (hasFuncJump_)
+      return true;
+
+   miniTramp *cur = baseT->firstMini;
+   while (cur) {
+      assert(cur->ast_);
+      if (cur->ast_->containsFuncJump()) {
+         hasFuncJump_ = true;
+         return true;         
+      }
+      cur = cur->next;
+   }
+
+   return false;
+}
+
 bool baseTramp::doOptimizations() 
 {
    miniTramp *cur_mini = firstMini;
@@ -870,9 +891,6 @@ bool baseTramp::doOptimizations()
       if (!hasFuncCall && cur_mini->ast_->containsFuncCall()) {
          hasFuncCall = true;
       }
-      //if (!usesReg && cur_mini->ast_->usesAppRegister()) {
-      //   usesReg = true;
-      //}
       cur_mini = cur_mini->next;
    }
    
@@ -885,6 +903,7 @@ bool baseTramp::doOptimizations()
       setThreaded(false);
       return true;
    }
+
    return false;
 }
 

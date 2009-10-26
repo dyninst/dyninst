@@ -17,14 +17,14 @@ include ../../make.config
 
 # LDFLAGS     += $(LIBDIR) -lcommon -ldl
 
-SRCS = 	../src/firstparty.C \
-			../src/ppc-swk.C 
+SRCS =         ../src/firstparty.C \
+                       ../src/ppc-swk.C 
 
 STATIC_COMPS = true
 
-LIBS	+=
+LIBS   +=
 CFLAGS  +=
-AS		= as
+AS             = as
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

@@ -827,8 +827,6 @@ disp_pos)))));
         }
         else
         {
-            fprintf(stderr, "WARNING: couldn't decode instruction from %p, first byte 0x%x\n", rawInstruction,
-                    rawInstruction[0]);
             m_Operation = make_shared(singleton_object_pool<Operation>::construct(&invalid,
                                         decodedInstruction->getPrefix(), locs));
         }

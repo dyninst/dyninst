@@ -133,7 +133,7 @@ WindowsNT    nonexistant
 #endif
 #endif
 typedef long double double128_t;
-#elif defined(os_bluegene) || defined (os_bgcompute)
+#elif defined(os_bg)
 #include <stdint.h>
 #if !defined(INT64_C)
 #define INT64_C(c) ((signed long long) (c))
@@ -166,7 +166,7 @@ typedef long double double128_t;
 				   /* nt ----------------------------- */
 #define I64_C(x)  (x##i64)
 #define UI64_C(x) (x##ui64)
-#elif defined(os_bluegene) || defined(os_bgcompute)
+#elif defined(os_bg)
 #define I64_C(x) (x##ll)
 #define U64_C(x) (x##ull)
 #else                               /* linux, solaris, irix, aix4.3 --- */

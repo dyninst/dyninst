@@ -40,7 +40,7 @@
 //class Dyninst::SymtabAPI::Variable;
 SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Variable &);
 
-namespace Dyninst{
+namespace Dyninst {
 namespace SymtabAPI {
 
 /*
@@ -90,6 +90,7 @@ class VariableLocation : public Serializable {
 class Symbol;
 class Symtab;
 class Aggregate;
+class Function;
 
 class Variable : public Aggregate, public Serializable, public AnnotatableSparse {
 	friend class Symtab;
@@ -125,6 +126,7 @@ class localVar : public Serializable, public AnnotatableSparse
 	Type *type_;
 	std::string fileName_;
 	int lineNum_;
+   Function *func_;
 	std::vector<VariableLocation> locs_;
 
 	// scope_t scope;
@@ -133,7 +135,9 @@ class localVar : public Serializable, public AnnotatableSparse
 	SYMTAB_EXPORT localVar() {}
 	//  Internal use only
 	localVar(std::string name,  Type *typ, std::string fileName, 
-			int lineNum, std::vector<VariableLocation> *locs = NULL);
+            int lineNum, Function *f, 
+            std::vector<VariableLocation> *locs = NULL);
+            
 	// Copy constructor
 	localVar(localVar &lvar);
 	bool addLocation(VariableLocation &location);

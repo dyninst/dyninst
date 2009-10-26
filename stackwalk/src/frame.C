@@ -51,7 +51,8 @@ Frame::Frame(Walker *parent_walker) :
   bottom_frame(false),
   frame_complete(false),
   stepper(NULL),
-  walker(parent_walker)
+  walker(parent_walker),
+  originating_thread(NULL_THR_ID)
 {
   assert(walker);
   ra_loc.location = loc_unknown;
@@ -191,7 +192,7 @@ void Frame::setNameValue() {
   
   bool result = lookup->lookupAtAddr(getRA(), sym_name, sym_value);
   if (!result) {
-    sw_printf("[%s:%u] - Error, returned by lookupAddr.\n", __FILE__, __LINE__);
+    sw_printf("[%s:%u] - Error, returned by lookupAtAddr().\n", __FILE__, __LINE__);
     name_val_set = nv_err;
   }
   
@@ -251,8 +252,11 @@ Frame::~Frame() {
   sw_printf("[%s:%u] - Destroying frame %p\n", __FILE__, __LINE__, this);
 }
 
-bool Frame::getLibOffset(std::string &lib, Dyninst::Offset &offset, 
-                         void* &symtab)
+#ifdef cap_stackwalker_use_symtab
+bool Frame::getLibOffset(std::string &lib, Dyninst::Offset &offset, void*& symtab)
+#else
+bool Frame::getLibOffset(std::string &lib, Dyninst::Offset &offset, void*&)
+#endif
 {
   LibraryState *libstate = getWalker()->getProcessState()->getLibraryTracker();
   if (!libstate) {
@@ -278,5 +282,15 @@ bool Frame::getLibOffset(std::string &lib, Dyninst::Offset &offset,
 #endif
 
   return true;
+}
+
+THR_ID Frame::getThread() const
+{
+   return originating_thread;
+}
+
+void Frame::setThread(THR_ID t)
+{
+   originating_thread = t;
 }
 

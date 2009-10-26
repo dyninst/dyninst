@@ -63,6 +63,7 @@ protected:
   
   FrameStepper *stepper;
   Walker *walker;
+  THR_ID originating_thread;
   
   void setStepper(FrameStepper *newstep);
   void setWalker(Walker *newwalk);
@@ -81,6 +82,7 @@ protected:
   void setRA(Dyninst::MachRegisterVal);
   void setSP(Dyninst::MachRegisterVal);
   void setFP(Dyninst::MachRegisterVal);
+  void setThread(THR_ID);
   
   location_t getRALocation() const;
   location_t getSPLocation() const;
@@ -99,6 +101,9 @@ protected:
   
   FrameStepper *getStepper() const;
   Walker *getWalker() const;
+  THR_ID getThread() const;
+
+  bool getLocalVariable(std::string varname, int *value);
   
   virtual ~Frame();
 };

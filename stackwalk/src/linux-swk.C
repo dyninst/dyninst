@@ -55,6 +55,7 @@
 #include <sys/wait.h>
 #include <sys/mman.h>
 #include <fcntl.h>
+#include <poll.h>
 
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
@@ -229,11 +230,26 @@ bool ProcSelf::getDefaultThread(THR_ID &default_tid)
   return true;
 }
 
+static bool pipeHasData(int fd)
+{
+   if (fd == -1)
+      return false;
+
+   struct pollfd pfd[1];
+   pfd[0].fd = fd;
+   pfd[0].events = POLLIN;
+   pfd[0].revents = 0;
+   int result = poll(pfd, 1, 0);
+   return (result == 1 && pfd[0].revents & POLLIN);
+}
+
 DebugEvent ProcDebug::debug_get_event(bool block)
 {
    int status = 0;
    DebugEvent ev;
    pid_t p;
+
+   bool dataOnPipe = pipeHasData(pipe_out);
 
    int flags = __WALL;
    if (!block)
@@ -254,22 +270,22 @@ DebugEvent ProcDebug::debug_get_event(bool block)
       ev.dbg = dbg_err;
       return ev;
    }
+
+   //If we got an event, or if we didn't read a message and there
+   // is a byte on the pipe, then remove one byte from the pipe.
+   if (pipe_out != -1 && 
+       (p != 0 || dataOnPipe)) 
+   {
+      char c;
+      sw_printf("[%s:%u] - Removing data from pipe, %d, %s\n",
+                __FILE__, __LINE__, p, dataOnPipe ? "true" : "false");
+      read(pipe_out, &c, 1);
+   }
    
    if (p == 0) {
      sw_printf("[%s:%u] - No debug events available\n", __FILE__, __LINE__);
      ev.dbg = dbg_noevent;
      return ev;
-   }
-
-   if (pipe_out != -1)
-   {
-      /*struct pollfd[1];
-      pollfd[0].fd = pipe_out;
-      pollfd[0].events = POLLIN;
-      pollfd[0].revents = 0;
-      poll(pollfd, 1, 0);*/
-      char c;
-      read(pipe_out, &c, 1);
    }
 
    thread_map_t::iterator i = ProcDebugLinux::all_threads.find(p);
@@ -685,32 +701,8 @@ bool ProcDebugLinux::pollForNewThreads()
                 "for %d", __FILE__, __LINE__, pid);                
       return false;
    }
-   
-   bool had_error = false;
-   std::vector<THR_ID>::iterator i;
-   for (i=thrds.begin(); i != thrds.end(); i++) {
-      if (threads.count(*i)) {
-         continue;
-      }
-      sw_printf("[%s:%u] - Discovered unknown thread %d, in proc %d\n",
-                __FILE__, __LINE__, *i, pid);
-      ThreadState *new_thread = ThreadState::createThreadState(this, *i);
-      if (!new_thread && getLastError() == err_noproc) {
-         //Race condition, get thread ID or running thread, which then 
-         // exits.  Should be rare...
-         sw_printf("[%s:%u] - Error creating thread %d, does not exist\n",
-                   __FILE__, __LINE__, *i);
-         clearLastError();
-         continue;
-      }
-      else if (!new_thread) {
-         sw_printf("[%s:%u] - Unexpected error creating thread %d\n",
-                   __FILE__, __LINE__, *i);
-         had_error = true;
-         continue;
-      }
-   }
-   return had_error;
+
+   return add_new_threads(thrds.begin(), thrds.end());
 }
 
 bool ProcDebugLinux::getDefaultThread(THR_ID &default_tid)
@@ -742,7 +734,7 @@ ProcDebugLinux::~ProcDebugLinux()
 {
 }
    
-ProcDebug *ProcDebug::newProcDebug(PID pid)
+ProcDebug *ProcDebug::newProcDebug(PID pid, std::string)
 {
    ProcDebugLinux *pd = new ProcDebugLinux(pid);
    if (!pd)

@@ -310,6 +310,12 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
     API_EXPORT(ByType, (type),
     BPatch_variableExpr *,malloc,(const BPatch_type &type));
 
+    API_EXPORT(Int, (at_addr, type, var_name, in_module),
+    BPatch_variableExpr *, createVariable,(Dyninst::Address at_addr, 
+                                           BPatch_type *type,
+                                           std::string var_name = std::string(""),
+                                           BPatch_module *in_module = NULL));
+
     //  BPatch_addressSpace::free
     //  
     //  Free memory allocated by Dyninst in the mutatee process

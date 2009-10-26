@@ -91,7 +91,7 @@ typedef enum frameStatus_t {
 #define SIG_HANDLER_PC_OFFSET_64 168
 #define SIG_HANDLER_FRAME_SIZE_64 576
 
-static frameStatus_t getFrameStatus(process *p, unsigned long pc)
+static frameStatus_t getFrameStatus(process *p, unsigned long pc, int &extra_height)
 {
    codeRange *range;
 
@@ -99,6 +99,7 @@ static frameStatus_t getFrameStatus(process *p, unsigned long pc)
    miniTrampInstance *mini = NULL;
    multiTramp *multi = NULL;
    baseTrampInstance *base = NULL;
+   extra_height = 0;
 
    mapped_object *mobj = p->findObject(pc);
    if (mobj) {
@@ -123,6 +124,7 @@ static frameStatus_t getFrameStatus(process *p, unsigned long pc)
 
    if (base) {
       if (base->isInInstru(pc)) {
+         extra_height = base->trampStackHeight();
          if (base->baseT->createFrame())
             return frame_tramp;
          else
@@ -279,23 +281,41 @@ class DyninstMemRegReader : public Dyninst::SymtabAPI::MemRegReader
    }
 
    virtual bool GetReg(MachRegister reg, MachRegisterVal &val) {
-      switch (reg) {
-         case MachRegPC:
-         case MachRegReturn:
-            val = orig_frame->getPC();
-            break;
-         case ESP:
-         case RSP:
-         case MachRegStackBase:
-            val = orig_frame->getSP();
-            break;
-         case EBP:
-         case RBP:
-         case MachRegFrameBase:
-            val = orig_frame->getFP();
-            break;
-         default:
-            assert(0);
+      if (proc->getAddressWidth() == 4) {
+         switch (reg) {
+            case MachRegPC:
+            case MachRegReturn:
+               val = orig_frame->getPC();
+               break;
+            case x86::ESP:
+            case MachRegStackBase:
+               val = orig_frame->getSP();
+               break;
+            case x86::EBP:
+            case MachRegFrameBase:
+               val = orig_frame->getFP();
+               break;
+            default:
+               assert(0);
+         }
+      }
+      else {
+         switch (reg) {
+            case MachRegPC:
+            case MachRegReturn:
+               val = orig_frame->getPC();
+               break;
+            case x86_64::RSP:
+            case MachRegStackBase:
+               val = orig_frame->getSP();
+               break;
+            case x86_64::RBP:
+            case MachRegFrameBase:
+               val = orig_frame->getFP();
+               break;
+            default:
+               assert(0);
+         }
       }
       return true;
    }
@@ -318,7 +338,7 @@ Frame Frame::getCallerFrame()
 {
     int_function *cur_func = getProc()->findFuncByAddr(pc_);
     int addr_size = getProc()->getAddressWidth();
-
+    int extra_height = 0;
 #if defined(os_linux)
     // assume _start is never called, so just return if we're there
     if (cur_func &&
@@ -353,7 +373,7 @@ Frame Frame::getCallerFrame()
    addrs.fp = 0;
    addrs.rtn = 0;
 
-   status = getFrameStatus(getProc(), getPC());
+   status = getFrameStatus(getProc(), getPC(), extra_height);
 
    if (status == frame_vsyscall)
    {
@@ -417,9 +437,9 @@ Frame Frame::getCallerFrame()
          }         
          Dyninst::MachRegister frame_reg;
          if (getProc()->getAddressWidth() == 4)
-            frame_reg = EBP;
+            frame_reg = x86::EBP;
          else
-            frame_reg = RBP;
+            frame_reg = x86_64::RBP;
 
          result = vsys_obj->getRegValueAtFrame(pc_ - vsys_base, frame_reg,
                                                newFP, &reader);
@@ -528,8 +548,7 @@ Frame Frame::getCallerFrame()
         pcLoc = fp_ + addr_size;
      }
      if (status == frame_tramp)
-        newSP += getProc()->getAddressWidth() == 8 ? 
-           tramp_pre_frame_size_64 : tramp_pre_frame_size_32;
+        newSP += extra_height;
      goto done;
    }
    else if (status == frameless_tramp)
@@ -646,7 +665,7 @@ Frame Frame::getCallerFrame()
          // to rely on the check in this case.
          int_function *next_func = getProc()->findFuncByAddr(estimated_ip);
          if (next_func != NULL && 
-             getFrameStatus(getProc(), estimated_ip) == frame_allocates_frame &&
+             getFrameStatus(getProc(), estimated_ip, extra_height) == frame_allocates_frame &&
              (estimated_fp < fp_ || estimated_fp > stack_top))
          {
             continue;

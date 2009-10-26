@@ -992,9 +992,6 @@ BOOL CALLBACK enumLocalSymbols(PSYMBOL_INFO pSymInfo, unsigned long symSize,
         storage = storageAddr;
         storageName = "Absolute";
     }
-#if 0
-	VariableLocation *loc = (VariableLocation *)malloc(sizeof(VariableLocation));
-#endif
 	VariableLocation loc;
 	loc.stClass = storage;
 	loc.refClass = storageNoRef;
@@ -1003,7 +1000,7 @@ BOOL CALLBACK enumLocalSymbols(PSYMBOL_INFO pSymInfo, unsigned long symSize,
 	
 	std::string vName = convertCharToString(pSymInfo->Name);
 	std::string fName = convertCharToString(func->getModule()->fileName().c_str());
-   newvar = new localVar(vName, type, fName, -1);
+   newvar = new localVar(vName, type, fName, -1, func);
 	newvar->addLocation(loc);
 
     //Store the variable as a local or parameter appropriately
@@ -1013,11 +1010,6 @@ BOOL CALLBACK enumLocalSymbols(PSYMBOL_INFO pSymInfo, unsigned long symSize,
          fprintf(stderr, "%s[%d]:  addParam failed\n", FILE__, __LINE__);
          return false;
       }
-#if 0
-		if(!func->params_)
-			func->params_ = new localVarCollection();
-      func->params_->addLocalVar(newvar);
-#endif
       paramType = "parameter";
    }
    else if (pSymInfo->Flags & IMAGEHLP_SYMBOL_INFO_LOCAL) {
@@ -1026,11 +1018,6 @@ BOOL CALLBACK enumLocalSymbols(PSYMBOL_INFO pSymInfo, unsigned long symSize,
          fprintf(stderr, "%s[%d]:  addLocalVar failed\n", FILE__, __LINE__);
          return false;
       }
-#if 0
-      if(!func->vars_)
-         func->vars_ = new localVarCollection();
-      func->vars_->addLocalVar(newvar);
-#endif
       paramType = "local";
    }
    else {

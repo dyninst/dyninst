@@ -102,11 +102,11 @@ void SymtabWrapper::notifyOfSymtab(Symtab *symtab, std::string name)
   wrapper->map[name] = symtab;
 }
 
-SymtabLibState::SymtabLibState(ProcessState *parent) : 
+SymtabLibState::SymtabLibState(ProcessState *parent, std::string executable) : 
    LibraryState(parent),
    needs_update(true),
    lookup(NULL),
-   procreader(parent)
+   procreader(parent, executable)
 #if defined(os_linux)
    , vsyscall_mem(NULL)
    , vsyscall_symtab(NULL)
@@ -114,11 +114,17 @@ SymtabLibState::SymtabLibState(ProcessState *parent) :
 #endif
 {
    PID pid = procstate->getProcessId();
+   sw_printf("[%s:%u] - Creating a SymtabLibState on pid %d\n",
+             __FILE__, __LINE__, pid);
    if (procstate->isFirstParty()) {
       lookup = AddressLookup::createAddressLookup(&procreader);
    }
    else {
       lookup = AddressLookup::createAddressLookup(pid, &procreader);
+   }
+   if (!lookup) {
+      sw_printf("[%s:%u] - Creation of AddressLookup failed for ProcSelf "
+                "on pid %d!\n", __FILE__, __LINE__, pid);
    }
    assert(lookup);
 }
@@ -150,6 +156,7 @@ bool SymtabLibState::getLibraryAtAddr(Address addr, LibAddrPair &olib)
 {
    bool result = refresh();
    if (!result) {
+      sw_printf("[%s:%u] - Failed to refresh library.\n", __FILE__, __LINE__);
       setLastError(err_symtab, "Failed to refresh library list");
       return false;
    }
@@ -170,6 +177,7 @@ bool SymtabLibState::getLibraryAtAddr(Address addr, LibAddrPair &olib)
    Offset offset;
    result = lookup->getOffset(addr, symtab, offset);
    if (!result) {
+      sw_printf("[%s:%u] - no file loaded at %x\n", __FILE__, __LINE__, offset);
       setLastError(err_nofile, "No file loaded at specified address");
       return false;
    }
@@ -282,7 +290,8 @@ LibAddrPair SymtabLibState::getAOut() {
    return LibAddrPair(std::string(""), 0x0);
 }
 
-swkProcessReader::swkProcessReader(ProcessState *pstate) :
+swkProcessReader::swkProcessReader(ProcessState *pstate, const std::string& executable) :
+   ProcessReader(0, executable),
    procstate(pstate)
 {
 }
@@ -325,7 +334,7 @@ bool SwkSymtab::lookupAtAddr(Address addr, std::string &out_name,
   LibAddrPair lib;
   result = libtracker->getLibraryAtAddr(addr, lib);
   if (!result) {
-     sw_printf("[%s:%u] - getLibraryTracker() failed\n", __FILE__, __LINE__);
+     sw_printf("[%s:%u] - getLibraryAtAddr() failed: %s\n", __FILE__, __LINE__, getLastErrorMsg());
     return false;
   }
 

@@ -56,8 +56,11 @@ typedef int (*xdr_wr_func)(void *, char *, int);
 #if defined(os_solaris)
 #include "common/h/solarisHeaders.h"
 
-#elif defined(os_linux) || defined(os_bluegene) || defined(os_bgcompute)
+#elif defined(os_linux) || defined(os_bgp) || defined(os_bg_ion)
 #include "common/h/linuxHeaders.h"
+
+#elif defined(os_bg_compute)
+#include "common/h/bg_compute_headers.h"
 
 #elif defined(os_aix)
 #include "common/h/aixv41Headers.h"
@@ -136,7 +139,7 @@ try_again:
 }
 #endif
 
-#if !defined(os_bgcompute)
+#if !defined(os_bg_compute)
 #if !defined(os_windows)
 template <class T>
 readReturnValue_t P_socketRead(PDSOCKET fd, T &it, ssize_t sz)
@@ -205,5 +208,5 @@ readReturnValue_t P_socketRead(PDSOCKET fd, T &it)
 {
    return P_socketRead<T>(fd, it, sizeof(T));
 }
-#endif /* !defined(os_bgcompute) */
+#endif /* !os_bg_compute */
 #endif /* KLUDGES_H */

@@ -37,6 +37,8 @@
 #include "dyntypes.h"
 #include <set>
 
+#include "get_trap_instruction.h"
+
 #define MAX_TRAP_LEN 8
 
 namespace Dyninst {
@@ -112,9 +114,6 @@ public:
    virtual void registerStepperGroup(StepperGroup *group);
    virtual ~BottomOfStackStepperImpl();  
 };
-
-void getTrapInstruction(char *buffer, unsigned buf_size, unsigned &actual_len, bool include_return);
-
 
 }
 }

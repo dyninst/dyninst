@@ -424,7 +424,7 @@ class image : public codeRange, public InstructionSource {
 
    Address get_main_call_addr() const { return main_call_addr_; }
 
-   void * getErrFunc() const { return (void *) pd_log_perror; }
+   void * getErrFunc() const { return (void *) dyninst_log_perror; }
 
    dictionary_hash<Address, std::string> *getPltFuncs();
 

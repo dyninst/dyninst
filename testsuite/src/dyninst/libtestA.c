@@ -76,7 +76,7 @@ DLLEXPORT int call22_4(int x)
     return x + MAGIC22_4;
 }
 
-DLLEXPORT int call22_5(int x)
+DLLEXPORT int call22_5a(int x)
 {
     return x + MAGIC22_5A;
 }

@@ -48,9 +48,11 @@ dyn_hash_map<string, std::vector<Symbol *> > AddressLookup::syms;
 AddressLookup *AddressLookup::createAddressLookup(PID pid, ProcessReader *reader)
 {
    AddressTranslate *trans = AddressTranslate::createAddressTranslator(pid, reader);
+
    if (!trans)
       return NULL;
    AddressLookup *ar = new AddressLookup(trans);
+
    if (!ar)
       return NULL;
    return ar;

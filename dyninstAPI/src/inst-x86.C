@@ -81,6 +81,7 @@
 #include "Expression.h"
 #include "Instruction.h"
 #include <sstream>
+#include <assert.h>
 
 class ExpandInstruction;
 class InsertNops;
@@ -1575,6 +1576,9 @@ stackItemLocation getHeightOf(stackItem sitem, codeGen &gen)
             if (reg->spilledState != registerSlot::unspilled)
                offset += addr_width;
          }
+         if (gen.bti()->hasFuncJump()) {
+            offset += addr_width;
+         }
          if (gen.bti()->hasStackFrame()) {
             //Save of EBP adds addr_width--ebp may have been counted once above
             // and here again if a pusha and frame were created, but that's
@@ -2210,28 +2214,66 @@ unsigned baseTramp::getBTCost() {
 // CALLEE returns, it returns to the current caller.)
 void emitFuncJump(opCode op, 
                   codeGen &gen,
-                  const int_function *callee, AddressSpace *,
+                  int_function *callee, AddressSpace *,
                   const instPoint *loc, bool)
 {
    // This must mimic the generateRestores baseTramp method. 
     assert(op == funcJumpOp);
 
-    Address addr = callee->getAddress();
     instPointType_t ptType = loc->getPointType();
-    gen.codeEmitter()->emitFuncJump(addr, ptType, gen);
+    gen.codeEmitter()->emitFuncJump(callee, ptType, gen);
 }
 
-void EmitterIA32::emitFuncJump(Address addr, instPointType_t /*ptType*/, codeGen &gen)
+void EmitterIA32::emitFuncJump(int_function *f, instPointType_t /*ptType*/, codeGen &gen)
 {       
     assert(gen.bti());
-    emitBTRestores(gen.bti()->baseT, gen.bti(), gen);
-    
-    GET_PTR(insn, gen);
-    *insn++ = 0x68; /* push 32 bit immediate */
-    *((int *)insn) = addr; /* the immediate */
-    insn += 4;
-    *insn++ = 0xc3; /* ret */
-    SET_PTR(insn, gen);
+    Address addr = f->getAddress();
+    if (f->proc() == gen.addrSpace() &&
+        gen.startAddr() &&
+        (signed int) (addr-(gen.currAddr()+5)) < ((signed int) 0x7fffffff) &&
+        (signed int) (addr-(gen.currAddr()+5)) > ((signed int) 0x80000000))
+    {
+       //Same module or dynamic instrumentation and address and within
+       // jump distance.
+       emitBTRestores(gen.bti()->baseT, gen.bti(), gen);   
+       int disp = addr - (gen.currAddr()+5);
+       emitJump(disp, gen);
+    }
+    else if (dynamic_cast<process *>(gen.addrSpace())) {
+       //Dynamic instrumentation, emit an absolute jump (push/ret combo)
+       emitBTRestores(gen.bti()->baseT, gen.bti(), gen);   
+       GET_PTR(insn, gen);
+       *insn++ = 0x68; /* push 32 bit immediate */
+       *((int *)insn) = addr; /* the immediate */
+       insn += 4;
+       *insn++ = 0xc3; /* ret */
+       SET_PTR(insn, gen);
+    }
+    else if (dynamic_cast<BinaryEdit *>(gen.addrSpace())) {
+       //Static instrumentation, calculate and store the target 
+       // value to the top of our instrumentation stack and return to it.
+       assert(gen.bti() && gen.bti()->hasFuncJump());
+
+       //Get address of target into realr
+       Register reg = gen.rs()->getScratchRegister(gen);
+       RealRegister realr = gen.rs()->loadVirtualForWrite(reg, gen);
+       Address dest = getInterModuleFuncAddr(f, gen);
+       emitMovPCRMToReg(realr, dest-gen.currAddr(), gen);
+       //Mov realr to stack slot
+       stackItemLocation loc = getHeightOf(stackItem::stacktop, gen);
+       emitMovRegToRM(loc.reg, loc.offset-4, realr, gen);
+
+       //Temporarily unset the hasFuncJump so that when we restore the BT
+       // the funcJump slot is not cleaned.
+       gen.bti()->setHasFuncJump(false);
+       emitBTRestores(gen.bti()->baseT, gen.bti(), gen);
+       gen.bti()->setHasFuncJump(true);
+
+       //The address should be left on the stack.  Just return now.
+       GET_PTR(insn, gen);
+       *insn++ = 0xc3;
+       SET_PTR(insn, gen);
+    }
 
     instruction::generateIllegal(gen);
 }
@@ -2513,6 +2555,15 @@ void emitCallRel32(unsigned disp32, codeGen &gen)
 {
    GET_PTR(insn, gen);
    *insn++ = 0xE8;
+   *((int *) insn) = disp32;
+   insn += sizeof(int);
+   SET_PTR(insn, gen);
+}
+
+void emitJump(unsigned disp32, codeGen &gen)
+{
+   GET_PTR(insn, gen);
+   *insn++ = 0xE9;
    *((int *) insn) = disp32;
    insn += sizeof(int);
    SET_PTR(insn, gen);

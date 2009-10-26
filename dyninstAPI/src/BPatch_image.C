@@ -1521,6 +1521,8 @@ bool BPatch_image::readStringInt(BPatch_variableExpr *expr, std::string &str,
       bperr("String read failed on variable with unexpected type");
       return false;
    }
+   if (!addr)
+      return false;
 
    return readString(addr, str, size_limit);
 }

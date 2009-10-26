@@ -701,7 +701,11 @@ unsigned instruction::spaceToRelocate() const {
     // short range, we _do_ handle moving them through a complicated
     // "jump past an unconditional branch" combo.
     
-    if (isCondBranch()) {
+  if (isThunk()) {
+    // Load high; load low; move to LR
+    return 3*instruction::size();
+  }
+  else if (isCondBranch()) {
         // Maybe... so worst-case
         if ((insn_.bform.bo & BALWAYSmask) != BALWAYScond) {
             return 3*instruction::size();
@@ -732,7 +736,7 @@ bool instruction::generate(codeGen &gen,
     if (isThunk()) {
       // This is actually a "get PC" operation, and we want
       // to handle it as such. 
-      
+     
       // 1: get the original return address (value stored in LR)
       // This is origAddr + 4; optionally, check its displacement...
       Address origRet = origAddr + 4;
@@ -740,7 +744,7 @@ bool instruction::generate(codeGen &gen,
       // 2: find a scratch register and load this value into it
       instPoint *point = gen.point();
       // If we do not have a point then we have to invent one
-      if (!point) 
+      if (!point || (point->addr() != origAddr))
 	point = instPoint::createArbitraryInstPoint(origAddr,
 						    gen.addrSpace(),
 						    gen.func());

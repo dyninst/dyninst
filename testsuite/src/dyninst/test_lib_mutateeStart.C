@@ -404,7 +404,6 @@ bool runBinaryTest(BPatch *bpatch, RunGroup *group,
 
    clearBinEditFiles();
 
-#if 0
    //  runTests is clobbering (perhaps intentionally?) the user's LD_LIBRARY_PATH
    //  which means that if we cd to the bin dir, and any rewritten binary depends
    //  on a library in the test directory (one level up), the library will no
@@ -415,9 +414,8 @@ bool runBinaryTest(BPatch *bpatch, RunGroup *group,
       goto done;
    }
    cd_done = true;
-#endif
 
-   outfile = std::string(BINEDIT_DIR) + std::string("/rewritten_") + std::string(group->mutatee);
+   outfile = /*std::string(BINEDIT_DIR) +*/ std::string("rewritten_") + std::string(group->mutatee);
 
 #if !defined(os_windows_test)
    if (getenv("DYNINST_REWRITER_NO_UNLINK"))
@@ -444,6 +442,11 @@ bool runBinaryTest(BPatch *bpatch, RunGroup *group,
    }
    file_written = true;
 
+   if (cd_done) {
+      cdBack();
+      cd_done = false;
+   }
+
    child_argv = parseArgs(group, logfilename, humanlogname,
                           verboseFormat, printLabels, 
                           debugPrint, pidfilename);
@@ -461,6 +464,7 @@ bool runBinaryTest(BPatch *bpatch, RunGroup *group,
      }
    }
    dprintf("'...\n\n\n");
+   outfile = "./binaries/" + outfile;
    pid = startNewProcessForAttach(outfile.c_str(), child_argv,
                                   NULL, NULL, false);
    if (pid == -1) {

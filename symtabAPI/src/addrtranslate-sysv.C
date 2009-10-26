@@ -50,8 +50,9 @@
 #include "symtabAPI/h/Symtab.h"
 #include "symtabAPI/src/addrtranslate.h"
 #include "symtabAPI/src/addrtranslate-sysv.h"
+#include "debug.h"
 
-#if defined(os_linux)
+#if defined(os_linux) || defined(os_bg)
 #define R_DEBUG_NAME "_r_debug"
 #else
 #define R_DEBUG_NAME "r_debug"
@@ -63,6 +64,7 @@ using namespace Dyninst;
 using namespace SymtabAPI;
 
 FileCache Dyninst::SymtabAPI::files;
+
 
 class ProcessReaderSelf : public ProcessReader {
 public:
@@ -154,6 +156,11 @@ r_debug_dyn<r_debug_X>::r_debug_dyn(ProcessReader *proc_, Address addr)
    : proc(proc_) 
 {
    valid = proc->readAddressSpace(addr, sizeof(debug_elm), &debug_elm);
+
+   translate_printf("[%s:%u] -     Read rdebug structure.  Values were:\n", __FILE__, __LINE__);
+   translate_printf("[%s:%u] -       r_brk:    %lx\n", __FILE__, __LINE__, (unsigned long)debug_elm.r_brk);
+   translate_printf("[%s:%u] -       r_map:    %lx\n", __FILE__, __LINE__, (unsigned long)debug_elm.r_map);
+   translate_printf("[%s:%u] -       r_ldbase: %lx\n", __FILE__, __LINE__, (unsigned long)debug_elm.r_ldbase);
 }
 
 template<class r_debug_X> 
@@ -272,8 +279,8 @@ static const char *deref_link(const char *path)
    return p;
 }
 
-ProcessReader::ProcessReader(int pid_) :
-   pid(pid_)
+ProcessReader::ProcessReader(int pid_, string exe) :
+   pid(pid_), executable(exe)
 {
 }
 
@@ -345,7 +352,9 @@ AddressTranslate *AddressTranslate::createAddressTranslator(int pid_,
                                                             ProcessReader *reader_,
 															PROC_HANDLE)
 {
+   translate_printf("[%s:%u] - Creating AddressTranslateSysV\n", __FILE__, __LINE__);
    AddressTranslate *at = new AddressTranslateSysV(pid_, reader_);
+   translate_printf("[%s:%u] - Created: %lx\n", __FILE__, __LINE__, (long)at);
    
    if (!at) {
       return NULL;
@@ -443,17 +452,24 @@ bool AddressTranslateSysV::setInterpreterBase()
 bool AddressTranslateSysV::init()
 {
    bool result;
+   translate_printf("[%s:%u] - Initing AddressTranslateSysV\n", __FILE__, __LINE__);
 
    result = setInterpreter();
+
    if (!result) {
-      return false;
+     translate_printf("[%s:%u] - Failed to set interpreter.\n", __FILE__, __LINE__);
+     return false;
    }
+
    result = setAddressSize();
    if (!result) {
+      translate_printf("[%s:%u] - Failed to set address size.\n", __FILE__, __LINE__);
       return false;
    }
+
    result = setInterpreterBase();
    if (!result) {
+      translate_printf("[%s:%u] - Failed to set interpreter base.\n", __FILE__, __LINE__);
       return false;
    }
 
@@ -465,6 +481,8 @@ bool AddressTranslateSysV::init()
       r_debug_addr = 0;
       trap_addr = 0;
    }
+   
+   translate_printf("[%s:%u] - Done with AddressTranslateSysV::init()\n", __FILE__, __LINE__);
 
    return true;
 }
@@ -476,6 +494,9 @@ bool AddressTranslateSysV::refresh()
    r_debug_dyn<r_debug> *r_debug_native = NULL;
    map_entries *maps = NULL;
    bool result = false;
+   size_t loaded_lib_count = 0;
+
+   translate_printf("[%s:%u] - Refreshing Libraries\n", __FILE__, __LINE__);
 
    if (!pid)
       return true;
@@ -495,10 +516,15 @@ bool AddressTranslateSysV::refresh()
       libs.push_back(exec);
    }
    
-   if (!r_debug_addr)
+   if (!r_debug_addr) {
       return true; //Static library
+   }
 
    reader->start();
+
+   translate_printf("[%s:%u] -     Starting refresh.\n", __FILE__, __LINE__);
+   translate_printf("[%s:%u] -       trap_addr:    %lx\n", __FILE__, __LINE__, trap_addr);
+   translate_printf("[%s:%u] -       r_debug_addr: %lx\n", __FILE__, __LINE__, r_debug_addr);
 
    if (address_size == sizeof(void*)) {
       r_debug_native = new r_debug_dyn<r_debug>(reader, r_debug_addr);
@@ -566,8 +592,13 @@ bool AddressTranslateSysV::refresh()
       
       string s(deref_link(obj_name.c_str()));
       LoadedLib *ll = new LoadedLib(s, text);
+      loaded_lib_count++;
+      translate_printf("[%s:%u] -     New Loaded Library: %s(%lx)\n", __FILE__, __LINE__, s.c_str(), text);
+
       libs.push_back(ll);
    } while (link_elm->load_next());
+
+   translate_printf("[%s:%u] - Found %d libraries.\n", __FILE__, __LINE__, loaded_lib_count);
 
    result = true;
  done:
@@ -646,6 +677,8 @@ void FCNode::parsefile() {
    if (parsed_file || parse_error)
       return;
 
+   translate_printf("[%s:%u] - Parsing file in FCNode: %s.\n", __FILE__, __LINE__, filename.c_str());
+
    result = Symtab::openFile(symtable, filename);
    if (!result) {
       parse_error = true;
@@ -653,8 +686,11 @@ void FCNode::parsefile() {
    }
    
    const char *name = symtable->getInterpreterName();
-   if (name)
-      interpreter_name = name;
+   if (name) {
+     interpreter_name = name;
+     translate_printf("[%s:%u] - Interpreter was: %s.\n", __FILE__, __LINE__, name);
+   }
+
    addr_size = symtable->getAddressWidth();
    symtable->getMappedRegions(regions);
    r_debug_offset = 0;
@@ -712,14 +748,6 @@ FileCache::FileCache()
 {
 }
 
-Address AddressTranslateSysV::getTrapAddr()
-{
-   return trap_addr;
+Address AddressTranslateSysV::getLibraryTrapAddrSysV() {
+  return trap_addr;
 }
-
-Address AddressTranslateSysV::getLibraryTrapAddrSysV()
-{
-   AddressTranslateSysV *addr_sysv = dynamic_cast<AddressTranslateSysV *>(this);
-   return addr_sysv->getTrapAddr();
-}
-

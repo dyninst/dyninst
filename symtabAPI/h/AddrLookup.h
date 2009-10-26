@@ -44,8 +44,9 @@ class LoadedLib;
 class ProcessReader {
  public:
    PID pid;
+   const std::string executable;
 
-   ProcessReader(PID pid_);
+   ProcessReader(PID pid_, std::string exe="");
    ProcessReader();
 
    virtual bool start() = 0;

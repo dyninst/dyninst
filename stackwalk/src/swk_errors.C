@@ -72,6 +72,10 @@ void Dyninst::Stackwalker::clearLastError()
    last_msg = "";
 }
 
+FILE *Dyninst::Stackwalker::getDebugChannel() {
+  return debug_out;
+}
+
 #if !defined(cap_omit_sw_debug)
 int Dyninst::Stackwalker::sw_printf(const char *format, ...)
 {
@@ -92,6 +96,8 @@ int Dyninst::Stackwalker::sw_printf(const char *format, ...)
   va_start(va, format);
   int ret = vfprintf(debug_out, format, va);
   va_end(va);
+
+  fflush(debug_out);
 
   return ret;
 }

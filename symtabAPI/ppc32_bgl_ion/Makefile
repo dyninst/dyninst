@@ -25,13 +25,13 @@ SRCS =          ../src/Object-elf.C \
                 ../src/addrtranslate.C \
                 ../src/addrtranslate-static.C
 
-MYFLAGS		+= -DUSES_DWARF_DEBUG -I$(LIBDWARF_INC) -I$(LIBELF_INC)
+MYFLAGS                += -DUSES_DWARF_DEBUG -I$(LIBDWARF_INC) -I$(LIBELF_INC)
 
 CXXFLAGS        += $(MYFLAGS)
 CFLAGS          += $(MYFLAGS)
 TFLAGS          += $(MYFLAGS)
 
-SYSLIBS		= -ldl 
+SYSLIBS                = -ldl 
 
 ifndef LIBDWARFSTATIC
 LIBS += -ldwarf
@@ -40,21 +40,21 @@ ifndef LIBELFSTATIC
 LIBS += -lelf
 endif
 ifndef LIBIBERTYSTATIC
-LIBS	+= -liberty
+LIBS   += -liberty
 endif
 
-LIBS	  +=  -L$(LIBDWARF_LIB) -L$(LIBELF_LIB)
+LIBS     +=  -L$(LIBDWARF_LIB) -L$(LIBELF_LIB)
 
-AS		= /usr/bin/as
+AS             = /usr/bin/as
 
 # no support for elf64_XXX() functions
-# CXXFLAGS	+= -DUSES_ELF32_ONLY
-# CFLAGS	+= -DUSES_ELF32_ONLY
-# TFLAGS	+= -DUSES_ELF32_ONLY
+# CXXFLAGS     += -DUSES_ELF32_ONLY
+# CFLAGS       += -DUSES_ELF32_ONLY
+# TFLAGS       += -DUSES_ELF32_ONLY
 
 # Add preprocessor and special link information for G++
-G_PTHREAD	= -pthread
-G_PTHREAD_LD	= -pthread
+G_PTHREAD      = -pthread
+G_PTHREAD_LD   = -pthread
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

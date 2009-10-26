@@ -42,6 +42,7 @@
 #define BPATCH_FILE
 
 #include "process.h"
+#include "binaryEdit.h"
 #include "EventHandler.h"
 #include "mailbox.h"
 #include "signalgenerator.h"
@@ -52,6 +53,7 @@
 #include "codeRange.h"
 #include "dyn_thread.h"
 #include "miniTramp.h"
+#include "addressSpace.h"
 
 #include "mapped_module.h"
 
@@ -812,3 +814,54 @@ void BPatch_addressSpace::allowTrapsInt(bool allowtraps)
       (*i)->setUseTraps(allowtraps);
    }
 }
+
+BPatch_variableExpr *BPatch_addressSpace::createVariableInt(
+                        Dyninst::Address at_addr,
+                        BPatch_type *type, std::string var_name,
+                        BPatch_module *in_module)
+{
+   BPatch_binaryEdit *binEdit = dynamic_cast<BPatch_binaryEdit *>(this);
+   if (binEdit && !in_module) {
+      //Address alone isn't unique when binary rewriting
+      return NULL;
+   }
+   if (!type) {
+      //Required for size information.  
+      return NULL;
+   }
+   AddressSpace *ll_addressSpace = NULL;
+   
+   std::vector<AddressSpace *> as;
+   getAS(as);
+   if (binEdit) {
+      std::vector<AddressSpace *>::iterator as_i;      
+      for (as_i = as.begin(); as_i != as.end(); as_i++)
+      {
+         BinaryEdit *b = dynamic_cast<BinaryEdit *>(*as_i);
+         assert(b);
+         if (in_module->mod->obj() == b->getMappedObject()) {
+            ll_addressSpace = *as_i;
+            break;
+         }
+      }
+   }
+   else {
+      assert(as.size() == 1);
+      ll_addressSpace = as[0];
+   }
+
+   if (!ll_addressSpace) {
+      //in_module doesn't belong to 'this'
+      return NULL;
+   }
+
+   if (!var_name.size()) {
+      std::stringstream namestream;
+      namestream << "dyninst_var_" << std::hex << at_addr;
+      var_name = namestream.str();
+   }
+   
+   return BPatch_variableExpr::makeVariableExpr(this, ll_addressSpace, var_name,
+                                                (void *) at_addr, type);
+}
+                                    

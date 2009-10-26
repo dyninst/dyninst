@@ -188,15 +188,22 @@ static char *deref_link(const char *path)
    return p;
 }
 
-LoadedLib *AddressTranslateSysV::getAOut()
+
+const string& AddressTranslateSysV::getExecName() 
 {
-   if (!exec_name.length()) {
+   if (exec_name.empty()) {
       char name[64];
       snprintf(name, 64, "/proc/%d/exe", pid);
       exec_name = std::string(deref_link(name));
    }
-   LoadedLib *ll = new LoadedLib(exec_name, 0);
-   return ll;
+   return exec_name;
+}
+
+
+LoadedLib *AddressTranslateSysV::getAOut()
+{
+   // TODO: shouldn't this just return exec if it's set?
+   return new LoadedLib(getExecName(), 0);
 }
 
 

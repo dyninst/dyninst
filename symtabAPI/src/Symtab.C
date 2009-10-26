@@ -70,7 +70,7 @@ static std::string errMsg;
 extern bool parseCompilerType(Object *);
 extern AnnotationClass<typeCollection> ModuleTypeInfoAnno;
 
-void pd_log_perror(const char *msg)
+void symtab_log_perror(const char *msg)
 {
    errMsg = std::string(msg);
 };
@@ -1025,7 +1025,7 @@ Symtab::Symtab(std::string filename,bool &err) :
       return;
    }
 
-   obj_private = new Object(mf, mfForDebugInfo, pd_log_perror, true);
+   obj_private = new Object(mf, mfForDebugInfo, symtab_log_perror, true);
 
    if (!extractInfo(obj_private))
    {
@@ -1061,7 +1061,7 @@ Symtab::Symtab(char *mem_image, size_t image_size, bool &err) :
       return;
    }
 
-   obj_private = new Object(mf, mfForDebugInfo, pd_log_perror, true);
+   obj_private = new Object(mf, mfForDebugInfo, symtab_log_perror, true);
 
    if (!extractInfo(obj_private))
    {
@@ -1088,7 +1088,7 @@ Symtab::Symtab(std::string filename, std::string member_name, Offset offset,
 {
    mf = MappedFile::createMappedFile(filename);
    assert(mf);
-   obj_private = new Object(mf, mfForDebugInfo, member_name, offset, pd_log_perror, base);
+   obj_private = new Object(mf, mfForDebugInfo, member_name, offset, symtab_log_perror, base);
    err = extractInfo(obj_private);
    defaultNamespacePrefix = "";
 }
@@ -1111,7 +1111,7 @@ Symtab::Symtab(char *mem_image, size_t image_size, std::string member_name,
 {
    mf = MappedFile::createMappedFile(mem_image, image_size);
    assert(mf);
-   obj_private = new Object(mf, mf, member_name, offset, pd_log_perror, base);
+   obj_private = new Object(mf, mf, member_name, offset, symtab_log_perror, base);
    err = extractInfo(obj_private);
    defaultNamespacePrefix = "";
 }

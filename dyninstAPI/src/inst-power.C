@@ -2515,7 +2515,7 @@ bool process::hasBeenBound(const relocationEntry &entry,
 
 void emitFuncJump(opCode             , 
                   codeGen            &gen,
-                  const int_function *func,
+                  int_function *func,
                   AddressSpace       *proc,
                   const instPoint    *point,
                   bool)

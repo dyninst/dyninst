@@ -363,7 +363,7 @@ test_runs_everywhere('test1_22').
 groupable_test('test1_22').
 mutator('test1_22', ['test1_22.C']).
 mutatee_requires_libs('dyninst_group_test', ['dl']).
-test_runmode('test1_22', 'dynamic').
+test_runmode('test1_22', 'staticdynamic').
 test_start_state('test1_22', 'stopped').
 tests_module('test1_22', 'dyninst').
 

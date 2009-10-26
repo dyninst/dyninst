@@ -380,9 +380,9 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
    
    Dyninst::MachRegister frame_reg;
    if (addr_width == 4)
-      frame_reg = EBP;
+      frame_reg = x86::EBP;
    else
-      frame_reg = RBP;
+      frame_reg = x86_64::RBP;
 
    result = symtab->getRegValueAtFrame(pc, frame_reg,
                                        frame_value, this);

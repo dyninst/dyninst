@@ -663,6 +663,11 @@ void BPatch_thread::setDynThread(dyn_thread *thr)
   updated = false;
 }
 
+bool BPatch_thread::isVisiblyStopped()
+{
+   return proc->isVisiblyStopped;
+}
+
 void BPatch_thread::markVisiblyStopped(bool new_state)
 {
    proc->isVisiblyStopped = new_state;

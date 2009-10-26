@@ -51,7 +51,7 @@ class swkProcessReader : public ProcessReader {
  private:
    ProcessState *procstate;
  public:
-   swkProcessReader(ProcessState *pstate);
+   swkProcessReader(ProcessState *pstate, const std::string& executable);
    virtual bool start();
    virtual bool readAddressSpace(Address inTraced, unsigned amount, 
                                  void *inSelf);
@@ -76,7 +76,7 @@ class SymtabLibState : public LibraryState {
    Symtab *getVsyscallSymtab();
 #endif
  public:
-   SymtabLibState(ProcessState *parent);
+   SymtabLibState(ProcessState *parent, std::string executable = "");
    virtual bool getLibraryAtAddr(Address addr, LibAddrPair &olib);
    virtual bool getLibraries(std::vector<LibAddrPair> &olibs);
    virtual void notifyOfUpdate();

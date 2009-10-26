@@ -1701,6 +1701,7 @@ bool dyn_lwp::representativeLWP_attach_()
       {
          startup_printf("[%s:%u] - Attached to already STOP'd process, %d.  Handling.\n",
                         FILE__, __LINE__, get_lwp_id());
+         proc_->started_stopped = true;
          
          result = lwp_kill(get_lwp_id(), SIGSTOP);
          if (result == -1) {

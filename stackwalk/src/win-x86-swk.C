@@ -95,7 +95,7 @@ void ProcSelf::initialize()
 {
 }
 
-ProcDebug *ProcDebug::newProcDebug(PID pid)
+ProcDebug *ProcDebug::newProcDebug(PID pid, string)
 {
   return NULL;
 }

@@ -82,6 +82,6 @@ inline unsigned intHash(const int &val) {
 }
 
 void
-pd_log_perror(const char* msg);
+dyninst_log_perror(const char* msg);
 
 #endif /* UTIL_H */

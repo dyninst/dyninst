@@ -57,7 +57,7 @@ class Walker {
    SymbolLookup *createDefaultSymLookup(const std::string &exec_name);
    StepperGroup *createDefaultStepperGroup();
    static ProcessState *createDefaultProcess();
-   static ProcessState *createDefaultProcess(Dyninst::PID pid);
+   static ProcessState *createDefaultProcess(Dyninst::PID pid, const std::string& exe);
    static bool createDefaultProcess(const std::vector<Dyninst::PID> &pids,
                                     std::vector<ProcDebug *> &pds);
    static ProcessState *createDefaultProcess(const std::string &exec_name, 

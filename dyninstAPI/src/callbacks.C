@@ -185,8 +185,11 @@ bool ErrorCallback::operator()(BPatchErrorLevel severity, int number,
 
 bool ForkCallback::execute_real(void) 
 {
+   bool is_stopped = par->isVisiblyStopped();
+   if (!is_stopped)
    par->markVisiblyStopped(true);
    cb(par, chld);
+   if (!is_stopped)
    par->markVisiblyStopped(false);
    return true;
 }
@@ -202,8 +205,11 @@ bool ForkCallback::operator()(BPatch_thread *parent, BPatch_thread *child)
 
 bool ExecCallback::execute_real(void) 
 {
+   bool is_stopped = thread->isVisiblyStopped();
+   if (!is_stopped)
    thread->markVisiblyStopped(true);
    cb(thread);
+   if (!is_stopped)
    thread->markVisiblyStopped(false);
    return true;
 }
@@ -218,6 +224,8 @@ bool ExecCallback::operator()(BPatch_thread *thr)
 
 bool ExitCallback::execute_real(void) 
 {
+   bool is_stopped = thread->isVisiblyStopped();
+   if (!is_stopped)
    thread->markVisiblyStopped(true);
    cb(thread, type);
    return true;
@@ -265,8 +273,11 @@ bool OneTimeCodeCallback::operator()(BPatch_thread *thr, void *userData, void *r
 
 bool DynLibraryCallback::execute_real(void) 
 {
+   bool is_stopped = thread->isVisiblyStopped();
+   if (!is_stopped)
    thread->markVisiblyStopped(true);
    cb(thread, mod, load_param);
+   if (!is_stopped)
    thread->markVisiblyStopped(false);
    return true;
 }

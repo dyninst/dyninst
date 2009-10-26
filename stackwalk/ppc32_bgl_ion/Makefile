@@ -1,42 +1,32 @@
 #
-# $Id: Makefile,v 1.1 2007/08/01 18:47:28 ssuen Exp $
+# $Id: Makefile,v 1.1 2008/06/30 19:40:37 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
 
 NO_IMPLICIT_TEMPLATES = true
-USES_DWARF_DEBUG = true
-USES_LIBELF = true
-
-STATIC_COMPS = true;
+TARGET = libstackwalk.a
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
+
 include ../../make.config 
 
 # Now make any necessary architecture specific changes to variables:
 
-SRCS =		../../common/src/linuxKludges.C \
-		../../common/src/timing-linux.C \
-      ../../common/src/parseauxv.C
+LDFLAGS     += $(LIBDIR) -lcommon -ldl
 
-CXXFLAGS        += $(MYFLAGS)
-CFLAGS          += $(MYFLAGS)
-TFLAGS          += $(MYFLAGS)
+SRCS =         ../src/bluegene-swk.C \
+                               ../src/bluegenel-swk.C \
+                               ../src/ppc-swk.C \
+                               ../src/symtab-swk.C
 
-# Tradeoff: adding -g to TFLAGS aids gdb but uses gobs of disk space
-#TFLAGS		+= -g
+STATIC_COMPS = true
 
-SYSLIBS		= -ldl 
-
-LIBS    += -lgcc
-
-AS		= /usr/bin/as
-
-
-# Add preprocessor and special link information for G++
-G_PTHREAD	= -pthread
-G_PTHREAD_LD	= -pthread
+LIBS   +=
+CFLAGS  += -m32 $(MYFLAGS)
+CXXFLAGS += -m32 $(MYFLAGS)
+AS             = as
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

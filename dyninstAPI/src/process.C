@@ -1682,6 +1682,7 @@ process::process(SignalGenerator *sh_) :
     , vsyscall_text_(0)
     , auxv_parser(NULL)
     , vsyscall_obj(NULL)
+    , started_stopped(false)
 #endif
 {
     // Let's try to profile memory usage
@@ -2177,6 +2178,7 @@ process::process(process *parentProc, SignalGenerator *sg_, int childTrace_fd) :
     , vsyscall_text_(parentProc->vsyscall_text_)
     , auxv_parser(NULL)
     , vsyscall_obj(parentProc->vsyscall_obj)
+    , started_stopped(false)
 #endif
 {
    dyninstRT_name = parentProc->dyninstRT_name;
@@ -4994,7 +4996,7 @@ bool process::readThreadStruct(Address baseAddr, dyninst_thread_t &struc) {
             return false;
         }
         // We got the first three; slurp the fourth.
-        unsigned int temp;
+        unsigned int temp = 0;
         if (!readDataSpace((void *)(baseAddr + (3*sizeof(int))),
                            sizeof(int),
                            (void *)&temp,
@@ -5068,7 +5070,7 @@ bool process::removeThreadIndexMapping(dynthread_t tid, unsigned index)
             // We must be 64-bit, they're 32.
             assert(getAddressWidth() == 4);
             assert(sizeof(thread_structs_base) == 8);
-            int temp;
+            unsigned int temp = 0;
             if (!readDataSpace((void *)thread_structs_var->getAddress(),
                                getAddressWidth(),
                                (void *)&temp,
