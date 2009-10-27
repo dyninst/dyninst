@@ -271,7 +271,7 @@ void BinaryEdit::deleteBinaryEdit() {
     }
 }
 
-BinaryEdit *BinaryEdit::openFile(const std::string &file) {
+BinaryEdit *BinaryEdit::openFile(const std::string &file, const std::string &member) {
     if (!OS::executableExists(file)) {
         startup_printf("%s[%d]:  failed to read file %s\n", FILE__, __LINE__, file.c_str());
         std::string msg = std::string("Can't read executable file ") + file + (": ") + strerror(errno);
@@ -284,6 +284,11 @@ BinaryEdit *BinaryEdit::openFile(const std::string &file) {
         startup_printf("%s[%d]: failed to create file descriptor for %s!\n",
                        FILE__, __LINE__, file.c_str());
         return NULL;
+    }
+
+    // Open the mapped object as an archive member
+    if( !member.empty() ) {
+        desc.setMember(member);
     }
 
     BinaryEdit *newBinaryEdit = new BinaryEdit();
@@ -335,7 +340,7 @@ bool BinaryEdit::getStatFileDescriptor(const std::string &name, fileDescriptor &
 }
 
 #if !defined(cap_binary_rewriter)
-std::pair<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::string filename)
+std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::string filename)
 {
   assert(!"Not implemented");
   return std::make_pair("", static_cast<BinaryEdit*>(NULL));
@@ -364,16 +369,19 @@ bool BinaryEdit::getAllDependencies(std::map<std::string, BinaryEdit*>& deps)
    {
      std::string lib = depends.front();
      if(deps.find(lib) == deps.end()) {
-       std::pair<std::string, BinaryEdit*> res = openResolvedLibraryName(lib);
-       if (res.second) {
-	 deps.insert(res);
-	 if(!res.second->getAllDependencies(deps))
-	 {
-	   return false;
-	 }
-       } else {
-	 return false;
-       }
+         std::map<std::string, BinaryEdit*> res = openResolvedLibraryName(lib);
+         std::map<std::string, BinaryEdit*>::iterator bedit_it;
+         for(bedit_it = res.begin(); bedit_it != res.end(); ++bedit_it) {
+           if (bedit_it->second) {
+             deps.insert(*bedit_it);
+             if(!bedit_it->second->getAllDependencies(deps))
+             {
+               return false;
+             }
+           } else {
+             return false;
+           }
+         }
      }
      depends.pop_front();
    }
@@ -489,26 +497,25 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       assert(newSec);
 
       if (mobj == getAOut()) {
-         // Add dynamic symbol relocations aka intermodule symbol references
-         Symbol *referring, *newSymbol;
+         // Add dynamic symbol relocations
          for (unsigned i=0; i < dependentRelocations.size(); i++) {
             Address to = dependentRelocations[i]->getAddress();
-            referring = dependentRelocations[i]->getReferring();
+            Symbol *referring = dependentRelocations[i]->getReferring();
 
-            // In this case, it would be an intermodule symbol reference
-            // which will require linking in new code
-            if( symObj->isStaticBinary() ) {
-                assert(symObj->addInterModuleSymbolRef(referring, to));
-                continue;
-            }
-
-            if (!symObj->hasReldyn() && !symObj->hasReladyn()) {
+            if (!symObj->isStaticBinary() && !symObj->hasReldyn() && !symObj->hasReladyn()) {
 	      Address addr = referring->getOffset();
 	      bool result = writeDataSpace((void *) to, getAddressWidth(), &addr);
 	      assert(result);
 	      continue;
 	    }
-	    
+
+            if( mobj->isSharedLib() ) {
+                symObj->addExternalSymbolRef(to - mobj->imageOffset(), newSec, referring);
+            }else{
+                symObj->addExternalSymbolRef(to, newSec, referring);
+            }
+
+	    /*
 	    newSymbol = new Symbol(referring->getName(), 
                                    Symbol::ST_FUNCTION, 
                                    Symbol::SL_GLOBAL,
@@ -525,6 +532,7 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
             } else {
                newSec->addRelocationEntry(to, newSymbol, relocationEntry::dynrel);
           }
+          */
          }
       }
 

@@ -124,7 +124,7 @@ class BinaryEdit : public AddressSpace {
     void deleteBinaryEdit();
 
     // And the "open" factory method.
-    static BinaryEdit *openFile(const std::string &file);
+    static BinaryEdit *openFile(const std::string &file, const std::string &member = "");
 
     bool writeFile(const std::string &newFileName);
     
@@ -161,7 +161,8 @@ class BinaryEdit : public AddressSpace {
    bool replaceTrapHandler();
    bool usedATrap();
    bool isMultiThreadCapable();
-   std::pair<std::string, BinaryEdit*> openResolvedLibraryName(std::string filename);
+   std::map<std::string, BinaryEdit*> openResolvedLibraryName(std::string filename);
+
  private:
     Address highWaterMark_;
     Address lowWaterMark_;

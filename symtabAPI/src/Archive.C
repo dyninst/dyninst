@@ -43,8 +43,6 @@ using namespace Dyninst::SymtabAPI;
  *
  * Specifics of the format for the .a files are handled per platform.
  * See Archive-<platform> files for more info. 
- *
- * Saving of errors is also contained in the platform-dependent files.
  */
 
 std::vector<Archive *> Archive::allArchives;
@@ -187,17 +185,29 @@ bool Archive::getMemberByGlobalSymbol(Symtab *&img, string& symbol_name)
        }
     }
 
-    dyn_hash_map<string, ArchiveMember *>::iterator mem_it;
-    mem_it = membersBySymbol.find(symbol_name);
-    if( mem_it == membersBySymbol.end() ) {
+    std::pair<std::multimap<string, ArchiveMember *>::iterator,
+              std::multimap<string, ArchiveMember *>::iterator> range_it;
+    range_it = membersBySymbol.equal_range(symbol_name);
+
+    // Symbol not found in symbol table
+    if( range_it.first == range_it.second ) {
         serr = No_Such_Member;
         errMsg = MEMBER_DNE;
         return false;
     }
+    ArchiveMember *foundMember = range_it.first->second;
 
-    img = mem_it->second->getSymtab();
+    // Duplicate symbol found in symbol table
+    ++(range_it.first);
+    if( range_it.first != range_it.second ) {
+        serr = Duplicate_Symbol;
+        errMsg = symbol_name;
+        return false;
+    }
+
+    img = foundMember->getSymtab();
     if( img == NULL ) {
-        if( !parseMember(img, mem_it->second) ) {
+        if( !parseMember(img, foundMember) ) {
             return false;
         }
     }

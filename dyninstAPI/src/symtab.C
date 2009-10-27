@@ -1116,12 +1116,28 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
    startup_printf("%s[%d]:  opened file %s (or archive)\n", FILE__, __LINE__, file.c_str());
 #else
    string file = desc_.file().c_str();
-   startup_printf("%s[%d]:  opening file %s\n", FILE__, __LINE__, file.c_str());
-   //linkedFile = new Symtab();
-   if(!Symtab::openFile(linkedFile, file)) 
-   {
-      err = true;
-      return;
+   if( desc_.member().empty() ) {
+        startup_printf("%s[%d]:  opening file %s\n", FILE__, __LINE__, file.c_str());
+        //linkedFile = new Symtab();
+        if(!Symtab::openFile(linkedFile, file)) 
+        {
+            err = true;
+            return;
+        }
+   }else{
+       startup_printf("%s[%d]: opening archive member: %s(%s)\n", FILE__, __LINE__, file.c_str(),
+               desc_.member().c_str());
+
+       Archive *library;
+       if( Archive::openArchive(library, file) ) {
+           if( !library->getMember(linkedFile, const_cast<std::string&>(desc_.member())) ) {
+               err = true;
+               return;
+           }
+       }else{
+           err = true;
+           return;
+       }
    }
 #endif  
 

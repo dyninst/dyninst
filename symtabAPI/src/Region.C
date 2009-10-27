@@ -323,6 +323,11 @@ bool Region::addRelocationEntry(Offset ra, Symbol *dynref, unsigned long relType
     return true;
 }
 
+bool Region::addRelocationEntry(const relocationEntry& rel) {
+    rels_.push_back(rel);
+    return true;
+}
+
 Region::perm_t Region::getRegionPermissions() const 
 {
     return permissions_;

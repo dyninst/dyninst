@@ -1120,6 +1120,9 @@ Symtab::Symtab(std::string filename, std::string member_name, Offset offset,
    }
    err = !extractInfo(obj_private);
    defaultNamespacePrefix = "";
+
+   create_printf("%s[%d]: created symtab for %s(%s)\n", FILE__, __LINE__, filename.c_str(),
+           member_name.c_str());
 }
 #else
 Symtab::Symtab(std::string, std::string, Offset, bool &, void *)
@@ -1581,6 +1584,9 @@ SYMTAB_EXPORT std::vector<std::string> &Symtab::getDependencies(){
     return deps_;
 }
 
+SYMTAB_EXPORT Archive *Symtab::getParentArchive() const {
+    return parentArchive_;
+}
 
 Symtab::~Symtab()
 {
@@ -1658,6 +1664,10 @@ Symtab::~Symtab()
       if (allSymtabs[i] == this)
          allSymtabs.erase(allSymtabs.begin()+i);
    }
+
+   // Make sure to free the underlying Object as it doesn't have a factory
+   // open method
+   if( obj_private ) delete obj_private;
 
    //fprintf(stderr, "%s[%d]:  symtab DTOR, mf = %p: %s\n", FILE__, __LINE__, mf, mf->filename().c_str());
    if (mf) MappedFile::closeMappedFile(mf);
@@ -2948,24 +2958,44 @@ SYMTAB_EXPORT Region::RegionType relocationEntry::regionType() const
 	return rtype_;
 }
 
+SYMTAB_EXPORT Offset relocationEntry::target_addr() const 
+{
+	return target_addr_;
+}
+
+SYMTAB_EXPORT Offset relocationEntry::rel_addr() const 
+{
+	return rel_addr_;
+}
+
+SYMTAB_EXPORT const string &relocationEntry::name() const 
+{
+	return name_;
+}
+
+SYMTAB_EXPORT Symbol *relocationEntry::getDynSym() const 
+{
+    return dynref_;
+}
+
+SYMTAB_EXPORT bool relocationEntry::addDynSym(Symbol *dynref) 
+{
+    dynref_ = dynref;
+    return true;
+}
+
 SYMTAB_EXPORT unsigned long relocationEntry::getRelType() const 
 {
     return relType_;
 }
 
-SYMTAB_EXPORT Offset relocationEntry::addend() const
-{
-    return addend_;
-}
-
-SYMTAB_EXPORT void relocationEntry::setAddend(const Offset value)
-{
-    addend_ = value;
-}
-
-SYMTAB_EXPORT void relocationEntry::setRegionType(const Region::RegionType value)
-{
-    rtype_ = value;
+SYMTAB_EXPORT unsigned long relocationEntry::externalRefRelType() {
+    // This function is inherently architecture dependent
+#if defined(arch_x86)
+    return R_386_GLOB_DAT;
+#else
+    return ~0UL;
+#endif
 }
 
 bool relocationEntry::operator==(const relocationEntry &r) const
@@ -3057,6 +3087,55 @@ Serializable *relocationEntry::serialize_impl(SerializerBase *sb, const char *ta
 	  return NULL;
 }
 
+// Debugging of relocationEntry
+const char* relocationEntry::relType2Str(unsigned long r) {
+#if defined(arch_x86) 
+    switch(r) {
+        CASE_RETURN_STR(R_386_NONE);
+        CASE_RETURN_STR(R_386_32);
+        CASE_RETURN_STR(R_386_PC32);
+        CASE_RETURN_STR(R_386_GOT32);
+        CASE_RETURN_STR(R_386_PLT32);
+        CASE_RETURN_STR(R_386_COPY);
+        CASE_RETURN_STR(R_386_GLOB_DAT);
+        CASE_RETURN_STR(R_386_JMP_SLOT);
+        CASE_RETURN_STR(R_386_RELATIVE);
+        CASE_RETURN_STR(R_386_GOTOFF);
+        CASE_RETURN_STR(R_386_GOTPC);
+        default:
+            return "?";
+    }
+#else
+    return "?";
+#endif
+}
+
+ostream & Dyninst::SymtabAPI::operator<< (ostream &os, const relocationEntry &r) 
+{
+    if( r.getDynSym() != NULL ) {
+        os << " Name: " << setw(20) << ( "'" + r.getDynSym()->getName() + "'" );
+    }else{
+        os << "Name: " << setw(20) << r.name();
+    }
+    os << " Offset: " << std::hex << std::setfill('0') << setw(8) << r.rel_addr() 
+       << std::dec << std::setfill(' ')
+       << " Offset: " << std::hex << std::setfill('0') << setw(8) << r.target_addr() 
+       << std::dec << std::setfill(' ')
+       << " Addend: " << r.addend()
+       << " Region: " << Region::regionType2Str(r.regionType())
+       << " Type: " << setw(15) << relocationEntry::relType2Str(r.getRelType())
+       << "(" << r.getRelType() << ")";
+    if( r.getDynSym() != NULL ) {
+        os << " Symbol Offset: " << std::hex << std::setfill('0') << setw(8) << r.getDynSym()->getOffset();
+        os << std::setfill(' ');
+        if( r.getDynSym()->isCommonStorage() ) {
+            os << " COM";
+        }else if( r.getDynSym()->getRegion() == NULL ) {
+            os << " UND";
+        }
+    }
+    return os;
+}
 
 const char *Symbol::symbolType2Str(SymbolType t) 
 {
@@ -3269,6 +3348,53 @@ SYMTAB_EXPORT bool Symtab::addSysVDynamic(long name, long value)
 #endif
 }
 
+SYMTAB_EXPORT bool Symtab::addExternalSymbolRef(Address location, Region *localRegion, Symbol *externalSym) {
+    // Create placeholder Symbol for external Symbol reference
+    Symbol *symRef = new Symbol(externalSym->getName(),
+                                externalSym->getType(),
+                                Symbol::SL_GLOBAL,
+                                Symbol::SV_DEFAULT,
+                                (Address)0,
+                                getDefaultModule(),
+                                localRegion,
+                                externalSym->getSize(),
+                                true,
+                                false);
+   addSymbol(symRef, externalSym);
+
+   unsigned long relType = relocationEntry::externalRefRelType();
+
+   // Add new relocation so the reference will be patched later on
+   if( !hasReldyn_ && hasReladyn_ ) {
+       localRegion->addRelocationEntry(location, externalSym, 
+               relType, Region::RT_RELA);
+   }else{
+       localRegion->addRelocationEntry(location, externalSym, relType);
+   }
+
+   // Make sure the Symtab holding the external symbol gets linked
+   // with this Symtab
+   explicitSymtabRefs_.push_back(externalSym->getSymtab());
+
+   return true;
+}
+
+SYMTAB_EXPORT bool Symtab::getExplicitSymtabRefs(std::vector<Symtab *> &refs) {
+    refs = explicitSymtabRefs_;
+    return (refs.size() != 0);
+}
+
+SYMTAB_EXPORT bool Symtab::addLinkingResource(Archive *library) {
+    linkingResources_.push_back(library);
+
+    return true;
+}
+
+SYMTAB_EXPORT bool Symtab::getLinkingResources(std::vector<Archive *> &libs) {
+    libs = linkingResources_;
+    return (libs.size() != 0);
+}
+
 SYMTAB_EXPORT Address Symtab::getLoadAddress()
 {
 #if defined(os_linux) || defined(os_aix)
@@ -3301,17 +3427,6 @@ SYMTAB_EXPORT Offset Symtab::getFiniOffset()
    return 0x0;
 #endif
 
-}
-
-
-SYMTAB_EXPORT bool Symtab::addInterModuleSymbolRef(Symbol *localModuleSym,
-        Address relocationAddr) {
-#if defined(os_linux)
-    interModuleSymRefs_[localModuleSym].push_back(relocationAddr);
-    return true;
-#else
-    return false;
-#endif
 }
 
 } // namespace SymtabAPI

@@ -126,10 +126,9 @@ bool Archive::parseMember(Symtab *&img, ArchiveMember *member)
         errMsg = elf_errmsg(elf_errno());
         return false;
     }
-    
-    bool err;
-    img = new Symtab(rawMember, rawSize, err);
-    if( err ) {
+
+    bool success = Symtab::openFile(img, rawMember, rawSize);
+    if( !success ) {
         serr = Obj_Parsing;
         errMsg = "problem creating underlying Symtab object";
         return false;
@@ -138,6 +137,7 @@ bool Archive::parseMember(Symtab *&img, ArchiveMember *member)
     img->member_name_ = member->getName();
     img->member_offset_ = member->getOffset();
 
+    img->parentArchive_ = this;
     member->setSymtab(img);
 
     delete elfX_Hdr;
@@ -157,23 +157,15 @@ bool Archive::parseSymbolTable() {
     }
 
     // The last element is always a null element
-    bool noError = true;
     for(unsigned i = 0; i < (numSyms - 1); i++) {
         string symbol_name(ar_syms[i].as_name);
 
-        if( membersBySymbol.count(symbol_name) != 0 ) {
-            serr = Duplicate_Symbol;
-            errMsg = symbol_name;
-
-            // Keep parsing, just make a note of the duplicate symbol
-            noError = false;
-            continue;
-        }
-
-        membersBySymbol[symbol_name] = membersByOffset[ar_syms[i].as_off];
+        // Duplicate symbols are okay here, they should be treated as errors
+        // when necessary
+        membersBySymbol.insert(make_pair(symbol_name, membersByOffset[ar_syms[i].as_off]));
     }
 
     symbolTableParsed = true;
 
-    return noError;
+    return true;
 }

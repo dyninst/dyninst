@@ -223,29 +223,32 @@ bool Symtab::changeAggregateOffset(Aggregate *agg, Offset oldOffset, Offset newO
 
 bool Symtab::addSymbol(Symbol *newSym, Symbol *referringSymbol) 
 {
-    if (!newSym)
-    	return false;
-    if (!newSym->isInDynSymtab())
-        return false;
+    if (!newSym || !referringSymbol ) return false;
 
-    newSym->setReferringSymbol(referringSymbol);
+    if( !referringSymbol->getSymtab()->isStaticBinary() ) {
+        if (!newSym->isInDynSymtab()) return false;
 
-    string filename = referringSymbol->getModule()->exec()->name();
-    vector<string> *vers, *newSymVers = new vector<string>;
-    newSym->setVersionFileName(filename);
-    std::string rstr;
+        newSym->setReferringSymbol(referringSymbol);
 
-    bool ret = newSym->getVersionFileName(rstr);
-    if (!ret) 
-    {
-       fprintf(stderr, "%s[%d]:  failed to getVersionFileName(%s)\n", 
-             FILE__, __LINE__, rstr.c_str());
-    }
+        string filename = referringSymbol->getModule()->exec()->name();
+        vector<string> *vers, *newSymVers = new vector<string>;
+        newSym->setVersionFileName(filename);
+        std::string rstr;
 
-    if (referringSymbol->getVersions(vers) && vers != NULL && vers->size() > 0) 
-    {
-        newSymVers->push_back((*vers)[0]);
-        newSym->setVersions(*newSymVers);
+        bool ret = newSym->getVersionFileName(rstr);
+        if (!ret) 
+        {
+           fprintf(stderr, "%s[%d]:  failed to getVersionFileName(%s)\n", 
+                 FILE__, __LINE__, rstr.c_str());
+        }
+
+        if (referringSymbol->getVersions(vers) && vers != NULL && vers->size() > 0) 
+        {
+            newSymVers->push_back((*vers)[0]);
+            newSym->setVersions(*newSymVers);
+        }
+    }else{
+        newSym->setReferringSymbol(referringSymbol);
     }
 
     return addSymbol(newSym);

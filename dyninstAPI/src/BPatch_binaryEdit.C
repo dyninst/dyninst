@@ -342,33 +342,36 @@ bool BPatch_binaryEdit::finalizeInsertionSetInt(bool /*atomic*/, bool * /*modifi
 
 bool BPatch_binaryEdit::loadLibraryInt(const char *libname, bool deps)
 {
-  std::pair<std::string, BinaryEdit*> lib = origBinEdit->openResolvedLibraryName(libname);
-  if(!lib.second)
-    return false;
+   std::map<std::string, BinaryEdit*> libs = origBinEdit->openResolvedLibraryName(libname);
+   std::map<std::string, BinaryEdit*>::iterator lib_it;
+   for(lib_it = libs.begin(); lib_it != libs.end(); ++lib_it) {
+      std::pair<std::string, BinaryEdit*> lib = *lib_it;
 
-  llBinEdits.insert(lib);
-  
-  int_variable* masterTrampGuard = origBinEdit->createTrampGuard();
-  assert(masterTrampGuard);
-  
-  lib.second->registerFunctionCallback(createBPFuncCB);
-  lib.second->registerInstPointCallback(createBPPointCB);
-  lib.second->set_up_ptr(this);
-  lib.second->setupRTLibrary(rtLib);
-  lib.second->setTrampGuard(masterTrampGuard);
-  lib.second->setMultiThreadCapable(isMultiThreadCapable());
-  /* Do we need to do this? 
-  std::map<std::string, BinaryEdit*>::iterator j;
-  for (j = llBinEdits.begin(); j != llBinEdits.end(); j++) {
-        lib.second->addSibling((*j).second);
-  }
-  */
+      if(!lib.second)
+        return false;
 
-   
-  if (deps)
-    return lib.second->getAllDependencies(llBinEdits);
+      llBinEdits.insert(lib);
+      
+      int_variable* masterTrampGuard = origBinEdit->createTrampGuard();
+      assert(masterTrampGuard);
+      
+      lib.second->registerFunctionCallback(createBPFuncCB);
+      lib.second->registerInstPointCallback(createBPPointCB);
+      lib.second->set_up_ptr(this);
+      lib.second->setupRTLibrary(rtLib);
+      lib.second->setTrampGuard(masterTrampGuard);
+      lib.second->setMultiThreadCapable(isMultiThreadCapable());
+      /* Do we need to do this? 
+      std::map<std::string, BinaryEdit*>::iterator j;
+      for (j = llBinEdits.begin(); j != llBinEdits.end(); j++) {
+            lib.second->addSibling((*j).second);
+      }
+      */
+    if (deps)
+       if( !lib.second->getAllDependencies(llBinEdits) ) return false;
+   }
+       
   return true;
-  
 }
 
 // Here's the story. We may need to install a trap handler for instrumentation

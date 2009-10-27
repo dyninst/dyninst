@@ -492,15 +492,6 @@ ostream& Dyninst::SymtabAPI::operator<< (ostream &os, const Symbol &s)
               << " }" << endl;
 }
 
-ostream & Dyninst::SymtabAPI::operator<< (ostream &s, const relocationEntry &r) 
-{
-       s << "target_addr=" << r.target_addr_ 
-               << "rel_addr=" << r.rel_addr_ 
-               << "addend=" << r.addend_ 
-               << "rtype=" << r.rtype_ 
-               << "name=" << r.name_ ;
-       return s; 
-}
      Offset tryStart_;
 	       unsigned trySize_;
 		         Offset catchStart_;

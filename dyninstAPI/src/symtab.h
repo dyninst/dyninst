@@ -62,7 +62,7 @@
 #include "common/h/Types.h"
 #include "dyninstAPI/src/inst.h"
 
-#if defined(rs6000_ibm_aix4_1)||defined(rs6000_ibm_aix5_1)
+#if defined(rs6000_ibm_aix4_1)||defined(rs6000_ibm_aix5_1)||defined(os_linux)
 #include "symtabAPI/h/Archive.h"
 #endif
 

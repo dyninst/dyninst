@@ -327,8 +327,7 @@ bool Archive::parseMember(Symtab *&img, ArchiveMember *member)
     }
 
     if( !err ) {
-        img->member_name_ = member->getName();
-        img->member_offset_ = member->getOffset();
+        img->parentArchive_ = this;
         member->setSymtab(img);
     }
 

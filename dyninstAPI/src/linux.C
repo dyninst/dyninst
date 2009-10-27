@@ -2570,128 +2570,155 @@ bool process::readAuxvInfo()
 }
 #if defined(cap_binary_rewriter)
 
-std::pair<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::string filename)
+std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::string filename)
 {
-   char *libPathStr, *libPath;
-   std::vector<std::string> libPaths;
-   struct stat dummy;
-   FILE *ldconfig;
-   char buffer[512];
-   char *pos, *key, *val;
-  
-   // Dynamic executables should load shared libraries
-   if( !getMappedObject()->parse_img()->getObject()->isStaticBinary() ) {
-       // prefer qualified file paths
-       if (stat(filename.c_str(), &dummy) == 0) {
-            BinaryEdit* temp = BinaryEdit::openFile(filename);
-            startup_printf("[%s:%u] - Opening dependant file %s\n", 
-                           FILE__, __LINE__, filename.c_str());
-            if(temp && temp->getAddressWidth() == getAddressWidth())
-              return std::make_pair(filename, temp);
-            startup_printf("[%s:%u] - Creation error opening %s\n", 
-                      FILE__, __LINE__, filename.c_str());
-            delete temp;
-       }
+    char *libPathStr, *libPath;
+    std::vector<std::string> libPaths;
+    struct stat dummy;
+    FILE *ldconfig;
+    char buffer[512];
+    char *pos, *key, *val;
+    std::map<std::string, BinaryEdit *> retMap;
 
-       // search paths from environment variables
-       libPathStr = strdup(getenv("LD_LIBRARY_PATH"));
-       libPath = strtok(libPathStr, ":");
-       while (libPath != NULL) {
-          libPaths.push_back(std::string(libPath));
-          libPath = strtok(NULL, ":");
-       }
-       free(libPathStr);
-       //libPaths.push_back(std::string(getenv("PWD")));
-       for (unsigned int i = 0; i < libPaths.size(); i++) {
-          std::string str = libPaths[i] + "/" + filename;
-          if (stat(str.c_str(), &dummy) == 0) {
-            BinaryEdit* temp = BinaryEdit::openFile(str);
-            startup_printf("[%s:%u] - Opening dependant file %s\n", 
-                           FILE__, __LINE__, str.c_str());
-            if(temp && temp->getAddressWidth() == getAddressWidth())
-              return std::make_pair(str, temp);
-            startup_printf("[%s:%u] - Creation error opening %s\n", 
-                      FILE__, __LINE__, str.c_str());
-            delete temp;
-            
-          }
-       }
+    std::string fullPath("");
 
-       // search ld.so.cache
-       ldconfig = popen("/sbin/ldconfig -p", "r");
-       if (ldconfig) {
-          fgets(buffer, 512, ldconfig); // ignore first line
-          while (fgets(buffer, 512, ldconfig) != NULL) {
-             pos = buffer;
-             while (*pos == ' ' || *pos == '\t') pos++;
-             key = pos;
-             while (*pos != ' ') pos++;
-             *pos = '\0';
-             while (*pos != '=' && *(pos+1) != '>') pos++;
-             pos += 2;
-             while (*pos == ' ' || *pos == '\t') pos++;
-             val = pos;
-             while (*pos != '\n' && *pos != '\0') pos++;
-             *pos = '\0';
-             if (strcmp(key, filename.c_str()) == 0) {
-               startup_printf("[%s:%u] - Opening dependant file %s\n", 
-                           FILE__, __LINE__, val);
-               BinaryEdit* temp = BinaryEdit::openFile(val);
-               if(temp->getAddressWidth() == getAddressWidth()) {
-                 pclose(ldconfig);
-                 return std::make_pair(std::string(val), temp);
-               }
-               
-               startup_printf("[%s:%u] - Creation error opening %s\n", 
-                      FILE__, __LINE__, val);
-               delete temp;
-             }
-          }
-          pclose(ldconfig);
-       }
-     
-       // search hard-coded system paths
-       libPaths.clear();
-       libPaths.push_back("/usr/local/lib");
-       libPaths.push_back("/usr/share/lib");
-       libPaths.push_back("/usr/lib");
-       libPaths.push_back("/lib");
-       for (unsigned int i = 0; i < libPaths.size(); i++) {
-          std::string str = libPaths[i] + "/" + filename;
-          if (stat(str.c_str(), &dummy) == 0) {
-            startup_printf("[%s:%u] - Opening dependant file %s\n", 
-                           FILE__, __LINE__, str.c_str());
-            BinaryEdit* temp = BinaryEdit::openFile(str);
-            if(temp && temp->getAddressWidth() == getAddressWidth())
-              return std::make_pair(str, temp);
-            startup_printf("[%s:%u] - Creation error opening %s\n", 
-                      FILE__, __LINE__, str.c_str());
-            delete temp;
-          }
-       }
-       startup_printf("[%s:%u] - Creation error opening %s\n", 
-                      FILE__, __LINE__, filename.c_str());
-       return std::make_pair("", static_cast<BinaryEdit*>(NULL));
-   }else{
-        // TODO improve upon searching for static libraries
-        // TODO Static executables should load archives
-        
-        // prefer qualified file paths
-        if (stat(filename.c_str(), &dummy) == 0) {
-             BinaryEdit* temp = BinaryEdit::openFile(filename);
-             startup_printf("[%s:%u] - Opening dependant file %s\n", 
-                            FILE__, __LINE__, filename.c_str());
-             if(temp && temp->getAddressWidth() == getAddressWidth())
-               return std::make_pair(filename, temp);
-             startup_printf("[%s:%u] - Creation error opening %s\n", 
-                       FILE__, __LINE__, filename.c_str());
-             delete temp;
+    // First, find the specified library file
+
+    // prefer qualified file paths
+    if (stat(filename.c_str(), &dummy) == 0) {
+        fullPath = filename;
+    }
+
+    // search paths from environment variables
+    if (fullPath.empty()) {
+        libPathStr = strdup(getenv("LD_LIBRARY_PATH"));
+        libPath = strtok(libPathStr, ":");
+        while (libPath != NULL) {
+            libPaths.push_back(std::string(libPath));
+            libPath = strtok(NULL, ":");
         }
+        free(libPathStr);
 
-        startup_printf("[%s:%u] - Creation error opening %s\n",
-                FILE__, __LINE__, filename.c_str());
-        return std::make_pair("", static_cast<BinaryEdit*>(NULL));
-   }
+        //libPaths.push_back(std::string(getenv("PWD")));
+        for (unsigned int i = 0; i < libPaths.size(); i++) {
+            std::string str = libPaths[i] + "/" + filename;
+            if (stat(str.c_str(), &dummy) == 0) {
+                fullPath = str;
+                break;
+            }
+        }
+    }
+
+    if (fullPath.empty()) {
+        // search ld.so.cache
+        ldconfig = popen("/sbin/ldconfig -p", "r");
+        if (ldconfig) {
+            fgets(buffer, 512, ldconfig);	// ignore first line
+            while (fgets(buffer, 512, ldconfig) != NULL) {
+                pos = buffer;
+                while (*pos == ' ' || *pos == '\t') pos++;
+                key = pos;
+                while (*pos != ' ') pos++;
+                *pos = '\0';
+                while (*pos != '=' && *(pos + 1) != '>') pos++;
+                pos += 2;
+                while (*pos == ' ' || *pos == '\t') pos++;
+                val = pos;
+                while (*pos != '\n' && *pos != '\0') pos++;
+                *pos = '\0';
+                if (strcmp(key, filename.c_str()) == 0) {
+                    fullPath = val;
+                    break;
+                }
+            }
+            pclose(ldconfig);
+        }
+    }
+
+    if (fullPath.empty()) {
+        // search hard-coded system paths
+        libPaths.clear();
+        libPaths.push_back("/usr/local/lib");
+        libPaths.push_back("/usr/share/lib");
+        libPaths.push_back("/usr/lib");
+        libPaths.push_back("/lib");
+        for (unsigned int i = 0; i < libPaths.size(); i++) {
+            std::string str = libPaths[i] + "/" + filename;
+            if (stat(str.c_str(), &dummy) == 0) {
+                fullPath = str;
+                break;
+            }
+        }
+    }
+
+    // Second, create a set of BinaryEdits for the found library
+    if (!fullPath.empty()) {
+        startup_printf("[%s:%u] - Opening dependent file %s\n",
+                       FILE__, __LINE__, filename.c_str());
+
+        Symtab *origSymtab = getMappedObject()->parse_img()->getObject();
+
+        // Dynamic case
+        if (!origSymtab->isStaticBinary()) {
+            BinaryEdit *temp = BinaryEdit::openFile(fullPath);
+            if (temp && temp->getAddressWidth() == getAddressWidth()) {
+                retMap.insert(std::make_pair(fullPath, temp));
+                return retMap;
+            }
+            delete temp;
+        } else {
+            // Static executable case
+
+            // Alright, this is a kludge, but even though the Archive is opened
+            // twice (once here and once by the image class later on), it is
+            // only parsed once because the Archive class keeps track of all
+            // open Archives
+
+            Archive *library;
+            Symtab *singleObject;
+            if (Archive::openArchive(library, fullPath)) {
+                std::vector<Symtab *> members;
+                if (library->getAllMembers(members)) {
+                    std::vector < Symtab * >::iterator member_it;
+                    for (member_it = members.begin(); member_it != members.end();
+                         ++member_it) 
+                    {
+                        BinaryEdit *temp = BinaryEdit::openFile(fullPath,
+                                                          (*member_it)->memberName());
+                        if (temp && temp->getAddressWidth() == getAddressWidth()) {
+                            std::string mapName = fullPath + string(":") +
+                                (*member_it)->memberName();
+                            retMap.insert(std::make_pair(mapName, temp));
+                        }else{
+                            if(temp) delete temp;
+                            retMap.clear();
+                            retMap.insert(std::make_pair("", static_cast<BinaryEdit *>(NULL)));
+                            return retMap;
+                        }
+                    }
+
+                    if (retMap.size() > 0) {
+                        origSymtab->addLinkingResource(library);
+                        return retMap;
+                    }
+                    if( library ) delete library;
+                }
+            } else if (Symtab::openFile(singleObject, fullPath)) {
+                BinaryEdit *temp = BinaryEdit::openFile(fullPath);
+                if (temp && temp->getAddressWidth() == getAddressWidth()) {
+                    retMap.insert(std::make_pair(fullPath, temp));
+                    return retMap;
+                }
+                if(temp) delete temp;
+            }
+        }
+    }
+
+    startup_printf("[%s:%u] - Creation error opening %s\n",
+                   FILE__, __LINE__, filename.c_str());
+    retMap.clear();
+    retMap.insert(std::make_pair("", static_cast < BinaryEdit * >(NULL)));
+    return retMap;
 }
 
 #endif

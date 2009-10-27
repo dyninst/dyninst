@@ -117,7 +117,7 @@ class Archive : public AnnotatableSparse {
 
       dyn_hash_map<string, ArchiveMember *> membersByName;
       dyn_hash_map<Offset, ArchiveMember *> membersByOffset;
-      dyn_hash_map<string, ArchiveMember *> membersBySymbol;
+      std::multimap<string, ArchiveMember *> membersBySymbol;
 
       // The symbol table is lazily parsed
       bool symbolTableParsed;

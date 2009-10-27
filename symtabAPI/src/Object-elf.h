@@ -285,7 +285,6 @@ class pdElfShdr;
 class Symtab;
 class Region;
 class Object;
-class ELFRelocation;
 
 typedef struct {
   Dwarf_Fde *fde_data;
@@ -347,8 +346,6 @@ class Object : public AObject {
   void getDependencies(std::vector<std::string> &deps);
 
   bool addRelocationEntry(relocationEntry &re);
-  void getELFRelocations(std::map<Symbol *, std::vector<ELFRelocation> > &);
-  void setELFRelocations(std::map<Symbol *, std::vector<ELFRelocation> > &);
 
   //getLoadAddress may return 0 on shared objects
   Offset getLoadAddress() const { return loadAddress_; }
@@ -533,9 +530,6 @@ class Object : public AObject {
   std::vector<relocationEntry> relocation_table_;
   std::vector<relocationEntry> fbt_;
 
-  // Relocations are connected to symbols
-  std::map<Symbol *, std::vector<ELFRelocation> > elfRelocations;
-
   // all section headers, sorted by address
   // we use these to do a better job of finding the end of symbols
   std::vector<Elf_X_Shdr*> allRegionHdrs;
@@ -578,7 +572,7 @@ class Object : public AObject {
 
   // Parses sections with relocations and links these relocations to
   // existing symbols
-  bool parseELFRelocations(Elf_X &, Elf_X_Shdr *, Elf_X_Shdr *,
+  bool parse_all_relocations(Elf_X &, Elf_X_Shdr *, Elf_X_Shdr *,
           Elf_X_Shdr *, Elf_X_Shdr *);
   
   void parseDynamic(Elf_X_Shdr *& dyn_scnp, Elf_X_Shdr *&dynsym_scnp, 
@@ -630,26 +624,6 @@ class Object : public AObject {
  public:  
   std::set<std::string> prereq_libs;
   std::vector<std::pair<long, long> > new_dynamic_entries;
-};
-
-class ELFRelocation : public relocationEntry {
-    public:
-        ELFRelocation();
-        ELFRelocation(Region *targetRegion, Offset relOffset,
-            std::string symbolName, unsigned long relType,
-            Offset addend = 0, Symbol *dynRef = NULL,
-            Region::RegionType regType = Region::RT_REL);
-        bool operator==(const ELFRelocation &) const;
-
-        // debugging
-        static const char* relType2Str(unsigned long);
-        static void printELFRel(std::ostream &, const ELFRelocation&);
-
-        Region *getTargetRegion() const;
-        void setTargetRegion(Region *);
-
-    private:
-        Region *targetRegion_;
 };
 
 //const char *pdelf_get_shnames(Elf *elfp, bool is64);

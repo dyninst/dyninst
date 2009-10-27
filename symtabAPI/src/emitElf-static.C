@@ -29,9 +29,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-
+#include <cstdlib>
+#include <cstdio>
+#include <iostream>
 #include <set>
 #include <map>
 
@@ -48,8 +48,25 @@ using namespace Dyninst::SymtabAPI;
 static const std::string CODE_NAME = ".dyninstCode";
 static const std::string DATA_NAME = ".dyninstData";
 static const std::string BSS_NAME = ".dyninstBss";
+static const int LARGE_FREE_SPACE = 50*1024*1024;
 
-char *emitElf::linkStaticCode(Symtab *binary, 
+/*
+ * Most of these functions take a reference to a 
+ * StaticLinkError and a string for error reporting 
+ * purposes. These should prove useful in identifying
+ * the cause of an error
+ */
+
+/**
+ * Statically links object files into the specified Symtab object, 
+ * as specified by state in the Symtab object
+ *
+ * @param binary - the Symtab object being rewritten
+ *
+ * @return a pointer to the newly allocated space, to be written
+ *         out during the rewrite process, NULL, if there is an error
+ */
+char *emitElf::linkStatic(Symtab *binary, 
         StaticLinkError &err, std::string &errMsg) 
 {
     // Basic algorithm is:
@@ -71,25 +88,25 @@ char *emitElf::linkStaticCode(Symtab *binary,
     }
 
     // Determine starting location of new Regions
-    Region *instrumentRegion;
     Offset globalOffset = 0;
     std::vector<Region *> newRegs;
     if( binary->getAllNewRegions(newRegs) ) {
-        // This is true if instrumentation Region is added
+        // This is true, only if other regions have already been added
         std::vector<Region *>::iterator newReg_it;
         for(newReg_it = newRegs.begin(); newReg_it != newRegs.end(); ++newReg_it) {
             Offset newRegEndAddr = (*newReg_it)->getRegionSize() + (*newReg_it)->getRegionAddr();
             if( newRegEndAddr > globalOffset ) {
                 globalOffset = newRegEndAddr;
-                instrumentRegion = *newReg_it;
             }
         }
-    }else{
-        err = Instrument_Location_Error;
-        errMsg = "failed to locate .dyninstInst instrumentation section";
+    }
+
+    if( globalOffset == 0 ) {
+        err = Link_Location_Error;
+        errMsg = "failed to find location for new code and data.";
         return NULL;
     }
-    fprintf(stderr, "globalOffset = 0x%lx\n", globalOffset);
+
 
     // Create a temporary region for COMMON storage
     Region commonStorage;
@@ -108,14 +125,7 @@ char *emitElf::linkStaticCode(Symtab *binary,
     }
 
     if( !computeRelocations(rawDependencyData, dependentObjects, 
-                regionOffsets, globalOffset, err, errMsg) ) 
-    {
-        delete rawDependencyData;
-        return NULL;
-    }
-
-    if( !computeInstrumentRelocations(instrumentRegion, binary->interModuleSymRefs_, 
-                err, errMsg) ) 
+                regionOffsets, globalOffset, binary, err, errMsg) ) 
     {
         delete rawDependencyData;
         return NULL;
@@ -152,30 +162,70 @@ char *emitElf::linkStaticCode(Symtab *binary,
     return rawDependencyData;
 }
 
+/**
+ * Resolves undefined symbols in the specified Symtab object, usually due
+ * to the addition of new Symbols to the Symtab object
+ *
+ * @param binary - the Symtab object being rewritten
+ *
+ * @param dependentObjects - on success, will hold all Symtab objects which
+ * were used to resolve symbols i.e. they need to be copied into the binary
+ * 
+ * @return true, if sucessful, false, otherwise
+ */
 bool emitElf::resolveSymbols(Symtab *binary, 
-        std::vector<Symtab *> & dependentObjects,
+        std::vector<Symtab *> &dependentObjects,
         StaticLinkError &err, std::string &errMsg) 
 {
+    // Collection of objects that currently need their symbols resolved
     std::set<Symtab *> workSet;
 
-    // Automatically add all object files needed by instrumentation
-    std::map<Symbol *, std::vector<Address> >::iterator objfile_it;
-    for(objfile_it = binary->interModuleSymRefs_.begin();
-        objfile_it != binary->interModuleSymRefs_.end();
-        ++objfile_it) 
+    // Collection of objects that have already had their symbols resolved
+    // this is necessary to avoid errors related to circular dependencies
+    std::set<Symtab *> visitedSet;
+
+    // Add all object files explicitly referenced by new symbols, these
+    // essentially fuel the linking process
+    std::vector<Symtab *> explicitRefs;
+    binary->getExplicitSymtabRefs(explicitRefs);
+
+    std::vector<Symtab *>::iterator expObj_it;
+    for(expObj_it = explicitRefs.begin(); expObj_it != explicitRefs.end();
+            ++expObj_it) 
     {
-        dependentObjects.push_back(objfile_it->first->getSymtab());
-        workSet.insert(objfile_it->first->getSymtab());
+        dependentObjects.push_back(*expObj_it);
+        workSet.insert(*expObj_it);
     }
+
+    // Establish list of libraries to search for symbols
+    std::vector<Archive *> libraries;
+    binary->getLinkingResources(libraries);
 
     std::set<Symtab *>::iterator curObjFilePtr = workSet.begin();
     while( curObjFilePtr != workSet.end() ) {
         // Take an object file off the working set
         Symtab *curObjFile = *curObjFilePtr;
         workSet.erase(curObjFile);
+        visitedSet.insert(curObjFile);
 
-        std::map<Symbol *, std::vector<ELFRelocation> > curRels;
-        curObjFile->getObject()->getELFRelocations(curRels);
+        fprintf(stderr, "\n*** Resolving symbols for object: %s\n\n",
+                curObjFile->memberName().c_str());
+
+        // Build the map of Symbols to relocations
+        std::map<Symbol *, std::vector<relocationEntry *> > symToRels;
+        std::vector<Region *> allRegions;
+        curObjFile->getAllRegions(allRegions);
+
+        std::vector<Region *>::iterator region_it;
+        for(region_it = allRegions.begin(); region_it != allRegions.end();
+                ++region_it)
+        {
+            std::vector<relocationEntry> &region_rels = (*region_it)->getRelocations();
+            std::vector<relocationEntry>::iterator rel_it;
+            for( rel_it = region_rels.begin(); rel_it != region_rels.end(); ++rel_it) {
+                symToRels[rel_it->getDynSym()].push_back(&(*rel_it));
+            }
+        }
 
         // Iterate over all undefined symbols, attempting to resolve them
         std::vector<Symbol *> undefSyms;
@@ -194,42 +244,118 @@ bool emitElf::resolveSymbols(Symtab *binary,
                  binary->findSymbol(foundSyms, curUndefSym->getMangledName(),
                     curUndefSym->getType()) )
             {
-                // Get the first found symbol TODO make this more exact
+                if( foundSyms.size() > 1 ) {
+                    err = Symbol_Resolution_Failure;
+                    errMsg = "ambiguous symbol definition: " + 
+                        curUndefSym->getMangledName();
+                    return false;
+                }
+
                 extSymbol = foundSyms[0];
 
                 fprintf(stderr, "Found external symbol %s with addr = 0x%lx\n", 
-                        extSymbol->getPrettyName().c_str(), extSymbol->getOffset());
+                    extSymbol->getPrettyName().c_str(), extSymbol->getOffset());
             }else{
-                //TODO search loaded libraries and system libraries and add
+                //search loaded libraries and system libraries and add
                 //any new object files as dependent objects
+                std::vector<Archive *>::iterator lib_it;
+                Symtab *containingSymtab = NULL;
+                for(lib_it = libraries.begin(); lib_it != libraries.end(); ++lib_it) {
+                    Symtab *tmpSymtab;
+                    if( (*lib_it)->getMemberByGlobalSymbol(tmpSymtab, 
+                                const_cast<std::string&>(curUndefSym->getMangledName())) ) 
+                    {
+                        if( containingSymtab != NULL ) {
+                            err = Symbol_Resolution_Failure;
+                            errMsg = "symbol defined in multiple libraries: " +
+                                curUndefSym->getMangledName();
+                            return false;
+                        }
+
+                        containingSymtab = tmpSymtab;
+                    }else{
+                        // gcc/ld appear to ignore this error and just choose the
+                        // symbol that occurs first in the Archive. This could 
+                        // produce unexpected results so it is better to alert
+                        // the user of this error
+                        if( Archive::getLastError() == Duplicate_Symbol ) {
+                            err = Symbol_Resolution_Failure;
+                            errMsg = Archive::printError(Duplicate_Symbol);
+                            return false;
+                        }
+                    }
+                }
+
+                if( containingSymtab != NULL ) {
+                    if( containingSymtab->findSymbol(foundSyms, curUndefSym->getMangledName(),
+                        curUndefSym->getType()) )
+                    {
+                        if( foundSyms.size() > 1 ) {
+                            err = Symbol_Resolution_Failure;
+                            errMsg = "ambiguous symbol definition: " + 
+                                curUndefSym->getMangledName();
+                            return false;
+                        }
+
+                        extSymbol = foundSyms[0];
+                        if( !visitedSet.count(containingSymtab) ) {
+                            dependentObjects.push_back(containingSymtab);
+
+                            // Resolve all symbols for this new Symtab, if it hasn't already
+                            // been done
+
+                            workSet.insert(containingSymtab);
+                        }
+
+                        fprintf(stderr, "Found external symbol %s in module %s\n",
+                                extSymbol->getPrettyName().c_str(), 
+                                containingSymtab->memberName().c_str());
+                    }else{
+                        err = Symbol_Resolution_Failure;
+                        errMsg = "inconsistency found between archive's symbol table and member's symbol table";
+                        return false;   
+                    }
+                }
+            }
+
+            if( extSymbol == NULL ) {
+                // If it is a weak symbol, it isn't an error that the symbol wasn't resolved
+                if( curUndefSym->getLinkage() == Symbol::SL_WEAK ) continue;
+
                 err = Symbol_Resolution_Failure;
-                errMsg = "failed to locate symbol: " + 
-                    curUndefSym->getMangledName();
+                errMsg = "failed to locate symbol '" + curUndefSym->getMangledName()
+                    + "' for module '" + curObjFile->memberName() + "'";
                 return false;
             }
 
             assert(extSymbol != NULL);
 
             // Store the found symbol with the related relocations
-            std::map<Symbol *, std::vector<ELFRelocation> >::iterator relMap_it;
-            relMap_it = curRels.find(curUndefSym);
-            if( relMap_it != curRels.end() ) {
-                std::vector<ELFRelocation>::iterator rel_it;
+            std::map<Symbol *, std::vector<relocationEntry *> >::iterator relMap_it;
+            relMap_it = symToRels.find(curUndefSym);
+            if( relMap_it != symToRels.end() ) {
+                std::vector<relocationEntry *>::iterator rel_it;
                 for(rel_it = relMap_it->second.begin(); rel_it != relMap_it->second.end();
                         ++rel_it)
                 {
-                    rel_it->addDynSym(extSymbol);
+                    (*rel_it)->addDynSym(extSymbol);
                 }
             }else{
+                // There are some weird cases where an undefined symbol doesn't
+                // have a relocation in its respective .o
+                // An example case 'libc.a:ioungetwc.o' with the symbol __gcc_personality_v0
+                fprintf(stderr, 
+                        "WARNING: LINK ERROR: failed to find relocation for undefined symbol '%s'.\n",
+                        curUndefSym->getPrettyName().c_str());
+                
+                /* old behavior
                 err = Symbol_Resolution_Failure;
                 errMsg = "failed to find relocation for symbol: " +
                     curUndefSym->getPrettyName();
                 return false;
+                */
             }
         }
-
-        // Store changes to relocations
-        curObjFile->getObject()->setELFRelocations(curRels);   
 
         curObjFilePtr = workSet.begin();
     }
@@ -237,6 +363,31 @@ bool emitElf::resolveSymbols(Symtab *binary,
     return true;
 }
 
+/**
+ * Given a collection of Symtab objects, creates new Regions for 
+ * code, data and bss in the specified, target Symtab object.
+ * 
+ * Additionally, allocates COMMON symbols in the collect of Symtab objects
+ * as bss.
+ *
+ * @param binary - the Symtab object being rewritten
+ *
+ * @param dependentObjects - the Symtab objects that need to be copied
+ * into the binary
+ *
+ * @param regionOffset - populated by this function, this map will provide
+ * the offsets of Regions in the dependentObjects in the new storage space
+ *
+ * @param globalOffset - the Offset in the binary where new code will be
+ * placed
+ *
+ * @param commonStorage - a dummy region to use for combining COMMON blocks
+ * => allows for uniform treatment of Regions later in the linking process
+ *
+ * @return commonAlignments - populated by this function, this map saves
+ * the original alignments associated with COMMON symbols, this can be used
+ * to rewind the changes made to Symbols during the linking process
+ */
 char *emitElf::allocateStorage(Symtab *binary,
         std::vector<Symtab *> & dependentObjects, 
         std::map<Region *, Offset> & regionOffsets, 
@@ -250,6 +401,10 @@ char *emitElf::allocateStorage(Symtab *binary,
     std::deque<Region *> codeRegions;
     std::deque<Region *> dataRegions;
     std::deque<Region *> bssRegions;
+
+    fprintf(stderr, "\n*** Allocating storage for new objects\n\n");
+
+    fprintf(stderr, "globalOffset = 0x%lx\n", globalOffset);
 
     std::vector<Symtab *>::iterator obj_it;
     for(obj_it = dependentObjects.begin(); obj_it != dependentObjects.end(); ++obj_it) {
@@ -396,13 +551,27 @@ char *emitElf::allocateStorage(Symtab *binary,
     return rawDependencyData;
 }
 
+/**
+ * Copies the specified regions into the specified storage space
+ *
+ * @param rawDependencyData - the Regions are copied into this storage space
+ * 
+ * @param regions - the Regions to copy
+ *
+ * @param regionOffsets - populated by this function, a mapping of the Regions to 
+ * their place in the specified storage space
+ *
+ * @param currentOffset - the starting Offset to place the specified Regions
+ *
+ * @return the offset at which the next set of regions should be placed
+ */
 Offset emitElf::copyRegions(char * rawDependencyData, std::deque<Region *> &regions, 
         std::map<Region *, Offset> &regionOffsets, Offset currentOffset) {
     Offset retOffset = currentOffset;
 
     std::deque<Region *>::iterator copyReg_it;
     for(copyReg_it = regions.begin(); copyReg_it != regions.end(); ++copyReg_it) {
-        // Set up mapping for a new Region in the static binary
+        // Set up mapping for a new Region in the specified storage space
         std::pair<std::map<Region *, Offset>::iterator, bool> result;
         result = regionOffsets.insert(std::make_pair(*copyReg_it, retOffset));
 
@@ -428,29 +597,52 @@ Offset emitElf::copyRegions(char * rawDependencyData, std::deque<Region *> &regi
     return retOffset;
 }
 
+/**
+ * Given a collection of newly allocated regions in the specified storage space, 
+ * computes relocations and places the values at the location specified by the
+ * relocation entry (stored with the Regions)
+ *
+ * @param newRawData - the storage space for the newly allocated Regions
+ *
+ * @param dependentObjects - the Symtab objects whose select Regions have been copied
+ * into the newRawData buffer
+ *
+ * @param regionOffsets - a mapping of Regions in dependentObjects to there offset in
+ * the newRawData buffer
+ *
+ * @param globalOffset - the Offset at which newRawData will be placed in the target
+ * Symtab object
+ *
+ * @param binary - the target Symtab object, mainly used to compute relocations for new
+ * Symbols that refer to Symtabs in the dependentObjects collection
+ *
+ * @return true, if sucessful; false otherwise
+ */
 bool emitElf::computeRelocations(char *newRawData, std::vector<Symtab *> & dependentObjects, 
         std::map<Region *, Offset> & regionOffsets,
-        Offset globalOffset, StaticLinkError &err,
+        Offset globalOffset, Symtab *binary, StaticLinkError &err,
         std::string &errMsg) 
 {
     // Iterate over all relocations in all .o's
     std::vector<Symtab *>::iterator depObj_it;
     for(depObj_it = dependentObjects.begin(); depObj_it != dependentObjects.end(); ++depObj_it) {
+        std::vector<Region *> allRegions;
+        (*depObj_it)->getAllRegions(allRegions);
 
-        std::map<Symbol *, std::vector<ELFRelocation> > rels;
-        (*depObj_it)->getObject()->getELFRelocations(rels);
+        fprintf(stderr, "\n*** Computing relocations for object: %s\n\n",
+                (*depObj_it)->memberName().c_str());
 
-        std::map<Symbol *, std::vector<ELFRelocation> >::iterator relVec_it;
-        for(relVec_it = rels.begin(); relVec_it != rels.end(); ++relVec_it) {
-
-            std::vector<ELFRelocation>::iterator rel_it;
-            for(rel_it = relVec_it->second.begin(); rel_it != relVec_it->second.end(); ++rel_it) {
-
+        std::vector<Region *>::iterator region_it;
+        for(region_it = allRegions.begin(); region_it != allRegions.end(); ++region_it) {
+            std::vector<relocationEntry>::iterator rel_it;
+            for(rel_it = (*region_it)->getRelocations().begin();
+                rel_it != (*region_it)->getRelocations().end();
+                ++rel_it)
+            {
                 // Only compute relocations for the new Regions
-                if( regionOffsets.count(rel_it->getTargetRegion()) ) {
-
+                if( regionOffsets.count(*region_it) ) {
                     // Compute destination of relocation
-                    Offset dest = regionOffsets[rel_it->getTargetRegion()] + rel_it->rel_addr();
+                    Offset dest = regionOffsets[*region_it] + rel_it->rel_addr();
                     Offset relOffset = globalOffset + dest;
                     if( !archSpecificRelocation(newRawData, *rel_it, dest, relOffset) ) {
                         err = Relocation_Computation_Failure;
@@ -462,21 +654,61 @@ bool emitElf::computeRelocations(char *newRawData, std::vector<Symtab *> & depen
         }
     }
 
+    fprintf(stderr, "\n*** Computing relocations added to binary.\n\n");
+
+    // Compute relocations added to static binary 
+    std::vector<Region *> allRegions;
+    binary->getAllRegions(allRegions);
+
+    std::vector<Region *>::iterator reg_it;
+    for(reg_it = allRegions.begin(); reg_it != allRegions.end(); ++reg_it) {
+        char *regionData = reinterpret_cast<char *>((*reg_it)->getPtrToRawData());
+        
+        std::vector<relocationEntry>::iterator rel_it;
+        for(rel_it = (*reg_it)->getRelocations().begin();
+            rel_it != (*reg_it)->getRelocations().end();
+            ++rel_it)
+        {
+            if( !archSpecificRelocation(regionData, *rel_it,
+                        rel_it->rel_addr() - (*reg_it)->getRegionAddr(),
+                        rel_it->rel_addr()) )
+            {
+                err = Relocation_Computation_Failure;
+                errMsg = "failed to compute relocation";
+                return false;
+            }
+        }
+    }
+
     return true;
 }
 
-bool emitElf::archSpecificRelocation(char *newRawData, ELFRelocation &rel,
+/**
+ * Computes the relocation value and copies it into the right location
+ *
+ * This routine is meant to be architecture dependent because relocations are
+ * specific to a certain architecture.
+ *
+ * @param newRawData - the destination for computed relocation value
+ *
+ * @param rel - the relocationEntry for this relocation
+ *
+ * @param dest - the Offset within newRawData to place the relocation value
+ *
+ * @param relOffset - the Offset within newRawData
+ *
+ * @return true, if sucessful; false, otherwise
+ */
+bool emitElf::archSpecificRelocation(char *newRawData, relocationEntry &rel,
         Offset dest, Offset relOffset) 
 {
-// This routine is meant to be architecture dependent because relocations are
-// specific to a certain architecture
 #if defined(arch_x86)
     // All relocations on x86 are one word32 == Offset
     // Referring to the SYSV 386 supplement:
     // S = rel.getDynSym()->getOffset()
     // A = addend
     // P = relOffset
-
+   
     Offset addend;
     if( rel.regionType() == Region::RT_REL ) {
         memcpy(&addend, &newRawData[dest], sizeof(Offset));
@@ -495,6 +727,10 @@ bool emitElf::archSpecificRelocation(char *newRawData, ELFRelocation &rel,
         case R_386_PC32:
             relocation = rel.getDynSym()->getOffset() + addend - relOffset;
             break;
+        case R_386_GLOB_DAT:
+        case R_386_JMP_SLOT:
+            relocation = rel.getDynSym()->getOffset();
+            break;
         default:
             fprintf(stderr, "Relocation type %lu currently unimplemented\n",
                     rel.getRelType());
@@ -512,33 +748,7 @@ bool emitElf::archSpecificRelocation(char *newRawData, ELFRelocation &rel,
 #endif
 }
 
-bool emitElf::computeInstrumentRelocations(Region *instrumentRegion,
-        std::map<Symbol *, std::vector<Address> > &interModSymRefs,
-        StaticLinkError &err, std::string &errMsg) 
-{
-    char *regionData = reinterpret_cast<char *>(instrumentRegion->getPtrToRawData());
-    std::map<Symbol *, std::vector<Address> >::iterator symRef_it;
-    for(symRef_it = interModSymRefs.begin(); 
-        symRef_it != interModSymRefs.end(); ++symRef_it) 
-    {
-        std::vector<Address>::iterator addr_it;
-        for(addr_it = symRef_it->second.begin(); 
-            addr_it != symRef_it->second.end(); ++addr_it) 
-        {
-            if( !archSpecificInstrumentRelocation(regionData, 
-                        instrumentRegion->getRegionAddr(),
-                        symRef_it->first, *addr_it) ) 
-            {
-                err = Relocation_Computation_Failure;
-                errMsg = "failed to compute relocation for instrumentation";
-                return false;
-            }
-        }    
-    }
-
-    return true;
-}
-
+/*
 bool emitElf::archSpecificInstrumentRelocation(char *regionData, Offset regionAddr,
         Symbol *targetSym, Address targetAddr) 
 {
@@ -554,6 +764,7 @@ bool emitElf::archSpecificInstrumentRelocation(char *regionData, Offset regionAd
     return false;
 #endif
 }
+*/
 
 std::string emitElf::printStaticLinkError(StaticLinkError err) {
     switch(err) {

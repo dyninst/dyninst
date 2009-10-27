@@ -1843,7 +1843,7 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
 
       StaticLinkError err;
       std::string errMsg;
-      linkedStaticData = linkStaticCode(obj, err, errMsg);
+      linkedStaticData = linkStatic(obj, err, errMsg);
       if ( linkedStaticData == NULL ) {
            fprintf(stderr, "Failed to link in static library code: %s = %s\n",
                  printStaticLinkError(err).c_str(), errMsg.c_str());
