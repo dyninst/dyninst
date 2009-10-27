@@ -43,7 +43,7 @@
 
 long atomic_set(volatile int *val)
 {
-  static long result = 0;
+   long result = 0;
 #if defined(MUTATEE_32)
    __asm("movl $1,%%eax\n"
          "movl %1,%%ecx\n"
