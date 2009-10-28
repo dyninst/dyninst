@@ -35,7 +35,7 @@ endif
 
 LDFLAGS += -lpthread -lsymtabAPI -lcommon 
 
-LDFLAGS     += $(LIBDIR)
+LDFLAGS     += -L../../common/$(PLATFORM) -L../../symtabAPI/$(PLATFORM) -L../../instructionAPI/$(PLATFORM)
 ifndef USES_NATIVE_CC
 LD		= $(GXX)
 LDFLAGS		+= -shared $(G_PTHREAD_LD)
