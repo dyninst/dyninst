@@ -1855,7 +1855,6 @@ Symtab *Symtab::findOpenSymtab(std::string filename)
           allSymtabs[u]->mf->canBeShared()) 
 		{
 			// return it
-         fprintf(stderr, "[%s:%u] - Sharing %s\n", __FILE__, __LINE__, filename.c_str());
 			return allSymtabs[u];
 		}
 	}   

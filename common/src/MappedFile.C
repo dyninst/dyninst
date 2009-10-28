@@ -63,6 +63,7 @@ MappedFile::MappedFile(void *loc, unsigned long size_, bool &ok) :
    fullpath("in_memory_file"),
    did_mmap(false),
    did_open(false),
+   can_share(true),
    refCount(1)
 {
   ok = open_file(loc, size_);
