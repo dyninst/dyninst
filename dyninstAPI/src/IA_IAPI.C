@@ -668,6 +668,7 @@ Address IA_IAPI::findThunkInBlock(image_basicBlock* curBlock, Address& thunkOffs
                         parsing_printf("\tsetting thunkOffset to 0x%lx (0x%lx + 0x%lx)\n",
                                     thunkOffset+thunkDiff, thunkOffset, thunkDiff);
                         Address ret = block.getPrevAddr();
+                        thunkOffset = thunkOffset + thunkDiff;
                         delete blockptr;
                         return ret;
                     }
@@ -677,6 +678,7 @@ Address IA_IAPI::findThunkInBlock(image_basicBlock* curBlock, Address& thunkOffs
                         parsing_printf("\tsetting thunkOffset to 0x%lx (0x%lx + 0x%lx)\n",
                                     thunkOffset+thunkDiff, thunkOffset, thunkDiff);
                         Address ret = block.getPrevAddr();
+                        thunkOffset = thunkOffset + thunkDiff;
                         delete blockptr;
                         return ret;
                     }
@@ -729,6 +731,11 @@ std::pair<Address, Address> IA_IAPI::findThunkAndOffset(image_basicBlock* start)
     {
         curBlock = worklist.front();
         worklist.pop_front();
+        // If the only thunk we can find within this function that precedes the
+        // indirect jump in control flow (we think) is after it in the address space,
+        // it may be a jump table but it's not one our heuristics should expect to
+        // handle well.  Better to bail out than try to parse something that will be garbage.
+        if(curBlock->firstInsnOffset() > start->firstInsnOffset()) continue;
         Address tableInsnAddr = findThunkInBlock(curBlock, thunkOffset);
         if(tableInsnAddr != 0)
         {
@@ -1031,18 +1038,21 @@ bool IA_IAPI::computeTableBounds(Instruction::Ptr maxSwitchInsn,
     tableStride = img->getAddressWidth();
     std::set<Expression::Ptr> tableInsnReadAddr;
     tableInsn->getMemoryReadOperands(tableInsnReadAddr);
-    static Immediate::Ptr four(new Immediate(Result(u8, 4)));
-    static BinaryFunction::funcT::Ptr multiplier(new BinaryFunction::multResult());
-    static Expression::Ptr dummy(new DummyExpr());
-    static BinaryFunction::Ptr scaleCheck(new BinaryFunction(four, dummy, (tableStride == 8) ? u64: u32, multiplier));
-    for(std::set<Expression::Ptr>::const_iterator curExpr = tableInsnReadAddr.begin();
-        curExpr != tableInsnReadAddr.end();
-        ++curExpr)
+    if(tableStride == 8)
     {
-        if((*curExpr)->isUsed(scaleCheck))
+        static Immediate::Ptr four(new Immediate(Result(u8, 4)));
+        static BinaryFunction::funcT::Ptr multiplier(new BinaryFunction::multResult());
+        static Expression::Ptr dummy(new DummyExpr());
+        static BinaryFunction::Ptr scaleCheck(new BinaryFunction(four, dummy, u64, multiplier));
+        for(std::set<Expression::Ptr>::const_iterator curExpr = tableInsnReadAddr.begin();
+            curExpr != tableInsnReadAddr.end();
+            ++curExpr)
         {
-            tableSize = tableSize >> 1;
-            parsing_printf("\tmaxSwitch revised to %d\n",tableSize);
+            if((*curExpr)->isUsed(scaleCheck))
+            {
+                tableSize = tableSize >> 1;
+                parsing_printf("\tmaxSwitch revised to %d\n",tableSize);
+            }
         }
     }
     return true;
