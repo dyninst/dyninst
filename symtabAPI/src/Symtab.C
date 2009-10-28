@@ -1851,9 +1851,11 @@ Symtab *Symtab::findOpenSymtab(std::string filename)
 	for (unsigned u=0; u<numSymtabs; u++) 
 	{
 		assert(allSymtabs[u]);
-		if (filename == allSymtabs[u]->file()) 
+		if (filename == allSymtabs[u]->file() && 
+          allSymtabs[u]->mf->canBeShared()) 
 		{
 			// return it
+         fprintf(stderr, "[%s:%u] - Sharing %s\n", __FILE__, __LINE__, filename.c_str());
 			return allSymtabs[u];
 		}
 	}   
@@ -2405,7 +2407,8 @@ SYMTAB_EXPORT bool Symtab::emit(std::string filename, unsigned flag)
 		fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
 		return false;
 	}
-    return emitSymbols(obj, filename, flag);
+   obj->mf->setSharing(false);
+   return emitSymbols(obj, filename, flag);
 }
 
 SYMTAB_EXPORT void Symtab::addDynLibSubstitution(std::string oldName, std::string newName)
@@ -3209,6 +3212,11 @@ SYMTAB_EXPORT Address Symtab::getLoadAddress()
 #else
    return 0x0;
 #endif
+}
+
+SYMTAB_EXPORT bool Symtab::canBeShared()
+{
+   return mf->canBeShared();
 }
 
 } // namespace SymtabAPI
