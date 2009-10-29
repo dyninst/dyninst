@@ -12,11 +12,12 @@ DEPENDFLAGS ?= -MM -MT
 DEPENDDIR = ./depends
 VPATH 	= ../src $(DEPENDDIR)
 
-DYNINST_INCDIR = -I../../dyninstAPI/h
-SYMTAB_INCDIR = -I../../symtabAPI/h
-DYNUTIL_INCDIR = -I../../dynutil/h
-INSTRUCTION_INCDIR = -I../../instructionAPI/h
-BOOST_INCDIR = -I../../external
+IFLAGS += ../../../include
+#DYNINST_INCDIR = -I../../dyninstAPI/h
+#SYMTAB_INCDIR = -I../../symtabAPI/h
+#DYNUTIL_INCDIR = -I../../dynutil/h
+#INSTRUCTION_INCDIR = -I../../instructionAPI/h
+#BOOST_INCDIR = -I../../external
 
 IFLAGS += $(DYNINST_INCDIR)
 IFLAGS += $(DYNUTIL_INCDIR)
