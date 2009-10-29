@@ -43,6 +43,7 @@
 #include "Variable.h"
 #include "Module.h" 
 #include "Collections.h"
+#include "annotations.h"
 #include "common/h/headers.h"
 #include "Type-mem.h"
 
@@ -284,7 +285,6 @@ std::string Dyninst::SymtabAPI::parseStabString(Module *mod, int linenum, char *
             }
 
             localVarCollection *lvs = NULL;
-            extern AnnotationClass<localVarCollection> FunctionLocalVariablesAnno;
 
             if (!symt_current_func->getAnnotation(lvs, FunctionLocalVariablesAnno)) 
             {

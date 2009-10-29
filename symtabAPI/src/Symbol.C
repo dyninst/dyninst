@@ -45,8 +45,6 @@
 using namespace Dyninst;
 using namespace SymtabAPI;
 
-AnnotationClass<dyn_hash_map<Address, Symbol *> > IdToSymAnno("IdToSymMap");
-
 bool addSymID(SerializerBase *sb, Symbol *sym, Address id)
 {
 	assert(id);
@@ -221,7 +219,8 @@ SYMTAB_EXPORT bool Symbol::setFunction(Function *func)
 
 SYMTAB_EXPORT Function * Symbol::getFunction() const
 {
-	if (aggregate_ == NULL) fprintf(stderr, "%s[%d]:  Aggregate not set!\n", FILE__, __LINE__);
+	if (aggregate_ == NULL) 
+		return NULL;
     return dynamic_cast<Function *>(aggregate_);
 }
 
@@ -403,6 +402,7 @@ Serializable *Symbol::serialize_impl(SerializerBase *s, const char *tag) THROW_S
 		{
 			restore_module_and_region(s, modname, r_off);
 			addSymID(s, this, symid);
+			//serialize_printf("%s[%d]:  added sym ID mapping: %p--%p\n", FILE__, __LINE__, this, symid);
 		}
 
 		return NULL;
@@ -605,7 +605,35 @@ Symbol::Symbol(const std::string name,
 {
 }
 
-void Symbol::setReferringSymbol(Symbol* referringSymbol) {
+Symbol::~Symbol ()
+{
+	std::string *sfa_p = NULL;
+
+	if (getAnnotation(sfa_p, SymbolFileNameAnno))
+	{
+		if (!removeAnnotation(SymbolFileNameAnno))
+		{
+			fprintf(stderr, "%s[%d]:  failed to remove file name anno\n", 
+					FILE__, __LINE__);
+		}
+		delete (sfa_p);
+	}
+
+	std::vector<std::string> *vn_p = NULL;
+	if (getAnnotation(vn_p, SymbolVersionNamesAnno))
+	{
+		if (!removeAnnotation(SymbolVersionNamesAnno))
+		{
+			fprintf(stderr, "%s[%d]:  failed to remove version names anno\n", 
+					FILE__, __LINE__);
+		}
+		delete (vn_p);
+	}
+
+}
+
+void Symbol::setReferringSymbol(Symbol* referringSymbol) 
+{
 	referring_= referringSymbol;
 }
 

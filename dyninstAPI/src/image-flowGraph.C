@@ -1591,6 +1591,9 @@ void image_func::parseSharedBlocks(image_basicBlock * firstBlock,
     targets.clear();
 #endif
     endOffset_ = funcEnd;
+    parsing_printf("[%s:%u] DONE Parsing shared code at 0x%lx, startoffset: "
+            "0x%lx endoffset: 0x%lx\n",
+    FILE__,__LINE__,firstBlock->firstInsnOffset_, getOffset(), endOffset_);
 }
 
 /* A specialized version for parsing shared blocks when we don't care

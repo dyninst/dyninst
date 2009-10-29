@@ -72,13 +72,60 @@ AnnotatableSparse::annos_t *AnnotatableSparse::getAnnos() const
 
 dyn_hash_map<void *, unsigned short> AnnotatableSparse::ser_ndx_map;
 
-namespace Dyninst {
+namespace Dyninst 
+{
+
+bool dyn_debug_annotations = false;
+bool annotation_debug_flag()
+{
+	return dyn_debug_annotations;
+}
+
+void annotations_debug_init()
+{
+	if (dyn_debug_annotations) return;
+
+	char *p;
+	if ( (p=getenv("DYNINST_DEBUG_ANNOTATIONS"))) {
+		fprintf(stderr, "Enabling DyninstAPI annotations debug\n");
+		dyn_debug_annotations = true;
+	}
+	else if ( (p=getenv("DYNINST_DEBUG_ANNOTATION"))) {
+		fprintf(stderr, "Enabling DyninstAPI annotations debug\n");
+		dyn_debug_annotations = true;
+	}
+	else if ( (p=getenv("DYNINST_DEBUG_ANNOTATABLE"))) {
+		fprintf(stderr, "Enabling DyninstAPI annotations debug\n");
+		dyn_debug_annotations = true;
+	}
+}
+
+int annotatable_printf(const char *format, ...)
+{
+	if (!dyn_debug_annotations) return 0;
+	if (NULL == format) return -1;
+
+	//debugPrintLock->_Lock(FILE__, __LINE__);
+
+	//  probably want to have basic thread-id routines in libcommon...
+	//  uh...  later....
+
+	//fprintf(stderr, "[%s]", getThreadStr(getExecThreadID()));
+	va_list va;
+	va_start(va, format);
+	int ret = vfprintf(stderr, format, va);
+	va_end(va);
+
+	//debugPrintLock->_Unlock(FILE__, __LINE__);
+
+	return ret;
+}
 
 COMMON_EXPORT int AnnotationClass_nextId;
 
 bool void_ptr_cmp_func(void *v1, void *v2)
 {
-   return v1 == v2;
+	return v1 == v2;
 }
 }
 
@@ -91,6 +138,7 @@ AnnotationClassBase::AnnotationClassBase(std::string n,
    name(n),
    serialize_func(sf_)
 {
+	annotations_debug_init();
     // Using a static vector led to the following pattern on AIX:
     //   dyninstAPI static initialization
     //     ... add annotation types
@@ -112,17 +160,63 @@ AnnotationClassBase::AnnotationClassBase(std::string n,
    if (iter == annotation_ids_by_name->end()) 
    {
       id = (AnnotationClassID) annotation_types->size();
+	  annotatable_printf("%s[%d]:  New AnnotationClass %d: %s\n", 
+			  FILE__, __LINE__, id, n.c_str());
       annotation_types->push_back(this);
       (*annotation_ids_by_name)[name] = id;
    }
    else
    {
       id = iter->second;
+	  annotatable_printf("%s[%d]:  Existing AnnotationClass %d\n", FILE__, __LINE__, id);
    }
 
    if (id >= annotation_types->size())
 	   assert(0 && "bad anno id");
 }
+
+AnnotationClassBase::~AnnotationClassBase()
+{
+	//  Still waffling...  maybe a bad idea
+#if 0 
+	//  The general rule in dyninst/symtab etc is to use global/static
+	//  Annotation classes, so they never go away.  This is good.
+	//  But in the testsuite, we have a bunch of transient fly-by-night
+	//  AnnotationClasses for the purposes of testing.  
+	//
+	//  This may be a bit dangerous and might require a bit more thought,
+	//  but for now, if this AnnotationClass was the last one allocated
+	//  remove it from the static mapping so it can be reused.
+
+	if (!annotation_types)  return; //  should never happen
+	if (id >= annotation_types->size()) return; //  should never happen
+	if (id == (annotation_types->size() -1))
+	{
+		annotatable_printf("%s[%d]:  removing annotation class %d: %s\n", 
+				FILE__, __LINE__, id, name.c_str());
+		//  this is the special case where we can "undo" the existence of
+		// the annotation type
+		annotation_types->pop_back();
+		assert((*annotation_types)[id] == this);
+		dyn_hash_map<std::string, AnnotationClassID>::iterator iter;
+		iter = annotation_ids_by_name->find(name);
+		if (iter != annotation_ids_by_name->end()) 
+		{
+			annotation_ids_by_name->erase(iter);
+		}
+	}
+#endif
+}
+
+#if 0
+void AnnotationClassBase::clearAnnotationIDMap()
+{
+	if (!annotation_ids_by_name) return;
+	annotation_ids_by_name->clear();
+	delete annotation_ids_by_name;
+	annotation_ids_by_name = NULL;
+}
+#endif
 
 Dyninst::AnnotationClassBase* AnnotationClassBase::findAnnotationClass(unsigned int id)
 {
@@ -138,6 +232,7 @@ Dyninst::AnnotationClassBase* AnnotationClassBase::findAnnotationClass(unsigned 
 	if ((*annotation_types)[id]->getID() != id)
 	{
 		fprintf(stderr, "%s[%d]:  FIXME:  have bad id in annotation class: %d, not %d\n", FILE__, __LINE__, (*annotation_types)[id]->getID(), id);
+		return NULL;
 	}
 	return (*annotation_types)[id];
 }

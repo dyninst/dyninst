@@ -245,6 +245,26 @@ bool Function::addParam(localVar *param)
 
 Function::~Function()
 {
+   localVarCollection *lvs = NULL;
+   if (getAnnotation(lvs, FunctionLocalVariablesAnno) && (NULL != lvs))
+   {
+	   if (!removeAnnotation(FunctionLocalVariablesAnno))
+	   {
+		   fprintf(stderr, "%s[%d]:  ERROR removing local vars\n", FILE__, __LINE__);
+	   }
+	   delete lvs;
+   }
+
+   localVarCollection *lps = NULL;
+   if (getAnnotation(lps, FunctionParametersAnno) && (NULL != lps))
+   {
+	   if (!removeAnnotation(FunctionParametersAnno))
+	   {
+		   fprintf(stderr, "%s[%d]:  ERROR removing params\n", FILE__, __LINE__);
+	   }
+	   delete lps;
+   }
+
 }
 
 Serializable *Function::serialize_impl(SerializerBase *sb, const char *tag) THROW_SPEC (SerializerError)

@@ -62,6 +62,24 @@
 #define DESERIALIZE_ENABLE_FLAG (short) 2
 #define DESERIALIZE_ENFORCE_FLAG (short) 4
 
+//  SER_ERR("msg") -- an attempt at "graceful" failure.  If debug flag is set
+//  it will assert, otherwise it throws...  leaving the "graceful" aspect
+//  to the next (hopefully top-level) exception handler.
+//  UPDATE -- due to vtable recognition probs between modules (dyninst libs and
+//  testsuite executables) no longer asserts.
+
+
+
+#define SER_ERR(cmsg) \
+	do { \
+		if (serializer_debug_flag()) { \
+			serialize_printf("SER_ERR: %s", cmsg); \
+			throw SerializerError(__FILE__, __LINE__, std::string(cmsg)); \
+		} else { \
+			throw SerializerError(__FILE__, __LINE__, std::string(cmsg)); \
+		} \
+	} while (0)
+
 namespace Dyninst {
 
 #define CACHE_DIR_VAR "DYNINST_CACHE_DIR"
@@ -178,6 +196,7 @@ class SerializerBase {
 };
 #endif
 
+class SerDesXML;
 
 class SerializerXML : public SerializerBase
 {
@@ -493,7 +512,7 @@ class SerDesBin : public SerDes {
 
    COMMON_EXPORT SerDesBin() {assert(0);}
 
-   COMMON_EXPORT SerDesBin(FILE *ff, iomode_t mode, bool verbose) : 
+   COMMON_EXPORT SerDesBin(FILE *ff, iomode_t mode, bool verbose = false) : 
       SerDes(mode), 
       f(ff),  
       noisy(verbose) {}
@@ -566,174 +585,6 @@ class SerDesBin : public SerDes {
 bool start_xml_elem(void *writer, const char *tag);
 bool end_xml_elem(void *);
 
-#if 0
-class SerializerXML : public  SerializerBase
-{
-   public:
-   COMMON_EXPORT virtual bool isXML() {return true;}
-   COMMON_EXPORT virtual bool isBin () {return false;}
-
-      COMMON_EXPORT SerializerXML(SerContextBase *scb, const char *name_, std::string filename, 
-            iomode_t dir, bool verbose) :
-         SerializerBase(scb, name_, filename, dir, verbose) {}
-
-      COMMON_EXPORT virtual ~SerializerXML() {}
-
-      COMMON_EXPORT SerDesXML &getSD_xml()
-	  {
-		  SerializerBase *sb = this;
-		  SerDes &sd = sb->getSD();
-		  SerDesXML *sdxml = dynamic_cast<SerDesXML *> (&sd);
-		  assert(sdxml);
-		  return *sdxml;
-	  }
-
-      COMMON_EXPORT static bool start_xml_element(SerializerBase *sb, const char *tag)
-	  {
-		  SerializerXML *sxml = dynamic_cast<SerializerXML *>(sb);
-
-		  if (!sxml)
-		  {
-			  fprintf(stderr, "%s[%d]:  FIXME:  called xml function with non xml serializer\n",
-					  FILE__, __LINE__);
-			  return false;
-		  }
-
-		  SerDesXML sdxml = sxml->getSD_xml();
-		  start_xml_elem(sdxml.writer, tag);
-		  return true;
-	  }
-
-      COMMON_EXPORT static bool end_xml_element(SerializerBase *sb, const char *)
-	  {
-		  SerializerXML *sxml = dynamic_cast<SerializerXML *>(sb);
-
-		  if (!sxml)
-		  {
-			  fprintf(stderr, "%s[%d]:  FIXME:  called xml function with non xml serializer\n",
-					  FILE__, __LINE__);
-			  return false;
-		  }
-
-		  SerDesXML sdxml = sxml->getSD_xml();
-		  end_xml_elem(sdxml.writer);
-
-		  return true;
-	  }
-};
-#endif
-
-
-#if 0
-class SerializerBin : public SerializerBase {
-   friend class SerDesBin;
-
-   public:
-   virtual bool isXML() {return false;}
-   virtual bool isBin () {return true;}
-
-   SerializerBin()  :
-	   SerializerBase() {}
-
-   SerializerBin(SerContextBase *scb, const char *name_, std::string filename, 
-         iomode_t dir, bool verbose) :
-	   SerializerBase(scb, name_, filename, dir, verbose)
-   {
-	   SerializerBase *sb = this;
-	   if (sb->serializationDisabled())
-	   {
-		   fprintf(stderr, "%s[%d]:  Failing to construct Bin Translator:  global disable set\n",
-				   FILE__, __LINE__);
-
-		   throw SerializerError(FILE__, __LINE__,
-				   std::string("serialization disabled"),
-				   SerializerError::ser_err_disabled);
-	   }
-
-	   dyn_hash_map<std::string, SerializerBase *>::iterator iter;
-
-	   iter = sb->active_bin_serializers.find(std::string(name_));
-
-	   if (iter == sb->active_bin_serializers.end())
-	   {
-		   serialize_printf("%s[%d]:  Adding Active serializer for name %s\n",
-				   FILE__, __LINE__, name_);
-
-		   sb->active_bin_serializers[std::string(name_)] = this;
-	   }
-	   else
-	   {
-		   fprintf(stderr, "%s[%d]:  Weird, already have active serializer for name %s\n",
-				   FILE__, __LINE__, name_);
-	   }
-
-
-   }
-
-   virtual ~SerializerBin()
-   {
-	   serialize_printf("%s[%d]:  WELCOME TO SERIALIZER_BIN dtor\n", FILE__, __LINE__);
-	   dyn_hash_map<std::string, SerializerBase *>::iterator iter;
-
-	   SerializerBase *sb = this;
-	   iter = sb->active_bin_serializers.find(sb->name());
-
-	   if (iter == sb->active_bin_serializers.end())
-	   {
-		   fprintf(stderr, "%s[%d]:  Weird, no static ptr for name %s\n",
-				   FILE__, __LINE__, sb->name().c_str());
-	   }
-	   else
-	   {
-		   serialize_printf("%s[%d]:  Removing active serializer for name %s\n",
-				   FILE__, __LINE__, sb->name().c_str());
-		   sb->active_bin_serializers.erase(iter);
-	   }
-
-   }
-
-   SerDesBin &getSD_bin()
-   {
-	   SerializerBase *sb = this;
-	   SerDes &sd = sb->getSD();
-	   SerDesBin *sdbin = dynamic_cast<SerDesBin *> (&sd);
-	   assert(sdbin);
-	   return *sdbin;
-   }
-
-
-   static SerializerBin *findSerializerByName(const char *name_)
-   {
-	   dyn_hash_map<std::string, SerializerBase *>::iterator iter;
-
-	   iter = SerializerBase::active_bin_serializers.find(std::string(name_));
-
-	   if (iter == SerializerBase::active_bin_serializers.end())
-	   {
-		   fprintf(stderr, "%s[%d]:  No static ptr for name %s\n",
-				   FILE__, __LINE__, name_);
-		   SerializerBase::dumpActiveBinSerializers();
-	   }
-	   else
-	   {
-		   fprintf(stderr, "%s[%d]:  Found active serializer for name %s\n",
-				   FILE__, __LINE__, name_);
-
-		   return dynamic_cast<SerializerBin *>(iter->second);
-	   }
-
-	   return NULL;
-   }
-
-
-};
-#endif
-
-//COMMON_EXPORT SerializationFunctionBase *findSerDesFuncForAnno(unsigned anno_type);
-//COMMON_EXPORT SerFunc *findSerFuncForAnno(unsigned anno_type);
-
-
-
 class SerFile {
 
    SerDes *sd;
@@ -747,83 +598,8 @@ class SerFile {
    public:
 
    COMMON_EXPORT SerDes *getSD();
-#if 0
-   {
-      return sd;
-   }
-#endif
-
    COMMON_EXPORT SerFile(std::string fname, iomode_t mode, bool verbose = false); 
-#if 0
-   COMMON_EXPORT SerFile(std::string fname, iomode_t mode, bool verbose = false) :
-      writer (NULL), 
-      f(NULL), 
-      iomode_(mode), 
-      noisy(verbose) 
-   {
-      char file_path[PATH_MAX];
-
-      if (!resolve_file_path(fname.c_str(), file_path)) 
-      {
-         char msg[128];
-         sprintf(msg, "failed to resolve path for '%s'\n", fname.c_str());
-         SER_ERR(msg);
-      }
-
-      filename = std::string(file_path);
-      serialize_debug_init();
-
-      if (strstr(filename.c_str(), "xml")) 
-      {
-         fprintf(stderr, "%s[%d]:  opening xml file %s for %s\n", FILE__, __LINE__, 
-               filename.c_str(), mode == sd_serialize ? "output" : "input");
-
-         if (mode == sd_deserialize) 
-         {
-            fprintf(stderr, "%s[%d]:  ERROR:  deserializing xml not supported\n", 
-                  FILE__, __LINE__);
-            assert(0);
-         }
-
-#if defined (cap_have_libxml)
-         writer = SerDesXML::init(fname, mode, verbose);
-
-         if (!writer) 
-         {
-            fprintf(stderr, "%s[%d]:  ERROR:  failed to init xml writer\n", FILE__, __LINE__);
-            assert(0);
-         }
-#else
-         writer = NULL;
-#endif
-
-         sd = new SerDesXML(writer, mode);
-
-      }
-      else 
-      {
-         serialize_printf("%s[%d]:  opening %s file for %s\n", FILE__, __LINE__, 
-               filename.c_str(), mode == sd_serialize ? "output" : "input");
-
-         f = SerDesBin::init(fname, mode, verbose);
-
-         if (!f) 
-         {
-            fprintf(stderr, "%s[%d]:  failed to init file i/o\n", FILE__, __LINE__);
-            assert(0);
-         }
-
-         sd = new SerDesBin(f,mode, verbose);
-      }
-   }
-#endif
-
    COMMON_EXPORT iomode_t iomode();
-#if 0
-   {
-      return iomode_;
-   }
-#endif
 
    static bool validCacheExistsFor(std::string full_file_path);
 
@@ -835,6 +611,8 @@ class SerFile {
    public:
 
    bool noisy;
+   std::string getFileName() {return filename;}
+   std::string getCacheFileName(); 
 
 };
 

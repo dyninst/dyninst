@@ -33,16 +33,16 @@
 
 namespace Dyninst 
 {
-//  SER_ERR("msg") -- an attempt at "graceful" failure.  If debug flag is set
+#if 0
+//  throw_ser_err(FILE__, __LINE__,"msg") -- an attempt at "graceful" failure.  If debug flag is set
 //  it will assert, otherwise it throws...  leaving the "graceful" aspect
 //  to the next (hopefully top-level) exception handler.
 //  UPDATE -- due to vtable recognition probs between modules (dyninst libs and
 //  testsuite executables) no longer asserts.
 	
 
-COMMON_EXPORT bool &serializer_debug_flag();
 
-#define SER_ERR(cmsg) \
+#define throw_ser_err(FILE__, __LINE__,cmsg) \
    do { \
       if (serializer_debug_flag()) { \
          serialize_printf("SER_ERR: %s", cmsg); \
@@ -51,7 +51,9 @@ COMMON_EXPORT bool &serializer_debug_flag();
          throw SerializerError(__FILE__, __LINE__, std::string(cmsg)); \
       } \
    } while (0)
+#endif
 
+COMMON_EXPORT bool &serializer_debug_flag();
 
 class SerializerBase;
 
@@ -108,17 +110,13 @@ typedef enum {
 	ser_xml,
 } ser_type_t;
 
-#if 0
-#define SERIALIZE_ENABLE_FLAG (short) 1
-#define DESERIALIZE_ENABLE_FLAG (short) 2
-#define DESERIALIZE_ENFORCE_FLAG (short) 4
-#endif
-
 class SerContextBase 
 {
 	friend class Serializable;
+	friend class SerializerBase;
 	COMMON_EXPORT static std::vector<std::pair<std::string, dyn_hash_map<std::string, short>*> > ser_control_map;
 	std::string fname;
+	std::string serfilename;
 	static dyn_hash_map<std::string, short> *getMapForType(std::string);
 	public:
 
@@ -139,6 +137,9 @@ class SerContextBase
 	COMMON_EXPORT bool deserializeEnabled();
 	COMMON_EXPORT static bool deserializeEnforced(std::string, std::string);
 	COMMON_EXPORT bool deserializeEnforced();
+
+	COMMON_EXPORT std::string getSerFileName();
+	COMMON_EXPORT virtual bool isContextType(Serializable *) = 0;
 };
 
 template <class T>
@@ -153,6 +154,7 @@ class SerContext : public SerContextBase
 	void *getVoidContext() {return (void *) scope;}
 	const char *getRootTypename() {return typeid(T).name();}
 	T *getScope() {return scope;}
+	bool isContextType(Serializable *s) { return (NULL != dynamic_cast<T *>(s));}
 };
 
 class SerFile;
@@ -164,7 +166,6 @@ class SerializerBase {
 	public:
 	COMMON_EXPORT static std::vector<SerializerBase *> active_serializers;
 	//  TODO:  make these private or protected
-	COMMON_EXPORT static dyn_hash_map<std::string, SerializerBase *> active_bin_serializers;
 	static bool global_disable;
 	private:
 
@@ -180,6 +181,7 @@ class SerializerBase {
 
 	dyn_hash_map<void *, AnnotatableSparse *> *sparse_annotatable_map;
 	dyn_hash_map<void *, AnnotatableDense *> *dense_annotatable_map;
+	void clearAnnotationMaps();
 	public:
 	COMMON_EXPORT void set_annotatable_sparse_map(AnnotatableSparse *, void *);
 	COMMON_EXPORT void set_annotatable_dense_map(AnnotatableDense *, void *);
@@ -210,6 +212,7 @@ class SerializerBase {
 	COMMON_EXPORT std::string &name() {return serializer_name;}
 	COMMON_EXPORT static SerializerBase *getSerializer(std::string subsystem, std::string fname);
 	COMMON_EXPORT static bool addSerializer(std::string subsystem, std::string fname, SerializerBase *sb);
+	COMMON_EXPORT static bool removeSerializer(unsigned short);
 	COMMON_EXPORT virtual void vector_start(unsigned long &, const char * = NULL);
 	COMMON_EXPORT virtual void vector_end();
 	COMMON_EXPORT virtual void hash_map_start(unsigned long &size, const char *tag = NULL);
@@ -246,7 +249,7 @@ class SerializerBase {
 	COMMON_EXPORT bool serialize_post_annotation(void *parent_id, void *anno, AnnotationClassBase *acb, sparse_or_dense_anno_t , const char * = NULL);
 };
 
-SerializerBase *createSerializer(SerContextBase *, std::string, std::string, ser_type_t, iomode_t, bool);
+SerializerBase *createSerializer(SerContextBase *, std::string, std::string, ser_type_t, iomode_t, bool = false);
 
 class AnnotatableSparse;
 class AnnotatableDense;
@@ -261,6 +264,7 @@ COMMON_EXPORT void annotation_end(SerializerBase *);
 COMMON_EXPORT AnnotatableSparse *find_sparse_annotatable(SerializerBase *, void *);
 COMMON_EXPORT AnnotatableDense *find_dense_annotatable(SerializerBase *, void *);
 COMMON_EXPORT bool isEOF(SerializerBase *);
+COMMON_EXPORT void throw_ser_err(const char *file__, unsigned int line, const char *msg);
 
 
 COMMON_EXPORT void annotation_container_start(SerializerBase *sb, void *&id);
@@ -268,28 +272,30 @@ COMMON_EXPORT void annotation_container_end(SerializerBase *sb);
 COMMON_EXPORT void annotation_container_item_start(SerializerBase *, void *&);
 COMMON_EXPORT void annotation_container_item_end(SerializerBase *);
 COMMON_EXPORT bool deserialize_container_item(SerializerBase *, void *);
+COMMON_EXPORT AnnotationContainerBase *get_container(void *);
+COMMON_EXPORT bool deserialize_container_item(AnnotationContainerBase *acb, SerializerBase *sb);
 
 template <class T>
 void enableSerialize(std::string fname, bool val)
 {
-//	fprintf(stderr, "%s[%d]:  %s serialize for type %s\n", 
-//			FILE__, __LINE__, val ? "enabling" : "disabling", typeid(T).name());
+	serialize_printf("%s[%d]:  %s serialize for type %s\n", 
+			FILE__, __LINE__, val ? "enabling" : "disabling", typeid(T).name());
 	SerContextBase::enableSerialize(std::string(typeid(T).name()), fname, val);
 }
 
 template <class T>
 void enableDeserialize(std::string fname, bool val)
 {
-	//fprintf(stderr, "%s[%d]:  %s deserialize for type %s\n", 
-//			FILE__, __LINE__, val ? "enabling" : "disabling", typeid(T).name());
+	serialize_printf("%s[%d]:  %s deserialize for type %s\n", 
+			FILE__, __LINE__, val ? "enabling" : "disabling", typeid(T).name());
 	SerContextBase::enableDeserialize(std::string(typeid(T).name()), fname, val);
 }
 
 template <class T>
 void enforceDeserialize(std::string fname, bool val)
 {
-//	fprintf(stderr, "%s[%d]:  %s enforced deserialize for type %s\n", 
-//			FILE__, __LINE__, val ? "enabling" : "disabling", typeid(T).name());
+	serialize_printf("%s[%d]:  %s enforced deserialize for type %s\n", 
+			FILE__, __LINE__, val ? "enabling" : "disabling", typeid(T).name());
 	SerContextBase::enforceDeserialize(std::string(typeid(T).name()), fname, val);
 }
 
@@ -302,13 +308,14 @@ bool deserializeEnforced(std::string fname)
 template <class T>
 void enableSerDes(std::string fname, bool val)
 {
-	//fprintf(stderr, "%s[%d]:  %s serialize/deserialize for type %s\n", 
-//			FILE__, __LINE__, val ? "enabling" : "disabling", typeid(T).name());
+	serialize_printf("%s[%d]:  %s serialize/deserialize for type %s\n", 
+			FILE__, __LINE__, val ? "enabling" : "disabling", typeid(T).name());
 	SerContextBase::enableSerDes(std::string(typeid(T).name()), fname, val);
 }
 
 class Serializable {
 	bool was_deserialized;
+	static void clearContainersByID();
 
 	protected:
 	unsigned short active_serializer_index;
@@ -317,19 +324,27 @@ class Serializable {
 		was_deserialized(false), 
 		active_serializer_index((unsigned short) (-1)) {}
 
-	COMMON_EXPORT virtual ~Serializable() {}
+	COMMON_EXPORT virtual ~Serializable() 
+	{
+		if (active_serializer_index != (unsigned short) -1)
+		{
+			SerializerBase *sb = getExistingOutputSB(active_serializer_index);
+			if (sb)
+			{
+				SerContextBase *scb = sb->getContext();
+				if (scb->isContextType(this))
+				{
+					//  hrm...  not sure this works as intended.
+					fprintf(stderr, "%s[%d]:  TOP LEVEL SERIALIZE DONE:  removing serializer\n", FILE__, __LINE__);
+					sb->removeSerializer(active_serializer_index);
+				}
+			}
+		}
+	}
 
 	COMMON_EXPORT virtual Serializable *serialize_impl(SerializerBase *,  const char * = NULL) THROW_SPEC(SerializerError) = 0;
 
 	public:
-#if 0
-	COMMON_EXPORT bool serializeEnable(bool);
-	COMMON_EXPORT bool deserializeEnable(bool);
-	COMMON_EXPORT static bool globalDeserializeRequire(bool);
-	COMMON_EXPORT bool serializeEnabled();
-	COMMON_EXPORT bool deserializeEnabled();
-	COMMON_EXPORT bool deserializeRequired();
-#endif
 
 	COMMON_EXPORT unsigned short getID() {return active_serializer_index;}
 
@@ -340,12 +355,13 @@ class Serializable {
 		std::string sername = std::string("Deserializer");
 
 		SerializerBase *serializer = createSerializer(scb, sername, filename, 
-				ser_bin, sd_deserialize, /*verbose*/ true);
+				ser_bin, sd_deserialize, /*verbose*/ false);
 
 		if (!serializer) 
 		{
 			serialize_printf("%s[%d]:  ERROR:  failed to create deserializer for %s\n", 
 					FILE__, __LINE__, filename.c_str());
+			clearContainersByID();
 			return false;
 		}
 
@@ -358,11 +374,15 @@ class Serializable {
 		{
 			serialize_printf("%s[%d]:  deserialize failed\n", FILE__, __LINE__);
 			printSerErr(err_);
+			serializer->clearAnnotationMaps();
+			clearContainersByID();
 			return false;
 		}
 		catch (...)
 		{
 			serialize_printf("%s[%d]:  caught unexpected exception\n", FILE__, __LINE__);
+			serializer->clearAnnotationMaps();
+			clearContainersByID();
 			return false;
 		}
 
@@ -389,7 +409,16 @@ class Serializable {
 				serializer_printf("%s[%d]:  reading post-serialize item %d\n", 
 						FILE__, __LINE__, op_count);
 
-				ser_operation(serializer, op, NULL);
+				if (!ser_operation(serializer, op, NULL))
+				{
+					if (isEOF(serializer))
+					{
+						serialize_printf("%s[%d]:  got EOF\n", FILE__, __LINE__);
+						serializer->clearAnnotationMaps();
+						clearContainersByID();
+						return true;
+					}
+				}
 				switch (op) {
 					case sp_add_anno:
 						{
@@ -399,6 +428,8 @@ class Serializable {
 						{
 							fprintf(stderr, "%s[%d]:  failed to find annotation type %d\n", 
 									FILE__, __LINE__, a_id);
+							serializer->clearAnnotationMaps();
+							clearContainersByID();
 							return false;
 						}
 						else
@@ -415,6 +446,8 @@ class Serializable {
 						{
 							fprintf(stderr, "%s[%d]:  failed to find serialization function\n", 
 									FILE__, __LINE__);
+							serializer->clearAnnotationMaps();
+							clearContainersByID();
 							return false;
 						}
 
@@ -430,7 +463,8 @@ class Serializable {
 						annotation_end(serializer);
 
 						//  we have the (void *) annotation and the annotation type
-						//  now lookup the object to which it belonged in the map of annotatable objects
+						//  now lookup the object to which it belonged in the map of 
+						//  annotatable objects
 						//  and add it as an annotation.
 
 						if (sparse == sod)
@@ -481,6 +515,8 @@ class Serializable {
 						{
 							fprintf(stderr, "%s[%d]:  ERROR:  sparse/dense not set properly\n", 
 									FILE__, __LINE__);
+							serializer->clearAnnotationMaps();
+							clearContainersByID();
 							return false;
 						}
 						break;
@@ -496,13 +532,19 @@ class Serializable {
 							annotation_container_item_start(serializer, parent_id);
 							if (!parent_id)
 							{
-								fprintf(stderr, "%s[%d]:  NULL container with id\n", FILE__, __LINE__);
+								fprintf(stderr, "%s[%d]:  NULL container with id\n", 
+										FILE__, __LINE__);
+								serializer->clearAnnotationMaps();
+								clearContainersByID();
 								return false;
 							}
+
 							if (!deserialize_container_item(serializer, parent_id))
 							{
 								fprintf(stderr, "%s[%d]:  failed deser contitem w/parent %p\n", 
 										FILE__, __LINE__, parent_id);
+								serializer->clearAnnotationMaps();
+								clearContainersByID();
 								return false;
 							}
 
@@ -518,12 +560,16 @@ class Serializable {
 					default:
 						fprintf(stderr, "%s[%d]:  ERROR:  bad ser operation %d\n", 
 								FILE__, __LINE__, op);
+						serializer->clearAnnotationMaps();
+						clearContainersByID();
 						return false;
 				};
 
 				if (isEOF(serializer))
 				{
 					fprintf(stderr, "%s[%d]:  got EOF\n", FILE__, __LINE__);
+					serializer->clearAnnotationMaps();
+					clearContainersByID();
 					return true;
 				}
 
@@ -533,6 +579,8 @@ class Serializable {
 				if (isEOF(serializer))
 				{
 					serialize_printf("%s[%d]:  got EOF\n", FILE__, __LINE__);
+					serializer->clearAnnotationMaps();
+					clearContainersByID();
 					return true;
 				}
 				if (serializer_debug_flag()) 
@@ -540,6 +588,8 @@ class Serializable {
 					fprintf(stderr, "%s[%d]:  deserialize caught exception\n", FILE__, __LINE__);
 					printSerErr(err_);
 				}
+				serializer->clearAnnotationMaps();
+				clearContainersByID();
 				return false;
 			}
 			catch (...)
@@ -548,13 +598,19 @@ class Serializable {
 				if (isEOF(serializer))
 				{
 					serialize_printf("%s[%d]:  got EOF\n", FILE__, __LINE__);
+					serializer->clearAnnotationMaps();
+					clearContainersByID();
 					return true;
 				}
+				serializer->clearAnnotationMaps();
+				clearContainersByID();
 				return false;
 			}
 			op_count++;
 		}
 
+		serializer->clearAnnotationMaps();
+		clearContainersByID();
 		return true;
 	}
 
@@ -669,10 +725,13 @@ class Serializable {
 
 class AnnotationContainerBase : public Serializable
 {
+	friend class Serializable;
 	friend COMMON_EXPORT bool deserialize_container_item(SerializerBase *, void *);
+	friend COMMON_EXPORT bool deserialize_container_item(AnnotationContainerBase *, SerializerBase *);
 
 	protected:
 		static dyn_hash_map<void *, AnnotationContainerBase *> containers_by_id;
+		COMMON_EXPORT static void clearContainersByID();
 
 		COMMON_EXPORT AnnotationContainerBase() {}
 		COMMON_EXPORT virtual ~AnnotationContainerBase() {}
@@ -698,9 +757,13 @@ class AnnotationContainerBase : public Serializable
 				//  for deserialize build a hash of container ids
 				containers_by_id[id] = this;
 			}
+			annotatable_printf("%s[%d]: %s AnnotationContainer(%p) of type %s, id = %p\n",
+					FILE__, __LINE__, is_input(sb) ? "deserialized" : "serialized", this,
+					getElementTypename(), id);	   
 			return res;
 		}	
 
+		COMMON_EXPORT virtual const char *getElementTypename() = 0; 
 		COMMON_EXPORT static AnnotationContainerBase *getContainer(void *id)
 		{
 			dyn_hash_map<void *, AnnotationContainerBase *>::iterator iter;
@@ -721,11 +784,9 @@ class AnnotationContainerBase : public Serializable
 			//  Currently see no need to first check whether we have a duplicate here
 			containers_by_id[id] = acb;
 		}
-
-		COMMON_EXPORT virtual ser_func_t getSerFunc() = 0;
 };
 
-class SerializerBin;
+
 template <class T>
 Serializable *cont_ser_func_wrapper(void *it, SerializerBase *sb, const char *)
 {
@@ -734,6 +795,7 @@ Serializable *cont_ser_func_wrapper(void *it, SerializerBase *sb, const char *)
 	return NULL;
 }
 
+#if 0
 template <class T, typename IS_POINTER, typename IS_SERIALIZABLE>
 class SerFuncExecutor 
 {
@@ -797,21 +859,35 @@ class SerFuncExecutor<T, dyn_detail::boost::true_type, dyn_detail::boost::true_t
 				FILE__, __LINE__, ac->getTypeName());
 	}
 };
+#endif
 
 template <class T>
 class AnnotationContainer : public AnnotationContainerBase
 {
+#if 0
 	//  We internally manage the annotation class (which includes serialize function)
 	//  for the elements of this container.  When the container is added as a annotation,
 	//  the element annotation class is thus not required in addition to the annotation
 	//  class that the user must supply for the container overall.
 
 	AnnotationClass<T> *ac;
+#endif
 
 		virtual bool deserialize_item(SerializerBase *sb)
 		{
 			T my_item;
+			if (dyn_detail::boost::is_pointer<T>::value)
+			{
+				//  if T is a class , memset would clobber the vptr
+				memset( &my_item, 0, sizeof(T));
+			}
 
+			if (!sb)
+			{
+				fprintf(stderr, "%s[%d]:  FIXME:  bad param\n", FILE__, __LINE__);
+				return false;
+			}
+#if 0 
 			ser_func_t sf = ac->getSerializeFunc();
 
 			if (!sf)
@@ -827,6 +903,9 @@ class AnnotationContainer : public AnnotationContainerBase
 					sfe(ac);
 
 			sfe(my_item, sb);
+#else
+			gtranslate(sb, my_item);
+#endif
 
 			if (!addItem_impl(my_item))
 			{
@@ -840,8 +919,12 @@ class AnnotationContainer : public AnnotationContainerBase
 	public:
 
 
-		AnnotationContainer() : ac(NULL)
+		AnnotationContainer() 
+#if 0
+			: ac(NULL)
+#endif
 		{
+#if 0
 			ser_func_t sf = NULL;
 
 			if (dyn_detail::boost::is_fundamental<T>::value)
@@ -851,6 +934,7 @@ class AnnotationContainer : public AnnotationContainerBase
 
 			std::string aname = std::string(typeid(*this).name()) + std::string("_elem");
 			ac = new AnnotationClass<T>(aname, NULL, sf);
+#endif
 		}
 
 		~AnnotationContainer()
@@ -886,25 +970,11 @@ class AnnotationContainer : public AnnotationContainerBase
 			return true;
 		}	
 
-		virtual ser_func_t getSerFunc()
-		{
-			if (!ac)
-			{
-				fprintf(stderr, "%s[%d]:  ERROR:  have AnnotationContainer without Element AC\n", 
-						FILE__, __LINE__);
-				return NULL;
-			}
-
-			return ac->getSerializeFunc();
-		}
+		virtual const char *getElementTypename() {return typeid(T).name();}
 
 		virtual Serializable *ac_serialize_impl(SerializerBase *, 
 				const char *tag) THROW_SPEC(SerializerError) = 0;
 };
-
-class SerFile;
-class SerDes;
-class SerDesXML;
 
 template <typename T>
 void translate_vector(SerializerBase *ser, std::vector<T> &vec,
@@ -920,7 +990,7 @@ void translate_vector(SerializerBase *ser, std::vector<T> &vec,
 	if (ser->iomode() == sd_deserialize) 
 	{
 		if (vec.size())
-			SER_ERR("nonempty vector used to create");
+			throw_ser_err(FILE__, __LINE__,"nonempty vector used to create");
 
 		//  zero size vectors are allowed
 		serialize_printf("%s[%d]:  about to resize vector to %lu\n", 
@@ -998,11 +1068,11 @@ void translate_dyn_hash_map(S *ser, dyn_hash_map<K, V> &map,
 	if (ser->iomode() == sd_deserialize)
 	{
 		if (map.size())
-			SER_ERR("nonempty vector used to create");
+			throw_ser_err(FILE__, __LINE__,"nonempty vector used to create");
 
 		for (unsigned long i = 0UL; i < nelem; ++i)
 		{
-			typename dyn_hash_map<K, V>::value_type  mapentry;
+			typename dyn_hash_map<K, V>::value_type mapentry;
 			gtranslate(ser, mapentry, elem_tag);
 			map.insert(mapentry);
 		}
@@ -1023,65 +1093,6 @@ void translate_dyn_hash_map(S *ser, dyn_hash_map<K, V> &map,
 	serialize_printf("%s[%d]:  leaving translate_dyn_hash_map<%s, %s>\n", 
 			FILE__, __LINE__, typeid(K).name(), typeid(V).name());
 }
-#if 0
-template <class S, class K, class V>
-void translate_dyn_hash_map(S *ser, dyn_hash_map<K, V> &map,
-		const char *tag = NULL, const char *elem_tag = NULL)
-{
-	serialize_printf("%s[%d]:  welcome to translate_dyn_hash_map<%s, %s>, size = %ld\n", 
-			FILE__, __LINE__, typeid(K).name(), typeid(V).name(), map.size());
-
-	unsigned long nelem = 0UL;
-	nelem = map.size();
-	ser->hash_map_start(nelem, tag);
-
-	if (ser->iomode() == sd_deserialize)
-	{
-		if (map.size())
-			SER_ERR("nonempty vector used to create");
-
-		//typename dyn_hash_map<K, V>::iterator lastentry = map.begin();
-		//  cannot do any kind of bulk allocation with maps
-		for (unsigned long i = 0; i < nelem; ++i)
-		{
-			K a_k;
-			V a_v;
-			memset(&a_k, 0, sizeof(K));
-			memset(&a_v, 0, sizeof(V));
-			gtranslate(ser, a_k, elem_tag);
-			gtranslate(ser, a_v, elem_tag);
-			map[a_k] = a_v;
-		}
-
-	}
-	else
-	{
-		unsigned long elem_count = 0;
-		assert (ser->iomode() == sd_serialize);
-		typename dyn_hash_map<K, V>::iterator iter = map.begin();
-		while (iter != map.end())
-		{
-			K &a_k = const_cast<K &>(iter->first);
-			V &a_v = const_cast<V &>(iter->second);
-			gtranslate(ser, a_k, elem_tag);
-			gtranslate(ser, a_v, elem_tag);
-			iter++;
-			elem_count++;
-		}
-		if (nelem != elem_count)
-		{
-			fprintf(stderr, "%s[%d]:  elem count failed to match:  %lu, not %lu\n", 
-					FILE__, __LINE__, elem_count, nelem);
-			abort();
-		}
-	}
-
-	ser->hash_map_end();
-
-	serialize_printf("%s[%d]:  leaving translate_dyn_hash_map<%s, %s>\n", 
-			FILE__, __LINE__, typeid(K).name(), typeid(V).name());
-}
-#endif
 
 template <class S, class K, class V>
 void translate_map(S *ser, std::map<K, V> &map,
@@ -1094,7 +1105,7 @@ void translate_map(S *ser, std::map<K, V> &map,
 	if (ser->iomode() == sd_deserialize)
 	{
 		if (map.size())
-			SER_ERR("nonempty vector used to create");
+			throw_ser_err(FILE__, __LINE__,"nonempty vector used to create");
 
 		typename std::map<K, V>::iterator lastentry = map.begin();
 		//  cannot do any kind of bulk allocation with maps
@@ -1137,7 +1148,7 @@ struct multimap_translator
 		if (ser->iomode() == sd_deserialize)
 		{
 			if (map.size())
-				SER_ERR("nonempty vector used to create");
+				throw_ser_err(FILE__, __LINE__,"nonempty vector used to create");
 
 			typename std::multimap<K, V, L>::iterator lastentry = map.begin();
 			//  cannot do any kind of bulk allocation with multimaps
@@ -1178,7 +1189,7 @@ void translate_multimap(SerializerBase *ser, std::multimap<K, V, L> &map,
 	if (ser->iomode() == sd_deserialize)
 	{
 		if (map.size())
-			SER_ERR("nonempty vector used to create");
+			throw_ser_err(FILE__, __LINE__,"nonempty vector used to create");
 
 		typename std::multimap<K, V, L>::iterator lastentry = map.begin();
 		//  cannot do any kind of bulk allocation with multimaps
@@ -1239,8 +1250,12 @@ void translate_hash_map(S *ser, dyn_hash_map<K, V> &hash,
 		{
 			K k;
 			V v;
-			memset(&k, 0, sizeof(K));
-			memset(&v, 0, sizeof(V));
+			// zero out pointers to silence complaints about assigning
+			// new objects to non-NULL pointers
+			if (dyn_detail::boost::is_pointer<K>::value)
+				memset(&k, 0, sizeof(K));
+			if (dyn_detail::boost::is_pointer<V>::value)
+				memset(&v, 0, sizeof(V));
 			ser->translate_base(k, key_tag);
 			ser->translate_base(v, value_tag);
 			hash[k] = v;
@@ -1249,51 +1264,6 @@ void translate_hash_map(S *ser, dyn_hash_map<K, V> &hash,
 
 	ser->hash_map_end();
 }
-
-#if 0
-template <class S, class K, class V>
-void translate_hash_map(S *ser, dyn_hash_map<K, V *> &hash,
-		const char *tag = NULL, const char *key_tag = NULL, const char *value_tag = NULL)
-{
-	fprintf(stderr, "%s[%d]:  welcome to translate_hash_map<%s, %s*>()\n", 
-			__FILE__, __LINE__,
-			typeid(K).name(), typeid(V).name());
-
-	unsigned long nelem = 0UL;
-	nelem = hash.size();
-	ser->hash_map_start(nelem, tag);
-
-	//fprintf(stderr, "%s[%d]:  after hash_map start, mode = %sserialize\n", 
-    //			__FILE__, __LINE__, ser->iomode() == sd_serialize ? "" : "de");
-
-	if (ser->iomode() == sd_serialize) 
-	{
-		typename dyn_hash_map<K,V *>::iterator iter = hash.begin();
-
-		while (iter != hash.end()) 
-		{
-			K k = iter->first;
-			V *v = iter->second;
-			ser->translate_base(k, key_tag);
-			ser->translate_base(*v, value_tag);
-			iter++;
-		}
-	}
-	else 
-	{
-		//  can we do some kind of preallocation here?
-		for (unsigned long i = 0; i < nelem; ++i) 
-		{
-			K k;
-			V *v = new V();
-			ser->translate_base(k, key_tag);
-			ser->translate_base(*v, value_tag);
-			hash[k] = v;
-		}
-	}
-   ser->hash_map_end();
-}
-#endif
 
 COMMON_EXPORT bool isBinary(Dyninst::SerializerBase *ser);
 COMMON_EXPORT bool isOutput(Dyninst::SerializerBase *ser);
@@ -1332,7 +1302,7 @@ class trans_adaptor<char *, dyn_detail::boost::false_type,
 
 template<typename T>
 class trans_adaptor<T, dyn_detail::boost::false_type, 
-	  typename dyn_detail::boost::true_type> 
+	  dyn_detail::boost::true_type> 
 {
    public:
       trans_adaptor()  {}
@@ -1356,7 +1326,7 @@ class trans_adaptor<T, dyn_detail::boost::false_type,
 
 template<typename T>
 class trans_adaptor<T, dyn_detail::boost::true_type, 
-	  typename dyn_detail::boost::false_type> 
+	  dyn_detail::boost::false_type> 
 {
    public:
       trans_adaptor()  {}
@@ -1628,10 +1598,8 @@ void gtranslate(SerializerBase *ser,
       const char * /*tag2*/ = NULL)
 {
    assert(ser);
-#if 0
    int enum_int = 0;
    enum_int = (int) it;
-#endif
 
    if (!isBinary(ser)) 
    {
@@ -1647,11 +1615,9 @@ void gtranslate(SerializerBase *ser,
    else 
    {
       //  just in/output raw binary value 
-      gtranslate(ser, it);
-#if 0
+      //gtranslate(ser, it);
       gtranslate(ser, enum_int, tag, NULL);
       it = (T) enum_int;
-#endif
    }
 }
 

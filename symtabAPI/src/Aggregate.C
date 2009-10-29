@@ -275,7 +275,8 @@ bool Aggregate::addPrettyNameInt(string name, bool isPrimary) {
     return true;
 }
 
-bool Aggregate::addTypedNameInt(string name, bool isPrimary) {
+bool Aggregate::addTypedNameInt(string name, bool isPrimary) 
+{
     // Check to see if we're duplicating
     for (unsigned i = 0; i < typedNames_.size(); i++) {
         if (typedNames_[i] == name)
@@ -355,17 +356,6 @@ void Aggregate::restore_type_by_id(SerializerBase *sb, Type *&t,
 		}
 
 		Symtab *st = scs->getScope();
-#if 0
-		ScopedSerializerBase<Symtab> *ssb = dynamic_cast<ScopedSerializerBase<Symtab> *>(sb);
-
-		if (!ssb)
-		{
-			fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
-			SER_ERR("FIXME");
-		}
-
-		Symtab *st = ssb->getScope();
-#endif
 
 		if (!st)
 		{
@@ -405,16 +395,6 @@ void Aggregate::restore_module_by_name(SerializerBase *sb,
 		SER_ERR("FIXME");
 	}
 
-#if 0
-	Dyninst::ScopedSerializerBase<Dyninst::SymtabAPI::Symtab> *ssb = dynamic_cast<Dyninst::ScopedSerializerBase<Dyninst::SymtabAPI::Symtab> *>(sb);
-
-	if (!ssb)
-	{
-		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME: %s\n", FILE__, __LINE__, typeid(sb).name());
-		SER_ERR("FIXME");
-	}
-	Symtab *st = ssb->getScope();
-#endif
 		SerContextBase *scb = sb->getContext();
 		if (!scb)
 		{
@@ -515,138 +495,8 @@ void Aggregate::rebuild_symbol_vector(SerializerBase *sb, std::vector<Address> &
 		{
 			(*syms)[j]->aggregate_ = this;
 		}
-#if 0
-		if (sym->aggregate_)
-		{
-			fprintf(stderr, "%s[%d]:  WARNING:  symbol %s already has aggregate!!\n", 
-					FILE__, __LINE__, sym->getName().c_str());
-		}
-
-		sym->aggregate_ = this;
-#endif
 	}
 }
-#if 0
-void Aggregate::rebuild_symbol_vector(SerializerBase *sb,  
-		std::vector<Offset> *sym_offsets) THROW_SPEC (SerializerError)
-{
-#if 0
-	ScopedSerializerBase<Symtab> *ssb = dynamic_cast<ScopedSerializerBase<Symtab> *>(sb);
-
-	if (!ssb)
-	{
-		//fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
-		SER_ERR("FIXME");
-	}
-
-	Symtab *st = ssb->getScope();
-#endif
-		SerContextBase *scb = sb->getContext();
-		if (!scb)
-		{
-			fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
-			SER_ERR("FIXME");
-		}
-
-		SerContext<Symtab> *scs = dynamic_cast<SerContext<Symtab> *>(scb);
-
-		if (!scs)
-		{
-			fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
-			SER_ERR("FIXME");
-		}
-
-		Symtab *st = scs->getScope();
-
-	if (!st)
-	{
-		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
-		SER_ERR("FIXME");
-	}
-
-	if (!sym_offsets)
-	{
-		//  can't have any aggregates w/out symbols
-		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
-		SER_ERR("FIXME");
-	}
-
-	if (!sym_offsets->size())
-	{
-		//  can't have any aggregates w/out symbols
-		fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
-		SER_ERR("FIXME");
-	}
-
-	//symbols_.resize(sym_offsets->size());
-
-	for (unsigned int i = 0; i < sym_offsets->size(); ++i)
-	{
-		std::vector<Symbol *> *syms = st->findSymbolByOffset((*sym_offsets)[i]);
-
-		if (!syms)
-		{
-			//  Should throw here, but for now let's just scream
-			fprintf(stderr, "%s[%d]:  SERIOUS:  FIXME\n", FILE__, __LINE__);
-		}
-		else
-		{
-			//  Not sure if we should interpret multiple symbols sharing that same offset
-			//  as an error (probably not)
-#if 0
-			for (unsigned int i = 0; i < syms->size(); ++i)
-			{
-				Symbol *s = (*syms)[i];
-				assert(s);
-				symbols_.push_back(s);
-				if (!s->aggregate_)
-				{
-					s->aggregate_ = this;
-				}
-				else
-				{
-					fprintf(stderr, "%s[%d]:  WARNING:  symbol %s already has aggregate!!\n", FILE__, __LINE__, s->getName().c_str());
-				}
-			}
-#endif
-			//  This is annoying...  apparently we have several symbols for a given offset
-			//  ...  while this might be theoretically OK, it's really probably a bug 
-			//  somewhere else where we build up our indexes.
-			if (syms->size())
-			{
-				Symbol *s = (*syms)[0];
-				assert(s);
-				symbols_.push_back(s);
-				if (!s->aggregate_)
-				{
-					s->aggregate_ = this;
-				}
-				else
-				{
-					fprintf(stderr, "%s[%d]:  WARNING:  symbol %s already has aggregate!!\n", FILE__, __LINE__, s->getName().c_str());
-				}
-			}
-			if (syms->size() > 1)
-			{
-				if (*(*syms)[0] == *(*syms)[1])
-				{
-					fprintf(stderr, "%s[%d]:  DESERIALIZE:  symbols are identical\n", FILE__, __LINE__);
-				}
-				else
-				{
-					fprintf(stderr, "%s[%d]:  DESERIALIZE:  symbols are not identical: sym0:\n", FILE__, __LINE__);
-					std::cerr << *((*syms)[0]) << std::endl;
-					std::cerr << "sym1:" << std::endl;
-					std::cerr << *((*syms)[1]) << std::endl;
-
-				}
-
-			}
-		}
-
-	}
-}
-#endif
 
 std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Aggregate &a)
 {
@@ -695,20 +545,6 @@ void Aggregate::serialize_aggregate(SerializerBase * sb, const char * tag) THROW
 		symids.push_back((Address) symbols_[i]);
 	}
 
-#if 0
-	std::vector<Offset> sym_offsets;
-	sym_offsets.resize(symbols_.size());
-
-	//fprintf(stderr, "%s[%d]:  serialize_aggregate, module = %p\n", FILE__, __LINE__, module_);
-
-	for (unsigned int i = 0; i < symbols_.size(); ++i)
-	{
-		assert(symbols_[i]);
-		sym_offsets[i] = symbols_[i]->offset_;
-	}
-	fprintf(stderr, "%s[%d]:  serializing modname %s, with %ld symbols\n", FILE__, __LINE__, modname.c_str(), sym_offsets.size());
-#endif
-
 	try
 	{
 		ifxml_start_element(sb, tag);
@@ -718,8 +554,8 @@ void Aggregate::serialize_aggregate(SerializerBase * sb, const char * tag) THROW
 		gtranslate(sb, mangledNames_, "mangledNameList");
 		gtranslate(sb, prettyNames_, "prettyNameList");
 		gtranslate(sb, typedNames_, "typedNameList");
-		gtranslate(sb, symbols_, "aggregatedSymbols", "aggregateSymbol");
 #if 0
+		gtranslate(sb, symbols_, "aggregatedSymbols", "aggregateSymbol");
 		gtranslate(sb, sym_offsets, "symbolOffsetList");
 #endif
 		gtranslate(sb, symids, "symbolIDList");
@@ -741,7 +577,8 @@ void Aggregate::serialize_aggregate(SerializerBase * sb, const char * tag) THROW
 	}
 	SER_CATCH(tag);
 
-	//fprintf(stderr, "%s[%d]:  serialize_aggregate, module = %p\n", FILE__, __LINE__, module_);
+	serialize_printf("%s[%d]:  %sSERIALIZE AGGREGATE, nsyms = %lu\n", FILE__, __LINE__, 
+			sb->isInput() ? "DE" : "", symbols_.size());
 }
 
 bool Aggregate::operator==(const Aggregate &a)

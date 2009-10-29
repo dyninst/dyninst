@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#include "symtabAPI/src/LineInformation.h"
+#include "LineInformation.h"
 #include <assert.h>
 #include <list>
 #include <cstring>
@@ -51,8 +51,6 @@
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace std;
-
-#include "RangeLookup.t"
 
 #if ! defined(os_windows)      
 struct SourceLineCompare 
@@ -168,7 +166,7 @@ void LineInformation::addLineInfo(LineInformation *lineInfo)
 
    for (; iter != lineInfo->end(); iter++)
    {
-      addLine(iter->second.file_.c_str(), iter->second.line_, iter->second.column_, 
+      addLine(iter->second.file_.c_str(), iter->second.line_, iter->second.column, 
             iter->first.first, iter->first.second);
    }
 }
@@ -232,7 +230,7 @@ bool Statement::StatementLess::operator () ( const Statement &lhs, const Stateme
 bool Statement::operator==(const Statement &cmp) const 
 {
 	if (line_ != cmp.line_) return false;
-	if (column_ != cmp.column_) return false;
+	if (column != cmp.column) return false;
 
 	//  is compare-by-pointer OK here, or do we really have to really strcmp?
 	return (file_ == cmp.file_);

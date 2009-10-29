@@ -53,45 +53,52 @@ class Statement : public AnnotatableSparse, public Serializable
 	friend class LineInformation;
 
 	Statement(const char *file, unsigned int line, unsigned int col = 0,
-			Offset start_addr = (Offset) -1L, Offset end_addr = (Offset) -1L):
+			Offset start_addr = (Offset) -1L, Offset end_addr = (Offset) -1L) :
 		file_(file ? std::string(file) : std::string()),
-		line_(line),
-		column_(col),
-		start_addr_(start_addr),
-		end_addr_(end_addr) {}
-	std::string(file_); // Maybe this should be module?
+	    line_(line),
+	    column(col),
+	    start_addr_(start_addr),
+	    end_addr_(end_addr),
+	    first(file_.c_str()),
+	    second(line_)	{}
+	
+	std::string file_; // Maybe this should be module?
 	unsigned int line_;
-	unsigned int column_;
+	unsigned int column;
 	Offset start_addr_;
 	Offset end_addr_;
 
+	const char *first;
+	unsigned int &second;
+
 	public:
-	Statement() {}
+	Statement() : first(NULL), second(line_) {}
 	struct StatementLess {
 		bool operator () ( const Statement &lhs, const Statement &rhs ) const;
 	};
 
+	typedef StatementLess LineNoTupleLess;
+
 	bool operator==(const Statement &cmp) const;
 	~Statement() {}
+
 	SYMTAB_EXPORT Offset startAddr() { return start_addr_;}
 	SYMTAB_EXPORT Offset endAddr() {return end_addr_;}
-	SYMTAB_EXPORT std::string file()
-	{
-		return file_; 
-	}
-
-	SYMTAB_EXPORT unsigned int line() {return line_;}
-	SYMTAB_EXPORT unsigned int column() {return column_;}
+	SYMTAB_EXPORT std::string getFile() { return file_;}
+	SYMTAB_EXPORT unsigned int getLine() {return line_;}
+	SYMTAB_EXPORT unsigned int getColumn() {return column;}
 
 	SYMTAB_EXPORT Serializable *serialize_impl(SerializerBase *sb, const char *tag = "Statement") THROW_SPEC (SerializerError);
+
 	//  Does dyninst really need these?
 	SYMTAB_EXPORT void setLine(unsigned int l) {line_ = l;}
-	SYMTAB_EXPORT void setColumn(unsigned int l) {column_ = l;}
-	SYMTAB_EXPORT void setFile(const char * l) {file_ = std::string(l);}
+	SYMTAB_EXPORT void setColumn(unsigned int l) {column = l;}
+	SYMTAB_EXPORT void setFile(const char * l) {file_ = std::string(l); first = file_.c_str();}
 	SYMTAB_EXPORT void setStartAddr(Offset l) {start_addr_ = l;}
 	SYMTAB_EXPORT void setEndAddr(Offset l) {end_addr_ = l;}
 };
 
+typedef Statement LineNoTuple;
 #define MODULE_ANNOTATABLE_CLASS AnnotatableSparse
 
 class Module : public LookupInterface,
@@ -170,6 +177,7 @@ class Module : public LookupInterface,
    SYMTAB_EXPORT bool getSourceLines(std::vector<Statement *> &lines,
          Offset addressInRange);
    SYMTAB_EXPORT bool getStatements(std::vector<Statement *> &statements);
+   SYMTAB_EXPORT LineInformation *getLineInformation();
 
    SYMTAB_EXPORT bool hasLineInformation();
    SYMTAB_EXPORT bool setDefaultNamespacePrefix(std::string str);
@@ -187,7 +195,6 @@ class Module : public LookupInterface,
    SYMTAB_EXPORT typeCollection *getModuleTypesPrivate();
 
    private:
-   Dyninst::SymtabAPI::LineInformation *getLineInformation();
    bool setLineInfo(Dyninst::SymtabAPI::LineInformation *lineInfo);
 
 

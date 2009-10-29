@@ -38,6 +38,7 @@
 #include "Variable.h"
 #include "LineInformation.h"
 #include "symutil.h"
+#include "annotations.h"
 
 #include "common/h/pathName.h"
 #include "common/h/serialize.h"
@@ -46,8 +47,6 @@ using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace std;
 
-AnnotationClass<LineInformation> ModuleLineInfoAnno(std::string("ModuleLineInfoAnno"));
-AnnotationClass<typeCollection> ModuleTypeInfoAnno(std::string("ModuleTypeInfoAnno"));
 static SymtabError serr;
 
 bool Module::findSymbolByType(std::vector<Symbol *> &found, 
@@ -190,9 +189,12 @@ bool Module::getStatements(std::vector<Statement *> &statements)
 
 	if (!li) 
 	{
+		//fprintf(stderr, "%s[%d]:  WARNING:  no line info for module %s\n", FILE__, __LINE__, fileName_.c_str());
+		//annotationsReport();
 		return false;
 	}
 
+#if 0
 	statements.resize(initial_size + li->getSize());
 
 	int index = initial_size; 
@@ -205,6 +207,13 @@ bool Module::getStatements(std::vector<Statement *> &statements)
 		//statements[index].end_addr = (*i).first.second;
 		statements[index] = const_cast<Statement *>(&(*i).second);
 		index++;
+	}
+#endif
+	for (LineInformation::const_iterator i = li->begin();
+			i != li->end();
+			++i)
+	{
+		statements.push_back(const_cast<Statement *>(&(i->second)));
 	}
 
 	return (statements.size() > initial_size);
@@ -327,10 +336,14 @@ bool Module::setLineInfo(LineInformation *lineInfo)
 LineInformation *Module::getLineInformation()
 {
 	if (!exec_->isLineInfoValid_)
+	{
+		//fprintf(stderr, "%s[%d]:  TRIGGERING FL INFO PARSE\n", FILE__, __LINE__);
 		exec_->parseLineInformation();
+	}
 
 	if (!exec_->isLineInfoValid_) 
 	{
+		fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
 		return NULL;
 	}
 
@@ -346,6 +359,7 @@ LineInformation *Module::getLineInformation()
 
 		if (!li->getSize())
 		{
+			fprintf(stderr, "%s[%d]:  EMPTY LINE INFO ANNO\n", FILE__, __LINE__);
 			return NULL;
 		}
 	}
@@ -409,6 +423,37 @@ Module::Module(const Module &mod) :
 
 Module::~Module()
 {
+   LineInformation *li =  NULL;
+   if (getAnnotation(li, ModuleLineInfoAnno)) 
+   {
+      if (li) 
+      {
+		  if (!removeAnnotation(ModuleLineInfoAnno))
+		  {
+			  fprintf(stderr, "%s[%d]:  FIXME:  failed to remove LineInfo\n", 
+					  FILE__, __LINE__);
+		  }
+		  else
+		  {
+			  fprintf(stderr, "%s[%d]:  removed delete for %p\n", FILE__, __LINE__, li);
+			  delete li;
+		  }
+      }
+   }
+	typeCollection *tc = NULL;
+	if (getAnnotation(tc, ModuleTypeInfoAnno))
+	{
+		if (tc)
+		{
+			if (!removeAnnotation(ModuleTypeInfoAnno))
+			{
+				fprintf(stderr, "%s[%d]:  FIXME:  failed to remove LineInfo\n", 
+						FILE__, __LINE__);
+			}
+			else
+				delete tc;
+		}
+	}
 }
 
 bool Module::isShared() const
@@ -533,17 +578,6 @@ Serializable * Module::serialize_impl(SerializerBase *sb, const char *tag) THROW
 
    if (sb->isInput())
    {
-#if 0
-	   ScopedSerializerBase<Symtab> *ssb = dynamic_cast<ScopedSerializerBase<Symtab> *>(sb);
-	   if (!ssb)
-	   {
-		   fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
-		   SER_ERR("dynamic_cast");
-	   }
-
-	   Symtab *st = ssb->getScope();
-#endif
-
 	   SerContextBase *scb = sb->getContext();
 	   if (!scb)
 	   {
@@ -596,7 +630,7 @@ Serializable *Statement::serialize_impl(SerializerBase *sb, const char *tag) THR
 	ifxml_start_element(sb, tag);
 	gtranslate(sb, file_, "file");
 	gtranslate(sb, line_, "line");
-	gtranslate(sb, column_, "column");
+	gtranslate(sb, column, "column");
 	gtranslate(sb, start_addr_, "startAddress");
 	gtranslate(sb, end_addr_, "endAddress");
 	ifxml_end_element(sb, tag);

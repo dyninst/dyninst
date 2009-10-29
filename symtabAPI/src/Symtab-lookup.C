@@ -51,6 +51,7 @@
 #include "Collections.h"
 #include "Function.h"
 #include "Variable.h"
+#include "annotations.h"
 
 #include "symtabAPI/src/Object.h"
 
@@ -391,7 +392,6 @@ bool Symtab::getDataRegions(std::vector<Region *>&ret)
    return false;
 }
 
-extern AnnotationClass<std::vector<Region *> > UserRegionsAnno;
 
 bool Symtab::getAllNewRegions(std::vector<Region *>&ret)
 {

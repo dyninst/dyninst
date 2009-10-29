@@ -8,8 +8,10 @@ MappedFile *MappedFile::createMappedFile(std::string fullpath_)
    if (mapped_files.find(fullpath_) != mapped_files.end()) {
       //fprintf(stderr, "%s[%d]:  mapped file exists for %s\n", FILE__, __LINE__, fullpath_.c_str());
       MappedFile  *ret = mapped_files[fullpath_];
-      ret->refCount++;
-      return ret;
+      if (ret->can_share) {
+         ret->refCount++;
+         return ret;
+      }
    }
 
 
@@ -31,6 +33,7 @@ MappedFile::MappedFile(std::string fullpath_, bool &ok) :
    fullpath(fullpath_),
    did_mmap(false),
    did_open(false),
+   can_share(true),
    refCount(1)
 {
   ok = check_path(fullpath);
@@ -60,6 +63,7 @@ MappedFile::MappedFile(void *loc, unsigned long size_, bool &ok) :
    fullpath("in_memory_file"),
    did_mmap(false),
    did_open(false),
+   can_share(true),
    refCount(1)
 {
   ok = open_file(loc, size_);
@@ -327,4 +331,14 @@ std::string MappedFile::pathname()
 std::string MappedFile::filename() 
 {
 	return extract_pathname_tail(fullpath);
+}
+
+void MappedFile::setSharing(bool s)
+{
+   can_share = s;
+}
+
+bool MappedFile::canBeShared()
+{
+   return can_share;
 }

@@ -64,8 +64,7 @@ localVarCollection::~localVarCollection()
    // delete localVariablesByName collection
    for(;li!=localVariablesByName.end();li++)
    {
-	   fprintf(stderr, "%s[%d]:  REMOVED DELETE\n", FILE__, __LINE__);
-	//delete li->second;
+	   delete li->second;
    }
    
    localVars.clear();

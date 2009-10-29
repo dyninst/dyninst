@@ -65,6 +65,7 @@ test_results_t SymtabComponent::program_teardown(ParameterDict &params)
 
 test_results_t SymtabComponent::group_setup(RunGroup *group, ParameterDict &params)
 {
+   symtab = NULL;
 	//mutatee_p.setString(group->mutatee);
 	compiler_p.setString(group->compiler);
 #if defined (cap_serialization_test)
@@ -77,6 +78,7 @@ test_results_t SymtabComponent::group_setup(RunGroup *group, ParameterDict &para
 	}
 	else
 	{
+		Symtab *s_open = Symtab::findOpenSymtab(std::string(group->mutatee));
 		switch (group->useAttach)
 		{
 			case DESERIALIZE:
@@ -85,9 +87,8 @@ test_results_t SymtabComponent::group_setup(RunGroup *group, ParameterDict &para
 					fflush(NULL);
 					//  If we have an open symtab with this name, it will just be returned
 					//  when we call openFile.  If it is sourced from a regular parse, 
-					// this will not trigger deserialization, so
-					//  we need to close the existing open symtab.
-					Symtab *s_open = Symtab::findOpenSymtab(std::string(group->mutatee));
+					// this will not trigger deserialization, so we need to close the
+					//  existing open symtab if it was not deserialized.
 					if (s_open && !s_open->from_cache())
 					{
 						logerror( "%s[%d]:  closing open symtab for %s\n", 
@@ -101,6 +102,23 @@ test_results_t SymtabComponent::group_setup(RunGroup *group, ParameterDict &para
 						}
 
 					}
+					else
+					{
+						if (s_open) 
+						{
+							fprintf(stderr, "%s[%d]:  symtab %s already deserialized\n", FILE__, __LINE__, group->mutatee);
+							logerror( "%s[%d]:  closing open symtab for %s\n", 
+									FILE__, __LINE__, group->mutatee);
+							Symtab::closeSymtab(s_open);
+							s_open = Symtab::findOpenSymtab(std::string(group->mutatee));
+							if (s_open)
+							{ 
+								logerror( "%s[%d]:  failed to close symtab\n", FILE__, __LINE__);
+								return FAILED;
+							}
+						}
+						//symtab = s_open;
+					}
 					enableSerDes<Symtab>(std::string(group->mutatee), true);
 					enforceDeserialize<Symtab>(std::string(group->mutatee), true);
 
@@ -113,6 +131,23 @@ test_results_t SymtabComponent::group_setup(RunGroup *group, ParameterDict &para
 				enableDeserialize<Symtab>(std::string(group->mutatee), false);
 				enforceDeserialize<Symtab>(std::string(group->mutatee), false);
 
+				//  Don't think this can happen, but just to be safe, if we have
+				//  a deserialized symtab for this mutatee, close it before we
+				//  proceed, otherwise it will be returned for the CREATE tests
+					if (s_open && s_open->from_cache())
+					{
+						logerror( "%s[%d]:  closing open symtab for %s\n", 
+								FILE__, __LINE__, group->mutatee);
+						Symtab::closeSymtab(s_open);
+						s_open = Symtab::findOpenSymtab(std::string(group->mutatee));
+						if (s_open)
+						{ 
+							logerror( "%s[%d]:  failed to close symtab\n", FILE__, __LINE__);
+							return FAILED;
+						}
+					}
+					else
+						symtab = s_open;
 				//  verify that we have an existing cache for this mutatee from which to deserialize
 				break;
 			default:
@@ -121,18 +156,37 @@ test_results_t SymtabComponent::group_setup(RunGroup *group, ParameterDict &para
 		}
 	}
 #endif
-   symtab = NULL;
+
    if (group->mutatee && group->state != SELFSTART)
    {
-      bool result = Symtab::openFile(symtab, std::string(group->mutatee));
-      if (!result || !symtab)
-         return FAILED;
-      symtab_ptr.setPtr(symtab);
+	   if (NULL == symtab)
+	   {
+		   bool result = Symtab::openFile(symtab, std::string(group->mutatee));
+		   if (!result || !symtab)
+			   return FAILED;
+
+#if defined (cap_serialization_test)
+		if  (group->useAttach == CREATE)
+		{
+			// manually trigger the parsing of type and line info here
+			// so that everything gets serialized...  for the deserialize tests	
+			std::vector<SymtabAPI::Module *> mods;
+			bool result = symtab->getAllModules(mods);
+			assert(result);
+			assert(mods[0]);
+			std::vector<Statement *> statements;
+			mods[0]->getStatements(statements);
+			Type *t = symtab->findType(0xdeadbeef);
+		}
+#endif
+	   }
+	   symtab_ptr.setPtr(symtab);
    }
    else
    {
       symtab_ptr.setPtr(NULL);
    }
+
    params["Symtab"] = &symtab_ptr;
    params["useAttach"]->setInt(group->useAttach);
    //params["mutatee"] = &mutatee_p;

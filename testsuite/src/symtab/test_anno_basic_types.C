@@ -259,6 +259,7 @@ void test_for_annotatable() THROW_SPEC (LocErr)
 
 test_results_t test_anno_basic_types_Mutator::executeTest()
 {
+
    //  Sparse annotation class should not add any size to child classes
    if (sizeof(TestClass) != sizeof(TestClassSparse))
    {

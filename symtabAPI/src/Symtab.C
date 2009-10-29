@@ -68,7 +68,6 @@ using namespace std;
 
 static std::string errMsg;
 extern bool parseCompilerType(Object *);
-extern AnnotationClass<typeCollection> ModuleTypeInfoAnno;
 
 void symtab_log_perror(const char *msg)
 {
@@ -1643,80 +1642,12 @@ bool Symtab::exportXML(string file)
 #if defined (cap_serialization)
 bool Symtab::exportBin(string file)
 {
-#if 0
-	char *ser_env = getenv(SERIALIZE_CONTROL_ENV_VAR);
-	if (!ser_env)
-	{
-		fprintf(stderr, "%s[%d]:  serialization not enabled\n", FILE__, __LINE__);
-		return false;
-	}
-	if (!strcmp(ser_env, SERIALIZE_DISABLE)) 
-	{
-		fprintf(stderr, "%s[%d]:  serialization is disabled\n", FILE__, __LINE__);
-		return false;
-	}
-#endif
-#if 0
-	   std::string ser_name = file + std::string("_SymtabSerializer");
-      bool verbose = false;
-	  fprintf(stderr, "%s[%d]:  about to create serializer '%s' for file %s\n", FILE__, __LINE__, ser_name.c_str(), file.c_str());
-	  SerializerBase *ser = newSerializer(this, ser_name, file, ser_bin, sd_serialize, verbose);
-	  if (!ser)
-	  {
-		  //  newSerializer does checks on whether serialization is disabled, so we need to
-		  //  fail cleanly here in case it is simply disabled by the nev.
-		  fprintf(stderr, "%s[%d]:  failed to create serializer\n", FILE__, __LINE__);
-		  return false;
-	  }
-#endif
-#if 0
-   try
-   {
-      //  This needs some work (probably want to do object cacheing and retrieval)
-#if 0
-      SerializerBin sb("BinSerializer", file, sd_serialize, true);
-      serialize(&sb, "Symtab");
-#endif
-	   SerContext<Symtab> *scs = new SerContext<Symtab>(this);
-	   SerializerBin *ser = new SerializerBin(scs, "BinTranslator", file, sd_serialize, true);
-	   serialize(ser, "Symtab");
-
-      fprintf(stderr, "%s[%d]:  binary serialization ok\n", __FILE__, __LINE__);
-      return true;
-   }
-   catch (const SerializerError &err)
-   {
-      if (err.code() == SerializerError::ser_err_disabled) 
-      {
-         fprintf(stderr, "%s[%d]:  WARN:  serialization is disabled for file %s\n",
-               FILE__, __LINE__, file.c_str());
-         return true;
-      }
-      else 
-      {
-         fprintf(stderr, "%s[%d]: %s\n\tfrom %s[%d], code %d\n", FILE__, __LINE__,
-               err.what(), err.file().c_str(), err.line(), err.code());
-      }
-   }
-#endif
    try
    {
 	   SerContext<Symtab> *scs = new SerContext<Symtab>(this, file);
 	   serialize(file, scs, ser_bin);
-#if 0
-	   this->serialize(ser, "Symtab");
-#endif
 	   //fprintf(stderr, "%s[%d]:  did serialize\n", FILE__, __LINE__);
 	   return true;
-#if 0
-	   SerContext<Symtab> *scs = new SerContext<Symtab>(st);
-	   SerializerBin *ser = new SerializerBin(scs, ser_name, file, sd_deserialize, true);
-	   st->serialize(ser, "Symtab");
-#endif
-#if 0
-      SerializerBin sb("BinTranslator", file, sd_deserialize, true);
-      st->serialize(&sb);
-#endif
    }
 
    catch (const SerializerError &err)
@@ -1760,7 +1691,7 @@ Symtab *Symtab::importBin(std::string file)
 	   SerContext<Symtab> *scs = new SerContext<Symtab>(st, file);
 	   if (!st->deserialize(file, scs))
 	   {
-		   //delete st;
+		   delete st;
 		   return NULL;
 	   }
 
@@ -1802,6 +1733,7 @@ bool Symtab::openFile(Symtab *&obj, char *mem_image, size_t size)
    struct timeval starttime;
    gettimeofday(&starttime, NULL);
 #endif
+
    obj = new Symtab(mem_image, size, err);
 
 #if defined(TIMED_PARSE)
@@ -1830,7 +1762,7 @@ bool Symtab::openFile(Symtab *&obj, char *mem_image, size_t size)
 bool Symtab::closeSymtab(Symtab *st)
 {
 	bool found = false;
-	assert(st);
+	if (!st) return false;
 
 	std::vector<Symtab *>::reverse_iterator iter;
 	for (iter = allSymtabs.rbegin(); iter != allSymtabs.rend() ; iter++)
@@ -1841,7 +1773,7 @@ bool Symtab::closeSymtab(Symtab *st)
 			found = true;
 		}
 	}
-	//delete(st);
+	delete(st);
 	return found;
 }
 
@@ -1851,7 +1783,8 @@ Symtab *Symtab::findOpenSymtab(std::string filename)
 	for (unsigned u=0; u<numSymtabs; u++) 
 	{
 		assert(allSymtabs[u]);
-		if (filename == allSymtabs[u]->file()) 
+		if (filename == allSymtabs[u]->file() && 
+          allSymtabs[u]->mf->canBeShared()) 
 		{
 			// return it
 			return allSymtabs[u];
@@ -1895,7 +1828,7 @@ bool Symtab::openFile(Symtab *&obj, std::string filename)
 					  FILE__, __LINE__);
 			  return false;
 	  }
-	   //fprintf(stderr, "%s[%d]:  deserialize failed, but not enforced\n", FILE__, __LINE__);
+	   //fprintf(stderr, "%s[%d]:  deserialize failed, but not enforced for %s\n", FILE__, __LINE__, filename.c_str());
    }
    else 
    {
@@ -2405,7 +2338,8 @@ SYMTAB_EXPORT bool Symtab::emit(std::string filename, unsigned flag)
 		fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
 		return false;
 	}
-    return emitSymbols(obj, filename, flag);
+   obj->mf->setSharing(false);
+   return emitSymbols(obj, filename, flag);
 }
 
 SYMTAB_EXPORT void Symtab::addDynLibSubstitution(std::string oldName, std::string newName)
@@ -2756,9 +2690,19 @@ Serializable *Symtab::serialize_impl(SerializerBase *sb,
 	ifinput(fixup_relocation_symbols, sb, this);
 #endif
 
-	//  Patch up module's exec_ (pointer to Symtab) at a higher level??
-	//if (getSD().iomode() == sd_deserialize)
-      //   param.exec_ = parent_symtab;
+	if (is_input(sb))
+	{
+		dyn_hash_map<Address, Symbol *> *map_p = NULL;
+		if (getAnnotation(map_p, IdToSymAnno) && (NULL != map_p))
+		{
+			if (!removeAnnotation(IdToSymAnno))
+			{
+				fprintf(stderr, "%s[%d]:  failed to remove id-to-sym map\n", 
+						FILE__, __LINE__);
+			}
+			delete map_p;
+		}
+	}
 	serialize_printf("%s[%d]:  leaving Symtab::serialize_impl\n", FILE__, __LINE__);
 	return NULL;
 }
@@ -3130,7 +3074,7 @@ SYMTAB_EXPORT SerializerBase *nonpublic_make_bin_symtab_serializer(Symtab *t, st
 {
 	SerializerBin *ser;
 	SerContext<Symtab> *scs = new SerContext<Symtab>(t, file);
-	ser = new SerializerBin(scs, "SerializerBin", file, sd_serialize, true);
+	ser = new SerializerBin(scs, "SerializerBin", file, sd_serialize, false);
 	return ser;
 }
 
@@ -3138,7 +3082,7 @@ SYMTAB_EXPORT SerializerBase *nonpublic_make_bin_symtab_deserializer(Symtab *t, 
 {
 	SerializerBin *ser;
 	SerContext<Symtab> *scs = new SerContext<Symtab>(t, file);
-	ser = new SerializerBin(scs, "DeserializerBin", file, sd_deserialize, true);
+	ser = new SerializerBin(scs, "DeserializerBin", file, sd_deserialize, false);
 	return ser;
 }
 
@@ -3209,6 +3153,11 @@ SYMTAB_EXPORT Address Symtab::getLoadAddress()
 #else
    return 0x0;
 #endif
+}
+
+SYMTAB_EXPORT bool Symtab::canBeShared()
+{
+   return mf->canBeShared();
 }
 
 } // namespace SymtabAPI

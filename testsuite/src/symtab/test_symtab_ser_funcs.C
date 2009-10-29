@@ -55,11 +55,6 @@
 using namespace Dyninst;
 using namespace SymtabAPI;
 
-bool debugPrint = false;
-#ifndef dprintf
-#define dprintf if (debugPrint) fprintf
-#endif
-
 class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 	std::vector<relocationEntry> relocations;
 	std::vector<ExceptionBlock *> exceptions;
@@ -515,8 +510,22 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 		logerror( "\t%d--%d\n", s1.tag(), s2.tag());
 		Region *r1 = s1.getSec();
 		Region *r2 = s2.getSec();
-		if (r1 && !r2) logerror( "%s[%d]:  region discrep\n", FILE__, __LINE__);
-		if (!r1 && r2) logerror( "%s[%d]:  region discrep\n", FILE__, __LINE__);
+		if (r1 && !r2) 
+		{
+			logerror( "%s[%d]:  region discrep\n", FILE__, __LINE__);
+			return;
+		}
+		if (!r1 && r2) 
+		{
+			logerror( "%s[%d]:  region discrep\n", FILE__, __LINE__);
+			return;
+		}
+#if 0
+		for (unsigned long i = 0; i < regions.size(); ++i)
+		{
+			serialize_test(symtab, *(symbols[i]), &symbol_report);
+		}
+#endif
 		if (r1)
 		{
 			logerror( "\t%p--%p\n", r1->getDiskOffset(), r2->getDiskOffset());
@@ -534,7 +543,7 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 	template <class C>
 	void serialize_test(Symtab *st, C &control, void (*report)(const C &, const C &) ) THROW_SPEC (LocErr)
 	{
-		dprintf(stderr, "%s[%d]: welcome to serialize test for type %s\n",
+		logerror( "%s[%d]: welcome to serialize test for type %s\n",
 				FILE__, __LINE__, typeid(C).name());
 
 		Tempfile tf;
@@ -564,7 +573,7 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 
 		Dyninst::SerializerBase &sb_serializer = * (Dyninst::SerializerBase *) sb_serializer_ptr;
 
-		dprintf(stderr, "%s[%d]:  before serialize: &sb_serializer = %p\n", FILE__, __LINE__, &sb_serializer);
+		logerror( "%s[%d]:  before serialize: &sb_serializer = %p\n", FILE__, __LINE__, &sb_serializer);
 
 		Serializable *sable = &control;
 		try 
@@ -578,7 +587,7 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 			EFAIL("serialize failed\n");
 		}
 
-		dprintf(stderr, "%s[%d]:  after serialize\n", FILE__, __LINE__);
+		logerror( "%s[%d]:  after serialize\n", FILE__, __LINE__);
 		fflush(NULL);
 
 #if 1
@@ -619,7 +628,7 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 #endif
 		SerializerBase &sb_deserializer = (SerializerBase &) *sb_deserializer_ptr;
 
-		dprintf(stderr, "\n\n%s[%d]: about to deserialize: ---- %s\n\n",
+		logerror( "\n\n%s[%d]: about to deserialize: ---- %s\n\n",
 				FILE__, __LINE__, typeid(C).name());
 
 		try
@@ -668,7 +677,7 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 			EFAIL("deserialize and operator== failed\n");
 #endif
 
-		dprintf(stderr, "%s[%d]:  deserialize succeeded\n", __FILE__, __LINE__);
+		logerror( "%s[%d]:  deserialize succeeded\n", __FILE__, __LINE__);
 	}
 
 	template <class T>
@@ -858,20 +867,31 @@ void test_symtab_ser_funcs_Mutator::parse() THROW_SPEC (LocErr)
 
 test_results_t test_symtab_ser_funcs_Mutator::executeTest()
 {
+//#if !defined (os_linux_test)
 	return SKIPPED;
+//#endif
 
 	try 
 	{
 		parse();
 
+		serialize_test(symtab, *symbols[0], &symbol_report);
+		serialize_test(symtab, *regions[0], &region_report);
+		for (unsigned long i = 0; i < symbols.size(); ++i)
+		{
+			if (NULL == symbols[i]->getRegion()) 
+			{
+				fprintf(stderr, "%s[%d]:  SKIPPING symbol %s with no region\n", FILE__, __LINE__, symbols[i]->getPrettyName().c_str());
+				continue;
+			}
+			serialize_test(symtab, *(symbols[i]), &symbol_report);
+		}
 		serialize_test(symtab, *variables[0], &variable_report);
 		serialize_test(symtab, *functions[0], &function_report);
-		serialize_test(symtab, *symbols[0], &symbol_report);
 		serialize_test(symtab, *modules[0], &module_report);
 #if !defined (os_aix_test) && !defined (os_windows)
 		serialize_test(symtab, relocations[0], &relocation_report);
 #endif
-		serialize_test(symtab, *regions[0], &region_report);
 		serialize_test(symtab, *type_enum, &type_enum_report);
 		serialize_test(symtab, *type_pointer, &type_pointer_report);
 		serialize_test(symtab, *type_struct, &type_struct_report);

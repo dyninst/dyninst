@@ -43,3 +43,6 @@ AnnotationClass<std::vector<Function *> > UserFuncsAnno(std::string("UserFuncsAn
 AnnotationClass<std::vector<Region *> > UserRegionsAnno(std::string("UserRegionsAnno"));
 AnnotationClass<std::vector<Type *> > UserTypesAnno(std::string("UserTypesAnno"));
 AnnotationClass<std::vector<Symbol *> > UserSymbolsAnno(std::string("UserSymbolsAnno"));
+AnnotationClass<LineInformation> ModuleLineInfoAnno(std::string("ModuleLineInfoAnno"));
+AnnotationClass<typeCollection> ModuleTypeInfoAnno(std::string("ModuleTypeInfoAnno"));
+AnnotationClass<dyn_hash_map<Address, Symbol *> > IdToSymAnno("IdToSymMap");

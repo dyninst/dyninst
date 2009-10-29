@@ -509,53 +509,6 @@ disp_pos)))));
 	// am_R is the inverse of am_M; it should only have a mod of 3
       case am_R:
 	outputOperands.push_back(makeModRMExpression(operand.optype));
-#if 0	
-	switch(locs->modrm_mod)
-	{
-	  // direct dereference
-	case 0x00:
-	  if(operand.admet != am_R)
-	  {
-	    Expression::Ptr op(make_shared(singleton_object_pool<Dereference>::construct(makeModRMExpression(regType), makeSizeType(operand.optype))));
-	    outputOperands.push_back(op);
-	  }
-	  else
-	  {
-	    return false;
-	  }
-	  break;
-	  // dereference with 8-bit offset following mod/rm byte
-	case 0x01:
-	case 0x02:
-	  if(operand.admet != am_R)
-	  {
-	    Expression::Ptr RMPlusDisplacement(makeAddExpression(makeModRMExpression(regType), 
-								 getModRMDisplacement(), 
-								 makeSizeType(regType)));
-	    Expression::Ptr op(make_shared(singleton_object_pool<Dereference>::construct(RMPlusDisplacement, makeSizeType(operand.optype))));
-	    outputOperands.push_back(op);
-	  }
-	  else
-	  {
-	    return false;
-	  }
-	  break;
-	case 0x03:
-	  if(operand.admet != am_M)
-	  // use of actual register
-	  {
-	    outputOperands.push_back(makeModRMExpression(operand.optype));
-	  }
-	  else
-	  {
-	    return false;
-	  }
-	  break;	
-	default:
-	  assert(!"2-bit value modrm_mod out of range");
-	  break;
-	};
-#endif	
 	break;
       case am_F:
 	{
@@ -827,6 +780,11 @@ disp_pos)))));
         }
         else
         {
+            // Gap parsing can trigger this case; in particular, when it encounters prefixes in an invalid order.
+            // Notably, if a REX prefix (0x40-0x48) appears followed by another prefix (0x66, 0x67, etc)
+            // we'll reject the instruction as invalid and send it back with no entry.  Since this is a common
+            // byte sequence to see in, for example, ASCII strings, we want to simply accept this and move on, not
+            // yell at the user.
             m_Operation = make_shared(singleton_object_pool<Operation>::construct(&invalid,
                                         decodedInstruction->getPrefix(), locs));
         }

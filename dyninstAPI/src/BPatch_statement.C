@@ -58,19 +58,19 @@ BPatch_module *BPatch_statement::module()
 int BPatch_statement::lineNumber()
 {
 	assert(statement);
-  return statement->line();
+  return statement->getLine();
 }
 
 int BPatch_statement::lineOffset()
 {
 	assert(statement);
-  return statement->column();
+  return statement->getColumn();
 }
 
 const char *BPatch_statement::fileName()
 {
 	assert(statement);
-	return statement->file().c_str();
+	return statement->getFile().c_str();
 }
 
 void *BPatch_statement::startAddr()

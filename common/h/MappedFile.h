@@ -25,6 +25,9 @@ class MappedFile {
       COMMON_EXPORT unsigned long size() {return file_size;}
       COMMON_EXPORT MappedFile *clone() { refCount++; return this; }
 
+      COMMON_EXPORT void setSharing(bool s);
+      COMMON_EXPORT bool canBeShared();
+
    private:
 
       MappedFile(std::string fullpath_, bool &ok);
@@ -48,6 +51,7 @@ class MappedFile {
 #endif
       bool did_mmap;
       bool did_open;
+      bool can_share;
       unsigned long file_size;
       int refCount;
 };
