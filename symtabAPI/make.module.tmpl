@@ -47,7 +47,7 @@ endif
 endif
 
 LDFLAGS += -lpthread
-LDFLAGS     += $(LIBDIR) -lcommon -ldl
+LDFLAGS     += -L../../common/$(PLATFORM) -lcommon -ldl
 
 ifndef USES_NATIVE_CC
 LD		= $(GXX)

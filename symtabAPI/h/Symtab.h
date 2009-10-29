@@ -350,6 +350,7 @@ class Symtab : public LookupInterface,
 
    // Used by binaryEdit.C...
  public:
+   SYMTAB_EXPORT bool canBeShared();
    SYMTAB_EXPORT Module *getOrCreateModule(const std::string &modName, 
                                            const Offset modAddr);
 

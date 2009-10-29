@@ -846,9 +846,11 @@ image *image::parseImage(fileDescriptor &desc, bool parseGaps)
   // it, basically.
   for (unsigned u=0; u<numImages; u++) {
       if (desc.isSameFile(allImages[u]->desc())) {
-          // We reference count...
-          startup_printf("%s[%d]: returning pre-parsed image\n", FILE__, __LINE__);
-          return allImages[u]->clone();
+         if (allImages[u]->getObject()->canBeShared()) {
+            // We reference count...
+            startup_printf("%s[%d]: returning pre-parsed image\n", FILE__, __LINE__);
+            return allImages[u]->clone();
+         }
       }
   }
 

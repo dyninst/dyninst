@@ -1728,15 +1728,17 @@ static void emitPushImm16_64(unsigned short imm, codeGen &gen)
     SET_PTR(insn, gen);
 }
 
-
+#define MAX_SINT ((signed int) (0x7fffffff))
+#define MIN_SINT ((signed int) (0x80000000))
 void EmitterAMD64::emitFuncJump(int_function *f, instPointType_t /*ptType*/, codeGen &gen)
 {
    assert(gen.bti());
    Address addr = f->getAddress();
+   long int disp = addr - (gen.currAddr()+5);
    if (f->proc() == gen.addrSpace() &&
        gen.startAddr() &&
-       (signed int) (addr-(gen.currAddr()+5)) < ((signed int) 0x7fffffff) &&
-       (signed int) (addr-(gen.currAddr()+5)) > ((signed int) 0x80000000))
+       disp < (signed long) MAX_SINT &&
+       disp > (signed long) MIN_SINT)
    {
       //Same module or dynamic instrumentation and address and within
       // jump distance.

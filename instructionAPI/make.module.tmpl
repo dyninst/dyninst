@@ -16,7 +16,7 @@ CXXFLAGS	     += $(USEFULWARNINGS) $(DEFINES)
 
 LDFLAGS += -lcommon
 
-LDFLAGS     += $(LIBDIR)
+LDFLAGS     += -L../../common/$(PLATFORM)
 ifndef USES_NATIVE_CC
 LD		= $(GXX)
 LDFLAGS		+= -shared $(G_PTHREAD_LD)

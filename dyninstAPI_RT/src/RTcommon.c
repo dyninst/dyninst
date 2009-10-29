@@ -520,22 +520,22 @@ int tc_lock_init(tc_lock_t *t)
 
 int tc_lock_unlock(tc_lock_t *t)
 {
-  t->mutex = 0;
   t->tid = (dyntid_t) DYNINST_INITIAL_LOCK_PID;
+  t->mutex = 0;
   return 0;
 }
     
 int tc_lock_destroy(tc_lock_t *t)
 {
-  t->mutex = 0;
   t->tid = (dyntid_t) DYNINST_INITIAL_LOCK_PID;
+  t->mutex = 0;
   return 0;
 }
 
 void dyninst_init_lock(dyninst_lock_t *lock)
 {
-   lock->mutex = 0;
    lock->tid = (dyntid_t) DYNINST_INITIAL_LOCK_PID;
+   lock->mutex = 0;
 }
 
 void dyninst_free_lock(dyninst_lock_t *lock)
