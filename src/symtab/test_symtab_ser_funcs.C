@@ -543,7 +543,7 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 	template <class C>
 	void serialize_test(Symtab *st, C &control, void (*report)(const C &, const C &) ) THROW_SPEC (LocErr)
 	{
-		dprintf(stderr, "%s[%d]: welcome to serialize test for type %s\n",
+		logerror( "%s[%d]: welcome to serialize test for type %s\n",
 				FILE__, __LINE__, typeid(C).name());
 
 		Tempfile tf;
@@ -573,7 +573,7 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 
 		Dyninst::SerializerBase &sb_serializer = * (Dyninst::SerializerBase *) sb_serializer_ptr;
 
-		dprintf(stderr, "%s[%d]:  before serialize: &sb_serializer = %p\n", FILE__, __LINE__, &sb_serializer);
+		logerror( "%s[%d]:  before serialize: &sb_serializer = %p\n", FILE__, __LINE__, &sb_serializer);
 
 		Serializable *sable = &control;
 		try 
@@ -587,7 +587,7 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 			EFAIL("serialize failed\n");
 		}
 
-		dprintf(stderr, "%s[%d]:  after serialize\n", FILE__, __LINE__);
+		logerror( "%s[%d]:  after serialize\n", FILE__, __LINE__);
 		fflush(NULL);
 
 #if 1
@@ -628,7 +628,7 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 #endif
 		SerializerBase &sb_deserializer = (SerializerBase &) *sb_deserializer_ptr;
 
-		dprintf(stderr, "\n\n%s[%d]: about to deserialize: ---- %s\n\n",
+		logerror( "\n\n%s[%d]: about to deserialize: ---- %s\n\n",
 				FILE__, __LINE__, typeid(C).name());
 
 		try
@@ -677,7 +677,7 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 			EFAIL("deserialize and operator== failed\n");
 #endif
 
-		dprintf(stderr, "%s[%d]:  deserialize succeeded\n", __FILE__, __LINE__);
+		logerror( "%s[%d]:  deserialize succeeded\n", __FILE__, __LINE__);
 	}
 
 	template <class T>
