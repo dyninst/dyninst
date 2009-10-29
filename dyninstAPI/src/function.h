@@ -493,7 +493,7 @@ class int_function : public patchTarget {
    ////////////////////////////////////////////////
 
 
-   const pdvector< int_parRegion* > &parRegions() { return parallelRegions_; }
+   const pdvector< int_parRegion* > &parRegions();
 
    bool containsSharedBlocks() const { return ifunc_->containsSharedBlocks(); }
 
