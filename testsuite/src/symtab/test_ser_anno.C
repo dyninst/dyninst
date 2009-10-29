@@ -423,7 +423,7 @@ void serialize_test1(A &annotatee, C &control) THROW_SPEC(LocErr)
 		EFAIL("ERROR:  annotatee is not annotatable\n");
 	}
 
-	dprintf(stderr, "%s[%d]: welcome to serialize test for annotating type %s with %s\n",
+	logerror( "%s[%d]: welcome to serialize test for annotating type %s with %s\n",
 			FILE__, __LINE__, typeid(A).name(), typeid(C).name());
 
 	Tempfile tf;
@@ -457,7 +457,7 @@ void serialize_test1(A &annotatee, C &control) THROW_SPEC(LocErr)
 	//  fully synchronized before we do deserialize.
 	fflush(NULL);
 
-	dprintf(stderr, "%s[%d]:  after serialize\n", FILE__, __LINE__);
+	logerror( "%s[%d]:  after serialize\n", FILE__, __LINE__);
 
 	A deserialize_result;
 	Serializable &c_serial = (Serializable &) deserialize_result;
@@ -547,7 +547,7 @@ void serialize_test2(A &annotatee, C &control) THROW_SPEC(LocErr)
 		EFAIL("ERROR:  annotatee is not annotatable\n");
 	}
 
-	dprintf(stderr, "%s[%d]: welcome to serialize test for annotating type %s with %s\n",
+	logerror( "%s[%d]: welcome to serialize test for annotating type %s with %s\n",
 			FILE__, __LINE__, typeid(A).name(), typeid(C).name());
 
 	Tempfile tf;
@@ -588,7 +588,7 @@ void serialize_test2(A &annotatee, C &control) THROW_SPEC(LocErr)
 		logerror( "%s[%d]:  fflush failed: %s\n", FILE__, __LINE__, strerror(errno));
 	}
 
-	dprintf(stderr, "%s[%d]:  after serialize\n", FILE__, __LINE__);
+	logerror( "%s[%d]:  after serialize\n", FILE__, __LINE__);
 
 
 	A deserialize_result;
@@ -666,7 +666,7 @@ void serialize_test3(A &annotatee, C &container, I item) THROW_SPEC(LocErr)
 		EFAIL("ERROR:  annotatee is not annotatable\n");
 	}
 
-	dprintf(stderr, "%s[%d]: welcome to serialize test for annotating type %s with %s\n",
+	logerror( "%s[%d]: welcome to serialize test for annotating type %s with %s\n",
 			FILE__, __LINE__, typeid(A).name(), typeid(C).name());
 
 	Tempfile tf;
@@ -705,7 +705,7 @@ void serialize_test3(A &annotatee, C &container, I item) THROW_SPEC(LocErr)
 	//  fully synchronized before we do deserialize.
 	if (0 !=fflush(NULL))
 
-	dprintf(stderr, "%s[%d]:  after serialize\n", FILE__, __LINE__);
+	logerror( "%s[%d]:  after serialize\n", FILE__, __LINE__);
 
 
 	A deserialize_result;
