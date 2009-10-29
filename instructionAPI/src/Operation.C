@@ -184,7 +184,7 @@ namespace Dyninst
     public:
       OperationMaps()
       {
-	thePC.insert(make_shared(singleton_object_pool<RegisterAST>::construct(RegisterAST::makePC())));
+        thePC.insert(RegisterAST::Ptr(new RegisterAST(RegisterAST::makePC())));
 	pcAndSP.insert(RegisterAST::Ptr(new RegisterAST(RegisterAST::makePC())));
 	pcAndSP.insert(RegisterAST::Ptr(new RegisterAST(r_eSP)));
 	
