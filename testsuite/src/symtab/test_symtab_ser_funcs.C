@@ -55,11 +55,6 @@
 using namespace Dyninst;
 using namespace SymtabAPI;
 
-extern int debugPrint;
-#ifndef dprintf
-#define dprintf if (debugPrint) fprintf
-#endif
-
 class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 	std::vector<relocationEntry> relocations;
 	std::vector<ExceptionBlock *> exceptions;

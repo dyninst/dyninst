@@ -59,11 +59,6 @@
 using namespace Dyninst;
 using namespace SymtabAPI;
 
-bool debugPrint = false;
-#ifndef dprintf
-#define dprintf if (debugPrint) fprintf
-#endif
-
 class test_ser_anno_Mutator : public SymtabMutator {
 
 	public:
