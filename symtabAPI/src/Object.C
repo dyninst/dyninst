@@ -274,22 +274,6 @@ SYMTAB_EXPORT unsigned long relocationEntry::getRelType() const
     return relType_;
 }
 
-SYMTAB_EXPORT Symbol::~Symbol ()
-{
-   std::string *sfa_p = NULL;
-
-   if (getAnnotation(sfa_p, SymbolFileNameAnno))
-   {
-      if (!sfa_p) 
-      {
-         fprintf(stderr, "%s[%d]:  inconsistency here??\n", FILE__, __LINE__);
-      }
-      else
-      {
-         delete (sfa_p);
-      }
-   }
-}
 
 #ifdef DEBUG 
 ostream &operator<<(ostream &os, relocationEntry &q) {

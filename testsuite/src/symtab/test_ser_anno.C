@@ -101,31 +101,31 @@ class AnnotateeBase : public Serializable
 		{
 			if (somestuff1 != src.somestuff1) 
 			{
-				fprintf(stderr, "%s[%d]:  %d != %d\n", FILE__, __LINE__, 
+				logerror( "%s[%d]:  %d != %d\n", FILE__, __LINE__, 
 						somestuff1, src.somestuff1);
 				return false;
 			}
 			if (somestuff2 != src.somestuff2) 
 			{
-				fprintf(stderr, "%s[%d]:  %lu != %lu\n", FILE__, __LINE__, 
+				logerror( "%s[%d]:  %lu != %lu\n", FILE__, __LINE__, 
 						somestuff2, src.somestuff2);
 				return false;
 			}
 			if (somestuff3 != src.somestuff3) 
 			{
-				fprintf(stderr, "%s[%d]:  %p != %p\n", FILE__, __LINE__, 
+				logerror( "%s[%d]:  %p != %p\n", FILE__, __LINE__, 
 						somestuff3, src.somestuff3);
 				return false;
 			}
 			if (somestuff4 != src.somestuff4) 
 			{
-				fprintf(stderr, "%s[%d]:  %f != %f\n", FILE__, __LINE__, 
+				logerror( "%s[%d]:  %f != %f\n", FILE__, __LINE__, 
 						somestuff4, src.somestuff4);
 				return false;
 			}
 			if (somestuff5 != src.somestuff5) 
 			{
-				fprintf(stderr, "%s[%d]:  %s != %s\n", FILE__, __LINE__, 
+				logerror( "%s[%d]:  %s != %s\n", FILE__, __LINE__, 
 						somestuff5.c_str(), src.somestuff5.c_str());
 				return false;
 			}
@@ -206,7 +206,7 @@ class AnnotateeContainer : public Serializable, public AnnotatableSparse
 	{
 		if (elements.size() != src.elements.size())
 		{
-			fprintf(stderr, "%s[%d]:  size mismatch: %d--%d\n", 
+			logerror( "%s[%d]:  size mismatch: %d--%d\n", 
 					FILE__, __LINE__, elements.size(), src.elements.size());
 			return false;
 		}
@@ -271,7 +271,7 @@ class MyAnnotationClass : public Serializable
 	friend std::ostream &operator<<(std::ostream &os, const MyAnnotationClass &mac);
 	void print()
 	{
-		fprintf(stderr, "%s[%d]:  MyAnnotateeClass: val = %d\n", FILE__, __LINE__, val);
+		logerror( "%s[%d]:  MyAnnotateeClass: val = %d\n", FILE__, __LINE__, val);
 	}
 };
 
@@ -290,14 +290,14 @@ class MyAnnotationContainer : public AnnotationContainer<T>
 
 	MyAnnotationContainer() : AnnotationContainer<T>() 
 	{
-		//fprintf(stderr, "%s[%d]:  MyAnnotationContainer ctor: %p\n", FILE__, __LINE__, this);
+		//logerror( "%s[%d]:  MyAnnotationContainer ctor: %p\n", FILE__, __LINE__, this);
 	}
 
 	bool operator==(MyAnnotationContainer &src)
 	{
 		if (vec.size() != src.vec.size())
 		{
-			fprintf(stderr, "%s[%d]:  size mismatch: %d--%d\n", 
+			logerror( "%s[%d]:  size mismatch: %d--%d\n", 
 					FILE__, __LINE__, vec.size(), src.vec.size());
 			return false;
 		}
@@ -307,7 +307,7 @@ class MyAnnotationContainer : public AnnotationContainer<T>
 				return false;
 
 #if 0
-		fprintf(stderr, "%s[%d]:  annotation container elem0 is %d\n", 
+		logerror( "%s[%d]:  annotation container elem0 is %d\n", 
 				FILE__, __LINE__, vec.size() ? vec[0] : -1);
 #endif
 
@@ -321,20 +321,20 @@ class MyAnnotationContainer : public AnnotationContainer<T>
 
 	void print()
 	{
-		fprintf(stderr, "%s[%d]:  MyAnnotateeContainer<%s>(size %d): [ ", 
+		logerror( "%s[%d]:  MyAnnotateeContainer<%s>(size %d): [ ", 
 				FILE__, __LINE__, typeid(T).name(), vec.size());
 		for (unsigned int i = 0; i < vec.size(); ++i)
 			std::cerr << vec[i] << " ";
-		fprintf(stderr, "]\n");
+		logerror( "]\n");
 	}
 
 	Serializable *ac_serialize_impl(SerializerBase *sb, const char *a) THROW_SPEC(SerializerError)
 	{
-		//fprintf(stderr, "%s[%d]:  welcome to MyAnnotationContainer::ac_serialize_impl %s: vec.size() = %d, this = %p\n", FILE__, __LINE__, sb_is_input(sb) ? "deserialize" : "serialize", vec.size(), this);
+		//logerror( "%s[%d]:  welcome to MyAnnotationContainer::ac_serialize_impl %s: vec.size() = %d, this = %p\n", FILE__, __LINE__, sb_is_input(sb) ? "deserialize" : "serialize", vec.size(), this);
 
 		gtranslate(sb, vec, "MyAnnotationContainer");
 
-		//fprintf(stderr, "%s[%d]:  leaving MyAnnotationContainer::ac_serialize_impl, vec.size() = %d\n", FILE__, __LINE__, vec.size());
+		//logerror( "%s[%d]:  leaving MyAnnotationContainer::ac_serialize_impl, vec.size() = %d\n", FILE__, __LINE__, vec.size());
 		return NULL;
 	}
 };
@@ -348,14 +348,14 @@ class MyAnnotationContainer2 : public AnnotationContainer<MyAnnotationClass *>
 
 	MyAnnotationContainer2() : AnnotationContainer<MyAnnotationClass *>() 
 	{
-		fprintf(stderr, "%s[%d]:  MyAnnotationContainer2 ctor: %p\n", FILE__, __LINE__, this);
+		logerror( "%s[%d]:  MyAnnotationContainer2 ctor: %p\n", FILE__, __LINE__, this);
 	}
 
 	bool operator==(MyAnnotationContainer2 &src)
 	{
 		if (vec.size() != src.vec.size())
 		{
-			fprintf(stderr, "%s[%d]:  size mismatch: %d--%d\n", 
+			logerror( "%s[%d]:  size mismatch: %d--%d\n", 
 					FILE__, __LINE__, vec.size(), src.vec.size());
 			return false;
 		}
@@ -365,7 +365,7 @@ class MyAnnotationContainer2 : public AnnotationContainer<MyAnnotationClass *>
 				return false;
 
 #if 0
-		fprintf(stderr, "%s[%d]:  annotation container elem0 is %d\n", 
+		logerror( "%s[%d]:  annotation container elem0 is %d\n", 
 				FILE__, __LINE__, vec.size() ? (*vec[0]) : -1);
 #endif
 
@@ -379,27 +379,39 @@ class MyAnnotationContainer2 : public AnnotationContainer<MyAnnotationClass *>
 
 	void print()
 	{
-		fprintf(stderr, "%s[%d]:  MyAnnotateeContainer2(size %d): [ ", 
+		logerror( "%s[%d]:  MyAnnotateeContainer2(size %d): [ ", 
 				FILE__, __LINE__, vec.size());
 		for (unsigned int i = 0; i < vec.size(); ++i)
 			std::cerr << *vec[i] << " ";
-		fprintf(stderr, "]\n");
+		logerror( "]\n");
 	}
 
 	Serializable *ac_serialize_impl(SerializerBase *sb, const char *a) THROW_SPEC(SerializerError)
 	{
-		fprintf(stderr, "%s[%d]:  welcome to MyAnnotationContainer2::ac_serialize_impl %s: vec.size() = %d, this = %p\n", FILE__, __LINE__, sb_is_input(sb) ? "deserialize" : "serialize", vec.size(), this);
+		logerror( "%s[%d]:  welcome to MyAnnotationContainer2::ac_serialize_impl %s: vec.size() = %d, this = %p\n", FILE__, __LINE__, sb_is_input(sb) ? "deserialize" : "serialize", vec.size(), this);
 
 		gtranslate(sb, vec, "MyAnnotationContainer2");
 
-		fprintf(stderr, "%s[%d]:  leaving MyAnnotationContainer2::ac_serialize_impl, vec.size() = %d\n", FILE__, __LINE__, vec.size());
+		logerror( "%s[%d]:  leaving MyAnnotationContainer2::ac_serialize_impl, vec.size() = %d\n", FILE__, __LINE__, vec.size());
 		return NULL;
 	}
 };
 
+
+void unlinkSerfile(SerContextBase *scb)
+{
+	if (!scb) return;
+	std::string fname = scb->getSerFileName();
+	if (fname.length())
+	{
+		logerror("%s[%d]:  unlinking %s\n", FILE__, __LINE__, fname.c_str());
+		unlink(fname.c_str());
+	}
+}
 template <class A, class C>
 void serialize_test1(A &annotatee, C &control) THROW_SPEC(LocErr)
 {
+	SerContext<A> *scs = NULL;
 	try {
 	//  serialize_test1:  add annotation to class A (annotatee), serialize A.
 	//  Then deserialize A and verify that (1) serialization worked for A proper,
@@ -422,35 +434,29 @@ void serialize_test1(A &annotatee, C &control) THROW_SPEC(LocErr)
 	Tempfile tf;
 	std::string file(tf.getName());
 
-#if 0
-	std::string sername = std::string("SerializerBinTest1") + std::string(typeid(A).name());
-	SerializerBase *serializer = newSerializer(&annotatee, sername, file, ser_bin, sd_serialize);
-
-	if (!serializer)
-		EFAIL("alloc serializer failed\n");
-#endif
-
 	//  Add the annotation
-	std::string an(typeid(C).name());
-	//AnnotationClass<C> my_ac(an.c_str());
-	AnnotationClass<C> *my_acp = new AnnotationClass<C>(an.c_str());
+	std::string an = std::string(typeid(C).name()) + std::string(typeid(A).name());
+
+	AnnotationClass<C> *my_acp = new AnnotationClass<C>(an);
 	AnnotationClass<C> &my_ac = *my_acp;
 
 	if (!annotatee.addAnnotation(&control, my_ac))
+	{
 		EFAIL("failed to add annotation");
+	}
 
 	if (NULL == my_ac.getSerializeFunc())
 		EFAIL("annotation class has no serialize func");
 
 	//  Do the serialization
-	SerContext<A> *scs = new SerContext<A>(&annotatee, file);
+	scs = new SerContext<A>(&annotatee, file);
 	scs->enableSerDes(true);
 
 	if (!annotatee.serialize(file, scs, ser_bin))
 	{
+		unlinkSerfile(scs);
 		EFAIL("serialize failed");
 	}
-
 
 	//  It is necessary to flush the file buffers to make sure the cache file is
 	//  fully synchronized before we do deserialize.
@@ -460,15 +466,6 @@ void serialize_test1(A &annotatee, C &control) THROW_SPEC(LocErr)
 
 	A deserialize_result;
 	Serializable &c_serial = (Serializable &) deserialize_result;
-#if 0
-	std::string desername = std::string("DeserializerBin") + std::string(typeid(A).name());
-
-	SerializerBase *deserializer = newSerializer(&deserialize_result, desername, 
-			file, ser_bin, sd_deserialize);
-
-	if (!deserializer)
-		EFAIL("failed to create deserializer\n");
-#endif
 
 	//  Do the deserialize
 	try 
@@ -477,15 +474,17 @@ void serialize_test1(A &annotatee, C &control) THROW_SPEC(LocErr)
 	}
 	catch (const SerializerError &serr)
 	{
-		fprintf(stderr, "%s[%d]:  serializer function threw exception:\n", FILE__, __LINE__);
-		fprintf(stderr, "\tfrom %s[%d]: %s\n", serr.file().c_str(), serr.line(), serr.what());
-		//EFAIL("deserialize failed\n");
+		logerror( "%s[%d]:  serializer function threw exception:\n", FILE__, __LINE__);
+		logerror( "\tfrom %s[%d]: %s\n", serr.file().c_str(), serr.line(), serr.what());
+		unlinkSerfile(scs);
+		EFAIL("deserialize failed");
 	}
 
 	if (annotatee != deserialize_result)
 	{
-		fprintf(stderr, "%s[%d]:  deserialize result is incorrect\n", FILE__, __LINE__);
 		deserialize_result.print();
+		unlinkSerfile(scs);
+		EFAIL("deserialize result is incorrect");
 	}
 
 	//  checking equality is fine, but let's also check absolute values
@@ -493,37 +492,43 @@ void serialize_test1(A &annotatee, C &control) THROW_SPEC(LocErr)
 	if ( 0 != (res = init_or_check_values(deserialize_result, CHECK))) 
 	{
 		deserialize_result.print();
-		fprintf(stderr, "%s[%d]:  res = %d\n", FILE__, __LINE__);
-		EFAIL("deserialized annotatee has bad values\n");
+		logerror( "%s[%d]:  res = %d\n", FILE__, __LINE__);
+		unlinkSerfile(scs);
+		EFAIL("deserialized annotatee has bad values");
 	}
 
 	//  operator== will check basic class values, but we also need to verify annotations
 	C *des_annotation;
 	if (!deserialize_result.getAnnotation(des_annotation, my_ac))
+	{
+		unlinkSerfile(scs);
 		EFAIL("could not find annotation in deserialized result");
+	}
 
 	if (*des_annotation != control)
 	{
-		fprintf(stderr, "%s[%d]:  annotations (id = %d) did not match after deserialize\n", FILE__, __LINE__, my_ac.getID());
-		fprintf(stderr, "%s[%d]:  des_annotation = %p, des_obj = %p, control = %p\n", FILE__, __LINE__, des_annotation, &deserialize_result, &control);
+		logerror( "%s[%d]:  annotations (id = %d) did not match after deserialize\n", FILE__, __LINE__, my_ac.getID());
+		logerror( "%s[%d]:  des_annotation = %p, des_obj = %p, control = %p\n", FILE__, __LINE__, des_annotation, &deserialize_result, &control);
 
 		des_annotation->print();
 		control.print();
+		unlinkSerfile(scs);
 		EFAIL("deserialized annotation did not match provided value");
 	}
 	}
 	catch (const SerializerError &serr)
 	{
-		fprintf(stderr, "%s[%d]:  serializer function threw exception:\n", FILE__, __LINE__);
-		fprintf(stderr, "\tfrom %s[%d]: %s\n", serr.file().c_str(), serr.line(), serr.what());
+		logerror( "%s[%d]:  serializer function threw exception:\n", FILE__, __LINE__);
+		logerror( "\tfrom %s[%d]: %s\n", serr.file().c_str(), serr.line(), serr.what());
 		//EFAIL("deserialize failed\n");
 	}
 #if 0
 	catch (...)
 	{
-		fprintf(stderr, "%s[%d]:  caught unknown exception\n", FILE__, __LINE__);
+		logerror( "%s[%d]:  caught unknown exception\n", FILE__, __LINE__);
 	}
 #endif
+	unlinkSerfile(scs);
 }
 
 template <class A, class C>
@@ -535,6 +540,8 @@ void serialize_test2(A &annotatee, C &control) THROW_SPEC(LocErr)
 	//
 	//  This should work for both cases where C (the annotation class) is derived
 	//  from Serializable and when it is a basic type
+
+	SerContext<A> *scs = NULL;
 
 	AnnotatableDense *ad = NULL;
 	if (dynamic_cast<AnnotatableSparse *>(&annotatee))
@@ -551,42 +558,39 @@ void serialize_test2(A &annotatee, C &control) THROW_SPEC(LocErr)
 	Tempfile tf;
 	std::string file(tf.getName());
 
-#if 0
-	std::string sername = std::string("SerializerBinTest2") + std::string(typeid(A).name());
-	SerializerBase *serializer = newSerializer(&annotatee, sername, file, ser_bin, sd_serialize);
-
-	if (!serializer)
-		EFAIL("alloc serializer failed\n");
-#endif
-
-
 	//  Do the serialization
 	//annotatee.serialize(serializer, NULL);
 	
-	SerContext<A> *scs = new SerContext<A>(&annotatee, file);
+	scs = new SerContext<A>(&annotatee, file);
 	scs->enableSerDes(true);
 	if (!annotatee.serialize(file, scs, ser_bin))
 	{
+		unlinkSerfile(scs);
 		EFAIL("serialize failed");
 	}
 
 	//  Add the annotation
-	std::string an(typeid(C).name());
-	AnnotationClass<C> *my_acp = new AnnotationClass<C>(an.c_str());
+	std::string an = std::string(typeid(C).name()) + std::string(typeid(A).name());
+	AnnotationClass<C> *my_acp = new AnnotationClass<C>(an);
 	AnnotationClass<C> &my_ac = *my_acp;
-	//AnnotationClass<C> my_ac(an.c_str());
 
 	if (NULL == my_ac.getSerializeFunc())
+	{
+		unlinkSerfile(scs);
 		EFAIL("annotation class has no serialize func");
+	}
 
 	if (!annotatee.addAnnotation(&control, my_ac))
+	{
+		unlinkSerfile(scs);
 		EFAIL("failed to add annotation");
+	}
 
 	//  It is necessary to flush the file buffers to make sure the cache file is
 	//  fully synchronized before we do deserialize.
 	if (0 !=fflush(NULL))
 	{
-		fprintf(stderr, "%s[%d]:  fflush failed: %s\n", FILE__, __LINE__, strerror(errno));
+		logerror( "%s[%d]:  fflush failed: %s\n", FILE__, __LINE__, strerror(errno));
 	}
 
 	dprintf(stderr, "%s[%d]:  after serialize\n", FILE__, __LINE__);
@@ -602,40 +606,49 @@ void serialize_test2(A &annotatee, C &control) THROW_SPEC(LocErr)
 		//c_serial.serialize(deserializer, NULL);
 		if (!c_serial.deserialize(file, scs))
 		{
-			fprintf(stderr, "%s[%d]:  deserialize failed\n", FILE__, __LINE__);
+			unlinkSerfile(scs);
+			EFAIL("deserialize failed");
 		}
 	}
 	catch (const SerializerError &serr)
 	{
-		fprintf(stderr, "%s[%d]:  serializer function threw exception:\n", FILE__, __LINE__);
-		fprintf(stderr, "\tfrom %s[%d]: %s\n", serr.file().c_str(), serr.line(), serr.what());
+		logerror( "%s[%d]:  serializer function threw exception:\n", FILE__, __LINE__);
+		logerror( "\tfrom %s[%d]: %s\n", serr.file().c_str(), serr.line(), serr.what());
+		unlinkSerfile(scs);
 		EFAIL("deserialize failed\n");
 	}
 
 	if (annotatee != deserialize_result)
 	{
-		fprintf(stderr, "%s[%d]:  deserialize result is incorrect\n", FILE__, __LINE__);
 		deserialize_result.print();
+		unlinkSerfile(scs);
+		EFAIL("deserialize result is incorrect");
 	}
 
 	//  checking equality is fine, but let's also check absolute values
 	if ( 0 != init_or_check_values(deserialize_result, CHECK)) 
 	{
 		deserialize_result.print();
-		EFAIL("deserialized annotatee has bad values\n");
+		unlinkSerfile(scs);
+		EFAIL("deserialized annotatee has bad values");
 	}
 
 	//  operator== will check basic class values, but we also need to verify annotations
 	C *des_annotation;
 	if (!deserialize_result.getAnnotation(des_annotation, my_ac))
+	{
+		unlinkSerfile(scs);
 		EFAIL("could not find annotation in deserialized result");
+	}
 
 	if (*des_annotation != control)
 	{
 		des_annotation->print();
 		control.print();
+		unlinkSerfile(scs);
 		EFAIL("deserialized annotation did not match provided value");
 	}
+	unlinkSerfile(scs);
 }
 
 
@@ -648,6 +661,7 @@ void serialize_test3(A &annotatee, C &container, I item) THROW_SPEC(LocErr)
 	//  and (2) that added annotation was also properly serialized
 	//  and (3) that added item was also properly serialized
 
+	SerContext<A> *scs = NULL;
 	AnnotatableDense *ad = NULL;
 	if (dynamic_cast<AnnotatableSparse *>(&annotatee))
 		logerror("%s[%d]:  annotatee is sparse\n", FILE__, __LINE__);
@@ -665,9 +679,9 @@ void serialize_test3(A &annotatee, C &container, I item) THROW_SPEC(LocErr)
 
 	
 	//  Add the annotation
-	std::string an(typeid(C).name());
-	AnnotationClass<C > *my_acp = new AnnotationClass<C >(an.c_str());
-	AnnotationClass<C > &my_ac = *my_acp;
+	std::string an = std::string(typeid(C).name()) + std::string(typeid(A).name()) + std::string(typeid(I).name());
+	AnnotationClass<C> *my_acp = new AnnotationClass<C>(an);
+	AnnotationClass<C> &my_ac = *my_acp;
 
 	if (NULL == my_ac.getSerializeFunc())
 		EFAIL("annotation class has no serialize func");
@@ -677,16 +691,18 @@ void serialize_test3(A &annotatee, C &container, I item) THROW_SPEC(LocErr)
 
 	//  Do the serialization
 	//annotatee.serialize(serializer, NULL);
-	SerContext<A> *scs = new SerContext<A>(&annotatee, file);
+	scs = new SerContext<A>(&annotatee, file);
 	scs->enableSerDes(true);
 	if (!annotatee.serialize(file, scs, ser_bin))
 	{
+		unlinkSerfile(scs);
 		EFAIL("serialize failed");
 	}
 
 	//  Add the item to the container post-serialize
 	if (!container.addItem(item))
 	{
+		unlinkSerfile(scs);
 		EFAIL("failed to add item to container here");
 	}
 
@@ -707,19 +723,20 @@ void serialize_test3(A &annotatee, C &container, I item) THROW_SPEC(LocErr)
 		//c_serial.serialize(deserializer, NULL);
 		if (!c_serial.deserialize(file, scs))
 		{
-			fprintf(stderr, "%s[%d]:  deserialize failed\n", FILE__, __LINE__);
+			logerror( "%s[%d]:  deserialize failed\n", FILE__, __LINE__);
 		}
 	}
 	catch (const SerializerError &serr)
 	{
-		fprintf(stderr, "%s[%d]:  serializer function threw exception:\n", FILE__, __LINE__);
-		fprintf(stderr, "\tfrom %s[%d]: %s\n", serr.file().c_str(), serr.line(), serr.what());
+		logerror( "%s[%d]:  serializer function threw exception:\n", FILE__, __LINE__);
+		logerror( "\tfrom %s[%d]: %s\n", serr.file().c_str(), serr.line(), serr.what());
+		unlinkSerfile(scs);
 		EFAIL("deserialize failed\n");
 	}
 
 	if (annotatee != deserialize_result)
 	{
-		fprintf(stderr, "%s[%d]:  deserialize result is incorrect\n", FILE__, __LINE__);
+		logerror( "%s[%d]:  deserialize result is incorrect\n", FILE__, __LINE__);
 		deserialize_result.print();
 	}
 
@@ -727,41 +744,33 @@ void serialize_test3(A &annotatee, C &container, I item) THROW_SPEC(LocErr)
 	if ( 0 != init_or_check_values(deserialize_result, CHECK)) 
 	{
 		deserialize_result.print();
+		unlinkSerfile(scs);
 		EFAIL("deserialized annotatee has bad values\n");
 	}
 
 	//  operator== will check basic class values, but we also need to verify annotations
 	C *des_annotation;
 	if (!deserialize_result.getAnnotation(des_annotation, my_ac))
+	{
+		unlinkSerfile(scs);
 		EFAIL("could not find annotation in deserialized result");
+	}
 
 	if (*des_annotation != container)
 	{
 		des_annotation->print();
 		container.print();
+		unlinkSerfile(scs);
 		EFAIL("deserialized annotation did not match provided value");
 	}
 
+	unlinkSerfile(scs);
 }
 test_results_t test_ser_anno_Mutator::executeTest()
 {
-#if defined (os_aix_test)
-	//  This works when run individually, but fails when run as part of a testgroup
-	return SKIPPED;
-#endif
 
 	//  set environment variable enabling serialization
 	errno = 0;
-#if 0
-	if (setenv(SERIALIZE_CONTROL_ENV_VAR, SERIALIZE_DESERIALIZE, 1))
-	{
-		fprintf(stderr, "%s[%d]:  FIXME!: %s\n", FILE__, __LINE__, strerror(errno));
-		return FAILED;
-	}
-
-	logerror( "%s[%d]:  set %s =  %s\n", FILE__, __LINE__, 
-			SERIALIZE_CONTROL_ENV_VAR, SERIALIZE_DESERIALIZE);
-#endif
 
 	try 
 	{
@@ -769,18 +778,18 @@ test_results_t test_ser_anno_Mutator::executeTest()
 		Serializable *s = dynamic_cast<Serializable *>(&as1);
 		if (!s)
 		{
-			fprintf(stderr, "%s[%d]:  as1 not serializable\n", FILE__, __LINE__);
+			logerror( "%s[%d]:  as1 not serializable\n", FILE__, __LINE__);
 			return FAILED;
 		}
 		AnnotatableSparse *ss = dynamic_cast<AnnotatableSparse *>(s);
 		if (!ss)
 		{
-			fprintf(stderr, "%s[%d]:  as1 not annotatableSparse\n", FILE__, __LINE__);
+			logerror( "%s[%d]:  as1 not annotatableSparse\n", FILE__, __LINE__);
 			return FAILED;
 		}
 		if ( 0 != init_or_check_values(as1, INIT)) 
 		{
-			fprintf(stderr, "%s[%d]:  weird, failed to init annotatee here\n", 
+			logerror( "%s[%d]:  weird, failed to init annotatee here\n", 
 					FILE__, __LINE__);
 			return FAILED;
 		}
@@ -791,7 +800,7 @@ test_results_t test_ser_anno_Mutator::executeTest()
 		AnnotateeDense ad1;
 		if ( 0 != init_or_check_values(ad1, INIT)) 
 		{
-			fprintf(stderr, "%s[%d]:  weird, failed to init annotatee here\n", 
+			logerror( "%s[%d]:  weird, failed to init annotatee here\n", 
 					FILE__, __LINE__);
 			return FAILED;
 		}
@@ -802,7 +811,7 @@ test_results_t test_ser_anno_Mutator::executeTest()
 		AnnotateeSparse *as2 = new AnnotateeSparse();
 		if ( 0 != init_or_check_values(*as2, INIT)) 
 		{
-			fprintf(stderr, "%s[%d]:  weird, failed to init annotatee here\n", 
+			logerror( "%s[%d]:  weird, failed to init annotatee here\n", 
 					FILE__, __LINE__);
 			return FAILED;
 		}
@@ -814,7 +823,7 @@ test_results_t test_ser_anno_Mutator::executeTest()
 		AnnotateeDense ad2;
 		if ( 0 != init_or_check_values(ad2, INIT)) 
 		{
-			fprintf(stderr, "%s[%d]:  weird, failed to init annotatee here\n", 
+			logerror( "%s[%d]:  weird, failed to init annotatee here\n", 
 					FILE__, __LINE__);
 			return FAILED;
 		}
@@ -827,7 +836,7 @@ test_results_t test_ser_anno_Mutator::executeTest()
 		AnnotateeSparse as3;
 		if ( 0 != init_or_check_values(as3, INIT)) 
 		{
-			fprintf(stderr, "%s[%d]:  weird, failed to init annotatee here\n", 
+			logerror( "%s[%d]:  weird, failed to init annotatee here\n", 
 					FILE__, __LINE__);
 			return FAILED;
 		}
@@ -838,7 +847,7 @@ test_results_t test_ser_anno_Mutator::executeTest()
 		AnnotateeDense ad3;
 		if ( 0 != init_or_check_values(ad3, INIT)) 
 		{
-			fprintf(stderr, "%s[%d]:  weird, failed to init annotatee here\n", 
+			logerror( "%s[%d]:  weird, failed to init annotatee here\n", 
 					FILE__, __LINE__);
 			return FAILED;
 		}
@@ -849,7 +858,7 @@ test_results_t test_ser_anno_Mutator::executeTest()
 		AnnotateeSparse as4;
 		if ( 0 != init_or_check_values(as4, INIT)) 
 		{
-			fprintf(stderr, "%s[%d]:  weird, failed to init annotatee here\n", 
+			logerror( "%s[%d]:  weird, failed to init annotatee here\n", 
 					FILE__, __LINE__);
 			return FAILED;
 		}
@@ -860,7 +869,7 @@ test_results_t test_ser_anno_Mutator::executeTest()
 		AnnotateeDense ad4;
 		if ( 0 != init_or_check_values(ad4, INIT)) 
 		{
-			fprintf(stderr, "%s[%d]:  weird, failed to init annotatee here\n", 
+			logerror( "%s[%d]:  weird, failed to init annotatee here\n", 
 					FILE__, __LINE__);
 			return FAILED;
 		}
@@ -872,7 +881,7 @@ test_results_t test_ser_anno_Mutator::executeTest()
 		AnnotateeSparse as5;
 		if ( 0 != init_or_check_values(as5, INIT)) 
 		{
-			fprintf(stderr, "%s[%d]:  weird, failed to init annotatee here\n", 
+			logerror( "%s[%d]:  weird, failed to init annotatee here\n", 
 					FILE__, __LINE__);
 			return FAILED;
 		}
@@ -884,7 +893,7 @@ test_results_t test_ser_anno_Mutator::executeTest()
 		AnnotateeDense ad5;
 		if ( 0 != init_or_check_values(ad5, INIT)) 
 		{
-			fprintf(stderr, "%s[%d]:  weird, failed to init annotatee here\n", 
+			logerror( "%s[%d]:  weird, failed to init annotatee here\n", 
 					FILE__, __LINE__);
 			return FAILED;
 		}
@@ -896,7 +905,7 @@ test_results_t test_ser_anno_Mutator::executeTest()
 		AnnotateeSparse as6;
 		if ( 0 != init_or_check_values(as6, INIT)) 
 		{
-			fprintf(stderr, "%s[%d]:  weird, failed to init annotatee here\n", 
+			logerror( "%s[%d]:  weird, failed to init annotatee here\n", 
 					FILE__, __LINE__);
 			return FAILED;
 		}
@@ -908,7 +917,7 @@ test_results_t test_ser_anno_Mutator::executeTest()
 		AnnotateeDense ad6;
 		if ( 0 != init_or_check_values(ad6, INIT)) 
 		{
-			fprintf(stderr, "%s[%d]:  weird, failed to init annotatee here\n", 
+			logerror( "%s[%d]:  weird, failed to init annotatee here\n", 
 					FILE__, __LINE__);
 			return FAILED;
 		}
@@ -923,7 +932,7 @@ test_results_t test_ser_anno_Mutator::executeTest()
 		AnnotateeSparse as7;
 		if ( 0 != init_or_check_values(as7, INIT)) 
 		{
-			fprintf(stderr, "%s[%d]:  weird, failed to init annotatee here\n", 
+			logerror( "%s[%d]:  weird, failed to init annotatee here\n", 
 					FILE__, __LINE__);
 			return FAILED;
 		}
@@ -934,7 +943,7 @@ test_results_t test_ser_anno_Mutator::executeTest()
 		AnnotateeDense ad7;
 		if ( 0 != init_or_check_values(ad7, INIT)) 
 		{
-			fprintf(stderr, "%s[%d]:  weird, failed to init annotatee here\n", 
+			logerror( "%s[%d]:  weird, failed to init annotatee here\n", 
 					FILE__, __LINE__);
 			return FAILED;
 		}
@@ -946,7 +955,7 @@ test_results_t test_ser_anno_Mutator::executeTest()
 		AnnotateeSparse as8;
 		if ( 0 != init_or_check_values(as8, INIT)) 
 		{
-			fprintf(stderr, "%s[%d]:  weird, failed to init annotatee here\n", 
+			logerror( "%s[%d]:  weird, failed to init annotatee here\n", 
 					FILE__, __LINE__);
 			return FAILED;
 		}
@@ -958,7 +967,7 @@ test_results_t test_ser_anno_Mutator::executeTest()
 		AnnotateeDense ad8;
 		if ( 0 != init_or_check_values(ad8, INIT)) 
 		{
-			fprintf(stderr, "%s[%d]:  weird, failed to init annotatee here\n", 
+			logerror( "%s[%d]:  weird, failed to init annotatee here\n", 
 					FILE__, __LINE__);
 			return FAILED;
 		}
@@ -970,19 +979,19 @@ test_results_t test_ser_anno_Mutator::executeTest()
 		//  then test container of pointers to Serializable
 	}
 	catch (const LocErr &err) {
-		fprintf(stderr, "%s[%d]:  FAILED\n", FILE__, __LINE__);
+		logerror( "%s[%d]:  FAILED\n", FILE__, __LINE__);
 		err.print(stderr);
 		return FAILED;
 	}
 	catch (const SerializerError &serr)
 	{
-		fprintf(stderr, "%s[%d]:  serializer function threw exception:\n", FILE__, __LINE__);
-		fprintf(stderr, "\tfrom %s[%d]: %s\n", serr.file().c_str(), serr.line(), serr.what());
-		//EFAIL("deserialize failed\n");
+		logerror( "%s[%d]:  serializer function threw exception:\n", FILE__, __LINE__);
+		logerror( "\tfrom %s[%d]: %s\n", serr.file().c_str(), serr.line(), serr.what());
+		EFAIL("deserialize failed");
 	}
 	catch (...)
 	{
-		fprintf(stderr, "%s[%d]:  caught unknown exception\n", FILE__, __LINE__);
+		logerror( "%s[%d]:  caught unknown exception\n", FILE__, __LINE__);
 		return FAILED;
 	}
 		

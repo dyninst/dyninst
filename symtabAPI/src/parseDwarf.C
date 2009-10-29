@@ -46,6 +46,7 @@
 #include "Type-mem.h"
 #include <stdarg.h>
 #include "dynutil/h/Annotatable.h"
+#include "annotations.h"
 
 #ifndef DW_FRAME_CFA_COL3
 //  This is a newer feature of libdwarf (which has been causing some other 
@@ -79,8 +80,6 @@ using namespace Dyninst::SymtabAPI;
 
 void setSymtabError(SymtabError new_err);
 
-extern AnnotationClass<localVarCollection> FunctionLocalVariablesAnno;
-extern AnnotationClass<localVarCollection> FunctionParametersAnno;
 /* For location decode. */
 #include <stack>
 

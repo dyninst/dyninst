@@ -204,6 +204,7 @@ Serializable * Type::serialize_impl(SerializerBase *s, const char *tag) THROW_SP
 
 	if (s->isInput())
 	{
+		newt->incrRefCount();
 		switch(type_) 
 		{
 			case dataEnum:
@@ -300,8 +301,9 @@ void Type::incrRefCount()
 
 void Type::decrRefCount() 
 {
-	assert(refCount > 0);
-	refCount--;
+	//assert(refCount > 0);
+	if (refCount > 0)
+		refCount--;
 	//if (0 == refCount)
 //		fprintf(stderr, "%s[%d]:  REMOVED DELETE\n", FILE__, __LINE__);
 #if 0

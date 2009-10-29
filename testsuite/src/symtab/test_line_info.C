@@ -60,42 +60,42 @@ public:
    {
 	   if (!s)
 	   {
-		   fprintf(stderr, "%s[%d]:  NULL statement returned\n", FILE__, __LINE__);
+		   logerror( "%s[%d]:  NULL statement returned\n", FILE__, __LINE__);
 		   return false;
 	   }
 
-	   if (!s->file().length())
+	   if (!s->getFile().length())
 	   {
-		   fprintf(stderr, "%s[%d]:  statement without file returned\n", FILE__, __LINE__);
+		   logerror( "%s[%d]:  statement without file returned\n", FILE__, __LINE__);
 		   return false;
 	   }
 
-	   if ( 0 == s->line())
+	   if ( 0 == s->getLine())
 	   {
 		   //  a zero lineno may in fact be fine in the real world, but we don't really
 		   //  expect to see it here.  (This check can probably be removed if necessary)
-		   fprintf(stderr, "%s[%d]:  statement with line = 0\n", FILE__, __LINE__);
+		   logerror( "%s[%d]:  statement with line = 0\n", FILE__, __LINE__);
 		   return false;
 	   }
 
 	   //  check for -1L because that's used in the default statement ctor.
 	   if ( (0 == s->startAddr()) || (-1L == s->startAddr()))
 	   {
-		   fprintf(stderr, "%s[%d]:  statement with NULL startAddr: %s[%d]: %lu\n", 
-				   FILE__, __LINE__, s->file().c_str(), s->line(), s->startAddr());
+		   logerror( "%s[%d]:  statement with NULL startAddr: %s[%d]: %lu\n", 
+				   FILE__, __LINE__, s->getFile().c_str(), s->getLine(), s->startAddr());
 		   return false;
 	   }
 	   //  check for -1L because that's used in the default statement ctor.
 	   if ( (0 == s->endAddr()) || (-1L == s->endAddr()))
 	   {
-		   fprintf(stderr, "%s[%d]:  statement with NULL endAddr: %s[%d]: %lu\n", 
-				   FILE__, __LINE__, s->file().c_str(), s->line(), s->endAddr());
+		   logerror( "%s[%d]:  statement with NULL endAddr: %s[%d]: %lu\n", 
+				   FILE__, __LINE__, s->getFile().c_str(), s->getLine(), s->endAddr());
 		   return false;
 	   }
 
 	   if (s->endAddr() < s->startAddr())
 	   {
-		   fprintf(stderr, "%s[%d]:  statement with endAddr (%lu) < startAddr (%lu)\n", 
+		   logerror( "%s[%d]:  statement with endAddr (%lu) < startAddr (%lu)\n", 
 				   FILE__, __LINE__, s->endAddr(), s->startAddr());
 		   return false;
 	   }
@@ -162,7 +162,7 @@ test_results_t test_line_info_Mutator::basic_verification()
 
 			if (!statement_ok(statements[j]))
 			{
-				fprintf(stderr, "%s[%d]:  bad statement returned for module %s\n", 
+				logerror( "%s[%d]:  bad statement returned for module %s\n", 
 						FILE__, __LINE__, modname.c_str());
 				return FAILED;
 			}
@@ -175,17 +175,19 @@ test_results_t test_line_info_Mutator::basic_verification()
 test_results_t test_line_info_Mutator::executeTest()
 {
 
-#if defined (os_linux_test) && defined (arch_x86_64_test)
-	if (useAttach == DESERIALIZE)
-		return SKIPPED;
-#endif
 #if defined (os_solaris_test)
-	if (compiler == std::string("CC") 
-			|| (compiler == std::string("sun_cc")) 
-			||(compiler == std::string("g+")))
+	//  It appears that the sun compilers do not implement the
+	//  #line directive properly.  This would merit more investigation
+	//  if we had any users who cared about line info on solaris.
+	//
+	//  TODO:  figure out how to add this condition to the spec file
+
+	if ((compiler == std::string("CC")) 
+			|| (compiler == std::string("sun_cc")))
 	{
 		return SKIPPED;
 	}
+
 #endif
 #if defined (os_aix_test)
 	//if (useAttach == DESERIALIZE)
@@ -228,13 +230,13 @@ test_results_t test_line_info_Mutator::executeTest()
 
     if (!f->getParams(params))
 	{
-		fprintf(stderr, "%s[%d]:  failed to getParams()\n", FILE__, __LINE__);
+		logerror( "%s[%d]:  failed to getParams()\n", FILE__, __LINE__);
 		return FAILED;
 	}
 
 	if (params.size() != 1)
 	{
-		fprintf(stderr, "%s[%d]:  bad number of params: %d, not 1\n", 
+		logerror( "%s[%d]:  bad number of params: %d, not 1\n", 
 				FILE__, __LINE__, params.size());
 		return FAILED;
 	}
@@ -244,20 +246,20 @@ test_results_t test_line_info_Mutator::executeTest()
 	//  we use the #line preprocessor directive in the mutatee to set the expected value
 	if (param_line_no != 1000)
 	{
-		fprintf(stderr, "%s[%d]:  param_line_no = %d not 1000\n", 
+		logerror( "%s[%d]:  param_line_no = %d not 1000\n", 
 				FILE__, __LINE__, param_line_no);
 		return FAILED;
 	}
 
     if (!f->getLocalVariables(local_vars))
 	{
-		fprintf(stderr, "%s[%d]:  failed to getLocalVariables()\n", FILE__, __LINE__);
+		logerror( "%s[%d]:  failed to getLocalVariables()\n", FILE__, __LINE__);
 		return FAILED;
 	}
 
 	if (local_vars.size() != 3)
 	{
-		fprintf(stderr, "%s[%d]:  bad number of local_vars: %d, not 3\n", 
+		logerror( "%s[%d]:  bad number of local_vars: %d, not 3\n", 
 				FILE__, __LINE__, params.size());
 		return FAILED;
 	}
@@ -269,7 +271,7 @@ test_results_t test_line_info_Mutator::executeTest()
 		int lv_line_no = local_vars[i]->getLineNum();
 		if (lv_line_no != expected_lv_line_no)
 		{
-			fprintf(stderr, "%s[%d]:  local var %d:  line# = %d, expected %d\n", 
+			logerror( "%s[%d]:  local var %d:  line# = %d, expected %d\n", 
 					FILE__, __LINE__, i, lv_line_no, expected_lv_line_no);
 			return FAILED;
 		}

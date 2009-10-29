@@ -55,7 +55,7 @@
 using namespace Dyninst;
 using namespace SymtabAPI;
 
-bool debugPrint = false;
+extern int debugPrint;
 #ifndef dprintf
 #define dprintf if (debugPrint) fprintf
 #endif
@@ -515,8 +515,22 @@ class test_symtab_ser_funcs_Mutator : public SymtabMutator {
 		logerror( "\t%d--%d\n", s1.tag(), s2.tag());
 		Region *r1 = s1.getSec();
 		Region *r2 = s2.getSec();
-		if (r1 && !r2) logerror( "%s[%d]:  region discrep\n", FILE__, __LINE__);
-		if (!r1 && r2) logerror( "%s[%d]:  region discrep\n", FILE__, __LINE__);
+		if (r1 && !r2) 
+		{
+			logerror( "%s[%d]:  region discrep\n", FILE__, __LINE__);
+			return;
+		}
+		if (!r1 && r2) 
+		{
+			logerror( "%s[%d]:  region discrep\n", FILE__, __LINE__);
+			return;
+		}
+#if 0
+		for (unsigned long i = 0; i < regions.size(); ++i)
+		{
+			serialize_test(symtab, *(symbols[i]), &symbol_report);
+		}
+#endif
 		if (r1)
 		{
 			logerror( "\t%p--%p\n", r1->getDiskOffset(), r2->getDiskOffset());
@@ -858,20 +872,31 @@ void test_symtab_ser_funcs_Mutator::parse() THROW_SPEC (LocErr)
 
 test_results_t test_symtab_ser_funcs_Mutator::executeTest()
 {
+//#if !defined (os_linux_test)
 	return SKIPPED;
+//#endif
 
 	try 
 	{
 		parse();
 
+		serialize_test(symtab, *symbols[0], &symbol_report);
+		serialize_test(symtab, *regions[0], &region_report);
+		for (unsigned long i = 0; i < symbols.size(); ++i)
+		{
+			if (NULL == symbols[i]->getRegion()) 
+			{
+				fprintf(stderr, "%s[%d]:  SKIPPING symbol %s with no region\n", FILE__, __LINE__, symbols[i]->getPrettyName().c_str());
+				continue;
+			}
+			serialize_test(symtab, *(symbols[i]), &symbol_report);
+		}
 		serialize_test(symtab, *variables[0], &variable_report);
 		serialize_test(symtab, *functions[0], &function_report);
-		serialize_test(symtab, *symbols[0], &symbol_report);
 		serialize_test(symtab, *modules[0], &module_report);
 #if !defined (os_aix_test) && !defined (os_windows)
 		serialize_test(symtab, relocations[0], &relocation_report);
 #endif
-		serialize_test(symtab, *regions[0], &region_report);
 		serialize_test(symtab, *type_enum, &type_enum_report);
 		serialize_test(symtab, *type_pointer, &type_pointer_report);
 		serialize_test(symtab, *type_struct, &type_struct_report);

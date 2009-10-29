@@ -1061,8 +1061,7 @@ test_results_t test_type_info_Mutator::executeTest()
 {
 
 #if defined (os_linux_test) && defined (arch_x86_test)
-	//  actually only fails for c++
-	if (useAttach == DESERIALIZE)
+	if ((useAttach == DESERIALIZE) && (compiler == std::string("g++")))
 		return SKIPPED;
 #endif
 #if defined (os_aix_test) 
