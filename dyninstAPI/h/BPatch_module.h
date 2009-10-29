@@ -66,6 +66,8 @@ class int_function;
 class int_variable;
 class instPoint;
 class AddressSpace;
+class BPatch_snippet;
+class BPatchSnippetHandle;
 
 extern BPatch_builtInTypeCollection * builtInTypes;
 
@@ -266,6 +268,12 @@ public:
     //  a list of all such calls being made in this module
     API_EXPORT(Int, (), 
     BPatch_Vector<BPatch_point *> *,getUnresolvedControlFlow, ());
+    
+    API_EXPORT(Int, (what),
+               BPatchSnippetHandle*, insertInitCallback, (BPatch_snippet& what));
+
+    API_EXPORT(Int, (what),
+               BPatchSnippetHandle*, insertFiniCallback, (BPatch_snippet& what));
 
 #ifdef IBM_BPATCH_COMPAT
     API_EXPORT(Int, (start, end),

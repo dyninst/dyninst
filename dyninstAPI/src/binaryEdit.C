@@ -49,6 +49,7 @@
 #include "debug.h"
 #include "os.h"
 #include "instPoint.h"
+#include <libelf.h>
 
 // #define USE_ADDRESS_MAPS
 
@@ -317,10 +318,74 @@ BinaryEdit *BinaryEdit::openFile(const std::string &file) {
     // I'm going through the mapped_object interface for now - 
     // I assume we'll pass it to DynSymtab, then add our base
     // address to it at the mapped_ level. 
-    
-    newBinaryEdit->highWaterMark_ = newBinaryEdit->getAOut()->parse_img()->getObject()->getFreeOffset(50*1024*1024);
+    Symtab* linkedFile = newBinaryEdit->getAOut()->parse_img()->getObject();
+    newBinaryEdit->highWaterMark_ = linkedFile->getFreeOffset(50*1024*1024);
     newBinaryEdit->lowWaterMark_ = newBinaryEdit->highWaterMark_;
 
+    bool foundInit = false;
+    bool foundFini = false;
+    vector <Function *> funcs;
+    if (linkedFile->findFunctionsByName(funcs, "_fini"))
+        foundFini = true;
+    if(linkedFile->findFunctionsByName(funcs, "_init"))
+        foundInit = true;
+    if( !foundInit )
+    {
+        Region *initsec = linkedFile->findEnclosingRegion(linkedFile->getInitOffset());
+        if(!initsec)
+        {
+            static const unsigned char emptyFunction[] = { 0x55, 0x48, 0x89, 0xe5, 0xc3 };
+            static const int emptyFuncSize = 5;
+            linkedFile->addRegion(newBinaryEdit->highWaterMark_, (void*)(emptyFunction), emptyFuncSize, ".init.dyninst",
+                                  Dyninst::SymtabAPI::Region::RT_TEXT, true);
+            newBinaryEdit->highWaterMark_ += emptyFuncSize;
+            newBinaryEdit->lowWaterMark_ += emptyFuncSize;
+            linkedFile->findRegion(initsec, ".init.dyninst");
+            assert(initsec);
+            linkedFile->addSysVDynamic(DT_INIT, initsec->getRegionAddr());
+            startup_printf("%s[%d]: creating .init.dyninst region, region addr 0x%lx\n",
+                           FILE__, __LINE__, initsec->getRegionAddr());
+        }
+        startup_printf("%s[%d]: ADDING _init at 0x%lx\n", FILE__, __LINE__, initsec->getRegionAddr());
+        Symbol *initSym = new Symbol( "_init",
+                                      Symbol::ST_FUNCTION,
+                                      Symbol::SL_GLOBAL,
+                                      Symbol::SV_DEFAULT,
+                                      initsec->getRegionAddr(),
+                                      linkedFile->getDefaultModule(),
+                                      initsec,
+                                      UINT_MAX );
+        linkedFile->addSymbol(initSym);
+    }
+    if( !foundFini )
+    {
+        Region *finisec = linkedFile->findEnclosingRegion(linkedFile->getFiniOffset());
+        if(!finisec)
+        {
+            static const unsigned char emptyFunction[] = { 0x55, 0x48, 0x89, 0xe5, 0xc3 };
+            static const int emptyFuncSize = 5;
+            linkedFile->addRegion(newBinaryEdit->highWaterMark_, (void*)(emptyFunction), emptyFuncSize, ".fini.dyninst",
+                                  Dyninst::SymtabAPI::Region::RT_TEXT, true);
+            newBinaryEdit->highWaterMark_ += emptyFuncSize;
+            newBinaryEdit->lowWaterMark_ += emptyFuncSize;
+            linkedFile->findRegion(finisec, ".fini.dyninst");
+            assert(finisec);
+            linkedFile->addSysVDynamic(DT_FINI, finisec->getRegionAddr());
+            startup_printf("%s[%d]: creating .fini.dyninst region, region addr 0x%lx\n",
+                           FILE__, __LINE__, finisec->getRegionAddr());
+
+        }
+        startup_printf("%s[%d]: ADDING _fini at 0x%lx\n", FILE__, __LINE__, finisec->getRegionAddr());
+        Symbol *finiSym = new Symbol( "_fini",
+                                      Symbol::ST_FUNCTION,
+                                      Symbol::SL_GLOBAL,
+                                      Symbol::SV_DEFAULT,
+                                      finisec->getRegionAddr(),
+                                      linkedFile->getDefaultModule(),
+                                      finisec,
+                                      UINT_MAX );
+        linkedFile->addSymbol(finiSym);
+    }
 
     newBinaryEdit->createMemoryBackingStore(newBinaryEdit->getAOut());
     newBinaryEdit->initialize();

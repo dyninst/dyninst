@@ -273,6 +273,8 @@ class Symtab : public LookupInterface,
    SYMTAB_EXPORT Offset imageLength() const;
    //   SYMTAB_EXPORT char*  image_ptr ()  const;
    //   SYMTAB_EXPORT char*  data_ptr ()  const;
+   SYMTAB_EXPORT Offset getInitOffset();
+   SYMTAB_EXPORT Offset getFiniOffset();
 
    SYMTAB_EXPORT const char*  getInterpreterName() const;
 

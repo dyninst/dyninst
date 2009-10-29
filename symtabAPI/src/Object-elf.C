@@ -369,6 +369,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
   dynsym_addr_ = 0;
   dynsym_size_ = 0;
   dynstr_addr_ = 0;
+  init_addr_ = 0;
   fini_addr_ = 0;
   opd_addr_ = 0;
   opd_size_ = 0;
@@ -695,9 +696,9 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
       if (!dataddr) dataddr = scnp->sh_addr();
     }
     /* End data region search */
-    else if (strcmp( name, FINI_NAME) == 0) {
+    /*else if (strcmp( name, FINI_NAME) == 0) {
       fini_addr_ = scnp->sh_addr();
-    }
+  }*/
     else if (strcmp(name, SYMTAB_NAME) == 0) {
       if (!symscnp) {
 	symscnp = scnp;
@@ -950,7 +951,13 @@ void Object::parseDynamic(Elf_X_Shdr *&dyn_scnp, Elf_X_Shdr *&dynsym_scnp,
     case DT_RELAENT:
       rel_entry_size_ = dyns.d_val(i);
       break;
-    default:
+    case DT_INIT:
+        init_addr_ = dyns.d_val(i);
+        break;
+    case DT_FINI:
+        fini_addr_ = dyns.d_val(i);
+        break;
+        default:
       break;
     }
   }

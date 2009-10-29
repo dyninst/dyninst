@@ -438,7 +438,8 @@ class Object : public AObject {
     Offset getDynsymSize() const {return dynsym_size_;}
     Offset getElfHashAddr() const {return elf_hash_addr_;}
     Offset getGnuHashAddr() const {return gnu_hash_addr_;}
-
+    Offset getInitAddr() const {return init_addr_; }
+    Offset getFiniAddr() const { return fini_addr_; }
 
   private:
   static void log_elferror (void (*)(const char *), const char *);
@@ -463,6 +464,7 @@ class Object : public AObject {
   Offset   dynamic_offset_;
   size_t   dynamic_size_;
   size_t   dynsym_size_;
+  Offset   init_addr_;
   Offset   fini_addr_;
   Offset   text_addr_; 	 //.text section 
   Offset   text_size_; 	 //.text section size

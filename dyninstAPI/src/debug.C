@@ -269,12 +269,16 @@ bool init_debug() {
     dyn_debug_startup = 1;
   }
   if ( (p=getenv("DYNINST_DEBUG_PARSING"))) {
-    fprintf(stderr, "Enabling DyninstAPI parsing debug\n");
-    dyn_debug_parsing = 1;
+	  if(p[0] != '0') {
+		fprintf(stderr, "Enabling DyninstAPI parsing debug\n");
+	    dyn_debug_parsing = 1;
+	  }
   }
   if ( (p=getenv("DYNINST_DEBUG_PARSE"))) {
-    fprintf(stderr, "Enabling DyninstAPI parsing debug\n");
-    dyn_debug_parsing = 1;
+	  if(p[0] != '0') {
+		fprintf(stderr, "Enabling DyninstAPI parsing debug\n");
+	    dyn_debug_parsing = 1;
+	  }
   }
   if ( (p=getenv("DYNINST_DEBUG_FORKEXEC"))) {
     fprintf(stderr, "Enabling DyninstAPI forkexec debug\n");

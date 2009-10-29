@@ -893,6 +893,39 @@ Address BPatch_module::getLoadAddrInt()
    return mod->obj()->codeBase();
 }
 
+BPatchSnippetHandle* BPatch_module::insertInitCallbackInt(BPatch_snippet& what)
+{
+    BPatch_Vector<BPatch_function*> init_funcs;
+    findFunction("_init", init_funcs);    
+    if(!init_funcs.empty())
+    {
+        assert(init_funcs[0]);
+        BPatch_Vector<BPatch_point*>* init_entry = init_funcs[0]->findPoint(BPatch_entry);
+        if(init_entry && !init_entry->empty() && (*init_entry)[0])
+        {
+            return addSpace->insertSnippet(what, *((*init_entry)[0]));
+        }
+    }
+    return NULL;
+}
+
+BPatchSnippetHandle* BPatch_module::insertFiniCallbackInt(BPatch_snippet& what)
+{
+    BPatch_Vector<BPatch_function*> fini_funcs;
+    findFunction("_fini", fini_funcs);
+    if(!fini_funcs.empty())
+    {
+        assert(fini_funcs[0]);
+        BPatch_Vector<BPatch_point*>* fini_exit = fini_funcs[0]->findPoint(BPatch_exit);
+        if(fini_exit && !fini_exit->empty() && (*fini_exit)[0])
+        {
+            return addSpace->insertSnippet(what, *((*fini_exit)[0]));
+        }
+    }
+    return NULL;
+}
+
+
 #ifdef IBM_BPATCH_COMPAT
 
 bool BPatch_module::getLineNumbersInt( unsigned int & startLine, unsigned int & endLine )

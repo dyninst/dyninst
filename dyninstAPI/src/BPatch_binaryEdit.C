@@ -330,6 +330,7 @@ void BPatch_binaryEdit::getAS(std::vector<AddressSpace *> &as)
    }
 }
 
+
 /*
  * BPatch_addressSpace::beginInsertionSet
  * 
