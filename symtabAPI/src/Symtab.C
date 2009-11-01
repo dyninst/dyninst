@@ -1604,7 +1604,7 @@ Symtab::~Symtab()
    }
 
    //fprintf(stderr, "%s[%d]:  symtab DTOR, mf = %p: %s\n", FILE__, __LINE__, mf, mf->filename().c_str());
-   //if (mf) MappedFile::closeMappedFile(mf);
+   if (mf) MappedFile::closeMappedFile(mf);
    //if (mfForDebugInfo) MappedFile::closeMappedFile(mfForDebugInfo);
 #endif
 }	

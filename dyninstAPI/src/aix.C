@@ -1800,7 +1800,7 @@ bool SignalGenerator::decodeSignal_NP(EventRecord &ev)
   return false;  // signall needs further deccoding
 }
 
-bool SignalGeneratorCommon::getExecFileDescriptor(std::string /*filename*/,
+bool SignalGeneratorCommon::getExecFileDescriptor(std::string filename,
                                                   int pid,
                                                   bool waitForTrap,
                                                   int &status,
@@ -1813,8 +1813,7 @@ bool SignalGeneratorCommon::getExecFileDescriptor(std::string /*filename*/,
 
     // Amusingly, we don't use the filename parameter; we need to match with
     // later /proc reads, and little things like pathnames kinda get in the way.
-    
-
+      
     char tempstr[256];
 
     // Can get rid of this; actually, move to attach.
@@ -1910,19 +1909,24 @@ bool SignalGeneratorCommon::getExecFileDescriptor(std::string /*filename*/,
 
     // Check if text_name substring matches filename?
 
-   // text_name... heh. The entry in maps is stripped of path information. 
-   // Instead, we go with /proc/<pid>/object/a.out
+   /* name... We generate relative paths of exe with and without "./" at different places. 
+      This creates multiple mapped file for the same file due to different paths. 
+      We will simplify it by stripping the "./" */
    char text_name[256];
-   sprintf(text_name, "/proc/%d/object/a.out", pid);
-
-    desc = fileDescriptor(text_name,
+   char name[256];
+   strcpy(text_name, filename.c_str());
+   if (text_name[0] == '.')
+    	strcpy(name,text_name+2);
+   else
+    	strcpy(name, text_name);
+   desc = fileDescriptor(name,
                           textOrg,
                           dataOrg,
                           false); // Not a shared object
     // Try and track the types of descriptors created in aixDL.C...
 	// We set this to the pathless file name (so that we can distinguish
 	// exec'ed processes)
-    desc.setMember(prog_name);
+    desc.setMember(name);
     //desc.setPid(pid);
     
     return true;

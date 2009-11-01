@@ -167,25 +167,26 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &result)
             if (dataOrg % sizeof(unsigned))
                 dataOrg += sizeof(unsigned) - (dataOrg % sizeof(unsigned));
             
-			fileDescriptor fda;
+	    fileDescriptor fda;
+	    /* a.out is already added by setAout */
+#if 0
+	    if(is_aout)
+	    {
+				//fda = fileDescriptor(objname, textOrg, dataOrg, false);
+				//fda.setMember(objname+1);
+            			//result.push_back(fda);
+	    }
+#endif
 
-			if (is_aout) {
-				char buf[256];
-				sprintf(buf, "/proc/%d/object/a.out", proc->getPid());
-				fda = fileDescriptor(buf, textOrg, dataOrg, false);
-				fda.setMember(objname);
-			}
-			else {
+	    if (!is_aout) {
            		fda = fileDescriptor(objname, 
                                      textOrg, dataOrg,
                                      true);
-                fda.setMember(objname+strlen(objname)+1);
+        	        fda.setMember(objname+strlen(objname)+1);
+	        	result.push_back(fda);
             }
-            //fda.setPid(pid);
-
-            result.push_back(fda);
-
             is_aout = false;
+            //fda.setPid(pid);
         }
         
     } while (mapEntry.pr_size != 0);
