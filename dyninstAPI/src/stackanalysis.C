@@ -672,10 +672,10 @@ std::string StackAnalysis::InsnTransferFunc::format() const {
 
     if (range_ == defaultRange) {
         if (!abs_) {
-            sprintf(buf, "<%d>", delta_);
+	  sprintf(buf, "<%ld>", (long int) delta_);
         }
         else {
-            sprintf(buf, "Abs: %d", delta_);
+	  sprintf(buf, "Abs: %ld", (long int) delta_);
         }
     }
     else {

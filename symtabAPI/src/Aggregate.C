@@ -377,7 +377,7 @@ void Aggregate::restore_type_by_id(SerializerBase *sb, Type *&t,
 			for (unsigned int i = 0; i < mods.size(); ++i)
 			{
 				std::vector<Type *> *modtypes = mods[i]->getAllTypes();
-				fprintf(stderr, "%s[%d]:  module %s has %ld types\n", FILE__, __LINE__, mods[i]->fileName().c_str(), (unsigned long) modtypes ? modtypes->size() : -1);
+				fprintf(stderr, "%s[%d]:  module %s has %ld types\n", FILE__, __LINE__, mods[i]->fileName().c_str(), (signed long) (modtypes ? modtypes->size() : -1));
 				if (mods[i]->getModuleTypesPrivate()->findType(t_id))
 					fprintf(stderr, "%s[%d]:  found type %d in mod %s\n", FILE__, __LINE__, t_id, mods[i]->fileName().c_str());
 			}

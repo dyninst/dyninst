@@ -480,7 +480,7 @@ class AnnotatableDense
 			  }
 
 			  fprintf(stderr, "%s[%d]:  Dense(%p):  have %lu annotations\n", 
-					  FILE__, __LINE__, this, atypes.size());
+				  FILE__, __LINE__, this, (unsigned long) atypes.size());
 
 			  for (unsigned int i = 0; i < atypes.size(); ++i)
 			  {
@@ -972,7 +972,7 @@ class AnnotatableSparse
 		  }
 
 		  fprintf(stderr, "%s[%d]:  Sparse(%p):  have %lu annos:\n", FILE__, __LINE__, 
-				  this, atypes.size());
+			  this, (unsigned long) atypes.size());
 		  for (unsigned int i = 0; i < atypes.size(); ++i)
 		  {
 			  fprintf(stderr, "\t%s-%d, %s\n", atypes[i]->getName().c_str(), 

@@ -2081,7 +2081,7 @@ Serializable * CBlock::serialize_impl(SerializerBase *sb, const char *tag) THROW
 
 	if (sb->isInput())
 		fprintf(stderr, "%s[%d]:  TODO:  need to look up %lu symbols here\n", 
-				FILE__, __LINE__, f_offsets.size());
+			FILE__, __LINE__, (unsigned long) f_offsets.size());
 
 	return NULL;
 }
