@@ -436,7 +436,11 @@ bool emitElf::driver(Symtab *obj, string fName){
 
     // resolve section name
     const char *name = &shnames[shdr->sh_name];
-    obj->findRegion(foundSec, shdr->sh_addr, shdr->sh_size);
+    bool result = obj->findRegion(foundSec, shdr->sh_addr, shdr->sh_size);
+    if (!result) {
+      result = obj->findRegion(foundSec, name);
+    }
+
 
 
     // write the shstrtabsection at the end
@@ -456,24 +460,24 @@ bool emitElf::driver(Symtab *obj, string fName){
     memcpy(newdata,olddata, sizeof(Elf_Data));
 
 
-	secNames.push_back(name);
-	newshdr->sh_name = secNameIndex;
+    secNames.push_back(name);
+    newshdr->sh_name = secNameIndex;
     secNameIndex += strlen(name) + 1;
     
     if(foundSec->isDirty())
-      {
-	//printf("  SYMTAB: copy from NEW data [%s]  0x%lx to 0x%lx  sz=%d\n", 
-	//name, foundSec->getPtrToRawData(), newshdr->sh_addr, foundSec->getDiskSize());
-	newdata->d_buf = (char *)malloc(foundSec->getDiskSize());
-	memcpy(newdata->d_buf, foundSec->getPtrToRawData(), foundSec->getDiskSize());
-	newdata->d_size = foundSec->getDiskSize();
-	newshdr->sh_size = foundSec->getDiskSize();
-      }
+    {
+       //printf("  SYMTAB: copy from NEW data [%s]  0x%lx to 0x%lx  sz=%d\n", 
+       //name, foundSec->getPtrToRawData(), newshdr->sh_addr, foundSec->getDiskSize());
+       newdata->d_buf = (char *)malloc(foundSec->getDiskSize());
+       memcpy(newdata->d_buf, foundSec->getPtrToRawData(), foundSec->getDiskSize());
+       newdata->d_size = foundSec->getDiskSize();
+       newshdr->sh_size = foundSec->getDiskSize();
+    }
     else if(olddata->d_buf)     //copy the data buffer from oldElf
-      {
-	//printf("  SYMTAB: copy from old data [%s]\n", name);
-	newdata->d_buf = (char *)malloc(olddata->d_size);
-	memcpy(newdata->d_buf, olddata->d_buf, olddata->d_size);
+    {
+       //printf("  SYMTAB: copy from old data [%s]\n", name);
+       newdata->d_buf = (char *)malloc(olddata->d_size);
+       memcpy(newdata->d_buf, olddata->d_buf, olddata->d_size);
       }
 
     if (newshdr->sh_entsize && (newshdr->sh_size % newshdr->sh_entsize != 0))
@@ -658,6 +662,8 @@ bool emitElf::driver(Symtab *obj, string fName){
 
   // Move the section header to the end
   newEhdr->e_shoff =shdr->sh_offset+shdr->sh_size;
+  if (newEhdr->e_shoff % 8)
+    newEhdr->e_shoff += 8 - (newEhdr->e_shoff % 8);
   if(addNewSegmentFlag)
     newEhdr->e_shoff += pgSize;
 
@@ -1417,9 +1423,9 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std::
       allSymSymbols.push_back(allSymbols[i]);
     }	
     if (!obj->isStaticBinary()) {
-    	if(allSymbols[i]->isInDynSymtab()) {
-      		allDynSymbols.push_back(allSymbols[i]);
-    	}	
+      if(allSymbols[i]->isInDynSymtab()) {
+        allDynSymbols.push_back(allSymbols[i]);
+      }	
     }
   }
  

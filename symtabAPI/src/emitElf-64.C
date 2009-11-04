@@ -387,8 +387,11 @@ bool emitElf64::driver(Symtab *obj, string fName){
     shdr = elf64_getshdr(scn);
     // resolve section name
     const char *name = &shnames[shdr->sh_name];
-    obj->findRegion(foundSec, shdr->sh_addr, shdr->sh_size);
-
+    bool result = obj->findRegion(foundSec, shdr->sh_addr, shdr->sh_size);
+    if (!result) {
+      result = obj->findRegion(foundSec, name);
+    }
+    
 
     // write the shstrtabsection at the end
     if(!strcmp(name, ".shstrtab"))
@@ -573,6 +576,8 @@ bool emitElf64::driver(Symtab *obj, string fName){
 
   // Move the section header to the end
   newEhdr->e_shoff =shdr->sh_offset+shdr->sh_size;
+  if (newEhdr->e_shoff % 8)
+    newEhdr->e_shoff += 8 - (newEhdr->e_shoff % 8);
   /*    if(addNewSegmentFlag)
         newEhdr->e_shoff += pgSize;
   */
@@ -1318,10 +1323,10 @@ bool emitElf64::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std
   if(!isStripped)
     {
       Region *sec;
-      if (obj->findRegion(sec,".symtab")) 
-	      sec->setPtrToRawData(syms, symbols.size()*sizeof(Elf64_Sym));
+      if (obj->findRegion(sec,".symtab"))
+	sec->setPtrToRawData(syms, symbols.size()*sizeof(Elf64_Sym));
       else
-	      obj->addRegion(0, syms, symbols.size()*sizeof(Elf64_Sym), ".symtab", Region::RT_SYMTAB);
+	obj->addRegion(0, syms, symbols.size()*sizeof(Elf64_Sym), ".symtab", Region::RT_SYMTAB);
     }
   else
     obj->addRegion(0, syms, symbols.size()*sizeof(Elf64_Sym), ".symtab", Region::RT_SYMTAB);
