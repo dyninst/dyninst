@@ -45,42 +45,6 @@ using namespace Dyninst;
 using namespace Stackwalker;
 using namespace SymtabAPI;
 
-DebugStepper::DebugStepper(Walker *w) :
-   FrameStepper(w)
-{
-#if defined(cap_stackwalker_use_symtab)
-   impl = new DebugStepperImpl(w, this);
-#else
-   impl = NULL;
-#endif
-}
-
-gcframe_ret_t DebugStepper::getCallerFrame(const Frame &in, Frame &out)
-{
-   if (!impl)
-      return gcf_not_me;
-   return impl->getCallerFrame(in, out);
-}
-
-unsigned DebugStepper::getPriority() const {
-   if (!impl)
-      return 0;
-   return impl->getPriority();
-}
-
-void DebugStepper::registerStepperGroup(StepperGroup *group)
-{
-   if (!impl)
-      return;
-   return impl->registerStepperGroup(group);
-}
-
-DebugStepper::~DebugStepper()
-{
-   if (impl)
-      delete impl;
-}
-
 #if defined(cap_stackwalker_use_symtab)
 
 DebugStepperImpl::DebugStepperImpl(Walker *w, DebugStepper *parent) :

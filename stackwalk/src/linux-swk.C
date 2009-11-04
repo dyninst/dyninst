@@ -1376,51 +1376,6 @@ ThreadState* ThreadState::createThreadState(ProcDebug *parent,
    return newts;
 }
 
-SigHandlerStepper::SigHandlerStepper(Walker *w) :
-   FrameStepper(w)
-{
-   impl = new SigHandlerStepperImpl(w, this);
-}
-
-gcframe_ret_t SigHandlerStepper::getCallerFrame(const Frame &in, Frame &out)
-{
-   if (impl)
-      return impl->getCallerFrame(in, out);
-   sw_printf("[%s:%u] - Error, signal handler walker used on unsupported platform\n",
-             __FILE__, __LINE__);
-   setLastError(err_unsupported, "Signal handling walking not supported on this platform");
-   return gcf_error;
-}
-
-unsigned SigHandlerStepper::getPriority() const
-{
-   if (impl)
-      return impl->getPriority();
-   sw_printf("[%s:%u] - Error, signal handler walker used on unsupported platform\n",
-             __FILE__, __LINE__);
-   setLastError(err_unsupported, "Signal handling walking not supported on this platform");
-   return 0;
-}
-
-void SigHandlerStepper::registerStepperGroup(StepperGroup *group)
-{
-   if (impl) {
-      impl->registerStepperGroup(group);
-      return;
-   }
-   sw_printf("[%s:%u] - Error, signal handler walker used on unsupported "
-             "platform\n",  __FILE__, __LINE__);
-   setLastError(err_unsupported, "Signal handling walking not supported on" 
-                " this platform");
-}
-
-SigHandlerStepper::~SigHandlerStepper()
-{
-   if (impl)
-      delete impl;
-   impl = NULL;
-}
-
 BottomOfStackStepperImpl::BottomOfStackStepperImpl(Walker *w, BottomOfStackStepper *p) :
    FrameStepper(w),
    parent(p),

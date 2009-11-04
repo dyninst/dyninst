@@ -171,7 +171,7 @@ void Frame::setFPLocation(location_t newval) {
   fp_loc = newval;
 }
 
-void Frame::setNameValue() {
+void Frame::setNameValue() const {
   if (name_val_set == nv_set || name_val_set == nv_err)
     return;
   
@@ -202,7 +202,7 @@ void Frame::setNameValue() {
   name_val_set = nv_set;
 }
 
-bool Frame::getName(std::string &str) {
+bool Frame::getName(std::string &str) const {
   setNameValue();
   if (name_val_set == nv_set) {
     str = sym_name;
@@ -217,7 +217,7 @@ bool Frame::getName(std::string &str) {
   }
 }
 
-bool Frame::getObject(void* &obj) {
+bool Frame::getObject(void* &obj) const {
   setNameValue();
   if (name_val_set == nv_set) {
     obj = sym_value;
@@ -293,4 +293,3 @@ void Frame::setThread(THR_ID t)
 {
    originating_thread = t;
 }
-

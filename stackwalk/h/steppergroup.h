@@ -57,6 +57,7 @@ public:
    virtual Walker *getWalker() const;
    virtual void registerStepper(FrameStepper *stepper);
    virtual void newLibraryNotification(LibAddrPair *libaddr, lib_change_t change);
+   void getSteppers(std::set<FrameStepper *> &steppers);
 };
 
 class AddrRangeGroupImpl;

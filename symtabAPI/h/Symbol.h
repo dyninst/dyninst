@@ -160,7 +160,7 @@ class Symbol : public Serializable,
    SYMTAB_EXPORT Region *getRegion() const { return region_; }
 
    SYMTAB_EXPORT bool isInDynSymtab() const { return isDynamic_; }
-   SYMTAB_EXPORT bool isInSymtab() const { return isInDynSymtab(); }
+   SYMTAB_EXPORT bool isInSymtab() const { return !isDynamic_; }
    SYMTAB_EXPORT bool isAbsolute() const { return isAbsolute_; }
 
    SYMTAB_EXPORT bool              isFunction()            const;

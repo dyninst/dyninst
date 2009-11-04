@@ -88,27 +88,20 @@ bool ProcSelf::getRegValue(Dyninst::MachRegister reg, THR_ID, Dyninst::MachRegis
   return true;
 }
 
-gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
+static gcframe_ret_t HandleStandardFrame(const Frame &in, Frame &out, ProcessState *proc)
 {
   Address in_fp, out_sp;
+  const unsigned addr_width = proc->getAddressWidth();
   bool result;
-  const unsigned addr_width = getProcessState()->getAddressWidth();
 
   struct {
     Address out_fp;
     Address out_ra;
   } ra_fp_pair;
 
-  if (!in.getFP())
-     return gcf_not_me;
-
-  FrameFuncHelper::alloc_frame_t frame = helper->allocatesFrame(in.getRA());
-  if (frame.first != FrameFuncHelper::standard_frame) {
-     return gcf_not_me;
-  }
-
   in_fp = in.getFP();
   out_sp = in_fp + addr_width;
+
 #if defined(arch_x86_64)
   /**
    * On AMD64 we may be reading from a process with a different
@@ -122,15 +115,17 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
   } ra_fp_pair32;
   if (addr_width != sizeof(Address))
   {
-     result = getProcessState()->readMem(&ra_fp_pair32, in_fp, 
-                                         sizeof(ra_fp_pair32));
+     result = proc->readMem(&ra_fp_pair32, in_fp, 
+			    sizeof(ra_fp_pair32));
      ra_fp_pair.out_fp = (Address) ra_fp_pair32.out_fp;
      ra_fp_pair.out_ra = (Address) ra_fp_pair32.out_ra;
   }
   else
 #endif
-     result = getProcessState()->readMem(&ra_fp_pair, in_fp, 
-                                         sizeof(ra_fp_pair));
+  {
+    result = proc->readMem(&ra_fp_pair, in_fp, sizeof(ra_fp_pair));
+  }
+
   if (!result) {
     sw_printf("[%s:%u] - Couldn't read from %lx\n", __FILE__, __LINE__, out_sp);
     return gcf_error;
@@ -145,6 +140,20 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
   out.setSP(out_sp);
 
   return gcf_success;
+}
+
+
+gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
+{
+  if (!in.getFP())
+     return gcf_not_me;
+
+  FrameFuncHelper::alloc_frame_t frame = helper->allocatesFrame(in.getRA());
+  if (frame.first != FrameFuncHelper::standard_frame) {
+     return gcf_not_me;
+  }
+
+  return HandleStandardFrame(in, out, getProcessState());
 }
  
 std::map<Dyninst::PID, LookupFuncStart*> LookupFuncStart::all_func_starts;
@@ -413,6 +422,17 @@ FrameFuncHelper::alloc_frame_t LookupFuncStart::allocatesFrame(Address /*addr*/)
    return FrameFuncHelper::alloc_frame_t(unknown_t, unknown_s);
 }
 #endif
+
+gcframe_ret_t DyninstInstrStepperImpl::getCallerFrameArch(const Frame &in, Frame &out, Address /*base*/, Address lib_base,
+							  unsigned /*size*/, unsigned stack_height)
+{
+  gcframe_ret_t ret = HandleStandardFrame(in, out, getProcessState());
+  if (ret != gcf_success)
+    return ret;
+  out.setRA(out.getRA() + lib_base);
+  out.setSP(out.getSP() + stack_height);
+  return gcf_success;
+}
 
 namespace Dyninst {
 namespace Stackwalker {

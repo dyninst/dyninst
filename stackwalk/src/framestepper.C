@@ -36,11 +36,9 @@
 #include "stackwalk/h/steppergroup.h"
 
 #include "stackwalk/src/sw.h"
+
 #include <assert.h>
 
-#if defined(os_linux)
-#include "stackwalk/src/linux-swk.h"
-#endif 
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
@@ -86,42 +84,6 @@ void FrameStepper::registerStepperGroup(StepperGroup *group)
       assert(0 && "Unknown architecture word size");
 }
 
-FrameFuncStepper::FrameFuncStepper(Walker *w, FrameFuncHelper *helper) :
-   FrameStepper(w)
-{
-   impl = new FrameFuncStepperImpl(w, this, helper);
-}
-
-FrameFuncStepper::~FrameFuncStepper()
-{
-   if (impl)
-      delete impl;
-}
-
-gcframe_ret_t FrameFuncStepper::getCallerFrame(const Frame &in, Frame &out)
-{
-   if (impl)
-      return impl->getCallerFrame(in, out);
-   sw_printf("[%s:%u] - Platform does not have basic stepper\n", 
-             __FILE__, __LINE__);
-   setLastError(err_unsupported, "Function frames not supported on this platform.");
-   return gcf_error;
-}
-
-unsigned FrameFuncStepper::getPriority() const
-{
-   if (impl)
-      return impl->getPriority();
-   sw_printf("[%s:%u] - Platform does not have basic stepper\n", 
-             __FILE__, __LINE__);
-   setLastError(err_unsupported, "Function frames not supported on this platform.");
-   return 0;
-}
-
-void FrameFuncStepper::registerStepperGroup(StepperGroup *group)
-{
-   FrameStepper::registerStepperGroup(group);
-}
 
 FrameFuncHelper::FrameFuncHelper(ProcessState *proc_) :
    proc(proc_)
@@ -132,56 +94,77 @@ FrameFuncHelper::~FrameFuncHelper()
 {
 }
 
-#ifndef os_bg
-BottomOfStackStepper::BottomOfStackStepper(Walker *w) :
-   FrameStepper(w)
-{
-   sw_printf("[%s:%u] - Constructing BottomOfStackStepper at %p\n",
-             __FILE__, __LINE__, this);
-#if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))
-   impl = new BottomOfStackStepperImpl(w, this);
-#else
-   impl = NULL;
+//FrameFuncStepper defined here
+#define PIMPL_IMPL_CLASS FrameFuncStepperImpl
+#define PIMPL_CLASS FrameFuncStepper
+#define PIMPL_NAME "FrameFuncStepper"
+#define PIMPL_ARG1 FrameFuncHelper*
+#include "framestepper_pimple.h"
+#undef PIMPL_CLASS
+#undef PIMPL_NAME
+#undef PIMPL_IMPL_CLASS
+#undef PIMPL_ARG1
+
+//DyninstInstrStepper defined here
+#if defined(cap_stackwalker_use_symtab)
+#include "stackwalk/src/symtab-swk.h"
+#define PIMPL_IMPL_CLASS DyninstInstrStepperImpl
 #endif
-}
+#define PIMPL_CLASS DyninstInstrStepper
+#define PIMPL_NAME "DyninstInstrStepper"
+#include "framestepper_pimple.h"
+#undef PIMPL_CLASS
+#undef PIMPL_IMPL_CLASS
+#undef PIMPL_NAME
 
-gcframe_ret_t BottomOfStackStepper::getCallerFrame(const Frame &in, Frame &out)
-{
-   if (impl) {
-      return impl->getCallerFrame(in, out);
-   }
-   sw_printf("[%s:%u] - Error, top of stack not implemented on this platform\n",
-             __FILE__, __LINE__);
-   setLastError(err_unsupported, "Top of stack recognition not supported on this platform");
-   return gcf_error;
-}
+//BottomOfStackStepper defined here
+#if defined(cap_stackwalker_use_symtab) && defined(os_linux)
+#include "stackwalk/src/linux-swk.h"
+#define PIMPL_IMPL_CLASS BottomOfStackStepperImpl
+#endif
+#define PIMPL_CLASS BottomOfStackStepper
+#define PIMPL_NAME "BottomOfStackStepper"
+#include "framestepper_pimple.h"
+#undef PIMPL_CLASS
+#undef PIMPL_IMPL_CLASS
+#undef PIMPL_NAME
 
-unsigned BottomOfStackStepper::getPriority() const
-{
-   if (impl) {
-      return impl->getPriority();
-   }
-   sw_printf("[%s:%u] - Error, top of stack not implemented on this platform\n",
-             __FILE__, __LINE__);
-   setLastError(err_unsupported, "Top of stack recognition not supported on this platform");
-   return 0;
-}
+//DebugStepper defined here
+#if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64)) && defined(cap_stackwalker_use_symtab)
+#include "stackwalk/src/dbgstepper-impl.h"
+#define PIMPL_IMPL_CLASS DebugStepperImpl
+#endif
+#define PIMPL_CLASS DebugStepper
+#define PIMPL_NAME "DebugStepper"
+#include "framestepper_pimple.h"
+#undef PIMPL_CLASS
+#undef PIMPL_IMPL_CLASS
+#undef PIMPL_NAME
 
-void BottomOfStackStepper::registerStepperGroup(StepperGroup *group)
-{
-   if (impl) {
-      return impl->registerStepperGroup(group);
-   }
-   sw_printf("[%s:%u] - Error, top of stack not implemented on this platform\n",
-             __FILE__, __LINE__);
-   setLastError(err_unsupported, "Top of stack recognition not supported on this platform");
-}
+//StepperWanderer defined here
+#if defined(arch_x86) || defined(arch_x86_64)
+#include "stackwalk/src/x86-swk.h"
+#define PIMPL_IMPL_CLASS StepperWandererImpl
+#endif
+#define PIMPL_CLASS StepperWanderer
+#define PIMPL_NAME "StepperWanderer"
+#define PIMPL_ARG1 WandererHelper*
+#define PIMPL_ARG2 FrameFuncHelper*
+#include "framestepper_pimple.h"
+#undef PIMPL_CLASS
+#undef PIMPL_IMPL_CLASS
+#undef PIMPL_NAME
+#undef PIMPL_ARG1
+#undef PIMPL_ARG2
 
-BottomOfStackStepper::~BottomOfStackStepper()
-{
-   sw_printf("[%s:%u] - Deleting BottomOfStackStepper %p (impl %p)\n", 
-             __FILE__, __LINE__, this, impl);
-   if (impl)
-      delete impl;
-}
-#endif // os_bg_compute
+//SigHandlerStepper defined here
+#if defined(os_linux)
+#include "stackwalk/src/linux-swk.h"
+#define PIMPL_IMPL_CLASS SigHandlerStepperImpl
+#endif
+#define PIMPL_CLASS SigHandlerStepper
+#define PIMPL_NAME "SigHandlerStepper"
+#include "framestepper_pimple.h"
+#undef PIMPL_CLASS
+#undef PIMPL_IMPL_CLASS
+#undef PIMPL_NAME

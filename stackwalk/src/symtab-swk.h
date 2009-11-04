@@ -34,7 +34,7 @@
 
 #if defined(cap_stackwalker_use_symtab)
 
-
+#include "stackwalk/h/framestepper.h"
 #include "symtabAPI/h/Symtab.h"
 #include "dynutil/h/dyntypes.h"
 #include "stackwalk/h/procstate.h"
@@ -95,6 +95,21 @@ class SymtabWrapper {
    static Symtab *getSymtab(std::string filename);
    static void notifyOfSymtab(Symtab *symtab, std::string name);
    ~SymtabWrapper();
+};
+
+class DyninstInstrStepperImpl : public FrameStepper {
+ private:
+   static std::map<Symtab *, bool> isRewritten;
+   FrameStepper *parent;
+  
+ public:
+   DyninstInstrStepperImpl(Walker *w, FrameStepper *p);
+   virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
+   gcframe_ret_t getCallerFrameArch(const Frame &in, Frame &out, Address base, Address lib_base, 
+				    unsigned size, unsigned stack_height);
+   virtual unsigned getPriority() const;
+   virtual void registerStepperGroup(StepperGroup *group);
+   virtual ~DyninstInstrStepperImpl();
 };
 
 }

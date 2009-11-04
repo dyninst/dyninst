@@ -76,6 +76,8 @@ class FrameFuncStepperImpl : public FrameStepper
    virtual ~FrameFuncStepperImpl();
    virtual gcframe_ret_t getCallerFrame(const Frame &in, 
                                         Frame &out);
+   static gcframe_ret_t getBasicCallerFrame(const Frame &in, 
+					    Frame &out);
    virtual unsigned getPriority() const;
 };
 

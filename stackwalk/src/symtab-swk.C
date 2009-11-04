@@ -35,6 +35,7 @@
 #include "stackwalk/h/symlookup.h"
 #include "stackwalk/h/swk_errors.h"
 #include "stackwalk/h/walker.h"
+#include "stackwalk/h/frame.h"
 #include <assert.h>
 
 #include "symtabAPI/h/Symtab.h"
@@ -47,6 +48,7 @@ using namespace Dyninst::Stackwalker;
 using namespace Dyninst::SymtabAPI;
 
 SymtabWrapper* SymtabWrapper::wrapper;
+std::map<Symtab*, bool> DyninstInstrStepperImpl::isRewritten;
 
 SymtabWrapper::SymtabWrapper()
 {
@@ -376,6 +378,96 @@ bool SwkSymtab::lookupAtAddr(Address addr, std::string &out_name,
 
 SwkSymtab::SwkSymtab(Walker *w, const std::string &exec_name) :
    SymbolLookup(w, exec_name)
+{
+}
+
+DyninstInstrStepperImpl::DyninstInstrStepperImpl(Walker *w, FrameStepper *p) :
+  FrameStepper(w),
+  parent(p)
+{
+}
+
+gcframe_ret_t DyninstInstrStepperImpl::getCallerFrame(const Frame &in, Frame &out)
+{
+   LibAddrPair lib;
+   bool result;
+
+   result = getProcessState()->getLibraryTracker()->getLibraryAtAddr(in.getRA(), lib);
+   if (!result) {
+      sw_printf("[%s:%u] - Stackwalking through an invalid PC at %lx\n",
+                 __FILE__, __LINE__, in.getRA());
+      return gcf_stackbottom;
+   }
+
+   Symtab *symtab = SymtabWrapper::getSymtab(lib.first);
+   if (!symtab) {
+      sw_printf("[%s:%u] - Could not open file %s with SymtabAPI %s\n",
+                 __FILE__, __LINE__, lib.first.c_str());
+      setLastError(err_nofile, "Could not open file for Debugging stackwalker\n");
+      return gcf_error;
+   }
+
+   std::map<Symtab*, bool>::iterator i = isRewritten.find(symtab);
+   bool is_rewritten_binary;
+   if (i == isRewritten.end()) {
+     Region *r = NULL;
+     result = symtab->findRegion(r, std::string(".dyninstInst"));
+     is_rewritten_binary = (r && result);
+     isRewritten[symtab] = is_rewritten_binary;
+   }
+   else {
+     is_rewritten_binary = (*i).second;
+   }
+   if (!is_rewritten_binary) {
+     sw_printf("[%s:u] - Decided that current binary is not rewritten, "
+	       "DyninstInstrStepper returning gcf_not_me at %lx\n",
+	       __FILE__, __LINE__, in.getRA());
+     return gcf_not_me;
+   }
+
+   std::string name;
+   in.getName(name);
+   const char *s = name.c_str();
+   if (strstr(s, "dyninst") != s)
+   {
+     sw_printf("[%s:%u] - Current function %s not dyninst generated\n",
+		__FILE__, __LINE__, s);
+     return gcf_not_me;
+   }
+
+   if (strstr(s, "dyninstBT") != s)
+   {
+     sw_printf("[%s:%u] - Dyninst, but don't know how to read non-tramp %s\n",
+		__FILE__, __LINE__, s);
+     return gcf_not_me;
+   }
+    
+   sw_printf("[%s:%u] - Current function %s is baseTramp\n",
+	      __FILE__, __LINE__, s);
+   Address base;
+   unsigned size, stack_height;
+   int num_read = sscanf(s, "dyninstBT_%lx_%u_%x", &base, &size, &stack_height);
+   bool has_stack_frame = (num_read == 3);
+   if (!has_stack_frame) {
+     sw_printf("[%s:%u] - Don't know how to walk through instrumentation without a stack frame\n"
+		__FILE__, __LINE__);
+     return gcf_not_me;
+   }
+     
+   return getCallerFrameArch(in, out, base, lib.second, size, stack_height);
+}
+
+unsigned DyninstInstrStepperImpl::getPriority() const
+{
+  return 0x10007;
+}
+
+void DyninstInstrStepperImpl::registerStepperGroup(StepperGroup *group)
+{
+  FrameStepper::registerStepperGroup(group);
+}
+
+DyninstInstrStepperImpl::~DyninstInstrStepperImpl()
 {
 }
 

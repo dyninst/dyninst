@@ -137,6 +137,7 @@ class StepperWanderer : public FrameStepper {
                    FrameFuncHelper *fhelper = NULL);
    virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
    virtual unsigned getPriority() const;
+   virtual void registerStepperGroup(StepperGroup *group);
    virtual ~StepperWanderer();
 };
 
@@ -162,6 +163,18 @@ class BottomOfStackStepper : public FrameStepper {
    virtual unsigned getPriority() const;
    virtual void registerStepperGroup(StepperGroup *group);
    virtual ~BottomOfStackStepper();
+};
+
+class DyninstInstrStepperImpl;
+class DyninstInstrStepper : public FrameStepper {
+ private:
+   DyninstInstrStepperImpl *impl;
+ public:
+   DyninstInstrStepper(Walker *w);
+   virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
+   virtual unsigned getPriority() const;
+   virtual void registerStepperGroup(StepperGroup *group);
+   virtual ~DyninstInstrStepper();
 };
 
 }

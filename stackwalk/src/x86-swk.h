@@ -52,10 +52,11 @@ class StepperWandererImpl : public FrameStepper {
    StepperWanderer *parent;
    bool getWord(Address &words, Address start);
  public:
-   StepperWandererImpl(Walker *walker_, WandererHelper *whelper_,
-                       FrameFuncHelper *fhelper_, StepperWanderer *parent_);
+   StepperWandererImpl(Walker *walker_, StepperWanderer *parent_, WandererHelper *whelper_,
+                       FrameFuncHelper *fhelper_);
    virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
    virtual unsigned getPriority() const;
+   void registerStepperGroup(StepperGroup *group);
    virtual ~StepperWandererImpl();
 };
 

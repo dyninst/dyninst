@@ -45,13 +45,13 @@ using namespace Stackwalker;
 
 
 StepperWandererImpl::StepperWandererImpl(Walker *walker_,
+                                         StepperWanderer *parent_,
                                          WandererHelper *whelper_,
-                                         FrameFuncHelper *fhelper_,
-                                         StepperWanderer *parent_) :
-   FrameStepper(walker_),
-   whelper(whelper_),
-   fhelper(fhelper_),
-   parent(parent_)
+                                         FrameFuncHelper *fhelper_) :
+  FrameStepper(walker_),
+  whelper(whelper_),
+  fhelper(fhelper_),
+  parent(parent_)
 {
 }
 
@@ -62,6 +62,10 @@ StepperWandererImpl::~StepperWandererImpl()
 unsigned StepperWandererImpl::getPriority() const
 {
    return 0x10030;
+}
+
+void StepperWandererImpl::registerStepperGroup(StepperGroup *group) {
+  FrameStepper::registerStepperGroup(group);
 }
 
 gcframe_ret_t StepperWandererImpl::getCallerFrame(const Frame &in, Frame &out)
@@ -395,30 +399,4 @@ WandererHelper::WandererHelper(ProcessState *proc_) :
 
 WandererHelper::~WandererHelper()
 {
-}
-
-StepperWanderer::StepperWanderer(Walker *w, WandererHelper *whelper, 
-                                 FrameFuncHelper *fhelper) :
-   FrameStepper(w)
-{
-   impl = new StepperWandererImpl(w, whelper, fhelper, this);
-}
-
-gcframe_ret_t StepperWanderer::getCallerFrame(const Frame &in, Frame &out)
-{
-   assert(impl);
-   return impl->getCallerFrame(in, out);
-}
-
-unsigned StepperWanderer::getPriority() const
-{
-   assert(impl);
-   return impl->getPriority();
-}
-
-StepperWanderer::~StepperWanderer()
-{
-   assert(impl);
-   delete impl;
-   impl = NULL;
 }

@@ -53,10 +53,9 @@ protected:
   location_t fp_loc;
   location_t sp_loc;
   
-  std::string sym_name;
-  void *sym_value;
-  
-  enum { nv_unset, nv_set, nv_err } name_val_set;
+  mutable std::string sym_name;
+  mutable void *sym_value;
+  mutable enum { nv_unset, nv_set, nv_err } name_val_set;
   
   bool bottom_frame;
   bool frame_complete;
@@ -69,7 +68,7 @@ protected:
   void setWalker(Walker *newwalk);
   void markBottomFrame();
   
-  void setNameValue();
+  void setNameValue() const;
   
  public:
   Frame(Walker *walker);
@@ -92,8 +91,8 @@ protected:
   void setSPLocation(location_t newval);
   void setFPLocation(location_t newval);
   
-  bool getName(std::string &str);
-  bool getObject(void* &obj);
+  bool getName(std::string &str) const;
+  bool getObject(void* &obj) const;
   bool getLibOffset(std::string &lib, Dyninst::Offset &offset, void* &symtab);
   
   bool isBottomFrame() const;
@@ -103,8 +102,6 @@ protected:
   Walker *getWalker() const;
   THR_ID getThread() const;
 
-  bool getLocalVariable(std::string varname, int *value);
-  
   virtual ~Frame();
 };
 

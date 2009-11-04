@@ -243,3 +243,8 @@ bool AddrRangeGroup::addStepper(FrameStepper *stepper, Address start, Address en
 AddrRangeGroup::~AddrRangeGroup()
 {
 }
+
+void StepperGroup::getSteppers(std::set<FrameStepper *> &steps)
+{
+  steps = steppers;
+}
