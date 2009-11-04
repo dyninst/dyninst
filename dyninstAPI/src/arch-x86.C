@@ -375,8 +375,14 @@ void instruction::generateBranch(codeGen &gen,
      return;
   }
   
-  assert(gen.addrSpace()->getAddressWidth() == 8);
-  generateBranch64(gen, toAddr);
+  if(gen.addrSpace()->getAddressWidth() == 8)
+  {
+      generateBranch64(gen, toAddr);
+  }
+  else
+  {
+      generateBranch32(gen, toAddr);
+  }
   return;
 }
 
@@ -395,6 +401,7 @@ void instruction::generateBranch(codeGen &gen,
    SET_PTR(insn, gen);
    return;
 }
+
 
 // Unified the 64-bit push between branch and call
 void instruction::generatePush64(codeGen &gen, Address val)
@@ -461,10 +468,19 @@ void instruction::generateCall(codeGen &gen,
 
 #if defined(arch_x86_64)
     // So we need to know where D is off of "from"
-    generatePush64(gen, from+CALL_ABS64_SZ);
-    generateBranch64(gen, target);
+    if(gen.addrSpace()->getAddressWidth() == 8)
+    {
+        generatePush64(gen, from+CALL_ABS64_SZ);
+        generateBranch64(gen, target);
+    }
+    else
+    {
+        emitPushImm(from+CALL_ABS32_SZ, gen);
+        generateBranch32( gen, target);
+    }
 #else
-    assert(0 && "Impossible case");
+    emitPushImm(from+CALL_ABS32_SZ, gen);
+    generateBranch32( gen, target);
 #endif
   }
 }
@@ -499,7 +515,7 @@ unsigned instruction::spaceToRelocate() const {
 #if defined(arch_x86_64)
     const int longJumpSize = JUMP_ABS64_SZ;
 #else
-    const int longJumpSize = JUMP_SZ;
+    const int longJumpSize = JUMP_ABS32_SZ;
 #endif
 
 
