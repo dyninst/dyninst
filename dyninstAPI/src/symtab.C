@@ -286,7 +286,7 @@ void image::findMain()
                                             mainAddress,
                                             linkedFile->getDefaultModule(),
                                             textsec, 
-                                            UINT_MAX );
+                                            0 );
                 linkedFile->addSymbol( newSym );
            }
            else
@@ -298,7 +298,7 @@ void image::findMain()
                                             mainAddress,
                                             linkedFile->getDefaultModule(),
                                             textsec, 
-                                            UINT_MAX );
+                                            0 );
 	        linkedFile->addSymbol(newSym);		
             }
         }
@@ -311,7 +311,7 @@ void image::findMain()
                                            textsec->getRegionAddr(),
                                            linkedFile->getDefaultModule(),
                                            textsec,
-                                           UINT_MAX );
+                                           0 );
             //cout << "sim for start!" << endl;
         
 	    linkedFile->addSymbol(startSym);		
@@ -327,7 +327,7 @@ void image::findMain()
                                           finisec->getRegionAddr(),
                                           linkedFile->getDefaultModule(),
                                           finisec, 
-                                          UINT_MAX );
+                                          0 );
 	    linkedFile->addSymbol(finiSym);		
     	}
     }
