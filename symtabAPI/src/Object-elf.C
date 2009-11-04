@@ -5055,7 +5055,8 @@ MappedFile *Object::findMappedFileForDebugInfo() {
   // ".shstrtab" section: string table for section header names
   const char *shnames = pdelf_get_shnames(elfHdr);
   if (shnames == NULL) {
-    fprintf(stderr, "[%s][%d]WARNING: .shstrtab section not found in ELF binary\n",__FILE__,__LINE__);
+    fprintf(stderr, "[%s][%d]WARNING: .shstrtab section not found in ELF binary %s\n",__FILE__,__LINE__,
+            getFileName());
     log_elferror(err_func_, ".shstrtab section");
   }
 

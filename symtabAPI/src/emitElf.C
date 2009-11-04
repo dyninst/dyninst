@@ -1385,9 +1385,11 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std::
   dyn_hash_map<int, Region*> secTagRegionMapping = obj->getObject()->getTagRegionMapping();
 
   Region *sec;
-  if (secTagRegionMapping.find(DT_STRTAB) != secTagRegionMapping.end()) { 
+  dyn_hash_map<int, Region*>::const_iterator foundRegion;
+  foundRegion = secTagRegionMapping.find(DT_STRTAB);
+  if ((foundRegion != secTagRegionMapping.end()) && (foundRegion->second != NULL)) {
     // .dynstr
-    sec = secTagRegionMapping[DT_STRTAB];
+    sec = foundRegion->second;
     olddynStrData = (char *)(sec->getPtrToRawData());
     olddynStrSize = sec->getRegionSize();
     dynsymbolNamesLength = olddynStrSize+1;
@@ -1742,7 +1744,7 @@ void emitElf::createRelocationSections(Symtab *obj, std::vector<relocationEntry>
    if (obj->hasReladyn()) {
       string name;
       if (secTagRegionMapping.find(DT_RELA) != secTagRegionMapping.end()) {
-         name = secTagRegionMapping[DT_REL]->getRegionName();
+         name = secTagRegionMapping[DT_RELA]->getRegionName();
       } else {
          name = ".rela.dyn";
       }
