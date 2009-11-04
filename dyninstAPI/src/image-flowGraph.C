@@ -341,9 +341,18 @@ image::compute_gap(
 
     long MIN_GAP_SIZE = 5;
 
+    Address lowerBound = imageOffset();
+    Address upperBound = lowerBound + imageLength();
+    
+    Region* enclosingRegion = getObject()->findEnclosingRegion((*fit)->getOffset());
+    if(enclosingRegion)
+    {
+        lowerBound = enclosingRegion->getRegionAddr();
+        upperBound = lowerBound + enclosingRegion->getRegionSize();
+    }
     // special case for the first gap
     if(fit == everyUniqueFunction.begin()) {
-        gapStart = imageOffset();
+        gapStart = lowerBound;
         gapEnd = (*fit)->getOffset();
         gapsize = (long)(gapEnd - gapStart);
     } else {
@@ -367,7 +376,7 @@ image::compute_gap(
         ++fit2;
 
         if(fit2 == everyUniqueFunction.end()) {
-            gapEnd = imageOffset() + imageLength();
+            gapEnd = upperBound;
         } else {
             next = *fit2;
             gapEnd = next->getOffset();
