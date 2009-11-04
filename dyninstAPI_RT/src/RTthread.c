@@ -70,7 +70,7 @@ int DYNINSTthreadIndex()
    unsigned curr_index;
 
    rtdebug_printf("%s[%d]:  welcome to DYNINSTthreadIndex()\n", __FILE__, __LINE__);
-   if (!DYNINSThasInitialized && !DYNINSTstaticMode) 
+   if (!DYNINSThasInitialized) 
    {
       return 0;
    }

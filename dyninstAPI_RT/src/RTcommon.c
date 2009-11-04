@@ -216,12 +216,13 @@ void DYNINSTBaseInit()
    unsigned i;
    DYNINST_max_num_threads = MAX_THREADS;
    DYNINST_tramp_guards = DYNINST_default_tramp_guards;
-   for (i=0; i<DYNINST_max_num_threads; i++)
+   for (i=0; i<DYNINST_max_num_threads+1; i++)
       DYNINST_tramp_guards[i] = 1;
 #if defined(cap_mutatee_traps)
    DYNINSTinitializeTrapHandler();
 #endif
    DYNINST_initialize_index_list();
+   DYNINSThasInitialized = 1;
 }
 
 /**
