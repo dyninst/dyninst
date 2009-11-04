@@ -781,9 +781,11 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
       plt_entry_size_ = 16;
       assert( plt_entry_size_ == 16 );
 #else
-
       plt_entry_size_ = scnp->sh_entsize();
+
 #if defined (ppc32_linux)
+      if (scnp->sh_flags() & SHF_EXECINSTR) {
+          // Old style executable PLT
       if (!plt_entry_size_)
 	plt_entry_size_ = 8;
       else {
@@ -791,9 +793,15 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 	  fprintf(stderr, "%s[%d]:  weird plt_entry_size_ is %d, not 8\n", 
 		  FILE__, __LINE__, plt_entry_size_);
       }
+
+      } else {
+          // New style secure PLT
+          plt_entry_size_ = 16;
+      }
 #endif
 #endif
     }
+
 #if !defined(os_solaris)
     else if ((secAddrTagMapping.find(scnp->sh_addr()) != secAddrTagMapping.end() ) && 
 	     secAddrTagMapping[scnp->sh_addr()] == DT_SYMTAB ) {
@@ -1064,13 +1072,157 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
 
 #elif defined(arch_x86) || defined(arch_x86_64)
       next_plt_entry_addr += plt_entry_size_;  // 1st PLT entry is special
+
 #elif defined (ppc32_linux)
-      //  Do not expect same parameters for ppc64_linux
+      bool extraStubs = false;
+
+      // Sanity check.
       if (!plt_entry_size_) {
 	fprintf(stderr, "%s[%d]:  FIXME:  plt_entry_size not established\n", FILE__, __LINE__);
 	plt_entry_size_ = 8;
       }
+
+      if (plt_entry_size_ == 8) {
+          // Old style executable PLT section
       next_plt_entry_addr += 9*plt_entry_size_;  // 1st 9 PLT entries are special
+
+      } else if (plt_entry_size_ == 16) {
+          // New style secure PLT
+          Region *plt = NULL, *relplt = NULL, *dynamic = NULL,
+                 *got = NULL, *glink = NULL;
+          unsigned int glink_addr = 0;
+          unsigned int stub_addr = 0;
+
+          // Find the GLINK section.  See ppc_elf_get_synthetic_symtab() in
+          // bfd/elf32-ppc.c of GNU's binutils for more information.
+
+          for (unsigned iter = 0; iter < regions_.size(); ++iter) {
+              std::string name = regions_[iter]->getRegionName();
+              if (name == PLT_NAME) plt = regions_[iter];
+              else if (name == REL_PLT_NAME) relplt = regions_[iter];
+              else if (name == DYNAMIC_NAME) dynamic = regions_[iter];
+              else if (name == GOT_NAME) got = regions_[iter];
+          }
+
+          // Rely on .dynamic section for prelinked binaries.
+          if (dynamic != NULL) {
+              Elf32_Dyn *dyn = (Elf32_Dyn *)dynamic->getPtrToRawData();
+              unsigned int count = dynamic->getRegionSize() / sizeof(Elf32_Dyn);
+
+              for (unsigned int i = 0; i < count; ++i) {
+                  if (dyn[i].d_tag == DT_PPC_GOT) {
+                      unsigned int g_o_t = dyn[i].d_un.d_val;
+                      if (got != NULL) {
+                          unsigned char *data =
+                              (unsigned char *)got->getPtrToRawData();
+                          glink_addr = *(unsigned int *)
+                              (data + (g_o_t - got->getMemOffset() + 4));
+                          break;
+                      }
+                  }
+              }
+          }
+
+          // Otherwise, first entry in .plt section holds the glink address
+          if (glink_addr == 0) {
+              unsigned char *data = (unsigned char *)plt->getPtrToRawData();
+              glink_addr = *(unsigned int *)(data);
+          }
+
+          // Search for region that contains glink address
+          for (unsigned iter = 0; iter < regions_.size(); ++iter) {
+              unsigned int start = regions_[iter]->getMemOffset();
+              unsigned int end = start + regions_[iter]->getMemSize();
+              if (start <= glink_addr && glink_addr < end) {
+                  glink = regions_[iter];
+                  break;
+              }
+          }
+
+          // Find PLT function stubs.  They preceed the glink section.
+          stub_addr = glink_addr - (rel_plt_size_/rel_plt_entry_size_) * 16;
+
+          const unsigned int LWZ_11_30   = 0x817e0000;
+          const unsigned int ADDIS_11_30 = 0x3d7e0000;
+          const unsigned int LWZ_11_11   = 0x816b0000;
+          const unsigned int MTCTR_11    = 0x7d6903a6;
+          const unsigned int BCTR        = 0x4e800420;
+
+          unsigned char *sec_data = (unsigned char *)glink->getPtrToRawData();
+          unsigned int *insn = (unsigned int *)
+              (sec_data + (stub_addr - glink->getMemOffset()));
+
+          // Keep moving pointer back if more -fPIC stubs are found.
+          while (sec_data < (unsigned char *)insn) {
+              unsigned int *back = insn - 4;
+
+              if ((  (back[0] & 0xffff0000) == LWZ_11_30
+                   && back[1] == MTCTR_11
+                   && back[2] == BCTR)
+
+                  || (   (back[0] & 0xffff0000) == ADDIS_11_30
+                      && (back[1] & 0xffff0000) == LWZ_11_11
+                      &&  back[2] == MTCTR_11
+                      &&  back[3] == BCTR))
+                  {
+                      extraStubs = true;
+                      stub_addr -= 16;
+                      insn = back;
+                  } else {
+                      break;
+                  }
+          }
+
+          // Okay, this is where things get hairy.  If we have a one to one
+          // relationship between the glink stubs and plt entries (meaning
+          // extraStubs == false), then we can generate our relocationEntry
+          // objects normally below.
+
+          // However, if we have extra glink stubs, then we must generate
+          // relocations with unknown destinations for *all* stubs.  Then,
+          // we use the loop below to store additional information about
+          // the data plt entry keyed by plt entry address.
+
+          // Finally, if a symbol with any of the following forms:
+          //     [hex_addr].got2.plt_pic32.[sym_name]
+          //     [hex_addr].plt_pic32.[sym_name]
+          //
+          // matches the glink stub address, then stub symbols exist and we
+          // can rely on these tell us where the stub will eventually go.
+
+          if (extraStubs == true) {
+              std::string name;
+              relocationEntry re;
+
+              while (stub_addr < glink_addr) {
+                  if (symsByOffset_.find(stub_addr) != symsByOffset_.end()) {
+                      name = (symsByOffset_[stub_addr])[0]->getMangledName();
+                      name = name.substr( name.rfind("plt_pic32.") + 10 );
+                  }
+
+                  if (!name.empty()) {
+                      re = relocationEntry( stub_addr, 0, name, NULL, 0 );
+                  } else {
+                      re = relocationEntry( stub_addr, 0, "@plt", NULL, 0 );
+                  }
+                  fbt_.push_back(re);
+                  stub_addr += 16;
+              }
+
+              // Now prepare to iterate over plt below.
+              next_plt_entry_addr = plt_addr_;
+              plt_entry_size_ = 4;
+
+          } else {
+              next_plt_entry_addr = stub_addr;
+          }
+
+      } else {
+          fprintf(stderr, "ERROR: Can't handle %d PLT entry size\n",
+                  plt_entry_size_);
+          return false;
+      }
+
       //fprintf(stderr, "%s[%d]:  skipping %d (6*%d) bytes initial plt\n", 
       //        FILE__, __LINE__, 9*plt_entry_size_, plt_entry_size_);
       //  actually this is just fudged to make the offset value 72, which is what binutils uses
@@ -1114,6 +1266,13 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
       const char *strs = strdata.get_string();
 
       if (sym.isValid() && (rel.isValid() || rela.isValid()) && strs) {
+
+        // Sometime, PPC32 Linux may use this loop to update fbt entries.
+        // Should stay -1 for all other platforms.  See notes above.
+        int fbt_iter = -1;
+        if (fbt_.size() > 0 && fbt_[0].name() != "@plt")
+            fbt_iter = 0;
+
 	for( u_int i = 0; i < (rel_plt_size_/rel_plt_entry_size_); ++i ) {
 	  long offset;
 	  long addend;
@@ -1142,21 +1301,43 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
 	    return false;
 	  };
 
-	  relocationEntry re( next_plt_entry_addr, offset, string( &strs[ sym.st_name(index) ] ), NULL, type );
+          std::string targ_name = &strs[ sym.st_name(index) ];
+          vector<Symbol *> dynsym_list;
+          if (symbols_.find(targ_name) != symbols_.end()) {
+            dynsym_list = symbols_[ targ_name ];
+          } else {
+            dynsym_list.clear();
+          }
+
+          if (fbt_iter == -1) { // Create new relocation entry.
+            relocationEntry re( next_plt_entry_addr, offset, targ_name,
+                                NULL, type );
 	  re.setAddend(addend);
 	  re.setRegionType(rtype);
-	  if(symbols_.find(&strs[ sym.st_name(index)]) != symbols_.end()){
-	    vector<Symbol *> syms = symbols_[&strs[ sym.st_name(index)]];
-	    re.addDynSym(syms[0]);
-	  }
+            if (dynsym_list.size() > 0)
+              re.addDynSym(dynsym_list[0]);
 	  fbt_.push_back(re);
 
-#if ! defined( arch_ia64 )
-	  next_plt_entry_addr += plt_entry_size_;
-#else
+          } else { // Update existing relocation entry.
+            while ((unsigned)fbt_iter < fbt_.size() &&
+                   fbt_[fbt_iter].name() == targ_name) {
+
+              fbt_[fbt_iter].setRelAddr(offset);
+              fbt_[fbt_iter].setAddend(addend);
+              fbt_[fbt_iter].setRegionType(rtype);
+              if (dynsym_list.size() > 0)
+                fbt_[fbt_iter].addDynSym(dynsym_list[0]);
+
+              ++fbt_iter;
+            }
+          }
+
+#if defined( arch_ia64 )
 	  /* IA-64 headers don't declare a size, because it varies. */
 	  next_plt_entry_addr += 0x20;
-#endif /* ia64_unknown_linux2_4 */
+#else
+	  next_plt_entry_addr += plt_entry_size_;
+#endif
 	}
 	return true;
       }

@@ -1407,7 +1407,60 @@ Register emitFuncCall(opCode op,
 }
 
 
-Register EmitterPOWERDyn::emitCall(opCode /* ocode */, 
+Register EmitterPOWERDyn::emitCallReplacement(opCode ocode,
+                                              codeGen &gen,
+                                              bool /* noCost */,
+                                              int_function *callee) {
+    // This takes care of the special case where we are replacing an existing
+    // linking branch instruction.
+    //
+    // This code makes two crucial assumptions:
+    // 1) LR is free: Linking branch instructions place pre-branch IP in LR.
+    // 2) TOC (r2) is free: r2 should hold TOC of destination.  So use it
+    //    as scratch, and set it to destination module's TOC upon return.
+    //    This works for both the inter and intra module call cases.
+    // In the 32-bit case where we can't use r2, stomp on r0 and pray...
+
+    //  Sanity check for opcode.
+    assert(ocode == funcJumpOp);
+
+    Register freeReg = 0;
+    instruction mtlr(MTLR0raw);
+
+    // 64-bit Mutatees
+    if (gen.addrSpace()->proc()->getAddressWidth() == 8) {
+        freeReg = 2;
+        mtlr = instruction(MTLR2raw);
+    }
+
+    // Load register with address.
+    emitVload(loadConstOp, callee->getAddress(), freeReg, freeReg, gen, false);
+
+    // Move to link register.
+    mtlr.generate(gen);
+
+    Address toc_new = gen.addrSpace()->proc()->getTOCoffsetInfo(callee);
+    if (toc_new) {
+        // Set up the new TOC value
+        emitVload(loadConstOp, toc_new, freeReg, freeReg, gen, false);
+    }
+
+    // blr - branch through the link reg.
+    instruction blr(BRraw);
+    blr.generate(gen);
+
+    int_function *caller = gen.point()->func();
+    Address toc_orig = gen.addrSpace()->proc()->getTOCoffsetInfo(caller);
+    if (toc_new) {
+        // Restore the original TOC value.
+        emitVload(loadConstOp, toc_orig, freeReg, freeReg, gen, false);
+    }
+
+    // What to return here?
+    return REG_NULL;
+}
+
+Register EmitterPOWERDyn::emitCall(opCode ocode,
                                    codeGen &gen,
                                    const pdvector<AstNodePtr> &operands, bool noCost,
                                    int_function *callee) {
@@ -1419,9 +1472,14 @@ Register EmitterPOWERDyn::emitCall(opCode /* ocode */,
         inst_printf("In function replacement, not saving state\n");
     }
     
+    if (ocode == funcJumpOp)
+        return emitCallReplacement(ocode, gen, noCost, callee);
 
     Address toc_anchor = 0;
     pdvector <Register> srcs;
+
+    //  Sanity check for opcode.
+    assert(ocode == callOp);
 
     //  Sanity check for NULL address argument
     if (!callee) {
@@ -2785,7 +2843,6 @@ bool writeFunctionPtr(AddressSpace *p, Address addr, int_function *f)
 #endif
 }
 
-
 Emitter *AddressSpace::getEmitter() 
 {
     static EmitterPOWER32Dyn emitter32Dyn;
@@ -2806,6 +2863,67 @@ Emitter *AddressSpace::getEmitter()
 
     assert(0);
     return NULL;
+}
+
+bool image::isAligned(const Address where) const {
+   return (!(where & 0x3));
+}
+
+#define GET_IP      0x429f0005
+#define MFLR_30     0x7fc802a6
+#define ADDIS_30_30 0x3fde0000
+#define ADDI_30_30  0x3bde0000
+#define LWZ_11_30   0x817e0000
+#define ADDIS_11_30 0x3d7e0000
+
+bool image::updatePltFunc(image_func *caller_func, image_func *stub_func)
+{
+    unsigned int num_insn;
+    unsigned int *caller, *stub;
+    Address got2 = 0;
+
+    num_insn = caller_func->get_size() / 4;
+    caller = (unsigned int *)getPtrToInstruction(caller_func->getOffset());
+    stub = (unsigned int *)getPtrToInstruction(stub_func->getOffset());
+
+    // If we're calling an empty glink stub.
+    if ( (*pltFuncs)[stub_func->getOffset()] == "@plt") {
+        int state = 0;
+
+        // Find GOT2 value
+        for (unsigned int i = 0; i < num_insn; ++i) {
+            if (state == 0 && caller[i] == GET_IP) {
+                got2 = caller_func->getOffset() + (i * 4) + 4;
+                ++state;
+            } else if (state == 1 && caller[i] == MFLR_30) {
+                ++state;
+            } else if (state == 4) {
+                break;
+            } else if (state >= 2 && (caller[i] & 0xffff0000) == ADDIS_30_30) {
+                got2 += ((signed short)(caller[i] & 0x0000ffff)) << 16;
+                ++state;
+            } else if (state >= 2 && (caller[i] & 0xffff0000) == ADDI_30_30) {
+                got2 += (signed short)(caller[i] & 0x0000ffff);
+                ++state;
+            }
+        }
+        if (state != 4) return false;
+
+        // Find stub offset
+        int offset = 0;
+        if ( (stub[0] & 0xffff0000) == LWZ_11_30) {
+            offset = (signed short)(stub[0] & 0x0000ffff);
+        } else if ( (stub[0] & 0xffff0000) == ADDIS_11_30) {
+            offset &= (stub[0] & 0x0000ffff) << 16;
+            offset &= (stub[1] & 0x0000ffff);
+        }
+
+        // Update all PLT based structures
+        Address plt_addr = got2 + offset;
+        (*pltFuncs)[stub_func->getOffset()] = (*pltFuncs)[plt_addr];
+        getObject()->updateFuncBindingTable(stub_func->getOffset(), plt_addr);
+    }
+    return true;
 }
 
 Register EmitterPOWER32Stat::emitCall(opCode, codeGen &,

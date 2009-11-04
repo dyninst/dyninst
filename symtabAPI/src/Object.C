@@ -242,39 +242,6 @@ SYMTAB_EXPORT Offset ExceptionBlock::catchStart() const
 	return catchStart_;
 }
 
-
-SYMTAB_EXPORT Offset relocationEntry::target_addr() const 
-{
-	return target_addr_;
-}
-
-SYMTAB_EXPORT Offset relocationEntry::rel_addr() const 
-{
-	return rel_addr_;
-}
-
-SYMTAB_EXPORT const string &relocationEntry::name() const 
-{
-	return name_;
-}
-
-SYMTAB_EXPORT Symbol *relocationEntry::getDynSym() const 
-{
-    return dynref_;
-}
-
-SYMTAB_EXPORT bool relocationEntry::addDynSym(Symbol *dynref) 
-{
-    dynref_ = dynref;
-    return true;
-}
-
-SYMTAB_EXPORT unsigned long relocationEntry::getRelType() const 
-{
-    return relType_;
-}
-
-
 #ifdef DEBUG 
 ostream &operator<<(ostream &os, relocationEntry &q) {
    return q.operator<<(os);

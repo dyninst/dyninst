@@ -185,6 +185,7 @@ class AstNode {
 
    static AstNodePtr funcCallNode(const std::string &func, pdvector<AstNodePtr > &args, AddressSpace *addrSpace = NULL);
    static AstNodePtr funcCallNode(int_function *func, pdvector<AstNodePtr > &args);
+   static AstNodePtr funcCallNode(int_function *func); // Special case for function call replacement.
    static AstNodePtr funcCallNode(Address addr, pdvector<AstNodePtr > &args); // For when you absolutely need
    // to jump somewhere.
 
@@ -514,6 +515,7 @@ class AstCallNode : public AstNode {
     AstCallNode(int_function *func, pdvector<AstNodePtr>&args);
     AstCallNode(const std::string &str, pdvector<AstNodePtr>&args);
     AstCallNode(Address addr, pdvector<AstNodePtr> &args);
+    AstCallNode(int_function *func);
     
     ~AstCallNode() {}
 
@@ -548,6 +550,7 @@ class AstCallNode : public AstNode {
     int_function *func_;
     pdvector<AstNodePtr> args_;
 
+    bool callReplace_; // Node is intended for function call replacement
     bool constFunc_;  // True if the output depends solely on 
     // input parameters, or can otherwise be guaranteed to not change
     // if executed multiple times in the same sequence - AKA 

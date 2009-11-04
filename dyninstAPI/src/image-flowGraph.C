@@ -1371,6 +1371,11 @@ image_func * image_func::bindCallTarget(
                 targetFunc->img()->recordFunction(targetFunc);
             }
 
+#if defined(ppc32_linux)
+	    // An excellent time to update possibly empty PLT relocations.
+	    image_->updatePltFunc(this, targetFunc);
+#endif
+
             targetFunc = NULL;
         }
 

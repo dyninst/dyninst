@@ -427,6 +427,9 @@ class image : public codeRange, public InstructionSource {
    void * getErrFunc() const { return (void *) dyninst_log_perror; }
 
    dictionary_hash<Address, std::string> *getPltFuncs();
+#if defined(arch_power)
+   bool updatePltFunc(image_func *caller_func, image_func *stub_func);
+#endif
 
    // This method is invoked after parsing a function to record it in tables
    // and to update other symtab-level data structures, like mangled names
