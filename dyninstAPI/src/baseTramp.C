@@ -605,6 +605,11 @@ bool baseTrampInstance::installCode() {
         mtis[i]->installCode();
     }
 
+    BinaryEdit *binedit = dynamic_cast<BinaryEdit *>(proc());
+    if (binedit && BPatch::bpatch->getInstrStackFrames()) {
+      createBTSymbol();
+    }
+
     installed_ = true;
     return true;
 }
@@ -1181,4 +1186,36 @@ int baseTrampInstance::numDefinedRegs()
       }
    }
    return count;
+}
+
+Symbol *baseTrampInstance::createBTSymbol()
+{
+  //Make a symbol on this baseTramp to help ID it.
+  BinaryEdit *binedit = dynamic_cast<BinaryEdit *>(proc());
+  assert(binedit);
+
+  Symtab *symobj = binedit->getMappedObject()->parse_img()->getObject();
+  std::stringstream name_stream;
+  name_stream << "dyninstBT_" << std::hex << get_address() << "_" << std::dec << get_size();
+  if (hasStackFrame_) {
+    name_stream << "_" << std::hex << trampStackHeight_;
+  }
+  std::string name = name_stream.str();
+  
+  Region *textsec = NULL;
+  bool foundText = symobj->findRegion(textsec, ".text");
+
+  Symbol *newsym = new Symbol(name,
+			      Symbol::ST_FUNCTION,
+			      Symbol::SL_LOCAL,
+			      Symbol::SV_INTERNAL,
+			      get_address(),
+			      symobj->getDefaultModule(),
+			      textsec,
+			      get_size(),
+			      false,
+			      false);
+  assert(newsym);
+  symobj->addSymbol(newsym);
+  return newsym;
 }

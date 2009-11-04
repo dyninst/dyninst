@@ -178,6 +178,7 @@ class baseTrampInstance : public generatedCodeObject {
     // don't do it twice!!!
     bool alreadyDeleted_;
 
+    Symbol *createBTSymbol();
 
     //Information about code generated in this tramp
  private:
