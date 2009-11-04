@@ -129,6 +129,8 @@ class EmitterPOWERDyn : public EmitterPOWER {
  public:
     virtual ~EmitterPOWERDyn() {};
 
+    Register emitCallReplacement(opCode ocode, codeGen &gen,
+                                 bool noCost, int_function *callee);
     Register emitCall(opCode op, codeGen &gen,
                       const pdvector<AstNodePtr> &operands,
                       bool noCost, int_function *callee);

@@ -80,7 +80,7 @@ Archive::Archive(std::string &filename, bool &ok) :
 		errMsg = errorLine;
 		ok = false;
       fprintf(stderr, "%s[%d]:  error in Archive ctor\n", FILE__, __LINE__);
-      MappedFile::closeMappedFile(mf);
+      //MappedFile::closeMappedFile(mf);
       return;
    }
    if (!fo_->read((void *)magic_number, 2)) 
@@ -91,7 +91,7 @@ Archive::Archive(std::string &filename, bool &ok) :
 		errMsg = errorLine;
 		ok = false;
       fprintf(stderr, "%s[%d]:  error in Archive ctor\n", FILE__, __LINE__);
-      MappedFile::closeMappedFile(mf);
+      //MappedFile::closeMappedFile(mf);
       return;
    }
 
@@ -105,7 +105,7 @@ Archive::Archive(std::string &filename, bool &ok) :
 		errMsg = errorLine;
 		ok = false;
       //fprintf(stderr, "%s[%d]:  error in Archive ctor\n", FILE__, __LINE__);
-      MappedFile::closeMappedFile(mf);
+      //MappedFile::closeMappedFile(mf);
 		return;
 	}
    else if ( magic_number[0] != '<')
@@ -116,7 +116,7 @@ Archive::Archive(std::string &filename, bool &ok) :
 		errMsg = errorLine;
 		ok = false;
       fprintf(stderr, "%s[%d]:  error in Archive ctor\n", FILE__, __LINE__);
-      MappedFile::closeMappedFile(mf);
+     // MappedFile::closeMappedFile(mf);
 		return;
    }
 	xcoffArchive *archive = NULL;

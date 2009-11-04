@@ -168,6 +168,11 @@ AstNodePtr AstNode::funcCallNode(int_function *func, pdvector<AstNodePtr > &args
     return AstNodePtr(new AstCallNode(func, args));
 }
 
+AstNodePtr AstNode::funcCallNode(int_function *func) {
+    if (func == NULL) return AstNodePtr();
+    return AstNodePtr(new AstCallNode(func));
+}
+
 AstNodePtr AstNode::funcCallNode(Address addr, pdvector<AstNodePtr > &args) {
     return AstNodePtr(new AstCallNode(addr, args));
 }
@@ -335,6 +340,7 @@ AstCallNode::AstCallNode(int_function *func,
     AstNode(),
     func_addr_(0),
     func_(func),
+    callReplace_(false),
     constFunc_(false)
 {
     for (unsigned i = 0; i < args.size(); i++) {
@@ -343,12 +349,22 @@ AstCallNode::AstCallNode(int_function *func,
     }
 }
 
+AstCallNode::AstCallNode(int_function *func) :
+    AstNode(),
+    func_addr_(0),
+    func_(func),
+    callReplace_(true),
+    constFunc_(false)
+{
+}
+
 AstCallNode::AstCallNode(const std::string &func,
                          pdvector<AstNodePtr > &args) :
     AstNode(),
     func_name_(func),
     func_addr_(0),
     func_(NULL),
+    callReplace_(false),
     constFunc_(false)
 {
     for (unsigned i = 0; i < args.size(); i++) {
@@ -362,6 +378,7 @@ AstCallNode::AstCallNode(Address addr,
     AstNode(),
     func_addr_(addr),
     func_(NULL),
+    callReplace_(false),
     constFunc_(false)
 {
     for (unsigned i = 0; i < args.size(); i++) {
@@ -1647,6 +1664,8 @@ bool AstCallNode::initRegisters(codeGen &gen) {
 
 #endif
 #if defined(arch_power)
+    if (callReplace_) return true;
+
     // This code really doesn't work right now...
     int_function *callee = func_;
     if (!callee) {
@@ -1690,8 +1709,12 @@ bool AstCallNode::generateCode_phase2(codeGen &gen, bool noCost,
 
     Register tmp = 0;
 
-    if (use_func) {
+    if (use_func && !callReplace_) {
         tmp = emitFuncCall(callOp, gen, args_,  
+                           noCost, use_func);
+    }
+    else if (use_func && callReplace_) {
+	tmp = emitFuncCall(funcJumpOp, gen, args_,
                            noCost, use_func);
     }
     else if (func_addr_) {

@@ -1515,10 +1515,30 @@ bool Symtab::isData(const Offset where)  const
    return false;
 }
 
-bool Symtab::getFuncBindingTable(std::vector<relocationEntry> &fbt) const
+SYMTAB_EXPORT bool Symtab::getFuncBindingTable(std::vector<relocationEntry> &fbt) const
 {
    fbt = relocation_table_;
    return true;
+}
+
+SYMTAB_EXPORT bool Symtab::updateFuncBindingTable(Offset stub_addr, Offset plt_addr)
+{
+    int stub_idx = -1, plt_idx = -1;
+
+    for (int i = 0; i < relocation_table_.size(); ++i) {
+        if (stub_addr == relocation_table_[i].target_addr())
+            stub_idx = i;
+        if (plt_addr  == relocation_table_[i].target_addr())
+            plt_idx = i;
+        if (stub_addr >= 0 && plt_addr >= 0)
+            break;
+    }
+    if (stub_idx >= 0 && plt_idx >= 0) {
+        relocation_table_[stub_idx] = relocation_table_[plt_idx];
+        relocation_table_[stub_idx].setTargetAddr(stub_addr);
+        return true;
+    }
+    return false;
 }
 
 SYMTAB_EXPORT std::vector<std::string> &Symtab::getDependencies(){
@@ -1604,7 +1624,7 @@ Symtab::~Symtab()
    }
 
    //fprintf(stderr, "%s[%d]:  symtab DTOR, mf = %p: %s\n", FILE__, __LINE__, mf, mf->filename().c_str());
-   //if (mf) MappedFile::closeMappedFile(mf);
+   if (mf) MappedFile::closeMappedFile(mf);
    //if (mfForDebugInfo) MappedFile::closeMappedFile(mfForDebugInfo);
 #endif
 }	
@@ -2830,20 +2850,65 @@ SYMTAB_EXPORT const relocationEntry& relocationEntry::operator=(const relocation
    return *this;
 }
 
-SYMTAB_EXPORT void relocationEntry::setAddend(const Offset value) {
-    addend_ = value;
+SYMTAB_EXPORT Offset relocationEntry::target_addr() const 
+{
+    return target_addr_;
 }
 
-SYMTAB_EXPORT Offset relocationEntry::addend() const {
+SYMTAB_EXPORT void relocationEntry::setTargetAddr(const Offset off)
+{
+    target_addr_ = off;
+}
+
+SYMTAB_EXPORT Offset relocationEntry::rel_addr() const 
+{
+    return rel_addr_;
+}
+
+SYMTAB_EXPORT void relocationEntry::setRelAddr(const Offset value)
+{
+    rel_addr_ = value;
+}
+
+SYMTAB_EXPORT const string &relocationEntry::name() const 
+{
+    return name_;
+}
+
+SYMTAB_EXPORT Symbol *relocationEntry::getDynSym() const 
+{
+    return dynref_;
+}
+
+SYMTAB_EXPORT bool relocationEntry::addDynSym(Symbol *dynref) 
+{
+    dynref_ = dynref;
+    return true;
+}
+
+SYMTAB_EXPORT Region::RegionType relocationEntry::regionType() const
+{
+	return rtype_;
+}
+
+SYMTAB_EXPORT unsigned long relocationEntry::getRelType() const 
+{
+    return relType_;
+}
+
+SYMTAB_EXPORT Offset relocationEntry::addend() const
+{
     return addend_;
 }
 
-SYMTAB_EXPORT void relocationEntry::setRegionType(const Region::RegionType value) {
-    rtype_ = value;
+SYMTAB_EXPORT void relocationEntry::setAddend(const Offset value)
+{
+    addend_ = value;
 }
 
-SYMTAB_EXPORT Region::RegionType relocationEntry::regionType() const {
-	return rtype_;
+SYMTAB_EXPORT void relocationEntry::setRegionType(const Region::RegionType value)
+{
+    rtype_ = value;
 }
 
 bool relocationEntry::operator==(const relocationEntry &r) const

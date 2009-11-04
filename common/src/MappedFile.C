@@ -5,6 +5,7 @@ dyn_hash_map<std::string, MappedFile *> MappedFile::mapped_files;
 
 MappedFile *MappedFile::createMappedFile(std::string fullpath_)
 {
+   //fprintf(stderr, "%s[%d]:  createMappedFile %s\n", FILE__, __LINE__, fullpath_.c_str());
    if (mapped_files.find(fullpath_) != mapped_files.end()) {
       //fprintf(stderr, "%s[%d]:  mapped file exists for %s\n", FILE__, __LINE__, fullpath_.c_str());
       MappedFile  *ret = mapped_files[fullpath_];
@@ -25,7 +26,7 @@ MappedFile *MappedFile::createMappedFile(std::string fullpath_)
    
    mapped_files[fullpath_] = mf;
    
-//   fprintf(stderr, "%s[%d]:  MMAPFILE %s: mapped_files.size() =  %d\n", FILE__, __LINE__, fullpath_.c_str(), mapped_files.size());
+   //fprintf(stderr, "%s[%d]:  MMAPFILE %s: mapped_files.size() =  %d\n", FILE__, __LINE__, fullpath_.c_str(), mapped_files.size());
    return mf;
 }
 
@@ -81,8 +82,7 @@ void MappedFile::closeMappedFile(MappedFile *&mf)
       return;
    }
 
-   //fprintf(stderr, "%s[%d]:  welcome to closeMappedFile(%s) refCount = %d\n", FILE__, __LINE__, mf->pathname().c_str(), mf->refCount);
-
+  //fprintf(stderr, "%s[%d]:  welcome to closeMappedFile() refCount = %d\n", FILE__, __LINE__, mf->refCount);
    mf->refCount--;
 
    if (mf->refCount <= 0) 

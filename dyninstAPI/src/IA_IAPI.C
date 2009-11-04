@@ -1258,6 +1258,13 @@ bool IA_IAPI::checkEntry() const
     {
         return false;
     }
+    // We don't consider linkage snippets "functions".
+    dictionary_hash<Address, std::string> *pltFuncs = img->getPltFuncs();
+    if (pltFuncs && pltFuncs->defines(getAddr())) 
+    {
+        return false;
+    }
+
     return true;
 }
 

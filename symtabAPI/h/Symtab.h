@@ -180,6 +180,7 @@ class Symtab : public LookupInterface,
 
    // Relocation entries
    SYMTAB_EXPORT bool getFuncBindingTable(std::vector<relocationEntry> &fbt) const;
+   SYMTAB_EXPORT bool updateFuncBindingTable(Offset stub_addr, Offset plt_addr);
 
    /**************************************
     *** SYMBOL ADDING FUNCS **************
@@ -620,12 +621,14 @@ class relocationEntry : public Serializable, public AnnotatableSparse {
       SYMTAB_EXPORT Offset rel_addr() const;
       SYMTAB_EXPORT Offset addend() const;
       SYMTAB_EXPORT Region::RegionType regionType() const;
-      SYMTAB_EXPORT void setAddend(const Offset);
-      SYMTAB_EXPORT void setRegionType(const Region::RegionType);
       SYMTAB_EXPORT const std::string &name() const;
       SYMTAB_EXPORT Symbol *getDynSym() const;
       SYMTAB_EXPORT bool addDynSym(Symbol *dynref);
       SYMTAB_EXPORT unsigned long getRelType() const;
+      SYMTAB_EXPORT void setTargetAddr(const Offset);
+      SYMTAB_EXPORT void setRelAddr(const Offset);
+      SYMTAB_EXPORT void setAddend(const Offset);
+      SYMTAB_EXPORT void setRegionType(const Region::RegionType);
 
       // dump output.  Currently setup as a debugging aid, not really
       //  for object persistance....

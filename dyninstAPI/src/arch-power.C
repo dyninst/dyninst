@@ -897,10 +897,6 @@ bool instruction::getUsedRegs(pdvector<int> &) {
 	return false;
 }
 
-bool image::isAligned(const Address where) const {
-   return (!(where & 0x3));
-}
-
 void instruction::generateMoveFromLR(codeGen &gen, Register rt) {
     instruction insn;
     (*insn).raw = 0;

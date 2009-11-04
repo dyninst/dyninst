@@ -102,14 +102,7 @@ int_function::int_function(image_func *f,
     parsing_printf("%s: creating new proc-specific function at 0x%lx\n",
                    symTabName().c_str(), addr_);
 
-    for (unsigned int i = 0; i < f->parRegions().size(); i++)
-      {
-	image_parRegion * imPR = f->parRegions()[i];
-	int_parRegion * iPR = new int_parRegion(imPR, baseAddr, this); 
-	parallelRegions_.push_back(iPR);
-      }
-    
-    // We delay the creation of instPoints until they are requested;
+     // We delay the creation of instPoints until they are requested;
     // this saves memory, and really, until something is asked for we
     // don't need it.  TODO: creation of an arbitrary instPoint should
     // trigger instPoint creation; someone may create an arbitrary at
@@ -120,7 +113,6 @@ int_function::int_function(image_func *f,
     
     /* IA-64: create the cached allocs lazily. */
 }
-
 
 int_function::int_function(const int_function *parFunc,
                            mapped_module *childMod,
@@ -1595,4 +1587,19 @@ void int_function::linkInstrumentation(pdvector<instPoint *> &input,
 
 Offset int_function::addrToOffset(const Address addr) const { 
     return addr - getAddress() + ifunc_->getOffset(); 
+}
+
+const pdvector< int_parRegion* > &int_function::parRegions()
+{
+  if (parallelRegions_.size() > 0)
+    return parallelRegions_;
+
+  for (unsigned int i = 0; i < ifunc_->parRegions().size(); i++)
+    {
+      image_parRegion * imPR = ifunc_->parRegions()[i];
+      //int_parRegion * iPR = new int_parRegion(imPR, baseAddr, this); 
+      int_parRegion * iPR = new int_parRegion(imPR, addr_, this); 
+      parallelRegions_.push_back(iPR);
+    }
+  return parallelRegions_;
 }

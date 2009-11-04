@@ -280,6 +280,8 @@ bool AddressSpace::replaceFunctionCall(instPoint *point,
     
 #else
 
+  return point->replaceCode(AstNode::funcCallNode(const_cast<int_function *>(func)));
+
   instPointIter ipIter(point);
   instPointInstance *ipInst;
   while ((ipInst = ipIter++)) {  
