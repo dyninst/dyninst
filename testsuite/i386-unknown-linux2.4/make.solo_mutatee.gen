@@ -41,13 +41,13 @@ dyninst_group_test.mutatee_solo_g++_32_max: dyninst_group_test_group_g++_32_max.
 dyninst_group_test.mutatee_solo_g++_32_none: dyninst_group_test_group_g++_32_none.o test1_1_mutatee_solo_g++_32_none.o test1_2_mutatee_solo_g++_32_none.o test1_3_mutatee_solo_g++_32_none.o test1_4_mutatee_solo_g++_32_none.o test1_5_mutatee_solo_g++_32_none.o test1_6_mutatee_solo_g++_32_none.o test1_7_mutatee_solo_g++_32_none.o test1_8_mutatee_solo_g++_32_none.o test1_9_mutatee_solo_g++_32_none.o test1_10_mutatee_solo_g++_32_none.o test1_11_mutatee_solo_g++_32_none.o test1_13_mutatee_solo_g++_32_none.o test1_16_mutatee_solo_g++_32_none.o test1_17_mutatee_solo_g++_32_none.o test1_18_mutatee_solo_g++_32_none.o test1_20_mutatee_solo_g++_32_none.o test1_21_mutatee_solo_g++_32_none.o test1_22_mutatee_solo_g++_32_none.o snip_ref_shlib_var_mutatee_solo_g++_32_none.o snip_change_shlib_var_mutatee_solo_g++_32_none.o test1_23_mutatee_solo_g++_32_none.o test1_24_mutatee_solo_g++_32_none.o test1_25_mutatee_solo_g++_32_none.o test1_26_mutatee_solo_g++_32_none.o test1_27_mutatee_solo_g++_32_none.o test1_28_mutatee_solo_g++_32_none.o test1_30_mutatee_solo_g++_32_none.o test1_31_mutatee_solo_g++_32_none.o test1_32_mutatee_solo_g++_32_none.o test1_33_mutatee_solo_g++_32_none.o test1_34_mutatee_solo_g++_32_none.o test1_36_mutatee_solo_g++_32_none.o test1_37_mutatee_solo_g++_32_none.o test1_38_mutatee_solo_g++_32_none.o test1_39_mutatee_solo_g++_32_none.o test2_5_mutatee_solo_g++_32_none.o test2_7_mutatee_solo_g++_32_none.o test2_9_mutatee_solo_g++_32_none.o test2_11_mutatee_solo_g++_32_none.o test2_12_mutatee_solo_g++_32_none.o test2_13_mutatee_solo_g++_32_none.o test_write_param_mutatee_solo_g++_32_none.o mutatee_util_g++_32_none.o mutatee_driver_solo_g++_32.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
 init_fini_callback.mutatee_solo_g++_32_high: init_fini_callback_mutatee_solo_g++_32_high.o mutatee_util_g++_32_high.o mutatee_driver_solo_g++_32.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
 init_fini_callback.mutatee_solo_g++_32_low: init_fini_callback_mutatee_solo_g++_32_low.o mutatee_util_g++_32_low.o mutatee_driver_solo_g++_32.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
 init_fini_callback.mutatee_solo_g++_32_max: init_fini_callback_mutatee_solo_g++_32_max.o mutatee_util_g++_32_max.o mutatee_driver_solo_g++_32.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
 init_fini_callback.mutatee_solo_g++_32_none: init_fini_callback_mutatee_solo_g++_32_none.o mutatee_util_g++_32_none.o mutatee_driver_solo_g++_32.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
 test1_12.mutatee_solo_g++_32_high: test1_12_mutatee_solo_g++_32_high.o mutatee_util_g++_32_high.o mutatee_driver_solo_g++_32.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_12.mutatee_solo_g++_32_low: test1_12_mutatee_solo_g++_32_low.o mutatee_util_g++_32_low.o mutatee_driver_solo_g++_32.o
@@ -1757,13 +1757,13 @@ dyninst_group_test.mutatee_solo_icpc_32_max: dyninst_group_test_group_icpc_32_ma
 dyninst_group_test.mutatee_solo_icpc_32_none: dyninst_group_test_group_icpc_32_none.o test1_1_mutatee_solo_icpc_32_none.o test1_2_mutatee_solo_icpc_32_none.o test1_3_mutatee_solo_icpc_32_none.o test1_4_mutatee_solo_icpc_32_none.o test1_5_mutatee_solo_icpc_32_none.o test1_6_mutatee_solo_icpc_32_none.o test1_7_mutatee_solo_icpc_32_none.o test1_8_mutatee_solo_icpc_32_none.o test1_9_mutatee_solo_icpc_32_none.o test1_10_mutatee_solo_icpc_32_none.o test1_11_mutatee_solo_icpc_32_none.o test1_13_mutatee_solo_icpc_32_none.o test1_16_mutatee_solo_icpc_32_none.o test1_17_mutatee_solo_icpc_32_none.o test1_18_mutatee_solo_icpc_32_none.o test1_20_mutatee_solo_icpc_32_none.o test1_21_mutatee_solo_icpc_32_none.o test1_22_mutatee_solo_icpc_32_none.o snip_ref_shlib_var_mutatee_solo_icpc_32_none.o snip_change_shlib_var_mutatee_solo_icpc_32_none.o test1_23_mutatee_solo_icpc_32_none.o test1_24_mutatee_solo_icpc_32_none.o test1_25_mutatee_solo_icpc_32_none.o test1_26_mutatee_solo_icpc_32_none.o test1_27_mutatee_solo_icpc_32_none.o test1_28_mutatee_solo_icpc_32_none.o test1_30_mutatee_solo_icpc_32_none.o test1_31_mutatee_solo_icpc_32_none.o test1_32_mutatee_solo_icpc_32_none.o test1_33_mutatee_solo_icpc_32_none.o test1_34_mutatee_solo_icpc_32_none.o test1_36_mutatee_solo_icpc_32_none.o test1_37_mutatee_solo_icpc_32_none.o test1_38_mutatee_solo_icpc_32_none.o test1_39_mutatee_solo_icpc_32_none.o test2_5_mutatee_solo_icpc_32_none.o test2_7_mutatee_solo_icpc_32_none.o test2_9_mutatee_solo_icpc_32_none.o test2_11_mutatee_solo_icpc_32_none.o test2_12_mutatee_solo_icpc_32_none.o test2_13_mutatee_solo_icpc_32_none.o test_write_param_mutatee_solo_icpc_32_none.o mutatee_util_icpc_32_none.o mutatee_driver_solo_icpc_32.o
 	$(M_intel_CC) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
 init_fini_callback.mutatee_solo_icpc_32_high: init_fini_callback_mutatee_solo_icpc_32_high.o mutatee_util_icpc_32_high.o mutatee_driver_solo_icpc_32.o
-	$(M_intel_CC) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+	$(M_intel_CC) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
 init_fini_callback.mutatee_solo_icpc_32_low: init_fini_callback_mutatee_solo_icpc_32_low.o mutatee_util_icpc_32_low.o mutatee_driver_solo_icpc_32.o
-	$(M_intel_CC) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+	$(M_intel_CC) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
 init_fini_callback.mutatee_solo_icpc_32_max: init_fini_callback_mutatee_solo_icpc_32_max.o mutatee_util_icpc_32_max.o mutatee_driver_solo_icpc_32.o
-	$(M_intel_CC) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+	$(M_intel_CC) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
 init_fini_callback.mutatee_solo_icpc_32_none: init_fini_callback_mutatee_solo_icpc_32_none.o mutatee_util_icpc_32_none.o mutatee_driver_solo_icpc_32.o
-	$(M_intel_CC) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+	$(M_intel_CC) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
 test1_12.mutatee_solo_icpc_32_high: test1_12_mutatee_solo_icpc_32_high.o mutatee_util_icpc_32_high.o mutatee_driver_solo_icpc_32.o
 	$(M_intel_CC) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_12.mutatee_solo_icpc_32_low: test1_12_mutatee_solo_icpc_32_low.o mutatee_util_icpc_32_low.o mutatee_driver_solo_icpc_32.o
@@ -3474,11 +3474,11 @@ dyninst_group_test.mutatee_solo_pgCC_32_low: dyninst_group_test_group_pgCC_32_lo
 dyninst_group_test.mutatee_solo_pgCC_32_none: dyninst_group_test_group_pgCC_32_none.o test1_1_mutatee_solo_pgCC_32_none.o test1_2_mutatee_solo_pgCC_32_none.o test1_3_mutatee_solo_pgCC_32_none.o test1_4_mutatee_solo_pgCC_32_none.o test1_5_mutatee_solo_pgCC_32_none.o test1_6_mutatee_solo_pgCC_32_none.o test1_7_mutatee_solo_pgCC_32_none.o test1_8_mutatee_solo_pgCC_32_none.o test1_9_mutatee_solo_pgCC_32_none.o test1_10_mutatee_solo_pgCC_32_none.o test1_11_mutatee_solo_pgCC_32_none.o test1_13_mutatee_solo_pgCC_32_none.o test1_16_mutatee_solo_pgCC_32_none.o test1_17_mutatee_solo_pgCC_32_none.o test1_18_mutatee_solo_pgCC_32_none.o test1_20_mutatee_solo_pgCC_32_none.o test1_21_mutatee_solo_pgCC_32_none.o test1_22_mutatee_solo_pgCC_32_none.o snip_ref_shlib_var_mutatee_solo_pgCC_32_none.o snip_change_shlib_var_mutatee_solo_pgCC_32_none.o test1_23_mutatee_solo_pgCC_32_none.o test1_24_mutatee_solo_pgCC_32_none.o test1_25_mutatee_solo_pgCC_32_none.o test1_26_mutatee_solo_pgCC_32_none.o test1_27_mutatee_solo_pgCC_32_none.o test1_28_mutatee_solo_pgCC_32_none.o test1_30_mutatee_solo_pgCC_32_none.o test1_31_mutatee_solo_pgCC_32_none.o test1_32_mutatee_solo_pgCC_32_none.o test1_33_mutatee_solo_pgCC_32_none.o test1_34_mutatee_solo_pgCC_32_none.o test1_36_mutatee_solo_pgCC_32_none.o test1_37_mutatee_solo_pgCC_32_none.o test1_38_mutatee_solo_pgCC_32_none.o test1_39_mutatee_solo_pgCC_32_none.o test2_5_mutatee_solo_pgCC_32_none.o test2_7_mutatee_solo_pgCC_32_none.o test2_9_mutatee_solo_pgCC_32_none.o test2_11_mutatee_solo_pgCC_32_none.o test2_12_mutatee_solo_pgCC_32_none.o test2_13_mutatee_solo_pgCC_32_none.o test_write_param_mutatee_solo_pgCC_32_none.o mutatee_util_pgCC_32_none.o mutatee_driver_solo_pgCC_32.o
 	$(M_pg_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  -ldl 
 init_fini_callback.mutatee_solo_pgCC_32_high: init_fini_callback_mutatee_solo_pgCC_32_high.o mutatee_util_pgCC_32_high.o mutatee_driver_solo_pgCC_32.o
-	$(M_pg_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
+	$(M_pg_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  -ldl 
 init_fini_callback.mutatee_solo_pgCC_32_low: init_fini_callback_mutatee_solo_pgCC_32_low.o mutatee_util_pgCC_32_low.o mutatee_driver_solo_pgCC_32.o
-	$(M_pg_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
+	$(M_pg_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  -ldl 
 init_fini_callback.mutatee_solo_pgCC_32_none: init_fini_callback_mutatee_solo_pgCC_32_none.o mutatee_util_pgCC_32_none.o mutatee_driver_solo_pgCC_32.o
-	$(M_pg_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
+	$(M_pg_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  -ldl 
 test1_12.mutatee_solo_pgCC_32_high: test1_12_mutatee_solo_pgCC_32_high.o mutatee_util_pgCC_32_high.o mutatee_driver_solo_pgCC_32.o
 	$(M_pg_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
 test1_12.mutatee_solo_pgCC_32_low: test1_12_mutatee_solo_pgCC_32_low.o mutatee_util_pgCC_32_low.o mutatee_driver_solo_pgCC_32.o
@@ -4762,13 +4762,13 @@ dyninst_group_test.mutatee_solo_gcc_32_max: dyninst_group_test_group_gcc_32_max.
 dyninst_group_test.mutatee_solo_gcc_32_none: dyninst_group_test_group_gcc_32_none.o test1_1_mutatee_solo_gcc_32_none.o test1_2_mutatee_solo_gcc_32_none.o test1_3_mutatee_solo_gcc_32_none.o test1_4_mutatee_solo_gcc_32_none.o test1_5_mutatee_solo_gcc_32_none.o test1_6_mutatee_solo_gcc_32_none.o test1_7_mutatee_solo_gcc_32_none.o test1_8_mutatee_solo_gcc_32_none.o test1_9_mutatee_solo_gcc_32_none.o test1_10_mutatee_solo_gcc_32_none.o test1_11_mutatee_solo_gcc_32_none.o test1_13_mutatee_solo_gcc_32_none.o test1_16_mutatee_solo_gcc_32_none.o test1_17_mutatee_solo_gcc_32_none.o test1_18_mutatee_solo_gcc_32_none.o test1_20_mutatee_solo_gcc_32_none.o test1_21_mutatee_solo_gcc_32_none.o test1_22_mutatee_solo_gcc_32_none.o snip_ref_shlib_var_mutatee_solo_gcc_32_none.o snip_change_shlib_var_mutatee_solo_gcc_32_none.o test1_23_mutatee_solo_gcc_32_none.o test1_24_mutatee_solo_gcc_32_none.o test1_25_mutatee_solo_gcc_32_none.o test1_26_mutatee_solo_gcc_32_none.o test1_27_mutatee_solo_gcc_32_none.o test1_28_mutatee_solo_gcc_32_none.o test1_30_mutatee_solo_gcc_32_none.o test1_31_mutatee_solo_gcc_32_none.o test1_32_mutatee_solo_gcc_32_none.o test1_33_mutatee_solo_gcc_32_none.o test1_34_mutatee_solo_gcc_32_none.o test1_36_mutatee_solo_gcc_32_none.o test1_37_mutatee_solo_gcc_32_none.o test1_38_mutatee_solo_gcc_32_none.o test1_39_mutatee_solo_gcc_32_none.o test2_5_mutatee_solo_gcc_32_none.o test2_7_mutatee_solo_gcc_32_none.o test2_9_mutatee_solo_gcc_32_none.o test2_11_mutatee_solo_gcc_32_none.o test2_12_mutatee_solo_gcc_32_none.o test2_13_mutatee_solo_gcc_32_none.o test_write_param_mutatee_solo_gcc_32_none.o mutatee_util_gcc_32_none.o mutatee_driver_solo_gcc_32.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
 init_fini_callback.mutatee_solo_gcc_32_high: init_fini_callback_mutatee_solo_gcc_32_high.o mutatee_util_gcc_32_high.o mutatee_driver_solo_gcc_32.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
 init_fini_callback.mutatee_solo_gcc_32_low: init_fini_callback_mutatee_solo_gcc_32_low.o mutatee_util_gcc_32_low.o mutatee_driver_solo_gcc_32.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
 init_fini_callback.mutatee_solo_gcc_32_max: init_fini_callback_mutatee_solo_gcc_32_max.o mutatee_util_gcc_32_max.o mutatee_driver_solo_gcc_32.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
 init_fini_callback.mutatee_solo_gcc_32_none: init_fini_callback_mutatee_solo_gcc_32_none.o mutatee_util_gcc_32_none.o mutatee_driver_solo_gcc_32.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
 test1_12.mutatee_solo_gcc_32_high: test1_12_mutatee_solo_gcc_32_high.o mutatee_util_gcc_32_high.o mutatee_driver_solo_gcc_32.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_12.mutatee_solo_gcc_32_low: test1_12_mutatee_solo_gcc_32_low.o mutatee_util_gcc_32_low.o mutatee_driver_solo_gcc_32.o
@@ -6546,13 +6546,13 @@ dyninst_group_test.mutatee_solo_icc_32_max: dyninst_group_test_group_icc_32_max.
 dyninst_group_test.mutatee_solo_icc_32_none: dyninst_group_test_group_icc_32_none.o test1_1_mutatee_solo_icc_32_none.o test1_2_mutatee_solo_icc_32_none.o test1_3_mutatee_solo_icc_32_none.o test1_4_mutatee_solo_icc_32_none.o test1_5_mutatee_solo_icc_32_none.o test1_6_mutatee_solo_icc_32_none.o test1_7_mutatee_solo_icc_32_none.o test1_8_mutatee_solo_icc_32_none.o test1_9_mutatee_solo_icc_32_none.o test1_10_mutatee_solo_icc_32_none.o test1_11_mutatee_solo_icc_32_none.o test1_13_mutatee_solo_icc_32_none.o test1_16_mutatee_solo_icc_32_none.o test1_17_mutatee_solo_icc_32_none.o test1_18_mutatee_solo_icc_32_none.o test1_20_mutatee_solo_icc_32_none.o test1_21_mutatee_solo_icc_32_none.o test1_22_mutatee_solo_icc_32_none.o snip_ref_shlib_var_mutatee_solo_icc_32_none.o snip_change_shlib_var_mutatee_solo_icc_32_none.o test1_23_mutatee_solo_icc_32_none.o test1_24_mutatee_solo_icc_32_none.o test1_25_mutatee_solo_icc_32_none.o test1_26_mutatee_solo_icc_32_none.o test1_27_mutatee_solo_icc_32_none.o test1_28_mutatee_solo_icc_32_none.o test1_30_mutatee_solo_icc_32_none.o test1_31_mutatee_solo_icc_32_none.o test1_32_mutatee_solo_icc_32_none.o test1_33_mutatee_solo_icc_32_none.o test1_34_mutatee_solo_icc_32_none.o test1_36_mutatee_solo_icc_32_none.o test1_37_mutatee_solo_icc_32_none.o test1_38_mutatee_solo_icc_32_none.o test1_39_mutatee_solo_icc_32_none.o test2_5_mutatee_solo_icc_32_none.o test2_7_mutatee_solo_icc_32_none.o test2_9_mutatee_solo_icc_32_none.o test2_11_mutatee_solo_icc_32_none.o test2_12_mutatee_solo_icc_32_none.o test2_13_mutatee_solo_icc_32_none.o test_write_param_mutatee_solo_icc_32_none.o mutatee_util_icc_32_none.o mutatee_driver_solo_icc_32.o
 	$(M_intel_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
 init_fini_callback.mutatee_solo_icc_32_high: init_fini_callback_mutatee_solo_icc_32_high.o mutatee_util_icc_32_high.o mutatee_driver_solo_icc_32.o
-	$(M_intel_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+	$(M_intel_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
 init_fini_callback.mutatee_solo_icc_32_low: init_fini_callback_mutatee_solo_icc_32_low.o mutatee_util_icc_32_low.o mutatee_driver_solo_icc_32.o
-	$(M_intel_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+	$(M_intel_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
 init_fini_callback.mutatee_solo_icc_32_max: init_fini_callback_mutatee_solo_icc_32_max.o mutatee_util_icc_32_max.o mutatee_driver_solo_icc_32.o
-	$(M_intel_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+	$(M_intel_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
 init_fini_callback.mutatee_solo_icc_32_none: init_fini_callback_mutatee_solo_icc_32_none.o mutatee_util_icc_32_none.o mutatee_driver_solo_icc_32.o
-	$(M_intel_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
+	$(M_intel_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl 
 test1_12.mutatee_solo_icc_32_high: test1_12_mutatee_solo_icc_32_high.o mutatee_util_icc_32_high.o mutatee_driver_solo_icc_32.o
 	$(M_intel_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 test1_12.mutatee_solo_icc_32_low: test1_12_mutatee_solo_icc_32_low.o mutatee_util_icc_32_low.o mutatee_driver_solo_icc_32.o
@@ -8217,11 +8217,11 @@ dyninst_group_test.mutatee_solo_pgcc_32_low: dyninst_group_test_group_pgcc_32_lo
 dyninst_group_test.mutatee_solo_pgcc_32_none: dyninst_group_test_group_pgcc_32_none.o test1_1_mutatee_solo_pgcc_32_none.o test1_2_mutatee_solo_pgcc_32_none.o test1_3_mutatee_solo_pgcc_32_none.o test1_4_mutatee_solo_pgcc_32_none.o test1_5_mutatee_solo_pgcc_32_none.o test1_6_mutatee_solo_pgcc_32_none.o test1_7_mutatee_solo_pgcc_32_none.o test1_8_mutatee_solo_pgcc_32_none.o test1_9_mutatee_solo_pgcc_32_none.o test1_10_mutatee_solo_pgcc_32_none.o test1_11_mutatee_solo_pgcc_32_none.o test1_13_mutatee_solo_pgcc_32_none.o test1_16_mutatee_solo_pgcc_32_none.o test1_17_mutatee_solo_pgcc_32_none.o test1_18_mutatee_solo_pgcc_32_none.o test1_20_mutatee_solo_pgcc_32_none.o test1_21_mutatee_solo_pgcc_32_none.o test1_22_mutatee_solo_pgcc_32_none.o snip_ref_shlib_var_mutatee_solo_pgcc_32_none.o snip_change_shlib_var_mutatee_solo_pgcc_32_none.o test1_23_mutatee_solo_pgcc_32_none.o test1_24_mutatee_solo_pgcc_32_none.o test1_25_mutatee_solo_pgcc_32_none.o test1_26_mutatee_solo_pgcc_32_none.o test1_27_mutatee_solo_pgcc_32_none.o test1_28_mutatee_solo_pgcc_32_none.o test1_30_mutatee_solo_pgcc_32_none.o test1_31_mutatee_solo_pgcc_32_none.o test1_32_mutatee_solo_pgcc_32_none.o test1_33_mutatee_solo_pgcc_32_none.o test1_34_mutatee_solo_pgcc_32_none.o test1_36_mutatee_solo_pgcc_32_none.o test1_37_mutatee_solo_pgcc_32_none.o test1_38_mutatee_solo_pgcc_32_none.o test1_39_mutatee_solo_pgcc_32_none.o test2_5_mutatee_solo_pgcc_32_none.o test2_7_mutatee_solo_pgcc_32_none.o test2_9_mutatee_solo_pgcc_32_none.o test2_11_mutatee_solo_pgcc_32_none.o test2_12_mutatee_solo_pgcc_32_none.o test2_13_mutatee_solo_pgcc_32_none.o test_write_param_mutatee_solo_pgcc_32_none.o mutatee_util_pgcc_32_none.o mutatee_driver_solo_pgcc_32.o
 	$(M_pg_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  -ldl 
 init_fini_callback.mutatee_solo_pgcc_32_high: init_fini_callback_mutatee_solo_pgcc_32_high.o mutatee_util_pgcc_32_high.o mutatee_driver_solo_pgcc_32.o
-	$(M_pg_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
+	$(M_pg_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  -ldl 
 init_fini_callback.mutatee_solo_pgcc_32_low: init_fini_callback_mutatee_solo_pgcc_32_low.o mutatee_util_pgcc_32_low.o mutatee_driver_solo_pgcc_32.o
-	$(M_pg_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
+	$(M_pg_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  -ldl 
 init_fini_callback.mutatee_solo_pgcc_32_none: init_fini_callback_mutatee_solo_pgcc_32_none.o mutatee_util_pgcc_32_none.o mutatee_driver_solo_pgcc_32.o
-	$(M_pg_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
+	$(M_pg_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  -ldl 
 test1_12.mutatee_solo_pgcc_32_high: test1_12_mutatee_solo_pgcc_32_high.o mutatee_util_pgcc_32_high.o mutatee_driver_solo_pgcc_32.o
 	$(M_pg_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
 test1_12.mutatee_solo_pgcc_32_low: test1_12_mutatee_solo_pgcc_32_low.o mutatee_util_pgcc_32_low.o mutatee_driver_solo_pgcc_32.o

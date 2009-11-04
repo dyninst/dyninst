@@ -903,6 +903,7 @@ BPatchSnippetHandle* BPatch_module::insertInitCallbackInt(BPatch_snippet& what)
         BPatch_Vector<BPatch_point*>* init_entry = init_funcs[0]->findPoint(BPatch_entry);
         if(init_entry && !init_entry->empty() && (*init_entry)[0])
         {
+            startup_printf("\tinserting init snippet at 0x%lx\n", (*init_entry)[0]->getAddress());
             return addSpace->insertSnippet(what, *((*init_entry)[0]));
         }
     }
@@ -919,6 +920,7 @@ BPatchSnippetHandle* BPatch_module::insertFiniCallbackInt(BPatch_snippet& what)
         BPatch_Vector<BPatch_point*>* fini_exit = fini_funcs[0]->findPoint(BPatch_exit);
         if(fini_exit && !fini_exit->empty() && (*fini_exit)[0])
         {
+            startup_printf("\tinserting fini snippet at 0x%lx\n", (*fini_exit)[0]->getAddress());
             return addSpace->insertSnippet(what, *((*fini_exit)[0]));
         }
     }

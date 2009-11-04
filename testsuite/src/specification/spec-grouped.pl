@@ -407,6 +407,7 @@ test_description('init_fini_callback', 'Adds callbacks for rewritten module on l
     member(Arch, ['i386', 'x86_64']).
 mutator('init_fini_callback', ['init_fini_callback.C']).
 mutatee('init_fini_callback', ['init_fini_callback_mutatee.c']).
+mutatee_requires_libs('init_fini_callback', ['dl']).
 compiler_for_mutatee('init_fini_callback', Compiler) :-
     comp_lang(Compiler, 'c').
 groupable_test('init_fini_callback').
