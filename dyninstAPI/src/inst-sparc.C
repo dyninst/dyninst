@@ -961,7 +961,7 @@ codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, Register dest,
 /****************************************************************************/
 /****************************************************************************/
 
-Register emitR(opCode op, Register src1, Register /*src2*/, Register dest, 
+Register emitR(opCode op, Register src1, Register src2, Register dest, 
                codeGen &gen, bool /*noCost*/,
                const instPoint *location, bool for_multithreaded)
 {
@@ -1022,8 +1022,15 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
         }
     }
     else if (op == getRetValOp) {
-        assert(location->getPointType() == functionExit);
-        opToUse = getRetValOp;
+        if (location->getPointType() == functionExit)
+            opToUse = getRetValOp;
+        else if (location->getPointType() == callSite)
+            opToUse = getSysRetValOp;
+        else {
+            fprintf(stderr, "%s[%d]: Incorrect use of getRetValOp.\n",
+                    __FILE__, __LINE__);
+            assert(0);
+        }
     }
     else {
         assert(0);
@@ -1048,10 +1055,12 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
         else {
             instruction::generateTrapRegisterSpill(gen);
         }
-        
+
         if (src1 < 6) {
             // The arg is in a previous frame's I register. Get it from
             // the register save area
+            if (src2 != REG_NULL)
+                instruction::generateStore(gen, src2, REG_FPTR, 4*8 + 4*src1);
             instruction::generateLoad(gen, REG_FPTR, 4*8 + 4*src1, dest);
         }
         else {
@@ -1060,36 +1069,44 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
             instruction::generateLoad(gen, REG_FPTR, 4*8 + 4*6, dest);
             // old fp is in dest now
 
+            // Write new value, if any
+            if (src2 != REG_NULL)
+                instruction::generateStore(gen, src2, dest, 92 + 4 * (src1 - 6));
+
             // Finally, load the arg from the stack
             instruction::generateLoad(gen, dest, 92 + 4 * (src1 - 6), dest);
         }
-        
+
         if(for_multithreaded) {
             // restoring CT/vector address back in REG_MT_POS
             instruction::generateLoad(gen, REG_FPTR, -40, REG_MT_POS);
         }
-	
+
         return dest;
-     }
+    }
     case getSysParamOp: {
         // We have emitted one save since the entry point of
         // the function, so the first 6 parameters are in this
         // frame's I registers
         if (src1 < 6) {
             // Param is in an I register
+            if (src2 != REG_NULL)
+                instruction::generateSimple(gen, ORop3, 0, src2, REG_I(src1));
             return(REG_I(src1));
-        }	
+        }
         else {
             // Param is on the stack
+            if (src2 != REG_NULL)
+                instruction::generateStore(gen, src2, REG_FPTR, 92 + 4 * (src1 - 6));
             instruction::generateLoad(gen, REG_FPTR, 92 + 4 * (src1 - 6), dest);
             return dest;
         }
-     }
-     case getRetValOp: {
+    }
+    case getRetValOp: {
         // We have emitted one save since the exit point of
         // the function, so the return value is in the previous frame's
         // I0, and we need to pick it from the stack
-         
+
         // generate the FLUSHW instruction to make sure that previous
         // windows are written to the register save area on the stack
         if (isUltraSparc()) {
@@ -1098,12 +1115,17 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
         else {
             instruction::generateTrapRegisterSpill(gen);
         }
-        
-        instruction::generateLoad(gen, REG_FPTR, 4*8, dest); 
+
+        if (src2 != REG_NULL)
+            instruction::generateStore(gen, src2, REG_FPTR, 4*8);
+        instruction::generateLoad(gen, REG_FPTR, 4*8, dest);
         return dest;
-     }
-     case getSysRetValOp:
-         return(REG_I(0));
+    }
+    case getSysRetValOp:
+        if (src2 != REG_NULL)
+            instruction::generateSimple(gen, ORop3, 0, src2, REG_I(0));
+        return(REG_I(0));
+
     default:
         abort();        // unexpected op for this emit!
     }

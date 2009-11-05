@@ -2000,6 +2000,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", false, "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", false, "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", false, "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: gcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_write_param", "test_write_param", "test_write_param.so", false, "{test: test_write_param, mutator: test_write_param, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -2044,6 +2045,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", false, "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", false, "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", false, "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: gcc, run_mode: useAttach}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_write_param", "test_write_param", "test_write_param.so", false, "{test: test_write_param, mutator: test_write_param, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -2088,6 +2090,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", false, "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", false, "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", false, "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_write_param", "test_write_param", "test_write_param.so", false, "{test: test_write_param, mutator: test_write_param, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -2132,6 +2135,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", false, "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", false, "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", false, "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: useAttach}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_write_param", "test_write_param", "test_write_param.so", false, "{test: test_write_param, mutator: test_write_param, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -2176,6 +2180,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", false, "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", false, "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", false, "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: gcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_write_param", "test_write_param", "test_write_param.so", false, "{test: test_write_param, mutator: test_write_param, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -2220,6 +2225,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", false, "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", false, "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", false, "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: gcc, run_mode: useAttach}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_write_param", "test_write_param", "test_write_param.so", false, "{test: test_write_param, mutator: test_write_param, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -2264,6 +2270,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", false, "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", false, "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", false, "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_write_param", "test_write_param", "test_write_param.so", false, "{test: test_write_param, mutator: test_write_param, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -2308,6 +2315,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", false, "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", false, "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", false, "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: useAttach}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_write_param", "test_write_param", "test_write_param.so", false, "{test: test_write_param, mutator: test_write_param, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #ifdef XLC
@@ -2353,6 +2361,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", false, "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", false, "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", false, "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_write_param", "test_write_param", "test_write_param.so", false, "{test: test_write_param, mutator: test_write_param, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -2399,6 +2408,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", false, "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", false, "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", false, "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlc, run_mode: useAttach}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_write_param", "test_write_param", "test_write_param.so", false, "{test: test_write_param, mutator: test_write_param, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -2445,6 +2455,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", false, "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", false, "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", false, "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_write_param", "test_write_param", "test_write_param.so", false, "{test: test_write_param, mutator: test_write_param, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -2491,6 +2502,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", false, "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", false, "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", false, "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlc, run_mode: useAttach}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_write_param", "test_write_param", "test_write_param.so", false, "{test: test_write_param, mutator: test_write_param, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -2537,6 +2549,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", false, "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", false, "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", false, "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_write_param", "test_write_param", "test_write_param.so", false, "{test: test_write_param, mutator: test_write_param, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -2583,6 +2596,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", false, "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", false, "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", false, "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlc, run_mode: useAttach}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_write_param", "test_write_param", "test_write_param.so", false, "{test: test_write_param, mutator: test_write_param, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -2629,6 +2643,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", false, "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", false, "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", false, "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlc, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_write_param", "test_write_param", "test_write_param.so", false, "{test: test_write_param, mutator: test_write_param, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -2675,6 +2690,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", false, "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", false, "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlc, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", false, "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlc, run_mode: useAttach}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_write_param", "test_write_param", "test_write_param.so", false, "{test: test_write_param, mutator: test_write_param, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -2720,6 +2736,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", false, "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", false, "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", false, "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_write_param", "test_write_param", "test_write_param.so", false, "{test: test_write_param, mutator: test_write_param, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -2764,6 +2781,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", false, "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", false, "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", false, "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: g++, run_mode: useAttach}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_write_param", "test_write_param", "test_write_param.so", false, "{test: test_write_param, mutator: test_write_param, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -2808,6 +2826,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", false, "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", false, "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", false, "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_write_param", "test_write_param", "test_write_param.so", false, "{test: test_write_param, mutator: test_write_param, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -2852,6 +2871,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", false, "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", false, "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", false, "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: useAttach}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_write_param", "test_write_param", "test_write_param.so", false, "{test: test_write_param, mutator: test_write_param, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -2896,6 +2916,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", false, "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", false, "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", false, "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_write_param", "test_write_param", "test_write_param.so", false, "{test: test_write_param, mutator: test_write_param, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -2940,6 +2961,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", false, "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", false, "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", false, "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: g++, run_mode: useAttach}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_write_param", "test_write_param", "test_write_param.so", false, "{test: test_write_param, mutator: test_write_param, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -2984,6 +3006,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", false, "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", false, "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", false, "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_write_param", "test_write_param", "test_write_param.so", false, "{test: test_write_param, mutator: test_write_param, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -3028,6 +3051,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", false, "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", false, "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", false, "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: useAttach}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_write_param", "test_write_param", "test_write_param.so", false, "{test: test_write_param, mutator: test_write_param, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #ifdef XLC
@@ -3073,6 +3097,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", false, "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", false, "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", false, "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_write_param", "test_write_param", "test_write_param.so", false, "{test: test_write_param, mutator: test_write_param, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -3119,6 +3144,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", false, "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlC, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", false, "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlC, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", false, "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlC, run_mode: useAttach}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_write_param", "test_write_param", "test_write_param.so", false, "{test: test_write_param, mutator: test_write_param, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: none, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -3165,6 +3191,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", false, "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", false, "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", false, "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_write_param", "test_write_param", "test_write_param.so", false, "{test: test_write_param, mutator: test_write_param, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -3211,6 +3238,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", false, "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlC, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", false, "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlC, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", false, "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlC, run_mode: useAttach}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_write_param", "test_write_param", "test_write_param.so", false, "{test: test_write_param, mutator: test_write_param, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: low, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -3257,6 +3285,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", false, "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", false, "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", false, "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_write_param", "test_write_param", "test_write_param.so", false, "{test: test_write_param, mutator: test_write_param, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -3303,6 +3332,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", false, "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlC, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", false, "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlC, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", false, "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlC, run_mode: useAttach}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_write_param", "test_write_param", "test_write_param.so", false, "{test: test_write_param, mutator: test_write_param, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: high, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -3349,6 +3379,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", false, "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", false, "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", false, "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlC, run_mode: createProcess}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_write_param", "test_write_param", "test_write_param.so", false, "{test: test_write_param, mutator: test_write_param, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -3395,6 +3426,7 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test2_13", "test2_13", "test2_13.so", false, "{test: test2_13, mutator: test2_13, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlC, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_5", "test2_5", "test2_5.so", false, "{test: test2_5, mutator: test2_5, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlC, run_mode: useAttach}"));
   rg->tests.push_back(new TestInfo(test_count++, "test2_7", "test2_7", "test2_7.so", false, "{test: test2_7, mutator: test2_7, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlC, run_mode: useAttach}"));
+  rg->tests.push_back(new TestInfo(test_count++, "test_write_param", "test_write_param", "test_write_param.so", false, "{test: test_write_param, mutator: test_write_param, grouped: false, start_state: stopped, abi: 32, mutatee: dyninst_group_test, optimization: max, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)

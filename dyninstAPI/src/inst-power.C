@@ -600,10 +600,10 @@ void saveSPR(codeGen &gen,     //Instruction storage pointer
 
     if (gen.addrSpace()->getAddressWidth() == 4) {
 	instruction::generateImm(gen, STop,
-                                 scratchReg, 1, stkOffset);
+                                 scratchReg, REG_SP, stkOffset);
     } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
 	instruction::generateMemAccess64(gen, STDop, STDxop,
-                                         scratchReg, 1, stkOffset);
+                                         scratchReg, REG_SP, stkOffset);
     }
 }
 
@@ -622,10 +622,10 @@ void restoreSPR(codeGen &gen,       //Instruction storage pointer
 {
     if (gen.addrSpace()->getAddressWidth() == 4) {
         instruction::generateImm(gen, Lop,
-                                 scratchReg, 1, stkOffset);
+                                 scratchReg, REG_SP, stkOffset);
     } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
         instruction::generateMemAccess64(gen, LDop, LDxop,
-                                         scratchReg, 1, stkOffset);
+                                         scratchReg, REG_SP, stkOffset);
     }
 
     instruction insn;
@@ -735,10 +735,10 @@ void saveCR(codeGen &gen,       //Instruction storage pointer
 
   if (gen.addrSpace()->getAddressWidth() == 4) {
       instruction::generateImm(gen, STop,
-			       scratchReg, 1, stkOffset);
+			       scratchReg, REG_SP, stkOffset);
   } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
       instruction::generateMemAccess64(gen, STDop, STDxop,
-				       scratchReg, 1, stkOffset);
+				       scratchReg, REG_SP, stkOffset);
   }
 }
 
@@ -757,10 +757,10 @@ void restoreCR(codeGen &gen,       //Instruction storage pointer
 
     if (gen.addrSpace()->getAddressWidth() == 4) {
         instruction::generateImm(gen, Lop,
-                                 scratchReg, 1, stkOffset);
+                                 scratchReg, REG_SP, stkOffset);
     } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
         instruction::generateMemAccess64(gen, LDop, LDxop,
-                                         scratchReg, 1, stkOffset);
+                                         scratchReg, REG_SP, stkOffset);
     }
 
     (*insn).raw = 0;                    //mtcrf:  scratchReg
@@ -792,7 +792,7 @@ void saveFPSCR(codeGen &gen,       //Instruction storage pointer
     mffs.generate(gen);
 
     //st:     st scratchReg, stkOffset(r1)
-    instruction::generateImm(gen, STFDop, scratchReg, 1, stkOffset);
+    instruction::generateImm(gen, STFDop, scratchReg, REG_SP, stkOffset);
 }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -807,7 +807,7 @@ void restoreFPSCR(codeGen &gen,       //Instruction storage pointer
                   Register      scratchReg, //Scratch fp register
                   int           stkOffset)  //Offset from stack pointer
 {
-    instruction::generateImm(gen, LFDop, scratchReg, 1, stkOffset);
+    instruction::generateImm(gen, LFDop, scratchReg, REG_SP, stkOffset);
 
     instruction mtfsf;
     (*mtfsf).raw = 0;                    //mtfsf:  scratchReg
@@ -837,19 +837,28 @@ void saveRegisterAtOffset(codeGen &gen,
                           int save_off) {
     if (gen.addrSpace()->getAddressWidth() == 4) {
         instruction::generateImm(gen, STop,
-                                 reg, 1, save_off);
+                                 reg, REG_SP, save_off);
     } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
         instruction::generateMemAccess64(gen, STDop, STDxop,
-                                         reg, 1, save_off);
+                                         reg, REG_SP, save_off);
     }
+}
+
+// Dest != reg : optimizate away a load/move pair
+void saveRegister(codeGen &gen,
+                  Register source,
+                  Register dest,
+                  int save_off)
+{
+    saveRegisterAtOffset(gen, source, save_off + (dest * gen.addrSpace()->getAddressWidth()));
+    //  bperr("Saving reg %d at 0x%x off the stack\n", reg, offset + reg*GPRSIZE);
 }
 
 void saveRegister(codeGen &gen,
                   Register reg,
                   int save_off)
 {
-    return saveRegisterAtOffset(gen, reg, save_off + (reg*gen.addrSpace()->getAddressWidth()));
-    //  bperr("Saving reg %d at 0x%x off the stack\n", reg, offset + reg*GPRSIZE);
+    saveRegister(gen, reg, reg, save_off);
 }
 
 void restoreRegisterAtOffset(codeGen &gen,
@@ -857,10 +866,10 @@ void restoreRegisterAtOffset(codeGen &gen,
                              int saved_off) {
     if (gen.addrSpace()->getAddressWidth() == 4) {
         instruction::generateImm(gen, Lop, 
-                                 dest, 1, saved_off);
+                                 dest, REG_SP, saved_off);
     } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
         instruction::generateMemAccess64(gen, LDop, LDxop,
-                                         dest, 1, saved_off);
+                                         dest, REG_SP, saved_off);
     }
 }
 
@@ -887,7 +896,7 @@ void saveFPRegister(codeGen &gen,
                     int save_off)
 {
     instruction::generateImm(gen, STFDop, 
-                             reg, 1, save_off + reg*FPRSIZE);
+                             reg, REG_SP, save_off + reg*FPRSIZE);
     //bperr( "Saving FP reg %d at 0x%x off the stack\n", 
     //  reg, offset + reg*FPRSIZE);
 }
@@ -898,7 +907,7 @@ void restoreFPRegister(codeGen &gen,
                        int save_off)
 {
     instruction::generateImm(gen, LFDop, 
-                             dest, 1, save_off + source*FPRSIZE);
+                             dest, REG_SP, save_off + source*FPRSIZE);
     //  bperr("Loading FP reg %d (into %d) at 0x%x off the stack\n", 
     //  reg, dest, offset + reg*FPRSIZE);
 }
@@ -1814,50 +1823,58 @@ codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, Register dest,
     return retval;
 }
 
-Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
+Register emitR(opCode op, Register src1, Register src2, Register dest,
                codeGen &gen, bool /*noCost*/,
                const instPoint * /*location*/, bool /*for_MT*/)
 {
     //bperr("emitR(op=%d,src1=%d,src2=XX,dest=%d)\n",op,src1,dest);
 
     registerSlot *regSlot = NULL;
+    unsigned addrWidth = gen.addrSpace()->getAddressWidth();
 
     switch (op) {
     case getRetValOp: {
-	regSlot = (*(gen.rs()))[registerSpace::r3];
+        regSlot = (*(gen.rs()))[registerSpace::r3];
         break;
     }
-    case getParamOp:
-      // the first 8 parameters (0-7) are stored in registers (r3-r10) upon entering
-      // the function and then saved above the stack upon entering the trampoline;
-      // in emit functional call the stack pointer is moved so the saved registers
-      // are not over-written
-      // the other parameters > 8 are stored on the caller's stack at an offset.
-      // 
-      // src1 is the argument number 0..X, the first 8 are stored in registers
-      // r3 and 
-      if(src1 < 8) {
-          // Note that src1 is 0..8 - it's not a register, it's a parameter number
-          regSlot = (*(gen.rs()))[registerSpace::r3 + src1];
-          break;
 
-      } else {
-          // Registers from 11 (src = 8) and beyond are saved on the
-          // stack. On AIX this is +56 bytes; for ELF it's something different.
-	  if (gen.addrSpace()->getAddressWidth() == 4) {
-	      instruction::generateImm(gen, Lop, dest, 1,
-				       TRAMP_FRAME_SIZE_32 +
-				       ((src1 - 8)*sizeof(int)) +
-				       PARAM_OFFSET(gen.addrSpace()->getAddressWidth()));
-	  } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
-	      instruction::generateMemAccess64(gen, LDop, LDxop, dest, 1,
-					       TRAMP_FRAME_SIZE_64 +
-					       ((src1 - 8)*sizeof(long)) +
-					       PARAM_OFFSET(gen.addrSpace()->getAddressWidth()));
-	  }
-          return(dest);
+    case getParamOp: {
+        // The first 8 parameters (0-7) are stored in registers (r3-r10) upon
+        // entering the function and then saved above the stack upon entering
+        // the trampoline; in emit functional call the stack pointer is moved
+        // so the saved registers are not over-written the other parameters >
+        // 8 are stored on the caller's stack at an offset.
+        // 
+        // src1 is the argument number 0..X, the first 8 are stored in regs
+        // src2 (if not REG_NULL) holds the value to be written into src1
+
+        if(src1 < 8) {
+            // src1 is 0..8 - it's a parameter number, not a register
+            regSlot = (*(gen.rs()))[registerSpace::r3 + src1];
+            break;
+
+        } else {
+            // Registers from 11 (src = 8) and beyond are saved on the stack.
+            // On AIX this is +56 bytes; for ELF it's something different.
+
+            int stkOffset;
+            if (addrWidth == 4) {
+                stkOffset = TRAMP_FRAME_SIZE_32 +
+                            (src1 - 8) * sizeof(int) +
+                            PARAM_OFFSET(addrWidth);
+            } else {
+                stkOffset = TRAMP_FRAME_SIZE_64 +
+                            (src1 - 8) * sizeof(long) +
+                            PARAM_OFFSET(addrWidth);
+            }
+
+            if (src2 != REG_NULL) saveRegisterAtOffset(gen, src2, stkOffset);
+            restoreRegisterAtOffset(gen, dest, stkOffset);
+            return(dest);
       }
       break;
+    }
+
     default:
         assert(0);
         break;
@@ -1869,16 +1886,19 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
     switch(regSlot->liveState) {
     case registerSlot::spilled: {
         int offset;
-        if (gen.addrSpace()->getAddressWidth() == 4)
+        if (addrWidth == 4)
             offset = TRAMP_GPR_OFFSET_32;
-        else /* gen.addrSpace()->getAddressWidth() == 8 */
+        else /* addrWidth == 8 */
             offset = TRAMP_GPR_OFFSET_64;
+
         // its on the stack so load it.
+        if (src2 != REG_NULL) saveRegister(gen, src2, reg, offset);
         restoreRegister(gen, reg, dest, offset);
         return(dest);
     }
     case registerSlot::live: {
         // its still in a register so return the register it is in.
+        
         return(reg);
     }
     case registerSlot::dead: {
@@ -1886,6 +1906,7 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
         assert(0);
     }
     }
+
     assert(0);
     return REG_NULL;
 }
@@ -1924,8 +1945,8 @@ static inline void restoreGPRtoGPR(codeGen &gen,
         instruction::generateImm(gen, CALop, dest, REG_SP, frame_size);
 
     else if((reg == 0) || ((reg >= 3) && (reg <=12)))
-        instruction::generateImm(gen, Lop, dest, 1, gpr_off + reg*gpr_size);
-
+        instruction::generateImm(gen, Lop, dest, REG_SP,
+                                 gpr_off + reg*gpr_size);
     else {
         bperr( "GPR %d should not be restored...", reg);
         assert(0);
@@ -1938,10 +1959,10 @@ static inline void restoreGPRtoGPR(codeGen &gen,
 static inline void restoreXERtoGPR(codeGen &gen, Register dest)
 {
     if (gen.addrSpace()->getAddressWidth() == 4) {
-        instruction::generateImm(gen, Lop, dest, 1,
+        instruction::generateImm(gen, Lop, dest, REG_SP,
                                  TRAMP_SPR_OFFSET + STK_XER_32);
     } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
-        instruction::generateMemAccess64(gen, LDop, LDxop, dest, 1,
+        instruction::generateMemAccess64(gen, LDop, LDxop, dest, REG_SP,
                                          TRAMP_SPR_OFFSET + STK_XER_64);
     }
 }

@@ -1474,7 +1474,7 @@ Register emitR(opCode op, Register src1, Register src2, Register dest,
     assert(get_addr_of);
     emitV(storeIndirOp, src2, 0, dest, gen, noCost, gen.rs(), 
           gen.addrSpace()->getAddressWidth(), gen.point(), gen.addrSpace());
-    return(Null_Register);
+    return(dest);
 }
 
 void emitSHL(RealRegister dest, unsigned char pos, codeGen &gen)

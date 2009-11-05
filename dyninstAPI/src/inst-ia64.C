@@ -2949,7 +2949,7 @@ void emitFuncJump(opCode op, codeGen &gen, int_function *callee,
 
 
 /* Required by ast.C */
-Register emitR( opCode op, Register src1, Register /*src2*/, Register dest,
+Register emitR( opCode op, Register src1, Register src2, Register dest,
 				codeGen &gen,  bool /*noCost*/,
 				const instPoint *location, bool /*for_multithreaded*/) {
   /* FIXME: handle noCost */
@@ -2967,6 +2967,14 @@ Register emitR( opCode op, Register src1, Register /*src2*/, Register dest,
 	  int spReg = gen.rs()->storageMap[ BP_GR0 + REGISTER_SP ];
 	  int memStackOffset = (src1 - 8 + 2) * 8;
 
+      if (src2 != REG_NULL) {
+          IA64_bundle writeValue = IA64_bundle( MMIstop,
+                                                generateRegisterStoreImmediate(spReg, dest, memStackOffset),
+                                                instruction(NOP_M),
+                                                instruction(NOP_M) );
+          writeValue.generate(gen);
+      }
+
 	  IA64_bundle bundle = IA64_bundle( MstopMIstop,
 										generateShortImmediateAdd(dest, memStackOffset, spReg),
 										generateRegisterLoad(dest, dest),
@@ -2982,11 +2990,13 @@ Register emitR( opCode op, Register src1, Register /*src2*/, Register dest,
 	  if (location->getPointType() == callSite)
 		regStackOffset = gen.rs()->originalLocals;
 
+      if (src2 != REG_NULL)
+          emitRegisterToRegisterCopy(src2, 32 + regStackOffset + src1, gen, NULL);
 	  emitRegisterToRegisterCopy( 32 + regStackOffset + src1, dest, gen, NULL );
 	  return dest;
 	} /* end if it's a parameter in a register. */
   } break;
-		
+
   case getRetValOp: {
 	/* WARNING: According to the Itanium Software Conventions
 	   Guide, the return value can use multiple registers (r8-11).
@@ -2994,12 +3004,15 @@ Register emitR( opCode op, Register src1, Register /*src2*/, Register dest,
 	   64 bits (for now), we'll just return r8.
 
 	   This should be valid for the general case. */
-			   
+
 	  //Register retVal = (Register)8;
-	  assert(gen.rs()->storageMap[REGISTER_RV] > 0);
-	  Register retVal = gen.rs()->storageMap[REGISTER_RV];
-	emitRegisterToRegisterCopy(retVal, dest, gen, NULL);
-	return dest;
+      assert(gen.rs()->storageMap[REGISTER_RV] > 0);
+      Register retVal = gen.rs()->storageMap[REGISTER_RV];
+
+      if (src2 != REG_NULL)
+          emitRegisterToRegisterCopy(src2, retVal, gen, NULL);
+      emitRegisterToRegisterCopy(retVal, dest, gen, NULL);
+      return dest;
   } break;
 
   default:
