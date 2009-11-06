@@ -1435,6 +1435,7 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
 	  
 	  //fprintf(stderr, "jumpOffset 0x%lx\n", jumpOffset);
 	  Address res = (Address)(jumpStart + jumpOffset);
+
 	  if (img->isCode(res))
 	    result += (Address)(jumpStart+jumpOffset);
 	  //fprintf(stderr, "Entry of 0x%lx\n", (Address)(jumpStart + jumpOffset));
@@ -1495,6 +1496,16 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
       return false;
     }
     //fprintf(stderr, "Found %d entries in jump table, returning success\n", entriesAdded);
+  }
+
+  // Sanity check entries in res
+  for (BPatch_Set<Address>::iterator iter = result.begin();
+       iter != result.end(); iter++) {
+      if ((*iter) % 4) {
+          parsing_printf("Warning: found unaligned jump table destination 0x%lx for jump at 0x%lx, disregarding table\n",
+                         *iter, initialAddress);
+          return false;
+      }
   }
 
   
