@@ -493,8 +493,30 @@ bool image_func::parse()
     }
     parsed_ = true;
 
-    parsing_printf("[%s] parsing %s at 0x%lx\n", FILE__,
-                symTabName().c_str(), getOffset());
+    std::string howStr;
+    switch(howDiscovered_)
+    {
+        case FS_SYMTAB:
+            howStr = "symtab";
+            break;
+        case FS_GAP:
+            howStr = "gap parsing";
+            break;
+        case FS_RT:
+            howStr = "recursive traversal";
+            break;
+        case FS_GAPRT:
+            howStr = "recursive traversal from gap fn";
+            break;
+        case FS_ONDEMAND:
+            howStr = "on-demand parsing";
+            break;
+        default:
+            assert(!"bad enum");
+    };
+    
+    parsing_printf("[%s] parsing %s (discovered via %s) at 0x%lx\n", FILE__,
+                symTabName().c_str(), howStr.c_str(), getOffset());
 
     if(!img()->isValidAddress(getOffset())) {
         parsing_printf("[%s] refusing to parse from invalid address 0x%lx\n",
@@ -1378,6 +1400,10 @@ image_func * image_func::bindCallTarget(
                      targetFunc->symTabName().c_str(),targetFunc->getOffset());
 
                 targetFunc->img()->recordFunction(targetFunc);
+            }
+            else {
+                parsing_printf("%s[%u]: removing symtab function at 0x%lx\n", FILE__, __LINE__, targetFunc->getOffset());
+                targetFunc->img()->getObject()->deleteFunction(targetFunc->getSymtabFunction());
             }
 
 #if defined(ppc32_linux)

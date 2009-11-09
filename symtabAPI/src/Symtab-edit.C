@@ -98,13 +98,14 @@ bool Symtab::changeType(Symbol *sym, Symbol::SymbolType oldType)
 
 bool Symtab::deleteFunction(Function *func) {
     // First, remove the function
-    std::vector<Function *>::iterator iter;
+    everyFunction.erase(std::remove(everyFunction.begin(), everyFunction.end(), func), everyFunction.end());
+/*    std::vector<Function *>::iterator iter;
     for (iter = everyFunction.begin(); iter != everyFunction.end(); iter++) {
         if ((*iter) == func) {
             everyFunction.erase(iter);
         }
     }
-
+*/
     funcsByOffset.erase(func->getOffset());
 
     // Now handle the Aggregate stuff
@@ -113,12 +114,7 @@ bool Symtab::deleteFunction(Function *func) {
 
 bool Symtab::deleteVariable(Variable *var) {
     // First, remove the function
-    std::vector<Variable *>::iterator iter;
-    for (iter = everyVariable.begin(); iter != everyVariable.end(); iter++) {
-        if ((*iter) == var) {
-            everyVariable.erase(iter);
-        }
-    }
+    everyVariable.erase(std::remove(everyVariable.begin(), everyVariable.end(), var), everyVariable.end());
 
     varsByOffset.erase(var->getOffset());
     return deleteAggregate(var);
@@ -142,37 +138,25 @@ bool Symtab::deleteSymbolFromIndices(Symbol *sym) {
 
     // everyDefinedSymbol
     for (iter = everyDefinedSymbol.begin(); iter != everyDefinedSymbol.end(); iter++) 
-	{
-		//  we use indexes in this vector as a unique id for symbols, so mark 
-		//  as deleted w/out changing vector
+    {
+        //  we use indexes in this vector as a unique id for symbols, so mark
+        //  as deleted w/out changing vector
         if ((*iter) == sym) (*iter) = &deletedSymbol;
-	}
+    }
 
     // userAddedSymbols
-    for (iter = userAddedSymbols.begin(); iter != userAddedSymbols.end(); iter++) {
-        if ((*iter) == sym) userAddedSymbols.erase(iter);
-    }
+    userAddedSymbols.erase(std::remove(userAddedSymbols.begin(), userAddedSymbols.end(), sym), userAddedSymbols.end());
+    undefDynSyms[sym->getMangledName()].erase(std::remove(undefDynSyms[sym->getMangledName()].begin(),
+        undefDynSyms[sym->getMangledName()].end(), sym), undefDynSyms[sym->getMangledName()].end());
+    symsByOffset[sym->getOffset()].erase(std::remove(symsByOffset[sym->getOffset()].begin(), symsByOffset[sym->getOffset()].end(),
+        sym), symsByOffset[sym->getOffset()].end());
+    symsByMangledName[sym->getMangledName()].erase(std::remove(symsByMangledName[sym->getMangledName()].begin(),
+        symsByMangledName[sym->getMangledName()].end(), sym), symsByMangledName[sym->getMangledName()].end());
+    symsByPrettyName[sym->getPrettyName()].erase(std::remove(symsByPrettyName[sym->getPrettyName()].begin(),
+        symsByPrettyName[sym->getPrettyName()].end(), sym), symsByPrettyName[sym->getPrettyName()].end());
+    symsByTypedName[sym->getTypedName()].erase(std::remove(symsByTypedName[sym->getTypedName()].begin(),
+        symsByTypedName[sym->getTypedName()].end(), sym), symsByTypedName[sym->getTypedName()].end());
 
-    for (iter = undefDynSyms[sym->getMangledName()].begin(); 
-         iter != undefDynSyms[sym->getMangledName()].end(); iter++) {
-        if ((*iter) == sym) undefDynSyms[sym->getMangledName()].erase(iter);
-    }
-
-    for (iter = symsByOffset[sym->getOffset()].begin(); iter != symsByOffset[sym->getOffset()].end(); iter++) {
-        if ((*iter) == sym) symsByOffset[sym->getOffset()].erase(iter);
-    }
-
-    for (iter = symsByMangledName[sym->getMangledName()].begin(); iter != symsByMangledName[sym->getMangledName()].end(); iter++) {
-        if ((*iter) == sym) symsByMangledName[sym->getMangledName()].erase(iter);
-    }
-
-    for (iter = symsByPrettyName[sym->getPrettyName()].begin(); iter != symsByPrettyName[sym->getPrettyName()].end(); iter++) {
-        if ((*iter) == sym) symsByPrettyName[sym->getPrettyName()].erase(iter);
-    }
-
-    for (iter = symsByTypedName[sym->getTypedName()].begin(); iter != symsByTypedName[sym->getTypedName()].end(); iter++) {
-        if ((*iter) == sym) symsByTypedName[sym->getTypedName()].erase(iter);
-    }
 
     return true;
 }
