@@ -60,6 +60,28 @@ namespace Dyninst
 	{
 	    otherRead.insert(makeRegFromID(r_DF));
 	}
+        int segPrefix = p->getPrefix(1);
+        switch(segPrefix)
+        {
+            case PREFIX_SEGCS:
+                otherRead.insert(makeRegFromID(r_CS));
+                break;
+            case PREFIX_SEGDS:
+                otherRead.insert(makeRegFromID(r_DS));
+                break;
+            case PREFIX_SEGES:
+                otherRead.insert(makeRegFromID(r_ES));
+                break;
+            case PREFIX_SEGFS:
+                otherRead.insert(makeRegFromID(r_FS));
+                break;
+            case PREFIX_SEGGS:
+                otherRead.insert(makeRegFromID(r_GS));
+                break;
+            case PREFIX_SEGSS:
+                otherRead.insert(makeRegFromID(r_SS));
+                break;
+        }
       }
     }
 
