@@ -2719,17 +2719,17 @@ void BinaryEdit::makeInitAndFiniIfNeeded()
             unsigned char* emptyFunction = NULL;
             int emptyFuncSize = 0;
 #if defined(arch_x86) || defined(arch_x86_64)
-            static unsigned char empty_32[] = { 0x55, 0x89, 0xe5, 0xc3 };
-            static unsigned char empty_64[] = { 0x55, 0x48, 0x89, 0xe5, 0xc3 };
+            static unsigned char empty_32[] = { 0x55, 0x89, 0xe5, 0xc9, 0xc3 };
+            static unsigned char empty_64[] = { 0x55, 0x48, 0x89, 0xe5, 0xc9, 0xc3 };
             if(linkedFile->getAddressWidth() == 8)
             {
                 emptyFunction = empty_64;
-                emptyFuncSize = 5;
+                emptyFuncSize = 6;
             }
             else
             {
                 emptyFunction = empty_32;
-                emptyFuncSize = 4;
+                emptyFuncSize = 5;
             }
 #endif //defined(arch_x86) || defined(arch_x86_64)
             linkedFile->addRegion(highWaterMark_, (void*)(emptyFunction), emptyFuncSize, ".init.dyninst",
@@ -2762,17 +2762,17 @@ void BinaryEdit::makeInitAndFiniIfNeeded()
             unsigned char* emptyFunction = NULL;
             int emptyFuncSize = 0;
 #if defined(arch_x86) || defined(arch_x86_64)
-            static unsigned char empty_32[] = { 0x55, 0x89, 0xe5, 0xc3 };
-            static unsigned char empty_64[] = { 0x55, 0x48, 0x89, 0xe5, 0xc3 };
+            static unsigned char empty_32[] = { 0x55, 0x89, 0xe5, 0xc9, 0xc3 };
+            static unsigned char empty_64[] = { 0x55, 0x48, 0x89, 0xe5, 0xc9, 0xc3 };
             if(linkedFile->getAddressWidth() == 8)
             {
                 emptyFunction = empty_64;
-                emptyFuncSize = 5;
+                emptyFuncSize = 6;
             }
             else
             {
                 emptyFunction = empty_32;
-                emptyFuncSize = 4;
+                emptyFuncSize = 5;
             }
 #endif //defined(arch_x86) || defined(arch_x86_64)
             linkedFile->addRegion(highWaterMark_, (void*)(emptyFunction), emptyFuncSize, ".fini.dyninst",
