@@ -74,6 +74,7 @@ bool Symtab::changeType(Symbol *sym, Symbol::SymbolType oldType)
         break;
         }
     }
+    case Symbol::ST_TLS:
     case Symbol::ST_OBJECT: {
         Variable *var = NULL;
         if (findVariableByOffset(var, sym->getAddr())) {

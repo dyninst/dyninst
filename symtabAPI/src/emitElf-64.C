@@ -54,14 +54,16 @@ struct sortByIndex
   }
 };
 
-static int elfSymType(Symbol::SymbolType sType)
+static int elfSymType(Symbol *sym)
 {
-  switch (sType) {
+  switch (sym->getType()) {
   case Symbol::ST_MODULE: return STT_FILE;
   case Symbol::ST_SECTION: return STT_SECTION;
   case Symbol::ST_OBJECT: return STT_OBJECT;
   case Symbol::ST_FUNCTION: return STT_FUNC;
+  case Symbol::ST_TLS: return STT_TLS;
   case Symbol::ST_NOTYPE : return STT_NOTYPE;
+  case Symbol::ST_UNKNOWN: return sym->getInternalType();
   default: return STT_SECTION;
   }
 }

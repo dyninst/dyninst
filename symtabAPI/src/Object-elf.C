@@ -1661,11 +1661,11 @@ static Symbol::SymbolType pdelf_type(int elf_type)
   case STT_FILE:   return Symbol::ST_MODULE;
   case STT_SECTION:return Symbol::ST_SECTION;
   case STT_OBJECT: return Symbol::ST_OBJECT;
-  case STT_TLS:    return Symbol::ST_OBJECT;  // TODO: new type for thread-local storage?
+  case STT_TLS:    return Symbol::ST_TLS;
   case STT_FUNC:   return Symbol::ST_FUNCTION;
   case STT_NOTYPE: return Symbol::ST_NOTYPE;
+  default: return Symbol::ST_UNKNOWN;
   }
-  return Symbol::ST_UNKNOWN;
 }
 
 static Symbol::SymbolLinkage pdelf_linkage(int elf_binding)
@@ -1803,124 +1803,124 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
                            bool /*shared*/, string smodule)
 {
 #if defined(TIMED_PARSE)
-  struct timeval starttime;
-  gettimeofday(&starttime, NULL);
+   struct timeval starttime;
+   gettimeofday(&starttime, NULL);
 #endif
 
-  if (!symdata.isValid() || !strdata.isValid()) {
-    return false;
-  }
+   if (!symdata.isValid() || !strdata.isValid()) {
+      return false;
+   }
 
-  unsigned long opdStart = 0;
-  unsigned long opdEnd = 0;
-  char *opdData = 0;
-  if (opdscnp) {
-    opdStart = opdscnp->sh_addr();
-    opdEnd   = opdscnp->sh_addr() + opdscnp->sh_size();
-    opdData  = (char *)opdscnp->get_data().d_buf();
-  }
+   unsigned long opdStart = 0;
+   unsigned long opdEnd = 0;
+   char *opdData = 0;
+   if (opdscnp) {
+      opdStart = opdscnp->sh_addr();
+      opdEnd   = opdscnp->sh_addr() + opdscnp->sh_size();
+      opdData  = (char *)opdscnp->get_data().d_buf();
+   }
 
-  Elf_X_Sym syms = symdata.get_sym();
-  const char *strs = strdata.get_string();
-  if(syms.isValid()){
-    for (unsigned i = 0; i < syms.count(); i++) {
-      //If it is not a dynamic executable then we need undefined symbols
-      //in symtab section so that we can resolve symbol references. So 
-      //we parse & store undefined symbols only if there is no dynamic
-      //symbol table
-      //1/09: not so anymore--we want to preserve all symbols,
-      //regardless of file type
+   Elf_X_Sym syms = symdata.get_sym();
+   const char *strs = strdata.get_string();
+   if(syms.isValid()){
+      for (unsigned i = 0; i < syms.count(); i++) {
+         //If it is not a dynamic executable then we need undefined symbols
+         //in symtab section so that we can resolve symbol references. So 
+         //we parse & store undefined symbols only if there is no dynamic
+         //symbol table
+         //1/09: not so anymore--we want to preserve all symbols,
+         //regardless of file type
       
-      int etype = syms.ST_TYPE(i);
-      int ebinding = syms.ST_BIND(i);
-      int evisibility = syms.ST_VISIBILITY(i);
+         int etype = syms.ST_TYPE(i);
+         int ebinding = syms.ST_BIND(i);
+         int evisibility = syms.ST_VISIBILITY(i);
 
-      // resolve symbol elements
-      string sname = &strs[ syms.st_name(i) ];
-      Symbol::SymbolType stype = pdelf_type(etype);
-      Symbol::SymbolLinkage slinkage = pdelf_linkage(ebinding);
-      Symbol::SymbolVisibility svisibility = pdelf_visibility(evisibility);
-      unsigned ssize = syms.st_size(i);
-      unsigned secNumber = syms.st_shndx(i);
+         // resolve symbol elements
+         string sname = &strs[ syms.st_name(i) ];
+         Symbol::SymbolType stype = pdelf_type(etype);
+         Symbol::SymbolLinkage slinkage = pdelf_linkage(ebinding);
+         Symbol::SymbolVisibility svisibility = pdelf_visibility(evisibility);
+         unsigned ssize = syms.st_size(i);
+         unsigned secNumber = syms.st_shndx(i);
 
-      Offset soffset;
-      if (symscnp->isFromDebugFile()) {
-	Offset soffset_dbg = syms.st_value(i);
-	soffset = soffset_dbg;
-	if (soffset_dbg) {
-	  bool result = convertDebugOffset(soffset_dbg, soffset);
-	  if (!result) {
-	    //Symbol does not match any section, can't convert
-	    continue;
-	  }
-	}
-      }
-      else {
-	soffset = syms.st_value(i);
-      }
+         Offset soffset;
+         if (symscnp->isFromDebugFile()) {
+            Offset soffset_dbg = syms.st_value(i);
+            soffset = soffset_dbg;
+            if (soffset_dbg) {
+               bool result = convertDebugOffset(soffset_dbg, soffset);
+               if (!result) {
+                  //Symbol does not match any section, can't convert
+                  continue;
+               }
+            }
+         }
+         else {
+            soffset = syms.st_value(i);
+         }
 
-      /* icc BUG: Variables in BSS are categorized as ST_NOTYPE instead of 
-	 ST_OBJECT.  To fix this, we check if the symbol is in BSS and has 
-	 size > 0. If so, we can almost always say it is a variable and hence, 
-	 change the type from ST_NOTYPE to ST_OBJECT.
-      */
-
-
-      if (bssscnp) {
-	Offset bssStart = Offset(bssscnp->sh_addr());
-	Offset bssEnd = Offset (bssStart + bssscnp->sh_size()) ;
+         /* icc BUG: Variables in BSS are categorized as ST_NOTYPE instead of 
+            ST_OBJECT.  To fix this, we check if the symbol is in BSS and has 
+            size > 0. If so, we can almost always say it is a variable and hence, 
+            change the type from ST_NOTYPE to ST_OBJECT.
+         */
+         if (bssscnp) {
+            Offset bssStart = Offset(bssscnp->sh_addr());
+            Offset bssEnd = Offset (bssStart + bssscnp->sh_size()) ;
             
-	if(( bssStart <= soffset) && ( soffset < bssEnd ) && (ssize > 0) && 
-	   (stype == Symbol::ST_NOTYPE)) 
-	  {
-	    stype = Symbol::ST_OBJECT;
-	  }
-      }
+            if(( bssStart <= soffset) && ( soffset < bssEnd ) && (ssize > 0) && 
+               (stype == Symbol::ST_NOTYPE)) 
+            {
+               stype = Symbol::ST_OBJECT;
+            }
+         }
 
-      // discard "dummy" symbol at beginning of file
-      if (i==0 && sname == "" && soffset == (Offset)0)
-	continue;
+         // discard "dummy" symbol at beginning of file
+         if (i==0 && sname == "" && soffset == (Offset)0)
+            continue;
 
-      Region *sec;
-      if(secNumber >= 1 && secNumber <= regions_.size()) {
-         sec = regions_[secNumber];
-      } else {
-         sec = NULL;
-      }
-      int ind = int (i);
-      int strindex = syms.st_name(i);
-      Symbol *newsym = new Symbol(sname, 
-				  stype,
-				  slinkage, 
-				  svisibility, 
-				  soffset,
-				  NULL,
-				  sec, 
-				  ssize,
-				  false,
-				  (secNumber == SHN_ABS),
-				  ind,
-				  strindex);
+         Region *sec;
+         if(secNumber >= 1 && secNumber <= regions_.size()) {
+            sec = regions_[secNumber];
+         } else {
+            sec = NULL;
+         }
+         int ind = int (i);
+         int strindex = syms.st_name(i);
+         Symbol *newsym = new Symbol(sname, 
+                                     stype,
+                                     slinkage, 
+                                     svisibility, 
+                                     soffset,
+                                     NULL,
+                                     sec, 
+                                     ssize,
+                                     false,
+                                     (secNumber == SHN_ABS),
+                                     ind,
+                                     strindex);
+         if (stype == Symbol::ST_UNKNOWN)
+            newsym->setInternalType(etype);
 	 
-      if (opdscnp)
-	fix_opd_symbol(opdData, opdStart, opdEnd, newsym);
-      fix_libc_section_function_symbol(&regions_, newsym);
+         if (opdscnp)
+            fix_opd_symbol(opdData, opdStart, opdEnd, newsym);
+         fix_libc_section_function_symbol(&regions_, newsym);
 
-      symbols_[sname].push_back(newsym);
-      symsByOffset_[newsym->getOffset()].push_back(newsym);
-      symsToModules_[newsym] = smodule; 
-    }
-  } // syms.isValid()
+         symbols_[sname].push_back(newsym);
+         symsByOffset_[newsym->getOffset()].push_back(newsym);
+         symsToModules_[newsym] = smodule; 
+      }
+   } // syms.isValid()
 #if defined(TIMED_PARSE)
-  struct timeval endtime;
-  gettimeofday(&endtime, NULL);
-  unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
-  unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
-  unsigned long difftime = lendtime - lstarttime;
-  double dursecs = difftime/(1000 * 1000);
-  cout << "parsing elf took "<<dursecs <<" secs" << endl;
+   struct timeval endtime;
+   gettimeofday(&endtime, NULL);
+   unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+   unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+   unsigned long difftime = lendtime - lstarttime;
+   double dursecs = difftime/(1000 * 1000);
+   cout << "parsing elf took "<<dursecs <<" secs" << endl;
 #endif
-  return true;
+   return true;
 }
 
 // parse_symbols(): populate "allsymbols"
@@ -2038,33 +2038,13 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
 
       // discard "dummy" symbol at beginning of file
       if (i==0 && sname == "" && soffset == (Offset)0)
-	continue;
+         continue;
 
-      /* 11/4/08: don't discard symbols with same name and address */
-#if 0
-      if(symbols_.find(sname) != symbols_.end()) {
-	vector<Symbol *> syms = symbols_[sname];
-	for(unsigned j = 0; j < syms.size(); j++){
-	  if(syms[j]->getOffset() == soffset){
-#if !defined(os_solaris)
-	    if(versymSec) {
-	      if(versionFileNameMapping.find(symVersions.get(i)) != versionFileNameMapping.end())
-		syms[j]->setVersionFileName(versionFileNameMapping[symVersions.get(i)]);
-	      if(versionMapping.find(symVersions.get(i)) != versionMapping.end())
-		syms[j]->setVersions(versionMapping[symVersions.get(i)]);
-	    }
-#endif
-	  }
-	}
-	continue;
-      }
-#endif
-     
       Region *sec;
       if(secNumber >= 1 && secNumber <= regions_.size()) {
-	sec = regions_[secNumber];
+         sec = regions_[secNumber];
       } else{
-	sec = NULL;		
+         sec = NULL;		
       }
       int ind = int (i);
       int strindex = syms.st_name(i);
@@ -2079,27 +2059,30 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
                                   ssize, 
                                   true,  // is dynamic
                                   (secNumber == SHN_ABS),
-				  ind,
-				  strindex);
+                                  ind,
+                                  strindex);
+
+      if (stype == Symbol::ST_UNKNOWN)
+         newsym->setInternalType(etype);
       
       if (opdscnp)
-	fix_opd_symbol(opdData, opdStart, opdEnd, newsym);
+         fix_opd_symbol(opdData, opdStart, opdEnd, newsym);
       fix_libc_section_function_symbol(&regions_, newsym);
-
+      
 #if !defined(os_solaris)
       if(versymSec) {
-	if(versionFileNameMapping.find(symVersions.get(i)) != versionFileNameMapping.end()) {
-	  //printf("version filename for %s: %s\n", sname.c_str(),
-	  //versionFileNameMapping[symVersions.get(i)].c_str());
-	  newsym->setVersionFileName(versionFileNameMapping[symVersions.get(i)]);
-	}
-	if(versionMapping.find(symVersions.get(i)) != versionMapping.end()) {
-	  //printf("versions for %s: ", sname.c_str());
-	  //for (unsigned k=0; k < versionMapping[symVersions.get(i)].size(); k++)
-	  //printf(" %s", versionMapping[symVersions.get(i)][k].c_str());
-	  newsym->setVersions(versionMapping[symVersions.get(i)]);
-	  //printf("\n");
-	}
+         if(versionFileNameMapping.find(symVersions.get(i)) != versionFileNameMapping.end()) {
+            //printf("version filename for %s: %s\n", sname.c_str(),
+            //versionFileNameMapping[symVersions.get(i)].c_str());
+            newsym->setVersionFileName(versionFileNameMapping[symVersions.get(i)]);
+         }
+         if(versionMapping.find(symVersions.get(i)) != versionMapping.end()) {
+            //printf("versions for %s: ", sname.c_str());
+            //for (unsigned k=0; k < versionMapping[symVersions.get(i)].size(); k++)
+            //printf(" %s", versionMapping[symVersions.get(i)][k].c_str());
+            newsym->setVersions(versionMapping[symVersions.get(i)]);
+            //printf("\n");
+         }
       }
 #endif
       // register symbol in dictionary
@@ -2108,7 +2091,7 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
       symsToModules_[newsym] = smodule; 
     }
   }
-
+  
 #if defined(TIMED_PARSE)
   struct timeval endtime;
   gettimeofday(&endtime, NULL);
