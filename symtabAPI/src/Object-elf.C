@@ -4216,14 +4216,14 @@ bool Object::emitDriver(Symtab *obj, string fName,
 #endif
   if (elfHdr.e_ident()[EI_CLASS] == 1) 
     {
-      emitElf *em = new emitElf(elfHdr, isStripped, flag, err_func_);
+      emitElf *em = new emitElf(elfHdr, isStripped, flag, this, err_func_);
       em->createSymbolTables(obj, allSymbols, relocation_table_); 
       return em->driver(obj, fName);
     }
 #if defined(x86_64_unknown_linux2_4) || defined(ia64_unknown_linux2_4) || defined(ppc64_linux)
   else if (elfHdr.e_ident()[EI_CLASS] == 2) 
     {
-      emitElf64 *em = new emitElf64(elfHdr, isStripped, flag, err_func_);
+      emitElf64 *em = new emitElf64(elfHdr, isStripped, flag, this, err_func_);
       em->createSymbolTables(obj, allSymbols, relocation_table_);
       return em->driver(obj, fName);
     }

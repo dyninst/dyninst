@@ -41,7 +41,7 @@ namespace SymtabAPI{
 
 class emitElf64{
   public:
-    emitElf64(Elf_X &oldElfHandle_, bool isStripped_ = false, int BSSexpandflag = false, void (*)(const char *) = log_msg);
+    emitElf64(Elf_X &oldElfHandle_, bool isStripped_ = false, int BSSexpandflag = false, Object *obj_ = NULL, void (*)(const char *) = log_msg);
     ~emitElf64();
     bool createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std::vector<relocationEntry> &relocation_table);
     bool driver(Symtab *obj, std::string fName);
@@ -111,6 +111,8 @@ class emitElf64{
     bool addNewSegmentFlag;
     
     bool isStripped;
+    int library_adjust;
+    Object *object;
 
     void (*err_func_)(const char*);
 
@@ -122,6 +124,7 @@ class emitElf64{
     bool createNonLoadableSections(Elf64_Shdr *& shdr);
     bool createLoadableSections( Elf64_Shdr* &shdr, unsigned &loadSecTotalSize, unsigned &,  dyn_hash_map<std::string,  unsigned>& newIndexMapping, unsigned &sectionNumber);
     void createRelocationSections(Symtab *obj, std::vector<relocationEntry> &relocation_table, dyn_hash_map<std::string, unsigned> &dynSymNameMapping);
+    void updateRelocationSection(Elf_Data *r_data, bool is_rela);
 
     void updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned long loadSecsSize);
 

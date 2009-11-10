@@ -41,15 +41,15 @@ namespace SymtabAPI{
 
 class emitElf{
   public:
-    emitElf(Elf_X &oldElfHandle_, bool isStripped_ = false, int BSSexpandflag = false, void (*)(const char *) = log_msg);
+   emitElf(Elf_X &oldElfHandle_, bool isStripped_ = false, int BSSexpandflag = false, Object *obj_ = NULL, void (*)(const char *) = log_msg);
     ~emitElf();
     bool createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std::vector<relocationEntry> &relocation_table);
     bool driver(Symtab *obj, std::string fName);
- 
   private:
     Elf_X oldElfHandle;
     Elf *newElf;
     Elf *oldElf;
+    Object *object;
     
     //New Section & Program Headers
     Elf32_Ehdr *newEhdr;
@@ -74,6 +74,8 @@ class emitElf{
     
     Elf32_Shdr *textSh;
     Elf32_Shdr *rodataSh;
+    
+    int library_adjust;
     
     std::vector<Region *>nonLoadableSecs;
     std::vector<Region *> newSecs;

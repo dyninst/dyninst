@@ -438,6 +438,7 @@ class Object : public AObject {
     Offset getDynsymSize() const {return dynsym_size_;}
     Offset getElfHashAddr() const {return elf_hash_addr_;}
     Offset getGnuHashAddr() const {return gnu_hash_addr_;}
+    Offset getRelPLTAddr() const { return rel_plt_addr_; }
 
 
   private:

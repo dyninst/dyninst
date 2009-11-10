@@ -89,9 +89,12 @@ static int elfSymVisibility(Symbol::SymbolVisibility sVisibility)
   }
 }
 
-emitElf64::emitElf64(Elf_X &oldElfHandle_, bool isStripped_, int BSSexpandflag_, void (*err_func)(const char *)) :
-  oldElfHandle(oldElfHandle_), BSSExpandFlag(BSSexpandflag_), isStripped(isStripped_), err_func_(err_func)
-
+emitElf64::emitElf64(Elf_X &oldElfHandle_, bool isStripped_, int BSSexpandflag_, Object *obj_, void (*err_func)(const char *)) :
+   oldElfHandle(oldElfHandle_),
+   BSSExpandFlag(BSSexpandflag_),
+   isStripped(isStripped_),
+   object(obj_),
+   err_func_(err_func)
 {
   firstNewLoadSec = NULL;
   textData = NULL;
@@ -101,6 +104,7 @@ emitElf64::emitElf64(Elf_X &oldElfHandle_, bool isStripped_, int BSSexpandflag_,
   hashData = NULL;
   dynsymData = NULL;
   rodata = NULL;
+  library_adjust = (object && object->getLoadAddress() == 0) ? getpagesize() : 0;
    
   if(BSSexpandflag_)
     addNewSegmentFlag = false;
@@ -115,10 +119,11 @@ bool emitElf64::createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf64_
   Elf64_Sym *sym = new Elf64_Sym();
   sym->st_name = strIndex;
 
-  sym->st_value = symbol->getAddr();
+  if (symbol->getAddr())
+     sym->st_value = symbol->getAddr() + library_adjust;
   sym->st_size = symbol->getSize();
   sym->st_other = ELF64_ST_VISIBILITY(elfSymVisibility(symbol->getVisibility()));
-  sym->st_info = (unsigned char) ELF64_ST_INFO(elfSymBind(symbol->getLinkage()), elfSymType (symbol->getType()));
+  sym->st_info = (unsigned char) ELF64_ST_INFO(elfSymBind(symbol->getLinkage()), elfSymType(symbol));
 
   if (symbol->getSec())
     {
@@ -415,6 +420,10 @@ bool emitElf64::driver(Symtab *obj, string fName){
     newshdr->sh_name = secNameIndex;
     secNameIndex += strlen(name) + 1;
     
+      if (newshdr->sh_addr) {
+         newshdr->sh_addr += library_adjust;
+      }
+
     if(foundSec->isDirty())
     {
        newdata->d_buf = (char *)malloc(foundSec->getDiskSize());
@@ -463,7 +472,6 @@ bool emitElf64::driver(Symtab *obj, string fName){
 	  newName.append(name, 2, strlen(name));
 	  renameSection((string)name, newName, false);
 	}
-
     }
 
     if(obj->getObject()->getStrtabAddr() != 0 &&
@@ -479,6 +487,11 @@ bool emitElf64::driver(Symtab *obj, string fName){
       newshdr->sh_link = secNames.size();
       symTabData = newdata;
     }
+
+      if (obj->getObject()->getRelPLTAddr())
+      {
+         updateRelocationSection(newdata, obj->getObject()->hasRelaplt());
+      }
 
     if(obj->getObject()->getTextAddr() != 0 &&
        obj->getObject()->getTextAddr() == shdr->sh_addr){
@@ -608,7 +621,7 @@ bool emitElf64::driver(Symtab *obj, string fName){
 void emitElf64::fixPhdrs(unsigned &loadSecTotalSize, unsigned &extraAlignSize)
 {
   unsigned pgSize = getpagesize();
-  Elf64_Phdr *tmp = oldPhdr;
+   Elf64_Phdr *old = oldPhdr;
   if(addNewSegmentFlag) {
     if(firstNewLoadSec)
       newEhdr->e_phnum= oldEhdr->e_phnum + 1;
@@ -624,25 +637,28 @@ void emitElf64::fixPhdrs(unsigned &loadSecTotalSize, unsigned &extraAlignSize)
   Elf64_Phdr newSeg;
   for(unsigned i=0;i<oldEhdr->e_phnum;i++)
     {
-      memcpy(newPhdr, tmp, oldEhdr->e_phentsize);
+      memcpy(newPhdr, old, oldEhdr->e_phentsize);
       // Expand the data segment to include the new loadable sections
       // Also add a executable permission to the segment
-      if(tmp->p_type == PT_DYNAMIC){
+      if(old->p_type == PT_DYNAMIC){
 	newPhdr->p_vaddr = dynSegAddr;
 	newPhdr->p_paddr = dynSegAddr;
 	newPhdr->p_offset = dynSegOff;
 	newPhdr->p_memsz = dynSegSize;
 	newPhdr->p_filesz = newPhdr->p_memsz;
       }
-      else if(tmp->p_type == PT_PHDR){
-	newPhdr->p_vaddr = tmp->p_vaddr - pgSize;
+      else if(old->p_type == PT_PHDR){
+         newPhdr->p_vaddr = old->p_vaddr - pgSize;
 	newPhdr->p_paddr = newPhdr->p_vaddr;
 	newPhdr->p_filesz = sizeof(Elf64_Phdr) * newEhdr->e_phnum;
 	newPhdr->p_memsz = newPhdr->p_filesz;
       }
-
+      else if (old->p_type == PT_LOAD) {
+         if(newPhdr->p_align > pgSize) {
+            newPhdr->p_align = pgSize;
+         }
       if(BSSExpandFlag) {
-	if(tmp->p_type == PT_LOAD && (tmp->p_flags == 6 || tmp->p_flags == 7))
+            if(old->p_flags == 6 || old->p_flags == 7)
 	  {
 	    newPhdr->p_memsz += loadSecTotalSize + extraAlignSize;
 	    newPhdr->p_filesz = newPhdr->p_memsz;
@@ -650,34 +666,35 @@ void emitElf64::fixPhdrs(unsigned &loadSecTotalSize, unsigned &extraAlignSize)
 	  }	
       }    
       if(addNewSegmentFlag) {
-	if((tmp->p_type == PT_LOAD) && (newPhdr->p_align > pgSize)) {
-	  newPhdr->p_align = pgSize;
-	  
-	}
-	
-	if(tmp->p_type == PT_LOAD && tmp->p_flags == 5)
-	  {
-	    if (tmp->p_vaddr > pgSize) {
-	      newPhdr->p_vaddr = tmp->p_vaddr - pgSize;
+            if (!old->p_offset) {
+               if (newPhdr->p_vaddr)
+                  newPhdr->p_vaddr = old->p_vaddr - pgSize;
 	      newPhdr->p_paddr = newPhdr->p_vaddr;
 	      newPhdr->p_filesz += pgSize;
 	      newPhdr->p_memsz = newPhdr->p_filesz;
 	    }
+            else {
+               newPhdr->p_offset += pgSize;
+            }
+            if (newPhdr->p_vaddr) {
+               newPhdr->p_vaddr += library_adjust;
+            }
 	  }
-	// update first segment header with the page size offset
-	if ((tmp->p_type == PT_LOAD && tmp->p_flags == 5 && tmp->p_vaddr == 0) ||
-	    (tmp->p_type == PT_LOAD && tmp->p_flags == 6) || 
-	    tmp->p_type == PT_NOTE || 
-	    tmp->p_type == PT_INTERP)
+      }
+      else if (old->p_offset) {
 	  newPhdr->p_offset += pgSize;
+         if (newPhdr->p_vaddr) {
+            newPhdr->p_vaddr += library_adjust;
+         }
       } 
+
 #ifdef BINEDIT_DEBUG
       fprintf(stderr, "Added New program header : offset 0x%lx,addr 0x%lx\n", newPhdr->p_offset, newPhdr->p_vaddr);
 #endif
       newPhdr++;
       if(addNewSegmentFlag) {
-	if(tmp->p_type == PT_LOAD && 
-	   (tmp->p_flags == 6 || tmp->p_flags == 7) && 
+         if(old->p_type == PT_LOAD && 
+            (old->p_flags == 6 || old->p_flags == 7) && 
 	   firstNewLoadSec && !added_new_sec)
 	  {
 	    newSeg.p_type = PT_LOAD;
@@ -693,24 +710,38 @@ void emitElf64::fixPhdrs(unsigned &loadSecTotalSize, unsigned &extraAlignSize)
 	    newPhdr++;
 	  }
       }    
-      tmp++;
+      old++;
     }
 }
 
+ #define DT_HASH		4		/* Address of symbol hash table */
+ #define DT_STRTAB	5		/* Address of string table */
+ #define DT_SYMTAB	6		/* Address of symbol table */
+ #define DT_RELA		7		/* Address of Rela relocs */
+#define DT_INIT		12		/* Address of init function */
+#define DT_FINI		13		/* Address of termination function */
+ #define DT_REL		17		/* Address of Rel relocs */
+#define DT_JMPREL	23		/* Address of PLT relocs */
+#define DT_PREINIT_ARRAY 32		/* Array with addresses of preinit fct*/
+
 #if !defined(os_solaris)
+#if !defined(DT_GNU_HASH)
+#define DT_GNU_HASH 0x6ffffef5
+#endif
+
 //This method updates the .dynamic section to reflect the changes to the relocation section
 void emitElf64::updateDynamic(unsigned tag, Elf64_Addr val){
   if(dynamicSecData.find(tag) == dynamicSecData.end())
     return;
     
-  switch(dynamicSecData[tag][0]->d_tag){
+   switch(dynamicSecData[tag][0]->d_tag) {
   case DT_STRSZ:
   case DT_RELSZ:
   case DT_RELASZ:
     dynamicSecData[tag][0]->d_un.d_val = val;
     break;
   case DT_HASH:
-  case 0x6ffffef5: // DT_GNU_HASH (not defined on all platforms)
+      case DT_GNU_HASH:
   case DT_SYMTAB:
   case DT_STRTAB:
   case DT_REL:
@@ -727,6 +758,7 @@ void emitElf64::updateDynamic(unsigned tag, Elf64_Addr val){
     dynamicSecData[DT_VERDEFNUM][0]->d_un.d_val = verdefnum;
     break;
   }
+
 }
 #endif    
 
@@ -806,10 +838,11 @@ bool emitElf64::createLoadableSections(Elf64_Shdr* &shdr, unsigned &loadSecTotal
             newshdr->sh_offset = shdr->sh_offset;
          else
             newshdr->sh_offset = shdr->sh_offset+shdr->sh_size;
-         if(newSecs[i]->getDiskOffset())
-            newshdr->sh_addr = newSecs[i]->getDiskOffset();
+         if(newSecs[i]->getMemOffset()) {
+            newshdr->sh_addr = newSecs[i]->getMemOffset() + library_adjust;
+         }
          else{
-            newshdr->sh_addr = prevshdr->sh_addr+ prevshdr->sh_size;
+            newshdr->sh_addr = prevshdr->sh_addr + prevshdr->sh_size;
          }
     	    
          newshdr->sh_link = SHN_UNDEF;
@@ -1228,7 +1261,7 @@ bool emitElf64::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std
   sym->st_value = 0;
   sym->st_size = 0;
   sym->st_other = 0;
-  sym->st_info = ELF64_ST_INFO(elfSymBind(Symbol::SL_LOCAL), elfSymType (Symbol::ST_NOTYPE));
+  sym->st_info = ELF64_ST_INFO(STB_LOCAL, STT_NOTYPE);
   sym->st_shndx = SHN_UNDEF;
 
   symbols.push_back(sym);
@@ -1304,6 +1337,7 @@ bool emitElf64::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std
   }
   for(i=0; i<allDynSymbols.size();i++) {
     createElfSymbol(allDynSymbols[i], allDynSymbols[i]->getStrIndex(), dynsymbols, true);
+    fprintf(stderr, "%u: %s -> %d\n", i, allDynSymbols[i]->getName().c_str(), allDynSymbols[i]->getIndex());
     dynSymNameMapping[allDynSymbols[i]->getName().c_str()] = allDynSymbols[i]->getIndex();
     dynsymVector.push_back(allDynSymbols[i]);
   }
@@ -1456,6 +1490,29 @@ bool emitElf64::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std
   return true;
 }
 
+void emitElf64::updateRelocationSection(Elf_Data *r_data, bool is_rela)
+{
+   if (!r_data)
+      return;
+   unsigned i=0;
+   if (is_rela) {
+      Elf64_Rela *relas;
+      for (relas = (Elf64_Rela *) r_data->d_buf; i < r_data->d_size/sizeof(Elf64_Rela); relas++, i++) {
+         if (relas->r_offset)
+            relas->r_offset += library_adjust;
+         else if (relas->r_addend)
+            relas->r_addend += library_adjust;
+      }
+   }
+   else {
+      Elf64_Rel *rels;
+      for (rels = (Elf64_Rel *) r_data->d_buf; i < r_data->d_size/sizeof(Elf64_Rel); rels++, i++) {
+         if (rels->r_offset)
+            rels->r_offset += library_adjust;
+      }
+   }
+}
+
 void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntry> &relocation_table, dyn_hash_map<std::string, unsigned> &dynSymNameMapping) {
   unsigned i,j,k;
 
@@ -1470,17 +1527,21 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
    for(i=0;i<relocation_table.size();i++) 
    {
       if (relocation_table[i].regionType() == Region::RT_REL) {
-         rels[j].r_offset = relocation_table[i].rel_addr();
-         if(dynSymNameMapping.find(relocation_table[i].name()) != dynSymNameMapping.end()) {
+         rels[j].r_offset = relocation_table[i].rel_addr() + library_adjust;
+         if(relocation_table[i].name().length() &&
+            dynSymNameMapping.find(relocation_table[i].name()) != dynSymNameMapping.end()) {
             rels[j].r_info = ELF64_R_INFO(dynSymNameMapping[relocation_table[i].name()], relocation_table[i].getRelType());
          } else {
             rels[j].r_info = ELF64_R_INFO(STN_UNDEF, relocation_table[i].getRelType());
          }
          j++;
       } else {
-         relas[k].r_offset = relocation_table[i].rel_addr();
+         relas[k].r_offset = relocation_table[i].rel_addr() + library_adjust;
          relas[k].r_addend = relocation_table[i].addend();
-         if(dynSymNameMapping.find(relocation_table[i].name()) != dynSymNameMapping.end()) {
+         if (relas[k].r_addend)
+            relas[k].r_addend += library_adjust;
+         if(relocation_table[i].name().length() && 
+            dynSymNameMapping.find(relocation_table[i].name()) != dynSymNameMapping.end()) {
             relas[k].r_info = ELF64_R_INFO(dynSymNameMapping[relocation_table[i].name()], relocation_table[i].getRelType());
          } else {
             relas[k].r_info = ELF64_R_INFO(STN_UNDEF, relocation_table[i].getRelType());
@@ -1737,7 +1798,6 @@ void emitElf64::createHashSection(Symtab *obj, Elf64_Word *&hashsecData, unsigne
 	continue;
     }
     key = elfHash((*iter)->getName().c_str()) % nbuckets;
-    //printf("hash entry:  %s  =>  %u\n", (*iter)->getName().c_str(), key);
     if (lastHash.find(key) != lastHash.end()) {
       hashsecData[2+nbuckets+lastHash[key]] = i;
     }
@@ -1820,6 +1880,22 @@ void emitElf64::createDynamicSection(void *dynData, unsigned size, Elf64_Dyn *&d
       dynamicSecData[dyns[i].d_tag].push_back(dynsecData+curpos);
       curpos++;
       break;
+    case DT_INIT:
+    case DT_FINI:
+    case DT_GNU_CONFLICT:
+    case DT_JMPREL:
+    case DT_PLTGOT:
+       /**
+        * List every dynamic entry that references an address and isn't already
+        * updated here.  library_adjust will be a page size if
+        * we're dealing with a library without a fixed load address.  We'll be shifting
+        * the addresses of that library by a page.
+        **/
+       memcpy(dynsecData+curpos, dyns+i, sizeof(Elf64_Dyn));
+       dynsecData[curpos].d_un.d_ptr += library_adjust;
+       dynamicSecData[dyns[i].d_tag].push_back(dynsecData+curpos);
+       curpos++;
+       break;
     default:
       memcpy(dynsecData+curpos, dyns+i, sizeof(Elf64_Dyn));
       dynamicSecData[dyns[i].d_tag].push_back(dynsecData+curpos);

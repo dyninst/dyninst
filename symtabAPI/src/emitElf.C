@@ -131,9 +131,8 @@ static int elfSymVisibility(Symbol::SymbolVisibility sVisibility)
   }
 }
 
-emitElf::emitElf(Elf_X &oldElfHandle_, bool isStripped_, int BSSexpandflag_, void (*err_func)(const char *)) :
+emitElf::emitElf(Elf_X &oldElfHandle_, bool isStripped_, int BSSexpandflag_, Object *, void (*err_func)(const char *)) :
   oldElfHandle(oldElfHandle_), BSSExpandFlag(BSSexpandflag_), isStripped(isStripped_), err_func_(err_func)
-
 {
   firstNewLoadSec = NULL;
   textData = NULL;
