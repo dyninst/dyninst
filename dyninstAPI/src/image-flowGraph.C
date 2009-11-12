@@ -1052,6 +1052,22 @@ bool image_func::buildCFG(
                                     {
                                         retStatus_ = targetFunc->returnStatus();
                                     }
+                                    if(!targetFunc)
+                                    {
+                                        bool isInPLT = false;
+                                        std::string pltName = "";
+                                        if((*pltFuncs).defines(curEdge->first))
+                                        {
+                                            isInPLT = true;
+                                            pltName = (*pltFuncs)[curEdge->first];
+                                            if(isNonReturningCall(targetFunc, isInPLT,
+                                               pltName, currAddr, curEdge->first))
+                                            {
+                                                continue;
+                                            }
+                                            retStatus_ = RS_RETURN;
+                                        }
+                                   }
                                 }
                             }
                             else
