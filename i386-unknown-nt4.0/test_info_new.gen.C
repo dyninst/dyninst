@@ -228,6 +228,22 @@ struct {
  {"test1_19_mutatee_solo_VC++_32_high.exe", STOPPED, USEATTACH, true, true, "dyninst", "VC++", "high", "32"},
  {"test1_19_mutatee_solo_VC++_32_max.exe", STOPPED, CREATE, true, true, "dyninst", "VC++", "max", "32"},
  {"test1_19_mutatee_solo_VC++_32_max.exe", STOPPED, USEATTACH, true, true, "dyninst", "VC++", "max", "32"},
+ {"test_snip_remove_mutatee_solo_VC_32_none.exe", STOPPED, CREATE, false, true, "dyninst", "VC", "none", "32"},
+ {"test_snip_remove_mutatee_solo_VC_32_none.exe", STOPPED, USEATTACH, false, true, "dyninst", "VC", "none", "32"},
+ {"test_snip_remove_mutatee_solo_VC_32_low.exe", STOPPED, CREATE, false, true, "dyninst", "VC", "low", "32"},
+ {"test_snip_remove_mutatee_solo_VC_32_low.exe", STOPPED, USEATTACH, false, true, "dyninst", "VC", "low", "32"},
+ {"test_snip_remove_mutatee_solo_VC_32_high.exe", STOPPED, CREATE, false, true, "dyninst", "VC", "high", "32"},
+ {"test_snip_remove_mutatee_solo_VC_32_high.exe", STOPPED, USEATTACH, false, true, "dyninst", "VC", "high", "32"},
+ {"test_snip_remove_mutatee_solo_VC_32_max.exe", STOPPED, CREATE, false, true, "dyninst", "VC", "max", "32"},
+ {"test_snip_remove_mutatee_solo_VC_32_max.exe", STOPPED, USEATTACH, false, true, "dyninst", "VC", "max", "32"},
+ {"test_snip_remove_mutatee_solo_VC++_32_none.exe", STOPPED, CREATE, false, true, "dyninst", "VC++", "none", "32"},
+ {"test_snip_remove_mutatee_solo_VC++_32_none.exe", STOPPED, USEATTACH, false, true, "dyninst", "VC++", "none", "32"},
+ {"test_snip_remove_mutatee_solo_VC++_32_low.exe", STOPPED, CREATE, false, true, "dyninst", "VC++", "low", "32"},
+ {"test_snip_remove_mutatee_solo_VC++_32_low.exe", STOPPED, USEATTACH, false, true, "dyninst", "VC++", "low", "32"},
+ {"test_snip_remove_mutatee_solo_VC++_32_high.exe", STOPPED, CREATE, false, true, "dyninst", "VC++", "high", "32"},
+ {"test_snip_remove_mutatee_solo_VC++_32_high.exe", STOPPED, USEATTACH, false, true, "dyninst", "VC++", "high", "32"},
+ {"test_snip_remove_mutatee_solo_VC++_32_max.exe", STOPPED, CREATE, false, true, "dyninst", "VC++", "max", "32"},
+ {"test_snip_remove_mutatee_solo_VC++_32_max.exe", STOPPED, USEATTACH, false, true, "dyninst", "VC++", "max", "32"},
  {"test1_29_mutatee_solo_VC_32_none.exe", STOPPED, CREATE, false, true, "dyninst", "VC", "none", "32"},
  {"test1_29_mutatee_solo_VC_32_none.exe", STOPPED, USEATTACH, false, true, "dyninst", "VC", "none", "32"},
  {"test1_29_mutatee_solo_VC_32_low.exe", STOPPED, CREATE, false, true, "dyninst", "VC", "low", "32"},
@@ -1232,6 +1248,22 @@ struct {
  {true, "test1_19", "test1_19", "test1_19.dll", false, "{test: test1_19, mutator: test1_19, grouped: false, start_state: stopped, abi: 32, mutatee: test1_19, optimization: high, compiler: VC++, run_mode: useAttach}"},
  {true, "test1_19", "test1_19", "test1_19.dll", false, "{test: test1_19, mutator: test1_19, grouped: false, start_state: stopped, abi: 32, mutatee: test1_19, optimization: max, compiler: VC++, run_mode: createProcess}"},
  {true, "test1_19", "test1_19", "test1_19.dll", false, "{test: test1_19, mutator: test1_19, grouped: false, start_state: stopped, abi: 32, mutatee: test1_19, optimization: max, compiler: VC++, run_mode: useAttach}"},
+ {true, "test_snip_remove", "test_snip_remove", "test_snip_remove.dll", false, "{test: test_snip_remove, mutator: test_snip_remove, grouped: false, start_state: stopped, abi: 32, mutatee: test_snip_remove, optimization: none, compiler: VC, run_mode: createProcess}"},
+ {true, "test_snip_remove", "test_snip_remove", "test_snip_remove.dll", false, "{test: test_snip_remove, mutator: test_snip_remove, grouped: false, start_state: stopped, abi: 32, mutatee: test_snip_remove, optimization: none, compiler: VC, run_mode: useAttach}"},
+ {true, "test_snip_remove", "test_snip_remove", "test_snip_remove.dll", false, "{test: test_snip_remove, mutator: test_snip_remove, grouped: false, start_state: stopped, abi: 32, mutatee: test_snip_remove, optimization: low, compiler: VC, run_mode: createProcess}"},
+ {true, "test_snip_remove", "test_snip_remove", "test_snip_remove.dll", false, "{test: test_snip_remove, mutator: test_snip_remove, grouped: false, start_state: stopped, abi: 32, mutatee: test_snip_remove, optimization: low, compiler: VC, run_mode: useAttach}"},
+ {true, "test_snip_remove", "test_snip_remove", "test_snip_remove.dll", false, "{test: test_snip_remove, mutator: test_snip_remove, grouped: false, start_state: stopped, abi: 32, mutatee: test_snip_remove, optimization: high, compiler: VC, run_mode: createProcess}"},
+ {true, "test_snip_remove", "test_snip_remove", "test_snip_remove.dll", false, "{test: test_snip_remove, mutator: test_snip_remove, grouped: false, start_state: stopped, abi: 32, mutatee: test_snip_remove, optimization: high, compiler: VC, run_mode: useAttach}"},
+ {true, "test_snip_remove", "test_snip_remove", "test_snip_remove.dll", false, "{test: test_snip_remove, mutator: test_snip_remove, grouped: false, start_state: stopped, abi: 32, mutatee: test_snip_remove, optimization: max, compiler: VC, run_mode: createProcess}"},
+ {true, "test_snip_remove", "test_snip_remove", "test_snip_remove.dll", false, "{test: test_snip_remove, mutator: test_snip_remove, grouped: false, start_state: stopped, abi: 32, mutatee: test_snip_remove, optimization: max, compiler: VC, run_mode: useAttach}"},
+ {true, "test_snip_remove", "test_snip_remove", "test_snip_remove.dll", false, "{test: test_snip_remove, mutator: test_snip_remove, grouped: false, start_state: stopped, abi: 32, mutatee: test_snip_remove, optimization: none, compiler: VC++, run_mode: createProcess}"},
+ {true, "test_snip_remove", "test_snip_remove", "test_snip_remove.dll", false, "{test: test_snip_remove, mutator: test_snip_remove, grouped: false, start_state: stopped, abi: 32, mutatee: test_snip_remove, optimization: none, compiler: VC++, run_mode: useAttach}"},
+ {true, "test_snip_remove", "test_snip_remove", "test_snip_remove.dll", false, "{test: test_snip_remove, mutator: test_snip_remove, grouped: false, start_state: stopped, abi: 32, mutatee: test_snip_remove, optimization: low, compiler: VC++, run_mode: createProcess}"},
+ {true, "test_snip_remove", "test_snip_remove", "test_snip_remove.dll", false, "{test: test_snip_remove, mutator: test_snip_remove, grouped: false, start_state: stopped, abi: 32, mutatee: test_snip_remove, optimization: low, compiler: VC++, run_mode: useAttach}"},
+ {true, "test_snip_remove", "test_snip_remove", "test_snip_remove.dll", false, "{test: test_snip_remove, mutator: test_snip_remove, grouped: false, start_state: stopped, abi: 32, mutatee: test_snip_remove, optimization: high, compiler: VC++, run_mode: createProcess}"},
+ {true, "test_snip_remove", "test_snip_remove", "test_snip_remove.dll", false, "{test: test_snip_remove, mutator: test_snip_remove, grouped: false, start_state: stopped, abi: 32, mutatee: test_snip_remove, optimization: high, compiler: VC++, run_mode: useAttach}"},
+ {true, "test_snip_remove", "test_snip_remove", "test_snip_remove.dll", false, "{test: test_snip_remove, mutator: test_snip_remove, grouped: false, start_state: stopped, abi: 32, mutatee: test_snip_remove, optimization: max, compiler: VC++, run_mode: createProcess}"},
+ {true, "test_snip_remove", "test_snip_remove", "test_snip_remove.dll", false, "{test: test_snip_remove, mutator: test_snip_remove, grouped: false, start_state: stopped, abi: 32, mutatee: test_snip_remove, optimization: max, compiler: VC++, run_mode: useAttach}"},
  {true, "test1_29", "test1_29", "test1_29.dll", false, "{test: test1_29, mutator: test1_29, grouped: false, start_state: stopped, abi: 32, mutatee: test1_29, optimization: none, compiler: VC, run_mode: createProcess}"},
  {true, "test1_29", "test1_29", "test1_29.dll", false, "{test: test1_29, mutator: test1_29, grouped: false, start_state: stopped, abi: 32, mutatee: test1_29, optimization: none, compiler: VC, run_mode: useAttach}"},
  {true, "test1_29", "test1_29", "test1_29.dll", false, "{test: test1_29, mutator: test1_29, grouped: false, start_state: stopped, abi: 32, mutatee: test1_29, optimization: low, compiler: VC, run_mode: createProcess}"},
@@ -1346,7 +1378,7 @@ struct {
  {true, "test_stack_3", "test_stack_3", "test_stack_3.dll", false, "{test: test_stack_3, mutator: test_stack_3, grouped: false, start_state: stopped, abi: 32, mutatee: test_stack_3, optimization: max, compiler: VC++, run_mode: createProcess}"} };
 
   int tp_index = -1;
-  for (int i = 0; i < 316; i++) {
+  for (int i = 0; i < 332; i++) {
     test_count = 0;
     rg = new RunGroup(rungroup_params[i].mutatee_name, rungroup_params[i].state_init, rungroup_params[i].attach_init, 
 			rungroup_params[i].ex, rungroup_params[i].module, rungroup_params[i].compiler, 
@@ -1355,7 +1387,7 @@ struct {
     do {
       tp_index++;
       rg->tests.push_back(new TestInfo(test_count++, test_params[tp_index].iname, test_params[tp_index].mrname, test_params[tp_index].isoname, test_params[tp_index].serialize_enable, test_params[tp_index].ilabel));
-    } while (tp_index < 996 && test_params[tp_index].endrungroup == false);
+    } while (tp_index < 1012 && test_params[tp_index].endrungroup == false);
 
     rg->index = group_count++;
     tests.push_back(rg);
