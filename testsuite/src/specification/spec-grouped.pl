@@ -393,7 +393,7 @@ groupable_test('test_snip_remove').
 mutator('test_snip_remove', ['test_snip_remove.C']).
 mutatee('test_snip_remove', ['test_snip_remove_mutatee.c']).
 compiler_for_mutatee('test_snip_remove', Compiler) :-
-%    comp_lang(Compiler, 'c').
+    comp_lang(Compiler, 'c').
 test_runmode('test_snip_remove', 'dynamic').
 test_start_state('test_snip_remove', 'stopped').
 tests_module('test_snip_remove', 'dyninst').
