@@ -387,6 +387,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 #endif
   rel_plt_addr_ = 0;
   rel_plt_size_ = 0;
+  rel_addr_ = 0;
   rel_size_ = 0;
   rel_entry_size_ = 0;
   stab_off_ = 0;
@@ -534,7 +535,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 	secTagSizeMapping[DT_RELA] = dynsecData.d_val(j);
 	break;
       case DT_PLTRELSZ:
-	//secTagSizeMapping[DT_JMPREL] = dynsecData.d_val(j);
+         secTagSizeMapping[DT_JMPREL] = dynsecData.d_val(j);
 	break;
       case DT_STRSZ:
 	secTagSizeMapping[DT_STRTAB] = dynsecData.d_val(j);
@@ -556,6 +557,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 	// Only sections with these tags are moved in the new rewritten binary 
       case DT_REL:
       case DT_RELA:
+      case DT_JMPREL:
       case DT_SYMTAB:
       case DT_STRTAB:
       case DT_VERSYM:
@@ -940,6 +942,7 @@ void Object::parseDynamic(Elf_X_Shdr *&dyn_scnp, Elf_X_Shdr *&dynsym_scnp,
     case DT_REL:
     case DT_RELA:
       /*found Relocation section*/
+      rel_addr_ = (Offset) dyns.d_ptr(i);
       rel_scnp_index = getRegionHdrIndexByAddr(dyns.d_ptr(i));
       break;
     case DT_RELSZ:
@@ -4223,8 +4226,8 @@ bool Object::emitDriver(Symtab *obj, string fName,
 #if defined(x86_64_unknown_linux2_4) || defined(ia64_unknown_linux2_4) || defined(ppc64_linux)
   else if (elfHdr.e_ident()[EI_CLASS] == 2) 
     {
-      emitElf64 *em = new emitElf64(elfHdr, isStripped, flag, this, err_func_);
-      em->createSymbolTables(obj, allSymbols, relocation_table_);
+      emitElf64 *em = new emitElf64(elfHdr, isStripped, this, err_func_);
+      em->createSymbolTables(obj, allSymbols);
       return em->driver(obj, fName);
     }
 #endif

@@ -318,7 +318,7 @@ class DwarfHandle {
 };
 
 class Object : public AObject {
-  friend class DwarfHandle;   
+  friend class DwarfHandle;
  public:
   Object() : dwarf(this) {}
   Object(MappedFile *, MappedFile *, void (*)(const char *) = log_msg, bool alloc_syms = true);
@@ -439,7 +439,12 @@ class Object : public AObject {
     Offset getElfHashAddr() const {return elf_hash_addr_;}
     Offset getGnuHashAddr() const {return gnu_hash_addr_;}
     Offset getRelPLTAddr() const { return rel_plt_addr_; }
+    Offset getRelPLTSize() const { return rel_plt_size_; }
+    Offset getRelDynAddr() const { return rel_addr_; }
+    Offset getRelDynSize() const { return rel_size_; }
 
+    std::vector<relocationEntry> &getPLTRelocs() { return fbt_; }
+    std::vector<relocationEntry> &getDynRelocs() { return relocation_table_; }
 
   private:
   static void log_elferror (void (*)(const char *), const char *);
@@ -482,7 +487,7 @@ class Object : public AObject {
   Offset   rel_plt_addr_;       // .rel[a].plt section
   unsigned rel_plt_size_;       // .rel[a].plt section
   unsigned rel_plt_entry_size_; // .rel[a].plt section
-  
+  Offset    rel_addr_;
   unsigned  rel_size_;       // DT_REL/DT_RELA in dynamic section
   unsigned  rel_entry_size_; // DT_REL/DT_RELA in dynamic section
 
