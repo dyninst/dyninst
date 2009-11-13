@@ -56,13 +56,24 @@ Region::Region(): rawDataPtr_(NULL), buffer_(NULL)
 
 Region::Region(unsigned regnum, std::string name, Offset diskOff,
                     unsigned long diskSize, Offset memOff, unsigned long memSize,
-                    char *rawDataPtr, perm_t perms, RegionType regType, bool isLoadable):
+                    char *rawDataPtr, perm_t perms, RegionType regType, bool isLoadable,
+                    bool isThreadLocal, unsigned long memAlignment):
     regNum_(regnum), name_(name), diskOff_(diskOff), diskSize_(diskSize), memOff_(memOff),
     memSize_(memSize), rawDataPtr_(rawDataPtr), permissions_(perms), rType_(regType),
-    isDirty_(false), buffer_(NULL), isLoadable_(isLoadable)
+    isDirty_(false), buffer_(NULL), isLoadable_(isLoadable), isTLS_(isThreadLocal),
+    memAlign_(memAlignment)
 {
    if (memOff)
       isLoadable_ = true;
+}
+
+bool Region::createRegion (Region *&region, Offset diskOff, perm_t perms, RegionType regType,
+           unsigned long diskSize, Offset memOff, unsigned long memSize,
+           std::string name, char *rawDataPtr, bool isLoadable,
+           bool isTLS, unsigned long memAlign)
+{
+    region = new Region(0, name, diskOff, diskSize, memOff, memSize,
+            rawDataPtr, perms, regType, isLoadable, isTLS, memAlign);
 }
 
 Region::Region(const Region &reg) :
@@ -253,6 +264,11 @@ unsigned long Region::getMemSize() const
     return memSize_;
 }
 
+unsigned long Region::getMemAlignment() const
+{
+    return memAlign_;
+}
+
 void *Region::getPtrToRawData() const
 {
     return rawDataPtr_;
@@ -279,6 +295,11 @@ bool Region::isText() const
 bool Region::isData() const
 {
     return rType_ == RT_DATA;
+}
+
+bool Region::isTLS() const
+{
+    return isTLS_;
 }
 
 bool Region::isOffsetInRegion(const Offset &offset) const 

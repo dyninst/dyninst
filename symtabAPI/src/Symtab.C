@@ -1951,14 +1951,15 @@ bool Symtab::openFile(Symtab *&obj, std::string filename)
    return !err;
 }
 
-bool Symtab::addRegion(Offset vaddr, void *data, unsigned int dataSize, std::string name, Region::RegionType rType_, bool loadable)
+bool Symtab::addRegion(Offset vaddr, void *data, unsigned int dataSize, std::string name, 
+        Region::RegionType rType_, bool loadable, unsigned long memAlign, bool tls)
 {
    Region *sec;
    unsigned i;
    if (loadable)
    {
       sec = new Region(newSectionInsertPoint, name, vaddr, dataSize, vaddr, 
-            dataSize, (char *)data, Region::RP_R, rType_, true);
+            dataSize, (char *)data, Region::RP_R, rType_, true, tls, memAlign);
 
       regions_.insert(regions_.begin()+newSectionInsertPoint, sec);
 
@@ -1984,7 +1985,7 @@ bool Symtab::addRegion(Offset vaddr, void *data, unsigned int dataSize, std::str
    else
    {
       sec = new Region(regions_.size()+1, name, vaddr, dataSize, 0, 0, 
-            (char *)data, Region::RP_R, rType_);
+            (char *)data, Region::RP_R, rType_, loadable, tls, memAlign);
       regions_.push_back(sec);
    }
 
@@ -2991,7 +2992,7 @@ SYMTAB_EXPORT unsigned long relocationEntry::getRelType() const
 
 SYMTAB_EXPORT unsigned long relocationEntry::externalRefRelType() {
     // This function is inherently architecture dependent
-#if defined(arch_x86)
+#if defined(os_linux) && defined(arch_x86)
     return R_386_GLOB_DAT;
 #else
     return ~0UL;
@@ -3089,7 +3090,7 @@ Serializable *relocationEntry::serialize_impl(SerializerBase *sb, const char *ta
 
 // Debugging of relocationEntry
 const char* relocationEntry::relType2Str(unsigned long r) {
-#if defined(arch_x86) 
+#if defined(arch_x86) && defined(os_linux)
     switch(r) {
         CASE_RETURN_STR(R_386_NONE);
         CASE_RETURN_STR(R_386_32);
@@ -3113,7 +3114,7 @@ const char* relocationEntry::relType2Str(unsigned long r) {
 ostream & Dyninst::SymtabAPI::operator<< (ostream &os, const relocationEntry &r) 
 {
     if( r.getDynSym() != NULL ) {
-        os << " Name: " << setw(20) << ( "'" + r.getDynSym()->getName() + "'" );
+        os << "Name: " << setw(20) << ( "'" + r.getDynSym()->getName() + "'" );
     }else{
         os << "Name: " << setw(20) << r.name();
     }
@@ -3149,6 +3150,7 @@ const char *Symbol::symbolType2Str(SymbolType t)
       CASE_RETURN_STR(ST_TLS);
       CASE_RETURN_STR(ST_DELETED);
       CASE_RETURN_STR(ST_NOTYPE);
+      CASE_RETURN_STR(ST_THREAD_LOCAL);
    };
 
    return "invalid symbol type";

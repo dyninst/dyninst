@@ -159,15 +159,72 @@ class emitElf{
         Storage_Allocation_Failure
     };
 
-    char *linkStatic(Symtab *, StaticLinkError &, std::string &);
-    bool resolveSymbols(Symtab *, std::vector<Symtab *> &, StaticLinkError &, std::string &);
-    char *allocateStorage(Symtab *,std::vector<Symtab *> &, std::map<Region *, Offset> &, Offset, Region *, std::multimap<Offset, Symbol *>&, StaticLinkError &, std::string &);
-    Offset copyRegions(char *, std::deque<Region *> &, std::map<Region *, Offset> &, Offset);
-    bool computeRelocations(char *, std::vector<Symtab *> &, std::map<Region *, Offset> &, Offset, Symtab *, StaticLinkError &, std::string &);
-    bool archSpecificRelocation(char *, relocationEntry &, Offset, Offset);
+    bool hasRewrittenTLS;
+    Elf32_Shdr *newTLSData;
 
-    bool findDotOs(Symtab *, std::vector<Archive *> &, vector<Symtab *> &);
-    std::string printStaticLinkError(StaticLinkError);
+    // Entry point for static linking
+    char *linkStatic(Symtab *, 
+                     StaticLinkError &, 
+                     std::string &);
+
+    bool resolveSymbols(Symtab *, 
+                        std::vector<Symtab *> &, 
+                        StaticLinkError &, 
+                        std::string &);
+
+    char *allocateStorage(Symtab *,
+                          std::vector<Symtab *> &, 
+                          std::map<Region *, Offset> &, 
+                          Offset, 
+                          std::map<Symbol *, Offset> &,
+                          Offset &,
+                          StaticLinkError &, 
+                          std::string &);
+
+    Offset allocateRegions(std::deque<Region *> &, 
+                           std::map<Region *, Offset> &, 
+                           std::map<Region *, Offset> &,
+                           Offset, 
+                           Offset);
+    
+    void copyRegions(char *, std::map<Region *, Offset>&, std::map<Region *, Offset>&);
+
+    Offset computePadding(Offset, Offset);
+    Offset computeAlignment(Offset);
+    char getPaddingValue(Region::RegionType);
+
+    bool applyRelocations(char *, 
+                          std::vector<Symtab *> &, 
+                          std::map<Region *, Offset> &,
+                          std::map<Symbol *, Offset> &,
+                          Offset, 
+                          Offset,
+                          Symtab *, 
+                          StaticLinkError &, 
+                          std::string &);
+
+    bool archSpecificRelocation(char *, relocationEntry &, Offset, Offset, Offset,
+            std::map<Symbol *, Offset> &);
+
+    // Functions for dealing with special sections (GOT and TLS)
+    Offset allocateTLSImage(Offset, 
+                            Offset, 
+                            std::map<Region *, Offset> &, 
+                            std::map<Region *, Offset> &,
+                            std::deque<Region *> &, 
+                            Region *, Region *,
+                            std::vector<Symbol *> &);
+    Offset adjustTLSOffset(Offset, Offset);
+    void cleanupTLSRegionOffsets(std::map<Region *, Offset> &,
+            Region *, Region *);
+
+    bool isGOTRelocation(unsigned long);
+    bool buildGOT(char *, std::map<Symbol *, Offset> &, std::set<Symbol *> &);
+    Offset getGOTSize(std::set<Symbol *> &);
+
+    void getExcludedSymbolNames(std::set<std::string> &);
+    
+    static std::string printStaticLinkError(StaticLinkError);
 
     // END static binary case
 

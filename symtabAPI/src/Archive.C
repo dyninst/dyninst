@@ -82,6 +82,10 @@ std::string Archive::printError(SymtabError err)
    }
 }
 
+std::string Archive::name() {
+    return mf->filename();
+}
+
 bool Archive::openArchive(Archive * &img, std::string filename)
 {
     bool err = false;

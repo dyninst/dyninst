@@ -646,7 +646,9 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
                                    getRegionPerms(scnp->sh_flags()), 
                                    getRegionType(scnp->sh_type(), 
                                                  scnp->sh_flags(),
-                                                 name), true);
+                                                 name), 
+                                   true, ((scnp->sh_flags() & SHF_TLS) != 0),
+                                   scnp->sh_addralign());
           
           regions_.push_back(reg);
        }
@@ -656,7 +658,10 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
                                    getRegionPerms(scnp->sh_flags()), 
                                    getRegionType(scnp->sh_type(), 
                                                  scnp->sh_flags(),
-                                                 name));
+                                                 name), 
+                                   false, ((scnp->sh_flags() & SHF_TLS) != 0),
+                                   scnp->sh_addralign());
+
           regions_.push_back(reg);
        }
     }

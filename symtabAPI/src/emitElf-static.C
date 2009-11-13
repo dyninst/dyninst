@@ -48,7 +48,9 @@ using namespace Dyninst::SymtabAPI;
 static const std::string CODE_NAME = ".dyninstCode";
 static const std::string DATA_NAME = ".dyninstData";
 static const std::string BSS_NAME = ".dyninstBss";
-static const int LARGE_FREE_SPACE = 50*1024*1024;
+static const std::string GOT_NAME = ".dyninstGot";
+static const std::string TLS_DATA_NAME = ".tdata";
+static const std::string DEFAULT_BSS_NAME = ".bss";
 
 /*
  * Most of these functions take a reference to a 
@@ -57,16 +59,18 @@ static const int LARGE_FREE_SPACE = 50*1024*1024;
  * the cause of an error
  */
 
+//TODO don't use std::map<>.count function
+
 /**
  * Statically links object files into the specified Symtab object, 
  * as specified by state in the Symtab object
  *
- * @param binary - the Symtab object being rewritten
+ * @param target - the Symtab object being rewritten
  *
  * @return a pointer to the newly allocated space, to be written
  *         out during the rewrite process, NULL, if there is an error
  */
-char *emitElf::linkStatic(Symtab *binary, 
+char *emitElf::linkStatic(Symtab *target, 
         StaticLinkError &err, std::string &errMsg) 
 {
     // Basic algorithm is:
@@ -74,23 +78,23 @@ char *emitElf::linkStatic(Symtab *binary,
     //   either instrumentation or dependent code, produces a vector
     //   of Symtab objects that contain the defined versions
     // * Allocate storage for all new code and data to be linked into 
-    //   the binary, produces a map of old regions to their new offsets
-    //   in the binary
+    //   the target, produces a map of old regions to their new offsets
+    //   in the target
     // * Compute relocations and set their targets to these values. 
     // * The passed symtab object will reflect all these changes
 
     // Errors are set by the methods
 
-    // Holds all necessary dependencies, as determined by resolveSymbols
+    // Holds all necessary dependencies, as determined by esolveSymbols
     std::vector<Symtab *> dependentObjects;
-    if( !resolveSymbols(binary, dependentObjects, err, errMsg) ) {
+    if( !resolveSymbols(target, dependentObjects, err, errMsg) ) {
         return NULL;
     }
 
     // Determine starting location of new Regions
     Offset globalOffset = 0;
     std::vector<Region *> newRegs;
-    if( binary->getAllNewRegions(newRegs) ) {
+    if( target->getAllNewRegions(newRegs) ) {
         // This is true, only if other regions have already been added
         std::vector<Region *>::iterator newReg_it;
         for(newReg_it = newRegs.begin(); newReg_it != newRegs.end(); ++newReg_it) {
@@ -107,29 +111,32 @@ char *emitElf::linkStatic(Symtab *binary,
         return NULL;
     }
 
-
-    // Create a temporary region for COMMON storage
-    Region commonStorage;
-
-    // Stores each common symbol by its alignment
-    std::multimap<Offset, Symbol *> commonAlignments;
-
     // Holds location information for Regions copied into the static executable
     std::map<Region *, Offset> regionOffsets;
+
+    // Holds location information for Symbols placed in the GOT
+    std::map<Symbol *, Offset> gotOffsets;
+    Offset gotOffset;
     
-    char *rawDependencyData = allocateStorage(binary, dependentObjects, 
-            regionOffsets, globalOffset, &commonStorage, commonAlignments, err, errMsg);
+    char *rawDependencyData = allocateStorage(target, dependentObjects, 
+            regionOffsets, globalOffset, gotOffsets, gotOffset, err, errMsg);
 
     if( rawDependencyData == NULL ) {
         return NULL;
     }
 
-    if( !computeRelocations(rawDependencyData, dependentObjects, 
-                regionOffsets, globalOffset, binary, err, errMsg) ) 
+    if( rawDependencyData && !applyRelocations(rawDependencyData, dependentObjects, 
+                regionOffsets, gotOffsets, globalOffset, gotOffset, target, err, errMsg) ) 
     {
         delete rawDependencyData;
         return NULL;
     }
+
+    /* Originally, this code reverted all changes made to Symbols' offset field
+     * This was required because Symtab caches objects, and future references to
+     * this Symtab would see these changes. However, there is going to be 
+     * functionality to mark a Symtab as dirty and that would be the preferred
+     * solution to this problem
 
     // Restore original offsets for all defined symbols in all dependent objects
     std::vector<Symtab *>::iterator obj_it;
@@ -156,6 +163,9 @@ char *emitElf::linkStatic(Symtab *binary,
     {
         align_it->second->setOffset(align_it->first);
     }
+    */
+
+    fprintf(stderr, "\n*** Finished static linking\n\n");
 
     err = No_Static_Link_Error;
     errMsg = "";
@@ -166,14 +176,14 @@ char *emitElf::linkStatic(Symtab *binary,
  * Resolves undefined symbols in the specified Symtab object, usually due
  * to the addition of new Symbols to the Symtab object
  *
- * @param binary - the Symtab object being rewritten
+ * @param target - the Symtab object being rewritten
  *
  * @param dependentObjects - on success, will hold all Symtab objects which
- * were used to resolve symbols i.e. they need to be copied into the binary
+ * were used to resolve symbols i.e. they need to be copied into the target
  * 
  * @return true, if sucessful, false, otherwise
  */
-bool emitElf::resolveSymbols(Symtab *binary, 
+bool emitElf::resolveSymbols(Symtab *target, 
         std::vector<Symtab *> &dependentObjects,
         StaticLinkError &err, std::string &errMsg) 
 {
@@ -182,12 +192,15 @@ bool emitElf::resolveSymbols(Symtab *binary,
 
     // Collection of objects that have already had their symbols resolved
     // this is necessary to avoid errors related to circular dependencies
-    std::set<Symtab *> visitedSet;
+    std::set<Symtab *> linkedSet;
+
+    std::set<std::string> excludeSymNames;
+    getExcludedSymbolNames(excludeSymNames);
 
     // Add all object files explicitly referenced by new symbols, these
     // essentially fuel the linking process
     std::vector<Symtab *> explicitRefs;
-    binary->getExplicitSymtabRefs(explicitRefs);
+    target->getExplicitSymtabRefs(explicitRefs);
 
     std::vector<Symtab *>::iterator expObj_it;
     for(expObj_it = explicitRefs.begin(); expObj_it != explicitRefs.end();
@@ -195,23 +208,24 @@ bool emitElf::resolveSymbols(Symtab *binary,
     {
         dependentObjects.push_back(*expObj_it);
         workSet.insert(*expObj_it);
+        linkedSet.insert(*expObj_it);
     }
 
     // Establish list of libraries to search for symbols
     std::vector<Archive *> libraries;
-    binary->getLinkingResources(libraries);
+    target->getLinkingResources(libraries);
 
     std::set<Symtab *>::iterator curObjFilePtr = workSet.begin();
     while( curObjFilePtr != workSet.end() ) {
         // Take an object file off the working set
         Symtab *curObjFile = *curObjFilePtr;
         workSet.erase(curObjFile);
-        visitedSet.insert(curObjFile);
 
         fprintf(stderr, "\n*** Resolving symbols for object: %s\n\n",
                 curObjFile->memberName().c_str());
 
         // Build the map of Symbols to relocations
+        // Also, construct collection of Symbols to be placed in GOT
         std::map<Symbol *, std::vector<relocationEntry *> > symToRels;
         std::vector<Region *> allRegions;
         curObjFile->getAllRegions(allRegions);
@@ -237,42 +251,58 @@ bool emitElf::resolveSymbols(Symtab *binary,
         {
             Symbol *curUndefSym = *undefSym_it;
 
-            // First, search the binary for the symbol
-            std::vector<Symbol *> foundSyms;
+            // Skip symbols that are don't cares
+            if( excludeSymNames.count(curUndefSym->getPrettyName()) ) continue;
+
+            // First, search the target for the symbol
             Symbol *extSymbol = NULL;
-            if( !binary->isStripped() && 
-                 binary->findSymbol(foundSyms, curUndefSym->getMangledName(),
+
+            // Attempt to search the target 
+            if( !target->isStripped()) {
+                 std::vector<Symbol *> foundSyms;
+                 if( target->findSymbol(foundSyms, curUndefSym->getMangledName(),
                     curUndefSym->getType()) )
-            {
-                if( foundSyms.size() > 1 ) {
-                    err = Symbol_Resolution_Failure;
-                    errMsg = "ambiguous symbol definition: " + 
-                        curUndefSym->getMangledName();
-                    return false;
-                }
+                 {
+                    if( foundSyms.size() > 1 ) {
+                        err = Symbol_Resolution_Failure;
+                        errMsg = "ambiguous symbol definition: " + 
+                            curUndefSym->getMangledName();
+                        return false;
+                    }
 
-                extSymbol = foundSyms[0];
+                    extSymbol = foundSyms[0];
 
-                fprintf(stderr, "Found external symbol %s with addr = 0x%lx\n", 
-                    extSymbol->getPrettyName().c_str(), extSymbol->getOffset());
-            }else{
+                    fprintf(stderr, "Found external symbol %s in target with address = 0x%lx\n",
+                            extSymbol->getPrettyName().c_str(), extSymbol->getOffset());
+                 }
+            }
+
+            if( extSymbol == NULL ) {
                 //search loaded libraries and system libraries and add
                 //any new object files as dependent objects
                 std::vector<Archive *>::iterator lib_it;
                 Symtab *containingSymtab = NULL;
+                Archive *containingArchive = NULL;
                 for(lib_it = libraries.begin(); lib_it != libraries.end(); ++lib_it) {
                     Symtab *tmpSymtab;
                     if( (*lib_it)->getMemberByGlobalSymbol(tmpSymtab, 
                                 const_cast<std::string&>(curUndefSym->getMangledName())) ) 
                     {
+                        /** A common approach is to used the symbol that is defined first
+                         *  in the list of libraries (in the order specified to the linker)
+                         *
+                         *  I am choosing to mirror that behavior here.
                         if( containingSymtab != NULL ) {
                             err = Symbol_Resolution_Failure;
                             errMsg = "symbol defined in multiple libraries: " +
                                 curUndefSym->getMangledName();
                             return false;
                         }
+                        */
 
+                        containingArchive = *lib_it;
                         containingSymtab = tmpSymtab;
+                        break;
                     }else{
                         // gcc/ld appear to ignore this error and just choose the
                         // symbol that occurs first in the Archive. This could 
@@ -287,6 +317,7 @@ bool emitElf::resolveSymbols(Symtab *binary,
                 }
 
                 if( containingSymtab != NULL ) {
+                    std::vector<Symbol *> foundSyms;
                     if( containingSymtab->findSymbol(foundSyms, curUndefSym->getMangledName(),
                         curUndefSym->getType()) )
                     {
@@ -298,17 +329,19 @@ bool emitElf::resolveSymbols(Symtab *binary,
                         }
 
                         extSymbol = foundSyms[0];
-                        if( !visitedSet.count(containingSymtab) ) {
+                        if( !linkedSet.count(containingSymtab) ) {
                             dependentObjects.push_back(containingSymtab);
 
                             // Resolve all symbols for this new Symtab, if it hasn't already
                             // been done
 
                             workSet.insert(containingSymtab);
+                            linkedSet.insert(containingSymtab);
                         }
 
-                        fprintf(stderr, "Found external symbol %s in module %s\n",
-                                extSymbol->getPrettyName().c_str(), 
+                        fprintf(stderr, "Found external symbol %s in module %s(%s)\n",
+                                extSymbol->getPrettyName().c_str(),
+                                containingArchive->name().c_str(),
                                 containingSymtab->memberName().c_str());
                     }else{
                         err = Symbol_Resolution_Failure;
@@ -341,18 +374,13 @@ bool emitElf::resolveSymbols(Symtab *binary,
                     (*rel_it)->addDynSym(extSymbol);
                 }
             }else{
-                // There are some weird cases where an undefined symbol doesn't
-                // have a relocation in its respective .o
-                // An example case 'libc.a:ioungetwc.o' with the symbol __gcc_personality_v0
+                /* This really shouldn't be a warning, some libraries define a reference
+                 * to a symbol and then never use it in order to ensure that the module that
+                 * defines the symbol is linked 
+                 *
                 fprintf(stderr, 
                         "WARNING: LINK ERROR: failed to find relocation for undefined symbol '%s'.\n",
                         curUndefSym->getPrettyName().c_str());
-                
-                /* old behavior
-                err = Symbol_Resolution_Failure;
-                errMsg = "failed to find relocation for symbol: " +
-                    curUndefSym->getPrettyName();
-                return false;
                 */
             }
         }
@@ -370,41 +398,45 @@ bool emitElf::resolveSymbols(Symtab *binary,
  * Additionally, allocates COMMON symbols in the collect of Symtab objects
  * as bss.
  *
- * @param binary - the Symtab object being rewritten
+ * @param target - the Symtab object being rewritten
  *
  * @param dependentObjects - the Symtab objects that need to be copied
- * into the binary
+ * into the target
  *
  * @param regionOffset - populated by this function, this map will provide
  * the offsets of Regions in the dependentObjects in the new storage space
  *
- * @param globalOffset - the Offset in the binary where new code will be
+ * @param globalOffset - the Offset in the target where new code will be
  * placed
- *
- * @param commonStorage - a dummy region to use for combining COMMON blocks
- * => allows for uniform treatment of Regions later in the linking process
- *
- * @return commonAlignments - populated by this function, this map saves
- * the original alignments associated with COMMON symbols, this can be used
- * to rewind the changes made to Symbols during the linking process
  */
-char *emitElf::allocateStorage(Symtab *binary,
+char *emitElf::allocateStorage(Symtab *target,
         std::vector<Symtab *> & dependentObjects, 
         std::map<Region *, Offset> & regionOffsets, 
-        Offset globalOffset, Region *commonStorage,
-        std::multimap<Offset, Symbol *> &commonAlignments,
-        StaticLinkError &err,
-        std::string &errMsg) 
+        Offset globalOffset, 
+        std::map<Symbol *, Offset> &gotOffsets,
+        Offset & gotOffset,
+        StaticLinkError &err, std::string &errMsg) 
 {
-
-    unsigned long totalSize = 0;
-    std::deque<Region *> codeRegions;
-    std::deque<Region *> dataRegions;
-    std::deque<Region *> bssRegions;
-
     fprintf(stderr, "\n*** Allocating storage for new objects\n\n");
 
     fprintf(stderr, "globalOffset = 0x%lx\n", globalOffset);
+
+    std::deque<Region *> codeRegions;
+    std::deque<Region *> dataRegions;
+    std::deque<Region *> bssRegions;
+    std::deque<Region *> tlsRegions;
+
+    // Create a temporary region for COMMON storage
+    Region *commonStorage;
+
+    // Used to create a new COMMON block
+    std::multimap<Offset, Symbol *> commonAlignments;
+
+    // Create a collection of TLS symbols
+    std::vector<Symbol *> tlsSyms;
+
+    // Create a collection of GOT symbols
+    std::set<Symbol *> gotSymbols;
 
     std::vector<Symtab *>::iterator obj_it;
     for(obj_it = dependentObjects.begin(); obj_it != dependentObjects.end(); ++obj_it) {
@@ -418,43 +450,59 @@ char *emitElf::allocateStorage(Symtab *binary,
         std::vector<Region *>::iterator reg_it;
         for(reg_it = regs.begin(); reg_it != regs.end(); ++reg_it) {
             if( (*reg_it)->isLoadable() ) {
-                totalSize += (*reg_it)->getRegionSize();
-                switch((*reg_it)->getRegionType()) {
-                    case Region::RT_TEXT:
-                        codeRegions.push_back(*reg_it);
-                        break;
-                    case Region::RT_DATA:
-                        dataRegions.push_back(*reg_it);
-                        break;
-                    case Region::RT_BSS:
-                        bssRegions.push_back(*reg_it);
-                        break;
-                    case Region::RT_TEXTDATA:
-                        codeRegions.push_back(*reg_it);
-                        break;
-                    default:
-                        // skip other regions
-                        continue;
+                if( (*reg_it)->isTLS() ) {
+                    switch((*reg_it)->getRegionType()) {
+                        case Region::RT_DATA:
+                        case Region::RT_BSS:
+                            tlsRegions.push_back(*reg_it);
+                            break;
+                        default:
+                            // ignore any other regions
+                            break;
+                    }
+                }else{
+                    switch((*reg_it)->getRegionType()) {
+                        case Region::RT_TEXT:
+                            codeRegions.push_back(*reg_it);
+                            break;
+                        case Region::RT_DATA:
+                            dataRegions.push_back(*reg_it);
+                            break;
+                        case Region::RT_BSS:
+                            bssRegions.push_back(*reg_it);
+                            break;
+                        case Region::RT_TEXTDATA:
+                            codeRegions.push_back(*reg_it);
+                            break;
+                        default:
+                            // skip other regions
+                            continue;
+                    }
                 }
             }
+
+            // Find symbols that need to be put in the GOT
+            std::vector<relocationEntry> &region_rels = (*reg_it)->getRelocations();
+            std::vector<relocationEntry>::iterator rel_it;
+            for( rel_it = region_rels.begin(); rel_it != region_rels.end(); ++rel_it) {
+                if( isGOTRelocation(rel_it->getRelType()) ) {
+                    gotSymbols.insert(rel_it->getDynSym());
+                }
+            }
+
         }
 
         std::vector<Symbol *> definedSyms;
         if( (*obj_it)->getAllDefinedSymbols(definedSyms) ) {
             std::vector<Symbol *>::iterator sym_it;
             for(sym_it = definedSyms.begin(); sym_it != definedSyms.end(); ++sym_it) {
+                // Note: the assumption is made that a Symbol cannot 
+                // be both TLS and COMMON
                 if( (*sym_it)->isCommonStorage() ) {
                     // For a symbol in common storage, the offset/value is the alignment
-
-                    // This should never occur and probably indicates a bad object file
-                    if( (*sym_it)->getOffset() == 0 ) {
-                        err = Storage_Allocation_Failure;
-                        errMsg = string("common symbol ") + (*sym_it)->getPrettyName() +
-                            string(" has 0 alignment value");
-                        return NULL;
-                    }
-
                     commonAlignments.insert(make_pair((*sym_it)->getOffset(), *sym_it));
+                }else if( (*sym_it)->getType() == Symbol::ST_THREAD_LOCAL ) {
+                    tlsSyms.push_back(*sym_it);
                 }
             }
         }
@@ -465,80 +513,159 @@ char *emitElf::allocateStorage(Symtab *binary,
     // Combine all common symbols into a single block
 
     // The following approach is greedy and suboptimal
-    // (in terms of space in the binary), but it's quick...
+    // (in terms of space in the target), but it's quick...
     Offset commonOffset = globalOffset;
     std::multimap<Offset, Symbol *>::iterator align_it;
     for(align_it = commonAlignments.begin(); 
         align_it != commonAlignments.end(); ++align_it)
     {
-        if( (commonOffset % align_it->first) != 0 ) {
-            Offset padding = align_it->first - (commonOffset % align_it->first);
-            commonOffset += padding;
-        }
+        commonOffset += computePadding(commonOffset, align_it->first);
+
+        // Update symbol with place in new linked code
         align_it->second->setOffset(commonOffset);
         commonOffset += align_it->second->getSize();
     }
 
     // Update the size of common storage
     if( commonAlignments.size() > 0 ) {
-        // Region doesn't have a public constructor, but it does have a public
-        // copy constructor...this isn't clean
-        *commonStorage = *(*bssRegions.begin());
-        commonStorage->setPtrToRawData(NULL, commonOffset - globalOffset);
+        // A COMMON region is not really complete
+        Region::createRegion(commonStorage, 0, Region::RP_RW,
+                Region::RT_BSS, commonOffset - globalOffset, 0, commonOffset - globalOffset,
+                DEFAULT_BSS_NAME, NULL, true, false, computeAlignment(globalOffset));
         bssRegions.push_front(commonStorage);
-        totalSize += commonOffset - globalOffset;
     }
 
     /* END common block processing */
 
-    char *rawDependencyData = new char[totalSize];
+    std::map<Region *, Offset> paddingMap;
+
+    // Determine how all the Regions in the dependent objects will be
+    // allocated
     Offset currentOffset = 0;
 
-    // Copy in bss regions 
+    // Allocate bss regions 
     Offset bssRegionOffset = currentOffset;
-    currentOffset = copyRegions(rawDependencyData, bssRegions, regionOffsets, 
-            currentOffset);
+    currentOffset = allocateRegions(bssRegions, regionOffsets,
+            paddingMap, bssRegionOffset, globalOffset);
 
-    // Copy in code regions 
+    // Allocate code regions 
     Offset codeRegionOffset = currentOffset;
-    currentOffset = copyRegions(rawDependencyData, codeRegions, regionOffsets, 
-            currentOffset);
+    currentOffset = allocateRegions(codeRegions, regionOffsets, 
+            paddingMap, codeRegionOffset, globalOffset);
 
-    // Copy in data regions 
+    // Allocate data regions 
     Offset dataRegionOffset = currentOffset;
-    currentOffset = copyRegions(rawDependencyData, dataRegions, regionOffsets, 
-            currentOffset);
+    currentOffset = allocateRegions(dataRegions, regionOffsets, 
+            paddingMap, dataRegionOffset, globalOffset);
+
+    // Allocate the new TLS region, if necessary
+    Offset tlsImageOffset = currentOffset;
+
+    // Find current TLS Regions in target, also check for multiple
+    // TLS Regions of the same type => how to construct the TLS image
+    // would be undefined for multiple TLS Regions of the same type
+    Region *dataTLS = NULL, *bssTLS = NULL;
+    Offset tlsSize = 0;
     
-    // Add new Regions to the binary
-    binary->addRegion(globalOffset + bssRegionOffset, 
-            reinterpret_cast<void *>(&rawDependencyData[bssRegionOffset]),
-            static_cast<unsigned int>((codeRegionOffset - bssRegionOffset)),
-            BSS_NAME, Region::RT_DATA, true);
-    fprintf(stderr, "placed region %s @ %lx, size = %lx\n", BSS_NAME.c_str(),
-            (globalOffset + bssRegionOffset), (codeRegionOffset - bssRegionOffset));
+    std::vector<Region *> regions;
+    if( !target->getAllRegions(regions) ) {
+        err = Storage_Allocation_Failure;
+        errMsg = "failed to retrieve regions from target";
+        return NULL;
+    }
+    
+    std::vector<Region *>::iterator reg_it;
+    for(reg_it = regions.begin(); reg_it != regions.end(); ++reg_it) {
+        if( (*reg_it)->isTLS() ) {
+            if( (*reg_it)->getRegionType() == Region::RT_DATA ) {
+                if( dataTLS != NULL ) {
+                    err = Storage_Allocation_Failure;
+                    errMsg = "found more than one TLS data region";
+                    return NULL;
+                }
+                dataTLS = *reg_it;
+                tlsSize += dataTLS->getRegionSize();
+            }else if( (*reg_it)->getRegionType() == Region::RT_BSS ) {
+                if( bssTLS != NULL ) {
+                    err = Storage_Allocation_Failure;
+                    errMsg = "found more than one TLS bss region";
+                    return NULL;
+                }
+                bssTLS = *reg_it;
+                tlsSize += bssTLS->getRegionSize();
+            }
+        }
+    }
 
-    binary->addRegion(globalOffset + codeRegionOffset, 
-            reinterpret_cast<void *>(&rawDependencyData[codeRegionOffset]),
-            static_cast<unsigned int>((dataRegionOffset - codeRegionOffset)),
-            CODE_NAME, Region::RT_TEXT, true);
-    fprintf(stderr, "placed region %s @ %lx, size = %lx\n", CODE_NAME.c_str(),
-            (globalOffset + codeRegionOffset), (dataRegionOffset - codeRegionOffset));
+    if( tlsRegions.size() > 0 ) {
+        fprintf(stderr, "\n*** Creating new TLS image\n\n");
 
-    binary->addRegion(globalOffset + dataRegionOffset, 
-            reinterpret_cast<void *>(&rawDependencyData[dataRegionOffset]),
-            static_cast<unsigned int>((currentOffset - dataRegionOffset)),
-            DATA_NAME, Region::RT_DATA, true);
-    fprintf(stderr, "placed region %s @ %lx, size = %lx\n", DATA_NAME.c_str(),
-            (globalOffset + dataRegionOffset), (currentOffset - dataRegionOffset));
-   
+        currentOffset = allocateTLSImage(tlsImageOffset, globalOffset,
+                regionOffsets, paddingMap, tlsRegions, dataTLS, bssTLS, tlsSyms);
+
+        if( currentOffset == tlsImageOffset ) {
+            err = Storage_Allocation_Failure;
+            errMsg = "failed to create TLS initialization image";
+            return NULL;
+        }
+
+        tlsSize += currentOffset - tlsImageOffset;
+
+        // This size is included twice (once by allocateTLS and once
+        // in the previous code block)
+        if( dataTLS != NULL ) {
+            tlsSize -= dataTLS->getRegionSize();
+        }
+
+        fprintf(stderr, "TLS Size = %lx\n", tlsSize);
+
+        // Adjust offsets for all existing TLS symbols, as their offset
+        // in the TLS block could have changed
+        std::vector<Symbol *> definedSyms;
+        if( target->getAllDefinedSymbols(definedSyms) ) {
+            std::vector<Symbol *>::iterator sym_it;
+            for(sym_it = definedSyms.begin(); sym_it != definedSyms.end(); ++sym_it) {
+                if( (*sym_it)->getType() == Symbol::ST_THREAD_LOCAL &&
+                    regionOffsets.count((*sym_it)->getRegion()) )
+                {
+                    Offset symbolOffset = (*sym_it)->getOffset();
+                    symbolOffset += regionOffsets[(*sym_it)->getRegion()] - tlsImageOffset;
+                    symbolOffset = adjustTLSOffset(symbolOffset, tlsSize);
+                    (*sym_it)->setOffset(symbolOffset);
+                }
+            }
+        }
+
+        cleanupTLSRegionOffsets(regionOffsets, dataTLS, bssTLS);
+
+        hasRewrittenTLS = true;
+    }else{
+        // Adjust offsets for all existing TLS symbols, as the offsets are
+        // architecture dependent
+        std::vector<Symbol *> definedSyms;
+        if( target->getAllDefinedSymbols(definedSyms) ) {
+            std::vector<Symbol *>::iterator sym_it;
+            for(sym_it = definedSyms.begin(); sym_it != definedSyms.end(); ++sym_it) {
+                if(    regionOffsets.count((*sym_it)->getRegion())
+                    && (*sym_it)->getType() == Symbol::ST_THREAD_LOCAL ) 
+                {
+                    Offset symbolOffset = (*sym_it)->getOffset();
+                    symbolOffset = adjustTLSOffset(symbolOffset, tlsSize);
+                    (*sym_it)->setOffset(symbolOffset);
+                }
+            }
+        }
+    }
+
+    // Update all relevant symbols with their offsets in the new target
     for(obj_it = dependentObjects.begin(); obj_it != dependentObjects.end(); ++obj_it) {
-        // Update all relevant symbols with their offsets in the new binary
         std::vector<Symbol *> definedSyms;
         if( (*obj_it)->getAllDefinedSymbols(definedSyms) ) {
             std::vector<Symbol *>::iterator sym_it;
             for(sym_it = definedSyms.begin(); sym_it != definedSyms.end(); ++sym_it) {
                 if(    regionOffsets.count((*sym_it)->getRegion())
-                    && !(*sym_it)->isCommonStorage()) 
+                    && !(*sym_it)->isCommonStorage()
+                    && (*sym_it)->getType() != Symbol::ST_THREAD_LOCAL) 
                 {
                     Offset symbolOffset = (*sym_it)->getOffset();
                     symbolOffset += globalOffset + regionOffsets[(*sym_it)->getRegion()];
@@ -548,13 +675,103 @@ char *emitElf::allocateStorage(Symtab *binary,
         }
     }
 
-    return rawDependencyData;
+    // Allocate space for a GOT Region, if necessary
+    gotOffset = currentOffset;
+    currentOffset += getGOTSize(gotSymbols);
+
+    // At this point, the layout of the new regions is fixed, and
+    // addresses of all symbols are known
+
+    // Allocate storage space
+    fprintf(stderr, "Size of allocated space = %lx\n", currentOffset);
+    char *newTargetData = new char[currentOffset];
+
+    // Copy the Regions from the dependent objects into the new storage space
+    copyRegions(newTargetData, regionOffsets, paddingMap);
+
+    // For debugging purposes, lists the location of every Region, organized by
+    // parent Symtab
+    for(obj_it = dependentObjects.begin(); obj_it != dependentObjects.end(); ++obj_it) {
+        fprintf(stderr, "\nExamining object: %s\n", (*obj_it)->memberName().c_str());
+        std::vector<Region *> regs;
+        if( !(*obj_it)->getAllRegions(regs) ) {
+            break;
+        }
+
+        std::vector<Region *>::iterator reg_it;
+        for(reg_it = regs.begin(); reg_it != regs.end(); ++reg_it) {
+            std::map<Region *, Offset>::iterator result_it;
+            result_it = regionOffsets.find((*reg_it));
+            if( result_it != regionOffsets.end() ) {
+                fprintf(stderr, "Region %s placed at 0x%lx, size = 0x%lx, alignment = 0x%lx\n", 
+                        (*reg_it)->getRegionName().c_str(),
+                        result_it->second + globalOffset, (*reg_it)->getRegionSize(), (*reg_it)->getMemAlignment());
+            }
+        }
+    }
+
+    // Build a new GOT, if necessary
+    if( gotSymbols.size() > 0 ) {
+        buildGOT(&newTargetData[gotOffset], gotOffsets, gotSymbols);
+    }
+
+    // Add new Regions to the target
+    Offset bssRegionAlign = computeAlignment(globalOffset + bssRegionOffset);
+    target->addRegion(globalOffset + bssRegionOffset, 
+            reinterpret_cast<void *>(&newTargetData[bssRegionOffset]),
+            static_cast<unsigned int>(codeRegionOffset - bssRegionOffset),
+            BSS_NAME, Region::RT_DATA, true, bssRegionAlign);
+    fprintf(stderr, "\nPlaced region %s @ 0x%lx, size = 0x%lx, alignment = 0x%lx\n", BSS_NAME.c_str(),
+            (globalOffset + bssRegionOffset), (codeRegionOffset - bssRegionOffset),
+            bssRegionAlign);
+
+    Offset codeRegionAlign = computeAlignment(globalOffset + codeRegionOffset);
+    target->addRegion(globalOffset + codeRegionOffset, 
+            reinterpret_cast<void *>(&newTargetData[codeRegionOffset]),
+            static_cast<unsigned int>(dataRegionOffset - codeRegionOffset),
+            CODE_NAME, Region::RT_TEXT, true, codeRegionAlign);
+    fprintf(stderr, "Placed region %s @ 0x%lx, size = 0x%lx, alignment = 0x%lx\n", CODE_NAME.c_str(),
+            (globalOffset + codeRegionOffset), (dataRegionOffset - codeRegionOffset),
+            codeRegionAlign);
+
+    Offset dataRegionAlign = computeAlignment(globalOffset + dataRegionOffset);
+    target->addRegion(globalOffset + dataRegionOffset, 
+            reinterpret_cast<void *>(&newTargetData[dataRegionOffset]),
+            static_cast<unsigned int>(tlsImageOffset - dataRegionOffset),
+            DATA_NAME, Region::RT_DATA, true, dataRegionAlign);
+    fprintf(stderr, "Placed region %s @ 0x%lx, size = 0x%lx, alignment = 0x%lx\n", DATA_NAME.c_str(),
+            (globalOffset + dataRegionOffset), (tlsImageOffset - dataRegionOffset),
+            dataRegionAlign);
+
+    if( tlsRegions.size() > 0 ) {
+        Offset tlsRegionAlign = computeAlignment(globalOffset + tlsImageOffset);
+        target->addRegion(globalOffset + tlsImageOffset,
+                reinterpret_cast<void *>(&newTargetData[tlsImageOffset]),
+                static_cast<unsigned int>(gotOffset - tlsImageOffset),
+                TLS_DATA_NAME, Region::RT_DATA, true, tlsRegionAlign, true);
+        fprintf(stderr, "Placed region %s @ 0x%lx, size = 0x%lx, alignment = 0x%lx\n", TLS_DATA_NAME.c_str(),
+                (globalOffset + tlsImageOffset), (gotOffset - tlsImageOffset),
+                tlsRegionAlign);
+    }
+
+    if( gotSymbols.size() > 0 ) {
+        Offset gotRegionAlign = computeAlignment(globalOffset + gotOffset);
+        target->addRegion(globalOffset + gotOffset,
+                reinterpret_cast<void *>(&newTargetData[gotOffset]),
+                static_cast<unsigned int>(currentOffset - gotOffset),
+                GOT_NAME, Region::RT_DATA, true, gotRegionAlign);
+        fprintf(stderr, "Placed region %s @ 0x%lx, size = 0x%lx, alignment = 0x%lx\n", GOT_NAME.c_str(),
+            (globalOffset + gotOffset), (currentOffset - gotOffset),
+            gotRegionAlign);
+    }
+
+    return newTargetData;
 }
 
 /**
  * Copies the specified regions into the specified storage space
  *
- * @param rawDependencyData - the Regions are copied into this storage space
+ * @param targetData - the Regions are copied into this storage space
  * 
  * @param regions - the Regions to copy
  *
@@ -565,36 +782,87 @@ char *emitElf::allocateStorage(Symtab *binary,
  *
  * @return the offset at which the next set of regions should be placed
  */
-Offset emitElf::copyRegions(char * rawDependencyData, std::deque<Region *> &regions, 
-        std::map<Region *, Offset> &regionOffsets, Offset currentOffset) {
+Offset emitElf::allocateRegions(std::deque<Region *> &regions, 
+        std::map<Region *, Offset> &regionOffsets, 
+        std::map<Region *, Offset> &paddingMap, Offset currentOffset, Offset globalOffset) 
+{
     Offset retOffset = currentOffset;
 
     std::deque<Region *>::iterator copyReg_it;
     for(copyReg_it = regions.begin(); copyReg_it != regions.end(); ++copyReg_it) {
-        // Set up mapping for a new Region in the specified storage space
+        // Skip empty Regions
+        if( (*copyReg_it)->getRegionSize() == 0 ) continue;
+
+        // Make sure the Region is aligned correctly in the new aggregate Region
+        Offset padding = computePadding(globalOffset + retOffset, (*copyReg_it)->getMemAlignment());
+        retOffset += padding;
+
+        // Store padding for later use
         std::pair<std::map<Region *, Offset>::iterator, bool> result;
-        result = regionOffsets.insert(std::make_pair(*copyReg_it, retOffset));
+        result = paddingMap.insert(std::make_pair(*copyReg_it, padding));
 
         // If the map already contains this Region, this is a logic error
         assert(result.second);
 
-        fprintf(stderr, "Region %s placed at 0x%lx, size = 0x%lx\n", (*copyReg_it)->getRegionName().c_str(),
-                retOffset, (*copyReg_it)->getRegionSize());
+        // Set up mapping for a new Region in the specified storage space
+        result = regionOffsets.insert(std::make_pair(*copyReg_it, retOffset));
 
-        // Copy in the Region data
-        char *rawRegionData = reinterpret_cast<char *>((*copyReg_it)->getPtrToRawData());
-
-        // Currently, BSS is expanded
-        if( (*copyReg_it)->isBSS() ) {
-            bzero(&rawDependencyData[retOffset], (*copyReg_it)->getRegionSize());
-        }else{
-            memcpy(&rawDependencyData[retOffset], rawRegionData, (*copyReg_it)->getRegionSize());
-        }
-            
+        // If the map already contains this Region, this is a logic error
+        assert(result.second);
+                       
         retOffset += (*copyReg_it)->getRegionSize();
     }
 
     return retOffset;
+}
+
+void emitElf::copyRegions(char *targetData, std::map<Region *, Offset> &regionOffsets,
+        std::map<Region *, Offset> &paddingMap) 
+{
+    std::map<Region *, Offset>::iterator regOff_it;
+    for(regOff_it = regionOffsets.begin(); regOff_it != regionOffsets.end(); ++regOff_it) {
+        Offset regionOffset = regOff_it->second;
+        Region *depRegion = regOff_it->first;
+
+        // Copy in the Region data
+        char *rawRegionData = reinterpret_cast<char *>(depRegion->getPtrToRawData());
+
+        // Currently, BSS is expanded
+        if( depRegion->isBSS() ) {
+            bzero(&targetData[regionOffset], depRegion->getRegionSize());
+        }else{
+            memcpy(&targetData[regionOffset], rawRegionData, depRegion->getRegionSize());
+        }
+
+        // Set the padded space to a meaningful value
+        std::map<Region *, Offset>::iterator padding_it = paddingMap.find(depRegion);
+        if( padding_it != paddingMap.end() && padding_it->second != 0) {
+            memset(&targetData[regionOffset - padding_it->second], getPaddingValue(depRegion->getRegionType()), padding_it->second);
+        }
+    }
+}
+
+inline
+Offset emitElf::computePadding(Offset candidateOffset, Offset alignment) {
+    Offset padding = 0;
+    if( alignment != 0 && (candidateOffset % alignment) != 0 ) {
+        padding = alignment - (candidateOffset % alignment);
+    }
+    return padding;
+}
+
+Offset emitElf::computeAlignment(Offset location) {
+    // The alignment is determined by the least significant
+    // bit in the location that is set to 1
+    // alignment of 0x00c = 4
+    // alignment of 0x005 = 1
+    const unsigned BYTES_TO_BITS = 8;
+    Offset alignment = 1;
+    for(unsigned i = 0; i < sizeof(Offset)*BYTES_TO_BITS; i++) {
+        if( alignment & location ) break;
+        alignment = alignment << 1;
+    }
+    return alignment;
 }
 
 /**
@@ -602,25 +870,26 @@ Offset emitElf::copyRegions(char * rawDependencyData, std::deque<Region *> &regi
  * computes relocations and places the values at the location specified by the
  * relocation entry (stored with the Regions)
  *
- * @param newRawData - the storage space for the newly allocated Regions
+ * @param targetData - the storage space for the newly allocated Regions
  *
  * @param dependentObjects - the Symtab objects whose select Regions have been copied
- * into the newRawData buffer
+ * into the targetData buffer
  *
  * @param regionOffsets - a mapping of Regions in dependentObjects to there offset in
- * the newRawData buffer
+ * the targetData buffer
  *
- * @param globalOffset - the Offset at which newRawData will be placed in the target
+ * @param globalOffset - the Offset at which targetData will be placed in the target
  * Symtab object
  *
- * @param binary - the target Symtab object, mainly used to compute relocations for new
+ * @param target - the target Symtab object, mainly used to compute relocations for new
  * Symbols that refer to Symtabs in the dependentObjects collection
  *
  * @return true, if sucessful; false otherwise
  */
-bool emitElf::computeRelocations(char *newRawData, std::vector<Symtab *> & dependentObjects, 
+bool emitElf::applyRelocations(char *targetData, std::vector<Symtab *> & dependentObjects, 
         std::map<Region *, Offset> & regionOffsets,
-        Offset globalOffset, Symtab *binary, StaticLinkError &err,
+        std::map<Symbol *, Offset> & gotOffsets,
+        Offset globalOffset, Offset gotOffset, Symtab *target, StaticLinkError &err,
         std::string &errMsg) 
 {
     // Iterate over all relocations in all .o's
@@ -632,6 +901,8 @@ bool emitElf::computeRelocations(char *newRawData, std::vector<Symtab *> & depen
         fprintf(stderr, "\n*** Computing relocations for object: %s\n\n",
                 (*depObj_it)->memberName().c_str());
 
+        // Relocations are stored with the Region to which they will be applied
+        // As an ELF example, .rel.text relocations are stored with the Region .text
         std::vector<Region *>::iterator region_it;
         for(region_it = allRegions.begin(); region_it != allRegions.end(); ++region_it) {
             std::vector<relocationEntry>::iterator rel_it;
@@ -644,7 +915,9 @@ bool emitElf::computeRelocations(char *newRawData, std::vector<Symtab *> & depen
                     // Compute destination of relocation
                     Offset dest = regionOffsets[*region_it] + rel_it->rel_addr();
                     Offset relOffset = globalOffset + dest;
-                    if( !archSpecificRelocation(newRawData, *rel_it, dest, relOffset) ) {
+                    if( !archSpecificRelocation(targetData, *rel_it, dest, relOffset,
+                                globalOffset + gotOffset, gotOffsets) )
+                    {
                         err = Relocation_Computation_Failure;
                         errMsg = "Failed to compute relocation";
                         return false;
@@ -654,11 +927,11 @@ bool emitElf::computeRelocations(char *newRawData, std::vector<Symtab *> & depen
         }
     }
 
-    fprintf(stderr, "\n*** Computing relocations added to binary.\n\n");
+    fprintf(stderr, "\n*** Computing relocations added to target.\n\n");
 
-    // Compute relocations added to static binary 
+    // Compute relocations added to static target 
     std::vector<Region *> allRegions;
-    binary->getAllRegions(allRegions);
+    target->getAllRegions(allRegions);
 
     std::vector<Region *>::iterator reg_it;
     for(reg_it = allRegions.begin(); reg_it != allRegions.end(); ++reg_it) {
@@ -671,7 +944,7 @@ bool emitElf::computeRelocations(char *newRawData, std::vector<Symtab *> & depen
         {
             if( !archSpecificRelocation(regionData, *rel_it,
                         rel_it->rel_addr() - (*reg_it)->getRegionAddr(),
-                        rel_it->rel_addr()) )
+                        rel_it->rel_addr(), gotOffset, gotOffsets) )
             {
                 err = Relocation_Computation_Failure;
                 errMsg = "failed to compute relocation";
@@ -682,89 +955,6 @@ bool emitElf::computeRelocations(char *newRawData, std::vector<Symtab *> & depen
 
     return true;
 }
-
-/**
- * Computes the relocation value and copies it into the right location
- *
- * This routine is meant to be architecture dependent because relocations are
- * specific to a certain architecture.
- *
- * @param newRawData - the destination for computed relocation value
- *
- * @param rel - the relocationEntry for this relocation
- *
- * @param dest - the Offset within newRawData to place the relocation value
- *
- * @param relOffset - the Offset within newRawData
- *
- * @return true, if sucessful; false, otherwise
- */
-bool emitElf::archSpecificRelocation(char *newRawData, relocationEntry &rel,
-        Offset dest, Offset relOffset) 
-{
-#if defined(arch_x86)
-    // All relocations on x86 are one word32 == Offset
-    // Referring to the SYSV 386 supplement:
-    // S = rel.getDynSym()->getOffset()
-    // A = addend
-    // P = relOffset
-   
-    Offset addend;
-    if( rel.regionType() == Region::RT_REL ) {
-        memcpy(&addend, &newRawData[dest], sizeof(Offset));
-    }else if( rel.regionType() == Region::RT_RELA ) {
-        addend = rel.addend();
-    }
-
-    fprintf(stderr, "relocation for %s: S = %lx A = %lx P = %lx\n",
-            rel.name().c_str(), rel.getDynSym()->getOffset(), addend, relOffset);
-
-    Offset relocation;
-    switch(rel.getRelType()) {
-        case R_386_32:
-            relocation = rel.getDynSym()->getOffset() + addend;
-            break;
-        case R_386_PC32:
-            relocation = rel.getDynSym()->getOffset() + addend - relOffset;
-            break;
-        case R_386_GLOB_DAT:
-        case R_386_JMP_SLOT:
-            relocation = rel.getDynSym()->getOffset();
-            break;
-        default:
-            fprintf(stderr, "Relocation type %lu currently unimplemented\n",
-                    rel.getRelType());
-            return false;
-    }
-
-    fprintf(stderr, "relocation = 0x%lx @ 0x%lx\n", relocation, relOffset);
-
-    memcpy(&newRawData[dest], &relocation, sizeof(Offset));
-
-    return true;
-#else
-    fprintf(stderr, "currently, relocations can only be calculated on x86\n");
-    return false;
-#endif
-}
-
-/*
-bool emitElf::archSpecificInstrumentRelocation(char *regionData, Offset regionAddr,
-        Symbol *targetSym, Address targetAddr) 
-{
-#if defined(arch_x86)
-    Offset symbolOffset = targetSym->getOffset();
-    memcpy(&regionData[targetAddr - regionAddr],
-            &symbolOffset, sizeof(Offset));
-    fprintf(stderr, "instrument relocation = 0x%lx @ 0x%lx\n", symbolOffset,
-            targetAddr);
-    return true;
-#else
-    fprintf(stderr, "currently, relocations can only be calculated on x86\n");
-    return false;
-#endif
-}
-*/
 
 std::string emitElf::printStaticLinkError(StaticLinkError err) {
     switch(err) {
@@ -777,46 +967,283 @@ std::string emitElf::printStaticLinkError(StaticLinkError err) {
     }
 }
 
-/* findDotOs - finds the list of .o files from archive 'arf' which
- * when added satisfy all the symbol references.
+/** The following functions are all architecture-specific */
+
+/**
+ * Computes the relocation value and copies it into the right location
  *
- * We start with two different sets of symbols defined, undefined set
- * of symbols and a set of .o's that we need. Initially all the symbols
- * defined in the static executable fall under defined set and undefined fall
- * under the undefined set. We iterate over all the undefined symbols and try to find
- * the member in the archive which has the definition and add it to the list of .o's.
- * All the undefined symbols in this .o are added to undefined set and defined symbols
- * are added to the defined set. This process goes on until we do not have any undefined symbols.
- * Otherwise we return an error
+ * This routine is meant to be architecture dependent because relocations are
+ * specific to a certain architecture.
+ *
+ * @param targetData - the destination for computed relocation value
+ *
+ * @param rel - the relocationEntry for this relocation
+ *
+ * @param dest - the Offset within targetData to place the relocation value
+ *
+ * @param relOffset - the Offset of the target of the relocation (needed for
+ * PC relative relocations)
+ *
+ * @return true, if sucessful; false, otherwise
  */
-bool emitElf::findDotOs(Symtab *obj, std::vector<Archive *> &arfs, std::vector<Symtab *>&members){
-    std::vector<Symbol *> undefSyms;
-
-    //Initialize undefSyms with all the undefined members in the static executable
-    obj->getAllUndefinedSymbols(undefSyms);
-
-    while(undefSyms.size() != 0){
-        //get the first undefined symbol
-        Symbol *sym = undefSyms[0];
-        undefSyms.erase(undefSyms.begin());
-        Symtab *tab; // Symtab object for member that contains the definition
-        vector<Symbol *> foundsyms;
-        //first check if the symbol is already defined in the static executable
-        if(obj->findSymbolByType(foundsyms, sym->getName(), Symbol::ST_UNKNOWN, true))
-            continue;
-        //check all archives starting from the beginning
-        for(unsigned i=0;i<arfs.size();i++){
-            std::string symName = sym->getName();
-            if(arfs[i]->findMemberWithDefinition(tab, symName)){
-                members.push_back(tab);
-                vector<Symbol *>undefs;
-                if(tab->getAllUndefinedSymbols(undefs))
-                    undefSyms.insert(undefSyms.end(), undefs.begin(), undefs.end());
-                continue;
-            }
-        }
-        //reached if there are undefined symbols that are not defined in any of the archives
-        return false;
+bool emitElf::archSpecificRelocation(char *targetData, relocationEntry &rel,
+        Offset dest, Offset relOffset, Offset gotOffset, std::map<Symbol *, Offset> &gotOffsets) 
+{
+#if defined(arch_x86)
+    // All relocations on x86 are one word32 == Offset
+    // Referring to the SYSV 386 supplement:
+    // S = rel.getDynSym()->getOffset()
+    // A = addend
+    // P = relOffset
+   
+    Offset addend;
+    if( rel.regionType() == Region::RT_REL ) {
+        memcpy(&addend, &targetData[dest], sizeof(Offset));
+    }else if( rel.regionType() == Region::RT_RELA ) {
+        addend = rel.addend();
     }
+
+    fprintf(stderr, "relocation for %s: S = %lx A = %lx P = %lx\n",
+            rel.name().c_str(), rel.getDynSym()->getOffset(), addend, relOffset);
+
+    Offset relocation = 0;
+    switch(rel.getRelType()) {
+        case R_386_32:
+            relocation = rel.getDynSym()->getOffset() + addend;
+            break;
+        case R_386_PLT32: // this works because the address of the symbol is known at link time
+        case R_386_PC32:
+            relocation = rel.getDynSym()->getOffset() + addend - relOffset;
+            break;
+        case R_386_TLS_LE: // The necessary value is set during storage allocation
+        case R_386_GLOB_DAT:
+        case R_386_JMP_SLOT:
+            relocation = rel.getDynSym()->getOffset();
+            break;
+        case R_386_GOT32:
+            if( !gotOffsets.count(rel.getDynSym()) ) return false;
+            relocation = gotOffsets[rel.getDynSym()] + addend - relOffset;
+            break;
+        case R_386_GOTOFF:
+            relocation = rel.getDynSym()->getOffset() + addend - gotOffset;
+            break;
+        case R_386_GOTPC:
+            relocation = gotOffset + addend - relOffset;
+            break;
+        case R_386_TLS_IE:
+        case R_386_TLS_GOTIE:
+            if( !gotOffsets.count(rel.getDynSym()) ) return false;
+            relocation = gotOffsets[rel.getDynSym()] + gotOffset;
+            break;
+        case R_386_COPY:
+        case R_386_RELATIVE:
+            fprintf(stderr, "WARNING: encountered relocation type (%lu) that is meant for use during dynamic linking",
+                    rel.getRelType());
+            return false;
+        default:
+            fprintf(stderr, "Relocation type %lu currently unimplemented\n",
+                    rel.getRelType());
+            return false;
+    }
+
+    fprintf(stderr, "relocation = 0x%lx @ 0x%lx\n", relocation, relOffset);
+    if( relocation == 0 ) fprintf(stderr, "WARNING: relocation value is 0x%lx\n", relocation);
+
+    memcpy(&targetData[dest], &relocation, sizeof(Offset));
+
     return true;
+#else
+    fprintf(stderr, "currently, relocations cannot be calculated on this platform\n");
+    return false;
+#endif
+}
+
+Offset emitElf::allocateTLSImage(Offset tlsImageOffset, Offset globalOffset,
+        std::map<Region *, Offset> &regionOffsets, std::map<Region *, Offset> &paddingMap,
+        std::deque<Region *> &newRegions,
+        Region *dataTLS, Region *bssTLS, std::vector<Symbol *> &tlsSyms)
+{
+    /*
+     * This is pseudo-architecture dependent. The implementation of this function 
+     * depends on the implementation of TLS on a specific architecture.
+     *
+     * This material comes from the "ELF Handling For TLS" white paper.
+     * According to this paper, their are two variants w.r.t. creating a TLS
+     * initialization image.
+     *
+     * ======================
+     *
+     * The first is:
+     *
+     *            beginning of image
+     *            |
+     *            V                              high address
+     * +----+-----+----------+---------+---------+
+     * |    | TCB | image 1  | image 2 | image 3 |
+     * +----+---- +----------+---------+---------+
+     *
+     * where TCB = thread control block, and each image is the
+     * TLS initialization image for a module (in this context an executable or 
+     * shared library).
+     *
+     * ========================
+     *
+     * The second is:
+     * 
+     * beginning of image
+     * | 
+     * V                                        high address
+     * +---------+----------+---------+---------+
+     * | image 3 | image 2  | image 1 |  TCB    |
+     * +---------+----------+---------+---------+
+     *
+     * At least on x86 (TODO for other architectures), an image is:
+     *
+     * +--------+--------+
+     * | DATA   |  BSS   |
+     * +--------+--------+
+     *
+     * ==========================
+     * 
+     * According to the paper, these are the two variants one would see when working
+     * with ELF files. So, an architecture either implements variant 1 or 2.
+     */
+
+    // Variant 1
+#if defined(arch_x86) 
+    // The original init. image needs to remain in the image 1 slot because
+    // the TLS data references are relative to that position
+    unsigned long bssSize = 0;
+    if( dataTLS != NULL ) newRegions.push_back(dataTLS);
+    if( bssTLS != NULL ) bssSize = bssTLS->getRegionSize();
+
+    // Create the image, note new BSS regions are expanded
+    Offset endOffset = allocateRegions(newRegions,
+            regionOffsets, paddingMap, tlsImageOffset, globalOffset);
+    Offset adjustedEnd = endOffset - tlsImageOffset;
+
+    // This is necessary so the offsets of existing TLS symbols can be updated
+    // in a uniform, architecture independent way
+    if( bssTLS != NULL ) {
+        if( dataTLS != NULL ) {
+            regionOffsets.insert(make_pair(bssTLS,regionOffsets[dataTLS]));
+        }else{
+            regionOffsets.insert(make_pair(bssTLS,endOffset));
+        }
+    }
+
+    // Update the symbols with their offsets relative to the TCB address
+    std::vector<Symbol *>::iterator sym_it;
+    for(sym_it = tlsSyms.begin(); sym_it != tlsSyms.end(); ++sym_it) {
+        // It is a programming error if the region for the symbol
+        // was not passed to this function
+        assert(regionOffsets.count((*sym_it)->getRegion()));
+
+        Offset symbolOffset = (*sym_it)->getOffset();
+        symbolOffset += (regionOffsets[(*sym_it)->getRegion()] - tlsImageOffset) -
+            (adjustedEnd + bssSize);
+        (*sym_it)->setOffset(symbolOffset);
+    }
+
+    return endOffset;
+#else
+    // Variant 2
+    fprintf(stderr, "Variant 2 of TLS initialization image currently not implemented.\n");
+    return tlsImageOffset;
+#endif
+}
+
+Offset emitElf::adjustTLSOffset(Offset curOffset, Offset tlsSize) {
+    // Variant 1
+    Offset retOffset = curOffset;
+#if defined(arch_x86)
+    retOffset -= tlsSize;
+#endif
+    // Variant 2 does not require any modifications
+    return retOffset;
+}
+
+char emitElf::getPaddingValue(Region::RegionType rtype) {
+    const char X86_NOP = 0x90;
+    char retChar = 0;
+    if( rtype == Region::RT_TEXT || rtype == Region::RT_TEXTDATA ) {
+        // This should be the value of a NOP (or equivalent instruction)
+#if defined(arch_x86)
+        retChar = X86_NOP;
+#endif
+    }
+
+    return retChar;
+}
+
+void emitElf::cleanupTLSRegionOffsets(std::map<Region *, Offset> &regionOffsets,
+        Region *, Region *bssTLS) 
+{
+#if defined(arch_x86)
+    // Variant 1 - existing BSS TLS regions are not copied to the new target data
+    regionOffsets.erase(bssTLS);
+#else
+    // Variant 2 TODO
+#endif
+}
+
+void emitElf::getExcludedSymbolNames(std::set<std::string> &symNames) {
+#if defined(arch_x86) 
+    /*
+     * It appears that some .o's have a reference to _GLOBAL_OFFSET_TABLE_
+     * This reference is only needed for dynamic linking.
+     */
+    symNames.insert("_GLOBAL_OFFSET_TABLE_");
+#endif
+}
+
+bool emitElf::isGOTRelocation(unsigned long relType) {
+#if defined(arch_x86)
+    switch(relType) {
+        case R_386_GOT32:
+        case R_386_TLS_IE:
+        case R_386_TLS_GOTIE:
+            return true;
+            break;
+        default:
+            return false;
+            break;
+    }
+#endif
+    return false;
+}
+
+Offset emitElf::getGOTSize(std::set<Symbol *> &gotSymbols) {
+    Offset size = 0;
+#if defined(arch_x86)
+    // According to the ELF abi, entries 0, 1, 2 are reserved in a GOT on x86
+    if( gotSymbols.size() > 0 ) {
+        assert(sizeof(Elf32_Addr) == sizeof(Offset));
+        size = (gotSymbols.size()+3)*sizeof(Elf32_Addr);
+    }
+#endif
+    return size;
+}
+
+bool emitElf::buildGOT(char *targetData,
+        std::map<Symbol *, Offset> &gotOffsets,
+        std::set<Symbol *> &gotSymbols)
+{
+#if defined(arch_x86)
+    const int GOT_RESERVED = 3;
+    // For each GOT symbol, allocate an entry and copy the value of the
+    // symbol into the table
+    Offset curOffset = GOT_RESERVED*sizeof(Offset);
+    bzero(targetData, GOT_RESERVED*sizeof(Offset));
+    std::set<Symbol *>::iterator sym_it;
+    for(sym_it = gotSymbols.begin(); sym_it != gotSymbols.end(); ++sym_it) {
+        Offset value = (*sym_it)->getOffset();
+        memcpy(&targetData[curOffset], &value, sizeof(Offset));
+        gotOffsets.insert(make_pair((*sym_it), curOffset));
+        curOffset += sizeof(Offset);
+    }
+
+    return true;
+#endif
+    return false;
 }

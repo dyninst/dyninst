@@ -214,6 +214,8 @@ emitElf::emitElf(Elf_X &oldElfHandle_, bool isStripped_, Object *obj_, void (*er
   library_adjust = 0;
 
   linkedStaticData = NULL;
+  hasRewrittenTLS = false;
+  newTLSData = NULL;
    
   oldElf = oldElfHandle.e_elfp();
   curVersionNum = 2;
@@ -517,7 +519,6 @@ bool emitElf::driver(Symtab *obj, string fName){
       result = obj->findRegion(foundSec, name);
     }
 
-
     // write the shstrtabsection at the end
     if(!strcmp(name, ".shstrtab"))
       continue;
@@ -629,6 +630,16 @@ bool emitElf::driver(Symtab *obj, string fName){
       //newSecs.push_back(new Section(oldEhdr->e_shnum+newSecs.size(),".dynamic", /*addr*/, newdata->d_size, dynData, Section::dynamicSection, true));
     }
 
+    if( hasRewrittenTLS && foundSec->isTLS() 
+        && foundSec->getRegionType() == Region::RT_DATA ) 
+    {
+        // Clear TLS flag
+        newshdr->sh_flags &= ~SHF_TLS;
+
+        string newName = ".o";
+        newName.append(name, 2, strlen(name));
+        renameSection((string)name, newName, false);
+    }
 
     // Change offsets of sections based on the newly added sections
     if(movePHdrsFirst) {
@@ -867,8 +878,14 @@ void emitElf::fixPhdrs(unsigned &extraAlignSize)
         newPhdr->p_paddr = newPhdr->p_vaddr;
         newPhdr->p_filesz = sizeof(Elf32_Phdr) * newEhdr->e_phnum;
         newPhdr->p_memsz = newPhdr->p_filesz;
-     }
-     else if (old->p_type == PT_LOAD) {
+     }else if( hasRewrittenTLS && old->p_type == PT_TLS) {
+          newPhdr->p_offset = newTLSData->sh_offset;
+          newPhdr->p_vaddr = newTLSData->sh_addr;
+          newPhdr->p_paddr = newTLSData->sh_addr;
+          newPhdr->p_filesz = newTLSData->sh_size;
+          newPhdr->p_memsz = newTLSData->sh_size + old->p_memsz - old->p_filesz;
+          newPhdr->p_align = newTLSData->sh_addralign;
+     }else if (old->p_type == PT_LOAD) {
         if(newPhdr->p_align > pgSize) {
            newPhdr->p_align = pgSize;
         }
@@ -1078,7 +1095,13 @@ bool emitElf::createLoadableSections(Elf32_Shdr* &shdr, unsigned &extraAlignSize
      newshdr->sh_info = 0;
      newshdr->sh_addralign = 4;
      newshdr->sh_entsize = 0;
-            
+
+     // TLS section
+     if( newSecs[i]->isTLS() ) {
+          newTLSData = newshdr;
+          newshdr->sh_flags |= SHF_TLS;
+     }
+
      if(newSecs[i]->getRegionType() == Region::RT_REL ||    //Relocation section
         newSecs[i]->getRegionType() == Region::RT_PLTREL)
      {
@@ -1850,7 +1873,6 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
            log_elferror(err_func_, "Failed to link in static library code.");   
            return false;
       }
-
 #endif
   }
 

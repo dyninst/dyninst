@@ -92,7 +92,7 @@ class Symbol : public Serializable,
       ST_SECTION,
       ST_TLS,
       ST_DELETED,
-      ST_NOTYPE,
+      ST_NOTYPE
    };
 
    static const char *symbolType2Str(SymbolType t);
