@@ -42,10 +42,82 @@ using namespace std;
 namespace Dyninst{
 namespace SymtabAPI{
 
+// A structure that holds all the information necessary to perform a static link
+// once all the dependent objects have been copied into a new data block
+class LinkMap {
+    public:
+        LinkMap() :
+            allocatedData(NULL), allocatedSize(0), bssRegionOffset(0), bssSize(0), bssRegionAlign(0), dataRegionOffset(0), 
+            dataSize(0), dataRegionAlign(0), codeRegionOffset(0), codeSize(0), codeRegionAlign(0), 
+            tlsRegionOffset(0), tlsSize(0), tlsRegionAlign(0), gotRegionOffset(0), gotSize(0),
+            gotRegionAlign(0)
+        {}
+
+        // A pair representing an allocation for a Region
+        // The first Offset is the amount of padding before the Region
+        // The second Offset is the offset of the location in the allocatedData
+        typedef pair<Offset, Offset> AllocPair;
+
+        // prints the LinkMap (really for debugging purposes)
+        // uses globalOffset as the location of allocatedData in the target
+        void printAll(ostream &os, Offset globalOffset);
+        void printBySymtab(ostream &os, vector<Symtab *> &symtabs, Offset globalOffset);
+        void printRegions(ostream &os, deque<Region *> &regions, Offset globalOffset);
+        void printRegion(ostream &os, Region *region, Offset globalOffset);
+        
+        friend ostream & operator<<(ostream &os, LinkMap &lm);
+
+        // Data Members
+        // all other members describe this block of data
+        char *allocatedData; 
+        Offset allocatedSize;
+
+        // map of Regions placed in allocatedData
+        map<Region *, AllocPair> regionAllocs;
+
+        // new Region info
+        // Offset -> offset in allocatedData
+        // Size -> size of Region
+        // Regions -> existing Regions which make up this Region
+
+        // new bss Region info
+        Offset bssRegionOffset;
+        Offset bssSize;
+        Offset bssRegionAlign;
+        deque<Region *> bssRegions;
+
+        // new data Region info
+        Offset dataRegionOffset;
+        Offset dataSize;
+        Offset dataRegionAlign;
+        deque<Region *> dataRegions;
+        
+        // new code Region info
+        Offset codeRegionOffset;
+        Offset codeSize;
+        Offset codeRegionAlign;
+        deque<Region *> codeRegions;
+        
+        // new TLS Region info
+        Offset tlsRegionOffset;
+        Offset tlsSize;
+        Offset tlsRegionAlign;
+        deque<Region *> tlsRegions;
+        vector<Symbol *> tlsSymbols;
+
+        // new GOT Region info
+        Offset gotRegionOffset;
+        Offset gotSize;
+        Offset gotRegionAlign;
+        map<Symbol *, Offset> gotSymbols;
+};
+
 class emitElf{
   public:
    emitElf(Elf_X &oldElfHandle_, bool isStripped_ = false, Object *obj_ = NULL, void (*)(const char *) = log_msg);
-    ~emitElf();
+    ~emitElf() {
+        if( linkedStaticData ) delete linkedStaticData;
+    }
     bool createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols);
     bool driver(Symtab *obj, std::string fName);
   private:
@@ -163,64 +235,60 @@ class emitElf{
     Elf32_Shdr *newTLSData;
 
     // Entry point for static linking
-    char *linkStatic(Symtab *, 
-                     StaticLinkError &, 
-                     std::string &);
+    char *linkStatic(Symtab *target, 
+                     StaticLinkError &err, 
+                     string &errMsg);
 
-    bool resolveSymbols(Symtab *, 
-                        std::vector<Symtab *> &, 
-                        StaticLinkError &, 
-                        std::string &);
+    bool resolveSymbols(Symtab *target, 
+                        vector<Symtab *> &dependentObjects, 
+                        StaticLinkError &err, 
+                        string &errMsg);
 
-    char *allocateStorage(Symtab *,
-                          std::vector<Symtab *> &, 
-                          std::map<Region *, Offset> &, 
-                          Offset, 
-                          std::map<Symbol *, Offset> &,
-                          Offset &,
-                          StaticLinkError &, 
-                          std::string &);
+    bool createLinkMap(Symtab *target,
+                       vector<Symtab *> &dependentObjects,
+                       Offset& globalOffset,
+                       LinkMap &lmap,
+                       StaticLinkError &err, 
+                       string &errMsg);
 
-    Offset allocateRegions(std::deque<Region *> &, 
-                           std::map<Region *, Offset> &, 
-                           std::map<Region *, Offset> &,
-                           Offset, 
-                           Offset);
+    Offset layoutRegions(deque<Region *> &regions, 
+                           map<Region *, LinkMap::AllocPair> &regionAllocs,
+                           Offset currentOffset, 
+                           Offset globalOffset);
+
+    void addNewRegions(Symtab *target,
+                       Offset globalOffset,
+                       LinkMap &lmap);
     
-    void copyRegions(char *, std::map<Region *, Offset>&, std::map<Region *, Offset>&);
+    void copyRegions(LinkMap &lmap); 
 
-    Offset computePadding(Offset, Offset);
-    Offset computeAlignment(Offset);
-    char getPaddingValue(Region::RegionType);
+    Offset computePadding(Offset candidateOffset, Offset alignment);
+    char getPaddingValue(Region::RegionType rtype);
 
-    bool applyRelocations(char *, 
-                          std::vector<Symtab *> &, 
-                          std::map<Region *, Offset> &,
-                          std::map<Symbol *, Offset> &,
-                          Offset, 
-                          Offset,
-                          Symtab *, 
-                          StaticLinkError &, 
-                          std::string &);
+    bool applyRelocations(Symtab *target,
+                          vector<Symtab *> &dependentObjects,
+                          Offset globalOffset,
+                          LinkMap &lmap,
+                          StaticLinkError &err, 
+                          std::string &errMsg);
 
-    bool archSpecificRelocation(char *, relocationEntry &, Offset, Offset, Offset,
-            std::map<Symbol *, Offset> &);
+    bool archSpecificRelocation(char *targetData, 
+                                relocationEntry &rel, 
+                                Offset dest, 
+                                Offset relOffset,
+                                Offset globalOffset,
+                                LinkMap &lmap);
 
     // Functions for dealing with special sections (GOT and TLS)
-    Offset allocateTLSImage(Offset, 
-                            Offset, 
-                            std::map<Region *, Offset> &, 
-                            std::map<Region *, Offset> &,
-                            std::deque<Region *> &, 
-                            Region *, Region *,
-                            std::vector<Symbol *> &);
-    Offset adjustTLSOffset(Offset, Offset);
-    void cleanupTLSRegionOffsets(std::map<Region *, Offset> &,
-            Region *, Region *);
+    Offset allocateTLSImage(Offset globalOffset, Region *dataTLS, Region *bssTLS, LinkMap &lmap); 
+    Offset adjustTLSOffset(Offset curOffset, Offset tlsSize);
+    void cleanupTLSRegionOffsets(map<Region *, LinkMap::AllocPair> &regionAllocs,
+            Region *dataTLS, Region *bssTLS);
 
-    bool isGOTRelocation(unsigned long);
-    bool buildGOT(char *, std::map<Symbol *, Offset> &, std::set<Symbol *> &);
-    Offset getGOTSize(std::set<Symbol *> &);
+    bool isGOTRelocation(unsigned long relType);
+    bool buildGOT(LinkMap &lmap);
+    Offset getGOTSize(LinkMap &lmap);
+    Offset getGOTAlign(LinkMap &lmap);
 
     void getExcludedSymbolNames(std::set<std::string> &);
     

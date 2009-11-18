@@ -222,11 +222,6 @@ emitElf::emitElf(Elf_X &oldElfHandle_, bool isStripped_, Object *obj_, void (*er
   setVersion();
 }
 
-emitElf::~emitElf() {
-    // This is allocated by the linkStaticCode methods for the new code
-    if( linkedStaticData ) delete linkedStaticData;
-}
-
 bool emitElf::createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf32_Sym *> &symbols, bool dynSymFlag)
 {
   Elf32_Sym *sym = new Elf32_Sym();
@@ -1345,6 +1340,7 @@ bool emitElf::createLoadableSections(Elf32_Shdr* &shdr, unsigned &extraAlignSize
     newshdr = updateStrLinkShdr[i];
     newshdr->sh_link = strtabIndex;   
   }
+
    
   return true;
 }
@@ -1867,7 +1863,7 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
       StaticLinkError err;
       std::string errMsg;
       linkedStaticData = linkStatic(obj, err, errMsg);
-      if ( linkedStaticData == NULL ) {
+      if ( !linkedStaticData ) {
            fprintf(stderr, "Failed to link in static library code: %s = %s\n",
                  printStaticLinkError(err).c_str(), errMsg.c_str());
            log_elferror(err_func_, "Failed to link in static library code.");   
