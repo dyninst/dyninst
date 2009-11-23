@@ -4216,7 +4216,7 @@ bool AObject::getSegments(vector<Segment> &segs) const
 
 bool Object::emitDriver(Symtab *obj, string fName,
 			std::vector<Symbol *>&allSymbols,
-			unsigned flag)
+                        unsigned /*flag*/)
 {
 #ifdef BINEDIT_DEBUG
   printf("emitting...\n");
@@ -4226,8 +4226,8 @@ bool Object::emitDriver(Symtab *obj, string fName,
 #endif
   if (elfHdr.e_ident()[EI_CLASS] == 1) 
     {
-      emitElf *em = new emitElf(elfHdr, isStripped, flag, this, err_func_);
-      em->createSymbolTables(obj, allSymbols, relocation_table_); 
+      emitElf *em = new emitElf(elfHdr, isStripped, this, err_func_);
+      em->createSymbolTables(obj, allSymbols); 
       return em->driver(obj, fName);
     }
 #if defined(x86_64_unknown_linux2_4) || defined(ia64_unknown_linux2_4) || defined(ppc64_linux)

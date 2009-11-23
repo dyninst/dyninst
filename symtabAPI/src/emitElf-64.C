@@ -36,8 +36,9 @@
 */
 
 #include <algorithm>
-#include "emitElf-64.h"
+#include "common/h/parseauxv.h"
 #include "Symtab.h"
+#include "emitElf-64.h"
 
 extern void symtab_log_perror(const char *msg);
 using namespace Dyninst;
@@ -53,6 +54,51 @@ struct sortByIndex
     return lhs->getIndex() < rhs->getIndex();
   }
 };
+
+static bool libelfso0Flag;
+static int libelfso1version_major;
+static int libelfso1version_minor;
+
+#if defined(os_linux)
+static char *deref_link(const char *path)
+{
+   static char buffer[PATH_MAX], *p;
+   buffer[PATH_MAX-1] = '\0';
+   p = realpath(path, buffer);
+   return p;
+}
+#else
+static char *deref_link(const char *path)
+{
+   return path;
+}
+#endif
+
+static void setVersion(){
+  libelfso0Flag = true;
+  libelfso1version_major = 0;
+  libelfso1version_minor = 0;
+#if defined(os_linux)
+  unsigned nEntries;
+  map_entries *maps = getLinuxMaps(getpid(), nEntries);
+  for(unsigned i=0; i< nEntries; i++){
+    if(strstr(maps[i].path, "libelf") && (strstr(maps[i].path,"1.so") ||strstr(maps[i].path,"so.1"))){
+       libelfso0Flag = false;
+       char *real_file = deref_link(maps[i].path);
+       char *libelf_start = strstr(real_file, "libelf");
+       sscanf(libelf_start, "libelf-%d.%d.so", &libelfso1version_major, &libelfso1version_minor);
+       break;
+    }
+  }
+#endif
+}
+
+static bool hasPHdrSectionBug()
+{
+   if (libelfso0Flag)
+      return false;
+   return (libelfso1version_major == 0 && libelfso1version_minor <= 131);
+}
 
 static int elfSymType(Symbol *sym)
 {
@@ -127,6 +173,8 @@ emitElf64::emitElf64(Elf_X &oldElfHandle_, bool isStripped_, Object *obj_, void 
 
   oldElf = oldElfHandle.e_elfp();
   curVersionNum = 2;
+
+  setVersion();
 }
 
 bool emitElf64::createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf64_Sym *> &symbols, bool dynSymFlag)
@@ -628,6 +676,13 @@ bool emitElf64::driver(Symtab *obj, string fName){
     return false;
   }
   elf_end(newElf);
+  
+  if (hasPHdrSectionBug()) {
+     unsigned long ehdr_off = (unsigned long) &(((Elf64_Ehdr *) 0x0)->e_phoff);
+     lseek(newfd, ehdr_off, SEEK_SET);
+     Elf64_Off offset = (Elf64_Off) phdr_offset;
+     write(newfd, &offset, sizeof(Elf64_Off));
+  }
   close(newfd);
 
   return true;
@@ -646,6 +701,7 @@ void emitElf64::createNewPhdrRegion(dyn_hash_map<std::string, unsigned> &newName
       align = 8 - (currEndOffset % 8);
 
    newEhdr->e_phoff = currEndOffset + align;
+   phdr_offset = newEhdr->e_phoff;
 
    Address endaddr = currEndAddress;
    currEndAddress += phdr_size + align;
@@ -688,7 +744,12 @@ void emitElf64::fixPhdrs(unsigned &extraAlignSize)
     newEhdr->e_phnum= oldEhdr->e_phnum;
 
   bool added_new_sec = false;    
-  newPhdr=elf64_newphdr(newElf,newEhdr->e_phnum);
+
+  if (!hasPHdrSectionBug())
+     newPhdr = elf64_newphdr(newElf,newEhdr->e_phnum);
+  else {
+     newPhdr = (Elf64_Phdr *) malloc(sizeof(Elf64_Phdr) * newEhdr->e_phnum);
+  }
   void *phdr_data = (void *) newPhdr;
 
   Elf64_Phdr newSeg;
@@ -785,16 +846,6 @@ void emitElf64::fixPhdrs(unsigned &extraAlignSize)
   data->d_type = ELF_T_BYTE;
   data->d_version = 1;
 }
-
-#define DT_HASH		4		/* Address of symbol hash table */
-#define DT_STRTAB	5		/* Address of string table */
-#define DT_SYMTAB	6		/* Address of symbol table */
-#define DT_RELA		7		/* Address of Rela relocs */
-#define DT_INIT		12		/* Address of init function */
-#define DT_FINI		13		/* Address of termination function */
-#define DT_REL		17		/* Address of Rel relocs */
-#define DT_JMPREL	23		/* Address of PLT relocs */
-#define DT_PREINIT_ARRAY 32		/* Array with addresses of preinit fct*/
 
 #if !defined(os_solaris)
 #if !defined(DT_GNU_HASH)
@@ -1693,7 +1744,7 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
 #else
    dyn_hash_map<int, Region*> secTagRegionMapping = obj->getObject()->getTagRegionMapping();
    int reloc_size;
-   char *new_name;
+   const char *new_name;
    Region::RegionType rtype;
    int dtype;
    int dsize_type;
