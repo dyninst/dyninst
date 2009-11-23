@@ -553,6 +553,7 @@ Symtab *Symbol::getSymtab() const {
 Symbol::Symbol () :
   module_(NULL),
   type_(ST_NOTYPE),
+  internal_type_(0),
   linkage_(SL_UNKNOWN),
   visibility_(SV_UNKNOWN),
   offset_(0),
@@ -586,6 +587,7 @@ Symbol::Symbol(const std::string name,
 	       int strindex):
   module_(module),
   type_(t),
+  internal_type_(0),
   linkage_(l),
   visibility_(v),
   offset_(o),

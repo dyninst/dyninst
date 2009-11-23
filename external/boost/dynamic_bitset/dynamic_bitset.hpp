@@ -1005,20 +1005,26 @@ dynamic_bitset<Block, Allocator>::count() const
     using detail::dynamic_bitset_impl::access_by_blocks;
     using detail::dynamic_bitset_impl::value_to_type;
 
+#if BOOST_WORKAROUND(__GNUC__, == 4) && (__GNUC_MINOR__ == 3) && (__GNUC_PATCHLEVEL__ == 3)
+    // NOTE: Explicit qualification of "bits_per_block"
+    //       breaks compilation on gcc 4.3.3
+    enum { no_padding = bits_per_block == CHAR_BIT * sizeof(Block) };
+#else
     // NOTE: Explicitly qualifying "bits_per_block" to workaround
     //       regressions of gcc 3.4.x
-    const bool no_padding =
+    enum { no_padding =
         dynamic_bitset<Block, Allocator>::bits_per_block
-        == CHAR_BIT * sizeof(Block);
+        == CHAR_BIT * sizeof(Block) };
+#endif
 
-    const bool enough_table_width = table_width >= CHAR_BIT;
+    enum { enough_table_width = table_width >= CHAR_BIT };
 
-    const bool mode = (no_padding && enough_table_width)
+    enum { mode = (no_padding && enough_table_width)
                           ? access_by_bytes
-                          : access_by_blocks;
+                          : access_by_blocks };
 
     return do_count(m_bits.begin(), num_blocks(), Block(0),
-                                       static_cast<value_to_type<mode> *>(0));
+                    static_cast<value_to_type<(bool)mode> *>(0));
 }
 
 

@@ -90,8 +90,9 @@ class Symbol : public Serializable,
       ST_OBJECT,
       ST_MODULE,
       ST_SECTION,
+      ST_TLS,
       ST_DELETED,
-      ST_NOTYPE
+      ST_NOTYPE,
    };
 
    static const char *symbolType2Str(SymbolType t);
@@ -218,12 +219,14 @@ class Symbol : public Serializable,
 
    public:
    static std::string emptyString;
-
+   int getInternalType() { return internal_type_; }
+   void setInternalType(int i) { internal_type_ = i; }
 
    private:
 
    Module*       module_;
    SymbolType    type_;
+   int           internal_type_;
    SymbolLinkage linkage_;
    SymbolVisibility visibility_;
    Offset        offset_;

@@ -771,6 +771,7 @@ bool Symtab::addSymbolToAggregates(Symbol *&sym)
 
         break;
     }
+    case Symbol::ST_TLS:
     case Symbol::ST_OBJECT: {
         // The same as the above, but with variables.
         Variable *var = NULL;
@@ -3010,6 +3011,7 @@ const char *Symbol::symbolType2Str(SymbolType t)
       CASE_RETURN_STR(ST_OBJECT);
       CASE_RETURN_STR(ST_MODULE);
       CASE_RETURN_STR(ST_SECTION);
+      CASE_RETURN_STR(ST_TLS);
       CASE_RETURN_STR(ST_DELETED);
       CASE_RETURN_STR(ST_NOTYPE);
    };

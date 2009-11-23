@@ -85,13 +85,15 @@ void print_symbols( std::vector< Symbol *>& allsymbols ) {
                 sym->getSec() ? sym->getSec()->getRegionNumber() : 0
                 );
             switch (sym->getType()) {
-                case Symbol::ST_UNKNOWN:  fprintf(fd, "  ???"); break;
                 case Symbol::ST_FUNCTION: fprintf(fd, "  FUN"); break;
+                case Symbol::ST_TLS:      fprintf(fd, "  TLS"); break;
                 case Symbol::ST_OBJECT:   fprintf(fd, "  OBJ"); break;
                 case Symbol::ST_MODULE:   fprintf(fd, "  MOD"); break;
                 case Symbol::ST_SECTION:  fprintf(fd, "  SEC"); break;
                 case Symbol::ST_DELETED:  fprintf(fd, "  DEL"); break;
                 case Symbol::ST_NOTYPE:   fprintf(fd, "   - "); break;
+                default:
+                case Symbol::ST_UNKNOWN:  fprintf(fd, "  ???"); break;                 
             }
             switch (sym->getLinkage()) {
                 case Symbol::SL_UNKNOWN: fprintf(fd, "  ??"); break;

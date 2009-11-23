@@ -54,13 +54,13 @@ TFLAGS          += $(MYFLAGS)
 SYSLIBS		= -ldl 
 
 LIBS	  +=  -L$(LIBDWARF_LIB) -L$(LIBELF_LIB)
-ifndef LIBDWARFSTATIC
+ifndef LIBDWARF_STATIC
 LIBS += -ldwarf
 endif
-ifndef LIBELFSTATIC
+ifndef LIBELF_STATIC
 LIBS += -lelf
 endif
-ifndef LIBIBERTYSTATIC
+ifndef LIBIBERTY_STATIC
 LIBS	+= -liberty
 endif
 

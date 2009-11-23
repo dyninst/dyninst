@@ -41,11 +41,10 @@ namespace SymtabAPI{
 
 class emitElf{
   public:
-    emitElf(Elf_X &oldElfHandle_, bool isStripped_ = false, int BSSexpandflag = false, void (*)(const char *) = log_msg);
+   emitElf(Elf_X &oldElfHandle_, bool isStripped_ = false, Object *obj_ = NULL, void (*)(const char *) = log_msg);
     ~emitElf();
-    bool createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols, std::vector<relocationEntry> &relocation_table);
+    bool createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols);
     bool driver(Symtab *obj, std::string fName);
- 
   private:
     Elf_X oldElfHandle;
     Elf *newElf;
@@ -57,6 +56,7 @@ class emitElf{
     
     Elf32_Phdr *newPhdr;
     Elf32_Phdr *oldPhdr;
+    Offset phdr_offset;
 
     //important data sections in the
     //new Elf that need updated
@@ -75,6 +75,8 @@ class emitElf{
     Elf32_Shdr *textSh;
     Elf32_Shdr *rodataSh;
     
+    Elf_Scn *phdrs_scn;
+
     std::vector<Region *>nonLoadableSecs;
     std::vector<Region *> newSecs;
 #if !defined(os_solaris)
@@ -104,24 +106,33 @@ class emitElf{
     //Section Names for all sections
     vector<std::string> secNames;
     unsigned secNameIndex;
+    Offset currEndOffset;
+    Address currEndAddress;
 
     //flags
     // Expand NOBITS sections within the object file to their size
     bool BSSExpandFlag;
-    bool addNewSegmentFlag;
-    
+    bool movePHdrsFirst;
+    bool createNewPhdr;
+    unsigned loadSecTotalSize; 
+
     bool isStripped;
+    int library_adjust;
+    Object *object;
 
     void (*err_func_)(const char*);
 
     bool createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf32_Sym *> &symbols, bool dynSymFlag = false);
     void findSegmentEnds();
     void renameSection(const std::string &oldStr, const std::string &newStr, bool renameAll=true);
-    void fixPhdrs(unsigned &, unsigned &);
+    void fixPhdrs(unsigned &);
+    void createNewPhdrRegion(dyn_hash_map<std::string, unsigned> &newNameIndexMapping);
     bool addSectionHeaderTable(Elf32_Shdr *shdr);
     bool createNonLoadableSections(Elf32_Shdr *& shdr);
-    bool createLoadableSections( Elf32_Shdr* &shdr, unsigned &loadSecTotalSize, unsigned &, dyn_hash_map<std::string,  unsigned>& newIndexMapping, unsigned &sectionNumber);
-    void createRelocationSections(Symtab *obj, std::vector<relocationEntry> &relocation_table, dyn_hash_map<std::string, unsigned> &dynSymNameMapping);
+    bool createLoadableSections( Elf32_Shdr* &shdr, unsigned &extraAlignSize, 
+                                 dyn_hash_map<std::string,  unsigned>& newIndexMapping, 
+                                 unsigned &sectionNumber);
+    void createRelocationSections(Symtab *obj, std::vector<relocationEntry> &relocation_table, bool isDynRelocs, dyn_hash_map<std::string, unsigned> &dynSymNameMapping);
 
     void updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned long loadSecsSize);
 
@@ -133,6 +144,7 @@ class emitElf{
 #endif 
 
     void log_elferror(void (*err_func)(const char *), const char* msg);
+    bool hasPHdrSectionBug();
 };
 
 } // namespace SymtabAPI
