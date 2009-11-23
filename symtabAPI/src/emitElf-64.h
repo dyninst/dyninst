@@ -57,6 +57,7 @@ class emitElf64{
     
     Elf64_Phdr *newPhdr;
     Elf64_Phdr *oldPhdr;
+    Offset phdr_offset;
 
     //important data sections in the
     //new Elf that need updated
