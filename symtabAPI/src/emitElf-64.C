@@ -1593,11 +1593,17 @@ bool emitElf64::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
 }
 
 void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntry> &relocation_table, bool isDynRelocs, dyn_hash_map<std::string, unsigned> &dynSymNameMapping) {
-  unsigned i,j,k;
-
   vector<relocationEntry> newRels;
-  if(isDynRelocs && newSecs.size())
-    newRels = newSecs[0]->getRelocations();
+  if(isDynRelocs && newSecs.size()) {
+    std::vector<Region *>::iterator i;
+    for (i = newSecs.begin(); i != newSecs.end(); i++) {
+      std::copy((*i)->getRelocations().begin(),
+		(*i)->getRelocations().end(),
+		std::back_inserter(newRels));
+    }
+  }
+
+  unsigned i,j,k;
     
    Elf64_Rel *rels = (Elf64_Rel *)malloc(sizeof(Elf64_Rel) * (relocation_table.size()+newRels.size()));
    Elf64_Rela *relas = (Elf64_Rela *)malloc(sizeof(Elf64_Rela) * (relocation_table.size()+newRels.size()));
