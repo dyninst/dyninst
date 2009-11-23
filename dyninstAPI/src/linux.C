@@ -85,7 +85,7 @@
 #include "mapped_object.h"
 #include "mapped_module.h"
 #include "linux.h"
-
+#include <libelf.h>
 #include "ast.h" // instrumentation for MT
 
 #include "dynamiclinking.h"
@@ -2698,3 +2698,103 @@ bool process::detachForDebugger(const EventRecord &/*crash_event*/) {
    return (ret != -1);
 }
 
+void BinaryEdit::makeInitAndFiniIfNeeded()
+{
+    Symtab* linkedFile = getAOut()->parse_img()->getObject();
+    bool foundInit = false;
+    bool foundFini = false;
+    vector <Function *> funcs;
+    if (linkedFile->findFunctionsByName(funcs, "_init")) {
+        foundInit = true;
+    }
+    if (linkedFile->findFunctionsByName(funcs, "_fini")) {
+        foundFini = true;
+    }
+    if( !foundInit )
+    {
+        Offset initOffset = linkedFile->getInitOffset();
+        Region *initsec = linkedFile->findEnclosingRegion(initOffset);
+        if(!initOffset || !initsec)
+        {
+            unsigned char* emptyFunction = NULL;
+            int emptyFuncSize = 0;
+#if defined(arch_x86) || defined(arch_x86_64)
+            static unsigned char empty_32[] = { 0x55, 0x89, 0xe5, 0xc9, 0xc3 };
+            static unsigned char empty_64[] = { 0x55, 0x48, 0x89, 0xe5, 0xc9, 0xc3 };
+            if(linkedFile->getAddressWidth() == 8)
+            {
+                emptyFunction = empty_64;
+                emptyFuncSize = 6;
+            }
+            else
+            {
+                emptyFunction = empty_32;
+                emptyFuncSize = 5;
+            }
+#endif //defined(arch_x86) || defined(arch_x86_64)
+            linkedFile->addRegion(highWaterMark_, (void*)(emptyFunction), emptyFuncSize, ".init.dyninst",
+                                  Dyninst::SymtabAPI::Region::RT_TEXT, true);
+            highWaterMark_ += emptyFuncSize;
+            lowWaterMark_ += emptyFuncSize;
+            linkedFile->findRegion(initsec, ".init.dyninst");
+            assert(initsec);
+            linkedFile->addSysVDynamic(DT_INIT, initsec->getRegionAddr());
+            startup_printf("%s[%d]: creating .init.dyninst region, region addr 0x%lx\n",
+                           FILE__, __LINE__, initsec->getRegionAddr());
+        }
+        startup_printf("%s[%d]: ADDING _init at 0x%lx\n", FILE__, __LINE__, initsec->getRegionAddr());
+        Symbol *initSym = new Symbol( "_init",
+                                      Symbol::ST_FUNCTION,
+                                      Symbol::SL_GLOBAL,
+                                      Symbol::SV_DEFAULT,
+                                      initsec->getRegionAddr(),
+                                      linkedFile->getDefaultModule(),
+                                      initsec,
+                                      UINT_MAX );
+        linkedFile->addSymbol(initSym);
+    }
+    if( !foundFini )
+    {
+        Offset finiOffset = linkedFile->getFiniOffset();
+        Region *finisec = linkedFile->findEnclosingRegion(finiOffset);
+        if(!finiOffset || !finisec)
+        {
+            unsigned char* emptyFunction = NULL;
+            int emptyFuncSize = 0;
+#if defined(arch_x86) || defined(arch_x86_64)
+            static unsigned char empty_32[] = { 0x55, 0x89, 0xe5, 0xc9, 0xc3 };
+            static unsigned char empty_64[] = { 0x55, 0x48, 0x89, 0xe5, 0xc9, 0xc3 };
+            if(linkedFile->getAddressWidth() == 8)
+            {
+                emptyFunction = empty_64;
+                emptyFuncSize = 6;
+            }
+            else
+            {
+                emptyFunction = empty_32;
+                emptyFuncSize = 5;
+            }
+#endif //defined(arch_x86) || defined(arch_x86_64)
+            linkedFile->addRegion(highWaterMark_, (void*)(emptyFunction), emptyFuncSize, ".fini.dyninst",
+                                  Dyninst::SymtabAPI::Region::RT_TEXT, true);
+            highWaterMark_ += emptyFuncSize;
+            lowWaterMark_ += emptyFuncSize;
+            linkedFile->findRegion(finisec, ".fini.dyninst");
+            assert(finisec);
+            linkedFile->addSysVDynamic(DT_FINI, finisec->getRegionAddr());
+            startup_printf("%s[%d]: creating .fini.dyninst region, region addr 0x%lx\n",
+                           FILE__, __LINE__, finisec->getRegionAddr());
+
+        }
+        startup_printf("%s[%d]: ADDING _fini at 0x%lx\n", FILE__, __LINE__, finisec->getRegionAddr());
+        Symbol *finiSym = new Symbol( "_fini",
+                                      Symbol::ST_FUNCTION,
+                                      Symbol::SL_GLOBAL,
+                                      Symbol::SV_DEFAULT,
+                                      finisec->getRegionAddr(),
+                                      linkedFile->getDefaultModule(),
+                                      finisec,
+                                      UINT_MAX );
+        linkedFile->addSymbol(finiSym);
+    }
+}

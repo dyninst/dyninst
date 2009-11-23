@@ -369,6 +369,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
   dynsym_addr_ = 0;
   dynsym_size_ = 0;
   dynstr_addr_ = 0;
+  init_addr_ = 0;
   fini_addr_ = 0;
   opd_addr_ = 0;
   opd_size_ = 0;
@@ -697,9 +698,9 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
       if (!dataddr) dataddr = scnp->sh_addr();
     }
     /* End data region search */
-    else if (strcmp( name, FINI_NAME) == 0) {
+    /*else if (strcmp( name, FINI_NAME) == 0) {
       fini_addr_ = scnp->sh_addr();
-    }
+  }*/
     else if (strcmp(name, SYMTAB_NAME) == 0) {
       if (!symscnp) {
 	symscnp = scnp;
@@ -953,7 +954,13 @@ void Object::parseDynamic(Elf_X_Shdr *&dyn_scnp, Elf_X_Shdr *&dynsym_scnp,
     case DT_RELAENT:
       rel_entry_size_ = dyns.d_val(i);
       break;
-    default:
+    case DT_INIT:
+        init_addr_ = dyns.d_val(i);
+        break;
+    case DT_FINI:
+        fini_addr_ = dyns.d_val(i);
+        break;
+        default:
       break;
     }
   }
@@ -5034,7 +5041,8 @@ MappedFile *Object::findMappedFileForDebugInfo() {
   // ".shstrtab" section: string table for section header names
   const char *shnames = pdelf_get_shnames(elfHdr);
   if (shnames == NULL) {
-    fprintf(stderr, "[%s][%d]WARNING: .shstrtab section not found in ELF binary\n",__FILE__,__LINE__);
+    fprintf(stderr, "[%s][%d]WARNING: .shstrtab section not found in ELF binary %s\n",__FILE__,__LINE__,
+            getFileName());
     log_elferror(err_func_, ".shstrtab section");
   }
 

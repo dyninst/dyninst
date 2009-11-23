@@ -66,13 +66,28 @@ size_t IA_InstrucIter::getSize() const
 
 bool IA_InstrucIter::hasCFT() const
 {
-    return ii.isACallInstruction()
+    if(ii.isACallInstruction()
             || ii.isAJumpInstruction()
             || ii.isAReturnInstruction()
             || ii.isACondBranchInstruction()
             || ii.isACondReturnInstruction()
             || ii.isADynamicCallInstruction()
-            || ii.isAIndirectJumpInstruction();
+       || ii.isAIndirectJumpInstruction())
+    {
+        if(!ii.isACallInstruction())
+        {
+            return true;
+        }
+        if(isRealCall())
+        {
+            return true;
+        }
+        if(simulateJump())
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 bool IA_InstrucIter::isAbortOrInvalidInsn() const
@@ -281,13 +296,13 @@ void IA_InstrucIter::getNewEdges(
             }
         }
         if(ii.isDelaySlot()) {
-	  outEdges.push_back(std::make_pair(getAddr() + 2 * getSize(),
-                           ET_FUNLINK));
-	  
+            outEdges.push_back(std::make_pair(getAddr() + 2 * getSize(),
+                               ET_FUNLINK));
+          
         } else {
-	  outEdges.push_back(std::make_pair(getAddr() + getSize(),
-                           ET_FUNLINK));
-	}
+            outEdges.push_back(std::make_pair(getAddr() + getSize(),
+                               ET_FUNLINK));
+        }
         return;
     }
     return;

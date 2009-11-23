@@ -172,7 +172,6 @@ class BinaryEdit : public AddressSpace {
    bool usedATrap();
    bool isMultiThreadCapable();
    std::pair<std::string, BinaryEdit*> openResolvedLibraryName(std::string filename);
-
  private:
     Address highWaterMark_;
     Address lowWaterMark_;
@@ -187,6 +186,8 @@ class BinaryEdit : public AddressSpace {
 
     bool initialize();
 
+    void makeInitAndFiniIfNeeded();
+    
     codeRangeTree* memoryTracker_;
 
     mapped_object * addSharedObject(const std::string *fullPath);

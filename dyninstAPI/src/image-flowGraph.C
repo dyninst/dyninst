@@ -341,9 +341,18 @@ image::compute_gap(
 
     long MIN_GAP_SIZE = 5;
 
+    Address lowerBound = imageOffset();
+    Address upperBound = lowerBound + imageLength();
+    
+    Region* enclosingRegion = getObject()->findEnclosingRegion((*fit)->getOffset());
+    if(enclosingRegion)
+    {
+        lowerBound = enclosingRegion->getRegionAddr();
+        upperBound = lowerBound + enclosingRegion->getRegionSize();
+    }
     // special case for the first gap
     if(fit == everyUniqueFunction.begin()) {
-        gapStart = imageOffset();
+        gapStart = lowerBound;
         gapEnd = (*fit)->getOffset();
         gapsize = (long)(gapEnd - gapStart);
     } else {
@@ -367,7 +376,7 @@ image::compute_gap(
         ++fit2;
 
         if(fit2 == everyUniqueFunction.end()) {
-            gapEnd = imageOffset() + imageLength();
+            gapEnd = upperBound;
         } else {
             next = *fit2;
             gapEnd = next->getOffset();
@@ -484,8 +493,30 @@ bool image_func::parse()
     }
     parsed_ = true;
 
-    parsing_printf("[%s] parsing %s at 0x%lx\n", FILE__,
-                symTabName().c_str(), getOffset());
+    std::string howStr;
+    switch(howDiscovered_)
+    {
+        case FS_SYMTAB:
+            howStr = "symtab";
+            break;
+        case FS_GAP:
+            howStr = "gap parsing";
+            break;
+        case FS_RT:
+            howStr = "recursive traversal";
+            break;
+        case FS_GAPRT:
+            howStr = "recursive traversal from gap fn";
+            break;
+        case FS_ONDEMAND:
+            howStr = "on-demand parsing";
+            break;
+        default:
+            assert(!"bad enum");
+    };
+    
+    parsing_printf("[%s] parsing %s (discovered via %s) at 0x%lx\n", FILE__,
+                symTabName().c_str(), howStr.c_str(), getOffset());
 
     if(!img()->isValidAddress(getOffset())) {
         parsing_printf("[%s] refusing to parse from invalid address 0x%lx\n",
@@ -1021,6 +1052,22 @@ bool image_func::buildCFG(
                                     {
                                         retStatus_ = targetFunc->returnStatus();
                                     }
+                                    if(!targetFunc)
+                                    {
+                                        bool isInPLT = false;
+                                        std::string pltName = "";
+                                        if((*pltFuncs).defines(curEdge->first))
+                                        {
+                                            isInPLT = true;
+                                            pltName = (*pltFuncs)[curEdge->first];
+                                            if(isNonReturningCall(targetFunc, isInPLT,
+                                               pltName, currAddr, curEdge->first))
+                                            {
+                                                continue;
+                                            }
+                                            retStatus_ = RS_RETURN;
+                                        }
+                                   }
                                 }
                             }
                             else
@@ -1369,6 +1416,10 @@ image_func * image_func::bindCallTarget(
                      targetFunc->symTabName().c_str(),targetFunc->getOffset());
 
                 targetFunc->img()->recordFunction(targetFunc);
+            }
+            else {
+                parsing_printf("%s[%u]: removing symtab function at 0x%lx\n", FILE__, __LINE__, targetFunc->getOffset());
+                targetFunc->img()->getObject()->deleteFunction(targetFunc->getSymtabFunction());
             }
 
 #if defined(ppc32_linux)

@@ -107,15 +107,23 @@ bool IA_IAPI::hasCFT() const
 {
     if(hascftstatus.first) return hascftstatus.second;
     InsnCategory c = curInsn()->getCategory();
-    if(c != c_BranchInsn &&
-       c != c_CallInsn &&
-       c != c_ReturnInsn)
-    {
-        hascftstatus.second = false;
-    }
-    else
+    hascftstatus.second = false;
+    if(c == c_BranchInsn ||
+       c == c_ReturnInsn)
     {
         hascftstatus.second = true;
+    }
+    if(c == c_CallInsn)
+    {
+        if(isRealCall()) {
+            hascftstatus.second = true;
+        }
+        if(isDynamicCall()) {
+            hascftstatus.second = true;
+        }
+        if(simulateJump()) {
+            hascftstatus.second = true;
+        }
     }
     return hascftstatus.second;
 }
@@ -1144,10 +1152,6 @@ Address IA_IAPI::getCFT() const
 {
     static RegisterAST thePC = RegisterAST::makePC();
     static RegisterAST* rip = new RegisterAST(r_RIP);
-    if(!hasCFT())
-    {
-        return 0;
-    }
     if(validCFT) return cachedCFT;
     Expression::Ptr callTarget = curInsn()->getControlFlowTarget();
         // FIXME: templated bind(),dammit!

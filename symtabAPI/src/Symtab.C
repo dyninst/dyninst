@@ -3227,6 +3227,27 @@ SYMTAB_EXPORT bool Symtab::canBeShared()
    return mf->canBeShared();
 }
 
+SYMTAB_EXPORT Offset Symtab::getInitOffset()
+{
+#if defined(os_linux) || defined(os_solaris)
+   return getObject()->getInitAddr();
+#else
+   return 0x0;
+#endif
+
+}
+
+SYMTAB_EXPORT Offset Symtab::getFiniOffset()
+{
+#if defined(os_linux) || defined(os_solaris)
+   return getObject()->getFiniAddr();
+#else
+   return 0x0;
+#endif
+
+}
+
+
 } // namespace SymtabAPI
 } // namespace Dyninst
 

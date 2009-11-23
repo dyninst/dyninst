@@ -446,6 +446,9 @@ class Object : public AObject {
     std::vector<relocationEntry> &getPLTRelocs() { return fbt_; }
     std::vector<relocationEntry> &getDynRelocs() { return relocation_table_; }
 
+    Offset getInitAddr() const {return init_addr_; }
+    Offset getFiniAddr() const { return fini_addr_; }
+
   private:
   static void log_elferror (void (*)(const char *), const char *);
     
@@ -469,6 +472,7 @@ class Object : public AObject {
   Offset   dynamic_offset_;
   size_t   dynamic_size_;
   size_t   dynsym_size_;
+  Offset   init_addr_;
   Offset   fini_addr_;
   Offset   text_addr_; 	 //.text section 
   Offset   text_size_; 	 //.text section size

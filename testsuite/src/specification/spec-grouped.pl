@@ -398,6 +398,22 @@ test_runmode('test_snip_remove', 'dynamic').
 test_start_state('test_snip_remove', 'stopped').
 tests_module('test_snip_remove', 'dyninst').
 
+test('init_fini_callback', 'init_fini_callback', 'init_fini_callback').
+test_description('init_fini_callback', 'Adds callbacks for rewritten module on load/unload/entry/exit.').
+% ELF platforms only
+    test_platform('init_fini_callback', Platform) :-
+    platform(Arch, OS, _, Platform),
+    member(OS, ['linux']),
+    member(Arch, ['i386', 'x86_64']).
+mutator('init_fini_callback', ['init_fini_callback.C']).
+mutatee('init_fini_callback', ['init_fini_callback_mutatee.c']).
+mutatee_requires_libs('init_fini_callback', ['dl']).
+compiler_for_mutatee('init_fini_callback', Compiler) :-
+    comp_lang(Compiler, 'c').
+groupable_test('init_fini_callback').
+test_runmode('init_fini_callback', 'staticdynamic').
+test_start_state('init_fini_callback', 'stopped').
+tests_module('init_fini_callback', 'dyninst').
 
 test('test1_23', 'test1_23', 'dyninst_group_test').
 test_description('test1_23', 'Local Variables').
@@ -638,7 +654,7 @@ tests_module('test_write_param', 'dyninst').
 
 test('test_pt_ls', 'test_pt_ls', none).
 test_description('test_pt_ls', 'Run parseThat on ls').
-% test_pt_ls doesnt run on Windows
+% test_pt_ls doesnt run on Windowscd \paradyn
 test_platform('test_pt_ls', Platform) :-
     platform(_, OS, _, Platform),
     OS \= 'windows'.

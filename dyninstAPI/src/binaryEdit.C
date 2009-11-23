@@ -317,18 +317,25 @@ BinaryEdit *BinaryEdit::openFile(const std::string &file) {
     // I'm going through the mapped_object interface for now - 
     // I assume we'll pass it to DynSymtab, then add our base
     // address to it at the mapped_ level. 
-    
-    newBinaryEdit->highWaterMark_ = newBinaryEdit->getAOut()->parse_img()->getObject()->getFreeOffset(50*1024*1024);
+    Symtab* linkedFile = newBinaryEdit->getAOut()->parse_img()->getObject();
+    newBinaryEdit->highWaterMark_ = linkedFile->getFreeOffset(50*1024*1024);
     newBinaryEdit->lowWaterMark_ = newBinaryEdit->highWaterMark_;
 
+    newBinaryEdit->makeInitAndFiniIfNeeded();
 
     newBinaryEdit->createMemoryBackingStore(newBinaryEdit->getAOut());
     newBinaryEdit->initialize();
 
-    newBinaryEdit->isDirty_ = false; //Don't count initialization in 
-                                     // determining dirty
+    //Don't count initialization in determining dirty
+    newBinaryEdit->isDirty_ = false; //!(foundInit && foundFini);
     return newBinaryEdit;
 }
+
+#if !defined(os_linux)
+void BinaryEdit::makeInitAndFiniIfNeeded()
+{
+}
+#endif
 
 bool BinaryEdit::getStatFileDescriptor(const std::string &name, fileDescriptor &desc) {
    desc = fileDescriptor(name.c_str(),

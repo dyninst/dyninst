@@ -1318,11 +1318,13 @@ bool emitElf64::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
   std::vector<Symbol *> allSymSymbols;
 
   dyn_hash_map<int, Region*> secTagRegionMapping = obj->getObject()->getTagRegionMapping();
-
+  dyn_hash_map<int, Region*>::const_iterator foundRegion;
+  
   Region *sec;
-  if (secTagRegionMapping.find(DT_STRTAB) != secTagRegionMapping.end()) { 
+  foundRegion = secTagRegionMapping.find(DT_STRTAB);
+  if ((foundRegion != secTagRegionMapping.end()) && (foundRegion->second != NULL)) {
     // .dynstr
-    sec = secTagRegionMapping[DT_STRTAB];
+    sec = foundRegion->second;
     olddynStrData = (char *)(sec->getPtrToRawData());
     olddynStrSize = sec->getRegionSize();
     dynsymbolNamesLength = olddynStrSize+1;
