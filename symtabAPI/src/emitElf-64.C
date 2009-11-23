@@ -56,6 +56,7 @@ struct sortByIndex
 };
 
 static bool libelfso0Flag;
+static bool libelfso1Flag;
 static int libelfso1version_major;
 static int libelfso1version_minor;
 
@@ -75,29 +76,44 @@ static char *deref_link(const char *path)
 #endif
 
 static void setVersion(){
-  libelfso0Flag = true;
+  libelfso0Flag = false;
+  libelfso1Flag = false;
   libelfso1version_major = 0;
   libelfso1version_minor = 0;
 #if defined(os_linux)
   unsigned nEntries;
   map_entries *maps = getLinuxMaps(getpid(), nEntries);
-  for(unsigned i=0; i< nEntries; i++){
-    if(strstr(maps[i].path, "libelf") && (strstr(maps[i].path,"1.so") ||strstr(maps[i].path,"so.1"))){
-       libelfso0Flag = false;
-       char *real_file = deref_link(maps[i].path);
-       char *libelf_start = strstr(real_file, "libelf");
-       sscanf(libelf_start, "libelf-%d.%d.so", &libelfso1version_major, &libelfso1version_minor);
-       break;
-    }
+  for (unsigned i=0; i< nEntries; i++){
+     if (!strstr(maps[i].path, "libelf"))
+        continue;
+     char *real_file = deref_link(maps[i].path);
+     char *libelf_start = strstr(real_file, "libelf");
+     int num_read, major, minor;
+     num_read = sscanf(libelf_start, "libelf-%d.%d.so", &major, &minor);
+     if (num_read == 2) {
+        libelfso1Flag = true;
+        libelfso1version_major = major;
+        libelfso1version_minor = minor;        
+     }
+     else {
+        libelfso0Flag = true;
+     }
+  }
+  if (libelfso0Flag && libelfso1Flag) {
+     fprintf(stderr, "WARNING: SymtabAPI is linked with libelf.so.0 and "
+             "libelf.so.1!  SymtabAPI likely going to be unable to read "
+             "and write elf files!\n");
   }
 #endif
 }
 
-static bool hasPHdrSectionBug()
+bool emitElf64::hasPHdrSectionBug()
 {
-   if (libelfso0Flag)
+   if (movePHdrsFirst)
       return false;
-   return (libelfso1version_major == 0 && libelfso1version_minor <= 131);
+   if (!libelfso1Flag)
+      return false;
+   return (libelfso1version_major == 0 && libelfso1version_minor <= 137);
 }
 
 static int elfSymType(Symbol *sym)
@@ -432,7 +448,7 @@ bool emitElf64::driver(Symtab *obj, string fName){
   unsigned insertPoint = oldEhdr->e_shnum;
   unsigned NOBITSstartPoint = oldEhdr->e_shnum;
 
-  if(movePHdrsFirst)
+  if (movePHdrsFirst)
   {
      newEhdr->e_phoff = sizeof(Elf64_Ehdr);
   }

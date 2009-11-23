@@ -56,6 +56,7 @@ class emitElf{
     
     Elf32_Phdr *newPhdr;
     Elf32_Phdr *oldPhdr;
+    Offset phdr_offset;
 
     //important data sections in the
     //new Elf that need updated
@@ -143,6 +144,7 @@ class emitElf{
 #endif 
 
     void log_elferror(void (*err_func)(const char *), const char* msg);
+    bool hasPHdrSectionBug();
 };
 
 } // namespace SymtabAPI

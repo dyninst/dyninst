@@ -71,6 +71,7 @@ typedef struct
 } Elf_Data64;
 
 static bool libelfso0Flag;
+static bool libelfso1Flag;
 static int libelfso1version_major;
 static int libelfso1version_minor;
 
@@ -90,29 +91,44 @@ static char *deref_link(const char *path)
 #endif
 
 static void setVersion(){
-  libelfso0Flag = true;
+  libelfso0Flag = false;
+  libelfso1Flag = false;
   libelfso1version_major = 0;
   libelfso1version_minor = 0;
 #if defined(os_linux)
   unsigned nEntries;
   map_entries *maps = getLinuxMaps(getpid(), nEntries);
-  for(unsigned i=0; i< nEntries; i++){
-    if(strstr(maps[i].path, "libelf") && (strstr(maps[i].path,"1.so") ||strstr(maps[i].path,"so.1"))){
-       libelfso0Flag = false;
-       char *real_file = deref_link(maps[i].path);
-       char *libelf_start = strstr(real_file, "libelf");
-       sscanf(libelf_start, "libelf-%d.%d.so", &libelfso1version_major, &libelfso1version_minor);
-       break;
-    }
+  for (unsigned i=0; i< nEntries; i++){
+     if (!strstr(maps[i].path, "libelf"))
+        continue;
+     char *real_file = deref_link(maps[i].path);
+     char *libelf_start = strstr(real_file, "libelf");
+     int num_read, major, minor;
+     num_read = sscanf(libelf_start, "libelf-%d.%d.so", &major, &minor);
+     if (num_read == 2) {
+        libelfso1Flag = true;
+        libelfso1version_major = major;
+        libelfso1version_minor = minor;        
+     }
+     else {
+        libelfso0Flag = true;
+     }
+  }
+  if (libelfso0Flag && libelfso1Flag) {
+     fprintf(stderr, "WARNING: SymtabAPI is linked with libelf.so.0 and "
+             "libelf.so.1!  SymtabAPI likely going to be unable to read "
+             "and write elf files!\n");
   }
 #endif
 }
 
-static bool hasPHdrSectionBug()
+bool emitElf::hasPHdrSectionBug()
 {
-   if (libelfso0Flag)
+   if (movePHdrsFirst)
       return false;
-   return (libelfso1version_major == 0 && libelfso1version_minor <= 131);
+   if (!libelfso1Flag)
+      return false;
+   return (libelfso1version_major == 0 && libelfso1version_minor <= 137);
 }
 
 unsigned int elfHash(const char *name)
@@ -752,6 +768,12 @@ bool emitElf::driver(Symtab *obj, string fName){
     return false;
   }
   elf_end(newElf);
+  if (hasPHdrSectionBug()) {
+     unsigned long ehdr_off = (unsigned long) &(((Elf32_Ehdr *) 0x0)->e_phoff);
+     lseek(newfd, ehdr_off, SEEK_SET);
+     Elf32_Off offset = (Elf32_Off) phdr_offset;
+     write(newfd, &offset, sizeof(Elf32_Off));
+  }
   close(newfd);
 
   return true;
@@ -770,6 +792,7 @@ void emitElf::createNewPhdrRegion(dyn_hash_map<std::string, unsigned> &newNameIn
       align = 8 - (currEndOffset % 8);
 
    newEhdr->e_phoff = currEndOffset + align;
+   phdr_offset = newEhdr->e_phoff;
 
    Address endaddr = currEndAddress;
    currEndAddress += phdr_size + align;
@@ -815,7 +838,7 @@ void emitElf::fixPhdrs(unsigned &extraAlignSize)
   if (!hasPHdrSectionBug())
      newPhdr = elf32_newphdr(newElf,newEhdr->e_phnum);
   else {
-     newPhdr = (Elf32_Phdr *) malloc(sizeof(Elf32_Phdr));
+     newPhdr = (Elf32_Phdr *) malloc(sizeof(Elf32_Phdr) * newEhdr->e_phnum);
   }
   void *phdr_data = (void *) newPhdr;
 

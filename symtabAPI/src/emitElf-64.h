@@ -145,6 +145,7 @@ class emitElf64{
 #endif 
 
     void log_elferror(void (*err_func)(const char *), const char* msg);
+    bool hasPHdrSectionBug();
 };
 
 } // namespace SymtabAPI
