@@ -3,7 +3,7 @@ TO_CORE = ..
 
 include ../make.config
 
-LOCAL_INCLUDE_DEST = ../../include
+LOCAL_INCLUDE_DEST = $(INCLUDE_DEST)
 CP = cp
 CP_DIR = cp -r
 
