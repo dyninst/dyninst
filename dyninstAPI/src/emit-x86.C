@@ -2099,7 +2099,9 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt, baseTrampInstance *inst, codeGen &
       *buffer++ = 0x24;
       SET_PTR(buffer, gen);
         
-      emitPushReg64(REGNUM_RAX, gen);
+      emitPushReg64(REGNUM_RAX, gen);      
+      emitOpRegImm64(0x81, EXTENDED_0x81_SUB, REGNUM_RSP, -8, true, gen);
+      
    }
     
    return true;
@@ -2126,6 +2128,7 @@ bool EmitterAMD64::emitBTRestores(baseTramp* bt, baseTrampInstance *bti, codeGen
 
     if (useFPRs) {
         // pop the old RSP value into RAX
+        emitOpRegImm64(0x81, EXTENDED_0x81_SUB, REGNUM_RSP, 8, true, gen);
         emitPopReg64(REGNUM_RAX, gen);
         // restore saved FP state
         // fxrstor (%rsp) ; 0x0f 0xae 0x04 0x24
