@@ -2165,473 +2165,475 @@ void pd_dwarf_handler(Dwarf_Error error, Dwarf_Ptr /*userData*/)
 Dwarf_Signed declFileNo = 0;
 char ** declFileNoToName = NULL;
 
-void Object::fixSymbolsInModule( Dwarf_Debug dbg, string & moduleName, Dwarf_Die dieEntry)
+bool Object::fixSymbolsInModule( Dwarf_Debug dbg, string & moduleName, Dwarf_Die dieEntry)
 {
  start: 
 
-  Dwarf_Half dieTag;
-  int status = dwarf_tag( dieEntry, & dieTag, NULL );
+   Dwarf_Half dieTag;
+   string useModuleName;
+   int status = dwarf_tag( dieEntry, & dieTag, NULL );
+   if (status != DW_DLV_OK) goto error;
 
-  assert( status == DW_DLV_OK );
+   useModuleName = moduleName;
 
-  string useModuleName = moduleName;
+   /* For debugging. */
+   Dwarf_Off dieOffset;
+   status = dwarf_die_CU_offset( dieEntry, & dieOffset, NULL );
+   if (status != DW_DLV_OK) goto error;
 
-  /* For debugging. */
-  Dwarf_Off dieOffset;
-  status = dwarf_die_CU_offset( dieEntry, & dieOffset, NULL );
-  assert( status == DW_DLV_OK );
+   switch( dieTag ) {
+      case DW_TAG_subprogram: 
+      case DW_TAG_entry_point: 
+         {
+            /* Let's try ignoring artificial entries, hmm-kay? */
 
-  switch( dieTag ) {
-  case DW_TAG_subprogram: 
-  case DW_TAG_entry_point: 
-    {
-      /* Let's try ignoring artificial entries, hmm-kay? */
+            Dwarf_Bool isArtificial;
+            status = dwarf_hasattr( dieEntry, DW_AT_artificial, & isArtificial, NULL );
+            if (status != DW_DLV_OK) goto error;
 
-      Dwarf_Bool isArtificial;
-      status = dwarf_hasattr( dieEntry, DW_AT_artificial, & isArtificial, NULL );
-      assert( status == DW_DLV_OK );
+            if ( isArtificial ) 
+            {
+               break; 
+            }
 
-      if ( isArtificial ) 
-	{
-	  break; 
-	}
+            /* Only entries with a PC must be defining declarations.  However,
+               to avoid trying to decide in which module a DW_TAG_inlined_subroutine's
+               DW_AT_abstract_origin belongs, we just insert the abstract origin itself. */
 
-      /* Only entries with a PC must be defining declarations.  However,
-	 to avoid trying to decide in which module a DW_TAG_inlined_subroutine's
-	 DW_AT_abstract_origin belongs, we just insert the abstract origin itself. */
+            Dwarf_Bool hasLowPC;
+            status = dwarf_hasattr( dieEntry, DW_AT_low_pc, & hasLowPC, NULL );
+            if (status != DW_DLV_OK) goto error;
 
-      Dwarf_Bool hasLowPC;
-      status = dwarf_hasattr( dieEntry, DW_AT_low_pc, & hasLowPC, NULL );
-      assert( status == DW_DLV_OK );
+            Dwarf_Bool isAbstractOrigin;
+            status = dwarf_hasattr( dieEntry, DW_AT_inline, & isAbstractOrigin, NULL );
+            if (status != DW_DLV_OK) goto error;
 
-      Dwarf_Bool isAbstractOrigin;
-      status = dwarf_hasattr( dieEntry, DW_AT_inline, & isAbstractOrigin, NULL );
-      assert( status == DW_DLV_OK );
+            if ( ! hasLowPC && ! isAbstractOrigin ) 
+            {
+               break; 
+            }
 
-      if ( ! hasLowPC && ! isAbstractOrigin ) 
-	{
-	  break; 
-	}
+            bool isDeclaredNotInlined = false;
 
-      bool isDeclaredNotInlined = false;
+            /* Inline functions are "uninstrumentable", so leave them off the where axis. */
 
-      /* Inline functions are "uninstrumentable", so leave them off the where axis. */
+            if ( isAbstractOrigin ) 
+            {
+               Dwarf_Attribute inlineAttribute;
+               status = dwarf_attr( dieEntry, DW_AT_inline, & inlineAttribute, NULL );
+               if (status != DW_DLV_OK) goto error;
 
-      if ( isAbstractOrigin ) 
-	{
-	  Dwarf_Attribute inlineAttribute;
-	  status = dwarf_attr( dieEntry, DW_AT_inline, & inlineAttribute, NULL );
-	  assert( status == DW_DLV_OK );
+               Dwarf_Unsigned inlineTag;
+               status = dwarf_formudata( inlineAttribute, & inlineTag, NULL );
+               if (status != DW_DLV_OK) goto error;
 
-	  Dwarf_Unsigned inlineTag;
-	  status = dwarf_formudata( inlineAttribute, & inlineTag, NULL );
-	  assert( status == DW_DLV_OK );
+               if ( inlineTag == DW_INL_inlined || inlineTag == DW_INL_declared_inlined ) 
+               {
+                  break; 
+               }
 
-	  if ( inlineTag == DW_INL_inlined || inlineTag == DW_INL_declared_inlined ) 
-	    {
-	      break; 
-	    }
+               if ( inlineTag == DW_INL_declared_not_inlined ) 
+               {
+                  isDeclaredNotInlined = true; 
+               }
 
-	  if ( inlineTag == DW_INL_declared_not_inlined ) 
-	    {
-	      isDeclaredNotInlined = true; 
-	    }
+               dwarf_dealloc( dbg, inlineAttribute, DW_DLA_ATTR );
+            }
 
-	  dwarf_dealloc( dbg, inlineAttribute, DW_DLA_ATTR );
-	}
+            /* If a DIE has a specification, the specification has its name
+               and (optional) linkage name.  */
 
-      /* If a DIE has a specification, the specification has its name
-	 and (optional) linkage name.  */
+            Dwarf_Attribute specificationAttribute;
+            status = dwarf_attr(dieEntry, DW_AT_specification, &specificationAttribute, NULL);
 
-      Dwarf_Attribute specificationAttribute;
-      status = dwarf_attr(dieEntry, DW_AT_specification, &specificationAttribute, NULL);
+            if (status == DW_DLV_ERROR) goto error;
 
-      assert( status != DW_DLV_ERROR );
 
-      Dwarf_Die nameEntry = dieEntry;
+            Dwarf_Die nameEntry = dieEntry;
 
-      if ( status == DW_DLV_OK ) 
-	{
-	  Dwarf_Off specificationOffset;
-	  status = dwarf_global_formref(specificationAttribute, &specificationOffset, NULL);
-	  assert( status == DW_DLV_OK );
+            if ( status == DW_DLV_OK ) 
+            {
+               Dwarf_Off specificationOffset;
+               status = dwarf_global_formref(specificationAttribute, &specificationOffset, NULL);
+               if (status != DW_DLV_OK) goto error;
 
-	  status = dwarf_offdie( dbg, specificationOffset, & nameEntry, NULL );
-	  assert( status == DW_DLV_OK );
+               status = dwarf_offdie( dbg, specificationOffset, & nameEntry, NULL );
+               if (status != DW_DLV_OK) goto error;
 
-	  dwarf_dealloc( dbg, specificationAttribute, DW_DLA_ATTR );
-	} /* end if the DIE has a specification. */
+               dwarf_dealloc( dbg, specificationAttribute, DW_DLA_ATTR );
+            } /* end if the DIE has a specification. */
 
-      /* Ignore artificial entries. */
+            /* Ignore artificial entries. */
 
-      status = dwarf_hasattr( nameEntry, DW_AT_artificial, & isArtificial, NULL );
-      assert( status == DW_DLV_OK );
+            status = dwarf_hasattr( nameEntry, DW_AT_artificial, & isArtificial, NULL );
+            if (status != DW_DLV_OK) goto error;
 
-      if ( isArtificial ) 
-	{
-	  break; 
-	}
+            if ( isArtificial ) 
+            {
+               break; 
+            }
 
-      /* What's its name? */
-      char * dieName = NULL;
-      status = dwarf_diename( nameEntry, & dieName, NULL );
+            /* What's its name? */
+            char * dieName = NULL;
+            status = dwarf_diename( nameEntry, & dieName, NULL );
+            if (status == DW_DLV_ERROR) goto error;
 
-      assert( status != DW_DLV_ERROR );
+            /* Prefer the linkage (symbol table) name. */
+            Dwarf_Attribute linkageNameAttribute;
+            status = dwarf_attr(nameEntry, DW_AT_MIPS_linkage_name, &linkageNameAttribute, NULL);
+            if (status == DW_DLV_ERROR) goto error;
 
-      /* Prefer the linkage (symbol table) name. */
-      Dwarf_Attribute linkageNameAttribute;
-      status = dwarf_attr(nameEntry, DW_AT_MIPS_linkage_name, &linkageNameAttribute, NULL);
+            bool hasLinkageName = false;
 
-      assert( status != DW_DLV_ERROR );
+            if ( status == DW_DLV_OK ) 
+            {
+               dwarf_dealloc( dbg, dieName, DW_DLA_STRING );
+               status = dwarf_formstring( linkageNameAttribute, & dieName, NULL );
+               if (status != DW_DLV_OK) goto error;
+               hasLinkageName = true;
+            }
 
-      bool hasLinkageName = false;
+            /* Anonymous functions are useless to us. */
 
-      if ( status == DW_DLV_OK ) 
-	{
-	  dwarf_dealloc( dbg, dieName, DW_DLA_STRING );
-	  status = dwarf_formstring( linkageNameAttribute, & dieName, NULL );
-	  assert( status == DW_DLV_OK );
-	  hasLinkageName = true;
-	}
+            if ( dieName == NULL ) 
+            {
+               break;
+            }
 
-      /* Anonymous functions are useless to us. */
+            /* Try to find the corresponding global symbol name. */
 
-      if ( dieName == NULL ) 
-	{
-	  break;
-	}
+            Dwarf_Die declEntry = nameEntry;
 
-      /* Try to find the corresponding global symbol name. */
-
-      Dwarf_Die declEntry = nameEntry;
-
-      std::vector<Symbol *> foundSymbols;
+            std::vector<Symbol *> foundSymbols;
             
-      string globalSymbol = find_symbol(dieName);
+            string globalSymbol = find_symbol(dieName);
 
-      if (globalSymbol != "") {
-	foundSymbols = symbols_[globalSymbol];
-      }
-      else if ( globalSymbol == "" && ! hasLinkageName && isDeclaredNotInlined ) 
-	{
-	  /* Then scan forward for its concrete instance. */
+            if (globalSymbol != "") {
+               foundSymbols = symbols_[globalSymbol];
+            }
+            else if ( globalSymbol == "" && ! hasLinkageName && isDeclaredNotInlined ) 
+            {
+               /* Then scan forward for its concrete instance. */
 
-	  bool first = true;
-	  Dwarf_Die siblingDie = dieEntry;
+               bool first = true;
+               Dwarf_Die siblingDie = dieEntry;
 
-	  while ( true ) 
-	    {
-	      Dwarf_Die priorSibling = siblingDie;
-	      status = dwarf_siblingof( dbg, siblingDie, & siblingDie, NULL );
-	      assert( status != DW_DLV_ERROR );
+               while ( true ) 
+               {
+                  Dwarf_Die priorSibling = siblingDie;
+                  status = dwarf_siblingof( dbg, siblingDie, & siblingDie, NULL );
+                  if (status == DW_DLV_ERROR) goto error;
 
-	      if ( ! first ) 
-		{
-		  dwarf_dealloc( dbg, priorSibling, DW_DLA_DIE ); 
-		}
-	      if ( status == DW_DLV_NO_ENTRY ) 
-		{
-		  break; 
-		}
+                  if ( ! first ) 
+                  {
+                     dwarf_dealloc( dbg, priorSibling, DW_DLA_DIE ); 
+                  }
+                  if ( status == DW_DLV_NO_ENTRY ) 
+                  {
+                     break; 
+                  }
 
-	      Dwarf_Attribute abstractOriginAttr;
-	      status = dwarf_attr(siblingDie, DW_AT_abstract_origin, &abstractOriginAttr, NULL);
+                  Dwarf_Attribute abstractOriginAttr;
+                  status = dwarf_attr(siblingDie, DW_AT_abstract_origin, &abstractOriginAttr, NULL);
 
-	      assert( status != DW_DLV_ERROR );
+                  if (status == DW_DLV_ERROR) goto error;
 
-	      /* Is its abstract origin the current dieEntry? */
+                  /* Is its abstract origin the current dieEntry? */
 
-	      if ( status == DW_DLV_OK ) 
-		{
-		  Dwarf_Off abstractOriginOffset;
-		  status = dwarf_formref( abstractOriginAttr, & abstractOriginOffset, NULL );
-		  assert( status == DW_DLV_OK );
+                  if ( status == DW_DLV_OK ) 
+                  {
+                     Dwarf_Off abstractOriginOffset;
+                     status = dwarf_formref( abstractOriginAttr, & abstractOriginOffset, NULL );
+                     if (status != DW_DLV_OK) goto error;
 
-		  dwarf_dealloc( dbg, abstractOriginAttr, DW_DLA_ATTR );
+                     dwarf_dealloc( dbg, abstractOriginAttr, DW_DLA_ATTR );
 
-		  if ( abstractOriginOffset == dieOffset ) 
-		    {
-		      Dwarf_Addr lowPC;
-		      status = dwarf_lowpc( siblingDie, & lowPC, NULL );
-		      assert( status == DW_DLV_OK );
+                     if ( abstractOriginOffset == dieOffset ) 
+                     {
+                        Dwarf_Addr lowPC;
+                        status = dwarf_lowpc( siblingDie, & lowPC, NULL );
+                        if (status != DW_DLV_OK) goto error;
 
-		      // bperr( "Found function with pretty name '%s' inlined-not-declared at 0x%lx in module '%s'\n", dieName, (unsigned long)lowPC, useModuleName.c_str() );
+                        // bperr( "Found function with pretty name '%s' inlined-not-declared at 0x%lx in module '%s'\n", dieName, (unsigned long)lowPC, useModuleName.c_str() );
 
-		      if ( symsByOffset_.find((Address)lowPC) != 
-			   symsByOffset_.end()) {
-			foundSymbols = symsByOffset_[(Address)lowPC];
-		      }
+                        if ( symsByOffset_.find((Address)lowPC) != 
+                             symsByOffset_.end()) {
+                           foundSymbols = symsByOffset_[(Address)lowPC];
+                        }
 
-		      dwarf_dealloc( dbg, siblingDie, DW_DLA_DIE );
-		      break;
+                        dwarf_dealloc( dbg, siblingDie, DW_DLA_DIE );
+                        break;
 
-		    } /* end if we've found _the_ concrete instance */
-		} /* end if we've found a concrete instance */
+                     } /* end if we've found _the_ concrete instance */
+                  } /* end if we've found a concrete instance */
 
-	      first = false;
+                  first = false;
 
-	    } /* end iteration. */
-	} /* end if we're trying to do a by-address look up. */
+               } /* end iteration. */
+            } /* end if we're trying to do a by-address look up. */
 
-      if (foundSymbols.size()) {
-	/* If it's not specified, is an inlined function in the same
-	   CU/namespace as its use. */
+            if (foundSymbols.size()) {
+               /* If it's not specified, is an inlined function in the same
+                  CU/namespace as its use. */
                 
-	if ( isDeclaredNotInlined && nameEntry != dieEntry ) {
-	  /* Then the function's definition is where it was
-	     declared, not wherever it happens to be referenced.
+               if ( isDeclaredNotInlined && nameEntry != dieEntry ) {
+                  /* Then the function's definition is where it was
+                     declared, not wherever it happens to be referenced.
                        
-	     Use the decl_file as the useModuleName, if available. */
+                     Use the decl_file as the useModuleName, if available. */
                     
-	  Dwarf_Attribute fileNoAttribute;
-	  status = dwarf_attr( declEntry, DW_AT_decl_file, & fileNoAttribute, NULL );
-	  assert( status != DW_DLV_ERROR );
+                  Dwarf_Attribute fileNoAttribute;
+                  status = dwarf_attr( declEntry, DW_AT_decl_file, & fileNoAttribute, NULL );
+                  if (status == DW_DLV_ERROR) goto error;
+
                     
-	  if ( status == DW_DLV_OK ) {
-	    Dwarf_Unsigned fileNo;
-	    status = dwarf_formudata( fileNoAttribute, & fileNo, NULL );
-	    assert( status == DW_DLV_OK );
+                  if ( status == DW_DLV_OK ) {
+                     Dwarf_Unsigned fileNo;
+                     status = dwarf_formudata( fileNoAttribute, & fileNo, NULL );
+                     if (status != DW_DLV_OK) goto error;
                         
-	    dwarf_dealloc( dbg, fileNoAttribute, DW_DLA_ATTR );
+                     dwarf_dealloc( dbg, fileNoAttribute, DW_DLA_ATTR );
                         
-	    useModuleName = declFileNoToName[ fileNo - 1 ];
+                     useModuleName = declFileNoToName[ fileNo - 1 ];
                         
-	    // bperr( "Assuming declared-not-inlined function '%s' to be in module '%s'.\n", dieName, useModuleName.c_str() );
+                     // bperr( "Assuming declared-not-inlined function '%s' to be in module '%s'.\n", dieName, useModuleName.c_str() );
                         
-	  } /* end if we have declaration file listed */
-	  else {
-	    /* This should never happen, but there's not much
-	       we can do if it does. */
-	  }
-	} /* end if isDeclaredNotInlined */
+                  } /* end if we have declaration file listed */
+                  else {
+                     /* This should never happen, but there's not much
+                        we can do if it does. */
+                  }
+               } /* end if isDeclaredNotInlined */
                 
-	if (foundSymbols.size() == 1) {
-	  symsToModules_[foundSymbols[0]] = useModuleName;
-	}
-	else {
-	  for ( unsigned int i = 0; i < foundSymbols.size(); i++ ) {
-	    if ( foundSymbols[ i ]->getLinkage() == Symbol::SL_GLOBAL ) {
-	      symsToModules_[foundSymbols[i]] = useModuleName;
-	    }
-	  }
-	}
-      } /* end if we found the name in the global symbols */
-      else if ( !isAbstractOrigin &&
-		(symbols_.find(dieName) != symbols_.end())) {
-	std::vector< Symbol *> & syms = symbols_[ dieName ];
+               if (foundSymbols.size() == 1) {
+                  symsToModules_[foundSymbols[0]] = useModuleName;
+               }
+               else {
+                  for ( unsigned int i = 0; i < foundSymbols.size(); i++ ) {
+                     if ( foundSymbols[ i ]->getLinkage() == Symbol::SL_GLOBAL ) {
+                        symsToModules_[foundSymbols[i]] = useModuleName;
+                     }
+                  }
+               }
+            } /* end if we found the name in the global symbols */
+            else if ( !isAbstractOrigin &&
+                      (symbols_.find(dieName) != symbols_.end())) {
+               std::vector< Symbol *> & syms = symbols_[ dieName ];
 
-	/* If there's only one, apply regardless. */
+               /* If there's only one, apply regardless. */
 
-	if ( syms.size() == 1 ) {
-	  symsToModules_[syms[0]] = useModuleName;
-	}
-	else {
-	  for ( unsigned int i = 0; i < syms.size(); i++ ) {
-	    if ( syms[ i ]->getLinkage() == Symbol::SL_LOCAL ) {
-	      symsToModules_[syms[i]] = useModuleName;
-	    }
-	  }
-	}
-      } /* end if we think it's a local symbol */
-      dwarf_dealloc( dbg, dieName, DW_DLA_STRING );
-    } 
+               if ( syms.size() == 1 ) {
+                  symsToModules_[syms[0]] = useModuleName;
+               }
+               else {
+                  for ( unsigned int i = 0; i < syms.size(); i++ ) {
+                     if ( syms[ i ]->getLinkage() == Symbol::SL_LOCAL ) {
+                        symsToModules_[syms[i]] = useModuleName;
+                     }
+                  }
+               }
+            } /* end if we think it's a local symbol */
+            dwarf_dealloc( dbg, dieName, DW_DLA_STRING );
+         } 
 
-    break;
+         break;
 
-  case DW_TAG_variable:
-  case DW_TAG_constant: 
-    {
-      /* Is this a declaration? */
+      case DW_TAG_variable:
+      case DW_TAG_constant: 
+         {
+            /* Is this a declaration? */
 
-      Dwarf_Attribute declAttr;
-      status = dwarf_attr( dieEntry, DW_AT_declaration, & declAttr, NULL );
-      assert( status != DW_DLV_ERROR );
+            Dwarf_Attribute declAttr;
+            status = dwarf_attr( dieEntry, DW_AT_declaration, & declAttr, NULL );
+            if (status == DW_DLV_ERROR) goto error;
 
-      if ( status != DW_DLV_OK ) 
-	{ 
-	  break; 
-	}
+            if ( status != DW_DLV_OK ) 
+            { 
+               break; 
+            }
 
-      dwarf_dealloc( dbg, declAttr, DW_DLA_ATTR );
+            dwarf_dealloc( dbg, declAttr, DW_DLA_ATTR );
 
-      /* If a DIE has a specification, the specification has its name
-	 and (optional) linkage name.  */
+            /* If a DIE has a specification, the specification has its name
+               and (optional) linkage name.  */
 
-      Dwarf_Attribute specificationAttribute;
-      status = dwarf_attr(dieEntry, DW_AT_specification, &specificationAttribute, NULL);
-      assert( status != DW_DLV_ERROR );
+            Dwarf_Attribute specificationAttribute;
+            status = dwarf_attr(dieEntry, DW_AT_specification, &specificationAttribute, NULL);
+            if (status == DW_DLV_ERROR) goto error;
 
-      Dwarf_Die nameEntry = dieEntry;
+            Dwarf_Die nameEntry = dieEntry;
 
-      if ( status == DW_DLV_OK ) 
-	{
-	  Dwarf_Off specificationOffset;
-	  status = dwarf_global_formref(specificationAttribute, &specificationOffset, NULL);
-	  assert( status == DW_DLV_OK );
+            if ( status == DW_DLV_OK ) 
+            {
+               Dwarf_Off specificationOffset;
+               status = dwarf_global_formref(specificationAttribute, &specificationOffset, NULL);
+               if (status != DW_DLV_OK) goto error;
 
-	  dwarf_dealloc( dbg, specificationAttribute, DW_DLA_ATTR );
+               dwarf_dealloc( dbg, specificationAttribute, DW_DLA_ATTR );
 
-	  status = dwarf_offdie( dbg, specificationOffset, & nameEntry, NULL );
-	  assert( status == DW_DLV_OK );
+               status = dwarf_offdie( dbg, specificationOffset, & nameEntry, NULL );
+               if (status != DW_DLV_OK) goto error;
 
-	} /* end if the DIE has a specification. */
+            } /* end if the DIE has a specification. */
 
-      /* What's its name? */
+            /* What's its name? */
 
-      char * dieName = NULL;
-      status = dwarf_diename( nameEntry, & dieName, NULL );
-      assert( status != DW_DLV_ERROR );
+            char * dieName = NULL;
+            status = dwarf_diename( nameEntry, & dieName, NULL );
+            if (status == DW_DLV_ERROR) goto error;
 
-      /* Prefer the linkage (symbol table) name. */
+            /* Prefer the linkage (symbol table) name. */
 
-      Dwarf_Attribute linkageNameAttribute;
-      status = dwarf_attr(nameEntry, DW_AT_MIPS_linkage_name, &linkageNameAttribute, NULL);
-      assert( status != DW_DLV_ERROR );
+            Dwarf_Attribute linkageNameAttribute;
+            status = dwarf_attr(nameEntry, DW_AT_MIPS_linkage_name, &linkageNameAttribute, NULL);
+            if (status == DW_DLV_ERROR) goto error;
 
-      if ( status == DW_DLV_OK ) 
-	{
-	  dwarf_dealloc( dbg, dieName, DW_DLA_STRING );
-	  status = dwarf_formstring( linkageNameAttribute, & dieName, NULL );
-	  assert( status == DW_DLV_OK );
-	}
+            if ( status == DW_DLV_OK ) 
+            {
+               dwarf_dealloc( dbg, dieName, DW_DLA_STRING );
+               status = dwarf_formstring( linkageNameAttribute, & dieName, NULL );
+               if (status != DW_DLV_OK) goto error;
+            }
 
-      /* Anonymous variables are useless to us. */
-      if ( dieName == NULL ) 
-	{
-	  break; 
-	}
+            /* Anonymous variables are useless to us. */
+            if ( dieName == NULL ) 
+            {
+               break; 
+            }
 
-      /* Update the module information. */
+            /* Update the module information. */
 
-      string symName = find_symbol(dieName);
+            string symName = find_symbol(dieName);
 
-      if ( symName != "" ) 
-	{
-	  assert(symbols_.find(symName)!=symbols_.end());
+            if ( symName != "" ) 
+            {
+               assert(symbols_.find(symName)!=symbols_.end());
 
-	  /* We're assuming global variables. */
-	  std::vector< Symbol *> & syms = symbols_[ symName ];
+               /* We're assuming global variables. */
+               std::vector< Symbol *> & syms = symbols_[ symName ];
 
-	  /* If there's only one of symbol of that name, set it regardless. */
-	  if ( syms.size() == 1 ) {
-	    symsToModules_[syms[0]] = useModuleName; 
-	  }
-	  else {
-	    for ( unsigned int i = 0; i < syms.size(); i++ ) {
-	      if ( syms[ i ]->getLinkage() == Symbol::SL_GLOBAL ) {
-		symsToModules_[syms[i]] = useModuleName;
-	      }
-	    }
-	  }
-	}
+               /* If there's only one of symbol of that name, set it regardless. */
+               if ( syms.size() == 1 ) {
+                  symsToModules_[syms[0]] = useModuleName; 
+               }
+               else {
+                  for ( unsigned int i = 0; i < syms.size(); i++ ) {
+                     if ( syms[ i ]->getLinkage() == Symbol::SL_GLOBAL ) {
+                        symsToModules_[syms[i]] = useModuleName;
+                     }
+                  }
+               }
+            }
 
-      // /* DEBUG */ fprintf( stderr, "%s[%d]: DWARF-derived module %s for symbols of name '%s'\n", __FILE__, __LINE__, useModuleName.c_str(), symName.c_str() );
+            // /* DEBUG */ fprintf( stderr, "%s[%d]: DWARF-derived module %s for symbols of name '%s'\n", __FILE__, __LINE__, useModuleName.c_str(), symName.c_str() );
 
-      dwarf_dealloc( dbg, dieName, DW_DLA_STRING );
+            dwarf_dealloc( dbg, dieName, DW_DLA_STRING );
 
-    } 
+         } 
 
-    break;
+         break;
 
-  default:
-    /* If it's not a function or a variable, ignore it. */
-    break;
-  } /* end tag switch */
+      default:
+         /* If it's not a function or a variable, ignore it. */
+         break;
+   } /* end tag switch */
 
-  /* Recurse to its child, if any. */
+   /* Recurse to its child, if any. */
 
-  Dwarf_Die childDwarf;
-  status = dwarf_child( dieEntry, & childDwarf, NULL );
-  assert( status != DW_DLV_ERROR );
+   Dwarf_Die childDwarf;
+   status = dwarf_child( dieEntry, & childDwarf, NULL );
+   if (status == DW_DLV_ERROR) goto error;
 
-  if ( status == DW_DLV_OK )  {
-    fixSymbolsInModule(dbg, moduleName, childDwarf); 
-  }
+   if ( status == DW_DLV_OK )  {
+      fixSymbolsInModule(dbg, moduleName, childDwarf); 
+   }
 
-  /* Recurse to its sibling, if any. */
+   /* Recurse to its sibling, if any. */
 
-  Dwarf_Die siblingDwarf;
-  status = dwarf_siblingof( dbg, dieEntry, & siblingDwarf, NULL );
-  assert( status != DW_DLV_ERROR );
+   Dwarf_Die siblingDwarf;
+   status = dwarf_siblingof( dbg, dieEntry, & siblingDwarf, NULL );
+   if (status == DW_DLV_ERROR) goto error;
 
-  if ( status == DW_DLV_OK ) 
-    {
+   if ( status == DW_DLV_OK ) 
+   {
       dwarf_dealloc( dbg, dieEntry, DW_DLA_DIE );
 
       /* Force tail-recursion to avoid stack overflows. */
       dieEntry = siblingDwarf;
       goto start;
-    }
+   }
+   return true;
+ error:
+   return false;
 } /* end fixSymbolsInModule */
 
 
 unsigned Object::fixSymbolsInModuleByRange(IntervalTree<Dwarf_Addr, std::string> &modules) 
 {
-  if (modules.empty()) return 0;
+   if (modules.empty()) return 0;
 
-  unsigned nsyms_altered = 0;
-    
-  for (dyn_hash_map<Offset, std::vector<Symbol *> >::iterator iter = symsByOffset_.begin();
-       iter != symsByOffset_.end();
-       iter++) {
-    Offset off = iter->first;
-    std::vector<Symbol *> &syms = iter->second;       
-
-    std::string modname;
-    if (modules.find((Dwarf_Addr) off, modname)) {
-      for (unsigned i = 0; i < syms.size(); i++) {
-	symsToModules_[syms[i]] = modname;
-	nsyms_altered++;
+   unsigned nsyms_altered = 0;
+   
+   for (dyn_hash_map<Offset, std::vector<Symbol *> >::iterator iter = symsByOffset_.begin();
+        iter != symsByOffset_.end();
+        iter++) {
+      Offset off = iter->first;
+      std::vector<Symbol *> &syms = iter->second;       
+      
+      std::string modname;
+      if (modules.find((Dwarf_Addr) off, modname)) {
+         for (unsigned i = 0; i < syms.size(); i++) {
+            symsToModules_[syms[i]] = modname;
+            nsyms_altered++;
+         }
       }
-    }
-  }
+   }
 
-  return nsyms_altered;
+   return nsyms_altered;
 }
 
 bool Object::fix_global_symbol_modules_static_dwarf()
 {
-  int status;
-  /* Initialize libdwarf. */
-  Dwarf_Debug *dbg_ptr = dwarf.dbg();
-  if (!dbg_ptr)
-    return false;
-  Dwarf_Debug &dbg = *dbg_ptr;
+   int status;
+   /* Initialize libdwarf. */
+   Dwarf_Debug *dbg_ptr = dwarf.dbg();
+   if (!dbg_ptr)
+      return false;
+   Dwarf_Debug &dbg = *dbg_ptr;
 
-  Dwarf_Unsigned hdr;
+   Dwarf_Unsigned hdr;
 
-  IntervalTree<Dwarf_Addr, std::string> module_ranges;
+   IntervalTree<Dwarf_Addr, std::string> module_ranges;
 
-  /* Iterate over the CU headers. */
-  while ( dwarf_next_cu_header( dbg, NULL, NULL, NULL, NULL, & hdr, NULL ) == DW_DLV_OK ) 
-    {
-
+   /* Iterate over the CU headers. */
+   while ( dwarf_next_cu_header( dbg, NULL, NULL, NULL, NULL, & hdr, NULL ) == DW_DLV_OK ) 
+   {
       /* Obtain the module DIE. */
       Dwarf_Die moduleDIE;
       status = dwarf_siblingof( dbg, NULL, & moduleDIE, NULL );
-      assert( status == DW_DLV_OK );
+      if (status != DW_DLV_OK) goto error;
 
       /* Make sure we've got the right one. */
       Dwarf_Half moduleTag;
       status = dwarf_tag( moduleDIE, & moduleTag, NULL);
-      assert( status == DW_DLV_OK );
-      assert( moduleTag == DW_TAG_compile_unit );
+      if (status != DW_DLV_OK) goto error;
+      if (moduleTag != DW_TAG_compile_unit) goto error;
 
       /* Extract the name of this module. */
       char * dwarfModuleName = NULL;
       status = dwarf_diename( moduleDIE, & dwarfModuleName, NULL );
-      assert( status != DW_DLV_ERROR );
+      if (status == DW_DLV_ERROR) goto error;
 
       string moduleName;
 
       if ( status == DW_DLV_NO_ENTRY || dwarfModuleName == NULL ) 
-	{
-	  moduleName = string( "{ANONYMOUS}" );
-	}
+      {
+         moduleName = string( "{ANONYMOUS}" );
+      }
       else 
-	{
-	  moduleName = extract_pathname_tail( string(dwarfModuleName) );
-	}
+      {
+         moduleName = extract_pathname_tail( string(dwarfModuleName) );
+      }
 
       Dwarf_Addr modLowPC = 0;
       Dwarf_Addr modHighPC = (Dwarf_Addr)(-1);
@@ -2639,59 +2641,62 @@ bool Object::fix_global_symbol_modules_static_dwarf()
       Dwarf_Bool hasHighPC;
 
       if ( (status = dwarf_hasattr(moduleDIE, DW_AT_low_pc, &hasLowPC, NULL)) == DW_DLV_OK &&
-	   hasLowPC &&
-	   (status = dwarf_hasattr(moduleDIE, DW_AT_high_pc, &hasHighPC, NULL)) == DW_DLV_OK && 
-	   hasHighPC ) 
-	{
-	  // Get PC boundaries for the module, if present
-	  status = dwarf_lowpc(moduleDIE, &modLowPC, NULL);
-	  assert(status == DW_DLV_OK);
+           hasLowPC &&
+           (status = dwarf_hasattr(moduleDIE, DW_AT_high_pc, &hasHighPC, NULL)) == DW_DLV_OK && 
+           hasHighPC ) 
+      {
+         // Get PC boundaries for the module, if present
+         status = dwarf_lowpc(moduleDIE, &modLowPC, NULL);
+         if (status != DW_DLV_OK) goto error;
 
-	  status = dwarf_highpc(moduleDIE, &modHighPC, NULL);
-	  assert(status == DW_DLV_OK);
+         status = dwarf_highpc(moduleDIE, &modHighPC, NULL);
+         if (status != DW_DLV_OK) goto error;
 
-	  if (modHighPC == 0) 
-	    {
-	      modHighPC = (Dwarf_Addr)(-1);
-	    }
+         if (modHighPC == 0) 
+         {
+            modHighPC = (Dwarf_Addr)(-1);
+         }
 
-	  // Set module names for all symbols that belong to the range
-	  module_ranges.insert(modLowPC, modHighPC, moduleName);
-	}
+         // Set module names for all symbols that belong to the range
+         module_ranges.insert(modLowPC, modHighPC, moduleName);
+      }
       else 
-	{
-	  /* Acquire declFileNoToName. */
-	  status = dwarf_srcfiles( moduleDIE, & declFileNoToName, & declFileNo, NULL );
-	  assert( status != DW_DLV_ERROR );
+      {
+         /* Acquire declFileNoToName. */
+         status = dwarf_srcfiles( moduleDIE, & declFileNoToName, & declFileNo, NULL );
+         if (status == DW_DLV_ERROR) goto error;
 
-	  if ( status == DW_DLV_OK ) 
-	    {
-	      /* Walk the tree. */
+         if ( status == DW_DLV_OK ) 
+         {
+            /* Walk the tree. */
 
-	      //fprintf(stderr, "%s[%d]:  about to fixSymbolsInModule(%s,...)\n",
-	      //     FILE__, __LINE__, moduleName.c_str());
+            //fprintf(stderr, "%s[%d]:  about to fixSymbolsInModule(%s,...)\n",
+            //     FILE__, __LINE__, moduleName.c_str());
 
-	      fixSymbolsInModule(dbg, moduleName, moduleDIE);
+            bool result = fixSymbolsInModule(dbg, moduleName, moduleDIE);
+            if (!result) goto error;
              
-	      /* Deallocate declFileNoToName. */
+            /* Deallocate declFileNoToName. */
              
-	      for ( Dwarf_Signed i = 0; i < declFileNo; i++ ) {                
-		dwarf_dealloc( dbg, declFileNoToName[i], DW_DLA_STRING );
-	      }
+            for ( Dwarf_Signed i = 0; i < declFileNo; i++ ) {                
+               dwarf_dealloc( dbg, declFileNoToName[i], DW_DLA_STRING );
+            }
 
-	      dwarf_dealloc( dbg, declFileNoToName, DW_DLA_LIST );	
+            dwarf_dealloc( dbg, declFileNoToName, DW_DLA_LIST );	
 
-	    } /* end if the srcfile information was available */
-	} /* end if code range information unavailable */
+         } /* end if the srcfile information was available */
+      } /* end if code range information unavailable */
 
       modules_.push_back(std::pair<std::string, Offset>(moduleName, modLowPC));
-    } /* end scan over CU headers. */
+   } /* end scan over CU headers. */
 
-  if (!module_ranges.empty()) {
-    fixSymbolsInModuleByRange(module_ranges);
-  }
+   if (!module_ranges.empty()) {
+      fixSymbolsInModuleByRange(module_ranges);
+   }
 
-  return true;
+   return true;
+ error:
+   return false;
 }
 
 #else

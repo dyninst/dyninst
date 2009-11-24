@@ -599,7 +599,7 @@ class Object : public AObject {
 
 #if defined(USES_DWARF_DEBUG)
   std::string find_symbol(std::string name); 
-  void fixSymbolsInModule(Dwarf_Debug dbg, std::string & moduleName, Dwarf_Die dieEntry);
+  bool fixSymbolsInModule(Dwarf_Debug dbg, std::string & moduleName, Dwarf_Die dieEntry);
   unsigned fixSymbolsInModuleByRange(IntervalTree<Dwarf_Addr, std::string> &module_ranges);
 #endif
 
