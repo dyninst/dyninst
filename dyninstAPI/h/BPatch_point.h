@@ -235,6 +235,9 @@ public:
 
     BPatch_function *,getCalledFunction,());
 
+    API_EXPORT(Int, (),
+    std::string,getCalledFunctionName,());
+
     //  BPatch_point::getAddress
     //  Returns the address of this point in the mutatee
 
