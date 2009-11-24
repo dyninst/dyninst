@@ -41,6 +41,8 @@
 #include "Archive.h"
 #include "Object.h"
 #include "Region.h"
+#include "debug.h"
+#include "Function.h"
 
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
@@ -125,9 +127,11 @@ char *emitElf::linkStatic(Symtab *target,
     addNewRegions(target, globalOffset, lmap);
 
     // Print out the link map for debugging
-    fprintf(stdout, "Global Offset = 0x%lx\n", globalOffset);
-    lmap.printAll(cout, globalOffset);
-    lmap.printBySymtab(cout, dependentObjects, globalOffset);
+    rewrite_printf("Global Offset = 0x%lx\n", globalOffset);
+    if( sym_debug_rewrite ) {
+        lmap.printAll(cout, globalOffset);
+        lmap.printBySymtab(cout, dependentObjects, globalOffset);
+    }
 
 
     if( !applyRelocations(target, dependentObjects, globalOffset, lmap, err, errMsg) ) {
@@ -135,7 +139,7 @@ char *emitElf::linkStatic(Symtab *target,
         return lmap.allocatedData;
     }
 
-    fprintf(stdout, "\n*** Finished static linking\n\n");
+    rewrite_printf("\n*** Finished static linking\n\n");
 
     err = No_Static_Link_Error;
     errMsg = "";
@@ -160,6 +164,10 @@ bool emitElf::resolveSymbols(Symtab *target,
     set<string> excludeSymNames;
     getExcludedSymbolNames(excludeSymNames);
 
+    // Establish list of libraries to search for symbols
+    vector<Archive *> libraries;
+    target->getLinkingResources(libraries);
+
     // Add all object files explicitly referenced by new symbols, these
     // essentially fuel the linking process
     vector<Symtab *> explicitRefs;
@@ -174,17 +182,13 @@ bool emitElf::resolveSymbols(Symtab *target,
         linkedSet.insert(*expObj_it);
     }
 
-    // Establish list of libraries to search for symbols
-    vector<Archive *> libraries;
-    target->getLinkingResources(libraries);
-
     set<Symtab *>::iterator curObjFilePtr = workSet.begin();
     while( curObjFilePtr != workSet.end() ) {
         // Take an object file off the working set
         Symtab *curObjFile = *curObjFilePtr;
         workSet.erase(curObjFile);
 
-        fprintf(stdout, "\n*** Resolving symbols for object: %s\n\n",
+        rewrite_printf("\n*** Resolving symbols for object: %s\n\n",
                 curObjFile->memberName().c_str());
 
         // Build the map of Symbols to relocations
@@ -235,42 +239,38 @@ bool emitElf::resolveSymbols(Symtab *target,
 
                     extSymbol = foundSyms[0];
 
-                    fprintf(stdout, "Found external symbol %s in target with address = 0x%lx\n",
+                    rewrite_printf("Found external symbol %s in target with address = 0x%lx\n",
                             extSymbol->getPrettyName().c_str(), extSymbol->getOffset());
                  }
             }
 
             if( extSymbol == NULL ) {
-                //search loaded libraries and system libraries and add
-                //any new object files as dependent objects
+                /* search loaded libraries and 
+                 * add any new object files as dependent objects */
                 vector<Archive *>::iterator lib_it;
                 Symtab *containingSymtab = NULL;
-                Archive *containingArchive = NULL;
                 for(lib_it = libraries.begin(); lib_it != libraries.end(); ++lib_it) {
                     Symtab *tmpSymtab;
                     if( (*lib_it)->getMemberByGlobalSymbol(tmpSymtab, 
                                 const_cast<string&>(curUndefSym->getMangledName())) ) 
                     {
-                        /** A common approach is to used the symbol that is defined first
-                         *  in the list of libraries (in the order specified to the linker)
+                        /** 
+                         * A common approach is to use the symbol that is defined first
+                         * in the list of libraries (in the order specified to the linker)
                          *
-                         *  I am choosing to mirror that behavior here.
-                        if( containingSymtab != NULL ) {
-                            err = Symbol_Resolution_Failure;
-                            errMsg = "symbol defined in multiple libraries: " +
-                                curUndefSym->getMangledName();
-                            return false;
-                        }
-                        */
-
-                        containingArchive = *lib_it;
+                         * I am choosing to mirror that behavior here.
+                         */
                         containingSymtab = tmpSymtab;
                         break;
                     }else{
-                        // gcc/ld appear to ignore this error and just choose the
-                        // symbol that occurs first in the Archive. This could 
-                        // produce unexpected results so it is better to alert
-                        // the user of this error
+                        /* Regarding duplicate symbols in Archives:
+                         *
+                         * gcc/ld appear to ignore the case where an Archive 
+                         * contains the same symbol in different members and
+                         * chooses the symbol that occurs first in the Archive's
+                         * symbol table. This could produce unexpected results
+                         * so it is better to alert the user of this error
+                         */
                         if( Archive::getLastError() == Duplicate_Symbol ) {
                             err = Symbol_Resolution_Failure;
                             errMsg = Archive::printError(Duplicate_Symbol);
@@ -302,9 +302,9 @@ bool emitElf::resolveSymbols(Symtab *target,
                             linkedSet.insert(containingSymtab);
                         }
 
-                        fprintf(stdout, "Found external symbol %s in module %s(%s)\n",
+                        rewrite_printf("Found external symbol %s in module %s(%s)\n",
                                 extSymbol->getPrettyName().c_str(),
-                                containingArchive->name().c_str(),
+                                containingSymtab->getParentArchive()->name().c_str(),
                                 containingSymtab->memberName().c_str());
                     }else{
                         err = Symbol_Resolution_Failure;
@@ -324,8 +324,6 @@ bool emitElf::resolveSymbols(Symtab *target,
                 return false;
             }
 
-            assert(extSymbol != NULL);
-
             // Store the found symbol with the related relocations
             map<Symbol *, vector<relocationEntry *> >::iterator relMap_it;
             relMap_it = symToRels.find(curUndefSym);
@@ -336,16 +334,12 @@ bool emitElf::resolveSymbols(Symtab *target,
                 {
                     (*rel_it)->addDynSym(extSymbol);
                 }
-            }else{
-                /* This really shouldn't be a warning, some libraries define a reference
-                 * to a symbol and then never use it in order to ensure that the module that
-                 * defines the symbol is linked 
+            }   /* else
                  *
-                fprintf(stderr, 
-                        "WARNING: LINK ERROR: failed to find relocation for undefined symbol '%s'.\n",
-                        curUndefSym->getPrettyName().c_str());
-                */
-            }
+                 * Some libraries define a reference to a symbol and then never
+                 * use it in order to ensure that the module that defines the
+                 * symbol is linked 
+                 */
         }
 
         curObjFilePtr = workSet.begin();
@@ -374,7 +368,7 @@ bool emitElf::createLinkMap(Symtab *target,
         LinkMap &lmap,
         StaticLinkError &err, string &errMsg) 
 {
-    fprintf(stdout, "\n*** Allocating storage for new objects\n\n");
+    rewrite_printf("\n*** Allocating storage for new objects\n\n");
 
     // Create a temporary region for COMMON storage
     Region *commonStorage;
@@ -541,6 +535,11 @@ bool emitElf::createLinkMap(Symtab *target,
     lmap.bssRegionOffset = currentOffset;
     currentOffset = layoutRegions(lmap.bssRegions, lmap.regionAllocs,
             lmap.bssRegionOffset, globalOffset);
+    if( currentOffset == ~0UL ) {
+        err = Storage_Allocation_Failure;
+        errMsg = "assumption failed while creating link map";
+        return false;
+    }
     lmap.bssSize = currentOffset - lmap.bssRegionOffset;
 
     // Allocate code regions 
@@ -549,6 +548,11 @@ bool emitElf::createLinkMap(Symtab *target,
             lmap.codeRegionAlign);
     currentOffset = layoutRegions(lmap.codeRegions, lmap.regionAllocs,
             lmap.codeRegionOffset, globalOffset);
+    if( currentOffset == ~0UL ) {
+        err = Storage_Allocation_Failure;
+        errMsg = "assumption failed while creating link map";
+        return false;
+    }
     lmap.codeSize = currentOffset - lmap.codeRegionOffset;
 
     // Allocate data regions 
@@ -557,6 +561,11 @@ bool emitElf::createLinkMap(Symtab *target,
             lmap.dataRegionAlign);
     currentOffset = layoutRegions(lmap.dataRegions, lmap.regionAllocs, 
             lmap.dataRegionOffset, globalOffset);
+    if( currentOffset == ~0UL ) {
+        err = Storage_Allocation_Failure;
+        errMsg = "assumption failed while creating link map";
+        return false;
+    }
     lmap.dataSize = currentOffset - lmap.dataRegionOffset;
 
     // Allocate space for a GOT Region, if necessary
@@ -621,7 +630,7 @@ bool emitElf::createLinkMap(Symtab *target,
 
         lmap.tlsRegionOffset += computePadding(lmap.tlsRegionOffset + globalOffset,
                 lmap.tlsRegionAlign);
-        currentOffset = allocateTLSImage(globalOffset, dataTLS, bssTLS, lmap);
+        currentOffset = layoutTLSImage(globalOffset, dataTLS, bssTLS, lmap);
 
         if( currentOffset == lmap.tlsRegionOffset ) {
             err = Storage_Allocation_Failure;
@@ -745,7 +754,7 @@ Offset emitElf::layoutRegions(deque<Region *> &regions,
         result = regionAllocs.insert(make_pair(*copyReg_it, make_pair(padding, retOffset)));
 
         // If the map already contains this Region, this is a logic error
-        assert(result.second);
+        if( !result.second ) retOffset = ~0UL;
                        
         retOffset += (*copyReg_it)->getRegionSize();
     }
@@ -845,7 +854,7 @@ bool emitElf::applyRelocations(Symtab *target, vector<Symtab *> &dependentObject
         vector<Region *> allRegions;
         (*depObj_it)->getAllRegions(allRegions);
 
-        fprintf(stdout, "\n*** Computing relocations for object: %s\n\n",
+        rewrite_printf("\n*** Computing relocations for object: %s\n\n",
                 (*depObj_it)->memberName().c_str());
 
         // Relocations are stored with the Region to which they will be applied
@@ -870,10 +879,10 @@ bool emitElf::applyRelocations(Symtab *target, vector<Symtab *> &dependentObject
 
                     char *targetData = lmap.allocatedData;
                     if( !archSpecificRelocation(targetData, *rel_it, dest, 
-                                relOffset, globalOffset, lmap) ) 
+                                relOffset, globalOffset, lmap, errMsg) ) 
                     {
                         err = Relocation_Computation_Failure;
-                        errMsg = "Failed to compute relocation";
+                        errMsg = "Failed to compute relocation: " + errMsg;
                         return false;
                     }
                 }
@@ -881,7 +890,7 @@ bool emitElf::applyRelocations(Symtab *target, vector<Symtab *> &dependentObject
         }
     }
 
-    fprintf(stdout, "\n*** Computing relocations added to target.\n\n");
+    rewrite_printf("\n*** Computing relocations added to target.\n\n");
 
     // Compute relocations added to static target 
     vector<Region *> allRegions;
@@ -898,10 +907,10 @@ bool emitElf::applyRelocations(Symtab *target, vector<Symtab *> &dependentObject
         {
             if( !archSpecificRelocation(regionData, *rel_it,
                         rel_it->rel_addr() - (*reg_it)->getRegionAddr(),
-                        rel_it->rel_addr(), globalOffset, lmap) )
+                        rel_it->rel_addr(), globalOffset, lmap, errMsg) )
             {
                 err = Relocation_Computation_Failure;
-                errMsg = "failed to compute relocation";
+                errMsg = "Failed to compute relocation: " + errMsg;
                 return false;
             }
         }
@@ -921,136 +930,58 @@ string emitElf::printStaticLinkError(StaticLinkError err) {
     }
 }
 
-/** The following functions are all architecture-specific */
+/** The following functions are all somewhat architecture-specific */
 
-/**
- * Computes the relocation value and copies it into the target location
+/* TLS Info
+ *
+ * TLS handling is pseudo-architecture dependent. The implementation of the TLS
+ * functions depend on the implementation of TLS on a specific architecture.
+ *
+ * The following material comes from the "ELF Handling For TLS" white paper.
+ * According to this paper, their are two variants w.r.t. creating a TLS
+ * initialization image.
+ *
+ * ======================
+ *
+ * The first is:
+ *
+ *            beginning of image
+ *            |
+ *            V                              high address
+ * +----+-----+----------+---------+---------+
+ * |    | TCB | image 1  | image 2 | image 3 |
+ * +----+---- +----------+---------+---------+
+ *
+ * where TCB = thread control block, and each image is the
+ * TLS initialization image for a module (in this context an executable or 
+ * shared library).
+ *
+ * ========================
+ *
+ * The second is:
+ * 
+ * beginning of image
+ * | 
+ * V                                        high address
+ * +---------+----------+---------+---------+
+ * | image 3 | image 2  | image 1 |  TCB    |
+ * +---------+----------+---------+---------+
+ *
+ * At least on x86 (TODO for other architectures), an image is:
+ *
+ * +--------+--------+
+ * | DATA   |  BSS   |
+ * +--------+--------+
+ *
+ * ==========================
+ * 
+ * These are the two variants one would see when working with ELF files. So, an
+ * architecture either uses variant 1 or 2.
  */
-bool emitElf::archSpecificRelocation(char *targetData, relocationEntry &rel,
-        Offset dest, Offset relOffset, Offset globalOffset, LinkMap &lmap) 
+
+Offset emitElf::tlsLayoutVariant1(Offset globalOffset, Region *dataTLS, Region *bssTLS,
+        LinkMap &lmap)
 {
-#if defined(arch_x86)
-    // All relocations on x86 are one word32 == Offset
-    // Referring to the SYSV 386 supplement:
-    // S = rel.getDynSym()->getOffset()
-    // A = addend
-    // P = relOffset
-   
-    Offset addend;
-    if( rel.regionType() == Region::RT_REL ) {
-        memcpy(&addend, &targetData[dest], sizeof(Offset));
-    }else if( rel.regionType() == Region::RT_RELA ) {
-        addend = rel.addend();
-    }
-
-    fprintf(stdout, "relocation for %s: S = %lx A = %lx P = %lx\n",
-            rel.name().c_str(), rel.getDynSym()->getOffset(), addend, relOffset);
-
-    Offset relocation = 0;
-    map<Symbol *, Offset>::iterator result;
-    switch(rel.getRelType()) {
-        case R_386_32:
-            relocation = rel.getDynSym()->getOffset() + addend;
-            break;
-        case R_386_PLT32: // this works because the address of the symbol is known at link time
-        case R_386_PC32:
-            relocation = rel.getDynSym()->getOffset() + addend - relOffset;
-            break;
-        case R_386_TLS_LE: // The necessary value is set during storage allocation
-        case R_386_GLOB_DAT:
-        case R_386_JMP_SLOT:
-            relocation = rel.getDynSym()->getOffset();
-            break;
-        case R_386_GOT32:
-            result = lmap.gotSymbols.find(rel.getDynSym());
-            if( result == lmap.gotSymbols.end() ) return false;
-
-            relocation = result->second + addend - relOffset;
-            break;
-        case R_386_GOTOFF:
-            relocation = rel.getDynSym()->getOffset() + addend - (lmap.gotRegionOffset + globalOffset);
-            break;
-        case R_386_GOTPC:
-            relocation = globalOffset + lmap.gotRegionOffset + addend - relOffset;
-            break;
-        case R_386_TLS_IE:
-        case R_386_TLS_GOTIE:
-            result = lmap.gotSymbols.find(rel.getDynSym());
-            if( result == lmap.gotSymbols.end() ) return false;
-
-            relocation = result->second + lmap.gotRegionOffset + globalOffset;
-            break;
-        case R_386_COPY:
-        case R_386_RELATIVE:
-            fprintf(stderr, "WARNING: encountered relocation type (%lu) that is meant for use during dynamic linking",
-                    rel.getRelType());
-            return false;
-        default:
-            fprintf(stderr, "Relocation type %lu currently unimplemented\n",
-                    rel.getRelType());
-            return false;
-    }
-
-    fprintf(stdout, "relocation = 0x%lx @ 0x%lx\n", relocation, relOffset);
-
-    memcpy(&targetData[dest], &relocation, sizeof(Offset));
-
-    return true;
-#else
-    fprintf(stderr, "currently, relocations cannot be calculated on this platform\n");
-    return false;
-#endif
-}
-
-Offset emitElf::allocateTLSImage(Offset globalOffset, Region * dataTLS, Region *bssTLS, LinkMap &lmap) {
-    /*
-     * This is pseudo-architecture dependent. The implementation of this function 
-     * depends on the implementation of TLS on a specific architecture.
-     *
-     * This material comes from the "ELF Handling For TLS" white paper.
-     * According to this paper, their are two variants w.r.t. creating a TLS
-     * initialization image.
-     *
-     * ======================
-     *
-     * The first is:
-     *
-     *            beginning of image
-     *            |
-     *            V                              high address
-     * +----+-----+----------+---------+---------+
-     * |    | TCB | image 1  | image 2 | image 3 |
-     * +----+---- +----------+---------+---------+
-     *
-     * where TCB = thread control block, and each image is the
-     * TLS initialization image for a module (in this context an executable or 
-     * shared library).
-     *
-     * ========================
-     *
-     * The second is:
-     * 
-     * beginning of image
-     * | 
-     * V                                        high address
-     * +---------+----------+---------+---------+
-     * | image 3 | image 2  | image 1 |  TCB    |
-     * +---------+----------+---------+---------+
-     *
-     * At least on x86 (TODO for other architectures), an image is:
-     *
-     * +--------+--------+
-     * | DATA   |  BSS   |
-     * +--------+--------+
-     *
-     * ==========================
-     * 
-     * According to the paper, these are the two variants one would see when working
-     * with ELF files. So, an architecture either implements variant 1 or 2.
-     */
-
-    // Variant 1
-#if defined(arch_x86) 
     // The original init. image needs to remain in the image 1 slot because
     // the TLS data references are relative to that position
     unsigned long tlsBssSize = 0;
@@ -1060,6 +991,7 @@ Offset emitElf::allocateTLSImage(Offset globalOffset, Region * dataTLS, Region *
     // Create the image, note new BSS regions are expanded
     Offset endOffset = layoutRegions(lmap.tlsRegions,
             lmap.regionAllocs, lmap.tlsRegionOffset, globalOffset);
+    if( endOffset == ~0UL ) return lmap.tlsRegionOffset;
     Offset adjustedEnd = endOffset - lmap.tlsRegionOffset;
 
     // This is necessary so the offsets of existing TLS symbols can be updated
@@ -1080,7 +1012,10 @@ Offset emitElf::allocateTLSImage(Offset globalOffset, Region * dataTLS, Region *
 
         // It is a programming error if the region for the symbol
         // was not passed to this function
-        assert(result != lmap.regionAllocs.end());
+        if( result == lmap.regionAllocs.end() ) {
+            endOffset = lmap.tlsRegionOffset;
+            break;
+        }
 
         Offset regionOffset = result->second.second;
         Offset symbolOffset = (*sym_it)->getOffset();
@@ -1089,121 +1024,37 @@ Offset emitElf::allocateTLSImage(Offset globalOffset, Region * dataTLS, Region *
     }
 
     return endOffset;
-#else
-    // Variant 2
-    fprintf(stderr, "Variant 2 of TLS initialization image currently not implemented.\n");
-    return tlsRegionOffset;
-#endif
 }
 
-Offset emitElf::adjustTLSOffset(Offset curOffset, Offset tlsSize) {
-    // Variant 1
+Offset emitElf::tlsLayoutVariant2(Offset, Region *, Region *, LinkMap &)
+{
+    assert(!"Layout of TLS initialization image, Variant 2, currently not implemented.");
+    return 0;
+}
+
+// Note: Variant 2 does not require any modifications, so a separate
+// function is not necessary
+Offset emitElf::tlsAdjustVariant1(Offset curOffset, Offset tlsSize) {
+    // For Variant 1, offsets relative to the TCB need to be negative
     Offset retOffset = curOffset;
-#if defined(arch_x86)
     retOffset -= tlsSize;
-#endif
-    // Variant 2 does not require any modifications
     return retOffset;
 }
 
-char emitElf::getPaddingValue(Region::RegionType rtype) {
-    char retChar = 0;
-    if( rtype == Region::RT_TEXT || rtype == Region::RT_TEXTDATA ) {
-        // This should be the value of a NOP (or equivalent instruction)
-#if defined(arch_x86)
-        const char X86_NOP = 0x90;
-        retChar = X86_NOP;
-#endif
-    }
-
-    return retChar;
-}
-
-inline
-void emitElf::cleanupTLSRegionOffsets(map<Region *, LinkMap::AllocPair> &regionAllocs,
+void emitElf::tlsCleanupVariant1(map<Region *, LinkMap::AllocPair> &regionAllocs,
         Region *, Region *bssTLS) 
 {
-#if defined(arch_x86)
-    // Variant 1 - existing BSS TLS regions are not copied to the new target data
+    // Existing BSS TLS region is not copied to the new target data
     if( bssTLS != NULL ) regionAllocs.erase(bssTLS);
-#else
-    // Variant 2 TODO
-#endif
 }
 
-inline
-void emitElf::getExcludedSymbolNames(set<string> &symNames) {
-#if defined(arch_x86) 
-    /*
-     * It appears that some .o's have a reference to _GLOBAL_OFFSET_TABLE_
-     * This reference is only needed for dynamic linking.
-     */
-    symNames.insert("_GLOBAL_OFFSET_TABLE_");
-#endif
+void emitElf::tlsCleanupVariant2(map<Region *, LinkMap::AllocPair> &,
+        Region *, Region *) 
+{
+    assert(!"Cleanup of TLS Regions from allocation map currently unimplemented");
 }
 
-inline
-bool emitElf::isGOTRelocation(unsigned long relType) {
-#if defined(arch_x86)
-    switch(relType) {
-        case R_386_GOT32:
-        case R_386_TLS_IE:
-        case R_386_TLS_GOTIE:
-            return true;
-            break;
-        default:
-            return false;
-            break;
-    }
-#endif
-    return false;
-}
-
-inline
-Offset emitElf::getGOTSize(LinkMap &lmap) {
-    Offset size = 0;
-#if defined(arch_x86)
-    // According to the ELF abi, entries 0, 1, 2 are reserved in a GOT on x86
-    if( lmap.gotSymbols.size() > 0 ) {
-        assert(sizeof(Elf32_Addr) == sizeof(Offset) && 
-               "Invalid assumption about GOT entry size");
-        size = (lmap.gotSymbols.size()+GOT_RESERVED_SLOTS)*sizeof(Elf32_Addr);
-    }
-#endif
-    return size;
-}
-
-inline
-Offset emitElf::getGOTAlign(LinkMap &) {
-#if defined(arch_x86)
-    return sizeof(Offset);
-#else
-    return 1;
-#endif
-}
-
-bool emitElf::buildGOT(LinkMap &lmap) {
-    char *targetData = lmap.allocatedData;
-#if defined(arch_x86)
-    // For each GOT symbol, allocate an entry and copy the value of the
-    // symbol into the table, additionally store the offset in the GOT
-    // back into the map
-    Offset curOffset = GOT_RESERVED_SLOTS*sizeof(Offset);
-    bzero(&targetData[lmap.gotRegionOffset], GOT_RESERVED_SLOTS*sizeof(Offset));
-    map<Symbol *, Offset>::iterator sym_it;
-    for(sym_it = lmap.gotSymbols.begin(); sym_it != lmap.gotSymbols.end(); ++sym_it) {
-        Offset value = sym_it->first->getOffset();
-        memcpy(&targetData[lmap.gotRegionOffset + curOffset], &value, sizeof(Offset));
-
-        sym_it->second = curOffset;
-
-        curOffset += sizeof(Offset);
-    }
-
-    return true;
-#endif
-    return false;
-}
+/* START LinkMap functions */
 
 ostream & operator<<(ostream &os, LinkMap &lm) {
      lm.printAll(os, 0);
@@ -1294,12 +1145,29 @@ void LinkMap::printBySymtab(ostream &os, vector<Symtab *> &symtabs, Offset globa
     for(symtab_it = symtabs.begin(); symtab_it != symtabs.end(); ++symtab_it) {
         os << "Object: " << (*symtab_it)->memberName() << endl;
 
+        // Print the location of all the Regions
         vector<Region *> regions;
         if( !(*symtab_it)->getAllRegions(regions) ) continue;
 
         vector<Region *>::iterator reg_it;
         for(reg_it = regions.begin(); reg_it != regions.end(); ++reg_it) {
             printRegion(os, *reg_it, globalOffset);
+        }
+
+        os << endl;
+
+        // Print the location of all the Functions
+        vector<Function *> funcs;
+        if( !(*symtab_it)->getAllFunctions(funcs) ) continue;
+
+        vector<Function *>::iterator func_it;
+        for(func_it = funcs.begin(); func_it != funcs.end(); ++func_it) {
+            Symbol *symbol = (*func_it)->getFirstSymbol();
+            os << "\tFunction: " << symbol->getPrettyName()
+               << " Offset: 0x" << hex << symbol->getOffset() << dec
+               << " - 0x" << hex << (symbol->getOffset() + symbol->getSize() - 1) << dec
+               << " Size: 0x" << hex << symbol->getSize() << dec
+               << endl;
         }
 
         os << endl;
@@ -1321,6 +1189,7 @@ void LinkMap::printRegion(ostream &os, Region *region, Offset globalOffset) {
         os << "\tRegion: " << region->getRegionName() 
            << " Padding: 0x" << hex << pair.first << dec
            << " Offset: 0x" << hex << (pair.second + globalOffset) << dec
+           << " - 0x" << hex << (pair.second + globalOffset + region->getRegionSize() - 1) << dec
            << " Size: 0x" << hex << region->getRegionSize() << dec
            << " Alignment: 0x" << hex << region->getMemAlignment() << dec
            << endl;

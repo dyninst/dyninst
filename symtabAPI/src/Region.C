@@ -74,6 +74,7 @@ bool Region::createRegion (Region *&region, Offset diskOff, perm_t perms, Region
 {
     region = new Region(0, name, diskOff, diskSize, memOff, memSize,
             rawDataPtr, perms, regType, isLoadable, isTLS, memAlign);
+    return true;
 }
 
 Region::Region(const Region &reg) :

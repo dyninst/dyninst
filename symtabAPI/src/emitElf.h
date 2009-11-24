@@ -270,23 +270,33 @@ class emitElf{
                           Offset globalOffset,
                           LinkMap &lmap,
                           StaticLinkError &err, 
-                          std::string &errMsg);
+                          string &errMsg);
 
     bool archSpecificRelocation(char *targetData, 
                                 relocationEntry &rel, 
                                 Offset dest, 
                                 Offset relOffset,
                                 Offset globalOffset,
-                                LinkMap &lmap);
+                                LinkMap &lmap,
+                                string &errMsg);
 
     // Functions for dealing with special sections (GOT and TLS)
-    Offset allocateTLSImage(Offset globalOffset, Region *dataTLS, Region *bssTLS, LinkMap &lmap); 
+    Offset layoutTLSImage(Offset globalOffset, Region *dataTLS, Region *bssTLS, LinkMap &lmap);
+    Offset tlsLayoutVariant1(Offset globalOffset, Region *dataTLS, Region *bssTLS, LinkMap &lmap);
+    Offset tlsLayoutVariant2(Offset globalOffset, Region *dataTLS, Region *bssTLS, LinkMap &lmap);
+
     Offset adjustTLSOffset(Offset curOffset, Offset tlsSize);
+    Offset tlsAdjustVariant1(Offset curOffset, Offset tlsSize);
+
     void cleanupTLSRegionOffsets(map<Region *, LinkMap::AllocPair> &regionAllocs,
+            Region *dataTLS, Region *bssTLS);
+    void tlsCleanupVariant1(map<Region *, LinkMap::AllocPair> &regionAllocs,
+            Region *dataTLS, Region *bssTLS);
+    void tlsCleanupVariant2(map<Region *, LinkMap::AllocPair> &regionAllocs,
             Region *dataTLS, Region *bssTLS);
 
     bool isGOTRelocation(unsigned long relType);
-    bool buildGOT(LinkMap &lmap);
+    void buildGOT(LinkMap &lmap);
     Offset getGOTSize(LinkMap &lmap);
     Offset getGOTAlign(LinkMap &lmap);
 
