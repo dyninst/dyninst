@@ -789,8 +789,8 @@ FILE *SerDesBin::init(std::string filename, iomode_t mode, bool /*verbose*/)
 	  {
          //  can't deserialize from a file that does not exist
          char msg[128];
-         sprintf(msg, "%s[%d]:  no cache file exists for %s\n", 
-               FILE__, __LINE__, filename.c_str());
+         sprintf(msg, "%s[%d]:  no cache file exists for %s/%s\n", 
+               FILE__, __LINE__, filename.c_str(), cache_name.c_str());
          SER_ERR(msg);
       }
    }
@@ -902,7 +902,54 @@ bool SerDesBin::getDefaultCacheDir(std::string &path)
 #endif
    }
 
-   path = dot_dyninst_dir + std::string("/") + std::string(DEFAULT_CACHE_DIR);
+   string cpath = dot_dyninst_dir + std::string("/") + std::string(DEFAULT_CACHE_DIR);
+
+   if (0 != stat(cpath.c_str(), &statbuf)) 
+   {
+      if (errno == ENOENT) 
+	  {
+#if defined (os_windows)
+         if (0 != P_mkdir(cpath.c_str(), 0)) 
+		 {
+            fprintf(stderr, "%s[%d]:  failed to make %s\n", FILE__, __LINE__, 
+                  cpath.c_str(), strerror(errno));
+            return false;
+         } 
+#else
+         if (0 != mkdir(cpath.c_str(), S_IRWXU)) 
+		 {
+            fprintf(stderr, "%s[%d]:  failed to make %s: %s\n", FILE__, __LINE__, 
+                  cpath.c_str(), strerror(errno));
+            return false;
+         } 
+#endif
+      }
+      else 
+	  {
+         fprintf(stderr, "%s[%d]:  stat(%s) failed: %s\n", FILE__, __LINE__, 
+               cpath.c_str(), strerror(errno));
+         return false;
+      }
+   }
+   else 
+   {
+#if !defined (os_windows)
+      //  sanity check that its a dir
+      if (!S_ISDIR(statbuf.st_mode)) 
+	  {
+         fprintf(stderr, "%s[%d]:  ERROR:  %s is not a dir\n", FILE__, __LINE__, 
+               cpath.c_str());
+         return false;
+      }
+#else
+      //  windows equiv to S_ISDIR??
+#endif
+   }
+
+   //  Finally qualify path with platform to avoid collisions with cachenames
+   //  when the home directory is shared across multiple machines.
+
+   path = cpath + std::string("/") + std::string(platform_string()); 
 
    if (0 != stat(path.c_str(), &statbuf)) 
    {
@@ -982,9 +1029,13 @@ bool SerDesBin::resolveCachePath(std::string full_file_path, std::string &cache_
          full_file_path.c_str(), short_name.c_str());
 
    // construct cache name from cache path, cache prefix, short name, and size
+   //  and now also platform, to prevent cache name collisions for configurations
+   //  where the users home dir is shared.
+
    char sizestr[16];
    sprintf(sizestr, "%d", (int)statbuf.st_size);
-   cache_name = path + std::string("/") + std::string(CACHE_PREFIX) + short_name 
+   cache_name = path + std::string("/") + std::string(CACHE_PREFIX) 
+	   + short_name 
       + std::string("_") 
       + std::string(sizestr);
 
