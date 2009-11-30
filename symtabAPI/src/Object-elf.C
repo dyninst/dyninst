@@ -5083,6 +5083,8 @@ MappedFile *Object::findMappedFileForDebugInfo() {
 
       dwarvenDebugInfo = true;
       mfForDebugInfo = MappedFile::createMappedFile(debugFileFromBuildID);
+      if (!mfForDebugInfo)
+         return mf;
       return mfForDebugInfo;
     }
   }
@@ -5122,6 +5124,8 @@ MappedFile *Object::findMappedFileForDebugInfo() {
 
     dwarvenDebugInfo = true;
     mfForDebugInfo = MappedFile::createMappedFile(fnames[i]);
+    if (!mfForDebugInfo)
+       return mf;
     return mfForDebugInfo;
   }
 
