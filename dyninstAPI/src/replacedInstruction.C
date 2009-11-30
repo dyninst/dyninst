@@ -42,7 +42,7 @@
 
 // Fork constructor...
 
-replacedInstruction::replacedInstruction(replacedInstruction *parRI,
+replacedInstruction::replacedInstruction(const replacedInstruction *parRI,
                                          multiTramp *cMT,
                                          process *child) :
     relocatedCode(parRI, child),

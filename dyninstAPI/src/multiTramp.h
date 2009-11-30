@@ -355,7 +355,7 @@ class replacedInstruction : public relocatedCode {
     replacedInstruction(replacedInstruction *prev, multiTramp *m);
 
     // Fork constructor
-    replacedInstruction(replacedInstruction *parRI,
+    replacedInstruction(const replacedInstruction *parRI,
                         multiTramp *cMT,
                         process *child);
 
