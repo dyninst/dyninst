@@ -249,104 +249,25 @@ void *trampEnd::getPtrToInstruction(Address) const {
 // more complicated
 bool AddressSpace::replaceFunctionCall(instPoint *point,
                                        const int_function *func) {
-    // Must be a call site
-  if (point->getPointType() != callSite)
-    return false;
+   // Must be a call site
+   if (point->getPointType() != callSite)
+      return false;
 
+   if (!func) {
+      // Remove the function call entirely
+      AstNodePtr nullNode = AstNode::nullNode();
+      return point->replaceCode(nullNode);
+   }
+
+   // To do this we must be able to make a non-state-affecting
+   // function call. Currently it's only implemented on POWER, although
+   // it would be easy to do for x86 as well...
 #if defined(cap_instruction_replacement) 
-    if (func) {
-        pdvector<AstNodePtr> emptyArgs;
-        // To do this we must be able to make a non-state-affecting
-        // function call. Currently it's only implemented on POWER, although
-        // it would be easy to do for x86 as well...
-        AstNodePtr call = AstNode::funcCallNode(const_cast<int_function *>(func), emptyArgs);
-        return point->replaceCode(call);
-    }
-    else {
-        // Remove the function call entirely
-        AstNodePtr nullNode = AstNode::nullNode();
-        return point->replaceCode(nullNode);
-    }
-    
+   pdvector<AstNodePtr> emptyArgs;
+   AstNodePtr call = AstNode::funcCallNode(const_cast<int_function *>(func), emptyArgs);
 #else
-
-  return point->replaceCode(AstNode::funcCallNode(const_cast<int_function *>(func)));
-
-  instPointIter ipIter(point);
-  instPointInstance *ipInst;
-  while ((ipInst = ipIter++)) {  
-      // Multiple replacements. Wheee...
-      Address pointAddr = ipInst->addr();
-
-      codeRange *range = findModByAddr(pointAddr);
-      if (range) {
-            multiTramp *multi = range->is_multitramp();
-          if (multi) {
-                // We pre-create these guys... so check to see if
-              // there's anything there
-              if (!multi->generated()) {
-                  removeMultiTramp(multi);
-              }
-              else {
-                  // TODO: modify the callsite in the multitramp.
-                  assert(0);
-              }
-          }
-          else if (dynamic_cast<functionReplacement *>(range)) {
-              // We overwrote this in a function replacement...
-              continue; 
-          }
-      }
-#if defined(cap_instruction_api)      
-      codeGen gen(point->insn()->size());
-#else //defined(cap_instruction_api)
-      codeGen gen(point->insn().size());
-#endif //defined(cap_instruction_api)
-      gen.setAddrSpace(this);
-      gen.setPoint(point);
-
-      // Uninstrumented
-      // Replace the call
-      if (func == NULL) {	// Replace with NOOPs
-          gen.fillRemaining(codeGen::cgNOP);
-      } else { // Replace with a call to a different function
-          // XXX Right only, call has to be 5 bytes -- sometime, we should make
-          // it work for other calls as well.
-          //assert(point->insn().size() == CALL_REL32_SZ);
-          instruction::generateCall(gen, pointAddr, func->getAddress());
-      }
-      
-      // Before we replace, track the code.
-      // We could be clever with instpoints keeping instructions around, but
-      // it's really not worth it.
-      replacedFunctionCall *newRFC = new replacedFunctionCall();
-      newRFC->callAddr = pointAddr;
-#if defined(cap_instruction_api)
-      newRFC->callSize = point->insn()->size();
-#else //defined(cap_instruction_api)
-      newRFC->callSize = point->insn().size();
-#endif //defined(cap_instruction_api)
-      if (func)
-          newRFC->newTargetAddr = func->getAddress();
-      else
-          newRFC->newTargetAddr = 0;
-
-#if defined(cap_instruction_api)
-      codeGen old(point->insn()->size());
-      old.copy(point->insn()->ptr(), point->insn()->size());
-#else //defined(cap_instruction_api)
-      codeGen old(point->insn().size());
-      old.copy(point->insn().ptr(), point->insn().size());
-#endif //defined(cap_instruction_api)
-      
-      newRFC->oldCall = old;
-      newRFC->newCall = gen;
-      
-      addReplacedCall(newRFC);
-
-      writeTextSpace((void *)pointAddr, gen.used(), gen.start_ptr());
-  }
-  return true;
+   AstNodePtr call = AstNode::funcCallNode(const_cast<int_function *>(func));
 #endif
+   return point->replaceCode(call);
 }
 #endif

@@ -2737,3 +2737,10 @@ replacedInstruction::replacedInstruction(replacedInstruction *prev,
    multiT_(m) 
 {
 }
+
+generatedCodeObject *generatedCodeObject::nextObj()
+{
+   if (fallthrough_)
+      return fallthrough_;
+   return target_;
+}

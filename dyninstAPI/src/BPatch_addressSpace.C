@@ -305,8 +305,19 @@ bool BPatch_addressSpace::replaceFunctionCallInt(BPatch_point &point,
 
    assert(point.point && newFunc.lowlevel_func());
 
+#if defined(cap_binary_rewriter)
+   bool old_recursion_flag = BPatch::bpatch->isTrampRecursive();
+   BPatch::bpatch->setTrampRecursive( true );
+
+   BPatch_funcJumpExpr fjmp(newFunc, true);
+   insertSnippet(fjmp, point, BPatch_lastSnippet);
+   
+   BPatch::bpatch->setTrampRecursive( old_recursion_flag );
+   return true;
+#else
    return point.getAS()->replaceFunctionCall(point.point, 
                                              newFunc.lowlevel_func());
+#endif
 }
 
 /*
@@ -607,7 +618,6 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetWhen(const BPatch_snippet
          points,
          when,
          order);
-
 }
 
 

@@ -771,9 +771,9 @@ instPoint *instPoint::createParsePoint(int_function *func,
 
     instPoint *newIP = func->findInstPByAddr(absAddr);
 	if (newIP) {
-		fprintf(stderr, "WARNING: already have parsed point at addr 0x%lx\n",
-			absAddr);
-			return NULL;
+	  //fprintf(stderr, "WARNING: already have parsed point at addr 0x%lx\n",
+	  //absAddr);
+	  //return NULL;
 	}
     inst_printf("Parsed offset: 0x%x, in func 0x%x, absolute addr 0x%x\n",
                 img_p->offset(),

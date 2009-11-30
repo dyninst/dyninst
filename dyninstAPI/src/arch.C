@@ -226,6 +226,8 @@ void codeGen::invalidate() {
 void codeGen::finalize() {
     assert(buffer_);
     assert(size_);
+
+    applyPatches();
     if (size_ == offset_) return;
     if (offset_ == 0) {
         fprintf(stderr, "Warning: offset is 0 in codeGen::finalize!\n");
@@ -492,6 +494,11 @@ void codeGen::addPatch(void *dest, patchTarget *source,
                        Dyninst::Offset off)
 {
    relocPatch p(dest, source, ptype, this, off, size);
+   patches_.push_back(p);
+}
+
+void codeGen::addPatch(const relocPatch &p)
+{
    patches_.push_back(p);
 }
 

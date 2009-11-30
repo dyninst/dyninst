@@ -93,6 +93,13 @@ typedef dyn_detail::boost::shared_ptr<AstNode> AstNodePtr;
 class AstMiniTrampNode;
 typedef dyn_detail::boost::shared_ptr<AstMiniTrampNode> AstMiniTrampNodePtr;
 
+typedef enum {
+   cfj_unset = 0,
+   cfj_none = 1,
+   cfj_jump = 2,
+   cfj_call = 3
+} cfjRet_t;
+
 class registerSpace;
 
 class regTracker_t {
@@ -179,7 +186,7 @@ class AstNode {
    static AstNodePtr funcCallNode(Address addr, pdvector<AstNodePtr > &args); // For when you absolutely need
    // to jump somewhere.
 
-   static AstNodePtr funcReplacementNode(int_function *func);
+   static AstNodePtr funcReplacementNode(int_function *func, bool emitCall = false);
 
    static AstNodePtr insnNode(BPatch_instruction *insn);
 
@@ -251,7 +258,7 @@ class AstNode {
    virtual AstNodePtr operand() const { return AstNodePtr(); }
 
    virtual bool containsFuncCall() const = 0;
-   virtual bool containsFuncJump() const = 0;
+   virtual cfjRet_t containsFuncJump() const = 0;
    virtual bool usesAppRegister() const = 0;
 
    enum CostStyleType { Min, Avg, Max };
@@ -358,7 +365,7 @@ class AstNullNode : public AstNode {
  public:
     AstNullNode() : AstNode() {};
     virtual bool containsFuncCall() const;
-    virtual bool containsFuncJump() const;
+    virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
 
     bool canBeKept() const { return true; }
@@ -373,7 +380,7 @@ class AstLabelNode : public AstNode {
  public:
     AstLabelNode(std::string &label) : AstNode(), label_(label), generatedAddr_(0) {};
     virtual bool containsFuncCall() const;
-    virtual bool containsFuncJump() const;
+    virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
 
 	bool canBeKept() const { return true; }
@@ -404,7 +411,7 @@ class AstOperatorNode : public AstNode {
 
     virtual void getChildren(pdvector<AstNodePtr> &children);
     virtual bool containsFuncCall() const;
-    virtual bool containsFuncJump() const;
+    virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
 
 
@@ -474,7 +481,7 @@ class AstOperandNode : public AstNode {
     virtual void setVariableAST(codeGen &gen);
 
     virtual bool containsFuncCall() const;
-    virtual bool containsFuncJump() const;
+    virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
 
     virtual void emitVariableStore(opCode op, Register src1, Register src2, codeGen& gen, 
@@ -518,7 +525,7 @@ class AstCallNode : public AstNode {
     virtual void getChildren(pdvector<AstNodePtr> &children);
     virtual void setVariableAST(codeGen &gen);
     virtual bool containsFuncCall() const; 
-    virtual bool containsFuncJump() const;
+    virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
 
 
@@ -549,13 +556,14 @@ class AstCallNode : public AstNode {
 
 class AstReplacementNode : public AstNode {
  public:
-    AstReplacementNode(int_function *rep) :
+    AstReplacementNode(int_function *rep, bool fcall) :
         AstNode(),
-        replacement(rep) {};
+        replacement(rep),
+        genFuncCall_(fcall) {};
 
     virtual bool canBeKept() const;
     virtual bool containsFuncCall() const;
-    virtual bool containsFuncJump() const;
+    virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
 
 
@@ -567,6 +575,7 @@ class AstReplacementNode : public AstNode {
 
     int_function *replacement;
     AstReplacementNode() {};
+    bool genFuncCall_; //Make a call instead of a jump
 };
 
 
@@ -585,7 +594,7 @@ class AstSequenceNode : public AstNode {
     virtual void getChildren(pdvector<AstNodePtr> &children);
     virtual void setVariableAST(codeGen &gen);
     virtual bool containsFuncCall() const;
-    virtual bool containsFuncJump() const;
+    virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
 
 
@@ -617,7 +626,7 @@ class AstVariableNode : public AstNode {
     virtual void setVariableAST(codeGen &gen);
     virtual void getChildren(pdvector<AstNodePtr> &children);
     virtual bool containsFuncCall() const;
-    virtual bool containsFuncJump() const;
+    virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
 
 
@@ -647,7 +656,7 @@ class AstInsnNode : public AstNode {
 
 	bool canBeKept() const { return false; }
    virtual bool containsFuncCall() const;
-   virtual bool containsFuncJump() const;
+   virtual cfjRet_t containsFuncJump() const;
    virtual bool usesAppRegister() const;
 
  protected:
@@ -668,7 +677,7 @@ class AstInsnBranchNode : public AstInsnNode {
 
     virtual bool overrideBranchTarget(AstNodePtr t) { target_ = t; return true; }
     virtual bool containsFuncCall() const;
-    virtual bool containsFuncJump() const;
+    virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
 
     virtual void setVariableAST(codeGen &gen);
@@ -689,7 +698,7 @@ class AstInsnMemoryNode : public AstInsnNode {
     virtual bool overrideLoadAddr(AstNodePtr l) { load_ = l; return true; }
     virtual bool overrideStoreAddr(AstNodePtr s) { store_ = s; return true; }
     virtual bool containsFuncCall() const;
-    virtual bool containsFuncJump() const;
+    virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
 
     virtual void setVariableAST(codeGen &gen);
@@ -725,7 +734,7 @@ class AstMiniTrampNode : public AstNode {
     virtual void setVariableAST(codeGen &gen);
 
     virtual bool containsFuncCall() const;
-    virtual bool containsFuncJump() const;
+    virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
 
     bool canBeKept() const;
@@ -743,7 +752,7 @@ class AstMemoryNode : public AstNode {
     AstMemoryNode(memoryType mem, unsigned which);
 	bool canBeKept() const;
    virtual bool containsFuncCall() const;
-   virtual bool containsFuncJump() const;
+   virtual cfjRet_t containsFuncJump() const;
    virtual bool usesAppRegister() const;
 
  private:
@@ -766,7 +775,7 @@ class AstOriginalAddrNode : public AstNode {
     virtual BPatch_type *checkType() { return getType(); };
     virtual bool canBeKept() const { return true; }
     virtual bool containsFuncCall() const;
-    virtual bool containsFuncJump() const;
+    virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
 
  private:
@@ -785,7 +794,7 @@ class AstActualAddrNode : public AstNode {
     virtual BPatch_type *checkType() { return getType(); };
     virtual bool canBeKept() const { return false; }
     virtual bool containsFuncCall() const;
-    virtual bool containsFuncJump() const;
+    virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
 
  private:
@@ -804,7 +813,7 @@ class AstDynamicTargetNode : public AstNode {
     virtual BPatch_type *checkType() { return getType(); };
     virtual bool canBeKept() const { return false; }
     virtual bool containsFuncCall() const;
-    virtual bool containsFuncJump() const;
+    virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
 
  private:

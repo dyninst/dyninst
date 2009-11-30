@@ -71,7 +71,7 @@ baseTrampInstance::baseTrampInstance(baseTramp *tramp,
     flags_saved_(false),
     saved_fprs_(false),
     saved_orig_addr_(false),
-    hasFuncJump_(false),
+    hasFuncJump_(cfj_unset),
     trampStackHeight_(0)
 {
 }
@@ -332,7 +332,6 @@ bool baseTrampInstance::generateCode(codeGen &gen,
         return true;
     }
 
-
     gen.setPCRelUseCount(0);
     gen.setBTI(this);
     if (baseT->instP()) {
@@ -346,13 +345,14 @@ bool baseTrampInstance::generateCode(codeGen &gen,
        regalloc_printf("[%s:%u] - Beginning baseTramp generate iteration # %d\n",
                        __FILE__, __LINE__, ++count);
        GET_PTR(insn, gen);
-       gen.beginTrackRegDefs();
+       
+       unsigned int num_patches = gen.allPatches().size();
 
+       gen.beginTrackRegDefs();
        gen.rs()->initRealRegSpace();
        bool result = generateCodeInlined(gen, baseInMutatee, unwindRegion);
        if (!result)
           return false;
-
        gen.endTrackRegDefs();
 
        definedRegs = gen.getRegsDefined();
@@ -367,6 +367,9 @@ bool baseTrampInstance::generateCode(codeGen &gen,
        
        markChanged(true);
        SET_PTR(insn, gen);
+       while (gen.allPatches().size() > num_patches) {
+          gen.allPatches().pop_back();
+       }
     }
     gen.setBTI(NULL);
     return true;
@@ -853,22 +856,22 @@ baseTrampInstance *baseTramp::findOrCreateInstance(multiTramp *multi) {
     return newInst;
 }
 
-bool baseTrampInstance::checkForFuncJumps()
+cfjRet_t baseTrampInstance::checkForFuncJumps()
 {
-   if (hasFuncJump_)
-      return true;
+   if (hasFuncJump_ != cfj_unset)
+      return hasFuncJump_;
 
+   hasFuncJump_ = cfj_none;
    miniTramp *cur = baseT->firstMini;
    while (cur) {
       assert(cur->ast_);
-      if (cur->ast_->containsFuncJump()) {
-         hasFuncJump_ = true;
-         return true;         
-      }
+      cfjRet_t tmp = cur->ast_->containsFuncJump();
+      if ((int) tmp > (int) hasFuncJump_)
+         hasFuncJump_ = tmp;
       cur = cur->next;
    }
 
-   return false;
+   return hasFuncJump_;
 }
 
 bool baseTramp::doOptimizations() 
@@ -1193,7 +1196,7 @@ Symbol *baseTrampInstance::createBTSymbol()
   std::string name = name_stream.str();
   
   Region *textsec = NULL;
-  bool foundText = symobj->findRegion(textsec, ".text");
+  symobj->findRegion(textsec, ".text");
 
   Symbol *newsym = new Symbol(name,
 			      Symbol::ST_FUNCTION,
@@ -1208,4 +1211,16 @@ Symbol *baseTrampInstance::createBTSymbol()
   assert(newsym);
   symobj->addSymbol(newsym);
   return newsym;
+}
+
+int baseTrampInstance::funcJumpSlotSize()
+{
+   switch (checkForFuncJumps()) {
+      case cfj_unset: assert(0);
+      case cfj_none: return 0;
+      case cfj_jump: return 1;
+      case cfj_call: return 2;
+   }
+   assert(0);
+   return 0;
 }

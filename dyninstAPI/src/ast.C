@@ -167,9 +167,9 @@ AstNodePtr AstNode::funcCallNode(Address addr, pdvector<AstNodePtr > &args) {
     return AstNodePtr(new AstCallNode(addr, args));
 }
 
-AstNodePtr AstNode::funcReplacementNode(int_function *func) {
+AstNodePtr AstNode::funcReplacementNode(int_function *func, bool emitCall) {
     if (func == NULL) return AstNodePtr();
-    return AstNodePtr(new AstReplacementNode(func));
+    return AstNodePtr(new AstReplacementNode(func, emitCall));
 }
 
 AstNodePtr AstNode::memoryNode(memoryType ma, int which) {
@@ -774,7 +774,8 @@ bool AstReplacementNode::generateCode_phase2(codeGen &gen, bool noCost,
     
     assert(replacement);
     
-    emitFuncJump(funcJumpOp, gen, replacement, gen.addrSpace(),
+    opCode op = genFuncCall_ ? funcCallOp : funcJumpOp;
+    emitFuncJump(op, gen, replacement, gen.addrSpace(),
                  gen.point(), noCost);
     
     decUseCount(gen);
@@ -2731,82 +2732,95 @@ bool AstDynamicTargetNode::containsFuncCall() const
    return false;
 }
 
-bool AstCallNode::containsFuncJump() const {
-   return false;
+static void setCFJRet(cfjRet_t &a, cfjRet_t b) {
+   //cfj_call takes priority over cfj_jump
+   int a_i = (int) a;
+   int b_i = (int) b;
+   if (b_i > a_i)
+      a = b;
 }
 
-bool AstReplacementNode::containsFuncJump() const {
-   return true;
+cfjRet_t AstCallNode::containsFuncJump() const {
+   return cfj_none;
 }
 
-bool AstOperatorNode::containsFuncJump() const {
-	if (loperand && loperand->containsFuncJump()) return true;
-	if (roperand && roperand->containsFuncJump()) return true;
-	if (eoperand && eoperand->containsFuncJump()) return true;
-	return false;
+cfjRet_t AstReplacementNode::containsFuncJump() const {
+   return genFuncCall_ ? cfj_call : cfj_jump;
 }
 
-bool AstOperandNode::containsFuncJump() const {
-	if (operand_ && operand_->containsFuncJump()) return true;
-	return false;
+cfjRet_t AstOperatorNode::containsFuncJump() const {
+   cfjRet_t ret = cfj_none;
+	if (loperand) setCFJRet(ret, loperand->containsFuncJump());
+	if (roperand) setCFJRet(ret, roperand->containsFuncJump());
+	if (eoperand) setCFJRet(ret, eoperand->containsFuncJump());
+	return ret;
 }
 
-bool AstMiniTrampNode::containsFuncJump() const {
-	if (ast_ && ast_->containsFuncJump()) return true;
-	return false;
+cfjRet_t AstOperandNode::containsFuncJump() const {
+   cfjRet_t ret = cfj_none;
+	if (operand_) setCFJRet(ret, operand_->containsFuncJump());
+	return ret;
 }
 
-bool AstSequenceNode::containsFuncJump() const {
+cfjRet_t AstMiniTrampNode::containsFuncJump() const {
+   cfjRet_t ret = cfj_none;
+   if (ast_) setCFJRet(ret, ast_->containsFuncJump());
+	return ret;
+}
+
+cfjRet_t AstSequenceNode::containsFuncJump() const {
+   cfjRet_t ret = cfj_none;
 	for (unsigned i = 0; i < sequence_.size(); i++) {
-		if (sequence_[i]->containsFuncJump()) return true;
+		setCFJRet(ret, sequence_[i]->containsFuncJump());
 	}
-	return false;
+	return ret;
 }
 
-bool AstVariableNode::containsFuncJump() const 
+cfjRet_t AstVariableNode::containsFuncJump() const 
 {
     return ast_wrappers_[index]->containsFuncJump();
 }
 
-bool AstInsnMemoryNode::containsFuncJump() const {
-    if (load_ && load_->containsFuncJump()) return true;
-    if (store_ && store_->containsFuncJump()) return true;
-    return false;
+cfjRet_t AstInsnMemoryNode::containsFuncJump() const {
+   cfjRet_t ret = cfj_none;
+   if (load_) setCFJRet(ret, load_->containsFuncJump());
+   if (store_) setCFJRet(ret, store_->containsFuncJump());
+   return ret;
 }
 
-bool AstNullNode::containsFuncJump() const
+cfjRet_t AstNullNode::containsFuncJump() const
 {
-   return false;
+   return cfj_none;
 }
 
-bool AstLabelNode::containsFuncJump() const
+cfjRet_t AstLabelNode::containsFuncJump() const
 {
-   return false;
+   return cfj_none;
 }
 
-bool AstMemoryNode::containsFuncJump() const
+cfjRet_t AstMemoryNode::containsFuncJump() const
 {
-   return false;
+   return cfj_none;
 }
 
-bool AstInsnNode::containsFuncJump() const
+cfjRet_t AstInsnNode::containsFuncJump() const
 {
-   return false;
+   return cfj_none;
 }
 
-bool AstOriginalAddrNode::containsFuncJump() const
+cfjRet_t AstOriginalAddrNode::containsFuncJump() const
 {
-   return false;
+   return cfj_none;
 }
 
-bool AstActualAddrNode::containsFuncJump() const
+cfjRet_t AstActualAddrNode::containsFuncJump() const
 {
-   return false;
+   return cfj_none;
 }
 
-bool AstDynamicTargetNode::containsFuncJump() const
+cfjRet_t AstDynamicTargetNode::containsFuncJump() const
 {
-   return false;
+   return cfj_none;
 }
 
 bool AstCallNode::usesAppRegister() const {

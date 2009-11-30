@@ -406,10 +406,14 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, baseTrampInstance *inst, codeGen &g
      emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0, -STACK_PAD_CONSTANT, 
       RealRegister(REGNUM_ESP), gen);*/
 
-    bool needsFuncJumpSlot = gen.addrSpace()->edit() && inst->checkForFuncJumps();
-    if (needsFuncJumpSlot) {
+    int funcJumpSlotSize = 0;
+    if (inst) {
+       funcJumpSlotSize = inst->funcJumpSlotSize();
+    }
+    funcJumpSlotSize *= 4;
+    if (funcJumpSlotSize) {
        emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0,
-               -4, RealRegister(REGNUM_ESP), gen);
+               -1*funcJumpSlotSize, RealRegister(REGNUM_ESP), gen);
     }
 
     bool flags_saved = gen.rs()->saveVolatileRegisters(gen);
@@ -597,10 +601,14 @@ bool EmitterIA32::emitBTRestores(baseTramp* bt, baseTrampInstance *bti, codeGen 
     /*if (STACK_PAD_CONSTANT)
       emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0, 
        STACK_PAD_CONSTANT, RealRegister(REGNUM_ESP), gen);*/
-    
-    if (bti && bti->hasFuncJump()) {
+    int funcJumpSlotSize = 0;
+    if (bti) {
+       funcJumpSlotSize = bti->funcJumpSlotSize();
+    }
+    funcJumpSlotSize *= 4;
+    if (funcJumpSlotSize) {
        emitLEA(RealRegister(REGNUM_ESP), RealRegister(Null_Register), 0,
-               4, RealRegister(REGNUM_ESP), gen);
+               funcJumpSlotSize, RealRegister(REGNUM_ESP), gen);
     }
 
     return true;
@@ -646,6 +654,12 @@ static void emitRex(bool is_64, Register* r, Register* x, Register* b, codeGen &
     //  need a "blank" rex, like using %sil or %dil)
     if (rex & 0x0f)
        emitSimpleInsn(rex, gen);
+}
+
+/* build the MOD/RM byte of an instruction */
+static unsigned char makeModRMbyte(unsigned Mod, unsigned Reg, unsigned RM)
+{
+   return static_cast<unsigned char>(((Mod & 0x3) << 6) + ((Reg & 0x7) << 3) + (RM & 0x7));
 }
 
 void EmitterIA32::emitStoreImm(Address addr, int imm, codeGen &gen, bool /*noCost*/) 
@@ -766,7 +780,7 @@ void emitMovRegToReg64(Register dest, Register src, bool is_64, codeGen &gen)
     gen.markRegDefined(dest);
 }
 
-void emitMovPCRMToReg64(Register dest, int offset, int size, codeGen &gen)
+void emitMovPCRMToReg64(Register dest, int offset, int size, codeGen &gen, bool deref_result)
 {
    GET_PTR(insn, gen);
    if (size == 8)
@@ -774,7 +788,10 @@ void emitMovPCRMToReg64(Register dest, int offset, int size, codeGen &gen)
    else {
       *insn++ = static_cast<unsigned char>((dest & 0x8)>>1 | 0x40);    // REX prefix
    }
-   *insn++ = 0x8B;                                                  // MOV instruction
+   if (deref_result)
+      *insn++ = 0x8B;                                                  // MOV instruction
+   else
+      *insn++ = 0x8D;                                                  // LEA instruction
    *insn++ = static_cast<unsigned char>(((dest & 0x7) << 3) | 0x5); // ModRM byte
    *((int *)insn) = offset-7;                                       // offset
    insn += sizeof(int);
@@ -1627,7 +1644,7 @@ bool EmitterAMD64Stat::emitCallInstruction(codeGen &gen, int_function *callee, R
        // create or retrieve jump slot
        dest = getInterModuleFuncAddr(callee, gen);
        
-       emitMovPCRMToReg64(REGNUM_R11, dest-gen.currAddr(), 8, gen);   
+       emitMovPCRMToReg64(REGNUM_R11, dest-gen.currAddr(), 8, gen, true);
        gen.markRegDefined(REGNUM_R11);
        emitMovImmToReg64(REGNUM_RAX, 0, true, gen);
        gen.markRegDefined(REGNUM_RAX);
@@ -1720,11 +1737,46 @@ static void emitPushImm16_64(unsigned short imm, codeGen &gen)
 
 #define MAX_SINT ((signed int) (0x7fffffff))
 #define MIN_SINT ((signed int) (0x80000000))
-void EmitterAMD64::emitFuncJump(int_function *f, instPointType_t /*ptType*/, codeGen &gen)
+void EmitterAMD64::emitFuncJump(int_function *f, instPointType_t /*ptType*/, bool callOp, codeGen &gen)
 {
    assert(gen.bti());
    Address addr = f->getAddress();
    long int disp = addr - (gen.currAddr()+5);
+
+    if (callOp) {
+       //Set up a slot on the stack for the return address
+
+       //Get the current PC.
+       Register dest = gen.rs()->getScratchRegister(gen);
+       GET_PTR(patch_start, gen);
+       emitMovPCRMToReg64(dest, 0, 8, gen, false);
+       
+       //Add the distance from the current PC to the end if this
+       // baseTramp (which isn't known yet).
+       emitRex(true, &dest, NULL, NULL, gen);
+       GET_PTR(insn, gen);
+       *insn++ = 0x81;
+       *insn++ = makeModRMbyte(3, 0, dest);
+       void *patch_loc = (void *) insn;
+       *((int *)insn) = 0x0;
+       insn += sizeof(int);
+       SET_PTR(insn, gen);
+
+       //Store the computed return address into the stack slot.
+       stackItemLocation loc = getHeightOf(stackItem::stacktop, gen);
+       emitMovRegToRM64(loc.reg.reg(), loc.offset-8, dest, 8, gen);
+       gen.rs()->freeRegister(dest);
+
+       //Create a patch to fill in the end of the baseTramp to the above
+       // instruction when it becomes known.
+       generatedCodeObject *nextobj = gen.bti()->nextObj()->nextObj();
+       assert(nextobj);
+       int offset = ((unsigned long) patch_start) - ((unsigned long) gen.start_ptr());
+       relocPatch newPatch(patch_loc, nextobj, relocPatch::pcrel, &gen, 
+                           offset, sizeof(int));
+       gen.addPatch(newPatch);
+    }
+
    if (f->proc() == gen.addrSpace() &&
        gen.startAddr() &&
        disp < (signed long) MAX_SINT &&
@@ -1732,13 +1784,21 @@ void EmitterAMD64::emitFuncJump(int_function *f, instPointType_t /*ptType*/, cod
    {
       //Same module or dynamic instrumentation and address and within
       // jump distance.
+      cfjRet_t tmp = gen.bti()->hasFuncJump();
+      gen.bti()->setHasFuncJump(cfj_jump);
       emitBTRestores(gen.bti()->baseT, gen.bti(), gen);   
+      gen.bti()->setHasFuncJump(tmp);
+
       int disp = addr - (gen.currAddr()+5);
       emitJump(disp, gen);
    }
    else if (dynamic_cast<process *>(gen.addrSpace())) {
       //Dynamic instrumentation, emit an absolute jump (push/ret combo)
+      cfjRet_t tmp = gen.bti()->hasFuncJump();
+      gen.bti()->setHasFuncJump(cfj_jump);
       emitBTRestores(gen.bti()->baseT, gen.bti(), gen);   
+      gen.bti()->setHasFuncJump(tmp);
+
       emitPushImm16_64((unsigned short)(addr >> 48), gen);
       emitPushImm16_64((unsigned short)((addr & 0x0000ffffffffffff) >> 32), gen);
       emitPushImm16_64((unsigned short)((addr & 0x00000000ffffffff) >> 16), gen);
@@ -1754,17 +1814,19 @@ void EmitterAMD64::emitFuncJump(int_function *f, instPointType_t /*ptType*/, cod
       //Get address of target into reg
       Register reg = gen.rs()->getScratchRegister(gen);
       Address dest = getInterModuleFuncAddr(f, gen);
-      emitMovPCRMToReg64(reg, dest-gen.currAddr(), 8, gen);
+      emitMovPCRMToReg64(reg, dest-gen.currAddr(), 8, gen, true);
       
       //Mov reg to stack slot
       stackItemLocation loc = getHeightOf(stackItem::stacktop, gen);
-      emitMovRegToRM64(loc.reg.reg(), loc.offset-8, reg, 8, gen);
+      int top_offset = callOp ? -16 : -8;
+      emitMovRegToRM64(loc.reg.reg(), loc.offset+top_offset, reg, 8, gen);
 
       //Temporarily unset the hasFuncJump so that when we restore the BT
       // the funcJump slot is not cleaned.
-      gen.bti()->setHasFuncJump(false);
+      cfjRet_t tmp = gen.bti()->hasFuncJump();
+      gen.bti()->setHasFuncJump(cfj_none);
       emitBTRestores(gen.bti()->baseT, gen.bti(), gen);
-      gen.bti()->setHasFuncJump(true);
+      gen.bti()->setHasFuncJump(tmp);
       
       //The address should be left on the stack.  Just return now.
       GET_PTR(insn, gen);
@@ -1969,19 +2031,17 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt, baseTrampInstance *inst, codeGen &
     // save flags (PUSHFQ)
     //emitSimpleInsn(0x9C, gen);
    
-   bool needsFuncJumpSlot = gen.addrSpace()->edit() && inst->checkForFuncJumps();
-
-   if (needsFuncJumpSlot && STACK_PAD_CONSTANT)
+   int funcJumpSlotSize = 0;
+   if (inst) {
+      funcJumpSlotSize = inst->funcJumpSlotSize();
+   }
+   funcJumpSlotSize *= 8;
+   int lea_size = funcJumpSlotSize + STACK_PAD_CONSTANT;
+   if (lea_size)
    {
-      emitLEA64(REGNUM_RSP, Null_Register, 0, -1 * (STACK_PAD_CONSTANT + 8), REGNUM_RSP, true, gen);
-   }
-   else if (needsFuncJumpSlot) {
-      emitLEA64(REGNUM_RSP, Null_Register, 0, -8, REGNUM_RSP, true, gen);
-   }
-   else if (STACK_PAD_CONSTANT) {
       // skip past the red zone
       // (we use LEA to avoid overwriting the flags)
-      emitLEA64(REGNUM_RSP, Null_Register, 0, -STACK_PAD_CONSTANT, REGNUM_RSP, true, gen);
+      emitLEA64(REGNUM_RSP, Null_Register, 0, -1*lea_size, REGNUM_RSP, true, gen);
    }
 
    bool flagsSaved = gen.rs()->saveVolatileRegisters(gen);
@@ -2023,7 +2083,7 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt, baseTrampInstance *inst, codeGen &
    if (inst) {
       int height = num_saved * 8;
       height += STACK_PAD_CONSTANT;
-      height += (needsFuncJumpSlot ? 8 : 0);
+      height += funcJumpSlotSize;
       inst->setTrampStackHeight(height);
    }
    if (createFrame) {
@@ -2100,8 +2160,7 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt, baseTrampInstance *inst, codeGen &
       SET_PTR(buffer, gen);
         
       emitPushReg64(REGNUM_RAX, gen);      
-      emitOpRegImm64(0x81, EXTENDED_0x81_SUB, REGNUM_RSP, -8, true, gen);
-      
+      emitOpRegImm64(0x81, EXTENDED_0x81_SUB, REGNUM_RSP, -8, true, gen);      
    }
     
    return true;
@@ -2166,14 +2225,14 @@ bool EmitterAMD64::emitBTRestores(baseTramp* bt, baseTrampInstance *bti, codeGen
    //emitSimpleInsn(0x9D, gen);
    gen.rs()->restoreVolatileRegisters(gen);
 
-   // restore stack pointer (use LEA to not affect flags)
-   if (STACK_PAD_CONSTANT && bti && bti->hasFuncJump())
-      emitLEA64(REGNUM_RSP, Null_Register, 0, STACK_PAD_CONSTANT+8, REGNUM_RSP, true, gen);
-   else if (STACK_PAD_CONSTANT)
-      emitLEA64(REGNUM_RSP, Null_Register, 0, STACK_PAD_CONSTANT, REGNUM_RSP, true, gen);
-   else if (bti && bti->hasFuncJump()) {
-      emitLEA64(REGNUM_RSP, Null_Register, 0, 8, REGNUM_RSP, true, gen);
+   int funcJumpSlotSize = 0;
+   if (bti) {
+      funcJumpSlotSize = bti->funcJumpSlotSize();
    }
+   funcJumpSlotSize *= 8;
+   int lea_size = funcJumpSlotSize + STACK_PAD_CONSTANT;
+   if (lea_size)
+      emitLEA64(REGNUM_RSP, Null_Register, 0, lea_size, REGNUM_RSP, true, gen);
 
    return true;
 }
@@ -2489,18 +2548,18 @@ void EmitterAMD64::emitLoadShared(opCode op, Register dest, const image_variable
     if(is_local || !var)
       emitLEA64(Null_Register, Null_Register, 0, offset - 7, dest, true, gen);
     else
-       emitMovPCRMToReg64(dest, addr - gen.currAddr(), 8, gen);
+       emitMovPCRMToReg64(dest, addr - gen.currAddr(), 8, gen, true);
     
     return;
   }
   
   // load register with address from jump slot
   if(!is_local) {
-     emitMovPCRMToReg64(dest, addr - gen.currAddr(), 8, gen);
+     emitMovPCRMToReg64(dest, addr - gen.currAddr(), 8, gen, true);
      emitLoadIndir(dest, dest, size, gen);
   }
   else {
-     emitMovPCRMToReg64(dest, addr - gen.currAddr(), size, gen);
+     emitMovPCRMToReg64(dest, addr - gen.currAddr(), size, gen, true);
   }
 }
 
@@ -2521,7 +2580,7 @@ void EmitterAMD64::emitStoreShared(Register source, const image_variable *var, b
  
   // load register with address from jump slot
   emitLEA64(Null_Register, Null_Register, 0, addr-gen.currAddr() - 7, dest, true, gen);
-  //emitMovPCRMToReg64(dest, addr-gen.currAddr(), gen);
+  //emitMovPCRMToReg64(dest, addr-gen.currAddr(), gen, true);
   if(!is_local)
      emitLoadIndir(dest, dest, 8, gen);
     
