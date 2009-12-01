@@ -305,7 +305,7 @@ bool BPatch_addressSpace::replaceFunctionCallInt(BPatch_point &point,
 
    assert(point.point && newFunc.lowlevel_func());
 
-#if defined(cap_binary_rewriter)
+#if defined(arch_x86) || defined(arch_x86_64)
    bool old_recursion_flag = BPatch::bpatch->isTrampRecursive();
    BPatch::bpatch->setTrampRecursive( true );
 
