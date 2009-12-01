@@ -1915,13 +1915,13 @@ generatedCodeObject *generatedCFG_t::fork_int(const generatedCodeObject *parObj,
     const trampEnd *te = dynamic_cast<const trampEnd *>(parObj);
     const relocatedInstruction *ri = dynamic_cast<const relocatedInstruction *>(parObj);
     const replacedInstruction *repI = dynamic_cast<const replacedInstruction *>(parObj);
-    assert(!repI);
 
     generatedCodeObject *childObj = NULL;
 
     if (bti) {
         assert(!te);
         assert(!ri);
+        assert(!repI);
         // We need to get the child baseTramp. We duck through an instPoint to
         // do so. We could also register all baseTramps with the process object,
         // but fork is infrequent and so can be expensive.
@@ -1954,16 +1954,23 @@ generatedCodeObject *generatedCFG_t::fork_int(const generatedCodeObject *parObj,
     else if (te) {
         assert(!bti);
         assert(!ri);
+        assert(!repI);
         childObj = new trampEnd(te, childMulti, child);
     } 
     else if (ri) {
         assert(!bti);
         assert(!te);
+        assert(!repI);
         childObj = new relocatedInstruction(ri, childMulti, child);
     }
+    else if (repI) {
+       assert(!bti);
+       assert(!te);
+       assert(!ri);
+       childObj = new replacedInstruction(repI, childMulti, child);
+    }
     else {
-        // TODO: replaced instructions and forking...
-        assert(0);
+       assert(0);
     }
 
     assert(childObj);
@@ -2736,4 +2743,11 @@ replacedInstruction::replacedInstruction(replacedInstruction *prev,
    point_(prev->point_),
    multiT_(m) 
 {
+}
+
+generatedCodeObject *generatedCodeObject::nextObj()
+{
+   if (fallthrough_)
+      return fallthrough_;
+   return target_;
 }

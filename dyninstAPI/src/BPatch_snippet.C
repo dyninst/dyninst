@@ -840,7 +840,13 @@ void BPatch_funcCallExpr::BPatch_funcCallExprInt(
 void BPatch_funcJumpExpr::BPatch_funcJumpExprInt(
     const BPatch_function &func)
 {
-    ast_wrapper = AstNodePtr(AstNode::funcReplacementNode(func.lowlevel_func()));
+   BPatch_funcJumpExprInt(func, false);
+}
+
+void BPatch_funcJumpExpr::BPatch_funcJumpExprInt(
+    const BPatch_function &func, bool genCall)
+{
+    ast_wrapper = AstNodePtr(AstNode::funcReplacementNode(func.lowlevel_func(), genCall));
     assert(BPatch::bpatch != NULL);
     ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
 }

@@ -42,6 +42,7 @@
 #include "instPoint.h"
 #include "arch.h"
 #include "multiTramp.h" // generatedCodeObject
+#include "ast.h"
 
 class multiTramp;
 class miniTramp;
@@ -137,7 +138,7 @@ class baseTrampInstance : public generatedCodeObject {
     // Update the list of miniTrampInstances
     void updateMTInstances();
 
-    bool checkForFuncJumps();
+    cfjRet_t checkForFuncJumps();
 
     // Null out an MTI pointer
     void deleteMTI(miniTrampInstance *mti);
@@ -169,9 +170,8 @@ class baseTrampInstance : public generatedCodeObject {
     bool alreadyDeleted_;
 
     Symbol *createBTSymbol();
-
-    //Information about code generated in this tramp
  private:
+    //Information about code generated in this tramp
     bool hasOptInfo_;
     bool spilledRegisters_;
     bool hasLocalSpace_;
@@ -179,7 +179,7 @@ class baseTrampInstance : public generatedCodeObject {
     bool flags_saved_;
     bool saved_fprs_;
     bool saved_orig_addr_;
-    bool hasFuncJump_;
+    cfjRet_t hasFuncJump_;
     int trampStackHeight_;
  public:
     bitArray definedRegs;
@@ -190,7 +190,7 @@ class baseTrampInstance : public generatedCodeObject {
     bool flagsSaved() { return flags_saved_; }
     bool savedFPRs() { return saved_fprs_; }
     bool savedOrigAddr() { return saved_orig_addr_; }
-    bool hasFuncJump() { return hasFuncJump_; }
+    cfjRet_t hasFuncJump() { return hasFuncJump_; }
     int trampStackHeight() { return trampStackHeight_; }
     void setHasOptInfo(bool v) { hasOptInfo_ = v; } 
     void setSpilledRegisters(bool v) { spilledRegisters_ = v; }
@@ -199,8 +199,9 @@ class baseTrampInstance : public generatedCodeObject {
     void setFlagsSaved(bool v) { flags_saved_ = v; }
     void setSavedFPRs(bool v) { saved_fprs_ = v; }
     void setSavedOrigAddr(bool v) { saved_orig_addr_ = v; }
-    void setHasFuncJump(bool v) { hasFuncJump_ = v; }
+    void setHasFuncJump(cfjRet_t v) { hasFuncJump_ = v; }
     void setTrampStackHeight(int v) { trampStackHeight_ = v; }
+    int funcJumpSlotSize();
 };
 
 class baseTramp {

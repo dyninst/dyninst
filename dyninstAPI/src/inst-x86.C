@@ -1566,9 +1566,7 @@ stackItemLocation getHeightOf(stackItem sitem, codeGen &gen)
             if (reg->spilledState != registerSlot::unspilled)
                offset += addr_width;
          }
-         if (gen.bti()->hasFuncJump()) {
-            offset += addr_width;
-         }
+         offset += (gen.bti()->funcJumpSlotSize() * addr_width);
          if (gen.bti()->hasStackFrame()) {
             //Save of EBP adds addr_width--ebp may have been counted once above
             // and here again if a pusha and frame were created, but that's
@@ -2208,19 +2206,55 @@ void emitFuncJump(opCode op,
                   const instPoint *loc, bool)
 {
    // This must mimic the generateRestores baseTramp method. 
-    assert(op == funcJumpOp);
+    assert(op == funcJumpOp || op == funcCallOp);
 
     instPointType_t ptType = loc->getPointType();
-    gen.codeEmitter()->emitFuncJump(callee, ptType, gen);
+    gen.codeEmitter()->emitFuncJump(callee, ptType, (op == funcCallOp), gen);
 }
 
 #define MAX_SINT ((signed int) (0x7fffffff))
 #define MIN_SINT ((signed int) (0x80000000))
-void EmitterIA32::emitFuncJump(int_function *f, instPointType_t /*ptType*/, codeGen &gen)
+void EmitterIA32::emitFuncJump(int_function *f, instPointType_t /*ptType*/, bool callOp,
+                               codeGen &gen)
 {       
     assert(gen.bti());
     Address addr = f->getAddress();
     signed int disp = addr - (gen.currAddr()+5);
+
+    if (callOp) {
+       //Set up a slot on the stack for the return address
+
+       //Get the current PC.
+       Register dest = gen.rs()->getScratchRegister(gen);
+       RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
+       GET_PTR(patch_start, gen);
+       emitMovPCRMToReg(dest_r, 0, gen, false);
+       
+       //Add the distance from the current PC to the end if this
+       // baseTramp (which isn't known yet).
+       GET_PTR(insn, gen);
+       *insn++ = 0x81;
+       *insn++ = makeModRMbyte(3, 0, dest_r.reg());
+       void *patch_loc = (void *) insn;
+       *((int *)insn) = 0x0;
+       insn += sizeof(int);
+       SET_PTR(insn, gen);
+
+       //Store the computed return address into the stack slot.
+       stackItemLocation loc = getHeightOf(stackItem::stacktop, gen);
+       emitMovRegToRM(loc.reg, loc.offset-4, dest_r, gen);
+       gen.rs()->freeRegister(dest);
+
+       //Create a patch to fill in the end of the baseTramp to the above
+       // instruction when it becomes known.
+       generatedCodeObject *nextobj = gen.bti()->nextObj()->nextObj();
+       assert(nextobj);
+       int offset = ((unsigned long) patch_start) - ((unsigned long) gen.start_ptr());
+       relocPatch newPatch(patch_loc, nextobj, relocPatch::pcrel, &gen, 
+                           offset, sizeof(int));
+       gen.addPatch(newPatch);
+    }
+
     if (f->proc() == gen.addrSpace() &&
         gen.startAddr() &&
        disp < MAX_SINT &&
@@ -2228,13 +2262,21 @@ void EmitterIA32::emitFuncJump(int_function *f, instPointType_t /*ptType*/, code
     {
        //Same module or dynamic instrumentation and address and within
        // jump distance.
-       emitBTRestores(gen.bti()->baseT, gen.bti(), gen);   
+       cfjRet_t tmp = gen.bti()->hasFuncJump();
+       gen.bti()->setHasFuncJump(cfj_jump);
+       emitBTRestores(gen.bti()->baseT, gen.bti(), gen);
+       gen.bti()->setHasFuncJump(tmp);
+
        int disp = addr - (gen.currAddr()+5);
        emitJump(disp, gen);
     }
     else if (dynamic_cast<process *>(gen.addrSpace())) {
        //Dynamic instrumentation, emit an absolute jump (push/ret combo)
-       emitBTRestores(gen.bti()->baseT, gen.bti(), gen);   
+       cfjRet_t tmp = gen.bti()->hasFuncJump();
+       gen.bti()->setHasFuncJump(cfj_jump);
+       emitBTRestores(gen.bti()->baseT, gen.bti(), gen);
+       gen.bti()->setHasFuncJump(tmp);
+
        GET_PTR(insn, gen);
        *insn++ = 0x68; /* push 32 bit immediate */
        *((int *)insn) = addr; /* the immediate */
@@ -2254,13 +2296,15 @@ void EmitterIA32::emitFuncJump(int_function *f, instPointType_t /*ptType*/, code
        emitMovPCRMToReg(realr, dest-gen.currAddr(), gen);
        //Mov realr to stack slot
        stackItemLocation loc = getHeightOf(stackItem::stacktop, gen);
-       emitMovRegToRM(loc.reg, loc.offset-4, realr, gen);
+       int top_offset = callOp ? -8 : -4;
+       emitMovRegToRM(loc.reg, loc.offset+top_offset, realr, gen);
 
        //Temporarily unset the hasFuncJump so that when we restore the BT
        // the funcJump slot is not cleaned.
-       gen.bti()->setHasFuncJump(false);
+       cfjRet_t tmp = gen.bti()->hasFuncJump();
+       gen.bti()->setHasFuncJump(cfj_none);
        emitBTRestores(gen.bti()->baseT, gen.bti(), gen);
-       gen.bti()->setHasFuncJump(true);
+       gen.bti()->setHasFuncJump(tmp);
 
        //The address should be left on the stack.  Just return now.
        GET_PTR(insn, gen);

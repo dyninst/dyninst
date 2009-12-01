@@ -5285,9 +5285,14 @@ bool process::recognize_threads(process *parent)
         }
             
         if (lwp->is_asLWP()) continue;
+        
+        const pdvector<int_function *> *thread_funcs;
+        thread_funcs = runtime_lib->findFuncVectorByMangled("DYNINSTthreadIndex");
+        assert(thread_funcs && thread_funcs->size() == 1);
+        int_function *thread_func = (*thread_funcs)[0];
 
         pdvector<AstNodePtr> ast_args;
-        AstNodePtr ast = AstNode::funcCallNode("DYNINSTthreadIndex", ast_args);
+        AstNodePtr ast = AstNode::funcCallNode(thread_func, ast_args);
 
         done_reg_bundle_t *bundle = (done_reg_bundle_t*) 
            malloc(sizeof(done_reg_bundle_t));

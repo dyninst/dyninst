@@ -261,6 +261,11 @@ BPatch_function *BPatch_point::getCalledFunctionInt()
    return addSpace->findOrCreateBPFunc(_func, NULL);
 }
 
+std::string BPatch_point::getCalledFunctionNameInt()
+{
+  return point->getCalleeName();
+}
+
 void BPatch_point::attachMemAcc(BPatch_memoryAccess *newMemAcc) {
     if (memacc) {
         // Change if we ever want to override these...

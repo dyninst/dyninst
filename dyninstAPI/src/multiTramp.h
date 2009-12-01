@@ -204,7 +204,9 @@ class generatedCodeObject : public codeRange {
     generatedCodeObject *previous_;
     generatedCodeObject *fallthrough_;
     generatedCodeObject *target_;
-  
+
+    generatedCodeObject *nextObj(); //Gives priority to fallthrough
+
     // And assignment methods. We do this so we can assign
     // a node n to itself; for example, a shared baseTramp. 
     // In this case, the assignment disappears.
@@ -353,7 +355,7 @@ class replacedInstruction : public relocatedCode {
     replacedInstruction(replacedInstruction *prev, multiTramp *m);
 
     // Fork constructor
-    replacedInstruction(replacedInstruction *parRI,
+    replacedInstruction(const replacedInstruction *parRI,
                         multiTramp *cMT,
                         process *child);
 

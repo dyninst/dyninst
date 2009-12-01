@@ -75,6 +75,7 @@ typedef enum {
    loadStateOp,  // And the corresponding load
    updateCostOp,
    funcJumpOp,        // Jump to function without linkage
+   funcCallOp,        // Call to function with linkage
    branchOp,
    ifMCOp,
    breakOp,

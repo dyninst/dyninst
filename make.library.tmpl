@@ -48,7 +48,7 @@ ifndef STATIC_LIBRARY
 $(TARGET): $(OBJS) $(EXTRA_LIBS)
 	@$(RM) $(TARGET)
 	@$(MAKE) $(VOUCHER)
-	$(LD) $(LDFLAGS) -o $(TARGET) $(VOUCHER).o $(OBJS) $(LIBS)
+	$(LD) $(LIBDIR) $(LDFLAGS) -o $(TARGET) $(VOUCHER).o $(OBJS) $(LIBS)
 else # build a static lib
 $(TARGET): $(OBJS) $(EXTRA_LIBS)
 	@$(RM) $(TARGET)
