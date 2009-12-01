@@ -32,6 +32,7 @@
 #include "common/h/ntHeaders.h"
 #endif
 #include <stdio.h>
+#include <stdlib.h>
 #include <string>
 #include "dynutil/h/util.h"
 
@@ -182,4 +183,44 @@ bool wildcardEquiv(const std::string &us, const std::string &them, bool checkCas
 }
 
 
+const char *platform_string()
+{
+	const char *plat_str = getenv("PLATFORM");
+	if (plat_str)
+		return plat_str;
+
+#if defined (arch_x86)
+#if defined (os_linux)
+	return "i386-unknown-linux2.4";
+#elif defined (os_windows)
+	return "i386-unknown-nt4.0";
+#endif
+#elif defined (arch_x86_64)
+#if defined (os_linux)
+	return "x86_64-unknown-linux2.4";
+#elif defined (os_windows)
+	return "x86_64-unknown-nt4.0";
+#endif
+#elif defined (arch_power)
+#if defined (os_aix)
+	return "rs6000-ibm-aix5.1";
+#elif defined (os_linux)
+#if defined (arch_64bit)
+	return "ppc64_linux";
+#else
+	return "ppc32_linux";
+#endif
+#endif
+#elif defined (arch_ia64)
+#if defined (os_linux)
+	return "ia64-unknown-linux2.4";
+#endif
+#elif defined (arch_sparc)
+#if defined (os_solaris)
+	return "sparc-sun-solaris2.9";
+#endif
+#endif
+
+	return "bad_platform";
+}
 } // namespace Dyninst

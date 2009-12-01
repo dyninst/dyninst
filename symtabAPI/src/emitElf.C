@@ -86,7 +86,7 @@ static char *deref_link(const char *path)
 #else
 static char *deref_link(const char *path)
 {
-   return path;
+   return const_cast<char *>(path);
 }
 #endif
 
