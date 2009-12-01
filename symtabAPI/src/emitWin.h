@@ -71,3 +71,4 @@ class emitWin{
 } // namespace SymtabAPI
 } // namespace Dyninst
 
+#endif
