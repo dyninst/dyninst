@@ -2152,7 +2152,7 @@ mutator('test_lookup_func', ['test_lookup_func.C']).
 test_runmode('test_lookup_func', 'createProcess').
 test_start_state('test_lookup_func', 'stopped').
 tests_module('test_lookup_func', 'symtab').
-test_serializable('test_lookup_func').
+% test_serializable('test_lookup_func').
 
 test('test_lookup_var', 'test_lookup_var', 'symtab_group_test').
 test_description('test_lookup_var', 'Lookup a single variable with SymtabAPI').
@@ -2162,7 +2162,7 @@ mutator('test_lookup_var', ['test_lookup_var.C']).
 test_runmode('test_lookup_var', 'createProcess').
 test_start_state('test_lookup_var', 'stopped').
 tests_module('test_lookup_var', 'symtab').
-test_serializable('test_lookup_var').
+% test_serializable('test_lookup_var').
 
 test('test_line_info', 'test_line_info', 'symtab_group_test').
 test_description('test_line_info', 'SymtabAPI Line Information').
@@ -2172,7 +2172,7 @@ mutator('test_line_info', ['test_line_info.C']).
 test_runmode('test_line_info', 'createProcess').
 test_start_state('test_line_info', 'stopped').
 tests_module('test_line_info', 'symtab').
-test_serializable('test_line_info').
+% test_serializable('test_line_info').
 
 test('test_module', 'test_module', 'symtab_group_test').
 test_description('test_module', 'SymtabAPI Module detection & management').
@@ -2182,7 +2182,7 @@ mutator('test_module', ['test_module.C']).
 test_runmode('test_module', 'createProcess').
 test_start_state('test_module', 'stopped').
 tests_module('test_module', 'symtab').
-test_serializable('test_module').
+% test_serializable('test_module').
 
 test('test_relocations', 'test_relocations', 'symtab_group_test').
 test_description('test_relocations', 'SymtabAPI relocation table parsing').
@@ -2195,7 +2195,7 @@ test_runmode('test_relocations', 'createProcess').
 test_start_state('test_relocations', 'stopped').
 tests_module('test_relocations', 'symtab').
 mutatee_requires_libs('symtab_group_test', ['testA']).
-test_serializable('test_relocations').
+% test_serializable('test_relocations').
 
 test('test_type_info', 'test_type_info', 'symtab_group_test').
 test_description('test_type_info', 'SymtabAPI Type Information').
@@ -2205,7 +2205,7 @@ mutator('test_type_info', ['test_type_info.C']).
 test_runmode('test_type_info', 'createProcess').
 test_start_state('test_type_info', 'stopped').
 tests_module('test_type_info', 'symtab').
-test_serializable('test_type_info').
+% test_serializable('test_type_info').
 
 test('test_symtab_ser_funcs', 'test_symtab_ser_funcs', 'symtab_group_test').
 test_description('test_symtab_ser_funcs', 'Base SymtabAPI seialization function sanity checks').
@@ -2240,7 +2240,7 @@ test_description('test_exception', 'SymtabAPI C++ Exception detection and sanity
 groupable_test('test_exception').
 mutator('test_exception', ['test_exception.C']).
 test_runmode('test_exception', 'createProcess').
-test_serializable('test_exception').
+% test_serializable('test_exception').
 test_start_state('test_exception', 'stopped').
 tests_module('test_exception', 'symtab').
 test_platform('test_exception', 'i386-unknown-linux2.4').
@@ -2907,7 +2907,7 @@ mutatee_requires_libs(Mutatee, []) :-
 runmode('createProcess').
 runmode('useAttach').
 runmode('binary').
-runmode('deserialize').
+% runmode('deserialize').
 
 % test_runmode/2
 % test_runmode(?Test, ?Runmode)
@@ -2918,7 +2918,7 @@ test_runmode(Test, 'createProcess') :- test_runmode(Test, 'dynamic').
 test_runmode(Test, 'binary') :- test_runmode(Test, 'staticdynamic').
 test_runmode(Test, 'useAttach') :- test_runmode(Test, 'staticdynamic').
 test_runmode(Test, 'createProcess') :- test_runmode(Test, 'staticdynamic').
-test_runmode(Test, 'deserialize') :- test_serializable(Test).
+% test_runmode(Test, 'deserialize') :- test_serializable(Test).
 
 % runmode_platform/2
 % runmode_platform(?Platform, ?Runmode)
@@ -2928,7 +2928,7 @@ runmode_platform(P, 'createProcess') :- platform(_, _, _, P).
 runmode_platform(P, 'useAttach') :- platform(_, _, _, P).
 runmode_platform(P, 'binary') :- platform('i386', 'linux', _, P).
 runmode_platform(P, 'binary') :- platform('x86_64', 'linux', _, P).
-runmode_platform(P, 'deserialize') :- platform(_, _, _, P).
+% runmode_platform(P, 'deserialize') :- platform(_, _, _, P).
 
 % mutatee_peers/2
 mutatee_peers(M, P) :-
