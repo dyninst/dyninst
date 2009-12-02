@@ -1544,6 +1544,10 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
                                             unused,
                                             reg)) assert(0);
    }
+   // RAX = number of FP regs used by varargs on AMD64 (also specified as caller-saved).
+   //Clobber it to 0.
+   emitMovImmToReg64(REGNUM_RAX, 0, true, gen);
+   gen.markRegDefined(REGNUM_RAX);
 
    emitCallInstruction(gen, callee, REG_NULL);
 
@@ -1609,7 +1613,6 @@ bool EmitterAMD64Dyn::emitCallInstruction(codeGen &gen, int_function *callee, Re
       }
    }
        
-    emitMovImmToReg64(REGNUM_RAX, 0, true, gen);
     Register ptr = gen.rs()->allocateRegister(gen, false);
     gen.markRegDefined(ptr);
     Register effective = ptr;
@@ -1644,20 +1647,19 @@ bool EmitterAMD64Stat::emitCallInstruction(codeGen &gen, int_function *callee, R
        // create or retrieve jump slot
        dest = getInterModuleFuncAddr(callee, gen);
        
-       emitMovPCRMToReg64(REGNUM_R11, dest-gen.currAddr(), 8, gen, true);
-       gen.markRegDefined(REGNUM_R11);
-       emitMovImmToReg64(REGNUM_RAX, 0, true, gen);
-       gen.markRegDefined(REGNUM_RAX);
+       Register ptr = gen.rs()->allocateRegister(gen, false);
+       gen.markRegDefined(ptr);
+       Register effective = ptr;
+       emitMovPCRMToReg64(effective, dest-gen.currAddr(), 8, gen, true);
        
-       // emit call
-       Register temp_r11 = REGNUM_R11;
-       
-       emitRex(false, NULL, NULL, &temp_r11, gen);
-       
+       if(effective >= REGNUM_R8) {
+           emitRex(false, NULL, NULL, &effective, gen);
+       }       
        GET_PTR(insn, gen);
        *insn++ = 0xFF;
-       *insn++ = static_cast<unsigned char>(0xD0 | REGNUM_RBX);
+       *insn++ = static_cast<unsigned char>(0xD0 | effective);
        SET_PTR(insn, gen);
+       gen.rs()->freeRegister(ptr);
     } else {
        dest = callee->getAddress();
        signed long disp = dest - (gen.currAddr() + 5);
