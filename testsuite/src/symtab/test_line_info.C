@@ -165,6 +165,8 @@ test_results_t test_line_info_Mutator::basic_verification()
 test_results_t test_line_info_Mutator::executeTest()
 {
 
+	if (useAttach == DESERIALIZE)
+		return SKIPPED;
 #if defined (os_solaris_test)
 	//  It appears that the sun compilers do not implement the
 	//  #line directive properly.  This would merit more investigation

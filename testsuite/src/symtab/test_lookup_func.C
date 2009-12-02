@@ -53,6 +53,8 @@ extern "C" DLLEXPORT TestMutator* test_lookup_func_factory()
 
 test_results_t test_lookup_func_Mutator::executeTest()
 {
+	if (useAttach == DESERIALIZE)
+		return SKIPPED;
    std::vector<Function *> funcs;
    bool result = symtab->findFunctionsByName(funcs, std::string("lookup_func"));
 

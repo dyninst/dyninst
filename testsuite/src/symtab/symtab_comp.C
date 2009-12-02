@@ -59,6 +59,9 @@ test_results_t SymtabComponent::group_setup(RunGroup *group, ParameterDict &para
 	//mutatee_p.setString(group->mutatee);
 	compiler_p.setString(group->compiler);
 #if defined (cap_serialization_test)
+	if (group->useAttach == DESERIALIZE)
+		return SKIPPED;
+
 	const char *ser_env = getenv(SERIALIZE_CONTROL_ENV_VAR);
 	//  allow user to explicitly disable serialization in environment
 	//  check this before we modify any environment vars
