@@ -1050,6 +1050,8 @@ test_results_t test_type_info_Mutator::verify_basic_type_lists()
 test_results_t test_type_info_Mutator::executeTest()
 {
 
+	if (useAttach == DESERIALIZE)
+		return SKIPPED;
 #if defined (os_linux_test) && defined (arch_x86_test)
 	if ((useAttach == DESERIALIZE) && (compiler == std::string("g++")))
 		return SKIPPED;

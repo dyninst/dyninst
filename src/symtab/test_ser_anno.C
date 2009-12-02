@@ -753,6 +753,7 @@ void serialize_test3(A &annotatee, C &container, I item) THROW_SPEC(LocErr)
 }
 test_results_t test_ser_anno_Mutator::executeTest()
 {
+	return SKIPPED;
 
 	//  set environment variable enabling serialization
 	errno = 0;
