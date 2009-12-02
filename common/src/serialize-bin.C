@@ -791,6 +791,7 @@ FILE *SerDesBin::init(std::string filename, iomode_t mode, bool /*verbose*/)
          char msg[128];
          sprintf(msg, "%s[%d]:  no cache file exists for %s/%s\n", 
                FILE__, __LINE__, filename.c_str(), cache_name.c_str());
+		 fprintf(stderr, "%s\n", msg);
          SER_ERR(msg);
       }
    }
@@ -807,6 +808,7 @@ FILE *SerDesBin::init(std::string filename, iomode_t mode, bool /*verbose*/)
             cache_name.c_str(), (mode == sd_serialize) ? "w+" : "r", strerror(errno));
       sprintf(msg, "fopen(%s, %s): %s", cache_name.c_str(), 
             (mode == sd_serialize) ? "w+" : "r", strerror(errno));
+	  fprintf(stderr, "%s\n", msg);
       SER_ERR(msg);
    }
 
@@ -1097,6 +1099,7 @@ void SerDesBin::readHeaderAndVerify(std::string full_file_path, std::string cach
          char msg[128];
          sprintf(msg, "%s[%d]:  failed to open file %s: %s\n", 
                FILE__, __LINE__, full_file_path.c_str(), strerror(errno));
+		 fprintf(stderr, "%s\n", msg);
          SER_ERR(msg);
       }
    }
