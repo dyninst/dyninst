@@ -515,17 +515,8 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
 	    if (!symObj->hasReldyn() && symObj->hasReladyn()) {
                newSec->addRelocationEntry(to, newSymbol, relocationEntry::dynrel, Region::RT_RELA);
             } else {
-               if (mobj->isSharedLib()) {
-                  //inst_printf("  ::: shared lib jump slot - 0x%lx [base=0x%lx]\n", 
-                  //to - obj->imageOffset(), obj->imageOffset());
-                  newSec->addRelocationEntry(
-                                             to - mobj->imageOffset(), newSymbol, relocationEntry::dynrel);
-               }
-               else {
-                  //inst_printf("  ::: regular jump slot - 0x%lx\n", to);
-                  newSec->addRelocationEntry(to, newSymbol, relocationEntry::dynrel);
-               }
-            }
+               newSec->addRelocationEntry(to, newSymbol, relocationEntry::dynrel);
+          }
          }
       }
 
@@ -910,7 +901,13 @@ bool BinaryEdit::needsPIC()
 {
    Symtab *symtab = getMappedObject()->parse_img()->getObject();
    assert(symtab);
-
+   if(getMappedObject()->fileName().find("lib") == 0)
+   {
+       if(getMappedObject()->fileName().find(".so") != -1)
+       {
+           return true;
+       }
+   }
    //If there is a fixed load address, then we can calculate 
    // absolute addresses.
    return (symtab->getLoadAddress() == 0);  
