@@ -55,6 +55,8 @@ extern "C" DLLEXPORT TestMutator* test_exception_factory()
 
 test_results_t test_exception_Mutator::executeTest()
 {
+	if (useAttach == DESERIALIZE)
+		return SKIPPED;
 #if defined (os_windows_test)
 	return SKIPPED;
 #endif
