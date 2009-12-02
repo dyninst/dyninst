@@ -80,12 +80,12 @@ namespace Dyninst
       INSTRUCTION_EXPORT InstructionDecoder(const InstructionDecoder& o);
       /// Decode the current instruction in this %InstructionDecoder object's buffer, interpreting it as 
       /// machine language of the type understood by this %InstructionDecoder.
-      /// If the buffer does not contain a valid instruction stream, an invalid %Instruction object
+      /// If the buffer does not contain a valid instruction stream, a null %Instruction pointer
       /// will be returned.  The %Instruction's \c size field will contain the size of the instruction decoded.
       INSTRUCTION_EXPORT Instruction::Ptr decode();
       /// Decode the instruction at \c buffer, interpreting it as machine language of the type
       /// understood by this %InstructionDecoder.  If the buffer does not contain a valid instruction stream, 
-      /// an invalid %Instruction object will be returned.  The %Instruction's \c size field will contain 
+      /// a null %Instruction pointer will be returned.  The %Instruction's \c size field will contain
       /// the size of the instruction decoded.
       INSTRUCTION_EXPORT Instruction::Ptr decode(const unsigned char* buffer);
       

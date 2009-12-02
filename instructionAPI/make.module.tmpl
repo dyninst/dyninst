@@ -7,7 +7,8 @@
 #
 
 SUITE_NAME	= Dyninst
-RELEASE_NUM	= 5.2
+RELEASE_NUM	= 6.1
+
 #BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
 
 
@@ -71,11 +72,13 @@ PUBLIC_H =      BinaryFunction.h \
 # All that, and we finally get a target...
 all: $(TARGET) $(EXTRA_LIBS)
 
-docs:
+
+
+docs: $(SRCS)
 	cd ..; doxygen instructionAPI.conf
 	cd $(DOCDIR)/latex; ./manual-preproc.pl *.tex; $(MAKE) clean
 	$(MAKE) -C $(DOCDIR)/latex
-	cp $(DOCDIR)/latex/refman.pdf ../instructionProgGuide.v10.pdf
+	cp $(DOCDIR)/latex/refman.pdf ../instructionProgGuide.v11.pdf
 
 
 

@@ -89,7 +89,7 @@ namespace Dyninst
 
       /// Utility function to hide aliasing complexity on platforms (IA-32) that allow addressing part 
       /// or all of a register
-      /// Note: not const because it may return *this...
+      // Note: not const because it may return *this...
       static RegisterAST::Ptr promote(const InstructionAST::Ptr reg);
       static RegisterAST::Ptr promote(const RegisterAST* reg);
       
