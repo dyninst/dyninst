@@ -112,9 +112,13 @@ namespace Dyninst
       /// to assembly mnemonics.
       INSTRUCTION_EXPORT entryID getID() const;
 
+      /// Returns true if the expression represented by \c candidate is read implicitly.
       INSTRUCTION_EXPORT bool isRead(Expression::Ptr candidate) const;
+      /// Returns true if the expression represented by \c candidate is written implicitly.
       INSTRUCTION_EXPORT bool isWritten(Expression::Ptr candidate) const;
+      /// Returns the set of memory locations implicitly read.
       INSTRUCTION_EXPORT const VCSet& getImplicitMemReads() const;
+      /// Returns the set of memory locations implicitly written.
       INSTRUCTION_EXPORT const VCSet& getImplicitMemWrites() const;
 
     private:
