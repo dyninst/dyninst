@@ -783,9 +783,9 @@ void emitElf::createNewPhdrRegion(dyn_hash_map<std::string, unsigned> &newNameIn
 {
    assert(!movePHdrsFirst);
 
-   unsigned phdr_size = newEhdr->e_phnum*newEhdr->e_phentsize;
+   unsigned phdr_size = oldEhdr->e_phnum*oldEhdr->e_phentsize;
    if (createNewPhdr)
-      phdr_size += newEhdr->e_phentsize;
+      phdr_size += oldEhdr->e_phentsize;
 
    unsigned align = 0;
    if (currEndOffset % 8)
@@ -828,6 +828,7 @@ void emitElf::fixPhdrs(unsigned &extraAlignSize)
   Elf32_Phdr *old = oldPhdr;
 
   newEhdr->e_phnum = oldEhdr->e_phnum;
+  newEhdr->e_phentsize = oldEhdr->e_phentsize;
   if(createNewPhdr) {
      newEhdr->e_phnum++;
   }
