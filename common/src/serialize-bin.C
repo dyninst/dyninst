@@ -421,8 +421,8 @@ SerFile::SerFile(std::string fname, iomode_t mode, bool verbose) :
 
 	if (!resolve_file_path(fname.c_str(), file_path)) 
 	{
-		char msg[128];
-		sprintf(msg, "failed to resolve path for '%s'\n", fname.c_str());
+		char msg[1024];
+		snprintf(msg, 1024, "failed to resolve path for '%s'\n", fname.c_str());
 		SER_ERR(msg);
 	}
 
@@ -788,8 +788,8 @@ FILE *SerDesBin::init(std::string filename, iomode_t mode, bool /*verbose*/)
       if (mode == sd_deserialize) 
 	  {
          //  can't deserialize from a file that does not exist
-         char msg[128];
-         sprintf(msg, "%s[%d]:  no cache file exists for %s/%s\n", 
+         char msg[1024];
+         snprintf(msg, 1024, "%s[%d]:  no cache file exists for %s/%s\n", 
                FILE__, __LINE__, filename.c_str(), cache_name.c_str());
 		 fprintf(stderr, "%s\n", msg);
          SER_ERR(msg);
@@ -803,12 +803,12 @@ FILE *SerDesBin::init(std::string filename, iomode_t mode, bool /*verbose*/)
 
    if (!f) 
    {
-      char msg[128];
+      char msg[1024];
       serialize_printf("%s[%d]: fopen(%s, %s): %s\n", FILE__, __LINE__, 
             cache_name.c_str(), (mode == sd_serialize) ? "w+" : "r", strerror(errno));
-      sprintf(msg, "fopen(%s, %s): %s", cache_name.c_str(), 
-            (mode == sd_serialize) ? "w+" : "r", strerror(errno));
-	  fprintf(stderr, "%s\n", msg);
+      snprintf(msg, 1024, "fopen(%s, %s): %s", cache_name.c_str(), 
+              (mode == sd_serialize) ? "w+" : "r", strerror(errno));
+      fprintf(stderr, "%s\n", msg);
       SER_ERR(msg);
    }
 
@@ -1035,7 +1035,7 @@ bool SerDesBin::resolveCachePath(std::string full_file_path, std::string &cache_
    //  where the users home dir is shared.
 
    char sizestr[16];
-   sprintf(sizestr, "%d", (int)statbuf.st_size);
+   snprintf(sizestr, 16, "%d", (int)statbuf.st_size);
    cache_name = path + std::string("/") + std::string(CACHE_PREFIX) 
 	   + short_name 
       + std::string("_") 
@@ -1073,12 +1073,12 @@ void SerDesBin::readHeaderAndVerify(std::string full_file_path, std::string cach
 
    if (0 != stat(full_file_path.c_str(), &statbuf)) 
    {
-      char msg[128];
+      char msg[1024];
       if (errno != ENOENT) 
 	  {
          //  Its OK if the file doesn't exist, but complain if we get a different
          // error
-         sprintf(msg, "%s[%d]:  stat %s failed: %s\n", FILE__, __LINE__, 
+         snprintf(msg, 1024, "%s[%d]:  stat %s failed: %s\n", FILE__, __LINE__, 
                full_file_path.c_str(), strerror(errno));
       }
       SER_ERR(msg);
@@ -1096,8 +1096,8 @@ void SerDesBin::readHeaderAndVerify(std::string full_file_path, std::string cach
 
       if (!f) 
 	  {
-         char msg[128];
-         sprintf(msg, "%s[%d]:  failed to open file %s: %s\n", 
+         char msg[1024];
+         snprintf(msg, 1024, "%s[%d]:  failed to open file %s: %s\n", 
                FILE__, __LINE__, full_file_path.c_str(), strerror(errno));
 		 fprintf(stderr, "%s\n", msg);
          SER_ERR(msg);
@@ -1112,16 +1112,16 @@ void SerDesBin::readHeaderAndVerify(std::string full_file_path, std::string cach
 
    if (1 != rc) 
    {
-      char msg[128];
-      sprintf(msg, "%s[%d]:  failed to read header struct for %s: %s, rc = %d\n", 
+      char msg[1024];
+      snprintf(msg, 1024, "%s[%d]:  failed to read header struct for %s: %s, rc = %d\n", 
             FILE__, __LINE__, cache_name.c_str(), strerror(errno), rc);
       SER_ERR(msg);
    }
 
    if (header.cache_magic != (unsigned) CACHE_MAGIC) 
    {
-      char msg[128];
-      sprintf(msg, "%s[%d]:  magic number check failure for %s--%s: got %d, expected %d\n", 
+      char msg[1024];
+      snprintf(msg, 1024, "%s[%d]:  magic number check failure for %s--%s: got %d, expected %d\n", 
             FILE__, __LINE__, full_file_path.c_str(), cache_name.c_str(), 
 			header.cache_magic, CACHE_MAGIC);
       SER_ERR(msg);
@@ -1129,22 +1129,22 @@ void SerDesBin::readHeaderAndVerify(std::string full_file_path, std::string cach
 
    if (header.source_file_size != source_file_size) 
    {
-      char msg[128];
-      sprintf(msg, "%s[%d]:  size discrepancy found for %s/%s\n", 
+      char msg[1024];
+      snprintf(msg, 1024, "%s[%d]:  size discrepancy found for %s/%s\n", 
             FILE__, __LINE__, full_file_path.c_str(), cache_name.c_str());
       SER_ERR(msg);
    }
 
    if (!verifyChecksum(full_file_path, header.sha1)) 
    {
-      char msg[128];
-      sprintf(msg, "%s[%d]:  checksum discrepancy found for %s/%s\n", 
+      char msg[1024];
+      snprintf(msg, 1024, "%s[%d]:  checksum discrepancy found for %s/%s\n", 
             FILE__, __LINE__, full_file_path.c_str(), cache_name.c_str());
 
       if (!invalidateCache(cache_name)) 
-	  {
+      {
          fprintf(stderr, "%s[%d]:  failed to invalidate cache for file %s/%s\n", 
-               FILE__, __LINE__, full_file_path.c_str(), cache_name.c_str());
+                 FILE__, __LINE__, full_file_path.c_str(), cache_name.c_str());
       }
 
       SER_ERR(msg);
@@ -1172,8 +1172,8 @@ void SerDesBin::writeHeaderPreamble(FILE *f, std::string full_file_path,
 
    if (0 != stat(full_file_path.c_str(), &statbuf)) 
    {
-      char msg[128];
-      sprintf(msg, "%s[%d]:  stat %s failed: %s\n", FILE__, __LINE__, 
+      char msg[1024];
+      snprintf(msg, 1024, "%s[%d]:  stat %s failed: %s\n", FILE__, __LINE__, 
             full_file_path.c_str(), strerror(errno));
       SER_ERR(msg);
    }
@@ -1184,8 +1184,8 @@ void SerDesBin::writeHeaderPreamble(FILE *f, std::string full_file_path,
 
    if (NULL == sha1_file(full_file_path.c_str(), header.sha1)) 
    {
-      char msg[128];
-      sprintf(msg, "sha1_file failed\n");
+      char msg[1024];
+      snprintf(msg, 1024, "sha1_file failed\n");
       SER_ERR(msg);
    }
 
@@ -1663,16 +1663,16 @@ void SerDesBin::translate(const char * &param, int bufsize, const char *tag)
          fprintf(stderr, "%s[%d]:  insufficient buffer: %d, need %d...  truncation....\n", FILE__, __LINE__, bufsize, len);
 		 len = bufsize;
 
-         //char msg[128];
-         //sprintf(msg, "not enough space in string buffer, %d needed", len);
+         //char msg[1024];
+         //snprintf(msg, 1024, "not enough space in string buffer, %d needed", len);
          //SER_ERR("msg");
       }
 
       if (len < 0) 
       {
          fprintf(stderr, "%s[%d]:  bad bufsize %d for %s\n", FILE__, __LINE__, len, tag ? tag : "no_tag");
-         char msg[128];
-         sprintf(msg, "bad bufsize, %d ", len);
+         char msg[1024];
+         snprintf(msg, 1024, "bad bufsize, %d ", len);
          SER_ERR("msg");
       }
 
