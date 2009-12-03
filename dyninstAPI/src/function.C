@@ -310,7 +310,7 @@ const pdvector<instPoint*> &int_function::funcExits() {
 
             instPoint *point = instPoint::createParsePoint(this,
                                                            img_exits[i]);
-						if (!point) continue; // Can happen if we double-create
+            if (!point) continue; // Can happen if we double-create
 
             assert(point);
             exitPoints_.push_back(point);

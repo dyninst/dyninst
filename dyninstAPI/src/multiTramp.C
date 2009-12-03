@@ -388,7 +388,7 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
                                             size,
 					    basicBlockTramp)) {
         // Assert fail?
-        fprintf(stderr, "Could not get multiTramp footprint at 0x%lx, ret false\n", pointAddr);
+        inst_printf("Could not get multiTramp footprint at 0x%lx, ret false\n", pointAddr);
         return 0;
     }
 

@@ -685,7 +685,6 @@ BPatch_point *BPatch_point::createInstructionInstPoint(BPatch_addressSpace *addS
                                                             bpf->lowlevel_func());
 
     if (!iPoint) {
-        fprintf(stderr, "WARNING: instpoint creation failed in createInstructionInstPoint\n");
         return NULL;
     }
     
