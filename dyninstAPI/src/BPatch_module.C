@@ -883,7 +883,7 @@ Address BPatch_module::getLoadAddrInt()
    return mod->obj()->codeBase();
 }
 
-BPatchSnippetHandle* BPatch_module::insertInitCallbackInt(BPatch_snippet& what)
+BPatchSnippetHandle* BPatch_module::insertInitCallbackInt(BPatch_snippet& callback)
 {
     BPatch_Vector<BPatch_function*> init_funcs;
     findFunction("_init", init_funcs);    
@@ -894,13 +894,13 @@ BPatchSnippetHandle* BPatch_module::insertInitCallbackInt(BPatch_snippet& what)
         if(init_entry && !init_entry->empty() && (*init_entry)[0])
         {
             startup_printf("\tinserting init snippet at 0x%lx\n", (*init_entry)[0]->getAddress());
-            return addSpace->insertSnippet(what, *((*init_entry)[0]));
+            return addSpace->insertSnippet(callback, *((*init_entry)[0]));
         }
     }
     return NULL;
 }
 
-BPatchSnippetHandle* BPatch_module::insertFiniCallbackInt(BPatch_snippet& what)
+BPatchSnippetHandle* BPatch_module::insertFiniCallbackInt(BPatch_snippet& callback)
 {
     BPatch_Vector<BPatch_function*> fini_funcs;
     findFunction("_fini", fini_funcs);
@@ -911,7 +911,7 @@ BPatchSnippetHandle* BPatch_module::insertFiniCallbackInt(BPatch_snippet& what)
         if(fini_exit && !fini_exit->empty() && (*fini_exit)[0])
         {
             startup_printf("\tinserting fini snippet at 0x%lx\n", (*fini_exit)[0]->getAddress());
-            return addSpace->insertSnippet(what, *((*fini_exit)[0]));
+            return addSpace->insertSnippet(callback, *((*fini_exit)[0]));
         }
     }
     return NULL;

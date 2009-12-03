@@ -259,11 +259,11 @@ public:
     API_EXPORT(Int, (), 
     BPatch_Vector<BPatch_point *> *,getUnresolvedControlFlow, ());
     
-    API_EXPORT(Int, (what),
-               BPatchSnippetHandle*, insertInitCallback, (BPatch_snippet& what));
+    API_EXPORT(Int, (callback),
+               BPatchSnippetHandle*, insertInitCallback, (BPatch_snippet& callback));
 
-    API_EXPORT(Int, (what),
-               BPatchSnippetHandle*, insertFiniCallback, (BPatch_snippet& what));
+    API_EXPORT(Int, (callback),
+               BPatchSnippetHandle*, insertFiniCallback, (BPatch_snippet& callback));
 
 #ifdef IBM_BPATCH_COMPAT
     API_EXPORT(Int, (start, end),
