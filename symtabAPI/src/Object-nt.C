@@ -861,31 +861,54 @@ void Object::getModuleLanguageInfo(dyn_hash_map<std::string, supportedLanguages>
 	return;
 }
 
-static SRCCODEINFO *last_srcinfo;
-BOOL CALLBACK add_line_info(SRCCODEINFO *srcinfo, void *param)
+struct line_info_tmp_t {
+	line_info_tmp_t(unsigned long a, unsigned int l) {addr = a; line_no = l;}
+	unsigned long addr;
+	unsigned int line_no;
+};
+
+struct line_info_tmp_lt {
+	bool operator()(const line_info_tmp_t &a, const line_info_tmp_t &b) {
+      return a.addr < b.addr;
+	};
+};
+
+typedef std::multiset<line_info_tmp_t, line_info_tmp_lt> info_for_file_t;
+typedef std::map<std::string, info_for_file_t*> info_for_all_files_t;
+
+static BOOL CALLBACK add_line_info(SRCCODEINFO *srcinfo, void *param)
 {
-   dyn_hash_map< std::string, LineInformation> *lineInfo = (dyn_hash_map< std::string, LineInformation> *)param;
-   
-   if (last_srcinfo && srcinfo) {
-      //All the middle iterations.  Use the previous line information with the 
-      // current line info to build LineInformation structure.
-      assert(last_srcinfo->Address <= srcinfo->Address);
-      (*lineInfo)[last_srcinfo->FileName].addLine(last_srcinfo->FileName, last_srcinfo->LineNumber, 0 /* no col info for windows*/,
-                                                  (Offset) last_srcinfo->Address, (Offset) srcinfo->Address);
-      return TRUE;
+	info_for_all_files_t *all_info = (info_for_all_files_t *) param;
+	info_for_all_files_t::iterator iter = all_info->find(std::string(srcinfo->FileName));
+	info_for_file_t *finfo = NULL;
+	if (iter == all_info->end()) {
+		finfo = new info_for_file_t();
+		(*all_info)[std::string(srcinfo->FileName)] = finfo;
+	}
+	else {
+		finfo = (*iter).second;
+	}
+	finfo->insert(line_info_tmp_t((unsigned long) srcinfo->Address, srcinfo->LineNumber));
+	return true;
+}
+
+static bool store_line_info(dyn_hash_map<std::string, LineInformation> *lineInfo,
+							info_for_all_files_t *baseInfo)
+{
+   for (info_for_all_files_t::iterator i = baseInfo->begin(); i != baseInfo->end(); i++)
+   {
+	   const char *filename = (*i).first.c_str();
+	   for (info_for_file_t::iterator j = (*i).second->begin(); j != (*i).second->end(); j++) {
+		   info_for_file_t::iterator next = j;
+		   next++;
+		   if (next != (*i).second->end())
+			   (*lineInfo)[filename].addLine(filename, j->line_no, 0, j->addr, next->addr);
+		   else
+			   (*lineInfo)[filename].addLine(filename, j->line_no, 0, j->addr, j->addr);
+	   }
+	   delete (*i).second;
    }
-   else if (!last_srcinfo && srcinfo) {
-      //First iteration.  Don't add anything until the next
-    last_srcinfo = srcinfo;
-    return TRUE;
-  }
-  else if (last_srcinfo && !srcinfo) {
-    //Last iteration.  Add current srcinfo up to end of module.
-    (*lineInfo)[last_srcinfo->FileName].addLine(last_srcinfo->FileName, last_srcinfo->LineNumber, 0 /*no col info for windows*/,
-		(Offset) last_srcinfo->Address, (Offset) last_srcinfo->Address);
-    return TRUE;
-  }
-  return TRUE;
+   return true;
 }
 
 void Object::parseFileLineInfo(Symtab *, dyn_hash_map<std::string, LineInformation> &li)
@@ -893,37 +916,25 @@ void Object::parseFileLineInfo(Symtab *, dyn_hash_map<std::string, LineInformati
   int result;
   static Offset last_file = 0x0;
 
-  string file_ = mf->filename();
-  const char *src_file_name = NULL;
-  const char *libname = NULL;
-
-  if (is_aout_) 
-    src_file_name = file_.c_str();
-  else 
-    libname = file_.c_str();
-
   Offset baseAddr = get_base_addr();
   if (last_file == baseAddr)
     return;
   last_file = baseAddr;
-
-  last_srcinfo = NULL;
-  result = SymEnumSourceLines(hProc, 
+  info_for_all_files_t inf;
+  result = SymEnumLines(hProc, 
 			      baseAddr,
-			      libname, 
-			      src_file_name,
-			      0,
-			      0,
+			      NULL, 
+			      NULL,
 			      add_line_info, 
-			      &li); 
+			      &inf); 
   if (!result) {
     //Not a big deal. The module probably didn't have any debug information.
     DWORD dwErr = GetLastError();
-    //parsing_printf("[%s:%u] - Couldn't SymEnumLines on %s in %s\n", 
+    //printf("[%s:%u] - Couldn't SymEnumLines on %s in %s\n", 
 	//	   __FILE__, __LINE__, src_file_name, libname);
     return;
   }
-  add_line_info(NULL, &li);
+  store_line_info(&li, &inf);
 }
 
 typedef struct localsStruct {
