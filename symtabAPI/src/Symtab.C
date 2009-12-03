@@ -1837,6 +1837,7 @@ bool Symtab::openFile(Symtab *&obj, std::string filename)
 
 
 #if defined (cap_serialization)
+#if 0
    obj = importBin(filename);
 
    if (NULL == obj) 
@@ -1856,6 +1857,7 @@ bool Symtab::openFile(Symtab *&obj, std::string filename)
 	  //fprintf(stderr, "%s[%d]:  deserialize success\n", FILE__, __LINE__);
       return true;
    }
+#endif
 #endif
 
    obj = new Symtab(filename, err);
@@ -1877,6 +1879,7 @@ bool Symtab::openFile(Symtab *&obj, std::string filename)
       obj->setupTypes();	
 
 #if defined (cap_serialization)
+#if 0
       serialize_printf("%s[%d]:  doing bin-serialize for %s\n", 
             FILE__, __LINE__, filename.c_str());
 
@@ -1886,7 +1889,8 @@ bool Symtab::openFile(Symtab *&obj, std::string filename)
       }
       else
          serialize_printf("%s[%d]:  did bin-serialize for %s\n", 
-               FILE__, __LINE__, filename.c_str());
+                          FILE__, __LINE__, filename.c_str());
+#endif
 #endif
 
     }
