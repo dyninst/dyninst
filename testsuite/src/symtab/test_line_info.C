@@ -132,7 +132,6 @@ test_results_t test_line_info_Mutator::basic_verification()
 			//  We try to test all statements in all modules that have them,
 			//  but not all do.  Thus we only fail here if the module that has
 			//  no statements is one of ours.
-
 			if ( (modname == "mutatee_util.c") 
 					|| (modname == "solo_mutatee_boilerplate.c")
 					|| (modname == "mutatee_driver.c"))
@@ -145,7 +144,6 @@ test_results_t test_line_info_Mutator::basic_verification()
 			logerror("%s[%d]:  skipping module %s\n", FILE__, __LINE__, modname.c_str());
 			continue;
 		}
-
 		for (unsigned int j = 0; j < statements.size(); ++j)
 		{
 			//  statement_ok does NULL check, so don't bother doing it here 
@@ -234,7 +232,10 @@ test_results_t test_line_info_Mutator::executeTest()
 	}
 
 	int param_line_no = params[0]->getLineNum();
-
+#if !defined(os_linux_test)
+	//The rest of this test will only work on Linux (DWARF platforms).
+	return PASSED;
+#endif
 	//  we use the #line preprocessor directive in the mutatee to set the expected value
 	if (param_line_no != 1000)
 	{

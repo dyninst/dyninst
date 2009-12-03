@@ -417,6 +417,9 @@ bool RangeLookup< Value, ValueRange >::getValues( Offset addressInRange,
 	std::pair< RangeIterator, RangeIterator > lowRange 
 		= valuesByAddressRangeMap.equal_range( AddressRange( addressInRange + 1, 0 ) );
 
+	if (lowRange.second == valuesByAddressRangeMap.begin())
+		return false; //Searched for an address lower than any in the map.
+
 	assert( lowRange.first == lowRange.second );
 	RangeIterator hHighEnd = --(lowRange.second);
 
