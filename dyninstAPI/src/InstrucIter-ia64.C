@@ -667,8 +667,15 @@ bool InstrucIter::getMultipleJumpTargets( BPatch_Set<Address> & targetAddresses 
         
     if( ! foundMovFromIP ) { finalAddr += i * 8; }
 
-    /* DEBUG */ parsing_printf( "\t 0x%lx => 0x%lx\n", jumpTableAddress + (sizeof(uint64_t)*i), finalAddr );
-    targetAddresses.insert( finalAddr );
+    if((finalAddr % 16) == 0)
+    {
+     /* DEBUG */ parsing_printf( "\t 0x%lx => 0x%lx\n", jumpTableAddress + (sizeof(uint64_t)*i), finalAddr );
+                 targetAddresses.insert( finalAddr );
+    }
+    else
+    {
+        parsing_printf("\t 0x%lx -> 0x%lx UNALIGNED, SKIPPING\n", jumpTableAddress + (sizeof(uint64_t)*i), finalAddr);
+    }
   } /* end jump table iteration */
     
   /* DEBUG */ parsing_printf( "%s[%d]: located jump table for 0x%lx, at GP + 0x%lx %s\n\n", __FILE__, __LINE__, current, jumpTableOffset, foundInstruction2 ? "with double indirection." : "with single indirection." );
