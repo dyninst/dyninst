@@ -797,7 +797,7 @@ Register emitFuncCall(opCode op,
 		      pdvector<AstNodePtr> &operands, 
 		      bool noCost, int_function *callee)
 {
-   assert(op == callOp);
+   assert(op == callOp || op == funcJumpOp);
    pdvector <Register> srcs;
    void cleanUpAndExit(int status);
    
