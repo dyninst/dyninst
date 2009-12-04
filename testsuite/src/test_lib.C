@@ -136,11 +136,10 @@ Tempfile::Tempfile()
 
 	if (!dyninst_root)
 	{
-		fprintf(stderr, "%s[%d]:  DYNINST_ROOT not specified\n", __FILE__, __LINE__);
-		abort();
+      dyninst_root = "../..";
 	}
 
-	sprintf(tmp_dir, "%s\temp", dyninst_root);
+	snprintf(tmp_dir, 1024, "%s\temp", dyninst_root);
 
 	if (0 != stat(tmp_dir, &statbuf))
 	{

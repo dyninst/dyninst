@@ -236,6 +236,12 @@ test_results_t test_line_info_Mutator::executeTest()
 	//The rest of this test will only work on Linux (DWARF platforms).
 	return PASSED;
 #endif
+	if ((compiler == std::string("pgcc")) 
+			|| (compiler == std::string("pgCC")))
+	{
+		return PASSED;
+	}
+
 	//  we use the #line preprocessor directive in the mutatee to set the expected value
 	if (param_line_no != 1000)
 	{
