@@ -49,9 +49,15 @@ class singleton_object_pool
    {
    }
  };
- 
- typedef boost::details::pool::singleton_default<pool_impl> singleton;
- static std::set<T*> allocated_objects;
+ struct singleton
+ {
+    static pool_impl& instance()
+    {
+        static pool_impl* thePool = new pool_impl;
+        return *thePool;
+    }
+ };
+ //typedef boost::details::pool::singleton_default<pool_impl> singleton;
  
   
  inline static void free(T* free_me)
