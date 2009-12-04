@@ -121,7 +121,7 @@ namespace Dyninst
     }
     RegisterAST::Ptr RegisterAST::promote(const InstructionAST::Ptr regPtr) {
         const RegisterAST::Ptr r = dyn_detail::boost::dynamic_pointer_cast<RegisterAST>(regPtr);
-        return RegisterAST::promote(r);
+        return RegisterAST::promote(r.get());
     }
     int RegisterAST::getPromotedID() const
     {
