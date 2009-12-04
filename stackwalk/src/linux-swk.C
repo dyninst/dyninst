@@ -41,6 +41,7 @@
 
 #include "common/h/linuxKludges.h"
 #include "common/h/parseauxv.h"
+#include "common/h/Types.h"
 
 #include <string>
 #include <sstream>
