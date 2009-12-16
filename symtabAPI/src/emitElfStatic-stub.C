@@ -41,7 +41,7 @@
 #include <set>
 #include <map>
 
-#include "emitElf.h"
+#include "emitElfStatic.h"
 #include "Symtab.h"
 #include "Symbol.h"
 #include "Archive.h"
@@ -52,54 +52,83 @@ using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
 // This needs to be a #define so the assert actually shows the message
-#define EMIT_STATIC_ASSERT "This function is currently not implemented on this architecture."
+#define EMIT_STATIC_ASSERT "This function is currently unimplemented on this architecture."
 
-bool emitElf::archSpecificRelocation(char *, relocationEntry &,
+bool emitElfStatic::archSpecificRelocation(char *, relocationEntry &,
         Offset, Offset, Offset, LinkMap &, string &) {
     assert(!EMIT_STATIC_ASSERT);
     return false;
 }
 
-Offset emitElf::layoutTLSImage(Offset, Region *, Region *, LinkMap &) {
+bool emitElfStatic::checkSpecialCaseSymbols(Symtab *target, Symbol *checkSym) {
+    assert(!EMIT_STATIC_ASSERT);
+    return false;
+}
+
+Offset emitElfStatic::layoutTLSImage(Offset, Region *, Region *, LinkMap &) {
     assert(!EMIT_STATIC_ASSERT);
     return 0;
 }
 
-Offset emitElf::adjustTLSOffset(Offset, Offset) {
+Offset emitElfStatic::adjustTLSOffset(Offset, Offset) {
     assert(!EMIT_STATIC_ASSERT);
     return 0;
 }
 
-char emitElf::getPaddingValue(Region::RegionType) {
+char emitElfStatic::getPaddingValue(Region::RegionType) {
     assert(!EMIT_STATIC_ASSERT);
     return 0;
 }
 
-void emitElf::cleanupTLSRegionOffsets(map<Region *, LinkMap::AllocPair> &,
+void emitElfStatic::cleanupTLSRegionOffsets(map<Region *, LinkMap::AllocPair> &,
         Region *, Region *) 
 {
     assert(!EMIT_STATIC_ASSERT);
 }
 
-void emitElf::getExcludedSymbolNames(set<string> &) {
-    assert(!EMIT_STATIC_ASSERT);
-}
-
-bool emitElf::isGOTRelocation(unsigned long) {
+bool emitElfStatic::isGOTRelocation(unsigned long) {
     assert(!EMIT_STATIC_ASSERT);
     return false;
 }
 
-Offset emitElf::getGOTSize(LinkMap &) {
+Offset emitElfStatic::getGOTSize(LinkMap &) {
     assert(!EMIT_STATIC_ASSERT);
     return 0;
 }
 
-Offset emitElf::getGOTAlign(LinkMap &) {
+Offset emitElfStatic::getGOTAlign(LinkMap &) {
     assert(!EMIT_STATIC_ASSERT);
     return 0;
 }
 
-void emitElf::buildGOT(LinkMap &) {
+void emitElfStatic::buildGOT(LinkMap &) {
+    assert(!EMIT_STATIC_ASSERT);
+}
+
+bool emitElfStatic::isConstructorRegion(Region *) {
+    assert(!EMIT_STATIC_ASSERT);
+}
+
+Offset emitElfStatic::layoutNewCtorRegion(LinkMap &) {
+    assert(!EMIT_STATIC_ASSERT);
+}
+
+bool emitElfStatic::createNewCtorRegion(LinkMap &) {
+    assert(!EMIT_STATIC_ASSERT);
+}
+
+bool emitElfStatic::isDestructorRegion(Region *) {
+    assert(!EMIT_STATIC_ASSERT);
+}
+
+Offset emitElfStatic::layoutNewDtorRegion(LinkMap &) {
+    assert(!EMIT_STATIC_ASSERT);
+}
+
+bool emitElfStatic::createNewDtorRegion(LinkMap &) {
+    assert(!EMIT_STATIC_ASSERT);
+}
+
+void emitElfStatic::getExcludedSymbolNames(set<string> &) {
     assert(!EMIT_STATIC_ASSERT);
 }

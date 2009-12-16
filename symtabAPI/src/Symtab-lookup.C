@@ -223,6 +223,12 @@ bool Symtab::getAllUndefinedSymbols(std::vector<Symbol *> &ret){
 
 bool Symtab::findFuncByEntryOffset(Function *&ret, const Offset entry)
 {
+    /* XXX
+     *
+     * When working with relocatable files, a symbol is not uniquely identified
+     * by its offset; it is uniquely identified by its Region and its offset.
+     * This discrepancy is not taken into account here.
+     */
     if (funcsByOffset.find(entry) != funcsByOffset.end()) {
         ret = funcsByOffset[entry];
         return true;
@@ -271,6 +277,12 @@ bool Symtab::getAllFunctions(std::vector<Function *> &ret) {
 }
 
 bool Symtab::findVariableByOffset(Variable *&ret, const Offset offset) {
+
+    /* XXX
+     *
+     * See comment in findFuncByOffset about uniqueness of symbols in
+     * relocatable files -- this discrepancy applies here as well.
+     */
     if (varsByOffset.find(offset) != varsByOffset.end()) {
         ret = varsByOffset[offset];
         return true;

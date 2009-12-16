@@ -142,13 +142,12 @@ bool BPatch_asyncEventHandler::connectToProcess(process *p)
    process_fds.push_back(newp);
 
    process *llproc = p;
-   assert(llproc->runtime_lib);
 
 #if defined (os_windows)
    //  find the variable to set with the port number to connect to
    pdvector<int_variable *> res;
 
-   llproc->findVarsByAll("connect_port", res, llproc->runtime_lib->fullName().c_str());
+   llproc->findVarsByAll("connect_port", res, dyninstRT_name.c_str());
 
    if (!res.size()) 
    {

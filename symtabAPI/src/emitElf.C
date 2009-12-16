@@ -39,6 +39,7 @@
 #include "common/h/parseauxv.h"
 #include "Symtab.h"
 #include "emitElf.h"
+#include "emitElfStatic.h"
 
 #if defined(os_solaris)
 #include <sys/link.h>
@@ -508,9 +509,12 @@ bool emitElf::driver(Symtab *obj, string fName){
     shdr = elf32_getshdr(scn);
 
     // resolve section name
+    Region *previousSec = foundSec;
     const char *name = &shnames[shdr->sh_name];
     bool result = obj->findRegion(foundSec, shdr->sh_addr, shdr->sh_size);
     if (!result) {
+      result = obj->findRegion(foundSec, name);
+    }else if( previousSec == foundSec ) {
       result = obj->findRegion(foundSec, name);
     }
 
@@ -625,6 +629,7 @@ bool emitElf::driver(Symtab *obj, string fName){
       //newSecs.push_back(new Section(oldEhdr->e_shnum+newSecs.size(),".dynamic", /*addr*/, newdata->d_size, dynData, Section::dynamicSection, true));
     }
 
+    // Only need to rewrite data section
     if( hasRewrittenTLS && foundSec->isTLS() 
         && foundSec->getRegionType() == Region::RT_DATA ) 
     {
@@ -927,7 +932,7 @@ void emitElf::fixPhdrs(unsigned &extraAlignSize)
          newSeg.p_vaddr = newSegmentStart;
          newSeg.p_paddr = newSeg.p_vaddr;
          newSeg.p_filesz = loadSecTotalSize - (newSegmentStart - firstNewLoadSec->sh_addr);
-         newSeg.p_memsz = newSeg.p_filesz;
+         newSeg.p_memsz = (currEndAddress - firstNewLoadSec->sh_addr) - (newSegmentStart - firstNewLoadSec->sh_addr);
          newSeg.p_flags = PF_R+PF_W+PF_X;
          newSeg.p_align = pgSize;
          memcpy(newPhdr, &newSeg, oldEhdr->e_phentsize);
@@ -1060,6 +1065,7 @@ bool emitElf::createLoadableSections(Elf32_Shdr* &shdr, unsigned &extraAlignSize
      newshdr = elf32_getshdr(newscn);
      newshdr->sh_name = secNameIndex;
      newshdr->sh_flags = 0;
+     newshdr->sh_type = SHT_PROGBITS;
      switch(newSecs[i]->getRegionType()){
         case Region::RT_TEXTDATA:
            newshdr->sh_flags = SHF_EXECINSTR | SHF_ALLOC | SHF_WRITE;
@@ -1067,19 +1073,29 @@ bool emitElf::createLoadableSections(Elf32_Shdr* &shdr, unsigned &extraAlignSize
         case Region::RT_TEXT:
            newshdr->sh_flags = SHF_EXECINSTR | SHF_ALLOC;
            break;
+        case Region::RT_BSS:
+           newshdr->sh_type = SHT_NOBITS;
         case Region::RT_DATA:
            newshdr->sh_flags = SHF_WRITE | SHF_ALLOC;
            break;
         default:
            break;
      }
-     newshdr->sh_type = SHT_PROGBITS;
 
-     // TODO - compute the correct offset && address. This is wrong!!
-     if(shdr->sh_type == SHT_NOBITS)
+     if(shdr->sh_type == SHT_NOBITS) {
         newshdr->sh_offset = shdr->sh_offset;
-     else
+     }else if( !firstNewLoadSec || !newSecs[i]->getDiskOffset() ) {
         newshdr->sh_offset = shdr->sh_offset+shdr->sh_size;
+     }else{
+         // The offset can be computed by determing the difference from
+         // the first new loadable section
+         newshdr->sh_offset = firstNewLoadSec->sh_offset +
+             (newSecs[i]->getDiskOffset() - firstNewLoadSec->sh_addr);
+
+         // Account for inter-section spacing due to alignment constraints
+         loadSecTotalSize += newshdr->sh_offset - (shdr->sh_offset+shdr->sh_size);
+     }
+
      if(newSecs[i]->getDiskOffset())
         newshdr->sh_addr = newSecs[i]->getDiskOffset();
      else{
@@ -1088,7 +1104,7 @@ bool emitElf::createLoadableSections(Elf32_Shdr* &shdr, unsigned &extraAlignSize
     	    
      newshdr->sh_link = SHN_UNDEF;
      newshdr->sh_info = 0;
-     newshdr->sh_addralign = 4;
+     newshdr->sh_addralign = newSecs[i]->getMemAlignment();
      newshdr->sh_entsize = 0;
 
      // TLS section
@@ -1313,9 +1329,12 @@ bool emitElf::createLoadableSections(Elf32_Shdr* &shdr, unsigned &extraAlignSize
         newshdr->sh_size = newdata->d_size;
      }
 
-     loadSecTotalSize += newshdr->sh_size;
-
-     currEndOffset = newshdr->sh_offset + newshdr->sh_size;
+     if( newshdr->sh_type == SHT_NOBITS ) {
+         currEndOffset = newshdr->sh_offset;
+     }else{
+        loadSecTotalSize += newshdr->sh_size;
+        currEndOffset = newshdr->sh_offset + newshdr->sh_size;
+     }
      currEndAddress = newshdr->sh_addr + newshdr->sh_size;
 
      if (0 > elf_update(newElf, ELF_C_NULL))
@@ -1525,7 +1544,11 @@ bool emitElf::createNonLoadableSections(Elf32_Shdr *&shdr)
 	    //newshdr->sh_link = newSecSize+i+1;   //.symtab section should have sh_link = index of .strtab
 	    newshdr->sh_flags=  SHF_ALLOC | SHF_WRITE;
 	    }*/
-      newshdr->sh_offset = prevshdr->sh_offset+prevshdr->sh_size;
+      if( prevshdr->sh_type == SHT_NOBITS ) {
+          newshdr->sh_offset = prevshdr->sh_offset;
+      }else{
+        newshdr->sh_offset = prevshdr->sh_offset+prevshdr->sh_size;
+      }
       if (newshdr->sh_offset < currEndOffset) {
          newshdr->sh_offset = currEndOffset;
       }
@@ -1553,7 +1576,7 @@ bool emitElf::createNonLoadableSections(Elf32_Shdr *&shdr)
       }
       
       currEndOffset = newshdr->sh_offset + newshdr->sh_size;
-      currEndAddress = newshdr->sh_addr + newshdr->sh_size;
+      //currEndAddress = newshdr->sh_addr + newshdr->sh_size;
 
 	    
       //elf_update(newElf, ELF_C_NULL);
@@ -1855,21 +1878,25 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
     if(dynsecSize)
       obj->addRegion(0, dynsecData, dynsecSize*sizeof(Elf64_Dyn), ".dynamic", Region::RT_DYNAMIC, true);
 #endif
-
-#if !defined(os_solaris) 
   }else{
       // Static binary case
+      vector<Region *> newRegs;
+      obj->getAllNewRegions(newRegs);
+      if( newRegs.size() ) {
+          emitElfStatic linker(obj->getAddressWidth(), isStripped);
 
-      StaticLinkError err;
-      std::string errMsg;
-      linkedStaticData = linkStatic(obj, err, errMsg);
-      if ( !linkedStaticData ) {
-           fprintf(stderr, "Failed to link in static library code: %s = %s\n",
-                 printStaticLinkError(err).c_str(), errMsg.c_str());
-           log_elferror(err_func_, "Failed to link in static library code.");   
-           return false;
+          emitElfStatic::StaticLinkError err;
+          std::string errMsg;
+          linkedStaticData = linker.linkStatic(obj, err, errMsg);
+          if ( !linkedStaticData ) {
+               fprintf(stderr, "Failed to link in static library code: %s = %s\n",
+                     emitElfStatic::printStaticLinkError(err).c_str(), errMsg.c_str());
+               log_elferror(err_func_, "Failed to link in static library code.");   
+               return false;
+          }
+
+          hasRewrittenTLS = linker.hasRewrittenTLS();
       }
-#endif
   }
 
   if(!obj->getAllNewRegions(newSecs))
@@ -1925,51 +1952,22 @@ void emitElf::createRelocationSections(Symtab *obj, std::vector<relocationEntry>
       if (newRels[i].regionType() == Region::RT_REL) {
          rels[j].r_offset = newRels[i].rel_addr();
          if(dynSymNameMapping.find(newRels[i].name()) != dynSymNameMapping.end()) {
-#if defined(arch_x86)
-            rels[j].r_info = ELF32_R_INFO(dynSymNameMapping[newRels[i].name()], R_386_GLOB_DAT);
-#elif defined(arch_sparc)
-            //            rels[j].r_info = ELF32_R_INFO(dynSymNameMapping[newRels[i].name()], R_SPARC_GLOB_DAT);
-#elif defined(arch_x86_64)
-            rels[j].r_info = ELF32_R_INFO(dynSymNameMapping[newRels[i].name()], R_X86_64_GLOB_DAT);
-#elif defined(arch_power)
-            rels[j].r_info = ELF32_R_INFO(dynSymNameMapping[newRels[i].name()], R_PPC_GLOB_DAT);
-#endif
-
+            rels[j].r_info = ELF32_R_INFO(dynSymNameMapping[newRels[i].name()], 
+                    relocationEntry::getGlobalRelType(obj->getAddressWidth()));
          } else {
-#if defined(arch_x86)
-            rels[j].r_info = ELF32_R_INFO(STN_UNDEF, R_386_GLOB_DAT);
-#elif defined(arch_sparc)
-            //            rels[j].r_info = ELF32_R_INFO(STN_UNDEF, R_SPARC_GLOB_DAT);
-#elif defined(arch_x86_64)
-            rels[j].r_info = ELF32_R_INFO(STN_UNDEF, R_X86_64_GLOB_DAT);
-#elif defined(arch_power)
-            rels[j].r_info = ELF32_R_INFO(STN_UNDEF, R_PPC_GLOB_DAT);
-#endif
+            rels[j].r_info = ELF32_R_INFO(STN_UNDEF, 
+                    relocationEntry::getGlobalRelType(obj->getAddressWidth()));
          }
          j++;
       } else {
          relas[k].r_offset = newRels[i].rel_addr();
          relas[k].r_addend = newRels[i].addend();
          if(dynSymNameMapping.find(newRels[i].name()) != dynSymNameMapping.end()) {
-#if defined(arch_x86)
-            relas[k].r_info = ELF32_R_INFO(dynSymNameMapping[newRels[i].name()], R_386_GLOB_DAT);
-#elif defined(arch_sparc)
-            //            relas[k].r_info = ELF32_R_INFO(dynSymNameMapping[newRels[i].name()], R_SPARC_GLOB_DAT);
-#elif defined(arch_x86_64)
-            relas[k].r_info = ELF32_R_INFO(dynSymNameMapping[newRels[i].name()], R_X86_64_GLOB_DAT);
-#elif defined(arch_power)
-            relas[k].r_info = ELF32_R_INFO(dynSymNameMapping[newRels[i].name()], R_PPC_GLOB_DAT);
-#endif
+            relas[k].r_info = ELF32_R_INFO(dynSymNameMapping[newRels[i].name()], 
+                    relocationEntry::getGlobalRelType(obj->getAddressWidth()));
          } else {
-#if defined(arch_x86)
-            relas[k].r_info = ELF32_R_INFO(STN_UNDEF, R_386_GLOB_DAT);
-#elif defined(arch_sparc)
-            //            relas[k].r_info = ELF32_R_INFO(STN_UNDEF, R_SPARC_GLOB_DAT);
-#elif defined(arch_x86_64)
-            relas[k].r_info = ELF32_R_INFO(STN_UNDEF, R_X86_64_GLOB_DAT);
-#elif defined(arch_power)
-            relas[k].r_info = ELF32_R_INFO(STN_UNDEF, R_PPC_GLOB_DAT);
-#endif
+            relas[k].r_info = ELF32_R_INFO(STN_UNDEF, 
+                    relocationEntry::getGlobalRelType(obj->getAddressWidth()));
          }
          k++;
       }

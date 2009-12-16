@@ -459,7 +459,7 @@ Module::~Module()
 
 bool Module::isShared() const
 {
-   return !exec_->isExec();
+   return exec_->isDynamic();
 }
 
 bool Module::getAllSymbolsByType(std::vector<Symbol *> &found, Symbol::SymbolType sType)

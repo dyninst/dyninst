@@ -855,21 +855,27 @@ void *image_basicBlock::getPtrToInstruction(Address addr) const {
     if (addr < firstInsnOffset_) return NULL;
     if (addr >= blockEndOffset_) return NULL;
     // XXX all potential parent functions have the same image
-    return getFirstFunc()->img()->getPtrToInstruction(addr);
+    return getFirstFunc()->img()->getPtrToInstruction(addr, getFirstFunc());
 }
 
-/* XXX This would be much faster if we could make stabbing queries
-   instead of iterating the list */
 void *image_func::getPtrToInstruction(Address addr) const {
     if (addr < getOffset()) return NULL;
     if (!parsed_) image_->analyzeIfNeeded();
     if (addr >= endOffset_) return NULL;
+
+    /* If we are just looking for a pointer to an instruction given an 
+     * address, just short-circuit to the image
+     *
+     * XXX This would be much faster if we could make stabbing queries
+       instead of iterating the list
     set<image_basicBlock*, image_basicBlock::compare>::const_iterator sit;
     for(sit = blockList.begin(); sit != blockList.end(); sit++) {
         void *ptr = (*sit)->getPtrToInstruction(addr);
         if (ptr) return ptr;
     }
     return NULL;
+    */
+    return img()->getPtrToInstruction(addr, this);
 }
 
 image_instPoint * image_basicBlock::getCallInstPoint()

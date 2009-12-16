@@ -129,7 +129,7 @@ static bool pdelf_check_ehdr(Elf_X &elf)
 
   return ( (elf.e_type() == ET_EXEC || elf.e_type() == ET_DYN || elf.e_type() == ET_REL ) &&
            (   ((elf.e_shoff() != 0) && (elf.e_shnum() != 0)) 
-            || ((elf.e_phoff() != 0) && (elf.e_phoff() != 0))
+            || ((elf.e_phoff() != 0) && (elf.e_phnum() != 0))
            )
          );
 }
@@ -434,6 +434,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
     debugInfoValid = false;
   }
 
+
   const char *shnamesForDebugInfo = pdelf_get_shnames(elfHdrForDebugInfo);
   if (shnamesForDebugInfo == NULL) {
     fprintf(stderr, "[%s][%d]WARNING: .shstrtab section not found in ELF binary\n",__FILE__,__LINE__);
@@ -460,7 +461,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 	}
   }
 
-  if (elfHdr.e_type() == ET_DYN || foundInterp) {
+  if (elfHdr.e_type() == ET_DYN || foundInterp || elfHdr.e_type() == ET_REL) {
 	is_static_binary_ = false;	
   } else {
 	is_static_binary_ = true;	
@@ -709,9 +710,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
       }
     }
     else if (strcmp(name, RO_DATA_NAME) == 0) {
-      if (!dataddr) {
-          dataddr = scnp->sh_addr();
-      }
+      if (!dataddr) dataddr = scnp->sh_addr();
     }
     else if (strcmp(name, OPD_NAME) == 0) {
       opd_scnp = scnp;
@@ -722,15 +721,11 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
       got_scnp = scnp;
       got_addr_ = scnp->sh_addr();
       got_size_ = scnp->sh_size();
-      if (!dataddr) {
-          dataddr = scnp->sh_addr();
-      }
+      if (!dataddr) dataddr = scnp->sh_addr();
     }
     else if (strcmp(name, BSS_NAME) == 0) {
       bssscnp = scnp;
-      if (!dataddr) {
-          dataddr = scnp->sh_addr();          
-      }
+      if (!dataddr) dataddr = scnp->sh_addr();
     }
     /* End data region search */
     /*else if (strcmp( name, FINI_NAME) == 0) {
@@ -901,17 +896,6 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
     else if (i == dynamic_section_index) {
       dynamic_scnp = scnp;
       dynamic_addr_ = scnp->sh_addr();
-    
-    // handles case where the original text section had a zero length
-    // This case occurs in C++ .o's that use GROUPs
-    }else if(    !elfHdr.e_phnum() 
-              && !code_len_ 
-              && (scnp->sh_type() & (SHF_ALLOC|SHF_EXECINSTR)) ) 
-    {
-      // Populate code members
-      code_ptr_ = reinterpret_cast<char *>(scnp->get_data().d_buf());
-      code_off_ = scnp->sh_offset();
-      code_len_ = scnp->sh_size();
     }
 #endif /* ia64_unknown_linux2_4 */
   }
@@ -1577,7 +1561,7 @@ void Object::load_object(bool alloc_syms)
     }else if (e_type == ET_EXEC) {
 	obj_type_ = obj_Executable;
     }else if (e_type == ET_REL) {
-        obj_type_ = obj_ObjectFile;
+        obj_type_ = obj_RelocatableFile;
     }
 
     return;
@@ -1709,7 +1693,7 @@ void Object::load_shared_object(bool alloc_syms)
     else if (e_type == ET_EXEC) {
       obj_type_ = obj_Executable;
     }else if( e_type == ET_REL ) {
-        obj_type_ = obj_ObjectFile;
+        obj_type_ = obj_RelocatableFile;
     }
 
   } // end binding contour (for "goto cleanup2")
@@ -2451,8 +2435,8 @@ bool Object::fixSymbolsInModule( Dwarf_Debug dbg, string & moduleName, Dwarf_Die
                      dwarf_dealloc( dbg, fileNoAttribute, DW_DLA_ATTR );
                         
                      useModuleName = declFileNoToName[ fileNo - 1 ];
-                        
-                     // bperr( "Assuming declared-not-inlined function '%s' to be in module '%s'.\n", dieName, useModuleName.c_str() );
+
+                     //create_printf("%s[%d]: Assuming declared-not-inlined function '%s' to be in module '%s'.\n", FILE__, __LINE__, dieName, useModuleName.c_str());
                         
                   } /* end if we have declaration file listed */
                   else {
@@ -3006,11 +2990,11 @@ void Object::find_code_and_data(Elf_X &elf,
 				Offset dataddr) 
 {
 
-  // .o's don't need to have a program header, so these
-  // fields are populated earlier when the sections are
-  // processed -> see loaded_elf()
-      
-  // Executables and shared libraries have program headers
+  /* Note:
+   * .o's don't have program headers, so these fields are populated earlier
+   * when the sections are processed -> see loaded_elf()
+   */
+    
   for (int i = 0; i < elf.e_phnum(); ++i) {
     Elf_X_Phdr phdr = elf.get_phdr(i);
 
@@ -4251,14 +4235,14 @@ bool Object::emitDriver(Symtab *obj, string fName,
   print_symbols(allSymbols);
   printf("%d total symbol(s)\n", allSymbols.size());
 #endif
-  if (elfHdr.e_ident()[EI_CLASS] == 1) 
+  if (elfHdr.e_ident()[EI_CLASS] == ELFCLASS32)
     {
       emitElf *em = new emitElf(elfHdr, isStripped, this, err_func_);
       if( !em->createSymbolTables(obj, allSymbols) ) return false;
       return em->driver(obj, fName);
     }
 #if defined(x86_64_unknown_linux2_4) || defined(ia64_unknown_linux2_4) || defined(ppc64_linux)
-  else if (elfHdr.e_ident()[EI_CLASS] == 2) 
+  else if (elfHdr.e_ident()[EI_CLASS] == ELFCLASS64) 
     {
       emitElf64 *em = new emitElf64(elfHdr, isStripped, this, err_func_);
       if( !em->createSymbolTables(obj, allSymbols) ) return false;
@@ -5320,13 +5304,19 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
             Symbol *sym = NULL;
             if( curSymHdr->sh_offset() == dynsym_offset ) {
                 name = string( &dynstr[dynsym.st_name(symbol_index)] );
-                if( dynsymByIndex.count(symbol_index) ) {
-                    sym = dynsymByIndex[symbol_index];
+
+                dyn_hash_map<int, Symbol *>::iterator sym_it;
+                sym_it = dynsymByIndex.find(symbol_index);
+                if( sym_it != dynsymByIndex.end() ) {
+                    sym = sym_it->second;
                 }
             }else if( curSymHdr->sh_offset() == symtab_offset ) {
                 name = string( &strtab[symtab.st_name(symbol_index)] );
-                if( symtabByIndex.count(symbol_index) ) {
-                    sym = symtabByIndex[symbol_index];
+
+                dyn_hash_map<int, Symbol *>::iterator sym_it;
+                sym_it = symtabByIndex.find(symbol_index);
+                if( sym_it != symtabByIndex.end() ) {
+                    sym = sym_it->second;
                 }
             }else{
                 fprintf(stderr, "%s[%d]: warning: unknown symbol table "
@@ -5338,21 +5328,20 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
 
             // Need to find target region
             Region *targetRegion = NULL;
-            if( shToRegion.count(shdr->sh_info()) ) {
-                targetRegion = shToRegion[shdr->sh_info()];
+            dyn_hash_map<unsigned, Region *>::iterator shToReg_it;
+            shToReg_it = shToRegion.find(shdr->sh_info());
+            if( shToReg_it != shToRegion.end() ) {
+                targetRegion = shToReg_it->second;
             }
 
             assert(targetRegion != NULL);
 
             // A relocation is somewhat useless unless it is linked to a Symbol
             if( sym ) {
-                // the target addr is initially zero
                 relocationEntry newrel(0, relOff, addend, name, sym, relType, regType);
 
                 // relocations are stored with their targets
                 targetRegion->addRelocationEntry(newrel);
-
-                //std::cout << newrel << std::endl;
             }
         }
     }

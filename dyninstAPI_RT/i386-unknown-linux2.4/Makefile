@@ -19,11 +19,13 @@ CFLAGS		+= -O2
 # if we want to produce a shared object...
 CC              = $(GCC)
 LD              = $(GCC)
+STATIC_CFLAGS   := $(CFLAGS) -DDYNINST_RT_STATIC_LIB -I. -I../..
 CFLAGS          += -I. -I../.. -fpic
 
 LIBS 		+= -ldl
 
 AS = gcc
+STATIC_ASFLAGS := $(ASFLAGS) -c -DDYNINST_RT_STATIC_LIB
 ASFLAGS         += -c
 
 SRCS		+= ../src/RTposix.c \
@@ -34,7 +36,9 @@ SRCS		+= ../src/RTposix.c \
 			../src/RTthread-index.c \
 			../src/RTthread-x86.c \
 			../src/RTspace.S \
-			../src/RTsignal-x86.S
+			../src/RTsignal-x86.S \
+			../src/RTtlsgetaddr-linux-x86.S \
+			../src/RTstatic_ctors_dtors-linux-x86.c
 #		   ../src/RTmutatedBinary.c \
 #			../src/RTmutatedBinary_ELF.c \
 

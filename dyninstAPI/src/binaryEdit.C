@@ -330,6 +330,10 @@ BinaryEdit *BinaryEdit::openFile(const std::string &file, const std::string &mem
 void BinaryEdit::makeInitAndFiniIfNeeded()
 {
 }
+
+bool BinaryEdit::archSpecificMultiThreadCapable() {
+    return false;
+}
 #endif
 
 bool BinaryEdit::getStatFileDescriptor(const std::string &name, fileDescriptor &desc) {
@@ -346,6 +350,14 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
   return std::make_pair("", static_cast<BinaryEdit*>(NULL));
 }
 
+bool BinaryEdit::getResolvedLibraryPath(const std::string &, std::string &) {
+    assert(!"Not implemented");
+    return false;
+}
+
+bool BinaryEdit::doStaticBinarySpecialCases() {
+    return true;
+}
 #endif
 
 bool BinaryEdit::isMultiThreadCapable()
@@ -353,11 +365,12 @@ bool BinaryEdit::isMultiThreadCapable()
    Symtab *symtab = mobj->parse_img()->getObject();
    std::vector<std::string> depends = symtab->getDependencies();
    for (std::vector<std::string>::iterator curDep = depends.begin();
-	curDep != depends.end(); curDep++) {
+        curDep != depends.end(); curDep++) {
      if((curDep->find("libpthread") != std::string::npos) || (curDep->find("libthread") != std::string::npos))
        return true;
    }
-   return false;
+
+   return archSpecificMultithreadCapable();
 }
 
 bool BinaryEdit::getAllDependencies(std::map<std::string, BinaryEdit*>& deps)
@@ -408,6 +421,12 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       inst_printf(" writing %s ... \n", newFileName.c_str());
 
       Symtab *symObj = mobj->parse_img()->getObject();
+
+      if( symObj->isStaticBinary() ) {
+          if( !doStaticBinarySpecialCases() ) {
+              return false;
+          }
+      }
 
       vector<Region*> oldSegs;
       symObj->getAllRegions(oldSegs);
@@ -509,11 +528,19 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
 	      continue;
 	    }
 
+            // Create the relocationEntry
+            relocationEntry localRel(to, referring->getMangledName(), referring,
+                    relocationEntry::getGlobalRelType(getAddressWidth()));
+
             if( mobj->isSharedLib() ) {
-                symObj->addExternalSymbolRef(to - mobj->imageOffset(), newSec, referring);
-            }else{
-                symObj->addExternalSymbolRef(to, newSec, referring);
+                localRel.setRelAddr(to - mobj->imageOffset());
             }
+
+	    if (!symObj->hasReldyn() && symObj->hasReladyn()) {
+                localRel.setRegionType(Region::RT_RELA);
+            }
+
+            symObj->addExternalSymbolReference(referring, newSec, localRel);
 
 	    /*
 	    newSymbol = new Symbol(referring->getName(), 
@@ -789,11 +816,16 @@ mapped_object *BinaryEdit::getMappedObject()
    return mobj;
 }
 
-void BinaryEdit::setupRTLibrary(BinaryEdit *r)
+void BinaryEdit::setupRTLibrary(std::vector<BinaryEdit *> &r)
 {
    rtlib = r;
-   runtime_lib = rtlib->getMappedObject();
-   assert(rtlib);
+
+   // Update addressSpace collection for RT library
+   runtime_lib.clear();
+   std::vector<BinaryEdit *>::iterator rtlib_it;
+   for(rtlib_it = r.begin(); rtlib_it != r.end(); ++rtlib_it) {
+       runtime_lib.push_back((*rtlib_it)->getMappedObject());
+   }
 }
 
 void BinaryEdit::setTrampGuard(int_variable* tg)
@@ -806,17 +838,23 @@ int_variable* BinaryEdit::createTrampGuard()
 {
   // If we have one, just return it
   if(trampGuardBase_) return trampGuardBase_;
-  assert(rtlib);
+  assert(rtlib.size());
 
-  mapped_object *mobj = rtlib->getMappedObject();
-  const int_variable *var = mobj->getVariable("DYNINST_default_tramp_guards");
+  std::vector<BinaryEdit *>::iterator rtlib_it;
+  const int_variable *var = NULL;
+  for(rtlib_it = rtlib.begin(); rtlib_it != rtlib.end(); ++rtlib_it) {
+      mapped_object *mobj = (*rtlib_it)->getMappedObject();
+      var = mobj->getVariable("DYNINST_default_tramp_guards");
+      if( var ) break;
+  }
+  
   assert(var);
   trampGuardBase_ = const_cast<int_variable *>(var);
   
   return trampGuardBase_;
 }
 
-BinaryEdit *BinaryEdit::rtLibrary()
+vector<BinaryEdit *> &BinaryEdit::rtLibrary()
 {
    return rtlib;
 }
@@ -827,7 +865,11 @@ int_function *BinaryEdit::findOnlyOneFunction(const std::string &name,
 {
    int_function *f = AddressSpace::findOnlyOneFunction(name, libname, search_rt_lib);
    if (!f && search_rt_lib) {
-      f = rtLibrary()->findOnlyOneFunction(name, libname, false);
+      std::vector<BinaryEdit *>::iterator rtlib_it;
+      for(rtlib_it = rtlib.begin(); rtlib_it != rtlib.end(); ++rtlib_it) {
+          f = (*rtlib_it)->findOnlyOneFunction(name, libname, false);
+          if( f ) break;
+      }
    }
    return f;
 }

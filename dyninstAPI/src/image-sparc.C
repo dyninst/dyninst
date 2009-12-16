@@ -158,7 +158,7 @@ bool image_func::archIsRealCall(InstrucIter &ah, bool &validTarget,
         // in instrumentation
 
         // Grab the insn at target
-        codeBuf_t *target = (codeBuf_t *)img()->getPtrToInstruction(callTarget);
+        codeBuf_t *target = (codeBuf_t *)img()->getPtrToInstruction(callTarget, this);
         instruction callTargetInsn;
         callTargetInsn.setInstruction(target);
 

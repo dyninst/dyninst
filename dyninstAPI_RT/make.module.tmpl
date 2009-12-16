@@ -13,6 +13,10 @@ ifndef TARGET
 TARGET	      = libdyninstAPI_RT.so.1
 endif
 
+ifndef STATIC_TARGET
+STATIC_TARGET   = libdyninstAPI_RT.a
+endif
+
 MODCC         = $(CC)
 MODCFLAGS     = $(CFLAGS)
 
@@ -32,7 +36,7 @@ ifdef DISABLE_STACK_PROT
 CFLAGS += -fno-stack-protector
 endif
 
-all: $(TARGET)
+all: $(TARGET) $(STATIC_TARGET)
 
 #OBJS =		$(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
 #		$(patsubst %.c, %.o, $(filter %.c,$(notdir $(SRCS)))) \

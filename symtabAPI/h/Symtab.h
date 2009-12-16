@@ -31,7 +31,9 @@
 
 #ifndef __SYMTAB_H__
 #define __SYMTAB_H__
- 
+
+#include <set>
+
 #include "Symbol.h"
 #include "Module.h"
 #include "Region.h"
@@ -73,6 +75,7 @@ class Symtab : public LookupInterface,
    friend class Region;
    friend class emitElf;
    friend class emitElf64;
+   friend class emitElfStatic;
    friend class emitWin;
    friend class Aggregate;
    friend class relocationEntry;
@@ -197,6 +200,7 @@ class Symtab : public LookupInterface,
 
    /*****Query Functions*****/
    SYMTAB_EXPORT bool isExec() const;
+   SYMTAB_EXPORT bool isDynamic() const;
    SYMTAB_EXPORT bool isStripped();
    SYMTAB_EXPORT ObjectType getObjectType() const;
 
@@ -266,8 +270,7 @@ class Symtab : public LookupInterface,
    SYMTAB_EXPORT bool addLinkingResource(Archive *library);
    SYMTAB_EXPORT bool getLinkingResources(std::vector<Archive *> &libs);
 
-   SYMTAB_EXPORT bool addExternalSymbolRef(Address location, Region *localRegion, Symbol *externalSym);
-   SYMTAB_EXPORT bool getExplicitSymtabRefs(std::vector<Symtab *> &refs);
+   SYMTAB_EXPORT bool addExternalSymbolReference(Symbol *externalSym, Region *localRegion, relocationEntry localRel);
 
    /***** Data Member Access *****/
    SYMTAB_EXPORT std::string file() const;
@@ -408,6 +411,7 @@ class Symtab : public LookupInterface,
    unsigned dataLen_;
 
    bool is_a_out;
+   bool is_dynamic;
    Offset main_call_addr_; // address of call to main()
 
    bool nativeCompiler;
@@ -523,7 +527,8 @@ class Symtab : public LookupInterface,
    std::vector<Archive *> linkingResources_;
 
    // This set represents Symtabs referenced by a new external Symbol
-   std::vector<Symtab *> explicitSymtabRefs_;
+   bool getExplicitSymtabRefs(std::set<Symtab *> &refs);
+   std::set<Symtab *> explicitSymtabRefs_;
 
    //Line Information valid flag;
    bool isLineInfoValid_;
@@ -645,8 +650,6 @@ class relocationEntry : public Serializable, public AnnotatableSparse {
       SYMTAB_EXPORT Offset rel_addr() const;
       SYMTAB_EXPORT Offset addend() const;
       SYMTAB_EXPORT Region::RegionType regionType() const;
-      SYMTAB_EXPORT void setAddend(const Offset);
-      SYMTAB_EXPORT void setRegionType(const Region::RegionType);
       SYMTAB_EXPORT const std::string &name() const;
       SYMTAB_EXPORT Symbol *getDynSym() const;
       SYMTAB_EXPORT bool addDynSym(Symbol *dynref);
@@ -655,17 +658,19 @@ class relocationEntry : public Serializable, public AnnotatableSparse {
       SYMTAB_EXPORT void setRelAddr(const Offset);
       SYMTAB_EXPORT void setAddend(const Offset);
       SYMTAB_EXPORT void setRegionType(const Region::RegionType);
+      SYMTAB_EXPORT void setName(const std::string &newName);
 
       // dump output.  Currently setup as a debugging aid, not really
       //  for object persistance....
       //SYMTAB_EXPORT std::ostream & operator<<(std::ostream &s) const;
       friend SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const relocationEntry &q);
 
-      static const char *relType2Str(unsigned long);
-
+      enum {pltrel = 1, dynrel = 2} relocationType;
       SYMTAB_EXPORT bool operator==(const relocationEntry &) const;
 
-      SYMTAB_EXPORT static unsigned long externalRefRelType();
+      // Architecture-specific functions
+      SYMTAB_EXPORT static unsigned long getGlobalRelType(unsigned addressWidth);
+      static const char *relType2Str(unsigned long r, unsigned addressWidth = sizeof(Address));
 
    private:
       Offset target_addr_;	// target address of call instruction 

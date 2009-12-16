@@ -1429,7 +1429,7 @@ void process::deleteProcess()
       delete deleted_objects[iter];
   deleted_objects.clear();
 
-  runtime_lib = NULL;
+  runtime_lib.clear();
 
   // Signal handlers...
   signalHandlerLocations_.clear();
@@ -1924,15 +1924,15 @@ bool process::setupFork()
     for (unsigned i = 0; i < mapped_objects.size(); i++) {        
         if ((parent->mapped_objects[i]->fileName() == dyninstRT_name.c_str()) ||
             (parent->mapped_objects[i]->fullName() == dyninstRT_name.c_str()))
-            runtime_lib = mapped_objects[i];
+            runtime_lib.push_back(mapped_objects[i]); 
     }
 
     // And the main func and dyninst RT lib
     if (!setMainFunction())
         return false;
-    if (parent->runtime_lib) {
+    if (parent->runtime_lib.size()) {
         // This should be set by now...
-        assert(runtime_lib);
+        assert(runtime_lib.size());
     }
     
     /////////////////////////
@@ -2525,7 +2525,7 @@ bool process::loadDyninstLib() {
       dyn->unset_force_library_check();
 
       // Make sure the library was actually loaded
-      if (!runtime_lib) {
+      if (!runtime_lib.size()) {
          fprintf(stderr, "%s[%d]:  Don't have runtime library handle\n",
                  FILE__, __LINE__);
          return false;
@@ -2567,8 +2567,7 @@ bool process::loadDyninstLib() {
 // Set the shared object mapping for the RT library
 bool process::setDyninstLibPtr(mapped_object *RTobj) 
 {
-    assert (!runtime_lib);
-    runtime_lib = RTobj;
+    runtime_lib.push_back(RTobj);
     return true;
 }
 
@@ -3868,7 +3867,19 @@ bool process::removeASharedObject(mapped_object *obj) {
         }
     }
 
-    if (runtime_lib == obj) runtime_lib = NULL;
+    pdvector<mapped_object *>::iterator runtime_lib_it;
+    bool removeRTLib = false;
+    for(runtime_lib_it = runtime_lib.begin(); 
+        runtime_lib_it != runtime_lib.end(); ++runtime_lib_it)
+    {
+        if( (*runtime_lib_it) == obj ) {
+            removeRTLib = true;
+            break;
+        }
+    }
+    if( removeRTLib ) {
+        runtime_lib.erase(runtime_lib_it);
+    }
 
     removeOrigRange(obj);
 
@@ -5000,7 +5011,7 @@ bool process::readThreadStruct(Address baseAddr, dyninst_thread_t &struc) {
 bool process::removeThreadIndexMapping(dynthread_t tid, unsigned index)
 {
     //fprintf(stderr, "%s[%d]:  welcome to removeThreadIndexMapping for %lu\n", FILE__, __LINE__, (unsigned long) tid);
-    if (!runtime_lib)
+    if (runtime_lib.size())
         return false;
 
     // Don't worry 'bout it if we're cleaning up and exiting anyway.
@@ -5040,7 +5051,16 @@ bool process::removeThreadIndexMapping(dynthread_t tid, unsigned index)
     //  this is the array that holds all thread structures
     // We cache this address...
     if (thread_structs_base == 0) {
-        const int_variable *thread_structs_var = runtime_lib->getVariable(DYNINST_thread_structs_name);
+        const int_variable *thread_structs_var = NULL;
+
+        pdvector<mapped_object *>::iterator runtime_lib_it;
+        for(runtime_lib_it = runtime_lib.begin(); 
+            runtime_lib_it != runtime_lib.end(); ++runtime_lib_it)
+        {
+            thread_structs_var = (*runtime_lib_it)->getVariable(DYNINST_thread_structs_name);
+            if( thread_structs_var ) break;
+        }
+
         if (!thread_structs_var) {
             goto done;
         }
@@ -5050,7 +5070,8 @@ bool process::removeThreadIndexMapping(dynthread_t tid, unsigned index)
             if (!readDataSpace((void *)thread_structs_var->getAddress(),
                                getAddressWidth(),
                                (void *)&thread_structs_base,
-                               true)) {
+                               true)) 
+            {
                 goto done;
             }
         }
@@ -5285,7 +5306,14 @@ bool process::recognize_threads(process *parent)
         if (lwp->is_asLWP()) continue;
         
         const pdvector<int_function *> *thread_funcs;
-        thread_funcs = runtime_lib->findFuncVectorByMangled("DYNINSTthreadIndex");
+        
+        pdvector<mapped_object *>::iterator runtime_lib_it;
+        for(runtime_lib_it = runtime_lib.begin(); 
+            runtime_lib_it != runtime_lib.end(); ++runtime_lib_it) 
+        {
+            thread_funcs = (*runtime_lib_it)->findFuncVectorByMangled("DYNINSTthreadIndex");
+            if( thread_funcs ) break;
+        }
         assert(thread_funcs && thread_funcs->size() == 1);
         int_function *thread_func = (*thread_funcs)[0];
 

@@ -370,8 +370,15 @@ bool IA_IAPI::isMovAPSTable(std::vector<std::pair< Address, EdgeTypeEnum > >& ou
      **/
     parsing_printf("\tChecking for movaps table at 0x%lx...\n", current);
     std::set<Address> found;
-    InstructionDecoder d((const unsigned char*)(img->getPtrToInstruction(current)),
-                          (img->imageOffset() + img->imageLength()) - current);
+    const unsigned char *bufferBegin = 
+        (const unsigned char *)img->getPtrToInstruction(current, context);
+    if( bufferBegin == NULL ) {
+        parsing_printf("%s[%d]: failed to get pointer to instruction by offset\n",
+                FILE__, __LINE__);
+        return false;
+    }
+
+    InstructionDecoder d(bufferBegin, (img->imageOffset() + img->imageLength()) - current);
     d.setMode(img->getAddressWidth() == 8);
     Address cur = current;
     unsigned last_insn_size = 0;
@@ -629,7 +636,12 @@ namespace detail
 Address IA_IAPI::findThunkInBlock(image_basicBlock* curBlock, Address& thunkOffset) const
 {
     const unsigned char* buf =
-            (const unsigned char*)(img->getPtrToInstruction(curBlock->firstInsnOffset()));
+            (const unsigned char*)(img->getPtrToInstruction(curBlock->firstInsnOffset(), context));
+    if( buf == NULL ) {
+        parsing_printf("%s[%d]: failed to get pointer to instruction by offset\n",
+                FILE__, __LINE__);
+        return false;
+    }
     
     InstructionDecoder dec(buf, curBlock->getSize() + 16);
     dec.setMode(img->getAddressWidth() == 8);
@@ -781,7 +793,12 @@ boost::tuple<Instruction::Ptr,
         foundMaxSwitch = false;
         foundCondBranch = false;
         const unsigned char* buf =
-                (const unsigned char*)(img->getPtrToInstruction(curBlk->firstInsnOffset()));
+                (const unsigned char*)(img->getPtrToInstruction(curBlk->firstInsnOffset(), context));
+        if( buf == NULL ) {
+            parsing_printf("%s[%d]: failed to get pointer to instruction by offset\n",
+                FILE__, __LINE__);
+            return boost::make_tuple(Instruction::Ptr(), Instruction::Ptr(), false);
+        }
         InstructionDecoder dec(buf, curBlk->getSize());
         dec.setMode(img->getAddressWidth() == 8);
         Instruction::Ptr i;
@@ -964,11 +981,20 @@ bool IA_IAPI::fillTableEntries(Address thunkOffset,
 		{
 			if(tableStride == sizeof(Address)) {
 					// Unparseable jump table
-				jumpAddress = *(const Address *)img->getPtrToInstruction(tableEntry);
+				jumpAddress = *(const Address *)img->getPtrToInstruction(tableEntry, context);
+                                if( jumpAddress  == NULL ) {
+                                    parsing_printf("%s[%d]: failed to get pointer to instruction by offset\n",
+                                        FILE__, __LINE__);
+                                    return false;
+                                }
 			}
 			else {
-				assert(img->getPtrToInstruction(tableEntry));
-				jumpAddress = *(const int *)img->getPtrToInstruction(tableEntry);
+				jumpAddress = *(const int *)img->getPtrToInstruction(tableEntry, context);
+                                if( jumpAddress  == NULL ) {
+                                    parsing_printf("%s[%d]: failed to get pointer to instruction by offset\n",
+                                        FILE__, __LINE__);
+                                    return false;
+                                }
 			}
 		}
 #if defined(os_windows)
@@ -1094,7 +1120,12 @@ bool IA_IAPI::isRealCall() const
         return false;
     }
     const unsigned char *target =
-            (const unsigned char *)img->getPtrToInstruction(getCFT());
+            (const unsigned char *)img->getPtrToInstruction(getCFT(), context);
+    if( target == NULL ) {
+        parsing_printf("%s[%d]: failed to get pointer to instruction by offset\n",
+                FILE__, __LINE__);
+        return false;
+    }
 
     // We're decoding two instructions: possible move and possible return.
     // Check for move from the stack pointer followed by a return.

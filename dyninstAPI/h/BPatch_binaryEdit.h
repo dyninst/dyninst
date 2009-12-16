@@ -83,7 +83,7 @@ class BPATCH_DLL_EXPORT BPatch_binaryEdit : public BPatch_addressSpace {
     std::map<std::string, BinaryEdit *> llBinEdits;
     BinaryEdit *origBinEdit;
 
-    BinaryEdit *rtLib;
+    vector<BinaryEdit *> rtLib;
 
     BPatch_binaryEdit(const char *path, bool openDependencies);
     bool creation_error;
@@ -148,7 +148,11 @@ class BPATCH_DLL_EXPORT BPatch_binaryEdit : public BPatch_addressSpace {
     API_EXPORT_VIRT(Int, (libname, reload),
     bool, loadLibrary,(const char *libname, bool reload = false));
 
-
+    // BPatch_binaryEdit::staticExecutableLoaded
+    //
+    // Returns true if the original binary opened was a static executable
+    API_EXPORT_VIRT(Int, (),
+            bool, staticExecutableLoaded, ());
     
 };    
 

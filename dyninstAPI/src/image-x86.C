@@ -73,7 +73,12 @@ void checkIfRelocatable(instruction insn, bool &canBeRelocated) {
 // parse this function.
 bool image_func::archIsUnparseable()
 {
-    if( !isInstrumentableByFunctionName() )
+    /* TODO
+     * For the time being, mark any functions in relocatable files as 
+     * uninstrumentable. It should be possible to instrument functions
+     * in relocatable files, but it isn't supported at this time.
+     */
+    if( !isInstrumentableByFunctionName() || img()->isRelocatableObj() )
     {   
         if (!isInstrumentableByFunctionName())
             parsing_printf("... uninstrumentable by func name\n");
@@ -82,8 +87,8 @@ bool image_func::archIsUnparseable()
         endOffset_ = getOffset();
         instLevel_ = UNINSTRUMENTABLE; 
         return true;
-    }           
-    else
+
+    }else
         return false;
 }
 
@@ -169,7 +174,13 @@ bool image_func::writesFPRs(unsigned level) {
         }
 
         // No kids contain writes. See if our code does.
-        const unsigned char* buf = (const unsigned char*)(img()->getPtrToInstruction(getOffset()));
+        const unsigned char* buf = (const unsigned char*)(img()->getPtrToInstruction(getOffset(), this));
+        if( buf == NULL ) {
+            parsing_printf("%s[%d]: failed to get pointer to instruction by offset\n",
+                    FILE__, __LINE__);
+            // if the function cannot be parsed, it is only safe to assume that the FPRs are written
+            return true; 
+        }
         InstructionDecoder d(buf,
                              endOffset_ - getOffset());
         d.setMode(img()->getAddressWidth() == 8);

@@ -1114,23 +1114,20 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
       }
    }
    startup_printf("%s[%d]:  opened file %s (or archive)\n", FILE__, __LINE__, file.c_str());
-#else
+#elif defined(os_linux)
    string file = desc_.file().c_str();
    if( desc_.member().empty() ) {
-        startup_printf("%s[%d]:  opening file %s\n", FILE__, __LINE__, file.c_str());
-        //linkedFile = new Symtab();
-        if(!Symtab::openFile(linkedFile, file)) 
-        {
-            err = true;
-            return;
-        }
+       startup_printf("%s[%d]:  opening file %s\n", FILE__, __LINE__, file.c_str());
+       if( !Symtab::openFile(linkedFile, file) ) {
+           err = true;
+           return;
+       }
    }else{
        startup_printf("%s[%d]: opening archive member: %s(%s)\n", FILE__, __LINE__, file.c_str(),
                desc_.member().c_str());
 
-       Archive *library;
-       if( Archive::openArchive(library, file) ) {
-           if( !library->getMember(linkedFile, const_cast<std::string&>(desc_.member())) ) {
+       if( Archive::openArchive(archive, file) ) {
+           if( !archive->getMember(linkedFile, const_cast<std::string&>(desc_.member())) ) {
                err = true;
                return;
            }
@@ -1139,13 +1136,21 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
            return;
        }
    }
-#endif  
+#else
+   string file = desc_.file().c_str();
+   startup_printf("%s[%d]:  opening file %s\n", FILE__, __LINE__, file.c_str());
+   if( !Symtab::openFile(linkedFile, file) ) {
+       err = true;
+       return;
+   }
+#endif
+
+   err = false;
 
    // fix isSharedObject flag in file descriptor
    desc.setIsShared(!linkedFile->isExec());
    desc_.setIsShared(!linkedFile->isExec());
 
-   err = false;
    name_ = extract_pathname_tail(string(desc.file().c_str()));
 
    //   fprintf(stderr,"img name %s\n",name_.c_str());
@@ -1160,15 +1165,21 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
    imageLen_ = linkedFile->imageLength();
    dataLen_ = linkedFile->dataLength();
 
+   /*
+    * When working with ELF .o's, it is a possibility that the region
+    * which is referred to by imageOffset(), imageLength() could have a zero
+    * length. This is okay for .o's
+    */
+
    // if unable to parse object file (somehow??), try to
    //  notify user/calling process + return....    
-   if (!imageLen_) {
+   if (!imageLen_ && ( linkedFile->isDynamic() || linkedFile->isStaticBinary()) ) {
       string msg = string("Parsing problem with executable file: ") + desc.file();
       statusLine(msg.c_str());
       msg += "\n";
       logLine(msg.c_str());
       err = true;
-      return; 
+      return;
    }
 
    // on some platforms (e.g. Windows) we try to parse
@@ -1198,7 +1209,6 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
    // a vector to hold all created functions until they are properly classified
    	
    pdvector<image_func *> raw_funcs; 
-
 
    // define all of the functions, this also defines all of the modules
    startup_printf("%s[%d]:  before symbolsToFunctions\n", FILE__, __LINE__);
@@ -1733,6 +1743,40 @@ void *image::getPtrToInstruction(Address offset) const
    return NULL;
 }
 
+// returns a pointer to the instruction, which is known to reside
+// in the specified function
+void *image::getPtrToInstruction(Address offset, const image_func *context) const {
+    void *retPtr = NULL;
+
+    /* 
+     * The following method cannot be used to find a Region in
+     * relocatable files using an offset because relocatable files
+     * usually have an address of zero. Because each Region has
+     * an address of zero, findEnclosingRegion returns undefined
+     * results.
+     *
+     * Question: Why not use the second method all the time?
+     * 
+     * This method can be more successful than using the Function
+     * to get the Region as the Region is allowed to be undefined.
+     */
+    if( linkedFile->getObjectType() != obj_RelocatableFile ) {
+        retPtr = getPtrToInstruction(offset);
+    }
+
+    if( retPtr == NULL ) {
+        Region *reg = context->getSymtabFunction()->getRegion();
+
+        // All out of ideas, fail
+        if( reg == NULL ) return NULL;
+
+        retPtr = (void *) ((Address)reg->getPtrToRawData() + 
+                offset - reg->getRegionAddr());
+    }
+
+    return retPtr;
+}
+
 // Address must be in code or data range since some code may end up
 // in the data segment
 bool image::isValidAddress(const Address &where) const{
@@ -1813,3 +1857,15 @@ image_variable* image::createImageVariable(Offset offset, std::string name, int 
     varsByAddr[offset] = ret;
     return ret;
 }
+
+#if !defined(os_linux) && !(defined(arch_x86) || defined(arch_x86_64))
+bool image::findGlobalConstructorFunc() {
+    assert("!Not implemented");
+    return false;
+}
+
+bool image::findGlobalDestructorFunc() {
+    assert("!Not implemented");
+    return false;
+}
+#endif

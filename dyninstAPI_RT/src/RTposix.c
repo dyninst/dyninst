@@ -66,7 +66,15 @@ void RTmutatedBinary_init()
 #endif
 
 #if defined(__GNUC) || defined(__GNUC__)
+#if defined(DYNINST_RT_STATIC_LIB)
+/*
+ * In the static version of the library, constructors cannot be
+ * used to run code at initialization. See DYNINSTglobal_ctors_handler.
+ */
+void libdyninstAPI_RT_init(void);
+#else
 void libdyninstAPI_RT_init(void) __attribute__ ((constructor));
+#endif
 #endif
 
 #if defined (cap_async_events)

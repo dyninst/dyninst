@@ -83,7 +83,7 @@ class Archive : public AnnotatableSparse {
       bool getMember(Symtab *&img, string& member_name);
       bool getMemberByOffset(Symtab *&img, Offset memberOffset);
       bool getMemberByGlobalSymbol(Symtab *&img, string& symbol_name);
-      bool getAllMembers(vector <Symtab *> &members);
+      bool getAllMembers(vector<Symtab *> &members);
       bool isMemberInArchive(string& member_name);
       bool findMemberWithDefinition(Symtab *&obj, string& name);
       std::string name();

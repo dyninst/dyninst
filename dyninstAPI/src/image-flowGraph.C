@@ -248,29 +248,31 @@ bool image::analyzeImage()
     // don't touch this iterator; compute_gap uses it
     set<image_func*,image_func::compare>::const_iterator fit = 
         everyUniqueFunction.begin();
-    while(compute_gap(curAddr,fit,gapStart,gapEnd)) {
-        parsing_printf("[%s] scanning for prologues in gap 0x%lx-0x%lx\n",
-                      FILE__,gapStart, gapEnd);
-        for(curAddr=gapStart; curAddr < gapEnd; ++curAddr) {
-            if(isCode(curAddr) && gap_heuristics(curAddr)) {
-                assert(!funcsByEntryAddr.defines(curAddr));
+    if( fit != everyUniqueFunction.end() ) {
+        while(compute_gap(curAddr,fit,gapStart,gapEnd)) {
+            parsing_printf("[%s] scanning for prologues in gap 0x%lx-0x%lx\n",
+                          FILE__,gapStart, gapEnd);
+            for(curAddr=gapStart; curAddr < gapEnd; ++curAddr) {
+                if(isCode(curAddr) && gap_heuristics(curAddr)) {
+                    assert(!funcsByEntryAddr.defines(curAddr));
 
-                char name[32];
-                snprintf(name, 32, "gap_%lx", curAddr);
-                image_func * gapf = new image_func(name,
-                    curAddr,UINT_MAX,mod,this,FS_GAP);
+                    char name[32];
+                    snprintf(name, 32, "gap_%lx", curAddr);
+                    image_func * gapf = new image_func(name,
+                        curAddr,UINT_MAX,mod,this,FS_GAP);
 
-                if(gapf->parse()) {
-                    recordFunction(gapf);
-                    // one or more functions have been created,
-                    // so the remaining gaps need to be recomputed.
-                    break;
-                } else {
-                    // you'd like to delete gapf, but see commit
-                    // 38e1d30cafa381033d19c11d77b6a801d6a0bb77
+                    if(gapf->parse()) {
+                        recordFunction(gapf);
+                        // one or more functions have been created,
+                        // so the remaining gaps need to be recomputed.
+                        break;
+                    } else {
+                        // you'd like to delete gapf, but see commit
+                        // 38e1d30cafa381033d19c11d77b6a801d6a0bb77
+                    }
                 }
-            }
-        } 
+            } 
+        }
     }
 
     /* as in normal parsing, make sure any gap-discovered functions
@@ -545,7 +547,12 @@ bool image_func::parse()
 #if defined(cap_instruction_api)
     using namespace Dyninst::InstructionAPI;
     typedef IA_IAPI InstructionAdapter_t;
-    const unsigned char* bufferBegin = (const unsigned char*)(img()->getPtrToInstruction(funcBegin));
+    const unsigned char* bufferBegin = (const unsigned char*)(img()->getPtrToInstruction(funcBegin, this));
+    if( bufferBegin == NULL ) {
+        parsing_printf("%s[%d]: failed to get pointer to instruction by offset\n",
+                FILE__, __LINE__);
+        return false;
+    }
     InstructionDecoder dec(bufferBegin, -1 - (Address)(bufferBegin));
     dec.setMode(img()->getAddressWidth() == 8);
     IA_IAPI ah(dec, funcBegin, this);
@@ -754,7 +761,12 @@ bool image_func::buildCFG(
     {
 #if defined(cap_instruction_api)
         using namespace Dyninst::InstructionAPI;
-        const unsigned char* bufferBegin = (const unsigned char*)(img()->getPtrToInstruction(worklist[i]));
+        const unsigned char* bufferBegin = (const unsigned char*)(img()->getPtrToInstruction(worklist[i], this));
+        if( bufferBegin == NULL ) {
+            parsing_printf("%s[%d]: failed to get pointer to instruction by offset\n",
+                    FILE__, __LINE__);
+            return false;
+        }
         InstructionDecoder dec(bufferBegin, -1 - (Address)(bufferBegin));
         dec.setMode(img()->getAddressWidth() == 8);
         InstructionAdapter_t ah(dec, worklist[i], this);

@@ -29,82 +29,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-//Hashing function for dictionary_hashes
+/* A stub file for architecture specific functions of the relocationEntry class */
 
-#if !defined(_symtab_util_h_)
-#define _symtab_util_h_
+#include <Symtab.h>
 
-#include "dyntypes.h"
-#include <string>
+const char *relocationEntry::relType2Str(unsigned long, unsigned /*addressWidth*/) {
+    return "?";
+}
 
-#if defined(_MSC_VER)	
-#include <set>
-#else
-#include <regex.h>
-#include <string>
-#endif
-
-namespace Dyninst{
-namespace SymtabAPI{
-
-
-typedef enum {
-    mangledName = 1,
-    prettyName = 2,
-    typedName = 4,
-    anyName = 7 } NameType;
-
-typedef enum { 
-   lang_Unknown,
-   lang_Assembly,
-   lang_C,
-   lang_CPlusPlus,
-   lang_GnuCPlusPlus,
-   lang_Fortran,
-   lang_Fortran_with_pretty_debug,
-   lang_CMFortran
-} supportedLanguages;
-
-const char *supportedLanguages2Str(supportedLanguages s);
-
-typedef enum {
-   obj_Unknown,
-   obj_SharedLib,
-   obj_Executable,
-   obj_RelocatableFile
-} ObjectType;
-
-typedef enum { 
-   Obj_Parsing,
-               Syms_To_Functions,
-               Build_Function_Lists,
-               No_Such_Function,
-               No_Such_Variable,
-               No_Such_Module,
-               No_Such_Region,
-               No_Such_Symbol,
-	       No_Such_Member,
-	       Not_A_File,
-	       Not_An_Archive,
-               Duplicate_Symbol,
-	       Export_Error,
-	       Invalid_Flags,
-   Bad_Frame_Data,
-   No_Frame_Entry,
-   Frame_Read_Error,
-	       No_Error
-} SymtabError;
-
-typedef struct{
-    void *data;
-    Offset loadaddr;
-    unsigned long size;
-    std::string name; 
-    unsigned segFlags;
-}Segment;
-
-}//namespace SymtabAPI
-}//namespace Dyninst
-
-
-#endif
+unsigned long relocationEntry::getGlobalRelType(unsigned /*addressWidth*/) {
+    return relocationEntry::dynrel;
+}

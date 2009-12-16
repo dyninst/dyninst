@@ -1441,7 +1441,12 @@ int_function *instPoint::findCallee()
    	return NULL;
 	}
 
-   if (!fbtvector.size())
+   /**
+    * Object files and static binaries will not have a function binding table
+    * because the function binding table holds relocations used by the dynamic
+    * linker
+    */
+   if (!fbtvector.size() && obj->isDynamic())
       fprintf(stderr, "%s[%d]:  WARN:  zero func bindings\n", FILE__, __LINE__);
 
    for (unsigned index=0; index< fbtvector.size();index++)
@@ -2572,17 +2577,106 @@ bool process::readAuxvInfo()
 
 std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::string filename)
 {
+    std::map<std::string, BinaryEdit *> retMap;
+
+    std::string fullPath("");
+
+    // First, find the specified library file
+    bool resolved = getResolvedLibraryPath(filename, fullPath);
+
+    // Second, create a set of BinaryEdits for the found library
+    if ( resolved && !fullPath.empty()) {
+        startup_printf("[%s:%u] - Opening dependent file %s\n",
+                       FILE__, __LINE__, filename.c_str());
+
+        Symtab *origSymtab = getMappedObject()->parse_img()->getObject();
+
+        // Dynamic case
+        if (origSymtab->isDynamic()) {
+            BinaryEdit *temp = BinaryEdit::openFile(fullPath);
+            if (temp && temp->getAddressWidth() == getAddressWidth()) {
+                retMap.insert(std::make_pair(fullPath, temp));
+                return retMap;
+            }
+            delete temp;
+        } else {
+            // Static executable case
+
+            /* 
+             * Alright, I apologize for this kludge, but even though the
+             * Archive is opened twice (once here and once by the image class
+             * later on), it is only parsed once because the Archive class
+             * keeps track of all open Archives.
+             *
+             * This is partly to due the fact that Archives are collections of
+             * Symtab objects and their is one Symtab for each BinaryEdit. In 
+             * some sense, an Archive is a collection of BinaryEdits.
+             */
+            Archive *library;
+            Symtab *singleObject;
+            if (Archive::openArchive(library, fullPath)) {
+                std::vector<Symtab *> members;
+                if (library->getAllMembers(members)) {
+                    std::vector <Symtab *>::iterator member_it;
+                    for (member_it = members.begin(); member_it != members.end();
+                         ++member_it) 
+                    {
+                        BinaryEdit *temp = BinaryEdit::openFile(fullPath, (*member_it)->memberName());
+                        if (temp && temp->getAddressWidth() == getAddressWidth()) {
+                            std::string mapName = fullPath + string(":") +
+                                (*member_it)->memberName();
+                            retMap.insert(std::make_pair(mapName, temp));
+                        }else{
+                            if(temp) delete temp;
+                            retMap.clear();
+                            break;
+                        }
+                    }
+
+                    if (retMap.size() > 0) {
+                        origSymtab->addLinkingResource(library);
+                        return retMap;
+                    }
+                    if( library ) delete library;
+                }
+            } else if (Symtab::openFile(singleObject, fullPath)) {
+                BinaryEdit *temp = BinaryEdit::openFile(fullPath);
+                if (temp && temp->getAddressWidth() == getAddressWidth()) {
+                    if( singleObject->isDynamic() || singleObject->isExec() ) {
+                      startup_printf("%s[%d]: cannot load dynamic object(%s) when rewriting a static binary\n", 
+                              FILE__, __LINE__, fullPath.c_str());
+                      std::string msg = std::string("Cannot load a dynamic object when rewriting a static binary");
+                      showErrorCallback(71, msg.c_str());
+
+                      delete singleObject;
+                      delete temp;
+                    }else{
+                        retMap.insert(std::make_pair(fullPath, temp));
+                        return retMap;
+                    }
+                }
+                if(temp) delete temp;
+            }
+        }
+    }
+
+    startup_printf("[%s:%u] - Creation error opening %s\n",
+                   FILE__, __LINE__, filename.c_str());
+    retMap.clear();
+    retMap.insert(std::make_pair("", static_cast < BinaryEdit * >(NULL)));
+    return retMap;
+}
+
+bool BinaryEdit::getResolvedLibraryPath(const std::string &filename, std::string &fullPath) {
     char *libPathStr, *libPath;
     std::vector<std::string> libPaths;
     struct stat dummy;
     FILE *ldconfig;
     char buffer[512];
     char *pos, *key, *val;
-    std::map<std::string, BinaryEdit *> retMap;
 
-    std::string fullPath("");
-
-    // First, find the specified library file
+    // The code that follows relies on this fact
+    fullPath = "";
 
     // prefer qualified file paths
     if (stat(filename.c_str(), &dummy) == 0) {
@@ -2651,74 +2745,7 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
         }
     }
 
-    // Second, create a set of BinaryEdits for the found library
-    if (!fullPath.empty()) {
-        startup_printf("[%s:%u] - Opening dependent file %s\n",
-                       FILE__, __LINE__, filename.c_str());
-
-        Symtab *origSymtab = getMappedObject()->parse_img()->getObject();
-
-        // Dynamic case
-        if (!origSymtab->isStaticBinary()) {
-            BinaryEdit *temp = BinaryEdit::openFile(fullPath);
-            if (temp && temp->getAddressWidth() == getAddressWidth()) {
-                retMap.insert(std::make_pair(fullPath, temp));
-                return retMap;
-            }
-            delete temp;
-        } else {
-            // Static executable case
-
-            // Alright, this is a kludge, but even though the Archive is opened
-            // twice (once here and once by the image class later on), it is
-            // only parsed once because the Archive class keeps track of all
-            // open Archives
-
-            Archive *library;
-            Symtab *singleObject;
-            if (Archive::openArchive(library, fullPath)) {
-                std::vector<Symtab *> members;
-                if (library->getAllMembers(members)) {
-                    std::vector < Symtab * >::iterator member_it;
-                    for (member_it = members.begin(); member_it != members.end();
-                         ++member_it) 
-                    {
-                        BinaryEdit *temp = BinaryEdit::openFile(fullPath,
-                                                          (*member_it)->memberName());
-                        if (temp && temp->getAddressWidth() == getAddressWidth()) {
-                            std::string mapName = fullPath + string(":") +
-                                (*member_it)->memberName();
-                            retMap.insert(std::make_pair(mapName, temp));
-                        }else{
-                            if(temp) delete temp;
-                            retMap.clear();
-                            retMap.insert(std::make_pair("", static_cast<BinaryEdit *>(NULL)));
-                            return retMap;
-                        }
-                    }
-
-                    if (retMap.size() > 0) {
-                        origSymtab->addLinkingResource(library);
-                        return retMap;
-                    }
-                    if( library ) delete library;
-                }
-            } else if (Symtab::openFile(singleObject, fullPath)) {
-                BinaryEdit *temp = BinaryEdit::openFile(fullPath);
-                if (temp && temp->getAddressWidth() == getAddressWidth()) {
-                    retMap.insert(std::make_pair(fullPath, temp));
-                    return retMap;
-                }
-                if(temp) delete temp;
-            }
-        }
-    }
-
-    startup_printf("[%s:%u] - Creation error opening %s\n",
-                   FILE__, __LINE__, filename.c_str());
-    retMap.clear();
-    retMap.insert(std::make_pair("", static_cast < BinaryEdit * >(NULL)));
-    return retMap;
+    return !fullPath.empty();
 }
 
 #endif
@@ -2740,6 +2767,8 @@ bool process::detachForDebugger(const EventRecord &/*crash_event*/) {
 void BinaryEdit::makeInitAndFiniIfNeeded()
 {
     Symtab* linkedFile = getAOut()->parse_img()->getObject();
+    // Disable this for static binaries and .o's for the time being
+    if( !linkedFile->isDynamic() ) return;
     bool foundInit = false;
     bool foundFini = false;
     vector <Function *> funcs;
@@ -2836,4 +2865,30 @@ void BinaryEdit::makeInitAndFiniIfNeeded()
                                       UINT_MAX );
         linkedFile->addSymbol(finiSym);
     }
+}
+
+bool BinaryEdit::archSpecificMultithreadCapable() {
+    /*
+     * The heuristic for this check on Linux is that some symbols provided by
+     * pthreads are only defined when the binary contains pthreads. Therefore,
+     * check for these symbols, and if they are defined in the binary, then
+     * conclude that the binary is multithread capable.
+     */
+    const int NUM_PTHREAD_SYMS = 4;
+    const char *pthreadSyms[NUM_PTHREAD_SYMS] = 
+        { "pthread_cancel", "pthread_once", 
+          "pthread_mutex_unlock", "pthread_mutex_lock" 
+        };
+    if( mobj->isStaticExec() ) {
+        int numSymsFound = 0;
+        for(int i = 0; i < NUM_PTHREAD_SYMS; ++i) {
+            const pdvector<int_function *> *tmpFuncs = 
+                mobj->findFuncVectorByPretty(pthreadSyms[i]);
+            if( tmpFuncs != NULL && tmpFuncs->size() ) numSymsFound++;
+        }
+
+        if( numSymsFound == NUM_PTHREAD_SYMS ) return true;
+    }
+
+    return false;
 }
