@@ -331,7 +331,7 @@ disp_pos)))));
 	r_AL, r_CL, r_DL, r_BL, r_AH, r_CH, r_DH, r_BH
       },
       {
-	r_AX, r_eCX, r_DX, r_eBX, r_eSP, r_eBP, r_eSI, r_eDI
+	r_AX, r_CX, r_DX, r_BX, r_eSP, r_eBP, r_SI, r_DI
       },
       {
 	r_EAX, r_ECX, r_EDX, r_EBX, r_ESP, r_EBP, r_ESI, r_EDI
@@ -725,6 +725,48 @@ disp_pos)))));
 	}
 	
 #endif
+        if(registerID >= r_eAX && registerID <= r_eDI)
+        {
+            if(sizePrefixPresent)
+            {
+                registerID -= 10;
+            }
+            else
+            {
+                registerID += 10;
+            }
+        }
+        if(registerID >= r_rAX && registerID <= r_rDI)
+        {
+            if(sizePrefixPresent)
+            {
+                registerID -= 120;
+            }
+            else if(is32BitMode)
+            {
+                registerID -= 100;
+            }
+            else
+            {
+                registerID += 10;
+            }
+        }
+        if(registerID == r_eSP || registerID == r_eBP)
+        {
+            registerID += 10;
+        }
+        if(registerID == r_rSP || registerID == r_rBP)
+        {
+            if(!is32BitMode)
+            {
+                registerID += 10;
+            }
+            else
+            {
+                registerID -= 110;
+            }
+        }
+        
 	Expression::Ptr op(make_shared(singleton_object_pool<RegisterAST>::construct(registerID)));
 	outputOperands.push_back(op);
 	}

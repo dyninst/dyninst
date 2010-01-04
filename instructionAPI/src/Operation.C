@@ -208,13 +208,13 @@ namespace Dyninst
       {
         thePC.insert(RegisterAST::Ptr(new RegisterAST(RegisterAST::makePC())));
 	pcAndSP.insert(RegisterAST::Ptr(new RegisterAST(RegisterAST::makePC())));
-	pcAndSP.insert(RegisterAST::Ptr(new RegisterAST(r_eSP)));
+	pcAndSP.insert(RegisterAST::Ptr(new RegisterAST(r_ESP)));
 	
-	stackPointer.insert(RegisterAST::Ptr(new RegisterAST(r_eSP)));
-	stackPointerAsExpr.insert(Expression::Ptr(new RegisterAST(r_eSP)));
-	framePointer.insert(RegisterAST::Ptr(new RegisterAST(r_eBP)));
-	spAndBP.insert(RegisterAST::Ptr(new RegisterAST(r_eSP)));
-	spAndBP.insert(RegisterAST::Ptr(new RegisterAST(r_eBP)));
+        stackPointer.insert(RegisterAST::Ptr(new RegisterAST(r_ESP)));
+        stackPointerAsExpr.insert(Expression::Ptr(new RegisterAST(r_ESP)));
+	framePointer.insert(RegisterAST::Ptr(new RegisterAST(r_EBP)));
+        spAndBP.insert(RegisterAST::Ptr(new RegisterAST(r_ESP)));
+	spAndBP.insert(RegisterAST::Ptr(new RegisterAST(r_EBP)));
 	
 	nonOperandRegisterReads = 
 	map_list_of

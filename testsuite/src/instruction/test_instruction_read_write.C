@@ -261,7 +261,7 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
     logerror("FAILED: Expected instructions to end with an invalid instruction, but they didn't");
     return FAILED;
   }
-  RegisterAST::Ptr eax(new RegisterAST(r_eAX));
+  RegisterAST::Ptr eax(new RegisterAST(r_EAX));
   RegisterAST::Ptr adjust(new RegisterAST(r_AF));
   RegisterAST::Ptr zero(new RegisterAST(r_ZF));
   RegisterAST::Ptr overflow(new RegisterAST(r_OF));
@@ -277,8 +277,8 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
   retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), expectedRead, expectedWritten));
   decodedInsns.pop_front();
   
-  RegisterAST::Ptr rax(new RegisterAST(r_rAX));
-  RegisterAST::Ptr esp(new RegisterAST(r_eSP));
+  RegisterAST::Ptr rax(new RegisterAST(r_EAX));
+  RegisterAST::Ptr esp(new RegisterAST(r_ESP));
   expectedRead.clear();
   expectedWritten.clear();
   expectedRead = list_of(esp)(rax);

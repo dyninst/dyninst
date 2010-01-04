@@ -535,7 +535,7 @@ namespace Dyninst
     }
     Expression::Ptr Instruction::makeReturnExpression() const
     {
-      Expression::Ptr stackPtr = Expression::Ptr(new RegisterAST(r_rSP));
+      Expression::Ptr stackPtr = Expression::Ptr(new RegisterAST(r_ESP));
       Expression::Ptr retLoc = Expression::Ptr(new Dereference(stackPtr, u32));
       return retLoc;
     }
