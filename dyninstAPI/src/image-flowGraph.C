@@ -181,7 +181,7 @@ bool image::analyzeImage()
 	{
 	  // Every parallel region has the image_func that contains the
 	  //   region associated with it 
-	  image_func * imf = parReg->getAssociatedFunc();
+            image_func * imf = const_cast<image_func*>(parReg->getAssociatedFunc());
 	  
 	  // Returns pointers to all potential image_funcs that correspond
 	  //   to what could be the parent OpenMP function for the region 
