@@ -85,7 +85,20 @@ else
    AC_ARG_WITH(libelf-libdir,
             [AS_HELP_STRING([--with-libelf-libdir],[LIBELF library directory])],
             [LIBELF_LIB_DIR="${withval}";],)
-   PD_CHECK_INC_DIR($LIBELF_INC_DIR, [libelf.h])
+  
+   CXXFLAGS_HOLD=$CXXFLAGS;
+   CXXFLAGS="$CXXFLAGS -I$LIBELF_INC_DIR";
+   CPPFLAGS_HOLD=$CPPFLAGS;
+   CPPFLAGS="$CPPFLAGS -I$LIBELF_INC_DIR";
+                        
+   AC_CHECK_HEADER([$LIBELF_INC_DIR/libelf.h], [AC_MSG_NOTICE(ELF include directory: $LIBELF_INC_DIR)],
+        [CXXFLAGS="$CXXFLAGS -I$LIBELF_INC_DIR/libelf";
+         CPPFLAGS="$CPPFLAGS -I$LIBELF_INC_DIR/libelf";
+         AC_CHECK_HEADER([$LIBELF_INC_DIR/libelf/libelf.h],
+                         [LIBELF_INC_DIR+="/libelf";AC_MSG_NOTICE(ELF include directory: $LIBELF_INC_DIR)],
+                         [AC_ERROR(couldn't find libelf.h)])])
+   CXXFLAGS=$CXXFLAGS_HOLD;
+   CPPFLAGS=$CPPFLAGS_HOLD;
    PD_CHECK_LIB_DIR($LIBELF_LIB_DIR,[elf],[elf_memory])
    PD_CHECK_LIB_TYPE($LIBELF_LIB_DIR, elf)
    LIBELF_STATIC="$LIB_TYPE_STATIC"
@@ -106,7 +119,21 @@ else
    AC_ARG_WITH(libdwarf-libdir,
             [AS_HELP_STRING([--with-libdwarf-libdir],[LIBDWARF library directory])],
             [LIBDWARF_LIB_DIR="${withval}";],)
-   PD_CHECK_INC_DIR($LIBDWARF_INC_DIR,[libdwarf.h])
+   
+   CXXFLAGS_HOLD=$CXXFLAGS;
+   CXXFLAGS="$CXXFLAGS -I$LIBDWARF_INC_DIR";
+   CPPFLAGS_HOLD=$CPPFLAGS;
+   CPPFLAGS="$CPPFLAGS -I$LIBDWARF_INC_DIR";
+                        
+   AC_CHECK_HEADER([$LIBDWARF_INC_DIR/libdwarf.h], [AC_MSG_NOTICE(DWARF include directory: $LIBDWARF_INC_DIR)],
+        [CXXFLAGS="$CXXFLAGS -I$LIBDWARF_INC_DIR/libdwarf";
+         CPPFLAGS="$CPPFLAGS -I$LIBDWARF_INC_DIR/libdwarf";
+         AC_CHECK_HEADER([$LIBDWARF_INC_DIR/libdwarf/libdwarf.h],
+                         [LIBDWARF_INC_DIR+="/libdwarf";AC_MSG_NOTICE(DWARF include directory: $LIBDWARF_INC_DIR)],
+                         [AC_ERROR(couldn't find libdwarf.h)])])
+   CXXFLAGS=$CXXFLAGS_HOLD;
+   CPPFLAGS=$CPPFLAGS_HOLD;
+
    PD_CHECK_LIB_DIR($LIBDWARF_LIB_DIR,[dwarf],[dwarf_add_arange],$LIBDWARF_LIB_DIR,[-lelf])
    PD_CHECK_LIB_TYPE($LIBDWARF_LIB_DIR, dwarf)
    LIBDWARF_STATIC="$LIB_TYPE_STATIC"
