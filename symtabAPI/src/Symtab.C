@@ -1531,7 +1531,7 @@ SYMTAB_EXPORT bool Symtab::updateFuncBindingTable(Offset stub_addr, Offset plt_a
             stub_idx = i;
         if (plt_addr  == relocation_table_[i].target_addr())
             plt_idx = i;
-        if (stub_addr >= 0 && plt_addr >= 0)
+        if (stub_idx >= 0 && plt_idx >= 0)
             break;
     }
     if (stub_idx >= 0 && plt_idx >= 0) {
