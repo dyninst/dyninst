@@ -181,9 +181,9 @@ bool image_func::writesFPRs(unsigned level) {
             // if the function cannot be parsed, it is only safe to assume that the FPRs are written
             return true; 
         }
-        InstructionDecoder d(buf,
+        dyn_detail::boost::shared_ptr<InstructionDecoder> d = makeDecoder(Dyninst::InstructionAPI::x86, buf,
                              endOffset_ - getOffset());
-        d.setMode(img()->getAddressWidth() == 8);
+        d->setMode(img()->getAddressWidth() == 8);
         Instruction::Ptr i;
         static RegisterAST::Ptr st0(new RegisterAST(r_ST0));
         static RegisterAST::Ptr st1(new RegisterAST(r_ST1));
@@ -193,7 +193,7 @@ bool image_func::writesFPRs(unsigned level) {
         static RegisterAST::Ptr st5(new RegisterAST(r_ST5));
         static RegisterAST::Ptr st6(new RegisterAST(r_ST6));
         static RegisterAST::Ptr st7(new RegisterAST(r_ST7));
-        while (i = d.decode()) {
+        while (i = d->decode()) {
             if(i->isWritten(st0) ||
                i->isWritten(st1) ||
                i->isWritten(st2) ||

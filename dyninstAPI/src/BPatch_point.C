@@ -301,19 +301,9 @@ const BPatch_memoryAccess *BPatch_point::getMemoryAccessInt()
 #endif
 }
 #if defined(cap_instruction_api)
-#if defined(arch_x86)
-static const unsigned maxInsnSize = 15;
-#else
-// RISC default = 32-bit instructions
-static const unsigned maxInsnSize = 4;
-#endif
 InstructionAPI::Instruction::Ptr BPatch_point::getInsnAtPointInt()
 {
-  using namespace InstructionAPI;
-  InstructionDecoder d(static_cast<const unsigned char*>(point->proc()->getPtrToInstruction(point->addr())), maxInsnSize);
-  d.setMode(point->proc()->getAddressWidth() == 8);
-  Instruction::Ptr i = d.decode();
-  return i;
+    return point->insn();
 }
 #else
 InstructionAPI::Instruction::Ptr BPatch_point::getInsnAtPointInt()

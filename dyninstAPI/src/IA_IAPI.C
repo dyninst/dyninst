@@ -48,24 +48,24 @@ using namespace Dyninst;
 using namespace InstructionAPI;
 
 
-IA_IAPI::IA_IAPI(InstructionDecoder dec_, Address where_,
+IA_IAPI::IA_IAPI(dyn_detail::boost::shared_ptr<Dyninst::InstructionAPI::InstructionDecoder> dec_, Address where_,
                 image_func* f)
     : InstructionAdapter(where_, f), dec(dec_),
     validCFT(false), cachedCFT(0)
 {
     hascftstatus.first = false;
     tailCall.first = false;
-    boost::tuples::tie(curInsnIter, boost::tuples::ignore) = allInsns.insert(std::make_pair(current, dec.decode()));
+    boost::tuples::tie(curInsnIter, boost::tuples::ignore) = allInsns.insert(std::make_pair(current, dec->decode()));
 }
 
-IA_IAPI::IA_IAPI(InstructionDecoder dec_, Address where_,
+IA_IAPI::IA_IAPI(dyn_detail::boost::shared_ptr<Dyninst::InstructionAPI::InstructionDecoder> dec_, Address where_,
                 image * im)
     : InstructionAdapter(where_, im), dec(dec_),
     validCFT(false), cachedCFT(0)
 {
     hascftstatus.first = false;
     tailCall.first = false;
-    boost::tuples::tie(curInsnIter, boost::tuples::ignore) = allInsns.insert(std::make_pair(current, dec.decode()));
+    boost::tuples::tie(curInsnIter, boost::tuples::ignore) = allInsns.insert(std::make_pair(current, dec->decode()));
 }
 
 void IA_IAPI::advance()
@@ -77,7 +77,7 @@ void IA_IAPI::advance()
     }
     InstructionAdapter::advance();
     current += curInsn()->size();
-    boost::tuples::tie(curInsnIter, boost::tuples::ignore) = allInsns.insert(std::make_pair(current, dec.decode()));
+    boost::tuples::tie(curInsnIter, boost::tuples::ignore) = allInsns.insert(std::make_pair(current, dec->decode()));
     if(!curInsn())
     {
         parsing_printf("......WARNING: after advance at 0x%lx, curInsn() NULL\n", current);
@@ -370,7 +370,7 @@ bool IA_IAPI::isMovAPSTable(std::vector<std::pair< Address, EdgeTypeEnum > >& ou
      **/
     parsing_printf("\tChecking for movaps table at 0x%lx...\n", current);
     std::set<Address> found;
-    const unsigned char *bufferBegin = 
+    const unsigned char *bufferBegin =
         (const unsigned char *)img->getPtrToInstruction(current, context);
     if( bufferBegin == NULL ) {
         parsing_printf("%s[%d]: failed to get pointer to instruction by offset\n",
@@ -378,7 +378,9 @@ bool IA_IAPI::isMovAPSTable(std::vector<std::pair< Address, EdgeTypeEnum > >& ou
         return false;
     }
 
-    InstructionDecoder d(bufferBegin, (img->imageOffset() + img->imageLength()) - current);
+    InstructionDecoder& d(*dec);
+    d.resetBuffer((const unsigned char*)(img->getPtrToInstruction(current)),
+                          (img->imageOffset() + img->imageLength()) - current);
     d.setMode(img->getAddressWidth() == 8);
     Address cur = current;
     unsigned last_insn_size = 0;
@@ -643,8 +645,9 @@ Address IA_IAPI::findThunkInBlock(image_basicBlock* curBlock, Address& thunkOffs
         return false;
     }
     
-    InstructionDecoder dec(buf, curBlock->getSize() + 16);
-    dec.setMode(img->getAddressWidth() == 8);
+    dyn_detail::boost::shared_ptr<InstructionDecoder> dec =
+            makeDecoder(img->getArch(), buf, curBlock->getSize() + 16);
+    dec->setMode(img->getAddressWidth() == 8);
     IA_IAPI * blockptr = NULL;
     if(context) 
         blockptr = new IA_IAPI(dec,curBlock->firstInsnOffset(),context);
@@ -793,6 +796,7 @@ boost::tuple<Instruction::Ptr,
         foundMaxSwitch = false;
         foundCondBranch = false;
         const unsigned char* buf =
+<<<<<<< HEAD:dyninstAPI/src/IA_IAPI.C
                 (const unsigned char*)(img->getPtrToInstruction(curBlk->firstInsnOffset(), context));
         if( buf == NULL ) {
             parsing_printf("%s[%d]: failed to get pointer to instruction by offset\n",
@@ -801,9 +805,15 @@ boost::tuple<Instruction::Ptr,
         }
         InstructionDecoder dec(buf, curBlk->getSize());
         dec.setMode(img->getAddressWidth() == 8);
+=======
+                (const unsigned char*)(img->getPtrToInstruction(curBlk->firstInsnOffset()));
+        dyn_detail::boost::shared_ptr<InstructionDecoder> dec =
+                makeDecoder(img->getArch(), buf, curBlk->getSize());
+        dec->setMode(img->getAddressWidth() == 8);
+>>>>>>> Convert InstructionDecoder to factory-based, shared pointer construction, taking an architecture enum to determine derived type.:dyninstAPI/src/IA_IAPI.C
         Instruction::Ptr i;
         Address curAdr = curBlk->firstInsnOffset();
-        while(i = dec.decode())
+        while(i = dec->decode())
         {
             if(i->getCategory() == c_CompareInsn)
             // check for cmp
@@ -1129,10 +1139,11 @@ bool IA_IAPI::isRealCall() const
 
     // We're decoding two instructions: possible move and possible return.
     // Check for move from the stack pointer followed by a return.
-    InstructionDecoder targetChecker(target, 32);
-    targetChecker.setMode(img->getAddressWidth() == 8);
-    Instruction::Ptr thunkFirst = targetChecker.decode();
-    Instruction::Ptr thunkSecond = targetChecker.decode();
+    dyn_detail::boost::shared_ptr<Dyninst::InstructionAPI::InstructionDecoder> targetChecker =
+            makeDecoder(img->getArch(), target, 32);
+    targetChecker->setMode(img->getAddressWidth() == 8);
+    Instruction::Ptr thunkFirst = targetChecker->decode();
+    Instruction::Ptr thunkSecond = targetChecker->decode();
     parsing_printf("... checking call target for thunk, insns are %s, %s\n", thunkFirst->format().c_str(),
                    thunkSecond->format().c_str());
     if(thunkFirst && (thunkFirst->getOperation().getID() == e_mov))
@@ -1308,10 +1319,10 @@ bool IA_IAPI::isStackFramePreamble(int& /*frameSize*/) const
 {
     if(savesFP())
     {
-        InstructionDecoder tmp(dec);
+        dyn_detail::boost::shared_ptr<InstructionDecoder> tmp(dec);
         std::vector<Instruction::Ptr> nextTwoInsns;
-        nextTwoInsns.push_back(tmp.decode());
-        nextTwoInsns.push_back(tmp.decode());
+        nextTwoInsns.push_back(tmp->decode());
+        nextTwoInsns.push_back(tmp->decode());
         if(isFrameSetupInsn(nextTwoInsns[0]) ||
             isFrameSetupInsn(nextTwoInsns[1]))
         {

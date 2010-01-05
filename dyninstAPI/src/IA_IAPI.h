@@ -40,9 +40,9 @@
 class IA_IAPI : public InstructionAdapter
 {
     public:
-        IA_IAPI(Dyninst::InstructionAPI::InstructionDecoder dec_,
+        IA_IAPI(dyn_detail::boost::shared_ptr<Dyninst::InstructionAPI::InstructionDecoder> dec_,
                 Address start_, image_func* f);
-        IA_IAPI(Dyninst::InstructionAPI::InstructionDecoder dec_,
+        IA_IAPI(dyn_detail::boost::shared_ptr<Dyninst::InstructionAPI::InstructionDecoder> dec_,
                 Address start_, image * im);
         Dyninst::InstructionAPI::Instruction::Ptr getInstruction();
     
@@ -107,7 +107,7 @@ class IA_IAPI : public InstructionAdapter
 
 
 
-        Dyninst::InstructionAPI::InstructionDecoder dec;
+        dyn_detail::boost::shared_ptr<Dyninst::InstructionAPI::InstructionDecoder> dec;
         std::map<Address, Dyninst::InstructionAPI::Instruction::Ptr> allInsns;
         Dyninst::InstructionAPI::Instruction::Ptr curInsn() const;
         std::map<Address, Dyninst::InstructionAPI::Instruction::Ptr>::const_iterator curInsnIter;

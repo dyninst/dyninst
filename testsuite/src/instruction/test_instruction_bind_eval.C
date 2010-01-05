@@ -123,17 +123,18 @@ test_results_t test_instruction_bind_eval_Mutator::executeTest()
   };
   unsigned int size = 7;
   unsigned int expectedInsns = 2;
-  InstructionDecoder d(buffer, size);
+  dyn_detail::boost::shared_ptr<InstructionDecoder> d =
+          makeDecoder(Dyninst::InstructionAPI::x86, buffer, size);
 #if defined(arch_x86_64_test)
-  d.setMode(true);
+  d->setMode(true);
 #else
-  d.setMode(false);
+  d->setMode(false);
 #endif
   std::vector<Instruction::Ptr> decodedInsns;
   Instruction::Ptr i;
   do
   {
-    i = d.decode();
+    i = d->decode();
     decodedInsns.push_back(i);
   }
   while(i && i->isValid());

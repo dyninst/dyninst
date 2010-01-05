@@ -426,6 +426,7 @@ class image : public codeRange, public InstructionSource {
    // This method is invoked after parsing a function to record it in tables
    // and to update other symtab-level data structures, like mangled names
    void recordFunction(image_func *);
+    Dyninst::InstructionAPI::archID getArch() { return arch; }
 
    // This method is invoked to find the global constructors function and add a
    // symbol for the function if the image has no symbols
@@ -583,7 +584,7 @@ class image : public codeRange, public InstructionSource {
    int refCount;
    imageParseState_t parseState_;
    bool parseGaps_;
-
+   Dyninst::InstructionAPI::archID arch;
    vector< pair<image_basicBlock *, image_func *> > reparse_shared;
 };
 

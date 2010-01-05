@@ -86,7 +86,7 @@ class image_parRegion : public codeRange {
 
   void setRegionType(parRegType rt); 
 
-  image_func * getAssociatedFunc();
+  const image_func * getAssociatedFunc() const;
 
   void setParentFunc(image_func * parentFunc){parentIf_ = parentFunc;}
   image_func * getParentFunc(){return parentIf_;}

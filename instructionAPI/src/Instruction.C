@@ -49,70 +49,7 @@ namespace Dyninst
   namespace InstructionAPI
   {
 
-    bool readsOperand(unsigned int opsema, unsigned int i)
-    {
-      switch(opsema) {
-      case s1R2R:
-	return (i == 0 || i == 1);
-      case s1R:
-      case s1RW:
-	return i == 0;
-      case s1W:
-	return false;
-      case s1W2RW:
-      case s1W2R:   // second operand read, first operand written (e.g. mov)
-	return i == 1;
-      case s1RW2R:  // two operands read, first written (e.g. add)
-      case s1RW2RW: // e.g. xchg
-      case s1R2RW:
-	return i == 0 || i == 1;
-      case s1W2R3R: // e.g. imul
-      case s1W2RW3R: // some mul
-      case s1W2R3RW: // (stack) push & pop
-	return i == 1 || i == 2;
-      case s1W2W3R: // e.g. les
-	return i == 2;
-      case s1RW2R3R: // shld/shrd
-      case s1RW2RW3R: // [i]div, cmpxch8b
-	return i == 0 || i == 1 || i == 2;
-	break;
-      case sNONE:
-      default:
-	return false;
-      }
-      
-    }
-      
-    bool writesOperand(unsigned int opsema, unsigned int i)
-    {
-      switch(opsema) {
-      case s1R2R:
-      case s1R:
-	return false;
-      case s1RW:
-      case s1W:
-      case s1W2R:   // second operand read, first operand written (e.g. mov)
-      case s1RW2R:  // two operands read, first written (e.g. add)
-      case s1W2R3R: // e.g. imul
-      case s1RW2R3R: // shld/shrd
-	return i == 0;
-      case s1R2RW:
-	return i == 1;
-      case s1W2RW:
-      case s1RW2RW: // e.g. xchg
-      case s1W2RW3R: // some mul
-      case s1W2W3R: // e.g. les
-      case s1RW2RW3R: // [i]div, cmpxch8b
-	return i == 0 || i == 1;
-      case s1W2R3RW: // (stack) push & pop
-	return i == 0 || i == 2;
-      case sNONE:
-      default:
-	return false;
-      }
-    }    
-
-    INSTRUCTION_EXPORT Instruction::Instruction(Operation::Ptr what, 
+    INSTRUCTION_EXPORT Instruction::Instruction(Operation::Ptr what,
 			     size_t size, const unsigned char* raw)
       : m_InsnOp(what), m_Valid(true)
     {
@@ -146,43 +83,14 @@ namespace Dyninst
     
     void Instruction::decodeOperands() const
     {
-      static InstructionDecoder d;
-      const unsigned char* buffer = reinterpret_cast<const unsigned char*>(&(m_RawInsn.small_insn));
-      if(m_size > sizeof(unsigned int)) {
-	buffer = m_RawInsn.large_insn;
-      }
-      std::vector<Expression::Ptr> opSrc;
-      d.resetBuffer(buffer, size());
-      d.doIA32Decode();
-      d.decodeOperands(opSrc);
-      m_Operands.reserve(opSrc.size());
-      unsigned int opsema = d.decodedInstruction->getEntry()->opsema & 0xFF;
-      
-      for(unsigned int i = 0;
-	  i < opSrc.size();
-	  ++i)
-      {
-	m_Operands.push_back(Operand(opSrc[i], readsOperand(opsema, i), writesOperand(opsema, i)));
-      }
+        const unsigned char* buffer = reinterpret_cast<const unsigned char*>(&(m_RawInsn.small_insn));
+        if(m_size > sizeof(unsigned int)) {
+            buffer = m_RawInsn.large_insn;
+        }
+        dyn_detail::boost::shared_ptr<InstructionDecoder> d = makeDecoder(arch_decoded_from, buffer, size());
+        d->doDelayedDecode(this);
     }
     
-    INSTRUCTION_EXPORT Instruction::Instruction(Operation::Ptr what, 
-			     const std::vector<Expression::Ptr>& operandSource,
-			     size_t size, const unsigned char* raw, unsigned int opsema)
-      : m_InsnOp(what), m_Valid(true)
-    {
-      std::vector<Expression::Ptr>::const_iterator curVC;
-      m_Operands.reserve(operandSource.size());
-      
-      for(unsigned int i = 0;
-	  i < operandSource.size();
-	  ++i)
-      {
-	m_Operands.push_back(Operand(operandSource[i], readsOperand(opsema, i), writesOperand(opsema, i)));
-      }
-      copyRaw(size, raw);
-      
-    }
     INSTRUCTION_EXPORT Instruction::Instruction() :
       m_Valid(false), m_size(0)
     {

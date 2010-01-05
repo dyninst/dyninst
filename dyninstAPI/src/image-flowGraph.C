@@ -100,7 +100,9 @@ bool image::analyzeImage()
 #if defined(arch_x86_64)
     ia32_set_mode_64(getObject()->getAddressWidth() == 8);
 #endif
-  
+#if defined(arch_x86) || defined (arch_x86_64)
+    arch = Dyninst::InstructionAPI::x86;
+#endif
   image_func *pdf;
   pdmodule *mod = NULL;
 
@@ -409,8 +411,9 @@ bool image::gap_heuristic_GCC(Address addr)
     if (!isStackFramePrecheck_gcc(bufferBegin))
         return false;
 
-    InstructionDecoder dec(bufferBegin, -1 - (Address)(bufferBegin));
-    dec.setMode(getAddressWidth() == 8);
+    dyn_detail::boost::shared_ptr<InstructionDecoder> dec =
+            makeDecoder(arch, bufferBegin, -1 - (Address)(bufferBegin));
+    dec->setMode(getAddressWidth() == 8);
     IA_IAPI ah(dec, addr, this);
 #else
     typedef IA_InstrucIter InstructionAdapter_t;
@@ -435,8 +438,9 @@ bool image::gap_heuristic_MSVS(Address addr)
     if (!isStackFramePrecheck_msvs(bufferBegin))
         return false;
 
-    InstructionDecoder dec(bufferBegin, -1 - (Address)(bufferBegin));
-    dec.setMode(getAddressWidth() == 8);
+    dyn_detail::boost::shared_ptr<InstructionDecoder> dec =
+            makeDecoder(arch, bufferBegin, -1 - (Address)(bufferBegin));
+    dec->setMode(getAddressWidth() == 8);
     IA_IAPI ah(dec, addr, this);
 #else
     typedef IA_InstrucIter InstructionAdapter_t;
@@ -553,8 +557,9 @@ bool image_func::parse()
                 FILE__, __LINE__);
         return false;
     }
-    InstructionDecoder dec(bufferBegin, -1 - (Address)(bufferBegin));
-    dec.setMode(img()->getAddressWidth() == 8);
+    dyn_detail::boost::shared_ptr<InstructionDecoder> dec =
+            makeDecoder(img()->getArch(), bufferBegin, -1 - (Address)(bufferBegin));
+    dec->setMode(img()->getAddressWidth() == 8);
     IA_IAPI ah(dec, funcBegin, this);
 #else
     typedef IA_InstrucIter InstructionAdapter_t;
@@ -761,6 +766,7 @@ bool image_func::buildCFG(
     {
 #if defined(cap_instruction_api)
         using namespace Dyninst::InstructionAPI;
+<<<<<<< HEAD:dyninstAPI/src/image-flowGraph.C
         const unsigned char* bufferBegin = (const unsigned char*)(img()->getPtrToInstruction(worklist[i], this));
         if( bufferBegin == NULL ) {
             parsing_printf("%s[%d]: failed to get pointer to instruction by offset\n",
@@ -769,6 +775,12 @@ bool image_func::buildCFG(
         }
         InstructionDecoder dec(bufferBegin, -1 - (Address)(bufferBegin));
         dec.setMode(img()->getAddressWidth() == 8);
+=======
+        const unsigned char* bufferBegin = (const unsigned char*)(img()->getPtrToInstruction(worklist[i]));
+        dyn_detail::boost::shared_ptr<InstructionDecoder> dec =
+                makeDecoder(img()->getArch(), bufferBegin, -1 - (Address)(bufferBegin));
+        dec->setMode(img()->getAddressWidth() == 8);
+>>>>>>> Convert InstructionDecoder to factory-based, shared pointer construction, taking an architecture enum to determine derived type.:dyninstAPI/src/image-flowGraph.C
         InstructionAdapter_t ah(dec, worklist[i], this);
 #else        
         InstrucIter iter(worklist[i],this);

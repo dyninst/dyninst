@@ -160,10 +160,12 @@ void image_basicBlock::summarizeBlockLivenessInfo()
 #if defined(cap_instruction_api)
    using namespace Dyninst::InstructionAPI;
    Address current = firstInsnOffset();
-   InstructionDecoder decoder(reinterpret_cast<const unsigned char*>(getPtrToInstruction(firstInsnOffset())), 
-                              getSize());
-   decoder.setMode(getFirstFunc()->img()->getAddressWidth() == 8);
-   Instruction::Ptr curInsn = decoder.decode();
+   dyn_detail::boost::shared_ptr<InstructionDecoder> decoder =
+           makeDecoder(getFirstFunc()->img()->getArch(),
+                       reinterpret_cast<const unsigned char*>(getPtrToInstruction(firstInsnOffset())),
+                       getSize());
+   decoder->setMode(getFirstFunc()->img()->getAddressWidth() == 8);
+   Instruction::Ptr curInsn = decoder->decode();
    while(curInsn && curInsn->isValid())
    {
      ReadWriteInfo curInsnRW;
@@ -187,7 +189,7 @@ void image_basicBlock::summarizeBlockLivenessInfo()
      liveness_cerr << "Defined " << def << endl;*/
 
       current += curInsn->size();
-      curInsn = decoder.decode();
+      curInsn = decoder->decode();
    }
 #else    
    InstrucIter ii(this);
@@ -330,15 +332,16 @@ void instPoint::calcLiveness() {
    const unsigned char* insnBuffer = 
       reinterpret_cast<const unsigned char*>(block()->origInstance()->getPtrToInstruction(blockBegin));
     
-   InstructionDecoder decoder(insnBuffer, block()->origInstance()->getSize());
-   decoder.setMode(proc()->getAddressWidth() == 8);
+   dyn_detail::boost::shared_ptr<InstructionDecoder> decoder =
+           makeDecoder(func()->ifunc()->img()->getArch(), insnBuffer, block()->origInstance()->getSize());
+   decoder->setMode(proc()->getAddressWidth() == 8);
    Address curInsnAddr = blockBegin;
    do
    {
      ReadWriteInfo rw;
      if(!block()->llb()->cachedLivenessInfo.getLivenessInfo(curInsnAddr, func()->ifunc(), rw))
      {
-       Instruction::Ptr tmp = decoder.decode(insnBuffer);
+       Instruction::Ptr tmp = decoder->decode(insnBuffer);
        rw = calcRWSets(tmp, block()->llb(), width);
        block()->llb()->cachedLivenessInfo.insertInstructionInfo(curInsnAddr, rw, func()->ifunc());
      }
@@ -382,7 +385,7 @@ void instPoint::calcLiveness() {
       }
       else
       {
-	Instruction::Ptr tmp = decoder.decode((const unsigned char*)(block()->origInstance()->getPtrToInstruction(*current)));
+	Instruction::Ptr tmp = decoder->decode((const unsigned char*)(block()->origInstance()->getPtrToInstruction(*current)));
 	rwAtCurrent = calcRWSets(tmp, block()->llb(), width);
 	assert(!"SERIOUS ERROR: read/write info cache state inconsistent");
 	liveness_printf("%s[%d] Calculating liveness for iP 0x%lx, insn at 0x%lx\n",
@@ -472,12 +475,14 @@ bitArray instPoint::liveRegisters(callWhen when) {
     {
 #if defined(cap_instruction_api)
       using namespace Dyninst::InstructionAPI;
+      static const int maxInsnSize = 16;
       
-      InstructionDecoder decoder;
-      decoder.setMode(proc()->getAddressWidth() == 8);
       const unsigned char* bufferToDecode =
-      reinterpret_cast<const unsigned char*>(proc()->getPtrToInstruction(addr()));
-      Instruction::Ptr currentInsn = decoder.decode(bufferToDecode);
+              reinterpret_cast<const unsigned char*>(proc()->getPtrToInstruction(addr()));
+      dyn_detail::boost::shared_ptr<InstructionDecoder> decoder =
+              makeDecoder(func()->ifunc()->img()->getArch(), bufferToDecode, maxInsnSize);
+      decoder->setMode(proc()->getAddressWidth() == 8);
+      Instruction::Ptr currentInsn = decoder->decode(bufferToDecode);
 
       curInsnRW = calcRWSets(currentInsn, block()->llb(), width);
 

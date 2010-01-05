@@ -1067,7 +1067,8 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
    varsByAddr(addrHash4),
    refCount(1),
    parseState_(unparsed),
-   parseGaps_(parseGaps)
+   parseGaps_(parseGaps),
+   arch(Dyninst::InstructionAPI::unknown)
 {
 
 #if defined(os_aix)
