@@ -82,13 +82,13 @@ test_results_t test_instruction_profile_Mutator::executeTest()
     std::vector<Instruction::Ptr > decodedInsns;
     Instruction::Ptr i;
     dyn_detail::boost::shared_ptr<InstructionDecoder> d =
-            makeDecoder(Dyninst::InstructionAPI::x86, decodeBase, (*curReg)->getRegionSize() - 16);
+            makeDecoder(Dyninst::InstructionAPI::x86, decodeBase, (*curReg)->getRegionSize());
     // 32-bit libc; force to 32-bit mode
     d->setMode(false);
     long offset = 0;
     
     // simulate parsing via vector-per-basic-block
-    while(offset < (*curReg)->getRegionSize() - 16)
+    while(offset < (*curReg)->getRegionSize() - maxInstructionLength)
     {
       i = d->decode(decodeBase + offset);
       total_count++;
