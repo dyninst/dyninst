@@ -3,6 +3,7 @@
 # Not intended to be a seperate makefile, but to be used in conjunction with
 # higher level, platform-specific makefiles in the build directories
 
+
 RM = rm -f
 RMDIR ?= rmdir
 M_GCC ?= purify $(GCC)
@@ -242,25 +243,33 @@ testlibs:
 #######################################################################
 
 MINIMUM_BUILD_FILTER = %_max %_high %_low
+BUILD_FILTER =
+ifdef SKIP_BUILD_RTLIB_32
+	BUILD_FILTER += %_32_max %_32_high %_32_low %_32_none
+endif
+
 ifneq ($(wildcard ../src/dyninst), )
-mutatees: $(dyninst_SOLO_MUTATEES)
-mutatees_minimum: $(filter-out $(MINIMUM_BUILD_FILTER), $(dyninst_SOLO_MUTATEES))
+mutatees: $(filter-out $(BUILD_FILTER), $(dyninst_SOLO_MUTATEES))
+mutatees_minimum: $(filter-out $(BUILD_FILTER), $(filter-out $(MINIMUM_BUILD_FILTER), $(dyninst_SOLO_MUTATEES)))
 mutators: $(dyninst_MUTATORS_SO)
 components: $(LIBDYNINSTCOMP)
-testlibs: $(DYNINST_TESTLIBS) $(DYNINST_TESTLIBS_ABI)
+testlibs: $(DYNINST_TESTLIBS)
+ifndef SKIP_BUILD_RTLIB_32
+testlibs: $(DYNINST_TESTLIBS_ABI)
+endif
 endif
 
 ifneq ($(wildcard ../src/symtab), )
-mutatees: $(symtab_SOLO_MUTATEES)
-mutatees_minimum: $(filter-out $(MINIMUM_BUILD_FILTER), $(symtab_SOLO_MUTATEES))
+mutatees: $(filter-out $(BUILD_FILTER), $(symtab_SOLO_MUTATEES))
+mutatees_minimum: $(filter-out $(BUILD_FILTER), $(filter-out $(MINIMUM_BUILD_FILTER), $(symtab_SOLO_MUTATEES)))
 mutators: $(symtab_MUTATORS_SO)
 components: $(LIBSYMTABCOMP)
 testlibs:
 endif
 
 ifneq ($(wildcard ../src/instruction), )
-mutatees: $(instruction_SOLO_MUTATEES)
-mutatees_minimum: $(filter-out $(MINIMUM_BUILD_FILTER), $(instruction_SOLO_MUTATEES))
+mutatees: $(filter-out $(BUILD_FILTER), $(instruction_SOLO_MUTATEES))
+mutatees_minimum: $(filter-out $(BUILD_FILTER), $(filter-out $(MINIMUM_BUILD_FILTER), $(instruction_SOLO_MUTATEES)))
 mutators: $(instruction_MUTATORS_SO)
 ifneq ($(instruction_MUTATORS_SO), )
 components: $(LIBINSTRUCTIONCOMP)
@@ -283,6 +292,8 @@ clean: clean_solo_mutatees dyninst_clean_solo_mutatees
 	@$(RM) $(OUTPUT_DRIVERS)
 	@$(RM) $(LIBDYNINSTCOMP)
 	@$(RM) $(LIBSYMTABCOMP)
+	@$(RM) $(LIBINSTRUCTIONCOMP)
+	@$(RM) $(DYNINST_TESTLIBS) $(DYNINST_TESTLIBS_ABI)			
 	@$(RM) *.o
 	@$(RM) test11
 	@$(RM) imagefile

@@ -64,6 +64,7 @@ USES_MMTIMER = @MMTIMER@
 AC_DEF 	       = @DEFS@
 
 @STACKPROT@
+@BUILD32@
 
 prefix = @prefix@
 exec_prefix = @exec_prefix@/${PLATFORM}
