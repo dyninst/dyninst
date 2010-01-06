@@ -67,12 +67,6 @@ namespace Dyninst
     INSTRUCTION_EXPORT InstructionDecoder::~InstructionDecoder()
     {
     }
-    static const unsigned char modrm_use_sib = 4;
-    
-    INSTRUCTION_EXPORT void InstructionDecoder::setMode(bool is64)
-    {
-      ia32_set_mode_64(is64);
-    }
     
     INSTRUCTION_EXPORT Instruction::Ptr InstructionDecoder::decode()
     {
@@ -102,10 +96,14 @@ namespace Dyninst
     {
       static BinaryFunction::funcT::Ptr multiplier(new BinaryFunction::multResult());
       return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, multiplier));
-    } 
-    Result_Type InstructionDecoder::makeSizeType(unsigned int opType)
+    }
+    Expression::Ptr InstructionDecoder::makeDereferenceExpression(Expression::Ptr addrToDereference, Result_Type resultType)
     {
-        return u32;
+        return make_shared(singleton_object_pool<Dereference>::construct(addrToDereference, resultType));
+    }
+    Expression::Ptr InstructionDecoder::makeRegisterExpression(unsigned int registerID)
+    {
+        return make_shared(singleton_object_pool<RegisterAST>::construct(registerID));
     }
     
     bool InstructionDecoder::decodeOperands(std::vector<Expression::Ptr>& operands)
