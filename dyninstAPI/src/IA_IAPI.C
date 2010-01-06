@@ -646,7 +646,7 @@ Address IA_IAPI::findThunkInBlock(image_basicBlock* curBlock, Address& thunkOffs
     }
     
     dyn_detail::boost::shared_ptr<InstructionDecoder> dec =
-            makeDecoder(img->getArch(), buf, curBlock->getSize() + 16);
+            makeDecoder(img->getArch(), buf, curBlock->getSize() + maxInstructionLength);
     dec->setMode(img->getAddressWidth() == 8);
     IA_IAPI * blockptr = NULL;
     if(context) 
@@ -1140,7 +1140,7 @@ bool IA_IAPI::isRealCall() const
     // We're decoding two instructions: possible move and possible return.
     // Check for move from the stack pointer followed by a return.
     dyn_detail::boost::shared_ptr<Dyninst::InstructionAPI::InstructionDecoder> targetChecker =
-            makeDecoder(img->getArch(), target, 32);
+            makeDecoder(img->getArch(), target, 2 * maxInstructionLength);
     targetChecker->setMode(img->getAddressWidth() == 8);
     Instruction::Ptr thunkFirst = targetChecker->decode();
     Instruction::Ptr thunkSecond = targetChecker->decode();

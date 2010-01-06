@@ -475,12 +475,10 @@ bitArray instPoint::liveRegisters(callWhen when) {
     {
 #if defined(cap_instruction_api)
       using namespace Dyninst::InstructionAPI;
-      static const int maxInsnSize = 16;
-      
       const unsigned char* bufferToDecode =
               reinterpret_cast<const unsigned char*>(proc()->getPtrToInstruction(addr()));
       dyn_detail::boost::shared_ptr<InstructionDecoder> decoder =
-              makeDecoder(func()->ifunc()->img()->getArch(), bufferToDecode, maxInsnSize);
+              makeDecoder(func()->ifunc()->img()->getArch(), bufferToDecode);
       decoder->setMode(proc()->getAddressWidth() == 8);
       Instruction::Ptr currentInsn = decoder->decode(bufferToDecode);
 

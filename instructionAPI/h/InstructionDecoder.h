@@ -46,7 +46,9 @@ namespace Dyninst
   namespace InstructionAPI
   {
       class InstructionDecoder;
-    dyn_detail::boost::shared_ptr<InstructionDecoder> makeDecoder(archID arch, const unsigned char* buffer, unsigned len);
+      static const unsigned int maxInstructionLength = 16;
+    dyn_detail::boost::shared_ptr<InstructionDecoder> makeDecoder(archID arch, const unsigned char* buffer, unsigned len =
+        maxInstructionLength);
     /// The %InstructionDecoder class decodes instructions, given a buffer of bytes and a length,
     /// and constructs an %Instruction.
     /// The %InstructionDecoder will, by default, be constructed to decode machine language
