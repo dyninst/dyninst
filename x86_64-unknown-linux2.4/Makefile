@@ -20,9 +20,10 @@ include $(TO_CORE)/make.config
 # Now make any necessary architecture specific changes to variables:
 
 #if M_ABI is defined, secondary ABI specific mutatees will be built
-M_ABI = m32
-M_ABI_FLAG = -m32 -Di386_unknown_linux2_4 -Dm32_test
-
+ifndef SKIP_BUILD_RTLIB_32
+	M_ABI = m32
+	M_ABI_FLAG = -m32 -Di386_unknown_linux2_4 -Dm32_test
+endif
 #if M_G77 is defined, g77 mutatees will be built
 #M_G77 = g77
 
