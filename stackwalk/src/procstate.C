@@ -139,7 +139,8 @@ ProcDebug::ProcDebug(PID p, string exe) :
   ProcessState(p),
   initial_thread(NULL),
   active_thread(NULL),
-  executable_path(exe)
+  executable_path(exe),
+  sigfunc(NULL)
 {
    initial_thread = ThreadState::createThreadState(this);
    threads[initial_thread->getTid()] = initial_thread;   
@@ -149,7 +150,8 @@ ProcDebug::ProcDebug(const std::string & /*executable*/,
                      const std::vector<std::string> & /*argv*/) : 
    ProcessState(0),
    initial_thread(NULL),
-   active_thread(NULL)
+   active_thread(NULL),
+   sigfunc(NULL)
 {
 }
 
@@ -780,6 +782,11 @@ void ProcDebug::setState(proc_state p)
    sw_printf("[%s:%u] - Setting initial thread for %d to state %d\n",
              __FILE__, __LINE__, pid, p);
    initial_thread->setState(p);
+}
+
+void ProcDebug::registerSignalCallback(sig_callback_func f)
+{
+   sigfunc = f;
 }
 
 const string& ProcDebug::getExecutablePath() {

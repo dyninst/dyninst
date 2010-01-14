@@ -238,6 +238,9 @@ class ProcDebug : public ProcessState {
 
   static bool handleDebugEvent(bool block = false);
   virtual bool isFirstParty();
+
+  typedef void (*sig_callback_func)(int &signum, ThreadState *thr);
+  void registerSignalCallback(sig_callback_func f);
  protected:
   /**
    * Helper for polling for new threads.  Sees if the thread exists, 
@@ -265,6 +268,7 @@ class ProcDebug : public ProcessState {
   typedef std::map<Dyninst::THR_ID, ThreadState*> thread_map_t;
   thread_map_t threads;
   std::string executable_path;
+  sig_callback_func sigfunc;
  public:
   static int pipe_in;
   static int pipe_out;

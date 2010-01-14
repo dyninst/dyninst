@@ -400,7 +400,7 @@ bool ProcDebugLinux::debug_handle_event(DebugEvent ev)
 #endif
         
         if (ev.data.idata != SIGSTOP) {
-           result = debug_continue_with(thr, ev.data.idata);
+           result = debug_handle_signal(&ev);
            if (!result) {
               sw_printf("[%s:%u] - Debug continue failed on %d/%d with %d\n", 
                         __FILE__, __LINE__, pid, thr->getTid(), ev.data.idata);
@@ -446,6 +446,12 @@ bool ProcDebugLinux::debug_handle_event(DebugEvent ev)
 bool ProcDebugLinux::debug_handle_signal(DebugEvent *ev)
 {
    assert(ev->dbg == dbg_stopped);
+   if (sigfunc) {
+      bool user_stopped = ev->thr->userIsStopped();
+      ev->thr->setUserStopped(true);
+      sigfunc(ev->data.idata, ev->thr);
+      ev->thr->setUserStopped(user_stopped);
+   }
    return debug_continue_with(ev->thr, ev->data.idata);
 }
 

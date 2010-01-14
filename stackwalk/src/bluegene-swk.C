@@ -583,6 +583,12 @@ namespace Dyninst {
         
       default:
         // by default, pass the signal back to the process being debugged.
+        if (sigfunc) {
+           bool user_stopped = ev->thr->userIsStopped();
+           ev->thr->setUserStopped(true);
+           sigfunc(ev->data.idata, ev->thr);
+           ev->thr->setUserStopped(user_stopped);           
+        }
         return debug_continue_with(thr, ev->data.idata);
       }
       
