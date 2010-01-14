@@ -120,6 +120,11 @@ void ProcessState::setDefaultLibraryTracker()
 #endif
 }
 
+Walker *ProcessState::getWalker() const
+{
+   return walker;
+}
+
 ProcessState::~ProcessState()
 {
    if (library_tracker)

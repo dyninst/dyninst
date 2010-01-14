@@ -57,6 +57,7 @@ Walker::Walker(ProcessState *p,
    //Always start with a process object
    assert(p);
    proc = p;
+   proc->walker = this;
    
    sw_printf("[%s:%u] - Creating new Walker with proc=%p, sym=%p, step = %d\n",
              __FILE__, __LINE__, proc, sym, (int) default_steppers);

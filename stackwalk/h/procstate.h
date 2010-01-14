@@ -47,12 +47,14 @@ namespace Stackwalker {
 
 class LibraryState;
 class ThreadState;
+class Walker;
 
 class ProcessState {
+   friend class Walker;
 protected:
    Dyninst::PID pid;
    LibraryState *library_tracker;
-   
+   Walker *walker;
    static std::map<Dyninst::PID, ProcessState *> proc_map;
 
    ProcessState(Dyninst::PID pid_ = 0);
@@ -81,6 +83,8 @@ public:
   virtual unsigned getAddressWidth() = 0;
 
   virtual ~ProcessState();
+
+  Walker *getWalker() const;
 
   void setLibraryTracker(LibraryState *);
   void setDefaultLibraryTracker();
