@@ -1296,14 +1296,14 @@ bool SymtabLibState::getVsyscallLibAddr(LibAddrPair &vsys)
 
 bool SymtabLibState::getLibc(LibAddrPair &addr_pair)
 {
-   vector<LibAddrPair> libs;
+  std::vector<LibAddrPair> libs;
    getLibraries(libs);
    if (libs.size() == 1) {
       //Static binary.
       addr_pair = libs[0];
       return true;
    }
-   for (vector<LibAddrPair>::iterator i = libs.begin(); i != libs.end(); i++)
+   for (std::vector<LibAddrPair>::iterator i = libs.begin(); i != libs.end(); i++)
    {
       // A poor-man's regex match for libc[0123456789-.]*.so*
       const char *libname = i->first.c_str();
