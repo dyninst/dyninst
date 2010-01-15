@@ -134,6 +134,7 @@ public:
     
     SYMTAB_EXPORT const std::string findModuleForSym(Symbol *sym);
     SYMTAB_EXPORT void clearSymsToMods();
+    SYMTAB_EXPORT bool hasError() const;
 
 protected:
     SYMTAB_EXPORT virtual ~AObject();
@@ -177,6 +178,7 @@ protected:
     
     bool is_aout_;
     bool is_dynamic_;
+    bool has_error;
 
     bool is_static_binary_;
 

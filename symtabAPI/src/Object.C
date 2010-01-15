@@ -381,7 +381,7 @@ SYMTAB_EXPORT AObject::~AObject()
 SYMTAB_EXPORT AObject::AObject(MappedFile *mf_, MappedFile *mfd, void (*err_func)(const char *)) 
 : mf(mf_), mfForDebugInfo(mfd), code_ptr_(0), code_off_(0),
    code_len_(0), data_ptr_(0), data_off_(0), data_len_(0),loader_off_(0),
-   loader_len_(0), is_dynamic_(false), deferredParse(false), err_func_(err_func),
+  loader_len_(0), is_dynamic_(false), has_error(false), deferredParse(false), err_func_(err_func),
    addressWidth_nbytes(4) 
 {
 }
@@ -392,7 +392,7 @@ SYMTAB_EXPORT AObject::AObject(const AObject &obj)
    code_len_(obj.code_len_), data_ptr_(obj.data_ptr_), 
    data_off_(obj.data_off_), data_len_(obj.data_len_), 
    loader_off_(obj.loader_off_), loader_len_(obj.loader_len_), is_dynamic_(obj.is_dynamic_),
-   deferredParse(false), err_func_(obj.err_func_), addressWidth_nbytes(4)
+   has_error(obj.has_error), deferredParse(false), err_func_(obj.err_func_), addressWidth_nbytes(4)
 {
 } 
 
@@ -532,3 +532,7 @@ void AObject::clearSymsToMods() {
     symsToModules_.clear();
 }
 
+bool AObject::hasError() const
+{
+  return has_error;
+}
