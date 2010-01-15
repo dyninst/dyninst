@@ -123,7 +123,7 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
  
 unsigned FrameFuncStepperImpl::getPriority() const
 {
-  return 0x11000;
+   return frame_priority;
 }
 
 FrameFuncStepperImpl::~FrameFuncStepperImpl()
@@ -150,6 +150,7 @@ unsigned StepperWanderer::getPriority() const
    sw_printf("[%s:%u] - Error,  Wanderer used on unsupported platform\n",
              __FILE__, __LINE__);
    assert(0);
+   return 0;
 }
 
 StepperWanderer::~StepperWanderer()

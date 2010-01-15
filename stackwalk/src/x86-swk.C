@@ -219,7 +219,7 @@ FrameFuncStepperImpl::~FrameFuncStepperImpl()
 
 unsigned FrameFuncStepperImpl::getPriority() const
 {
-  return 0x10020;
+  return frame_priority;
 }
 
 #if defined(cap_stackwalker_use_symtab)

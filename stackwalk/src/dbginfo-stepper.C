@@ -129,7 +129,7 @@ void DebugStepperImpl::registerStepperGroup(StepperGroup *group)
 
 unsigned DebugStepperImpl::getPriority() const
 {
-   return 0x10010;
+   return debugstepper_priority;
 }
 
 DebugStepperImpl::~DebugStepperImpl()

@@ -459,7 +459,7 @@ gcframe_ret_t DyninstInstrStepperImpl::getCallerFrame(const Frame &in, Frame &ou
 
 unsigned DyninstInstrStepperImpl::getPriority() const
 {
-  return 0x10007;
+  return dyninstr_priority;
 }
 
 void DyninstInstrStepperImpl::registerStepperGroup(StepperGroup *group)

@@ -61,7 +61,7 @@ StepperWandererImpl::~StepperWandererImpl()
 
 unsigned StepperWandererImpl::getPriority() const
 {
-   return 0x10030;
+   return wanderer_priority;
 }
 
 void StepperWandererImpl::registerStepperGroup(StepperGroup *group) {

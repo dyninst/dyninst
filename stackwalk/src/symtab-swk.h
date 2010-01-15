@@ -71,9 +71,12 @@ class SymtabLibState : public LibraryState {
 #if defined(os_linux)
    void *vsyscall_mem;
    Symtab *vsyscall_symtab;
+   LibAddrPair vsyscall_libaddr;
    enum {vsys_unset, vsys_set, vsys_none, vsys_error} vsyscall_page_set;
  public:
    Symtab *getVsyscallSymtab();
+   bool getVsyscallLibAddr(LibAddrPair &vsys);
+   bool getLibc(LibAddrPair &addr_pair);
 #endif
  public:
    SymtabLibState(ProcessState *parent, std::string executable = "");
