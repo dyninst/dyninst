@@ -130,33 +130,6 @@ FrameFuncStepperImpl::~FrameFuncStepperImpl()
 {
 }
 
-StepperWanderer::StepperWanderer(Walker *, WandererHelper *, FrameFuncHelper *) :
-   FrameStepper(NULL)
-{
-   sw_printf("[%s:%u] - Error,  Wanderer used on unsupported platform\n",
-             __FILE__, __LINE__);
-   assert(0);
-}
-
-gcframe_ret_t StepperWanderer::getCallerFrame(const Frame &, Frame &)
-{
-   sw_printf("[%s:%u] - Error,  Wanderer used on unsupported platform\n",
-             __FILE__, __LINE__);
-   assert(0);
-}
-
-unsigned StepperWanderer::getPriority() const
-{
-   sw_printf("[%s:%u] - Error,  Wanderer used on unsupported platform\n",
-             __FILE__, __LINE__);
-   assert(0);
-   return 0;
-}
-
-StepperWanderer::~StepperWanderer()
-{
-}
-
 WandererHelper::WandererHelper(ProcessState *proc_) :
    proc(proc_)
 {

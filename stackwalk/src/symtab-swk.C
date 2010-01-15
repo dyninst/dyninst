@@ -48,7 +48,6 @@ using namespace Dyninst::Stackwalker;
 using namespace Dyninst::SymtabAPI;
 
 SymtabWrapper* SymtabWrapper::wrapper;
-std::map<Symtab*, bool> DyninstInstrStepperImpl::isRewritten;
 
 SymtabWrapper::SymtabWrapper()
 {
@@ -381,6 +380,9 @@ SwkSymtab::SwkSymtab(Walker *w, const std::string &exec_name) :
 {
 }
 
+#if defined(arch_x86) || defined(arch_x86_64)
+std::map<Symtab*, bool> DyninstInstrStepperImpl::isRewritten;
+
 DyninstInstrStepperImpl::DyninstInstrStepperImpl(Walker *w, FrameStepper *p) :
   FrameStepper(w),
   parent(p)
@@ -470,5 +472,6 @@ void DyninstInstrStepperImpl::registerStepperGroup(StepperGroup *group)
 DyninstInstrStepperImpl::~DyninstInstrStepperImpl()
 {
 }
+#endif
 
 #endif

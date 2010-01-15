@@ -106,7 +106,7 @@ FrameFuncHelper::~FrameFuncHelper()
 #undef PIMPL_ARG1
 
 //DyninstInstrStepper defined here
-#if defined(cap_stackwalker_use_symtab)
+#if defined(cap_stackwalker_use_symtab) && (defined(arch_x86) || defined(arch_x86_64))
 #include "stackwalk/src/symtab-swk.h"
 #define PIMPL_IMPL_CLASS DyninstInstrStepperImpl
 #endif

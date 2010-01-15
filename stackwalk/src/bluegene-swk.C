@@ -839,39 +839,6 @@ namespace Dyninst {
       return true;
     }
 
-
-    // ============================================================ //
-    // SigHandlerStepper -- unsupported.  All stubs.
-    // ============================================================ //
-#   define sig_handler_stepper_unsupported(file, line) \
-      sw_printf("[%s:%u] - Error, signal handler walker used on unsupported platform\n", file, line); \
-      setLastError(err_unsupported, "Signal handling walking not supported on this platform");
-
-    SigHandlerStepper::SigHandlerStepper(Walker *w) :
-      FrameStepper(w) {
-      sig_handler_stepper_unsupported(__FILE__, __LINE__);
-      assert(0);
-    }
-
-    gcframe_ret_t SigHandlerStepper::getCallerFrame(const Frame &, Frame &) {
-      sig_handler_stepper_unsupported(__FILE__, __LINE__);
-      return gcf_error;
-    }
-    
-    unsigned SigHandlerStepper::getPriority() const {
-      sig_handler_stepper_unsupported(__FILE__, __LINE__);
-      return 0;
-    }
-    
-    void SigHandlerStepper::registerStepperGroup(StepperGroup *) {
-      sig_handler_stepper_unsupported(__FILE__, __LINE__);
-    }
-    
-    SigHandlerStepper::~SigHandlerStepper() { 
-      sig_handler_stepper_unsupported(__FILE__, __LINE__);
-    }
-    
-
     // ============================================================ //
     // SymtabLibState -- need to differentiate for P
     // ============================================================ //
