@@ -286,7 +286,7 @@ class DyninstMemRegReader : public Dyninst::SymtabAPI::MemRegReader
                val = orig_frame->getFP();
                break;
             default:
-               assert(0);
+               return false;
          }
       }
       else {
@@ -304,7 +304,7 @@ class DyninstMemRegReader : public Dyninst::SymtabAPI::MemRegReader
                val = orig_frame->getFP();
                break;
             default:
-               assert(0);
+               return false;
          }
       }
       return true;
