@@ -392,7 +392,7 @@ AddressTranslate *AddressTranslate::createAddressTranslator(const std::vector<Lo
 }
 
 AddressTranslateSysV::AddressTranslateSysV() :
-   AddressTranslate(0),
+   AddressTranslate(NULL_PID),
    reader(NULL),
    interpreter_base(0),
    set_interp_base(0),
@@ -498,7 +498,7 @@ bool AddressTranslateSysV::refresh()
 
    translate_printf("[%s:%u] - Refreshing Libraries\n", __FILE__, __LINE__);
 
-   if (!pid)
+   if (pid == NULL_PID)
       return true;
 
    for (unsigned i=0; i<libs.size(); i++) {
