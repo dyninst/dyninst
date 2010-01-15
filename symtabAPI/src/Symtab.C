@@ -1026,6 +1026,10 @@ Symtab::Symtab(std::string filename,bool &err) :
    }
 
    obj_private = new Object(mf, mfForDebugInfo, symtab_log_perror, true);
+   if (obj_private->hasError()) {
+     err = true;
+     return;
+   }
 
    if (!extractInfo(obj_private))
    {
@@ -1062,6 +1066,10 @@ Symtab::Symtab(char *mem_image, size_t image_size, bool &err) :
    }
 
    obj_private = new Object(mf, mfForDebugInfo, symtab_log_perror, true);
+   if (obj_private->hasError()) {
+     err = true;
+     return;
+   }
 
    if (!extractInfo(obj_private))
    {
@@ -1089,6 +1097,10 @@ Symtab::Symtab(std::string filename, std::string member_name, Offset offset,
    mf = MappedFile::createMappedFile(filename);
    assert(mf);
    obj_private = new Object(mf, mfForDebugInfo, member_name, offset, symtab_log_perror, base);
+   if (obj_private->hasError()) {
+     err = true;
+     return;
+   }
    err = extractInfo(obj_private);
    defaultNamespacePrefix = "";
 }
@@ -1112,6 +1124,10 @@ Symtab::Symtab(char *mem_image, size_t image_size, std::string member_name,
    mf = MappedFile::createMappedFile(mem_image, image_size);
    assert(mf);
    obj_private = new Object(mf, mf, member_name, offset, symtab_log_perror, base);
+   if (obj_private->hasError()) {
+     err = true;
+     return;
+   }
    err = extractInfo(obj_private);
    defaultNamespacePrefix = "";
 }

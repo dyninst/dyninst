@@ -3058,10 +3058,13 @@ Object::Object(MappedFile *mf_, MappedFile *mfd, void (*err_func)(const char *),
   //if (!elfHdr.isValid()|| !pdelf_check_ehdr(elfHdr)) 
   if (!elfHdr.isValid())  {
     log_elferror(err_func_, "ELF header");
+    has_error = true;
     return;
   }
   else if (!pdelf_check_ehdr(elfHdr)) {
     log_elferror(err_func_, "ELF header failed integrity check");
+    has_error = true;
+    return;
   }
   mfForDebugInfo = findMappedFileForDebugInfo();
 
@@ -3073,6 +3076,7 @@ Object::Object(MappedFile *mf_, MappedFile *mfd, void (*err_func)(const char *),
   }    
   else {
     log_perror(err_func_,"Invalid filetype in Elf header");
+    has_error = true;
     return;
   }
 #ifdef BINEDIT_DEBUG
@@ -3117,6 +3121,7 @@ Object::Object(MappedFile *mf_, MappedFile *mfd, std::string &member_name, Offse
   //if (!elfHdr.isValid()|| !pdelf_check_ehdr(elfHdr)) 
   if (!elfHdr.isValid())  {
     log_elferror(err_func_, "ELF header");
+    has_error = true;
     return;
   }
   assert(elfHdr.e_type() == ET_REL);
@@ -3129,6 +3134,7 @@ Object::Object(MappedFile *mf_, MappedFile *mfd, std::string &member_name, Offse
   }    
   else {
     log_perror(err_func_,"Invalid filetype in Elf header");
+    has_error = true;
     return;
   }
 #ifdef BINEDIT_DEBUG
