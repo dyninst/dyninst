@@ -30,6 +30,7 @@ LIBELF_INC = @LIBELF_INC_DIR@
 #libdwarf is required by Linux/x86 and Linux/ia64
 LIBDWARF_LIB = @LIBDWARF_LIB_DIR@
 LIBDWARF_INC = @LIBDWARF_INC_DIR@
+LIBDWARF_HASSETFRAME = @LIBDWARF_HAS_SET_FRAME@
 
 #libxml2 and libxml++ are required on all platforms
 LIBXML2_LIB	= @LIBXML2_LIB_DIR@

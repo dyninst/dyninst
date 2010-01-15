@@ -3007,6 +3007,10 @@ void DwarfHandle::setupFdeData()
 {
    Dwarf_Error err;
 
+#if defined(dwarf_has_setframe)
+   dwarf_set_frame_cfa_value(dbg_data, DW_FRAME_CFA_COL3);
+#endif
+
    if (fde_dwarf_status == dwarf_status_ok || 
        fde_dwarf_status == dwarf_status_error)
       return;

@@ -311,7 +311,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS CXX CXXFLAGS LDFLAGS CPPFLAGS ac_ct_CXX EXEEXT OBJEXT _ICC_ _ICPC_ _PGC_ _PGCXX_ _CC_ _CXX_ USE_TCL83 TCLTK_INC_DIR TCLTK_LIB_DIR build build_cpu build_vendor build_os host host_cpu host_vendor host_os CXXCPP EGREP LIBELF_INC_DIR LIBELF_LIB_DIR LIBELF_STATIC LIBELF_DYNAMIC LIBDWARF_INC_DIR LIBDWARF_LIB_DIR LIBDWARF_STATIC LIBDWARF_DYNAMIC LIBXML2_INC_DIR LIBXML2_LIB_DIR LIBIBERTY_LIB_DIR LIBIBERTY_STATIC LIBIBERTY_DYNAMIC LIBUNWIND_INC_DIR LIBUNWIND_LIB_DIR LIBFLEX_LIB_DIR NASM STACKPROT BUILD32 MMTIMER TESTSUITE LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS CXX CXXFLAGS LDFLAGS CPPFLAGS ac_ct_CXX EXEEXT OBJEXT _ICC_ _ICPC_ _PGC_ _PGCXX_ _CC_ _CXX_ USE_TCL83 TCLTK_INC_DIR TCLTK_LIB_DIR build build_cpu build_vendor build_os host host_cpu host_vendor host_os CXXCPP EGREP LIBELF_INC_DIR LIBELF_LIB_DIR LIBELF_STATIC LIBELF_DYNAMIC LIBDWARF_INC_DIR LIBDWARF_LIB_DIR LIBDWARF_STATIC LIBDWARF_DYNAMIC LIBDWARF_HAS_SET_FRAME LIBXML2_INC_DIR LIBXML2_LIB_DIR LIBIBERTY_LIB_DIR LIBIBERTY_STATIC LIBIBERTY_DYNAMIC LIBUNWIND_INC_DIR LIBUNWIND_LIB_DIR LIBFLEX_LIB_DIR NASM STACKPROT BUILD32 MMTIMER TESTSUITE LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -4063,8 +4063,8 @@ fi
 
   else
     LIBS_HOLD=$LIBS
-    if test "$LIBDWARF_LIB_DIR" != "" ; then
-      LIBS="-L$LIBDWARF_LIB_DIR -L$LIBDWARF_LIB_DIR"
+    if test "$LIBELF_LIB_DIR" != "" ; then
+      LIBS="-L$LIBDWARF_LIB_DIR -L$LIBELF_LIB_DIR"
 
 echo "$as_me:$LINENO: checking for dwarf_add_arange in -ldwarf" >&5
 echo $ECHO_N "checking for dwarf_add_arange in -ldwarf... $ECHO_C" >&6
@@ -4240,6 +4240,225 @@ fi
 
 
 
+
+
+
+  if test "$LIBDWARF_LIB_DIR" = "" ; then
+    echo "$as_me:$LINENO: checking for dwarf_set_frame_cfa_value in -ldwarf" >&5
+echo $ECHO_N "checking for dwarf_set_frame_cfa_value in -ldwarf... $ECHO_C" >&6
+if test "${ac_cv_lib_dwarf_dwarf_set_frame_cfa_value+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-ldwarf  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char dwarf_set_frame_cfa_value ();
+int
+main ()
+{
+dwarf_set_frame_cfa_value ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_lib_dwarf_dwarf_set_frame_cfa_value=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_lib_dwarf_dwarf_set_frame_cfa_value=no
+fi
+rm -f conftest.err conftest.$ac_objext \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_lib_dwarf_dwarf_set_frame_cfa_value" >&5
+echo "${ECHO_T}$ac_cv_lib_dwarf_dwarf_set_frame_cfa_value" >&6
+if test $ac_cv_lib_dwarf_dwarf_set_frame_cfa_value = yes; then
+  HAS_FEATURE="true"
+fi
+
+  else
+    LIBS_HOLD=$LIBS
+    if test "$LIBELF_LIB_DIR" != "" ; then
+      LIBS="-L$LIBDWARF_LIB_DIR -L$LIBELF_LIB_DIR"
+      echo "$as_me:$LINENO: checking for dwarf_set_frame_cfa_value in -ldwarf" >&5
+echo $ECHO_N "checking for dwarf_set_frame_cfa_value in -ldwarf... $ECHO_C" >&6
+if test "${ac_cv_lib_dwarf_dwarf_set_frame_cfa_value+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-ldwarf -lelf $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char dwarf_set_frame_cfa_value ();
+int
+main ()
+{
+dwarf_set_frame_cfa_value ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_lib_dwarf_dwarf_set_frame_cfa_value=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_lib_dwarf_dwarf_set_frame_cfa_value=no
+fi
+rm -f conftest.err conftest.$ac_objext \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_lib_dwarf_dwarf_set_frame_cfa_value" >&5
+echo "${ECHO_T}$ac_cv_lib_dwarf_dwarf_set_frame_cfa_value" >&6
+if test $ac_cv_lib_dwarf_dwarf_set_frame_cfa_value = yes; then
+  HAS_FEATURE="true"
+fi
+
+    else
+      LIBS="-L$LIBDWARF_LIB_DIR"
+      echo "$as_me:$LINENO: checking for dwarf_set_frame_cfa_value in -ldwarf" >&5
+echo $ECHO_N "checking for dwarf_set_frame_cfa_value in -ldwarf... $ECHO_C" >&6
+if test "${ac_cv_lib_dwarf_dwarf_set_frame_cfa_value+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-ldwarf  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char dwarf_set_frame_cfa_value ();
+int
+main ()
+{
+dwarf_set_frame_cfa_value ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_lib_dwarf_dwarf_set_frame_cfa_value=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_lib_dwarf_dwarf_set_frame_cfa_value=no
+fi
+rm -f conftest.err conftest.$ac_objext \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_lib_dwarf_dwarf_set_frame_cfa_value" >&5
+echo "${ECHO_T}$ac_cv_lib_dwarf_dwarf_set_frame_cfa_value" >&6
+if test $ac_cv_lib_dwarf_dwarf_set_frame_cfa_value = yes; then
+  HAS_FEATURE="true"
+fi
+
+    fi
+    LIBS=$LIBS_HOLD
+  fi
+
+   LIBDWARF_HAS_SET_FRAME="$HAS_FEATURE"
 
 fi
 
@@ -5879,6 +6098,7 @@ s,@LIBDWARF_INC_DIR@,$LIBDWARF_INC_DIR,;t t
 s,@LIBDWARF_LIB_DIR@,$LIBDWARF_LIB_DIR,;t t
 s,@LIBDWARF_STATIC@,$LIBDWARF_STATIC,;t t
 s,@LIBDWARF_DYNAMIC@,$LIBDWARF_DYNAMIC,;t t
+s,@LIBDWARF_HAS_SET_FRAME@,$LIBDWARF_HAS_SET_FRAME,;t t
 s,@LIBXML2_INC_DIR@,$LIBXML2_INC_DIR,;t t
 s,@LIBXML2_LIB_DIR@,$LIBXML2_LIB_DIR,;t t
 s,@LIBIBERTY_LIB_DIR@,$LIBIBERTY_LIB_DIR,;t t
