@@ -2188,7 +2188,7 @@ generatedCodeObject *trampEnd::replaceCode(generatedCodeObject *obj) {
     multiTramp *newMulti = dynamic_cast<multiTramp *>(obj);
     assert(newMulti);
    
-    return new trampEnd(multi_, target_);
+    return new trampEnd(newMulti, target_);
 }
 
 std::string generatedCodeObject::getTypeString() const
