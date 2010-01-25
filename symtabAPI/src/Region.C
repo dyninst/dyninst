@@ -39,6 +39,17 @@ using namespace Dyninst::SymtabAPI;
 using namespace std;
 
 
+Region *Region::createRegion( Offset diskOff, perm_t perms, RegionType regType,
+                              unsigned long diskSize, Offset memOff, 
+                              unsigned long memSize, std::string name, 
+                              char *rawDataPtr)
+{
+   Region *newreg = new Region(0, name, diskOff, 
+                               diskSize, memOff, memSize, 
+                               rawDataPtr, perms, regType, true);
+   return newreg;
+}
+
 Region::Region(): rawDataPtr_(NULL), buffer_(NULL)
 {
 }

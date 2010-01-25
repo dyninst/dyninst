@@ -139,6 +139,23 @@ bool AddressLookup::getOffset(Address addr, Symtab* &tab, Offset &off)
    return true;
 }
 
+bool AddressLookup::getOffset(Address addr, LoadedLibrary &ll, Offset &off)
+{
+   LoadedLib *lib;
+   bool result;
+
+   result = translator->getLibAtAddress(addr, lib);
+   if (!result || !lib) {
+      return false;
+   }
+
+   off = lib->addrToOffset(addr);
+   ll.name = lib->getName();
+   ll.codeAddr = lib->getCodeLoadAddr();
+   ll.dataAddr = lib->getDataLoadAddr();
+   return true;
+}
+
 bool AddressLookup::getSymbol(Address addr, Symbol* &sym, Symtab* &tab, bool close)
 {
    LoadedLib *lib;

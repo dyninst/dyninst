@@ -46,6 +46,7 @@
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 using namespace Dyninst::SymtabAPI;
+using namespace std;
 
 SymtabWrapper* SymtabWrapper::wrapper;
 
@@ -174,25 +175,17 @@ bool SymtabLibState::getLibraryAtAddr(Address addr, LibAddrPair &olib)
       }
    }
 
-   Symtab *symtab;
+   LoadedLibrary ll;
    Offset offset;
-   result = lookup->getOffset(addr, symtab, offset);
+   result = lookup->getOffset(addr, ll, offset);
    if (!result) {
       sw_printf("[%s:%u] - no file loaded at %x\n", __FILE__, __LINE__, offset);
       setLastError(err_nofile, "No file loaded at specified address");
       return false;
    }
-   
-   result = lookup->getLoadAddress(symtab, load_addr);
-   if (!result) {
-      setLastError(err_symtab, "Couldn't get load address for Symtab object");
-      return false;
-   }
-   
-   std::string name = symtab->file();
-   olib.first = name;
-   olib.second = load_addr;
-   SymtabWrapper::notifyOfSymtab(symtab, name);
+
+   olib.first = ll.name;
+   olib.second = ll.codeAddr;
    
    return true;
 }
@@ -205,34 +198,21 @@ bool SymtabLibState::getLibraries(std::vector<LibAddrPair> &olibs)
       return false;
    }
    
-   std::vector<Symtab *> tabs;
-   result = lookup->getAllSymtabs(tabs);
+   vector<LoadedLibrary> loadedlibs;
+   result = lookup->getLoadAddresses(loadedlibs);
    if (!result) {
       setLastError(err_symtab, "No objects in process");
       return false;
    }
    
-   for (unsigned i=0; i<tabs.size(); i++) {
-      Address load_addr;
-      result = lookup->getLoadAddress(tabs[i], load_addr);
-      if (!result) {
-         setLastError(err_symtab, "File has no load address");
-         return false;
-      }
-      std::string name = tabs[i]->file();
-
-      LibAddrPair olib;
-      olib.first = name;
-      olib.second = load_addr;
-      SymtabWrapper::notifyOfSymtab(tabs[i], name);      
-      olibs.push_back(olib);
+   olibs.clear();
+   vector<LoadedLibrary>::iterator i;
+   for (i = loadedlibs.begin(); i != loadedlibs.end(); i++) {
+      LibAddrPair o;
+      o.first = i->name;
+      o.second = i->codeAddr;
+      olibs.push_back(o);
    }
-
-   std::vector<std::pair<LibAddrPair, unsigned> >::iterator i;
-   for (i = arch_libs.begin(); i != arch_libs.end(); i++) {
-      olibs.push_back((*i).first);
-   }
-
    return true;
 }
 

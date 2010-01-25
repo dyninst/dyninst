@@ -49,6 +49,7 @@ protected:
    ino_t inode;
 
    bool parsed_file;
+   bool parsed_file_fast;
    bool parse_error;
 
    string interpreter_name;
@@ -59,6 +60,7 @@ protected:
    Symtab *symtable;
 
    void parsefile();
+   void parsefile_fast();
 public:
    FCNode(string f, dev_t d, ino_t i);
 

@@ -40,6 +40,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #include <vector>
 #include <string>
@@ -620,6 +621,7 @@ FCNode::FCNode(string f, dev_t d, ino_t i) :
    device(d),
    inode(i),
    parsed_file(false),
+   parsed_file_fast(false),
    parse_error(false)
 {
    filename = deref_link(f.c_str());
@@ -630,7 +632,7 @@ string FCNode::getFilename() {
 }
 
 string FCNode::getInterpreter() {
-   parsefile();
+   parsefile_fast();
 
    return interpreter_name;
 }
@@ -643,14 +645,14 @@ Symtab *FCNode::getSymtab()
 }
 
 void FCNode::getRegions(vector<Region *> &regs) {
-   parsefile();
+   parsefile_fast();
 
    for (unsigned i=0; i<regions.size(); i++)
       regs.push_back(regions[i]);
 }
 
 unsigned FCNode::getAddrSize() {
-   parsefile();
+   parsefile_fast();
 
    return addr_size;
 }
@@ -685,17 +687,22 @@ void FCNode::parsefile() {
       return;
    }
    
-   const char *name = symtable->getInterpreterName();
-   if (name) {
-     interpreter_name = name;
-     translate_printf("[%s:%u] - Interpreter was: %s.\n", __FILE__, __LINE__, name);
+   if (!parsed_file_fast)
+   {
+      const char *name = symtable->getInterpreterName();
+      if (name) {
+         interpreter_name = name;
+         translate_printf("[%s:%u] - Interpreter was: %s.\n", __FILE__, __LINE__, name);
+      }
+      
+      addr_size = symtable->getAddressWidth();
+      symtable->getMappedRegions(regions);
    }
 
-   addr_size = symtable->getAddressWidth();
-   symtable->getMappedRegions(regions);
    r_debug_offset = 0;
    r_trap_offset = 0;
    parsed_file = true;
+   parsed_file_fast = true;
 
    vector<Symbol *> syms;
    result = symtable->findSymbolByType(syms, 
@@ -718,6 +725,95 @@ void FCNode::parsefile() {
       r_trap_offset = rTrapSym->getAddr();
       break;
    }
+}
+
+#include "Elf_X.h"
+#include "symtabAPI/h/Region.h"
+#include <elf.h>
+
+void FCNode::parsefile_fast() {
+   if (parsed_file_fast || parse_error)
+      return;
+
+   parsed_file_fast = true;
+   off_t interp_disk_offset = 0;
+   unsigned interp_size = 0;
+   int result;
+   char *buffer = NULL;
+   int fd = -1;
+
+   fd = open(filename.c_str(), O_RDONLY);
+   if (fd == -1) {
+      int error = errno;
+      translate_printf("[%s:%u] - Error opening file %s: %s\n",
+                       __FILE__, __LINE__, filename.c_str(), strerror(error));
+      parse_error = true;
+      goto done;
+   }
+
+   {//Binding to destruct 'elf' when done.
+      Elf_X elf(fd, ELF_C_READ);
+
+      addr_size = elf.wordSize();
+
+      for (unsigned i=0; i<elf.e_phnum(); i++)
+      {
+         Elf_X_Phdr phdr = elf.get_phdr(i);
+         if (phdr.p_type() == PT_LOAD)
+         {
+            Region::perm_t perms;
+            switch (elf.e_flags()) {
+               case 4: perms = Region::RP_R; break;
+               case 5: perms = Region::RP_RX; break;
+               case 6: perms = Region::RP_RW; break;
+               case 7: perms = Region::RP_RWX; break;
+               default:
+                  perms = Region::RP_RWX; break;
+            }
+            Region *region = Region::createRegion(phdr.p_vaddr(), perms, Region::RT_DATA, 
+                                                  phdr.p_filesz(), phdr.p_vaddr(), 
+                                                  phdr.p_memsz());
+            regions.push_back(region);
+         }
+         if (phdr.p_type() == PT_INTERP)
+         {
+            interp_disk_offset = (size_t) phdr.p_offset();
+            interp_size = (unsigned) phdr.p_filesz();
+         }
+      }
+      elf.end();
+   }
+
+   if (!interp_disk_offset || !interp_size) {
+      translate_printf("[%s:%u] - Did not find interp section\n", __FILE__, __LINE__);
+      goto done;
+   }
+
+   result = lseek(fd, interp_disk_offset, SEEK_SET);
+   if (result == (off_t)-1) {
+      translate_printf("[%s:%u] - Failed to seek to interp section\n", 
+                       __FILE__, __LINE__);
+      parse_error = true;
+      goto done;
+   }
+   buffer = (char *) malloc(interp_size+1);
+   memset(buffer, 0, interp_size+1);
+
+   result = read(fd, buffer, interp_size);
+   if (result == -1) {
+      free(buffer);
+      translate_printf("[%s:%u] - Could not read interp string from file\n",
+                       __FILE__, __LINE__);
+      parse_error = true;
+      goto done;
+   }
+   interpreter_name = std::string(buffer);
+
+ done:
+   if (buffer)
+      free(buffer);
+   if (fd != -1)
+      close(fd);
 }
 
 FCNode *FileCache::getNode(const string &filename)
