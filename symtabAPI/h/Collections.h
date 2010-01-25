@@ -36,7 +36,6 @@
 #include "Variable.h"
 #include "Serialization.h"
 
-using namespace std;
 namespace Dyninst {
 
 namespace SymtabAPI {
@@ -53,9 +52,8 @@ class localVar;
  */
 class localVarCollection : public AnnotationContainer<localVar *> {
   
-  dyn_hash_map<std::string, localVar *> localVariablesByName;
-  vector<localVar *> localVars;
-
+  std::vector<localVar *> localVars;
+  
   SYMTAB_EXPORT bool addItem_impl(localVar *);
 public:
   SYMTAB_EXPORT localVarCollection(){}

@@ -59,12 +59,10 @@ using namespace Dyninst::SymtabAPI;
  */
 localVarCollection::~localVarCollection()
 {
-   dyn_hash_map<std::string, localVar *>::iterator li = localVariablesByName.begin();
-       
-   // delete localVariablesByName collection
-   for(;li!=localVariablesByName.end();li++)
+   std::vector<localVar *>::iterator li = localVars.begin();    
+   for(;li!=localVars.end();li++)
    {
-	   delete li->second;
+	   delete *li;
    }
    
    localVars.clear();
@@ -78,7 +76,6 @@ localVarCollection::~localVarCollection()
 
 bool localVarCollection::addItem_impl(localVar * var)
 {
-  localVariablesByName[var->getName()] = var;
   localVars.push_back(var);
   return true;
 }
@@ -99,10 +96,14 @@ void localVarCollection::addLocalVar(localVar * var)
  */
 localVar *localVarCollection::findLocalVar(std::string &name){
 
-  if(localVariablesByName.find(name) != localVariablesByName.end())
-    return localVariablesByName[name];
-  else
-    return (localVar *)NULL;
+   std::vector<localVar *>::iterator li = localVars.begin();    
+   for(;li!=localVars.end();li++)
+   {
+      if (name == (*li)->getName()) {
+         return *li;
+      }
+   }
+   return NULL;
 }
 
 /*
@@ -139,7 +140,6 @@ Serializable *localVarCollection::ac_serialize_impl(SerializerBase *s, const cha
 		{
 			localVar *lv = localVars[i];
 			assert(lv);
-			localVariablesByName[lv->getName()] = lv;
 		}
 		serialize_printf("%s[%d]:  deserialized %ld local vars\n", FILE__, __LINE__, localVars.size());
 	}
