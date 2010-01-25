@@ -365,6 +365,7 @@ bool ProcDebug::resume(Dyninst::THR_ID tid)
             thr->setUserStopped(false);
          }
       }
+      return true;
    }
    
    //Handle the case where we're continuing all threads
@@ -474,9 +475,12 @@ bool ProcDebug::pause(Dyninst::THR_ID tid)
          setLastError(err_procexit, "Thread already exited");
          return false;
       }
-      bool result = pause_thread(thr);
-      if (result) {
-         thr->setUserStopped(true);         
+      bool result = true;
+      if (!thr->isStopped()) {
+         result = pause_thread(thr);
+         if (result) {
+            thr->setUserStopped(true);         
+         }
       }
       return result;
    }
@@ -494,15 +498,16 @@ bool ProcDebug::pause(Dyninst::THR_ID tid)
       }
       sw_printf("[%s:%u] - Pausing thread %d on process %d\n",
                 __FILE__, __LINE__, tid, pid);
-      bool result = pause_thread(thr);
-      if (!result) {
-         sw_printf("[%s:%u] - Error pausing thread %d on process %d\n",
-                __FILE__, __LINE__, tid, pid);
-         had_error = true;
+      if (!thr->isStopped()) {
+         bool result = pause_thread(thr);
+         if (!result) {
+            sw_printf("[%s:%u] - Error pausing thread %d on process %d\n",
+                      __FILE__, __LINE__, tid, pid);
+            had_error = true;
+            continue;
+         }
       }
-      else {
-         thr->setUserStopped(true);         
-      }
+      thr->setUserStopped(true);         
    }
    return !had_error;   
 }
@@ -512,6 +517,12 @@ bool ProcDebug::pause_thread(ThreadState *thr)
    Dyninst::THR_ID tid = thr->getTid();
    sw_printf("[%s:%u] - Top level thread pause for %d/%d\n",
              __FILE__, __LINE__, pid, tid);
+   if (thr->isStopped())
+   {
+      sw_printf("Thread already paused, returning\n");
+      return true;
+   }
+
    bool result = debug_pause(thr);
    if (!result) {
       sw_printf("[%s:%u] - Could not pause debuggee %d, thr %d\n",
