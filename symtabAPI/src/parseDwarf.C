@@ -777,8 +777,8 @@ bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
          
          case DW_OP_deref:
          {
-            DWARF_FALSE_IF(!reader,
-                           "%s[%d]: Memory derefs unsupported in variable values.\n", __FILE__, __LINE__);
+            if (!reader)
+               break;
             long int addr = opStack.top(); opStack.pop();
             unsigned long to_push = 0;
             bool bresult;
@@ -799,8 +799,8 @@ bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
          }
          case DW_OP_deref_size:
          {
-            DWARF_FALSE_IF(!reader,
-                           "%s[%d]: Memory derefs unsupported in variable values.\n", __FILE__, __LINE__);
+            if (!reader)
+               break;
             long int addr = opStack.top(); opStack.pop();
             int width = locations[i].lr_number;
             unsigned long to_push = 0;
@@ -1745,8 +1745,8 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
       deallocateLocationList( dbg, locationList, listLength );            
       if ( ! decodedAddressOrOffset ) 
       { 
-         fprintf(stderr, "%s[%d]:  DW_TAG_variable: failed to decode loc list\n", FILE__, __LINE__);
-         break; 
+         dwarf_printf("%s[%d]:  DW_TAG_variable: failed to decode loc list\n", FILE__, __LINE__);
+         break;
       }
       
       for (unsigned i=0; i<locs.size(); i++) {

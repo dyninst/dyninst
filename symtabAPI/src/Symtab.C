@@ -979,14 +979,14 @@ Module *Symtab::newModule(const std::string &name, const Offset addr, supportedL
 
     if (modsByFileName.end() != modsByFileName.find(ret->fileName()))
     {
-       fprintf(stderr, "%s[%d]:  WARN:  LEAK?  already have module with name %s\n", 
-             FILE__, __LINE__, ret->fileName().c_str());
+       create_printf("%s[%d]:  WARN:  LEAK?  already have module with name %s\n", 
+                     FILE__, __LINE__, ret->fileName().c_str());
     }
 
     if (modsByFullName.end() != modsByFullName.find(ret->fullName()))
     {
-       fprintf(stderr, "%s[%d]:  WARN:  LEAK?  already have module with name %s\n", 
-             FILE__, __LINE__, ret->fullName().c_str());
+       create_printf("%s[%d]:  WARN:  LEAK?  already have module with name %s\n", 
+                     FILE__, __LINE__, ret->fullName().c_str());
     }
 
     modsByFileName[ret->fileName()] = ret;
@@ -1542,7 +1542,7 @@ SYMTAB_EXPORT bool Symtab::updateFuncBindingTable(Offset stub_addr, Offset plt_a
 {
     int stub_idx = -1, plt_idx = -1;
 
-    for (int i = 0; i < relocation_table_.size(); ++i) {
+    for (unsigned i = 0; i < relocation_table_.size(); ++i) {
         if (stub_addr == relocation_table_[i].target_addr())
             stub_idx = i;
         if (plt_addr  == relocation_table_[i].target_addr())
