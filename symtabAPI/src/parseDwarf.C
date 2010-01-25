@@ -2490,7 +2490,7 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 		DWARF_NEXT_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", 
 				FILE__, __LINE__ );
 
-		if ( status == DW_DLV_OK ) 
+		if ( status == DW_DLV_OK && locs.size() ) 
 		{
 			Dwarf_Unsigned memberOffset_du = locs[0].frameOffset;
 			status = dwarf_formudata( bitOffset, &memberOffset_du, NULL );
