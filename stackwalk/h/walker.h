@@ -69,8 +69,8 @@ class Walker {
                                 bool &error);
 
    bool checkValidFrame(const Frame &in, const Frame &out);
-   void callPreStackwalk(THR_ID tid = NULL_THR_ID);
-   void callPostStackwalk(THR_ID tid = NULL_THR_ID);
+   bool callPreStackwalk(THR_ID tid = NULL_THR_ID);
+   bool callPostStackwalk(THR_ID tid = NULL_THR_ID);
  public:
    //Create an object that operates on the current process
    static Walker *newWalker();

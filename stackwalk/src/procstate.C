@@ -98,12 +98,14 @@ Dyninst::PID ProcessState::getProcessId()
    return pid;
 }
 
-void ProcessState::preStackwalk(Dyninst::THR_ID)
+bool ProcessState::preStackwalk(Dyninst::THR_ID)
 {
+   return true;
 }
 
-void ProcessState::postStackwalk(Dyninst::THR_ID)
+bool ProcessState::postStackwalk(Dyninst::THR_ID)
 {
+   return true;
 }
 
 void ProcessState::setDefaultLibraryTracker()
@@ -696,7 +698,7 @@ bool ProcDebug::handleDebugEvent(bool block)
   return true;
 }
 
-void ProcDebug::preStackwalk(Dyninst::THR_ID tid)
+bool ProcDebug::preStackwalk(Dyninst::THR_ID tid)
 {
    if (tid == NULL_THR_ID)
       tid = initial_thread->getTid();
@@ -706,18 +708,28 @@ void ProcDebug::preStackwalk(Dyninst::THR_ID tid)
    thread_map_t::iterator i = threads.find(tid);
    if (i == threads.end()) {
       sw_printf("[%s:%u] - Couldn't find thread %d!\n", __FILE__, __LINE__, tid);
-      return;
+      return false;
    }
    
+   bool result = true;
    active_thread = (*i).second;
+   if (active_thread->state() != ps_running) {
+      sw_printf("[%s:%u] - Attempt to stackwalk on non-running thread %d/%d\n",
+                __FILE__, __LINE__, active_thread->proc()->getProcessId(), 
+                active_thread->getTid());
+      setLastError(err_procexit, "Stackwalk attempted on exited thread");
+      return false;
+   }
+
    if (!active_thread->userIsStopped()) {
       active_thread->setShouldResume(true);
    }
    if (!active_thread->isStopped())
-      pause_thread(active_thread);
+      result = pause_thread(active_thread);
+   return result;
 }
 
-void ProcDebug::postStackwalk(Dyninst::THR_ID tid)
+bool ProcDebug::postStackwalk(Dyninst::THR_ID tid)
 {
    if (tid == NULL_THR_ID)
       tid = initial_thread->getTid();
@@ -727,7 +739,7 @@ void ProcDebug::postStackwalk(Dyninst::THR_ID tid)
    thread_map_t::iterator i = threads.find(tid);
    if (i == threads.end()) {
       sw_printf("[%s:%u] - Couldn't find thread %d!\n", __FILE__, __LINE__, tid);
-      return;
+      return false;
    }
 
    assert(active_thread == (*i).second);
@@ -735,6 +747,7 @@ void ProcDebug::postStackwalk(Dyninst::THR_ID tid)
       resume_thread(active_thread);
       active_thread->setShouldResume(false);      
    }
+   return true;
 }
 
 bool ProcDebug::isTerminated()

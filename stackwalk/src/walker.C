@@ -307,7 +307,12 @@ bool Walker::walkStack(std::vector<Frame> &stackwalk, THR_ID thread)
       }
    }
 
-   callPreStackwalk(thread);
+   result = callPreStackwalk(thread);
+   if (!result) {
+      sw_printf("[%s:%u] - Call to preStackwalk failed, exiting from stackwalk\n",
+                __FILE__, __LINE__);
+      return false;
+   }
 
    sw_printf("[%s:%u] - Starting stackwalk on thread %d\n",
              __FILE__, __LINE__, (int) thread);
@@ -327,7 +332,11 @@ bool Walker::walkStack(std::vector<Frame> &stackwalk, THR_ID thread)
    }
 
  done:
-   callPostStackwalk(thread);
+   bool postresult = callPostStackwalk(thread);
+   if (!postresult) {
+      sw_printf("[%s:%u] - Call to postStackwalk failed\n", __FILE__, __LINE__);
+      return false;
+   }
    return result;
 }
 
@@ -342,7 +351,13 @@ bool Walker::walkStackFromFrame(std::vector<Frame> &stackwalk,
    sw_printf("[%s:%u] - walkStackFromFrame called with frame at %lx\n",
              __FILE__, __LINE__, stackwalk.back().getRA());
 
-   callPreStackwalk();
+   result = callPreStackwalk();
+   if (!result) {
+      sw_printf("[%s:%u] - Call to preStackwalk failed, exiting from stackwalk\n",
+                __FILE__, __LINE__);
+      return false;
+   }
+
 
    for (;;) {
      Frame cur_frame(this);
@@ -366,7 +381,12 @@ bool Walker::walkStackFromFrame(std::vector<Frame> &stackwalk,
    }       
 
  done:
-   callPostStackwalk();
+   bool postresult = callPostStackwalk();
+   if (!postresult) {
+      sw_printf("[%s:%u] - Call to postStackwalk failed\n", __FILE__, __LINE__);
+      return false;
+   }
+
    return result;
 }
 
@@ -379,7 +399,12 @@ bool Walker::walkSingleFrame(const Frame &in, Frame &out)
    sw_printf("[%s:%u] - Attempting to walk through frame with RA 0x%lx\n",
 	     __FILE__, __LINE__, last_frame.getRA());
 
-   callPreStackwalk();
+   result = callPreStackwalk();
+   if (!result) {
+      sw_printf("[%s:%u] - Call to preStackwalk failed, exiting from stackwalk\n",
+                __FILE__, __LINE__);
+      return false;
+   }   
    
    if (!group) {
       setLastError(err_nogroup, "Attempt to walk a stack without a StepperGroup");
@@ -437,19 +462,35 @@ bool Walker::walkSingleFrame(const Frame &in, Frame &out)
 
  done:
    out.setThread(in.getThread());
-   callPostStackwalk();
+   bool postresult = callPostStackwalk();
+   if (!postresult) {
+      sw_printf("[%s:%u] - Call to postStackwalk failed\n", __FILE__, __LINE__);
+      return false;
+   }
+
    return result;
 }
 
 bool Walker::getInitialFrame(Frame &frame, THR_ID thread) {
    bool result;
-   callPreStackwalk(thread);
+   result = callPreStackwalk(thread);
+   if (!result) {
+      sw_printf("[%s:%u] - Call to preStackwalk failed, exiting from stackwalk\n",
+                __FILE__, __LINE__);
+      return false;
+   }
+
    getInitialFrameImpl(frame, thread);
    if (!result) {
       sw_printf("[%s:%u] - getInitialFrameImpl failed\n",
                 __FILE__, __LINE__, (int) thread);
    }
-   callPostStackwalk(thread);
+   bool postresult = callPostStackwalk(thread);
+   if (!postresult) {
+      sw_printf("[%s:%u] - Call to postStackwalk failed\n", __FILE__, __LINE__);
+      return false;
+   }
+
    return result;
 }
 
@@ -516,23 +557,23 @@ bool Walker::addStepper(FrameStepper *s)
    return true;
 }
 
-void Walker::callPreStackwalk(Dyninst::THR_ID tid)
+bool Walker::callPreStackwalk(Dyninst::THR_ID tid)
 {
    call_count++;
    if (call_count != 1)
-      return;
+      return true;
    
-   getProcessState()->preStackwalk(tid);
+   return getProcessState()->preStackwalk(tid);
 }
 
-void Walker::callPostStackwalk(Dyninst::THR_ID tid)
+bool Walker::callPostStackwalk(Dyninst::THR_ID tid)
 {
    call_count--;
 
    if (call_count != 0)
-      return;
+      return true;
 
-   getProcessState()->postStackwalk(tid);
+   return getProcessState()->postStackwalk(tid);
 }
 
 StepperGroup *Walker::createDefaultStepperGroup()

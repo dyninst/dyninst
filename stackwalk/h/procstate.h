@@ -91,8 +91,8 @@ public:
   LibraryState *getLibraryTracker();
 
   //Allow initialization/uninitialization
-  virtual void preStackwalk(Dyninst::THR_ID tid);
-  virtual void postStackwalk(Dyninst::THR_ID tid);
+  virtual bool preStackwalk(Dyninst::THR_ID tid);
+  virtual bool postStackwalk(Dyninst::THR_ID tid);
 
   virtual bool isFirstParty() = 0;
 };
@@ -223,8 +223,8 @@ class ProcDebug : public ProcessState {
   virtual bool getDefaultThread(Dyninst::THR_ID &default_tid) = 0;
   virtual unsigned getAddressWidth() = 0;
 
-  virtual void preStackwalk(Dyninst::THR_ID tid);
-  virtual void postStackwalk(Dyninst::THR_ID tid);
+  virtual bool preStackwalk(Dyninst::THR_ID tid);
+  virtual bool postStackwalk(Dyninst::THR_ID tid);
 
   
   virtual bool pause(Dyninst::THR_ID tid = NULL_THR_ID);
