@@ -404,6 +404,11 @@ bool Walker::walkSingleFrame(const Frame &in, Frame &out)
      if (gcf_result == gcf_success) {
        sw_printf("[%s:%u] - Success using stepper %p on 0x%lx\n", 
                  __FILE__, __LINE__, cur_stepper, in.getRA());
+       if (!checkValidFrame(in, out)) {
+          sw_printf("[%s:%u] - Resulting frame is not valid\n", __FILE__, __LINE__);
+          result = false;
+          goto done;
+       }
        sw_printf("[%s:%u] - Returning frame with RA %lx, SP %lx, FP %lx\n",
 		 __FILE__, __LINE__, out.getRA(), out.getSP(), out.getFP());
        result = true;

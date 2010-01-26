@@ -68,6 +68,7 @@ class Walker {
    Dyninst::THR_ID getActualThread(Dyninst::THR_ID tid, 
                                 bool &error);
 
+   bool checkValidFrame(const Frame &in, const Frame &out);
    void callPreStackwalk(THR_ID tid = NULL_THR_ID);
    void callPostStackwalk(THR_ID tid = NULL_THR_ID);
  public:

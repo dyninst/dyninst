@@ -142,6 +142,15 @@ static gcframe_ret_t HandleStandardFrame(const Frame &in, Frame &out, ProcessSta
   return gcf_success;
 }
 
+bool Walker::checkValidFrame(const Frame &in, const Frame &out)
+{
+   if (out.getSP() <= in.getSP()) {
+      sw_printf("[%s:%u] - Stackwalk went backwards, %lx to %lx\n",
+                __FILE__, __LINE__, in.getSP(), out.getSP());
+      return false;
+   }
+   return true;
+}
 
 gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
 {

@@ -130,7 +130,7 @@ gcframe_ret_t StepperWandererImpl::getCallerFrame(const Frame &in, Frame &out)
    }
 
    out.setRA(found_ra);
-   out.setSP(found_base);
+   out.setSP(found_base + addr_width);
    
    if (fhelper->allocatesFrame(in.getRA()).first == FrameFuncHelper::savefp_only_frame) {
       Address new_fp;

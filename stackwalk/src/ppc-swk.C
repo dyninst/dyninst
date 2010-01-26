@@ -69,6 +69,11 @@ bool ProcSelf::getRegValue(Dyninst::MachRegister reg, THR_ID, Dyninst::MachRegis
   return true;
 }
 
+bool Walker::checkValidFrame(const Frame & /*in*/, const Frame & /*out*/)
+{
+   return true;
+}
+
 FrameFuncStepperImpl::FrameFuncStepperImpl(Walker *w, FrameStepper *parent_,
                                            FrameFuncHelper *) :
    FrameStepper(w),
