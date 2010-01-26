@@ -959,34 +959,65 @@ void SigHandlerStepperImpl::registerStepperGroupNoSymtab(StepperGroup *group)
                 " to get libc\n", __FILE__, __LINE__);
       return;
    }
+
+   std::vector<SymtabAPI::Function *> syms;
+   /**
+    * Get __restore_rt out of libc
+    **/
    LibAddrPair libc_addr;
+   Symtab *libc = NULL;
    bool result = symtab_libs->getLibc(libc_addr);
    if (!result) {
       sw_printf("[%s:%u] - Unable to find libc, not registering restore_rt"
                 "tracker.\n", __FILE__, __LINE__);
-      return;
    }
-   Symtab *libc = SymtabWrapper::getSymtab(libc_addr.first);
-   if (!libc) {
-      sw_printf("[%s:%u] - Unable to open libc, not registering restore_rt\n",
-                __FILE__, __LINE__);
-      return;
+   if (result) {
+      libc = SymtabWrapper::getSymtab(libc_addr.first);
+      if (!libc) {
+         sw_printf("[%s:%u] - Unable to open libc, not registering restore_rt\n",
+                   __FILE__, __LINE__);
+      }   
    }
-   
-   std::vector<SymtabAPI::Function *> syms;
-   result = libc->findFunctionsByName(syms, std::string("__restore_rt"));
-   if (!result || !syms.size()) {
-      sw_printf("[%s:%u] - Unable to find restore_rt in libc\n",
-                __FILE__, __LINE__);
-      return;
+   if (libc) {
+      result = libc->findFunctionsByName(syms, std::string("__restore_rt"));
+      if (!result) {
+         sw_printf("[%s:%u] - Unable to find restore_rt in libc\n",
+                   __FILE__, __LINE__);
+      }
    }
+
+   /**
+    * Get __restore_rt out of libpthread
+    **/
+   LibAddrPair libpthread_addr;
+   Symtab *libpthread = NULL;
+   result = symtab_libs->getLibpthread(libpthread_addr);
+   if (!result) {
+      sw_printf("[%s:%u] - Unable to find libpthread, not registering restore_rt"
+                "pthread tracker.\n", __FILE__, __LINE__);
+   }
+   if (result) {
+      libpthread = SymtabWrapper::getSymtab(libpthread_addr.first);
+      if (!libpthread) {
+         sw_printf("[%s:%u] - Unable to open libc, not registering restore_rt\n",
+                   __FILE__, __LINE__);
+      }   
+   }
+   if (libpthread) {
+      result = libpthread->findFunctionsByName(syms, std::string("__restore_rt"));
+      if (!result) {
+         sw_printf("[%s:%u] - Unable to find restore_rt in libc\n",
+                   __FILE__, __LINE__);
+      }
+   }   
 
    std::vector<SymtabAPI::Function *>::iterator i;
    for (i = syms.begin(); i != syms.end(); i++) {
       Function *f = *i;
       Dyninst::Address start = f->getOffset() + libc_addr.second;
       Dyninst::Address end = start + f->getSize();
-      sw_printf("Registering restore_rt as at %lx to %lx\n", start, end);
+      sw_printf("[%s:%u] - Registering restore_rt as at %lx to %lx\n",
+                __FILE__, __LINE__, start, end);
       group->addStepper(parent_stepper, start, end);
    }
 #endif
@@ -1294,9 +1325,39 @@ bool SymtabLibState::getVsyscallLibAddr(LibAddrPair &vsys)
 }
 
 
+static bool libNameMatch(const char *s, const char *libname)
+{
+   // A poor-man's regex match for */lib<s>[0123456789-.]*.so*
+   const char *filestart = strrchr(libname, '/');
+   if (!filestart)
+      filestart = libname;
+   const char *lib_start = strstr(filestart, "lib");
+   if (lib_start != filestart+1)
+      return false;
+   const char *libname_start = lib_start+3;
+   int s_len = strlen(s);
+   if (strncmp(s, libname_start, s_len) != 0) {
+      return false;
+   }
+
+   const char *cur = libname_start + s_len;
+   const char *valid_chars = "0123456789-.";
+   while (*cur) {
+      if (!strchr(valid_chars, *cur)) {
+         cur--;
+         if (strstr(cur, ".so") == cur) {
+            return true;
+         }
+         return false;
+      }
+      cur++;
+   }
+   return false;
+}
+
 bool SymtabLibState::getLibc(LibAddrPair &addr_pair)
 {
-  std::vector<LibAddrPair> libs;
+   std::vector<LibAddrPair> libs;
    getLibraries(libs);
    if (libs.size() == 1) {
       //Static binary.
@@ -1305,23 +1366,28 @@ bool SymtabLibState::getLibc(LibAddrPair &addr_pair)
    }
    for (std::vector<LibAddrPair>::iterator i = libs.begin(); i != libs.end(); i++)
    {
-      // A poor-man's regex match for libc[0123456789-.]*.so*
-      const char *libname = i->first.c_str();
-      const char *name_start = strstr(libname, "libc");
-      const char *valid_chars = "0123456789-.";
-      if (!name_start)
-         continue;
-      name_start += 4;
-      while (*name_start) {
-         if (!strchr(valid_chars, *name_start)) {
-            name_start--;
-            if (strstr(name_start, ".so") == name_start) {
-               addr_pair = *i;
-               return true;
-            }
-            break;
-         }
-         name_start++;
+      if (libNameMatch("c", i->first.c_str())) {
+         addr_pair = *i;
+         return true;
+      }
+   }
+   return false;
+}
+
+bool SymtabLibState::getLibpthread(LibAddrPair &addr_pair)
+{
+   std::vector<LibAddrPair> libs;
+   getLibraries(libs);
+   if (libs.size() == 1) {
+      //Static binary.
+      addr_pair = libs[0];
+      return true;
+   }
+   for (std::vector<LibAddrPair>::iterator i = libs.begin(); i != libs.end(); i++)
+   {
+      if (libNameMatch("pthread", i->first.c_str())) {
+         addr_pair = *i;
+         return true;
       }
    }
    return false;

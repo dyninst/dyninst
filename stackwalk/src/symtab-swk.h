@@ -77,6 +77,7 @@ class SymtabLibState : public LibraryState {
    Symtab *getVsyscallSymtab();
    bool getVsyscallLibAddr(LibAddrPair &vsys);
    bool getLibc(LibAddrPair &addr_pair);
+   bool getLibpthread(LibAddrPair &addr_pair);
 #endif
  public:
    SymtabLibState(ProcessState *parent, std::string executable = "");
