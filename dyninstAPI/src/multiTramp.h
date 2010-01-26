@@ -491,12 +491,6 @@ class multiTramp : public generatedCodeObject {
   //static dictionary_hash<multiTrampID, multiTramp *> multiTrampDict;
   // Now in the process class so we can handle fork easily
 
-  // Replacement method. Used when the physical multiTramp
-  // doesn't agree with the abstract version. Since we re-allocate,
-  // we go ahead and make a new one.
-  // TODO: two-phase remove step.
-  static bool replaceMultiTramp(multiTramp *oldMulti, bool &deleteReplaced);
-
  public:
   // And a factory method. Creates a multiTramp that covers the point
   // given, but may not be aligned with it (platform dependent). The
@@ -522,6 +516,12 @@ class multiTramp : public generatedCodeObject {
 				     bool &basicBlock);
 
   static multiTramp *getMulti(int id, AddressSpace *proc);
+
+  // Replacement method. Used when the physical multiTramp
+  // doesn't agree with the abstract version. Since we re-allocate,
+  // we go ahead and make a new one.
+  // TODO: two-phase remove step.
+  static bool replaceMultiTramp(multiTramp *oldMulti, bool &deleteReplaced);
 
   // Fork constructor. Must copy over all sub-objects as well.
   multiTramp(const multiTramp *parentMulti, process *child);
@@ -605,7 +605,6 @@ class multiTramp : public generatedCodeObject {
   void invalidateCode();
   bool linkCode();
   void removeCode(generatedCodeObject *subObject);
-  void updateCode(generatedCodeObject *subObject);
     // STUPID WINDOWS COMPILER
   generatedCodeObject *replaceCode(generatedCodeObject *newParent);
   bool safeToFree(codeRange *range);
