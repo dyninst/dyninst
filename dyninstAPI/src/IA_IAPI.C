@@ -796,21 +796,15 @@ boost::tuple<Instruction::Ptr,
         foundMaxSwitch = false;
         foundCondBranch = false;
         const unsigned char* buf =
-<<<<<<< HEAD:dyninstAPI/src/IA_IAPI.C
                 (const unsigned char*)(img->getPtrToInstruction(curBlk->firstInsnOffset(), context));
         if( buf == NULL ) {
             parsing_printf("%s[%d]: failed to get pointer to instruction by offset\n",
                 FILE__, __LINE__);
             return boost::make_tuple(Instruction::Ptr(), Instruction::Ptr(), false);
         }
-        InstructionDecoder dec(buf, curBlk->getSize());
-        dec.setMode(img->getAddressWidth() == 8);
-=======
-                (const unsigned char*)(img->getPtrToInstruction(curBlk->firstInsnOffset()));
         dyn_detail::boost::shared_ptr<InstructionDecoder> dec =
                 makeDecoder(img->getArch(), buf, curBlk->getSize());
         dec->setMode(img->getAddressWidth() == 8);
->>>>>>> Convert InstructionDecoder to factory-based, shared pointer construction, taking an architecture enum to determine derived type.:dyninstAPI/src/IA_IAPI.C
         Instruction::Ptr i;
         Address curAdr = curBlk->firstInsnOffset();
         while(i = dec->decode())

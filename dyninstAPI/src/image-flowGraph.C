@@ -766,21 +766,15 @@ bool image_func::buildCFG(
     {
 #if defined(cap_instruction_api)
         using namespace Dyninst::InstructionAPI;
-<<<<<<< HEAD:dyninstAPI/src/image-flowGraph.C
         const unsigned char* bufferBegin = (const unsigned char*)(img()->getPtrToInstruction(worklist[i], this));
         if( bufferBegin == NULL ) {
             parsing_printf("%s[%d]: failed to get pointer to instruction by offset\n",
                     FILE__, __LINE__);
             return false;
         }
-        InstructionDecoder dec(bufferBegin, -1 - (Address)(bufferBegin));
-        dec.setMode(img()->getAddressWidth() == 8);
-=======
-        const unsigned char* bufferBegin = (const unsigned char*)(img()->getPtrToInstruction(worklist[i]));
         dyn_detail::boost::shared_ptr<InstructionDecoder> dec =
                 makeDecoder(img()->getArch(), bufferBegin, -1 - (Address)(bufferBegin));
         dec->setMode(img()->getAddressWidth() == 8);
->>>>>>> Convert InstructionDecoder to factory-based, shared pointer construction, taking an architecture enum to determine derived type.:dyninstAPI/src/image-flowGraph.C
         InstructionAdapter_t ah(dec, worklist[i], this);
 #else        
         InstrucIter iter(worklist[i],this);

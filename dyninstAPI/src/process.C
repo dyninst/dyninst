@@ -3764,6 +3764,10 @@ bool process::addASharedObject(mapped_object *new_obj)
     //return false;
     //}
 
+    signal_printf("Adding shared object %s, addr range 0x%x to 0x%x\n",
+                   new_obj->fileName().c_str(),
+                   new_obj->getBaseAddress(),
+                   new_obj->get_size());
     parsing_printf("Adding shared object %s, addr range 0x%x to 0x%x\n",
            new_obj->fileName().c_str(), 
            new_obj->getBaseAddress(),
@@ -3880,6 +3884,10 @@ bool process::removeASharedObject(mapped_object *obj) {
     if( removeRTLib ) {
         runtime_lib.erase(runtime_lib_it);
     }
+    signal_printf("Removing shared object %s, addr range 0x%x to 0x%x\n",
+                   obj->fileName().c_str(),
+                   obj->getBaseAddress(),
+                   obj->get_size());
 
     removeOrigRange(obj);
 
