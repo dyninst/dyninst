@@ -80,8 +80,7 @@ class LRUCache {
 
    int hash_find(K key)
    {
-      int index = hash_func(key);
-      index %= max_hash_size;
+      int index = ((unsigned) hash_func(key)) % max_hash_size;
       int start = index;
       for (;;) {
          if (map_elems[index] == lru_undefined) {
@@ -102,8 +101,7 @@ class LRUCache {
 
    void hash_insert(K key, int val) 
    {
-      int index = hash_func(key);
-      index %= max_hash_size;
+      int index = ((unsigned) hash_func(key)) % max_hash_size;
       int start = index;
       for (;;) {
          if ((map_elems[index] == lru_undefined) || 
