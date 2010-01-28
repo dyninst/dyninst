@@ -3642,6 +3642,16 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
+  rg = new RunGroup("", STOPPED, CREATE, true, "instruction", "", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "power_decode", "power_decode", "power_decode.so", false, "{test: power_decode, mutator: power_decode, grouped: false, start_state: stopped, abi: 32, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("", STOPPED, CREATE, true, "instruction", "", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "power_cft", "power_cft", "power_cft.so", false, "{test: power_cft, mutator: power_cft, grouped: false, start_state: stopped, abi: 32, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
   rg = new RunGroup("", SELFSTART, CREATE, true, "dyninst", "", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_pt_ls", "test_pt_ls", "test_pt_ls.so", false, "{test: test_pt_ls, mutator: test_pt_ls, grouped: false, start_state: selfstart, abi: 32, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"));
   rg->index = group_count++;

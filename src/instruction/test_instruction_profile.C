@@ -61,7 +61,7 @@ extern "C" DLLEXPORT TestMutator* test_instruction_profile_factory()
 test_results_t test_instruction_profile_Mutator::executeTest()
 {
   Symtab *s;
-  if(!Symtab::openFile(s, "/lib/libc.so.6")) {
+  if(!Symtab::openFile(s, "./libc-power.so.6")) {
     logerror("FAILED: couldn't open libc for parsing\n");
     return FAILED;
   }
@@ -82,7 +82,7 @@ test_results_t test_instruction_profile_Mutator::executeTest()
     std::vector<Instruction::Ptr > decodedInsns;
     Instruction::Ptr i;
     dyn_detail::boost::shared_ptr<InstructionDecoder> d =
-            makeDecoder(Dyninst::InstructionAPI::x86, decodeBase, (*curReg)->getRegionSize());
+            makeDecoder(Dyninst::InstructionAPI::power, decodeBase, (*curReg)->getRegionSize());
     // 32-bit libc; force to 32-bit mode
     d->setMode(false);
     long offset = 0;
@@ -91,16 +91,17 @@ test_results_t test_instruction_profile_Mutator::executeTest()
     while(offset < (*curReg)->getRegionSize() - maxInstructionLength)
     {
       i = d->decode(decodeBase + offset);
+      //cout << endl << "\t\t" << i->format() << std::endl;
       total_count++;
       decodedInsns.push_back(i);
       if(i) {
 	offset += i->size();
 	valid_count++;
-	if((i->getCategory() != c_NoCategory) && i->getControlFlowTarget())
+	/*if((i->getCategory() != c_NoCategory) && i->getControlFlowTarget())
 	{
 	  cf_count++;
 	  decodedInsns.clear();
-	}
+      }*/
       }
       else {
 	offset++;
@@ -108,7 +109,7 @@ test_results_t test_instruction_profile_Mutator::executeTest()
     }
   }
   //fprintf(stderr, "Instruction counts: %d total, %d valid, %d control-flow\n", total_count, valid_count, cf_count);
-  
+  /*
   BPatch bp;
   BPatch_addressSpace* libc = bp.openBinary("/lib/libc.so.6");
   if(!libc) {
@@ -118,7 +119,7 @@ test_results_t test_instruction_profile_Mutator::executeTest()
   
   BPatch_Vector<BPatch_function*> funcs;
   libc->getImage()->getProcedures(funcs);
-  
+  */
   return PASSED;
 }
 

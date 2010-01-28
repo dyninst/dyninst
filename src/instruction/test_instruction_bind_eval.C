@@ -60,59 +60,8 @@ extern "C" DLLEXPORT TestMutator* test_instruction_bind_eval_factory()
    return new test_instruction_bind_eval_Mutator();
 }
 
-template <typename T>
-struct shared_ptr_lt
-{
-  bool operator()(const T& lhs, const T& rhs)
-  {
-    // Non-nulls precede nulls
-    if(rhs.get() == NULL)
-    {
-      return lhs.get() != NULL;
-    }
-    if(lhs.get() == NULL)
-      return false;
-    // Otherwise, dereference and compare
-    return *lhs < *rhs;
-  }
-  
-};
 
 
-typedef std::set<RegisterAST::Ptr, shared_ptr_lt<RegisterAST::Ptr> > registerSet;
-
-test_results_t failure_accumulator(test_results_t lhs, test_results_t rhs)
-{
-  if(lhs == FAILED || rhs == FAILED)
-  {
-    return FAILED;
-  }
-  return PASSED;
-}
-
-test_results_t verifyCFT(Expression::Ptr cft, bool expectedDefined, unsigned long expectedValue, Result_Type expectedType)
-{
-  Result cftResult = cft->eval();
-  if(cftResult.defined != expectedDefined) {
-    logerror("FAILED: expected result defined %s, actual %s\n", expectedDefined ? "true" : "false", 
-	     cftResult.defined ? "true" : "false");
-    return FAILED;
-  }
-  if(expectedDefined)
-  {
-    if(cftResult.type != expectedType)
-    {
-      logerror("FAILED: expected result type %d, actual %d\n", expectedType, cftResult.type);
-      return FAILED;
-    }
-    if(cftResult.convert<unsigned long>() != expectedValue)
-    {
-      logerror("FAILED: expected result value 0x%x, actual 0x%x\n", expectedValue, cftResult.convert<unsigned long>());
-      return FAILED;
-    }
-  }
-  return PASSED;
-}
 
 
 test_results_t test_instruction_bind_eval_Mutator::executeTest()
