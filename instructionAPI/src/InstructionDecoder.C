@@ -31,6 +31,7 @@
 
 #include "../h/InstructionDecoder.h"
 #include "../h/InstructionDecoder-x86.h"
+#include "../h/InstructionDecoder-power.h"
 #include "../h/Expression.h"
 #include "../src/arch-x86.h"
 #include "../h/Register.h"
@@ -67,6 +68,12 @@ namespace Dyninst
     INSTRUCTION_EXPORT InstructionDecoder::~InstructionDecoder()
     {
     }
+    Instruction* InstructionDecoder::makeInstruction(entryID opcode, const char* mnem,
+            unsigned int decodedSize, const unsigned char* raw)
+    {
+        Operation::Ptr tmp(make_shared(singleton_object_pool<Operation>::construct(opcode, mnem)));
+        return singleton_object_pool<Instruction>::construct(tmp, decodedSize, raw);
+    }
     
     INSTRUCTION_EXPORT Instruction::Ptr InstructionDecoder::decode()
     {
@@ -74,16 +81,15 @@ namespace Dyninst
       unsigned int decodedSize = decodeOpcode();
       
       rawInstruction += decodedSize;
-      return make_shared(singleton_object_pool<Instruction>::construct(m_Operation, decodedSize, 
+      return make_shared(singleton_object_pool<Instruction>::construct(m_Operation, decodedSize,
 									 rawInstruction - decodedSize));
     }
     
     INSTRUCTION_EXPORT Instruction::Ptr InstructionDecoder::decode(const unsigned char* buffer)
     {
-      vector<Expression::Ptr, boost::pool_allocator<Expression::Ptr> > operands;
       rawInstruction = buffer;
       unsigned int decodedSize = decodeOpcode();
-      return make_shared(singleton_object_pool<Instruction>::construct(m_Operation, decodedSize, 
+      return make_shared(singleton_object_pool<Instruction>::construct(m_Operation, decodedSize,
 									 rawInstruction));
     }
     Expression::Ptr InstructionDecoder::makeAddExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType)
@@ -106,10 +112,6 @@ namespace Dyninst
         return make_shared(singleton_object_pool<RegisterAST>::construct(registerID));
     }
     
-    bool InstructionDecoder::decodeOperands(std::vector<Expression::Ptr>& operands)
-    {
-        return false;
-    }
 
     void InstructionDecoder::resetBuffer(const unsigned char* buffer, unsigned int size = 0)
     {
@@ -123,6 +125,9 @@ namespace Dyninst
         {
             case x86:
                 return dyn_detail::boost::shared_ptr<InstructionDecoder>(new InstructionDecoder_x86(buffer, len));
+                break;
+            case power:
+                return dyn_detail::boost::shared_ptr<InstructionDecoder>(new InstructionDecoder_power(buffer, len));
                 break;
             default:
                 assert(!"not implemented");

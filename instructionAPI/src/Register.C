@@ -36,7 +36,7 @@
 #include <sstream>
 #include "Visitor.h"
 #include "../../common/h/singleton_object_pool.h"
-
+#include "InstructionDecoder-power.h"
 using namespace std;
 using namespace dyn_detail::boost;
 
@@ -91,7 +91,7 @@ namespace Dyninst
       return registerID;
     }
     
-    std::string RegisterAST::format() const
+    std::string RegisterAST::format(formatStyle) const
     {
       std::stringstream retVal;
 	  RegTable::iterator foundName = Singleton<IA32RegTable>::getInstance().IA32_register_names.find(IA32Regs(registerID));
@@ -101,7 +101,49 @@ namespace Dyninst
       }
       else
       {
-		retVal << "R" << registerID;
+          if(registerID >= power_GPR0 && registerID < power_LAST_REG)
+          {
+              if(registerID <= power_GPR31)
+              {
+                  retVal << "r" << registerID - power_GPR0;
+              }
+              else if(registerID <= power_FPR31)
+              {
+                  retVal << "fpr" << registerID - power_FPR0;
+              }
+              else if(registerID <= power_FSR31)
+              {
+                  retVal << "fsr" << registerID - power_FSR0;
+              }
+              else if(registerID >= power_CR0 && registerID <= power_CR7)
+              {
+                  retVal << "cr" << registerID - power_CR0;
+              }
+              else if(registerID == power_R_PC)
+              {
+                  retVal << "pc";
+              }
+              else if(registerID == power_LR)
+              {
+                  retVal << "lr";
+              }
+              else if(registerID == power_CTR)
+              {
+                  retVal << "ctr";
+              }
+              else if(registerID == power_FPSCW)
+              {
+                  retVal << "fpscr";
+              }
+              else
+              {
+                  retVal << "R" << registerID;
+              }
+          }
+          else
+          {
+              retVal << "R" << registerID;
+          }
       }
       return retVal.str();
     }

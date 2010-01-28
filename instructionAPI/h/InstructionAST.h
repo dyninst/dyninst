@@ -55,7 +55,11 @@ namespace Dyninst
   
     using std::vector;
     using std::set;
-    
+    enum formatStyle
+    {
+        defaultStyle,
+        memoryAccessStyle
+    };
     /// The %InstructionAST class is the base class for all nodes in the ASTs used by the %Operand class.
     /// It defines the necessary interfaces for traversing and searching
     /// an abstract syntax tree representing an operand.
@@ -107,7 +111,7 @@ namespace Dyninst
 
       /// The \c format interface returns the contents of an %InstructionAST
       /// object as a string.  By default, \c format() produces assembly language.
-      virtual std::string format() const = 0;
+      virtual std::string format(formatStyle how = defaultStyle) const = 0;
   
     protected:
       friend class RegisterAST;

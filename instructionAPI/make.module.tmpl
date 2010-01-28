@@ -22,7 +22,7 @@ ifndef USES_NATIVE_CC
 LD		= $(GXX)
 LDFLAGS		+= -shared $(G_PTHREAD_LD)
 CFLAGS		+= -fPIC -g
-CXXFLAGS	+= -fPIC $(G_PTHREAD) -felide-constructors -g
+CXXFLAGS	+= -fPIC $(G_PTHREAD) -felide-constructors -g -D_GLIBCXX_PROFILE
 else
 ifeq (solaris,$(findstring solaris,$(PLATFORM)))
 LDFLAGS		+= -G
@@ -44,7 +44,8 @@ SRCS +=	../src/Instruction.C \
 	../src/BinaryFunction.C \
 	../src/InstructionCategories.C \
 	../src/Immediate.C \
-	../src/InstructionDecoder.C
+	../src/InstructionDecoder.C \
+	../src/InstructionDecoder-power.C
 
 
 IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../common/h -I../../dynutil/h -I../../symtabAPI/h -I../external
@@ -66,7 +67,8 @@ PUBLIC_H =      BinaryFunction.h \
                 RegisterIDs-x86.h \
                 Result.h \
 	       InstructionCategories.h \
-	       Visitor.h
+	       Visitor.h \
+	       InstructionDecoder-power.h
 
 
 

@@ -49,6 +49,11 @@ namespace Dyninst
       return make_shared(singleton_object_pool<RegisterAST>::construct(regID));
     }
 
+    Operation::Operation(entryID id, const char* mnem)
+          : operationID(id), mnemonic(mnem)
+    {
+    }
+    
     Operation::Operation(ia32_entry* e, ia32_prefixes* p, ia32_locations* l) :
       doneOtherSetup(false), doneFlagsSetup(false)
     
@@ -190,6 +195,10 @@ namespace Dyninst
 	  
     std::string Operation::format() const
     {
+        if(mnemonic != "")
+        {
+            return mnemonic;
+        }
       dyn_hash_map<entryID, std::string>::const_iterator found = entryNames_IAPI.find(operationID);
       if(found != entryNames_IAPI.end())
 	return found->second;

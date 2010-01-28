@@ -89,10 +89,10 @@ namespace Dyninst
 
             protected:
       
-                virtual bool decodeOperands(std::vector<Expression::Ptr>& operands);
+                virtual bool decodeOperands(const Instruction* insn_to_complete);
 
                 bool decodeOneOperand(const ia32_operand& operand,
-                                      std::vector<Expression::Ptr>& outputOperands);
+                                      const Instruction* insn_to_complete, bool isRead, bool isWritten);
                 virtual unsigned int decodeOpcode();
       
                 Expression::Ptr makeSIBExpression(unsigned int opType);

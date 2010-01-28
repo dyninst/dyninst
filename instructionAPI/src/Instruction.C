@@ -40,9 +40,14 @@
 #include <boost/iterator/indirect_iterator.hpp>
 #include <iostream>
 #include "arch-x86.h"
+#include <sstream>
+#include <iomanip>
+#include <set>
+#include <functional>
+
 using namespace std;
 
-#include <boost/pool/pool.hpp>
+#include "../../common/h/singleton_object_pool.h"
 
 namespace Dyninst
 {
@@ -53,7 +58,8 @@ namespace Dyninst
 			     size_t size, const unsigned char* raw)
       : m_InsnOp(what), m_Valid(true)
     {
-      copyRaw(size, raw);
+        m_Operands.reserve(5);
+        copyRaw(size, raw);
       
     }
 
@@ -94,6 +100,7 @@ namespace Dyninst
     INSTRUCTION_EXPORT Instruction::Instruction() :
       m_Valid(false), m_size(0)
     {
+        m_Operands.reserve(5);
     }
     
     INSTRUCTION_EXPORT Instruction::~Instruction()
@@ -187,7 +194,7 @@ namespace Dyninst
         if(index < 0 || index >= (int)(m_Operands.size()))
         {
 	  // Out of range = empty operand
-           return Operand(Expression::Ptr(), false, false);
+            return Operand(Expression::Ptr(), false, false);
         }
         return m_Operands[index];
      }
@@ -232,7 +239,7 @@ namespace Dyninst
 	  curOperand != m_Operands.end();
 	  ++curOperand)
       {
-	curOperand->getReadSet(regsRead);
+          curOperand->getReadSet(regsRead);
       }
       std::copy(m_InsnOp->implicitReads().begin(), m_InsnOp->implicitReads().end(), std::inserter(regsRead, regsRead.begin()));
       
@@ -248,9 +255,10 @@ namespace Dyninst
 	  curOperand != m_Operands.end();
 	  ++curOperand)
       {
-	curOperand->getWriteSet(regsWritten);
+          curOperand->getWriteSet(regsWritten);
       }
-      std::copy(m_InsnOp->implicitWrites().begin(), m_InsnOp->implicitWrites().end(), std::inserter(regsWritten, regsWritten.begin()));
+      std::copy(m_InsnOp->implicitWrites().begin(), m_InsnOp->implicitWrites().end(), std::inserter(regsWritten,
+regsWritten.begin()));
       
     }
     
@@ -260,11 +268,11 @@ namespace Dyninst
       {
 	decodeOperands();
       }
-      for(std::vector<Operand>::const_iterator curOperand = m_Operands.begin();
+      for(std::vector<Operand >::const_iterator curOperand = m_Operands.begin();
 	  curOperand != m_Operands.end();
 	  ++curOperand)
       {
-	if(curOperand->isRead(candidate))
+          if(curOperand->isRead(candidate))
 	{
 	  return true;
 	}
@@ -282,7 +290,7 @@ namespace Dyninst
 	  curOperand != m_Operands.end();
 	  ++curOperand)
       {
-	if(curOperand->isWritten(candidate))
+          if(curOperand->isWritten(candidate))
 	{
 	  return true;
 	}
@@ -304,7 +312,7 @@ namespace Dyninst
 	  curOperand != m_Operands.end();
 	  ++curOperand)
       {
-	if(curOperand->readsMemory())
+          if(curOperand->readsMemory())
 	{
 	  return true;
 	}
@@ -319,10 +327,10 @@ namespace Dyninst
 	decodeOperands();
       }
       for(std::vector<Operand>::const_iterator curOperand = m_Operands.begin();
-	  curOperand != m_Operands.end();
+          curOperand != m_Operands.end();
 	  ++curOperand)
       {
-	if(curOperand->writesMemory())
+          if(curOperand->writesMemory())
 	{
 	  return true;
 	}
@@ -340,9 +348,10 @@ namespace Dyninst
 	  curOperand != m_Operands.end();
 	  ++curOperand)
       {
-	curOperand->addEffectiveReadAddresses(memAccessors);
+          curOperand->addEffectiveReadAddresses(memAccessors);
       }  
-      std::copy(m_InsnOp->getImplicitMemReads().begin(), m_InsnOp->getImplicitMemReads().end(), std::inserter(memAccessors, memAccessors.begin()));
+      std::copy(m_InsnOp->getImplicitMemReads().begin(), m_InsnOp->getImplicitMemReads().end(), std::inserter(memAccessors,
+memAccessors.begin()));
     }
     
     INSTRUCTION_EXPORT void Instruction::getMemoryWriteOperands(std::set<Expression::Ptr>& memAccessors) const
@@ -352,12 +361,13 @@ namespace Dyninst
 	decodeOperands();
       }
       for(std::vector<Operand>::const_iterator curOperand = m_Operands.begin();
-	  curOperand != m_Operands.end();
+          curOperand != m_Operands.end();
 	  ++curOperand)
       {
-	curOperand->addEffectiveWriteAddresses(memAccessors);
+          curOperand->addEffectiveWriteAddresses(memAccessors);
       }  
-      std::copy(m_InsnOp->getImplicitMemWrites().begin(), m_InsnOp->getImplicitMemWrites().end(), std::inserter(memAccessors, memAccessors.begin()));
+      std::copy(m_InsnOp->getImplicitMemWrites().begin(), m_InsnOp->getImplicitMemWrites().end(), std::inserter(memAccessors,
+memAccessors.begin()));
     }
     
     INSTRUCTION_EXPORT Expression::Ptr Instruction::getControlFlowTarget() const
@@ -379,21 +389,11 @@ namespace Dyninst
         {
             decodeOperands();
         }
-    #if defined(DEBUG_LOG)      
-        if(!(m_Operands[0].isRead(thePC) || m_Operands.size() == 1))
+        if(m_Successors.empty())
         {
-            fprintf(stderr, "WARNING: control flow target for instruction %s may be incorrect\n", format().c_str());
+            return Expression::Ptr();
         }
-    #endif      
-        if(getCategory() == c_BranchInsn ||
-        getCategory() == c_CallInsn)
-        {
-#if defined(NO_OPT_FLAG)            
-            assert(m_InsnOp->isWritten(thePC));
-#endif //defined(NO_OPT_FLAG)
-            return m_Operands[0].getValue();
-        }
-        return Expression::Ptr();
+        return m_Successors.front().getValue();
     }
     
     INSTRUCTION_EXPORT std::string Instruction::format() const
@@ -402,6 +402,7 @@ namespace Dyninst
       {
 	decodeOperands();
       }
+
       std::string retVal = m_InsnOp->format();
       retVal += " ";
       std::vector<Operand>::const_iterator curOperand;
@@ -409,7 +410,7 @@ namespace Dyninst
 	  curOperand != m_Operands.end();
 	  ++curOperand)
       {
-	retVal += curOperand->format();
+          retVal += curOperand->format();
 	retVal += ", ";
       }
       if(!m_Operands.empty())
@@ -417,7 +418,48 @@ namespace Dyninst
 	// trim trailing ", "
 	retVal.erase(retVal.size() - 2, retVal.size());
       }
-      
+#if defined(DEBUG_READ_WRITE)      
+      std::set<RegisterAST::Ptr> tmp;
+      getReadSet(tmp);
+      cout << "Read set:" << endl;
+      for(std::set<RegisterAST::Ptr>::iterator i = tmp.begin();
+          i != tmp.end();
+         ++i)
+      {
+          cout << (*i)->format() << " ";
+      }
+      cout << endl;
+      tmp.clear();
+      getWriteSet(tmp);
+      cout << "Write set:" << endl;
+      for(std::set<RegisterAST::Ptr>::iterator i = tmp.begin();
+          i != tmp.end();
+          ++i)
+      {
+          cout << (*i)->format() << " ";
+      }
+      cout << endl;
+      std::set<Expression::Ptr> mem;
+      getMemoryReadOperands(mem);
+      cout << "Read mem:" << endl;
+      for(std::set<Expression::Ptr>::iterator i = mem.begin();
+          i != mem.end();
+          ++i)
+      {
+          cout << (*i)->format() << " ";
+      }
+      cout << endl;
+      mem.clear();
+      getMemoryWriteOperands(mem);
+      cout << "Write mem:" << endl;
+      for(std::set<Expression::Ptr>::iterator i = mem.begin();
+          i != mem.end();
+          ++i)
+      {
+          cout << (*i)->format() << " ";
+      }
+      cout << endl;
+#endif // defined(DEBUG_READ_WRITE)
       return retVal;
     }
     INSTRUCTION_EXPORT bool Instruction::allowsFallThrough() const
@@ -451,6 +493,17 @@ namespace Dyninst
     {
       return entryToCategory(m_InsnOp->getID());
     }
+    void Instruction::appendOperand(Expression::Ptr e, bool isRead, bool isWritten,
+                                   bool isSuccessor) const
+    {
+        m_Operands.push_back(Operand(e, isRead, isWritten));
+        if(isSuccessor)
+        {
+            m_Successors.push_back(m_Operands.back());
+        }
+    }
+  
+
   };
 };
 

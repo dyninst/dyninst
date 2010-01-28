@@ -93,11 +93,13 @@ namespace Dyninst
       typedef std::set<RegisterAST::Ptr> registerSet;
       typedef std::set<Expression::Ptr> VCSet;
       typedef dyn_detail::boost::shared_ptr<Operation> Ptr;
+      friend class InstructionDecoder_power; // for editing mnemonics after creation
       
     public:
       INSTRUCTION_EXPORT Operation(ia32_entry* e, ia32_prefixes* p = NULL, ia32_locations* l = NULL);
       INSTRUCTION_EXPORT Operation(const Operation& o);
       INSTRUCTION_EXPORT Operation();
+      INSTRUCTION_EXPORT Operation(entryID id, const char* mnem);
       
       INSTRUCTION_EXPORT const Operation& operator=(const Operation& o);
       
@@ -128,6 +130,7 @@ namespace Dyninst
       mutable registerSet otherWritten;
       mutable VCSet otherEffAddrsRead;
       mutable VCSet otherEffAddrsWritten;
+      mutable std::string mnemonic;
       entryID operationID;
       mutable bool doneOtherSetup;
       mutable bool doneFlagsSetup;

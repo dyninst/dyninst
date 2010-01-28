@@ -79,7 +79,7 @@ namespace Dyninst
                     r_ST0, r_ST1, r_ST2, r_ST3, r_ST4, r_ST5, r_ST6, r_ST7,
 		    r_ALLGPRS
     };
-	  
+
     /// The %RegInfo struct associates a register ID with its size and name.
     struct RegInfo
     {

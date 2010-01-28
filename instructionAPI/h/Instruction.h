@@ -35,6 +35,7 @@
 
 #include <vector>
 #include <set>
+#include <list>
 #include "Expression.h"
 #include "Operation.h"
 #include "Operand.h"
@@ -90,6 +91,7 @@ namespace Dyninst
       
     public:
         friend class InstructionDecoder_x86;
+        friend class InstructionDecoder_power;
       /// \param what Opcode of the instruction
       /// \param operandSource Contains the %Expressions to be transformed into %Operands
       /// \param size Contains the number of bytes occupied by the corresponding machine instruction
@@ -255,6 +257,7 @@ namespace Dyninst
       
     private:
       void decodeOperands() const;
+      void appendOperand(Expression::Ptr e, bool isRead, bool isWritten, bool isSuccessor = false) const;
       void copyRaw(size_t size, const unsigned char* raw);
       Expression::Ptr makeReturnExpression() const;
       mutable std::vector<Operand> m_Operands;
@@ -263,6 +266,7 @@ namespace Dyninst
       raw_insn_T m_RawInsn;
       unsigned int m_size;
       archID arch_decoded_from;
+      mutable std::list<Operand> m_Successors;
       
     };
   };

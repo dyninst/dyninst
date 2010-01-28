@@ -44,6 +44,70 @@ namespace Dyninst
     namespace InstructionAPI
     {
     
+        bool readsOperand(unsigned int opsema, unsigned int i)
+        {
+            switch(opsema) {
+                case s1R2R:
+                    return (i == 0 || i == 1);
+                case s1R:
+                case s1RW:
+                    return i == 0;
+                case s1W:
+                    return false;
+                case s1W2RW:
+                    case s1W2R:   // second operand read, first operand written (e.g. mov)
+                        return i == 1;
+                        case s1RW2R:  // two operands read, first written (e.g. add)
+                            case s1RW2RW: // e.g. xchg
+                case s1R2RW:
+                    return i == 0 || i == 1;
+                    case s1W2R3R: // e.g. imul
+                        case s1W2RW3R: // some mul
+                            case s1W2R3RW: // (stack) push & pop
+                                return i == 1 || i == 2;
+                                case s1W2W3R: // e.g. les
+                                    return i == 2;
+                                    case s1RW2R3R: // shld/shrd
+                                        case s1RW2RW3R: // [i]div, cmpxch8b
+                                            return i == 0 || i == 1 || i == 2;
+                                            break;
+                case sNONE:
+                default:
+                    return false;
+            }
+      
+        }
+      
+        bool writesOperand(unsigned int opsema, unsigned int i)
+        {
+            switch(opsema) {
+                case s1R2R:
+                case s1R:
+                    return false;
+                case s1RW:
+                case s1W:
+                    case s1W2R:   // second operand read, first operand written (e.g. mov)
+                        case s1RW2R:  // two operands read, first written (e.g. add)
+                            case s1W2R3R: // e.g. imul
+                                case s1RW2R3R: // shld/shrd
+                                    return i == 0;
+                case s1R2RW:
+                    return i == 1;
+                case s1W2RW:
+                    case s1RW2RW: // e.g. xchg
+                        case s1W2RW3R: // some mul
+                            case s1W2W3R: // e.g. les
+                                case s1RW2RW3R: // [i]div, cmpxch8b
+                                    return i == 0 || i == 1;
+                                    case s1W2R3RW: // (stack) push & pop
+                                        return i == 0 || i == 2;
+                case sNONE:
+                default:
+                    return false;
+            }
+        }
+
+
     
     INSTRUCTION_EXPORT InstructionDecoder_x86::InstructionDecoder_x86(const unsigned char* buffer, size_t size) :
             InstructionDecoder(buffer, size),
@@ -289,6 +353,21 @@ namespace Dyninst
         }
     }
 
+    enum intelRegBanks
+    {
+        b_8bitNoREX = 0,
+        b_16bit,
+        b_32bit,
+        b_segment,
+        b_64bit,
+        b_xmm,
+        b_mm,
+        b_cr,
+        b_dr,
+        b_tr,
+        b_amd64ext,
+        b_8bitWithREX
+    };
     static IA32Regs IntelRegTable[][8] = {
         {
             r_AL, r_CL, r_DL, r_BL, r_AH, r_CH, r_DH, r_BH
@@ -334,28 +413,28 @@ namespace Dyninst
     {
         if(isExtendedReg)
         {
-            return IntelRegTable[10][intelReg];
+            return IntelRegTable[b_amd64ext][intelReg];
         }
         if(locs->rex_w)
         {
             // AMD64 with 64-bit operands
-            return IntelRegTable[4][intelReg];
+            return IntelRegTable[b_64bit][intelReg];
         }
         switch(opType)
         {
             case op_b:
                 if (locs->rex_position == -1) {
-                    return IntelRegTable[0][intelReg];
+                    return IntelRegTable[b_8bitNoREX][intelReg];
                 } else {
-                    return IntelRegTable[11][intelReg];
+                    return IntelRegTable[b_8bitWithREX][intelReg];
                 }
             case op_q:
-                return IntelRegTable[4][intelReg];
+                return IntelRegTable[b_64bit][intelReg];
             case op_d:
             case op_si:
             case op_w:
             default:
-                return IntelRegTable[2][intelReg];
+                return IntelRegTable[b_32bit][intelReg];
                 break;
         }
     
@@ -425,13 +504,20 @@ namespace Dyninst
 
 
     bool InstructionDecoder_x86::decodeOneOperand(const ia32_operand& operand,
-            std::vector<Expression::Ptr>& outputOperands)
+            const Instruction* insn_to_complete, bool isRead, bool isWritten)
             {
                 unsigned int regType = op_d;
                 if(ia32_is_mode_64())
                 {
                     regType = op_q;
                 }
+                bool isCFT = false;
+                InsnCategory cat = insn_to_complete->getCategory();
+                if(cat == c_BranchInsn || cat == c_CallInsn)
+                {
+                    isCFT = true;
+                }
+                        
                 switch(operand.admet)
                 {
                     case 0:
@@ -450,19 +536,19 @@ namespace Dyninst
                         // am_A only shows up as a far call/jump.  Position 1 should be universally safe.
                         Expression::Ptr addr(decodeImmediate(operand.optype, 1));
                         Expression::Ptr op(makeDereferenceExpression(addr, makeSizeType(operand.optype)));
-                        outputOperands.push_back(op);
+                        insn_to_complete->appendOperand(op, isRead, isWritten, isCFT);
                     }
                     break;
                     case am_C:
                     {
-                        Expression::Ptr op(makeRegisterExpression(IntelRegTable[7][locs->modrm_reg]));
-                        outputOperands.push_back(op);
+                        Expression::Ptr op(makeRegisterExpression(IntelRegTable[b_cr][locs->modrm_reg]));
+                        insn_to_complete->appendOperand(op, isRead, isWritten);
                     }
                     break;
                     case am_D:
                     {
-                        Expression::Ptr op(makeRegisterExpression(IntelRegTable[8][locs->modrm_reg]));
-                        outputOperands.push_back(op);
+                        Expression::Ptr op(makeRegisterExpression(IntelRegTable[b_dr][locs->modrm_reg]));
+                        insn_to_complete->appendOperand(op, isRead, isWritten);
                     }
                     break;
                     case am_E:
@@ -471,23 +557,23 @@ namespace Dyninst
                     case am_M:
                     // am_R is the inverse of am_M; it should only have a mod of 3
                     case am_R:
-                    outputOperands.push_back(makeModRMExpression(operand.optype));
+                    insn_to_complete->appendOperand(makeModRMExpression(operand.optype), isRead, isWritten, isCFT);
                     break;
                     case am_F:
                     {
                         Expression::Ptr op(makeRegisterExpression(r_EFLAGS));
-                        outputOperands.push_back(op);
+                        insn_to_complete->appendOperand(op, isRead, isWritten);
                     }
                     break;
                     case am_G:
                     {
                         Expression::Ptr op(makeRegisterExpression(makeRegisterID(locs->modrm_reg,
                                 operand.optype, locs->rex_r)));
-                        outputOperands.push_back(op);
+                        insn_to_complete->appendOperand(op, isRead, isWritten);
                     }
                     break;
                     case am_I:
-                        outputOperands.push_back(decodeImmediate(operand.optype, locs->imm_position));
+                        insn_to_complete->appendOperand(decodeImmediate(operand.optype, locs->imm_position), isRead, isWritten);
                         break;
                     case am_J:
                     {
@@ -498,7 +584,7 @@ namespace Dyninst
                         Expression::Ptr postEIP(makeAddExpression(EIP, InsnSize, u32));
 
                         Expression::Ptr op(makeAddExpression(Offset, postEIP, u32));
-                        outputOperands.push_back(op);
+                        insn_to_complete->appendOperand(op, isRead, isWritten, true);
                     }
                     break;
                     case am_O:
@@ -529,7 +615,7 @@ namespace Dyninst
 
 
                         int offset_position = locs->opcode_position;
-                        if(locs->modrm_position > offset_position && locs->modrm_operand < (int)(outputOperands.size()))
+                        if(locs->modrm_position > offset_position && locs->modrm_operand < insn_to_complete->m_Operands.size())
                         {
                             offset_position = locs->modrm_position;
                         }
@@ -538,12 +624,13 @@ namespace Dyninst
                             offset_position = locs->sib_position;
                         }
                         offset_position++;
-                        outputOperands.push_back(makeDereferenceExpression(
-                            decodeImmediate(pseudoOpType, offset_position), makeSizeType(operand.optype)));
+                        insn_to_complete->appendOperand(makeDereferenceExpression(
+                                decodeImmediate(pseudoOpType, offset_position), makeSizeType(operand.optype)), isRead, isWritten);
                     }
                     break;
                     case am_P:
-                        outputOperands.push_back(makeRegisterExpression(IntelRegTable[6][locs->modrm_reg]));
+                        insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable[b_mm][locs->modrm_reg]),
+                                isRead, isWritten);
                         break;
                     case am_Q:
         
@@ -553,11 +640,12 @@ namespace Dyninst
                             case 0x00:
                             case 0x01:
                             case 0x02:
-                                outputOperands.push_back(makeModRMExpression(operand.optype));
+                                insn_to_complete->appendOperand(makeModRMExpression(operand.optype), isRead, isWritten);
                                 break;
                             case 0x03:
                                 // use of actual register
-                                outputOperands.push_back(makeRegisterExpression(IntelRegTable[6][locs->modrm_rm]));
+                                insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable[b_mm][locs->modrm_rm]),
+                                                               isRead, isWritten);
                                 break;
                             default:
                                 assert(!"2-bit value modrm_mod out of range");
@@ -566,15 +654,18 @@ namespace Dyninst
                         break;
                     case am_S:
                     // Segment register in modrm reg field.
-                        outputOperands.push_back(makeRegisterExpression(IntelRegTable[3][locs->modrm_reg]));
+                        insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable[b_segment][locs->modrm_reg]),
+                                isRead, isWritten);
                         break;
                     case am_T:
                         // test register in modrm reg; should only be tr6/tr7, but we'll decode any of them
                         // NOTE: this only appears in deprecated opcodes
-                        outputOperands.push_back(makeRegisterExpression(IntelRegTable[9][locs->modrm_reg]));
+                        insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable[b_tr][locs->modrm_reg]),
+                                                       isRead, isWritten);
                         break;
                     case am_V:
-                        outputOperands.push_back(makeRegisterExpression(IntelRegTable[5][locs->modrm_reg]));
+                        insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable[b_xmm][locs->modrm_reg]),
+                                                       isRead, isWritten);
                         break;
                     case am_W:
                         switch(locs->modrm_mod)
@@ -583,12 +674,14 @@ namespace Dyninst
                             case 0x00:
                             case 0x01:
                             case 0x02:
-                                outputOperands.push_back(makeModRMExpression(makeSizeType(operand.optype)));
+                                insn_to_complete->appendOperand(makeModRMExpression(makeSizeType(operand.optype)),
+                                                               isRead, isWritten);
                                 break;
                             case 0x03:
                             // use of actual register
                             {
-                                outputOperands.push_back(makeRegisterExpression(IntelRegTable[5][locs->modrm_rm]));
+                                insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable[b_xmm][locs->modrm_rm]),
+                                                               isRead, isWritten);
                                 break;
                             }
                             default:
@@ -604,7 +697,8 @@ namespace Dyninst
                                 Result(u32, 0x10))));
                         Expression::Ptr ds_segment = makeMultiplyExpression(ds, segmentOffset, u32);
                         Expression::Ptr ds_si = makeAddExpression(ds_segment, si, u32);
-                        outputOperands.push_back(makeDereferenceExpression(ds_si, makeSizeType(operand.optype)));
+                        insn_to_complete->appendOperand(makeDereferenceExpression(ds_si, makeSizeType(operand.optype)),
+                                                       isRead, isWritten);
                     }
                     break;
                     case am_Y:
@@ -614,7 +708,8 @@ namespace Dyninst
                         Expression::Ptr es_segment = makeMultiplyExpression(es,
                             make_shared(singleton_object_pool<Immediate>::construct(Result(u32, 0x10))), u32);
                         Expression::Ptr es_di = makeAddExpression(es_segment, di, u32);
-                        outputOperands.push_back(makeDereferenceExpression(es_di, makeSizeType(operand.optype)));
+                        insn_to_complete->appendOperand(makeDereferenceExpression(es_di, makeSizeType(operand.optype)),
+                                                       isRead, isWritten);
                     }
                     break;
                     case am_reg:
@@ -727,9 +822,32 @@ namespace Dyninst
                             registerID -= 110;
                         }
                     }
+                    if(registerID == r_EDXEAX)
+                    {
+                        Expression::Ptr edx(makeRegisterExpression(r_EDX));
+                        Expression::Ptr eax(makeRegisterExpression(r_EAX));
+                        Expression::Ptr highAddr = makeMultiplyExpression(edx,
+                                Immediate::makeImmediate(Result(u64, 2^32)), u64);
+                        Expression::Ptr addr = makeAddExpression(highAddr, eax, u64);
+                        Expression::Ptr op = makeDereferenceExpression(addr, u64);
+                        insn_to_complete->appendOperand(op, isRead, isWritten);
+                    }
+                    else if (registerID == r_ECXEBX)
+                    {
+                        Expression::Ptr ecx(makeRegisterExpression(r_ECX));
+                        Expression::Ptr ebx(makeRegisterExpression(r_EBX));
+                        Expression::Ptr highAddr = makeMultiplyExpression(ecx,
+                                Immediate::makeImmediate(Result(u64, 2^32)), u64);
+                        Expression::Ptr addr = makeAddExpression(highAddr, ebx, u64);
+                        Expression::Ptr op = makeDereferenceExpression(addr, u64);
+                        insn_to_complete->appendOperand(op, isRead, isWritten);
+                    }
+                    else
+                    {
+                        Expression::Ptr op(makeRegisterExpression(registerID));
+                        insn_to_complete->appendOperand(op, isRead, isWritten);
+                    }
                     
-                    Expression::Ptr op(makeRegisterExpression(registerID));
-                    outputOperands.push_back(op);
                 }
             
                 break;
@@ -740,7 +858,7 @@ namespace Dyninst
                 case am_allgprs:
                 {
                     Expression::Ptr op(makeRegisterExpression(r_ALLGPRS));
-                    outputOperands.push_back(op);
+                    insn_to_complete->appendOperand(op, isRead, isWritten);
                 }
                     break;
                 default:
@@ -794,18 +912,18 @@ namespace Dyninst
         return decodedInstruction->getSize();
     }
     
-    bool InstructionDecoder_x86::decodeOperands(std::vector<Expression::Ptr>& operands)
+    bool InstructionDecoder_x86::decodeOperands(const Instruction* insn_to_complete)
     {
-        operands.reserve(3);
-    
         if(!decodedInstruction) return false;
         assert(locs);
+        unsigned int opsema = decodedInstruction->getEntry()->opsema & 0xFF;
     
         for(unsigned i = 0; i < 3; i++)
         {
             if(decodedInstruction->getEntry()->operands[i].admet == 0 && decodedInstruction->getEntry()->operands[i].optype == 0)
                 return true;
-            if(!decodeOneOperand(decodedInstruction->getEntry()->operands[i], operands))
+            if(!decodeOneOperand(decodedInstruction->getEntry()->operands[i], insn_to_complete, readsOperand(opsema, i),
+                writesOperand(opsema, i)))
             {
                 return false;
             }
@@ -829,85 +947,21 @@ namespace Dyninst
             ret->arch_decoded_from = x86;
         return ret;
     }
-    bool readsOperand(unsigned int opsema, unsigned int i)
-    {
-        switch(opsema) {
-            case s1R2R:
-                return (i == 0 || i == 1);
-            case s1R:
-            case s1RW:
-                return i == 0;
-            case s1W:
-                return false;
-            case s1W2RW:
-                case s1W2R:   // second operand read, first operand written (e.g. mov)
-                    return i == 1;
-                    case s1RW2R:  // two operands read, first written (e.g. add)
-                        case s1RW2RW: // e.g. xchg
-            case s1R2RW:
-                return i == 0 || i == 1;
-                case s1W2R3R: // e.g. imul
-                    case s1W2RW3R: // some mul
-                        case s1W2R3RW: // (stack) push & pop
-                            return i == 1 || i == 2;
-                            case s1W2W3R: // e.g. les
-                                return i == 2;
-                                case s1RW2R3R: // shld/shrd
-                                    case s1RW2RW3R: // [i]div, cmpxch8b
-                                        return i == 0 || i == 1 || i == 2;
-                                        break;
-            case sNONE:
-            default:
-                return false;
-        }
-      
-    }
-      
-    bool writesOperand(unsigned int opsema, unsigned int i)
-    {
-        switch(opsema) {
-            case s1R2R:
-            case s1R:
-                return false;
-            case s1RW:
-            case s1W:
-                case s1W2R:   // second operand read, first operand written (e.g. mov)
-                    case s1RW2R:  // two operands read, first written (e.g. add)
-                        case s1W2R3R: // e.g. imul
-                            case s1RW2R3R: // shld/shrd
-                                return i == 0;
-            case s1R2RW:
-                return i == 1;
-            case s1W2RW:
-                case s1RW2RW: // e.g. xchg
-                    case s1W2RW3R: // some mul
-                        case s1W2W3R: // e.g. les
-                            case s1RW2RW3R: // [i]div, cmpxch8b
-                                return i == 0 || i == 1;
-                                case s1W2R3RW: // (stack) push & pop
-                                    return i == 0 || i == 2;
-            case sNONE:
-            default:
-                return false;
-        }
-    }
-
-
     void InstructionDecoder_x86::doDelayedDecode(const Instruction* insn_to_complete)
     {
-        std::vector<Expression::Ptr> opSrc;
+        insn_to_complete->m_Operands.reserve(4);
         doIA32Decode();
-        decodeOperands(opSrc);
-        insn_to_complete->m_Operands.reserve(opSrc.size());
-        unsigned int opsema = decodedInstruction->getEntry()->opsema & 0xFF;
-      
+        
+        decodeOperands(insn_to_complete);
+        /*      
         for(unsigned int i = 0;
             i < opSrc.size();
             ++i)
         {
-            insn_to_complete->m_Operands.push_back(Operand(opSrc[i], readsOperand(opsema, i), writesOperand(opsema, i)));
+            insn_to_complete->m_Operands.push_back(Operand(opSrc[i],
+                    readsOperand(opsema, i), writesOperand(opsema, i)));
         }
-
+        */
     }
     
 };

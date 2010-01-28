@@ -363,7 +363,7 @@ namespace Dyninst
 	else
 	{
 	  std::stringstream ret;
-	  ret << std::hex << "0x";
+//	  ret << std::hex << "0x";
 	  switch(type)
 	  {
 	  case u8:

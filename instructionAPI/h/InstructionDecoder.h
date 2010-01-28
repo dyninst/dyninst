@@ -96,7 +96,7 @@ namespace Dyninst
       
     protected:
       
-      virtual bool decodeOperands(std::vector<Expression::Ptr>& operands) = 0;
+      virtual bool decodeOperands(const Instruction* insn_to_complete) = 0;
 
       virtual unsigned int decodeOpcode() = 0;
       
@@ -105,6 +105,8 @@ namespace Dyninst
       virtual Expression::Ptr makeDereferenceExpression(Expression::Ptr addrToDereference, Result_Type resultType);
       virtual Expression::Ptr makeRegisterExpression(unsigned int registerID);
       virtual Result_Type makeSizeType(unsigned int opType) = 0;
+      Instruction* makeInstruction(entryID opcode, const char* mnem, unsigned int decodedSize,
+              const unsigned char* raw);
       
     protected:
       Operation::Ptr m_Operation;

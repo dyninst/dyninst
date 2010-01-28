@@ -69,6 +69,10 @@ namespace Dyninst
       case e_loop:
       case e_loope:
       case e_loopn:
+          case power_op_b:
+          case power_op_bc:
+          case power_op_bcctr:
+          case power_op_bclr:
 	return c_BranchInsn;
           case e_cmp:
           case e_cmppd:

@@ -30,6 +30,11 @@
  */
 
 #include "instruction_comp.h"
+#include <boost/iterator/indirect_iterator.hpp>
+
+using namespace Dyninst;
+using namespace InstructionAPI;
+using namespace boost;
 
 InstructionComponent::InstructionComponent()
 {
@@ -90,4 +95,168 @@ std::string InstructionComponent::getLastErrorMsg()
 TEST_DLL_EXPORT ComponentTester *componentTesterFactory()
 {
    return new InstructionComponent();
+}
+
+
+test_results_t InstructionMutator::verify_read_write_sets(const Instruction::Ptr& i, const registerSet& expectedRead,
+                                      const registerSet& expectedWritten)
+{
+    set<RegisterAST::Ptr> actualRead_uo;
+    set<RegisterAST::Ptr> actualWritten_uo;
+    i->getWriteSet(actualWritten_uo);
+    i->getReadSet(actualRead_uo);
+    registerSet actualRead, actualWritten;
+    copy(actualRead_uo.begin(), actualRead_uo.end(), inserter(actualRead, actualRead.begin()));
+    copy(actualWritten_uo.begin(), actualWritten_uo.end(), inserter(actualWritten, actualWritten.begin()));
+  
+    if(actualRead.size() != expectedRead.size() ||
+       actualWritten.size() != expectedWritten.size())
+    {
+        logerror("FAILED: instruction %s, expected %d regs read, %d regs written, actual %d read, %d written\n",
+                 i->format().c_str(), expectedRead.size(), expectedWritten.size(), actualRead.size(), actualWritten.size());
+        logerror("Expected read:\n");
+        for (registerSet::const_iterator iter = expectedRead.begin(); iter != expectedRead.end(); iter++) {
+            logerror("\t%s\n", (*iter)->format().c_str());
+        }
+        logerror("Expected written:\n");
+        for (registerSet::const_iterator iter = expectedWritten.begin(); iter != expectedWritten.end(); iter++) {
+            logerror("\t%s\n", (*iter)->format().c_str());
+        }
+        logerror("Actual read:\n");
+        for (registerSet::iterator iter = actualRead.begin(); iter != actualRead.end(); iter++) {
+            logerror("\t%s\n", (*iter)->format().c_str());
+        }
+        logerror("Actual written:\n");
+        for (registerSet::iterator iter = actualWritten.begin(); iter != actualWritten.end(); iter++) {
+            logerror("\t%s\n", (*iter)->format().c_str());
+        }
+
+        return FAILED;
+    }
+    registerSet::const_iterator safety;
+    for(safety = expectedRead.begin();
+        safety != expectedRead.end();
+        ++safety)
+    {
+        if(!(*safety))
+        {
+            logerror("ERROR: null shared pointer in expectedRead for instruction %s\n", i->format().c_str());
+            return FAILED;
+        }
+    
+    }
+    for(safety = actualRead.begin();
+        safety != actualRead.end();
+        ++safety)
+    {
+        if(!(*safety))
+        {
+            logerror("ERROR: null shared pointer in actualRead for instruction %s\n", i->format().c_str());
+            return FAILED;
+        }
+    
+    }
+  
+    if(equal(make_indirect_iterator(actualRead.begin()),
+       make_indirect_iterator(actualRead.end()),
+       make_indirect_iterator(expectedRead.begin())))
+    {
+        for(registerSet::const_iterator it = expectedRead.begin();
+            it != expectedRead.end();
+            ++it)
+        {
+            if(!i->isRead(*it))
+            {
+                logerror("%s was in read set, but isRead(%s) was false\n", (*it)->format().c_str(), (*it)->format().c_str());
+                return FAILED;
+            }
+        }
+    }
+    else
+    {
+        logerror("Read set for instruction %s not as expected\n", i->format().c_str());
+        return FAILED;
+    }
+  
+    for(safety = expectedWritten.begin();
+        safety != expectedWritten.end();
+        ++safety)
+    {
+        if(!(*safety))
+        {
+            logerror("ERROR: null shared pointer in expectedWritten for instruction %s\n", i->format().c_str());
+            return FAILED;
+        }
+    
+    }
+    for(safety = actualWritten.begin();
+        safety != actualWritten.end();
+        ++safety)
+    {
+        if(!(*safety))
+        {
+            logerror("ERROR: null shared pointer in actualWritten for instruction %s\n", i->format().c_str());
+            return FAILED;
+        }
+    
+    }
+    if(equal(make_indirect_iterator(actualWritten.begin()),
+       make_indirect_iterator(actualWritten.end()),
+       make_indirect_iterator(expectedWritten.begin())))
+    {
+        for(registerSet::const_iterator it = expectedWritten.begin();
+            it != expectedWritten.end();
+            ++it)
+        {
+            if(!i->isWritten(*it))
+            {
+                logerror("%s was in write set, but isWritten(%s) was false\n", (*it)->format().c_str(), (*it)->format().c_str());
+                return FAILED;
+            }
+        }
+    }
+    else
+    {
+        logerror("Write set for instruction %s not as expected\n", i->format().c_str());
+        return FAILED;
+    }
+    logerror("PASSED: Instruction %s had read, write sets as expected\n", i->format().c_str());
+    return PASSED;
+}
+
+test_results_t InstructionMutator::verifyCFT(Expression::Ptr cft, bool expectedDefined, unsigned long expectedValue,
+                                             Result_Type expectedType)
+{
+    Result cftResult = cft->eval();
+    if(cftResult.defined != expectedDefined) {
+        logerror("FAILED: CFT %s, expected result defined %s, actual %s\n", cft->format().c_str(),
+            expectedDefined ? "true" : "false",
+            cftResult.defined ? "true" : "false");
+        return FAILED;
+    }
+    if(expectedDefined)
+    {
+        if(cftResult.type != expectedType)
+        {
+            logerror("FAILED: CFT %s, expected result type %d, actual %d\n", cft->format().c_str(),
+                     expectedType, cftResult.type);
+            return FAILED;
+        }
+        if(cftResult.convert<unsigned long>() != expectedValue)
+        {
+            logerror("FAILED: CFT %s, expected result value 0x%x, actual 0x%x\n", cft->format().c_str(),
+                    expectedValue, cftResult.convert<unsigned long>());
+            return FAILED;
+        }
+    }
+    return PASSED;
+}
+
+test_results_t InstructionMutator::failure_accumulator(test_results_t lhs, test_results_t rhs)
+{
+    if(lhs == FAILED || rhs == FAILED)
+    {
+        return FAILED;
+    }
+    return PASSED;
 }
