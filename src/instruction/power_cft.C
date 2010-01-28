@@ -74,8 +74,9 @@ test_results_t power_cft_Mutator::executeTest()
         0x4e, 0xf0, 0x04, 0x20, // bctr
         0x42, 0xf0, 0x00, 0x22, // b 32
         0x42, 0xf0, 0xff, 0xd0, // b -32
+        0x4e, 0xf0, 0x00, 0x20, // blr
   };
-  unsigned int expectedInsns = 4;
+  unsigned int expectedInsns = 6;
   unsigned int size = expectedInsns * 4;
   ++expectedInsns;
   dyn_detail::boost::shared_ptr<InstructionDecoder> d =
@@ -120,7 +121,8 @@ test_results_t power_cft_Mutator::executeTest()
   cfts.push_back(cftExpected(true, 0x420));
   cfts.push_back(cftExpected(true, 44));
   cfts.push_back(cftExpected(true, 0x20));
-  cfts.push_back(cftExpected(true, 0x380));
+  cfts.push_back(cftExpected(true, 0x3d0));
+  cfts.push_back(cftExpected(true, 0x200));
   while(!decodedInsns.empty())
   {
       Expression::Ptr theCFT = decodedInsns.front()->getControlFlowTarget();
@@ -128,6 +130,7 @@ test_results_t power_cft_Mutator::executeTest()
       {
             theCFT->bind(theIP, Result(u32, 0x400));
             theCFT->bind(count_reg, Result(u32, 44));
+            theCFT->bind(link_reg, Result(u32, 0x200));
             retVal = failure_accumulator(retVal, verifyCFT(theCFT, cfts.front().defined, cfts.front().expected, u32));
       }
       else
