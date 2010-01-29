@@ -1135,9 +1135,9 @@ bool process::initTrampGuard()
 typedef struct {
   bool ready;
   void *result;
+  bool completed;
 } imd_rpc_ret;
 
-bool inferiorMallocCallbackFlag = false;
 int process::inferiorMallocCallback(process * /*p proc*/, unsigned /* rpc_id */,
                                      void *data, void *result)
 {
@@ -1146,7 +1146,7 @@ int process::inferiorMallocCallback(process * /*p proc*/, unsigned /* rpc_id */,
   imd_rpc_ret *ret = (imd_rpc_ret *)data;
   ret->result = result;
   ret->ready = true;
-  inferiorMallocCallbackFlag = true;
+  ret->completed = true;
   global_mutex->_Unlock(FILE__, __LINE__);
   return 0;
 }
@@ -1194,7 +1194,7 @@ void process::inferiorMallocDynamic(int size, Address lo, Address hi)
   AstNodePtr code = AstNode::funcCallNode(callee, args);
 
   // issue RPC and wait for result
-  imd_rpc_ret ret = { false, NULL };
+  imd_rpc_ret ret = { false, NULL, false };
 
   bool wasRunning = (status() == running);
  
@@ -1208,7 +1208,6 @@ void process::inferiorMallocDynamic(int size, Address lo, Address hi)
   // Specify that we want to wait for a RPCDone event
   eventType res = evtUndefined;
 
-  inferiorMallocCallbackFlag = false;
   inferiorrpc_printf("%s[%d]:  waiting for rpc completion\n", FILE__, __LINE__);
   // Aggravation....
   // We need to override the BPatch paused behavior; we may be BPatch-paused,
@@ -1228,7 +1227,7 @@ void process::inferiorMallocDynamic(int size, Address lo, Address hi)
           fprintf(stderr, "%s[%d]:  BAD NEWS, process has exited\n", FILE__, __LINE__);
           return;
       }
-      if (inferiorMallocCallbackFlag) {
+      if (ret.completed) {
           break;
       }
       
@@ -1242,10 +1241,9 @@ void process::inferiorMallocDynamic(int size, Address lo, Address hi)
          be kicked out of the loop by some other (random) RPC completing,
          rather than the malloc() call, and we'll fail based on the random
          garbage in the return structure that the callback hasn't filled in yet. */
-  } while( ! inferiorMallocCallbackFlag );
+  } while( ! ret.completed );
   
   sh->overrideSyncContinueState(oldState);
-  inferiorMallocCallbackFlag = false;
 
    switch ((int)(Address)ret.result) {
      case 0:
