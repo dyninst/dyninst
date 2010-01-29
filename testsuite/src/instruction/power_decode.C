@@ -78,9 +78,14 @@ test_results_t power_decode_Mutator::executeTest()
       0x84, 0x01, 0x00, 0x00, // lwzu r0, 0(r1)
       0x7c, 0x01, 0x10, 0x2e, // lwzx r0, r2(r1)
       0x7c, 0x01, 0x10, 0x6e, // lwzux r0, r2(r1)
+      0x78, 0x01, 0x44, 0x0c, // rlimi r0, r1
+      0x00, 0x01, 0x00, 0x90, // fpmul fpr0, fpr1
+      0x00, 0x01, 0x00, 0x92, // fxmul fpr0, fpr1
+      0x00, 0x01, 0x00, 0x94, // fxcpmul fpr0, fpr1
+      0x00, 0x01, 0x00, 0x96, // fxcsmul fpr0, fpr1
                 
   };
-  unsigned int expectedInsns = 17;
+  unsigned int expectedInsns = 22;
   unsigned int size = expectedInsns * 4;
   ++expectedInsns;
   dyn_detail::boost::shared_ptr<InstructionDecoder> d =
@@ -127,6 +132,9 @@ test_results_t power_decode_Mutator::executeTest()
   RegisterAST::Ptr fpr0(new RegisterAST(power_FPR0));
   RegisterAST::Ptr fpr1(new RegisterAST(power_FPR1));
   RegisterAST::Ptr fpr2(new RegisterAST(power_FPR2));
+  RegisterAST::Ptr fsr0(new RegisterAST(power_FSR0));
+  RegisterAST::Ptr fsr1(new RegisterAST(power_FSR1));
+  RegisterAST::Ptr fsr2(new RegisterAST(power_FSR2));
   RegisterAST::Ptr fpscr(new RegisterAST(power_FPSCW));
   RegisterAST::Ptr fpscr0(new RegisterAST(power_FPSCW0));
   RegisterAST::Ptr fpscr2(new RegisterAST(power_FPSCW2));
@@ -247,6 +255,41 @@ test_results_t power_decode_Mutator::executeTest()
   // lwzux r0, r2(r1)
   tmpRead = list_of(r1)(r2);
   tmpWritten = list_of(r0)(r1);
+  expectedRead.push_back(tmpRead);
+  expectedWritten.push_back(tmpWritten);
+  tmpRead.clear();
+  tmpWritten.clear();
+  // rlimi r0, r1
+  tmpRead = list_of(r0);
+  tmpWritten = list_of(r1);
+  expectedRead.push_back(tmpRead);
+  expectedWritten.push_back(tmpWritten);
+  tmpRead.clear();
+  tmpWritten.clear();
+  // fpmul fpr0, fpr1, fpr2
+  tmpRead = list_of(fpr1)(fpr2)(fsr1)(fsr2);
+  tmpWritten = list_of(fpr0)(fsr0);
+  expectedRead.push_back(tmpRead);
+  expectedWritten.push_back(tmpWritten);
+  tmpRead.clear();
+  tmpWritten.clear();
+  // fxmul fpr0, fpr1
+  tmpRead = list_of(fpr1)(fpr2)(fsr1)(fsr2);
+  tmpWritten = list_of(fpr0)(fsr0);
+  expectedRead.push_back(tmpRead);
+  expectedWritten.push_back(tmpWritten);
+  tmpRead.clear();
+  tmpWritten.clear();
+  // fxcpmul fpr0, fpr1
+  tmpRead = list_of(fpr1)(fpr2)(fsr2);
+  tmpWritten = list_of(fpr0)(fsr0);
+  expectedRead.push_back(tmpRead);
+  expectedWritten.push_back(tmpWritten);
+  tmpRead.clear();
+  tmpWritten.clear();
+  // fxcsmul fpr0, fpr1
+  tmpRead = list_of(fpr2)(fsr1)(fsr2);
+  tmpWritten = list_of(fpr0)(fsr0);
   expectedRead.push_back(tmpRead);
   expectedWritten.push_back(tmpWritten);
   tmpRead.clear();

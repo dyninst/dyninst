@@ -393,7 +393,7 @@ memAccessors.begin()));
         {
             return Expression::Ptr();
         }
-        return m_Successors.front().getValue();
+        return m_Successors.front().target;
     }
     
     INSTRUCTION_EXPORT std::string Instruction::format() const
@@ -473,6 +473,8 @@ memAccessors.begin()));
       case e_hlt:
       case e_sysret:
       case e_sysexit:
+      case e_call:
+      case e_syscall:
 	return false;
       default:
 	return true;
@@ -493,14 +495,15 @@ memAccessors.begin()));
     {
       return entryToCategory(m_InsnOp->getID());
     }
-    void Instruction::appendOperand(Expression::Ptr e, bool isRead, bool isWritten,
-                                   bool isSuccessor) const
+    void Instruction::addSuccessor(Expression::Ptr e, bool isCall, bool isIndirect, bool isConditional, bool isFallthrough) const
+    {
+        CFT c(e, isCall, isIndirect, isConditional, isFallthrough);
+        m_Successors.push_back(c);
+        appendOperand(e, true, false);
+    }
+    void Instruction::appendOperand(Expression::Ptr e, bool isRead, bool isWritten) const
     {
         m_Operands.push_back(Operand(e, isRead, isWritten));
-        if(isSuccessor)
-        {
-            m_Successors.push_back(m_Operands.back());
-        }
     }
   
 

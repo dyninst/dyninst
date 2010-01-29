@@ -380,13 +380,14 @@ namespace Dyninst {
                 unsigned int makePowerRegID(unsigned int bank, unsigned int encoding,
                         unsigned int lowBit, unsigned int highBit);
                 
-
+                Expression::Ptr makeFallThroughExpr();
 
                 unsigned int insn;
                 Instruction* insn_in_progress;
                 bool isRAWritten;
                 bool invertBranchCondition;
                 bool isFPInsn;
+                bool bcIsConditional;
         };
     }
 }

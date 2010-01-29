@@ -512,10 +512,15 @@ namespace Dyninst
                     regType = op_q;
                 }
                 bool isCFT = false;
+                bool isCall = false;
                 InsnCategory cat = insn_to_complete->getCategory();
                 if(cat == c_BranchInsn || cat == c_CallInsn)
                 {
                     isCFT = true;
+                    if(cat == c_CallInsn)
+                    {
+                        isCall = true;
+                    }
                 }
                         
                 switch(operand.admet)
@@ -536,7 +541,7 @@ namespace Dyninst
                         // am_A only shows up as a far call/jump.  Position 1 should be universally safe.
                         Expression::Ptr addr(decodeImmediate(operand.optype, 1));
                         Expression::Ptr op(makeDereferenceExpression(addr, makeSizeType(operand.optype)));
-                        insn_to_complete->appendOperand(op, isRead, isWritten, isCFT);
+                        insn_to_complete->addSuccessor(op, isCall, false, false, false);
                     }
                     break;
                     case am_C:
@@ -557,7 +562,14 @@ namespace Dyninst
                     case am_M:
                     // am_R is the inverse of am_M; it should only have a mod of 3
                     case am_R:
-                    insn_to_complete->appendOperand(makeModRMExpression(operand.optype), isRead, isWritten, isCFT);
+                        if(isCFT)
+                        {
+                            insn_to_complete->addSuccessor(makeModRMExpression(operand.optype), isCall, true, false, false);
+                        }
+                        else
+                        {
+                            insn_to_complete->appendOperand(makeModRMExpression(operand.optype), isRead, isWritten);
+                        }
                     break;
                     case am_F:
                     {
@@ -584,7 +596,7 @@ namespace Dyninst
                         Expression::Ptr postEIP(makeAddExpression(EIP, InsnSize, u32));
 
                         Expression::Ptr op(makeAddExpression(Offset, postEIP, u32));
-                        insn_to_complete->appendOperand(op, isRead, isWritten, true);
+                        insn_to_complete->addSuccessor(op, isCall, false, false, false);
                     }
                     break;
                     case am_O:

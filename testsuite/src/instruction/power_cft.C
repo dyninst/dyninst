@@ -61,9 +61,35 @@ struct cftExpected
 {
     bool defined;
     unsigned int expected;
-    cftExpected(bool d, unsigned int e) :
-            defined(d), expected(e) {}
+    bool call;
+    bool conditional;
+    bool indirect;
+    bool fallthrough;
+    cftExpected(bool d, unsigned int e, bool isCall, bool isCond, bool isIndir, bool isFT) :
+            defined(d), expected(e), call(isCall), conditional(isCond), indirect(isIndir),
+            fallthrough(isFT) {}
 };
+
+test_results_t verifyTargetType(const Instruction::CFT& actual, const cftExpected& expected)
+{
+    if(actual.isCall != expected.call) {
+        logerror("FAILED: expected call = %d, actual = %d\n", expected.call, actual.isCall);
+        return FAILED;
+    }
+    if(actual.isIndirect != expected.indirect) {
+        logerror("FAILED: expected indirect = %d, actual = %d\n", expected.call, actual.isIndirect);
+        return FAILED;
+    }
+    if(actual.isConditional != expected.conditional) {
+        logerror("FAILED: expected conditional = %d, actual = %d\n", expected.conditional, actual.isConditional);
+        return FAILED;
+    }
+    if(actual.isFallthrough != expected.fallthrough) {
+        logerror("FAILED: expected fallthrough = %d, actual = %d\n", expected.fallthrough, actual.isFallthrough);
+        return FAILED;
+    }
+    return PASSED;
+}
 
 test_results_t power_cft_Mutator::executeTest()
 {
@@ -75,8 +101,11 @@ test_results_t power_cft_Mutator::executeTest()
         0x42, 0xf0, 0x00, 0x22, // b 32
         0x42, 0xf0, 0xff, 0xd0, // b -32
         0x4e, 0xf0, 0x00, 0x20, // blr
+        0x40, 0x01, 0x01, 0x01, // bdnzl cr0, +0x100
+        0x40, 0x01, 0x01, 0x00, // bdnz cr0, +0x100
+        0x4e, 0xf0, 0x04, 0x21, // bctrl
   };
-  unsigned int expectedInsns = 6;
+  unsigned int expectedInsns = 9;
   unsigned int size = expectedInsns * 4;
   ++expectedInsns;
   dyn_detail::boost::shared_ptr<InstructionDecoder> d =
@@ -89,7 +118,7 @@ test_results_t power_cft_Mutator::executeTest()
     i = d->decode();
     decodedInsns.push_back(i);
   }
-  while(i && i->isValid());
+  while(i);
   if(decodedInsns.size() != expectedInsns)
   {
     logerror("FAILED: Expected %d instructions, decoded %d\n", expectedInsns, decodedInsns.size());
@@ -117,31 +146,49 @@ test_results_t power_cft_Mutator::executeTest()
   
 
   std::list<cftExpected> cfts;
-  cfts.push_back(cftExpected(true, 0x410));
-  cfts.push_back(cftExpected(true, 0x420));
-  cfts.push_back(cftExpected(true, 44));
-  cfts.push_back(cftExpected(true, 0x20));
-  cfts.push_back(cftExpected(true, 0x3d0));
-  cfts.push_back(cftExpected(true, 0x200));
+  cfts.push_back(cftExpected(true, 0x410, false, false, false, false));
+  cfts.push_back(cftExpected(true, 0x420, false, false, false, false));
+  cfts.push_back(cftExpected(true, 44, false, false, true, false));
+  cfts.push_back(cftExpected(true, 0x20, false, false, false, false));
+  cfts.push_back(cftExpected(true, 0x3d0, false, false, false, false));
+  cfts.push_back(cftExpected(true, 0x200, false, false, true, false));
+  cfts.push_back(cftExpected(true, 0x500, true, true, false, false));
+  cfts.push_back(cftExpected(true, 0x404, false, false, false, true));
+  cfts.push_back(cftExpected(true, 0x500, false, true, false, false));
+  cfts.push_back(cftExpected(true, 0x404, false, false, false, true));
+  cfts.push_back(cftExpected(true, 44, true, false, true, false));
   while(!decodedInsns.empty())
   {
-      Expression::Ptr theCFT = decodedInsns.front()->getControlFlowTarget();
-      if(theCFT)
+      (void)(decodedInsns.front()->getControlFlowTarget());
+      for(Instruction::cftConstIter curCFT = decodedInsns.front()->cft_begin();
+          curCFT != decodedInsns.front()->cft_end();
+          ++curCFT)
       {
-            theCFT->bind(theIP, Result(u32, 0x400));
-            theCFT->bind(count_reg, Result(u32, 44));
-            theCFT->bind(link_reg, Result(u32, 0x200));
-            retVal = failure_accumulator(retVal, verifyCFT(theCFT, cfts.front().defined, cfts.front().expected, u32));
+          Expression::Ptr theCFT = curCFT->target;
+          if(theCFT)
+          {
+              theCFT->bind(theIP, Result(u32, 0x400));
+              theCFT->bind(count_reg, Result(u32, 44));
+              theCFT->bind(link_reg, Result(u32, 0x200));
+              retVal = failure_accumulator(retVal, verifyCFT(theCFT, cfts.front().defined, cfts.front().expected, u32));
+              retVal = failure_accumulator(retVal, verifyTargetType(*curCFT, cfts.front()));
+          }
+          else
+          {
+              logerror("FAILED: instruction %s expected CFT, wasn't present", decodedInsns.front()->format().c_str());
+              retVal = failure_accumulator(retVal, FAILED);
+          }
+          cfts.pop_front();
       }
-      else
-      {
-          logerror("Instruction %s expected CFT, wasn't present", decodedInsns.front()->format().c_str());
-          retVal = failure_accumulator(retVal, FAILED);
-      }
+      
       decodedInsns.pop_front();
-      cfts.pop_front();
   }
 
+  if(!cfts.empty())
+  {
+      logerror("FAILED: didn't consume all expected CFTs, %d remain\n", cfts.size());
+      return FAILED;
+  }
   return retVal;
 }
 

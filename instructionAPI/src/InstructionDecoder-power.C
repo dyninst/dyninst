@@ -125,7 +125,7 @@ namespace Dyninst
     {
         isFPInsn = true;
         unsigned int regID = makePowerRegID(bank_fsr, field<11, 15>(insn));
-        insn_in_progress->appendOperand(makeRegisterExpression(regID), isRAWritten, !isRAWritten);
+        insn_in_progress->appendOperand(makeRegisterExpression(regID), !isRAWritten, isRAWritten);
     }
     void InstructionDecoder_power::FRBP()
     {
@@ -151,13 +151,21 @@ namespace Dyninst
     }
 
 
+    Expression::Ptr InstructionDecoder_power::makeFallThroughExpr()
+    {
+        return makeAddExpression(makeRegisterExpression(power_R_PC), Immediate::makeImmediate(Result(u32, 4)), u32);
+    }
     void InstructionDecoder_power::LI()
     {
-        insn_in_progress->appendOperand(makeIFormBranchTarget(), true, false, true);
+        insn_in_progress->addSuccessor(makeIFormBranchTarget(), field<31, 31>(insn) == 1, false, false, false);
     }
     void InstructionDecoder_power::BD()
     {
-        insn_in_progress->appendOperand(makeBFormBranchTarget(), true, false, true);
+        insn_in_progress->addSuccessor(makeBFormBranchTarget(), field<31, 31>(insn) == 1, false, bcIsConditional, false);
+        if(bcIsConditional)
+        {
+            insn_in_progress->addSuccessor(makeFallThroughExpr(), false, false, false, true);
+        }
     }
     
     Instruction::Ptr InstructionDecoder_power::decode(const unsigned char* buffer)
@@ -171,6 +179,7 @@ namespace Dyninst
         if(rawInstruction < bufferBegin || rawInstruction >= bufferBegin + bufferSize) return Instruction::Ptr();
         isRAWritten = false;
         isFPInsn = false;
+        bcIsConditional = false;
         insn = InstructionDecoder::rawInstruction[0] << 24 | InstructionDecoder::rawInstruction[1] << 16 |
                 InstructionDecoder::rawInstruction[2] << 8 | InstructionDecoder::rawInstruction[3];
 #if defined(DEBUG_RAW_INSN)        
@@ -516,6 +525,7 @@ namespace Dyninst
     {
         isRAWritten = false;
         isFPInsn = false;
+        bcIsConditional = false;
         insn = insn_to_complete->m_RawInsn.small_insn;
         const power_entry* current = &power_entry::main_opcode_table[field<0,5>(insn)];
         while(current->next_table)
@@ -530,22 +540,22 @@ namespace Dyninst
         {
             insn_in_progress->appendOperand(makeRegisterExpression(makePowerRegID(0, power_R_PC)), false, true);
         }
-        if(current->op == power_op_bclr)
-        {
-            insn_in_progress->appendOperand(makeRegisterExpression(makePowerRegID(0, power_LR)),
-                                            true, false, true);
-        }
-        if(current->op == power_op_bcctr)
-        {
-            insn_in_progress->appendOperand(makeRegisterExpression(makePowerRegID(0, power_CTR)),
-                                            true, false, true);
-        }
         
         for(operandSpec::const_iterator curFn = current->operands.begin();
             curFn != current->operands.end();
             ++curFn)
         {
             std::mem_fun(*curFn)(this);
+        }
+        if(current->op == power_op_bclr)
+        {
+            insn_in_progress->addSuccessor(makeRegisterExpression(makePowerRegID(0, power_LR)),
+                                           field<31,31>(insn) == 1, true, bcIsConditional, false);
+        }
+        if(current->op == power_op_bcctr)
+        {
+            insn_in_progress->addSuccessor(makeRegisterExpression(makePowerRegID(0, power_CTR)),
+                                           field<31,31>(insn) == 1, true, bcIsConditional, false);
         }
         if(current->op == power_op_addic_rc ||
            current->op == power_op_andi_rc ||
@@ -641,6 +651,7 @@ using namespace boost::assign;
     }
     void InstructionDecoder_power::BO()
     {
+        bcIsConditional = true;
 #if defined(DEBUG_BO_FIELD)        
         cout << "BO: " << field<6,6>(insn) << field<7,7>(insn) << field<8,8>(insn) << field<9,9>(insn) << field<10,10>(insn)
                 << endl;
@@ -672,6 +683,7 @@ using namespace boost::assign;
         {
             size_t found = insn_in_progress->getOperation().mnemonic.rfind("c");
             insn_in_progress->getOperation().mnemonic.erase(found, 1);
+            bcIsConditional = false;
         }
         else
         {
@@ -741,7 +753,7 @@ using namespace boost::assign;
     }
     void InstructionDecoder_power::FRA()
     {
-        insn_in_progress->appendOperand(makeFRAExpr(), true, false);
+        insn_in_progress->appendOperand(makeFRAExpr(), !isRAWritten, isRAWritten);
         return;
     }
     void InstructionDecoder_power::FRB()
