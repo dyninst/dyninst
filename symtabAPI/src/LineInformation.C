@@ -42,67 +42,9 @@ using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace std;
 
-#if ! defined(os_windows)      
-struct SourceLineCompare 
-{
-   bool operator () ( const char * lhs, const char * rhs ) const;
-};
-
-typedef dyn_hash_set< const char *, boost::hash< const char * >, SourceLineCompare > SourceLineInternTable;
-
-#else
-
-struct SourceLineLess 
-{
-   bool operator () ( const char * lhs, const char * rhs ) const;
-};
-
-typedef std::set< const char *, SourceLineLess > SourceLineInternTable;
-
-#endif 
-
-namespace Dyninst {
-namespace SymtabAPI {
-class SourceLineInternalTableWrapper {
-   public:
-      SourceLineInternTable source_line_names;
-      SourceLineInternalTableWrapper() {}
-      ~SourceLineInternalTableWrapper(){}
-      SourceLineInternTable &getTable() {return source_line_names;}
-};
-}}
-
-SourceLineInternalTableWrapper *LineInformation::getSourceLineNamesW()
-{
-   if (sourceLineNamesPtr)
-      return sourceLineNamesPtr;
-
-   sourceLineNamesPtr = new SourceLineInternalTableWrapper();
-
-   if (!sourceLineNamesPtr) 
-      fprintf(stderr, "%s[%d]:  alloc failure here\n", FILE__, __LINE__);
-
-   return sourceLineNamesPtr;
-}
-
-SourceLineInternTable &getSourceLineNames(LineInformation *li)
-{
-   if (!li->sourceLineNamesPtr)
-      li->sourceLineNamesPtr = new SourceLineInternalTableWrapper();
-
-   if (!li->sourceLineNamesPtr)
-   {
-      fprintf(stderr, "%s[%d]:  alloc prob\n", FILE__, __LINE__);
-      abort();
-   }
-
-   return li->sourceLineNamesPtr->getTable();
-}
-
 LineInformation::LineInformation() : 
 	AnnotationContainer<Statement>(),
-   Dyninst::SymtabAPI::RangeLookup< Statement, Statement::StatementLess >(),
-   sourceLineNamesPtr(NULL) 
+   Dyninst::SymtabAPI::RangeLookup< Statement, Statement::StatementLess >()
 {
    size_ = 0;
 } /* end LineInformation constructor */
@@ -121,31 +63,8 @@ bool LineInformation::addLine( const char * lineSource,
       Offset highExclusiveAddr ) 
 {
 
-   /* If we haven't already, intern the lineSource. */
-   if ( lineSource == NULL ) 
-   { 
-      return false; 
-   }
-
-   const char * lineSourceInternal = NULL;
-   typedef SourceLineInternTable::const_iterator IteratorType;
-   SourceLineInternTable &sourceLineNames = getSourceLineNames(this);
-   IteratorType found = sourceLineNames.find( lineSource );
-
-   if ( found == sourceLineNames.end() ) 
-   {
-      lineSourceInternal = P_strdup( lineSource );
-      assert( lineSourceInternal != NULL );
-      sourceLineNames.insert( lineSourceInternal );
-   }
-   else 
-   {
-      lineSourceInternal = * found;
-   }
-
-   assert( lineSourceInternal != NULL );
-
-   bool ret = addItem_impl( Statement(lineSourceInternal, lineNo, lineOffset, lowInclusiveAddr, highExclusiveAddr)); 
+   bool ret = addItem_impl( Statement(lineSource, lineNo, lineOffset, 
+                                      lowInclusiveAddr, highExclusiveAddr)); 
 
    return ret;
 } /* end setLineToAddressRangeMapping() */
@@ -226,20 +145,6 @@ bool Statement::operator==(const Statement &cmp) const
 	return (file_ == cmp.file_);
 }
 
-
-
-#if ! defined( os_windows )
-bool SourceLineCompare::operator () ( const char * lhs, const char * rhs ) const 
-{
-   return strcmp( lhs, rhs ) == 0;
-} /* end SourceLineCompare() */
-#else
-bool SourceLineLess::operator () ( const char * lhs, const char * rhs ) const 
-{
-   return strcmp( lhs, rhs ) < 0;
-} /* end SourceLineLess() */
-#endif
-
 /* We free the strings we allocated, and let the compiler clean up everything else:
 
    Section 10.4.6 [Stroustroup's C++]: "When a class object containing class
@@ -248,23 +153,6 @@ bool SourceLineLess::operator () ( const char * lhs, const char * rhs ) const
 
 LineInformation::~LineInformation() 
 {
-   /* Apparently, the iterator depends on the hash of its current key
-      to continue.  This should probably be cached, to allow me to free
-      the current key if it's a pointer (and the hash over the pointed-to
-      data), but I guess it's not strictly a bug. */
-
-   const char * internedString = NULL;
-   typedef SourceLineInternTable::const_iterator IteratorType;
-   SourceLineInternTable &sourceLineNames = getSourceLineNames(this);
-   SourceLineInternTable::iterator iterator = sourceLineNames.begin();
-
-   while ( iterator != sourceLineNames.end() ) 
-   {
-      internedString = * iterator;
-      ++iterator;
-      free( const_cast< char * >( internedString ) );
-   }	
-
 } /* end LineInformation destructor */
 
 

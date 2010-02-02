@@ -41,8 +41,6 @@
 namespace Dyninst{
 namespace SymtabAPI{
 
-class SourceLineInternalTableWrapper;
-
 class LineInformation : public AnnotationContainer<Statement>, 
                         private RangeLookup< Statement, Statement::StatementLess > 
 {
@@ -78,10 +76,6 @@ class LineInformation : public AnnotationContainer<Statement>,
       SYMTAB_EXPORT unsigned getSize() const;
 
       SYMTAB_EXPORT ~LineInformation();
-
-      // double secret private:
-      SourceLineInternalTableWrapper *getSourceLineNamesW();
-      SourceLineInternalTableWrapper *sourceLineNamesPtr;
 
    protected:
       /* We maintain internal copies of all the source file names.  Because
