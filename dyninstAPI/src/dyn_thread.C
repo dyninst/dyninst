@@ -137,6 +137,11 @@ bool dyn_thread::walkStack(pdvector<Frame> &stackWalk)
    active.thread_ = this;
    bool retval = proc->walkStackFromFrame(active, stackWalk);
 
+   // if the stackwalk was successful, cache it
+   if (retval) {
+      get_lwp()->cached_stackwalk.setStackwalk(stackWalk);
+   }
+
    stackwalk_printf("%s[%d]: ending stack walk on thread %ld\n",
 		    FILE__, __LINE__, get_tid());
  

@@ -989,7 +989,10 @@ void baseTrampInstance::removeCode(generatedCodeObject *subObject) {
             // we can always fix jumps by hand
             hasChanged_ = true;
 	    //multiT->markChanged(true);
-	    multiT->updateCode(NULL);
+            bool doWeDelete = false;
+            multiTramp::replaceMultiTramp(multiT, doWeDelete);
+            if (doWeDelete) 
+                proc()->deleteGeneratedCode(multiT);
         }
     }
     else {

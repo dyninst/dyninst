@@ -551,7 +551,9 @@ const char *BPatch::getEnglishErrorString(int /* number */)
  */
 void BPatch::reportError(BPatchErrorLevel severity, int number, const char *str)
 {
-    assert(bpatch != NULL);
+   if (bpatch == NULL) {
+      return; //Probably decontructing objects.
+   }
     assert(global_mutex);
     //assert(global_mutex->depth());
 
