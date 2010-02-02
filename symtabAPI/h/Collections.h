@@ -61,7 +61,7 @@ public:
 
   SYMTAB_EXPORT void addLocalVar(localVar * var);
   SYMTAB_EXPORT localVar * findLocalVar(std::string &name);
-  SYMTAB_EXPORT vector<localVar *> *getAllVars();  
+  SYMTAB_EXPORT std::vector<localVar *> *getAllVars();  
 
   SYMTAB_EXPORT Serializable *ac_serialize_impl(SerializerBase *, const char * = "localVarCollection") THROW_SPEC (SerializerError);
 };
