@@ -39,7 +39,7 @@
 #define _Object_elf_h_
 
 #if defined(USES_DWARF_DEBUG)
-#include "dwarf.h"
+//#include "dwarf.h"
 #include "libdwarf.h"
 #endif
 

@@ -34,6 +34,7 @@
 #include "stackwalk/h/framestepper.h"
 #include "stackwalk/h/basetypes.h"
 #include "stackwalk/h/frame.h"
+#include "stackwalk/h/walker.h"
 
 #include "stackwalk/src/sw.h"
 
