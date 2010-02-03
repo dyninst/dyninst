@@ -116,7 +116,7 @@ bool convert_to_rel8(const unsigned char*&origInsn, unsigned char *&newInsn) {
      return true;
   }
 
-  if (*origInsn == 0xE3) {
+  if (0xE0 <= *origInsn || *origInsn <= 0xE3) {
     *newInsn++ = *origInsn++;
     return true;
   }
@@ -444,8 +444,8 @@ unsigned pcRelJCC::apply(Address addr)
       return (unsigned) (newInsn - orig_loc);
    }
 
-   //Can't convert E3 jumps to more than 8-bits
-   if (*origInsn != 0xE3) {
+   //Can't convert short E0-E3 loops/jumps to 32-bit equivalents
+   if (*origInsn < 0xE0 || *origInsn > 0xE3) {
      /*
       //16-bit jump
       potential = addr + 5;
@@ -511,7 +511,7 @@ unsigned pcRelJCC::maxSize()
    if (gen->addrSpace()->getAddressWidth() == 8)
       return prefixes + JUMP_ABS64_SZ + 4;
 #endif
-   return prefixes + JUMP_REL32_SZ;
+   return prefixes + 2 + 2 + JUMP_SZ;
 }
 
 bool pcRelJCC::canPreApply()
