@@ -509,6 +509,44 @@ bitArray instPoint::liveRegisters(callWhen when) {
     return ret;
 }
 
+#if defined(arch_power)
+int convertRegID(int in)
+{
+    if(in >= power::gpr0 && in <= power::gpr31)
+    {
+        return in - power::gpr0;
+    }
+    else if(in >= power::fpr0 && in <= power::fpr31)
+    {
+        return in - power::fpr0 + registerSpace::fpr0;
+    }
+    else if(in == power::sprxer)
+    {
+        return registerSpace::xer;
+    }
+    else if(in == power::sprlr)
+    {
+        return registerSpace::lr;
+    }
+    else if(in == power::sprmq)
+    {
+        return registerSpace::mq;
+    }
+    else if(in == power::sprctr)
+    {
+        return registerSpace::ctr;
+    }
+    else if(in >= power::sprcr0 && in <= power::sprcr)
+    {
+        return registerSpace::cr;
+    }
+    else
+    {
+        return registerSpace::ignored;
+    }
+}
+
+#endif
 
 #if defined(cap_instruction_api) || defined(cap_instruction_api_liveness)
 ReadWriteInfo calcRWSets(Instruction::Ptr curInsn, image_basicBlock* blk, unsigned int width)
@@ -530,7 +568,12 @@ ReadWriteInfo calcRWSets(Instruction::Ptr curInsn, image_basicBlock* blk, unsign
 #if defined(arch_x86) || defined(arch_x86_64)      
     ret.read[convertRegID(IA32Regs((*i)->getID()))] = true;
 #else
-    ret.read[(*i)->getID() - power::gpr0] = true;
+    int id = convertRegID((*i)->getID());
+    if(id != registerSpace::ignored)
+    {
+        assert(id < registerSpace::lastReg && id >= registerSpace::r0);
+        ret.read[id] = true;
+    }
 #endif
   }
   //liveness_printf("\nWritten registers: ");
@@ -541,7 +584,12 @@ ReadWriteInfo calcRWSets(Instruction::Ptr curInsn, image_basicBlock* blk, unsign
 #if defined(arch_x86) || defined(arch_x86_64)
     ret.written[convertRegID(IA32Regs((*i)->getID()))] = true;
 #else
-    ret.written[(*i)->getID() - power::gpr0] = true;
+    int id = convertRegID((*i)->getID());
+    if(id != registerSpace::ignored)
+    {
+        assert(id < registerSpace::lastReg && id >= registerSpace::r0);
+        ret.written[id] = true;
+    }
 #endif
   }
   //liveness_printf("\n");
