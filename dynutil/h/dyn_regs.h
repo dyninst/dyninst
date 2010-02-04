@@ -28,6 +28,10 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
+
+#if !defined(DYN_REGS_H)
+#define DYN_REGS_H
+ 
 namespace Dyninst
 {
    typedef signed int MachRegister;        //Values below
@@ -139,6 +143,196 @@ namespace Dyninst
       const signed int R15D = (D_REG | R15);
          
    }
-   typedef unsigned long MachRegisterVal;
+   
+#define GPR(x) const signed int gpr##x = (x | GPR_BASE | ARCH_POWER);
+#define FPR(x) const signed int fpr##x = (x | FPR_BASE | ARCH_POWER);
+#define FSR(x) const signed int fsr##x = (x | FPR2_BASE | ARCH_POWER);
+#define SPR(x, y) const signed int spr##y = (x | SPR_BASE | ARCH_POWER);
+   
+namespace power
+   {
+       const signed int GPR_BASE = 1 << 6;
+       const signed int FPR_BASE = 1 << 7;
+       const signed int FPR2_BASE = 1 << 8;
+       const signed int SPR_BASE = 1 << 9;
+       const signed int ARCH_POWER = 0;
+       GPR(0);
+       GPR(1);
+       GPR(2);
+       GPR(3);
+       GPR(4);
+       GPR(5);
+       GPR(6);
+       GPR(7);
+       GPR(8);
+       GPR(9);
+       GPR(10);
+       GPR(11);
+       GPR(12);
+       GPR(13);
+       GPR(14);
+       GPR(15);
+       GPR(16);
+       GPR(17);
+       GPR(18);
+       GPR(19);
+       GPR(20);
+       GPR(21);
+       GPR(22);
+       GPR(23);
+       GPR(24);
+       GPR(25);
+       GPR(26);
+       GPR(27);
+       GPR(28);
+       GPR(29);
+       GPR(30);
+       GPR(31);
+       FPR(0);
+       FPR(1);
+       FPR(2);
+       FPR(3);
+       FPR(4);
+       FPR(5);
+       FPR(6);
+       FPR(7);
+       FPR(8);
+       FPR(9);
+       FPR(10);
+       FPR(11);
+       FPR(12);
+       FPR(13);
+       FPR(14);
+       FPR(15);
+       FPR(16);
+       FPR(17);
+       FPR(18);
+       FPR(19);
+       FPR(20);
+       FPR(21);
+       FPR(22);
+       FPR(23);
+       FPR(24);
+       FPR(25);
+       FPR(26);
+       FPR(27);
+       FPR(28);
+       FPR(29);
+       FPR(30);
+       FPR(31);
+       FSR(0);
+       FSR(1);
+       FSR(2);
+       FSR(3);
+       FSR(4);
+       FSR(5);
+       FSR(6);
+       FSR(7);
+       FSR(8);
+       FSR(9);
+       FSR(10);
+       FSR(11);
+       FSR(12);
+       FSR(13);
+       FSR(14);
+       FSR(15);
+       FSR(16);
+       FSR(17);
+       FSR(18);
+       FSR(19);
+       FSR(20);
+       FSR(21);
+       FSR(22);
+       FSR(23);
+       FSR(24);
+       FSR(25);
+       FSR(26);
+       FSR(27);
+       FSR(28);
+       FSR(29);
+       FSR(30);
+       FSR(31);
+       SPR(0, mq);
+       SPR(1, xer);
+       SPR(8, lr);
+       SPR(9, ctr);
+       SPR(18, dsisr);
+       SPR(19, dar);
+       SPR(22, dec);
+       SPR(25, sdr1);
+       SPR(26, srr0);
+       SPR(27, srr1);
+       SPR(272, sprg0);
+       SPR(273, sprg1);
+       SPR(274, sprg2);
+       SPR(275, sprg3);
+       SPR(282, ear);
+       SPR(284, tbl);
+       SPR(285, tbu);
+       SPR(287, pvr);
+       SPR(528, ibat0u);
+       SPR(529, ibat0l);
+       SPR(530, ibat1u);
+       SPR(531, ibat1l);
+       SPR(532, ibat2u);
+       SPR(533, ibat2l);
+       SPR(534, ibat3u);
+       SPR(535, ibat3l);
+       SPR(536, dbat0u);
+       SPR(537, dbat0l);
+       SPR(538, dbat1u);
+       SPR(539, dbat1l);
+       SPR(540, dbat2u);
+       SPR(541, dbat2l);
+       SPR(542, dbat3u);
+       SPR(543, dbat3l);
+       SPR(600, pc);
+       SPR(601, fpscw);
+       SPR(602, fpscw0);
+       SPR(603, fpscw1);
+       SPR(604, fpscw2);
+       SPR(605, fpscw3);
+       SPR(606, fpscw4);
+       SPR(607, fpscw5);
+       SPR(608, fpscw6);
+       SPR(609, fpscw7);
+       SPR(610, msr);
+       SPR(611, ivpr);
+       SPR(612, ivor8);
+       SPR(613, seg0);
+       SPR(614, seg1);
+       SPR(615, seg2);
+       SPR(616, seg3);
+       SPR(617, seg4);
+       SPR(618, seg5);
+       SPR(619, seg6);
+       SPR(620, seg7);
+       SPR(621, cr0);
+       SPR(622, cr1);
+       SPR(623, cr2);
+       SPR(624, cr3);
+       SPR(625, cr4);
+       SPR(626, cr5);
+       SPR(627, cr6);
+       SPR(628, cr7);
+       SPR(629, cr);
+       enum powerXERBits
+       {
+           OF_bit,
+           SOF_bit,
+           CF_bit,
+           BYTECNT_low_bit,
+           BYTECNT_high_bit,
+           last_power_xer_bit_id
+       };
+   };
 
+   typedef unsigned long MachRegisterVal;
+#undef GPR
+#undef FPR
+#undef FSR
+#undef SPR
 }
+
+
+#endif // !defined(DYN_REGS_H)

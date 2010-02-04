@@ -39,7 +39,7 @@
 #include "instPoint.h"
 #include "registerSpace.h"
 #include "debug.h"
-#if defined(cap_instruction_api)
+#if defined(cap_instruction_api) || defined(cap_instruction_api_liveness)
 #include "instructionAPI/h/InstructionDecoder.h"
 #include "instructionAPI/h/Register.h"
 #include "instructionAPI/h/Instruction.h"
@@ -56,7 +56,7 @@ using namespace Dyninst::InstructionAPI;
 #include "inst-x86.h"
 #endif
 
-#if defined(cap_instruction_api)
+#if defined(cap_instruction_api) || defined(cap_instruction_api_liveness)
 ReadWriteInfo calcRWSets(Instruction::Ptr insn, image_basicBlock* blk, unsigned width);
 #else
 ReadWriteInfo calcRWSets(InstrucIter ii, image_basicBlock* blk, unsigned width);
@@ -157,7 +157,7 @@ void image_basicBlock::summarizeBlockLivenessInfo()
                    FILE__, __LINE__, firstInsnOffset());
 
 
-#if defined(cap_instruction_api)
+#if defined(cap_instruction_api) || defined(cap_instruction_api_liveness)
    using namespace Dyninst::InstructionAPI;
    Address current = firstInsnOffset();
    dyn_detail::boost::shared_ptr<InstructionDecoder> decoder =
@@ -322,7 +322,7 @@ void instPoint::calcLiveness() {
    // We now want to do liveness analysis for straight-line code. 
         
    stats_codegen.startTimer(CODEGEN_LIVENESS_TIMER);
-#if defined(cap_instruction_api)
+#if defined(cap_instruction_api) || defined(cap_instruction_api_liveness)
    using namespace Dyninst::InstructionAPI;
     
    Address blockBegin = block()->origInstance()->firstInsnAddr();
@@ -473,7 +473,7 @@ bitArray instPoint::liveRegisters(callWhen when) {
     ReadWriteInfo curInsnRW;
     if(!block()->llb()->cachedLivenessInfo.getLivenessInfo(addr(), func()->ifunc(), curInsnRW))
     {
-#if defined(cap_instruction_api)
+#if defined(cap_instruction_api) || defined(cap_instruction_api_liveness)
       using namespace Dyninst::InstructionAPI;
       const unsigned char* bufferToDecode =
               reinterpret_cast<const unsigned char*>(proc()->getPtrToInstruction(addr()));
@@ -510,7 +510,7 @@ bitArray instPoint::liveRegisters(callWhen when) {
 }
 
 
-#if defined(cap_instruction_api)
+#if defined(cap_instruction_api) || defined(cap_instruction_api_liveness)
 ReadWriteInfo calcRWSets(Instruction::Ptr curInsn, image_basicBlock* blk, unsigned int width)
 {
   ReadWriteInfo ret;
@@ -527,20 +527,22 @@ ReadWriteInfo calcRWSets(Instruction::Ptr curInsn, image_basicBlock* blk, unsign
        i != cur_read.end(); i++) 
   {
     liveness_printf("%s ", (*i)->format().c_str());
-    bool upcast = false;
-    int reg = convertRegID(IA32Regs((*i)->getID()), upcast);
-    ret.read[reg] = true;
+#if defined(arch_x86) || defined(arch_x86_64)      
+    ret.read[convertRegID(IA32Regs((*i)->getID()))] = true;
+#else
+    ret.read[(*i)->getID() - power::gpr0] = true;
+#endif
   }
   //liveness_printf("\nWritten registers: ");
       
   for (std::set<RegisterAST::Ptr>::const_iterator i = cur_written.begin(); 
        i != cur_written.end(); i++) {
-    liveness_printf("%s ", (*i)->format().c_str());
-    bool upcast = false;
-    int reg = convertRegID(IA32Regs((*i)->getID()), upcast);
-    ret.written[reg] = true;
-    if (upcast)
-      ret.read[reg] = true;
+    //liveness_printf("%s ", (*i)->format().c_str());
+#if defined(arch_x86) || defined(arch_x86_64)
+    ret.written[convertRegID(IA32Regs((*i)->getID()))] = true;
+#else
+    ret.written[(*i)->getID() - power::gpr0] = true;
+#endif
   }
   //liveness_printf("\n");
   InsnCategory category = curInsn->getCategory();

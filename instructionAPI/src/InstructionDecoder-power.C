@@ -153,7 +153,7 @@ namespace Dyninst
 
     Expression::Ptr InstructionDecoder_power::makeFallThroughExpr()
     {
-        return makeAddExpression(makeRegisterExpression(power_R_PC), Immediate::makeImmediate(Result(u32, 4)), u32);
+        return makeAddExpression(makeRegisterExpression(power::sprpc), Immediate::makeImmediate(Result(u32, 4)), u32);
     }
     void InstructionDecoder_power::LI()
     {
@@ -207,8 +207,10 @@ namespace Dyninst
     {
         if(field<21, 21>(insn))
         {
-            insn_in_progress->appendOperand(makeRegisterExpression(makePowerRegID(0, power_XER, OF_bit, OF_bit)), false, true);
-            insn_in_progress->appendOperand(makeRegisterExpression(makePowerRegID(0, power_XER, SOF_bit, SOF_bit)), false, true);
+            insn_in_progress->appendOperand(makeRegisterExpression(makePowerRegID(0, power::sprxer,
+                                            power::OF_bit, power::OF_bit)), false, true);
+            insn_in_progress->appendOperand(makeRegisterExpression(makePowerRegID(0, power::sprxer,
+                                            power::SOF_bit, power::SOF_bit)), false, true);
             insn_in_progress->getOperation().mnemonic += "o";
         }
     }
@@ -260,7 +262,7 @@ namespace Dyninst
     {
         if(field<31, 31>(insn))
         {
-            insn_in_progress->appendOperand(makeRegisterExpression(power_LR), false, true);
+            insn_in_progress->appendOperand(makeRegisterExpression(power::sprlr), false, true);
             size_t where = insn_in_progress->getOperation().mnemonic.rfind('+');
             if(where == std::string::npos) {
                 where = insn_in_progress->getOperation().mnemonic.rfind('-');
@@ -374,49 +376,11 @@ namespace Dyninst
     }
     Expression::Ptr InstructionDecoder_power::makeIFormBranchTarget()
     {
-        // absolute address
-        if(field<30, 30>(insn) == 1)
-        {
-            insn_in_progress->appendOperand(makeRegisterExpression(power_LR), false, true);
-            size_t where = insn_in_progress->getOperation().mnemonic.rfind('+');
-            if(where == std::string::npos) {
-                where = insn_in_progress->getOperation().mnemonic.rfind('-');
-            }
-            if(where == std::string::npos) {
-                where = insn_in_progress->getOperation().mnemonic.size();
-            }
-            
-            insn_in_progress->getOperation().mnemonic.insert(where, "a");
-            return Immediate::makeImmediate(Result(u32, sign_extend<26>(field<6, 29>(insn) << 2)));
-        }
-        else
-        {
-            Expression::Ptr displacement = Immediate::makeImmediate(Result(s32, sign_extend<26>(field<6, 29>(insn) << 2)));
-            return makeAddExpression(makeRegisterExpression(power_R_PC), displacement, s32);
-        }
+        return makeBranchTarget<6, 29>();
     }
     Expression::Ptr InstructionDecoder_power::makeBFormBranchTarget()
     {
-        // absolute address
-        if(field<30, 30>(insn) == 1)
-        {
-            insn_in_progress->appendOperand(makeRegisterExpression(power_LR), false, true);
-            size_t where = insn_in_progress->getOperation().mnemonic.rfind('+');
-            if(where == std::string::npos) {
-                where = insn_in_progress->getOperation().mnemonic.rfind('-');
-            }
-            if(where == std::string::npos) {
-                where = insn_in_progress->getOperation().mnemonic.size();
-            }
-            
-            insn_in_progress->getOperation().mnemonic.insert(where, "a");
-            return Immediate::makeImmediate(Result(u32, sign_extend<16>(field<16, 29>(insn) << 2)));
-        }
-        else
-        {
-            Expression::Ptr displacement = Immediate::makeImmediate(Result(s32, sign_extend<16>(field<16, 29>(insn) << 2)));
-            return makeAddExpression(makeRegisterExpression(power_R_PC), displacement, s32);
-        }
+        return makeBranchTarget<16, 29>();
     }
     Expression::Ptr InstructionDecoder_power::makeRAorZeroExpr()
     {
@@ -455,7 +419,7 @@ namespace Dyninst
     }
     Expression::Ptr InstructionDecoder_power::makeCR0Expr()
     {
-        return makeRegisterExpression(makePowerRegID(bank_cond, 0));
+        return makeRegisterExpression(power::sprcr0);
     }
     Expression::Ptr InstructionDecoder_power::makeBIExpr()
     {
@@ -538,7 +502,7 @@ namespace Dyninst
            current->op == power_op_bclr ||
            current->op == power_op_bcctr)
         {
-            insn_in_progress->appendOperand(makeRegisterExpression(makePowerRegID(0, power_R_PC)), false, true);
+            insn_in_progress->appendOperand(makeRegisterExpression(makePowerRegID(0, power::sprpc)), false, true);
         }
         
         for(operandSpec::const_iterator curFn = current->operands.begin();
@@ -549,12 +513,12 @@ namespace Dyninst
         }
         if(current->op == power_op_bclr)
         {
-            insn_in_progress->addSuccessor(makeRegisterExpression(makePowerRegID(0, power_LR)),
+            insn_in_progress->addSuccessor(makeRegisterExpression(makePowerRegID(0, power::sprlr)),
                                            field<31,31>(insn) == 1, true, bcIsConditional, false);
         }
         if(current->op == power_op_bcctr)
         {
-            insn_in_progress->addSuccessor(makeRegisterExpression(makePowerRegID(0, power_CTR)),
+            insn_in_progress->addSuccessor(makeRegisterExpression(makePowerRegID(0, power::sprctr)),
                                            field<31,31>(insn) == 1, true, bcIsConditional, false);
         }
         if(current->op == power_op_addic_rc ||
@@ -638,7 +602,7 @@ using namespace boost::assign;
     
     void InstructionDecoder_power::BF()
     {
-        int base_reg = isFPInsn ? power_FPSCW0 : power_CR0;
+        int base_reg = isFPInsn ? power::sprfpscw0 : power::sprcr0;
         Expression::Ptr condReg = makeRegisterExpression(makePowerRegID(base_reg, field<6, 10>(insn) >> 2));
         insn_in_progress->appendOperand(condReg, false, true);
         return;
@@ -659,7 +623,7 @@ using namespace boost::assign;
         invertBranchCondition = false;
         if(!field<8, 8>(insn))
         {
-            Expression::Ptr ctr = makeRegisterExpression(makePowerRegID(0, power_CTR));
+            Expression::Ptr ctr = makeRegisterExpression(makePowerRegID(0, power::sprctr));
             if(field<9, 9>(insn))
             {
                 insn_in_progress->getOperation().mnemonic = "bdz";
@@ -696,12 +660,12 @@ using namespace boost::assign;
     }
     void InstructionDecoder_power::syscall()
     {
-        insn_in_progress->appendOperand(makeRegisterExpression(power_MSR), true, true);
-        insn_in_progress->appendOperand(makeRegisterExpression(power_SRR0), false, true);
-        insn_in_progress->appendOperand(makeRegisterExpression(power_SRR1), false, true);
-        insn_in_progress->appendOperand(makeRegisterExpression(power_R_PC), true, true);
-        insn_in_progress->appendOperand(makeRegisterExpression(power_IVPR), false, true);
-        insn_in_progress->appendOperand(makeRegisterExpression(power_IVOR8), false, true);
+        insn_in_progress->appendOperand(makeRegisterExpression(power::sprmsr), true, true);
+        insn_in_progress->appendOperand(makeRegisterExpression(power::sprsrr0), false, true);
+        insn_in_progress->appendOperand(makeRegisterExpression(power::sprsrr1), false, true);
+        insn_in_progress->appendOperand(makeRegisterExpression(power::sprpc), true, true);
+        insn_in_progress->appendOperand(makeRegisterExpression(power::sprivpr), false, true);
+        insn_in_progress->appendOperand(makeRegisterExpression(power::sprivor8), false, true);
         return;
     }
     void InstructionDecoder_power::LL()
@@ -720,7 +684,7 @@ using namespace boost::assign;
         {
             if(isFPInsn)
             {
-                insn_in_progress->appendOperand(makeRegisterExpression(makePowerRegID(0, power_FPSCW)), false, true);
+                insn_in_progress->appendOperand(makeRegisterExpression(makePowerRegID(0, power::sprfpscw)), false, true);
             }
             else
             {
@@ -805,7 +769,7 @@ using namespace boost::assign;
 
     void InstructionDecoder_power::FXM()
     {
-        (translateBitFieldToCR<12, 19, power_CR0, 7>(*this))();
+        (translateBitFieldToCR<12, 19, power::sprcr0, 7>(*this))();
         return;
     }
     void InstructionDecoder_power::spr()
@@ -832,7 +796,7 @@ using namespace boost::assign;
     void InstructionDecoder_power::FLM()
     {
         isRAWritten = true;
-        (translateBitFieldToCR<7, 14, power_FPSCW0, 7>(*this))();
+        (translateBitFieldToCR<7, 14, power::sprfpscw0, 7>(*this))();
         return;
     }
 

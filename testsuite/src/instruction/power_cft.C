@@ -140,9 +140,9 @@ test_results_t power_cft_Mutator::executeTest()
   test_results_t retVal = PASSED;
   
   decodedInsns.pop_back();
-  Expression* theIP = new RegisterAST(power_R_PC);
-  Expression* count_reg = new RegisterAST(power_CTR);  
-  Expression* link_reg = new RegisterAST(power_LR);
+  Expression* theIP = new RegisterAST(power::sprpc);
+  Expression* count_reg = new RegisterAST(power::sprctr);  
+  Expression* link_reg = new RegisterAST(power::sprlr);
   
 
   std::list<cftExpected> cfts;

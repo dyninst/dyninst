@@ -37,6 +37,8 @@
 #include "Visitor.h"
 #include "../../common/h/singleton_object_pool.h"
 #include "InstructionDecoder-power.h"
+#include "dyn_regs.h"
+
 using namespace std;
 using namespace dyn_detail::boost;
 
@@ -101,43 +103,51 @@ namespace Dyninst
       }
       else
       {
-          if(registerID >= power_GPR0 && registerID < power_LAST_REG)
+          if(registerID & power::ARCH_POWER)
           {
-              if(registerID <= power_GPR31)
+              if(registerID >= power::sprcr0 && registerID <= power::sprcr7)
               {
-                  retVal << "r" << registerID - power_GPR0;
+                  retVal << "cr" << registerID - power::sprcr0;
               }
-              else if(registerID <= power_FPR31)
-              {
-                  retVal << "fpr" << registerID - power_FPR0;
-              }
-              else if(registerID <= power_FSR31)
-              {
-                  retVal << "fsr" << registerID - power_FSR0;
-              }
-              else if(registerID >= power_CR0 && registerID <= power_CR7)
-              {
-                  retVal << "cr" << registerID - power_CR0;
-              }
-              else if(registerID == power_R_PC)
+              else if(registerID == power::sprpc)
               {
                   retVal << "pc";
               }
-              else if(registerID == power_LR)
+              else if(registerID == power::sprlr)
               {
                   retVal << "lr";
               }
-              else if(registerID == power_CTR)
+              else if(registerID == power::sprctr)
               {
                   retVal << "ctr";
               }
-              else if(registerID == power_FPSCW)
+              else if(registerID == power::sprfpscw)
               {
                   retVal << "fpscr";
               }
-              else
+              else if(registerID >= power::sprfpscw0 && registerID <= power::sprfpscw7)
               {
-                  retVal << "R" << registerID;
+                  retVal << "fpscr" << registerID - power::sprfpscw0;
+              }
+              else if(registerID == power::sprxer)
+              {
+                  retVal << "xer";
+              }
+              else if(registerID & power::SPR_BASE)
+              {
+                  retVal << "SPR" << registerID - power::SPR_BASE;
+              }
+              else if(registerID & power::GPR_BASE)
+              {
+                  retVal << "r" << registerID - power::gpr0;
+              }
+              else if(registerID & power::FPR_BASE)
+              {
+                  retVal << "fpr" << registerID - power::fpr0;
+              }
+              else if(registerID & power::FPR2_BASE)
+              {
+                  retVal << "fsr" << registerID - power::fsr0;
               }
           }
           else

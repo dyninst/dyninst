@@ -35,7 +35,7 @@
 #include "Instruction.h"
 #include "InstructionDecoder-power.h"
 #include "Register.h"
-
+#include "dyn_regs.h"
 #include <boost/assign/list_of.hpp>
 #include <boost/iterator/indirect_iterator.hpp>
 #include <deque>
@@ -118,29 +118,29 @@ test_results_t power_decode_Mutator::executeTest()
   }
   std::deque<registerSet> expectedRead, expectedWritten;
   registerSet tmpRead, tmpWritten;
-  RegisterAST::Ptr r0(new RegisterAST(power_GPR0));
-  RegisterAST::Ptr r1(new RegisterAST(power_GPR1));
-  RegisterAST::Ptr r2(new RegisterAST(power_GPR2));
-  RegisterAST::Ptr r8(new RegisterAST(power_GPR8));
-  RegisterAST::Ptr r9(new RegisterAST(power_GPR9));
-  RegisterAST::Ptr cr0(new RegisterAST(power_CR0));
-  RegisterAST::Ptr cr2(new RegisterAST(power_CR2));
-  RegisterAST::Ptr cr4(new RegisterAST(power_CR4));
-  RegisterAST::Ptr cr6(new RegisterAST(power_CR6));
-  RegisterAST::Ptr cr7(new RegisterAST(power_CR7));
-  RegisterAST::Ptr xer(new RegisterAST(power_XER));
-  RegisterAST::Ptr fpr0(new RegisterAST(power_FPR0));
-  RegisterAST::Ptr fpr1(new RegisterAST(power_FPR1));
-  RegisterAST::Ptr fpr2(new RegisterAST(power_FPR2));
-  RegisterAST::Ptr fsr0(new RegisterAST(power_FSR0));
-  RegisterAST::Ptr fsr1(new RegisterAST(power_FSR1));
-  RegisterAST::Ptr fsr2(new RegisterAST(power_FSR2));
-  RegisterAST::Ptr fpscr(new RegisterAST(power_FPSCW));
-  RegisterAST::Ptr fpscr0(new RegisterAST(power_FPSCW0));
-  RegisterAST::Ptr fpscr2(new RegisterAST(power_FPSCW2));
-  RegisterAST::Ptr fpscr4(new RegisterAST(power_FPSCW4));
-  RegisterAST::Ptr fpscr6(new RegisterAST(power_FPSCW6));
-  RegisterAST::Ptr fpscr7(new RegisterAST(power_FPSCW7));
+  RegisterAST::Ptr r0(new RegisterAST(power::gpr0));
+  RegisterAST::Ptr r1(new RegisterAST(power::gpr1));
+  RegisterAST::Ptr r2(new RegisterAST(power::gpr2));
+  RegisterAST::Ptr r8(new RegisterAST(power::gpr8));
+  RegisterAST::Ptr r9(new RegisterAST(power::gpr9));
+  RegisterAST::Ptr cr0(new RegisterAST(power::sprcr0));
+  RegisterAST::Ptr cr2(new RegisterAST(power::sprcr2));
+  RegisterAST::Ptr cr4(new RegisterAST(power::sprcr4));
+  RegisterAST::Ptr cr6(new RegisterAST(power::sprcr6));
+  RegisterAST::Ptr cr7(new RegisterAST(power::sprcr7));
+  RegisterAST::Ptr xer(new RegisterAST(power::sprxer));
+  RegisterAST::Ptr fpr0(new RegisterAST(power::fpr0));
+  RegisterAST::Ptr fpr1(new RegisterAST(power::fpr1));
+  RegisterAST::Ptr fpr2(new RegisterAST(power::fpr2));
+  RegisterAST::Ptr fsr0(new RegisterAST(power::fsr0));
+  RegisterAST::Ptr fsr1(new RegisterAST(power::fsr1));
+  RegisterAST::Ptr fsr2(new RegisterAST(power::fsr2));
+  RegisterAST::Ptr fpscr(new RegisterAST(power::sprfpscw));
+  RegisterAST::Ptr fpscr0(new RegisterAST(power::sprfpscw0));
+  RegisterAST::Ptr fpscr2(new RegisterAST(power::sprfpscw2));
+  RegisterAST::Ptr fpscr4(new RegisterAST(power::sprfpscw4));
+  RegisterAST::Ptr fpscr6(new RegisterAST(power::sprfpscw6));
+  RegisterAST::Ptr fpscr7(new RegisterAST(power::sprfpscw7));
   // add.
   test_results_t retVal = PASSED;
   
