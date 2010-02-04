@@ -155,7 +155,7 @@ namespace power
        const signed int FPR_BASE = 1 << 7;
        const signed int FPR2_BASE = 1 << 8;
        const signed int SPR_BASE = 1 << 9;
-       const signed int ARCH_POWER = 0;
+       const signed int ARCH_POWER = 1 << 10;
        GPR(0);
        GPR(1);
        GPR(2);
