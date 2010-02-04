@@ -172,6 +172,7 @@ void image_basicBlock::summarizeBlockLivenessInfo()
        curInsnRW = calcRWSets(curInsn, this, width);
        cachedLivenessInfo.insertInstructionInfo(current, curInsnRW, getFirstFunc());
      }
+
      use |= (curInsnRW.read & ~def);
      // And if written, then was defined
      def |= curInsnRW.written;
@@ -522,15 +523,21 @@ ReadWriteInfo calcRWSets(Instruction::Ptr curInsn, image_basicBlock* blk, unsign
   for (std::set<RegisterAST::Ptr>::const_iterator i = cur_read.begin(); 
        i != cur_read.end(); i++) 
   {
-    //liveness_printf("%s ", (*i)->format().c_str());
-    ret.read[convertRegID(IA32Regs((*i)->getID()))] = true;
+    liveness_printf("%s ", (*i)->format().c_str());
+    bool upcast = false;
+    int reg = convertRegID(IA32Regs((*i)->getID()), upcast);
+    ret.read[reg] = true;
   }
   //liveness_printf("\nWritten registers: ");
       
   for (std::set<RegisterAST::Ptr>::const_iterator i = cur_written.begin(); 
        i != cur_written.end(); i++) {
-    //liveness_printf("%s ", (*i)->format().c_str());
-    ret.written[convertRegID(IA32Regs((*i)->getID()))] = true;
+    liveness_printf("%s ", (*i)->format().c_str());
+    bool upcast = false;
+    int reg = convertRegID(IA32Regs((*i)->getID()), upcast);
+    ret.written[reg] = true;
+    if (upcast)
+      ret.read[reg] = true;
   }
   //liveness_printf("\n");
   InsnCategory category = curInsn->getCategory();
@@ -564,6 +571,7 @@ ReadWriteInfo calcRWSets(Instruction::Ptr curInsn, image_basicBlock* blk, unsign
     }
     break;
   }
+  
   return ret;
 }
 

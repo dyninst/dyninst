@@ -1583,7 +1583,7 @@ bool instruction::generateMem(codeGen &gen,
       REX_INIT(new_rex);
       REX_SET_W(new_rex, loc.rex_w);
       REX_SET_R(new_rex, loc.rex_r);
-      REX_SET_X(new_rex, loc.rex_x);
+      REX_SET_X(new_rex, 0);
       REX_SET_B(new_rex, loc.rex_b); 
       *walker++ = new_rex;
    }

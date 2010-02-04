@@ -117,7 +117,11 @@ map<IA32Regs, Register> reverseRegisterMap = map_list_of
         (r_RBP, REGNUM_RBP)
         (r_RSI, REGNUM_RSI)
         (r_RDI, REGNUM_RDI)
-        (r_SI, REGNUM_RSI)
+  (r_AX, REGNUM_RAX)
+  (r_BX, REGNUM_RBX)
+  (r_CX, REGNUM_RCX)
+  (r_DX, REGNUM_RDX)
+  (r_SI, REGNUM_RSI)
         (r_DI, REGNUM_RDI)
         (r_XMM0, REGNUM_XMM0)
         (r_XMM1, REGNUM_XMM1)
@@ -162,7 +166,7 @@ map<IA32Regs, Register> reverseRegisterMap = map_list_of
   (r_ST7, REGNUM_IGNORED)
         ;
 
-Register convertRegID(IA32Regs toBeConverted)
+Register convertRegID(IA32Regs toBeConverted, bool &upcast)
 {
     map<IA32Regs, Register>::const_iterator found =
             reverseRegisterMap.find(toBeConverted);
@@ -170,5 +174,10 @@ Register convertRegID(IA32Regs toBeConverted)
         fprintf(stderr, "Register ID %d not found in reverseRegisterLookup!\n", toBeConverted);
         assert(!"Bad register ID");
     }
+
+    // Determine whether we've upcast the register
+    if ((toBeConverted >= r_AH) &&
+	(toBeConverted <= r_DI)) upcast = true;
+
     return found->second;
 }
