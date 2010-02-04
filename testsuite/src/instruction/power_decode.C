@@ -83,9 +83,11 @@ test_results_t power_decode_Mutator::executeTest()
       0x00, 0x01, 0x00, 0x92, // fxmul fpr0, fpr1
       0x00, 0x01, 0x00, 0x94, // fxcpmul fpr0, fpr1
       0x00, 0x01, 0x00, 0x96, // fxcsmul fpr0, fpr1
+      0x40, 0x01, 0x01, 0x01, // bdnzl cr0, +0x100
+      0x40, 0x01, 0x01, 0x00, // bdnz cr0, +0x100
                 
   };
-  unsigned int expectedInsns = 22;
+  unsigned int expectedInsns = 24;
   unsigned int size = expectedInsns * 4;
   ++expectedInsns;
   dyn_detail::boost::shared_ptr<InstructionDecoder> d =
@@ -141,6 +143,9 @@ test_results_t power_decode_Mutator::executeTest()
   RegisterAST::Ptr fpscr4(new RegisterAST(power::sprfpscw4));
   RegisterAST::Ptr fpscr6(new RegisterAST(power::sprfpscw6));
   RegisterAST::Ptr fpscr7(new RegisterAST(power::sprfpscw7));
+  RegisterAST::Ptr pc(new RegisterAST(power::sprpc));
+  RegisterAST::Ptr ctr(new RegisterAST(power::sprctr));
+  RegisterAST::Ptr lr(new RegisterAST(power::sprlr));
   // add.
   test_results_t retVal = PASSED;
   
@@ -290,6 +295,20 @@ test_results_t power_decode_Mutator::executeTest()
   // fxcsmul fpr0, fpr1
   tmpRead = list_of(fpr2)(fsr1)(fsr2);
   tmpWritten = list_of(fpr0)(fsr0);
+  expectedRead.push_back(tmpRead);
+  expectedWritten.push_back(tmpWritten);
+  tmpRead.clear();
+  tmpWritten.clear();
+  // bdnzl cr0, +0x100
+  tmpRead = list_of(pc)(cr0)(ctr);
+  tmpWritten = list_of(pc)(ctr)(lr);
+  expectedRead.push_back(tmpRead);
+  expectedWritten.push_back(tmpWritten);
+  tmpRead.clear();
+  tmpWritten.clear();
+  // bdnz cr0, +0x100
+  tmpRead = list_of(pc)(cr0)(ctr);
+  tmpWritten = list_of(pc)(ctr);
   expectedRead.push_back(tmpRead);
   expectedWritten.push_back(tmpWritten);
   tmpRead.clear();
