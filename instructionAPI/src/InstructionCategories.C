@@ -69,10 +69,6 @@ namespace Dyninst
       case e_loop:
       case e_loope:
       case e_loopn:
-          case power_op_b:
-          case power_op_bc:
-          case power_op_bcctr:
-          case power_op_bclr:
 	return c_BranchInsn;
           case e_cmp:
           case e_cmppd:
@@ -83,6 +79,10 @@ namespace Dyninst
           case e_cmpsw:
           case e_cmpxch:
           case e_cmpxch8b:
+          case power_op_cmp:
+          case power_op_cmpi:
+          case power_op_cmpl:
+          case power_op_cmpli:
               return c_CompareInsn;
           case e_prefetch:
           case e_prefetchNTA:
@@ -92,7 +92,12 @@ namespace Dyninst
           case e_prefetch_w:
           case e_prefetchw:
               return c_PrefetchInsn;
-                      
+          case power_op_b:
+          case power_op_bc:
+          case power_op_bcctr:
+          case power_op_bclr:
+              return c_BranchInsn;        
+              
           default:
 	return c_NoCategory;
       }
