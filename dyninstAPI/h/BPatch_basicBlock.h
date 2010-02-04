@@ -125,6 +125,9 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
    // doing.
    int_basicBlock *lowlevel_block()  { return iblock; }
 
+   API_EXPORT(Int, (),
+	      BPatch_flowGraph *, getFlowGraph, () CONST_EXPORT);
+
 
 	/** BPatch_basicBlock::getSources   */
 	/** method that returns the predecessors of the basic block */
