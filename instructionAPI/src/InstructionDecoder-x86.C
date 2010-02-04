@@ -157,9 +157,10 @@ namespace Dyninst
         Result_Type aw = ia32_is_mode_64() ? u32 : u64;
 
         decode_SIB(locs->sib_byte, scale, index, base);
-        
+
         Expression::Ptr scaleAST(make_shared(singleton_object_pool<Immediate>::construct(Result(u8, dword_t(scale)))));
-        Expression::Ptr indexAST(makeRegisterExpression(makeRegisterID(index, opType, locs->rex_x)));
+        Expression::Ptr indexAST(make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(index, opType,
+                                    locs->rex_x))));
         Expression::Ptr baseAST;
         if(base == 0x05)
         {
@@ -168,14 +169,28 @@ namespace Dyninst
                 case 0x00:
                     baseAST = decodeImmediate(op_d, locs->sib_position + 1);
                     break;
-                case 0x01:
-                    baseAST = makeAddExpression(decodeImmediate(op_b, locs->sib_position + 1),
-                            makeRegisterExpression(aw == u32 ? x86::ebp : x86_64::rbp), aw);
-                    break;
-                case 0x02:
-                    baseAST = makeAddExpression(decodeImmediate(op_d, locs->sib_position + 1),
-                            makeRegisterExpression(aw == u32 ? x86::ebp : x86_64::rbp), aw);
-                    break;
+                    case 0x01: {
+                        IA32Regs reg;
+                        if (locs->rex_b)
+                            reg = r_R13;
+                        else
+                            reg = r_RBP;
+
+                        baseAST = makeAddExpression(decodeImmediate(op_b, locs->sib_position + 1),
+                                make_shared(singleton_object_pool<RegisterAST>::construct(reg)), aw);
+                        break;
+                    }
+                    case 0x02: {
+                        IA32Regs reg;
+                        if (locs->rex_b)
+                            reg = r_R13;
+                        else
+                            reg = r_RBP;
+
+                        baseAST = makeAddExpression(decodeImmediate(op_d, locs->sib_position + 1),
+                                make_shared(singleton_object_pool<RegisterAST>::construct(reg)), aw);
+                        break;
+                    }
                 case 0x03:
                 default:
                     assert(0);
@@ -184,7 +199,8 @@ namespace Dyninst
         }
         else
         {
-            baseAST = makeRegisterExpression(makeRegisterID(base, opType, locs->rex_b));
+            baseAST = make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(base, opType,
+                                    locs->rex_b)));
         }
         if(index == 0x04 && (!(ia32_is_mode_64()) || !(locs->rex_x)))
         {

@@ -161,5 +161,6 @@ Register convertRegID(RegisterAST* toBeConverted)
         fprintf(stderr, "Register ID for %s not found in reverseRegisterLookup!\n", toBeConverted->format().c_str());
         assert(!"Bad register ID");
     }
+
     return found->second;
 }
