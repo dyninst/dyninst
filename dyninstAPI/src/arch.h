@@ -61,6 +61,7 @@
 #endif
 
 #include "dyninstAPI/src/bitArray.h"
+#include "pcrel.h"
 
 class dyn_lwp;
 class dyn_thread;
@@ -106,7 +107,7 @@ class codeGen {
     codeGen &operator=(const codeGen &param);
 
     // Initialize the current using the argument as a "template"
-    void applyTemplate(codeGen &codeTemplate);
+    void applyTemplate(const codeGen &codeTemplate);
     static codeGen baseTemplate;
 
     // Allocate a certain amount of space
@@ -199,7 +200,10 @@ class codeGen {
     void setAddrSpace(AddressSpace *a);
     void setThread(dyn_thread *t) { thr_ = t; }
     void setLWP(dyn_lwp *l) { lwp_ = l; }
-    void setRegisterSpace(registerSpace *r) { rs_ = r; }
+    void setRegisterSpace(registerSpace *r) { 
+      assert(r);
+      rs_ = r; 
+    }
     void setAddr(Address a) { addr_ = a; }
     void setPoint(instPoint *i) { ip_ = i; }
     void setRegTracker(regTracker_t *t) { t_ = t; }
@@ -208,20 +212,20 @@ class codeGen {
     void setObj(generatedCodeObject *object) { obj_ = object; }
     void setBTI(baseTrampInstance *i) { bti_ = i; }
 
-    dyn_lwp *lwp();
-    dyn_thread *thread();
+    dyn_lwp *lwp() const;
+    dyn_thread *thread() const;
     //process *proc();
-    AddressSpace *addrSpace();
+    AddressSpace *addrSpace() const;
     Address startAddr() const { return addr_; }
-    instPoint *point();
+    instPoint *point() const;
     baseTrampInstance *bti() const { return bti_; }
-    int_function *func();
-    registerSpace *rs();
-    regTracker_t *tracker();
-    Emitter *codeEmitter();
-    Emitter *emitter() { return codeEmitter(); } // A little shorter
+    int_function *func() const;
+    registerSpace *rs() const;
+    regTracker_t *tracker() const;
+    Emitter *codeEmitter() const;
+    Emitter *emitter() const { return codeEmitter(); } // A little shorter
 
-    generatedCodeObject *obj();
+    generatedCodeObject *obj() const;
 
     void beginTrackRegDefs();
     void endTrackRegDefs();
@@ -261,20 +265,6 @@ class codeGen {
     std::vector<pcRelRegion *> pcrels_;
 };
 
-class pcRelRegion {
-   friend class codeGen;
- protected:
-   codeGen *gen;
-   instruction orig_instruc;
-   unsigned cur_offset;
-   unsigned cur_size;
- public:
-   pcRelRegion(const instruction &i);
-   virtual unsigned apply(Address addr) = 0;
-   virtual unsigned maxSize() = 0;
-   virtual bool canPreApply();
-   virtual ~pcRelRegion();
-}; 
 
 // For platforms that require bit-twiddling. These should go away in the future.
 #define GET_PTR(insn, gen) codeBuf_t *insn = (codeBuf_t *)(gen).cur_ptr()

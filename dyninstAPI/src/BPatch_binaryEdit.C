@@ -187,6 +187,10 @@ bool BPatch_binaryEdit::writeFileInt(const char * outFile)
     pdvector<miniTramp *> workDone;
     bool err = false;
 
+
+    typedef std::map<AddressSpace *, std::set<int_function *> > FuncMap;
+    FuncMap funcMap;
+
     for (unsigned i = 0; i < pendingInsertions->size(); i++) {
         batchInsertionRecord *&bir = (*pendingInsertions)[i];
         assert(bir);
@@ -210,9 +214,9 @@ bool BPatch_binaryEdit::writeFileInt(const char * outFile)
                                              bir->trampRecursive_,
                                              false);
             if (mini) {
-                workDone.push_back(mini);
-                // Add to snippet handle
-                bir->handle_->addMiniTramp(mini);
+	      workDone.push_back(mini);
+	      // Add to snippet handle
+	      bir->handle_->addMiniTramp(mini);
             }
             else {
                 err = true;
@@ -235,9 +239,11 @@ bool BPatch_binaryEdit::writeFileInt(const char * outFile)
            instPoint *point = bppoint->point;
            point->optimizeBaseTramps(bir->when_[j]);
 
-           instrumentedFunctions.insert(point->func());
+	   funcMap[point->func()->proc()].insert(point->func());
+	   instrumentedFunctions.insert(point->func());
        }
    }
+
 
    for (std::set<int_function *>::iterator funcIter = instrumentedFunctions.begin();
         funcIter != instrumentedFunctions.end();
@@ -252,7 +258,17 @@ bool BPatch_binaryEdit::writeFileInt(const char * outFile)
        }
    }
 
+   /*
    
+   // Perform code generation on a per-BinaryEdit basis
+   for (FuncMap::iterator iter = funcMap.begin();
+	iter != funcMap.end(); ++iter) {
+     iter->first->relocate(iter->second.begin(),
+			   iter->second.end());
+   }
+
+   */
+
    // Now that we've instrumented we can see if we need to replace the
    // trap handler.
    replaceTrapHandler();

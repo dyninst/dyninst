@@ -484,9 +484,7 @@ void int_basicBlock::getSources(pdvector<int_basicBlock *> &ins) const {
             {
                 // Note the mapping between int_basicBlock::id() and
                 // image_basicBlock::id()
-                unsigned img_id = ib_ins[i]->getSource()->id();
-                unsigned int_id = func()->blockIDmap[img_id];
-                ins.push_back(func()->blockList[int_id]);
+	      ins.push_back(func()->findBlockByImage(ib_ins[i]->getSource()));
             }
         }
     }
@@ -1327,6 +1325,11 @@ bblInstance * bblInstance::getFallthroughBBL() {
 bool int_function::performInstrumentation(bool stopOnFailure,
                                           pdvector<instPoint *> &failedInstPoints) {
 
+  if (symTabName() == "__i686.get_pc_thunk.bx") {
+    cerr << "Skipping thunk! Maybe" << endl;
+    return true;
+  }
+
     // We have the following possible side-effects:
     // 
     // 1) Generating an instPoint (e.g., creating the multiTramp and its code)
@@ -1592,4 +1595,16 @@ const pdvector< int_parRegion* > &int_function::parRegions()
       parallelRegions_.push_back(iPR);
     }
   return parallelRegions_;
+}
+
+#if defined(cap_instruction_api) 
+void bblInstance::getInsnInstances(std::vector<std::pair<InstructionAPI::Instruction::Ptr, Address> >&instances) const {
+  return block()->llb()->getInsnInstances(instances);
+}
+#endif
+
+int_basicBlock *int_function::findBlockByImage(image_basicBlock *block) {
+  unsigned img_id = block->id();
+  unsigned int_id = blockIDmap[img_id];
+  return blockList[int_id];
 }

@@ -99,7 +99,7 @@ using namespace Dyninst;
 #define P_offsetof(s, m) (Address) &(((s *) NULL)->m)
 
 #define FREE_WATERMARK (hp->totalFreeMemAvailable/2)
-#define SIZE_WATERMARK 100
+#define SIZE_WATERMARK 100 
 static const timeLength MaxWaitingTime(10, timeUnit::sec());
 static const timeLength MaxDeletingTime(2, timeUnit::sec());
 

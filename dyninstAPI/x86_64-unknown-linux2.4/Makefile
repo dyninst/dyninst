@@ -40,7 +40,12 @@ SRCS =          ../src/linux.C \
 		../src/RegisterConversion-x86.C \
 		../src/BPatch_memoryAccessAdapter.C \
 		../src/IA_IAPI.C \
-		../src/IAPI_to_AST.C 
+		../src/IAPI_to_AST.C \
+		../src/stackanalysis.C \
+		../src/relocation.C \
+		../src/CodeMover.C \
+		../src/Transformer.C
+
 #		../src/InstrucIter-x86.C
 
 #MYFLAGS	+= -DNO_MDL_PRINT

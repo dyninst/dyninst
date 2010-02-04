@@ -50,6 +50,8 @@
 #include "InstrucIter.h"
 #endif //defined(cap_instruction_api)
 
+#include "CodeMover.h"
+
 // Implementations of non-virtual functions in the address space
 // class.
 
@@ -690,12 +692,22 @@ bool AddressSpace::inferiorReallocInternal(Address block, unsigned newSize) {
     assert(h);
     infmalloc_printf("%s[%d]: inferiorRealloc found block with addr 0x%lx, length %d\n",
                      FILE__, __LINE__, h->addr, h->length);
-    
-    if (h->length < newSize) {
-        return false; // Cannot make bigger...
-    }
+
     if (h->length == newSize)
-        return true;
+      return true;
+    else if (h->length > newSize) {
+      // Shrink the block
+      return inferiorShrinkBlock(h, block, newSize);
+    }
+    else {
+      // See if we can grow this block
+      return inferiorExpandBlock(h, block, newSize);
+    }
+}
+
+bool AddressSpace::inferiorShrinkBlock(heapItem *h, 
+				       Address block, 
+				       unsigned newSize) {
 
     // We make a new "free" block that is the end of this one.
     Address freeStart = block + newSize;
@@ -752,8 +764,50 @@ bool AddressSpace::inferiorReallocInternal(Address block, unsigned newSize) {
     heap_.totalFreeMemAvailable += shrink;
     heap_.freed += shrink;
 
-    
     return true;
+}    
+
+bool AddressSpace::inferiorExpandBlock(heapItem *h, 
+				       Address, 
+				       unsigned newSize) {
+  // We attempt to find a free block that immediately succeeds
+  // this one. If we find such a block we expand this block into
+  // the next; if this is possible we return true. Otherwise
+  // we return false.
+
+  Address succAddr = h->addr + h->length;
+  int expand = newSize - h->length;
+  assert(expand > 0);
+    
+  // New speedy way. Find the block that is the successor of the
+  // active block; if it exists, simply enlarge it "downwards". Otherwise,
+  // make a new block. 
+  heapItem *succ = NULL;
+  for (unsigned i = 0; i < heap_.heapFree.size(); i++) {
+    heapItem *tmp = heap_.heapFree[i];
+    assert(tmp);
+    if (tmp->addr == succAddr) {
+      succ = tmp;
+      break;
+    }
+  }
+  if (succ != NULL) {
+    if (succ->length < (unsigned) expand) {
+      // Can't fit
+      return false;
+    }
+    Address newFreeBase = succAddr + expand;
+    int newFreeLen = succ->length - expand;
+    succ->addr = newFreeBase;
+    succ->length = newFreeLen;
+  }
+  else {
+    return false;
+  }
+
+  heap_.totalFreeMemAvailable -= expand;
+  
+  return true;
 }    
 
 /////////////////////////////////////////
@@ -1584,3 +1638,213 @@ bool AddressSpace::needsPIC(AddressSpace *s)
       return true; //Use PIC cross module
    return s->needsPIC(); //Use target module
 }
+
+using namespace Dyninst;
+using namespace Relocation;
+
+// iter is some sort of functions
+template <typename iter>
+bool AddressSpace::relocate(iter begin, iter end) {
+  // Create a CodeMover covering these functions
+  relocation_cerr << "Creating a CodeMover" << endl;
+  
+  CodeMover::Ptr cm = CodeMover::createFunc(begin, end);
+
+  // Ensure each block ends with an appropriate CFElement
+  CFElementTransformer c;
+  cm->transform(c);
+
+  // Check for PC-relative data accesses and GetPC operations
+  relocation_cerr << "  Applying PC-relative transformer" << endl;
+  PCRelTransformer r(this);
+  cm->transform(r);
+
+  // Localize control transfers
+  relocation_cerr << "  Applying control flow localization" << endl;
+  LocalCFTransformer t(cm->blockMap(), 
+		       cm->priorityMap());
+  cm->transform(t);
+
+  // Add instrumentation
+  // For ease of edge instrumentation this should occur post-LocalCFTransformer-age
+  InstTransformer i;
+  cm->transform(i);
+
+
+  relocation_cerr << "Debugging CodeMover" << endl;
+  relocation_cerr << cm->format() << endl;
+
+  relocation_cerr << "  Entering code generation loop" << endl;
+  Address baseAddr = generateCode(cm);
+  if (!baseAddr) {
+    relocation_cerr << "  ERROR: generateCode returned baseAddr of " << baseAddr << ", exiting" << endl;
+    return false;
+  }
+
+  // Copy it in
+  relocation_cerr << "  Writing " << cm->size() << " bytes of data into program at "
+		  << std::hex << baseAddr << std::dec << endl;
+  if (!writeTextSpace((void *)baseAddr,
+		      cm->size(),
+		      cm->ptr()))
+    return false;
+
+  // Now handle patching; AKA linking
+  relocation_cerr << "  Patching in jumps to generated code" << endl;
+  if (!patchCode(cm))
+    return false;
+
+  return true;
+}
+
+
+Address AddressSpace::generateCode(CodeMover::Ptr cm) {
+  // And now we start the relocation process.
+  // This is at heart an iterative process, using the following
+  // algorithm
+  // size = code size estimate
+  // done = false
+  // While (!done), do
+  //   addr = inferiorMalloc(size)
+  //   cm.relocate(addr)
+  //   if ((cm.size <= size) || (inferiorRealloc(addr, cm.size)))
+  //     done = true
+  //   else
+  //     size = cm.size
+  //     inferiorFree(addr)
+  // In effect, we keep trying until we get a code generation that fits
+  // in the space we have allocated.
+
+  Address baseAddr = 0;
+  while (1) {
+    relocation_cerr << "   Attempting to allocate " << cm->size() << "bytes" << endl;
+    baseAddr = inferiorMalloc(cm->size());
+    relocation_cerr << "   inferiorMalloc returned " 
+		    << std::hex << baseAddr << std::dec << endl;
+    codeGen genTemplate;
+    genTemplate.setAddrSpace(this);
+    // Set the code emitter?
+
+    relocation_cerr << "   Calling CodeMover::relocate" << endl;
+    if (!cm->relocate(baseAddr, genTemplate)) {
+      // Whoa
+      relocation_cerr << "   ERROR: CodeMover failed relocation!" << endl;
+      return 0;
+    }
+
+    // Either attempt to expand or shrink...
+    relocation_cerr << "   Calling inferiorRealloc to fit new size " << cm->size() 
+		    << ", current base addr is " 
+		    << std::hex << baseAddr << std::dec << endl;
+    if (!inferiorRealloc(baseAddr, cm->size())) {
+      relocation_cerr << "   ... inferiorRealloc failed, trying again" << endl;
+      inferiorFree(baseAddr);
+      continue;
+    }
+    else {
+      relocation_cerr << "   ... inferiorRealloc succeeded, finished" << endl;
+      break;
+    }
+  }
+  relocation_cerr << "   ... fixpoint finished, returning baseAddr " 
+		  << std::hex << baseAddr << std::dec << endl;
+  return baseAddr;
+}
+
+bool AddressSpace::patchCode(CodeMover::Ptr cm) {
+
+  const CodeMover::PatchMap &p = cm->patchMap();
+  
+  // A PatchMap has three priority sets: Required, Suggested, and
+  // NotRequired. We care about:
+  // Required: all
+  // Suggested: function entries
+  // NotRequired: none
+
+  std::list<codeGen> patches;
+
+  relocation_cerr << "   Creating all Required patches" << endl;
+
+  Symtab *symtab = getAOut()->parse_img()->getObject();
+
+
+  for (CodeMover::PatchMap::Priority::const_iterator iter = p.required().begin();
+       iter != p.required().end(); ++iter) {
+    stringstream ret;
+    ret << "Obj" << std::hex << iter->second << std::dec;
+    symtab->createFunction(ret.str(), 
+			   iter->second,
+			   4,
+			   NULL);
+
+
+    if (!generatePatchBranch(patches, 
+			     iter->first,
+			     iter->second))
+      return false;
+  }
+
+  relocation_cerr << "   Creating Suggested patches for function entry" << endl;
+
+  for (CodeMover::PatchMap::Priority::const_iterator iter = p.suggested().begin();
+       iter != p.suggested().end(); ++iter) {
+    // If this is a function entry then go ahead and patch it.
+    // Note: all targets of indirect branches will be included
+    // in Required since we can't guarantee that there are no in-edges.
+    // If we add a Hell node to the CFG to indicate calls to->from
+    // indirect calls then this code will be unnecessary.
+    int_function *func = findFuncByAddr(iter->first);
+    if (func && (iter->first == func->getAddress())) {
+
+      stringstream ret;
+      ret << "Reloc_" << func->symTabName();
+      symtab->createFunction(ret.str(), 
+			     iter->second,
+			     4,
+			     NULL);
+
+      // Same as above
+      if (!generatePatchBranch(patches,
+			       iter->first,
+			       iter->second))
+	return false;
+    }
+  }
+  
+  // Failure at this point is seriously bad
+  for (std::list<codeGen>::iterator iter = patches.begin();
+       iter != patches.end(); ++iter) {
+    if (!writeTextSpace((void *)iter->startAddr(),
+			iter->used(),
+			iter->start_ptr()))
+      return false;
+  }
+  return true;
+};
+
+// Create a codeGen representing a branch from (from) to (to)
+// and push it on the back (or front, doesn't really matter)
+// of patches
+bool AddressSpace::generatePatchBranch(std::list<codeGen> &patches,
+				       Address from,
+				       Address to) {
+  // Pre-allocate some space; we can always grow.
+  codeGen patch(64);
+  
+  patch.setAddrSpace(this);
+  patch.setAddr(from);
+  relocation_cerr << "     Generating branch from " 
+		  << std::hex << from << " to " << to << std::dec << endl;
+  instruction::generateBranch(patch, from, to);
+  patches.push_back(patch);
+  return true;
+}
+
+void AddressSpace::causeTemplateInstantiations() {
+  set<int_function *> fset;
+  vector<int_function *> fvec;
+
+  relocate(fset.begin(), fset.end());
+  relocate(fvec.begin(), fvec.end());
+}
+
