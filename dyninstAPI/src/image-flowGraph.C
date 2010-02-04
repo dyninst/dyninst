@@ -102,6 +102,10 @@ bool image::analyzeImage()
 #endif
 #if defined(arch_x86) || defined (arch_x86_64)
     arch = Dyninst::InstructionAPI::x86;
+#else
+#if defined(arch_power)
+    arch = Dyninst::InstructionAPI::power;
+#endif
 #endif
   image_func *pdf;
   pdmodule *mod = NULL;
