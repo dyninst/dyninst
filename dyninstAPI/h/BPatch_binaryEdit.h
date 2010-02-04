@@ -91,7 +91,8 @@ class BPATCH_DLL_EXPORT BPatch_binaryEdit : public BPatch_addressSpace {
     bool replaceTrapHandler();
     
 
-    protected:
+    //        protected:
+ public:
     void getAS(std::vector<AddressSpace *> &as);
 
     public:
