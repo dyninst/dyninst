@@ -493,7 +493,25 @@ memAccessors.begin()));
     }
     INSTRUCTION_EXPORT InsnCategory Instruction::getCategory() const
     {
-      return entryToCategory(m_InsnOp->getID());
+      InsnCategory c = entryToCategory(m_InsnOp->getID());
+      if(c == c_BranchInsn && arch_decoded_from == power)
+      {
+          if(m_Operands.empty()) decodeOperands();
+          for(cftConstIter cft = cft_begin();
+              cft != cft_end();
+             ++cft)
+          {
+              if(cft->isCall)
+              {
+                  return c_CallInsn;
+              }
+          }
+          if(m_InsnOp->getID() == power_op_bclr)
+          {
+              return c_ReturnInsn;
+          }
+      }
+      return c;
     }
     void Instruction::addSuccessor(Expression::Ptr e, bool isCall, bool isIndirect, bool isConditional, bool isFallthrough) const
     {
