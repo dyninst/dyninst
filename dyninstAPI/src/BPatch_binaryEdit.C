@@ -173,7 +173,7 @@ void BPatch_binaryEdit::BPatch_binaryEdit_dtor()
   assert(BPatch::bpatch != NULL);
 }
 
-bool BPatch_binaryEdit::writeFileInt(const char * outFile)
+bool BPatch_binaryEdit::writeFileInt(const char * outFile, bool useNew)
 {
     assert(pendingInsertions);
 
@@ -245,29 +245,28 @@ bool BPatch_binaryEdit::writeFileInt(const char * outFile)
    }
 
 
-   for (std::set<int_function *>::iterator funcIter = instrumentedFunctions.begin();
-        funcIter != instrumentedFunctions.end();
-        funcIter++) {
-
+   if (!useNew) {
+     for (std::set<int_function *>::iterator funcIter = instrumentedFunctions.begin();
+	  funcIter != instrumentedFunctions.end();
+	  funcIter++) {
+       
        pdvector<instPoint *> failedInstPoints;
        (*funcIter)->performInstrumentation(atomic,
                                            failedInstPoints); 
        if (failedInstPoints.size() && atomic) {
-           err = true;
-           goto cleanup;
+	 err = true;
+	 goto cleanup;
        }
+     }
    }
-
-   /*
-   
-   // Perform code generation on a per-BinaryEdit basis
-   for (FuncMap::iterator iter = funcMap.begin();
-	iter != funcMap.end(); ++iter) {
-     iter->first->relocate(iter->second.begin(),
-			   iter->second.end());
+   else {
+     // Perform code generation on a per-BinaryEdit basis
+     for (FuncMap::iterator iter = funcMap.begin();
+	  iter != funcMap.end(); ++iter) {
+       iter->first->relocate(iter->second.begin(),
+			     iter->second.end());
+     }
    }
-
-   */
 
    // Now that we've instrumented we can see if we need to replace the
    // trap handler.

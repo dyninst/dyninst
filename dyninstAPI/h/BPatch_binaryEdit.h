@@ -103,8 +103,8 @@ class BPATCH_DLL_EXPORT BPatch_binaryEdit : public BPatch_addressSpace {
     bool getMutationsActive() {return true;}
 
     // BPatch_binaryEdit::writeFile
-    API_EXPORT(Int, (outFile),
-	       bool,writeFile,(const char * outFile));
+    API_EXPORT(Int, (outFile, useNew),
+	       bool,writeFile,(const char * outFile, bool useNew));
 
   
     //  BPatch_binaryEdit::~BPatch_binaryEdit

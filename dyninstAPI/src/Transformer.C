@@ -198,8 +198,6 @@ bool LocalCFTransformer::processBlock(BlockList::iterator &iter) {
   for (CFElement::DestinationMap::iterator d_iter = cf->destMap_.begin();
        d_iter != cf->destMap_.end(); ++d_iter) {
 
-    cerr << "BTW, block ender is " << d_iter->second << endl;
-
     if (d_iter->second->valid() == false) {
       // Whatnow?
       continue;

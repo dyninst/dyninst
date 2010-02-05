@@ -312,17 +312,18 @@ bool CFElement::generate(codeGen &gen) {
 				     insn_))
 	return false;
     }
+
     // Aaand the fallthrough
-    assert(destMap_.find(Fallthrough) != destMap_.end());
-
-
-    relocation_cerr << "  ... generating possible fallthrough branch" << endl;
-    if (!generateBranch(gen, 
-			gen.currAddr(), 
-			destMap_[Fallthrough],
-			insn_,
-			true)) {
-      return false;
+    // We can have calls that don't return and thus don't have funlink edges
+    if (destMap_.find(Fallthrough) != destMap_.end()) {
+      relocation_cerr << "  ... generating possible fallthrough branch" << endl;
+      if (!generateBranch(gen, 
+			  gen.currAddr(), 
+			  destMap_[Fallthrough],
+			  insn_,
+			  true)) {
+	return false;
+      }
     }
     break;
   }
