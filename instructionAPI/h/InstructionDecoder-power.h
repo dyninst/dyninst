@@ -43,16 +43,6 @@ namespace Dyninst {
 
         class InstructionDecoder_power : public InstructionDecoder
         {
-
-            enum registerBank_power
-            {
-                bank_gpr = power::gpr0,
-                bank_fpr = power::fpr0,
-                bank_fsr = power::fsr0,
-                bank_spr = power::sprmq,
-                bank_seg = power::sprseg0,
-                bank_cond = power::sprcr0
-            };
             friend struct power_entry;
             public:
                 InstructionDecoder_power(const unsigned char* buffer, unsigned int length);
@@ -172,7 +162,8 @@ namespace Dyninst {
                 }
 
                 
-                template<unsigned int low, unsigned int high, unsigned int base = power::sprcr0, unsigned int curCR = high - low>
+                template<unsigned int low, unsigned int high, unsigned int base = ppc32::cr0.val(),
+                    unsigned int curCR = high - low>
                 struct translateBitFieldToCR
                 {
                     translateBitFieldToCR(InstructionDecoder_power& dec) :
@@ -219,7 +210,7 @@ namespace Dyninst {
                             {
                                 insn_in_progress->getOperation().mnemonic.insert(where, "l");
                                 where++;
-                                insn_in_progress->appendOperand(makeRegisterExpression(power::sprlr), false, true);
+                                insn_in_progress->appendOperand(makeRegisterExpression(ppc32::lr), false, true);
                             }
         // absolute address
                             if(field<30, 30>(insn) == 1)
@@ -232,7 +223,7 @@ namespace Dyninst {
                             {
                                 Expression::Ptr displacement = Immediate::makeImmediate(Result(s32,
                                         sign_extend<(highBit - lowBit)>(field<lowBit, highBit>(insn) << 2)));
-                                return makeAddExpression(makeRegisterExpression(power::sprpc), displacement, s32);
+                                return makeAddExpression(makeRegisterExpression(ppc32::pc), displacement, s32);
                             }
                         }
                 

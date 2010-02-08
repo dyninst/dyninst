@@ -103,51 +103,51 @@ namespace Dyninst
       }
       else
       {
-          if(registerID & power::ARCH_POWER)
+          if(registerID & Arch_ppc32)
           {
-              if(registerID >= power::sprcr0 && registerID <= power::sprcr7)
+              if(registerID >= ppc32::cr0 && registerID <= ppc32::cr7)
               {
-                  retVal << "cr" << registerID - power::sprcr0;
+                  retVal << "cr" << registerID - ppc32::cr0;
               }
-              else if(registerID == power::sprpc)
+              else if(registerID == ppc32::pc)
               {
                   retVal << "pc";
               }
-              else if(registerID == power::sprlr)
+              else if(registerID == ppc32::lr)
               {
                   retVal << "lr";
               }
-              else if(registerID == power::sprctr)
+              else if(registerID == ppc32::ctr)
               {
                   retVal << "ctr";
               }
-              else if(registerID == power::sprfpscw)
+              else if(registerID == ppc32::fpscw)
               {
                   retVal << "fpscr";
               }
-              else if(registerID >= power::sprfpscw0 && registerID <= power::sprfpscw7)
+              else if(registerID >= ppc32::fpscw0 && registerID <= ppc32::fpscw7)
               {
-                  retVal << "fpscr" << registerID - power::sprfpscw0;
+                  retVal << "fpscr" << registerID - ppc32::fpscw0;
               }
-              else if(registerID == power::sprxer)
+              else if(registerID == ppc32::xer)
               {
                   retVal << "xer";
               }
-              else if(registerID & power::SPR_BASE)
+              else if(registerID & ppc32::SPR)
               {
-                  retVal << "SPR" << registerID - power::SPR_BASE;
+                  retVal << "SPR" << registerID - ppc32::mq;
               }
-              else if(registerID & power::GPR_BASE)
+              else if(registerID & ppc32::GPR)
               {
-                  retVal << "r" << registerID - power::gpr0;
+                  retVal << "r" << registerID - ppc32::r0;
               }
-              else if(registerID & power::FPR_BASE)
+              else if(registerID & ppc32::FPR)
               {
-                  retVal << "fpr" << registerID - power::fpr0;
+                  retVal << "fpr" << registerID - ppc32::fpr0;
               }
-              else if(registerID & power::FPR2_BASE)
+              else if(registerID & ppc32::FSR)
               {
-                  retVal << "fsr" << registerID - power::fsr0;
+                  retVal << "fsr" << registerID - ppc32::fsr0;
               }
           }
           else

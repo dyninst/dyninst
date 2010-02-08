@@ -100,7 +100,7 @@ namespace Dyninst
     void InstructionDecoder_power::FRTS()
     {
         isFPInsn = true;
-        unsigned int regID = makePowerRegID(bank_fsr, field<6, 10>(insn));
+        unsigned int regID = makePowerRegID(ppc32::fpr0, field<6, 10>(insn));
         insn_in_progress->appendOperand(makeRegisterExpression(regID), false, true);
         isRAWritten = false;
     }
@@ -112,7 +112,7 @@ namespace Dyninst
     void InstructionDecoder_power::FRSS()
     {
         isFPInsn = true;
-        unsigned int regID = makePowerRegID(bank_fsr, field<6, 10>(insn));
+        unsigned int regID = makePowerRegID(ppc32::fsr0, field<6, 10>(insn));
         insn_in_progress->appendOperand(makeRegisterExpression(regID), true, false);
         isRAWritten = true;
     }
@@ -124,7 +124,7 @@ namespace Dyninst
     void InstructionDecoder_power::FRAS()
     {
         isFPInsn = true;
-        unsigned int regID = makePowerRegID(bank_fsr, field<11, 15>(insn));
+        unsigned int regID = makePowerRegID(ppc32::fsr0, field<11, 15>(insn));
         insn_in_progress->appendOperand(makeRegisterExpression(regID), !isRAWritten, isRAWritten);
     }
     void InstructionDecoder_power::FRBP()
@@ -135,7 +135,7 @@ namespace Dyninst
     void InstructionDecoder_power::FRBS()
     {
         isFPInsn = true;
-        unsigned int regID = makePowerRegID(bank_fsr, field<16, 20>(insn));
+        unsigned int regID = makePowerRegID(ppc32::fsr0, field<16, 20>(insn));
         insn_in_progress->appendOperand(makeRegisterExpression(regID), true, false);
     }
     void InstructionDecoder_power::FRCP()
@@ -146,14 +146,14 @@ namespace Dyninst
     void InstructionDecoder_power::FRCS()
     {
         isFPInsn = true;
-        unsigned int regID = makePowerRegID(bank_fsr, field<21, 25>(insn));
+        unsigned int regID = makePowerRegID(ppc32::fsr0, field<21, 25>(insn));
         insn_in_progress->appendOperand(makeRegisterExpression(regID), true, false);
     }
 
 
     Expression::Ptr InstructionDecoder_power::makeFallThroughExpr()
     {
-        return makeAddExpression(makeRegisterExpression(power::sprpc), Immediate::makeImmediate(Result(u32, 4)), u32);
+        return makeAddExpression(makeRegisterExpression(ppc32::pc), Immediate::makeImmediate(Result(u32, 4)), u32);
     }
     void InstructionDecoder_power::LI()
     {
@@ -207,10 +207,8 @@ namespace Dyninst
     {
         if(field<21, 21>(insn))
         {
-            insn_in_progress->appendOperand(makeRegisterExpression(makePowerRegID(0, power::sprxer,
-                                            power::OF_bit, power::OF_bit)), false, true);
-            insn_in_progress->appendOperand(makeRegisterExpression(makePowerRegID(0, power::sprxer,
-                                            power::SOF_bit, power::SOF_bit)), false, true);
+            // overflow and summary overflow bits; do we want full bit detail?
+            insn_in_progress->appendOperand(makeRegisterExpression(ppc32::xer), false, true);
             insn_in_progress->getOperation().mnemonic += "o";
         }
     }
@@ -262,7 +260,7 @@ namespace Dyninst
     {
         if(field<31, 31>(insn))
         {
-            insn_in_progress->appendOperand(makeRegisterExpression(power::sprlr), false, true);
+            insn_in_progress->appendOperand(makeRegisterExpression(ppc32::lr), false, true);
             size_t where = insn_in_progress->getOperation().mnemonic.rfind('+');
             if(where == std::string::npos) {
                 where = insn_in_progress->getOperation().mnemonic.rfind('-');
@@ -293,7 +291,7 @@ namespace Dyninst
     }
     Expression::Ptr InstructionDecoder_power::makeRAExpr()
     {
-        return makeRegisterExpression(makePowerRegID(bank_gpr, field<11, 15>(insn)));
+        return makeRegisterExpression(makePowerRegID(ppc32::r0, field<11, 15>(insn)));
     }
     void InstructionDecoder_power::RA()
     {
@@ -317,27 +315,27 @@ namespace Dyninst
     }
     Expression::Ptr InstructionDecoder_power::makeRBExpr()
     {
-        return makeRegisterExpression(makePowerRegID(bank_gpr, field<16, 20>(insn)));
+        return makeRegisterExpression(makePowerRegID(ppc32::r0, field<16, 20>(insn)));
     }
     Expression::Ptr InstructionDecoder_power::makeFRAExpr()
     {
         isFPInsn = true;
-        return makeRegisterExpression(makePowerRegID(bank_fpr, field<11, 15>(insn)));
+        return makeRegisterExpression(makePowerRegID(ppc32::fpr0, field<11, 15>(insn)));
     }
     Expression::Ptr InstructionDecoder_power::makeFRBExpr()
     {
         isFPInsn = true;
-        return makeRegisterExpression(makePowerRegID(bank_fpr, field<16, 20>(insn)));
+        return makeRegisterExpression(makePowerRegID(ppc32::fpr0, field<16, 20>(insn)));
     }
     Expression::Ptr InstructionDecoder_power::makeFRCExpr()
     {
         isFPInsn = true;
-        return makeRegisterExpression(makePowerRegID(bank_fpr, field<21, 25>(insn)));
+        return makeRegisterExpression(makePowerRegID(ppc32::fpr0, field<21, 25>(insn)));
     }
     Expression::Ptr InstructionDecoder_power::makeFRTExpr()
     {
         isFPInsn = true;
-        return makeRegisterExpression(makePowerRegID(bank_fpr, field<6, 10>(insn)));
+        return makeRegisterExpression(makePowerRegID(ppc32::fpr0, field<6, 10>(insn)));
     }
     void InstructionDecoder_power::FRT()
     {
@@ -349,15 +347,15 @@ namespace Dyninst
     }
     void InstructionDecoder_power::FRT2()
     {
-        int firstRegID = makePowerRegID(bank_fpr, field<6,10>(insn));
-        int secondRegID = makePowerRegID(bank_fpr, field<6,10>(insn) + 1);
+        int firstRegID = makePowerRegID(ppc32::fpr0, field<6,10>(insn));
+        int secondRegID = makePowerRegID(ppc32::fpr0, field<6,10>(insn) + 1);
         insn_in_progress->appendOperand(makeRegisterExpression(firstRegID), false, true);
         insn_in_progress->appendOperand(makeRegisterExpression(secondRegID), false, true);
     }
     void InstructionDecoder_power::FRS2()
     {
-        int firstRegID = makePowerRegID(bank_fpr, field<6,10>(insn));
-        int secondRegID = makePowerRegID(bank_fpr, field<6,10>(insn) + 1);
+        int firstRegID = makePowerRegID(ppc32::fpr0, field<6,10>(insn));
+        int secondRegID = makePowerRegID(ppc32::fpr0, field<6,10>(insn) + 1);
         insn_in_progress->appendOperand(makeRegisterExpression(firstRegID), true, false);
         insn_in_progress->appendOperand(makeRegisterExpression(secondRegID), true, false);
     }
@@ -372,7 +370,7 @@ namespace Dyninst
     }
     Expression::Ptr InstructionDecoder_power::makeRTExpr()
     {
-        return makeRegisterExpression(makePowerRegID(bank_gpr, field<6, 10>(insn)));
+        return makeRegisterExpression(makePowerRegID(ppc32::r0, field<6, 10>(insn)));
     }
     Expression::Ptr InstructionDecoder_power::makeIFormBranchTarget()
     {
@@ -407,19 +405,19 @@ namespace Dyninst
     }
     Expression::Ptr InstructionDecoder_power::makeBTExpr()
     {
-        return makeRegisterExpression(makePowerRegID(bank_cond, field<6, 10>(insn) >> 2));
+        return makeRegisterExpression(makePowerRegID(ppc32::cr0, field<6, 10>(insn) >> 2));
     }
     Expression::Ptr InstructionDecoder_power::makeBAExpr()
     {
-        return makeRegisterExpression(makePowerRegID(bank_cond, field<11, 15>(insn) >> 2));
+        return makeRegisterExpression(makePowerRegID(ppc32::cr0, field<11, 15>(insn) >> 2));
     }
     Expression::Ptr InstructionDecoder_power::makeBBExpr()
     {
-        return makeRegisterExpression(makePowerRegID(bank_cond, field<16, 20>(insn) >> 2));
+        return makeRegisterExpression(makePowerRegID(ppc32::cr0, field<16, 20>(insn) >> 2));
     }
     Expression::Ptr InstructionDecoder_power::makeCR0Expr()
     {
-        return makeRegisterExpression(power::sprcr0);
+        return makeRegisterExpression(ppc32::cr0);
     }
     Expression::Ptr InstructionDecoder_power::makeBIExpr()
     {
@@ -441,7 +439,7 @@ namespace Dyninst
                 assert(!"can't happen");
                 break;
         } 
-        return makeRegisterExpression(makePowerRegID(bank_cond, field<11, 15>(insn) >> 2));
+        return makeRegisterExpression(makePowerRegID(ppc32::cr0, field<11, 15>(insn) >> 2));
     }
     
     Result_Type InstructionDecoder_power::makeSizeType(unsigned int opType)
@@ -478,7 +476,7 @@ namespace Dyninst
         int sprIDlo = field<11, 15>(insn);
         int sprIDhi = field<16, 20>(insn);
         int sprID = (sprIDhi << 5) + sprIDlo;
-        return makeRegisterExpression(makePowerRegID(bank_spr, sprID));
+        return makeRegisterExpression(makePowerRegID(ppc32::mq, sprID));
     }
 
     void InstructionDecoder_power::setFPMode()
@@ -502,7 +500,7 @@ namespace Dyninst
            current->op == power_op_bclr ||
            current->op == power_op_bcctr)
         {
-            insn_in_progress->appendOperand(makeRegisterExpression(makePowerRegID(0, power::sprpc)), false, true);
+            insn_in_progress->appendOperand(makeRegisterExpression(makePowerRegID(0, ppc32::pc)), false, true);
         }
         
         for(operandSpec::const_iterator curFn = current->operands.begin();
@@ -513,12 +511,12 @@ namespace Dyninst
         }
         if(current->op == power_op_bclr)
         {
-            insn_in_progress->addSuccessor(makeRegisterExpression(makePowerRegID(0, power::sprlr)),
+            insn_in_progress->addSuccessor(makeRegisterExpression(makePowerRegID(0, ppc32::lr)),
                                            field<31,31>(insn) == 1, true, bcIsConditional, false);
         }
         if(current->op == power_op_bcctr)
         {
-            insn_in_progress->addSuccessor(makeRegisterExpression(makePowerRegID(0, power::sprctr)),
+            insn_in_progress->addSuccessor(makeRegisterExpression(makePowerRegID(0, ppc32::ctr)),
                                            field<31,31>(insn) == 1, true, bcIsConditional, false);
         }
         if(current->op == power_op_addic_rc ||
@@ -602,7 +600,7 @@ using namespace boost::assign;
     
     void InstructionDecoder_power::BF()
     {
-        int base_reg = isFPInsn ? power::sprfpscw0 : power::sprcr0;
+        int base_reg = isFPInsn ? ppc32::fpscw0 : ppc32::cr0;
         Expression::Ptr condReg = makeRegisterExpression(makePowerRegID(base_reg, field<6, 10>(insn) >> 2));
         insn_in_progress->appendOperand(condReg, false, true);
         return;
@@ -623,7 +621,7 @@ using namespace boost::assign;
         invertBranchCondition = false;
         if(!field<8, 8>(insn))
         {
-            Expression::Ptr ctr = makeRegisterExpression(makePowerRegID(0, power::sprctr));
+            Expression::Ptr ctr = makeRegisterExpression(makePowerRegID(0, ppc32::ctr));
             if(field<9, 9>(insn))
             {
                 insn_in_progress->getOperation().mnemonic = "bdz";
@@ -660,12 +658,12 @@ using namespace boost::assign;
     }
     void InstructionDecoder_power::syscall()
     {
-        insn_in_progress->appendOperand(makeRegisterExpression(power::sprmsr), true, true);
-        insn_in_progress->appendOperand(makeRegisterExpression(power::sprsrr0), false, true);
-        insn_in_progress->appendOperand(makeRegisterExpression(power::sprsrr1), false, true);
-        insn_in_progress->appendOperand(makeRegisterExpression(power::sprpc), true, true);
-        insn_in_progress->appendOperand(makeRegisterExpression(power::sprivpr), false, true);
-        insn_in_progress->appendOperand(makeRegisterExpression(power::sprivor8), false, true);
+        insn_in_progress->appendOperand(makeRegisterExpression(ppc32::msr), true, true);
+        insn_in_progress->appendOperand(makeRegisterExpression(ppc32::srr0), false, true);
+        insn_in_progress->appendOperand(makeRegisterExpression(ppc32::srr1), false, true);
+        insn_in_progress->appendOperand(makeRegisterExpression(ppc32::pc), true, true);
+        insn_in_progress->appendOperand(makeRegisterExpression(ppc32::ivpr), false, true);
+        insn_in_progress->appendOperand(makeRegisterExpression(ppc32::ivor8), false, true);
         return;
     }
     void InstructionDecoder_power::LL()
@@ -684,7 +682,7 @@ using namespace boost::assign;
         {
             if(isFPInsn)
             {
-                insn_in_progress->appendOperand(makeRegisterExpression(makePowerRegID(0, power::sprfpscw)), false, true);
+                insn_in_progress->appendOperand(makeRegisterExpression(makePowerRegID(0, ppc32::fpscw)), false, true);
             }
             else
             {
@@ -732,7 +730,7 @@ using namespace boost::assign;
     }
     void InstructionDecoder_power::BI()
     {
-        insn_in_progress->appendOperand(makeRegisterExpression(makePowerRegID(bank_cond, field<11,13>(insn))), true, false);
+        insn_in_progress->appendOperand(makeRegisterExpression(makePowerRegID(ppc32::cr0, field<11,13>(insn))), true, false);
         return;
     }
     void InstructionDecoder_power::ME()
@@ -747,7 +745,7 @@ using namespace boost::assign;
     }
     void InstructionDecoder_power::BFA()
     {
-        Expression::Ptr condReg = makeRegisterExpression(makePowerRegID(bank_cond, field<11, 15>(insn) >> 2));
+        Expression::Ptr condReg = makeRegisterExpression(makePowerRegID(ppc32::cr0, field<11, 15>(insn) >> 2));
         insn_in_progress->appendOperand(condReg, true, false);
         return;
     }
@@ -769,7 +767,7 @@ using namespace boost::assign;
 
     void InstructionDecoder_power::FXM()
     {
-        (translateBitFieldToCR<12, 19, power::sprcr0, 7>(*this))();
+        (translateBitFieldToCR<12, 19, ppc32::icr0, 7>(*this))();
         return;
     }
     void InstructionDecoder_power::spr()
@@ -779,7 +777,7 @@ using namespace boost::assign;
     }
     void InstructionDecoder_power::SR()
     {
-        insn_in_progress->appendOperand(makeRegisterExpression(makePowerRegID(bank_seg, field<11, 15>(insn) >> 2)),
+        insn_in_progress->appendOperand(makeRegisterExpression(makePowerRegID(ppc32::seg0, field<11, 15>(insn) >> 2)),
                                         true, true);
         return;
     }
@@ -796,7 +794,7 @@ using namespace boost::assign;
     void InstructionDecoder_power::FLM()
     {
         isRAWritten = true;
-        (translateBitFieldToCR<7, 14, power::sprfpscw0, 7>(*this))();
+        (translateBitFieldToCR<7, 14, ppc32::ifpscw0, 7>(*this))();
         return;
     }
 
