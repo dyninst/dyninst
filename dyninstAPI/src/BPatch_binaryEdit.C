@@ -173,7 +173,7 @@ void BPatch_binaryEdit::BPatch_binaryEdit_dtor()
   assert(BPatch::bpatch != NULL);
 }
 
-bool BPatch_binaryEdit::writeFileInt(const char * outFile, bool useNew)
+bool BPatch_binaryEdit::writeFileInt(const char * outFile)
 {
     assert(pendingInsertions);
 
@@ -186,10 +186,6 @@ bool BPatch_binaryEdit::writeFileInt(const char * outFile, bool useNew)
     // Two loops: first addInst, then generate/install/link
     pdvector<miniTramp *> workDone;
     bool err = false;
-
-
-    typedef std::map<AddressSpace *, std::set<int_function *> > FuncMap;
-    FuncMap funcMap;
 
     for (unsigned i = 0; i < pendingInsertions->size(); i++) {
         batchInsertionRecord *&bir = (*pendingInsertions)[i];
@@ -214,9 +210,9 @@ bool BPatch_binaryEdit::writeFileInt(const char * outFile, bool useNew)
                                              bir->trampRecursive_,
                                              false);
             if (mini) {
-	      workDone.push_back(mini);
-	      // Add to snippet handle
-	      bir->handle_->addMiniTramp(mini);
+                workDone.push_back(mini);
+                // Add to snippet handle
+                bir->handle_->addMiniTramp(mini);
             }
             else {
                 err = true;
@@ -239,35 +235,24 @@ bool BPatch_binaryEdit::writeFileInt(const char * outFile, bool useNew)
            instPoint *point = bppoint->point;
            point->optimizeBaseTramps(bir->when_[j]);
 
-	   funcMap[point->func()->proc()].insert(point->func());
-	   instrumentedFunctions.insert(point->func());
+           instrumentedFunctions.insert(point->func());
        }
    }
 
+   for (std::set<int_function *>::iterator funcIter = instrumentedFunctions.begin();
+        funcIter != instrumentedFunctions.end();
+        funcIter++) {
 
-   if (!useNew) {
-     for (std::set<int_function *>::iterator funcIter = instrumentedFunctions.begin();
-	  funcIter != instrumentedFunctions.end();
-	  funcIter++) {
-       
        pdvector<instPoint *> failedInstPoints;
        (*funcIter)->performInstrumentation(atomic,
                                            failedInstPoints); 
        if (failedInstPoints.size() && atomic) {
-	 err = true;
-	 goto cleanup;
+           err = true;
+           goto cleanup;
        }
-     }
-   }
-   else {
-     // Perform code generation on a per-BinaryEdit basis
-     for (FuncMap::iterator iter = funcMap.begin();
-	  iter != funcMap.end(); ++iter) {
-       iter->first->relocate(iter->second.begin(),
-			     iter->second.end());
-     }
    }
 
+   
    // Now that we've instrumented we can see if we need to replace the
    // trap handler.
    replaceTrapHandler();

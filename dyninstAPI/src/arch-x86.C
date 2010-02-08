@@ -58,8 +58,6 @@
 #include "inst-x86.h"
 #include "instructionAPI/h/RegisterIDs-x86.h"
 
-#include "dyninstAPI/src/pcrel.h"
-
 using namespace std;
 using namespace boost::assign;
 using namespace Dyninst::InstructionAPI;
@@ -580,6 +578,22 @@ static void addPatch(codeGen &gen, patchTarget *src, imm_location_t &imm)
 }
 */
 
+class pcRelJump : public pcRelRegion {
+private:
+   Address addr_targ;
+   patchTarget *targ;
+    bool copy_prefixes_;
+
+   Address get_target();
+public:
+   pcRelJump(patchTarget *t, const instruction &i, bool copyPrefixes = true);
+   pcRelJump(Address target, const instruction &i, bool copyPrefixes = true);
+   virtual unsigned apply(Address addr);
+   virtual unsigned maxSize();        
+   virtual bool canPreApply();
+   virtual ~pcRelJump();
+};
+
 pcRelJump::pcRelJump(patchTarget *t, const instruction &i, bool copyPrefixes) :
    pcRelRegion(i),
    addr_targ(0x0),
@@ -639,6 +653,21 @@ bool pcRelJump::canPreApply()
 {
    return gen->startAddr() && (!targ || get_target());
 }
+
+class pcRelJCC : public pcRelRegion {
+private:
+   Address addr_targ;
+   patchTarget *targ;
+
+   Address get_target();
+public:
+   pcRelJCC(patchTarget *t, const instruction &i);
+   pcRelJCC(Address target, const instruction &i);
+   virtual unsigned apply(Address addr);
+   virtual unsigned maxSize();        
+   virtual bool canPreApply();
+   virtual ~pcRelJCC();
+};
 
 pcRelJCC::pcRelJCC(patchTarget *t, const instruction &i) :
    pcRelRegion(i),
@@ -763,6 +792,22 @@ bool pcRelJCC::canPreApply()
    return gen->startAddr() && (!targ || get_target());
 }
 
+class pcRelCall: public pcRelRegion {
+private:
+   Address targ_addr;
+   patchTarget *targ;
+
+   Address get_target();
+public:
+   pcRelCall(patchTarget *t, const instruction &i);
+   pcRelCall(Address targ_addr, const instruction &i);
+
+   virtual unsigned apply(Address addr);
+   virtual unsigned maxSize();        
+   virtual bool canPreApply();
+   ~pcRelCall();
+};
+
 pcRelCall::pcRelCall(patchTarget *t, const instruction &i) :
    pcRelRegion(i),
    targ_addr(0x0),
@@ -817,6 +862,16 @@ bool pcRelCall::canPreApply()
 {
    return gen->startAddr() && (!targ || get_target());
 }
+
+class pcRelData : public pcRelRegion {
+private:
+   Address data_addr;
+public:
+   pcRelData(Address a, const instruction &i);
+   virtual unsigned apply(Address addr);
+   virtual unsigned maxSize();        
+   virtual bool canPreApply();
+};
 
 pcRelData::pcRelData(Address a, const instruction &i) :
    pcRelRegion(i),

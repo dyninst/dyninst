@@ -40,7 +40,6 @@
 #include "ast.h"
 #include "symtabAPI/h/Symtab.h"
 #include "dyninstAPI/src/trapMappings.h"
-#include <list>
 
 class codeRange;
 class multiTramp;
@@ -70,14 +69,6 @@ class int_symbol;
 class Dyn_Symbol;
 class BinaryEdit;
 class trampTrapMappings;
-
-namespace Dyninst {
-  namespace Relocation {
-    class CodeMover;
-  }
-};
-// This avoids the requirement to include CodeMover.h
-typedef dyn_detail::boost::shared_ptr<Dyninst::Relocation::CodeMover> CodeMoverPtr;
 
 // This file serves to define an "address space", a set of routines that 
 // code generation and instrumentation rely on to perform their duties. 
@@ -135,9 +126,6 @@ class AddressSpace : public InstructionSource {
     // instrumentation is incredibly wasteful.
     virtual bool inferiorRealloc(Address item, unsigned newSize) = 0;
     bool inferiorReallocInternal(Address item, unsigned newSize);
-    bool inferiorShrinkBlock(heapItem *h, Address block, unsigned newSize);
-    bool inferiorExpandBlock(heapItem *h, Address block, unsigned newSize);
-
 
     bool isInferiorAllocated(Address block);
 
@@ -380,27 +368,6 @@ class AddressSpace : public InstructionSource {
     bool canUseTraps();
     void setUseTraps(bool usetraps);
 
-    //////////////////////////////////////////////////////
-    // The New Hotness
-    //////////////////////////////////////////////////////
-    //
-    // This is the top interface for the new (experimental)
-    // (probably not working) code generation interface. 
-    // The core idea is to feed a set of int_functions 
-    // (actually, a set of blocks, but functions are convenient)
-    // into a CodeMover class, let it chew on the code, and 
-    // spit out a buffer of moved code. 
-    // We also get a priority list of patches; (origAddr,
-    // movedAddr) pairs. We then get to decide what we want
-    // to do with those patches: put in a branch or say to 
-    // heck with it.
-    
-    template <typename iter>
-      bool relocate(iter begin, iter end);
-		   
-
-    void causeTemplateInstantiations();
-
  protected:
 
     // inferior malloc support functions
@@ -437,17 +404,7 @@ class AddressSpace : public InstructionSource {
     void *up_ptr_;
 
     Address costAddr_;
-
-
-
-    Address generateCode(CodeMoverPtr cm);
-    bool patchCode(CodeMoverPtr cm);
-    bool generatePatchBranch(std::list<codeGen> &patches,
-			     Address from,
-			     Address to);
-    
 };
-
 
 extern int heapItemCmpByAddr(const heapItem **A, const heapItem **B);
 

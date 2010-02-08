@@ -174,8 +174,7 @@ namespace Dyninst
         }
         Result_Type aw = ia32_is_mode_64() ? u32 : u64;
       Expression::Ptr e = 
-      make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(locs->modrm_rm, 
-									       regType,
+      make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(locs->modrm_rm, regType,
 									       (locs->rex_b == 1))));
       switch(locs->modrm_mod)
       {
@@ -215,9 +214,7 @@ namespace Dyninst
 	return make_shared(singleton_object_pool<Dereference>::construct(disp_e, makeSizeType(opType)));
 	}
       case 3:
-	return make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(locs->modrm_rm, 
-											opType,
-											(locs->rex_b == 1))));
+	return e;
       default:
 	return Expression::Ptr();
 	

@@ -635,8 +635,3 @@ bool BPatch_basicBlock::isEntryBlockInt() CONST_EXPORT {
 bool BPatch_basicBlock::isExitBlockInt() CONST_EXPORT {
    return iblock->isExitBlock();
 }
-
-BPatch_flowGraph *BPatch_basicBlock::getFlowGraphInt() CONST_EXPORT {
-  return flowGraph;
-}
-

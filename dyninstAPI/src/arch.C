@@ -61,7 +61,7 @@
 #define CODE_GEN_OFFSET_SIZE (instruction::size())
 #endif
 
-const unsigned int codeGenPadding = 2048;
+const unsigned int codeGenPadding = 256;
 
 codeGen::codeGen() :
     buffer_(NULL),
@@ -306,8 +306,9 @@ void codeGen::update(codeBuf_t *ptr) {
 
     // Keep the pad
     if (used() > size_) {
+        fprintf(stderr, "WARNING: overflow of codeGen structure, trying to enlarge\n");
         if ((used() - size_) > codeGenPadding) {
-	  assert(0 && "Overflow in codeGen");
+            assert(0 && "Overflow in codeGen");
         }
         // Add an extra codeGenPadding to the end
         size_ += codeGenPadding;
@@ -323,7 +324,7 @@ void codeGen::setIndex(codeBufIndex_t index) {
     
     // Keep the pad
     if (used() > size_) {
-      //fprintf(stderr, "WARNING: overflow of codeGen structure (%d requested, %d actual), trying to enlarge\n", used(), size_);
+        fprintf(stderr, "WARNING: overflow of codeGen structure (%d requested, %d actual), trying to enlarge\n", used(), size_);
 
         if ((used() - size_) > codeGenPadding) {
             assert(0 && "Overflow in codeGen");
@@ -398,18 +399,16 @@ void codeGen::fillRemaining(int fillType) {
     }
 }
 
-void codeGen::applyTemplate(const codeGen &c) {
+void codeGen::applyTemplate(codeGen &c) {
     // Copy off necessary bits...
 
-  emitter_ = c.emitter_;
-  aSpace_ = c.aSpace_;
-  thr_ = c.thr_;
-  lwp_ = c.lwp_;
-  rs_ = c.rs_;
-  t_ = c.t_;
-  ip_ = c.ip_;
-  f_ = c.f_;
-  bti_ = c.bti_;
+    aSpace_ = c.aSpace_;
+    thr_ = c.thr_;
+    lwp_ = c.lwp_;
+    rs_ = c.rs_;
+    addr_ = c.addr_;
+    ip_ = c.ip_;
+    f_ = c.f_;
 }
 
 void codeGen::setAddrSpace(AddressSpace *a)
@@ -578,17 +577,17 @@ void toAddressPatch::set_address(Address a) {
 
 codeGen codeGen::baseTemplate;
 
-dyn_lwp *codeGen::lwp() const {
+dyn_lwp *codeGen::lwp() {
     if (lwp_) return lwp_;
     if (thr_) return thr_->get_lwp();
     return NULL;
 }
 
-dyn_thread *codeGen::thread() const {
+dyn_thread *codeGen::thread() {
     return thr_;
 }
 
-AddressSpace *codeGen::addrSpace() const {
+AddressSpace *codeGen::addrSpace() {
     if (aSpace_) { return aSpace_; }
     if (f_) { return f_->proc(); }
     if (ip_) { return ip_->proc(); }
@@ -596,29 +595,29 @@ AddressSpace *codeGen::addrSpace() const {
     return NULL;
 }
 
-instPoint *codeGen::point() const {
+instPoint *codeGen::point() {
     return ip_;
 }
 
-int_function *codeGen::func() const {
+int_function *codeGen::func() {
     if (f_) return f_;
     if (ip_) return ip_->func();
     return NULL;
 }
 
-registerSpace *codeGen::rs()  const{
+registerSpace *codeGen::rs() {
     return rs_;
 }
 
-regTracker_t *codeGen::tracker() const {
+regTracker_t *codeGen::tracker() {
     return t_; 
 }
 
-Emitter *codeGen::codeEmitter() const {
+Emitter *codeGen::codeEmitter() {
     return emitter_;
 }
 
-generatedCodeObject *codeGen::obj() const {
+generatedCodeObject *codeGen::obj() {
     return obj_;
 }
 

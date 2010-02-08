@@ -646,7 +646,7 @@ Address IA_IAPI::findThunkInBlock(image_basicBlock* curBlock, Address& thunkOffs
         if(block.getInstruction()->getCategory() == c_CallInsn)
         {
             parsing_printf("\tchecking call at 0x%lx for thunk\n", block.getAddr());
-            if(block.isThunk())
+            if(!block.isRealCall())
             {
                 parsing_printf("\tthunk found at 0x%lx, checking for add\n", block.getAddr());
                 block.advance();
@@ -933,14 +933,6 @@ Address IA_IAPI::getTableAddress(Instruction::Ptr tableInsn, Address thunkOffset
 #if defined(os_windows)
     jumpTable -= img->getObject()->getLoadOffset();
 #endif
-
-    if (img->getAddressWidth() == 4) {
-      // We better mask this in case our (possibly) 64-bit math
-      // has caused issues
-      jumpTable &= 0xffffffff;
-      parsing_printf("\tPost-mask jumptable addr is 0x%lx\n", jumpTable);
-    }
-    
     if( !img->isValidAddress(jumpTable) )
 {
         // If the "jump table" has a start address that is outside
@@ -948,7 +940,6 @@ Address IA_IAPI::getTableAddress(Instruction::Ptr tableInsn, Address thunkOffset
         // probability that we have misinterpreted some other
         // construct (such as a function pointer comparison & tail
         // call, for example) as a jump table. Give up now.
-  parsing_printf("\tjumpTable address isn't valid, ret false\n");
     return 0;
 }
     return jumpTable;
@@ -1102,48 +1093,39 @@ bool IA_IAPI::isRealCall() const
                        getCFT());
         return false;
     }
+    const unsigned char *target =
+            (const unsigned char *)img->getPtrToInstruction(getCFT());
 
+    // We're decoding two instructions: possible move and possible return.
+    // Check for move from the stack pointer followed by a return.
+    InstructionDecoder targetChecker(target, 32);
+    targetChecker.setMode(img->getAddressWidth() == 8);
+    Instruction::Ptr thunkFirst = targetChecker.decode();
+    Instruction::Ptr thunkSecond = targetChecker.decode();
+    parsing_printf("... checking call target for thunk, insns are %s, %s\n", thunkFirst->format().c_str(),
+                   thunkSecond->format().c_str());
+    if(thunkFirst && (thunkFirst->getOperation().getID() == e_mov))
+    {
+        RegisterAST::Ptr esp(new RegisterAST(r_ESP));
+        RegisterAST::Ptr rsp(new RegisterAST(r_RSP));
+        if(thunkFirst->isRead(esp) || thunkFirst->isRead(rsp))
+        {
+            parsing_printf("... checking second insn\n");
+            if(!thunkSecond) {
+                parsing_printf("...no second insn\n");
+                return true;
+            }
+            if(thunkSecond->getCategory() != c_ReturnInsn)
+            {
+                parsing_printf("...insn %s not a return\n", thunkSecond->format().c_str());
+                return true;
+            }
+            return false;
+        }
+    }
     parsing_printf("... real call found\n");
     return true;
 }
-
-bool IA_IAPI::isThunk() const {
-  // Before we go a-wandering, check the target
-  if (!img->isValidAddress(getCFT()))
-    return false;
-
-  const unsigned char *target =
-    (const unsigned char *)img->getPtrToInstruction(getCFT());
-  // We're decoding two instructions: possible move and possible return.
-  // Check for move from the stack pointer followed by a return.
-  InstructionDecoder targetChecker(target, 32);
-  targetChecker.setMode(img->getAddressWidth() == 8);
-  Instruction::Ptr thunkFirst = targetChecker.decode();
-  Instruction::Ptr thunkSecond = targetChecker.decode();
-  parsing_printf("... checking call target for thunk, insns are %s, %s\n", thunkFirst->format().c_str(),
-		 thunkSecond->format().c_str());
-  if(thunkFirst && (thunkFirst->getOperation().getID() == e_mov))
-    {
-      RegisterAST::Ptr esp(new RegisterAST(r_ESP));
-      RegisterAST::Ptr rsp(new RegisterAST(r_RSP));
-      if(thunkFirst->isRead(esp) || thunkFirst->isRead(rsp))
-	{
-	  parsing_printf("... checking second insn\n");
-	  if(!thunkSecond) {
-	    parsing_printf("...no second insn\n");
-	    return false;
-	  }
-	  if(thunkSecond->getCategory() != c_ReturnInsn)
-            {
-	      parsing_printf("...insn %s not a return\n", thunkSecond->format().c_str());
-	      return false;
-            }
-	  return true;
-	}
-    }
-  return false;
-}
-
 
 bool IA_IAPI::isConditional() const
 {

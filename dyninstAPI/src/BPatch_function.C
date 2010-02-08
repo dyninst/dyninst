@@ -939,8 +939,3 @@ bool BPatch_function::findOverlappingInt(BPatch_Vector<BPatch_function *> &funcs
     return true;
 }
 
-
-const std::string &BPatch_function::getNameStrInt() {
-  return func->symTabName();
-}
-

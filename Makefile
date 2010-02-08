@@ -18,7 +18,6 @@ DyninstAPI	= ready common symtabAPI instructionAPI dyninstAPI_RT dyninstAPI dynu
 InstructionAPI	= ready common instructionAPI dynutil
 DepGraphAPI = depGraphAPI
 ValueAdded = valueAdded/sharedMem
-SymEval = symEval
 
 
 testsuites = dyninstAPI/tests 
@@ -37,7 +36,7 @@ Build_list += testsuite parseThat
 endif
 
 allCoreSubdirs	= dyninstAPI_RT common dyninstAPI symtabAPI dynutil instructionAPI
-allSubdirs	= $(allCoreSubdirs) parseThat testsuites valueAdded/sharedMem depGraphAPI stackwalk symEval
+allSubdirs	= $(allCoreSubdirs) parseThat testsuites valueAdded/sharedMem depGraphAPI stackwalk
 
 # We're not building the new test suite on all platforms yet
 
@@ -135,7 +134,7 @@ world: intro
 
 # "make Paradyn" and "make DyninstAPI" are also useful and valid build targets!
 
-DyninstAPI SymtabAPI StackwalkerAPI basicComps subSystems testsuites InstructionAPI ValueAdded DepGraphAPI SymEval: 
+DyninstAPI SymtabAPI StackwalkerAPI basicComps subSystems testsuites InstructionAPI ValueAdded DepGraphAPI: 
 	$(MAKE) $($@)
 	@echo "Build of $@ complete."
 	@date
