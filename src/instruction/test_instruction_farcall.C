@@ -65,12 +65,18 @@ test_results_t test_instruction_farcall_Mutator::executeTest()
   };
   unsigned int size = 7;
   unsigned int expectedInsns = 2;
+
+#if defined(arch_x86_64_test)
+    Architecture curArch = Arch_x86_64;
+#elif defined(arch_x86_test)
+    Architecture curArch = Arch_x86;
+#else
+    Architecture curArch = Arch_none;
+#endif
+    
   
   dyn_detail::boost::shared_ptr<InstructionDecoder> d =
-          makeDecoder(Dyninst::InstructionAPI::x86, buffer, size);
-#if defined(arch_x86_64_test)
-  d->setMode(true);
-#endif
+          makeDecoder(curArch, buffer, size);
   std::vector<Instruction::Ptr> decodedInsns;
   Instruction::Ptr i;
   do

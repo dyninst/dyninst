@@ -77,10 +77,7 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
   unsigned int size = 34;
   unsigned int expectedInsns = 11;
   dyn_detail::boost::shared_ptr<InstructionDecoder> d =
-          makeDecoder(Dyninst::InstructionAPI::x86, buffer, size);
-#if defined(arch_x86_64_test)
-  d->setMode(true);
-#endif
+          makeDecoder(Dyninst::Arch_x86, buffer, size);
   std::deque<Instruction::Ptr> decodedInsns;
   Instruction::Ptr i;
   do
@@ -106,37 +103,42 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
     logerror("FAILED: Expected instructions to end with an invalid instruction, but they didn't");
     return FAILED;
   }
-  RegisterAST::Ptr eax(new RegisterAST(r_EAX));
-  RegisterAST::Ptr adjust(new RegisterAST(r_AF));
-  RegisterAST::Ptr zero(new RegisterAST(r_ZF));
-  RegisterAST::Ptr overflow(new RegisterAST(r_OF));
-  RegisterAST::Ptr parity(new RegisterAST(r_PF));
-  RegisterAST::Ptr sign(new RegisterAST(r_SF));
-  RegisterAST::Ptr carry(new RegisterAST(r_CF));
+  
+  Architecture curArch = Arch_x86;
   registerSet expectedRead, expectedWritten;
-  expectedRead.insert(expectedRead.begin(), eax);
-  expectedWritten = list_of(eax)(adjust)(zero)(overflow)(parity)(sign)(carry);
-  
   test_results_t retVal = PASSED;
+  Instruction::Ptr callInsn;
+  {
+      using namespace x86;
+  
+  RegisterAST::Ptr r_eax(new RegisterAST(eax));
+  RegisterAST::Ptr r_adjust(new RegisterAST(flags));
+  RegisterAST::Ptr r_zero(new RegisterAST(flags));
+  RegisterAST::Ptr r_overflow(new RegisterAST(flags));
+  RegisterAST::Ptr r_parity(new RegisterAST(flags));
+  RegisterAST::Ptr r_sign(new RegisterAST(flags));
+  RegisterAST::Ptr r_carry(new RegisterAST(flags));
+  expectedRead.insert(expectedRead.begin(), r_eax);
+  expectedWritten = list_of(r_eax)(r_adjust)(r_zero)(r_overflow)(r_parity)(r_sign)(r_carry);
+  
   
   retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), expectedRead, expectedWritten));
   decodedInsns.pop_front();
   
-  RegisterAST::Ptr rax(new RegisterAST(r_EAX));
-  RegisterAST::Ptr esp(new RegisterAST(r_ESP));
+  RegisterAST::Ptr r_esp(new RegisterAST(esp));
   expectedRead.clear();
   expectedWritten.clear();
-  expectedRead = list_of(esp)(rax);
-  expectedWritten = list_of(esp);
+  expectedRead = list_of(r_esp)(r_eax);
+  expectedWritten = list_of(r_esp);
   retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), expectedRead, expectedWritten));
   decodedInsns.pop_front();
   
   expectedRead.clear();
   expectedWritten.clear();
-  RegisterAST::Ptr ip(new RegisterAST(r_EIP));
+  RegisterAST::Ptr ip(new RegisterAST(MachRegister::getPC(curArch)));
   // Jccs are all documented as "may read zero, sign, carry, parity, overflow", so a JZ comes back as reading all
   // of these flags
-  expectedRead = list_of(zero)(sign)(carry)(parity)(overflow)(ip);
+  expectedRead = list_of(r_zero)(r_sign)(r_carry)(r_parity)(r_overflow)(ip);
   expectedWritten = list_of(ip);
   retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), 
   							      expectedRead, expectedWritten));
@@ -144,57 +146,54 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
   
   expectedRead.clear();
   expectedWritten.clear();
-  expectedRead = list_of(esp)(ip);
-  expectedWritten = list_of(esp)(ip);
+  expectedRead = list_of(r_esp)(ip);
+  expectedWritten = list_of(r_esp)(ip);
   retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), 
 							      expectedRead, expectedWritten));
-  Instruction::Ptr callInsn = decodedInsns.front();
+  callInsn = decodedInsns.front();
   decodedInsns.pop_front();
 
   expectedRead.clear();
   expectedWritten.clear();
-  expectedWritten = list_of(carry);
+  expectedWritten = list_of(r_carry);
   retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), 
 							      expectedRead, expectedWritten));
   decodedInsns.pop_front();
 
   expectedRead.clear();
   expectedWritten.clear();
-  RegisterAST::Ptr al(new RegisterAST(r_AL));
-  expectedRead = list_of(al);
-  expectedWritten = list_of(al)(zero)(carry)(sign)(overflow)(parity)(adjust);
+  RegisterAST::Ptr r_al(new RegisterAST(al));
+  expectedRead = list_of(r_al);
+  expectedWritten = list_of(r_al)(r_zero)(r_carry)(r_sign)(r_overflow)(r_parity)(r_adjust);
   retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), 
 							      expectedRead, expectedWritten));
   decodedInsns.pop_front();
-
-#if defined(arch_x86_64_test)
-  RegisterAST::Ptr bp(new RegisterAST(r_RBP));
-#else
-  RegisterAST::Ptr bp(new RegisterAST(r_EBP));
-#endif
+ 
+  RegisterAST::Ptr r_bp(new RegisterAST(ebp));
+  
   expectedRead.clear();
   expectedWritten.clear();
-  expectedRead = list_of(bp);
+  expectedRead = list_of(r_bp);
   retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), 
 							      expectedRead, expectedWritten));
   decodedInsns.pop_front();
   
   
-  RegisterAST::Ptr dl(new RegisterAST(r_DL));
+  RegisterAST::Ptr r_dl(new RegisterAST(dl));
   expectedRead.clear();
   expectedWritten.clear();
-  expectedRead = list_of(bp)(dl);
+  expectedRead = list_of(r_bp)(r_dl);
   retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), 
 							      expectedRead, expectedWritten));
   decodedInsns.pop_front();
   
 
-  RegisterAST::Ptr xmm0(new RegisterAST(r_XMM0));
-  RegisterAST::Ptr xmm1(new RegisterAST(r_XMM1));
+  RegisterAST::Ptr r_xmm0(new RegisterAST(xmm0));
+  RegisterAST::Ptr r_xmm1(new RegisterAST(xmm1));
   expectedRead.clear();
   expectedWritten.clear();
-  expectedRead = list_of(xmm0);
-  expectedWritten = list_of(xmm0);
+  expectedRead = list_of(r_xmm0);
+  expectedWritten = list_of(r_xmm0);
   retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), 
 							      expectedRead, expectedWritten));
   if(decodedInsns.front()->size() != 4) {
@@ -205,15 +204,15 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
 
   expectedRead.clear();
   expectedWritten.clear();
-  expectedRead = list_of(xmm1);
-  expectedWritten = list_of(xmm1);
+  expectedRead = list_of(r_xmm1);
+  expectedWritten = list_of(r_xmm1);
   retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), expectedRead, expectedWritten));
   if(decodedInsns.front()->size() != 4) {
     logerror("FAILURE: haddpd expected size 4, decoded to %s, had size %d\n", decodedInsns.front()->format().c_str(), decodedInsns.front()->size());
     retVal = FAILED;
   }  
   decodedInsns.pop_front();
-
+  }
 #if defined(arch_x86_64_test)
   const unsigned char amd64_specific[] = 
   {
@@ -224,8 +223,7 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
   deque<Instruction::Ptr> amd64Insns;
   
   dyn_detail::boost::shared_ptr<InstructionDecoder> amd64_decoder =
-          makeDecoder(Dyninst::InstructionAPI::x86, amd64_specific, amd64_size);
-  amd64_decoder->setMode(true);
+          makeDecoder(Dyninst::Arch_x86_64, amd64_specific, amd64_size);
   
   Instruction::Ptr tmp;
   do
@@ -240,22 +238,26 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
 	     amd64Insns.size());
     return FAILED;
   }
-  RegisterAST::Ptr r8(new RegisterAST(r_R8));
+  {
+      using namespace x86_64;
+  RegisterAST::Ptr r_r8(new RegisterAST(r8));
+  RegisterAST::Ptr r_rbp(new RegisterAST(rbp));
   
-  expectedRead = list_of(bp)(r8);
+  expectedRead = list_of(r_rbp)(r_r8);
   expectedWritten.clear();
   
   retVal = failure_accumulator(retVal, verify_read_write_sets(amd64Insns.front(), expectedRead, expectedWritten));
   amd64Insns.pop_front();
-  
+  }
 #endif
+
 
   Expression::Ptr cft = callInsn->getControlFlowTarget();
   if(!cft) {
     logerror("FAILED: call had no control flow target\n");
     return FAILED;
   }
-  RegisterAST* the_ip = new RegisterAST(r_EIP);
+  RegisterAST* the_ip = new RegisterAST(MachRegister::getPC(curArch));
   
   if(!cft->bind(the_ip, Result(u32, 0))) {
     logerror("FAILED: bind found no IP in call Jz CFT\n");
