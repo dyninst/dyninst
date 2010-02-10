@@ -54,8 +54,9 @@ namespace Dyninst
       static std::map<signed int, const char *> *names;
    public:
       MachRegister();
-      MachRegister(signed int r);
-      MachRegister(signed int r, const char *n);
+      explicit MachRegister(signed int r);
+      explicit MachRegister(signed int r, const char *n);
+      MachRegister(const MachRegister& r);
       ~MachRegister();
 
       MachRegister getBaseRegister() const;
@@ -67,7 +68,7 @@ namespace Dyninst
       unsigned int size() const;
       bool operator<(const MachRegister &a) const;
       bool operator==(const MachRegister &a) const;
-      operator signed int() const;
+      //operator signed int() const;
       signed int val() const;
 
       static MachRegister getPC(Dyninst::Architecture arch);
@@ -130,10 +131,18 @@ namespace Dyninst
       const signed int H_REG = 0x00000200; //8-bit, second byte
       const signed int W_REG = 0x00000300; //16-bit, first word
       const signed int FULL  = 0x00000000; //32 bits
+      const signed int QUAD  = 0x00004000; //64 bits
+      const signed int OCT   = 0x00002000; //128 bits
+      const signed int FPDBL = 0x00001000; // 80 bits
       const signed int GPR   = 0x00010000;
       const signed int SEG   = 0x00020000;
       const signed int FLAG  = 0x00030000;
       const signed int MISC  = 0x00040000;
+      const signed int XMM   = 0x00050000;
+      const signed int MMX   = 0x00060000;
+      const signed int CTL   = 0x00070000;
+      const signed int DBG   = 0x00080000;
+      const signed int TST   = 0x00090000;
       const signed int BASEA  = 0x0;
       const signed int BASEC  = 0x1;
       const signed int BASED  = 0x2;
@@ -165,6 +174,8 @@ namespace Dyninst
       DEF_REGISTER(bx,    BASEB   | W_REG | GPR  | Arch_x86, "x86");
       DEF_REGISTER(sp,    BASESP  | W_REG | GPR  | Arch_x86, "x86");
       DEF_REGISTER(bp,    BASEBP  | W_REG | GPR  | Arch_x86, "x86");
+      DEF_REGISTER(si,    BASESI  | W_REG | GPR  | Arch_x86, "x86");
+      DEF_REGISTER(di,    BASEDI  | W_REG | GPR  | Arch_x86, "x86");
       DEF_REGISTER(eip,   0x10    | FULL         | Arch_x86, "x86");
       DEF_REGISTER(flags, 0x0     | FULL  | FLAG | Arch_x86, "x86");
       DEF_REGISTER(ds,    0x0     | FULL  | SEG  | Arch_x86, "x86");
@@ -174,6 +185,54 @@ namespace Dyninst
       DEF_REGISTER(cs,    0x4     | FULL  | SEG  | Arch_x86, "x86");
       DEF_REGISTER(ss,    0x5     | FULL  | SEG  | Arch_x86, "x86");
       DEF_REGISTER(oeax,  0x0     | FULL  | MISC | Arch_x86, "x86");
+      DEF_REGISTER(xmm0,  0x0     | OCT   | XMM  | Arch_x86, "x86");
+      DEF_REGISTER(xmm1,  0x1     | OCT   | XMM  | Arch_x86, "x86");
+      DEF_REGISTER(xmm2,  0x2     | OCT   | XMM  | Arch_x86, "x86");
+      DEF_REGISTER(xmm3,  0x3     | OCT   | XMM  | Arch_x86, "x86");
+      DEF_REGISTER(xmm4,  0x4     | OCT   | XMM  | Arch_x86, "x86");
+      DEF_REGISTER(xmm5,  0x5     | OCT   | XMM  | Arch_x86, "x86");
+      DEF_REGISTER(xmm6,  0x6     | OCT   | XMM  | Arch_x86, "x86");
+      DEF_REGISTER(xmm7,  0x7     | OCT   | XMM  | Arch_x86, "x86");
+      DEF_REGISTER(mm0,   0x0     | FPDBL | MMX  | Arch_x86, "x86");
+      DEF_REGISTER(mm1,   0x1     | FPDBL | MMX  | Arch_x86, "x86");
+      DEF_REGISTER(mm2,   0x2     | FPDBL | MMX  | Arch_x86, "x86");
+      DEF_REGISTER(mm3,   0x3     | FPDBL | MMX  | Arch_x86, "x86");
+      DEF_REGISTER(mm4,   0x4     | FPDBL | MMX  | Arch_x86, "x86");
+      DEF_REGISTER(mm5,   0x5     | FPDBL | MMX  | Arch_x86, "x86");
+      DEF_REGISTER(mm6,   0x6     | FPDBL | MMX  | Arch_x86, "x86");
+      DEF_REGISTER(mm7,   0x7     | FPDBL | MMX  | Arch_x86, "x86");
+      DEF_REGISTER(cr0,   0x0     | FULL  | CTL  | Arch_x86, "x86");
+      DEF_REGISTER(cr1,   0x1     | FULL  | CTL  | Arch_x86, "x86");
+      DEF_REGISTER(cr2,   0x2     | FULL  | CTL  | Arch_x86, "x86");
+      DEF_REGISTER(cr3,   0x3     | FULL  | CTL  | Arch_x86, "x86");
+      DEF_REGISTER(cr4,   0x4     | FULL  | CTL  | Arch_x86, "x86");
+      DEF_REGISTER(cr5,   0x5     | FULL  | CTL  | Arch_x86, "x86");
+      DEF_REGISTER(cr6,   0x6     | FULL  | CTL  | Arch_x86, "x86");
+      DEF_REGISTER(cr7,   0x7     | FULL  | CTL  | Arch_x86, "x86");
+      DEF_REGISTER(dr0,   0x0     | FULL  | DBG  | Arch_x86, "x86");
+      DEF_REGISTER(dr1,   0x1     | FULL  | DBG  | Arch_x86, "x86");
+      DEF_REGISTER(dr2,   0x2     | FULL  | DBG  | Arch_x86, "x86");
+      DEF_REGISTER(dr3,   0x3     | FULL  | DBG  | Arch_x86, "x86");
+      DEF_REGISTER(dr4,   0x4     | FULL  | DBG  | Arch_x86, "x86");
+      DEF_REGISTER(dr5,   0x5     | FULL  | DBG  | Arch_x86, "x86");
+      DEF_REGISTER(dr6,   0x6     | FULL  | DBG  | Arch_x86, "x86");
+      DEF_REGISTER(dr7,   0x7     | FULL  | DBG  | Arch_x86, "x86");
+      DEF_REGISTER(tr0,   0x0     | FULL  | TST  | Arch_x86, "x86");
+      DEF_REGISTER(tr1,   0x1     | FULL  | TST  | Arch_x86, "x86");
+      DEF_REGISTER(tr2,   0x2     | FULL  | TST  | Arch_x86, "x86");
+      DEF_REGISTER(tr3,   0x3     | FULL  | TST  | Arch_x86, "x86");
+      DEF_REGISTER(tr4,   0x4     | FULL  | TST  | Arch_x86, "x86");
+      DEF_REGISTER(tr5,   0x5     | FULL  | TST  | Arch_x86, "x86");
+      DEF_REGISTER(tr6,   0x6     | FULL  | TST  | Arch_x86, "x86");
+      DEF_REGISTER(tr7,   0x7     | FULL  | TST  | Arch_x86, "x86");
+      DEF_REGISTER(st0,   0x0     | FPDBL | MMX  | Arch_x86, "x86");
+      DEF_REGISTER(st1,   0x1     | FPDBL | MMX  | Arch_x86, "x86");
+      DEF_REGISTER(st2,   0x2     | FPDBL | MMX  | Arch_x86, "x86");
+      DEF_REGISTER(st3,   0x3     | FPDBL | MMX  | Arch_x86, "x86");
+      DEF_REGISTER(st4,   0x4     | FPDBL | MMX  | Arch_x86, "x86");
+      DEF_REGISTER(st5,   0x5     | FPDBL | MMX  | Arch_x86, "x86");
+      DEF_REGISTER(st6,   0x6     | FPDBL | MMX  | Arch_x86, "x86");
+      DEF_REGISTER(st7,   0x7     | FPDBL | MMX  | Arch_x86, "x86");
    }
    namespace x86_64
    {
@@ -182,10 +241,17 @@ namespace Dyninst
       const signed int W_REG = 0x00000300; //16 bit, first work
       const signed int D_REG = 0x00000f00; //32 bit, first double word
       const signed int FULL  = 0x00000000; //64 bit
+      const signed int FPDBL = 0x00001000; // 80 bits
+      const signed int OCT   = 0x00002000; //128 bits
       const signed int GPR   = 0x00010000;
       const signed int SEG   = 0x00020000;
       const signed int FLAG  = 0x00030000;
       const signed int MISC  = 0x00040000;
+      const signed int XMM   = 0x00050000;
+      const signed int MMX   = 0x00060000;
+      const signed int CTL   = 0x00070000;
+      const signed int DBG   = 0x00080000;
+      const signed int TST   = 0x00090000;
       const signed int BASEA  = 0x0;
       const signed int BASEC  = 0x1;
       const signed int BASED  = 0x2;
@@ -243,8 +309,10 @@ namespace Dyninst
       DEF_REGISTER(ebp,    BASEBP | D_REG | GPR  | Arch_x86_64, "x86_64");
       DEF_REGISTER(dil,    BASEDI | L_REG | GPR  | Arch_x86_64, "x86_64");
       DEF_REGISTER(di,     BASEDI | W_REG | GPR  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(edi,    BASEDI | D_REG | GPR  | Arch_x86_64, "x86_64");
       DEF_REGISTER(sil,    BASESI | L_REG | GPR  | Arch_x86_64, "x86_64");
       DEF_REGISTER(si,     BASESI | W_REG | GPR  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(esi,    BASESI | D_REG | GPR  | Arch_x86_64, "x86_64");
       DEF_REGISTER(r8b,    BASE8  | L_REG | GPR  | Arch_x86_64, "x86_64");
       DEF_REGISTER(r8w,    BASE8  | W_REG | GPR  | Arch_x86_64, "x86_64");
       DEF_REGISTER(r8d,    BASE8  | D_REG | GPR  | Arch_x86_64, "x86_64");
@@ -270,6 +338,7 @@ namespace Dyninst
       DEF_REGISTER(r15w,   BASE15 | W_REG | GPR  | Arch_x86_64, "x86_64");
       DEF_REGISTER(r15d,   BASE15 | D_REG | GPR  | Arch_x86_64, "x86_64");
       DEF_REGISTER(rip,    0x10   | FULL         | Arch_x86_64, "x86_64");
+      DEF_REGISTER(eip,    0x10   | D_REG        | Arch_x86_64, "x86_64");
       DEF_REGISTER(flags,  0x0    | FULL  | FLAG | Arch_x86_64, "x86_64");
       DEF_REGISTER(ds,     0x0    | FULL  | SEG  | Arch_x86_64, "x86_64");
       DEF_REGISTER(es,     0x1    | FULL  | SEG  | Arch_x86_64, "x86_64");
@@ -280,6 +349,62 @@ namespace Dyninst
       DEF_REGISTER(orax,   0x0    | FULL  | MISC | Arch_x86_64, "x86_64");
       DEF_REGISTER(fsbase, 0x0    | FULL  | MISC | Arch_x86_64, "x86_64");
       DEF_REGISTER(gsbase, 0x0    | FULL  | MISC | Arch_x86_64, "x86_64");
+      DEF_REGISTER(xmm0,  0x0     | OCT   | XMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(xmm1,  0x1     | OCT   | XMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(xmm2,  0x2     | OCT   | XMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(xmm3,  0x3     | OCT   | XMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(xmm4,  0x4     | OCT   | XMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(xmm5,  0x5     | OCT   | XMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(xmm6,  0x6     | OCT   | XMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(xmm7,  0x7     | OCT   | XMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(xmm8,  0x8     | OCT   | XMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(xmm9,  0x9     | OCT   | XMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(xmm10, 0xA     | OCT   | XMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(xmm11, 0xB     | OCT   | XMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(xmm12, 0xC     | OCT   | XMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(xmm13, 0xD     | OCT   | XMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(xmm14, 0xE     | OCT   | XMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(xmm15, 0xF     | OCT   | XMM  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(mm0,   0x0     | FPDBL | MMX  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(mm1,   0x1     | FPDBL | MMX  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(mm2,   0x2     | FPDBL | MMX  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(mm3,   0x3     | FPDBL | MMX  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(mm4,   0x4     | FPDBL | MMX  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(mm5,   0x5     | FPDBL | MMX  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(mm6,   0x6     | FPDBL | MMX  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(mm7,   0x7     | FPDBL | MMX  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(cr0,   0x0     | FULL  | CTL  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(cr1,   0x1     | FULL  | CTL  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(cr2,   0x2     | FULL  | CTL  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(cr3,   0x3     | FULL  | CTL  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(cr4,   0x4     | FULL  | CTL  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(cr5,   0x5     | FULL  | CTL  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(cr6,   0x6     | FULL  | CTL  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(cr7,   0x7     | FULL  | CTL  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(dr0,   0x0     | FULL  | DBG  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(dr1,   0x1     | FULL  | DBG  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(dr2,   0x2     | FULL  | DBG  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(dr3,   0x3     | FULL  | DBG  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(dr4,   0x4     | FULL  | DBG  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(dr5,   0x5     | FULL  | DBG  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(dr6,   0x6     | FULL  | DBG  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(dr7,   0x7     | FULL  | DBG  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(tr0,   0x0     | FULL  | TST  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(tr1,   0x1     | FULL  | TST  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(tr2,   0x2     | FULL  | TST  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(tr3,   0x3     | FULL  | TST  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(tr4,   0x4     | FULL  | TST  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(tr5,   0x5     | FULL  | TST  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(tr6,   0x6     | FULL  | TST  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(tr7,   0x7     | FULL  | TST  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(st0,   0x0     | FPDBL | MMX  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(st1,   0x1     | FPDBL | MMX  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(st2,   0x2     | FPDBL | MMX  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(st3,   0x3     | FPDBL | MMX  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(st4,   0x4     | FPDBL | MMX  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(st5,   0x5     | FPDBL | MMX  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(st6,   0x6     | FPDBL | MMX  | Arch_x86_64, "x86_64");
+      DEF_REGISTER(st7,   0x7     | FPDBL | MMX  | Arch_x86_64, "x86_64");
    }
    namespace ppc32 {
       const signed int GPR   = 0x00010000;

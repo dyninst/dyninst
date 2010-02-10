@@ -37,8 +37,8 @@
 #include <map>
 #include <sstream>
 
-#include "RegisterIDs-x86.h"
-
+//#include "RegisterIDs-x86.h"
+#include "dyn_regs.h"
 
 namespace Dyninst
 {
@@ -55,7 +55,8 @@ namespace Dyninst
       typedef dyn_detail::boost::shared_ptr<RegisterAST> Ptr;
       
       /// Construct a register, assigning it the ID \c id.
-      RegisterAST(int id);
+      RegisterAST(MachRegister r);
+      RegisterAST(MachRegister r, unsigned int lowbit, unsigned int highbit);
   
       virtual ~RegisterAST();
       
@@ -77,7 +78,7 @@ namespace Dyninst
       /// Utility function to get a Register object that represents the program counter.
       ///
       /// \c makePC is provided to support platform-independent control flow analysis.
-      static RegisterAST makePC();
+      static RegisterAST makePC(Dyninst::Architecture arch);
 
       /// We define a partial ordering on registers by their register number so that they may be placed into sets
       /// or other sorted containers.
@@ -85,7 +86,10 @@ namespace Dyninst
 
       /// The \c getID function returns the ID number of a register.
       unsigned int getID() const;
-      
+      unsigned int lowBit() const {
+          return m_Low; }
+    unsigned int highBit() const {
+        return m_High; }
 
       /// Utility function to hide aliasing complexity on platforms (IA-32) that allow addressing part 
       /// or all of a register
@@ -94,15 +98,18 @@ namespace Dyninst
       static RegisterAST::Ptr promote(const RegisterAST* reg);
       
       virtual void apply(Visitor* v);
+      virtual bool bind(Expression* e, const Result& val);
 
     protected:
       virtual bool isStrictEqual(const InstructionAST& rhs) const;
       virtual bool isFlag() const;
-      virtual bool checkRegID(unsigned int id) const;
-      int getPromotedID() const;
+      virtual bool checkRegID(MachRegister id, unsigned int low, unsigned int high) const;
+      MachRegister getPromotedReg() const;
       
     private:
-      unsigned int registerID;
+      MachRegister m_Reg;
+      unsigned int m_Low;
+      unsigned int m_High;
     };
     
   };

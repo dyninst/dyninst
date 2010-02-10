@@ -96,10 +96,11 @@ namespace Dyninst
       friend class InstructionDecoder_power; // for editing mnemonics after creation
       
     public:
-      INSTRUCTION_EXPORT Operation(ia32_entry* e, ia32_prefixes* p = NULL, ia32_locations* l = NULL);
+      INSTRUCTION_EXPORT Operation(ia32_entry* e, ia32_prefixes* p = NULL, ia32_locations* l = NULL,
+                                  Architecture arch = Arch_none);
       INSTRUCTION_EXPORT Operation(const Operation& o);
       INSTRUCTION_EXPORT Operation();
-      INSTRUCTION_EXPORT Operation(entryID id, const char* mnem);
+      INSTRUCTION_EXPORT Operation(entryID id, const char* mnem, Architecture arch);
       
       INSTRUCTION_EXPORT const Operation& operator=(const Operation& o);
       
@@ -134,6 +135,7 @@ namespace Dyninst
       entryID operationID;
       mutable bool doneOtherSetup;
       mutable bool doneFlagsSetup;
+      Architecture archDecodedFrom;
       
     };
   };

@@ -100,12 +100,13 @@ bool image::analyzeImage()
 #if defined(arch_x86_64)
     ia32_set_mode_64(getObject()->getAddressWidth() == 8);
 #endif
-#if defined(arch_x86) || defined (arch_x86_64)
-    arch = Dyninst::InstructionAPI::x86;
+
+#if defined(arch_x86) || defined(arch_x86_64)
+    arch = (getObject()->getAddressWidth() == 8) ? Dyninst::Arch_x86_64 : Dyninst::Arch_x86;
+#elif defined(arch_power)
+    arch = (getObject()->getAddressWidth() == 8) ? Dyninst::Arch_ppc64 : Dyninst::Arch_ppc32;
 #else
-#if defined(arch_power)
-    arch = Dyninst::InstructionAPI::power;
-#endif
+    arch = Dyninst::Arch_none;
 #endif
   image_func *pdf;
   pdmodule *mod = NULL;

@@ -117,7 +117,7 @@ namespace Dyninst
       friend class RegisterAST;
       friend class Immediate;
       virtual bool isStrictEqual(const InstructionAST& rhs) const= 0;
-      virtual bool checkRegID(unsigned int id) const;
+      virtual bool checkRegID(MachRegister, unsigned int = 0, unsigned int = 0) const;
       virtual const Result& eval() const = 0;
     };
   };

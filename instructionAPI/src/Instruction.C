@@ -376,7 +376,6 @@ memAccessors.begin()));
         // an implicit write, and that we have decoded the control flow
         // target's full location as the first and only operand.
         // If this is not the case, we'll squawk for the time being...
-        static Expression::Ptr thePC(new RegisterAST(RegisterAST::makePC()));
         if(getCategory() == c_NoCategory)
         {
             return Expression::Ptr();
@@ -487,9 +486,10 @@ memAccessors.begin()));
     }
     Expression::Ptr Instruction::makeReturnExpression() const
     {
-      Expression::Ptr stackPtr = Expression::Ptr(new RegisterAST(r_ESP));
-      Expression::Ptr retLoc = Expression::Ptr(new Dereference(stackPtr, u32));
-      return retLoc;
+        Expression::Ptr stackPtr = Expression::Ptr(new RegisterAST(MachRegister::getStackPointer(arch_decoded_from),
+                0, MachRegister::getStackPointer(arch_decoded_from).size()));
+        Expression::Ptr retLoc = Expression::Ptr(new Dereference(stackPtr, u32));
+        return retLoc;
     }
     INSTRUCTION_EXPORT InsnCategory Instruction::getCategory() const
     {

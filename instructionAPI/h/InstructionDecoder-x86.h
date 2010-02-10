@@ -61,12 +61,13 @@ namespace Dyninst
         class InstructionDecoder_x86 : public InstructionDecoder
         {
             friend class Instruction;
-            friend dyn_detail::boost::shared_ptr<InstructionDecoder> makeDecoder(archID arch, const unsigned char* buffer,
+            friend dyn_detail::boost::shared_ptr<InstructionDecoder> makeDecoder(Architecture arch, const unsigned char* buffer,
                 unsigned len);
       
             protected:
       /// Construct an %InstructionDecoder object that decodes from \c buffer, up to \c size bytes.
-                INSTRUCTION_EXPORT InstructionDecoder_x86(const unsigned char* buffer, size_t size);
+                INSTRUCTION_EXPORT InstructionDecoder_x86(const unsigned char* buffer, size_t size,
+                                                         Architecture arch);
       
       /// Construct an %InstructionDecoder object with no buffer specified.
                 INSTRUCTION_EXPORT InstructionDecoder_x86();
@@ -98,7 +99,7 @@ namespace Dyninst
                 Expression::Ptr makeSIBExpression(unsigned int opType);
                 Expression::Ptr makeModRMExpression(unsigned int opType);
                 Expression::Ptr getModRMDisplacement();
-                int makeRegisterID(unsigned int intelReg, unsigned int opType, bool isExtendedReg = false);
+                MachRegister makeRegisterID(unsigned int intelReg, unsigned int opType, bool isExtendedReg = false);
                 Expression::Ptr decodeImmediate(unsigned int opType, unsigned int position, bool isSigned = false);
                 virtual Result_Type makeSizeType(unsigned int opType);
 

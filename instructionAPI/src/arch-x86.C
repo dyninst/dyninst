@@ -51,6 +51,7 @@
 #include <iostream>
 #include "Register.h"
 #include <dynutil/h/dyntypes.h>
+#include "dyn_regs.h"
 using namespace std;
 using namespace boost::assign;
 using namespace Dyninst::InstructionAPI;
@@ -183,56 +184,56 @@ enum {
 
 #define GPRS { am_allgprs, op_allgprs }
 
-#define AH  { am_reg, r_AH }
-#define AX  { am_reg, r_AX }
-#define BH  { am_reg, r_BH }
-#define CH  { am_reg, r_CH }
-#define DH  { am_reg, r_DH }
-#define AL  { am_reg, r_AL }
-#define BL  { am_reg, r_BL }
-#define CL  { am_reg, r_CL }
-#define CS  { am_reg, r_CS }
-#define DL  { am_reg, r_DL }
-#define DX  { am_reg, r_DX }
-#define eAX { am_reg, r_eAX }
-#define eBX { am_reg, r_eBX }
-#define eCX { am_reg, r_eCX }
-#define eDX { am_reg, r_eDX }
-#define EAX { am_reg, r_EAX }
-#define EBX { am_reg, r_EBX }
-#define ECX { am_reg, r_ECX }
-#define EDX { am_reg, r_EDX }
-#define DS  { am_reg, r_DS }
-#define ES  { am_reg, r_ES }
-#define FS  { am_reg, r_FS }
-#define GS  { am_reg, r_GS }
-#define SS  { am_reg, r_SS }
-#define eSP { am_reg, r_eSP }
-#define eBP { am_reg, r_eBP }
-#define eSI { am_reg, r_eSI }
-#define eDI { am_reg, r_eDI }
-#define ESP { am_reg, r_ESP }
-#define EBP { am_reg, r_EBP }
-#define ESI { am_reg, r_ESI }
-#define EDI { am_reg, r_EDI }
-#define ECXEBX { am_reg, r_ECXEBX }
-#define EDXEAX { am_reg, r_EDXEAX }
-#define rAX { am_reg, r_rAX }
-#define rBX { am_reg, r_rBX }
-#define rCX { am_reg, r_rCX }
-#define rDX { am_reg, r_rDX }
-#define rSP { am_reg, r_rSP }
-#define rBP { am_reg, r_rBP }
-#define rSI { am_reg, r_rSI }
-#define rDI { am_reg, r_rDI }
-#define ST0 { am_reg, r_ST0 }
-#define ST1 { am_reg, r_ST1 }
-#define ST2 { am_reg, r_ST2 }
-#define ST3 { am_reg, r_ST3 }
-#define ST4 { am_reg, r_ST4 }
-#define ST5 { am_reg, r_ST5 }
-#define ST6 { am_reg, r_ST6 }
-#define ST7 { am_reg, r_ST7 }
+#define AH  { am_reg, x86::iah }
+#define AX  { am_reg, x86::iax }
+#define BH  { am_reg, x86::ibh }
+#define CH  { am_reg, x86::ich }
+#define DH  { am_reg, x86::idh }
+#define AL  { am_reg, x86::ial }
+#define BL  { am_reg, x86::ibl }
+#define CL  { am_reg, x86::icl }
+#define CS  { am_reg, x86::ics }
+#define DL  { am_reg, x86::idl }
+#define DX  { am_reg, x86::idx }
+#define eAX { am_reg, x86::ieax }
+#define eBX { am_reg, x86::iebx }
+#define eCX { am_reg, x86::iecx }
+#define eDX { am_reg, x86::iedx }
+#define EAX { am_reg, x86::ieax }
+#define EBX { am_reg, x86::iebx }
+#define ECX { am_reg, x86::iecx }
+#define EDX { am_reg, x86::iedx }
+#define DS  { am_reg, x86::ids }
+#define ES  { am_reg, x86::ies }
+#define FS  { am_reg, x86::ifs }
+#define GS  { am_reg, x86::igs }
+#define SS  { am_reg, x86::iss }
+#define eSP { am_reg, x86::iesp }
+#define eBP { am_reg, x86::iebp }
+#define eSI { am_reg, x86::iesi }
+#define eDI { am_reg, x86::iedi }
+#define ESP { am_reg, x86::iesp }
+#define EBP { am_reg, x86::iebp }
+#define ESI { am_reg, x86::iesi }
+#define EDI { am_reg, x86::iedi }
+#define ECXEBX { am_tworeghack, r_ECXEBX }
+#define EDXEAX { am_tworeghack, r_EDXEAX }
+#define rAX { am_reg, x86_64::irax }
+#define rBX { am_reg, x86_64::irbx }
+#define rCX { am_reg, x86_64::ircx }
+#define rDX { am_reg, x86_64::irdx }
+#define rSP { am_reg, x86_64::irsp }
+#define rBP { am_reg, x86_64::irbp }
+#define rSI { am_reg, x86_64::irsi }
+#define rDI { am_reg, x86_64::irdi }
+#define ST0 { am_reg, x86::ist0 }
+#define ST1 { am_reg, x86::ist1 }
+#define ST2 { am_reg, x86::ist2 }
+#define ST3 { am_reg, x86::ist3 }
+#define ST4 { am_reg, x86::ist4 }
+#define ST5 { am_reg, x86::ist5 }
+#define ST6 { am_reg, x86::ist6 }
+#define ST7 { am_reg, x86::ist7 }
 #define FPOS 16
 
 enum {
@@ -3489,8 +3490,10 @@ static inline int type2size(unsigned int optype, unsigned int operSzAttr)
   case op_512:
     return 512;
   default:
-    RegisterAST reg(optype);
-    return reg.eval().size();
+      assert(0);
+      return 0;
+//    RegisterAST reg(optype);
+//    return reg.eval().size();
   }
 }
 
@@ -3625,7 +3628,14 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
     if (mode_64 && operSzAttr == 2)
       operSzAttr = 4;
     mac[1].set(mESP, -2 * operSzAttr, addrSzAttr);
-    mac[1].size = type2size(gotit.operands[0].optype, operSzAttr);
+    if(gotit.operands[0].admet == am_reg)
+    {
+        mac[1].size = type2size(op_v, operSzAttr);
+    }
+    else
+    {
+        mac[1].size = type2size(gotit.operands[0].optype, operSzAttr);
+    }
     mac[1].write = true;
   }
   if((gotit.id == e_pop) && mac)
@@ -3635,7 +3645,14 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
     if (mode_64 && operSzAttr == 2)
       operSzAttr = 4;
     mac[1].set(mESP, 0, addrSzAttr);
-    mac[1].size = type2size(gotit.operands[0].optype, operSzAttr);
+    if(gotit.operands[0].admet == am_reg)
+    {
+        mac[1].size = type2size(op_v, operSzAttr);
+    }
+    else
+    {
+        mac[1].size = type2size(gotit.operands[0].optype, operSzAttr);
+    }
     mac[1].read = true;
   }
   if((gotit.id == e_leave) && mac)

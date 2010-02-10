@@ -272,30 +272,36 @@ class DyninstMemRegReader : public Dyninst::SymtabAPI::MemRegReader
 
    virtual bool GetReg(MachRegister reg, MachRegisterVal &val) {
       if (proc->getAddressWidth() == 4) {
-         switch (reg) {
+          switch (reg.val()) {
             case x86::ieip:
-               val = orig_frame->getPC();
+              case x86_64::ieip:
+                  val = orig_frame->getPC();
                break;
             case x86::iesp:
-               val = orig_frame->getSP();
+              case x86_64::iesp:
+                  val = orig_frame->getSP();
                break;
             case x86::iebp:
-               val = orig_frame->getFP();
+              case x86_64::iebp:
+                  val = orig_frame->getFP();
                break;
             default:
                return false;
          }
       }
       else {
-         switch (reg) {
+          switch (reg.val()) {
             case x86_64::irip:
-               val = orig_frame->getPC();
+            case x86_64::ieip:
+                  val = orig_frame->getPC();
                break;
             case x86_64::irsp:
+            case x86_64::iesp:
                val = orig_frame->getSP();
                break;
             case x86_64::irbp:
-               val = orig_frame->getFP();
+            case x86_64::iebp:
+                val = orig_frame->getFP();
                break;
             default:
                return false;

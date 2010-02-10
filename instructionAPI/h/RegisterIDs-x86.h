@@ -55,7 +55,6 @@ namespace Dyninst
 		    r_eSP=50, r_eBP,
 		    r_ESP=60, r_EBP,
 		    r_EDXEAX=70, r_ECXEBX, //133
-		    r_OF=80, r_SF, r_ZF, r_AF, r_PF, r_CF, r_TF, r_IF, r_DF, r_NT, r_RF, // NOTE: 11 of these!
 		    r_EFLAGS=100,
 		    r_CS=110, r_DS, r_ES, r_FS, r_GS, r_SS,
 		    r_EIP=120,
@@ -77,7 +76,10 @@ namespace Dyninst
 		    r_SPL, r_BPL, r_SIL, r_DIL,
                     // FP Stack
                     r_ST0, r_ST1, r_ST2, r_ST3, r_ST4, r_ST5, r_ST6, r_ST7,
-		    r_ALLGPRS
+		    r_ALLGPRS,
+                    r_OF=11, r_SF=7, r_ZF=6, r_AF=4, r_PF=2, r_CF=0, r_TF=8, r_IF=9, r_DF=10, r_NT=14, r_RF=16,
+                    // NOTE: 11 of these!
+    
     };
 
     /// The %RegInfo struct associates a register ID with its size and name.

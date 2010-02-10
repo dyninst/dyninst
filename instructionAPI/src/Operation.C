@@ -44,18 +44,22 @@ namespace Dyninst
 {
   namespace InstructionAPI
   {
-    RegisterAST::Ptr makeRegFromID(IA32Regs regID)
+    RegisterAST::Ptr makeRegFromID(MachRegister regID, unsigned int low, unsigned int high)
     {
-      return make_shared(singleton_object_pool<RegisterAST>::construct(regID));
+      return make_shared(singleton_object_pool<RegisterAST>::construct(regID, low, high));
+    }
+    RegisterAST::Ptr makeRegFromID(MachRegister regID)
+    {
+        return make_shared(singleton_object_pool<RegisterAST>::construct(regID, 0, regID.size()));
     }
 
-    Operation::Operation(entryID id, const char* mnem)
-          : operationID(id), mnemonic(mnem)
+    Operation::Operation(entryID id, const char* mnem, Architecture arch)
+          : operationID(id), mnemonic(mnem), archDecodedFrom(arch)
     {
     }
     
-    Operation::Operation(ia32_entry* e, ia32_prefixes* p, ia32_locations* l) :
-      doneOtherSetup(false), doneFlagsSetup(false)
+    Operation::Operation(ia32_entry* e, ia32_prefixes* p, ia32_locations* l, Architecture arch) :
+      doneOtherSetup(false), doneFlagsSetup(false), archDecodedFrom(arch)
     
     {
       operationID = e->getID(l);
@@ -63,28 +67,28 @@ namespace Dyninst
       {
 	if (p->getPrefix(0) == PREFIX_REP || p->getPrefix(0) == PREFIX_REPNZ)
 	{
-	    otherRead.insert(makeRegFromID(r_DF));
+            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::flags : x86_64::flags, r_DF, r_DF));
 	}
         int segPrefix = p->getPrefix(1);
         switch(segPrefix)
         {
             case PREFIX_SEGCS:
-                otherRead.insert(makeRegFromID(r_CS));
+                otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::cs : x86_64::cs));
                 break;
             case PREFIX_SEGDS:
-                otherRead.insert(makeRegFromID(r_DS));
+                otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::ds : x86_64::ds));
                 break;
             case PREFIX_SEGES:
-                otherRead.insert(makeRegFromID(r_ES));
+                otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::es : x86_64::es));
                 break;
             case PREFIX_SEGFS:
-                otherRead.insert(makeRegFromID(r_FS));
+                otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::fs : x86_64::fs));
                 break;
             case PREFIX_SEGGS:
-                otherRead.insert(makeRegFromID(r_GS));
+                otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::gs : x86_64::gs));
                 break;
             case PREFIX_SEGSS:
-                otherRead.insert(makeRegFromID(r_SS));
+                otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::ss : x86_64::ss));
                 break;
         }
       }
@@ -99,6 +103,7 @@ namespace Dyninst
       operationID = o.operationID;
       doneOtherSetup = o.doneOtherSetup;
       doneFlagsSetup = o.doneFlagsSetup;
+      archDecodedFrom = o.archDecodedFrom;
       
     }
     const Operation& Operation::operator=(const Operation& o)
@@ -110,6 +115,7 @@ namespace Dyninst
       operationID = o.operationID;
       doneOtherSetup = o.doneOtherSetup;
       doneFlagsSetup = o.doneFlagsSetup;
+      archDecodedFrom = o.archDecodedFrom;
       return *this;
     }
     Operation::Operation()
@@ -213,17 +219,16 @@ namespace Dyninst
     struct OperationMaps
     {
     public:
-      OperationMaps()
+      OperationMaps(Architecture arch)
       {
-        thePC.insert(RegisterAST::Ptr(new RegisterAST(RegisterAST::makePC())));
-	pcAndSP.insert(RegisterAST::Ptr(new RegisterAST(RegisterAST::makePC())));
-	pcAndSP.insert(RegisterAST::Ptr(new RegisterAST(r_ESP)));
-	
-        stackPointer.insert(RegisterAST::Ptr(new RegisterAST(r_ESP)));
-        stackPointerAsExpr.insert(Expression::Ptr(new RegisterAST(r_ESP)));
-	framePointer.insert(RegisterAST::Ptr(new RegisterAST(r_EBP)));
-        spAndBP.insert(RegisterAST::Ptr(new RegisterAST(r_ESP)));
-	spAndBP.insert(RegisterAST::Ptr(new RegisterAST(r_EBP)));
+          thePC.insert(RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(arch))));
+          pcAndSP.insert(RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(arch))));
+          pcAndSP.insert(RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(arch))));
+          stackPointer.insert(RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(arch))));
+          stackPointerAsExpr.insert(RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(arch))));
+          framePointer.insert(RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(arch))));
+          spAndBP.insert(RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(arch))));
+          spAndBP.insert(RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(arch))));
 	
 	nonOperandRegisterReads = 
 	map_list_of
@@ -282,35 +287,49 @@ namespace Dyninst
       dyn_hash_map<entryID, Operation::VCSet > nonOperandMemoryReads;
       dyn_hash_map<entryID, Operation::VCSet > nonOperandMemoryWrites;
     };
-    OperationMaps op_data;
+    OperationMaps op_data_32(Arch_x86);
+    OperationMaps op_data_64(Arch_x86_64);
+    const OperationMaps& op_data(Architecture arch)
+    {
+        switch(arch)
+        {
+            case Arch_x86:
+                return op_data_32;
+            case Arch_x86_64:
+                return op_data_64;
+            default:
+                assert(0);
+                return op_data_32;
+        }
+    }
     void Operation::SetUpNonOperandData(bool needFlags) const
     {
       
       dyn_hash_map<entryID, registerSet >::const_iterator foundRegs;
-      foundRegs = op_data.nonOperandRegisterReads.find(operationID);
-      if(foundRegs != op_data.nonOperandRegisterReads.end())
+      foundRegs = op_data(archDecodedFrom).nonOperandRegisterReads.find(operationID);
+      if(foundRegs != op_data(archDecodedFrom).nonOperandRegisterReads.end())
       {
 	otherRead = foundRegs->second;
 	//std::copy(foundRegs->second.begin(), foundRegs->second.end(),
 	//	  inserter(otherRead, otherRead.begin()));
       }
-      foundRegs = op_data.nonOperandRegisterWrites.find(operationID);
-      if(foundRegs != op_data.nonOperandRegisterWrites.end())
+      foundRegs = op_data(archDecodedFrom).nonOperandRegisterWrites.find(operationID);
+      if(foundRegs != op_data(archDecodedFrom).nonOperandRegisterWrites.end())
       {
 	otherWritten = foundRegs->second;
 	//std::copy(foundRegs->second.begin(), foundRegs->second.end(),
 	//	  inserter(otherWritten, otherWritten.begin()));
       }
       dyn_hash_map<entryID, VCSet >::const_iterator foundMem;
-      foundMem = op_data.nonOperandMemoryReads.find(operationID);
-      if(foundMem != op_data.nonOperandMemoryReads.end())
+      foundMem = op_data(archDecodedFrom).nonOperandMemoryReads.find(operationID);
+      if(foundMem != op_data(archDecodedFrom).nonOperandMemoryReads.end())
       {
 	otherEffAddrsRead = foundMem->second;
 	//std::copy(foundMem->second.begin(), foundMem->second.end(),
 	//	  inserter(otherEffAddrsRead, otherEffAddrsRead.begin()));
       }
-      foundMem = op_data.nonOperandMemoryWrites.find(operationID);
-      if(foundMem != op_data.nonOperandMemoryWrites.end())
+      foundMem = op_data(archDecodedFrom).nonOperandMemoryWrites.find(operationID);
+      if(foundMem != op_data(archDecodedFrom).nonOperandMemoryWrites.end())
       {
 	otherEffAddrsWritten = foundMem->second;
 	//std::copy(foundMem->second.begin(), foundMem->second.end(),
@@ -325,11 +344,14 @@ namespace Dyninst
 	{
 	  for(unsigned i = 0; i < found->second.readFlags.size(); i++)
 	  {
-	    otherRead.insert(makeRegFromID(found->second.readFlags[i]));
+              
+              otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::flags : x86_64::flags,
+                               found->second.readFlags[i], found->second.readFlags[i]));
 	  }
 	  for(unsigned j = 0; j < found->second.writtenFlags.size(); j++)
 	  {
-	    otherWritten.insert(makeRegFromID(found->second.writtenFlags[j]));
+              otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::flags : x86_64::flags,
+                                  found->second.writtenFlags[j], found->second.writtenFlags[j]));
 	  }
 	}
 	doneFlagsSetup = true;

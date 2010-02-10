@@ -1092,7 +1092,7 @@ int_function *AddressSpace::findJumpTargetFuncByAddr(Address addr) {
     Instruction::Ptr curInsn = decoder->decode();
     
     Expression::Ptr target = curInsn->getControlFlowTarget();
-    RegisterAST thePC = RegisterAST::makePC();
+    RegisterAST thePC = RegisterAST::makePC(mobj->parse_img()->getArch());
     target->bind(&thePC, Result(u32, addr));
     Result cft = target->eval();
     if(cft.defined)

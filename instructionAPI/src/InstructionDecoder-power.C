@@ -79,8 +79,9 @@ namespace Dyninst
                 static power_table extended_op_63;
       };
 
-    InstructionDecoder_power::InstructionDecoder_power(const unsigned char* buffer, unsigned int length)
-          : InstructionDecoder(buffer, length), isRAWritten(false)
+    InstructionDecoder_power::InstructionDecoder_power(const unsigned char* buffer, unsigned int length,
+                                                      Architecture arch)
+          : InstructionDecoder(buffer, length, arch), isRAWritten(false)
     {
     }
     InstructionDecoder_power::~InstructionDecoder_power()
@@ -100,7 +101,7 @@ namespace Dyninst
     void InstructionDecoder_power::FRTS()
     {
         isFPInsn = true;
-        unsigned int regID = makePowerRegID(ppc32::fpr0, field<6, 10>(insn));
+        MachRegister regID = makePowerRegID(ppc32::fsr0, field<6, 10>(insn));
         insn_in_progress->appendOperand(makeRegisterExpression(regID), false, true);
         isRAWritten = false;
     }
@@ -112,7 +113,7 @@ namespace Dyninst
     void InstructionDecoder_power::FRSS()
     {
         isFPInsn = true;
-        unsigned int regID = makePowerRegID(ppc32::fsr0, field<6, 10>(insn));
+        MachRegister regID = makePowerRegID(ppc32::fsr0, field<6, 10>(insn));
         insn_in_progress->appendOperand(makeRegisterExpression(regID), true, false);
         isRAWritten = true;
     }
@@ -124,7 +125,7 @@ namespace Dyninst
     void InstructionDecoder_power::FRAS()
     {
         isFPInsn = true;
-        unsigned int regID = makePowerRegID(ppc32::fsr0, field<11, 15>(insn));
+        MachRegister regID = makePowerRegID(ppc32::fsr0, field<11, 15>(insn));
         insn_in_progress->appendOperand(makeRegisterExpression(regID), !isRAWritten, isRAWritten);
     }
     void InstructionDecoder_power::FRBP()
@@ -135,7 +136,7 @@ namespace Dyninst
     void InstructionDecoder_power::FRBS()
     {
         isFPInsn = true;
-        unsigned int regID = makePowerRegID(ppc32::fsr0, field<16, 20>(insn));
+        MachRegister regID = makePowerRegID(ppc32::fsr0, field<16, 20>(insn));
         insn_in_progress->appendOperand(makeRegisterExpression(regID), true, false);
     }
     void InstructionDecoder_power::FRCP()
@@ -146,7 +147,7 @@ namespace Dyninst
     void InstructionDecoder_power::FRCS()
     {
         isFPInsn = true;
-        unsigned int regID = makePowerRegID(ppc32::fsr0, field<21, 25>(insn));
+        MachRegister regID = makePowerRegID(ppc32::fsr0, field<21, 25>(insn));
         insn_in_progress->appendOperand(makeRegisterExpression(regID), true, false);
     }
 
@@ -347,15 +348,15 @@ namespace Dyninst
     }
     void InstructionDecoder_power::FRT2()
     {
-        int firstRegID = makePowerRegID(ppc32::fpr0, field<6,10>(insn));
-        int secondRegID = makePowerRegID(ppc32::fpr0, field<6,10>(insn) + 1);
+        MachRegister firstRegID = makePowerRegID(ppc32::fpr0, field<6,10>(insn));
+        MachRegister secondRegID = makePowerRegID(ppc32::fpr0, field<6,10>(insn) + 1);
         insn_in_progress->appendOperand(makeRegisterExpression(firstRegID), false, true);
         insn_in_progress->appendOperand(makeRegisterExpression(secondRegID), false, true);
     }
     void InstructionDecoder_power::FRS2()
     {
-        int firstRegID = makePowerRegID(ppc32::fpr0, field<6,10>(insn));
-        int secondRegID = makePowerRegID(ppc32::fpr0, field<6,10>(insn) + 1);
+        MachRegister firstRegID = makePowerRegID(ppc32::fpr0, field<6,10>(insn));
+        MachRegister secondRegID = makePowerRegID(ppc32::fpr0, field<6,10>(insn) + 1);
         insn_in_progress->appendOperand(makeRegisterExpression(firstRegID), true, false);
         insn_in_progress->appendOperand(makeRegisterExpression(secondRegID), true, false);
     }
@@ -500,7 +501,7 @@ namespace Dyninst
            current->op == power_op_bclr ||
            current->op == power_op_bcctr)
         {
-            insn_in_progress->appendOperand(makeRegisterExpression(makePowerRegID(0, ppc32::pc)), false, true);
+            insn_in_progress->appendOperand(makeRegisterExpression(ppc32::pc), false, true);
         }
         
         for(operandSpec::const_iterator curFn = current->operands.begin();
@@ -511,12 +512,12 @@ namespace Dyninst
         }
         if(current->op == power_op_bclr)
         {
-            insn_in_progress->addSuccessor(makeRegisterExpression(makePowerRegID(0, ppc32::lr)),
+            insn_in_progress->addSuccessor(makeRegisterExpression(ppc32::lr),
                                            field<31,31>(insn) == 1, true, bcIsConditional, false);
         }
         if(current->op == power_op_bcctr)
         {
-            insn_in_progress->addSuccessor(makeRegisterExpression(makePowerRegID(0, ppc32::ctr)),
+            insn_in_progress->addSuccessor(makeRegisterExpression(ppc32::ctr),
                                            field<31,31>(insn) == 1, true, bcIsConditional, false);
         }
         if(current->op == power_op_addic_rc ||
@@ -529,18 +530,18 @@ namespace Dyninst
         }
         return;
     }
-    unsigned int InstructionDecoder_power::makePowerRegID(unsigned int bank, unsigned int encoding, int field)
+    MachRegister InstructionDecoder_power::makePowerRegID(MachRegister base, unsigned int encoding, int field)
     {
         if(field != -1)
         {
-            return makePowerRegID(bank, encoding, field * 4, field * 4 + 3);
+            return makePowerRegID(base, encoding, field * 4, field * 4 + 3);
         }
-        return makePowerRegID(bank, encoding, 0, 31);
+        return makePowerRegID(base, encoding, 0, 31);
     }
-    unsigned int InstructionDecoder_power::makePowerRegID(unsigned int bank, unsigned int encoding,
+    MachRegister InstructionDecoder_power::makePowerRegID(MachRegister base, unsigned int encoding,
                                                          unsigned int lowBit, unsigned int highBit)
     {
-        return bank + encoding;
+        return MachRegister(base.val() + encoding);
     }
 
 #define fn(x) (&InstructionDecoder_power::x)
@@ -600,7 +601,7 @@ using namespace boost::assign;
     
     void InstructionDecoder_power::BF()
     {
-        int base_reg = isFPInsn ? ppc32::fpscw0 : ppc32::cr0;
+        MachRegister base_reg = isFPInsn ? ppc32::fpscw0 : ppc32::cr0;
         Expression::Ptr condReg = makeRegisterExpression(makePowerRegID(base_reg, field<6, 10>(insn) >> 2));
         insn_in_progress->appendOperand(condReg, false, true);
         return;
@@ -621,7 +622,7 @@ using namespace boost::assign;
         invertBranchCondition = false;
         if(!field<8, 8>(insn))
         {
-            Expression::Ptr ctr = makeRegisterExpression(makePowerRegID(0, ppc32::ctr));
+            Expression::Ptr ctr = makeRegisterExpression(makePowerRegID(ppc32::ctr, 0));
             if(field<9, 9>(insn))
             {
                 insn_in_progress->getOperation().mnemonic = "bdz";
@@ -682,7 +683,7 @@ using namespace boost::assign;
         {
             if(isFPInsn)
             {
-                insn_in_progress->appendOperand(makeRegisterExpression(makePowerRegID(0, ppc32::fpscw)), false, true);
+                insn_in_progress->appendOperand(makeRegisterExpression(ppc32::fpscw), false, true);
             }
             else
             {
@@ -806,7 +807,7 @@ using namespace boost::assign;
             current = &(std::mem_fun(current->next_table)(this));
         }
         insn_in_progress = makeInstruction(current->op, current->mnemonic, 4, reinterpret_cast<unsigned char*>(&insn));
-        insn_in_progress->arch_decoded_from = power;
+        insn_in_progress->arch_decoded_from = Arch_ppc32;
         return;
     }
   };

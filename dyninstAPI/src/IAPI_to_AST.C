@@ -82,5 +82,5 @@ void ASTFactory::visit(RegisterAST* r)
 {
   bool unused;
     m_stack.push_back(AstNode::operandNode(AstNode::origRegister,
-					   (void*)(convertRegID((IA32Regs)(r->getID()), unused))));
+                      (void*)(convertRegID(r))));
 }

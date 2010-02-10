@@ -37,6 +37,7 @@
 #include "Operation.h"
 #include "Operand.h"
 #include "Instruction.h"
+#include "dyn_regs.h"
 
 #include <vector>
 
@@ -47,7 +48,7 @@ namespace Dyninst
   {
       class InstructionDecoder;
       static const unsigned int maxInstructionLength = 16;
-    dyn_detail::boost::shared_ptr<InstructionDecoder> makeDecoder(archID arch, const unsigned char* buffer, unsigned len =
+    dyn_detail::boost::shared_ptr<InstructionDecoder> makeDecoder(Architecture arch, const unsigned char* buffer, unsigned len =
         maxInstructionLength);
     /// The %InstructionDecoder class decodes instructions, given a buffer of bytes and a length,
     /// and constructs an %Instruction.
@@ -70,7 +71,7 @@ namespace Dyninst
         len);
         protected:
       /// Construct an %InstructionDecoder object that decodes from \c buffer, up to \c size bytes.
-      INSTRUCTION_EXPORT InstructionDecoder(const unsigned char* buffer, size_t size);
+      INSTRUCTION_EXPORT InstructionDecoder(const unsigned char* buffer, size_t size, Architecture arch);
       
       /// Construct an %InstructionDecoder object with no buffer specified.
       INSTRUCTION_EXPORT InstructionDecoder();
@@ -103,7 +104,7 @@ namespace Dyninst
       virtual Expression::Ptr makeAddExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType);
       virtual Expression::Ptr makeMultiplyExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType);
       virtual Expression::Ptr makeDereferenceExpression(Expression::Ptr addrToDereference, Result_Type resultType);
-      virtual Expression::Ptr makeRegisterExpression(unsigned int registerID);
+      virtual Expression::Ptr makeRegisterExpression(MachRegister reg);
       virtual Result_Type makeSizeType(unsigned int opType) = 0;
       Instruction* makeInstruction(entryID opcode, const char* mnem, unsigned int decodedSize,
               const unsigned char* raw);
@@ -113,7 +114,7 @@ namespace Dyninst
       const unsigned char* bufferBegin;
       size_t bufferSize;
       const unsigned char* rawInstruction;
-      
+      Architecture m_Arch;
       
     };
   };

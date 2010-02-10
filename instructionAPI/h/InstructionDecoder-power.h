@@ -45,7 +45,8 @@ namespace Dyninst {
         {
             friend struct power_entry;
             public:
-                InstructionDecoder_power(const unsigned char* buffer, unsigned int length);
+                InstructionDecoder_power(const unsigned char* buffer, unsigned int length,
+                                        Architecture arch);
                 virtual ~InstructionDecoder_power();
                 virtual unsigned int decodeOpcode();
                 virtual Instruction::Ptr decode();
@@ -174,7 +175,7 @@ namespace Dyninst {
                         if(m_dec.field<high, high>(m_dec.insn))
                         {
                             m_dec.insn_in_progress->appendOperand(m_dec.makeRegisterExpression(m_dec.makePowerRegID(
-                                    base, curCR)), !m_dec.isRAWritten, m_dec.isRAWritten);
+                                    MachRegister(base), curCR)), !m_dec.isRAWritten, m_dec.isRAWritten);
                         }
                     }
                     InstructionDecoder_power& m_dec;
@@ -189,7 +190,7 @@ namespace Dyninst {
                         if(m_dec.field<high, high>(m_dec.insn))
                         {
                             m_dec.insn_in_progress->appendOperand(m_dec.makeRegisterExpression(m_dec.makePowerRegID(
-                                    base, 0)), !m_dec.isRAWritten, m_dec.isRAWritten);
+                                    MachRegister(base), 0)), !m_dec.isRAWritten, m_dec.isRAWritten);
                         }
                     }
                     InstructionDecoder_power& m_dec;
@@ -227,8 +228,8 @@ namespace Dyninst {
                             }
                         }
                 
-                unsigned int makePowerRegID(unsigned int bank, unsigned int encoding, int field = -1);
-                unsigned int makePowerRegID(unsigned int bank, unsigned int encoding,
+                MachRegister makePowerRegID(MachRegister base, unsigned int encoding, int field = -1);
+                MachRegister makePowerRegID(MachRegister base, unsigned int encoding,
                         unsigned int lowBit, unsigned int highBit);
                 
                 Expression::Ptr makeFallThroughExpr();

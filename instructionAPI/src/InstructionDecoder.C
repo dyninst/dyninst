@@ -47,22 +47,25 @@ namespace Dyninst
   {
     
     
-    INSTRUCTION_EXPORT InstructionDecoder::InstructionDecoder(const unsigned char* buffer, size_t size) :
+    INSTRUCTION_EXPORT InstructionDecoder::InstructionDecoder(const unsigned char* buffer, size_t size, Architecture arch) :
       bufferBegin(buffer),
       bufferSize(size),
-      rawInstruction(bufferBegin)
+      rawInstruction(bufferBegin),
+      m_Arch(arch)
     {
     }
     INSTRUCTION_EXPORT InstructionDecoder::InstructionDecoder() :
       bufferBegin(NULL),
       bufferSize(0),
-      rawInstruction(NULL)
+      rawInstruction(NULL),
+      m_Arch(Arch_none)
     {
     }
     INSTRUCTION_EXPORT InstructionDecoder::InstructionDecoder(const InstructionDecoder& o) :
     bufferBegin(o.bufferBegin),
     bufferSize(o.bufferSize),
-    rawInstruction(o.rawInstruction)
+    rawInstruction(o.rawInstruction),
+    m_Arch(o.m_Arch)
     {
     }
     INSTRUCTION_EXPORT InstructionDecoder::~InstructionDecoder()
@@ -71,7 +74,7 @@ namespace Dyninst
     Instruction* InstructionDecoder::makeInstruction(entryID opcode, const char* mnem,
             unsigned int decodedSize, const unsigned char* raw)
     {
-        Operation::Ptr tmp(make_shared(singleton_object_pool<Operation>::construct(opcode, mnem)));
+        Operation::Ptr tmp(make_shared(singleton_object_pool<Operation>::construct(opcode, mnem, m_Arch)));
         return singleton_object_pool<Instruction>::construct(tmp, decodedSize, raw);
     }
     
@@ -107,9 +110,13 @@ namespace Dyninst
     {
         return make_shared(singleton_object_pool<Dereference>::construct(addrToDereference, resultType));
     }
-    Expression::Ptr InstructionDecoder::makeRegisterExpression(unsigned int registerID)
+    Expression::Ptr InstructionDecoder::makeRegisterExpression(MachRegister registerID)
     {
-        return make_shared(singleton_object_pool<RegisterAST>::construct(registerID));
+        int newID = registerID.val();
+        int minusArch = newID & ~(registerID.getArchitecture());
+        int convertedID = minusArch | m_Arch;
+        MachRegister converted(convertedID);
+        return make_shared(singleton_object_pool<RegisterAST>::construct(converted, 0, registerID.size() * 8));
     }
     
 
@@ -119,23 +126,34 @@ namespace Dyninst
       bufferBegin = buffer;
       bufferSize = size;
     }
-    dyn_detail::boost::shared_ptr<InstructionDecoder> makeDecoder(archID arch, const unsigned char* buffer, unsigned len)
+    dyn_detail::boost::shared_ptr<InstructionDecoder> makeDecoder(Architecture arch, const unsigned char* buffer, unsigned len)
     {
+        dyn_detail::boost::shared_ptr<InstructionDecoder> ret;
         switch(arch)
         {
-            case x86:
-                return dyn_detail::boost::shared_ptr<InstructionDecoder>(new InstructionDecoder_x86(buffer, len));
+            case Arch_x86:
+                ret.reset(new InstructionDecoder_x86(buffer, len, arch));
+                ret->setMode(false);
                 break;
-            case power:
-                return dyn_detail::boost::shared_ptr<InstructionDecoder>(new InstructionDecoder_power(buffer, len));
+            case Arch_x86_64:
+            {
+                ret.reset(new InstructionDecoder_x86(buffer, len, arch));
+                ret->setMode(true);
+                return ret;
+            }
+                break;
+            case Arch_ppc32:
+            case Arch_ppc64:
+                ret.reset(new InstructionDecoder_power(buffer, len, arch));
+                break;
+            case Arch_none:
                 break;
             default:
                 assert(!"not implemented");
                 return dyn_detail::boost::shared_ptr<InstructionDecoder>();
                 break;
         }
-        assert(!"can't happen");
-        return dyn_detail::boost::shared_ptr<InstructionDecoder>();
+        return ret;
     }
     
   };

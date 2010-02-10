@@ -72,13 +72,19 @@ test_results_t test_instruction_bind_eval_Mutator::executeTest()
   };
   unsigned int size = 7;
   unsigned int expectedInsns = 2;
-  dyn_detail::boost::shared_ptr<InstructionDecoder> d =
-          makeDecoder(Dyninst::InstructionAPI::x86, buffer, size);
 #if defined(arch_x86_64_test)
-  d->setMode(true);
+    Architecture curArch = Arch_x86_64;
+    using namespace Dyninst::x86_64;
+#elif defined(arch_x86_test)
+    Architecture curArch = Arch_x86;
+    using namespace Dyninst::x86;
 #else
-  d->setMode(false);
+    Architecture curArch = Arch_none;
 #endif
+    
+  
+  dyn_detail::boost::shared_ptr<InstructionDecoder> d =
+          makeDecoder(curArch, buffer, size);
   std::vector<Instruction::Ptr> decodedInsns;
   Instruction::Ptr i;
   do
@@ -116,17 +122,12 @@ test_results_t test_instruction_bind_eval_Mutator::executeTest()
   }
   
     
-#if defined(arch_x86_64_test)
-  RegisterAST* eax = new RegisterAST(r_RAX);
-  RegisterAST* ecx = new RegisterAST(r_RCX);
-#else
-  RegisterAST* eax = new RegisterAST(r_EAX);
-  RegisterAST* ecx = new RegisterAST(r_ECX);
-#endif
+  RegisterAST* r_eax = new RegisterAST(x86_64::eax);
+  RegisterAST* r_ecx = new RegisterAST(x86_64::ecx);
   Result three(u32, 3);
   Result five(u32, 5);
   
-  if(!theCFT->bind(eax, three)) {
+  if(!theCFT->bind(r_eax, three)) {
       logerror("FAILED: bind of EAX failed (insn %s)\n", decodedInsns[0]->format().c_str());
     return FAILED;
   }
@@ -134,7 +135,7 @@ test_results_t test_instruction_bind_eval_Mutator::executeTest()
   {
     return FAILED;
   }
-  if(!theCFT->bind(ecx, five)) {
+  if(!theCFT->bind(r_ecx, five)) {
     logerror("FAILED: bind of ECX failed\n");
     return FAILED;
   }

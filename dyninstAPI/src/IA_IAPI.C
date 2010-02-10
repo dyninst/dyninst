@@ -145,14 +145,10 @@ bool IA_IAPI::isFrameSetupInsn(Instruction::Ptr i) const
 {
     if(i->getOperation().getID() == e_mov)
     {
-        static RegisterAST::Ptr ebp(new RegisterAST(r_EBP));
-        static RegisterAST::Ptr esp(new RegisterAST(r_ESP));
-        static RegisterAST::Ptr rbp(new RegisterAST(r_RBP));
-        static RegisterAST::Ptr rsp(new RegisterAST(r_RSP));
-        if((i->isRead(rsp) ||
-            i->isRead(esp)) &&
-            (i->isWritten(rbp) ||
-            i->isWritten(ebp)))
+        static RegisterAST::Ptr framePtr(new RegisterAST(MachRegister::getFramePointer(img->getArch())));
+        static RegisterAST::Ptr stackPtr(new RegisterAST(MachRegister::getStackPointer(img->getArch())));
+        if(i->isRead(stackPtr) &&
+            i->isWritten(framePtr))
         {
             return true;
         }
@@ -428,12 +424,11 @@ bool IA_IAPI::isIPRelativeBranch() const
     if(curInsn()->getCategory() == c_BranchInsn &&
         !getCFT())
 {
-    static RegisterAST::Ptr thePC(new RegisterAST(RegisterAST::makePC()));
-    static RegisterAST::Ptr rip(new RegisterAST(r_RIP));
-    if(curInsn()->getControlFlowTarget()->isUsed(thePC) ||
-       curInsn()->getControlFlowTarget()->isUsed(rip))
+    static RegisterAST::Ptr thePC(new RegisterAST(RegisterAST::makePC(img->getArch())));
+    if(curInsn()->getControlFlowTarget()->isUsed(thePC))
     {
-        parsing_printf("\tIP-relative indirect jump at 0x%lx\n", current);
+        parsing_printf("\tIP-relative indirect jump to %s at 0x%lx\n", current,
+            curInsn()->getControlFlowTarget()->format().c_str());
         return true;
     }
 }
@@ -466,8 +461,38 @@ std::map<Address, Instruction::Ptr>::const_iterator IA_IAPI::findTableInsn() con
             {
                     Expression::Ptr cftAddr = dyn_detail::boost::dynamic_pointer_cast<Expression>(tmp[0]);
                     parsing_printf("\tChecking indirect jump %s for table insn\n", curInsn()->format().c_str());
-                    static RegisterAST* allGPRs = new RegisterAST(r_ALLGPRS);
-                    cftAddr->bind(allGPRs, Result(u32, 0));
+                        static RegisterAST* eax = new RegisterAST(x86::eax);
+                        static RegisterAST* ecx = new RegisterAST(x86::ecx);
+                        static RegisterAST* edx = new RegisterAST(x86::edx);
+                        static RegisterAST* ebx = new RegisterAST(x86::ebx);
+                        static RegisterAST* esp = new RegisterAST(x86::esp);
+                        static RegisterAST* ebp = new RegisterAST(x86::ebp);
+                        static RegisterAST* esi = new RegisterAST(x86::esi);
+                        static RegisterAST* edi = new RegisterAST(x86::edi);
+                        cftAddr->bind(eax, Result(u32, 0));
+                        cftAddr->bind(ecx, Result(u32, 0));
+                        cftAddr->bind(edx, Result(u32, 0));
+                        cftAddr->bind(ebx, Result(u32, 0));
+                        cftAddr->bind(esp, Result(u32, 0));
+                        cftAddr->bind(ebp, Result(u32, 0));
+                        cftAddr->bind(esi, Result(u32, 0));
+                        cftAddr->bind(edi, Result(u32, 0));
+                        static RegisterAST* rax = new RegisterAST(x86_64::rax);
+                        static RegisterAST* rcx = new RegisterAST(x86_64::rcx);
+                        static RegisterAST* rdx = new RegisterAST(x86_64::rdx);
+                        static RegisterAST* rbx = new RegisterAST(x86_64::rbx);
+                        static RegisterAST* rsp = new RegisterAST(x86_64::rsp);
+                        static RegisterAST* rbp = new RegisterAST(x86_64::rbp);
+                        static RegisterAST* rsi = new RegisterAST(x86_64::rsi);
+                        static RegisterAST* rdi = new RegisterAST(x86_64::rdi);
+                        cftAddr->bind(rax, Result(u64, 0));
+                        cftAddr->bind(rcx, Result(u64, 0));
+                        cftAddr->bind(rdx, Result(u64, 0));
+                        cftAddr->bind(rbx, Result(u64, 0));
+                        cftAddr->bind(rsp, Result(u64, 0));
+                        cftAddr->bind(rbp, Result(u64, 0));
+                        cftAddr->bind(rsi, Result(u64, 0));
+                        cftAddr->bind(rdi, Result(u64, 0));
 
                     Result base = cftAddr->eval();
                     if(base.defined && base.convert<Address>())
@@ -562,10 +587,8 @@ bool IA_IAPI::parseJumpTable(image_basicBlock* currBlk,
             parsing_printf("\tchecking instruction %s at 0x%lx for IP-relative LEA\n", tableLoc->second->format().c_str(),
                            tableLoc->first);
             Expression::Ptr IPRelAddr = tableLoc->second->getOperand(1).getValue();
-            static RegisterAST* eip(new RegisterAST(r_EIP));
-            static RegisterAST* rip(new RegisterAST(r_RIP));
-            IPRelAddr->bind(eip, Result(s64, tableLoc->first + tableLoc->second->size()));
-            IPRelAddr->bind(rip, Result(s64, tableLoc->first + tableLoc->second->size()));
+            static RegisterAST* thePC = new RegisterAST(RegisterAST::makePC(img->getArch()));
+            IPRelAddr->bind(thePC, Result(s64, tableLoc->first + tableLoc->second->size()));
             Result iprel = IPRelAddr->eval();
             if(iprel.defined)
             {
@@ -711,10 +734,8 @@ Address IA_IAPI::findThunkInBlock(image_basicBlock* curBlock, Address& thunkOffs
             parsing_printf("\tchecking instruction %s at 0x%lx for IP-relative LEA\n", block.getInstruction()->format().c_str(),
                            block.getAddr());
             Expression::Ptr IPRelAddr = block.getInstruction()->getOperand(1).getValue();
-            static RegisterAST* eip(new RegisterAST(r_EIP));
-            static RegisterAST* rip(new RegisterAST(r_RIP));
-            IPRelAddr->bind(eip, Result(s64, block.getNextAddr()));
-            IPRelAddr->bind(rip, Result(s64, block.getNextAddr()));
+            static RegisterAST* thePC = new RegisterAST(RegisterAST::makePC(img->getArch()));
+            IPRelAddr->bind(thePC, Result(s64, block.getNextAddr()));
             Result iprel = IPRelAddr->eval();
             if(iprel.defined)
             {
@@ -922,8 +943,38 @@ Address IA_IAPI::getTableAddress(Instruction::Ptr tableInsn, Address thunkOffset
             displacementSrc = op;
         }
     }
-    static RegisterAST* allGPRs = new RegisterAST(r_ALLGPRS);
-    displacementSrc->bind(allGPRs, Result(u32, 0));
+        static RegisterAST* eax = new RegisterAST(x86::eax);
+        static RegisterAST* ecx = new RegisterAST(x86::ecx);
+        static RegisterAST* edx = new RegisterAST(x86::edx);
+        static RegisterAST* ebx = new RegisterAST(x86::ebx);
+        static RegisterAST* esp = new RegisterAST(x86::esp);
+        static RegisterAST* ebp = new RegisterAST(x86::ebp);
+        static RegisterAST* esi = new RegisterAST(x86::esi);
+        static RegisterAST* edi = new RegisterAST(x86::edi);
+        displacementSrc->bind(eax, Result(u32, 0));
+        displacementSrc->bind(ecx, Result(u32, 0));
+        displacementSrc->bind(edx, Result(u32, 0));
+        displacementSrc->bind(ebx, Result(u32, 0));
+        displacementSrc->bind(esp, Result(u32, 0));
+        displacementSrc->bind(ebp, Result(u32, 0));
+        displacementSrc->bind(esi, Result(u32, 0));
+        displacementSrc->bind(edi, Result(u32, 0));
+        static RegisterAST* rax = new RegisterAST(x86_64::rax);
+        static RegisterAST* rcx = new RegisterAST(x86_64::rcx);
+        static RegisterAST* rdx = new RegisterAST(x86_64::rdx);
+        static RegisterAST* rbx = new RegisterAST(x86_64::rbx);
+        static RegisterAST* rsp = new RegisterAST(x86_64::rsp);
+        static RegisterAST* rbp = new RegisterAST(x86_64::rbp);
+        static RegisterAST* rsi = new RegisterAST(x86_64::rsi);
+        static RegisterAST* rdi = new RegisterAST(x86_64::rdi);
+        displacementSrc->bind(rax, Result(u64, 0));
+        displacementSrc->bind(rcx, Result(u64, 0));
+        displacementSrc->bind(rdx, Result(u64, 0));
+        displacementSrc->bind(rbx, Result(u64, 0));
+        displacementSrc->bind(rsp, Result(u64, 0));
+        displacementSrc->bind(rbp, Result(u64, 0));
+        displacementSrc->bind(rsi, Result(u64, 0));
+        displacementSrc->bind(rdi, Result(u64, 0));
 
     Result disp = displacementSrc->eval();
     Address jumpTable = 0;
@@ -1143,9 +1194,8 @@ bool IA_IAPI::isRealCall() const
                    thunkSecond->format().c_str());
     if(thunkFirst && (thunkFirst->getOperation().getID() == e_mov))
     {
-        RegisterAST::Ptr esp(new RegisterAST(r_ESP));
-        RegisterAST::Ptr rsp(new RegisterAST(r_RSP));
-        if(thunkFirst->isRead(esp) || thunkFirst->isRead(rsp))
+        static RegisterAST::Ptr stackPtr(new RegisterAST(MachRegister::getStackPointer(img->getArch())));
+        if(thunkFirst->isRead(stackPtr))
         {
             parsing_printf("... checking second insn\n");
             if(!thunkSecond) {
@@ -1177,13 +1227,11 @@ bool IA_IAPI::simulateJump() const
 
 Address IA_IAPI::getCFT() const
 {
-    static RegisterAST thePC = RegisterAST::makePC();
-    static RegisterAST* rip = new RegisterAST(r_RIP);
+    RegisterAST thePC = RegisterAST::makePC(img->getArch());
     if(validCFT) return cachedCFT;
     Expression::Ptr callTarget = curInsn()->getControlFlowTarget();
         // FIXME: templated bind(),dammit!
     callTarget->bind(&thePC, Result(s64, current));
-    callTarget->bind(rip, Result(s64, current));
     parsing_printf("%s[%d]: binding PC in %s to 0x%x...", FILE__, __LINE__,
                    curInsn()->format().c_str(), current);
     Result actualTarget = callTarget->eval();
@@ -1257,12 +1305,8 @@ bool IA_IAPI::isTailCall(unsigned int) const
         }
         if(prevInsn->getOperation().getID() == e_pop)
         {
-            static RegisterAST::Ptr ebp(new RegisterAST(r_EBP));
-            static RegisterAST::Ptr rbp(new RegisterAST(r_RBP));
-            static RegisterAST::Ptr xbp(new RegisterAST(r_eBP));
-            static RegisterAST::Ptr rxbp(new RegisterAST(r_rBP));
-            if(prevInsn->isWritten(ebp) || prevInsn->isWritten(rbp) ||
-               prevInsn->isWritten(xbp) || prevInsn->isWritten(rxbp))
+            static RegisterAST::Ptr framePtr(new RegisterAST(MachRegister::getFramePointer(img->getArch())));
+            if(prevInsn->isWritten(framePtr))
             {
                 parsing_printf("\tprev insn was %s, TAIL CALL\n", prevInsn->format().c_str());
                 tailCall.second = true;
@@ -1303,9 +1347,8 @@ bool IA_IAPI::savesFP() const
 {
     if(curInsn()->getOperation().getID() == e_push)
     {
-        static RegisterAST::Ptr ebp(new RegisterAST(r_EBP));
-        static RegisterAST::Ptr rbp(new RegisterAST(r_RBP));
-        return(curInsn()->isRead(ebp) || curInsn()->isRead(rbp));
+        static RegisterAST::Ptr framePtr(new RegisterAST(MachRegister::getFramePointer(img->getArch())));
+        return(curInsn()->isRead(framePtr));
     }
     return false;
 }

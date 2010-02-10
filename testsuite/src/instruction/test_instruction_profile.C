@@ -82,7 +82,7 @@ test_results_t test_instruction_profile_Mutator::executeTest()
     std::vector<Instruction::Ptr > decodedInsns;
     Instruction::Ptr i;
     dyn_detail::boost::shared_ptr<InstructionDecoder> d =
-            makeDecoder(Dyninst::InstructionAPI::power, decodeBase, (*curReg)->getRegionSize());
+            makeDecoder(Dyninst::Arch_ppc32, decodeBase, (*curReg)->getRegionSize());
     // 32-bit libc; force to 32-bit mode
     d->setMode(false);
     long offset = 0;

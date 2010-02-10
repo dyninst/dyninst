@@ -190,6 +190,22 @@ namespace Dyninst
       Result_Type type;
       bool defined;
       
+      Result() :
+        type(u32), defined(false)
+      {
+      }
+      Result(const Result& o) :
+              val(o.val), type(o.type), defined(o.defined)
+      {
+      }
+      const Result& operator=(const Result& rhs)
+      {
+          val = rhs.val;
+          type = rhs.type;
+          defined = rhs.defined;
+          return *this;
+      }
+      
       /// A %Result may be constructed from a type without providing a value.
       /// This constructor creates a %Result of type \c t with undefined contents.
       Result(Result_Type t) :

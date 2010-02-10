@@ -166,7 +166,7 @@ void image_basicBlock::summarizeBlockLivenessInfo()
                        getSize());
    decoder->setMode(getFirstFunc()->img()->getAddressWidth() == 8);
    Instruction::Ptr curInsn = decoder->decode();
-   while(curInsn && curInsn->isValid())
+   while(curInsn)
    {
      ReadWriteInfo curInsnRW;
      if(!cachedLivenessInfo.getLivenessInfo(current, getFirstFunc(), curInsnRW))
@@ -566,7 +566,7 @@ ReadWriteInfo calcRWSets(Instruction::Ptr curInsn, image_basicBlock* blk, unsign
   {
     liveness_printf("%s ", (*i)->format().c_str());
 #if defined(arch_x86) || defined(arch_x86_64)      
-    ret.read[convertRegID(IA32Regs((*i)->getID()))] = true;
+    ret.read[convertRegID(*i)] = true;
 #else
     int id = convertRegID((*i)->getID());
     if(id != registerSpace::ignored)
@@ -582,7 +582,7 @@ ReadWriteInfo calcRWSets(Instruction::Ptr curInsn, image_basicBlock* blk, unsign
        i != cur_written.end(); i++) {
     //liveness_printf("%s ", (*i)->format().c_str());
 #if defined(arch_x86) || defined(arch_x86_64)
-    ret.written[convertRegID(IA32Regs((*i)->getID()))] = true;
+    ret.written[convertRegID(*i)] = true;
 #else
     int id = convertRegID((*i)->getID());
     if(id != registerSpace::ignored)

@@ -546,7 +546,7 @@ Dwarf_Signed DynToDwarfReg(Dyninst::MachRegister reg, int word_size = 4)
 {
 
     if (word_size == 4) {
-        return (Dwarf_Signed) (reg & 0xf);
+        return (Dwarf_Signed) (reg.val() & 0xf);
     }
     switch (reg.val()) {
         case x86_64::irax: return (Dwarf_Signed) 0;
@@ -559,7 +559,7 @@ Dwarf_Signed DynToDwarfReg(Dyninst::MachRegister reg, int word_size = 4)
         case x86_64::irdi: return (Dwarf_Signed) 5;
         default:
          //The rest match
-            return (Dwarf_Signed) (reg & 0xf);
+            return (Dwarf_Signed) (reg.val() & 0xf);
     }
 }
 #else

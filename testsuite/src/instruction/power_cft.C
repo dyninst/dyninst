@@ -109,7 +109,7 @@ test_results_t power_cft_Mutator::executeTest()
   unsigned int size = expectedInsns * 4;
   ++expectedInsns;
   dyn_detail::boost::shared_ptr<InstructionDecoder> d =
-          makeDecoder(Dyninst::InstructionAPI::power, buffer, size);
+          makeDecoder(Dyninst::Arch_ppc32, buffer, size);
   
   std::deque<Instruction::Ptr> decodedInsns;
   Instruction::Ptr i;
@@ -140,9 +140,9 @@ test_results_t power_cft_Mutator::executeTest()
   test_results_t retVal = PASSED;
   
   decodedInsns.pop_back();
-  Expression* theIP = new RegisterAST(power::sprpc);
-  Expression* count_reg = new RegisterAST(power::sprctr);  
-  Expression* link_reg = new RegisterAST(power::sprlr);
+  Expression* theIP = new RegisterAST(ppc32::pc);
+  Expression* count_reg = new RegisterAST(ppc32::ctr);
+  Expression* link_reg = new RegisterAST(ppc32::lr);
   
 
   std::list<cftExpected> cfts;

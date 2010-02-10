@@ -284,7 +284,7 @@ namespace Dyninst
       bool m_Valid;
       raw_insn_T m_RawInsn;
       unsigned int m_size;
-      archID arch_decoded_from;
+      Architecture arch_decoded_from;
       mutable std::list<CFT> m_Successors;
       
     };

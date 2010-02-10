@@ -1068,7 +1068,7 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
    refCount(1),
    parseState_(unparsed),
    parseGaps_(parseGaps),
-   arch(Dyninst::InstructionAPI::unknown)
+   arch(Dyninst::Arch_none)
 {
 
 #if defined(os_aix)

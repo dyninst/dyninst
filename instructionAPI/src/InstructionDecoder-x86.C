@@ -109,8 +109,9 @@ namespace Dyninst
 
 
     
-    INSTRUCTION_EXPORT InstructionDecoder_x86::InstructionDecoder_x86(const unsigned char* buffer, size_t size) :
-            InstructionDecoder(buffer, size),
+    INSTRUCTION_EXPORT InstructionDecoder_x86::InstructionDecoder_x86(const unsigned char* buffer, size_t size,
+                                                                     Architecture arch) :
+            InstructionDecoder(buffer, size, arch),
     locs(NULL),
     decodedInstruction(NULL),
     is32BitMode(true),
@@ -169,11 +170,11 @@ namespace Dyninst
                     break;
                 case 0x01:
                     baseAST = makeAddExpression(decodeImmediate(op_b, locs->sib_position + 1),
-                            makeRegisterExpression(aw == u32? r_EBP: r_RBP), aw);
+                            makeRegisterExpression(aw == u32 ? x86::ebp : x86_64::rbp), aw);
                     break;
                 case 0x02:
                     baseAST = makeAddExpression(decodeImmediate(op_d, locs->sib_position + 1),
-                            makeRegisterExpression(aw == u32? r_EBP: r_RBP), aw);
+                            makeRegisterExpression(aw == u32 ? x86::ebp : x86_64::rbp), aw);
                     break;
                 case 0x03:
                 default:
@@ -216,7 +217,7 @@ namespace Dyninst
         // old code...
                     if(ia32_is_mode_64() && (opcode < 0xD8 || opcode > 0xDF))
                     {
-                        e = makeAddExpression(makeRegisterExpression(r_RIP),
+                        e = makeAddExpression(makeRegisterExpression(x86_64::rip),
                                             getModRMDisplacement(), aw);
                     }
                     else
@@ -368,76 +369,84 @@ namespace Dyninst
         b_amd64ext,
         b_8bitWithREX
     };
-    static IA32Regs IntelRegTable[][8] = {
+    using namespace x86;
+    
+    static MachRegister IntelRegTable[][8] = {
         {
-            r_AL, r_CL, r_DL, r_BL, r_AH, r_CH, r_DH, r_BH
+            al, cl, dl, bl, ah, ch, dh, bh
         },
         {
-            r_AX, r_CX, r_DX, r_BX, r_eSP, r_eBP, r_SI, r_DI
+            ax, cx, dx, bx, sp, bp, si, di
         },
         {
-            r_EAX, r_ECX, r_EDX, r_EBX, r_ESP, r_EBP, r_ESI, r_EDI
+            eax, ecx, edx, ebx, esp, ebp, esi, edi
         },
         {
-            r_ES, r_CS, r_SS, r_DS, r_FS, r_GS, r_Reserved, r_Reserved
+            es, cs, ss, ds, fs, gs, InvalidReg, InvalidReg
         },
         {
-            r_RAX, r_RCX, r_RDX, r_RBX, r_RSP, r_RBP, r_RSI, r_RDI
+            x86_64::rax, x86_64::rcx, x86_64::rdx, x86_64::rbx, x86_64::rsp, x86_64::rbp, x86_64::rsi, x86_64::rdi
         },
         {
-            r_XMM0, r_XMM1, r_XMM2, r_XMM3, r_XMM4, r_XMM5, r_XMM6, r_XMM7
+            xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7
         },
         {
-            r_MM0, r_MM1, r_MM2, r_MM3, r_MM4, r_MM5, r_MM6, r_MM7
+            mm0, mm1, mm2, mm3, mm4, mm5, mm6, mm7
         },
         {
-            r_CR0, r_CR1, r_CR2, r_CR3, r_CR4, r_CR5, r_CR6, r_CR7
+            cr0, cr1, cr2, cr3, cr4, cr5, cr6, cr7
         },
         {
-            r_DR0, r_DR1, r_DR2, r_DR3, r_DR4, r_DR5, r_DR6, r_DR7
+            dr0, dr1, dr2, dr3, dr4, dr5, dr6, dr7
         },
         {
-            r_TR0, r_TR1, r_TR2, r_TR3, r_TR4, r_TR5, r_TR6, r_TR7
+            tr0, tr1, tr2, tr3, tr4, tr5, tr6, tr7
         },
         {
-            r_R8, r_R9, r_R10, r_R11, r_R12, r_R13, r_R14, r_R15
+            x86_64::r8, x86_64::r9, x86_64::r10, x86_64::r11, x86_64::r12, x86_64::r13, x86_64::r14, x86_64::r15
         },
         {
-            r_AL, r_CL, r_DL, r_BL, r_SPL, r_BPL, r_SIL, r_DIL
+            x86_64::al, x86_64::cl, x86_64::dl, x86_64::bl, x86_64::spl, x86_64::bpl, x86_64::sil, x86_64::dil
         }
 
     };
 
-    int InstructionDecoder_x86::makeRegisterID(unsigned int intelReg, unsigned int opType,
+    MachRegister InstructionDecoder_x86::makeRegisterID(unsigned int intelReg, unsigned int opType,
                                         bool isExtendedReg)
     {
+        MachRegister retVal;
         if(isExtendedReg)
         {
-            return IntelRegTable[b_amd64ext][intelReg];
+            retVal = IntelRegTable[b_amd64ext][intelReg];
         }
-        if(locs->rex_w)
+        else if(locs->rex_w)
         {
             // AMD64 with 64-bit operands
-            return IntelRegTable[b_64bit][intelReg];
+            retVal = IntelRegTable[b_64bit][intelReg];
         }
-        switch(opType)
+        else
         {
-            case op_b:
-                if (locs->rex_position == -1) {
-                    return IntelRegTable[b_8bitNoREX][intelReg];
-                } else {
-                    return IntelRegTable[b_8bitWithREX][intelReg];
-                }
-            case op_q:
-                return IntelRegTable[b_64bit][intelReg];
-            case op_d:
-            case op_si:
-            case op_w:
-            default:
-                return IntelRegTable[b_32bit][intelReg];
-                break;
+            switch(opType)
+            {
+                case op_b:
+                    if (locs->rex_position == -1) {
+                        retVal = IntelRegTable[b_8bitNoREX][intelReg];
+                    } else {
+                        retVal = IntelRegTable[b_8bitWithREX][intelReg];
+                    }
+                    break;
+                case op_q:
+                    retVal = IntelRegTable[b_64bit][intelReg];
+                    break;
+                case op_d:
+                case op_si:
+                case op_w:
+                default:
+                    retVal = IntelRegTable[b_32bit][intelReg];
+                    break;
+            }
         }
-    
+        return MachRegister((retVal.val() & ~retVal.getArchitecture()) | m_Arch);
     }
     
     Result_Type InstructionDecoder_x86::makeSizeType(unsigned int opType)
@@ -573,7 +582,7 @@ namespace Dyninst
                     break;
                     case am_F:
                     {
-                        Expression::Ptr op(makeRegisterExpression(r_EFLAGS));
+                        Expression::Ptr op(makeRegisterExpression(flags));
                         insn_to_complete->appendOperand(op, isRead, isWritten);
                     }
                     break;
@@ -590,7 +599,7 @@ namespace Dyninst
                     case am_J:
                     {
                         Expression::Ptr Offset(decodeImmediate(operand.optype, locs->imm_position, true));
-                        Expression::Ptr EIP(makeRegisterExpression(r_EIP));
+                        Expression::Ptr EIP(makeRegisterExpression(MachRegister::getPC(m_Arch)));
                         Expression::Ptr InsnSize(make_shared(singleton_object_pool<Immediate>::construct(Result(u8,
                             decodedInstruction->getSize()))));
                         Expression::Ptr postEIP(makeAddExpression(EIP, InsnSize, u32));
@@ -703,8 +712,8 @@ namespace Dyninst
                         break;
                     case am_X:
                     {
-                        Expression::Ptr ds(makeRegisterExpression(r_DS));
-                        Expression::Ptr si(makeRegisterExpression(r_SI));
+                        Expression::Ptr ds(makeRegisterExpression(m_Arch == Arch_x86 ? x86::ds : x86_64::ds));
+                        Expression::Ptr si(makeRegisterExpression(m_Arch == Arch_x86 ? x86::si : x86_64::si));
                         Expression::Ptr segmentOffset(make_shared(singleton_object_pool<Immediate>::construct(
                                 Result(u32, 0x10))));
                         Expression::Ptr ds_segment = makeMultiplyExpression(ds, segmentOffset, u32);
@@ -715,8 +724,8 @@ namespace Dyninst
                     break;
                     case am_Y:
                     {
-                        Expression::Ptr es(makeRegisterExpression(r_ES));
-                        Expression::Ptr di(makeRegisterExpression(r_DI));
+                        Expression::Ptr es(makeRegisterExpression(m_Arch == Arch_x86 ? x86::es : x86_64::es));
+                        Expression::Ptr di(makeRegisterExpression(m_Arch == Arch_x86 ? x86::di : x86_64::di));
                         Expression::Ptr es_segment = makeMultiplyExpression(es,
                             make_shared(singleton_object_pool<Immediate>::construct(Result(u32, 0x10))), u32);
                         Expression::Ptr es_di = makeAddExpression(es_segment, di, u32);
@@ -724,153 +733,75 @@ namespace Dyninst
                                                        isRead, isWritten);
                     }
                     break;
+                    case am_tworeghack:
+                    {
+                        if(operand.optype == r_EDXEAX)
+                        {
+                            Expression::Ptr edx(makeRegisterExpression(m_Arch == Arch_x86 ? x86::edx : x86_64::edx));
+                            Expression::Ptr eax(makeRegisterExpression(m_Arch == Arch_x86 ? x86::eax : x86_64::eax));
+                            Expression::Ptr highAddr = makeMultiplyExpression(edx,
+                                    Immediate::makeImmediate(Result(u64, 2^32)), u64);
+                            Expression::Ptr addr = makeAddExpression(highAddr, eax, u64);
+                            Expression::Ptr op = makeDereferenceExpression(addr, u64);
+                            insn_to_complete->appendOperand(op, isRead, isWritten);
+                        }
+                        else if (operand.optype == r_ECXEBX)
+                        {
+                            Expression::Ptr ecx(makeRegisterExpression(m_Arch == Arch_x86 ? x86::ecx : x86_64::ecx));
+                            Expression::Ptr ebx(makeRegisterExpression(m_Arch == Arch_x86 ? x86::ebx : x86_64::ebx));
+                            Expression::Ptr highAddr = makeMultiplyExpression(ecx,
+                                    Immediate::makeImmediate(Result(u64, 2^32)), u64);
+                            Expression::Ptr addr = makeAddExpression(highAddr, ebx, u64);
+                            Expression::Ptr op = makeDereferenceExpression(addr, u64);
+                            insn_to_complete->appendOperand(op, isRead, isWritten);
+                        }
+                    }
+                    break;
+                    
                     case am_reg:
                     {
-                        int registerID = operand.optype;
-                        
-                        #if defined(arch_x86_64)
-                                if(locs->rex_b)
+                        MachRegister r(operand.optype);
+                        r = MachRegister(r.val() & ~r.getArchitecture() | m_Arch);
+                        if(locs->rex_b)
                         {
-                                // We need to flip this guy...
-                            switch(registerID)
-                            {
-                                case r_AL:
-                                case r_rAX:
-                                case r_eAX:
-                                case r_EAX:
-                                case r_AX:
-                                    registerID = r_R8;
-                                    break;
-                                case r_CL:
-                                case r_rCX:
-                                case r_eCX:
-                                case r_ECX:
-                                    registerID = r_R9;
-                                    break;
-                                case r_DL:
-                                case r_rDX:
-                                case r_eDX:
-                                case r_EDX:
-                                case r_DX:
-                                    registerID = r_R10;
-                                    break;
-                                case r_BL:
-                                case r_rBX:
-                                case r_eBX:
-                                case r_EBX:
-                                    registerID = r_R11;
-                                    break;
-                                case r_AH:
-                                case r_rSP:
-                                case r_eSP:
-                                case r_ESP:
-                                    registerID = r_R12;
-                                    break;
-                                case r_CH:
-                                case r_rBP:
-                                case r_eBP:
-                                case r_EBP:
-                                    registerID = r_R13;
-                                    break;
-                                case r_DH:
-                                case r_rSI:
-                                case r_eSI:
-                                case r_ESI:
-                                case r_SI:
-                                    registerID = r_R14;
-                                    break;
-                                case r_BH:
-                                case r_rDI:
-                                case r_eDI:
-                                case r_EDI:
-                                case r_DI:
-                                    registerID = r_R15;
-                                    break;
-                                default:
-                                    break;
-                            };
-                        
+                            r = MachRegister((r.val()) | x86_64::r8.val());
                         }
-                                
-                                    #endif
-                    if(registerID >= r_eAX && registerID <= r_eDI)
-                    {
                         if(sizePrefixPresent)
                         {
-                            registerID -= 10;
+                            r = MachRegister((r.val() & ~x86::FULL) | x86::W_REG);
                         }
-                        else
-                        {
-                            registerID += 10;
-                        }
-                    }
-                    if(registerID >= r_rAX && registerID <= r_rDI)
-                    {
-                        if(sizePrefixPresent)
-                        {
-                            registerID -= 120;
-                        }
-                        else if(is32BitMode)
-                        {
-                            registerID -= 100;
-                        }
-                        else
-                        {
-                            registerID += 10;
-                        }
-                    }
-                    if(registerID == r_eSP || registerID == r_eBP)
-                    {
-                        registerID += 10;
-                    }
-                    if(registerID == r_rSP || registerID == r_rBP)
-                    {
-                        if(!is32BitMode)
-                        {
-                            registerID += 10;
-                        }
-                        else
-                        {
-                            registerID -= 110;
-                        }
-                    }
-                    if(registerID == r_EDXEAX)
-                    {
-                        Expression::Ptr edx(makeRegisterExpression(r_EDX));
-                        Expression::Ptr eax(makeRegisterExpression(r_EAX));
-                        Expression::Ptr highAddr = makeMultiplyExpression(edx,
-                                Immediate::makeImmediate(Result(u64, 2^32)), u64);
-                        Expression::Ptr addr = makeAddExpression(highAddr, eax, u64);
-                        Expression::Ptr op = makeDereferenceExpression(addr, u64);
+                        Expression::Ptr op(makeRegisterExpression(r));
                         insn_to_complete->appendOperand(op, isRead, isWritten);
                     }
-                    else if (registerID == r_ECXEBX)
-                    {
-                        Expression::Ptr ecx(makeRegisterExpression(r_ECX));
-                        Expression::Ptr ebx(makeRegisterExpression(r_EBX));
-                        Expression::Ptr highAddr = makeMultiplyExpression(ecx,
-                                Immediate::makeImmediate(Result(u64, 2^32)), u64);
-                        Expression::Ptr addr = makeAddExpression(highAddr, ebx, u64);
-                        Expression::Ptr op = makeDereferenceExpression(addr, u64);
-                        insn_to_complete->appendOperand(op, isRead, isWritten);
-                    }
-                    else
-                    {
-                        Expression::Ptr op(makeRegisterExpression(registerID));
-                        insn_to_complete->appendOperand(op, isRead, isWritten);
-                    }
-                    
-                }
-            
-                break;
+                    break;
                 case am_stackH:
                 case am_stackP:
                 // handled elsewhere
                     break;
                 case am_allgprs:
                 {
-                    Expression::Ptr op(makeRegisterExpression(r_ALLGPRS));
-                    insn_to_complete->appendOperand(op, isRead, isWritten);
+                    if(m_Arch == Arch_x86)
+                    {
+                        insn_to_complete->appendOperand(makeRegisterExpression(x86::eax), isRead, isWritten);
+                        insn_to_complete->appendOperand(makeRegisterExpression(x86::ecx), isRead, isWritten);
+                        insn_to_complete->appendOperand(makeRegisterExpression(x86::edx), isRead, isWritten);
+                        insn_to_complete->appendOperand(makeRegisterExpression(x86::ebx), isRead, isWritten);
+                        insn_to_complete->appendOperand(makeRegisterExpression(x86::esp), isRead, isWritten);
+                        insn_to_complete->appendOperand(makeRegisterExpression(x86::ebp), isRead, isWritten);
+                        insn_to_complete->appendOperand(makeRegisterExpression(x86::esi), isRead, isWritten);
+                        insn_to_complete->appendOperand(makeRegisterExpression(x86::edi), isRead, isWritten);
+                    }
+                    else
+                    {
+                        insn_to_complete->appendOperand(makeRegisterExpression(x86_64::eax), isRead, isWritten);
+                        insn_to_complete->appendOperand(makeRegisterExpression(x86_64::ecx), isRead, isWritten);
+                        insn_to_complete->appendOperand(makeRegisterExpression(x86_64::edx), isRead, isWritten);
+                        insn_to_complete->appendOperand(makeRegisterExpression(x86_64::ebx), isRead, isWritten);
+                        insn_to_complete->appendOperand(makeRegisterExpression(x86_64::esp), isRead, isWritten);
+                        insn_to_complete->appendOperand(makeRegisterExpression(x86_64::ebp), isRead, isWritten);
+                        insn_to_complete->appendOperand(makeRegisterExpression(x86_64::esi), isRead, isWritten);
+                        insn_to_complete->appendOperand(makeRegisterExpression(x86_64::edi), isRead, isWritten);
+                    }
                 }
                     break;
                 default:
@@ -909,7 +840,7 @@ namespace Dyninst
         doIA32Decode();
         if(decodedInstruction->getEntry()) {
             m_Operation = make_shared(singleton_object_pool<Operation>::construct(decodedInstruction->getEntry(),
-                                    decodedInstruction->getPrefix(), locs));
+                                    decodedInstruction->getPrefix(), locs, m_Arch));
         }
         else
         {
@@ -919,7 +850,7 @@ namespace Dyninst
                 // byte sequence to see in, for example, ASCII strings, we want to simply accept this and move on, not
                 // yell at the user.
             m_Operation = make_shared(singleton_object_pool<Operation>::construct(&invalid,
-                                    decodedInstruction->getPrefix(), locs));
+                                    decodedInstruction->getPrefix(), locs, m_Arch));
         }
         return decodedInstruction->getSize();
     }
@@ -948,7 +879,10 @@ namespace Dyninst
     {
         Instruction::Ptr ret(InstructionDecoder::decode());
         if(ret)
-            ret->arch_decoded_from = x86;
+        {
+            assert(m_Arch != Arch_none);
+            ret->arch_decoded_from = m_Arch;
+        }
         return ret;
     }
     
@@ -956,7 +890,10 @@ namespace Dyninst
     {
         Instruction::Ptr ret(InstructionDecoder::decode(buffer));
         if(ret)
-            ret->arch_decoded_from = x86;
+        {
+            assert(m_Arch != Arch_none);
+            ret->arch_decoded_from = m_Arch;
+        }
         return ret;
     }
     void InstructionDecoder_x86::doDelayedDecode(const Instruction* insn_to_complete)
@@ -965,15 +902,6 @@ namespace Dyninst
         doIA32Decode();
         
         decodeOperands(insn_to_complete);
-        /*      
-        for(unsigned int i = 0;
-            i < opSrc.size();
-            ++i)
-        {
-            insn_to_complete->m_Operands.push_back(Operand(opSrc[i],
-                    readsOperand(opsema, i), writesOperand(opsema, i)));
-        }
-        */
     }
     
 };
