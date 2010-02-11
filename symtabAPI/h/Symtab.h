@@ -200,7 +200,6 @@ class Symtab : public LookupInterface,
 
    /*****Query Functions*****/
    SYMTAB_EXPORT bool isExec() const;
-   SYMTAB_EXPORT bool isDynamic() const;
    SYMTAB_EXPORT bool isStripped();
    SYMTAB_EXPORT ObjectType getObjectType() const;
 
@@ -279,7 +278,6 @@ class Symtab : public LookupInterface,
 
    SYMTAB_EXPORT char *mem_image() const;
 
-   SYMTAB_EXPORT Offset memberOffset() const;
    SYMTAB_EXPORT Offset imageOffset() const;
    SYMTAB_EXPORT Offset dataOffset() const;
    SYMTAB_EXPORT Offset dataLength() const;
@@ -411,7 +409,6 @@ class Symtab : public LookupInterface,
    unsigned dataLen_;
 
    bool is_a_out;
-   bool is_dynamic;
    Offset main_call_addr_; // address of call to main()
 
    bool nativeCompiler;

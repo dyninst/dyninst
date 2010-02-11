@@ -3106,7 +3106,6 @@ Object::Object(MappedFile *mf_, MappedFile *mfd, void (*err_func)(const char *),
   if (!elfHdr.isValid())  {
     log_elferror(err_func_, "ELF header");
     has_error = true;
-    serr_ = Not_A_File;
     return;
   }
   else if (!pdelf_check_ehdr(elfHdr)) {
@@ -3130,8 +3129,6 @@ Object::Object(MappedFile *mf_, MappedFile *mfd, void (*err_func)(const char *),
     has_error = true;
     return;
   }
-
-  serr_ = No_Error;
 
 #ifdef BINEDIT_DEBUG
   print_symbol_map(&symbols_);
@@ -3164,7 +3161,6 @@ Object::Object(const Object& obj)
   elfHdr = obj.elfHdr;
   deps_ = obj.deps_;
   DbgSectionMapSorted = obj.DbgSectionMapSorted;
-  serr_ = obj.serr_;
 }
 
 Object::~Object()

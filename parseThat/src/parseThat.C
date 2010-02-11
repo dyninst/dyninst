@@ -926,10 +926,10 @@ void usage(const char *progname)
     fprintf(stderr, "    The function specified is used to generate instrumentation.\n");
     fprintf(stderr, "    If this option is not specified, default instrumentation is generated.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -l <symbol library name>\n");
-    fprintf(stderr, "    The library specified is used a symbol library when rewriting a static binary\n");
+    fprintf(stderr, "  -l <library name>\n");
+    fprintf(stderr, "    This option is used to load additional libraries\n");
     fprintf(stderr, "    The library can be relative to a standard library directory or a full path\n");
-    fprintf(stderr, "    This option can be repeated for multiple libraries\n");
+    fprintf(stderr, "    This option can be repeated multiple times\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -h\n");
     fprintf(stderr, "    Enables history record logging.  Log files will be placed in:\n");

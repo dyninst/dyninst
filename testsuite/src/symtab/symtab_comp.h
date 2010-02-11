@@ -38,7 +38,6 @@
 #include "ParameterDict.h"
 
 #include "Symtab.h"
-#include "Archive.h"
 
 class COMPLIB_DLL_EXPORT SymtabMutator : public TestMutator {
 	protected:
@@ -83,30 +82,5 @@ extern "C"  {
    TEST_DLL_EXPORT ComponentTester *componentTesterFactory();
 }
 
-// Archive Mutator
-class COMPLIB_DLL_EXPORT ArchiveMutator : public SymtabMutator {
- public:
-   Dyninst::SymtabAPI::Archive *archive;
-   std::string archiveFile;
-
-   ArchiveMutator();
-   virtual test_results_t setup(ParameterDict &param);
-   virtual ~ArchiveMutator();
-};
-
-class ArchiveComponent : public SymtabComponent
-{
- private:
-   ParamPtr archive_ptr;
-   ParamPtr archiveFile_ptr;
- public:
-   Dyninst::SymtabAPI::Archive *archive;
-   const char *archiveFile;
-
-   ArchiveComponent();
-   virtual test_results_t group_setup(RunGroup *group, ParameterDict &params);
-   virtual test_results_t group_teardown(RunGroup *group, ParameterDict &params);
-   virtual ~ArchiveComponent();
-};
 
 #endif

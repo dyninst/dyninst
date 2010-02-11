@@ -11,6 +11,11 @@
 
 include ../../make.config 
 
+# Right now, only enable for platforms that need it
+ifndef STATIC_TARGET
+    STATIC_TARGET = libdyninstAPI_RT.a
+endif
+
 # Now make any necessary architecture specific changes to variables:
 LD		= $(GCC)
 LDFLAGS         += -shared

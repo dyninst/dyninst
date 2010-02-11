@@ -122,7 +122,7 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
       rtLib.push_back(rtlibs_it->second);
       // Ensure that the correct type of library is loaded
       if(    rtlibs_it->second->getMappedObject()->isSharedLib() 
-          && !origBinEdit->getMappedObject()->isDynamicObject() ) 
+          && origBinEdit->getMappedObject()->isStaticExec() ) 
       {
           std::string msg = std::string("RT Library is a shared library ") +
               std::string("when it should be a static library");
@@ -130,7 +130,7 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
           creation_error = true;
           return;
       }else if(     !rtlibs_it->second->getMappedObject()->isSharedLib()
-                &&  origBinEdit->getMappedObject()->isDynamicObject() )
+                &&  !origBinEdit->getMappedObject()->isStaticExec() )
       {
           std::string msg = std::string("RT Library is a static library ") +
               std::string("when it should be a shared library");

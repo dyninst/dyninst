@@ -60,7 +60,7 @@ bool emitElfStatic::archSpecificRelocation(char *, relocationEntry &,
     return false;
 }
 
-bool emitElfStatic::checkSpecialCaseSymbols(Symtab *target, Symbol *checkSym) {
+bool emitElfStatic::checkSpecialCaseSymbols(Symtab *, Symbol *) {
     assert(!EMIT_STATIC_ASSERT);
     return false;
 }
@@ -107,26 +107,32 @@ void emitElfStatic::buildGOT(LinkMap &) {
 
 bool emitElfStatic::isConstructorRegion(Region *) {
     assert(!EMIT_STATIC_ASSERT);
+    return false;
 }
 
 Offset emitElfStatic::layoutNewCtorRegion(LinkMap &) {
     assert(!EMIT_STATIC_ASSERT);
+    return 0;
 }
 
 bool emitElfStatic::createNewCtorRegion(LinkMap &) {
     assert(!EMIT_STATIC_ASSERT);
+    return false;
 }
 
 bool emitElfStatic::isDestructorRegion(Region *) {
     assert(!EMIT_STATIC_ASSERT);
+    return false;
 }
 
 Offset emitElfStatic::layoutNewDtorRegion(LinkMap &) {
     assert(!EMIT_STATIC_ASSERT);
+    return 0;
 }
 
 bool emitElfStatic::createNewDtorRegion(LinkMap &) {
     assert(!EMIT_STATIC_ASSERT);
+    return false;
 }
 
 void emitElfStatic::getExcludedSymbolNames(set<string> &) {

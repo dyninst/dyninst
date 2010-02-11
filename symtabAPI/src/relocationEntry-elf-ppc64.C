@@ -142,8 +142,6 @@ const char* relocationEntry::relType2Str(unsigned long r, unsigned /*addressWidt
         CASE_RETURN_STR(R_PPC64_DTPREL16_HIGHEST);
         CASE_RETURN_STR(R_PPC64_DTPREL16_HIGHESTA);
         CASE_RETURN_STR(R_PPC64_NUM);
-        CASE_RETURN_STR(R_PPC64_CTOR_LIST);
-        CASE_RETURN_STR(R_PPC64_DTOR_LIST);
         default:
             return "?";
     }

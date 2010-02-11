@@ -348,11 +348,6 @@ SYMTAB_EXPORT bool Symtab::isExec() const
     return is_a_out; 
 }
 
-SYMTAB_EXPORT bool Symtab::isDynamic() const
-{
-    return is_dynamic;
-}
-
 SYMTAB_EXPORT bool Symtab::isStripped() 
 {
 #if defined(os_linux) || defined(os_solaris)
@@ -361,11 +356,6 @@ SYMTAB_EXPORT bool Symtab::isStripped()
 #else
     return (no_of_symbols==0);
 #endif
-}
-
-SYMTAB_EXPORT Offset Symtab::memberOffset() const 
-{
-    return member_offset_;
 }
 
 SYMTAB_EXPORT Offset Symtab::imageOffset() const 
@@ -1039,7 +1029,6 @@ Module *Symtab::newModule(const std::string &name, const Offset addr, supportedL
 Symtab::Symtab(std::string filename,bool &err) :
    member_offset_(0),
    is_a_out(false), 
-   is_dynamic(false),
    main_call_addr_(0),
    nativeCompiler(false), 
    isLineInfoValid_(false), 
@@ -1073,12 +1062,6 @@ Symtab::Symtab(std::string filename,bool &err) :
      return;
    }
 
-   if( obj_private->getLastError() != No_Error ) {
-       serr = obj_private->getLastError();
-       err = true;
-       return;
-   }
-
    if (!extractInfo(obj_private))
    {
       create_printf("%s[%d]: WARNING: creating symtab for %s, extractInfo() " 
@@ -1094,7 +1077,6 @@ Symtab::Symtab(std::string filename,bool &err) :
 Symtab::Symtab(char *mem_image, size_t image_size, bool &err) :
    member_offset_(0),
    is_a_out(false), 
-   is_dynamic(false),
    main_call_addr_(0),
    nativeCompiler(false),
    isLineInfoValid_(false),
@@ -1313,7 +1295,6 @@ bool Symtab::extractInfo(Object *linkedFile)
     /* insert error check here. check if parsed */
     address_width_ = linkedFile->getAddressWidth();
     is_a_out = linkedFile->is_aout();
-    is_dynamic = linkedFile->isDynamic();
     code_ptr_ = linkedFile->code_ptr();
     data_ptr_ = linkedFile->data_ptr();
 
@@ -1470,7 +1451,6 @@ Symtab::Symtab(const Symtab& obj) :
    isTypeInfoValid_ = obj.isTypeInfoValid_;
 
    is_a_out = obj.is_a_out;
-   is_dynamic = obj.is_dynamic;
    main_call_addr_ = obj.main_call_addr_; // address of call to main()
 
    nativeCompiler = obj.nativeCompiler;
@@ -2785,7 +2765,6 @@ Serializable *Symtab::serialize_impl(SerializerBase *sb,
 	gtranslate(sb, dataOffset_, "dataOff");
 	gtranslate(sb, dataLen_, "dataLen");
 	gtranslate(sb, is_a_out, "isExec");
-        gtranslate(sb, is_dynamic, "isDynamic");
 	gtranslate(sb, _mods, "Modules", "Module");
 	rebuild_module_hashes(sb);
 	if (is_input(sb))

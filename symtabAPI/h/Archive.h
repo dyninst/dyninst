@@ -62,13 +62,13 @@ class ArchiveMember {
         }
 
         const string& getName()  { return name_; }
-        const Offset getOffset() { return offset_; }
+        Offset getOffset() { return offset_; }
         Symtab * getSymtab() { return member_; }
         void setSymtab(Symtab *img) { member_ = img; }
 
     private:
         const string name_;
-        const Offset offset_;
+        Offset offset_;
         Symtab *member_;
 };
 

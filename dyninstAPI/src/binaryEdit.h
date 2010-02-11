@@ -141,8 +141,8 @@ class BinaryEdit : public AddressSpace {
     // search for a shared library relocation
 	Address getDependentRelocationAddr(Symbol *referring);
 
-   void setupRTLibrary(vector<BinaryEdit *> &r);
-   vector<BinaryEdit *> &rtLibrary();
+   void setupRTLibrary(std::vector<BinaryEdit *> &r);
+   std::vector<BinaryEdit *> &rtLibrary();
    bool getAllDependencies(std::map<std::string, BinaryEdit* > &deps);
 
    void markDirty();
@@ -171,7 +171,7 @@ class BinaryEdit : public AddressSpace {
     static bool getStatFileDescriptor(const std::string &file,
                                       fileDescriptor &desc);
 
-    static bool getResolvedLibraryPath(const std::string &filename, std::string &fullPath);
+    static bool getResolvedLibraryPath(const std::string &filename, std::vector<std::string> &paths);
 
     bool inferiorMallocStatic(unsigned size);
 
@@ -196,7 +196,7 @@ class BinaryEdit : public AddressSpace {
                              Region *newSec,
                              Module *mod);
     mapped_object *mobj;
-    vector<BinaryEdit *> rtlib;
+    std::vector<BinaryEdit *> rtlib;
     std::vector<BinaryEdit *> siblings;
     bool multithread_capable_;
 };

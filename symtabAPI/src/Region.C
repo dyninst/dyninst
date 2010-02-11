@@ -42,11 +42,13 @@ using namespace std;
 Region *Region::createRegion( Offset diskOff, perm_t perms, RegionType regType,
                               unsigned long diskSize, Offset memOff, 
                               unsigned long memSize, std::string name, 
-                              char *rawDataPtr)
+                              char *rawDataPtr, bool isLoadable, bool isTLS,
+                              unsigned long memAlign)
 {
    Region *newreg = new Region(0, name, diskOff, 
                                diskSize, memOff, memSize, 
-                               rawDataPtr, perms, regType, true);
+                               rawDataPtr, perms, regType, isLoadable, isTLS,
+                               memAlign);
    return newreg;
 }
 
@@ -65,16 +67,6 @@ Region::Region(unsigned regnum, std::string name, Offset diskOff,
 {
    if (memOff)
       isLoadable_ = true;
-}
-
-bool Region::createRegion (Region *&region, Offset diskOff, perm_t perms, RegionType regType,
-           unsigned long diskSize, Offset memOff, unsigned long memSize,
-           std::string name, char *rawDataPtr, bool isLoadable,
-           bool isTLS, unsigned long memAlign)
-{
-    region = new Region(0, name, diskOff, diskSize, memOff, memSize,
-            rawDataPtr, perms, regType, isLoadable, isTLS, memAlign);
-    return true;
 }
 
 Region::Region(const Region &reg) :

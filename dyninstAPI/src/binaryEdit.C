@@ -331,7 +331,7 @@ void BinaryEdit::makeInitAndFiniIfNeeded()
 {
 }
 
-bool BinaryEdit::archSpecificMultiThreadCapable() {
+bool BinaryEdit::archSpecificMultithreadCapable() {
     return false;
 }
 #endif
@@ -344,13 +344,15 @@ bool BinaryEdit::getStatFileDescriptor(const std::string &name, fileDescriptor &
 }
 
 #if !defined(cap_binary_rewriter)
-std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::string filename)
+std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::string /* filename */)
 {
   assert(!"Not implemented");
-  return std::make_pair("", static_cast<BinaryEdit*>(NULL));
+  std::map<std::string, BinaryEdit *> retMap;
+  retMap.insert(std::make_pair("", static_cast < BinaryEdit * >(NULL)));
+  return retMap;
 }
 
-bool BinaryEdit::getResolvedLibraryPath(const std::string &, std::string &) {
+bool BinaryEdit::getResolvedLibraryPath(const std::string &, std::vector<std::string> &) {
     assert(!"Not implemented");
     return false;
 }

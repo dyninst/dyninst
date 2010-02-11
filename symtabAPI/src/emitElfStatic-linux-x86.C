@@ -30,7 +30,7 @@
  */
 
 /* 
- * holds architecture specific functions for x86 architecture needed for the
+ * holds architecture specific functions for x86 and x86_64 architecture needed for the
  * static executable rewriter
  */
 
@@ -60,11 +60,33 @@ static const unsigned X86_64_WIDTH = 8;
 // Used in an assert so needs to be a macro
 #define UNKNOWN_ADDRESS_WIDTH_ASSERT "An unknown address width was encountered, can't continue"
 
+/* NOTE:
+ * As most of these functions are defined per architecture, the description of
+ * each of these functions is in the emitElfStatic header. Comments describing
+ * the function interface are explicitly left out.
+ */
+
+/**
+ * Specific to x86
+ *
+ * Given a relocation, determines if the relocation corresponds to a .ctors or .dtors
+ * table that requires special consideration. Modifies the passed symbol offset to
+ * point to the right table, if applicable.
+ *
+ * rel          The relocation entry to examine
+ * globalOffset The offset of the linked code (used for symbol offset calculation)
+ * lmap         Holds information about .ctors/.dtors tables
+ * errMsg       Set on error
+ * symbolOffset Modified by this routine to contain the offset of the table
+ *
+ * Returns true, if there are no errors including the case where the relocation 
+ * entry doesn't reference the .ctors/.dtors tables.
+ */
 static bool computeCtorDtorAddress(relocationEntry &rel, Offset globalOffset,
         LinkMap &lmap, string &errMsg, Offset &symbolOffset)
 {
     if( rel.name() ==  SYMTAB_CTOR_LIST_REL ) {
-        // This needs to be: (the location of the .ctors table) + addend
+        // This needs to be: (the location of the .ctors table)
         if( lmap.newCtorRegions.size() > 0 ) {
             symbolOffset = lmap.ctorRegionOffset + globalOffset;
         }else if( lmap.originalCtorRegion != NULL ) {
@@ -74,7 +96,7 @@ static bool computeCtorDtorAddress(relocationEntry &rel, Offset globalOffset,
             return false;
         }
     }else if( rel.name() == SYMTAB_DTOR_LIST_REL ) {
-        // This needs to be: (the location of the .dtors table) + addend
+        // This needs to be: (the location of the .dtors table)
         if( lmap.newDtorRegions.size() > 0 ) {
             symbolOffset = lmap.dtorRegionOffset + globalOffset;
         }else if( lmap.originalDtorRegion != NULL ) {
@@ -88,9 +110,6 @@ static bool computeCtorDtorAddress(relocationEntry &rel, Offset globalOffset,
     return true;
 }
 
-/**
- * Computes the relocation value and copies it into the target location
- */
 bool emitElfStatic::archSpecificRelocation(char *targetData, relocationEntry &rel,
        Offset dest, Offset relOffset, Offset globalOffset, LinkMap &lmap,
        string &errMsg) 
@@ -340,7 +359,7 @@ bool emitElfStatic::checkSpecialCaseSymbols(Symtab *member, Symbol *checkSym) {
      * (i.e. destructors for global C++ objects).
      *
      * The initial release of the binary rewriter for static binaries doesn't
-     * provide solution to this problem. Therefore, a warning needs to be
+     * provide a solution to this problem. Therefore, a warning needs to be
      * generated to alert the user to this outstanding problem.
      */
     if( isStripped_ ) {
@@ -390,7 +409,11 @@ void emitElfStatic::getExcludedSymbolNames(set<string> &symNames) {
     /*
      * It appears that some .o's have a reference to _GLOBAL_OFFSET_TABLE_
      * This symbol is an indication to the linker that a GOT should be 
-     * created, it isn't a symbol that should be resolved.
+     * created, it isn't a symbol that should be resolved. 
+     *
+     * Consequently, a GOT shouldn't always be created when linking 
+     * the .o's into the target. A GOT is built when certain relocations
+     * exist that require a GOT.
      */
     symNames.insert("_GLOBAL_OFFSET_TABLE_");
 }
@@ -519,9 +542,6 @@ static const Elf64_Xword X86_64_TRAILER = 0x0000000000000000ULL;
 static const string DTOR_NAME(".dtors");
 static const string CTOR_NAME(".ctors");
 
-/*
- * true, if the passed Region is a constructor Region
- */
 bool emitElfStatic::isConstructorRegion(Region *reg) {
     return ( CTOR_NAME.compare(reg->getRegionName()) == 0 );
 }
@@ -597,9 +617,6 @@ bool emitElfStatic::createNewCtorRegion(LinkMap &lmap) {
     return true;
 }
 
-/*
- * true, if the passed Region is a destructor Region
- */
 bool emitElfStatic::isDestructorRegion(Region *reg) {
     return ( DTOR_NAME.compare(reg->getRegionName()) == 0 );
 }

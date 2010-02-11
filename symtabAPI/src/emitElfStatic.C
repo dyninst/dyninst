@@ -93,11 +93,11 @@ char *emitElfStatic::linkStatic(Symtab *target,
     /* 
      * Basic algorithm is:
      * - locate defined versions of symbols for undefined symbols in 
-     *   either the target or relocatable code, produces a vector
+     *   either the target or relocatable code, produces a list
      *   of Symtab objects that contain the defined versions
      *
-     * - Allocate storage for all new code and data to be linked into 
-     *   the target, produces a LinkMap containing all allocation 
+     * - Allocate space for all new code and data to be linked into 
+     *   the target, populates a LinkMap with all allocation 
      *   information
      *
      * - Compute relocations and set their targets to these values
@@ -199,7 +199,7 @@ bool emitElfStatic::resolveSymbols(Symtab *target,
     target->getLinkingResources(libraries);
 
     // Add all relocatable files explicitly referenced by new symbols, these
-    // essentially fuel the linking process
+    // essentially fuel the symbol resolution process
     set<Symtab *> explicitRefs;
     target->getExplicitSymtabRefs(explicitRefs);
 
@@ -214,7 +214,7 @@ bool emitElfStatic::resolveSymbols(Symtab *target,
 
     set<Symtab *>::iterator curObjFilePtr = workSet.begin();
     while( curObjFilePtr != workSet.end() ) {
-        // Take an relocatable file off the working set
+        // Take a relocatable file off the working set
         Symtab *curObjFile = *curObjFilePtr;
         workSet.erase(curObjFile);
 
@@ -409,11 +409,13 @@ bool emitElfStatic::resolveSymbols(Symtab *target,
  * Creates a GOT used for indirect memory accesses that is required by some
  * relocations
  *
- * Creates a new global constructor and/or destructor table if necessary
+ * Creates a new global constructor and/or destructor table if necessary,
+ * combining tables from the target and collection of Symtab objects
  *
  * target               New code/data/etc. will be linked into this Symtab
  * relocatableObjects   The new code/data/etc.
  * globalOffset         The location of the new block of data in the target
+ * lmap                 The LinkMap to be populated by this function
  */
 bool emitElfStatic::createLinkMap(Symtab *target,
         vector<Symtab *> &relocatableObjects, 
@@ -646,7 +648,13 @@ bool emitElfStatic::createLinkMap(Symtab *target,
             return false;
         }
 
-        // The size of this Region is counted twice
+        /*
+         *  The size of this Region is counted twice: once when collecting the
+         *  original TLS Regions and once when laying out the image. This is
+         *  necessary to maintain consistency with the case where there are no
+         *  new TLS regions in the relocatable objects but existing TLS symbols
+         *  are used.
+         */
         if( dataTLS != NULL ) {
             lmap.tlsSize -= dataTLS->getRegionSize();
         }
@@ -758,7 +766,7 @@ bool emitElfStatic::createLinkMap(Symtab *target,
         // Update the size of COMMON storage
         if( commonAlignments.size() > 0 ) {
             // A COMMON region is not really complete
-            Region::createRegion(commonStorage, 0, Region::RP_RW,
+            commonStorage = Region::createRegion(0, Region::RP_RW,
                     Region::RT_BSS, commonOffset - commonStartOffset, 0, 
                     commonOffset - commonStartOffset,
                     DEFAULT_COM_NAME, NULL, true, false, commonRegionAlign);
@@ -819,7 +827,15 @@ bool emitElfStatic::createLinkMap(Symtab *target,
 }
 
 /**
- * Lays out the specified regions into the specified storage space
+ * Lays out the specified regions, storing the layout info in the 
+ * passed map.
+ *
+ * regions              A collection of Regions to layout
+ * regionAllocs         A map of Regions to their layout information
+ * currentOffset        The starting offset for the passed Regions in
+ *                      the new storage space
+ * globalOffset         The location of the new storage space in the
+ *                      target (used for padding calculation)
  */
 Offset emitElfStatic::layoutRegions(deque<Region *> &regions, 
         map<Region *, LinkMap::AllocPair> &regionAllocs,
@@ -852,7 +868,13 @@ Offset emitElfStatic::layoutRegions(deque<Region *> &regions,
     return retOffset;
 }
 
-// Add new Regions to the target 
+/*
+ * Adds new combined Regions to the target at the specified globalOffset
+ *
+ * target       The Symtab object to which the new Regions will be added
+ * globalOffset The offset of the first new Region in the target
+ * lmap         Contains all the information about the LinkMap
+ */
 bool emitElfStatic::addNewRegions(Symtab *target, Offset globalOffset, LinkMap &lmap) {
     char *newTargetData = lmap.allocatedData;
     
@@ -920,6 +942,12 @@ bool emitElfStatic::addNewRegions(Symtab *target, Offset globalOffset, LinkMap &
     return true;
 }
 
+/**
+ * Copys the new Regions, as indicated by the LinkMap, into the
+ * allocated storage space
+ *
+ * lmap         Contains all the information necessary to perform the copy
+ */
 void emitElfStatic::copyRegions(LinkMap &lmap) {
     char *targetData = lmap.allocatedData;
 
@@ -941,6 +969,12 @@ void emitElfStatic::copyRegions(LinkMap &lmap) {
     }
 }
 
+/**
+ * Computes the padding necessary to satisfy the specified alignment
+ *
+ * candidateOffset      A possible offset for an item
+ * alignment            The alignment for an item
+ */
 inline
 Offset emitElfStatic::computePadding(Offset candidateOffset, Offset alignment) {
     Offset padding = 0;
@@ -954,12 +988,17 @@ Offset emitElfStatic::computePadding(Offset candidateOffset, Offset alignment) {
  * Given a collection of newly allocated regions in the specified storage space, 
  * computes relocations and places the values at the location specified by the
  * relocation entry (stored with the Regions)
+ *
+ * target               The Symtab object being rewritten
+ * relocatableObjects   A list of relocatable files being linked into target
+ * globalOffset         The location of the new storage space in target
+ * lmap                 Contains all the information necessary to apply relocations
  */
 bool emitElfStatic::applyRelocations(Symtab *target, vector<Symtab *> &relocatableObjects,
         Offset globalOffset, LinkMap &lmap,
         StaticLinkError &err, string &errMsg) 
 {
-    // Iterate over all relocations in all .o's
+    // Iterate over all relocations in all relocatable files
     vector<Symtab *>::iterator depObj_it;
     for(depObj_it = relocatableObjects.begin(); depObj_it != relocatableObjects.end(); ++depObj_it) {
         vector<Region *> allRegions;
@@ -1003,7 +1042,7 @@ bool emitElfStatic::applyRelocations(Symtab *target, vector<Symtab *> &relocatab
 
     rewrite_printf("\n*** Computing relocations added to target.\n\n");
 
-    // Compute relocations added to static target 
+    // Compute relocations added to target 
     vector<Region *> allRegions;
     target->getAllRegions(allRegions);
 
@@ -1030,6 +1069,10 @@ bool emitElfStatic::applyRelocations(Symtab *target, vector<Symtab *> &relocatab
     return true;
 }
 
+/**
+ * A string representation of the StaticLinkError returned by
+ * other functions
+ */
 string emitElfStatic::printStaticLinkError(StaticLinkError err) {
     switch(err) {
         CASE_RETURN_STR(No_Static_Link_Error);
@@ -1041,6 +1084,9 @@ string emitElfStatic::printStaticLinkError(StaticLinkError err) {
     }
 }
 
+/**
+ * Indicates if a new TLS initialization image has been created
+ */
 bool emitElfStatic::hasRewrittenTLS() const {
     return hasRewrittenTLS_;
 }
@@ -1088,11 +1134,23 @@ bool emitElfStatic::hasRewrittenTLS() const {
  * | DATA   |  BSS   |
  * +--------+--------+
  *
+ * New TLS data and bss is added to the original initialization image as follows:
+ *
+ * +----------+------------------+-------------+------------+-----+
+ * | NEW DATA | EXPANDED NEW BSS | TARGET DATA | TARGET BSS | TCB |
+ * +----------+------------------+-------------+------------+-----+
+ *
+ * It is important to note that the TARGET DATA and TARGET BSS blocks are not moved.
+ * This ensures that the modifications to the TLS image are safe.
+ *
  * ==========================
  * 
  * These are the two variants one would see when working with ELF files. So, an
  * architecture either uses variant 1 or 2.
+ *
  */
+
+/* See architecture specific functions that call these for descriptions of function interface */
 
 Offset emitElfStatic::tlsLayoutVariant1(Offset, Region *, Region *, LinkMap &)
 {
@@ -1121,7 +1179,7 @@ Offset emitElfStatic::tlsLayoutVariant2(Offset globalOffset, Region *dataTLS, Re
         if( dataTLS != NULL ) {
             lmap.regionAllocs.insert(make_pair(bssTLS, lmap.regionAllocs[dataTLS]));
         }else{
-            lmap.regionAllocs.insert(make_pair(bssTLS, make_pair(1, endOffset)));
+            lmap.regionAllocs.insert(make_pair(bssTLS, make_pair(0, endOffset)));
         }
     }
 
@@ -1150,7 +1208,7 @@ Offset emitElfStatic::tlsLayoutVariant2(Offset globalOffset, Region *dataTLS, Re
 // Note: Variant 1 does not require any modifications, so a separate
 // function is not necessary
 Offset emitElfStatic::tlsAdjustVariant2(Offset curOffset, Offset tlsSize) {
-    // For Variant 1, offsets relative to the TCB need to be negative
+    // For Variant 2, offsets relative to the TCB need to be negative
     Offset retOffset = curOffset;
     retOffset -= tlsSize;
     return retOffset;

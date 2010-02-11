@@ -11,6 +11,10 @@
 
 include ../../make.config 
 
+ifndef STATIC_TARGET
+    STATIC_TARGET = libdyninstAPI_RT.a
+endif
+
 # Now make any necessary architecture specific changes to variables:
 LD		= $(GCC)
 LDFLAGS         += -shared
@@ -61,7 +65,7 @@ XTARGET_32   = $(basename $(basename $(TARGET_32_SO)))
 VOUCHER_32   = V_$(XTARGET_32)
 OBJS_32      = $(patsubst %.c, %_m32.o, $(filter %.c,$(notdir $(SRCS))))
 ASM_OBJS_32  = $(patsubst %.S, %_m32.o, $(filter %.S,$(notdir $(ASM_SRCS_32))))
-CFLAGS_32    = -DMUTATEE_32 $(CFLAGS)
+CFLAGS_32    = $(subst -DMUTATEE64,-DMUTATEE_32,$(CFLAGS))
 LDFLAGS_32   = $(LDFLAGS)
 LIBS_32      = -L/usr/lib $(LIBS)
 
@@ -89,7 +93,7 @@ $(DEST)/$(TARGET_32_SO): $(TARGET_32_SO)
 STATIC_TARGET_32 = libdyninstAPI_RT_m32.a
 STATIC_OBJS_32      = $(patsubst %.c, %_nopic_m32.o, $(filter %.c,$(notdir $(SRCS))))
 STATIC_ASM_OBJS_32  = $(patsubst %.S, %_nopic_m32.o, $(filter %.S,$(notdir $(ASM_SRCS_32))))
-STATIC_CFLAGS_32    = -DMUTATEE_32 $(STATIC_CFLAGS)
+STATIC_CFLAGS_32    =  $(subst -DMUTATEE64,-DMUTATEE_32,$(STATIC_CFLAGS))
 
 $(STATIC_OBJS_32): %_nopic_m32.o: ../src/%.c
 	$(CC) $(subst -m64,-m32,$(STATIC_CFLAGS_32)) -c $< -o $@

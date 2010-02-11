@@ -376,7 +376,7 @@ class image : public codeRange, public InstructionSource {
 
    bool isAOut() const { return is_a_out; }
 
-   bool isSharedObj() const { return (!getObject()->isExec() && getObject()->isDynamic()); }
+   bool isSharedObj() const { return (getObject()->getObjectType() == obj_SharedLib); }
    bool isRelocatableObj() const { return (getObject()->getObjectType() == obj_RelocatableFile); }
  
    bool isCode(const Address &where) const;

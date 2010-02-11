@@ -31,7 +31,10 @@
 
 /* A stub file for architecture specific functions of the relocationEntry class */
 
-#include <Symtab.h>
+#include "Symtab.h"
+
+using namespace Dyninst;
+using namespace SymtabAPI;
 
 const char *relocationEntry::relType2Str(unsigned long, unsigned /*addressWidth*/) {
     return "?";

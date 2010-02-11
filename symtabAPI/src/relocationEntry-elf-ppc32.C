@@ -35,10 +35,6 @@
 #include "annotations.h"
 #include <elf.h>
 
-// Some extra relocation types used internally
-static const unsigned long R_PPC_CTOR_LIST = R_PPC_NUM + 1;
-static const unsigned long R_PPC_DTOR_LIST = R_PPC_CTOR_LIST + 1;
-
 const char* relocationEntry::relType2Str(unsigned long r, unsigned /*addressWidth*/) {
     switch(r) {
         CASE_RETURN_STR(R_PPC_NONE);
@@ -134,8 +130,6 @@ const char* relocationEntry::relType2Str(unsigned long r, unsigned /*addressWidt
         CASE_RETURN_STR(R_PPC_REL16_HI);
         CASE_RETURN_STR(R_PPC_REL16_HA);
         CASE_RETURN_STR(R_PPC_TOC16);
-        CASE_RETURN_STR(R_PPC_CTOR_LIST);
-        CASE_RETURN_STR(R_PPC_DTOR_LIST);
         default:
             return "?";
     }

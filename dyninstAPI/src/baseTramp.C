@@ -906,7 +906,7 @@ bool baseTramp::doOptimizations()
 }
 
 void baseTramp::setRecursive(bool trampRecursive, bool force) {
-   /*
+   /* Tramp guards now work for static binaries
    BinaryEdit *binEdit = dynamic_cast<BinaryEdit *>(proc());
    if (binEdit && binEdit->getMappedObject()->parse_img()->getObject()->isStaticBinary()) {
    	guardState_ = recursive_BTR;

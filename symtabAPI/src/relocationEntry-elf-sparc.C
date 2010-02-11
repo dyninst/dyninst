@@ -30,6 +30,7 @@
  */
 
 /* Functions of the relocationEntry class specific to SPARC ELF */
+#define ELF_TARGET_SPARC 1
 #include "Symtab.h"
 #include "Serialization.h"
 #include "annotations.h"
@@ -116,8 +117,6 @@ const char* relocationEntry::relType2Str(unsigned long r, unsigned /*addressWidt
         CASE_RETURN_STR(R_SPARC_TLS_DTPOFF64);
         CASE_RETURN_STR(R_SPARC_TLS_TPOFF32);
         CASE_RETURN_STR(R_SPARC_TLS_TPOFF64);
-        CASE_RETURN_STR(R_SPARC_CTOR_LIST);
-        CASE_RETURN_STR(R_SPARC_DTOR_LIST);
         default:
             return "?";
     }

@@ -1173,7 +1173,7 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
 
    // if unable to parse object file (somehow??), try to
    //  notify user/calling process + return....    
-   if (!imageLen_ && ( linkedFile->isDynamic() || linkedFile->isStaticBinary()) ) {
+   if (!imageLen_ && ( linkedFile->getObjectType() != obj_RelocatableFile ) ) {
       string msg = string("Parsing problem with executable file: ") + desc.file();
       statusLine(msg.c_str());
       msg += "\n";
@@ -1749,17 +1749,17 @@ void *image::getPtrToInstruction(Address offset, const image_func *context) cons
     void *retPtr = NULL;
 
     /* 
-     * The following method cannot be used to find a Region in
-     * relocatable files using an offset because relocatable files
-     * usually have an address of zero. Because each Region has
-     * an address of zero, findEnclosingRegion returns undefined
-     * results.
+     * The following method cannot be used to find a Region in relocatable
+     * files using an offset because Regions in relocatable files usually
+     * have an offset of zero. Because of this, the behavior of 
+     * findEnclosingRegion will be undefined.
      *
      * Question: Why not use the second method all the time?
      * 
-     * This method can be more successful than using the Function
-     * to get the Region as the Region is allowed to be undefined.
+     * This method can be more successful than using the Function to get the
+     * Region as the Region is allowed to be undefined.
      */
+
     if( linkedFile->getObjectType() != obj_RelocatableFile ) {
         retPtr = getPtrToInstruction(offset);
     }
