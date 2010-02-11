@@ -298,7 +298,6 @@ namespace Dyninst
             case Arch_x86_64:
                 return op_data_64;
             default:
-                assert(0);
                 return op_data_32;
         }
     }

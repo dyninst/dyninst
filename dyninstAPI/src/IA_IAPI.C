@@ -56,6 +56,9 @@ IA_IAPI::IA_IAPI(dyn_detail::boost::shared_ptr<Dyninst::InstructionAPI::Instruct
     hascftstatus.first = false;
     tailCall.first = false;
     boost::tuples::tie(curInsnIter, boost::tuples::ignore) = allInsns.insert(std::make_pair(current, dec->decode()));
+    stackPtr.reset(new RegisterAST(MachRegister::getStackPointer(img->getArch())));
+    framePtr.reset(new RegisterAST(MachRegister::getFramePointer(img->getArch())));
+    thePC.reset(new RegisterAST(MachRegister::getPC(img->getArch())));
 }
 
 IA_IAPI::IA_IAPI(dyn_detail::boost::shared_ptr<Dyninst::InstructionAPI::InstructionDecoder> dec_, Address where_,
@@ -66,6 +69,9 @@ IA_IAPI::IA_IAPI(dyn_detail::boost::shared_ptr<Dyninst::InstructionAPI::Instruct
     hascftstatus.first = false;
     tailCall.first = false;
     boost::tuples::tie(curInsnIter, boost::tuples::ignore) = allInsns.insert(std::make_pair(current, dec->decode()));
+    stackPtr.reset(new RegisterAST(MachRegister::getStackPointer(img->getArch())));
+    framePtr.reset(new RegisterAST(MachRegister::getFramePointer(img->getArch())));
+    thePC.reset(new RegisterAST(MachRegister::getPC(img->getArch())));
 }
 
 void IA_IAPI::advance()
@@ -145,8 +151,6 @@ bool IA_IAPI::isFrameSetupInsn(Instruction::Ptr i) const
 {
     if(i->getOperation().getID() == e_mov)
     {
-        static RegisterAST::Ptr framePtr(new RegisterAST(MachRegister::getFramePointer(img->getArch())));
-        static RegisterAST::Ptr stackPtr(new RegisterAST(MachRegister::getStackPointer(img->getArch())));
         if(i->isRead(stackPtr) &&
             i->isWritten(framePtr))
         {
@@ -424,11 +428,11 @@ bool IA_IAPI::isIPRelativeBranch() const
     if(curInsn()->getCategory() == c_BranchInsn &&
         !getCFT())
 {
-    static RegisterAST::Ptr thePC(new RegisterAST(RegisterAST::makePC(img->getArch())));
-    if(curInsn()->getControlFlowTarget()->isUsed(thePC))
+    Expression::Ptr cft = curInsn()->getControlFlowTarget();
+    if(cft->isUsed(thePC))
     {
-        parsing_printf("\tIP-relative indirect jump to %s at 0x%lx\n", current,
-            curInsn()->getControlFlowTarget()->format().c_str());
+        parsing_printf("\tIP-relative indirect jump to %s at 0x%lx\n",
+                       cft->format().c_str(), current);
         return true;
     }
 }
@@ -1194,7 +1198,6 @@ bool IA_IAPI::isRealCall() const
                    thunkSecond->format().c_str());
     if(thunkFirst && (thunkFirst->getOperation().getID() == e_mov))
     {
-        static RegisterAST::Ptr stackPtr(new RegisterAST(MachRegister::getStackPointer(img->getArch())));
         if(thunkFirst->isRead(stackPtr))
         {
             parsing_printf("... checking second insn\n");
@@ -1305,7 +1308,6 @@ bool IA_IAPI::isTailCall(unsigned int) const
         }
         if(prevInsn->getOperation().getID() == e_pop)
         {
-            static RegisterAST::Ptr framePtr(new RegisterAST(MachRegister::getFramePointer(img->getArch())));
             if(prevInsn->isWritten(framePtr))
             {
                 parsing_printf("\tprev insn was %s, TAIL CALL\n", prevInsn->format().c_str());
@@ -1347,7 +1349,6 @@ bool IA_IAPI::savesFP() const
 {
     if(curInsn()->getOperation().getID() == e_push)
     {
-        static RegisterAST::Ptr framePtr(new RegisterAST(MachRegister::getFramePointer(img->getArch())));
         return(curInsn()->isRead(framePtr));
     }
     return false;

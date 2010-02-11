@@ -34,9 +34,7 @@
 
 #include "Instruction.h"
 #include "InstructionDecoder.h"
-
-//#include <dyn_detail/boost/assign/list_of.hpp>
-//#include <dyn_detail/boost/iterator/indirect_iterator.hpp>
+#include "RegisterIDs-x86.h"
 #include <boost/assign/list_of.hpp>
 #include <boost/iterator/indirect_iterator.hpp>
 #include <deque>
@@ -112,12 +110,12 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
       using namespace x86;
   
   RegisterAST::Ptr r_eax(new RegisterAST(eax));
-  RegisterAST::Ptr r_adjust(new RegisterAST(flags));
-  RegisterAST::Ptr r_zero(new RegisterAST(flags));
-  RegisterAST::Ptr r_overflow(new RegisterAST(flags));
-  RegisterAST::Ptr r_parity(new RegisterAST(flags));
-  RegisterAST::Ptr r_sign(new RegisterAST(flags));
-  RegisterAST::Ptr r_carry(new RegisterAST(flags));
+  RegisterAST::Ptr r_adjust(new RegisterAST(flags, r_AF, r_AF));
+  RegisterAST::Ptr r_zero(new RegisterAST(flags, r_ZF, r_ZF));
+  RegisterAST::Ptr r_overflow(new RegisterAST(flags, r_OF, r_OF));
+  RegisterAST::Ptr r_parity(new RegisterAST(flags, r_PF, r_PF));
+  RegisterAST::Ptr r_sign(new RegisterAST(flags, r_SF, r_SF));
+  RegisterAST::Ptr r_carry(new RegisterAST(flags, r_CF, r_CF));
   expectedRead.insert(expectedRead.begin(), r_eax);
   expectedWritten = list_of(r_eax)(r_adjust)(r_zero)(r_overflow)(r_parity)(r_sign)(r_carry);
   

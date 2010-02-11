@@ -115,6 +115,9 @@ class IA_IAPI : public InstructionAdapter
         mutable Address cachedCFT;
         mutable std::pair<bool, bool> hascftstatus;
         mutable std::pair<bool, bool> tailCall;
+        Dyninst::InstructionAPI::RegisterAST::Ptr framePtr;
+        Dyninst::InstructionAPI::RegisterAST::Ptr stackPtr;
+        Dyninst::InstructionAPI::RegisterAST::Ptr thePC;
 };
 
 

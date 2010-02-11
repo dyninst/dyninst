@@ -56,7 +56,7 @@ namespace Dyninst
     RegisterAST::RegisterAST(MachRegister r) :
             Expression(r), m_Reg(r), m_Low(0)
     {
-        m_High = r.size();
+        m_High = r.size() * 8;
     }
     RegisterAST::~RegisterAST()
     {
@@ -72,14 +72,7 @@ namespace Dyninst
     }
     bool RegisterAST::isUsed(InstructionAST::Ptr findMe) const
     {
-      if(*findMe == *this)
-      {
-        return true;
-      }
-      if(findMe->checkRegID(m_Reg, m_Low, m_High))
-      {
-          
-      }
+        return findMe->checkRegID(m_Reg, m_Low, m_High);
     }
     unsigned int RegisterAST::getID() const
     {
@@ -102,11 +95,20 @@ namespace Dyninst
     
     bool RegisterAST::operator<(const RegisterAST& rhs) const
     {
-      return m_Reg < rhs.m_Reg;
+        if(m_Reg < rhs.m_Reg) return true;
+        if(rhs.m_Reg < m_Reg) return false;
+        if(m_Low < rhs.m_Low) return true;
+        if(m_Low > rhs.m_Low) return false;
+        return m_High < rhs.m_High;
     }
     bool RegisterAST::isStrictEqual(const InstructionAST& rhs) const
     {
-        return(rhs.checkRegID(m_Reg, m_Low, m_High));
+        if(rhs.checkRegID(m_Reg, m_Low, m_High))
+        {
+            const RegisterAST& rhs_reg = dynamic_cast<const RegisterAST&>(rhs);
+            return (m_Low == rhs_reg.m_Low) && (m_High == rhs_reg.m_High);
+        }
+        return false;
     }
     RegisterAST::Ptr RegisterAST::promote(const InstructionAST::Ptr regPtr) {
         const RegisterAST::Ptr r = dyn_detail::boost::dynamic_pointer_cast<RegisterAST>(regPtr);
@@ -132,6 +134,11 @@ namespace Dyninst
     }
     bool RegisterAST::checkRegID(MachRegister r, unsigned int low, unsigned int high) const
     {
+#if defined(DEBUG)
+            fprintf(stderr, "%s (%d-%d) compared with %s (%d-%d)\n",
+                    format().c_str(), m_Low, m_High,
+                    r.name(), low, high);
+#endif
         return (r.getBaseRegister() == m_Reg.getBaseRegister()) && (low <= m_High) &&
                 (high >= m_Low);
     }
