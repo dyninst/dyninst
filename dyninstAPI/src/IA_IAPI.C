@@ -1030,6 +1030,7 @@ bool IA_IAPI::fillTableEntries(Address thunkOffset,
 {
     if( !img->isValidAddress(tableBase) )
 	{
+            parsing_printf("\ttableBase 0x%lx invalid, returning false\n", tableBase);
 	    return false;
 	}
     for(unsigned int i=0; i < tableSize; i++)
@@ -1078,7 +1079,8 @@ bool IA_IAPI::fillTableEntries(Address thunkOffset,
 		outEdges.push_back(std::make_pair(jumpAddress, ET_INDIR));
 	        
 	}
-    return true;
+        if(outEdges.empty()) parsing_printf("\tno valid table entries, ret false\n");
+    return !outEdges.empty();
     
 }
 
