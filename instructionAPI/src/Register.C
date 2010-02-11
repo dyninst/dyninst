@@ -84,7 +84,14 @@ namespace Dyninst
         const char* name = m_Reg.name();
         if(name)
         {
-            return std::string(name);
+            std::string ret(name);
+            std::string::size_type substr = ret.rfind(':');
+            if(substr != std::string::npos)
+            {
+                ret = ret.substr(substr+1, ret.length());
+            }
+            std::transform(ret.begin(), ret.end(), ret.begin(), ::toupper);
+            return ret;
         }
         return "[NAME NOT FOUND]";
     }
