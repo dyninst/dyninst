@@ -175,6 +175,22 @@ test_results_t InstructionMutator::verify_read_write_sets(const Instruction::Ptr
     else
     {
         logerror("Read set for instruction %s not as expected\n", i->format().c_str());
+        logerror("Expected read:\n");
+        for (registerSet::const_iterator iter = expectedRead.begin(); iter != expectedRead.end(); iter++) {
+            logerror("\t%s\n", (*iter)->format().c_str());
+        }
+        logerror("Expected written:\n");
+        for (registerSet::const_iterator iter = expectedWritten.begin(); iter != expectedWritten.end(); iter++) {
+            logerror("\t%s\n", (*iter)->format().c_str());
+        }
+        logerror("Actual read:\n");
+        for (registerSet::iterator iter = actualRead.begin(); iter != actualRead.end(); iter++) {
+            logerror("\t%s\n", (*iter)->format().c_str());
+        }
+        logerror("Actual written:\n");
+        for (registerSet::iterator iter = actualWritten.begin(); iter != actualWritten.end(); iter++) {
+            logerror("\t%s\n", (*iter)->format().c_str());
+        }
         return FAILED;
     }
   
@@ -218,6 +234,22 @@ test_results_t InstructionMutator::verify_read_write_sets(const Instruction::Ptr
     else
     {
         logerror("Write set for instruction %s not as expected\n", i->format().c_str());
+        logerror("Expected read:\n");
+        for (registerSet::const_iterator iter = expectedRead.begin(); iter != expectedRead.end(); iter++) {
+            logerror("\t%s\n", (*iter)->format().c_str());
+        }
+        logerror("Expected written:\n");
+        for (registerSet::const_iterator iter = expectedWritten.begin(); iter != expectedWritten.end(); iter++) {
+            logerror("\t%s\n", (*iter)->format().c_str());
+        }
+        logerror("Actual read:\n");
+        for (registerSet::iterator iter = actualRead.begin(); iter != actualRead.end(); iter++) {
+            logerror("\t%s\n", (*iter)->format().c_str());
+        }
+        logerror("Actual written:\n");
+        for (registerSet::iterator iter = actualWritten.begin(); iter != actualWritten.end(); iter++) {
+            logerror("\t%s\n", (*iter)->format().c_str());
+        }
         return FAILED;
     }
     logerror("PASSED: Instruction %s had read, write sets as expected\n", i->format().c_str());
