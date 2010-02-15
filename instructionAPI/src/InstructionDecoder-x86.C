@@ -55,22 +55,23 @@ namespace Dyninst
                 case s1W:
                     return false;
                 case s1W2RW:
-                    case s1W2R:   // second operand read, first operand written (e.g. mov)
-                        return i == 1;
-                        case s1RW2R:  // two operands read, first written (e.g. add)
-                            case s1RW2RW: // e.g. xchg
+                case s1W2R:   // second operand read, first operand written (e.g. mov)
+                    return i == 1;
+                case s1RW2R:  // two operands read, first written (e.g. add)
+                case s1RW2RW: // e.g. xchg
                 case s1R2RW:
                     return i == 0 || i == 1;
-                    case s1W2R3R: // e.g. imul
-                        case s1W2RW3R: // some mul
-                            case s1W2R3RW: // (stack) push & pop
-                                return i == 1 || i == 2;
-                                case s1W2W3R: // e.g. les
-                                    return i == 2;
-                                    case s1RW2R3R: // shld/shrd
-                                        case s1RW2RW3R: // [i]div, cmpxch8b
-                                            return i == 0 || i == 1 || i == 2;
-                                            break;
+                case s1W2R3R: // e.g. imul
+                case s1W2RW3R: // some mul
+                case s1W2R3RW: // (stack) push & pop
+                    return i == 1 || i == 2;
+                case s1W2W3R: // e.g. les
+                    return i == 2;
+                case s1RW2R3R: // shld/shrd
+                case s1RW2RW3R: // [i]div, cmpxch8b
+                case s1R2R3R:
+                    return i == 0 || i == 1 || i == 2;
+                    break;
                 case sNONE:
                 default:
                     return false;
@@ -126,6 +127,7 @@ namespace Dyninst
     sizePrefixPresent(false)
     {
     }
+#if 0    
     INSTRUCTION_EXPORT InstructionDecoder_x86::InstructionDecoder_x86(const InstructionDecoder_x86& o) :
             InstructionDecoder(o),
             locs(NULL),
@@ -134,6 +136,7 @@ namespace Dyninst
     sizePrefixPresent(o.sizePrefixPresent)
     {
     }
+#endif    
     INSTRUCTION_EXPORT InstructionDecoder_x86::~InstructionDecoder_x86()
     {
         if(decodedInstruction) decodedInstruction->~ia32_instruction();
@@ -914,10 +917,11 @@ namespace Dyninst
     }
     void InstructionDecoder_x86::doDelayedDecode(const Instruction* insn_to_complete)
     {
+        setBuffer(reinterpret_cast<const unsigned char*>(insn_to_complete->ptr()));
         insn_to_complete->m_Operands.reserve(4);
-        doIA32Decode();
-        
+        doIA32Decode();        
         decodeOperands(insn_to_complete);
+        resetBuffer();
     }
     
 };

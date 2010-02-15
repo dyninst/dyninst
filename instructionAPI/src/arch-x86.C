@@ -1210,10 +1210,10 @@ static ia32_entry twoByteMap[256] = {
   { e_No_Entry, t_sse, SSE2E, true, { Zz, Zz, Zz }, 0, 0 },
   { e_No_Entry, t_sse, SSE2F, true, { Zz, Zz, Zz }, 0, 0 },
   /* 30 */
-  { e_wrmsr, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-  { e_rdtsc, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE},
-  { e_rdmsr, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-  { e_rdpmc, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+  { e_wrmsr, t_done, 0, false, { rAX, rDX, rCX }, 0, s1R2R3R },
+  { e_rdtsc, t_done, 0, false, { rAX, rDX, Zz }, 0, s1W2W3R },
+  { e_rdmsr, t_done, 0, false, { rAX, rDX, rCX }, 0, s1W2W3R },
+  { e_rdpmc, t_done, 0, false, { rAX, rDX, rCX }, 0, s1W2W3R },
   { e_sysenter, t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, // XXX: fixme for kernel work
   { e_sysexit,  t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, // XXX: fixme for kernel work
   { e_No_Entry, t_ill, 0, 0, { Zz, Zz, Zz }, 0, 0 }, 

@@ -101,7 +101,9 @@ void registerSpace::specializeSpace(const bitArray &liveRegs) {
         if (liveRegs[i.currval()->number])
             i.currval()->liveState = registerSlot::live;
         else
+        {
             i.currval()->liveState = registerSlot::dead;
+        }
     }
 #if defined(arch_x86_64)
     // ???
@@ -179,14 +181,14 @@ void image_basicBlock::summarizeBlockLivenessInfo()
      // And if written, then was defined
      def |= curInsnRW.written;
       
-/*     liveness_printf("%s[%d] After instruction %s at address 0x%lx:\n",
+     liveness_printf("%s[%d] After instruction %s at address 0x%lx:\n",
                      FILE__, __LINE__, curInsn->format().c_str(), current);
      liveness_cerr << "        " << "?XXXXXXXXMMMMMMMMRNDITCPAZSOF11111100DSBSBDCA" << endl;
      liveness_cerr << "        " << "?7654321076543210FTFFFFFFFFFP54321098IIPPXXXX" << endl;
      liveness_cerr << "Read    " << curInsnRW.read << endl;
      liveness_cerr << "Written " << curInsnRW.written << endl;
      liveness_cerr << "Used    " << use << endl;
-     liveness_cerr << "Defined " << def << endl;*/
+     liveness_cerr << "Defined " << def << endl;
 
       current += curInsn->size();
       curInsn = decoder->decode();
@@ -512,31 +514,35 @@ bitArray instPoint::liveRegisters(callWhen when) {
 #if defined(arch_power)
 int convertRegID(int in)
 {
-    if(in >= power::gpr0 && in <= power::gpr31)
+    if(in >= ppc32::r0 && in <= ppc32::r31)
     {
-        return in - power::gpr0;
+        return in - ppc32::r0;
     }
-    else if(in >= power::fpr0 && in <= power::fpr31)
+    else if(in >= ppc32::fpr0 && in <= ppc32::fpr31)
     {
-        return in - power::fpr0 + registerSpace::fpr0;
+        return in - ppc32::fpr0 + registerSpace::fpr0;
     }
-    else if(in == power::sprxer)
+/*    else if(in >= ppc32::fsr0 && in <= ppc32::fsr31)
+    {
+        return in - ppc32::fsr0 + registerSpace::fsr0;
+    }
+    */    else if(in == ppc32::xer)
     {
         return registerSpace::xer;
     }
-    else if(in == power::sprlr)
+    else if(in == ppc32::lr)
     {
         return registerSpace::lr;
     }
-    else if(in == power::sprmq)
+    else if(in == ppc32::mq)
     {
         return registerSpace::mq;
     }
-    else if(in == power::sprctr)
+    else if(in == ppc32::ctr)
     {
         return registerSpace::ctr;
     }
-    else if(in >= power::sprcr0 && in <= power::sprcr)
+    else if(in >= ppc32::cr0 && in <= ppc32::cr7)
     {
         return registerSpace::cr;
     }

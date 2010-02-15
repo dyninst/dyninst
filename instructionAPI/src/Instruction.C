@@ -55,8 +55,9 @@ namespace Dyninst
   {
 
     INSTRUCTION_EXPORT Instruction::Instruction(Operation::Ptr what,
-			     size_t size, const unsigned char* raw)
-      : m_InsnOp(what), m_Valid(true)
+			     size_t size, const unsigned char* raw,
+                             dyn_detail::boost::shared_ptr<InstructionDecoder> dec)
+      : m_InsnOp(what), m_Valid(true), m_dec(dec)
     {
         m_Operands.reserve(5);
         copyRaw(size, raw);
@@ -89,12 +90,7 @@ namespace Dyninst
     
     void Instruction::decodeOperands() const
     {
-        const unsigned char* buffer = reinterpret_cast<const unsigned char*>(&(m_RawInsn.small_insn));
-        if(m_size > sizeof(unsigned int)) {
-            buffer = m_RawInsn.large_insn;
-        }
-        dyn_detail::boost::shared_ptr<InstructionDecoder> d = makeDecoder(arch_decoded_from, buffer, size());
-        d->doDelayedDecode(this);
+        m_dec->doDelayedDecode(this);
     }
     
     INSTRUCTION_EXPORT Instruction::Instruction() :
@@ -112,7 +108,8 @@ namespace Dyninst
       
     }
 
-    INSTRUCTION_EXPORT Instruction::Instruction(const Instruction& o)
+    INSTRUCTION_EXPORT Instruction::Instruction(const Instruction& o) :
+            m_dec(o.m_dec)
     {
       m_Operands.clear();
       //m_Operands.reserve(o.m_Operands.size());
@@ -161,6 +158,7 @@ namespace Dyninst
 
       m_InsnOp = rhs.m_InsnOp;
       m_Valid = rhs.m_Valid;
+      m_dec = rhs.m_dec;
       return *this;
     }    
     
@@ -494,7 +492,7 @@ memAccessors.begin()));
     INSTRUCTION_EXPORT InsnCategory Instruction::getCategory() const
     {
       InsnCategory c = entryToCategory(m_InsnOp->getID());
-      if(c == c_BranchInsn && arch_decoded_from == power)
+      if(c == c_BranchInsn && (arch_decoded_from == Arch_ppc32 || arch_decoded_from == Arch_ppc64))
       {
           if(m_Operands.empty()) decodeOperands();
           for(cftConstIter cft = cft_begin();

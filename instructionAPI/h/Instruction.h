@@ -47,15 +47,7 @@ namespace Dyninst
 {
   namespace InstructionAPI
   {
-      enum archID
-      {
-          x86,
-          power,
-          sparc,
-          ia64,
-          unknown,
-          lastArchID
-      };
+      class InstructionDecoder;
     /// The %Instruction class is a generic instruction representation that contains operands,
     /// read/write semantic information about those operands, and information about
     /// what other registers and memory locations are affected by the operation the instruction performs.
@@ -118,7 +110,8 @@ namespace Dyninst
       /// which operands are read and written
       /// in the %Operation object \c what to the value computations in \c operandSource.
 
-      INSTRUCTION_EXPORT Instruction(Operation::Ptr what, size_t size, const unsigned char* raw);
+      INSTRUCTION_EXPORT Instruction(Operation::Ptr what, size_t size, const unsigned char* raw,
+                                     dyn_detail::boost::shared_ptr<InstructionDecoder> dec);
       INSTRUCTION_EXPORT Instruction();
       
       INSTRUCTION_EXPORT virtual ~Instruction();
@@ -286,6 +279,7 @@ namespace Dyninst
       unsigned int m_size;
       Architecture arch_decoded_from;
       mutable std::list<CFT> m_Successors;
+      dyn_detail::boost::shared_ptr<InstructionDecoder> m_dec;
       
     };
   };

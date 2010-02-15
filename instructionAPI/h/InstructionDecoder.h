@@ -40,6 +40,7 @@
 #include "dyn_regs.h"
 
 #include <vector>
+#include <dyn_detail/boost/enable_shared_from_this.hpp>
 
     
 namespace Dyninst
@@ -64,11 +65,11 @@ namespace Dyninst
     /// and the buffer may be specified at the time \c decode is called.  This method of use may be
     /// more convenient for users who are decoding non-contiguous instructions.
 
-    class InstructionDecoder
+    class InstructionDecoder : public dyn_detail::boost::enable_shared_from_this<InstructionDecoder>
     {
       friend class Instruction;
-      friend dyn_detail::boost::shared_ptr<InstructionDecoder> makeDecoder(archID arch, const unsigned char* buffer, unsigned
-        len);
+      friend dyn_detail::boost::shared_ptr<InstructionDecoder> makeDecoder(Architecture arch,
+              const unsigned char* buffer, unsigned len);
         protected:
       /// Construct an %InstructionDecoder object that decodes from \c buffer, up to \c size bytes.
       INSTRUCTION_EXPORT InstructionDecoder(const unsigned char* buffer, size_t size, Architecture arch);
@@ -78,11 +79,13 @@ namespace Dyninst
       
         public:
       INSTRUCTION_EXPORT virtual ~InstructionDecoder();
+        private:
       INSTRUCTION_EXPORT InstructionDecoder(const InstructionDecoder& o);
       /// Decode the current instruction in this %InstructionDecoder object's buffer, interpreting it as 
       /// machine language of the type understood by this %InstructionDecoder.
       /// If the buffer does not contain a valid instruction stream, a null %Instruction pointer
       /// will be returned.  The %Instruction's \c size field will contain the size of the instruction decoded.
+        public:
       INSTRUCTION_EXPORT virtual Instruction::Ptr decode();
       /// Decode the instruction at \c buffer, interpreting it as machine language of the type
       /// understood by this %InstructionDecoder.  If the buffer does not contain a valid instruction stream, 
@@ -93,8 +96,8 @@ namespace Dyninst
       INSTRUCTION_EXPORT virtual void setMode(bool is64) = 0;
 
       virtual void doDelayedDecode(const Instruction* insn_to_complete) = 0;
-      void resetBuffer(const unsigned char* buffer, unsigned int size);
-      
+      void setBuffer(const unsigned char* buffer, unsigned int size = 0);
+      void resetBuffer();
     protected:
       
       virtual bool decodeOperands(const Instruction* insn_to_complete) = 0;
@@ -114,6 +117,9 @@ namespace Dyninst
       const unsigned char* bufferBegin;
       size_t bufferSize;
       const unsigned char* rawInstruction;
+      const unsigned char* oldBufferBegin;
+      size_t oldBufferSize;
+      const unsigned char* oldBuffer;
       Architecture m_Arch;
       
     };

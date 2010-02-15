@@ -64,7 +64,7 @@ namespace Dyninst
             friend dyn_detail::boost::shared_ptr<InstructionDecoder> makeDecoder(Architecture arch, const unsigned char* buffer,
                 unsigned len);
       
-            protected:
+            public:
       /// Construct an %InstructionDecoder object that decodes from \c buffer, up to \c size bytes.
                 INSTRUCTION_EXPORT InstructionDecoder_x86(const unsigned char* buffer, size_t size,
                                                          Architecture arch);
@@ -73,11 +73,13 @@ namespace Dyninst
                 INSTRUCTION_EXPORT InstructionDecoder_x86();
             public:
                 INSTRUCTION_EXPORT virtual ~InstructionDecoder_x86();
+            private:
                 INSTRUCTION_EXPORT InstructionDecoder_x86(const InstructionDecoder_x86& o);
       /// Decode the current instruction in this %InstructionDecoder object's buffer, interpreting it as 
       /// machine language of the type understood by this %InstructionDecoder.
       /// If the buffer does not contain a valid instruction stream, a null %Instruction pointer
       /// will be returned.  The %Instruction's \c size field will contain the size of the instruction decoded.
+            public:
                 INSTRUCTION_EXPORT Instruction::Ptr decode();
       /// Decode the instruction at \c buffer, interpreting it as machine language of the type
       /// understood by this %InstructionDecoder.  If the buffer does not contain a valid instruction stream, 

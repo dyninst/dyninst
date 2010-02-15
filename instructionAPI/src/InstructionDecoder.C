@@ -61,13 +61,16 @@ namespace Dyninst
       m_Arch(Arch_none)
     {
     }
+#if 0    
     INSTRUCTION_EXPORT InstructionDecoder::InstructionDecoder(const InstructionDecoder& o) :
+            dyn_detail::boost::enable_shared_from_this<InstructionDecoder>(o), 
     bufferBegin(o.bufferBegin),
     bufferSize(o.bufferSize),
     rawInstruction(o.rawInstruction),
     m_Arch(o.m_Arch)
     {
     }
+#endif
     INSTRUCTION_EXPORT InstructionDecoder::~InstructionDecoder()
     {
     }
@@ -75,7 +78,7 @@ namespace Dyninst
             unsigned int decodedSize, const unsigned char* raw)
     {
         Operation::Ptr tmp(make_shared(singleton_object_pool<Operation>::construct(opcode, mnem, m_Arch)));
-        return singleton_object_pool<Instruction>::construct(tmp, decodedSize, raw);
+        return singleton_object_pool<Instruction>::construct(tmp, decodedSize, raw, shared_from_this());
     }
     
     INSTRUCTION_EXPORT Instruction::Ptr InstructionDecoder::decode()
@@ -85,15 +88,18 @@ namespace Dyninst
       
       rawInstruction += decodedSize;
       return make_shared(singleton_object_pool<Instruction>::construct(m_Operation, decodedSize,
-									 rawInstruction - decodedSize));
+									 rawInstruction - decodedSize,
+                                                                         shared_from_this()));
     }
     
     INSTRUCTION_EXPORT Instruction::Ptr InstructionDecoder::decode(const unsigned char* buffer)
     {
-      rawInstruction = buffer;
-      unsigned int decodedSize = decodeOpcode();
-      return make_shared(singleton_object_pool<Instruction>::construct(m_Operation, decodedSize,
-									 rawInstruction));
+        setBuffer(buffer);
+        unsigned int decodedSize = decodeOpcode();
+        resetBuffer();
+        return make_shared(singleton_object_pool<Instruction>::construct(m_Operation, decodedSize,
+									 rawInstruction,
+                                                                         shared_from_this()));
     }
     Expression::Ptr InstructionDecoder::makeAddExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType)
     {
@@ -120,40 +126,44 @@ namespace Dyninst
     }
     
 
-    void InstructionDecoder::resetBuffer(const unsigned char* buffer, unsigned int size = 0)
+    void InstructionDecoder::setBuffer(const unsigned char* buffer, unsigned int size)
     {
+        oldBuffer = rawInstruction;
+        oldBufferBegin = bufferBegin;
+        oldBufferSize = bufferSize;
       rawInstruction = buffer;
       bufferBegin = buffer;
       bufferSize = size;
     }
+
+    void InstructionDecoder::resetBuffer()
+    {
+        rawInstruction = oldBuffer;
+        bufferBegin = oldBufferBegin;
+        bufferSize = oldBufferSize;
+    }
     dyn_detail::boost::shared_ptr<InstructionDecoder> makeDecoder(Architecture arch, const unsigned char* buffer, unsigned len)
     {
-        dyn_detail::boost::shared_ptr<InstructionDecoder> ret;
         switch(arch)
         {
             case Arch_x86:
-                ret.reset(new InstructionDecoder_x86(buffer, len, arch));
-                ret->setMode(false);
-                break;
             case Arch_x86_64:
-            {
-                ret.reset(new InstructionDecoder_x86(buffer, len, arch));
-                ret->setMode(true);
-                return ret;
-            }
+                return dyn_detail::boost::shared_ptr<InstructionDecoder>(
+                        new InstructionDecoder_x86(buffer, len, arch));
                 break;
             case Arch_ppc32:
             case Arch_ppc64:
-                ret.reset(new InstructionDecoder_power(buffer, len, arch));
+                return dyn_detail::boost::shared_ptr<InstructionDecoder>(
+                        new InstructionDecoder_power(buffer, len, arch));
                 break;
             case Arch_none:
+                return dyn_detail::boost::shared_ptr<InstructionDecoder>();
                 break;
             default:
                 assert(!"not implemented");
                 return dyn_detail::boost::shared_ptr<InstructionDecoder>();
                 break;
         }
-        return ret;
     }
     
   };

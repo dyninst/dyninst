@@ -486,6 +486,7 @@ namespace Dyninst
     }
     void InstructionDecoder_power::doDelayedDecode(const Instruction* insn_to_complete)
     {
+        setBuffer(reinterpret_cast<const unsigned char*>(insn_to_complete->ptr()));
         isRAWritten = false;
         isFPInsn = false;
         bcIsConditional = false;
@@ -528,6 +529,8 @@ namespace Dyninst
         {
             insn_in_progress->appendOperand(makeCR0Expr(), false, true);
         }
+
+        resetBuffer();
         return;
     }
     MachRegister InstructionDecoder_power::makePowerRegID(MachRegister base, unsigned int encoding, int field)
