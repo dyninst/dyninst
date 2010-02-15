@@ -168,11 +168,11 @@ bool MachRegister::operator<(const MachRegister &a) const {
 bool MachRegister::operator==(const MachRegister &a) const { 
    return (reg == a.reg);
 }
-/* 
+ 
 MachRegister::operator signed int() const {
    return reg;
 }
-*/
+
 signed int MachRegister::val() const {
    return reg;
 }

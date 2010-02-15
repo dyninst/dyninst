@@ -68,7 +68,7 @@ namespace Dyninst
       unsigned int size() const;
       bool operator<(const MachRegister &a) const;
       bool operator==(const MachRegister &a) const;
-      //operator signed int() const;
+      operator signed int() const;
       signed int val() const;
 
       static MachRegister getPC(Dyninst::Architecture arch);
