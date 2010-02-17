@@ -344,7 +344,7 @@ bool baseTrampInstance::generateCode(codeGen &gen,
     for (;;) {
        regalloc_printf("[%s:%u] - Beginning baseTramp generate iteration # %d\n",
                        __FILE__, __LINE__, ++count);
-       GET_PTR(insn, gen);
+       codeBufIndex_t start = gen.getIndex();
        
        unsigned int num_patches = gen.allPatches().size();
 
@@ -366,7 +366,8 @@ bool baseTrampInstance::generateCode(codeGen &gen,
        gen.setPCRelUseCount(gen.rs()->pc_rel_use_count);
        
        markChanged(true);
-       SET_PTR(insn, gen);
+
+       gen.setIndex(start);
        while (gen.allPatches().size() > num_patches) {
           gen.allPatches().pop_back();
        }

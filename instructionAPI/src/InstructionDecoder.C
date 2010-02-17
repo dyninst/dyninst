@@ -139,14 +139,28 @@ namespace Dyninst
 	case 0x00:
 	  baseAST = decodeImmediate(op_d, locs->sib_position + 1);
 	  break;
-	case 0x01:
+	case 0x01: {
+	  IA32Regs reg;
+	  if (locs->rex_b)
+	    reg = r_R13;
+	  else
+	    reg = r_RBP;
+
 	  baseAST = makeAddExpression(decodeImmediate(op_b, locs->sib_position + 1),
-				      make_shared(singleton_object_pool<RegisterAST>::construct(r_RBP)), aw);
+				      make_shared(singleton_object_pool<RegisterAST>::construct(reg)), aw);
 	  break;
-	case 0x02:
+	}
+	case 0x02: {
+	  IA32Regs reg;
+	  if (locs->rex_b)
+	    reg = r_R13;
+	  else
+	    reg = r_RBP;
+
 	  baseAST = makeAddExpression(decodeImmediate(op_d, locs->sib_position + 1),
-				      make_shared(singleton_object_pool<RegisterAST>::construct(r_RBP)), aw);
+				      make_shared(singleton_object_pool<RegisterAST>::construct(reg)), aw);
 	  break;
+	}
 	case 0x03:
 	default:
 	  assert(0);
@@ -206,14 +220,18 @@ namespace Dyninst
       }
 	return make_shared(singleton_object_pool<Dereference>::construct(e, makeSizeType(opType)));
       case 1:
-      case 2:
-	{
+      case 2: {
 	if(locs->modrm_rm == modrm_use_sib) {
 	  e = makeSIBExpression(opType);
 	}
 	Expression::Ptr disp_e = makeAddExpression(e, getModRMDisplacement(), aw);
-	return make_shared(singleton_object_pool<Dereference>::construct(disp_e, makeSizeType(opType)));
+
+	if(opType == op_lea) {
+          return disp_e;
 	}
+	
+	return make_shared(singleton_object_pool<Dereference>::construct(disp_e, makeSizeType(opType)));
+      }
       case 3:
 	return make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(locs->modrm_rm, 
 											opType,
