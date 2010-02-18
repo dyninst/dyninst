@@ -85,8 +85,11 @@ test_results_t test_instruction_bind_eval_Mutator::executeTest()
   
   dyn_detail::boost::shared_ptr<InstructionDecoder> d =
           makeDecoder(curArch, buffer, size);
-  std::vector<Instruction::Ptr> decodedInsns;
-  Instruction::Ptr i;
+#if defined(arch_x86_64_test)
+d->setMode(true);
+#endif        
+    std::vector<Instruction::Ptr> decodedInsns;
+    Instruction::Ptr i;
   do
   {
     i = d->decode();
@@ -121,9 +124,16 @@ test_results_t test_instruction_bind_eval_Mutator::executeTest()
     return FAILED;
   }
   
-    
+#if defined(arch_x86_64_test)
   RegisterAST* r_eax = new RegisterAST(x86_64::eax);
   RegisterAST* r_ecx = new RegisterAST(x86_64::ecx);
+#elif defined(arch_x86_test)
+  RegisterAST* r_eax = new RegisterAST(x86::eax);
+  RegisterAST* r_ecx = new RegisterAST(x86::ecx);
+#else
+#error "Test_instruction_bind_eval should be x86 only!"
+#endif
+    
   Result three(u32, 3);
   Result five(u32, 5);
   
