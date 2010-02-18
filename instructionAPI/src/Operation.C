@@ -54,7 +54,7 @@ namespace Dyninst
     }
 
     Operation::Operation(entryID id, const char* mnem, Architecture arch)
-          : operationID(id), mnemonic(mnem), archDecodedFrom(arch)
+          : doneOtherSetup(true), doneFlagsSetup(true), operationID(id), mnemonic(mnem), archDecodedFrom(arch)
     {
     }
     

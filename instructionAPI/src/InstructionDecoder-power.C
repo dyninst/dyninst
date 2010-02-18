@@ -171,8 +171,10 @@ namespace Dyninst
     
     Instruction::Ptr InstructionDecoder_power::decode(const unsigned char* buffer)
     {
-        rawInstruction = buffer;
-        return decode();
+        setBuffer(buffer, 4);
+        Instruction::Ptr ret = decode();
+        resetBuffer();
+        return ret;
     }
     using namespace std;
     Instruction::Ptr InstructionDecoder_power::decode()
@@ -486,7 +488,7 @@ namespace Dyninst
     }
     void InstructionDecoder_power::doDelayedDecode(const Instruction* insn_to_complete)
     {
-        setBuffer(reinterpret_cast<const unsigned char*>(insn_to_complete->ptr()));
+        setBuffer(reinterpret_cast<const unsigned char*>(insn_to_complete->ptr()), 4);
         isRAWritten = false;
         isFPInsn = false;
         bcIsConditional = false;
