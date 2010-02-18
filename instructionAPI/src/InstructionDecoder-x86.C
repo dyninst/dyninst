@@ -257,6 +257,10 @@ namespace Dyninst
                     e = makeSIBExpression(opType);
                 }
                 Expression::Ptr disp_e = makeAddExpression(e, getModRMDisplacement(), aw);
+                if(opType == op_lea)
+                {
+                    return disp_e;
+                }
                 return makeDereferenceExpression(disp_e, makeSizeType(opType));
             }
             case 3:
@@ -350,24 +354,63 @@ namespace Dyninst
         {
             disp_pos = locs->modrm_position + 1;
         }
+        const unsigned char* bufferEnd = bufferBegin + bufferSize;
         switch(locs->modrm_mod)
         {
             case 1:
+                assert(rawInstruction + disp_pos + 1 <= bufferEnd);
                 return make_shared(singleton_object_pool<Immediate>::construct(Result(s8, (*(const byte_t*)(rawInstruction +
                         disp_pos)))));
                 break;
             case 2:
-                return make_shared(singleton_object_pool<Immediate>::construct(Result(s32, *((const dword_t*)(rawInstruction +
-                        disp_pos)))));
-                break;
-            case 0:
-                if(locs->modrm_rm == 5)
+                if(sizePrefixPresent)
+                {
+                    assert(rawInstruction + disp_pos + 2 <= bufferEnd);
+                    return make_shared(singleton_object_pool<Immediate>::construct(Result(s16, *((const word_t*)(rawInstruction +
+                            disp_pos)))));
+                }
+                else
+                {
+                    assert(rawInstruction + disp_pos + 4 <= bufferEnd);
                     return make_shared(singleton_object_pool<Immediate>::construct(Result(s32, *((const dword_t*)(rawInstruction +
                             disp_pos)))));
-                else
-                    return make_shared(singleton_object_pool<Immediate>::construct(Result(s8, 0)));
+                }
                 break;
+            case 0:
+                // In 16-bit mode, the word displacement is modrm r/m 6
+                if(sizePrefixPresent)
+                {
+                    if(locs->modrm_rm == 6)
+                    {
+                        assert(rawInstruction + disp_pos + 4 <= bufferEnd);
+                        return make_shared(singleton_object_pool<Immediate>::construct(Result(s32,
+                                           *((const dword_t*)(rawInstruction + disp_pos)))));
+                    }
+                    else
+                    {
+                        assert(rawInstruction + disp_pos + 1 <= bufferEnd);
+                        return make_shared(singleton_object_pool<Immediate>::construct(Result(s8, 0)));
+                    }
+                    break;
+                }
+                // ...and in 32-bit mode, the dword displacement is modrm r/m 5
+                else
+                {
+                    if(locs->modrm_rm == 5)
+                    {
+                        assert(rawInstruction + disp_pos + 4 <= bufferEnd);
+                        return make_shared(singleton_object_pool<Immediate>::construct(Result(s32,
+                                           *((const dword_t*)(rawInstruction + disp_pos)))));
+                    }
+                    else
+                    {
+                        assert(rawInstruction + disp_pos + 1 <= bufferEnd);
+                        return make_shared(singleton_object_pool<Immediate>::construct(Result(s8, 0)));
+                    }
+                    break;
+                }
             default:
+                assert(rawInstruction + disp_pos + 1 <= bufferEnd);
                 return make_shared(singleton_object_pool<Immediate>::construct(Result(s8, 0)));
                 break;
         }
@@ -630,7 +673,7 @@ namespace Dyninst
                     case am_O:
                     {
                     // Address/offset width, which is *not* what's encoded by the optype...
-                    // The deref's width is what's actually encoded here.  Need to address this issue somehow.
+                    // The deref's width is what's actually encoded here.
                         int pseudoOpType;
                         switch(locs->address_size)
                         {
@@ -851,6 +894,7 @@ namespace Dyninst
         assert(locs);
         ia32_decode(IA32_DECODE_PREFIXES, rawInstruction, *decodedInstruction);
         sizePrefixPresent = (decodedInstruction->getPrefix()->getOperSzPrefix() == 0x66);
+        addrSizePrefixPresent = (decodedInstruction->getPrefix()->getAddrSzPrefix() == 0x67);
     }
     
     unsigned int InstructionDecoder_x86::decodeOpcode()
@@ -917,7 +961,7 @@ namespace Dyninst
     }
     void InstructionDecoder_x86::doDelayedDecode(const Instruction* insn_to_complete)
     {
-        setBuffer(reinterpret_cast<const unsigned char*>(insn_to_complete->ptr()));
+        setBuffer(reinterpret_cast<const unsigned char*>(insn_to_complete->ptr()), insn_to_complete->size());
         insn_to_complete->m_Operands.reserve(4);
         doIA32Decode();        
         decodeOperands(insn_to_complete);

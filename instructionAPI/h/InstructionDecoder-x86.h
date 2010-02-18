@@ -114,6 +114,7 @@ namespace Dyninst
                 ia32_instruction* decodedInstruction;
                 bool is32BitMode;
                 bool sizePrefixPresent;
+                bool addrSizePrefixPresent;
         };
     };
 };
