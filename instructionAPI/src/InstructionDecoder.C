@@ -98,7 +98,7 @@ namespace Dyninst
         unsigned int decodedSize = decodeOpcode();
         resetBuffer();
         return make_shared(singleton_object_pool<Instruction>::construct(m_Operation, decodedSize,
-									 rawInstruction,
+									 buffer,
                                                                          shared_from_this()));
     }
     Expression::Ptr InstructionDecoder::makeAddExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType)

@@ -77,6 +77,9 @@ test_results_t test_instruction_farcall_Mutator::executeTest()
   
   dyn_detail::boost::shared_ptr<InstructionDecoder> d =
           makeDecoder(curArch, buffer, size);
+#if defined(arch_x86_64_test)
+    d->setMode(true);
+#endif
   std::vector<Instruction::Ptr> decodedInsns;
   Instruction::Ptr i;
   do

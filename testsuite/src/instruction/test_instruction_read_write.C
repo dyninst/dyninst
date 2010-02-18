@@ -222,7 +222,7 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
   
   dyn_detail::boost::shared_ptr<InstructionDecoder> amd64_decoder =
           makeDecoder(Dyninst::Arch_x86_64, amd64_specific, amd64_size);
-  
+  amd64_decoder->setMode(true);
   Instruction::Ptr tmp;
   do
   {
