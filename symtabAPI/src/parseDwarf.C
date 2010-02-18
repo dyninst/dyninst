@@ -346,7 +346,7 @@ void parseSubRangeDIE( Dwarf_Debug & dbg, Dwarf_Die subrangeDIE,
   DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error dereferencing DWARF pointer\n", __FILE__, __LINE__ );
 
   errno = 0;
-  long low_conv = strtol(loBound.c_str(), NULL, 10);
+  unsigned long low_conv = strtoul(loBound.c_str(), NULL, 10);
   if (errno)
   {
 	  fprintf(stderr, "%s[%d]:  error converting range limit '%s' to long: %s\n",
@@ -355,7 +355,7 @@ void parseSubRangeDIE( Dwarf_Debug & dbg, Dwarf_Die subrangeDIE,
   }
 
   errno = 0;
-  long hi_conv = strtol(hiBound.c_str(), NULL, 10);
+  unsigned long hi_conv = strtoul(hiBound.c_str(), NULL, 10);
   if (errno) 
   {
 	  fprintf(stderr, "%s[%d]:  error converting range limit '%s' to long: %s\n",
@@ -524,8 +524,20 @@ Dyninst::MachRegister DwarfToDynReg(Dwarf_Signed reg, int word_size = 4)
 {
 
     if (word_size == 4) {
-      //They match.  Yea!
-        return (Dyninst::MachRegister) reg;
+        switch(reg)
+        {
+            case 0: return x86::eax;
+            case 1: return x86::ecx;
+            case 2: return x86::edx;
+            case 3: return x86::ebx;
+            case 4: return x86::esp;
+            case 5: return x86::ebp;
+            case 6: return x86::esi;
+            case 7: return x86::edi;
+            default:
+                assert(!"Reg value out of range");
+                return Dyninst::MachRegister();
+        }
     }
     switch (reg) {
         case 0: return x86_64::rax;
@@ -536,9 +548,18 @@ Dyninst::MachRegister DwarfToDynReg(Dwarf_Signed reg, int word_size = 4)
         case 5: return x86_64::rdi;
         case 6: return x86_64::rbp;
         case 7: return x86_64::rsp;
+        case 8: return x86_64::r8;
+        case 9: return x86_64::r9;
+        case 10: return x86_64::r10;
+        case 11: return x86_64::r11;
+        case 12: return x86_64::r12;
+        case 13: return x86_64::r13;
+        case 14: return x86_64::r14;
+        case 15: return x86_64::r15;
         default:
-         //The rest match
-            return (Dyninst::MachRegister) reg;
+            assert(!"Reg value out of range");
+            return Dyninst::MachRegister();
+    
     }
 }
 
@@ -546,7 +567,20 @@ Dwarf_Signed DynToDwarfReg(Dyninst::MachRegister reg, int word_size = 4)
 {
 
     if (word_size == 4) {
-        return (Dwarf_Signed) (reg.val() & 0xf);
+        switch(reg.val())
+        {
+            case x86::ieax: return (Dwarf_Signed) 0;
+            case x86::iecx: return (Dwarf_Signed) 1;
+            case x86::iedx: return (Dwarf_Signed) 2;
+            case x86::iebx: return (Dwarf_Signed) 3;
+            case x86::iesp: return (Dwarf_Signed) 4;
+            case x86::iebp: return (Dwarf_Signed) 5;
+            case x86::iesi: return (Dwarf_Signed) 6;
+            case x86::iedi: return (Dwarf_Signed) 7;
+            default:
+                assert(!"Reg value out of range");
+                return 0;
+        }
     }
     switch (reg.val()) {
         case x86_64::irax: return (Dwarf_Signed) 0;
@@ -557,9 +591,17 @@ Dwarf_Signed DynToDwarfReg(Dyninst::MachRegister reg, int word_size = 4)
         case x86_64::irbp: return (Dwarf_Signed) 6;
         case x86_64::irsi: return (Dwarf_Signed) 4;
         case x86_64::irdi: return (Dwarf_Signed) 5;
+        case x86_64::ir8: return (Dwarf_Signed) 8;
+        case x86_64::ir9: return (Dwarf_Signed) 9;
+        case x86_64::ir10: return (Dwarf_Signed) 10;
+        case x86_64::ir11: return (Dwarf_Signed) 11;
+        case x86_64::ir12: return (Dwarf_Signed) 12;
+        case x86_64::ir13: return (Dwarf_Signed) 13;
+        case x86_64::ir14: return (Dwarf_Signed) 14;
+        case x86_64::ir15: return (Dwarf_Signed) 15;
         default:
-         //The rest match
-            return (Dwarf_Signed) (reg.val() & 0xf);
+            assert(!"DynReg value out of bounds!");
+            return 0;
     }
 }
 #else
@@ -575,6 +617,8 @@ Dwarf_Signed DynToDwarfReg(Dyninst::MachRegister, int word_size = 4)
     return (Dwarf_Signed) word_size;
 }
 #endif
+
+MachRegister conversion.:symtabAPI/src/parseDwarf.C
 
 bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
                            long int *initialStackValue,
