@@ -393,22 +393,20 @@ void StackAnalysis::computeInsnEffects(const Block *block,
                                        InsnTransferFunc &iFunc,
                                        Presence &pres)
 {
-    stackanalysis_printf("\t\tInsn at 0x%lx\n", off); 
-    static Expression::Ptr theStackPtr(new RegisterAST(r_eSP));
-    static Expression::Ptr stackPtr32(new RegisterAST(r_ESP));
-    static Expression::Ptr stackPtr64(new RegisterAST(r_RSP));
+    stackanalysis_printf("\t\tInsn at 0x%lx\n", off);
+    static Expression::Ptr theStackPtr(new RegisterAST(MachRegister::getStackPointer(Arch_x86)));
+    static Expression::Ptr stackPtr64(new RegisterAST(MachRegister::getStackPointer(Arch_x86_64)));
     
-    static Expression::Ptr theFramePtr(new RegisterAST(r_eBP));
-    static Expression::Ptr framePtr32(new RegisterAST(r_EBP));
-    static Expression::Ptr framePtr64(new RegisterAST(r_RBP));
+    static Expression::Ptr theFramePtr(new RegisterAST(MachRegister::getFramePointer(Arch_x86)));
+    static Expression::Ptr framePtr64(new RegisterAST(MachRegister::getFramePointer(Arch_x86_64)));
     
     //TODO: Integrate entire test into analysis lattice
     entryID what = insn->getOperation().getID();
 
-    if (insn->isWritten(theFramePtr) || insn->isWritten(framePtr32) || insn->isWritten(framePtr64)) {
+    if (insn->isWritten(theFramePtr) || insn->isWritten(framePtr64)) {
       stackanalysis_printf("\t\t\t FP written\n");
         if (what == e_mov &&
-            (insn->isRead(theStackPtr) || insn->isRead(stackPtr32) || insn->isRead(stackPtr64))) {
+            (insn->isRead(theStackPtr) || insn->isRead(stackPtr64))) {
 	  pres = Presence(Presence::frame_t);
 	  stackanalysis_printf("\t\t\t Frame created\n");
         }
@@ -447,7 +445,7 @@ void StackAnalysis::computeInsnEffects(const Block *block,
 
     int word_size = func->img()->getAddressWidth();
     
-    if(!insn->isWritten(theStackPtr) && !insn->isWritten(stackPtr32)) {
+    if(!insn->isWritten(theStackPtr) && !insn->isWritten(stackPtr64)) {
          return;
     }
     int sign = 1;
@@ -512,15 +510,15 @@ StackAnalysis::Height StackAnalysis::getStackCleanAmount(image_func *func) {
         return funcCleanAmounts[func];
     }
 
-    InstructionDecoder decoder;   
-    decoder.setMode(func->img()->getAddressWidth() == 8);
+    dyn_detail::boost::shared_ptr<InstructionDecoder> decoder = makeDecoder(func->img()->getArch(), NULL, 0);
+    decoder->setMode(func->img()->getAddressWidth() == 8);
     unsigned char *cur;
 
     std::set<Height> returnCleanVals;
     
     for (unsigned i=0; i < func->funcExits().size(); i++) {
         cur = (unsigned char *) func->getPtrToInstruction(func->funcExits()[i]->offset());
-        Instruction::Ptr insn = decoder.decode(cur);
+        Instruction::Ptr insn = decoder->decode(cur);
         
         entryID what = insn->getOperation().getID();
         if (what != e_ret_near)
