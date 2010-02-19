@@ -48,7 +48,6 @@
 
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
-#include "common/h/List.h"
 #include "dyninstAPI/src/dyninst.h"
 #include "dyninstAPI/src/arch.h"
 #include "dyninstAPI/src/util.h"
