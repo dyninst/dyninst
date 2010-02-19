@@ -30,11 +30,34 @@
  */
 
 #include "instruction_comp.h"
-#include <boost/iterator/indirect_iterator.hpp>
 
 using namespace Dyninst;
 using namespace InstructionAPI;
+
+#define work_around_broken_gcc
+#if !defined(work_around_broken_gcc)
+#include <boost/iterator/indirect_iterator.hpp>
 using namespace boost;
+template <typename I, typename II>
+bool indirect_equal(I f1, I l1, II f2)
+{
+    return std::equal(make_indirect_iterator(f1), make_indirect_iterator(l1),
+                      make_indirect_iterator(f2));
+}
+
+#else
+template <typename I, typename II>
+bool indirect_equal(I f1, I l1, II f2)
+{
+    for(; f1 != l1; ++f1, ++f2)
+    {
+        if(!(*(*f1) == *(*f2))) return false;
+    }
+    return true;
+}
+
+
+#endif
 
 InstructionComponent::InstructionComponent()
 {
@@ -157,10 +180,11 @@ test_results_t InstructionMutator::verify_read_write_sets(const Instruction::Ptr
     
     }
   
-    if(equal(make_indirect_iterator(actualRead.begin()),
-       make_indirect_iterator(actualRead.end()),
-       make_indirect_iterator(expectedRead.begin())))
+    if(indirect_equal(actualRead.begin(),
+       actualRead.end(),
+       expectedRead.begin()))
     {
+        
         for(registerSet::const_iterator it = expectedRead.begin();
             it != expectedRead.end();
             ++it)
@@ -171,9 +195,11 @@ test_results_t InstructionMutator::verify_read_write_sets(const Instruction::Ptr
                 return FAILED;
             }
         }
+        
     }
     else
     {
+        
         logerror("Read set for instruction %s not as expected\n", i->format().c_str());
         logerror("Expected read:\n");
         for (registerSet::const_iterator iter = expectedRead.begin(); iter != expectedRead.end(); iter++) {
@@ -191,9 +217,9 @@ test_results_t InstructionMutator::verify_read_write_sets(const Instruction::Ptr
         for (registerSet::iterator iter = actualWritten.begin(); iter != actualWritten.end(); iter++) {
             logerror("\t%s\n", (*iter)->format().c_str());
         }
+        
         return FAILED;
     }
-  
     for(safety = expectedWritten.begin();
         safety != expectedWritten.end();
         ++safety)
@@ -216,9 +242,10 @@ test_results_t InstructionMutator::verify_read_write_sets(const Instruction::Ptr
         }
     
     }
-    if(equal(make_indirect_iterator(actualWritten.begin()),
-       make_indirect_iterator(actualWritten.end()),
-       make_indirect_iterator(expectedWritten.begin())))
+    
+    if(indirect_equal(actualWritten.begin(),
+       actualWritten.end(),
+       expectedWritten.begin()))
     {
         for(registerSet::const_iterator it = expectedWritten.begin();
             it != expectedWritten.end();

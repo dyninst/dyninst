@@ -75,6 +75,7 @@ test_results_t test5_1_Mutator::executeTest() {
   BPatch_Vector<BPatch_point *> *point1_1 = f1->findPoint(BPatch_subroutine);
        
    assert(point1_1);
+   assert((*point1_1)[0]);
 
    // check the paramter passing modes
    BPatch_variableExpr *arg0 = appImage->findVariable(*(*point1_1)[0],

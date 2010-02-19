@@ -109,18 +109,20 @@ map<MachRegister, Register> reverseRegisterMap = map_list_of
         ;
 
 
-Register convertRegID(RegisterAST::Ptr toBeConverted)
+Register convertRegID(RegisterAST::Ptr toBeConverted, bool& wasUpcast)
 {
-    return convertRegID(toBeConverted.get());
+    return convertRegID(toBeConverted.get(), wasUpcast);
 }
         
-Register convertRegID(RegisterAST* toBeConverted)
+Register convertRegID(RegisterAST* toBeConverted, bool& wasUpcast)
 {
     if(!toBeConverted) {
         //assert(0);
         return REGNUM_IGNORED;
     }
     MachRegister tmp(toBeConverted->getID());
+    wasUpcast = false;
+    if(tmp.getBaseRegister().val() != tmp.val()) wasUpcast = true;
     MachRegister baseReg = MachRegister((tmp.getBaseRegister().val() & ~tmp.getArchitecture()) | Arch_x86_64);
 //    RegisterAST::Ptr debug(new RegisterAST(baseReg));
 //    fprintf(stderr, "DEBUG: converting %s", toBeConverted->format().c_str());

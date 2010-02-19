@@ -35,10 +35,8 @@
 #include "../../common/h/Singleton.h"
 #include "Register.h"
 #include <map>
-#include <boost/assign/list_of.hpp>
 #include "../../common/h/singleton_object_pool.h"
 
-using namespace boost::assign;
 
 namespace Dyninst
 {
@@ -54,7 +52,7 @@ namespace Dyninst
     }
 
     Operation::Operation(entryID id, const char* mnem, Architecture arch)
-          : operationID(id), mnemonic(mnem), doneOtherSetup(true), doneFlagsSetup(true), archDecodedFrom(arch)
+          : mnemonic(mnem), operationID(id), doneOtherSetup(true), doneFlagsSetup(true), archDecodedFrom(arch)
     {
     }
     
@@ -230,44 +228,40 @@ namespace Dyninst
           spAndBP.insert(RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(arch))));
           spAndBP.insert(RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(arch))));
 	
-	nonOperandRegisterReads = 
-	map_list_of
-        (e_call, pcAndSP)
-	(e_ret_near, stackPointer)
-	(e_ret_far, stackPointer)
-	(e_leave, framePointer)
-	(e_enter, spAndBP);
+          nonOperandRegisterReads[e_call] = pcAndSP;
+          nonOperandRegisterReads[e_ret_near] = stackPointer;
+          nonOperandRegisterReads[e_ret_far] = stackPointer;
+          nonOperandRegisterReads[e_leave] = framePointer;
+          nonOperandRegisterReads[e_enter] = spAndBP;
 	
-	nonOperandRegisterWrites = 
-	map_list_of
-	(e_call, pcAndSP)
-	(e_ret_near, pcAndSP)
-	(e_ret_far, pcAndSP)
-	(e_leave, spAndBP)
-	(e_enter, spAndBP)
-	(e_loop, thePC)
-	(e_loope, thePC)
-	(e_loopn, thePC)
-	(e_jb, thePC)
-	(e_jb_jnaej_j, thePC)
-	(e_jbe, thePC)
-	(e_jcxz_jec, thePC)
-	(e_jl, thePC)
-	(e_jle, thePC)
-	(e_jmp, thePC)
-	(e_jnb, thePC)
-	(e_jnb_jae_j, thePC)
-	(e_jnbe, thePC)
-	(e_jnl, thePC)
-	(e_jnle, thePC)
-	(e_jno, thePC)
-	(e_jnp, thePC)
-	(e_jns, thePC)
-	(e_jnz, thePC)
-	(e_jo, thePC)
-	(e_jp, thePC)
-	(e_js, thePC)
-	(e_jz, thePC);
+          nonOperandRegisterWrites[e_call] = pcAndSP;
+          nonOperandRegisterWrites[e_ret_near] = pcAndSP;
+          nonOperandRegisterWrites[e_ret_far] = pcAndSP;
+          nonOperandRegisterWrites[e_leave] = spAndBP;
+          nonOperandRegisterWrites[e_enter] = spAndBP;
+          nonOperandRegisterWrites[e_loop] = thePC;
+          nonOperandRegisterWrites[e_loope] = thePC;
+          nonOperandRegisterWrites[e_loopn] = thePC;
+          nonOperandRegisterWrites[e_jb] = thePC;
+          nonOperandRegisterWrites[e_jb_jnaej_j] = thePC;
+        nonOperandRegisterWrites[e_jbe] = thePC;
+        nonOperandRegisterWrites[e_jcxz_jec] = thePC;
+        nonOperandRegisterWrites[e_jl] = thePC;
+        nonOperandRegisterWrites[e_jle] = thePC;
+        nonOperandRegisterWrites[e_jmp] = thePC;
+        nonOperandRegisterWrites[e_jnb] = thePC;
+        nonOperandRegisterWrites[e_jnb_jae_j] = thePC;
+        nonOperandRegisterWrites[e_jnbe] = thePC;
+        nonOperandRegisterWrites[e_jnl] = thePC;
+        nonOperandRegisterWrites[e_jnle] = thePC;
+        nonOperandRegisterWrites[e_jno] = thePC;
+        nonOperandRegisterWrites[e_jnp] = thePC;
+        nonOperandRegisterWrites[e_jns] = thePC;
+        nonOperandRegisterWrites[e_jnz] = thePC;
+        nonOperandRegisterWrites[e_jo] = thePC;
+        nonOperandRegisterWrites[e_jp] = thePC;
+        nonOperandRegisterWrites[e_js] = thePC;
+        nonOperandRegisterWrites[e_jz] = thePC;
 	nonOperandMemoryReads[e_pop] = stackPointerAsExpr;
 	nonOperandMemoryWrites[e_push] = stackPointerAsExpr;
         nonOperandMemoryWrites[e_call] = stackPointerAsExpr;
@@ -303,36 +297,29 @@ namespace Dyninst
     }
     void Operation::SetUpNonOperandData(bool needFlags) const
     {
-      
-      dyn_hash_map<entryID, registerSet >::const_iterator foundRegs;
+        if(doneOtherSetup && doneFlagsSetup) return;
+#if defined(arch_x86) || defined(arch_x86_64)      
+        dyn_hash_map<entryID, registerSet >::const_iterator foundRegs;
       foundRegs = op_data(archDecodedFrom).nonOperandRegisterReads.find(operationID);
       if(foundRegs != op_data(archDecodedFrom).nonOperandRegisterReads.end())
       {
 	otherRead = foundRegs->second;
-	//std::copy(foundRegs->second.begin(), foundRegs->second.end(),
-	//	  inserter(otherRead, otherRead.begin()));
       }
       foundRegs = op_data(archDecodedFrom).nonOperandRegisterWrites.find(operationID);
       if(foundRegs != op_data(archDecodedFrom).nonOperandRegisterWrites.end())
       {
 	otherWritten = foundRegs->second;
-	//std::copy(foundRegs->second.begin(), foundRegs->second.end(),
-	//	  inserter(otherWritten, otherWritten.begin()));
       }
       dyn_hash_map<entryID, VCSet >::const_iterator foundMem;
       foundMem = op_data(archDecodedFrom).nonOperandMemoryReads.find(operationID);
       if(foundMem != op_data(archDecodedFrom).nonOperandMemoryReads.end())
       {
 	otherEffAddrsRead = foundMem->second;
-	//std::copy(foundMem->second.begin(), foundMem->second.end(),
-	//	  inserter(otherEffAddrsRead, otherEffAddrsRead.begin()));
       }
       foundMem = op_data(archDecodedFrom).nonOperandMemoryWrites.find(operationID);
       if(foundMem != op_data(archDecodedFrom).nonOperandMemoryWrites.end())
       {
 	otherEffAddrsWritten = foundMem->second;
-	//std::copy(foundMem->second.begin(), foundMem->second.end(),
-	//	  inserter(otherEffAddrsWritten, otherEffAddrsWritten.begin()));
       }
       
       if(needFlags && !doneFlagsSetup)
@@ -356,7 +343,9 @@ namespace Dyninst
 	doneFlagsSetup = true;
       }
       doneOtherSetup = true;
+#endif //defined(arch_x86) || defined(arch_x86_64)
+    return;
     }
-  };
+  }
 
 };

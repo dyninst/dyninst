@@ -173,22 +173,22 @@ namespace Dyninst
                     baseAST = decodeImmediate(op_d, locs->sib_position + 1);
                     break;
                     case 0x01: {
-                        IA32Regs reg;
+                        MachRegister reg;
                         if (locs->rex_b)
-                            reg = r_R13;
+                            reg = x86_64::r13;
                         else
-                            reg = r_RBP;
+                            reg = MachRegister::getFramePointer(m_Arch);
 
                         baseAST = makeAddExpression(decodeImmediate(op_b, locs->sib_position + 1),
                                 make_shared(singleton_object_pool<RegisterAST>::construct(reg)), aw);
                         break;
                     }
                     case 0x02: {
-                        IA32Regs reg;
+                        MachRegister reg;
                         if (locs->rex_b)
-                            reg = r_R13;
+                            reg = x86_64::r13;
                         else
-                            reg = r_RBP;
+                            reg = MachRegister::getFramePointer(m_Arch);
 
                         baseAST = makeAddExpression(decodeImmediate(op_d, locs->sib_position + 1),
                                 make_shared(singleton_object_pool<RegisterAST>::construct(reg)), aw);

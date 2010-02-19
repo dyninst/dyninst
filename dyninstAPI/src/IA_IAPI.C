@@ -1176,46 +1176,51 @@ bool IA_IAPI::isRealCall() const
     }
     if(!img->isValidAddress(getCFT()))
     {
-        parsing_printf("... Call to 0x%lx is invalid (outside code or data)\n",
-                       getCFT());
-        return false;
-    }
-    const unsigned char *target =
-            (const unsigned char *)img->getPtrToInstruction(getCFT(), context);
-    if( target == NULL ) {
-        parsing_printf("%s[%d]: failed to get pointer to instruction by offset\n",
-                FILE__, __LINE__);
         return false;
     }
 
-    // We're decoding two instructions: possible move and possible return.
-    // Check for move from the stack pointer followed by a return.
-    dyn_detail::boost::shared_ptr<Dyninst::InstructionAPI::InstructionDecoder> targetChecker =
-            makeDecoder(img->getArch(), target, 2 * maxInstructionLength);
-    targetChecker->setMode(img->getAddressWidth() == 8);
-    Instruction::Ptr thunkFirst = targetChecker->decode();
-    Instruction::Ptr thunkSecond = targetChecker->decode();
-    parsing_printf("... checking call target for thunk, insns are %s, %s\n", thunkFirst->format().c_str(),
-                   thunkSecond->format().c_str());
-    if(thunkFirst && (thunkFirst->getOperation().getID() == e_mov))
+    return (!isThunk());
+}
+
+bool IA_IAPI::isThunk() const {
+  // Before we go a-wandering, check the target
+  if (!img->isValidAddress(getCFT()))
+  {
+      parsing_printf("... Call to 0x%lx is invalid (outside code or data)\n",
+                     getCFT());
+      return false;
+  }
+
+  const unsigned char *target =
+    (const unsigned char *)img->getPtrToInstruction(getCFT());
+  // We're decoding two instructions: possible move and possible return.
+  // Check for move from the stack pointer followed by a return.
+  dyn_detail::boost::shared_ptr<Dyninst::InstructionAPI::InstructionDecoder> targetChecker =
+          makeDecoder(img->getArch(), target, 2 * maxInstructionLength);
+  targetChecker->setMode(img->getAddressWidth() == 8);
+  Instruction::Ptr thunkFirst = targetChecker->decode();
+  Instruction::Ptr thunkSecond = targetChecker->decode();
+  parsing_printf("... checking call target for thunk, insns are %s, %s\n", thunkFirst->format().c_str(),
+		 thunkSecond->format().c_str());
+  if(thunkFirst && (thunkFirst->getOperation().getID() == e_mov))
     {
         if(thunkFirst->isRead(stackPtr))
         {
             parsing_printf("... checking second insn\n");
             if(!thunkSecond) {
                 parsing_printf("...no second insn\n");
-                return true;
+                return false;
             }
             if(thunkSecond->getCategory() != c_ReturnInsn)
             {
                 parsing_printf("...insn %s not a return\n", thunkSecond->format().c_str());
-                return true;
+                return false;
             }
-            return false;
+            return true;
         }
     }
     parsing_printf("... real call found\n");
-    return true;
+    return false;
 }
 
 bool IA_IAPI::isConditional() const

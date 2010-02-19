@@ -571,8 +571,9 @@ ReadWriteInfo calcRWSets(Instruction::Ptr curInsn, image_basicBlock* blk, unsign
        i != cur_read.end(); i++) 
   {
     liveness_printf("%s ", (*i)->format().c_str());
-#if defined(arch_x86) || defined(arch_x86_64)      
-    ret.read[convertRegID(*i)] = true;
+#if defined(arch_x86) || defined(arch_x86_64)
+        bool unused;
+    ret.read[convertRegID(*i, unused)] = true;
 #else
     int id = convertRegID((*i)->getID());
     if(id != registerSpace::ignored)
@@ -588,9 +589,15 @@ ReadWriteInfo calcRWSets(Instruction::Ptr curInsn, image_basicBlock* blk, unsign
        i != cur_written.end(); i++) {
     //liveness_printf("%s ", (*i)->format().c_str());
 #if defined(arch_x86) || defined(arch_x86_64)
-    ret.written[convertRegID(*i)] = true;
+    bool treatAsRead = false;
+    Register r = convertRegID(*i, treatAsRead);
+    ret.written[r] = true;
+    if(treatAsRead) ret.read[r] = true;
+        
 #else
+    
     int id = convertRegID((*i)->getID());
+    
     if(id != registerSpace::ignored)
     {
         assert(id < registerSpace::lastReg && id >= registerSpace::r0);

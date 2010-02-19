@@ -36,7 +36,7 @@
 #include "Register.h"
 #include "common/h/Types.h"
 
-Register convertRegID(Dyninst::InstructionAPI::RegisterAST::Ptr toBeConverted);
-Register convertRegID(Dyninst::InstructionAPI::RegisterAST* toBeConverted);
+Register convertRegID(Dyninst::InstructionAPI::RegisterAST::Ptr toBeConverted, bool& wasUpcast);
+Register convertRegID(Dyninst::InstructionAPI::RegisterAST* toBeConverted, bool& wasUpcast);
 
 #endif //!defined(REGISTER_CONVERSION_H)

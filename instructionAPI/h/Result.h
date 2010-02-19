@@ -191,8 +191,9 @@ namespace Dyninst
       bool defined;
       
       Result() :
-        type(u32), defined(false)
+              type(u32), defined(false)
       {
+          val.u32val = 0;
       }
       Result(const Result& o) :
               val(o.val), type(o.type), defined(o.defined)
@@ -209,8 +210,9 @@ namespace Dyninst
       /// A %Result may be constructed from a type without providing a value.
       /// This constructor creates a %Result of type \c t with undefined contents.
       Result(Result_Type t) :
-      type(t), defined(false)
+              type(t), defined(false)
       {
+          val.u32val = 0;
       }
       
       /// A %Result may be constructed from a type and any value convertible to the type that the

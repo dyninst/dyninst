@@ -36,7 +36,6 @@
 #include "InstructionDecoder.h"
 #include "RegisterIDs-x86.h"
 #include <boost/assign/list_of.hpp>
-#include <boost/iterator/indirect_iterator.hpp>
 #include <deque>
 using namespace Dyninst;
 using namespace InstructionAPI;

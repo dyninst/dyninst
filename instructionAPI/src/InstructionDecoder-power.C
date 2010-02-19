@@ -69,6 +69,8 @@ namespace Dyninst
                 const char* mnemonic;
                 nextTableFunc next_table;
                 operandSpec operands;
+                static void buildTables();
+                static bool built_tables;
                 static std::vector<power_entry> main_opcode_table;
                 static power_table extended_op_0;
                 static power_table extended_op_4;
@@ -83,6 +85,7 @@ namespace Dyninst
                                                       Architecture arch)
           : InstructionDecoder(buffer, length, arch), isRAWritten(false)
     {
+        power_entry::buildTables();
     }
     InstructionDecoder_power::~InstructionDecoder_power()
     {

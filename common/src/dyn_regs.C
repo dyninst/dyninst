@@ -100,7 +100,7 @@ MachRegisterVal MachRegister::getSubRegValue(const MachRegister subreg,
       case 0x2: return (orig & 0xff00) >> 8;              
       case 0x3: return (orig & 0xffff);
       case 0xf: return (orig & 0xffffffff);
-      default: assert(0);
+      default: assert(0); return orig;
    }
 }
 

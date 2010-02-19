@@ -618,8 +618,6 @@ Dwarf_Signed DynToDwarfReg(Dyninst::MachRegister, int word_size = 4)
 }
 #endif
 
-MachRegister conversion.:symtabAPI/src/parseDwarf.C
-
 bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
                            long int *initialStackValue,
                            VariableLocation *loc, bool &isLocSet,
@@ -736,7 +734,7 @@ bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
                to_push = static_cast<long int>(locations[i].lr_number);
             }
             else if (reader) {
-               Dyninst::MachRegister r = Dyninst::MachRegFrameBase;
+               Dyninst::MachRegister r = Dyninst::FrameBase;
                Dyninst::MachRegisterVal v;
                bool result = reader->GetReg(r, v);
                if (!result) {

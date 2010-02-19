@@ -312,7 +312,7 @@ void codeRangeTree::traverse(pdvector<codeRange *> &all, entry* node) const{
 //////////////////////////// PUBLIC FUNCTIONS ////////////////////////////////
 
 void codeRangeTree::insert(codeRange *value) {
-    assert(value->get_size());
+    //assert(value->get_size());
  	entry* x = treeInsert(value->get_address(), value);
 	if(!x) {
             entry* x = find_internal(value->get_address());

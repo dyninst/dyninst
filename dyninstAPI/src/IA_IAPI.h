@@ -76,6 +76,7 @@ class IA_IAPI : public InstructionAdapter
         virtual bool isInterruptOrSyscall() const;
     private:
         virtual bool isRealCall() const;
+        virtual bool isThunk() const;
         bool parseJumpTable(image_basicBlock* currBlk,
                             std::vector<std::pair< Address, EdgeTypeEnum > >& outEdges) const;
         bool isIPRelativeBranch() const;
