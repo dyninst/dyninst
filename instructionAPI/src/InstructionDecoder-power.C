@@ -781,7 +781,7 @@ using namespace boost::assign;
     }
     void InstructionDecoder_power::spr()
     {
-        insn_in_progress->appendOperand(makeSPRExpr(), true, true);
+        insn_in_progress->appendOperand(makeSPRExpr(), !isRAWritten, isRAWritten);
         return;
     }
     void InstructionDecoder_power::SR()
