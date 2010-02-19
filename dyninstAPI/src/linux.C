@@ -1446,8 +1446,11 @@ int_function *instPoint::findCallee()
     * because the function binding table holds relocations used by the dynamic
     * linker
     */
-   if (!fbtvector.size() && obj->getObjectType() != obj_RelocatableFile )
+   if (!fbtvector.size() && !obj->isStaticBinary() && 
+           obj->getObjectType() != obj_RelocatableFile ) 
+   {
       fprintf(stderr, "%s[%d]:  WARN:  zero func bindings\n", FILE__, __LINE__);
+   }
 
    for (unsigned index=0; index< fbtvector.size();index++)
    	fbt.push_back(fbtvector[index]);
@@ -2611,7 +2614,7 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
              * only parsed once because the Archive class keeps track of all
              * open Archives.
              *
-             * This is partly to due the fact that Archives are collections of
+             * This is partly due to the fact that Archives are collections of
              * Symtab objects and their is one Symtab for each BinaryEdit. In
              * some sense, an Archive is a collection of BinaryEdits.
              */
@@ -2736,7 +2739,9 @@ bool BinaryEdit::getResolvedLibraryPath(const std::string &filename, std::vector
         libPaths.push_back("/usr/local/lib");
         libPaths.push_back("/usr/share/lib");
         libPaths.push_back("/usr/lib");
+        libPaths.push_back("/usr/lib64");
         libPaths.push_back("/lib");
+        libPaths.push_back("/lib64");
         for (unsigned int i = 0; i < libPaths.size(); i++) {
             std::string str = libPaths[i] + "/" + filename;
             if (stat(str.c_str(), &dummy) == 0) {
