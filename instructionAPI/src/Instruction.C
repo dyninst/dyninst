@@ -491,6 +491,7 @@ memAccessors.begin()));
     }
     INSTRUCTION_EXPORT InsnCategory Instruction::getCategory() const
     {
+      static RegisterAST* thePC = new RegisterAST(MachRegister::getPC(arch_decoded_from));
       InsnCategory c = entryToCategory(m_InsnOp->getID());
       if(c == c_BranchInsn && (arch_decoded_from == Arch_ppc32 || arch_decoded_from == Arch_ppc64))
       {
@@ -499,14 +500,18 @@ memAccessors.begin()));
               cft != cft_end();
              ++cft)
           {
-              if(cft->isCall)
+	    if(cft->isCall)
               {
-                  return c_CallInsn;
+		long offset;
+		cft->target->bind(thePC, Result(u32, 0));
+		offset = cft->target->eval().convert<long>();
+		if(offset != size())
+		  return c_CallInsn;
               }
           }
           if(m_InsnOp->getID() == power_op_bclr)
           {
-              return c_ReturnInsn;
+	    return c_ReturnInsn;
           }
       }
       return c;

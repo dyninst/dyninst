@@ -155,8 +155,8 @@ void image_basicBlock::summarizeBlockLivenessInfo()
    def = in;
    use = in;
 
-   liveness_printf("%s[%d]: Getting liveness summary for block starting at 0x%lx\n",
-                   FILE__, __LINE__, firstInsnOffset());
+   liveness_printf("%s[%d]: Getting liveness summary for block starting at 0x%lx in %s\n",
+                   FILE__, __LINE__, firstInsnOffset(), getFirstFunc()->img()->pathname().c_str());
 
 
 #if defined(cap_instruction_api) || defined(cap_instruction_api_liveness)
@@ -181,10 +181,10 @@ void image_basicBlock::summarizeBlockLivenessInfo()
      // And if written, then was defined
      def |= curInsnRW.written;
       
-     liveness_printf("%s[%d] After instruction %s at address 0x%lx:\n",
-                     FILE__, __LINE__, curInsn->format().c_str(), current);
-     liveness_cerr << "        " << "?XXXXXXXXMMMMMMMMRNDITCPAZSOF11111100DSBSBDCA" << endl;
-     liveness_cerr << "        " << "?7654321076543210FTFFFFFFFFFP54321098IIPPXXXX" << endl;
+     liveness_printf("%s[%d] After instruction at address 0x%lx:\n",
+                     FILE__, __LINE__, current);
+     //liveness_cerr << "        " << "?XXXXXXXXMMMMMMMMRNDITCPAZSOF11111100DSBSBDCA" << endl;
+     //liveness_cerr << "        " << "?7654321076543210FTFFFFFFFFFP54321098IIPPXXXX" << endl;
      liveness_cerr << "Read    " << curInsnRW.read << endl;
      liveness_cerr << "Written " << curInsnRW.written << endl;
      liveness_cerr << "Used    " << use << endl;
@@ -207,8 +207,11 @@ void image_basicBlock::summarizeBlockLivenessInfo()
       // And if written, then was defined
       def |= curInsnRW.written;
 
-	//liveness_printf("%s[%d] After instruction at address 0x%lx:\n", FILE__, __LINE__, *ii);
-	//liveness_cerr << curInsnRW.read << endl << curInsnRW.written << endl << use << endl << def << endl;
+	liveness_printf("%s[%d] After instruction at address 0x%lx:\n", FILE__, __LINE__, *ii);
+	liveness_cerr << "Read    " << curInsnRW.read << endl;
+	liveness_cerr << "Written " << curInsnRW.written << endl;
+	liveness_cerr << "Used    " << use << endl;
+	liveness_cerr << "Defined " << def << endl;
         
       ++ii;
    }
@@ -375,8 +378,8 @@ void instPoint::calcLiveness() {
       {
 	liveness_printf("%s[%d] Calculating liveness for iP 0x%lx, insn at 0x%lx\n",
 			FILE__, __LINE__, addr(), *current);
-        liveness_cerr << "        " << "?XXXXXXXXMMMMMMMMRNDITCPAZSOF11111100DSBSBDCA" << endl;
-        liveness_cerr << "        " << "?7654321076543210FTFFFFFFFFFP54321098IIPPXXXX" << endl;
+        //liveness_cerr << "        " << "?XXXXXXXXMMMMMMMMRNDITCPAZSOF11111100DSBSBDCA" << endl;
+        //liveness_cerr << "        " << "?7654321076543210FTFFFFFFFFFP54321098IIPPXXXX" << endl;
         liveness_cerr << "Pre:    " << postLiveRegisters_ << endl;
 	
 	postLiveRegisters_ &= (~rwAtCurrent.written);
@@ -502,8 +505,8 @@ bitArray instPoint::liveRegisters(callWhen when) {
 
     liveness_printf("Liveness out for instruction at 0x%lx\n",
                       addr());
-    liveness_cerr << "        " << "?XXXXXXXXMMMMMMMMRNDITCPAZSOF11111100DSBSBDCA" << endl;
-    liveness_cerr << "        " << "?7654321076543210FTFFFFFFFFFP54321098IIPPXXXX" << endl;
+    //liveness_cerr << "        " << "?XXXXXXXXMMMMMMMMRNDITCPAZSOF11111100DSBSBDCA" << endl;
+    //liveness_cerr << "        " << "?7654321076543210FTFFFFFFFFFP54321098IIPPXXXX" << endl;
     liveness_cerr << "Read    " << curInsnRW.read << endl;
     liveness_cerr << "Written " << curInsnRW.written << endl;
     liveness_cerr << "Live    " << ret << endl;
@@ -516,7 +519,7 @@ int convertRegID(int in)
 {
     if(in >= ppc32::r0 && in <= ppc32::r31)
     {
-        return in - ppc32::r0;
+      return in - ppc32::r0 + registerSpace::r0;
     }
     else if(in >= ppc32::fpr0 && in <= ppc32::fpr31)
     {
@@ -565,12 +568,12 @@ ReadWriteInfo calcRWSets(Instruction::Ptr curInsn, image_basicBlock* blk, unsign
   std::set<RegisterAST::Ptr> cur_read, cur_written;
   curInsn->getReadSet(cur_read);
   curInsn->getWriteSet(cur_written);
-  //liveness_printf("Read registers: ");
+  //  liveness_printf("Read registers: \n");
       
   for (std::set<RegisterAST::Ptr>::const_iterator i = cur_read.begin(); 
        i != cur_read.end(); i++) 
   {
-    liveness_printf("%s ", (*i)->format().c_str());
+    //liveness_printf("%s \n", (*i)->format().c_str());
 #if defined(arch_x86) || defined(arch_x86_64)
         bool unused;
     ret.read[convertRegID(*i, unused)] = true;
@@ -583,11 +586,11 @@ ReadWriteInfo calcRWSets(Instruction::Ptr curInsn, image_basicBlock* blk, unsign
     }
 #endif
   }
-  //liveness_printf("\nWritten registers: ");
+  //liveness_printf("Written registers: \n");
       
   for (std::set<RegisterAST::Ptr>::const_iterator i = cur_written.begin(); 
        i != cur_written.end(); i++) {
-    //liveness_printf("%s ", (*i)->format().c_str());
+    //liveness_printf("%s \n", (*i)->format().c_str());
 #if defined(arch_x86) || defined(arch_x86_64)
     bool treatAsRead = false;
     Register r = convertRegID(*i, treatAsRead);
@@ -605,7 +608,6 @@ ReadWriteInfo calcRWSets(Instruction::Ptr curInsn, image_basicBlock* blk, unsign
     }
 #endif
   }
-  //liveness_printf("\n");
   InsnCategory category = curInsn->getCategory();
   switch(category)
   {
@@ -629,7 +631,7 @@ ReadWriteInfo calcRWSets(Instruction::Ptr curInsn, image_basicBlock* blk, unsign
   default:
     {
       entryID cur_op = curInsn->getOperation().getID();
-      if(cur_op == e_syscall)
+      if(cur_op == e_syscall || cur_op == power_op_svcs)
       {
 	ret.read |= (registerSpace::getRegisterSpace(width)->getSyscallReadRegisters());
 	ret.written |= (registerSpace::getRegisterSpace(width)->getSyscallWrittenRegisters());
