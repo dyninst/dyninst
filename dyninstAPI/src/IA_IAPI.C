@@ -380,7 +380,7 @@ bool IA_IAPI::isMovAPSTable(std::vector<std::pair< Address, EdgeTypeEnum > >& ou
     }
 
     unsigned int size = (img->imageOffset() + img->imageLength()) - current;
-    dyn_detail::boost::shared_ptr<InstructionDecoder> d = makeDecoder(img->getArch(), buffer, size);
+    dyn_detail::boost::shared_ptr<InstructionDecoder> d = makeDecoder(img->getArch(), bufferBegin, size);
     d->setMode(img->getAddressWidth() == 8);
     Address cur = current;
     unsigned last_insn_size = 0;
@@ -1042,7 +1042,7 @@ bool IA_IAPI::fillTableEntries(Address thunkOffset,
 			if(tableStride == sizeof(Address)) {
 					// Unparseable jump table
 				jumpAddress = *(const Address *)img->getPtrToInstruction(tableEntry, context);
-                                if( jumpAddress  == NULL ) {
+                                if( jumpAddress == NULL ) {
                                     parsing_printf("%s[%d]: failed to get pointer to instruction by offset\n",
                                         FILE__, __LINE__);
                                     return false;
@@ -1050,7 +1050,7 @@ bool IA_IAPI::fillTableEntries(Address thunkOffset,
 			}
 			else {
 				jumpAddress = *(const int *)img->getPtrToInstruction(tableEntry, context);
-                                if( jumpAddress  == NULL ) {
+                                if( jumpAddress == NULL ) {
                                     parsing_printf("%s[%d]: failed to get pointer to instruction by offset\n",
                                         FILE__, __LINE__);
                                     return false;

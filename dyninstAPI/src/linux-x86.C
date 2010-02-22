@@ -2094,11 +2094,12 @@ bool image::findGlobalConstructorFunc() {
     unsigned numCalls = 0;
     const unsigned char *p = reinterpret_cast<const unsigned char *>(initRegion->getPtrToRawData());
 
-    InstructionDecoder decoder(p, initRegion->getRegionSize());
-    decoder.setMode(getAddressWidth() == 8);
+    dyn_detail::boost::shared_ptr<InstructionDecoder> decoder =
+            makeDecoder(getArch(), p, initRegion->getRegionSize());
+    decoder->setMode(getAddressWidth() == 8);
 
-    Instruction::Ptr curInsn = decoder.decode();
-    while(numCalls < 3 && curInsn.get() && curInsn->isValid() && 
+    Instruction::Ptr curInsn = decoder->decode();
+    while(numCalls < 3 && curInsn && curInsn->isValid() &&
           bytesSeen < initRegion->getRegionSize()) 
     {
         InsnCategory category = curInsn->getCategory();
@@ -2107,7 +2108,7 @@ bool image::findGlobalConstructorFunc() {
         }
         if( numCalls < 3 ) {
             bytesSeen += curInsn->size();
-            curInsn = decoder.decode();
+            curInsn = decoder->decode();
         }
     }
 
@@ -2118,8 +2119,7 @@ bool image::findGlobalConstructorFunc() {
 
     Address callAddress = initRegion->getRegionAddr() + bytesSeen;
 
-    RegisterAST thePC = RegisterAST::makePC();
-    RegisterAST rip(r_RIP);
+    RegisterAST thePC = RegisterAST(Dyninst::MachRegister::getPC(getArch()));
 
     Expression::Ptr callTarget = curInsn->getControlFlowTarget();
     if( !callTarget.get() ) {
@@ -2127,7 +2127,7 @@ bool image::findGlobalConstructorFunc() {
         return false;
     }
     callTarget->bind(&thePC, Result(s64, callAddress));
-    callTarget->bind(&rip, Result(s64, callAddress));
+    //callTarget->bind(&rip, Result(s64, callAddress));
 
     Result actualTarget = callTarget->eval();
     if( actualTarget.defined ) {
@@ -2211,13 +2211,14 @@ bool image::findGlobalDestructorFunc() {
     unsigned bytesSeen = 0;
     const unsigned char *p = reinterpret_cast<const unsigned char *>(finiRegion->getPtrToRawData());
 
-    InstructionDecoder decoder(p, finiRegion->getRegionSize());
-    decoder.setMode(getAddressWidth() == 8);
+    dyn_detail::boost::shared_ptr<InstructionDecoder> decoder =
+            makeDecoder(getArch(), p, finiRegion->getRegionSize());
+    decoder->setMode(getAddressWidth() == 8);
 
     Instruction::Ptr lastCall;
-    Instruction::Ptr curInsn = decoder.decode();
+    Instruction::Ptr curInsn = decoder->decode();
 
-    while(curInsn.get() && curInsn->isValid() && 
+    while(curInsn && curInsn->isValid() &&
           bytesSeen < finiRegion->getRegionSize()) 
     {
         InsnCategory category = curInsn->getCategory();
@@ -2225,45 +2226,44 @@ bool image::findGlobalDestructorFunc() {
             lastCall = curInsn;
         }
             bytesSeen += curInsn->size();
-            curInsn = decoder.decode();
+            curInsn = decoder->decode();
     }
 
     if( !lastCall.get() || !lastCall->isValid() ) {
-        logLine("heuristic for finding global constructor function failed\n");
+        logLine("heuristic for finding global destructor function failed\n");
         return false;
     }
 
     Address callAddress = finiRegion->getRegionAddr() + bytesSeen;
 
-    RegisterAST thePC = RegisterAST::makePC();
-    RegisterAST rip(r_RIP);
+    RegisterAST thePC = RegisterAST(Dyninst::MachRegister::getPC(getArch()));
 
-    Expression::Ptr callTarget = lastCall->getControlFlowTarget();
+    Expression::Ptr callTarget = curInsn->getControlFlowTarget();
     if( !callTarget.get() ) {
         logLine("failed to find global destructor function\n");
         return false;
     }
     callTarget->bind(&thePC, Result(s64, callAddress));
-    callTarget->bind(&rip, Result(s64, callAddress));
+    //callTarget->bind(&rip, Result(s64, callAddress));
 
     Result actualTarget = callTarget->eval();
     if( actualTarget.defined ) {
         dtorAddress = actualTarget.convert<Address>();
     }else{
-        logLine("failed to find global constructor function\n");
+        logLine("failed to find global destructor function\n");
         return false;
     }
 
     if( !dtorAddress || !isValidAddress(dtorAddress) ) {
-        logLine("invalid address for global constructor function\n");
+        logLine("invalid address for global destructor function\n");
         return false;
     }
 
     if( addFunctionStub(dtorAddress, LIBC_DTOR_HANDLER.c_str()) == NULL ) {
-        logLine("unable to create representation for global constructor function\n");
+        logLine("unable to create representation for global destructor function\n");
         return false;
     }else{
-        inst_printf("%s[%d]: set global constructor address to 0x%lx\n", FILE__, __LINE__,
+        inst_printf("%s[%d]: set global destructor address to 0x%lx\n", FILE__, __LINE__,
                 dtorAddress);
     }
 
