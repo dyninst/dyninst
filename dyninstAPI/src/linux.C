@@ -2690,63 +2690,57 @@ bool BinaryEdit::getResolvedLibraryPath(const std::string &filename, std::vector
     }
 
     // search paths from environment variables
-    if ( 0 >= paths.size() ) {
-        libPathStr = strdup(getenv("LD_LIBRARY_PATH"));
-        libPath = strtok(libPathStr, ":");
-        while (libPath != NULL) {
-            libPaths.push_back(std::string(libPath));
-            libPath = strtok(NULL, ":");
-        }
-        free(libPathStr);
+    libPathStr = strdup(getenv("LD_LIBRARY_PATH"));
+    libPath = strtok(libPathStr, ":");
+    while (libPath != NULL) {
+        libPaths.push_back(std::string(libPath));
+        libPath = strtok(NULL, ":");
+    }
+    free(libPathStr);
 
-        //libPaths.push_back(std::string(getenv("PWD")));
-        for (unsigned int i = 0; i < libPaths.size(); i++) {
-            std::string str = libPaths[i] + "/" + filename;
-            if (stat(str.c_str(), &dummy) == 0) {
-                paths.push_back(str);
-            }
+    //libPaths.push_back(std::string(getenv("PWD")));
+    for (unsigned int i = 0; i < libPaths.size(); i++) {
+        std::string str = libPaths[i] + "/" + filename;
+        if (stat(str.c_str(), &dummy) == 0) {
+            paths.push_back(str);
         }
     }
 
-    if ( 0 >= paths.size() ) {
-        // search ld.so.cache
-        ldconfig = popen("/sbin/ldconfig -p", "r");
-        if (ldconfig) {
-            fgets(buffer, 512, ldconfig);	// ignore first line
-            while (fgets(buffer, 512, ldconfig) != NULL) {
-                pos = buffer;
-                while (*pos == ' ' || *pos == '\t') pos++;
-                key = pos;
-                while (*pos != ' ') pos++;
-                *pos = '\0';
-                while (*pos != '=' && *(pos + 1) != '>') pos++;
-                pos += 2;
-                while (*pos == ' ' || *pos == '\t') pos++;
-                val = pos;
-                while (*pos != '\n' && *pos != '\0') pos++;
-                *pos = '\0';
-                if (strcmp(key, filename.c_str()) == 0) {
-                    paths.push_back(val);
-                }
+    // search ld.so.cache
+    ldconfig = popen("/sbin/ldconfig -p", "r");
+    if (ldconfig) {
+        fgets(buffer, 512, ldconfig);	// ignore first line
+        while (fgets(buffer, 512, ldconfig) != NULL) {
+            pos = buffer;
+            while (*pos == ' ' || *pos == '\t') pos++;
+            key = pos;
+            while (*pos != ' ') pos++;
+            *pos = '\0';
+            while (*pos != '=' && *(pos + 1) != '>') pos++;
+            pos += 2;
+            while (*pos == ' ' || *pos == '\t') pos++;
+            val = pos;
+            while (*pos != '\n' && *pos != '\0') pos++;
+            *pos = '\0';
+            if (strcmp(key, filename.c_str()) == 0) {
+                paths.push_back(val);
             }
-            pclose(ldconfig);
         }
+        pclose(ldconfig);
     }
 
-    if ( 0 >= paths.size() ) {
-        // search hard-coded system paths
-        libPaths.clear();
-        libPaths.push_back("/usr/local/lib");
-        libPaths.push_back("/usr/share/lib");
-        libPaths.push_back("/usr/lib");
-        libPaths.push_back("/usr/lib64");
-        libPaths.push_back("/lib");
-        libPaths.push_back("/lib64");
-        for (unsigned int i = 0; i < libPaths.size(); i++) {
-            std::string str = libPaths[i] + "/" + filename;
-            if (stat(str.c_str(), &dummy) == 0) {
-                paths.push_back(str);
-            }
+    // search hard-coded system paths
+    libPaths.clear();
+    libPaths.push_back("/usr/local/lib");
+    libPaths.push_back("/usr/share/lib");
+    libPaths.push_back("/usr/lib");
+    libPaths.push_back("/usr/lib64");
+    libPaths.push_back("/lib");
+    libPaths.push_back("/lib64");
+    for (unsigned int i = 0; i < libPaths.size(); i++) {
+        std::string str = libPaths[i] + "/" + filename;
+        if (stat(str.c_str(), &dummy) == 0) {
+            paths.push_back(str);
         }
     }
 
