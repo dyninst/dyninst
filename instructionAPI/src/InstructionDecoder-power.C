@@ -263,7 +263,7 @@ namespace Dyninst
         insn_in_progress->appendOperand(makeRAExpr(), false, true);
     }
     void InstructionDecoder_power::LK()
-    {
+    {/*
         if(field<31, 31>(insn))
         {
             insn_in_progress->appendOperand(makeRegisterExpression(ppc32::lr), false, true);
@@ -277,6 +277,7 @@ namespace Dyninst
             
             insn_in_progress->getOperation().mnemonic.insert(where, "l");
         }
+     */
     }
     
     Expression::Ptr InstructionDecoder_power::makeMemRefIndex(Result_Type size)
@@ -739,7 +740,7 @@ using namespace boost::assign;
     }
     void InstructionDecoder_power::BI()
     {
-        insn_in_progress->appendOperand(makeRegisterExpression(makePowerRegID(ppc32::cr0, field<11,13>(insn))), true, false);
+        //insn_in_progress->appendOperand(makeRegisterExpression(makePowerRegID(ppc32::cr0, field<11,13>(insn))), true, false);
         return;
     }
     void InstructionDecoder_power::ME()
