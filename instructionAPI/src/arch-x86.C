@@ -498,6 +498,7 @@ dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_movss, "movss")
   (e_movsw_d, "movsw/d")
   (e_movsx, "movsx")
+  (e_movsxd, "movsxd")
   (e_movupd, "movupd")
   (e_movups, "movups")
   (e_movzx, "movzx")
