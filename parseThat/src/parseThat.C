@@ -586,7 +586,11 @@ void parseArgs(int argc, char **argv)
                   fprintf(stderr, "Invalid -v flag.  Valid range is 0 through %d\n", VERBOSE_MAX - 1);
                }
                break;
-
+            case 'l':
+               if( ++i < argc ) {
+                  config.symbol_libraries.push_back(string(argv[i]));
+               }
+               break;
             case '-':
                needShift = false;
                arg = strchr(ptr, '=');
@@ -684,7 +688,7 @@ void parseArgs(int argc, char **argv)
                      strcpy(config.binary_args,arg);
                   }
 			
-               }  else if (strcmp(ptr, "-binary-edit") == 0) {
+               }  else if (strcmp(ptr, "-skip-func") == 0) {
                   if (!arg) {
                      fprintf(stderr, "--skip-func requires a regular expression argument.\n");
                      userError();
@@ -921,6 +925,11 @@ void usage(const char *progname)
     fprintf(stderr, "  -f <library_name:function_name>\n");
     fprintf(stderr, "    The function specified is used to generate instrumentation.\n");
     fprintf(stderr, "    If this option is not specified, default instrumentation is generated.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -l <library name>\n");
+    fprintf(stderr, "    This option is used to load additional libraries\n");
+    fprintf(stderr, "    The library can be relative to a standard library directory or a full path\n");
+    fprintf(stderr, "    This option can be repeated multiple times\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -h\n");
     fprintf(stderr, "    Enables history record logging.  Log files will be placed in:\n");

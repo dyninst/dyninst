@@ -352,7 +352,7 @@ SYMTAB_EXPORT bool Symtab::isStripped()
 {
 #if defined(os_linux) || defined(os_solaris)
     Region *sec;
-    return findRegion(sec,".symtab");
+    return !findRegion(sec,".symtab");
 #else
     return (no_of_symbols==0);
 #endif
@@ -549,7 +549,7 @@ bool Symtab::extractSymbolsFromFile(Object *linkedFile, std::vector<Symbol *> &r
         // relocation entries have references to these undefined dynamic symbols.
         // We also have undefined symbols for the static binary case.
         
-        if (sym->getSec() == NULL && !sym->isAbsolute()) {
+        if (sym->getSec() == NULL && !sym->isAbsolute() && !sym->isCommonStorage()) {
             undefDynSyms[sym->getMangledName()].push_back(sym);
             continue;
         }
@@ -765,6 +765,20 @@ bool Symtab::addSymbolToAggregates(Symbol *&sym)
             funcsByOffset[sym->getAddr()] = func;
         }
         else {
+            /* XXX 
+             * For relocatable files, the offset of a symbol is relative to the
+             * beginning of a Region. Therefore, a symbol in a relocatable file
+             * is not uniquely identifiable by its offset, but it is uniquely
+             * identifiable by its Region and its offset.
+             *
+             * For now, do not add these functions to funcsByOffset collection.
+             */
+
+            if( func->getRegion() != sym->getRegion() ) {
+                func = new Function(sym);
+                everyFunction.push_back(func);
+                sorted_everyFunction = false;
+            }
             func->addSymbol(sym);
         }
         sym->setFunction(func);
@@ -785,6 +799,14 @@ bool Symtab::addSymbolToAggregates(Symbol *&sym)
             varsByOffset[sym->getAddr()] = var;
         }
         else {
+            /* XXX
+             * See comment above about uniqueness of symbols in relocatable
+             * files
+             */
+            if( var->getRegion() != sym->getRegion() ) {
+                var = new Variable(sym);
+                everyVariable.push_back(var);
+            }
             var->addSymbol(sym);
         }
         sym->setVariable(var);
@@ -973,14 +995,22 @@ Module *Symtab::newModule(const std::string &name, const Offset addr, supportedL
     fileNm = extract_pathname_tail(name);
 
     // /* DEBUG */ fprintf( stderr, "%s[%d]: In %p: Creating new pdmodule '%s'/'%s'\n", FILE__, __LINE__, this, fileNm.c_str(), fullNm.c_str() );
+    create_printf("%s[%d]: In %p: Creating new module '%s'/'%s'\n", FILE__, __LINE__, this, fileNm.c_str(), fullNm.c_str());
 
     ret = new Module(lang, addr, fullNm, this);
     assert(ret);
 
+    /*
+     * FIXME
+     *
+     * There are cases where the fileName can be the same, but the full name is
+     * different and the modules are actually different. This is an inherent
+     * problem with how modules are processed.
+     */
     if (modsByFileName.end() != modsByFileName.find(ret->fileName()))
     {
        create_printf("%s[%d]:  WARN:  LEAK?  already have module with name %s\n", 
-                     FILE__, __LINE__, ret->fileName().c_str());
+             FILE__, __LINE__, ret->fileName().c_str());
     }
 
     if (modsByFullName.end() != modsByFullName.find(ret->fullName()))
@@ -997,6 +1027,7 @@ Module *Symtab::newModule(const std::string &name, const Offset addr, supportedL
 }
 
 Symtab::Symtab(std::string filename,bool &err) :
+   member_offset_(0),
    is_a_out(false), 
    main_call_addr_(0),
    nativeCompiler(false), 
@@ -1038,10 +1069,13 @@ Symtab::Symtab(std::string filename,bool &err) :
       err = true;
    }
 
+   member_name_ = mf->filename();
+
    defaultNamespacePrefix = "";
 }
 
 Symtab::Symtab(char *mem_image, size_t image_size, bool &err) :
+   member_offset_(0),
    is_a_out(false), 
    main_call_addr_(0),
    nativeCompiler(false),
@@ -1078,11 +1112,13 @@ Symtab::Symtab(char *mem_image, size_t image_size, bool &err) :
       err = true;
    }
 
+   member_name_ = mf->filename();
+
    defaultNamespacePrefix = "";
 }
 
 // Symtab constructor for archive members
-#if defined(os_aix) || defined(os_linux) || defined(os_solaris)
+#if defined(os_aix)
 Symtab::Symtab(std::string filename, std::string member_name, Offset offset, 
                bool &err, void *base) :
    member_name_(member_name), 
@@ -1101,8 +1137,11 @@ Symtab::Symtab(std::string filename, std::string member_name, Offset offset,
      err = true;
      return;
    }
-   err = extractInfo(obj_private);
+   err = !extractInfo(obj_private);
    defaultNamespacePrefix = "";
+
+   create_printf("%s[%d]: created symtab for %s(%s)\n", FILE__, __LINE__, filename.c_str(),
+           member_name.c_str());
 }
 #else
 Symtab::Symtab(std::string, std::string, Offset, bool &, void *)
@@ -1111,10 +1150,11 @@ Symtab::Symtab(std::string, std::string, Offset, bool &, void *)
 }
 #endif
 
-#if defined(os_aix) || defined(os_linux) || defined(os_solaris)
+#if defined(os_aix)
 Symtab::Symtab(char *mem_image, size_t image_size, std::string member_name,
                        Offset offset, bool &err, void *base) :
    member_name_(member_name), 
+   member_offset_(offset),
    is_a_out(false), 
    main_call_addr_(0),
    nativeCompiler(false), 
@@ -1128,7 +1168,7 @@ Symtab::Symtab(char *mem_image, size_t image_size, std::string member_name,
      err = true;
      return;
    }
-   err = extractInfo(obj_private);
+   err = !extractInfo(obj_private);
    defaultNamespacePrefix = "";
 }
 #else 
@@ -1156,6 +1196,13 @@ bool Symtab::extractInfo(Object *linkedFile)
 #endif
     mfForDebugInfo = linkedFile->getMappedFileForDebugInfo();
 
+    /* FIXME 
+     *
+     * Some ELF .o's don't have contiguous code and data Regions so these data
+     * members are imprecise. These members should probably be deprecated in
+     * favor of the getCodeRegions and getDataRegions functions.
+     */
+
     bool err = true;
     imageOffset_ = linkedFile->code_off();
     dataOffset_ = linkedFile->data_off();
@@ -1176,8 +1223,12 @@ bool Symtab::extractInfo(Object *linkedFile)
        else 
 #endif
        {
-          serr = Obj_Parsing;
-          return false;
+           if( object_type_ != obj_RelocatableFile ||
+               linkedFile->code_ptr() == 0)
+           {
+                serr = Obj_Parsing;
+                return false;
+           }
        }
    }
 	
@@ -1390,6 +1441,7 @@ Symtab::Symtab(const Symtab& obj) :
     create_printf("%s[%d]: Creating symtab 0x%p from symtab 0x%p\n", FILE__, __LINE__, this, &obj);
   
     member_name_ = obj.member_name_;
+    member_offset_ = obj.member_offset_;
     imageOffset_ = obj.imageOffset_;
     imageLen_ = obj.imageLen_;
     dataOffset_ = obj.dataOffset_;
@@ -1562,6 +1614,9 @@ SYMTAB_EXPORT std::vector<std::string> &Symtab::getDependencies(){
     return deps_;
 }
 
+SYMTAB_EXPORT Archive *Symtab::getParentArchive() const {
+    return parentArchive_;
+}
 
 Symtab::~Symtab()
 {
@@ -1639,6 +1694,10 @@ Symtab::~Symtab()
       if (allSymtabs[i] == this)
          allSymtabs.erase(allSymtabs.begin()+i);
    }
+
+   // Make sure to free the underlying Object as it doesn't have a factory
+   // open method
+   if( obj_private ) delete obj_private;
 
    //fprintf(stderr, "%s[%d]:  symtab DTOR, mf = %p: %s\n", FILE__, __LINE__, mf, mf->filename().c_str());
    if (mf) MappedFile::closeMappedFile(mf);
@@ -1922,14 +1981,15 @@ bool Symtab::openFile(Symtab *&obj, std::string filename)
    return !err;
 }
 
-bool Symtab::addRegion(Offset vaddr, void *data, unsigned int dataSize, std::string name, Region::RegionType rType_, bool loadable)
+bool Symtab::addRegion(Offset vaddr, void *data, unsigned int dataSize, std::string name, 
+        Region::RegionType rType_, bool loadable, unsigned long memAlign, bool tls)
 {
    Region *sec;
    unsigned i;
    if (loadable)
    {
       sec = new Region(newSectionInsertPoint, name, vaddr, dataSize, vaddr, 
-            dataSize, (char *)data, Region::RP_R, rType_, true);
+            dataSize, (char *)data, Region::RP_R, rType_, true, tls, memAlign);
 
       regions_.insert(regions_.begin()+newSectionInsertPoint, sec);
 
@@ -1955,7 +2015,7 @@ bool Symtab::addRegion(Offset vaddr, void *data, unsigned int dataSize, std::str
    else
    {
       sec = new Region(regions_.size()+1, name, vaddr, dataSize, 0, 0, 
-            (char *)data, Region::RP_R, rType_);
+            (char *)data, Region::RP_R, rType_, loadable, tls, memAlign);
       regions_.push_back(sec);
    }
 
@@ -2569,6 +2629,11 @@ SYMTAB_EXPORT std::string Symtab::name() const
    return mf->filename();
 }
 
+SYMTAB_EXPORT std::string Symtab::memberName() const 
+{
+    return member_name_;
+}
+
 SYMTAB_EXPORT unsigned Symtab::getNumberofRegions() const 
 {
    return no_of_sections; 
@@ -2857,7 +2922,19 @@ SYMTAB_EXPORT relocationEntry::relocationEntry(Offset ra, std::string n,
    dynref_(dynref), 
    relType_(relType)
 {
-}   
+}
+
+SYMTAB_EXPORT relocationEntry::relocationEntry(Offset ta, Offset ra, Offset add,
+        std::string n, Symbol *dynref, unsigned long relType,
+        Region::RegionType rtype) :
+    target_addr_(ta),
+    rel_addr_(ra),
+    addend_(add),
+    rtype_(rtype),
+    name_(n),
+    dynref_(dynref),
+    relType_(relType)
+{}
 
 SYMTAB_EXPORT const relocationEntry& relocationEntry::operator=(const relocationEntry &ra) 
 {
@@ -2919,17 +2996,21 @@ SYMTAB_EXPORT unsigned long relocationEntry::getRelType() const
 
 SYMTAB_EXPORT Offset relocationEntry::addend() const
 {
-    return addend_;
+        return addend_;
 }
 
 SYMTAB_EXPORT void relocationEntry::setAddend(const Offset value)
 {
-    addend_ = value;
+        addend_ = value;
 }
 
 SYMTAB_EXPORT void relocationEntry::setRegionType(const Region::RegionType value)
 {
-    rtype_ = value;
+        rtype_ = value;
+}
+
+SYMTAB_EXPORT void relocationEntry::setName(const std::string &newName) {
+    name_ = newName;
 }
 
 bool relocationEntry::operator==(const relocationEntry &r) const
@@ -3021,6 +3102,32 @@ Serializable *relocationEntry::serialize_impl(SerializerBase *sb, const char *ta
 	  return NULL;
 }
 
+ostream & Dyninst::SymtabAPI::operator<< (ostream &os, const relocationEntry &r) 
+{
+    if( r.getDynSym() != NULL ) {
+        os << "Name: " << setw(20) << ( "'" + r.getDynSym()->getName() + "'" );
+    }else{
+        os << "Name: " << setw(20) << r.name();
+    }
+    os << " Offset: " << std::hex << std::setfill('0') << setw(8) << r.rel_addr() 
+       << std::dec << std::setfill(' ')
+       << " Offset: " << std::hex << std::setfill('0') << setw(8) << r.target_addr() 
+       << std::dec << std::setfill(' ')
+       << " Addend: " << r.addend()
+       << " Region: " << Region::regionType2Str(r.regionType())
+       << " Type: " << setw(15) << relocationEntry::relType2Str(r.getRelType())
+       << "(" << r.getRelType() << ")";
+    if( r.getDynSym() != NULL ) {
+        os << " Symbol Offset: " << std::hex << std::setfill('0') << setw(8) << r.getDynSym()->getOffset();
+        os << std::setfill(' ');
+        if( r.getDynSym()->isCommonStorage() ) {
+            os << " COM";
+        }else if( r.getDynSym()->getRegion() == NULL ) {
+            os << " UND";
+        }
+    }
+    return os;
+}
 
 const char *Symbol::symbolType2Str(SymbolType t) 
 {
@@ -3233,6 +3340,48 @@ SYMTAB_EXPORT bool Symtab::addSysVDynamic(long name, long value)
 #endif
 }
 
+SYMTAB_EXPORT bool Symtab::addExternalSymbolReference(Symbol *externalSym, Region *localRegion,
+        relocationEntry localRel)
+{
+    // Create placeholder Symbol for external Symbol reference
+    Symbol *symRef = new Symbol(externalSym->getName(),
+                                externalSym->getType(),
+                                Symbol::SL_GLOBAL,
+                                Symbol::SV_DEFAULT,
+                                (Address)0,
+                                getDefaultModule(),
+                                localRegion,
+                                externalSym->getSize(),
+                                true,
+                                false);
+
+   if( !addSymbol(symRef, externalSym) ) return false;
+
+   localRegion->addRelocationEntry(localRel);
+
+   // Make sure the Symtab holding the external symbol gets linked
+   // with this Symtab
+   explicitSymtabRefs_.insert(externalSym->getSymtab());
+
+   return true;
+}
+
+bool Symtab::getExplicitSymtabRefs(std::set<Symtab *> &refs) {
+    refs = explicitSymtabRefs_;
+    return (refs.size() != 0);
+}
+
+SYMTAB_EXPORT bool Symtab::addLinkingResource(Archive *library) {
+    linkingResources_.push_back(library);
+
+    return true;
+}
+
+SYMTAB_EXPORT bool Symtab::getLinkingResources(std::vector<Archive *> &libs) {
+    libs = linkingResources_;
+    return (linkingResources_.size() != 0);
+}
+
 SYMTAB_EXPORT Address Symtab::getLoadAddress()
 {
 #if defined(os_linux) || defined(os_aix)
@@ -3266,7 +3415,6 @@ SYMTAB_EXPORT Offset Symtab::getFiniOffset()
 #endif
 
 }
-
 
 } // namespace SymtabAPI
 } // namespace Dyninst

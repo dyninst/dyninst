@@ -42,7 +42,9 @@ namespace SymtabAPI{
 class emitElf64{
   public:
     emitElf64(Elf_X &oldElfHandle_, bool isStripped_ = false, Object *obj_ = NULL, void (*)(const char *) = log_msg);
-    ~emitElf64();
+    ~emitElf64() {
+        if( linkedStaticData ) delete linkedStaticData;
+    }
     bool createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols);
     bool driver(Symtab *obj, std::string fName);
  
@@ -110,6 +112,10 @@ class emitElf64{
     Offset currEndOffset;
     Address currEndAddress;
 
+    // Pointer to all relocatable code and data allocated during a static link,
+    // to be deleted after written out
+    char *linkedStaticData;
+
     //flags
     // Expand NOBITS sections within the object file to their size
     bool BSSExpandFlag;
@@ -142,10 +148,14 @@ class emitElf64{
     void createSymbolVersions(Symtab *obj, Elf64_Half *&symVers, char*&verneedSecData, unsigned &verneedSecSize, char *&verdefSecData, unsigned &verdefSecSize, unsigned &dynSymbolNamesLength, std::vector<std::string> &dynStrs);
     void createHashSection(Symtab *obj, Elf64_Word *&hashsecData, unsigned &hashsecSize, std::vector<Symbol *>&dynSymbols);
     void createDynamicSection(void *dynData, unsigned size, Elf64_Dyn *&dynsecData, unsigned &dynsecSize, unsigned &dynSymbolNamesLength, std::vector<std::string> &dynStrs);
+
+    bool hasRewrittenTLS;
+    Elf64_Shdr *newTLSData;
 #endif 
 
     void log_elferror(void (*err_func)(const char *), const char* msg);
     bool hasPHdrSectionBug();
+
 };
 
 } // namespace SymtabAPI

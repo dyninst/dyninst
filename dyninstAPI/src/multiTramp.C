@@ -398,8 +398,9 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
       const unsigned char* relocatedInsnBuffer =
       reinterpret_cast<const unsigned char*>(proc->getPtrToInstruction(startAddr));
       
-      InstructionDecoder decoder(relocatedInsnBuffer, size);
-      decoder.setMode(proc->getAddressWidth() == 8);
+      dyn_detail::boost::shared_ptr<InstructionDecoder> decoder =
+              makeDecoder(func->ifunc()->img()->getArch(), relocatedInsnBuffer, size);
+      decoder->setMode(proc->getAddressWidth() == 8);
       while(offset < size)
       {
 	Address insnAddr = startAddr + offset;
@@ -415,7 +416,7 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
 	}
 	reloc->setPrevious(prev);
 	prev = reloc;	
-	offset += decoder.decode()->size();
+	offset += decoder->decode()->size();
 	#if defined(arch_sparc)
 	#error "Instruction API not implemented for SPARC yet"
 	// delay slot handling goes here
@@ -568,10 +569,13 @@ bool multiTramp::getMultiTrampFootprint(Address instAddr,
         
         startAddr = instAddr;
 #if defined(cap_instruction_api)
+        static const int maxInsnSize = 16; // 16 byte instruction is max on all IAPI platforms
 	using namespace Dyninst::InstructionAPI;
-	InstructionDecoder decoder;
-        decoder.setMode(proc->getAddressWidth() == 8);
-        Instruction::Ptr instInsn = decoder.decode((unsigned char*)(proc->getPtrToInstruction(instAddr)));
+	dyn_detail::boost::shared_ptr<InstructionDecoder> decoder =
+                makeDecoder(bbl->func()->ifunc()->img()->getArch(), (unsigned char*)(proc->getPtrToInstruction(instAddr)),
+                            maxInsnSize);
+        decoder->setMode(proc->getAddressWidth() == 8);
+        Instruction::Ptr instInsn = decoder->decode();
 	size = instInsn->size();
 #else
         InstrucIter ah(instAddr,proc);

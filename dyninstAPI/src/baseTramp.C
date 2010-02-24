@@ -763,7 +763,7 @@ Address baseTrampInstance::miniTrampReturnAddr() {
 }
 
 bool baseTramp::isConservative() {
-  if (instP() && instP()->getPointType() == otherPoint)
+    if (instP() && (instP()->getPointType() == otherPoint))
     return true;
   if (rpcMgr_)
     return true;
@@ -771,7 +771,7 @@ bool baseTramp::isConservative() {
 }
 
 bool baseTramp::isCallsite() {
-    if (instP() && instP()->getPointType() == callSite)
+    if (instP() && (instP()->getPointType() == callSite))
         return true;
 
     return false;
@@ -907,12 +907,13 @@ bool baseTramp::doOptimizations()
 }
 
 void baseTramp::setRecursive(bool trampRecursive, bool force) {
-
+   /* Tramp guards now work for static binaries
    BinaryEdit *binEdit = dynamic_cast<BinaryEdit *>(proc());
    if (binEdit && binEdit->getMappedObject()->parse_img()->getObject()->isStaticBinary()) {
    	guardState_ = recursive_BTR;
 	return;
    }
+   */
 
    if (force) {
       guardState_ = trampRecursive ? recursive_BTR : guarded_BTR;

@@ -317,7 +317,7 @@ class process : public AddressSpace {
     Address getTOCoffsetInfo(Address);
     Address getTOCoffsetInfo(int_function *);
     
-    bool dyninstLibAlreadyLoaded() { return runtime_lib != 0; }
+    bool dyninstLibAlreadyLoaded() { return runtime_lib.size() != 0; }
     
     rpcMgr *getRpcMgr() const { return theRpcMgr; }
     

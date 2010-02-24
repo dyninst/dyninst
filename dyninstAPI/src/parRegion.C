@@ -47,7 +47,7 @@ image_parRegion::image_parRegion(Address firstOffset, image_func * imageFunc)
   firstInsnOffset_ = firstOffset;
 }
 
-image_func * image_parRegion::getAssociatedFunc(){return regionIf_;}
+const image_func * image_parRegion::getAssociatedFunc() const {return regionIf_;}
 
 void image_parRegion::printDetails()
 {  

@@ -45,6 +45,8 @@ class process;
 #include <pthread.h>
 #include "common/h/Types.h"
 #include "common/h/Vector.h"
+#include "symtabAPI/h/Symtab.h"
+#include "symtabAPI/h/Archive.h"
 
 #if !defined( ia64_unknown_linux2_4 )
 #define BYTES_TO_SAVE   256

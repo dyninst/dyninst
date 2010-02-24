@@ -94,7 +94,7 @@ namespace Dyninst
       /// by another %InstructionAST if and only if the first %InstructionAST is a subtree of the second one.
       virtual bool isUsed(InstructionAST::Ptr findMe) const;
 
-      virtual std::string format() const;
+      virtual std::string format(formatStyle) const;
       static Immediate::Ptr makeImmediate(const Result& val);
       virtual void apply(Visitor* v);
       

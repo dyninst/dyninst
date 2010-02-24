@@ -33,8 +33,11 @@
 
 #include "frameChecker.h"
 #include "instructionAPI/h/InstructionDecoder.h"
+#include "dyn_regs.h"
 
-using namespace Dyninst::InstructionAPI;
+
+using namespace Dyninst;
+using namespace InstructionAPI;
 
 
 frameChecker::frameChecker(const unsigned char* addr, size_t max_length)
@@ -42,12 +45,12 @@ frameChecker::frameChecker(const unsigned char* addr, size_t max_length)
   // How many instructions in our stack frame idioms?
   static const unsigned max_insns = 3;
   
-  InstructionDecoder d;
+  dyn_detail::boost::shared_ptr<InstructionDecoder> d = makeDecoder(Arch_x86, addr, max_length);
   unsigned bytesDecoded = 0;
   
   for(unsigned i = 0; i < max_insns && bytesDecoded < max_length; i++)
   {
-    m_Insns.push_back(d.decode(addr));
+      m_Insns.push_back(d->decode());
     addr += m_Insns.back()->size();
     bytesDecoded += m_Insns.back()->size();
   }
@@ -82,16 +85,16 @@ bool frameChecker::isMovStackToBase(unsigned index_to_check) const
    if(m_Insns.size() <= index_to_check) return false;
   if(m_Insns[index_to_check]->getOperation().getID() == e_mov)
   {
-    RegisterAST::Ptr stack_ptr(new RegisterAST(r_ESP));
-    RegisterAST::Ptr base_ptr(new RegisterAST(r_EBP));
+      RegisterAST::Ptr stack_ptr(new RegisterAST(MachRegister::getStackPointer(Arch_x86)));
+      RegisterAST::Ptr base_ptr(new RegisterAST(MachRegister::getFramePointer(Arch_x86)));
     std::string debugMe = m_Insns[index_to_check]->format();
     
     if(m_Insns[index_to_check]->isWritten(base_ptr) && m_Insns[index_to_check]->isRead(stack_ptr))
     {
       return true;
     }
-    stack_ptr = RegisterAST::Ptr(new RegisterAST(r_RSP));
-    base_ptr = RegisterAST::Ptr(new RegisterAST(r_RBP));
+    stack_ptr = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_x86_64)));
+    base_ptr = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_x86_64)));
     if(m_Insns[index_to_check]->isWritten(base_ptr) && m_Insns[index_to_check]->isRead(stack_ptr))
     {
       return true;

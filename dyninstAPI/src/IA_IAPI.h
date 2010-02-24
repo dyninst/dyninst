@@ -40,9 +40,9 @@
 class IA_IAPI : public InstructionAdapter
 {
     public:
-        IA_IAPI(Dyninst::InstructionAPI::InstructionDecoder dec_,
+        IA_IAPI(dyn_detail::boost::shared_ptr<Dyninst::InstructionAPI::InstructionDecoder> dec_,
                 Address start_, image_func* f);
-        IA_IAPI(Dyninst::InstructionAPI::InstructionDecoder dec_,
+        IA_IAPI(dyn_detail::boost::shared_ptr<Dyninst::InstructionAPI::InstructionDecoder> dec_,
                 Address start_, image * im);
         Dyninst::InstructionAPI::Instruction::Ptr getInstruction();
     
@@ -76,6 +76,7 @@ class IA_IAPI : public InstructionAdapter
         virtual bool isInterruptOrSyscall() const;
     private:
         virtual bool isRealCall() const;
+        virtual bool isThunk() const;
         bool parseJumpTable(image_basicBlock* currBlk,
                             std::vector<std::pair< Address, EdgeTypeEnum > >& outEdges) const;
         bool isIPRelativeBranch() const;
@@ -107,7 +108,7 @@ class IA_IAPI : public InstructionAdapter
 
 
 
-        Dyninst::InstructionAPI::InstructionDecoder dec;
+        dyn_detail::boost::shared_ptr<Dyninst::InstructionAPI::InstructionDecoder> dec;
         std::map<Address, Dyninst::InstructionAPI::Instruction::Ptr> allInsns;
         Dyninst::InstructionAPI::Instruction::Ptr curInsn() const;
         std::map<Address, Dyninst::InstructionAPI::Instruction::Ptr>::const_iterator curInsnIter;
@@ -115,6 +116,9 @@ class IA_IAPI : public InstructionAdapter
         mutable Address cachedCFT;
         mutable std::pair<bool, bool> hascftstatus;
         mutable std::pair<bool, bool> tailCall;
+        Dyninst::InstructionAPI::RegisterAST::Ptr framePtr;
+        Dyninst::InstructionAPI::RegisterAST::Ptr stackPtr;
+        Dyninst::InstructionAPI::RegisterAST::Ptr thePC;
 };
 
 

@@ -931,7 +931,6 @@ class Elf_X {
             if ((err = elf_errno()) != 0)
             {
                 const char *msg = elf_errmsg(err);
-                /* print msg */
                 fprintf(stderr, "Error: Unable to open ELF file: %s\n", msg);
             }
             if (elf) {
@@ -960,6 +959,13 @@ class Elf_X {
 	if (elf_version(EV_CURRENT) != EV_NONE) {
 	    elf_errno(); // Reset elf_errno to zero.
 	    elf = elf_memory(mem_image, mem_size);
+
+            int err;
+            if ( (err = elf_errno()) != 0) {
+                const char *msg = elf_errmsg(err);
+                fprintf(stderr, "Error: Unable to open ELF file: %s\n", msg);
+            }
+
 	    if (elf) {
 		if (elf_kind(elf) == ELF_K_ELF) {
 		    char *identp = elf_getident(elf, NULL);

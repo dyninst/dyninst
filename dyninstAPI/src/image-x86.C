@@ -73,7 +73,12 @@ void checkIfRelocatable(instruction insn, bool &canBeRelocated) {
 // parse this function.
 bool image_func::archIsUnparseable()
 {
-    if( !isInstrumentableByFunctionName() )
+    /* TODO
+     * For the time being, mark any functions in relocatable files as 
+     * uninstrumentable. It should be possible to instrument functions
+     * in relocatable files, but it isn't supported at this time.
+     */
+    if( !isInstrumentableByFunctionName() || img()->isRelocatableObj() )
     {   
         if (!isInstrumentableByFunctionName())
             parsing_printf("... uninstrumentable by func name\n");
@@ -82,8 +87,8 @@ bool image_func::archIsUnparseable()
         endOffset_ = getOffset();
         instLevel_ = UNINSTRUMENTABLE; 
         return true;
-    }           
-    else
+
+    }else
         return false;
 }
 
@@ -169,20 +174,26 @@ bool image_func::writesFPRs(unsigned level) {
         }
 
         // No kids contain writes. See if our code does.
-        const unsigned char* buf = (const unsigned char*)(img()->getPtrToInstruction(getOffset()));
-        InstructionDecoder d(buf,
+        const unsigned char* buf = (const unsigned char*)(img()->getPtrToInstruction(getOffset(), this));
+        if( buf == NULL ) {
+            parsing_printf("%s[%d]: failed to get pointer to instruction by offset\n",
+                    FILE__, __LINE__);
+            // if the function cannot be parsed, it is only safe to assume that the FPRs are written
+            return true; 
+        }
+        dyn_detail::boost::shared_ptr<InstructionDecoder> d = makeDecoder(Dyninst::Arch_x86, buf,
                              endOffset_ - getOffset());
-        d.setMode(img()->getAddressWidth() == 8);
+        d->setMode(img()->getAddressWidth() == 8);
         Instruction::Ptr i;
-        static RegisterAST::Ptr st0(new RegisterAST(r_ST0));
-        static RegisterAST::Ptr st1(new RegisterAST(r_ST1));
-        static RegisterAST::Ptr st2(new RegisterAST(r_ST2));
-        static RegisterAST::Ptr st3(new RegisterAST(r_ST3));
-        static RegisterAST::Ptr st4(new RegisterAST(r_ST4));
-        static RegisterAST::Ptr st5(new RegisterAST(r_ST5));
-        static RegisterAST::Ptr st6(new RegisterAST(r_ST6));
-        static RegisterAST::Ptr st7(new RegisterAST(r_ST7));
-        while (i = d.decode()) {
+        static RegisterAST::Ptr st0(new RegisterAST(x86::st0));
+        static RegisterAST::Ptr st1(new RegisterAST(x86::st1));
+        static RegisterAST::Ptr st2(new RegisterAST(x86::st2));
+        static RegisterAST::Ptr st3(new RegisterAST(x86::st3));
+        static RegisterAST::Ptr st4(new RegisterAST(x86::st4));
+        static RegisterAST::Ptr st5(new RegisterAST(x86::st5));
+        static RegisterAST::Ptr st6(new RegisterAST(x86::st6));
+        static RegisterAST::Ptr st7(new RegisterAST(x86::st7));
+        while (i = d->decode()) {
             if(i->isWritten(st0) ||
                i->isWritten(st1) ||
                i->isWritten(st2) ||

@@ -39,7 +39,33 @@ namespace Dyninst
       InstructionAST(), userSetValue(t)
     {
     } 
-    Expression::~Expression() 
+    Expression::Expression(MachRegister r) :
+        InstructionAST()
+    {
+        switch(r.size())
+        {
+            case 1:
+                userSetValue = Result(u8);
+                break;
+            case 2:
+                userSetValue = Result(u16);
+                break;
+            case 4:
+                userSetValue = Result(u32);
+                break;
+            case 8:
+                userSetValue = Result(u64);
+                break;
+            case 10:
+                userSetValue = Result(dp_float);
+            case 16:
+                userSetValue = Result(dbl128);
+                break;
+            default:
+                assert(!"unexpected machine register size!");
+        }
+    }
+    Expression::~Expression()
     {
     }
     const Result& Expression::eval() const
@@ -76,7 +102,7 @@ namespace Dyninst
     {
         return true;
     }
-    bool DummyExpr::checkRegID(unsigned int ) const
+    bool DummyExpr::checkRegID(MachRegister, unsigned int, unsigned int) const
     {
         return true;
     }

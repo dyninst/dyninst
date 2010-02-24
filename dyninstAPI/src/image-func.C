@@ -471,16 +471,18 @@ void image_basicBlock::split(image_basicBlock * &newBlk)
     using namespace Dyninst::InstructionAPI;
     const unsigned char* buffer = 
     reinterpret_cast<const unsigned char*>(getPtrToInstruction(firstInsnOffset_));
-    InstructionDecoder decoder(buffer, newBlk->firstInsnOffset() -
-			       firstInsnOffset_);
-    decoder.setMode(getFirstFunc()->img()->getAddressWidth() == 8);
-    Instruction::Ptr tmp = decoder.decode();
+    dyn_detail::boost::shared_ptr<InstructionDecoder> decoder =
+            makeDecoder(getFirstFunc()->img()->getArch(),
+                        buffer,
+                        newBlk->firstInsnOffset() - firstInsnOffset_);
+    decoder->setMode(getFirstFunc()->img()->getAddressWidth() == 8);
+    Instruction::Ptr tmp = decoder->decode();
     lastInsnOffset_ = firstInsnOffset_;
     
     while(lastInsnOffset_ + tmp->size() < newBlk->firstInsnOffset())
     {
       lastInsnOffset_ += tmp->size();
-      tmp = decoder.decode();
+      tmp = decoder->decode();
     }
 #else
     InstrucIter ah( this );
@@ -855,21 +857,27 @@ void *image_basicBlock::getPtrToInstruction(Address addr) const {
     if (addr < firstInsnOffset_) return NULL;
     if (addr >= blockEndOffset_) return NULL;
     // XXX all potential parent functions have the same image
-    return getFirstFunc()->img()->getPtrToInstruction(addr);
+    return getFirstFunc()->img()->getPtrToInstruction(addr, getFirstFunc());
 }
 
-/* XXX This would be much faster if we could make stabbing queries
-   instead of iterating the list */
 void *image_func::getPtrToInstruction(Address addr) const {
     if (addr < getOffset()) return NULL;
     if (!parsed_) image_->analyzeIfNeeded();
     if (addr >= endOffset_) return NULL;
+
+    /* If we are just looking for a pointer to an instruction given an 
+     * address, just short-circuit to the image
+     *
+     * XXX This would be much faster if we could make stabbing queries
+       instead of iterating the list
     set<image_basicBlock*, image_basicBlock::compare>::const_iterator sit;
     for(sit = blockList.begin(); sit != blockList.end(); sit++) {
         void *ptr = (*sit)->getPtrToInstruction(addr);
         if (ptr) return ptr;
     }
     return NULL;
+    */
+    return img()->getPtrToInstruction(addr, this);
 }
 
 image_instPoint * image_basicBlock::getCallInstPoint()
@@ -968,10 +976,12 @@ void image_basicBlock::getInsnInstances(std::vector<std::pair<InstructionAPI::In
     Offset off = firstInsnOffset();
     const unsigned char *ptr = (const unsigned char *)getPtrToInstruction(off);
     if (ptr == NULL) return;
-    InstructionDecoder d(ptr, getSize());
-    d.setMode(getFirstFunc()->img()->getAddressWidth() == 8);
+    dyn_detail::boost::shared_ptr<InstructionDecoder> d =
+            makeDecoder(getFirstFunc()->img()->getArch(),
+                ptr, getSize());
+    d->setMode(getFirstFunc()->img()->getAddressWidth() == 8);
     while (off < endOffset()) {
-        instances.push_back(std::make_pair(d.decode(), off));
+        instances.push_back(std::make_pair(d->decode(), off));
         off += instances.back().first->size();
     }
 }

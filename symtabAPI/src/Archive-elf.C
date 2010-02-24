@@ -38,87 +38,134 @@
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 
-extern char errorLine[];
-
-static SymtabError serr;
-static std::string errMsg;
-
-SymtabError Archive::getLastError()
+Archive::Archive(std::string& filename, bool& err)
+    : basePtr(NULL), symbolTableParsed(false)
 {
-    return serr;
+    mf = MappedFile::createMappedFile(filename);
+
+    if( mf == NULL ) {
+        serr = Not_A_File;
+        errMsg = "Failed to locate file";
+        err = false;
+        return;
+    }
+
+    Elf_Cmd cmd = ELF_C_READ;
+    Elf_Arhdr *archdr;
+    Elf_X *arf = new Elf_X(mf->getFD(), cmd);
+    if (elf_kind(arf->e_elfp()) != ELF_K_AR) {
+        /* Don't close mf, because this file will most
+         * likely be opened again as a normal Symtab
+         * object
+         */
+	serr = Not_An_Archive;
+	err = false;
+	return;
+    }
+
+    basePtr = (void *) arf;
+    Elf_X *newelf = new Elf_X(mf->getFD(), cmd, arf);
+
+    while( newelf->e_elfp() ) {
+	archdr = elf_getarhdr(newelf->e_elfp());
+	string member_name = archdr->ar_name;
+
+        if (elf_kind(newelf->e_elfp()) == ELF_K_ELF) {
+            /* The offset is to the beginning of the arhdr for the member, not
+             * to the beginning of the elfhdr for the member. This allows the
+             * the lazy construction of the object to use the elf_* methods to
+             * get pointers to the ar and elf headers. This offset also matches
+             * up with the offset in the archive global symbol table
+             */
+            Offset tmpOffset = elf_getbase(newelf->e_elfp()) - sizeof(struct ar_hdr);
+
+            // Member is parsed lazily
+            ArchiveMember *newMember = new ArchiveMember(member_name, tmpOffset);
+
+            membersByName[member_name] = newMember;
+            membersByOffset[tmpOffset] = newMember;
+	}
+
+	Elf_X *elfhandle = arf->e_next(newelf);
+	delete newelf;
+	newelf = elfhandle;
+    }
+
+    delete newelf;
+    err = true;
 }
 
-std::string Archive::printError(SymtabError serr)
-{
-   switch (serr){
-      case Obj_Parsing:
-         return "Failed to parse the Archive"+errMsg;
-      case No_Such_Member:
-	    	return "Member not found" + errMsg;
-      case Not_An_Archive:
-	    	return "File is not an archive";
-      default:
-         return "Unknown Error";
-	}	
-}		
-		       
-Archive::Archive(std::string &filename, bool &err) :
-   basePtr(NULL)
-{
-   mf  = MappedFile::createMappedFile(filename);
-   Elf_Cmd cmd = ELF_C_READ;
-   Elf_Arhdr *archdr;;
-   Elf_X *arf = new Elf_X(mf->getFD(), cmd);
-   if(elf_kind(arf->e_elfp()) != ELF_K_AR){
-       serr  = Not_An_Archive;
-       err = false;
-       return;
-   }
-   basePtr = (void *)arf;
-   Elf_X *newelf = new Elf_X(mf->getFD(), cmd, arf);
-   while(1){
-       if(!newelf->e_elfp())
-           break;
-       archdr = elf_getarhdr(newelf->e_elfp());
-       string member_name = archdr->ar_name;
-       if(elf_kind(newelf->e_elfp()) == ELF_K_ELF){
-           memberToOffsetMapping[member_name] = elf_getbase(newelf->e_elfp()) - sizeof(struct ar_hdr);
-           //parse it lazily
-           membersByName[member_name] = NULL;
-       }
-       Elf_X *elfhandle = arf->e_next(newelf);
-       newelf->end();
-       newelf = elfhandle;
-   }
-   err = true;
-}
-
-#if 0
-//For elf looks like we need a file descriptor for parsing archives
-//So return error unable to parse archive
-Archive::Archive(char *mem_image, size_t size, bool &err) : basePtr(NULL)
+Archive::Archive(char *, size_t, bool &err) 
+    : basePtr(NULL), symbolTableParsed(false) 
 {
     err = false;
+    serr = Obj_Parsing;
+    errMsg = "current version of libelf doesn't fully support in memory archives";
 }
-#endif
 
-
-
-Archive::~Archive()
+bool Archive::parseMember(Symtab *&img, ArchiveMember *member) 
 {
-   dyn_hash_map <std::string, Symtab *>::iterator iter = membersByName.begin();
-   for (; iter!=membersByName.end();iter++) {
-      if (iter->second)
-         delete (iter->second);
-   }
-   memberToOffsetMapping.clear();
-   for (unsigned i = 0; i < allArchives.size(); i++) {
-      if (allArchives[i] == this)
-         allArchives.erase(allArchives.begin()+i);
-   }
+    // Locate the member based on the stored offset
+    Elf_X* elfX_Hdr = ((Elf_X *)basePtr)->e_rand(member->getOffset());
+    Elf* elfHdr = elfX_Hdr->e_elfp();
 
-   if (mf) 
-   {
-      MappedFile::closeMappedFile(mf);
-   }
+    Elf_Arhdr *arhdr = elf_getarhdr(elfHdr);
+    if( arhdr == NULL ) {
+        serr = Obj_Parsing;
+        errMsg = elf_errmsg(elf_errno());
+        return false;
+    }
+
+    // Sanity check
+    assert(member->getName() == string(arhdr->ar_name));
+
+    size_t rawSize;
+    char * rawMember = elf_rawfile(elfHdr, &rawSize);
+    if( rawMember == NULL ) {
+        serr = Obj_Parsing;
+        errMsg = elf_errmsg(elf_errno());
+        return false;
+    }
+
+    bool success = Symtab::openFile(img, rawMember, rawSize);
+    if( !success ) {
+        serr = Obj_Parsing;
+        errMsg = "problem creating underlying Symtab object";
+        return false;
+    }
+
+    img->member_name_ = member->getName();
+    img->member_offset_ = member->getOffset();
+
+    img->parentArchive_ = this;
+    member->setSymtab(img);
+
+    delete elfX_Hdr;
+
+    return true;
+}
+
+bool Archive::parseSymbolTable() {
+    if( symbolTableParsed ) return true;
+
+    Elf_Arsym *ar_syms;
+    size_t numSyms;
+    if( (ar_syms = elf_getarsym(static_cast<Elf_X *>(basePtr)->e_elfp(), &numSyms)) == NULL ) {
+        serr = Obj_Parsing;
+        errMsg = string("No symbol table found: ") + string(elf_errmsg(elf_errno()));
+        return false;
+    }
+
+    // The last element is always a null element
+    for(unsigned i = 0; i < (numSyms - 1); i++) {
+        string symbol_name(ar_syms[i].as_name);
+
+        // Duplicate symbols are okay here, they should be treated as errors
+        // when necessary
+        membersBySymbol.insert(make_pair(symbol_name, membersByOffset[ar_syms[i].as_off]));
+    }
+
+    symbolTableParsed = true;
+
+    return true;
 }

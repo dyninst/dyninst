@@ -259,7 +259,7 @@ class AddressSpace : public InstructionSource {
     const pdvector<mapped_object *> &mappedObjects() { return mapped_objects;  } 
 
     // And a shortcut pointer
-    mapped_object *runtime_lib;
+    pdvector<mapped_object *> runtime_lib;
     // ... and keep the name around
     std::string dyninstRT_name;
     

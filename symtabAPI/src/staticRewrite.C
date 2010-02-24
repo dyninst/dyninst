@@ -51,8 +51,6 @@ using namespace Dyninst::SymtabAPI;
  * are added to the defined set. This process goes on until we do not have any undefined symbols.
  * Otherwise we return an error
  */
-
-
 bool findDotOs(Symtab *obj, std::vector<Archive *>arfs, vector<Symtab *>&members){
     vector<Symbol *> undefSyms;
 

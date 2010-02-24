@@ -251,7 +251,16 @@ copy $(TargetDir)libsymtabAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 						Name="VCCLCompilerTool"
 						CompileAs="2"/>
 				</FileConfiguration>
-			</File>
+                        </File>
+                        <File
+				RelativePath=".\src\relocationEntry-stub.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+                        </File>
 			<File
 				RelativePath=".\src\Object.C">
 				<FileConfiguration

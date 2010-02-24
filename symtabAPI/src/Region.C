@@ -42,11 +42,13 @@ using namespace std;
 Region *Region::createRegion( Offset diskOff, perm_t perms, RegionType regType,
                               unsigned long diskSize, Offset memOff, 
                               unsigned long memSize, std::string name, 
-                              char *rawDataPtr)
+                              char *rawDataPtr, bool isLoadable, bool isTLS,
+                              unsigned long memAlign)
 {
    Region *newreg = new Region(0, name, diskOff, 
                                diskSize, memOff, memSize, 
-                               rawDataPtr, perms, regType, true);
+                               rawDataPtr, perms, regType, isLoadable, isTLS,
+                               memAlign);
    return newreg;
 }
 
@@ -56,10 +58,12 @@ Region::Region(): rawDataPtr_(NULL), buffer_(NULL)
 
 Region::Region(unsigned regnum, std::string name, Offset diskOff,
                     unsigned long diskSize, Offset memOff, unsigned long memSize,
-                    char *rawDataPtr, perm_t perms, RegionType regType, bool isLoadable):
+                    char *rawDataPtr, perm_t perms, RegionType regType, bool isLoadable,
+                    bool isThreadLocal, unsigned long memAlignment) :
     regNum_(regnum), name_(name), diskOff_(diskOff), diskSize_(diskSize), memOff_(memOff),
     memSize_(memSize), rawDataPtr_(rawDataPtr), permissions_(perms), rType_(regType),
-    isDirty_(false), buffer_(NULL), isLoadable_(isLoadable)
+    isDirty_(false), buffer_(NULL), isLoadable_(isLoadable), isTLS_(isThreadLocal),
+    memAlign_(memAlignment)
 {
    if (memOff)
       isLoadable_ = true;
@@ -70,7 +74,8 @@ Region::Region(const Region &reg) :
    regNum_(reg.regNum_), name_(reg.name_),
    diskOff_(reg.diskOff_), diskSize_(reg.diskSize_), memOff_(reg.memOff_),
    memSize_(reg.memSize_), rawDataPtr_(reg.rawDataPtr_), permissions_(reg.permissions_),
-   rType_(reg.rType_), isDirty_(reg.isDirty_), rels_(reg.rels_), buffer_(reg.buffer_)
+   rType_(reg.rType_), isDirty_(reg.isDirty_), rels_(reg.rels_), buffer_(reg.buffer_),
+   isLoadable_(reg.isLoadable_), isTLS_(reg.isTLS_), memAlign_(reg.memAlign_)
 {
 }
 
@@ -88,6 +93,9 @@ Region& Region::operator=(const Region &reg)
     isDirty_ = reg.isDirty_;
     rels_ = reg.rels_;
     buffer_ = reg.buffer_;
+    isLoadable_ = reg.isLoadable_;
+    isTLS_ = reg.isTLS_;
+    memAlign_ = reg.memAlign_;
 
     return *this;
 }
@@ -113,7 +121,9 @@ bool Region::operator==(const Region &reg)
             (permissions_ == reg.permissions_) &&
             (rType_ == reg.rType_) &&
             (isDirty_ == reg.isDirty_) &&
-            (isLoadable_ == reg.isLoadable_));
+            (isLoadable_ == reg.isLoadable_) &&
+            (isTLS_ == reg.isTLS_) &&
+            (memAlign_ == reg.memAlign_));
 }
 
 ostream& Region::operator<< (ostream &os)
@@ -187,6 +197,8 @@ Serializable * Region::serialize_impl(SerializerBase *sb, const char *tag) THROW
    gtranslate(sb, isDirty_, "Dirty");
    gtranslate(sb, rels_, "Relocations", "Relocation");
    gtranslate(sb, isLoadable_, "isLoadable");
+   gtranslate(sb, isTLS_, "isTLS");
+   gtranslate(sb, memAlign_, "memAlign");
    ifxml_end_element(sb, tag);
    if (sb->isInput())
    {
@@ -253,6 +265,11 @@ unsigned long Region::getMemSize() const
     return memSize_;
 }
 
+unsigned long Region::getMemAlignment() const
+{
+    return memAlign_;
+}
+
 void *Region::getPtrToRawData() const
 {
     return rawDataPtr_;
@@ -279,6 +296,11 @@ bool Region::isText() const
 bool Region::isData() const
 {
     return rType_ == RT_DATA;
+}
+
+bool Region::isTLS() const
+{
+    return isTLS_;
 }
 
 bool Region::isOffsetInRegion(const Offset &offset) const 
@@ -308,10 +330,12 @@ bool Region::patchData(Offset off, void *buf, unsigned size)
     if (off+size > diskSize_)
         return false;
 
-    if (!buffer_)
+    if (!buffer_) {
+        buffer_ = (char *)malloc(diskSize_*sizeof(char));
         memcpy(buffer_, rawDataPtr_, diskSize_);
+    }
 
-    memcpy((char *)buffer_+off, buf, size);
+    memcpy(&buffer_[off], buf, size);
 
     return setPtrToRawData(buffer_, diskSize_);
 }
@@ -320,6 +344,11 @@ bool Region::addRelocationEntry(Offset ra, Symbol *dynref, unsigned long relType
       Region::RegionType rtype)
 {
     rels_.push_back(relocationEntry(ra, dynref->getMangledName(), dynref, relType, rtype));
+    return true;
+}
+
+bool Region::addRelocationEntry(const relocationEntry& rel) {
+    rels_.push_back(rel);
     return true;
 }
 

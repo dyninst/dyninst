@@ -949,6 +949,11 @@ bool mapped_object::isSharedLib() const
     //return desc_.isSharedObject();
 }
 
+bool mapped_object::isStaticExec() const
+{
+    return parse_img()->getObject()->isStaticBinary();
+}
+
 const std::string mapped_object::debugString() const 
 {
     std::string debug;
