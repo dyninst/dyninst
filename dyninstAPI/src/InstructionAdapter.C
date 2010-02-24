@@ -186,6 +186,7 @@ InstrumentableLevel InstructionAdapter::getInstLevel(unsigned int num_insns) con
         }
         else if(!parsedJumpTable)
         {
+            fprintf(stderr, "expected jump table parsing attempt for insn at 0x%lx\n", current);
             assert(0);
             // check for unparseable
             return HAS_BR_INDIR;

@@ -146,6 +146,7 @@ namespace Dyninst {
                 const power_entry& extended_op_19();
                 const power_entry& extended_op_30();
                 const power_entry& extended_op_31();
+                const power_entry& extended_op_58();
                 const power_entry& extended_op_59();
                 const power_entry& extended_op_63();
                 template <int start, int end>

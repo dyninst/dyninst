@@ -801,6 +801,7 @@ class instruction {
         insn_.raw = insn_.raw | value;
     }
     unsigned int asInt() const { return insn_.raw; }
+    void setInstruction(unsigned char *ptr, Address = 0);
     
 
     // To solve host/target endian mismatches

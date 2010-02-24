@@ -629,8 +629,8 @@ namespace Dyninst
    namespace ppc64 {
       const signed int GPR   = 0x00010000;
       const signed int FPR   = 0x00020000;
-      const signed int FSR   = 0x00030000;
-      const signed int SPR   = 0x00040000;
+      const signed int FSR   = 0x00040000;
+      const signed int SPR   = 0x00080000;
       
       DEF_REGISTER(r0,       0 | GPR | Arch_ppc64, "ppc64");
       DEF_REGISTER(r1,       1 | GPR | Arch_ppc64, "ppc64");

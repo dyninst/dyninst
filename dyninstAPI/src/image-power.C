@@ -47,6 +47,7 @@
 #include "debug.h"
 #include "arch.h"
 
+#if !defined(cap_instruction_api)
 bool image_func::archIsRealCall(InstrucIter &ah,
                 bool &validTarget,
                 bool & /*simulateJump*/)
@@ -96,29 +97,6 @@ bool image_func::archCheckEntry(InstrucIter &ah, image_func * /* func */)
     return true;
 }
 
-// Not used on power
-bool image_func::archIsUnparseable()
-{   
-    return false;
-}
-
-// Not used on power
-bool image_func::archAvoidParsing()
-{   
-    return false;
-}
-
-// Not used on power
-bool image_func::archNoRelocate()
-{   
-    return false;
-}
-
-// Not used on power
-void image_func::archSetFrameSize(int /* fsize */)                  
-{
-    return;
-}
 
 // As Drew has noted, this really, really should not be an InstructIter
 // operation. The extraneous arguments support architectures like x86,
@@ -133,12 +111,6 @@ bool image_func::archGetMultipleJumpTargets(
     return ah.getMultipleJumpTargets( targets );
 }
 
-// not implemented on power
-bool image_func::archProcExceptionBlock(Address & /* catchStart */, Address /* a */)
-{   
-    // Agnostic about exception blocks; the policy of champions
-    return false;
-}
 
 // not implemented on power
 bool image_func::archIsATailCall(InstrucIter & /* ah */,
@@ -152,6 +124,37 @@ bool image_func::archIsIndirectTailCall(InstrucIter & /* ah */)
 {   
     return false;
 }
+#endif
+
+// not implemented on power
+bool image_func::archProcExceptionBlock(Address & /* catchStart */, Address /* a */)
+{
+    // Agnostic about exception blocks; the policy of champions
+    return false;
+}
+// Not used on power
+bool image_func::archIsUnparseable()
+{
+    return false;
+}
+
+// Not used on power
+bool image_func::archAvoidParsing()
+{
+    return false;
+}
+
+// Not used on power
+bool image_func::archNoRelocate()
+{
+    return false;
+}
+
+// Not used on power
+void image_func::archSetFrameSize(int /* fsize */)                  
+{
+    return;
+}
 
 
 // not implemented on power
@@ -159,13 +162,13 @@ void image_func::archInstructionProc(InstructionAdapter & /* ah */)
 {
     return;
 }
-
 /*
 By parsing the function that actually sets up the parameters for the OMP
 region we discover informations such as what type of parallel region we're
 dealing with */
 bool image_func::parseOMPParent(image_parRegion * iPar, int desiredNum, int & currentSectionNum )
 {
+#if !defined(cap_instruction_api)
    Address funcBegin = getOffset();
    InstrucIter ah(funcBegin, this);
    InstrucIter callFind(funcBegin, this);
@@ -305,6 +308,10 @@ bool image_func::parseOMPParent(image_parRegion * iPar, int desiredNum, int & cu
       ah++;
    }
    return true;
+#else
+#warning "convert to IAPI!"
+    return false;
+#endif
 }
 
 
@@ -407,6 +414,7 @@ void image_func::parseOMP(image_parRegion * parReg, image_func * parentFunc, int
 
 void image_func::parseOMPFunc(bool hasLoop)
 {
+#if !defined(cap_instruction_api)
    if (OMPparsed_)
       return;
    OMPparsed_ = true;
@@ -595,6 +603,7 @@ void image_func::parseOMPFunc(bool hasLoop)
       }
       ah++;
    }
+#endif
 }
 
 /* This does a linear scan to find out which registers are used in the function,
@@ -604,6 +613,7 @@ void image_func::parseOMPFunc(bool hasLoop)
    clobbers more registers so more analysis would be needed */
 void image_func::calcUsedRegs()
 {
+#if !defined(cap_instruction_api)    
    if (usedRegisters != NULL)
       return; 
    else
@@ -630,10 +640,14 @@ void image_func::calcUsedRegs()
          ah++;
       }
    }
+#else
+#warning "!!! FIXME: convert image-power.C to use IAPI !!!"
+#endif
    return;
 }
-
+#if !defined(cap_instruction_api)
 bool image_func::archIsIPRelativeBranch(InstrucIter& /* ah */)
 {
   return false;
 }
+#endif

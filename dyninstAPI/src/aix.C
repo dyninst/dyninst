@@ -2012,6 +2012,7 @@ int_function *instPoint::findCallee() {
         return NULL;
     }
         
+#if !defined(cap_instruction_api)
     InstrucIter targetIter(callTarget(), proc());
     if (!targetIter.getInstruction().valid()) {
         return NULL;
@@ -2054,6 +2055,9 @@ int_function *instPoint::findCallee() {
         else
             return NULL;
     }
+#else
+#warning "Implement TOC lookup for instruction API in findCallee!!!"
+#endif
     return NULL;
 }
 

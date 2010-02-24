@@ -77,6 +77,7 @@ namespace Dyninst
                 static power_table extended_op_19;
                 static power_table extended_op_30;
                 static power_table extended_op_31;
+                static power_table extended_op_58;
                 static power_table extended_op_59;
                 static power_table extended_op_63;
       };
@@ -263,21 +264,7 @@ namespace Dyninst
         insn_in_progress->appendOperand(makeRAExpr(), false, true);
     }
     void InstructionDecoder_power::LK()
-    {/*
-        if(field<31, 31>(insn))
-        {
-            insn_in_progress->appendOperand(makeRegisterExpression(ppc32::lr), false, true);
-            size_t where = insn_in_progress->getOperation().mnemonic.rfind('+');
-            if(where == std::string::npos) {
-                where = insn_in_progress->getOperation().mnemonic.rfind('-');
-            }
-            if(where == std::string::npos) {
-                where = insn_in_progress->getOperation().mnemonic.size();
-            }
-            
-            insn_in_progress->getOperation().mnemonic.insert(where, "l");
-        }
-     */
+    {
     }
     
     Expression::Ptr InstructionDecoder_power::makeMemRefIndex(Result_Type size)
@@ -286,11 +273,15 @@ namespace Dyninst
     }
     Expression::Ptr InstructionDecoder_power::makeDSExpr()
     {
-        return Immediate::makeImmediate(Result(s32, sign_extend<14>(field<16,29>(insn))));
+        return Immediate::makeImmediate(Result(s32, sign_extend<14>(field<16,29>(insn)) << 2));
     }
     Expression::Ptr InstructionDecoder_power::makeMemRefNonIndex(Result_Type size)
     {
-        if(size == u64 || size == s64 || size == dbl128)
+        if(field<0,5>(insn) == 31 && (field<21,30>(insn) == 597 || field<21, 30>(insn) == 725))
+        {
+            return makeDereferenceExpression(makeRAorZeroExpr(), size);
+        }
+        if(size == u64 || size == s64 || size == dbl128 || field<0,5>(insn) == 58)
         {
             return makeDereferenceExpression(makeAddExpression(makeRAorZeroExpr(), makeDSExpr(), s32), size);
         }
@@ -592,6 +583,10 @@ using namespace boost::assign;
         }
         return power_entry::extended_op_31[field<21, 30>(insn)];
     }
+    const power_entry& InstructionDecoder_power::extended_op_58()
+    {
+        return power_entry::extended_op_58[field<30, 31>(insn)];
+    }
     const power_entry& InstructionDecoder_power::extended_op_59()
     {
         return power_entry::extended_op_59[field<26, 30>(insn)];
@@ -816,6 +811,14 @@ using namespace boost::assign;
             current = &(std::mem_fun(current->next_table)(this));
         }
         insn_in_progress = makeInstruction(current->op, current->mnemonic, 4, reinterpret_cast<unsigned char*>(&insn));
+        if(current->op == power_op_b ||
+          current->op == power_op_bc ||
+          current->op == power_op_bclr ||
+          current->op == power_op_bcctr)
+        {
+            // decode control-flow operands immediately; we're all but guaranteed to need them
+            doDelayedDecode(insn_in_progress);
+        }
         insn_in_progress->arch_decoded_from = Arch_ppc32;
         return;
     }

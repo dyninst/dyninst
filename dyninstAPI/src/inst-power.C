@@ -2753,72 +2753,47 @@ void emitStorePreviousStackFrameRegister(Address,
     assert(0);
 }
 
-
+using namespace Dyninst::InstructionAPI; 
 bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
                                     pdvector<AstNodePtr> &args)
 {
 
-    const instruction &i = callSite->insn();
-    Register branch_target;
+    const Instruction::Ptr i = callSite->insn();
+    Register branch_target = registerSpace::ignored;
 
     // Is this a branch conditional link register (BCLR)
     // BCLR uses the xlform (6,5,5,5,10,1)
-    if(XLFORM_OP(i) == BCLRop) // BLR/BCR, or bcctr/bcc. Same opcode.
+    for(Instruction::cftConstIter curCFT = i->cft_begin();
+        curCFT != i->cft_end();
+        ++curCFT)
+    {
+        if(*(curCFT->target) == RegisterAST(ppc32::ctr))
         {
-            if (XLFORM_XO(i) == BCLRxop) // BLR (bclr)
-                {
-                    //bperr( "Branch target is the link register\n");
-                    branch_target = registerSpace::lr;
-                }
-            else if (XLFORM_XO(i) == BCCTRxop)
-                {
-                    // We handle global linkage branches (BCTR) as static call
-                    // sites. They're currently registered when the static call
-                    // graph is built (Paradyn), after all objects have been read
-                    // and parsed.
-                    //bperr( "Branch target is the count register\n");
-                    branch_target = registerSpace::ctr;
-                }
-            else
-                {
-                    // Used to print an error, but the opcode (19) is also used
-                    // for other instructions, and errors could confuse people.
-                    // So just return false instead.
-                    return false;
-                }
-
-
-            // Where we're jumping to (link register, count register)
-            args.push_back( AstNode::operandNode(AstNode::origRegister,
-                                                 (void *) branch_target));
-
-            // Where we are now
-            args.push_back( AstNode::operandNode(AstNode::Constant,
-                                                 (void *) callSite->addr()));
-
-            return true;
+            branch_target = registerSpace::ctr;
+            break;
         }
-    else if (XLFORM_OP(i) == Bop) {
-        /// Why didn't we catch this earlier? In any case, don't print an error
-        
-        // I have seen this legally -- branches to the FP register saves.
-        // Since we ignore the save macros, we have no idea where the branch
-        // goes. For now, return true -- means no error.
-        
-        //return true;
-        
-        //  since we do not fill in args array, return false ??
-        return false;
+        else if(*(curCFT->target) == RegisterAST(ppc32::lr))
+        {
+            branch_target = registerSpace::lr;
+            break;
+        }
+    }
+    if(branch_target != registerSpace::ignored)
+    {
+        // Where we're jumping to (link register, count register)
+        args.push_back( AstNode::operandNode(AstNode::origRegister,
+                        (void *) branch_target));
+
+        // Where we are now
+        args.push_back( AstNode::operandNode(AstNode::Constant,
+                        (void *) callSite->addr()));
+
+        return true;
     }
     else
-        {
-            cerr << "MonitorCallSite: Unknown opcode " << XLFORM_OP(i) << endl;
-            cerr << "opcode extension: " << XLFORM_XO(i) << endl;
-            bperr( "Address is 0x%x, insn 0x%x\n",
-                   callSite->addr(),
-                   i.asInt());
-            return false;
-        }
+    {
+        return false;
+    }
 }
 
 bool writeFunctionPtr(AddressSpace *p, Address addr, int_function *f)
