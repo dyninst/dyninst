@@ -778,7 +778,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
       plt_scnp = scnp;
       plt_addr_ = scnp->sh_addr();
       plt_size_ = scnp->sh_size();
-#if defined(arch_x86) || defined(arch_x86_64)
+#if defined(arch_x86)
       //
       // On x86, the GNU linker purposefully sets the PLT
       // table entry size to an incorrect value to be

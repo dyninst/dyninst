@@ -802,8 +802,7 @@ bool image_func::buildCFG(
 
         if(currBlk->isStub_)
         {
-            // XXX don't clear the isStub flag until this block is *done*.
-            //currBlk->isStub_ = false;
+            currBlk->isStub_ = false;
             addToBlocklist(currBlk);
 
             parsing_printf("- adding block %d (0x%lx) to blocklist\n",
@@ -1327,8 +1326,6 @@ bool image_func::buildCFG(
             }
             ah.advance();
         }
-
-        currBlk->isStub_ = false;
     }
 
     endOffset_ = funcEnd;
