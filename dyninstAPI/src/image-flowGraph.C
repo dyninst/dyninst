@@ -270,6 +270,7 @@ bool image::analyzeImage()
 
                     if(gapf->parse()) {
                         recordFunction(gapf);
+                        fit = everyUniqueFunction.find(gapf);
                         // one or more functions have been created,
                         // so the remaining gaps need to be recomputed.
                         break;
@@ -343,16 +344,30 @@ image::compute_gap(
     Address lowerBound = imageOffset();
     Address upperBound = lowerBound + imageLength();
     
-    Region* enclosingRegion = getObject()->findEnclosingRegion((*fit)->getOffset());
-    if(enclosingRegion)
+    if (fit == everyUniqueFunction.end())
     {
-        lowerBound = enclosingRegion->getRegionAddr();
-        upperBound = lowerBound + enclosingRegion->getRegionSize();
+       std::vector<std::pair<Address, Address> > ranges;
+       bool result = getExecCodeRanges(ranges);
+       if (!result) 
+          return false;
+       lowerBound = ranges[0].first;
+       upperBound = ranges[1].second;
+    }
+    else {
+       Region* enclosingRegion = getObject()->findEnclosingRegion((*fit)->getOffset());
+       if(enclosingRegion)
+       {
+          lowerBound = enclosingRegion->getRegionAddr();
+          upperBound = lowerBound + enclosingRegion->getRegionSize();
+       }
     }
     // special case for the first gap
     if(fit == everyUniqueFunction.begin()) {
         gapStart = lowerBound;
-        gapEnd = (*fit)->getOffset();
+        if (fit == everyUniqueFunction.end())
+           gapEnd = upperBound;
+        else
+           gapEnd = (*fit)->getOffset();
         gapsize = (long)(gapEnd - gapStart);
     } else {
         gapStart = 0;
@@ -362,14 +377,15 @@ image::compute_gap(
     while(addr >= gapEnd || 
           gapsize <= MIN_GAP_SIZE) 
     {
-        if(fit == everyUniqueFunction.end())
-            return false;
+       if(fit == everyUniqueFunction.end())
+           return false;
 
-        cur = *fit;
-        if(cur->getOffset() == cur->getEndOffset())
-           gapStart = cur->getEndOffset() + 1;
-        else
-           gapStart = cur->getEndOffset();
+       cur = *fit;
+       if(cur->getOffset() == cur->getEndOffset())
+          gapStart = cur->getEndOffset() + 1;
+       else
+          gapStart = cur->getEndOffset();
+
 
         set<image_func *, image_func::compare>::const_iterator fit2(fit);
         ++fit2;
@@ -384,6 +400,7 @@ image::compute_gap(
         gapsize = (long)(gapEnd - gapStart);
         if(addr >= gapEnd || gapsize <= MIN_GAP_SIZE)
             ++fit;
+
     }
         
     parsing_printf("[%s] found code gap [0x%lx,0x%lx) (%ld bytes)\n",

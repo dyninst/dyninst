@@ -5344,3 +5344,11 @@ bool Object::parse_all_relocations(Elf_X &elf, Elf_X_Shdr *dynsym_scnp,
 
     return true;
 }
+
+bool Region::isStandardCode()
+{
+   return ((getRegionPermissions() == RP_RX || getRegionPermissions() == RP_RWX) &&
+           ((name_ == std::string(".text")) ||
+            (name_ == std::string(".init")) ||
+            (name_ == std::string(".fini"))));
+}

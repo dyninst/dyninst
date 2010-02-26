@@ -122,6 +122,7 @@ class Region : public Serializable, public AnnotatableSparse {
    SYMTAB_EXPORT bool isDirty() const;
    SYMTAB_EXPORT std::vector<relocationEntry> &getRelocations();
    SYMTAB_EXPORT bool patchData(Offset off, void *buf, unsigned size);
+   SYMTAB_EXPORT bool isStandardCode();
 
    SYMTAB_EXPORT perm_t getRegionPermissions() const;
    SYMTAB_EXPORT bool setRegionPermissions(perm_t newPerms);

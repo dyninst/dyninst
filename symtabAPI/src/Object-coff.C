@@ -716,3 +716,9 @@ Object::Object(const Object& obj)
 void Dyn_Symtab::getModuleLanguageInfo(dyn_hash_map<string, supportedLanguages> *)
 {
 }
+
+bool Region::isStandardCode()
+{
+   return (getRegionPermissions() == RP_RX ||
+           getRegionPermissions() == RP_RWX);
+}

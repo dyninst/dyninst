@@ -383,6 +383,7 @@ class image : public codeRange, public InstructionSource {
    virtual bool isValidAddress(const Address &where) const;
    virtual bool isExecutableAddress(const Address &where) const;
    bool isAligned(const Address where) const;
+   bool getExecCodeRanges(std::vector<std::pair<Address, Address> > &ranges);
 
    bool isNativeCompiler() const { return nativeCompiler; }
 

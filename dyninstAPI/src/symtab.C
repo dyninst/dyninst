@@ -1799,6 +1799,44 @@ bool image::isData(const Address &where)  const{
    return linkedFile->isData(addr); 
 }
 
+bool image::getExecCodeRanges(std::vector<std::pair<Address, Address> > &ranges)
+{
+   std::vector<Region *> regions;
+   bool result = linkedFile->getCodeRegions(regions);
+   if (!result)
+      return false;
+   Address cur_start, cur_end;
+   bool found_something = false;
+   fprintf(stderr, "\n");
+   for (std::vector<Region *>::iterator i = regions.begin(); i != regions.end(); i++)
+   {
+      Region *r = *i;
+      if (!r->isStandardCode())
+         continue;
+      if (!found_something) {
+         cur_start = r->getDiskOffset();
+         cur_end = cur_start + r->getDiskSize();
+         found_something = true;
+         continue;
+      }
+
+      if (r->getDiskOffset() <= cur_end) {
+         cur_end = r->getDiskOffset() + r->getDiskSize();
+      }
+      else {
+         ranges.push_back(std::pair<Address, Address>(cur_start, cur_end));
+         cur_start = r->getDiskOffset();
+         cur_end = cur_start + r->getDiskSize();
+      }
+   }
+   if (!found_something) {
+      return false;
+   }
+   ranges.push_back(std::pair<Address, Address>(cur_start, cur_end));
+   return true;
+}
+
+
 Symbol *image::symbol_info(const std::string& symbol_name) {
    vector< Symbol *> symbols;
    if(!(linkedFile->findSymbol(symbols,symbol_name.c_str(),Symbol::ST_UNKNOWN, anyName))) 
