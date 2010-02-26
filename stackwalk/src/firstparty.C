@@ -42,14 +42,6 @@
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
-SymbolLookup *Walker::createDefaultSymLookup(const std::string &)
-{
-   sw_printf("[%s:%u] - Warning, no symbol lookup on this platform\n",
-              __FILE__, __LINE__);
-   return NULL;
-}
-
-
 ProcDebug *ProcDebug::newProcDebug(PID, std::string)
 {
    setLastError(err_unsupported, "Third party stackwalking not supported on " \
@@ -65,52 +57,10 @@ ProcDebug *ProcDebug::newProcDebug(const std::string &,
    return NULL;
 }
 
-bool Walker::createDefaultSteppers()
-{
-  FrameStepper *stepper;
-  bool result;
-
-  stepper = new FrameFuncStepper(this);
-  result = addStepper(stepper);
-  if (!result) {
-    sw_printf("[%s:%u] - Error adding stepper %p\n", __FILE__, __LINE__,
-	      stepper);
-    return false;
-  }
-
-  return true;
-}
-
-ProcSelf::ProcSelf() :
-   ProcessState()
-{
-}
-
-void ProcSelf::initialize()
-{
-}
-
-bool ProcSelf::readMem(void *dest, Address source, size_t size)
-{
-   memcpy(dest, (const void *) source, size);
-   return true;
-}
-
-bool ProcSelf::getThreadIds(std::vector<THR_ID> &threads)
-{
-  threads.push_back(0);
-  return true;
-}
-
-bool ProcSelf::getDefaultThread(THR_ID &default_tid)
-{
-  default_tid = 0;
-  return true;
-}
-
 DebugEvent ProcDebug::debug_get_event(bool)
 {
    assert(0);
+   return DebugEvent();
 }
 
 int ProcDebug::getNotificationFD()

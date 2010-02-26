@@ -277,6 +277,7 @@ class LookupInterface
       SYMTAB_EXPORT virtual ~LookupInterface();
 };
 
+std::ostream& operator<< (std::ostream &os, const Symbol &s);
 
 }//namespace SymtabAPI
 }//namespace Dyninst

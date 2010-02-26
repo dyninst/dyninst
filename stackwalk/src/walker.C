@@ -53,6 +53,14 @@ Walker::Walker(ProcessState *p,
    creation_error(false),
    call_count(0)
 {
+
+char buffer[4096];
+free((void *) 0x1234);
+snprintf(buffer, 4096, "I am a test of %d, %s, %p snprintf\n", 1, "hi", sym);
+free((void *) 0x4321);
+
+ exit(-4);
+
    bool result;
    //Always start with a process object
    assert(p);

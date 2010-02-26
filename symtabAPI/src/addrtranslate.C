@@ -169,6 +169,16 @@ void LoadedLib::getOutputs(string &filename, Address &code, Address &data)
    data = 0;
 }
 
+ProcessReader::ProcessReader(int pid_, string exe) :
+   pid(pid_), executable(exe)
+{
+}
+
+ProcessReader::ProcessReader() :
+   pid(0)
+{
+}
+
 //#if !defined(os_linux) && !defined(os_solaris)
 //This definition is for all the non-System V systems
 Address AddressTranslate::getLibraryTrapAddrSysV()

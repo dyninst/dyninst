@@ -54,10 +54,3 @@ include ../make.module.tmpl
 
 include ../../make.library.tmpl
 
-#ifdef USES_LIBDYNINST_SO
-#$(TARGET3): $(OBJS)
-#	@$(RM) $(TARGET3)
-#	@$(MAKE) $(VOUCHER)
-#	$(CC) -shared -dy -G -z text $(LDFLAGS) -o $(TARGET3) $(VOUCHER).o $(OBJS) $(LIBS)
-#endif
-

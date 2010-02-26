@@ -135,158 +135,6 @@ unsigned long roundup4(unsigned long val) {
     return val - (val % 4);
 }
 
-// giri: Brought in here from dyninst/src/aix.C
-typedef void *Name;
-typedef enum { VirtualName, 
-               MemberVar, 
-               // Don't collide with our Function class...
-               Function_, 
-               MemberFunction, 
-               Class,
-               Special, 
-               Long } NameKind;
-typedef enum { RegularNames = 0x1, ClassNames = 0x2, SpecialNames = 0x4,
-               ParameterText = 0x8, QualifierText = 0x10 } DemanglingOptions;
-
-Name *(*P_native_demangle)(char *, char **, unsigned long) = NULL;
-char *(*P_functionName)(Name *) = NULL;
-char *(*P_varName)(Name *) = NULL;
-char *(*P_text)(Name *) = NULL;
-NameKind (*P_kind)(Name *) = NULL;
-
-void *hDemangler = NULL;
-
-void loadNativeDemangler() 
-{
-   if (hDemangler) return;
-
-   P_native_demangle = NULL;
-   
-   hDemangler = dlopen("libdemangle.so.1", RTLD_LAZY|RTLD_MEMBER);
-   if (hDemangler != NULL) {
-      P_native_demangle = (Name*(*)(char*, char**, long unsigned int)) dlsym(hDemangler, "demangle");
-      //if (!P_native_demangle) 
-      //   BPatch_reportError(BPatchSerious,122,
-      //             "unable to locate function demangle in libdemangle.so.1\n");
-
-      P_functionName = (char*(*)(Name*)) dlsym(hDemangler, (const char *)"functionName");
-      //if (!P_functionName) 
-      //   BPatch_reportError(BPatchSerious,122,
-      //         "unable to locate function functionName in libdemangle.so.1\n");
-      
-      P_varName = (char*(*)(Name*)) dlsym(hDemangler, "varName");
-      //if (!P_varName) 
-      //   BPatch_reportError(BPatchSerious,122,
-      //              "unable to locate function varName in libdemangle.so.1\n");
-
-      P_kind = (NameKind(*)(Name*)) dlsym(hDemangler, "kind");
-      //if (!P_kind) 
-      //   BPatch_reportError(BPatchSerious,122,
-      //                      "unable to locate function kind in libdemangle.so.1\n");
-      
-      P_text = (char*(*)(Name*)) dlsym(hDemangler, "text");
-      //if (!P_text) 
-      //   BPatch_reportError(BPatchSerious,122,
-      //                 "unable to locate function text in libdemangle.so.1\n");
-   } 
-}
-
-
-extern "C" char *cplus_demangle(char *, int);
-extern void dedemangle( char * demangled, char * dedemangled );
-
-#define DMGL_PARAMS      (1 << 0)       /* Include function args */
-#define DMGL_ANSI        (1 << 1)       /* Include const, volatile, etc */
-
-char *P_cplus_demangle( const char * symbol, bool nativeCompiler, bool includeTypes ) {
-   /* If the symbol isn't from the native compiler, or the native demangler
-      isn't available, use the built-in. */
-   bool nativeDemanglerAvailable = P_native_demangle != NULL &&
-      P_text != NULL &&
-      P_varName != NULL &&
-      P_functionName != NULL;
-   if( !nativeCompiler || ! nativeDemanglerAvailable ) {
-      char * demangled = cplus_demangle( const_cast<char *>(symbol),
-                                         includeTypes ? DMGL_PARAMS | DMGL_ANSI : 0 );
-      if( demangled == NULL ) { return NULL; }
-
-      if( ! includeTypes ) {
-         /* De-demangling never makes a string longer. */
-         char * dedemangled = strdup( demangled );
-         assert( dedemangled != NULL );
-
-         dedemangle( demangled, dedemangled );
-         assert( dedemangled != NULL );
-
-         free( demangled );
-         return dedemangled;
-      }
-
-      return demangled;
-   } /* end if not using native demangler. */
-   else if( nativeDemanglerAvailable ) {
-      /* Use the native demangler, which apparently behaves funny. */
-      Name * name;
-      char * rest;
-  
-      /* P_native_demangle() won't actually demangled 'symbol'.
-         Find out what P_kind() of symbol it is and demangle from there. */
-      name = (P_native_demangle)( const_cast<char*>(symbol), (char **) & rest,
-                                  RegularNames | ClassNames | SpecialNames | ParameterText | QualifierText );
-      if( name == NULL ) { return NULL; }
-
-      char * demangled = NULL;
-      switch( P_kind( name ) ) {
-         case Function_:
-            if (includeTypes)
-               demangled = (P_text)( name );
-            else
-               demangled = (P_functionName)( name );   
-            break;
-   
-         case MemberFunction:
-            /* Doing it this way preserves the leading classnames. */
-            demangled = (P_text)( name );
-            break;
-
-         case MemberVar:
-            demangled = (P_varName)( name );
-            break;
-
-         case VirtualName:
-         case Class:
-         case Special:
-         case Long:
-            demangled = (P_text)( name );
-            break;
-         default: assert( 0 );
-      } /* end P_kind() switch */
-
-      /* Potential memory leak: no P_erase( name ) call.  Also, the
-         char *'s returned from a particular Name will be freed
-         when that name is erase()d or destroyed, so strdup if we're
-         fond of them. */
-   
-      if( ! includeTypes ) {
-         /* De-demangling never makes a string longer. */
-         char * dedemangled = strdup( demangled );
-         assert( dedemangled != NULL );
-
-         dedemangle( demangled, dedemangled );
-         assert( dedemangled != NULL );
-
-         return dedemangled;
-      }
-
-      return demangled;
-   } /* end if using native demangler. */
-   else {
-      /* We're trying to demangle a native binary but the native demangler isn't available.  Punt. */ 
-      return NULL;
-   }
-} /* end P_cplus_demangle() */
-
-
 // Methods to read file and ar header for both small (32-bit) and
 // large (64-bit) archive files. This lets us have a single archive
 // parsing method.
@@ -1525,7 +1373,6 @@ Object::Object(const Object& obj) :
 Object::Object(MappedFile *mf_, MappedFile *mfd, void (*err_func)(const char *), Offset offset, bool alloc_syms) :
    AObject(mf_, mfd, err_func), offset_(offset)
 {    
-   loadNativeDemangler();
    fo_ = fileOpener::openFile((void *)mf_->base_addr(), mf_->size());
    fo_->set_file(mf_->filename());
    load_object(alloc_syms); 
@@ -1534,7 +1381,6 @@ Object::Object(MappedFile *mf_, MappedFile *mfd, void (*err_func)(const char *),
 Object::Object(MappedFile *mf_, MappedFile *mfd, std::string &member_name, Offset offset, void (*err_func)(const char *), void *) :
    AObject(mf_, mfd, err_func), member_(member_name), offset_(offset)
 {    
-   loadNativeDemangler();
    fo_ = fileOpener::openFile((void *)mf_->base_addr(), mf_->size());
    fo_->set_file(member_name);
    load_object(true); 

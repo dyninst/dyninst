@@ -132,6 +132,7 @@ bool AddressTranslateAIX::refresh()
          pread(map_fd, buf, 512, mapEntry.pr_pathoff);
       }
       
+#if defined(DEBUG_PRINT)
       printf("%lu\n" 
              "\taddr = %llx +%llu\n"
              "\tmapname = %s\n"
@@ -146,7 +147,6 @@ bool AddressTranslateAIX::refresh()
              mapEntry.pr_pathoff, mapEntry.pr_pathoff ? buf : "NONE",
              mapEntry.pr_pathoff ? buf + strlen(buf) + 1 : "NONE",
              mapEntry.pr_alias, mapEntry.pr_gp);
-      
       if (mapEntry.pr_pathoff) {
          string filename = buf;
          string object_name = buf + strlen(buf) + 1;
@@ -159,6 +159,7 @@ bool AddressTranslateAIX::refresh()
       }
 
       printf("\n");
+#endif
       iter++;
    }
 

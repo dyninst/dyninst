@@ -108,49 +108,29 @@ depend:
 ifndef DEPENDFLAGS
   DEPENDFLAGS = -MM
 endif
-ifdef IGEN_ISRCS
-ifdef EXPLICIT_DEPENDS
+
 DEPENDS:
-else
-DEPENDS: $(SRCS) $(IGEN_ISRCS)
-endif
-	touch DEPENDS
-	$(MAKE) $(IGEN_GEN_SRCS)
-	$(MAKE) $(SRCS)
-	$(DEPCC) $(DEPENDFLAGS) $(MODCFLAGS) $(SRCS) $(filter %.C,$(IGEN_GEN_SRCS)) > DEPENDS
-#	makedepend -fDEPENDS -- $(CFLAGS) $(SRCS) $(IGEN_SRCS) $(NOPED_SRCS)
-else
-ifdef EXPLICIT_DEPENDS
-DEPENDS:
-else
-DEPENDS: $(SRCS)
-endif
 	touch DEPENDS
 	$(MAKE) $(SRCS)
-### TODO: remove this in favor of native compiler support
-ifeq ($(MODCC),cc)
-	$(GCC) -MM $(MODCFLAGS) $(SRCS) > DEPENDS
-else
-ifdef IBM_BPATCH_COMPAT
+ifdef XLC_BUILD
   ifeq ($(DEPCC), xlC)
-	$(DEPCC) $(DEPENDFLAGS) $(MODCFLAGS) $(SRCS) > DEPENDS
+	$(DEPCC) $(DEPENDFLAGS) $(MODCFLAGS) $(SRCS) > /dev/null
 	cat *.u > DEPENDS
 	rm -f *.u
   else
 	$(DEPCC) $(DEPENDFLAGS) $(MODCFLAGS) $(SRCS) > DEPENDS
   endif #aix/power platform
 else
+ifeq ($(MODCC),cc)
+	$(GCC) -MM $(MODCFLAGS) $(SRCS) > DEPENDS
+else
 	$(DEPCC) $(DEPENDFLAGS) $(MODCFLAGS) $(SRCS) > DEPENDS
-endif #IBM_BPATCH_COMPAT
-endif
-#	makedepend -fDEPENDS -- $(CFLAGS) $(SRCS)
+endif #XLC_BUILD
 endif
 
 
 #.depend.% %.C:
 #	makedepend -fDEPENDS -- $(CFLAGS) $(SRCS)
-
-pure:
 
 %.C: %.y
 	$(YACC) $(YFLAGS) $<

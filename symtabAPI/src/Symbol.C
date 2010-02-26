@@ -469,7 +469,7 @@ void Symbol::restore_module_and_region(SerializerBase *s, std::string &modname, 
 
 }
 
-ostream& Dyninst::SymtabAPI::operator<< (ostream &os, const Symbol &s) 
+std::ostream& Dyninst::SymtabAPI::operator<< (ostream &os, const Symbol &s) 
 {
 	return os << "{"
 		<< " mangled=" << s.getMangledName()
