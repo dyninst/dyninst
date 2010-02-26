@@ -34,6 +34,7 @@
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
 #include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/binaryEdit.h"
 #include "dyninstAPI/src/dyn_thread.h"
 #include "common/h/stats.h"
 #include "common/h/Types.h"
@@ -682,6 +683,37 @@ bool AddressSpace::getDyninstRTLibName() {
          return false;
       }
    }
+   
+    // Automatically choose the .a version or the .so version
+    const char *name = dyninstRT_name.c_str();
+
+    const char *split = P_strrchr(name, '/');
+    if ( !split ) split = name;
+    split = P_strchr(split, '.');
+    if ( !split || P_strlen(split) <= 1 ) {
+        // We should probably print some error here.
+        // Then, of course, the user will find out soon enough.
+        startup_printf("Invalid Dyninst RT lib name: %s\n", 
+                dyninstRT_name.c_str());
+        return false;
+    }
+
+    const char *suffix = split;
+    if( getAOut()->isStaticExec() ) {
+        suffix = ".a";
+    }else{
+        if( P_strncmp(suffix, ".a", 2) == 0 ) {
+            // This will be incorrect if the RT library's version changes
+            suffix = ".so.1";
+        }
+    }
+
+    dyninstRT_name = std::string(name, split - name) +
+                     std::string(suffix);
+
+    startup_printf("Dyninst RT Library name set to '%s'\n",
+            dyninstRT_name.c_str());
+
    // Check to see if the library given exists.
    if (access(dyninstRT_name.c_str(), R_OK)) {
       std::string msg = std::string("Runtime library ") + dyninstRT_name +
@@ -1361,4 +1393,10 @@ bool SignalHandler::handleProcessExitPlat(EventRecord & /*ev*/, bool &)
 bool process::hasPassedMain() 
 {
    return true;
+}
+
+bool BinaryEdit::getResolvedLibraryPath(const std::string &filename, std::vector<std::string> &paths) {
+    // No actual library name resolution for now
+    paths.push_back(filename);
+    return true;
 }

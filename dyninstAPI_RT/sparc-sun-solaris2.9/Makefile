@@ -11,6 +11,10 @@
 
 include ../../make.config 
 
+ifndef STATIC_TARGET
+    STATIC_TARGET = libdyninstAPI_RT.a
+endif
+
 # Now make any necessary architecture specific changes to variables:
 
 NATIVE_CC = cc
@@ -23,18 +27,21 @@ endif
 
 # if we want to produce a shared object...
 
-CFLAGS          += -I. -I../.. 
+CFLAGS          += -I. -I../..
 ifdef USES_NATIVE_CC
 CC		= $(NATIVE_CC) 
 LD		= $(NATIVE_CC)
 # OVERRIDE CFLAGS (we need to strip -O2)
 CFLAGS		= $(IFLAGS) $(UNIFIED_DEF) $(COMMON_WARNINGS)
+STATIC_CFLAGS   := $(CFLAGS) -DDYNINST_RT_STATIC_LIB -D_NATIVESO_ -xarch=v8plus
 CFLAGS          += -Kpic -D_NATIVESO_  -xarch=v8plus 
 LDFLAGS         += -ldl  -lsocket -dy -G -z text -z initarray=libdyninstAPI_RT_init
+STATIC_ASFLAGS  := $(ASFLAGS)
 ASFLAGS		+= -K PIC
 else
 CC              = $(GCC)
 LD              = $(GCC)
+STATIC_CFLAGS   := $(CFLAGS) -DDYNINST_RT_STATIC_LIB
 CFLAGS          += -fpic
 LDFLAGS		= -ldl   -lsocket -shared -nostdlib -lgcc -z initarray=libdyninstAPI_RT_init
 #ccw 19 nov 2001

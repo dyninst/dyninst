@@ -11,6 +11,10 @@
 
 include ../../make.config 
 
+ifndef STATIC_TARGET
+    STATIC_TARGET = libdyninstAPI_RT.a
+endif
+
 # Now make any necessary architecture specific changes to variables:
 LD		= $(GCC)
 LDFLAGS         += -shared -nostdlib
@@ -23,11 +27,13 @@ CFLAGS		+= -O2
 # if we want to produce a shared object...
 CC              = $(GCC)
 LD              = $(GCC)
+STATIC_CFLAGS  := $(CFLAGS) -DDYNINST_RT_STATIC_LIB -I. -I../..
 CFLAGS          += -I. -I../.. -fpic
 
 LIBS 		+= -ldl
 
 AS = gcc
+STATIC_ASFLAGS  := $(ASFLAGS) -c -DDYNINST_RT_STATIC_LIB
 ASFLAGS         += -c
 
 SRCS		+= ../src/RTposix.c \

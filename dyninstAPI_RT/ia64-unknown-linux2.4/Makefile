@@ -6,6 +6,10 @@
 
 USES_UNWIND_LIB = true
 
+ifndef STATIC_TARGET
+    STATIC_TARGET = libdyninstAPI_RT.a
+endif
+
 # Turns off optimization, and enables debugging.
 # NO_OPT_FLAG = true
 
@@ -16,11 +20,14 @@ include ../../make.config
 # Set platform-specific variables for this build.
 CC			= $(GCC)
 LD			= $(GCC)
+STATIC_CFLAGS := $(CFLAGS) -DDYNINST_RT_STATIC_LIB -I. -I../..
 CFLAGS		+= -I. -I../.. -fpic 
 LDFLAGS		+=	-shared -ldl -L$(LIBUNWIND_LIB) -lunwind 
 
 # Automatic init routine
 LDFLAGS		+= -Wl,-init -Wl,libdyninstAPI_RT_init
+
+STATIC_ASFLAGS := -c -DDYNINST_RT_STATIC_LIB
 
 ASFLAGS		= 
 

@@ -696,21 +696,37 @@ bool AddressSpace::getDyninstRTLibName() {
     const char *modifier = "_m32";
     const char *name = dyninstRT_name.c_str();
 
-    if (getAddressWidth() != sizeof(void *) && !P_strstr(name, modifier)) {
-        const char *split = P_strrchr(name, '/');
-
-        if (!split) split = name;
-        split = P_strchr(split, '.');
-        if (!split) {
-            // We should probably print some error here.
-            // Then, of course, the user will find out soon enough.
-            return false;
-        }
-
-        dyninstRT_name = std::string(name, split - name) +
-                         std::string(modifier) +
-                         std::string(split);
+    const char *split = P_strrchr(name, '/');
+    if ( !split ) split = name;
+    split = P_strchr(split, '.');
+    if ( !split || P_strlen(split) <= 1 ) {
+        // We should probably print some error here.
+        // Then, of course, the user will find out soon enough.
+        startup_printf("Invalid Dyninst RT lib name: %s\n", 
+                dyninstRT_name.c_str());
+        return false;
     }
+
+    if ( getAddressWidth() == sizeof(void *) || P_strstr(name, modifier) ) {
+        modifier = "";
+    }
+
+    const char *suffix = split;
+    if( getAOut()->isStaticExec() ) {
+        suffix = ".a";
+    }else{
+        if( P_strncmp(suffix, ".a", 2) == 0 ) {
+            // This will be incorrect if the RT library's version changes
+            suffix = ".so.1";
+        }
+    }
+
+    dyninstRT_name = std::string(name, split - name) +
+                     std::string(modifier) +
+                     std::string(suffix);
+
+    startup_printf("Dyninst RT Library name set to '%s'\n",
+            dyninstRT_name.c_str());
 
     // Check to see if the library given exists.
     if (access(dyninstRT_name.c_str(), R_OK)) {

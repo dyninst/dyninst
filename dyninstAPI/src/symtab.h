@@ -62,7 +62,7 @@
 #include "common/h/Types.h"
 #include "dyninstAPI/src/inst.h"
 
-#if defined(rs6000_ibm_aix4_1)||defined(rs6000_ibm_aix5_1)||defined(os_linux)
+#if defined(rs6000_ibm_aix4_1)||defined(rs6000_ibm_aix5_1)||defined(os_linux)||defined(os_solaris)
 #include "symtabAPI/h/Archive.h"
 #endif
 
@@ -521,7 +521,7 @@ class image : public codeRange, public InstructionSource {
 
    // data from the symbol table 
    Symtab *linkedFile;
-#if defined (os_aix) || defined(os_linux)
+#if defined (os_aix) || defined(os_linux) || defined(os_solaris)
    Archive *archive;
 #endif
 
