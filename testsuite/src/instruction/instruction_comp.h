@@ -37,12 +37,46 @@
 #include "comptester.h"
 #include "ParameterDict.h"
 
-
+#include "Instruction.h"
+#include "Register.h"
 class COMPLIB_DLL_EXPORT InstructionMutator : public TestMutator {
  public:
-   InstructionMutator();
+   
+     template <typename T>
+        struct shared_ptr_lt
+     {
+         bool operator()(const T& lhs, const T& rhs)
+         {
+    // Non-nulls precede nulls
+             if(rhs.get() == NULL)
+             {
+                 return lhs.get() != NULL;
+             }
+             if(lhs.get() == NULL)
+                 return false;
+    // Otherwise, dereference and compare
+             return *lhs < *rhs;
+         }
+  
+     };
+
+
+     typedef std::set<Dyninst::InstructionAPI::RegisterAST::Ptr,
+        shared_ptr_lt<Dyninst::InstructionAPI::RegisterAST::Ptr> > registerSet;
+
+     InstructionMutator();
    virtual test_results_t setup(ParameterDict &param);
    virtual ~InstructionMutator();
+   
+    protected:   
+        test_results_t verify_read_write_sets(const Dyninst::InstructionAPI::Instruction::Ptr& i, const registerSet& expectedRead,
+           const registerSet& expectedWritten);
+
+   test_results_t failure_accumulator(test_results_t lhs, test_results_t rhs);
+   
+   test_results_t verifyCFT(Dyninst::InstructionAPI::Expression::Ptr cft,
+                            bool expectedDefined, unsigned long expectedValue,
+                            Dyninst::InstructionAPI::Result_Type expectedType);
 };
 
 extern "C" {

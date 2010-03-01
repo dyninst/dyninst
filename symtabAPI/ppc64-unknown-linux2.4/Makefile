@@ -23,7 +23,8 @@ include ../../make.config
 
 SRCS =          ../src/Object-elf.C \
 		../src/parseDwarf.C \
-		../src/parseStab.C
+		../src/parseStab.C \
+		../src/relocationEntry-elf-ppc64.C
 
 #MYFLAGS	+= -DNO_MDL_PRINT
 #MYFLAGS	+= -DLD_DEBUG

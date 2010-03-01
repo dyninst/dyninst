@@ -107,12 +107,37 @@ BPatch_binaryEdit::BPatch_binaryEdit(const char *path, bool openDependencies) :
 
   origBinEdit->getDyninstRTLibName();
   std::string rt_name = origBinEdit->dyninstRT_name;
-  rtLib = BinaryEdit::openFile(rt_name);
-  if (!rtLib) {
-     startup_printf("[%s:%u] - ERROR.  Could not open RT library\n",
-                    __FILE__, __LINE__);
-     creation_error = true;
-     return;
+
+  // Load the RT library and create the collection of BinaryEdits that represent it
+  std::map<std::string, BinaryEdit *> rtlibs = origBinEdit->openResolvedLibraryName(rt_name);
+  std::map<std::string, BinaryEdit *>::iterator rtlibs_it;
+  for(rtlibs_it = rtlibs.begin(); rtlibs_it != rtlibs.end(); ++rtlibs_it) {
+      if( !rtlibs_it->second ) {
+          std::string msg("Failed to load Dyninst runtime library, check the environment variable DYNINSTAPI_RT_LIB");
+          showErrorCallback(70, msg.c_str());
+          creation_error = true;
+          return;
+      }
+
+      rtLib.push_back(rtlibs_it->second);
+      // Ensure that the correct type of library is loaded
+      if(    rtlibs_it->second->getMappedObject()->isSharedLib() 
+          && origBinEdit->getMappedObject()->isStaticExec() ) 
+      {
+          std::string msg = std::string("RT Library is a shared library ") +
+              std::string("when it should be a static library");
+          showErrorCallback(70, msg.c_str());
+          creation_error = true;
+          return;
+      }else if(     !rtlibs_it->second->getMappedObject()->isSharedLib()
+                &&  !origBinEdit->getMappedObject()->isStaticExec() )
+      {
+          std::string msg = std::string("RT Library is a static library ") +
+              std::string("when it should be a shared library");
+          showErrorCallback(70, msg.c_str());
+          creation_error = true;
+          return;
+      }
   }
 
   std::map<std::string, BinaryEdit*>::iterator i, j;
@@ -286,7 +311,7 @@ bool BPatch_binaryEdit::writeFileInt(const char * outFile)
 
     pendingInsertions->clear();
 
-    origBinEdit->writeFile(outFile);
+    if( !origBinEdit->writeFile(outFile) ) return false;
 
     std::map<std::string, BinaryEdit *>::iterator i;
     for (i = llBinEdits.begin(); i != llBinEdits.end(); i++) {
@@ -297,7 +322,7 @@ bool BPatch_binaryEdit::writeFileInt(const char * outFile)
           continue;
        
        std::string newname = bin->getMappedObject()->fileName();
-       bin->writeFile(newname);
+       if( !bin->writeFile(newname) ) return false;
     }
 
 
@@ -342,33 +367,40 @@ bool BPatch_binaryEdit::finalizeInsertionSetInt(bool /*atomic*/, bool * /*modifi
 
 bool BPatch_binaryEdit::loadLibraryInt(const char *libname, bool deps)
 {
-  std::pair<std::string, BinaryEdit*> lib = origBinEdit->openResolvedLibraryName(libname);
-  if(!lib.second)
-    return false;
+   std::map<std::string, BinaryEdit*> libs = origBinEdit->openResolvedLibraryName(libname);
+   std::map<std::string, BinaryEdit*>::iterator lib_it;
+   for(lib_it = libs.begin(); lib_it != libs.end(); ++lib_it) {
+      std::pair<std::string, BinaryEdit*> lib = *lib_it;
 
-  llBinEdits.insert(lib);
-  
-  int_variable* masterTrampGuard = origBinEdit->createTrampGuard();
-  assert(masterTrampGuard);
-  
-  lib.second->registerFunctionCallback(createBPFuncCB);
-  lib.second->registerInstPointCallback(createBPPointCB);
-  lib.second->set_up_ptr(this);
-  lib.second->setupRTLibrary(rtLib);
-  lib.second->setTrampGuard(masterTrampGuard);
-  lib.second->setMultiThreadCapable(isMultiThreadCapable());
-  /* Do we need to do this? 
-  std::map<std::string, BinaryEdit*>::iterator j;
-  for (j = llBinEdits.begin(); j != llBinEdits.end(); j++) {
-        lib.second->addSibling((*j).second);
-  }
-  */
+      if(!lib.second)
+        return false;
 
-   
-  if (deps)
-    return lib.second->getAllDependencies(llBinEdits);
+      llBinEdits.insert(lib);
+      
+      int_variable* masterTrampGuard = origBinEdit->createTrampGuard();
+      assert(masterTrampGuard);
+      
+      lib.second->registerFunctionCallback(createBPFuncCB);
+      lib.second->registerInstPointCallback(createBPPointCB);
+      lib.second->set_up_ptr(this);
+      lib.second->setupRTLibrary(rtLib);
+      lib.second->setTrampGuard(masterTrampGuard);
+      lib.second->setMultiThreadCapable(isMultiThreadCapable());
+      /* Do we need to do this? 
+      std::map<std::string, BinaryEdit*>::iterator j;
+      for (j = llBinEdits.begin(); j != llBinEdits.end(); j++) {
+            lib.second->addSibling((*j).second);
+      }
+      */
+    if (deps)
+       if( !lib.second->getAllDependencies(llBinEdits) ) return false;
+   }
+       
   return true;
-  
+}
+
+bool BPatch_binaryEdit::staticExecutableLoadedInt() {
+    return origBinEdit->getMappedObject()->isStaticExec();
 }
 
 // Here's the story. We may need to install a trap handler for instrumentation
@@ -388,7 +420,6 @@ bool BPatch_binaryEdit::replaceTrapHandler() {
 
     std::map<std::string, BinaryEdit *>::iterator iter = llBinEdits.begin();
     for (; iter != llBinEdits.end(); iter++) {
-        if (iter->second == rtLib) continue;
         if (iter->second->usedATrap()) {
             usedATrap = true;
         }
@@ -404,9 +435,6 @@ bool BPatch_binaryEdit::replaceTrapHandler() {
     iter = llBinEdits.begin();
     for (; iter != llBinEdits.end(); iter++) {
         BinaryEdit *binEd = iter->second;
-        if (binEd == rtLib) {
-            continue;
-        }
 
         // Did we instrument this already?
         if (!binEd->isDirty()) {

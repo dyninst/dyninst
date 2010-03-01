@@ -43,6 +43,7 @@ int sym_debug_aggregate = 0;
 int sym_debug_object = 0;
 int sym_debug_types = 0;
 int sym_debug_translate = 0;
+int sym_debug_rewrite = 0;
 
 bool init_debug_symtabAPI() {
     static bool initialized = false;
@@ -65,6 +66,9 @@ bool init_debug_symtabAPI() {
     }
     if (getenv("SYMTAB_DEBUG_TYPES")) {
         sym_debug_types = 1;
+    }
+    if (getenv("SYMTAB_DEBUG_REWRITE")) {
+        sym_debug_rewrite = 1;
     }
 
     return true;
@@ -138,6 +142,19 @@ int types_printf(const char *format, ...)
 int translate_printf(const char *format, ...)
 {
   if (!sym_debug_translate) return 0;
+  if (NULL == format) return -1;
+
+  va_list va;
+  va_start(va, format);
+  int ret = vfprintf(stderr, format, va);
+  va_end(va);
+
+  return ret;
+}
+
+int rewrite_printf(const char *format, ...)
+{
+  if (!sym_debug_rewrite) return 0;
   if (NULL == format) return -1;
 
   va_list va;

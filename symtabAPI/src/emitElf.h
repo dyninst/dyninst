@@ -32,6 +32,7 @@
 #if !defined(_emit_Elf_h_)
 #define _emit_Elf_h_
 
+#include "Symtab.h"
 #include "Object.h"
 #include <vector>
 using namespace std;
@@ -42,7 +43,9 @@ namespace SymtabAPI{
 class emitElf{
   public:
    emitElf(Elf_X &oldElfHandle_, bool isStripped_ = false, Object *obj_ = NULL, void (*)(const char *) = log_msg);
-    ~emitElf();
+    ~emitElf() {
+        if( linkedStaticData ) delete linkedStaticData;
+    }
     bool createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols);
     bool driver(Symtab *obj, std::string fName);
   private:
@@ -109,6 +112,10 @@ class emitElf{
     Offset currEndOffset;
     Address currEndAddress;
 
+    // Pointer to all relocatable code and data allocated during a static link,
+    // to be deleted after written out
+    char *linkedStaticData;
+
     //flags
     // Expand NOBITS sections within the object file to their size
     bool BSSExpandFlag;
@@ -135,6 +142,9 @@ class emitElf{
     void createRelocationSections(Symtab *obj, std::vector<relocationEntry> &relocation_table, bool isDynRelocs, dyn_hash_map<std::string, unsigned> &dynSymNameMapping);
 
     void updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned long loadSecsSize);
+
+    bool hasRewrittenTLS;
+    Elf32_Shdr *newTLSData;
 
 #if !defined(os_solaris)
     void updateDynamic(unsigned tag, Elf32_Addr val);

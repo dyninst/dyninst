@@ -176,6 +176,10 @@ struct Config {
     // Rules for which modules/functions to process.
     reglist mod_rules;
     reglist func_rules;
+
+    // Collection of libraries used for symbols when rewriting 
+    // a static binary
+    deque<string> symbol_libraries;
 };
 
 extern Config config;

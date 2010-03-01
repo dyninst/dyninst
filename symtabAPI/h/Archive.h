@@ -41,40 +41,94 @@ namespace SymtabAPI{
 
 class Symtab;
 
+/**
+ * Helps facilitate lazy parsing and quick lookup once parsing is finished
+ */
+class ArchiveMember {
+    public:
+        ArchiveMember() : name_(""), offset_(0), member_(NULL) {}
+        ArchiveMember(const string name, const Offset offset,
+                Symtab * img = NULL) :
+            name_(name), 
+            offset_(offset), 
+            member_(img) 
+        {}
+
+        ~ArchiveMember() {
+            if( member_ != NULL ) {
+                delete member_;
+                member_ = NULL;
+            }
+        }
+
+        const string& getName()  { return name_; }
+        Offset getOffset() { return offset_; }
+        Symtab * getSymtab() { return member_; }
+        void setSymtab(Symtab *img) { member_ = img; }
+
+    private:
+        const string name_;
+        Offset offset_;
+        Symtab *member_;
+};
+
 class Archive : public AnnotatableSparse {
    public:
-      Archive() {}
-      static bool openArchive(Archive *&img, std::string filename);
-#if 0 
+      static bool openArchive(Archive *&img, string filename);
       static bool openArchive(Archive *&img, char *mem_image, size_t image_size);
-#endif
-
-      bool getMember(Symtab *&img, std::string memberName);
-      bool getAllMembers(std::vector <Symtab *> &members);
-      bool isMemberInArchive(std::string member_name);
-      bool findMemberWithDefinition(Symtab *&obj, std::string name);
-
       static SymtabError getLastError();
-      static std::string printError(SymtabError serr);
+      static string printError(SymtabError err);
+
       ~Archive();
+      bool getMember(Symtab *&img, string& member_name);
+      bool getMemberByOffset(Symtab *&img, Offset memberOffset);
+      bool getMemberByGlobalSymbol(Symtab *&img, string& symbol_name);
+      bool getAllMembers(vector<Symtab *> &members);
+      bool isMemberInArchive(string& member_name);
+      bool findMemberWithDefinition(Symtab *&obj, string& name);
+      std::string name();
 
    private:
-      Archive(std::string &filename, bool &err);
+      Archive(string &filename, bool &err);
       Archive(char *mem_image, size_t image_size, bool &err);
 
-   private:
+      /**
+       * This method is architecture specific
+       *
+       * Post-condition:
+       *        sets serr and errMsg if there is an error 
+       *        sets Symtab field of passed ArchiveMember
+       */
+      bool parseMember(Symtab *&img, ArchiveMember *member);
+
+      /**
+       * This method is architecture specific
+       *
+       * Post-condition:
+       *        sets serr and errMsg if there is an error
+       */
+      bool parseSymbolTable();      
+
       MappedFile *mf;
-      char *mem_image_;
+
       //architecture specific data - 
       //For ELF the elf pointer for the archive
       //NONE as of now for xcoff
       void *basePtr;
-      dyn_hash_map <std::string, Symtab *> membersByName;
-      dyn_hash_map <std::string, Offset> memberToOffsetMapping;
 
-      // A vector of all Archive. Used to avoid duplicating
-      // a Archive that already exists.
-      static std::vector<Archive *> allArchives;
+      dyn_hash_map<string, ArchiveMember *> membersByName;
+      dyn_hash_map<Offset, ArchiveMember *> membersByOffset;
+      std::multimap<string, ArchiveMember *> membersBySymbol;
+
+      // The symbol table is lazily parsed
+      bool symbolTableParsed;
+
+      // A vector of all Archives. Used to avoid duplicating
+      // an Archive that already exists.
+      static vector<Archive *> allArchives;
+
+      static SymtabError serr;
+      static std::string errMsg;
 };
 
 }//namespace SymtabAPI

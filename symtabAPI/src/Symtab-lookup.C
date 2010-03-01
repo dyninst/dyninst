@@ -121,18 +121,21 @@ bool Symtab::findSymbol(std::vector<Symbol *> &ret, const std::string name,
     std::vector<Symbol *> allSyms;
     
     for (unsigned i = 0; i < symsMangled.size(); i++) {
-        if ((sType == Symbol::ST_UNKNOWN) ||
-            (symsMangled[i]->getType() == sType))
+        if (   (sType == Symbol::ST_UNKNOWN) 
+            || (sType == Symbol::ST_NOTYPE)
+            || (symsMangled[i]->getType() == sType))
             allSyms.push_back(symsMangled[i]);
     }
     for (unsigned i = 0; i < symsPretty.size(); i++) {
-        if ((sType == Symbol::ST_UNKNOWN) ||
-            (symsPretty[i]->getType() == sType))
+        if    ((sType == Symbol::ST_UNKNOWN) 
+           || (sType == Symbol::ST_NOTYPE)
+           || (symsPretty[i]->getType() == sType))
             allSyms.push_back(symsPretty[i]);
     }
     for (unsigned i = 0; i < symsTyped.size(); i++) {
-        if ((sType == Symbol::ST_UNKNOWN) ||
-            (symsTyped[i]->getType() == sType))
+        if     ((sType == Symbol::ST_UNKNOWN) 
+            || (sType == Symbol::ST_NOTYPE)
+            || (symsTyped[i]->getType() == sType))
             allSyms.push_back(symsTyped[i]);
     }
     
@@ -220,6 +223,12 @@ bool Symtab::getAllUndefinedSymbols(std::vector<Symbol *> &ret){
 
 bool Symtab::findFuncByEntryOffset(Function *&ret, const Offset entry)
 {
+    /* XXX
+     *
+     * When working with relocatable files, a symbol is not uniquely identified
+     * by its offset; it is uniquely identified by its Region and its offset.
+     * This discrepancy is not taken into account here.
+     */
     if (funcsByOffset.find(entry) != funcsByOffset.end()) {
         ret = funcsByOffset[entry];
         return true;
@@ -268,6 +277,12 @@ bool Symtab::getAllFunctions(std::vector<Function *> &ret) {
 }
 
 bool Symtab::findVariableByOffset(Variable *&ret, const Offset offset) {
+
+    /* XXX
+     *
+     * See comment in findFuncByOffset about uniqueness of symbols in
+     * relocatable files -- this discrepancy applies here as well.
+     */
     if (varsByOffset.find(offset) != varsByOffset.end()) {
         ret = varsByOffset[offset];
         return true;

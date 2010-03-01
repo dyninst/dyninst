@@ -22,8 +22,12 @@ SRCS =          ../src/Object-elf.C \
                 ../src/parseDwarf.C \
                 ../src/parseStab.C \
                 ../src/emitElf.C \
+		../src/emitElfStatic.C \
+		../src/emitElfStatic-stub.C \
+		../src/LinkMap.C \
                 ../src/addrtranslate.C \
                 ../src/addrtranslate-static.C
+		../src/relocationEntry-stub.C
 
 MYFLAGS                += -DUSES_DWARF_DEBUG -I$(LIBDWARF_INC) -I$(LIBELF_INC)
 

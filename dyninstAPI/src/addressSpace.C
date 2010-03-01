@@ -55,7 +55,6 @@
 
 AddressSpace::AddressSpace () :
     trapMapping(this),
-    runtime_lib(NULL),
     useTraps_(true),
     multiTrampsById_(intHash),
     trampGuardBase_(NULL),
@@ -1085,13 +1084,15 @@ int_function *AddressSpace::findJumpTargetFuncByAddr(Address addr) {
     if (!range->is_mapped_object()) 
         return NULL;
 #if defined(cap_instruction_api)
+    mapped_object* mobj = dynamic_cast<mapped_object*>(range);
     using namespace Dyninst::InstructionAPI;
-    InstructionDecoder decoder;
-    decoder.setMode(getAddressWidth() == 8);
-    Instruction::Ptr curInsn = decoder.decode((const unsigned char*)getPtrToInstruction(addr));
+    dyn_detail::boost::shared_ptr<InstructionDecoder> decoder =
+            makeDecoder(mobj->parse_img()->getArch(), (const unsigned char*)getPtrToInstruction(addr));
+    decoder->setMode(getAddressWidth() == 8);
+    Instruction::Ptr curInsn = decoder->decode();
     
     Expression::Ptr target = curInsn->getControlFlowTarget();
-    RegisterAST thePC = RegisterAST::makePC();
+    RegisterAST thePC = RegisterAST::makePC(mobj->parse_img()->getArch());
     target->bind(&thePC, Result(u32, addr));
     Result cft = target->eval();
     if(cft.defined)
@@ -1289,7 +1290,7 @@ void trampTrapMappings::flush() {
    if (!needs_updating || blockFlushes)
       return;
 
-   mapped_object *rtlib = proc()->runtime_lib;
+   pdvector<mapped_object *> &rtlib = proc()->runtime_lib;
 
    //We'll sort addresses in the binary rewritter (when writting only happens
    // once and we may do frequent lookups)
@@ -1417,11 +1418,13 @@ void trampTrapMappings::flush() {
    {
       if (!trapTable) {
          //Lookup all variables that are in the rtlib
-         assert(rtlib);
-         trapTableUsed = rtlib->getVariable("dyninstTrapTableUsed");
-         trapTableVersion = rtlib->getVariable("dyninstTrapTableVersion");
-         trapTable = rtlib->getVariable("dyninstTrapTable");
-         trapTableSorted = rtlib->getVariable("dyninstTrapTableIsSorted");
+         pdvector<mapped_object *>::iterator rtlib_it;
+         for(rtlib_it = rtlib.begin(); rtlib_it != rtlib.end(); ++rtlib_it) {
+             if( !trapTableUsed ) trapTableUsed = (*rtlib_it)->getVariable("dyninstTrapTableUsed");
+             if( !trapTableVersion ) trapTableVersion = (*rtlib_it)->getVariable("dyninstTrapTableVersion");
+             if( !trapTable ) trapTable = (*rtlib_it)->getVariable("dyninstTrapTable");
+             if( !trapTableSorted ) trapTableSorted = (*rtlib_it)->getVariable("dyninstTrapTableIsSorted");
+         }
          
          if (!trapTableUsed) {
             fprintf(stderr, "Dyninst is about to crash with an assert.  Either your dyninstAPI_RT library is stripped, or you're using an older version of dyninstAPI_RT with a newer version of dyninst.  Check your DYNINSTAPI_RT_LIB enviroment variable.\n");
@@ -1491,10 +1494,10 @@ void trampTrapMappings::allocateTable()
    current_table = table_header + sizeof(trap_mapping_header);
 
    Symtab *symtab = binedit->getMappedObject()->parse_img()->getObject();
-   symtab->addSysVDynamic(DT_DYNINST, table_header);
-
-   std::string rt_lib_name = proc()->runtime_lib->fileName();
-   symtab->addLibraryPrereq(rt_lib_name);
+   if( !symtab->isStaticBinary() ) {
+       symtab->addSysVDynamic(DT_DYNINST, table_header);
+       symtab->addLibraryPrereq(proc()->dyninstRT_name);
+   }
 }
 
 bool AddressSpace::findFuncsByAddr(Address addr, std::vector<int_function *> &funcs)

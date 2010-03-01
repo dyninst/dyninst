@@ -55,7 +55,7 @@ class Region : public Serializable, public AnnotatableSparse {
    {
       RP_R, 
       RP_RW, 
-      RP_RX, 
+      RP_RX,
       RP_RWX
    };
 
@@ -85,9 +85,10 @@ class Region : public Serializable, public AnnotatableSparse {
    static const char *regionType2Str(RegionType);
 
    SYMTAB_EXPORT Region();
-   SYMTAB_EXPORT static Region *createRegion( Offset diskOff, perm_t perms, RegionType regType,
-         unsigned long diskSize = 0, Offset memOff = 0, unsigned long memSize = 0,
-         std::string name = "", char *rawDataPtr = NULL);
+   SYMTAB_EXPORT static Region *createRegion(Offset diskOff, perm_t perms, RegionType regType,
+                unsigned long diskSize = 0, Offset memOff = 0, unsigned long memSize = 0,
+                std::string name = "", char *rawDataPtr = NULL, bool isLoadable = false,
+                bool isTLS = false, unsigned long memAlign = 1);
    SYMTAB_EXPORT Region(const Region &reg);
    SYMTAB_EXPORT Region& operator=(const Region &reg);
    SYMTAB_EXPORT std::ostream& operator<< (std::ostream &os);
@@ -107,24 +108,28 @@ class Region : public Serializable, public AnnotatableSparse {
    SYMTAB_EXPORT unsigned long getDiskSize() const;
    SYMTAB_EXPORT Offset getMemOffset() const;
    SYMTAB_EXPORT unsigned long getMemSize() const;
+   SYMTAB_EXPORT unsigned long getMemAlignment() const;
    SYMTAB_EXPORT void *getPtrToRawData() const;
    SYMTAB_EXPORT bool setPtrToRawData(void *, unsigned long); 
 
    SYMTAB_EXPORT bool isBSS() const;
    SYMTAB_EXPORT bool isText() const;
    SYMTAB_EXPORT bool isData() const;
+   SYMTAB_EXPORT bool isTLS() const;
    SYMTAB_EXPORT bool isOffsetInRegion(const Offset &offset) const;
    SYMTAB_EXPORT bool isLoadable() const;
    SYMTAB_EXPORT bool setLoadable(bool isLoadable);
    SYMTAB_EXPORT bool isDirty() const;
    SYMTAB_EXPORT std::vector<relocationEntry> &getRelocations();
    SYMTAB_EXPORT bool patchData(Offset off, void *buf, unsigned size);
+   SYMTAB_EXPORT bool isStandardCode();
 
    SYMTAB_EXPORT perm_t getRegionPermissions() const;
    SYMTAB_EXPORT bool setRegionPermissions(perm_t newPerms);
    SYMTAB_EXPORT RegionType getRegionType() const;
 
    SYMTAB_EXPORT bool addRelocationEntry(Offset relocationAddr, Symbol *dynref, unsigned long relType, Region::RegionType rtype = Region::RT_REL);
+   SYMTAB_EXPORT bool addRelocationEntry(const relocationEntry& rel);
 
    SYMTAB_EXPORT Serializable * serialize_impl(SerializerBase *sb, 
 		   const char *tag = "Region") THROW_SPEC (SerializerError);
@@ -132,7 +137,8 @@ class Region : public Serializable, public AnnotatableSparse {
    protected:                     
    SYMTAB_EXPORT Region(unsigned regnum, std::string name, Offset diskOff,
          unsigned long diskSize, Offset memOff, unsigned long memSize,
-         char *rawDataPtr, perm_t perms, RegionType regType, bool isLoadable = false);
+         char *rawDataPtr, perm_t perms, RegionType regType, bool isLoadable = false,
+         bool isTLS = false, unsigned long memAlign = 1);
    private:
    unsigned regNum_;
    std::string name_;
@@ -147,6 +153,8 @@ class Region : public Serializable, public AnnotatableSparse {
    std::vector<relocationEntry> rels_;
    char *buffer_;  //To hold dirty data
    bool isLoadable_;
+   bool isTLS_;
+   unsigned long memAlign_;
 };
 
 }//namespace SymtabAPI

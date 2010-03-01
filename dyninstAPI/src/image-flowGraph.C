@@ -100,7 +100,14 @@ bool image::analyzeImage()
 #if defined(arch_x86_64)
     ia32_set_mode_64(getObject()->getAddressWidth() == 8);
 #endif
-  
+
+#if defined(arch_x86) || defined(arch_x86_64)
+    arch = (getObject()->getAddressWidth() == 8) ? Dyninst::Arch_x86_64 : Dyninst::Arch_x86;
+#elif defined(arch_power)
+    arch = (getObject()->getAddressWidth() == 8) ? Dyninst::Arch_ppc64 : Dyninst::Arch_ppc32;
+#else
+    arch = Dyninst::Arch_none;
+#endif
   image_func *pdf;
   pdmodule *mod = NULL;
 
@@ -179,7 +186,7 @@ bool image::analyzeImage()
 	{
 	  // Every parallel region has the image_func that contains the
 	  //   region associated with it 
-	  image_func * imf = parReg->getAssociatedFunc();
+            image_func * imf = const_cast<image_func*>(parReg->getAssociatedFunc());
 	  
 	  // Returns pointers to all potential image_funcs that correspond
 	  //   to what could be the parent OpenMP function for the region 
@@ -248,29 +255,32 @@ bool image::analyzeImage()
     // don't touch this iterator; compute_gap uses it
     set<image_func*,image_func::compare>::const_iterator fit = 
         everyUniqueFunction.begin();
-    while(compute_gap(curAddr,fit,gapStart,gapEnd)) {
-        parsing_printf("[%s] scanning for prologues in gap 0x%lx-0x%lx\n",
-                      FILE__,gapStart, gapEnd);
-        for(curAddr=gapStart; curAddr < gapEnd; ++curAddr) {
-            if(isCode(curAddr) && gap_heuristics(curAddr)) {
-                assert(!funcsByEntryAddr.defines(curAddr));
+    if( fit != everyUniqueFunction.end() ) {
+        while(compute_gap(curAddr,fit,gapStart,gapEnd)) {
+            parsing_printf("[%s] scanning for prologues in gap 0x%lx-0x%lx\n",
+                          FILE__,gapStart, gapEnd);
+            for(curAddr=gapStart; curAddr < gapEnd; ++curAddr) {
+                if(isCode(curAddr) && gap_heuristics(curAddr)) {
+                    assert(!funcsByEntryAddr.defines(curAddr));
 
-                char name[32];
-                snprintf(name, 32, "gap_%lx", curAddr);
-                image_func * gapf = new image_func(name,
-                    curAddr,UINT_MAX,mod,this,FS_GAP);
+                    char name[32];
+                    snprintf(name, 32, "gap_%lx", curAddr);
+                    image_func * gapf = new image_func(name,
+                        curAddr,UINT_MAX,mod,this,FS_GAP);
 
-                if(gapf->parse()) {
-                    recordFunction(gapf);
-                    // one or more functions have been created,
-                    // so the remaining gaps need to be recomputed.
-                    break;
-                } else {
-                    // you'd like to delete gapf, but see commit
-                    // 38e1d30cafa381033d19c11d77b6a801d6a0bb77
+                    if(gapf->parse()) {
+                        recordFunction(gapf);
+                        fit = everyUniqueFunction.find(gapf);
+                        // one or more functions have been created,
+                        // so the remaining gaps need to be recomputed.
+                        break;
+                    } else {
+                        // you'd like to delete gapf, but see commit
+                        // 38e1d30cafa381033d19c11d77b6a801d6a0bb77
+                    }
                 }
-            }
-        } 
+            } 
+        }
     }
 
     /* as in normal parsing, make sure any gap-discovered functions
@@ -334,16 +344,30 @@ image::compute_gap(
     Address lowerBound = imageOffset();
     Address upperBound = lowerBound + imageLength();
     
-    Region* enclosingRegion = getObject()->findEnclosingRegion((*fit)->getOffset());
-    if(enclosingRegion)
+    if (fit == everyUniqueFunction.end())
     {
-        lowerBound = enclosingRegion->getRegionAddr();
-        upperBound = lowerBound + enclosingRegion->getRegionSize();
+       std::vector<std::pair<Address, Address> > ranges;
+       bool result = getExecCodeRanges(ranges);
+       if (!result) 
+          return false;
+       lowerBound = ranges[0].first;
+       upperBound = ranges[1].second;
+    }
+    else {
+       Region* enclosingRegion = getObject()->findEnclosingRegion((*fit)->getOffset());
+       if(enclosingRegion)
+       {
+          lowerBound = enclosingRegion->getRegionAddr();
+          upperBound = lowerBound + enclosingRegion->getRegionSize();
+       }
     }
     // special case for the first gap
     if(fit == everyUniqueFunction.begin()) {
         gapStart = lowerBound;
-        gapEnd = (*fit)->getOffset();
+        if (fit == everyUniqueFunction.end())
+           gapEnd = upperBound;
+        else
+           gapEnd = (*fit)->getOffset();
         gapsize = (long)(gapEnd - gapStart);
     } else {
         gapStart = 0;
@@ -353,14 +377,15 @@ image::compute_gap(
     while(addr >= gapEnd || 
           gapsize <= MIN_GAP_SIZE) 
     {
-        if(fit == everyUniqueFunction.end())
-            return false;
+       if(fit == everyUniqueFunction.end())
+           return false;
 
-        cur = *fit;
-        if(cur->getOffset() == cur->getEndOffset())
-           gapStart = cur->getEndOffset() + 1;
-        else
-           gapStart = cur->getEndOffset();
+       cur = *fit;
+       if(cur->getOffset() == cur->getEndOffset())
+          gapStart = cur->getEndOffset() + 1;
+       else
+          gapStart = cur->getEndOffset();
+
 
         set<image_func *, image_func::compare>::const_iterator fit2(fit);
         ++fit2;
@@ -375,6 +400,7 @@ image::compute_gap(
         gapsize = (long)(gapEnd - gapStart);
         if(addr >= gapEnd || gapsize <= MIN_GAP_SIZE)
             ++fit;
+
     }
         
     parsing_printf("[%s] found code gap [0x%lx,0x%lx) (%ld bytes)\n",
@@ -407,8 +433,9 @@ bool image::gap_heuristic_GCC(Address addr)
     if (!isStackFramePrecheck_gcc(bufferBegin))
         return false;
 
-    InstructionDecoder dec(bufferBegin, -1 - (Address)(bufferBegin));
-    dec.setMode(getAddressWidth() == 8);
+    dyn_detail::boost::shared_ptr<InstructionDecoder> dec =
+            makeDecoder(arch, bufferBegin, -1 - (Address)(bufferBegin));
+    dec->setMode(getAddressWidth() == 8);
     IA_IAPI ah(dec, addr, this);
 #else
     typedef IA_InstrucIter InstructionAdapter_t;
@@ -433,8 +460,9 @@ bool image::gap_heuristic_MSVS(Address addr)
     if (!isStackFramePrecheck_msvs(bufferBegin))
         return false;
 
-    InstructionDecoder dec(bufferBegin, -1 - (Address)(bufferBegin));
-    dec.setMode(getAddressWidth() == 8);
+    dyn_detail::boost::shared_ptr<InstructionDecoder> dec =
+            makeDecoder(arch, bufferBegin, -1 - (Address)(bufferBegin));
+    dec->setMode(getAddressWidth() == 8);
     IA_IAPI ah(dec, addr, this);
 #else
     typedef IA_InstrucIter InstructionAdapter_t;
@@ -545,9 +573,15 @@ bool image_func::parse()
 #if defined(cap_instruction_api)
     using namespace Dyninst::InstructionAPI;
     typedef IA_IAPI InstructionAdapter_t;
-    const unsigned char* bufferBegin = (const unsigned char*)(img()->getPtrToInstruction(funcBegin));
-    InstructionDecoder dec(bufferBegin, -1 - (Address)(bufferBegin));
-    dec.setMode(img()->getAddressWidth() == 8);
+    const unsigned char* bufferBegin = (const unsigned char*)(img()->getPtrToInstruction(funcBegin, this));
+    if( bufferBegin == NULL ) {
+        parsing_printf("%s[%d]: failed to get pointer to instruction by offset\n",
+                FILE__, __LINE__);
+        return false;
+    }
+    dyn_detail::boost::shared_ptr<InstructionDecoder> dec =
+            makeDecoder(img()->getArch(), bufferBegin, -1 - (Address)(bufferBegin));
+    dec->setMode(img()->getAddressWidth() == 8);
     IA_IAPI ah(dec, funcBegin, this);
 #else
     typedef IA_InstrucIter InstructionAdapter_t;
@@ -754,9 +788,15 @@ bool image_func::buildCFG(
     {
 #if defined(cap_instruction_api)
         using namespace Dyninst::InstructionAPI;
-        const unsigned char* bufferBegin = (const unsigned char*)(img()->getPtrToInstruction(worklist[i]));
-        InstructionDecoder dec(bufferBegin, -1 - (Address)(bufferBegin));
-        dec.setMode(img()->getAddressWidth() == 8);
+        const unsigned char* bufferBegin = (const unsigned char*)(img()->getPtrToInstruction(worklist[i], this));
+        if( bufferBegin == NULL ) {
+            parsing_printf("%s[%d]: failed to get pointer to instruction by offset\n",
+                    FILE__, __LINE__);
+            return false;
+        }
+        dyn_detail::boost::shared_ptr<InstructionDecoder> dec =
+                makeDecoder(img()->getArch(), bufferBegin, -1 - (Address)(bufferBegin));
+        dec->setMode(img()->getAddressWidth() == 8);
         InstructionAdapter_t ah(dec, worklist[i], this);
 #else        
         InstrucIter iter(worklist[i],this);

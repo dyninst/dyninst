@@ -346,7 +346,7 @@ void parseSubRangeDIE( Dwarf_Debug & dbg, Dwarf_Die subrangeDIE,
   DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error dereferencing DWARF pointer\n", __FILE__, __LINE__ );
 
   errno = 0;
-  long low_conv = strtol(loBound.c_str(), NULL, 10);
+  unsigned long low_conv = strtoul(loBound.c_str(), NULL, 10);
   if (errno)
   {
 	  fprintf(stderr, "%s[%d]:  error converting range limit '%s' to long: %s\n",
@@ -355,7 +355,7 @@ void parseSubRangeDIE( Dwarf_Debug & dbg, Dwarf_Die subrangeDIE,
   }
 
   errno = 0;
-  long hi_conv = strtol(hiBound.c_str(), NULL, 10);
+  unsigned long hi_conv = strtoul(hiBound.c_str(), NULL, 10);
   if (errno) 
   {
 	  fprintf(stderr, "%s[%d]:  error converting range limit '%s' to long: %s\n",
@@ -523,56 +523,98 @@ int convertFrameBaseToAST( Dwarf_Locdesc * locationList, Dwarf_Signed listLength
 Dyninst::MachRegister DwarfToDynReg(Dwarf_Signed reg, int word_size = 4)
 {
 
-   if (word_size == 4) {
-      //They match.  Yea!
-      return (Dyninst::MachRegister) reg;
-   }
-   switch (reg) {
-      case 0: return x86_64::RAX;
-      case 1: return x86_64::RDX;
-      case 2: return x86_64::RCX;
-      case 3: return x86_64::RBX;
-      case 4: return x86_64::RSI;
-      case 5: return x86_64::RDI;
-      case 6: return x86_64::RBP;
-      case 7: return x86_64::RSP;
-      default:
-         //The rest match
-         return (Dyninst::MachRegister) reg;
-   }
+    if (word_size == 4) {
+        switch(reg)
+        {
+            case 0: return x86::eax;
+            case 1: return x86::ecx;
+            case 2: return x86::edx;
+            case 3: return x86::ebx;
+            case 4: return x86::esp;
+            case 5: return x86::ebp;
+            case 6: return x86::esi;
+            case 7: return x86::edi;
+            default:
+                assert(!"Reg value out of range");
+                return Dyninst::MachRegister();
+        }
+    }
+    switch (reg) {
+        case 0: return x86_64::rax;
+        case 1: return x86_64::rdx;
+        case 2: return x86_64::rcx;
+        case 3: return x86_64::rbx;
+        case 4: return x86_64::rsi;
+        case 5: return x86_64::rdi;
+        case 6: return x86_64::rbp;
+        case 7: return x86_64::rsp;
+        case 8: return x86_64::r8;
+        case 9: return x86_64::r9;
+        case 10: return x86_64::r10;
+        case 11: return x86_64::r11;
+        case 12: return x86_64::r12;
+        case 13: return x86_64::r13;
+        case 14: return x86_64::r14;
+        case 15: return x86_64::r15;
+        default:
+            assert(!"Reg value out of range");
+            return Dyninst::MachRegister();
+    
+    }
 }
 
 Dwarf_Signed DynToDwarfReg(Dyninst::MachRegister reg, int word_size = 4)
 {
 
-   if (word_size == 4) {
-      return (Dwarf_Signed) (reg & 0xf);
-   }
-   switch (reg & 0xf) {
-      case x86_64::RAX: return (Dwarf_Signed) 0;
-      case x86_64::RCX: return (Dwarf_Signed) 2;
-      case x86_64::RDX: return (Dwarf_Signed) 1;
-      case x86_64::RBX: return (Dwarf_Signed) 3;
-      case x86_64::RSP: return (Dwarf_Signed) 7;
-      case x86_64::RBP: return (Dwarf_Signed) 6;
-      case x86_64::RSI: return (Dwarf_Signed) 4;
-      case x86_64::RDI: return (Dwarf_Signed) 5;
-      default:
-         //The rest match
-         return (Dwarf_Signed) (reg & 0xf);
-   }
+    if (word_size == 4) {
+        switch(reg.val())
+        {
+            case x86::ieax: return (Dwarf_Signed) 0;
+            case x86::iecx: return (Dwarf_Signed) 1;
+            case x86::iedx: return (Dwarf_Signed) 2;
+            case x86::iebx: return (Dwarf_Signed) 3;
+            case x86::iesp: return (Dwarf_Signed) 4;
+            case x86::iebp: return (Dwarf_Signed) 5;
+            case x86::iesi: return (Dwarf_Signed) 6;
+            case x86::iedi: return (Dwarf_Signed) 7;
+            default:
+                assert(!"Reg value out of range");
+                return 0;
+        }
+    }
+    switch (reg.val()) {
+        case x86_64::irax: return (Dwarf_Signed) 0;
+        case x86_64::ircx: return (Dwarf_Signed) 2;
+        case x86_64::irdx: return (Dwarf_Signed) 1;
+        case x86_64::irbx: return (Dwarf_Signed) 3;
+        case x86_64::irsp: return (Dwarf_Signed) 7;
+        case x86_64::irbp: return (Dwarf_Signed) 6;
+        case x86_64::irsi: return (Dwarf_Signed) 4;
+        case x86_64::irdi: return (Dwarf_Signed) 5;
+        case x86_64::ir8: return (Dwarf_Signed) 8;
+        case x86_64::ir9: return (Dwarf_Signed) 9;
+        case x86_64::ir10: return (Dwarf_Signed) 10;
+        case x86_64::ir11: return (Dwarf_Signed) 11;
+        case x86_64::ir12: return (Dwarf_Signed) 12;
+        case x86_64::ir13: return (Dwarf_Signed) 13;
+        case x86_64::ir14: return (Dwarf_Signed) 14;
+        case x86_64::ir15: return (Dwarf_Signed) 15;
+        default:
+            assert(!"DynReg value out of bounds!");
+            return 0;
+    }
 }
 #else
 Dyninst::MachRegister DwarfToDynReg(Dwarf_Signed, int word_size = 4)
 {
-  assert(0);
-  return (Dyninst::MachRegister) word_size;
+    assert(0);
+    return (Dyninst::MachRegister) word_size;
 }
 
 Dwarf_Signed DynToDwarfReg(Dyninst::MachRegister, int word_size = 4)
 {
-  assert(0);  
-  return (Dwarf_Signed) word_size;
+    assert(0);
+    return (Dwarf_Signed) word_size;
 }
 #endif
 
@@ -692,7 +734,7 @@ bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
                to_push = static_cast<long int>(locations[i].lr_number);
             }
             else if (reader) {
-               Dyninst::MachRegister r = Dyninst::MachRegFrameBase;
+               Dyninst::MachRegister r = Dyninst::FrameBase;
                Dyninst::MachRegisterVal v;
                bool result = reader->GetReg(r, v);
                if (!result) {
@@ -2893,6 +2935,7 @@ void Object::parseDwarfTypes( Symtab *objFile)
 	moduleTypes->setDwarfParsed();
 } /* end parseDwarfTypes() */
 
+
 bool Object::hasFrameDebugInfo()
 {
 	dwarf.setupFdeData();
@@ -2947,7 +2990,7 @@ bool Object::getRegValueAtFrame(Address pc,
    }
 
    Dwarf_Half dwarf_reg;
-   if (reg == Dyninst::MachRegReturn) {
+   if (reg == Dyninst::ReturnAddr) {
       /**
        * We should be getting the return address for the stack frame.  
        * This is treated as a virtual register in the
@@ -2968,7 +3011,7 @@ bool Object::getRegValueAtFrame(Address pc,
          return false;
       }
    }
-   else if (reg == Dyninst::MachRegFrameBase) {
+   else if (reg == Dyninst::FrameBase) {
       dwarf_reg = DW_FRAME_CFA_COL3;
    }
    else {
@@ -3011,7 +3054,7 @@ bool Object::getRegValueAtFrame(Address pc,
    if (value_type == DW_EXPR_OFFSET || value_type == DW_EXPR_VAL_OFFSET)
    {
       if (register_num == DW_FRAME_CFA_COL3) {
-         bool bresult = getRegValueAtFrame(pc, Dyninst::MachRegFrameBase, 
+         bool bresult = getRegValueAtFrame(pc, Dyninst::FrameBase,
                                            register_val, reader);
          if (!bresult) 
             return false;

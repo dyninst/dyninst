@@ -39,6 +39,7 @@
 #include "common/h/parseauxv.h"
 #include "Symtab.h"
 #include "emitElf-64.h"
+#include "emitElfStatic.h"
 
 extern void symtab_log_perror(const char *msg);
 using namespace Dyninst;
@@ -186,6 +187,10 @@ emitElf64::emitElf64(Elf_X &oldElfHandle_, bool isStripped_, Object *obj_, void 
   // for the extra page for program headers.  This causes some significant
   // changes to the binary, and isn't well tested.
   library_adjust = 0;
+
+  linkedStaticData = NULL;
+  hasRewrittenTLS = false;
+  newTLSData = NULL;
 
   oldElf = oldElfHandle.e_elfp();
   curVersionNum = 2;
@@ -472,10 +477,13 @@ bool emitElf64::driver(Symtab *obj, string fName){
     //copy sections from oldElf to newElf
     shdr = elf64_getshdr(scn);
     // resolve section name
+    Region *previousSec = foundSec;
     const char *name = &shnames[shdr->sh_name];
     bool result = obj->findRegion(foundSec, shdr->sh_addr, shdr->sh_size);
     if (!result) {
       result = obj->findRegion(foundSec, name);
+    }else if( previousSec == foundSec ) {
+        result = obj->findRegion(foundSec, name);
     }
 
     // write the shstrtabsection at the end
@@ -585,6 +593,17 @@ bool emitElf64::driver(Symtab *obj, string fName){
       //newSecs.push_back(new Section(oldEhdr->e_shnum+newSecs.size(),".dynamic", /*addr*/, newdata->d_size, dynData, Section::dynamicSection, true));
     }
 
+    // Only need to rewrite data section
+    if( hasRewrittenTLS && foundSec->isTLS()
+        && foundSec->getRegionType() == Region::RT_DATA )
+    {
+        // Clear TLS flag
+        newshdr->sh_flags &= ~SHF_TLS;
+
+        string newName = ".o";
+        newName.append(name, 2, strlen(name));
+        renameSection((string)name, newName, false);
+    }
 
     // Change offsets of sections based on the newly added sections
     if(movePHdrsFirst) {
@@ -787,8 +806,14 @@ void emitElf64::fixPhdrs(unsigned &extraAlignSize)
         newPhdr->p_paddr = newPhdr->p_vaddr;
         newPhdr->p_filesz = sizeof(Elf64_Phdr) * newEhdr->e_phnum;
         newPhdr->p_memsz = newPhdr->p_filesz;
-     }
-     else if (old->p_type == PT_LOAD) {
+     }else if( hasRewrittenTLS && old->p_type == PT_TLS) {
+          newPhdr->p_offset = newTLSData->sh_offset;
+          newPhdr->p_vaddr = newTLSData->sh_addr;
+          newPhdr->p_paddr = newTLSData->sh_addr;
+          newPhdr->p_filesz = newTLSData->sh_size;
+          newPhdr->p_memsz = newTLSData->sh_size + old->p_memsz - old->p_filesz;
+          newPhdr->p_align = newTLSData->sh_addralign;
+     }else if (old->p_type == PT_LOAD) {
         if(newPhdr->p_align > pgSize) {
            newPhdr->p_align = pgSize;
         }
@@ -835,7 +860,7 @@ void emitElf64::fixPhdrs(unsigned &extraAlignSize)
          newSeg.p_vaddr = newSegmentStart;
          newSeg.p_paddr = newSeg.p_vaddr;
          newSeg.p_filesz = loadSecTotalSize - (newSegmentStart - firstNewLoadSec->sh_addr);
-         newSeg.p_memsz = newSeg.p_filesz;
+         newSeg.p_memsz = (currEndAddress - firstNewLoadSec->sh_addr) - (newSegmentStart - firstNewLoadSec->sh_addr);
          newSeg.p_flags = PF_R+PF_W+PF_X;
          newSeg.p_align = pgSize;
          memcpy(newPhdr, &newSeg, oldEhdr->e_phentsize);
@@ -961,6 +986,7 @@ bool emitElf64::createLoadableSections(Elf64_Shdr* &shdr, unsigned &extraAlignSi
       newshdr = elf64_getshdr(newscn);
       newshdr->sh_name = secNameIndex;
       newshdr->sh_flags = 0;
+      newshdr->sh_type = SHT_PROGBITS;
       switch(newSecs[i]->getRegionType()){
          case Region::RT_TEXTDATA:
             newshdr->sh_flags = SHF_EXECINSTR | SHF_ALLOC | SHF_WRITE;
@@ -968,18 +994,28 @@ bool emitElf64::createLoadableSections(Elf64_Shdr* &shdr, unsigned &extraAlignSi
          case Region::RT_TEXT:
             newshdr->sh_flags = SHF_EXECINSTR | SHF_ALLOC;
             break;
+         case Region::RT_BSS:
+            newshdr->sh_type = SHT_NOBITS;
          case Region::RT_DATA:
             newshdr->sh_flags = SHF_WRITE | SHF_ALLOC;
             break;
          default:
             break;
       }
-      newshdr->sh_type = SHT_PROGBITS;
 
-      if(shdr->sh_type == SHT_NOBITS)
-         newshdr->sh_offset = shdr->sh_offset;
-      else
-         newshdr->sh_offset = shdr->sh_offset+shdr->sh_size;
+     if(shdr->sh_type == SHT_NOBITS)
+        newshdr->sh_offset = shdr->sh_offset;
+     else if( !firstNewLoadSec || !newSecs[i]->getDiskOffset() ) {
+        newshdr->sh_offset = shdr->sh_offset+shdr->sh_size;
+     }else{
+         // The offset can be computed by determing the difference from
+         // the first new loadable section
+         newshdr->sh_offset = firstNewLoadSec->sh_offset +
+             (newSecs[i]->getDiskOffset() - firstNewLoadSec->sh_addr);
+
+         // Account for inter-section spacing due to alignment constraints
+         loadSecTotalSize += newshdr->sh_offset - (shdr->sh_offset+shdr->sh_size);
+     }
 
       if(newSecs[i]->getMemOffset()) {
          newshdr->sh_addr = newSecs[i]->getMemOffset() + library_adjust;
@@ -990,9 +1026,15 @@ bool emitElf64::createLoadableSections(Elf64_Shdr* &shdr, unsigned &extraAlignSi
     	    
       newshdr->sh_link = SHN_UNDEF;
       newshdr->sh_info = 0;
-      newshdr->sh_addralign = 4;
+      newshdr->sh_addralign = newSecs[i]->getMemAlignment();
       newshdr->sh_entsize = 0;
-            
+
+      // TLS section
+      if( newSecs[i]->isTLS() ) {
+          newTLSData = newshdr;
+          newshdr->sh_flags |= SHF_TLS;
+      }
+
       if(newSecs[i]->getRegionType() == Region::RT_REL ||
          newSecs[i]->getRegionType() == Region::RT_PLTREL)    //Relocation section
       {
@@ -1145,9 +1187,14 @@ bool emitElf64::createLoadableSections(Elf64_Shdr* &shdr, unsigned &extraAlignSi
       if (!newdata->d_align)
          newdata->d_align = newshdr->sh_addralign;
       newshdr->sh_size = newdata->d_size;
-      loadSecTotalSize += newshdr->sh_size;
 
       currEndOffset = newshdr->sh_offset + newshdr->sh_size;
+      if( newshdr->sh_type == SHT_NOBITS ) {
+          currEndOffset = newshdr->sh_offset;
+      }else{
+          loadSecTotalSize += newshdr->sh_size;
+          currEndOffset = newshdr->sh_offset + newshdr->sh_size;
+      }
       currEndAddress = newshdr->sh_addr + newshdr->sh_size;
 	    
       newdata->d_version = 1;
@@ -1329,6 +1376,11 @@ bool emitElf64::createNonLoadableSections(Elf64_Shdr *&shdr)
 	newshdr->sh_flags=  SHF_ALLOC | SHF_WRITE;
         }*/
       newshdr->sh_offset = prevshdr->sh_offset+prevshdr->sh_size;
+      if( prevshdr->sh_type == SHT_NOBITS ) {
+          newshdr->sh_offset = prevshdr->sh_offset;
+      }else{
+          newshdr->sh_offset = prevshdr->sh_offset+prevshdr->sh_size;
+      }
       if (newshdr->sh_offset < currEndOffset) {
          newshdr->sh_offset = currEndOffset;
       }
@@ -1346,7 +1398,7 @@ bool emitElf64::createNonLoadableSections(Elf64_Shdr *&shdr)
       newdata->d_off = 0;
       newdata->d_version = 1;
       currEndOffset = newshdr->sh_offset + newshdr->sh_size;
-      currEndAddress = newshdr->sh_addr + newshdr->sh_size;
+      //currEndAddress = newshdr->sh_addr + newshdr->sh_size;
       /* DEBUG */
 #ifdef BINEDIT_DEBUG
       fprintf(stderr, "Added New Section(%s) : secAddr 0x%lx, secOff 0x%lx, secsize 0x%lx, end 0x%lx\n",
@@ -1652,6 +1704,25 @@ bool emitElf64::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
     if(dynsecSize)
       obj->addRegion(0, dynsecData, dynsecSize*sizeof(Elf64_Dyn), ".dynamic", Region::RT_DYNAMIC, true);
 #endif 
+  }else{
+      // Static binary case
+      vector<Region *> newRegs;
+      obj->getAllNewRegions(newRegs);
+      if( newRegs.size() ) {
+          emitElfStatic linker(obj->getAddressWidth(), isStripped);
+
+          emitElfStatic::StaticLinkError err;
+          std::string errMsg;
+          linkedStaticData = linker.linkStatic(obj, err, errMsg);
+          if ( !linkedStaticData ) {
+               fprintf(stderr, "Failed to link in static library code: %s = %s\n",
+                     emitElfStatic::printStaticLinkError(err).c_str(), errMsg.c_str());
+               log_elferror(err_func_, "Failed to link in static library code.");
+               return false;
+          }
+
+          hasRewrittenTLS = linker.hasRewrittenTLS();
+      }
   }
 
   if(!obj->getAllNewRegions(newSecs))

@@ -389,6 +389,7 @@ Serializable *Symbol::serialize_impl(SerializerBase *s, const char *tag) THROW_S
 		gtranslate(s, index_, "index");
 		gtranslate(s, isDynamic_, "isDynamic");
 		gtranslate(s, isAbsolute_, "isAbsolute");
+                gtranslate(s, isCommonStorage_, "isCommonStorage");
 		gtranslate(s, prettyName_, "prettyName");
 		gtranslate(s, mangledName_, "mangledName");
 		gtranslate(s, typedName_, "typedName");
@@ -484,21 +485,13 @@ ostream& Dyninst::SymtabAPI::operator<< (ostream &os, const Symbol &s)
         //<< " tag="     << (unsigned) s.tag_
               << " tag="     << s.symbolTag2Str(s.tag_)
               << " isAbs="   << s.isAbsolute_
+              << " isCommon=" << s.isCommonStorage_
               << (s.isFunction() ? " [FUNC]" : "")
               << (s.isVariable() ? " [VAR]" : "")
               << (s.isInSymtab() ? "[STA]" : "[DYN]")
               << " }" << endl;
 }
 
-ostream & Dyninst::SymtabAPI::operator<< (ostream &s, const relocationEntry &r) 
-{
-	s << "target_addr=" << r.target_addr_ 
-		<< "rel_addr=" << r.rel_addr_ 
-		<< "addend=" << r.addend_ 
-		<< "rtype=" << r.rtype_ 
-		<< "name=" << r.name_ ;
-	return s; 
-}
      Offset tryStart_;
 	       unsigned trySize_;
 		         Offset catchStart_;
@@ -541,6 +534,7 @@ bool Symbol::operator==(const Symbol& s) const
 			&& (size_    == s.size_)
 			&& (isDynamic_ == s.isDynamic_)
 			&& (isAbsolute_ == s.isAbsolute_)
+                        && (isCommonStorage_ == s.isCommonStorage_)
 			&& (mangledName_ == s.mangledName_)
 			&& (prettyName_ == s.prettyName_)
 			&& (typedName_ == s.typedName_));
@@ -569,7 +563,8 @@ Symbol::Symbol () :
   typedName_(Symbol::emptyString),
   tag_(TAG_UNKNOWN) ,
   index_(-1),
-  strindex_(-1) 
+  strindex_(-1),
+  isCommonStorage_(false)
 {
 }
 
@@ -584,7 +579,8 @@ Symbol::Symbol(const std::string name,
 	       bool d,
 	       bool a,
 	       int index,
-	       int strindex):
+	       int strindex,
+               bool cs):
   module_(module),
   type_(t),
   internal_type_(0),
@@ -603,7 +599,8 @@ Symbol::Symbol(const std::string name,
   typedName_(name),
   tag_(TAG_UNKNOWN),
   index_(index),
-  strindex_(strindex)
+  strindex_(strindex),
+  isCommonStorage_(cs)
 {
 }
 

@@ -48,7 +48,6 @@
 
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
-#include "common/h/List.h"
 #include "dyninstAPI/src/dyninst.h"
 #include "dyninstAPI/src/arch.h"
 #include "dyninstAPI/src/util.h"
@@ -62,7 +61,7 @@
 #include "common/h/Types.h"
 #include "dyninstAPI/src/inst.h"
 
-#if defined(rs6000_ibm_aix4_1)||defined(rs6000_ibm_aix5_1)
+#if defined(rs6000_ibm_aix4_1)||defined(rs6000_ibm_aix5_1)||defined(os_linux)
 #include "symtabAPI/h/Archive.h"
 #endif
 
@@ -274,7 +273,7 @@ class image : public codeRange, public InstructionSource {
    //
  public:
    static image *parseImage(const std::string file);
-   static image *parseImage(fileDescriptor &desc, bool parseGaps=false); 
+   static image *parseImage(fileDescriptor &desc, bool parseGaps=false);
 
    // And to get rid of them if we need to re-parse
    static void removeImage(image *img);
@@ -286,7 +285,7 @@ class image : public codeRange, public InstructionSource {
    static void removeImage(const string file);
    static void removeImage(fileDescriptor &desc);
 
-   image(fileDescriptor &desc, bool &err, bool parseGaps=false); 
+   image(fileDescriptor &desc, bool &err, bool parseGaps=false);
 
    void analyzeIfNeeded();
 
@@ -361,6 +360,7 @@ class image : public codeRange, public InstructionSource {
    Address get_address() const { return imageOffset(); }
    unsigned get_size() const { return imageLength(); }
    virtual void *getPtrToInstruction(Address offset) const;
+   virtual void *getPtrToInstruction(Address offset, const image_func *context) const;
    // Heh... going by address is a really awful way to work on AIX.
    // Make it explicit.
    void *getPtrToData(Address offset) const;
@@ -375,13 +375,15 @@ class image : public codeRange, public InstructionSource {
 
    bool isAOut() const { return is_a_out; }
 
-   bool isSharedObj() const { return !(getObject()->isExec()); }
+   bool isSharedObj() const { return (getObject()->getObjectType() == obj_SharedLib); }
+   bool isRelocatableObj() const { return (getObject()->getObjectType() == obj_RelocatableFile); }
  
    bool isCode(const Address &where) const;
    bool isData(const Address &where) const;
    virtual bool isValidAddress(const Address &where) const;
    virtual bool isExecutableAddress(const Address &where) const;
    bool isAligned(const Address where) const;
+   bool getExecCodeRanges(std::vector<std::pair<Address, Address> > &ranges);
 
    bool isNativeCompiler() const { return nativeCompiler; }
 
@@ -424,6 +426,12 @@ class image : public codeRange, public InstructionSource {
    // This method is invoked after parsing a function to record it in tables
    // and to update other symtab-level data structures, like mangled names
    void recordFunction(image_func *);
+    Dyninst::Architecture getArch() { return arch; }
+
+   // This method is invoked to find the global constructors function and add a
+   // symbol for the function if the image has no symbols
+   bool findGlobalConstructorFunc();
+   bool findGlobalDestructorFunc();
 
  private:
 
@@ -514,7 +522,7 @@ class image : public codeRange, public InstructionSource {
 
    // data from the symbol table 
    Symtab *linkedFile;
-#if defined (os_aix)
+#if defined (os_aix) || defined(os_linux)
    Archive *archive;
 #endif
 
@@ -576,7 +584,7 @@ class image : public codeRange, public InstructionSource {
    int refCount;
    imageParseState_t parseState_;
    bool parseGaps_;
-
+   Dyninst::Architecture arch;
    vector< pair<image_basicBlock *, image_func *> > reparse_shared;
 };
 

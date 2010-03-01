@@ -142,22 +142,26 @@ bool BPatch_asyncEventHandler::connectToProcess(process *p)
    process_fds.push_back(newp);
 
    process *llproc = p;
-   assert(llproc->runtime_lib);
 
 #if defined (os_windows)
    //  find the variable to set with the port number to connect to
-   pdvector<int_variable *> res;
+   int_variable *res = NULL;
 
-   llproc->findVarsByAll("connect_port", res, llproc->runtime_lib->fullName().c_str());
+   pdvector<mapped_object *> &rtlib = llproc->runtime_lib;
+   pdvector<mapped_object *>::iterator rtlib_it;
+   for(rtlib_it = rtlib.begin(); rtlib_it != rtlib.end(); ++rtlib_it) {
+       if( !res ) res = const_cast<int_variable *>((*rtlib_it)->getVariable("connect_port"));
+       else break;
+   }
 
-   if (!res.size()) 
+   if (!res) 
    {
       fprintf(stderr, "%s[%d]:  cannot find var connect_port in rt lib\n",
             FILE__, __LINE__);
       return false;
    }
 
-   int_variable *portVar = res[0];
+   int_variable *portVar = res;
 
    bool result = llproc->writeDataSpace((void *) portVar->getAddress(), 
          sizeof(listen_port), &listen_port);
