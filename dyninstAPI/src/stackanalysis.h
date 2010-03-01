@@ -311,66 +311,6 @@ class StackAnalysis {
         Region::Ptr region_;
     };
     
-    class Presence {
-    public:
-        typedef enum {
-            bottom_t,
-            noFrame_t,
-            frame_t,
-            top_t} Presence_t;
-
-        static const Presence bottom;
-        static const Presence top;
-        
-        Presence() : presence_(top_t) {};
-        Presence(Presence_t d) : presence_(d) {};
-        Presence presence() const { return presence_; };
-        
-        // This is arbitrary and strictly for ordering
-        // in set insertion. The only requirement is that 
-        // bottom < (ANY) and (ANY) < top
-        bool operator<(const Presence &rhs) const {
-            return (presence_ < rhs.presence_); 
-        }
-        bool operator==(const Presence &other) const {
-            return presence_ == other.presence_;
-        }
-        bool operator!=(const Presence &rhs) const {
-            return presence_ != rhs.presence_;
-        }
-        
-        std::string format() const {
-            switch(presence_) {
-            case bottom_t:
-                return "BOTTOM";
-            case noFrame_t:
-                return "NOFRAME";
-            case frame_t:
-                return "FRAME";
-            case top_t:
-                return "TOP";
-            default:
-                assert(0);
-                return "UNKNOWN";
-            }
-        }
-
-        void apply(const Presence &in,
-                   Presence &out) const;
-        void apply(Presence &out) const;
-
-        bool isBottom() const {
-            return presence_ == bottom_t;
-        }
-        
-        bool isTop() const {
-            return presence_ == top_t;
-        }
-        
-    private:
-        Presence_t presence_;
-    };    
-
     // We need to represent the effects of instructions. We do this
     // in terms of transfer functions. We recognize the following 
     // effects on the stack.
@@ -453,7 +393,6 @@ class StackAnalysis {
     public:
         static const BlockTransferFunc bottom;
         static const BlockTransferFunc top;
-        static const BlockTransferFunc initial;
 
         static const long uninitialized = MAXLONG;
         static const long notUnique = MINLONG;
@@ -591,8 +530,6 @@ class StackAnalysis {
     
     typedef class IntervalTree<Offset, Height> HeightTree;
     
-    typedef class IntervalTree<Offset, Presence> PresenceTree;
-    
     typedef image_basicBlock Block;
     typedef image_edge Edge;
     typedef image_func Function;
@@ -602,35 +539,37 @@ class StackAnalysis {
 
     typedef std::map<Function *, Height> FuncCleanAmounts;
     
-    typedef std::map<Block *, Presence> BlockPresence;
-    typedef std::map<Offset, Presence> InsnPresence;
-    typedef std::map<Block *, InsnPresence> BlockToInsnPresence;
-    
     typedef std::map<Block *, BlockTransferFunc> BlockEffects;
+
+    typedef std::vector<Offset> FPCopyPoints;
+    typedef std::map<Block *, FPCopyPoints> BlockToFPCopyPoints;
+    typedef std::map<Block *, Height> BlockHeights;
 
     StackAnalysis();
     StackAnalysis(Function *f);
     
-    const HeightTree *heightIntervals();
-    const PresenceTree *presenceIntervals();
+    // Lookup functions; preferred over the above
+    Height findSP(Address addr);
+    Height findFP(Address addr);
     
-    void debugHeights();
-    void debugPresences();
+    void debug();
     
  private:
     
     bool analyze();
     void summarizeBlocks();
-    void fixpoint();
 
-    void createPresenceIntervals();
-    void createHeightIntervals();
+    void sp_fixpoint();
+    void sp_createIntervals();
+
+    void fp_fixpoint();
+    void fp_createIntervals();
 
     void computeInsnEffects(const Block *block,
                             const InstructionAPI::Instruction::Ptr &insn,
                             const Offset off,
-                            InsnTransferFunc &iFunc,
-                            Presence &pres);
+                            InsnTransferFunc &spFunc,
+                            bool &fpCopied);
 
     Height getStackCleanAmount(Function *func);
 
@@ -638,19 +577,23 @@ class StackAnalysis {
     
     Block::blockSet blocks;
     Function *func;
-    
-    BlockToInsnFuncs blockToInsnFuncs;
-    BlockEffects blockEffects;
-    BlockEffects inBlockEffects;
-    BlockEffects outBlockEffects;
-        
-    BlockToInsnPresence blockToInsnPresences;
-    BlockPresence blockPresences;
-    BlockPresence inBlockPresences;
-    BlockPresence outBlockPresences;
-    
-    HeightTree *heightIntervals_; // Pointer so we can make it an annotation
-    PresenceTree *presenceIntervals_;
+
+    // SP effect tracking
+    BlockToInsnFuncs sp_blockToInsnFuncs;
+    BlockEffects sp_blockEffects;
+    BlockEffects sp_inBlockEffects;
+    BlockEffects sp_outBlockEffects;
+
+    // FP effect tracking. For now, we don't bother
+    // integrating the two; instead, we mark where
+    // the FP makes a copy of the SP and fill in the 
+    // values later
+    BlockToFPCopyPoints fp_copyPoints;
+    BlockHeights fp_inBlockHeights;
+    BlockHeights fp_outBlockHeights;
+
+    HeightTree *sp_intervals_; // Pointer so we can make it an annotation
+    HeightTree *fp_intervals_;
     
     FuncCleanAmounts funcCleanAmounts;
     

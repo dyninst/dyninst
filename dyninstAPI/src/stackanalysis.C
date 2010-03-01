@@ -52,22 +52,17 @@ using namespace InstructionAPI;
 const StackAnalysis::Height StackAnalysis::Height::bottom(StackAnalysis::Height::notUnique);
 const StackAnalysis::Height StackAnalysis::Height::top(StackAnalysis::Height::uninitialized);
 
-const StackAnalysis::Presence StackAnalysis::Presence::bottom(StackAnalysis::Presence::bottom_t);
-const StackAnalysis::Presence StackAnalysis::Presence::top(StackAnalysis::Presence::top_t);
-
 const StackAnalysis::InsnTransferFunc StackAnalysis::InsnTransferFunc::bottom(StackAnalysis::InsnTransferFunc::notUnique, false);
 const StackAnalysis::InsnTransferFunc StackAnalysis::InsnTransferFunc::top(StackAnalysis::InsnTransferFunc::uninitialized, false);
 
 const StackAnalysis::BlockTransferFunc StackAnalysis::BlockTransferFunc::bottom(StackAnalysis::BlockTransferFunc::notUnique, false, false);
 const StackAnalysis::BlockTransferFunc StackAnalysis::BlockTransferFunc::top(StackAnalysis::BlockTransferFunc::uninitialized, false, false);
 
-const StackAnalysis::BlockTransferFunc StackAnalysis::BlockTransferFunc::initial(0, true, true);
-
 const StackAnalysis::Range StackAnalysis::defaultRange(std::make_pair(0, 0), 0, 0);
 const StackAnalysis::Range::range_t StackAnalysis::Range::infinite(std::make_pair(MINLONG, MAXLONG));
 
-AnnotationClass <StackAnalysis::HeightTree> HeightAnno(std::string("HeightAnno"));
-AnnotationClass <StackAnalysis::PresenceTree> PresenceAnno(std::string("PresenceAnno"));
+AnnotationClass <StackAnalysis::HeightTree> SP_Anno(std::string("SP_Anno"));
+AnnotationClass <StackAnalysis::HeightTree> FP_Anno(std::string("FP_Anno"));
 
 
 //
@@ -92,24 +87,25 @@ bool StackAnalysis::analyze()
 		       func->symTabName().c_str());
     blocks = func->blocks();
     if (blocks.empty()) return false;
-
-    blocks = func->blocks();
     
     stackanalysis_printf("\tSummarizing block effects\n");
     summarizeBlocks();
     
     stackanalysis_printf("\tPerforming fixpoint analysis\n");
-    fixpoint();
+    sp_fixpoint();
 
-    stackanalysis_printf("\tCreating interval trees\n");
-    createPresenceIntervals();
-    createHeightIntervals();
+    stackanalysis_printf("\tCreating SP interval tree\n");
+    sp_createIntervals();
 
-    func->addAnnotation(heightIntervals_, HeightAnno);
-    func->addAnnotation(presenceIntervals_, PresenceAnno);
+    stackanalysis_printf("\tCreating FP interval tree\n");
+    fp_fixpoint();
+
+    fp_createIntervals();
+
+    func->addAnnotation(sp_intervals_, SP_Anno);
+    func->addAnnotation(fp_intervals_, FP_Anno);
     if (dyn_debug_stackanalysis) {
-        debugHeights();
-        debugPresences();
+        debug();
     }
 
     stackanalysis_printf("Finished stack analysis for function %s\n",
@@ -151,17 +147,15 @@ void StackAnalysis::summarizeBlocks() {
         // New region: add to the end of the regions list
         // Offset to stack pointer: accumulate to delta.
         // Setting the stack pointer: zero delta, set set_value.
-        // Creating a stack frame: indicate in presence. 
-        // Destroying a stack frame: indicate in presence. 
+	// 
 
-        BlockTransferFunc &bFunc = blockEffects[block];
-        Presence &bPresence = blockPresences[block];
+        BlockTransferFunc &bFunc = sp_blockEffects[block];
 
         bFunc = BlockTransferFunc::top;
-        bPresence = Presence::top;
 
-        stackanalysis_printf("\t Block starting at 0x%lx: %s, %s\n", block->firstInsnOffset(),
-			     bPresence.format().c_str(), bFunc.format().c_str());
+        stackanalysis_printf("\t Block starting at 0x%lx: %s\n", 
+			     block->firstInsnOffset(),
+			     bFunc.format().c_str());
 
         std::vector<std::pair<InstructionAPI::Instruction::Ptr, Offset> > instances;
         block->getInsnInstances(instances);
@@ -171,35 +165,36 @@ void StackAnalysis::summarizeBlocks() {
             Offset &off = instances[j].second;
             Offset next;
             if (j < (instances.size() - 1)) {
-                next = instances[j+1].second;
+	      next = instances[j+1].second;
             }
             else {
-                next = block->endOffset();
+	      next = block->endOffset();
             }
             
             InsnTransferFunc iFunc;
-            Presence presence;
+	    bool fpCopied = false;
 
             computeInsnEffects(block, insn, off, 
-                               iFunc, presence);
+                               iFunc, fpCopied);
 
             if (iFunc != InsnTransferFunc::top) {
                 iFunc.apply(bFunc);
-                blockToInsnFuncs[block][next] = iFunc;
+                sp_blockToInsnFuncs[block][next] = iFunc;
             }
-            if (presence != Presence::top) {
-                presence.apply(bPresence); 
-                blockToInsnPresences[block][next] = presence;
-            }
-            stackanalysis_printf("\t\t\t At 0x%lx: %s, %s\n",
-				 off, bPresence.format().c_str(), bFunc.format().c_str());
+	    if (fpCopied) {
+	      fp_copyPoints[block].push_back(off);
+	    }
+
+            stackanalysis_printf("\t\t\t At 0x%lx:  %s\n",
+				 off,
+				 bFunc.format().c_str());
         }
 	stackanalysis_printf("\t Block summary for 0x%lx: %s\n", block->firstInsnOffset(), bFunc.format().c_str());
     }
 }
 
 
-void StackAnalysis::fixpoint() {
+void StackAnalysis::sp_fixpoint() {
 
     std::queue<Block *> worklist;
 
@@ -215,61 +210,60 @@ void StackAnalysis::fixpoint() {
         // intraprocedural blocks.
 
         std::set<BlockTransferFunc> inEffects;
-        std::set<Presence> inPresences;
         
         if (block->isEntryBlock(func)) {
-            // The in height is 0
-            // The set height is... 0
-            // And there is no input region.
-            inEffects.insert(BlockTransferFunc::initial);
-            inPresences.insert(Presence(Presence::noFrame_t));
-            stackanalysis_printf("\t Primed initial block\n");
+	  // FIXME for POWER/non-IA32
+	  // IA32 - the in height includes the return address and therefore
+	  // is <wordsize>
+	  // POWER - the in height is 0
+	  
+#if defined(arch_power)
+	  inEffects.insert(BlockTransferFunc(0, true, true));
+#elif (defined(arch_x86) || defined(arch_x86_64))
+	  int word_size = func->img()->getAddressWidth();
+	  inEffects.insert(BlockTransferFunc(-1*word_size,
+					     true, true));
+#else
+#error "Undefined architecture"
+#endif
+	  stackanalysis_printf("\t Primed initial block\n");
         }
         else {
             std::vector<Edge *> inEdges; block->getSources(inEdges);
             for (unsigned i = 0; i < inEdges.size(); i++) {
                 Edge *edge = inEdges[i];
                 if (edge->getType() == ET_CALL) continue;
-                inEffects.insert(outBlockEffects[edge->getSource()]);
+                inEffects.insert(sp_outBlockEffects[edge->getSource()]);
                 stackanalysis_printf("\t\t Inserting 0x%lx: %s\n", edge->getSource()->firstInsnOffset(),
-				     outBlockEffects[edge->getSource()].format().c_str());
-                inPresences.insert(outBlockPresences[edge->getSource()]);
+				     sp_outBlockEffects[edge->getSource()].format().c_str());
             }
         }
         
         BlockTransferFunc newInEffect = meet(inEffects);
-        Presence newInPresence = meet(inPresences);
 
-        stackanalysis_printf("\t New in meet: %s, %s\n",
-			     newInPresence.format().c_str(),
+        stackanalysis_printf("\t New in meet:  %s\n",
 			     newInEffect.format().c_str());
 
         // Step 2: see if the input has changed
 
-        if ((newInEffect == inBlockEffects[block]) &&
-            (newInPresence == inBlockPresences[block])) {
+        if (newInEffect == sp_inBlockEffects[block]) {
             // No new work here
           stackanalysis_printf("\t ... equal to current, skipping block\n");
             continue;
         }
         
-        stackanalysis_printf("\t ... inequal to current %s, %s, analyzing block\n",
-			     inBlockPresences[block].format().c_str(),
-			     inBlockEffects[block].format().c_str());
+        stackanalysis_printf("\t ... inequal to current %s, analyzing block\n",
+			     sp_inBlockEffects[block].format().c_str());
 
-        inBlockEffects[block] = newInEffect;
-        inBlockPresences[block] = newInPresence;
+        sp_inBlockEffects[block] = newInEffect;
         
         // Step 3: calculate our new outs
         
-        blockEffects[block].apply(newInEffect, 
-                                  outBlockEffects[block]);
-        blockPresences[block].apply(newInPresence,
-                                    outBlockPresences[block]);
+        sp_blockEffects[block].apply(newInEffect, 
+                                  sp_outBlockEffects[block]);
         
-        stackanalysis_printf("\t ... output from block: %s, %s\n",
-			     outBlockPresences[block].format().c_str(),
-			     outBlockEffects[block].format().c_str());
+        stackanalysis_printf("\t ... output from block: %s\n",
+			     sp_outBlockEffects[block].format().c_str());
 
         // Step 4: push all children on the worklist.
 
@@ -282,56 +276,14 @@ void StackAnalysis::fixpoint() {
     }
 }
 
-void StackAnalysis::createPresenceIntervals() {
+void StackAnalysis::sp_createIntervals() {
     // We now have a summary of the state of the stack at
     // the entry to each block. We need to push that information
     // into the block. Assume that frame affecting instructions
     // are rare, where i_m, i_n affect the stack (m < n). Then
     // each interval runs from [i_m, i_n) or [i_m, i_{n-1}]. 
 
-    presenceIntervals_ = new PresenceTree();
-
-    for (Block::blockSet::iterator iter = blocks.begin(); iter != blocks.end(); iter++) {
-        Block *block = *iter;
-
-        stackanalysis_printf("\t Interval creation (P): visiting block at 0x%lx\n", block->firstInsnOffset());
-        
-        Offset curLB = block->firstInsnOffset();
-        Offset curUB = 0;
-        Presence curPres = inBlockPresences[block];
-
-        // We only cache points where the frame presence changes. 
-        // Therefore, we can simply iterate through them. 
-        for (InsnPresence::iterator iter = blockToInsnPresences[block].begin();
-             iter != blockToInsnPresences[block].end(); iter++) {
-
-            // We've changed the state of the stack pointer. End this interval
-            // and start a new one. 
-            
-            curUB = iter->first;
-            presenceIntervals_->insert(curLB, curUB, curPres);
-
-            curLB = curUB;
-            curPres = iter->second;
-        }
-
-        if (curLB != block->endOffset()) {
-            // Cap off the extent for the current block
-            curUB = block->endOffset();
-            assert(curPres == outBlockPresences[block]);
-            presenceIntervals_->insert(curLB, curUB, curPres);
-        }
-    }
-}
-
-void StackAnalysis::createHeightIntervals() {
-    // We now have a summary of the state of the stack at
-    // the entry to each block. We need to push that information
-    // into the block. Assume that frame affecting instructions
-    // are rare, where i_m, i_n affect the stack (m < n). Then
-    // each interval runs from [i_m, i_n) or [i_m, i_{n-1}]. 
-
-    heightIntervals_ = new HeightTree();
+    sp_intervals_ = new HeightTree();
 
     for (Block::blockSet::iterator iter = blocks.begin(); iter != blocks.end(); iter++) {
         Block *block = *iter;
@@ -340,15 +292,15 @@ void StackAnalysis::createHeightIntervals() {
         
         Offset curLB = block->firstInsnOffset();
         Offset curUB = 0;
-        BlockTransferFunc curHeight = inBlockEffects[block];
+        BlockTransferFunc curHeight = sp_inBlockEffects[block];
 
         stackanalysis_printf("\t\t Block starting state: 0x%lx, %s\n", 
 			     curLB, curHeight.format().c_str());
 
         // We only cache points where the frame height changes. 
         // Therefore, we can simply iterate through them. 
-        for (InsnFuncs::iterator iter = blockToInsnFuncs[block].begin();
-             iter != blockToInsnFuncs[block].end(); iter++) {
+        for (InsnFuncs::iterator iter = sp_blockToInsnFuncs[block].begin();
+             iter != sp_blockToInsnFuncs[block].end(); iter++) {
 
             // We've changed the state of the stack pointer. End this interval
             // and start a new one. 
@@ -356,7 +308,7 @@ void StackAnalysis::createHeightIntervals() {
             curUB = iter->first;
             
 
-            heightIntervals_->insert(curLB, curUB, 
+            sp_intervals_->insert(curLB, curUB, 
                                      Height(curHeight.delta(),
                                             getRegion(curHeight.ranges())));
 
@@ -371,27 +323,165 @@ void StackAnalysis::createHeightIntervals() {
         if (curLB != block->endOffset()) {
             // Cap off the extent for the current block
             curUB = block->endOffset();
-            if (curHeight != outBlockEffects[block]) {
+            if (curHeight != sp_outBlockEffects[block]) {
                 fprintf(stderr, "ERROR: accumulated state not equal to fixpoint state!\n");
                 fprintf(stderr, "\t %s\n", curHeight.format().c_str());
-                fprintf(stderr, "\t %s\n", outBlockEffects[block].format().c_str());
+                fprintf(stderr, "\t %s\n", sp_outBlockEffects[block].format().c_str());
             }
                         
-            assert(curHeight == outBlockEffects[block]);
+            assert(curHeight == sp_outBlockEffects[block]);
 
-            heightIntervals_->insert(curLB, curUB, 
+            sp_intervals_->insert(curLB, curUB, 
                                      Height(curHeight.delta(),
                                             getRegion(curHeight.ranges())));
         }
     }
 }
 
+// Now determine where the FP is set and what value
+// it is set to. This should take a single pass through
+// to perform. 
+
+void StackAnalysis::fp_fixpoint() {
+
+  std::queue<Block *> worklist;
+
+  worklist.push(func->entryBlock());
+
+  while (!worklist.empty()) {
+    Block *block = worklist.front();
+    stackanalysis_printf("\t Fixpoint analysis: visiting block at 0x%lx\n", block->firstInsnOffset());
+      
+    worklist.pop();
+      
+    // Step 1: calculate the meet over the heights of all incoming
+    // intraprocedural blocks.
+      
+    std::set<Height> inHeights;
+      
+    if (block->isEntryBlock(func)) {
+      // The in height is 0
+      // The set height is... 0
+      // And there is no input region.
+      inHeights.insert(Height::bottom);
+      stackanalysis_printf("\t Primed initial block\n");
+    }
+    else {
+      std::vector<Edge *> inEdges; block->getSources(inEdges);
+      for (unsigned i = 0; i < inEdges.size(); i++) {
+	Edge *edge = inEdges[i];
+	if (edge->getType() == ET_CALL) continue;
+	inHeights.insert(fp_outBlockHeights[edge->getSource()]);
+	stackanalysis_printf("\t\t Inserting 0x%lx: %s\n", 
+			     edge->getSource()->firstInsnOffset(),
+			     fp_outBlockHeights[edge->getSource()].format().c_str());
+      }
+    }
+    
+    Height newInHeight = meet(inHeights);
+    
+    stackanalysis_printf("\t New in meet:  %s\n",
+			 newInHeight.format().c_str());
+    
+    // Step 2: see if the input has changed
+      
+    if (newInHeight == fp_inBlockHeights[block]) {
+      // No new work here
+      stackanalysis_printf("\t ... equal to current, skipping block\n");
+      continue;
+    }
+      
+    stackanalysis_printf("\t ... inequal to current %s, analyzing block\n",
+			 fp_inBlockHeights[block].format().c_str());
+      
+    fp_inBlockHeights[block] = newInHeight;
+      
+    // Step 3: calculate our new outs
+      
+    if (!fp_copyPoints[block].empty()) {
+      // We set the FP to the last thing in the block
+      Height sp = findSP(fp_copyPoints[block].back());
+      fp_outBlockHeights[block] = sp;
+    }
+    else {
+      // Copy through
+      fp_outBlockHeights[block] = newInHeight;
+    }
+
+    stackanalysis_printf("\t ... output from block: %s\n",
+			 fp_outBlockHeights[block].format().c_str());
+      
+    // Step 4: push all children on the worklist.
+      
+    std::vector<Edge *> outEdges; block->getTargets(outEdges);
+      
+    for (unsigned i = 0; i < outEdges.size(); i++) {
+      if (outEdges[i]->getType() == ET_CALL) continue;
+      worklist.push(outEdges[i]->getTarget());
+    }
+  }
+}
+
+void StackAnalysis::fp_createIntervals() {
+  // We now have a summary of the state of the stack at
+  // the entry to each block. We need to push that information
+  // into the block. Assume that frame affecting instructions
+  // are rare, where i_m, i_n affect the stack (m < n). Then
+  // each interval runs from [i_m, i_n) or [i_m, i_{n-1}]. 
+
+  fp_intervals_ = new HeightTree();
+
+  for (Block::blockSet::iterator iter = blocks.begin(); iter != blocks.end(); iter++) {
+    Block *block = *iter;
+
+    stackanalysis_printf("\t Interval creation (H): visiting block at 0x%lx\n", 
+			 block->firstInsnOffset());
+    
+    Offset curLB = block->firstInsnOffset();
+    Offset curUB = 0;
+    Height curHeight = fp_inBlockHeights[block];
+    
+    stackanalysis_printf("\t\t Block starting state: 0x%lx, %s\n", 
+			 curLB, curHeight.format().c_str());
+    
+    // We only cache points where the frame height changes. 
+    // Therefore, we can simply iterate through them. 
+    for (FPCopyPoints::iterator iter2 = fp_copyPoints[block].begin();
+	 iter2 != fp_copyPoints[block].end(); ++iter2) {
+
+      // We've changed the state of the stack pointer. End this interval
+      // and start a new one. 
+            
+      curUB = *iter2;
+
+      curHeight = findSP(curUB);
+
+      fp_intervals_->insert(curLB, curUB, 
+			    curHeight);
+
+      curLB = curUB;
+    }
+    
+    if (curLB != block->endOffset()) {
+      // Cap off the extent for the current block
+      curUB = block->endOffset();
+      if (curHeight != fp_outBlockHeights[block]) {
+	fprintf(stderr, "ERROR: accumulated state not equal to fixpoint state!\n");
+	fprintf(stderr, "\t %s\n", curHeight.format().c_str());
+	fprintf(stderr, "\t %s\n", fp_outBlockHeights[block].format().c_str());
+      }
+
+      fp_intervals_->insert(curLB, curUB, 
+			    curHeight);
+    }
+  }
+}
 
 void StackAnalysis::computeInsnEffects(const Block *block,
                                        const Instruction::Ptr &insn,
                                        Offset off,
                                        InsnTransferFunc &iFunc,
-                                       Presence &pres)
+				       bool &fpCopied)
 {
     stackanalysis_printf("\t\tInsn at 0x%lx\n", off); 
     static Expression::Ptr theStackPtr(new RegisterAST(r_eSP));
@@ -407,15 +497,11 @@ void StackAnalysis::computeInsnEffects(const Block *block,
 
     if (insn->isWritten(theFramePtr) || insn->isWritten(framePtr32) || insn->isWritten(framePtr64)) {
       stackanalysis_printf("\t\t\t FP written\n");
-        if (what == e_mov &&
-            (insn->isRead(theStackPtr) || insn->isRead(stackPtr32) || insn->isRead(stackPtr64))) {
-	  pres = Presence(Presence::frame_t);
-	  stackanalysis_printf("\t\t\t Frame created\n");
-        }
-        else {
-            pres = Presence(Presence::noFrame_t);
-            stackanalysis_printf("\t\t\t Frame destroyed\n");
-        }
+      if (what == e_mov &&
+	  (insn->isRead(theStackPtr) || insn->isRead(stackPtr32) || insn->isRead(stackPtr64))) {
+	fpCopied = true;
+	stackanalysis_printf("\t\t\t Frame created\n");
+      }
     }
 
     if (what == e_call) {
@@ -545,54 +631,19 @@ StackAnalysis::Height StackAnalysis::getStackCleanAmount(image_func *func) {
 }
 
 StackAnalysis::StackAnalysis() :
-    func(NULL), heightIntervals_(NULL), presenceIntervals_(NULL), 
+    func(NULL), sp_intervals_(NULL), fp_intervals_(NULL), 
     rt(Region::Ptr(new Region())) {};
     
 
 StackAnalysis::StackAnalysis(Function *f) : func(f),
-                                            rt(Region::Ptr(new Region())) 
-{
-    blocks = func->blocks();
-    heightIntervals_ = NULL;
-    presenceIntervals_ = NULL;
-}
-
-const StackAnalysis::HeightTree *StackAnalysis::heightIntervals() {
-    if (func == NULL) return NULL;
-
-    // Check the annotation
-    HeightTree *ret;
-    func->getAnnotation(ret, HeightAnno);
-    if (ret) return ret;
-    if (heightIntervals_ == NULL) {
-        if (!analyze()) return NULL;
-        ret = heightIntervals_;
-    }
-
-    return ret;
-}
-
-
-const StackAnalysis::PresenceTree *StackAnalysis::presenceIntervals() {
-    if (func == NULL) return NULL;
-
-    // Check the annotation
-    PresenceTree *ret;
-    func->getAnnotation(ret, PresenceAnno);
-    if (ret) return ret;
-
-    if (presenceIntervals_ == NULL) {
-        if (!analyze()) return NULL;
-        ret = presenceIntervals_;
-    }
-
-    return ret;
-}
-
-void StackAnalysis::debugHeights() {
-    if (!heightIntervals_) return;
+					    sp_intervals_(NULL),
+					    fp_intervals_(NULL),
+                                            rt(Region::Ptr(new Region())) {}
+void StackAnalysis::debug() {
+#if 0
+    if (!sp_intervals_) return;
     std::vector<std::pair<std::pair<Offset, Offset>, Height> > elements;
-    heightIntervals_->elements(elements);
+    sp_intervals_->elements(elements);
 
     for (unsigned i = 0; i < elements.size(); i++) {
         fprintf(stderr, "0x%lx - 0x%lx: %s\n",
@@ -600,22 +651,8 @@ void StackAnalysis::debugHeights() {
                 elements[i].first.second,
                 elements[i].second.format().c_str());
     }
+#endif
 }
-
-void StackAnalysis::debugPresences() {
-    if (!presenceIntervals_) return;
-
-    std::vector<std::pair<std::pair<Offset, Offset>, Presence> > elements;
-    presenceIntervals_->elements(elements);
-
-    for (unsigned i = 0; i < elements.size(); i++) {
-        fprintf(stderr, "0x%lx - 0x%lx: %s\n",
-                elements[i].first.first,
-                elements[i].first.second,
-                elements[i].second.format().c_str());
-    }
-}
-
 
 std::string StackAnalysis::InsnTransferFunc::format() const {
     char buf[256];
@@ -746,16 +783,6 @@ void StackAnalysis::BlockTransferFunc::apply(BlockTransferFunc &out) const {
     }
 }
 
-void StackAnalysis::Presence::apply(const Presence &in, Presence &out) const {
-    out = in;
-    apply(out);
-}
-
-void StackAnalysis::Presence::apply(Presence &out) const {
-    if (presence_ == top_t) return;
-    out.presence_ = presence_;
-}
-
 std::string StackAnalysis::Range::format() const {
     std::stringstream retVal;
 
@@ -823,4 +850,41 @@ std::string StackAnalysis::Region::format() const {
 
     return retVal.str();
 }
- 
+
+StackAnalysis::Height StackAnalysis::findSP(Address addr) {
+  Height ret; // Defaults to "top"
+
+  if (func == NULL) return ret;
+
+  if (!sp_intervals_) {
+    // Check annotation
+    func->getAnnotation(sp_intervals_, SP_Anno);
+  }
+  if (!sp_intervals_) {
+    // Analyze?
+    if (!analyze()) return Height();
+  }
+  assert(sp_intervals_);
+
+  sp_intervals_->find(addr, ret);
+  return ret;
+}
+
+StackAnalysis::Height StackAnalysis::findFP(Address addr) {
+  Height ret; // Defaults to "top"
+
+  if (func == NULL) return ret;
+
+  if (!fp_intervals_) {
+    // Check annotation
+    func->getAnnotation(fp_intervals_, FP_Anno);
+  }
+  if (!fp_intervals_) {
+    // Analyze?
+    if (!analyze()) return ret;
+  }
+  assert(fp_intervals_);
+
+  fp_intervals_->find(addr, ret);
+  return ret;
+}
