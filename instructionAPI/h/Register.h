@@ -85,7 +85,7 @@ namespace Dyninst
       bool operator<(const RegisterAST& rhs) const;
 
       /// The \c getID function returns the ID number of a register.
-      unsigned int getID() const;
+      MachRegister getID() const;
       unsigned int lowBit() const {
           return m_Low; }
     unsigned int highBit() const {

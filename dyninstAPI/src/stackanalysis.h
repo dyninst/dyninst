@@ -483,6 +483,11 @@ class StackAnalysis {
     // We map sets of Ranges to Regions using a prefix tree.
     // Each node in the tree represents a particular Range.
     
+    typedef enum { 
+      fp_noChange,
+      fp_created,
+      fp_destroyed } fp_State;
+    
     class RangeTree {
     public:
         struct Node {
@@ -541,8 +546,9 @@ class StackAnalysis {
     
     typedef std::map<Block *, BlockTransferFunc> BlockEffects;
 
-    typedef std::vector<Offset> FPCopyPoints;
-    typedef std::map<Block *, FPCopyPoints> BlockToFPCopyPoints;
+    typedef std::pair<fp_State, Offset> FPChange;
+    typedef std::vector<FPChange> FPChangePoints;
+    typedef std::map<Block *, FPChangePoints> BlockToFPChangePoints;
     typedef std::map<Block *, Height> BlockHeights;
 
     StackAnalysis();
@@ -569,7 +575,7 @@ class StackAnalysis {
                             const InstructionAPI::Instruction::Ptr &insn,
                             const Offset off,
                             InsnTransferFunc &spFunc,
-                            bool &fpCopied);
+                            fp_State &fpCopied);
 
     Height getStackCleanAmount(Function *func);
 
@@ -588,7 +594,7 @@ class StackAnalysis {
     // integrating the two; instead, we mark where
     // the FP makes a copy of the SP and fill in the 
     // values later
-    BlockToFPCopyPoints fp_copyPoints;
+    BlockToFPChangePoints fp_changePoints;
     BlockHeights fp_inBlockHeights;
     BlockHeights fp_outBlockHeights;
 
