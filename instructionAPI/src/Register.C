@@ -74,9 +74,9 @@ namespace Dyninst
     {
         return findMe->checkRegID(m_Reg, m_Low, m_High);
     }
-    unsigned int RegisterAST::getID() const
+    MachRegister RegisterAST::getID() const
     {
-      return m_Reg.val();
+      return m_Reg;
     }
     
     std::string RegisterAST::format(formatStyle) const

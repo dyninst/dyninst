@@ -172,7 +172,7 @@ void StackAnalysis::summarizeBlocks() {
             }
             
             InsnTransferFunc iFunc;
-	    bool fpCopied = false;
+	    fp_State fpCopied = fp_noChange;
 
             computeInsnEffects(block, insn, off, 
                                iFunc, fpCopied);
@@ -181,8 +181,8 @@ void StackAnalysis::summarizeBlocks() {
                 iFunc.apply(bFunc);
                 sp_blockToInsnFuncs[block][next] = iFunc;
             }
-	    if (fpCopied) {
-	      fp_copyPoints[block].push_back(off);
+	    if (fpCopied != fp_noChange) {
+	      fp_changePoints[block].push_back(std::make_pair<fp_State, Offset>(fpCopied, off));
 	    }
 
             stackanalysis_printf("\t\t\t At 0x%lx:  %s\n",
@@ -398,10 +398,21 @@ void StackAnalysis::fp_fixpoint() {
       
     // Step 3: calculate our new outs
       
-    if (!fp_copyPoints[block].empty()) {
-      // We set the FP to the last thing in the block
-      Height sp = findSP(fp_copyPoints[block].back());
-      fp_outBlockHeights[block] = sp;
+    if (!fp_changePoints[block].empty()) {
+      switch (fp_changePoints[block].back().first) {
+      case fp_noChange:
+	fp_outBlockHeights[block] = newInHeight;
+	break;
+      case fp_created: {
+	// We set the FP to the last thing in the block
+	Height sp = findSP(fp_changePoints[block].back().second);
+	fp_outBlockHeights[block] = sp;
+	break;
+      }
+      case fp_destroyed:
+	fp_outBlockHeights[block] = Height::bottom;
+	break;
+      }
     }
     else {
       // Copy through
@@ -446,19 +457,28 @@ void StackAnalysis::fp_createIntervals() {
     
     // We only cache points where the frame height changes. 
     // Therefore, we can simply iterate through them. 
-    for (FPCopyPoints::iterator iter2 = fp_copyPoints[block].begin();
-	 iter2 != fp_copyPoints[block].end(); ++iter2) {
+    for (FPChangePoints::iterator iter2 = fp_changePoints[block].begin();
+	 iter2 != fp_changePoints[block].end(); ++iter2) {
 
       // We've changed the state of the stack pointer. End this interval
       // and start a new one. 
-            
-      curUB = *iter2;
+           
+      curUB = iter2->second;
 
-      curHeight = findSP(curUB);
-
+      switch(iter2->first) {
+      case fp_noChange:
+	// ????
+	continue;
+      case fp_created: 
+	curHeight = findSP(curUB);
+	break;
+      case fp_destroyed:
+	curHeight = Height::bottom;
+	break;
+      }
       fp_intervals_->insert(curLB, curUB, 
 			    curHeight);
-
+      
       curLB = curUB;
     }
     
@@ -481,7 +501,7 @@ void StackAnalysis::computeInsnEffects(const Block *block,
                                        const Instruction::Ptr &insn,
                                        Offset off,
                                        InsnTransferFunc &iFunc,
-				       bool &fpCopied)
+				       fp_State &fpState) 
 {
     stackanalysis_printf("\t\tInsn at 0x%lx\n", off);
     static Expression::Ptr theStackPtr(new RegisterAST(MachRegister::getStackPointer(Arch_x86)));
@@ -497,12 +517,11 @@ void StackAnalysis::computeInsnEffects(const Block *block,
       stackanalysis_printf("\t\t\t FP written\n");
       if (what == e_mov &&
 	  (insn->isRead(theStackPtr) || insn->isRead(stackPtr64))) {
-	pres = Presence(Presence::frame_t);
+	fpState = fp_created;
 	stackanalysis_printf("\t\t\t Frame created\n");
       }
       else {
-	pres = Presence(Presence::noFrame_t);
-	stackanalysis_printf("\t\t\t Frame destroyed\n");
+	fpState = fp_destroyed;
       }
     }
 

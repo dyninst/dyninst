@@ -248,6 +248,8 @@ namespace Dyninst
       /// used to decode this instruction.
       INSTRUCTION_EXPORT bool isLegalInsn() const;
 
+      INSTRUCTION_EXPORT Architecture getArch() const;
+
       /// ALPHA: Returns the category that an instruction falls into.  This feature is presently incomplete, and we welcome feedback
       /// on ways to extend it usefully.
       ///

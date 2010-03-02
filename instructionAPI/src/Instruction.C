@@ -482,6 +482,11 @@ memAccessors.begin()));
     {
       return (m_InsnOp->getID() != e_No_Entry);
     }
+
+    INSTRUCTION_EXPORT Architecture Instruction::getArch() const {
+      return arch_decoded_from;
+    }
+
     Expression::Ptr Instruction::makeReturnExpression() const
     {
         Expression::Ptr stackPtr = Expression::Ptr(new RegisterAST(MachRegister::getStackPointer(arch_decoded_from),
