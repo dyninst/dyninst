@@ -411,6 +411,7 @@ dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_int, "int")
   (e_int3, "int 3")
   (e_int1, "int1")
+  (e_int80, "int 80")
   (e_into, "into")
   (e_invd, "invd")
   (e_invlpg, "invlpg")
@@ -753,6 +754,7 @@ void ia32_instruction::initFlagTable(dyn_hash_map<entryID, flagInfo>& flagTable)
   flagTable[e_insw_d] = flagInfo(list_of(r_DF), vector<IA32Regs>());
   flagTable[e_int] = flagInfo(vector<IA32Regs>(), list_of(r_TF)(r_NT));
   flagTable[e_int3] = flagInfo(vector<IA32Regs>(), list_of(r_TF)(r_NT));
+  flagTable[e_int80] = flagInfo(vector<IA32Regs>(), list_of(r_TF)(r_NT));
   flagTable[e_into] = flagInfo(list_of(r_OF), list_of(r_TF)(r_NT));
   flagTable[e_ucomisd] = flagInfo(vector<IA32Regs>(), standardFlags);
   flagTable[e_ucomiss] = flagInfo(vector<IA32Regs>(), standardFlags);
@@ -1093,7 +1095,7 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   /* D0 */
   { e_No_Entry, t_grp, Grp2, true, { Eb, Zz, Zz }, 0, s1RW }, // const1
   { e_No_Entry, t_grp, Grp2, true, { Ev, Zz, Zz }, 0, s1RW }, // --"--
-  { e_No_Entry, t_grp, Grp2, true, { Eb, CL, Zz }, 0, s1RW2R },
+  { e_int80,    t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
   { e_No_Entry, t_grp, Grp2, true, { Ev, CL, Zz }, 0, s1RW2R },
   { e_aam,  t_done, 0, false, { AX, Ib, Zz }, 0, s1RW2R },
   { e_aad,  t_done, 0, false, { AX, Ib, Zz }, 0, s1RW2R },
@@ -1156,7 +1158,7 @@ static ia32_entry twoByteMap[256] = {
   { e_No_Entry, t_grp, Grp7, false, { Zz, Zz, Zz }, 0, 0 },
   { e_lar,        t_done, 0, true, { Gv, Ew, Zz }, 0, s1W2R | (fSEGDESC << FPOS) },
   { e_lsl,        t_done, 0, true, { Gv, Ew, Zz }, 0, s1W2R | (fSEGDESC << FPOS) },
-  { e_No_Entry,            t_ill,  0, false, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry,    t_ill, 0, false, { Zz, Zz, Zz }, 0, 0},
   { e_syscall,    t_done, 0, false, { eCX, Zz, Zz }, 0, s1W }, // AMD: writes return address to eCX; for liveness, treat as hammering all
   { e_clts,       t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
   { e_sysret,     t_done, 0, false, { eCX, Zz, Zz }, 0, s1R }, // AMD; reads return address from eCX; unlikely to occur in Dyninst use cases but we'll be paranoid
