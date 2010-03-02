@@ -235,11 +235,12 @@ bool IA_IAPI::isInterruptOrSyscall() const
 {
     return ((curInsn()->getOperation().getID() == e_int) ||
             (curInsn()->getOperation().getID() == e_int3) ||
-            (curInsn()->getOperation().getID() == e_syscall) ||
             (curInsn()->getOperation().getID() == power_op_sc));
+            (curInsn()->getOperation().getID() == e_int80) ||
+            ((curInsn()->getOperation().getID() == e_call) && 
+             curInsn()->getOperand(0).format() == "[0x10]") ||
+            (curInsn()->getOperation().getID() == e_syscall));
 }
-
-
 
 void IA_IAPI::getNewEdges(
         std::vector<std::pair< Address, EdgeTypeEnum> >& outEdges,

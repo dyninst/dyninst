@@ -849,6 +849,27 @@ bool image_func::buildCFG(
 
         while(true) // instructions in block
         {
+            
+            // we want to note the trap number to aid in library fingerprinting
+            if( ah.isInterruptOrSyscall() )
+            {
+               
+                InstructionAdapter_t ah_previous = ah.previous; 
+                cout << ah_previous.getInstruction()->getOperation().format() << endl;
+
+                std::vector<Dyninst::InstructionAPI::Operand> operands;
+                std::vector<Dyninst::InstructionAPI::Operand>::iterator op_iter;
+                ah.getInstruction()->getOperands(operands);
+                cout << "Found interrupt: " << ah.getInstruction()->getOperation().format();
+                for( op_iter = operands.begin();
+                        op_iter != operands.end();
+                        ++op_iter) {
+                    cout << " " << (*op_iter).format(); 
+                }
+                cout << "( " << ah.getAddr() << ")" << endl;
+            }
+
+
             currAddr = ah.getAddr();
             insnSize = ah.getSize();
 
@@ -1294,7 +1315,6 @@ bool image_func::buildCFG(
                               leadersToBlock,
                               ET_FALLTHROUGH,
                               worklist);
-
                 break;
             }
 #if defined(arch_ia64)
