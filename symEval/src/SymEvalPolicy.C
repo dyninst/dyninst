@@ -22,7 +22,7 @@ SymEvalPolicy::SymEvalPolicy(SymEval::Result &r) :
     else {
       // Use sufficiently-unique (Heap,0) Absloc
       // to represent a definition to a memory absloc
-      aaMap[Absloc(Absloc::Heap, 0)] = a;
+      aaMap[Absloc(0)] = a;
     }
   }
 }
@@ -36,111 +36,100 @@ void SymEvalPolicy::finishInstruction(SgAsmx86Instruction *) {
 
 Absloc SymEvalPolicy::convert(X86GeneralPurposeRegister r)
 {
-  int id;
+  MachRegister mreg;
   switch (r) {
     case x86_gpr_ax:
-      id = r_EAX;
+      mreg = x86::eax;
       break;
     case x86_gpr_cx:
-      id = r_ECX;
+      mreg = x86::ecx;
       break;
     case x86_gpr_dx:
-      id = r_EDX;
+      mreg = x86::edx;
       break;
     case x86_gpr_bx:
-      id = r_EBX;
+      mreg = x86::ebx;
       break;
     case x86_gpr_sp:
-      id = r_ESP;
+      mreg = x86::esp;
       break;
     case x86_gpr_bp:
-      id = r_EBP;
+      mreg = x86::ebp;
       break;
     case x86_gpr_si:
-      id = r_ESI;
+      mreg = x86::esi;
       break;
     case x86_gpr_di:
-      id = r_EDI;
+      mreg = x86::edi;
       break;
     default:
-      id = 0; // error
+      break;
   }
 
-  return Absloc(Absloc::Register, id);;
+  return Absloc(mreg);;
 }
 
 Absloc SymEvalPolicy::convert(X86SegmentRegister r)
 {
-  int id;
+  MachRegister mreg;
   switch (r) {
     case x86_segreg_es:
-      id = r_ES;
+      mreg = x86::es;
       break;
     case x86_segreg_cs:
-      id = r_CS;
+      mreg = x86::cs;
       break;
     case x86_segreg_ss:
-      id = r_SS;
+      mreg = x86::ss;
       break;
     case x86_segreg_ds:
-      id = r_DS;
+      mreg = x86::ds;
       break;
     case x86_segreg_fs:
-      id = r_FS;
+      mreg = x86::fs;
       break;
     case x86_segreg_gs:
-      id = r_GS;
+      mreg = x86::gs;
       break;
     default:
-      id = 0; //error
+      break;
   }
 
-  return Absloc(Absloc::Register, id);
+  return Absloc(mreg);
 }
 
 Absloc SymEvalPolicy::convert(X86Flag f)
 {
-  int id;
+  return Absloc(x86::flags);
+  
   switch (f) {
     case x86_flag_cf:
-      id = r_CF;
       break;
     case x86_flag_pf:
-      id = r_PF;
       break;
     case x86_flag_af:
-      id = r_AF;
       break;
     case x86_flag_zf:
-      id = r_ZF;
       break;
     case x86_flag_sf:
-      id = r_SF;
       break;
     case x86_flag_tf:
-      id = r_TF;
       break;
     case x86_flag_if:
-      id = r_IF;
       break;
     case x86_flag_df:
-      id = r_DF;
       break;
     case x86_flag_of:
-      id = r_OF;
       break;
     case x86_flag_nt:
-      id = r_NT;
       break;
     case x86_flag_rf:
-      id = r_RF;
       break;
     default:
       std::cerr << "Failed to find flag " << f << std::endl;
       assert(0);
-      id = 0; // error
   }
 
-  return Absloc(Absloc::Register, id);
+  
 }
 
