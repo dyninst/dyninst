@@ -77,6 +77,8 @@ namespace Dyninst
       bool isPC() const;
       bool isFramePointer() const;
       bool isStackPointer() const;
+
+      void getROSERegister(int &c, int &n, int &p);
    };
 
    /**
