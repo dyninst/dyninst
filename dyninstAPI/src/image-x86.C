@@ -181,19 +181,19 @@ bool image_func::writesFPRs(unsigned level) {
             // if the function cannot be parsed, it is only safe to assume that the FPRs are written
             return true; 
         }
-        InstructionDecoder d(buf,
+        dyn_detail::boost::shared_ptr<InstructionDecoder> d = makeDecoder(Dyninst::Arch_x86, buf,
                              endOffset_ - getOffset());
-        d.setMode(img()->getAddressWidth() == 8);
+        d->setMode(img()->getAddressWidth() == 8);
         Instruction::Ptr i;
-        static RegisterAST::Ptr st0(new RegisterAST(r_ST0));
-        static RegisterAST::Ptr st1(new RegisterAST(r_ST1));
-        static RegisterAST::Ptr st2(new RegisterAST(r_ST2));
-        static RegisterAST::Ptr st3(new RegisterAST(r_ST3));
-        static RegisterAST::Ptr st4(new RegisterAST(r_ST4));
-        static RegisterAST::Ptr st5(new RegisterAST(r_ST5));
-        static RegisterAST::Ptr st6(new RegisterAST(r_ST6));
-        static RegisterAST::Ptr st7(new RegisterAST(r_ST7));
-        while (i = d.decode()) {
+        static RegisterAST::Ptr st0(new RegisterAST(x86::st0));
+        static RegisterAST::Ptr st1(new RegisterAST(x86::st1));
+        static RegisterAST::Ptr st2(new RegisterAST(x86::st2));
+        static RegisterAST::Ptr st3(new RegisterAST(x86::st3));
+        static RegisterAST::Ptr st4(new RegisterAST(x86::st4));
+        static RegisterAST::Ptr st5(new RegisterAST(x86::st5));
+        static RegisterAST::Ptr st6(new RegisterAST(x86::st6));
+        static RegisterAST::Ptr st7(new RegisterAST(x86::st7));
+        while (i = d->decode()) {
             if(i->isWritten(st0) ||
                i->isWritten(st1) ||
                i->isWritten(st2) ||

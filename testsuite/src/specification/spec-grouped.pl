@@ -2297,6 +2297,32 @@ test_start_state('test_instruction_profile', 'stopped').
 tests_module('test_instruction_profile', 'instruction').
 mutator_requires_libs('test_instruction_profile', ['symtabAPI', 'dyninstAPI']).
 
+test('power_decode', 'power_decode', none).
+test_description('power_decode', 'Tests the read & write sets of POWER instructions.').
+test_platform('power_decode', Platform) :-
+        platform(Platform),
+        platform('i386', _, _, Platform);
+        platform('power', _, _, Platform);
+        platform('powerpc', _, _, Platform);
+        platform('x86_64', _, _, Platform).
+mutator('power_decode', ['power_decode.C']).
+test_runmode('power_decode', 'createProcess').
+test_start_state('power_decode', 'stopped').
+tests_module('power_decode', 'instruction').
+
+test('power_cft', 'power_cft', none).
+test_description('power_cft', 'Tests the control flow targets of POWER instructions.').
+test_platform('power_cft', Platform) :-
+        platform(Platform),
+        platform('i386', _, _, Platform);
+        platform('power', _, _, Platform);
+        platform('powerpc', _, _, Platform);
+        platform('x86_64', _, _, Platform).
+mutator('power_cft', ['power_cft.C']).
+test_runmode('power_cft', 'createProcess').
+test_start_state('power_cft', 'stopped').
+tests_module('power_cft', 'instruction').
+
 
 % test_start_state/2
 % test_start_state(?Test, ?State) specifies that Test should be run with its

@@ -126,6 +126,7 @@ namespace Dyninst
       friend class Operation;
     protected:      
       Expression(Result_Type t);
+      Expression(MachRegister r);
     public:
       virtual ~Expression();
 
@@ -159,7 +160,6 @@ namespace Dyninst
 
     protected:
       virtual bool isFlag() const;
-    private:
       Result userSetValue;
       
     };
@@ -169,11 +169,11 @@ namespace Dyninst
             virtual void getChildren(vector<InstructionAST::Ptr>& ) const {};
             virtual void getUses(set<InstructionAST::Ptr>& ) {};
             virtual bool isUsed(InstructionAST::Ptr ) const { return true;};
-            virtual std::string format() const { return "[WILDCARD]";};
+            virtual std::string format(formatStyle) const { return "[WILDCARD]";};
             DummyExpr() : Expression(u8) {}
         protected:
+            virtual bool checkRegID(MachRegister, unsigned int = 0, unsigned int = 0) const;
             virtual bool isStrictEqual(const InstructionAST& rhs) const;
-            virtual bool checkRegID(unsigned int id) const;
     };
 
   };

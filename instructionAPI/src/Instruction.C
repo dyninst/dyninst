@@ -40,83 +40,27 @@
 #include <boost/iterator/indirect_iterator.hpp>
 #include <iostream>
 #include "arch-x86.h"
+#include <sstream>
+#include <iomanip>
+#include <set>
+#include <functional>
+
 using namespace std;
 
-#include <boost/pool/pool.hpp>
+#include "../../common/h/singleton_object_pool.h"
 
 namespace Dyninst
 {
   namespace InstructionAPI
   {
 
-    bool readsOperand(unsigned int opsema, unsigned int i)
+    INSTRUCTION_EXPORT Instruction::Instruction(Operation::Ptr what,
+			     size_t size, const unsigned char* raw,
+                             dyn_detail::boost::shared_ptr<InstructionDecoder> dec)
+      : m_InsnOp(what), m_Valid(true), m_dec(dec)
     {
-      switch(opsema) {
-      case s1R2R:
-	return (i == 0 || i == 1);
-      case s1R:
-      case s1RW:
-	return i == 0;
-      case s1W:
-	return false;
-      case s1W2RW:
-      case s1W2R:   // second operand read, first operand written (e.g. mov)
-	return i == 1;
-      case s1RW2R:  // two operands read, first written (e.g. add)
-      case s1RW2RW: // e.g. xchg
-      case s1R2RW:
-	return i == 0 || i == 1;
-      case s1W2R3R: // e.g. imul
-      case s1W2RW3R: // some mul
-      case s1W2R3RW: // (stack) push & pop
-	return i == 1 || i == 2;
-      case s1W2W3R: // e.g. les
-	return i == 2;
-      case s1RW2R3R: // shld/shrd
-      case s1RW2RW3R: // [i]div, cmpxch8b
-	return i == 0 || i == 1 || i == 2;
-	break;
-      case sNONE:
-      default:
-	return false;
-      }
-      
-    }
-      
-    bool writesOperand(unsigned int opsema, unsigned int i)
-    {
-      switch(opsema) {
-      case s1R2R:
-      case s1R:
-	return false;
-      case s1RW:
-      case s1W:
-      case s1W2R:   // second operand read, first operand written (e.g. mov)
-      case s1RW2R:  // two operands read, first written (e.g. add)
-      case s1W2R3R: // e.g. imul
-      case s1RW2R3R: // shld/shrd
-	return i == 0;
-      case s1R2RW:
-	return i == 1;
-      case s1W2RW:
-      case s1RW2RW: // e.g. xchg
-      case s1W2RW3R: // some mul
-      case s1W2W3R: // e.g. les
-      case s1RW2RW3R: // [i]div, cmpxch8b
-	return i == 0 || i == 1;
-      case s1W2R3RW: // (stack) push & pop
-	return i == 0 || i == 2;
-      case sNONE:
-      default:
-	return false;
-      }
-    }    
-
-    INSTRUCTION_EXPORT Instruction::Instruction(Operation::Ptr what, 
-			     size_t size, const unsigned char* raw)
-      : m_InsnOp(what), m_Valid(true)
-    {
-      copyRaw(size, raw);
+        m_Operands.reserve(5);
+        copyRaw(size, raw);
       
     }
 
@@ -146,46 +90,13 @@ namespace Dyninst
     
     void Instruction::decodeOperands() const
     {
-      static InstructionDecoder d;
-      const unsigned char* buffer = reinterpret_cast<const unsigned char*>(&(m_RawInsn.small_insn));
-      if(m_size > sizeof(unsigned int)) {
-	buffer = m_RawInsn.large_insn;
-      }
-      std::vector<Expression::Ptr> opSrc;
-      d.resetBuffer(buffer, size());
-      d.doIA32Decode();
-      d.decodeOperands(opSrc);
-      m_Operands.reserve(opSrc.size());
-      unsigned int opsema = d.decodedInstruction->getEntry()->opsema & 0xFF;
-      
-      for(unsigned int i = 0;
-	  i < opSrc.size();
-	  ++i)
-      {
-	m_Operands.push_back(Operand(opSrc[i], readsOperand(opsema, i), writesOperand(opsema, i)));
-      }
+        m_dec->doDelayedDecode(this);
     }
     
-    INSTRUCTION_EXPORT Instruction::Instruction(Operation::Ptr what, 
-			     const std::vector<Expression::Ptr>& operandSource,
-			     size_t size, const unsigned char* raw, unsigned int opsema)
-      : m_InsnOp(what), m_Valid(true)
-    {
-      std::vector<Expression::Ptr>::const_iterator curVC;
-      m_Operands.reserve(operandSource.size());
-      
-      for(unsigned int i = 0;
-	  i < operandSource.size();
-	  ++i)
-      {
-	m_Operands.push_back(Operand(operandSource[i], readsOperand(opsema, i), writesOperand(opsema, i)));
-      }
-      copyRaw(size, raw);
-      
-    }
     INSTRUCTION_EXPORT Instruction::Instruction() :
       m_Valid(false), m_size(0)
     {
+        m_Operands.reserve(5);
     }
     
     INSTRUCTION_EXPORT Instruction::~Instruction()
@@ -197,7 +108,8 @@ namespace Dyninst
       
     }
 
-    INSTRUCTION_EXPORT Instruction::Instruction(const Instruction& o)
+    INSTRUCTION_EXPORT Instruction::Instruction(const Instruction& o) :
+            m_dec(o.m_dec)
     {
       m_Operands.clear();
       //m_Operands.reserve(o.m_Operands.size());
@@ -246,6 +158,7 @@ namespace Dyninst
 
       m_InsnOp = rhs.m_InsnOp;
       m_Valid = rhs.m_Valid;
+      m_dec = rhs.m_dec;
       return *this;
     }    
     
@@ -279,7 +192,7 @@ namespace Dyninst
         if(index < 0 || index >= (int)(m_Operands.size()))
         {
 	  // Out of range = empty operand
-           return Operand(Expression::Ptr(), false, false);
+            return Operand(Expression::Ptr(), false, false);
         }
         return m_Operands[index];
      }
@@ -324,7 +237,7 @@ namespace Dyninst
 	  curOperand != m_Operands.end();
 	  ++curOperand)
       {
-	curOperand->getReadSet(regsRead);
+          curOperand->getReadSet(regsRead);
       }
       std::copy(m_InsnOp->implicitReads().begin(), m_InsnOp->implicitReads().end(), std::inserter(regsRead, regsRead.begin()));
       
@@ -340,9 +253,10 @@ namespace Dyninst
 	  curOperand != m_Operands.end();
 	  ++curOperand)
       {
-	curOperand->getWriteSet(regsWritten);
+          curOperand->getWriteSet(regsWritten);
       }
-      std::copy(m_InsnOp->implicitWrites().begin(), m_InsnOp->implicitWrites().end(), std::inserter(regsWritten, regsWritten.begin()));
+      std::copy(m_InsnOp->implicitWrites().begin(), m_InsnOp->implicitWrites().end(), std::inserter(regsWritten,
+regsWritten.begin()));
       
     }
     
@@ -352,11 +266,11 @@ namespace Dyninst
       {
 	decodeOperands();
       }
-      for(std::vector<Operand>::const_iterator curOperand = m_Operands.begin();
+      for(std::vector<Operand >::const_iterator curOperand = m_Operands.begin();
 	  curOperand != m_Operands.end();
 	  ++curOperand)
       {
-	if(curOperand->isRead(candidate))
+          if(curOperand->isRead(candidate))
 	{
 	  return true;
 	}
@@ -374,7 +288,7 @@ namespace Dyninst
 	  curOperand != m_Operands.end();
 	  ++curOperand)
       {
-	if(curOperand->isWritten(candidate))
+          if(curOperand->isWritten(candidate))
 	{
 	  return true;
 	}
@@ -396,7 +310,7 @@ namespace Dyninst
 	  curOperand != m_Operands.end();
 	  ++curOperand)
       {
-	if(curOperand->readsMemory())
+          if(curOperand->readsMemory())
 	{
 	  return true;
 	}
@@ -411,10 +325,10 @@ namespace Dyninst
 	decodeOperands();
       }
       for(std::vector<Operand>::const_iterator curOperand = m_Operands.begin();
-	  curOperand != m_Operands.end();
+          curOperand != m_Operands.end();
 	  ++curOperand)
       {
-	if(curOperand->writesMemory())
+          if(curOperand->writesMemory())
 	{
 	  return true;
 	}
@@ -432,9 +346,10 @@ namespace Dyninst
 	  curOperand != m_Operands.end();
 	  ++curOperand)
       {
-	curOperand->addEffectiveReadAddresses(memAccessors);
+          curOperand->addEffectiveReadAddresses(memAccessors);
       }  
-      std::copy(m_InsnOp->getImplicitMemReads().begin(), m_InsnOp->getImplicitMemReads().end(), std::inserter(memAccessors, memAccessors.begin()));
+      std::copy(m_InsnOp->getImplicitMemReads().begin(), m_InsnOp->getImplicitMemReads().end(), std::inserter(memAccessors,
+memAccessors.begin()));
     }
     
     INSTRUCTION_EXPORT void Instruction::getMemoryWriteOperands(std::set<Expression::Ptr>& memAccessors) const
@@ -444,12 +359,13 @@ namespace Dyninst
 	decodeOperands();
       }
       for(std::vector<Operand>::const_iterator curOperand = m_Operands.begin();
-	  curOperand != m_Operands.end();
+          curOperand != m_Operands.end();
 	  ++curOperand)
       {
-	curOperand->addEffectiveWriteAddresses(memAccessors);
+          curOperand->addEffectiveWriteAddresses(memAccessors);
       }  
-      std::copy(m_InsnOp->getImplicitMemWrites().begin(), m_InsnOp->getImplicitMemWrites().end(), std::inserter(memAccessors, memAccessors.begin()));
+      std::copy(m_InsnOp->getImplicitMemWrites().begin(), m_InsnOp->getImplicitMemWrites().end(), std::inserter(memAccessors,
+memAccessors.begin()));
     }
     
     INSTRUCTION_EXPORT Expression::Ptr Instruction::getControlFlowTarget() const
@@ -458,7 +374,6 @@ namespace Dyninst
         // an implicit write, and that we have decoded the control flow
         // target's full location as the first and only operand.
         // If this is not the case, we'll squawk for the time being...
-        static Expression::Ptr thePC(new RegisterAST(RegisterAST::makePC()));
         if(getCategory() == c_NoCategory)
         {
             return Expression::Ptr();
@@ -471,21 +386,11 @@ namespace Dyninst
         {
             decodeOperands();
         }
-    #if defined(DEBUG_LOG)      
-        if(!(m_Operands[0].isRead(thePC) || m_Operands.size() == 1))
+        if(m_Successors.empty())
         {
-            fprintf(stderr, "WARNING: control flow target for instruction %s may be incorrect\n", format().c_str());
+            return Expression::Ptr();
         }
-    #endif      
-        if(getCategory() == c_BranchInsn ||
-        getCategory() == c_CallInsn)
-        {
-#if defined(NO_OPT_FLAG)            
-            assert(m_InsnOp->isWritten(thePC));
-#endif //defined(NO_OPT_FLAG)
-            return m_Operands[0].getValue();
-        }
-        return Expression::Ptr();
+        return m_Successors.front().target;
     }
     
     INSTRUCTION_EXPORT std::string Instruction::format() const
@@ -494,6 +399,7 @@ namespace Dyninst
       {
 	decodeOperands();
       }
+
       std::string retVal = m_InsnOp->format();
       retVal += " ";
       std::vector<Operand>::const_iterator curOperand;
@@ -501,7 +407,7 @@ namespace Dyninst
 	  curOperand != m_Operands.end();
 	  ++curOperand)
       {
-	retVal += curOperand->format();
+          retVal += curOperand->format();
 	retVal += ", ";
       }
       if(!m_Operands.empty())
@@ -509,7 +415,48 @@ namespace Dyninst
 	// trim trailing ", "
 	retVal.erase(retVal.size() - 2, retVal.size());
       }
-      
+#if defined(DEBUG_READ_WRITE)      
+      std::set<RegisterAST::Ptr> tmp;
+      getReadSet(tmp);
+      cout << "Read set:" << endl;
+      for(std::set<RegisterAST::Ptr>::iterator i = tmp.begin();
+          i != tmp.end();
+         ++i)
+      {
+          cout << (*i)->format() << " ";
+      }
+      cout << endl;
+      tmp.clear();
+      getWriteSet(tmp);
+      cout << "Write set:" << endl;
+      for(std::set<RegisterAST::Ptr>::iterator i = tmp.begin();
+          i != tmp.end();
+          ++i)
+      {
+          cout << (*i)->format() << " ";
+      }
+      cout << endl;
+      std::set<Expression::Ptr> mem;
+      getMemoryReadOperands(mem);
+      cout << "Read mem:" << endl;
+      for(std::set<Expression::Ptr>::iterator i = mem.begin();
+          i != mem.end();
+          ++i)
+      {
+          cout << (*i)->format() << " ";
+      }
+      cout << endl;
+      mem.clear();
+      getMemoryWriteOperands(mem);
+      cout << "Write mem:" << endl;
+      for(std::set<Expression::Ptr>::iterator i = mem.begin();
+          i != mem.end();
+          ++i)
+      {
+          cout << (*i)->format() << " ";
+      }
+      cout << endl;
+#endif // defined(DEBUG_READ_WRITE)
       return retVal;
     }
     INSTRUCTION_EXPORT bool Instruction::allowsFallThrough() const
@@ -523,6 +470,8 @@ namespace Dyninst
       case e_hlt:
       case e_sysret:
       case e_sysexit:
+      case e_call:
+      case e_syscall:
 	return false;
       default:
 	return true;
@@ -535,14 +484,50 @@ namespace Dyninst
     }
     Expression::Ptr Instruction::makeReturnExpression() const
     {
-      Expression::Ptr stackPtr = Expression::Ptr(new RegisterAST(r_ESP));
-      Expression::Ptr retLoc = Expression::Ptr(new Dereference(stackPtr, u32));
-      return retLoc;
+        Expression::Ptr stackPtr = Expression::Ptr(new RegisterAST(MachRegister::getStackPointer(arch_decoded_from),
+                0, MachRegister::getStackPointer(arch_decoded_from).size()));
+        Expression::Ptr retLoc = Expression::Ptr(new Dereference(stackPtr, u32));
+        return retLoc;
     }
     INSTRUCTION_EXPORT InsnCategory Instruction::getCategory() const
     {
-      return entryToCategory(m_InsnOp->getID());
+      static RegisterAST* thePC = new RegisterAST(MachRegister::getPC(arch_decoded_from));
+      InsnCategory c = entryToCategory(m_InsnOp->getID());
+      if(c == c_BranchInsn && (arch_decoded_from == Arch_ppc32 || arch_decoded_from == Arch_ppc64))
+      {
+          if(m_Operands.empty()) decodeOperands();
+          for(cftConstIter cft = cft_begin();
+              cft != cft_end();
+             ++cft)
+          {
+	    if(cft->isCall)
+              {
+		long offset;
+		cft->target->bind(thePC, Result(u32, 0));
+		offset = cft->target->eval().convert<long>();
+		if(offset != size())
+		  return c_CallInsn;
+              }
+          }
+          if(m_InsnOp->getID() == power_op_bclr)
+          {
+	    return c_ReturnInsn;
+          }
+      }
+      return c;
     }
+    void Instruction::addSuccessor(Expression::Ptr e, bool isCall, bool isIndirect, bool isConditional, bool isFallthrough) const
+    {
+        CFT c(e, isCall, isIndirect, isConditional, isFallthrough);
+        m_Successors.push_back(c);
+        appendOperand(e, true, false);
+    }
+    void Instruction::appendOperand(Expression::Ptr e, bool isRead, bool isWritten) const
+    {
+        m_Operands.push_back(Operand(e, isRead, isWritten));
+    }
+  
+
   };
 };
 

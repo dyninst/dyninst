@@ -763,7 +763,7 @@ Address baseTrampInstance::miniTrampReturnAddr() {
 }
 
 bool baseTramp::isConservative() {
-  if (instP() && instP()->getPointType() == otherPoint)
+    if (instP() && (instP()->getPointType() == otherPoint))
     return true;
   if (rpcMgr_)
     return true;
@@ -771,7 +771,7 @@ bool baseTramp::isConservative() {
 }
 
 bool baseTramp::isCallsite() {
-    if (instP() && instP()->getPointType() == callSite)
+    if (instP() && (instP()->getPointType() == callSite))
         return true;
 
     return false;

@@ -60,59 +60,8 @@ extern "C" DLLEXPORT TestMutator* test_instruction_bind_eval_factory()
    return new test_instruction_bind_eval_Mutator();
 }
 
-template <typename T>
-struct shared_ptr_lt
-{
-  bool operator()(const T& lhs, const T& rhs)
-  {
-    // Non-nulls precede nulls
-    if(rhs.get() == NULL)
-    {
-      return lhs.get() != NULL;
-    }
-    if(lhs.get() == NULL)
-      return false;
-    // Otherwise, dereference and compare
-    return *lhs < *rhs;
-  }
-  
-};
 
 
-typedef std::set<RegisterAST::Ptr, shared_ptr_lt<RegisterAST::Ptr> > registerSet;
-
-test_results_t failure_accumulator(test_results_t lhs, test_results_t rhs)
-{
-  if(lhs == FAILED || rhs == FAILED)
-  {
-    return FAILED;
-  }
-  return PASSED;
-}
-
-test_results_t verifyCFT(Expression::Ptr cft, bool expectedDefined, unsigned long expectedValue, Result_Type expectedType)
-{
-  Result cftResult = cft->eval();
-  if(cftResult.defined != expectedDefined) {
-    logerror("FAILED: expected result defined %s, actual %s\n", expectedDefined ? "true" : "false", 
-	     cftResult.defined ? "true" : "false");
-    return FAILED;
-  }
-  if(expectedDefined)
-  {
-    if(cftResult.type != expectedType)
-    {
-      logerror("FAILED: expected result type %d, actual %d\n", expectedType, cftResult.type);
-      return FAILED;
-    }
-    if(cftResult.convert<unsigned long>() != expectedValue)
-    {
-      logerror("FAILED: expected result value 0x%x, actual 0x%x\n", expectedValue, cftResult.convert<unsigned long>());
-      return FAILED;
-    }
-  }
-  return PASSED;
-}
 
 
 test_results_t test_instruction_bind_eval_Mutator::executeTest()
@@ -123,17 +72,27 @@ test_results_t test_instruction_bind_eval_Mutator::executeTest()
   };
   unsigned int size = 7;
   unsigned int expectedInsns = 2;
-  InstructionDecoder d(buffer, size);
 #if defined(arch_x86_64_test)
-  d.setMode(true);
+    Architecture curArch = Arch_x86_64;
+    using namespace Dyninst::x86_64;
+#elif defined(arch_x86_test)
+    Architecture curArch = Arch_x86;
+    using namespace Dyninst::x86;
 #else
-  d.setMode(false);
+    Architecture curArch = Arch_none;
 #endif
-  std::vector<Instruction::Ptr> decodedInsns;
-  Instruction::Ptr i;
+    
+  
+  dyn_detail::boost::shared_ptr<InstructionDecoder> d =
+          makeDecoder(curArch, buffer, size);
+#if defined(arch_x86_64_test)
+d->setMode(true);
+#endif        
+    std::vector<Instruction::Ptr> decodedInsns;
+    Instruction::Ptr i;
   do
   {
-    i = d.decode();
+    i = d->decode();
     decodedInsns.push_back(i);
   }
   while(i && i->isValid());
@@ -165,18 +124,20 @@ test_results_t test_instruction_bind_eval_Mutator::executeTest()
     return FAILED;
   }
   
-    
 #if defined(arch_x86_64_test)
-  RegisterAST* eax = new RegisterAST(r_RAX);
-  RegisterAST* ecx = new RegisterAST(r_RCX);
+  RegisterAST* r_eax = new RegisterAST(x86_64::eax);
+  RegisterAST* r_ecx = new RegisterAST(x86_64::ecx);
+#elif defined(arch_x86_test)
+  RegisterAST* r_eax = new RegisterAST(x86::eax);
+  RegisterAST* r_ecx = new RegisterAST(x86::ecx);
 #else
-  RegisterAST* eax = new RegisterAST(r_EAX);
-  RegisterAST* ecx = new RegisterAST(r_ECX);
+#error "Test_instruction_bind_eval should be x86 only!"
 #endif
+    
   Result three(u32, 3);
   Result five(u32, 5);
   
-  if(!theCFT->bind(eax, three)) {
+  if(!theCFT->bind(r_eax, three)) {
       logerror("FAILED: bind of EAX failed (insn %s)\n", decodedInsns[0]->format().c_str());
     return FAILED;
   }
@@ -184,7 +145,7 @@ test_results_t test_instruction_bind_eval_Mutator::executeTest()
   {
     return FAILED;
   }
-  if(!theCFT->bind(ecx, five)) {
+  if(!theCFT->bind(r_ecx, five)) {
     logerror("FAILED: bind of ECX failed\n");
     return FAILED;
   }

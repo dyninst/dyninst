@@ -76,7 +76,7 @@ namespace Dyninst
       return;
     }
     
-    std::string Immediate::format() const
+    std::string Immediate::format(formatStyle) const
     {
       return eval().format();
     }

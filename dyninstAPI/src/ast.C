@@ -121,7 +121,7 @@ AstNodePtr AstNode::operandNode(operandType ot, const image_variable* iv) {
 }
 
 AstNodePtr AstNode::sequenceNode(pdvector<AstNodePtr > &sequence) {
-  assert(!sequence.empty());
+    assert(sequence.size());
     return AstNodePtr(new AstSequenceNode(sequence));
 }
 
@@ -1755,7 +1755,7 @@ bool AstSequenceNode::generateCode_phase2(codeGen &gen, bool noCost,
     Register tmp = REG_NULL;
     Address unused = ADDR_NULL;
     
-    if (sequence_.empty()) {
+    if (sequence_.size() == 0) {
       // Howzat???
       return true;
     }

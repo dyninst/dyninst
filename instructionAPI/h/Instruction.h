@@ -35,6 +35,7 @@
 
 #include <vector>
 #include <set>
+#include <list>
 #include "Expression.h"
 #include "Operation.h"
 #include "Operand.h"
@@ -46,6 +47,7 @@ namespace Dyninst
 {
   namespace InstructionAPI
   {
+      class InstructionDecoder;
     /// The %Instruction class is a generic instruction representation that contains operands,
     /// read/write semantic information about those operands, and information about
     /// what other registers and memory locations are affected by the operation the instruction performs.
@@ -77,9 +79,20 @@ namespace Dyninst
 	unsigned int small_insn;
 	unsigned char* large_insn;
       };
-      
-      
     public:
+        friend class InstructionDecoder_x86;
+        friend class InstructionDecoder_power;
+      
+        struct CFT
+        {
+            Expression::Ptr target;
+            bool isCall;
+            bool isIndirect;
+            bool isConditional;
+            bool isFallthrough;
+            CFT(Expression::Ptr t, bool call, bool indir, bool cond, bool ft) :
+                    target(t), isCall(call), isIndirect(indir), isConditional(cond), isFallthrough(ft) {}
+        };
       /// \param what Opcode of the instruction
       /// \param operandSource Contains the %Expressions to be transformed into %Operands
       /// \param size Contains the number of bytes occupied by the corresponding machine instruction
@@ -97,9 +110,8 @@ namespace Dyninst
       /// which operands are read and written
       /// in the %Operation object \c what to the value computations in \c operandSource.
 
-      INSTRUCTION_EXPORT Instruction(Operation::Ptr what, const std::vector<Expression::Ptr>& operandSource, size_t size,
-		  const unsigned char* raw, unsigned int opsema);
-      INSTRUCTION_EXPORT Instruction(Operation::Ptr what, size_t size, const unsigned char* raw);
+      INSTRUCTION_EXPORT Instruction(Operation::Ptr what, size_t size, const unsigned char* raw,
+                                     dyn_detail::boost::shared_ptr<InstructionDecoder> dec);
       INSTRUCTION_EXPORT Instruction();
       
       INSTRUCTION_EXPORT virtual ~Instruction();
@@ -242,11 +254,22 @@ namespace Dyninst
       /// Currently, the valid categories are c_CallInsn, c_ReturnInsn, c_BranchInsn, c_CompareInsn,
       /// and c_NoCategory, as defined in %InstructionCategories.h.
       INSTRUCTION_EXPORT InsnCategory getCategory() const;
+
+      typedef std::list<CFT>::const_iterator cftConstIter;
+      INSTRUCTION_EXPORT cftConstIter cft_begin() const {
+          return m_Successors.begin();
+      }
+        INSTRUCTION_EXPORT cftConstIter cft_end() const {
+            return m_Successors.end();
+        }
+      
       
       typedef dyn_detail::boost::shared_ptr<Instruction> Ptr;
       
     private:
       void decodeOperands() const;
+      void addSuccessor(Expression::Ptr e, bool isCall, bool isIndirect, bool isConditional, bool isFallthrough) const;
+      void appendOperand(Expression::Ptr e, bool isRead, bool isWritten) const;
       void copyRaw(size_t size, const unsigned char* raw);
       Expression::Ptr makeReturnExpression() const;
       mutable std::vector<Operand> m_Operands;
@@ -254,6 +277,9 @@ namespace Dyninst
       bool m_Valid;
       raw_insn_T m_RawInsn;
       unsigned int m_size;
+      Architecture arch_decoded_from;
+      mutable std::list<CFT> m_Successors;
+      dyn_detail::boost::shared_ptr<InstructionDecoder> m_dec;
       
     };
   };
