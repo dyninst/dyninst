@@ -64,6 +64,9 @@ G_PTHREAD       = -pthread
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
 
+# InstructionAPI is just x86 and power at this point
+LIBS    += -linstructionAPI
+
 include ../make.module.tmpl
 
 ifdef IBM_BPATCH_COMPAT

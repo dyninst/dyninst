@@ -57,7 +57,7 @@ namespace Dyninst
         }
         return((typeid(*this) == typeid(rhs)) && isStrictEqual(rhs));
     }
-    bool InstructionAST::checkRegID(unsigned int) const
+    bool InstructionAST::checkRegID(MachRegister, unsigned int, unsigned int) const
     {
         return false;
     }

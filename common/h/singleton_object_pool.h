@@ -32,7 +32,6 @@
 #define SINGLETON_OBJECT_POOL_H
 
 #include <boost/pool/pool.hpp>
-#include <boost/pool/detail/singleton.hpp>
 #include "pool_allocators.h"
 
 #include <dyn_detail/boost/shared_ptr.hpp>
@@ -57,7 +56,6 @@ class singleton_object_pool
         return *thePool;
     }
  };
- //typedef boost::details::pool::singleton_default<pool_impl> singleton;
  
   
  inline static void free(T* free_me)
@@ -148,7 +146,7 @@ struct PoolDestructor
 template <typename T> inline
 dyn_detail::boost::shared_ptr<T> make_shared(T* t)
 {
-  return dyn_detail::boost::shared_ptr<T>(t, PoolDestructor<T>(), typename unlocked_fast_alloc<T>::type());
+    return dyn_detail::boost::shared_ptr<T>(t, PoolDestructor<T>()/*, typename unlocked_fast_alloc<T>::type()*/);
 }
  
 

@@ -1103,10 +1103,11 @@ bool instruction::generate(codeGen &gen,
       else if (addrSpace->isValidAddress(target)) {
          // Get us an instrucIter
           const unsigned char* buf = reinterpret_cast<const unsigned char*>(addrSpace->getPtrToInstruction(target));
-          InstructionDecoder d(buf, 32);
-          d.setMode(addrSpace->getAddressWidth() == 8);
-          Instruction::Ptr firstInsn = d.decode();
-          Instruction::Ptr secondInsn = d.decode();
+          dyn_detail::boost::shared_ptr<InstructionDecoder> d = makeDecoder(Dyninst::Arch_x86, buf,
+            2 * maxInstructionLength);
+          d->setMode(addrSpace->getAddressWidth() == 8);
+          Instruction::Ptr firstInsn = d->decode();
+          Instruction::Ptr secondInsn = d->decode();
           if(firstInsn && firstInsn->getOperation().getID() == e_mov
              && firstInsn->readsMemory() && !firstInsn->writesMemory()
              && secondInsn && secondInsn->getCategory() == c_ReturnInsn)

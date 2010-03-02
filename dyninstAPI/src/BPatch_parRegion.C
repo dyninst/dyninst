@@ -101,13 +101,14 @@ bool BPatch_parRegion::getInstructionsInt(std::vector<InstructionAPI::Instructio
   const unsigned char* buffer = 
   (const unsigned char*)(lowlevel_region()->intFunc()->proc()->getPtrToInstruction(getStartAddress()));
   
-  InstructionDecoder d(buffer, size());
-  d.setMode(lowlevel_region()->intFunc()->proc()->getAddressWidth() == 8);
-  Instruction::Ptr curInsn = d.decode();
+  dyn_detail::boost::shared_ptr<InstructionDecoder> d =
+          makeDecoder(lowlevel_region()->imagePar()->getAssociatedFunc()->img()->getArch(), buffer, size());
+  d->setMode(lowlevel_region()->intFunc()->proc()->getAddressWidth() == 8);
+  Instruction::Ptr curInsn = d->decode();
   while(curInsn && curInsn->isValid())
   {
     insns.push_back(curInsn);
-    curInsn = d.decode();
+    curInsn = d->decode();
   }
   return !insns.empty();
   

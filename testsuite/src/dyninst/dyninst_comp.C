@@ -1375,7 +1375,7 @@ bool checkStack(BPatch_thread *appThread,
 	BPatch_Vector<BPatch_frame> stack;
 	appThread->getCallStack(stack);
 
-	if (debugPrint) {
+	if (1) {
 		dprintf("Stack in test %d (%s):\n", test_num, test_name);
 		for( unsigned i = 0; i < stack.size(); i++) {
 			char name[name_max];

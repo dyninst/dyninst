@@ -48,7 +48,6 @@
 
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
-#include "common/h/List.h"
 #include "dyninstAPI/src/dyninst.h"
 #include "dyninstAPI/src/arch.h"
 #include "dyninstAPI/src/util.h"
@@ -384,6 +383,7 @@ class image : public codeRange, public InstructionSource {
    virtual bool isValidAddress(const Address &where) const;
    virtual bool isExecutableAddress(const Address &where) const;
    bool isAligned(const Address where) const;
+   bool getExecCodeRanges(std::vector<std::pair<Address, Address> > &ranges);
 
    bool isNativeCompiler() const { return nativeCompiler; }
 
@@ -426,6 +426,7 @@ class image : public codeRange, public InstructionSource {
    // This method is invoked after parsing a function to record it in tables
    // and to update other symtab-level data structures, like mangled names
    void recordFunction(image_func *);
+    Dyninst::Architecture getArch() { return arch; }
 
    // This method is invoked to find the global constructors function and add a
    // symbol for the function if the image has no symbols
@@ -583,7 +584,7 @@ class image : public codeRange, public InstructionSource {
    int refCount;
    imageParseState_t parseState_;
    bool parseGaps_;
-
+   Dyninst::Architecture arch;
    vector< pair<image_basicBlock *, image_func *> > reparse_shared;
 };
 

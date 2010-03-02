@@ -1893,3 +1893,9 @@ bool Object::emitDriver(Symtab *obj, string fName, std::vector<Symbol *>&allSymb
 	emitWin *em = new emitWin((PCHAR)GetMapAddr(), this, err_func_);
 	return em -> driver(obj, fName);
 }
+
+bool Region::isStandardCode()
+{
+   return (getRegionPermissions() == RP_RX ||
+           getRegionPermissions() == RP_RWX);
+}

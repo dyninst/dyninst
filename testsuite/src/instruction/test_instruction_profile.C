@@ -81,15 +81,17 @@ test_results_t test_instruction_profile_Mutator::executeTest()
     
     std::vector<Instruction::Ptr > decodedInsns;
     Instruction::Ptr i;
-    InstructionDecoder d;
+    dyn_detail::boost::shared_ptr<InstructionDecoder> d =
+            makeDecoder(Dyninst::Arch_x86, decodeBase, (*curReg)->getRegionSize());
     // 32-bit libc; force to 32-bit mode
-    d.setMode(false);
+    d->setMode(false);
     long offset = 0;
     
     // simulate parsing via vector-per-basic-block
-    while(offset < (*curReg)->getRegionSize() - 16)
+    while(offset < (*curReg)->getRegionSize() - maxInstructionLength)
     {
-      i = d.decode(decodeBase + offset);
+      i = d->decode(decodeBase + offset);
+      //cout << endl << "\t\t" << i->format() << std::endl;
       total_count++;
       decodedInsns.push_back(i);
       if(i) {
@@ -97,9 +99,9 @@ test_results_t test_instruction_profile_Mutator::executeTest()
 	valid_count++;
 	if((i->getCategory() != c_NoCategory) && i->getControlFlowTarget())
 	{
-	  cf_count++;
-	  decodedInsns.clear();
-	}
+            cf_count++;
+            decodedInsns.clear();
+        }
       }
       else {
 	offset++;
@@ -107,7 +109,6 @@ test_results_t test_instruction_profile_Mutator::executeTest()
     }
   }
   //fprintf(stderr, "Instruction counts: %d total, %d valid, %d control-flow\n", total_count, valid_count, cf_count);
-  
   BPatch bp;
   BPatch_addressSpace* libc = bp.openBinary("/lib/libc.so.6");
   if(!libc) {
@@ -117,7 +118,6 @@ test_results_t test_instruction_profile_Mutator::executeTest()
   
   BPatch_Vector<BPatch_function*> funcs;
   libc->getImage()->getProcedures(funcs);
-  
   return PASSED;
 }
 

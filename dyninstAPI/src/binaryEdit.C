@@ -679,7 +679,8 @@ bool BinaryEdit::createMemoryBackingStore(mapped_object *obj) {
 
    for (unsigned i = 0; i < regs.size(); i++) {
       memoryTracker *newTracker = NULL;
-      if (regs[i]->getRegionType() == Region::RT_BSS) {
+      if (regs[i]->getRegionType() == Region::RT_BSS || (regs[i]->getDiskSize() == 0))
+      {
          continue;
       }
       else {
