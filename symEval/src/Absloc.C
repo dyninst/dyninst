@@ -62,10 +62,21 @@ bool Absloc::isSPR() const {
   return (reg_ == MachRegister::getStackPointer(reg_.getArchitecture()));
 }
 
+Absloc Absloc::makePC(Architecture arch) {
+  return Absloc(MachRegister::getPC(arch));
+}
+
+Absloc Absloc::makeSP(Architecture arch) {
+  return Absloc(MachRegister::getStackPointer(arch));
+}
+
+Absloc Absloc::makeFP(Architecture arch) {
+  return Absloc(MachRegister::getFramePointer(arch));
+}
+
 std::string Absloc::format() const {
   std::stringstream ret;
   
-  ret << typeToChar(type_);
   switch(type_) {
   case Register:
     // TODO: I'd like a "current architecture" global
@@ -220,12 +231,17 @@ const std::string AbsRegion::format() const {
   std::stringstream ret;
 
   if (!abslocs_.empty()) {
-    ret << "[";
-    for (std::set<Absloc>::const_iterator iter = abslocs_.begin();
-	 iter != abslocs_.end(); ++iter) {
-      ret << iter->format() << ",";
+    if (abslocs_.size() == 1) {
+      ret << abslocs_.begin()->format();
     }
-    ret << "]";
+    else {
+      ret << "[";
+      for (std::set<Absloc>::const_iterator iter = abslocs_.begin();
+	   iter != abslocs_.end(); ++iter) {
+	ret << iter->format() << ",";
+      }
+      ret << "]";
+    }
   }
   else {
     switch(type_) {

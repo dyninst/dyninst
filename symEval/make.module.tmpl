@@ -30,9 +30,12 @@ endif #USES_NATIVE
 
 TO_INC   = ../h
 
-#PUBLIC_H = 
+PUBLIC_H = Absloc.h \
+	 AbslocInterface.h \
+	 slicing.h
 
-SRCS +=	../src/AbslocInterface.C \
+SRCS +=	../src/Absloc.C \
+     	../src/AbslocInterface.C \
 	../src/SymEval.C \
         ../src/SymEvalPolicy.C \
         ../src/convertOpcodes.C \

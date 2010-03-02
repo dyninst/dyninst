@@ -1,11 +1,14 @@
 #include "SymEvalPolicy.h"
 
+#include "dyn_regs.h"
+
 using namespace Dyninst;
 using namespace Dyninst::SymbolicEvaluation;
 using namespace Dyninst::InstructionAPI;
 
-SymEvalPolicy::SymEvalPolicy(SymEval::Result &r) :
-  res(r) {
+SymEvalPolicy::SymEvalPolicy(SymEval::Result &r, Architecture a) :
+  res(r),
+  arch(a) {
   // We also need to build aaMap FTW!!!
   for (SymEval::Result::iterator iter = r.begin();
        iter != r.end(); ++iter) {
@@ -22,7 +25,7 @@ SymEvalPolicy::SymEvalPolicy(SymEval::Result &r) :
     else {
       // Use sufficiently-unique (Heap,0) Absloc
       // to represent a definition to a memory absloc
-      aaMap[Absloc(Absloc::Heap, 0)] = a;
+      aaMap[Absloc(0)] = a;
     }
   }
 }
@@ -36,111 +39,112 @@ void SymEvalPolicy::finishInstruction(SgAsmx86Instruction *) {
 
 Absloc SymEvalPolicy::convert(X86GeneralPurposeRegister r)
 {
-  int id;
+  MachRegister m;
   switch (r) {
     case x86_gpr_ax:
-      id = r_EAX;
+      m = x86::eax;
       break;
     case x86_gpr_cx:
-      id = r_ECX;
+      m = x86::ecx;
       break;
     case x86_gpr_dx:
-      id = r_EDX;
+      m = x86::edx;
       break;
     case x86_gpr_bx:
-      id = r_EBX;
+      m = x86::ebx;
       break;
     case x86_gpr_sp:
-      id = r_ESP;
+      m = x86::esp;
       break;
     case x86_gpr_bp:
-      id = r_EBP;
+      m = x86::ebp;
       break;
     case x86_gpr_si:
-      id = r_ESI;
+      m = x86::esi;
       break;
     case x86_gpr_di:
-      id = r_EDI;
+      m = x86::edi;
       break;
     default:
-      id = 0; // error
+      assert(0);
+      break;
   }
-
-  return Absloc(Absloc::Register, id);;
+  return Absloc(m);
 }
 
 Absloc SymEvalPolicy::convert(X86SegmentRegister r)
 {
-  int id;
+  MachRegister m;
   switch (r) {
     case x86_segreg_es:
-      id = r_ES;
+      m = x86::es;
       break;
     case x86_segreg_cs:
-      id = r_CS;
+      m = x86::cs;
       break;
     case x86_segreg_ss:
-      id = r_SS;
+      m = x86::ss;
       break;
     case x86_segreg_ds:
-      id = r_DS;
+      m = x86::ds;
       break;
     case x86_segreg_fs:
-      id = r_FS;
+      m = x86::fs;
       break;
     case x86_segreg_gs:
-      id = r_GS;
+      m = x86::gs;
       break;
     default:
-      id = 0; //error
+      assert(0);
+      break;
   }
-
-  return Absloc(Absloc::Register, id);
+  return Absloc(m);
 }
 
 Absloc SymEvalPolicy::convert(X86Flag f)
 {
+  return Absloc(x86::flags);
+#if 0
   int id;
   switch (f) {
     case x86_flag_cf:
-      id = r_CF;
+      m = x86::CF;
       break;
     case x86_flag_pf:
-      id = r_PF;
+      m = x86::PF;
       break;
     case x86_flag_af:
-      id = r_AF;
+      m = x86::AF;
       break;
     case x86_flag_zf:
-      id = r_ZF;
+      m = x86::ZF;
       break;
     case x86_flag_sf:
-      id = r_SF;
+      m = x86::SF;
       break;
     case x86_flag_tf:
-      id = r_TF;
+      m = x86::TF;
       break;
     case x86_flag_if:
-      id = r_IF;
+      m = x86::IF;
       break;
     case x86_flag_df:
-      id = r_DF;
+      m = x86::DF;
       break;
     case x86_flag_of:
-      id = r_OF;
+      m = x86::OF;
       break;
     case x86_flag_nt:
-      id = r_NT;
+      m = x86::NT;
       break;
     case x86_flag_rf:
-      id = r_RF;
+      m = x86::RF;
       break;
     default:
       std::cerr << "Failed to find flag " << f << std::endl;
       assert(0);
       id = 0; // error
   }
-
-  return Absloc(Absloc::Register, id);
+#endif
 }
 

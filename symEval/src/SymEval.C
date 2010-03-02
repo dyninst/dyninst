@@ -217,6 +217,7 @@ void ExpressionConversionVisitor::visit(RegisterAST* regast) {
           // don't care about tr in rose?
           // what are spl, bpl, sil, dil
 
+#if 0
     // set register class and number
     switch (ireg_id) {
     case r_AH:
@@ -562,7 +563,7 @@ void ExpressionConversionVisitor::visit(RegisterAST* regast) {
 	  fprintf(stderr, "Odd: got register %d\n", ireg_id);
             rreg_pos = x86_regpos_all;
     }
-
+#endif
     roseExpression = new SgAsmx86RegisterReferenceExpression(rreg_class, rreg_num, rreg_pos);
 }
 
