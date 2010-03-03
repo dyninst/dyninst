@@ -20,6 +20,7 @@ $(VOUCHER):
 VPATH		+= ../src
 
 ifndef NO_STD_OBJS
+
 OBJS +=		$(filter %.o, $(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
 		$(patsubst %.c, %.o, $(filter %.c,$(notdir $(SRCS)))) \
 		$(patsubst %.y, %.o, $(filter %.y,$(notdir $(SRCS)))) \
@@ -27,6 +28,15 @@ OBJS +=		$(filter %.o, $(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
 		$(patsubst %.s, %.o, $(filter %.s,$(notdir $(SRCS)))) \
 		$(patsubst %.S, %.o, $(filter %.S,$(notdir $(SRCS)))) \
 		$(IGEN_GEN_SRCS:%.C=%.o))
+
+STATIC_OBJS +=  $(filter %_nopic.o, $(patsubst %.C, %_nopic.o, $(filter %.C,$(notdir $(SRCS)))) \
+		$(patsubst %.c, %_nopic.o, $(filter %.c,$(notdir $(SRCS)))) \
+		$(patsubst %.y, %_nopic.o, $(filter %.y,$(notdir $(SRCS)))) \
+		$(patsubst %.l, %_nopic.o, $(filter %.l,$(notdir $(SRCS)))) \
+		$(patsubst %.s, %_nopic.o, $(filter %.s,$(notdir $(SRCS)))) \
+		$(patsubst %.S, %_nopic.o, $(filter %.S,$(notdir $(SRCS)))) \
+		$(IGEN_GEN_SRCS:%.C=%_nopic.o))
+
 endif
 
 XLC_DEPFILES =  $(filter %.u, $(patsubst %.u, %.o, $(filter %.u,$(notdir $(SRCS)))))
@@ -55,6 +65,44 @@ $(TARGET): $(OBJS) $(EXTRA_LIBS)
 	@$(MAKE) $(VOUCHER)
 	$(AR) rcs $(TARGET) $(VOUCHER).o $(OBJS)
 endif # STATIC_LIBRARY
+
+ifdef STATIC_TARGET
+
+# pattern rules for building non-PIC .o's
+%_nopic.o: ../src/%.c
+	$(CC) -c -o $*_nopic.o $(CFLAGS) $(CPPFLAGS) ../src/$*.c
+
+%_nopic.o: ../src/%.C
+	$(CXX) -c -o $*_nopic.o $(CPPFLAGS) $(CXXFLAGS) ../src/$*.C
+
+%_nopic.o: ../src/%.S
+	$(AS) $(ASFLAGS) -o $*_nopic.o ../src/$*.S
+
+%_nopic.o: ../src/%.s
+	$(AS) $(ASFLAGS) -o $*_nopic.o ../src/$*.s
+
+ifdef STATIC_CFLAGS
+$(STATIC_TARGET): CFLAGS = $(STATIC_CFLAGS)
+endif
+
+ifdef STATIC_CPPFLAGS
+$(STATIC_TARGET): CPPFLAGS = $(STATIC_CPPFLAGS)
+endif
+
+ifdef STATIC_CXXCFLAGS
+$(STATIC_TARGET): CXXFLAGS = $(STATIC_CXXFLAGS)
+endif
+
+ifdef STATIC_ASFLAGS
+$(STATIC_TARGET): ASFLAGS = $(STATIC_ASFLAGS)
+endif
+
+$(STATIC_TARGET): $(STATIC_OBJS)
+	@$(RM) $(STATIC_TARGET)
+	$(AR) rcs $(STATIC_TARGET) $(STATIC_OBJS)
+
+endif # STATIC_TARGET
+
 endif  # OVERRIDE_LINK
 
 ifdef PUBLIC_H
@@ -74,7 +122,7 @@ echo:
 	echo $(OBJS)
 
 clean:
-	$(RM) *.o *.[hC] *.a *.so* .__afs* $(TARGET) 
+	$(RM) *.o *.[hC] *.a *.so* .__afs* $(TARGET) $(STATIC_TARGET)
 
 distclean: clean
 	$(RM) DEPENDS
@@ -82,7 +130,17 @@ distclean: clean
 $(DEST)/$(TARGET): $(TARGET)
 	-$(CP) $(TARGET) $(DEST)
 
+ifdef STATIC_TARGET
+$(DEST)/$(STATIC_TARGET): $(STATIC_TARGET)
+	-$(CP) $(STATIC_TARGET) $(DEST)
+
+install_generic: $(DEST)/$(TARGET) public_includes $(DEST)/$(STATIC_TARGET)
+
+else
+
 install_generic: $(DEST)/$(TARGET) public_includes
+
+endif
 
 # A definition of OVERRIDE_INSTALL will skip this definition, so it shouldn't contain
 # anything other than "install_generic". 
@@ -152,7 +210,6 @@ endif
 
 %.thread.C %.thread.CLNT.h %.thread.SRVR.h %.thread.h: %.I
 	$(IGEN) -thread $(ICFLAGS) $<
-
 
 #
 # include the dependencies.

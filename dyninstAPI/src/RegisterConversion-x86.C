@@ -34,141 +34,135 @@
 
 #include <map>
 #include <boost/assign/list_of.hpp>
+#include "Register.h"
+#include "dyn_regs.h"
+
+using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;
 using namespace std;
 using namespace boost::assign;
 
-map<IA32Regs, Register> reverseRegisterMap = map_list_of
-        (r_EAX, REGNUM_RAX)
-        (r_ECX, REGNUM_RCX)
-        (r_EDX, REGNUM_RDX)
-        (r_EBX, REGNUM_RBX)
-        (r_ESP, REGNUM_RSP)
-        (r_EBP, REGNUM_RBP)
-        (r_ESI, REGNUM_RSI)
-        (r_EDI, REGNUM_RDI)
-        (r_R8, REGNUM_R8)
-        (r_R9, REGNUM_R9)
-        (r_R10, REGNUM_R10)
-        (r_R11, REGNUM_R11)
-        (r_R12, REGNUM_R12)
-        (r_R13, REGNUM_R13)
-        (r_R14, REGNUM_R14)
-        (r_R15, REGNUM_R15)
-        (r_DummyFPR, REGNUM_DUMMYFPR)
-        (r_OF, REGNUM_OF)
-        (r_SF, REGNUM_SF)
-        (r_ZF, REGNUM_ZF)
-        (r_AF, REGNUM_AF)
-        (r_PF, REGNUM_PF)
-        (r_CF, REGNUM_CF)
-        (r_TF, REGNUM_TF)
-        (r_IF, REGNUM_IF)
-        (r_DF, REGNUM_DF)
-        (r_NT, REGNUM_NT)
-        (r_RF, REGNUM_RF)
-        (r_AH, REGNUM_RAX)
-        (r_BH, REGNUM_RBX)
-        (r_CH, REGNUM_RCX)
-        (r_DH, REGNUM_RDX)
-        (r_AL, REGNUM_RAX)
-        (r_BL, REGNUM_RBX)
-        (r_CL, REGNUM_RCX)
-        (r_DL, REGNUM_RDX)
-        (r_SPL, REGNUM_RSP)
-        (r_BPL, REGNUM_RBP)
-        (r_SIL, REGNUM_RSI)
-        (r_DIL, REGNUM_RDI)
-        (r_eAX, REGNUM_RAX)
-        (r_eBX, REGNUM_RBX)
-        (r_eCX, REGNUM_RCX)
-        (r_eDX, REGNUM_RDX)
-        (r_AX, REGNUM_RAX)
-        (r_DX, REGNUM_RDX)
-        (r_eSP, REGNUM_RSP)
-        (r_eBP, REGNUM_RBP)
-        (r_eSI, REGNUM_RSI)
-        (r_eDI, REGNUM_RDI)
-    // These are wrong, need to extend to make cmpxch8b work right
-        (r_EDXEAX, REGNUM_RAX)
-        (r_ECXEBX, REGNUM_RCX)
-        (r_CS, REGNUM_IGNORED)
-        (r_DS, REGNUM_IGNORED)
-        (r_ES, REGNUM_IGNORED)
-        (r_FS, REGNUM_IGNORED)
-        (r_GS, REGNUM_IGNORED)
-        (r_SS, REGNUM_IGNORED)
-        (r_rAX, REGNUM_RAX)
-        (r_rCX, REGNUM_RCX)
-        (r_rDX, REGNUM_RDX)
-        (r_rBX, REGNUM_RBX)
-        (r_rSP, REGNUM_RSP)
-        (r_rBP, REGNUM_RBP)
-        (r_rSI, REGNUM_RSI)
-        (r_rDI, REGNUM_RDI)
-        (r_EFLAGS, REGNUM_IGNORED)
-        (r_EIP, REGNUM_IGNORED)
-        (r_RIP, REGNUM_IGNORED)
-        (r_RAX, REGNUM_RAX)
-        (r_RCX, REGNUM_RCX)
-        (r_RDX, REGNUM_RDX)
-        (r_RBX, REGNUM_RBX)
-        (r_RSP, REGNUM_RSP)
-        (r_RBP, REGNUM_RBP)
-        (r_RSI, REGNUM_RSI)
-        (r_RDI, REGNUM_RDI)
-        (r_SI, REGNUM_RSI)
-        (r_DI, REGNUM_RDI)
-        (r_XMM0, REGNUM_XMM0)
-        (r_XMM1, REGNUM_XMM1)
-        (r_XMM2, REGNUM_XMM2)
-        (r_XMM3, REGNUM_XMM3)
-        (r_XMM4, REGNUM_XMM4)
-        (r_XMM5, REGNUM_XMM5)
-        (r_XMM6, REGNUM_XMM6)
-        (r_XMM7, REGNUM_XMM7)
-        (r_MM0, REGNUM_MM0)
-        (r_MM1, REGNUM_MM1)
-        (r_MM2, REGNUM_MM2)
-        (r_MM3, REGNUM_MM3)
-        (r_MM4, REGNUM_MM4)
-        (r_MM5, REGNUM_MM5)
-        (r_MM6, REGNUM_MM6)
-        (r_MM7, REGNUM_MM7)
-        (r_CR0, REGNUM_IGNORED)
-        (r_CR1, REGNUM_IGNORED)
-        (r_CR2, REGNUM_IGNORED)
-        (r_CR3, REGNUM_IGNORED)
-        (r_CR4, REGNUM_IGNORED)
-        (r_CR5, REGNUM_IGNORED)
-        (r_CR6, REGNUM_IGNORED)
-        (r_CR7, REGNUM_IGNORED)
-        (r_DR0, REGNUM_IGNORED)
-        (r_DR1, REGNUM_IGNORED)
-        (r_DR2, REGNUM_IGNORED)
-        (r_DR3, REGNUM_IGNORED)
-        (r_DR4, REGNUM_IGNORED)
-        (r_DR5, REGNUM_IGNORED)
-        (r_DR6, REGNUM_IGNORED)
-        (r_DR7, REGNUM_IGNORED)
-        (r_ALLGPRS, REGNUM_IGNORED)
-  (r_ST0, REGNUM_IGNORED)
-  (r_ST1, REGNUM_IGNORED)
-  (r_ST2, REGNUM_IGNORED)
-  (r_ST3, REGNUM_IGNORED)
-  (r_ST4, REGNUM_IGNORED)
-  (r_ST5, REGNUM_IGNORED)
-  (r_ST6, REGNUM_IGNORED)
-  (r_ST7, REGNUM_IGNORED)
+map<MachRegister, Register> reverseRegisterMap = map_list_of
+        (x86_64::r8, REGNUM_R8)
+        (x86_64::r9, REGNUM_R9)
+        (x86_64::r10, REGNUM_R10)
+        (x86_64::r11, REGNUM_R11)
+        (x86_64::r12, REGNUM_R12)
+        (x86_64::r13, REGNUM_R13)
+        (x86_64::r14, REGNUM_R14)
+        (x86_64::r15, REGNUM_R15)
+        (x86_64::cs, REGNUM_IGNORED)
+        (x86_64::ds, REGNUM_IGNORED)
+        (x86_64::es, REGNUM_IGNORED)
+        (x86_64::fs, REGNUM_IGNORED)
+        (x86_64::gs, REGNUM_IGNORED)
+        (x86_64::ss, REGNUM_IGNORED)
+        (x86_64::rax, REGNUM_RAX)
+        (x86_64::rcx, REGNUM_RCX)
+        (x86_64::rdx, REGNUM_RDX)
+        (x86_64::rbx, REGNUM_RBX)
+        (x86_64::rsp, REGNUM_RSP)
+        (x86_64::rbp, REGNUM_RBP)
+        (x86_64::rsi, REGNUM_RSI)
+        (x86_64::rdi, REGNUM_RDI)
+        (x86_64::rip, REGNUM_IGNORED)
+        (x86_64::xmm0, REGNUM_XMM0)
+        (x86_64::xmm1, REGNUM_XMM1)
+        (x86_64::xmm2, REGNUM_XMM2)
+        (x86_64::xmm3, REGNUM_XMM3)
+        (x86_64::xmm4, REGNUM_XMM4)
+        (x86_64::xmm5, REGNUM_XMM5)
+        (x86_64::xmm6, REGNUM_XMM6)
+        (x86_64::xmm7, REGNUM_XMM7)
+        (x86_64::mm0, REGNUM_MM0)
+        (x86_64::mm1, REGNUM_MM1)
+        (x86_64::mm2, REGNUM_MM2)
+        (x86_64::mm3, REGNUM_MM3)
+        (x86_64::mm4, REGNUM_MM4)
+        (x86_64::mm5, REGNUM_MM5)
+        (x86_64::mm6, REGNUM_MM6)
+        (x86_64::mm7, REGNUM_MM7)
+        (x86_64::cr0, REGNUM_IGNORED)
+        (x86_64::cr1, REGNUM_IGNORED)
+        (x86_64::cr2, REGNUM_IGNORED)
+        (x86_64::cr3, REGNUM_IGNORED)
+        (x86_64::cr4, REGNUM_IGNORED)
+        (x86_64::cr5, REGNUM_IGNORED)
+        (x86_64::cr6, REGNUM_IGNORED)
+        (x86_64::cr7, REGNUM_IGNORED)
+        (x86_64::dr0, REGNUM_IGNORED)
+        (x86_64::dr1, REGNUM_IGNORED)
+        (x86_64::dr2, REGNUM_IGNORED)
+        (x86_64::dr3, REGNUM_IGNORED)
+        (x86_64::dr4, REGNUM_IGNORED)
+        (x86_64::dr5, REGNUM_IGNORED)
+        (x86_64::dr6, REGNUM_IGNORED)
+        (x86_64::dr7, REGNUM_IGNORED)
+  (x86_64::st0, REGNUM_IGNORED)
+  (x86_64::st1, REGNUM_IGNORED)
+  (x86_64::st2, REGNUM_IGNORED)
+  (x86_64::st3, REGNUM_IGNORED)
+  (x86_64::st4, REGNUM_IGNORED)
+  (x86_64::st5, REGNUM_IGNORED)
+  (x86_64::st6, REGNUM_IGNORED)
+  (x86_64::st7, REGNUM_IGNORED)
         ;
 
-Register convertRegID(IA32Regs toBeConverted)
+
+Register convertRegID(RegisterAST::Ptr toBeConverted, bool& wasUpcast)
 {
-    map<IA32Regs, Register>::const_iterator found =
-            reverseRegisterMap.find(toBeConverted);
+    return convertRegID(toBeConverted.get(), wasUpcast);
+}
+        
+Register convertRegID(RegisterAST* toBeConverted, bool& wasUpcast)
+{
+    if(!toBeConverted) {
+        //assert(0);
+        return REGNUM_IGNORED;
+    }
+    MachRegister tmp(toBeConverted->getID());
+    wasUpcast = false;
+    if(tmp.getBaseRegister().val() != tmp.val()) wasUpcast = true;
+    MachRegister baseReg = MachRegister((tmp.getBaseRegister().val() & ~tmp.getArchitecture()) | Arch_x86_64);
+//    RegisterAST::Ptr debug(new RegisterAST(baseReg));
+//    fprintf(stderr, "DEBUG: converting %s", toBeConverted->format().c_str());
+//    fprintf(stderr, " to %s\n", debug->format().c_str());
+    map<MachRegister, Register>::const_iterator found =
+            reverseRegisterMap.find(baseReg);
     if(found == reverseRegisterMap.end()) {
-        fprintf(stderr, "Register ID %d not found in reverseRegisterLookup!\n", toBeConverted);
+        if(baseReg == x86_64::flags)
+        {
+            switch(toBeConverted->lowBit())
+            {
+                case r_OF:
+                    return REGNUM_OF;
+                case r_SF:
+                    return REGNUM_SF;
+                case r_ZF:
+                    return REGNUM_ZF;
+                case r_AF:
+                    return REGNUM_AF;
+                case r_PF:
+                    return REGNUM_PF;
+                case r_CF:
+                    return REGNUM_CF;
+                case r_TF:
+                    return REGNUM_TF;
+                case r_IF:
+                    return REGNUM_IF;
+                case r_DF:
+                    return REGNUM_DF;
+                case r_NT:
+                    return REGNUM_NT;
+                case r_RF:
+                    return REGNUM_RF;
+            }
+                
+        }
+
+        fprintf(stderr, "Register ID for %s not found in reverseRegisterLookup!\n", toBeConverted->format().c_str());
         assert(!"Bad register ID");
     }
+
     return found->second;
 }

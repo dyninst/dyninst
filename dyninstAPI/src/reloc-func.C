@@ -617,14 +617,15 @@ bool bblInstance::relocationSetup(bblInstance *orig, pdvector<funcMod *> &mods) 
    minSize() = 0;
 #if defined(cap_instruction_api)
    using namespace Dyninst::InstructionAPI;
-   InstructionDecoder d;
-   d.setMode(orig->proc()->getAddressWidth() == 8);
    unsigned char* buffer = reinterpret_cast<unsigned char*>(orig->proc()->getPtrToInstruction(orig->firstInsnAddr()));
+   dyn_detail::boost::shared_ptr<InstructionDecoder> d =
+           makeDecoder(func()->ifunc()->img()->getArch(), buffer, orig->getSize());
+   d->setMode(orig->proc()->getAddressWidth() == 8);
    
    size_t offset = 0;
    while(offset < orig->getSize())
    {
-     Instruction::Ptr tmp = d.decode(buffer + offset);
+     Instruction::Ptr tmp = d->decode();
      
      reloc_info_t::relocInsn *reloc = new reloc_info_t::relocInsn;
 

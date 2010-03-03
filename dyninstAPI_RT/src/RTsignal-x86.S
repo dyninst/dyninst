@@ -16,3 +16,13 @@ dyninstTrapHandler:
 .Lret_point:
         popf
         ret
+
+#if defined(DYNINST_RT_STATIC_LIB)
+__i686.get_pc_thunk.bx:
+        mov (%esp), %ebx
+        ret
+
+__i686.get_pc_thunk.cx:
+        mov (%esp), %ecx
+        ret
+#endif

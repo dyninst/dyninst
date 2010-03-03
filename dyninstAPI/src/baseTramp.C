@@ -344,7 +344,7 @@ bool baseTrampInstance::generateCode(codeGen &gen,
     for (;;) {
        regalloc_printf("[%s:%u] - Beginning baseTramp generate iteration # %d\n",
                        __FILE__, __LINE__, ++count);
-       GET_PTR(insn, gen);
+       codeBufIndex_t start = gen.getIndex();
        
        unsigned int num_patches = gen.allPatches().size();
 
@@ -366,7 +366,8 @@ bool baseTrampInstance::generateCode(codeGen &gen,
        gen.setPCRelUseCount(gen.rs()->pc_rel_use_count);
        
        markChanged(true);
-       SET_PTR(insn, gen);
+
+       gen.setIndex(start);
        while (gen.allPatches().size() > num_patches) {
           gen.allPatches().pop_back();
        }
@@ -762,7 +763,7 @@ Address baseTrampInstance::miniTrampReturnAddr() {
 }
 
 bool baseTramp::isConservative() {
-  if (instP() && instP()->getPointType() == otherPoint)
+    if (instP() && (instP()->getPointType() == otherPoint))
     return true;
   if (rpcMgr_)
     return true;
@@ -770,7 +771,7 @@ bool baseTramp::isConservative() {
 }
 
 bool baseTramp::isCallsite() {
-    if (instP() && instP()->getPointType() == callSite)
+    if (instP() && (instP()->getPointType() == callSite))
         return true;
 
     return false;
@@ -906,12 +907,13 @@ bool baseTramp::doOptimizations()
 }
 
 void baseTramp::setRecursive(bool trampRecursive, bool force) {
-
+   /* Tramp guards now work for static binaries
    BinaryEdit *binEdit = dynamic_cast<BinaryEdit *>(proc());
    if (binEdit && binEdit->getMappedObject()->parse_img()->getObject()->isStaticBinary()) {
    	guardState_ = recursive_BTR;
 	return;
    }
+   */
 
    if (force) {
       guardState_ = trampRecursive ? recursive_BTR : guarded_BTR;

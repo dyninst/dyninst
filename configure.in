@@ -229,15 +229,19 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])],
 AC_SUBST(STACKPROT)
 CXXFLAGS=$SAVED_CXXFLAGS
 
-AC_MSG_CHECKING([for -m32])
+if test "`echo $host_os | cut -b-3`" = "aix" ; then
+    M32FLAG="-maix32"
+else
+    M32FLAG="-m32"
+fi
+AC_MSG_CHECKING([for 32-bit build environment])
 SAVED_CXXFLAGS=$CXXFLAGS
-CXXFLAGS="-m32"
-AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[]])], 
+CXXFLAGS=$M32FLAG
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[#include <signal.h>]], [[]])], 
                                 [AC_MSG_RESULT([yes]); BUILD32=""],
                                 [AC_MSG_RESULT([no]); BUILD32="SKIP_BUILD_RTLIB_32=1"])
 AC_SUBST(BUILD32)
 CXXFLAGS=$SAVED_CXXFLAGS
-
 
 AC_MSG_CHECKING([whether to use MM timer])
 case $host in

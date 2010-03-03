@@ -31,7 +31,9 @@
 
 #ifndef __SYMTAB_H__
 #define __SYMTAB_H__
- 
+
+#include <set>
+
 #include "Symbol.h"
 #include "Module.h"
 #include "Region.h"
@@ -73,6 +75,7 @@ class Symtab : public LookupInterface,
    friend class Region;
    friend class emitElf;
    friend class emitElf64;
+   friend class emitElfStatic;
    friend class emitWin;
    friend class Aggregate;
    friend class relocationEntry;
@@ -246,7 +249,8 @@ class Symtab : public LookupInterface,
    /***** Write Back binary functions *****/
    SYMTAB_EXPORT bool emitSymbols(Object *linkedFile, std::string filename, unsigned flag = 0);
    SYMTAB_EXPORT bool addRegion(Offset vaddr, void *data, unsigned int dataSize, 
-         std::string name, Region::RegionType rType_, bool loadable = false);
+         std::string name, Region::RegionType rType_, bool loadable = false,
+         unsigned long memAlign = 1, bool tls = false);
    SYMTAB_EXPORT bool addRegion(Region *newreg);
    SYMTAB_EXPORT bool emit(std::string filename, unsigned flag = 0);
 
@@ -261,9 +265,16 @@ class Symtab : public LookupInterface,
 
    SYMTAB_EXPORT bool addLibraryPrereq(std::string libname);
    SYMTAB_EXPORT bool addSysVDynamic(long name, long value);
+
+   SYMTAB_EXPORT bool addLinkingResource(Archive *library);
+   SYMTAB_EXPORT bool getLinkingResources(std::vector<Archive *> &libs);
+
+   SYMTAB_EXPORT bool addExternalSymbolReference(Symbol *externalSym, Region *localRegion, relocationEntry localRel);
+
    /***** Data Member Access *****/
    SYMTAB_EXPORT std::string file() const;
    SYMTAB_EXPORT std::string name() const;
+   SYMTAB_EXPORT std::string memberName() const;
 
    SYMTAB_EXPORT char *mem_image() const;
 
@@ -291,6 +302,8 @@ class Symtab : public LookupInterface,
    SYMTAB_EXPORT unsigned getNumberofSymbols() const;
 
    SYMTAB_EXPORT std::vector<std::string> &getDependencies();
+
+   SYMTAB_EXPORT Archive *getParentArchive() const;
 
    /***** Error Handling *****/
    SYMTAB_EXPORT static SymtabError getLastSymtabError();
@@ -386,6 +399,7 @@ class Symtab : public LookupInterface,
    private:
    std::string member_name_;
    Offset member_offset_;
+   Archive * parentArchive_;
    MappedFile *mf;
    MappedFile *mfForDebugInfo;
 
@@ -506,6 +520,13 @@ class Symtab : public LookupInterface,
 
    std::vector<std::string> deps_;
 
+   // This set is used during static linking to satisfy dependencies
+   std::vector<Archive *> linkingResources_;
+
+   // This set represents Symtabs referenced by a new external Symbol
+   bool getExplicitSymtabRefs(std::set<Symtab *> &refs);
+   std::set<Symtab *> explicitSymtabRefs_;
+
    //Line Information valid flag;
    bool isLineInfoValid_;
    //type info valid flag
@@ -613,6 +634,9 @@ class relocationEntry : public Serializable, public AnnotatableSparse {
 			  Symbol *dynref = NULL, unsigned long relType = 0);
       SYMTAB_EXPORT relocationEntry(Offset ra, std::string n, Symbol *dynref = NULL, 
 			  unsigned long relType = 0, Region::RegionType rtype = Region::RT_REL);
+      SYMTAB_EXPORT relocationEntry(Offset ta, Offset ra, Offset add,
+                          std::string n, Symbol *dynref = NULL, unsigned long relType = 0,
+                          Region::RegionType rtype = Region::RT_REL);
 
       SYMTAB_EXPORT const relocationEntry& operator= (const relocationEntry &ra);
 
@@ -631,6 +655,7 @@ class relocationEntry : public Serializable, public AnnotatableSparse {
       SYMTAB_EXPORT void setRelAddr(const Offset);
       SYMTAB_EXPORT void setAddend(const Offset);
       SYMTAB_EXPORT void setRegionType(const Region::RegionType);
+      SYMTAB_EXPORT void setName(const std::string &newName);
 
       // dump output.  Currently setup as a debugging aid, not really
       //  for object persistance....
@@ -638,8 +663,11 @@ class relocationEntry : public Serializable, public AnnotatableSparse {
       friend SYMTAB_EXPORT std::ostream &operator<<(std::ostream &os, const relocationEntry &q);
 
       enum {pltrel = 1, dynrel = 2} relocationType;
+      SYMTAB_EXPORT bool operator==(const relocationEntry &) const;
 
-	  SYMTAB_EXPORT bool operator==(const relocationEntry &) const;
+      // Architecture-specific functions
+      SYMTAB_EXPORT static unsigned long getGlobalRelType(unsigned addressWidth);
+      static const char *relType2Str(unsigned long r, unsigned addressWidth = sizeof(Address));
 
    private:
       Offset target_addr_;	// target address of call instruction 

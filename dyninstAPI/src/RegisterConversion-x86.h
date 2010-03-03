@@ -33,9 +33,10 @@
 #if !defined(REGISTER_CONVERSION_H)
 #define REGISTER_CONVERSION_H
 
-#include "RegisterIDs-x86.h"
+#include "Register.h"
 #include "common/h/Types.h"
 
-Register convertRegID(Dyninst::InstructionAPI::IA32Regs toBeConverted);
+Register convertRegID(Dyninst::InstructionAPI::RegisterAST::Ptr toBeConverted, bool& wasUpcast);
+Register convertRegID(Dyninst::InstructionAPI::RegisterAST* toBeConverted, bool& wasUpcast);
 
 #endif //!defined(REGISTER_CONVERSION_H)

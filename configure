@@ -5308,7 +5308,7 @@ _ACEOF
 cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
-
+#include <signal.h>
 int
 main ()
 {
@@ -5352,10 +5352,15 @@ rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
 
 CXXFLAGS=$SAVED_CXXFLAGS
 
-echo "$as_me:$LINENO: checking for -m32" >&5
-echo $ECHO_N "checking for -m32... $ECHO_C" >&6
+if test "`echo $host_os | cut -b-3`" = "aix" ; then
+    M32FLAG="-maix32"
+else
+    M32FLAG="-m32"
+fi
+echo "$as_me:$LINENO: checking for 32-bit build environment" >&5
+echo $ECHO_N "checking for 32-bit build environment... $ECHO_C" >&6
 SAVED_CXXFLAGS=$CXXFLAGS
-CXXFLAGS="-m32"
+CXXFLAGS=$M32FLAG
 cat >conftest.$ac_ext <<_ACEOF
 /* confdefs.h.  */
 _ACEOF
@@ -5405,7 +5410,6 @@ fi
 rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
 
 CXXFLAGS=$SAVED_CXXFLAGS
-
 
 echo "$as_me:$LINENO: checking whether to use MM timer" >&5
 echo $ECHO_N "checking whether to use MM timer... $ECHO_C" >&6

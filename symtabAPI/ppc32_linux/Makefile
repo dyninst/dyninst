@@ -27,9 +27,13 @@ SRCS =          ../src/Object-elf.C \
 		../src/parseDwarf.C \
 		../src/parseStab.C \
 		../src/emitElf.C \
+		../src/emitElfStatic.C \
+		../src/emitElfStatic-stub.C \
+		../src/LinkMap.C \
 		../src/addrtranslate.C \
 		../src/addrtranslate-linux.C \
-		../src/addrtranslate-sysv.C
+		../src/addrtranslate-sysv.C \
+		../src/relocationEntry-elf-ppc32.C
 
 #MYFLAGS	+= -DNO_MDL_PRINT
 #MYFLAGS	+= -DLD_DEBUG

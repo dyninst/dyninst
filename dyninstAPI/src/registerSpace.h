@@ -482,7 +482,7 @@ class registerSpace {
                    fpr14, fpr15, fpr16, fpr17, fpr18, fpr19, fpr20,
                    fpr21, fpr22, fpr23, fpr24, fpr25, fpr26, fpr27,
                    fpr28, fpr29, fpr30, fpr31,
-                   xer, lr, ctr, mq, cr, lastReg } powerRegisters_t;
+                   xer, lr, ctr, mq, cr, lastReg, ignored } powerRegisters_t;
     static unsigned GPR(Register x) { return x; }
     static unsigned FPR(Register x) { return x - fpr0; }
     static unsigned SPR(Register x);

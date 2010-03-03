@@ -1441,8 +1441,16 @@ int_function *instPoint::findCallee()
    	return NULL;
 	}
 
-   if (!fbtvector.size())
+   /**
+    * Object files and static binaries will not have a function binding table
+    * because the function binding table holds relocations used by the dynamic
+    * linker
+    */
+   if (!fbtvector.size() && !obj->isStaticBinary() && 
+           obj->getObjectType() != obj_RelocatableFile ) 
+   {
       fprintf(stderr, "%s[%d]:  WARN:  zero func bindings\n", FILE__, __LINE__);
+   }
 
    for (unsigned index=0; index< fbtvector.size();index++)
    	fbt.push_back(fbtvector[index]);
@@ -2568,111 +2576,77 @@ bool process::readAuxvInfo()
    
    
 }
-#if defined(cap_binary_rewriter)
 
-std::pair<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::string filename)
-{
-   char *libPathStr, *libPath;
-   std::vector<std::string> libPaths;
-   struct stat dummy;
-   FILE *ldconfig;
-   char buffer[512];
-   char *pos, *key, *val;
-    
-   // prefer qualified file paths
-   if (stat(filename.c_str(), &dummy) == 0) {
-	BinaryEdit* temp = BinaryEdit::openFile(filename);
-	startup_printf("[%s:%u] - Opening dependant file %s\n", 
-		       FILE__, __LINE__, filename.c_str());
-	if(temp && temp->getAddressWidth() == getAddressWidth())
-	  return std::make_pair(filename, temp);
-	startup_printf("[%s:%u] - Creation error opening %s\n", 
-		  FILE__, __LINE__, filename.c_str());
-	delete temp;
-   }
+bool BinaryEdit::getResolvedLibraryPath(const std::string &filename, std::vector<std::string> &paths) {
+    char *libPathStr, *libPath;
+    std::vector<std::string> libPaths;
+    struct stat dummy;
+    FILE *ldconfig;
+    char buffer[512];
+    char *pos, *key, *val;
 
-   // search paths from environment variables
-   libPathStr = strdup(getenv("LD_LIBRARY_PATH"));
-   libPath = strtok(libPathStr, ":");
-   while (libPath != NULL) {
-      libPaths.push_back(std::string(libPath));
-      libPath = strtok(NULL, ":");
-   }
-   free(libPathStr);
-   //libPaths.push_back(std::string(getenv("PWD")));
-   for (unsigned int i = 0; i < libPaths.size(); i++) {
-      std::string str = libPaths[i] + "/" + filename;
-      if (stat(str.c_str(), &dummy) == 0) {
-	BinaryEdit* temp = BinaryEdit::openFile(str);
-	startup_printf("[%s:%u] - Opening dependant file %s\n", 
-		       FILE__, __LINE__, str.c_str());
-	if(temp && temp->getAddressWidth() == getAddressWidth())
-	  return std::make_pair(str, temp);
-	startup_printf("[%s:%u] - Creation error opening %s\n", 
-		  FILE__, __LINE__, str.c_str());
-	delete temp;
-	
-      }
-   }
+    // prefer qualified file paths
+    if (stat(filename.c_str(), &dummy) == 0) {
+        paths.push_back(filename);
+    }
 
-   // search ld.so.cache
-   ldconfig = popen("/sbin/ldconfig -p", "r");
-   if (ldconfig) {
-      fgets(buffer, 512, ldconfig); // ignore first line
-      while (fgets(buffer, 512, ldconfig) != NULL) {
-         pos = buffer;
-         while (*pos == ' ' || *pos == '\t') pos++;
-         key = pos;
-         while (*pos != ' ') pos++;
-         *pos = '\0';
-         while (*pos != '=' && *(pos+1) != '>') pos++;
-         pos += 2;
-         while (*pos == ' ' || *pos == '\t') pos++;
-         val = pos;
-         while (*pos != '\n' && *pos != '\0') pos++;
-         *pos = '\0';
-         if (strcmp(key, filename.c_str()) == 0) {
-	   startup_printf("[%s:%u] - Opening dependant file %s\n", 
-		       FILE__, __LINE__, val);
-	   BinaryEdit* temp = BinaryEdit::openFile(val);
-	   if(temp->getAddressWidth() == getAddressWidth()) {
-	     pclose(ldconfig);
-	     return std::make_pair(std::string(val), temp);
-	   }
-	   
-	   startup_printf("[%s:%u] - Creation error opening %s\n", 
-		  FILE__, __LINE__, val);
-	   delete temp;
-         }
-      }
-      pclose(ldconfig);
-   }
- 
-   // search hard-coded system paths
-   libPaths.clear();
-   libPaths.push_back("/usr/local/lib");
-   libPaths.push_back("/usr/share/lib");
-   libPaths.push_back("/usr/lib");
-   libPaths.push_back("/lib");
-   for (unsigned int i = 0; i < libPaths.size(); i++) {
-      std::string str = libPaths[i] + "/" + filename;
-      if (stat(str.c_str(), &dummy) == 0) {
-	startup_printf("[%s:%u] - Opening dependant file %s\n", 
-		       FILE__, __LINE__, str.c_str());
-	BinaryEdit* temp = BinaryEdit::openFile(str);
-	if(temp && temp->getAddressWidth() == getAddressWidth())
-	  return std::make_pair(str, temp);
-	startup_printf("[%s:%u] - Creation error opening %s\n", 
-		  FILE__, __LINE__, str.c_str());
-	delete temp;
-      }
-   }
-   startup_printf("[%s:%u] - Creation error opening %s\n", 
-		  FILE__, __LINE__, filename.c_str());
-   return std::make_pair("", static_cast<BinaryEdit*>(NULL));
+    // search paths from environment variables
+    libPathStr = strdup(getenv("LD_LIBRARY_PATH"));
+    libPath = strtok(libPathStr, ":");
+    while (libPath != NULL) {
+        libPaths.push_back(std::string(libPath));
+        libPath = strtok(NULL, ":");
+    }
+    free(libPathStr);
+
+    //libPaths.push_back(std::string(getenv("PWD")));
+    for (unsigned int i = 0; i < libPaths.size(); i++) {
+        std::string str = libPaths[i] + "/" + filename;
+        if (stat(str.c_str(), &dummy) == 0) {
+            paths.push_back(str);
+        }
+    }
+
+    // search ld.so.cache
+    ldconfig = popen("/sbin/ldconfig -p", "r");
+    if (ldconfig) {
+        fgets(buffer, 512, ldconfig);	// ignore first line
+        while (fgets(buffer, 512, ldconfig) != NULL) {
+            pos = buffer;
+            while (*pos == ' ' || *pos == '\t') pos++;
+            key = pos;
+            while (*pos != ' ') pos++;
+            *pos = '\0';
+            while (*pos != '=' && *(pos + 1) != '>') pos++;
+            pos += 2;
+            while (*pos == ' ' || *pos == '\t') pos++;
+            val = pos;
+            while (*pos != '\n' && *pos != '\0') pos++;
+            *pos = '\0';
+            if (strcmp(key, filename.c_str()) == 0) {
+                paths.push_back(val);
+            }
+        }
+        pclose(ldconfig);
+    }
+
+    // search hard-coded system paths
+    libPaths.clear();
+    libPaths.push_back("/usr/local/lib");
+    libPaths.push_back("/usr/share/lib");
+    libPaths.push_back("/usr/lib");
+    libPaths.push_back("/usr/lib64");
+    libPaths.push_back("/lib");
+    libPaths.push_back("/lib64");
+    for (unsigned int i = 0; i < libPaths.size(); i++) {
+        std::string str = libPaths[i] + "/" + filename;
+        if (stat(str.c_str(), &dummy) == 0) {
+            paths.push_back(str);
+        }
+    }
+
+    return ( 0 < paths.size() );
 }
-
-#endif
 
 bool process::detachForDebugger(const EventRecord &/*crash_event*/) {
    long ret;
@@ -2691,6 +2665,14 @@ bool process::detachForDebugger(const EventRecord &/*crash_event*/) {
 void BinaryEdit::makeInitAndFiniIfNeeded()
 {
     Symtab* linkedFile = getAOut()->parse_img()->getObject();
+
+    // Disable this for .o's and static binaries
+    if( linkedFile->isStaticBinary() || 
+        linkedFile->getObjectType() == obj_RelocatableFile ) 
+    {
+        return;
+    }
+
     bool foundInit = false;
     bool foundFini = false;
     vector <Function *> funcs;
@@ -2787,4 +2769,30 @@ void BinaryEdit::makeInitAndFiniIfNeeded()
                                       UINT_MAX );
         linkedFile->addSymbol(finiSym);
     }
+}
+
+bool BinaryEdit::archSpecificMultithreadCapable() {
+    /*
+     * The heuristic for this check on Linux is that some symbols provided by
+     * pthreads are only defined when the binary contains pthreads. Therefore,
+     * check for these symbols, and if they are defined in the binary, then
+     * conclude that the binary is multithread capable.
+     */
+    const int NUM_PTHREAD_SYMS = 4;
+    const char *pthreadSyms[NUM_PTHREAD_SYMS] = 
+        { "pthread_cancel", "pthread_once", 
+          "pthread_mutex_unlock", "pthread_mutex_lock" 
+        };
+    if( mobj->isStaticExec() ) {
+        int numSymsFound = 0;
+        for(int i = 0; i < NUM_PTHREAD_SYMS; ++i) {
+            const pdvector<int_function *> *tmpFuncs = 
+                mobj->findFuncVectorByPretty(pthreadSyms[i]);
+            if( tmpFuncs != NULL && tmpFuncs->size() ) numSymsFound++;
+        }
+
+        if( numSymsFound == NUM_PTHREAD_SYMS ) return true;
+    }
+
+    return false;
 }

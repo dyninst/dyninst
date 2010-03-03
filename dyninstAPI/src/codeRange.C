@@ -225,9 +225,18 @@ codeRangeTree::entry *codeRangeTree::treeInsert(Address key, codeRange *value)
                     x = x->left;
                 else if(key > x->key)
                     x = x->right;
-                else
-                    return NULL;
-	}	
+                else {
+                    if(!(x->value) && !(x->value->get_size()))
+                    {
+                        return NULL;
+                    }
+                    else
+                    {
+                        x->value = value;
+                        return x;
+                    }
+                }
+	}
 	entry* z = new entry(key, value, nil);
 	z->parent = y;
 	if(!y) {
@@ -303,8 +312,11 @@ void codeRangeTree::traverse(pdvector<codeRange *> &all, entry* node) const{
 //////////////////////////// PUBLIC FUNCTIONS ////////////////////////////////
 
 void codeRangeTree::insert(codeRange *value) {
+    //assert(value->get_size());
  	entry* x = treeInsert(value->get_address(), value);
 	if(!x) {
+            entry* x = find_internal(value->get_address());
+            assert(value->get_size() == x->value->get_size());
          // We're done.
          return;
     }

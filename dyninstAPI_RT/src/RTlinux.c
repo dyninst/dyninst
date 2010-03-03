@@ -41,7 +41,11 @@
 #include <stdio.h>
 #include <errno.h>
 #include <unistd.h>
+
+#if !defined(DYNINST_RT_STATIC_LIB)
 #include <dlfcn.h>
+#endif
+
 #include <sys/types.h>
 #include <sys/syscall.h>
 #include <string.h>
@@ -49,7 +53,18 @@
 #include <signal.h>
 #include <sys/mman.h>
 #include <link.h>
+
+#if defined(DYNINST_RT_STATIC_LIB)
+/* 
+ * The weak symbol here removes the dependence of the static version of this
+ * library on pthread_self. If pthread_self is available, then it will be
+ * linked.  Otherwise, the linker will ignore it.
+ */
+#pragma weak pthread_self
+extern pthread_t pthread_self(void);
+#else
 #include <pthread.h>
+#endif
 
 extern double DYNINSTstaticHeap_512K_lowmemHeap_1[];
 extern double DYNINSTstaticHeap_16M_anyHeap_1[];
@@ -209,6 +224,11 @@ void DYNINSTos_init(int calledByFork, int calledByAttach)
 #endif
 }
 
+#if !defined(DYNINST_RT_STATIC_LIB)
+/*
+ * For now, removing dependence of static version of this library
+ * on libdl.
+ */
 typedef struct dlopen_args {
   const char *libname;
   int mode;
@@ -273,6 +293,7 @@ int DYNINSTloadLibrary(char *libname)
 #endif
    return 0;
 }
+#endif
 
 //Define this value so that we can compile on a system that doesn't have
 // gettid and still run on one that does.
@@ -316,6 +337,15 @@ dyntid_t dyn_pthread_self()
 {
    dyntid_t me;
    if (DYNINSTstaticMode) {
+#if defined(DYNINST_RT_STATIC_LIB)
+       /* This special case is necessary because the static
+        * version of libc doesn't define a version of pthread_self
+        * unlike the shared version of the library.
+        */
+       if( !pthread_self ) {
+           return (dyntid_t) DYNINST_SINGLETHREADED;
+       }
+#endif
       return (dyntid_t) pthread_self();
    }
    if (!DYNINST_pthread_self) {
@@ -819,7 +849,15 @@ static unsigned get_next_set_bitmask(unsigned *bit_mask, int last_pos) {
 
 int dyn_var = 0;
 
-#if defined(cap_binary_rewriter)
+#if defined(cap_binary_rewriter) && !defined(DYNINST_RT_STATIC_LIB)
+/* For a static binary, all global constructors are combined in an undefined
+ * order. Also, DYNINSTBaseInit must be run after all global constructors have
+ * been run. Since the order of global constructors is undefined, DYNINSTBaseInit
+ * cannot be run as a constructor in static binaries. Instead, it is run from a
+ * special constructor handler that processes all the global constructors in
+ * the binary. Leaving this code in would create a global constructor for the
+ * function runDYNINSTBaseInit(). See DYNINSTglobal_ctors_handler.
+ */ 
 extern void DYNINSTBaseInit();
 void runDYNINSTBaseInit() __attribute__((constructor));
 void runDYNINSTBaseInit()

@@ -70,7 +70,8 @@ const char *supportedLanguages2Str(supportedLanguages s);
 typedef enum {
    obj_Unknown,
    obj_SharedLib,
-   obj_Executable
+   obj_Executable,
+   obj_RelocatableFile
 } ObjectType;
 
 typedef enum { 
@@ -85,6 +86,7 @@ typedef enum {
 	       No_Such_Member,
 	       Not_A_File,
 	       Not_An_Archive,
+               Duplicate_Symbol,
 	       Export_Error,
 	       Invalid_Flags,
    Bad_Frame_Data,

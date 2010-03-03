@@ -272,36 +272,36 @@ class DyninstMemRegReader : public Dyninst::SymtabAPI::MemRegReader
 
    virtual bool GetReg(MachRegister reg, MachRegisterVal &val) {
       if (proc->getAddressWidth() == 4) {
-         switch (reg) {
-            case MachRegPC:
-            case MachRegReturn:
-               val = orig_frame->getPC();
+          switch (reg.val()) {
+            case x86::ieip:
+              case x86_64::ieip:
+                  val = orig_frame->getPC();
                break;
-            case x86::ESP:
-            case MachRegStackBase:
-               val = orig_frame->getSP();
+            case x86::iesp:
+              case x86_64::iesp:
+                  val = orig_frame->getSP();
                break;
-            case x86::EBP:
-            case MachRegFrameBase:
-               val = orig_frame->getFP();
+            case x86::iebp:
+              case x86_64::iebp:
+                  val = orig_frame->getFP();
                break;
             default:
                return false;
          }
       }
       else {
-         switch (reg) {
-            case MachRegPC:
-            case MachRegReturn:
-               val = orig_frame->getPC();
+          switch (reg.val()) {
+            case x86_64::irip:
+            case x86_64::ieip:
+                  val = orig_frame->getPC();
                break;
-            case x86_64::RSP:
-            case MachRegStackBase:
+            case x86_64::irsp:
+            case x86_64::iesp:
                val = orig_frame->getSP();
                break;
-            case x86_64::RBP:
-            case MachRegFrameBase:
-               val = orig_frame->getFP();
+            case x86_64::irbp:
+            case x86_64::iebp:
+                val = orig_frame->getFP();
                break;
             default:
                return false;
@@ -403,13 +403,13 @@ Frame Frame::getCallerFrame()
          stackwalk_printf("%s[%d]: vsyscall data is present, analyzing\n", 
                           FILE__, __LINE__);
          bool result;
-         result = vsys_obj->getRegValueAtFrame(pc_, MachRegReturn,
+         result = vsys_obj->getRegValueAtFrame(pc_, ReturnAddr,
                                                newPC, &reader);
          if (!result) {
             //Linux in inconsistent about whether we should subtract the
             // vys_start before using.  So we try both, stick with what works
             vsys_base = getProc()->getVsyscallStart();
-            result = vsys_obj->getRegValueAtFrame(pc_ - vsys_base, MachRegReturn,
+            result = vsys_obj->getRegValueAtFrame(pc_ - vsys_base, ReturnAddr,
                                                   newPC, &reader);
          }
          if (!result) {
@@ -417,7 +417,7 @@ Frame Frame::getCallerFrame()
             //FC-9 randomized the location of the vsyscall page, but didn't update
             //the debug info.  We'll try the non-updated address.
             vsys_base = getProc()->getVsyscallStart() - 0xffffe000;
-            result = vsys_obj->getRegValueAtFrame(pc_ - vsys_base, MachRegReturn,
+            result = vsys_obj->getRegValueAtFrame(pc_ - vsys_base, ReturnAddr,
                                                   newPC, &reader);
          }
          if (!result) {
@@ -427,9 +427,9 @@ Frame Frame::getCallerFrame()
          }         
          Dyninst::MachRegister frame_reg;
          if (getProc()->getAddressWidth() == 4)
-            frame_reg = x86::EBP;
+            frame_reg = x86::ebp;
          else
-            frame_reg = x86_64::RBP;
+            frame_reg = x86_64::rbp;
 
          result = vsys_obj->getRegValueAtFrame(pc_ - vsys_base, frame_reg,
                                                newFP, &reader);
@@ -439,7 +439,7 @@ Frame Frame::getCallerFrame()
             return Frame();
          }
          
-         result = vsys_obj->getRegValueAtFrame(pc_ - vsys_base, MachRegFrameBase,
+         result = vsys_obj->getRegValueAtFrame(pc_ - vsys_base, FrameBase,
                                                newSP, &reader);
          if (!result) {
             stackwalk_printf("[%s:%u] - Couldn't get stack debug info at %lx\n",

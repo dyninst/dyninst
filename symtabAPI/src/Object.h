@@ -175,7 +175,7 @@ protected:
 //    Offset loadAddress_;
 //    Offset entryAddress_;
 //    Offset baseAddress_;
-    
+ 
     bool is_aout_;
     bool is_dynamic_;
     bool has_error;

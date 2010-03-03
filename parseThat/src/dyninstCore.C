@@ -330,6 +330,19 @@ int launch_mutator()
     * Instrumentation Phase
     */
 
+   /* Load the library, if specified */
+   if (config.instType == USER_FUNC) {
+       char instLibrary[1024];
+       int offset = strcspn(config.inst_function, ":");
+       strncpy (instLibrary, config.inst_function, offset);
+       instLibrary[offset] = '\0';
+       if(! dh->addSpace->loadLibrary(instLibrary)) {
+          sendMsg(config.outfd, ID_INST_FIND_POINTS, VERB3, ID_FAIL,
+                  "Failure in loading library");
+          return false;
+       }
+   }
+
    if (config.trace_inst) 
    {
       errno = 0;
@@ -502,6 +515,22 @@ int launch_mutator()
    if (!config.use_process)
    {
       BPatch_binaryEdit *writeBE = dynamic_cast<BPatch_binaryEdit *>(dh->addSpace);
+
+      // Load symbol libraries (if necessary)
+      if( writeBE != NULL ) {
+          deque<string>::iterator symLib_iter;
+          for(symLib_iter = config.symbol_libraries.begin();
+              symLib_iter != config.symbol_libraries.end();
+              ++symLib_iter)
+          {
+              if( !writeBE->loadLibrary((*symLib_iter).c_str()) ) {
+                  sendMsg(config.outfd, ID_INST_FIND_POINTS, VERB3, ID_FAIL,
+                          "Unable to load symbol library");
+                  return false;
+              }
+          }
+      }
+
       writeBE->writeFile(config.writeFilePath);
    }
 
@@ -961,12 +990,10 @@ void closeTracePipe()
 }
 
 bool generateInstrumentation(dynHandle *dh, BPatch_function *func, BPatch_snippet* incSnippet) {
-
    if (config.instType == USER_FUNC) {
       // Instrument user's function call
-
+      
       // config.inst_function is of the format library:function_name
-      char *instLibrary  = (char *) malloc (1024);
       const char *instFunction;
 
       instFunction = strchr(config.inst_function, ':');
@@ -977,14 +1004,6 @@ bool generateInstrumentation(dynHandle *dh, BPatch_function *func, BPatch_snippe
       }
       instFunction++;
 
-      int offset = strcspn (config.inst_function, ":");
-      strncpy (instLibrary, config.inst_function, offset);
-      instLibrary[offset] = '\0';
-      if(! dh->addSpace->loadLibrary(instLibrary)) {
-         sendMsg(config.outfd, ID_INST_FIND_POINTS, VERB3, ID_FAIL,
-                 "Failure in loading library");
-         return false;
-      }
       BPatch_Vector<BPatch_function *> funcs;
       if( NULL ==  dh->image->findFunction(instFunction, funcs) || !funcs.size() || NULL == funcs[0]){
          sendMsg(config.outfd, ID_INST_FIND_POINTS, VERB3, ID_FAIL,

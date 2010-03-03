@@ -20,15 +20,19 @@ include ../../make.config
 # Now make any necessary architecture specific changes to variables:
 
 SRCS =		../src/Object-elf.C \
-			../src/Archive.C \
-			../src/Archive-elf.C \
+		../src/Archive.C \
+		../src/Archive-elf.C \
 		../src/parseDwarf.C \
 		../src/parseStab.C \
                 ../src/emitElf.C \
                 ../src/emitElf-64.C \
+		../src/emitElfStatic.C \
+		../src/emitElfStatic-stub.C \
+		../src/LinkMap.C \
 		../src/addrtranslate.C \
 		../src/addrtranslate-linux.C \
-		../src/addrtranslate-sysv.C
+		../src/addrtranslate-sysv.C \
+		../src/relocationEntry-stub.C
 
 MYFLAGS		+= 	-DUSES_DWARF_DEBUG -I$(LIBDWARF_INC) \
 				-I$(LIBUNWIND_INC) -I$(LIBELF_INC)
