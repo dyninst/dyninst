@@ -33,7 +33,6 @@
 #define _InstrucIter_h_
 
 #include "common/h/Types.h"
-#include "BPatch_Set.h"
 #include "BPatch_eventLock.h" // CONST_EXPORT...
 #include <vector>
 #include <set>
@@ -196,7 +195,7 @@ class InstrucIter {
    */
 
 #if defined(arch_x86) || defined(arch_x86_64)
-  bool getMultipleJumpTargets( BPatch_Set< Address >& result, 
+  bool getMultipleJumpTargets( std::set< Address >& result,
                                instruction& tableInsn, 
                                instruction& maxSwitchInsn, 
                                instruction& branchInsn,
@@ -205,7 +204,7 @@ class InstrucIter {
 			       Address tableOffsetFromThunk = 0);
 #else
   
-  bool getMultipleJumpTargets( BPatch_Set< Address >& result );
+  bool getMultipleJumpTargets( std::set< Address >& result );
 
 #endif
 

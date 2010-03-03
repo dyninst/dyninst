@@ -81,6 +81,7 @@ class instruction;
 
 #if defined(cap_instruction_api)
 #include "Instruction.h"
+#include "InstructionDecoder.h"
 #endif
 // As above: common class for both parse-time and run-time instPoints
 
@@ -94,20 +95,36 @@ class instPointBase {
 
   // Single instruction we're instrumenting (if at all)
 #if defined(cap_instruction_api)
-  Dyninst::InstructionAPI::Instruction::Ptr insn() const { return insn_; }
+    static Dyninst::InstructionAPI::InstructionDecoder::Ptr dec;
+    static void setArch(Dyninst::Architecture a, bool mode) {
+      dec = Dyninst::InstructionAPI::makeDecoder(a, NULL, 0);
+      dec->setMode(mode);
+    }
+    Dyninst::InstructionAPI::Instruction::Ptr insn() const {
+      dec->setBuffer(insn_, Dyninst::InstructionAPI::maxInstructionLength);
+      return dec->decode();
+    }
 #else
-  const instruction &insn() const { return insn_; }
+    static void setArch(Dyninst::Architecture, bool) {}
+    const instruction &insn() const { return insn_; }
 #endif
   instPointBase(
 #if defined(cap_instruction_api)
-          Dyninst::InstructionAPI::Instruction::Ptr insn,
+    Dyninst::InstructionAPI::Instruction::Ptr insn,
 #else
                                  instruction insn,
 #endif
-                instPointType_t type) :
-    ipType_(type),
-    insn_(insn)
-      { id_ = id_ctr++; }
+    instPointType_t type) :
+    ipType_(type)
+#if !defined(cap_instruction_api)
+      , insn_(insn)
+#endif
+    { id_ = id_ctr++;
+#if defined(cap_instruction_api)
+      insn_ = (unsigned char*)(malloc(insn->size()));
+      memcpy(insn_, insn->ptr(), insn->size());
+#endif      
+    }
   // We need to have a manually-set-everything method
   instPointBase(
 #if defined(cap_instruction_api)
@@ -115,20 +132,31 @@ class instPointBase {
 #else
                                  instruction insn,
 #endif
-                instPointType_t type,
+          instPointType_t type,
                 unsigned int id) :
       id_(id),
-      ipType_(type),
-    insn_(insn)
-      {}
+      ipType_(type)
+#if !defined(cap_instruction_api)    
+      , insn_(insn)
+#endif
+      {
+#if defined(cap_instruction_api)
+          insn_ = (unsigned char*)(malloc(insn->size()));
+          memcpy(insn_, insn->ptr(), insn->size());
+#endif
+      }
 
   int id() const { return id_; }
-    virtual ~instPointBase() {}
+    virtual ~instPointBase() {
+#if defined(cap_instruction_api)
+        free(insn_);
+#endif
+    }
  protected:
   unsigned int id_;
   instPointType_t ipType_;
 #if defined(cap_instruction_api)
-    Dyninst::InstructionAPI::Instruction::Ptr insn_;
+    unsigned char* insn_;
 #else
     instruction insn_;
 #endif
@@ -310,7 +338,7 @@ class instPoint : public instPointBase {
     // Generic instPoint...
     instPoint(AddressSpace *proc,
 #if defined(cap_instruction_api)
-                                 Dyninst::InstructionAPI::Instruction::Ptr insn,
+    Dyninst::InstructionAPI::Instruction::Ptr insn,
 #else
                                  instruction insn,
 #endif

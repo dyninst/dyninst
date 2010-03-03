@@ -121,6 +121,7 @@ bool IA_IAPI::hasCFT() const
             hascftstatus.second = true;
         }
     }
+    hascftstatus.first = true;
     return hascftstatus.second;
 }
 
@@ -1040,21 +1041,21 @@ bool IA_IAPI::fillTableEntries(Address thunkOffset,
 		if(img->isValidAddress(tableEntry))
 		{
 			if(tableStride == sizeof(Address)) {
-					// Unparseable jump table
-				jumpAddress = *(const Address *)img->getPtrToInstruction(tableEntry, context);
-                                if( jumpAddress == NULL ) {
-                                    parsing_printf("%s[%d]: failed to get pointer to instruction by offset\n",
-                                        FILE__, __LINE__);
-                                    return false;
-                                }
+			// Unparseable jump table
+                            jumpAddress = (*(const Address *)img->getPtrToInstruction(tableEntry, context));
+                            if( 0 == jumpAddress) {
+                                parsing_printf("%s[%d]: failed to get pointer to instruction by offset\n",
+                                    FILE__, __LINE__);
+                                return false;
+                            }
 			}
 			else {
-				jumpAddress = *(const int *)img->getPtrToInstruction(tableEntry, context);
-                                if( jumpAddress == NULL ) {
-                                    parsing_printf("%s[%d]: failed to get pointer to instruction by offset\n",
-                                        FILE__, __LINE__);
-                                    return false;
-                                }
+                            jumpAddress = (*(const int *)img->getPtrToInstruction(tableEntry, context));
+                            if( 0 == jumpAddress ) {
+                                parsing_printf("%s[%d]: failed to get pointer to instruction by offset\n",
+                                    FILE__, __LINE__);
+                                return false;
+                            }
 			}
 		}
 #if defined(os_windows)
@@ -1183,16 +1184,22 @@ bool IA_IAPI::isRealCall() const
 }
 
 bool IA_IAPI::isThunk() const {
+    Address targetAddr = getCFT();
   // Before we go a-wandering, check the target
-  if (!img->isValidAddress(getCFT()))
+    if (!img->isValidAddress(targetAddr))
   {
       parsing_printf("... Call to 0x%lx is invalid (outside code or data)\n",
-                     getCFT());
+                     targetAddr);
       return false;
+  }
+  std::map<Address,bool>::const_iterator foundCachedThunkInfo = thunkAtTarget.find(targetAddr);
+  if(foundCachedThunkInfo != thunkAtTarget.end())
+  {
+      return foundCachedThunkInfo->second;
   }
 
   const unsigned char *target =
-    (const unsigned char *)img->getPtrToInstruction(getCFT());
+          (const unsigned char *)img->getPtrToInstruction(targetAddr);
   // We're decoding two instructions: possible move and possible return.
   // Check for move from the stack pointer followed by a return.
   dyn_detail::boost::shared_ptr<Dyninst::InstructionAPI::InstructionDecoder> targetChecker =
@@ -1209,19 +1216,25 @@ bool IA_IAPI::isThunk() const {
             parsing_printf("... checking second insn\n");
             if(!thunkSecond) {
                 parsing_printf("...no second insn\n");
+                thunkAtTarget[targetAddr] = false;
                 return false;
             }
             if(thunkSecond->getCategory() != c_ReturnInsn)
             {
                 parsing_printf("...insn %s not a return\n", thunkSecond->format().c_str());
+                thunkAtTarget[targetAddr] = false;
                 return false;
             }
+            thunkAtTarget[targetAddr] = true;
             return true;
         }
     }
     parsing_printf("... real call found\n");
+    thunkAtTarget[targetAddr] = false;
     return false;
 }
+
+std::map<Address, bool> IA_IAPI::thunkAtTarget;
 
 bool IA_IAPI::isConditional() const
 {
@@ -1236,11 +1249,10 @@ bool IA_IAPI::simulateJump() const
 
 Address IA_IAPI::getCFT() const
 {
-    RegisterAST thePC = RegisterAST::makePC(img->getArch());
     if(validCFT) return cachedCFT;
     Expression::Ptr callTarget = curInsn()->getControlFlowTarget();
         // FIXME: templated bind(),dammit!
-    callTarget->bind(&thePC, Result(s64, current));
+    callTarget->bind(thePC.get(), Result(s64, current));
     parsing_printf("%s[%d]: binding PC in %s to 0x%x...", FILE__, __LINE__,
                    curInsn()->format().c_str(), current);
     Result actualTarget = callTarget->eval();

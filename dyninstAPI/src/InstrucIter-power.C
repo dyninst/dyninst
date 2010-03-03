@@ -46,7 +46,7 @@
 #include "InstrucIter.h"
 #include "mapped_object.h"
 
-#include "BPatch_Set.h"
+//#include "std::set.h"
 
 #include "BPatch_instruction.h"
 #include "BPatch_memoryAccess_NP.h"
@@ -1134,7 +1134,7 @@ Address InstrucIter::getBranchTargetAddress(bool *isAbsolute)
   return (Address)ret;
 }
 
-bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
+bool InstrucIter::getMultipleJumpTargets(std::set<Address>& result)
 {
   Address initialAddress = current;
   Address TOC_address = 0;
@@ -1163,7 +1163,7 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
   // If there are no prior instructions then we can't be looking at a
   // jump through a jump table.
   if( !hasPrev() ) {
-    result += (initialAddress + instruction::size());
+    result.insert(initialAddress + instruction::size());
     setCurrentAddress(initialAddress);
     return false;
   }
@@ -1179,7 +1179,7 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
     jumpAddrReg = (*check).xfxform.rt;
     //fprintf(stderr, "Jump table candidate, jump target register is %d\n", jumpAddrReg);
   } else {
-    result += (initialAddress + instruction::size());
+    result.insert(initialAddress + instruction::size());
     setCurrentAddress(initialAddress);
     return false;
   }
@@ -1339,7 +1339,7 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
   }
 //fprintf(stderr, "After checking: max switch %d\n", maxSwitch);
   if(!maxSwitch){
-    result += (initialAddress + instruction::size());
+    result.insert(initialAddress + instruction::size());
     //fprintf(stderr, "No maximum, returning\n");
     setCurrentAddress(initialAddress);
     return false;
@@ -1427,7 +1427,7 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
 	  Address res = (Address)(jumpStart + jumpOffset);
 
 	  if (img->isCode(res))
-	    result += (Address)(jumpStart+jumpOffset);
+              result.insert((Address)(jumpStart+jumpOffset));
 	  //fprintf(stderr, "Entry of 0x%lx\n", (Address)(jumpStart + jumpOffset));
 	}
 	else {
@@ -1457,7 +1457,7 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
       ptr = instructions_->getPtrToInstruction(tableEntry);
       assert(ptr);
       int jumpOffset = *((int *)ptr);
-      result += (Address)(jumpStart+jumpOffset);
+      result.insert((Address)(jumpStart+jumpOffset));
       }
     }    
   }
@@ -1476,7 +1476,7 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
       if(ptr)
       {
 	int jumpOffset = *((int *)ptr);
-	result += (Address)(jumpStartAddress+jumpOffset);
+        result.insert((Address)(jumpStartAddress+jumpOffset));
 	++entriesAdded;
       }
     }
@@ -1489,7 +1489,7 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
   }
 
   // Sanity check entries in res
-  for (BPatch_Set<Address>::iterator iter = result.begin();
+  for (std::set<Address>::iterator iter = result.begin();
        iter != result.end(); iter++) {
       if ((*iter) % 4) {
           parsing_printf("Warning: found unaligned jump table destination 0x%lx for jump at 0x%lx, disregarding table\n",
