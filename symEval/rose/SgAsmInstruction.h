@@ -8,7 +8,7 @@
 #if !defined(SG_ASM_INSN_H)
 #define SG_ASM_INSN_H
 
-#include "enums.h"
+#include "external/rose/rose-compat.h"
 #include "typedefs.h"
 #include "SgNode.h"
 

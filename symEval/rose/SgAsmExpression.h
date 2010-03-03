@@ -1,7 +1,7 @@
 #if !defined(SG_ASM_EXPR_H)
 #define SG_ASM_EXPR_H
 
-#include "enums.h"
+#include "external/rose/rose-compat.h"
 #include "SgNode.h"
 
 class SgAsmExpression : public SgNode {

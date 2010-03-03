@@ -177,18 +177,20 @@ void Slicer::pushContext(Context &context,
 			 image_func *callee,
 			 image_basicBlock *callBlock,
 			 long stackDepth) {
+  cerr << "pushContext with " << context.size() << " elements" << endl;
   assert(context.top().block == NULL);
   context.top().block = callBlock;
-  context.top().stackDepth = stackDepth;
 
-  context.push(ContextElement(callee));
+  cerr << "\t" << (context.top().func ? context.top().func->symTabName() : "NULL")
+       << ", " << context.top().stackDepth << endl;
+
+  context.push(ContextElement(callee, stackDepth));
 };
 
 void Slicer::popContext(Context &context) {
   context.pop();
 
   context.top().block = NULL;
-  context.top().stackDepth = 0;
 }
 
 void Slicer::shiftAbsRegion(AbsRegion &callerReg,
@@ -218,11 +220,10 @@ void Slicer::shiftAbsRegion(AbsRegion &callerReg,
 	  return;
 	}
 	else {
-	  cerr << "*** Shifting caller absloc " 
-	       << (int) callerAloc.loc()
-	       << " by stack depth " << stack_depth << endl;
-	  calleeReg.insert(Absloc(Absloc::Stack, 
-				  callerAloc.loc() - stack_depth,
+	  cerr << "*** Shifting caller absloc " << callerAloc.off()
+	       << " by stack depth " << stack_depth 
+	       << " and setting to function " << callee->symTabName() << endl;
+	  calleeReg.insert(Absloc(callerAloc.off() - stack_depth,
 				  0, // Entry point has region 0 by definition
 				  callee->symTabName()));
 	}
@@ -251,6 +252,10 @@ void Slicer::handleCall(AbsRegion &reg,
 		 stack_depth,
 		 callee);
   
+  cerr << "After call, context has " << context.size() << " elements" << endl;
+  cerr << "\t" << (context.top().func ? context.top().func->symTabName() : "NULL")
+       << ", " << context.top().stackDepth << endl;
+
   reg = newReg;
 }
 
@@ -259,14 +264,22 @@ void Slicer::handleReturn(AbsRegion &reg,
   // We need to add back the appropriate stack depth, basically
   // reversing what we did in handleCall
 
+  cerr << "Return: context has " << context.size() << " elements" << endl;
+  cerr << "\t" << (context.top().func ? context.top().func->symTabName() : "NULL")
+       << ", " << context.top().stackDepth << endl;
+
   long stack_depth = context.top().stackDepth;
-  
+
   popContext(context);
+  cerr << "\t" << (context.top().func ? context.top().func->symTabName() : "NULL")
+       << ", " << context.top().stackDepth << endl;
+
 
   AbsRegion newRegion;
   shiftAbsRegion(reg, newRegion, 
 		 -1*stack_depth,
 		 context.top().func);
+  reg = newRegion;
 }
 
 // Given a <location> this function returns a list of successors.

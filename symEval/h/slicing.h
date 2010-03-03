@@ -114,7 +114,9 @@ class Slicer {
     long stackDepth;
     
   ContextElement(image_func *f) : 
-    func(f), block(NULL), stackDepth(0) {};
+    func(f), block(NULL), stackDepth(-1) {};
+  ContextElement(image_func *f, long depth) :
+    func(f), block(NULL), stackDepth(depth) {};
   };
 
   // This should be sufficient...

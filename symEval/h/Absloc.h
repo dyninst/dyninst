@@ -47,7 +47,7 @@
 
 #include <values.h>
 
-#include "instructionAPI/h/Instruction.h"
+#include "Instruction.h"
 #include "AST.h"
 
 namespace Dyninst {

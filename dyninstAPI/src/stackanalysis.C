@@ -226,6 +226,7 @@ void StackAnalysis::sp_fixpoint() {
 #else
 #error "Undefined architecture"
 #endif
+
 	  stackanalysis_printf("\t Primed initial block\n");
         }
         else {

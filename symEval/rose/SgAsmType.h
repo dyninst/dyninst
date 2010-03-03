@@ -2,7 +2,7 @@
 #define SG_ASM_TYPE_H
 
 #include "SgNode.h"
-#include "enums.h"
+#include "external/rose/rose-compat.h"
 
 class SgAsmType : public SgNode {
  public:
