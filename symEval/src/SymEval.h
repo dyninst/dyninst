@@ -43,7 +43,7 @@
 #include "Absloc.h"
 #include "AST.h"
 
-#include "../rose/enums.h"
+#include "external/rose/rose-compat.h"
 
 class SgAsmx86Instruction;
 class SgAsmExpression;

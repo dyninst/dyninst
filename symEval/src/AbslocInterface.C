@@ -199,6 +199,7 @@ AbsRegion AbsRegionConverter::convert(Expression::Ptr exp,
     }
 
     if (isStack) {
+      cerr << "Converted stack " << exp->format() << endl;
       if (res.defined) {
 	return AbsRegion(Absloc(res.convert<Address>(),
 				spRegion,
@@ -219,7 +220,8 @@ AbsRegion AbsRegionConverter::convert(Expression::Ptr exp,
 }
 
 AbsRegion AbsRegionConverter::stack(Address addr,
-				    image_func *func) {
+				    image_func *func,
+				    bool push) {
     long spHeight = 0;
     int spRegion = 0;
     bool stackExists = getCurrentStackHeight(func,
@@ -228,6 +230,11 @@ AbsRegion AbsRegionConverter::stack(Address addr,
 					     spRegion);
     if (!stackExists) {
       return AbsRegion(Absloc::Heap);
+    }
+
+    if (push) {
+      int word_size = func->img()->getAddressWidth();
+      spHeight -= word_size;
     }
 
     return AbsRegion(Absloc(spHeight,
@@ -350,6 +357,8 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
   case e_call: {
     // This can be seen as a push of the PC...
 
+    cerr << "Cracking a call..." << endl;
+
     std::vector<AbsRegion> pcRegion;
     pcRegion.push_back(Absloc::makePC(func->img()->getArch()));
     
@@ -419,7 +428,7 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
     Assignment::Ptr fpA = Assignment::Ptr(new Assignment(I,
 							 addr,
 							 fp));
-    fpA->addInput(aConverter.stack(addr + I->size(), func));
+    fpA->addInput(aConverter.stack(addr + I->size(), func, false));
 
     assignments.push_back(spA);
     assignments.push_back(fpA);
@@ -435,7 +444,7 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
     Assignment::Ptr pcA = Assignment::Ptr(new Assignment(I, 
 							 addr,
 							 pc));
-    pcA->addInput(aConverter.stack(addr, func));
+    pcA->addInput(aConverter.stack(addr, func, false));
 
     AbsRegion sp = AbsRegion(Absloc::makeSP(func->img()->getArch()));
     Assignment::Ptr spA = Assignment::Ptr(new Assignment(I,
@@ -533,7 +542,7 @@ void AssignmentConverter::handlePushEquivalent(const Instruction::Ptr I,
   // The handled-in operands are used to define *SP
   // And then we update SP
   
-  AbsRegion stackTop = aConverter.stack(addr, func);
+  AbsRegion stackTop = aConverter.stack(addr, func, true);
   AbsRegion sp(Absloc::makeSP(func->img()->getArch()));
 
   Assignment::Ptr spA = Assignment::Ptr(new Assignment(I,
@@ -557,7 +566,7 @@ void AssignmentConverter::handlePopEquivalent(const Instruction::Ptr I,
   // We use the top of the stack and any operands beyond the first.
   // (Can you pop into memory?)
 
-  AbsRegion stackTop = aConverter.stack(addr, func);
+  AbsRegion stackTop = aConverter.stack(addr, func, false);
   AbsRegion sp(Absloc::makeSP(func->img()->getArch()));
   
   Assignment::Ptr spA = Assignment::Ptr(new Assignment(I,

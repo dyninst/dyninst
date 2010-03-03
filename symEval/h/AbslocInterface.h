@@ -43,7 +43,8 @@ class AbsRegionConverter {
 
   // Cons up a stack reference at the current addr
   AbsRegion stack(Address addr,
-		  image_func *func);
+		  image_func *func,
+		  bool push);
 
  private:
     // Returns false if the current height is unknown.

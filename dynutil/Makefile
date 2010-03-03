@@ -17,6 +17,7 @@ PUBLIC_H = Annotatable.h \
 		Node.h \
 		dyn_regs.h \
 		stl_utils.h \
+		AST.h \
 		dyn_detail 
 
 #INSTALL_TARGETS = $(pathsubst %, $(INCLUDE_DEST)/%,$(PUBLIC_H))
