@@ -343,20 +343,35 @@ bool BinaryEdit::getStatFileDescriptor(const std::string &name, fileDescriptor &
    return true;
 }
 
-#if !defined(cap_binary_rewriter)
-std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::string /* filename */)
-{
-  assert(!"Not implemented");
-  std::map<std::string, BinaryEdit *> retMap;
-  retMap.insert(std::make_pair("", static_cast < BinaryEdit * >(NULL)));
-  return retMap;
+#if !defined(os_linux) && !defined(os_solaris)
+std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::string filename) {
+    /*
+     * Note: this does not actually do any library name resolution, as that is OS-dependent
+     * If resolution is required, it should be implemented in an OS-dependent file
+     * (see linux.C for an example)
+     *
+     * However, this version allows the RT library to be opened with this function regardless
+     * if library name resolution has been implemented on a platform.
+     */
+    std::map<std::string, BinaryEdit *> retMap;
+
+    BinaryEdit *temp = BinaryEdit::openFile(filename);
+    if( temp && temp->getAddressWidth() == getAddressWidth() ) {
+        retMap.insert(std::make_pair(filename, temp));
+        return retMap;
+    }
+
+    retMap.insert(std::make_pair("", static_cast < BinaryEdit * >(NULL)));
+    return retMap;
 }
 
 bool BinaryEdit::getResolvedLibraryPath(const std::string &, std::vector<std::string> &) {
     assert(!"Not implemented");
     return false;
 }
+#endif
 
+#if !defined(cap_binary_rewriter)
 bool BinaryEdit::doStaticBinarySpecialCases() {
     return true;
 }

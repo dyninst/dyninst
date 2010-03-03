@@ -1115,7 +1115,7 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
       }
    }
    startup_printf("%s[%d]:  opened file %s (or archive)\n", FILE__, __LINE__, file.c_str());
-#elif defined(os_linux)
+#elif defined(os_linux) || defined(os_solaris)
    string file = desc_.file().c_str();
    if( desc_.member().empty() ) {
        startup_printf("%s[%d]:  opening file %s\n", FILE__, __LINE__, file.c_str());

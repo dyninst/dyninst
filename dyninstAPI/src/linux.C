@@ -2576,105 +2576,6 @@ bool process::readAuxvInfo()
    
    
 }
-#if defined(cap_binary_rewriter)
-
-std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::string filename)
-{
-    std::map<std::string, BinaryEdit *> retMap;
-
-    std::vector<std::string> paths;
-    std::vector<std::string>::iterator pathIter;
-
-    // First, find the specified library file
-    bool resolved = getResolvedLibraryPath(filename, paths);
-
-    // Second, create a set of BinaryEdits for the found library
-    if ( resolved ) {
-        startup_printf("[%s:%u] - Opening dependent file %s\n",
-                       FILE__, __LINE__, filename.c_str());
-
-        Symtab *origSymtab = getMappedObject()->parse_img()->getObject();
-
-        // Dynamic case
-        if ( !origSymtab->isStaticBinary() ) {
-            for(pathIter = paths.begin(); pathIter != paths.end(); ++pathIter) {
-                BinaryEdit *temp = BinaryEdit::openFile(*pathIter);
-                if (temp && temp->getAddressWidth() == getAddressWidth()) {
-                    retMap.insert(std::make_pair(*pathIter, temp));
-                    return retMap;
-                }
-                delete temp;
-            }
-        } else {
-            // Static executable case
-
-            /* 
-             * Alright, this is a kludge, but even though the Archive is opened
-             * twice (once here and once by the image class later on), it is
-             * only parsed once because the Archive class keeps track of all
-             * open Archives.
-             *
-             * This is partly due to the fact that Archives are collections of
-             * Symtab objects and their is one Symtab for each BinaryEdit. In
-             * some sense, an Archive is a collection of BinaryEdits.
-             */
-            for(pathIter = paths.begin(); pathIter != paths.end(); ++pathIter) {
-                Archive *library;
-                Symtab *singleObject;
-                if (Archive::openArchive(library, *pathIter)) {
-                    std::vector<Symtab *> members;
-                    if (library->getAllMembers(members)) {
-                        std::vector <Symtab *>::iterator member_it;
-                        for (member_it = members.begin(); member_it != members.end();
-                             ++member_it) 
-                        {
-                            BinaryEdit *temp = BinaryEdit::openFile(*pathIter, (*member_it)->memberName());
-                            if (temp && temp->getAddressWidth() == getAddressWidth()) {
-                                std::string mapName = *pathIter + string(":") +
-                                    (*member_it)->memberName();
-                                retMap.insert(std::make_pair(mapName, temp));
-                            }else{
-                                if(temp) delete temp;
-                                retMap.clear();
-                                break;
-                            }
-                        }
-
-                        if (retMap.size() > 0) {
-                            origSymtab->addLinkingResource(library);
-                            return retMap;
-                        }
-                        if( library ) delete library;
-                    }
-                } else if (Symtab::openFile(singleObject, *pathIter)) {
-                    BinaryEdit *temp = BinaryEdit::openFile(*pathIter);
-                    if (temp && temp->getAddressWidth() == getAddressWidth()) {
-                        if( singleObject->getObjectType() == obj_SharedLib ||
-                            singleObject->getObjectType() == obj_Executable ) 
-                        {
-                          startup_printf("%s[%d]: cannot load dynamic object(%s) when rewriting a static binary\n", 
-                                  FILE__, __LINE__, pathIter->c_str());
-                          std::string msg = std::string("Cannot load a dynamic object when rewriting a static binary");
-                          showErrorCallback(71, msg.c_str());
-
-                          delete singleObject;
-                        }else{
-                            retMap.insert(std::make_pair(*pathIter, temp));
-                            return retMap;
-                        }
-                    }
-                    if(temp) delete temp;
-                }
-            }
-        }
-    }
-
-    startup_printf("[%s:%u] - Creation error opening %s\n",
-                   FILE__, __LINE__, filename.c_str());
-    retMap.clear();
-    retMap.insert(std::make_pair("", static_cast < BinaryEdit * >(NULL)));
-    return retMap;
-}
 
 bool BinaryEdit::getResolvedLibraryPath(const std::string &filename, std::vector<std::string> &paths) {
     char *libPathStr, *libPath;
@@ -2746,8 +2647,6 @@ bool BinaryEdit::getResolvedLibraryPath(const std::string &filename, std::vector
 
     return ( 0 < paths.size() );
 }
-
-#endif
 
 bool process::detachForDebugger(const EventRecord &/*crash_event*/) {
    long ret;
