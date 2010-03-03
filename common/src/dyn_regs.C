@@ -32,6 +32,8 @@
 #define DYN_DEFINE_REGS
 #include "dynutil/h/dyn_regs.h"
 
+#include "external/rose/rose-compat.h"
+
 namespace Dyninst {
 
 std::map<signed int, const char *> *Dyninst::MachRegister::names;
@@ -247,6 +249,150 @@ bool MachRegister::isStackPointer() const
 {
    return (*this == x86_64::rsp || *this == x86::esp ||
            *this == ppc32::r1 || *this == ppc64::r1);
+}
+
+void MachRegister::getROSERegister(int &c, int &n, int &p)
+{
+   // Rose: class, number, position
+   // Dyninst: category, base id, subrange
+
+   signed int category = (reg & 0x00ff0000);
+   signed int subrange = (reg & 0x0000ff00);
+   signed int baseID =   (reg & 0x000000ff);
+
+   switch (getArchitecture()) {
+      case Arch_x86:
+      case Arch_x86_64: // 64-bit not supported in ROSE
+         switch (category) {
+            case x86::GPR:
+               c = x86_regclass_gpr;
+               switch (baseID) {
+                  case x86::BASEA:
+                     n = x86_gpr_ax;
+                     break;
+                  case x86::BASEC:
+                     n = x86_gpr_cx;
+                     break;
+                  case x86::BASED:
+                     n = x86_gpr_dx;
+                     break;
+                  case x86::BASEB:
+                     n = x86_gpr_bx;
+                     break;
+                  case x86::BASESP:
+                     n = x86_gpr_sp;
+                     break;
+                  case x86::BASEBP:
+                     n = x86_gpr_bp;
+                     break;
+                  case x86::BASESI:
+                     n = x86_gpr_si;
+                     break;
+                  case x86::BASEDI:
+                     n = x86_gpr_di;
+                     break;
+                  default:
+                     n = 0;
+                     break;
+               }
+               break;
+            case x86::SEG:
+               c = x86_regclass_segment;
+               switch (baseID) {
+                  case 0x0:
+                     n = x86_segreg_ds;
+                     break;
+                  case 0x1:
+                     n = x86_segreg_es;
+                     break;
+                  case 0x2:
+                     n = x86_segreg_fs;
+                     break;
+                  case 0x3:
+                     n = x86_segreg_gs;
+                     break;
+                  case 0x4:
+                     n = x86_segreg_cs;
+                     break;
+                  case 0x5:
+                     n = x86_segreg_ss;
+                     break;
+                  default:
+                     n = 0;
+                     break;
+               }
+               break;
+            case x86::FLAG:
+               c = x86_regclass_flags;
+               n = 0;
+               break;
+            case x86::MISC:
+               c = x86_regclass_unknown;
+               break;
+            case x86::XMM:
+               c = x86_regclass_xmm;
+               n = baseID;
+               break;
+            case x86::MMX:
+               c = x86_regclass_mm;
+               n = baseID;
+               break;
+            case x86::CTL:
+               c = x86_regclass_cr;
+               n = baseID;
+               break;
+            case x86::DBG:
+               c = x86_regclass_dr;
+               n = baseID;
+               break;
+            case x86::TST:
+               c = x86_regclass_unknown;
+               break;
+            case 0:
+               switch (baseID) {
+                  case 0x10:
+                     c = x86_regclass_ip;
+                     n = 0;
+                     break;
+                  default:
+                     c = x86_regclass_unknown;
+                     break;
+               }
+               break;
+         }
+         break;
+      default:
+         c = x86_regclass_unknown;
+         n = 0;
+         break;
+   }
+
+   switch (getArchitecture()) {
+      case Arch_x86:
+      case Arch_x86_64:
+         switch (subrange) {
+            case x86::FULL:
+            case x86::OCT:
+            case x86::FPDBL:
+               p = x86_regpos_all;
+               break;
+            case x86::H_REG:
+               p = x86_regpos_high_byte;
+               break;
+            case x86::L_REG:
+               p = x86_regpos_low_byte;
+               break;
+            case x86::W_REG:
+               p = x86_regpos_word;
+               break;
+            case x86_64::D_REG:
+               p = x86_regpos_dword;
+               break;
+         }
+         break;
+      default:
+        p = x86_regpos_unknown;
+   }
 }
 
 }

@@ -34,7 +34,7 @@
 #include <iostream>
 
 #include "../rose/SgAsmx86Instruction.h"
-#include "../rose/enums.h"
+#include "external/rose/rose-compat.h"
 #include "../rose/x86InstructionSemantics.h"
 
 // SgAsmType.h

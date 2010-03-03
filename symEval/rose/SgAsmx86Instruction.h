@@ -7,7 +7,7 @@
 // All methods that do not appear to be used by x86InstructionSemantics.h
 // have been commented out. 
 
-#include "enums.h"
+#include "external/rose/rose-compat.h"
 #include "typedefs.h"
 #include "SgNode.h"
 
