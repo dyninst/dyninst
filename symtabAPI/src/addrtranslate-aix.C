@@ -120,6 +120,7 @@ bool AddressTranslateAIX::refresh()
 
    prmap_t mapEntry;
 
+#if defined(DEBUG_PRINT)
    for (;;) {
       result = pread(map_fd, &mapEntry, sizeof(prmap_t), iter * sizeof(prmap_t));
       if (result != sizeof(prmap_t))
@@ -132,7 +133,6 @@ bool AddressTranslateAIX::refresh()
          pread(map_fd, buf, 512, mapEntry.pr_pathoff);
       }
       
-#if defined(DEBUG_PRINT)
       printf("%lu\n" 
              "\taddr = %llx +%llu\n"
              "\tmapname = %s\n"
@@ -159,9 +159,9 @@ bool AddressTranslateAIX::refresh()
       }
 
       printf("\n");
-#endif
       iter++;
    }
+#endif
 
    iter = 0;
 
@@ -190,6 +190,7 @@ bool AddressTranslateAIX::refresh()
       else {
          filename = deref_link(mapEntry.pr_mapname);
       }
+              
       is_aout = false;
       
       LoadedLib *ll = new LoadedLibAIX(filename, (unsigned long)mapEntry.pr_vaddr, object_name);

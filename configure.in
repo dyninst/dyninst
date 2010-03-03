@@ -110,6 +110,17 @@ else
 fi
 
 if test "`echo $host_os | cut -b-3`" = "aix" ; then
+   if test "`basename $CXX`" = "xlC" ; then
+      BUILD_XLC="true";
+   elif test "`basename $CC`" = "xlc" ; then
+      BUILD_XLC="true";
+   else
+      BUILD_XLC="";
+   fi
+   AC_SUBST(BUILD_XLC)
+fi
+ 
+if test "`echo $host_os | cut -b-3`" = "aix" ; then
    AC_MSG_NOTICE([AIX system, skipping libdwarf...])
    
 else
