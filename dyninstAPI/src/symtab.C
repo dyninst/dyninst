@@ -68,6 +68,10 @@
 #include <cvconst.h>
 #endif
 
+#if defined(os_vxworks)
+#include "dyninstAPI/src/vxworks.h"
+#endif
+
 AnnotationClass<image_variable> ImageVariableUpPtrAnno("ImageVariableUpPtrAnno");
 AnnotationClass<image_func> ImageFuncUpPtrAnno("ImageFuncUpPtrAnno");
 pdvector<image*> allImages;
@@ -364,20 +368,20 @@ void image::findMain()
        //for exit and main
       
        int c;
-       instructUnion i;
        int calls = 0;
        Word *code_ptr_ = (Word *) sec->getPtrToRawData();
        
        for( c = 0; code_ptr_[ c ] != 0; c++ );
 
+       instruction i;
        while( c > 0 )
        {
-           i.raw = code_ptr_[ c ];
+           i.setInstruction(&code_ptr_[ c ]);
 
-           if(i.iform.lk && 
-              ((i.iform.op == Bop) || (i.bform.op == BCop) ||
-               ((i.xlform.op == BCLRop) && 
-                ((i.xlform.xo == 16) || (i.xlform.xo == 528)))))
+           if(IFORM_LK(i) && 
+              ((IFORM_OP(i) == Bop) || (BFORM_OP(i) == BCop) ||
+               ((XLFORM_OP(i) == BCLRop) && 
+                ((XLFORM_XO(i) == 16) || (XLFORM_XO(i) == 528)))))
            {
                calls++;
                if( calls == 2 )
@@ -389,21 +393,21 @@ void image::findMain()
        Offset currAddr = sec->getRegionAddr() + c * instruction::size();
        Offset mainAddr = 0;
        
-       if( ( i.iform.op == Bop ) || ( i.bform.op == BCop ) )
+       if( ( IFORM_OP(i) == Bop ) || ( BFORM_OP(i) == BCop ) )
        {
-           int  disp = 0;
-           if(i.iform.op == Bop)
+           int disp = 0;
+           if(IFORM_OP(i) == Bop)
            {
-               disp = i.iform.li;
+               disp = IFORM_LI(i);
            }
-           else if(i.bform.op == BCop)
+           else if(BFORM_OP(i) == BCop)
            {
-               disp = i.bform.bd;
+               disp = BFORM_BD(i);
            }
 
            disp <<= 2;
 
-           if(i.iform.aa)
+           if(IFORM_AA(i))
            {
                mainAddr = (Offset)disp;
            }
@@ -509,7 +513,7 @@ void image::findMain()
                                             linkedFile->getDefaultModule()));
        }
    }
-#endif    
+#endif
 }
 
 /*
@@ -558,6 +562,15 @@ bool image::symbolsToFunctions(pdvector<image_func *> &raw_funcs)
   for(; funcIter!=allFuncs.end();funcIter++) {
       Function *lookUp = *funcIter;
        
+#if defined(os_vxworks)
+      // Don't include local functions for the VxWorks Kernel object
+      if (desc_.member() == "<KERNEL>")
+//          if (lookUp->getFirstSymbol()->getLinkage() == Symbol::SL_LOCAL) {
+//              fprintf(stderr, "Skipping local KERNEL function %s...\n", lookUp->getFirstSymbol()->getMangledName().c_str());
+              continue;
+//          }
+#endif
+
        if (lookUp->getModule()->fullName() == "DYNINSTheap") {
            // Do nothing for now; we really don't want to report it as
            // a real symbol.
@@ -1138,7 +1151,7 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
        }
    }
 #else
-   string file = desc_.file().c_str();
+   string file = desc_.file();
    startup_printf("%s[%d]:  opening file %s\n", FILE__, __LINE__, file.c_str());
    if( !Symtab::openFile(linkedFile, file) ) {
        err = true;
@@ -1161,6 +1174,10 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
    // Defaults to Arch_none otherwise
 
    err = false;
+
+#if defined(os_vxworks)
+   fixup_offsets(file, linkedFile);
+#endif
 
    // fix isSharedObject flag in file descriptor
    desc.setIsShared(!linkedFile->isExec());
@@ -1748,8 +1765,7 @@ void *image::getPtrToInstruction(Address offset) const
       }
 #endif
       if (reg) return (void *) ((Address)reg->getPtrToRawData() +
-                                offset -
-                                reg->getRegionAddr());
+                                offset - reg->getRegionAddr());
       //return NULL;
    }
    else if (isData(offset)) { // not sure why we allow this
@@ -1885,8 +1901,15 @@ dictionary_hash<Address, std::string> *image::getPltFuncs()
 
    pltFuncs = new dictionary_hash<Address, std::string>(addrHash);
    assert(pltFuncs);
-   for(unsigned k = 0; k < fbt.size(); k++)
+   for(unsigned k = 0; k < fbt.size(); k++) {
+#if defined(os_vxworks)
+       if (fbt[k].target_addr() == 0) {
+           (*pltFuncs)[fbt[k].rel_addr()] = fbt[k].name().c_str();
+       }
+#else
       (*pltFuncs)[fbt[k].target_addr()] = fbt[k].name().c_str();
+#endif
+   }
    return pltFuncs;
 }
 

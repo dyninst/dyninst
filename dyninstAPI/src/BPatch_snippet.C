@@ -1281,11 +1281,14 @@ bool BPatch_variableExpr::readValueInt(void *dst)
 		return false;
 	}
 
-	if (size) {
+	if (size == 2 || size == 4 || size == 8) {
+		// XXX - We should be going off of type here, not just size.
+		lladdrSpace->readDataWord(address, size, dst, true);
+		return true;
+	} else if (size) {
 		lladdrSpace->readDataSpace(address, size, dst, true);
 		return true;
-	}
-	else {
+	} else {
 		return false;
 	}
 }
@@ -1336,12 +1339,19 @@ bool BPatch_variableExpr::writeValueInt(const void *src, bool /* saveWorld */)
   }
 
   if (size) {
-      if (!lladdrSpace->writeDataSpace(address, size, src)) {
+      bool writeStatus;
+
+      if (size == 2 || size == 4 || size == 8)
+          writeStatus = lladdrSpace->writeDataWord(address, size, src);
+      else
+          writeStatus = lladdrSpace->writeDataSpace(address, size, src);
+
+      if (!writeStatus) {
 	std::stringstream errorMsg;
 	errorMsg << "variable " << name << " in .bss section, cannot write";
 	BPatch_reportError(BPatchWarning, 109, errorMsg.str().c_str());
 	return false;
-      }          
+      }
       return true;
   }
   else {

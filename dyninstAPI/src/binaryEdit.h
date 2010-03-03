@@ -59,8 +59,7 @@ class BinaryEdit : public AddressSpace {
                        bool showError);
     bool readTextSpace(const void *inOther, 
                        u_int amount, 
-                       const void *inSelf);
-    
+                       void *inSelf);
 
     bool writeDataSpace(void *inOther,
                         u_int amount,
@@ -68,6 +67,22 @@ class BinaryEdit : public AddressSpace {
     bool writeTextSpace(void *inOther,
                         u_int amount,
                         const void *inSelf);
+
+    // "Read"/"Write" to an address space with correct endian swapping.
+    bool readDataWord(const void *inOther, 
+                      u_int amount, 
+                      void *inSelf, 
+                      bool showError);
+    bool readTextWord(const void *inOther, 
+                      u_int amount, 
+                      void *inSelf);
+
+    bool writeDataWord(void *inOther,
+                       u_int amount,
+                       const void *inSelf);
+    bool writeTextWord(void *inOther,
+                       u_int amount,
+                       const void *inSelf);
 
     // Memory allocation
     // We don't specify how it should be done, only that it is. The model is

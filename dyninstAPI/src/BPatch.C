@@ -1321,6 +1321,7 @@ BPatch_process *BPatch::processCreateInt(const char *path, const char *argv[],
    }
 
    //  and ensure its executable (does not check permissions):
+#if !defined(os_vxworks) // Not necessary for VxWorks modules
    if (! ( (statbuf.st_mode & S_IXUSR)
             || (statbuf.st_mode & S_IXGRP)
             || (statbuf.st_mode & S_IXOTH) )) {
@@ -1329,6 +1330,7 @@ BPatch_process *BPatch::processCreateInt(const char *path, const char *argv[],
       reportError(BPatchFatal, 68, ebuf);
       return NULL;
    }
+#endif // VxWorks
 #endif
 
    BPatch_process *ret = 

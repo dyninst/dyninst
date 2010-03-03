@@ -176,8 +176,8 @@ class InstrucIter {
     InstrucIter(const InstrucIter& ii);
     
     // Generic "address, process" iterator.
-    InstrucIter( Address addr, unsigned size, AddressSpace *space);
-    InstrucIter( Address addr, AddressSpace *space); 
+    InstrucIter( Address addr, unsigned size, InstructionSource *source);
+    InstrucIter( Address addr, InstructionSource *source); 
 
     InstrucIter(image_func* func);
     InstrucIter(Address start, image_func* func);

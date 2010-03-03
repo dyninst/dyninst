@@ -37,6 +37,10 @@
 #include "dyninstAPI/src/mailbox.h"
 #include "dyninstAPI/src/callbacks.h"
 
+#if defined(os_vxworks)
+#include "vxworks.h"
+#endif
+
 rpcThr::rpcThr(rpcThr *parT, rpcMgr *cM, dyn_thread *cT) :
     mgr_(cM),
     thr_(cT),
@@ -383,6 +387,13 @@ irpcLaunchState_t rpcThr::runPendingIRPC()
 	      << endl;
          return irpcError;
       }
+#endif
+
+#if defined(os_vxworks)
+      // No signals on VxWorks
+      if (runningRPC_->rpcResultAddr)
+          addBreakpoint(runningRPC_->rpcResultAddr);
+      addBreakpoint(runningRPC_->rpcCompletionAddr);
 #endif
 
       if (mgr_->proc()->IndependentLwpControl())

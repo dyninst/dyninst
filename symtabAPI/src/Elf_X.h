@@ -184,12 +184,12 @@ class Elf_X_Rel {
     unsigned long R_SYM(int i) const { 
        return (!is64 ?
                static_cast<unsigned long>(ELF32_R_SYM(rel32[i].r_info)) :
-               static_cast<unsigned long>(ELF64_R_SYM( rel64[i].r_info))); 
+               static_cast<unsigned long>(ELF64_R_SYM(rel64[i].r_info))); 
     }
     unsigned long R_TYPE(int i) const { 
        return (!is64 ? 
                static_cast<unsigned long>(ELF32_R_TYPE(rel32[i].r_info)) :
-               static_cast<unsigned long>(ELF64_R_TYPE( rel64[i].r_info))); 
+               static_cast<unsigned long>(ELF64_R_TYPE(rel64[i].r_info))); 
     };
 
     // Write Interface
@@ -745,9 +745,15 @@ class Elf_X_Shdr {
                static_cast<unsigned long>(shdr64->sh_flags)); 
     }
     unsigned long sh_addr() const { 
+#if !defined(os_vxworks)
        return (!is64 ? 
                static_cast<unsigned long>(shdr32->sh_addr) :
                static_cast<unsigned long>(shdr64->sh_addr)); 
+#else
+       return (!is64 ? 
+               static_cast<unsigned long>(shdr32->sh_offset) :
+               static_cast<unsigned long>(shdr64->sh_offset)); 
+#endif
     }
     unsigned long sh_offset() const { 
        return (!is64 ? 
