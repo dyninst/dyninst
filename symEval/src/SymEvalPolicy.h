@@ -246,7 +246,7 @@ class SymEvalPolicy {
       std::map<Absloc, Assignment::Ptr>::iterator i = aaMap.find(convert(r));
       if (i != aaMap.end()) {
 	res[i->second] = value.var();
-      }
+      } 
       // Otherwise we don't care. Annoying that we 
       // had to expand this register...
     }
@@ -353,7 +353,7 @@ class SymEvalPolicy {
 
     // TODO FIXME - we need a "bottom".
     Handle<1> undefined_() {
-      return Handle<1>(getConstAST(-1, 1));
+      return Handle<1>(getBottomAST());
     }
 
     // If-then-else
@@ -586,7 +586,11 @@ class SymEvalPolicy {
     AST::Ptr getConstAST(uint64_t n, size_t) {
       return ConstantAST<uint64_t>::create(n);
     }
-                                        
+                        
+    AST::Ptr getBottomAST() {
+      return BottomAST::create();
+    }
+                
     AST::Ptr getUnaryAST(ROSEOperation::Op op,
                          AST::Ptr a) {
       return UnaryAST<ROSEOperation>::create(ROSEOperation(op), a);

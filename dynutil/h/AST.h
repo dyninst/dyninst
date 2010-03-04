@@ -76,6 +76,26 @@ class AST {
   virtual bool isStrictEqual(const AST &rhs) const = 0;
 };
 
+class BottomAST : public AST {
+ public:
+  typedef dyn_detail::boost::shared_ptr<AST> Ptr;
+  BottomAST() {};
+  virtual ~BottomAST() {};
+
+  virtual void getChildren(std::vector<AST::Ptr> &) const {};
+  static AST::Ptr create() {
+    return AST::Ptr(new BottomAST());
+  }
+
+  virtual const std::string format() const { return "<bottom>"; }
+
+ protected:
+  virtual bool isStrictEqual(const AST &) const {
+    return true;
+  }
+
+};
+
 template <typename V>
 class VariableAST : public AST {
  public:

@@ -91,6 +91,7 @@ std::string Absloc::format() const {
     ret << "_" << std::hex << addr_ << std::dec;
     break;
   default:
+    ret << "(UNKNOWN)";
     break;
   }
 

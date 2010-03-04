@@ -100,7 +100,7 @@ void AbsRegionConverter::convertAll(InstructionAPI::Instruction::Ptr insn,
 AbsRegion AbsRegionConverter::convert(RegisterAST::Ptr reg) {
   // FIXME:
   // Upcast register so we can be sure to match things later
-  
+
   return AbsRegion(Absloc(reg->getID().getBaseRegister()));
 }
 
@@ -199,7 +199,6 @@ AbsRegion AbsRegionConverter::convert(Expression::Ptr exp,
     }
 
     if (isStack) {
-      cerr << "Converted stack " << exp->format() << endl;
       if (res.defined) {
 	return AbsRegion(Absloc(res.convert<Address>(),
 				spRegion,
@@ -357,8 +356,6 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
   case e_call: {
     // This can be seen as a push of the PC...
 
-    cerr << "Cracking a call..." << endl;
-
     std::vector<AbsRegion> pcRegion;
     pcRegion.push_back(Absloc::makePC(func->img()->getArch()));
     
@@ -501,11 +498,11 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
     std::vector<AbsRegion> defined;
 
     aConverter.convertAll(I,
-				   addr,
-				   func,
-				   used,
-				   defined);
-
+			  addr,
+			  func,
+			  used,
+			  defined);
+    
     for (std::vector<AbsRegion>::const_iterator i = defined.begin();
 	 i != defined.end(); ++i) {
       Assignment::Ptr a = Assignment::Ptr(new Assignment(I, addr, *i));
@@ -604,3 +601,28 @@ bool AssignmentConverter::cache(image_func *func,
   assignments = iter2->second;
   return true;
 }
+
+
+//////////////////////////////////
+
+#include "dyninstAPI/src/function.h"
+#include "dyninstAPI/h/BPatch_function.h"
+
+void AssignmentConverter::convert(const Instruction::Ptr I, 
+                                  const Address &addr,
+				  int_function *func,
+				  std::vector<Assignment::Ptr> &assignments) {
+  return convert(I, addr, func->ifunc(), assignments);
+}
+
+
+
+void AssignmentConverter::convert(const Instruction::Ptr I, 
+                                  const Address &addr,
+				  BPatch_function *func,
+				  std::vector<Assignment::Ptr> &assignments) {
+  return convert(I, addr, func->lowlevel_func(), assignments);
+}
+
+
+

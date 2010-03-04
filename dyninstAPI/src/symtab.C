@@ -1146,6 +1146,20 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
    }
 #endif
 
+   // Set architecture field
+#if defined(arch_power) 
+   if (linkedFile->getAddressWidth() == 8)
+     arch = Dyninst::Arch_ppc64;
+   else
+     arch = Dyninst::Arch_ppc32;
+#elif defined (arch_x86) || defined(arch_x86_64)
+   if (linkedFile->getAddressWidth() == 8)
+     arch = Dyninst::Arch_x86;
+   else
+     arch = Dyninst::Arch_x86_64;
+#endif
+   // Defaults to Arch_none otherwise
+
    err = false;
 
    // fix isSharedObject flag in file descriptor

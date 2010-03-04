@@ -143,12 +143,14 @@ class Slicer {
   // 1) Translates the given AbsRegion into the callee-side
   //    view; this just means adjusting stack locations. 
   // 2) Increases the given context
-  void handleCall(AbsRegion &reg,
+  // Returns false if we didn't translate the absregion correctly
+  bool handleCall(AbsRegion &reg,
 		  Context &context,
 		  image_basicBlock *callerBlock,
 		  image_func *callee);
 
   // And the corresponding...
+  // Returns false if we ran out of context (and thus assume widening for now)
   void handleReturn(AbsRegion &reg,
 		    Context &context);
 

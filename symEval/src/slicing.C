@@ -232,7 +232,7 @@ void Slicer::shiftAbsRegion(AbsRegion &callerReg,
   }
 }
 
-void Slicer::handleCall(AbsRegion &reg,
+bool Slicer::handleCall(AbsRegion &reg,
 			Context &context,
 			image_basicBlock *callerBlock,
 			image_func *callee) {
@@ -240,8 +240,9 @@ void Slicer::handleCall(AbsRegion &reg,
   AbsRegion newReg = reg;
 
   long stack_depth;
-  if (!getStackDepth(caller, callerBlock->endOffset(), stack_depth))
-    stack_depth = -1;
+  if (!getStackDepth(caller, callerBlock->endOffset(), stack_depth)) {
+    return false;
+  }
 
   // Increment the context
   pushContext(context, callee, callerBlock, stack_depth);
@@ -257,6 +258,7 @@ void Slicer::handleCall(AbsRegion &reg,
        << ", " << context.top().stackDepth << endl;
 
   reg = newReg;
+  return true;
 }
 
 void Slicer::handleReturn(AbsRegion &reg,
@@ -271,6 +273,9 @@ void Slicer::handleReturn(AbsRegion &reg,
   long stack_depth = context.top().stackDepth;
 
   popContext(context);
+
+  assert(!context.empty());
+
   cerr << "\t" << (context.top().func ? context.top().func->symTabName() : "NULL")
        << ", " << context.top().stackDepth << endl;
 
@@ -351,7 +356,7 @@ bool Slicer::getSuccessors(Element &current,
       succ.push(newElement);
     }
     else {
-      // hrm. Just skip for now, I suppose...
+      ret = false;
     }
   }
   return ret;
@@ -387,11 +392,12 @@ bool Slicer::handleCallEdge(image_basicBlock *block,
   getInsns(newElement.loc);
 
   // HandleCall updates both an AbsRegion and a context...
-  handleCall(newElement.reg,
-	     newElement.con,
-	     current.loc.block,
-	     newElement.loc.func);
-
+  if (!handleCall(newElement.reg,
+		  newElement.con,
+		  current.loc.block,
+		  newElement.loc.func))
+    return false;
+  
   return true;
 }
 

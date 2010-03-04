@@ -69,6 +69,7 @@ MachRegister MachRegister::getBaseRegister() const {
    switch (getArchitecture()) {
       case Arch_x86:
       case Arch_x86_64:
+	
           return MachRegister(reg & 0xfffff0ff);
       case Arch_ppc32:
       case Arch_ppc64:
@@ -128,6 +129,8 @@ unsigned int MachRegister::size() const {
                  return 16;
              case x86::FPDBL:
                  return 10;
+	 case x86::BIT:
+	   return 0;
              default:
                assert(0);
          }
@@ -146,6 +149,8 @@ unsigned int MachRegister::size() const {
                  return 16;
              case x86_64::FPDBL:
                  return 10;
+	 case x86_64::BIT:
+	   return 0;
              default:
                assert(0);
          }
@@ -324,7 +329,38 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
                break;
             case x86::FLAG:
                c = x86_regclass_flags;
-               n = 0;
+	       switch(baseID) {
+	       case x86::CF:
+		 n = x86_flag_cf;
+		 break;
+	       case x86::PF:
+		 n = x86_flag_pf;
+		 break;
+	       case x86::AF:
+		 n = x86_flag_af;
+		 break;
+	       case x86::ZF:
+		 n = x86_flag_zf;
+		 break;
+	       case x86::SF:
+		 n = x86_flag_sf;
+		 break;
+	       case x86::TF:
+		 n = x86_flag_tf;
+		 break;
+	       case x86::IF:
+		 n = x86_flag_if;
+		 break;
+	       case x86::DF:
+		 n = x86_flag_df;
+		 break;
+	       case x86::OF:
+		 n = x86_flag_of;
+		 break;
+	       default:
+		 assert(0);
+		 break;
+	       }
                break;
             case x86::MISC:
                c = x86_regclass_unknown;
@@ -388,6 +424,9 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
             case x86_64::D_REG:
                p = x86_regpos_dword;
                break;
+	    case x86::BIT:
+     	       p = x86_regpos_all;
+	       break;
          }
          break;
       default:
