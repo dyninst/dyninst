@@ -1557,63 +1557,6 @@ ThreadState* ThreadState::createThreadState(ProcDebug *parent,
    return newts;
 }
 
-BottomOfStackStepperImpl::BottomOfStackStepperImpl(Walker *w, BottomOfStackStepper *p) :
-   FrameStepper(w),
-   parent(p),
-   initialized(false)
-{
-   sw_printf("[%s:%u] - Constructing BottomOfStackStepperImpl at %p\n",
-             __FILE__, __LINE__, this);
-}
-
-gcframe_ret_t BottomOfStackStepperImpl::getCallerFrame(const Frame &in, Frame & /*out*/)
-{
-   /**
-    * This stepper never actually returns an 'out' frame.  It simply 
-    * tries to tell if we've reached the top of a stack and returns 
-    * either gcf_stackbottom or gcf_not_me.
-    **/
-   if (!initialized)
-      initialize();
-
-   std::vector<std::pair<Address, Address> >::iterator i;
-   for (i = ra_stack_tops.begin(); i != ra_stack_tops.end(); i++)
-   {
-      if (in.getRA() >= (*i).first && in.getRA() <= (*i).second)
-         return gcf_stackbottom;
-   }
-
-   for (i = sp_stack_tops.begin(); i != sp_stack_tops.end(); i++)
-   {
-      if (in.getSP() >= (*i).first && in.getSP() < (*i).second)
-         return gcf_stackbottom;
-   }
-
-   /*   if (archIsBottom(in)) {
-      return gcf_stackbottom;
-      }*/
-   return gcf_not_me;
-}
-
-unsigned BottomOfStackStepperImpl::getPriority() const
-{
-   //Highest priority, test for top of stack first.
-   return stackbottom_priority;
-}
-
-void BottomOfStackStepperImpl::registerStepperGroup(StepperGroup *group)
-{
-   unsigned addr_width = group->getWalker()->getProcessState()->getAddressWidth();
-   if (addr_width == 4)
-      group->addStepper(parent, 0, 0xffffffff);
-#if defined(arch_64bit)
-   else if (addr_width == 8)
-      group->addStepper(parent, 0, 0xffffffffffffffff);
-#endif
-   else
-      assert(0 && "Unknown architecture word size");
-}
-
 void BottomOfStackStepperImpl::initialize()
 {
 #if defined(cap_stackwalker_use_symtab)
