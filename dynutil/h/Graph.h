@@ -35,10 +35,13 @@
 #if !defined(GRAPH_H)
 #define GRAPH_H
 
+#include "dyntypes.h"
 #include "dyn_detail/boost/shared_ptr.hpp"
 #include <set>
 #include <list>
 #include <queue>
+#include <map>
+
 
 #include "Annotatable.h"
 #include "Node.h"

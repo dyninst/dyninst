@@ -54,8 +54,7 @@ G_PTHREAD       = -pthread
 
 include ../make.module.tmpl
 
-ifdef IBM_BPATCH_COMPAT
-  LDFLAGS += -liberty -bbigtoc -bexpall
+ifdef XLC_BUILD
   # should be building a static library in this case
   TARGET3_STATIC  = libsymtabAPI.a
   TARGET_INSTALL  = $(TARGET3_STATIC)

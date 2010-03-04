@@ -35,6 +35,7 @@
 #if defined (MSC_VER)
 #define DYN_DETAIL_BOOST_NO_INTRINSIC_WCHAR_T 1
 #endif
+#include "dyntypes.h"
 #include <vector>
 #include <map>
 #include <typeinfo>
@@ -43,7 +44,6 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "dyntypes.h"
 #include "util.h"
 #include "dyn_detail/boost/type_traits/is_base_of.hpp"
 #include "dyn_detail/boost/type_traits/is_pointer.hpp"
@@ -86,8 +86,9 @@ class AnnotationClassBase
 
 	  ser_func_t serialize_func;
 
-      COMMON_EXPORT AnnotationClassBase(std::string n, 
-            anno_cmp_func_t cmp_func_ = NULL, ser_func_t sf_ = NULL);
+     COMMON_EXPORT AnnotationClassBase(std::string n, 
+                                       anno_cmp_func_t cmp_func_ = NULL, 
+                                       ser_func_t sf_ = NULL);
 
 	  COMMON_EXPORT virtual ~AnnotationClassBase(); 
 

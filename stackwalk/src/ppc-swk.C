@@ -42,27 +42,44 @@
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
+#if defined(os_linux)
+
+#define GET_FRAME_BASE(spr) __asm__("or %0, %%r1, %%r1\n" : "=r"(spr))
+typedef struct {
+   Address out_fp;
+   Address out_ra;
+} ra_fp_pair_t;
+
+#else
+
+#define GET_FRAME_BASE(spr) __asm__("or %0, 1, 1\n" : "=r"(spr))
+typedef struct {
+   Address out_fp;
+   Address unused;
+   Address out_ra;
+} ra_fp_pair_t;
+
+#endif
+
+
 bool ProcSelf::getRegValue(Dyninst::MachRegister reg, THR_ID, Dyninst::MachRegisterVal &val)
 {
-  register Dyninst::MachRegisterVal **sp;
-  Dyninst::MachRegisterVal *fp_ra;
+  ra_fp_pair_t **sp;
+  ra_fp_pair_t *fp_ra;
 
-  __asm__("or %0, %%r1, %%r1\n"
-	  : "=r"(sp));
+  GET_FRAME_BASE(sp);
 
   if (reg == Dyninst::MachRegStackBase) {
      val = (Dyninst::MachRegisterVal) sp;
   }
 
   fp_ra = *sp;
-  if (reg == Dyninst::MachRegFrameBase) 
-  {
-     val = fp_ra[0];
+  if (reg == Dyninst::MachRegFrameBase) {
+     val = (Dyninst::MachRegisterVal) fp_ra;
   }
 
-  if (reg == Dyninst::MachRegPC) 
-  {
-     val = fp_ra[1];
+  if (reg == Dyninst::MachRegPC) {
+     val = fp_ra->out_ra;
   }
 
   sw_printf("[%s:%u] - Returning value %lx for reg %u\n", 
@@ -87,22 +104,18 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
 {
   Address in_fp, out_sp;
   bool result;
-  struct {
-    Address out_fp;
-    Address out_ra;
-  } ra_fp_pair;
+  ra_fp_pair_t ra_fp_pair;
 
   if (!in.getFP())
     return gcf_stackbottom;
 
   in_fp = in.getFP();
 
-  //TODO: Mutatee word size
   out_sp = in_fp;
   out.setSP(out_sp);
   
   result = getProcessState()->readMem(&ra_fp_pair, in_fp, 
-                                      sizeof(ra_fp_pair));
+                                      sizeof(ra_fp_pair_t));
   if (!result) {
     sw_printf("[%s:%u] - Couldn't read from %lx\n", __FILE__, __LINE__, in_fp);
     return gcf_error;
@@ -110,7 +123,7 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
   out.setFP(ra_fp_pair.out_fp);
 
   result = getProcessState()->readMem(&ra_fp_pair, ra_fp_pair.out_fp, 
-                                      sizeof(ra_fp_pair));
+                                      sizeof(ra_fp_pair_t));
   if (!result) {
     sw_printf("[%s:%u] - Couldn't read from %lx\n", __FILE__, __LINE__,
 	      ra_fp_pair.out_fp);

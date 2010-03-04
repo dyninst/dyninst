@@ -239,6 +239,116 @@ void P_xdrrec_create(XDR *x, const u_int send_sz, const u_int rec_sz,
 		(int(*)(void *, char *, int))writeit);}
 
 
+#define DMGL_PARAMS      (1 << 0)       /* Include function args */
+#define DMGL_ANSI        (1 << 1)       /* Include const, volatile, etc */
+
+#if defined(cap_native_demangler)
+#include <demangle.h>
+extern "C" {
+extern Name *demangle(char *name, char **rest, unsigned long options);
+extern NameKind kind(Name *);
+extern char *text(Name *);
+extern char *functionName(Name *);
+extern char *varName(Name *);
+extern void erase(Name *);
+}
+#endif
+
+#if defined(cap_libiberty)
+extern "C" char *cplus_demangle(char *, int);
+#endif
+
+extern void dedemangle( char * demangled, char * dedemangled );
+
+char *P_cplus_demangle( const char * symbol, bool nativeCompiler, bool includeTypes ) {
+   /* If the symbol isn't from the native compiler, or the native demangler
+      isn't available, use the built-in. */
+#if defined(cap_liberty)
+   if( !nativeCompiler ) {
+      char * demangled = cplus_demangle( const_cast<char *>(symbol),
+                                         includeTypes ? DMGL_PARAMS | DMGL_ANSI : 0 );
+      if( demangled == NULL ) { return NULL; }
+
+      if( ! includeTypes ) {
+         /* De-demangling never makes a string longer. */
+         char * dedemangled = strdup( demangled );
+         assert( dedemangled != NULL );
+
+         dedemangle( demangled, dedemangled );
+         assert( dedemangled != NULL );
+
+         free( demangled );
+         return dedemangled;
+      }
+
+      return demangled;
+   } /* end if not using native demangler. */
+#endif
+
+#if defined(cap_native_demangler)
+   /* Use the native demangler, which apparently behaves funny. */
+   Name * name;
+   char * rest;
+   
+   /* native_demangle() won't actually demangled 'symbol'.
+      Find out what kind() of symbol it is and demangle from there. */
+   name = demangle( const_cast<char*>(symbol), (char **) & rest,
+                    RegularNames | ClassNames | SpecialNames | ParameterText | QualifierText );
+   if( name == NULL ) { return NULL; }
+   
+   char * demangled = NULL;
+   switch( kind( name ) ) {
+      case ::Function:
+         if (includeTypes)
+            demangled = text(name);
+         else
+            demangled = functionName(name);   
+         break;
+         
+      case MemberFunction:
+         /* Doing it this way preserves the leading classnames. */
+         demangled = text(name);
+         break;
+         
+      case MemberVar:
+         demangled = varName(name);
+         break;
+         
+      case VirtualName:
+      case Class:
+      case Special:
+      case Long:
+         demangled = text(name);
+         break;
+      default: assert( 0 );
+   } /* end kind() switch */
+   
+   /* Potential memory leak: no erase( name ) call.  Also, the
+      char *'s returned from a particular Name will be freed
+      when that name is erase()d or destroyed, so strdup if we're
+      fond of them. */
+   
+   if( ! includeTypes ) {
+      /* De-demangling never makes a string longer. */
+      char * dedemangled = strdup( demangled );
+      char *old_demangled = dedemangled;
+      assert( dedemangled != NULL );
+      
+      dedemangle( demangled, dedemangled );
+      assert( dedemangled != NULL );
+      erase(name);
+      
+      assert(old_demangled == dedemangled);
+      return dedemangled;
+   }
+   char *strname = strdup(demangled);
+   erase(name);
+   return strname;
+#endif
+   return NULL;
+} /* end P_cplus_demangle() */
+
+
 
 
 
