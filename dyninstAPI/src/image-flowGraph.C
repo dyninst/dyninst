@@ -1383,17 +1383,15 @@ image_func * image_func::bindCallTarget(
     image_func *targetFunc;
     bool created = false;
 
+#if !defined(ppc32_linux)
     if(image_->getPltFuncs() && image_->getPltFuncs()->defines(target))
     {
         parsing_printf("%s[%d]: skipping known PLT entry at 0x%lx\n", FILE__,
                        __LINE__, target);
-#if defined(ppc32_linux)
-        // An excellent time to update possibly empty PLT relocations.
-        image_->updatePltFunc(this, targetFunc);
-#endif
         return NULL;
 
     }
+#endif
 
     // targetfunc may be parsed or unparsed, and it may not yet have
     // an entry basic block associated with it. `created' indicates
@@ -1465,6 +1463,10 @@ image_func * image_func::bindCallTarget(
                 parsing_printf("%s[%u]: removing symtab function at 0x%lx\n", FILE__, __LINE__, targetFunc->getOffset());
                 targetFunc->img()->getObject()->deleteFunction(targetFunc->getSymtabFunction());
             }
+#if defined(ppc32_linux)
+            // An excellent time to update possibly empty PLT relocations.
+            image_->updatePltFunc(this, targetFunc);
+#endif
             targetFunc = NULL;
         }
 
