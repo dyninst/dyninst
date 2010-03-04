@@ -979,7 +979,7 @@ bool BinaryEdit::needsPIC()
    assert(symtab);
    if(getMappedObject()->fileName().find("lib") == 0)
    {
-       if(getMappedObject()->fileName().find(".so") != -1)
+       if(getMappedObject()->fileName().find(".so") != std::string::npos)
        {
            return true;
        }

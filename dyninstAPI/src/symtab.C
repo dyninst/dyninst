@@ -1819,7 +1819,7 @@ bool image::getExecCodeRanges(std::vector<std::pair<Address, Address> > &ranges)
    bool result = linkedFile->getCodeRegions(regions);
    if (!result)
       return false;
-   Address cur_start, cur_end;
+   Address cur_start = 0, cur_end = (Address)(-1);
    bool found_something = false;
    fprintf(stderr, "\n");
    for (std::vector<Region *>::iterator i = regions.begin(); i != regions.end(); i++)

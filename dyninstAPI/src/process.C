@@ -5313,7 +5313,7 @@ bool process::recognize_threads(process *parent)
             
         if (lwp->is_asLWP()) continue;
         
-        const pdvector<int_function *> *thread_funcs;
+        const pdvector<int_function *> *thread_funcs = NULL;
         
         pdvector<mapped_object *>::iterator runtime_lib_it;
         for(runtime_lib_it = runtime_lib.begin(); 

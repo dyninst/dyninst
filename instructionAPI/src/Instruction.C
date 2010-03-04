@@ -509,7 +509,7 @@ memAccessors.begin()));
 		long offset;
 		cft->target->bind(thePC, Result(u32, 0));
 		offset = cft->target->eval().convert<long>();
-		if(offset != size())
+                if(offset != (int)(size()))
 		  return c_CallInsn;
               }
           }
