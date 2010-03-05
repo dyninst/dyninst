@@ -203,7 +203,6 @@ VariantT SgAsmExpression::variantT() const
 
 SgAsmExpression::~SgAsmExpression()
 {
-
 }
 
 SgAsmValueExpression::SgAsmValueExpression()
@@ -321,7 +320,7 @@ SgAsmDoubleWordValueExpression::~SgAsmDoubleWordValueExpression()
 
 }
 
-SgAsmQuadWordValueExpression::SgAsmQuadWordValueExpression(unsigned long value)
+SgAsmQuadWordValueExpression::SgAsmQuadWordValueExpression(uint64_t value)
 {
   p_value = value;
 }
@@ -754,7 +753,7 @@ SgUnsignedCharList SgAsmx86Instruction::get_raw_bytes() const
   return p_raw_bytes;
 }
 
-void SgAsmx86Instruction::set_address(unsigned long address)
+void SgAsmx86Instruction::set_address(rose_addr_t address)
 {
   p_address = address;
 }

@@ -72,13 +72,20 @@ class AST {
 
   virtual const std::string format() const = 0;
 
+  // Substitutes every occurrence of a with b in
+  // AST in. Returns a new AST. 
+
+  static AST::Ptr substitute(AST::Ptr in, AST::Ptr a, AST::Ptr b); 
+
  protected:
   virtual bool isStrictEqual(const AST &rhs) const = 0;
+
+  virtual void setChildren(std::vector<AST::Ptr> &) = 0;
 };
 
 class BottomAST : public AST {
  public:
-  typedef dyn_detail::boost::shared_ptr<AST> Ptr;
+  typedef dyn_detail::boost::shared_ptr<BottomAST> Ptr;
   BottomAST() {};
   virtual ~BottomAST() {};
 
@@ -93,6 +100,10 @@ class BottomAST : public AST {
   virtual bool isStrictEqual(const AST &) const {
     return true;
   }
+
+  virtual void setChildren(std::vector<AST::Ptr> &r) {
+    assert(r.empty());
+  };
 
 };
 
@@ -109,11 +120,18 @@ class VariableAST : public AST {
   }
 
   virtual const std::string format() const { return v_.format(); }
+
+  const V &val() const { return v_; }
+
  protected:
   virtual bool isStrictEqual(const AST &rhs) const {
     const VariableAST<V> &other(dynamic_cast<const VariableAST<V>&>(rhs));
     return (v_ == other.v_);
   }
+
+  virtual void setChildren(std::vector<AST::Ptr> &r) {
+    assert(r.empty());
+  };
   
  private:
   const V v_;
@@ -131,6 +149,8 @@ class ConstantAST : public AST {
     return AST::Ptr(new ConstantAST(c));
   }
 
+  const C &val() const { return c_; }
+  
   virtual const std::string format() const {
     std::stringstream ret;
     ret << "<" << c_ << ">";
@@ -143,6 +163,10 @@ class ConstantAST : public AST {
     return (c_ == other.c_);
   }
   
+  virtual void setChildren(std::vector<AST::Ptr> &r) {
+    assert(r.empty());
+  };
+
  private:
   const C c_;
 };
@@ -169,13 +193,21 @@ class UnaryAST : public AST {
     return ret.str();
   }
 
+  const O &op() const { return o_; }
+
+  const AST::Ptr operand() const { return a_; }
 
  protected:
   virtual bool isStrictEqual(const AST &rhs) const {
     const UnaryAST<O> &other(dynamic_cast<const UnaryAST<O>&>(rhs));
     return ((o_ == other.o_) && ((*a_) == (*(other.a_))));
   }
-  
+
+  virtual void setChildren(std::vector<AST::Ptr> &r) {
+    assert(r.size() == 1);
+    a_ = r[0];
+  };
+
  private:
   const O o_;
   AST::Ptr a_;
@@ -205,6 +237,11 @@ class BinaryAST : public AST {
     return ret.str();
   }
 
+  const O &op() const { return o_; }
+
+  const AST::Ptr left() const { return a_; }
+  const AST::Ptr right() const { return b_; }
+
  protected:
   virtual bool isStrictEqual(const AST &rhs) const {
     const BinaryAST<O> &other(dynamic_cast<const BinaryAST<O>&>(rhs));
@@ -212,6 +249,12 @@ class BinaryAST : public AST {
 	    ((*a_) == (*(other.a_))) &&
 	    ((*b_) == (*(other.b_))));
   }
+
+  virtual void setChildren(std::vector<AST::Ptr> &r) {
+    assert(r.size() == 2);
+    a_ = r[0];
+    b_ = r[1];
+  };
   
  private:
   const O o_;
@@ -253,6 +296,13 @@ class TernaryAST : public AST {
 	    ((*b_) == (*(other.b_))) &&
 	    ((*c_) == (*(other.c_))));
   }
+
+  virtual void setChildren(std::vector<AST::Ptr> &r) {
+    assert(r.size() == 3);
+    a_ = r[0];
+    b_ = r[1];
+    c_ = r[3];
+  };
   
  private:
   const O o_;

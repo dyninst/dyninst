@@ -50,6 +50,8 @@
 #include "Instruction.h"
 #include "AST.h"
 
+class image_func;
+
 namespace Dyninst {
 
 class Absloc {
@@ -68,6 +70,9 @@ class Absloc {
   bool isPC() const;
   bool isSPR() const;
   
+  bool isSP() const;
+  bool isFP() const;
+
  Absloc() :
   type_(Unknown),
     reg_(),
@@ -181,6 +186,7 @@ class AbsRegion {
   //iterator &end();
 
   bool operator==(const AbsRegion &rhs) const;
+  bool operator<(const AbsRegion &rhs) const;
 
   const std::string format() const;
 
@@ -251,18 +257,22 @@ class Assignment {
 
   Assignment(const InstructionAPI::Instruction::Ptr i,
 	     const Address a,
+	     image_func *f,
 	     const std::vector<AbsRegion> &ins,
 	     const AbsRegion &o) : 
     insn_(i),
     addr_(a),
+      func_(f),
     inputs_(ins),
     out_(o) {};
 
   Assignment(const InstructionAPI::Instruction::Ptr i,
 	     const Address a,
+	     image_func *f,
 	     const AbsRegion &o) : 
     insn_(i),
     addr_(a),
+      func_(f),
     out_(o) {};
 
   // Internally used method; add a dependence on 
@@ -273,9 +283,13 @@ class Assignment {
   void addInput(const AbsRegion &reg);
   void addInputs(const std::vector<AbsRegion> &regions);
 
+  image_func *func() const { return func_; }
+
  private:
   InstructionAPI::Instruction::Ptr insn_;
   Address addr_;
+
+  image_func *func_;
 
   std::vector<AbsRegion> inputs_;
   AbsRegion out_;

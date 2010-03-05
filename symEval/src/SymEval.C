@@ -38,6 +38,9 @@
 
 #include "../rose/x86InstructionSemantics.h"
 
+#include "dyninstAPI/src/stackanalysis.h"
+#include "BindEval.h"
+
 using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;
 using namespace Dyninst::SymbolicEvaluation;
@@ -64,9 +67,23 @@ void SymEval::expand(Result &res) {
   if (i == res.end()) return;
 
   Assignment::Ptr ptr = i->first;
+  cerr << "\t\t Expanding insn " << ptr->insn()->format() << endl;
+
   expandInsn(ptr->insn(),
 	     ptr->addr(),
 	     res);
+  // Let's experiment with simplification
+  image_func *func = ptr->func();
+  StackAnalysis sA(func);
+  StackAnalysis::Height sp = sA.findSP(ptr->addr());
+  StackAnalysis::Height fp = sA.findFP(ptr->addr());
+
+  StackBindEval sbe(func->symTabName().c_str(), sp, fp);
+
+  for (i = res.begin(); i != res.end(); ++i) {
+    i->second = sbe.simplify(i->second);
+  }
+
 }
 
 
@@ -117,6 +134,18 @@ SgAsmx86Instruction SymEval::convert(const InstructionAPI::Instruction::Ptr &ins
     else if (rinsn.get_kind() == x86_pop) {
       assert(operands.size() == 2);
       roperands->append_operand(convert(operands[0]));
+    }
+    else if (rinsn.get_kind() == x86_call) {
+      // IAPI gives us something like so:
+      // add(Offset, add(EIP, size)
+      // So we want to strip out the first part...
+      Expression::Ptr expr = operands[0].getValue();
+      BinaryFunction *bin = dynamic_cast<BinaryFunction *>(expr.get());
+      if (bin) {
+	vector<InstructionAST::Ptr> kids;
+	bin->getChildren(kids);
+	roperands->append_operand(convert(dyn_detail::boost::dynamic_pointer_cast<Expression>(kids[0])));
+      }
     }
     else {
         for (std::vector<InstructionAPI::Operand>::iterator opi = operands.begin(),

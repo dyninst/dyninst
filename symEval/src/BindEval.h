@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007-2008 Barton P. Miller
+ * Copyright (c) 2007-2009 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -29,25 +29,52 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include "AST.h"
+#if !defined(_BIND_EVAL_H)
+#define _BIND_EVAL_H
 
-#include "../../common/h/singleton_object_pool.h"
+#include "dyninstAPI/src/stackanalysis.h"
+#include "dynutil/h/AST.h"
+#include "symEval/h/Absloc.h"
+#include "SymEvalPolicy.h"
+#include <string>
 
-using namespace Dyninst; 
+// A quick and not-very-efficient implementation of bind/eval folding
+// for ASTs.
+namespace Dyninst {
+namespace SymbolicEvaluation {
 
-AST::Ptr AST::substitute(AST::Ptr in, AST::Ptr a, AST::Ptr b) {
-  // Quick check
-  if (*in == *a)
-    return b;
+class StackBindEval {
+  typedef dyn_detail::boost::shared_ptr<VariableAST<AbsRegion> > vPtr;
+  typedef dyn_detail::boost::shared_ptr<ConstantAST<uint64_t> > cPtr;
+  typedef dyn_detail::boost::shared_ptr<ConstantAST<StackAnalysis::Height> > hPtr;
+  typedef dyn_detail::boost::shared_ptr<UnaryAST<ROSEOperation> > uPtr;
+  typedef dyn_detail::boost::shared_ptr<BinaryAST<ROSEOperation> > bPtr;
+  
 
-  // Recurse to children
-  std::vector<AST::Ptr> kids;
-  std::vector<AST::Ptr> newKids;
-  in->getChildren(kids);
-  for (unsigned i = 0; i < kids.size(); ++i) {
-    newKids.push_back(substitute(kids[i], a, b));
-    in->setChildren(newKids);
-  }
-  return in;
-}
+ public:
 
+  StackBindEval(const char *funcname,
+		StackAnalysis::Height &stackHeight,
+		StackAnalysis::Height &frameHeight);
+
+  AST::Ptr simplify(AST::Ptr in);
+
+ private:
+  AST::Ptr dispatch(AST::Ptr in);
+
+  //AST::Ptr simplifyConstant(ConstantAST<uint64_t>::Ptr ptr);
+  //AST::Ptr simplifyConstant(ConstantAST<StackAnalysis::Height>::Ptr ptr);
+  AST::Ptr simplifyVariable(vPtr ptr);
+  AST::Ptr simplifyUnaryOp(uPtr ptr);
+  AST::Ptr simplifyBinaryOp(bPtr ptr);
+  //AST::Ptr simplifyTernaryOp(TernaryAST<ROSEOperation>::Ptr ptr);
+
+  std::string func_;
+  StackAnalysis::Height stack_;
+  StackAnalysis::Height frame_;
+};
+
+};
+};
+
+#endif

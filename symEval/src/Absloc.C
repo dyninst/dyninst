@@ -57,9 +57,14 @@ bool Absloc::isPC() const {
   return (reg_ == MachRegister::getPC(reg_.getArchitecture()));
 }
 
-bool Absloc::isSPR() const {
+bool Absloc::isSP() const {
   if (type_ != Register) return false;
   return (reg_ == MachRegister::getStackPointer(reg_.getArchitecture()));
+}
+
+bool Absloc::isFP() const {
+  if (type_ != Register) return false;
+  return (reg_ == MachRegister::getFramePointer(reg_.getArchitecture()));
 }
 
 Absloc Absloc::makePC(Architecture arch) {
@@ -184,6 +189,13 @@ bool AbsRegion::containsOfType(Absloc::Type t) const {
 bool AbsRegion::operator==(const AbsRegion &rhs) const {
   return ((type_ == rhs.type_) &&
 	  (abslocs_ == rhs.abslocs_));
+}
+
+bool AbsRegion::operator<(const AbsRegion &rhs) const {
+  if (abslocs() < rhs.abslocs()) return true;
+  if (abslocs() > rhs.abslocs()) return false;
+
+  return type() < rhs.type();
 }
 
 void AbsRegion::insert(const Absloc &abs) {

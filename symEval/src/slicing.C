@@ -559,6 +559,10 @@ AssignNode::Ptr Slicer::createNode(Element &elem) {
 }
 
 std::string AssignNode::format() const {
+  if (!a_) {
+    return "<NULL>";
+  }
+
   stringstream ret;
   ret << "(" << a_->format() << "@" << f_->symTabName() << ")";
   return ret.str();
