@@ -146,7 +146,7 @@ class emitElf{
     bool hasRewrittenTLS;
     Elf32_Shdr *newTLSData;
 
-#if !defined(os_solaris)
+#if !defined(os_solaris) && !defined(os_freebsd)
     void updateDynamic(unsigned tag, Elf32_Addr val);
     void createSymbolVersions(Symtab *obj, Elf32_Half *&symVers, char*&verneedSecData, unsigned &verneedSecSize, char *&verdefSecData, unsigned &verdefSecSize, unsigned &dynSymbolNamesLength, std::vector<std::string> &dynStrs);
     void createHashSection(Symtab *obj, Elf32_Word *&hashsecData, unsigned &hashsecSize, std::vector<Symbol *>&dynSymbols);

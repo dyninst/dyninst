@@ -133,6 +133,7 @@ WindowsNT    nonexistant
 #endif
 #endif
 typedef long double double128_t;
+
 #elif defined(os_bg)
 #include <stdint.h>
 #if !defined(INT64_C)
@@ -144,6 +145,19 @@ typedef long double double128_t;
 #if !defined(INT64_MAX)
 #define INT64_MAX 0xfffffffffffffffll
 #endif
+
+#elif defined(os_freebsd)
+#if !defined(__STDC_CONSTANT_MACROS)
+#define __STDC_CONSTANT_MACROS
+#endif
+#if !defined(__STDC_LIMIT_MACROS)
+#define __STDC_LIMIT_MACROS
+#endif
+#include <stdint.h>
+typedef long double double128_t;
+
+/* FreeBSD doesn't define this */
+typedef int64_t off64_t;
 
 #elif defined(os_irix)
 #define TYPE64BIT

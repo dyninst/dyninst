@@ -59,6 +59,9 @@ typedef int (*xdr_wr_func)(void *, char *, int);
 #elif defined(os_linux) || defined(os_bgp) || defined(os_bg_ion)
 #include "common/h/linuxHeaders.h"
 
+#elif defined(os_freebsd)
+#include "common/h/freebsdHeaders.h"
+
 #elif defined(os_bg_compute)
 #include "common/h/bg_compute_headers.h"
 

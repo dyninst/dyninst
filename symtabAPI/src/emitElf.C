@@ -237,7 +237,7 @@ bool emitElf::createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf32_Sy
 
   if (symbol->getSec())
     {
-#if defined(os_solaris)
+#if defined(os_solaris) || defined(os_freebsd)
       sym->st_shndx = (Elf32_Half) symbol->getSec()->getRegionNumber();
 #else
       sym->st_shndx = (Elf32_Section) symbol->getSec()->getRegionNumber();
@@ -961,7 +961,7 @@ void emitElf::fixPhdrs(unsigned &extraAlignSize)
   data->d_version = 1;
 }
 
-#if !defined(os_solaris)
+#if !defined(os_solaris) && !defined(os_freebsd)
 #if !defined(DT_GNU_HASH)
 #define DT_GNU_HASH 0x6ffffef5
 #endif
@@ -1128,7 +1128,7 @@ bool emitElf::createLoadableSections(Elf32_Shdr* &shdr, unsigned &extraAlignSize
            newdata->d_type = ELF_T_REL;
            newdata->d_align = 4;
         }
-#if !defined(os_solaris)
+#if !defined(os_solaris) && !defined(os_freebsd)
         if (newSecs[i]->getRegionType() == Region::RT_REL)
            updateDynamic(DT_REL, newshdr->sh_addr);
         else if (newSecs[i]->getRegionType() == Region::RT_PLTREL)
@@ -1144,7 +1144,7 @@ bool emitElf::createLoadableSections(Elf32_Shdr* &shdr, unsigned &extraAlignSize
         updateDynLinkShdr.push_back(newshdr);
         newdata->d_type = ELF_T_RELA;
         newdata->d_align = 4;
-#if !defined(os_solaris)
+#if !defined(os_solaris) && !defined(os_freebsd)
         if (newSecs[i]->getRegionType() == Region::RT_RELA)
            updateDynamic(DT_RELA, newshdr->sh_addr);
         else if(newSecs[i]->getRegionType() == Region::RT_PLTREL)
@@ -1167,7 +1167,7 @@ bool emitElf::createLoadableSections(Elf32_Shdr* &shdr, unsigned &extraAlignSize
         newshdr->sh_flags=  SHF_ALLOC;
         strtabIndex = secNames.size()-1;
         newshdr->sh_addralign = 1;
-#if !defined(os_solaris)
+#if !defined(os_solaris) && !defined(os_freebsd)
         updateDynamic(DT_STRTAB, newshdr->sh_addr);
         updateDynamic(DT_STRSZ, newSecs[i]->getDiskSize());
 #endif
@@ -1188,7 +1188,7 @@ bool emitElf::createLoadableSections(Elf32_Shdr* &shdr, unsigned &extraAlignSize
         newshdr->sh_flags = SHF_ALLOC ;
         newshdr->sh_info = 1;
         dynsymIndex = secNames.size()-1;
-#if !defined(os_solaris)
+#if !defined(os_solaris) && !defined(os_freebsd)
         updateDynamic(DT_SYMTAB, newshdr->sh_addr);
 #endif
      }
@@ -1226,11 +1226,11 @@ bool emitElf::createLoadableSections(Elf32_Shdr* &shdr, unsigned &extraAlignSize
         updateDynLinkShdr.push_back(newshdr);
         newshdr->sh_flags=  SHF_ALLOC;
         newshdr->sh_info = 0;
-#if !defined(os_solaris)
+#if !defined(os_solaris) && !defined(os_freebsd)
         updateDynamic(DT_HASH, newshdr->sh_addr);
 #endif
      }
-#if !defined(os_solaris)
+#if !defined(os_solaris) && !defined(os_freebsd)
      else if(newSecs[i]->getRegionType() == Region::RT_SYMVERSIONS)
      {
         newshdr->sh_type = SHT_GNU_versym;
@@ -1767,7 +1767,7 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
     for(i=0;i<dynsymbols.size();i++)
       dynsyms[i] = *(dynsymbols[i]);
 
-#if !defined(os_solaris)
+#if !defined(os_solaris) && !defined(os_freebsd)
     Elf32_Half *symVers;
     char *verneedSecData, *verdefSecData;
     unsigned verneedSecSize = 0, verdefSecSize = 0;
@@ -1830,7 +1830,7 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
     }
     obj->addRegion(0, dynstr, dynsymbolNamesLength , name, Region::RT_STRTAB, true);
 
-#if !defined(os_solaris)
+#if !defined(os_solaris) && !defined(os_freebsd)
     //add .gnu.version, .gnu.version_r, and .gnu.version_d sections
     if (secTagRegionMapping.find(DT_VERSYM) != secTagRegionMapping.end()) {
       name = secTagRegionMapping[DT_VERSYM]->getRegionName();
@@ -1873,7 +1873,7 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
        createRelocationSections(obj, object->getPLTRelocs(), false, dynSymNameMapping);
     }
 
-#if !defined(os_solaris)
+#if !defined(os_solaris) && !defined(os_freebsd)
     //add .dynamic section
     if(dynsecSize)
       obj->addRegion(0, dynsecData, dynsecSize*sizeof(Elf64_Dyn), ".dynamic", Region::RT_DYNAMIC, true);
@@ -1973,8 +1973,8 @@ void emitElf::createRelocationSections(Symtab *obj, std::vector<relocationEntry>
       }
    }
 
-#if defined (os_solaris)
-   fprintf(stderr, "%s[%d]:  FIXME:  This does not work on solaris\n", FILE__, __LINE__);
+#if defined (os_solaris) || defined(os_freebsd)
+   fprintf(stderr, "%s[%d]:  FIXME:  This does not work on solaris or freebsd\n", FILE__, __LINE__);
 #else
    dyn_hash_map<int, Region*> secTagRegionMapping = obj->getObject()->getTagRegionMapping();
    int reloc_size;
@@ -2028,7 +2028,7 @@ void emitElf::createRelocationSections(Symtab *obj, std::vector<relocationEntry>
 
 } 
 
-#if !defined(os_solaris)
+#if !defined(os_solaris) && !defined(os_freebsd)
 void emitElf::createSymbolVersions(Symtab *obj, Elf32_Half *&symVers, char*&verneedSecData, unsigned &verneedSecSize, char *&verdefSecData, unsigned &verdefSecSize, unsigned &dynSymbolNamesLength, vector<string> &dynStrs){
 
   //Add all names to the new .dynstr section

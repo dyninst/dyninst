@@ -2371,6 +2371,7 @@ platform('ia64', 'linux', 'linux2.4', 'ia64-unknown-linux2.4').
 platform('x86_64', 'linux', 'linux2.4', 'x86_64-unknown-linux2.4').
 platform('power', 'linux', 'linux2.6', 'ppc64_linux').
 platform('power', 'linux', 'linux2.6', 'ppc32_linux').
+platform('i386', 'freebsd', 'freebsd8.0', 'i386-unknown-freebsd8.0').
 
 % Platform Defns
 % platform/1
