@@ -802,7 +802,7 @@ ProcDebug *ProcDebug::newProcDebug(const std::string &executable,
 
 Dyninst::Architecture ProcDebug::getArchitecture()
 {
-#if defined(arch_ppc32)
+#if defined(arch_power) && !defined(arch_64bit)
    return Dyninst::Arch_ppc32;
 #elif defined(arch_x86)
    return Dyninst::Arch_x86;
@@ -812,7 +812,7 @@ Dyninst::Architecture ProcDebug::getArchitecture()
    {
 #if defined(arch_x86_64)
       return Dyninst::Arch_x86;
-#elif defined(arch_ppc64)
+#elif defined(arch_power)
       return Dyninst::Arch_ppc32;
 #endif
    }
@@ -820,7 +820,7 @@ Dyninst::Architecture ProcDebug::getArchitecture()
    {
 #if defined(arch_x86_64)
       return Dyninst::Arch_x86_64;
-#elif defined(arch_ppc64)
+#elif defined(arch_power)
       return Dyninst::Arch_ppc64;
 #endif
    }
