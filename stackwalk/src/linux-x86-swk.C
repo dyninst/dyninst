@@ -211,7 +211,7 @@ bool ProcDebugLinux::getRegValue(Dyninst::MachRegister reg, Dyninst::THR_ID t,
    else 
    {
       switch (reg) {
-         case Dyninst::x86::ieip:
+         case Dyninst::iReturnAddr:
          case Dyninst::x86_64::irip:
             offset = USER64_OFFSET_OF(rip);
             break;
