@@ -79,7 +79,7 @@ Graph::Ptr Slicer::forwardSlice(PredicateFunc &e, PredicateFunc &w) {
   // Cons up the first Element. We need a context, a location, and an
   // abstract region
   ContextElement context(f_);
-  initial.con.push(ContextElement(f_));
+  initial.con.push_front(ContextElement(f_));
   initial.loc = Location(f_, b_);
   getInsns(initial.loc);
   fastForward(initial.loc, a_->addr());
@@ -146,7 +146,22 @@ Graph::Ptr Slicer::forwardSlice(PredicateFunc &e, PredicateFunc &w) {
       worklist.push(target);
     }
   }
-  
+
+  // Clean the graph up
+
+  // TODO: make this more efficient by backwards traversing.
+  // For now, I know that we're generating graphs with tons of
+  // unnecessary flag sets (which are immediately killed) and so
+  // we don't have long non-exiting chains, we have "fuzz"
+
+  NodeIterator nbegin, nend;
+  ret->allNodes(nbegin, nend);
+  for (; nbegin != nend; ++nbegin) {
+    if ((*nbegin)->hasOutEdges()) continue;
+    if (ret->isExitNode(*nbegin)) continue;
+    ret->deleteNode(*nbegin);
+  }
+
   return ret;
 }
 
@@ -178,55 +193,50 @@ void Slicer::pushContext(Context &context,
 			 image_basicBlock *callBlock,
 			 long stackDepth) {
   cerr << "pushContext with " << context.size() << " elements" << endl;
-  assert(context.top().block == NULL);
-  context.top().block = callBlock;
+  assert(context.front().block == NULL);
+  context.front().block = callBlock;
 
-  cerr << "\t" << (context.top().func ? context.top().func->symTabName() : "NULL")
-       << ", " << context.top().stackDepth << endl;
+  cerr << "\t" << (context.front().func ? context.front().func->symTabName() : "NULL")
+       << ", " << context.front().stackDepth << endl;
 
-  context.push(ContextElement(callee, stackDepth));
+  context.push_front(ContextElement(callee, stackDepth));
 };
 
 void Slicer::popContext(Context &context) {
-  context.pop();
+  context.pop_front();
 
-  context.top().block = NULL;
+  context.front().block = NULL;
 }
 
 void Slicer::shiftAbsRegion(AbsRegion &callerReg,
 			    AbsRegion &calleeReg,
 			    long stack_depth,
 			    image_func *callee) {
-  if (callerReg.abslocs().empty()) {
+  if (callerReg.absloc() == Absloc()) {
     // Typed, so just keep the same type and call it a day
     calleeReg = callerReg;
     return;
   }
   else { 
     assert(callerReg.type() == Absloc::Unknown);
-    calleeReg = AbsRegion(Absloc::Unknown);
     
-    const std::set<Absloc> &alocs = callerReg.abslocs();
-    for (std::set<Absloc>::const_iterator iter = alocs.begin();
-	 iter != alocs.end(); ++iter) {
-      const Absloc &callerAloc = *iter;
-      if (callerAloc.type() != Absloc::Stack) {
-	calleeReg.insert(callerAloc);
+    const Absloc &callerAloc = callerReg.absloc();
+    if (callerAloc.type() != Absloc::Stack) {
+      calleeReg = AbsRegion(callerAloc);
+    }
+    else {
+      if (stack_depth == -1) {
+	// Oops
+	calleeReg = AbsRegion(Absloc::Stack);
+	return;
       }
       else {
-	if (stack_depth == -1) {
-	  // Oops
-	  calleeReg = AbsRegion(Absloc::Stack);
-	  return;
-	}
-	else {
-	  cerr << "*** Shifting caller absloc " << callerAloc.off()
-	       << " by stack depth " << stack_depth 
-	       << " and setting to function " << callee->symTabName() << endl;
-	  calleeReg.insert(Absloc(callerAloc.off() - stack_depth,
-				  0, // Entry point has region 0 by definition
-				  callee->symTabName()));
-	}
+	cerr << "*** Shifting caller absloc " << callerAloc.off()
+	     << " by stack depth " << stack_depth 
+	     << " and setting to function " << callee->symTabName() << endl;
+	calleeReg = AbsRegion(Absloc(callerAloc.off() - stack_depth,
+				     0, // Entry point has region 0 by definition
+				     callee->symTabName()));
       }
     }
   }
@@ -236,7 +246,7 @@ bool Slicer::handleCall(AbsRegion &reg,
 			Context &context,
 			image_basicBlock *callerBlock,
 			image_func *callee) {
-  image_func *caller = context.top().func;
+  image_func *caller = context.front().func;
   AbsRegion newReg = reg;
 
   long stack_depth;
@@ -252,10 +262,10 @@ bool Slicer::handleCall(AbsRegion &reg,
 		 newReg,
 		 stack_depth,
 		 callee);
-  
+
   cerr << "After call, context has " << context.size() << " elements" << endl;
-  cerr << "\t" << (context.top().func ? context.top().func->symTabName() : "NULL")
-       << ", " << context.top().stackDepth << endl;
+  cerr << "\t" << (context.front().func ? context.front().func->symTabName() : "NULL")
+       << ", " << context.front().stackDepth << endl;
 
   reg = newReg;
   return true;
@@ -267,23 +277,23 @@ void Slicer::handleReturn(AbsRegion &reg,
   // reversing what we did in handleCall
 
   cerr << "Return: context has " << context.size() << " elements" << endl;
-  cerr << "\t" << (context.top().func ? context.top().func->symTabName() : "NULL")
-       << ", " << context.top().stackDepth << endl;
+  cerr << "\t" << (context.front().func ? context.front().func->symTabName() : "NULL")
+       << ", " << context.front().stackDepth << endl;
 
-  long stack_depth = context.top().stackDepth;
+  long stack_depth = context.front().stackDepth;
 
   popContext(context);
 
   assert(!context.empty());
 
-  cerr << "\t" << (context.top().func ? context.top().func->symTabName() : "NULL")
-       << ", " << context.top().stackDepth << endl;
+  cerr << "\t" << (context.front().func ? context.front().func->symTabName() : "NULL")
+       << ", " << context.front().stackDepth << endl;
 
 
   AbsRegion newRegion;
   shiftAbsRegion(reg, newRegion, 
 		 -1*stack_depth,
-		 context.top().func);
+		 context.front().func);
   reg = newRegion;
 }
 
@@ -408,14 +418,14 @@ bool Slicer::handleReturnEdge(Element &current,
 
   // Find out the successor block...
   Context callerCon = newElement.con;
-  callerCon.pop();
+  callerCon.pop_front();
 
   if (callerCon.empty()) return false;
 
   image_basicBlock *retBlock = NULL;
 
   std::vector<image_edge *> outEdges;
-  callerCon.top().block->getTargets(outEdges);
+  callerCon.front().block->getTargets(outEdges);
   for (std::vector<image_edge *>::iterator iter = outEdges.begin();
        iter != outEdges.end(); iter++) {
     if ((*iter)->getType() == ET_FUNLINK) {
@@ -429,7 +439,7 @@ bool Slicer::handleReturnEdge(Element &current,
   handleReturn(newElement.reg,
 	       newElement.con);
   
-  newElement.loc.func = newElement.con.top().func;
+  newElement.loc.func = newElement.con.front().func;
   newElement.loc.block = retBlock;
   getInsns(newElement.loc);
   return true;
@@ -438,6 +448,8 @@ bool Slicer::handleReturnEdge(Element &current,
 bool Slicer::forwardSearch(Element &initial,
 			   Elements &succ) {
   bool ret = true;
+
+  Assignment::Ptr source = initial.ptr;
 
   // Might as well use a breadth-first search
   // 
@@ -524,10 +536,11 @@ bool Slicer::forwardSearch(Element &initial,
       for (unsigned k = 0; k < assign->inputs().size(); ++k) {
 	const AbsRegion &uReg = assign->inputs()[k];
 	cerr << "\t\t\t\t\t\t" << uReg.format() << endl;
-	if (searchRegion.overlaps(uReg)) {
+	if (searchRegion.contains(uReg)) {
 	  cerr << "\t\t\t\t\t Overlaps, adding" << endl;
 	  // We make a copy of each Element for each Assignment...
 	  current.ptr = assign;
+
 	  succ.push(current);
 	}
       }
@@ -535,7 +548,7 @@ bool Slicer::forwardSearch(Element &initial,
       // TBD: overlaps isn't quite the right thing here. "contained
       // by" would be better, but we need to get the AND/OR 
       // of abslocs hammered out.
-      if (searchRegion.overlaps(assign->out())) {
+      if (searchRegion.contains(assign->out())) {
 	cerr << "\t\t\t\t\t Kills, stopping" << endl;
 	addSucc = false;
       }
@@ -559,6 +572,10 @@ AssignNode::Ptr Slicer::createNode(Element &elem) {
 }
 
 std::string AssignNode::format() const {
+  if (!a_) {
+    return "<NULL>";
+  }
+
   stringstream ret;
   ret << "(" << a_->format() << "@" << f_->symTabName() << ")";
   return ret.str();
@@ -597,6 +614,7 @@ void Slicer::widen(Graph::Ptr ret,
 		   Element &source) {
   ret->insertPair(createNode(source),
 		  widenNode());
+  ret->insertExitNode(widenNode());
 }
 
 AssignNode::Ptr Slicer::widenNode() {
@@ -620,3 +638,5 @@ void Slicer::fastForward(Location &loc, Address addr) {
   assert(loc.current != loc.end);
   assert(loc.addr() == addr);  
 }
+
+

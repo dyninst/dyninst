@@ -280,6 +280,15 @@ class StackAnalysis {
             return Height(height_ + rhs.height_, region_);
         }
 
+	const Height operator+(const unsigned long &rhs) const {
+	  if (isBottom()) return bottom;
+	  if (isTop()) {
+	    // WTF?
+	    return Height(rhs, region_);
+	  }
+	  return Height(height_ + rhs, region_);
+	}
+
         bool operator==(const Height &rhs) const {
             return ((height_ == rhs.height_) &&
                     (region_ == rhs.region_));
@@ -606,6 +615,8 @@ class StackAnalysis {
     RangeTree rt;
 };
 };
+
+std::ostream &operator<<(std::ostream &os, const Dyninst::StackAnalysis::Height &h);
 
 #endif
 

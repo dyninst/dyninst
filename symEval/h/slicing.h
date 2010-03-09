@@ -112,7 +112,7 @@ class Slicer {
     // In particular, we need to know the depth of the 
     // stack in the caller.
     long stackDepth;
-    
+
   ContextElement(image_func *f) : 
     func(f), block(NULL), stackDepth(-1) {};
   ContextElement(image_func *f, long depth) :
@@ -120,7 +120,7 @@ class Slicer {
   };
 
   // This should be sufficient...
-  typedef std::stack<ContextElement> Context;
+  typedef std::deque<ContextElement> Context;
 
   bool getStackDepth(image_func *func, Address callAddr, long &height);
 
@@ -227,6 +227,8 @@ class Slicer {
   InsnCache insnCache_;
 
   void getInsns(Location &loc);
+
+  void setAliases(Assignment::Ptr, Element &);
 
   AssignNode::Ptr createNode(Element &);
 
