@@ -76,12 +76,12 @@ AST::Ptr StackBindEval::simplifyVariable(vPtr ptr) {
   // substitute a ConstantAST around the Height provided
   
   const AbsRegion &reg = ptr->val();
-  if (reg.abslocs().size() != 1) {
+  if (reg.absloc() == Absloc()) {
     //cerr << "\t variable with multiple abslocs, returning" << endl;
     return ptr;
   }
 
-  const Absloc aloc = *(reg.abslocs().begin());
+  const Absloc &aloc = reg.absloc();
   
   if (aloc.isSP()) {
     // Create a new ConstantAST
@@ -177,4 +177,72 @@ AST::Ptr StackBindEval::simplifyBinaryOp(bPtr ptr) {
   return ptr;
 }
   
+
+AST::Ptr StackCanonical::simplify(AST::Ptr in) {
+  //cerr << "Entry: simplify of " << in->format() << endl;
+  
+  // Bottom-up traversal
+  
+  // With a _pile_ of RTTI...
+  vPtr p3 = dyn_detail::boost::dynamic_pointer_cast<VariableAST<AbsRegion> >(in);
+  if (p3) {
+    //cerr << "\t returning variable handler" << endl;
+    return simplifyVariable(p3);
+  }
+
+  uPtr p4 = dyn_detail::boost::dynamic_pointer_cast<UnaryAST<ROSEOperation> >(in);
+  if (p4) {
+    //cerr << "\t returning unary handler" << endl;
+    return simplifyUnaryOp(p4);
+  }
+
+  bPtr p5 = dyn_detail::boost::dynamic_pointer_cast<BinaryAST<ROSEOperation> >(in);
+  if (p5) {
+    //cerr << "\t returning binary handler" << endl;
+    return simplifyBinaryOp(p5);
+  }
+
+  tPtr p6 = dyn_detail::boost::dynamic_pointer_cast<TernaryAST<ROSEOperation> >(in);
+  if (p6) {
+    //cerr << "\t returning binary handler" << endl;
+    return simplifyTernaryOp(p6);
+  }
+
+  //cerr << "\t no change, returning" << endl;
+  return in;
+}
+
+AST::Ptr StackCanonical::simplifyVariable(vPtr ptr) {
+  std::map<AbsRegion, AbsRegion>::iterator iter = repl.find(ptr->val());
+  if (iter != repl.end()) {
+    return VariableAST<AbsRegion>::create(iter->second);
+  }
+  return ptr;
+}
+
+// Unary etc.
+  
+AST::Ptr StackCanonical::simplifyUnaryOp(uPtr ptr) {
+  // Simplify the child operand
+  AST::Ptr newOperand = simplify(ptr->operand());
+  return UnaryAST<ROSEOperation>::create(ptr->op(), newOperand);
+}
+
+
+AST::Ptr StackCanonical::simplifyBinaryOp(bPtr ptr) {
+  AST::Ptr left = simplify(ptr->left());
+  AST::Ptr right = simplify(ptr->right());
+
+  return BinaryAST<ROSEOperation>::create(ptr->op(), left, right);
+}
+  
+AST::Ptr StackCanonical::simplifyTernaryOp(tPtr ptr) {
+  AST::Ptr left = simplify(ptr->left());
+  AST::Ptr center = simplify(ptr->center());
+  AST::Ptr right = simplify(ptr->right());
+
+  return TernaryAST<ROSEOperation>::create(ptr->op(), left, center, right);
+}
+  
+
 

@@ -40,6 +40,8 @@
 #include "instructionAPI/h/Instruction.h"
 #include "instructionAPI/h/Expression.h"
 
+#include "dyninstAPI/src/stackanalysis.h"
+
 #include <sstream>
 
 using namespace Dyninst;
@@ -116,9 +118,9 @@ bool AbsRegion::contains(const Absloc &loc) const {
     return (type_ == loc.type());
   }
   // See if any of our abslocs matches
+  if (absloc_ == loc) return true;
 
-  if (abslocs_.find(loc) == abslocs_.end()) return false;
-  return true;
+  return false;
 }  
 
 
@@ -128,24 +130,14 @@ bool AbsRegion::contains(const AbsRegion &rhs) const {
     // if either it has the same type as us or if all
     // of its abslocs are the same type
     if (rhs.type_ == type_) return true;
-    for (std::set<Absloc>::const_iterator iter = rhs.abslocs_.begin();
-	 iter != rhs.abslocs_.end(); ++iter) {
-      if ((*iter).type() != type_) return false;
-
-    }
-    return true;
+    if (rhs.absloc_.type() == type_) return true;
+    return false;
   }
 
-  // We don't have a type, therefore we are a set. 
-  // If the other is a type we cannot contain it, so iteration
-  // is safe.
-  for (std::set<Absloc>::const_iterator iter = rhs.abslocs_.begin();
-       iter != rhs.abslocs_.end(); ++iter) {
-    if (abslocs_.find(*iter) == abslocs_.end()) return false;
-  }
-  return true;
+  if (absloc_ == rhs.absloc_) return true;
+  return false;
 }
-
+/*
 bool AbsRegion::overlaps(const AbsRegion &rhs) const {
   if (type_ != Absloc::Unknown) {
     // We're a typed region, so we contain rhs
@@ -175,30 +167,29 @@ bool AbsRegion::overlaps(const AbsRegion &rhs) const {
   }
   return false;
 }
+*/
 
 bool AbsRegion::containsOfType(Absloc::Type t) const {
   if (type_ == t) return true;
 
-  for (std::set<Absloc>::const_iterator iter = abslocs_.begin();
-       iter != abslocs_.end(); ++iter) {
-    if ((*iter).type() == t) return true;
-  }
+  if (absloc_.type() == t) return true;
   return false;
 }
 
 bool AbsRegion::operator==(const AbsRegion &rhs) const {
-  return ((type_ == rhs.type_) &&
-	  (abslocs_ == rhs.abslocs_));
+  return (contains(rhs) && rhs.contains(*this));
 }
 
 bool AbsRegion::operator<(const AbsRegion &rhs) const {
-  if (abslocs() < rhs.abslocs()) return true;
-  if (abslocs() > rhs.abslocs()) return false;
+  if (absloc_ < rhs.absloc_) return true;
+  if (rhs.absloc_ < absloc_) return false;
 
   return type() < rhs.type();
 }
 
+/*
 void AbsRegion::insert(const Absloc &abs) {
+  assert(a
   if (type_ != Absloc::Unknown) 
     assert(0 && "Unimplemented");
   abslocs_.insert(abs);
@@ -229,6 +220,7 @@ void AbsRegion::erase(const AbsRegion &rhs) {
   abslocs_.erase(rhs.abslocs_.begin(),
 		 rhs.abslocs_.end());
 }
+*/
 
 void Assignment::addInput(const AbsRegion &reg) {
   inputs_.push_back(reg);
@@ -243,18 +235,8 @@ void Assignment::addInputs(const std::vector<AbsRegion> &region) {
 const std::string AbsRegion::format() const {
   std::stringstream ret;
 
-  if (!abslocs_.empty()) {
-    if (abslocs_.size() == 1) {
-      ret << abslocs_.begin()->format();
-    }
-    else {
-      ret << "[";
-      for (std::set<Absloc>::const_iterator iter = abslocs_.begin();
-	   iter != abslocs_.end(); ++iter) {
-	ret << iter->format() << ",";
-      }
-      ret << "]";
-    }
+  if (absloc_ != Absloc()) {
+    ret << "[" << absloc_.format() << "]";
   }
   else {
     switch(type_) {
@@ -290,3 +272,58 @@ const std::string Assignment::format() const {
   return ret.str();
 }
 
+
+#if 0
+bool AbsRegion::equivalent(const AbsRegion &lhs,
+			   const AbsRegion &rhs,
+			   Address addr,
+			   image_func *caller,
+			   image_func *callee) {
+  // Check equivalence given a particular location (and thus
+  // possible stack overlap)
+  if (lhs == rhs) return true;
+  if (lhs.abslocs().empty() || rhs.abslocs().empty()) return false;
+
+  if (lhs.abslocs().size() > 1) return false;
+  if (rhs.abslocs().size() > 1) return false;
+
+  // Only stack slots can overlap (for now)
+  const Absloc &lLoc = *(lhs.abslocs().begin());
+  const Absloc &rLoc = *(rhs.abslocs().begin());
+  if (lLoc.type() != Absloc::Stack) return false;
+  if (rLoc.type() != Absloc::Stack) return false;
+
+  int caller_offset = -1;
+  int callee_offset = -1;
+
+  if (lLoc.func() == caller->symTabName()) {
+    if (rLoc.func() != callee->symTabName()) return false;
+    caller_offset = lLoc.off();
+    callee_offset = rLoc.off();
+  }
+  else if (rLoc.func() == caller->symTabName()) {
+    if (lLoc.func() != callee->symTabName()) return false;
+    caller_offset = rLoc.off();
+    callee_offset = lLoc.off();
+  }
+  else {
+    return false;
+  }
+
+  StackAnalysis sA(caller);
+
+  StackAnalysis::Height heightSA = sA.findSP(addr);
+
+  // Ensure that analysis has been performed.
+  assert(!heightSA.isTop());
+  
+  if (heightSA.isBottom()) {
+    return false;
+  }
+
+  if ((caller_offset - heightSA.height()) == callee_offset)
+    return true;
+  else
+    return false;
+}
+#endif

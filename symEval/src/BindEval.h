@@ -74,6 +74,37 @@ class StackBindEval {
   StackAnalysis::Height frame_;
 };
 
+class StackCanonical {
+  typedef dyn_detail::boost::shared_ptr<VariableAST<AbsRegion> > vPtr;
+  typedef dyn_detail::boost::shared_ptr<ConstantAST<uint64_t> > cPtr;
+  typedef dyn_detail::boost::shared_ptr<ConstantAST<StackAnalysis::Height> > hPtr;
+  typedef dyn_detail::boost::shared_ptr<UnaryAST<ROSEOperation> > uPtr;
+  typedef dyn_detail::boost::shared_ptr<BinaryAST<ROSEOperation> > bPtr;
+  typedef dyn_detail::boost::shared_ptr<TernaryAST<ROSEOperation> > tPtr;
+
+ public:
+
+  StackCanonical() {};
+
+  void addPair(AbsRegion &old, AbsRegion &n) {
+    repl[old] = n;
+  }
+
+  AST::Ptr simplify(AST::Ptr in);
+
+ private:
+  AST::Ptr dispatch(AST::Ptr in);
+
+  //AST::Ptr simplifyConstant(ConstantAST<uint64_t>::Ptr ptr);
+  //AST::Ptr simplifyConstant(ConstantAST<StackAnalysis::Height>::Ptr ptr);
+  AST::Ptr simplifyVariable(vPtr ptr);
+  AST::Ptr simplifyUnaryOp(uPtr ptr);
+  AST::Ptr simplifyBinaryOp(bPtr ptr);
+  AST::Ptr simplifyTernaryOp(tPtr ptr);
+
+  std::map<AbsRegion, AbsRegion> repl;
+};
+
 };
 };
 

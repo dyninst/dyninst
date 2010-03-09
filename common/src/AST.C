@@ -37,6 +37,7 @@ using namespace Dyninst;
 
 AST::Ptr AST::substitute(AST::Ptr in, AST::Ptr a, AST::Ptr b) {
   // Quick check
+  assert(in);
   if (*in == *a)
     return b;
 
@@ -46,8 +47,8 @@ AST::Ptr AST::substitute(AST::Ptr in, AST::Ptr a, AST::Ptr b) {
   in->getChildren(kids);
   for (unsigned i = 0; i < kids.size(); ++i) {
     newKids.push_back(substitute(kids[i], a, b));
-    in->setChildren(newKids);
   }
+  in->setChildren(newKids);
   return in;
 }
 

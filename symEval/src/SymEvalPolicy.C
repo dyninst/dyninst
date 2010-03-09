@@ -8,7 +8,9 @@ using namespace Dyninst::InstructionAPI;
 
 SymEvalPolicy::SymEvalPolicy(SymEval::Result &r, Architecture ac) :
   res(r),
-  arch(ac) {
+  arch(ac),
+  ip_(Handle<32>(wrap(Absloc::makePC(arch)))) {
+
   // We also need to build aaMap FTW!!!
   for (SymEval::Result::iterator iter = r.begin();
        iter != r.end(); ++iter) {
@@ -17,10 +19,7 @@ SymEvalPolicy::SymEvalPolicy(SymEval::Result &r, Architecture ac) :
 
     if (o.containsOfType(Absloc::Register)) {
       // We're assuming this is a single register...
-      for (std::set<Absloc>::const_iterator a_iter = o.abslocs().begin();
-	   a_iter != o.abslocs().end(); ++a_iter) {
-	aaMap[*a_iter] = a;
-      }
+      aaMap[o.absloc()] = a;
     }
     else {
       // Use sufficiently-unique (Heap,0) Absloc

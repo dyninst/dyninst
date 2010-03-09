@@ -130,4 +130,38 @@ bool Graph::find(NodePredicateFunc pred, void *user_arg, NodeIterator &begin, No
     return (begin != end);
 }
 
-                         
+void Graph::deleteNode(NodePtr node) {
+  // Remove from the graph map
+  // Remove from any edges that point to this one
+
+  nodes_.erase(node);
+
+  NodeMap::iterator iter2 = nodesByAddr_.find(node->addr());
+  if (iter2 != nodesByAddr_.end()) {
+    iter2->second.erase(node);
+  }
+
+  entryNodes_.erase(node);
+  exitNodes_.erase(node);
+
+  EdgeIterator e1, e2;
+  node->ins(e1, e2);
+  for (; e1 != e2; ++e1) {
+    (*e1)->source()->deleteOutEdge(e1);
+  }
+
+  node->outs(e1, e2);
+  for (; e1 != e2; ++e1) {
+    (*e1)->target()->deleteInEdge(e1);
+  }
+}
+    
+bool Graph::isEntryNode(NodePtr node) {
+  return (entryNodes_.find(node) != entryNodes_.end());
+}
+
+
+bool Graph::isExitNode(NodePtr node) {
+  return (exitNodes_.find(node) != exitNodes_.end());
+}
+

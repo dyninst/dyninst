@@ -288,6 +288,12 @@ class TernaryAST : public AST {
     return ret.str();
   }
 
+  const O &op() const { return o_; }
+
+  const AST::Ptr left() const { return a_; }
+  const AST::Ptr center() const { return b_; }
+  const AST::Ptr right() const { return c_; }
+
  protected:
   virtual bool isStrictEqual(const AST &rhs) const {
     const TernaryAST<O> &other(dynamic_cast<const TernaryAST<O>&>(rhs));
@@ -301,7 +307,7 @@ class TernaryAST : public AST {
     assert(r.size() == 3);
     a_ = r[0];
     b_ = r[1];
-    c_ = r[3];
+    c_ = r[2];
   };
   
  private:
