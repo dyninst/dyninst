@@ -2602,9 +2602,14 @@ bool Object::fixSymbolsInModule( Dwarf_Debug dbg, string & moduleName, Dwarf_Die
       dieEntry = siblingDwarf;
       goto start;
    }
-   return true;
+   else
+   {
+       dwarf_dealloc( dbg, dieEntry, DW_DLA_DIE );
+       return true;
+   }
  error:
-   return false;
+ dwarf_dealloc( dbg, dieEntry, DW_DLA_DIE );
+ return false;
 } /* end fixSymbolsInModule */
 
 

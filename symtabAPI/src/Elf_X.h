@@ -916,10 +916,10 @@ class Elf_X_Phdr {
 class Elf_X {
   public:
     Elf_X()
-	: elf(NULL), ehdr32(NULL), ehdr64(NULL), phdr32(NULL), phdr64(NULL), filedes(-1), isArchive(false) { }
+    : elf(NULL), ehdr32(NULL), ehdr64(NULL), phdr32(NULL), phdr64(NULL), filedes(-1), is64(false), isArchive(false) { }
 
     Elf_X(int input, Elf_Cmd cmd, Elf_X *ref = NULL)
-	: ehdr32(NULL), ehdr64(NULL), phdr32(NULL), phdr64(NULL), filedes(input), isArchive(false) {
+    : ehdr32(NULL), ehdr64(NULL), phdr32(NULL), phdr64(NULL), filedes(input), is64(false), isArchive(false) {
 
         if (elf_version(EV_CURRENT) != EV_NONE) {
             elf_errno(); // Reset elf_errno to zero.
@@ -954,7 +954,7 @@ class Elf_X {
     }
 
     Elf_X(char *mem_image, size_t mem_size)
-    	: ehdr32(NULL), ehdr64(NULL), phdr32(NULL), phdr64(NULL), isArchive(false) {
+    : ehdr32(NULL), ehdr64(NULL), phdr32(NULL), phdr64(NULL), is64(false), isArchive(false){
 
 	if (elf_version(EV_CURRENT) != EV_NONE) {
 	    elf_errno(); // Reset elf_errno to zero.

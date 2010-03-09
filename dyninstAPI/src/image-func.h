@@ -41,7 +41,6 @@
 #include "codeRange.h"
 #include "arch.h" // instruction
 #include "parRegion.h"
-#include "dyninstAPI/h/BPatch_Set.h"
 #include "common/h/Dictionary.h"
 #include "symtabAPI/h/Symbol.h"
 #include "dyninstAPI/src/bitArray.h"
@@ -123,6 +122,17 @@ enum FuncSource {
 
 class image_edge {
     friend class image_basicBlock;
+    struct lt_edge {
+        bool operator()(image_edge* lhs, image_edge* rhs) {
+            if(lhs == NULL) return true;
+            if(rhs == NULL) return false;
+            if(lhs->source_ < rhs->source_) return true;
+            if(lhs->source_ > rhs->source_) return false;
+            if(lhs->target_ < rhs->target_) return true;
+            if(lhs->target_ > rhs->target_) return false;
+            return lhs->type_ < rhs->type_;
+        }
+    }; 
  public:
    image_edge(image_basicBlock *source, 
               image_basicBlock *target, 
@@ -147,6 +157,10 @@ class image_edge {
 
 class image_basicBlock : public codeRange {
     friend class image_func;
+    friend class image_edge;
+    friend void addEdge(image_basicBlock *source,
+                        image_basicBlock *target,
+                        EdgeTypeEnum type);
  public:
 
     image_basicBlock(image_func *func, Address firstOffset);
@@ -198,11 +212,6 @@ class image_basicBlock : public codeRange {
     image_basicBlock * split(Address loc, image_func *succ_func);
     void split(image_basicBlock * &newBlk);
 
-    bool addTarget(image_edge *edge);
-    bool addSource(image_edge *edge);
-
-    void removeTarget(image_edge *edge);
-    void removeSource(image_edge *edge);
 
     int id() const { return blockNumber_; }
 
@@ -244,6 +253,14 @@ class image_basicBlock : public codeRange {
 #endif
 
    private:
+       // ensure all use of these goes through addEdge and breakEdge
+       bool addTarget(image_edge *edge);
+       bool addSource(image_edge *edge);
+
+       void removeTarget(image_edge *edge);
+       void removeSource(image_edge *edge);
+    
+
     // Try to shrink memory usage down.
     void finalize();
 
@@ -263,8 +280,8 @@ class image_basicBlock : public codeRange {
     bool containsCall_;
     bool canBeRelocated_; // some blocks contain uninstrumentable constructs
 
-    pdvector<image_edge *> targets_;
-    pdvector<image_edge *> sources_;
+    pdvector<image_edge*> targets_;
+    pdvector<image_edge*> sources_;
 
     set<image_func *> funcs_;
 
@@ -400,7 +417,7 @@ class image_func : public codeRange,
    ////////////////////////////////////////////////
 
    void parseSharedBlocks(image_basicBlock * firstBlock,
-                BPatch_Set< Address > &leaders,
+                std::set< Address > &leaders,
                 dictionary_hash< Address, image_basicBlock * > &leadersToBlock,
                 Address & funcEnd);
    void parseSharedBlocks(image_basicBlock * firstBlock);
@@ -409,7 +426,7 @@ class image_func : public codeRange,
    // structures (if the new addr is valid)
    bool addBasicBlock(Address newAddr,
                       image_basicBlock *oldBlock,
-                      BPatch_Set<Address> &leaders,
+                      std::set<Address> &leaders,
                       dictionary_hash<Address, image_basicBlock *> &leadersToBlock,
                       EdgeTypeEnum edgeType,
                       pdvector<Address> &worklist);
@@ -442,7 +459,7 @@ class image_func : public codeRange,
     bool archNoRelocate();
     void archSetFrameSize(int frameSize);
     bool archGetMultipleJumpTargets( 
-             BPatch_Set< Address >& targets,
+             std::set< Address >& targets,
              image_basicBlock *currBlk,
              InstrucIter &ah,
              pdvector< instruction >& allInstructions);
@@ -462,7 +479,7 @@ class image_func : public codeRange,
 		Address& funcBegin,
 		Address& funcEnd,
 		pdvector<instruction>& allInstructions,
-		BPatch_Set<Address>& leaders,
+		std::set<Address>& leaders,
 		pdvector<Address>& worklist,
 		dictionary_hash<Address, image_basicBlock*>& leadersToBlock,
     dictionary_hash<Address, std::string> *pltFuncs);*/

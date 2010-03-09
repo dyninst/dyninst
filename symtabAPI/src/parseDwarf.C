@@ -823,7 +823,7 @@ bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
                break;
             long int addr = opStack.top(); opStack.pop();
             unsigned long to_push = 0;
-            bool bresult;
+            bool bresult = false;
             if (addr_width == 4) {
                uint32_t v;
                bresult = reader->ReadMem(addr, &v, sizeof(v));
@@ -846,7 +846,7 @@ bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
             long int addr = opStack.top(); opStack.pop();
             int width = locations[i].lr_number;
             unsigned long to_push = 0;
-            bool bresult;
+            bool bresult = false;
             if (width == 1) {
                uint8_t v;
                bresult = reader->ReadMem(addr, &v, sizeof(v));

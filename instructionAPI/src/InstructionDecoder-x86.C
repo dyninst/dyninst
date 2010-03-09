@@ -706,7 +706,8 @@ namespace Dyninst
 
 
                         int offset_position = locs->opcode_position;
-                        if(locs->modrm_position > offset_position && locs->modrm_operand < insn_to_complete->m_Operands.size())
+                        if(locs->modrm_position > offset_position && locs->modrm_operand <
+                           (int)(insn_to_complete->m_Operands.size()))
                         {
                             offset_position = locs->modrm_position;
                         }
