@@ -37,6 +37,7 @@
 #include "stackwalk/h/frame.h"
 
 #include "stackwalk/src/linux-swk.h"
+#include "stackwalk/src/sw.h"
 #include "stackwalk/src/symtab-swk.h"
 
 #include "common/h/linuxKludges.h"
@@ -66,7 +67,7 @@ using namespace Dyninst::Stackwalker;
 #include "common/h/parseauxv.h"
 #include "symtabAPI/h/Symtab.h"
 #include "symtabAPI/h/Symbol.h"
-
+#include "dynutil/h/dyn_regs.h"
 using namespace Dyninst::SymtabAPI;
 #endif
 
@@ -210,8 +211,9 @@ bool ProcDebugLinux::isLibraryTrap(Dyninst::THR_ID thrd)
    if (!lib_trap_addr)
       return false;
 
-   Dyninst::MachRegisterVal cur_pc;
-   bool result = getRegValue(Dyninst::MachRegPC, thrd, cur_pc);
+   MachRegisterVal cur_pc;
+   MachRegister reg = MachRegister::getPC(getArchitecture());
+   bool result = getRegValue(reg, thrd, cur_pc);
    if (!result) {
       sw_printf("[%s:%u] - Error getting PC value for thrd %d\n",
                 __FILE__, __LINE__, (int) thrd);
@@ -796,6 +798,35 @@ ProcDebug *ProcDebug::newProcDebug(const std::string &executable,
    }
 
    return pd;   
+}
+
+Dyninst::Architecture ProcDebug::getArchitecture()
+{
+#if defined(arch_ppc32)
+   return Dyninst::Arch_ppc32;
+#elif defined(arch_x86)
+   return Dyninst::Arch_x86;
+#else
+   int addr_width = getAddressWidth();
+   if (addr_width == 4)
+   {
+#if defined(arch_x86_64)
+      return Dyninst::Arch_x86;
+#elif defined(arch_ppc64)
+      return Dyninst::Arch_ppc32;
+#endif
+   }
+   else if (addr_width == 8)
+   {
+#if defined(arch_x86_64)
+      return Dyninst::Arch_x86_64;
+#elif defined(arch_ppc64)
+      return Dyninst::Arch_ppc64;
+#endif
+   }
+#endif
+   assert(0);
+   return Dyninst::Arch_none;
 }
 
 
@@ -1714,7 +1745,4 @@ void BottomOfStackStepperImpl::initialize()
 #endif
 }
 
-BottomOfStackStepperImpl::~BottomOfStackStepperImpl()
-{
-}
 

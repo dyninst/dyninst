@@ -208,6 +208,7 @@ class ProcDebug : public ProcessState {
 
   proc_state state();
   void setState(proc_state p);
+
  public:
   
   static ProcDebug *newProcDebug(Dyninst::PID pid, std::string executable="");
@@ -241,6 +242,9 @@ class ProcDebug : public ProcessState {
 
   typedef void (*sig_callback_func)(int &signum, ThreadState *thr);
   void registerSignalCallback(sig_callback_func f);
+
+  virtual Dyninst::Architecture getArchitecture();
+
  protected:
   /**
    * Helper for polling for new threads.  Sees if the thread exists, 

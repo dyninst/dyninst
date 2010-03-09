@@ -38,7 +38,6 @@
 #include <set>
 
 #include "stackwalk/src/get_trap_instruction.h"
-#include "stackwalk/src/framestepper_int.h"
 #define MAX_TRAP_LEN 8
 
 namespace Dyninst {
