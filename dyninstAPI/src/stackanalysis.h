@@ -44,6 +44,9 @@
 
 #include "dyn_detail/boost/shared_ptr.hpp"
 
+// To define StackAST
+#include "dynutil/h/AST.h"
+
 // These are _NOT_ in the Dyninst namespace...
 class image_func;
 class image_basicBlock;
@@ -614,9 +617,16 @@ class StackAnalysis {
     
     RangeTree rt;
 };
+
 };
 
 std::ostream &operator<<(std::ostream &os, const Dyninst::StackAnalysis::Height &h);
+
+namespace Dyninst {
+  DEF_AST_LEAF_TYPE(StackAST, Dyninst::StackAnalysis::Height);
+
+};
+
 
 #endif
 

@@ -20,6 +20,9 @@ using namespace Dyninst;
 using namespace InstructionAPI;
 using namespace std;
 
+#define slicing_cerr if (debug) cerr
+
+int debug = 0;
 
 Address AssignNode::addr() const { 
   if (a_)
@@ -97,7 +100,7 @@ Graph::Ptr Slicer::forwardSlice(PredicateFunc &e, PredicateFunc &w) {
   while (!worklist.empty()) {
     Element current = worklist.front(); worklist.pop();
 
-    cerr << "Slicing from " << current.ptr->format() << endl;
+    slicing_cerr << "Slicing from " << current.ptr->format() << endl;
 
     assert(current.ptr);
 
@@ -106,7 +109,7 @@ Graph::Ptr Slicer::forwardSlice(PredicateFunc &e, PredicateFunc &w) {
 
     // Don't get stuck in a loop
     if (visited.find(current.ptr) != visited.end()) {
-      cerr << "\t Already visited, skipping" << endl;
+      slicing_cerr << "\t Already visited, skipping" << endl;
       continue;
     }
     else {
@@ -116,14 +119,14 @@ Graph::Ptr Slicer::forwardSlice(PredicateFunc &e, PredicateFunc &w) {
     // Do we widen out? This should check the defined
     // abstract region...
     if (w(current.ptr)) {
-      cerr << "\t\t... widens slice" << endl;
+      slicing_cerr << "\t\t... widens slice" << endl;
       widen(ret, current);
       continue;
     }
 
     // Do we stop here according to the end predicate?
     if (e(current.ptr)) {
-      cerr << "\t\t... ends slice" << endl;
+      slicing_cerr << "\t\t... ends slice" << endl;
       markAsExitNode(ret, current);
       continue;
     }
@@ -134,13 +137,13 @@ Graph::Ptr Slicer::forwardSlice(PredicateFunc &e, PredicateFunc &w) {
     current.reg = current.ptr->out();
 
     if (!forwardSearch(current, found)) {
-      cerr << "\t\t... forward search failed" << endl;
+      slicing_cerr << "\t\t... forward search failed" << endl;
       widen(ret, current);
     }
     while (!found.empty()) {
       Element target = found.front(); found.pop();
 
-      cerr << "\t Adding edge to " << target.ptr->format() << endl;
+      slicing_cerr << "\t Adding edge to " << target.ptr->format() << endl;
 
       insertPair(ret, current, target);
       worklist.push(target);
@@ -182,7 +185,7 @@ bool Slicer::getStackDepth(image_func *func, Address callAddr, long &height) {
   // The height will include the effects of the call
   // Should check the region... 
 
-  cerr << "Get stack depth at " << std::hex << callAddr
+  slicing_cerr << "Get stack depth at " << std::hex << callAddr
        << std::dec << " " << (int) height << endl;
 
   return true;
@@ -192,11 +195,11 @@ void Slicer::pushContext(Context &context,
 			 image_func *callee,
 			 image_basicBlock *callBlock,
 			 long stackDepth) {
-  cerr << "pushContext with " << context.size() << " elements" << endl;
+  slicing_cerr << "pushContext with " << context.size() << " elements" << endl;
   assert(context.front().block == NULL);
   context.front().block = callBlock;
 
-  cerr << "\t" << (context.front().func ? context.front().func->symTabName() : "NULL")
+  slicing_cerr << "\t" << (context.front().func ? context.front().func->symTabName() : "NULL")
        << ", " << context.front().stackDepth << endl;
 
   context.push_front(ContextElement(callee, stackDepth));
@@ -231,7 +234,7 @@ void Slicer::shiftAbsRegion(AbsRegion &callerReg,
 	return;
       }
       else {
-	cerr << "*** Shifting caller absloc " << callerAloc.off()
+	slicing_cerr << "*** Shifting caller absloc " << callerAloc.off()
 	     << " by stack depth " << stack_depth 
 	     << " and setting to function " << callee->symTabName() << endl;
 	calleeReg = AbsRegion(Absloc(callerAloc.off() - stack_depth,
@@ -263,8 +266,8 @@ bool Slicer::handleCall(AbsRegion &reg,
 		 stack_depth,
 		 callee);
 
-  cerr << "After call, context has " << context.size() << " elements" << endl;
-  cerr << "\t" << (context.front().func ? context.front().func->symTabName() : "NULL")
+  slicing_cerr << "After call, context has " << context.size() << " elements" << endl;
+  slicing_cerr << "\t" << (context.front().func ? context.front().func->symTabName() : "NULL")
        << ", " << context.front().stackDepth << endl;
 
   reg = newReg;
@@ -276,8 +279,8 @@ void Slicer::handleReturn(AbsRegion &reg,
   // We need to add back the appropriate stack depth, basically
   // reversing what we did in handleCall
 
-  cerr << "Return: context has " << context.size() << " elements" << endl;
-  cerr << "\t" << (context.front().func ? context.front().func->symTabName() : "NULL")
+  slicing_cerr << "Return: context has " << context.size() << " elements" << endl;
+  slicing_cerr << "\t" << (context.front().func ? context.front().func->symTabName() : "NULL")
        << ", " << context.front().stackDepth << endl;
 
   long stack_depth = context.front().stackDepth;
@@ -286,7 +289,7 @@ void Slicer::handleReturn(AbsRegion &reg,
 
   assert(!context.empty());
 
-  cerr << "\t" << (context.front().func ? context.front().func->symTabName() : "NULL")
+  slicing_cerr << "\t" << (context.front().func ? context.front().func->symTabName() : "NULL")
        << ", " << context.front().stackDepth << endl;
 
 
@@ -318,8 +321,8 @@ bool Slicer::getSuccessors(Element &current,
     newElement.loc.current = next;
     succ.push(newElement);
 
-    cerr << "\t\t\t\t Adding intra-block successor " << newElement.reg.format() << endl;
-    cerr << "\t\t\t\t\t Current region is " << current.reg.format() << endl;
+    slicing_cerr << "\t\t\t\t Adding intra-block successor " << newElement.reg.format() << endl;
+    slicing_cerr << "\t\t\t\t\t Current region is " << current.reg.format() << endl;
 
     return true;
   }
@@ -355,7 +358,7 @@ bool Slicer::getSuccessors(Element &current,
       break;
     }
 
-    cerr << "\t\t\t\t Adding inter-block successor " << newElement.reg.format() << endl;
+    slicing_cerr << "\t\t\t\t Adding inter-block successor " << newElement.reg.format() << endl;
 
     succ.push(newElement);
   }
@@ -477,7 +480,7 @@ bool Slicer::forwardSearch(Element &initial,
 
   Elements worklist;
 
-  cerr << "\t\t Getting forward successors from " << initial.ptr->format() 
+  slicing_cerr << "\t\t Getting forward successors from " << initial.ptr->format() 
        << " - " << initial.reg.format() << endl;
 
   if (!getSuccessors(initial,
@@ -494,7 +497,7 @@ bool Slicer::forwardSearch(Element &initial,
     worklist.pop();
 
     if (visited.find(current.addr()) != visited.end()) {
-      cerr << "Already visited instruction @ " 
+      slicing_cerr << "Already visited instruction @ " 
 	   << std::hex << current.addr() << std::dec
 	   << endl;
       continue;
@@ -511,7 +514,7 @@ bool Slicer::forwardSearch(Element &initial,
     // After this point we treat current as a scratch space to scribble in
     // and return...
 
-    cerr << "\t\t\t Examining successor @ " << std::hex << current.loc.current->second
+    slicing_cerr << "\t\t\t Examining successor @ " << std::hex << current.loc.current->second
 	 << std::dec << " with region " << searchRegion.format() << endl;
 
 
@@ -528,19 +531,19 @@ bool Slicer::forwardSearch(Element &initial,
 	 iter != assignments.end(); ++iter) {
       Assignment::Ptr &assign = *iter;
 
-      cerr << "\t\t\t\t Assignment " << assign->format() << endl;
+      slicing_cerr << "\t\t\t\t Assignment " << assign->format() << endl;
 
       // If this assignment uses an absRegion that overlaps with 
       // searchRegion, add it to the return list. 
 
       for (unsigned k = 0; k < assign->inputs().size(); ++k) {
 	const AbsRegion &uReg = assign->inputs()[k];
-	cerr << "\t\t\t\t\t\t" << uReg.format() << endl;
+	slicing_cerr << "\t\t\t\t\t\t" << uReg.format() << endl;
 	if (searchRegion.contains(uReg)) {
-	  cerr << "\t\t\t\t\t Overlaps, adding" << endl;
+	  slicing_cerr << "\t\t\t\t\t Overlaps, adding" << endl;
 	  // We make a copy of each Element for each Assignment...
 	  current.ptr = assign;
-
+	  current.usedIndex = k;
 	  succ.push(current);
 	}
       }
@@ -549,7 +552,7 @@ bool Slicer::forwardSearch(Element &initial,
       // by" would be better, but we need to get the AND/OR 
       // of abslocs hammered out.
       if (searchRegion.contains(assign->out())) {
-	cerr << "\t\t\t\t\t Kills, stopping" << endl;
+	slicing_cerr << "\t\t\t\t\t Kills, stopping" << endl;
 	addSucc = false;
       }
     }
@@ -606,8 +609,12 @@ void Slicer::getInsns(Location &loc) {
 void Slicer::insertPair(Graph::Ptr ret,
 			Element &source,
 			Element &target) {
-  ret->insertPair(createNode(source),
-		 createNode(target));
+  AssignNode::Ptr s = createNode(source);
+  AssignNode::Ptr t = createNode(target);
+  ret->insertPair(s, t);
+
+  // Also record which input to t is defined by s
+  t->addAssignment(s, target.usedIndex);
 }
 
 void Slicer::widen(Graph::Ptr ret,

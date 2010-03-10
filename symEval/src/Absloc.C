@@ -30,9 +30,6 @@
  */
 
 #include "Absloc.h"
-#include "Graph.h"
-#include "Edge.h"
-#include "Node.h"
 #include <assert.h>
 
 #include "instructionAPI/h/Register.h"
@@ -272,6 +269,20 @@ const std::string Assignment::format() const {
   return ret.str();
 }
 
+std::ostream &operator<<(std::ostream &os, const Absloc &a) {
+  os << a.format();
+  return os;
+}
+
+std::ostream &operator<<(std::ostream &os, const AbsRegion &a) {
+  os << a.format();
+  return os;
+}
+
+std::ostream &operator<<(std::ostream &os, const Assignment::Ptr &a) {
+  os << a->format();
+  return os;
+}
 
 #if 0
 bool AbsRegion::equivalent(const AbsRegion &lhs,

@@ -129,3 +129,7 @@ Absloc SymEvalPolicy::convert(X86Flag f)
   }
 }
 
+std::ostream &operator<<(std::ostream &os, const ROSEOperation &o) {
+  os << o.format();
+  return os;
+}

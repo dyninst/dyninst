@@ -233,6 +233,7 @@ class AbsRegion {
   AST::Ptr generator_;
 };
 
+
 class Assignment {
  public:
   typedef dyn_detail::boost::shared_ptr<Assignment> Ptr;
@@ -298,6 +299,11 @@ class Assignment {
 
 // Dyninst namespace
 };
+
+
+std::ostream &operator<<(std::ostream &os, const Dyninst::Absloc &a);
+std::ostream &operator<<(std::ostream &os, const Dyninst::AbsRegion &a);
+std::ostream &operator<<(std::ostream &os, const Dyninst::Assignment::Ptr &a);
 
 #endif
 

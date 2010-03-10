@@ -39,7 +39,7 @@
 #include "../rose/x86InstructionSemantics.h"
 
 #include "dyninstAPI/src/stackanalysis.h"
-#include "BindEval.h"
+#include "SymEvalVisitors.h"
 
 using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;
@@ -67,7 +67,6 @@ void SymEval::expand(Result &res) {
   if (i == res.end()) return;
 
   Assignment::Ptr ptr = i->first;
-  cerr << "\t\t Expanding insn " << ptr->insn()->format() << endl;
 
   expandInsn(ptr->insn(),
 	     ptr->addr(),
@@ -78,10 +77,10 @@ void SymEval::expand(Result &res) {
   StackAnalysis::Height sp = sA.findSP(ptr->addr());
   StackAnalysis::Height fp = sA.findFP(ptr->addr());
 
-  StackBindEval sbe(func->symTabName().c_str(), sp, fp);
+  StackVisitor sv(func->symTabName(), sp, fp);
 
   for (i = res.begin(); i != res.end(); ++i) {
-    i->second = sbe.simplify(i->second);
+    i->second = i->second->accept(&sv);
   }
 
 }

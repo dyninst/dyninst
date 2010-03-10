@@ -68,6 +68,7 @@
 #include "SymEval.h"
 
 namespace Dyninst {
+
 namespace SymbolicEvaluation {
 
 // The ROSE symbolic evaluation engine wants a data type that
@@ -196,6 +197,23 @@ struct ROSEOperation {
   Op op;
 };
 
+};
+
+};
+
+// Get this out of the Dyninst namespace...
+std::ostream &operator<<(std::ostream &os, const Dyninst::SymbolicEvaluation::ROSEOperation &o);
+
+namespace Dyninst {
+
+namespace SymbolicEvaluation {
+
+DEF_AST_LEAF_TYPE(BottomAST, bool);
+DEF_AST_LEAF_TYPE(ConstantAST, uint64_t);
+DEF_AST_LEAF_TYPE(AbsRegionAST, AbsRegion);
+DEF_AST_INTERNAL_TYPE(RoseAST, ROSEOperation);
+
+
 template <size_t Len>
 struct Handle {
   AST::Ptr *v_;
@@ -304,9 +322,15 @@ struct Handle {
      Handle<Len> readMemory(X86SegmentRegister /*segreg*/,
 			    Handle<32> addr,
 			    Handle<1> cond) {
-     return Handle<Len>(getBinaryAST(ROSEOperation::derefOp,
-				     addr.var(),
-				     cond.var()));
+     if (cond == true_()) {
+       return Handle<Len>(getUnaryAST(ROSEOperation::derefOp,
+				      addr.var()));
+     }
+     else {
+       return Handle<Len>(getBinaryAST(ROSEOperation::derefOp,
+				       addr.var(),
+				       cond.var()));
+     }
    }
         
    template <size_t Len>
@@ -617,34 +641,34 @@ struct Handle {
    Absloc convert(X86SegmentRegister r);
    Absloc convert(X86Flag r);
    AST::Ptr wrap(Absloc r) { 
-     return VariableAST<AbsRegion>::create(AbsRegion(r));
+     return AbsRegionAST::create(AbsRegion(r));
    }
 
 
     AST::Ptr getConstAST(uint64_t n, size_t) {
-      return ConstantAST<uint64_t>::create(n);
+      return ConstantAST::create(n);
     }
                         
     AST::Ptr getBottomAST() {
-      return BottomAST::create();
+      return BottomAST::create(false);
     }
                 
     AST::Ptr getUnaryAST(ROSEOperation::Op op,
                          AST::Ptr a) {
-      return UnaryAST<ROSEOperation>::create(ROSEOperation(op), a);
+      return RoseAST::create(ROSEOperation(op), a);
     }
 
     AST::Ptr getBinaryAST(ROSEOperation::Op op,
                           AST::Ptr a,
                           AST::Ptr b) {
-      return BinaryAST<ROSEOperation>::create(ROSEOperation(op), a, b);
+      return RoseAST::create(ROSEOperation(op), a, b);
     }
     
     AST::Ptr getTernaryAST(ROSEOperation::Op op,
                            AST::Ptr a,
                            AST::Ptr b,
                            AST::Ptr c) {
-      return TernaryAST<ROSEOperation>::create(ROSEOperation(op), a, b, c);
+      return RoseAST::create(ROSEOperation(op), a, b, c);
     }
     
 };

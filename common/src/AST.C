@@ -41,14 +41,10 @@ AST::Ptr AST::substitute(AST::Ptr in, AST::Ptr a, AST::Ptr b) {
   if (*in == *a)
     return b;
 
-  // Recurse to children
-  std::vector<AST::Ptr> kids;
-  std::vector<AST::Ptr> newKids;
-  in->getChildren(kids);
-  for (unsigned i = 0; i < kids.size(); ++i) {
-    newKids.push_back(substitute(kids[i], a, b));
+  Children newKids;
+  for (unsigned i = 0; i < in->numChildren(); ++i) {
+    in->setChild(i, substitute(in->child(i), a, b));
   }
-  in->setChildren(newKids);
   return in;
 }
 

@@ -54,6 +54,14 @@ typedef dyn_detail::boost::shared_ptr<InstructionAPI::Instruction> InstructionPt
     
     virtual ~AssignNode() {};
 
+    void addAssignment(AssignNode::Ptr p, unsigned u) {
+      assignMap_[p] = u;
+    }
+
+    unsigned getAssignmentIndex(AssignNode::Ptr p) {
+      return assignMap_[p];
+    }
+
  private:
 
     AssignNode(AssignmentPtr ptr,
@@ -64,6 +72,10 @@ typedef dyn_detail::boost::shared_ptr<InstructionAPI::Instruction> InstructionPt
     AssignmentPtr a_;
     image_basicBlock *b_;
     image_func *f_;
+
+    // This is ugly and should be cleaned up once we've figured
+    // out how to move forward on edge classes
+    std::map<AssignNode::Ptr, unsigned> assignMap_;
 };
 
 
@@ -183,6 +195,7 @@ class Slicer {
     // This is for returns, and not for the intermediate
     // steps. OTOH, I'm being a bit lazy...
     Assignment::Ptr ptr;
+    unsigned usedIndex;
 
     Address addr() const { return loc.addr(); }
   };
@@ -210,7 +223,9 @@ class Slicer {
 
   void widen(GraphPtr graph, Element &source);
 
-  void insertPair(GraphPtr graph, Element &source, Element &target);
+  void insertPair(GraphPtr graph, 
+		  Element &source, 
+		  Element &target);
 
   void convertInstruction(InstructionPtr,
 			  Address,
