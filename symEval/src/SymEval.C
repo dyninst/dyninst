@@ -135,18 +135,6 @@ SgAsmx86Instruction SymEval::convert(const InstructionAPI::Instruction::Ptr &ins
       assert(operands.size() == 2);
       roperands->append_operand(convert(operands[0]));
     }
-    else if (rinsn.get_kind() == x86_call) {
-      // IAPI gives us something like so:
-      // add(Offset, add(EIP, size)
-      // So we want to strip out the first part...
-      Expression::Ptr expr = operands[0].getValue();
-      BinaryFunction *bin = dynamic_cast<BinaryFunction *>(expr.get());
-      if (bin) {
-	vector<InstructionAST::Ptr> kids;
-	bin->getChildren(kids);
-	roperands->append_operand(convert(dyn_detail::boost::dynamic_pointer_cast<Expression>(kids[0])));
-      }
-    }
     else {
         for (std::vector<InstructionAPI::Operand>::iterator opi = operands.begin(),
                  ope = operands.end();
