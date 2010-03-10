@@ -278,9 +278,9 @@ Walker::~Walker() {
     } \
   } \
   Dyninst::MachRegisterVal pc, sp, fp; \
-  result = proc->getRegValue(Dyninst::MachRegPC, thread, pc); \
-  result = !result || proc->getRegValue(Dyninst::MachRegStackBase, thread, sp); \
-  result = !result || proc->getRegValue(Dyninst::MachRegFrameBase, thread, fp); \
+  result = proc->getRegValue(Dyninst::ReturnAddr, thread, pc); \
+  result = !result || proc->getRegValue(Dyninst::StackTop, thread, sp); \
+  result = !result || proc->getRegValue(Dyninst::FrameBase, thread, fp); \
   if (!result) { \
     sw_printf("Failed to get registers from process\n"); \
     result = false; \

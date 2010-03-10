@@ -71,7 +71,7 @@ bool DebugStepperImpl::GetReg(MachRegister reg, MachRegisterVal &val)
       return true;
    }
    
-   if (reg == MachRegReturn) {
+   if (reg.isPC()) {
       val = static_cast<MachRegisterVal>(cur_frame->getRA());
       return true;
    }

@@ -68,21 +68,25 @@ bool ProcSelf::getRegValue(Dyninst::MachRegister reg, THR_ID, Dyninst::MachRegis
 
   frame_pointer = (unsigned long *) *frame_pointer;
   
-  switch(reg)
+  switch(reg.val())
   {
-    case Dyninst::MachRegPC:
-      val = (Dyninst::MachRegisterVal) frame_pointer[1];
-      break;
-    case Dyninst::MachRegFrameBase:
-      val = (Dyninst::MachRegisterVal) frame_pointer[0];
-      break;      
-    case Dyninst::MachRegStackBase:
-       val = (Dyninst::MachRegisterVal) (frame_pointer + 2);
-      break;      
-    default:
-       sw_printf("[%s:%u] - Request for unsupported register %d\n",
-                 __FILE__, __LINE__, reg);
-       setLastError(err_badparam, "Unknown register passed in reg field");
+     case Dyninst::x86_64::irip:
+     case Dyninst::x86::ieip:
+     case Dyninst::iReturnAddr:
+        val = (Dyninst::MachRegisterVal) frame_pointer[1];
+        break;
+     case Dyninst::iFrameBase:
+        val = (Dyninst::MachRegisterVal) frame_pointer[0];
+        break;
+     case Dyninst::x86_64::irsp:
+     case Dyninst::x86::iesp:
+     case Dyninst::iStackTop:
+        val = (Dyninst::MachRegisterVal) (frame_pointer + 2);
+        break;      
+     default:
+        sw_printf("[%s:%u] - Request for unsupported register %s\n",
+                  __FILE__, __LINE__, reg.name());
+        setLastError(err_badparam, "Unknown register passed in reg field");
   }
 
   return true;
@@ -385,7 +389,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
    MachRegisterVal frame_value, stack_value, ret_value;
    bool result;
 
-   result = symtab->getRegValueAtFrame(pc, MachRegReturn,
+   result = symtab->getRegValueAtFrame(pc, Dyninst::ReturnAddr,
                                        ret_value, this);
    if (!result) {
       sw_printf("[%s:%u] - Couldn't get return debug info at %lx\n",
@@ -398,9 +402,9 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
    
    Dyninst::MachRegister frame_reg;
    if (addr_width == 4)
-      frame_reg = x86::EBP;
+      frame_reg = x86::ebp;
    else
-      frame_reg = x86_64::RBP;
+      frame_reg = x86_64::rbp;
 
    result = symtab->getRegValueAtFrame(pc, frame_reg,
                                        frame_value, this);
@@ -410,7 +414,7 @@ gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in,
       return gcf_not_me;
    }
 
-   result = symtab->getRegValueAtFrame(pc, MachRegFrameBase,
+   result = symtab->getRegValueAtFrame(pc, Dyninst::FrameBase,
                                        stack_value, this);
    if (!result) {
       sw_printf("[%s:%u] - Couldn't get stack debug info at %lx\n",

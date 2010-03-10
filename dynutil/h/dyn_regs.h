@@ -79,6 +79,9 @@ namespace Dyninst
       bool isStackPointer() const;
 
       void getROSERegister(int &c, int &n, int &p);
+
+      static MachRegister DwarfEncToReg(int encoding, Dyninst::Architecture arch);
+      int getDwarfEnc() const;
    };
 
    /**
@@ -126,6 +129,7 @@ namespace Dyninst
    DEF_REGISTER(InvalidReg, 0 | Arch_none, "abstract");
    DEF_REGISTER(FrameBase,  1 | Arch_none, "abstract");
    DEF_REGISTER(ReturnAddr, 2 | Arch_none, "abstract");
+   DEF_REGISTER(StackTop,   3 | Arch_none, "abstract");
 
    namespace x86
    {
@@ -396,8 +400,8 @@ namespace Dyninst
       DEF_REGISTER(cs,     0x4    | FULL  | SEG  | Arch_x86_64, "x86_64");
       DEF_REGISTER(ss,     0x5    | FULL  | SEG  | Arch_x86_64, "x86_64");
       DEF_REGISTER(orax,   0x0    | FULL  | MISC | Arch_x86_64, "x86_64");
-      DEF_REGISTER(fsbase, 0x0    | FULL  | MISC | Arch_x86_64, "x86_64");
-      DEF_REGISTER(gsbase, 0x0    | FULL  | MISC | Arch_x86_64, "x86_64");
+      DEF_REGISTER(fsbase, 0x1    | FULL  | MISC | Arch_x86_64, "x86_64");
+      DEF_REGISTER(gsbase, 0x2    | FULL  | MISC | Arch_x86_64, "x86_64");
       DEF_REGISTER(xmm0,  0x0     | OCT   | XMM  | Arch_x86_64, "x86_64");
       DEF_REGISTER(xmm1,  0x1     | OCT   | XMM  | Arch_x86_64, "x86_64");
       DEF_REGISTER(xmm2,  0x2     | OCT   | XMM  | Arch_x86_64, "x86_64");
