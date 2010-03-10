@@ -153,7 +153,7 @@ SgAsmx86Instruction SymEval::convert(const InstructionAPI::Instruction::Ptr &ins
              opi != ope;
              ++opi) {
             InstructionAPI::Operand &currOperand = *opi;
-            roperands->append_operand(convert(currOperand));   
+            roperands->append_operand(convert(currOperand));
         }
     }
     rinsn.set_operandList(roperands);
@@ -181,6 +181,27 @@ void ExpressionConversionVisitor::visit(BinaryFunction* binfunc) {
       SymEval::convert(dyn_detail::boost::dynamic_pointer_cast<Expression>(children[0]));
     SgAsmExpression *rhs =
       SymEval::convert(dyn_detail::boost::dynamic_pointer_cast<Expression>(children[1]));
+
+    // ROSE doesn't expect us to include the implicit PC update
+    //   along with explicit updates to the PC
+    // If the current function involves the PC, ignore it 
+    //   so the parent makes it disappear
+    RegisterAST::Ptr lhsReg = dyn_detail::boost::dynamic_pointer_cast<RegisterAST>(children[0]);
+    if (lhsReg)
+    {
+      if (lhsReg->getID().isPC())
+      {
+        roseExpression = NULL;
+        return;
+      }
+    }
+    // If the RHS didn't convert, that means it should disappear
+    // And we are just left with the LHS
+    if (!rhs)
+    {
+      roseExpression = lhs;
+      return;
+    }
 
     // now build either add or multiply
     if (binfunc->isAdd())
