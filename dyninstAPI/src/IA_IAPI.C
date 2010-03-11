@@ -232,13 +232,26 @@ bool IA_IAPI::isCall() const
 
 bool IA_IAPI::isInterruptOrSyscall() const
 {
-    return ((curInsn()->getOperation().getID() == e_int) ||
-            (curInsn()->getOperation().getID() == e_int3) ||
-            (curInsn()->getOperation().getID() == e_int80) ||
-            ((curInsn()->getOperation().getID() == e_call) && 
-             (curInsn()->getOperand(0).format() == "[0x10]")) ||
+    return (isInterrupt() && isSyscall());
+}
+
+bool IA_IAPI::isSyscall() const
+{
+    static RegisterAST::Ptr gs(new RegisterAST(x86::gs));
+
+    return (((curInsn()->getOperation().getID() == e_call) &&
+            /*(curInsn()->getOperation().isRead(gs))) ||*/
+            (curInsn()->getOperand(0).format() == "16")) ||
             (curInsn()->getOperation().getID() == e_syscall) || 
+            (curInsn()->getOperation().getID() == e_int) || 
             (curInsn()->getOperation().getID() == power_op_sc));
+}
+
+
+bool IA_IAPI::isInterrupt() const
+{
+    return ((curInsn()->getOperation().getID() == e_int) ||
+            (curInsn()->getOperation().getID() == e_int3));
 }
 
 void IA_IAPI::getNewEdges(
