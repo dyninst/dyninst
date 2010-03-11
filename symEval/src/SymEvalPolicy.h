@@ -252,7 +252,9 @@ struct Handle {
  public:
 
 
-   SymEvalPolicy(SymEval::Result &r, Dyninst::Architecture a);
+   SymEvalPolicy(SymEval::Result &r, 
+		 Address addr,
+		 Dyninst::Architecture a);
 
    ~SymEvalPolicy() {};
   

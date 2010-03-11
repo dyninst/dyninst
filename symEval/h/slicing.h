@@ -1,6 +1,9 @@
 // A simple forward slice using a search of the control flow graph.
 // Templated on a function that says when to stop slicing.
 
+#if !defined(_SLICING_H_)
+#define _SLICING_H_
+
 #include "dyn_detail/boost/shared_ptr.hpp"
 #include <vector>
 #include "dyntypes.h"
@@ -13,6 +16,8 @@
 #include "boost/function.hpp"
 
 #include "dynutil/h/Node.h"
+
+#include "AbslocInterface.h"
 
 class image_basicBlock;
 class image_func;
@@ -260,3 +265,5 @@ class Slicer {
   AssignNode::Ptr widen_;
 };
 };
+
+#endif

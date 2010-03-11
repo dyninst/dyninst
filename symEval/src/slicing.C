@@ -22,7 +22,7 @@ using namespace std;
 
 #define slicing_cerr if (debug) cerr
 
-int debug = 0;
+static int debug = 0;
 
 Address AssignNode::addr() const { 
   if (a_)
@@ -90,6 +90,7 @@ Graph::Ptr Slicer::forwardSlice(PredicateFunc &e, PredicateFunc &w) {
   initial.ptr = a_;
 
   AssignNode::Ptr aP = createNode(initial);
+  //cerr << "Inserting entry node " << aP << "/" << aP->format() << endl;
   ret->insertEntryNode(aP);
 
   Elements worklist;
@@ -159,10 +160,26 @@ Graph::Ptr Slicer::forwardSlice(PredicateFunc &e, PredicateFunc &w) {
 
   NodeIterator nbegin, nend;
   ret->allNodes(nbegin, nend);
+
+  std::list<Node::Ptr> toDelete;
+
   for (; nbegin != nend; ++nbegin) {
-    if ((*nbegin)->hasOutEdges()) continue;
-    if (ret->isExitNode(*nbegin)) continue;
-    ret->deleteNode(*nbegin);
+    AssignNode::Ptr foozle = dyn_detail::boost::dynamic_pointer_cast<AssignNode>(*nbegin);
+    //cerr << "Checking " << foozle << "/" << foozle->format() << endl;
+    if ((*nbegin)->hasOutEdges()) {
+      //cerr << "\t has out edges, leaving in" << endl;
+      continue;
+    }
+    if (ret->isExitNode(*nbegin)) {
+      //cerr << "\t is exit node, leaving in" << endl;
+      continue;
+    }
+    //cerr << "\t deleting" << endl;
+    toDelete.push_back(*nbegin);
+  }
+
+  for (std::list<Node::Ptr>::iterator tmp = toDelete.begin(); tmp != toDelete.end(); ++tmp) {
+    ret->deleteNode(*tmp);
   }
 
   return ret;
@@ -611,6 +628,7 @@ void Slicer::insertPair(Graph::Ptr ret,
 			Element &target) {
   AssignNode::Ptr s = createNode(source);
   AssignNode::Ptr t = createNode(target);
+
   ret->insertPair(s, t);
 
   // Also record which input to t is defined by s
@@ -621,6 +639,8 @@ void Slicer::widen(Graph::Ptr ret,
 		   Element &source) {
   ret->insertPair(createNode(source),
 		  widenNode());
+  //cerr << "Inserting exit node " << widenNode() << endl;
+
   ret->insertExitNode(widenNode());
 }
 
@@ -634,6 +654,7 @@ AssignNode::Ptr Slicer::widenNode() {
 }
 
 void Slicer::markAsExitNode(Graph::Ptr ret, Element &e) {
+  //cerr << "Inserting exit node for assignment " << e.ptr->format() << endl;
   ret->insertExitNode(createNode(e));
 }
 

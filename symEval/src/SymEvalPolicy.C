@@ -6,7 +6,9 @@ using namespace Dyninst;
 using namespace Dyninst::SymbolicEvaluation;
 using namespace Dyninst::InstructionAPI;
 
-SymEvalPolicy::SymEvalPolicy(SymEval::Result &r, Architecture ac) :
+SymEvalPolicy::SymEvalPolicy(SymEval::Result &r, 
+			     Address addr,
+			     Architecture ac) :
   res(r),
   arch(ac),
   ip_(Handle<32>(wrap(Absloc::makePC(arch)))) {
@@ -15,6 +17,8 @@ SymEvalPolicy::SymEvalPolicy(SymEval::Result &r, Architecture ac) :
   for (SymEval::Result::iterator iter = r.begin();
        iter != r.end(); ++iter) {
     Assignment::Ptr a = iter->first;
+    // For a different instruction...
+    if (a->addr() != addr) continue; 
     AbsRegion &o = a->out();
 
     if (o.containsOfType(Absloc::Register)) {
