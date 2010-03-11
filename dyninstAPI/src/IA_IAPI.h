@@ -76,6 +76,8 @@ class IA_IAPI : public InstructionAdapter
         virtual bool isConditional() const;
         virtual bool isBranch() const;
         virtual bool isInterruptOrSyscall() const;
+        virtual bool isSyscall() const;
+        virtual bool isInterrupt() const;
     private:
         virtual bool isRealCall() const;
         virtual bool isThunk() const;
