@@ -38,9 +38,14 @@
 
 #include "../rose/x86InstructionSemantics.h"
 
+#include "dyninstAPI/src/stackanalysis.h"
+#include "SymEvalVisitors.h"
+
 using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;
 using namespace Dyninst::SymbolicEvaluation;
+
+const AST::Ptr SymEval::Placeholder;
 
 AST::Ptr SymEval::expand(const Assignment::Ptr &assignment) {
   // This is a shortcut version for when we only want a 
@@ -48,7 +53,7 @@ AST::Ptr SymEval::expand(const Assignment::Ptr &assignment) {
 
   SymEval::Result res;
   // Fill it in to mark it as existing
-  res[assignment] = AST::Ptr();
+  res[assignment] = Placeholder;
   expand(res);
   return res[assignment];
 }
@@ -56,17 +61,65 @@ AST::Ptr SymEval::expand(const Assignment::Ptr &assignment) {
 void SymEval::expand(Result &res) {
   // Symbolic evaluation works off an Instruction
   // so we have something to hand to ROSE. 
-  // Let's assume (and, in fact, assert) that
-  // all of the Assignments we've been handed are for
-  // the same instruction.
+  for (Result::iterator i = res.begin(); i != res.end(); ++i) {
+    if (i->second != Placeholder) {
+      // Must've already filled it in from a previous instruction crack
+      continue;
+    }
+    Assignment::Ptr ptr = i->first;
 
-  Result::iterator i = res.begin();
-  if (i == res.end()) return;
+    expandInsn(ptr->insn(),
+	       ptr->addr(),
+	       res);
 
-  Assignment::Ptr ptr = i->first;
-  expandInsn(ptr->insn(),
-	     ptr->addr(),
-	     res);
+    // Let's experiment with simplification
+    image_func *func = ptr->func();
+    StackAnalysis sA(func);
+    StackAnalysis::Height sp = sA.findSP(ptr->addr());
+    StackAnalysis::Height fp = sA.findFP(ptr->addr());
+    
+    StackVisitor sv(func->symTabName(), sp, fp);
+    if (i->second)
+      i->second = i->second->accept(&sv);
+  }
+}
+
+// Do the previous, but use a Graph as a guide for
+// performing forward substitution on the AST results
+void SymEval::expand(Graph::Ptr slice, Result &res) {
+  // Other than the substitution this is pretty similar to the first example.
+  NodeIterator gbegin, gend;
+  slice->entryNodes(gbegin, gend);
+  
+  std::queue<Node::Ptr> worklist;
+  for (; gbegin != gend; ++gbegin) {
+    worklist.push(*gbegin);
+  }
+  std::set<Node::Ptr> visited;
+  
+  while (!worklist.empty()) {
+    Node::Ptr ptr = worklist.front(); worklist.pop();
+    AssignNode::Ptr aNode = dyn_detail::boost::dynamic_pointer_cast<AssignNode>(ptr);
+    if (!aNode) continue; // They need to be AssignNodes
+
+    if (!aNode->assign()) continue; // Could be a widen point
+
+    //cerr << "Visiting node " << ass->assign()->format() << endl;
+    if (visited.find(ptr) != visited.end()) continue;
+    visited.insert(ptr);
+
+    process(aNode, res);
+    
+    NodeIterator nbegin, nend;
+    aNode->outs(nbegin, nend);
+    for (; nbegin != nend; ++nbegin) {
+      AssignNode::Ptr target = dyn_detail::boost::dynamic_pointer_cast<AssignNode>(*nbegin);
+      if (!target) continue;
+      if (!target->assign()) continue;
+      //cerr << "\t Pushing successors " << ass2->assign()->format() << endl;
+      worklist.push(*nbegin);
+    }
+  }
 }
 
 
@@ -74,11 +127,80 @@ void SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,
 			 const uint64_t addr,
 			 Result &res) {
   SgAsmx86Instruction roseInsn = convert(insn, addr);
-  SymEvalPolicy policy(res, insn->getArch());
+  SymEvalPolicy policy(res, addr, insn->getArch());
   X86InstructionSemantics<SymEvalPolicy, Handle> t(policy);
   t.processInstruction(&roseInsn);
   return;
 }
+
+void SymEval::process(AssignNode::Ptr ptr,
+		      SymEval::Result &dbase) {
+  std::map<unsigned, Assignment::Ptr> inputMap;
+
+  //cerr << "Calling process on " << ptr->format() << endl;
+
+  // Don't try an expansion of a widen node...
+  if (!ptr->assign()) return;
+
+  NodeIterator begin, end;
+  ptr->ins(begin, end);
+  
+  for (; begin != end; ++begin) {
+    AssignNode::Ptr in = dyn_detail::boost::dynamic_pointer_cast<AssignNode>(*begin);
+    if (!in) continue;
+
+    Assignment::Ptr assign = in->assign();
+
+    if (!assign) continue;
+
+    // Find which input this assignNode maps to
+    unsigned index = ptr->getAssignmentIndex(in);
+    if (inputMap.find(index) == inputMap.end()) {
+      inputMap[index] = assign;
+    }
+    else {
+      // Need join operator!
+      inputMap[index] = Assignment::Ptr(); // Null equivalent
+    }
+  }
+
+  //cerr << "\t Input map has size " << inputMap.size() << endl;
+
+  // All of the expanded inputs are in the parameter dbase
+  // If not (like this one), add it
+
+  AST::Ptr ast = SymEval::expand(ptr->assign());
+  //cerr << "\t ... resulting in " << res->format() << endl;
+
+  // We have an AST. Now substitute in all of its predecessors.
+  for (std::map<unsigned, Assignment::Ptr>::iterator iter = inputMap.begin();
+       iter != inputMap.end(); ++iter) {
+    if (!iter->second) {
+      // Colliding definitions; skip.
+      continue;
+    }
+
+    // The region used by the current assignment...
+    const AbsRegion &reg = ptr->assign()->inputs()[iter->first];
+
+    // Create an AST around this one
+    AbsRegionAST::Ptr use = AbsRegionAST::create(reg);
+
+    // And substitute whatever we have in the database for that AST
+    AST::Ptr definition = dbase[iter->second]; 
+
+    if (!definition) {
+      cerr << "Odd; no expansion for " << iter->second->format() << endl;
+      // Can happen if we're expanding out of order, and is generally harmless.
+      continue;
+    }
+
+    ast = AST::substitute(ast, use, definition);
+    //cerr << "\t result is " << res->format() << endl;
+  }
+  dbase[ptr->assign()] = ast;
+}
+
 
 SgAsmx86Instruction SymEval::convert(const InstructionAPI::Instruction::Ptr &insn, uint64_t addr) {
     SgAsmx86Instruction rinsn;
@@ -124,7 +246,7 @@ SgAsmx86Instruction SymEval::convert(const InstructionAPI::Instruction::Ptr &ins
              opi != ope;
              ++opi) {
             InstructionAPI::Operand &currOperand = *opi;
-            roperands->append_operand(convert(currOperand));   
+            roperands->append_operand(convert(currOperand));
         }
     }
     rinsn.set_operandList(roperands);
@@ -152,6 +274,27 @@ void ExpressionConversionVisitor::visit(BinaryFunction* binfunc) {
       SymEval::convert(dyn_detail::boost::dynamic_pointer_cast<Expression>(children[0]));
     SgAsmExpression *rhs =
       SymEval::convert(dyn_detail::boost::dynamic_pointer_cast<Expression>(children[1]));
+
+    // ROSE doesn't expect us to include the implicit PC update
+    //   along with explicit updates to the PC
+    // If the current function involves the PC, ignore it 
+    //   so the parent makes it disappear
+    RegisterAST::Ptr lhsReg = dyn_detail::boost::dynamic_pointer_cast<RegisterAST>(children[0]);
+    if (lhsReg)
+    {
+      if (lhsReg->getID().isPC())
+      {
+        roseExpression = NULL;
+        return;
+      }
+    }
+    // If the RHS didn't convert, that means it should disappear
+    // And we are just left with the LHS
+    if (!rhs)
+    {
+      roseExpression = lhs;
+      return;
+    }
 
     // now build either add or multiply
     if (binfunc->isAdd())

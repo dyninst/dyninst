@@ -172,20 +172,20 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction::Ptr insn,
 }
 
 
-void BPatch_memoryAccessAdapter::visit(BinaryFunction* b)
+void BPatch_memoryAccessAdapter::visit(BinaryFunction* )
 {
 }
 
 
-void BPatch_memoryAccessAdapter::visit(Dereference* d)
+void BPatch_memoryAccessAdapter::visit(Dereference* )
 {
 }
 
-void BPatch_memoryAccessAdapter::visit(RegisterAST* r)
+void BPatch_memoryAccessAdapter::visit(RegisterAST* )
 {
 }
 
-void BPatch_memoryAccessAdapter::visit(Immediate* i)
+void BPatch_memoryAccessAdapter::visit(Immediate* )
 {
 }
 

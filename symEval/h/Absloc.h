@@ -50,6 +50,8 @@
 #include "Instruction.h"
 #include "AST.h"
 
+class image_func;
+
 namespace Dyninst {
 
 class Absloc {
@@ -68,6 +70,9 @@ class Absloc {
   bool isPC() const;
   bool isSPR() const;
   
+  bool isSP() const;
+  bool isFP() const;
+
  Absloc() :
   type_(Unknown),
     reg_(),
@@ -173,7 +178,7 @@ class AbsRegion {
   bool contains(const Absloc &abs) const;
   bool contains(const AbsRegion &rhs) const;
   // Logically, "intersect(rhs) != 0"
-  bool overlaps(const AbsRegion &rhs) const;
+  //bool overlaps(const AbsRegion &rhs) const;
 
   bool containsOfType(Absloc::Type t) const;
 
@@ -181,6 +186,7 @@ class AbsRegion {
   //iterator &end();
 
   bool operator==(const AbsRegion &rhs) const;
+  bool operator<(const AbsRegion &rhs) const;
 
   const std::string format() const;
 
@@ -196,20 +202,22 @@ class AbsRegion {
   AbsRegion(Absloc::Type t) :
     type_(t) {};
 
-  AbsRegion(std::set<Absloc> s) :
-    type_(Absloc::Unknown),
-    abslocs_(s) {};
-
   AbsRegion(Absloc a) :
-    type_(Absloc::Unknown)
-    { abslocs_.insert(a); }
+    type_(Absloc::Unknown),
+      absloc_(a) {};
+
 
   void setGenerator(AST::Ptr generator) {
       generator_ = generator;
   }
 
-  const std::set<Absloc> &abslocs() const { return abslocs_; }
+  static bool equivalent(const AbsRegion &lhs,
+			 const AbsRegion &rhs,
+			 Address addr,
+			 image_func *caller,
+			 image_func *callee);
 
+  const Absloc absloc() const { return absloc_; }
   const Absloc::Type type() const { return type_; }
 
  private:
@@ -218,21 +226,18 @@ class AbsRegion {
   Absloc::Type type_;
 
   // For specific knowledge.
-  std::set<Absloc> abslocs_;
-
-  // Okay, we're going lame. Currently an AbsReg can either be a set
-  // of Abslocs or all Abslocs of a given type. I'm going to just
-  // code in both possibilities.
+  Absloc absloc_;
 
   // And the AST that gave rise to this Absloc. We use this
   // as a generating function (if present and not overridden)
   AST::Ptr generator_;
 };
 
+
 class Assignment {
  public:
   typedef dyn_detail::boost::shared_ptr<Assignment> Ptr;
-
+  typedef std::set<AbsRegion> Aliases;
 
   const std::vector<AbsRegion> &inputs() const { return inputs_; }
   std::vector<AbsRegion> &inputs() { return inputs_; }
@@ -245,24 +250,31 @@ class Assignment {
 
   const std::string format() const;
 
+  // FIXME
+  Aliases aliases;
+
   // Factory functions. 
   static std::set<Assignment::Ptr> create(InstructionAPI::Instruction::Ptr insn,
 					  Address addr);
 
   Assignment(const InstructionAPI::Instruction::Ptr i,
 	     const Address a,
+	     image_func *f,
 	     const std::vector<AbsRegion> &ins,
 	     const AbsRegion &o) : 
     insn_(i),
     addr_(a),
+      func_(f),
     inputs_(ins),
     out_(o) {};
 
   Assignment(const InstructionAPI::Instruction::Ptr i,
 	     const Address a,
+	     image_func *f,
 	     const AbsRegion &o) : 
     insn_(i),
     addr_(a),
+      func_(f),
     out_(o) {};
 
   // Internally used method; add a dependence on 
@@ -273,9 +285,13 @@ class Assignment {
   void addInput(const AbsRegion &reg);
   void addInputs(const std::vector<AbsRegion> &regions);
 
+  image_func *func() const { return func_; }
+
  private:
   InstructionAPI::Instruction::Ptr insn_;
   Address addr_;
+
+  image_func *func_;
 
   std::vector<AbsRegion> inputs_;
   AbsRegion out_;
@@ -283,6 +299,11 @@ class Assignment {
 
 // Dyninst namespace
 };
+
+
+std::ostream &operator<<(std::ostream &os, const Dyninst::Absloc &a);
+std::ostream &operator<<(std::ostream &os, const Dyninst::AbsRegion &a);
+std::ostream &operator<<(std::ostream &os, const Dyninst::Assignment::Ptr &a);
 
 #endif
 

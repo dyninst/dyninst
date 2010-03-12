@@ -525,7 +525,7 @@ int BPatch_point::getDisplacedInstructionsInt(int maxSize, void* insns)
 
     // So, we return the instruction "overwritten". Wrong, but what the heck...
 #if defined(cap_instruction_api)
-    Dyninst::InstructionAPI::Instruction::Ptr insn = point->insn();
+    Dyninst::InstructionAPI::Instruction::Ptr insn(point->insn());
     unsigned size = (maxSize < (int)insn->size()) ? maxSize : insn->size();
     memcpy(insns, (const void *)insn->ptr(), size);
     return insn->size();

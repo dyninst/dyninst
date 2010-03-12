@@ -10,6 +10,8 @@
 #include "Absloc.h"
 
 class image_func;
+class int_function;
+class BPatch_function;
 
 namespace Dyninst {
 
@@ -80,6 +82,16 @@ class AssignmentConverter {
 	       const Address &addr,
 	       image_func *func,
 	       std::vector<Assignment::Ptr> &assignments);
+  void convert(InstructionAPI::Instruction::Ptr insn,
+	       const Address &addr,
+	       int_function *func,
+	       std::vector<Assignment::Ptr> &assignments);
+  void convert(InstructionAPI::Instruction::Ptr insn,
+	       const Address &addr,
+	       BPatch_function *func,
+	       std::vector<Assignment::Ptr> &assignments);
+
+
  private:
   void handlePushEquivalent(const InstructionAPI::Instruction::Ptr I,
 			    Address addr,

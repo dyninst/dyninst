@@ -2667,8 +2667,9 @@ relocatedInstruction::relocatedInstruction(const unsigned char* insnPtr, Address
    multiT(m), 
    targetOverride_(NULL) 
 {
+  const codeBuf_t *buf = reinterpret_cast<const codeBuf_t*>(insnPtr);
   insn = new instruction;
-  insn->setInstruction((const codeBuf_t*)insnPtr, (Address)(o));
+  insn->setInstruction(const_cast<codeBuf_t*>(buf), (Address)(o));
 }
 #endif
 

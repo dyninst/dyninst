@@ -120,6 +120,7 @@ bool AddressTranslateAIX::refresh()
 
    prmap_t mapEntry;
 
+#if defined(DEBUG_PRINT)
    for (;;) {
       result = pread(map_fd, &mapEntry, sizeof(prmap_t), iter * sizeof(prmap_t));
       if (result != sizeof(prmap_t))
@@ -146,7 +147,6 @@ bool AddressTranslateAIX::refresh()
              mapEntry.pr_pathoff, mapEntry.pr_pathoff ? buf : "NONE",
              mapEntry.pr_pathoff ? buf + strlen(buf) + 1 : "NONE",
              mapEntry.pr_alias, mapEntry.pr_gp);
-      
       if (mapEntry.pr_pathoff) {
          string filename = buf;
          string object_name = buf + strlen(buf) + 1;
@@ -161,6 +161,7 @@ bool AddressTranslateAIX::refresh()
       printf("\n");
       iter++;
    }
+#endif
 
    iter = 0;
 
@@ -189,6 +190,7 @@ bool AddressTranslateAIX::refresh()
       else {
          filename = deref_link(mapEntry.pr_mapname);
       }
+              
       is_aout = false;
       
       LoadedLib *ll = new LoadedLibAIX(filename, (unsigned long)mapEntry.pr_vaddr, object_name);

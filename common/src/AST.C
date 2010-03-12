@@ -34,3 +34,17 @@
 #include "../../common/h/singleton_object_pool.h"
 
 using namespace Dyninst; 
+
+AST::Ptr AST::substitute(AST::Ptr in, AST::Ptr a, AST::Ptr b) {
+  // Quick check
+  assert(in);
+  if (*in == *a)
+    return b;
+
+  Children newKids;
+  for (unsigned i = 0; i < in->numChildren(); ++i) {
+    in->setChild(i, substitute(in->child(i), a, b));
+  }
+  return in;
+}
+

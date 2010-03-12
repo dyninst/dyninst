@@ -177,10 +177,11 @@ namespace Dyninst
                         if (locs->rex_b)
                             reg = x86_64::r13;
                         else
-                            reg = MachRegister::getFramePointer(m_Arch);
-
-                        baseAST = makeAddExpression(decodeImmediate(op_b, locs->sib_position + 1),
-                                make_shared(singleton_object_pool<RegisterAST>::construct(reg)), aw);
+			  reg = MachRegister::getFramePointer(m_Arch);
+			
+                        baseAST = makeAddExpression(make_shared(singleton_object_pool<RegisterAST>::construct(reg)),
+						    decodeImmediate(op_b, locs->sib_position + 1), 
+						    aw);
                         break;
                     }
                     case 0x02: {
@@ -190,8 +191,9 @@ namespace Dyninst
                         else
                             reg = MachRegister::getFramePointer(m_Arch);
 
-                        baseAST = makeAddExpression(decodeImmediate(op_d, locs->sib_position + 1),
-                                make_shared(singleton_object_pool<RegisterAST>::construct(reg)), aw);
+                        baseAST = makeAddExpression(make_shared(singleton_object_pool<RegisterAST>::construct(reg)), 
+						    decodeImmediate(op_d, locs->sib_position + 1),
+						    aw);
                         break;
                     }
                 case 0x03:
@@ -202,14 +204,15 @@ namespace Dyninst
         }
         else
         {
-            baseAST = make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(base, opType,
-                                    locs->rex_b)));
+            baseAST = make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(base, 
+											       opType,
+											       locs->rex_b)));
         }
         if(index == 0x04 && (!(ia32_is_mode_64()) || !(locs->rex_x)))
         {
             return baseAST;
         }
-        return makeAddExpression(makeMultiplyExpression(scaleAST, indexAST, aw), baseAST, aw);
+        return makeAddExpression(baseAST, makeMultiplyExpression(indexAST, scaleAST, aw), aw);
     }
 
     Expression::Ptr InstructionDecoder_x86::makeModRMExpression(unsigned int opType)
@@ -221,7 +224,7 @@ namespace Dyninst
         }
         Result_Type aw = ia32_is_mode_64() ? u32 : u64;
         Expression::Ptr e =
-                makeRegisterExpression(makeRegisterID(locs->modrm_rm, regType, (locs->rex_b == 1)));
+	  makeRegisterExpression(makeRegisterID(locs->modrm_rm, regType, (locs->rex_b == 1)));
         switch(locs->modrm_mod)
         {
             case 0:
@@ -508,6 +511,11 @@ namespace Dyninst
                     break;
             }
         }
+	if (m_Arch == Arch_x86) {
+	  if ((retVal.val() & 0x00ffffff) == 0x0001000c)
+	    assert(0);
+	}
+
         return MachRegister((retVal.val() & ~retVal.getArchitecture()) | m_Arch);
     }
     
@@ -698,7 +706,8 @@ namespace Dyninst
 
 
                         int offset_position = locs->opcode_position;
-                        if(locs->modrm_position > offset_position && locs->modrm_operand < insn_to_complete->m_Operands.size())
+                        if(locs->modrm_position > offset_position && locs->modrm_operand <
+                           (int)(insn_to_complete->m_Operands.size()))
                         {
                             offset_position = locs->modrm_position;
                         }

@@ -179,6 +179,7 @@ const char *Region::regionType2Str(RegionType rt)
       CASE_RETURN_STR(RT_HASH);
       CASE_RETURN_STR(RT_GNU_HASH);
       CASE_RETURN_STR(RT_OTHER);
+      CASE_RETURN_STR(RT_INVALID);
    };
    return "bad_RegionTypeype";
 };
@@ -229,7 +230,7 @@ std::string Region::getRegionName() const
 
 Offset Region::getRegionAddr() const
 {
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) || defined(os_vxworks)
         return memOff_;
 #else
         return diskOff_;
@@ -238,7 +239,7 @@ Offset Region::getRegionAddr() const
 
 Offset Region::getRegionSize() const
 {
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) || defined(os_vxworks)
         return memSize_;
 #else
         return diskSize_;
@@ -268,6 +269,16 @@ unsigned long Region::getMemSize() const
 unsigned long Region::getMemAlignment() const
 {
     return memAlign_;
+}
+
+void Region::setMemOffset(Offset newoff)
+{
+    memOff_ = newoff;
+}
+
+void Region::setMemSize(long newsize)
+{
+    memSize_ = newsize;
 }
 
 void *Region::getPtrToRawData() const

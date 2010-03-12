@@ -6,21 +6,24 @@ using namespace Dyninst;
 using namespace Dyninst::SymbolicEvaluation;
 using namespace Dyninst::InstructionAPI;
 
-SymEvalPolicy::SymEvalPolicy(SymEval::Result &r, Architecture a) :
+SymEvalPolicy::SymEvalPolicy(SymEval::Result &r, 
+			     Address addr,
+			     Architecture ac) :
   res(r),
-  arch(a) {
+  arch(ac),
+  ip_(Handle<32>(wrap(Absloc::makePC(arch)))) {
+
   // We also need to build aaMap FTW!!!
   for (SymEval::Result::iterator iter = r.begin();
        iter != r.end(); ++iter) {
     Assignment::Ptr a = iter->first;
+    // For a different instruction...
+    if (a->addr() != addr) continue; 
     AbsRegion &o = a->out();
 
     if (o.containsOfType(Absloc::Register)) {
       // We're assuming this is a single register...
-      for (std::set<Absloc>::const_iterator a_iter = o.abslocs().begin();
-	   a_iter != o.abslocs().end(); ++a_iter) {
-	aaMap[*a_iter] = a;
-      }
+      aaMap[o.absloc()] = a;
     }
     else {
       // Use sufficiently-unique (Heap,0) Absloc
@@ -39,6 +42,7 @@ void SymEvalPolicy::finishInstruction(SgAsmx86Instruction *) {
 
 Absloc SymEvalPolicy::convert(X86GeneralPurposeRegister r)
 {
+
   MachRegister mreg;
   switch (r) {
     case x86_gpr_ax:
@@ -103,35 +107,33 @@ Absloc SymEvalPolicy::convert(X86SegmentRegister r)
 
 Absloc SymEvalPolicy::convert(X86Flag f)
 {
-  return Absloc(x86::flags);
-#if 0  
   switch (f) {
     case x86_flag_cf:
-      break;
+      return Absloc(x86::cf);
     case x86_flag_pf:
-      break;
+      return Absloc(x86::pf);
     case x86_flag_af:
-      break;
+      return Absloc(x86::af);
     case x86_flag_zf:
-      break;
+      return Absloc(x86::zf);
     case x86_flag_sf:
-      break;
+      return Absloc(x86::sf);
     case x86_flag_tf:
-      break;
+      return Absloc(x86::tf);
     case x86_flag_if:
-      break;
+      return Absloc(x86::if_);
     case x86_flag_df:
-      break;
+      return Absloc(x86::df);
     case x86_flag_of:
-      break;
+      return Absloc(x86::of);
     case x86_flag_nt:
-      break;
-    case x86_flag_rf:
-      break;
     default:
-      std::cerr << "Failed to find flag " << f << std::endl;
       assert(0);
+      return Absloc();
   }
-#endif
 }
 
+std::ostream &operator<<(std::ostream &os, const ROSEOperation &o) {
+  os << o.format();
+  return os;
+}

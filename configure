@@ -311,7 +311,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS CXX CXXFLAGS LDFLAGS CPPFLAGS ac_ct_CXX EXEEXT OBJEXT _ICC_ _ICPC_ _PGC_ _PGCXX_ _CC_ _CXX_ USE_TCL83 TCLTK_INC_DIR TCLTK_LIB_DIR build build_cpu build_vendor build_os host host_cpu host_vendor host_os CXXCPP EGREP LIBELF_INC_DIR LIBELF_LIB_DIR LIBELF_STATIC LIBELF_DYNAMIC LIBDWARF_INC_DIR LIBDWARF_LIB_DIR LIBDWARF_STATIC LIBDWARF_DYNAMIC LIBDWARF_HAS_SET_FRAME LIBXML2_INC_DIR LIBXML2_LIB_DIR LIBIBERTY_LIB_DIR LIBIBERTY_STATIC LIBIBERTY_DYNAMIC LIBUNWIND_INC_DIR LIBUNWIND_LIB_DIR LIBFLEX_LIB_DIR NASM STACKPROT BUILD32 MMTIMER TESTSUITE LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS CXX CXXFLAGS LDFLAGS CPPFLAGS ac_ct_CXX EXEEXT OBJEXT _ICC_ _ICPC_ _PGC_ _PGCXX_ _CC_ _CXX_ USE_TCL83 TCLTK_INC_DIR TCLTK_LIB_DIR build build_cpu build_vendor build_os host host_cpu host_vendor host_os CXXCPP EGREP LIBELF_INC_DIR LIBELF_LIB_DIR LIBELF_STATIC LIBELF_DYNAMIC BUILD_XLC LIBDWARF_INC_DIR LIBDWARF_LIB_DIR LIBDWARF_STATIC LIBDWARF_DYNAMIC LIBDWARF_HAS_SET_FRAME LIBXML2_INC_DIR LIBXML2_LIB_DIR LIBIBERTY_LIB_DIR LIBIBERTY_STATIC LIBIBERTY_DYNAMIC LIBUNWIND_INC_DIR LIBUNWIND_LIB_DIR LIBFLEX_LIB_DIR NASM STACKPROT BUILD32 MMTIMER TESTSUITE LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -3661,6 +3661,13 @@ fi
 fi
 
 if test "`echo $host_os | cut -b-3`" = "aix" ; then
+   if test "`basename $CXX`" = "xlC" ; then
+      BUILD_XLC="true";
+
+   fi
+fi
+
+if test "`echo $host_os | cut -b-3`" = "aix" ; then
    { echo "$as_me:$LINENO: AIX system, skipping libdwarf..." >&5
 echo "$as_me: AIX system, skipping libdwarf..." >&6;}
 
@@ -6098,6 +6105,7 @@ s,@LIBELF_INC_DIR@,$LIBELF_INC_DIR,;t t
 s,@LIBELF_LIB_DIR@,$LIBELF_LIB_DIR,;t t
 s,@LIBELF_STATIC@,$LIBELF_STATIC,;t t
 s,@LIBELF_DYNAMIC@,$LIBELF_DYNAMIC,;t t
+s,@BUILD_XLC@,$BUILD_XLC,;t t
 s,@LIBDWARF_INC_DIR@,$LIBDWARF_INC_DIR,;t t
 s,@LIBDWARF_LIB_DIR@,$LIBDWARF_LIB_DIR,;t t
 s,@LIBDWARF_STATIC@,$LIBDWARF_STATIC,;t t

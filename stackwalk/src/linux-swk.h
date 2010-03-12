@@ -37,8 +37,7 @@
 #include "dyntypes.h"
 #include <set>
 
-#include "get_trap_instruction.h"
-
+#include "stackwalk/src/get_trap_instruction.h"
 #define MAX_TRAP_LEN 8
 
 namespace Dyninst {
@@ -98,21 +97,6 @@ public:
    virtual unsigned getPriority() const;
    virtual void registerStepperGroup(StepperGroup *group);
    virtual ~SigHandlerStepperImpl();  
-};
-
-class BottomOfStackStepperImpl : public FrameStepper {
-private:
-   BottomOfStackStepper *parent;
-   std::vector<std::pair<Address, Address> > ra_stack_tops;
-   std::vector<std::pair<Address, Address> >sp_stack_tops;
-   bool initialized;
-   void initialize();
-public:
-   BottomOfStackStepperImpl(Walker *w, BottomOfStackStepper *parent);
-   virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
-   virtual unsigned getPriority() const;
-   virtual void registerStepperGroup(StepperGroup *group);
-   virtual ~BottomOfStackStepperImpl();  
 };
 
 }

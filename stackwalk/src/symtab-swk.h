@@ -69,6 +69,7 @@ class SymtabLibState : public LibraryState {
    bool refresh();
    std::vector<std::pair<LibAddrPair, unsigned> > arch_libs;
 #if defined(os_linux)
+ private:
    void *vsyscall_mem;
    Symtab *vsyscall_symtab;
    LibAddrPair vsyscall_libaddr;
@@ -76,9 +77,14 @@ class SymtabLibState : public LibraryState {
  public:
    Symtab *getVsyscallSymtab();
    bool getVsyscallLibAddr(LibAddrPair &vsys);
+#endif
+
+#if defined(os_aix) || defined(os_linux)
+ public:
    bool getLibc(LibAddrPair &addr_pair);
    bool getLibpthread(LibAddrPair &addr_pair);
 #endif
+
  public:
    SymtabLibState(ProcessState *parent, std::string executable = "");
    virtual bool getLibraryAtAddr(Address addr, LibAddrPair &olib);
