@@ -1097,7 +1097,7 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   /* D0 */
   { e_No_Entry, t_grp, Grp2, true, { Eb, Zz, Zz }, 0, s1RW }, // const1
   { e_No_Entry, t_grp, Grp2, true, { Ev, Zz, Zz }, 0, s1RW }, // --"--
-  { e_int80,    t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+  { e_No_Entry, t_grp, Grp2, true, { Eb, CL, Zz }, 0, s1RW2R },
   { e_No_Entry, t_grp, Grp2, true, { Ev, CL, Zz }, 0, s1RW2R },
   { e_aam,  t_done, 0, false, { AX, Ib, Zz }, 0, s1RW2R },
   { e_aad,  t_done, 0, false, { AX, Ib, Zz }, 0, s1RW2R },

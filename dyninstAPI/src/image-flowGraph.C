@@ -54,6 +54,10 @@
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/debug.h"
 
+#include "symEval/h/Absloc.h"
+#include "symEval/h/AbslocInterface.h"
+#include "symEval/h/slicing.h"
+#include "Graph.h"
 
 #include "dyninstAPI/h/BPatch_flowGraph.h"
 
@@ -849,26 +853,13 @@ bool image_func::buildCFG(
 
         while(true) // instructions in block
         {
-            
-            // we want to note the trap number to aid in library fingerprinting
-            if( ah.isInterruptOrSyscall() )
+            if( ah.isSyscall() )
             {
-               
-                InstructionAdapter_t ah_previous = ah.previous; 
-                cout << ah_previous.getInstruction()->getOperation().format() << endl;
-
-                std::vector<Dyninst::InstructionAPI::Operand> operands;
-                std::vector<Dyninst::InstructionAPI::Operand>::iterator op_iter;
-                ah.getInstruction()->getOperands(operands);
-                cout << "Found interrupt: " << ah.getInstruction()->getOperation().format();
-                for( op_iter = operands.begin();
-                        op_iter != operands.end();
-                        ++op_iter) {
-                    cout << " " << (*op_iter).format(); 
-                }
-                cout << "( " << ah.getAddr() << ")" << endl;
+                // Here, we'll note the address of a trap instruction;
+                // After parsing, we'll do a backslice to determine
+                // which trap was called, and hopefully we'll be able to 
+                // identify the system call.
             }
-
 
             currAddr = ah.getAddr();
             insnSize = ah.getSize();
@@ -1799,3 +1790,4 @@ bool image_func::isNonReturningCall(image_func* targetFunc,
     }
 
 }
+
