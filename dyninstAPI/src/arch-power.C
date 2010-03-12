@@ -44,6 +44,45 @@
 #include "registerSpace.h"
 #include "instPoint.h"
 
+#if defined(os_vxworks)
+#include "vxworks.h"
+#endif
+
+unsigned int swapBytesIfNeeded(unsigned int i)
+{
+    static int one = 0x1;
+
+    if ( *((unsigned char *)&one) )
+        return instruction::swapBytes( *((instructUnion *)&i) ).raw;
+
+    return i;
+}
+
+int instruction::signExtend(unsigned int i, unsigned int pos)
+{
+    int ret;
+    if ((i >> (--pos)) & 0x1 == 0x1) {
+        ret = i |  (~0 << pos);
+    } else {
+        ret = i & ~(~0 << pos);
+    }
+
+     return ret;
+}
+
+instructUnion &instruction::swapBytes(instructUnion &i)
+{
+    i.byte[0] = i.byte[0] ^ i.byte[3];
+    i.byte[3] = i.byte[0] ^ i.byte[3];
+    i.byte[0] = i.byte[0] ^ i.byte[3];
+
+    i.byte[1] = i.byte[1] ^ i.byte[2];
+    i.byte[2] = i.byte[1] ^ i.byte[2];
+    i.byte[1] = i.byte[1] ^ i.byte[2];
+
+    return i;
+}
+
 instruction *instruction::copy() const {
     return new instruction(*this);
 }
@@ -60,8 +99,6 @@ void instruction::generateTrap(codeGen &gen) {
 
 void instruction::generateBranch(codeGen &gen, long disp, bool link)
 {
-    
-
     if (ABS(disp) > MAX_BRANCH) {
 	// Too far to branch, and no proc to register trap.
 	fprintf(stderr, "ABS OFF: 0x%lx, MAX: 0x%lx\n",
@@ -74,13 +111,13 @@ void instruction::generateBranch(codeGen &gen, long disp, bool link)
     }
 
     instruction insn;
-    insn.insn_.iform.op = Bop;
-    insn.insn_.iform.li = disp >> 2;
-    insn.insn_.iform.aa = 0;
+    IFORM_OP_SET(insn, Bop);
+    IFORM_LI_SET(insn, disp >> 2);
+    IFORM_AA_SET(insn, 0);
     if (link)
-        insn.insn_.iform.lk = 1;
+        IFORM_LK_SET(insn, 1);
     else
-        insn.insn_.iform.lk = 0;
+        IFORM_LK_SET(insn, 0);
 
     insn.generate(gen);
 }
@@ -89,13 +126,13 @@ void instruction::generateBranch(codeGen &gen, Address from, Address to, bool li
     if (to < MAX_BRANCH) {
         // Generate an absolute branch
         instruction insn;
-        insn.insn_.iform.op = Bop;
-        insn.insn_.iform.li = to >> 2;
-        insn.insn_.iform.aa = 1;
+        IFORM_OP_SET(insn, Bop);
+        IFORM_LI_SET(insn, to >> 2);
+        IFORM_AA_SET(insn, 1);
         if (link) 
-            insn.insn_.iform.lk = 1;
+            IFORM_LK_SET(insn, 1);
         else
-            insn.insn_.iform.lk = 0;
+            IFORM_LK_SET(insn, 0);
         insn.generate(gen);
         return;
     }
@@ -128,12 +165,14 @@ void instruction::generateInterFunctionBranch(codeGen &gen,
     instruction::loadImmIntoReg(gen, 0, to);
 
     instruction insn;
-    (*insn).raw = 0;                    //mtspr:  mtctr scratchReg
-    (*insn).xform.op = MTSPRop;
-    (*insn).xform.rt = 0;
-    (*insn).xform.ra = SPR_CTR & 0x1f;
-    (*insn).xform.rb = (SPR_CTR >> 5) & 0x1f;
-    (*insn).xform.xo = MTSPRxop;
+    
+    //mtspr:  mtctr scratchReg
+    insn.clear();
+    XFORM_OP_SET(insn, MTSPRop);
+    XFORM_RT_SET(insn, 0);
+    XFORM_RA_SET(insn, SPR_CTR & 0x1f);
+    XFORM_RB_SET(insn, (SPR_CTR >> 5) & 0x1f);
+    XFORM_XO_SET(insn, MTSPRxop);
     insn.generate(gen);
 
     // And branch to CTR
@@ -208,24 +247,22 @@ void instruction::generateLongBranch(codeGen &gen,
     
     assert(branchRegister);
     
-    instructUnion moveToBr;
-    moveToBr.raw = 0;
-    moveToBr.xfxform.op = MTSPRop;
-    moveToBr.xfxform.rt = scratch;
+    instruction moveToBr;
+    moveToBr.clear();
+    XFXFORM_OP_SET(moveToBr, MTSPRop);
+    XFXFORM_RT_SET(moveToBr, scratch);
     if (branchRegister == registerSpace::lr) {
-        moveToBr.xform.ra = SPR_LR & 0x1f;
-        moveToBr.xform.rb = (SPR_LR >> 5) & 0x1f;
+        XFORM_RA_SET(moveToBr, SPR_LR & 0x1f);
+        XFORM_RB_SET(moveToBr, (SPR_LR >> 5) & 0x1f);
         // The two halves (top 5 bits/bottom 5 bits) are _reversed_ in this encoding. 
     }
     else {
-        moveToBr.xform.ra = SPR_CTR & 0x1f;
-        moveToBr.xform.rb = (SPR_CTR >> 5) & 0x1f;
+        XFORM_RA_SET(moveToBr, SPR_CTR & 0x1f);
+        XFORM_RB_SET(moveToBr, (SPR_CTR >> 5) & 0x1f);
     }
-    moveToBr.xfxform.xo = MTSPRxop; // From assembly manual
-    
-    instruction m1(moveToBr.raw);
-    m1.generate(gen);
-    
+    XFXFORM_XO_SET(moveToBr, MTSPRxop); // From assembly manual
+    moveToBr.generate(gen);
+
     if (mustRestore) {
         if (gen.addrSpace()->getAddressWidth() == 4)
             instruction::generateImm(gen, Lop, 0, 1, 4*4);
@@ -234,25 +271,20 @@ void instruction::generateLongBranch(codeGen &gen,
     }
     
     // Aaaand now branch, linking if appropriate
-    instructUnion branchToBr;
-    branchToBr.raw = 0;
-    branchToBr.xlform.op = BCLRop;
-    branchToBr.xlform.bt = 0x14; // From architecture manual
-    branchToBr.xlform.ba = 0; // Unused
-    branchToBr.xlform.bb = 0; // Unused
+    instruction branchToBr;
+    branchToBr.clear();
+    XLFORM_OP_SET(branchToBr, BCLRop);
+    XLFORM_BT_SET(branchToBr, 0x14); // From architecture manual
+    XLFORM_BA_SET(branchToBr, 0); // Unused
+    XLFORM_BB_SET(branchToBr, 0); // Unused
     if (branchRegister == registerSpace::lr) {
-        branchToBr.xlform.xo = BCLRxop;
+        XLFORM_XO_SET(branchToBr, BCLRxop);
     }
     else {
-        branchToBr.xlform.xo = BCCTRxop;
+        XLFORM_XO_SET(branchToBr, BCCTRxop);
     }
-    if (isCall)
-        branchToBr.xlform.lk = 1;
-    else
-        branchToBr.xlform.lk = 0;
-    
-    instruction m2(branchToBr.raw);
-    m2.generate(gen);
+    XLFORM_LK_SET(branchToBr, (isCall ? 1 : 0));
+    branchToBr.generate(gen);
 }
 
 void instruction::generateBranchViaTrap(codeGen &gen, Address from, Address to, bool isCall) {
@@ -297,12 +329,12 @@ void instruction::generateImm(codeGen &gen, int op, Register rt, Register ra, in
 
   instruction insn;
   
-  (*insn).raw = 0;
-  (*insn).dform.op = op;
-  (*insn).dform.rt = rt;
-  (*insn).dform.ra = ra;
+  insn.clear();
+  DFORM_OP_SET(insn, op);
+  DFORM_RT_SET(insn, rt);
+  DFORM_RA_SET(insn, ra);
   if (op==SIop) immd = -immd;
-  (*insn).dform.d_or_si = immd;
+  DFORM_SI_SET(insn, immd);
 
   insn.generate(gen);
 }
@@ -314,12 +346,12 @@ void instruction::generateMemAccess64(codeGen &gen, int op, int xop, Register r1
 
     instruction insn;
 
-    (*insn).raw = 0;
-    (*insn).dsform.op = op;
-    (*insn).dsform.rt = r1;
-    (*insn).dsform.ra = r2;
-    (*insn).dsform.ds = immd >> 2;
-    (*insn).dsform.xo = xop;
+    insn.clear();
+    DSFORM_OP_SET(insn, op);
+    DSFORM_RT_SET(insn, r1);
+    DSFORM_RA_SET(insn, r2);
+    DSFORM_DS_SET(insn, immd >> 2);
+    DSFORM_XO_SET(insn, xop);
 
     insn.generate(gen);
 }
@@ -331,14 +363,14 @@ void instruction::generateLShift(codeGen &gen, Register rs, int shift, Register 
 
     if (gen.addrSpace()->getAddressWidth() == 4) {
 	assert(shift<32);
-	(*insn).raw = 0;
-	(*insn).mform.op = RLINMxop;
-	(*insn).mform.rs = rs;
-	(*insn).mform.ra = ra;
-	(*insn).mform.sh = shift;
-	(*insn).mform.mb = 0;
-	(*insn).mform.me = 31-shift;
-	(*insn).mform.rc = 0;
+	insn.clear();
+	MFORM_OP_SET(insn, RLINMxop);
+	MFORM_RS_SET(insn, rs);
+	MFORM_RA_SET(insn, ra);
+	MFORM_SH_SET(insn, shift);
+	MFORM_MB_SET(insn, 0);
+	MFORM_ME_SET(insn, 31-shift);
+	MFORM_RC_SET(insn, 0);
 	insn.generate(gen);
 
     } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
@@ -353,14 +385,14 @@ void instruction::generateRShift(codeGen &gen, Register rs, int shift, Register 
 
     if (gen.addrSpace()->getAddressWidth() == 4) {
 	assert(shift<32);
-	(*insn).raw = 0;
-	(*insn).mform.op = RLINMxop;
-	(*insn).mform.rs = rs;
-	(*insn).mform.ra = ra;
-	(*insn).mform.sh = 32-shift;
-	(*insn).mform.mb = shift;
-	(*insn).mform.me = 31;
-	(*insn).mform.rc = 0;
+	insn.clear();
+	MFORM_OP_SET(insn, RLINMxop);
+	MFORM_RS_SET(insn, rs);
+	MFORM_RA_SET(insn, ra);
+	MFORM_SH_SET(insn, 32-shift);
+	MFORM_MB_SET(insn, shift);
+	MFORM_ME_SET(insn, 31);
+	MFORM_RC_SET(insn, 0);
 	insn.generate(gen);
 
     } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
@@ -374,16 +406,16 @@ void instruction::generateLShift64(codeGen &gen, Register rs, int shift, Registe
     instruction insn;
 
     assert(shift<64);
-    (*insn).raw = 0;
-    (*insn).mdform.op  = RLDop;
-    (*insn).mdform.rs  = rs;
-    (*insn).mdform.ra  = ra;
-    (*insn).mdform.sh  = shift % 32;
-    (*insn).mdform.mb  = (63-shift) % 32;
-    (*insn).mdform.mb2 = (63-shift) / 32;
-    (*insn).mdform.xo  = ICRxop;
-    (*insn).mdform.sh2 = shift / 32;
-    (*insn).mdform.rc  = 0;
+    insn.clear();
+    MDFORM_OP_SET( insn, RLDop);
+    MDFORM_RS_SET( insn, rs);
+    MDFORM_RA_SET( insn, ra);
+    MDFORM_SH_SET( insn, shift % 32);
+    MDFORM_MB_SET( insn, (63-shift) % 32);
+    MDFORM_MB2_SET(insn, (63-shift) / 32);
+    MDFORM_XO_SET( insn, ICRxop);
+    MDFORM_SH2_SET(insn, shift / 32);
+    MDFORM_RC_SET( insn, 0);
 
     insn.generate(gen);
 }
@@ -394,16 +426,16 @@ void instruction::generateRShift64(codeGen &gen, Register rs, int shift, Registe
     instruction insn;
 
     assert(shift<64);
-    (*insn).raw = 0;
-    (*insn).mdform.op  = RLDop;
-    (*insn).mdform.rs  = rs;
-    (*insn).mdform.ra  = ra;
-    (*insn).mdform.sh  = (64 - shift) % 32;
-    (*insn).mdform.mb  = shift % 32;
-    (*insn).mdform.mb2 = shift / 32;
-    (*insn).mdform.xo  = ICLxop;
-    (*insn).mdform.sh2 = (64 - shift) / 32;
-    (*insn).mdform.rc  = 0;
+    insn.clear();
+    MDFORM_OP_SET( insn, RLDop);
+    MDFORM_RS_SET( insn, rs);
+    MDFORM_RA_SET( insn, ra);
+    MDFORM_SH_SET( insn, (64 - shift) % 32);
+    MDFORM_MB_SET( insn, shift % 32);
+    MDFORM_MB2_SET(insn, shift / 32);
+    MDFORM_XO_SET( insn, ICLxop);
+    MDFORM_SH2_SET(insn, (64 - shift) / 32);
+    MDFORM_RC_SET( insn, 0);
 
     insn.generate(gen);
 }
@@ -429,11 +461,11 @@ void instruction::generateSimple(codeGen &gen, int op,
   instruction insn;
 
   int xop=-1;
-  (*insn).raw = 0;
-  (*insn).xform.op = op;
-  (*insn).xform.rt = src1;
-  (*insn).xform.ra = dest;
-  (*insn).xform.rb = src2;
+  insn.clear();
+  XFORM_OP_SET(insn, op);
+  XFORM_RT_SET(insn, src1);
+  XFORM_RA_SET(insn, dest);
+  XFORM_RB_SET(insn, src2);
   if (op==ANDop) {
       xop=ANDxop;
   } else if (op==ORop) {
@@ -442,7 +474,7 @@ void instruction::generateSimple(codeGen &gen, int op,
       // only AND and OR are currently designed to use genSimpleInsn
       assert(0);
   }
-  (*insn).xform.xo = xop;
+  XFORM_XO_SET(insn, xop);
   insn.generate(gen);
 }
 
@@ -452,12 +484,12 @@ void instruction::generateRelOp(codeGen &gen, int cond, int mode, Register rs1,
     instruction insn;
 
     // cmp rs1, rs2
-    (*insn).raw = 0;
-    (*insn).xform.op = CMPop;
-    (*insn).xform.rt = 0;    // really bf & l sub fields of rt we care about
-    (*insn).xform.ra = rs1;
-    (*insn).xform.rb = rs2;
-    (*insn).xform.xo = CMPxop;
+    insn.clear();
+    XFORM_OP_SET(insn, CMPop);
+    XFORM_RT_SET(insn, 0);    // really bf & l sub fields of rt we care about
+    XFORM_RA_SET(insn, rs1);
+    XFORM_RB_SET(insn, rs2);
+    XFORM_XO_SET(insn, CMPxop);
 
     insn.generate(gen);
 
@@ -465,13 +497,13 @@ void instruction::generateRelOp(codeGen &gen, int cond, int mode, Register rs1,
     instruction::generateImm(gen, CALop, rd, 0, 1);
 
     // b??,a +2
-    (*insn).raw = 0;
-    (*insn).bform.op = BCop;
-    (*insn).bform.bi = cond;
-    (*insn).bform.bo = mode;
-    (*insn).bform.bd = 2;		// + two instructions */
-    (*insn).bform.aa = 0;
-    (*insn).bform.lk = 0;
+    insn.clear();
+    BFORM_OP_SET(insn, BCop);
+    BFORM_BI_SET(insn, cond);
+    BFORM_BO_SET(insn, mode);
+    BFORM_BD_SET(insn, 2);		// + two instructions */
+    BFORM_AA_SET(insn, 0);
+    BFORM_LK_SET(insn, 0);
     insn.generate(gen);
 
     // clr rd
@@ -553,23 +585,29 @@ void instruction::loadPartialImmIntoReg(codeGen &gen, Register rt, long value)
 
 Address instruction::getBranchOffset() const {
     if (isUncondBranch()) {
-        return (insn_.iform.li << 2);
+        return (IFORM_LI(*this) << 2);
     }
     else if (isCondBranch()) {
-        return (insn_.bform.bd << 2);
+        return (BFORM_BD(*this) << 2);
     }
     return 0;
 
 }
 
 Address instruction::getTarget(Address addr) const {
+#if defined(os_vxworks)
+    Address ret;
+    if (relocationTarget(addr, &ret))
+        return ret;
+#endif
+
     if (isUncondBranch() || isCondBranch()) {
         return getBranchOffset() + addr;
     }
     else if (isInsnType(Bmask, BAAmatch)) // Absolute
-        return (insn_.iform.li << 2);
+        return (IFORM_LI(*this) << 2);
     else if (isInsnType(Bmask, BCAAmatch)) // Absolute
-        return (insn_.bform.bd << 2);
+        return (BFORM_BD(*this) << 2);
 
     return 0;
 }
@@ -578,11 +616,11 @@ Address instruction::getTarget(Address addr) const {
 void instruction::setBranchOffset(Address newOffset) {
     if (isUncondBranch()) {
         assert(ABS((int) newOffset) < MAX_BRANCH);
-        insn_.iform.li = (newOffset >> 2);
+        IFORM_LI_SET(*this, newOffset >> 2);
     }
     else if (isCondBranch()) {
         assert(ABS(newOffset) < MAX_CBRANCH);
-        insn_.bform.bd = (newOffset >> 2);
+        BFORM_BD_SET(*this, newOffset >> 2);
     }
     else {
         assert(0);
@@ -615,18 +653,22 @@ codeBuf_t *instruction::ptrAndInc(codeGen &gen) {
 
 void instruction::setInstruction(codeBuf_t *ptr, Address) {
     // We don't need the addr on this platform
+
     instructUnion *insnPtr = (instructUnion *)ptr;
-    insn_ = *insnPtr;
+
+#if defined(endian_mismatch)
+    // Read an instruction from source.  Convert byte order if necessary.
+    insn_.raw = swapBytesIfNeeded((*insnPtr).raw);
+#endif
 }
 
 void instruction::generate(codeGen &gen) {
     instructUnion *ptr = ptrAndInc(gen);
-    *ptr = insn_;
-}
 
-void instruction::write(codeGen &gen) {
-    instructUnion *ptr = insnPtr(gen);
-    *ptr = insn_;
+#if defined(endian_mismatch)
+    // Writing an instruction.  Convert byte order if necessary.
+    (*ptr).raw = swapBytesIfNeeded(insn_.raw);
+#endif
 }
 
 bool instruction::isUncondBranch() const {
@@ -697,7 +739,7 @@ unsigned instruction::spaceToRelocate() const {
   }
   else if (isCondBranch()) {
         // Maybe... so worst-case
-        if ((insn_.bform.bo & BALWAYSmask) != BALWAYScond) {
+        if ((BFORM_BO(*this) & BALWAYSmask) != BALWAYScond) {
             return 3*instruction::size();
         }
     }
@@ -756,6 +798,10 @@ bool instruction::generate(codeGen &gen,
     else if (isUncondBranch()) {
         // unconditional pc relative branch.
 
+#if defined(os_vxworks)
+        if (!targetOverride) relocationTarget(origAddr, &targetAddr);
+#endif
+
         // This was a check in old code. Assert it isn't the case,
         // since this is a _conditional_ branch...
         assert(isInsnType(Bmask, BCAAmatch) == false); 
@@ -774,17 +820,21 @@ bool instruction::generate(codeGen &gen,
             generateBranch(gen, 
                            relocAddr,
                            targetAddr,
-                           (insn_.iform.lk));
+                           IFORM_LK(*this));
         }
         else {
             generateBranch(gen,
                            relocAddr,
                            getTarget(origAddr),
-                           (insn_.iform.lk));
+                           IFORM_LK(*this));
         }
     } 
     else if (isCondBranch()) {
         // conditional pc relative branch.
+#if defined(os_vxworks)
+        if (!targetOverride) relocationTarget(origAddr, &targetAddr);
+#endif
+
         if (!targetAddr) {
           newOffset = origAddr - relocAddr + getBranchOffset();
           to = origAddr + getBranchOffset();
@@ -794,10 +844,10 @@ bool instruction::generate(codeGen &gen,
         }
 
         if (ABS(newOffset) >= MAX_CBRANCH) {
-            if ((insn_.bform.bo & BALWAYSmask) == BALWAYScond) {
-                assert(insn_.bform.bo == BALWAYScond);
+            if ((BFORM_BO(*this) & BALWAYSmask) == BALWAYScond) {
+                assert(BFORM_BO(*this) == BALWAYScond);
 
-                bool link = (insn_.bform.lk == 1);
+                bool link = (BFORM_LK(*this) == 1);
                 // Make sure to use the (to, from) version of generateBranch()
                 // in case the branch is too far, and trap-based instrumentation
                 // is needed.
@@ -819,22 +869,22 @@ bool instruction::generate(codeGen &gen,
 		// alone if positive.
               
 		// Get the old flags (includes the predict bit)
-		int flags = insn_.bform.bo;
+		int flags = BFORM_BO(*this);
 
-		if (insn_.bform.bd < 0) {
+		if (BFORM_BD(*this) < 0) {
 		    // Flip the bit.
 		    // xor operator
 		    flags ^= BPREDICTbit;
 		}
               
 		instruction newCondBranch(insn_);
-		(*newCondBranch).bform.lk = 0; // This one is non-linking for sure
+		BFORM_LK_SET(newCondBranch, 0); // This one is non-linking for sure
 
 		// Set up the flags
-		(*newCondBranch).bform.bo = flags;
+		BFORM_BO_SET(newCondBranch, flags);
 
 		// Change the branch to move one instruction ahead
-		(*newCondBranch).bform.bd = 2;
+		BFORM_BD_SET(newCondBranch, 2);
 
 		newCondBranch.generate(gen);
 
@@ -849,7 +899,7 @@ bool instruction::generate(codeGen &gen,
               instruction::generateBranch(gen,
                                           2*instruction::size());
 
-              bool link = (insn_.bform.lk == 1);
+              bool link = (BFORM_LK(*this) == 1);
               // Make sure to use the (to, from) version of generateBranch()
               // in case the branch is too far, and trap-based instrumentation
               // is needed.
@@ -860,18 +910,21 @@ bool instruction::generate(codeGen &gen,
           }
       } else {
           instruction newInsn(insn_);
-          (*newInsn).bform.bd = (newOffset >> 2);
+          BFORM_BD_SET(newInsn, newOffset >> 2);
           newInsn.generate(gen);
       }
 #if defined(os_aix)
 	// I don't understand why this is here, so we'll allow relocation
 	// for Linux since it's a new port.
-    } else if (insn_.iform.op == SVCop) {
+    } else if (IFORM_OP(*this) == SVCop) {
         logLine("attempt to relocate a system call\n");
         assert(0);
 #endif
-    } 
+    }
     else {
+#if defined(os_vxworks)
+        if (relocationTarget(origAddr + 2, &targetAddr)) DFORM_SI_SET(*this, targetAddr);
+#endif
         generate(gen);
     }
     return true;
@@ -889,23 +942,23 @@ bool instruction::getUsedRegs(pdvector<int> &) {
 
 void instruction::generateMoveFromLR(codeGen &gen, Register rt) {
     instruction insn;
-    (*insn).raw = 0;
-    (*insn).xform.op = MFSPRop;
-    (*insn).xform.rt = rt;
-    (*insn).xform.ra = SPR_LR & 0x1f;
-    (*insn).xform.rb = (SPR_LR >> 5) & 0x1f;
-    (*insn).xform.xo = MFSPRxop;
+    insn.clear();
+    XFORM_OP_SET(insn, MFSPRop);
+    XFORM_RT_SET(insn, rt);
+    XFORM_RA_SET(insn, SPR_LR & 0x1f);
+    XFORM_RB_SET(insn, (SPR_LR >> 5) & 0x1f);
+    XFORM_XO_SET(insn, MFSPRxop);
     insn.generate(gen);
 }
 
 void instruction::generateMoveToLR(codeGen &gen, Register rs) {
     instruction insn;
-    (*insn).raw = 0;
-    (*insn).xform.op = MTSPRop;
-    (*insn).xform.rt = rs;
-    (*insn).xform.ra = SPR_LR & 0x1f;
-    (*insn).xform.rb = (SPR_LR >> 5) & 0x1f;
-    (*insn).xform.xo = MTSPRxop;
+    insn.clear();
+    XFORM_OP_SET(insn, MTSPRop);
+    XFORM_RT_SET(insn, rs);
+    XFORM_RA_SET(insn, SPR_LR & 0x1f);
+    XFORM_RB_SET(insn, (SPR_LR >> 5) & 0x1f);
+    XFORM_XO_SET(insn, MTSPRxop);
     insn.generate(gen);
 }
 
@@ -916,13 +969,13 @@ void instruction::generateMoveToLR(codeGen &gen, Register rs) {
 //  2) It has an offset of 4
 //  3) It saves the return address in the link register
 bool instruction::isThunk() const {
-  switch (insn_.bform.op) {
+  switch (BFORM_OP(*this)) {
   case Bop:
     // Unconditional branch, do nothing
     break;
   case BCop:
     // Must be an "always" condition
-    if (!(insn_.bform.bo & 0x14))
+    if (!(BFORM_BO(*this) & 0x14))
       return false;
     break;
   default:
@@ -934,13 +987,13 @@ bool instruction::isThunk() const {
   // The displacement is always right shifted 2 (because you can't
   // jump to an unaligned address) so we can check if the displacement
   // encoded is 1...
-  if (insn_.bform.bd != 1) return false;
+  if (BFORM_BD(*this) != 1) return false;
 
   // 3
-  if (!insn_.bform.lk) return false;
+  if (!BFORM_LK(*this)) return false;
 
   // Oh, and it better not be an absolute...
-  if (insn_.bform.aa) return false;
+  if (BFORM_AA(*this)) return false;
 
   return true;
 }

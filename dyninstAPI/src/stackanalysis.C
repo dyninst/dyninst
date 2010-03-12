@@ -910,3 +910,8 @@ StackAnalysis::Height StackAnalysis::findFP(Address addr) {
   fp_intervals_->find(addr, ret);
   return ret;
 }
+
+std::ostream &operator<<(std::ostream &os, const Dyninst::StackAnalysis::Height &h) {
+  os << h.format();
+  return os;
+}

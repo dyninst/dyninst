@@ -132,7 +132,8 @@ bool SignalHandler::handleExecEntry(EventRecord &ev, bool &continueHint)
   return retval;
 }
 
-#if !defined (os_linux)
+#if !defined(os_linux) \
+ && !defined(os_vxworks)
 bool SignalGenerator::decodeProcStatus(procProcStatus_t status, EventRecord &ev)
 {
 

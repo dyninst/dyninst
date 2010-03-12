@@ -395,14 +395,22 @@ class process : public AddressSpace {
                              const void *inSelf);
     bool writeDataSpace(void *inTracedProcess,
                         u_int amount, const void *inSelf);
+    bool writeDataWord(void *inTracedProcess,
+                       u_int amount, const void *inSelf);
     bool readDataSpace(const void *inTracedProcess, u_int amount,
                        void *inSelf, bool displayErrMsg);
-    
+    bool readDataWord(const void *inTracedProcess, u_int amount,
+                       void *inSelf, bool displayErrMsg);
+
     bool writeTextSpace(void *inTracedProcess, u_int amount, const void *inSelf);
+    bool writeTextWord(void *inTracedProcess, u_int amount, const void *inSelf);
+#if 0
     bool writeTextWord(caddr_t inTracedProcess, int data);
-    
+#endif
     bool readTextSpace(const void *inTracedProcess, u_int amount,
-                       const void *inSelf);
+                       void *inSelf);
+    bool readTextWord(const void *inTracedProcess, u_int amount,
+                      void *inSelf);
     
     static bool IndependentLwpControl() { return INDEPENDENT_LWP_CONTROL; }
     void independentLwpControlInit();

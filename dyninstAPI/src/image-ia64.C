@@ -37,7 +37,6 @@
 #include "image-func.h"
 #include "instPoint.h"
 #include "symtab.h"
-#include "dyninstAPI/h/BPatch_Set.h"
 #include "InstrucIter.h"
 #include "debug.h"
 #include "arch.h"
@@ -101,7 +100,7 @@ void image_func::archSetFrameSize(int /* frameSize */)
 // which (rightly) treat jump table processing as a control-sensitive
 // data flow operation.
 bool image_func::archGetMultipleJumpTargets(
-                                BPatch_Set< Address >& targets,
+                                std::set< Address >& targets,
                                 image_basicBlock * /*currBlk*/,
                                 InstrucIter &ah,
                                 pdvector< instruction >& /*allInstructions*/)

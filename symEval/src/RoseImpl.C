@@ -203,7 +203,6 @@ VariantT SgAsmExpression::variantT() const
 
 SgAsmExpression::~SgAsmExpression()
 {
-
 }
 
 SgAsmValueExpression::SgAsmValueExpression()
@@ -321,7 +320,7 @@ SgAsmDoubleWordValueExpression::~SgAsmDoubleWordValueExpression()
 
 }
 
-SgAsmQuadWordValueExpression::SgAsmQuadWordValueExpression(unsigned long value)
+SgAsmQuadWordValueExpression::SgAsmQuadWordValueExpression(uint64_t value)
 {
   p_value = value;
 }
@@ -624,16 +623,16 @@ uint64_t getAsmSignedConstant(SgAsmValueExpression* valexp)
   switch(valexp->variantT())
   {
     case V_SgAsmByteValueExpression:
-      return dynamic_cast<SgAsmByteValueExpression*>(valexp)->get_value();
+      return (uint64_t) ((int8_t)  dynamic_cast<SgAsmByteValueExpression*>(valexp)->get_value());
       break;
     case V_SgAsmWordValueExpression:
-      return dynamic_cast<SgAsmWordValueExpression*>(valexp)->get_value();
+      return (uint64_t) ((int16_t) dynamic_cast<SgAsmWordValueExpression*>(valexp)->get_value());
       break;
     case V_SgAsmDoubleWordValueExpression:
-      return dynamic_cast<SgAsmDoubleWordValueExpression*>(valexp)->get_value();
+      return (uint64_t) ((int32_t) dynamic_cast<SgAsmDoubleWordValueExpression*>(valexp)->get_value());
       break;
     case V_SgAsmQuadWordValueExpression:
-      return dynamic_cast<SgAsmQuadWordValueExpression*>(valexp)->get_value();
+      return (uint64_t) ((int64_t) dynamic_cast<SgAsmQuadWordValueExpression*>(valexp)->get_value());
       break;
     default:
       return 0; // error
@@ -754,7 +753,7 @@ SgUnsignedCharList SgAsmx86Instruction::get_raw_bytes() const
   return p_raw_bytes;
 }
 
-void SgAsmx86Instruction::set_address(unsigned long address)
+void SgAsmx86Instruction::set_address(rose_addr_t address)
 {
   p_address = address;
 }

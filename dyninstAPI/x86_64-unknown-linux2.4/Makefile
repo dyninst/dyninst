@@ -40,7 +40,8 @@ SRCS =          ../src/linux.C \
 		../src/RegisterConversion-x86.C \
 		../src/BPatch_memoryAccessAdapter.C \
 		../src/IA_IAPI.C \
-		../src/IAPI_to_AST.C 
+		../src/IAPI_to_AST.C \
+		../src/stackanalysis.C
 #		../src/InstrucIter-x86.C
 
 #MYFLAGS	+= -DNO_MDL_PRINT
@@ -56,7 +57,7 @@ SRCS =          ../src/linux.C \
 MYFLAGS		+= -DUSES_DWARF_DEBUG -I$(LIBDWARF_INC)
 MYFLAGS     += -I$(LIBELF_INC) 
 MYFLAGS		+= -I/usr/include/libelf
-
+MYFLAGS		+= -g
 
 CXXFLAGS        += $(MYFLAGS)
 CFLAGS          += $(MYFLAGS)

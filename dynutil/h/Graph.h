@@ -115,11 +115,15 @@ class Graph : public AnnotatableSparse {
     
     virtual void insertEntryNode(NodePtr entry);
     virtual void insertExitNode(NodePtr exit);
-    
+
+    void deleteNode(NodePtr node);
 
     void addNode(NodePtr node);
 
     virtual void removeAnnotation() {};
+
+    bool isEntryNode(NodePtr node);
+    bool isExitNode(NodePtr node);
 
  protected:
      

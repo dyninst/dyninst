@@ -79,7 +79,7 @@ class SymtabLibState : public LibraryState {
    bool getVsyscallLibAddr(LibAddrPair &vsys);
 #endif
 
-#if defined(os_aix) || defined(os_aix)
+#if defined(os_aix) || defined(os_linux)
  public:
    bool getLibc(LibAddrPair &addr_pair);
    bool getLibpthread(LibAddrPair &addr_pair);

@@ -46,7 +46,6 @@
 #include "instPoint.h"
 #include "InstrucIter.h"
 
-#include "BPatch_Set.h"
 
 #include "BPatch_instruction.h"
 #include "BPatch_memoryAccess_NP.h"
@@ -308,7 +307,7 @@ Address InstrucIter::getBranchTargetAddress(bool *) {
   return i.getTarget(current);
 }
 
-bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result){
+bool InstrucIter::getMultipleJumpTargets(std::set<Address>& result){
   Address oldCurrent = current;
   instruction src = getInstruction();
   while(hasPrev()){
@@ -368,7 +367,7 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result){
 	  }
 	  
 	  parsing_printf("\t0x%lx => 0x%lx\n", offset, target);
-	  result += target;
+          result.insert(target);
 	  offset += instruction::size();
 	}
 

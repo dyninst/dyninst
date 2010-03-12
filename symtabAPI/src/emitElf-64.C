@@ -1836,7 +1836,7 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
    Region::RegionType rtype;
    int dtype;
    int dsize_type;
-   void *buffer;
+   void *buffer = NULL;
 
    reloc_size = j*sizeof(Elf64_Rel)+k*sizeof(Elf64_Rela);
    if (!reloc_size)

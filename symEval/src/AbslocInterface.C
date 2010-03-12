@@ -100,7 +100,7 @@ void AbsRegionConverter::convertAll(InstructionAPI::Instruction::Ptr insn,
 AbsRegion AbsRegionConverter::convert(RegisterAST::Ptr reg) {
   // FIXME:
   // Upcast register so we can be sure to match things later
-  
+
   return AbsRegion(Absloc(reg->getID().getBaseRegister()));
 }
 
@@ -199,7 +199,6 @@ AbsRegion AbsRegionConverter::convert(Expression::Ptr exp,
     }
 
     if (isStack) {
-      cerr << "Converted stack " << exp->format() << endl;
       if (res.defined) {
 	return AbsRegion(Absloc(res.convert<Address>(),
 				spRegion,
@@ -357,8 +356,6 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
   case e_call: {
     // This can be seen as a push of the PC...
 
-    cerr << "Cracking a call..." << endl;
-
     std::vector<AbsRegion> pcRegion;
     pcRegion.push_back(Absloc::makePC(func->img()->getArch()));
     
@@ -417,6 +414,7 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
     // Should be "we assign SP using FP"
     Assignment::Ptr spA = Assignment::Ptr(new Assignment(I,
 							 addr,
+							 func,
 							 sp));
     spA->addInput(fp);
 
@@ -427,6 +425,7 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
 
     Assignment::Ptr fpA = Assignment::Ptr(new Assignment(I,
 							 addr,
+							 func,
 							 fp));
     fpA->addInput(aConverter.stack(addr + I->size(), func, false));
 
@@ -443,12 +442,14 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
     AbsRegion pc = AbsRegion(Absloc::makePC(func->img()->getArch()));
     Assignment::Ptr pcA = Assignment::Ptr(new Assignment(I, 
 							 addr,
+							 func,
 							 pc));
     pcA->addInput(aConverter.stack(addr, func, false));
 
     AbsRegion sp = AbsRegion(Absloc::makeSP(func->img()->getArch()));
     Assignment::Ptr spA = Assignment::Ptr(new Assignment(I,
 							 addr,
+							 func,
 							 sp));
     spA->addInput(sp);
 
@@ -484,10 +485,10 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
     // remainder will be registers). So. Use everything from oper1
     // to define oper0[0], and vice versa.
     
-    Assignment::Ptr a = Assignment::Ptr(new Assignment(I, addr, oper0[0]));
+    Assignment::Ptr a = Assignment::Ptr(new Assignment(I, addr, func, oper0[0]));
     a->addInputs(oper1);
 
-    Assignment::Ptr b = Assignment::Ptr(new Assignment(I, addr, oper1[0]));
+    Assignment::Ptr b = Assignment::Ptr(new Assignment(I, addr, func, oper1[0]));
     b->addInputs(oper0);
 
     assignments.push_back(a);
@@ -501,14 +502,14 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
     std::vector<AbsRegion> defined;
 
     aConverter.convertAll(I,
-				   addr,
-				   func,
-				   used,
-				   defined);
-
+			  addr,
+			  func,
+			  used,
+			  defined);
+    
     for (std::vector<AbsRegion>::const_iterator i = defined.begin();
 	 i != defined.end(); ++i) {
-      Assignment::Ptr a = Assignment::Ptr(new Assignment(I, addr, *i));
+      Assignment::Ptr a = Assignment::Ptr(new Assignment(I, addr, func, *i));
       a->addInputs(used);
       assignments.push_back(a);
     }
@@ -547,11 +548,12 @@ void AssignmentConverter::handlePushEquivalent(const Instruction::Ptr I,
 
   Assignment::Ptr spA = Assignment::Ptr(new Assignment(I,
 						       addr,
+						       func,
 						       stackTop));
   spA->addInputs(operands);
   spA->addInput(sp);
 
-  Assignment::Ptr spB = Assignment::Ptr(new Assignment(I, addr, sp));
+  Assignment::Ptr spB = Assignment::Ptr(new Assignment(I, addr, func, sp));
   spB->addInput(sp);
 
   assignments.push_back(spA);
@@ -571,6 +573,7 @@ void AssignmentConverter::handlePopEquivalent(const Instruction::Ptr I,
   
   Assignment::Ptr spA = Assignment::Ptr(new Assignment(I,
 						       addr,
+						       func,
 						       operands[0]));
   spA->addInput(stackTop);
   spA->addInput(sp);
@@ -580,7 +583,7 @@ void AssignmentConverter::handlePopEquivalent(const Instruction::Ptr I,
   }
 
   // Now stack assignment
-  Assignment::Ptr spB = Assignment::Ptr(new Assignment(I, addr, sp));
+  Assignment::Ptr spB = Assignment::Ptr(new Assignment(I, addr, func, sp));
   spB->addInput(sp);
 
   assignments.push_back(spA);
@@ -604,3 +607,28 @@ bool AssignmentConverter::cache(image_func *func,
   assignments = iter2->second;
   return true;
 }
+
+
+//////////////////////////////////
+
+#include "dyninstAPI/src/function.h"
+#include "dyninstAPI/h/BPatch_function.h"
+
+void AssignmentConverter::convert(const Instruction::Ptr I, 
+                                  const Address &addr,
+				  int_function *func,
+				  std::vector<Assignment::Ptr> &assignments) {
+  return convert(I, addr, func->ifunc(), assignments);
+}
+
+
+
+void AssignmentConverter::convert(const Instruction::Ptr I, 
+                                  const Address &addr,
+				  BPatch_function *func,
+				  std::vector<Assignment::Ptr> &assignments) {
+  return convert(I, addr, func->lowlevel_func(), assignments);
+}
+
+
+

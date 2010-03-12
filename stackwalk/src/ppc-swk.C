@@ -69,21 +69,25 @@ bool ProcSelf::getRegValue(Dyninst::MachRegister reg, THR_ID, Dyninst::MachRegis
 
   GET_FRAME_BASE(sp);
 
-  if (reg == Dyninst::MachRegStackBase) {
-     val = (Dyninst::MachRegisterVal) sp;
+  bool found_reg = false;
+  if (reg.isStackPointer()) {
+    val = (Dyninst::MachRegisterVal) sp;
+    found_reg = true;
   }
 
   fp_ra = *sp;
-  if (reg == Dyninst::MachRegFrameBase) {
+  if (reg.isFramePointer()) {
      val = (Dyninst::MachRegisterVal) fp_ra;
+     found_reg = true;
   }
 
-  if (reg == Dyninst::MachRegPC) {
+  if (reg.isPC() || reg == Dyninst::ReturnAddr) {
      val = fp_ra->out_ra;
+     found_reg = true;
   }
 
-  sw_printf("[%s:%u] - Returning value %lx for reg %u\n", 
-            __FILE__, __LINE__, val, reg);
+  sw_printf("[%s:%u] - Returning value %lx for reg %s\n", 
+            __FILE__, __LINE__, val, reg.name());
   return true;
 }
 

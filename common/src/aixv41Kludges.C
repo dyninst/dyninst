@@ -254,7 +254,7 @@ extern void erase(Name *);
 }
 #endif
 
-#if defined(cap_libiberty)
+#if defined(cap_liberty)
 extern "C" char *cplus_demangle(char *, int);
 #endif
 

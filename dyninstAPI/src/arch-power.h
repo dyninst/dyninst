@@ -44,136 +44,305 @@ class AddressSpace;
  *
  */
 
-struct genericform {
-  unsigned op : 6;
-  unsigned XX : 26;
-};
+//struct genericform {
+//  unsigned op : 6;
+//  unsigned XX : 26;
+//};
+#define GENERIC_OP(x) ((unsigned int) (((x).asInt() & 0xfc000000) >> 26 ))
+#define GENERIC_XX(x) ((unsigned int) (((x).asInt() & 0x03ffffff)       ))
 
-struct iform {            // unconditional branch + 
-  unsigned op : 6;
-  signed   li : 24;
-  unsigned aa : 1;
-  unsigned lk : 1;
+#define GENERIC_OP_SET(x, y) ((x).setBits(26,  6, (y)))
+#define GENERIC_XX_SET(x, y) ((x).setBits( 0, 26, (y)))
 
-};
+//struct iform {            // unconditional branch + 
+//  unsigned op : 6;
+//  signed   li : 24;
+//  unsigned aa : 1;
+//  unsigned lk : 1;
+//};
+#define IFORM_OP(x) ((unsigned int) (((x).asInt() & 0xfc000000) >> 26 ))
+#define IFORM_LI(x) (instruction::signExtend( \
+                                    (((x).asInt() & 0x03fffffc) >>  2 ), 24))
+#define IFORM_AA(x) ((unsigned int) (((x).asInt() & 0x00000002) >>  1 ))
+#define IFORM_LK(x) ((unsigned int) (((x).asInt() & 0x00000001)       ))
 
-struct bform {            // conditional branch +
-  unsigned op : 6;
-  unsigned bo : 5;
-  unsigned bi : 5;
-  signed   bd : 14;
-  unsigned aa : 1;
-  unsigned lk : 1;
-};
+#define IFORM_OP_SET(x, y) ((x).setBits(26,  6, (y)))
+#define IFORM_LI_SET(x, y) ((x).setBits( 2, 24, (y)))
+#define IFORM_AA_SET(x, y) ((x).setBits( 1,  1, (y)))
+#define IFORM_LK_SET(x, y) ((x).setBits( 0,  1, (y)))
 
-struct dform {
-    unsigned op : 6;
-    unsigned rt : 5;        // rt, rs, frt, frs, to, bf_l
-    unsigned ra : 5;
-    signed   d_or_si : 16;  // d, si, ui
-};
+//struct bform {            // conditional branch +
+//  unsigned op : 6;
+//  unsigned bo : 5;
+//  unsigned bi : 5;
+//  signed   bd : 14;
+//  unsigned aa : 1;
+//  unsigned lk : 1;
+//};
+#define BFORM_OP(x) ((unsigned int) (((x).asInt() & 0xfc000000) >> 26 ))
+#define BFORM_BO(x) ((unsigned int) (((x).asInt() & 0x03e00000) >> 21 ))
+#define BFORM_BI(x) ((unsigned int) (((x).asInt() & 0x001f0000) >> 16 ))
+#define BFORM_BD(x) (instruction::signExtend( \
+                                    (((x).asInt() & 0x0000fffc) >>  2 ), 14))
+#define BFORM_AA(x) ((unsigned int) (((x).asInt() & 0x00000002) >>  1 ))
+#define BFORM_LK(x) ((unsigned int) (((x).asInt() & 0x00000001)       ))
 
-struct dsform {
-    unsigned op : 6;
-    unsigned rt : 5;        // rt, rs
-    unsigned ra : 5;
-    signed   ds : 14;
-    unsigned xo : 2;
-};
+#define BFORM_OP_SET(x, y) ((x).setBits(26,  6, (y)))
+#define BFORM_BO_SET(x, y) ((x).setBits(21,  5, (y)))
+#define BFORM_BI_SET(x, y) ((x).setBits(16,  5, (y)))
+#define BFORM_BD_SET(x, y) ((x).setBits( 2, 14, (y)))
+#define BFORM_AA_SET(x, y) ((x).setBits( 1,  1, (y)))
+#define BFORM_LK_SET(x, y) ((x).setBits( 0,  1, (y)))
 
-struct xform {
-    unsigned op : 6;
-    unsigned rt : 5;   // rt, frt, bf_l, rs, frs, to, bt
-    unsigned ra : 5;   // ra, fra, bfa_, sr, spr
-    unsigned rb : 5;   // rb, frb, sh, nb, u_
-    unsigned xo : 10;  // xo, eo
-    unsigned rc : 1;
-};
+//struct dform {
+//    unsigned op : 6;
+//    unsigned rt : 5;        // rt, rs, frt, frs, to, bf_l
+//    unsigned ra : 5;
+//    signed   d_or_si : 16;  // d, si, ui
+//};
+#define DFORM_OP(x) ((unsigned int) (((x).asInt() & 0xfc000000) >> 26 ))
+#define DFORM_RT(x) ((unsigned int) (((x).asInt() & 0x03e00000) >> 21 ))
+#define DFORM_RA(x) ((unsigned int) (((x).asInt() & 0x001f0000) >> 16 ))
+#define DFORM_D(x)  (instruction::signExtend( \
+                                    (((x).asInt() & 0x0000ffff)       ), 16))
+#define DFORM_SI(x) (instruction::signExtend( \
+                                    (((x).asInt() & 0x0000ffff)       ), 16))
 
-struct xlform {
-  unsigned op : 6;
-  unsigned bt : 5;   // rt, bo, bf_
-  unsigned ba : 5;   // ba, bi, bfa_
-  unsigned bb : 5; 
-  unsigned xo : 10;  // xo, eo
-  unsigned lk : 1;
-};
+#define DFORM_OP_SET(x, y) ((x).setBits(26,  6, (y)))
+#define DFORM_RT_SET(x, y) ((x).setBits(21,  5, (y)))
+#define DFORM_RA_SET(x, y) ((x).setBits(16,  5, (y)))
+#define DFORM_D_SET(x, y)  ((x).setBits( 0, 16, (y)))
+#define DFORM_SI_SET(x, y) ((x).setBits( 0, 16, (y)))
 
-struct xfxform {
-  unsigned op : 6;
-  unsigned rt : 5;   // rs
-  unsigned spr: 10;  // spr, tbr, fxm
-  unsigned xo : 10;
-  unsigned rc : 1;
-};
+//struct dsform {
+//    unsigned op : 6;
+//    unsigned rt : 5;        // rt, rs
+//    unsigned ra : 5;
+//    signed   ds : 14;
+//    unsigned xo : 2;
+//};
+#define DSFORM_OP(x) ((unsigned int) (((x).asInt() & 0xfc000000) >> 26 ))
+#define DSFORM_RT(x) ((unsigned int) (((x).asInt() & 0x03e00000) >> 21 ))
+#define DSFORM_RA(x) ((unsigned int) (((x).asInt() & 0x001f0000) >> 16 ))
+#define DSFORM_DS(x) (instruction::signExtend( \
+                                     (((x).asInt() & 0x0000fffc) >>  2 ), 14))
+#define DSFORM_XO(x) ((unsigned int) (((x).asInt() & 0x00000003)       ))
 
-struct xflform {
-  unsigned op : 6;
-  unsigned u1 : 1;
-  unsigned flm: 8;
-  unsigned u2 : 1;
-  unsigned frb: 5;
-  unsigned xo : 10;
-  unsigned rc : 1;
-};
+#define DSFORM_OP_SET(x, y) ((x).setBits(26,  6, (y)))
+#define DSFORM_RT_SET(x, y) ((x).setBits(21,  5, (y)))
+#define DSFORM_RA_SET(x, y) ((x).setBits(16,  5, (y)))
+#define DSFORM_DS_SET(x, y) ((x).setBits( 2, 14, (y)))
+#define DSFORM_XO_SET(x, y) ((x).setBits( 0,  2, (y)))
 
-struct xoform {
-    unsigned op : 6;
-    unsigned rt : 5;
-    unsigned ra : 5;
-    unsigned rb : 5;
-    unsigned oe : 1;
-    unsigned xo : 9; // xo, eo'
-    unsigned rc : 1;
-};
+//struct xform {
+//    unsigned op : 6;
+//    unsigned rt : 5;   // rt, frt, bf_l, rs, frs, to, bt
+//    unsigned ra : 5;   // ra, fra, bfa_, sr, spr
+//    unsigned rb : 5;   // rb, frb, sh, nb, u_
+//    unsigned xo : 10;  // xo, eo
+//    unsigned rc : 1;
+//};
+#define XFORM_OP(x) ((unsigned int) (((x).asInt() & 0xfc000000) >> 26 ))
+#define XFORM_RT(x) ((unsigned int) (((x).asInt() & 0x03e00000) >> 21 ))
+#define XFORM_RA(x) ((unsigned int) (((x).asInt() & 0x001f0000) >> 16 ))
+#define XFORM_RB(x) ((unsigned int) (((x).asInt() & 0x0000f800) >> 11 ))
+#define XFORM_XO(x) ((unsigned int) (((x).asInt() & 0x000007fe) >>  1 ))
+#define XFORM_RC(x) ((unsigned int) (((x).asInt() & 0x00000001)       ))
 
-struct mform {
-    unsigned op : 6;
-    unsigned rs : 5;
-    unsigned ra : 5;
-    unsigned sh : 5;
-    unsigned mb : 5; // mb, sh
-    unsigned me : 5;
-    unsigned rc : 1;
-};
+#define XFORM_OP_SET(x, y) ((x).setBits(26,  6, (y)))
+#define XFORM_RT_SET(x, y) ((x).setBits(21,  5, (y)))
+#define XFORM_RA_SET(x, y) ((x).setBits(16,  5, (y)))
+#define XFORM_RB_SET(x, y) ((x).setBits(11,  5, (y)))
+#define XFORM_XO_SET(x, y) ((x).setBits( 1, 10, (y)))
+#define XFORM_RC_SET(x, y) ((x).setBits( 0,  1, (y)))
 
-struct mdform {
-    unsigned op : 6;
-    unsigned rs : 5;
-    unsigned ra : 5;
-    unsigned sh : 5;
-    unsigned mb : 5; // me
-    unsigned mb2 : 1;
-    unsigned xo : 3;
-    unsigned sh2 : 1;
-    unsigned rc : 1;
-};
+//struct xlform {
+//  unsigned op : 6;
+//  unsigned bt : 5;   // rt, bo, bf_
+//  unsigned ba : 5;   // ba, bi, bfa_
+//  unsigned bb : 5; 
+//  unsigned xo : 10;  // xo, eo
+//  unsigned lk : 1;
+//};
+#define XLFORM_OP(x) ((unsigned int) (((x).asInt() & 0xfc000000) >> 26 ))
+#define XLFORM_BT(x) ((unsigned int) (((x).asInt() & 0x03e00000) >> 21 ))
+#define XLFORM_BA(x) ((unsigned int) (((x).asInt() & 0x001f0000) >> 16 ))
+#define XLFORM_BB(x) ((unsigned int) (((x).asInt() & 0x0000f800) >> 11 ))
+#define XLFORM_XO(x) ((unsigned int) (((x).asInt() & 0x000007fe) >>  1 ))
+#define XLFORM_LK(x) ((unsigned int) (((x).asInt() & 0x00000001)       ))
 
-struct aform {
-  unsigned op: 6;
-  unsigned frt: 5;
-  unsigned fra: 5;
-  unsigned frb: 5;
-  unsigned frc: 5;
-  unsigned xo:  5;
-  unsigned rc:  1;
-};
+#define XLFORM_OP_SET(x, y) ((x).setBits(26,  6, (y)))
+#define XLFORM_BT_SET(x, y) ((x).setBits(21,  5, (y)))
+#define XLFORM_BA_SET(x, y) ((x).setBits(16,  5, (y)))
+#define XLFORM_BB_SET(x, y) ((x).setBits(11,  5, (y)))
+#define XLFORM_XO_SET(x, y) ((x).setBits( 1, 10, (y)))
+#define XLFORM_LK_SET(x, y) ((x).setBits( 0,  1, (y)))
+
+//struct xfxform {
+//  unsigned op : 6;
+//  unsigned rt : 5;   // rs
+//  unsigned spr: 10;  // spr, tbr, fxm
+//  unsigned xo : 10;
+//  unsigned rc : 1;
+//};
+#define XFXFORM_OP(x)  ((unsigned int) (((x).asInt() & 0xfc000000) >> 26 ))
+#define XFXFORM_RT(x)  ((unsigned int) (((x).asInt() & 0x03e00000) >> 21 ))
+#define XFXFORM_SPR(x) ((unsigned int) (((x).asInt() & 0x001ff800) >> 11 ))
+#define XFXFORM_XO(x)  ((unsigned int) (((x).asInt() & 0x000007fe) >>  1 ))
+#define XFXFORM_RC(x)  ((unsigned int) (((x).asInt() & 0x00000001)       ))
+
+#define XFXFORM_OP_SET(x, y)  ((x).setBits(26,  6, (y)))
+#define XFXFORM_RT_SET(x, y)  ((x).setBits(21,  5, (y)))
+#define XFXFORM_SPR_SET(x, y) ((x).setBits(11, 10, (y)))
+#define XFXFORM_XO_SET(x, y)  ((x).setBits( 1, 10, (y)))
+#define XFXFORM_RC_SET(x, y)  ((x).setBits( 0,  1, (y)))
+
+//struct xflform {
+//  unsigned op : 6;
+//  unsigned u1 : 1;
+//  unsigned flm: 8;
+//  unsigned u2 : 1;
+//  unsigned frb: 5;
+//  unsigned xo : 10;
+//  unsigned rc : 1;
+//};
+#define XFLFORM_OP(x)  ((unsigned int) (((x).asInt() & 0xfc000000) >> 26 ))
+#define XFLFORM_U1(x)  ((unsigned int) (((x).asInt() & 0x02000000) >> 25 ))
+#define XFLFORM_FLM(x) ((unsigned int) (((x).asInt() & 0x01fe0000) >> 17 ))
+#define XFLFORM_U2(x)  ((unsigned int) (((x).asInt() & 0x00010000) >> 16 ))
+#define XFLFORM_FRB(x) ((unsigned int) (((x).asInt() & 0x0000f800) >> 11 ))
+#define XFLFORM_XO(x)  ((unsigned int) (((x).asInt() & 0x000007fe) >>  1 ))
+#define XFLFORM_RC(x)  ((unsigned int) (((x).asInt() & 0x00000001)       ))
+
+#define XFLFORM_OP_SET(x, y)  ((x).setBits(26,  6, (y)))
+#define XFLFORM_U1_SET(x, y)  ((x).setBits(25,  1, (y)))
+#define XFLFORM_FLM_SET(x, y) ((x).setBits(17,  8, (y)))
+#define XFLFORM_U2_SET(x, y)  ((x).setBits(16,  1, (y)))
+#define XFLFORM_FRB_SET(x, y) ((x).setBits(11,  5, (y)))
+#define XFLFORM_XO_SET(x, y)  ((x).setBits( 1, 10, (y)))
+#define XFLFORM_RC_SET(x, y)  ((x).setBits( 0,  1, (y)))
+
+//struct xoform {
+//    unsigned op : 6;
+//    unsigned rt : 5;
+//    unsigned ra : 5;
+//    unsigned rb : 5;
+//    unsigned oe : 1;
+//    unsigned xo : 9; // xo, eo'
+//    unsigned rc : 1;
+//};
+#define XOFORM_OP(x) ((unsigned int) (((x).asInt() & 0xfc000000) >> 26 ))
+#define XOFORM_RT(x) ((unsigned int) (((x).asInt() & 0x03e00000) >> 21 ))
+#define XOFORM_RA(x) ((unsigned int) (((x).asInt() & 0x001f0000) >> 16 ))
+#define XOFORM_RB(x) ((unsigned int) (((x).asInt() & 0x0000f800) >> 11 ))
+#define XOFORM_OE(x) ((unsigned int) (((x).asInt() & 0x00000400) >> 10 ))
+#define XOFORM_XO(x) ((unsigned int) (((x).asInt() & 0x000003fe) >>  1 ))
+#define XOFORM_RC(x) ((unsigned int) (((x).asInt() & 0x00000001)       ))
+
+#define XOFORM_OP_SET(x, y) ((x).setBits(26,  6, (y)))
+#define XOFORM_RT_SET(x, y) ((x).setBits(21,  5, (y)))
+#define XOFORM_RA_SET(x, y) ((x).setBits(16,  5, (y)))
+#define XOFORM_RB_SET(x, y) ((x).setBits(11,  5, (y)))
+#define XOFORM_OE_SET(x, y) ((x).setBits(10,  1, (y)))
+#define XOFORM_XO_SET(x, y) ((x).setBits( 1,  9, (y)))
+#define XOFORM_RC_SET(x, y) ((x).setBits( 0,  1, (y)))
+
+//struct mform {
+//    unsigned op : 6;
+//    unsigned rs : 5;
+//    unsigned ra : 5;
+//    unsigned sh : 5;
+//    unsigned mb : 5; // mb, sh
+//    unsigned me : 5;
+//    unsigned rc : 1;
+//};
+#define MFORM_OP(x) ((unsigned int) (((x).asInt() & 0xfc000000) >> 26 ))
+#define MFORM_RS(x) ((unsigned int) (((x).asInt() & 0x03e00000) >> 21 ))
+#define MFORM_RA(x) ((unsigned int) (((x).asInt() & 0x001f0000) >> 16 ))
+#define MFORM_SH(x) ((unsigned int) (((x).asInt() & 0x0000f800) >> 11 ))
+#define MFORM_MB(x) ((unsigned int) (((x).asInt() & 0x000007c0) >>  6 ))
+#define MFORM_ME(x) ((unsigned int) (((x).asInt() & 0x0000003e) >>  1 ))
+#define MFORM_RC(x) ((unsigned int) (((x).asInt() & 0x00000001)       ))
+
+#define MFORM_OP_SET(x, y) ((x).setBits(26,  6, (y)))
+#define MFORM_RS_SET(x, y) ((x).setBits(21,  5, (y)))
+#define MFORM_RA_SET(x, y) ((x).setBits(16,  5, (y)))
+#define MFORM_SH_SET(x, y) ((x).setBits(11,  5, (y)))
+#define MFORM_MB_SET(x, y) ((x).setBits( 6,  5, (y)))
+#define MFORM_ME_SET(x, y) ((x).setBits( 1,  5, (y)))
+#define MFORM_RC_SET(x, y) ((x).setBits( 0,  1, (y)))
+
+//struct mdform {
+//    unsigned op : 6;
+//    unsigned rs : 5;
+//    unsigned ra : 5;
+//    unsigned sh : 5;
+//    unsigned mb : 5; // me
+//    unsigned mb2 : 1;
+//    unsigned xo : 3;
+//    unsigned sh2 : 1;
+//    unsigned rc : 1;
+//};
+#define MDFORM_OP(x)  ((unsigned int) (((x).asInt() & 0xfc000000) >> 26 ))
+#define MDFORM_RS(x)  ((unsigned int) (((x).asInt() & 0x03e00000) >> 21 ))
+#define MDFORM_RA(x)  ((unsigned int) (((x).asInt() & 0x001f0000) >> 16 ))
+#define MDFORM_SH(x)  ((unsigned int) (((x).asInt() & 0x0000f800) >> 11 ))
+#define MDFORM_MB(x)  ((unsigned int) (((x).asInt() & 0x000007c0) >>  6 ))
+#define MDFORM_MB2(x) ((unsigned int) (((x).asInt() & 0x00000020) >>  5 ))
+#define MDFORM_XO(x)  ((unsigned int) (((x).asInt() & 0x0000001c) >>  2 ))
+#define MDFORM_SH2(x) ((unsigned int) (((x).asInt() & 0x00000002) >>  1 ))
+#define MDFORM_RC(x)  ((unsigned int) (((x).asInt() & 0x00000001)       ))
+
+#define MDFORM_OP_SET(x, y)  ((x).setBits(26,  6, (y)))
+#define MDFORM_RS_SET(x, y)  ((x).setBits(21,  5, (y)))
+#define MDFORM_RA_SET(x, y)  ((x).setBits(16,  5, (y)))
+#define MDFORM_SH_SET(x, y)  ((x).setBits(11,  5, (y)))
+#define MDFORM_MB_SET(x, y)  ((x).setBits( 6,  5, (y)))
+#define MDFORM_MB2_SET(x, y) ((x).setBits( 5,  1, (y)))
+#define MDFORM_XO_SET(x, y)  ((x).setBits( 2,  3, (y)))
+#define MDFORM_SH2_SET(x, y) ((x).setBits( 1,  1, (y)))
+#define MDFORM_RC_SET(x, y)  ((x).setBits( 0,  1, (y)))
+
+//struct aform {
+//  unsigned op: 6;
+//  unsigned frt: 5;
+//  unsigned fra: 5;
+//  unsigned frb: 5;
+//  unsigned frc: 5;
+//  unsigned xo:  5;
+//  unsigned rc:  1;
+//};
+#define AFORM_OP(x)  ((unsigned int) (((x).asInt() & 0xfc000000) >> 26 ))
+#define AFORM_FRT(x) ((unsigned int) (((x).asInt() & 0x03e00000) >> 21 ))
+#define AFORM_FRA(x) ((unsigned int) (((x).asInt() & 0x001f0000) >> 16 ))
+#define AFORM_FRB(x) ((unsigned int) (((x).asInt() & 0x0000f800) >> 11 ))
+#define AFORM_FRC(x) ((unsigned int) (((x).asInt() & 0x000007c0) >>  6 ))
+#define AFORM_XO(x)  ((unsigned int) (((x).asInt() & 0x0000003e) >>  1 ))
+#define AFORM_RC(x)  ((unsigned int) (((x).asInt() & 0x00000001)       ))
+
+#define AFORM_OP_SET(x, y)  ((x).setBits(26,  6, (y)))
+#define AFORM_FRT_SET(x, y) ((x).setBits(21,  5, (y)))
+#define AFORM_FRA_SET(x, y) ((x).setBits(16,  5, (y)))
+#define AFORM_FRB_SET(x, y) ((x).setBits(11,  5, (y)))
+#define AFORM_FRC_SET(x, y) ((x).setBits( 6,  5, (y)))
+#define AFORM_XO_SET(x, y)  ((x).setBits( 1,  5, (y)))
+#define AFORM_RC_SET(x, y)  ((x).setBits( 0,  1, (y)))
 
 typedef union {
-  struct iform  iform;  // branch;
-  struct bform  bform;  // cbranch;
-  struct dform  dform;
-  struct dsform dsform;
-  struct xform  xform;
-  struct xoform xoform;
-  struct xlform xlform;
-  struct xfxform xfxform;
-  struct xflform xflform;
-  struct mform  mform;
-  struct mdform  mdform;
-  struct aform  aform;
-  struct genericform generic;
-  unsigned int  raw;
+//  struct iform  iform;  // branch;
+//  struct bform  bform;  // cbranch;
+//  struct dform  dform;
+//  struct dsform dsform;
+//  struct xform  xform;
+//  struct xoform xoform;
+//  struct xlform xlform;
+//  struct xfxform xfxform;
+//  struct xflform xflform;
+//  struct mform  mform;
+//  struct mdform  mdform;
+//  struct aform  aform;
+    unsigned char byte[4];
+    unsigned int  raw;
 } instructUnion;
 
 // instruction is now a class for platform-indep.
@@ -548,6 +717,8 @@ typedef unsigned codeBufIndex_t;
 // #define BREAK_POINT_INSN 0x7fe00008  -- this form should also work and
 // follows the recommended form outlined in the AIX manual
 
+#define SPIN_WAIT_INSN 0x48000000 /* VxWorks Trap - Can't perform a trap there. */
+
 /* high and low half words.  Useful to load addresses as two parts */
 #define LOW(x)  ((x)%65536)
 #define HIGH(x) ((x)/65536)
@@ -585,6 +756,9 @@ typedef unsigned codeBufIndex_t;
 #define MAX_IMM48      ((long)(-1 >> 17))   // To avoid warnings on 32-bit
 #define MIN_IMM48      ((long)(~MAX_IMM48)) // compilers.
 
+// Helps to mitigate host/target endian mismatches
+unsigned int swapBytesIfNeeded(unsigned int i);
+
 ///////////////////////////////////////////////////////
 // Bum bum bum.....
 ///////////////////////////////////////////////////////
@@ -594,22 +768,45 @@ class codeGen;
 
 class instruction {
  private:
+    instructUnion insn_;
+
     static instructUnion *insnPtr(codeGen &gen);
     static instructUnion *ptrAndInc(codeGen &gen);
- public:
-    instruction() {insn_.raw = 0;};
-    instruction(unsigned int raw) { insn_.raw = raw; }
 
-    instruction(const instruction &insn) :
-        insn_(insn.insn_) {};
+ public:
+    instruction() { insn_.raw = 0; }
+    instruction(unsigned int raw) {
+        // Don't flip bits here.  Input is already in host byte order.
+        insn_.raw = raw;
+    }
+
+    instruction(const instruction &insn) :        insn_(insn.insn_) {};
     instruction(instructUnion &insn) :
         insn_(insn) {};
-    
+
     instruction *copy() const;
 
+    void clear() { insn_.raw = 0; }
     void setInstruction(codeBuf_t *ptr, Address = 0);
+    void setBits(unsigned int pos, unsigned int len, unsigned int value) {
+        unsigned int mask;
+
+        mask = ~(~0 << len);
+        value = value & mask;
+
+        mask = ~(mask << pos);
+        value = value << pos;
+
+        insn_.raw = insn_.raw & mask;
+        insn_.raw = insn_.raw | value;
+    }
+    unsigned int asInt() const { return insn_.raw; }
     
-    
+
+    // To solve host/target endian mismatches
+    static int signExtend(unsigned int i, unsigned int pos);
+    static instructUnion &swapBytes(instructUnion &i);
+
     // All of these write into a buffer
     static void generateTrap(codeGen &gen);
     static void generateIllegal(codeGen &gen);
@@ -681,8 +878,8 @@ class instruction {
     Address getBranchOffset() const;
     void setBranchOffset(Address newOffset);
 
-    void write(codeGen &gen);
     void generate(codeGen &gen);
+    void write(codeGen &gen) { generate(gen); }
 
     // And tell us how much space we'll need...
     // Returns -1 if we can't do a branch due to architecture limitations
@@ -697,14 +894,15 @@ class instruction {
     
     // return a pointer to the instruction
     const unsigned char *ptr() const { return (const unsigned char *)&insn_; }
-    
-    const unsigned int &raw() const { return insn_.raw; }
-    
-    unsigned opcode() const;
-    
+
     // For external modification
-    instructUnion &operator* () { return insn_; }
-    const instructUnion &operator* () const { return insn_; }
+    // Don't allow external modification anymore.  Host byte order may differ
+    // from target byte order.
+    //instructUnion &operator* () { return insn_; }
+    //const instructUnion &operator* () const { return insn_; }
+    //const unsigned int &raw() const { return insn_.raw; }
+
+    const unsigned opcode() const;
     
     // Local version
     bool isInsnType(const unsigned mask, const unsigned match) const { 
@@ -741,7 +939,7 @@ class instruction {
      * opcodes 19, 30, 31, 59, 62, 63 contain extended op codes that are unused.
      */
     
-    bool valid() const { return insn_.iform.op > 0; }
+    bool valid() const { return IFORM_OP(*this) > 0; }
     
     bool isCall() const;
     
@@ -783,7 +981,5 @@ class instruction {
 #endif
   bool isCleaningRet() const {return false; }
 
- private:
-  instructUnion insn_;
 };
 #endif

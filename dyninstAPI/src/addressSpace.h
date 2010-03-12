@@ -95,18 +95,31 @@ class AddressSpace : public InstructionSource {
 
     // We have read/write for both "text" and "data". This comes in handy,
     // somewhere, I'm sure
+    virtual bool readDataWord(const void *inOther, 
+                              u_int amount, 
+                              void *inSelf, 
+                              bool showError) = 0;
     virtual bool readDataSpace(const void *inOther, 
                                u_int amount, 
                                void *inSelf, 
                                bool showError) = 0;
+    virtual bool readTextWord(const void *inOther, 
+                              u_int amount, 
+                              void *inSelf) = 0;
     virtual bool readTextSpace(const void *inOther, 
                                u_int amount, 
-                               const void *inSelf) = 0;
+                               void *inSelf) = 0;
     
 
+    virtual bool writeDataWord(void *inOther,
+                               u_int amount,
+                               const void *inSelf) = 0;
     virtual bool writeDataSpace(void *inOther,
                                 u_int amount,
                                 const void *inSelf) = 0;
+    virtual bool writeTextWord(void *inOther,
+                               u_int amount,
+                               const void *inSelf) = 0;
     virtual bool writeTextSpace(void *inOther,
                                 u_int amount,
                                 const void *inSelf) = 0;

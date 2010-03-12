@@ -1,6 +1,9 @@
 // A simple forward slice using a search of the control flow graph.
 // Templated on a function that says when to stop slicing.
 
+#if !defined(_SLICING_H_)
+#define _SLICING_H_
+
 #include "dyn_detail/boost/shared_ptr.hpp"
 #include <vector>
 #include "dyntypes.h"
@@ -13,6 +16,8 @@
 #include "boost/function.hpp"
 
 #include "dynutil/h/Node.h"
+
+#include "AbslocInterface.h"
 
 class image_basicBlock;
 class image_func;
@@ -54,6 +59,14 @@ typedef dyn_detail::boost::shared_ptr<InstructionAPI::Instruction> InstructionPt
     
     virtual ~AssignNode() {};
 
+    void addAssignment(AssignNode::Ptr p, unsigned u) {
+      assignMap_[p] = u;
+    }
+
+    unsigned getAssignmentIndex(AssignNode::Ptr p) {
+      return assignMap_[p];
+    }
+
  private:
 
     AssignNode(AssignmentPtr ptr,
@@ -64,6 +77,10 @@ typedef dyn_detail::boost::shared_ptr<InstructionAPI::Instruction> InstructionPt
     AssignmentPtr a_;
     image_basicBlock *b_;
     image_func *f_;
+
+    // This is ugly and should be cleaned up once we've figured
+    // out how to move forward on edge classes
+    std::map<AssignNode::Ptr, unsigned> assignMap_;
 };
 
 
@@ -112,7 +129,7 @@ class Slicer {
     // In particular, we need to know the depth of the 
     // stack in the caller.
     long stackDepth;
-    
+
   ContextElement(image_func *f) : 
     func(f), block(NULL), stackDepth(-1) {};
   ContextElement(image_func *f, long depth) :
@@ -120,7 +137,7 @@ class Slicer {
   };
 
   // This should be sufficient...
-  typedef std::stack<ContextElement> Context;
+  typedef std::deque<ContextElement> Context;
 
   bool getStackDepth(image_func *func, Address callAddr, long &height);
 
@@ -143,12 +160,14 @@ class Slicer {
   // 1) Translates the given AbsRegion into the callee-side
   //    view; this just means adjusting stack locations. 
   // 2) Increases the given context
-  void handleCall(AbsRegion &reg,
+  // Returns false if we didn't translate the absregion correctly
+  bool handleCall(AbsRegion &reg,
 		  Context &context,
 		  image_basicBlock *callerBlock,
 		  image_func *callee);
 
   // And the corresponding...
+  // Returns false if we ran out of context (and thus assume widening for now)
   void handleReturn(AbsRegion &reg,
 		    Context &context);
 
@@ -181,6 +200,7 @@ class Slicer {
     // This is for returns, and not for the intermediate
     // steps. OTOH, I'm being a bit lazy...
     Assignment::Ptr ptr;
+    unsigned usedIndex;
 
     Address addr() const { return loc.addr(); }
   };
@@ -208,7 +228,9 @@ class Slicer {
 
   void widen(GraphPtr graph, Element &source);
 
-  void insertPair(GraphPtr graph, Element &source, Element &target);
+  void insertPair(GraphPtr graph, 
+		  Element &source, 
+		  Element &target);
 
   void convertInstruction(InstructionPtr,
 			  Address,
@@ -226,6 +248,8 @@ class Slicer {
 
   void getInsns(Location &loc);
 
+  void setAliases(Assignment::Ptr, Element &);
+
   AssignNode::Ptr createNode(Element &);
 
 
@@ -241,3 +265,5 @@ class Slicer {
   AssignNode::Ptr widen_;
 };
 };
+
+#endif

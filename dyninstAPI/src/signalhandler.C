@@ -222,7 +222,7 @@ bool SignalHandler::handleProcessExit(EventRecord &ev, bool &continueHint)
               proc->getPid(), (int) ev.what);
       statusLine(errorLine);
 	  async_printf("%s[%d]: %s\n", errorLine);
-#if defined(os_windows)
+#if defined(os_windows) || defined(os_vxworks)
       //  on the unixes we do this at syscall exit()
       proc->triggerNormalExitCallback(ev.what);
 #endif
