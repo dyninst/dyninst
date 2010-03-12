@@ -397,7 +397,38 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
                break;
          }
          break;
-      default:
+       case Arch_ppc32:
+       case Arch_ppc64: // 64-bit not supported in ROSE
+       {
+           n = baseID;
+           switch(category)
+           {
+               case ppc32::GPR:
+                   c = ppc32_regclass_gpr;
+                   break;
+               case ppc32::FPR:
+               case ppc32::FSR:
+                   c = ppc32_regclass_fpr;
+                   break;
+               case ppc32::SPR:
+               {
+                   if(baseID < 613) {
+                       c = ppc32_regclass_spr;
+                   } else if(baseID < 621 ) {
+                       c = ppc32_regclass_sr; 
+                   } else {
+                       c = ppc32_regclass_cr;
+                       p = baseID - 621;
+                   }
+               }
+               break;
+               default:
+                   assert(!"unknown register type!");
+                   break;
+           }
+           return;
+       }
+       default:
          c = x86_regclass_unknown;
          n = 0;
          break;
