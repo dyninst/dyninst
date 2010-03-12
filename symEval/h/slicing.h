@@ -183,6 +183,12 @@ class Slicer {
 			 image_basicBlock *callerBlock,
 			 image_func *callee);
 
+  void handleCallBackward(AbsRegion &reg,
+          Context &context,
+          image_basicBlock *calleeBlock,
+          image_func *caller);
+
+
   // Where we are in a particular search...
   struct Location {
     // The block we're looking through
@@ -191,13 +197,20 @@ class Slicer {
 
     // Where we are in the block
     InsnVec::iterator current;
+    InsnVec::iterator begin;
     InsnVec::iterator end;
 
-    Address addr() const { return current->second; }
+    bool fwd;
+
+    InsnVec::reverse_iterator rcurrent;
+    InsnVec::reverse_iterator rbegin;
+    InsnVec::reverse_iterator rend;
+
+    Address addr() const { if(fwd) return current->second; else return rcurrent->second;}
 
   Location(image_func *f,
-	   image_basicBlock *b) : func(f), block(b) {};
-  Location() : func(NULL), block(NULL) {};
+	   image_basicBlock *b) : func(f), block(b), fwd(true){};
+  Location() : func(NULL), block(NULL), fwd(true) {};
   };
     
   typedef std::queue<Location> LocList;
@@ -240,6 +253,13 @@ class Slicer {
 		    Element &newElement,
 		    Predicates &p,
 		    bool &err);
+  bool handleDefaultEdgeBackward(image_basicBlock *block,
+			 Element &current,
+			 Element &newElement); 
+
+  bool handleCallEdge(image_basicBlock *block,
+		      Element &current,
+		      Element &newElement);
 
   void handleReturnDetails(AbsRegion &reg,
 			   Context &context);
@@ -248,12 +268,19 @@ class Slicer {
 		     Elements &worklist,
 		     Predicates &p);
 
+  bool getPredecessors(Element &current,
+          Elements &worklist);
 
   bool forwardSearch(Element &current,
 		     Elements &foundList,
 		     Predicates &p);
 
+  bool backwardSearch(Element &current,
+          Elements &foundList);
+
   void widen(GraphPtr graph, Element &source);
+  
+  void widenBackward(GraphPtr graph, Element &target);
 
   void insertPair(GraphPtr graph, 
 		  Element &source, 
@@ -265,13 +292,17 @@ class Slicer {
 			  std::vector<AssignmentPtr> &);
 
   void fastForward(Location &loc, Address addr);
+  
+  void fastBackward(Location &loc, Address addr);
 
   AssignNode::Ptr widenNode();
 
   void markAsExitNode(GraphPtr ret, Element &current);
   
+  void markAsEntryNode(GraphPtr ret, Element &current);
 
   void getInsns(Location &loc);
+  void getInsnsBackward(Location &loc);
 
   void setAliases(Assignment::Ptr, Element &);
 
