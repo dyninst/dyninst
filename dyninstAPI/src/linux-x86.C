@@ -2255,7 +2255,7 @@ bool image::findGlobalDestructorFunc() {
 
     RegisterAST thePC = RegisterAST(Dyninst::MachRegister::getPC(getArch()));
 
-    Expression::Ptr callTarget = curInsn->getControlFlowTarget();
+    Expression::Ptr callTarget = lastCall->getControlFlowTarget();
     if( !callTarget.get() ) {
         logLine("failed to find global destructor function\n");
         return false;

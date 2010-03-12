@@ -425,9 +425,6 @@ bool emitElfStatic::createLinkMap(Symtab *target,
 {
     rewrite_printf("\n*** Allocating storage for relocatable objects\n\n");
 
-    // Create a temporary region for COMMON storage
-    Region *commonStorage;
-
     // Used to create a new COMMON block
     multimap<Offset, Symbol *> commonAlignments;
     Offset commonRegionAlign = 0;
@@ -766,11 +763,11 @@ bool emitElfStatic::createLinkMap(Symtab *target,
         // Update the size of COMMON storage
         if( commonAlignments.size() > 0 ) {
             // A COMMON region is not really complete
-            commonStorage = Region::createRegion(0, Region::RP_RW,
+            lmap.commonStorage = Region::createRegion(0, Region::RP_RW,
                     Region::RT_BSS, commonOffset - commonStartOffset, 0, 
                     commonOffset - commonStartOffset,
                     DEFAULT_COM_NAME, NULL, true, false, commonRegionAlign);
-            lmap.bssRegions.push_front(commonStorage);
+            lmap.bssRegions.push_front(lmap.commonStorage);
         }
     }
 
