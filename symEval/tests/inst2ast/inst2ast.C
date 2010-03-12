@@ -65,17 +65,17 @@ int main(int argc, char *argv[])
 			assigns);
 
       // Build a map stating which assignments we're interested in
-      SymEval::Result res;
+      Result_t res;
       for (std::vector<Assignment::Ptr>::iterator a_iter = assigns.begin();
 	   a_iter != assigns.end(); ++a_iter) {
 	res[*a_iter] = AST::Ptr();
       }
 
       // Feed the map into the symbolic evaluator
-      SymEval::expand(res);
+      SymEval<Arch_x86>::expand(res);
 
       // What do we have here?
-      for (SymEval::Result::const_iterator r_iter = res.begin();
+      for (Result_t::const_iterator r_iter = res.begin();
 	   r_iter != res.end(); ++r_iter) {
 	cout << "-----------------" << endl;
 	cout << r_iter->first->format();
@@ -88,4 +88,3 @@ int main(int argc, char *argv[])
 
   return 0;
 }
-

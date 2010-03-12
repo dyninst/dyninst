@@ -37,12 +37,18 @@
 #include "AST.h"
 
 #include "../rose/x86InstructionSemantics.h"
+#include "../rose/powerpcInstructionEnum.h"
 
 using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;
 using namespace Dyninst::SymbolicEvaluation;
 
-X86InstructionKind SymEval::convert(entryID opcode) {
+template class SymEval<Arch_x86>;
+template class SymEval<Arch_ppc32>;
+
+    
+SymEvalArchTraits<Arch_x86>::InstructionKind_t SymEvalArchTraits<Arch_x86>::convert(entryID opcode)
+{
     switch (opcode) {
         case e_jb:
             return x86_jb;
@@ -907,3 +913,346 @@ X86InstructionKind SymEval::convert(entryID opcode) {
         }
 }
 
+SymEvalArchTraits<Arch_ppc32>::InstructionKind_t SymEvalArchTraits<Arch_ppc32>::convert(entryID opcode)
+{
+    switch(opcode)
+    {
+        case power_op_stfdu: return powerpc_stfdu;
+        case power_op_fadd: return powerpc_fadd;
+        case power_op_xoris: return powerpc_xoris;
+        case power_op_mulhwu: return powerpc_mulhwu;
+        case power_op_stbux: return powerpc_stbux;
+        case power_op_cmpl: return powerpc_cmpl;
+        case power_op_subf: return powerpc_subf;
+        case power_op_svcs: return powerpc_sc;
+        case power_op_fmuls: return powerpc_fmuls;
+        case power_op_subfic: return powerpc_subfic;
+        case power_op_mcrfs: return powerpc_mcrfs;
+        case power_op_divs: return powerpc_divw;
+        case power_op_lwzx: return powerpc_lwzx;
+        case power_op_fctiw: return powerpc_fctiw;
+        case power_op_mtcrf: return powerpc_mtcrf;
+        case power_op_srq: return powerpc_unknown_instruction;
+        case power_op_sraw: return powerpc_sraw;
+        case power_op_lfdx: return powerpc_lfdx;
+        case power_op_stdcx_rc: return powerpc_stdcx_record;
+        case power_op_nor: return powerpc_nor;
+        case power_op_crandc: return powerpc_crandc;
+        case power_op_stdu: return powerpc_stdu;
+        case power_op_addme: return powerpc_addme;
+        case power_op_fmul: return powerpc_fmul;
+        case power_op_sthbrx: return powerpc_sthbrx;
+        case power_op_mtspr: return powerpc_mtspr;
+        case power_op_lfsx: return powerpc_lfsx;
+        case power_op_lbzx: return powerpc_lbzx;
+        case power_op_nand: return powerpc_nand;
+        case power_op_fnmadds: return powerpc_fnmadds;
+        case power_op_fnmadd: return powerpc_fnmadd;
+        case power_op_mulhw: return powerpc_mulhw;
+        case power_op_sradi: return powerpc_sradi;
+        case power_op_fnmsubs: return powerpc_fnmsubs;
+        case power_op_addze: return powerpc_addze;
+        case power_op_mulld: return powerpc_mulld;
+        case power_op_si: return powerpc_unknown_instruction; // there's not a subtract immediate available? huh?
+        case power_op_lfs: return powerpc_lfs;
+        case power_op_andc: return powerpc_andc;
+        case power_op_eciwx: return powerpc_eciwx;
+        case power_op_rfid: return powerpc_rfid;
+        case power_op_divw: return powerpc_divw;
+        case power_op_creqv: return powerpc_creqv;
+        case power_op_fctiwz: return powerpc_fctiwz;
+        case power_op_crnor: return powerpc_crnor;
+        case power_op_lbzux: return powerpc_lbzux;
+        case power_op_td: return powerpc_td;
+        case power_op_dcbi: return powerpc_dcbi;
+        case power_op_cli: return powerpc_unknown_instruction;
+        case power_op_div: return powerpc_unknown_instruction;
+        case power_op_add: return powerpc_add;
+        case power_op_extsh: return powerpc_extsh;
+        case power_op_divd: return powerpc_divd;
+        case power_op_fmsub: return powerpc_fmsub;
+        case power_op_stbx: return powerpc_stbx;
+        case power_op_nabs: return powerpc_unknown_instruction;
+        case power_op_isync: return powerpc_isync;
+        case power_op_mfsri: return powerpc_unknown_instruction;
+        case power_op_stfdx: return powerpc_stfdx;
+        case power_op_fsqrt: return powerpc_fsqrt;
+        case power_op_dcbz: return powerpc_dcbz;
+        case power_op_dcbst: return powerpc_dcbst;
+        case power_op_stswi: return powerpc_stswi;
+        case power_op_mulli: return powerpc_mulli;
+        case power_op_stfs: return powerpc_stfs;
+        case power_op_clf: return powerpc_unknown_instruction;
+        case power_op_fnmsub: return powerpc_fnmsub;
+        case power_op_lhz: return powerpc_lhz;
+        case power_op_ecowx: return powerpc_ecowx;
+        case power_op_fres: return powerpc_fres;
+        case power_op_stwu: return powerpc_stwu;
+        case power_op_lhau: return powerpc_lhau;
+        case power_op_slq: return powerpc_unknown_instruction;
+        case power_op_srawi: return powerpc_srawi;
+        case power_op_divwu: return powerpc_divwu;
+        case power_op_addis: return powerpc_addis;
+        case power_op_mfmsr: return powerpc_mfmsr;
+        case power_op_mulhd: return powerpc_mulhd;
+        case power_op_fdivs: return powerpc_fdivs;
+        case power_op_abs: return powerpc_unknown_instruction;
+        case power_op_lwzu: return powerpc_lwzu;
+        case power_op_tlbli: return powerpc_unknown_instruction; // PPC 603 only
+        case power_op_orc: return powerpc_orc;
+        case power_op_mtfsf: return powerpc_mtfsf;
+        case power_op_lswx: return powerpc_lswx;
+        case power_op_stb: return powerpc_stb;
+        case power_op_andis_rc: return powerpc_andis_record;
+        case power_op_fsel: return powerpc_fsel;
+        case power_op_xori: return powerpc_xori;
+        case power_op_lwax: return powerpc_lwax;
+        case power_op_tdi: return powerpc_tdi;
+        case power_op_rlwimi: return powerpc_rlwimi;
+        case power_op_stw: return powerpc_stw;
+        case power_op_rldcr: return powerpc_rldcr;
+        case power_op_sraq: return powerpc_unknown_instruction;
+        case power_op_fmr: return powerpc_fmr;
+        case power_op_tlbld: return powerpc_unknown_instruction; // PPC 603 only
+        case power_op_doz: return powerpc_unknown_instruction;
+        case power_op_lbz: return powerpc_lbz;
+        case power_op_stdux: return powerpc_stdux;
+        case power_op_mtfsfi: return powerpc_mtfsfi;
+        case power_op_srea: return powerpc_unknown_instruction;
+        case power_op_lscbx: return powerpc_unknown_instruction;
+        case power_op_rlwinm: return powerpc_rlwinm;
+        case power_op_sld: return powerpc_sld;
+        case power_op_addc: return powerpc_addc;
+        case power_op_lfqux: return powerpc_unknown_instruction; // POWER2 only; shouldn't this exist for double hummer?
+        case power_op_sleq: return powerpc_unknown_instruction;
+        case power_op_extsb: return powerpc_extsb;
+        case power_op_ld: return powerpc_ld;
+        case power_op_ldu: return powerpc_ldu;
+        case power_op_fctidz: return powerpc_fctidz;
+        case power_op_lfq: return powerpc_unknown_instruction; // again, POWER2 only
+        case power_op_lwbrx: return powerpc_lwbrx;
+        case power_op_fsqrts: return powerpc_fsqrts;
+        case power_op_srd: return powerpc_srd;
+        case power_op_lfdu: return powerpc_lfdu;
+        case power_op_stfsux: return powerpc_stfsux;
+        case power_op_lhzu: return powerpc_lhzu;
+        case power_op_crnand: return powerpc_crnand;
+        case power_op_icbi: return powerpc_icbi;
+        case power_op_rlwnm: return powerpc_rlwnm;
+        case power_op_rldcl: return powerpc_rldcl;
+        case power_op_stwcx_rc: return powerpc_stwcx_record;
+        case power_op_lhzx: return powerpc_lhzx;
+        case power_op_stfsx: return powerpc_stfsx;
+        case power_op_rlmi: return powerpc_unknown_instruction;
+        case power_op_twi: return powerpc_twi;
+        case power_op_srliq: return powerpc_unknown_instruction;
+        case power_op_tlbie: return powerpc_tlbie;
+        case power_op_mfcr: return powerpc_mfcr;
+        case power_op_tlbsync: return powerpc_tlbsync;
+        case power_op_extsw: return powerpc_extsw;
+        case power_op_rldicl: return powerpc_rldicl;
+        case power_op_bclr: return powerpc_bclr;
+        case power_op_rfsvc: return powerpc_unknown_instruction;
+        case power_op_mcrxr: return powerpc_mcrxr;
+        case power_op_clcs: return powerpc_unknown_instruction;
+        case power_op_srad: return powerpc_srad;
+        case power_op_subfc: return powerpc_subfc;
+        case power_op_mfsrin: return powerpc_mfsrin;
+        case power_op_rfi: return powerpc_rfi;
+        case power_op_sreq: return powerpc_unknown_instruction;
+        case power_op_frsqrte: return powerpc_frsqrte;
+        case power_op_mffs: return powerpc_mffs;
+        case power_op_lwz: return powerpc_lwz;
+        case power_op_lfqu: return powerpc_unknown_instruction; // power2
+        case power_op_and: return powerpc_and;
+        case power_op_stswx: return powerpc_stswx;
+        case power_op_stfd: return powerpc_stfd;
+        case power_op_fmsubs: return powerpc_fmsubs;
+        case power_op_bcctr: return powerpc_bcctr;
+        case power_op_lhaux: return powerpc_lhaux;
+        case power_op_ldux: return powerpc_ldux;
+        case power_op_fctid: return powerpc_fctid;
+        case power_op_frsp: return powerpc_frsp;
+        case power_op_slw: return powerpc_slw;
+        case power_op_cmpli: return powerpc_cmpli;
+        case power_op_sync: return powerpc_sync;
+        case power_op_cntlzw: return powerpc_cntlzw;
+        case power_op_maskg: return powerpc_unknown_instruction;
+        case power_op_divdu: return powerpc_divdu;
+        case power_op_xor: return powerpc_xor;
+        case power_op_fadds: return powerpc_fadds;
+        case power_op_fneg: return powerpc_fneg;
+        case power_op_lwaux: return powerpc_lwaux;
+        case power_op_fsub: return powerpc_fsub;
+        case power_op_stfqux: return powerpc_unknown_instruction; // power2
+        case power_op_srlq: return powerpc_unknown_instruction;
+        case power_op_lfqx: return powerpc_unknown_instruction; // power2
+        case power_op_dcbt: return powerpc_dcbt;
+        case power_op_sliq: return powerpc_unknown_instruction;
+        case power_op_fcmpo: return powerpc_fcmpo;
+        case power_op_lhax: return powerpc_lhax;
+        case power_op_cror: return powerpc_cror;
+        case power_op_dozi: return powerpc_unknown_instruction;
+        case power_op_crand: return powerpc_crand;
+        case power_op_stfsu: return powerpc_stfsu;
+        case power_op_lha: return powerpc_lha;
+        case power_op_mcrf: return powerpc_mcrf;
+        case power_op_fdiv: return powerpc_fdiv;
+        case power_op_ori: return powerpc_ori;
+        case power_op_fmadd: return powerpc_fmadd;
+        case power_op_stmw: return powerpc_stmw;
+        case power_op_lwarx: return powerpc_lwarx;
+        case power_op_sle: return powerpc_unknown_instruction;
+        case power_op_fsubs: return powerpc_fsubs;
+        case power_op_stdx: return powerpc_stdx;
+        case power_op_stwx: return powerpc_stwx;
+        case power_op_sthux: return powerpc_sthux;
+        case power_op_stwbrx: return powerpc_stwbrx;
+        case power_op_sthu: return powerpc_sthu;
+        case power_op_dclst: return powerpc_unknown_instruction;
+        case power_op_fcmpu: return powerpc_fcmpu;
+        case power_op_subfme: return powerpc_subfme;
+        case power_op_stfiwx: return powerpc_stfiwx;
+        case power_op_mul: return powerpc_unknown_instruction;
+        case power_op_bc: return powerpc_bc;
+        case power_op_stwux: return powerpc_stwux;
+        case power_op_sllq: return powerpc_unknown_instruction;
+        case power_op_mullw: return powerpc_mullw;
+        case power_op_cmpi: return powerpc_cmpi;
+        case power_op_rldicr: return powerpc_rldicr;
+        case power_op_sth: return powerpc_sth;
+        case power_op_sre: return powerpc_unknown_instruction;
+        case power_op_slliq: return powerpc_unknown_instruction;
+        case power_op_rldic: return powerpc_rldic;
+        case power_op_fnabs: return powerpc_fnabs;
+        case power_op_sc: return powerpc_sc;
+        case power_op_addic_rc: return powerpc_addic_record;
+        case power_op_rldimi: return powerpc_rldimi;
+        case power_op_stfqu: return powerpc_unknown_instruction; // power2
+        case power_op_neg: return powerpc_neg;
+        case power_op_oris: return powerpc_oris;
+        case power_op_lfsux: return powerpc_lfsux;
+        case power_op_mtfsb1: return powerpc_mtfsb1;
+        case power_op_dcbtst: return powerpc_dcbtst;
+        case power_op_subfe: return powerpc_subfe;
+        case power_op_b: return powerpc_b;
+        case power_op_lwzux: return powerpc_lwzux;
+        case power_op_rac: return powerpc_unknown_instruction;
+        case power_op_lfdux: return powerpc_lfdux;
+        case power_op_lbzu: return powerpc_lbzu;
+        case power_op_lhzux: return powerpc_lhzux;
+        case power_op_lhbrx: return powerpc_lhbrx;
+        case power_op_lfsu: return powerpc_lfsu;
+        case power_op_srw: return powerpc_srw;
+        case power_op_crxor: return powerpc_crxor;
+        case power_op_stfdux: return powerpc_stfdux;
+        case power_op_lmw: return powerpc_lmw;
+        case power_op_adde: return powerpc_adde;
+        case power_op_mfsr: return powerpc_mfsr;
+        case power_op_sraiq: return powerpc_unknown_instruction;
+        case power_op_rrib: return powerpc_unknown_instruction;
+        case power_op_addi: return powerpc_addi;
+        case power_op_sthx: return powerpc_sthx;
+        case power_op_stfqx: return powerpc_unknown_instruction; // power2
+        case power_op_andi_rc: return powerpc_andi_record;
+        case power_op_or: return powerpc_or;
+        case power_op_dcbf: return powerpc_dcbf;
+        case power_op_fcfid: return powerpc_fcfid;
+        case power_op_fmadds: return powerpc_fmadds;
+        case power_op_mtfsb0: return powerpc_mtfsb0;
+        case power_op_lswi: return powerpc_lswi;
+        case power_op_mulhdu: return powerpc_mulhdu;
+        case power_op_ldarx: return powerpc_ldarx;
+        case power_op_eieio: return powerpc_eieio;
+        case power_op_cntlzd: return powerpc_cntlzd;
+        case power_op_subfze: return powerpc_subfze;
+        case power_op_fabs: return powerpc_fabs;
+        case power_op_tw: return powerpc_tw;
+        case power_op_eqv: return powerpc_eqv;
+        case power_op_stfq: return powerpc_unknown_instruction; // power2
+        case power_op_maskir: return powerpc_unknown_instruction;
+        case power_op_sriq: return powerpc_unknown_instruction;
+        case power_op_mfspr: return powerpc_mfspr;
+        case power_op_ldx: return powerpc_ldx;
+        case power_op_crorc: return powerpc_crorc;
+        case power_op_lfd: return powerpc_lfd;
+        case power_op_cmp: return powerpc_cmp;
+        case power_op_stbu: return powerpc_stbu;
+        case power_op_stfpdux: return powerpc_stfpdux;
+        case power_op_stfpdx: return powerpc_stfpdx;
+        case power_op_stfpsux: return powerpc_stfpsux;
+        case power_op_stfpsx: return powerpc_stfpsx;
+        case power_op_stfxdux: return powerpc_stfxdux;
+        case power_op_stfxdx: return powerpc_stfxdx;
+        case power_op_stfxsux: return powerpc_stfxsux;
+        case power_op_stfxsx: return powerpc_stfxsx;
+        case power_op_stfsdux: return powerpc_stfsdux;
+        case power_op_stfsdx: return powerpc_stfsdx;
+        case power_op_stfssux: return powerpc_stfssux;
+        case power_op_stfssx: return powerpc_stfssx;
+        case power_op_stfpiwx: return powerpc_stfpiwx;
+        case power_op_lfpdux: return powerpc_lfpdux;
+        case power_op_lfpdx: return powerpc_lfpdx;
+        case power_op_lfpsux: return powerpc_lfpsux;
+        case power_op_lfpsx: return powerpc_lfpsx;
+        case power_op_lfxdux: return powerpc_lfxdux;
+        case power_op_lfxdx: return powerpc_lfxdx;
+        case power_op_lfxsux: return powerpc_lfxsux;
+        case power_op_lfxsx: return powerpc_lfxsx;
+        case power_op_lfsdux: return powerpc_lfsdux;
+        case power_op_lfsdx: return powerpc_lfsdx;
+        case power_op_lfssux: return powerpc_lfssux;
+        case power_op_lfssx: return powerpc_lfssx;
+        case power_op_fxcxnms: return powerpc_fxcxnms;
+        case power_op_fxcxma: return powerpc_fxcxma;
+        case power_op_fxcxnsma: return powerpc_fxcxnsma;
+        case power_op_fxcxnpma: return powerpc_fxcxnpma;
+        case power_op_fxcsnsma: return powerpc_fxcsnsma;
+        case power_op_fxcpnsma: return powerpc_fxcpnsma;
+        case power_op_fxcsnpma: return powerpc_fxcsnpma;
+        case power_op_fxcpnpma: return powerpc_fxcpnpma;
+        case power_op_fsmtp: return powerpc_fsmtp;
+        case power_op_fsmfp: return powerpc_fsmfp;
+        case power_op_fpctiwz: return powerpc_fpctiwz;
+        case power_op_fpctiw: return powerpc_fpctiw;
+        case power_op_fxmr: return powerpc_fxmr;
+        case power_op_fpsel: return powerpc_fpsel;
+        case power_op_fpmul: return powerpc_fpmul;
+        case power_op_fxmul: return powerpc_fxmul;
+        case power_op_fxpmul: return powerpc_fxpmul;
+        case power_op_fxsmul: return powerpc_fxsmul;
+        case power_op_fpadd: return powerpc_fpadd;
+        case power_op_fpsub: return powerpc_fpsub;
+        case power_op_fpre: return powerpc_fpre;
+        case power_op_fprsqrte: return powerpc_fprsqrte;
+        case power_op_fpmadd: return powerpc_fpmadd;
+        case power_op_fxmadd: return powerpc_fxmadd;
+        case power_op_fxcpmadd: return powerpc_fxcpmadd;
+        case power_op_fxcsmadd: return powerpc_fxcsmadd;
+        case power_op_fpnmadd: return powerpc_fpnmadd;
+        case power_op_fxnmadd: return powerpc_fxnmadd;
+        case power_op_fxcpnmadd: return powerpc_fxcpnmadd;
+        case power_op_fxcsnmadd: return powerpc_fxcsnmadd;
+        case power_op_fpmsub: return powerpc_fpmsub;
+        case power_op_fxmsub: return powerpc_fxmsub;
+        case power_op_fxcpmsub: return powerpc_fxcpmsub;
+        case power_op_fxcsmsub: return powerpc_fxcsmsub;
+        case power_op_fpnmsub: return powerpc_fpnmsub;
+        case power_op_fxnmsub: return powerpc_fxnmsub;
+        case power_op_fxcpnmsub: return powerpc_fxcpnmsub;
+        case power_op_fxcsnmsub: return powerpc_fxcsnmsub;
+        case power_op_fpmr: return powerpc_fpmr;
+        case power_op_fpabs: return powerpc_fpabs;
+        case power_op_fpneg: return powerpc_fpneg;
+        case power_op_fprsp: return powerpc_fprsp;
+        case power_op_fpnabs: return powerpc_fpnabs;
+        case power_op_fsmr: return powerpc_fsmr;
+        case power_op_fscmp: return powerpc_unknown_instruction; // someone screwed up their double hummer implementation!
+        case power_op_fsabs: return powerpc_fsabs;
+        case power_op_fsneg: return powerpc_fsneg;
+        case power_op_fsnabs: return powerpc_fsnabs;
+        case power_op_lwa: return powerpc_lwa;
+        default:
+            return powerpc_unknown_instruction;
+    }
+}

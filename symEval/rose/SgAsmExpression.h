@@ -3,6 +3,8 @@
 
 #include "external/rose/rose-compat.h"
 #include "SgNode.h"
+#include "SgAsmType.h"
+#include "powerpcInstructionEnum.h"
 
 class SgAsmExpression : public SgNode {
  public:
@@ -1030,8 +1032,7 @@ class SgAsmRegisterReferenceExpression : public SgAsmExpression
     friend const SgAsmRegisterReferenceExpression* isSgAsmRegisterReferenceExpression( const SgNode * s );
 
  public: 
-    SgAsmType* get_type() const;
-    void set_type(SgAsmType* type);
+    virtual void set_type(SgAsmType* type);
 
 
  public: 
@@ -1053,8 +1054,6 @@ class SgAsmRegisterReferenceExpression : public SgAsmExpression
 class SgAsmx86RegisterReferenceExpression : public SgAsmRegisterReferenceExpression
 {
  public:
-    // Note that the auto-generated version of this is const
-    virtual SgAsmType* get_type();
 
 
     //! Get a unique identifier for this particular register
@@ -1110,6 +1109,57 @@ class SgAsmx86RegisterReferenceExpression : public SgAsmRegisterReferenceExpress
     // End of memberFunctionString
 };
 
+// Class Definition for SgAsmPowerpcRegisterReferenceExpression
+class SgAsmPowerpcRegisterReferenceExpression : public SgAsmRegisterReferenceExpression
+{
+    public:
+        enum powerpc_register_enum { // The exact numbers here are important
+    undefined_powerpc_register = 0, /*!< unknown (error or unitialized value) */
+    reg0 = 1,
+    reg1 = 2,
+    reg2 = 3,
+    reg3 = 4,
+    reg4 = 5,
+    reg5 = 6,
+    reg6 = 7,
+    reg7 = 8,
+    last_powerpc_register
+        };
+
+    public:
+
+        /*! \brief returns a string representing the class name */
+        virtual std::string class_name() const { return "SgAsmPowerpcRegisterReferenceExpression"; }
+
+        /*! \brief returns new style SageIII enum values */
+        virtual VariantT variantT() const { return static_variant; } 
+
+        /*! \brief static variant value */
+        static const VariantT static_variant = V_SgAsmPowerpcRegisterReferenceExpression;
+
+        /* the generated cast function */
+        /*! \brief Casts pointer from base class to derived class */
+        friend       SgAsmPowerpcRegisterReferenceExpression* isSgAsmPowerpcRegisterReferenceExpression(       SgNode * s );
+        /*! \brief Casts pointer from base class to derived class (for const pointers) */
+        friend const SgAsmPowerpcRegisterReferenceExpression* isSgAsmPowerpcRegisterReferenceExpression( const SgNode * s );
+
+    public:
+        PowerpcRegisterClass get_register_class() const;
+        void set_register_class(PowerpcRegisterClass register_class);
+        int get_register_number() const;
+        void set_register_number(int register_number);
+        PowerpcConditionRegisterAccessGranularity get_conditionRegisterGranularity() const;
+        void set_conditionRegisterGranularity(PowerpcConditionRegisterAccessGranularity conditionRegisterGranularity);
+        virtual ~SgAsmPowerpcRegisterReferenceExpression();
+        SgAsmPowerpcRegisterReferenceExpression(PowerpcRegisterClass register_class = powerpc_regclass_unknown, int
+                register_number = 0, PowerpcConditionRegisterAccessGranularity conditionRegisterGranularity =
+                        powerpc_condreggranularity_whole);
+
+    protected:
+        PowerpcRegisterClass p_register_class;
+        int p_register_number;
+        PowerpcConditionRegisterAccessGranularity p_conditionRegisterGranularity;
+};
 
 uint64_t getAsmSignedConstant(SgAsmValueExpression *e);
 

@@ -36,29 +36,31 @@
 
 #include "AST.h"
 
-#include "../rose/x86InstructionSemantics.h"
 
+#include "../rose/x86InstructionSemantics.h"
+#include "../rose/powerpcInstructionSemantics.h"
 #include "dyninstAPI/src/stackanalysis.h"
 #include "SymEvalVisitors.h"
 
 using namespace Dyninst;
-using namespace Dyninst::InstructionAPI;
-using namespace Dyninst::SymbolicEvaluation;
+using namespace InstructionAPI;
+using namespace SymbolicEvaluation;
 
-const AST::Ptr SymEval::Placeholder;
 
-AST::Ptr SymEval::expand(const Assignment::Ptr &assignment) {
-  // This is a shortcut version for when we only want a 
+template<Architecture a>
+AST::Ptr SymEval<a>::expand(const Assignment::Ptr &assignment) {
+  // This is a shortcut version for when we only want a
   // single assignment
 
-  SymEval::Result res;
+    Result_t res;
   // Fill it in to mark it as existing
   res[assignment] = Placeholder;
   expand(res);
   return res[assignment];
 }
 
-void SymEval::expand(Result &res) {
+template <Architecture a>
+void SymEval<a>::expand(Result_t &res) {
   // Symbolic evaluation works off an Instruction
   // so we have something to hand to ROSE. 
   for (Result::iterator i = res.begin(); i != res.end(); ++i) {
@@ -87,7 +89,7 @@ void SymEval::expand(Result &res) {
     StackAnalysis sA(func);
     StackAnalysis::Height sp = sA.findSP(ptr->addr());
     StackAnalysis::Height fp = sA.findFP(ptr->addr());
-    
+
     StackVisitor sv(func->symTabName(), sp, fp);
     if (i->second)
       i->second = i->second->accept(&sv);
@@ -100,13 +102,13 @@ void SymEval::expand(Graph::Ptr slice, Result &res) {
   // Other than the substitution this is pretty similar to the first example.
   NodeIterator gbegin, gend;
   slice->entryNodes(gbegin, gend);
-  
+
   std::queue<Node::Ptr> worklist;
   for (; gbegin != gend; ++gbegin) {
     worklist.push(*gbegin);
   }
   std::set<Node::Ptr> visited;
-  
+
   while (!worklist.empty()) {
     Node::Ptr ptr = worklist.front(); worklist.pop();
     AssignNode::Ptr aNode = dyn_detail::boost::dynamic_pointer_cast<AssignNode>(ptr);
@@ -119,7 +121,7 @@ void SymEval::expand(Graph::Ptr slice, Result &res) {
     visited.insert(ptr);
 
     process(aNode, res);
-    
+
     NodeIterator nbegin, nend;
     aNode->outs(nbegin, nend);
     for (; nbegin != nend; ++nbegin) {
@@ -130,16 +132,51 @@ void SymEval::expand(Graph::Ptr slice, Result &res) {
       worklist.push(*nbegin);
     }
   }
+        Result_t::iterator i = res.begin();
+        if (i == res.end()) return;
+
+        Assignment::Ptr ptr = i->first;
+        cerr << "\t\t Expanding insn " << ptr->insn()->format() << endl;
+
+        SymEval<a>::expandInsn(ptr->insn(),
+                   ptr->addr(),
+                   res);
+  // Let's experiment with simplification
+        image_func *func = ptr->func();
+        StackAnalysis sA(func);
+        StackAnalysis::Height sp = sA.findSP(ptr->addr());
+        StackAnalysis::Height fp = sA.findFP(ptr->addr());
+
+        StackBindEval sbe(func->symTabName().c_str(), sp, fp);
+
+        for (i = res.begin(); i != res.end(); ++i) {
+            i->second = sbe.simplify(i->second);
+        }
+    }
+
+
+void SymEvalArchTraits<Arch_x86>::processInstruction(SageInstruction_t* roseInsn,
+                                                    SymEvalPolicy& policy)
+{
+    X86InstructionSemantics<SymEvalPolicy, Handle> t(policy);
+    t.processInstruction(roseInsn);
+}        
+        
+void SymEvalArchTraits<Arch_ppc32>::processInstruction(SageInstruction_t* roseInsn,
+                                                      SymEvalPolicy& policy)
+{
+    PowerpcInstructionSemantics<SymEvalPolicy, Handle> t(policy);
+    t.processInstruction(roseInsn);
 }
 
 
-void SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,
+template <Architecture a>
+void SymEval<a>::expandInsn(const InstructionAPI::Instruction::Ptr insn,
 			 const uint64_t addr,
-			 Result &res) {
-  SgAsmx86Instruction roseInsn = convert(insn, addr);
+			 Result_t &res) {
+  SageInstruction_t* roseInsn = convert(insn, addr);
   SymEvalPolicy policy(res, addr, insn->getArch());
-  X86InstructionSemantics<SymEvalPolicy, Handle> t(policy);
-  t.processInstruction(&roseInsn);
+  SymEvalArchTraits::processInstruction(roseInsn, policy);    
   return;
 }
 
@@ -212,8 +249,39 @@ void SymEval::process(AssignNode::Ptr ptr,
 }
 
 
-SgAsmx86Instruction SymEval::convert(const InstructionAPI::Instruction::Ptr &insn, uint64_t addr) {
-    SgAsmx86Instruction rinsn;
+SgAsmExpression* SymEvalArchTraits<Arch_ppc32>::convertOperand(InstructionKind_t ,
+        unsigned int ,
+        SgAsmExpression* operand)
+{
+    // add filtering as needed...
+    return operand;
+}
+
+SgAsmExpression* SymEvalArchTraits<Arch_x86>::convertOperand(InstructionKind_t opcode,
+        unsigned int which,
+        SgAsmExpression* operand)
+{
+    if((opcode == x86_lea) && (which == 1))
+    {
+        // We need to wrap o1 in a memory dereference...
+        SgAsmMemoryReferenceExpression *expr = new SgAsmMemoryReferenceExpression(operand);
+        return expr;
+    }
+    else if((opcode == x86_push || opcode == x86_pop) && (which > 0))
+    {
+        fprintf(stderr, "push/pop detected, skipping operand %d\n", which);
+        return NULL;
+    }
+    else
+    {
+        return operand;
+    }
+}
+
+template<Architecture a>
+typename SymEval<a>::SageInstruction_t
+SymEval<a>::convert(const InstructionAPI::Instruction::Ptr &insn, uint64_t addr) {
+    SageInstruction_t rinsn;
 
     rinsn.set_address(addr);
     rinsn.set_mnemonic(insn->format());
@@ -231,81 +299,65 @@ SgAsmx86Instruction SymEval::convert(const InstructionAPI::Instruction::Ptr &ins
     std::vector<InstructionAPI::Operand> operands;
     insn->getOperands(operands);
 
-    // Override for LEA conversion
-    if (rinsn.get_kind() == x86_lea) {
-        assert(operands.size() == 2);
-        roperands->append_operand(convert(operands[0]));
-        
-        SgAsmExpression *o1 = convert(operands[1]);
-        // We need to wrap o1 in a memory dereference...
-        SgAsmMemoryReferenceExpression *expr = new SgAsmMemoryReferenceExpression(o1);
-        roperands->append_operand(expr);
-        
-    }
-    else if (rinsn.get_kind() == x86_push) {
-      assert(operands.size() == 2); 
-      roperands->append_operand(convert(operands[0]));
-    }
-    else if (rinsn.get_kind() == x86_pop) {
-      assert(operands.size() == 2);
-      roperands->append_operand(convert(operands[0]));
-    }
-    else {
-        for (std::vector<InstructionAPI::Operand>::iterator opi = operands.begin(),
-                 ope = operands.end();
-             opi != ope;
-             ++opi) {
+    int i = 0;
+    fprintf(stderr, "converting insn %s\n", insn->format().c_str());
+    for (std::vector<InstructionAPI::Operand>::iterator opi = operands.begin();
+             opi != operands.end();
+             ++opi, ++i) {
             InstructionAPI::Operand &currOperand = *opi;
-            roperands->append_operand(convert(currOperand));
-        }
+            SgAsmExpression* converted = convert(currOperand);
+            fprintf(stderr, "converted operand %s, result was %s\n", currOperand.format().c_str(),
+                    converted ? "not NULL" : "NULL");
+            SgAsmExpression* final = SymEvalArchTraits<a>::convertOperand(rinsn.get_kind(), i, converted);
+            if(final != NULL) {
+                fprintf(stderr, "appending operand %d (%s)\n", i, currOperand.format().c_str());
+                roperands->append_operand(final);
+            }
     }
     rinsn.set_operandList(roperands);
 
     return rinsn;
 }
 
-SgAsmExpression *SymEval::convert(const InstructionAPI::Operand &operand) {
+template <Architecture a>
+SgAsmExpression *SymEval<a>::convert(const InstructionAPI::Operand &operand) {
     return convert(operand.getValue());
 }
 
-SgAsmExpression *SymEval::convert(const Expression::Ptr expression) {
-    ExpressionConversionVisitor visitor;
+template <Architecture a>
+        SgAsmExpression *SymEval<a>::convert(const Expression::Ptr expression) {
+    Visitor_t visitor;
     expression->apply(&visitor);
     return visitor.getRoseExpression();
 }
 
-void ExpressionConversionVisitor::visit(BinaryFunction* binfunc) {
-    // get two children
-    vector<InstructionAST::Ptr> children;
-    binfunc->getChildren(children);
-    // convert each InstAST::Ptr to SgAsmExpression*
-    // these casts will not fail
-    SgAsmExpression *lhs = 
-      SymEval::convert(dyn_detail::boost::dynamic_pointer_cast<Expression>(children[0]));
-    SgAsmExpression *rhs =
-      SymEval::convert(dyn_detail::boost::dynamic_pointer_cast<Expression>(children[1]));
 
-    // ROSE doesn't expect us to include the implicit PC update
-    //   along with explicit updates to the PC
-    // If the current function involves the PC, ignore it 
-    //   so the parent makes it disappear
-    RegisterAST::Ptr lhsReg = dyn_detail::boost::dynamic_pointer_cast<RegisterAST>(children[0]);
-    if (lhsReg)
-    {
-      if (lhsReg->getID().isPC())
-      {
-        roseExpression = NULL;
-        return;
-      }
-    }
+template <Architecture a>
+void ExpressionConversionVisitor<a>::visit(BinaryFunction* binfunc) {
+    assert(m_stack.size() >= 2);
+    SgAsmExpression *lhs =
+            m_stack.front();
+    m_stack.pop_front();
+    SgAsmExpression *rhs =
+            m_stack.front();
+    m_stack.pop_front();
     // If the RHS didn't convert, that means it should disappear
     // And we are just left with the LHS
+    if(!rhs && !lhs) {
+        roseExpression = NULL;
+        return;
+    }
     if (!rhs)
     {
       roseExpression = lhs;
       return;
     }
-
+    if(!lhs)
+    {
+        roseExpression = rhs;
+        return;
+    }
+    
     // now build either add or multiply
     if (binfunc->isAdd())
         roseExpression = new SgAsmBinaryAdd(lhs, rhs);
@@ -314,7 +366,8 @@ void ExpressionConversionVisitor::visit(BinaryFunction* binfunc) {
     else roseExpression = NULL; // error
 }
 
-void ExpressionConversionVisitor::visit(Immediate* immed) {
+template <Architecture a>
+void ExpressionConversionVisitor<a>::visit(Immediate* immed) {
     // no children
 
     const Result &value = immed->eval();
@@ -352,30 +405,30 @@ void ExpressionConversionVisitor::visit(Immediate* immed) {
             roseExpression = NULL;
             // error!
     }
+    m_stack.push_front(roseExpression);
 }
 
-void ExpressionConversionVisitor::visit(RegisterAST* regast) {
+
+template <Architecture a>
+void ExpressionConversionVisitor<a>::visit(RegisterAST* regast) {
     // has no children
 
-    int rreg_class;
-    int rreg_num;
-    int rreg_pos;
-
-    MachRegister machReg = regast->getID();
-    machReg.getROSERegister(rreg_class, rreg_num, rreg_pos);
-
-    roseExpression = new SgAsmx86RegisterReferenceExpression((X86RegisterClass)rreg_class, 
-                                                             rreg_num, 
-                                                             (X86PositionInRegister)rreg_pos);
+    m_stack.push_front(ConversionArchTraits<a>::archSpecificRegisterProc(regast));
+    roseExpression = m_stack.front();
+    return;
 }
 
-void ExpressionConversionVisitor::visit(Dereference* deref) {
+template <Architecture a>
+void ExpressionConversionVisitor<a>::visit(Dereference* deref) {
     // get child
-    vector<InstructionAST::Ptr> children;
-    deref->getChildren(children);
-    SgAsmExpression *toderef = 
-      SymEval::convert(dyn_detail::boost::dynamic_pointer_cast<Expression>(children[0]));
-    
+    assert(m_stack.size());
+    SgAsmExpression *toderef =
+            m_stack.front();
+    m_stack.pop_front();
+    if(toderef == NULL) {
+        roseExpression = NULL;
+        return;
+    }
     SgAsmType *type;
 
     // TODO fix some mismatched types?
@@ -409,10 +462,39 @@ void ExpressionConversionVisitor::visit(Dereference* deref) {
             // error
     }
 
-    SgAsmx86RegisterReferenceExpression *segReg = new SgAsmx86RegisterReferenceExpression(x86_regclass_segment, x86_segreg_none, x86_regpos_all);
 
-    SgAsmMemoryReferenceExpression *result = new SgAsmMemoryReferenceExpression(toderef, segReg);
+    SgAsmExpression *segReg = ConversionArchTraits<a>::makeSegRegExpr();
+    SgAsmMemoryReferenceExpression* result = new SgAsmMemoryReferenceExpression(toderef, segReg);
     result->set_type(type);
     roseExpression = result;
 }
+
+SgAsmExpression* ConversionArchTraits<Arch_x86>::archSpecificRegisterProc(InstructionAPI::RegisterAST* regast)
+{
+    int rreg_class;
+    int rreg_num;
+    int rreg_pos;
+
+    MachRegister machReg = regast->getID();
+    if(machReg.isPC()) return NULL;
+    machReg.getROSERegister(rreg_class, rreg_num, rreg_pos);
+
+    SgAsmExpression* roseRegExpr = new regRef((regClass)rreg_class,
+                                               rreg_num,
+                                               (regField)rreg_pos);
+    return roseRegExpr;
+}
+SgAsmExpression* ConversionArchTraits<Arch_x86>::makeSegRegExpr()
+{
+    return new SgAsmx86RegisterReferenceExpression(x86_regclass_segment,
+            x86_segreg_none, x86_regpos_all);
+}
+
+
+template class ExpressionConversionVisitor<Arch_x86>;
+template class ExpressionConversionVisitor<Arch_ppc32>;
+template class ConversionArchTraits<Arch_x86>;
+template class ConversionArchTraits<Arch_ppc32>;
+template class SymEval<Arch_x86>;
+template class SymEval<Arch_ppc32>;
 
