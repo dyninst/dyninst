@@ -343,7 +343,7 @@ bool BinaryEdit::getStatFileDescriptor(const std::string &name, fileDescriptor &
    return true;
 }
 
-#if !defined(os_linux) && !defined(os_solaris)
+#if !defined(os_linux) && !defined(os_solaris) && !defined(os_freebsd)
 std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::string filename) {
     /*
      * Note: this does not actually do any library name resolution, as that is OS-dependent

@@ -30,8 +30,8 @@
  */
 
 
-#if !defined(_linux_headers_h)
-#define _linux_headers_h
+#if !defined(_freebsd_headers_h)
+#define _freebsd_headers_h
 
 #include <assert.h>
 #include <stdio.h>

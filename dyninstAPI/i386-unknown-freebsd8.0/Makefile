@@ -1,15 +1,17 @@
 #
-# $Id: Makefile,v 1.5 2008/09/03 06:08:44 jaw Exp $
+# $Id: Makefile,v 1.41 2008/09/04 21:06:06 bill Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
 
 #USES_SHM_SAMPLING = true
 #USES_PAPI = true
-DEBUG_FLAG = -g
+#DEBUG_FLAG = -g
+#AUTO_TEMPLATES= true
 NO_IMPLICIT_TEMPLATES = true
 USES_DWARF_DEBUG = true
 USES_LIBELF = true
+USES_BOOST = true
 
 # For debugging.
 #NO_OPT_FLAG = true
@@ -21,8 +23,22 @@ include ../../make.config
 
 # Now make any necessary architecture specific changes to variables:
 
-SRCS =		../../common/src/timing-freebsd.C \
-		../../common/src/freebsdKludges.C
+SRCS =          ../src/freebsd.C \
+		../src/freebsd-x86.C \
+		../src/dynamiclinking.C \
+		../src/cpuid-x86.S \
+                ../src/inst-x86.C \
+		../src/emit-x86.C \
+                ../src/arch-x86.C \
+                ../src/unix.C \
+		../src/stackwalk-x86.C \
+		../src/image-x86.C \
+		../src/frameChecker.C \
+		../src/stackanalysis.C \
+		../src/IAPI_to_AST.C \
+		../src/IA_IAPI.C \
+		../src/BPatch_memoryAccessAdapter.C \
+		../src/RegisterConversion-x86.C
 
 #MYFLAGS	+= -DNO_MDL_PRINT
 #MYFLAGS	+= -DLD_DEBUG
@@ -34,19 +50,42 @@ SRCS =		../../common/src/timing-freebsd.C \
 #MYFLAGS	+= -DSIGNAL_DEBUG
 #MYFLAGS	+= -DASTDEBUG
 #MYFLAGS	+= -DINFERIOR_RPC_DEBUG
+MYFLAGS         += -DUSES_DWARF_DEBUG -I$(LIBDWARF_INC)
+MYFLAGS         += -I$(LIBELF_INC)
+MYFLAGS		+= -I/usr/include/libelf
 
 CXXFLAGS        += $(MYFLAGS)
 CFLAGS          += $(MYFLAGS)
 TFLAGS          += $(MYFLAGS)
-LDFLAGS		+= -L/usr/local/lib
+LDFLAGS 	+= -Wl,-rpath,$(LIBDWARF_LIB)
 
 # Tradeoff: adding -g to TFLAGS aids gdb but uses gobs of disk space
 #TFLAGS		+= -g
 
-LIBS    += -liberty
+SYSLIBS		=
+
+LIBS      +=  -L$(LIBDWARF_LIB) -L$(LIBELF_LIB)
+ifdef LIBDWARFSTATIC
+LIBS    += -Wl,-static -ldwarf -Wl,-call_shared
+else
+LIBS    += -ldwarf
+endif
+ifdef LIBELFSTATIC
+LIBS    += -Wl,-static -lelf -Wl,-call_shared
+else
+LIBS    += -lelf
+endif
+LIBS    += -lgcc
+
+# InstructionAPI is x86-only at this point
+LIBS    += -linstructionAPI
 
 AS		= /usr/bin/as
 
+# no support for elf64_XXX() functions
+CXXFLAGS	+= -DUSES_ELF32_ONLY
+CFLAGS		+= -DUSES_ELF32_ONLY
+TFLAGS		+= -DUSES_ELF32_ONLY
 
 # Add preprocessor and special link information for G++
 G_PTHREAD	= -pthread

@@ -132,7 +132,7 @@ bool SignalHandler::handleExecEntry(EventRecord &ev, bool &continueHint)
   return retval;
 }
 
-#if !defined (os_linux)
+#if !defined (os_linux) && !defined(os_freebsd)
 bool SignalGenerator::decodeProcStatus(procProcStatus_t status, EventRecord &ev)
 {
 
@@ -1629,7 +1629,7 @@ bool SignalGenerator::isInstTrap(const EventRecord &ev, const Frame &af)
    return (ev.proc->last_single_step == af.getPC() - 1);
 }
 
-#if defined(os_linux) || defined(os_solaris)
+#if defined(os_linux) || defined(os_solaris) || defined(os_freebsd)
 
 #include "dyninstAPI/src/binaryEdit.h"
 #include "symtabAPI/h/Archive.h"

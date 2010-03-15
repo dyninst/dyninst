@@ -32,7 +32,18 @@
 #if !defined(STACK_ANALYSIS_H)
 #define STACK_ANALYSIS_H
 
+#if defined(os_freebsd)
+
+#include <limits.h>
+
+/* FreeBSD doesn't define these -- define them for portability reasons */
+#define MAXLONG LONG_MAX
+#define MINLONG LONG_MIN
+
+#else
 #include <values.h>
+#endif
+
 #include "dyntypes.h"
 #include <set>
 #include <string>

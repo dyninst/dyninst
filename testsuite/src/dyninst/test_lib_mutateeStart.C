@@ -235,7 +235,8 @@ BPatch_binaryEdit *startBinaryTest(BPatch *bpatch, RunGroup *group)
 }
 
 
-#if defined(os_linux_test)
+#if defined(os_linux_test) || defined(os_freebsd_test)
+
 #include <dirent.h>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -301,6 +302,39 @@ static bool cdBack()
    return true;
 }
 
+#if defined(os_freebsd_test)
+// TODO This should probably be revisited at some point if
+// to see if this needs to handle threads/LWPs. The Linux
+// version handles LWPs with the __WALL option.
+static bool waitForCompletion(int pid, bool &app_crash, int &app_return)
+{
+   int result, status;
+   do {
+      result = waitpid(pid, &status, 0);
+   } while (result == -1 && errno == EINTR);
+
+   if (result == -1) {
+      perror("Could not collect child result");
+      return false;
+   }
+
+   assert(!WIFSTOPPED(status));
+
+   if (WIFSIGNALED(status)) {
+      app_crash = true;
+      app_return = WTERMSIG(status);
+   }
+   else if (WIFEXITED(status)) {
+      app_crash = false;
+      app_return = WEXITSTATUS(status);
+   }
+   else {
+      assert(0);
+   }
+
+   return true;
+}
+#else
 static bool waitForCompletion(int pid, bool &app_crash, int &app_return)
 {
    int result, status;
@@ -330,6 +364,7 @@ static bool waitForCompletion(int pid, bool &app_crash, int &app_return)
 
    return true;
 }
+#endif
 
 static void killWaywardChild(int pid)
 {

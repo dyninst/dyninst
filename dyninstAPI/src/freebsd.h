@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2009 Barton P. Miller
+ * Copyright (c) 1996-2010 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -29,59 +29,60 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-// $Id: os.h,v 1.38 2008/06/19 19:53:31 legendre Exp $
-
-#ifndef _OS_HDR
-#define _OS_HDR
-
-/*
- * This is an initial attempt at providing an OS abstraction for paradynd
- * I am doing this so I can compile paradynd on solaris
- *
- * This should enforce the abstract OS operations
- */ 
-
-//  JAW: 1-09-07 removed switches for platforms:
-//  alpha_dec_osf4_0
-//  hppa1_1_hp_hpux
-//  mips_unknown_ce2_11
-//  mips_sgi_irix6_4
-
-#if defined(sparc_sun_sunos4_1_3)
-#include "dyninstAPI/src/sunos.h"
-
-#elif defined(sparc_sun_solaris2_4) \
-   || defined(i386_unknown_solaris2_5)
-#include "dyninstAPI/src/solaris.h"
-
-#elif defined(os_aix) 
-#include "dyninstAPI/src/aix.h"
-
-#elif defined(i386_unknown_nt4_0) 
-#include "dyninstAPI/src/pdwinnt.h"
-
-#elif defined(os_linux)
-#include "dyninstAPI/src/linux.h"
-
-#elif defined(os_freebsd)
-#include "dyninstAPI/src/freebsd.h"
+#if !defined(os_freebsd)
+#error "invalid architecture-os inclusion"
 #endif
 
-#include <string>
+#ifndef FREEBSD_PD_HDR
+#define FREEBSD_PD_HDR
+
+class process;
+
+#include <sys/param.h>
+#include <pthread.h>
+
 #include "common/h/Types.h"
+#include "common/h/Vector.h"
+#include "symtabAPI/h/Symtab.h"
+#include "symtabAPI/h/Archive.h"
 
-typedef enum { neonatal, running, stopped, detached, exited, deleted, unknown_ps } processState;
-const char *processStateAsString(processState state); // Defined in process.C
-
-class OS {
-public:
-  static void osTraceMe(void);
-  static void osDisconnect(void);
-  static bool osKill(int);
-  static void make_tempfile(char *);
-  static bool execute_file(char *);
-  static void unlink(char *);
-  static bool executableExists(const std::string &file);
+struct dyn_saved_regs {
+    int placeholder;
 };
+
+/* More than the number of bundles necessary for loadDYNINSTlib()'s code. */
+#define CODE_BUFFER_SIZE	512
+#define BYTES_TO_SAVE		(CODE_BUFFER_SIZE * 16)
+
+#define SIGNAL_HANDLER "no_signal_handler"
+
+#if defined(arch_x86) || defined(arch_x86_64)
+//Constant values used for the registers in the vsyscall page.
+#define DW_CFA  0
+#define DW_ESP 4
+#define DW_EBP 5
+#define DW_PC  8
+
+#define MAX_DW_VALUE 17
+
+Address getRegValueAtFrame(void *ehf, Address pc, int reg, 
+                           Address *reg_map,
+                           process *p, bool *error);
+#endif
+
+typedef int handleT; // a /proc file descriptor
+
+#if defined(i386_unknown_freebsd8_0)
+#include "freebsd-x86.h"
+#else
+#error Invalid or unknown architecture-os inclusion
+#endif
+
+#include "unix.h"
+
+//  no /proc, dummy function
+typedef int procProcStatus_t;
+
+#define INDEPENDENT_LWP_CONTROL false
 
 #endif

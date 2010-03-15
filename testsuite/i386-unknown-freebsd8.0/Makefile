@@ -65,4 +65,7 @@ STRIP_SO = strip -g
 
 TESTDRIVER_LDFLAGS = -liberty
 
+# FreeBSD doesn't have purify which is defined in make.module.tmpl
+M_GCC = $(GCC)
+
 include ../make.module.tmpl
