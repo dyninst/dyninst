@@ -340,10 +340,10 @@ bool SymEvalArchTraits<Arch_ppc32>::handleSpecialCases(entryID iapi_opcode,
                 bo = ((raw >> 21) & 0x0000001F);
                 bi = ((raw >> 16) & 0x0000001F);
             }
-            if(bo) {
+            if(power_op_b != iapi_opcode) {
                 roperands->append_operand(new SgAsmByteValueExpression(bo));
             }
-            if(bi) {
+            if(power_op_b != iapi_opcode) {
                 roperands->append_operand(new SgAsmPowerpcRegisterReferenceExpression(powerpc_regclass_cr, bi,
                                           powerpc_condreggranularity_bit));
             }
