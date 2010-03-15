@@ -248,6 +248,91 @@ void SymEval::process(AssignNode::Ptr ptr,
   dbase[ptr->assign()] = ast;
 }
 
+PowerpcInstructionKind makeRoseBranchOpcode(entryID iapi_opcode, bool isAbsolute, bool isLink)
+{
+    switch(iapi_opcode)
+    {
+        case power_op_b:
+            if(isAbsolute && isLink) return powerpc_bla;
+            if(isAbsolute) return powerpc_ba;
+            if(isLink) return powerpc_bl;
+            return powerpc_b;
+        case power_op_bc:
+            if(isAbsolute && isLink) return powerpc_bcla;
+            if(isAbsolute) return powerpc_bca;
+            if(isLink) return powerpc_bcl;
+            return powerpc_bc;
+        case power_op_bcctr:
+            assert(!isAbsolute);
+            if(isLink) return powerpc_bcctrl;
+            return powerpc_bcctr;
+        case power_op_bclr:
+            assert(!isAbsolute);
+            if(isLink) return powerpc_bclrl;
+            return powerpc_bclr;
+        default:
+            assert(!"makeRoseBranchOpcode called with unknown branch opcode!");
+            return powerpc_unknown_instruction;
+    }
+}
+
+bool SymEvalArchTraits<Arch_ppc32>::handleSpecialCases(entryID iapi_opcode,
+        SageInstruction_t& rose_insn,
+        SgAsmOperandList* rose_operands)
+{
+    switch(iapi_opcode)
+    {
+        case power_op_b:
+        case power_op_bc:
+        case power_op_bcctr:
+        case power_op_bclr:
+        {
+            unsigned int raw = 0;
+            unsigned int branch_target = 0;
+            unsigned int bo = 0, bi = 0;
+            std::vector<unsigned char> bytes = rinsn.get_raw_bytes;
+            for(unsigned i = 0; i < bytes.size(); i++)
+            {
+                raw << 8;
+                raw |= bytes[i];
+            }
+            bool isAbsolute = (bool)(raw & 0x00000002);
+            bool isLink = (bool)(raw & 0x00000001);
+            rose_insn.set_kind(makeRoseBranchOpcode(iapi_opcode, isAbsolute, isLink));
+            if(power_op_b == iapi_opcode) {
+                branch_target = ((raw >> 2) & 0x00FFFFFF) << 2;
+            } else {
+                if(power_op_bc == iapi_opcode) {
+                    branch_target = ((raw >> 2) & 0x0000CFFF) << 2;
+                }
+                bo = ((raw >> 21) & 0x0000001F);
+                bi = ((raw >> 16) & 0x0000001F);
+            }
+            if(bo) {
+                roperands->append_operand(new SgAsmByteValueExpression(bo));
+            }
+            if(bi) {
+                roperands->append_operand(new SgAsmPowerpcRegisterReferenceExpression(powerpc_regclass_cr, bi,
+                                          powerpc_condreggranularity_bit));
+            }
+            if(branch_target) {
+                roperands->append_operand(new SgAsmDoubleWordValueExpression(branch_target));
+            } else if(power_op_bcctr == iapi_opcode) {
+                roperands->append_operand(new SgAsmPowerpcRegisterReferenceExpression(powerpc_regclass_spr, powerpc_spr_ctr));
+            } else {
+                assert(power_op_bclr == iapi_opcode);
+                roperands->append_operand(new SgAsmPowerpcRegisterReferenceExpression(powerpc_regclass_spr, powerpc_spr_lr));
+            }
+            return true;
+        }
+            break;
+        default:
+            return false;
+    }
+    
+}
+
+
 
 SgAsmExpression* SymEvalArchTraits<Arch_ppc32>::convertOperand(InstructionKind_t ,
         unsigned int ,
@@ -296,6 +381,12 @@ SymEval<a>::convert(const InstructionAPI::Instruction::Ptr &insn, uint64_t addr)
 
     // operand list
     SgAsmOperandList *roperands = new SgAsmOperandList;
+
+    if(SymEvalArchTraits<a>::handleSpecialCases(insn->getOperation().getID(), rinsn, roperands))
+    {
+        rinsn.set_operandList(roperands);
+        return rinsn;
+    }
     std::vector<InstructionAPI::Operand> operands;
     insn->getOperands(operands);
 

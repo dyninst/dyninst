@@ -285,6 +285,11 @@ struct SymEvalArchTraits<Arch_x86>
     static SgAsmExpression* convertOperand(InstructionKind_t opcode,
                                            unsigned int which,
                                            SgAsmExpression* expr);
+    static bool handleSpecialCases(entryID , SageInstruction_t& ,
+                                   SgAsmOperandList* ) {
+                                       return false;
+                                   }
+    
     static InstructionKind_t convert(entryID e);
     static void processInstruction(SageInstruction_t* insn, SymEvalPolicy& policy);
 };
@@ -298,6 +303,8 @@ struct SymEvalArchTraits<Arch_ppc32>
     static SgAsmExpression* convertOperand(InstructionKind_t opcode,
                                            unsigned int which,
                                            SgAsmExpression* expr);
+    static bool handleSpecialCases(entryID iapi_opcode, SageInstruction_t& rose_insn,
+                                   SgAsmOperandList* rose_operands);
     static InstructionKind_t convert(entryID e);
     static void processInstruction(SageInstruction_t* insn, SymEvalPolicy& policy);
 };
@@ -335,8 +342,11 @@ public:
  private:
   static void process(AssignNode::Ptr, SymEval::Result &res);
 
-  static SgAsmx86Instruction convert(const InstructionAPI::Instruction::Ptr &insn, uint64_t addr);
-  static X86InstructionKind convert(entryID opcode);
+  static SageInstruction_t convert(const InstructionAPI::Instruction::Ptr &insn, uint64_t addr);
+  static InstructionKind_t convert(entryID opcode)
+  {
+      return SymEvalArchTraits<a>::convert(opcode);
+  }
   static SgAsmExpression *convert(const InstructionAPI::Operand &operand);
   static SgAsmExpression *convert(const InstructionAPI::Expression::Ptr expression);
 
@@ -370,7 +380,7 @@ template <Architecture a>
     virtual ~ConversionArchTraits() {}
 };
 template <>
-        struct ConversionArchTraits<Arch_x86> : public ConversionArchTraitsBase
+struct ConversionArchTraits<Arch_x86> : public ConversionArchTraitsBase
 {
     virtual SgAsmExpression* archSpecificRegisterProc(InstructionAPI::RegisterAST* regast);
     virtual SgAsmExpression* makeSegRegExpr();
@@ -378,6 +388,7 @@ template <>
     typedef X86RegisterClass regClass;
     typedef X86PositionInRegister regField;
     virtual ~ConversionArchTraits<Arch_x86>() {}
+
 };
 template <>
 struct ConversionArchTraits<Arch_ppc32> : public ConversionArchTraitsBase
