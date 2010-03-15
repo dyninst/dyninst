@@ -17,7 +17,7 @@
 #include "typedefs.h"
 #include "SgNode.h"
 #include "SgAsmOperandList.h"
-#include "powerpcInstructionEnum.h"
+#include "external/rose/powerpcInstructionEnum.h"
 
 // Class Definition for SgAsmPowerpcInstruction
 class SgAsmPowerpcInstruction : public SgNode

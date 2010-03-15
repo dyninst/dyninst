@@ -298,7 +298,6 @@ namespace Dyninst
             if(field<11,15>(insn) == 0)
             {
                 insn_in_progress->getOperation().mnemonic = "li";
-                return;
             }
         }
         if(insn_in_progress->getOperation().getID() == power_op_addis)
@@ -306,7 +305,6 @@ namespace Dyninst
             if(field<11,15>(insn) == 0)
             {
                 insn_in_progress->getOperation().mnemonic = "lis";
-                return;
             }
         }
         insn_in_progress->appendOperand(makeRAExpr(), !isRAWritten, isRAWritten);
@@ -704,7 +702,6 @@ using namespace boost::assign;
             if(field<16,20>(insn) == field<6,10>(insn))
             {
                 insn_in_progress->getOperation().mnemonic = "mr";
-                return;
             }
         }
         else if(insn_in_progress->getOperation().getID() == power_op_nor)
@@ -712,7 +709,6 @@ using namespace boost::assign;
             if(field<16,20>(insn) == field<6,10>(insn))
             {
                 insn_in_progress->getOperation().mnemonic = "not";
-                return;
             }
         }
         insn_in_progress->appendOperand(makeRBExpr(), true, false);

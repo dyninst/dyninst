@@ -180,8 +180,40 @@ void SymEval<a>::expandInsn(const InstructionAPI::Instruction::Ptr insn,
   return;
 }
 
-void SymEval::process(AssignNode::Ptr ptr,
-		      SymEval::Result &dbase) {
+SgAsmExpression* SymEvalArchTraits<Arch_ppc32>::convertOperand(InstructionKind_t opcode,
+        unsigned int which,
+        SgAsmExpression* operand)
+{
+  static SgAsmExpression* stash;
+  if(opcode >= powerpc_lbz && opcode <= powerpc_lwzx && which > 1) return NULL;
+  if(opcode >= powerpc_stb && opcode <= powerpc_stwx && which > 1) return NULL;
+    return operand;
+}
+
+SgAsmExpression* SymEvalArchTraits<Arch_x86>::convertOperand(InstructionKind_t opcode,
+        unsigned int which,
+        SgAsmExpression* operand)
+{
+    if((opcode == x86_lea) && (which == 1))
+    {
+        cerr << "wrapping LEA operand in deref" << endl;
+        // We need to wrap o1 in a memory dereference...
+        SgAsmMemoryReferenceExpression *expr = new SgAsmMemoryReferenceExpression(operand);
+        return expr;
+    }
+    else if((opcode == x86_push || opcode == x86_pop) && (which > 0))
+    {
+        return NULL;
+    }
+    else
+    {
+        return operand;
+    }
+}
+
+template<Architecture a>
+void SymEval<a>::process(AssignNode::Ptr ptr,
+		      Result_t &dbase) {
   std::map<unsigned, Assignment::Ptr> inputMap;
 
   //cerr << "Calling process on " << ptr->format() << endl;

@@ -4,7 +4,7 @@
 #include "external/rose/rose-compat.h"
 #include "SgNode.h"
 #include "SgAsmType.h"
-#include "powerpcInstructionEnum.h"
+#include "external/rose/powerpcInstructionEnum.h"
 
 class SgAsmExpression : public SgNode {
  public:

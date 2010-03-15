@@ -37,7 +37,7 @@
 #include "AST.h"
 
 #include "../rose/x86InstructionSemantics.h"
-#include "../rose/powerpcInstructionEnum.h"
+#include "external/rose/powerpcInstructionEnum.h"
 
 using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;

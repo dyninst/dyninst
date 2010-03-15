@@ -33,6 +33,7 @@
 #include "dynutil/h/dyn_regs.h"
 
 #include "external/rose/rose-compat.h"
+#include "external/rose/powerpcInstructionEnum.h"
 
 using namespace Dyninst;
 
@@ -404,20 +405,20 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
            switch(category)
            {
                case ppc32::GPR:
-                   c = ppc32_regclass_gpr;
+                   c = powerpc_regclass_gpr;
                    break;
                case ppc32::FPR:
                case ppc32::FSR:
-                   c = ppc32_regclass_fpr;
+                   c = powerpc_regclass_fpr;
                    break;
                case ppc32::SPR:
                {
                    if(baseID < 613) {
-                       c = ppc32_regclass_spr;
+                       c = powerpc_regclass_spr;
                    } else if(baseID < 621 ) {
-                       c = ppc32_regclass_sr; 
+                       c = powerpc_regclass_sr; 
                    } else {
-                       c = ppc32_regclass_cr;
+                       c = powerpc_regclass_cr;
                        p = baseID - 621;
                    }
                }
