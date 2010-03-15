@@ -342,15 +342,11 @@ bool SymEvalArchTraits<Arch_ppc32>::handleSpecialCases(entryID iapi_opcode,
             }
             if(power_op_b != iapi_opcode) {
                 roperands->append_operand(new SgAsmByteValueExpression(bo));
-            }
-            if(bo) {
-	      cerr << "appending BO operand: " << bo << endl;
-                rose_operands->append_operand(new SgAsmByteValueExpression(bo));
-            }
-            if(bi) {
-	      cerr << "appending BI operand: CR bit " << bi << endl;
-                rose_operands->append_operand(new SgAsmPowerpcRegisterReferenceExpression(powerpc_regclass_cr, bi,
-                                          powerpc_condreggranularity_bit));
+		cerr << "appending BO operand: " << bo << endl;
+		rose_operands->append_operand(new SgAsmByteValueExpression(bo));
+		cerr << "appending BI operand: CR bit " << bi << endl;
+		rose_operands->append_operand(new SgAsmPowerpcRegisterReferenceExpression(powerpc_regclass_cr, bi,
+										    powerpc_condreggranularity_bit));
             }
             if(branch_target) {
 	      cerr << "appending branch target operand: " << branch_target << endl;
@@ -360,7 +356,7 @@ bool SymEvalArchTraits<Arch_ppc32>::handleSpecialCases(entryID iapi_opcode,
                 rose_operands->append_operand(new SgAsmPowerpcRegisterReferenceExpression(powerpc_regclass_spr, powerpc_spr_ctr));
             } else {
                 assert(power_op_bclr == iapi_opcode);
-	      cerr << "appending branch target operand: link register" << endl;
+		cerr << "appending branch target operand: link register" << endl;
                 rose_operands->append_operand(new SgAsmPowerpcRegisterReferenceExpression(powerpc_regclass_spr, powerpc_spr_lr));
             }
             return true;

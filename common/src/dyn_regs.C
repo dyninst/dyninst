@@ -74,8 +74,7 @@ MachRegister MachRegister::getBaseRegister() const {
           return MachRegister(reg & 0xfffff0ff);
       case Arch_ppc32:
       case Arch_ppc64:
-          return MachRegister(reg & 0xfff0ffff);
-       case Arch_none:
+      case Arch_none:
          return *this;
    }
    return InvalidReg;

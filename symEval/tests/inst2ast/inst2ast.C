@@ -68,6 +68,7 @@ int main(int argc, char *argv[])
       Result_t res;
       for (std::vector<Assignment::Ptr>::iterator a_iter = assigns.begin();
 	   a_iter != assigns.end(); ++a_iter) {
+	cerr << "Recording interest in " << (*a_iter)->format() << endl;
 	res[*a_iter] = AST::Ptr();
       }
 
