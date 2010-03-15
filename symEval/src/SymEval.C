@@ -322,10 +322,10 @@ bool SymEvalArchTraits<Arch_ppc32>::handleSpecialCases(entryID iapi_opcode,
             unsigned int raw = 0;
             unsigned int branch_target = 0;
             unsigned int bo = 0, bi = 0;
-            std::vector<unsigned char> bytes = rinsn.get_raw_bytes;
+            std::vector<unsigned char> bytes = rose_insn.get_raw_bytes();
             for(unsigned i = 0; i < bytes.size(); i++)
             {
-                raw << 8;
+                raw = raw << 8;
                 raw |= bytes[i];
             }
             bool isAbsolute = (bool)(raw & 0x00000002);
@@ -343,17 +343,25 @@ bool SymEvalArchTraits<Arch_ppc32>::handleSpecialCases(entryID iapi_opcode,
             if(power_op_b != iapi_opcode) {
                 roperands->append_operand(new SgAsmByteValueExpression(bo));
             }
-            if(power_op_b != iapi_opcode) {
-                roperands->append_operand(new SgAsmPowerpcRegisterReferenceExpression(powerpc_regclass_cr, bi,
+            if(bo) {
+	      cerr << "appending BO operand: " << bo << endl;
+                rose_operands->append_operand(new SgAsmByteValueExpression(bo));
+            }
+            if(bi) {
+	      cerr << "appending BI operand: CR bit " << bi << endl;
+                rose_operands->append_operand(new SgAsmPowerpcRegisterReferenceExpression(powerpc_regclass_cr, bi,
                                           powerpc_condreggranularity_bit));
             }
             if(branch_target) {
-                roperands->append_operand(new SgAsmDoubleWordValueExpression(branch_target));
+	      cerr << "appending branch target operand: " << branch_target << endl;
+                rose_operands->append_operand(new SgAsmDoubleWordValueExpression(branch_target));
             } else if(power_op_bcctr == iapi_opcode) {
-                roperands->append_operand(new SgAsmPowerpcRegisterReferenceExpression(powerpc_regclass_spr, powerpc_spr_ctr));
+	      cerr << "appending branch target operand: count register" << endl;
+                rose_operands->append_operand(new SgAsmPowerpcRegisterReferenceExpression(powerpc_regclass_spr, powerpc_spr_ctr));
             } else {
                 assert(power_op_bclr == iapi_opcode);
-                roperands->append_operand(new SgAsmPowerpcRegisterReferenceExpression(powerpc_regclass_spr, powerpc_spr_lr));
+	      cerr << "appending branch target operand: link register" << endl;
+                rose_operands->append_operand(new SgAsmPowerpcRegisterReferenceExpression(powerpc_regclass_spr, powerpc_spr_lr));
             }
             return true;
         }
@@ -612,6 +620,27 @@ SgAsmExpression* ConversionArchTraits<Arch_x86>::makeSegRegExpr()
     return new SgAsmx86RegisterReferenceExpression(x86_regclass_segment,
             x86_segreg_none, x86_regpos_all);
 }
+
+virtual SgAsmExpression* ConversionArchTraits<Arch_ppc32>::archSpecificRegisterProc(InstructionAPI::RegisterAST* regast)
+{
+    int rreg_class;
+    int rreg_num;
+    int rreg_pos = (int)powerpc_condreggranularity_whole;
+
+    MachRegister machReg = regast->getID();
+    if(machReg.isPC()) return NULL;
+    machReg.getROSERegister(rreg_class, rreg_num, rreg_pos);
+
+    SgAsmExpression* roseRegExpr = new regRef((regClass)rreg_class,
+                                               rreg_num,
+                                               (regField)rreg_pos);
+    return roseRegExpr;
+}
+virtual SgAsmExpression* ConversionArchTraits<Arch_ppc32>::makeSegRegExpr()
+{
+    return NULL;
+}
+
 
 
 template class ExpressionConversionVisitor<Arch_x86>;
