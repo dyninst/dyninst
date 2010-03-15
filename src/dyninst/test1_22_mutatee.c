@@ -35,7 +35,8 @@
  || defined(i386_unknown_solaris2_5_test) \
  || defined(ia64_unknown_linux2_4_test) \
  || defined(os_aix_test) \
- || defined(os_linux_test) /* better off using os #defines than whole platforms */
+ || defined(os_linux_test) \
+ || defined(os_freebsd_test) /* better off using os #defines than whole platforms */
 #include <dlfcn.h> /* For replaceFunction test */
 #endif
 

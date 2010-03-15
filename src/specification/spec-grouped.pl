@@ -362,7 +362,14 @@ test_description('test1_22', 'Replace Function').
 test_runs_everywhere('test1_22').
 groupable_test('test1_22').
 mutator('test1_22', ['test1_22.C']).
-mutatee_requires_libs('dyninst_group_test', ['dl']).
+mutatee_requires_libs('dyninst_group_test', Libs) :-
+    % FreeBSD doesn't have a libdl
+    current_platform(P),
+    platform(_, OS, _, P),
+    (
+        OS = 'freebsd' -> Libs = [];
+        Libs = ['dl']
+    ).
 test_runmode('test1_22', 'staticdynamic').
 test_start_state('test1_22', 'stopped').
 tests_module('test1_22', 'dyninst').
@@ -407,7 +414,14 @@ test_description('init_fini_callback', 'Adds callbacks for rewritten module on l
     member(Arch, ['i386', 'x86_64']).
 mutator('init_fini_callback', ['init_fini_callback.C']).
 mutatee('init_fini_callback', ['init_fini_callback_mutatee.c']).
-mutatee_requires_libs('init_fini_callback', ['dl']).
+mutatee_requires_libs('init_fini_callback', Libs) :-
+    % FreeBSD doesn't have a libdl
+    current_platform(P),
+    platform(_, OS, _, P),
+    (
+        OS = 'freebsd' -> Libs = [];
+        Libs = ['dl']
+    ).
 compiler_for_mutatee('init_fini_callback', Compiler) :-
     comp_lang(Compiler, 'c').
 groupable_test('init_fini_callback').
@@ -719,7 +733,14 @@ mutator('test2_6', ['test2_6.C']).
 mutatee('test2_6', ['test2_6_mutatee.c']).
 compiler_for_mutatee('test2_6', Compiler) :-
     comp_lang(Compiler, 'c').
-mutatee_requires_libs('test2_6', ['dl']).
+mutatee_requires_libs('test2_6', Libs) :-
+    % FreeBSD doesn't have a libdl
+    current_platform(P),
+    platform(_, OS, _, P),
+    (
+        OS = 'freebsd' -> Libs = [];
+        Libs = ['dl']
+    ).
 test_runmode('test2_6', 'dynamic').
 test_start_state('test2_6', 'stopped').
 tests_module('test2_6', 'dyninst').
@@ -914,7 +935,7 @@ test('test5_1', 'test5_1', 'dyninst_cxx_group_test').
 % test5_1 only runs on Linux, Solaris, and Windows
 test_platform('test5_1', Platform) :-
     platform(_, OS, _, Platform),
-    member(OS, ['linux', 'solaris', 'windows', 'aix']).
+    member(OS, ['linux', 'solaris', 'windows', 'aix', 'freebsd']).
 mutator('test5_1', ['test5_1.C']).
 test_runmode('test5_1', 'staticdynamic').
 test_start_state('test5_1', 'stopped').
@@ -926,7 +947,7 @@ test('test5_2', 'test5_2', 'dyninst_cxx_group_test').
 % test5_2 only runs on Linux, Solaris, and Windows
 test_platform('test5_2', Platform) :-
     platform(_, OS, _, Platform),
-    member(OS, ['linux', 'solaris', 'windows', 'aix']).
+    member(OS, ['linux', 'solaris', 'windows', 'aix', 'freebsd']).
 mutator('test5_2', ['test5_2.C']).
 test_runmode('test5_2', 'staticdynamic').
 test_start_state('test5_2', 'stopped').
@@ -947,7 +968,7 @@ test('test5_4', 'test5_4', 'dyninst_cxx_group_test').
 % test5_4 only runs on Linux, Solaris, and Windows
 test_platform('test5_4', Platform) :-
     platform(_, OS, _, Platform),
-    member(OS, ['linux', 'solaris', 'windows', 'aix']).
+    member(OS, ['linux', 'solaris', 'windows', 'aix', 'freebsd']).
 mutator('test5_4', ['test5_4.C']).
 test_runmode('test5_4', 'staticdynamic').
 test_start_state('test5_4', 'stopped').
@@ -959,7 +980,7 @@ test('test5_5', 'test5_5', 'dyninst_cxx_group_test').
 % test5_5 only runs on Linux, Solaris, and Windows
 test_platform('test5_5', Platform) :-
     platform(_, OS, _, Platform),
-    member(OS, ['linux', 'solaris', 'windows', 'aix']).
+    member(OS, ['linux', 'solaris', 'windows', 'aix', 'freebsd']).
 mutator('test5_5', ['test5_5.C']).
 test_runmode('test5_5', 'staticdynamic').
 test_start_state('test5_5', 'stopped').
@@ -982,7 +1003,7 @@ test('test5_7', 'test5_7', 'dyninst_cxx_group_test').
 % test5_7 only runs on Linux, Solaris, and Windows
 test_platform('test5_7', Platform) :-
     platform(_, OS, _, Platform),
-    member(OS, ['linux', 'solaris', 'windows', 'aix']).
+    member(OS, ['linux', 'solaris', 'windows', 'aix', 'freebsd']).
 mutator('test5_7', ['test5_7.C']).
 test_runmode('test5_7', 'staticdynamic').
 test_start_state('test5_7', 'stopped').
@@ -994,7 +1015,7 @@ test('test5_8', 'test5_8', 'dyninst_cxx_group_test').
 % test5_8 only runs on Linux, Solaris, and Windows
 test_platform('test5_8', Platform) :-
     platform(_, OS, _, Platform),
-    member(OS, ['linux', 'solaris', 'windows', 'aix']).
+    member(OS, ['linux', 'solaris', 'windows', 'aix', 'freebsd']).
 mutator('test5_8', ['test5_8.C']).
 test_runmode('test5_8', 'staticdynamic').
 test_start_state('test5_8', 'stopped').
@@ -1006,7 +1027,7 @@ test('test5_9', 'test5_9', 'dyninst_cxx_group_test').
 % test5_9 only runs on Linus, Solaris, and Windows
 test_platform('test5_9', Platform) :-
     platform(_, OS, _, Platform),
-    member(OS, ['linux', 'solaris', 'windows', 'aix']).
+    member(OS, ['linux', 'solaris', 'windows', 'aix', 'freebsd']).
 mutator('test5_9', ['test5_9.C']).
 test_runmode('test5_9', 'staticdynamic').
 test_start_state('test5_9', 'stopped').
@@ -1388,6 +1409,7 @@ mutatee_requires_libs('test_thread_1', Libs) :-
     platform(_, OS, _, P),
     (
         OS = 'solaris' -> Libs = ['dl', 'pthread', 'rt'];
+        OS = 'freebsd' -> Libs = ['pthread'];
         Libs = ['dl', 'pthread']
     ).
 test_runmode('test_thread_1', 'createProcess').
@@ -1405,6 +1427,7 @@ mutatee_requires_libs('test_thread_2', Libs) :-
     platform(_, OS, _, P),
     (
         OS = 'solaris' -> Libs = ['dl', 'pthread', 'rt'];
+        OS = 'freebsd' -> Libs = ['pthread'];
         Libs = ['dl', 'pthread']
     ).
 test('test_thread_2', 'test_thread_2', 'test_thread_2').
@@ -1428,6 +1451,7 @@ mutatee_requires_libs('test_thread_3', Libs) :-
     platform(_, OS, _, P),
     (
         OS = 'solaris' -> Libs = ['dl', 'pthread', 'rt'];
+        OS = 'freebsd' -> Libs = ['pthread'];
         Libs = ['dl', 'pthread']
     ).
 test('test_thread_3', 'test_thread_3', 'test_thread_3').
@@ -1450,6 +1474,7 @@ mutatee_requires_libs('test_thread_5', Libs) :-
     platform(_, OS, _, P),
     (
         OS = 'solaris' -> Libs = ['dl', 'pthread', 'rt'];
+        OS = 'freebsd' -> Libs = ['pthread'];
         Libs = ['dl', 'pthread']
     ).
 test('test_thread_5', 'test_thread_5', 'test_thread_5').
@@ -2956,6 +2981,7 @@ runmode_platform(P, 'createProcess') :- platform(_, _, _, P).
 runmode_platform(P, 'useAttach') :- platform(_, _, _, P).
 runmode_platform(P, 'binary') :- platform('i386', 'linux', _, P).
 runmode_platform(P, 'binary') :- platform('x86_64', 'linux', _, P).
+runmode_platform(P, 'binary') :- platform('i386', 'freebsd', _, P).
 % runmode_platform(P, 'deserialize') :- platform(_, _, _, P).
 
 % mutatee_peers/2
