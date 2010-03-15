@@ -483,7 +483,7 @@ build_mask(uint8_t mb_value, uint8_t me_value)
          {
            ROSE_ASSERT(operands.size() == 1);
            policy.writeSPR(powerpc_spr_lr,number<32>(insn->get_address() + 4));
-           policy.writeIP(read32(operands[0]));
+           policy.writeIP(policy.add(read32(operands[0]), number<32>insn->get_address()));
            break;
          }
 
@@ -491,9 +491,22 @@ build_mask(uint8_t mb_value, uint8_t me_value)
          {
            ROSE_ASSERT(operands.size() == 1);
            policy.writeIP(read32(operands[0]));
+           policy.writeIP(policy.add(read32(operands[0]), number<32>insn->get_address()));
            break;
          }
-
+      case powerpc_bla:
+        {
+            ROSE_ASSERT(operands.size() == 1);
+            policy.writeSPR(powerpc_spr_lr,number<32>(insn->get_address() + 4));
+            policy.writeIP(read32(operands[0]));
+            break;
+        }
+        case powerpc_ba:
+        {
+            ROSE_ASSERT(operands.size() == 1);
+            policy.writeIP(read32(operands[0]));
+            break;
+        }
       case powerpc_lwz:
       case powerpc_lwzx:
          {
@@ -704,6 +717,9 @@ build_mask(uint8_t mb_value, uint8_t me_value)
            break;
          }
 
+      case powerpc_bcl:
+          policy.writeSPR(powerpc_spr_lr, number<32>(insn->get_address() + 4));
+          // fall through
       case powerpc_bc:
          {
            ROSE_ASSERT(operands.size() == 3);
