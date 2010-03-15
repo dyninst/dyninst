@@ -372,6 +372,12 @@ bool SymEvalArchTraits<Arch_ppc32>::handleSpecialCases(entryID iapi_opcode,
     
 }
 
+void SymEvalArchTraits<Arch_ppc32>::handleSpecialCases(InstructionAPI::Instruction::Ptr insn,
+        std::vector<InstructionAPI::Operand>& operands)
+{
+    if(insn->writesMemory())
+        std::swap(operands[0], operands[1]);
+}
 
 
 SgAsmExpression* SymEvalArchTraits<Arch_ppc32>::convertOperand(InstructionKind_t ,
@@ -429,7 +435,7 @@ SymEval<a>::convert(const InstructionAPI::Instruction::Ptr &insn, uint64_t addr)
     }
     std::vector<InstructionAPI::Operand> operands;
     insn->getOperands(operands);
-
+    SymEvalArchTraits<a>::handleSpecialCases(insn->getOperation().getID(), operands)
     int i = 0;
     fprintf(stderr, "converting insn %s\n", insn->format().c_str());
     for (std::vector<InstructionAPI::Operand>::iterator opi = operands.begin();
