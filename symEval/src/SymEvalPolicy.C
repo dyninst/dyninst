@@ -23,7 +23,7 @@ SymEvalPolicy::SymEvalPolicy(Result_t &r,
 
     if (o.containsOfType(Absloc::Register)) {
       // We're assuming this is a single register...
-      std::cerr << "Marking register " << a << std::endl;
+      //std::cerr << "Marking register " << a << std::endl;
       aaMap[o.absloc()] = a;
     }
     else {

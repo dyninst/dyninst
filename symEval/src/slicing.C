@@ -189,7 +189,7 @@ Graph::Ptr Slicer::backwardSlice(PredicateFunc &e, PredicateFunc &w) {
     // and an abstraction region
 
     ContextElement context(f_);
-    initial.con.push(ContextElement(f_));
+    initial.con.push_front(ContextElement(f_));
     initial.loc = Location(f_, b_);
     initial.loc.fwd = false;
     getInsnsBackward(initial.loc);
@@ -198,6 +198,7 @@ Graph::Ptr Slicer::backwardSlice(PredicateFunc &e, PredicateFunc &w) {
     initial.ptr = a_;
 
     AssignNode::Ptr aP = createNode(initial);
+    cerr << "Inserting exit node " << aP << "/" << aP->format() << endl;
     ret->insertExitNode(aP);
 
     Elements worklist;
@@ -238,29 +239,36 @@ Graph::Ptr Slicer::backwardSlice(PredicateFunc &e, PredicateFunc &w) {
 
         // Find everyone who defines what this instruction uses
         vector<AbsRegion> inputs = current.ptr->inputs();
-        vector<AbsRegion>::iterator input_iter;
-        for (input_iter = inputs.begin();
-                input_iter != inputs.end();
-                input_iter++) {
-       
+
+	if (inputs.empty()) {
+	  // We're ending here, so make sure this is labelled
+	  // as an entry point.
+	  markAsEntryNode(ret, current);
+	}
+	else {
+	  vector<AbsRegion>::iterator input_iter;
+	  for (input_iter = inputs.begin();
+	       input_iter != inputs.end();
+	       input_iter++) {
+	    
             // Do processing on each input
             current.reg = (*input_iter);
-
+	    
             if (!backwardSearch(current, found)) {
-                cerr << "\t\t... backward search failed" << endl;
-                widen(ret, current);
+	      cerr << "\t\t... backward search failed" << endl;
+	      widenBackward(ret, current);
             }
             while (!found.empty()) {
-                Element target = found.front(); found.pop();
-
-                cerr << "\t Adding edge to " << target.ptr->format() << endl;
-
-                insertPair(ret, current, target);
-                worklist.push(target);
+	      Element target = found.front(); found.pop();
+	      
+	      cerr << "\t Adding edge to " << target.ptr->format() << endl;
+	      
+	      insertPair(ret, target, current);
+	      worklist.push(target);
             }
-        }
+	  }
+	}
     }
-
     return ret;
 }
 
@@ -519,7 +527,6 @@ bool Slicer::getPredecessors(Element &current, Elements &pred)
 
         switch((*iter)->getType()) {
             case ET_NOEDGE:
-                assert(!"STUB");
             case ET_FUNLINK:
                 // We skip these because we're going interprocedural...
                 continue;
@@ -550,13 +557,6 @@ bool Slicer::getPredecessors(Element &current, Elements &pred)
     if (current.loc.block->isEntryBlock(current.loc.block->getFirstFunc())) {
         // STUB
         cout << "Found STUB in getPredecessors, block is Entry Block" << endl;
-
-        // Entry block could have multiple predecessors
-        // Need to iterate through each
-        // for each call edge backward
-            // handle call edge backward
-            // push the new element onto predecessors
-
     }
     return ret;
 }
@@ -880,7 +880,7 @@ bool Slicer::backwardSearch(Element &initial, Elements &pred)
             
             const AbsRegion &oReg = assign->out();
             cerr << "\t\t\t\t\t\t" << oReg.format() << endl;
-            if (searchRegion.overlaps(oReg)) {
+            if (searchRegion.contains(oReg)) {
                 cerr << "\t\t\t\t\t Overlaps, adding" << endl;
                 // We make a copy of each Element for each Assignment...
                 current.ptr = assign;

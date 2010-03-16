@@ -415,15 +415,11 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
                    break;
                case ppc32::SPR:
                {
-		 std::cerr << "SPR, baseID = " << baseID << std::endl;
                    if(baseID < 613) {
-		     std::cerr << "spr class" << std::endl;
                        c = powerpc_regclass_spr;
                    } else if(baseID < 621 ) {
-		     std::cerr << "segment class" << std::endl;
                        c = powerpc_regclass_sr; 
                    } else {
-		     std::cerr << "cr class" << std::endl;
                        c = powerpc_regclass_cr;
                        n = baseID - 621;
 		       if(n > 7) {

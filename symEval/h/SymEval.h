@@ -289,7 +289,11 @@ struct SymEvalArchTraits<Arch_x86>
                                    SgAsmOperandList* ) {
                                        return false;
                                    }
-    
+    static void handleSpecialCases(InstructionAPI::Instruction::Ptr,
+                                    std::vector<InstructionAPI::Operand>&) {
+        return;
+    }
+
     static InstructionKind_t convert(entryID e);
     static void processInstruction(SageInstruction_t* insn, SymEvalPolicy& policy);
 };
@@ -305,6 +309,7 @@ struct SymEvalArchTraits<Arch_ppc32>
                                            SgAsmExpression* expr);
     static bool handleSpecialCases(entryID iapi_opcode, SageInstruction_t& rose_insn,
                                    SgAsmOperandList* rose_operands);
+    static void handleSpecialCases(InstructionAPI::Instruction::Ptr insn, std::vector<InstructionAPI::Operand>& operands);
     static InstructionKind_t convert(entryID e);
     static void processInstruction(SageInstruction_t* insn, SymEvalPolicy& policy);
 };
@@ -428,8 +433,6 @@ class ExpressionConversionVisitor : public InstructionAPI::Visitor, public Conve
         SgAsmExpression *roseExpression;
         std::list<SgAsmExpression*> m_stack;
 };
-
-
 
 };
 };

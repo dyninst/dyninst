@@ -449,11 +449,11 @@ namespace Dyninst
     }
     Expression::Ptr InstructionDecoder_power::makeMBExpr()
     {
-        return Immediate::makeImmediate(Result(u32, field<21, 25>(insn)));
+        return Immediate::makeImmediate(Result(u8, field<21, 25>(insn)));
     }
     Expression::Ptr InstructionDecoder_power::makeMEExpr()
     {
-        return Immediate::makeImmediate(Result(u32, field<26, 30>(insn)));
+        return Immediate::makeImmediate(Result(u8, field<26, 30>(insn)));
     }
     Expression::Ptr InstructionDecoder_power::makeFLMExpr()
     {

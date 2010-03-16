@@ -70,6 +70,8 @@ void SymEval<a>::expand(Result_t &res) {
     }
     Assignment::Ptr ptr = i->first;
 
+    cerr << "Expand called for insn " << ptr->insn()->format() << endl;
+
     expandInsn(ptr->insn(),
 	       ptr->addr(),
 	       res);
@@ -196,7 +198,7 @@ SgAsmExpression* SymEvalArchTraits<Arch_x86>::convertOperand(InstructionKind_t o
 {
     if((opcode == x86_lea) && (which == 1))
     {
-        cerr << "wrapping LEA operand in deref" << endl;
+      //cerr << "wrapping LEA operand in deref" << endl;
         // We need to wrap o1 in a memory dereference...
         SgAsmMemoryReferenceExpression *expr = new SgAsmMemoryReferenceExpression(operand);
         return expr;
@@ -216,7 +218,7 @@ void SymEval<a>::process(AssignNode::Ptr ptr,
 		      Result_t &dbase) {
   std::map<unsigned, Assignment::Ptr> inputMap;
 
-  //cerr << "Calling process on " << ptr->format() << endl;
+  cerr << "Calling process on " << ptr->format() << endl;
 
   // Don't try an expansion of a widen node...
   if (!ptr->assign()) return;
@@ -243,39 +245,41 @@ void SymEval<a>::process(AssignNode::Ptr ptr,
     }
   }
 
-  //cerr << "\t Input map has size " << inputMap.size() << endl;
+  cerr << "\t Input map has size " << inputMap.size() << endl;
 
   // All of the expanded inputs are in the parameter dbase
   // If not (like this one), add it
 
   AST::Ptr ast = SymEval::expand(ptr->assign());
-  //cerr << "\t ... resulting in " << res->format() << endl;
+  cerr << "\t ... resulting in " << (ast ? ast->format() : "<NULL>") << endl;
 
-  // We have an AST. Now substitute in all of its predecessors.
-  for (std::map<unsigned, Assignment::Ptr>::iterator iter = inputMap.begin();
-       iter != inputMap.end(); ++iter) {
-    if (!iter->second) {
-      // Colliding definitions; skip.
-      continue;
+  if (ast) {
+    // We have an AST. Now substitute in all of its predecessors.
+    for (std::map<unsigned, Assignment::Ptr>::iterator iter = inputMap.begin();
+	 iter != inputMap.end(); ++iter) {
+      if (!iter->second) {
+	// Colliding definitions; skip.
+	continue;
+      }
+      
+      // The region used by the current assignment...
+      const AbsRegion &reg = ptr->assign()->inputs()[iter->first];
+      
+      // Create an AST around this one
+      AbsRegionAST::Ptr use = AbsRegionAST::create(reg);
+      
+      // And substitute whatever we have in the database for that AST
+      AST::Ptr definition = dbase[iter->second]; 
+      
+      if (!definition) {
+	cerr << "Odd; no expansion for " << iter->second->format() << endl;
+	// Can happen if we're expanding out of order, and is generally harmless.
+	continue;
+      }
+      
+      ast = AST::substitute(ast, use, definition);
+      //cerr << "\t result is " << res->format() << endl;
     }
-
-    // The region used by the current assignment...
-    const AbsRegion &reg = ptr->assign()->inputs()[iter->first];
-
-    // Create an AST around this one
-    AbsRegionAST::Ptr use = AbsRegionAST::create(reg);
-
-    // And substitute whatever we have in the database for that AST
-    AST::Ptr definition = dbase[iter->second]; 
-
-    if (!definition) {
-      cerr << "Odd; no expansion for " << iter->second->format() << endl;
-      // Can happen if we're expanding out of order, and is generally harmless.
-      continue;
-    }
-
-    ast = AST::substitute(ast, use, definition);
-    //cerr << "\t result is " << res->format() << endl;
   }
   dbase[ptr->assign()] = ast;
 }
@@ -320,7 +324,7 @@ bool SymEvalArchTraits<Arch_ppc32>::handleSpecialCases(entryID iapi_opcode,
         case power_op_bclr:
         {
             unsigned int raw = 0;
-            unsigned int branch_target = 0;
+            int branch_target = 0;
             unsigned int bo = 0, bi = 0;
             std::vector<unsigned char> bytes = rose_insn.get_raw_bytes();
             for(unsigned i = 0; i < bytes.size(); i++)
@@ -333,9 +337,12 @@ bool SymEvalArchTraits<Arch_ppc32>::handleSpecialCases(entryID iapi_opcode,
             rose_insn.set_kind(makeRoseBranchOpcode(iapi_opcode, isAbsolute, isLink));
             if(power_op_b == iapi_opcode) {
                 branch_target = ((raw >> 2) & 0x00FFFFFF) << 2;
+		branch_target = (branch_target << 8) >> 8;
             } else {
                 if(power_op_bc == iapi_opcode) {
                     branch_target = ((raw >> 2) & 0x00003FFF) << 2;
+		    branch_target = (branch_target << 18) >> 18;
+		    //cerr << "14-bit branch target: " << branch_target << endl;
                 }
                 bo = ((raw >> 21) & 0x0000001F);
                 bi = ((raw >> 16) & 0x0000001F);
@@ -357,7 +364,7 @@ bool SymEvalArchTraits<Arch_ppc32>::handleSpecialCases(entryID iapi_opcode,
         case power_op_sc:
         case power_op_svcs:
 	  {
-	    cerr << "special-casing syscall insn" << endl;
+	    //cerr << "special-casing syscall insn" << endl;
 	    unsigned int raw;
             std::vector<unsigned char> bytes = rose_insn.get_raw_bytes();
             for(unsigned i = 0; i < bytes.size(); i++)
@@ -367,7 +374,7 @@ bool SymEvalArchTraits<Arch_ppc32>::handleSpecialCases(entryID iapi_opcode,
             }
 	    unsigned int lev = (raw >> 5) & 0x7F;
 	    rose_operands->append_operand(new SgAsmByteValueExpression(lev));
-	    cerr << "LEV = " << lev << endl;
+	    //cerr << "LEV = " << lev << endl;
 	    return true;
 	  }
         default:
@@ -379,13 +386,14 @@ bool SymEvalArchTraits<Arch_ppc32>::handleSpecialCases(entryID iapi_opcode,
 void SymEvalArchTraits<Arch_ppc32>::handleSpecialCases(InstructionAPI::Instruction::Ptr insn,
         std::vector<InstructionAPI::Operand>& operands)
 {
-<<<<<<< HEAD:symEval/src/SymEval.C
     if(insn->writesMemory())
         std::swap(operands[0], operands[1]);
-=======
   entryID opcode = insn->getOperation().getID();
-  if(opcode == power_op_or ||
-     opcode == power_op_mtspr)
+  // Anything that's writing RA, ROSE expects in RA, RS, RB/immediates form.
+  // Any store, however, ROSE expects in RS, RA, RB/displacement form.  Very confusing,
+  // but we handle it cleanly here.
+  if(!operands[0].isWritten() && operands.size() >= 2 &&
+     operands[1].isWritten() && !operands[1].writesMemory())
   {
     std::swap(operands[0], operands[1]);
   }
@@ -397,8 +405,11 @@ void SymEvalArchTraits<Arch_ppc32>::handleSpecialCases(InstructionAPI::Instructi
     std::swap(operands[2], operands[3]);
     std::swap(operands[1], operands[2]);
   }
+  if(insn->getOperation().format().find(".") != std::string::npos &&
+     insn->getOperation().getID() != power_op_stwcx_rc) {
+    operands.pop_back();
+  }
   return;
->>>>>>> 185acfd... more bugfixes:symEval/src/SymEval.C
 }
 
 
@@ -438,7 +449,7 @@ SymEval<a>::convert(const InstructionAPI::Instruction::Ptr &insn, uint64_t addr)
 
     rinsn.set_address(addr);
     rinsn.set_mnemonic(insn->format());
-    rinsn.set_kind(convert(insn->getOperation().getID()));
+    rinsn.set_kind(convert(insn->getOperation().getID(), insn->getOperation().format()));
     // semantics don't support 64-bit code
     rinsn.set_operandSize(x86_insnsize_32);
     rinsn.set_addressSize(x86_insnsize_32);
@@ -450,18 +461,18 @@ SymEval<a>::convert(const InstructionAPI::Instruction::Ptr &insn, uint64_t addr)
     // operand list
     SgAsmOperandList *roperands = new SgAsmOperandList;
 
-    cerr << "checking instruction: " << insn->format() << " for special handling" << endl;
+    //cerr << "checking instruction: " << insn->format() << " for special handling" << endl;
     if(SymEvalArchTraits<a>::handleSpecialCases(insn->getOperation().getID(), rinsn, roperands))
     {
         rinsn.set_operandList(roperands);
         return rinsn;
     }
-    cerr << "no special handling by opcode, checking if we should mangle operands..." << endl;
+    //cerr << "no special handling by opcode, checking if we should mangle operands..." << endl;
     std::vector<InstructionAPI::Operand> operands;
     insn->getOperands(operands);
     SymEvalArchTraits<a>::handleSpecialCases(insn->getOperation().getID(), operands)
     int i = 0;
-    cerr << "converting insn " << insn->format() << endl;
+    //cerr << "converting insn " << insn->format() << endl;
     for (std::vector<InstructionAPI::Operand>::iterator opi = operands.begin();
              opi != operands.end();
              ++opi, ++i) {

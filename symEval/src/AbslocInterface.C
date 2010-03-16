@@ -102,8 +102,8 @@ AbsRegion AbsRegionConverter::convert(RegisterAST::Ptr reg) {
   // Upcast register so we can be sure to match things later
   AbsRegion tmp = AbsRegion(Absloc(reg->getID().getBaseRegister()));
 
-  std::cerr << "ARC::convert from " << reg->format() << " to "
-	    << tmp.format() << std::endl;
+  //std::cerr << "ARC::convert from " << reg->format() << " to "
+  //    << tmp.format() << std::endl;
   return tmp;
 }
 
