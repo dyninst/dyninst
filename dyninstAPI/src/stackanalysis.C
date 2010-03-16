@@ -512,19 +512,16 @@ void StackAnalysis::computeInsnEffects(const Block *block,
 				       fp_State &fpState) 
 {
     stackanalysis_printf("\t\tInsn at 0x%lx\n", off);
-    static Expression::Ptr theStackPtr(new RegisterAST(MachRegister::getStackPointer(Arch_x86)));
-    static Expression::Ptr stackPtr64(new RegisterAST(MachRegister::getStackPointer(Arch_x86_64)));
-    
-    static Expression::Ptr theFramePtr(new RegisterAST(MachRegister::getFramePointer(Arch_x86)));
-    static Expression::Ptr framePtr64(new RegisterAST(MachRegister::getFramePointer(Arch_x86_64)));
+    static Expression::Ptr theStackPtr(new RegisterAST(MachRegister::getStackPointer(func->img()->getArch())));
+    static Expression::Ptr theFramePtr(new RegisterAST(MachRegister::getFramePointer(func->img()->getArch())));
     
     //TODO: Integrate entire test into analysis lattice
     entryID what = insn->getOperation().getID();
 
-    if (insn->isWritten(theFramePtr) || insn->isWritten(framePtr64)) {
+    if (insn->isWritten(theFramePtr)) {
       stackanalysis_printf("\t\t\t FP written\n");
       if (what == e_mov &&
-	  (insn->isRead(theStackPtr) || insn->isRead(stackPtr64))) {
+          (insn->isRead(theStackPtr))) {
 	fpState = fp_created;
 	stackanalysis_printf("\t\t\t Frame created\n");
       }
@@ -562,7 +559,7 @@ void StackAnalysis::computeInsnEffects(const Block *block,
 
     int word_size = func->img()->getAddressWidth();
     
-    if(!insn->isWritten(theStackPtr) && !insn->isWritten(stackPtr64)) {
+    if(!insn->isWritten(theStackPtr)) {
          return;
     }
     int sign = 1;
@@ -606,6 +603,16 @@ void StackAnalysis::computeInsnEffects(const Block *block,
         iFunc.delta() = -1*word_size;
         stackanalysis_printf("\t\t\t Stack height reset by leave: %s\n", iFunc.format().c_str());
         return;
+    case power_op_stwu: {
+        Operand arg = insn->getOperand(1);
+        arg.getValue()->bind(theStackPtr.get(), Result(u32, 0));
+        Result delta = arg.getValue()->eval();
+        if(delta.defined) {
+            iFunc.delta() = delta.convert<long>();
+            stackanalysis_printf("\t\t\t Stack height changed by evalled stwu: %s\n", iFunc.format().c_str());
+            return;
+        }
+    }
     default:
         iFunc.range() = Range(Range::infinite, 0, off);
         stackanalysis_printf("\t\t\t Stack height changed by unhandled insn \"%s\": %s\n", 
