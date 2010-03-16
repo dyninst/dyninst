@@ -176,9 +176,9 @@ template <Architecture a>
 void SymEval<a>::expandInsn(const InstructionAPI::Instruction::Ptr insn,
 			 const uint64_t addr,
 			 Result_t &res) {
-  SageInstruction_t* roseInsn = convert(insn, addr);
+  SageInstruction_t roseInsn = convert(insn, addr);
   SymEvalPolicy policy(res, addr, insn->getArch());
-  SymEvalArchTraits::processInstruction(roseInsn, policy);    
+  SymEvalArchTraits<a>::processInstruction(&roseInsn, policy);    
   return;
 }
 

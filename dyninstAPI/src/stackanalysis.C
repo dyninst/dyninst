@@ -584,7 +584,8 @@ void StackAnalysis::computeInsnEffects(const Block *block,
         return;
     case e_sub:
         sign = -1;
-    case e_add: {
+    case e_add:
+      {
         // Add/subtract are op0 += (or -=) op1
         Operand arg = insn->getOperand(1);
         Result delta = arg.getValue()->eval();
@@ -603,12 +604,30 @@ void StackAnalysis::computeInsnEffects(const Block *block,
         iFunc.delta() = -1*word_size;
         stackanalysis_printf("\t\t\t Stack height reset by leave: %s\n", iFunc.format().c_str());
         return;
-    case power_op_stwu: {
-        Operand arg = insn->getOperand(1);
-        stackanalysis_printf("\t\t\t ...checking operand %s\n", arg.format().c_str());
-        stackanalysis_printf("\t\t\t ...binding %s to 0\n", theStackPtr->format().c_str());
-        arg.getValue()->bind(theStackPtr.get(), Result(u32, 0));
+    case power_op_si:
+        sign = -1;
+    case power_op_addi:
+      {
+        // Add/subtract are op0 = op1 +/- op2; we'd better read the stack pointer as well as writing it
+        Operand arg = insn->getOperand(2);
         Result delta = arg.getValue()->eval();
+        if(delta.defined && insn->isRead(theStackPtr)) {
+	    iFunc.delta() = sign * delta.convert<long>();
+	    stackanalysis_printf("\t\t\t Stack height changed by evalled add/sub: %s\n", iFunc.format().c_str());
+	    return;
+        }
+        iFunc.range() = Range(Range::infinite, 0, off);
+        stackanalysis_printf("\t\t\t Stack height changed by unevalled add/sub: %s\n", iFunc.format().c_str());
+        return;
+    }
+    case power_op_stwu: {
+        std::set<Expression::Ptr> memWriteAddrs;
+        insn->getMemoryWriteOperands(memWriteAddrs);
+	Expression::Ptr stackWrite = *(memWriteAddrs.begin());
+        stackanalysis_printf("\t\t\t ...checking operand %s\n", stackWrite->format().c_str());
+        stackanalysis_printf("\t\t\t ...binding %s to 0\n", theStackPtr->format().c_str());
+        stackWrite->bind(theStackPtr.get(), Result(u32, 0));
+        Result delta = stackWrite->eval();
         if(delta.defined) {
             iFunc.delta() = delta.convert<long>();
             stackanalysis_printf("\t\t\t Stack height changed by evalled stwu: %s\n", iFunc.format().c_str());
