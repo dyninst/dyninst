@@ -701,9 +701,21 @@ const char * regclassToString(X86RegisterClass)
 {
   return "NOT IMPLEMENTED";
 }
-const char * regclassToString(PowerpcRegisterClass)
+const char * regclassToString(PowerpcRegisterClass c)
 {
-    return "NOT IMPLEMENTED";
+    switch(c)
+    {
+        case powerpc_regclass_gpr:
+            return "GPR";
+        case powerpc_regclass_spr:
+            return "SPR";
+        case powerpc_regclass_fpr:
+            return "FPR";
+        case powerpc_regclass_sr:
+            return "SR";
+        default:
+            return "unexpected register class--not gpr, spr, segment, or fpr";
+    }
 }
 
 // SgAsmx86Instruction.h
