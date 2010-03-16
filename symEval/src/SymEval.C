@@ -335,33 +335,41 @@ bool SymEvalArchTraits<Arch_ppc32>::handleSpecialCases(entryID iapi_opcode,
                 branch_target = ((raw >> 2) & 0x00FFFFFF) << 2;
             } else {
                 if(power_op_bc == iapi_opcode) {
-                    branch_target = ((raw >> 2) & 0x0000CFFF) << 2;
+                    branch_target = ((raw >> 2) & 0x00003FFF) << 2;
                 }
                 bo = ((raw >> 21) & 0x0000001F);
                 bi = ((raw >> 16) & 0x0000001F);
-            }
-            if(power_op_b != iapi_opcode) {
-                roperands->append_operand(new SgAsmByteValueExpression(bo));
-		cerr << "appending BO operand: " << bo << endl;
 		rose_operands->append_operand(new SgAsmByteValueExpression(bo));
-		cerr << "appending BI operand: CR bit " << bi << endl;
 		rose_operands->append_operand(new SgAsmPowerpcRegisterReferenceExpression(powerpc_regclass_cr, bi,
 										    powerpc_condreggranularity_bit));
             }
             if(branch_target) {
-	      cerr << "appending branch target operand: " << branch_target << endl;
                 rose_operands->append_operand(new SgAsmDoubleWordValueExpression(branch_target));
             } else if(power_op_bcctr == iapi_opcode) {
-	      cerr << "appending branch target operand: count register" << endl;
                 rose_operands->append_operand(new SgAsmPowerpcRegisterReferenceExpression(powerpc_regclass_spr, powerpc_spr_ctr));
             } else {
                 assert(power_op_bclr == iapi_opcode);
-		cerr << "appending branch target operand: link register" << endl;
                 rose_operands->append_operand(new SgAsmPowerpcRegisterReferenceExpression(powerpc_regclass_spr, powerpc_spr_lr));
             }
             return true;
         }
             break;
+        case power_op_sc:
+        case power_op_svcs:
+	  {
+	    cerr << "special-casing syscall insn" << endl;
+	    unsigned int raw;
+            std::vector<unsigned char> bytes = rose_insn.get_raw_bytes();
+            for(unsigned i = 0; i < bytes.size(); i++)
+            {
+                raw = raw << 8;
+                raw |= bytes[i];
+            }
+	    unsigned int lev = (raw >> 5) & 0x7F;
+	    rose_operands->append_operand(new SgAsmByteValueExpression(lev));
+	    cerr << "LEV = " << lev << endl;
+	    return true;
+	  }
         default:
             return false;
     }
@@ -371,8 +379,26 @@ bool SymEvalArchTraits<Arch_ppc32>::handleSpecialCases(entryID iapi_opcode,
 void SymEvalArchTraits<Arch_ppc32>::handleSpecialCases(InstructionAPI::Instruction::Ptr insn,
         std::vector<InstructionAPI::Operand>& operands)
 {
+<<<<<<< HEAD:symEval/src/SymEval.C
     if(insn->writesMemory())
         std::swap(operands[0], operands[1]);
+=======
+  entryID opcode = insn->getOperation().getID();
+  if(opcode == power_op_or ||
+     opcode == power_op_mtspr)
+  {
+    std::swap(operands[0], operands[1]);
+  }
+  if(opcode == power_op_cmp ||
+     opcode == power_op_cmpl ||
+     opcode == power_op_cmpi ||
+     opcode == power_op_cmpli) {
+    operands.push_back(Operand(Immediate::makeImmediate(Result(u8, 1)), false, false));
+    std::swap(operands[2], operands[3]);
+    std::swap(operands[1], operands[2]);
+  }
+  return;
+>>>>>>> 185acfd... more bugfixes:symEval/src/SymEval.C
 }
 
 
@@ -424,26 +450,25 @@ SymEval<a>::convert(const InstructionAPI::Instruction::Ptr &insn, uint64_t addr)
     // operand list
     SgAsmOperandList *roperands = new SgAsmOperandList;
 
+    cerr << "checking instruction: " << insn->format() << " for special handling" << endl;
     if(SymEvalArchTraits<a>::handleSpecialCases(insn->getOperation().getID(), rinsn, roperands))
     {
         rinsn.set_operandList(roperands);
         return rinsn;
     }
+    cerr << "no special handling by opcode, checking if we should mangle operands..." << endl;
     std::vector<InstructionAPI::Operand> operands;
     insn->getOperands(operands);
     SymEvalArchTraits<a>::handleSpecialCases(insn->getOperation().getID(), operands)
     int i = 0;
-    fprintf(stderr, "converting insn %s\n", insn->format().c_str());
+    cerr << "converting insn " << insn->format() << endl;
     for (std::vector<InstructionAPI::Operand>::iterator opi = operands.begin();
              opi != operands.end();
              ++opi, ++i) {
             InstructionAPI::Operand &currOperand = *opi;
             SgAsmExpression* converted = convert(currOperand);
-            fprintf(stderr, "converted operand %s, result was %s\n", currOperand.format().c_str(),
-                    converted ? "not NULL" : "NULL");
             SgAsmExpression* final = SymEvalArchTraits<a>::convertOperand(rinsn.get_kind(), i, converted);
             if(final != NULL) {
-                fprintf(stderr, "appending operand %d (%s)\n", i, currOperand.format().c_str());
                 roperands->append_operand(final);
             }
     }
@@ -459,6 +484,7 @@ SgAsmExpression *SymEval<a>::convert(const InstructionAPI::Operand &operand) {
 
 template <Architecture a>
         SgAsmExpression *SymEval<a>::convert(const Expression::Ptr expression) {
+  if(!expression) return NULL;
     Visitor_t visitor;
     expression->apply(&visitor);
     return visitor.getRoseExpression();

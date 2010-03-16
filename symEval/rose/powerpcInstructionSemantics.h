@@ -430,9 +430,12 @@ build_mask(uint8_t mb_value, uint8_t me_value)
 
       case powerpc_stw:
       case powerpc_stwx:
+      case powerpc_stwcx_record:
          {
            ROSE_ASSERT(operands.size() == 2);
-           write32(operands[1],read32(operands[0]));
+	   Word(32) result = read32(operands[0]);
+           write32(operands[1], result);
+	   if(kind == powerpc_stwcx_record) record(result);
            break;
          }
 
@@ -483,15 +486,14 @@ build_mask(uint8_t mb_value, uint8_t me_value)
          {
            ROSE_ASSERT(operands.size() == 1);
            policy.writeSPR(powerpc_spr_lr,number<32>(insn->get_address() + 4));
-           policy.writeIP(policy.add(read32(operands[0]), number<32>insn->get_address()));
+           policy.writeIP(policy.add(read32(operands[0]), number<32>(insn->get_address())));
            break;
          }
 
       case powerpc_b:
          {
            ROSE_ASSERT(operands.size() == 1);
-           policy.writeIP(read32(operands[0]));
-           policy.writeIP(policy.add(read32(operands[0]), number<32>insn->get_address()));
+           policy.writeIP(policy.add(read32(operands[0]), number<32>(insn->get_address())));
            break;
          }
       case powerpc_bla:
@@ -509,6 +511,7 @@ build_mask(uint8_t mb_value, uint8_t me_value)
         }
       case powerpc_lwz:
       case powerpc_lwzx:
+      case powerpc_lwarx:
          {
            ROSE_ASSERT(operands.size() == 2);
            write32(operands[0],read32(operands[1]));
@@ -718,7 +721,7 @@ build_mask(uint8_t mb_value, uint8_t me_value)
          }
 
       case powerpc_bcl:
-          policy.writeSPR(powerpc_spr_lr, number<32>(insn->get_address() + 4));
+	policy.writeSPR(powerpc_spr_lr, policy.readIP());
           // fall through
       case powerpc_bc:
          {
@@ -750,7 +753,9 @@ build_mask(uint8_t mb_value, uint8_t me_value)
            Word(4) CR_field = policy.readCRField(bi_value/4);
            Word(1) CR_bi = extract<0,1>(policy.shiftRight(CR_field,number<2>(3 - bi_value % 4)));
            Word(1) COND_ok = BO_0 ? policy.true_() : BO_1 ? CR_bi : policy.invert(CR_bi);
-           policy.writeIP(policy.ite(policy.and_(CTR_ok,COND_ok),read32(operands[2]),policy.readIP()));
+           policy.writeIP(policy.ite(policy.and_(CTR_ok,COND_ok),
+				     policy.add(read32(operands[2]), number<32>(insn->get_address())),
+				     policy.readIP()));
            break;
          }
 

@@ -35,6 +35,8 @@
 #include "external/rose/rose-compat.h"
 #include "external/rose/powerpcInstructionEnum.h"
 
+#include <iostream>
+
 using namespace Dyninst;
 
 std::map<signed int, const char *> *Dyninst::MachRegister::names;
@@ -400,6 +402,7 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
        case Arch_ppc32:
        case Arch_ppc64: // 64-bit not supported in ROSE
        {
+	 baseID = reg & 0x0000FFFF;
            n = baseID;
            switch(category)
            {
@@ -412,13 +415,24 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
                    break;
                case ppc32::SPR:
                {
+		 std::cerr << "SPR, baseID = " << baseID << std::endl;
                    if(baseID < 613) {
+		     std::cerr << "spr class" << std::endl;
                        c = powerpc_regclass_spr;
                    } else if(baseID < 621 ) {
+		     std::cerr << "segment class" << std::endl;
                        c = powerpc_regclass_sr; 
                    } else {
+		     std::cerr << "cr class" << std::endl;
                        c = powerpc_regclass_cr;
-                       p = baseID - 621;
+                       n = baseID - 621;
+		       if(n > 7) {
+			 n = 0;
+			 p = powerpc_condreggranularity_whole;
+		       } else {
+			 p = powerpc_condreggranularity_field;
+		       }
+
                    }
                }
                break;
