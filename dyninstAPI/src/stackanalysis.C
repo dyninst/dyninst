@@ -606,6 +606,7 @@ void StackAnalysis::computeInsnEffects(const Block *block,
     case power_op_stwu: {
         Operand arg = insn->getOperand(1);
         stackanalysis_printf("\t\t\t ...checking operand %s\n", arg.format().c_str());
+        stackanalysis_printf("\t\t\t ...binding %s to 0\n", theStackPtr->format().c_str());
         arg.getValue()->bind(theStackPtr.get(), Result(u32, 0));
         Result delta = arg.getValue()->eval();
         if(delta.defined) {
