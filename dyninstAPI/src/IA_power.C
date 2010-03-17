@@ -38,9 +38,12 @@
 #include "BinaryFunction.h"
 #include "debug.h"
 #include "symtab.h"
-
+#include "slicing.h"
+#include "AbslocInterface.h"
 
 #include <deque>
+#include <iostream>
+#include <sstream>
 
 using namespace Dyninst;
 using namespace InstructionAPI;
@@ -70,11 +73,52 @@ std::map<Address, Instruction::Ptr>::const_iterator IA_IAPI::findTableInsn() con
 {
     return allInsns.end();
 }
-        
+
+struct isDone
+{
+    isDone(image_basicBlock* block) : m_block(block) {}
+    bool operator() (Assignment::Ptr a) {
+        return a->addr < m_block->firstInsnOffset() ||
+                a->addr > m_block->lastInsnOffset();
+    }
+    image_basicBlock* m_block;
+};        
+bool widen(Assignment::Ptr) { return false; }
+                
 // This should only be called on a known indirect branch...
 bool IA_IAPI::parseJumpTable(image_basicBlock* currBlk,
                              pdvector<std::pair< Address, EdgeTypeEnum> >& outEdges) const
 {
+    static const int jumpTableNumber = 0;
+    jumpTableNumber++;
+    using namespace std;
+    AbsLoc thePC = AbsLoc::makePC(img->getArch());
+    AssignmentConverter c(true);
+    vector<Assignment::Ptr> assignments;
+    c.convert(curInsn(), current, context, assignments);
+    Assignment::Ptr sliceStart;
+    for(vector<Assignment::Ptr>::iterator curAssign = assignments.begin();
+        curAssign != assignments.end();
+       ++curAssign)
+    {
+        cerr << "assignment in indirect branch at " << hex << current << ": " <<
+                (*curAssign) << dec << endl;
+        if((*curAssign)->out().contains(thePC))
+        {
+            sliceStart = *curAssign;
+        }
+    }
+    if(sliceStart) {
+        cerr << "found assignment to PC: " << sliceStart << endl;
+    } else {
+        cerr << "ERROR IN SEMANTICS: indirect branch didn't assign to PC" << endl;
+        return false;
+    }
+    Slicer s(sliceStart, currBlk, context);
+    GraphPtr jumpTableSlice = s.backwardslice(isDone(currBlk), &widen);
+    stringstream filename << "jumpTableGraph" << jumpTableNumber;
+    jumpTableSlice->printDOT(filename.str());
+        
     parsing_printf("\tparseJumpTable returning FALSE (not implemented on POWER yet)\n");
     return false;
 }
