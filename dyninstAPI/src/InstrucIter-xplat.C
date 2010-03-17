@@ -169,8 +169,8 @@ InstrucIter::InstrucIter(const InstrucIter& ii) :
 }
 
 // For somewhere in a process (maybe)
-InstrucIter::InstrucIter( Address addr, AddressSpace *a) :
-  instructions_(a),
+InstrucIter::InstrucIter( Address addr, InstructionSource *source) :
+  instructions_(source),
   current(addr)
 {
   // There's all sorts of reasons to iterate over the middle of nowhere;
@@ -184,8 +184,8 @@ InstrucIter::InstrucIter( Address addr, AddressSpace *a) :
 }
 
 // And truly generic
-InstrucIter::InstrucIter( Address addr, unsigned size, AddressSpace *a) :
-  instructions_(a),
+InstrucIter::InstrucIter( Address addr, unsigned size, InstructionSource *source) :
+  instructions_(source),
   base(addr),
   range(size),
   current(addr)

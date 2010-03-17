@@ -210,7 +210,9 @@ static bool hasAllocatedFrame(Address addr, process *proc, int &offset)
     }
     
 #else
-      frameChecker fc((const unsigned char*)(proc->getPtrToInstruction(addr)), range->get_size() - (addr - range->get_address()));
+      frameChecker fc((const unsigned char*)(proc->getPtrToInstruction(addr)), 
+		      range->get_size() - (addr - range->get_address()),
+		      proc->getAOut()->parse_img()->getArch());
       if(fc.isReturn() || fc.isStackPreamble())
       {
 	offset = 0;

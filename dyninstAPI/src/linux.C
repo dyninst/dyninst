@@ -1027,8 +1027,8 @@ bool dyn_lwp::writeTextSpace(void *inTraced, u_int amount, const void *inSelf)
    return writeDataSpace(inTraced, amount, inSelf);
 }
 
-bool dyn_lwp::readTextSpace(void *inTraced, u_int amount, const void *inSelf) {
-   return readDataSpace(inTraced, amount, const_cast<void*>( inSelf ));
+bool dyn_lwp::readTextSpace(const void *inTraced, u_int amount, void *inSelf) {
+   return readDataSpace(inTraced, amount, inSelf);
 }
 
 bool DebuggerInterface::bulkPtraceWrite(void *inTraced, u_int nbytes, void *inSelf, int pid, int /*address_width*/)

@@ -11,8 +11,6 @@ NO_IMPLICIT_TEMPLATES = true
 
 include ../../make.config 
 
-TARGET = libstackwalk.so
-
 LDFLAGS     += $(LIBDIR) -lcommon -ldl
 
 SRCS = 	../src/linux-swk.C \

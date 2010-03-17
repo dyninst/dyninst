@@ -38,7 +38,6 @@
 #include "image-func.h"
 #include "instPoint.h"
 #include "symtab.h"
-#include "dyninstAPI/h/BPatch_Set.h"
 #include "InstrucIter.h"
 #include "IA_InstrucIter.h"
 #include "debug.h"
@@ -228,7 +227,7 @@ void image_func::archSetFrameSize(int /* frameSize */)
 // which (rightly) treat jump table processing as a control-sensitive
 // data flow operation.
 bool image_func::archGetMultipleJumpTargets(
-                                BPatch_Set< Address >& targets,
+                                std::set< Address >& targets,
                                 image_basicBlock * /* currBlk */,
                                 InstrucIter &ah,
                                 pdvector< instruction >& /* allInstructions */)
@@ -356,7 +355,7 @@ std::string image_func::calcParentFunc(const image_func * imf, pdvector<image_pa
       for (unsigned i = 0; i < pR.size(); i++)
 	{
 	  image_parRegion * tempParReg = pR[i];
-	  image_func * imf = tempParReg->getAssociatedFunc();
+          image_func * imf = const_cast<image_func*>(tempParReg->getAssociatedFunc());
 
 	  const char * nameStart2 = imf->prettyName().c_str();
 	  

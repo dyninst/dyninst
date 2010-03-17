@@ -37,6 +37,7 @@
 #include <assert.h>
 
 #include "NodeIterator.h"
+#include <iostream>
 
 using namespace Dyninst;
 
@@ -55,6 +56,7 @@ void Graph::exitNodes(NodeIterator &begin, NodeIterator &end) {
 }
 
 void Graph::allNodes(NodeIterator &begin, NodeIterator &end) {
+  //std::cerr << "AllNodes called: " << nodes_.size() << " nodes" << std::endl;
     begin = NodeIterator(new NodeIteratorSet(nodes_.begin()));
     end = NodeIterator(new NodeIteratorSet(nodes_.end()));
     return;
@@ -79,12 +81,12 @@ void Graph::insertPair(NodePtr source, NodePtr target) {
     // TODO handle parameter edge types.
 
     Edge::Ptr e = Edge::createEdge(source, target);
+    
+    source->addOutEdge(e);
+    target->addInEdge(e);
 
     addNode(source);
     addNode(target);
-
-    source->addOutEdge(e);
-    target->addInEdge(e);
 }
 
 void Graph::insertEntryNode(NodePtr entry) {
@@ -98,11 +100,13 @@ void Graph::insertExitNode(NodePtr exit) {
 }
 
 void Graph::addNode(Node::Ptr node) {
-    if (node->hasInEdges() || node->hasOutEdges()) return;
+  //if (node->hasInEdges() || node->hasOutEdges()) return;
     nodes_.insert(node);
     if (!node->isVirtual()) {
         nodesByAddr_[node->addr()].insert(node);
     }        
+    //std::cerr << "\t\t After addNode: " << nodes_.size() << " nodes" << std::endl;
+    //std::cerr << "\t\t\t adding " << node << std::endl;
 }
 
 
@@ -130,4 +134,39 @@ bool Graph::find(NodePredicateFunc pred, void *user_arg, NodeIterator &begin, No
     return (begin != end);
 }
 
-                         
+void Graph::deleteNode(NodePtr node) {
+  //std::cerr << "Deleting node " << node << std::endl;
+  // Remove from the graph map
+  // Remove from any edges that point to this one
+
+  nodes_.erase(node);
+
+  NodeMap::iterator iter2 = nodesByAddr_.find(node->addr());
+  if (iter2 != nodesByAddr_.end()) {
+    iter2->second.erase(node);
+  }
+
+  entryNodes_.erase(node);
+  exitNodes_.erase(node);
+
+  EdgeIterator e1, e2;
+  node->ins(e1, e2);
+  for (; e1 != e2; ++e1) {
+    (*e1)->source()->deleteOutEdge(e1);
+  }
+
+  node->outs(e1, e2);
+  for (; e1 != e2; ++e1) {
+    (*e1)->target()->deleteInEdge(e1);
+  }
+}
+    
+bool Graph::isEntryNode(NodePtr node) {
+  return (entryNodes_.find(node) != entryNodes_.end());
+}
+
+
+bool Graph::isExitNode(NodePtr node) {
+  return (exitNodes_.find(node) != exitNodes_.end());
+}
+

@@ -33,13 +33,18 @@
 // $Id: timing-aix.C,v 1.10 2007/05/30 19:20:30 legendre Exp $
 #include "common/h/timing.h"
 #include <stdio.h>
-#ifdef USES_PMAPI
+#if defined(XLC) && defined(USE_PMAPI)
 #include <pmapi.h>
 #endif
 
+
 double calcCyclesPerSecond_sys() {
   /* We have a function pm_cycles which returns the time in a double */
+#if defined(USE_PMAPI)
   double cycles = pm_cycles();
+#else
+  double cycles = 0;
+#endif
 
   // A bit of a hack: I've seen pm_cycles returning abnormally low values
   // (34 cps?) on AIX 5.1 machines. If this value isn't sensible, return

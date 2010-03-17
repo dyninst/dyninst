@@ -26,10 +26,7 @@ TARGET	= libcommon.a
 # in the paradyn tree.
 
 include ../../make.config 
-ifdef IBM_BPATCH_COMPAT
-# use XLC auto template mechanism
-AUTO_TEMPLATES = true
-endif
+
 
 ifdef COVERAGE
 CXXFLAGS += -O0
@@ -51,8 +48,16 @@ G_PTHREAD       = -pthread
 
 include ../make.module.tmpl
 
-ifdef IBM_BPATCH_COMPAT
-  LDFLAGS += -liberty -bbigtoc -bexpall
+ifdef HAVE_NATIVE_DEMANGLER
+  LDFLAGS += -ldemangle
+  CXXFLAGS += -Dcap_native_demangler
+endif
+ifdef HAVE_LIBIBERTY
+  LDFLAGS += -liberty
+  CXXFLAGS += -Dcap_libiberty
+endif
+
+ifdef XLC_BUILD
   # should be building a static library in this case
   TARGET3_STATIC  = libdyninstAPI.a
   TARGET_INSTALL  = $(TARGET3_STATIC)

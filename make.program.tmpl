@@ -35,32 +35,16 @@ ifdef PREREQUISITES
 $(OBJS): $(PREREQUISITES)
 endif
 
-ifndef UNCOMMON_LINK
-ifneq ($(TARGET),test11)
 $(TARGET): $(OBJS)
 	@$(MAKE) $(VOUCHER)
 	$(MODCC) -o $(TARGET) $(LDFLAGS) $(VOUCHER).o $(OBJS) $(LIBDIR) $(LIBS) $(SYSLIBS)
-endif
-endif
 
-#ifndef UNCOMMON_LINK
-# The user may set APP_PURE_OPTIONS for application-specific purify options
-pure: $(OBJS)
-	@$(MAKE) $(VOUCHER)
-	purify $(APP_PURE_OPTIONS) -cache-dir=/tmp \
-		-$(MODCC) -collector=$(COLLECTOR) $(MODCC) -o $(TARGET) \
-                $(LDFLAGS) $(VOUCHER).o $(OBJS) $(LIBDIR) $(LIBS) $(SYSLIBS)
-#endif
-
-ifndef UNCOMMON_LINK
 quantify: $(OBJS)
 	@$(MAKE) $(VOUCHER)
 	quantify -cache-dir=/tmp \
                 -$(MODCC) -collector=$(COLLECTOR) $(MODCC) -o $(TARGET) \
                 $(LDFLAGS) $(VOUCHER).o $(OBJS) $(LIBDIR) $(LIBS) $(SYSLIBS)
-endif
 
-ifndef UNCOMMON_LINK
 qpt: $(OBJS)
 	@$(MAKE) $(VOUCHER)
 	$(MODCC) -Xlinker -Bstatic -o $(TARGET) \
@@ -70,7 +54,6 @@ qpt: $(OBJS)
 	# executing interprocedural jumps; this includes setjmp/longjmp.
 	# Hence we must use the -s option for paradyn:
 	/unsup/qpt2/bin/qpt2 -s $(TARGET)
-endif
 
 VPATH		+= ../src:$(LIBRARY_DEST):$(TO_CORE)/../lib/$(PLATFORM):$(BACKUP_CORE)/../lib/$(PLATFORM)
 
@@ -85,12 +68,10 @@ clean::
 distclean:: clean
 	$(RM) DEPENDS
 
-ifndef UNCOMMON_INSTALL
 install:  $(DEST)/$(TARGET)
 
 $(DEST)/$(TARGET): $(TARGET)
 	-$(CP) $(TARGET) $(DEST)
-endif
 
 .PHONY : depend
 depend:

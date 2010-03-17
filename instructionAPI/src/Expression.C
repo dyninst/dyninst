@@ -61,6 +61,10 @@ namespace Dyninst
             case 16:
                 userSetValue = Result(dbl128);
                 break;
+	case 0:
+	  // Special case for bitfields
+	  userSetValue = Result(bit_flag);
+	  break;
             default:
                 assert(!"unexpected machine register size!");
         }

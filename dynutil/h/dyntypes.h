@@ -41,15 +41,14 @@
 #define FILE__ strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__
 #endif
 
+#if defined(_POWER) && !defined(__GNUC__)
+#define XLC
+#endif
 
 #if defined (_MSC_VER)
   //**************** Windows ********************
   #include <hash_map>
-#if 1
   #define dyn_hash_map stdext::hash_map
-#else
-  #define dyn_hash_map std::hash_map
-#endif
   #define DECLTHROW(x)
 #elif defined(__GNUC__)
   #include <functional>
@@ -93,8 +92,16 @@
 		  };
 
 	  }
+   #endif
+#elif defined(XLC)
+  #define __IBMCPP_TR1__ 1
 
-#endif
+  #include <functional>
+  #include <unordered_set>
+  #include <unordered_map>
+  #define dyn_hash_set std::tr1::unordered_set
+  #define dyn_hash_map std::tr1::unordered_map
+  #define DECLTHROW(x)
 #else
    #error Unknown compiler
 #endif

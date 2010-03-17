@@ -164,6 +164,25 @@ typedef int64_t off64_t;
 #include <inttypes.h>
 #elif defined(os_solaris)
 #include <inttypes.h>
+
+#elif defined(os_vxworks)
+#if !defined(__STDC_CONSTANT_MACROS)
+#define __STDC_CONSTANT_MACROS
+#endif
+#if !defined(__STDC_LIMIT_MACROS)
+#define __STDC_LIMIT_MACROS
+#endif
+#ifndef __RTLIB__
+#include <stdint.h>
+#endif
+#include <limits.h>
+#if !defined(INT64_C)
+#define INT64_C(c) ((signed long long) (c))
+#endif
+#if !defined(UINT64_C)
+#define UINT64_C(c) ((unsigned long long) (c))
+#endif
+
 #else
 #error Unknown architecture
 #endif
@@ -207,6 +226,7 @@ typedef int64_t off64_t;
    warning is printed when the ...808 int64 minimum is used, so we'll get the
    value with some trickery */
 #define I64_MIN    (-I64_MAX-1)
+
 #elif defined(os_windows)
 			 /* nt ----------------------------- */
 #include <limits.h>

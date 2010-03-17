@@ -680,7 +680,7 @@ bool SignalGeneratorCommon::dispatchEvent(EventRecord &ev)
     case evtProcessExit:
         signal_printf("%s[%d]:  preparing to shut down signal gen for process %d\n", FILE__, __LINE__, getPid());
         stop_request = true;
-#if defined(os_linux)
+#if defined(os_linux) || defined(os_vxworks)
 	// Set process status to exited so we don't try to poke at it
 	ev.proc->exiting_ = true;
 #endif

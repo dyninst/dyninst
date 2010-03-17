@@ -40,12 +40,16 @@ using namespace Dyninst;
 using namespace InstructionAPI;
 
 
-frameChecker::frameChecker(const unsigned char* addr, size_t max_length)
+frameChecker::frameChecker(const unsigned char* addr, size_t max_length, Dyninst::Architecture a)
+  : arch(a)
 {
+  assert((arch == Arch_x86) ||
+	 (arch == Arch_x86_64));
+
   // How many instructions in our stack frame idioms?
   static const unsigned max_insns = 3;
   
-  dyn_detail::boost::shared_ptr<InstructionDecoder> d = makeDecoder(Arch_x86, addr, max_length);
+  dyn_detail::boost::shared_ptr<InstructionDecoder> d = makeDecoder(arch, addr, max_length);
   unsigned bytesDecoded = 0;
   
   for(unsigned i = 0; i < max_insns && bytesDecoded < max_length; i++)

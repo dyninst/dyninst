@@ -315,8 +315,6 @@ void instPoint::calcLiveness() {
    }
 
    // We know: 
-   //    liveness in at the block level:
-   const bitArray &block_in = block()->llb()->getLivenessIn();
    //    liveness _out_ at the block level:
    const bitArray &block_out = block()->llb()->getLivenessOut();
 

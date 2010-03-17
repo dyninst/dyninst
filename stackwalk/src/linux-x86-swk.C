@@ -174,34 +174,35 @@ bool ProcDebugLinux::getRegValue(Dyninst::MachRegister reg, Dyninst::THR_ID t,
    
    if (getAddressWidth() == 4)
    {
-      switch (reg > 0 ? reg & 0xf : reg) {
-         case Dyninst::MachRegPC:
+      switch (reg.val()) {
+         case Dyninst::x86::ieip:
+         case Dyninst::iReturnAddr:
             offset = USER32_OFFSET_OF(eip);
             break;
-         case Dyninst::MachRegStackBase:
-         case Dyninst::x86::ESP:
+         case Dyninst::iStackTop:
+         case Dyninst::x86::iesp:
             offset = USER32_OFFSET_OF(esp);
             break;
-         case Dyninst::MachRegFrameBase:
-         case Dyninst::x86::EBP:
+         case Dyninst::iFrameBase:
+         case Dyninst::x86::iebp:
             offset = USER32_OFFSET_OF(ebp);
             break;
-         case Dyninst::x86::EAX:
+         case Dyninst::x86::ieax:
             offset = USER32_OFFSET_OF(eax);
             break;
-         case Dyninst::x86::EBX:
+         case Dyninst::x86::iebx:
             offset = USER32_OFFSET_OF(ebx);
             break;
-         case Dyninst::x86::ECX:
+         case Dyninst::x86::iecx:
             offset = USER32_OFFSET_OF(ecx);
             break;
-         case Dyninst::x86::EDX:
+         case Dyninst::x86::iedx:
             offset = USER32_OFFSET_OF(edx);
             break;
-         case Dyninst::x86::ESI:
+         case Dyninst::x86::iesi:
             offset = USER32_OFFSET_OF(esi);
             break;
-         case Dyninst::x86::EDI:
+         case Dyninst::x86::iedi:
             offset = USER32_OFFSET_OF(edi);
             break;            
    }
@@ -210,57 +211,58 @@ bool ProcDebugLinux::getRegValue(Dyninst::MachRegister reg, Dyninst::THR_ID t,
    else 
    {
       switch (reg) {
-         case Dyninst::MachRegPC:
+         case Dyninst::iReturnAddr:
+         case Dyninst::x86_64::irip:
             offset = USER64_OFFSET_OF(rip);
-         break;
-         case Dyninst::MachRegStackBase:
-         case Dyninst::x86_64::RSP:
+            break;
+         case Dyninst::iStackTop:
+         case Dyninst::x86_64::irsp:
             offset = USER64_OFFSET_OF(rsp);
-         break;
-         case Dyninst::MachRegFrameBase:
-         case Dyninst::x86_64::RBP:
+            break;
+         case Dyninst::iFrameBase:
+         case Dyninst::x86_64::irbp:
             offset = USER64_OFFSET_OF(rbp);
-         break;
-         case Dyninst::x86_64::RAX:
+            break;
+         case Dyninst::x86_64::irax:
             offset = USER64_OFFSET_OF(rax);
             break;
-         case Dyninst::x86_64::RBX:
+         case Dyninst::x86_64::irbx:
             offset = USER64_OFFSET_OF(rbx);
             break;
-         case Dyninst::x86_64::RCX:
+         case Dyninst::x86_64::ircx:
             offset = USER64_OFFSET_OF(rcx);
             break;
-         case Dyninst::x86_64::RDX:
+         case Dyninst::x86_64::irdx:
             offset = USER64_OFFSET_OF(rdx);
             break;
-         case Dyninst::x86_64::RSI:
+         case Dyninst::x86_64::irsi:
             offset = USER64_OFFSET_OF(rsi);
             break;
-         case Dyninst::x86_64::RDI:
+         case Dyninst::x86_64::irdi:
             offset = USER64_OFFSET_OF(rdi);
             break;
-         case Dyninst::x86_64::R8:
+         case Dyninst::x86_64::ir8:
             offset = USER64_OFFSET_OF(r8);
             break;
-         case Dyninst::x86_64::R9:
+         case Dyninst::x86_64::ir9:
             offset = USER64_OFFSET_OF(r9);
             break;
-         case Dyninst::x86_64::R10:
+         case Dyninst::x86_64::ir10:
             offset = USER64_OFFSET_OF(r10);
             break;
-         case Dyninst::x86_64::R11:
+         case Dyninst::x86_64::ir11:
             offset = USER64_OFFSET_OF(r11);
             break;
-         case Dyninst::x86_64::R12:
+         case Dyninst::x86_64::ir12:
             offset = USER64_OFFSET_OF(r12);
             break;
-         case Dyninst::x86_64::R13:
+         case Dyninst::x86_64::ir13:
             offset = USER64_OFFSET_OF(r13);
             break;
-         case Dyninst::x86_64::R14:
+         case Dyninst::x86_64::ir14:
             offset = USER64_OFFSET_OF(r14);
             break;
-         case Dyninst::x86_64::R15:
+         case Dyninst::x86_64::ir15:
             offset = USER64_OFFSET_OF(r15);
             break;
          break;
@@ -268,8 +270,8 @@ bool ProcDebugLinux::getRegValue(Dyninst::MachRegister reg, Dyninst::THR_ID t,
    }
 #endif
    if (offset == -1) {
-         sw_printf("[%s:%u] - Request for unsupported register %d\n",
-                   __FILE__, __LINE__, reg);
+         sw_printf("[%s:%u] - Request for unsupported register %s\n",
+                   __FILE__, __LINE__, reg.name());
          setLastError(err_badparam, "Unknown register passed in reg field");
          return false;
    }
@@ -406,17 +408,17 @@ gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame &in, Frame &out)
 bool DebugStepperImpl::isFrameRegister(MachRegister reg)
 {
    if (getProcessState()->getAddressWidth() == 4)
-      return (reg == x86::EBP);
+      return (reg == x86::ebp);
    else 
-      return (reg == x86_64::RBP);
+      return (reg == x86_64::rbp);
 }
 
 bool DebugStepperImpl::isStackRegister(MachRegister reg)
 {
    if (getProcessState()->getAddressWidth() == 4)
-      return (reg == x86::ESP);
+      return (reg == x86::esp);
    else 
-      return (reg == x86_64::RSP);
+      return (reg == x86_64::rsp);
 }
 
 #endif

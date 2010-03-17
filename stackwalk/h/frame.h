@@ -102,7 +102,7 @@ protected:
   Walker *getWalker() const;
   THR_ID getThread() const;
 
-  virtual ~Frame();
+  ~Frame();
 };
 
 }

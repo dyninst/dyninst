@@ -1982,7 +1982,7 @@ void emitElf::createRelocationSections(Symtab *obj, std::vector<relocationEntry>
    Region::RegionType rtype;
    int dtype;
    int dsize_type;
-   void *buffer;
+   void *buffer = NULL;
 
    reloc_size = j*sizeof(Elf32_Rel)+k*sizeof(Elf32_Rela);
    if (!reloc_size)

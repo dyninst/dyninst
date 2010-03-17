@@ -68,6 +68,7 @@
 #include "SymEval.h"
 
 namespace Dyninst {
+
 namespace SymbolicEvaluation {
 
 // The ROSE symbolic evaluation engine wants a data type that
@@ -196,6 +197,23 @@ struct ROSEOperation {
   Op op;
 };
 
+};
+
+};
+
+// Get this out of the Dyninst namespace...
+std::ostream &operator<<(std::ostream &os, const Dyninst::SymbolicEvaluation::ROSEOperation &o);
+
+namespace Dyninst {
+
+namespace SymbolicEvaluation {
+
+DEF_AST_LEAF_TYPE(BottomAST, bool);
+DEF_AST_LEAF_TYPE(ConstantAST, uint64_t);
+DEF_AST_LEAF_TYPE(AbsRegionAST, AbsRegion);
+DEF_AST_INTERNAL_TYPE(RoseAST, ROSEOperation);
+
+
 template <size_t Len>
 struct Handle {
   AST::Ptr *v_;
@@ -214,8 +232,13 @@ struct Handle {
     v_ = new AST::Ptr(rhs.var());
     return  *this;
   }
-  ~Handle() { if (v_) delete v_; };
+    ~Handle() { if (v_) delete v_; };
   
+  template <size_t Len2>
+  bool operator==(const Handle<Len2> &rhs) {
+    return ((Len == Len2) && (*(var()) == *(rhs.var())));
+  }
+
   AST::Ptr var() const { 
     assert(v_); return *v_;
   }
@@ -225,384 +248,429 @@ struct Handle {
 };
 
 
-class SymEvalPolicy {
+ class SymEvalPolicy {
  public:
 
 
-  SymEvalPolicy(SymEval::Result &r, Dyninst::Architecture a);
+   SymEvalPolicy(SymEval::Result &r, 
+		 Address addr,
+		 Dyninst::Architecture a);
 
-  ~SymEvalPolicy() {};
+   ~SymEvalPolicy() {};
   
-    void startInstruction(SgAsmx86Instruction *);
+   void startInstruction(SgAsmx86Instruction *);
 
-    void finishInstruction(SgAsmx86Instruction *);
+   void finishInstruction(SgAsmx86Instruction *);
     
-    // Policy classes must implement the following methods:
-    Handle<32> readGPR(X86GeneralPurposeRegister r) {
-      return Handle<32>(wrap(convert(r)));
-    }
+   // Policy classes must implement the following methods:
+   Handle<32> readGPR(X86GeneralPurposeRegister r) {
+     return Handle<32>(wrap(convert(r)));
+   }
     
-    void writeGPR(X86GeneralPurposeRegister r, Handle<32> value) {
-      std::map<Absloc, Assignment::Ptr>::iterator i = aaMap.find(convert(r));
-      if (i != aaMap.end()) {
-	res[i->second] = value.var();
-      }
-      // Otherwise we don't care. Annoying that we 
-      // had to expand this register...
-    }
+   void writeGPR(X86GeneralPurposeRegister r, Handle<32> value) {
+     std::map<Absloc, Assignment::Ptr>::iterator i = aaMap.find(convert(r));
+     if (i != aaMap.end()) {
+       res[i->second] = value.var();
+     } 
+     // Otherwise we don't care. Annoying that we 
+     // had to expand this register...
+   }
     
-    Handle<16> readSegreg(X86SegmentRegister r) {
-      return Handle<16>(wrap(convert(r)));
-    }
+   Handle<16> readSegreg(X86SegmentRegister r) {
+     return Handle<16>(wrap(convert(r)));
+   }
     
-    void writeSegreg(X86SegmentRegister r, Handle<16> value) {
-      std::map<Absloc, Assignment::Ptr>::iterator i = aaMap.find(convert(r));
-      if (i != aaMap.end()) {
-	res[i->second] = value.var();
-      }
-      // Otherwise we don't care. Annoying that we 
-      // had to expand this register...
-    }
+   void writeSegreg(X86SegmentRegister r, Handle<16> value) {
+     std::map<Absloc, Assignment::Ptr>::iterator i = aaMap.find(convert(r));
+     if (i != aaMap.end()) {
+       res[i->second] = value.var();
+     }
+     // Otherwise we don't care. Annoying that we 
+     // had to expand this register...
+   }
     
-    Handle<32> readIP() { 
-      return Handle<32>(wrap(Absloc::makePC(arch)));
-    }
+   Handle<32> readIP() { 
+     return ip_;
+   }
     
-    void writeIP(Handle<32> value) {
-      std::map<Absloc, Assignment::Ptr>::iterator i = aaMap.find(Absloc::makePC(arch));
-      if (i != aaMap.end()) {
-	res[i->second] = value.var();
-      }
-      // Otherwise we don't care. Annoying that we 
-      // had to expand this register...
-    } 
+   void writeIP(Handle<32> value) {
+     // Always care about the IP...
+     std::map<Absloc, Assignment::Ptr>::iterator i = aaMap.find(Absloc::makePC(arch));
+     if (i != aaMap.end()) {
+       res[i->second] = value.var();
+     }
+     ip_ = value;
+     // Otherwise we don't care. Annoying that we 
+     // had to expand this register...
+   } 
     
-    Handle<1> readFlag(X86Flag f) {
-      return Handle<1>(wrap(convert(f)));
-    }
+   Handle<1> readFlag(X86Flag f) {
+     return Handle<1>(wrap(convert(f)));
+   }
     
-    void writeFlag(X86Flag f, Handle<1> value) {
-      std::map<Absloc, Assignment::Ptr>::iterator i = aaMap.find(convert(f));
-      if (i != aaMap.end()) {
-	res[i->second] = value.var();
-      }
-      // Otherwise we don't care. Annoying that we 
-      // had to expand this register...
-    }
+   void writeFlag(X86Flag f, Handle<1> value) {
+     std::map<Absloc, Assignment::Ptr>::iterator i = aaMap.find(convert(f));
+     if (i != aaMap.end()) {
+       res[i->second] = value.var();
+     }
+     // Otherwise we don't care. Annoying that we 
+     // had to expand this register...
+   }
 
-    // Len here is the number of bits read, which we'll
-    // turn into an argument of the AST. 
+   // Len here is the number of bits read, which we'll
+   // turn into an argument of the AST. 
     
-    template <size_t Len>
-    Handle<Len> readMemory(X86SegmentRegister /*segreg*/,
-                           Handle<32> addr,
-                           Handle<1> cond) {
-        return Handle<Len>(getBinaryAST(ROSEOperation::derefOp,
-                                        addr.var(),
-                                        cond.var()));
-    }
+   template <size_t Len>
+     Handle<Len> readMemory(X86SegmentRegister /*segreg*/,
+			    Handle<32> addr,
+			    Handle<1> cond) {
+     if (cond == true_()) {
+       return Handle<Len>(getUnaryAST(ROSEOperation::derefOp,
+				      addr.var()));
+     }
+     else {
+       return Handle<Len>(getBinaryAST(ROSEOperation::derefOp,
+				       addr.var(),
+				       cond.var()));
+     }
+   }
         
-    template <size_t Len>
-    void writeMemory(X86SegmentRegister,
-                     Handle<32> addr,
-                     Handle<Len> data,
-                     Handle<32> repeat,
-                     Handle<1> cond) {
-      // We can only write memory once per instruction. Therefore, 
-      // instead of sweating what we're actually being handed (or
-      // what AbsRegion we're actually assigning), we build in 
-      // a generic "Memory" Absloc to aamap and use that. 
+   template <size_t Len>
+     void writeMemory(X86SegmentRegister,
+		      Handle<32> addr,
+		      Handle<Len> data,
+		      Handle<32> repeat,
+		      Handle<1> cond) {
+     // We can only write memory once per instruction. Therefore, 
+     // instead of sweating what we're actually being handed (or
+     // what AbsRegion we're actually assigning), we build in 
+     // a generic "Memory" Absloc to aamap and use that. 
 
-      std::map<Absloc, Assignment::Ptr>::iterator i = aaMap.find(Absloc(0));
-      if (i != aaMap.end()) {
-	i->second->out().setGenerator(addr.var());
-	res[i->second] = getTernaryAST(ROSEOperation::writeRepOp,
+     std::map<Absloc, Assignment::Ptr>::iterator i = aaMap.find(Absloc(0));
+     if (i != aaMap.end()) {
+       i->second->out().setGenerator(addr.var());
+       
+       if (cond == true_()) {
+	 res[i->second] = getBinaryAST(ROSEOperation::writeRepOp,
 				       data.var(),
-				       cond.var(), 
 				       repeat.var());
-      }
-    }
+       }
+       else {
+	 res[i->second] = getTernaryAST(ROSEOperation::writeRepOp,
+					data.var(),
+					cond.var(), 
+					repeat.var());
+       }
+     }
+   }
 
-    template <size_t Len>
-    void writeMemory(X86SegmentRegister,
-                     Handle<32> addr,
-                     Handle<Len> data,
-                     Handle<1> cond) {
-      std::map<Absloc, Assignment::Ptr>::iterator i = aaMap.find(Absloc(0));
-      if (i != aaMap.end()) {
-	i->second->out().setGenerator(addr.var());
-	res[i->second] = getBinaryAST(ROSEOperation::writeOp,
-				      data.var(),
-				      cond.var());
-      }
-    }
+   template <size_t Len>
+     void writeMemory(X86SegmentRegister,
+		      Handle<32> addr,
+		      Handle<Len> data,
+		      Handle<1> cond) {
+     std::map<Absloc, Assignment::Ptr>::iterator i = aaMap.find(Absloc(0));
+     if (i != aaMap.end()) {
+       i->second->out().setGenerator(addr.var());
+       if (cond == true_()) {	 
+	 // Thinking about it... I think we avoid the "writeOp"
+	 // because it's implicit in what we're setting; the 
+	 // dereference goes on the left hand side rather than the
+	 // right
+	 res[i->second] = data.var();
+	 /*
+	 res[i->second] = getUnaryAST(ROSEOperation::writeOp,
+				      data.var());
+	 */
+       } 
+       else {
+	 res[i->second] = getBinaryAST(ROSEOperation::writeOp,
+				       data.var(),
+				       cond.var());
+       }
+     }
+   }
 
-    // Create a representation for a Len-bit constant
-    template <size_t Len>
-    Handle<Len> number(uint64_t n) {
-        return Handle<Len>(getConstAST(n, Len));
-    }
+   // Create a representation for a Len-bit constant
+   template <size_t Len>
+     Handle<Len> number(uint64_t n) {
+     return Handle<Len>(getConstAST(n, Len));
+   }
 
-    Handle<1> true_() {
-        return Handle<1>(getConstAST(1, 1));
-    }
+   Handle<1> true_() {
+     return Handle<1>(getConstAST(1, 1));
+   }
 
-    Handle<1> false_() {
-        return Handle<1>(getConstAST(0, 1));
-    }
+   Handle<1> false_() {
+     return Handle<1>(getConstAST(0, 1));
+   }
 
-    // TODO FIXME - we need a "bottom".
-    Handle<1> undefined_() {
-      return Handle<1>(getConstAST(-1, 1));
-    }
+   // TODO FIXME - we need a "bottom".
+   Handle<1> undefined_() {
+     return Handle<1>(getBottomAST());
+   }
 
-    // If-then-else
+   // If-then-else
     
-    template <size_t Len>
-    Handle<Len> ite(Handle<1> sel, 
-                    Handle<Len> ifTrue, 
-                    Handle<Len> ifFalse) {
-        return Handle<Len>(getTernaryAST(ROSEOperation::ifOp,
-                                         sel.var(),
-                                         ifTrue.var(),
-                                         ifFalse.var()));
-    }
+   template <size_t Len>
+     Handle<Len> ite(Handle<1> sel, 
+		     Handle<Len> ifTrue, 
+		     Handle<Len> ifFalse) {
+     return Handle<Len>(getTernaryAST(ROSEOperation::ifOp,
+				      sel.var(),
+				      ifTrue.var(),
+				      ifFalse.var()));
+   }
 
 
-    // UNARY OPERATIONS
+   // UNARY OPERATIONS
 
-    // This is actually a ternary operation with
-    // the second parameter implicit in the
-    // template specifications...
-    // From/To specify the range of bits to 
-    // extract from the data type.
-    template<size_t From, size_t To, size_t Len> 
-    Handle<To-From> extract(Handle<Len> a) {
-        return Handle<To-From>(getTernaryAST(ROSEOperation::extractOp, 
-                                             a.var(),
-                                             number<Len>(From).var(),
-                                             number<Len>(To).var()));
-    }
+   // This is actually a ternary operation with
+   // the second parameter implicit in the
+   // template specifications...
+   // From/To specify the range of bits to 
+   // extract from the data type.
+   template<size_t From, size_t To, size_t Len> 
+     Handle<To-From> extract(Handle<Len> a) {
+     return Handle<To-From>(a.var());
+     /*
+     return Handle<To-From>(getTernaryAST(ROSEOperation::extractOp, 
+					  a.var(),
+					  number<Len>(From).var(),
+					  number<Len>(To).var()));
+     */
+   }
 
-    template <size_t Len>
-    Handle<Len> invert(Handle<Len> a) {
-        return Handle<Len>(getUnaryAST(ROSEOperation::invertOp, a.var()));
-    }
+   template <size_t Len>
+     Handle<Len> invert(Handle<Len> a) {
+     return Handle<Len>(getUnaryAST(ROSEOperation::invertOp, a.var()));
+   }
 
-    template <size_t Len>
-    Handle<Len> negate(Handle<Len> a) {
-        return Handle<Len>(getUnaryAST(ROSEOperation::negateOp, a.var()));
-    }
+   template <size_t Len>
+     Handle<Len> negate(Handle<Len> a) {
+     return Handle<Len>(getUnaryAST(ROSEOperation::negateOp, a.var()));
+   }
 
-    template <size_t From, size_t To> 
-    Handle<To> signExtend(Handle<From> a) {
-        return Handle<To>(getBinaryAST(ROSEOperation::signExtendOp,
-                                       a.var(),
-                                       number<32>(To).var()));
-    }
+   template <size_t From, size_t To> 
+     Handle<To> signExtend(Handle<From> a) {
+     return Handle<To>(getBinaryAST(ROSEOperation::signExtendOp,
+				    a.var(),
+				    number<32>(To).var()));
+   }
 
-    template <size_t Len>
-    Handle<1> equalToZero(Handle<Len> a) {
-        return Handle<1>(getUnaryAST(ROSEOperation::equalToZeroOp, a.var()));
-    }
+   template <size_t Len>
+     Handle<1> equalToZero(Handle<Len> a) {
+     return Handle<1>(getUnaryAST(ROSEOperation::equalToZeroOp, a.var()));
+   }
 
-    template <size_t Len>
-    Handle<Len> leastSignificantSetBit(Handle<Len> a) {
-        return Handle<Len>(getUnaryAST(ROSEOperation::LSBSetOp, a.var()));
-    }
+   template <size_t Len>
+     Handle<Len> leastSignificantSetBit(Handle<Len> a) {
+     return Handle<Len>(getUnaryAST(ROSEOperation::LSBSetOp, a.var()));
+   }
 
-    template <size_t Len>
-    Handle<Len> mostSignificantSetBit(Handle<Len> a) {
-        return Handle<Len>(getUnaryAST(ROSEOperation::MSBSetOp, a.var()));
-    }
+   template <size_t Len>
+     Handle<Len> mostSignificantSetBit(Handle<Len> a) {
+     return Handle<Len>(getUnaryAST(ROSEOperation::MSBSetOp, a.var()));
+   }
 
-    // BINARY OPERATIONS
+   // BINARY OPERATIONS
 
-    template <size_t Len1, size_t Len2>
-    Handle<Len1+Len2> concat(Handle<Len1> a, Handle<Len2> b) {
-        return Handle<Len1+Len2>(getBinaryAST(ROSEOperation::concatOp, a.var(), b.var()));
-    }
+   template <size_t Len1, size_t Len2>
+     Handle<Len1+Len2> concat(Handle<Len1> a, Handle<Len2> b) {
+     return Handle<Len1+Len2>(getBinaryAST(ROSEOperation::concatOp, a.var(), b.var()));
+   }
 
-    template <size_t Len>
-    Handle<Len> and_(Handle<Len> a, Handle<Len> b) {
-        return Handle<Len>(getBinaryAST(ROSEOperation::andOp, a.var(), b.var()));
-    }
+   template <size_t Len>
+     Handle<Len> and_(Handle<Len> a, Handle<Len> b) {
+     return Handle<Len>(getBinaryAST(ROSEOperation::andOp, a.var(), b.var()));
+   }
 
     
-    template <size_t Len>
-    Handle<Len> or_(Handle<Len> a, Handle<Len> b) {
-        return Handle<Len>(getBinaryAST(ROSEOperation::orOp, a.var(), b.var()));
-    }
+   template <size_t Len>
+     Handle<Len> or_(Handle<Len> a, Handle<Len> b) {
+     return Handle<Len>(getBinaryAST(ROSEOperation::orOp, a.var(), b.var()));
+   }
 
-    template <size_t Len>    
-    Handle<Len> xor_(Handle<Len> a, Handle<Len> b) {
-        return Handle<Len>(getBinaryAST(ROSEOperation::xorOp, a.var(), b.var()));
-    }
+   template <size_t Len>    
+     Handle<Len> xor_(Handle<Len> a, Handle<Len> b) {
+     return Handle<Len>(getBinaryAST(ROSEOperation::xorOp, a.var(), b.var()));
+   }
     
-    template <size_t Len>    
-    Handle<Len> add(Handle<Len> a, Handle<Len> b) {
-        return Handle<Len>(getBinaryAST(ROSEOperation::addOp, a.var(), b.var()));
-    }
+   template <size_t Len>    
+     Handle<Len> add(Handle<Len> a, Handle<Len> b) {
+     return Handle<Len>(getBinaryAST(ROSEOperation::addOp, a.var(), b.var()));
+   }
 
-    template <size_t Len, size_t SALen>
-    Handle<Len> rotateLeft(Handle<Len> a, Handle<SALen> b) {
-        return Handle<Len>(getBinaryAST(ROSEOperation::rotateLOp, a.var(), b.var()));
-    }
+   template <size_t Len, size_t SALen>
+     Handle<Len> rotateLeft(Handle<Len> a, Handle<SALen> b) {
+     return Handle<Len>(getBinaryAST(ROSEOperation::rotateLOp, a.var(), b.var()));
+   }
     
-    template <size_t Len, size_t SALen>
-    Handle<Len> rotateRight(Handle<Len> a, Handle<SALen> b) {
-        return Handle<Len>(getBinaryAST(ROSEOperation::rotateROp, a.var(), b.var()));
-    }
+   template <size_t Len, size_t SALen>
+     Handle<Len> rotateRight(Handle<Len> a, Handle<SALen> b) {
+     return Handle<Len>(getBinaryAST(ROSEOperation::rotateROp, a.var(), b.var()));
+   }
 
-    template <size_t Len, size_t SALen>
-    Handle<Len> shiftLeft(Handle<Len> a, Handle<SALen> b) {
-        return Handle<Len>(getBinaryAST(ROSEOperation::shiftLOp, a.var(), b.var()));
-    }
+   template <size_t Len, size_t SALen>
+     Handle<Len> shiftLeft(Handle<Len> a, Handle<SALen> b) {
+     return Handle<Len>(getBinaryAST(ROSEOperation::shiftLOp, a.var(), b.var()));
+   }
 
-    template <size_t Len, size_t SALen>
-    Handle<Len> shiftRight(Handle<Len> a, Handle<SALen> b) {
-        return Handle<Len>(getBinaryAST(ROSEOperation::shiftROp, a.var(), b.var()));
-    }
+   template <size_t Len, size_t SALen>
+     Handle<Len> shiftRight(Handle<Len> a, Handle<SALen> b) {
+     return Handle<Len>(getBinaryAST(ROSEOperation::shiftROp, a.var(), b.var()));
+   }
 
-    template <size_t Len, size_t SALen>
-    Handle<Len> shiftRightArithmetic(Handle<Len> a, Handle<SALen> b) {
-        return Handle<Len>(getBinaryAST(ROSEOperation::shiftRArithOp, a.var(), b.var()));
-    }
+   template <size_t Len, size_t SALen>
+     Handle<Len> shiftRightArithmetic(Handle<Len> a, Handle<SALen> b) {
+     return Handle<Len>(getBinaryAST(ROSEOperation::shiftRArithOp, a.var(), b.var()));
+   }
 
-    template<size_t Len1, size_t Len2>
-    Handle<Len1+Len2> signedMultiply(Handle<Len1> a, Handle<Len2> b) {
-        return Handle<Len1+Len2>(getBinaryAST(ROSEOperation::sMultOp, a.var(), b.var()));
-    }
+   template<size_t Len1, size_t Len2>
+     Handle<Len1+Len2> signedMultiply(Handle<Len1> a, Handle<Len2> b) {
+     return Handle<Len1+Len2>(getBinaryAST(ROSEOperation::sMultOp, a.var(), b.var()));
+   }
 
-    template<size_t Len1, size_t Len2>
-    Handle<Len1+Len2> unsignedMultiply(Handle<Len1> a, Handle<Len2> b) {
-        return Handle<Len1+Len2>(getBinaryAST(ROSEOperation::uMultOp, a.var(), b.var()));
-    }
+   template<size_t Len1, size_t Len2>
+     Handle<Len1+Len2> unsignedMultiply(Handle<Len1> a, Handle<Len2> b) {
+     return Handle<Len1+Len2>(getBinaryAST(ROSEOperation::uMultOp, a.var(), b.var()));
+   }
  
-    template<size_t Len1, size_t Len2>
-    Handle<Len1> signedDivide(Handle<Len1> a, Handle<Len2> b) {
-        return Handle<Len1>(getBinaryAST(ROSEOperation::sDivOp, a.var(), b.var()));
-    }
+   template<size_t Len1, size_t Len2>
+     Handle<Len1> signedDivide(Handle<Len1> a, Handle<Len2> b) {
+     return Handle<Len1>(getBinaryAST(ROSEOperation::sDivOp, a.var(), b.var()));
+   }
 
-    template<size_t Len1, size_t Len2>
-    Handle<Len2> signedModulo(Handle<Len1> a, Handle<Len2> b) {
-        return Handle<Len2>(getBinaryAST(ROSEOperation::sModOp, a.var(), b.var()));
-    }
+   template<size_t Len1, size_t Len2>
+     Handle<Len2> signedModulo(Handle<Len1> a, Handle<Len2> b) {
+     return Handle<Len2>(getBinaryAST(ROSEOperation::sModOp, a.var(), b.var()));
+   }
 
-    template<size_t Len1, size_t Len2>    
-    Handle<Len1> unsignedDivide(Handle<Len1> a, Handle<Len2> b) {
-        return Handle<Len1>(getBinaryAST(ROSEOperation::uDivOp, a.var(), b.var()));
-    }
+   template<size_t Len1, size_t Len2>    
+     Handle<Len1> unsignedDivide(Handle<Len1> a, Handle<Len2> b) {
+     return Handle<Len1>(getBinaryAST(ROSEOperation::uDivOp, a.var(), b.var()));
+   }
 
-    template<size_t Len1, size_t Len2>
-    Handle<Len2> unsignedModulo(Handle<Len1> a, Handle<Len2> b) {
-        return Handle<Len2>(getBinaryAST(ROSEOperation::sModOp, a.var(), b.var()));
-    }
+   template<size_t Len1, size_t Len2>
+     Handle<Len2> unsignedModulo(Handle<Len1> a, Handle<Len2> b) {
+     return Handle<Len2>(getBinaryAST(ROSEOperation::sModOp, a.var(), b.var()));
+   }
     
-    // Ternary (??) operations
+   // Ternary (??) operations
     
-    template<size_t Len>
-    Handle<Len> add3(Handle<Len> a, Handle<Len> b, Handle<1> c) {
-        return Handle<Len>(getBinaryAST(ROSEOperation::addOp,
-                                        a.var(),
-                                        getBinaryAST(ROSEOperation::addOp,
-                                                     b.var(),
-                                                     c.var())));
-    }
+   template<size_t Len>
+     Handle<Len> add3(Handle<Len> a, Handle<Len> b, Handle<1> c) {
+     return Handle<Len>(getBinaryAST(ROSEOperation::addOp,
+				     a.var(),
+				     getBinaryAST(ROSEOperation::addOp,
+						  b.var(),
+						  c.var())));
+   }
     
-    template<size_t Len>
-    Handle<Len> xor3(Handle<Len> a, Handle<Len> b, Handle<Len> c) {
-        return Handle<Len>(getBinaryAST(ROSEOperation::xorOp,
-                                        a.var(),
-                                        getBinaryAST(ROSEOperation::xorOp,
-                                                     b.var(),
-                                                     c.var())));
-    }
+   template<size_t Len>
+     Handle<Len> xor3(Handle<Len> a, Handle<Len> b, Handle<Len> c) {
+     return Handle<Len>(getBinaryAST(ROSEOperation::xorOp,
+				     a.var(),
+				     getBinaryAST(ROSEOperation::xorOp,
+						  b.var(),
+						  c.var())));
+   }
     
-    template<size_t Len>
-    Handle<Len> addWithCarries(Handle<Len> a, 
-                               Handle<Len> b,
-                               Handle<1> carryIn,
-                               Handle<Len>& carries) {
-        Handle<Len+1> aa = Handle<Len+1>(extendByMSB<Len, Len+1>(a.var()));
-        Handle<Len+1> bb = Handle<Len+1>(extendByMSB<Len, Len+1>(b.var()));
-        Handle<Len+1> result = add3(aa, bb, carryIn);
-        carries = extract<1,Len+1>(xor3(aa, bb, result));
-        return extract<0,Len>(result);
-    }
+   template<size_t Len>
+     Handle<Len> addWithCarries(Handle<Len> a, 
+				Handle<Len> b,
+				Handle<1> carryIn,
+				Handle<Len>& carries) {
+     Handle<Len+1> aa = Handle<Len+1>(extendByMSB<Len, Len+1>(a.var()));
+     Handle<Len+1> bb = Handle<Len+1>(extendByMSB<Len, Len+1>(b.var()));
+     Handle<Len+1> result = add3(aa, bb, carryIn);
+     carries = extract<1,Len+1>(xor3(aa, bb, result));
+     return extract<0,Len>(result);
+   }
 
-    // Misc
+   // Misc
     
-    void hlt() {};
-    void interrupt(uint8_t) {};
+   void hlt() {};
+   void interrupt(uint8_t) {};
     
-    Handle<64> rdtsc() {
-        return number<64>(0);
-    }
+   Handle<64> rdtsc() {
+     return number<64>(0);
+   }
 
-    void startBlock(uint64_t) {}
-    void finishBlock(uint64_t) {}
+   void startBlock(uint64_t) {}
+   void finishBlock(uint64_t) {}
 
-    Handle<32> filterIndirectJumpTarget(Handle<32> x) { return x; }
+   Handle<32> filterIndirectJumpTarget(Handle<32> x) { return x; }
 
-    Handle<32> filterCallTarget(Handle<32> x) { return x; }
+   Handle<32> filterCallTarget(Handle<32> x) { return x; }
 
-    Handle<32> filterReturnTarget(Handle<32> x) { return x; }
+   Handle<32> filterReturnTarget(Handle<32> x) { return x; }
 
-    template <size_t From, size_t To>
-    Handle<To> extendByMSB(Handle<From> a) {
-        return Handle<To>(getBinaryAST(ROSEOperation::extendMSBOp,
-                                       a.var(),
-                                       number<32>(To).var()));
-    }
+   template <size_t From, size_t To>
+     Handle<To> extendByMSB(Handle<From> a) {
+     return Handle<To>(a.var());
+     /*
+     return Handle<To>(getBinaryAST(ROSEOperation::extendMSBOp,
+				    a.var(),
+				    number<32>(To).var()));
+     */
+   }
 
  private:
-    // Don't use this...
-    SymEvalPolicy();
+   // Don't use this...
+   SymEvalPolicy();
 
-    // This is the thing we fill in ;)
-    SymEval::Result &res;
+   // This is the thing we fill in ;)
+   SymEval::Result &res;
 
-    Architecture arch;
+   Architecture arch;
 
-    // The above is an Assignment::Ptr -> AST::Ptr map
-    // But assignments aren't very easy to deal with.
-    // So also construct a map from Abslocs
-    // to Assignments for the registers; 
-    // we use a generic "memory" absloc to handle
-    // assignments to memory.
+   Handle<32> ip_;
 
-    std::map<Absloc, Assignment::Ptr> aaMap;
+    
 
-    // Conversion functions
-    Absloc convert(X86GeneralPurposeRegister r);
-    Absloc convert(X86SegmentRegister r);
-    Absloc convert(X86Flag r);
-    AST::Ptr wrap(Absloc r) { 
-      return VariableAST<AbsRegion>::create(AbsRegion(r));
-    }
+   // The above is an Assignment::Ptr -> AST::Ptr map
+   // But assignments aren't very easy to deal with.
+   // So also construct a map from Abslocs
+   // to Assignments for the registers; 
+   // we use a generic "memory" absloc to handle
+   // assignments to memory.
+
+   std::map<Absloc, Assignment::Ptr> aaMap;
+
+   // Conversion functions
+   Absloc convert(X86GeneralPurposeRegister r);
+   Absloc convert(X86SegmentRegister r);
+   Absloc convert(X86Flag r);
+   AST::Ptr wrap(Absloc r) { 
+     return AbsRegionAST::create(AbsRegion(r));
+   }
 
 
     AST::Ptr getConstAST(uint64_t n, size_t) {
-      return ConstantAST<uint64_t>::create(n);
+      return ConstantAST::create(n);
     }
-                                        
+                        
+    AST::Ptr getBottomAST() {
+      return BottomAST::create(false);
+    }
+                
     AST::Ptr getUnaryAST(ROSEOperation::Op op,
                          AST::Ptr a) {
-      return UnaryAST<ROSEOperation>::create(ROSEOperation(op), a);
+      return RoseAST::create(ROSEOperation(op), a);
     }
 
     AST::Ptr getBinaryAST(ROSEOperation::Op op,
                           AST::Ptr a,
                           AST::Ptr b) {
-      return BinaryAST<ROSEOperation>::create(ROSEOperation(op), a, b);
+      return RoseAST::create(ROSEOperation(op), a, b);
     }
     
     AST::Ptr getTernaryAST(ROSEOperation::Op op,
                            AST::Ptr a,
                            AST::Ptr b,
                            AST::Ptr c) {
-      return TernaryAST<ROSEOperation>::create(ROSEOperation(op), a, b, c);
+      return RoseAST::create(ROSEOperation(op), a, b, c);
     }
     
 };

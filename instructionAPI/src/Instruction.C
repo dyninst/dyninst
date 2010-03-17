@@ -59,7 +59,6 @@ namespace Dyninst
                              dyn_detail::boost::shared_ptr<InstructionDecoder> dec)
       : m_InsnOp(what), m_Valid(true), m_dec(dec)
     {
-        m_Operands.reserve(5);
         copyRaw(size, raw);
       
     }
@@ -90,13 +89,13 @@ namespace Dyninst
     
     void Instruction::decodeOperands() const
     {
+        m_Operands.reserve(5);
         m_dec->doDelayedDecode(this);
     }
     
     INSTRUCTION_EXPORT Instruction::Instruction() :
       m_Valid(false), m_size(0)
     {
-        m_Operands.reserve(5);
     }
     
     INSTRUCTION_EXPORT Instruction::~Instruction()
@@ -111,7 +110,7 @@ namespace Dyninst
     INSTRUCTION_EXPORT Instruction::Instruction(const Instruction& o) :
             m_dec(o.m_dec)
     {
-      m_Operands.clear();
+        m_Operands.clear();
       //m_Operands.reserve(o.m_Operands.size());
       //std::copy(o.m_Operands.begin(), o.m_Operands.end(), std::back_inserter(m_Operands));
       if(m_size > sizeof(unsigned int)) 
@@ -510,7 +509,7 @@ memAccessors.begin()));
 		long offset;
 		cft->target->bind(thePC, Result(u32, 0));
 		offset = cft->target->eval().convert<long>();
-		if(offset != size())
+                if(offset != (int)(size()))
 		  return c_CallInsn;
               }
           }

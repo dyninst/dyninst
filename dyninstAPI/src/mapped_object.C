@@ -165,6 +165,10 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
 
     }
 #endif
+
+#if defined(os_vxworks)
+    launch_task(fileDesc.file(), this);
+#endif
 }
 
 mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
@@ -580,7 +584,7 @@ const pdvector <int_function *> *mapped_object::findFuncVectorByMangled(const st
     // First, check the underlying image.
     const pdvector<image_func *> *img_funcs = parse_img()->findFuncVectorByMangled(funcname);
     if (img_funcs == NULL) return NULL;
-    
+
     assert(img_funcs->size());
     // Fast path:
     if (allFunctionsByMangledName.defines(funcname)) {
@@ -883,16 +887,13 @@ int_variable *mapped_object::findVariable(image_variable *img_var) {
     
     mapped_module *mod = findModule(img_var->pdmod());
     assert(mod);
-    
-    int_variable *var = new int_variable(img_var,
-                                         dataBase_,
-                                         mod);
 
+    int_variable *var = new int_variable(img_var, dataBase_, mod);
     addVariable(var);
     return var;
 }
 
- void mapped_object::addVariable(int_variable *var) { 
+void mapped_object::addVariable(int_variable *var) { 
     
     // Possibly multiple demangled (pretty) names...
     // And multiple functions (different addr) with the same pretty

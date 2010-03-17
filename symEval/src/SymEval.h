@@ -43,7 +43,11 @@
 #include "Absloc.h"
 #include "AST.h"
 
-#include "../rose/enums.h"
+#include "slicing.h"
+
+#include "external/rose/rose-compat.h"
+
+#include "Graph.h"
 
 class SgAsmx86Instruction;
 class SgAsmExpression;
@@ -58,17 +62,25 @@ class SymEval {
   // SymEval::AbsRegions and come up with the answer
 
   typedef std::map<Assignment::Ptr, AST::Ptr> Result;
-    
+  static const AST::Ptr Placeholder;
+  
   // Single version: hand in an Assignment, get an AST
   static AST::Ptr expand(const Assignment::Ptr &assignment);
 
-  // Hand in a set of Assignments (from the same instruction!)
+  // Hand in a set of Assignments
   // get back a map of Assignments->ASTs
   // We assume the assignments are prepped in the input; whatever
   // they point to is discarded.
   static void expand(Result &res);
+
+  // Hand in a Graph (of AssignNodes, natch) and get back a Result;
+  // prior results from the Graph
+  // are substituted into anything that uses them.
+  static void expand(Graph::Ptr slice, Result &res);
   
  private:
+  static void process(AssignNode::Ptr, SymEval::Result &res);
+
   static SgAsmx86Instruction convert(const InstructionAPI::Instruction::Ptr &insn, uint64_t addr);
   static X86InstructionKind convert(entryID opcode);
   static SgAsmExpression *convert(const InstructionAPI::Operand &operand);
