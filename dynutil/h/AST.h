@@ -133,11 +133,11 @@ class name : public AST {						\
   static Ptr create(type t, Children c) { return Ptr(new name(t, c)); }	\
   virtual const std::string format() const {				\
     std::stringstream ret;						\
-    ret << "<" << t_ << ",";						\
+    ret << t_ << "(";                                                   \
     for (Children::const_iterator i = kids_.begin(); i != kids_.end(); ++i) {	\
       ret << (*i)->format() << ",";					\
     }									\
-    ret << ">";								\
+    ret << ")";								\
     return ret.str();							\
   }									\
   virtual AST::Ptr child(unsigned i) const { return kids_[i];}		\

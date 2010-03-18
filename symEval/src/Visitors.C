@@ -98,7 +98,7 @@ AST::Ptr StackVisitor::visit(RoseAST *r) {
     // Simplify the operand
     switch(newKids[0]->getID()) {
     case AST::V_ConstantAST:
-      return AbsRegionAST::create(AbsRegion(Absloc(ConstantAST::convert(newKids[0])->val())));
+      return AbsRegionAST::create(AbsRegion(Absloc(ConstantAST::convert(newKids[0])->val().val)));
     case AST::V_StackAST: {
       StackAST::Ptr s = StackAST::convert(newKids[0]);
       if (s->val() == StackAnalysis::Height::bottom) 
@@ -119,12 +119,15 @@ AST::Ptr StackVisitor::visit(RoseAST *r) {
     case AST::V_ConstantAST:
       // Left is a constant; is the right something we can add?
       switch (newKids[1]->getID()) {
-      case AST::V_ConstantAST:
-	return ConstantAST::create(ConstantAST::convert(newKids[0])->val() +
-				   ConstantAST::convert(newKids[1])->val());
+      case AST::V_ConstantAST: {
+        Constant const0 = ConstantAST::convert(newKids[0])->val();
+        Constant const1 = ConstantAST::convert(newKids[1])->val();
+	return ConstantAST::create(Constant(const0.val + const1.val,
+                                   ((const0.size > const1.size) ? const0.size : const1.size)));
+      }
       case AST::V_StackAST:
 	return StackAST::create(StackAST::convert(newKids[1])->val() +
-				ConstantAST::convert(newKids[0])->val());
+				ConstantAST::convert(newKids[0])->val().val);
       default:
 	return RoseAST::create(r->val(), newKids);
       }
@@ -133,7 +136,7 @@ AST::Ptr StackVisitor::visit(RoseAST *r) {
       switch (newKids[1]->getID()) {
       case AST::V_ConstantAST:
 	return StackAST::create(StackAST::convert(newKids[0])->val() +
-				ConstantAST::convert(newKids[1])->val());
+				ConstantAST::convert(newKids[1])->val().val);
       default:
 	return RoseAST::create(r->val(), newKids);
       }
