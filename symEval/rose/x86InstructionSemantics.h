@@ -539,7 +539,11 @@ struct X86InstructionSemantics {
     /* Virtual so that we can subclass X86InstructionSemantics and have an opportunity to override the translation of any
      * instruction. */
     virtual void translate(SgAsmx86Instruction* insn) {
-        policy.writeIP(number<32>((unsigned int)(insn->get_address() + insn->get_raw_bytes().size())));
+      // BERNAT, 16MAR10 - keep the IP symbolic.
+      // PATCH
+      policy.writeIP(policy.add(policy.readIP(), number<32>(insn->get_raw_bytes().size())));
+      //policy.writeIP(number<32>((unsigned int)(insn->get_address() + insn->get_raw_bytes().size())));
+      // END PATCH
         X86InstructionKind kind = insn->get_kind();
         const SgAsmExpressionPtrList& operands = insn->get_operandList()->get_operands();
         switch (kind) {
