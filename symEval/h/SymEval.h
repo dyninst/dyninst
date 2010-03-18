@@ -55,6 +55,148 @@ class SgAsmExpression;
 namespace Dyninst {
 namespace SymbolicEvaluation {
 
+// The ROSE symbolic evaluation engine wants a data type that
+// is template parametrized on the number of bits in the data
+// type. However, our ASTs don't have this, and a shared_ptr
+// to an AST _definitely_ doesn't have it. Instead, we use
+// a wrapper class (Handle) that is parametrized appropriately
+// and contains a shared pointer. 
+
+// This uses a pointer to a shared pointer. This is ordinarily a really
+// bad idea, but stripping the pointer part makes the compiler allocate
+// all available memory and crash. No idea why. 
+
+// Define the operations used by ROSE
+
+struct ROSEOperation {
+  typedef enum {
+    nullOp,
+    extractOp,
+    invertOp,
+    negateOp,
+    signExtendOp,
+    equalToZeroOp,
+    generateMaskOp,
+    LSBSetOp,
+    MSBSetOp,
+    concatOp,
+    andOp,
+    orOp,
+    xorOp,
+    addOp,
+    rotateLOp,
+    rotateROp,
+    shiftLOp,
+    shiftROp,
+    shiftRArithOp,
+    derefOp,
+    writeRepOp,
+    writeOp,
+    ifOp,
+    sMultOp,
+    uMultOp,
+    sDivOp,
+    sModOp,
+    uDivOp,
+    uModOp,
+    extendOp,
+    extendMSBOp
+  } Op;
+
+  ROSEOperation(Op o) : op(o) {};
+
+  bool operator==(const ROSEOperation &rhs) const {
+    return (rhs.op == op);
+  }
+
+  const std::string format() const {
+    switch(op) {
+    case nullOp:
+      return "<null>";
+    case extractOp:
+      return "<extract>";
+    case invertOp:
+      return "<invert>";
+    case negateOp:
+      return "<negate>";
+    case signExtendOp:
+      return "<signExtend>";
+    case equalToZeroOp:
+      return "<eqZero?>";
+    case generateMaskOp:
+      return "<genMask>";
+    case LSBSetOp:
+      return "<LSB?>";
+    case MSBSetOp:
+      return "<MSB?>";
+    case concatOp:
+      return "<concat>";
+    case andOp:
+      return "<and>";
+    case orOp:
+      return "<or>";
+    case xorOp:
+      return "<xor>";
+    case addOp:
+      return "<add>";
+    case rotateLOp:
+      return "<rotL>";
+    case rotateROp:
+      return "<rotR>";
+    case shiftLOp:
+      return "<shl>";
+    case shiftROp:
+      return "<shr>";
+    case shiftRArithOp:
+      return "<shrA>";
+    case derefOp:
+      return "<deref>";
+    case writeRepOp:
+      return "<writeRep>";
+    case writeOp:
+      return "<write>";
+    case ifOp:
+      return "<if>";
+    case sMultOp:
+      return "<sMult>";
+    case uMultOp:
+      return "<uMult>";
+    case sDivOp:
+      return "<sDiv>";
+    case sModOp:
+      return "<sMod>";
+    case uDivOp:
+      return "<uDiv>";
+    case uModOp:
+      return "<uMod>";
+    case extendOp:
+      return "<ext>";
+    case extendMSBOp:
+      return "<extMSB>";
+    default:
+      return "< ??? >";
+    };
+  };
+
+  Op op;
+};
+
+};
+
+};
+
+// Get this out of the Dyninst namespace...
+std::ostream &operator<<(std::ostream &os, const Dyninst::SymbolicEvaluation::ROSEOperation &o);
+
+namespace Dyninst {
+
+namespace SymbolicEvaluation {
+
+DEF_AST_LEAF_TYPE(BottomAST, bool);
+DEF_AST_LEAF_TYPE(ConstantAST, uint64_t);
+DEF_AST_LEAF_TYPE(AbsRegionAST, AbsRegion);
+DEF_AST_INTERNAL_TYPE(RoseAST, ROSEOperation);
+
 class SymEval {
  public:
   // Return type: mapping AbsRegions to ASTs

@@ -31,7 +31,7 @@
 
 #include <string>
 
-#include "SymEval.h"
+#include "../h/SymEval.h"
 #include "SymEvalPolicy.h"
 
 #include "AST.h"
