@@ -68,6 +68,31 @@ namespace SymbolicEvaluation {
 
 // Define the operations used by ROSE
 
+
+struct Constant {
+
+  Constant(uint64_t v) : val(v), size(0) {};
+  Constant(uint64_t v, size_t s) : val(v), size(s) {};
+
+  bool operator==(const Constant &rhs) const {
+    return ((rhs.val == val) && (rhs.size == size));
+  }
+
+  const std::string format() const {
+    std::stringstream ret;
+    ret << val;
+    if (size) {
+      ret << ":" << size;
+    }
+    return ret.str();
+  }
+
+  uint64_t val;
+  size_t size;
+};
+
+// Define the operations used by ROSE
+
 struct ROSEOperation {
   typedef enum {
     nullOp,
@@ -103,82 +128,123 @@ struct ROSEOperation {
     extendMSBOp
   } Op;
 
-  ROSEOperation(Op o) : op(o) {};
+  ROSEOperation(Op o) : op(o), size(0) {};
+  ROSEOperation(Op o, size_t s) : op(o), size(s) {};
 
   bool operator==(const ROSEOperation &rhs) const {
-    return (rhs.op == op);
+    return ((rhs.op == op) && (rhs.size == size));
   }
 
   const std::string format() const {
+    std::stringstream ret;
+    ret << "<";
     switch(op) {
     case nullOp:
-      return "<null>";
+      ret << "null";
+      break;
     case extractOp:
-      return "<extract>";
+      ret << "extract";
+      break;
     case invertOp:
-      return "<invert>";
+      ret << "invert";
+      break;
     case negateOp:
-      return "<negate>";
+      ret << "negate";
+      break;
     case signExtendOp:
-      return "<signExtend>";
+      ret << "signExtend";
+      break;
     case equalToZeroOp:
-      return "<eqZero?>";
+      ret << "eqZero?";
+      break;
     case generateMaskOp:
-      return "<genMask>";
+      ret << "genMask";
+      break;
     case LSBSetOp:
-      return "<LSB?>";
+      ret << "LSB?";
+      break;
     case MSBSetOp:
-      return "<MSB?>";
+      ret << "MSB?";
+      break;
     case concatOp:
-      return "<concat>";
+      ret << "concat";
+      break;
     case andOp:
-      return "<and>";
+      ret << "and";
+      break;
     case orOp:
-      return "<or>";
+      ret << "or";
+      break;
     case xorOp:
-      return "<xor>";
+      ret << "xor";
+      break;
     case addOp:
-      return "<add>";
+      ret << "add";
+      break;
     case rotateLOp:
-      return "<rotL>";
+      ret << "rotL";
+      break;
     case rotateROp:
-      return "<rotR>";
+      ret << "rotR";
+      break;
     case shiftLOp:
-      return "<shl>";
+      ret << "shl";
+      break;
     case shiftROp:
-      return "<shr>";
+      ret << "shr";
+      break;
     case shiftRArithOp:
-      return "<shrA>";
+      ret << "shrA";
+      break;
     case derefOp:
-      return "<deref>";
+      ret << "deref";
+      break;
     case writeRepOp:
-      return "<writeRep>";
+      ret << "writeRep";
+      break;
     case writeOp:
-      return "<write>";
+      ret << "write";
+      break;
     case ifOp:
-      return "<if>";
+      ret << "if";
+      break;
     case sMultOp:
-      return "<sMult>";
+      ret << "sMult";
+      break;
     case uMultOp:
-      return "<uMult>";
+      ret << "uMult";
+      break;
     case sDivOp:
-      return "<sDiv>";
+      ret << "sDiv";
+      break;
     case sModOp:
-      return "<sMod>";
+      ret << "sMod";
+      break;
     case uDivOp:
-      return "<uDiv>";
+      ret << "uDiv";
+      break;
     case uModOp:
-      return "<uMod>";
+      ret << "uMod";
+      break;
     case extendOp:
-      return "<ext>";
+      ret << "ext";
+      break;
     case extendMSBOp:
-      return "<extMSB>";
+      ret << "extMSB";
+      break;
     default:
-      return "< ??? >";
+      ret << " ??? ";
+      break;
     };
+    if (size) {
+      ret << ":" << size;
+    }
+    ret << ">";
+    return ret.str();
   };
 
   Op op;
+  size_t size;
 };
 
 };
@@ -187,13 +253,14 @@ struct ROSEOperation {
 
 // Get this out of the Dyninst namespace...
 std::ostream &operator<<(std::ostream &os, const Dyninst::SymbolicEvaluation::ROSEOperation &o);
+std::ostream &operator<<(std::ostream &os, const Dyninst::SymbolicEvaluation::Constant &o);
 
 namespace Dyninst {
 
 namespace SymbolicEvaluation {
 
 DEF_AST_LEAF_TYPE(BottomAST, bool);
-DEF_AST_LEAF_TYPE(ConstantAST, uint64_t);
+DEF_AST_LEAF_TYPE(ConstantAST, Constant);
 DEF_AST_LEAF_TYPE(AbsRegionAST, AbsRegion);
 DEF_AST_INTERNAL_TYPE(RoseAST, ROSEOperation);
 
