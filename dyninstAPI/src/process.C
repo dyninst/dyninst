@@ -188,7 +188,7 @@ extern void calcVSyscallFrame(process *p);
 
 // Note: stack walks may terminate early. In this case, return what we can.
 // Relies on the getCallerFrame method in the various <os>.C files
-#if !defined(os_linux)
+#if !defined(os_linux) 
 Frame process::preStackWalkInit(Frame startFrame) {
     return startFrame;
 }
@@ -2492,9 +2492,11 @@ bool process::loadDyninstLib() {
        
       setBootstrapState(loadingRT_bs);
 
+#if !defined(os_vxworks)
       if (!sh->continueProcessAsync()) {
          assert(0);
       }
+#endif
        
       // Loop until the dyninst lib is loaded
       while (!reachedBootstrapState(loadedRT_bs)) {
@@ -2776,11 +2778,11 @@ bool process::finalizeDyninstLib()
 {
    startup_printf("%s[%d]:  isAttached() = %s\n", FILE__, __LINE__, isAttached() ? "true" : "false");
    startup_printf("%s[%d]: %s\n", FILE__, __LINE__, getStatusAsString().c_str());
-   
-    assert (isStopped());
-    if (reachedBootstrapState(bootstrapped_bs)) {
-        return true;
-    }
+
+   assert (isStopped());
+   if (reachedBootstrapState(bootstrapped_bs)) {
+       return true;
+   }
 
    DYNINST_bootstrapStruct bs_record;
    if (!extractBootstrapStruct(&bs_record))
@@ -3211,6 +3213,26 @@ void process::writeDebugDataSpace(void *inTracedProcess, u_int amount,
 /*
  * Copy data from controller process to the named process.
  */
+#if defined(endian_mismatch)
+bool process::writeDataWord(void *inTracedProcess, unsigned size,
+                            const void *inSelf)
+{
+    if (size != 2 && size != 4 && size != 8) return false;
+
+    char buf[8];
+    const char *word = (const char *)inSelf;
+    unsigned int head, tail;
+    for (head = 0, tail = size - 1; head < size; ++head, --tail)
+        buf[head] = word[tail];
+
+    return writeDataSpace(inTracedProcess, size, buf);
+}
+#else
+bool process::writeDataWord(void *inTracedProcess, unsigned size,
+                            const void *inSelf)
+{ return writeDataSpace(inTracedProcess, size, inSelf); }
+#endif
+
 bool process::writeDataSpace(void *inTracedProcess, unsigned size,
                              const void *inSelf) 
 {
@@ -3250,7 +3272,30 @@ bool process::writeDataSpace(void *inTracedProcess, unsigned size,
    return true;
 }
 
-bool process::readDataSpace(const void *inTracedProcess, unsigned size,
+#if defined(endian_mismatch)
+bool process::readDataWord(const void *inTracedProcess, u_int size,
+                           void *inSelf, bool displayErrMsg)
+{
+    if ((size != 2 && size != 4 && size != 8) ||
+        !readDataSpace(inTracedProcess, size, inSelf, displayErrMsg))
+        return false;
+
+    char *buf = (char *)inSelf;
+    unsigned int head, tail;
+    for (head = 0, tail = size - 1; tail > head; ++head, --tail) {
+        buf[head] = buf[head] ^ buf[tail];
+        buf[tail] = buf[head] ^ buf[tail];
+        buf[head] = buf[head] ^ buf[tail];
+    }
+    return true;
+}
+#else
+bool process::readDataWord(const void *inTracedProcess, u_int size,
+                           void *inSelf, bool displayErrMsg)
+{ return readDataSpace(inTracedProcess, size, inSelf, displayErrMsg); }
+#endif
+
+bool process::readDataSpace(const void *inTracedProcess, u_int size,
                             void *inSelf, bool displayErrMsg) 
 {
    bool needToCont = false;
@@ -3297,6 +3342,27 @@ bool process::readDataSpace(const void *inTracedProcess, unsigned size,
    return res;
 }
 
+#if defined(endian_mismatch)
+bool process::writeTextWord(void *inTracedProcess, u_int amount,
+                            const void *inSelf)
+{
+    if (amount != 2 && amount != 4 && amount != 8) return false;
+
+    char buf[8];
+    const char *word = (const char *)inSelf;
+    unsigned int head, tail;
+    for (head = 0, tail = amount - 1; head < amount; ++head, --tail)
+        buf[head] = word[tail];
+
+    return writeTextSpace(inTracedProcess, amount, buf);
+}
+#else
+bool process::writeTextWord(void *inTracedProcess, u_int amount,
+                            const void *inSelf)
+{ return writeTextSpace(inTracedProcess, amount, inSelf); }
+#endif
+
+#if 0
 bool process::writeTextWord(caddr_t inTracedProcess, int data) {
    bool needToCont = false;
 
@@ -3332,6 +3398,7 @@ bool process::writeTextWord(caddr_t inTracedProcess, int data) {
   }
   return true;
 }
+#endif
 
 bool process::writeTextSpace(void *inTracedProcess, u_int amount, 
                              const void *inSelf) 
@@ -3378,9 +3445,32 @@ bool process::writeTextSpace(void *inTracedProcess, u_int amount,
   return true;
 }
 
+#if defined(endian_mismatch)
+bool process::readTextWord(const void *inTracedProcess, u_int amount,
+                           void *inSelf)
+{
+    if ((amount != 2 && amount != 4 && amount != 8) ||
+        !readTextSpace(inTracedProcess, amount, inSelf))
+        return false;
+
+    char *buf = (char *)inSelf;
+    unsigned int head, tail;
+    for (head = 0, tail = amount - 1; tail > amount; ++head, --tail) {
+        buf[head] = buf[head] ^ buf[tail];
+        buf[tail] = buf[head] ^ buf[tail];
+        buf[head] = buf[head] ^ buf[tail];
+    }
+    return true;
+}
+#else
+bool process::readTextWord(const void *inTracedProcess, u_int amount,
+                           void *inSelf)
+{ return readTextSpace(inTracedProcess, amount, inSelf); }
+#endif
+
 // InsrucIter uses readTextSpace
 bool process::readTextSpace(const void *inTracedProcess, u_int amount,
-                            const void *inSelf)
+                            void *inSelf)
 {
    bool needToCont = false;
 
@@ -3398,9 +3488,7 @@ bool process::readTextSpace(const void *inTracedProcess, u_int amount,
       }
    }
 
-   bool res = stopped_lwp->readTextSpace(const_cast<void*>(inTracedProcess),
-                                         amount, inSelf);
-
+   bool res = stopped_lwp->readTextSpace(inTracedProcess, amount, inSelf);
    if (!res) {
       sprintf(errorLine, "System error: "
               "<>unable to read %d@%s from process text space: %s (pid=%d)",
@@ -3737,6 +3825,11 @@ check_rtinst(process *proc, mapped_object *so)
      if (! proc->readDataSpace((void*)((*vars)[0]->getAddress()), sizeof(val), (void*)&val, true)) {
          return 0;
      }
+
+#if defined(endian_mismatch)
+     val = swapBytesIfNeeded(val);
+#endif
+
      if (val == 0) {
          /* The library has been loaded, but not initialized */
          return 1;
@@ -4498,7 +4591,7 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests)
 }
 
 
-
+#if !defined(os_vxworks)
 bool process::extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record)
 {
   const std::string vrbleName = "DYNINST_bootstrap_info";
@@ -4517,6 +4610,7 @@ bool process::extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record)
   }
   return true;
 }
+#endif
 
 bool process::isAttached() const {
     if (status_ == exited ||

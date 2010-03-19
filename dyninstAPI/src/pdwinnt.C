@@ -668,8 +668,8 @@ bool process::flushInstructionCache_(void *baseAddr, size_t size){ //ccw 25 june
    return FlushInstructionCache((HANDLE)replwp->getProcessHandle(), baseAddr, size);
 }
 
-bool dyn_lwp::readTextSpace(void *inTraced, u_int amount, const void *inSelf) {
-   return readDataSpace(inTraced, amount, (void *)inSelf);
+bool dyn_lwp::readTextSpace(const void *inTraced, u_int amount, void *inSelf) {
+   return readDataSpace(inTraced, amount, inSelf);
 }
 
 bool dyn_lwp::writeDataSpace(void *inTraced, u_int amount, const void *inSelf)

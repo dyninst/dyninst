@@ -137,3 +137,9 @@ std::ostream &operator<<(std::ostream &os, const ROSEOperation &o) {
   os << o.format();
   return os;
 }
+
+std::ostream &operator<<(std::ostream &os, const Constant &o) {
+  os << o.format();
+  return os;
+}
+

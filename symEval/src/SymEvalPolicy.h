@@ -59,6 +59,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <sstream>
 
 #include "../rose/SgAsmx86Instruction.h"
 
@@ -70,6 +71,21 @@
 namespace Dyninst {
 
 namespace SymbolicEvaluation {
+
+// The ROSE symbolic evaluation engine wants a data type that
+// is template parametrized on the number of bits in the data
+// type. However, our ASTs don't have this, and a shared_ptr
+// to an AST _definitely_ doesn't have it. Instead, we use
+// a wrapper class (Handle) that is parametrized appropriately
+// and contains a shared pointer. 
+
+// This uses a pointer to a shared pointer. This is ordinarily a really
+// bad idea, but stripping the pointer part makes the compiler allocate
+// all available memory and crash. No idea why. 
+
+// Define constants used by ROSE. Several non-standard sizes are needed,
+// so IAPI::Result won't work
+
 
 template <size_t Len>
 struct Handle {
@@ -175,7 +191,7 @@ struct Handle {
    }
 
    // Len here is the number of bits read, which we'll
-   // turn into an argument of the AST. 
+   // turn into an argument of the ROSEOperation. 
     
    template <size_t Len>
      Handle<Len> readMemory(X86SegmentRegister /*segreg*/,
@@ -183,12 +199,14 @@ struct Handle {
 			    Handle<1> cond) {
      if (cond == true_()) {
        return Handle<Len>(getUnaryAST(ROSEOperation::derefOp,
-				      addr.var()));
+				      addr.var(),
+                                      Len));
      }
      else {
        return Handle<Len>(getBinaryAST(ROSEOperation::derefOp,
 				       addr.var(),
-				       cond.var()));
+				       cond.var(),
+                                       Len));
      }
    }
         
@@ -289,13 +307,11 @@ struct Handle {
    // extract from the data type.
    template<size_t From, size_t To, size_t Len> 
      Handle<To-From> extract(Handle<Len> a) {
-     return Handle<To-From>(a.var());
-     /*
+     // return Handle<To-From>(a.var());
      return Handle<To-From>(getTernaryAST(ROSEOperation::extractOp, 
 					  a.var(),
 					  number<Len>(From).var(),
 					  number<Len>(To).var()));
-     */
    }
 
    template <size_t Len>
@@ -465,12 +481,10 @@ struct Handle {
 
    template <size_t From, size_t To>
      Handle<To> extendByMSB(Handle<From> a) {
-     return Handle<To>(a.var());
-     /*
+     //return Handle<To>(a.var());
      return Handle<To>(getBinaryAST(ROSEOperation::extendMSBOp,
 				    a.var(),
 				    number<32>(To).var()));
-     */
    }
 
  private:
@@ -504,8 +518,8 @@ struct Handle {
    }
 
 
-    AST::Ptr getConstAST(uint64_t n, size_t) {
-      return ConstantAST::create(n);
+    AST::Ptr getConstAST(uint64_t n, size_t s) {
+      return ConstantAST::create(Constant(n, s));
     }
                         
     AST::Ptr getBottomAST() {
@@ -513,23 +527,25 @@ struct Handle {
     }
                 
     AST::Ptr getUnaryAST(ROSEOperation::Op op,
-                         AST::Ptr a) {
-      return RoseAST::create(ROSEOperation(op), a);
+                         AST::Ptr a,
+                         size_t s = 0) {
+      return RoseAST::create(ROSEOperation(op, s), a);
     }
 
     AST::Ptr getBinaryAST(ROSEOperation::Op op,
                           AST::Ptr a,
-                          AST::Ptr b) {
-      return RoseAST::create(ROSEOperation(op), a, b);
+                          AST::Ptr b,
+                          size_t s = 0) {
+      return RoseAST::create(ROSEOperation(op, s), a, b);
     }
     
     AST::Ptr getTernaryAST(ROSEOperation::Op op,
                            AST::Ptr a,
                            AST::Ptr b,
-                           AST::Ptr c) {
-      return RoseAST::create(ROSEOperation(op), a, b, c);
-    }
-    
+                           AST::Ptr c,
+                           size_t s = 0) {
+      return RoseAST::create(ROSEOperation(op, s), a, b, c);
+    }    
 };
 };
 };

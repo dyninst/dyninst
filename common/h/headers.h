@@ -74,6 +74,9 @@ typedef int (*xdr_wr_func)(void *, char *, int);
 #elif defined(os_irix)
 #include "common/h/irixHeaders.h"
 
+#elif defined(os_vxworks)
+#include "common/h/vxworksHeaders.h"
+
 #endif  /* architecture specific */
 
 typedef enum {

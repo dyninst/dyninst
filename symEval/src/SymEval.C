@@ -72,6 +72,16 @@ void SymEval::expand(Result &res) {
 	       ptr->addr(),
 	       res);
 
+  }
+
+  // Must apply the visitor to each filled in element
+  for (Result::iterator i = res.begin(); i != res.end(); ++i) {
+    if (i->second == Placeholder) {
+      // Must not have been filled in above
+      continue;
+    }
+    Assignment::Ptr ptr = i->first;
+
     // Let's experiment with simplification
     image_func *func = ptr->func();
     StackAnalysis sA(func);

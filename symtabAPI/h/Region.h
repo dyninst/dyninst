@@ -79,7 +79,8 @@ class Region : public Serializable, public AnnotatableSparse {
       RT_DYNAMIC,
       RT_HASH,
       RT_GNU_HASH,
-      RT_OTHER
+      RT_OTHER,
+      RT_INVALID = -1
    };
 
    static const char *regionType2Str(RegionType);
@@ -106,9 +107,13 @@ class Region : public Serializable, public AnnotatableSparse {
 
    SYMTAB_EXPORT Offset getDiskOffset() const;
    SYMTAB_EXPORT unsigned long getDiskSize() const;
+
    SYMTAB_EXPORT Offset getMemOffset() const;
    SYMTAB_EXPORT unsigned long getMemSize() const;
    SYMTAB_EXPORT unsigned long getMemAlignment() const;
+   SYMTAB_EXPORT void setMemOffset(Offset);
+   SYMTAB_EXPORT void setMemSize(long);
+
    SYMTAB_EXPORT void *getPtrToRawData() const;
    SYMTAB_EXPORT bool setPtrToRawData(void *, unsigned long); 
 
