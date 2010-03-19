@@ -182,7 +182,7 @@ void StackAnalysis::summarizeBlocks() {
                 sp_blockToInsnFuncs[block][next] = iFunc;
             }
 	    if (fpCopied != fp_noChange) {
-	      fp_changePoints[block].push_back(std::make_pair<fp_State, Offset>(fpCopied, off));
+	      fp_changePoints[block].push_back(std::make_pair<fp_State, Offset>(fpCopied, off + insn->size()));
 	    }
 
             stackanalysis_printf("\t\t\t At 0x%lx:  %s\n",
@@ -466,6 +466,12 @@ void StackAnalysis::fp_createIntervals() {
            
       curUB = iter2->second;
 
+      fp_intervals_->insert(curLB, curUB, 
+			    curHeight);
+
+      stackanalysis_printf("\t\t\t Inserting interval: 0x%lx, 0x%lx, %s\n",
+			   curLB, curUB, curHeight.format().c_str());
+
       switch(iter2->first) {
       case fp_noChange:
 	// ????
@@ -477,8 +483,6 @@ void StackAnalysis::fp_createIntervals() {
 	curHeight = Height::bottom;
 	break;
       }
-      fp_intervals_->insert(curLB, curUB, 
-			    curHeight);
       
       curLB = curUB;
     }
@@ -492,6 +496,9 @@ void StackAnalysis::fp_createIntervals() {
 	fprintf(stderr, "\t %s\n", fp_outBlockHeights[block].format().c_str());
       }
 
+
+      stackanalysis_printf("\t\t\t Inserting interval: 0x%lx, 0x%lx, %s\n",
+			   curLB, curUB, curHeight.format().c_str());
       fp_intervals_->insert(curLB, curUB, 
 			    curHeight);
     }
@@ -596,7 +603,7 @@ void StackAnalysis::computeInsnEffects(const Block *block,
         // We treat return as zero-modification right now
     case e_leave:
         iFunc.abs() = true;
-        iFunc.delta() = 0;
+        iFunc.delta() = -1*word_size;
         stackanalysis_printf("\t\t\t Stack height reset by leave: %s\n", iFunc.format().c_str());
         return;
     default:
