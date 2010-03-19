@@ -48,6 +48,10 @@ class AbsRegionConverter {
 		  image_func *func,
 		  bool push);
 
+  AbsRegion frame(Address addr,
+		  image_func *func,
+		  bool push);
+
  private:
     // Returns false if the current height is unknown.
   bool getCurrentStackHeight(image_func *func,

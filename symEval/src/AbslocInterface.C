@@ -241,6 +241,29 @@ AbsRegion AbsRegionConverter::stack(Address addr,
 			    func->symTabName()));
 }
 
+AbsRegion AbsRegionConverter::frame(Address addr,
+				    image_func *func,
+				    bool push) {
+    long fpHeight = 0;
+    int fpRegion = 0;
+    bool frameExists = getCurrentFrameHeight(func,
+					     addr, 
+					     fpHeight, 
+					     fpRegion);
+    if (!frameExists) {
+      return AbsRegion(Absloc::Heap);
+    }
+
+    if (push) {
+      int word_size = func->img()->getAddressWidth();
+      fpHeight -= word_size;
+    }
+    
+    return AbsRegion(Absloc(fpHeight,
+			    fpRegion,
+			    func->symTabName()));
+}
+
 bool AbsRegionConverter::getCurrentStackHeight(image_func *func,
 					       Address addr,
 					       long &height,
@@ -418,16 +441,19 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
 							 sp));
     spA->addInput(fp);
 
-    // And now we want "FP = (stack slot 0)"
-    AbsRegion stackTop(Absloc(0,
-			      0,
-			      func->symTabName()));
-
+    // And now we want "FP = (stack slot -2*wordsize)"
+    /*
+      AbsRegion stackTop(Absloc(0,
+      0,
+      func->symTabName()));
+    */
+    // Actually, I think this is ebp = pop esp === ebp = pop ebp
     Assignment::Ptr fpA = Assignment::Ptr(new Assignment(I,
 							 addr,
 							 func,
 							 fp));
-    fpA->addInput(aConverter.stack(addr + I->size(), func, false));
+    //fpA->addInput(aConverter.stack(addr + I->size(), func, false));
+    fpA->addInput(aConverter.frame(addr, func, false));
 
     assignments.push_back(spA);
     assignments.push_back(fpA);
