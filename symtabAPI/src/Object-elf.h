@@ -430,6 +430,7 @@ class Object : public AObject {
     bool hasReladyn() const {return hasReladyn_;}
     bool hasRelplt() const {return hasRelplt_;}
     bool hasRelaplt() const {return hasRelaplt_;}
+    Region::RegionType getRelType() const { return relType_; }
 
     Offset getTextAddr() const {return text_addr_;}
     Offset getSymtabAddr() const {return symtab_addr_;}
@@ -465,6 +466,7 @@ class Object : public AObject {
   bool hasReladyn_;
   bool hasRelplt_;
   bool hasRelaplt_;
+  Region::RegionType relType_;
 
   Offset   elf_hash_addr_; 	 //.hash section 
   Offset   gnu_hash_addr_; 	 //.gnu.hash section 

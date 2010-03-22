@@ -1278,7 +1278,7 @@ bool Symtab::extractInfo(Object *linkedFile)
             hasRela_ = true;
         }
 
-#if defined(os_linux) || defined(os_solaris)
+#if defined(os_linux) || defined(os_solaris) || defined(os_freebsd)
         hasReldyn_ = linkedFile->hasReldyn();
 	hasReladyn_ = linkedFile->hasReladyn();
         hasRelplt_ = linkedFile->hasRelplt();

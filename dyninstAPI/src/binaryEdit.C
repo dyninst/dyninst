@@ -538,12 +538,14 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
             Address to = dependentRelocations[i]->getAddress();
             Symbol *referring = dependentRelocations[i]->getReferring();
 
+            /*
             if (!symObj->isStaticBinary() && !symObj->hasReldyn() && !symObj->hasReladyn()) {
 	      Address addr = referring->getOffset();
 	      bool result = writeDataSpace((void *) to, getAddressWidth(), &addr);
 	      assert(result);
 	      continue;
 	    }
+            */
 
             // Create the relocationEntry
             relocationEntry localRel(to, referring->getMangledName(), referring,

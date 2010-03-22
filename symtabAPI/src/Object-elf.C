@@ -297,6 +297,25 @@ Region::RegionType getRegionType(unsigned long type, unsigned long flags, const 
   }
 }
 
+static Region::RegionType getRelTypeByElfMachine(Elf_X *localHdr) {
+    Region::RegionType ret;
+    switch(localHdr->e_machine()) {
+        case EM_SPARC:
+        case EM_SPARC32PLUS:
+        case EM_SPARCV9:
+        case EM_PPC:
+        case EM_PPC64:
+        case EM_X86_64:
+        case EM_IA_64:
+            ret = Region::RT_RELA;
+            break;
+        default:
+            ret = Region::RT_REL;
+            break;
+    }
+    return ret;
+}
+
 const char* EDITED_TEXT_NAME = ".edited.text";
 // const char* INIT_NAME        = ".init";
 const char *INTERP_NAME      = ".interp";
@@ -909,7 +928,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
   }
 
   loadAddress_ = 0x0;
-#if defined(os_linux)
+#if defined(os_linux) || defined(os_freebsd)
   /**
    * If the virtual address of the first PT_LOAD element in the
    * program table is 0, Linux loads the shared object into any
@@ -1564,6 +1583,9 @@ void Object::load_object(bool alloc_syms)
         obj_type_ = obj_RelocatableFile;
     }
 
+    // Set rel type based on the ELF machine type
+    relType_ = getRelTypeByElfMachine(&elfHdr);
+
     return;
   } // end binding contour (for "goto cleanup2")
 
@@ -1695,6 +1717,9 @@ void Object::load_shared_object(bool alloc_syms)
     }else if( e_type == ET_REL ) {
         obj_type_ = obj_RelocatableFile;
     }
+
+    // Set rel type based on the ELF machine type
+    relType_ = getRelTypeByElfMachine(&elfHdr);
 
   } // end binding contour (for "goto cleanup2")
 
@@ -3080,6 +3105,7 @@ Object::Object(MappedFile *mf_, MappedFile *mfd, void (*err_func)(const char *),
   hasReladyn_(false),
   hasRelplt_(false),
   hasRelaplt_(false),
+  relType_(Region::RT_REL),
   dwarf(this),
   EEL(false),
   DbgSectionMapSorted(false)
@@ -3161,6 +3187,7 @@ Object::Object(const Object& obj)
   elfHdr = obj.elfHdr;
   deps_ = obj.deps_;
   DbgSectionMapSorted = obj.DbgSectionMapSorted;
+  relType_ = obj.relType_;
 }
 
 Object::~Object()

@@ -34,7 +34,9 @@ STATIC_ASFLAGS := $(ASFLAGS) -c -DDYNINST_RT_STATIC_LIB
 ASFLAGS         += -c
 
 SRCS		+= ../src/RTposix.c \
+		   ../src/RTfreebsd.c \
 		   ../src/RTheap.c \
+		   ../src/RTheap-freebsd.c \
 		   ../src/RTthread.c \
 	           ../src/RTthread-index.c \
 		   ../src/RTthread-x86.c \
