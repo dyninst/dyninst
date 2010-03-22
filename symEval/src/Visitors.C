@@ -39,14 +39,6 @@ AST::Ptr StackVisitor::visit(AST *t) {
   return t->ptr();
 }
 
-AST::Ptr StackVisitor::visit(IntAST *i) { 
-  return i->ptr();
-}
-
-AST::Ptr StackVisitor::visit(FloatAST *f) {
-  return f->ptr();
-}
-
 AST::Ptr StackVisitor::visit(BottomAST *b) {
   return b->ptr();
 }
@@ -60,14 +52,14 @@ AST::Ptr StackVisitor::visit(StackAST *s) {
 }
 
 // Now we get to the interesting bits
-AST::Ptr StackVisitor::visit(AbsRegionAST *a) {
+AST::Ptr StackVisitor::visit(VariableAST *v) {
   // If we're an AbsRegion representing the
   // stack or frame pointer, return a
   // StackAST with the appropriate info
-  const AbsRegion &reg = a->val();
+  const AbsRegion &reg = v->val().reg;
   if (reg.absloc() == Absloc()) {
     // Whoops
-    return a->ptr();
+    return v->ptr();
   }
 
   const Absloc &aloc = reg.absloc();
@@ -79,7 +71,7 @@ AST::Ptr StackVisitor::visit(AbsRegionAST *a) {
   else if (aloc.isFP()) {
     return StackAST::create(frame_);
   }
-  else return a->ptr();
+  else return v->ptr();
 }
 
 AST::Ptr StackVisitor::visit(RoseAST *r) {
@@ -98,15 +90,18 @@ AST::Ptr StackVisitor::visit(RoseAST *r) {
     // Simplify the operand
     switch(newKids[0]->getID()) {
     case AST::V_ConstantAST:
-      return AbsRegionAST::create(AbsRegion(Absloc(ConstantAST::convert(newKids[0])->val().val)));
+      return VariableAST::create(Variable(AbsRegion(Absloc(ConstantAST::convert(newKids[0])->val().val)),
+					  addr_));
     case AST::V_StackAST: {
       StackAST::Ptr s = StackAST::convert(newKids[0]);
       if (s->val() == StackAnalysis::Height::bottom) 
-	return AbsRegionAST::create(AbsRegion(Absloc::Stack));
+	return VariableAST::create(Variable(AbsRegion(Absloc::Stack), 
+					    addr_));
       else 
-	return AbsRegionAST::create(AbsRegion(Absloc(s->val().height(),
-						     s->val().region()->name(),
-						     func_)));
+	return VariableAST::create(Variable(AbsRegion(Absloc(s->val().height(),
+							     s->val().region()->name(),
+							     func_)),
+					    addr_));
     }
     default:
       return RoseAST::create(r->val(), newKids);
@@ -149,50 +144,3 @@ AST::Ptr StackVisitor::visit(RoseAST *r) {
   }
 }
 
-
-AST::Ptr StackEquivalenceVisitor::visit(AST *t) {
-  return t->ptr();
-}
-
-AST::Ptr StackEquivalenceVisitor::visit(IntAST *i) { 
-  return i->ptr();
-}
-
-AST::Ptr StackEquivalenceVisitor::visit(FloatAST *f) {
-  return f->ptr();
-}
-
-AST::Ptr StackEquivalenceVisitor::visit(BottomAST *b) {
-  return b->ptr();
-}
-
-AST::Ptr StackEquivalenceVisitor::visit(ConstantAST *c) {
-  return c->ptr();
-}
-
-AST::Ptr StackEquivalenceVisitor::visit(StackAST *s) {
-  return s->ptr();
-}
-
-AST::Ptr StackEquivalenceVisitor::visit(RoseAST *r) {
-  // Simplify children
-  AST::Children newKids;
-  for (unsigned i = 0; i < r->numChildren(); ++i) {
-    newKids.push_back(r->child(i)->accept(this));
-  }
-  return RoseAST::create(r->val(), newKids);
-}
-
-// Now we get to the interesting bits
-AST::Ptr StackEquivalenceVisitor::visit(AbsRegionAST *a) {
-  // If we're an AbsRegion representing the
-  // stack or frame pointer, return a
-  // StackAST with the appropriate info
-  const AbsRegion &reg = a->val();
-
-  std::map<AbsRegion, AbsRegion>::iterator iter = repl.find(reg);
-  if (iter != repl.end()) {
-    return AbsRegionAST::create(iter->second);
-  }
-  return a->ptr();
-}

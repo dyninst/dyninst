@@ -495,6 +495,7 @@ struct Handle {
    SymEval::Result &res;
 
    Architecture arch;
+   Address addr;
 
    Handle<32> ip_;
 
@@ -514,7 +515,7 @@ struct Handle {
    Absloc convert(X86SegmentRegister r);
    Absloc convert(X86Flag r);
    AST::Ptr wrap(Absloc r) { 
-     return AbsRegionAST::create(AbsRegion(r));
+     return VariableAST::create(Variable(AbsRegion(r), addr));
    }
 
 

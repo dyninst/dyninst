@@ -68,9 +68,34 @@ namespace SymbolicEvaluation {
 
 // Define the operations used by ROSE
 
+struct Variable {
+  Variable() : reg(), addr(0) {};
+  Variable(AbsRegion r) : reg(r), addr(0) {};
+  Variable(AbsRegion r, Address a) : reg(r), addr(a) {};
+
+  bool operator==(const Variable &rhs) const { 
+    return ((rhs.addr == addr) && (rhs.reg == reg));
+  }
+
+  bool operator<(const Variable &rhs) const { 
+    if (addr < rhs.addr) return true;
+    if (reg < rhs.reg) return true;
+    return false;
+  }
+
+  const std::string format() const { 
+    std::stringstream ret;
+    ret << reg;
+    if (addr) ret << ":" << std::hex << addr << std::dec;
+    return ret.str();
+  }
+
+  AbsRegion reg;
+  Address addr;
+};
 
 struct Constant {
-
+  Constant() : val(0), size(0) {};
   Constant(uint64_t v) : val(v), size(0) {};
   Constant(uint64_t v, size_t s) : val(v), size(s) {};
 
@@ -254,6 +279,7 @@ struct ROSEOperation {
 // Get this out of the Dyninst namespace...
 std::ostream &operator<<(std::ostream &os, const Dyninst::SymbolicEvaluation::ROSEOperation &o);
 std::ostream &operator<<(std::ostream &os, const Dyninst::SymbolicEvaluation::Constant &o);
+std::ostream &operator<<(std::ostream &os, const Dyninst::SymbolicEvaluation::Variable &o);
 
 namespace Dyninst {
 
@@ -261,7 +287,7 @@ namespace SymbolicEvaluation {
 
 DEF_AST_LEAF_TYPE(BottomAST, bool);
 DEF_AST_LEAF_TYPE(ConstantAST, Constant);
-DEF_AST_LEAF_TYPE(AbsRegionAST, AbsRegion);
+DEF_AST_LEAF_TYPE(VariableAST, Variable);
 DEF_AST_INTERNAL_TYPE(RoseAST, ROSEOperation);
 
 class SymEval {
