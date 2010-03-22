@@ -303,7 +303,7 @@ static bool cdBack()
 }
 
 #if defined(os_freebsd_test)
-// TODO This should probably be revisited at some point if
+// TODO This should probably be revisited at some point
 // to see if this needs to handle threads/LWPs. The Linux
 // version handles LWPs with the __WALL option.
 static bool waitForCompletion(int pid, bool &app_crash, int &app_return)
