@@ -66,6 +66,15 @@ map<MachRegister, Register> reverseRegisterMap = map_list_of
         (x86_64::rsi, REGNUM_RSI)
         (x86_64::rdi, REGNUM_RDI)
         (x86_64::rip, REGNUM_IGNORED)
+        (x86_64::cf, REGNUM_CF)
+        (x86_64::pf, REGNUM_PF)
+        (x86_64::af, REGNUM_AF)
+        (x86_64::zf, REGNUM_ZF)  
+        (x86_64::sf, REGNUM_SF)
+        (x86_64::tf, REGNUM_TF)
+        (x86_64::df, REGNUM_DF)
+  (x86_64::of, REGNUM_OF)
+  (x86_64::nt_, REGNUM_NT)
         (x86_64::xmm0, REGNUM_XMM0)
         (x86_64::xmm1, REGNUM_XMM1)
         (x86_64::xmm2, REGNUM_XMM2)
@@ -130,37 +139,8 @@ Register convertRegID(RegisterAST* toBeConverted, bool& wasUpcast)
     map<MachRegister, Register>::const_iterator found =
             reverseRegisterMap.find(baseReg);
     if(found == reverseRegisterMap.end()) {
-        if(baseReg == x86_64::flags)
-        {
-            switch(toBeConverted->lowBit())
-            {
-                case r_OF:
-                    return REGNUM_OF;
-                case r_SF:
-                    return REGNUM_SF;
-                case r_ZF:
-                    return REGNUM_ZF;
-                case r_AF:
-                    return REGNUM_AF;
-                case r_PF:
-                    return REGNUM_PF;
-                case r_CF:
-                    return REGNUM_CF;
-                case r_TF:
-                    return REGNUM_TF;
-                case r_IF:
-                    return REGNUM_IF;
-                case r_DF:
-                    return REGNUM_DF;
-                case r_NT:
-                    return REGNUM_NT;
-                case r_RF:
-                    return REGNUM_RF;
-            }
-                
-        }
-
         fprintf(stderr, "Register ID for %s not found in reverseRegisterLookup!\n", toBeConverted->format().c_str());
+	fprintf(stderr, "\t using processed reg 0x%x\n", baseReg.val());
         assert(!"Bad register ID");
     }
 

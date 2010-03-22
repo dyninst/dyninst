@@ -35,10 +35,13 @@
 #if !defined(GRAPH_H)
 #define GRAPH_H
 
+#include "dyntypes.h"
 #include "dyn_detail/boost/shared_ptr.hpp"
 #include <set>
 #include <list>
 #include <queue>
+#include <map>
+
 
 #include "Annotatable.h"
 #include "Node.h"
@@ -112,11 +115,15 @@ class Graph : public AnnotatableSparse {
     
     virtual void insertEntryNode(NodePtr entry);
     virtual void insertExitNode(NodePtr exit);
-    
+
+    void deleteNode(NodePtr node);
 
     void addNode(NodePtr node);
 
     virtual void removeAnnotation() {};
+
+    bool isEntryNode(NodePtr node);
+    bool isExitNode(NodePtr node);
 
  protected:
      

@@ -41,6 +41,7 @@
 #endif //defined(cap_instruction_api)
 #include "symtab.h"
 #include "debug.h"
+#include "common/h/singleton_object_pool.h"
 
 std::string image_func::emptyString("");
 
@@ -51,16 +52,20 @@ int image_func_count = 0;
 void addEdge(image_basicBlock *source, image_basicBlock *target,
             EdgeTypeEnum type)
 {
-    image_edge *e = new image_edge(source,target,type);
+    image_edge *e = singleton_object_pool<image_edge>::construct(source,target,type);
 
     // since source and target blocks share edge objects, it is
     // guaranteed that either both of these operations will
     // succeed or both will fail. (failure is when an existing
     // edge of the same type is found between the blocks; this
     // shows up a lot in multi-way branches)
-    if(!(source->addTarget(e) && target->addSource(e)))
+    if(!(source->addTarget(e)))
     {
-        delete e;
+        singleton_object_pool<image_edge>::destroy(e);
+    }
+    else
+    {
+        target->addSource(e);
     }
 }
 
@@ -353,12 +358,13 @@ image_basicBlock::image_basicBlock(image_func *func, Address firstOffset) :
 }
 
 bool image_basicBlock::addSource(image_edge *edge) {
+#if defined(PARANOID_DEBUG)
     for (unsigned i = 0; i < sources_.size(); i++)
         if (sources_[i]->source_ == edge->source_ &&
             sources_[i]->target_ == edge->target_ &&
             sources_[i]->type_ == edge->type_)
             return false;
-
+#endif
     sources_.push_back(edge);
     return true;
 }
@@ -369,38 +375,36 @@ bool image_basicBlock::addTarget(image_edge *edge) {
             targets_[i]->target_ == edge->target_ &&
             targets_[i]->type_ == edge->type_)
             return false;
-
     targets_.push_back(edge);
     return true;
 }
 
 void image_basicBlock::removeSource(image_edge *edge) {
-    for (unsigned i = 0; i < sources_.size(); i++)
-        if (sources_[i] == edge) {
+    for(unsigned i = 0; i < sources_.size(); i++) {
+        if(sources_[i] == edge) {
             sources_[i] = sources_.back();
-            sources_.resize(sources_.size()-1);
+            sources_.resize(sources_.size() - 1);
             return;
         }
+    }
 }
 
 void image_basicBlock::removeTarget(image_edge *edge) {
-    for (unsigned i = 0; i < targets_.size(); i++)
-        if (targets_[i] == edge)
-        {
+    for(unsigned i = 0; i < targets_.size(); i++) {
+        if(targets_[i] == edge) {
             targets_[i] = targets_.back();
-            targets_.resize(targets_.size()-1);
+            targets_.resize(targets_.size() - 1);
             return;
         }
+    }
 }
 
 void image_basicBlock::getSources(pdvector<image_edge *> &ins) const {
-    for (unsigned i = 0; i < sources_.size(); i++)
-        ins.push_back(sources_[i]);
+    std::copy(sources_.begin(), sources_.end(), std::back_inserter(ins));
 }
 // Need to be able to get a copy
 void image_basicBlock::getTargets(pdvector<image_edge *> &outs) const {
-    for (unsigned i = 0; i < targets_.size(); i++)
-        outs.push_back(targets_[i]);
+    std::copy(targets_.begin(), targets_.end(), std::back_inserter(outs));
 }
 
 // Split a basic block at loc by control transfer (call, branch) and return
@@ -430,7 +434,9 @@ void image_basicBlock::split(image_basicBlock * &newBlk)
     newBlk->lastInsnOffset_ = lastInsnOffset_;
     newBlk->blockEndOffset_ = blockEndOffset_;
 
-    for(unsigned int i=0;i<targets_.size();i++)
+    for (unsigned i = 0;
+         i < targets_.size();
+         i++)
     {
         targets_[i]->source_ = newBlk;  // update source of edge
         newBlk->addTarget(targets_[i]);
@@ -512,7 +518,8 @@ image_instPoint::image_instPoint(Address offset,
 #endif
                                  image_func *func,
                                  instPointType_t type) :
-    instPointBase(insn, type),
+    instPointBase(insn,
+                  type),
     offset_(offset),
     func_(func),
     callee_(NULL),
@@ -528,6 +535,7 @@ image_instPoint::image_instPoint(Address offset,
 #endif
 }
 
+
 image_instPoint::image_instPoint(Address offset,
 #if defined(cap_instruction_api)                                 
                                  Dyninst::InstructionAPI::Instruction::Ptr insn,
@@ -539,7 +547,8 @@ image_instPoint::image_instPoint(Address offset,
                                  bool isDynamic,
                                  bool isAbsolute,
                                  instPointType_t ptType) :
-    instPointBase(insn, ptType),
+    instPointBase(insn,
+                  ptType),
     offset_(offset),
     func_(func),
     callee_(NULL),
@@ -579,7 +588,7 @@ void image_func::addExitInstPoint(image_instPoint *p)
    --nater */
 bool image_func::addBasicBlock(Address newAddr,
                    image_basicBlock *oldBlock,
-                   BPatch_Set<Address> &leaders,
+                   std::set<Address> &leaders,
                    dictionary_hash<Address, image_basicBlock *> &leadersToBlock,
                    EdgeTypeEnum edgeType,
                    pdvector<Address> &worklist)
@@ -619,7 +628,7 @@ bool image_func::addBasicBlock(Address newAddr,
             //
             // If we've already parsed this block, naturally it doesn't
             // go back on the worklist
-            if(!leaders.contains(newAddr))
+            if(leaders.find(newAddr) == leaders.end())
             {
                 if(newBlk->isStub_) {
                     newBlk->addFunc(this); // see above comment
@@ -637,13 +646,13 @@ bool image_func::addBasicBlock(Address newAddr,
             newBlk = splitBlk->split(newAddr,this);
             // newBlk only goes on the worklist if the block that was split
             // has not already been parsed in /this/ function
-            if(!leaders.contains(splitBlk->firstInsnOffset_))
+            if(leaders.find(splitBlk->firstInsnOffset_) == leaders.end())
             {
                 worklist.push_back(newAddr);
                 parsing_printf("[%s] adding block %d (0x%lx) to worklist\n",
                     FILE__,newBlk->id(),newBlk->firstInsnOffset_);
             }
-            else if(!leaders.contains(newBlk->firstInsnOffset_))
+            else if(leaders.find(newBlk->firstInsnOffset_) == leaders.end())
             {
                 // This is a new (to this function) block that will not be
                 // parsed, and so must be added to the blocklist here.
@@ -691,7 +700,7 @@ bool image_func::addBasicBlock(Address newAddr,
     }
 
     leadersToBlock[newAddr] = newBlk;
-    leaders += newAddr;
+    leaders.insert(newAddr);
 
     assert(leadersToBlock[newAddr]);
 
@@ -743,13 +752,17 @@ void image_basicBlock::debugPrint() {
                    isEntryBlock_, isExitBlock_);
     
     parsing_printf("  Sources:\n");
-    for (unsigned s = 0; s < sources_.size(); s++) {
+    for (unsigned s = 0;
+         s < sources_.size(); s++)
+    {
         parsing_printf("    %d: block %d (%s)\n",
                        s, sources_[s]->getSource()->blockNumber_,
                        sources_[s]->getTypeString());
     }
     parsing_printf("  Targets:\n");
-    for (unsigned t = 0; t < targets_.size(); t++) {
+    for (unsigned t = 0;
+         t < targets_.size(); t++)
+    {
         parsing_printf("    %d: block %d (%s)\n",
                        t, targets_[t]->getTarget()->blockNumber_,
                        targets_[t]->getTypeString());

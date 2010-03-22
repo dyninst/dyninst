@@ -77,6 +77,11 @@ namespace Dyninst
       bool isPC() const;
       bool isFramePointer() const;
       bool isStackPointer() const;
+
+      void getROSERegister(int &c, int &n, int &p);
+
+      static MachRegister DwarfEncToReg(int encoding, Dyninst::Architecture arch);
+      int getDwarfEnc() const;
    };
 
    /**
@@ -116,7 +121,7 @@ namespace Dyninst
     *  Next 16 bits (0x00ff0000) are the register category, GPR/FPR/MMX/...
     *  Top 16 bits (0xff000000) are the architecture.
     *
-    *  These values/layout are not guarenteed to remain the same as part of the 
+    *  These values/layout are not guaranteed to remain the same as part of the 
     *  public interface, and may change.
     **/
 
@@ -124,6 +129,7 @@ namespace Dyninst
    DEF_REGISTER(InvalidReg, 0 | Arch_none, "abstract");
    DEF_REGISTER(FrameBase,  1 | Arch_none, "abstract");
    DEF_REGISTER(ReturnAddr, 2 | Arch_none, "abstract");
+   DEF_REGISTER(StackTop,   3 | Arch_none, "abstract");
 
    namespace x86
    {
@@ -134,6 +140,7 @@ namespace Dyninst
       const signed int QUAD  = 0x00004000; //64 bits
       const signed int OCT   = 0x00002000; //128 bits
       const signed int FPDBL = 0x00001000; // 80 bits
+      const signed int BIT   = 0x00008000; // 1 bit
       const signed int GPR   = 0x00010000;
       const signed int SEG   = 0x00020000;
       const signed int FLAG  = 0x00030000;
@@ -151,6 +158,19 @@ namespace Dyninst
       const signed int BASEBP = 0x5;
       const signed int BASESI = 0x6;
       const signed int BASEDI = 0x7;
+      const signed int FLAGS = 0x0;
+      
+      const signed int CF = 0x0;
+      const signed int PF = 0x2;
+      const signed int AF = 0x4;
+      const signed int ZF = 0x6;
+      const signed int SF = 0x7;
+      const signed int TF = 0x8;
+      const signed int IF = 0x9;
+      const signed int DF = 0xa;
+      const signed int OF = 0xb;
+      const signed int NT = 0xe;
+
 
       DEF_REGISTER(eax,   BASEA   | FULL  | GPR  | Arch_x86, "x86");
       DEF_REGISTER(ecx,   BASEC   | FULL  | GPR  | Arch_x86, "x86");
@@ -177,7 +197,17 @@ namespace Dyninst
       DEF_REGISTER(si,    BASESI  | W_REG | GPR  | Arch_x86, "x86");
       DEF_REGISTER(di,    BASEDI  | W_REG | GPR  | Arch_x86, "x86");
       DEF_REGISTER(eip,   0x10    | FULL         | Arch_x86, "x86");
-      DEF_REGISTER(flags, 0x0     | FULL  | FLAG | Arch_x86, "x86");
+      DEF_REGISTER(flags, FLAGS   | FULL  | FLAG | Arch_x86, "x86");
+      DEF_REGISTER(cf,    CF      | BIT   | FLAG | Arch_x86, "x86");
+      DEF_REGISTER(pf,    PF      | BIT   | FLAG | Arch_x86, "x86");
+      DEF_REGISTER(af,    AF      | BIT   | FLAG | Arch_x86, "x86");
+      DEF_REGISTER(zf,    ZF      | BIT   | FLAG | Arch_x86, "x86");
+      DEF_REGISTER(sf,    SF      | BIT   | FLAG | Arch_x86, "x86");
+      DEF_REGISTER(tf,    TF      | BIT   | FLAG | Arch_x86, "x86");
+      DEF_REGISTER(if_,    IF      | BIT   | FLAG | Arch_x86, "x86");
+      DEF_REGISTER(df,    DF      | BIT   | FLAG | Arch_x86, "x86");
+      DEF_REGISTER(of,    OF      | BIT   | FLAG | Arch_x86, "x86");
+      DEF_REGISTER(nt_,    NT      | BIT   | FLAG | Arch_x86, "x86");
       DEF_REGISTER(ds,    0x0     | FULL  | SEG  | Arch_x86, "x86");
       DEF_REGISTER(es,    0x1     | FULL  | SEG  | Arch_x86, "x86");
       DEF_REGISTER(fs,    0x2     | FULL  | SEG  | Arch_x86, "x86");
@@ -243,6 +273,7 @@ namespace Dyninst
       const signed int FULL  = 0x00000000; //64 bit
       const signed int FPDBL = 0x00001000; // 80 bits
       const signed int OCT   = 0x00002000; //128 bits
+      const signed int BIT   = 0x00008000; // 1 bit
       const signed int GPR   = 0x00010000;
       const signed int SEG   = 0x00020000;
       const signed int FLAG  = 0x00030000;
@@ -252,6 +283,7 @@ namespace Dyninst
       const signed int CTL   = 0x00070000;
       const signed int DBG   = 0x00080000;
       const signed int TST   = 0x00090000;
+      const signed int FLAGS = 0x00000000;
       const signed int BASEA  = 0x0;
       const signed int BASEC  = 0x1;
       const signed int BASED  = 0x2;
@@ -268,6 +300,17 @@ namespace Dyninst
       const signed int BASE13 = 0xd;
       const signed int BASE14 = 0xe;
       const signed int BASE15 = 0xf;
+
+      const signed int CF = x86::CF;
+      const signed int PF = x86::PF;
+      const signed int AF = x86::AF;
+      const signed int ZF = x86::ZF;
+      const signed int SF = x86::SF;
+      const signed int TF = x86::TF;
+      const signed int IF = x86::IF;
+      const signed int DF = x86::DF;
+      const signed int OF = x86::OF;
+      const signed int NT = x86::NT;
 
       DEF_REGISTER(rax,    BASEA  | FULL  | GPR  | Arch_x86_64, "x86_64");
       DEF_REGISTER(rcx,    BASEC  | FULL  | GPR  | Arch_x86_64, "x86_64");
@@ -339,7 +382,17 @@ namespace Dyninst
       DEF_REGISTER(r15d,   BASE15 | D_REG | GPR  | Arch_x86_64, "x86_64");
       DEF_REGISTER(rip,    0x10   | FULL         | Arch_x86_64, "x86_64");
       DEF_REGISTER(eip,    0x10   | D_REG        | Arch_x86_64, "x86_64");
-      DEF_REGISTER(flags,  0x0    | FULL  | FLAG | Arch_x86_64, "x86_64");
+      DEF_REGISTER(flags,  FLAGS  | FULL  | FLAG | Arch_x86_64, "x86_64");
+      DEF_REGISTER(cf,    CF      | BIT   | FLAG | Arch_x86_64, "x86_64");
+      DEF_REGISTER(pf,    PF      | BIT   | FLAG | Arch_x86_64, "x86_64");
+      DEF_REGISTER(af,    AF      | BIT   | FLAG | Arch_x86_64, "x86_64");
+      DEF_REGISTER(zf,    ZF      | BIT   | FLAG | Arch_x86_64, "x86_64");
+      DEF_REGISTER(sf,    SF      | BIT   | FLAG | Arch_x86_64, "x86_64");
+      DEF_REGISTER(tf,    TF      | BIT   | FLAG | Arch_x86_64, "x86_64");
+      DEF_REGISTER(if_,    IF      | BIT   | FLAG | Arch_x86_64, "x86_64");
+      DEF_REGISTER(df,    DF      | BIT   | FLAG | Arch_x86_64, "x86_64");
+      DEF_REGISTER(of,    OF      | BIT   | FLAG | Arch_x86_64, "x86_64");
+      DEF_REGISTER(nt_,    NT      | BIT   | FLAG | Arch_x86_64, "x86_64");
       DEF_REGISTER(ds,     0x0    | FULL  | SEG  | Arch_x86_64, "x86_64");
       DEF_REGISTER(es,     0x1    | FULL  | SEG  | Arch_x86_64, "x86_64");
       DEF_REGISTER(fs,     0x2    | FULL  | SEG  | Arch_x86_64, "x86_64");
@@ -347,8 +400,8 @@ namespace Dyninst
       DEF_REGISTER(cs,     0x4    | FULL  | SEG  | Arch_x86_64, "x86_64");
       DEF_REGISTER(ss,     0x5    | FULL  | SEG  | Arch_x86_64, "x86_64");
       DEF_REGISTER(orax,   0x0    | FULL  | MISC | Arch_x86_64, "x86_64");
-      DEF_REGISTER(fsbase, 0x0    | FULL  | MISC | Arch_x86_64, "x86_64");
-      DEF_REGISTER(gsbase, 0x0    | FULL  | MISC | Arch_x86_64, "x86_64");
+      DEF_REGISTER(fsbase, 0x1    | FULL  | MISC | Arch_x86_64, "x86_64");
+      DEF_REGISTER(gsbase, 0x2    | FULL  | MISC | Arch_x86_64, "x86_64");
       DEF_REGISTER(xmm0,  0x0     | OCT   | XMM  | Arch_x86_64, "x86_64");
       DEF_REGISTER(xmm1,  0x1     | OCT   | XMM  | Arch_x86_64, "x86_64");
       DEF_REGISTER(xmm2,  0x2     | OCT   | XMM  | Arch_x86_64, "x86_64");

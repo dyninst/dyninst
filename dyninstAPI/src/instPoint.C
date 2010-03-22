@@ -49,6 +49,7 @@
 #if defined(cap_instruction_api)
 #include "instructionAPI/h/InstructionDecoder.h"
 using namespace Dyninst::InstructionAPI;
+InstructionDecoder::Ptr instPointBase::dec;
 #else
 #include "dyninstAPI/src/InstrucIter.h"
 #endif // defined(cap_instruction_api)
@@ -247,9 +248,9 @@ instPoint *instPoint::createArbitraryInstPoint(Address addr,
     }
     if(currentInsn != addr)
     {
-      inst_printf("Unaligned try for instruction iterator, ret null\n");
-      fprintf(stderr, "%s[%d]: Unaligned try for instruction iterator, ret null\n", FILE__, __LINE__);
-      return NULL; // Not aligned
+        inst_printf("Unaligned try for instruction iterator, ret null\n");
+            fprintf(stderr, "%s[%d]: Unaligned try for instruction iterator, ret null\n", FILE__, __LINE__);
+            return NULL; // Not aligned
     }
     newIP = new instPoint(proc,
                           i,
@@ -666,12 +667,13 @@ int instPoint_count = 0;
 instPoint::instPoint(AddressSpace *proc,
 #if defined(cap_instruction_api)
     Dyninst::InstructionAPI::Instruction::Ptr insn,
-#else                     
+#else
                         instruction insn,
 #endif
                      Address addr,
                      int_basicBlock *block) :
-    instPointBase(insn, otherPoint),
+    instPointBase(insn, 
+                otherPoint),
     funcVersion(-1),
     callee_(NULL),
     isDynamic_(false),
@@ -702,7 +704,7 @@ instPoint::instPoint(AddressSpace *proc,
                      image_instPoint *img_p,
                      Address addr,
                      int_basicBlock *block) :
-    instPointBase(img_p->insn(),
+        instPointBase(img_p->insn(),
                   img_p->getPointType(),
                   img_p->id()),
     funcVersion(-1),
@@ -734,7 +736,7 @@ instPoint::instPoint(AddressSpace *proc,
 instPoint::instPoint(instPoint *parP,
                      int_basicBlock *child,
                      process *childP) :
-    instPointBase(parP->insn(),
+        instPointBase(parP->insn(),
                   parP->getPointType(),
                   parP->id()),
     funcVersion(parP->funcVersion),

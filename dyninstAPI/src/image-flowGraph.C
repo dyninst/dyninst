@@ -108,6 +108,7 @@ bool image::analyzeImage()
 #else
     arch = Dyninst::Arch_none;
 #endif
+    instPointBase::setArch(arch, (getObject()->getAddressWidth() == 8));
   image_func *pdf;
   pdmodule *mod = NULL;
 
@@ -608,6 +609,7 @@ bool image_func::parse()
                 bindCallTarget(target,NULL);
             } else {
         // Create instrumentation point for on-demand parsing
+                ///// DEBUG HACKERY!
                 p = new image_instPoint(ah.getAddr(),
                                         ah.getInstruction(),
                                         this,
@@ -736,8 +738,8 @@ bool image_func::buildCFG(
     pdvector< Address > worklist;
 
     // Basic block lookup
-    BPatch_Set< Address > leaders;
-    BPatch_Set< Address > allInstAddrs;
+    std::set< Address > leaders;
+    std::set< Address > allInstAddrs;
     dictionary_hash< Address, image_basicBlock* > leadersToBlock( addrHash );
 
     // Prevent overrunning an existing basic block in linear scan
@@ -775,7 +777,7 @@ bool image_func::buildCFG(
     for(int j=funcEntries.size()-1; j >= 0; j--)
     {
         Address a = funcEntries[j]->firstInsnOffset();
-        leaders += a;
+        leaders.insert(a);
         leadersToBlock[a] = funcEntries[j];
         worklist.push_back(a);
 
@@ -869,7 +871,7 @@ bool image_func::buildCFG(
 
                 if(!containsBlock(nextExistingBlock))
                 {
-                    leaders += currAddr;
+                    leaders.insert(currAddr);
                     leadersToBlock[currAddr] = nextExistingBlock;
                     worklist.push_back(currAddr);
                     parsing_printf("- adding address 0x%lx to worklist\n",
@@ -892,7 +894,7 @@ bool image_func::buildCFG(
             // because of overlapping but offset instruction streams --
             // the kind that only happen on x86.
 
-            else if(allInstAddrs.contains( currAddr ))
+            else if(allInstAddrs.find( currAddr ) != allInstAddrs.end())
             {
                 // This address has been seen but is not the start of
                 // a basic block. This has the following interpretation:
@@ -993,7 +995,7 @@ bool image_func::buildCFG(
                     
                 }
             }
-            allInstAddrs += currAddr;
+            allInstAddrs.insert(currAddr);
             ++num_insns;
 
             if(ah.hasCFT())
@@ -1313,7 +1315,7 @@ bool image_func::buildCFG(
 
                     // remove some cumulative information
                     
-                    allInstAddrs.remove(currAddr);
+                    allInstAddrs.erase(currAddr);
                     num_insns--;
                     parsing_printf("%s[%d]: ending block due to ALLOC at %x\n", FILE__, __LINE__, currAddr);
                     addBasicBlock(currAddr,
@@ -1374,12 +1376,22 @@ bool image_func::buildCFG(
 image_func * image_func::bindCallTarget(
         Address target,
         image_basicBlock* currBlk)
-    {
+{
     codeRange *tmpRange;
     image_basicBlock *ph_callTarget = NULL;
     image_basicBlock *newBlk;
     image_func *targetFunc;
     bool created = false;
+
+#if !defined(ppc32_linux)
+    if(image_->getPltFuncs() && image_->getPltFuncs()->defines(target))
+    {
+        parsing_printf("%s[%d]: skipping known PLT entry at 0x%lx\n", FILE__,
+                       __LINE__, target);
+        return NULL;
+
+    }
+#endif
 
     // targetfunc may be parsed or unparsed, and it may not yet have
     // an entry basic block associated with it. `created' indicates
@@ -1451,12 +1463,10 @@ image_func * image_func::bindCallTarget(
                 parsing_printf("%s[%u]: removing symtab function at 0x%lx\n", FILE__, __LINE__, targetFunc->getOffset());
                 targetFunc->img()->getObject()->deleteFunction(targetFunc->getSymtabFunction());
             }
-
 #if defined(ppc32_linux)
-	    // An excellent time to update possibly empty PLT relocations.
-	    image_->updatePltFunc(this, targetFunc);
+            // An excellent time to update possibly empty PLT relocations.
+            image_->updatePltFunc(this, targetFunc);
 #endif
-
             targetFunc = NULL;
         }
 
@@ -1521,14 +1531,14 @@ image_func * image_func::FindOrCreateFunc(Address target,
  *
  */
 void image_func::parseSharedBlocks(image_basicBlock * firstBlock,
-                BPatch_Set< Address > &leaders,
+                                   std::set< Address > &leaders,
                 dictionary_hash< Address, image_basicBlock * > &leadersToBlock,
                 Address & funcEnd)
 {
     pdvector< image_basicBlock * > WL;
     pdvector< image_edge * > targets;
 
-    BPatch_Set< image_basicBlock * > visited;
+    std::set< image_basicBlock * > visited;
 
     image_basicBlock * curBlk;
     image_basicBlock * child;
@@ -1618,9 +1628,9 @@ void image_func::parseSharedBlocks(image_basicBlock * firstBlock,
         // is added to the block's ownership list
         if((tmpInstPt = curBlk->getCallInstPoint()) != NULL)
         {
-            parsing_printf("... copying call point at 0x%lx\n", tmpInstPt->offset());                
+            parsing_printf("... copying call point at 0x%lx\n", tmpInstPt->offset());
             cpyInstPt = new image_instPoint(tmpInstPt->offset(),
-                                    tmpInstPt->insn(),
+                                            tmpInstPt->insn(),
                                     this,
                                     tmpInstPt->callTarget(),
                                     tmpInstPt->isDynamic());
@@ -1630,8 +1640,8 @@ void image_func::parseSharedBlocks(image_basicBlock * firstBlock,
         {
             parsing_printf("... copying exit point at 0x%lx\n", tmpInstPt->offset());                
             cpyInstPt = new image_instPoint(tmpInstPt->offset(),
-                                    tmpInstPt->insn(),
-                                    this,
+                                            tmpInstPt->insn(),
+                                            this,
                                     tmpInstPt->getPointType());
             funcReturns.push_back(cpyInstPt);
 
@@ -1660,9 +1670,9 @@ void image_func::parseSharedBlocks(image_basicBlock * firstBlock,
         {
             child = targets[i]->getTarget();
 
-            if(targets[i]->getType() != ET_CALL && !visited.contains(child))
+            if(targets[i]->getType() != ET_CALL && (visited.find(child) == visited.end()))
             {
-                leaders += child->firstInsnOffset_;
+                leaders.insert(child->firstInsnOffset_);
                 leadersToBlock[ child->firstInsnOffset_ ] = child;
                 WL.push_back(child);
                 visited.insert(child);
@@ -1689,7 +1699,7 @@ void image_func::parseSharedBlocks(image_basicBlock * firstBlock,
  */
 void image_func::parseSharedBlocks(image_basicBlock * firstBlock)
 {
-    BPatch_Set< Address > leaders;
+    std::set< Address > leaders;
     dictionary_hash< Address, image_basicBlock * > leadersToBlock( addrHash );
 
     parseSharedBlocks(firstBlock,

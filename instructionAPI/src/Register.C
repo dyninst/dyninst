@@ -56,6 +56,7 @@ namespace Dyninst
     RegisterAST::RegisterAST(MachRegister r) :
             Expression(r), m_Reg(r), m_Low(0)
     {
+      
         m_High = r.size() * 8;
     }
     RegisterAST::~RegisterAST()
@@ -82,6 +83,7 @@ namespace Dyninst
     std::string RegisterAST::format(formatStyle) const
     {
         const char* name = m_Reg.name();
+	//return name;
         if(name)
         {
             std::string ret(name);
@@ -110,12 +112,17 @@ namespace Dyninst
     }
     bool RegisterAST::isStrictEqual(const InstructionAST& rhs) const
     {
-        if(rhs.checkRegID(m_Reg, m_Low, m_High))
+      if(rhs.checkRegID(m_Reg, m_Low, m_High))
         {
-            const RegisterAST& rhs_reg = dynamic_cast<const RegisterAST&>(rhs);
-            return (m_Low == rhs_reg.m_Low) && (m_High == rhs_reg.m_High);
+	  const RegisterAST& rhs_reg = dynamic_cast<const RegisterAST&>(rhs);
+	  if ((m_Low == rhs_reg.m_Low) && (m_High == rhs_reg.m_High)) {
+	    return true;
+	  }
+	  else {
+	    return false;
+	  }
         }
-        return false;
+      return false;
     }
     RegisterAST::Ptr RegisterAST::promote(const InstructionAST::Ptr regPtr) {
         const RegisterAST::Ptr r = dyn_detail::boost::dynamic_pointer_cast<RegisterAST>(regPtr);

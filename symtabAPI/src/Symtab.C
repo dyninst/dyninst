@@ -377,6 +377,20 @@ SYMTAB_EXPORT Offset Symtab::imageLength() const
 {
     return imageLen_;
 }
+
+SYMTAB_EXPORT void Symtab::fixup_code_and_data(Offset newImageOffset,
+                                               Offset newImageLength,
+                                               Offset newDataOffset,
+                                               Offset newDataLength)
+{
+    imageOffset_ = newImageOffset;
+    imageLen_ = newImageLength;
+    dataOffset_ = newDataOffset;
+    dataLen_ = newDataLength;
+
+    // Should we update the underlying Object?
+}
+
 /*
 SYMTAB_EXPORT char* Symtab::image_ptr ()  const 
 {
@@ -549,10 +563,12 @@ bool Symtab::extractSymbolsFromFile(Object *linkedFile, std::vector<Symbol *> &r
         // relocation entries have references to these undefined dynamic symbols.
         // We also have undefined symbols for the static binary case.
         
+#if !defined(os_vxworks)
         if (sym->getSec() == NULL && !sym->isAbsolute() && !sym->isCommonStorage()) {
             undefDynSyms[sym->getMangledName()].push_back(sym);
             continue;
         }
+#endif
 
         // Check whether this symbol has a valid offset. If they do not we have a
         // consistency issue. This should be a null check.
@@ -628,10 +644,15 @@ bool Symtab::createIndices(std::vector<Symbol *> &raw_syms) {
 
 bool Symtab::createAggregates() 
 {
+#if !defined(os_vxworks)
+    // In VxWorks, symbol offsets are not complete until object is loaded.
+
     for (unsigned i = 0; i < everyDefinedSymbol.size(); i++) 
 	{
         addSymbolToAggregates(everyDefinedSymbol[i]);
     }
+#endif
+
     return true;
 }
  
@@ -730,9 +751,12 @@ bool Symtab::addSymbolToIndices(Symbol *&sym)
 //	sym->index_ = everyDefinedSymbol.size();
 
     everyDefinedSymbol.push_back(sym);
-    
+
+#if !defined(os_vxworks)    
+    // VxWorks doesn't know symbol addresses until object is loaded.
     symsByOffset[sym->getAddr()].push_back(sym);
-    
+#endif
+
     symsByMangledName[sym->getMangledName()].push_back(sym);
 
     symsByPrettyName[sym->getPrettyName()].push_back(sym);
@@ -780,7 +804,7 @@ bool Symtab::addSymbolToAggregates(Symbol *&sym)
                 sorted_everyFunction = false;
             }
             func->addSymbol(sym);
-        }
+        } 
         sym->setFunction(func);
 
         break;
@@ -1507,6 +1531,11 @@ bool Symtab::isValidOffset(const Offset where) const
  */
 bool Symtab::isCode(const Offset where)  const
 {
+#if defined(os_vxworks)
+    // All memory is valid in the kernel.  Kinda.
+    //return true;
+#endif
+
    if (!codeRegions_.size()) 
    {
       fprintf(stderr, "%s[%d] No code regions in %s \n",
@@ -2496,6 +2525,116 @@ SYMTAB_EXPORT bool Symtab::getMappedRegions(std::vector<Region *> &mappedRegs) c
    return false;
 }
 
+SYMTAB_EXPORT bool Symtab::fixup_RegionAddr(const char* name, Offset memOffset, long memSize)
+{
+    Region *sec;
+
+    if (!findRegion(sec, name)) {
+        fprintf(stderr, "Couldn't find region %s\n", name);
+        assert(0);
+        return false;
+    }
+
+    if (!strcmp(name, ".text")) {
+        vector<relocationEntry> relocs;
+
+        // Fix relocation table with correct memory address
+        getObject()->get_func_binding_table(relocs);
+//        fprintf(stderr, "There are %d relocs in this symtab.\n", relocs.size());
+        for (unsigned i=0; i < relocs.size(); i++) {
+            Offset value = relocs[i].rel_addr();
+            relocs[i].setRelAddr(memOffset + value);
+//            fprintf(stderr, "Fixing relocation from 0x%x to 0x%x\n", value, memOffset + value);
+        }
+
+        relocation_table_ = relocs;
+    }
+
+#if defined(_MSC_VER)
+    regionsByEntryAddr.erase(sec->getRegionAddr());
+#endif
+
+//    /* DEBUG
+    fprintf(stderr, "Fixing region %s from 0x%x [0x%x] to 0x%x [0x%x]\n", name,
+            sec->getRegionAddr(), sec->getRegionSize(),
+            memOffset, memSize);
+//    */
+    sec->setMemOffset(memOffset);
+    sec->setMemSize(memSize);
+
+#if defined(_MSC_VER)
+    regionsByEntryAddr[sec->getRegionAddr()] = sec;
+#endif
+
+    std::sort(codeRegions_.begin(), codeRegions_.end(), sort_reg_by_addr);
+    std::sort(dataRegions_.begin(), dataRegions_.end(), sort_reg_by_addr);
+    std::sort(regions_.begin(), regions_.end(), sort_reg_by_addr);
+    return true;
+}
+
+SYMTAB_EXPORT bool Symtab::fixup_SymbolAddr(const char* name, Offset newOffset)
+{
+    // Find the symbol.
+    Symbol *sym = NULL;
+    unsigned int i;
+    for (i = 0; i < everyDefinedSymbol.size(); ++i)
+        if (everyDefinedSymbol[i]->getMangledName() == name) {
+            sym = everyDefinedSymbol[i];
+            break;
+        }
+    if (!sym) {
+        fprintf(stderr, "VxWorks found symbol %s that we didn't know about.  Skipping...\n", name);
+        assert(0);
+        return false;
+    }
+
+    // Update symbol.
+    unsigned int count;
+    Offset oldOffset = sym->getOffset();
+    sym->setOffset(newOffset);
+    //fprintf(stderr, "Fixing symbol %s from 0x%x to 0x%x\n", name, oldOffset, newOffset);
+
+    // Update hashes.
+    if (symsByOffset.count(oldOffset)) {
+        std::vector<Symbol *>::iterator iter = symsByOffset[oldOffset].begin();
+        while (iter != symsByOffset[oldOffset].end()) {
+            if (*iter == sym) {
+                symsByOffset[oldOffset].erase(iter);
+                iter = symsByOffset[oldOffset].begin();
+
+            } else iter++;
+        }
+    }
+    if (!findSymbolByOffset(newOffset))
+        symsByOffset[newOffset].push_back(sym);
+
+    // Update aggregates.
+    addSymbolToAggregates(sym);
+
+#if 0
+    if (funcsByOffset.count(oldOffset) > 0) {
+        Function *func = funcsByOffset[oldOffset];
+
+        func->changeSymbolOffset(sym);
+        funcsByOffset.erase(oldOffset);
+        funcsByOffset[newOffset] = func;
+
+        // DEBUG fprintf(stderr, "Symbol was a function\n");
+    }
+
+    if (varsByOffset.count(oldOffset) > 0) {
+        Variable *var = varsByOffset[oldOffset];
+
+        var->changeSymbolOffset(sym);
+        varsByOffset.erase(oldOffset);
+        varsByOffset[newOffset] = var;
+        // DEBUG fprintf(stderr, "Symbol was a variable\n");
+    }
+#endif
+
+    return true;
+}
+
 SYMTAB_EXPORT bool Symtab::updateRegion(const char* name, void *buffer, unsigned size)
 {
    Region *sec;
@@ -2525,7 +2664,6 @@ SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size)
    Offset highWaterMark = 0;
    Offset secoffset = 0;
    Offset prevSecoffset = 0;
-
    Object *linkedFile = getObject();
 	if (!linkedFile)
 	{

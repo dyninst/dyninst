@@ -70,6 +70,9 @@ class Node : public AnnotatableSparse {
     bool hasInEdges(); 
     bool hasOutEdges();
 
+    void deleteInEdge(EdgeIterator e);
+    void deleteOutEdge(EdgeIterator e);
+
     void forwardClosure(NodeIterator &begin, NodeIterator &end);
     void backwardClosure(NodeIterator &begin, NodeIterator &end);
 

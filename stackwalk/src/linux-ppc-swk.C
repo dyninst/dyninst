@@ -60,21 +60,23 @@ bool ProcDebugLinux::getRegValue(Dyninst::MachRegister reg,
 
    if (getAddressWidth() == 4)
    {
-      switch (reg) {
-         case Dyninst::MachRegPC:
+      switch (reg.val()) {
+         case Dyninst::iReturnAddr:
+         case Dyninst::ppc32::ipc:
             offset = USER_OFFSET_OF(nip);
             break;
-         case Dyninst::MachRegStackBase:
+         case Dyninst::iStackTop:
             val = 0x0;
             return false;
-         case Dyninst::MachRegFrameBase:
+         case Dyninst::iFrameBase:
+         case Dyninst::ppc32::ir1:
             offset = USER_OFFSET_OF(gpr[1]);
             break;
       }
    }
    if (offset == -1) {
-         sw_printf("[%s:%u] - Request for unsupported register %d\n",
-                   __FILE__, __LINE__, reg);
+         sw_printf("[%s:%u] - Request for unsupported register %s\n",
+                   __FILE__, __LINE__, reg.name());
          setLastError(err_badparam, "Unknown register passed in reg field");
          return false;
    }

@@ -161,7 +161,7 @@ class dyn_lwp
   bool readDataSpace(const void *inTracedProcess, u_int amount, void *inSelf);
   bool writeTextWord(caddr_t inTracedProcess, int data);
   bool writeTextSpace(void *inTracedProcess, u_int amount, const void *inSelf);
-  bool readTextSpace(void *inTracedProcess, u_int amount, const void *inSelf);
+  bool readTextSpace(const void *inTracedProcess, u_int amount, void *inSelf);
 
   Address step_next_insn();
 

@@ -29,6 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "common/h/Time.h"
 #include <iostream>
 #include <time.h>
 #include <string.h>
@@ -36,7 +37,6 @@
 #include <stdio.h>
 #include <assert.h>
 #include <limits.h>
-#include "common/h/Time.h"
 #include "common/h/int64iostream.h"
 
 

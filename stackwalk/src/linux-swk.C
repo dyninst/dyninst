@@ -37,6 +37,7 @@
 #include "stackwalk/h/frame.h"
 
 #include "stackwalk/src/linux-swk.h"
+#include "stackwalk/src/sw.h"
 #include "stackwalk/src/symtab-swk.h"
 
 #include "common/h/linuxKludges.h"
@@ -66,7 +67,7 @@ using namespace Dyninst::Stackwalker;
 #include "common/h/parseauxv.h"
 #include "symtabAPI/h/Symtab.h"
 #include "symtabAPI/h/Symbol.h"
-
+#include "dynutil/h/dyn_regs.h"
 using namespace Dyninst::SymtabAPI;
 #endif
 
@@ -210,8 +211,9 @@ bool ProcDebugLinux::isLibraryTrap(Dyninst::THR_ID thrd)
    if (!lib_trap_addr)
       return false;
 
-   Dyninst::MachRegisterVal cur_pc;
-   bool result = getRegValue(Dyninst::MachRegPC, thrd, cur_pc);
+   MachRegisterVal cur_pc;
+   MachRegister reg = MachRegister::getPC(getArchitecture());
+   bool result = getRegValue(reg, thrd, cur_pc);
    if (!result) {
       sw_printf("[%s:%u] - Error getting PC value for thrd %d\n",
                 __FILE__, __LINE__, (int) thrd);
@@ -796,6 +798,35 @@ ProcDebug *ProcDebug::newProcDebug(const std::string &executable,
    }
 
    return pd;   
+}
+
+Dyninst::Architecture ProcDebug::getArchitecture()
+{
+#if defined(arch_power) && !defined(arch_64bit)
+   return Dyninst::Arch_ppc32;
+#elif defined(arch_x86)
+   return Dyninst::Arch_x86;
+#else
+   int addr_width = getAddressWidth();
+   if (addr_width == 4)
+   {
+#if defined(arch_x86_64)
+      return Dyninst::Arch_x86;
+#elif defined(arch_power)
+      return Dyninst::Arch_ppc32;
+#endif
+   }
+   else if (addr_width == 8)
+   {
+#if defined(arch_x86_64)
+      return Dyninst::Arch_x86_64;
+#elif defined(arch_power)
+      return Dyninst::Arch_ppc64;
+#endif
+   }
+#endif
+   assert(0);
+   return Dyninst::Arch_none;
 }
 
 
@@ -1557,63 +1588,6 @@ ThreadState* ThreadState::createThreadState(ProcDebug *parent,
    return newts;
 }
 
-BottomOfStackStepperImpl::BottomOfStackStepperImpl(Walker *w, BottomOfStackStepper *p) :
-   FrameStepper(w),
-   parent(p),
-   initialized(false)
-{
-   sw_printf("[%s:%u] - Constructing BottomOfStackStepperImpl at %p\n",
-             __FILE__, __LINE__, this);
-}
-
-gcframe_ret_t BottomOfStackStepperImpl::getCallerFrame(const Frame &in, Frame & /*out*/)
-{
-   /**
-    * This stepper never actually returns an 'out' frame.  It simply 
-    * tries to tell if we've reached the top of a stack and returns 
-    * either gcf_stackbottom or gcf_not_me.
-    **/
-   if (!initialized)
-      initialize();
-
-   std::vector<std::pair<Address, Address> >::iterator i;
-   for (i = ra_stack_tops.begin(); i != ra_stack_tops.end(); i++)
-   {
-      if (in.getRA() >= (*i).first && in.getRA() <= (*i).second)
-         return gcf_stackbottom;
-   }
-
-   for (i = sp_stack_tops.begin(); i != sp_stack_tops.end(); i++)
-   {
-      if (in.getSP() >= (*i).first && in.getSP() < (*i).second)
-         return gcf_stackbottom;
-   }
-
-   /*   if (archIsBottom(in)) {
-      return gcf_stackbottom;
-      }*/
-   return gcf_not_me;
-}
-
-unsigned BottomOfStackStepperImpl::getPriority() const
-{
-   //Highest priority, test for top of stack first.
-   return stackbottom_priority;
-}
-
-void BottomOfStackStepperImpl::registerStepperGroup(StepperGroup *group)
-{
-   unsigned addr_width = group->getWalker()->getProcessState()->getAddressWidth();
-   if (addr_width == 4)
-      group->addStepper(parent, 0, 0xffffffff);
-#if defined(arch_64bit)
-   else if (addr_width == 8)
-      group->addStepper(parent, 0, 0xffffffffffffffff);
-#endif
-   else
-      assert(0 && "Unknown architecture word size");
-}
-
 void BottomOfStackStepperImpl::initialize()
 {
 #if defined(cap_stackwalker_use_symtab)
@@ -1771,7 +1745,4 @@ void BottomOfStackStepperImpl::initialize()
 #endif
 }
 
-BottomOfStackStepperImpl::~BottomOfStackStepperImpl()
-{
-}
 

@@ -52,7 +52,6 @@
 #include <vector>
 
 using namespace std;
-using namespace __gnu_cxx;
 
 extern "C" {
 #include <a.out.h>

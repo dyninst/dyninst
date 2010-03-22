@@ -38,7 +38,7 @@
 class frameChecker
 {
  public:
-  frameChecker(const unsigned char* addr, size_t max_length);
+  frameChecker(const unsigned char* addr, size_t max_length, Dyninst::Architecture arch);
   virtual ~frameChecker();
   
   bool isReturn() const;
@@ -48,6 +48,7 @@ class frameChecker
  private:
   bool isMovStackToBase(unsigned index_to_check) const;
   std::vector<Dyninst::InstructionAPI::Instruction::Ptr> m_Insns;
+  Dyninst::Architecture arch;
 };
 #endif
 

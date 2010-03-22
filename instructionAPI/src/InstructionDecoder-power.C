@@ -199,12 +199,12 @@ namespace Dyninst
         rawInstruction += 4;
         return make_shared(insn_in_progress);
     }
-    void InstructionDecoder_power::setMode(bool is64)
+    void InstructionDecoder_power::setMode(bool)
     {
       //assert(!"not implemented");
     }
 
-    bool InstructionDecoder_power::decodeOperands(const Instruction* insn_to_complete)
+    bool InstructionDecoder_power::decodeOperands(const Instruction*)
     {
       assert(!"not implemented");
       return false;
@@ -449,7 +449,7 @@ namespace Dyninst
         return makeRegisterExpression(makePowerRegID(ppc32::cr0, field<11, 15>(insn) >> 2));
     }
     
-    Result_Type InstructionDecoder_power::makeSizeType(unsigned int opType)
+    Result_Type InstructionDecoder_power::makeSizeType(unsigned int)
     {
       assert(!"not implemented");
       return u32;
@@ -548,7 +548,7 @@ namespace Dyninst
         return makePowerRegID(base, encoding, 0, 31);
     }
     MachRegister InstructionDecoder_power::makePowerRegID(MachRegister base, unsigned int encoding,
-                                                         unsigned int lowBit, unsigned int highBit)
+                                                         unsigned int, unsigned int)
     {
         return MachRegister(base.val() + encoding);
     }

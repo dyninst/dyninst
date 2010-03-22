@@ -280,16 +280,6 @@ static const char *deref_link(const char *path)
    return p;
 }
 
-ProcessReader::ProcessReader(int pid_, string exe) :
-   pid(pid_), executable(exe)
-{
-}
-
-ProcessReader::ProcessReader() :
-   pid(0)
-{
-}
-
 ProcessReaderSelf::ProcessReaderSelf() :
    ProcessReader(getpid()) 
 {

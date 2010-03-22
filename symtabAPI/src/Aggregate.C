@@ -28,7 +28,7 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-
+#include "dyntypes.h"
 #include "Annotatable.h"
 #include "Serialization.h"
 #include "common/h/serialize.h"
@@ -126,6 +126,10 @@ bool Aggregate::addSymbol(Symbol *sym) {
         module_ = sym->getModule();
     }
     // else keep current module.
+
+    // No need to re-add symbols.
+    for (unsigned i = 0; i < symbols_.size(); ++i)
+        if (sym == symbols_[i]) return true;
 
     symbols_.push_back(sym);
 
@@ -295,18 +299,18 @@ bool Aggregate::addTypedNameInt(string name, bool isPrimary)
 bool Aggregate::changeSymbolOffset(Symbol *sym) 
 {
     Offset oldOffset = getOffset();
+    unsigned int old_count = symbols_.size();
 
     removeSymbolInt(sym);
+    if (old_count == symbols_.size()) return true;
 
-    if (symbols_.empty()) 
-	{
+    if (symbols_.empty()) {
         // This was the only one; so add it back in and update our address
         // in the Symtab.
         symbols_.push_back(sym);
         module_->exec()->changeAggregateOffset(this, oldOffset, getOffset());
-    }
-    else 
-	{
+
+    } else {
         module_->exec()->addSymbolToAggregates(sym);
     }
     return true;

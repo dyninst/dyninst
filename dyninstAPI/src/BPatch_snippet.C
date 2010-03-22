@@ -122,44 +122,20 @@ BPatch_snippet &BPatch_snippet::operator_equals(const BPatch_snippet &src)
 /*
  * BPatch_snippet:getCost
  *
- * Returns the estimated cost of executing the snippet, in seconds.
+ * Deprecated.
  */
 float BPatch_snippet::getCostInt()
 {
-  // Currently represents the maximum possible cost of the snippet.  For
-  // instance, for the statement "if(cond) <stmtA> ..."  the cost of <stmtA>
-  // is currently included, even if it's actually not called.  Feel free to
-  // change the maxCost call below to ast->minCost or ast->avgCost if the
-  // semantics need to be changed.
-  timeLength costv = timeLength(ast_wrapper->maxCost(), getCyclesPerSecond());
-  float retCost = static_cast<float>(costv.getD(timeUnit::sec()));
-  return retCost;
+    return 0.0;
 }
 /*
  * BPatch_snippet:getCostAtPoint
  *
- * Returns the estimated cost of executing the snippet at the provided point, in seconds.
+ * Deprecated.
  */
-float BPatch_snippet::getCostAtPointInt(BPatch_point *pt)
+float BPatch_snippet::getCostAtPointInt(BPatch_point *)
 {
-  // Currently represents the maximum possible cost of the snippet.  For
-  // instance, for the statement "if(cond) <stmtA> ..."  the cost of <stmtA>
-  // is currently included, even if it's actually not called.  Feel free to
-  // change the maxCost call below to ast->minCost or ast->avgCost if the
-  // semantics need to be changed.
-    if (!pt) return 0.0;
-    if (!pt->point) return 0.0;
-
-    int unitCostInCycles = ast_wrapper->maxCost() +
-        pt->point->getPointCost() +
-        getInsnCost(trampPreamble);
-
-    timeLength unitCost(unitCostInCycles, getCyclesPerSecond());
-    float frequency = 1.0f;
-    timeLength value = unitCost * frequency;
-
-  float retCost = static_cast<float>(value.getD(timeUnit::sec()));
-  return retCost;
+    return 0.0;
 }
 
 bool BPatch_snippet::is_trivialInt()
@@ -1305,11 +1281,14 @@ bool BPatch_variableExpr::readValueInt(void *dst)
 		return false;
 	}
 
-	if (size) {
+	if (size == 2 || size == 4 || size == 8) {
+		// XXX - We should be going off of type here, not just size.
+		lladdrSpace->readDataWord(address, size, dst, true);
+		return true;
+	} else if (size) {
 		lladdrSpace->readDataSpace(address, size, dst, true);
 		return true;
-	}
-	else {
+	} else {
 		return false;
 	}
 }
@@ -1360,12 +1339,19 @@ bool BPatch_variableExpr::writeValueInt(const void *src, bool /* saveWorld */)
   }
 
   if (size) {
-      if (!lladdrSpace->writeDataSpace(address, size, src)) {
+      bool writeStatus;
+
+      if (size == 2 || size == 4 || size == 8)
+          writeStatus = lladdrSpace->writeDataWord(address, size, src);
+      else
+          writeStatus = lladdrSpace->writeDataSpace(address, size, src);
+
+      if (!writeStatus) {
 	std::stringstream errorMsg;
 	errorMsg << "variable " << name << " in .bss section, cannot write";
 	BPatch_reportError(BPatchWarning, 109, errorMsg.str().c_str());
 	return false;
-      }          
+      }
       return true;
   }
   else {

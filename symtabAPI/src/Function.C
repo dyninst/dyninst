@@ -331,13 +331,15 @@ std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::VariableLoc
 
 std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Function &f)
 {
-	std::string tname(f.retType_ ? f.retType_->getName() : "no_type");
+	Type *retType = (const_cast<Function &>(f)).getReturnType();
+
+	std::string tname(retType ? retType->getName() : "no_type");
 	const Aggregate *ag = dynamic_cast<const Aggregate *>(&f);
 	assert(ag);
 
 	os  << "Function{"
 		<< " type=" << tname
-		<< " framePtrRegNum_=" << f.framePtrRegNum_
+            << " framePtrRegNum_=" << f.getFramePtrRegnum()
 		<< " FramePtrLocationList=[";
 #if 0
 	for (unsigned int i = 0; i < f.locs_.size(); ++i)

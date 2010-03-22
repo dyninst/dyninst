@@ -109,12 +109,21 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
       using namespace x86;
   
   RegisterAST::Ptr r_eax(new RegisterAST(eax));
+#if 0
   RegisterAST::Ptr r_adjust(new RegisterAST(flags, r_AF, r_AF));
   RegisterAST::Ptr r_zero(new RegisterAST(flags, r_ZF, r_ZF));
   RegisterAST::Ptr r_overflow(new RegisterAST(flags, r_OF, r_OF));
   RegisterAST::Ptr r_parity(new RegisterAST(flags, r_PF, r_PF));
   RegisterAST::Ptr r_sign(new RegisterAST(flags, r_SF, r_SF));
   RegisterAST::Ptr r_carry(new RegisterAST(flags, r_CF, r_CF));
+#endif
+  RegisterAST::Ptr r_adjust(new RegisterAST(af));
+  RegisterAST::Ptr r_zero(new RegisterAST(zf));
+  RegisterAST::Ptr r_overflow(new RegisterAST(of));
+  RegisterAST::Ptr r_parity(new RegisterAST(pf));
+  RegisterAST::Ptr r_sign(new RegisterAST(sf));
+  RegisterAST::Ptr r_carry(new RegisterAST(cf));
+
   expectedRead.insert(expectedRead.begin(), r_eax);
   expectedWritten = list_of(r_eax)(r_adjust)(r_zero)(r_overflow)(r_parity)(r_sign)(r_carry);
   

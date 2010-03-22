@@ -54,7 +54,7 @@
 
 bool BinaryEdit::readTextSpace(const void *inOther,
                                u_int size,
-                               const void *inSelf) {
+                               void *inSelf) {
     Address addr = (Address) inOther;
     
     // Look up this address in the code range tree of memory
@@ -67,7 +67,7 @@ bool BinaryEdit::readTextSpace(const void *inOther,
     assert(offset < range->get_size());
 
     void *local_ptr = ((void *) (offset + (Address)range->get_local_ptr()));
-    memcpy(const_cast<void *>(inSelf), local_ptr, size);
+    memcpy(inSelf, local_ptr, size);
 
     return true;
 }
@@ -137,6 +137,27 @@ bool BinaryEdit::writeDataSpace(void *inOther,
                             const void *inSelf) {
     return writeTextSpace(inOther, amount, inSelf);
 }
+
+bool BinaryEdit::readTextWord(const void *inOther,
+                              u_int size,
+                              void *inSelf)
+{ return readTextSpace(inOther, size, inSelf); }
+
+bool BinaryEdit::writeTextWord(void *inOther,
+                               u_int size,
+                               const void *inSelf)
+{ return writeTextSpace(inOther, size, inSelf); }
+
+bool BinaryEdit::readDataWord(const void *inOther,
+                              u_int amount,
+                              void *inSelf,
+                              bool)
+{ return readTextSpace(inOther, amount, inSelf); }
+
+bool BinaryEdit::writeDataWord(void *inOther,
+                               u_int amount,
+                               const void *inSelf)
+{ return writeTextSpace(inOther, amount, inSelf); }
 
 const Address ADDRESS_LO = (Address)0;
 const Address ADDRESS_HI = (Address)(~(Address)0);
@@ -981,7 +1002,7 @@ bool BinaryEdit::needsPIC()
    assert(symtab);
    if(getMappedObject()->fileName().find("lib") == 0)
    {
-       if(getMappedObject()->fileName().find(".so") != -1)
+       if(getMappedObject()->fileName().find(".so") != std::string::npos)
        {
            return true;
        }

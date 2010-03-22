@@ -194,7 +194,7 @@ void IA_InstrucIter::getNewEdges(
     else if(ii.isAIndirectJumpInstruction())
     {
         parsing_printf("... indirect jump at 0x%x\n", current);
-        BPatch_Set<Address> targets;
+        std::set<Address> targets;
         if( num_insns == 2 ) {
             parsing_printf("... uninstrumentable due to 0 size\n");
             return;
@@ -207,7 +207,7 @@ void IA_InstrucIter::getNewEdges(
             parsedJumpTable = true;
             if(successfullyParsedJumpTable)
             {
-                for(BPatch_Set<Address>::iterator it = targets.begin();
+                for(std::set<Address>::iterator it = targets.begin();
                     it != targets.end();
                     it++)
                 {

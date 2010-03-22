@@ -938,4 +938,3 @@ bool BPatch_function::findOverlappingInt(BPatch_Vector<BPatch_function *> &funcs
 
     return true;
 }
-

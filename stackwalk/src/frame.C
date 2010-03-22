@@ -141,13 +141,13 @@ void Frame::setSP(Dyninst::MachRegisterVal newval) {
 static void debug_print_location(const char *s, Frame *f, location_t val) {
   if (val.location == loc_address)
     sw_printf("[%s:%u] - Setting frame %p %s location to address %lx\n",
-	      __FILE__, __LINE__, f, s, val.val.addr);
+              __FILE__, __LINE__, f, s, val.val.addr);
   else if (val.location == loc_register)
-    sw_printf("[%s:%u] - Setting frame %p %s location to register %lx\n",
-	      __FILE__, __LINE__, f, s, val.val.reg);
+    sw_printf("[%s:%u] - Setting frame %p %s location to register %s\n",
+              __FILE__, __LINE__, f, s, val.val.reg.name());
   else if (val.location == loc_unknown)
-    sw_printf("[%s:%u] - Setting frame %p %s location to unknown\n",
-	      __FILE__, __LINE__, f, s);
+     sw_printf("[%s:%u] - Setting frame %p %s location to unknown\n",
+               __FILE__, __LINE__, f, s);
 }
 
 void Frame::setRALocation(location_t newval) {

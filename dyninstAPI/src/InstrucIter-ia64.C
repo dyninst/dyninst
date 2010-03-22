@@ -48,7 +48,6 @@
 #include "instPoint.h"
 #include "InstrucIter.h"
 
-#include "BPatch_Set.h"
 #include "BPatch_instruction.h"
 #include "BPatch_memoryAccess_NP.h"
 
@@ -319,7 +318,7 @@ BPatch_memoryAccess* InstrucIter::isLoadOrStore()
    Note that we would need true DFA (the kill sets) to determine a lower bound
    on the locations of either the cmp.ltu or the mov.ip instructions. */
   
-bool InstrucIter::getMultipleJumpTargets( BPatch_Set<Address> & targetAddresses ) {
+bool InstrucIter::getMultipleJumpTargets( std::set<Address> & targetAddresses ) {
   /* DEBUG */ parsing_printf( "%s[%d]: examining jump table (@ 0x%lx)\n", __FILE__, __LINE__, current);
 
   /* Wind up a new iterator.  This would probably be easier with an explicit

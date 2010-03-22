@@ -39,7 +39,7 @@ namespace Stackwalker {
 
 typedef enum { loc_address, loc_register, loc_unknown } storage_t;
 typedef struct {
-  union {
+  struct {
     Dyninst::Address addr;
     Dyninst::MachRegister reg;
   } val;

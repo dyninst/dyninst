@@ -44,6 +44,8 @@ class IA_IAPI : public InstructionAdapter
                 Address start_, image_func* f);
         IA_IAPI(dyn_detail::boost::shared_ptr<Dyninst::InstructionAPI::InstructionDecoder> dec_,
                 Address start_, image * im);
+        virtual ~IA_IAPI() {
+        }
         Dyninst::InstructionAPI::Instruction::Ptr getInstruction();
     
         virtual bool hasCFT() const;
@@ -119,6 +121,7 @@ class IA_IAPI : public InstructionAdapter
         Dyninst::InstructionAPI::RegisterAST::Ptr framePtr;
         Dyninst::InstructionAPI::RegisterAST::Ptr stackPtr;
         Dyninst::InstructionAPI::RegisterAST::Ptr thePC;
+        static std::map<Address, bool> thunkAtTarget;
 };
 
 

@@ -68,8 +68,6 @@ namespace Dyninst
     class InstructionDecoder : public dyn_detail::boost::enable_shared_from_this<InstructionDecoder>
     {
       friend class Instruction;
-      friend dyn_detail::boost::shared_ptr<InstructionDecoder> makeDecoder(Architecture arch,
-              const unsigned char* buffer, unsigned len);
         protected:
       /// Construct an %InstructionDecoder object that decodes from \c buffer, up to \c size bytes.
       INSTRUCTION_EXPORT InstructionDecoder(const unsigned char* buffer, size_t size, Architecture arch);
@@ -78,7 +76,10 @@ namespace Dyninst
       INSTRUCTION_EXPORT InstructionDecoder();
       
         public:
-      INSTRUCTION_EXPORT virtual ~InstructionDecoder();
+            typedef dyn_detail::boost::shared_ptr<InstructionDecoder> Ptr;
+            friend Ptr makeDecoder(Architecture arch,
+                                   const unsigned char* buffer, unsigned len);
+            INSTRUCTION_EXPORT virtual ~InstructionDecoder();
         private:
       INSTRUCTION_EXPORT InstructionDecoder(const InstructionDecoder& o);
       /// Decode the current instruction in this %InstructionDecoder object's buffer, interpreting it as 

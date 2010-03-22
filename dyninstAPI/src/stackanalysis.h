@@ -55,6 +55,9 @@
 
 #include "dyn_detail/boost/shared_ptr.hpp"
 
+// To define StackAST
+#include "dynutil/h/AST.h"
+
 // These are _NOT_ in the Dyninst namespace...
 class image_func;
 class image_basicBlock;
@@ -290,6 +293,15 @@ class StackAnalysis {
 
             return Height(height_ + rhs.height_, region_);
         }
+
+	const Height operator+(const unsigned long &rhs) const {
+	  if (isBottom()) return bottom;
+	  if (isTop()) {
+	    // WTF?
+	    return Height(rhs, region_);
+	  }
+	  return Height(height_ + rhs, region_);
+	}
 
         bool operator==(const Height &rhs) const {
             return ((height_ == rhs.height_) &&
@@ -616,7 +628,16 @@ class StackAnalysis {
     
     RangeTree rt;
 };
+
 };
+
+std::ostream &operator<<(std::ostream &os, const Dyninst::StackAnalysis::Height &h);
+
+namespace Dyninst {
+  DEF_AST_LEAF_TYPE(StackAST, Dyninst::StackAnalysis::Height);
+
+};
+
 
 #endif
 

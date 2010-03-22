@@ -12,12 +12,14 @@ RELEASE_NUM	= 1.0
 CFLAGS		     += $(USEFULWARNINGS) $(DEFINES)
 CXXFLAGS	     += $(USEFULWARNINGS) $(DEFINES)
 
+ifndef TARGET
 ifdef STATIC_COMPS
 STATIC_LIBRARY = true
 TARGET = libstackwalk.a
 else
 TARGET = libstackwalk.so
 MYFLAGS += -fPIC
+endif
 endif
 
 ifndef USES_NATIVE_CC
