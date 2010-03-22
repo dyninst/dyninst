@@ -50,6 +50,8 @@
 
 #include "symtabAPI/h/Function.h"
 
+#include <queue>
+
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
 using namespace std;
@@ -333,6 +335,23 @@ class image_func : public codeRange,
 {
  public:
    static std::string emptyString;
+   struct worklist_entry
+   {
+     Address a;
+     enum block_type {
+       bt_default = 0, // normal blocks
+       bt_indirect, // blocks ending in indirect branches--reparse after rest of function
+       bt_leaves_function // blocks leaving function--reparse after indirect branches
+     };
+     block_type b;
+   worklist_entry(Address addr) : a(addr), b(bt_default) {}
+   worklist_entry(Address addr, block_type t) : a(addr), b(t) {}
+     bool operator<(const worklist_entry& rhs) const
+     {
+       return (rhs.b < b) || ((rhs.b == b) && (rhs.a < a));
+     }
+   };
+
 
    image_func() {}
    // Almost everything gets filled in later.
@@ -429,7 +448,7 @@ class image_func : public codeRange,
                       std::set<Address> &leaders,
                       dictionary_hash<Address, image_basicBlock *> &leadersToBlock,
                       EdgeTypeEnum edgeType,
-                      pdvector<Address> &worklist);
+                      std::priority_queue<worklist_entry> &worklist);
 
    // Add a basic block to the blocklist when this is not the function
    // being parsed. Helps maintain consistency across basic block split
@@ -474,15 +493,6 @@ class image_func : public codeRange,
     bool archIsIPRelativeBranch(InstrucIter& ah);
 #endif    
     void archInstructionProc(InstructionAdapter &ah);
-    /*void processJump(InstructionAdapter& ah,
-		image_basicBlock* currBlk,
-		Address& funcBegin,
-		Address& funcEnd,
-		pdvector<instruction>& allInstructions,
-		std::set<Address>& leaders,
-		pdvector<Address>& worklist,
-		dictionary_hash<Address, image_basicBlock*>& leadersToBlock,
-    dictionary_hash<Address, std::string> *pltFuncs);*/
 
    
    ////////////////////////////////////////////////

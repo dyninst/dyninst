@@ -38,12 +38,15 @@
 #include "BinaryFunction.h"
 #include "debug.h"
 #include "symtab.h"
-#include "slicing.h"
-#include "AbslocInterface.h"
+#include "../../symEval/h/slicing.h"
+#include "../../symEval/h/AbslocInterface.h"
+#include "Graph.h"
 
 #include <deque>
 #include <iostream>
 #include <sstream>
+#include <functional>
+#include <algorithm>
 
 using namespace Dyninst;
 using namespace InstructionAPI;
@@ -74,54 +77,32 @@ std::map<Address, Instruction::Ptr>::const_iterator IA_IAPI::findTableInsn() con
     return allInsns.end();
 }
 
+bool affectsKnownInput(Assignment::Ptr a) {
+  Absloc toc(ppc32::r2);
+  for(std::vector<AbsRegion>::iterator i = a->inputs().begin();
+      i != a->inputs().end();
+      ++i)
+    {
+      if(i->contains(toc)) return true;
+    }
+  if(a->out().contains(Absloc::Heap)) return true;
+  return false;
+}
+
 struct isDone
 {
-    isDone(image_basicBlock* block) : m_block(block) {}
-    bool operator() (Assignment::Ptr a) {
-        return a->addr < m_block->firstInsnOffset() ||
-                a->addr > m_block->lastInsnOffset();
-    }
-    image_basicBlock* m_block;
-};        
-bool widen(Assignment::Ptr) { return false; }
-                
-// This should only be called on a known indirect branch...
-bool IA_IAPI::parseJumpTable(image_basicBlock* currBlk,
-                             pdvector<std::pair< Address, EdgeTypeEnum> >& outEdges) const
-{
-    static const int jumpTableNumber = 0;
-    jumpTableNumber++;
-    using namespace std;
-    AbsLoc thePC = AbsLoc::makePC(img->getArch());
-    AssignmentConverter c(true);
-    vector<Assignment::Ptr> assignments;
-    c.convert(curInsn(), current, context, assignments);
-    Assignment::Ptr sliceStart;
-    for(vector<Assignment::Ptr>::iterator curAssign = assignments.begin();
-        curAssign != assignments.end();
-       ++curAssign)
-    {
-        cerr << "assignment in indirect branch at " << hex << current << ": " <<
-                (*curAssign) << dec << endl;
-        if((*curAssign)->out().contains(thePC))
-        {
-            sliceStart = *curAssign;
-        }
-    }
-    if(sliceStart) {
-        cerr << "found assignment to PC: " << sliceStart << endl;
-    } else {
-        cerr << "ERROR IN SEMANTICS: indirect branch didn't assign to PC" << endl;
-        return false;
-    }
-    Slicer s(sliceStart, currBlk, context);
-    GraphPtr jumpTableSlice = s.backwardslice(isDone(currBlk), &widen);
-    stringstream filename << "jumpTableGraph" << jumpTableNumber;
-    jumpTableSlice->printDOT(filename.str());
-        
-    parsing_printf("\tparseJumpTable returning FALSE (not implemented on POWER yet)\n");
-    return false;
-}
+  isDone(image_func* f, image_basicBlock* b) : func(f), block(b) {}
+  bool operator()(Assignment::Ptr a)
+  {
+    return (a->addr() <= block->firstInsnOffset()) ||
+      (a->addr() > block->lastInsnOffset());
+  }
+  image_func* func;
+  image_basicBlock* block;
+};
+
+bool no(Assignment::Ptr) { return false; }
+
 namespace detail
 {
     bool isNonCallEdge(image_edge* e)
@@ -134,6 +115,104 @@ namespace detail
         return visited.find(src) != visited.end();
     }
 };
+
+
+template <typename _output_iterator>
+GraphPtr sliceOnPC(image_basicBlock* block,
+	       image_func* const func,
+	       const Instruction::Ptr& insn,
+	       Address addr,
+	       _output_iterator inputs_to_slice)
+{
+  using namespace std;
+  Absloc thePC = Absloc::makePC(func->img()->getArch());
+  AssignmentConverter c(true);
+  vector<Assignment::Ptr> assignments;
+  c.convert(insn, addr, func, assignments);
+  Assignment::Ptr sliceStart;
+  for(vector<Assignment::Ptr>::iterator curAssign = assignments.begin();
+      curAssign != assignments.end();
+      ++curAssign) {
+    if((*curAssign)->out().contains(thePC)) {
+      sliceStart = *curAssign;
+    }
+  }
+  if(sliceStart) {
+    cerr << "found assignment to PC: " << sliceStart << " ";
+    for(std::vector<AbsRegion>::iterator curInput = sliceStart->inputs().begin();
+	curInput != sliceStart->inputs().end();
+	++curInput) {
+      cerr << *curInput << " ";
+    }
+    cerr << endl;
+  } else {
+    cerr << "ERROR IN SEMANTICS: indirect branch didn't assign to PC" << endl;
+    return GraphPtr();
+  }
+  cerr << "slicing within block " << hex << block->firstInsnOffset() << "..." <<
+    block->lastInsnOffset() << endl;
+  Slicer s(sliceStart, block, func);
+  GraphPtr pcSlice = s.backwardSlice(&affectsKnownInput, isDone(func, block));
+  NodeIterator entryBegin, entryEnd;
+  pcSlice->entryNodes(entryBegin, entryEnd);
+  while(entryBegin != entryEnd) {
+    Assignment::Ptr currAssign = 
+      dyn_detail::boost::dynamic_pointer_cast<AssignNode>(*entryBegin)->assign();
+    if(currAssign) {
+      for(std::vector<AbsRegion>::const_iterator curInput = currAssign->inputs().begin();
+	  curInput != currAssign->inputs().end();
+	  ++curInput) {
+	*(inputs_to_slice++) = *curInput;
+      }
+    }
+    entryBegin++;
+  }
+  return pcSlice;
+}
+
+
+// This should only be called on a known indirect branch...
+bool IA_IAPI::parseJumpTable(image_basicBlock* currBlk,
+                             pdvector<std::pair< Address, EdgeTypeEnum> >& outEdges) const
+{
+  // we only try to parse guarded jump tables; this means that we should reach this block via a conditional branch.
+  pdvector<image_edge*> srcs;
+  currBlk->getSources(srcs);
+  if(srcs.size() != 1) {
+    cerr << "multiple source blocks for block at " << hex << current << dec << ", skipping" << endl;
+    return false;
+  }
+  static int jumpTableNumber = 0;
+  jumpTableNumber++;
+  image_basicBlock* predecessor = srcs[0]->getSource();
+  cerr << "predecessor block to jump table candidate " << jumpTableNumber << ": " << hex 
+       << predecessor->firstInsnOffset() << "..." 
+       << predecessor->lastInsnOffset() << dec << endl;
+
+  stringstream filename;
+  filename << "jumpTableGraph" << jumpTableNumber;
+  std::set<AbsRegion> inputs;
+  GraphPtr jumpTableSlice = sliceOnPC(currBlk, context, curInsn(), current, inserter(inputs, inputs.begin()));
+  jumpTableSlice->printDOT(filename.str());
+  /*  std::map<Address, Instruction::Ptr>::const_iterator found = allInsns.find(predecessor->lastInsnOffset());
+  
+  if(found != allInsns.end()) {
+    cerr << "predecessor block not parsed...WTF?" << endl;
+    return false;
+  }
+  Instruction::Ptr predEnd = found->second;
+  assert(predEnd);
+  GraphPtr dominatorSlice = sliceOnPC(predecessor, context, predEnd, predecessor->lastInsnOffset(),
+  inserter(inputs, inputs.begin()));*/
+  fprintf(stderr, "Candidate jump table at 0x%lx, inputs are:\n", current);
+  for(std::set<AbsRegion>::iterator curInput = inputs.begin();
+      curInput != inputs.end();
+      ++curInput) {
+    cerr << "\t" << curInput->format() << endl;
+  }
+  parsing_printf("\tparseJumpTable returning FALSE (not implemented on POWER yet)\n");
+  return false;
+}
 
 
 Address IA_IAPI::findThunkInBlock(image_basicBlock* curBlock, Address& thunkOffset) const

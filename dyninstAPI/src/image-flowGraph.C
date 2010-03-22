@@ -734,12 +734,13 @@ bool image_func::parse()
  *  All architecture-specific code is abstracted away in the image-arch
  *  modules.
  */
+
 bool image_func::buildCFG(
         pdvector<image_basicBlock *>& funcEntries,
         Address funcBegin)
 {
     // Parsing worklist
-    pdvector< Address > worklist;
+  std::priority_queue< worklist_entry > worklist;
 
     // Basic block lookup
     std::set< Address > leaders;
@@ -783,18 +784,20 @@ bool image_func::buildCFG(
         Address a = funcEntries[j]->firstInsnOffset();
         leaders.insert(a);
         leadersToBlock[a] = funcEntries[j];
-        worklist.push_back(a);
+        worklist.push(worklist_entry(a));
 
         if (pltFuncs->defines(a)) {
            isPLTFunction_ = true;
         }
     }
 
-    for(unsigned i=0; i < worklist.size(); i++)
+    while(!worklist.empty())
     {
+      Address wl_current = worklist.top().a;
+      worklist.pop();
 #if defined(cap_instruction_api)
         using namespace Dyninst::InstructionAPI;
-        const unsigned char* bufferBegin = (const unsigned char*)(img()->getPtrToInstruction(worklist[i], this));
+        const unsigned char* bufferBegin = (const unsigned char*)(img()->getPtrToInstruction(wl_current, this));
         if( bufferBegin == NULL ) {
             parsing_printf("%s[%d]: failed to get pointer to instruction by offset\n",
                     FILE__, __LINE__);
@@ -803,21 +806,21 @@ bool image_func::buildCFG(
         dyn_detail::boost::shared_ptr<InstructionDecoder> dec =
                 makeDecoder(img()->getArch(), bufferBegin, -1 - (Address)(bufferBegin));
         dec->setMode(img()->getAddressWidth() == 8);
-        InstructionAdapter_t ah(dec, worklist[i], this);
+        InstructionAdapter_t ah(dec, wl_current, this);
 #else        
-        InstrucIter iter(worklist[i],this);
+        InstrucIter iter(wl_current,this);
         InstructionAdapter_t ah(iter, this);
 #endif        
-        image_basicBlock* currBlk = leadersToBlock[worklist[i]];
+        image_basicBlock* currBlk = leadersToBlock[wl_current];
 
         parsing_printf("[%s] parsing block at 0x%lx, "
                        "first insn offset 0x%lx\n",
                        FILE__,
-                       worklist[i], 
+                       wl_current, 
                        currBlk->firstInsnOffset());
 
         // debuggin' 
-        assert(currBlk->firstInsnOffset() == worklist[i]);
+        assert(currBlk->firstInsnOffset() == wl_current);
 
         // If this function has already parsed the block, skip
         if(containsBlock(currBlk))
@@ -844,7 +847,7 @@ bool image_func::buildCFG(
         if(image_->basicBlocksByRange.successor(ah.getNextAddr(),tmpRange))
         {
             nextExistingBlock = dynamic_cast<image_basicBlock*>(tmpRange);
-            if(nextExistingBlock->firstInsnOffset_ > worklist[i])
+            if(nextExistingBlock->firstInsnOffset_ > wl_current)
             {
                 nextExistingBlockAddr = nextExistingBlock->firstInsnOffset_;
             }
@@ -853,14 +856,6 @@ bool image_func::buildCFG(
 
         while(true) // instructions in block
         {
-            if( ah.isSyscall() )
-            {
-                // Here, we'll note the address of a trap instruction;
-                // After parsing, we'll do a backslice to determine
-                // which trap was called, and hopefully we'll be able to 
-                // identify the system call.
-            }
-
             currAddr = ah.getAddr();
             insnSize = ah.getSize();
 
@@ -885,7 +880,7 @@ bool image_func::buildCFG(
                 {
                     leaders.insert(currAddr);
                     leadersToBlock[currAddr] = nextExistingBlock;
-                    worklist.push_back(currAddr);
+                    worklist.push(worklist_entry(currAddr));
                     parsing_printf("- adding address 0x%lx to worklist\n",
                                     currAddr);
 

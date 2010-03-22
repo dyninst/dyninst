@@ -395,6 +395,7 @@ void SymEvalArchTraits<Arch_ppc32>::handleSpecialCases(InstructionAPI::Instructi
   if(!operands[0].isWritten() && operands.size() >= 2 &&
      operands[1].isWritten() && !operands[1].writesMemory())
   {
+    cerr << "swapping RS and RA in " << insn->format() << endl;
     std::swap(operands[0], operands[1]);
   }
   if(opcode == power_op_cmp ||
@@ -654,13 +655,14 @@ SgAsmExpression* ConversionArchTraits<Arch_x86>::archSpecificRegisterProc(Instru
                                                (regField)rreg_pos);
     return roseRegExpr;
 }
+
 SgAsmExpression* ConversionArchTraits<Arch_x86>::makeSegRegExpr()
 {
     return new SgAsmx86RegisterReferenceExpression(x86_regclass_segment,
             x86_segreg_none, x86_regpos_all);
 }
 
-virtual SgAsmExpression* ConversionArchTraits<Arch_ppc32>::archSpecificRegisterProc(InstructionAPI::RegisterAST* regast)
+SgAsmExpression* ConversionArchTraits<Arch_ppc32>::archSpecificRegisterProc(InstructionAPI::RegisterAST* regast)
 {
     int rreg_class;
     int rreg_num;
@@ -675,12 +677,6 @@ virtual SgAsmExpression* ConversionArchTraits<Arch_ppc32>::archSpecificRegisterP
                                                (regField)rreg_pos);
     return roseRegExpr;
 }
-virtual SgAsmExpression* ConversionArchTraits<Arch_ppc32>::makeSegRegExpr()
-{
-    return NULL;
-}
-
-
 
 template class ExpressionConversionVisitor<Arch_x86>;
 template class ExpressionConversionVisitor<Arch_ppc32>;

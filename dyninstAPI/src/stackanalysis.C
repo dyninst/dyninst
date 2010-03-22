@@ -530,7 +530,7 @@ void StackAnalysis::computeInsnEffects(const Block *block,
       }
     }
 
-    if (what == e_call) {
+    if (insn->getControlFlowTarget()) {
         pdvector<image_edge *> outs;
         block->getTargets(outs);
         for (unsigned i=0; i<outs.size(); i++) {
@@ -924,6 +924,11 @@ StackAnalysis::Height StackAnalysis::findSP(Address addr) {
   assert(sp_intervals_);
 
   sp_intervals_->find(addr, ret);
+  if(ret.isTop()) {
+    if(!analyze()) return Height();
+  }
+  sp_intervals_->find(addr, ret);
+  assert(!ret.isTop());
   return ret;
 }
 

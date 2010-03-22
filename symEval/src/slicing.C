@@ -42,7 +42,7 @@ Slicer::Slicer(Assignment::Ptr a,
   f_(func),
   converter(true) {};
 
-Graph::Ptr Slicer::forwardSlice(PredicateFunc &e, 
+Graph::Ptr Slicer::forwardSlice(PredicateFunc &e,
 				PredicateFunc &w,
 				CallStackFunc &c) {
   // The End functor tells us when we should end the slice
@@ -148,7 +148,7 @@ Graph::Ptr Slicer::forwardSlice(PredicateFunc &e,
   return ret;
 }
 
-Graph::Ptr Slicer::backwardSlice(PredicateFunc &e, PredicateFunc &w) {
+Graph::Ptr Slicer::backwardSlice(PredicateFunc e, PredicateFunc w) {
     // The End functor tells us when we should end the slice
     // The Widen functor tells us when we should give up and say
     // "this could go anywhere", which is represented with a
@@ -213,12 +213,12 @@ Graph::Ptr Slicer::backwardSlice(PredicateFunc &e, PredicateFunc &w) {
 
         assert(current.ptr);
 
-        if (visited.find(current.ptr) != visited.end()) {
-            cerr << "\t Already visited, skipping" << endl;
-            continue;
+	if (visited.find(current.ptr) != visited.end()) {
+	  cerr << "\t Already visited, skipping" << endl;
+	  continue;
         } else {
             visited.insert(current.ptr);
-        }
+	}
 
         // Do we widen out? This should check the defined abstract
         // region
@@ -258,6 +258,10 @@ Graph::Ptr Slicer::backwardSlice(PredicateFunc &e, PredicateFunc &w) {
 	      cerr << "\t\t... backward search failed" << endl;
 	      widenBackward(ret, current);
             }
+	    if(found.empty()) {
+	      cerr << "\t\tWARNING: backward search returned true, but found was empty!" << endl;
+	      widenBackward(ret, current);
+	    }
             while (!found.empty()) {
 	      Element target = found.front(); found.pop();
 	      
@@ -590,53 +594,60 @@ bool Slicer::handleDefaultEdgeBackward(image_basicBlock *block,
 }
 
 
-bool Slicer::handleCallEdge(image_basicBlock *block,
-			    Element &current,
-			    Element &newElement) {
-  // Mildly more complicated than the above due to needing
-  // to handle context and tick over the AbsRegion.
-
-  image_func *callee = block->getEntryFunc();
-  if (!callee) return false;
-
-  if (followCall(callee, forward, current, p)) {
-    if (!callee) {
-      err = true;
-      return false;
+bool Slicer::handleCall(image_basicBlock* block,
+                        Element& current,
+                        Element& newElement,
+                        Predicates& p,
+                        bool& err)
+{
+    // Best attempt: find the callee
+    pdvector<image_edge *> outs;
+    block->getTargets(outs);
+    image_basicBlock *callee = NULL;
+    image_edge *funlink = NULL;
+    for (unsigned i = 0; i < outs.size(); ++i) {
+        if (outs[i]->getType() == ET_CALL) {
+            callee = outs[i]->getTarget();
+        } else if (outs[i]->getType() == ET_FUNLINK) {
+            funlink = outs[i];
+        }
+    }
+    if (followCall(callee, forward, current, p)) {
+        if (!callee) {
+            err = true;
+            return false;
+        }
+        newElement = current;
+        // Update location
+        newElement.loc.block = callee;
+        newElement.loc.func = callee->getEntryFunc();
+        getInsns(newElement.loc);
+        // HandleCall updates both an AbsRegion and a context...
+        if (!handleCallDetails(newElement.reg,
+             newElement.con,
+             current.loc.block,
+             newElement.loc.func)) {
+                 err = true;
+                 return false;
+             }
+    }
+    else {
+        // Use the funlink
+        if (!funlink) {
+            // ???
+            return false;
+        }
+        if (!handleDefault(funlink,
+             current,
+             newElement,
+             p,
+             err)) {
+                 err = true;
+                 return false;
+             }
     }
 
-    newElement = current;
-    // Update location
-    newElement.loc.block = callee;
-    newElement.loc.func = callee->getEntryFunc();
-    getInsns(newElement.loc);
-    
-    // HandleCall updates both an AbsRegion and a context...
-    if (!handleCallDetails(newElement.reg,
-			   newElement.con,
-			   current.loc.block,
-			   newElement.loc.func)) {
-      err = true;
-      return false;
-    }
-  }
-  else {
-    // Use the funlink
-    if (!funlink) {
-      // ???
-      return false;
-    }
-    if (!handleDefault(funlink,
-		       current,
-		       newElement,
-		       p,
-		       err)) {
-      err = true;
-      return false;
-    }
-  }
-  
-  return true;
+    return true;
 }
 
 
@@ -884,6 +895,7 @@ bool Slicer::backwardSearch(Element &initial, Elements &pred)
                 cerr << "\t\t\t\t\t Overlaps, adding" << endl;
                 // We make a copy of each Element for each Assignment...
                 current.ptr = assign;
+		current.usedIndex = std::distance(assignments.begin(), iter);
                 pred.push(current);
                 addPred = false;
             }
@@ -972,8 +984,8 @@ void Slicer::widen(Graph::Ptr ret,
 
 void Slicer::widenBackward(Graph::Ptr ret,
         Element &target) {
-    ret->insertPair(widenNode(), createNode(target));
-    ret->insertEntryNode(widenNode());
+  ret->insertPair(widenNode(), createNode(target));
+  ret->insertEntryNode(widenNode());
 }
 
 AssignNode::Ptr Slicer::widenNode() {

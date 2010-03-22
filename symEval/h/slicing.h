@@ -97,7 +97,7 @@ class Slicer {
 
   GraphPtr forwardSlice(PredicateFunc &e, PredicateFunc &w, CallStackFunc &c);
   
-  GraphPtr backwardSlice(PredicateFunc &e, PredicateFunc &w);
+  GraphPtr backwardSlice(PredicateFunc e, PredicateFunc w);
   
   static bool isWidenNode(Node::Ptr n);
 
@@ -108,9 +108,7 @@ class Slicer {
   typedef enum {
     forward,
     backward } Direction;
-
-  typedef std::map<image_basicBlock *, InsnVec> InsnCache;
-
+  
   struct Predicates {
     // It's safe for these to be references because they will only exist
     // under a forward/backwardSlice call.
@@ -192,44 +190,71 @@ class Slicer {
   // Where we are in a particular search...
   struct Location {
     // The block we're looking through
-    image_func *func;
-    image_basicBlock *block; // current block
+      image_func *func;
+      image_basicBlock *block; // current block
 
     // Where we are in the block
-    InsnVec::iterator current;
-    InsnVec::iterator begin;
-    InsnVec::iterator end;
+      InsnVec::iterator current;
+      InsnVec::iterator begin;
+      InsnVec::iterator end;
 
-    bool fwd;
+      bool fwd;
 
-    InsnVec::reverse_iterator rcurrent;
-    InsnVec::reverse_iterator rbegin;
-    InsnVec::reverse_iterator rend;
+      InsnVec::reverse_iterator rcurrent;
+      InsnVec::reverse_iterator rbegin;
+      InsnVec::reverse_iterator rend;
 
-    Address addr() const { if(fwd) return current->second; else return rcurrent->second;}
+      Address addr() const { if(fwd) return current->second; else return rcurrent->second;}
 
-  Location(image_func *f,
-	   image_basicBlock *b) : func(f), block(b), fwd(true){};
-  Location() : func(NULL), block(NULL), fwd(true) {};
+      Location(image_func *f,
+               image_basicBlock *b) : func(f), block(b), fwd(true){};
+      Location() : func(NULL), block(NULL), fwd(true) {};
   };
     
   typedef std::queue<Location> LocList;
   
+
   // And the tuple of (context, AbsRegion, Location)
   // that specifies both context and what to search for
   // in that context
   struct Element {
-    Location loc;
-    Context con;
-    AbsRegion reg;
+      Location loc;
+      Context con;
+      AbsRegion reg;
     // This is for returns, and not for the intermediate
     // steps. OTOH, I'm being a bit lazy...
-    Assignment::Ptr ptr;
-    unsigned usedIndex;
+      Assignment::Ptr ptr;
+      unsigned usedIndex;
 
-    Address addr() const { return loc.addr(); }
+      Address addr() const { return loc.addr(); }
   };
   typedef std::queue<Element> Elements;
+
+  // Handling a call does two things:
+  // 1) Translates the given AbsRegion into the callee-side
+  //    view; this just means adjusting stack locations. 
+  // 2) Increases the given context
+  // Returns false if we didn't translate the absregion correctly
+  bool handleCall(image_basicBlock* block,
+                    Element& current,
+                    Element& newElement,
+                    Predicates& p,
+                    bool& err);
+  void handleCallBackward(AbsRegion &reg,
+          Context &context,
+          image_basicBlock *calleeBlock,
+          image_func *caller);
+
+  // And the corresponding...
+  // Returns false if we ran out of context (and thus assume widening for now)
+  void handleReturn(AbsRegion &reg,
+		    Context &context);
+  bool handleCallDetails(AbsRegion &reg,
+			 Context &context,
+			 image_basicBlock *callerBlock,
+			 image_func *callee);
+
+  
 
   bool followCall(image_basicBlock *b, 
 		  Direction d,
@@ -242,11 +267,6 @@ class Slicer {
 		     Predicates &p,
 		     bool &err);
 
-  bool handleCall(image_basicBlock *block,
-		  Element &current,
-		  Element &newElement,
-		  Predicates &p,
-		  bool &err);
 
   bool handleReturn(image_basicBlock *b,
 		    Element &current,

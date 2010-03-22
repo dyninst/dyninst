@@ -80,7 +80,7 @@ LIBS    += -lgcc
 
 # AS		= /usr/bin/as
 # InstructionAPI is just x86 and power at this point
-LIBS    += -linstructionAPI
+LIBS    += -linstructionAPI -lsymEval
 
 # no support for elf64_XXX() functions
 # CXXFLAGS	+= -DUSES_ELF32_ONLY

@@ -1,33 +1,33 @@
 /*
- * Copyright (c) 1996-2007 Barton P. Miller
- * 
- * We provide the Paradyn Parallel Performance Tools (below
- * described as "Paradyn") on an AS IS basis, and do not warrant its
- * validity or performance.  We reserve the right to update, modify,
- * or discontinue this software at any time.  We shall have no
- * obligation to supply such updates or modifications or any other
- * form of support to you.
- * 
- * By your use of Paradyn, you understand and agree that we (or any
- * other person or entity with proprietary rights in Paradyn) are
- * under no obligation to provide either maintenance services,
- * update services, notices of latent defects, or correction of
- * defects for Paradyn.
- * 
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2.1 of the License, or (at your option) any later version.
- * 
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- * 
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
- */
+* Copyright (c) 1996-2007 Barton P. Miller
+*
+* We provide the Paradyn Parallel Performance Tools (below
+* described as "Paradyn") on an AS IS basis, and do not warrant its
+* validity or performance.  We reserve the right to update, modify,
+* or discontinue this software at any time.  We shall have no
+* obligation to supply such updates or modifications or any other
+* form of support to you.
+*
+* By your use of Paradyn, you understand and agree that we (or any
+* other person or entity with proprietary rights in Paradyn) are
+* under no obligation to provide either maintenance services,
+* update services, notices of latent defects, or correction of
+* defects for Paradyn.
+*
+* This library is free software; you can redistribute it and/or
+* modify it under the terms of the GNU Lesser General Public
+* License as published by the Free Software Foundation; either
+* version 2.1 of the License, or (at your option) any later version.
+*
+* This library is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+* Lesser General Public License for more details.
+*
+* You should have received a copy of the GNU Lesser General Public
+* License along with this library; if not, write to the Free Software
+* Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+*/
 
 // Stubs for now
 
@@ -53,6 +53,8 @@ class SgAsmx86Instruction;
 class SgAsmExpression;
 class SgAsmPowerpcInstruction;
 class SgAsmOperandList;
+class SgAsmx86RegisterReferenceExpression;
+class SgAsmPowerpcRegisterReferenceExpression;
 
 namespace Dyninst {
 namespace SymbolicEvaluation {
@@ -73,30 +75,30 @@ namespace SymbolicEvaluation {
 
 struct Constant {
 
-  Constant(uint64_t v) : val(v), size(0) {};
-  Constant(uint64_t v, size_t s) : val(v), size(s) {};
+Constant(uint64_t v) : val(v), size(0) {};
+Constant(uint64_t v, size_t s) : val(v), size(s) {};
 
-  bool operator==(const Constant &rhs) const {
+bool operator==(const Constant &rhs) const {
     return ((rhs.val == val) && (rhs.size == size));
-  }
+}
 
-  const std::string format() const {
+const std::string format() const {
     std::stringstream ret;
     ret << val;
     if (size) {
-      ret << ":" << size;
+    ret << ":" << size;
     }
     return ret.str();
-  }
+}
 
-  uint64_t val;
-  size_t size;
+uint64_t val;
+size_t size;
 };
 
 // Define the operations used by ROSE
 
 struct ROSEOperation {
-  typedef enum {
+typedef enum {
     nullOp,
     extractOp,
     invertOp,
@@ -128,125 +130,125 @@ struct ROSEOperation {
     uModOp,
     extendOp,
     extendMSBOp
-  } Op;
+} Op;
 
-  ROSEOperation(Op o) : op(o), size(0) {};
-  ROSEOperation(Op o, size_t s) : op(o), size(s) {};
+ROSEOperation(Op o) : op(o), size(0) {};
+ROSEOperation(Op o, size_t s) : op(o), size(s) {};
 
-  bool operator==(const ROSEOperation &rhs) const {
+bool operator==(const ROSEOperation &rhs) const {
     return ((rhs.op == op) && (rhs.size == size));
-  }
+}
 
-  const std::string format() const {
+const std::string format() const {
     std::stringstream ret;
     ret << "<";
     switch(op) {
     case nullOp:
-      ret << "null";
-      break;
+    ret << "null";
+    break;
     case extractOp:
-      ret << "extract";
-      break;
+    ret << "extract";
+    break;
     case invertOp:
-      ret << "invert";
-      break;
+    ret << "invert";
+    break;
     case negateOp:
-      ret << "negate";
-      break;
+    ret << "negate";
+    break;
     case signExtendOp:
-      ret << "signExtend";
-      break;
+    ret << "signExtend";
+    break;
     case equalToZeroOp:
-      ret << "eqZero?";
-      break;
+    ret << "eqZero?";
+    break;
     case generateMaskOp:
-      ret << "genMask";
-      break;
+    ret << "genMask";
+    break;
     case LSBSetOp:
-      ret << "LSB?";
-      break;
+    ret << "LSB?";
+    break;
     case MSBSetOp:
-      ret << "MSB?";
-      break;
+    ret << "MSB?";
+    break;
     case concatOp:
-      ret << "concat";
-      break;
+    ret << "concat";
+    break;
     case andOp:
-      ret << "and";
-      break;
+    ret << "and";
+    break;
     case orOp:
-      ret << "or";
-      break;
+    ret << "or";
+    break;
     case xorOp:
-      ret << "xor";
-      break;
+    ret << "xor";
+    break;
     case addOp:
-      ret << "add";
-      break;
+    ret << "add";
+    break;
     case rotateLOp:
-      ret << "rotL";
-      break;
+    ret << "rotL";
+    break;
     case rotateROp:
-      ret << "rotR";
-      break;
+    ret << "rotR";
+    break;
     case shiftLOp:
-      ret << "shl";
-      break;
+    ret << "shl";
+    break;
     case shiftROp:
-      ret << "shr";
-      break;
+    ret << "shr";
+    break;
     case shiftRArithOp:
-      ret << "shrA";
-      break;
+    ret << "shrA";
+    break;
     case derefOp:
-      ret << "deref";
-      break;
+    ret << "deref";
+    break;
     case writeRepOp:
-      ret << "writeRep";
-      break;
+    ret << "writeRep";
+    break;
     case writeOp:
-      ret << "write";
-      break;
+    ret << "write";
+    break;
     case ifOp:
-      ret << "if";
-      break;
+    ret << "if";
+    break;
     case sMultOp:
-      ret << "sMult";
-      break;
+    ret << "sMult";
+    break;
     case uMultOp:
-      ret << "uMult";
-      break;
+    ret << "uMult";
+    break;
     case sDivOp:
-      ret << "sDiv";
-      break;
+    ret << "sDiv";
+    break;
     case sModOp:
-      ret << "sMod";
-      break;
+    ret << "sMod";
+    break;
     case uDivOp:
-      ret << "uDiv";
-      break;
+    ret << "uDiv";
+    break;
     case uModOp:
-      ret << "uMod";
-      break;
+    ret << "uMod";
+    break;
     case extendOp:
-      ret << "ext";
-      break;
+    ret << "ext";
+    break;
     case extendMSBOp:
-      ret << "extMSB";
-      break;
+    ret << "extMSB";
+    break;
     default:
-      ret << " ??? ";
-      break;
+    ret << " ??? ";
+    break;
     };
     if (size) {
-      ret << ":" << size;
+    ret << ":" << size;
     }
     ret << ">";
     return ret.str();
-  };
+};
 
-  Op op;
-  size_t size;
+Op op;
+size_t size;
 };
 
 };
@@ -261,6 +263,8 @@ namespace Dyninst {
 
 namespace SymbolicEvaluation {
 
+typedef std::map<Assignment::Ptr, AST::Ptr> Result_t;
+    
 DEF_AST_LEAF_TYPE(BottomAST, bool);
 DEF_AST_LEAF_TYPE(ConstantAST, Constant);
 DEF_AST_LEAF_TYPE(AbsRegionAST, AbsRegion);
@@ -372,7 +376,7 @@ struct ConversionArchTraitsBase
 };
 
 template <Architecture a>
-        struct ConversionArchTraits : public ConversionArchTraitsBase
+struct ConversionArchTraits : public ConversionArchTraitsBase
 {
     virtual SgAsmExpression* archSpecificRegisterProc(InstructionAPI::RegisterAST* regast)
     {
@@ -383,7 +387,11 @@ template <Architecture a>
         return NULL;
     }
     virtual ~ConversionArchTraits() {}
+    typedef SgAsmPowerpcRegisterReferenceExpression regRef;
+    typedef PowerpcRegisterClass regClass;
+    typedef PowerpcConditionRegisterAccessGranularity regField;
 };
+            
 template <>
 struct ConversionArchTraits<Arch_x86> : public ConversionArchTraitsBase
 {
@@ -393,15 +401,12 @@ struct ConversionArchTraits<Arch_x86> : public ConversionArchTraitsBase
     typedef X86RegisterClass regClass;
     typedef X86PositionInRegister regField;
     virtual ~ConversionArchTraits<Arch_x86>() {}
-
 };
+            
 template <>
 struct ConversionArchTraits<Arch_ppc32> : public ConversionArchTraitsBase
 {
-    virtual SgAsmExpression* archSpecificRegisterProc(InstructionAPI::RegisterAST* )
-    {
-        return NULL;
-    }
+    virtual SgAsmExpression* archSpecificRegisterProc(InstructionAPI::RegisterAST* regast);
     virtual SgAsmExpression* makeSegRegExpr()
     {
         return NULL;
@@ -409,13 +414,13 @@ struct ConversionArchTraits<Arch_ppc32> : public ConversionArchTraitsBase
     virtual ~ConversionArchTraits<Arch_ppc32>() {}
     typedef SgAsmPowerpcRegisterReferenceExpression regRef;
     typedef PowerpcRegisterClass regClass;
-    typedef unsigned int regField;
-    
+    typedef PowerpcConditionRegisterAccessGranularity regField;
+
 };
 
-
 template <Architecture a = Arch_x86>
-class ExpressionConversionVisitor : public InstructionAPI::Visitor, public ConversionArchTraits<a> {
+class ExpressionConversionVisitor : public InstructionAPI::Visitor, public ConversionArchTraits<a>
+{
     public:
         typedef typename ConversionArchTraits<a>::regRef regRef;
         typedef typename ConversionArchTraits<a>::regClass regClass;
@@ -433,6 +438,7 @@ class ExpressionConversionVisitor : public InstructionAPI::Visitor, public Conve
         SgAsmExpression *roseExpression;
         std::list<SgAsmExpression*> m_stack;
 };
+
 
 };
 };

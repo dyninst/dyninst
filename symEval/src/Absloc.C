@@ -259,11 +259,9 @@ const std::string Assignment::format() const {
   std::stringstream ret;
   ret << "(@"<< std::hex << addr_ << std::dec
       << "<" << out_.format();
-  /*
   for (unsigned i = 0; i < inputs_.size(); i++) {
     ret << ">" << inputs_[i].format();
   }
-  */
   ret << ")";
 
   return ret.str();
