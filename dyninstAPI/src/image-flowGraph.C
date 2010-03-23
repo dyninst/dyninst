@@ -54,10 +54,13 @@
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/debug.h"
 
+#if defined(cap_symeval_syscall)
+#error "DYNINST DEPENDENCY ON SYMEVAL"
 #include "symEval/h/Absloc.h"
 #include "symEval/h/AbslocInterface.h"
 #include "symEval/h/slicing.h"
 #include "Graph.h"
+#endif
 
 #include "dyninstAPI/h/BPatch_flowGraph.h"
 
