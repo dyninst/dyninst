@@ -176,10 +176,6 @@ class Slicer {
   //    view; this just means adjusting stack locations. 
   // 2) Increases the given context
   // Returns false if we didn't translate the absregion correctly
-  bool handleCallDetails(AbsRegion &reg,
-			 Context &context,
-			 image_basicBlock *callerBlock,
-			 image_func *callee);
 
   void handleCallBackward(AbsRegion &reg,
           Context &context,
@@ -240,10 +236,6 @@ class Slicer {
                     Element& newElement,
                     Predicates& p,
                     bool& err);
-  void handleCallBackward(AbsRegion &reg,
-          Context &context,
-          image_basicBlock *calleeBlock,
-          image_func *caller);
 
   // And the corresponding...
   // Returns false if we ran out of context (and thus assume widening for now)
@@ -335,6 +327,7 @@ class Slicer {
   
   void constructInitialElement(Element &initial);
 
+  typedef std::vector<std::pair<Dyninst::InstructionAPI::Instruction::Ptr, Address> > InsnCache;
   InsnCache insnCache_;
 
   AssignmentPtr a_;

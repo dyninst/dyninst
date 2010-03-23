@@ -298,6 +298,8 @@ namespace Dyninst
             if(field<11,15>(insn) == 0)
             {
                 insn_in_progress->getOperation().mnemonic = "li";
+                insn_in_progress->appendOperand(makeRAorZeroExpr(), !isRAWritten, isRAWritten);
+                return;
             }
         }
         if(insn_in_progress->getOperation().getID() == power_op_addis)
@@ -305,6 +307,8 @@ namespace Dyninst
             if(field<11,15>(insn) == 0)
             {
                 insn_in_progress->getOperation().mnemonic = "lis";
+                insn_in_progress->appendOperand(makeRAorZeroExpr(), !isRAWritten, isRAWritten);
+                return;
             }
         }
         insn_in_progress->appendOperand(makeRAExpr(), !isRAWritten, isRAWritten);
