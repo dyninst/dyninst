@@ -30,6 +30,11 @@ fullSystem	+= $(DyninstAPI)
 Build_list	+= DyninstAPI
 endif
 
+ifndef DONT_BUILD_PROCCONTROL
+fullSystem += proccontrol
+Build_list += proccontrol
+endif
+
 ifndef DONT_BUILD_NEWTESTSUITE
 testsuites += testsuite parseThat
 allSubdirs_noinstall += testsuite 

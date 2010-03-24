@@ -33,7 +33,7 @@
 #if !defined(DYN_REGS_H_)
 #define DYN_REGS_H_
 
-#include "dynutil/h/util.h"
+#include "util.h"
 
 #include <assert.h>
 #include <map>
