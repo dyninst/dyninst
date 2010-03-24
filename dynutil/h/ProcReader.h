@@ -29,40 +29,22 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef DBGSTEPPER_IMPL_
-#define DBGSTEPPER_IMPL_
+#if !defined(PROCREADER_H_)
+#define PROCREADER_H_
 
-#if defined(cap_stackwalker_use_symtab)
-
-#include "symtabAPI/h/Symtab.h"
-#include "stackwalk/h/framestepper.h"
+#include "dyntypes.h"
 
 namespace Dyninst {
-namespace Stackwalker {
 
-class DebugStepperImpl : public FrameStepper, public Dyninst::SymtabAPI::MemRegReader {
- private:
-   DebugStepper *parent_stepper;
-   const Frame *cur_frame; //TODO: Thread safety
+class ProcessReader {
  public:
-  DebugStepperImpl(Walker *w, DebugStepper *parent);
-  virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
-  virtual unsigned getPriority() const;
-  virtual void registerStepperGroup(StepperGroup *group);
-  virtual bool ReadMem(Address addr, void *buffer, unsigned size);
-  virtual bool GetReg(MachRegister reg, MachRegisterVal &val);
-  virtual ~DebugStepperImpl();  
-  virtual bool start() { return true; }
-  virtual bool done() { return true; }
- protected:
-  gcframe_ret_t getCallerFrameArch(Address pc, const Frame &in, Frame &out, 
-                                   Dyninst::SymtabAPI::Symtab *symtab);
-  bool isFrameRegister(MachRegister reg);
-  bool isStackRegister(MachRegister reg);
+   virtual bool start() = 0;
+   virtual bool ReadMem(Dyninst::Address addr, void *buffer, unsigned size) = 0;
+   virtual bool GetReg(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val) = 0;
+   virtual bool done() = 0;
+   virtual ~ProcessReader() {}
 };
 
 }
-}
 
-#endif
 #endif

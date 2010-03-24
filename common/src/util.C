@@ -34,10 +34,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
-#include "dynutil/h/util.h"
-
+#include "dynutil/h/dyntypes.h"
 
 namespace Dyninst {
+
 COMMON_EXPORT unsigned addrHashCommon(const Address &addr)
 {
    // inspired by hashs of string class

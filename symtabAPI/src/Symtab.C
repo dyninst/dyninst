@@ -2554,11 +2554,6 @@ SYMTAB_EXPORT bool Symtab::fixup_RegionAddr(const char* name, Offset memOffset, 
     regionsByEntryAddr.erase(sec->getRegionAddr());
 #endif
 
-//    /* DEBUG
-    fprintf(stderr, "Fixing region %s from 0x%x [0x%x] to 0x%x [0x%x]\n", name,
-            sec->getRegionAddr(), sec->getRegionSize(),
-            memOffset, memSize);
-//    */
     sec->setMemOffset(memOffset);
     sec->setMemSize(memSize);
 
@@ -2589,7 +2584,6 @@ SYMTAB_EXPORT bool Symtab::fixup_SymbolAddr(const char* name, Offset newOffset)
     }
 
     // Update symbol.
-    unsigned int count;
     Offset oldOffset = sym->getOffset();
     sym->setOffset(newOffset);
     //fprintf(stderr, "Fixing symbol %s from 0x%x to 0x%x\n", name, oldOffset, newOffset);
@@ -3370,10 +3364,6 @@ void Symtab::parseTypesNow()
       return;
 
    parseTypes();
-}
-
-MemRegReader::~MemRegReader()
-{
 }
 
 #if defined (cap_serialization)

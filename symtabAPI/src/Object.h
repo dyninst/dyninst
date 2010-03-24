@@ -47,6 +47,7 @@
 #include <vector>
 
 #include "Symbol.h"
+#include "Symtab.h"
 #include "LineInformation.h"
 #include "common/h/headers.h"
 #include "common/h/MappedFile.h"
@@ -74,8 +75,6 @@ const char MULTIPLE_WILDCARD_CHARACTER = '*';
  *   and a length of the code section, and ditto for the data
  *   section....
 ************************************************************************/
-
-class MemRegReader;
 
 class AObject {
 public:
@@ -130,7 +129,7 @@ public:
     SYMTAB_EXPORT virtual bool getRegValueAtFrame(Address /*pc*/,
                                                   Dyninst::MachRegister /*reg*/, 
                                                   Dyninst::MachRegisterVal & /*reg_result*/,
-                                                  MemRegReader * /*reader*/) {return false;}
+                                                  Dyninst::SymtabAPI::MemRegReader * /*reader*/) {return false;}
     
     SYMTAB_EXPORT const std::string findModuleForSym(Symbol *sym);
     SYMTAB_EXPORT void clearSymsToMods();

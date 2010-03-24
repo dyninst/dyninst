@@ -32,13 +32,9 @@
 #if !defined(addrtranslate_sysv_h_)
 #define addrtranslate_sysv_h_
 
-#include "symtabAPI/src/addrtranslate.h"
-#include "symtabAPI/h/Symtab.h"
-#include "symtabAPI/h/symutil.h"
+#include "common/h/addrtranslate.h"
 
 namespace Dyninst {
-namespace SymtabAPI {
-
 
 class FCNode
 {
@@ -51,27 +47,28 @@ protected:
    bool parsed_file;
    bool parsed_file_fast;
    bool parse_error;
+   bool is_interpreter;
 
    string interpreter_name;
-   vector<Region *> regions;
+   vector<SymRegion> regions;
    unsigned addr_size;
    Offset r_debug_offset;
    Offset r_trap_offset;
-   Symtab *symtable;
+   SymReader *symreader;
+   SymbolReaderFactory *factory;
 
    void parsefile();
-   void parsefile_fast();
 public:
-   FCNode(string f, dev_t d, ino_t i);
+   FCNode(string f, dev_t d, ino_t i, SymbolReaderFactory *factory_);
 
    string getFilename();
 
    string getInterpreter();
-   void getRegions(vector<Region *> &regs);
+   void markInterpreter();
+   void getRegions(vector<SymRegion> &regs);
    unsigned getAddrSize();
    Offset get_r_debug();
    Offset get_r_trap();
-   Symtab *getSymtab();
 };
 
 class FileCache
@@ -82,10 +79,21 @@ private:
 public:
    FileCache();
    
-   FCNode *getNode(const string &filename);
+   FCNode *getNode(const string &filename, Dyninst::SymbolReaderFactory *factory_);
 };
 
 extern FileCache files;
+
+struct LibCmp
+{
+   bool operator()(const std::pair<Address, std::string> &a,
+                   const std::pair<Address, std::string> &b) const
+   {
+      if (a.first != b.first)
+         return a.first < b.first;
+      return a.second < b.second;
+   }
+};
 
 class AddressTranslateSysV : public AddressTranslate
 {
@@ -96,11 +104,12 @@ public:
    
    bool init();
    virtual bool refresh();
-
+   
    virtual Address getLibraryTrapAddrSysV();
 
    LoadedLib *getAOut();
-   AddressTranslateSysV(int pid, ProcessReader *reader_);
+   AddressTranslateSysV(int pid, ProcessReader *reader_, 
+                        SymbolReaderFactory *reader_fact);
    AddressTranslateSysV();
 private:
    ProcessReader *reader;
@@ -118,10 +127,13 @@ private:
    std::string exec_name;   // access this through get_exec_name()
    const std::string& getExecName();
 
+   LoadedLib *getLoadedLibByNameAddr(Address addr, std::string name);
+   typedef std::map<std::pair<Address, std::string>, LoadedLib *, LibCmp> sorted_libs_t;
+   sorted_libs_t sorted_libs;
+
    ProcessReader *createDefaultDebugger(int pid);
 };
 
-}
 }
 
 #endif

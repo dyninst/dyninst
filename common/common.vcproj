@@ -33,6 +33,7 @@
 				Name="VCCustomBuildTool"/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalDependencies="Psapi.lib"
 				OutputFile="$(OutDir)\libcommon.dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="TRUE"
@@ -135,6 +136,36 @@ copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 			Filter="cpp;c;cxx;def;odl;idl;hpj;bat;asm;asmx"
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}">
 			<File
+				RelativePath=".\src\addrtranslate-win.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\addrtranslate.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\Annotatable.C">
 				<FileConfiguration
 					Name="Debug|Win32">
@@ -163,6 +194,21 @@ copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 					<Tool
 						Name="VCCLCompilerTool"
 						CompileAsManaged="0"/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\dyn_regs.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
 			<File
@@ -420,13 +466,31 @@ copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}">
 			<File
+				RelativePath=".\h\addrtranslate.h">
+			</File>
+			<File
 				RelativePath="..\dynutil\h\Annotatable.h">
+			</File>
+			<File
+				RelativePath="..\dynutil\h\AST.h">
 			</File>
 			<File
 				RelativePath=".\h\debugOstream.h">
 			</File>
 			<File
+				RelativePath="..\dynutil\h\dyn_regs.h">
+			</File>
+			<File
+				RelativePath="..\dynutil\h\dyntypes.h">
+			</File>
+			<File
+				RelativePath="..\dynutil\h\Edge.h">
+			</File>
+			<File
 				RelativePath=".\h\fraction.h">
+			</File>
+			<File
+				RelativePath="..\dynutil\h\Graph.h">
 			</File>
 			<File
 				RelativePath=".\h\headers.h">
@@ -447,6 +511,9 @@ copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				RelativePath=".\h\MappedFile.h">
 			</File>
 			<File
+				RelativePath="..\dynutil\h\Node.h">
+			</File>
+			<File
 				RelativePath=".\h\ntHeaders.h">
 			</File>
 			<File
@@ -454,6 +521,12 @@ copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 			</File>
 			<File
 				RelativePath=".\h\pathName.h">
+			</File>
+			<File
+				RelativePath="..\dynutil\h\ProcReader.h">
+			</File>
+			<File
+				RelativePath="..\dynutil\h\Serialization.h">
 			</File>
 			<File
 				RelativePath=".\h\serialize.h">
@@ -471,10 +544,16 @@ copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				RelativePath=".\h\std_namesp.h">
 			</File>
 			<File
+				RelativePath="..\dynutil\h\stl_utils.h">
+			</File>
+			<File
 				RelativePath=".\h\String.h">
 			</File>
 			<File
 				RelativePath=".\h\stringDecl.h">
+			</File>
+			<File
+				RelativePath="..\dynutil\h\SymReader.h">
 			</File>
 			<File
 				RelativePath=".\h\Time.h">
@@ -491,11 +570,14 @@ copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 			<File
 				RelativePath=".\h\Types.h">
 			</File>
-		</Filter>
-		<Filter
-			Name="Resource Files"
-			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx"
-			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}">
+			<File
+				RelativePath="..\dynutil\h\util.h">
+			</File>
+			<Filter
+				Name="Resource Files"
+				Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx"
+				UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}">
+			</Filter>
 		</Filter>
 	</Files>
 	<Globals>

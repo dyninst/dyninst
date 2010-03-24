@@ -29,40 +29,60 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef DBGSTEPPER_IMPL_
-#define DBGSTEPPER_IMPL_
+#if !defined(DTHREAD_H_)
+#define DTHREAD_H_
 
-#if defined(cap_stackwalker_use_symtab)
+#include <stdlib.h>
 
-#include "symtabAPI/h/Symtab.h"
-#include "stackwalk/h/framestepper.h"
+#if !defined(os_windows)
+#define cap_pthreads
+#include <pthread.h>
+#endif
 
-namespace Dyninst {
-namespace Stackwalker {
-
-class DebugStepperImpl : public FrameStepper, public Dyninst::SymtabAPI::MemRegReader {
- private:
-   DebugStepper *parent_stepper;
-   const Frame *cur_frame; //TODO: Thread safety
+class DThread {
+#if defined(cap_pthreads)
+   pthread_t thrd;
+#endif
+   bool live;   
  public:
-  DebugStepperImpl(Walker *w, DebugStepper *parent);
-  virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
-  virtual unsigned getPriority() const;
-  virtual void registerStepperGroup(StepperGroup *group);
-  virtual bool ReadMem(Address addr, void *buffer, unsigned size);
-  virtual bool GetReg(MachRegister reg, MachRegisterVal &val);
-  virtual ~DebugStepperImpl();  
-  virtual bool start() { return true; }
-  virtual bool done() { return true; }
- protected:
-  gcframe_ret_t getCallerFrameArch(Address pc, const Frame &in, Frame &out, 
-                                   Dyninst::SymtabAPI::Symtab *symtab);
-  bool isFrameRegister(MachRegister reg);
-  bool isStackRegister(MachRegister reg);
+   DThread();
+   ~DThread();
+   typedef void (*initial_func_t)(void *);
+
+   static long self();
+   bool spawn(initial_func_t func, void *param);
+   bool join();
+   long id();
 };
 
-}
-}
-
+class Mutex {
+   friend class CondVar;
+#if defined(cap_pthreads)
+   pthread_mutex_t mutex;
 #endif
+ public:
+   Mutex(bool recursive=false);
+   ~Mutex();
+
+   bool lock();
+   bool unlock();
+};
+
+class CondVar {
+#if defined(cap_pthreads)
+   pthread_cond_t cond;
+#endif
+   Mutex *mutex;
+   bool created_mutex;
+ public:
+   CondVar(Mutex *m = NULL);
+   ~CondVar();
+
+   bool unlock();
+   bool lock();
+   bool signal();
+   bool broadcast();
+   bool wait();
+};
+
 #endif

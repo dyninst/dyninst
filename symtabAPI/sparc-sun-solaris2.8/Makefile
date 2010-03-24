@@ -25,9 +25,6 @@ SRCS =		../src/Object-elf.C \
 		../src/emitElfStatic.C \
 		../src/emitElfStatic-stub.C \
 		../src/LinkMap.C \
-		../src/addrtranslate.C \
-		../src/addrtranslate-sysv.C \
-		../src/addrtranslate-solaris.C \
 		../src/relocationEntry-elf-sparc.C
 
 # VG(12/02/01) Using -g here seems a bad idea since it is passed from

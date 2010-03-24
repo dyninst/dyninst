@@ -139,19 +139,6 @@ int types_printf(const char *format, ...)
   return ret;
 }
 
-int translate_printf(const char *format, ...)
-{
-  if (!sym_debug_translate) return 0;
-  if (NULL == format) return -1;
-
-  va_list va;
-  va_start(va, format);
-  int ret = vfprintf(stderr, format, va);
-  va_end(va);
-
-  return ret;
-}
-
 int rewrite_printf(const char *format, ...)
 {
   if (!sym_debug_rewrite) return 0;

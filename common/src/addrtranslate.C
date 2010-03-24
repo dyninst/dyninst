@@ -29,10 +29,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "addrtranslate.h"
+#include "common/h/addrtranslate.h"
 
 using namespace Dyninst;
-using namespace SymtabAPI;
 using namespace std;
 
 AddressTranslate::AddressTranslate(PID pid_, PROC_HANDLE phand) :
@@ -90,20 +89,18 @@ LoadedLib *AddressTranslate::getLoadedLib(std::string name)
    return NULL;
 }
 
-LoadedLib *AddressTranslate::getLoadedLib(Symtab *sym)
-{
-   for (unsigned i=0; i<libs.size(); i++)
-   {
-      if (libs[i]->symtable == sym)
-      {
-         return libs[i];
-      }
-   }
-   return getLoadedLib(sym->file());
-}
-
 AddressTranslate::~AddressTranslate()
 {
+   for (vector<LoadedLib *>::iterator i = libs.begin(); i != libs.end(); i++)
+   {
+      if (*i == exec)
+         exec = NULL;
+      delete *i;
+   }
+   if (exec) {
+      delete exec;
+      exec = NULL;
+   }
 }
 
 LoadedLib *AddressTranslate::getExecutable()
@@ -120,11 +117,24 @@ void LoadedLib::add_mapped_region(Address addr, unsigned long size)
    mapped_regions.push_back(pair<Address, unsigned long>(addr, size));   
 }
 
+void LoadedLib::setShouldClean(bool b)
+{
+   should_clean = b;
+}
+
+bool LoadedLib::shouldClean()
+{
+   return should_clean;
+}
+
 LoadedLib::LoadedLib(string n, Address la) :
    name(n),
    load_addr(la),
    data_load_addr(0),
-   symtable(NULL)
+   should_clean(false),
+   symreader(NULL),
+   symreader_factory(NULL),
+   up_ptr(NULL)
 {
 }
 
@@ -137,11 +147,6 @@ void LoadedLib::setDataLoadAddr(Address a)
    data_load_addr = a;
 }
 
-Address LoadedLib::symToAddress(Symbol *sym)
-{
-   return sym->getAddr() + getCodeLoadAddr();
-}
-
 Address LoadedLib::offToAddress(Offset off)
 {
    return off + getCodeLoadAddr();
@@ -152,14 +157,19 @@ Offset LoadedLib::addrToOffset(Address addr)
    return addr - getCodeLoadAddr();
 }
 
-Address LoadedLib::getCodeLoadAddr()
+Address LoadedLib::getCodeLoadAddr() const
 {
    return load_addr;
 }
 
-Address LoadedLib::getDataLoadAddr()
+Address LoadedLib::getDataLoadAddr() const
 {
    return data_load_addr;
+}
+
+void LoadedLib::setFactory(SymbolReaderFactory *factory)
+{
+   symreader_factory = factory;
 }
 
 void LoadedLib::getOutputs(string &filename, Address &code, Address &data)
@@ -169,14 +179,46 @@ void LoadedLib::getOutputs(string &filename, Address &code, Address &data)
    data = 0;
 }
 
-ProcessReader::ProcessReader(int pid_, string exe) :
-   pid(pid_), executable(exe)
+void* LoadedLib::getUpPtr()
 {
+   return up_ptr;
 }
 
-ProcessReader::ProcessReader() :
-   pid(0)
+void LoadedLib::setUpPtr(void *v)
 {
+   up_ptr = v;
+}
+
+#include <stdarg.h>
+
+int translate_printf(const char *format, ...)
+{
+  static int dyn_debug_translate = 0;
+
+  if (dyn_debug_translate == -1) {
+    return 0;
+  }
+  if (!dyn_debug_translate) {
+    char *p = getenv("DYNINST_DEBUG_TRANSLATE");
+    if (p) {
+      fprintf(stderr, "Enabling address translation debug prints\n");
+      dyn_debug_translate = 1;
+    }
+    else {
+      dyn_debug_translate = -1;
+      return 0;
+    }
+  }
+
+  if (!format)
+    return -1;
+
+  va_list va;
+  va_start(va, format);
+  int ret = vfprintf(stderr, format, va);
+  va_end(va);
+
+  return ret;
 }
 
 //#if !defined(os_linux) && !defined(os_solaris)
@@ -185,4 +227,4 @@ Address AddressTranslate::getLibraryTrapAddrSysV()
 {
    return 0x0;
 }
-//#endif
+

@@ -34,17 +34,18 @@
 #include "common/h/headers.h"
 
 namespace Dyninst {
-namespace SymtabAPI {
 
 class ProcessReaderProc : public ProcessReader {
    int as_fd;
    int ctl_fd;
    bool isStopped;
+   int pid;
 public:
    ProcessReaderProc(int pid_);
    bool start();
-   bool readAddressSpace(Address inTraced, unsigned amount,
-                         void *inSelf);
+   bool ReadMem(Address inTraced, void *inSelf, unsigned amount);
+   bool GetReg(Dyninst::MachRegister, Dyninst::MachRegisterVal &) {return true;}
+
    bool done();
 
    virtual ~ProcessReaderProc();
@@ -84,7 +85,9 @@ bool AddressTranslateSysV::setInterpreter()
    if (!found) 
      return false;
 
-   interpreter = files.getNode(ld_name);
+   interpreter = files.getNode(ld_name, symfactory);
+   if (interpreter)
+      interpreter->markInterpreter();
    return (interpreter != NULL);
 }
 
@@ -102,10 +105,10 @@ LoadedLib *AddressTranslateSysV::getAOut()
 #include <sys/procfs.h>
 
 ProcessReaderProc::ProcessReaderProc(int pid_) :
-   ProcessReader(pid_),
    as_fd(-1),
    ctl_fd(-1),
-   isStopped(false)
+   isStopped(false),
+   pid(pid_)
 {
    
 }
@@ -141,8 +144,7 @@ bool ProcessReaderProc::start()
    return false;
 }
  
-bool ProcessReaderProc::readAddressSpace(Address inTraced, unsigned amount,
-                                         void *inSelf)
+bool ProcessReaderProc::ReadMem(Address inTraced, void *inSelf, unsigned amount)
 {
    off64_t loc = (off64_t) inTraced;
    unsigned res = pread64(as_fd, inSelf, amount, loc);
@@ -176,4 +178,4 @@ ProcessReaderProc::~ProcessReaderProc()
 }
 
 }
-}
+
