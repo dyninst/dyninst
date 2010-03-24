@@ -122,9 +122,11 @@ thread_t spawnNewThread(void *initial_func, void *param) {
     return (thread_t) new_thread;
 }
 
-void joinThread(thread_t threadid) {
-    pthread_t p = (pthread_t) threadid;
-    pthread_join(p, NULL);
+void *joinThread(thread_t threadid) {
+   void *result;
+   pthread_t p = (pthread_t) threadid;
+   pthread_join(p, &result);
+   return result;
 }
 
 void initThreads() {
@@ -159,3 +161,4 @@ void schedYield() {
 }
 
 #endif
+
