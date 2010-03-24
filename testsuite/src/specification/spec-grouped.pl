@@ -17,6 +17,7 @@
                   comp_lang/2, platform/4, compiler_opt_trans/3,
                   comp_mut/2, compiler_platform/2,
                   mcomp_plat/2, test_runmode/2, 
+                  test_threadmode/2, test_processmode/2, threadmode/1, processmode/1,
                   test_serializable/1, comp_std_flags_str/2,
                   comp_mutatee_flags_str/2, test_runs_everywhere/1,
                   mutatee_special_make_str/2, mutatee_special_requires/2,
@@ -60,6 +61,7 @@ module('dyninst').
 module('symtab').
 module('stackwalker').
 module('instruction').
+module('proccontrol').
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Below are specifications for the standard Dyninst test suite
@@ -2323,6 +2325,132 @@ test_runmode('power_cft', 'createProcess').
 test_start_state('power_cft', 'stopped').
 tests_module('power_cft', 'instruction').
 
+% ProcessControlAPI Tests
+pcPlatforms(P) :- platform('x86_64', 'linux', _, P).
+pcPlatforms(P) :- platform('i386', 'linux', _, P).
+
+pcMutateeLibs(Libs) :-
+   current_platform(P),
+   platform(_, OS, _, P),
+   (
+       OS = 'solaris' -> Libs = ['dl', 'pthread', 'rt'];
+       Libs = ['dl', 'pthread']
+   ).
+
+test('pc_launch', 'pc_launch', 'pc_launch').
+test_description('pc_launch', 'Launch a process').
+test_platform('pc_launch', Platform) :- pcPlatforms(Platform).
+mutator('pc_launch', ['pc_launch.C']).
+test_runmode('pc_launch', 'dynamic').
+test_threadmode('pc_launch', 'Threading').
+test_processmode('pc_launch', 'Processes').
+test_start_state('pc_launch', 'stopped').
+tests_module('pc_launch', 'proccontrol').
+mutatee('pc_launch', ['pc_launch_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+compiler_for_mutatee('pc_launch', Compiler) :- comp_lang(Compiler, 'c').
+mutatee_requires_libs('pc_launch', Libs) :- pcMutateeLibs(Libs).
+optimization_for_mutatee('pc_launch', _, Opt) :- member(Opt, ['none']).
+
+test('pc_thread_cont', 'pc_thread_cont', 'pc_thread_cont').
+test_description('pc_thread_cont', 'Test process running').
+test_platform('pc_thread_cont', Platform) :- pcPlatforms(Platform).
+mutator('pc_thread_cont', ['pc_thread_cont.C']).
+test_runmode('pc_thread_cont', 'dynamic').
+test_threadmode('pc_thread_cont', 'Threading').
+test_processmode('pc_thread_cont', 'Processes').
+test_start_state('pc_thread_cont', 'stopped').
+tests_module('pc_thread_cont', 'proccontrol').
+mutatee('pc_thread_cont', ['pc_thread_cont_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+compiler_for_mutatee('pc_thread_cont', Compiler) :- comp_lang(Compiler, 'c').
+mutatee_requires_libs('pc_thread_cont', Libs) :- pcMutateeLibs(Libs).
+optimization_for_mutatee('pc_thread_cont', _, Opt) :- member(Opt, ['none']).
+
+test('pc_breakpoint', 'pc_breakpoint', 'pc_breakpoint').
+test_description('pc_breakpoint', 'Test breakpoints').
+test_platform('pc_breakpoint', Platform) :- pcPlatforms(Platform).
+mutator('pc_breakpoint', ['pc_breakpoint.C']).
+test_runmode('pc_breakpoint', 'dynamic').
+test_threadmode('pc_breakpoint', 'Threading').
+test_processmode('pc_breakpoint', 'Processes').
+test_start_state('pc_breakpoint', 'stopped').
+tests_module('pc_breakpoint', 'proccontrol').
+mutatee('pc_breakpoint', ['pc_breakpoint_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+compiler_for_mutatee('pc_breakpoint', Compiler) :- comp_lang(Compiler, 'c').
+mutatee_requires_libs('pc_breakpoint', Libs) :- pcMutateeLibs(Libs).
+optimization_for_mutatee('pc_breakpoint', _, Opt) :- member(Opt, ['none']).
+
+test('pc_library', 'pc_library', 'pc_library').
+test_description('pc_library', 'Library loads').
+test_platform('pc_library', Platform) :- pcPlatforms(Platform).
+mutator('pc_library', ['pc_library.C']).
+test_runmode('pc_library', 'dynamic').
+test_threadmode('pc_library', 'Threading').
+test_processmode('pc_library', 'Processes').
+test_start_state('pc_library', 'stopped').
+tests_module('pc_library', 'proccontrol').
+mutatee('pc_library', ['pc_library_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+compiler_for_mutatee('pc_library', Compiler) :- comp_lang(Compiler, 'c').
+mutatee_requires_libs('pc_library', Libs) :- pcMutateeLibs(Libs).
+optimization_for_mutatee('pc_library', _, Opt) :- member(Opt, ['none']).
+
+test('pc_singlestep', 'pc_singlestep', 'pc_singlestep').
+test_description('pc_singlestep', 'Single step').
+test_platform('pc_singlestep', Platform) :- pcPlatforms(Platform).
+mutator('pc_singlestep', ['pc_singlestep.C']).
+test_runmode('pc_singlestep', 'dynamic').
+test_threadmode('pc_singlestep', 'Threading').
+test_processmode('pc_singlestep', 'Processes').
+test_start_state('pc_singlestep', 'stopped').
+tests_module('pc_singlestep', 'proccontrol').
+mutatee('pc_singlestep', ['pc_singlestep_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+compiler_for_mutatee('pc_singlestep', Compiler) :- comp_lang(Compiler, 'c').
+mutatee_requires_libs('pc_singlestep', Libs) :- pcMutateeLibs(Libs).
+optimization_for_mutatee('pc_singlestep', _, Opt) :- member(Opt, ['none']).
+
+test('pc_fork', 'pc_fork', 'pc_fork').
+test_description('pc_fork', 'Fork processes').
+test_platform('pc_fork', Platform) :- pcPlatforms(Platform).
+mutator('pc_fork', ['pc_fork.C']).
+test_runmode('pc_fork', 'dynamic').
+test_threadmode('pc_fork', 'Threading').
+test_processmode('pc_fork', 'Processes').
+test_start_state('pc_fork', 'stopped').
+tests_module('pc_fork', 'proccontrol').
+mutatee('pc_fork', ['pc_fork_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+compiler_for_mutatee('pc_fork', Compiler) :- comp_lang(Compiler, 'c').
+mutatee_requires_libs('pc_fork', Libs) :- pcMutateeLibs(Libs).
+optimization_for_mutatee('pc_fork', _, Opt) :- member(Opt, ['none']).
+
+test('pc_fork_exec', 'pc_fork_exec', 'pc_fork_exec').
+test_description('pc_fork_exec', 'Fork exec processes').
+test_platform('pc_fork_exec', Platform) :- pcPlatforms(Platform).
+mutator('pc_fork_exec', ['pc_fork_exec.C']).
+test_runmode('pc_fork_exec', 'dynamic').
+test_threadmode('pc_fork_exec', 'Threading').
+test_processmode('pc_fork_exec', 'Processes').
+test_start_state('pc_fork_exec', 'stopped').
+tests_module('pc_fork_exec', 'proccontrol').
+mutatee('pc_fork_exec', ['pc_fork_exec_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+compiler_for_mutatee('pc_fork_exec', Compiler) :- comp_lang(Compiler, 'c').
+mutatee_requires_libs('pc_fork_exec', Libs) :- pcMutateeLibs(Libs).
+optimization_for_mutatee('pc_fork_exec', _, Opt) :- member(Opt, ['none']).
+mutatee('pc_exec_targ', ['pc_exec_targ_mutatee.c']).
+mutatee_peer('pc_fork_exec', 'pc_exec_targ').
+compiler_for_mutatee('pc_exec_targ', Compiler) :- comp_lang(Compiler, 'c').
+
+test('pc_irpc', 'pc_irpc', 'pc_irpc').
+test_description('pc_irpc', 'Run inferior RPCs').
+test_platform('pc_irpc', Platform) :- pcPlatforms(Platform).
+mutator('pc_irpc', ['pc_irpc.C']).
+test_runmode('pc_irpc', 'dynamic').
+test_threadmode('pc_irpc', 'Threading').
+test_processmode('pc_irpc', 'Processes').
+test_start_state('pc_irpc', 'stopped').
+tests_module('pc_irpc', 'proccontrol').
+mutatee('pc_irpc', ['pc_irpc_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
+compiler_for_mutatee('pc_irpc', Compiler) :- comp_lang(Compiler, 'c').
+mutatee_requires_libs('pc_irpc', Libs) :- pcMutateeLibs(Libs).
+optimization_for_mutatee('pc_irpc', _, Opt) :- member(Opt, ['none']).
 
 % test_start_state/2
 % test_start_state(?Test, ?State) specifies that Test should be run with its
@@ -2853,6 +2981,7 @@ module_required_libs('dyninst', ['dyninstAPI']).
 module_required_libs('symtab', ['symtabAPI']).
 module_required_libs('stackwalker', ['stackwalkerAPI']).
 module_required_libs('instruction', ['instructionAPI']).
+module_required_libs('proccontrol', ['pcontrol']).
 
 module_requires_libs_internal([], Output, Output).
 module_requires_libs_internal([Module | Tail], Acc, Output) :-
@@ -2928,12 +3057,33 @@ mutatee_requires_libs(Mutatee, []) :-
 % building an object file for the mutatee
 % TODO Create some kind of default optimization_for_mutatee rule
 
+% threadmode/1
+threadmode('None').
+threadmode('MultiThreaded').
+threadmode('SingleThreaded').
+test_threadmode(Test, 'SingleThreaded') :- test_threadmode(Test, 'Threading').
+test_threadmode(Test, 'MultiThreaded') :- test_threadmode(Test, 'Threading').
+test_threadmode(Test, 'None') :- tests_module(Test, Module),
+   module(Module),
+   \+ member(Module, ['proccontrol']).
+
+processmode('None').
+processmode('MultiProcess').
+processmode('SingleProcess').
+test_processmode(Test, 'SingleProcess') :- test_processmode(Test, 'Processes').
+test_processmode(Test, 'MultiProcess') :- test_processmode(Test, 'Processes').
+test_processmode(Test, 'None') :- tests_module(Test, Module),
+   module(Module),
+   \+ member(Module, ['proccontrol']).
+
+
 % runmode/1
 % runmode(+RunMode)
 % Specifies the valid values for a test's run mode
 runmode('createProcess').
 runmode('useAttach').
 runmode('binary').
+
 % runmode('deserialize').
 
 % test_runmode/2
@@ -2945,6 +3095,7 @@ test_runmode(Test, 'createProcess') :- test_runmode(Test, 'dynamic').
 test_runmode(Test, 'binary') :- test_runmode(Test, 'staticdynamic').
 test_runmode(Test, 'useAttach') :- test_runmode(Test, 'staticdynamic').
 test_runmode(Test, 'createProcess') :- test_runmode(Test, 'staticdynamic').
+
 % test_runmode(Test, 'deserialize') :- test_serializable(Test).
 
 % runmode_platform/2

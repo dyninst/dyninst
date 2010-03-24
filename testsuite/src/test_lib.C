@@ -422,15 +422,11 @@ pid_t fork_mutatee() {
 
       int options = 0;
       do {
-		  logerror("%s[%d]:  before waitpid(%d)\n", FILE__, __LINE__, child_pid);
          result = waitpid(child_pid, &status, options);
          if (result != child_pid) {
             perror("Couldn't join child");
             break;
          }
-		 logerror("%s[%d]:  waitpid (%d): %s with %d\n", FILE__, __LINE__, child_pid,
-				 WIFEXITED(status) ? "exited" : WIFSIGNALED(status) ? "signaled" : "unknown",
-				 WIFEXITED(status) ? WEXITSTATUS(status) : WIFSIGNALED(status) ? WTERMSIG(status) : -1);
       } while (!WIFEXITED(status));
       close(filedes[0]);
       close(filedes[1]);
