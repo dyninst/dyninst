@@ -266,6 +266,9 @@ test_results_t test1_22_Mutator::mutatorTest22()
 
 test_results_t test1_22_Mutator::executeTest() 
 {
+#if defined(os_freebsd_test)
+    return SKIPPED;
+#endif
 	int pointer_size = 0;
 #if defined(arch_x86_64_test) || defined(ppc64_linux_test)
 	pointer_size = pointerSize(appImage);

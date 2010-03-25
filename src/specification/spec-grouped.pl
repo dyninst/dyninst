@@ -548,6 +548,7 @@ test_platform('test1_35', 'i386-unknown-linux2.6').
 test_platform('test1_35', 'x86_64-unknown-linux2.4').
 test_platform('test1_35', 'sparc-sun-solaris2.8').
 test_platform('test1_35', 'sparc-sun-solaris2.9').
+test_platform('test1_35', 'i386-unknown-freebsd8.0').
 groupable_test('test1_35').
 mutator('test1_35', ['test1_35.C']).
 mutatee('test1_35', ['test1_35_mutatee.c'], Sources) :-
@@ -558,6 +559,8 @@ mutatee('test1_35', ['test1_35_mutatee.c'], Sources) :-
         (Arch = 'x86_64', OS = 'linux') ->
             Sources = ['call35_1_x86_64_linux.s'];
         (Arch = 'i386', OS = 'linux') ->
+            Sources = ['call35_1_x86_linux.s'];
+        (Arch = 'i386', OS = 'freebsd') ->
             Sources = ['call35_1_x86_linux.s'];
         (Arch = 'i386', OS = 'solaris') ->
             Sources = ['call35_1_x86_solaris.s'];
