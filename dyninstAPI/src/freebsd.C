@@ -548,7 +548,7 @@ bool syscallNotification::installPreExit() {
     return false;
 }
 
-bool dyn_lwp::readTextSpace(void*, unsigned int, void const*) {
+bool dyn_lwp::readTextSpace(const void*, unsigned int, void*) {
     assert(!FREEBSD_NOT_IMPLEMENTED);
     return false;
 }

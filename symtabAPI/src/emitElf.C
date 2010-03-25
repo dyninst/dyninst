@@ -1054,17 +1054,24 @@ void emitElf::updateDynamic(unsigned tag, Elf32_Addr val){
  * new binary. 
  */
 void emitElf::updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned long loadSecsSize){
+    unsigned pgSize = (unsigned)getpagesize();
   if( symtabData && strData && loadSecsSize){
     Elf32_Sym *symPtr=(Elf32_Sym*)symtabData->d_buf;
     for(unsigned int i=0;i< symtabData->d_size/(sizeof(Elf32_Sym));i++,symPtr++){
       if(!(strcmp("_end", (char*) strData->d_buf + symPtr->st_name))){
         if( newSegmentStart > symPtr->st_value ) {
-            symPtr->st_value += (newSegmentStart - symPtr->st_value) + loadSecsSize;
+            symPtr->st_value += ((newSegmentStart - symPtr->st_value) + loadSecsSize);
+
+            // Advance the location to the next page boundary
+            symPtr->st_value = (symPtr->st_value & ~(pgSize-1)) + pgSize;
         }
       }
       if(!(strcmp("_END_", (char*) strData->d_buf + symPtr->st_name))){
         if( newSegmentStart > symPtr->st_value ) {
             symPtr->st_value += (newSegmentStart - symPtr->st_value) + loadSecsSize;
+            
+            // Advance the location to the next page boundary
+            symPtr->st_value = (symPtr->st_value & ~(pgSize-1)) + pgSize;
         }
       }
     }    

@@ -3522,7 +3522,7 @@ SYMTAB_EXPORT bool Symtab::getLinkingResources(std::vector<Archive *> &libs) {
 
 SYMTAB_EXPORT Address Symtab::getLoadAddress()
 {
-#if defined(os_linux) || defined(os_aix)
+#if defined(os_linux) || defined(os_freebsd) || defined(os_aix)
    return getObject()->getLoadAddress();
 #else
    return 0x0;
