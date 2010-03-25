@@ -220,6 +220,8 @@ class Symtab : public LookupInterface,
          Offset highExclAddr);
    SYMTAB_EXPORT bool addAddressRange(Offset lowInclAddr, Offset highExclAddr, std::string lineSource,
          unsigned int lineNo, unsigned int lineOffset = 0);
+   SYMTAB_EXPORT void setTruncateLinePaths(bool value);
+   SYMTAB_EXPORT bool getTruncateLinePaths();
 
    /***** Type Information *****/
    SYMTAB_EXPORT virtual bool findType(Type *&type, std::string name);

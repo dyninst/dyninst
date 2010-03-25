@@ -2213,6 +2213,15 @@ SYMTAB_EXPORT bool Symtab::addAddressRange( Offset lowInclusiveAddr, Offset high
             lineSource.c_str(), lineNo, lineOffset));
 }
 
+void Symtab::setTruncateLinePaths(bool value)
+{
+   getObject()->setTruncateLinePaths(value);
+}
+
+bool Symtab::getTruncateLinePaths()
+{
+   return getObject()->getTruncateLinePaths();
+}
 
 void Symtab::parseTypes()
 {

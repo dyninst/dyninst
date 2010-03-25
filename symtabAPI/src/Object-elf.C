@@ -5357,3 +5357,13 @@ bool Region::isStandardCode()
             (name_ == std::string(".init")) ||
             (name_ == std::string(".fini"))));
 }
+
+void Object::setTruncateLinePaths(bool value)
+{
+   truncateLineFilenames = value;
+}
+
+bool Object::getTruncateLinePaths()
+{
+   return truncateLineFilenames;
+}

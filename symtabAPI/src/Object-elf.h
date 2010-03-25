@@ -449,6 +449,9 @@ class Object : public AObject {
     Offset getInitAddr() const {return init_addr_; }
     Offset getFiniAddr() const { return fini_addr_; }
 
+    virtual void setTruncateLinePaths(bool value);
+    virtual bool getTruncateLinePaths();
+
   private:
   static void log_elferror (void (*)(const char *), const char *);
     
