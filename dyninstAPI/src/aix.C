@@ -301,58 +301,57 @@ bool Frame::setPC(Address newpc)
 void decodeInstr(unsigned instr_raw) 
 {
   // Decode an instruction. Fun, eh?
-  union instructUnion instr;
-  instr.raw = instr_raw;
+  instruction i(instr_raw);
 
-  switch(instr.generic.op) {
+  switch(GENERIC_OP(i)) {
   case Bop:
     bperr( "Branch (abs=%d, link=%d) to 0x%x\n",
-	    instr.iform.aa, instr.iform.lk, instr.iform.li);
+            IFORM_AA(i), IFORM_LK(i), IFORM_LI(i));
     break;
   case CMPIop:
     bperr( "CMPI reg(%d), 0x%x\n",
-	    instr.dform.ra, instr.dform.d_or_si);
+            DFORM_RA(i), DFORM_SI(i));
     break;
   case SIop:
     bperr( "SI src(%d), tgt(%d), 0x%x\n",
-	    instr.dform.ra, instr.dform.rt, instr.dform.d_or_si);
+            DFORM_RA(i), DFORM_RT(i), DFORM_SI(i));
     break;
   case CALop:
     bperr( "CAL src(%d), tgt(%d), 0x%x\n",
-	    instr.dform.ra, instr.dform.rt, instr.dform.d_or_si);
+            DFORM_RA(i), DFORM_RT(i), DFORM_SI(i));
     break;
   case CAUop:
     bperr( "CAU src(%d), tgt(%d), 0x%x\n",
-	    instr.dform.ra, instr.dform.rt, instr.dform.d_or_si);
+            DFORM_RA(i), DFORM_RT(i), DFORM_SI(i));
     break;
   case ORILop:
     bperr( "ORIL src(%d), tgt(%d), 0x%x\n",
-	    instr.dform.rt, instr.dform.ra, instr.dform.d_or_si);
+            DFORM_RT(i), DFORM_RA(i), DFORM_SI(i));
     break;
   case ANDILop:
     bperr( "CAU src(%d), tgt(%d), 0x%x\n",
-	    instr.dform.rt, instr.dform.ra, instr.dform.d_or_si);
+            DFORM_RT(i), DFORM_RA(i), DFORM_SI(i));
     break;
   case Lop:
     bperr( "L src(%d)+0x%x, tgt(%d)\n",
-	    instr.dform.ra, instr.dform.d_or_si, instr.dform.rt);
+            DFORM_RA(i), DFORM_SI(i), DFORM_RT(i));
     break;
   case STop:
     bperr( "L src(%d), tgt(%d)+0x%x\n",
-	    instr.dform.rt, instr.dform.ra, instr.dform.d_or_si);
+            DFORM_RT(i), DFORM_RA(i), DFORM_SI(i));
     break;
   case BCop:
     bperr( "BC op(0x%x), CR bit(0x%x), abs(%d), link(%d), tgt(0x%x)\n",
-	    instr.bform.bo, instr.bform.bi, instr.bform.aa, instr.bform.lk, instr.bform.bd);
+            BFORM_BO(i), BFORM_BI(i), BFORM_AA(i), BFORM_LK(i), BFORM_BD(i));
     break;
   case BCLRop:
-    switch (instr.xform.xo) {
+    switch (XFORM_XO(i)) {
     case BCLRxop:
       bperr( "BCLR op(0x%x), bit(0x%x), link(%d)\n",
-	      instr.xform.rt, instr.xform.ra, instr.xform.rc);
+              XFORM_RT(i), XFORM_RA(i), XFORM_RC(i));
       break;
     default:
-      bperr( "%x\n", instr.raw);
+      bperr( "%x\n", instr.asInt());
       break;
     }
     break;
@@ -361,7 +360,7 @@ void decodeInstr(unsigned instr_raw)
     break;
   default:
     bperr( "Unknown instr with opcode %d\n",
-	    instr.generic.op);
+	    GENERIC_OP(i));
 
     break;
   }

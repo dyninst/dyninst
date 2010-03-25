@@ -1,0 +1,58 @@
+# -*- makefile -*-
+# Common makefile template for the dyninstAPI library.  This file is not
+# intended to be a useful Makefile in isolation; instead, it should be
+# included from within an architecture-specific Makefile.
+#
+# $Id: make.module.tmpl,v 1.1 2008/06/30 19:40:26 legendre Exp $
+#
+
+SUITE_NAME	= ProcessControl
+RELEASE_NUM	= 0.1
+
+CFLAGS		     += $(USEFULWARNINGS) $(DEFINES)
+CXXFLAGS	     += $(USEFULWARNINGS) $(DEFINES)
+
+ifdef STATIC_COMPS
+STATIC_LIBRARY = true
+TARGET = libpcontrol.a
+else
+TARGET = libpcontrol.so
+MYFLAGS += -fPIC
+endif
+
+ifndef USES_NATIVE_CC
+LD		= $(GXX)
+LDFLAGS		+= -shared
+CFLAGS		+= 
+CXXFLAGS	+= 
+else
+ifeq (solaris,$(findstring solaris,$(PLATFORM)))
+LDFLAGS		+= -G
+endif #sparc
+endif #USES_NATIVE
+TFLAGS		+=
+
+TO_INC     = ../h
+PUBLIC_H   = Decoder.h \
+				 Event.h \
+				 Generator.h \
+				 Handler.h \
+				 Mailbox.h \
+				 PCErrors.h \
+				 Process.h \
+				 EventType.h
+
+SRCS	     +=	../src/event.C \
+		../src/generator.C \
+		../src/handler.C \
+      ../src/mailbox.C \
+		../src/process.C \
+		../src/pcerrors.C \
+		../src/procpool.C \
+		../src/irpc.C
+
+
+IFLAGS       += -I../src -I../h
+
+# All that, and we finally get a target...
+all: $(TARGET) $(EXTRA_LIBS)

@@ -130,6 +130,9 @@
                   sizeof(uint32_t)    /* Stack frame back chain */  \
               )                                                     \
         )
+#elif defined(os_vxworks)
+#define PARAM_OFFSET(bah) (0)
+
 #else
 #error "Unknown operating system in inst-power.h"
 #endif

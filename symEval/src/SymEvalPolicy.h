@@ -59,6 +59,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <sstream>
 
 #include "../rose/SgAsmx86Instruction.h"
 
@@ -68,6 +69,7 @@
 #include "SymEval.h"
 
 namespace Dyninst {
+
 namespace SymbolicEvaluation {
 
 // The ROSE symbolic evaluation engine wants a data type that
@@ -81,120 +83,9 @@ namespace SymbolicEvaluation {
 // bad idea, but stripping the pointer part makes the compiler allocate
 // all available memory and crash. No idea why. 
 
-// Define the operations used by ROSE
+// Define constants used by ROSE. Several non-standard sizes are needed,
+// so IAPI::Result won't work
 
-struct ROSEOperation {
-  typedef enum {
-    nullOp,
-    extractOp,
-    invertOp,
-    negateOp,
-    signExtendOp,
-    equalToZeroOp,
-    generateMaskOp,
-    LSBSetOp,
-    MSBSetOp,
-    concatOp,
-    andOp,
-    orOp,
-    xorOp,
-    addOp,
-    rotateLOp,
-    rotateROp,
-    shiftLOp,
-    shiftROp,
-    shiftRArithOp,
-    derefOp,
-    writeRepOp,
-    writeOp,
-    ifOp,
-    sMultOp,
-    uMultOp,
-    sDivOp,
-    sModOp,
-    uDivOp,
-    uModOp,
-    extendOp,
-    extendMSBOp
-  } Op;
-
-  ROSEOperation(Op o) : op(o) {};
-
-  bool operator==(const ROSEOperation &rhs) const {
-    return (rhs.op == op);
-  }
-
-  const std::string format() const {
-    switch(op) {
-    case nullOp:
-      return "<null>";
-    case extractOp:
-      return "<extract>";
-    case invertOp:
-      return "<invert>";
-    case negateOp:
-      return "<negate>";
-    case signExtendOp:
-      return "<signExtend>";
-    case equalToZeroOp:
-      return "<eqZero?>";
-    case generateMaskOp:
-      return "<genMask>";
-    case LSBSetOp:
-      return "<LSB?>";
-    case MSBSetOp:
-      return "<MSB?>";
-    case concatOp:
-      return "<concat>";
-    case andOp:
-      return "<and>";
-    case orOp:
-      return "<or>";
-    case xorOp:
-      return "<xor>";
-    case addOp:
-      return "<add>";
-    case rotateLOp:
-      return "<rotL>";
-    case rotateROp:
-      return "<rotR>";
-    case shiftLOp:
-      return "<shl>";
-    case shiftROp:
-      return "<shr>";
-    case shiftRArithOp:
-      return "<shrA>";
-    case derefOp:
-      return "<deref>";
-    case writeRepOp:
-      return "<writeRep>";
-    case writeOp:
-      return "<write>";
-    case ifOp:
-      return "<if>";
-    case sMultOp:
-      return "<sMult>";
-    case uMultOp:
-      return "<uMult>";
-    case sDivOp:
-      return "<sDiv>";
-    case sModOp:
-      return "<sMod>";
-    case uDivOp:
-      return "<uDiv>";
-    case uModOp:
-      return "<uMod>";
-    case extendOp:
-      return "<ext>";
-    case extendMSBOp:
-      return "<extMSB>";
-    default:
-      return "< ??? >";
-    };
-  };
-
-  Op op;
-};
 
 template <size_t Len>
 struct Handle {
@@ -234,7 +125,9 @@ struct Handle {
  public:
 
 
-   SymEvalPolicy(SymEval::Result &r, Dyninst::Architecture a);
+   SymEvalPolicy(SymEval::Result &r, 
+		 Address addr,
+		 Dyninst::Architecture a);
 
    ~SymEvalPolicy() {};
   
@@ -298,15 +191,23 @@ struct Handle {
    }
 
    // Len here is the number of bits read, which we'll
-   // turn into an argument of the AST. 
+   // turn into an argument of the ROSEOperation. 
     
    template <size_t Len>
      Handle<Len> readMemory(X86SegmentRegister /*segreg*/,
 			    Handle<32> addr,
 			    Handle<1> cond) {
-     return Handle<Len>(getBinaryAST(ROSEOperation::derefOp,
-				     addr.var(),
-				     cond.var()));
+     if (cond == true_()) {
+       return Handle<Len>(getUnaryAST(ROSEOperation::derefOp,
+				      addr.var(),
+                                      Len));
+     }
+     else {
+       return Handle<Len>(getBinaryAST(ROSEOperation::derefOp,
+				       addr.var(),
+				       cond.var(),
+                                       Len));
+     }
    }
         
    template <size_t Len>
@@ -406,13 +307,11 @@ struct Handle {
    // extract from the data type.
    template<size_t From, size_t To, size_t Len> 
      Handle<To-From> extract(Handle<Len> a) {
-     return Handle<To-From>(a.var());
-     /*
+     // return Handle<To-From>(a.var());
      return Handle<To-From>(getTernaryAST(ROSEOperation::extractOp, 
 					  a.var(),
 					  number<Len>(From).var(),
 					  number<Len>(To).var()));
-     */
    }
 
    template <size_t Len>
@@ -582,12 +481,10 @@ struct Handle {
 
    template <size_t From, size_t To>
      Handle<To> extendByMSB(Handle<From> a) {
-     return Handle<To>(a.var());
-     /*
+     //return Handle<To>(a.var());
      return Handle<To>(getBinaryAST(ROSEOperation::extendMSBOp,
 				    a.var(),
 				    number<32>(To).var()));
-     */
    }
 
  private:
@@ -598,6 +495,7 @@ struct Handle {
    SymEval::Result &res;
 
    Architecture arch;
+   Address addr;
 
    Handle<32> ip_;
 
@@ -617,36 +515,38 @@ struct Handle {
    Absloc convert(X86SegmentRegister r);
    Absloc convert(X86Flag r);
    AST::Ptr wrap(Absloc r) { 
-     return VariableAST<AbsRegion>::create(AbsRegion(r));
+     return VariableAST::create(Variable(AbsRegion(r), addr));
    }
 
 
-    AST::Ptr getConstAST(uint64_t n, size_t) {
-      return ConstantAST<uint64_t>::create(n);
+    AST::Ptr getConstAST(uint64_t n, size_t s) {
+      return ConstantAST::create(Constant(n, s));
     }
                         
     AST::Ptr getBottomAST() {
-      return BottomAST::create();
+      return BottomAST::create(false);
     }
                 
     AST::Ptr getUnaryAST(ROSEOperation::Op op,
-                         AST::Ptr a) {
-      return UnaryAST<ROSEOperation>::create(ROSEOperation(op), a);
+                         AST::Ptr a,
+                         size_t s = 0) {
+      return RoseAST::create(ROSEOperation(op, s), a);
     }
 
     AST::Ptr getBinaryAST(ROSEOperation::Op op,
                           AST::Ptr a,
-                          AST::Ptr b) {
-      return BinaryAST<ROSEOperation>::create(ROSEOperation(op), a, b);
+                          AST::Ptr b,
+                          size_t s = 0) {
+      return RoseAST::create(ROSEOperation(op, s), a, b);
     }
     
     AST::Ptr getTernaryAST(ROSEOperation::Op op,
                            AST::Ptr a,
                            AST::Ptr b,
-                           AST::Ptr c) {
-      return TernaryAST<ROSEOperation>::create(ROSEOperation(op), a, b, c);
-    }
-    
+                           AST::Ptr c,
+                           size_t s = 0) {
+      return RoseAST::create(ROSEOperation(op, s), a, b, c);
+    }    
 };
 };
 };

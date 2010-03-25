@@ -59,7 +59,7 @@
 #include <libelf.h>
 #include <string>
 
-#include "Elf_X.h"
+#include "common/h/Elf_X.h"
 
 #include <fcntl.h>
 #include <stdlib.h>

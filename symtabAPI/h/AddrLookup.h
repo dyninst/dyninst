@@ -33,28 +33,14 @@
 #define __AddrLookup_H__
 
 #include "Annotatable.h"
+#include <map>
 
 namespace Dyninst {
-namespace SymtabAPI {
 
 class AddressTranslate;
 class LoadedLib;
 
-//Needed for Linux and Solaris
-class ProcessReader {
- public:
-   PID pid;
-   const std::string executable;
-
-   ProcessReader(PID pid_, std::string exe="");
-   ProcessReader();
-
-   virtual bool start() = 0;
-   virtual bool readAddressSpace(Address inTraced, unsigned amount, 
-                                 void *inSelf) = 0;
-   virtual bool done() = 0;
-   virtual ~ProcessReader() {}
-};
+namespace SymtabAPI {
 
 typedef struct {
    std::string name;
@@ -71,7 +57,12 @@ class AddressLookup : public AnnotatableSparse
    int getSymsVector(std::string str);
    std::vector<Symbol *> *getSymsVector(LoadedLib *lib);
 
+   std::map<Symtab *, LoadedLib *> sym_to_ll;
+   std::map<LoadedLib *, Symtab *> ll_to_sym;
 
+   LoadedLib *getLoadedLib(Symtab *sym);
+   Dyninst::Address symToAddress(LoadedLib *ll, Symbol *sym);
+   Symtab *getSymtab(LoadedLib *);
  public:
    SYMTAB_EXPORT static AddressLookup *createAddressLookup(ProcessReader *reader = NULL);
    SYMTAB_EXPORT static AddressLookup *createAddressLookup(PID pid, ProcessReader *reader = NULL);
@@ -94,7 +85,6 @@ class AddressLookup : public AnnotatableSparse
    SYMTAB_EXPORT bool refresh();
 
    SYMTAB_EXPORT Address getLibraryTrapAddrSysV();
-
    
    SYMTAB_EXPORT virtual ~AddressLookup();
 };

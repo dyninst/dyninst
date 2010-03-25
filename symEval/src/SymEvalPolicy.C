@@ -6,8 +6,11 @@ using namespace Dyninst;
 using namespace Dyninst::SymbolicEvaluation;
 using namespace Dyninst::InstructionAPI;
 
-SymEvalPolicy::SymEvalPolicy(SymEval::Result &r, Architecture ac) :
+SymEvalPolicy::SymEvalPolicy(SymEval::Result &r, 
+			     Address a,
+			     Architecture ac) :
   res(r),
+  addr(a),
   arch(ac),
   ip_(Handle<32>(wrap(Absloc::makePC(arch)))) {
 
@@ -15,6 +18,8 @@ SymEvalPolicy::SymEvalPolicy(SymEval::Result &r, Architecture ac) :
   for (SymEval::Result::iterator iter = r.begin();
        iter != r.end(); ++iter) {
     Assignment::Ptr a = iter->first;
+    // For a different instruction...
+    if (a->addr() != addr) continue; 
     AbsRegion &o = a->out();
 
     if (o.containsOfType(Absloc::Register)) {
@@ -127,5 +132,21 @@ Absloc SymEvalPolicy::convert(X86Flag f)
       assert(0);
       return Absloc();
   }
+}
+
+std::ostream &operator<<(std::ostream &os, const ROSEOperation &o) {
+  os << o.format();
+  return os;
+}
+
+std::ostream &operator<<(std::ostream &os, const Constant &o) {
+  os << o.format();
+  return os;
+}
+
+
+std::ostream &operator<<(std::ostream &os, const Variable &v) {
+  os << v.format();
+  return os;
 }
 

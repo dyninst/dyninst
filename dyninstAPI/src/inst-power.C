@@ -580,12 +580,13 @@ void saveSPR(codeGen &gen,     //Instruction storage pointer
 {
     instruction insn;
 
-    (*insn).raw = 0;                    //mfspr:  mflr scratchReg
-    (*insn).xform.op = EXTop;
-    (*insn).xform.rt = scratchReg;
-    (*insn).xform.ra = sprnum & 0x1f;
-    (*insn).xform.rb = (sprnum >> 5) & 0x1f;
-    (*insn).xform.xo = MFSPRxop;
+    // mfspr:  mflr scratchReg
+    insn.clear();
+    XFORM_OP_SET(insn, EXTop);
+    XFORM_RT_SET(insn, scratchReg);
+    XFORM_RA_SET(insn, sprnum & 0x1f);
+    XFORM_RB_SET(insn, (sprnum >> 5) & 0x1f);
+    XFORM_XO_SET(insn, MFSPRxop);
     insn.generate(gen);
 
     if (gen.addrSpace()->getAddressWidth() == 4) {
@@ -619,12 +620,14 @@ void restoreSPR(codeGen &gen,       //Instruction storage pointer
     }
 
     instruction insn;
-    (*insn).raw = 0;                    //mtspr:  mtlr scratchReg
-    (*insn).xform.op = EXTop;
-    (*insn).xform.rt = scratchReg;
-    (*insn).xform.ra = sprnum & 0x1f;
-    (*insn).xform.rb = (sprnum >> 5) & 0x1f;
-    (*insn).xform.xo = MTSPRxop;
+    insn.clear();
+
+    //mtspr:  mtlr scratchReg
+    XFORM_OP_SET(insn, EXTop);
+    XFORM_RT_SET(insn, scratchReg);
+    XFORM_RA_SET(insn, sprnum & 0x1f);
+    XFORM_RB_SET(insn, (sprnum >> 5) & 0x1f);
+    XFORM_XO_SET(insn, MTSPRxop);
     insn.generate(gen);
 }
 
@@ -668,19 +671,21 @@ void restoreLR(codeGen &gen,       //Instruction storage pointer
 void setBRL(codeGen &gen,        //Instruction storage pointer
             Register      scratchReg,  //Scratch register
             long          val,         //Value to set link register to
-            unsigned      ti)          //Tail instruction
+            instruction   ti)          //Tail instruction
 {
     instruction::loadImmIntoReg(gen, scratchReg, val);
 
     instruction insn;
-    (*insn).raw = 0;                 //mtspr:  mtlr scratchReg
-    (*insn).xform.op = EXTop;
-    (*insn).xform.rt = scratchReg;
-    (*insn).xform.ra = SPR_LR;
-    (*insn).xform.xo = MTSPRxop;
+
+    //mtspr:  mtlr scratchReg
+    insn.clear();
+    XFORM_OP_SET(insn, EXTop);
+    XFORM_RT_SET(insn, scratchReg);
+    XFORM_RA_SET(insn, SPR_LR);
+    XFORM_XO_SET(insn, MTSPRxop);
     insn.generate(gen);
 
-    (*insn).raw = ti;
+    insn = ti;
     insn.generate(gen);
 }
 
@@ -696,10 +701,10 @@ void resetBRL(process  *p,   //Process to write instructions into
     codeGen gen(10*instruction::size());
     Register scratch = 10;
     if (val) {
-        setBRL(gen, scratch, val, BRLraw);
+        setBRL(gen, scratch, val, instruction(BRLraw));
     }
     else {
-        setBRL(gen, scratch, val, NOOPraw);
+        setBRL(gen, scratch, val, instruction(NOOPraw));
     }
     p->writeTextSpace((void *)loc, gen.used(), gen.start_ptr());
 }
@@ -717,19 +722,20 @@ void saveCR(codeGen &gen,       //Instruction storage pointer
 {
     instruction insn;
 
-  (*insn).raw = 0;                    //mfcr:  mflr scratchReg
-  (*insn).xfxform.op = EXTop;
-  (*insn).xfxform.rt = scratchReg;
-  (*insn).xfxform.xo = MFCRxop;
-  insn.generate(gen);
+    //mfcr:  mflr scratchReg
+    insn.clear();
+    XFXFORM_OP_SET(insn, EXTop);
+    XFXFORM_RT_SET(insn, scratchReg);
+    XFXFORM_XO_SET(insn, MFCRxop);
+    insn.generate(gen);
 
-  if (gen.addrSpace()->getAddressWidth() == 4) {
-      instruction::generateImm(gen, STop,
-			       scratchReg, REG_SP, stkOffset);
-  } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
-      instruction::generateMemAccess64(gen, STDop, STDxop,
-				       scratchReg, REG_SP, stkOffset);
-  }
+    if (gen.addrSpace()->getAddressWidth() == 4) {
+        instruction::generateImm(gen, STop,
+                                 scratchReg, REG_SP, stkOffset);
+    } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
+        instruction::generateMemAccess64(gen, STDop, STDxop,
+                                         scratchReg, REG_SP, stkOffset);
+    }
 }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -753,11 +759,12 @@ void restoreCR(codeGen &gen,       //Instruction storage pointer
                                          scratchReg, REG_SP, stkOffset);
     }
 
-    (*insn).raw = 0;                    //mtcrf:  scratchReg
-    (*insn).xfxform.op  = EXTop;
-    (*insn).xfxform.rt  = scratchReg;
-    (*insn).xfxform.spr = 0xff << 1;
-    (*insn).xfxform.xo  = MTCRFxop;
+    //mtcrf:  scratchReg
+    insn.clear();
+    XFXFORM_OP_SET(insn, EXTop);
+    XFXFORM_RT_SET(insn, scratchReg);
+    XFXFORM_SPR_SET(insn, 0xff << 1);
+    XFXFORM_XO_SET(insn, MTCRFxop);
     insn.generate(gen);
 }
 
@@ -775,10 +782,11 @@ void saveFPSCR(codeGen &gen,       //Instruction storage pointer
 {
     instruction mffs;
 
-    (*mffs).raw = 0;                    //mffs scratchReg
-    (*mffs).xform.op = X_FP_EXTENDEDop;
-    (*mffs).xform.rt = scratchReg;
-    (*mffs).xform.xo = MFFSxop;
+    //mffs scratchReg
+    mffs.clear();
+    XFORM_OP_SET(mffs, X_FP_EXTENDEDop);
+    XFORM_RT_SET(mffs, scratchReg);
+    XFORM_XO_SET(mffs, MFFSxop);
     mffs.generate(gen);
 
     //st:     st scratchReg, stkOffset(r1)
@@ -800,11 +808,13 @@ void restoreFPSCR(codeGen &gen,       //Instruction storage pointer
     instruction::generateImm(gen, LFDop, scratchReg, REG_SP, stkOffset);
 
     instruction mtfsf;
-    (*mtfsf).raw = 0;                    //mtfsf:  scratchReg
-    (*mtfsf).xflform.op  = X_FP_EXTENDEDop;
-    (*mtfsf).xflform.flm = 0xff;
-    (*mtfsf).xflform.frb = scratchReg;
-    (*mtfsf).xflform.xo  = MTFSFxop;
+
+    //mtfsf:  scratchReg
+    mtfsf.clear();
+    XFLFORM_OP_SET(mtfsf, X_FP_EXTENDEDop);
+    XFLFORM_FLM_SET(mtfsf, 0xff);
+    XFLFORM_FRB_SET(mtfsf, scratchReg);
+    XFLFORM_XO_SET(mtfsf, MTFSFxop);
     mtfsf.generate(gen);
 }
 
@@ -814,10 +824,8 @@ void restoreFPSCR(codeGen &gen,       //Instruction storage pointer
 void resetBR(process  *p,    //Process to write instruction into
 	     Address   loc)  //Address in process to write into
 {
-    instruction i;
+    instruction i = BRraw;
 
-    (*i).raw = BRraw;
-  
     if (!p->writeDataSpace((void *)loc, instruction::size(), i.ptr()))
         fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
 }
@@ -1151,13 +1159,13 @@ bool baseTrampInstance::finalizeGuardBranch(codeGen &gen,
     // Conditional jump if not equal.
     instruction jumpInsn;
 
-    (*jumpInsn).raw = 0;
-    (*jumpInsn).bform.op = BCop;
-    (*jumpInsn).bform.bo = BFALSEcond;
-    (*jumpInsn).bform.bi = EQcond;
-    (*jumpInsn).bform.bd = disp >> 2;
-    (*jumpInsn).bform.aa = 0; 
-    (*jumpInsn).bform.lk = 0;
+    jumpInsn.clear();
+    BFORM_OP_SET(jumpInsn, BCop);
+    BFORM_BO_SET(jumpInsn, BFALSEcond);
+    BFORM_BI_SET(jumpInsn, EQcond);
+    BFORM_BD_SET(jumpInsn, disp >> 2);
+    BFORM_AA_SET(jumpInsn, 0);
+    BFORM_LK_SET(jumpInsn, 0);
     jumpInsn.generate(gen);
 
     return true;
@@ -1779,21 +1787,21 @@ codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, Register dest,
       case ifOp: {
 	// cmpi 0,0,src1,0
           instruction insn;
-          (*insn).raw = 0;
-          (*insn).dform.op = CMPIop;
-          (*insn).dform.ra = src1;
-          (*insn).dform.d_or_si = 0;
+          insn.clear();
+          DFORM_OP_SET(insn, CMPIop);
+          DFORM_RA_SET(insn, src1);
+          DFORM_SI_SET(insn, 0);
           insn.generate(gen);
           retval = gen.getIndex();
           
           // be 0, dest
-          (*insn).raw = 0;
-          (*insn).bform.op = BCop;
-          (*insn).bform.bo = BTRUEcond;
-          (*insn).bform.bi = EQcond;
-          (*insn).bform.bd = dest/4;
-          (*insn).bform.aa = 0;
-          (*insn).bform.lk = 0;
+          insn.clear();
+          BFORM_OP_SET(insn, BCop);
+          BFORM_BO_SET(insn, BTRUEcond);
+          BFORM_BI_SET(insn, EQcond);
+          BFORM_BD_SET(insn, dest/4);
+          BFORM_AA_SET(insn, 0);
+          BFORM_LK_SET(insn, 0);
           
           insn.generate(gen);
           break;
@@ -1965,16 +1973,16 @@ static inline void moveGPR2531toGPR(codeGen &gen,
   // which is actually: rldicl dest, reg, 32+25+7 (b+n), 64-7 (64-n)
   // which is the same as: clrldi dest,reg,57 because 32+25+7 = 64
     instruction rld;
-    (*rld).raw = 0;
-    (*rld).mdform.op  = RLDop;
-    (*rld).mdform.rs  = reg;
-    (*rld).mdform.ra  = dest;
-    (*rld).mdform.sh  = 0;  //(32+25+7) % 32;
-    (*rld).mdform.mb  = (64-7) % 32;
-    (*rld).mdform.mb2 = (64-7) / 32;
-    (*rld).mdform.xo  = ICLxop;
-    (*rld).mdform.sh2 = 0; //(32+25+7) / 32;
-    (*rld).mdform.rc  = 0;
+    rld.clear();
+    MDFORM_OP_SET( rld, RLDop);
+    MDFORM_RS_SET( rld, reg);
+    MDFORM_RA_SET( rld, dest);
+    MDFORM_SH_SET( rld, 0);  //(32+25+7) % 32;
+    MDFORM_MB_SET( rld, (64-7) % 32);
+    MDFORM_MB2_SET(rld, (64-7) / 32);
+    MDFORM_XO_SET( rld, ICLxop);
+    MDFORM_SH2_SET(rld, 0); //(32+25+7) / 32;
+    MDFORM_RC_SET( rld, 0);
     rld.generate(gen);
 }
 
@@ -2244,13 +2252,13 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
             // Bool ops
             case orOp:
                 //genSimple(gen, ORop, src1, src2, dest);
-                (*insn).raw = 0;
-                (*insn).xoform.op = ORop;
+                insn.clear();
+                XOFORM_OP_SET(insn, ORop);
                 // operation is ra <- rs | rb (or rs,ra,rb)
-                (*insn).xoform.ra = dest;
-                (*insn).xoform.rt = src1;
-                (*insn).xoform.rb = src2;
-                (*insn).xoform.xo = ORxop;
+                XOFORM_RA_SET(insn, dest);
+                XOFORM_RT_SET(insn, src1);
+                XOFORM_RB_SET(insn, src2);
+                XOFORM_XO_SET(insn, ORxop);
                 insn.generate(gen);
                 return;
                 break;
@@ -2258,13 +2266,13 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
             case andOp:
                 //genSimple(gen, ANDop, src1, src2, dest);
                 // This is a Boolean and with true == 1 so bitwise is OK
-                (*insn).raw = 0;
-                (*insn).xoform.op = ANDop;
+                insn.clear();
+                XOFORM_OP_SET(insn, ANDop);
                 // operation is ra <- rs & rb (and rs,ra,rb)
-                (*insn).xoform.ra = dest;
-                (*insn).xoform.rt = src1;
-                (*insn).xoform.rb = src2;
-                (*insn).xoform.xo = ANDxop;
+                XOFORM_RA_SET(insn, dest);
+                XOFORM_RT_SET(insn, src1);
+                XOFORM_RB_SET(insn, src2);
+                XOFORM_XO_SET(insn, ANDxop);
                 insn.generate(gen);
                 return;
                 break;
@@ -2309,12 +2317,12 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
 
         
         assert((instOp != -1) && (instXop != -1));
-        (*insn).raw = 0;
-        (*insn).xoform.op = instOp;
-        (*insn).xoform.rt = dest;
-        (*insn).xoform.ra = src1;
-        (*insn).xoform.rb = src2;
-        (*insn).xoform.xo = instXop;
+        insn.clear();
+        XOFORM_OP_SET(insn, instOp);
+        XOFORM_RT_SET(insn, dest);
+        XOFORM_RA_SET(insn, src1);
+        XOFORM_RB_SET(insn, src2);
+        XOFORM_XO_SET(insn, instXop);
         insn.generate(gen);
     }
   return;
@@ -2755,14 +2763,14 @@ bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
 
     // Is this a branch conditional link register (BCLR)
     // BCLR uses the xlform (6,5,5,5,10,1)
-    if((*i).xlform.op == BCLRop) // BLR/BCR, or bcctr/bcc. Same opcode.
+    if(XLFORM_OP(i) == BCLRop) // BLR/BCR, or bcctr/bcc. Same opcode.
         {
-            if ((*i).xlform.xo == BCLRxop) // BLR (bclr)
+            if (XLFORM_XO(i) == BCLRxop) // BLR (bclr)
                 {
                     //bperr( "Branch target is the link register\n");
                     branch_target = registerSpace::lr;
                 }
-            else if ((*i).xlform.xo == BCCTRxop)
+            else if (XLFORM_XO(i) == BCCTRxop)
                 {
                     // We handle global linkage branches (BCTR) as static call
                     // sites. They're currently registered when the static call
@@ -2790,7 +2798,7 @@ bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
 
             return true;
         }
-    else if ((*i).xlform.op == Bop) {
+    else if (XLFORM_OP(i) == Bop) {
         /// Why didn't we catch this earlier? In any case, don't print an error
         
         // I have seen this legally -- branches to the FP register saves.
@@ -2804,11 +2812,11 @@ bool AddressSpace::getDynamicCallSiteArgs(instPoint *callSite,
     }
     else
         {
-            cerr << "MonitorCallSite: Unknown opcode " << (*i).xlform.op << endl;
-            cerr << "opcode extension: " << (*i).xlform.xo << endl;
+            cerr << "MonitorCallSite: Unknown opcode " << XLFORM_OP(i) << endl;
+            cerr << "opcode extension: " << XLFORM_XO(i) << endl;
             bperr( "Address is 0x%x, insn 0x%x\n",
                    callSite->addr(),
-                   (*i).raw);
+                   i.asInt());
             return false;
         }
 }
@@ -3012,19 +3020,19 @@ bool EmitterPOWER::emitMoveRegToReg(registerSlot *src,
         case registerSpace::xer:
         case registerSpace::ctr:
         case registerSpace::mq:
-            (*insn).raw = 0;
-            (*insn).xform.op = EXTop;
-            (*insn).xform.rt = dest->encoding();
-            (*insn).xform.ra = src->encoding() & 0x1f;
-            (*insn).xform.rb = (src->encoding() >> 5) & 0x1f;
-            (*insn).xform.xo = MFSPRxop;
+            insn.clear();
+            XFORM_OP_SET(insn, EXTop);
+            XFORM_RT_SET(insn, dest->encoding());
+            XFORM_RA_SET(insn, src->encoding() & 0x1f);
+            XFORM_RB_SET(insn, (src->encoding() >> 5) & 0x1f);
+            XFORM_XO_SET(insn, MFSPRxop);
             insn.generate(gen);
             break;
         case registerSpace::cr:
-            (*insn).raw = 0;                    //mtcrf:  scratchReg
-            (*insn).xfxform.op  = EXTop;
-            (*insn).xfxform.rt  = dest->encoding();
-            (*insn).xfxform.xo  = MFCRxop;
+            insn.clear();                    //mtcrf:  scratchReg
+            XFXFORM_OP_SET(insn, EXTop);
+            XFXFORM_RT_SET(insn, dest->encoding());
+            XFXFORM_XO_SET(insn, MFCRxop);
             insn.generate(gen);
             break;
         default:

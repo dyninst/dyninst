@@ -89,7 +89,7 @@ class LVReader : public MemRegReader
          val = static_cast<MachRegisterVal>(f.getSP());
          return true;
       }
-      if (reg.isPC()) {
+      if (reg.isPC() || reg == Dyninst::ReturnAddr) {
          val = static_cast<MachRegisterVal>(f.getRA());
          return true;
       }
@@ -113,6 +113,12 @@ class LVReader : public MemRegReader
       return result;
    }
 
+   virtual bool start() {
+      return true;
+   }
+   virtual bool done() {
+      return true;
+   }
    virtual ~LVReader() {}
 };
 
@@ -209,7 +215,7 @@ static int getLocalVariableValue(localVar *var,
          MachRegisterVal reg_value;
          MachRegister reg = loc.reg;
          if (loc.stClass == storageRegOffset && loc.reg == -1) {
-            reg = FrameBase;
+            reg = MachRegister::getFramePointer();
          }
          
          LVReader r(proc, frame, &swalk, thrd);

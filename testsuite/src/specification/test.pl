@@ -233,7 +233,7 @@ test_tuple(Name, Mutator, Mutatee, Platform, Groupable, Module) :-
 
 % Provide tuples for run groups
 rungroup_tuple(Mutatee, Compiler, Optimization, RunMode, StartState,
-               Groupable, Tests, Platform, ABI) :-
+               Groupable, Tests, Platform, ABI, ThreadMode, ProcessMode) :-
     mutatee(Mutatee, _, _),
     compiler_for_mutatee(Mutatee, Compiler),
     compiler_platform(Compiler, Platform),
@@ -246,7 +246,9 @@ rungroup_tuple(Mutatee, Compiler, Optimization, RunMode, StartState,
     platform_abi(Platform, ABI),
     runmode_platform(Platform, RunMode),
     % Enumerate / verify values for run-time options
-        runmode(RunMode),
+    runmode(RunMode),
+    threadmode(ThreadMode),
+    processmode(ProcessMode),
     member(StartState, ['stopped', 'running', 'selfstart']),
     member(Groupable, ['true', 'false']),
     (
@@ -257,6 +259,8 @@ rungroup_tuple(Mutatee, Compiler, Optimization, RunMode, StartState,
                 test_platform(T, Platform),
                 test_platform_abi(T, Platform, ABI),
                 test_runmode(T, RunMode),
+                test_threadmode(T, ThreadMode),
+                test_processmode(T, ProcessMode),
                 test_start_state(T, StartState),
                 ((groupable_test(T), Groupable = true);
                  (\+ groupable_test(T), Groupable = false)),
@@ -267,6 +271,8 @@ rungroup_tuple(Mutatee, Compiler, Optimization, RunMode, StartState,
                     test_platform(T, Platform),
                     test_platform_abi(T, Platform, ABI),
                     test_runmode(T, RunMode), test_start_state(T, StartState),
+                    test_threadmode(T, ThreadMode),
+                    test_processmode(T, ProcessMode),
                     ((groupable_test(T), Groupable = true);
                      (\+ groupable_test(T), Groupable = false))),
                     Ts)
@@ -337,8 +343,8 @@ write_tuples(Filename, Platform) :-
             Tests),
     write_term(Stream, Tests, [quoted(true)]),
     write(Stream, '\n'),
-    findall([M, C, O, R, S, G, T, A],
-            rungroup_tuple(M, C, O, R, S, G, T, Platform, A),
+    findall([M, C, O, R, S, G, T, A, H, P],
+            rungroup_tuple(M, C, O, R, S, G, T, Platform, A, H, P),
             RunGroups),
     write_term(Stream, RunGroups, [quoted(true)]),
     write(Stream, '\n'),

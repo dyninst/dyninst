@@ -27,7 +27,7 @@ LDFLAGS		+=	-shared -ldl -L$(LIBUNWIND_LIB) -lunwind
 # Automatic init routine
 LDFLAGS		+= -Wl,-init -Wl,libdyninstAPI_RT_init
 
-STATIC_ASFLAGS := -c -DDYNINST_RT_STATIC_LIB
+STATIC_ASFLAGS :=
 
 ASFLAGS		= 
 

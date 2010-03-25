@@ -160,14 +160,15 @@ Serializable *Variable::serialize_impl(SerializerBase *sb, const char *tag) THRO
 
 std::ostream &operator<<(std::ostream &os, const Dyninst::SymtabAPI::Variable &v)
 {
-	std::string tname(v.type_ ? v.type_->getName() : "no_type");
+	Type *var_t = (const_cast<Variable &>(v)).getType();
+	std::string tname(var_t ? var_t->getName() : "no_type");
 	const Aggregate *ag = dynamic_cast<const Aggregate *>(&v);
 	assert(ag);
 
 	os  << "Variable{"        
 		<< " type=" 
 		<< tname
-	    << " ";						   
+	    << " ";
 	os  << 	*ag;					   
 	os  << 	"}";
 	return os;	
@@ -382,7 +383,7 @@ std::string &localVar::getName()
 	return name_;
 }
 
-Type *localVar::getType() 
+Type *localVar::getType()
 {
 	return type_;
 }

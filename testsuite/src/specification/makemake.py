@@ -355,6 +355,18 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 			out.write('DESERIALIZE, ')
 		else:
 			out.write('DISK, ')
+		if group['thread_mode'] == 'None':
+			out.write('TNone, ')
+		elif group['thread_mode'] == 'SingleThreaded':
+			out.write('SingleThreaded, ')
+		elif group['thread_mode'] == 'MultiThreaded':
+			out.write('MultiThreaded, ')
+		if group['process_mode'] == 'None':
+			out.write('PNone, ')
+		elif group['process_mode'] == 'SingleProcess':
+			out.write('SingleProcess, ')
+		elif group['process_mode'] == 'MultiProcess':
+			out.write('MultiProcess, ')
 		if group['groupable'] == 'true':
 			out.write('false') # !groupable
 		else:

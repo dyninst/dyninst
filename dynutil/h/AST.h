@@ -40,7 +40,6 @@
 #include "util.h"
 
 namespace Dyninst {
-using std::vector;
 
 // We fully template the three types of nodes we have so that
 // users can specify their own. This basically makes the AST
@@ -56,9 +55,135 @@ using std::vector;
 // ... and are Eval methods independent of Operation/Variable/Constant?
 // I think they are...x
 
-class AST {
+class ASTVisitor;  
+
+ // For this to work, the ASTVisitor has to have a virtual
+ // visit() method for every instantiation of an AST-typed
+ // class. Yes, this means that if you add an AST class
+ // somewhere else you have to come back and put it in here. 
+ // Well, if you want to run a visitor over it, that is.
+ class AST;
+
+ // SymEval...
+ namespace SymbolicEvaluation {
+ class BottomAST;
+ class ConstantAST;
+ class VariableAST;
+ class RoseAST;
+ };
+ // Stack analysis...
+ class StackAST;
+
+ // InsnAPI...
+
+ // Codegen...
+
+ class ASTVisitor {
  public:
+   typedef dyn_detail::boost::shared_ptr<AST> ASTPtr;
+   virtual ASTPtr visit(AST *) = 0;
+   virtual ASTPtr visit(SymbolicEvaluation::BottomAST *) = 0;
+   virtual ASTPtr visit(SymbolicEvaluation::ConstantAST *) = 0;
+   virtual ASTPtr visit(SymbolicEvaluation::VariableAST *) = 0;
+   virtual ASTPtr visit(SymbolicEvaluation::RoseAST *) = 0;
+   virtual ASTPtr visit(StackAST *) = 0;
+
+   virtual ~ASTVisitor() {};
+ };
+
+
+#define DEF_AST_LEAF_TYPE(name, type)					\
+class name : public AST {						\
+ public:								\
+ typedef dyn_detail::boost::shared_ptr<name> Ptr;			\
+ static Ptr create(type t) { return Ptr(new name(t)); }			\
+ virtual ~name() {};							\
+ virtual const std::string format() const {				\
+   std::stringstream ret;						\
+   ret << "<" << t_ << ">";						\
+   return ret.str();							\
+ }									\
+ virtual AST::Ptr accept(ASTVisitor *v) { return v->visit(this); }	\
+ virtual ID getID() const { return V_##name; }				\
+  static Ptr convert(AST::Ptr a) {					\
+    return ((a->getID() == V_##name) ? dyn_detail::boost::static_pointer_cast<name>(a) : Ptr()); \
+  }									\
+  const type &val() const { return t_; }				\
+ private:								\
+ name(type t) : t_(t) {};						\
+ virtual bool isStrictEqual(const AST &rhs) const {			\
+   const name &other(dynamic_cast<const name&>(rhs));			\
+   return t_ == other.t_;						\
+ }									\
+ const type t_;								\
+ };									\
+
+#define DEF_AST_INTERNAL_TYPE(name, type)				\
+class name : public AST {						\
+ public:								\
+  typedef dyn_detail::boost::shared_ptr<name> Ptr;			\
+  virtual ~name() {};							\
+  static Ptr create(type t, AST::Ptr a) { return Ptr(new name(t, a)); }	\
+  static Ptr create(type t, AST::Ptr a, AST::Ptr b) { return Ptr(new name(t, a, b)); } \
+  static Ptr create(type t, AST::Ptr a, AST::Ptr b, AST::Ptr c) { return Ptr(new name(t, a, b, c)); } \
+  static Ptr create(type t, Children c) { return Ptr(new name(t, c)); }	\
+  virtual const std::string format() const {				\
+    std::stringstream ret;						\
+    ret << t_ << "(";                                                   \
+    for (Children::const_iterator i = kids_.begin(); i != kids_.end(); ++i) {	\
+      ret << (*i)->format() << ",";					\
+    }									\
+    ret << ")";								\
+    return ret.str();							\
+  }									\
+  virtual AST::Ptr child(unsigned i) const { return kids_[i];}		\
+  virtual unsigned numChildren() const { return kids_.size();}		\
+  virtual AST::Ptr accept(ASTVisitor *v) { return v->visit(this); }	\
+  virtual ID getID() const { return V_##name; }				\
+  static Ptr convert(AST::Ptr a) {					\
+    return ((a->getID() == V_##name) ? dyn_detail::boost::static_pointer_cast<name>(a) : Ptr()); \
+  }									\
+  const type &val() const { return t_; }				\
+  void setChild(int i, AST::Ptr a) { kids_[i] = a; };			\
+ private:								\
+ name(type t, AST::Ptr a) : t_(t) { kids_.push_back(a); };		\
+ name(type t, AST::Ptr a, AST::Ptr b) : t_(t) {				\
+    kids_.push_back(a);							\
+    kids_.push_back(b);							\
+  };									\
+ name(type t, AST::Ptr a, AST::Ptr b, AST::Ptr c) : t_(t) {		\
+    kids_.push_back(a);							\
+    kids_.push_back(b);							\
+    kids_.push_back(c);							\
+  };									\
+ name(type t, Children kids) : t_(t), kids_(kids) {};			\
+  virtual bool isStrictEqual(const AST &rhs) const {			\
+    const name &other(dynamic_cast<const name&>(rhs));			\
+    return ((t_ == other.t_) && (kids_ == other.kids_));		\
+  }									\
+  const type t_;							\
+  Children kids_;							\
+ };									\
+
+class AST : public dyn_detail::boost::enable_shared_from_this<AST> {
+ public:
+
+  // This is a global list of all AST types, including those that are not
+  // yet implemented. The format is a "V_" string prepending the class name.
+  // If you add an AST type you should update this list.
+
+  typedef enum {
+    V_AST,
+    // SymEval
+    V_BottomAST,
+    V_ConstantAST,
+    V_VariableAST,
+    V_RoseAST,
+    // Stack analysis
+    V_StackAST } ID;
+
   typedef dyn_detail::boost::shared_ptr<AST> Ptr;
+  typedef std::vector<AST::Ptr> Children;      
 
   AST() {};
   virtual ~AST() {};
@@ -67,8 +192,13 @@ class AST {
     // make sure rhs and this have the same type
     return((typeid(*this) == typeid(rhs)) && isStrictEqual(rhs));
   }
-  
-  virtual void getChildren(std::vector<Ptr> &) const = 0;
+
+  virtual unsigned numChildren() const { return 0; }		       
+
+  virtual AST::Ptr child(unsigned) const {				
+    assert(0);								
+    return AST::Ptr();							
+  }								       
 
   virtual const std::string format() const = 0;
 
@@ -77,246 +207,21 @@ class AST {
 
   static AST::Ptr substitute(AST::Ptr in, AST::Ptr a, AST::Ptr b); 
 
+  virtual ID getID() const { return V_AST; };
+
+  // VISITOR wooo....
+  virtual Ptr accept(ASTVisitor *v) { return v->visit(this); }
+
+  Ptr ptr() { return shared_from_this(); }
+
+  virtual void setChild(int, AST::Ptr) {
+    assert(0);
+  };
+
  protected:
   virtual bool isStrictEqual(const AST &rhs) const = 0;
-
-  virtual void setChildren(std::vector<AST::Ptr> &) = 0;
 };
 
-class BottomAST : public AST {
- public:
-  typedef dyn_detail::boost::shared_ptr<BottomAST> Ptr;
-  BottomAST() {};
-  virtual ~BottomAST() {};
-
-  virtual void getChildren(std::vector<AST::Ptr> &) const {};
-  static AST::Ptr create() {
-    return AST::Ptr(new BottomAST());
-  }
-
-  virtual const std::string format() const { return "<bottom>"; }
-
- protected:
-  virtual bool isStrictEqual(const AST &) const {
-    return true;
-  }
-
-  virtual void setChildren(std::vector<AST::Ptr> &r) {
-    assert(r.empty());
-  };
-
-};
-
-template <typename V>
-class VariableAST : public AST {
- public:
-  VariableAST(const V &v) : v_(v) {};
-  virtual ~VariableAST() {};
-
-  virtual void getChildren(std::vector<AST::Ptr>&) const {};
-
-  static AST::Ptr create(const V &v) {
-    return AST::Ptr(new VariableAST(v));
-  }
-
-  virtual const std::string format() const { return v_.format(); }
-
-  const V &val() const { return v_; }
-
- protected:
-  virtual bool isStrictEqual(const AST &rhs) const {
-    const VariableAST<V> &other(dynamic_cast<const VariableAST<V>&>(rhs));
-    return (v_ == other.v_);
-  }
-
-  virtual void setChildren(std::vector<AST::Ptr> &r) {
-    assert(r.empty());
-  };
-  
- private:
-  const V v_;
-};
-
-template <typename C>
-class ConstantAST : public AST {
- public:
-  ConstantAST(const C &c) : c_(c) {};
-  virtual ~ConstantAST() {};
-
-  virtual void getChildren(std::vector<AST::Ptr>&) const {};
-
-  static AST::Ptr create(const C &c) {
-    return AST::Ptr(new ConstantAST(c));
-  }
-
-  const C &val() const { return c_; }
-  
-  virtual const std::string format() const {
-    std::stringstream ret;
-    ret << "<" << c_ << ">";
-    return ret.str();
- }
-
- protected:
-  virtual bool isStrictEqual(const AST &rhs) const {
-    const ConstantAST<C> &other(dynamic_cast<const ConstantAST<C>&>(rhs));
-    return (c_ == other.c_);
-  }
-  
-  virtual void setChildren(std::vector<AST::Ptr> &r) {
-    assert(r.empty());
-  };
-
- private:
-  const C c_;
-};
-
-template <typename O>
-class UnaryAST : public AST {
- public:
-  UnaryAST(const O &o, 
-	   AST::Ptr a) :
-    o_(o), a_(a) {};
-  virtual ~UnaryAST() {};
-
-  virtual void getChildren(std::vector<AST::Ptr>&kids) const {
-    kids.push_back(a_);
-  }
-
-  static AST::Ptr create(const O &o, AST::Ptr a) {
-    return AST::Ptr(new UnaryAST(o, a));
-  }
-
-  virtual const std::string format() const {
-    std::stringstream ret;
-    ret << o_.format() << "(" << a_->format() << ")";
-    return ret.str();
-  }
-
-  const O &op() const { return o_; }
-
-  const AST::Ptr operand() const { return a_; }
-
- protected:
-  virtual bool isStrictEqual(const AST &rhs) const {
-    const UnaryAST<O> &other(dynamic_cast<const UnaryAST<O>&>(rhs));
-    return ((o_ == other.o_) && ((*a_) == (*(other.a_))));
-  }
-
-  virtual void setChildren(std::vector<AST::Ptr> &r) {
-    assert(r.size() == 1);
-    a_ = r[0];
-  };
-
- private:
-  const O o_;
-  AST::Ptr a_;
-};
-
-template <typename O>
-class BinaryAST : public AST {
- public:
-  BinaryAST(const O &o, 
-	    AST::Ptr a,
-	    AST::Ptr b) :
-    o_(o), a_(a), b_(b) {};
-  virtual ~BinaryAST() {};
-
-  virtual void getChildren(std::vector<AST::Ptr> &kids) const {
-    kids.push_back(a_);
-    kids.push_back(b_);
-  }
-
-  static AST::Ptr create(const O &o, AST::Ptr a, AST::Ptr b) {
-    return AST::Ptr(new BinaryAST(o, a, b));
-  }
-
-  virtual const std::string format() const {
-    std::stringstream ret;
-    ret << o_.format() << "(" << a_->format() << "," << b_->format() << ")";
-    return ret.str();
-  }
-
-  const O &op() const { return o_; }
-
-  const AST::Ptr left() const { return a_; }
-  const AST::Ptr right() const { return b_; }
-
- protected:
-  virtual bool isStrictEqual(const AST &rhs) const {
-    const BinaryAST<O> &other(dynamic_cast<const BinaryAST<O>&>(rhs));
-    return ((o_ == other.o_) && 
-	    ((*a_) == (*(other.a_))) &&
-	    ((*b_) == (*(other.b_))));
-  }
-
-  virtual void setChildren(std::vector<AST::Ptr> &r) {
-    assert(r.size() == 2);
-    a_ = r[0];
-    b_ = r[1];
-  };
-  
- private:
-  const O o_;
-  AST::Ptr a_;
-  AST::Ptr b_;
-};
-
-template <typename O>
-class TernaryAST : public AST {
- public:
-  TernaryAST(const O &o, 
-	     AST::Ptr a,
-	     AST::Ptr b,
-	     AST::Ptr c) : 
-    o_(o), a_(a), b_(b), c_(c) {};
-  virtual ~TernaryAST() {};
-
-  virtual void getChildren(std::vector<AST::Ptr>&kids) const {
-    kids.push_back(a_);
-    kids.push_back(b_);
-    kids.push_back(c_);
-  }
-
-  static AST::Ptr create(const O &o, AST::Ptr a, AST::Ptr b, AST::Ptr c) {
-    return AST::Ptr(new TernaryAST(o, a, b, c));
-  }
-
-  virtual const std::string format() const {
-    std::stringstream ret;
-    ret << o_.format() << "(" << a_->format() << "," << b_->format() << "," << c_->format() << ")";
-    return ret.str();
-  }
-
-  const O &op() const { return o_; }
-
-  const AST::Ptr left() const { return a_; }
-  const AST::Ptr center() const { return b_; }
-  const AST::Ptr right() const { return c_; }
-
- protected:
-  virtual bool isStrictEqual(const AST &rhs) const {
-    const TernaryAST<O> &other(dynamic_cast<const TernaryAST<O>&>(rhs));
-    return ((o_ == other.o_) && 
-	    ((*a_) == (*(other.a_))) &&
-	    ((*b_) == (*(other.b_))) &&
-	    ((*c_) == (*(other.c_))));
-  }
-
-  virtual void setChildren(std::vector<AST::Ptr> &r) {
-    assert(r.size() == 3);
-    a_ = r[0];
-    b_ = r[1];
-    c_ = r[2];
-  };
-  
- private:
-  const O o_;
-  AST::Ptr a_;
-  AST::Ptr b_;
-  AST::Ptr c_;
-};
-
-};
+}
 #endif // AST_H
 

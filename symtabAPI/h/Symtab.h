@@ -41,10 +41,12 @@
 #include "Annotatable.h"
 #include "Serialization.h"
 
+#include "ProcReader.h"
+
 class MappedFile;
 
-namespace Dyninst{
-namespace SymtabAPI{
+namespace Dyninst {
+namespace SymtabAPI {
 
 class Archive;
 class builtInTypeCollection;
@@ -55,12 +57,7 @@ class localVar;
 class relocationEntry;
 class Type;
 
-class MemRegReader {
- public:
-   virtual bool ReadMem(Address addr, void *buffer, unsigned size) = 0;
-   virtual bool GetReg(MachRegister reg, MachRegisterVal &val) = 0;
-   virtual ~MemRegReader();
-};
+typedef Dyninst::ProcessReader MemRegReader;
 
 class Symtab : public LookupInterface,
                public Serializable,
@@ -260,6 +257,13 @@ class Symtab : public LookupInterface,
    SYMTAB_EXPORT std::string getDynLibSubstitution(std::string name);
 
    SYMTAB_EXPORT bool getSegments(std::vector<Segment> &segs) const;
+   
+   SYMTAB_EXPORT void fixup_code_and_data(Offset newImageOffset,
+                                          Offset newImageLength,
+                                          Offset newDataOffset,
+                                          Offset newDataLength);
+   SYMTAB_EXPORT bool fixup_RegionAddr(const char* name, Offset memOffset, long memSize);
+   SYMTAB_EXPORT bool fixup_SymbolAddr(const char* name, Offset newOffset);
    SYMTAB_EXPORT bool updateRegion(const char* name, void *buffer, unsigned size);
    SYMTAB_EXPORT bool updateCode(void *buffer, unsigned size);
    SYMTAB_EXPORT bool updateData(void *buffer, unsigned size);
@@ -653,6 +657,7 @@ class relocationEntry : public Serializable, public AnnotatableSparse {
       SYMTAB_EXPORT Symbol *getDynSym() const;
       SYMTAB_EXPORT bool addDynSym(Symbol *dynref);
       SYMTAB_EXPORT unsigned long getRelType() const;
+
       SYMTAB_EXPORT void setTargetAddr(const Offset);
       SYMTAB_EXPORT void setRelAddr(const Offset);
       SYMTAB_EXPORT void setAddend(const Offset);

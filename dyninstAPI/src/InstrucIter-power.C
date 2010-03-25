@@ -57,14 +57,13 @@
 void InstrucIter::printOpCode()
 {
   const instruction i = getInstruction();
-  printf("OpCode num %d",(*i).xlform.op);
+  printf("OpCode num %d", XLFORM_OP(i));
 }
 
 bool InstrucIter::isRegConstantAssignment(int * regArray, Address * regWL)
 {
   const instruction i = getInstruction();
-  int regNum = (*i).dform.rt;
-  
+  int regNum = DFORM_RT(i);
 
   if (isA_RT_WriteInstruction() || isA_RA_WriteInstruction())
   {
@@ -73,10 +72,10 @@ bool InstrucIter::isRegConstantAssignment(int * regArray, Address * regWL)
   }
   
   // int regNum = (*i).dform.rt;
-  if((*i).xlform.op == 14 && (*i).dform.ra == 0 
+  if(XLFORM_OP(i) == 14 && DFORM_RA(i) == 0 
      && regNum >= 3 && regNum <= 10)
   {
-    regArray[regNum]  = (*i).dform.d_or_si;
+    regArray[regNum]  = DFORM_SI(i);
     //if(regNum == 8)
     //printf("Value for reg 8 is %d\n",regArray[regNum]);
       
@@ -90,9 +89,9 @@ bool InstrucIter::isRegConstantAssignment(int * regArray, Address * regWL)
 bool InstrucIter::isClauseInstruction()
 {
   const instruction i = getInstruction();
-  if((*i).xlform.op == 14 && (*i).dform.rt == 3 && (*i).dform.ra == 0)
+  if(XLFORM_OP(i) == 14 && DFORM_RT(i) == 3 && DFORM_RA(i) == 0)
   {
-    printf("Clause value is %d\n", (*i).dform.d_or_si);
+    printf("Clause value is %d\n", DFORM_SI(i));
     return true;
   }
   else
@@ -102,51 +101,51 @@ bool InstrucIter::isClauseInstruction()
 signed InstrucIter::getDFormDValue()
 {
   const instruction i = getInstruction();
-  return (*i).dform.d_or_si;
+  return DFORM_SI(i);
 }
 
 /* Returns the value of the RT Register */
 unsigned InstrucIter::getRTValue(void)
 {
   const instruction i = getInstruction();
-  return (*i).xform.rt;  
+  return XFORM_RT(i);
 }
 
 /* Returns the value of the RA Register */
 unsigned InstrucIter::getRAValue(void)
 {
   const instruction i = getInstruction();
-  return (*i).xform.ra;
+  return XFORM_RA(i);
 }
 
 unsigned InstrucIter::getRBValue(void)
 {
   const instruction i = getInstruction();
-  return (*i).xform.rb;
+  return XFORM_RB(i);
 }
 
 unsigned InstrucIter::getFRTValue(void)
 {
   const instruction i = getInstruction();
-  return (*i).aform.frt;
+  return AFORM_FRT(i);
 }
 
 unsigned InstrucIter::getFRAValue(void)
 {
   const instruction i = getInstruction();
-  return (*i).aform.fra;
+  return AFORM_FRA(i);
 }
 
 unsigned InstrucIter::getFRBValue(void)
 {
   const instruction i = getInstruction();
-  return (*i).aform.frb;
+  return AFORM_FRB(i);
 }
 
 unsigned InstrucIter::getFRCValue(void)
 {
   const instruction i = getInstruction();
-  return (*i).aform.frc;
+  return AFORM_FRC(i);
 }
 
 /* Returns true if the instruction reads/writes the MX (SPR0) SP Register */
@@ -155,20 +154,20 @@ bool InstrucIter::isA_MX_Instruction()
   const instruction i = getInstruction();
 
   if (
-      ((*i).xform.op == X_EXTENDEDop
-       && ( (*i).xform.xo == SREQxop || (*i).xform.xo == SLEQxop ||
-	    (*i).xform.xo == SLLIQxop || (*i).xform.xo == SRLIQxop ||
-	    (*i).xform.xo == SRLQxop || (*i).xform.xo == SLLQxop ||
-	    (*i).xform.xo == SLIQxop || (*i).xform.xo == SRQxop ||
-	    (*i).xform.xo == SLQxop || (*i).xform.xo == SRIQxop ||
-	    (*i).xform.xo == SRAIQxop || (*i).xform.xo == SREAxop ||
-	    (*i).xform.xo == STSXxop || (*i).xform.xo == STSIxop ||
-	    (*i).xform.xo == LSCBXxop
+      (XFORM_OP(i) == X_EXTENDEDop
+       && ( XFORM_XO(i) == SREQxop || XFORM_XO(i) == SLEQxop ||
+	    XFORM_XO(i) == SLLIQxop || XFORM_XO(i) == SRLIQxop ||
+	    XFORM_XO(i) == SRLQxop || XFORM_XO(i) == SLLQxop ||
+	    XFORM_XO(i) == SLIQxop || XFORM_XO(i) == SRQxop ||
+	    XFORM_XO(i) == SLQxop || XFORM_XO(i) == SRIQxop ||
+	    XFORM_XO(i) == SRAIQxop || XFORM_XO(i) == SREAxop ||
+	    XFORM_XO(i) == STSXxop || XFORM_XO(i) == STSIxop ||
+	    XFORM_XO(i) == LSCBXxop
 	    ))
       ||
-      ((*i).xoform.op == XO_EXTENDEDop
-       && ( (*i).xoform.xo == DIVxop || (*i).xoform.xo == DIVSxop ||
-	    (*i).xoform.xo == MULxop )))
+      (XOFORM_OP(i) == XO_EXTENDEDop
+       && ( XOFORM_XO(i) == DIVxop || XOFORM_XO(i) == DIVSxop ||
+	    XOFORM_XO(i) == MULxop )))
     return true;
   else
     return false;
@@ -182,57 +181,57 @@ bool InstrucIter::isA_RT_WriteInstruction()
   const instruction i = getInstruction();
   if (
       /* XO Form */
-      ((*i).xoform.op == XO_EXTENDEDop
-       && ( (*i).xoform.xo == CAXxop || (*i).xoform.xo == Axop 
-	    || (*i).xoform.xo == AExop || (*i).xoform.xo == NABSxop 
-	    || (*i).xoform.xo == ANDCxop || (*i).xoform.xo == DIVWxop
-	    || (*i).xoform.xo == SUBFxop || (*i).xoform.xo == SFxop
-	    || (*i).xoform.xo == SFExop || (*i).xoform.xo == SFMExop 
-	    || (*i).xoform.xo == SFZExop || (*i).xoform.xo == MULHWxop 
-	    || (*i).xoform.xo == DIVWUxop || (*i).xoform.xo == MULSxop 
-	    || (*i).xoform.xo == NEGxop || (*i).xoform.xo == ABSxop 
-	    || (*i).xoform.xo == DIVxop || (*i).xoform.xo == DIVSxop
-	    || (*i).xoform.xo == DOZxop || (*i).xoform.xo == MULxop 
-	    || (*i).xoform.xo == SFExop || (*i).xoform.xo == SFMExop 
-	    || (*i).xoform.xo == SFZExop || (*i).xoform.xo == MULHWUxop )) ||
+      (XOFORM_OP(i) == XO_EXTENDEDop
+       && ( XOFORM_XO(i) == CAXxop || XOFORM_XO(i) == Axop 
+	    || XOFORM_XO(i) == AExop || XOFORM_XO(i) == NABSxop 
+	    || XOFORM_XO(i) == ANDCxop || XOFORM_XO(i) == DIVWxop
+	    || XOFORM_XO(i) == SUBFxop || XOFORM_XO(i) == SFxop
+	    || XOFORM_XO(i) == SFExop || XOFORM_XO(i) == SFMExop 
+	    || XOFORM_XO(i) == SFZExop || XOFORM_XO(i) == MULHWxop 
+	    || XOFORM_XO(i) == DIVWUxop || XOFORM_XO(i) == MULSxop 
+	    || XOFORM_XO(i) == NEGxop || XOFORM_XO(i) == ABSxop 
+	    || XOFORM_XO(i) == DIVxop || XOFORM_XO(i) == DIVSxop
+	    || XOFORM_XO(i) == DOZxop || XOFORM_XO(i) == MULxop 
+	    || XOFORM_XO(i) == SFExop || XOFORM_XO(i) == SFMExop 
+	    || XOFORM_XO(i) == SFZExop || XOFORM_XO(i) == MULHWUxop )) ||
 	
       /* D Form */
-      ((*i).dform.op == MULIop || (*i).dform.op == SFIop || (*i).dform.op == DOZIop   ) || 
-      ((*i).dform.op >= SIop && (*i).dform.op  <= CAUop) || 
-      ((*i).dform.op >= Lop && (*i).dform.op <= LBZUop) || 
-      ((*i).dform.op >= LHZop && (*i).dform.op <= LHAUop) || 
+      (DFORM_OP(i) == MULIop || DFORM_OP(i) == SFIop || DFORM_OP(i) == DOZIop   ) || 
+      (DFORM_OP(i) >= SIop && DFORM_OP(i)  <= CAUop) || 
+      (DFORM_OP(i) >= Lop && DFORM_OP(i) <= LBZUop) || 
+      (DFORM_OP(i) >= LHZop && DFORM_OP(i) <= LHAUop) || 
 	
       /* X Form */
-      ((*i).xform.op == X_EXTENDEDop 
-       && ( (*i).xform.xo == LBZUXxop || 
-            (*i).xform.xo == LBZXxop || 
-	    (*i).xform.xo == LHAUXxop  || 
-	    (*i).xform.xo == LHAXxop || 
-            (*i).xform.xo == LHBRXxop ||
-	    (*i).xform.xo == LHZUXxop  || 
-            (*i).xform.xo == LHZXxop || 
-	    (*i).xform.xo == LWARXxop || 
-            (*i).xform.xo == LWBRXxop  || 
-	    (*i).xform.xo == LUXxop || 
-            (*i).xform.xo == LXxop ||
-	    (*i).xform.xo == MFCRxop  ||  
-	    (*i).xform.xo == MFMSRxop || 
-            (*i).xform.xo == MFSPRxop  || 
-	    (*i).xform.xo == CLCSxop  || 
-            (*i).xform.xo == MFSRxop || 
-	    (*i).xform.xo == MFSRIxop ||
-	    (*i).xform.xo == MFSRINxop  || 
-            (*i).xform.xo == RACxop ||
-            (*i).xform.xo == LWAXxop ||
-            (*i).xform.xo == LWAUXxop ||
-            (*i).xform.xo == LDXxop ||
-            (*i).xform.xo == LDUXxop ||
-            (*i).xform.xo == LDARXxop)) ||
+      (XFORM_OP(i) == X_EXTENDEDop 
+       && ( XFORM_XO(i) == LBZUXxop || 
+            XFORM_XO(i) == LBZXxop || 
+	    XFORM_XO(i) == LHAUXxop  || 
+	    XFORM_XO(i) == LHAXxop || 
+            XFORM_XO(i) == LHBRXxop ||
+	    XFORM_XO(i) == LHZUXxop  || 
+            XFORM_XO(i) == LHZXxop || 
+	    XFORM_XO(i) == LWARXxop || 
+            XFORM_XO(i) == LWBRXxop  || 
+	    XFORM_XO(i) == LUXxop || 
+            XFORM_XO(i) == LXxop ||
+	    XFORM_XO(i) == MFCRxop  ||  
+	    XFORM_XO(i) == MFMSRxop || 
+            XFORM_XO(i) == MFSPRxop  || 
+	    XFORM_XO(i) == CLCSxop  || 
+            XFORM_XO(i) == MFSRxop || 
+	    XFORM_XO(i) == MFSRIxop ||
+	    XFORM_XO(i) == MFSRINxop  || 
+            XFORM_XO(i) == RACxop ||
+            XFORM_XO(i) == LWAXxop ||
+            XFORM_XO(i) == LWAUXxop ||
+            XFORM_XO(i) == LDXxop ||
+            XFORM_XO(i) == LDUXxop ||
+            XFORM_XO(i) == LDARXxop)) ||
       /* dsform */ 
-      ((*i).dsform.op == LDop &&
-       ((*i).dsform.xo == LWAxop ||
-        (*i).dsform.xo == LDxop ||
-        (*i).dsform.xo == LDUxop)))
+      (DSFORM_OP(i) == LDop &&
+       (DSFORM_XO(i) == LWAxop ||
+        DSFORM_XO(i) == LDxop ||
+        DSFORM_XO(i) == LDUxop)))
   {
     return true;
   }
@@ -248,28 +247,28 @@ bool InstrucIter::isA_FRT_WriteInstruction()
   const instruction i = getInstruction();
   if (
       /* A Form */
-      ((*i).aform.op == A_FP_EXTENDEDop2 
-       && ( (*i).aform.xo == FAxop || (*i).aform.xo == FDxop || 
-	    (*i).aform.xo == FMxop || (*i).aform.xo == FMAxop  || 
-	    (*i).aform.xo == FMSxop || (*i).aform.xo == FNMAxop ||
-	    (*i).aform.xo == FNMSxop || (*i).aform.xo == FSQRTxop || 
-	    (*i).aform.xo == FSxop )) ||  
+      (AFORM_OP(i) == A_FP_EXTENDEDop2 
+       && ( AFORM_XO(i) == FAxop || AFORM_XO(i) == FDxop || 
+	    AFORM_XO(i) == FMxop || AFORM_XO(i) == FMAxop  || 
+	    AFORM_XO(i) == FMSxop || AFORM_XO(i) == FNMAxop ||
+	    AFORM_XO(i) == FNMSxop || AFORM_XO(i) == FSQRTxop || 
+	    AFORM_XO(i) == FSxop )) ||  
 
-      ((*i).aform.op == A_FP_EXTENDEDop1
-       && ( (*i).aform.xo == FDIVSxop || (*i).aform.xo == FMADDSxop || 
-	    (*i).aform.xo == FMULSxop || (*i).aform.xo == FMSUBSxop  || 
-	    (*i).aform.xo == FNMSUBSxop || (*i).aform.xo == FNMADDSxop ||
-	    (*i).aform.xo == FSUBSxop )) ||  
+      (AFORM_OP(i) == A_FP_EXTENDEDop1
+       && ( AFORM_XO(i) == FDIVSxop || AFORM_XO(i) == FMADDSxop || 
+	    AFORM_XO(i) == FMULSxop || AFORM_XO(i) == FMSUBSxop  || 
+	    AFORM_XO(i) == FNMSUBSxop || AFORM_XO(i) == FNMADDSxop ||
+	    AFORM_XO(i) == FSUBSxop )) ||  
       /* X Form */
-      ((*i).xform.op == X_FP_EXTENDEDop 
-       && ( (*i).xform.xo == MFFSxop || (*i).xform.xo == FABSxop ||
-	    (*i).xform.xo == FCIRZxop  || (*i).xform.xo == FMRxop || 
-	    (*i).xform.xo == FNABSxop || (*i).xform.xo == FCIRxop ||
-	    (*i).xform.xo == FNEGxop || (*i).xform.xo == FRSPxop )) ||
+      (XFORM_OP(i) == X_FP_EXTENDEDop 
+       && ( XFORM_XO(i) == MFFSxop || XFORM_XO(i) == FABSxop ||
+	    XFORM_XO(i) == FCIRZxop  || XFORM_XO(i) == FMRxop || 
+	    XFORM_XO(i) == FNABSxop || XFORM_XO(i) == FCIRxop ||
+	    XFORM_XO(i) == FNEGxop || XFORM_XO(i) == FRSPxop )) ||
 
-      ((*i).xform.op == X_EXTENDEDop
-       && ( (*i).xform.xo == LFDUXxop  || (*i).xform.xo == LFDXxop || 
-	    (*i).xform.xo == LFSUXxop || (*i).xform.xo == LFSXxop )))
+      (XFORM_OP(i) == X_EXTENDEDop
+       && ( XFORM_XO(i) == LFDUXxop  || XFORM_XO(i) == LFDXxop || 
+	    XFORM_XO(i) == LFSUXxop || XFORM_XO(i) == LFSXxop )))
   {
     return true;
   }
@@ -286,67 +285,67 @@ bool InstrucIter::isA_RT_ReadInstruction()
   const instruction i = getInstruction();
   if (
       /* D Form */
-      ((*i).dform.op >= ORILop && (*i).dform.op  <= ANDIUop) || 
-      ((*i).dform.op >= STop && (*i).dform.op  <= STBUop) ||
-      (*i).dform.op == STMop ||
+      (DFORM_OP(i) >= ORILop && DFORM_OP(i)  <= ANDIUop) || 
+      (DFORM_OP(i) >= STop && DFORM_OP(i)  <= STBUop) ||
+      DFORM_OP(i) == STMop ||
 
       /* M form */
-      ((*i).mform.op >= RLIMIop && (*i).mform.op <= RLNMop) ||
+      (MFORM_OP(i) >= RLIMIop && MFORM_OP(i) <= RLNMop) ||
 
       /*  XFX Form */
-      ((*i).xfxform.op == X_EXTENDEDop && (*i).xfxform.xo == MTCRFxop ) ||
+      (XFXFORM_OP(i) == X_EXTENDEDop && XFXFORM_XO(i) == MTCRFxop ) ||
       
       /* X Form */
-      ((*i).xfxform.op == X_EXTENDEDop
-       && ( (*i).xform.xo == SLxop || 
-            (*i).xform.xo == CNTLZxop ||
-	    (*i).xform.xo == ANDxop  || 
-            (*i).xform.xo == MASKGxop || 
-	    (*i).xform.xo == ANDCxop || 
-            (*i).xform.xo == EXTSxop ||
-	    (*i).xform.xo == NORxop  || 
-            (*i).xform.xo == STWCXxop ||
-	    (*i).xform.xo == STXxop  || 
-            (*i).xform.xo == SLQxop || 
-	    (*i).xform.xo == SLExop ||
-	    (*i).xform.xo == STUXxop  ||
-            (*i).xform.xo == SLIQxop || 
-	    (*i).xform.xo == STBXxop ||
-	    (*i).xform.xo == SLLQxop  ||
-            (*i).xform.xo == SLEQxop || 
-	    (*i).xform.xo == STBUXxop ||
-	    (*i).xform.xo == SLLIQxop  || 
-            (*i).xform.xo == EQVxop || 
-	    (*i).xform.xo == XORxop ||
-	    (*i).xform.xo == ORCxop  || 
-            (*i).xform.xo == ORxop ||
-	    (*i).xform.xo == MTSPRxop  || 
-            (*i).xform.xo == NANDxop || 
-	    (*i).xform.xo == SRxop ||
-	    (*i).xform.xo == RRIBxop  ||
-            (*i).xform.xo == MASKIRxop || 
-	    (*i).xform.xo == STSXxop ||
-	    (*i).xform.xo == STBRXxop  ||
-            (*i).xform.xo == SRQxop || 
-	    (*i).xform.xo == SRExop ||
-	    (*i).xform.xo == SRIQxop  ||
-            (*i).xform.xo == STSIxop || 
-	    (*i).xform.xo == SRLQxop ||
-	    (*i).xform.xo == SREQxop  ||
-            (*i).xform.xo == SRLIQxop ||
-	    (*i).xform.xo == SRAxop ||
-	    (*i).xform.xo == SRAIxop  || 
-            (*i).xform.xo == SRAQxop || 
-	    (*i).xform.xo == SREAxop ||
-	    (*i).xform.xo == EXTSxop ||
-            (*i).xform.xo == SRAIQxop || 
-	    (*i).xform.xo == EXTSBxop ||
-            (*i).xform.xo == STDXxop || (*i).xform.xo == STDUXxop ||
-            (*i).xform.xo == STDCXxop)) ||
-      ((*i).dsform.op == STDop &&
-       ((*i).dsform.xo == STDxop ||
-        (*i).dsform.xo == STDUxop)) ||
-      ((*i).mdform.op == RLDop))
+      (XFXFORM_OP(i) == X_EXTENDEDop
+       && ( XFORM_XO(i) == SLxop || 
+            XFORM_XO(i) == CNTLZxop ||
+	    XFORM_XO(i) == ANDxop  || 
+            XFORM_XO(i) == MASKGxop || 
+	    XFORM_XO(i) == ANDCxop || 
+            XFORM_XO(i) == EXTSxop ||
+	    XFORM_XO(i) == NORxop  || 
+            XFORM_XO(i) == STWCXxop ||
+	    XFORM_XO(i) == STXxop  || 
+            XFORM_XO(i) == SLQxop || 
+	    XFORM_XO(i) == SLExop ||
+	    XFORM_XO(i) == STUXxop  ||
+            XFORM_XO(i) == SLIQxop || 
+	    XFORM_XO(i) == STBXxop ||
+	    XFORM_XO(i) == SLLQxop  ||
+            XFORM_XO(i) == SLEQxop || 
+	    XFORM_XO(i) == STBUXxop ||
+	    XFORM_XO(i) == SLLIQxop  || 
+            XFORM_XO(i) == EQVxop || 
+	    XFORM_XO(i) == XORxop ||
+	    XFORM_XO(i) == ORCxop  || 
+            XFORM_XO(i) == ORxop ||
+	    XFORM_XO(i) == MTSPRxop  || 
+            XFORM_XO(i) == NANDxop || 
+	    XFORM_XO(i) == SRxop ||
+	    XFORM_XO(i) == RRIBxop  ||
+            XFORM_XO(i) == MASKIRxop || 
+	    XFORM_XO(i) == STSXxop ||
+	    XFORM_XO(i) == STBRXxop  ||
+            XFORM_XO(i) == SRQxop || 
+	    XFORM_XO(i) == SRExop ||
+	    XFORM_XO(i) == SRIQxop  ||
+            XFORM_XO(i) == STSIxop || 
+	    XFORM_XO(i) == SRLQxop ||
+	    XFORM_XO(i) == SREQxop  ||
+            XFORM_XO(i) == SRLIQxop ||
+	    XFORM_XO(i) == SRAxop ||
+	    XFORM_XO(i) == SRAIxop  || 
+            XFORM_XO(i) == SRAQxop || 
+	    XFORM_XO(i) == SREAxop ||
+	    XFORM_XO(i) == EXTSxop ||
+            XFORM_XO(i) == SRAIQxop || 
+	    XFORM_XO(i) == EXTSBxop ||
+            XFORM_XO(i) == STDXxop || XFORM_XO(i) == STDUXxop ||
+            XFORM_XO(i) == STDCXxop)) ||
+      (DSFORM_OP(i) == STDop &&
+       (DSFORM_XO(i) == STDxop ||
+        DSFORM_XO(i) == STDUxop)) ||
+      (MDFORM_OP(i) == RLDop))
   {
     return true;
   }
@@ -362,13 +361,13 @@ bool InstrucIter::isA_FRT_ReadInstruction()
   const instruction i = getInstruction();
   if (
       /* D Form */
-      ((*i).dform.op == STHop || (*i).dform.op == STHUop ) || 
-      ((*i).dform.op >= STFSop && (*i).dform.op  <= STFDUop) ||
+      (DFORM_OP(i) == STHop || DFORM_OP(i) == STHUop ) || 
+      (DFORM_OP(i) >= STFSop && DFORM_OP(i)  <= STFDUop) ||
       /* X Form */
-      ((*i).xform.op == X_EXTENDEDop 
-       && ( (*i).xform.xo == STFSXxop || (*i).xform.xo == STFSUXxop  || 
-	    (*i).xform.xo == STFDXxop || (*i).xform.xo == STFDUXxop ||  
-	    (*i).xform.xo == STFIWXxop )))
+      (XFORM_OP(i) == X_EXTENDEDop 
+       && ( XFORM_XO(i) == STFSXxop || XFORM_XO(i) == STFSUXxop  || 
+	    XFORM_XO(i) == STFDXxop || XFORM_XO(i) == STFDUXxop ||  
+	    XFORM_XO(i) == STFIWXxop )))
   {
     return true;
   }
@@ -385,54 +384,54 @@ bool InstrucIter::isA_RA_ReadInstruction()
   const instruction i = getInstruction();
   if (
       /* XO Form */
-      ((*i).xoform.op == XO_EXTENDEDop 
-       && ( (*i).xoform.xo == SFxop || (*i).xoform.xo == Axop || (*i).xoform.xo == MULHWUxop ||
-	    (*i).xoform.xo == SUBFxop  || (*i).xoform.xo == MULHWxop || (*i).xoform.xo == NEGxop ||
-	    (*i).xoform.xo == MULxop || (*i).xoform.xo == SFExop || (*i).xoform.xo == AExop || 
-	    (*i).xoform.xo == SFZExop || (*i).xoform.xo == AZExop || (*i).xoform.xo == SFMExop ||  
-	    (*i).xoform.xo == AMExop || (*i).xoform.xo == DOZxop || (*i).xoform.xo == CAXxop ||
-	    (*i).xoform.xo == DIVxop || (*i).xoform.xo == ABSxop || (*i).xoform.xo == DIVSxop ||
-	    (*i).xoform.xo == DIVWUxop || (*i).xoform.xo == NABSxop || (*i).xoform.xo == DIVWxop ||
-            (*i).xoform.xo == MULSxop)) ||
+      (XOFORM_OP(i) == XO_EXTENDEDop 
+       && ( XOFORM_XO(i) == SFxop || XOFORM_XO(i) == Axop || XOFORM_XO(i) == MULHWUxop ||
+	    XOFORM_XO(i) == SUBFxop  || XOFORM_XO(i) == MULHWxop || XOFORM_XO(i) == NEGxop ||
+	    XOFORM_XO(i) == MULxop || XOFORM_XO(i) == SFExop || XOFORM_XO(i) == AExop || 
+	    XOFORM_XO(i) == SFZExop || XOFORM_XO(i) == AZExop || XOFORM_XO(i) == SFMExop ||  
+	    XOFORM_XO(i) == AMExop || XOFORM_XO(i) == DOZxop || XOFORM_XO(i) == CAXxop ||
+	    XOFORM_XO(i) == DIVxop || XOFORM_XO(i) == ABSxop || XOFORM_XO(i) == DIVSxop ||
+	    XOFORM_XO(i) == DIVWUxop || XOFORM_XO(i) == NABSxop || XOFORM_XO(i) == DIVWxop ||
+            XOFORM_XO(i) == MULSxop)) ||
       /* D Form */
-      ((*i).dform.op == TIop || (*i).dform.op == MULIop || 
-       (*i).dform.op == SFIop || (*i).dform.op == DOZIop   ) || 
-      ((*i).dform.op >= CMPLIop && (*i).dform.op < CALop) ||
-      ((*i).dform.op >= CALop && (*i).dform.op <= CAUop && (*i).dform.ra) ||
-      ((*i).dform.op >= Lop && (*i).dform.op <= STFDUop) ||
+      (DFORM_OP(i) == TIop || DFORM_OP(i) == MULIop || 
+       DFORM_OP(i) == SFIop || DFORM_OP(i) == DOZIop   ) || 
+      (DFORM_OP(i) >= CMPLIop && DFORM_OP(i) < CALop) ||
+      (DFORM_OP(i) >= CALop && DFORM_OP(i) <= CAUop && DFORM_RA(i)) ||
+      (DFORM_OP(i) >= Lop && DFORM_OP(i) <= STFDUop) ||
       
       /* X Form */
-      ((*i).xform.op == X_EXTENDEDop
-       && ( (*i).xform.xo == CMPxop || (*i).xform.xo == Txop ||
-	    (*i).xform.xo == LWARXxop  || (*i).xform.xo == LXxop || (*i).xform.xo == CMPLxop ||
-	    (*i).xform.xo == DCBSxop  || (*i).xform.xo == LUXxop || (*i).xform.xo == DCBFxop ||
-	    (*i).xform.xo == LBZXxop  || (*i).xform.xo == CLFxop || (*i).xform.xo == LBZUXxop ||
-	    (*i).xform.xo == STWCXxop  || (*i).xform.xo == STXxop || (*i).xform.xo == STUXxop ||
-	    (*i).xform.xo == STBXxop  || (*i).xform.xo == DCBTSTxop || (*i).xform.xo == STBUXxop ||
-	    (*i).xform.xo == LSCBXxop  || (*i).xform.xo == DCBTxop || (*i).xform.xo == LHZXxop ||
-            (*i).xform.xo == LHZUXxop ||
-	    (*i).xform.xo == TLBIxop  || (*i).xform.xo == DIVxop || (*i).xform.xo == LHAXxop ||
-	    (*i).xform.xo == LHAUXxop  || (*i).xform.xo == STHXxop || (*i).xform.xo == STHUXxop ||
-	    (*i).xform.xo == DCBIxop || (*i).xform.xo == CLIxop || (*i).xform.xo == CLCSxop ||
-	    (*i).xform.xo == LSXxop  || (*i).xform.xo == LWBRXxop || (*i).xform.xo == LFSXxop ||
-	    (*i).xform.xo == LFSUXxop  || (*i).xform.xo == LSIxop || (*i).xform.xo == LFDXxop ||
-	    (*i).xform.xo == DCLSTxop  || (*i).xform.xo == LFDUXxop || (*i).xform.xo == STSXxop ||
-	    (*i).xform.xo == STBRXxop  || (*i).xform.xo == STFSXxop || (*i).xform.xo == STFSUXxop ||
-	    (*i).xform.xo == STSIxop  || (*i).xform.xo == STFDXxop || (*i).xform.xo == STFDUXxop ||
-	    (*i).xform.xo == LHBRXxop  || (*i).xform.xo == RACxop ||
-	    (*i).xform.xo == STHBRXxop || (*i).xform.xo == ICBIxop || 
-	    (*i).xform.xo == STFIWXxop || (*i).xform.xo == DCLZxop ||
-            (*i).xform.xo == LWAXxop || (*i).xform.xo == LWAUXxop ||
-            (*i).xform.xo == LDXxop || (*i).xform.xo == LDUXxop ||
-            (*i).xform.xo == STDXxop || (*i).xform.xo == STDUXxop ||
-            (*i).xform.xo == LDARXxop || (*i).xform.xo == STDCXxop)) ||
-      ((*i).dsform.op == LDop &&
-       ((*i).dsform.xo == LWAxop ||
-        (*i).dsform.xo == LDxop ||
-        (*i).dsform.xo == LDUxop)) ||
-      ((*i).dsform.op == STDop &&
-       ((*i).dsform.xo == STDxop ||
-        (*i).dsform.xo == STDUxop)))
+      (XFORM_OP(i) == X_EXTENDEDop
+       && ( XFORM_XO(i) == CMPxop || XFORM_XO(i) == Txop ||
+	    XFORM_XO(i) == LWARXxop  || XFORM_XO(i) == LXxop || XFORM_XO(i) == CMPLxop ||
+	    XFORM_XO(i) == DCBSxop  || XFORM_XO(i) == LUXxop || XFORM_XO(i) == DCBFxop ||
+	    XFORM_XO(i) == LBZXxop  || XFORM_XO(i) == CLFxop || XFORM_XO(i) == LBZUXxop ||
+	    XFORM_XO(i) == STWCXxop  || XFORM_XO(i) == STXxop || XFORM_XO(i) == STUXxop ||
+	    XFORM_XO(i) == STBXxop  || XFORM_XO(i) == DCBTSTxop || XFORM_XO(i) == STBUXxop ||
+	    XFORM_XO(i) == LSCBXxop  || XFORM_XO(i) == DCBTxop || XFORM_XO(i) == LHZXxop ||
+            XFORM_XO(i) == LHZUXxop ||
+	    XFORM_XO(i) == TLBIxop  || XFORM_XO(i) == DIVxop || XFORM_XO(i) == LHAXxop ||
+	    XFORM_XO(i) == LHAUXxop  || XFORM_XO(i) == STHXxop || XFORM_XO(i) == STHUXxop ||
+	    XFORM_XO(i) == DCBIxop || XFORM_XO(i) == CLIxop || XFORM_XO(i) == CLCSxop ||
+	    XFORM_XO(i) == LSXxop  || XFORM_XO(i) == LWBRXxop || XFORM_XO(i) == LFSXxop ||
+	    XFORM_XO(i) == LFSUXxop  || XFORM_XO(i) == LSIxop || XFORM_XO(i) == LFDXxop ||
+	    XFORM_XO(i) == DCLSTxop  || XFORM_XO(i) == LFDUXxop || XFORM_XO(i) == STSXxop ||
+	    XFORM_XO(i) == STBRXxop  || XFORM_XO(i) == STFSXxop || XFORM_XO(i) == STFSUXxop ||
+	    XFORM_XO(i) == STSIxop  || XFORM_XO(i) == STFDXxop || XFORM_XO(i) == STFDUXxop ||
+	    XFORM_XO(i) == LHBRXxop  || XFORM_XO(i) == RACxop ||
+	    XFORM_XO(i) == STHBRXxop || XFORM_XO(i) == ICBIxop || 
+	    XFORM_XO(i) == STFIWXxop || XFORM_XO(i) == DCLZxop ||
+            XFORM_XO(i) == LWAXxop || XFORM_XO(i) == LWAUXxop ||
+            XFORM_XO(i) == LDXxop || XFORM_XO(i) == LDUXxop ||
+            XFORM_XO(i) == STDXxop || XFORM_XO(i) == STDUXxop ||
+            XFORM_XO(i) == LDARXxop || XFORM_XO(i) == STDCXxop)) ||
+      (DSFORM_OP(i) == LDop &&
+       (DSFORM_XO(i) == LWAxop ||
+        DSFORM_XO(i) == LDxop ||
+        DSFORM_XO(i) == LDUxop)) ||
+      (DSFORM_OP(i) == STDop &&
+       (DSFORM_XO(i) == STDxop ||
+        DSFORM_XO(i) == STDUxop)))
   {
     return true;
   }
@@ -449,50 +448,50 @@ bool InstrucIter::isA_RB_ReadInstruction()
   const instruction i = getInstruction();
   if (
       /* XO Form */
-      ((*i).xoform.op == XO_EXTENDEDop
-       && ( (*i).xoform.xo == SFxop || (*i).xoform.xo == Axop || (*i).xoform.xo == MULHWUxop ||
-	    (*i).xoform.xo == SUBFxop  || (*i).xoform.xo == MULHWxop || 
-	    (*i).xoform.xo == MULxop || (*i).xoform.xo == SFExop ||
-	    (*i).xoform.xo == MULSxop || (*i).xoform.xo == AExop || 
-	    (*i).xoform.xo == DOZxop || (*i).xoform.xo == CAXxop ||
-	    (*i).xoform.xo == DIVxop || (*i).xoform.xo == DIVSxop ||
-	    (*i).xoform.xo == DIVWUxop || (*i).xoform.xo == DIVWxop)) ||
+      (XOFORM_OP(i) == XO_EXTENDEDop
+       && ( XOFORM_XO(i) == SFxop || XOFORM_XO(i) == Axop || XOFORM_XO(i) == MULHWUxop ||
+	    XOFORM_XO(i) == SUBFxop  || XOFORM_XO(i) == MULHWxop || 
+	    XOFORM_XO(i) == MULxop || XOFORM_XO(i) == SFExop ||
+	    XOFORM_XO(i) == MULSxop || XOFORM_XO(i) == AExop || 
+	    XOFORM_XO(i) == DOZxop || XOFORM_XO(i) == CAXxop ||
+	    XOFORM_XO(i) == DIVxop || XOFORM_XO(i) == DIVSxop ||
+	    XOFORM_XO(i) == DIVWUxop || XOFORM_XO(i) == DIVWxop)) ||
       /* M Form */
-      ((*i).mform.op == RLMIop || (*i).mform.op == RLNMop) ||
+      (MFORM_OP(i) == RLMIop || MFORM_OP(i) == RLNMop) ||
      
       /* X Form */
-      ((*i).xform.op == X_EXTENDEDop
-       && ( (*i).xform.xo == CMPxop || (*i).xform.xo == Txop ||
-	    (*i).xform.xo == LWARXxop  || (*i).xform.xo == LXxop || (*i).xform.xo == SLxop ||
-	    (*i).xform.xo == ANDxop  || (*i).xform.xo == MASKGxop || (*i).xform.xo == CMPLxop ||
-	    (*i).xform.xo == DCBSxop  || (*i).xform.xo == LUXxop || (*i).xform.xo == ANDCxop ||
-	    (*i).xform.xo == DCBFxop  || (*i).xform.xo == LBZXxop || (*i).xform.xo == CLFxop ||
-	    (*i).xform.xo == LBZUXxop  || (*i).xform.xo == NORxop || (*i).xform.xo == STWCXxop ||
-	    (*i).xform.xo == STXxop  || (*i).xform.xo == SLQxop || (*i).xform.xo == SLExop ||
-	    (*i).xform.xo == STUXxop  || (*i).xform.xo == STBXxop || (*i).xform.xo == SLLQxop ||
-	    (*i).xform.xo == SLEQxop  || (*i).xform.xo == DCBTSTxop || (*i).xform.xo == STBUXxop ||
-	    (*i).xform.xo == LSCBXxop  || (*i).xform.xo == DCBTxop || (*i).xform.xo == LHZXxop ||
-            (*i).xform.xo == LHZUXxop ||
-	    (*i).xform.xo == EQVxop  || (*i).xform.xo == TLBIxop || (*i).xform.xo == XORxop ||
-	    (*i).xform.xo == DIVxop  || (*i).xform.xo == LHAXxop || (*i).xform.xo == LHAUXxop ||
-	    (*i).xform.xo == STHXxop  || (*i).xform.xo == ORCxop || (*i).xform.xo == STHUXxop ||
-	    (*i).xform.xo == ORxop || (*i).xform.xo == DCBIxop || (*i).xform.xo == NANDxop ||
-	    (*i).xform.xo == CLIxop  || (*i).xform.xo == LSXxop || (*i).xform.xo == LWBRXxop ||
-	    (*i).xform.xo == LFSXxop  || (*i).xform.xo == SRxop || (*i).xform.xo == RRIBxop ||
-	    (*i).xform.xo == MASKIRxop  || (*i).xform.xo == LFSUXxop || (*i).xform.xo == LFDXxop ||
-	    (*i).xform.xo == DCLSTxop  || (*i).xform.xo == LFDUXxop || (*i).xform.xo == STSXxop ||
-	    (*i).xform.xo == STBRXxop  || (*i).xform.xo == STFSXxop || (*i).xform.xo == SRQxop ||
-	    (*i).xform.xo == SRExop  || (*i).xform.xo == SRIQxop || (*i).xform.xo == STFDXxop ||
-	    (*i).xform.xo == SREQxop  || (*i).xform.xo == STFDUXxop || (*i).xform.xo == LHBRXxop ||
-	    (*i).xform.xo == SRAxop || (*i).xform.xo == RACxop ||
-	    (*i).xform.xo == STHBRXxop ||
-	    (*i).xform.xo == SRAQxop  || (*i).xform.xo == SREAxop ||
-	    (*i).xform.xo == ICBIxop || (*i).xform.xo == STFIWXxop ||
-	    (*i).xform.xo == DCLZxop ||
-            (*i).xform.xo == LWAXxop || (*i).xform.xo == LWAUXxop ||
-            (*i).xform.xo == LDXxop || (*i).xform.xo == LDUXxop ||
-            (*i).xform.xo == STDXxop || (*i).xform.xo == STDUXxop ||
-            (*i).xform.xo == LDARXxop || (*i).xform.xo == STDCXxop)))
+      (XFORM_OP(i) == X_EXTENDEDop
+       && ( XFORM_XO(i) == CMPxop || XFORM_XO(i) == Txop ||
+	    XFORM_XO(i) == LWARXxop  || XFORM_XO(i) == LXxop || XFORM_XO(i) == SLxop ||
+	    XFORM_XO(i) == ANDxop  || XFORM_XO(i) == MASKGxop || XFORM_XO(i) == CMPLxop ||
+	    XFORM_XO(i) == DCBSxop  || XFORM_XO(i) == LUXxop || XFORM_XO(i) == ANDCxop ||
+	    XFORM_XO(i) == DCBFxop  || XFORM_XO(i) == LBZXxop || XFORM_XO(i) == CLFxop ||
+	    XFORM_XO(i) == LBZUXxop  || XFORM_XO(i) == NORxop || XFORM_XO(i) == STWCXxop ||
+	    XFORM_XO(i) == STXxop  || XFORM_XO(i) == SLQxop || XFORM_XO(i) == SLExop ||
+	    XFORM_XO(i) == STUXxop  || XFORM_XO(i) == STBXxop || XFORM_XO(i) == SLLQxop ||
+	    XFORM_XO(i) == SLEQxop  || XFORM_XO(i) == DCBTSTxop || XFORM_XO(i) == STBUXxop ||
+	    XFORM_XO(i) == LSCBXxop  || XFORM_XO(i) == DCBTxop || XFORM_XO(i) == LHZXxop ||
+            XFORM_XO(i) == LHZUXxop ||
+	    XFORM_XO(i) == EQVxop  || XFORM_XO(i) == TLBIxop || XFORM_XO(i) == XORxop ||
+	    XFORM_XO(i) == DIVxop  || XFORM_XO(i) == LHAXxop || XFORM_XO(i) == LHAUXxop ||
+	    XFORM_XO(i) == STHXxop  || XFORM_XO(i) == ORCxop || XFORM_XO(i) == STHUXxop ||
+	    XFORM_XO(i) == ORxop || XFORM_XO(i) == DCBIxop || XFORM_XO(i) == NANDxop ||
+	    XFORM_XO(i) == CLIxop  || XFORM_XO(i) == LSXxop || XFORM_XO(i) == LWBRXxop ||
+	    XFORM_XO(i) == LFSXxop  || XFORM_XO(i) == SRxop || XFORM_XO(i) == RRIBxop ||
+	    XFORM_XO(i) == MASKIRxop  || XFORM_XO(i) == LFSUXxop || XFORM_XO(i) == LFDXxop ||
+	    XFORM_XO(i) == DCLSTxop  || XFORM_XO(i) == LFDUXxop || XFORM_XO(i) == STSXxop ||
+	    XFORM_XO(i) == STBRXxop  || XFORM_XO(i) == STFSXxop || XFORM_XO(i) == SRQxop ||
+	    XFORM_XO(i) == SRExop  || XFORM_XO(i) == SRIQxop || XFORM_XO(i) == STFDXxop ||
+	    XFORM_XO(i) == SREQxop  || XFORM_XO(i) == STFDUXxop || XFORM_XO(i) == LHBRXxop ||
+	    XFORM_XO(i) == SRAxop || XFORM_XO(i) == RACxop ||
+	    XFORM_XO(i) == STHBRXxop ||
+	    XFORM_XO(i) == SRAQxop  || XFORM_XO(i) == SREAxop ||
+	    XFORM_XO(i) == ICBIxop || XFORM_XO(i) == STFIWXxop ||
+	    XFORM_XO(i) == DCLZxop ||
+            XFORM_XO(i) == LWAXxop || XFORM_XO(i) == LWAUXxop ||
+            XFORM_XO(i) == LDXxop || XFORM_XO(i) == LDUXxop ||
+            XFORM_XO(i) == STDXxop || XFORM_XO(i) == STDUXxop ||
+            XFORM_XO(i) == LDARXxop || XFORM_XO(i) == STDCXxop)))
      
   {
     return true;
@@ -512,21 +511,21 @@ bool InstrucIter::isA_FRA_ReadInstruction()
   const instruction i = getInstruction();
   if (
       /* A Form */
-      ((*i).aform.op == A_FP_EXTENDEDop2 
-       && ( (*i).aform.xo == FDxop || (*i).aform.xo == FSxop || (*i).aform.xo == FAxop ||
-	    (*i).aform.xo == FMxop  || (*i).aform.xo == FMSxop || (*i).aform.xo == FMAxop ||
-	    (*i).aform.xo == FNMSxop || (*i).aform.xo == FNMAxop )) ||
+      (AFORM_OP(i) == A_FP_EXTENDEDop2 
+       && ( AFORM_XO(i) == FDxop || AFORM_XO(i) == FSxop || AFORM_XO(i) == FAxop ||
+	    AFORM_XO(i) == FMxop  || AFORM_XO(i) == FMSxop || AFORM_XO(i) == FMAxop ||
+	    AFORM_XO(i) == FNMSxop || AFORM_XO(i) == FNMAxop )) ||
 
-      ((*i).aform.op == A_FP_EXTENDEDop1
-       && ( (*i).aform.xo == FDIVSxop || (*i).aform.xo == FSUBSxop || 
-	    (*i).aform.xo == FADDSxop || (*i).aform.xo == FMULSxop  || 
-	    (*i).aform.xo == FMSUBSxop || (*i).aform.xo == FMADDSxop ||
-	    (*i).aform.xo == FNMSUBSxop || (*i).aform.xo == FNMADDSxop )) ||  
+      (AFORM_OP(i) == A_FP_EXTENDEDop1
+       && ( AFORM_XO(i) == FDIVSxop || AFORM_XO(i) == FSUBSxop || 
+	    AFORM_XO(i) == FADDSxop || AFORM_XO(i) == FMULSxop  || 
+	    AFORM_XO(i) == FMSUBSxop || AFORM_XO(i) == FMADDSxop ||
+	    AFORM_XO(i) == FNMSUBSxop || AFORM_XO(i) == FNMADDSxop )) ||  
       
       /* XL Form */
-      ((*i).xlform.op == X_FP_EXTENDEDop && (*i).xlform.xo == FCMPUxop ) || 
+      (XLFORM_OP(i) == X_FP_EXTENDEDop && XLFORM_XO(i) == FCMPUxop ) || 
       /* X Form */
-      ((*i).xform.op == X_FP_EXTENDEDop && (*i).xform.xo == FCMPOxop ))
+      (XFORM_OP(i) == X_FP_EXTENDEDop && XFORM_XO(i) == FCMPOxop ))
 
   {
     return true;
@@ -543,33 +542,33 @@ bool InstrucIter::isA_FRB_ReadInstruction()
   const instruction i = getInstruction();
   if (
       /* A Form */
-      ((*i).aform.op == A_FP_EXTENDEDop2 
-       && (  (*i).aform.xo == FDxop || (*i).aform.xo == FSxop || 
-	     (*i).aform.xo == FAxop ||
-	     (*i).aform.xo == FSQRTxop ||
-	     (*i).aform.xo == FMxop  || (*i).aform.xo == FMSxop || 
-	     (*i).aform.xo == FMAxop ||
-	     (*i).aform.xo == FNMSxop || (*i).aform.xo == FNMAxop )) ||
+      (AFORM_OP(i) == A_FP_EXTENDEDop2 
+       && (  AFORM_XO(i) == FDxop || AFORM_XO(i) == FSxop || 
+	     AFORM_XO(i) == FAxop ||
+	     AFORM_XO(i) == FSQRTxop ||
+	     AFORM_XO(i) == FMxop  || AFORM_XO(i) == FMSxop || 
+	     AFORM_XO(i) == FMAxop ||
+	     AFORM_XO(i) == FNMSxop || AFORM_XO(i) == FNMAxop )) ||
 
-      ((*i).aform.op == A_FP_EXTENDEDop1
-       && ( (*i).aform.xo == FDIVSxop || (*i).aform.xo == FSUBSxop || 
-	    (*i).aform.xo == FADDSxop ||
-	    (*i).aform.xo == FMULSxop  || (*i).aform.xo == FMSUBSxop || 
-	    (*i).aform.xo == FMAxop ||
-	    (*i).aform.xo == FNMSxop || (*i).aform.xo == FNMAxop )) ||  
+      (AFORM_OP(i) == A_FP_EXTENDEDop1
+       && ( AFORM_XO(i) == FDIVSxop || AFORM_XO(i) == FSUBSxop || 
+	    AFORM_XO(i) == FADDSxop ||
+	    AFORM_XO(i) == FMULSxop  || AFORM_XO(i) == FMSUBSxop || 
+	    AFORM_XO(i) == FMAxop ||
+	    AFORM_XO(i) == FNMSxop || AFORM_XO(i) == FNMAxop )) ||  
       
       /* XL Form */
-      ((*i).xlform.op == X_EXTENDEDop 
-       && (*i).xlform.xo == FCMPUxop ) || 
+      (XLFORM_OP(i) == X_EXTENDEDop 
+       && XLFORM_XO(i) == FCMPUxop ) || 
      
 
       /* X Form */
-      ((*i).xform.op == X_EXTENDEDop 
-       && ( (*i).xform.xo == FRSPxop || (*i).xform.xo == FCIRxop || 
-	    (*i).xform.xo == FCIRZxop || (*i).xform.xo == FCMPOxop || 
-	    (*i).xform.xo == FNEGxop ||
-	    (*i).xform.xo == FMRxop ||
-	    (*i).xform.xo == FNABSxop || (*i).xform.xo == FABSxop )))
+      (XFORM_OP(i) == X_EXTENDEDop 
+       && ( XFORM_XO(i) == FRSPxop || XFORM_XO(i) == FCIRxop || 
+	    XFORM_XO(i) == FCIRZxop || XFORM_XO(i) == FCMPOxop || 
+	    XFORM_XO(i) == FNEGxop ||
+	    XFORM_XO(i) == FMRxop ||
+	    XFORM_XO(i) == FNABSxop || XFORM_XO(i) == FABSxop )))
   {
     return true;
   }
@@ -585,9 +584,9 @@ bool InstrucIter::isA_FRC_ReadInstruction()
   const instruction i = getInstruction();
   if (
       /* A Form */
-      ((*i).aform.op == A_FP_EXTENDEDop2
-       && ( (*i).aform.xo == FMxop || (*i).aform.xo == FMSxop || (*i).aform.xo == FMAxop ||
-	    (*i).aform.xo == FNMSxop  || (*i).aform.xo == FNMAxop )))
+      (AFORM_OP(i) == A_FP_EXTENDEDop2
+       && ( AFORM_XO(i) == FMxop || AFORM_XO(i) == FMSxop || AFORM_XO(i) == FMAxop ||
+	    AFORM_XO(i) == FNMSxop  || AFORM_XO(i) == FNMAxop )))
     return true;
   else
     return false;
@@ -601,21 +600,21 @@ bool InstrucIter::isA_FRA_WriteInstruction()
   const instruction i = getInstruction();
   if (
       /* A Form */
-      ((*i).aform.op == A_FP_EXTENDEDop2
-       && ( (*i).aform.xo == FAxop || (*i).aform.xo == FDxop || (*i).aform.xo == FMxop ||
-	    (*i).aform.xo == FMAxop  || (*i).aform.xo == FMSxop || (*i).aform.xo == FNMAxop ||
-	    (*i).aform.xo == FNMSxop || (*i).aform.xo == FSxop )) ||  
+      (AFORM_OP(i) == A_FP_EXTENDEDop2
+       && ( AFORM_XO(i) == FAxop || AFORM_XO(i) == FDxop || AFORM_XO(i) == FMxop ||
+	    AFORM_XO(i) == FMAxop  || AFORM_XO(i) == FMSxop || AFORM_XO(i) == FNMAxop ||
+	    AFORM_XO(i) == FNMSxop || AFORM_XO(i) == FSxop )) ||  
       
-      ((*i).aform.op == A_FP_EXTENDEDop1
-       && ( (*i).aform.xo == FDIVSxop || (*i).aform.xo == FMADDSxop ||
-	    (*i).aform.xo == FMULSxop ||
-	    (*i).aform.xo == FMSUBSxop  || (*i).aform.xo == FNMSUBSxop 
-	    || (*i).aform.xo == FNMADDSxop ||
-	    (*i).aform.xo == FSUBSxop )) ||  
+      (AFORM_OP(i) == A_FP_EXTENDEDop1
+       && ( AFORM_XO(i) == FDIVSxop || AFORM_XO(i) == FMADDSxop ||
+	    AFORM_XO(i) == FMULSxop ||
+	    AFORM_XO(i) == FMSUBSxop  || AFORM_XO(i) == FNMSUBSxop 
+	    || AFORM_XO(i) == FNMADDSxop ||
+	    AFORM_XO(i) == FSUBSxop )) ||  
       
       /* X Form */
-      ((*i).xform.op == X_FP_EXTENDEDop 
-       && ((*i).xform.xo == FCMPOxop || (*i).xform.xo == FCMPUxop )))
+      (XFORM_OP(i) == X_FP_EXTENDEDop 
+       && (XFORM_XO(i) == FCMPOxop || XFORM_XO(i) == FCMPUxop )))
 
   {
     return true;
@@ -634,44 +633,44 @@ bool InstrucIter::isA_RA_WriteInstruction()
   const instruction i = getInstruction();
   if (
       /* X Form */
-      ( (*i).xform.op == X_EXTENDEDop
-	&& ( (*i).xform.xo == NORxop ||  (*i).xform.xo == STBUXxop || (*i).xform.xo == ANDxop ||
-	     (*i).xform.xo == ORxop  || (*i).xform.xo == ORCxop || (*i).xform.xo == SLxop ||
-	     (*i).xform.xo == ANDCxop  || (*i).xform.xo == EQVxop ||
-	     (*i).xform.xo == EXTSBxop  || (*i).xform.xo == EXTSxop  || (*i).xform.xo == LHZUXxop  ||
-	     (*i).xform.xo == LUXxop   || (*i).xform.xo == LBZUXxop  || (*i).xform.xo == LHAUXxop ||
-	     (*i).xform.xo == NANDxop   || (*i).xform.xo == STHUXxop   || (*i).xform.xo == STUXxop  ||
-	     (*i).xform.xo == XORxop  || (*i).xform.xo == SRQxop   || (*i).xform.xo == SRxop   ||  
-	     (*i).xform.xo == CLFxop   || (*i).xform.xo == CLIxop   || (*i).xform.xo == DCLSTxop  ||
-	     (*i).xform.xo == MASKGxop   || (*i).xform.xo == MASKIRxop   || (*i).xform.xo == MTSRIxop  ||
-	     (*i).xform.xo == RRIBxop   || (*i).xform.xo == SLxop   || (*i).xform.xo == SLExop  ||
-	     (*i).xform.xo == SLEQxop   || (*i).xform.xo == SLIQxop   || (*i).xform.xo == SLLIQxop  ||
-	     (*i).xform.xo == SLLQxop   || (*i).xform.xo == SLQxop   || (*i).xform.xo == SRAIQxop  ||
-	     (*i).xform.xo == SRAQxop   || (*i).xform.xo == SRAxop   || (*i).xform.xo == SRAIxop  ||
-	     (*i).xform.xo == SRExop   || (*i).xform.xo == SREAxop   || (*i).xform.xo == SREQxop  ||
-	     (*i).xform.xo == LFDUXxop   || (*i).xform.xo == LFDXxop   ||
-	     (*i).xform.xo == LFSUXxop   || (*i).xform.xo == LFSXxop  ||
-	     (*i).xform.xo == SRIQxop   || (*i).xform.xo == SRLIQxop   || (*i).xform.xo == SRLQxop  ||
-	     (*i).xform.xo == SRAxop  || (*i).xform.xo == SRAIxop || (*i).xform.xo == SRxop ||
-             (*i).xform.xo == LWAUXxop || (*i).xform.xo == LDUXxop ||
-             (*i).xform.xo == STDUXxop)) ||
+      ( XFORM_OP(i) == X_EXTENDEDop
+	&& ( XFORM_XO(i) == NORxop ||  XFORM_XO(i) == STBUXxop || XFORM_XO(i) == ANDxop ||
+	     XFORM_XO(i) == ORxop  || XFORM_XO(i) == ORCxop || XFORM_XO(i) == SLxop ||
+	     XFORM_XO(i) == ANDCxop  || XFORM_XO(i) == EQVxop ||
+	     XFORM_XO(i) == EXTSBxop  || XFORM_XO(i) == EXTSxop  || XFORM_XO(i) == LHZUXxop  ||
+	     XFORM_XO(i) == LUXxop   || XFORM_XO(i) == LBZUXxop  || XFORM_XO(i) == LHAUXxop ||
+	     XFORM_XO(i) == NANDxop   || XFORM_XO(i) == STHUXxop   || XFORM_XO(i) == STUXxop  ||
+	     XFORM_XO(i) == XORxop  || XFORM_XO(i) == SRQxop   || XFORM_XO(i) == SRxop   ||  
+	     XFORM_XO(i) == CLFxop   || XFORM_XO(i) == CLIxop   || XFORM_XO(i) == DCLSTxop  ||
+	     XFORM_XO(i) == MASKGxop   || XFORM_XO(i) == MASKIRxop   || XFORM_XO(i) == MTSRIxop  ||
+	     XFORM_XO(i) == RRIBxop   || XFORM_XO(i) == SLxop   || XFORM_XO(i) == SLExop  ||
+	     XFORM_XO(i) == SLEQxop   || XFORM_XO(i) == SLIQxop   || XFORM_XO(i) == SLLIQxop  ||
+	     XFORM_XO(i) == SLLQxop   || XFORM_XO(i) == SLQxop   || XFORM_XO(i) == SRAIQxop  ||
+	     XFORM_XO(i) == SRAQxop   || XFORM_XO(i) == SRAxop   || XFORM_XO(i) == SRAIxop  ||
+	     XFORM_XO(i) == SRExop   || XFORM_XO(i) == SREAxop   || XFORM_XO(i) == SREQxop  ||
+	     XFORM_XO(i) == LFDUXxop   || XFORM_XO(i) == LFDXxop   ||
+	     XFORM_XO(i) == LFSUXxop   || XFORM_XO(i) == LFSXxop  ||
+	     XFORM_XO(i) == SRIQxop   || XFORM_XO(i) == SRLIQxop   || XFORM_XO(i) == SRLQxop  ||
+	     XFORM_XO(i) == SRAxop  || XFORM_XO(i) == SRAIxop || XFORM_XO(i) == SRxop ||
+             XFORM_XO(i) == LWAUXxop || XFORM_XO(i) == LDUXxop ||
+             XFORM_XO(i) == STDUXxop)) ||
       
       /* D Form */
-      ((*i).dform.op == ANDILop || (*i).dform.op == ANDIUop || (*i).dform.op == LBZUop 
-       || (*i).dform.op == LHAUop ||(*i).dform.op == LHZUop || (*i).dform.op == LUop || 
-       (*i).dform.op == ORILop || (*i).dform.op == ORIUop || (*i).dform.op == STBUop || 
-       (*i).dform.op == STHUop || (*i).dform.op == STUop || (*i).dform.op == XORILop ||
-       (*i).dform.op == XORIUop || (*i).dform.op == SFIop || (*i).dform.op == SIop) || 
+      (DFORM_OP(i) == ANDILop || DFORM_OP(i) == ANDIUop || DFORM_OP(i) == LBZUop 
+       || DFORM_OP(i) == LHAUop ||DFORM_OP(i) == LHZUop || DFORM_OP(i) == LUop || 
+       DFORM_OP(i) == ORILop || DFORM_OP(i) == ORIUop || DFORM_OP(i) == STBUop || 
+       DFORM_OP(i) == STHUop || DFORM_OP(i) == STUop || DFORM_OP(i) == XORILop ||
+       DFORM_OP(i) == XORIUop || DFORM_OP(i) == SFIop || DFORM_OP(i) == SIop) || 
       
       /* M Form */
-      ((*i).mform.op == RLIMIop || (*i).mform.op == RLINMxop || (*i).mform.op == RLMIop 
-       ||  (*i).mform.op == RLNMop) ||
+      (MFORM_OP(i) == RLIMIop || MFORM_OP(i) == RLINMxop || MFORM_OP(i) == RLMIop 
+       ||  MFORM_OP(i) == RLNMop) ||
       /* DS form */
-      ((*i).dsform.op == LDop &&
-       ((*i).dsform.xo == LDUxop)) ||
-      ((*i).dsform.op == STDop &&
-       ((*i).dsform.xo == STDUxop)) ||
-      (*i).mdform.op == RLDop)
+      (DSFORM_OP(i) == LDop &&
+       (DSFORM_XO(i) == LDUxop)) ||
+      (DSFORM_OP(i) == STDop &&
+       (DSFORM_XO(i) == STDUxop)) ||
+      MDFORM_OP(i) == RLDop)
   {
     return true;
   }
@@ -688,10 +687,10 @@ bool InstrucIter::isA_MRT_ReadInstruction()
   const instruction i = getInstruction();
   if (
       /* D Form */
-      ((*i).dform.op == STMop) ||
+      (DFORM_OP(i) == STMop) ||
       /* X Form */
-      ((*i).xform.op == X_EXTENDEDop
-       && ((*i).xform.xo == STSIxop || (*i).xform.xo == STSXxop)))
+      (XFORM_OP(i) == X_EXTENDEDop
+       && (XFORM_XO(i) == STSIxop || XFORM_XO(i) == STSXxop)))
   {
     return true;
   }
@@ -706,10 +705,10 @@ bool InstrucIter::isA_MRT_WriteInstruction()
   const instruction i = getInstruction();
   if (
       /* X Form */
-      ((*i).dform.op == LMop) ||
+      (DFORM_OP(i) == LMop) ||
       /* X Form */
-      ((*i).xform.op == X_EXTENDEDop
-       && ((*i).xform.xo == LSIxop || (*i).xform.xo == LSXxop)))
+      (XFORM_OP(i) == X_EXTENDEDop
+       && (XFORM_XO(i) == LSIxop || XFORM_XO(i) == LSXxop)))
   {
     return true;
   }
@@ -727,17 +726,17 @@ bool InstrucIter::isA_MRT_WriteInstruction()
 bool InstrucIter::isAReturnInstruction()
 {
   const instruction i = getInstruction();
-  if(((*i).xlform.op == BCLRop) &&
-     ((*i).xlform.xo == BCLRxop) && 
-     ((*i).xlform.bt & 0x10) && ((*i).xlform.bt & 0x4) &&
-     !((*i).xlform.bb) 
+  if((XLFORM_OP(i) == BCLRop) &&
+     (XLFORM_XO(i) == BCLRxop) && 
+     (XLFORM_BT(i) & 0x10) && (XLFORM_BT(i) & 0x4) &&
+     !(XLFORM_BB(i)) 
 #if defined(os_linux)   // not sure if this is safe on AIX, yet
      // Bernat, 9JUL07. A linking branch-to-link-register is
      // unlikely to be a return instruction.
      //
      // nater 16FEB09 unless the instruction hint indicates subroutine return
      //               (BH is low 2 bits of BB in XL-FORM)
-     && (!((*i).xlform.lk) || !((*i).xlform.bb & 3))
+     && (!(XLFORM_LK(i)) || !(XLFORM_BB(i) & 3))
 #endif
      )
     return true;
@@ -752,9 +751,9 @@ bool InstrucIter::isAReturnInstruction()
 bool InstrucIter::isACondReturnInstruction()
 {
   const instruction i = getInstruction();
-  if(((*i).xlform.op == BCLRop) &&
-     ((*i).xlform.xo == BCLRxop) &&
-     ((*i).xlform.bt & 0x14) != 0x14)
+  if((XLFORM_OP(i) == BCLRop) &&
+     (XLFORM_XO(i) == BCLRxop) &&
+     (XLFORM_BT(i) & 0x14) != 0x14)
     return true;
   return false;
 }
@@ -765,31 +764,31 @@ bool InstrucIter::isACondReturnInstruction()
 bool InstrucIter::isAIndirectJumpInstruction()
 {
   const instruction i = getInstruction();
-  if(((*i).xlform.op == BCLRop) && ((*i).xlform.xo == BCCTRxop) &&
-     !(*i).xlform.lk && ((*i).xlform.bt & 0x10) && ((*i).xlform.bt & 0x4))
+  if((XLFORM_OP(i) == BCLRop) && (XLFORM_XO(i) == BCCTRxop) &&
+     !XLFORM_LK(i) && (XLFORM_BT(i) & 0x10) && (XLFORM_BT(i) & 0x4))
     return true;
-  if(((*i).xlform.op == BCLRop) && ((*i).xlform.xo == BCLRxop) &&
-     !(*i).xlform.lk && ((*i).xlform.bt & 0x10) && ((*i).xlform.bt & 0x4) &&
-     ((*i).xlform.bb == 0x1))
+  if((XLFORM_OP(i) == BCLRop) && (XLFORM_XO(i) == BCLRxop) &&
+     !XLFORM_LK(i) && (XLFORM_BT(i) & 0x10) && (XLFORM_BT(i) & 0x4) &&
+     (XLFORM_BB(i) == 0x1))
     return true;
 #if 0
   // Disabled; a branch to link register is a return until we can prove
   // otherwise, not a indirect branch.
-  if(((*i).xlform.op == BCLRop) && ((*i).xlform.xo == BCLRxop) &&
-     ((*i).xlform.bt & 0x10) && ((*i).xlform.bt & 0x4)){
+  if((XLFORM_OP(i) == BCLRop) && (XLFORM_XO(i) == BCLRxop) &&
+     (XLFORM_BT(i) & 0x10) && (XLFORM_BT(i) & 0x4)){
     if(!ah.hasPrev())
       return false;
     --ah;
     if(!ah.hasPrev())
       return false;
     instruction j = ah.getInstruction();
-    if(((*j).xfxform.op == STXop) && ((*j).xfxform.xo == MTSPRxop) &&
-       ((*j).xfxform.spr == 0x100)) // LR
+    if((XFXFORM_OP(j) == STXop) && (XFXFORM_XO(j) == MTSPRxop) &&
+       (XFXFORM_SPR(j) == 0x100)) // LR
       return true;
     ++ah;
     j = ah.getInstruction();
-    if(((*j).xfxform.op == STXop) && ((*j).xfxform.xo == MTSPRxop) &&
-       ((*j).xfxform.spr == 0x100)) // LR
+    if((XFXFORM_OP(j) == STXop) && (XFXFORM_XO(j) == MTSPRxop) &&
+       (XFXFORM_SPR(j) == 0x100)) // LR
       return true;
   }
 #endif
@@ -802,8 +801,9 @@ bool InstrucIter::isAIndirectJumpInstruction()
 bool InstrucIter::isACondBranchInstruction()
 {
   const instruction i = getInstruction();
-  if(((*i).bform.op == BCop) && !(*i).bform.lk &&
-     !(((*i).bform.bo & 0x10) && ((*i).bform.bo & 0x4)))
+
+  if((BFORM_OP(i) == BCop) && !BFORM_LK(i) &&
+     !((BFORM_BO(i) & 0x10) && (BFORM_BO(i) & 0x4)))
     return true;
   return false;
 }
@@ -811,9 +811,10 @@ bool InstrucIter::isACondBranchInstruction()
 bool InstrucIter::isACondBDZInstruction()
 {
   const instruction i = getInstruction();
-  if( (*i).bform.op == BCop  && !(*i).bform.lk &&
-      ( (*i).bform.bo == 18 || (*i).bform.bo == 19 ||
-	(*i).bform.bo == 26 || (*i).bform.bo == 27 ) ) 
+
+  if( BFORM_OP(i) == BCop  && !BFORM_LK(i) &&
+      ( BFORM_BO(i) == 18 || BFORM_BO(i) == 19 ||
+	BFORM_BO(i) == 26 || BFORM_BO(i) == 27 ) ) 
     return true;
   return false;
 }
@@ -821,9 +822,9 @@ bool InstrucIter::isACondBDZInstruction()
 bool InstrucIter::isACondBDNInstruction()
 {
   const instruction i = getInstruction();
-  if( (*i).bform.op == BCop  && !(*i).bform.lk &&
-      ( (*i).bform.bo == 16 || (*i).bform.bo == 17 ||
-	(*i).bform.bo == 24 || (*i).bform.bo == 25 ) ) 
+  if( BFORM_OP(i) == BCop  && !BFORM_LK(i) &&
+      ( BFORM_BO(i) == 16 || BFORM_BO(i) == 17 ||
+	BFORM_BO(i) == 24 || BFORM_BO(i) == 25 ) ) 
     return true;
   return false;
 }
@@ -835,10 +836,10 @@ bool InstrucIter::isACondBDNInstruction()
 bool InstrucIter::isAJumpInstruction()
 {
   const instruction i = getInstruction();
-  if(((*i).iform.op == Bop) && !(*i).iform.lk)
+  if((IFORM_OP(i) == Bop) && !IFORM_LK(i))
     return true;
-  if(((*i).bform.op == BCop) && !(*i).bform.lk &&
-     ((*i).bform.bo & 0x10) && ((*i).bform.bo & 0x4))
+  if((BFORM_OP(i) == BCop) && !BFORM_LK(i) &&
+     (BFORM_BO(i) & 0x10) && (BFORM_BO(i) & 0x4))
     return true;
   return false;
 }
@@ -862,9 +863,9 @@ bool InstrucIter::isACallInstruction()
   /*
     const instruction i = getInstruction();
     if((*i).iform.lk && 
-    (((*i).iform.op == Bop) || ((*i).bform.op == BCop) ||
-    (((*i).xlform.op == BCLRop) && 
-    (((*i).xlform.xo == 16) || ((*i).xlform.xo == 528))))){
+    (((*i).iform.op == Bop) || (BFORM_OP(i) == BCop) ||
+    ((XLFORM_OP(i) == BCLRop) && 
+    ((XLFORM_XO(i) == 16) || (XLFORM_XO(i) == 528))))){
     return true;
     }
     return false;
@@ -878,9 +879,9 @@ bool InstrucIter::isADynamicCallInstruction()
     
   const instruction i = getInstruction();
 
-  if ((*i).xlform.op == BCLRop && (*i).xlform.xo == BCLRxop)
+  if (XLFORM_OP(i) == BCLRop && XLFORM_XO(i) == BCLRxop)
   {
-    if ((*i).xlform.lk)
+    if (XLFORM_LK(i))
       // Type one: Branch-to-LR, save PC in LR
       // Standard function pointer call
       return true;
@@ -892,9 +893,9 @@ bool InstrucIter::isADynamicCallInstruction()
       return false;
     }
   }
-  if ((*i).xlform.op == BCLRop && (*i).xlform.xo == BCCTRxop)
+  if (XLFORM_OP(i) == BCLRop && XLFORM_XO(i) == BCCTRxop)
   {
-    if ((*i).xlform.lk)
+    if (XLFORM_LK(i))
       // Type three: Branch-to-CR, save PC
     {
       return true;
@@ -923,18 +924,18 @@ bool InstrucIter::isAnneal(){
 #define MK_LX1(bytes, i, ra, rb) (new BPatch_memoryAccess(i, current,true, false, (bytes), 0, (ra), (rb)))
 #define MK_SX1(bytes, i, ra, rb) (new BPatch_memoryAccess(i, current,false, true, (bytes), 0, (ra), (rb)))
 
-#define MK_LD(bytes, i) (MK_LD1((bytes), i, (**i).dform.d_or_si, (signed)(**i).dform.ra))
-#define MK_SD(bytes, i) (MK_SD1((bytes), i, (**i).dform.d_or_si, (signed)(**i).dform.ra))
+#define MK_LD(bytes, i) (MK_LD1((bytes), i, DFORM_SI(*i), (signed)DFORM_RA(*i)))
+#define MK_SD(bytes, i) (MK_SD1((bytes), i, DFORM_SI(*i), (signed)DFORM_RA(*i)))
 
 // VG(11/20/01): X-forms ignore ra if 0, but not rb...
-#define MK_LX(bytes, i) (MK_LX1((bytes), i, ((**i).xform.ra ? (signed)(**i).xform.ra : -1), (**i).xform.rb))
-#define MK_SX(bytes, i) (MK_SX1((bytes), i, ((**i).xform.ra ? (signed)(**i).xform.ra : -1), (**i).xform.rb))
+#define MK_LX(bytes, i) (MK_LX1((bytes), i, (XFORM_RA(*i) ? (signed)XFORM_RA(*i) : -1), XFORM_RB(*i)))
+#define MK_SX(bytes, i) (MK_SX1((bytes), i, (XFORM_RA(*i) ? (signed)XFORM_RA(*i) : -1), XFORM_RB(*i)))
 
-#define MK_LDS(bytes, i) (MK_LD1((bytes), i, ((**i).dsform.ds << 2), (signed)(**i).dsform.ra))
-#define MK_SDS(bytes, i) (MK_SD1((bytes), i, ((**i).dsform.ds << 2), (signed)(**i).dsform.ra))
+#define MK_LDS(bytes, i) (MK_LD1((bytes), i, (DSFORM_DS(*i) << 2), (signed)DSFORM_RA(*i)))
+#define MK_SDS(bytes, i) (MK_SD1((bytes), i, (DSFORM_DS(*i) << 2), (signed)DSFORM_RA(*i)))
 
-#define MK_LI(bytes, i) (MK_LX1((bytes), i, (**i).xform.ra, -1))
-#define MK_SI(bytes, i) (MK_SX1((bytes), i, (**i).xform.ra, -1))
+#define MK_LI(bytes, i) (MK_LX1((bytes), i, XFORM_RA(*i), -1))
+#define MK_SI(bytes, i) (MK_SX1((bytes), i, XFORM_RA(*i), -1))
 
 struct opCodeInfo {
     static bool doneInit;
@@ -1025,7 +1026,7 @@ BPatch_memoryAccess* InstrucIter::isLoadOrStore()
 {
   instruction *i = getInsnPtr();
 
-  int op = (**i).dform.op;
+  int op = DFORM_OP(*i);
   int  b;
 
   if(op > LXop) { // try D-forms
@@ -1050,11 +1051,11 @@ BPatch_memoryAccess* InstrucIter::isLoadOrStore()
 	}
 	else if(op < STMop) {
 	  logIS_A("IS_A: lm");
-	  return MK_LD((32 - (**i).dform.rt)*4, i);
+	  return MK_LD((32 - DFORM_RT(*i))*4, i);
 	}
 	else {
 	  logIS_A("IS_A: stm");
-	  return MK_SD((32 - (**i).dform.rt)*4, i);
+	  return MK_SD((32 - DFORM_RT(*i))*4, i);
 	}
       else {
 	logIS_A("IS_A: lfs-lfdu");
@@ -1067,14 +1068,14 @@ BPatch_memoryAccess* InstrucIter::isLoadOrStore()
       return MK_SD(b, i);
     }
     else if(op == LDop) {
-      logIS_A("IS_A: ld-lwa");
-      b = (**i).dsform.xo < 2 ? 8 : 4;
-      assert((**i).dsform.xo < 3);
+      logIS_A("IS_A: ldx-lwa");
+      b = DSFORM_XO(*i) < 2 ? 8 : 4;
+      assert(DSFORM_XO(*i) < 3);
       return MK_LDS(b, i);
     }
     else if(op == STDop) {
       logIS_A("IS_A: std-stdu");
-      assert((**i).dsform.xo < 2);
+      assert(DSFORM_XO(*i) < 2);
       
       
 
@@ -1084,11 +1085,12 @@ BPatch_memoryAccess* InstrucIter::isLoadOrStore()
       return BPatch_memoryAccess::none;
   }
   else if(op == LXop) { // X-forms
-    unsigned int xop = (**i).xform.xo;
+    unsigned int xop = XFORM_XO(*i);
     
     //logIS_A("XOP::%d\n", xop);
     if(!opCodeInfo::doneInit)
         initOpCodeInfo();
+
     opCodeInfo *oci = xopCodes[xop];
 
     if (oci == NULL)
@@ -1096,13 +1098,13 @@ BPatch_memoryAccess* InstrucIter::isLoadOrStore()
     else if(oci->bytes > 0)
       return oci->direc ? MK_SX(oci->bytes, i) : MK_LX(oci->bytes, i);
     else if(xop == LSIxop || xop == STSIxop) {
-      b = (**i).xform.rb == 0 ? 32 : (**i).xform.rb; 
+      b = XFORM_RB(*i) == 0 ? 32 : XFORM_RB(*i); 
       return oci->direc ? MK_SI(b, i) : MK_LI(b, i);
     }
     else if(xop == LSXxop || xop == STSXxop) {
       return new BPatch_memoryAccess(i, current,
 				     oci->direc == 0, oci->direc == 1,
-                                     (long)0, (**i).xform.ra, (**i).xform.rb,
+                                     (long)0, XFORM_RA(*i), XFORM_RB(*i),
                                      (long)0, POWER_XER2531, -1); // 9999 == XER_25:31
     }
   }
@@ -1116,15 +1118,24 @@ BPatch_memoryAccess* InstrucIter::isLoadOrStore()
 Address InstrucIter::getBranchTargetAddress(bool *isAbsolute)
 {
   const instruction i = getInstruction();
+
   Address ret = 0;
-  if(((*i).iform.op == Bop) || ((*i).bform.op == BCop)){
+
+#if defined(os_vxworks)
+  if (relocationTarget(current, &ret))
+      return ret;
+#endif
+
+  if((IFORM_OP(i) == Bop) || (BFORM_OP(i) == BCop)){
     int disp = 0;
-    if((*i).iform.op == Bop)
-      disp = (*i).iform.li;
-    else if((*i).bform.op == BCop)
-      disp = (*i).bform.bd;
+
+    if(IFORM_OP(i) == Bop)
+      disp = IFORM_LI(i);
+    else if(BFORM_OP(i) == BCop)
+      disp = BFORM_BD(i);
     disp <<= 2;
-    if((*i).iform.aa) {
+
+    if(IFORM_AA(i)) {
       ret = (Address)disp;
       if (isAbsolute) *isAbsolute = true;
     }
@@ -1174,9 +1185,9 @@ bool InstrucIter::getMultipleJumpTargets(std::set<Address>& result)
   (*this)--;
   int jumpAddrReg;
   check = getInstruction();
-  if ((*check).xfxform.op == STXop && (*check).xfxform.xo == MTSPRxop &&
-      ((*check).xfxform.spr == 0x100 || (*check).xfxform.spr == 0x120)) {
-    jumpAddrReg = (*check).xfxform.rt;
+  if (XFXFORM_OP(check) == STXop && XFXFORM_XO(check) == MTSPRxop &&
+      (XFXFORM_SPR(check) == 0x100 || XFXFORM_SPR(check) == 0x120)) {
+    jumpAddrReg = XFXFORM_RT(check);
     //fprintf(stderr, "Jump table candidate, jump target register is %d\n", jumpAddrReg);
   } else {
     result.insert(initialAddress + instruction::size());
@@ -1192,8 +1203,8 @@ bool InstrucIter::getMultipleJumpTargets(std::set<Address>& result)
   if (hasPrev()) {
     (*this)--;
     check = getInstruction();
-    if ((*check).xoform.op == CAXop && (*check).xoform.xo == CAXxop &&
-	(*check).xoform.rt == (unsigned)jumpAddrReg) {
+    if (XOFORM_OP(check) == CAXop && XOFORM_XO(check) == CAXxop &&
+	XOFORM_RT(check) == (unsigned)jumpAddrReg) {
       tableIsRelative = true; 
       //fprintf(stderr, "table is relative...\n");
     }
@@ -1210,16 +1221,16 @@ bool InstrucIter::getMultipleJumpTargets(std::set<Address>& result)
   {
     while( hasPrev() ){
       check = getInstruction();
-      if((*check).dform.op == CALop) {
-         unsigned jumpAddressReg = (*check).dform.ra;
-	tableStartAddress = (*check).dform.d_or_si;
+      if(DFORM_OP(check) == CALop) {
+         unsigned jumpAddressReg = DFORM_RA(check);
+	tableStartAddress = DFORM_SI(check);
 	(*this)--;
 	check = getInstruction();
-	if((*check).dform.op == CAUop && (*check).dform.rt == jumpAddressReg)
+	if(DFORM_OP(check) == CAUop && DFORM_RT(check) == jumpAddressReg)
 	{
-	  tableStartAddress += ((*check).dform.d_or_si * 0x10000) & 0xFFFF0000;
+	  tableStartAddress += (DFORM_SI(check) * 0x10000) & 0xFFFF0000;
 	  //fprintf(stderr, "Found CAU and CAL at %lx, ", current);
-	  //fprintf(stderr, "tableStartAddress is %lx, high half is %lx\n", tableStartAddress, (*check).dform.d_or_si);
+	  //fprintf(stderr, "tableStartAddress is %lx, high half is %lx\n", tableStartAddress, DFORM_SI(check));
 	  break;
 	}
 	else
@@ -1227,16 +1238,16 @@ bool InstrucIter::getMultipleJumpTargets(std::set<Address>& result)
 	  tableStartAddress = 0;
 	}
       }
-      else if((*check).dform.op == CAUop) {
-         unsigned jumpAddressReg = (*check).dform.rt;
-	tableStartAddress = ((*check).dform.d_or_si * 0x10000) & 0xFFFF0000;
+      else if(DFORM_OP(check) == CAUop) {
+         unsigned jumpAddressReg = DFORM_RT(check);
+	tableStartAddress = (DFORM_SI(check) * 0x10000) & 0xFFFF0000;
 	(*this)--;
 	check = getInstruction();
-	if((*check).dform.op == CALop && (*check).dform.ra == jumpAddressReg)
+	if(DFORM_OP(check) == CALop && DFORM_RA(check) == jumpAddressReg)
 	{
-	  tableStartAddress += (*check).dform.d_or_si;
+	  tableStartAddress += DFORM_SI(check);
 	  //fprintf(stderr, "Found CAU and CAL at %x, ", current);
-	  //fprintf(stderr, "tableStartAddress is %x, low half is %x\n", tableStartAddress, (*check).dform.d_or_si);
+	  //fprintf(stderr, "tableStartAddress is %x, low half is %x\n", tableStartAddress, DFORM_SI(check));
 	  break;
 	}
 	else
@@ -1251,17 +1262,17 @@ bool InstrucIter::getMultipleJumpTargets(std::set<Address>& result)
   else if (tableIsRelative) {
     while( hasPrev() ){
       check = getInstruction();
-      if(((*check).dform.op == Lop) && ((*check).dform.ra == TOC_register)) { // 32-bit form
-	//fprintf(stderr, "Jump offset from TOC: %d\n", (*check).dform.d_or_si);
+      if((DFORM_OP(check) == Lop) && (DFORM_RA(check) == TOC_register)) { // 32-bit form
+	//fprintf(stderr, "Jump offset from TOC: %d\n", DFORM_SI(check));
 	jumpStartAddress = 
-	(Address)(TOC_address + (*check).dform.d_or_si);
+	(Address)(TOC_address + DFORM_SI(check));
 	break;
       }
 
-      if (((*check).dsform.op == LDop) && ((*check).dsform.ra == TOC_register)) { // 64-bit form
-	//fprintf(stderr, "Jump offset from TOC: %d\n", ((*check).dsform.ds << 2));
+      if ((DSFORM_OP(check) == LDop) && (DSFORM_RA(check) == TOC_register)) { // 64-bit form
+	//fprintf(stderr, "Jump offset from TOC: %d\n", (DSFORM_DS(check) << 2));
 	jumpStartAddress = 
-	(Address)(TOC_address + ((*check).dsform.ds << 2));
+	(Address)(TOC_address + (DSFORM_DS(check) << 2));
 	break;
       }
       (*this)--;
@@ -1269,25 +1280,25 @@ bool InstrucIter::getMultipleJumpTargets(std::set<Address>& result)
     // Anyone know what this does?
     (*this)--;
     check = getInstruction();
-    if(((*check).dform.op == Lop)) { // 32-bit form
-      adjustEntry = (*check).dform.d_or_si;
+    if((DFORM_OP(check) == Lop)) { // 32-bit form
+      adjustEntry = DFORM_SI(check);
       //fprintf(stderr, "adjustEntry is 0x%lx (%d)\n",
       //adjustEntry, adjustEntry);
     }
        
     while(hasPrev()){
       instruction check = getInstruction();
-      if(((*check).dform.op == Lop) && ((*check).dform.ra == TOC_register)){ // 32-bit form
-	//fprintf(stderr, "Table offset from TOC: %d\n", (*check).dform.d_or_si);
+      if((DFORM_OP(check) == Lop) && (DFORM_RA(check) == TOC_register)){ // 32-bit form
+	//fprintf(stderr, "Table offset from TOC: %d\n", DFORM_SI(check));
 	tableStartAddress = 
-	(Address)(TOC_address + (*check).dform.d_or_si);
+	(Address)(TOC_address + DFORM_SI(check));
 	//fprintf(stderr, "tableStartAddr is 0x%lx\n", tableStartAddress);
 	break;
       }
-      if(((*check).dsform.op == LDop) && ((*check).dsform.ra == TOC_register)){ // 64-bit form
-	//fprintf(stderr, "Table offset from TOC: %d\n", ((*check).dsform.ds << 2));
+      if((DSFORM_OP(check) == LDop) && (DSFORM_RA(check) == TOC_register)){ // 64-bit form
+	//fprintf(stderr, "Table offset from TOC: %d\n", (DSFORM_DS(check) << 2));
 	tableStartAddress = 
-	(Address)(TOC_address + ((*check).dsform.ds << 2));
+	(Address)(TOC_address + (DSFORM_DS(check) << 2));
 	//fprintf(stderr, "tableStartAddr is 0x%lx\n", tableStartAddress);
 	break;
       }
@@ -1297,17 +1308,17 @@ bool InstrucIter::getMultipleJumpTargets(std::set<Address>& result)
     bool foundAdjustEntry = false;
     while( hasPrev() ){
       check = getInstruction();
-      if((*check).dform.op == CALop &&
-	 (*check).dform.rt == (unsigned)jumpAddrReg &&
+      if(DFORM_OP(check) == CALop &&
+	 DFORM_RT(check) == (unsigned)jumpAddrReg &&
 	 !foundAdjustEntry){
 	foundAdjustEntry = true;
-	adjustEntry = (*check).dform.d_or_si;
-	jumpAddrReg = (*check).dform.ra;
-      } else if((*check).dform.op == Lop &&
-		(*check).dform.ra == TOC_register &&
-		(*check).dform.rt == (unsigned)jumpAddrReg){
+	adjustEntry = DFORM_SI(check);
+	jumpAddrReg = DFORM_RA(check);
+      } else if(DFORM_OP(check) == Lop &&
+		DFORM_RA(check) == TOC_register &&
+		DFORM_RT(check) == (unsigned)jumpAddrReg){
 	tableStartAddress = 
-	(Address)(TOC_address + (*check).dform.d_or_si);
+	(Address)(TOC_address + DFORM_SI(check));
 	break;
       }
       (*this)--;
@@ -1326,13 +1337,13 @@ bool InstrucIter::getMultipleJumpTargets(std::set<Address>& result)
     
   while( hasPrev() ){
     instruction check = getInstruction();
-    if(((*check).bform.op == BCop) && 
-       !(*check).bform.aa && !(*check).bform.lk){
+    if((BFORM_OP(check) == BCop) && 
+       !BFORM_AA(check) && !BFORM_LK(check)){
       (*this)--;
       check = getInstruction();
-      if(10 != (*check).dform.op)
+      if(10 != DFORM_OP(check))
 	break;
-      maxSwitch = (*check).dform.d_or_si + 1;
+      maxSwitch = DFORM_SI(check) + 1;
       break;
     }
     (*this)--;
@@ -1550,11 +1561,11 @@ bool InstrucIter::isStackFramePreamble(int &/*unset*/) {
 	 !isADynamicCallInstruction() &&
 	 !isAJumpInstruction() &&
 	 insn.valid()) {
+
     // We need to bit twiddle.
-    instructUnion iu = (*insn);
-    if ((iu.dform.op == STUop) &&
-	(iu.dform.rt == 1) &&
-	(iu.dform.ra == 1)) {
+    if ((DFORM_OP(insn) == STUop) &&
+	(DFORM_RT(insn) == 1) &&
+	(DFORM_RA(insn) == 1)) {
       foundStackPreamble = true;
       break;
     }
@@ -1585,16 +1596,15 @@ bool InstrucIter::isReturnValueSave() {
 	 !isADynamicCallInstruction() &&
 	 !isAJumpInstruction() &&
 	 insn.valid()) {
-    // We need to bit twiddle.
-    instructUnion iu = (*insn);
 
-    if (iu.raw == MFLR0raw) {
+    // We need to bit twiddle.
+    if (insn.asInt() == MFLR0raw) {
       foundMFLR = true;
     }
 
-    if ((iu.dform.op == STop) &&
-	(iu.dform.rt == 0) &&
-	(iu.dform.ra == 1)) {
+    if ((DFORM_OP(insn) == STop) &&
+	(DFORM_RT(insn) == 0) &&
+	(DFORM_RA(insn) == 1)) {
       foundR0Save = true;
       break;
     }
@@ -1667,23 +1677,23 @@ bool InstrucIter::isInterModuleCallSnippet(Address &info) {
     }
     instruction scratch = getInstruction();
     parsing_printf("Slot %d: raw bytes 0x%x\n",
-		   i, scratch.raw());
+		   i, scratch.asInt());
     switch(i) {
     case 0: // l r12, <offset> (r2)
-      if (((*scratch).dform.op != Lop) ||
-	  ((*scratch).dform.rt != 12) ||
-	  ((*scratch).dform.ra != 2))  {
+      if ((DFORM_OP(scratch) != Lop) ||
+	  (DFORM_RT(scratch) != 12) ||
+	  (DFORM_RA(scratch) != 2))  {
 	parsing_printf("Insn 0 not load\n");
 	retval = false;
       }
-      info = (*scratch).dform.d_or_si;
+      info = DFORM_SI(scratch);
       break;
     case 1: // st     r2,20(r1)
       break; // Don't check this one. 
     case 2: // l      r0,0(r12) 
-      if (((*scratch).dform.op != Lop) ||
-	  ((*scratch).dform.rt != 0) ||
-	  (((*scratch).dform.ra != 1) && ((*scratch).dform.ra != 12))) {
+      if ((DFORM_OP(scratch) != Lop) ||
+	  (DFORM_RT(scratch) != 0) ||
+	  ((DFORM_RA(scratch) != 1) && (DFORM_RA(scratch) != 12))) {
 	parsing_printf("Insn 2 not load\n");
 	retval = false;
       }
@@ -1693,8 +1703,8 @@ bool InstrucIter::isInterModuleCallSnippet(Address &info) {
     case 4: // mtctr  0  
       break; // Could check individually...
     case 5:// bctr 
-      if (((*scratch).xlform.op != BCLRop) ||
-	  ((*scratch).xlform.xo != BCCTRxop)) {
+      if ((XLFORM_OP(scratch) != BCLRop) ||
+	  (XLFORM_XO(scratch) != BCCTRxop)) {
 	parsing_printf("Insn 2 not BCTR\n");
 	retval = false;
       }
@@ -1811,12 +1821,12 @@ void InstrucIter::getAllRegistersUsedAndDefined(std::set<Register> &used,
 }
 
 bool InstrucIter::isSyscall() {
-    return ((*insn).iform.op == SVCop);
+    return (IFORM_OP(insn) == SVCop);
 }
 
 bool InstrucIter::definesSPR(std::set<Register> &sprs) {
-    if (((*insn).xfxform.op == MTSPRop) && ((*insn).xfxform.xo == MTSPRxop)) {
-        unsigned spr = (*insn).xform.ra + ((*insn).xform.rb << 5);
+    if ((XFXFORM_OP(insn) == MTSPRop) && (XFXFORM_XO(insn) == MTSPRxop)) {
+        unsigned spr = XFORM_RA(insn) + (XFORM_RB(insn) << 5);
         switch (spr) {
         case SPR_XER:
             sprs.insert(registerSpace::xer);
@@ -1837,10 +1847,10 @@ bool InstrucIter::definesSPR(std::set<Register> &sprs) {
     }
 
     // Linking branches define the LR
-    if ((((*insn).xlform.op == BCCTRop) && ((*insn).xlform.xo == BCCTRxop) && ((*insn).xlform.lk == 1)) ||
-        (((*insn).xlform.op == BCLRop) && ((*insn).xlform.xo == BCLRop) && ((*insn).xlform.lk == 1)) ||
-        (((*insn).iform.op == Bop) && ((*insn).iform.lk == 1)) ||
-        (((*insn).bform.op == BCop) && ((*insn).bform.lk == 1))) {
+    if (((XLFORM_OP(insn) == BCCTRop) && (XLFORM_XO(insn) == BCCTRxop) && (XLFORM_LK(insn) == 1)) ||
+        ((XLFORM_OP(insn) == BCLRop) && (XLFORM_XO(insn) == BCLRop) && (XLFORM_LK(insn) == 1)) ||
+        ((IFORM_OP(insn) == Bop) && (IFORM_LK(insn) == 1)) ||
+        ((BFORM_OP(insn) == BCop) && (BFORM_LK(insn) == 1))) {
         sprs.insert(registerSpace::lr);
     }
 
@@ -1849,8 +1859,8 @@ bool InstrucIter::definesSPR(std::set<Register> &sprs) {
 
 
 bool InstrucIter::usesSPR(std::set<Register> &sprs) {
-    if (((*insn).xfxform.op == MFSPRop) && ((*insn).xfxform.xo == MFSPRxop)) {
-        unsigned spr = (*insn).xform.ra + ((*insn).xform.rb << 5);
+    if ((XFXFORM_OP(insn) == MFSPRop) && (XFXFORM_XO(insn) == MFSPRxop)) {
+        unsigned spr = XFORM_RA(insn) + (XFORM_RB(insn) << 5);
         switch (spr) {
         case SPR_XER:
             sprs.insert(registerSpace::xer);
@@ -1871,11 +1881,11 @@ bool InstrucIter::usesSPR(std::set<Register> &sprs) {
     }
 
     // Branches to SPRs
-    if (((*insn).xlform.op == BCCTRop) && ((*insn).xlform.xo == BCCTRxop)) {
+    if ((XLFORM_OP(insn) == BCCTRop) && (XLFORM_XO(insn) == BCCTRxop)) {
         sprs.insert(registerSpace::ctr);
         return true;
     }
-    if (((*insn).xlform.op == BCLRop) && ((*insn).xlform.xo == BCLRxop)) {
+    if ((XLFORM_OP(insn) == BCLRop) && (XLFORM_XO(insn) == BCLRxop)) {
         sprs.insert(registerSpace::lr);
         return true;
     }

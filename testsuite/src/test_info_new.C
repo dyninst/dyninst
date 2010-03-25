@@ -49,11 +49,14 @@ TestInfo::TestInfo(unsigned int i, const char *iname, const char *imrname,
 
 // Constructor for RunGroup, with an initial test specified
 RunGroup::RunGroup(const char *mutatee_name, start_state_t state_init,
-                   create_mode_t attach_init, bool ex, TestInfo *test_init,
+                   create_mode_t attach_init, 
+                   test_threadstate_t threads_, test_procstate_t procs_, 
+                   bool ex, TestInfo *test_init,
                    const char *modname_, const char *compiler_, const char *optlevel_, 
                    const char *abi_)
   : mutatee(mutatee_name), state(state_init), useAttach(attach_init),
-    customExecution(ex), disabled(false), mod(NULL), 
+    customExecution(ex), disabled(false), mod(NULL),
+    threadmode(threads_), procmode(procs_),
     compiler(compiler_), optlevel(optlevel_), abi(abi_)
 {
   Module::registerGroupInModule(std::string(modname_), this);
@@ -62,11 +65,14 @@ RunGroup::RunGroup(const char *mutatee_name, start_state_t state_init,
 
 // Constructor for RunGroup with no initial test specified
 RunGroup::RunGroup(const char *mutatee_name, start_state_t state_init,
-                   create_mode_t attach_init, bool ex, const char *modname_,
+                   create_mode_t attach_init, 
+                   test_threadstate_t threads_, test_procstate_t procs_,
+                   bool ex, const char *modname_,
                    const char *compiler_, const char *optlevel_, 
                    const char *abi_)
   : mutatee(mutatee_name), state(state_init), useAttach(attach_init),
     customExecution(ex), disabled(false), mod(NULL),
+    threadmode(threads_), procmode(procs_),
     compiler(compiler_), optlevel(optlevel_), abi(abi_)
 {
    Module::registerGroupInModule(std::string(modname_), this);
@@ -90,7 +96,7 @@ Module::Module(std::string name_)
       allmods[name] = NULL;
       return;
    }
-      allmods[name] = this;
+   allmods[name] = this;
    initialized = true;
    setup_run = false;
 }

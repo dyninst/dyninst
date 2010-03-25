@@ -272,15 +272,12 @@ LibAddrPair SymtabLibState::getAOut() {
 }
 
 swkProcessReader::swkProcessReader(ProcessState *pstate, const std::string& executable) :
-   ProcessReader(0, executable),
    procstate(pstate)
 {
 }
 
-bool swkProcessReader::readAddressSpace(Address inTraced, unsigned amount,
-                                        void *inSelf)
+bool swkProcessReader::ReadMem(Address inTraced, void *inSelf, unsigned amount)
 {
-  pid = procstate->getProcessId();
   return procstate->readMem(inSelf, inTraced, amount);
 }
 

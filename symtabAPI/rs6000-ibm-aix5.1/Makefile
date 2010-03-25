@@ -39,8 +39,6 @@ SRCS =		../src/Object-xcoff.C \
 		../src/Archive.C \
 		../src/Archive-xcoff.C \
 		../src/parseStab.C \
-		../src/addrtranslate.C \
-		../src/addrtranslate-aix.C \
 		../src/relocationEntry-stub.C
 
 # Add preprocessor and special link information for G++

@@ -440,7 +440,9 @@ int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev)
       }
 
       void *stack_addr;
-#if defined(arch_x86_64) && defined(MUTATEE_32)
+#if defined(target_ppc32)
+	assert("Fix me.");
+#elif defined(arch_x86_64) && defined(MUTATEE_32)
       asm("movl %%esp,%0" : "=r" (stack_addr));
 #elif defined(arch_x86_64)
       asm("mov %%rsp,%0" : "=r" (stack_addr));
