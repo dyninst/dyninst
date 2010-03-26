@@ -91,6 +91,11 @@ bool ProcSelf::getRegValue(Dyninst::MachRegister reg, THR_ID, Dyninst::MachRegis
   return true;
 }
 
+Dyninst::Architecture ProcSelf::getArchitecture()
+{
+   return Arch_ppc32;
+}
+
 bool Walker::checkValidFrame(const Frame & /*in*/, const Frame & /*out*/)
 {
    return true;
@@ -137,9 +142,7 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
     return gcf_stackbottom;
   }
 
-
   out.setRA(ra_fp_pair.out_ra);
-
 
   return gcf_success;
 }

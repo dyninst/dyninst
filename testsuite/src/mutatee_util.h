@@ -184,7 +184,7 @@ extern void printResultHumanLog(const char *testname, test_results_t result);
 extern void stop_process_();
 
 extern thread_t spawnNewThread(void *initial_func, void *param);
-extern void joinThread(thread_t tid);
+extern void* joinThread(thread_t tid);
 extern int threads_equal(thread_t a, thread_t b);
 extern void initThreads();
 

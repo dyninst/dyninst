@@ -18,7 +18,10 @@ include ../../make.config
 
 SRCS =		../../common/src/solarisKludges.C \
 		../../common/src/timing-solaris.C \
-		../../common/src/parseauxv.C 
+		../../common/src/parseauxv.C \
+		../src/addrtranslate.C \
+		../src/addrtranslate-sysv.C \
+		../src/addrtranslate-solaris.C
 
 # VG(12/02/01) Using -g here seems a bad idea since it is passed from
 # make.confing any way and it is actually configurable there via

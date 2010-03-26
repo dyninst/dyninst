@@ -56,7 +56,7 @@ MUTATEE_G77_CFLAGS += $(filter-out -Wl$(COMMA)-export-dynamic, $(MUTATEE_CFLAGS_
 MUTATEE_G77_CFLAGS += -DF77 -DFortran -g $(MUTATEE_FFLAGS)  -fno-implicit-templates -c
 TEST1_FORTRAN_CSOURCE = test1.mutateeFortC.c
 
-MUTATOR_LIBS += -liberty
+#MUTATOR_LIBS += -liberty
 MUTATEE_CFLAGS_NATIVE 	= $(UNIFIED_DEF)
 MUTATEE_CXXFLAGS_NATIVE = $(UNIFIED_DEF)
 

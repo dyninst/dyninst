@@ -92,6 +92,13 @@ bool ProcSelf::getRegValue(Dyninst::MachRegister reg, THR_ID, Dyninst::MachRegis
   return true;
 }
 
+Dyninst::Architecture ProcSelf::getArchitecture()
+{
+   if (sizeof(void *) == 8)
+      return Arch_x86_64;
+   return Arch_x86;
+}
+
 static gcframe_ret_t HandleStandardFrame(const Frame &in, Frame &out, ProcessState *proc)
 {
   Address in_fp, out_sp;

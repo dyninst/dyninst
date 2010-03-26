@@ -72,6 +72,8 @@ class ProcDebugLinux : public ProcDebug {
   bool detach_thread(int tid, bool leave_stopped);
   void detach_arch_cleanup();
 
+  virtual Dyninst::Architecture getArchitecture();
+
   bool pollForNewThreads();
   bool isLibraryTrap(Dyninst::THR_ID thrd);
 

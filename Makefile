@@ -16,6 +16,7 @@ SymtabAPI 	= ready common symtabAPI dynutil
 StackwalkerAPI = ready common symtabAPI stackwalk
 DyninstAPI	= ready common symtabAPI instructionAPI dyninstAPI_RT dyninstAPI dynutil
 InstructionAPI	= ready common instructionAPI dynutil
+ProcControlAPI = ready common proccontrol
 DepGraphAPI = depGraphAPI
 ValueAdded = valueAdded/sharedMem
 SymEval = symEval
@@ -29,6 +30,11 @@ fullSystem	+= $(DyninstAPI)
 Build_list	+= DyninstAPI
 endif
 
+ifndef DONT_BUILD_PROCCONTROL
+fullSystem += proccontrol
+Build_list += proccontrol
+endif
+
 ifndef DONT_BUILD_NEWTESTSUITE
 testsuites += testsuite parseThat
 allSubdirs_noinstall += testsuite 
@@ -37,7 +43,7 @@ Build_list += testsuite parseThat
 endif
 
 allCoreSubdirs	= dyninstAPI_RT common dyninstAPI symtabAPI dynutil instructionAPI
-allSubdirs	= $(allCoreSubdirs) parseThat testsuites valueAdded/sharedMem depGraphAPI stackwalk symEval
+allSubdirs	= $(allCoreSubdirs) parseThat testsuites valueAdded/sharedMem depGraphAPI stackwalk symEval proccontrol
 
 # We're not building the new test suite on all platforms yet
 
@@ -135,7 +141,7 @@ world: intro
 
 # "make Paradyn" and "make DyninstAPI" are also useful and valid build targets!
 
-DyninstAPI SymtabAPI StackwalkerAPI basicComps subSystems testsuites InstructionAPI ValueAdded DepGraphAPI SymEval: 
+DyninstAPI SymtabAPI StackwalkerAPI basicComps subSystems testsuites InstructionAPI ValueAdded DepGraphAPI SymEval ProcControlAPI: 
 	$(MAKE) $($@)
 	@echo "Build of $@ complete."
 	@date
@@ -202,6 +208,7 @@ dyner codeCoverage dyninstAPI/tests testsuite: dyninstAPI
 testsuite: $(coreSubdirs_explicitInstall)
 testsuite: parseThat
 parseThat: $(coreSubdirs_explicitInstall)
+proccontrol: $(coreSubdir_explicitInstall)
 #depGraphAPI: instructionAPI $(coreSubdirs_explicitInstall)
 # depGraphAPI: instructionAPI dyninstAPI
 

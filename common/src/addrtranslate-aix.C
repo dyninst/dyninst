@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "symtabAPI/src/addrtranslate.h"
+#include "common/h/addrtranslate.h"
 #include "common/h/headers.h"
 
 #include "symtabAPI/h/Symtab.h"
@@ -42,13 +42,12 @@
 #include <map>
 
 namespace Dyninst {
-namespace SymtabAPI {
 
 class AddressTranslateAIX : public AddressTranslate
 {
 public:
-   AddressTranslateAIX();
-   AddressTranslateAIX(PID pid);
+   AddressTranslateAIX(SymbolReaderFactory *fact_);
+   AddressTranslateAIX(PID pid, SymbolReaderFactory *fact_);
 
    virtual bool refresh();
    virtual ~AddressTranslateAIX();
@@ -59,25 +58,22 @@ class LoadedLibAIX : public LoadedLib {
 protected:
    string object;
 
-   Address real_codeBase;
-   Address real_dataBase;
-   Address imageOffset;
-   Address dataOffset;
-   
-   bool reals_set;
-   void setReals();
+   mutable Address real_codeBase;
+   mutable Address real_dataBase;
+   mutable Address imageOffset;
+   mutable Address dataOffset;   
+   mutable bool reals_set;
+   void setReals() const;
 public:
    LoadedLibAIX(string name, Address load_addr, string object);
    
-   virtual Symtab *getSymtab();
    virtual ~LoadedLibAIX();
 
-   virtual Address symToAddress(Symbol *sym);
    virtual Address offToAddress(Offset off);
    virtual Offset addrToOffset(Address addr);
 
-   virtual Address getCodeLoadAddr();
-   virtual Address getDataLoadAddr();
+   virtual Address getCodeLoadAddr() const;
+   virtual Address getDataLoadAddr() const;
    virtual void getOutputs(string &filename, Address &code, Address &data);
 };
 
@@ -217,9 +213,10 @@ bool AddressTranslateAIX::refresh()
 
 AddressTranslate *AddressTranslate::createAddressTranslator(PID pid_, 
                                                             ProcessReader *,
-															PROC_HANDLE)
+                                                            SymbolReaderFactory *fact,
+                                                            PROC_HANDLE)
 {
-   AddressTranslate *at = new AddressTranslateAIX(pid_);
+   AddressTranslate *at = new AddressTranslateAIX(pid_, fact);
    
    if (!at) {
       return NULL;
@@ -231,64 +228,21 @@ AddressTranslate *AddressTranslate::createAddressTranslator(PID pid_,
    return at;
 }
 
-AddressTranslate *AddressTranslate::createAddressTranslator(ProcessReader *)
+AddressTranslate *AddressTranslate::createAddressTranslator(ProcessReader *, SymbolReaderFactory *fact)
 {
-   return createAddressTranslator(getpid());
+   return createAddressTranslator(getpid(), NULL, fact);
 }
 
-AddressTranslate *AddressTranslate::createAddressTranslator(const std::vector<LoadedLibrary> &name_addrs)
-{
-   AddressTranslate *at = new AddressTranslateAIX();
-   
-   if (!at) {
-      return NULL;
-   }
-   else if (at->creation_error) {
-      delete at;
-      return NULL;
-   }
-   
-   for (unsigned i=0; i<name_addrs.size(); i++)
-   {
-      string::size_type cpos = name_addrs[i].name.find(':');
-      string archive_name, object_name;
-      if (cpos == string::npos)
-         archive_name = name_addrs[i].name;
-      else
-      {
-         archive_name = name_addrs[i].name.substr(0, cpos);
-         object_name = name_addrs[i].name.substr(cpos+1);
-      }
-
-      LoadedLibAIX *ll = new LoadedLibAIX(archive_name, name_addrs[i].codeAddr,
-                                          object_name);
-      ll->setDataLoadAddr(name_addrs[i].dataAddr);
-      
-      Symtab *st = ll->getSymtab();
-      if (!st)
-         continue;
-      vector<Region *> regs;
-      bool result = st->getMappedRegions(regs);
-      if (!result)
-         continue;
-      
-      ll->add_mapped_region(name_addrs[i].codeAddr, regs[0]->getRegionSize());
-      if (name_addrs[i].dataAddr) {
-         ll->add_mapped_region(name_addrs[i].dataAddr, regs[1]->getRegionSize());
-      }
-      at->libs.push_back(ll);
-   }
-   return at;
-}
-
-AddressTranslateAIX::AddressTranslateAIX()
+AddressTranslateAIX::AddressTranslateAIX(SymbolReaderFactory *fact)
    : AddressTranslate(0)
 {
+   symfactory = fact;
 }
-
-AddressTranslateAIX::AddressTranslateAIX(PID pid)
+   
+AddressTranslateAIX::AddressTranslateAIX(PID pid, SymbolReaderFactory *fact)
    : AddressTranslate(pid)
 {
+   symfactory = fact;
    refresh();
 }
 
@@ -299,60 +253,6 @@ AddressTranslateAIX::~AddressTranslateAIX()
 vector< pair<Address, unsigned long> > *LoadedLib::getMappedRegions()
 {
    return &mapped_regions;
-}
-
-static map<string, Symtab *> openedFiles;
-static map<string, Archive *> openedArchives;
-
-Symtab *LoadedLib::getSymtab()
-{
-   assert(0);
-   return NULL;
-}
-
-Symtab *LoadedLibAIX::getSymtab()
-{
-   if (symtable)
-      return symtable;
-
-   if (object.length())
-   {
-      string hash_name = name + ":" + object;
-      if (openedFiles.count(hash_name)) {
-         symtable = openedFiles[hash_name];
-         return symtable;
-      }
-
-      Archive *archive;
-      if (openedArchives.count(name))
-      {
-         archive = openedArchives[name];
-      }
-      else
-      {
-         if (!Archive::openArchive(archive, name))
-            return NULL;
-         openedArchives[name] = archive;
-      }
-      
-      bool result = archive->getMember(symtable, object);
-      if (!result || !symtable)
-         return NULL;
-      openedFiles[hash_name] = symtable;
-
-      return symtable;
-   }
-
-   if (openedFiles.count(name)) {
-      symtable = openedFiles[name];
-      return symtable;
-   }
-
-   bool result = Symtab::openFile(symtable, name);
-   if (!result)
-      return NULL;
-   
-   return symtable;
 }
 
 LoadedLibAIX::LoadedLibAIX(string name, Address load_addr, string obj)
@@ -370,18 +270,21 @@ LoadedLibAIX::~LoadedLibAIX()
 {
 }
 
-void LoadedLibAIX::setReals()
+void LoadedLibAIX::setReals() const
 {
    if (reals_set)
       return;
 
+   SymReader *sreader = symreader_factory->openSymbolReader(name);
+   imageOffset = sreader->imageOffset();
+   dataOffset = sreader->dataOffset();
+   real_codeBase = 0;
+   real_dataBase = 0;
+   /*
    Symtab *sym = getSymtab();
    if (!sym)
       return;
-   
-   imageOffset = sym->imageOffset();
-   dataOffset = sym->dataOffset();
-   
+
    if (imageOffset > load_addr)
       real_codeBase = 0;
    else {
@@ -399,7 +302,7 @@ void LoadedLibAIX::setReals()
    else if (dataOffset < 0x30000000) {
       real_dataBase = data_load_addr - dataOffset;
    }
-
+   */
    reals_set = true;
 }
 
@@ -420,23 +323,6 @@ Address LoadedLibAIX::offToAddress(Offset off)
    }
 }
 
-Address LoadedLibAIX::symToAddress(Symbol *sym)
-{
-   setReals();
-   
-   Address symAddr = sym->getAddr();
-
-   if ((imageOffset < dataOffset && symAddr >= imageOffset && symAddr < dataOffset) ||
-       (imageOffset > dataOffset && symAddr > imageOffset))
-   {
-      return symAddr + real_codeBase;
-   }
-   else 
-   {
-      return symAddr + real_dataBase;
-   }
-}
-
 Offset LoadedLibAIX::addrToOffset(Address addr)
 {
    setReals();
@@ -448,13 +334,13 @@ Offset LoadedLibAIX::addrToOffset(Address addr)
       return addr - real_dataBase;  
 }
 
-Address LoadedLibAIX::getCodeLoadAddr()
+Address LoadedLibAIX::getCodeLoadAddr() const
 {
    setReals();
    return real_codeBase;
 }
 
-Address LoadedLibAIX::getDataLoadAddr()
+Address LoadedLibAIX::getDataLoadAddr() const
 {
    setReals();
    return real_dataBase;
@@ -475,5 +361,4 @@ Address AddressTranslateAIX::getLibraryTrapAddrSysV()
    return 0x0;
 }
 
-}
 }

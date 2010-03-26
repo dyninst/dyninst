@@ -73,8 +73,8 @@ map<MachRegister, Register> reverseRegisterMap = map_list_of
         (x86_64::sf, REGNUM_SF)
         (x86_64::tf, REGNUM_TF)
         (x86_64::df, REGNUM_DF)
-  (x86_64::of, REGNUM_OF)
-  (x86_64::nt_, REGNUM_NT)
+        (x86_64::of, REGNUM_OF)
+        (x86_64::nt_, REGNUM_NT)
         (x86_64::xmm0, REGNUM_XMM0)
         (x86_64::xmm1, REGNUM_XMM1)
         (x86_64::xmm2, REGNUM_XMM2)
@@ -107,14 +107,14 @@ map<MachRegister, Register> reverseRegisterMap = map_list_of
         (x86_64::dr5, REGNUM_IGNORED)
         (x86_64::dr6, REGNUM_IGNORED)
         (x86_64::dr7, REGNUM_IGNORED)
-  (x86_64::st0, REGNUM_IGNORED)
-  (x86_64::st1, REGNUM_IGNORED)
-  (x86_64::st2, REGNUM_IGNORED)
-  (x86_64::st3, REGNUM_IGNORED)
-  (x86_64::st4, REGNUM_IGNORED)
-  (x86_64::st5, REGNUM_IGNORED)
-  (x86_64::st6, REGNUM_IGNORED)
-  (x86_64::st7, REGNUM_IGNORED)
+        (x86_64::st0, REGNUM_IGNORED)
+        (x86_64::st1, REGNUM_IGNORED)
+        (x86_64::st2, REGNUM_IGNORED)
+        (x86_64::st3, REGNUM_IGNORED)
+        (x86_64::st4, REGNUM_IGNORED)
+        (x86_64::st5, REGNUM_IGNORED)
+        (x86_64::st6, REGNUM_IGNORED)
+        (x86_64::st7, REGNUM_IGNORED)
         ;
 
 Register convertRegID(MachRegister reg, bool &wasUpcast) {
@@ -145,6 +145,5 @@ Register convertRegID(RegisterAST* toBeConverted, bool& wasUpcast)
         //assert(0);
         return REGNUM_IGNORED;
     }
-
     return convertRegID(toBeConverted->getID(), wasUpcast);
 }

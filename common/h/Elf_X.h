@@ -37,8 +37,6 @@
 #include "common/h/headers.h"
 
 // Wrappers to allow word-independant use of libelf routines.
-namespace Dyninst{
-namespace SymtabAPI{
 
 #if !defined(os_solaris)
 // ------------------------------------------------------------------------
@@ -823,6 +821,7 @@ class Elf_X_Shdr {
 
     bool isValid() const { return (shdr32 || shdr64); }
     unsigned wordSize() { return is64 ? 8 : 4; }
+    Elf_Scn *getScn() const { return scn; }
   protected:
     Elf_Scn *scn;
     Elf_Data *data;
@@ -927,65 +926,64 @@ class Elf_X {
     Elf_X(int input, Elf_Cmd cmd, Elf_X *ref = NULL)
     : ehdr32(NULL), ehdr64(NULL), phdr32(NULL), phdr64(NULL), filedes(input), is64(false), isArchive(false) {
 
-        if (elf_version(EV_CURRENT) != EV_NONE) {
-            elf_errno(); // Reset elf_errno to zero.
-            if(ref)
-                elf = elf_begin(input, cmd, ref->e_elfp());
-            else
-                elf = elf_begin(input, cmd, NULL);
-            int err;
-            if ((err = elf_errno()) != 0)
-            {
-                const char *msg = elf_errmsg(err);
-                fprintf(stderr, "Error: Unable to open ELF file: %s\n", msg);
-            }
-            if (elf) {
-                if (elf_kind(elf) == ELF_K_ELF) {
-                    char *identp = elf_getident(elf, NULL);
-                    is64 = (identp && identp[EI_CLASS] == ELFCLASS64);
-                }
-                else if(elf_kind(elf) == ELF_K_AR){
-                    char *identp = elf_getident(elf, NULL);
-                    is64 = (identp && identp[EI_CLASS] == ELFCLASS64);
-                    isArchive = true;
-                }
-
-                if (!is64) ehdr32 = elf32_getehdr(elf);
-                else	   ehdr64 = elf64_getehdr(elf);
-
-                if (!is64) phdr32 = elf32_getphdr(elf);
-                else	   phdr64 = elf64_getphdr(elf);
-            }
-        }
+       if (elf_version(EV_CURRENT) != EV_NONE) {
+          elf_errno(); // Reset elf_errno to zero.
+          if(ref)
+             elf = elf_begin(input, cmd, ref->e_elfp());
+          else
+             elf = elf_begin(input, cmd, NULL);
+          int err;
+          if ((err = elf_errno()) != 0)
+          {
+             //const char *msg = elf_errmsg(err);
+          }
+          if (elf) {
+             if (elf_kind(elf) == ELF_K_ELF) {
+                char *identp = elf_getident(elf, NULL);
+                is64 = (identp && identp[EI_CLASS] == ELFCLASS64);
+             }
+             else if(elf_kind(elf) == ELF_K_AR){
+                char *identp = elf_getident(elf, NULL);
+                is64 = (identp && identp[EI_CLASS] == ELFCLASS64);
+                isArchive = true;
+             }
+             
+             if (!is64) ehdr32 = elf32_getehdr(elf);
+             else	   ehdr64 = elf64_getehdr(elf);
+             
+             if (!is64) phdr32 = elf32_getphdr(elf);
+             else	   phdr64 = elf64_getphdr(elf);
+          }
+       }
     }
 
-    Elf_X(char *mem_image, size_t mem_size)
-    : ehdr32(NULL), ehdr64(NULL), phdr32(NULL), phdr64(NULL), is64(false), isArchive(false){
+  Elf_X(char *mem_image, size_t mem_size) : 
+   ehdr32(NULL), ehdr64(NULL), phdr32(NULL), phdr64(NULL), is64(false), isArchive(false)
+   {
 
-	if (elf_version(EV_CURRENT) != EV_NONE) {
-	    elf_errno(); // Reset elf_errno to zero.
-	    elf = elf_memory(mem_image, mem_size);
+      if (elf_version(EV_CURRENT) != EV_NONE) {
+         elf_errno(); // Reset elf_errno to zero.
+         elf = elf_memory(mem_image, mem_size);
+         
+         int err;
+         if ( (err = elf_errno()) != 0) {
+            //const char *msg = elf_errmsg(err);
+         }
 
-            int err;
-            if ( (err = elf_errno()) != 0) {
-                const char *msg = elf_errmsg(err);
-                fprintf(stderr, "Error: Unable to open ELF file: %s\n", msg);
+         if (elf) {
+            if (elf_kind(elf) == ELF_K_ELF) {
+               char *identp = elf_getident(elf, NULL);
+               is64 = (identp && identp[EI_CLASS] == ELFCLASS64);
             }
-
-	    if (elf) {
-		if (elf_kind(elf) == ELF_K_ELF) {
-		    char *identp = elf_getident(elf, NULL);
-		    is64 = (identp && identp[EI_CLASS] == ELFCLASS64);
-		}
-
-		if (!is64) ehdr32 = elf32_getehdr(elf);
-		else	   ehdr64 = elf64_getehdr(elf);
-
-		if (!is64) phdr32 = elf32_getphdr(elf);
-		else	   phdr64 = elf64_getphdr(elf);
-	    }
-	}
-    }
+            
+            if (!is64) ehdr32 = elf32_getehdr(elf);
+            else	   ehdr64 = elf64_getehdr(elf);
+            
+            if (!is64) phdr32 = elf32_getphdr(elf);
+            else	   phdr64 = elf64_getphdr(elf);
+         }
+      }
+   }
 
     void end() {
 	if (elf) {
@@ -1070,6 +1068,9 @@ class Elf_X {
                static_cast<unsigned short>(ehdr32->e_shstrndx) :
                static_cast<unsigned short>(ehdr64->e_shstrndx)); 
     }
+    const char *e_rawfile(size_t &nbytes) const {
+       return elf_rawfile(elf, &nbytes);
+    }
 
     Elf_X *e_next(Elf_X *ref) {
         if(!isArchive)
@@ -1137,8 +1138,5 @@ class Elf_X {
     bool is64;
     bool isArchive;
 };
-
-}//namespace SymtabAPI
-}//namespace Dyninst
 
 #endif

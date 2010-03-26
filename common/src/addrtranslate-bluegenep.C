@@ -120,6 +120,8 @@ bool AddressTranslateSysV::setInterpreter()
   string interp_name = exe->getInterpreter();
 
   interpreter = files.getNode(interp_name);
+  if (interpreter)
+     interpreter->markInterpreter();
   translate_printf("[%s:%u] - Set interpreter name: '%s'\n", __FILE__, __LINE__, interp_name.c_str());
 
   return true;
