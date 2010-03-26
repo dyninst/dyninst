@@ -117,6 +117,22 @@ map<MachRegister, Register> reverseRegisterMap = map_list_of
   (x86_64::st7, REGNUM_IGNORED)
         ;
 
+Register convertRegID(MachRegister reg, bool &wasUpcast) {
+    wasUpcast = false;
+    if(reg.getBaseRegister().val() != reg.val()) wasUpcast = true;
+    MachRegister baseReg = MachRegister((reg.getBaseRegister().val() & ~reg.getArchitecture()) | Arch_x86_64);
+//    RegisterAST::Ptr debug(new RegisterAST(baseReg));
+//    fprintf(stderr, "DEBUG: converting %s", toBeConverted->format().c_str());
+//    fprintf(stderr, " to %s\n", debug->format().c_str());
+    map<MachRegister, Register>::const_iterator found =
+            reverseRegisterMap.find(baseReg);
+    if(found == reverseRegisterMap.end()) {
+      assert(!"Bad register ID");
+    }
+
+    return found->second;
+}
+
 
 Register convertRegID(RegisterAST::Ptr toBeConverted, bool& wasUpcast)
 {
@@ -129,20 +145,6 @@ Register convertRegID(RegisterAST* toBeConverted, bool& wasUpcast)
         //assert(0);
         return REGNUM_IGNORED;
     }
-    MachRegister tmp(toBeConverted->getID());
-    wasUpcast = false;
-    if(tmp.getBaseRegister().val() != tmp.val()) wasUpcast = true;
-    MachRegister baseReg = MachRegister((tmp.getBaseRegister().val() & ~tmp.getArchitecture()) | Arch_x86_64);
-//    RegisterAST::Ptr debug(new RegisterAST(baseReg));
-//    fprintf(stderr, "DEBUG: converting %s", toBeConverted->format().c_str());
-//    fprintf(stderr, " to %s\n", debug->format().c_str());
-    map<MachRegister, Register>::const_iterator found =
-            reverseRegisterMap.find(baseReg);
-    if(found == reverseRegisterMap.end()) {
-        fprintf(stderr, "Register ID for %s not found in reverseRegisterLookup!\n", toBeConverted->format().c_str());
-	fprintf(stderr, "\t using processed reg 0x%x\n", baseReg.val());
-        assert(!"Bad register ID");
-    }
 
-    return found->second;
+    return convertRegID(toBeConverted->getID(), wasUpcast);
 }
