@@ -84,6 +84,7 @@ class SymReader
 
    virtual Dyninst::Offset getSymbolOffset(const Symbol_t &sym) = 0;
    virtual std::string getSymbolName(const Symbol_t &sym) = 0;
+   virtual unsigned long getSymbolSize(const Symbol_t &sym) = 0;
    virtual bool isValidSymbol(const Symbol_t &sym) = 0;
 
    virtual Dyninst::Offset imageOffset() = 0;
@@ -96,6 +97,7 @@ class SymbolReaderFactory
    SymbolReaderFactory() {};
    virtual ~SymbolReaderFactory() {};
    virtual SymReader *openSymbolReader(std::string pathname) = 0;
+   virtual SymReader *openSymbolReader(const char *buffer, unsigned long size) = 0;
    virtual bool closeSymbolReader(SymReader *sr) = 0;
 };
 

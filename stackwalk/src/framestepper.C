@@ -85,6 +85,10 @@ void FrameStepper::registerStepperGroup(StepperGroup *group)
       assert(0 && "Unknown architecture word size");
 }
 
+const char *FrameStepper::getName() const
+{
+   return "<UNKNOWN>";
+}
 
 FrameFuncHelper::FrameFuncHelper(ProcessState *proc_) :
    proc(proc_)
@@ -98,7 +102,9 @@ FrameFuncHelper::~FrameFuncHelper()
 BottomOfStackStepperImpl::BottomOfStackStepperImpl(Walker *w, BottomOfStackStepper *p) :
    FrameStepper(w),
    parent(p),
-   initialized(false)
+   libc_init(false),
+   aout_init(false),
+   libthread_init(false)
 {
    sw_printf("[%s:%u] - Constructing BottomOfStackStepperImpl at %p\n",
              __FILE__, __LINE__, this);
@@ -111,9 +117,6 @@ gcframe_ret_t BottomOfStackStepperImpl::getCallerFrame(const Frame &in, Frame & 
     * tries to tell if we've reached the top of a stack and returns 
     * either gcf_stackbottom or gcf_not_me.
     **/
-   if (!initialized)
-      initialize();
-
    std::vector<std::pair<Address, Address> >::iterator i;
    for (i = ra_stack_tops.begin(); i != ra_stack_tops.end(); i++)
    {
@@ -178,6 +181,7 @@ BottomOfStackStepperImpl::~BottomOfStackStepperImpl()
 #undef PIMPL_NAME
 
 //BottomOfStackStepper defined here
+#define OVERLOAD_NEWLIBRARY
 #if defined(cap_stackwalker_use_symtab) && defined(os_linux)
 #include "stackwalk/src/linux-swk.h"
 #define PIMPL_IMPL_CLASS BottomOfStackStepperImpl
@@ -188,6 +192,7 @@ BottomOfStackStepperImpl::~BottomOfStackStepperImpl()
 #undef PIMPL_CLASS
 #undef PIMPL_IMPL_CLASS
 #undef PIMPL_NAME
+#undef OVERLOAD_NEWLIBRARY
 
 //DebugStepper defined here
 #if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64)) && defined(cap_stackwalker_use_symtab)
@@ -218,6 +223,7 @@ BottomOfStackStepperImpl::~BottomOfStackStepperImpl()
 #undef PIMPL_ARG2
 
 //SigHandlerStepper defined here
+#define OVERLOAD_NEWLIBRARY
 #if defined(os_linux)
 #include "stackwalk/src/linux-swk.h"
 #define PIMPL_IMPL_CLASS SigHandlerStepperImpl
@@ -228,3 +234,4 @@ BottomOfStackStepperImpl::~BottomOfStackStepperImpl()
 #undef PIMPL_CLASS
 #undef PIMPL_IMPL_CLASS
 #undef PIMPL_NAME
+#undef OVERLOAD_NEWLIBRARY

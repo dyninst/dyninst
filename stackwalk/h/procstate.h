@@ -295,6 +295,9 @@ class LibraryState {
    virtual bool getLibraries(std::vector<LibAddrPair> &libs) = 0;
    virtual void notifyOfUpdate() = 0;
    virtual Address getLibTrapAddress() = 0;
+   virtual bool getLibc(LibAddrPair &lc) = 0;
+   virtual bool getLibthread(LibAddrPair &lt) = 0;
+   virtual bool getAOut(LibAddrPair &ao) = 0;
    virtual ~LibraryState();
 };
 

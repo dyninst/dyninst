@@ -37,6 +37,7 @@
 #include "dyntypes.h"
 #include <set>
 
+#include "dynutil/h/SymReader.h"
 #include "stackwalk/src/get_trap_instruction.h"
 #define MAX_TRAP_LEN 8
 
@@ -93,14 +94,35 @@ class SigHandlerStepperImpl : public FrameStepper {
 private:
    SigHandlerStepper *parent_stepper;
    void registerStepperGroupNoSymtab(StepperGroup *group);
+   bool init_libc;
+   bool init_libthread;
 public:
    SigHandlerStepperImpl(Walker *w, SigHandlerStepper *parent);
    virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
    virtual unsigned getPriority() const;
    virtual void registerStepperGroup(StepperGroup *group);
+   virtual void newLibraryNotification(LibAddrPair *la, lib_change_t change);
    virtual ~SigHandlerStepperImpl();  
 };
 
+struct vsys_info {
+   void *vsys_mem;
+   Dyninst::Address start;
+   Dyninst::Address end;
+   Dyninst::SymReader *syms;
+   vsys_info() :
+      vsys_mem(NULL),
+      start(0),
+      end(0),
+      syms(NULL)
+   {
+   }
+   ~vsys_info() {
+      if (vsys_mem) free(vsys_mem);
+   }
+};
+
+vsys_info *getVsysInfo(ProcessState *ps);
 }
 }
 

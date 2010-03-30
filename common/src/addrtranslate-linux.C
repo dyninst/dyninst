@@ -32,6 +32,7 @@
 #include "common/h/addrtranslate.h"
 #include "common/src/addrtranslate-sysv.h"
 #include "common/h/linuxKludges.h"
+#include "common/h/parseauxv.h"
 
 #include <linux/limits.h>
 
@@ -205,5 +206,3 @@ LoadedLib *AddressTranslateSysV::getAOut()
    // TODO: shouldn't this just return exec if it's set?
    return new LoadedLib(getExecName(), 0);
 }
-
-

@@ -15,8 +15,11 @@ class SymElf : public Dyninst::SymReader
    Elf_X elf;
    int fd;
    std::string file;
+   const char *buffer;
+   unsigned long buffer_size;
 
    SymElf(std::string file_);
+   SymElf(const char *buffer_, unsigned long size_);
    virtual ~SymElf();
  public:
    virtual Symbol_t getSymbolByName(std::string symname);
@@ -30,6 +33,7 @@ class SymElf : public Dyninst::SymReader
    virtual std::string getSymbolName(const Symbol_t &sym);
    virtual bool isValidSymbol(const Symbol_t &sym);
    virtual unsigned getAddressWidth();
+   virtual unsigned long getSymbolSize(const Symbol_t &sym);
 
    virtual Dyninst::Offset imageOffset() { assert(0); return 0; };
    virtual Dyninst::Offset dataOffset() { assert(0); return 0; }
@@ -45,6 +49,7 @@ public:
    SymElfFactory();
    virtual ~SymElfFactory();
    virtual SymReader *openSymbolReader(std::string pathname);
+   virtual SymReader *openSymbolReader(const char *buffer, unsigned long size);
    virtual bool closeSymbolReader(SymReader *sr);
 };
 
@@ -52,6 +57,8 @@ public:
 inline SymElf::SymElf(std::string file_) :
    fd(-1),
    file(file_),
+   buffer(NULL),
+   buffer_size(0),
    ref_count(0),
    construction_error(false)
 {
@@ -66,6 +73,21 @@ inline SymElf::SymElf(std::string file_) :
       construction_error = true;
       close(fd);
       fd = -1;
+      return;
+   }
+}
+
+inline SymElf::SymElf(const char *buffer_, unsigned long buffer_size_) :
+   fd(-1),
+   file(),
+   buffer(buffer_),
+   buffer_size(buffer_size_),
+   ref_count(0),
+   construction_error(false)
+{
+   elf = Elf_X(const_cast<char *>(buffer_), (size_t) buffer_size);
+   if (!elf.isValid()) {
+      construction_error = true;
       return;
    }
 }
@@ -209,6 +231,14 @@ inline unsigned SymElf::getAddressWidth()
    return elf.wordSize();
 }
 
+unsigned long SymElf::getSymbolSize(const Symbol_t &sym)
+{
+   GET_SYMBOL(sym, shdr, symbol, name, idx);
+   name = NULL; //Silence warnings
+   unsigned long size = symbol.st_size(idx);
+   return size;
+}
+
 inline Dyninst::Offset SymElf::getSymbolOffset(const Symbol_t &sym)
 {
    GET_SYMBOL(sym, shdr, symbols, name, idx);
@@ -257,12 +287,23 @@ SymReader *SymElfFactory::openSymbolReader(std::string pathname)
    return static_cast<SymReader *>(se);
 }
 
+SymReader *SymElfFactory::openSymbolReader(const char *buffer, unsigned long size)
+{
+   SymElf *se = new SymElf(buffer, size);
+   if (se->construction_error) {
+      delete se;
+      return NULL;
+   }
+   se->ref_count = 1;
+   return static_cast<SymReader *>(se);
+}
+
 bool SymElfFactory::closeSymbolReader(SymReader *sr)
 {
    SymElf *ser = static_cast<SymElf *>(sr);
    std::map<std::string, SymElf *>::iterator i = open_symelfs.find(ser->file);
    if (i == open_symelfs.end()) {
-      return false;
+      delete ser;
    }
 
    ser->ref_count--;
