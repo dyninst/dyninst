@@ -980,6 +980,12 @@ void Object::parseDynamic(Elf_X_Shdr *&dyn_scnp, Elf_X_Shdr *&dynsym_scnp,
       rel_addr_ = (Offset) dyns.d_ptr(i);
       rel_scnp_index = getRegionHdrIndexByAddr(dyns.d_ptr(i));
       break;
+    case DT_JMPREL:
+	rel_plt_addr_ = (Offset) dyns.d_ptr(i);
+	break;
+    case DT_PLTRELSZ:
+	rel_plt_size_ = dyns.d_val(i) ;
+	break;
     case DT_RELSZ:
     case DT_RELASZ:
       rel_size_ = dyns.d_val(i) ;
@@ -987,6 +993,8 @@ void Object::parseDynamic(Elf_X_Shdr *&dyn_scnp, Elf_X_Shdr *&dynsym_scnp,
     case DT_RELENT:
     case DT_RELAENT:
       rel_entry_size_ = dyns.d_val(i);
+      /* Maybe */
+      //rel_plt_entry_size_ = dyns.d_val(i);
       break;
     case DT_INIT:
         init_addr_ = dyns.d_val(i);
@@ -1024,8 +1032,13 @@ bool Object::get_relocationDyn_entries( unsigned rel_scnp_index,
   Elf_X_Sym sym = symdata.get_sym();
 
   unsigned num_rel_entries_found = 0;
-
-  while (num_rel_entries_found != rel_size_/rel_entry_size_) {
+  unsigned num_rel_entries = rel_size_/rel_entry_size_;
+  
+  if (rel_addr_ + rel_size_ > rel_plt_addr_){
+	// REL/RELA section overlaps with REL PLT section
+	num_rel_entries = (rel_plt_addr_-rel_addr_)/rel_entry_size_;
+  }
+  while (num_rel_entries_found != num_rel_entries) {
     rel_scnp = getRegionHdrByIndex(rel_scnp_index++);
     Elf_X_Data reldata = rel_scnp->get_data();
 

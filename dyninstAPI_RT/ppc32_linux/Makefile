@@ -17,10 +17,10 @@ endif
 
 # Now make any necessary architecture specific changes to variables:
 LD		= $(GCC)
-LDFLAGS         += -shared -nostdlib
+LDFLAGS         += -shared 
 
 # Automatic init routine
-LDFLAGS		+= -Wl,-init -Wl,libdyninstAPI_RT_init
+#LDFLAGS		+= -Wl,-init -Wl,libdyninstAPI_RT_init
 
 CFLAGS		+= -O2 
 

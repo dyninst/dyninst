@@ -844,6 +844,12 @@ class instruction {
                                       Address to,
                                       bool isCall);
 
+    static void generateLoadReg(codeGen &gen, int op,
+                            Register rt, Register ra, Register rb);
+    static void generateStoreReg(codeGen &gen, int op,
+                            Register rt, Register ra, Register rb);
+    static void generateAddReg(codeGen &gen, int op,
+                            Register rt, Register ra, Register rb);
     static void generateImm(codeGen &gen, int op,
                             Register rt, Register ra, int immd);
     static void generateMemAccess64(codeGen &gen, int op, int xop,
@@ -871,6 +877,7 @@ class instruction {
 
     static void generateMoveFromLR(codeGen &gen, Register rt);
     static void generateMoveToLR(codeGen &gen, Register rs);
+    static void generateMoveToCR(codeGen &gen, Register rs);
     
     // We need instruction::size() all _over_ the place.
     static unsigned size() { return sizeof(instructUnion); } 
