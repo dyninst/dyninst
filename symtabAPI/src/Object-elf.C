@@ -817,6 +817,19 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
       assert( plt_entry_size_ == 16 );
 #else
       plt_entry_size_ = scnp->sh_entsize();
+      
+      // X86-64: if we're on a 32-bit binary then set the PLT entry size to 16
+      // as above
+#if defined(arch_x86_64)
+      if (addressWidth_nbytes == 4) {
+	plt_entry_size_ = 16;
+	assert( plt_entry_size_ == 16 );
+      }
+      else {
+	assert(addressWidth_nbytes == 8);
+      }
+#endif
+
 
 #if defined (ppc32_linux)
       if (scnp->sh_flags() & SHF_EXECINSTR) {
