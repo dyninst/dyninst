@@ -1416,7 +1416,15 @@ Register emitFuncCall(opCode op,
     return gen.emitter()->emitCall(op, gen, operands, noCost, callee);
 }
 
-
+Register EmitterPOWERStat::emitCallReplacement(opCode ocode,
+                                              codeGen &gen,
+                                              bool /* noCost */,
+                                              int_function *callee) {
+	fprintf(stderr, "emitCallReplacement not implemented for binary rewriter \n");
+	assert (0);
+	return 0;
+}
+ 
 Register EmitterPOWERDyn::emitCallReplacement(opCode ocode,
                                               codeGen &gen,
                                               bool /* noCost */,

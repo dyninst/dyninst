@@ -311,14 +311,14 @@ void instruction::generateAddReg (codeGen & gen, int op, Register rt,
 {
 
   instruction insn;
-  (*insn).raw = 0;
-  (*insn).xoform.op = op;
-  (*insn).xoform.rt = rt;
-  (*insn).xoform.ra = ra;
-  (*insn).xoform.rb = rb;
-  (*insn).xoform.oe = 0;
-  (*insn).xoform.xo = 266;
-  (*insn).xoform.rc = 0;
+  insn.clear();
+  XOFORM_OP_SET(insn, op);
+  XOFORM_RT_SET(insn, rt);
+  XOFORM_RA_SET(insn, ra);
+  XOFORM_RB_SET(insn, rb);
+  XOFORM_OE_SET(insn, 0);
+  XOFORM_XO_SET(insn, 266);
+  XOFORM_RC_SET(insn, 0);
 
   insn.generate (gen);
 }
@@ -328,13 +328,13 @@ void instruction::generateLoadReg (codeGen & gen, int op, Register rt,
 {
 
   instruction insn;
-  (*insn).raw = 0;
-  (*insn).xform.op = op;
-  (*insn).xform.rt = rt;
-  (*insn).xform.ra = ra;
-  (*insn).xform.rb = rb;
-  (*insn).xform.xo = 23;
-  (*insn).xform.rc = 0;
+  insn.clear();
+  XOFORM_OP_SET(insn, op);
+  XOFORM_RT_SET(insn, rt);
+  XOFORM_RA_SET(insn, ra);
+  XOFORM_RB_SET(insn, rb);
+  XOFORM_XO_SET(insn, 23);
+  XOFORM_RC_SET(insn, 0);
 
   insn.generate (gen);
 }
@@ -344,13 +344,13 @@ void instruction::generateStoreReg (codeGen & gen, int op, Register rt,
 {
 
   instruction insn;
-  (*insn).raw = 0;
-  (*insn).xform.op = op;
-  (*insn).xform.rt = rt;
-  (*insn).xform.ra = ra;
-  (*insn).xform.rb = rb;
-  (*insn).xform.xo = 151;
-  (*insn).xform.rc = 0;
+  insn.clear();
+  XOFORM_OP_SET(insn, op);
+  XOFORM_RT_SET(insn, rt);
+  XOFORM_RA_SET(insn, ra);
+  XOFORM_RB_SET(insn, rb);
+  XOFORM_XO_SET(insn, 151);
+  XOFORM_RC_SET(insn, 0);
 
   insn.generate (gen);
 }
@@ -1043,12 +1043,12 @@ void instruction::generateMoveToLR(codeGen &gen, Register rs) {
 }
 void instruction::generateMoveToCR(codeGen &gen, Register rs) {
     instruction insn;
-    (*insn).raw = 0; 
-    (*insn).xform.op = MTSPRop; 
-    (*insn).xform.rt = rs; 
-    (*insn).xform.ra = SPR_CTR & 0x1f;
-    (*insn).xform.rb = (SPR_CTR >> 5) & 0x1f; 
-    (*insn).xform.xo = MTSPRxop;
+    insn.clear();
+    XFORM_OP_SET(insn, MTSPRop);
+    XFORM_RT_SET(insn, rs);
+    XFORM_RA_SET(insn, SPR_CTR & 0x1f);
+    XFORM_RB_SET(insn, (SPR_CTR >> 5) & 0x1f);
+    XFORM_XO_SET(insn, MTSPRxop);
     insn.generate(gen);
 }    
 
