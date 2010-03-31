@@ -411,10 +411,8 @@ void image_func::parseOMP(image_parRegion * parReg, image_func * parentFunc, int
    parseOMPFunc(hasLoop);
 }	  
 
-
 void image_func::parseOMPFunc(bool hasLoop)
 {
-#if !defined(cap_instruction_api)
    if (OMPparsed_)
       return;
    OMPparsed_ = true;
@@ -422,12 +420,13 @@ void image_func::parseOMPFunc(bool hasLoop)
    /* We parse the parent to get info if we are in an outlined function, but there can be some
       inlined functions we might miss out on if we don't check those out too */
    Address funcBegin = getOffset();
-   InstrucIter ah(funcBegin, this);
    int regValues[10 + 1];  /* Only care about registers 3-10 (params) */
    for (int i = 0; i < 11; i++)
       regValues[i] = -1;
   
-  
+#if !defined(cap_instruction_api)
+ 
+   InstrucIter ah(funcBegin, this);
    while (ah.hasMore())
    {
       if( /*ah.isRegConstantAssignment(regValues)*/ 0 ) /* Record param values */
@@ -443,12 +442,7 @@ void image_func::parseOMPFunc(bool hasLoop)
          {
             if (ah2.isACondBDNInstruction())
             {
-               image_parRegion * iPar = new image_parRegion(startLoop,this);
-               iPar->setRegionType(OMP_DO_FOR_LOOP_BODY);
-               iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
-               Address endLoop = ah2.getCurrentAddress();
-               iPar->setLastInsn(endLoop);
-	       parRegionsList.push_back(iPar);
+                addParRegion(startLoop, ah2.getCurrentAddress(), OMP_DO_FOR_LOOP_BODY);
                break;
             }
             ah2++;
@@ -477,21 +471,11 @@ void image_func::parseOMPFunc(bool hasLoop)
                /* Section consists of only one instruction, call to "_xlsmpBarrier_TPO" */
                if(strstr(ppdf->symTabName().c_str(), "Barrier")!=NULL)
                {
-                  image_parRegion * iPar = new image_parRegion(ah.getCurrentAddress(),this);
-                  iPar->setRegionType(OMP_BARRIER);
-		      
-                  iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
-                  iPar->setLastInsn(ah.getCurrentAddress() + 0x4); //Only one instruction long
-		      
-		  parRegionsList.push_back(iPar);
+                   addParRegion(ah.getCurrentAddress(), ah.getCurrentAddress()+4, OMP_BARRIER);
                }
                /* Section begins with "BeginOrdered, ends with EndOrdered" */
                else if(strstr(ppdf->symTabName().c_str(), "BeginOrdered") !=NULL)
                {
-                  image_parRegion * iPar = new image_parRegion(ah.getCurrentAddress(),this);
-                  iPar->setRegionType(OMP_ORDERED);
-		      
-                  iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
 		      
                   InstrucIter ah2(ah.getCurrentAddress(), this);
                   while (ah2.hasMore())
@@ -510,37 +494,22 @@ void image_func::parseOMPFunc(bool hasLoop)
                      }
                      ah2++;
                   }
-                  iPar->setLastInsn(ah2.getCurrentAddress());
+                  addParRegion(ah.getCurrentAddress(), ah2.getCurrentAddress(), OMP_ORDERED);
 		  parRegionsList.push_back(iPar);
                }
                /* Master construct */
                else if(strstr(ppdf->symTabName().c_str(), "Master") !=NULL)
                {
-                  image_parRegion * iPar = new image_parRegion(ah.getCurrentAddress(),this);
-                  iPar->setRegionType(OMP_MASTER);
-		      
-                  iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
-                  iPar->setLastInsn(ah.getCurrentAddress() + 0x4); //Only one instruction long
-		      
-		  parRegionsList.push_back(iPar);
+                   addParRegion(ah.getCurrentAddress(), ah.getCurrentAddress() + 0x04, OMP_MASTER);
                }
                /* Flush construct */
                else if(strstr(ppdf->symTabName().c_str(), "Flush") !=NULL)
                {
-                  image_parRegion * iPar = new image_parRegion(ah.getCurrentAddress(),this);
-                  iPar->setRegionType(OMP_FLUSH);
-		      
-                  iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
-                  iPar->setLastInsn(ah.getCurrentAddress() + 0x4); //Only one instruction long
-		      
-		  parRegionsList.push_back(iPar);
+                   addParRegion(ah.getCurrentAddress(), ah.getCurrentAddress() + 0x04, OMP_FLUSH);
                }
                /* Critical Construct, Starts with GetDefaultSLock, ends with RelDefaultSLock */
                else if(strstr(ppdf->symTabName().c_str(), "GetDefaultSLock") != NULL)
                {
-                  image_parRegion * iPar = new image_parRegion(ah.getCurrentAddress(),this);
-                  iPar->setRegionType(OMP_CRITICAL);
-		      
                   InstrucIter ah2(ah.getCurrentAddress(), this);
                   while (ah2.hasMore())
                   {
@@ -558,11 +527,7 @@ void image_func::parseOMPFunc(bool hasLoop)
                      }
                      ah2++;
                   }
-                  iPar->setLastInsn(ah2.getCurrentAddress());
-
-                  iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
-		      
-		  parRegionsList.push_back(iPar);
+                  addParRegion(ah.getCurrentAddress(), ah2.getCurrentAddress(), OMP_CRITICAL);
                }
                /*Atomic Construct,  Begins with GetAtomicLock, ends with RelAtomicLock */
                else if(strstr(ppdf->symTabName().c_str(), "GetAtomicLock") != NULL)
@@ -613,12 +578,12 @@ void image_func::parseOMPFunc(bool hasLoop)
    clobbers more registers so more analysis would be needed */
 void image_func::calcUsedRegs()
 {
-#if !defined(cap_instruction_api)    
    if (usedRegisters != NULL)
       return; 
    else
    {
       usedRegisters = new image_func_registers();
+#if !defined(cap_instruction_api)
       InstrucIter ah(this);
       
       //while there are still instructions to check for in the
@@ -639,10 +604,39 @@ void image_func::calcUsedRegs()
                usedRegisters->floatingPointRegisters.insert(ah.getRAValue());
          ah++;
       }
-   }
 #else
-#warning "!!! FIXME: convert image-power.C to use IAPI !!!"
+    using namespace Dyninst::InstructionAPI;
+    std::set<RegisterAST::Ptr> writtenRegs;
+    for(std::set<image_basicBlock*>::const_iterator curBlock = blockList.begin();
+       curBlock != blockList.end();
+       ++curBlock)
+    {
+        InstructionDecoder::Ptr d = makeDecoder(img()->getArch(),
+                (const unsigned char*)getPtrToInstruction((*curBlock)->firstInsnOffset()),
+                (*curBlock)->getSize());
+        Instruction::Ptr i;
+        while(i = d->decode())
+        {
+            i->getWriteSet(writtenRegs);
+        }
+    }
+    for(std::set<RegisterAST::Ptr>::const_iterator curReg = writtenRegs.begin();
+        curReg != writtenRegs.end();
+       ++curReg)
+    {
+        MachRegister r = (*curReg)->getID();
+        if((r & ppc32::GPR) && (r <= ppc32::r13))
+        {
+            usedRegisters->generalPurposeRegisters.insert(r & 0xFFFF);
+        }
+        else if(((r & ppc32::FPR) && (r <= ppc32::fpr13)) ||
+                  ((r & ppc32::FSR) && (r <= ppc32::fsr13)))
+        {
+            usedRegisters->floatingPointRegisters.insert(r & 0xFFFF);
+        }
+    }
 #endif
+   }
    return;
 }
 #if !defined(cap_instruction_api)

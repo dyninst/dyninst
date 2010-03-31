@@ -54,13 +54,20 @@ namespace Dyninst
   namespace InstructionAPI
   {
 
+      int Instruction::numInsnsAllocated = 0;
     INSTRUCTION_EXPORT Instruction::Instruction(Operation::Ptr what,
 			     size_t size, const unsigned char* raw,
                              dyn_detail::boost::shared_ptr<InstructionDecoder> dec)
       : m_InsnOp(what), m_Valid(true), m_dec(dec)
     {
         copyRaw(size, raw);
-      
+#if defined(DEBUG_INSN_ALLOCATIONS)
+        numInsnsAllocated++;
+        if((numInsnsAllocated % 1000) == 0)
+        {
+            fprintf(stderr, "Instruction CTOR, %d insns allocated\n", numInsnsAllocated);
+        }
+#endif    
     }
 
     void Instruction::copyRaw(size_t size, const unsigned char* raw)
@@ -96,6 +103,13 @@ namespace Dyninst
     INSTRUCTION_EXPORT Instruction::Instruction() :
       m_Valid(false), m_size(0)
     {
+#if defined(DEBUG_INSN_ALLOCATIONS)
+        numInsnsAllocated++;
+        if((numInsnsAllocated % 1000) == 0)
+        {
+            fprintf(stderr, "Instruction CTOR, %d insns allocated\n", numInsnsAllocated);
+        }
+#endif
     }
     
     INSTRUCTION_EXPORT Instruction::~Instruction()
@@ -104,7 +118,13 @@ namespace Dyninst
       {
 	delete[] m_RawInsn.large_insn;
       }
-      
+#if defined(DEBUG_INSN_ALLOCATIONS)
+      numInsnsAllocated--;
+      if((numInsnsAllocated % 1000) == 0)
+      {
+          fprintf(stderr, "Instruction DTOR, %d insns allocated\n", numInsnsAllocated);
+      }
+#endif      
     }
 
     INSTRUCTION_EXPORT Instruction::Instruction(const Instruction& o) :
@@ -131,6 +151,13 @@ namespace Dyninst
 
       m_InsnOp = o.m_InsnOp;
       m_Valid = o.m_Valid;
+#if defined(DEBUG_INSN_ALLOCATIONS)
+      numInsnsAllocated++;
+      if((numInsnsAllocated % 1000) == 0)
+      {
+          fprintf(stderr, "Instruction COPY CTOR, %d insns allocated\n", numInsnsAllocated);
+      }
+#endif
     }
 
     INSTRUCTION_EXPORT const Instruction& Instruction::operator=(const Instruction& rhs)

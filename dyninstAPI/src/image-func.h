@@ -666,6 +666,7 @@ class image_func : public codeRange,
 
    //  OpenMP (and other parallel language) support
    pdvector<image_parRegion*> parRegionsList; /* vector of all parallel regions within function */
+    void addParRegion(Address begin, Address end, parRegType t);
    // End OpenMP support
 
 

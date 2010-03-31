@@ -192,7 +192,7 @@ BPatch_memoryAccess* BPatch_memoryAccessAdapter::convert(Instruction::Ptr insn,
                         dyn_detail::boost::dynamic_pointer_cast<RegisterAST>(insn->getOperand(0).getValue());
                 assert(byteOverride);
                 MachRegister base = byteOverride->getID().getBaseRegister();
-                unsigned int converted = base.val() & ~base.getArchitecture();
+                unsigned int converted = base.val() & 0xFFFF;
                 bytes = (32 - converted) << 2;
             }
             if(insn->getOperation().getID() == power_op_lswi ||
@@ -232,7 +232,7 @@ void BPatch_memoryAccessAdapter::visit(Dereference* d)
 void BPatch_memoryAccessAdapter::visit(RegisterAST* r)
 {
     MachRegister base = r->getID().getBaseRegister();
-    unsigned int converted = base.val() & ~base.getArchitecture();
+    unsigned int converted = base.val() & 0xFFFF;
     if((ra == -1) && !setImm) {
         ra = converted;
         return;

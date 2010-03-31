@@ -984,8 +984,16 @@ bool image_func::isLeafFunc() {
     return calls.size() > 0;
 }
 
+void image_func::addParRegion(Address begin, Address end, parRegType t)
+{
+    image_parRegion * iPar = new image_parRegion(begin, this);
+    iPar->setRegionType(t);
+    iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
+    iPar->setLastInsn(end);
+    parRegionsList.push_back(iPar);
+}
 
-#if defined(cap_instruction_api) 
+#if defined(cap_instruction_api)
 void image_basicBlock::getInsnInstances(std::vector<std::pair<InstructionAPI::Instruction::Ptr, Offset> >&instances) {
     using namespace InstructionAPI;
     Offset off = firstInsnOffset();

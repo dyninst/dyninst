@@ -659,6 +659,8 @@ void instruction::setInstruction(codeBuf_t *ptr, Address) {
 #if defined(endian_mismatch)
     // Read an instruction from source.  Convert byte order if necessary.
     insn_.raw = swapBytesIfNeeded((*insnPtr).raw);
+#else
+    insn_.raw = (*insnPtr).raw;
 #endif
 }
 void instruction::setInstruction(unsigned char *ptr, Address) {
@@ -673,6 +675,8 @@ void instruction::generate(codeGen &gen) {
 #if defined(endian_mismatch)
     // Writing an instruction.  Convert byte order if necessary.
     (*ptr).raw = swapBytesIfNeeded(insn_.raw);
+#else
+    (*ptr).raw = insn_.raw;
 #endif
 }
 

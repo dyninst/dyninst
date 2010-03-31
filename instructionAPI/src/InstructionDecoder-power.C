@@ -43,6 +43,7 @@ namespace Dyninst
       typedef std::vector< operandFactory > operandSpec;
       typedef const power_entry&(InstructionDecoder_power::*nextTableFunc)();
       typedef std::map<unsigned int, power_entry> power_table;
+      bool InstructionDecoder_power::foundDoubleHummerInsn = false;
       struct power_entry
       {
         power_entry(entryID o, const char* m, nextTableFunc next, operandSpec ops) :
@@ -108,6 +109,7 @@ namespace Dyninst
         MachRegister regID = makePowerRegID(ppc32::fsr0, field<6, 10>(insn));
         insn_in_progress->appendOperand(makeRegisterExpression(regID), false, true);
         isRAWritten = false;
+        foundDoubleHummerInsn = true;
     }
     void InstructionDecoder_power::FRSP()
     {
@@ -120,6 +122,7 @@ namespace Dyninst
         MachRegister regID = makePowerRegID(ppc32::fsr0, field<6, 10>(insn));
         insn_in_progress->appendOperand(makeRegisterExpression(regID), true, false);
         isRAWritten = true;
+        foundDoubleHummerInsn = true;
     }
     void InstructionDecoder_power::FRAP()
     {
@@ -131,6 +134,7 @@ namespace Dyninst
         isFPInsn = true;
         MachRegister regID = makePowerRegID(ppc32::fsr0, field<11, 15>(insn));
         insn_in_progress->appendOperand(makeRegisterExpression(regID), !isRAWritten, isRAWritten);
+        foundDoubleHummerInsn = true;
     }
     void InstructionDecoder_power::FRBP()
     {
@@ -142,6 +146,7 @@ namespace Dyninst
         isFPInsn = true;
         MachRegister regID = makePowerRegID(ppc32::fsr0, field<16, 20>(insn));
         insn_in_progress->appendOperand(makeRegisterExpression(regID), true, false);
+        foundDoubleHummerInsn = true;
     }
     void InstructionDecoder_power::FRCP()
     {
@@ -153,6 +158,7 @@ namespace Dyninst
         isFPInsn = true;
         MachRegister regID = makePowerRegID(ppc32::fsr0, field<21, 25>(insn));
         insn_in_progress->appendOperand(makeRegisterExpression(regID), true, false);
+        foundDoubleHummerInsn = true;
     }
 
 

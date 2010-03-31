@@ -282,6 +282,7 @@ namespace Dyninst
       Architecture arch_decoded_from;
       mutable std::list<CFT> m_Successors;
       dyn_detail::boost::shared_ptr<InstructionDecoder> m_dec;
+      static int numInsnsAllocated;
       
     };
   };

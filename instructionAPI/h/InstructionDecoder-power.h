@@ -54,6 +54,7 @@ namespace Dyninst {
                 virtual void setMode(bool is64);
                 virtual bool decodeOperands(const Instruction* insn_to_complete);
                 virtual void doDelayedDecode(const Instruction* insn_to_complete);
+                static bool foundDoubleHummerInsn;
             private:
                 virtual Result_Type makeSizeType(unsigned int opType);
                 Expression::Ptr makeMemRefIndex(Result_Type size);

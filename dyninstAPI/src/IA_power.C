@@ -274,6 +274,7 @@ bool IA_IAPI::parseJumpTable(image_basicBlock* currBlk,
   // If there are no prior instructions then we can't be looking at a
   // jump through a jump table.
   if(allInsns.size() < 2) {
+      parsing_printf("%s[%d]: allInsns.size() == %d, ret false", FILE__, __LINE__, allInsns.size());
       return false;
   }  
   
@@ -297,6 +298,8 @@ bool IA_IAPI::parseJumpTable(image_basicBlock* currBlk,
   }
   else
   {
+      parsing_printf("%s[%d]: couldn't find mtspr at prev insn %s, ret false", FILE__, __LINE__,
+                     patternIter->second->format().c_str());
       return false;
   }
   // In the pattern we've seen, if the instruction previous to this is
@@ -434,24 +437,55 @@ bool IA_IAPI::parseJumpTable(image_basicBlock* currBlk,
 
   // We could also set this = jumpStartAddress...
       if (tableStartAddress == 0)  {
+          parsing_printf("%s[%d]: couldn't find table start addr, ret false\n", FILE__, __LINE__);
           return false;
       }
+      parsing_printf("%s[%d]: table start addr is 0x%x\n", FILE__, __LINE__, tableStartAddress);
       int maxSwitch = 0;
     
-      while( patternIter != allInsns.begin() ) {
+      pdvector<image_edge*> sourceEdges;
+      currBlk->getSources(sourceEdges);
+      if(sourceEdges.size() != 1) {
+          parsing_printf("%s[%d]: jump table not properly guarded, ret false\n", FILE__, __LINE__);
+          return false;
+      }
+      image_basicBlock* sourceBlock = sourceEdges[0]->getSource();
+      Address blockStart = sourceBlock->firstInsnOffset();
+      const unsigned char* b = (const unsigned char*)(img->getPtrToInstruction(blockStart, context));
+      InstructionDecoder::Ptr dec = makeDecoder(img->getArch(), b, sourceBlock->getSize());
+      IA_IAPI prevBlock(dec, blockStart, context);
+      while(!prevBlock.hasCFT()) {
+          prevBlock.advance();
+      }
+      
+      parsing_printf("%s[%d]: checking for max switch...\n", FILE__, __LINE__);
+      patternIter = prevBlock.curInsnIter;
+      while( patternIter != prevBlock.allInsns.begin() ) {
+          parsing_printf("\t\tchecking insn 0x%x: %s for cond branch\n", patternIter->first,
+                            patternIter->second->format().c_str());
           if(patternIter->second->getOperation().getID() == power_op_bc) // make this a true cond. branch check
           {
-              patternIter--;
-              if(patternIter != allInsns.begin() && patternIter->second->getOperation().getID() == power_op_cmpi)
+              if(patternIter != prevBlock.allInsns.begin())
               {
-                  maxSwitch = patternIter->second->getOperand(2).getValue()->eval().convert<int>() + 1;
-                  break;
+                  patternIter--;
+                  parsing_printf("\t\tchecking insn 0x%x: %s for compare\n", patternIter->first,
+                                 patternIter->second->format().c_str());
+                  if(patternIter->second->getOperation().getID() == power_op_cmpi ||
+                     patternIter->second->getOperation().getID() == power_op_cmpli)
+                  {
+                      maxSwitch = patternIter->second->getOperand(2).getValue()->eval().convert<int>() + 1;
+                      break;
+                  }
+              }
+              else
+              {
+                  parsing_printf("\t\t ******** prevBlock.allInsns begins with cond branch!\n");
               }
           }
           patternIter--;
       }
 
-//fprintf(stderr, "After checking: max switch %d\n", maxSwitch);
+      parsing_printf("%s[%d]: After checking: max switch %d\n", FILE__, __LINE__, maxSwitch);
       if(!maxSwitch){
           return false;
       }
@@ -464,19 +498,19 @@ bool IA_IAPI::parseJumpTable(image_basicBlock* currBlk,
       {
               if (tableIsRelative) {
                   void *jumpStartPtr = img->getPtrToData(jumpStartAddress);
-        //fprintf(stderr, "jumpStartPtr (0x%lx) = %p\n", jumpStartAddress, jumpStartPtr);
+                  parsing_printf("%s[%d]: jumpStartPtr (0x%lx) = %p\n", FILE__, __LINE__, jumpStartAddress, jumpStartPtr);
                   if (jumpStartPtr)
                       jumpStart = (is64
                               ? *((Address  *)jumpStartPtr)
                       : *((uint32_t *)jumpStartPtr));
-        //fprintf(stderr, "jumpStart 0x%lx, initialAddr 0x%lx\n",
-        //      jumpStart, initialAddress);
+                  parsing_printf("%s[%d]: jumpStart 0x%lx, initialAddr 0x%lx\n",
+                                 FILE__, __LINE__, jumpStart, initialAddress);
                   if (jumpStartPtr == NULL) {
                       return false;
                   }
               }
               void *tableStartPtr = img->getPtrToData(tableStartAddress);
-      //fprintf(stderr, "tableStartPtr (0x%lx) = %p\n", tableStartAddress, tableStartPtr);
+              parsing_printf("%s[%d]: tableStartPtr (0x%lx) = %p\n", FILE__, __LINE__, tableStartAddress, tableStartPtr);
               tableStart = *((Address *)tableStartPtr);
               if (tableStartPtr)
                   tableStart = (is64
@@ -485,45 +519,53 @@ bool IA_IAPI::parseJumpTable(image_basicBlock* currBlk,
               else {
                   return false;
               }
-      //fprintf(stderr, "... tableStart 0x%lx\n", tableStart);
+              parsing_printf("\t... tableStart 0x%lx\n", tableStart);
       
       // We're getting an absolute out of the TOC. Figure out
       // whether we're in code or data.
               const fileDescriptor &desc = img->desc();
               Address textStart = desc.code();
               Address dataStart = desc.data();
+              parsing_printf("\t... text start 0x%lx, data start 0x%lx\n", textStart, dataStart);
       
       // I think this is valid on ppc64 linux.  dataStart and codeStart can be 0.
       // assert(jumpStart < dataStart);
       
               bool tableData = false;
       
-                if (tableStart > dataStart) {
+/*                if (tableStart > dataStart) {
                     tableData = true;
                     tableStart -= dataStart;
-        //fprintf(stderr, "Table in data, offset 0x%lx\n", tableStart);
+                    parsing_printf("\tTable in data, offset 0x%lx\n", tableStart);
                 }
                 else {
                     tableData = false;
                     tableStart -= textStart;
-        //fprintf(stderr, "Table in text, offset 0x%lx\n", tableStart);
+                    parsing_printf("\tTable in text, offset 0x%lx\n", tableStart);
                 }
-      
+*/      
               for(int i=0;i<maxSwitch;i++){
                   Address tableEntry = adjustEntry + tableStart + (i * instruction::size());
-        //fprintf(stderr, "Table entry at 0x%lx\n", tableEntry);
+                  parsing_printf("\t\tTable entry at 0x%lx\n", tableEntry);
                   if (img->isValidAddress(tableEntry)) {
-                      int jumpOffset = *((int *)img->getPtrToData(tableEntry));
+                      int jumpOffset;
+                      if (tableData) {
+                          jumpOffset = *((int *)img->getPtrToData(tableEntry));
+                      }
+                      else {
+                          jumpOffset = *((int *)img->getPtrToInstruction(tableEntry));
+                      }
           
-          //fprintf(stderr, "jumpOffset 0x%lx\n", jumpOffset);
+                      parsing_printf("\t\t\tjumpOffset 0x%lx\n", jumpOffset);
                       Address res = (Address)(jumpStart + jumpOffset);
 
-                      if (img->isCode(res))
+                      if (img->isCode(res)) {
                           outEdges.push_back(std::make_pair((Address)(jumpStart+jumpOffset), ET_INDIR));
-          //fprintf(stderr, "Entry of 0x%lx\n", (Address)(jumpStart + jumpOffset));
+                          parsing_printf("\t\t\tEntry of 0x%lx\n", (Address)(jumpStart + jumpOffset));
+                      }
                   }
                   else {
-          //fprintf(stderr, "Address not valid!\n");
+                    parsing_printf("\t\tAddress not valid!\n");
                   }
               }
       }
@@ -548,9 +590,10 @@ bool IA_IAPI::parseJumpTable(image_basicBlock* currBlk,
           }
           if(!entriesAdded)
           {
+              parsing_printf("%s[%d]: no entries added from jump table, returning false\n", FILE__, __LINE__);
               return false;
           }
-    //fprintf(stderr, "Found %d entries in jump table, returning success\n", entriesAdded);
+          parsing_printf("%s[%d]: Found %d entries in jump table, returning success\n", FILE__, __LINE__, entriesAdded);
       }
 
   // Sanity check entries in res
@@ -622,6 +665,30 @@ bool IA_IAPI::isTailCall(unsigned int) const
 
 bool IA_IAPI::checkEntry() const
 {
+    // XXX Cheating a little -- this has nothing to do with the
+    // "check entry" as seen on x86 & sparc, but is just a convenient place
+    // to put this code.
+
+    parsing_printf("calling archCheckEntry for 0x%lx, function %s\n", current, context->symTabName().c_str());
+
+#if defined(UNDEF)    
+    if (isReturnValueSave())
+        context->makesNoCalls_ = false;
+    else
+        context->makesNoCalls_ = true;
+
+    // end cheating
+
+    if (!ah.getInstruction().valid()) return false;
+
+    // We see if we're a procedure linkage table; if so, we are _not_
+    // a function (and return false)
+#endif
+    // We don't consider linkage snippets "functions". 
+    dictionary_hash<Address, std::string> *pltFuncs = img->getPltFuncs();
+    if (pltFuncs && pltFuncs->defines(current)) {
+        return false;
+    }
     return true;
 }
 

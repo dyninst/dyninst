@@ -111,7 +111,8 @@ bool image::analyzeImage()
 #if defined(arch_x86) || defined(arch_x86_64)
     arch = (getObject()->getAddressWidth() == 8) ? Dyninst::Arch_x86_64 : Dyninst::Arch_x86;
 #elif defined(arch_power)
-    arch = (getObject()->getAddressWidth() == 8) ? Dyninst::Arch_ppc64 : Dyninst::Arch_ppc32;
+#warning "FORCING ARCH TO POWER_32"
+    arch = (getObject()->getAddressWidth() == 8) ? Dyninst::Arch_ppc32 : Dyninst::Arch_ppc32;
 #else
     arch = Dyninst::Arch_none;
 #endif
