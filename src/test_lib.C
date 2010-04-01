@@ -700,7 +700,7 @@ void dprintf(const char *fmt, ...) {
 
 // Build Architecture specific libname
 // FIXME Is this used any more?  Is it necessary?
-void addLibArchExt(char *dest, unsigned int dest_max_len, int psize)
+void addLibArchExt(char *dest, unsigned int dest_max_len, int psize, bool isStatic)
 {
    int dest_len;
 
@@ -730,8 +730,13 @@ void addLibArchExt(char *dest, unsigned int dest_max_len, int psize)
    strncat(dest, ".dll", dest_max_len - dest_len);
    dest_len += 4;
 #else
-   strncat(dest, ".so", dest_max_len - dest_len);
-   dest_len += 3;
+   if( isStatic ) {
+       strncat(dest, ".a", dest_max_len - dest_len);
+       dest_len += 2;
+   }else{
+       strncat(dest, ".so", dest_max_len - dest_len);
+       dest_len += 3;
+   }
 #endif
 }
 

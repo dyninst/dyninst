@@ -137,6 +137,9 @@ bool runMP = true;
 bool runSP = true;
 bool setP = false;
 bool runProcControl = false;
+bool runDynamicLink = false;
+bool runStaticLink = false;
+bool runAllLinks = true;
 int limitResumeGroup = -1;
 int limitResumeTest = -1;
 int skipToTest = 0;
@@ -279,7 +282,7 @@ void setupProcessGroup()
 
 #endif
 
-void printLogMutateeHeader(const char *mutatee)
+void printLogMutateeHeader(const char *mutatee, test_linktype_t linktype)
 {
    if (!enableLogging)
       return;
@@ -292,7 +295,10 @@ void printLogMutateeHeader(const char *mutatee)
 #if !defined(os_windows_test)
       if ( pdscrdir ) {
          runScript("ls -lLF %s", mutatee);
-         runScript("%s/ldd_PD %s", pdscrdir, mutatee);
+         if( linktype == DynamicLink ) 
+            runScript("%s/ldd_PD %s", pdscrdir, mutatee);
+         else
+            getOutput()->log(LOGINFO, "%s: statically linked\n", mutatee);
       }
 #endif
    } else {
@@ -596,6 +602,15 @@ void disableUnwantedTests(std::vector<RunGroup *> groups)
             groups[i]->disabled = true;
          }
       }
+   }
+   if( !runAllLinks && (!runDynamicLink || !runStaticLink) ) {
+       for (unsigned i = 0; i < groups.size(); i++) {
+           if( (!runStaticLink && groups[i]->linktype == StaticLink) ||
+               (!runDynamicLink && groups[i]->linktype == DynamicLink) )
+           {
+               groups[i]->disabled = true;
+           }
+       }
    }
 
 #if defined(cap_32_64_test)
@@ -931,7 +946,7 @@ void startAllTests(std::vector<RunGroup *> &groups,
       initModuleIfNecessary(groups[i], groups, param);
 
       // Print mutatee (run group) header
-      printLogMutateeHeader(groups[i]->mutatee);
+      printLogMutateeHeader(groups[i]->mutatee, groups[i]->linktype);
 
       int before_group = numUnreportedTests(groups[i]);
       if (!before_group)
@@ -1407,6 +1422,7 @@ int parseArgs(int argc, char *argv[])
          runAttach = true;
          runDeserialize = true;
          runRewriter = true;
+         runAllLinks = true;
          runAllCompilers = true;
          runAllComps = true;
       }
@@ -1417,6 +1433,7 @@ int parseArgs(int argc, char *argv[])
          runAttach = true;
          runDeserialize = true;
          runRewriter = true;
+         runAllLinks = true;
          runAllCompilers = true;
          runAllComps = true;
          optLevel = opt_all;
@@ -1623,6 +1640,14 @@ int parseArgs(int argc, char *argv[])
          if (!setP)
             runMP = false;
          setP = true;
+      }
+      else if( strcmp(argv[i], "-dynamiclink") == 0) {
+          runDynamicLink = true;
+          runAllLinks = false;
+      }
+      else if( strcmp(argv[i], "-staticlink") == 0) {
+          runStaticLink = true;
+          runAllLinks = false;
       }
       else
       {
