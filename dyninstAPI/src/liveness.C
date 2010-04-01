@@ -574,7 +574,23 @@ ReadWriteInfo calcRWSets(Instruction::Ptr curInsn, image_basicBlock* blk, unsign
     //liveness_printf("%s \n", (*i)->format().c_str());
 #if defined(arch_x86) || defined(arch_x86_64)
         bool unused;
-    ret.read[convertRegID(*i, unused)] = true;
+        Register converted = convertRegID(*i, unused);
+        if(converted != REGNUM_EFLAGS)
+        {
+            ret.read[converted] = true;
+        }
+        else
+        {
+            ret.read[REGNUM_OF] = true;
+            ret.read[REGNUM_CF] = true;
+            ret.read[REGNUM_PF] = true;
+            ret.read[REGNUM_AF] = true;
+            ret.read[REGNUM_ZF] = true;
+            ret.read[REGNUM_SF] = true;
+            ret.read[REGNUM_DF] = true;
+            ret.read[REGNUM_TF] = true;
+            ret.read[REGNUM_NT] = true;
+        }
 #else
     int id = convertRegID((*i)->getID());
     if(id != registerSpace::ignored)
@@ -592,8 +608,23 @@ ReadWriteInfo calcRWSets(Instruction::Ptr curInsn, image_basicBlock* blk, unsign
 #if defined(arch_x86) || defined(arch_x86_64)
     bool treatAsRead = false;
     Register r = convertRegID(*i, treatAsRead);
-    ret.written[r] = true;
-    if(treatAsRead) ret.read[r] = true;
+    if(r != REGNUM_EFLAGS)
+    {
+        ret.written[r] = true;
+        if(treatAsRead) ret.read[r] = true;
+    }
+    else
+    {
+        ret.written[REGNUM_OF] = true;
+        ret.written[REGNUM_CF] = true;
+        ret.written[REGNUM_PF] = true;
+        ret.written[REGNUM_AF] = true;
+        ret.written[REGNUM_ZF] = true;
+        ret.written[REGNUM_SF] = true;
+        ret.written[REGNUM_DF] = true;
+        ret.written[REGNUM_TF] = true;
+        ret.written[REGNUM_NT] = true;
+    }
         
 #else
     

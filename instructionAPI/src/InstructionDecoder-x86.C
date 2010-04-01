@@ -832,7 +832,7 @@ namespace Dyninst
                     case am_reg:
                     {
                         MachRegister r(operand.optype);
-                        r = MachRegister(r.val() & ~r.getArchitecture() | m_Arch);
+                        r = MachRegister((r.val() & ~r.getArchitecture()) | m_Arch);
                         if(locs->rex_b)
                         {
                             r = MachRegister((r.val()) | x86_64::r8.val());
