@@ -18,6 +18,8 @@
                   comp_mut/2, compiler_platform/2,
                   mcomp_plat/2, test_runmode/2, 
                   test_threadmode/2, test_processmode/2, threadmode/1, processmode/1,
+                  mutatee_format/2, format_runmode/3, platform_format/2, 
+                  compiler_format/2, test_exclude_format/2,
                   test_serializable/1, comp_std_flags_str/2,
                   comp_mutatee_flags_str/2, test_runs_everywhere/1,
                   mutatee_special_make_str/2, mutatee_special_requires/2,
@@ -33,6 +35,7 @@
                   compiler_platform_abi_s/4, test_platform_abi/3,
                   restricted_amd64_abi/1, compiler_presence_def/2,
                   restricted_abi_for_arch/3, insane/2, module/1,
+                  compiler_static_link/3, compiler_dynamic_link/3,
                   tests_module/2, mutator_requires_libs/2]).
 
 %%%%%%%%%%
@@ -127,6 +130,7 @@ mutatee('dyninst_group_test', ['test1_1_mutatee.c',
     ]).
 compiler_for_mutatee('dyninst_group_test', Compiler) :-
     comp_lang(Compiler, 'c').
+mutatee_format('dyninst_group_test', 'staticMutatee').
 
 mutatee('dyninst_cxx_group_test', ['test5_1_mutatee.C',
 	'test5_2_mutatee.C',
@@ -140,6 +144,7 @@ mutatee('dyninst_cxx_group_test', ['test5_1_mutatee.C',
     ], ['cpp_test.C']).
 compiler_for_mutatee('dyninst_cxx_group_test', Compiler) :-
     comp_lang(Compiler, 'c++').
+mutatee_format('dyninst_cxx_group_test', 'staticMutatee').
 
 mutatee('symtab_group_test', [
    'test_lookup_func_mutatee.c',
@@ -291,6 +296,7 @@ test_runmode('test1_14', 'staticdynamic').
 test_start_state('test1_14', 'stopped').
 tests_module('test1_14', 'dyninst').
 groupable_test('test1_14').
+mutatee_format('test1_14', 'staticMutatee').
 
 test('test1_15', 'test1_15', 'test1_15').
 test_description('test1_15', 'setMutationsActive').
@@ -368,6 +374,7 @@ mutatee_requires_libs('dyninst_group_test', ['dl']).
 test_runmode('test1_22', 'staticdynamic').
 test_start_state('test1_22', 'stopped').
 tests_module('test1_22', 'dyninst').
+test_exclude_format('test1_22', 'staticMutatee').
 
 test('snip_ref_shlib_var', 'snip_ref_shlib_var', 'dyninst_group_test').
 test_description('snip_ref_shlib_var', 'Inst references variable in shared lib').
@@ -377,6 +384,7 @@ mutator('snip_ref_shlib_var', ['snip_ref_shlib_var.C']).
 test_runmode('snip_ref_shlib_var', 'staticdynamic').
 test_start_state('snip_ref_shlib_var', 'stopped').
 tests_module('snip_ref_shlib_var', 'dyninst').
+test_exclude_format('snip_ref_shlib_var', 'staticMutatee').
 
 test('snip_change_shlib_var', 'snip_change_shlib_var', 'dyninst_group_test').
 test_description('snip_change_shlib_var', 'Inst modifies variable in shared lib').
@@ -386,6 +394,7 @@ mutator('snip_change_shlib_var', ['snip_change_shlib_var.C']).
 test_runmode('snip_change_shlib_var', 'staticdynamic').
 test_start_state('snip_change_shlib_var', 'stopped').
 tests_module('snip_change_shlib_var', 'dyninst').
+test_exclude_format('snip_change_shlib_var', 'staticMutatee').
 
 % test_snip_remove
 test('test_snip_remove', 'test_snip_remove', 'test_snip_remove').
@@ -483,6 +492,7 @@ compiler_for_mutatee('test1_29', Compiler) :-
 test_runmode('test1_29', 'staticdynamic').
 test_start_state('test1_29', 'stopped').
 tests_module('test1_29', 'dyninst').
+mutatee_format('test1_29', 'staticMutatee').
 
 test('test1_30', 'test1_30', 'dyninst_group_test').
 test_description('test1_30', 'Line Information').
@@ -567,6 +577,7 @@ test_runmode('test1_35', 'staticdynamic').
 test_start_state('test1_35', 'stopped').
 restricted_amd64_abi('test1_35').
 tests_module('test1_35', 'dyninst').
+mutatee_format('test1_35', 'staticMutatee').
 
 test('test1_36', 'test1_36', 'dyninst_group_test').
 test_description('test1_36', 'Callsite Parameter Referencing').
@@ -2517,6 +2528,24 @@ parameter_values('mutatee_abi', Values) :-
 mutatee_abi(32).
 mutatee_abi(64).
 
+% platform_format (Platform, Format)
+platform_format(_, 'dynamicMutatee').
+platform_format(P, 'staticMutatee') :- platform('i386', 'linux', _, P).
+platform_format(P, 'staticMutatee') :- platform('x86_64', 'linux', _, P).
+
+% compiler_format (Compiler, Format)
+compiler_format(_, 'dynamicMutatee').
+% For the time being, static mutatees only built for GNU compilers
+compiler_format('g++', 'staticMutatee').
+compiler_format('gcc', 'staticMutatee').
+compiler_format('g77', 'staticMutatee').
+
+% format_runmode (Platform, RunMode, Format)
+format_runmode(_, 'binary', 'staticMutatee').
+format_runmode(_, 'binary', 'dynamicMutatee').
+format_runmode(_, 'createProcess', 'dynamicMutatee').
+format_runmode(_, 'useAttach', 'dynamicMutatee').
+
 % Platform ABI support
 % Testing out how this looks with whitelist clauses
 % NOTE: The parameter_values / whitelise / blacklist system has not been
@@ -2842,6 +2871,11 @@ mutatee_link_options(Native_cxx, '$(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_N
 mutatee_link_options('VC', '$(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)').
 mutatee_link_options('VC++', '$(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)').
 
+% Static and dynamic linking
+compiler_static_link('g++', P, '-static') :- platform(_,'linux', _, P).
+compiler_static_link('gcc', P, '-static') :- platform(_,'linux', _, P).
+compiler_dynamic_link(_, _, '').
+
 % Specify the standard flags for each compiler
 comp_std_flags_str('gcc', '$(CFLAGS)').
 comp_std_flags_str('g++', '$(CXXFLAGS)').
@@ -3085,6 +3119,11 @@ runmode('useAttach').
 runmode('binary').
 
 % runmode('deserialize').
+
+% mutaee_format/2
+% mutatee_format(?Mutatee, ?Format)
+% For now, all mutatees compiled dynamically
+mutatee_format(_, 'dynamicMutatee').
 
 % test_runmode/2
 % test_runmode(?Test, ?Runmode)
