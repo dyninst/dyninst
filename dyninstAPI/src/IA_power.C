@@ -369,6 +369,7 @@ bool IA_IAPI::parseJumpTable(image_basicBlock* currBlk,
                   tableStartAddress = 0;
               }
           }
+          jumpStartAddress = tableStartAddress;
       }
       else if (tableIsRelative) {
           while(patternIter != allInsns.begin())
