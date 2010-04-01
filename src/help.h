@@ -97,6 +97,10 @@ static void print_help()
    fprintf(stderr, "  -32                               Run mutatees that use a 32 bit ABI\n");
    fprintf(stderr, "  -64                               Run mutatees that use a 64 bit ABI\n");
    fprintf(stderr, "\n");
+   fprintf(stderr, "Link Types\n");
+   fprintf(stderr, "  -dynamiclink                      Run mutatees that are dynamically linked\n");
+   fprintf(stderr, "  -staticlink                       Run mutatees that are statically linked\n");
+   fprintf(stderr, "\n");   
    fprintf(stderr, "Other\n");
    fprintf(stderr, "  -all                              The same as '-allmode', '-allcomp', and \n");
    fprintf(stderr, "                                    '-allcompilers'.\n");

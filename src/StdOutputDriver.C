@@ -79,6 +79,7 @@ void StdOutputDriver::redirectStream(TestOutputStream stream, const char *filena
   }
 }
 
+#define MAX_PRINTED_TESTNAME_LEN 18
 void StdOutputDriver::logResult(test_results_t result, int stage) {
    // TODO Finish me.  I can probably copy the final output stuff from
    // test_driver.C into here.
@@ -107,25 +108,67 @@ void StdOutputDriver::logResult(test_results_t result, int stage) {
       run_mode_str = "rewriter";
    else
       run_mode_str = orig_run_mode_str;
+
+   const char *linkage_str = NULL;
+   if( (*attributes)["format"] == std::string("staticMutatee") )
+       linkage_str = "static";
+   else
+       linkage_str = "dynamic";
+
+   char thread_str[5];
+   if (last_group->threadmode == TNone && last_group->procmode == PNone) {
+      strncpy(thread_str, "none", 5);
+   }
+   else {
+      if (last_group->procmode == SingleProcess)
+         thread_str[0] = 'S';
+      else if (last_group->procmode == MultiProcess)
+         thread_str[0] = 'M';
+      else
+         thread_str[0] = 'N';
+      thread_str[1] = 'P';
+      if (last_group->threadmode == SingleThreaded)
+         thread_str[2] = 'S';
+      else if (last_group->threadmode == MultiThreaded)
+         thread_str[2] = 'M';
+      else
+         thread_str[2] = 'N';
+      thread_str[3] = 'T';
+      thread_str[4] = '\0';
+   }
+
    assert(last_test && last_group);
 
    int max_name_len = TestInfo::getMaxTestNameLength();
    if (!max_name_len)
 	   max_name_len = strlen(last_test->name);
-   char *name_align_buffer = (char *) malloc(max_name_len);
+   char *name_align_buffer = (char *) malloc(max_name_len+2);
+   memset(name_align_buffer, 0, max_name_len+2);
    //  fill name_align_buffer with max_length - test_name->length() spaces.
    unsigned int i = 0;
    for (; i < (max_name_len - strlen(last_test->name)); ++i)
    {
 	   name_align_buffer[i] = ' ';
    }
-   name_align_buffer[i] = '\0';
+   strcpy(name_align_buffer, last_test->name);
+   name_align_buffer[strlen(last_test->name)] = ':';
+   name_align_buffer[max_name_len+1] = '\0';
+
+#if defined(MAX_PRINTED_TESTNAME_LEN)
+   if (name_align_buffer[MAX_PRINTED_TESTNAME_LEN] != '\0')
+   {
+      name_align_buffer[MAX_PRINTED_TESTNAME_LEN] = ':';
+      name_align_buffer[MAX_PRINTED_TESTNAME_LEN] = '\0';      
+   }
+#endif
 #if defined(cap_32_64_test)
-   fprintf(out, "%s:%s compiler: %s\topt: %s\tabi: %s\tmode: %-10s\tresult: ",
-           last_test->name, name_align_buffer, last_group->compiler, last_group->optlevel, last_group->abi, run_mode_str);
+   fprintf(out, "%s compiler: %-3s  opt: %-4s  abi: %-2s  mode: %-10s thread: %4s link: %-7s  result: ",
+           name_align_buffer, last_group->compiler, last_group->optlevel, last_group->abi, 
+           run_mode_str, thread_str, linkage_str);
 #else
-   fprintf(out, "%s:%s compiler: %s\topt: %s\tmode: %-10s\tresult: ",
-           last_test->name, name_align_buffer, last_group->compiler, last_group->optlevel, run_mode_str);
+   fprintf(out, "%s compiler: %-3s  opt: %-4s  mode: %-10s thread: %4s link: %-7s  result: ",
+           name_align_buffer, last_group->compiler, last_group->optlevel, run_mode_str, thread_str,
+           linkage_str);
 #endif
    free(name_align_buffer);
    switch(result) {

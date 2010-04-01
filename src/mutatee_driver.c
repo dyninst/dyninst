@@ -95,7 +95,7 @@ int debugPrint = 0;
 #define USAGE "Usage: mutatee [-attach <fd>] [-verbose] -run <num> .."
 
 void setRunTest(const char *testname) {
-  unsigned int i;
+  signed int i;
   if (NULL == testname) { /* Sanity check */
     return;
   }
@@ -159,7 +159,8 @@ void setLabel(unsigned int label_ndx, char *label) {
 int main(int iargc, char *argv[])
 {                                       /* despite different conventions */
    unsigned argc = (unsigned) iargc;   /* make argc consistently unsigned */
-   unsigned int i, j;
+   unsigned int i;
+   signed int j;
 #if !defined(i386_unknown_nt4_0_test)
    int pfd;
 #endif
