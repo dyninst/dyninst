@@ -376,7 +376,7 @@ void image::findMain()
        instruction i;
        while( c > 0 )
        {
-           i.setInstruction(&code_ptr_[ c ]);
+          i.setInstruction((codeBuf_t *) (&code_ptr_[ c ]));
 
            if(IFORM_LK(i) && 
               ((IFORM_OP(i) == Bop) || (BFORM_OP(i) == BCop) ||

@@ -1843,6 +1843,8 @@ static const std::string SYMTAB_CTOR_LIST_REL("__SYMTABAPI_CTOR_LIST__");
 static const std::string SYMTAB_DTOR_LIST_REL("__SYMTABAPI_DTOR_LIST__");
 
 bool BinaryEdit::doStaticBinarySpecialCases() {
+    Symtab *origBinary = mobj->parse_img()->getObject();
+
     /* Special Case 1: Handling global constructor and destructor Regions
      *
      * Replace global ctors function with special ctors function,
@@ -1885,7 +1887,8 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
         return false;
     }
 
-    /* Replace all calls to the global ctor and dtor handlers with the special
+    /* 
+     * Replace all calls to the global ctor and dtor handlers with the special
      * handler 
      */
     pdvector<int_function *> allFuncs;
@@ -2026,12 +2029,11 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
     bool isMTCapable = isMultiThreadCapable();
     bool foundPthreads = false;
 
-    Symtab *origBinary = mobj->parse_img()->getObject();
     vector<Archive *> libs;
+    vector<Archive *>::iterator libIter;
     if( origBinary->getLinkingResources(libs) ) {
-        vector<Archive *>::iterator lib_iter;
-        for(lib_iter = libs.begin(); lib_iter != libs.end(); ++lib_iter) {
-            if( (*lib_iter)->name().find("libpthread") != std::string::npos ) {
+        for(libIter = libs.begin(); libIter != libs.end(); ++libIter) {
+            if( (*libIter)->name().find("libpthread") != std::string::npos ) {
                 foundPthreads = true;
                 break;
             }
@@ -2050,6 +2052,31 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
             "the original binary is multithread-capable. Unexpected\n"
             "behavior may occur because some pthreads routines are\n"
             "unavailable in the original binary\n");
+    }
+
+    /* 
+     * Special Case 4:
+     * The RT library has some dependencies -- Symtab always needs to know
+     * about these dependencies. So if the dependencies haven't already been
+     * loaded, load them.
+     */
+    bool loadLibc = true;
+
+    for(libIter = libs.begin(); libIter != libs.end(); ++libIter) {
+        if( (*libIter)->name().find("libc") != std::string::npos ) {
+            loadLibc = false;
+        }
+    }
+
+    if( loadLibc ) {
+        std::map<std::string, BinaryEdit *> res = openResolvedLibraryName("libc.a");
+        std::map<std::string, BinaryEdit *>::iterator bedit_it;
+        for(bedit_it = res.begin(); bedit_it != res.end(); ++bedit_it) {
+            if( bedit_it->second == NULL ) {
+                logLine("Failed to load DyninstAPI_RT library dependency (libc.a)");
+                return false;
+            }
+        }
     }
 
     return true;

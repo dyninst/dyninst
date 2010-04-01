@@ -26,9 +26,6 @@ SRCS =          ../src/Object-elf.C \
 		../src/Archive-elf.C \
 		../src/parseDwarf.C \
 		../src/parseStab.C \
-		../src/addrtranslate.C \
-		../src/addrtranslate-linux.C \
-		../src/addrtranslate-sysv.C \
 		../src/emitElf.C \
 		../src/LinkMap.C \
 		../src/emitElfStatic.C \

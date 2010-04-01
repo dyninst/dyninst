@@ -118,8 +118,9 @@ test_results_t SymtabComponent::group_setup(RunGroup *group, ParameterDict &para
 					//  verify that we have an existing cache for this mutatee from which to deserialize
 				}
 				break;
+                        case DISK:
 			case CREATE:
-				logerror( "%s[%d]:  runmode CREATE\n", FILE__, __LINE__);
+				logerror( "%s[%d]:  runmode CREATE or DISK\n", FILE__, __LINE__);
 				enableSerialize<Symtab>(std::string(group->mutatee), true);
 				enableDeserialize<Symtab>(std::string(group->mutatee), false);
 				enforceDeserialize<Symtab>(std::string(group->mutatee), false);

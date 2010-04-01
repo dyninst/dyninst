@@ -54,6 +54,23 @@ typedef enum {
    program_teardown_rs
 } test_runstate_t;
 
+typedef enum {
+   PNone = 0,
+   SingleProcess,
+   MultiProcess
+} test_procstate_t;
+
+typedef enum {
+   TNone = 0,
+   SingleThreaded,
+   MultiThreaded
+} test_threadstate_t;
+
+typedef enum {
+    StaticLink = 0,
+    DynamicLink
+} test_linktype_t;
+
 class TestInfo {
 private:
 	static int global_max_test_name_length;
@@ -92,16 +109,25 @@ public:
   std::vector<TestInfo *> tests;
   bool disabled;
   Module *mod;
+  test_threadstate_t threadmode;
+  test_procstate_t procmode;
+  test_linktype_t linktype;
   const char *compiler;
   const char *optlevel;
   const char *abi;
 
   TESTLIB_DLL_EXPORT RunGroup(const char *mutatee_name, start_state_t state_init,
-                   create_mode_t attach_init, bool ex, TestInfo *test_init,
-                   const char *modname_, const char *compiler_, const char *optlevel_, 
-                   const char *abi_);
+                              create_mode_t attach_init, 
+                              test_threadstate_t threads_, test_procstate_t procs_, 
+                              test_linktype_t linktype_,
+                              bool ex, TestInfo *test_init,
+                              const char *modname_, const char *compiler_, const char *optlevel_, 
+                              const char *abi_);
   TESTLIB_DLL_EXPORT RunGroup(const char *mutatee_name, start_state_t state_init,
-                              create_mode_t attach_init, bool ex, const char *modname_,
+                              create_mode_t attach_init, 
+                              test_threadstate_t threads_, test_procstate_t procs_, 
+                              test_linktype_t linktype_,
+                              bool ex, const char *modname_,
                               const char *compiler_, const char *optlevel_, 
                               const char *abi_);
 

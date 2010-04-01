@@ -129,6 +129,17 @@ unsigned ProcDebugLinux::getAddressWidth()
 
 #endif
 
+Dyninst::Architecture ProcDebugLinux::getArchitecture()
+{
+   unsigned addr_width = getAddressWidth();
+   if (addr_width == 4)
+      return Dyninst::Arch_x86;
+   else if (addr_width == 8) 
+      return Dyninst::Arch_x86_64;
+   else
+      assert(0);
+}
+
 #if defined(arch_x86_64)
 
 struct user32_regs_struct
@@ -205,7 +216,7 @@ bool ProcDebugLinux::getRegValue(Dyninst::MachRegister reg, Dyninst::THR_ID t,
          case Dyninst::x86::iedi:
             offset = USER32_OFFSET_OF(edi);
             break;            
-   }
+      }
    }
 #if defined(arch_x86_64)
    else 

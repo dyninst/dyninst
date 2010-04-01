@@ -108,7 +108,7 @@ TESTLIB_DLL_EXPORT void setDebugPrint(int debug);
 TESTLIB_DLL_EXPORT bool inTestList(test_data_t &test, std::vector<char *> &test_list);
 TESTLIB_DLL_EXPORT int startNewProcessForAttach(const char *pathname, const char *argv[], FILE *outlog, FILE *errlog, bool attach);
 TESTLIB_DLL_EXPORT void dprintf(const char *fmt, ...);
-TESTLIB_DLL_EXPORT void addLibArchExt(char *dest, unsigned int dest_max_len, int psize);
+TESTLIB_DLL_EXPORT void addLibArchExt(char *dest, unsigned int dest_max_len, int psize, bool isStatic = false);
 TESTLIB_DLL_EXPORT int strcmpcase(char *s1, char *s2);
 char *searchPath(const char *path, const char *file);
 
@@ -130,6 +130,10 @@ TESTLIB_DLL_EXPORT void enableDBLog(TestInfo *test, RunGroup *runGroup);
 TESTLIB_DLL_EXPORT void clearDBLog();
 
 TESTLIB_DLL_EXPORT ComponentTester *getComponentTester();
+
+#if !defined(os_windows_test)
+TESTLIB_DLL_EXPORT pid_t fork_mutatee();
+#endif
 
 #define EFAIL(cmsg) throw LocErr(__FILE__, __LINE__, std::string(cmsg))
 #define REPORT_EFAIL catch(const LocErr &err) { \

@@ -19,7 +19,9 @@ include ../../make.config
 
 SRCS =		../../common/src/linuxKludges.C \
 		../../common/src/timing-linux.C \
-		../../common/src/parseauxv.C
+		../../common/src/parseauxv.C \
+		../../common/src/addrtranslate-linux.C \
+		../../common/src/addrtranslate-sysv.C
 
 CXXFLAGS        += $(MYFLAGS)
 CFLAGS          += $(MYFLAGS)

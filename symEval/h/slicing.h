@@ -21,6 +21,7 @@
 
 class image_basicBlock;
 class image_func;
+class image_edge;
 
 namespace Dyninst {
 
@@ -92,18 +93,34 @@ class Slicer {
 	 image_func *func);
 
   typedef boost::function<bool (AssignmentPtr a)> PredicateFunc;
+  typedef boost::function<bool (image_func *c, std::stack<image_func *> &cs, AbsRegion a)> CallStackFunc;
 
-  GraphPtr forwardSlice(PredicateFunc &e, PredicateFunc &w);
+  GraphPtr forwardSlice(PredicateFunc &e, PredicateFunc &w, CallStackFunc &c);
   
   GraphPtr backwardSlice(PredicateFunc &e, PredicateFunc &w);
   
+  static bool isWidenNode(Node::Ptr n);
+
  private:
   typedef std::pair<InstructionPtr, Address> InsnInstance;
   typedef std::vector<InsnInstance> InsnVec;
-  // We may translate the region we're looking for based
-  // on the call semantics
-  typedef std::pair<image_func *, AbsRegion> Call;
-  typedef std::stack<Call> CallString;
+
+  typedef enum {
+    forward,
+    backward } Direction;
+
+  typedef std::map<image_basicBlock *, InsnVec> InsnCache;
+
+  struct Predicates {
+    // It's safe for these to be references because they will only exist
+    // under a forward/backwardSlice call.
+    PredicateFunc &end;
+    PredicateFunc &widen;
+    CallStackFunc &followCall;
+    
+  Predicates(PredicateFunc &e, PredicateFunc &w, CallStackFunc &c) : end(e), widen(w), followCall(c) {};
+
+  };
 
   // Our slicing is context-sensitive; that is, if we enter
   // a function foo from a caller bar, all return edges
@@ -161,15 +178,10 @@ class Slicer {
   //    view; this just means adjusting stack locations. 
   // 2) Increases the given context
   // Returns false if we didn't translate the absregion correctly
-  bool handleCall(AbsRegion &reg,
-		  Context &context,
-		  image_basicBlock *callerBlock,
-		  image_func *callee);
-
-  // And the corresponding...
-  // Returns false if we ran out of context (and thus assume widening for now)
-  void handleReturn(AbsRegion &reg,
-		    Context &context);
+  bool handleCallDetails(AbsRegion &reg,
+			 Context &context,
+			 image_basicBlock *callerBlock,
+			 image_func *callee);
 
   // Where we are in a particular search...
   struct Location {
@@ -205,26 +217,41 @@ class Slicer {
     Address addr() const { return loc.addr(); }
   };
   typedef std::queue<Element> Elements;
-  
-  
 
-  bool handleDefaultEdge(image_basicBlock *block,
-			 Element &current,
-			 Element &newElement); 
+  bool followCall(image_basicBlock *b, 
+		  Direction d,
+		  Element &current,
+		  Predicates &p);
 
-  bool handleCallEdge(image_basicBlock *block,
-		      Element &current,
-		      Element &newElement);
+  bool handleDefault(image_edge *e,
+		     Element &current,
+		     Element &newElement,
+		     Predicates &p,
+		     bool &err);
 
-  bool handleReturnEdge(Element &current,
-			Element &newElement);
+  bool handleCall(image_basicBlock *block,
+		  Element &current,
+		  Element &newElement,
+		  Predicates &p,
+		  bool &err);
+
+  bool handleReturn(image_basicBlock *b,
+		    Element &current,
+		    Element &newElement,
+		    Predicates &p,
+		    bool &err);
+
+  void handleReturnDetails(AbsRegion &reg,
+			   Context &context);
 
   bool getSuccessors(Element &current,
-		     Elements &worklist);
+		     Elements &worklist,
+		     Predicates &p);
 
 
   bool forwardSearch(Element &current,
-		     Elements &foundList);
+		     Elements &foundList,
+		     Predicates &p);
 
   void widen(GraphPtr graph, Element &source);
 
@@ -243,8 +270,6 @@ class Slicer {
 
   void markAsExitNode(GraphPtr ret, Element &current);
   
-  typedef std::map<image_basicBlock *, InsnVec> InsnCache;
-  InsnCache insnCache_;
 
   void getInsns(Location &loc);
 
@@ -252,6 +277,14 @@ class Slicer {
 
   AssignNode::Ptr createNode(Element &);
 
+  void cleanGraph(GraphPtr g);
+
+  image_basicBlock *getBlock(image_edge *e, 
+			     Direction dir);
+  
+  void constructInitialElement(Element &initial);
+
+  InsnCache insnCache_;
 
   AssignmentPtr a_;
   image_basicBlock *b_;

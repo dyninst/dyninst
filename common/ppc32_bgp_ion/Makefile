@@ -26,6 +26,8 @@ SRCS = ../../common/src/timing-linux.C \
        ../../common/src/parseauxv.C \
        ../../common/src/bluegeneKludges.C \
        ../../common/src/BG_AuxvReader.C \
+		 ../../common/src/addrtranslate-sysv.C \
+		 ../../common/src/addrtranslate-bluegenep.C \
        ../../common/src/auxvtypes.C
 
 # Tradeoff: adding -g to TFLAGS aids gdb but uses gobs of disk space

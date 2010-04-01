@@ -63,14 +63,12 @@ class ASTVisitor;
  // somewhere else you have to come back and put it in here. 
  // Well, if you want to run a visitor over it, that is.
  class AST;
- class IntAST;
- class FloatAST;
 
  // SymEval...
  namespace SymbolicEvaluation {
  class BottomAST;
  class ConstantAST;
- class AbsRegionAST;
+ class VariableAST;
  class RoseAST;
  };
  // Stack analysis...
@@ -84,11 +82,9 @@ class ASTVisitor;
  public:
    typedef dyn_detail::boost::shared_ptr<AST> ASTPtr;
    virtual ASTPtr visit(AST *) = 0;
-   virtual ASTPtr visit(IntAST *) = 0;
-   virtual ASTPtr visit(FloatAST *) = 0;
    virtual ASTPtr visit(SymbolicEvaluation::BottomAST *) = 0;
    virtual ASTPtr visit(SymbolicEvaluation::ConstantAST *) = 0;
-   virtual ASTPtr visit(SymbolicEvaluation::AbsRegionAST *) = 0;
+   virtual ASTPtr visit(SymbolicEvaluation::VariableAST *) = 0;
    virtual ASTPtr visit(SymbolicEvaluation::RoseAST *) = 0;
    virtual ASTPtr visit(StackAST *) = 0;
 
@@ -133,11 +129,11 @@ class name : public AST {						\
   static Ptr create(type t, Children c) { return Ptr(new name(t, c)); }	\
   virtual const std::string format() const {				\
     std::stringstream ret;						\
-    ret << "<" << t_ << ",";						\
+    ret << t_ << "(";                                                   \
     for (Children::const_iterator i = kids_.begin(); i != kids_.end(); ++i) {	\
       ret << (*i)->format() << ",";					\
     }									\
-    ret << ">";								\
+    ret << ")";								\
     return ret.str();							\
   }									\
   virtual AST::Ptr child(unsigned i) const { return kids_[i];}		\
@@ -178,12 +174,10 @@ class AST : public dyn_detail::boost::enable_shared_from_this<AST> {
 
   typedef enum {
     V_AST,
-    V_IntAST,
-    V_FloatAST,
     // SymEval
     V_BottomAST,
     V_ConstantAST,
-    V_AbsRegionAST,
+    V_VariableAST,
     V_RoseAST,
     // Stack analysis
     V_StackAST } ID;
@@ -227,9 +221,6 @@ class AST : public dyn_detail::boost::enable_shared_from_this<AST> {
  protected:
   virtual bool isStrictEqual(const AST &rhs) const = 0;
 };
-
- DEF_AST_LEAF_TYPE(IntAST, long);
- DEF_AST_LEAF_TYPE(FloatAST, double);
 
 }
 #endif // AST_H

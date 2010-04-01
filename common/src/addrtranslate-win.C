@@ -36,14 +36,12 @@
 #include <vector>
 #include <string>
 
-#include "symtabAPI/h/Symtab.h"
-#include "addrtranslate.h"
+#include "common/h/addrtranslate.h"
 #include "Psapi.h"
 
 using namespace std;
 
 namespace Dyninst {
-namespace SymtabAPI {
 
 class AddressTranslateWin : public AddressTranslate
 {
@@ -59,17 +57,15 @@ public:
 };
 
 }
-}
 
 using namespace Dyninst;
-using namespace SymtabAPI;
 
 void AddressTranslateWin::setNoProc(bool b)
 {
    no_proc = b;
 }
 
-AddressTranslate *AddressTranslate::createAddressTranslator(PID pid_, ProcessReader *, PROC_HANDLE phandle_)
+AddressTranslate *AddressTranslate::createAddressTranslator(PID pid_, ProcessReader *, SymbolReaderFactory *, PROC_HANDLE phandle_)
 {
 	AddressTranslateWin *new_translate = new AddressTranslateWin(pid_, phandle_);
 	if (!new_translate)
@@ -79,10 +75,10 @@ AddressTranslate *AddressTranslate::createAddressTranslator(PID pid_, ProcessRea
 	return new_translate;
 }
 
-AddressTranslate *AddressTranslate::createAddressTranslator(ProcessReader *)
+AddressTranslate *AddressTranslate::createAddressTranslator(ProcessReader *, SymbolReaderFactory *)
 {
 	//return createAddressTranslator(GetCurrentProcess(), NULL);
-	return createAddressTranslator(GetCurrentProcessId(), NULL, GetCurrentProcess());
+	return createAddressTranslator(GetCurrentProcessId(), NULL, NULL, GetCurrentProcess());
 }
 
 bool AddressTranslateWin::init()
@@ -172,55 +168,6 @@ AddressTranslateWin::AddressTranslateWin(PID pid, PROC_HANDLE phandle_) :
    no_proc(false)
 {
 	init();
-}
-
-static map<string, Symtab *> openedFiles;
-
-Symtab *LoadedLib::getSymtab()
-{
-   if (symtable)
-      return symtable;
-
-   if (openedFiles.count(name))
-   {
-      symtable = openedFiles[name];
-      return symtable;
-   }
-
-   bool result = Symtab::openFile(symtable, name);
-   if (!result)
-      return NULL;
-   
-   return symtable;
-}
-
-AddressTranslate *AddressTranslate::createAddressTranslator(const std::vector<LoadedLibrary> &name_addrs)
-{
-   AddressTranslateWin *at = new AddressTranslateWin(-1, INVALID_HANDLE_VALUE);
-   at->setNoProc(true);
-   
-   if (!at) {
-      return NULL;
-   }
-   else if (at->creation_error) {
-      delete at;
-      return NULL;
-   }
-   
-   for (unsigned i=0; i<name_addrs.size(); i++)
-   {
-      LoadedLib *ll = new LoadedLib(name_addrs[i].name, name_addrs[i].codeAddr);
-      Symtab *st = ll->getSymtab();
-      if (!st)
-         continue;
-
-      vector<Region *> regs;
-      st->getMappedRegions(regs);
-
-      ll->add_mapped_region(name_addrs[i].codeAddr + regs[0]->getRegionAddr(), regs[0]->getRegionSize());
-      ll->add_mapped_region(name_addrs[i].dataAddr + regs[1]->getRegionAddr(), regs[1]->getRegionSize());
-   }
-   return at;
 }
 
 Address AddressTranslateWin::getLibraryTrapAddrSysV()

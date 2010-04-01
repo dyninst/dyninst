@@ -18,12 +18,14 @@ IFLAGS += ../../../include
 #SYMTAB_INCDIR = -I../../symtabAPI/h
 #DYNUTIL_INCDIR = -I../../dynutil/h
 #INSTRUCTION_INCDIR = -I../../instructionAPI/h
+#PROCCONTROL_INCDIR = -I../../proccontrol/h
 BOOST_INCDIR = -I../../external
 
 IFLAGS += $(DYNINST_INCDIR)
 IFLAGS += $(DYNUTIL_INCDIR)
 IFLAGS += $(SYMTAB_INCDIR)
 IFLAGS += $(INSTRUCTION_INCDIR)
+IFLAGS += $(PROCCONTROL_INCDIR)
 IFLAGS += $(BOOST_INCDIR)
 
 #######################################################################
@@ -137,10 +139,14 @@ dyninst_MUTATOR_FLAGS = -L. -ltestdyninst -ldyninstAPI
 
 ifdef M_ABI
 DYNINST_TESTLIBS = $(notdir $(SRCS_DYNINSTTESTLIB:%.c=%.so))
+DYNINST_STATIC_TESTLIBS = $(notdir $(SRCS_DYNINSTTESTLIB:%.c=%.a))
 DYNINST_TESTLIBS_ABI = $(addsuffix _$(M_ABI).so, $(notdir $(SRCS_DYNINSTTESTLIB:%.c=%)))
+DYNINST_STATIC_TESTLIBS_ABI = $(addsuffix _$(M_ABI).a, $(notdir $(SRCS_DYNINSTTESTLIB:%.c=%)))
 else
 DYNINST_TESTLIBS = $(notdir $(SRCS_DYNINSTTESTLIB:%.c=%.so))
+DYNINST_STATIC_TESTLIBS = $(notdir $(SRCS_DYNINSTTESTLIB:%.c=%.a))
 DYNINST_TESTLIBS_ABI =
+DYNINST_STATIC_TESTLIBS_ABI = 
 endif
 
 ifdef USE_LIBTESTSUITE_EXT_A
@@ -184,6 +190,22 @@ endif
 
 instruction_MUTATOR_LIB = $(LIBINSTRUCTIONCOMP)
 instruction_COMPONENT_LIB = $(LIBINSTRUCTIONCOMP)
+
+#######################################################
+# ProcControlAPI infrastructure components
+#######################################################
+SRCS_PROCCONTROLCOMP_LIB = proccontrol/proccontrol_comp.C
+OBJS_PROCCONTROLCOMP_LIB = $(notdir $(SRCS_PROCCONTROLCOMP_LIB:%.C=%.o))
+proccontrol_MUTATOR_FLAGS = -L. -ltestproccontrol -lpcontrol -lcommon
+
+ifdef USE_LIBTESTSUITE_EXT_A
+LIBPROCCONTROLCOMP = libtestproccontrol.a
+else
+LIBPROCCONTROLCOMP = libtestproccontrol.so
+endif
+
+proccontrol_MUTATOR_LIB = $(LIBPROCCONTROLCOMP)
+proccontrol_COMPONENT_LIB = $(LIBPROCCONTROLCOMP)
 
 
 ######################################################################
@@ -259,9 +281,9 @@ mutatees: $(filter-out $(BUILD_FILTER), $(dyninst_SOLO_MUTATEES))
 mutatees_minimum: $(filter-out $(BUILD_FILTER), $(filter-out $(MINIMUM_BUILD_FILTER), $(dyninst_SOLO_MUTATEES)))
 mutators: $(dyninst_MUTATORS_SO)
 components: $(LIBDYNINSTCOMP)
-testlibs: $(DYNINST_TESTLIBS)
+testlibs: $(DYNINST_TESTLIBS) $(DYNINST_STATIC_TESTLIBS)
 ifndef SKIP_BUILD_RTLIB_32
-testlibs: $(DYNINST_TESTLIBS_ABI)
+testlibs: $(DYNINST_TESTLIBS_ABI) $(DYNINST_STATIC_TESTLIBS_ABI)
 endif
 endif
 
@@ -283,6 +305,17 @@ testlibs:
 endif
 endif
 
+ifneq ($(wildcard ../src/proccontrol), )
+mutatees: $(proccontrol_SOLO_MUTATEES)
+mutatees_minimum: $(filter-out $(MINIMUM_BUILD_FILTER), $(proccontrol_SOLO_MUTATEES))
+mutators: $(proccontrol_MUTATORS_SO)
+ifneq ($(proccontrol_MUTATORS_SO), )
+components: $(LIBPROCCONTROLCOMP)
+testlibs: $(PROCCONTROL_TESTLIBS) $(PROCCONTROL_TESTLIBS_ABI)
+endif
+endif
+
+
 install: all
 
 symlink: all
@@ -295,11 +328,13 @@ clean: clean_solo_mutatees dyninst_clean_solo_mutatees
 	@$(RM) $(symtab_SOLO_MUTATEES)
 	@$(RM) $(instruction_MUTATORS_SO)
 	@$(RM) $(instruction_SOLO_MUTATEES)
+	@$(RM) $(proccontrol_MUTATORS_SO)
+	@$(RM) $(proccontrol_SOLO_MUTATEES)
 	@$(RM) $(OUTPUT_DRIVERS)
 	@$(RM) $(LIBDYNINSTCOMP)
 	@$(RM) $(LIBSYMTABCOMP)
 	@$(RM) $(LIBINSTRUCTIONCOMP)
-	@$(RM) $(DYNINST_TESTLIBS) $(DYNINST_TESTLIBS_ABI)
+	@$(RM) $(DYNINST_TESTLIBS) $(DYNINST_STATIC_TESTLIBS) $(DYNINST_TESTLIBS_ABI) $(DYNINST_STATIC_TESTLIBS_ABI)
 	@$(RM) *.o
 	@$(RM) test11
 	@$(RM) imagefile
@@ -339,6 +374,8 @@ $(symtab_OBJS_ALL_MUTATORS): %.o : symtab/%.C $(DEPENDDIR)/%.dep
 	$(CXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ -I../src/symtab ../src/symtab/$*.C
 $(instruction_OBJS_ALL_MUTATORS): %.o : instruction/%.C $(DEPENDDIR)/%.dep
 	$(CXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ -I../src/instruction ../src/instruction/$*.C
+$(proccontrol_OBJS_ALL_MUTATORS): %.o : proccontrol/%.C $(DEPENDDIR)/%.dep
+	$(CXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ -I../src/proccontrol ../src/proccontrol/$*.C
 
 $(DYNINST_TESTLIBS): %.so : dyninst/%.c $(DEPENDDIR)/%.dep
 ifdef MAKE_SHARED_LIB
@@ -348,6 +385,10 @@ else
 	$(CC) $(TESTLIB_FLAGS) -I../src/ $(filter %.c,$^) -o $@
 endif
 
+$(DYNINST_STATIC_TESTLIBS): %.a : dyninst/%.c $(DEPENDDIR)/%.dep
+	$(CC) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
+	$(AR) rcs $@ $*.o
+
 ifdef M_ABI
 $(DYNINST_TESTLIBS_ABI): %_$(M_ABI).so : dyninst/%.c $(DEPENDDIR)/%.dep
 ifdef MAKE_SHARED_LIB
@@ -356,6 +397,10 @@ ifdef MAKE_SHARED_LIB
 else
 	$(CC) $(M_ABI_FLAG) $(TESTLIB_FLAGS) -I../src/ $(filter %.c,$^) -o $@
 endif
+
+$(DYNINST_STATIC_TESTLIBS_ABI): %_$(M_ABI).a : dyninst/%.c $(DEPENDDIR)/%.dep
+	$(CC) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
+	$(AR) rcs $@ $*.o
 endif
 
 $(OBJS_TEMPLATES): %.o : ../src/%.C
@@ -373,6 +418,9 @@ $(OBJS_SYMTABCOMP_LIB): %.o : ../src/symtab/%.C $(DEPENDDIR)/%.dep
 $(OBJS_INSTRUCTIONCOMP_LIB): %.o : ../src/instruction/%.C $(DEPENDDIR)/%.dep
 	$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/instruction/$*.C
 
+$(OBJS_PROCCONTROLCOMP_LIB): %.o : ../src/proccontrol/%.C $(DEPENDDIR)/%.dep
+	$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/proccontrol/$*.C
+
 $(OBJS_LIBTESTSUITE): %.o : ../src/%.C $(DEPENDDIR)/%.dep
 	$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/$*.C
 
@@ -384,6 +432,9 @@ $(LIBSYMTABCOMP) : $(OBJS_SYMTABCOMP_LIB) $(LIBTESTSUITE)
 
 $(LIBINSTRUCTIONCOMP) : $(OBJS_INSTRUCTIONCOMP_LIB) $(LIBTESTSUITE)
 	$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_INSTRUCTIONCOMP_LIB) -o $@ -L. -ltestSuite -linstructionAPI -lcommon
+
+$(LIBPROCCONTROLCOMP) : $(OBJS_PROCCONTROLCOMP_LIB) $(LIBTESTSUITE)
+	$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_PROCCONTROLCOMP_LIB) -o $@ -L. -ltestSuite -lpcontrol -lcommon
 
 $(LIBTESTSUITE) : $(OBJS_LIBTESTSUITE) test_lib_templates.o test_lib.h
 	$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(LIBS_LIBTESTSUITE) $(OBJS_LIBTESTSUITE) test_lib_templates.o -o $@
@@ -476,7 +527,7 @@ test_driver_static.o: ../src/test_driver.C $(DEPENDDIR)/test_driver_static.dep
 	$(CXX) -c -o $@ -DSTATIC_TEST_DRIVER $(CXXFLAGS) $(MUTATEE_DEFS) ../src/test_driver.C
 
 test_driver: test_driver.o test_driver_templates.o test_info_new.gen.o $(DEPENDDIR)/test_driver.dep $(LIBTESTSUITE)
-	$(CXX) -o $@ test_driver.o test_driver_templates.o test_info_new.gen.o -L. -ltestSuite $(MUTATOR_LDFLAGS) $(LIBS) $(TESTDRIVER_LDFLAGS)
+	$(CXX) -o $@ test_driver.o test_driver_templates.o test_info_new.gen.o -L. -ltestSuite $(MUTATOR_LDFLAGS) $(LIBS) $(TESTDRIVER_LDFLAGS) -lcommon
 
 ######################################################################
 ### Output Drivers
@@ -507,6 +558,7 @@ DEPS_MUTATORS           += $(DEPENDDIR)/runTests.dep $(DEPENDDIR)/runTests-utils
 DEPS_SYMTAB_MUTATORS    += $(addprefix $(DEPENDDIR)/,$(symtab_OBJS_ALL_MUTATORS:%.o=%.dep))
 DEPS_DYNINST_MUTATORS    += $(addprefix $(DEPENDDIR)/,$(dyninst_OBJS_ALL_MUTATORS:%.o=%.dep))
 DEPS_INSTRUCTION_MUTATORS    += $(addprefix $(DEPENDDIR)/,$(instruction_OBJS_ALL_MUTATORS:%.o=%.dep))
+DEPS_PROCCONTROL_MUTATORS    += $(addprefix $(DEPENDDIR)/,$(proccontrol_OBJS_ALL_MUTATORS:%.o=%.dep))
 
 DEPS_MUTATEES_GCC	+= $(addprefix $(DEPENDDIR)/,$(addsuffix _gcc.dep, $(MUTATEES_C)))
 DEPS_MUTATEES_GXX	+= $(addprefix $(DEPENDDIR)/,$(addsuffix _g++.dep, $(MUTATEES_CXX)))
@@ -516,6 +568,7 @@ DEPS_LIBTESTSUITE        = $(addprefix $(DEPENDDIR)/,$(SRCS_LIBTESTSUITE:%.C=%.d
 DEPS_DYNINSTCOMP       =  $(addprefix $(DEPENDDIR)/,$(notdir $(SRCS_DYNINSTCOMP_LIB:%.C=%.dep)))
 DEPS_SYMTABCOMP        = $(addprefix $(DEPENDDIR)/,$(notdir $(SRCS_SYMTABCOMP_LIB:%.C=%.dep)))
 DEPS_INSTRUCTIONCOMP        = $(addprefix $(DEPENDDIR)/,$(notdir $(SRCS_INSTRUCTIONCOMP_LIB:%.C=%.dep)))
+DEPS_PROCCONTROLCOMP        = $(addprefix $(DEPENDDIR)/,$(notdir $(SRCS_PROCCONTROLCOMP_LIB:%.C=%.dep)))
 
 ifdef M_G77
 DEPS_MUTATEES_G77	+= $(addprefix $(DEPENDDIR)/,$(addsuffix _g77.dep, $(MUTATEES_FORTRAN)))
@@ -562,6 +615,10 @@ $(DEPS_SYMTAB_MUTATORS): $(DEPENDDIR)/%.dep : symtab/%.C
 	$(DEPCC) $(CXXFLAGS) $< $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) $*.o > $@
 
 $(DEPS_INSTRUCTION_MUTATORS): $(DEPENDDIR)/%.dep : instruction/%.C
+	@mkdir -p $(DEPENDDIR)
+	$(DEPCC) $(CXXFLAGS) $< $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) $*.o > $@
+
+$(DEPS_PROCCONTROL_MUTATORS): $(DEPENDDIR)/%.dep : proccontrol/%.C
 	@mkdir -p $(DEPENDDIR)
 	$(DEPCC) $(CXXFLAGS) $< $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) $*.o > $@
 
@@ -628,6 +685,10 @@ $(DEPS_SYMTABCOMP): $(DEPENDDIR)/%.dep : symtab/%.C
 $(DEPS_INSTRUCTIONCOMP): $(DEPENDDIR)/%.dep : instruction/%.C
 	@mkdir -p $(DEPENDDIR)
 	$(DEPCC) $(CXXFLAGS) -I../src -I../src/instruction $< $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) $*.o > $@
+
+$(DEPS_PROCCONTROLCOMP): $(DEPENDDIR)/%.dep : proccontrol/%.C
+	@mkdir -p $(DEPENDDIR)
+	$(DEPCC) $(CXXFLAGS) -I../src -I../src/proccontrol $< $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) $*.o > $@
 
 # do not include dep files for "clean" targets
 ifneq ($(MAKECMDGOALS),clean)

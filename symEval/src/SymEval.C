@@ -31,7 +31,7 @@
 
 #include <string>
 
-#include "SymEval.h"
+#include "../h/SymEval.h"
 #include "SymEvalPolicy.h"
 
 #include "AST.h"
@@ -72,13 +72,23 @@ void SymEval::expand(Result &res) {
 	       ptr->addr(),
 	       res);
 
+  }
+
+  // Must apply the visitor to each filled in element
+  for (Result::iterator i = res.begin(); i != res.end(); ++i) {
+    if (i->second == Placeholder) {
+      // Must not have been filled in above
+      continue;
+    }
+    Assignment::Ptr ptr = i->first;
+
     // Let's experiment with simplification
     image_func *func = ptr->func();
     StackAnalysis sA(func);
     StackAnalysis::Height sp = sA.findSP(ptr->addr());
     StackAnalysis::Height fp = sA.findFP(ptr->addr());
     
-    StackVisitor sv(func->symTabName(), sp, fp);
+    StackVisitor sv(ptr->addr(), func->symTabName(), sp, fp);
     if (i->second)
       i->second = i->second->accept(&sv);
   }
@@ -184,7 +194,7 @@ void SymEval::process(AssignNode::Ptr ptr,
     const AbsRegion &reg = ptr->assign()->inputs()[iter->first];
 
     // Create an AST around this one
-    AbsRegionAST::Ptr use = AbsRegionAST::create(reg);
+    VariableAST::Ptr use = VariableAST::create(Variable(reg, ptr->addr()));
 
     // And substitute whatever we have in the database for that AST
     AST::Ptr definition = dbase[iter->second]; 
