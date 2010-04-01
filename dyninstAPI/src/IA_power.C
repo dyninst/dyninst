@@ -140,11 +140,15 @@ namespace detail
                     assert(!"unexpected binary function!");
                     result = 0;
                 }
+		parsing_printf("\tTOC visitor visiting binary function, result is 0x%lx\n",
+			       result);
                 m_stack.push_front(result);
             }
             virtual void visit(Immediate* i) {
                 Address tmp = i->eval().convert<Address>();
                 result = tmp;
+		parsing_printf("\tTOC visitor visiting immediate, result is 0x%lx\n",
+			       result);
                 m_stack.push_front(tmp);   
             }
             virtual void visit(RegisterAST* r) {
@@ -153,6 +157,9 @@ namespace detail
                 } else {
                     m_stack.push_front(0);
                 }
+		result = m_stack.front();
+		parsing_printf("\tTOC visitor visiting register, result is 0x%lx\n",
+			       result);
             }
             virtual void visit(Dereference*) {}
             void clear() {
@@ -292,8 +299,12 @@ bool IA_IAPI::parseJumpTable(image_basicBlock* currBlk,
      (patternIter->second->isWritten(linkReg) ||
      patternIter->second->isWritten(countReg)))
   {
+    regs.clear();
       patternIter->second->getReadSet(regs);
-      assert(regs.size() == 1);
+      if(regs.size() != 1) {
+	fprintf(stderr, "expected mtspr to read 1 register, insn is %s\n", patternIter->second->format().c_str());
+	return false;
+      }
       jumpAddrReg = *(regs.begin());
   }
   else
@@ -332,17 +343,26 @@ bool IA_IAPI::parseJumpTable(image_basicBlock* currBlk,
               {
                   regs.clear();
                   patternIter->second->getReadSet(regs);
+		  if(regs.size() != 1) {
+		    continue;
+		  }
+		  parsing_printf("\tfound 0x%lx: %s, checking for addis previous\n",
+				 patternIter->first,
+				 patternIter->second->format().c_str());
                   toc_visitor.clear();
-                  patternIter->second->getOperand(1).getValue()->apply(&toc_visitor);
+                  patternIter->second->getOperand(2).getValue()->apply(&toc_visitor);
                   tableStartAddress = toc_visitor.result;
-                  assert(regs.size() == 1);
                   patternIter--;
                   if(patternIter->second->getOperation().getID() == power_op_addis &&
                      patternIter->second->isWritten(*(regs.begin())))
                   {
+		    parsing_printf("\tfound 0x%lx: %s, setting tableStartAddress\n",
+				   patternIter->first,
+				   patternIter->second->format().c_str());
                       toc_visitor.clear();
-                      patternIter->second->getOperand(1).getValue()->apply(&toc_visitor);
+                      patternIter->second->getOperand(2).getValue()->apply(&toc_visitor);
                       tableStartAddress += (toc_visitor.result * 0x10000) & 0xFFFF0000;
+		      parsing_printf("\ttableStartAddress = 0x%lx\n", tableStartAddress);
                       break;
                   }
                   tableStartAddress = 0;
@@ -351,19 +371,28 @@ bool IA_IAPI::parseJumpTable(image_basicBlock* currBlk,
               {
                   regs.clear();
                   patternIter->second->getReadSet(regs);
+		  if(regs.size() != 1) {
+		    continue;
+		  }
+		  parsing_printf("\tfound 0x%lx: %s, checking for addi previous\n",
+				 patternIter->first,
+				 patternIter->second->format().c_str());
                   toc_visitor.clear();
-                  patternIter->second->getOperand(1).getValue()->apply(&toc_visitor);
+                  patternIter->second->getOperand(2).getValue()->apply(&toc_visitor);
                   tableStartAddress = toc_visitor.result;
                   tableStartAddress *= 10000;
                   tableStartAddress &= 0xFFFF0000;
-                  assert(regs.size() == 1);
                   patternIter--;
                   if(patternIter->second->getOperation().getID() == power_op_addi &&
                      patternIter->second->isWritten(*(regs.begin())))
                   {
+		    parsing_printf("\tfound 0x%lx: %s, setting tableStartAddress\n",
+				   patternIter->first,
+				   patternIter->second->format().c_str());
                       toc_visitor.clear();
-                      patternIter->second->getOperand(1).getValue()->apply(&toc_visitor);
+                      patternIter->second->getOperand(2).getValue()->apply(&toc_visitor);
                       tableStartAddress += toc_visitor.result;
+		      parsing_printf("\ttableStartAddress = 0x%lx\n", tableStartAddress);
                       break;
                   }
                   tableStartAddress = 0;
@@ -585,6 +614,7 @@ bool IA_IAPI::parseJumpTable(image_basicBlock* currBlk,
               {
                   int jumpOffset = *((int *)ptr);
                   outEdges.push_back(std::make_pair((Address)(jumpStartAddress+jumpOffset), ET_INDIR));
+		  parsing_printf("\t\t\t[0x%lx] -> 0x%lx\n", tableEntry, jumpStartAddress+jumpOffset);
                   ++entriesAdded;
               }
           }
