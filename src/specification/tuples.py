@@ -130,7 +130,7 @@ def parse_compilers(tuplestring):
 def parse_rungroups(tuplestring):
 	rungroups_tuple_labels = ('mutatee', 'compiler', 'optimization',
 							  'run_mode', 'start_state', 'groupable', 'tests',
-							  'abi')
+							  'abi', 'thread_mode', 'process_mode')
 	rungroups_list = parse_pllist(tuplestring)
 	return map(lambda x: dict(zip(rungroups_tuple_labels, x)), rungroups_list)
 

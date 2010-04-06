@@ -130,6 +130,13 @@ bool runABI_32 = false;
 bool runABI_64 = false;
 bool limitSkippedTests = false;
 bool noclean = false;
+bool runMT = true;
+bool runST = true;
+bool setT = false;
+bool runMP = true;
+bool runSP = true;
+bool setP = false;
+bool runProcControl = false;
 int limitResumeGroup = -1;
 int limitResumeTest = -1;
 int skipToTest = 0;
@@ -505,7 +512,8 @@ void disableUnwantedTests(std::vector<RunGroup *> groups)
          if (!groups[i]->mod || 
              (!runDyninst && groups[i]->mod->name == std::string("dyninst")) ||
              (!runSymtab && groups[i]->mod->name == std::string("symtab")) ||
-	     (!runInstruction && groups[i]->mod->name == std::string("instruction")))
+             (!runInstruction && groups[i]->mod->name == std::string("instruction")) ||
+             (!runProcControl && groups[i]->mod->name == std::string("proccontrol")))
          {
             groups[i]->disabled = true;
          }
@@ -561,6 +569,35 @@ void disableUnwantedTests(std::vector<RunGroup *> groups)
          groups[i]->disabled = true;
       }      
    }
+   if (!runMT) {
+      for (unsigned  i = 0; i < groups.size(); i++) {
+         if (groups[i]->threadmode == MultiThreaded) {
+            groups[i]->disabled = true;
+         }
+      }
+   }
+   if (!runST) {
+      for (unsigned  i = 0; i < groups.size(); i++) {
+         if (groups[i]->threadmode == SingleThreaded) {
+            groups[i]->disabled = true;
+         }
+      }
+   }
+   if (!runMP) {
+      for (unsigned  i = 0; i < groups.size(); i++) {
+         if (groups[i]->procmode == MultiProcess) {
+            groups[i]->disabled = true;
+         }
+      }
+   }
+   if (!runSP) {
+      for (unsigned  i = 0; i < groups.size(); i++) {
+         if (groups[i]->procmode == SingleProcess) {
+            groups[i]->disabled = true;
+         }
+      }
+   }
+
 #if defined(cap_32_64_test)
    if (!runAllABIs && runAllMutatees)
    {
@@ -658,11 +695,16 @@ void executeGroup(ComponentTester *tester, RunGroup *group,
    ParamInt createmode_prm((int) group->useAttach);
    ParamInt customexecution_prm((int) group->customExecution);
    ParamInt selfstart_prm((int) group->selfStart);
+   ParamInt threadmode_prm((int) group->threadmode);
+   ParamInt procmode_prm((int) group->procmode);
+
    param["pathname"] = &mutatee_prm;
    param["startState"] = &startstate_prm;
    param["useAttach"] = &createmode_prm;
    param["customExecution"] = &customexecution_prm;
    param["selfStart"] = &selfstart_prm;
+   param["threadMode"] = &threadmode_prm;
+   param["processMode"] = &procmode_prm;
 
    for (unsigned i=0; i<group->tests.size(); i++)
    {
@@ -1195,7 +1237,6 @@ int parseArgs(int argc, char *argv[])
 {
    for (unsigned i=1; i < argc; i++ )
    {
-
       if (strncmp(argv[i], "-v+", 3) == 0)
          errorPrint++;
       if (strncmp(argv[i], "-v++", 4) == 0)
@@ -1392,14 +1433,19 @@ int parseArgs(int argc, char *argv[])
       }
       else if (strcmp(argv[i], "-instruction") == 0)
       {
-	runInstruction = true;
-	runAllComps = false;
+         runInstruction = true;
+         runAllComps = false;
+      }
+      else if (strcmp(argv[i], "-proccontrol") == 0)
+      {
+         runProcControl = true;
+         runAllComps = false;
       }
       else if (strcmp(argv[i], "-allcomp") == 0)
       {
          runSymtab = true;
          runDyninst = true;
-	 runInstruction = true;
+         runInstruction = true;
          runAllComps = true;
       }
       else if (strcmp(argv[i], "-max") == 0)
@@ -1549,6 +1595,34 @@ int parseArgs(int argc, char *argv[])
       {
          runDefaultCompilers = false;
          runAllCompilers = true;
+      }
+      else if (strcmp(argv[i], "-mt") == 0)
+      {
+         runMT = true;
+         if (!setT)
+            runST = false;
+         setT = true;
+      }
+      else if (strcmp(argv[i], "-st") == 0)
+      {
+         runST = true;
+         if (!setT)
+            runMT = false;
+         setT = true;
+      }
+      else if (strcmp(argv[i], "-mp") == 0)
+      {
+         runMP = true;
+         if (!setP)
+            runSP = false;
+         setP = true;
+      }
+      else if (strcmp(argv[i], "-sp") == 0)
+      {
+         runSP = true;
+         if (!setP)
+            runMP = false;
+         setP = true;
       }
       else
       {
