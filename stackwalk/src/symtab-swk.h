@@ -53,8 +53,8 @@ class swkProcessReader : public ProcessReader {
  public:
    swkProcessReader(ProcessState *pstate, const std::string& executable);
    virtual bool start();
-   virtual bool readAddressSpace(Address inTraced, unsigned amount, 
-                                 void *inSelf);
+   virtual bool ReadMem(Address inTraced, void *inSelf, unsigned amount);
+   virtual bool GetReg(Dyninst::MachRegister, Dyninst::MachRegisterVal&) { return false; }
    virtual bool done();
    virtual ~swkProcessReader();
 };

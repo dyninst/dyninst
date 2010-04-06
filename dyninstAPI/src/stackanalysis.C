@@ -530,7 +530,15 @@ void StackAnalysis::computeInsnEffects(const Block *block,
       }
     }
 
+    int word_size = func->img()->getAddressWidth();
     if (insn->getControlFlowTarget()) {
+      if (off != block->lastInsnOffset()) {
+	// Call in the middle of the block? Must be a get PC operation
+	iFunc.delta() = -1*word_size;
+	stackanalysis_printf("\t\t\t getPC call: %s\n", iFunc.format().c_str());
+	return;
+      }
+
         pdvector<image_edge *> outs;
         block->getTargets(outs);
         for (unsigned i=0; i<outs.size(); i++) {
@@ -556,8 +564,6 @@ void StackAnalysis::computeInsnEffects(const Block *block,
         stackanalysis_printf("\t\t\t Stack height assumed unchanged by call\n");
         return;
     }
-
-    int word_size = func->img()->getAddressWidth();
     
     if(!insn->isWritten(theStackPtr)) {
          return;

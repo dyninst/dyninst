@@ -7,9 +7,10 @@ using namespace Dyninst::SymbolicEvaluation;
 using namespace Dyninst::InstructionAPI;
 
 SymEvalPolicy::SymEvalPolicy(Result_t &r,
-			     Address addr,
+			     Address a,
 			     Architecture ac) :
   res(r),
+  addr(a),
   arch(ac),
   ip_(Handle<32>(wrap(Absloc::makePC(arch)))) {
 
@@ -188,6 +189,12 @@ std::ostream &operator<<(std::ostream &os, const ROSEOperation &o) {
 
 std::ostream &operator<<(std::ostream &os, const Constant &o) {
   os << o.format();
+  return os;
+}
+
+
+std::ostream &operator<<(std::ostream &os, const Variable &v) {
+  os << v.format();
   return os;
 }
 

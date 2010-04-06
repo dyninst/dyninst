@@ -61,12 +61,12 @@ bool DebugStepperImpl::ReadMem(Address addr, void *buffer, unsigned size)
 
 bool DebugStepperImpl::GetReg(MachRegister reg, MachRegisterVal &val)
 {
-   if (isFrameRegister(reg)) {
+   if (reg.isFramePointer()) {
       val = static_cast<MachRegisterVal>(cur_frame->getFP());
       return true;
    }
 
-   if (isStackRegister(reg)) {
+   if (reg.isStackPointer()) {
       val = static_cast<MachRegisterVal>(cur_frame->getSP());
       return true;
    }

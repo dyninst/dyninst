@@ -33,6 +33,7 @@
 #define BASETYPES_H_
 
 #include "dyntypes.h"
+#include "dyn_regs.h"
 
 namespace Dyninst {
 namespace Stackwalker {

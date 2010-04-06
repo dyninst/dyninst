@@ -267,7 +267,7 @@ namespace Dyninst
                 return makeDereferenceExpression(disp_e, makeSizeType(opType));
             }
             case 3:
-                return e;
+	      return makeRegisterExpression(makeRegisterID(locs->modrm_rm, opType, (locs->rex_b == 1)));
             default:
                 return Expression::Ptr();
         

@@ -52,6 +52,8 @@ class DebugStepperImpl : public FrameStepper, public Dyninst::SymtabAPI::MemRegR
   virtual bool ReadMem(Address addr, void *buffer, unsigned size);
   virtual bool GetReg(MachRegister reg, MachRegisterVal &val);
   virtual ~DebugStepperImpl();  
+  virtual bool start() { return true; }
+  virtual bool done() { return true; }
  protected:
   gcframe_ret_t getCallerFrameArch(Address pc, const Frame &in, Frame &out, 
                                    Dyninst::SymtabAPI::Symtab *symtab);

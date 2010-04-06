@@ -36,6 +36,8 @@
 
 #include "common/h/Types.h"
 #include "arch.h"
+#include "emitter.h"
+#include "inst-power.h"
 #include "util.h"
 #include "debug.h"
 #include "symtab.h"
@@ -123,19 +125,6 @@ void instruction::generateBranch(codeGen &gen, long disp, bool link)
 }
 
 void instruction::generateBranch(codeGen &gen, Address from, Address to, bool link) {
-    if (to < MAX_BRANCH) {
-        // Generate an absolute branch
-        instruction insn;
-        IFORM_OP_SET(insn, Bop);
-        IFORM_LI_SET(insn, to >> 2);
-        IFORM_AA_SET(insn, 1);
-        if (link) 
-            IFORM_LK_SET(insn, 1);
-        else
-            IFORM_LK_SET(insn, 0);
-        insn.generate(gen);
-        return;
-    }
 
     long disp = (to - from);
 
@@ -161,20 +150,20 @@ void instruction::generateInterFunctionBranch(codeGen &gen,
         // We got lucky...
         return generateBranch(gen, from, to);
     }
+    instPoint *point = gen.point();
+    if (!point) {
+        return generateBranchViaTrap(gen, from, to, false);
+    }
+    assert(point);
+    bitArray liveRegs = point->liveRegisters(callPreInsn);
+    if (liveRegs[registerSpace::ctr] == true) 
+    {
+	fprintf(stderr, " COUNT REGISTER NOT AVAILABLE. We cannot insterument this point. skipping ...\n");
+	return;
+    }
 
     instruction::loadImmIntoReg(gen, 0, to);
-
-    instruction insn;
-    
-    //mtspr:  mtctr scratchReg
-    insn.clear();
-    XFORM_OP_SET(insn, MTSPRop);
-    XFORM_RT_SET(insn, 0);
-    XFORM_RA_SET(insn, SPR_CTR & 0x1f);
-    XFORM_RB_SET(insn, (SPR_CTR >> 5) & 0x1f);
-    XFORM_XO_SET(insn, MTSPRxop);
-    insn.generate(gen);
-
+    instruction::generateMoveToCR(gen, 0);
     // And branch to CTR
     instruction btctr(link ? BCTRLraw : BCTRraw);
     btctr.generate(gen);
@@ -196,6 +185,7 @@ void instruction::generateLongBranch(codeGen &gen,
     // Let's see if we can grab a free GPregister...
     instPoint *point = gen.point();
     if (!point) {
+        fprintf(stderr, " %s[%d] No point generateBranchViaTrap \n", FILE__, __LINE__);
         return generateBranchViaTrap(gen, from, to, isCall);
     }
 
@@ -205,6 +195,7 @@ void instruction::generateLongBranch(codeGen &gen,
     // code there and we don't want to hit that.
     registerSpace *rs = registerSpace::actualRegSpace(point,
                                                       callPreInsn);
+    gen.setRegisterSpace(rs);
     
     Register scratch = rs->getScratchRegister(gen, true);
 
@@ -215,6 +206,7 @@ void instruction::generateLongBranch(codeGen &gen,
         // On Linux we save under the stack and hope it doesn't
         // cause problems.
 #if !defined(os_aix)
+        fprintf(stderr, " %s[%d] No registers generateBranchViaTrap \n", FILE__, __LINE__);
         return generateBranchViaTrap(gen, from, to, isCall);
 #endif
         
@@ -242,6 +234,7 @@ void instruction::generateLongBranch(codeGen &gen,
     }
 
     if (!branchRegister) {
+        fprintf(stderr, " %s[%d] No branch register generateBranchViaTrap \n", FILE__, __LINE__);
         return generateBranchViaTrap(gen, from, to, isCall); 
     }
     
@@ -311,6 +304,55 @@ void instruction::generateBranchViaTrap(codeGen &gen, Address from, Address to, 
         bperr( "Attempted to make a branch of offset 0x%lx\n", disp);
         assert(0);
     }
+}
+
+void instruction::generateAddReg (codeGen & gen, int op, Register rt, 
+				   Register ra, Register rb)
+{
+
+  instruction insn;
+  insn.clear();
+  XOFORM_OP_SET(insn, op);
+  XOFORM_RT_SET(insn, rt);
+  XOFORM_RA_SET(insn, ra);
+  XOFORM_RB_SET(insn, rb);
+  XOFORM_OE_SET(insn, 0);
+  XOFORM_XO_SET(insn, 266);
+  XOFORM_RC_SET(insn, 0);
+
+  insn.generate (gen);
+}
+
+void instruction::generateLoadReg (codeGen & gen, int op, Register rt, 
+				   Register ra, Register rb)
+{
+
+  instruction insn;
+  insn.clear();
+  XOFORM_OP_SET(insn, op);
+  XOFORM_RT_SET(insn, rt);
+  XOFORM_RA_SET(insn, ra);
+  XOFORM_RB_SET(insn, rb);
+  XOFORM_XO_SET(insn, 23);
+  XOFORM_RC_SET(insn, 0);
+
+  insn.generate (gen);
+}
+
+void instruction::generateStoreReg (codeGen & gen, int op, Register rt,
+                                   Register ra, Register rb)
+{
+
+  instruction insn;
+  insn.clear();
+  XOFORM_OP_SET(insn, op);
+  XOFORM_RT_SET(insn, rt);
+  XOFORM_RA_SET(insn, ra);
+  XOFORM_RB_SET(insn, rb);
+  XOFORM_XO_SET(insn, 151);
+  XOFORM_RC_SET(insn, 0);
+
+  insn.generate (gen);
 }
 
 void instruction::generateImm(codeGen &gen, int op, Register rt, Register ra, int immd)
@@ -706,7 +748,7 @@ unsigned instruction::maxJumpSize(unsigned addr_width) {
    // For now, a BRL-jump'll do.
    // plus two - store r0 and restore afterwards
    if (addr_width == 4)
-      return 4*instruction::size();
+      return 30*instruction::size();
    else
       return 7*instruction::size();
 }
@@ -744,7 +786,7 @@ unsigned instruction::spaceToRelocate() const {
     
   if (isThunk()) {
     // Load high; load low; move to LR
-    return 3*instruction::size();
+    return 30*instruction::size();
   }
   else if (isCondBranch()) {
         // Maybe... so worst-case
@@ -778,31 +820,65 @@ bool instruction::generate(codeGen &gen,
       // This is actually a "get PC" operation, and we want
       // to handle it as such. 
      
-      // 1: get the original return address (value stored in LR)
-      // This is origAddr + 4; optionally, check its displacement...
-      Address origRet = origAddr + 4;
       
-      // 2: find a scratch register and load this value into it
-      instPoint *point = gen.point();
+      	instPoint *point = gen.point();
       // If we do not have a point then we have to invent one
-      if (!point || (point->addr() != origAddr))
-	point = instPoint::createArbitraryInstPoint(origAddr,
+      	if (!point || (point->addr() != origAddr))
+		point = instPoint::createArbitraryInstPoint(origAddr,
 						    gen.addrSpace(),
 						    gen.func());
-      assert(point);
-      
-      // Could see if the codeGen has it, but right now we have assert
-      // code there and we don't want to hit that.
-      registerSpace *rs = registerSpace::actualRegSpace(point,
+        assert(point);
+       
+	registerSpace *rs = registerSpace::actualRegSpace(point,
 							callPreInsn);
-      
-      Register scratch = rs->getScratchRegister(gen, true);
-      assert(scratch != REG_NULL);
+	gen.setRegisterSpace(rs);
 
-      instruction::loadImmIntoReg(gen, scratch, origRet);
+	if(gen.addrSpace()->proc()){
+	        Address origRet = origAddr + 4;
+        	Register scratch = gen.rs()->getScratchRegister(gen, true);
+	        assert(scratch != REG_NULL);
+	        instruction::loadImmIntoReg(gen, scratch, origRet);
+	        instruction::generateMoveToLR(gen, scratch);
+	} else {
+	      Register scratchPCReg = gen.rs()->getScratchRegister(gen, true);
+      	      pdvector<Register> excludeReg;
+	      excludeReg.push_back(scratchPCReg);
+	      Register scratchReg = gen.rs()->getScratchRegister(gen, excludeReg, true);
+              Address newRelocAddr = relocAddr;
+	      bool newStackFrame = false;
+	      int stack_size = 0;
+	      int gpr_off, fpr_off, ctr_off;
+      	      if ((scratchPCReg == REG_NULL) || (scratchReg == REG_NULL)) {
+                newStackFrame = true;
+                //create new stack frame
+                gpr_off = TRAMP_GPR_OFFSET_32;
+                fpr_off = TRAMP_FPR_OFFSET_32;
+                ctr_off = STK_CTR_32;
+                pushStack(gen);
+                // Save GPRs
+                stack_size = saveGPRegisters(gen, gen.rs(), gpr_off, 2);
 
-      // 3: push this value into the LR
-      instruction::generateMoveToLR(gen, scratch);
+                scratchPCReg = gen.rs()->getScratchRegister(gen, true);
+                assert(scratchPCReg != REG_NULL);
+                excludeReg.clear();
+                excludeReg.push_back(scratchPCReg);
+                scratchReg = gen.rs()->getScratchRegister(gen, excludeReg, true);
+                assert(scratchReg != REG_NULL);
+                // relocaAddr has moved since we added instructions to setup a new stack frame
+                newRelocAddr = relocAddr + ((stack_size + 1)*(gen.addrSpace()->getAddressWidth()));
+               }
+	       instruction::generateBranch(gen, gen.currAddr(),  gen.currAddr()+4, true); // blrl
+	       instruction::generateMoveFromLR(gen, scratchPCReg); // mflr
+
+               Address varOffset = origAddr - newRelocAddr;
+	       gen.emitter()->emitCallRelative(scratchReg, varOffset, scratchPCReg, gen);
+               instruction::generateMoveToLR(gen, scratchReg);
+               if(newStackFrame) {
+              	restoreGPRegisters(gen, gen.rs(), gpr_off);
+                popStack(gen);
+               }
+
+	}
     }
     else if (isUncondBranch()) {
         // unconditional pc relative branch.
@@ -970,6 +1046,17 @@ void instruction::generateMoveToLR(codeGen &gen, Register rs) {
     XFORM_XO_SET(insn, MTSPRxop);
     insn.generate(gen);
 }
+void instruction::generateMoveToCR(codeGen &gen, Register rs) {
+    instruction insn;
+    insn.clear();
+    XFORM_OP_SET(insn, MTSPRop);
+    XFORM_RT_SET(insn, rs);
+    XFORM_RA_SET(insn, SPR_CTR & 0x1f);
+    XFORM_RB_SET(insn, (SPR_CTR >> 5) & 0x1f);
+    XFORM_XO_SET(insn, MTSPRxop);
+    insn.generate(gen);
+}    
+
 
 // A thunk is a "get PC" operation. We consider
 // an instruction to be a thunk if it fulfills the following

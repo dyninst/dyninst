@@ -51,11 +51,6 @@ MachRegister::MachRegister(signed int r) :
 {
 }
  
-MachRegister::MachRegister(const MachRegister& r) :
-        reg(r.reg)
-{
-}
-
 MachRegister::MachRegister(signed int r, const char *n) :
    reg(r)
 {
@@ -63,9 +58,6 @@ MachRegister::MachRegister(signed int r, const char *n) :
       names = new std::map<signed int, const char *>();
    }
    (*names)[r] = n;
-}
-
-MachRegister::~MachRegister() {
 }
 
 MachRegister MachRegister::getBaseRegister() const { 
@@ -118,42 +110,42 @@ unsigned int MachRegister::size() const {
    {
       case Arch_x86:
          switch (reg & 0x0000ff00) {
-             case x86::L_REG: //L_REG
+            case x86::L_REG: //L_REG
             case x86::H_REG: //H_REG
                return 1;
-               case x86::W_REG: //W_REG
+            case x86::W_REG: //W_REG
                return 2;
-               case x86::FULL: //FULL
+            case x86::FULL: //FULL
                return 4;
-             case x86::QUAD:
-                return 8;
-             case x86::OCT:
-                 return 16;
-             case x86::FPDBL:
-                 return 10;
-	 case x86::BIT:
-	   return 0;
-             default:
+            case x86::QUAD:
+               return 8;
+            case x86::OCT:
+               return 16;
+            case x86::FPDBL:
+               return 10;
+            case x86::BIT:
+               return 0;
+            default:
                assert(0);
          }
       case Arch_x86_64:
          switch (reg & 0x0000ff00) {
-             case x86_64::L_REG: //L_REG
-             case x86_64::H_REG: //H_REG
+            case x86_64::L_REG: //L_REG
+            case x86_64::H_REG: //H_REG
                 return 1;
-             case x86_64::W_REG: //W_REG
+            case x86_64::W_REG: //W_REG
                 return 2;
-             case x86_64::FULL: //FULL
+            case x86_64::FULL: //FULL
                 return 8;
-             case x86_64::D_REG:
-                 return 4;
-             case x86_64::OCT:
-                 return 16;
-             case x86_64::FPDBL:
-                 return 10;
-	 case x86_64::BIT:
-	   return 0;
-             default:
+            case x86_64::D_REG:
+               return 4;
+            case x86_64::OCT:
+               return 16;
+            case x86_64::FPDBL:
+               return 10;
+            case x86_64::BIT:
+               return 0;
+            default:
                assert(0);
          }
       case Arch_ppc32: {

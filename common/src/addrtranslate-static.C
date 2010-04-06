@@ -96,3 +96,13 @@ AddressTranslate *AddressTranslate::createAddressTranslator(const std::vector<Lo
 {
    return NULL;
 }
+
+ProcessReader::ProcessReader(int pid_, string exe) :
+   pid(pid_), executable(exe)
+{
+}
+
+ProcessReader::ProcessReader() :
+   pid(0)
+{
+}

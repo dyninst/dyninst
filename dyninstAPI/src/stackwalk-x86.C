@@ -312,6 +312,14 @@ class DyninstMemRegReader : public Dyninst::SymtabAPI::MemRegReader
       return true;
    }
 
+   bool start() {
+      return true;
+   }
+
+   bool done() {
+      return true;
+   }
+   
    virtual ~DyninstMemRegReader() {};
 };
 

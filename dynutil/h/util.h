@@ -30,12 +30,6 @@
  */
 
 
-#ifndef __UTIL_H__
-#define __UTIL_H__
-
-#include "dyntypes.h"
-namespace Dyninst {
-
 #if !defined(SYMTAB_EXPORT)
   #if defined(_MSC_VER)
     #if defined SYMTAB_LIB
@@ -85,6 +79,7 @@ namespace Dyninst {
 #endif
 #endif
 
+#if !defined(THROW) && !defined(THROW_SPEC)
 #if defined(_MSC_VER)
 #define THROW_SPEC(x)
 #define THROW
@@ -92,6 +87,13 @@ namespace Dyninst {
 #define THROW_SPEC(x) throw (x)
 #define THROW throw ()
 #endif
+#endif
+
+#ifndef __UTIL_H__
+#define __UTIL_H__
+
+#include "dyntypes.h"
+namespace Dyninst {
 
 COMMON_EXPORT unsigned addrHashCommon(const Address &addr);
 COMMON_EXPORT unsigned ptrHash(const void * addr);

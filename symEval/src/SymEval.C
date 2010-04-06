@@ -91,8 +91,8 @@ void SymEval<a>::expand(Result_t &res) {
     StackAnalysis sA(func);
     StackAnalysis::Height sp = sA.findSP(ptr->addr());
     StackAnalysis::Height fp = sA.findFP(ptr->addr());
-
-    StackVisitor sv(func->symTabName(), sp, fp);
+    
+    StackVisitor sv(ptr->addr(), func->symTabName(), sp, fp);
     if (i->second)
       i->second = i->second->accept(&sv);
   }
@@ -282,6 +282,15 @@ void SymEval<a>::process(AssignNode::Ptr ptr,
     }
   }
   dbase[ptr->assign()] = ast;
+    // The region used by the current assignment...
+  const AbsRegion &reg = ptr->assign()->inputs()[iter->first];
+
+    // Create an AST around this one
+  VariableAST::Ptr use = VariableAST::create(Variable(reg, ptr->addr()));
+
+    // And substitute whatever we have in the database for that AST
+  AST::Ptr definition = dbase[iter->second];
+
 }
 
 PowerpcInstructionKind makeRoseBranchOpcode(entryID iapi_opcode, bool isAbsolute, bool isLink)
