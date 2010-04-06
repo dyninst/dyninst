@@ -156,11 +156,29 @@ void image_func::archSetFrameSize(int /* fsize */)
     return;
 }
 
+#include "IA_IAPI.h"
 
-// not implemented on power
-void image_func::archInstructionProc(InstructionAdapter & /* ah */)
+void image_func::archInstructionProc(InstructionAdapter & a)
 {
-    return;
+  using namespace Dyninst::InstructionAPI;
+  IA_IAPI& ah = dynamic_cast<IA_IAPI&>(a);
+  static RegisterAST::Ptr theLR(new RegisterAST(ppc32::lr));
+  static RegisterAST::Ptr stackPtr(new RegisterAST(ppc32::r1));
+  static RegisterAST::Ptr gpr0(new RegisterAST(ppc32::r0));
+  static bool foundMFLR = false;
+  if(makesNoCalls_ && !foundMFLR &&
+     ah.curInsn()->getOperation().getID() == power_op_mfspr &&
+     ah.curInsn()->isRead(theLR) &&
+     ah.curInsn()->isWritten(gpr0)) {
+    foundMFLR = true;
+  }
+  else if(foundMFLR &&
+	  ah.curInsn()->writesMemory() &&
+	  ah.curInsn()->isRead(stackPtr) &&
+	  ah.curInsn()->isRead(gpr0)) {
+    makesNoCalls_ = false;
+    foundMFLR = false;
+  }
 }
 /*
 By parsing the function that actually sets up the parameters for the OMP

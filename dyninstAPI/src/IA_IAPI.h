@@ -39,6 +39,7 @@
 
 class IA_IAPI : public InstructionAdapter
 {
+  friend class image_func;
     public:
         IA_IAPI(dyn_detail::boost::shared_ptr<Dyninst::InstructionAPI::InstructionDecoder> dec_,
                 Address start_, image_func* f);

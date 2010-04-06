@@ -903,7 +903,7 @@ class instruction {
     //const instructUnion &operator* () const { return insn_; }
     //const unsigned int &raw() const { return insn_.raw; }
 
-    const unsigned opcode() const;
+    unsigned opcode() const;
     
     // Local version
     bool isInsnType(const unsigned mask, const unsigned match) const { 

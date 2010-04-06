@@ -643,7 +643,10 @@ bool image_func::parse()
                             this,
                             functionEntry);
     funcEntries_.push_back(p);
-
+#if defined(arch_power)
+    // On POWER, assume that we make no calls until we find the requisite save.
+    makesNoCalls_ = true;
+#endif
     int frameSize;
     if(ah.isStackFramePreamble(frameSize))
     {

@@ -696,17 +696,12 @@ bool IA_IAPI::isTailCall(unsigned int) const
 
 bool IA_IAPI::checkEntry() const
 {
-    // XXX Cheating a little -- this has nothing to do with the
-    // "check entry" as seen on x86 & sparc, but is just a convenient place
-    // to put this code.
-
     parsing_printf("calling archCheckEntry for 0x%lx, function %s\n", current, context->symTabName().c_str());
 
 #if defined(UNDEF)    
     if (isReturnValueSave())
         context->makesNoCalls_ = false;
     else
-        context->makesNoCalls_ = true;
 
     // end cheating
 
