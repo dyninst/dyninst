@@ -95,6 +95,7 @@ namespace Dyninst
                 virtual bool decodeOperands(const Instruction* insn_to_complete);
 
                 bool decodeOneOperand(const ia32_operand& operand,
+                                      int & imm_index,
                                       const Instruction* insn_to_complete, bool isRead, bool isWritten);
                 virtual unsigned int decodeOpcode();
       

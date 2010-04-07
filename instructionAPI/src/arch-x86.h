@@ -424,7 +424,7 @@ struct sIBByte {
  **/
 typedef struct ia32_locations {
    ia32_locations() : num_prefixes(0), opcode_size(0), opcode_position(-1),
-        disp_size(0), disp_position(-1), imm_position(-1), imm_size(0),
+        disp_size(0), disp_position(-1), imm_cnt(0), 
         modrm_position(-1), modrm_operand(-1), modrm_byte(0), modrm_mod(0),
         modrm_rm(0), modrm_reg(0), sib_byte(0), sib_position(-1), 
         rex_position(-1), rex_byte(0), rex_w(0), rex_r(0), rex_x(0), rex_b(0),
@@ -436,8 +436,9 @@ typedef struct ia32_locations {
    unsigned disp_size;
    int disp_position;
 
-   int imm_position;
-   unsigned imm_size;
+   int imm_cnt;
+   int imm_position[2];
+   unsigned imm_size[2];
    
    int modrm_position;
    int modrm_operand;
