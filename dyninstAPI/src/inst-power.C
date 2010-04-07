@@ -2572,7 +2572,6 @@ void emitFuncJump(opCode             ,
     // based method for replacing a function jump, and therefore we are 
     // *NOT* in a base tramp when this occurs.
 
-    assert(dynamic_cast<replacedInstruction *>(gen.obj()));
     assert(func);
     assert(point);
 

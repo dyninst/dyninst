@@ -43,8 +43,6 @@
 #include "BPatch_thread.h"
 #include "BPatch_snippet.h"
 
-#define DEBUG
-
 #include "test_lib.h"
 
 #include "dyninst_comp.h"
