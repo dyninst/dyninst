@@ -299,6 +299,9 @@ bool BPatch_addressSpace::replaceCodeInt(BPatch_point *point,
 bool BPatch_addressSpace::replaceFunctionCallInt(BPatch_point &point,
       BPatch_function &newFunc)
 {
+   char name[1024];
+   newFunc.getName(name, 1024);
+
    // Can't make changes to code when mutations are not active.
    if (!getMutationsActive())
       return false;
@@ -352,7 +355,10 @@ bool BPatch_addressSpace::removeFunctionCallInt(BPatch_point &point)
 bool BPatch_addressSpace::replaceFunctionInt(BPatch_function &oldFunc,
       BPatch_function &newFunc)
 {
-
+  char oldname[1024];
+  char newname[1024];
+  oldFunc.getName(oldname, 1024);
+  newFunc.getName(newname, 1024);
    assert(oldFunc.lowlevel_func() && newFunc.lowlevel_func());
    if (!getMutationsActive())
       return false;
@@ -370,8 +376,8 @@ bool BPatch_addressSpace::replaceFunctionInt(BPatch_function &oldFunc,
    }
 
    BPatch_funcJumpExpr fje(newFunc);
-
-#if defined(cap_instruction_replacement) && defined(arch_power)
+//#if defined(cap_instruction_replacement) && defined(arch_power)
+#if 0
    // Replace the first instruction with fje
    for (unsigned i = 0; i < pts->size(); i++) {
        BPatch_point *point = (*pts)[i];

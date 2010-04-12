@@ -3597,8 +3597,15 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
       case am_J: { /* instruction pointer offset */
          int imm_size = type2size(op.optype, operSzAttr);
          if (loc) {
-            loc->imm_position = nib + loc->opcode_position + loc->opcode_size;
-            loc->imm_size = imm_size;
+            // sanity
+            if(loc->imm_cnt > 1) {
+                fprintf(stderr,"Oops, more than two immediate operands\n");
+            } else {
+                loc->imm_position[loc->imm_cnt] = 
+                    nib + loc->opcode_position + loc->opcode_size;
+                loc->imm_size[loc->imm_cnt] = imm_size;
+                ++loc->imm_cnt;
+            }
          }
          nib += imm_size;
          break;

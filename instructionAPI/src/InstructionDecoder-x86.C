@@ -586,6 +586,7 @@ namespace Dyninst
 
 
     bool InstructionDecoder_x86::decodeOneOperand(const ia32_operand& operand,
+						  int & imm_index, /* immediate operand index */
 						  const Instruction* insn_to_complete, bool isRead, bool isWritten)
     {
       unsigned int regType = op_d;
@@ -610,7 +611,6 @@ namespace Dyninst
 	   (optype == op_z))) {
 	optype = op_w;
       }
-
                 switch(operand.admet)
                 {
                     case 0:
@@ -673,11 +673,11 @@ namespace Dyninst
                     }
                     break;
                     case am_I:
-                        insn_to_complete->appendOperand(decodeImmediate(optype, locs->imm_position), isRead, isWritten);
+                        insn_to_complete->appendOperand(decodeImmediate(optype, locs->imm_position[imm_index++]), isRead, isWritten);
                         break;
                     case am_J:
                     {
-                        Expression::Ptr Offset(decodeImmediate(optype, locs->imm_position, true));
+                        Expression::Ptr Offset(decodeImmediate(optype, locs->imm_position[imm_index++], true));
                         Expression::Ptr EIP(makeRegisterExpression(MachRegister::getPC(m_Arch)));
                         Expression::Ptr InsnSize(make_shared(singleton_object_pool<Immediate>::construct(Result(u8,
                             decodedInstruction->getSize()))));
@@ -943,6 +943,7 @@ namespace Dyninst
     
     bool InstructionDecoder_x86::decodeOperands(const Instruction* insn_to_complete)
     {
+        int imm_index = 0; // handle multiple immediate operands
         if(!decodedInstruction) return false;
         assert(locs);
         unsigned int opsema = decodedInstruction->getEntry()->opsema & 0xFF;
@@ -951,8 +952,11 @@ namespace Dyninst
         {
             if(decodedInstruction->getEntry()->operands[i].admet == 0 && decodedInstruction->getEntry()->operands[i].optype == 0)
                 return true;
-            if(!decodeOneOperand(decodedInstruction->getEntry()->operands[i], insn_to_complete, readsOperand(opsema, i),
-                writesOperand(opsema, i)))
+            if(!decodeOneOperand(decodedInstruction->getEntry()->operands[i], 
+                    imm_index, 
+                    insn_to_complete, 
+                    readsOperand(opsema, i),
+                    writesOperand(opsema, i)))
             {
                 return false;
             }
