@@ -152,17 +152,17 @@ namespace Dyninst
         ia32_set_mode_64(is64);
     }
     
-    Expression::Ptr InstructionDecoder_x86::makeSIBExpression(unsigned int opType)
+    Expression::Ptr InstructionDecoder_x86::makeSIBExpression()
     {
         unsigned scale;
         Register index;
         Register base;
-        Result_Type aw = ia32_is_mode_64() ? u32 : u64;
+        Result_Type registerType = ia32_is_mode_64() ? u32 : u64;
 
         decode_SIB(locs->sib_byte, scale, index, base);
 
         Expression::Ptr scaleAST(make_shared(singleton_object_pool<Immediate>::construct(Result(u8, dword_t(scale)))));
-        Expression::Ptr indexAST(make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(index, opType,
+        Expression::Ptr indexAST(make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(index, registerType,
                                     locs->rex_x))));
         Expression::Ptr baseAST;
         if(base == 0x05)
@@ -181,7 +181,7 @@ namespace Dyninst
 			
                         baseAST = makeAddExpression(make_shared(singleton_object_pool<RegisterAST>::construct(reg)),
 						    decodeImmediate(op_b, locs->sib_position + 1), 
-						    aw);
+						    registerType);
                         break;
                     }
                     case 0x02: {
@@ -193,7 +193,7 @@ namespace Dyninst
 
                         baseAST = makeAddExpression(make_shared(singleton_object_pool<RegisterAST>::construct(reg)), 
 						    decodeImmediate(op_d, locs->sib_position + 1),
-						    aw);
+						    registerType);
                         break;
                     }
                 case 0x03:
@@ -205,14 +205,14 @@ namespace Dyninst
         else
         {
             baseAST = make_shared(singleton_object_pool<RegisterAST>::construct(makeRegisterID(base, 
-											       opType,
+											       registerType,
 											       locs->rex_b)));
         }
         if(index == 0x04 && (!(ia32_is_mode_64()) || !(locs->rex_x)))
         {
             return baseAST;
         }
-        return makeAddExpression(baseAST, makeMultiplyExpression(indexAST, scaleAST, aw), aw);
+        return makeAddExpression(baseAST, makeMultiplyExpression(indexAST, scaleAST, registerType), registerType);
     }
 
     Expression::Ptr InstructionDecoder_x86::makeModRMExpression(unsigned int opType)
@@ -229,7 +229,7 @@ namespace Dyninst
         {
             case 0:
                 if(locs->modrm_rm == modrm_use_sib) {
-                    e = makeSIBExpression(opType);
+                    e = makeSIBExpression();
                 }
                 if(locs->modrm_rm == 0x5)
                 {
@@ -257,7 +257,7 @@ namespace Dyninst
             case 2:
             {
                 if(locs->modrm_rm == modrm_use_sib) {
-                    e = makeSIBExpression(opType);
+                    e = makeSIBExpression();
                 }
                 Expression::Ptr disp_e = makeAddExpression(e, getModRMDisplacement(), aw);
                 if(opType == op_lea)
@@ -503,12 +503,15 @@ namespace Dyninst
                 case op_q:
                     retVal = IntelRegTable[b_64bit][intelReg];
                     break;
+                case op_w:
+		  retVal = IntelRegTable[b_16bit][intelReg];
+		  break;
                 case op_d:
                 case op_si:
-                case op_w:
                 default:
                     retVal = IntelRegTable[b_32bit][intelReg];
                     break;
+		  
             }
         }
 	if (m_Arch == Arch_x86) {
@@ -583,25 +586,31 @@ namespace Dyninst
 
 
     bool InstructionDecoder_x86::decodeOneOperand(const ia32_operand& operand,
-            const Instruction* insn_to_complete, bool isRead, bool isWritten)
-            {
-                unsigned int regType = op_d;
-                if(ia32_is_mode_64())
-                {
-                    regType = op_q;
-                }
-                bool isCFT = false;
-                bool isCall = false;
-                InsnCategory cat = insn_to_complete->getCategory();
-                if(cat == c_BranchInsn || cat == c_CallInsn)
-                {
-                    isCFT = true;
-                    if(cat == c_CallInsn)
-                    {
-                        isCall = true;
-                    }
-                }
-                        
+						  const Instruction* insn_to_complete, bool isRead, bool isWritten)
+    {
+      unsigned int regType = op_d;
+      if(ia32_is_mode_64())
+	{
+	  regType = op_q;
+	}
+      bool isCFT = false;
+      bool isCall = false;
+      InsnCategory cat = insn_to_complete->getCategory();
+      if(cat == c_BranchInsn || cat == c_CallInsn)
+	{
+	  isCFT = true;
+	  if(cat == c_CallInsn)
+	    {
+	      isCall = true;
+	    }
+	}
+      unsigned int optype = operand.optype;
+      if (sizePrefixPresent && 
+	  ((optype == op_v) ||
+	   (optype == op_z))) {
+	optype = op_w;
+      }
+
                 switch(operand.admet)
                 {
                     case 0:
@@ -618,8 +627,8 @@ namespace Dyninst
                     case am_A:
                     {
                         // am_A only shows up as a far call/jump.  Position 1 should be universally safe.
-                        Expression::Ptr addr(decodeImmediate(operand.optype, 1));
-                        Expression::Ptr op(makeDereferenceExpression(addr, makeSizeType(operand.optype)));
+                        Expression::Ptr addr(decodeImmediate(optype, 1));
+                        Expression::Ptr op(makeDereferenceExpression(addr, makeSizeType(optype)));
                         insn_to_complete->addSuccessor(op, isCall, false, false, false);
                     }
                     break;
@@ -643,11 +652,11 @@ namespace Dyninst
                     case am_R:
                         if(isCFT)
                         {
-                            insn_to_complete->addSuccessor(makeModRMExpression(operand.optype), isCall, true, false, false);
+                            insn_to_complete->addSuccessor(makeModRMExpression(optype), isCall, true, false, false);
                         }
                         else
                         {
-                            insn_to_complete->appendOperand(makeModRMExpression(operand.optype), isRead, isWritten);
+                            insn_to_complete->appendOperand(makeModRMExpression(optype), isRead, isWritten);
                         }
                     break;
                     case am_F:
@@ -659,16 +668,16 @@ namespace Dyninst
                     case am_G:
                     {
                         Expression::Ptr op(makeRegisterExpression(makeRegisterID(locs->modrm_reg,
-                                operand.optype, locs->rex_r)));
+                                optype, locs->rex_r)));
                         insn_to_complete->appendOperand(op, isRead, isWritten);
                     }
                     break;
                     case am_I:
-                        insn_to_complete->appendOperand(decodeImmediate(operand.optype, locs->imm_position), isRead, isWritten);
+                        insn_to_complete->appendOperand(decodeImmediate(optype, locs->imm_position), isRead, isWritten);
                         break;
                     case am_J:
                     {
-                        Expression::Ptr Offset(decodeImmediate(operand.optype, locs->imm_position, true));
+                        Expression::Ptr Offset(decodeImmediate(optype, locs->imm_position, true));
                         Expression::Ptr EIP(makeRegisterExpression(MachRegister::getPC(m_Arch)));
                         Expression::Ptr InsnSize(make_shared(singleton_object_pool<Immediate>::construct(Result(u8,
                             decodedInstruction->getSize()))));
@@ -717,7 +726,7 @@ namespace Dyninst
                         }
                         offset_position++;
                         insn_to_complete->appendOperand(makeDereferenceExpression(
-                                decodeImmediate(pseudoOpType, offset_position), makeSizeType(operand.optype)), isRead, isWritten);
+                                decodeImmediate(pseudoOpType, offset_position), makeSizeType(optype)), isRead, isWritten);
                     }
                     break;
                     case am_P:
@@ -732,7 +741,7 @@ namespace Dyninst
                             case 0x00:
                             case 0x01:
                             case 0x02:
-                                insn_to_complete->appendOperand(makeModRMExpression(operand.optype), isRead, isWritten);
+                                insn_to_complete->appendOperand(makeModRMExpression(optype), isRead, isWritten);
                                 break;
                             case 0x03:
                                 // use of actual register
@@ -766,7 +775,7 @@ namespace Dyninst
                             case 0x00:
                             case 0x01:
                             case 0x02:
-                                insn_to_complete->appendOperand(makeModRMExpression(makeSizeType(operand.optype)),
+                                insn_to_complete->appendOperand(makeModRMExpression(makeSizeType(optype)),
                                                                isRead, isWritten);
                                 break;
                             case 0x03:
@@ -789,7 +798,7 @@ namespace Dyninst
                                 Result(u32, 0x10))));
                         Expression::Ptr ds_segment = makeMultiplyExpression(ds, segmentOffset, u32);
                         Expression::Ptr ds_si = makeAddExpression(ds_segment, si, u32);
-                        insn_to_complete->appendOperand(makeDereferenceExpression(ds_si, makeSizeType(operand.optype)),
+                        insn_to_complete->appendOperand(makeDereferenceExpression(ds_si, makeSizeType(optype)),
                                                        isRead, isWritten);
                     }
                     break;
@@ -800,13 +809,13 @@ namespace Dyninst
                         Expression::Ptr es_segment = makeMultiplyExpression(es,
                             make_shared(singleton_object_pool<Immediate>::construct(Result(u32, 0x10))), u32);
                         Expression::Ptr es_di = makeAddExpression(es_segment, di, u32);
-                        insn_to_complete->appendOperand(makeDereferenceExpression(es_di, makeSizeType(operand.optype)),
+                        insn_to_complete->appendOperand(makeDereferenceExpression(es_di, makeSizeType(optype)),
                                                        isRead, isWritten);
                     }
                     break;
                     case am_tworeghack:
                     {
-                        if(operand.optype == r_EDXEAX)
+                        if(optype == r_EDXEAX)
                         {
                             Expression::Ptr edx(makeRegisterExpression(m_Arch == Arch_x86 ? x86::edx : x86_64::edx));
                             Expression::Ptr eax(makeRegisterExpression(m_Arch == Arch_x86 ? x86::eax : x86_64::eax));
@@ -816,7 +825,7 @@ namespace Dyninst
                             Expression::Ptr op = makeDereferenceExpression(addr, u64);
                             insn_to_complete->appendOperand(op, isRead, isWritten);
                         }
-                        else if (operand.optype == r_ECXEBX)
+                        else if (optype == r_ECXEBX)
                         {
                             Expression::Ptr ecx(makeRegisterExpression(m_Arch == Arch_x86 ? x86::ecx : x86_64::ecx));
                             Expression::Ptr ebx(makeRegisterExpression(m_Arch == Arch_x86 ? x86::ebx : x86_64::ebx));
@@ -831,7 +840,7 @@ namespace Dyninst
                     
                     case am_reg:
                     {
-                        MachRegister r(operand.optype);
+                        MachRegister r(optype);
                         r = MachRegister(r.val() & ~r.getArchitecture() | m_Arch);
                         if(locs->rex_b)
                         {
@@ -875,6 +884,11 @@ namespace Dyninst
                     }
                 }
                     break;
+		case am_ImplImm: {
+		  insn_to_complete->appendOperand(Immediate::makeImmediate(Result(makeSizeType(optype), 1)), isRead, isWritten);
+		  break;
+		}
+
                 default:
                     printf("decodeOneOperand() called with unknown addressing method %d\n", operand.admet);
                         break;
