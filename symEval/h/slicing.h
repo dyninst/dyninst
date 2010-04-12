@@ -93,7 +93,7 @@ class Slicer {
 	 image_func *func);
 
   typedef boost::function<bool (AssignmentPtr a)> PredicateFunc;
-  typedef boost::function<bool (image_func *c, std::stack<image_func *> &cs, AbsRegion a)> CallStackFunc;
+  typedef boost::function<bool (image_func *c, std::stack<std::pair<image_func *, int> > &cs, bool plt, AbsRegion a)> CallStackFunc;
 
   GraphPtr forwardSlice(PredicateFunc &e, PredicateFunc &w, CallStackFunc &c);
   

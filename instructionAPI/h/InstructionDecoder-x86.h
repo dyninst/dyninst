@@ -99,7 +99,7 @@ namespace Dyninst
                                       const Instruction* insn_to_complete, bool isRead, bool isWritten);
                 virtual unsigned int decodeOpcode();
       
-                Expression::Ptr makeSIBExpression(unsigned int opType);
+                Expression::Ptr makeSIBExpression();
                 Expression::Ptr makeModRMExpression(unsigned int opType);
                 Expression::Ptr getModRMDisplacement();
                 MachRegister makeRegisterID(unsigned int intelReg, unsigned int opType, bool isExtendedReg = false);

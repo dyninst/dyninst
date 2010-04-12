@@ -543,6 +543,16 @@ void StackAnalysis::computeInsnEffects(const Block *block,
         block->getTargets(outs);
         for (unsigned i=0; i<outs.size(); i++) {
             image_edge *cur_edge = outs[i];
+
+	    if (cur_edge->getType() == ET_DIRECT) {
+	      // For some reason we're treating this
+	      // call as a branch. So it shifts the stack
+	      // like a push (heh) and then we're done.
+	      iFunc.delta() = -1*word_size;
+	      stackanalysis_printf("\t\t\t Stack height changed by simulate-jump call\n");
+	      return;
+	    }
+
             if (cur_edge->getType() != ET_CALL) 
                 continue;
             
