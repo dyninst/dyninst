@@ -3514,6 +3514,7 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
                                    ia32_memacc *mac)
 {
   ia32_locations *loc = instruct.loc;
+  if (loc) loc->imm_cnt = 0;
   unsigned int nib = 0 /* # of bytes in instruction */;
 
   int addrSzAttr = (pref.getPrefix(3) == PREFIX_SZADDR ? 1 : 2);
