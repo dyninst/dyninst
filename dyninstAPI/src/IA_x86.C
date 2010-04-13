@@ -746,6 +746,13 @@ bool IA_IAPI::fillTableEntries(Address thunkOffset,
         parsing_printf("\ttableBase 0x%lx invalid, returning false\n", tableBase);
         return false;
     }
+    Region* tableRegion = img->getObject()->findEnclosingRegion(current);
+    if(!tableRegion) 
+    {
+      parsing_printf("\tERROR: no region associated with table address, bailing out\n");
+      return false;
+    }
+          
     for(unsigned int i=0; i < tableSize; i++)
     {
         Address tableEntry = tableBase + (i * tableStride);
@@ -781,12 +788,11 @@ bool IA_IAPI::fillTableEntries(Address thunkOffset,
 {
     jumpAddress += thunkOffset;
 }
-                if (!(img->isExecutableAddress(jumpAddress))) {
-                    parsing_printf("\tentry %d [0x%lx] -> 0x%lx, invalid, skipping\n",
+                if (!(tableRegion->isOffsetInRegion(jumpAddress))) {
+                    parsing_printf("\tentry %d [0x%lx] -> 0x%lx, invalid addr, skipping\n",
                                    i, tableEntry, jumpAddress);
                     continue;
                 }
-
                 parsing_printf("\tentry %d [0x%lx] -> 0x%lx\n",i,tableEntry,jumpAddress);
 
                 outEdges.push_back(std::make_pair(jumpAddress, ET_INDIR));

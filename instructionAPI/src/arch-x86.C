@@ -3741,6 +3741,13 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
           pref.opcode_prefix = addr[0];
           break;
        }
+       if(mode_64 && REX_ISREX(addr[1]) &&
+	  addr[2]==0x0F && sse_prefix[addr[3]]) 
+       {
+          pref.opcode_prefix = addr[0];
+          break;
+       }
+       
     case PREFIX_LOCK:
        ++pref.count;
        pref.prfx[0] = addr[0];
@@ -3756,6 +3763,12 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
        break;
     case PREFIX_SZOPER:
        if(addr[1]==0x0F && sse_prefix[addr[2]]) {
+          pref.opcode_prefix = addr[0];
+          break;
+       }
+       if(mode_64 && REX_ISREX(addr[1]) &&
+	  addr[2]==0x0F && sse_prefix[addr[3]]) 
+       {
           pref.opcode_prefix = addr[0];
           break;
        }
