@@ -757,7 +757,7 @@ bool Slicer::followCall(image_basicBlock *target, Direction dir, Element &curren
     }
   }
   //cerr << "Calling followCall with stack and " << (callee ? callee->symTabName() : "<NULL>") << endl;
-  return p.followCall(callee, callStack, current.reg);
+  return p.followCall(callee, callStack, false, current.reg);
 }
 
 image_basicBlock *Slicer::getBlock(image_edge *e, 
