@@ -61,7 +61,7 @@ class DecoderLinux : public Decoder
 class linux_process : public sysv_process
 {
  public:
-   linux_process(Dyninst::PID p, std::string e, std::vector<std::string> a);
+   linux_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int,int> f);
    linux_process(Dyninst::PID pid_, int_process *p);
    virtual ~linux_process();
 
