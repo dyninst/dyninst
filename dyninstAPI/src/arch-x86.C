@@ -1168,8 +1168,12 @@ bool instruction::generate(codeGen &gen,
          }
       }
       else {
-         fprintf(stderr, "Warning: call at 0x%lx did not have a valid "
+         parsing_printf("Warning: call at 0x%lx did not have a valid "
                  "calculated target addr 0x%lx\n", origAddr, target);
+         /* These need to be debug messages -- a call 0 is common in static binaries
+          * fprintf(stderr, "Warning: call at 0x%lx did not have a valid "
+          *       "calculated target addr 0x%lx\n", origAddr, target);
+          */
       }
    }
 

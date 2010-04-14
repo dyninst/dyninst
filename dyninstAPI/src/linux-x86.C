@@ -1923,7 +1923,7 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
                     success = false;
                 }else{
                     inst_printf("%s[%d]: replaced call to %s in %s with %s\n",
-                            FILE__, __LINE__, LIBC_CTOR_HANDLER.c_str(),
+                            FILE__, __LINE__, LIBC_DTOR_HANDLER.c_str(),
                             func->prettyName().c_str(), DYNINST_DTOR_HANDLER.c_str());
                     success = true;
                 }
@@ -2063,7 +2063,7 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
     bool loadLibc = true;
 
     for(libIter = libs.begin(); libIter != libs.end(); ++libIter) {
-        if( (*libIter)->name().find("libc") != std::string::npos ) {
+        if( (*libIter)->name().find("libc.a") != std::string::npos ) {
             loadLibc = false;
         }
     }
