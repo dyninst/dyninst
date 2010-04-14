@@ -154,6 +154,7 @@ bool Slicer::getStackDepth(image_func *func, Address callAddr, long &height) {
   StackAnalysis::Height heightSA = sA.findSP(callAddr);
 
   // Ensure that analysis has been performed.
+
   assert(!heightSA.isTop());
   
   if (heightSA.isBottom()) {
@@ -347,7 +348,14 @@ bool Slicer::getSuccessors(Element &current,
     current.loc.block->getTargets(outs);
 
     if (outs.empty()) { 
-      ret = false;
+      if (current.loc.block->canBeRelocated()) {
+	// Should be a halt. 
+	//cerr << "Found block /w/ no successors: " 
+	//<< std::hex << current.loc.block->firstInsnOffset() << std::dec << endl;
+      }
+      else {
+	ret = false;
+      }
     }
     else {
       for (unsigned i = 0; i < outs.size(); ++i) {
@@ -449,7 +457,7 @@ bool Slicer::handleReturn(image_basicBlock *,
 			  Element &current,
 			  Element &newElement, 
 			  Predicates &,
-			  bool &) {
+			  bool &err) {
   // As handleCallEdge, but now with 50% fewer calls
   newElement = current;
 
@@ -472,7 +480,10 @@ bool Slicer::handleReturn(image_basicBlock *,
       break;
     }
   }
-  assert(retBlock);
+  if (!retBlock) {
+    err = true;
+    return false;
+  }
 
   // Pops absregion and context
   handleReturnDetails(newElement.reg,
@@ -736,12 +747,13 @@ bool Slicer::followCall(image_basicBlock *target, Direction dir, Element &curren
   image_func *callee = (target ? target->getEntryFunc() : NULL);
 
   // Create a call stack
-  std::stack<image_func *> callStack;
+
+  std::stack<std::pair<image_func *, int> > callStack;
   for (Context::reverse_iterator calls = current.con.rbegin();
        calls != current.con.rend(); ++calls) {
     if (calls->func)  {
       //cerr << "Adding " << calls->func->symTabName() << " to call stack" << endl;
-      callStack.push(calls->func);
+      callStack.push(std::make_pair<image_func *, int>(calls->func, calls->stackDepth));
     }
   }
   //cerr << "Calling followCall with stack and " << (callee ? callee->symTabName() : "<NULL>") << endl;
