@@ -13,6 +13,7 @@
 using namespace Dyninst;
 using namespace std;
 
+const map<int,int> Process::emptyFDs;
 Process::thread_mode_t threadingMode = Process::GeneratorThreading;
 bool int_process::in_callback = false;
 
