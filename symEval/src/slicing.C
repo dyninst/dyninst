@@ -22,7 +22,7 @@ using namespace std;
 
 #define slicing_cerr if (debug) cerr
 
-static int debug = 0;
+static int debug = 1;
 
 Address AssignNode::addr() const { 
   if (a_)
@@ -350,8 +350,6 @@ bool Slicer::getSuccessors(Element &current,
     if (outs.empty()) { 
       if (current.loc.block->canBeRelocated()) {
 	// Should be a halt. 
-	//cerr << "Found block /w/ no successors: " 
-	//<< std::hex << current.loc.block->firstInsnOffset() << std::dec << endl;
       }
       else {
 	ret = false;
