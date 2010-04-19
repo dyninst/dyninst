@@ -802,6 +802,7 @@ void ia32_instruction::initFlagTable(dyn_hash_map<entryID, flagInfo>& flagTable)
   flagTable[e_sahf] = flagInfo(list_of(r_SF)(r_ZF)(r_AF)(r_PF)(r_CF), vector<IA32Regs>());
   flagTable[e_sar] = flagInfo(vector<IA32Regs>(), standardFlags);
   flagTable[e_shr] = flagInfo(vector<IA32Regs>(), standardFlags);
+  flagTable[e_sbb] = flagInfo(vector<IA32Regs>(), standardFlags);
   flagTable[e_setb] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
   flagTable[e_setbe] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
   flagTable[e_setl] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
@@ -1593,7 +1594,7 @@ static ia32_entry groupMap[][8] = {
 
  { /* group 3a - operands are defined here */
   { e_test, t_done, 0, true, { Eb, Ib, Zz }, 0, s1R2R },
-  { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_test, t_done, 0, true, { Eb, Ib, Zz }, 0, s1R2R }, // book swears this is illegal, sandpile claims it's an aliased TEST
   { e_not,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1RW },
   { e_neg,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1RW },
   { e_mul,  t_done, 0, true, { AX, AL, Eb }, 0, s1W2RW3R },
@@ -1604,7 +1605,7 @@ static ia32_entry groupMap[][8] = {
 
  { /* group 3b - operands are defined here */
   { e_test, t_done, 0, true, { Ev, Iz, Zz }, 0, s1R2R },
-  { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_test, t_done, 0, true, { Ev, Iz, Zz }, 0, s1R2R }, // book swears this is illegal, sandpile claims it's an aliased TEST
   { e_not,  t_done, 0, true, { Ev, Zz, Zz }, 0, s1RW },
   { e_neg,  t_done, 0, true, { Ev, Zz, Zz }, 0, s1RW },
   { e_mul,  t_done, 0, true, { eDX, eAX, Ev }, 0, s1W2RW3R },
@@ -2648,7 +2649,7 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
 {
   ia32_prefixes& pref = instruct.prf;
   unsigned int table, nxtab;
-  unsigned int idx, sseidx = 0;
+  unsigned int idx = 0, sseidx = 0;
   ia32_entry *gotit = NULL;
   int condbits = 0;
 
@@ -2660,15 +2661,22 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
     instruct.legacy_type = ILLEGAL;
     return instruct;
   }
-
+  
+  if((pref.getOpcodePrefix()) && pref.getCount())
+  {
+    idx = pref.getOpcodePrefix();
+    addr--;
+  }
+  
 
   if (instruct.loc) instruct.loc->num_prefixes = pref.getCount();
   instruct.size = pref.getCount();
   addr += instruct.size;
 
   table = t_oneB;
-  idx = addr[0];
+  if(idx == 0) idx = addr[0];
   gotit = &oneByteMap[idx];
+  
   nxtab = gotit->otable;
   instruct.size += 1;
   addr += 1;
@@ -3724,6 +3732,8 @@ static const unsigned char sse_prefix[256] = {
   /* Fx */ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
 };
 
+#define REX_ISREX(x) (((x) >> 4) == 4)
+
 
 // FIXME: lookahead might blow up...
 bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
@@ -3745,6 +3755,7 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
        if(mode_64 && REX_ISREX(addr[1]) &&
 	  addr[2]==0x0F && sse_prefix[addr[3]]) 
        {
+	 ++pref.count;
           pref.opcode_prefix = addr[0];
           break;
        }
@@ -3770,6 +3781,7 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
        if(mode_64 && REX_ISREX(addr[1]) &&
 	  addr[2]==0x0F && sse_prefix[addr[3]]) 
        {
+	 ++pref.count;
           pref.opcode_prefix = addr[0];
           break;
        }
@@ -3783,6 +3795,7 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
     default:
        in_prefix=false;
     }
+    
     ++addr;
   }
 
@@ -3794,7 +3807,6 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
   return result;
 }
 
-#define REX_ISREX(x) (((x) >> 4) == 4)
 #define REX_W(x) ((x) & 0x8)
 #define REX_R(x) ((x) & 0x4)
 #define REX_X(x) ((x) & 0x2)
@@ -3810,6 +3822,7 @@ bool ia32_decode_rex(const unsigned char* addr, ia32_prefixes& pref,
                      ia32_locations *loc)
 {
    if (REX_ISREX(addr[0])) {
+     
       ++pref.count;
       pref.prfx[4] = addr[0];
 
@@ -3827,7 +3840,9 @@ bool ia32_decode_rex(const unsigned char* addr, ia32_prefixes& pref,
       // that could be used as an SSE opcode extension follows our
       // REX
       if (addr[1] == PREFIX_SZOPER || addr[1] == PREFIX_REPNZ || addr[1] == PREFIX_REP)
+      {
          return false;
+      }
    }
 
    return true;

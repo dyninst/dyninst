@@ -1210,7 +1210,7 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
           }
 
           if(!glink) {
-              fprintf(stderr, "couldn't find glink section\n");
+              //fprintf(stderr, "couldn't find glink section\n");
               return false;
           }
           // Find PLT function stubs.  They preceed the glink section.

@@ -477,7 +477,6 @@ SymEval<a>::convert(const InstructionAPI::Instruction::Ptr &insn, uint64_t addr)
     // operand list
     SgAsmOperandList *roperands = new SgAsmOperandList;
 
-<<<<<<< HEAD:symEval/src/SymEval.C
     //cerr << "checking instruction: " << insn->format() << " for special handling" << endl;
     if(SymEvalArchTraits<a>::handleSpecialCases(insn->getOperation().getID(), rinsn, roperands))
     {
@@ -499,7 +498,6 @@ SymEval<a>::convert(const InstructionAPI::Instruction::Ptr &insn, uint64_t addr)
             if(final != NULL) {
                 roperands->append_operand(final);
             }
-=======
     switch (rinsn.get_kind()) {
     case x86_lea: {
       assert(operands.size() == 2);
@@ -573,7 +571,6 @@ SymEval<a>::convert(const InstructionAPI::Instruction::Ptr &insn, uint64_t addr)
 	roperands->append_operand(convert(currOperand));
       }
     }
->>>>>>> c919de7eb01bceee0339978ea1ce5387a8c269d3:symEval/src/SymEval.C
     }
     rinsn.set_operandList(roperands);
 
