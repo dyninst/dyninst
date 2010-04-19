@@ -63,7 +63,7 @@ template <Architecture a>
 void SymEval<a>::expand(Result_t &res) {
   // Symbolic evaluation works off an Instruction
   // so we have something to hand to ROSE. 
-  for (Result::iterator i = res.begin(); i != res.end(); ++i) {
+  for (Result_t::iterator i = res.begin(); i != res.end(); ++i) {
     if (i->second != Placeholder) {
       // Must've already filled it in from a previous instruction crack
       continue;
@@ -79,7 +79,7 @@ void SymEval<a>::expand(Result_t &res) {
   }
 
   // Must apply the visitor to each filled in element
-  for (Result::iterator i = res.begin(); i != res.end(); ++i) {
+  for (Result_t::iterator i = res.begin(); i != res.end(); ++i) {
     if (i->second == Placeholder) {
       // Must not have been filled in above
       continue;
@@ -100,7 +100,8 @@ void SymEval<a>::expand(Result_t &res) {
 
 // Do the previous, but use a Graph as a guide for
 // performing forward substitution on the AST results
-void SymEval::expand(Graph::Ptr slice, Result &res) {
+template<Architecture a>
+void SymEval<a>::expand(Graph::Ptr slice, Result_t &res) {
   // Other than the substitution this is pretty similar to the first example.
   NodeIterator gbegin, gend;
   slice->entryNodes(gbegin, gend);
@@ -134,28 +135,7 @@ void SymEval::expand(Graph::Ptr slice, Result &res) {
       worklist.push(*nbegin);
     }
   }
-        Result_t::iterator i = res.begin();
-        if (i == res.end()) return;
-
-        Assignment::Ptr ptr = i->first;
-        cerr << "\t\t Expanding insn " << ptr->insn()->format() << endl;
-
-        SymEval<a>::expandInsn(ptr->insn(),
-                   ptr->addr(),
-                   res);
-  // Let's experiment with simplification
-        image_func *func = ptr->func();
-        StackAnalysis sA(func);
-        StackAnalysis::Height sp = sA.findSP(ptr->addr());
-        StackAnalysis::Height fp = sA.findFP(ptr->addr());
-
-        StackBindEval sbe(func->symTabName().c_str(), sp, fp);
-
-        for (i = res.begin(); i != res.end(); ++i) {
-            i->second = sbe.simplify(i->second);
-        }
-    }
-
+}
 
 void SymEvalArchTraits<Arch_x86>::processInstruction(SageInstruction_t* roseInsn,
                                                     SymEvalPolicy& policy)
@@ -186,7 +166,6 @@ SgAsmExpression* SymEvalArchTraits<Arch_ppc32>::convertOperand(InstructionKind_t
         unsigned int which,
         SgAsmExpression* operand)
 {
-  static SgAsmExpression* stash;
   if(opcode >= powerpc_lbz && opcode <= powerpc_lwzx && which > 1) return NULL;
   if(opcode >= powerpc_stb && opcode <= powerpc_stwx && which > 1) return NULL;
     return operand;
@@ -215,89 +194,73 @@ SgAsmExpression* SymEvalArchTraits<Arch_x86>::convertOperand(InstructionKind_t o
 
 template<Architecture a>
 void SymEval<a>::process(AssignNode::Ptr ptr,
-		      Result_t &dbase) {
-  std::map<unsigned, Assignment::Ptr> inputMap;
+                      SymEval::Result_t &dbase) {
+                          std::map<unsigned, Assignment::Ptr> inputMap;
 
-  cerr << "Calling process on " << ptr->format() << endl;
+  //cerr << "Calling process on " << ptr->format() << endl;
 
   // Don't try an expansion of a widen node...
-  if (!ptr->assign()) return;
+                          if (!ptr->assign()) return;
 
-  NodeIterator begin, end;
-  ptr->ins(begin, end);
+                          NodeIterator begin, end;
+                          ptr->ins(begin, end);
   
-  for (; begin != end; ++begin) {
-    AssignNode::Ptr in = dyn_detail::boost::dynamic_pointer_cast<AssignNode>(*begin);
-    if (!in) continue;
+                          for (; begin != end; ++begin) {
+                              AssignNode::Ptr in = dyn_detail::boost::dynamic_pointer_cast<AssignNode>(*begin);
+                              if (!in) continue;
 
-    Assignment::Ptr assign = in->assign();
+                              Assignment::Ptr assign = in->assign();
 
-    if (!assign) continue;
+                              if (!assign) continue;
 
     // Find which input this assignNode maps to
-    unsigned index = ptr->getAssignmentIndex(in);
-    if (inputMap.find(index) == inputMap.end()) {
-      inputMap[index] = assign;
-    }
-    else {
+                              unsigned index = ptr->getAssignmentIndex(in);
+                              if (inputMap.find(index) == inputMap.end()) {
+                                  inputMap[index] = assign;
+                              }
+                              else {
       // Need join operator!
-      inputMap[index] = Assignment::Ptr(); // Null equivalent
-    }
-  }
+                                  inputMap[index] = Assignment::Ptr(); // Null equivalent
+                              }
+                          }
 
-  cerr << "\t Input map has size " << inputMap.size() << endl;
+  //cerr << "\t Input map has size " << inputMap.size() << endl;
 
   // All of the expanded inputs are in the parameter dbase
   // If not (like this one), add it
 
-  AST::Ptr ast = SymEval::expand(ptr->assign());
-  cerr << "\t ... resulting in " << (ast ? ast->format() : "<NULL>") << endl;
+                          AST::Ptr ast = SymEval::expand(ptr->assign());
+  //cerr << "\t ... resulting in " << res->format() << endl;
 
-  if (ast) {
-    // We have an AST. Now substitute in all of its predecessors.
-    for (std::map<unsigned, Assignment::Ptr>::iterator iter = inputMap.begin();
-	 iter != inputMap.end(); ++iter) {
-      if (!iter->second) {
-	// Colliding definitions; skip.
-	continue;
-      }
-      
-      // The region used by the current assignment...
-      const AbsRegion &reg = ptr->assign()->inputs()[iter->first];
-      
-      // Create an AST around this one
-      AbsRegionAST::Ptr use = AbsRegionAST::create(reg);
-      
-      // And substitute whatever we have in the database for that AST
-      AST::Ptr definition = dbase[iter->second]; 
-      
-      if (!definition) {
-	cerr << "Odd; no expansion for " << iter->second->format() << endl;
-	// Can happen if we're expanding out of order, and is generally harmless.
-	continue;
-      }
-      
-      ast = AST::substitute(ast, use, definition);
-      //cerr << "\t result is " << res->format() << endl;
-    }
-  }
-  dbase[ptr->assign()] = ast;
+  // We have an AST. Now substitute in all of its predecessors.
+                          for (std::map<unsigned, Assignment::Ptr>::iterator iter = inputMap.begin();
+                               iter != inputMap.end(); ++iter) {
+                                   if (!iter->second) {
+      // Colliding definitions; skip.
+                                       continue;
+                                   }
+
     // The region used by the current assignment...
-  const AbsRegion &reg = ptr->assign()->inputs()[iter->first];
+                                   const AbsRegion &reg = ptr->assign()->inputs()[iter->first];
 
     // Create an AST around this one
-  VariableAST::Ptr use = VariableAST::create(Variable(reg, ptr->addr()));
+                                   VariableAST::Ptr use = VariableAST::create(Variable(reg, ptr->addr()));
 
     // And substitute whatever we have in the database for that AST
-  AST::Ptr definition = dbase[iter->second];
+                                   AST::Ptr definition = dbase[iter->second];
 
-    if (!definition) {
+                                   if (!definition) {
       //cerr << "Odd; no expansion for " << iter->second->format() << endl;
       // Can happen if we're expanding out of order, and is generally harmless.
-      continue;
-    }
-}
-}
+                                       continue;
+                                   }
+
+                                   ast = AST::substitute(ast, use, definition);
+    //cerr << "\t result is " << res->format() << endl;
+                               }
+                               dbase[ptr->assign()] = ast;
+                      }
+
 
 PowerpcInstructionKind makeRoseBranchOpcode(entryID iapi_opcode, bool isAbsolute, bool isLink)
 {
@@ -429,35 +392,6 @@ void SymEvalArchTraits<Arch_ppc32>::handleSpecialCases(InstructionAPI::Instructi
 }
 
 
-SgAsmExpression* SymEvalArchTraits<Arch_ppc32>::convertOperand(InstructionKind_t ,
-        unsigned int ,
-        SgAsmExpression* operand)
-{
-    // add filtering as needed...
-    return operand;
-}
-
-SgAsmExpression* SymEvalArchTraits<Arch_x86>::convertOperand(InstructionKind_t opcode,
-        unsigned int which,
-        SgAsmExpression* operand)
-{
-    if((opcode == x86_lea) && (which == 1))
-    {
-        // We need to wrap o1 in a memory dereference...
-        SgAsmMemoryReferenceExpression *expr = new SgAsmMemoryReferenceExpression(operand);
-        return expr;
-    }
-    else if((opcode == x86_push || opcode == x86_pop) && (which > 0))
-    {
-        fprintf(stderr, "push/pop detected, skipping operand %d\n", which);
-        return NULL;
-    }
-    else
-    {
-        return operand;
-    }
-}
-
 template<Architecture a>
 typename SymEval<a>::SageInstruction_t
 SymEval<a>::convert(const InstructionAPI::Instruction::Ptr &insn, uint64_t addr) {
@@ -486,18 +420,20 @@ SymEval<a>::convert(const InstructionAPI::Instruction::Ptr &insn, uint64_t addr)
     //cerr << "no special handling by opcode, checking if we should mangle operands..." << endl;
     std::vector<InstructionAPI::Operand> operands;
     insn->getOperands(operands);
-    SymEvalArchTraits<a>::handleSpecialCases(insn->getOperation().getID(), operands)
+    SymEvalArchTraits<a>::handleSpecialCases(insn, operands);
     int i = 0;
     //cerr << "converting insn " << insn->format() << endl;
     for (std::vector<InstructionAPI::Operand>::iterator opi = operands.begin();
              opi != operands.end();
-             ++opi, ++i) {
-            InstructionAPI::Operand &currOperand = *opi;
-            SgAsmExpression* converted = convert(currOperand);
-            SgAsmExpression* final = SymEvalArchTraits<a>::convertOperand(rinsn.get_kind(), i, converted);
-            if(final != NULL) {
-                roperands->append_operand(final);
-            }
+             ++opi, ++i)
+    {
+        InstructionAPI::Operand &currOperand = *opi;
+        SgAsmExpression* converted = convert(currOperand);
+        SgAsmExpression* final = SymEvalArchTraits<a>::convertOperand(rinsn.get_kind(), i, converted);
+        if(final != NULL) {
+            roperands->append_operand(final);
+        }
+    }
     switch (rinsn.get_kind()) {
     case x86_lea: {
       assert(operands.size() == 2);

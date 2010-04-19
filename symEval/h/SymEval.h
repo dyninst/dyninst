@@ -401,7 +401,7 @@ struct SymEvalArchTraits<Arch_x86>
         return;
     }
 
-    static InstructionKind_t convert(entryID e);
+    static InstructionKind_t convert(entryID e, std::string);
     static void processInstruction(SageInstruction_t* insn, SymEvalPolicy& policy);
 };
 template <>
@@ -417,12 +417,11 @@ struct SymEvalArchTraits<Arch_ppc32>
     static bool handleSpecialCases(entryID iapi_opcode, SageInstruction_t& rose_insn,
                                    SgAsmOperandList* rose_operands);
     static void handleSpecialCases(InstructionAPI::Instruction::Ptr insn, std::vector<InstructionAPI::Operand>& operands);
-    static InstructionKind_t convert(entryID e);
+    static InstructionKind_t convert(entryID e, std::string mnem);
     static void processInstruction(SageInstruction_t* insn, SymEvalPolicy& policy);
 };
 
 
-typedef std::map<Assignment::Ptr, AST::Ptr> Result_t;
 template <Architecture a = Arch_x86>
 class SymEval : public SymEvalArchTraits<a> {
 public:
@@ -430,11 +429,11 @@ public:
     typedef typename SymEvalArchTraits<a>::InstructionKind_t InstructionKind_t;
     typedef typename SymEvalArchTraits<a>::Visitor_t Visitor_t;
     typedef typename SymEvalArchTraits<a>::GPR_t GPR_t;
+    typedef std::map<Assignment::Ptr, AST::Ptr> Result_t;
 public:
   // Return type: mapping AbsRegions to ASTs
   // We then can map Assignment::AbsRegions to 
   // SymEval::AbsRegions and come up with the answer
-  typedef Result_t Result;
   static const AST::Ptr Placeholder;
   
   // Single version: hand in an Assignment, get an AST
@@ -444,20 +443,20 @@ public:
   // get back a map of Assignments->ASTs
   // We assume the assignments are prepped in the input; whatever
   // they point to is discarded.
-  static void expand(Result &res);
+  static void expand(Result_t &res);
 
   // Hand in a Graph (of AssignNodes, natch) and get back a Result;
   // prior results from the Graph
   // are substituted into anything that uses them.
-  static void expand(Graph::Ptr slice, Result &res);
+  static void expand(Graph::Ptr slice, Result_t &res);
   
  private:
-  static void process(AssignNode::Ptr, SymEval::Result &res);
+  static void process(AssignNode::Ptr, SymEval::Result_t &res);
 
   static SageInstruction_t convert(const InstructionAPI::Instruction::Ptr &insn, uint64_t addr);
-  static InstructionKind_t convert(entryID opcode)
+  static InstructionKind_t convert(entryID opcode, std::string mnem)
   {
-      return SymEvalArchTraits<a>::convert(opcode);
+      return SymEvalArchTraits<a>::convert(opcode,mnem);
   }
   static SgAsmExpression *convert(const InstructionAPI::Operand &operand);
   static SgAsmExpression *convert(const InstructionAPI::Expression::Ptr expression);
@@ -466,9 +465,9 @@ public:
   // an AST representation to every written absloc
   static void expandInsn(const InstructionAPI::Instruction::Ptr insn,
 			 const uint64_t addr,
-			 Result &res);
+			 Result_t& res);
   
-  friend class ExpressionConversionVisitor;
+  friend class ExpressionConversionVisitor<a>;
 };
 
 };
