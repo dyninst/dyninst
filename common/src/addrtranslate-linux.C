@@ -33,6 +33,7 @@
 #include "common/src/addrtranslate-sysv.h"
 #include "common/h/linuxKludges.h"
 
+#include <cstdio>
 #include <linux/limits.h>
 
 #include <sys/ptrace.h>
