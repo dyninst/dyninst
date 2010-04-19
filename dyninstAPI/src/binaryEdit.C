@@ -392,7 +392,7 @@ bool BinaryEdit::getResolvedLibraryPath(const std::string &, std::vector<std::st
 }
 #endif
 
-#if !defined(cap_binary_rewriter)
+#if !(defined(cap_binary_rewriter) && (defined(arch_x86) || defined(arch_x86_64))) 
 bool BinaryEdit::doStaticBinarySpecialCases() {
     return true;
 }

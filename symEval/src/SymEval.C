@@ -200,7 +200,7 @@ void SymEval::process(AssignNode::Ptr ptr,
     AST::Ptr definition = dbase[iter->second]; 
 
     if (!definition) {
-      cerr << "Odd; no expansion for " << iter->second->format() << endl;
+      //cerr << "Odd; no expansion for " << iter->second->format() << endl;
       // Can happen if we're expanding out of order, and is generally harmless.
       continue;
     }
@@ -231,33 +231,79 @@ SgAsmx86Instruction SymEval::convert(const InstructionAPI::Instruction::Ptr &ins
     std::vector<InstructionAPI::Operand> operands;
     insn->getOperands(operands);
 
-    // Override for LEA conversion
-    if (rinsn.get_kind() == x86_lea) {
-        assert(operands.size() == 2);
-        roperands->append_operand(convert(operands[0]));
-        
-        SgAsmExpression *o1 = convert(operands[1]);
-        // We need to wrap o1 in a memory dereference...
-        SgAsmMemoryReferenceExpression *expr = new SgAsmMemoryReferenceExpression(o1);
-        roperands->append_operand(expr);
-        
-    }
-    else if (rinsn.get_kind() == x86_push) {
-      assert(operands.size() == 2); 
-      roperands->append_operand(convert(operands[0]));
-    }
-    else if (rinsn.get_kind() == x86_pop) {
+    switch (rinsn.get_kind()) {
+    case x86_lea: {
       assert(operands.size() == 2);
       roperands->append_operand(convert(operands[0]));
+      
+      SgAsmExpression *o1 = convert(operands[1]);
+      // We need to wrap o1 in a memory dereference...
+      SgAsmMemoryReferenceExpression *expr = new SgAsmMemoryReferenceExpression(o1);
+      roperands->append_operand(expr);
+      break;
     }
-    else {
-        for (std::vector<InstructionAPI::Operand>::iterator opi = operands.begin(),
-                 ope = operands.end();
-             opi != ope;
-             ++opi) {
-            InstructionAPI::Operand &currOperand = *opi;
-            roperands->append_operand(convert(currOperand));
-        }
+    case x86_push: {
+      assert(operands.size() == 2); 
+      roperands->append_operand(convert(operands[0]));
+      break;
+    }
+    case x86_pop: {
+      assert(operands.size() == 2);
+      roperands->append_operand(convert(operands[0]));
+      break;
+    }
+    case x86_cmpxchg: {
+      assert(operands.size() == 3);
+      roperands->append_operand(convert(operands[0]));
+      roperands->append_operand(convert(operands[1]));
+      break;
+    }
+    case x86_movsb:
+    case x86_movsw:
+    case x86_movsd: {
+      // No operands
+      break;
+    }
+    case x86_repne_cmpsb:
+    case x86_repne_cmpsw:
+    case x86_repne_cmpsd:
+    case x86_repe_cmpsb:
+    case x86_repe_cmpsw:
+    case x86_repe_cmpsd:
+    case x86_cmpsb:
+    case x86_cmpsw:
+    case x86_cmpsd: {
+      // No operands
+      break;
+    }
+    case x86_stosb:
+    case x86_stosw:
+    case x86_stosd: {
+      // Also, no operands
+      break;
+    }
+    case x86_jcxz:
+    case x86_jecxz: {
+      assert(operands.size() == 2); 
+      roperands->append_operand(convert(operands[0]));
+      break;
+    }
+    case x86_cbw:
+    case x86_cwde:
+    case x86_cwd:
+    case x86_cdq: {
+      // Nada
+      break;
+    }
+    default: {
+      for (std::vector<InstructionAPI::Operand>::iterator opi = operands.begin(),
+	     ope = operands.end();
+	   opi != ope;
+	   ++opi) {
+	InstructionAPI::Operand &currOperand = *opi;
+	roperands->append_operand(convert(currOperand));
+      }
+    }
     }
     rinsn.set_operandList(roperands);
 

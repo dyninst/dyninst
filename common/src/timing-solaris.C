@@ -30,10 +30,10 @@
  */
 
 // $Id: timing-solaris.C,v 1.7 2007/05/30 19:20:35 legendre Exp $
+#include <cstring>
 #include <sys/types.h>
 #include <sys/processor.h>
 #include "common/h/timing.h"
-
 
 // TODO: replace body with (better) platform-specific code
 

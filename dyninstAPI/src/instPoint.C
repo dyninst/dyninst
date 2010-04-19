@@ -236,6 +236,8 @@ instPoint *instPoint::createArbitraryInstPoint(Address addr,
         return NULL;
     }
 #if defined(cap_instruction_api)
+    if (!proc->isValidAddress(bbl->firstInsnAddr())) return NULL;
+
     const unsigned char* buffer = reinterpret_cast<unsigned char*>(proc->getPtrToInstruction(bbl->firstInsnAddr()));
     dyn_detail::boost::shared_ptr<InstructionDecoder> decoder =
             makeDecoder(func->ifunc()->img()->getArch(), buffer, bbl->getSize());

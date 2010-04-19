@@ -97,6 +97,7 @@ enum {
 };
 
 #define Zz   { 0, 0 }
+#define ImplImm { am_ImplImm, op_b }
 #define Ap   { am_A, op_p }
 #define Cd   { am_C, op_d }
 #define Dd   { am_D, op_d }
@@ -1093,8 +1094,8 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_into,    t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
   { e_iret,    t_done, 0, false, { Zz, Zz, Zz }, (IS_RET), fIRET << FPOS},
   /* D0 */
-  { e_No_Entry, t_grp, Grp2, true, { Eb, Zz, Zz }, 0, s1RW }, // const1
-  { e_No_Entry, t_grp, Grp2, true, { Ev, Zz, Zz }, 0, s1RW }, // --"--
+  { e_No_Entry, t_grp, Grp2, true, { Eb, ImplImm, Zz }, 0, s1RW2R }, // const1
+  { e_No_Entry, t_grp, Grp2, true, { Ev, ImplImm, Zz }, 0, s1RW2R }, // --"--
   { e_No_Entry, t_grp, Grp2, true, { Eb, CL, Zz }, 0, s1RW2R },
   { e_No_Entry, t_grp, Grp2, true, { Ev, CL, Zz }, 0, s1RW2R },
   { e_aam,  t_done, 0, false, { AX, Ib, Zz }, 0, s1RW2R },
@@ -3513,6 +3514,7 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
                                    ia32_memacc *mac)
 {
   ia32_locations *loc = instruct.loc;
+  if (loc) loc->imm_cnt = 0;
   unsigned int nib = 0 /* # of bytes in instruction */;
 
   int addrSzAttr = (pref.getPrefix(3) == PREFIX_SZADDR ? 1 : 2);
@@ -3596,8 +3598,15 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
       case am_J: { /* instruction pointer offset */
          int imm_size = type2size(op.optype, operSzAttr);
          if (loc) {
-            loc->imm_position = nib + loc->opcode_position + loc->opcode_size;
-            loc->imm_size = imm_size;
+            // sanity
+            if(loc->imm_cnt > 1) {
+                fprintf(stderr,"Oops, more than two immediate operands\n");
+            } else {
+                loc->imm_position[loc->imm_cnt] = 
+                    nib + loc->opcode_position + loc->opcode_size;
+                loc->imm_size[loc->imm_cnt] = imm_size;
+                ++loc->imm_cnt;
+            }
          }
          nib += imm_size;
          break;
@@ -3615,6 +3624,10 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
       case am_stackP: /* stack pop */
 	assert(0 && "Wrong table!");
         break;
+      case am_tworeghack:
+      case am_ImplImm:
+	// Don't do nuthin'
+	break;
       default:
         assert(0 && "Bad addressing mode!");
       }

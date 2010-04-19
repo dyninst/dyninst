@@ -330,9 +330,11 @@ INSTRUCTION_EXPORT bool ia32_is_mode_64();
 // and am_stackX for stack operands [this kinda' messy since there are actually two operands:
 // the stack byte/word/dword and the (E)SP register itself - but is better than naught]
 // added: am_reg, am_stack, am_allgprs
+// ADDED: am_ImplImm for implicit immediates
+
 enum { am_A=1, am_C, am_D, am_E, am_F, am_G, am_I, am_J, am_M, am_O, // 10
        am_P, am_Q, am_R, am_S, am_T, am_V, am_W, am_X, am_Y, am_reg, // 20
-       am_stackH, am_stackP, am_allgprs, am_VR, am_tworeghack }; // pusH and poP produce different addresses
+       am_stackH, am_stackP, am_allgprs, am_VR, am_tworeghack, am_ImplImm }; // pusH and poP produce different addresses
 
 // operand types - idem, but I invented quite a few to make implicit operands explicit.
 enum { op_a=1, op_b, op_c, op_d, op_dq, op_p, op_pd, op_pi, op_ps, // 9 
@@ -424,7 +426,7 @@ struct sIBByte {
  **/
 typedef struct ia32_locations {
    ia32_locations() : num_prefixes(0), opcode_size(0), opcode_position(-1),
-        disp_size(0), disp_position(-1), imm_position(-1), imm_size(0),
+        disp_size(0), disp_position(-1), imm_cnt(0), 
         modrm_position(-1), modrm_operand(-1), modrm_byte(0), modrm_mod(0),
         modrm_rm(0), modrm_reg(0), sib_byte(0), sib_position(-1), 
         rex_position(-1), rex_byte(0), rex_w(0), rex_r(0), rex_x(0), rex_b(0),
@@ -436,8 +438,9 @@ typedef struct ia32_locations {
    unsigned disp_size;
    int disp_position;
 
-   int imm_position;
-   unsigned imm_size;
+   int imm_cnt;
+   int imm_position[2];
+   unsigned imm_size[2];
    
    int modrm_position;
    int modrm_operand;

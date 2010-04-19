@@ -216,7 +216,7 @@ public:
        
        // get_ld_base_addr: This routine returns the base address of ld.so.1
        // it returns true on success, and false on error
-       bool dynamic_linking::get_ld_base_addr(Address &addr, int auxv_fd);
+       bool get_ld_base_addr(Address &addr, int auxv_fd);
 
           // find_function: this routine finds the symbol table for ld.so.1, and
        // parses it to find the address of f_name
