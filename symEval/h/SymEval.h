@@ -296,6 +296,8 @@ DEF_AST_LEAF_TYPE(ConstantAST, Constant);
 DEF_AST_LEAF_TYPE(VariableAST, Variable);
 DEF_AST_INTERNAL_TYPE(RoseAST, ROSEOperation);
 
+class SymEvalPolicy;
+
 template <Architecture a>
 struct SymEvalArchTraits
 {
