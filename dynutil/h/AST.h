@@ -78,6 +78,9 @@ class ASTVisitor;
 
  // Codegen...
 
+ // Other...
+ class InputVariableAST;
+
  class ASTVisitor {
  public:
    typedef dyn_detail::boost::shared_ptr<AST> ASTPtr;
@@ -87,6 +90,7 @@ class ASTVisitor;
    virtual ASTPtr visit(SymbolicEvaluation::VariableAST *) = 0;
    virtual ASTPtr visit(SymbolicEvaluation::RoseAST *) = 0;
    virtual ASTPtr visit(StackAST *) = 0;
+   virtual ASTPtr visit(InputVariableAST *) = 0;
 
    virtual ~ASTVisitor() {};
  };
@@ -180,7 +184,8 @@ class AST : public dyn_detail::boost::enable_shared_from_this<AST> {
     V_VariableAST,
     V_RoseAST,
     // Stack analysis
-    V_StackAST } ID;
+    V_StackAST,
+    V_InputVariableAST } ID;
 
   typedef dyn_detail::boost::shared_ptr<AST> Ptr;
   typedef std::vector<AST::Ptr> Children;      
