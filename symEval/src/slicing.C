@@ -22,7 +22,7 @@ using namespace std;
 
 #define slicing_cerr if (debug) cerr
 
-static int debug = 1;
+static int debug = 0;
 
 Address AssignNode::addr() const { 
   if (a_)
