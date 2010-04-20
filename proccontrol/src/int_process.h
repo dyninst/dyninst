@@ -118,6 +118,7 @@ class int_process
    virtual void freeExecMemory(Dyninst::Address addr);
 
    static bool waitAndHandleEvents(bool block);
+   static bool waitAndHandleForProc(bool block, int_process *proc, bool &proc_exited);
    static const char *stateName(State s);
    void initializeProcess(Process::ptr p);
 
@@ -164,6 +165,8 @@ class int_process
 
    std::string getExecutable() const;
    static bool isInCallback();
+
+   static int_process *in_waitHandleProc;
  protected:
    State state;
    Dyninst::PID pid;

@@ -591,7 +591,7 @@ bool image_func::addBasicBlock(Address newAddr,
                    std::set<Address> &leaders,
                    dictionary_hash<Address, image_basicBlock *> &leadersToBlock,
                    EdgeTypeEnum edgeType,
-                   pdvector<Address> &worklist)
+			       std::priority_queue<worklist_entry> &worklist)
 {
     image_basicBlock *newBlk;
     codeRange *tmpRange;
@@ -603,7 +603,9 @@ bool image_func::addBasicBlock(Address newAddr,
             newAddr);
         return false;
     }
-
+    worklist_entry::block_type blockType = worklist_entry::bt_default;
+    if(edgeType == ET_CALL) blockType = worklist_entry::bt_leaves_function;
+    if(edgeType == ET_INDIR) blockType = worklist_entry::bt_indirect;
     // test for split of existing block
     image_basicBlock *splitBlk = NULL;
     if(image_->basicBlocksByRange.find(newAddr, tmpRange))
@@ -633,7 +635,7 @@ bool image_func::addBasicBlock(Address newAddr,
                 if(newBlk->isStub_) {
                     newBlk->addFunc(this); // see above comment
                 }
-                worklist.push_back(newAddr);
+                worklist.push(worklist_entry(newAddr, blockType));
                 parsing_printf("[%s] adding block %d (0x%lx) to worklist\n",
                     FILE__,newBlk->id(),newBlk->firstInsnOffset_);
             }
@@ -648,7 +650,7 @@ bool image_func::addBasicBlock(Address newAddr,
             // has not already been parsed in /this/ function
             if(leaders.find(splitBlk->firstInsnOffset_) == leaders.end())
             {
-                worklist.push_back(newAddr);
+	      worklist.push(worklist_entry(newAddr, blockType));
                 parsing_printf("[%s] adding block %d (0x%lx) to worklist\n",
                     FILE__,newBlk->id(),newBlk->firstInsnOffset_);
             }
@@ -674,7 +676,7 @@ bool image_func::addBasicBlock(Address newAddr,
         image_->basicBlocksByRange.insert(newBlk);
         parsing_printf("[%s] adding block %d (0x%lx) to worklist\n",
             FILE__,newBlk->id(),newBlk->firstInsnOffset_);
-        worklist.push_back(newAddr);
+        worklist.push(worklist_entry(newAddr, blockType));
     }
 
     // special case: a conditional branch in block A splits A
@@ -982,8 +984,16 @@ bool image_func::isLeafFunc() {
     return calls.size() > 0;
 }
 
+void image_func::addParRegion(Address begin, Address end, parRegType t)
+{
+    image_parRegion * iPar = new image_parRegion(begin, this);
+    iPar->setRegionType(t);
+    iPar->setParentFunc(this); // when not outlined, parent func will be same as regular
+    iPar->setLastInsn(end);
+    parRegionsList.push_back(iPar);
+}
 
-#if defined(cap_instruction_api) 
+#if defined(cap_instruction_api)
 void image_basicBlock::getInsnInstances(std::vector<std::pair<InstructionAPI::Instruction::Ptr, Offset> >&instances) {
     using namespace InstructionAPI;
     Offset off = firstInsnOffset();
