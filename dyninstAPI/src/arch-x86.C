@@ -1103,8 +1103,9 @@ bool instruction::generate(codeGen &gen,
       else if (addrSpace->isValidAddress(target)) {
          // Get us an instrucIter
           const unsigned char* buf = reinterpret_cast<const unsigned char*>(addrSpace->getPtrToInstruction(target));
-          dyn_detail::boost::shared_ptr<InstructionDecoder> d = makeDecoder(Dyninst::Arch_x86, buf,
-            2 * maxInstructionLength);
+          
+          dyn_detail::boost::shared_ptr<InstructionDecoder> d = makeDecoder(addrSpace->getAddressWidth() == 8 ?
+                  Dyninst::Arch_x86_64 : Dyninst::Arch_x86, buf, 2 * maxInstructionLength);
           d->setMode(addrSpace->getAddressWidth() == 8);
           Instruction::Ptr firstInsn = d->decode();
           Instruction::Ptr secondInsn = d->decode();

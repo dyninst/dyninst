@@ -34,11 +34,10 @@
 
 #include "InstructionDecoder.h"
 
-struct ia32_locations;
-struct ia32_condition;
+#include "ia32_locations.h"
+
 struct ia32_operand;
 class ia32_instruction;
-struct ia32_memacc;
 namespace Dyninst
 {
     namespace InstructionAPI
@@ -109,9 +108,7 @@ namespace Dyninst
             private:
                 void doIA32Decode();
       
-                ia32_locations* locs;
-                ia32_condition* cond;
-                ia32_memacc* mac;
+                ia32_locations locs;
                 ia32_instruction* decodedInstruction;
                 bool is32BitMode;
                 bool sizePrefixPresent;

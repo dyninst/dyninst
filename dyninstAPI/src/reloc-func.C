@@ -633,7 +633,7 @@ bool bblInstance::relocationSetup(bblInstance *orig, pdvector<funcMod *> &mods) 
      reloc->relocAddr = 0;
      reloc->origInsn = new instruction;
      reloc->origPtr = buffer + offset;
-     reloc->origInsn->setInstruction((const unsigned char*)reloc->origPtr, reloc->origAddr);
+     reloc->origInsn->setInstruction((unsigned char*)reloc->origPtr, reloc->origAddr);
      reloc->relocTarget = 0;
      reloc->relocSize = 0;
 
