@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef _InstrucIter_h_
+#if !defined(_InstrucIter_h_) && !defined(cap_instruction_api)
 #define _InstrucIter_h_
 
 #include "common/h/Types.h"

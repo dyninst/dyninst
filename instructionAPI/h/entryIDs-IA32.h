@@ -216,6 +216,7 @@ enum entryID {
   e_int,
   e_int3,
   e_int1,
+  e_int80,
   e_into,
   e_invd,
   e_invlpg,
@@ -453,6 +454,7 @@ enum entryID {
   e_verw,
   e_vmread,
   e_vmwrite,
+  e_vsyscall,
   e_wait,
   e_wbinvd,
   e_wrmsr,
@@ -576,6 +578,7 @@ enum entryID {
   power_op_lfqux,
   power_op_sleq,
   power_op_extsb,
+  power_op_ld,
   power_op_ldu,
   power_op_fctidz,
   power_op_lfq,
@@ -799,7 +802,9 @@ enum entryID {
   power_op_fscmp,
   power_op_fsabs,
   power_op_fsneg,
-  power_op_fsnabs
+  power_op_fsnabs,
+  power_op_lwa
+          
 };
 
 #if defined(__GNUC__)

@@ -96,6 +96,11 @@ namespace Dyninst
       INSTRUCTION_EXPORT bool isRead(Expression::Ptr candidate) const;
       /// Returns true if this operand is written
       INSTRUCTION_EXPORT bool isWritten(Expression::Ptr candidate) const;
+
+      INSTRUCTION_EXPORT bool isRead() const {
+	return m_isRead; }
+      INSTRUCTION_EXPORT bool isWritten() const {
+	return m_isWritten; }
       
       /// Returns true if this operand reads memory
       INSTRUCTION_EXPORT bool readsMemory() const;

@@ -69,10 +69,11 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
     0xc7, 0x45, 0xfc, 0x01, 0x00, 0x00, 0x00, // MOVL 0x01, -0x4(EBP)
     0x88, 0x55, 0xcc, // MOVB DL, -0x34(EBP)
     0xF2, 0x0F, 0x12, 0xC0, // MOVDDUP XMM0, XMM1
-    0x66, 0x0F, 0x7C, 0xC9  // HADDPD XMM1, XMM1
+    0x66, 0x0F, 0x7C, 0xC9,  // HADDPD XMM1, XMM1
+    0x8d, 0x83, 0x18, 0xff, 0xff, 0xff // LEA -0xe8(%ebx), %eax
   };
-  unsigned int size = 34;
-  unsigned int expectedInsns = 11;
+  unsigned int size = 40;
+  unsigned int expectedInsns = 12;
   dyn_detail::boost::shared_ptr<InstructionDecoder> d =
           makeDecoder(Dyninst::Arch_x86, buffer, size);
   std::deque<Instruction::Ptr> decodedInsns;
@@ -109,14 +110,7 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
       using namespace x86;
   
   RegisterAST::Ptr r_eax(new RegisterAST(eax));
-#if 0
-  RegisterAST::Ptr r_adjust(new RegisterAST(flags, r_AF, r_AF));
-  RegisterAST::Ptr r_zero(new RegisterAST(flags, r_ZF, r_ZF));
-  RegisterAST::Ptr r_overflow(new RegisterAST(flags, r_OF, r_OF));
-  RegisterAST::Ptr r_parity(new RegisterAST(flags, r_PF, r_PF));
-  RegisterAST::Ptr r_sign(new RegisterAST(flags, r_SF, r_SF));
-  RegisterAST::Ptr r_carry(new RegisterAST(flags, r_CF, r_CF));
-#endif
+  RegisterAST::Ptr r_ebx(new RegisterAST(ebx));
   RegisterAST::Ptr r_adjust(new RegisterAST(af));
   RegisterAST::Ptr r_zero(new RegisterAST(zf));
   RegisterAST::Ptr r_overflow(new RegisterAST(of));
@@ -218,7 +212,16 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
     retVal = FAILED;
   }  
   decodedInsns.pop_front();
+  
+  expectedRead.clear();
+  expectedWritten.clear();
+  expectedRead = list_of(r_ebx);
+  expectedWritten = list_of(r_eax);
+  retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), expectedRead, expectedWritten));
+  decodedInsns.pop_front();    
   }
+
+  
 #if defined(arch_x86_64_test)
   const unsigned char amd64_specific[] = 
   {

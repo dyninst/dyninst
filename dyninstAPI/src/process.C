@@ -4191,6 +4191,27 @@ bool process::detach(const bool leaveRunning )
         lwp->detach();
     }
 
+    // Get rid of everything that could contain a trap that we'll no longer handle.
+    // This means the dynamic linker trap, syscall traps, and trap-based instrumentation.
+    if(dyn) {
+        dyn->uninstallTracing();
+    }
+
+    if (tracedSyscalls_) {
+        delete tracedSyscalls_;
+        tracedSyscalls_ = NULL;
+    }
+
+#if defined(cap_syscall_trap)
+    for (unsigned iter = 0; iter < syscallTraps_.size(); iter++) {
+        if(syscallTraps_[iter] != NULL) {
+            clearSyscallTrapInternal(syscallTraps_[iter]);
+            delete syscallTraps_[iter];
+        }
+    }
+    syscallTraps_.clear();
+#endif
+
 #if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(ia64_unknown_linux2_4)

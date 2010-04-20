@@ -790,6 +790,7 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
 		  //  we removed a fd from the set of fds to listen to
 		  ev.type = evtNullEvent;
 		  ev.proc = NULL;
+                  __UNLOCK;
 		  return true;
 	  }
 
@@ -1474,7 +1475,12 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
    }
    return true;
 }
-
+int disconnectCallback(process *p, unsigned , void * data, void *)
+{
+    *((bool*)(data)) = true;
+    return 0;
+}
+        
 bool BPatch_asyncEventHandler::mutateeDetach(process *p)
 {
    // The process may have already exited... in this case, do nothing
@@ -1511,10 +1517,11 @@ bool BPatch_asyncEventHandler::mutateeDetach(process *p)
 
    pdvector<AstNodePtr> the_args;
    AstNodePtr dynInit = AstNode::funcCallNode("DYNINSTasyncDisconnect", the_args);
+   bool doneDisconnect = false;
    p->getRpcMgr()->postRPCtoDo(dynInit,
                                true, // Don't update cost
-                               NULL /*no callback*/,
-                               NULL, // No user data
+                               &disconnectCallback, // callback for correct waiting
+                               (void*)(&doneDisconnect), // local flag, set to true
                                false, // Don't run when done
                                true, // Use reserved memory
                                NULL, NULL);// No particular thread or LWP
@@ -1527,7 +1534,7 @@ bool BPatch_asyncEventHandler::mutateeDetach(process *p)
    bool rpcNeedsContinue = false;
    //bool rpcNeedsContinue = true;
    p->getRpcMgr()->launchRPCs(rpcNeedsContinue,
-		   false); // false: not running
+                                false); // false: not running
    assert(rpcNeedsContinue);
 
 
@@ -1537,8 +1544,10 @@ bool BPatch_asyncEventHandler::mutateeDetach(process *p)
    {
 	   return true;
    }
-
-   eventType evt = p->sh->waitForEvent(evtRPCSignal, p, NULL /*lwp*/, statusRPCDone);
+   eventType evt;
+   while(!doneDisconnect) {
+       evt = p->sh->waitForEvent(evtRPCSignal, p, NULL /*lwp*/, statusRPCDone);
+   }
 
    if (p->hasExited()) 
    {
