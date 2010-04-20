@@ -578,6 +578,49 @@ void StackAnalysis::computeInsnEffects(const Block *block,
     if(!insn->isWritten(theStackPtr)) {
          return;
     }
+
+    // Here's one for you:
+    // lea    0xfffffff4(%ebp),%esp
+    // Yeah, that's "do math off the base pointer and assign the stack pointer". 
+    // Oy. 
+    // Doesn't work right, so leaving it out for now. 
+#if 0
+    if (insn->isRead(theFramePtr) || insn->isRead(framePtr64)) {
+      
+      bool done;
+      std::vector<Operand> operands;
+      insn->getOperands(operands);
+      cerr << "************" << endl;
+      for (unsigned i = 0; i < operands.size(); ++i) {
+	cerr << operands[i].format() << endl;
+	// We need to find the thing that be done read
+	if (operands[i].isRead(operands[i].getValue())) {
+	  if (done) {
+	    // Multiple conflicting uses. WTF?
+	    iFunc.range() = Range(Range::infinite, 0, off);
+	    return;
+	  }
+	  done = true;
+	  static Expression::Ptr theFramePtr(new RegisterAST(MachRegister::getFramePointer(Arch_x86)));
+	  static Expression::Ptr theFramePtr64(new RegisterAST(MachRegister::getFramePointer(Arch_x86_64)));
+	  operands[i].getValue()->bind(theFramePtr.get(), Result(s32, -2*word_size));
+	  operands[i].getValue()->bind(theFramePtr64.get(), Result(s32, -2*word_size));
+
+	  Result res = operands[i].getValue()->eval();
+	  if (res.defined) {
+	    iFunc.abs() = true;
+	    iFunc.delta() = res.convert<long>();
+            stackanalysis_printf("\t\t\t Stack height changed by ref off FP %s: %s\n", insn->format().c_str(), iFunc.format().c_str());
+	  }
+	  else {
+	    iFunc.range() = Range(Range::infinite, 0, off);
+            stackanalysis_printf("\t\t\t Stack height changed by unevalled ref off FP %s: %s\n", insn->format().c_str(), iFunc.format().c_str());
+	  }
+	}
+      }
+    }
+
+#endif
     int sign = 1;
     switch(what) {
     case e_push:
@@ -594,10 +637,26 @@ void StackAnalysis::computeInsnEffects(const Block *block,
         return;
     }
     case e_ret_near:
-    case e_ret_far:
-        iFunc.delta() = word_size;
-        stackanalysis_printf("\t\t\t Stack height changed by return: %s\n", iFunc.format().c_str());
-        return;
+    case e_ret_far: {
+      std::vector<Operand> operands;
+      insn->getOperands(operands);
+      if (operands.size() == 0) {
+	iFunc.delta() = word_size;
+      }
+      else if (operands.size() == 1) {
+	// Ret immediate
+	Result imm = operands[0].getValue()->eval();
+	if (imm.defined) {
+	  iFunc.delta() = word_size + imm.convert<int>();
+	}
+	else {
+	  iFunc.range() = Range(Range::infinite, 0, off);
+	}
+      }
+      stackanalysis_printf("\t\t\t Stack height changed by return: %s\n", iFunc.format().c_str());
+      
+      return;
+    }
     case e_sub:
         sign = -1;
     case e_add:
