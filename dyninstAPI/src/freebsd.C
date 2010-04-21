@@ -248,11 +248,6 @@ void initPrimitiveCost() {
     assert(!FREEBSD_NOT_IMPLEMENTED);
 }
 
-bool BinaryEdit::doStaticBinarySpecialCases() {
-    assert(!FREEBSD_NOT_IMPLEMENTED);
-    return false;
-}
-
 void dyninst_yield() {
     assert(!FREEBSD_NOT_IMPLEMENTED);
 }

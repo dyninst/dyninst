@@ -27,12 +27,10 @@ SRCS =          ../src/Object-elf.C \
 		../src/Archive-elf.C \
 		../src/parseDwarf.C \
 		../src/parseStab.C \
-		../src/addrtranslate.C \
-		../src/addrtranslate-static.C \
 		../src/emitElf.C \
 		../src/LinkMap.C \
 		../src/emitElfStatic.C \
-		../src/emitElfStatic-stub.C \
+		../src/emitElfStatic-x86.C \
 		../src/relocationEntry-elf-x86.C
 
 #MYFLAGS	+= -DNO_MDL_PRINT

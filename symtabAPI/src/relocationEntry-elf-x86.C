@@ -35,6 +35,10 @@
 #include "annotations.h"
 #include <elf.h>
 
+#if defined(os_freebsd)
+#define R_X86_64_JUMP_SLOT R_X86_64_JMP_SLOT
+#endif
+
 static const unsigned X86_64_WIDTH = 8;
 
 const char* relocationEntry::relType2Str(unsigned long r, unsigned addressWidth) {
@@ -63,11 +67,7 @@ const char* relocationEntry::relType2Str(unsigned long r, unsigned addressWidth)
             CASE_RETURN_STR(R_X86_64_DTPOFF32);
             CASE_RETURN_STR(R_X86_64_GOTTPOFF);
             CASE_RETURN_STR(R_X86_64_TPOFF32);
-#if defined(os_freebsd)
-            CASE_RETURN_STR(R_X86_64_JMP_SLOT);
-#else
             CASE_RETURN_STR(R_X86_64_JUMP_SLOT);
-#endif
             default:
                 return "?";
         }

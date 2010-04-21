@@ -42,6 +42,8 @@ SRCS		+= ../src/RTposix.c \
 		   ../src/RTthread-x86.c \
 		   ../src/RTspace.S \
 		   ../src/RTsignal-x86.S \
+		   ../src/RTtlsgetaddr-x86.S \
+		   ../src/RTstatic_ctors_dtors-x86.c
 
 #CFLAGS += -DDEBUG_PRINT_RT    # enable debug/trace messages from library
 

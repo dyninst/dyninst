@@ -198,6 +198,8 @@ emitElf::emitElf(Elf_X &oldElfHandle_, bool isStripped_, Object *obj_, void (*er
   textData = NULL;
   symStrData = NULL;
   symTabData = NULL;
+  dynsymData = NULL;
+  dynStrData = NULL;
   hashData = NULL;
   rodata = NULL;
      
@@ -220,9 +222,16 @@ emitElf::emitElf(Elf_X &oldElfHandle_, bool isStripped_, Object *obj_, void (*er
   // for the extra page for program headers.  This causes some significant
   // changes to the binary, and isn't well tested.
   library_adjust = 0;
+#if defined(os_freebsd)
+  if( !movePHdrsFirst ) {
+      movePHdrsFirst = true;
+      library_adjust = getpagesize();
+  }
+#endif
 
   linkedStaticData = NULL;
   hasRewrittenTLS = false;
+  TLSExists = false;
   newTLSData = NULL;
    
   oldElf = oldElfHandle.e_elfp();
@@ -426,6 +435,8 @@ void emitElf::findSegmentEnds()
         {
 	  if (dataSegEnd < tmp->p_vaddr+tmp->p_memsz)
 	    dataSegEnd = tmp->p_vaddr+tmp->p_memsz;
+        }else if( PT_TLS == tmp->p_type ) {
+            TLSExists = true;
         }
       tmp++;
     }
@@ -448,6 +459,7 @@ bool emitElf::driver(Symtab *obj, string fName){
   int newfd;
   Region *foundSec;
   unsigned pgSize = getpagesize();
+
   //open ELf File for writing
   if((newfd = (open(fName.c_str(), O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP)))==-1){ 
     log_elferror(err_func_, "error opening file to write symbols");
@@ -458,7 +470,7 @@ bool emitElf::driver(Symtab *obj, string fName){
     fflush(stdout);
     return false;
   }
-   
+
   //Section name index for all sections
   secNames.push_back("");
   secNameIndex = 1;
@@ -489,6 +501,7 @@ bool emitElf::driver(Symtab *obj, string fName){
   // Find the end of text and data segments
   findSegmentEnds();
   unsigned insertPoint = oldEhdr->e_shnum;
+  unsigned insertPointOffset = 0;
   unsigned NOBITSstartPoint = oldEhdr->e_shnum;
 
   if(movePHdrsFirst)
@@ -512,9 +525,7 @@ bool emitElf::driver(Symtab *obj, string fName){
   unsigned scncount;
   unsigned sectionNumber = 0;
 
-#if defined(os_freebsd)
   bool startMovingSections = false;
-#endif
   for (scncount = 0; (scn = elf_nextscn(oldElf, scn)); scncount++) {
     //copy sections from oldElf to newElf
     shdr = elf32_getshdr(scn);
@@ -591,8 +602,8 @@ bool emitElf::driver(Symtab *obj, string fName){
 	    NOBITSstartPoint = scncount;
 	  NOBITStotalsize += shdr->sh_size; 
 	}
-    }    
-      
+    }
+
     vector <vector <unsigned long> > moveSecAddrRange = obj->getObject()->getMoveSecAddrRange();
 
     for (unsigned i = 0 ; i != moveSecAddrRange.size(); i++) {
@@ -606,15 +617,13 @@ bool emitElf::driver(Symtab *obj, string fName){
 	  renameSection((string)name, newName, false);
 	}
     }
-		
+
     if((obj->getObject()->getStrtabAddr() != 0 &&
        obj->getObject()->getStrtabAddr() == shdr->sh_addr) ||
        !strcmp(name, STRTAB_NAME) )
       {
 	symStrData = newdata;
 	updateSymbols(symTabData, symStrData, loadSecTotalSize);
-
-        // All the information is available by this time
         updateSymbols(dynsymData, dynStrData, loadSecTotalSize);
       }
 	    
@@ -626,6 +635,7 @@ bool emitElf::driver(Symtab *obj, string fName){
       changeMapping[sectionNumber] = 1;
       symTabData = newdata;
     }
+
 
     if(obj->getObject()->getTextAddr() != 0 &&
        obj->getObject()->getTextAddr() == shdr->sh_addr){
@@ -660,8 +670,10 @@ bool emitElf::driver(Symtab *obj, string fName){
 
     // Change offsets of sections based on the newly added sections
     if(movePHdrsFirst) {
-#if defined(os_freebsd)
-        /* This is necessary because the INTERP header must be located within in
+        /* This special case is specific to FreeBSD but there is no hurt in
+         * handling it on other platforms.
+         *
+         * This is necessary because the INTERP header must be located within in
          * the first page of the file -- if the section is moved to the next
          * page the object file will not be parsed correctly by the kernel.
          *
@@ -669,21 +681,16 @@ bool emitElf::driver(Symtab *obj, string fName){
          * by the difference in size of the new PHDR segment. 
          */
         if( newshdr->sh_offset > 0 ) {
-            if( startMovingSections ) newshdr->sh_offset += pgSize;
-            else if( createNewPhdr ) {
-                newshdr->sh_offset += oldEhdr->e_phentsize;
-            }
+            if( startMovingSections || obj->isStaticBinary() 
+                || obj->getObjectType() == obj_SharedLib ) newshdr->sh_offset += pgSize;
+            else if( createNewPhdr ) newshdr->sh_offset += oldEhdr->e_phentsize;
         }
-#else
-      if (newshdr->sh_offset > 0) 
-	newshdr->sh_offset += pgSize;
-#endif
     }		
 
-    if(scncount > insertPoint && newshdr->sh_offset > 0)
+    if(scncount > insertPoint && newshdr->sh_offset >= insertPointOffset )
       newshdr->sh_offset += loadSecTotalSize;
 
-    if (newshdr->sh_offset > 0)
+    if (newshdr->sh_offset >= insertPointOffset )
       newshdr->sh_offset += (int) (dirtySecsChange + extraAlignSize);
 
     if(foundSec->isDirty()) 
@@ -700,11 +707,18 @@ bool emitElf::driver(Symtab *obj, string fName){
     secLinkMapping[sectionNumber] = shdr->sh_link; 
     secInfoMapping[sectionNumber] = shdr->sh_info; 
 
+    rewrite_printf("section %s addr = %lx off = %lx size = %lx\n",
+            name, newshdr->sh_addr, newshdr->sh_offset, newshdr->sh_size);
 
     //Insert new loadable sections at the end of data segment			
     if (shdr->sh_addr+shdr->sh_size == dataSegEnd && !createdLoadableSections) {
       createdLoadableSections = true;
       insertPoint = scncount;
+      if( SHT_NOBITS == shdr->sh_type ) {
+          insertPointOffset = shdr->sh_offset;
+      }else{
+          insertPointOffset = shdr->sh_offset + shdr->sh_size;
+      }
       
       if(!createLoadableSections(newshdr, extraAlignSize, 
                                  newNameIndexMapping, sectionNumber))        
@@ -721,11 +735,9 @@ bool emitElf::driver(Symtab *obj, string fName){
        return false;
     }
 
-#if defined(os_freebsd)
     if(!strcmp(name, INTERP_NAME)) {
         startMovingSections = true;
     }
-#endif
   }
 
   // Add non-loadable sections at the end of object file
@@ -889,10 +901,11 @@ void emitElf::fixPhdrs(unsigned &extraAlignSize)
   newEhdr->e_phentsize = oldEhdr->e_phentsize;
   if(createNewPhdr) {
      newEhdr->e_phnum++;
+     if( hasRewrittenTLS && !TLSExists ) newEhdr->e_phnum++;
   }
   if(BSSExpandFlag)
     newEhdr->e_phnum= oldEhdr->e_phnum;
-  bool added_new_sec = false;    
+  bool added_new_sec = false;
 
   if (!hasPHdrSectionBug())
      newPhdr = elf32_newphdr(newElf,newEhdr->e_phnum);
@@ -908,6 +921,7 @@ void emitElf::fixPhdrs(unsigned &extraAlignSize)
      // Expand the data segment to include the new loadable sections
      // Also add a executable permission to the segment
      if(old->p_type == PT_DYNAMIC){
+        newPhdr->p_type = PT_DYNAMIC;
 	newPhdr->p_vaddr = dynSegAddr;
 	newPhdr->p_paddr = dynSegAddr;
 	newPhdr->p_offset = dynSegOff;
@@ -915,6 +929,7 @@ void emitElf::fixPhdrs(unsigned &extraAlignSize)
 	newPhdr->p_filesz = newPhdr->p_memsz;
      }
      else if(old->p_type == PT_PHDR){
+        newPhdr->p_type = PT_PHDR;
         newPhdr->p_vaddr = old->p_vaddr - pgSize;
         newPhdr->p_paddr = newPhdr->p_vaddr;
         newPhdr->p_filesz = sizeof(Elf32_Phdr) * newEhdr->e_phnum;
@@ -937,7 +952,8 @@ void emitElf::fixPhdrs(unsigned &extraAlignSize)
               newPhdr->p_filesz = newPhdr->p_memsz;
               newPhdr->p_flags = 7;
            }	
-        }    
+        }   
+
         if(movePHdrsFirst) {
            if (!old->p_offset) {
               if (newPhdr->p_vaddr)
@@ -954,20 +970,21 @@ void emitElf::fixPhdrs(unsigned &extraAlignSize)
            }
         }
      }
-#if defined(os_freebsd)
      else if (old->p_type == PT_INTERP && movePHdrsFirst
              && old->p_offset && newEhdr->e_phnum > oldEhdr->e_phnum)
      {
          newPhdr->p_offset += 
              oldEhdr->e_phentsize*(newEhdr->e_phnum-oldEhdr->e_phnum);
      }
-#endif
      else if (movePHdrsFirst && old->p_offset) {
         newPhdr->p_offset += pgSize;
         if (newPhdr->p_vaddr) {
            newPhdr->p_vaddr += library_adjust;
         }
-     } 
+     }
+
+     rewrite_printf("Existing program header: type %u, offset 0x%lx, addr 0x%lx\n", 
+             newPhdr->p_type, newPhdr->p_offset, newPhdr->p_vaddr);
      
       newPhdr++;
       if (createNewPhdr &&
@@ -986,10 +1003,25 @@ void emitElf::fixPhdrs(unsigned &extraAlignSize)
          newSeg.p_align = pgSize;
          memcpy(newPhdr, &newSeg, oldEhdr->e_phentsize);
          added_new_sec = true;
-#ifdef BINEDIT_DEBUG
-         fprintf(stderr, "Added New program header : offset 0x%lx,addr 0x%lx\n", newPhdr->p_offset, newPhdr->p_vaddr);
-#endif
+
+         rewrite_printf("Added new program header: type %u, offset 0x%lx, addr 0x%lx\n",
+                 newSeg.p_type, newSeg.p_offset, newSeg.p_vaddr);
          newPhdr++;
+
+         if( hasRewrittenTLS && !TLSExists ) {
+             // Need to create a new TLS segment
+             newPhdr->p_type = PT_TLS;
+             newPhdr->p_offset = newTLSData->sh_offset;
+             newPhdr->p_vaddr = newTLSData->sh_addr;
+             newPhdr->p_filesz = newTLSData->sh_size;
+             newPhdr->p_memsz = newTLSData->sh_size;
+             newPhdr->p_align = newTLSData->sh_addralign;
+
+             rewrite_printf("Added new program header: type %u, offset 0x%lx, addr 0x%lx\n",
+                 newSeg.p_type, newSeg.p_offset, newSeg.p_vaddr);
+
+             newPhdr++;
+         }
       }
       old++;
   }
@@ -1058,7 +1090,7 @@ void emitElf::updateDynamic(unsigned tag, Elf32_Addr val){
  * new binary. 
  */
 void emitElf::updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned long loadSecsSize){
-    unsigned pgSize = (unsigned)getpagesize();
+  unsigned pgSize = (unsigned)getpagesize();
   if( symtabData && strData && loadSecsSize){
     Elf32_Sym *symPtr=(Elf32_Sym*)symtabData->d_buf;
     for(unsigned int i=0;i< symtabData->d_size/(sizeof(Elf32_Sym));i++,symPtr++){
@@ -1080,6 +1112,69 @@ void emitElf::updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned lon
       }
     }    
   }
+}
+
+// There are also some known variables that point to the heap attempt to update
+// them as well
+void emitElf::updateHeapVariables(Symtab *obj, unsigned long newSecsEndAddress ) {
+    unsigned pgSize = (unsigned)getpagesize();
+    const std::string minbrk(".minbrk");
+    const std::string curbrk(".curbrk");
+    std::vector<Symbol *> heapSyms;
+    obj->findSymbol(heapSyms, minbrk, Symbol::ST_NOTYPE);
+    obj->findSymbol(heapSyms, curbrk, Symbol::ST_NOTYPE);
+
+    std::vector<Symbol *>::iterator heapSymsIter;
+    for(heapSymsIter = heapSyms.begin();
+      heapSymsIter != heapSyms.end();
+      ++heapSymsIter)
+    {
+        Region *symRegion = (*heapSymsIter)->getRegion();
+        Offset symOffset = (*heapSymsIter)->getOffset(); 
+        if( symOffset < symRegion->getRegionAddr() ) continue;
+
+        Offset regOffset = symOffset - symRegion->getRegionAddr();
+        unsigned char *regData = reinterpret_cast<unsigned char *>(symRegion->getPtrToRawData());
+        Offset heapAddr;
+        memcpy(&heapAddr, &regData[regOffset], sizeof(Offset));
+
+        heapAddr = (newSecsEndAddress & ~(pgSize-1)) + pgSize;
+
+        symRegion->patchData(regOffset, &heapAddr, sizeof(Offset));
+    }
+}
+
+void emitElf::updatePltGotRelocations(Symtab *obj, relocationEntry &rel) {
+#if defined(arch_x86)
+    // Currently, only verified on x86 -- this may work on other architectures
+    Region *gotRegion = obj->findEnclosingRegion(rel.rel_addr());
+
+    if( NULL != gotRegion ) {
+        Offset newValue;
+        unsigned char *oldValues = (unsigned char *)gotRegion->getPtrToRawData();
+        memcpy(&newValue, &oldValues[rel.rel_addr() - gotRegion->getRegionAddr()], sizeof(Offset));
+        newValue += library_adjust;
+        gotRegion->patchData(rel.rel_addr() - gotRegion->getRegionAddr(), &newValue, sizeof(Offset));
+    }else{
+        fprintf(stderr, "WARNING: failed to update GOT entry...behavior undefined\n");
+    }
+
+    // XXX The GOT also holds a pointer to the DYNAMIC segment -- this is currently not
+    // updated. However, this appears to be unneeded for regular shared libraries.
+    
+    // From the SYS V ABI x86 supplement
+    // "The table's entry zero is reserved to hold the address of the dynamic structure,
+    // referenced with the symbol _DYNAMIC. This allows a program, such as the
+    // dynamic linker, to find its own dynamic structure without having yet processed
+    // its relocation entries. This is especially important for the dynamic linker, because
+    // it must initialize itself without relying on other programs to relocate its memory
+    // image."
+    
+    // In order to implement this, would have determine the final address of a new .dynamic
+    // section before outputting the patched GOT data -- this will require some refactoring.
+#else
+    assert(!"This function is not implemented on this architecture.");
+#endif
 }
 
 bool emitElf::createLoadableSections(Elf32_Shdr* &shdr, unsigned &extraAlignSize, dyn_hash_map<std::string, unsigned> &newNameIndexMapping, unsigned &sectionNumber)
@@ -1354,6 +1449,7 @@ bool emitElf::createLoadableSections(Elf32_Shdr* &shdr, unsigned &extraAlignSize
         // Check to make sure the (vaddr for the start of the new segment - the offset) is page aligned
         if(!firstNewLoadSec)
         {
+            newshdr->sh_addr += library_adjust;
            newSegmentStart = newshdr->sh_addr;
            Offset newoff = newshdr->sh_offset  - (newshdr->sh_offset & (pgSize-1)) + (newshdr->sh_addr & (pgSize-1));
            if(newoff < newshdr->sh_offset)
@@ -1400,6 +1496,10 @@ bool emitElf::createLoadableSections(Elf32_Shdr* &shdr, unsigned &extraAlignSize
         currEndOffset = newshdr->sh_offset + newshdr->sh_size;
      }
      currEndAddress = newshdr->sh_addr + newshdr->sh_size;
+
+     rewrite_printf("new section %s addr = %lx off = %lx size = %lx\n",
+            newSecs[i]->getRegionName().c_str(), newshdr->sh_addr, newshdr->sh_offset, 
+            newshdr->sh_size);
 
      if (0 > elf_update(newElf, ELF_C_NULL))
      {
@@ -1962,6 +2062,7 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
       vector<Region *> newRegs;
       obj->getAllNewRegions(newRegs);
       if( newRegs.size() ) {
+          // Link in all new libraries
           emitElfStatic linker(obj->getAddressWidth(), isStripped);
 
           emitElfStatic::StaticLinkError err;
@@ -1975,6 +2076,21 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
           }
 
           hasRewrittenTLS = linker.hasRewrittenTLS();
+
+          // Find the end of the new Regions
+          obj->getAllNewRegions(newRegs);
+
+          Offset lastRegionAddr = 0, lastRegionSize = 0;
+          vector<Region *>::iterator newRegIter;
+          for(newRegIter = newRegs.begin(); newRegIter != newRegs.end();
+              ++newRegIter)
+          {
+              if( (*newRegIter)->getRegionAddr() > lastRegionAddr ) {
+                  lastRegionAddr = (*newRegIter)->getRegionAddr();
+                  lastRegionSize = (*newRegIter)->getRegionSize();
+              }
+          }
+          updateHeapVariables(obj, lastRegionAddr + lastRegionSize);
       }
   }
 
@@ -2004,6 +2120,13 @@ void emitElf::createRelocationSections(Symtab *obj, std::vector<relocationEntry>
    for(i=0;i<relocation_table.size();i++) 
    {
       if (relocation_table[i].regionType() == Region::RT_REL) {
+          if( library_adjust && !isDynRelocs) {
+              // PLT relocations depend on the GOT and the GOT contains some offsets
+              // referencing the PLT -- these need to be updated if we are shifting
+              // the library down a page
+              updatePltGotRelocations(obj, relocation_table[i]);
+          }
+
          rels[j].r_offset = relocation_table[i].rel_addr() + library_adjust;
          if(relocation_table[i].name().length() && 
             dynSymNameMapping.find(relocation_table[i].name()) != dynSymNameMapping.end()) {
@@ -2029,7 +2152,7 @@ void emitElf::createRelocationSections(Symtab *obj, std::vector<relocationEntry>
    for(i=0;i<newRels.size();i++) 
    {
       if (newRels[i].regionType() == Region::RT_REL) {
-         rels[j].r_offset = newRels[i].rel_addr();
+         rels[j].r_offset = newRels[i].rel_addr() + library_adjust;
          if(dynSymNameMapping.find(newRels[i].name()) != dynSymNameMapping.end()) {
             rels[j].r_info = ELF32_R_INFO(dynSymNameMapping[newRels[i].name()], 
                     relocationEntry::getGlobalRelType(obj->getAddressWidth()));
@@ -2042,6 +2165,7 @@ void emitElf::createRelocationSections(Symtab *obj, std::vector<relocationEntry>
       } else {
          relas[k].r_offset = newRels[i].rel_addr();
          relas[k].r_addend = newRels[i].addend();
+         if( relas[k].r_addend ) relas[k].r_addend += library_adjust;
          if(dynSymNameMapping.find(newRels[i].name()) != dynSymNameMapping.end()) {
             relas[k].r_info = ELF32_R_INFO(dynSymNameMapping[newRels[i].name()], 
                     relocationEntry::getGlobalRelType(obj->getAddressWidth()));

@@ -22,7 +22,8 @@ include ../../make.config
 # Now make any necessary architecture specific changes to variables:
 
 SRCS =		../../common/src/timing-freebsd.C \
-		../../common/src/freebsdKludges.C
+		../../common/src/freebsdKludges.C \
+		../../common/src/addrtranslate-static.C
 
 #MYFLAGS	+= -DNO_MDL_PRINT
 #MYFLAGS	+= -DLD_DEBUG

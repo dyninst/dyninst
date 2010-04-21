@@ -1521,7 +1521,7 @@ void Object::load_object(bool alloc_syms)
 
     //fprintf(stderr, "[%s:%u] - Exe Name\n", __FILE__, __LINE__);
 
-#if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))
+#if (defined(os_linux) || defined(os_freebsd)) && (defined(arch_x86) || defined(arch_x86_64))
     if (eh_frame_scnp != 0 && gcc_except != 0) 
       {
 	find_catch_blocks(eh_frame_scnp, gcc_except, 
@@ -1690,7 +1690,7 @@ void Object::load_shared_object(bool alloc_syms)
 
     get_valid_memory_areas(elfHdr);
 
-#if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))
+#if (defined(os_linux) || defined(os_freebsd)) && (defined(arch_x86) || defined(arch_x86_64))
     //fprintf(stderr, "[%s:%u] - Mod Name is %s\n", __FILE__, __LINE__, name.c_str());
     if (eh_frame_scnp != 0 && gcc_except != 0) {
       find_catch_blocks(eh_frame_scnp, gcc_except, 
@@ -3433,7 +3433,7 @@ bool parseCompilerType(Object *objPtr)
 #endif
 
 
-#if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))
+#if (defined(os_linux) || defined(os_freebsd)) && (defined(arch_x86) || defined(arch_x86_64))
 
 static unsigned long read_uleb128(const unsigned char *data, unsigned *bytes_read)
 {

@@ -72,7 +72,7 @@ typedef struct { uint64_t low; uint64_t high; } ia64_bundle_t;
 #define ALIGN_ATTRIB 
 #endif
 
-#if defined(os_linux)
+#if defined(os_linux) || defined(os_freebsd)
 #define HEAP_LOCAL extern
 #else
 #define HEAP_LOCAL

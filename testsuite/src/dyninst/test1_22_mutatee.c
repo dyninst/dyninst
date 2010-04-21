@@ -163,7 +163,8 @@ int test1_22_mutatee()
 #if defined(os_solaris_test) \
  || defined(alpha_dec_osf4_0_test) \
  || defined(os_linux_test) \
- || defined(os_windows_test)
+ || defined(os_windows_test) \
+ || defined(os_freebsd_test)
     /* libtestA.so should already be loaded (by the mutator), but we
        need to use the dl interface to get pointers to the functions
        it defines. */

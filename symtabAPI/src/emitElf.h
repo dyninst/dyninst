@@ -142,8 +142,11 @@ class emitElf{
     void createRelocationSections(Symtab *obj, std::vector<relocationEntry> &relocation_table, bool isDynRelocs, dyn_hash_map<std::string, unsigned> &dynSymNameMapping);
 
     void updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned long loadSecsSize);
+    void updateHeapVariables(Symtab *obj, unsigned long loadSecsSize);
+    void updatePltGotRelocations(Symtab *obj, relocationEntry &rel);
 
     bool hasRewrittenTLS;
+    bool TLSExists;
     Elf32_Shdr *newTLSData;
 
 #if !defined(os_solaris)

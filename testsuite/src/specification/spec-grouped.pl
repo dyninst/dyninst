@@ -1007,7 +1007,8 @@ tests_module('test5_5', 'dyninst').
 test('test5_6', 'test5_6', 'dyninst_cxx_group_test').
 % test5_6 only runs on x86 Linux
 test_platform('test5_6', Platform) :-
-    platform('i386', 'linux', _, Platform).
+    platform('i386', OS, _, Platform),
+    member(OS, ['linux', 'freebsd']).
 mutator('test5_6', ['test5_6.C']).
 test_runmode('test5_6', 'staticdynamic').
 test_start_state('test5_6', 'stopped').
@@ -2561,6 +2562,7 @@ mutatee_abi(64).
 platform_format(_, 'dynamicMutatee').
 platform_format(P, 'staticMutatee') :- platform('i386', 'linux', _, P).
 platform_format(P, 'staticMutatee') :- platform('x86_64', 'linux', _, P).
+platform_format(P, 'staticMutatee') :- platform('i386', 'freebsd', _, P).
 
 % compiler_format (Compiler, Format)
 compiler_format(_, 'dynamicMutatee').
@@ -2903,6 +2905,8 @@ mutatee_link_options('VC++', '$(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LD
 % Static and dynamic linking
 compiler_static_link('g++', P, '-static') :- platform(_,'linux', _, P).
 compiler_static_link('gcc', P, '-static') :- platform(_,'linux', _, P).
+compiler_static_link('g++', P, '-static') :- platform(_,'freebsd', _,P).
+compiler_static_link('gcc', P, '-static') :- platform(_,'freebsd', _,P).
 compiler_dynamic_link(_, _, '').
 
 % Specify the standard flags for each compiler

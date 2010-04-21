@@ -350,7 +350,7 @@ SYMTAB_EXPORT bool Symtab::isExec() const
 
 SYMTAB_EXPORT bool Symtab::isStripped() 
 {
-#if defined(os_linux) || defined(os_solaris)
+#if defined(os_linux) || defined(os_freebsd) || defined(os_solaris)
     Region *sec;
     return !findRegion(sec,".symtab");
 #else
@@ -1343,7 +1343,7 @@ bool Symtab::extractInfo(Object *linkedFile)
     linkedFile->get_line_info(nlines_, lines_, fdptr_);
 #endif
 
-#if defined(os_solaris) || defined(os_aix) || defined(os_linux)
+#if defined(os_solaris) || defined(os_aix) || defined(os_linux) || defined(os_freebsd)
     // make sure we're using the right demangler
     
     nativeCompiler = parseCompilerType(linkedFile);
@@ -3423,7 +3423,7 @@ SYMTAB_EXPORT void nonpublic_free_bin_symtab_serializer(SerializerBase *sb)
 
 SYMTAB_EXPORT Offset Symtab::getElfDynamicOffset()
 {
-#if defined(os_linux)
+#if defined(os_linux) || defined(os_freebsd)
 	Object *obj = getObject();
 	if (!obj)
 	{
@@ -3438,7 +3438,7 @@ SYMTAB_EXPORT Offset Symtab::getElfDynamicOffset()
 
 SYMTAB_EXPORT bool Symtab::addLibraryPrereq(std::string name)
 {
-#if defined(os_linux)
+#if defined(os_linux) || defined(os_freebsd)
 	Object *obj = getObject();
 	if (!obj)
 	{
@@ -3454,7 +3454,7 @@ SYMTAB_EXPORT bool Symtab::addLibraryPrereq(std::string name)
 
 SYMTAB_EXPORT bool Symtab::addSysVDynamic(long name, long value)
 {
-#if defined(os_linux)
+#if defined(os_linux) || defined(os_freebsd)
 	Object *obj = getObject();
 	if (!obj)
 	{
@@ -3526,7 +3526,7 @@ SYMTAB_EXPORT bool Symtab::canBeShared()
 
 SYMTAB_EXPORT Offset Symtab::getInitOffset()
 {
-#if defined(os_linux) || defined(os_solaris)
+#if defined(os_linux) || defined(os_freebsd) || defined(os_solaris)
    return getObject()->getInitAddr();
 #else
    return 0x0;
@@ -3536,7 +3536,7 @@ SYMTAB_EXPORT Offset Symtab::getInitOffset()
 
 SYMTAB_EXPORT Offset Symtab::getFiniOffset()
 {
-#if defined(os_linux) || defined(os_solaris)
+#if defined(os_linux) || defined(os_freebsd) || defined(os_solaris)
    return getObject()->getFiniAddr();
 #else
    return 0x0;
