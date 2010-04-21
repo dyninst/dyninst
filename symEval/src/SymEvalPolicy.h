@@ -145,7 +145,13 @@ struct Handle {
        res[i->second] = value.var();
      } 
      else {
-         fprintf(stderr, "WARNING: discarding write to GPR\n");
+       /*
+       std::cerr << "Warning: discarding write to GPR " << convert(r).format() << std::endl;
+       for (std::map<Absloc, Assignment::Ptr>::iterator foozle = aaMap.begin();
+	    foozle != aaMap.end(); ++foozle) {
+	 std::cerr << "\t" << foozle->first.format() << std::endl;
+       }
+       */
      }
    }
    

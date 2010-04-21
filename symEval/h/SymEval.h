@@ -393,13 +393,9 @@ struct SymEvalArchTraits<Arch_x86>
                                            unsigned int which,
                                            SgAsmExpression* expr);
     static bool handleSpecialCases(entryID , SageInstruction_t& ,
-                                   SgAsmOperandList* ) {
-                                       return false;
-                                   }
+                                   SgAsmOperandList* ) { return false; }
     static void handleSpecialCases(InstructionAPI::Instruction::Ptr,
-                                    std::vector<InstructionAPI::Operand>&) {
-        return;
-    }
+				   std::vector<InstructionAPI::Operand>&);
 
     static InstructionKind_t convert(entryID e, std::string);
     static void processInstruction(SageInstruction_t* insn, SymEvalPolicy& policy);
@@ -434,7 +430,7 @@ public:
   // Return type: mapping AbsRegions to ASTs
   // We then can map Assignment::AbsRegions to 
   // SymEval::AbsRegions and come up with the answer
-  static const AST::Ptr Placeholder;
+  //static const AST::Ptr Placeholder;
   
   // Single version: hand in an Assignment, get an AST
   static AST::Ptr expand(const Assignment::Ptr &assignment);
