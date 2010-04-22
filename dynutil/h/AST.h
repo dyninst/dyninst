@@ -81,21 +81,6 @@ class ASTVisitor;
  // Other...
  class InputVariableAST;
 
- class ASTVisitor {
- public:
-   typedef dyn_detail::boost::shared_ptr<AST> ASTPtr;
-   virtual ASTPtr visit(AST *) = 0;
-   virtual ASTPtr visit(SymbolicEvaluation::BottomAST *) = 0;
-   virtual ASTPtr visit(SymbolicEvaluation::ConstantAST *) = 0;
-   virtual ASTPtr visit(SymbolicEvaluation::VariableAST *) = 0;
-   virtual ASTPtr visit(SymbolicEvaluation::RoseAST *) = 0;
-   virtual ASTPtr visit(StackAST *) = 0;
-   virtual ASTPtr visit(InputVariableAST *) = 0;
-
-   virtual ~ASTVisitor() {};
- };
-
-
 #define DEF_AST_LEAF_TYPE(name, type)					\
 class name : public AST {						\
  public:								\
@@ -215,7 +200,7 @@ class AST : public dyn_detail::boost::enable_shared_from_this<AST> {
   virtual ID getID() const { return V_AST; };
 
   // VISITOR wooo....
-  virtual Ptr accept(ASTVisitor *v) { return v->visit(this); }
+  virtual Ptr accept(ASTVisitor *);
 
   Ptr ptr() { return shared_from_this(); }
 
@@ -226,6 +211,20 @@ class AST : public dyn_detail::boost::enable_shared_from_this<AST> {
  protected:
   virtual bool isStrictEqual(const AST &rhs) const = 0;
 };
+
+ class ASTVisitor {
+ public:
+   typedef dyn_detail::boost::shared_ptr<AST> ASTPtr;
+   virtual ASTPtr visit(AST *) {return AST::Ptr();};
+   virtual ASTPtr visit(SymbolicEvaluation::BottomAST *) {return AST::Ptr();};
+   virtual ASTPtr visit(SymbolicEvaluation::ConstantAST *) {return AST::Ptr();};
+   virtual ASTPtr visit(SymbolicEvaluation::VariableAST *) {return AST::Ptr();};
+   virtual ASTPtr visit(SymbolicEvaluation::RoseAST *) {return AST::Ptr();};
+   virtual ASTPtr visit(StackAST *) {return AST::Ptr();};
+   virtual ASTPtr visit(InputVariableAST *) {return AST::Ptr();};
+
+   virtual ~ASTVisitor() {};
+ };
 
 }
 #endif // AST_H
