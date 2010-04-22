@@ -45,7 +45,8 @@ SRCS +=	../src/Instruction.C \
 	../src/InstructionCategories.C \
 	../src/Immediate.C \
 	../src/InstructionDecoder.C \
-	../src/InstructionDecoder-power.C
+	../src/InstructionDecoder-power.C \
+	../src/InstructionDecoderImpl.C
 
 
 IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../common/h -I../../dynutil/h -I../../symtabAPI/h -I../external
@@ -68,7 +69,6 @@ PUBLIC_H =      BinaryFunction.h \
                 Result.h \
 	       InstructionCategories.h \
 	       Visitor.h \
-	       InstructionDecoder-power.h \
 	       ia32_locations.h
 
 

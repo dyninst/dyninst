@@ -32,15 +32,7 @@
 #if !defined(INSTRUCTION_DECODER_H)
 #define INSTRUCTION_DECODER_H
 
-#include "InstructionAST.h"
-#include "Expression.h"
-#include "Operation.h"
-#include "Operand.h"
 #include "Instruction.h"
-#include "dyn_regs.h"
-
-#include <vector>
-#include <dyn_detail/boost/enable_shared_from_this.hpp>
 
     
 namespace Dyninst
@@ -87,8 +79,6 @@ namespace Dyninst
       /// the size of the instruction decoded.
       Instruction::Ptr decode(const unsigned char* buffer);
       void doDelayedDecode(const Instruction* insn_to_complete);
-      void setBuffer(const unsigned char* buffer, unsigned int size = 0);
-      void resetBuffer();
       struct buffer
       {
           const unsigned char* start;
@@ -102,48 +92,11 @@ namespace Dyninst
       };
 
         private:
-      const unsigned char* bufferBegin;
-      size_t bufferSize;
-      const unsigned char* rawInstruction;
-      const unsigned char* oldBufferBegin;
-      size_t oldBufferSize;
-      const unsigned char* oldBuffer;
-      Architecture m_Arch;
+            buffer m_buf;
+        const unsigned char* rawInstruction;
       dyn_detail::boost::shared_ptr<InstructionDecoderImpl> m_Impl;
     };
           
-    class InstructionDecoderImpl
-    {
-        public:
-      typedef dyn_detail::boost::shared_ptr<InstructionDecoderImpl> Ptr;
-      
-    InstructionDecoderImpl(Architecture a) : m_Arch(a) {}
-            virtual ~InstructionDecoderImpl() {}
-        virtual Instruction::Ptr decode(InstructionDecoder::buffer& b);
-        virtual void doDelayedDecode(const Instruction* insn_to_complete) = 0; 
-      virtual void setMode(bool is64) = 0;
-      static Ptr makeDecoderImpl(Architecture a);
-
-    protected:
-      
-      virtual bool decodeOperands(const Instruction* insn_to_complete) = 0;
-
-      virtual void decodeOpcode(InstructionDecoder::buffer&) = 0;
-      
-      virtual Expression::Ptr makeAddExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType);
-      virtual Expression::Ptr makeMultiplyExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType);
-      virtual Expression::Ptr makeDereferenceExpression(Expression::Ptr addrToDereference, Result_Type resultType);
-      virtual Expression::Ptr makeRegisterExpression(MachRegister reg);
-      virtual Result_Type makeSizeType(unsigned int opType) = 0;
-      Instruction* makeInstruction(entryID opcode, const char* mnem, unsigned int decodedSize,
-              const unsigned char* raw);
-      
-    protected:
-      Operation::Ptr m_Operation;
-      Architecture m_Arch;
-      static std::map<Architecture, Ptr> impls;
-      
-    };
   };
 };
 

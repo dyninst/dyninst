@@ -275,7 +275,7 @@ namespace Dyninst
       void addSuccessor(Expression::Ptr e, bool isCall, bool isIndirect, bool isConditional, bool isFallthrough) const;
       void copyRaw(size_t size, const unsigned char* raw);
       Expression::Ptr makeReturnExpression() const;
-      mutable std::vector<Operand> m_Operands;
+      mutable std::list<Operand> m_Operands;
       Operation::Ptr m_InsnOp;
       bool m_Valid;
       raw_insn_T m_RawInsn;

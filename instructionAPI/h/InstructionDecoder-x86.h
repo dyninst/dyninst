@@ -32,7 +32,7 @@
 #if !defined(INSTRUCTION_DECODER_X86_H)
 #define INSTRUCTION_DECODER_X86_H
 
-#include "InstructionDecoder.h"
+#include "InstructionDecoderImpl.h"
 
 #include "ia32_locations.h"
 

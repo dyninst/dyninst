@@ -950,7 +950,7 @@ namespace Dyninst
     void InstructionDecoder_x86::doDelayedDecode(const Instruction* insn_to_complete)
     {
       InstructionDecoder::buffer b(insn_to_complete->ptr(), insn_to_complete->size());
-      insn_to_complete->m_Operands.reserve(4);
+      //insn_to_complete->m_Operands.reserve(4);
       doIA32Decode(b);        
       decodeOperands(insn_to_complete);
     }
