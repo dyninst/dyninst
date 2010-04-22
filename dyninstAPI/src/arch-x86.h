@@ -32,6 +32,7 @@
 // $Id: arch-x86.h,v 1.67 2008/10/28 18:42:39 bernat Exp $
 // x86 instruction declarations
 
+
 #include <stdio.h>
 #include <common/h/Vector.h>
 #include <set>
@@ -46,6 +47,12 @@
  && !defined(x86_64_unknown_linux2_4)
 #error "invalid architecture-os inclusion"
 #endif
+
+#if defined(INSIDE_INSTRUCTION_API)
+#error "dyninst arch-x86.h included from IAPI"
+#endif
+
+#include "ia32_locations.h"
 
 #ifndef _ARCH_X86_H
 #define _ARCH_X86_H
@@ -407,47 +414,6 @@ struct sIBByte {
   unsigned base  : 3;
 };
 
-
-/**
- * This structure can be passed to ia32_decode to have it fill in the 
- * locations of where it found the individual parts of an instruction.
- **/
-typedef struct ia32_locations {
-   ia32_locations() : num_prefixes(0), opcode_size(0), opcode_position(-1),
-        disp_size(0), disp_position(-1), imm_position(-1), imm_size(0),
-        modrm_position(-1), modrm_operand(-1), modrm_byte(0), modrm_mod(0),
-        modrm_rm(0), modrm_reg(0), sib_byte(0), sib_position(-1), 
-        rex_position(-1), rex_byte(0), rex_w(0), rex_r(0), rex_x(0), rex_b(0),
-        address_size(0) {}
-   int num_prefixes;
-   unsigned opcode_size;
-   int opcode_position;
-   
-   unsigned disp_size;
-   int disp_position;
-
-   int imm_position;
-   unsigned imm_size;
-   
-   int modrm_position;
-   int modrm_operand;
-   unsigned char modrm_byte;
-   unsigned char modrm_mod;
-   unsigned char modrm_rm;
-   unsigned char modrm_reg;
-
-   unsigned char sib_byte;
-   int sib_position;
-   
-   int rex_position;
-   unsigned char rex_byte;
-   unsigned char rex_w;
-   unsigned char rex_r;
-   unsigned char rex_x;
-   unsigned char rex_b;
-
-   int address_size;
-} ia32_locations;
 
 class ia32_prefixes
 {

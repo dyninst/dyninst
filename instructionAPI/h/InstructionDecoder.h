@@ -47,10 +47,6 @@ namespace Dyninst
 {
   namespace InstructionAPI
   {
-      class InstructionDecoder;
-      static const unsigned int maxInstructionLength = 16;
-    INSTRUCTION_EXPORT dyn_detail::boost::shared_ptr<InstructionDecoder> makeDecoder(Architecture arch, const unsigned char* buffer, unsigned len =
-        maxInstructionLength);
     /// The %InstructionDecoder class decodes instructions, given a buffer of bytes and a length,
     /// and constructs an %Instruction.
     /// The %InstructionDecoder will, by default, be constructed to decode machine language
@@ -64,46 +60,75 @@ namespace Dyninst
     /// An %InstructionDecoder object may alternately be constructed without designating a buffer,
     /// and the buffer may be specified at the time \c decode is called.  This method of use may be
     /// more convenient for users who are decoding non-contiguous instructions.
-
-    class INSTRUCTION_EXPORT InstructionDecoder : public dyn_detail::boost::enable_shared_from_this<InstructionDecoder>
+      class InstructionDecoderImpl;
+      
+    class INSTRUCTION_EXPORT InstructionDecoder
     {
       friend class Instruction;
-        protected:
+        public:
+        static const unsigned int maxInstructionLength = 16;
       /// Construct an %InstructionDecoder object that decodes from \c buffer, up to \c size bytes.
       InstructionDecoder(const unsigned char* buffer, size_t size, Architecture arch);
+      InstructionDecoder(const void* buffer, size_t size, Architecture arch);
       
       /// Construct an %InstructionDecoder object with no buffer specified.
       InstructionDecoder();
       
-        public:
-            typedef dyn_detail::boost::shared_ptr<InstructionDecoder> Ptr;
-            friend Ptr makeDecoder(Architecture arch,
-                                   const unsigned char* buffer, unsigned len);
-            virtual ~InstructionDecoder();
-        private:
+      ~InstructionDecoder();
       InstructionDecoder(const InstructionDecoder& o);
       /// Decode the current instruction in this %InstructionDecoder object's buffer, interpreting it as 
       /// machine language of the type understood by this %InstructionDecoder.
       /// If the buffer does not contain a valid instruction stream, a null %Instruction pointer
       /// will be returned.  The %Instruction's \c size field will contain the size of the instruction decoded.
-        public:
-      virtual Instruction::Ptr decode();
+      Instruction::Ptr decode();
       /// Decode the instruction at \c buffer, interpreting it as machine language of the type
       /// understood by this %InstructionDecoder.  If the buffer does not contain a valid instruction stream, 
       /// a null %Instruction pointer will be returned.  The %Instruction's \c size field will contain
       /// the size of the instruction decoded.
-      virtual Instruction::Ptr decode(const unsigned char* buffer);
-      
-      virtual void setMode(bool is64) = 0;
-
-      virtual void doDelayedDecode(const Instruction* insn_to_complete) = 0;
+      Instruction::Ptr decode(const unsigned char* buffer);
+      void doDelayedDecode(const Instruction* insn_to_complete);
       void setBuffer(const unsigned char* buffer, unsigned int size = 0);
       void resetBuffer();
+      struct buffer
+      {
+          const unsigned char* start;
+          const unsigned char* end;
+          buffer(const unsigned char* b, unsigned int len) :
+                  start(b), end(b+len) {}
+          buffer(const void* b, unsigned int len) :
+	start(reinterpret_cast<const unsigned char*>(b)), end(start+len) {}
+          buffer(const unsigned char* b, const unsigned char* e) :
+                  start(b), end(e) {}
+      };
+
+        private:
+      const unsigned char* bufferBegin;
+      size_t bufferSize;
+      const unsigned char* rawInstruction;
+      const unsigned char* oldBufferBegin;
+      size_t oldBufferSize;
+      const unsigned char* oldBuffer;
+      Architecture m_Arch;
+      dyn_detail::boost::shared_ptr<InstructionDecoderImpl> m_Impl;
+    };
+          
+    class InstructionDecoderImpl
+    {
+        public:
+      typedef dyn_detail::boost::shared_ptr<InstructionDecoderImpl> Ptr;
+      
+    InstructionDecoderImpl(Architecture a) : m_Arch(a) {}
+            virtual ~InstructionDecoderImpl() {}
+        virtual Instruction::Ptr decode(InstructionDecoder::buffer& b);
+        virtual void doDelayedDecode(const Instruction* insn_to_complete) = 0; 
+      virtual void setMode(bool is64) = 0;
+      static Ptr makeDecoderImpl(Architecture a);
+
     protected:
       
       virtual bool decodeOperands(const Instruction* insn_to_complete) = 0;
 
-      virtual unsigned int decodeOpcode() = 0;
+      virtual void decodeOpcode(InstructionDecoder::buffer&) = 0;
       
       virtual Expression::Ptr makeAddExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType);
       virtual Expression::Ptr makeMultiplyExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType);
@@ -115,13 +140,8 @@ namespace Dyninst
       
     protected:
       Operation::Ptr m_Operation;
-      const unsigned char* bufferBegin;
-      size_t bufferSize;
-      const unsigned char* rawInstruction;
-      const unsigned char* oldBufferBegin;
-      size_t oldBufferSize;
-      const unsigned char* oldBuffer;
       Architecture m_Arch;
+      static std::map<Architecture, Ptr> impls;
       
     };
   };

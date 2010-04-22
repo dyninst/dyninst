@@ -93,22 +93,22 @@ Address get_immediate_operand(instruction *instr)
     // now find the immediate value in the locations
     Address immediate = 0;
 
-    switch(loc.imm_size) {
+    switch(loc.imm_size[0]) {
         case 8:
-            immediate = *(const unsigned long*)(instr->ptr()+loc.imm_position);
+            immediate = *(const unsigned long*)(instr->ptr()+loc.imm_position[0]);
             break;
         case 4:
-            immediate = *(const unsigned int*)(instr->ptr()+loc.imm_position);
+            immediate = *(const unsigned int*)(instr->ptr()+loc.imm_position[0]);
             break;
         case 2:
-            immediate = *(const unsigned short*)(instr->ptr()+loc.imm_position);
+            immediate = *(const unsigned short*)(instr->ptr()+loc.imm_position[0]);
             break;
         case 1:
-            immediate = *(const unsigned char*)(instr->ptr()+loc.imm_position);
+            immediate = *(const unsigned char*)(instr->ptr()+loc.imm_position[0]);
             break;
         default:
             parsing_printf("%s[%u]:  invalid immediate size %d in insn\n",
-                FILE__,__LINE__,loc.imm_size);
+                FILE__,__LINE__,loc.imm_size[0]);
             break;
     }
 
@@ -1104,11 +1104,11 @@ bool instruction::generate(codeGen &gen,
          // Get us an instrucIter
           const unsigned char* buf = reinterpret_cast<const unsigned char*>(addrSpace->getPtrToInstruction(target));
           
-          dyn_detail::boost::shared_ptr<InstructionDecoder> d = makeDecoder(addrSpace->getAddressWidth() == 8 ?
-                  Dyninst::Arch_x86_64 : Dyninst::Arch_x86, buf, 2 * maxInstructionLength);
-          d->setMode(addrSpace->getAddressWidth() == 8);
-          Instruction::Ptr firstInsn = d->decode();
-          Instruction::Ptr secondInsn = d->decode();
+          InstructionDecoder d(buf, 2* InstructionDecoder::maxInstructionLength,
+			       addrSpace->getAddressWidth() == 8 ?
+			       Dyninst::Arch_x86_64 : Dyninst::Arch_x86);
+          Instruction::Ptr firstInsn = d.decode();
+          Instruction::Ptr secondInsn = d.decode();
           if(firstInsn && firstInsn->getOperation().getID() == e_mov
              && firstInsn->readsMemory() && !firstInsn->writesMemory()
              && secondInsn && secondInsn->getCategory() == c_ReturnInsn)
@@ -1624,9 +1624,9 @@ bool instruction::generateMem(codeGen &gen,
    /**
     * Emit immediate
     **/
-   for (unsigned i=0; i<loc.imm_size; i++)
+   for (unsigned i=0; i<loc.imm_size[0]; i++)
    {
-      *walker++ = insn_ptr[loc.imm_position + i];
+      *walker++ = insn_ptr[loc.imm_position[0] + i];
    }
 
    //Debug output.  Fix the end of testdump.c, compile it, the do an

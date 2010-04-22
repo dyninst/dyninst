@@ -45,27 +45,27 @@ using namespace Dyninst;
 using namespace InstructionAPI;
 
 
-IA_IAPI::IA_IAPI(dyn_detail::boost::shared_ptr<Dyninst::InstructionAPI::InstructionDecoder> dec_, Address where_,
+IA_IAPI::IA_IAPI(InstructionDecoder dec_, Address where_,
                 image_func* f)
     : InstructionAdapter(where_, f), dec(dec_),
     validCFT(false), cachedCFT(0)
 {
     hascftstatus.first = false;
     tailCall.first = false;
-    boost::tuples::tie(curInsnIter, boost::tuples::ignore) = allInsns.insert(std::make_pair(current, dec->decode()));
+    boost::tuples::tie(curInsnIter, boost::tuples::ignore) = allInsns.insert(std::make_pair(current, dec.decode()));
     stackPtr.reset(new RegisterAST(MachRegister::getStackPointer(img->getArch())));
     framePtr.reset(new RegisterAST(MachRegister::getFramePointer(img->getArch())));
     thePC.reset(new RegisterAST(MachRegister::getPC(img->getArch())));
 }
 
-IA_IAPI::IA_IAPI(dyn_detail::boost::shared_ptr<Dyninst::InstructionAPI::InstructionDecoder> dec_, Address where_,
+IA_IAPI::IA_IAPI(InstructionDecoder dec_, Address where_,
                 image * im)
     : InstructionAdapter(where_, im), dec(dec_),
     validCFT(false), cachedCFT(0)
 {
     hascftstatus.first = false;
     tailCall.first = false;
-    boost::tuples::tie(curInsnIter, boost::tuples::ignore) = allInsns.insert(std::make_pair(current, dec->decode()));
+    boost::tuples::tie(curInsnIter, boost::tuples::ignore) = allInsns.insert(std::make_pair(current, dec.decode()));
     stackPtr.reset(new RegisterAST(MachRegister::getStackPointer(img->getArch())));
     framePtr.reset(new RegisterAST(MachRegister::getFramePointer(img->getArch())));
     thePC.reset(new RegisterAST(MachRegister::getPC(img->getArch())));
@@ -80,7 +80,7 @@ void IA_IAPI::advance()
     }
     InstructionAdapter::advance();
     current += curInsn()->size();
-    boost::tuples::tie(curInsnIter, boost::tuples::ignore) = allInsns.insert(std::make_pair(current, dec->decode()));
+    boost::tuples::tie(curInsnIter, boost::tuples::ignore) = allInsns.insert(std::make_pair(current, dec.decode()));
     if(!curInsn())
     {
         parsing_printf("......WARNING: after advance at 0x%lx, curInsn() NULL\n", current);

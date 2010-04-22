@@ -629,11 +629,11 @@ void image_func::calcUsedRegs()
        curBlock != blockList.end();
        ++curBlock)
     {
-        InstructionDecoder::Ptr d = makeDecoder(img()->getArch(),
-                (const unsigned char*)getPtrToInstruction((*curBlock)->firstInsnOffset()),
-                (*curBlock)->getSize());
+        InstructionDecoder d(getPtrToInstruction((*curBlock)->firstInsnOffset()),
+        (*curBlock)->getSize(),
+        img()->getArch());
         Instruction::Ptr i;
-        while(i = d->decode())
+        while(i = d.decode())
         {
             i->getWriteSet(writtenRegs);
         }

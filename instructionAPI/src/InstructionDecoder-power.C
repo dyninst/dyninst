@@ -83,19 +83,18 @@ namespace Dyninst
                 static power_table extended_op_63;
       };
 
-    InstructionDecoder_power::InstructionDecoder_power(const unsigned char* buffer, unsigned int length,
-                                                      Architecture arch)
-          : InstructionDecoder(buffer, length, arch), isRAWritten(false)
+    InstructionDecoder_power::InstructionDecoder_power(Architecture a)
+      : InstructionDecoderImpl(a),
+	isRAWritten(false)
     {
         power_entry::buildTables();
     }
     InstructionDecoder_power::~InstructionDecoder_power()
     {
     }
-    unsigned int InstructionDecoder_power::decodeOpcode()
+    void InstructionDecoder_power::decodeOpcode(InstructionDecoder::buffer& b)
     {
-        assert(!"not used on power!");
-        return 0;
+      b.start += 4;
     }
 
     void InstructionDecoder_power::FRTP()
@@ -179,22 +178,15 @@ namespace Dyninst
         }
     }
     
-    Instruction::Ptr InstructionDecoder_power::decode(const unsigned char* buffer)
-    {
-        setBuffer(buffer, 4);
-        Instruction::Ptr ret = decode();
-        resetBuffer();
-        return ret;
-    }
     using namespace std;
-    Instruction::Ptr InstructionDecoder_power::decode()
+    Instruction::Ptr InstructionDecoder_power::decode(InstructionDecoder::buffer& b)
     {
-        if(rawInstruction < bufferBegin || rawInstruction >= bufferBegin + bufferSize) return Instruction::Ptr();
-        isRAWritten = false;
-        isFPInsn = false;
-        bcIsConditional = false;
-        insn = InstructionDecoder::rawInstruction[0] << 24 | InstructionDecoder::rawInstruction[1] << 16 |
-                InstructionDecoder::rawInstruction[2] << 8 | InstructionDecoder::rawInstruction[3];
+      if(b.start > b.end) return Instruction::Ptr();
+      isRAWritten = false;
+      isFPInsn = false;
+      bcIsConditional = false;
+      insn = b.start[0] << 24 | b.start[1] << 16 |
+      b.start[2] << 8 | b.start[3];
 #if defined(DEBUG_RAW_INSN)        
         cout.width(0);
         cout << "0x";
@@ -203,12 +195,8 @@ namespace Dyninst
         cout << hex << insn << "\t";
 #endif        
         mainDecode();
-        rawInstruction += 4;
+        b.start += 4;
         return make_shared(insn_in_progress);
-    }
-    void InstructionDecoder_power::setMode(bool)
-    {
-      //assert(!"not implemented");
     }
 
     bool InstructionDecoder_power::decodeOperands(const Instruction*)
@@ -491,7 +479,6 @@ namespace Dyninst
     }
     void InstructionDecoder_power::doDelayedDecode(const Instruction* insn_to_complete)
     {
-        setBuffer(reinterpret_cast<const unsigned char*>(insn_to_complete->ptr()), 4);
         isRAWritten = false;
         isFPInsn = false;
         bcIsConditional = false;
@@ -535,7 +522,6 @@ namespace Dyninst
             insn_in_progress->appendOperand(makeCR0Expr(), false, true);
         }
 
-        resetBuffer();
         return;
     }
     MachRegister InstructionDecoder_power::makePowerRegID(MachRegister base, unsigned int encoding, int field)
@@ -741,7 +727,6 @@ using namespace boost::assign;
     }
     void InstructionDecoder_power::BI()
     {
-        //insn_in_progress->appendOperand(makeRegisterExpression(makePowerRegID(ppc32::cr0, field<11,13>(insn))), true, false);
         return;
     }
     void InstructionDecoder_power::ME()

@@ -41,9 +41,9 @@ class ia32_locations {
    rex_position(-1), rex_byte(0), rex_w(0), rex_r(0), rex_x(0), rex_b(0),
    address_size(0) {
        imm_position[0] = -1;
-       imm_size[0] = -1;
+       imm_size[0] = 0;
        imm_position[1] = -1;
-       imm_size[1] = -1;
+       imm_size[1] = 0;
    }
    void reinit() {
        num_prefixes = 0;
@@ -73,15 +73,13 @@ class ia32_locations {
        address_size = 0;
    }
    int num_prefixes;
-   unsigned opcode_size;
+   unsigned int opcode_size;
    int opcode_position;
    
    unsigned disp_size;
    int disp_position;
 
    int imm_cnt;
-   int imm_position[2];
-   unsigned imm_size[2];
    
    int modrm_position;
    int modrm_operand;
@@ -101,6 +99,8 @@ class ia32_locations {
    unsigned char rex_b;
 
    int address_size;
+   int imm_position[2];
+   unsigned int imm_size[2];
 };
 
 #endif //!defined(IA32_LOCS_H)

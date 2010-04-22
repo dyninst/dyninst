@@ -115,14 +115,13 @@ bool IA_IAPI::isMovAPSTable(std::vector<std::pair< Address, EdgeTypeEnum > >& ou
     }
 
     unsigned int size = (img->imageOffset() + img->imageLength()) - current;
-    dyn_detail::boost::shared_ptr<InstructionDecoder> d = makeDecoder(img->getArch(), bufferBegin, size);
-    d->setMode(img->getAddressWidth() == 8);
+    InstructionDecoder d(bufferBegin, size, img->getArch());
     Address cur = current;
     unsigned last_insn_size = 0;
-    InstructionAPI::Instruction::Ptr i = d->decode();
+    InstructionAPI::Instruction::Ptr i = d.decode();
     cur += i->size();
     for (;;) {
-        InstructionAPI::Instruction::Ptr insn = d->decode();
+        InstructionAPI::Instruction::Ptr insn = d.decode();
         //All insns in sequence are movaps
         parsing_printf("\t\tChecking instruction %s\n", insn->format().c_str());
         if (insn->getOperation().getID() != e_movapd &&
@@ -386,9 +385,9 @@ Address IA_IAPI::findThunkInBlock(image_basicBlock* curBlock, Address& thunkOffs
         return false;
     }
     
-    dyn_detail::boost::shared_ptr<InstructionDecoder> dec =
-            makeDecoder(img->getArch(), buf, curBlock->getSize() + maxInstructionLength);
-    dec->setMode(img->getAddressWidth() == 8);
+    InstructionDecoder dec(buf, 
+			   curBlock->getSize() + InstructionDecoder::maxInstructionLength, 
+			   img->getArch());
     IA_IAPI * blockptr = NULL;
     if(context)
         blockptr = new IA_IAPI(dec,curBlock->firstInsnOffset(),context);
@@ -541,12 +540,10 @@ boost::tuple<Instruction::Ptr,
                            FILE__, __LINE__);
             return boost::make_tuple(Instruction::Ptr(), Instruction::Ptr(), false);
         }
-        dyn_detail::boost::shared_ptr<InstructionDecoder> dec =
-                makeDecoder(img->getArch(), buf, curBlk->getSize());
-        dec->setMode(img->getAddressWidth() == 8);
+        InstructionDecoder dec(buf, curBlk->getSize(), img->getArch());
         Instruction::Ptr i;
         Address curAdr = curBlk->firstInsnOffset();
-        while(i = dec->decode())
+        while(i = dec.decode())
         {
             if(i->getCategory() == c_CompareInsn)
             // check for cmp
@@ -876,11 +873,10 @@ bool IA_IAPI::isThunk() const {
             (const unsigned char *)img->getPtrToInstruction(getCFT());
   // We're decoding two instructions: possible move and possible return.
   // Check for move from the stack pointer followed by a return.
-    dyn_detail::boost::shared_ptr<Dyninst::InstructionAPI::InstructionDecoder> targetChecker =
-            makeDecoder(img->getArch(), target, 2 * maxInstructionLength);
-    targetChecker->setMode(img->getAddressWidth() == 8);
-    Instruction::Ptr thunkFirst = targetChecker->decode();
-    Instruction::Ptr thunkSecond = targetChecker->decode();
+    InstructionDecoder targetChecker(target, 2 * InstructionDecoder::maxInstructionLength,
+				     img->getArch());
+    Instruction::Ptr thunkFirst = targetChecker.decode();
+    Instruction::Ptr thunkSecond = targetChecker.decode();
     parsing_printf("... checking call target for thunk, insns are %s, %s\n", thunkFirst->format().c_str(),
                    thunkSecond->format().c_str());
     if(thunkFirst && (thunkFirst->getOperation().getID() == e_mov))
@@ -990,10 +986,10 @@ bool IA_IAPI::isStackFramePreamble(int& /*frameSize*/) const
 {
     if(savesFP())
     {
-        dyn_detail::boost::shared_ptr<InstructionDecoder> tmp(dec);
+        InstructionDecoder tmp(dec);
         std::vector<Instruction::Ptr> nextTwoInsns;
-        nextTwoInsns.push_back(tmp->decode());
-        nextTwoInsns.push_back(tmp->decode());
+        nextTwoInsns.push_back(tmp.decode());
+        nextTwoInsns.push_back(tmp.decode());
         if(isFrameSetupInsn(nextTwoInsns[0]) ||
            isFrameSetupInsn(nextTwoInsns[1]))
         {

@@ -49,12 +49,12 @@ frameChecker::frameChecker(const unsigned char* addr, size_t max_length, Dyninst
   // How many instructions in our stack frame idioms?
   static const unsigned max_insns = 3;
   
-  dyn_detail::boost::shared_ptr<InstructionDecoder> d = makeDecoder(arch, addr, max_length);
+  InstructionDecoder d(addr, max_length, arch);
   unsigned bytesDecoded = 0;
   
   for(unsigned i = 0; i < max_insns && bytesDecoded < max_length; i++)
   {
-      m_Insns.push_back(d->decode());
+    m_Insns.push_back(d.decode());
     addr += m_Insns.back()->size();
     bytesDecoded += m_Insns.back()->size();
   }

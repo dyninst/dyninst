@@ -482,7 +482,7 @@ bool IA_IAPI::parseJumpTable(image_basicBlock* currBlk,
       image_basicBlock* sourceBlock = sourceEdges[0]->getSource();
       Address blockStart = sourceBlock->firstInsnOffset();
       const unsigned char* b = (const unsigned char*)(img->getPtrToInstruction(blockStart, context));
-      InstructionDecoder::Ptr dec = makeDecoder(img->getArch(), b, sourceBlock->getSize());
+      InstructionDecoder dec(b, sourceBlock->getSize(), img->getArch());
       IA_IAPI prevBlock(dec, blockStart, context);
       while(!prevBlock.hasCFT()) {
           prevBlock.advance();
