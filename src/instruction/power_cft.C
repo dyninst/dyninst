@@ -33,7 +33,7 @@
 #include "test_lib.h"
 
 #include "Instruction.h"
-#include "InstructionDecoder-power.h"
+#include "InstructionDecoder.h"
 #include "Register.h"
 
 #include <boost/assign/list_of.hpp>
