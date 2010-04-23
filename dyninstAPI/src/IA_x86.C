@@ -45,6 +45,57 @@
 using namespace Dyninst;
 using namespace InstructionAPI;
 
+class zeroAllRegisters : public InstructionAPI::Visitor
+{
+    public:
+    zeroAllRegisters() : defined(true) {}
+    virtual ~zeroAllRegisters() {}
+    bool defined;
+    std::deque<long> results;
+    long getResult() {
+        if(results.empty()) return 0;
+        return results.front();
+    }
+    bool isDefined() {
+        return defined && (results.size() == 1);
+    }
+    virtual void visit(BinaryFunction* b)
+    {
+        if(!defined) return;
+        long arg1 = results.back();
+        results.pop_back();
+        long arg2 = results.back();
+        results.pop_back();
+        if(b->isAdd())
+        {
+            results.push_back(arg1+arg2);
+        }
+        else if(b->isMultiply())
+        {
+            results.push_back(arg1*arg2);
+        }
+        else
+        {
+            defined = false;
+        }
+    }
+    virtual void visit(Immediate* i)
+    {
+        if(!defined) return;
+        results.push_back(i->eval().convert<long>());
+    }
+    virtual void visit(RegisterAST* )
+    {
+        if(!defined) return;
+        results.push_back(0);
+    }
+    virtual void visit(Dereference* )
+    {
+        defined = false;
+    }
+    
+};
+
 
 bool IA_IAPI::isFrameSetupInsn(Instruction::Ptr i) const
 {
@@ -176,42 +227,10 @@ std::map<Address, Instruction::Ptr>::const_iterator IA_IAPI::findTableInsn() con
         if(tmp.size() == 1)
         {
             Expression::Ptr cftAddr = dyn_detail::boost::dynamic_pointer_cast<Expression>(tmp[0]);
+            zeroAllRegisters z;
+            cftAddr->apply(&z);
             parsing_printf("\tChecking indirect jump %s for table insn\n", curInsn()->format().c_str());
-            static RegisterAST* eax = new RegisterAST(x86::eax);
-            static RegisterAST* ecx = new RegisterAST(x86::ecx);
-            static RegisterAST* edx = new RegisterAST(x86::edx);
-            static RegisterAST* ebx = new RegisterAST(x86::ebx);
-            static RegisterAST* esp = new RegisterAST(x86::esp);
-            static RegisterAST* ebp = new RegisterAST(x86::ebp);
-            static RegisterAST* esi = new RegisterAST(x86::esi);
-            static RegisterAST* edi = new RegisterAST(x86::edi);
-            cftAddr->bind(eax, Result(u32, 0));
-            cftAddr->bind(ecx, Result(u32, 0));
-            cftAddr->bind(edx, Result(u32, 0));
-            cftAddr->bind(ebx, Result(u32, 0));
-            cftAddr->bind(esp, Result(u32, 0));
-            cftAddr->bind(ebp, Result(u32, 0));
-            cftAddr->bind(esi, Result(u32, 0));
-            cftAddr->bind(edi, Result(u32, 0));
-            static RegisterAST* rax = new RegisterAST(x86_64::rax);
-            static RegisterAST* rcx = new RegisterAST(x86_64::rcx);
-            static RegisterAST* rdx = new RegisterAST(x86_64::rdx);
-            static RegisterAST* rbx = new RegisterAST(x86_64::rbx);
-            static RegisterAST* rsp = new RegisterAST(x86_64::rsp);
-            static RegisterAST* rbp = new RegisterAST(x86_64::rbp);
-            static RegisterAST* rsi = new RegisterAST(x86_64::rsi);
-            static RegisterAST* rdi = new RegisterAST(x86_64::rdi);
-            cftAddr->bind(rax, Result(u64, 0));
-            cftAddr->bind(rcx, Result(u64, 0));
-            cftAddr->bind(rdx, Result(u64, 0));
-            cftAddr->bind(rbx, Result(u64, 0));
-            cftAddr->bind(rsp, Result(u64, 0));
-            cftAddr->bind(rbp, Result(u64, 0));
-            cftAddr->bind(rsi, Result(u64, 0));
-            cftAddr->bind(rdi, Result(u64, 0));
-
-            Result base = cftAddr->eval();
-            if(base.defined && base.convert<Address>())
+            if(z.isDefined() && z.getResult())
             {
                 parsing_printf("\tAddress in jump\n");
                 return allInsns.find(current);
@@ -657,42 +676,13 @@ Address IA_IAPI::getTableAddress(Instruction::Ptr tableInsn, Address thunkOffset
             displacementSrc = op;
         }
     }
-    static RegisterAST* eax = new RegisterAST(x86::eax);
-    static RegisterAST* ecx = new RegisterAST(x86::ecx);
-    static RegisterAST* edx = new RegisterAST(x86::edx);
-    static RegisterAST* ebx = new RegisterAST(x86::ebx);
-    static RegisterAST* esp = new RegisterAST(x86::esp);
-    static RegisterAST* ebp = new RegisterAST(x86::ebp);
-    static RegisterAST* esi = new RegisterAST(x86::esi);
-    static RegisterAST* edi = new RegisterAST(x86::edi);
-    displacementSrc->bind(eax, Result(u32, 0));
-    displacementSrc->bind(ecx, Result(u32, 0));
-    displacementSrc->bind(edx, Result(u32, 0));
-    displacementSrc->bind(ebx, Result(u32, 0));
-    displacementSrc->bind(esp, Result(u32, 0));
-    displacementSrc->bind(ebp, Result(u32, 0));
-    displacementSrc->bind(esi, Result(u32, 0));
-    displacementSrc->bind(edi, Result(u32, 0));
-    static RegisterAST* rax = new RegisterAST(x86_64::rax);
-    static RegisterAST* rcx = new RegisterAST(x86_64::rcx);
-    static RegisterAST* rdx = new RegisterAST(x86_64::rdx);
-    static RegisterAST* rbx = new RegisterAST(x86_64::rbx);
-    static RegisterAST* rsp = new RegisterAST(x86_64::rsp);
-    static RegisterAST* rbp = new RegisterAST(x86_64::rbp);
-    static RegisterAST* rsi = new RegisterAST(x86_64::rsi);
-    static RegisterAST* rdi = new RegisterAST(x86_64::rdi);
-    displacementSrc->bind(rax, Result(u64, 0));
-    displacementSrc->bind(rcx, Result(u64, 0));
-    displacementSrc->bind(rdx, Result(u64, 0));
-    displacementSrc->bind(rbx, Result(u64, 0));
-    displacementSrc->bind(rsp, Result(u64, 0));
-    displacementSrc->bind(rbp, Result(u64, 0));
-    displacementSrc->bind(rsi, Result(u64, 0));
-    displacementSrc->bind(rdi, Result(u64, 0));
-
-    Result disp = displacementSrc->eval();
+    
+    zeroAllRegisters z;
+    displacementSrc->apply(&z);
+    
     Address jumpTable = 0;
-    if(!disp.defined)
+    //if(!disp.defined)
+    if(!z.isDefined())
     {
         if(!thunkOffset)
         {
@@ -703,7 +693,8 @@ Address IA_IAPI::getTableAddress(Instruction::Ptr tableInsn, Address thunkOffset
     }
     else
     {
-        jumpTable = disp.convert<Address>();
+//        jumpTable = disp.convert<Address>();
+        jumpTable = z.getResult();
     }
     parsing_printf("\tjumpTable set to 0x%lx\n",jumpTable);
 
