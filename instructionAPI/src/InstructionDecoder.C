@@ -29,16 +29,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "../h/InstructionDecoder.h"
-#include "../h/InstructionDecoder-x86.h"
-#include "../h/InstructionDecoder-power.h"
-#include "../h/Expression.h"
-#include "../src/arch-x86.h"
-#include "../h/Register.h"
-#include "../h/Dereference.h"
-#include "../h/Immediate.h"
-#include "../h/BinaryFunction.h"
-#include "../../common/h/singleton_object_pool.h"
+#include "InstructionDecoder.h"
+#include "InstructionDecoderImpl.h"
+#include "Instruction.h"
 
 using namespace std;
 namespace Dyninst
@@ -49,11 +42,13 @@ namespace Dyninst
         m_buf(buffer, size)
     {
         m_Impl = InstructionDecoderImpl::makeDecoderImpl(arch);
+        m_Impl->setMode(arch == Arch_x86_64);
     }
     INSTRUCTION_EXPORT InstructionDecoder::InstructionDecoder(const void* buffer, size_t size, Architecture arch) :
         m_buf(reinterpret_cast<const unsigned char*>(buffer), size)
     {
         m_Impl = InstructionDecoderImpl::makeDecoderImpl(arch);
+        m_Impl->setMode(arch == Arch_x86_64);
     }
     INSTRUCTION_EXPORT InstructionDecoder::InstructionDecoder() :
             m_buf(static_cast<const unsigned char*>(NULL), (unsigned int)0)

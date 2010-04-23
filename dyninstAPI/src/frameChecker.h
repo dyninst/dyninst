@@ -32,7 +32,6 @@
 #if !defined(FRAMECHECKER_H)
 #define FRAMECHECKER_H
 
-#if defined (cap_instruction_api)
 #include "instructionAPI/h/Instruction.h"
 
 class frameChecker
@@ -50,7 +49,5 @@ class frameChecker
   std::vector<Dyninst::InstructionAPI::Instruction::Ptr> m_Insns;
   Dyninst::Architecture arch;
 };
-#endif
-
 
 #endif //!defined(FRAMECHECKER_H)

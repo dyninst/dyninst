@@ -29,8 +29,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#if defined(cap_instruction_api)
-
 #include "frameChecker.h"
 #include "instructionAPI/h/InstructionDecoder.h"
 #include "dyn_regs.h"
@@ -112,5 +110,3 @@ bool frameChecker::isStackFrameSetup() const
 {
   return isMovStackToBase(0);
 }
-
-#endif // defined(cap_instruction_api)

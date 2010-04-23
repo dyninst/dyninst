@@ -51,6 +51,7 @@ namespace Dyninst
     
         INSTRUCTION_EXPORT Instruction::Ptr InstructionDecoderImpl::decode(InstructionDecoder::buffer& b)
         {
+            //setMode(m_Arch == Arch_x86_64);
             const unsigned char* start = b.start;
             decodeOpcode(b);
             unsigned int decodedSize = b.start - start;

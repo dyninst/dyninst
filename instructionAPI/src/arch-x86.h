@@ -40,8 +40,8 @@
 #include <map>
 #include <vector>
 #include "../../common/h/Types.h"
-#include "../h/RegisterIDs-x86.h"
-#include "../h/entryIDs-IA32.h"
+#include "dyn_regs.h"
+#include "entryIDs.h"
 #include "ia32_locations.h"
 
 
@@ -161,34 +161,13 @@ enum { am_A=1, am_C, am_D, am_E, am_F, am_G, am_I, am_J, am_M, am_O, // 10
 // operand types - idem, but I invented quite a few to make implicit operands explicit.
 enum { op_a=1, op_b, op_c, op_d, op_dq, op_p, op_pd, op_pi, op_ps, // 9 
        op_q, op_s, op_sd, op_ss, op_si, op_v, op_w, op_z, op_lea, op_allgprs, op_512,
-       op_f, op_dbl, op_14, op_28};
+       op_f, op_dbl, op_14, op_28, op_edxeax, op_ecxebx};
 
 
 // tables and pseudotables
 enum {
   t_ill=0, t_oneB, t_twoB, t_prefixedSSE, t_coprocEsc, t_grp, t_sse, t_grpsse, t_3dnow, t_done=99
 };
-
-
-// registers [only fancy names, not used right now]
-/* enum RegisterID { r_AH=100, r_BH, r_CH, r_DH, r_AL, r_BL, r_CL, r_DL, //107 */
-/* 		  r_AX, r_DX, //109 */
-/* 		  r_eAX, r_eBX, r_eCX, r_eDX, //113 */
-/* 		  r_EAX, r_EBX, r_ECX, r_EDX, //117 */
-/* 		  r_CS, r_DS, r_ES, r_FS, r_GS, r_SS, //123 */
-/* 		  r_eSP, r_eBP, r_eSI, r_eDI, //127 */
-/* 		  r_ESP, r_EBP, r_ESI, r_EDI, //131 */
-/* 		  r_EDXEAX, r_ECXEBX, //133 */
-/* 		  // above two are hacks for cmpxch8b which would have 5 operands otherwise!!! */
-/* 		  r_OF, r_SF, r_ZF, r_AF, r_PF, r_CF, r_TF, r_IF, r_DF, r_NT, r_RF, */
-/* 		  // flags need to be separate registers for proper liveness analysis */
-/* 		  r_DummyFPR, r_Reserved, */
-/* 		  // and we have a dummy register to make liveness consistent since floating point saves are all/none at present */
-/* 		  r_R8, r_R9, r_R10, r_R11, r_R12, r_R13, r_R14, r_R15 */
-/* 		  // AMD64 GPRs */
-/* };  */
-
-
 
 // registers used for memory access
 enum { mRAX=0, mRCX, mRDX, mRBX,
@@ -386,7 +365,8 @@ struct ia32_entry {
   const char* name(ia32_locations* locs = NULL);
   INSTRUCTION_EXPORT entryID getID(ia32_locations* locs = NULL) const;
   // returns true if any flags are read/written, false otherwise
-  INSTRUCTION_EXPORT bool flagsUsed(std::set<Dyninst::InstructionAPI::IA32Regs>& flagsRead, std::set<Dyninst::InstructionAPI::IA32Regs>& flagsWritten,
+  INSTRUCTION_EXPORT bool flagsUsed(std::set<Dyninst::MachRegister>& flagsRead, std::set<Dyninst::MachRegister>&
+flagsWritten,
 		 ia32_locations* locs = NULL);
   entryID id;
   unsigned int otable;       // which opcode table is next; if t_done it is the current one
@@ -403,15 +383,15 @@ struct ia32_entry {
 using std::vector;
 struct flagInfo
 {
-  flagInfo(const vector<Dyninst::InstructionAPI::IA32Regs>& rf, const vector<Dyninst::InstructionAPI::IA32Regs>& wf) : readFlags(rf), writtenFlags(wf) 
+  flagInfo(const vector<Dyninst::MachRegister>& rf, const vector<Dyninst::MachRegister>& wf) : readFlags(rf), writtenFlags(wf)
   {
   }
   flagInfo() 
   {
   }
   
-  vector<Dyninst::InstructionAPI::IA32Regs> readFlags;
-  vector<Dyninst::InstructionAPI::IA32Regs> writtenFlags;
+  vector<Dyninst::MachRegister> readFlags;
+  vector<Dyninst::MachRegister> writtenFlags;
 };
 
 class ia32_instruction
@@ -545,9 +525,9 @@ inline bool is_disp16(long disp) {
 }
 
 
-INSTRUCTION_EXPORT int get_instruction_operand(const unsigned char *i_ptr, Register& base_reg,
+/*INSTRUCTION_EXPORT int get_instruction_operand(const unsigned char *i_ptr, Register& base_reg,
 			    Register& index_reg, int& displacement, 
-			    unsigned& scale, unsigned &mod);
+			    unsigned& scale, unsigned &mod);*/
 INSTRUCTION_EXPORT void decode_SIB(unsigned sib, unsigned& scale, Register& index_reg, Register& base_reg);
 INSTRUCTION_EXPORT const unsigned char* skip_headers(const unsigned char*, ia32_prefixes* = NULL);
 

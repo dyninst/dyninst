@@ -38,8 +38,8 @@
 #include <set>
 #include <map>
 #include <vector>
-#include "instructionAPI/h/RegisterIDs-x86.h"
-#include "instructionAPI/h/entryIDs-IA32.h"
+#include "dyn_regs.h"
+#include "entryIDs.h"
 
 #if !defined(i386_unknown_solaris2_5) \
  && !defined(i386_unknown_nt4_0) \
@@ -52,7 +52,7 @@
 #error "dyninst arch-x86.h included from IAPI"
 #endif
 
-#include "ia32_locations.h"
+#include "common/h/ia32_locations.h"
 
 #ifndef _ARCH_X86_H
 #define _ARCH_X86_H
@@ -357,8 +357,9 @@ enum { am_A=1, am_C, am_D, am_E, am_F, am_G, am_I, am_J, am_M, am_O, // 10
        am_stackH, am_stackP, am_allgprs, am_VR }; // pusH and poP produce different addresses
 
 // operand types - idem, but I invented quite a few to make implicit operands explicit.
-enum { op_a=1, op_b, op_c, op_d, op_dq, op_p, op_pd, op_pi, op_ps, // 9 
-       op_q, op_s, op_sd, op_ss, op_si, op_v, op_w, op_z, op_lea, op_allgprs, op_512 };
+       enum { op_a=1, op_b, op_c, op_d, op_dq, op_p, op_pd, op_pi, op_ps, // 9
+           op_q, op_s, op_sd, op_ss, op_si, op_v, op_w, op_z, op_lea, op_allgprs, op_512,
+           op_f, op_dbl, op_14, op_28, op_edxeax, op_ecxebx};
 
 
 // tables and pseudotables
@@ -554,7 +555,7 @@ struct ia32_entry {
   const char* name(ia32_locations* locs = NULL);
   entryID getID(ia32_locations* locs = NULL) const;
   // returns true if any flags are read/written, false otherwise
-  bool flagsUsed(std::set<Dyninst::InstructionAPI::IA32Regs>& flagsRead, std::set<Dyninst::InstructionAPI::IA32Regs>& flagsWritten,
+  bool flagsUsed(std::set<Dyninst::MachRegister>& flagsRead, std::set<Dyninst::MachRegister>& flagsWritten,
 		 ia32_locations* locs = NULL);
   entryID id;
   unsigned int otable;       // which opcode table is next; if t_done it is the current one
@@ -571,15 +572,15 @@ struct ia32_entry {
 using std::vector;
 struct flagInfo
 {
-  flagInfo(const vector<Dyninst::InstructionAPI::IA32Regs>& rf, const vector<Dyninst::InstructionAPI::IA32Regs>& wf) : readFlags(rf), writtenFlags(wf) 
+  flagInfo(const vector<Dyninst::MachRegister>& rf, const vector<Dyninst::MachRegister>& wf) : readFlags(rf), writtenFlags(wf)
   {
   }
   flagInfo() 
   {
   }
   
-  vector<Dyninst::InstructionAPI::IA32Regs> readFlags;
-  vector<Dyninst::InstructionAPI::IA32Regs> writtenFlags;
+  vector<Dyninst::MachRegister> readFlags;
+  vector<Dyninst::MachRegister> writtenFlags;
 };
 
 class ia32_instruction
@@ -863,8 +864,6 @@ int displacement(const unsigned char *instr, unsigned type);
 /** Returns the immediate operand of an instruction **/
 Address get_immediate_operand(instruction *instr);
 
-int sizeOfMachineInsn(instruction *insn);
-long addressOfMachineInsn(instruction *insn);
 
 inline bool is_disp8(long disp) {
    return (disp >= -128 && disp < 127);
@@ -884,11 +883,6 @@ inline bool is_addr32(Address addr) {
     return (addr < UI32_MAX);
 }
 
-/** This method only works for call instructions **/
-int get_instruction_operand(const unsigned char *i_ptr, Register& base_reg,
-			    Register& index_reg, int& displacement, 
-			    unsigned& scale, unsigned &mod);
-
 void decode_SIB(unsigned sib, unsigned& scale, Register& index_reg, Register& base_reg);
 const unsigned char* skip_headers(const unsigned char*, ia32_prefixes* = NULL);
 
@@ -902,10 +896,6 @@ inline Address region_hi(const Address /*x*/) { return 0xf0000000; }
 #if defined(arch_x86_64)
 // range functions for AMD64
 
-#if 0
-inline Address region_lo_64(const Address x) { return 0x0; }
-inline Address region_hi_64(const Address x) { return ~0x0; }
-#endif
 inline Address region_lo_64(const Address x) { return x & 0xffffffff80000000; }
 inline Address region_hi_64(const Address x) { return x | 0x000000007fffffff; }
 
@@ -914,8 +904,6 @@ inline Address region_hi_64(const Address x) { return x | 0x000000007fffffff; }
 bool insn_hasSIB(unsigned,unsigned&,unsigned&,unsigned&);
 bool insn_hasDisp8(unsigned ModRM);
 bool insn_hasDisp32(unsigned ModRM);
-bool isFunctionPrologue( instruction& insn1 );
-bool isStackFramePreamble( instruction& insn );
 
 bool isStackFramePrecheck_msvs( const unsigned char *buffer );
 bool isStackFramePrecheck_gcc( const unsigned char *buffer );

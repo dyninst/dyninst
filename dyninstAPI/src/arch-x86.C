@@ -53,10 +53,9 @@
 #include "InstructionDecoder.h"
 #include "Instruction.h"
 
-#include "dyninstAPI/src/emit-x86.h"
+#include "emit-x86.h"
 #include "process.h"
 #include "inst-x86.h"
-#include "instructionAPI/h/RegisterIDs-x86.h"
 
 using namespace std;
 using namespace boost::assign;
@@ -267,6 +266,7 @@ bool isStackFramePrecheck_msvs( const unsigned char *buffer )
    return (gap_initial_bytes[*buffer] != 0);
 }  
 
+/*
 bool isStackFramePreamble( instruction& insn1 )
 {       
     instruction insn2, insn3;
@@ -305,7 +305,7 @@ bool isStackFramePreamble( instruction& insn1 )
     
     return false;
 }
-
+*/
 // We keep an array-let that represents various fixed
 // insns
 unsigned char illegalRep[2] = {0x0f, 0x0b};
@@ -1396,59 +1396,59 @@ bool instruction::getUsedRegs(pdvector<int> &regs) {
 	using namespace Dyninst::InstructionAPI;
          //The instruction implicitely references a memory instruction
          switch (op.optype) {
-            case r_AH:   
-            case r_AL:   
-            case r_eAX:
-            case r_EAX:
+             case x86::iah:   
+             case x86::ial:
+             case x86::iax:   
+             case x86::ieax:
                regs.push_back(REGNUM_RAX);
                if (loc.rex_byte) regs.push_back(REGNUM_R8);
                break;
-            case r_BH:
-            case r_BL:
-            case r_eBX:
-            case r_EBX:
+             case x86::ibh:
+             case x86::ibl:
+             case x86::ibx:
+             case x86::iebx:
                regs.push_back(REGNUM_RBX);
                if (loc.rex_byte) regs.push_back(REGNUM_R11);
                break;
-            case r_CH:   
-            case r_CL:   
-            case r_eCX:
-            case r_ECX:
-               regs.push_back(REGNUM_RCX);
+             case x86::ich:
+             case x86::icl:
+             case x86::icx:
+             case x86::iecx:
+                 regs.push_back(REGNUM_RCX);
                if (loc.rex_byte) regs.push_back(REGNUM_R9);
                break;
-            case r_DL:
-            case r_DH:
-            case r_eDX:
-            case r_EDX:
-               regs.push_back(REGNUM_RDX);
+             case x86::idh:
+             case x86::idl:
+             case x86::idx:
+             case x86::iedx:
+                 regs.push_back(REGNUM_RDX);
                if (loc.rex_byte) regs.push_back(REGNUM_R10);
                break;
-            case r_eSP:
-            case r_ESP:
-               regs.push_back(REGNUM_RSP);
+             case x86::isp:
+             case x86::iesp:
+                regs.push_back(REGNUM_RSP);
                if (loc.rex_byte) regs.push_back(REGNUM_R12);
                break;
-            case r_eBP:
-            case r_EBP:
+             case x86::ibp:
+             case x86::iebp:
                regs.push_back(REGNUM_RBP);
                if (loc.rex_byte) regs.push_back(REGNUM_R13);
                break;
-            case r_eSI:
-            case r_ESI:
+             case x86::isi:
+             case x86::iesi:
                regs.push_back(REGNUM_RSI);
                if (loc.rex_byte) regs.push_back(REGNUM_R14);
                break;
-            case r_EDI:
-            case r_eDI:
+             case x86::idi:
+             case x86::iedi:
                regs.push_back(REGNUM_RDI);
                if (loc.rex_byte) regs.push_back(REGNUM_R15);
                break;
-            case r_EDXEAX:
+            case op_edxeax:
                regs.push_back(REGNUM_RAX);
                regs.push_back(REGNUM_RDX);
                break;
-            case r_ECXEBX:
+            case op_ecxebx:
                regs.push_back(REGNUM_RBX);
                regs.push_back(REGNUM_RCX);
                break;

@@ -32,6 +32,7 @@
 
 #if !defined(IA32_LOCS_H)
 #define IA32_LOCS_H
+
 class ia32_locations {
     public:
    ia32_locations() : num_prefixes(0), opcode_size(0), opcode_position(-1),

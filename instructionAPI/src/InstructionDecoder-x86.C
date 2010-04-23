@@ -32,13 +32,13 @@
 #define INSIDE_INSTRUCTION_API
 
 #include "InstructionDecoder-x86.h"
-#include "../h/Expression.h"
+#include "Expression.h"
 #include "arch-x86.h"
-#include "../h/Register.h"
-#include "../h/Dereference.h"
-#include "../h/Immediate.h"
-#include "../h/BinaryFunction.h"
-#include "../../common/h/singleton_object_pool.h"
+#include "Register.h"
+#include "Dereference.h"
+#include "Immediate.h"
+#include "BinaryFunction.h"
+#include "common/h/singleton_object_pool.h"
 
 using namespace std;
 namespace Dyninst
@@ -792,7 +792,7 @@ namespace Dyninst
                     break;
                     case am_tworeghack:
                     {
-                        if(optype == r_EDXEAX)
+                        if(optype == op_edxeax)
                         {
                             Expression::Ptr edx(makeRegisterExpression(m_Arch == Arch_x86 ? x86::edx : x86_64::edx));
                             Expression::Ptr eax(makeRegisterExpression(m_Arch == Arch_x86 ? x86::eax : x86_64::eax));
@@ -802,7 +802,7 @@ namespace Dyninst
                             Expression::Ptr op = makeDereferenceExpression(addr, u64);
                             insn_to_complete->appendOperand(op, isRead, isWritten);
                         }
-                        else if (optype == r_ECXEBX)
+                        else if (optype == op_ecxebx)
                         {
                             Expression::Ptr ecx(makeRegisterExpression(m_Arch == Arch_x86 ? x86::ecx : x86_64::ecx));
                             Expression::Ptr ebx(makeRegisterExpression(m_Arch == Arch_x86 ? x86::ebx : x86_64::ebx));

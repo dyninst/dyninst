@@ -34,7 +34,6 @@
 
 #include "Instruction.h"
 #include "InstructionDecoder.h"
-#include "RegisterIDs-x86.h"
 #include <boost/assign/list_of.hpp>
 #include <deque>
 using namespace Dyninst;

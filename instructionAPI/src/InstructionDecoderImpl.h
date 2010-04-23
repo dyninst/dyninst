@@ -36,7 +36,7 @@
 #include <dyn_detail/boost/shared_ptr.hpp>
 #include "dyn_regs.h"
 #include "Operation.h"
-#include "entryIDs-IA32.h"
+#include "entryIDs.h"
 #include "Instruction.h"
 #include "InstructionDecoder.h" // buffer...anything else?
 
