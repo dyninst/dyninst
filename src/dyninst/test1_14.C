@@ -84,7 +84,7 @@ test_results_t test1_14_Mutator::executeTest() {
 
     bool isStatic = false;
     if( NULL != appBinEdit ) {
-        isStatic = appBinEdit->staticExecutableLoaded();
+        isStatic = appBinEdit->isStaticExecutable();
     }
     strncpy(libNameA, libNameAroot, 127);
     addLibArchExt(libNameA,127, pointer_size, isStatic);
