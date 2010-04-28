@@ -33,6 +33,9 @@
 #include "dynutil/h/dyn_regs.h"
 
 #include "external/rose/rose-compat.h"
+#include "external/rose/powerpcInstructionEnum.h"
+
+#include <iostream>
 
 using namespace Dyninst;
 
@@ -65,7 +68,6 @@ MachRegister MachRegister::getBaseRegister() const {
           return MachRegister(reg & 0xfffff0ff);
       case Arch_ppc32:
       case Arch_ppc64:
-         return *this;
       case Arch_none:
          return *this;
    }
@@ -389,7 +391,46 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
                break;
          }
          break;
-      default:
+       case Arch_ppc32:
+       case Arch_ppc64: // 64-bit not supported in ROSE
+       {
+	 baseID = reg & 0x0000FFFF;
+           n = baseID;
+           switch(category)
+           {
+               case ppc32::GPR:
+                   c = powerpc_regclass_gpr;
+                   break;
+               case ppc32::FPR:
+               case ppc32::FSR:
+                   c = powerpc_regclass_fpr;
+                   break;
+               case ppc32::SPR:
+               {
+                   if(baseID < 613) {
+                       c = powerpc_regclass_spr;
+                   } else if(baseID < 621 ) {
+                       c = powerpc_regclass_sr; 
+                   } else {
+                       c = powerpc_regclass_cr;
+                       n = baseID - 621;
+		       if(n > 7) {
+			 n = 0;
+			 p = powerpc_condreggranularity_whole;
+		       } else {
+			 p = powerpc_condreggranularity_field;
+		       }
+
+                   }
+               }
+               break;
+               default:
+                   assert(!"unknown register type!");
+                   break;
+           }
+           return;
+       }
+       default:
          c = x86_regclass_unknown;
          n = 0;
          break;

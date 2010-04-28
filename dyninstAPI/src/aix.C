@@ -2012,6 +2012,7 @@ int_function *instPoint::findCallee() {
         return NULL;
     }
         
+#if !defined(cap_instruction_api)
     InstrucIter targetIter(callTarget(), proc());
     if (!targetIter.getInstruction().valid()) {
         return NULL;
@@ -2019,6 +2020,31 @@ int_function *instPoint::findCallee() {
     Address toc_offset = 0;
 
     if (targetIter.isInterModuleCallSnippet(toc_offset)) {
+#else
+    using namespace Dyninst::InstructionAPI;
+    const unsigned char* buffer = (const unsigned char*)(proc()->getPtrToInstruction(callTarget()));
+    parsing_printf("Checking for linkage at addr 0x%lx\n", callTarget());
+    InstructionDecoder::Ptr d = makeDecoder(img_p_->func()->img()->getArch(), buffer, 24);
+    std::vector<Instruction::Ptr> insns;
+    Instruction::Ptr tmp;
+    while(tmp = d->decode()) insns.push_back(tmp);
+    if(insns.size() != 6) return NULL;
+    static RegisterAST::Ptr r2(new RegisterAST(ppc32::r2));
+    static RegisterAST::Ptr r12(new RegisterAST(ppc32::r12));
+    Address toc_offset = 0;
+    if(insns[0]->getOperation().getID() != power_op_lwz) return NULL;
+    if(insns[2]->getOperation().getID() != power_op_lwz) return NULL;
+    if(insns[5]->getOperation().getID() != power_op_bcctr) return NULL;
+    if(insns[0]->isWritten(r12) && insns[0]->isRead(r2))
+    {
+        std::vector<InstructionAST::Ptr> tmp;
+        insns[0]->getOperand(1).getValue()->getChildren(tmp);
+        assert(tmp.size() == 1);
+        Expression::Ptr child_as_expr = dyn_detail::boost::dynamic_pointer_cast<Expression>(tmp[0]);
+        assert(child_as_expr);
+        child_as_expr->bind(r2.get(), Result(u32, 0));
+        toc_offset = child_as_expr->eval().convert<Address>();
+#endif
         Address TOC_addr = (func()->obj()->parse_img()->getObject())->getTOCoffset();
         
         // We need to read out of memory rather than disk... so this is a call to

@@ -116,8 +116,44 @@ if test "`echo $host_os | cut -b-3`" = "aix" ; then
       BUILD_XLC="true";
    else
       BUILD_XLC="";
+   AC_ARG_WITH(libiberty-libdir,
+            [AS_HELP_STRING([--with-libiberty-libdir],[LIBIBERTY library directory])],
+            [LIBIBERTY_LIB_DIR="${withval}";],)
+   LIBS_HOLD=$LIBS
+   LIBS="-L$LIBIBERTY_LIB_DIR"
+   AC_CHECK_LIB([iberty], [cplus_demangle], [HAVE_LIBIBERTY="1";],
+                          [AC_CHECK_FILE($LIBIBERTY_LIB_DIR/libiberty.a,
+                          [],
+                          [AC_MSG_ERROR(Can't find libiberty in $LIBIBERTY_LIB_DIR)])])
+   LIBS=$LIBS_HOLD
+   AC_SUBST(LIBIBERTY_LIB_DIR)
+   PD_CHECK_LIB_TYPE($LIBIBERTY_LIB_DIR, iberty)
+   LIBIBERTY_STATIC="$LIB_TYPE_STATIC"
+   LIBIBERTY_DYNAMIC="$LIB_TYPE_DYNAMIC"
+   AC_SUBST(LIBIBERTY_STATIC)
+   AC_SUBST(LIBIBERTY_DYNAMIC)
+   AC_SUBST(HAVE_LIBIBERTY)
+      
    fi
    AC_SUBST(BUILD_XLC)
+else
+   AC_ARG_WITH(libiberty-libdir,
+            [AS_HELP_STRING([--with-libiberty-libdir],[LIBIBERTY library directory])],
+            [LIBIBERTY_LIB_DIR="${withval}";],)
+   LIBS_HOLD=$LIBS
+   LIBS="-L$LIBIBERTY_LIB_DIR"
+   AC_CHECK_LIB([iberty], [cplus_demangle], [HAVE_LIBIBERTY="1";],
+                          [AC_CHECK_FILE($LIBIBERTY_LIB_DIR/libiberty.a,
+                          [],
+                          [AC_MSG_ERROR(Can't find libiberty in $LIBIBERTY_LIB_DIR)])])
+   LIBS=$LIBS_HOLD
+   AC_SUBST(LIBIBERTY_LIB_DIR)
+   PD_CHECK_LIB_TYPE($LIBIBERTY_LIB_DIR, iberty)
+   LIBIBERTY_STATIC="$LIB_TYPE_STATIC"
+   LIBIBERTY_DYNAMIC="$LIB_TYPE_DYNAMIC"
+   AC_SUBST(LIBIBERTY_STATIC)
+   AC_SUBST(LIBIBERTY_DYNAMIC)
+   AC_SUBST(HAVE_LIBIBERTY)
 fi
  
 if test "`echo $host_os | cut -b-3`" = "aix" ; then
@@ -173,26 +209,6 @@ PD_SOFT_CHECK_LIB_DIR($LIBXML2_LIB_DIR,[xml2],[xmlAddID])
 AC_SUBST(LIBXML2_INC_DIR)
 AC_SUBST(LIBXML2_LIB_DIR)
 
-if test "`echo $host_os | cut -b-3`" = "aix" ; then
-   AC_MSG_NOTICE([AIX system, skipping libiberty...])
-else
-   AC_ARG_WITH(libiberty-libdir,
-            [AS_HELP_STRING([--with-libiberty-libdir],[LIBIBERTY library directory])],
-            [LIBIBERTY_LIB_DIR="${withval}";],)
-   LIBS_HOLD=$LIBS
-   LIBS="-L$LIBIBERTY_LIB_DIR"
-   AC_CHECK_LIB([iberty], [cplus_demangle], [], 
-			  [AC_CHECK_FILE($LIBIBERTY_LIB_DIR/libiberty.a, 
-			  [],
-			  [AC_MSG_ERROR(Can't find libiberty in $LIBIBERTY_LIB_DIR)])])
-   LIBS=$LIBS_HOLD			  
-   AC_SUBST(LIBIBERTY_LIB_DIR)
-   PD_CHECK_LIB_TYPE($LIBIBERTY_LIB_DIR, iberty)
-   LIBIBERTY_STATIC="$LIB_TYPE_STATIC"
-   LIBIBERTY_DYNAMIC="$LIB_TYPE_DYNAMIC"
-   AC_SUBST(LIBIBERTY_STATIC)
-   AC_SUBST(LIBIBERTY_DYNAMIC)
-fi
 
 if test "$host_cpu" != "ia64" ; then
    AC_MSG_NOTICE([Not IA-64, skipping libunwind...])

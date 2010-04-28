@@ -801,6 +801,7 @@ class instruction {
         insn_.raw = insn_.raw | value;
     }
     unsigned int asInt() const { return insn_.raw; }
+    void setInstruction(unsigned char *ptr, Address = 0);
     
 
     // To solve host/target endian mismatches
@@ -909,7 +910,7 @@ class instruction {
     //const instructUnion &operator* () const { return insn_; }
     //const unsigned int &raw() const { return insn_.raw; }
 
-    const unsigned opcode() const;
+    unsigned opcode() const;
     
     // Local version
     bool isInsnType(const unsigned mask, const unsigned match) const { 

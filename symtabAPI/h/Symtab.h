@@ -247,7 +247,7 @@ class Symtab : public LookupInterface,
    SYMTAB_EXPORT bool emitSymbols(Object *linkedFile, std::string filename, unsigned flag = 0);
    SYMTAB_EXPORT bool addRegion(Offset vaddr, void *data, unsigned int dataSize, 
          std::string name, Region::RegionType rType_, bool loadable = false,
-         unsigned long memAlign = 1, bool tls = false);
+         unsigned long memAlign = sizeof(unsigned), bool tls = false);
    SYMTAB_EXPORT bool addRegion(Region *newreg);
    SYMTAB_EXPORT bool emit(std::string filename, unsigned flag = 0);
 
