@@ -712,6 +712,7 @@ void ia32_instruction::initFlagTable(dyn_hash_map<entryID, flagInfo>& flagTable)
   flagTable[e_and] = flagInfo(vector<IA32Regs>(), standardFlags);
   flagTable[e_arpl] = flagInfo(vector<IA32Regs>(), list_of(r_ZF));
   flagTable[e_bsf] = flagInfo(vector<IA32Regs>(), standardFlags);
+  flagTable[e_bsr] = flagInfo(vector<IA32Regs>(), standardFlags);
   flagTable[e_bt] = flagInfo(vector<IA32Regs>(), standardFlags);
   flagTable[e_bts] = flagInfo(vector<IA32Regs>(), standardFlags);
   flagTable[e_btr] = flagInfo(vector<IA32Regs>(), standardFlags);
@@ -765,7 +766,6 @@ void ia32_instruction::initFlagTable(dyn_hash_map<entryID, flagInfo>& flagTable)
   flagTable[e_jb] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
   flagTable[e_jb_jnaej_j] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
   flagTable[e_jbe] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_jcxz_jec] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
   flagTable[e_jl] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
   flagTable[e_jle] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
   flagTable[e_jnb] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
@@ -782,7 +782,8 @@ void ia32_instruction::initFlagTable(dyn_hash_map<entryID, flagInfo>& flagTable)
   flagTable[e_js] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
   flagTable[e_jz] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
   flagTable[e_lar] = flagInfo(vector<IA32Regs>(), list_of(r_ZF));
-  flagTable[e_loop] = flagInfo(list_of(r_DF), vector<IA32Regs>());
+  flagTable[e_lodsb] = flagInfo(list_of(r_DF), vector<IA32Regs>());
+  flagTable[e_lodsw] = flagInfo(list_of(r_DF), vector<IA32Regs>());
   flagTable[e_loope] = flagInfo(list_of(r_ZF), vector<IA32Regs>());
   flagTable[e_loopn] = flagInfo(list_of(r_ZF), vector<IA32Regs>());
   flagTable[e_lsl] = flagInfo(vector<IA32Regs>(), list_of(r_ZF));
@@ -802,7 +803,8 @@ void ia32_instruction::initFlagTable(dyn_hash_map<entryID, flagInfo>& flagTable)
   flagTable[e_sahf] = flagInfo(list_of(r_SF)(r_ZF)(r_AF)(r_PF)(r_CF), vector<IA32Regs>());
   flagTable[e_sar] = flagInfo(vector<IA32Regs>(), standardFlags);
   flagTable[e_shr] = flagInfo(vector<IA32Regs>(), standardFlags);
-  flagTable[e_sbb] = flagInfo(vector<IA32Regs>(), standardFlags);
+  flagTable[e_salc] = flagInfo(list_of(r_CF), vector<IA32Regs>());
+  flagTable[e_sbb] = flagInfo(list_of(r_CF), standardFlags);
   flagTable[e_setb] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
   flagTable[e_setbe] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
   flagTable[e_setl] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
@@ -828,6 +830,7 @@ void ia32_instruction::initFlagTable(dyn_hash_map<entryID, flagInfo>& flagTable)
   flagTable[e_stosb] = flagInfo(list_of(r_DF), vector<IA32Regs>());
   flagTable[e_stosw_d] = flagInfo(list_of(r_DF), vector<IA32Regs>());
   flagTable[e_sub] = flagInfo(vector<IA32Regs>(), standardFlags);
+  flagTable[e_test] = flagInfo(vector<IA32Regs>(), standardFlags);
   flagTable[e_verr] = flagInfo(vector<IA32Regs>(), list_of(r_ZF));
   flagTable[e_verw] = flagInfo(vector<IA32Regs>(), list_of(r_ZF));
   flagTable[e_xadd] = flagInfo(vector<IA32Regs>(), standardFlags);

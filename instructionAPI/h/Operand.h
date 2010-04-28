@@ -60,6 +60,7 @@ namespace Dyninst
     {
     public:
         typedef dyn_detail::boost::shared_ptr<Operand> Ptr;
+    Operand() : m_isRead(false), m_isWritten(false) {}
       /// \brief Create an operand from a %Expression and flags describing whether the %ValueComputation
       /// is read, written or both.
       /// \param val Reference-counted pointer to the %Expression that will be contained in the %Operand being constructed

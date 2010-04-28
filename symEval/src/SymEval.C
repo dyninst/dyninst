@@ -54,7 +54,7 @@ AST::Ptr SymEval<a>::expand(const Assignment::Ptr &assignment) {
 
     Result_t res;
   // Fill it in to mark it as existing
-  res[assignment] = Placeholder;
+    res[assignment] = AST::Ptr();
   expand(res);
   return res[assignment];
 }
@@ -64,13 +64,11 @@ void SymEval<a>::expand(Result_t &res) {
   // Symbolic evaluation works off an Instruction
   // so we have something to hand to ROSE. 
   for (Result_t::iterator i = res.begin(); i != res.end(); ++i) {
-    if (i->second != Placeholder) {
+    if (i->second != AST::Ptr()) {
       // Must've already filled it in from a previous instruction crack
       continue;
     }
     Assignment::Ptr ptr = i->first;
-
-    cerr << "Expand called for insn " << ptr->insn()->format() << endl;
 
     expandInsn(ptr->insn(),
 	       ptr->addr(),
@@ -80,7 +78,7 @@ void SymEval<a>::expand(Result_t &res) {
 
   // Must apply the visitor to each filled in element
   for (Result_t::iterator i = res.begin(); i != res.end(); ++i) {
-    if (i->second == Placeholder) {
+    if (i->second == AST::Ptr()) {
       // Must not have been filled in above
       continue;
     }
@@ -194,105 +192,151 @@ SgAsmExpression* SymEvalArchTraits<Arch_x86>::convertOperand(InstructionKind_t o
 
 template<Architecture a>
 void SymEval<a>::process(AssignNode::Ptr ptr,
-                      SymEval::Result_t &dbase) {
-                          std::map<unsigned, Assignment::Ptr> inputMap;
+			 SymEval::Result_t &dbase) {
+  std::map<unsigned, Assignment::Ptr> inputMap;
 
   //cerr << "Calling process on " << ptr->format() << endl;
 
   // Don't try an expansion of a widen node...
-                          if (!ptr->assign()) return;
+  if (!ptr->assign()) return;
 
-                          NodeIterator begin, end;
-                          ptr->ins(begin, end);
+  NodeIterator begin, end;
+  ptr->ins(begin, end);
   
-                          for (; begin != end; ++begin) {
-                              AssignNode::Ptr in = dyn_detail::boost::dynamic_pointer_cast<AssignNode>(*begin);
-                              if (!in) continue;
+  for (; begin != end; ++begin) {
+    AssignNode::Ptr in = dyn_detail::boost::dynamic_pointer_cast<AssignNode>(*begin);
+    if (!in) continue;
 
-                              Assignment::Ptr assign = in->assign();
+    Assignment::Ptr assign = in->assign();
 
-                              if (!assign) continue;
+    if (!assign) continue;
 
     // Find which input this assignNode maps to
-                              unsigned index = ptr->getAssignmentIndex(in);
-                              if (inputMap.find(index) == inputMap.end()) {
-                                  inputMap[index] = assign;
-                              }
-                              else {
+    unsigned index = ptr->getAssignmentIndex(in);
+    if (inputMap.find(index) == inputMap.end()) {
+      inputMap[index] = assign;
+    }
+    else {
       // Need join operator!
-                                  inputMap[index] = Assignment::Ptr(); // Null equivalent
-                              }
-                          }
+      inputMap[index] = Assignment::Ptr(); // Null equivalent
+    }
+  }
 
   //cerr << "\t Input map has size " << inputMap.size() << endl;
 
   // All of the expanded inputs are in the parameter dbase
   // If not (like this one), add it
 
-                          AST::Ptr ast = SymEval::expand(ptr->assign());
+  AST::Ptr ast = SymEval::expand(ptr->assign());
   //cerr << "\t ... resulting in " << res->format() << endl;
 
   // We have an AST. Now substitute in all of its predecessors.
-                          for (std::map<unsigned, Assignment::Ptr>::iterator iter = inputMap.begin();
-                               iter != inputMap.end(); ++iter) {
-                                   if (!iter->second) {
+  for (std::map<unsigned, Assignment::Ptr>::iterator iter = inputMap.begin();
+       iter != inputMap.end(); ++iter) {
+    if (!iter->second) {
       // Colliding definitions; skip.
-                                       continue;
-                                   }
+      continue;
+    }
 
     // The region used by the current assignment...
-                                   const AbsRegion &reg = ptr->assign()->inputs()[iter->first];
+    const AbsRegion &reg = ptr->assign()->inputs()[iter->first];
 
     // Create an AST around this one
-                                   VariableAST::Ptr use = VariableAST::create(Variable(reg, ptr->addr()));
+    VariableAST::Ptr use = VariableAST::create(Variable(reg, ptr->addr()));
 
     // And substitute whatever we have in the database for that AST
-                                   AST::Ptr definition = dbase[iter->second];
+    AST::Ptr definition = dbase[iter->second];
 
-                                   if (!definition) {
+    if (!definition) {
       //cerr << "Odd; no expansion for " << iter->second->format() << endl;
       // Can happen if we're expanding out of order, and is generally harmless.
-                                       continue;
-                                   }
+      continue;
+    }
 
-                                   ast = AST::substitute(ast, use, definition);
+    ast = AST::substitute(ast, use, definition);
     //cerr << "\t result is " << res->format() << endl;
-                               }
-                               dbase[ptr->assign()] = ast;
-                      }
+  }
+  dbase[ptr->assign()] = ast;
+}
 
 
 PowerpcInstructionKind makeRoseBranchOpcode(entryID iapi_opcode, bool isAbsolute, bool isLink)
 {
-    switch(iapi_opcode)
+  switch(iapi_opcode)
     {
-        case power_op_b:
-            if(isAbsolute && isLink) return powerpc_bla;
-            if(isAbsolute) return powerpc_ba;
-            if(isLink) return powerpc_bl;
-            return powerpc_b;
-        case power_op_bc:
-            if(isAbsolute && isLink) return powerpc_bcla;
-            if(isAbsolute) return powerpc_bca;
-            if(isLink) return powerpc_bcl;
-            return powerpc_bc;
-        case power_op_bcctr:
-            assert(!isAbsolute);
-            if(isLink) return powerpc_bcctrl;
-            return powerpc_bcctr;
-        case power_op_bclr:
-            assert(!isAbsolute);
-            if(isLink) return powerpc_bclrl;
-            return powerpc_bclr;
-        default:
-            assert(!"makeRoseBranchOpcode called with unknown branch opcode!");
-            return powerpc_unknown_instruction;
+    case power_op_b:
+      if(isAbsolute && isLink) return powerpc_bla;
+      if(isAbsolute) return powerpc_ba;
+      if(isLink) return powerpc_bl;
+      return powerpc_b;
+    case power_op_bc:
+      if(isAbsolute && isLink) return powerpc_bcla;
+      if(isAbsolute) return powerpc_bca;
+      if(isLink) return powerpc_bcl;
+      return powerpc_bc;
+    case power_op_bcctr:
+      assert(!isAbsolute);
+      if(isLink) return powerpc_bcctrl;
+      return powerpc_bcctr;
+    case power_op_bclr:
+      assert(!isAbsolute);
+      if(isLink) return powerpc_bclrl;
+      return powerpc_bclr;
+    default:
+      assert(!"makeRoseBranchOpcode called with unknown branch opcode!");
+      return powerpc_unknown_instruction;
     }
 }
 
+void SymEvalArchTraits<Arch_x86>::handleSpecialCases(InstructionAPI::Instruction::Ptr insn,
+						     std::vector<InstructionAPI::Operand>& operands)
+{
+  switch (insn->getOperation().getID()) {
+  case e_lea: {
+    Dereference::Ptr tmp = Dereference::Ptr(new Dereference(operands[1].getValue(), u32));
+    operands[1] = Operand(tmp, operands[1].isRead(), operands[1].isWritten());
+    operands.resize(2);
+    break;
+  }
+  case e_push:
+  case e_pop:
+    operands.resize(1);
+    break;
+  case e_cmpxch:
+    operands.resize(2);
+    break;
+  case e_movsb:
+  case e_movsw_d:
+    // No operands
+    operands.clear();
+    break;
+  case e_cmpsb:
+  case e_cmpsw:
+  case e_cmpsd:
+    // No operands
+    operands.clear();
+    break;
+  case e_stosb:
+  case e_stosw_d:
+    // Also, no operands
+    operands.clear();
+    break;
+  case e_jcxz_jec:
+    operands.resize(1);
+    break;
+  case e_cbw_cwde:
+    // Nada
+    operands.clear();
+    break;
+ default:
+   break;
+  }
+}
+
+
 bool SymEvalArchTraits<Arch_ppc32>::handleSpecialCases(entryID iapi_opcode,
-        SageInstruction_t& rose_insn,
-        SgAsmOperandList* rose_operands)
+						       SageInstruction_t& rose_insn,
+						       SgAsmOperandList* rose_operands)
 {
     switch(iapi_opcode)
     {
@@ -362,7 +406,7 @@ bool SymEvalArchTraits<Arch_ppc32>::handleSpecialCases(entryID iapi_opcode,
 }
 
 void SymEvalArchTraits<Arch_ppc32>::handleSpecialCases(InstructionAPI::Instruction::Ptr insn,
-        std::vector<InstructionAPI::Operand>& operands)
+						       std::vector<InstructionAPI::Operand>& operands)
 {
     if(insn->writesMemory())
         std::swap(operands[0], operands[1]);
@@ -428,88 +472,15 @@ SymEval<a>::convert(const InstructionAPI::Instruction::Ptr &insn, uint64_t addr)
              ++opi, ++i)
     {
         InstructionAPI::Operand &currOperand = *opi;
+	//cerr << "Converting operand " << currOperand.format() << endl;
         SgAsmExpression* converted = convert(currOperand);
         SgAsmExpression* final = SymEvalArchTraits<a>::convertOperand(rinsn.get_kind(), i, converted);
         if(final != NULL) {
             roperands->append_operand(final);
         }
     }
-    switch (rinsn.get_kind()) {
-    case x86_lea: {
-      assert(operands.size() == 2);
-      roperands->append_operand(convert(operands[0]));
-      
-      SgAsmExpression *o1 = convert(operands[1]);
-      // We need to wrap o1 in a memory dereference...
-      SgAsmMemoryReferenceExpression *expr = new SgAsmMemoryReferenceExpression(o1);
-      roperands->append_operand(expr);
-      break;
-    }
-    case x86_push: {
-      assert(operands.size() == 2); 
-      roperands->append_operand(convert(operands[0]));
-      break;
-    }
-    case x86_pop: {
-      assert(operands.size() == 2);
-      roperands->append_operand(convert(operands[0]));
-      break;
-    }
-    case x86_cmpxchg: {
-      assert(operands.size() == 3);
-      roperands->append_operand(convert(operands[0]));
-      roperands->append_operand(convert(operands[1]));
-      break;
-    }
-    case x86_movsb:
-    case x86_movsw:
-    case x86_movsd: {
-      // No operands
-      break;
-    }
-    case x86_repne_cmpsb:
-    case x86_repne_cmpsw:
-    case x86_repne_cmpsd:
-    case x86_repe_cmpsb:
-    case x86_repe_cmpsw:
-    case x86_repe_cmpsd:
-    case x86_cmpsb:
-    case x86_cmpsw:
-    case x86_cmpsd: {
-      // No operands
-      break;
-    }
-    case x86_stosb:
-    case x86_stosw:
-    case x86_stosd: {
-      // Also, no operands
-      break;
-    }
-    case x86_jcxz:
-    case x86_jecxz: {
-      assert(operands.size() == 2); 
-      roperands->append_operand(convert(operands[0]));
-      break;
-    }
-    case x86_cbw:
-    case x86_cwde:
-    case x86_cwd:
-    case x86_cdq: {
-      // Nada
-      break;
-    }
-    default: {
-      for (std::vector<InstructionAPI::Operand>::iterator opi = operands.begin(),
-	     ope = operands.end();
-	   opi != ope;
-	   ++opi) {
-	InstructionAPI::Operand &currOperand = *opi;
-	roperands->append_operand(convert(currOperand));
-      }
-    }
-    }
+    
     rinsn.set_operandList(roperands);
-
     return rinsn;
 }
 
@@ -519,46 +490,41 @@ SgAsmExpression *SymEval<a>::convert(const InstructionAPI::Operand &operand) {
 }
 
 template <Architecture a>
-        SgAsmExpression *SymEval<a>::convert(const Expression::Ptr expression) {
+SgAsmExpression *SymEval<a>::convert(const Expression::Ptr expression) {
   if(!expression) return NULL;
-    Visitor_t visitor;
-    expression->apply(&visitor);
-    return visitor.getRoseExpression();
+  Visitor_t visitor;
+  expression->apply(&visitor);
+  return visitor.getRoseExpression();
 }
 
 
 template <Architecture a>
 void ExpressionConversionVisitor<a>::visit(BinaryFunction* binfunc) {
-    assert(m_stack.size() >= 2);
-    SgAsmExpression *lhs =
-            m_stack.front();
-    m_stack.pop_front();
-    SgAsmExpression *rhs =
-            m_stack.front();
-    m_stack.pop_front();
-    // If the RHS didn't convert, that means it should disappear
-    // And we are just left with the LHS
-    if(!rhs && !lhs) {
-        roseExpression = NULL;
-        return;
-    }
-    if (!rhs)
-    {
-      roseExpression = lhs;
-      return;
-    }
-    if(!lhs)
-    {
-        roseExpression = rhs;
-        return;
-    }
-    
+  assert(m_stack.size() >= 2);
+  SgAsmExpression *rhs = m_stack.front();
+  m_stack.pop_front();
+  SgAsmExpression *lhs = m_stack.front();
+  m_stack.pop_front();
+  // If the RHS didn't convert, that means it should disappear
+  // And we are just left with the LHS
+  if(!rhs && !lhs) {
+    roseExpression = NULL;
+  }
+  else if (!rhs) {
+    roseExpression = lhs;
+  }
+  else if(!lhs) {
+    roseExpression = rhs;
+  }
+  else {
     // now build either add or multiply
     if (binfunc->isAdd())
-        roseExpression = new SgAsmBinaryAdd(lhs, rhs);
+      roseExpression = new SgAsmBinaryAdd(lhs, rhs);
     else if (binfunc->isMultiply())
-        roseExpression = new SgAsmBinaryMultiply(lhs, rhs);
+      roseExpression = new SgAsmBinaryMultiply(lhs, rhs);
     else roseExpression = NULL; // error
+  }
+  m_stack.push_front(roseExpression);
 }
 
 template <Architecture a>
@@ -566,7 +532,7 @@ void ExpressionConversionVisitor<a>::visit(Immediate* immed) {
     // no children
 
     const Result &value = immed->eval();
-    
+
     // TODO rose doesn't distinguish signed/unsigned within the value itself,
     // only at operations?
 
