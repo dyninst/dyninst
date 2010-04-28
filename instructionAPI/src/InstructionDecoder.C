@@ -50,11 +50,6 @@ namespace Dyninst
         m_Impl = InstructionDecoderImpl::makeDecoderImpl(arch);
         m_Impl->setMode(arch == Arch_x86_64);
     }
-    INSTRUCTION_EXPORT InstructionDecoder::InstructionDecoder() :
-            m_buf(static_cast<const unsigned char*>(NULL), (unsigned int)0)
-    {
-        assert(!"no architecture specified, decoder won't decode!");
-    }
     INSTRUCTION_EXPORT InstructionDecoder::InstructionDecoder(const InstructionDecoder& o) :
     m_buf(o.m_buf),
     m_Impl(o.m_Impl)

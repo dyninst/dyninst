@@ -155,7 +155,11 @@ namespace Dyninst
       /// 0, and a register is bound to 0xDEADBEEF, a dereference of that register is not
       /// bound to 0.
       virtual bool bind(Expression* expr, const Result& value);
-      
+
+
+      /// \c apply applies a %Visitor to this expression.  %Visitors perform postfix-order
+      /// traversal of the ASTs represented by an %Expression, with user-defined actions performed
+      /// at each node of the tree.
       virtual void apply(Visitor*) {}
 
     protected:
