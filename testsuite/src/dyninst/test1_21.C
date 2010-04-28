@@ -204,7 +204,7 @@ test_results_t test1_21_Mutator::executeTest()
 
         bool isStatic = false;
         if( NULL != appBinEdit ) {
-            isStatic = appBinEdit->staticExecutableLoaded();
+            isStatic = appBinEdit->isStaticExecutable();
         }
 
 	strncpy(libNameA, libNameAroot, 127);
