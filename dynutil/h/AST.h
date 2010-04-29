@@ -78,8 +78,10 @@ class ASTVisitor;
 
  // Codegen...
 
- // Other...
+ // Concolic execution...
  class InputVariableAST;
+ class ReferenceAST;
+ class StpAST;
 
 #define DEF_AST_LEAF_TYPE(name, type)					\
 class name : public AST {						\
@@ -170,7 +172,10 @@ class AST : public dyn_detail::boost::enable_shared_from_this<AST> {
     V_RoseAST,
     // Stack analysis
     V_StackAST,
-    V_InputVariableAST } ID;
+    // Concolic execution
+    V_InputVariableAST,
+    V_ReferenceAST,
+    V_StpAST } ID;
 
   typedef dyn_detail::boost::shared_ptr<AST> Ptr;
   typedef std::vector<AST::Ptr> Children;      
@@ -222,6 +227,8 @@ class AST : public dyn_detail::boost::enable_shared_from_this<AST> {
    virtual ASTPtr visit(SymbolicEvaluation::RoseAST *) {return AST::Ptr();};
    virtual ASTPtr visit(StackAST *) {return AST::Ptr();};
    virtual ASTPtr visit(InputVariableAST *) {return AST::Ptr();};
+   virtual ASTPtr visit(ReferenceAST *) {return AST::Ptr();};
+   virtual ASTPtr visit(StpAST *) {return AST::Ptr();};
 
    virtual ~ASTVisitor() {};
  };
