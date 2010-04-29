@@ -269,6 +269,9 @@ Walker::~Walker() {
 #define getInitialFrameImpl(frame, thread) \
 { \
   result = true; \
+  Dyninst::Architecture arch; \
+  Dyninst::MachRegister pc_reg, frm_reg, stk_reg; \
+  Dyninst::MachRegisterVal pc, sp, fp; \
   if (thread == NULL_THR_ID) { \
     result = proc->getDefaultThread(thread); \
     if (!result) { \
@@ -277,7 +280,6 @@ Walker::~Walker() {
       goto done_gifi; \
     } \
   } \
-  Dyninst::MachRegisterVal pc, sp, fp; \
   result = proc->getRegValue(Dyninst::ReturnAddr, thread, pc); \
   result = !result || proc->getRegValue(Dyninst::StackTop, thread, sp); \
   result = !result || proc->getRegValue(Dyninst::FrameBase, thread, fp); \

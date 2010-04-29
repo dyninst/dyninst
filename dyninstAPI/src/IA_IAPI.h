@@ -39,6 +39,7 @@
 
 class IA_IAPI : public InstructionAdapter
 {
+  friend class image_func;
     public:
         IA_IAPI(dyn_detail::boost::shared_ptr<Dyninst::InstructionAPI::InstructionDecoder> dec_,
                 Address start_, image_func* f);
@@ -54,7 +55,7 @@ class IA_IAPI : public InstructionAdapter
         virtual bool isAbortOrInvalidInsn() const;
         virtual bool isAllocInsn() const;
         virtual void
-                getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >&
+                getNewEdges(pdvector<std::pair< Address, EdgeTypeEnum> >&
                 outEdges, image_basicBlock* currBlk,
                 unsigned int num_insns,
                 dictionary_hash<Address, std::string> *pltFuncs) const;
@@ -82,9 +83,9 @@ class IA_IAPI : public InstructionAdapter
         virtual bool isRealCall() const;
         virtual bool isThunk() const;
         bool parseJumpTable(image_basicBlock* currBlk,
-                            std::vector<std::pair< Address, EdgeTypeEnum > >& outEdges) const;
+                            pdvector<std::pair< Address, EdgeTypeEnum > >& outEdges) const;
         bool isIPRelativeBranch() const;
-        bool isMovAPSTable(std::vector<std::pair< Address, EdgeTypeEnum > >& outEdges) const;
+        bool isMovAPSTable(pdvector<std::pair< Address, EdgeTypeEnum > >& outEdges) const;
         std::pair<Address, Address> findThunkAndOffset(image_basicBlock* start) const;
         bool isTableInsn(Dyninst::InstructionAPI::Instruction::Ptr i) const;
         std::map<Address, Dyninst::InstructionAPI::Instruction::Ptr>::const_iterator findTableInsn() const;
@@ -102,7 +103,7 @@ class IA_IAPI : public InstructionAdapter
                               Address tableBase,
                               unsigned tableSize,
                               unsigned tableStride,
-                              std::vector<std::pair< Address, EdgeTypeEnum> >& outEdges) const;
+                              pdvector<std::pair< Address, EdgeTypeEnum> >& outEdges) const;
         Address getTableAddress(Dyninst::InstructionAPI::Instruction::Ptr tableInsn,
                                 Address thunkOffset) const;
         bool isFrameSetupInsn(Dyninst::InstructionAPI::Instruction::Ptr i) const;

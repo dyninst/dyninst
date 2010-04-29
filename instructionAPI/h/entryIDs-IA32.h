@@ -578,6 +578,7 @@ enum entryID {
   power_op_lfqux,
   power_op_sleq,
   power_op_extsb,
+  power_op_ld,
   power_op_ldu,
   power_op_fctidz,
   power_op_lfq,
@@ -801,7 +802,9 @@ enum entryID {
   power_op_fscmp,
   power_op_fsabs,
   power_op_fsneg,
-  power_op_fsnabs
+  power_op_fsnabs,
+  power_op_lwa
+          
 };
 
 #if defined(__GNUC__)

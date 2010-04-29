@@ -59,9 +59,10 @@
 
 #include <iostream>
 #include <fstream>
+#include <sstream>
 
 #include "../rose/SgAsmx86Instruction.h"
-
+#include "../rose/SgAsmPowerpcInstruction.h"
 // Also need ROSE header files... argh. 
 
 // For typedefs
@@ -82,136 +83,6 @@ namespace SymbolicEvaluation {
 // bad idea, but stripping the pointer part makes the compiler allocate
 // all available memory and crash. No idea why. 
 
-// Define the operations used by ROSE
-
-struct ROSEOperation {
-  typedef enum {
-    nullOp,
-    extractOp,
-    invertOp,
-    negateOp,
-    signExtendOp,
-    equalToZeroOp,
-    generateMaskOp,
-    LSBSetOp,
-    MSBSetOp,
-    concatOp,
-    andOp,
-    orOp,
-    xorOp,
-    addOp,
-    rotateLOp,
-    rotateROp,
-    shiftLOp,
-    shiftROp,
-    shiftRArithOp,
-    derefOp,
-    writeRepOp,
-    writeOp,
-    ifOp,
-    sMultOp,
-    uMultOp,
-    sDivOp,
-    sModOp,
-    uDivOp,
-    uModOp,
-    extendOp,
-    extendMSBOp
-  } Op;
-
-  ROSEOperation(Op o) : op(o) {};
-
-  bool operator==(const ROSEOperation &rhs) const {
-    return (rhs.op == op);
-  }
-
-  const std::string format() const {
-    switch(op) {
-    case nullOp:
-      return "<null>";
-    case extractOp:
-      return "<extract>";
-    case invertOp:
-      return "<invert>";
-    case negateOp:
-      return "<negate>";
-    case signExtendOp:
-      return "<signExtend>";
-    case equalToZeroOp:
-      return "<eqZero?>";
-    case generateMaskOp:
-      return "<genMask>";
-    case LSBSetOp:
-      return "<LSB?>";
-    case MSBSetOp:
-      return "<MSB?>";
-    case concatOp:
-      return "<concat>";
-    case andOp:
-      return "<and>";
-    case orOp:
-      return "<or>";
-    case xorOp:
-      return "<xor>";
-    case addOp:
-      return "<add>";
-    case rotateLOp:
-      return "<rotL>";
-    case rotateROp:
-      return "<rotR>";
-    case shiftLOp:
-      return "<shl>";
-    case shiftROp:
-      return "<shr>";
-    case shiftRArithOp:
-      return "<shrA>";
-    case derefOp:
-      return "<deref>";
-    case writeRepOp:
-      return "<writeRep>";
-    case writeOp:
-      return "<write>";
-    case ifOp:
-      return "<if>";
-    case sMultOp:
-      return "<sMult>";
-    case uMultOp:
-      return "<uMult>";
-    case sDivOp:
-      return "<sDiv>";
-    case sModOp:
-      return "<sMod>";
-    case uDivOp:
-      return "<uDiv>";
-    case uModOp:
-      return "<uMod>";
-    case extendOp:
-      return "<ext>";
-    case extendMSBOp:
-      return "<extMSB>";
-    default:
-      return "< ??? >";
-    };
-  };
-
-  Op op;
-};
-
-};
-
-};
-
-// Get this out of the Dyninst namespace...
-std::ostream &operator<<(std::ostream &os, const Dyninst::SymbolicEvaluation::ROSEOperation &o);
-
-namespace Dyninst {
-
-namespace SymbolicEvaluation {
-
-DEF_AST_LEAF_TYPE(BottomAST, bool);
-DEF_AST_LEAF_TYPE(ConstantAST, uint64_t);
-DEF_AST_LEAF_TYPE(AbsRegionAST, AbsRegion);
-DEF_AST_INTERNAL_TYPE(RoseAST, ROSEOperation);
 
 
 template <size_t Len>
@@ -251,16 +122,17 @@ struct Handle {
  class SymEvalPolicy {
  public:
 
-
-   SymEvalPolicy(SymEval::Result &r, 
+     SymEvalPolicy(Result_t &r,
 		 Address addr,
 		 Dyninst::Architecture a);
 
    ~SymEvalPolicy() {};
   
    void startInstruction(SgAsmx86Instruction *);
+   void startInstruction(SgAsmPowerpcInstruction *);
 
    void finishInstruction(SgAsmx86Instruction *);
+   void finishInstruction(SgAsmPowerpcInstruction *);
     
    // Policy classes must implement the following methods:
    Handle<32> readGPR(X86GeneralPurposeRegister r) {
@@ -272,14 +144,55 @@ struct Handle {
      if (i != aaMap.end()) {
        res[i->second] = value.var();
      } 
-     // Otherwise we don't care. Annoying that we 
-     // had to expand this register...
+     else {
+       /*
+       std::cerr << "Warning: discarding write to GPR " << convert(r).format() << std::endl;
+       for (std::map<Absloc, Assignment::Ptr>::iterator foozle = aaMap.begin();
+	    foozle != aaMap.end(); ++foozle) {
+	 std::cerr << "\t" << foozle->first.format() << std::endl;
+       }
+       */
+     }
    }
-    
+   
+   Handle<32> readGPR(unsigned int r) {
+       return Handle<32>(wrap(convert(powerpc_regclass_gpr, r)));
+   }
+
+   void writeGPR(unsigned int r, Handle<32> value) {
+       std::map<Absloc, Assignment::Ptr>::iterator i = aaMap.find(convert(powerpc_regclass_gpr, r));
+       if (i != aaMap.end()) {
+           res[i->second] = value.var();
+       }
+   }
+   Handle<32> readSPR(unsigned int r) {
+        return Handle<32>(wrap(convert(powerpc_regclass_spr, r)));
+    }
+    void writeSPR(unsigned int r, Handle<32> value) {
+        std::map<Absloc, Assignment::Ptr>::iterator i = aaMap.find(convert(powerpc_regclass_spr, r));
+        if (i != aaMap.end()) {
+            res[i->second] = value.var();
+        }
+    }
+    Handle<4> readCRField(unsigned int field) {
+        return Handle<4>(wrap(convert(powerpc_regclass_cr, field)));
+    }
+    Handle<32> readCR() {
+        return Handle<32>(wrap(convert(powerpc_regclass_cr, (unsigned int)-1)));
+    }
+    void writeCRField(unsigned int field, Handle<4> value) {
+        std::map<Absloc, Assignment::Ptr>::iterator i = aaMap.find(convert(powerpc_regclass_cr, field));
+        if (i != aaMap.end()) {
+            res[i->second] = value.var();
+        }
+    }
    Handle<16> readSegreg(X86SegmentRegister r) {
      return Handle<16>(wrap(convert(r)));
    }
-    
+    void systemCall(unsigned char value)
+    {
+        fprintf(stderr, "WARNING: syscall %d detected; unhandled by semantics!\n", (unsigned int)(value));
+    }
    void writeSegreg(X86SegmentRegister r, Handle<16> value) {
      std::map<Absloc, Assignment::Ptr>::iterator i = aaMap.find(convert(r));
      if (i != aaMap.end()) {
@@ -318,7 +231,7 @@ struct Handle {
    }
 
    // Len here is the number of bits read, which we'll
-   // turn into an argument of the AST. 
+   // turn into an argument of the ROSEOperation. 
     
    template <size_t Len>
      Handle<Len> readMemory(X86SegmentRegister /*segreg*/,
@@ -326,16 +239,25 @@ struct Handle {
 			    Handle<1> cond) {
      if (cond == true_()) {
        return Handle<Len>(getUnaryAST(ROSEOperation::derefOp,
-				      addr.var()));
+				      addr.var(),
+                                      Len));
      }
      else {
        return Handle<Len>(getBinaryAST(ROSEOperation::derefOp,
 				       addr.var(),
-				       cond.var()));
+				       cond.var(),
+                                       Len));
      }
    }
         
    template <size_t Len>
+     Handle<Len> readMemory(Handle<32> addr,
+                            Handle<1> cond) {
+    return Handle<Len>(getBinaryAST(ROSEOperation::derefOp,
+                                    addr.var(),
+                                    cond.var()));
+     }
+     template <size_t Len>
      void writeMemory(X86SegmentRegister,
 		      Handle<32> addr,
 		      Handle<Len> data,
@@ -364,6 +286,29 @@ struct Handle {
      }
    }
 
+   template <size_t Len>
+   void writeMemory(Handle<32> addr,
+                    Handle<Len> data,
+                    Handle<1> cond) {
+        std::map<Absloc, Assignment::Ptr>::iterator i = aaMap.find(Absloc(0));
+        if (i != aaMap.end()) {
+            i->second->out().setGenerator(addr.var());
+            if (cond == true_()) {
+                // Thinking about it... I think we avoid the "writeOp"
+                // because it's implicit in what we're setting; the 
+                // dereference goes on the left hand side rather than the
+                // right
+                res[i->second] = data.var();
+            }
+            else {
+                res[i->second] = getBinaryAST(ROSEOperation::writeOp,
+                        data.var(),
+                        cond.var());
+            }
+        }
+    }
+
+   
    template <size_t Len>
      void writeMemory(X86SegmentRegister,
 		      Handle<32> addr,
@@ -432,13 +377,11 @@ struct Handle {
    // extract from the data type.
    template<size_t From, size_t To, size_t Len> 
      Handle<To-From> extract(Handle<Len> a) {
-     return Handle<To-From>(a.var());
-     /*
+     // return Handle<To-From>(a.var());
      return Handle<To-From>(getTernaryAST(ROSEOperation::extractOp, 
 					  a.var(),
 					  number<Len>(From).var(),
 					  number<Len>(To).var()));
-     */
    }
 
    template <size_t Len>
@@ -608,12 +551,10 @@ struct Handle {
 
    template <size_t From, size_t To>
      Handle<To> extendByMSB(Handle<From> a) {
-     return Handle<To>(a.var());
-     /*
+     //return Handle<To>(a.var());
      return Handle<To>(getBinaryAST(ROSEOperation::extendMSBOp,
 				    a.var(),
 				    number<32>(To).var()));
-     */
    }
 
  private:
@@ -621,9 +562,10 @@ struct Handle {
    SymEvalPolicy();
 
    // This is the thing we fill in ;)
-   SymEval::Result &res;
+   Result_t &res;
 
    Architecture arch;
+   Address addr;
 
    Handle<32> ip_;
 
@@ -642,13 +584,14 @@ struct Handle {
    Absloc convert(X86GeneralPurposeRegister r);
    Absloc convert(X86SegmentRegister r);
    Absloc convert(X86Flag r);
-   AST::Ptr wrap(Absloc r) { 
-     return AbsRegionAST::create(AbsRegion(r));
+   AST::Ptr wrap(Absloc r) {
+     return VariableAST::create(Variable(AbsRegion(r), addr));
    }
+   Absloc convert(PowerpcRegisterClass c, int n);
 
 
-    AST::Ptr getConstAST(uint64_t n, size_t) {
-      return ConstantAST::create(n);
+    AST::Ptr getConstAST(uint64_t n, size_t s) {
+      return ConstantAST::create(Constant(n, s));
     }
                         
     AST::Ptr getBottomAST() {
@@ -656,23 +599,25 @@ struct Handle {
     }
                 
     AST::Ptr getUnaryAST(ROSEOperation::Op op,
-                         AST::Ptr a) {
-      return RoseAST::create(ROSEOperation(op), a);
+                         AST::Ptr a,
+                         size_t s = 0) {
+      return RoseAST::create(ROSEOperation(op, s), a);
     }
 
     AST::Ptr getBinaryAST(ROSEOperation::Op op,
                           AST::Ptr a,
-                          AST::Ptr b) {
-      return RoseAST::create(ROSEOperation(op), a, b);
+                          AST::Ptr b,
+                          size_t s = 0) {
+      return RoseAST::create(ROSEOperation(op, s), a, b);
     }
     
     AST::Ptr getTernaryAST(ROSEOperation::Op op,
                            AST::Ptr a,
                            AST::Ptr b,
-                           AST::Ptr c) {
-      return RoseAST::create(ROSEOperation(op), a, b, c);
-    }
-    
+                           AST::Ptr c,
+                           size_t s = 0) {
+      return RoseAST::create(ROSEOperation(op, s), a, b, c);
+    }    
 };
 };
 };

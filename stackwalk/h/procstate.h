@@ -36,6 +36,7 @@
 #define PROCSTATE_H_
 
 #include "basetypes.h"
+#include "dyn_regs.h"
 
 #include <vector>
 #include <map>
@@ -82,6 +83,9 @@ public:
   //Return the size of an address in process in bytes
   virtual unsigned getAddressWidth() = 0;
 
+  //Get Architecture, see dyn_regs.h
+  virtual Dyninst::Architecture getArchitecture() = 0;
+
   virtual ~ProcessState();
 
   Walker *getWalker() const;
@@ -108,6 +112,7 @@ class ProcSelf : public ProcessState {
   virtual bool getDefaultThread(Dyninst::THR_ID &default_tid);
   virtual unsigned getAddressWidth();
   virtual bool isFirstParty();
+  virtual Dyninst::Architecture getArchitecture();
   virtual ~ProcSelf();
 };
 

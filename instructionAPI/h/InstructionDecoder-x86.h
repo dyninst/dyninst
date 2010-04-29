@@ -34,11 +34,10 @@
 
 #include "InstructionDecoder.h"
 
-struct ia32_locations;
-struct ia32_condition;
+#include "ia32_locations.h"
+
 struct ia32_operand;
 class ia32_instruction;
-struct ia32_memacc;
 namespace Dyninst
 {
     namespace InstructionAPI
@@ -95,10 +94,11 @@ namespace Dyninst
                 virtual bool decodeOperands(const Instruction* insn_to_complete);
 
                 bool decodeOneOperand(const ia32_operand& operand,
+                                      int & imm_index,
                                       const Instruction* insn_to_complete, bool isRead, bool isWritten);
                 virtual unsigned int decodeOpcode();
       
-                Expression::Ptr makeSIBExpression(unsigned int opType);
+                Expression::Ptr makeSIBExpression();
                 Expression::Ptr makeModRMExpression(unsigned int opType);
                 Expression::Ptr getModRMDisplacement();
                 MachRegister makeRegisterID(unsigned int intelReg, unsigned int opType, bool isExtendedReg = false);
@@ -108,9 +108,7 @@ namespace Dyninst
             private:
                 void doIA32Decode();
       
-                ia32_locations* locs;
-                ia32_condition* cond;
-                ia32_memacc* mac;
+                ia32_locations locs;
                 ia32_instruction* decodedInstruction;
                 bool is32BitMode;
                 bool sizePrefixPresent;

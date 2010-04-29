@@ -113,7 +113,10 @@ bool Walker::createDefaultSteppers()
   return true;
 }
 
-
+Dyninst::Architecture ProcDebugLinux::getArchitecture()
+{
+   return Dyninst::Arch_ppc32;
+}
 
 gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame &/*in*/, 
                                                     Frame &/*out*/)

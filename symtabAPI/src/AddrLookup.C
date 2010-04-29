@@ -33,7 +33,7 @@
 #include "symtabAPI/h/Symbol.h"
 #include "symtabAPI/h/AddrLookup.h"
 
-#include "symtabAPI/src/addrtranslate.h"
+#include "common/h/addrtranslate.h"
 
 #include <vector>
 #include <algorithm>
@@ -73,18 +73,13 @@ AddressLookup *AddressLookup::createAddressLookup(ProcessReader *reader)
 
 AddressLookup *AddressLookup::createAddressLookup(const std::vector<LoadedLibrary> &name_addrs)
 {
-   AddressTranslate *trans = AddressTranslate::createAddressTranslator(name_addrs);
-   if (!trans)
-      return NULL;
-   AddressLookup *ar = new AddressLookup(trans);
-   if (!ar)
-      return NULL;
-   return ar;
+   assert(0); //TODO Implement
+   return NULL;
 }
 
 bool AddressLookup::getAddress(Symtab *tab, Offset off, Address &addr)
 {
-   LoadedLib *ll = translator->getLoadedLib(tab);
+   LoadedLib *ll = getLoadedLib(tab);
    if (!ll)
       return false;
    addr = ll->offToAddress(off);
@@ -93,10 +88,10 @@ bool AddressLookup::getAddress(Symtab *tab, Offset off, Address &addr)
 
 bool AddressLookup::getAddress(Symtab *tab, Symbol *sym, Address &addr)
 {
-   LoadedLib *ll = translator->getLoadedLib(tab);
+   LoadedLib *ll = getLoadedLib(tab);
    if (!ll)
       return false;
-   addr = ll->symToAddress(sym);
+   addr = symToAddress(ll, sym);
    return true;
 }
 
@@ -112,7 +107,8 @@ vector<Symbol *> *AddressLookup::getSymsVector(LoadedLib *lib)
       return &(syms[str]);
    }
    
-   Symtab *tab = lib->getSymtab();
+   Symtab *tab = getSymtab(lib);
+   
    if (!tab) {
       return NULL;
    }
@@ -135,7 +131,7 @@ bool AddressLookup::getOffset(Address addr, Symtab* &tab, Offset &off)
    }
 
    off = lib->addrToOffset(addr);
-   tab = lib->getSymtab();
+   tab = getSymtab(lib);
    return true;
 }
 
@@ -166,7 +162,7 @@ bool AddressLookup::getSymbol(Address addr, Symbol* &sym, Symtab* &tab, bool clo
       return false;
    }
 
-   tab = lib->getSymtab();
+   tab = getSymtab(lib);
    vector<Symbol *> *symbols = getSymsVector(lib);
    if (!symbols) {
       return false;
@@ -227,7 +223,7 @@ bool AddressLookup::getAllSymtabs(std::vector<Symtab *> &tabs)
 
    for (unsigned i=0; i<libs.size(); i++)
    {
-      Symtab *symt = libs[i]->getSymtab();
+      Symtab *symt = getSymtab(libs[i]);
       if (symt)
          tabs.push_back(symt);
    }
@@ -237,7 +233,7 @@ bool AddressLookup::getAllSymtabs(std::vector<Symtab *> &tabs)
 
 bool AddressLookup::getLoadAddress(Symtab* sym, Address &load_addr)
 {
-   LoadedLib *ll = translator->getLoadedLib(sym);
+   LoadedLib *ll = getLoadedLib(sym);
    if (!ll)
       return false;
    load_addr = ll->getCodeLoadAddr();
@@ -246,7 +242,7 @@ bool AddressLookup::getLoadAddress(Symtab* sym, Address &load_addr)
 
 bool AddressLookup::getDataLoadAddress(Symtab* sym, Address &load_addr)
 {
-   LoadedLib *ll = translator->getLoadedLib(sym);
+   LoadedLib *ll = getLoadedLib(sym);
    if (!ll)
       return false;
    load_addr = ll->getDataLoadAddr();
@@ -291,12 +287,53 @@ bool AddressLookup::refresh()
 
 bool AddressLookup::getExecutable(LoadedLibrary &lib)
 {
-#if !defined(os_linux)
-   return false;
-#endif
    LoadedLib *llib = translator->getExecutable();
    if (!llib)
       return false;
    llib->getOutputs(lib.name, lib.codeAddr, lib.dataAddr);
    return true;
+}
+
+Dyninst::Address AddressLookup::symToAddress(LoadedLib *ll, Symbol *sym)
+{
+   return ll->getCodeLoadAddr() + sym->getOffset();
+}
+
+LoadedLib *AddressLookup::getLoadedLib(Symtab *sym)
+{
+   std::map<Symtab *, LoadedLib *>::iterator i = sym_to_ll.find(sym);
+   if (i != sym_to_ll.end()) {
+      return i->second;
+   }
+   
+   vector<LoadedLib *> libs;
+   translator->getLibs(libs);
+   for (vector<LoadedLib *>::iterator i = libs.begin(); i != libs.end(); i++) {
+      LoadedLib *ll = *i;
+      if (sym->file() == ll->getName() || 
+          sym->name() == ll->getName())
+      {
+         ll_to_sym[ll] = sym;
+         sym_to_ll[sym] = ll;
+         return ll;
+      }
+   }
+   return NULL;
+}
+
+Symtab *AddressLookup::getSymtab(LoadedLib *ll)
+{
+   std::map<LoadedLib *, Symtab *>::iterator i = ll_to_sym.find(ll);
+   if (i != ll_to_sym.end()) {
+      return i->second;
+   }
+   
+   Symtab *sym;
+   bool result = Symtab::openFile(sym, ll->getName());
+   if (!result) {
+      return NULL;
+   }
+   ll_to_sym[ll] = sym;
+   sym_to_ll[sym] = ll;
+   return sym;
 }

@@ -41,10 +41,12 @@
 #include "Annotatable.h"
 #include "Serialization.h"
 
+#include "ProcReader.h"
+
 class MappedFile;
 
-namespace Dyninst{
-namespace SymtabAPI{
+namespace Dyninst {
+namespace SymtabAPI {
 
 class Archive;
 class builtInTypeCollection;
@@ -55,12 +57,7 @@ class localVar;
 class relocationEntry;
 class Type;
 
-class MemRegReader {
- public:
-   virtual bool ReadMem(Address addr, void *buffer, unsigned size) = 0;
-   virtual bool GetReg(MachRegister reg, MachRegisterVal &val) = 0;
-   virtual ~MemRegReader();
-};
+typedef Dyninst::ProcessReader MemRegReader;
 
 class Symtab : public LookupInterface,
                public Serializable,

@@ -254,6 +254,36 @@ copy $(TargetDir)libinstructionAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\l
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\InstructionDecoder-power.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\InstructionDecoder-x86.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\InstructionDecoder.C">
 				<FileConfiguration
 					Name="Debug|Win32">
@@ -355,6 +385,12 @@ copy $(TargetDir)libinstructionAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\l
 				RelativePath=".\h\InstructionCategories.h">
 			</File>
 			<File
+				RelativePath=".\h\InstructionDecoder-power.h">
+			</File>
+			<File
+				RelativePath=".\h\InstructionDecoder-x86.h">
+			</File>
+			<File
 				RelativePath=".\h\InstructionDecoder.h">
 			</File>
 			<File
@@ -371,6 +407,9 @@ copy $(TargetDir)libinstructionAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\l
 			</File>
 			<File
 				RelativePath=".\h\Result.h">
+			</File>
+			<File
+				RelativePath=".\h\Visitor.h">
 			</File>
 		</Filter>
 		<Filter

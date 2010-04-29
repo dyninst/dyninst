@@ -83,9 +83,10 @@ void *BPatch_frame::getFPInt()
  */
 BPatch_function *BPatch_frame::findFunctionInt()
 {
-   if (!getPC())
-      return NULL;
-   return thread->findFunctionByAddr(getPC());
+  if (!getPC()) {
+    return NULL;
+  }
+  return thread->findFunctionByAddr(getPC());
 }
 
 BPatch_frame::BPatch_frame() : 

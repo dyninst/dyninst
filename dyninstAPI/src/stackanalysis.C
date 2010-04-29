@@ -182,7 +182,7 @@ void StackAnalysis::summarizeBlocks() {
                 sp_blockToInsnFuncs[block][next] = iFunc;
             }
 	    if (fpCopied != fp_noChange) {
-	      fp_changePoints[block].push_back(std::make_pair<fp_State, Offset>(fpCopied, off));
+	      fp_changePoints[block].push_back(std::make_pair<fp_State, Offset>(fpCopied, off + insn->size()));
 	    }
 
             stackanalysis_printf("\t\t\t At 0x%lx:  %s\n",
@@ -466,6 +466,12 @@ void StackAnalysis::fp_createIntervals() {
            
       curUB = iter2->second;
 
+      fp_intervals_->insert(curLB, curUB, 
+			    curHeight);
+
+      stackanalysis_printf("\t\t\t Inserting interval: 0x%lx, 0x%lx, %s\n",
+			   curLB, curUB, curHeight.format().c_str());
+
       switch(iter2->first) {
       case fp_noChange:
 	// ????
@@ -477,8 +483,6 @@ void StackAnalysis::fp_createIntervals() {
 	curHeight = Height::bottom;
 	break;
       }
-      fp_intervals_->insert(curLB, curUB, 
-			    curHeight);
       
       curLB = curUB;
     }
@@ -492,6 +496,9 @@ void StackAnalysis::fp_createIntervals() {
 	fprintf(stderr, "\t %s\n", fp_outBlockHeights[block].format().c_str());
       }
 
+
+      stackanalysis_printf("\t\t\t Inserting interval: 0x%lx, 0x%lx, %s\n",
+			   curLB, curUB, curHeight.format().c_str());
       fp_intervals_->insert(curLB, curUB, 
 			    curHeight);
     }
@@ -505,19 +512,16 @@ void StackAnalysis::computeInsnEffects(const Block *block,
 				       fp_State &fpState) 
 {
     stackanalysis_printf("\t\tInsn at 0x%lx\n", off);
-    static Expression::Ptr theStackPtr(new RegisterAST(MachRegister::getStackPointer(Arch_x86)));
-    static Expression::Ptr stackPtr64(new RegisterAST(MachRegister::getStackPointer(Arch_x86_64)));
-    
-    static Expression::Ptr theFramePtr(new RegisterAST(MachRegister::getFramePointer(Arch_x86)));
-    static Expression::Ptr framePtr64(new RegisterAST(MachRegister::getFramePointer(Arch_x86_64)));
+    static Expression::Ptr theStackPtr(new RegisterAST(MachRegister::getStackPointer(func->img()->getArch())));
+    static Expression::Ptr theFramePtr(new RegisterAST(MachRegister::getFramePointer(func->img()->getArch())));
     
     //TODO: Integrate entire test into analysis lattice
     entryID what = insn->getOperation().getID();
 
-    if (insn->isWritten(theFramePtr) || insn->isWritten(framePtr64)) {
+    if (insn->isWritten(theFramePtr)) {
       stackanalysis_printf("\t\t\t FP written\n");
       if (what == e_mov &&
-	  (insn->isRead(theStackPtr) || insn->isRead(stackPtr64))) {
+          (insn->isRead(theStackPtr))) {
 	fpState = fp_created;
 	stackanalysis_printf("\t\t\t Frame created\n");
       }
@@ -526,11 +530,29 @@ void StackAnalysis::computeInsnEffects(const Block *block,
       }
     }
 
-    if (what == e_call) {
+    int word_size = func->img()->getAddressWidth();
+    if (insn->getControlFlowTarget()) {
+      if (off != block->lastInsnOffset()) {
+	// Call in the middle of the block? Must be a get PC operation
+	iFunc.delta() = -1*word_size;
+	stackanalysis_printf("\t\t\t getPC call: %s\n", iFunc.format().c_str());
+	return;
+      }
+
         pdvector<image_edge *> outs;
         block->getTargets(outs);
         for (unsigned i=0; i<outs.size(); i++) {
             image_edge *cur_edge = outs[i];
+
+	    if (cur_edge->getType() == ET_DIRECT) {
+	      // For some reason we're treating this
+	      // call as a branch. So it shifts the stack
+	      // like a push (heh) and then we're done.
+	      iFunc.delta() = -1*word_size;
+	      stackanalysis_printf("\t\t\t Stack height changed by simulate-jump call\n");
+	      return;
+	    }
+
             if (cur_edge->getType() != ET_CALL) 
                 continue;
             
@@ -552,12 +574,53 @@ void StackAnalysis::computeInsnEffects(const Block *block,
         stackanalysis_printf("\t\t\t Stack height assumed unchanged by call\n");
         return;
     }
-
-    int word_size = func->img()->getAddressWidth();
     
-    if(!insn->isWritten(theStackPtr) && !insn->isWritten(stackPtr64)) {
+    if(!insn->isWritten(theStackPtr)) {
          return;
     }
+
+    // Here's one for you:
+    // lea    0xfffffff4(%ebp),%esp
+    // Yeah, that's "do math off the base pointer and assign the stack pointer". 
+    // Oy. 
+    // Doesn't work right, so leaving it out for now. 
+#if 0
+    if (insn->isRead(theFramePtr) || insn->isRead(framePtr64)) {
+      
+      bool done;
+      std::vector<Operand> operands;
+      insn->getOperands(operands);
+      cerr << "************" << endl;
+      for (unsigned i = 0; i < operands.size(); ++i) {
+	cerr << operands[i].format() << endl;
+	// We need to find the thing that be done read
+	if (operands[i].isRead(operands[i].getValue())) {
+	  if (done) {
+	    // Multiple conflicting uses. WTF?
+	    iFunc.range() = Range(Range::infinite, 0, off);
+	    return;
+	  }
+	  done = true;
+	  static Expression::Ptr theFramePtr(new RegisterAST(MachRegister::getFramePointer(Arch_x86)));
+	  static Expression::Ptr theFramePtr64(new RegisterAST(MachRegister::getFramePointer(Arch_x86_64)));
+	  operands[i].getValue()->bind(theFramePtr.get(), Result(s32, -2*word_size));
+	  operands[i].getValue()->bind(theFramePtr64.get(), Result(s32, -2*word_size));
+
+	  Result res = operands[i].getValue()->eval();
+	  if (res.defined) {
+	    iFunc.abs() = true;
+	    iFunc.delta() = res.convert<long>();
+            stackanalysis_printf("\t\t\t Stack height changed by ref off FP %s: %s\n", insn->format().c_str(), iFunc.format().c_str());
+	  }
+	  else {
+	    iFunc.range() = Range(Range::infinite, 0, off);
+            stackanalysis_printf("\t\t\t Stack height changed by unevalled ref off FP %s: %s\n", insn->format().c_str(), iFunc.format().c_str());
+	  }
+	}
+      }
+    }
+
+#endif
     int sign = 1;
     switch(what) {
     case e_push:
@@ -574,13 +637,30 @@ void StackAnalysis::computeInsnEffects(const Block *block,
         return;
     }
     case e_ret_near:
-    case e_ret_far:
-        iFunc.delta() = word_size;
-        stackanalysis_printf("\t\t\t Stack height changed by return: %s\n", iFunc.format().c_str());
-        return;
+    case e_ret_far: {
+      std::vector<Operand> operands;
+      insn->getOperands(operands);
+      if (operands.size() == 0) {
+	iFunc.delta() = word_size;
+      }
+      else if (operands.size() == 1) {
+	// Ret immediate
+	Result imm = operands[0].getValue()->eval();
+	if (imm.defined) {
+	  iFunc.delta() = word_size + imm.convert<int>();
+	}
+	else {
+	  iFunc.range() = Range(Range::infinite, 0, off);
+	}
+      }
+      stackanalysis_printf("\t\t\t Stack height changed by return: %s\n", iFunc.format().c_str());
+      
+      return;
+    }
     case e_sub:
         sign = -1;
-    case e_add: {
+    case e_add:
+      {
         // Add/subtract are op0 += (or -=) op1
         Operand arg = insn->getOperand(1);
         Result delta = arg.getValue()->eval();
@@ -596,9 +676,39 @@ void StackAnalysis::computeInsnEffects(const Block *block,
         // We treat return as zero-modification right now
     case e_leave:
         iFunc.abs() = true;
-        iFunc.delta() = 0;
+        iFunc.delta() = -1*word_size;
         stackanalysis_printf("\t\t\t Stack height reset by leave: %s\n", iFunc.format().c_str());
         return;
+    case power_op_si:
+        sign = -1;
+    case power_op_addi:
+      {
+        // Add/subtract are op0 = op1 +/- op2; we'd better read the stack pointer as well as writing it
+        Operand arg = insn->getOperand(2);
+        Result delta = arg.getValue()->eval();
+        if(delta.defined && insn->isRead(theStackPtr)) {
+	    iFunc.delta() = sign * delta.convert<long>();
+	    stackanalysis_printf("\t\t\t Stack height changed by evalled add/sub: %s\n", iFunc.format().c_str());
+	    return;
+        }
+        iFunc.range() = Range(Range::infinite, 0, off);
+        stackanalysis_printf("\t\t\t Stack height changed by unevalled add/sub: %s\n", iFunc.format().c_str());
+        return;
+    }
+    case power_op_stwu: {
+        std::set<Expression::Ptr> memWriteAddrs;
+        insn->getMemoryWriteOperands(memWriteAddrs);
+	Expression::Ptr stackWrite = *(memWriteAddrs.begin());
+        stackanalysis_printf("\t\t\t ...checking operand %s\n", stackWrite->format().c_str());
+        stackanalysis_printf("\t\t\t ...binding %s to 0\n", theStackPtr->format().c_str());
+        stackWrite->bind(theStackPtr.get(), Result(u32, 0));
+        Result delta = stackWrite->eval();
+        if(delta.defined) {
+            iFunc.delta() = delta.convert<long>();
+            stackanalysis_printf("\t\t\t Stack height changed by evalled stwu: %s\n", iFunc.format().c_str());
+            return;
+        }
+    }
     default:
         iFunc.range() = Range(Range::infinite, 0, off);
         stackanalysis_printf("\t\t\t Stack height changed by unhandled insn \"%s\": %s\n", 
@@ -889,6 +999,11 @@ StackAnalysis::Height StackAnalysis::findSP(Address addr) {
   assert(sp_intervals_);
 
   sp_intervals_->find(addr, ret);
+  if(ret.isTop()) {
+    if(!analyze()) return Height();
+  }
+  sp_intervals_->find(addr, ret);
+  assert(!ret.isTop());
   return ret;
 }
 

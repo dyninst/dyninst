@@ -45,48 +45,26 @@ namespace SymbolicEvaluation {
 
 class StackVisitor : public ASTVisitor {
  public:
-    StackVisitor(std::string funcname,
-		 StackAnalysis::Height &stackHeight,
-		 StackAnalysis::Height &frameHeight) :
-    func_(funcname), stack_(stackHeight), frame_(frameHeight) {};
+  StackVisitor(Address a,
+	       std::string funcname,
+	       StackAnalysis::Height &stackHeight,
+	       StackAnalysis::Height &frameHeight) :
+    addr_(a), func_(funcname), stack_(stackHeight), frame_(frameHeight) {};
 
     virtual AST::Ptr visit(AST *);
-    virtual AST::Ptr visit(IntAST *);
-    virtual AST::Ptr visit(FloatAST *);
     virtual AST::Ptr visit(BottomAST *);
     virtual AST::Ptr visit(ConstantAST *);
-    virtual AST::Ptr visit(AbsRegionAST *);
+    virtual AST::Ptr visit(VariableAST *);
     virtual AST::Ptr visit(RoseAST *);
     virtual AST::Ptr visit(StackAST *);
   
   virtual ~StackVisitor() {};
 
   private:
+  Address addr_;
   std::string func_;
   StackAnalysis::Height stack_;
   StackAnalysis::Height frame_;
-};
-
-class StackEquivalenceVisitor : public ASTVisitor {
- public:
-  StackEquivalenceVisitor() {};
-  void addPair(AbsRegion &old, AbsRegion &n) {
-    repl[old] = n;
-  }
-  
-  virtual AST::Ptr visit(AST *);
-  virtual AST::Ptr visit(IntAST *);
-  virtual AST::Ptr visit(FloatAST *);
-  virtual AST::Ptr visit(BottomAST *);
-  virtual AST::Ptr visit(ConstantAST *);
-  virtual AST::Ptr visit(AbsRegionAST *);
-  virtual AST::Ptr visit(RoseAST *);
-  virtual AST::Ptr visit(StackAST *);
-  
-  virtual ~StackEquivalenceVisitor() {};
-
- private:
-  std::map<AbsRegion, AbsRegion> repl;
 };
 
 };

@@ -29,10 +29,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "symtabAPI/src/addrtranslate.h"
-#include "symtabAPI/src/addrtranslate-sysv.h"
+#include "common/h/addrtranslate.h"
+#include "common/src/addrtranslate-sysv.h"
 #include "common/h/linuxKludges.h"
 
+#include <cstdio>
 #include <linux/limits.h>
 
 #include <sys/ptrace.h>
@@ -43,15 +44,15 @@
 
 
 using namespace Dyninst;
-using namespace SymtabAPI;
 
 class ProcessReaderPtrace : public ProcessReader {
+   int pid;
 public:
    ProcessReaderPtrace(int pid_);
-   bool start();
-   bool readAddressSpace(Address inTraced, unsigned amount,
-                         void *inSelf);
-   bool done();
+   virtual bool start();
+   virtual bool ReadMem(Address inTraced, void *inSelf, unsigned amount);
+   virtual bool GetReg(MachRegister reg, MachRegisterVal &val) { assert(0); }
+   virtual bool done();
 
    virtual ~ProcessReaderPtrace();
 };
@@ -101,7 +102,7 @@ bool ProcessReaderPtrace::done()
 }
 
 ProcessReaderPtrace::ProcessReaderPtrace(int pid_) :
-   ProcessReader(pid_)
+   pid(pid_)
 {
 }
 
@@ -109,8 +110,7 @@ ProcessReaderPtrace::~ProcessReaderPtrace()
 {
 }
 
-bool ProcessReaderPtrace::readAddressSpace(Address inTraced, unsigned amount,
-                                           void *inSelf)
+bool ProcessReaderPtrace::ReadMem(Address inTraced, void *inSelf, unsigned amount)
 {
    bool result;
    result = PtraceBulkRead(inTraced, amount, inSelf, pid);
@@ -134,15 +134,16 @@ bool AddressTranslateSysV::setInterpreter()
    string sname(name);
    string interp_name;
 
-   FCNode *exe = files.getNode(sname);
+   FCNode *exe = files.getNode(sname, symfactory);
    if (!exe) {
       result = false;
       goto done;
    }
 
    interp_name = exe->getInterpreter();
-   interpreter = files.getNode(interp_name);
-
+   interpreter = files.getNode(interp_name, symfactory);
+   if (interpreter)
+      interpreter->markInterpreter();
    result = true;
 
  done:
@@ -169,7 +170,7 @@ bool AddressTranslateSysV::setAddressSize()
       char name[64];
       sprintf(name, "/proc/%d/exe", pid);
       string sname(name);
-      FCNode *exe = files.getNode(sname);
+      FCNode *exe = files.getNode(sname, symfactory);
       if (!exe) 
          return false;
       address_size = exe->getAddrSize();

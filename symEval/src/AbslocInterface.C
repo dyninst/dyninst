@@ -100,8 +100,11 @@ void AbsRegionConverter::convertAll(InstructionAPI::Instruction::Ptr insn,
 AbsRegion AbsRegionConverter::convert(RegisterAST::Ptr reg) {
   // FIXME:
   // Upcast register so we can be sure to match things later
+  AbsRegion tmp = AbsRegion(Absloc(reg->getID().getBaseRegister()));
 
-  return AbsRegion(Absloc(reg->getID().getBaseRegister()));
+  //std::cerr << "ARC::convert from " << reg->format() << " to "
+  //    << tmp.format() << std::endl;
+  return tmp;
 }
 
 AbsRegion AbsRegionConverter::convert(Expression::Ptr exp,
@@ -140,16 +143,15 @@ AbsRegion AbsRegionConverter::convert(Expression::Ptr exp,
     //   If a non-stack register is used:
     //     Create a generic MemLoc.
 
-  
     long spHeight = 0;
     int spRegion = 0;
-    bool stackExists = getCurrentStackHeight(func,
+    bool stackDefined = getCurrentStackHeight(func,
 					     addr, 
 					     spHeight, 
 					     spRegion);
     long fpHeight = 0;
     int fpRegion = 0;
-    bool frameExists = getCurrentFrameHeight(func,
+    bool frameDefined = getCurrentFrameHeight(func,
 					     addr,
 					     fpHeight,
 					     fpRegion);
@@ -168,17 +170,13 @@ AbsRegion AbsRegionConverter::convert(Expression::Ptr exp,
     
     // We currently have to try and bind _every_ _single_ _alias_
     // of the stack pointer...
-    if (stackExists) {
-      if (exp->bind(theStackPtr.get(), Result(s32, spHeight)) ||
-	  exp->bind(theStackPtr64.get(), Result(s64, spHeight))) {
-	isStack = true;
-      }
+    if (exp->bind(theStackPtr.get(), Result(s32, spHeight)) ||
+	exp->bind(theStackPtr64.get(), Result(s64, spHeight))) {
+      isStack = true;
     }
-    if (frameExists) {
-      if (exp->bind(theFramePtr.get(), Result(s32, fpHeight)) ||
-	  exp->bind(theFramePtr64.get(), Result(s64, fpHeight))) {
-	isFrame = true;
-      }
+    if (exp->bind(theFramePtr.get(), Result(s32, fpHeight)) ||
+	exp->bind(theFramePtr64.get(), Result(s64, fpHeight))) {
+      isFrame = true;
     }
     
     // Bind the IP, why not...
@@ -188,9 +186,9 @@ AbsRegion AbsRegionConverter::convert(Expression::Ptr exp,
     Result res = exp->eval();
 
     if (isFrame) {
-      if (res.defined) {
+      if (res.defined && frameDefined) {
 	return AbsRegion(Absloc(res.convert<Address>(),
-				spRegion,
+				fpRegion,
 				func->symTabName()));
       }
       else {
@@ -199,7 +197,7 @@ AbsRegion AbsRegionConverter::convert(Expression::Ptr exp,
     }
 
     if (isStack) {
-      if (res.defined) {
+      if (res.defined && stackDefined) {
 	return AbsRegion(Absloc(res.convert<Address>(),
 				spRegion,
 				func->symTabName()));
@@ -228,7 +226,7 @@ AbsRegion AbsRegionConverter::stack(Address addr,
 					     spHeight, 
 					     spRegion);
     if (!stackExists) {
-      return AbsRegion(Absloc::Heap);
+      return AbsRegion(Absloc::Stack);
     }
 
     if (push) {
@@ -238,6 +236,29 @@ AbsRegion AbsRegionConverter::stack(Address addr,
 
     return AbsRegion(Absloc(spHeight,
 			    spRegion,
+			    func->symTabName()));
+}
+
+AbsRegion AbsRegionConverter::frame(Address addr,
+				    image_func *func,
+				    bool push) {
+    long fpHeight = 0;
+    int fpRegion = 0;
+    bool frameExists = getCurrentFrameHeight(func,
+					     addr, 
+					     fpHeight, 
+					     fpRegion);
+    if (!frameExists) {
+      return AbsRegion(Absloc::Heap);
+    }
+
+    if (push) {
+      int word_size = func->img()->getAddressWidth();
+      fpHeight -= word_size;
+    }
+    
+    return AbsRegion(Absloc(fpHeight,
+			    fpRegion,
 			    func->symTabName()));
 }
 
@@ -418,16 +439,19 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
 							 sp));
     spA->addInput(fp);
 
-    // And now we want "FP = (stack slot 0)"
-    AbsRegion stackTop(Absloc(0,
-			      0,
-			      func->symTabName()));
-
+    // And now we want "FP = (stack slot -2*wordsize)"
+    /*
+      AbsRegion stackTop(Absloc(0,
+      0,
+      func->symTabName()));
+    */
+    // Actually, I think this is ebp = pop esp === ebp = pop ebp
     Assignment::Ptr fpA = Assignment::Ptr(new Assignment(I,
 							 addr,
 							 func,
 							 fp));
-    fpA->addInput(aConverter.stack(addr + I->size(), func, false));
+    //fpA->addInput(aConverter.stack(addr + I->size(), func, false));
+    fpA->addInput(aConverter.frame(addr, func, false));
 
     assignments.push_back(spA);
     assignments.push_back(fpA);

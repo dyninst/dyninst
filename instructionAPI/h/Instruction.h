@@ -267,11 +267,12 @@ namespace Dyninst
       
       
       typedef dyn_detail::boost::shared_ptr<Instruction> Ptr;
-      
+	public:
+	  //Should be private, but we're working around some compilers mis-using the 'friend' declaration.
+      void appendOperand(Expression::Ptr e, bool isRead, bool isWritten) const;
     private:
       void decodeOperands() const;
       void addSuccessor(Expression::Ptr e, bool isCall, bool isIndirect, bool isConditional, bool isFallthrough) const;
-      void appendOperand(Expression::Ptr e, bool isRead, bool isWritten) const;
       void copyRaw(size_t size, const unsigned char* raw);
       Expression::Ptr makeReturnExpression() const;
       mutable std::vector<Operand> m_Operands;
@@ -282,6 +283,7 @@ namespace Dyninst
       Architecture arch_decoded_from;
       mutable std::list<CFT> m_Successors;
       dyn_detail::boost::shared_ptr<InstructionDecoder> m_dec;
+      static int numInsnsAllocated;
       
     };
   };

@@ -35,7 +35,8 @@ endif
 # Now make any necessary architecture specific changes to variables:
 
 SRCS =		../../common/src/aixv41Kludges.C \
-		../../common/src/timing-aix.C
+		../../common/src/timing-aix.C \
+		../src/addrtranslate-aix.C
 
 # Add preprocessor and special link information for G++
 G_PTHREAD       = -pthread
@@ -54,7 +55,7 @@ ifdef HAVE_NATIVE_DEMANGLER
 endif
 ifdef HAVE_LIBIBERTY
   LDFLAGS += -liberty
-  CXXFLAGS += -Dcap_libiberty
+  CXXFLAGS += -Dcap_liberty
 endif
 
 ifdef XLC_BUILD

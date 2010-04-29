@@ -41,6 +41,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <limits.h>
 
 #include <vector>
 #include <string>
@@ -48,10 +49,8 @@
 #include "common/h/parseauxv.h"
 #include "common/h/headers.h"
 
-#include "symtabAPI/h/Symtab.h"
-#include "symtabAPI/src/addrtranslate.h"
-#include "symtabAPI/src/addrtranslate-sysv.h"
-#include "debug.h"
+#include "common/h/addrtranslate.h"
+#include "common/src/addrtranslate-sysv.h"
 
 #if defined(os_linux) || defined(os_bg)
 #define R_DEBUG_NAME "_r_debug"
@@ -60,19 +59,17 @@
 #endif
 
 using namespace std;
-
 using namespace Dyninst;
-using namespace SymtabAPI;
 
-FileCache Dyninst::SymtabAPI::files;
+FileCache Dyninst::files;
 
 
 class ProcessReaderSelf : public ProcessReader {
 public:
    ProcessReaderSelf();
    bool start();
-   bool readAddressSpace(Address inTraced, unsigned amount,
-                         void *inSelf);
+   bool ReadMem(Address inTraced, void *inSelf, unsigned amount);
+   bool GetReg(MachRegister reg, MachRegisterVal &val);
    bool done();
 
   virtual ~ProcessReaderSelf();
@@ -156,7 +153,7 @@ template<class r_debug_X>
 r_debug_dyn<r_debug_X>::r_debug_dyn(ProcessReader *proc_, Address addr)
    : proc(proc_) 
 {
-   valid = proc->readAddressSpace(addr, sizeof(debug_elm), &debug_elm);
+   valid = proc->ReadMem(addr, &debug_elm, sizeof(debug_elm));
 
    translate_printf("[%s:%u] -     Read rdebug structure.  Values were:\n", __FILE__, __LINE__);
    translate_printf("[%s:%u] -       r_brk:    %lx\n", __FILE__, __LINE__, (unsigned long)debug_elm.r_brk);
@@ -225,13 +222,13 @@ char *link_map_dyn<link_map_X>::l_name()
   if (loaded_name) return link_name;
 
   for (unsigned int i = 0; i < sizeof(link_name); ++i) {
-    if (!proc->readAddressSpace((Address) (link_elm.l_name + i),
-                             sizeof(char), link_name + i))
-    {
-       valid = false;
-       return NULL;
-    }
-    if (link_name[i] == '\0') break;
+     if (!proc->ReadMem((Address) (link_elm.l_name + i),
+                        link_name + i, sizeof(char)))
+     {
+        valid = false;
+        return NULL;
+     }
+     if (link_name[i] == '\0') break;
   }
   link_name[sizeof(link_name) - 1] = '\0';
 
@@ -267,7 +264,7 @@ bool link_map_dyn<link_map_X>::load_next()
 template<class link_map_X>
 bool link_map_dyn<link_map_X>::load_link(Address addr) 
 {
-   return proc->readAddressSpace(addr, sizeof(link_elm), &link_elm);
+   return proc->ReadMem(addr, &link_elm, sizeof(link_elm));
 }
 
 static const char *deref_link(const char *path)
@@ -281,7 +278,7 @@ static const char *deref_link(const char *path)
 }
 
 ProcessReaderSelf::ProcessReaderSelf() :
-   ProcessReader(getpid()) 
+   ProcessReader() 
 {
 }
 
@@ -297,25 +294,18 @@ bool ProcessReaderSelf::done() {
    return true;
 }
 
-bool ProcessReaderSelf::readAddressSpace(Address inTraced, unsigned amount,
-                                         void *inSelf) 
+bool ProcessReaderSelf::ReadMem(Address inTraced, void *inSelf, unsigned amount)
 {
    memcpy(inSelf, (void *) inTraced, amount);
    return true;
 }
 
-Symtab *LoadedLib::getSymtab()
+bool ProcessReaderSelf::GetReg(MachRegister reg, MachRegisterVal &val)
 {
-   if (symtable)
-      return symtable;
-
-   FCNode *fc = files.getNode(name);
-   if (!fc)
-      return NULL;
-   symtable = fc->getSymtab();
-
-   return symtable;
+   assert(0);
+   return false;
 }
+
 
 vector< pair<Address, unsigned long> > *LoadedLib::getMappedRegions()
 {
@@ -324,15 +314,16 @@ vector< pair<Address, unsigned long> > *LoadedLib::getMappedRegions()
       return &mapped_regions;
    }
    
-   FCNode *fc = files.getNode(name);
+   FCNode *fc = files.getNode(name, symreader_factory);
    if (!fc)
       return false;
 
-   vector<Region *> regs;
+   vector<SymRegion> regs;
    fc->getRegions(regs);
    
    for (unsigned i=0; i<regs.size(); i++) {
-      pair<Address, unsigned long> p(load_addr + regs[i]->getRegionAddr(), regs[i]->getRegionSize());
+      pair<Address, unsigned long> p(load_addr + regs[i].mem_addr, 
+                                     regs[i].mem_size);
       mapped_regions.push_back(p);
    }
    
@@ -340,11 +331,12 @@ vector< pair<Address, unsigned long> > *LoadedLib::getMappedRegions()
 }
 
 AddressTranslate *AddressTranslate::createAddressTranslator(int pid_, 
-                                                            ProcessReader *reader_,
-															PROC_HANDLE)
+                                               ProcessReader *reader_,
+                                               SymbolReaderFactory *symfactory_,
+                                               PROC_HANDLE)
 {
    translate_printf("[%s:%u] - Creating AddressTranslateSysV\n", __FILE__, __LINE__);
-   AddressTranslate *at = new AddressTranslateSysV(pid_, reader_);
+   AddressTranslate *at = new AddressTranslateSysV(pid_, reader_, symfactory_);
    translate_printf("[%s:%u] - Created: %lx\n", __FILE__, __LINE__, (long)at);
    
    if (!at) {
@@ -357,29 +349,10 @@ AddressTranslate *AddressTranslate::createAddressTranslator(int pid_,
    return at;
 }
 
-AddressTranslate *AddressTranslate::createAddressTranslator(ProcessReader *reader_)
+AddressTranslate *AddressTranslate::createAddressTranslator(ProcessReader *reader_,
+                                                            SymbolReaderFactory *factory_)
 {
-   return createAddressTranslator(getpid(), reader_, INVALID_HANDLE_VALUE);
-}
-
-AddressTranslate *AddressTranslate::createAddressTranslator(const std::vector<LoadedLibrary> &name_addrs)
-{
-   AddressTranslate *at = new AddressTranslateSysV();
-   
-   if (!at) {
-      return NULL;
-   }
-   else if (at->creation_error) {
-      delete at;
-      return NULL;
-   }
-   
-   for (unsigned i=0; i<name_addrs.size(); i++)
-   {
-      LoadedLib *ll = new LoadedLib(name_addrs[i].name, name_addrs[i].codeAddr);
-      at->libs.push_back(ll);
-   }
-   return at;
+   return createAddressTranslator(getpid(), reader_, factory_, INVALID_HANDLE_VALUE);
 }
 
 AddressTranslateSysV::AddressTranslateSysV() :
@@ -396,7 +369,8 @@ AddressTranslateSysV::AddressTranslateSysV() :
 {
 }
 
-AddressTranslateSysV::AddressTranslateSysV(int pid, ProcessReader *reader_) :
+AddressTranslateSysV::AddressTranslateSysV(int pid, ProcessReader *reader_, 
+                                           SymbolReaderFactory *reader_fact) :
    AddressTranslate(pid),
    reader(reader_),
    interpreter_base(0),
@@ -415,7 +389,7 @@ AddressTranslateSysV::AddressTranslateSysV(int pid, ProcessReader *reader_) :
       else
          reader = createDefaultDebugger(pid);
    }
-
+   symfactory = reader_fact;
    result = init();
    if (!result) {
       creation_error = true;
@@ -478,6 +452,25 @@ bool AddressTranslateSysV::init()
    return true;
 }
 
+LoadedLib *AddressTranslateSysV::getLoadedLibByNameAddr(Address addr, std::string name)
+{
+   std::pair<Address, std::string> p(addr, name);
+   sorted_libs_t::iterator i = sorted_libs.find(p);
+   LoadedLib *ll = NULL;
+   if (i != sorted_libs.end()) {
+      ll = i->second;
+   }
+   else {
+      ll = new LoadedLib(name, addr);
+      ll->setFactory(symfactory);
+      assert(ll);
+      sorted_libs[p] = ll;
+   }
+   ll->setShouldClean(false);
+   return ll;
+}
+
+
 bool AddressTranslateSysV::refresh()
 {
    link_map_xplat *link_elm = NULL;
@@ -488,29 +481,30 @@ bool AddressTranslateSysV::refresh()
    size_t loaded_lib_count = 0;
 
    translate_printf("[%s:%u] - Refreshing Libraries\n", __FILE__, __LINE__);
-
    if (pid == NULL_PID)
       return true;
 
-   for (unsigned i=0; i<libs.size(); i++) {
-      if (libs[i])
-         delete libs[i];
-      if (libs[i] == exec)
-         exec = NULL;
+   if (!r_debug_addr) {
+      //Static binary
+      libs.clear();
+      if (!exec) {
+         exec = getAOut();
+      }
+      libs.push_back(exec);
+      return true; 
    }
+
+   std::vector<LoadedLib *>::iterator i;
+   for (i = libs.begin(); i != libs.end(); i++)
+      (*i)->setShouldClean(true);
    libs.clear();
 
    if (!exec) {
       exec = getAOut();
-   }
-   if (exec) {
-      libs.push_back(exec);
-   }
+   }   
+   exec->setShouldClean(false);
+   libs.push_back(exec);
    
-   if (!r_debug_addr) {
-      return true; //Static library
-   }
-
    reader->start();
 
    translate_printf("[%s:%u] -     Starting refresh.\n", __FILE__, __LINE__);
@@ -526,8 +520,8 @@ bool AddressTranslateSysV::refresh()
       }
       else if (!r_debug_native->is_valid())
       {
-         libs.push_back(new LoadedLib(interpreter->getFilename(),
-                                      interpreter_base));
+         libs.push_back(getLoadedLibByNameAddr(interpreter_base,
+                                               interpreter->getFilename()));
          result = true;
          goto done;
       }
@@ -542,8 +536,8 @@ bool AddressTranslateSysV::refresh()
       }
       else if (!r_debug_32->is_valid())
       {
-         libs.push_back(new LoadedLib(interpreter->getFilename(),
-                                      interpreter_base));
+         libs.push_back(getLoadedLibByNameAddr(interpreter_base,
+                                               interpreter->getFilename()));
          result = true;
          goto done;
       }
@@ -582,7 +576,7 @@ bool AddressTranslateSysV::refresh()
 #endif
       
       string s(deref_link(obj_name.c_str()));
-      LoadedLib *ll = new LoadedLib(s, text);
+      LoadedLib *ll = getLoadedLibByNameAddr(text, s);
       loaded_lib_count++;
       translate_printf("[%s:%u] -     New Loaded Library: %s(%lx)\n", __FILE__, __LINE__, s.c_str(), text);
 
@@ -594,7 +588,15 @@ bool AddressTranslateSysV::refresh()
    result = true;
  done:
    reader->done();
-
+   
+   //Erase old elements from the sorted_libs
+   sorted_libs.clear();
+   for (vector<LoadedLib *>::iterator i = libs.begin(); i != libs.end(); i++)
+   {
+      LoadedLib *ll = *i;
+      sorted_libs[pair<Address, string>(ll->getCodeLoadAddr(), ll->getName())] = ll;
+   }
+   
    if (link_elm)
       delete link_elm;
    if (r_debug_32)
@@ -607,12 +609,14 @@ bool AddressTranslateSysV::refresh()
    return result;
 }
 
-FCNode::FCNode(string f, dev_t d, ino_t i) :
+FCNode::FCNode(string f, dev_t d, ino_t i, SymbolReaderFactory *factory_) :
    device(d),
    inode(i),
    parsed_file(false),
-   parsed_file_fast(false),
-   parse_error(false)
+   parse_error(false),
+   is_interpreter(false),
+   symreader(NULL),
+   factory(factory_)
 {
    filename = deref_link(f.c_str());
 }
@@ -622,27 +626,19 @@ string FCNode::getFilename() {
 }
 
 string FCNode::getInterpreter() {
-   parsefile_fast();
+   parsefile();
 
    return interpreter_name;
 }
 
-Symtab *FCNode::getSymtab()
-{
+void FCNode::getRegions(vector<SymRegion> &regs) {
    parsefile();
 
-   return symtable;
-}
-
-void FCNode::getRegions(vector<Region *> &regs) {
-   parsefile_fast();
-
-   for (unsigned i=0; i<regions.size(); i++)
-      regs.push_back(regions[i]);
+   regs = regions;
 }
 
 unsigned FCNode::getAddrSize() {
-   parsefile_fast();
+   parsefile();
 
    return addr_size;
 }
@@ -659,154 +655,82 @@ Offset FCNode::get_r_trap() {
    return r_trap_offset;
 }
 
+void FCNode::markInterpreter() {
+   if (is_interpreter)
+      return;
+
+   assert(!parsed_file);
+   is_interpreter = true;
+}
+
 #define NUM_DBG_BREAK_NAMES 3
 const char *dbg_break_names[] = { "_dl_debug_state",
                                   "r_debug_state",
                                   "_r_debug_state" };
-void FCNode::parsefile() {
-   bool result;
 
+void FCNode::parsefile()
+{
    if (parsed_file || parse_error)
       return;
-
-   translate_printf("[%s:%u] - Parsing file in FCNode: %s.\n", __FILE__, __LINE__, filename.c_str());
-
-   result = Symtab::openFile(symtable, filename);
-   if (!result) {
+   parsed_file = true;
+   
+   assert(!symreader);
+   symreader = factory->openSymbolReader(filename);
+   if (!symreader) {
       parse_error = true;
+      translate_printf("[%s:%u] - Failed to open %s\n", __FILE__, __LINE__,
+                       filename.c_str());
       return;
    }
+
+   if (is_interpreter) {
+      //We're parsing the interpreter, don't confuse this with
+      // parsing the interpreter link info (which happens below).
+      Symbol_t r_debug_sym = symreader->getSymbolByName(R_DEBUG_NAME);
+      if (!symreader->isValidSymbol(r_debug_sym)) {
+         translate_printf("[%s:%u] - Failed to find r_debug symbol in %s\n",
+                          __FILE__, __LINE__, filename.c_str());
+         parse_error = true;
+      }
+      r_debug_offset = symreader->getSymbolOffset(r_debug_sym);
+      
+      bool found_it = false;
+      for (unsigned i=0; i<NUM_DBG_BREAK_NAMES; i++) {
+         Symbol_t r_brk_sym = symreader->getSymbolByName(dbg_break_names[i]);
+         if (symreader->isValidSymbol(r_brk_sym)) {
+            r_trap_offset = symreader->getSymbolOffset(r_brk_sym);
+            found_it = true;
+            break;
+         }
+      }
+      if (!found_it) {
+         translate_printf("[%s:%u] - Failed to find r_debug symbol in %s\n",
+                          __FILE__, __LINE__, filename.c_str());
+         parse_error = true;
+      }
+   }
+
+   addr_size = symreader->getAddressWidth();   
+   interpreter_name = symreader->getInterpreterName();
    
-   if (!parsed_file_fast)
-   {
-      const char *name = symtable->getInterpreterName();
-      if (name) {
-         interpreter_name = name;
-         translate_printf("[%s:%u] - Interpreter was: %s.\n", __FILE__, __LINE__, name);
+   unsigned num_regions = symreader->numRegions();
+   for (unsigned i=0; i<num_regions; i++) {
+      SymRegion sr;
+      bool result = symreader->getRegion(i, sr);
+      if (!result) {
+         translate_printf("[%s:%u] - Failed to get region info\n",
+                          __FILE__, __LINE__);
+         parse_error = true;
+         break;
       }
       
-      addr_size = symtable->getAddressWidth();
-      symtable->getMappedRegions(regions);
+      regions.push_back(sr);
    }
-
-   r_debug_offset = 0;
-   r_trap_offset = 0;
-   parsed_file = true;
-   parsed_file_fast = true;
-
-   vector<Symbol *> syms;
-   result = symtable->findSymbolByType(syms, 
-                                       R_DEBUG_NAME, 
-                                       Symbol::ST_OBJECT,
-                                       anyName);
-   if (result && syms.size() != 0) {
-      Symbol *rDebugSym = syms[0];   
-      r_debug_offset = rDebugSym->getAddr();
-   }
-   syms.clear();
-
-   for (unsigned i=0; i<NUM_DBG_BREAK_NAMES; i++) {
-      result = symtable->findSymbolByType(syms, dbg_break_names[i], 
-                                          Symbol::ST_FUNCTION,
-                                          anyName);
-      if (!result || !syms.size())
-         continue;
-      Symbol *rTrapSym = syms[0];
-      r_trap_offset = rTrapSym->getAddr();
-      break;
-   }
+   factory->closeSymbolReader(symreader);
+   symreader = NULL;
 }
 
-#include "Elf_X.h"
-#include "symtabAPI/h/Region.h"
-#include <elf.h>
-
-void FCNode::parsefile_fast() {
-   if (parsed_file_fast || parse_error)
-      return;
-
-   parsed_file_fast = true;
-   off_t interp_disk_offset = 0;
-   unsigned interp_size = 0;
-   int result;
-   char *buffer = NULL;
-   int fd = -1;
-
-   fd = open(filename.c_str(), O_RDONLY);
-   if (fd == -1) {
-      int error = errno;
-      translate_printf("[%s:%u] - Error opening file %s: %s\n",
-                       __FILE__, __LINE__, filename.c_str(), strerror(error));
-      parse_error = true;
-      goto done;
-   }
-
-   {//Binding to destruct 'elf' when done.
-      Elf_X elf(fd, ELF_C_READ);
-
-      addr_size = elf.wordSize();
-
-      for (unsigned i=0; i<elf.e_phnum(); i++)
-      {
-         Elf_X_Phdr phdr = elf.get_phdr(i);
-         if (phdr.p_type() == PT_LOAD)
-         {
-            Region::perm_t perms;
-            switch (elf.e_flags()) {
-               case 4: perms = Region::RP_R; break;
-               case 5: perms = Region::RP_RX; break;
-               case 6: perms = Region::RP_RW; break;
-               case 7: perms = Region::RP_RWX; break;
-               default:
-                  perms = Region::RP_RWX; break;
-            }
-            Region *region = Region::createRegion(phdr.p_vaddr(), perms, Region::RT_DATA, 
-                                                  phdr.p_filesz(), phdr.p_vaddr(), 
-                                                  phdr.p_memsz());
-            regions.push_back(region);
-         }
-         if (phdr.p_type() == PT_INTERP)
-         {
-            interp_disk_offset = (size_t) phdr.p_offset();
-            interp_size = (unsigned) phdr.p_filesz();
-         }
-      }
-      elf.end();
-   }
-
-   if (!interp_disk_offset || !interp_size) {
-      translate_printf("[%s:%u] - Did not find interp section\n", __FILE__, __LINE__);
-      goto done;
-   }
-
-   result = lseek(fd, interp_disk_offset, SEEK_SET);
-   if (result == (off_t)-1) {
-      translate_printf("[%s:%u] - Failed to seek to interp section\n", 
-                       __FILE__, __LINE__);
-      parse_error = true;
-      goto done;
-   }
-   buffer = (char *) malloc(interp_size+1);
-   memset(buffer, 0, interp_size+1);
-
-   result = read(fd, buffer, interp_size);
-   if (result == -1) {
-      free(buffer);
-      translate_printf("[%s:%u] - Could not read interp string from file\n",
-                       __FILE__, __LINE__);
-      parse_error = true;
-      goto done;
-   }
-   interpreter_name = std::string(buffer);
-
- done:
-   if (buffer)
-      free(buffer);
-   if (fd != -1)
-      close(fd);
-}
-
-FCNode *FileCache::getNode(const string &filename)
+FCNode *FileCache::getNode(const string &filename, SymbolReaderFactory *factory)
 {
    struct stat buf;
    int result = stat(filename.c_str(), &buf);
@@ -824,7 +748,7 @@ FCNode *FileCache::getNode(const string &filename)
       }
    }
 
-   FCNode *fc = new FCNode(filename, buf.st_dev, buf.st_ino);
+   FCNode *fc = new FCNode(filename, buf.st_dev, buf.st_ino, factory);
    nodes.push_back(fc);
 
    return fc;

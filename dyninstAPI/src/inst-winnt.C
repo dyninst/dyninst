@@ -133,7 +133,7 @@ int_function *instPoint::findCallee()
       
       // get the target address of the call
         Expression::Ptr cft = insn()->getControlFlowTarget();
-        static Expression* theIP = new RegisterAST(r_EIP);
+		static Expression* theIP = new RegisterAST(x86::eip);
         cft->bind(theIP, Result(s32, addr()));
         Result r = cft->eval();
 		assert(r.defined);
@@ -160,13 +160,13 @@ int_function *instPoint::findCallee()
         static const unsigned max_insn_size = 16; // covers AMD64
       const unsigned char *insnLocalAddr =
         (unsigned char *)(proc()->getPtrToInstruction(callTarget));
-      InstructionDecoder d(insnLocalAddr, max_insn_size);
-      d.setMode(proc()->getAddressWidth() == 8);
-      Instruction::Ptr insn = d.decode();
+	  InstructionDecoder::Ptr d = makeDecoder(Arch_x86, insnLocalAddr, max_insn_size);
+      d->setMode(proc()->getAddressWidth() == 8);
+      Instruction::Ptr insn = d->decode();
       if(insn && (insn->getCategory() == c_BranchInsn))
       {
           Expression::Ptr cft = insn->getControlFlowTarget();
-          static Expression* theIP = new RegisterAST(r_EIP);
+		  static Expression* theIP = new RegisterAST(x86::eip);
           cft->bind(theIP, Result(u64, callTarget));
           Result r = cft->eval();
           if(r.defined)
@@ -215,7 +215,7 @@ int_function *instPoint::findCallee()
       if(insn() && (insn()->getCategory() == c_CallInsn))
       {
           Expression::Ptr cft = insn()->getControlFlowTarget();
-          static Expression* theIP = new RegisterAST(r_EIP);
+		  static Expression* theIP = new RegisterAST(x86::eip);
           cft->bind(theIP, Result(u64, addr()));
           Result r = cft->eval();
           if(r.defined)

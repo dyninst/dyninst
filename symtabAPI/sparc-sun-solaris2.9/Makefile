@@ -25,9 +25,6 @@ SRCS =		../src/Object-elf.C \
 		../src/emitElfStatic.C \
 		../src/emitElfStatic-stub.C \
 		../src/LinkMap.C \
-		../src/addrtranslate.C \
-		../src/addrtranslate-sysv.C \
-		../src/addrtranslate-solaris.C \
 		../src/relocationEntry-elf-sparc.C
 
 CFLAGS		+= -DNO_MDL_PRINT -I/usr/local/stow/bind-8.2.2.p5/include/ $(MYFLAGS)

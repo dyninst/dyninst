@@ -311,7 +311,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS CXX CXXFLAGS LDFLAGS CPPFLAGS ac_ct_CXX EXEEXT OBJEXT _ICC_ _ICPC_ _PGC_ _PGCXX_ _CC_ _CXX_ USE_TCL83 TCLTK_INC_DIR TCLTK_LIB_DIR build build_cpu build_vendor build_os host host_cpu host_vendor host_os CXXCPP EGREP LIBELF_INC_DIR LIBELF_LIB_DIR LIBELF_STATIC LIBELF_DYNAMIC BUILD_XLC LIBDWARF_INC_DIR LIBDWARF_LIB_DIR LIBDWARF_STATIC LIBDWARF_DYNAMIC LIBDWARF_HAS_SET_FRAME LIBXML2_INC_DIR LIBXML2_LIB_DIR LIBIBERTY_LIB_DIR LIBIBERTY_STATIC LIBIBERTY_DYNAMIC LIBUNWIND_INC_DIR LIBUNWIND_LIB_DIR LIBFLEX_LIB_DIR NASM STACKPROT BUILD32 MMTIMER TESTSUITE LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS CXX CXXFLAGS LDFLAGS CPPFLAGS ac_ct_CXX EXEEXT OBJEXT _ICC_ _ICPC_ _PGC_ _PGCXX_ _CC_ _CXX_ USE_TCL83 TCLTK_INC_DIR TCLTK_LIB_DIR build build_cpu build_vendor build_os host host_cpu host_vendor host_os CXXCPP EGREP LIBELF_INC_DIR LIBELF_LIB_DIR LIBELF_STATIC LIBELF_DYNAMIC LIBIBERTY_LIB_DIR LIBIBERTY_STATIC LIBIBERTY_DYNAMIC HAVE_LIBIBERTY BUILD_XLC LIBDWARF_INC_DIR LIBDWARF_LIB_DIR LIBDWARF_STATIC LIBDWARF_DYNAMIC LIBDWARF_HAS_SET_FRAME LIBXML2_INC_DIR LIBXML2_LIB_DIR LIBUNWIND_INC_DIR LIBUNWIND_LIB_DIR LIBFLEX_LIB_DIR NASM STACKPROT BUILD32 MMTIMER TESTSUITE LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -859,11 +859,11 @@ Optional Packages:
   --with-tcltk-libdir     TCL/TK library directory
   --with-libelf-incdir    LIBELF include directory
   --with-libelf-libdir    LIBELF library directory
+  --with-libiberty-libdir LIBIBERTY library directory
   --with-libdwarf-incdir  LIBDWARF include directory
   --with-libdwarf-libdir  LIBDWARF library directory
   --with-libxml2-incdir   LIBXML2 include directory
   --with-libxml2-libdir   LIBXML2 library directory
-  --with-libiberty-libdir LIBIBERTY library directory
   --with-libunwind-incdir LIBUNWIND include directory
   --with-libunwind-libdir LIBUNWIND library directory
   --with-libflex-libdir   Absolute path to flex library
@@ -3663,8 +3663,250 @@ fi
 if test "`echo $host_os | cut -b-3`" = "aix" ; then
    if test "`basename $CXX`" = "xlC" ; then
       BUILD_XLC="true";
+   elif test "`basename $CC`" = "xlc" ; then
+      BUILD_XLC="true";
+   else
+      BUILD_XLC="";
+
+# Check whether --with-libiberty-libdir or --without-libiberty-libdir was given.
+if test "${with_libiberty_libdir+set}" = set; then
+  withval="$with_libiberty_libdir"
+  LIBIBERTY_LIB_DIR="${withval}";
+fi;
+   LIBS_HOLD=$LIBS
+   LIBS="-L$LIBIBERTY_LIB_DIR"
+   echo "$as_me:$LINENO: checking for cplus_demangle in -liberty" >&5
+echo $ECHO_N "checking for cplus_demangle in -liberty... $ECHO_C" >&6
+if test "${ac_cv_lib_iberty_cplus_demangle+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-liberty  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char cplus_demangle ();
+int
+main ()
+{
+cplus_demangle ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_lib_iberty_cplus_demangle=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_lib_iberty_cplus_demangle=no
+fi
+rm -f conftest.err conftest.$ac_objext \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_lib_iberty_cplus_demangle" >&5
+echo "${ECHO_T}$ac_cv_lib_iberty_cplus_demangle" >&6
+if test $ac_cv_lib_iberty_cplus_demangle = yes; then
+  HAVE_LIBIBERTY="1";
+else
+  as_ac_File=`echo "ac_cv_file_$LIBIBERTY_LIB_DIR/libiberty.a" | $as_tr_sh`
+echo "$as_me:$LINENO: checking for $LIBIBERTY_LIB_DIR/libiberty.a" >&5
+echo $ECHO_N "checking for $LIBIBERTY_LIB_DIR/libiberty.a... $ECHO_C" >&6
+if eval "test \"\${$as_ac_File+set}\" = set"; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  test "$cross_compiling" = yes &&
+  { { echo "$as_me:$LINENO: error: cannot check for file existence when cross compiling" >&5
+echo "$as_me: error: cannot check for file existence when cross compiling" >&2;}
+   { (exit 1); exit 1; }; }
+if test -r "$LIBIBERTY_LIB_DIR/libiberty.a"; then
+  eval "$as_ac_File=yes"
+else
+  eval "$as_ac_File=no"
+fi
+fi
+echo "$as_me:$LINENO: result: `eval echo '${'$as_ac_File'}'`" >&5
+echo "${ECHO_T}`eval echo '${'$as_ac_File'}'`" >&6
+if test `eval echo '${'$as_ac_File'}'` = yes; then
+  :
+else
+  { { echo "$as_me:$LINENO: error: Can't find libiberty in $LIBIBERTY_LIB_DIR" >&5
+echo "$as_me: error: Can't find libiberty in $LIBIBERTY_LIB_DIR" >&2;}
+   { (exit 1); exit 1; }; }
+fi
+
+fi
+
+   LIBS=$LIBS_HOLD
+
+
+  LIB_TYPE_DYNAMIC=`ls -H -1 $LIBIBERTY_LIB_DIR | grep iberty | grep '\.so' | wc | awk '{if($'2' > 0){print "true"} else {print ""}}'`
+  if test "$LIB_TYPE_DYNAMIC" = "true"; then
+	LIB_TYPE_STATIC=
+  else
+  	LIB_TYPE_STATIC=`ls -H -1 $LIBIBERTY_LIB_DIR | grep iberty | grep '\.a' | wc | awk '{if($'2' > 0){print "true"} else {print ""}}'`
+  fi
+
+   LIBIBERTY_STATIC="$LIB_TYPE_STATIC"
+   LIBIBERTY_DYNAMIC="$LIB_TYPE_DYNAMIC"
+
+
+
 
    fi
+
+else
+
+# Check whether --with-libiberty-libdir or --without-libiberty-libdir was given.
+if test "${with_libiberty_libdir+set}" = set; then
+  withval="$with_libiberty_libdir"
+  LIBIBERTY_LIB_DIR="${withval}";
+fi;
+   LIBS_HOLD=$LIBS
+   LIBS="-L$LIBIBERTY_LIB_DIR"
+   echo "$as_me:$LINENO: checking for cplus_demangle in -liberty" >&5
+echo $ECHO_N "checking for cplus_demangle in -liberty... $ECHO_C" >&6
+if test "${ac_cv_lib_iberty_cplus_demangle+set}" = set; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-liberty  $LIBS"
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+
+/* Override any gcc2 internal prototype to avoid an error.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+/* We use char because int might match the return type of a gcc2
+   builtin and then its argument prototype would still apply.  */
+char cplus_demangle ();
+int
+main ()
+{
+cplus_demangle ();
+  ;
+  return 0;
+}
+_ACEOF
+rm -f conftest.$ac_objext conftest$ac_exeext
+if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
+  (eval $ac_link) 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } &&
+	 { ac_try='test -z "$ac_cxx_werror_flag"
+			 || test ! -s conftest.err'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; } &&
+	 { ac_try='test -s conftest$ac_exeext'
+  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
+  (eval $ac_try) 2>&5
+  ac_status=$?
+  echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); }; }; then
+  ac_cv_lib_iberty_cplus_demangle=yes
+else
+  echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+ac_cv_lib_iberty_cplus_demangle=no
+fi
+rm -f conftest.err conftest.$ac_objext \
+      conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+echo "$as_me:$LINENO: result: $ac_cv_lib_iberty_cplus_demangle" >&5
+echo "${ECHO_T}$ac_cv_lib_iberty_cplus_demangle" >&6
+if test $ac_cv_lib_iberty_cplus_demangle = yes; then
+  HAVE_LIBIBERTY="1";
+else
+  as_ac_File=`echo "ac_cv_file_$LIBIBERTY_LIB_DIR/libiberty.a" | $as_tr_sh`
+echo "$as_me:$LINENO: checking for $LIBIBERTY_LIB_DIR/libiberty.a" >&5
+echo $ECHO_N "checking for $LIBIBERTY_LIB_DIR/libiberty.a... $ECHO_C" >&6
+if eval "test \"\${$as_ac_File+set}\" = set"; then
+  echo $ECHO_N "(cached) $ECHO_C" >&6
+else
+  test "$cross_compiling" = yes &&
+  { { echo "$as_me:$LINENO: error: cannot check for file existence when cross compiling" >&5
+echo "$as_me: error: cannot check for file existence when cross compiling" >&2;}
+   { (exit 1); exit 1; }; }
+if test -r "$LIBIBERTY_LIB_DIR/libiberty.a"; then
+  eval "$as_ac_File=yes"
+else
+  eval "$as_ac_File=no"
+fi
+fi
+echo "$as_me:$LINENO: result: `eval echo '${'$as_ac_File'}'`" >&5
+echo "${ECHO_T}`eval echo '${'$as_ac_File'}'`" >&6
+if test `eval echo '${'$as_ac_File'}'` = yes; then
+  :
+else
+  { { echo "$as_me:$LINENO: error: Can't find libiberty in $LIBIBERTY_LIB_DIR" >&5
+echo "$as_me: error: Can't find libiberty in $LIBIBERTY_LIB_DIR" >&2;}
+   { (exit 1); exit 1; }; }
+fi
+
+fi
+
+   LIBS=$LIBS_HOLD
+
+
+  LIB_TYPE_DYNAMIC=`ls -H -1 $LIBIBERTY_LIB_DIR | grep iberty | grep '\.so' | wc | awk '{if($'2' > 0){print "true"} else {print ""}}'`
+  if test "$LIB_TYPE_DYNAMIC" = "true"; then
+	LIB_TYPE_STATIC=
+  else
+  	LIB_TYPE_STATIC=`ls -H -1 $LIBIBERTY_LIB_DIR | grep iberty | grep '\.a' | wc | awk '{if($'2' > 0){print "true"} else {print ""}}'`
+  fi
+
+   LIBIBERTY_STATIC="$LIB_TYPE_STATIC"
+   LIBIBERTY_DYNAMIC="$LIB_TYPE_DYNAMIC"
+
+
+
 fi
 
 if test "`echo $host_os | cut -b-3`" = "aix" ; then
@@ -4792,134 +5034,6 @@ fi
 
 
 
-if test "`echo $host_os | cut -b-3`" = "aix" ; then
-   { echo "$as_me:$LINENO: AIX system, skipping libiberty..." >&5
-echo "$as_me: AIX system, skipping libiberty..." >&6;}
-else
-
-# Check whether --with-libiberty-libdir or --without-libiberty-libdir was given.
-if test "${with_libiberty_libdir+set}" = set; then
-  withval="$with_libiberty_libdir"
-  LIBIBERTY_LIB_DIR="${withval}";
-fi;
-   LIBS_HOLD=$LIBS
-   LIBS="-L$LIBIBERTY_LIB_DIR"
-
-echo "$as_me:$LINENO: checking for cplus_demangle in -liberty" >&5
-echo $ECHO_N "checking for cplus_demangle in -liberty... $ECHO_C" >&6
-if test "${ac_cv_lib_iberty_cplus_demangle+set}" = set; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-liberty  $LIBS"
-cat >conftest.$ac_ext <<_ACEOF
-/* confdefs.h.  */
-_ACEOF
-cat confdefs.h >>conftest.$ac_ext
-cat >>conftest.$ac_ext <<_ACEOF
-/* end confdefs.h.  */
-
-/* Override any gcc2 internal prototype to avoid an error.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-/* We use char because int might match the return type of a gcc2
-   builtin and then its argument prototype would still apply.  */
-char cplus_demangle ();
-int
-main ()
-{
-cplus_demangle ();
-  ;
-  return 0;
-}
-_ACEOF
-rm -f conftest.$ac_objext conftest$ac_exeext
-if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
-  (eval $ac_link) 2>conftest.er1
-  ac_status=$?
-  grep -v '^ *+' conftest.er1 >conftest.err
-  rm -f conftest.er1
-  cat conftest.err >&5
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); } &&
-	 { ac_try='test -z "$ac_cxx_werror_flag"
-			 || test ! -s conftest.err'
-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
-  (eval $ac_try) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; } &&
-	 { ac_try='test -s conftest$ac_exeext'
-  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
-  (eval $ac_try) 2>&5
-  ac_status=$?
-  echo "$as_me:$LINENO: \$? = $ac_status" >&5
-  (exit $ac_status); }; }; then
-  ac_cv_lib_iberty_cplus_demangle=yes
-else
-  echo "$as_me: failed program was:" >&5
-sed 's/^/| /' conftest.$ac_ext >&5
-
-ac_cv_lib_iberty_cplus_demangle=no
-fi
-rm -f conftest.err conftest.$ac_objext \
-      conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-echo "$as_me:$LINENO: result: $ac_cv_lib_iberty_cplus_demangle" >&5
-echo "${ECHO_T}$ac_cv_lib_iberty_cplus_demangle" >&6
-if test $ac_cv_lib_iberty_cplus_demangle = yes; then
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBIBERTY 1
-_ACEOF
-
-  LIBS="-liberty $LIBS"
-
-else
-  as_ac_File=`echo "ac_cv_file_$LIBIBERTY_LIB_DIR/libiberty.a" | $as_tr_sh`
-echo "$as_me:$LINENO: checking for $LIBIBERTY_LIB_DIR/libiberty.a" >&5
-echo $ECHO_N "checking for $LIBIBERTY_LIB_DIR/libiberty.a... $ECHO_C" >&6
-if eval "test \"\${$as_ac_File+set}\" = set"; then
-  echo $ECHO_N "(cached) $ECHO_C" >&6
-else
-  test "$cross_compiling" = yes &&
-  { { echo "$as_me:$LINENO: error: cannot check for file existence when cross compiling" >&5
-echo "$as_me: error: cannot check for file existence when cross compiling" >&2;}
-   { (exit 1); exit 1; }; }
-if test -r "$LIBIBERTY_LIB_DIR/libiberty.a"; then
-  eval "$as_ac_File=yes"
-else
-  eval "$as_ac_File=no"
-fi
-fi
-echo "$as_me:$LINENO: result: `eval echo '${'$as_ac_File'}'`" >&5
-echo "${ECHO_T}`eval echo '${'$as_ac_File'}'`" >&6
-if test `eval echo '${'$as_ac_File'}'` = yes; then
-  :
-else
-  { { echo "$as_me:$LINENO: error: Can't find libiberty in $LIBIBERTY_LIB_DIR" >&5
-echo "$as_me: error: Can't find libiberty in $LIBIBERTY_LIB_DIR" >&2;}
-   { (exit 1); exit 1; }; }
-fi
-
-fi
-
-   LIBS=$LIBS_HOLD
-
-
-  LIB_TYPE_DYNAMIC=`ls -H -1 $LIBIBERTY_LIB_DIR | grep iberty | grep '\.so' | wc | awk '{if($'2' > 0){print "true"} else {print ""}}'`
-  if test "$LIB_TYPE_DYNAMIC" = "true"; then
-	LIB_TYPE_STATIC=
-  else
-  	LIB_TYPE_STATIC=`ls -H -1 $LIBIBERTY_LIB_DIR | grep iberty | grep '\.a' | wc | awk '{if($'2' > 0){print "true"} else {print ""}}'`
-  fi
-
-   LIBIBERTY_STATIC="$LIB_TYPE_STATIC"
-   LIBIBERTY_DYNAMIC="$LIB_TYPE_DYNAMIC"
-
-
-fi
 
 if test "$host_cpu" != "ia64" ; then
    { echo "$as_me:$LINENO: Not IA-64, skipping libunwind..." >&5
@@ -5308,7 +5422,7 @@ _ACEOF
 cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
-#include <signal.h>
+
 int
 main ()
 {
@@ -5367,7 +5481,7 @@ _ACEOF
 cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
-
+#include <signal.h>
 int
 main ()
 {
@@ -6105,6 +6219,10 @@ s,@LIBELF_INC_DIR@,$LIBELF_INC_DIR,;t t
 s,@LIBELF_LIB_DIR@,$LIBELF_LIB_DIR,;t t
 s,@LIBELF_STATIC@,$LIBELF_STATIC,;t t
 s,@LIBELF_DYNAMIC@,$LIBELF_DYNAMIC,;t t
+s,@LIBIBERTY_LIB_DIR@,$LIBIBERTY_LIB_DIR,;t t
+s,@LIBIBERTY_STATIC@,$LIBIBERTY_STATIC,;t t
+s,@LIBIBERTY_DYNAMIC@,$LIBIBERTY_DYNAMIC,;t t
+s,@HAVE_LIBIBERTY@,$HAVE_LIBIBERTY,;t t
 s,@BUILD_XLC@,$BUILD_XLC,;t t
 s,@LIBDWARF_INC_DIR@,$LIBDWARF_INC_DIR,;t t
 s,@LIBDWARF_LIB_DIR@,$LIBDWARF_LIB_DIR,;t t
@@ -6113,9 +6231,6 @@ s,@LIBDWARF_DYNAMIC@,$LIBDWARF_DYNAMIC,;t t
 s,@LIBDWARF_HAS_SET_FRAME@,$LIBDWARF_HAS_SET_FRAME,;t t
 s,@LIBXML2_INC_DIR@,$LIBXML2_INC_DIR,;t t
 s,@LIBXML2_LIB_DIR@,$LIBXML2_LIB_DIR,;t t
-s,@LIBIBERTY_LIB_DIR@,$LIBIBERTY_LIB_DIR,;t t
-s,@LIBIBERTY_STATIC@,$LIBIBERTY_STATIC,;t t
-s,@LIBIBERTY_DYNAMIC@,$LIBIBERTY_DYNAMIC,;t t
 s,@LIBUNWIND_INC_DIR@,$LIBUNWIND_INC_DIR,;t t
 s,@LIBUNWIND_LIB_DIR@,$LIBUNWIND_LIB_DIR,;t t
 s,@LIBFLEX_LIB_DIR@,$LIBFLEX_LIB_DIR,;t t

@@ -29,8 +29,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+
 #if !defined(DYN_REGS_H_)
 #define DYN_REGS_H_
+
+#include "util.h"
 
 #include <assert.h>
 #include <map>
@@ -48,16 +51,15 @@ namespace Dyninst
       Arch_ppc64  = 0x28000000
    } Architecture;
 
-   class MachRegister {
+   class COMMON_EXPORT MachRegister {
    private:
       signed int reg;
       static std::map<signed int, const char *> *names;
    public:
-      MachRegister();
+
+	  MachRegister();
       explicit MachRegister(signed int r);
       explicit MachRegister(signed int r, const char *n);
-      MachRegister(const MachRegister& r);
-      ~MachRegister();
 
       MachRegister getBaseRegister() const;
       Architecture getArchitecture() const;
@@ -105,11 +107,11 @@ namespace Dyninst
    //const.
 #define DEF_REGISTER(name, value, Arch) \
   const signed int i##name = (value); \
-  MachRegister name(i##name, Arch "::" #name);
+  COMMON_EXPORT MachRegister name(i##name, Arch "::" #name);
 #else
 #define DEF_REGISTER(name, value, Arch) \
   const signed int i##name = (value); \
-  extern MachRegister name;
+  COMMON_EXPORT extern MachRegister name;
 
 #endif
 
@@ -204,10 +206,10 @@ namespace Dyninst
       DEF_REGISTER(zf,    ZF      | BIT   | FLAG | Arch_x86, "x86");
       DEF_REGISTER(sf,    SF      | BIT   | FLAG | Arch_x86, "x86");
       DEF_REGISTER(tf,    TF      | BIT   | FLAG | Arch_x86, "x86");
-      DEF_REGISTER(if_,    IF      | BIT   | FLAG | Arch_x86, "x86");
+      DEF_REGISTER(if_,   IF      | BIT   | FLAG | Arch_x86, "x86");
       DEF_REGISTER(df,    DF      | BIT   | FLAG | Arch_x86, "x86");
       DEF_REGISTER(of,    OF      | BIT   | FLAG | Arch_x86, "x86");
-      DEF_REGISTER(nt_,    NT      | BIT   | FLAG | Arch_x86, "x86");
+      DEF_REGISTER(nt_,   NT      | BIT   | FLAG | Arch_x86, "x86");
       DEF_REGISTER(ds,    0x0     | FULL  | SEG  | Arch_x86, "x86");
       DEF_REGISTER(es,    0x1     | FULL  | SEG  | Arch_x86, "x86");
       DEF_REGISTER(fs,    0x2     | FULL  | SEG  | Arch_x86, "x86");
@@ -215,6 +217,8 @@ namespace Dyninst
       DEF_REGISTER(cs,    0x4     | FULL  | SEG  | Arch_x86, "x86");
       DEF_REGISTER(ss,    0x5     | FULL  | SEG  | Arch_x86, "x86");
       DEF_REGISTER(oeax,  0x0     | FULL  | MISC | Arch_x86, "x86");
+      DEF_REGISTER(fsbase, 0x1    | FULL  | MISC | Arch_x86, "x86");
+      DEF_REGISTER(gsbase, 0x2    | FULL  | MISC | Arch_x86, "x86");
       DEF_REGISTER(xmm0,  0x0     | OCT   | XMM  | Arch_x86, "x86");
       DEF_REGISTER(xmm1,  0x1     | OCT   | XMM  | Arch_x86, "x86");
       DEF_REGISTER(xmm2,  0x2     | OCT   | XMM  | Arch_x86, "x86");
@@ -462,8 +466,8 @@ namespace Dyninst
    namespace ppc32 {
       const signed int GPR   = 0x00010000;
       const signed int FPR   = 0x00020000;
-      const signed int FSR   = 0x00030000;
-      const signed int SPR   = 0x00040000;
+      const signed int FSR   = 0x00040000;
+      const signed int SPR   = 0x00080000;
       
       DEF_REGISTER(r0,       0 | GPR | Arch_ppc32, "ppc32");
       DEF_REGISTER(r1,       1 | GPR | Arch_ppc32, "ppc32");
@@ -629,8 +633,8 @@ namespace Dyninst
    namespace ppc64 {
       const signed int GPR   = 0x00010000;
       const signed int FPR   = 0x00020000;
-      const signed int FSR   = 0x00030000;
-      const signed int SPR   = 0x00040000;
+      const signed int FSR   = 0x00040000;
+      const signed int SPR   = 0x00080000;
       
       DEF_REGISTER(r0,       0 | GPR | Arch_ppc64, "ppc64");
       DEF_REGISTER(r1,       1 | GPR | Arch_ppc64, "ppc64");

@@ -33,6 +33,9 @@
 #include "dynutil/h/dyn_regs.h"
 
 #include "external/rose/rose-compat.h"
+#include "external/rose/powerpcInstructionEnum.h"
+
+#include <iostream>
 
 using namespace Dyninst;
 
@@ -48,11 +51,6 @@ MachRegister::MachRegister(signed int r) :
 {
 }
  
-MachRegister::MachRegister(const MachRegister& r) :
-        reg(r.reg)
-{
-}
-
 MachRegister::MachRegister(signed int r, const char *n) :
    reg(r)
 {
@@ -60,9 +58,6 @@ MachRegister::MachRegister(signed int r, const char *n) :
       names = new std::map<signed int, const char *>();
    }
    (*names)[r] = n;
-}
-
-MachRegister::~MachRegister() {
 }
 
 MachRegister MachRegister::getBaseRegister() const { 
@@ -73,7 +68,6 @@ MachRegister MachRegister::getBaseRegister() const {
           return MachRegister(reg & 0xfffff0ff);
       case Arch_ppc32:
       case Arch_ppc64:
-         return *this;
       case Arch_none:
          return *this;
    }
@@ -116,42 +110,42 @@ unsigned int MachRegister::size() const {
    {
       case Arch_x86:
          switch (reg & 0x0000ff00) {
-             case x86::L_REG: //L_REG
+            case x86::L_REG: //L_REG
             case x86::H_REG: //H_REG
                return 1;
-               case x86::W_REG: //W_REG
+            case x86::W_REG: //W_REG
                return 2;
-               case x86::FULL: //FULL
+            case x86::FULL: //FULL
                return 4;
-             case x86::QUAD:
-                return 8;
-             case x86::OCT:
-                 return 16;
-             case x86::FPDBL:
-                 return 10;
-	 case x86::BIT:
-	   return 0;
-             default:
+            case x86::QUAD:
+               return 8;
+            case x86::OCT:
+               return 16;
+            case x86::FPDBL:
+               return 10;
+            case x86::BIT:
+               return 0;
+            default:
                assert(0);
          }
       case Arch_x86_64:
          switch (reg & 0x0000ff00) {
-             case x86_64::L_REG: //L_REG
-             case x86_64::H_REG: //H_REG
+            case x86_64::L_REG: //L_REG
+            case x86_64::H_REG: //H_REG
                 return 1;
-             case x86_64::W_REG: //W_REG
+            case x86_64::W_REG: //W_REG
                 return 2;
-             case x86_64::FULL: //FULL
+            case x86_64::FULL: //FULL
                 return 8;
-             case x86_64::D_REG:
-                 return 4;
-             case x86_64::OCT:
-                 return 16;
-             case x86_64::FPDBL:
-                 return 10;
-	 case x86_64::BIT:
-	   return 0;
-             default:
+            case x86_64::D_REG:
+               return 4;
+            case x86_64::OCT:
+               return 16;
+            case x86_64::FPDBL:
+               return 10;
+            case x86_64::BIT:
+               return 0;
+            default:
                assert(0);
          }
       case Arch_ppc32: {
@@ -397,7 +391,46 @@ void MachRegister::getROSERegister(int &c, int &n, int &p)
                break;
          }
          break;
-      default:
+       case Arch_ppc32:
+       case Arch_ppc64: // 64-bit not supported in ROSE
+       {
+	 baseID = reg & 0x0000FFFF;
+           n = baseID;
+           switch(category)
+           {
+               case ppc32::GPR:
+                   c = powerpc_regclass_gpr;
+                   break;
+               case ppc32::FPR:
+               case ppc32::FSR:
+                   c = powerpc_regclass_fpr;
+                   break;
+               case ppc32::SPR:
+               {
+                   if(baseID < 613) {
+                       c = powerpc_regclass_spr;
+                   } else if(baseID < 621 ) {
+                       c = powerpc_regclass_sr; 
+                   } else {
+                       c = powerpc_regclass_cr;
+                       n = baseID - 621;
+		       if(n > 7) {
+			 n = 0;
+			 p = powerpc_condreggranularity_whole;
+		       } else {
+			 p = powerpc_condreggranularity_field;
+		       }
+
+                   }
+               }
+               break;
+               default:
+                   assert(!"unknown register type!");
+                   break;
+           }
+           return;
+       }
+       default:
          c = x86_regclass_unknown;
          n = 0;
          break;

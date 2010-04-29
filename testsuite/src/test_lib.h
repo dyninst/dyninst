@@ -131,6 +131,10 @@ TESTLIB_DLL_EXPORT void clearDBLog();
 
 TESTLIB_DLL_EXPORT ComponentTester *getComponentTester();
 
+#if !defined(os_windows_test)
+TESTLIB_DLL_EXPORT pid_t fork_mutatee();
+#endif
+
 #define EFAIL(cmsg) throw LocErr(__FILE__, __LINE__, std::string(cmsg))
 #define REPORT_EFAIL catch(const LocErr &err) { \
 	   err.print(stderr); \
