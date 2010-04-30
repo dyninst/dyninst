@@ -34,7 +34,7 @@
 
 #include "InstructionDecoderImpl.h"
 
-#include "ia32_locations.h"
+#include "common/h/ia32_locations.h"
 
 struct ia32_operand;
 class ia32_instruction;

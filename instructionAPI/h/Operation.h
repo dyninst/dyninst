@@ -56,7 +56,7 @@
 // Operation + ExpressionPtrs -> Instruction + Operands
 struct ia32_entry;
 class ia32_prefixes;
-struct ia32_locations;
+class ia32_locations;
 
 namespace Dyninst
 {

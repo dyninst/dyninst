@@ -649,7 +649,7 @@ using namespace boost::assign;
         else
         {
             bool taken = (field<6,6>(insn) && field<8,8>(insn)) || field<16,16>(insn);
-            taken ^= field<10,10>(insn);
+			taken ^= field<10,10>(insn) ? true : false;
             insn_in_progress->getOperation().mnemonic += (taken ? "+" : "-");
         }
             

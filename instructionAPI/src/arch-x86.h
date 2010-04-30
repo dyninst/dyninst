@@ -42,7 +42,7 @@
 #include "../../common/h/Types.h"
 #include "dyn_regs.h"
 #include "entryIDs.h"
-#include "ia32_locations.h"
+#include "common/h/ia32_locations.h"
 
 
 #if defined(i386_unknown_nt4_0)

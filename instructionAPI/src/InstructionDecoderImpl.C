@@ -30,7 +30,7 @@
  */
 
 #include "InstructionDecoderImpl.h"
-#include "singleton_object_pool.h"
+#include "common/h/singleton_object_pool.h"
 #include "InstructionDecoder-x86.h"
 #include "InstructionDecoder-power.h"
 #include "BinaryFunction.h"
@@ -49,7 +49,7 @@ namespace Dyninst
         }
     
     
-        INSTRUCTION_EXPORT Instruction::Ptr InstructionDecoderImpl::decode(InstructionDecoder::buffer& b)
+        Instruction::Ptr InstructionDecoderImpl::decode(InstructionDecoder::buffer& b)
         {
             //setMode(m_Arch == Arch_x86_64);
             const unsigned char* start = b.start;

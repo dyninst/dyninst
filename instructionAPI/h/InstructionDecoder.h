@@ -71,7 +71,7 @@ namespace Dyninst
       /// the size of the instruction decoded.
       Instruction::Ptr decode(const unsigned char* buffer);
       void doDelayedDecode(const Instruction* insn_to_complete);
-      struct buffer
+      struct INSTRUCTION_EXPORT buffer
       {
           const unsigned char* start;
           const unsigned char* end;
