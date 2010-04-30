@@ -107,6 +107,12 @@ bool operator==(const Constant &rhs) const {
     return ((rhs.val == val) && (rhs.size == size));
 }
 
+bool operator<(const Constant &rhs) const {
+  if (val < rhs.val) return true;
+  if (size < rhs.size) return true;
+  return false;
+}
+
 const std::string format() const {
     std::stringstream ret;
     ret << val;
