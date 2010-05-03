@@ -37,6 +37,7 @@ SRCS =          ../src/freebsd.C \
 		../src/stackanalysis.C \
 		../src/IAPI_to_AST.C \
 		../src/IA_IAPI.C \
+		../src/IA_x86.C \
 		../src/BPatch_memoryAccessAdapter.C \
 		../src/RegisterConversion-x86.C
 
