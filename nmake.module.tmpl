@@ -109,7 +109,7 @@ clean:
 # for %X IN ( $(LIBTESTSUITE) test_driver.exe runTests.exe $(TEST_LIBS) $(MUTATEES) libtestA.dll libtestB.dll ) DO $(CP) "%X" $(DEST)
 
 LDFLAGS = /debug -LIBPATH:$(TO_CORE)/../$(PLATFORM)/lib 
-LIBS    = libdyninstAPI.lib libsymtabAPI.lib
+LIBS    = libdyninstAPI.lib libsymtabAPI.lib libinstructionAPI.lib
 
 $(LIBTESTSUITE): $(OBJS_LIBTESTSUITE) ../src/test_lib.h
 	$(LINK) $(LDFLAGS)  -DLL -out:$@ $(OBJS_LIBTESTSUITE)

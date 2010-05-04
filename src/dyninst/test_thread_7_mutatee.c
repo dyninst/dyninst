@@ -38,7 +38,7 @@
 #include "mutatee_util.h"
 
 extern thread_t spawnNewThread(void *initial_func, void *param);
-extern void *joinThread(thread_t threadid);
+extern void joinThread(thread_t threadid);
 extern void initThreads();
 
 #define NTHRD 8
