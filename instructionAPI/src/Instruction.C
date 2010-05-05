@@ -504,11 +504,12 @@ memAccessors.begin()));
 	return false;
       default:
       {
+	decodeOperands();
           for(cftConstIter targ = m_Successors.begin();
               targ != m_Successors.end();
               ++targ)
           {
-              if(targ->isFallthrough) return true;
+	    if(targ->isFallthrough) return true;
           }
           return m_Successors.empty();
       }
