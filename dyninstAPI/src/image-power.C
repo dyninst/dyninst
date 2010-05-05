@@ -47,84 +47,6 @@
 #include "debug.h"
 #include "arch.h"
 
-#if !defined(cap_instruction_api)
-bool image_func::archIsRealCall(InstrucIter &ah,
-                bool &validTarget,
-                bool & /*simulateJump*/)
-{   
-    Address callTarget;
-
-    if(ah.isADynamicCallInstruction())
-        return true;
-
-    callTarget = ah.getBranchTargetAddress();
-    validTarget = img()->isValidAddress( callTarget );
-    return validTarget;
-}
-
-bool image_func::archCheckEntry(InstrucIter &ah, image_func * /* func */)
-{   
-    // XXX Cheating a little -- this has nothing to do with the
-    // "check entry" as seen on x86 & sparc, but is just a convenient place
-    // to put this code.
-
-    parsing_printf("calling archCheckEntry for 0x%lx, function %s\n", *ah, symTabName().c_str());
-
-    if (ah.isReturnValueSave())
-        makesNoCalls_ = false;
-    else
-        makesNoCalls_ = true;
-
-    // end cheating
-
-    if (!ah.getInstruction().valid()) return false;
-
-    // We see if we're a procedure linkage table; if so, we are _not_
-    // a function (and return false)
-
-    // We don't consider linkage snippets "functions". 
-    dictionary_hash<Address, std::string> *pltFuncs = img()->getPltFuncs();
-    if (pltFuncs && pltFuncs->defines(*ah)) {
-        return false;
-    }
-    /*
-    Address dontcare1;
-    if (ah.isInterModuleCallSnippet(dontcare1))
-      {
-	return false;
-      }
-    */
-    return true;
-}
-
-
-// As Drew has noted, this really, really should not be an InstructIter
-// operation. The extraneous arguments support architectures like x86,
-// which (rightly) treat jump table processing as a control-sensitive
-// data flow operation.
-bool image_func::archGetMultipleJumpTargets(
-                                std::set< Address >& targets,
-                                image_basicBlock * /* currBlk */,
-                                InstrucIter &ah,
-                                pdvector< instruction >& /* allInstructions */)
-{   
-    return ah.getMultipleJumpTargets( targets );
-}
-
-
-// not implemented on power
-bool image_func::archIsATailCall(InstrucIter & /* ah */,
-                                 pdvector< instruction >& /* allInstructions */)
-{   
-    return false;
-}
-
-// not implemented on power
-bool image_func::archIsIndirectTailCall(InstrucIter & /* ah */)
-{   
-    return false;
-}
-#endif
 
 // not implemented on power
 bool image_func::archProcExceptionBlock(Address & /* catchStart */, Address /* a */)
@@ -601,39 +523,17 @@ void image_func::calcUsedRegs()
    else
    {
       usedRegisters = new image_func_registers();
-#if !defined(cap_instruction_api)
-      InstrucIter ah(this);
-      
-      //while there are still instructions to check for in the
-      //address space of the function      
-      while (ah.hasMore()) 
-      {
-         if (ah.isA_RT_WriteInstruction())
-            if (ah.getRTValue() >= 3 && ah.getRTValue() <= 12)
-               usedRegisters->generalPurposeRegisters.insert(ah.getRTValue());
-         if (ah.isA_RA_WriteInstruction())
-            if (ah.getRAValue() >= 3 && ah.getRAValue() <= 12)
-               usedRegisters->generalPurposeRegisters.insert(ah.getRAValue());
-         if (ah.isA_FRT_WriteInstruction())
-            if (ah.getRTValue() <= 13)
-               usedRegisters->floatingPointRegisters.insert(ah.getRTValue());
-         if (ah.isA_FRA_WriteInstruction())
-            if (ah.getRAValue() <= 13)
-               usedRegisters->floatingPointRegisters.insert(ah.getRAValue());
-         ah++;
-      }
-#else
     using namespace Dyninst::InstructionAPI;
     std::set<RegisterAST::Ptr> writtenRegs;
     for(std::set<image_basicBlock*>::const_iterator curBlock = blockList.begin();
        curBlock != blockList.end();
        ++curBlock)
     {
-        InstructionDecoder::Ptr d = makeDecoder(img()->getArch(),
-                (const unsigned char*)getPtrToInstruction((*curBlock)->firstInsnOffset()),
-                (*curBlock)->getSize());
+        InstructionDecoder d(getPtrToInstruction((*curBlock)->firstInsnOffset()),
+        (*curBlock)->getSize(),
+        img()->getArch());
         Instruction::Ptr i;
-        while(i = d->decode())
+        while(i = d.decode())
         {
             i->getWriteSet(writtenRegs);
         }
@@ -653,13 +553,6 @@ void image_func::calcUsedRegs()
             usedRegisters->floatingPointRegisters.insert(r & 0xFFFF);
         }
     }
-#endif
    }
    return;
 }
-#if !defined(cap_instruction_api)
-bool image_func::archIsIPRelativeBranch(InstrucIter& /* ah */)
-{
-  return false;
-}
-#endif

@@ -442,9 +442,7 @@ bool image::gap_heuristic_GCC(Address addr)
     if (!isStackFramePrecheck_gcc(bufferBegin))
         return false;
 
-    dyn_detail::boost::shared_ptr<InstructionDecoder> dec =
-            makeDecoder(arch, bufferBegin, -1 - (Address)(bufferBegin));
-    dec->setMode(getAddressWidth() == 8);
+    InstructionDecoder dec(bufferBegin, -1 - (Address)(bufferBegin), arch);
     IA_IAPI ah(dec, addr, this);
 #else
     typedef IA_InstrucIter InstructionAdapter_t;
@@ -469,9 +467,7 @@ bool image::gap_heuristic_MSVS(Address addr)
     if (!isStackFramePrecheck_msvs(bufferBegin))
         return false;
 
-    dyn_detail::boost::shared_ptr<InstructionDecoder> dec =
-            makeDecoder(arch, bufferBegin, -1 - (Address)(bufferBegin));
-    dec->setMode(getAddressWidth() == 8);
+    InstructionDecoder dec(bufferBegin, -1 - (Address)(bufferBegin), arch);
     IA_IAPI ah(dec, addr, this);
 #else
     typedef IA_InstrucIter InstructionAdapter_t;
@@ -588,9 +584,7 @@ bool image_func::parse()
                 FILE__, __LINE__);
         return false;
     }
-    dyn_detail::boost::shared_ptr<InstructionDecoder> dec =
-            makeDecoder(img()->getArch(), bufferBegin, -1 - (Address)(bufferBegin));
-    dec->setMode(img()->getAddressWidth() == 8);
+    InstructionDecoder dec(bufferBegin, -1 - (Address)(bufferBegin), img()->getArch());
     IA_IAPI ah(dec, funcBegin, this);
 #else
     typedef IA_InstrucIter InstructionAdapter_t;
@@ -810,9 +804,7 @@ bool image_func::buildCFG(
                     FILE__, __LINE__);
             return false;
         }
-        dyn_detail::boost::shared_ptr<InstructionDecoder> dec =
-                makeDecoder(img()->getArch(), bufferBegin, -1 - (Address)(bufferBegin));
-        dec->setMode(img()->getAddressWidth() == 8);
+        InstructionDecoder dec(bufferBegin, -1 - (Address)(bufferBegin), img()->getArch());
         InstructionAdapter_t ah(dec, wl_current, this);
 #else        
         InstrucIter iter(wl_current,this);

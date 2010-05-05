@@ -496,6 +496,9 @@ copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				RelativePath=".\h\headers.h">
 			</File>
 			<File
+				RelativePath=".\h\ia32_locations.h">
+			</File>
+			<File
 				RelativePath=".\h\int64iostream.h">
 			</File>
 			<File

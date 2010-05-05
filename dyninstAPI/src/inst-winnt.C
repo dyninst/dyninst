@@ -160,9 +160,8 @@ int_function *instPoint::findCallee()
         static const unsigned max_insn_size = 16; // covers AMD64
       const unsigned char *insnLocalAddr =
         (unsigned char *)(proc()->getPtrToInstruction(callTarget));
-	  InstructionDecoder::Ptr d = makeDecoder(Arch_x86, insnLocalAddr, max_insn_size);
-      d->setMode(proc()->getAddressWidth() == 8);
-      Instruction::Ptr insn = d->decode();
+	  InstructionDecoder d(insnLocalAddr, max_insn_size, img_p_->func()->img()->getArch());
+      Instruction::Ptr insn = d.decode();
       if(insn && (insn->getCategory() == c_BranchInsn))
       {
           Expression::Ptr cft = insn->getControlFlowTarget();

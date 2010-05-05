@@ -3,7 +3,8 @@
 #include "proccontrol/src/irpc.h"
 #include "proccontrol/src/int_process.h"
 
-#include <assert.h>
+#include <cstring>
+#include <cassert>
 
 unsigned long int_iRPC::next_id;
 

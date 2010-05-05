@@ -1086,10 +1086,10 @@ int_function *AddressSpace::findJumpTargetFuncByAddr(Address addr) {
 #if defined(cap_instruction_api)
     mapped_object* mobj = dynamic_cast<mapped_object*>(range);
     using namespace Dyninst::InstructionAPI;
-    dyn_detail::boost::shared_ptr<InstructionDecoder> decoder =
-            makeDecoder(mobj->parse_img()->getArch(), (const unsigned char*)getPtrToInstruction(addr));
-    decoder->setMode(getAddressWidth() == 8);
-    Instruction::Ptr curInsn = decoder->decode();
+    InstructionDecoder decoder((const unsigned char*)getPtrToInstruction(addr),
+			       InstructionDecoder::maxInstructionLength,
+			       mobj->parse_img()->getArch());
+    Instruction::Ptr curInsn = decoder.decode();
     
     Expression::Ptr target = curInsn->getControlFlowTarget();
     RegisterAST thePC = RegisterAST::makePC(mobj->parse_img()->getArch());

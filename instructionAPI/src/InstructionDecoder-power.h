@@ -30,7 +30,7 @@
  */
 
 
-#include "InstructionDecoder.h"
+#include "InstructionDecoderImpl.h"
 #include <iostream>
 #include "Immediate.h"
 #include "dyn_regs.h"
@@ -41,20 +41,21 @@ namespace Dyninst {
     {
         struct power_entry;
 
-        class InstructionDecoder_power : public InstructionDecoder
+        class InstructionDecoder_power : public InstructionDecoderImpl
         {
             friend struct power_entry;
             public:
-                InstructionDecoder_power(const unsigned char* buffer, unsigned int length,
-                                        Architecture arch);
+                InstructionDecoder_power(Architecture a);
                 virtual ~InstructionDecoder_power();
-                virtual unsigned int decodeOpcode();
-                virtual Instruction::Ptr decode();
-                virtual Instruction::Ptr decode(const unsigned char* buffer);
-                virtual void setMode(bool is64);
+                virtual void decodeOpcode(InstructionDecoder::buffer& b);
+                virtual Instruction::Ptr decode(InstructionDecoder::buffer& b);
+		virtual void setMode(bool) 
+		{
+		}
                 virtual bool decodeOperands(const Instruction* insn_to_complete);
                 virtual void doDelayedDecode(const Instruction* insn_to_complete);
                 static bool foundDoubleHummerInsn;
+                using InstructionDecoderImpl::makeRegisterExpression;
             private:
                 virtual Result_Type makeSizeType(unsigned int opType);
                 Expression::Ptr makeMemRefIndex(Result_Type size);

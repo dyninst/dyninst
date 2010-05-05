@@ -20,7 +20,7 @@ CXXFLAGS     = $(CXXFLAGS) -I$(TO_CORE)/dyninstAPI/h -I$(TO_CORE)/external \
 CXXFLAGS_NORM = $(CXXFLAGS) -I$(TO_CORE)/testsuite/src 
 CFLAGS       = $(CFLAGS) /Zi /D_DEBUG -I$(TO_CORE)/h
 
-LIBS		= $(TO_CORE)\$(LIBRARY_DEST)\libdyninstAPI.lib $(TO_CORE)\$(LIBRARY_DEST)\libcommon.lib
+LIBS		= $(TO_CORE)\$(LIBRARY_DEST)\libdyninstAPI.lib $(TO_CORE)\$(LIBRARY_DEST)\libcommon.lib $(TO_CORE)\$(LIBRARY_DEST)\libinstructionAPI.lib
 
 SYSLIBS		= 
 
@@ -109,7 +109,7 @@ clean:
 # for %X IN ( $(LIBTESTSUITE) test_driver.exe runTests.exe $(TEST_LIBS) $(MUTATEES) libtestA.dll libtestB.dll ) DO $(CP) "%X" $(DEST)
 
 LDFLAGS = /debug -LIBPATH:$(TO_CORE)/../$(PLATFORM)/lib 
-LIBS    = libdyninstAPI.lib libsymtabAPI.lib
+LIBS    = libdyninstAPI.lib libsymtabAPI.lib libinstructionAPI.lib
 
 $(LIBTESTSUITE): $(OBJS_LIBTESTSUITE) ../src/test_lib.h
 	$(LINK) $(LDFLAGS)  -DLL -out:$@ $(OBJS_LIBTESTSUITE)

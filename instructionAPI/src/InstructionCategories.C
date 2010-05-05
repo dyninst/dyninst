@@ -30,7 +30,7 @@
  */
 
 #include "InstructionCategories.h"
-#include "entryIDs-IA32.h"
+#include "entryIDs.h"
 
 namespace Dyninst
 {

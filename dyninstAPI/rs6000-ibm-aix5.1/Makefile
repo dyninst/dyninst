@@ -58,10 +58,6 @@ G_PTHREAD       = -pthread
 # Commented out for daily wisc builds
 #G_PTHREAD_LD	= -pthread
 
-# InstructionAPI is just x86 and power at this point
-LIBS    += -linstructionAPI
-
-
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
 

@@ -199,6 +199,7 @@ namespace Dyninst
               val(o.val), type(o.type), defined(o.defined)
       {
       }
+
       const Result& operator=(const Result& rhs)
       {
           val = rhs.val;

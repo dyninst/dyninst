@@ -1876,7 +1876,7 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
       buffer = relas;
    }
    old_reloc_size =  dynamicSecData[dsize_type][0]->d_un.d_val;
-   dynamic_reloc_size = old_reloc_size+  l*sizeof(Elf32_Rel)+ m*sizeof(Elf32_Rela);
+   dynamic_reloc_size = old_reloc_size+  l*sizeof(Elf64_Rel)+ m*sizeof(Elf64_Rela);
    string name;
    if (secTagRegionMapping.find(dtype) != secTagRegionMapping.end())
       name = secTagRegionMapping[dtype]->getRegionName();

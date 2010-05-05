@@ -53,10 +53,9 @@
 #include "InstructionDecoder.h"
 #include "Instruction.h"
 
-#include "dyninstAPI/src/emit-x86.h"
+#include "emit-x86.h"
 #include "process.h"
 #include "inst-x86.h"
-#include "instructionAPI/h/RegisterIDs-x86.h"
 
 using namespace std;
 using namespace boost::assign;
@@ -93,22 +92,22 @@ Address get_immediate_operand(instruction *instr)
     // now find the immediate value in the locations
     Address immediate = 0;
 
-    switch(loc.imm_size) {
+    switch(loc.imm_size[0]) {
         case 8:
-            immediate = *(const unsigned long*)(instr->ptr()+loc.imm_position);
+            immediate = *(const unsigned long*)(instr->ptr()+loc.imm_position[0]);
             break;
         case 4:
-            immediate = *(const unsigned int*)(instr->ptr()+loc.imm_position);
+            immediate = *(const unsigned int*)(instr->ptr()+loc.imm_position[0]);
             break;
         case 2:
-            immediate = *(const unsigned short*)(instr->ptr()+loc.imm_position);
+            immediate = *(const unsigned short*)(instr->ptr()+loc.imm_position[0]);
             break;
         case 1:
-            immediate = *(const unsigned char*)(instr->ptr()+loc.imm_position);
+            immediate = *(const unsigned char*)(instr->ptr()+loc.imm_position[0]);
             break;
         default:
             parsing_printf("%s[%u]:  invalid immediate size %d in insn\n",
-                FILE__,__LINE__,loc.imm_size);
+                FILE__,__LINE__,loc.imm_size[0]);
             break;
     }
 
@@ -267,6 +266,7 @@ bool isStackFramePrecheck_msvs( const unsigned char *buffer )
    return (gap_initial_bytes[*buffer] != 0);
 }  
 
+/*
 bool isStackFramePreamble( instruction& insn1 )
 {       
     instruction insn2, insn3;
@@ -305,7 +305,7 @@ bool isStackFramePreamble( instruction& insn1 )
     
     return false;
 }
-
+*/
 // We keep an array-let that represents various fixed
 // insns
 unsigned char illegalRep[2] = {0x0f, 0x0b};
@@ -1104,11 +1104,11 @@ bool instruction::generate(codeGen &gen,
          // Get us an instrucIter
           const unsigned char* buf = reinterpret_cast<const unsigned char*>(addrSpace->getPtrToInstruction(target));
           
-          dyn_detail::boost::shared_ptr<InstructionDecoder> d = makeDecoder(addrSpace->getAddressWidth() == 8 ?
-                  Dyninst::Arch_x86_64 : Dyninst::Arch_x86, buf, 2 * maxInstructionLength);
-          d->setMode(addrSpace->getAddressWidth() == 8);
-          Instruction::Ptr firstInsn = d->decode();
-          Instruction::Ptr secondInsn = d->decode();
+          InstructionDecoder d(buf, 2* InstructionDecoder::maxInstructionLength,
+			       addrSpace->getAddressWidth() == 8 ?
+			       Dyninst::Arch_x86_64 : Dyninst::Arch_x86);
+          Instruction::Ptr firstInsn = d.decode();
+          Instruction::Ptr secondInsn = d.decode();
           if(firstInsn && firstInsn->getOperation().getID() == e_mov
              && firstInsn->readsMemory() && !firstInsn->writesMemory()
              && secondInsn && secondInsn->getCategory() == c_ReturnInsn)
@@ -1396,59 +1396,59 @@ bool instruction::getUsedRegs(pdvector<int> &regs) {
 	using namespace Dyninst::InstructionAPI;
          //The instruction implicitely references a memory instruction
          switch (op.optype) {
-            case r_AH:   
-            case r_AL:   
-            case r_eAX:
-            case r_EAX:
+             case x86::iah:   
+             case x86::ial:
+             case x86::iax:   
+             case x86::ieax:
                regs.push_back(REGNUM_RAX);
                if (loc.rex_byte) regs.push_back(REGNUM_R8);
                break;
-            case r_BH:
-            case r_BL:
-            case r_eBX:
-            case r_EBX:
+             case x86::ibh:
+             case x86::ibl:
+             case x86::ibx:
+             case x86::iebx:
                regs.push_back(REGNUM_RBX);
                if (loc.rex_byte) regs.push_back(REGNUM_R11);
                break;
-            case r_CH:   
-            case r_CL:   
-            case r_eCX:
-            case r_ECX:
-               regs.push_back(REGNUM_RCX);
+             case x86::ich:
+             case x86::icl:
+             case x86::icx:
+             case x86::iecx:
+                 regs.push_back(REGNUM_RCX);
                if (loc.rex_byte) regs.push_back(REGNUM_R9);
                break;
-            case r_DL:
-            case r_DH:
-            case r_eDX:
-            case r_EDX:
-               regs.push_back(REGNUM_RDX);
+             case x86::idh:
+             case x86::idl:
+             case x86::idx:
+             case x86::iedx:
+                 regs.push_back(REGNUM_RDX);
                if (loc.rex_byte) regs.push_back(REGNUM_R10);
                break;
-            case r_eSP:
-            case r_ESP:
-               regs.push_back(REGNUM_RSP);
+             case x86::isp:
+             case x86::iesp:
+                regs.push_back(REGNUM_RSP);
                if (loc.rex_byte) regs.push_back(REGNUM_R12);
                break;
-            case r_eBP:
-            case r_EBP:
+             case x86::ibp:
+             case x86::iebp:
                regs.push_back(REGNUM_RBP);
                if (loc.rex_byte) regs.push_back(REGNUM_R13);
                break;
-            case r_eSI:
-            case r_ESI:
+             case x86::isi:
+             case x86::iesi:
                regs.push_back(REGNUM_RSI);
                if (loc.rex_byte) regs.push_back(REGNUM_R14);
                break;
-            case r_EDI:
-            case r_eDI:
+             case x86::idi:
+             case x86::iedi:
                regs.push_back(REGNUM_RDI);
                if (loc.rex_byte) regs.push_back(REGNUM_R15);
                break;
-            case r_EDXEAX:
+            case op_edxeax:
                regs.push_back(REGNUM_RAX);
                regs.push_back(REGNUM_RDX);
                break;
-            case r_ECXEBX:
+            case op_ecxebx:
                regs.push_back(REGNUM_RBX);
                regs.push_back(REGNUM_RCX);
                break;
@@ -1624,9 +1624,9 @@ bool instruction::generateMem(codeGen &gen,
    /**
     * Emit immediate
     **/
-   for (unsigned i=0; i<loc.imm_size; i++)
+   for (unsigned i=0; i<loc.imm_size[0]; i++)
    {
-      *walker++ = insn_ptr[loc.imm_position + i];
+      *walker++ = insn_ptr[loc.imm_position[0] + i];
    }
 
    //Debug output.  Fix the end of testdump.c, compile it, the do an
