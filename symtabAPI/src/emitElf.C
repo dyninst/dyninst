@@ -1343,9 +1343,8 @@ bool emitElf::createLoadableSections(Elf32_Shdr* &shdr, unsigned &extraAlignSize
 
      if (0 > elf_update(newElf, ELF_C_NULL))
      {
-         int errno = elf_errno();
-         fprintf(stderr, "%s[%d]:  elf_update failed: %d, %s\n", FILE__, __LINE__, errno, elf_errmsg(errno));
-        return false;
+       fprintf(stderr, "%s[%d]:  elf_update failed: %d, %s\n", FILE__, __LINE__, errno, elf_errmsg(elf_errno()));
+       return false;
      }
 
      shdr = newshdr;
