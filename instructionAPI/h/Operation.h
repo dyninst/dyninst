@@ -34,7 +34,7 @@
 
 #include "Register.h"
 #include "Expression.h"
-#include "entryIDs-IA32.h"
+#include "entryIDs.h"
 #include <set>
 
 #include "util.h"
@@ -56,7 +56,7 @@
 // Operation + ExpressionPtrs -> Instruction + Operands
 struct ia32_entry;
 class ia32_prefixes;
-struct ia32_locations;
+class ia32_locations;
 
 namespace Dyninst
 {

@@ -546,13 +546,11 @@ BPatch_Vector<BPatch_instruction*> *BPatch_basicBlock::getInstructionsInt(void) 
 bool BPatch_basicBlock::getInstructionsInt(std::vector<InstructionAPI::Instruction::Ptr>& insns) {
   using namespace InstructionAPI;
 
-  dyn_detail::boost::shared_ptr<InstructionDecoder> d =
-          makeDecoder(iblock->llb()->getFirstFunc()->img()->getArch(),
-                      (const unsigned char*)(iblock->proc()->getPtrToInstruction(getStartAddress())),
-                      size());
-  d->setMode(iblock->proc()->getAddressWidth() == 8);
+  InstructionDecoder d((const unsigned char*)(iblock->proc()->getPtrToInstruction(getStartAddress())),
+		       size(),
+		       iblock->llb()->getFirstFunc()->img()->getArch());
   do {
-      insns.push_back(d->decode());
+      insns.push_back(d.decode());
   } while (insns.back() && insns.back()->isValid());
 
   // Remove final invalid instruction
@@ -566,12 +564,10 @@ bool BPatch_basicBlock::getInstructionsAddrs(std::vector<std::pair<InstructionAP
   Address addr = getStartAddress();
   const unsigned char *ptr = (const unsigned char *)iblock->proc()->getPtrToInstruction(addr);
   if (ptr == NULL) return false;
-  dyn_detail::boost::shared_ptr<InstructionDecoder> d =
-          makeDecoder(iblock->llb()->getFirstFunc()->img()->getArch(), ptr, size());
-  d->setMode(iblock->proc()->getAddressWidth() == 8);
+  InstructionDecoder d(ptr, size(), iblock->llb()->getFirstFunc()->img()->getArch());
 
   while (addr < getEndAddress()) {
-      insnInstances.push_back(std::make_pair(d->decode(), addr));
+      insnInstances.push_back(std::make_pair(d.decode(), addr));
       addr += insnInstances.back().first->size();
   }
 

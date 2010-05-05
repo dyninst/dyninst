@@ -8,7 +8,8 @@
 #include "proccontrol/h/Event.h"
 #include "proccontrol/h/Handler.h"
 
-#include <assert.h>
+#include <cstring>
+#include <cassert>
 
 using namespace Dyninst;
 using namespace std;

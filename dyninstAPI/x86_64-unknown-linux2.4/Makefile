@@ -81,8 +81,6 @@ else
 LIBS    += -lelf
 endif
 LIBS    += -lgcc
-#LIBS	+= -lInstruction
-LIBS	+= -linstructionAPI
 
 AS		= /usr/bin/as
 

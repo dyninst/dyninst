@@ -95,14 +95,15 @@ class instPointBase {
 
   // Single instruction we're instrumenting (if at all)
 #if defined(cap_instruction_api)
-    static Dyninst::InstructionAPI::InstructionDecoder::Ptr dec;
-    static void setArch(Dyninst::Architecture a, bool mode) {
-      dec = Dyninst::InstructionAPI::makeDecoder(a, NULL, 0);
-      dec->setMode(mode);
-    }
+  static void setArch(Dyninst::Architecture a, bool) 
+  {
+    arch = a;
+  }
+  static Dyninst::Architecture arch;
+  
     Dyninst::InstructionAPI::Instruction::Ptr insn() const {
-      dec->setBuffer(insn_, Dyninst::InstructionAPI::maxInstructionLength);
-      return dec->decode();
+      Dyninst::InstructionAPI::InstructionDecoder dec((const unsigned char*)NULL, 0, arch);
+      return dec.decode(insn_);
     }
 #else
     static void setArch(Dyninst::Architecture, bool) {}

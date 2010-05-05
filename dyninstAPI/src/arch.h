@@ -261,20 +261,6 @@ class codeGen {
     std::vector<pcRelRegion *> pcrels_;
 };
 
-class pcRelRegion {
-   friend class codeGen;
- protected:
-   codeGen *gen;
-   instruction orig_instruc;
-   unsigned cur_offset;
-   unsigned cur_size;
- public:
-   pcRelRegion(const instruction &i);
-   virtual unsigned apply(Address addr) = 0;
-   virtual unsigned maxSize() = 0;
-   virtual bool canPreApply();
-   virtual ~pcRelRegion();
-}; 
 
 // For platforms that require bit-twiddling. These should go away in the future.
 #define GET_PTR(insn, gen) codeBuf_t *insn = (codeBuf_t *)(gen).cur_ptr()

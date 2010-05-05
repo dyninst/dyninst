@@ -2024,10 +2024,10 @@ int_function *instPoint::findCallee() {
     using namespace Dyninst::InstructionAPI;
     const unsigned char* buffer = (const unsigned char*)(proc()->getPtrToInstruction(callTarget()));
     parsing_printf("Checking for linkage at addr 0x%lx\n", callTarget());
-    InstructionDecoder::Ptr d = makeDecoder(img_p_->func()->img()->getArch(), buffer, 24);
+    InstructionDecoder d(buffer, 24, img_p_->func()->img()->getArch());
     std::vector<Instruction::Ptr> insns;
     Instruction::Ptr tmp;
-    while(tmp = d->decode()) insns.push_back(tmp);
+    while(tmp = d.decode()) insns.push_back(tmp);
     if(insns.size() != 6) return NULL;
     static RegisterAST::Ptr r2(new RegisterAST(ppc32::r2));
     static RegisterAST::Ptr r12(new RegisterAST(ppc32::r12));

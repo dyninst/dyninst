@@ -33,7 +33,7 @@
 #include "test_lib.h"
 
 #include "Instruction.h"
-#include "InstructionDecoder-power.h"
+#include "InstructionDecoder.h"
 #include "Register.h"
 #include "dyn_regs.h"
 #include <boost/assign/list_of.hpp>
@@ -91,14 +91,13 @@ test_results_t power_decode_Mutator::executeTest()
   unsigned int expectedInsns = 25;
   unsigned int size = expectedInsns * 4;
   ++expectedInsns;
-  dyn_detail::boost::shared_ptr<InstructionDecoder> d =
-          makeDecoder(Dyninst::Arch_ppc32, buffer, size);
+  InstructionDecoder d(buffer, size, Dyninst::Arch_ppc32);
   
   std::deque<Instruction::Ptr> decodedInsns;
   Instruction::Ptr i;
   do
   {
-    i = d->decode();
+    i = d.decode();
     decodedInsns.push_back(i);
   }
   while(i && i->isValid());
