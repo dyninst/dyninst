@@ -57,6 +57,9 @@
 #include "process.h"
 #include "inst-x86.h"
 
+#include "instructionAPI/h/RegisterIDs-x86.h"
+#include "pcrel.h"
+
 using namespace std;
 using namespace boost::assign;
 using namespace Dyninst::InstructionAPI;
@@ -653,21 +656,6 @@ bool pcRelJump::canPreApply()
 {
    return gen->startAddr() && (!targ || get_target());
 }
-
-class pcRelJCC : public pcRelRegion {
-private:
-   Address addr_targ;
-   patchTarget *targ;
-
-   Address get_target();
-public:
-   pcRelJCC(patchTarget *t, const instruction &i);
-   pcRelJCC(Address target, const instruction &i);
-   virtual unsigned apply(Address addr);
-   virtual unsigned maxSize();        
-   virtual bool canPreApply();
-   virtual ~pcRelJCC();
-};
 
 pcRelJCC::pcRelJCC(patchTarget *t, const instruction &i) :
    pcRelRegion(i),
@@ -1483,10 +1471,14 @@ bool instruction::generateMem(codeGen &gen,
     * Check parameters
     **********/
    Register newreg = Null_Register;
-   if (loadExpr != Null_Register && storeExpr != Null_Register) 
+   if (loadExpr != Null_Register && storeExpr != Null_Register) {
+     cerr << "error 1" << endl;
       return false; //Can only do one memory replace per instruction now
-   else if (loadExpr == Null_Register && storeExpr == Null_Register) 
-      return false; //None specified
+   }
+   else if (loadExpr == Null_Register && storeExpr == Null_Register)  {
+     cerr << "error 2" << endl;
+     return false; //None specified
+   }
    else if (loadExpr != Null_Register && storeExpr == Null_Register) 
       newreg = loadExpr;
    else if (loadExpr == Null_Register && storeExpr != Null_Register) 
@@ -1507,10 +1499,6 @@ bool instruction::generateMem(codeGen &gen,
    ia32_decode(IA32_DECODE_MEMACCESS | IA32_DECODE_CONDITION,
                insn_ptr, orig_instr);
    entry = orig_instr.getEntry();
-
-   if (gen.addrSpace()->getAddressWidth() != 8)
-      //Currently works only on IA-32e
-      return false; 
 
    if (orig_instr.getPrefix()->getPrefix(1) != 0)
       //The instruction accesses memory via segment registers.  Disallow.
@@ -1587,14 +1575,30 @@ bool instruction::generateMem(codeGen &gen,
       REX_SET_R(new_rex, loc.rex_r);
       REX_SET_X(new_rex, 0);
       REX_SET_B(new_rex, loc.rex_b); 
-      *walker++ = new_rex;
    }
    
    /**
     * Copy opcode
     **/
    for (int i=loc.num_prefixes; i<loc.num_prefixes+(int)loc.opcode_size; i++) {
-      *walker++ = insn_ptr[i];
+     //*walker++ = insn_ptr[i];
+     if ((insn_ptr[i] != 0xf0) &&
+	 (insn_ptr[i] != 0xf2) &&
+	 (insn_ptr[i] != 0xf3) &&
+	 (insn_ptr[i] != 0x2e) &&
+	 (insn_ptr[i] != 0x36) &&
+	 (insn_ptr[i] != 0x3e) &&
+	 (insn_ptr[i] != 0x26) &&
+	 (insn_ptr[i] != 0x64) &&
+	 (insn_ptr[i] != 0x65) &&
+	 (insn_ptr[i] != 0x66) &&
+	 (insn_ptr[i] != 0x67)) {
+       if (new_rex != 0) {
+	 *walker++ = new_rex;
+	 new_rex = 0;
+       }
+     }
+     *walker++ = insn_ptr[i];
    }
    
    /**
@@ -1626,7 +1630,7 @@ bool instruction::generateMem(codeGen &gen,
     **/
    for (unsigned i=0; i<loc.imm_size[0]; i++)
    {
-      *walker++ = insn_ptr[loc.imm_position[0] + i];
+     *walker++ = insn_ptr[loc.imm_position[0] + i];
    }
 
    //Debug output.  Fix the end of testdump.c, compile it, the do an
