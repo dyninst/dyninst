@@ -83,36 +83,32 @@ test_results_t test_instruction_bind_eval_Mutator::executeTest()
 #endif
     
   
-  dyn_detail::boost::shared_ptr<InstructionDecoder> d =
-          makeDecoder(curArch, buffer, size);
-#if defined(arch_x86_64_test)
-d->setMode(true);
-#endif        
+    InstructionDecoder d(buffer, size, curArch);
     std::vector<Instruction::Ptr> decodedInsns;
     Instruction::Ptr i;
-  do
-  {
-    i = d->decode();
-    decodedInsns.push_back(i);
-  }
-  while(i && i->isValid());
-  if(decodedInsns.size() != expectedInsns)
-  {
-    logerror("FAILED: Expected %d instructions, decoded %d\n", expectedInsns, decodedInsns.size());
-    for(std::vector<Instruction::Ptr>::iterator curInsn = decodedInsns.begin();
-	curInsn != decodedInsns.end();
-	++curInsn)
+    do
     {
-      logerror("\t%s\n", (*curInsn)->format().c_str());
+      i = d.decode();
+      decodedInsns.push_back(i);
     }
-    
-    return FAILED;
-  }
-  if(decodedInsns.back() && decodedInsns.back()->isValid())
-  {
-    logerror("FAILED: Expected instructions to end with an invalid instruction, but they didn't");
-    return FAILED;
-  }
+    while(i && i->isValid());
+    if(decodedInsns.size() != expectedInsns)
+    {
+      logerror("FAILED: Expected %d instructions, decoded %d\n", expectedInsns, decodedInsns.size());
+      for(std::vector<Instruction::Ptr>::iterator curInsn = decodedInsns.begin();
+	  curInsn != decodedInsns.end();
+	  ++curInsn)
+      {
+      logerror("\t%s\n", (*curInsn)->format().c_str());
+      }
+      
+      return FAILED;
+    }
+    if(decodedInsns.back() && decodedInsns.back()->isValid())
+    {
+      logerror("FAILED: Expected instructions to end with an invalid instruction, but they didn't");
+      return FAILED;
+    }
 
   Expression::Ptr theCFT = decodedInsns[0]->getControlFlowTarget();
   if(!theCFT) {

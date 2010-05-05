@@ -2099,11 +2099,9 @@ bool image::findGlobalConstructorFunc() {
     unsigned numCalls = 0;
     const unsigned char *p = reinterpret_cast<const unsigned char *>(initRegion->getPtrToRawData());
 
-    dyn_detail::boost::shared_ptr<InstructionDecoder> decoder =
-            makeDecoder(getArch(), p, initRegion->getRegionSize());
-    decoder->setMode(getAddressWidth() == 8);
+    InstructionDecoder decoder(p, initRegion->getRegionSize(), getArch());
 
-    Instruction::Ptr curInsn = decoder->decode();
+    Instruction::Ptr curInsn = decoder.decode();
     while(numCalls < 3 && curInsn && curInsn->isValid() &&
           bytesSeen < initRegion->getRegionSize()) 
     {
@@ -2113,7 +2111,7 @@ bool image::findGlobalConstructorFunc() {
         }
         if( numCalls < 3 ) {
             bytesSeen += curInsn->size();
-            curInsn = decoder->decode();
+            curInsn = decoder.decode();
         }
     }
 
@@ -2216,12 +2214,10 @@ bool image::findGlobalDestructorFunc() {
     unsigned bytesSeen = 0;
     const unsigned char *p = reinterpret_cast<const unsigned char *>(finiRegion->getPtrToRawData());
 
-    dyn_detail::boost::shared_ptr<InstructionDecoder> decoder =
-            makeDecoder(getArch(), p, finiRegion->getRegionSize());
-    decoder->setMode(getAddressWidth() == 8);
+    InstructionDecoder decoder(p, finiRegion->getRegionSize(), getArch());
 
     Instruction::Ptr lastCall;
-    Instruction::Ptr curInsn = decoder->decode();
+    Instruction::Ptr curInsn = decoder.decode();
 
     while(curInsn && curInsn->isValid() &&
           bytesSeen < finiRegion->getRegionSize()) 
@@ -2231,7 +2227,7 @@ bool image::findGlobalDestructorFunc() {
             lastCall = curInsn;
         }
             bytesSeen += curInsn->size();
-            curInsn = decoder->decode();
+            curInsn = decoder.decode();
     }
 
     if( !lastCall.get() || !lastCall->isValid() ) {

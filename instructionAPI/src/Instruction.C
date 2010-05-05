@@ -57,8 +57,8 @@ namespace Dyninst
       int Instruction::numInsnsAllocated = 0;
     INSTRUCTION_EXPORT Instruction::Instruction(Operation::Ptr what,
 			     size_t size, const unsigned char* raw,
-                             dyn_detail::boost::shared_ptr<InstructionDecoder> dec)
-      : m_InsnOp(what), m_Valid(true), m_dec(dec)
+                             Dyninst::Architecture arch)
+      : m_InsnOp(what), m_Valid(true), arch_decoded_from(arch)
     {
         copyRaw(size, raw);
 #if defined(DEBUG_INSN_ALLOCATIONS)
@@ -96,8 +96,9 @@ namespace Dyninst
     
     void Instruction::decodeOperands() const
     {
-        m_Operands.reserve(5);
-        m_dec->doDelayedDecode(this);
+        //m_Operands.reserve(5);
+        InstructionDecoder dec(ptr(), size(), arch_decoded_from);
+        dec.doDelayedDecode(this);
     }
     
     INSTRUCTION_EXPORT Instruction::Instruction() :
@@ -128,7 +129,7 @@ namespace Dyninst
     }
 
     INSTRUCTION_EXPORT Instruction::Instruction(const Instruction& o) :
-            m_dec(o.m_dec)
+      arch_decoded_from(o.arch_decoded_from)
     {
         m_Operands.clear();
       //m_Operands.reserve(o.m_Operands.size());
@@ -184,7 +185,7 @@ namespace Dyninst
 
       m_InsnOp = rhs.m_InsnOp;
       m_Valid = rhs.m_Valid;
-      m_dec = rhs.m_dec;
+      arch_decoded_from = rhs.arch_decoded_from;
       return *this;
     }    
     
@@ -220,7 +221,9 @@ namespace Dyninst
 	  // Out of range = empty operand
             return Operand(Expression::Ptr(), false, false);
         }
-        return m_Operands[index];
+        std::list<Operand>::const_iterator found = m_Operands.begin();
+        std::advance(found, index);
+        return *found;
      }
 
      INSTRUCTION_EXPORT const void* Instruction::ptr() const
@@ -259,7 +262,7 @@ namespace Dyninst
       {
 	decodeOperands();
       }
-      for(std::vector<Operand>::const_iterator curOperand = m_Operands.begin();
+      for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
 	  curOperand != m_Operands.end();
 	  ++curOperand)
       {
@@ -275,7 +278,7 @@ namespace Dyninst
       {
 	decodeOperands();
       }
-      for(std::vector<Operand>::const_iterator curOperand = m_Operands.begin();
+      for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
 	  curOperand != m_Operands.end();
 	  ++curOperand)
       {
@@ -292,7 +295,7 @@ regsWritten.begin()));
       {
 	decodeOperands();
       }
-      for(std::vector<Operand >::const_iterator curOperand = m_Operands.begin();
+      for(std::list<Operand >::const_iterator curOperand = m_Operands.begin();
 	  curOperand != m_Operands.end();
 	  ++curOperand)
       {
@@ -310,7 +313,7 @@ regsWritten.begin()));
       {
 	decodeOperands();
       }
-      for(std::vector<Operand>::const_iterator curOperand = m_Operands.begin();
+      for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
 	  curOperand != m_Operands.end();
 	  ++curOperand)
       {
@@ -332,7 +335,7 @@ regsWritten.begin()));
       {
           return false;
       }
-      for(std::vector<Operand>::const_iterator curOperand = m_Operands.begin();
+      for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
 	  curOperand != m_Operands.end();
 	  ++curOperand)
       {
@@ -350,7 +353,7 @@ regsWritten.begin()));
       {
 	decodeOperands();
       }
-      for(std::vector<Operand>::const_iterator curOperand = m_Operands.begin();
+      for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
           curOperand != m_Operands.end();
 	  ++curOperand)
       {
@@ -368,7 +371,7 @@ regsWritten.begin()));
       {
 	decodeOperands();
       }
-      for(std::vector<Operand>::const_iterator curOperand = m_Operands.begin();
+      for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
 	  curOperand != m_Operands.end();
 	  ++curOperand)
       {
@@ -384,7 +387,7 @@ memAccessors.begin()));
       {
 	decodeOperands();
       }
-      for(std::vector<Operand>::const_iterator curOperand = m_Operands.begin();
+      for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
           curOperand != m_Operands.end();
 	  ++curOperand)
       {
@@ -428,7 +431,7 @@ memAccessors.begin()));
 
       std::string retVal = m_InsnOp->format();
       retVal += " ";
-      std::vector<Operand>::const_iterator curOperand;
+      std::list<Operand>::const_iterator curOperand;
       for(curOperand = m_Operands.begin();
 	  curOperand != m_Operands.end();
 	  ++curOperand)
