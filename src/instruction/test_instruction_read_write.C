@@ -34,7 +34,6 @@
 
 #include "Instruction.h"
 #include "InstructionDecoder.h"
-#include "RegisterIDs-x86.h"
 #include <boost/assign/list_of.hpp>
 #include <deque>
 using namespace Dyninst;
@@ -74,13 +73,12 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
   };
   unsigned int size = 40;
   unsigned int expectedInsns = 12;
-  dyn_detail::boost::shared_ptr<InstructionDecoder> d =
-          makeDecoder(Dyninst::Arch_x86, buffer, size);
+  InstructionDecoder d(buffer, size, Dyninst::Arch_x86);
   std::deque<Instruction::Ptr> decodedInsns;
   Instruction::Ptr i;
   do
   {
-    i = d->decode();
+    i = d.decode();
     decodedInsns.push_back(i);
   }
   while(i && i->isValid());
@@ -231,13 +229,11 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
   unsigned int amd64_num_valid_insns = 1;
   deque<Instruction::Ptr> amd64Insns;
   
-  dyn_detail::boost::shared_ptr<InstructionDecoder> amd64_decoder =
-          makeDecoder(Dyninst::Arch_x86_64, amd64_specific, amd64_size);
-  amd64_decoder->setMode(true);
+  InstructionDecoder amd64_decoder(amd64_specific, amd64_size, Dyninst::Arch_x86_64);
   Instruction::Ptr tmp;
   do
   {
-    tmp = amd64_decoder->decode();
+    tmp = amd64_decoder.decode();
     amd64Insns.push_back(tmp);
   } while(tmp && tmp->isValid());
   amd64Insns.pop_back();
