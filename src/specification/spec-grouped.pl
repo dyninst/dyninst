@@ -384,7 +384,6 @@ mutator('snip_ref_shlib_var', ['snip_ref_shlib_var.C']).
 test_runmode('snip_ref_shlib_var', 'staticdynamic').
 test_start_state('snip_ref_shlib_var', 'stopped').
 tests_module('snip_ref_shlib_var', 'dyninst').
-test_exclude_format('snip_ref_shlib_var', 'staticMutatee').
 
 test('snip_change_shlib_var', 'snip_change_shlib_var', 'dyninst_group_test').
 test_description('snip_change_shlib_var', 'Inst modifies variable in shared lib').
@@ -394,7 +393,6 @@ mutator('snip_change_shlib_var', ['snip_change_shlib_var.C']).
 test_runmode('snip_change_shlib_var', 'staticdynamic').
 test_start_state('snip_change_shlib_var', 'stopped').
 tests_module('snip_change_shlib_var', 'dyninst').
-test_exclude_format('snip_change_shlib_var', 'staticMutatee').
 
 % test_snip_remove
 test('test_snip_remove', 'test_snip_remove', 'test_snip_remove').
