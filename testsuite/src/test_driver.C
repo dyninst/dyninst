@@ -43,6 +43,7 @@
 #include <algorithm>
 #include <sys/stat.h>
 #include <time.h>
+#include <limits.h>
 
 #if defined(os_windows_test)
 #define vsnprintf _vsnprintf
