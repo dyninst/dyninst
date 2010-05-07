@@ -215,7 +215,7 @@ namespace Dyninst
                 if(locs->modrm_rm == modrm_use_sib) {
                     e = makeSIBExpression(b);
                 }
-                if(locs->modrm_rm == 0x5)
+                if(locs->modrm_rm == 0x5 && !addrSizePrefixPresent)
                 {
                     assert(locs->opcode_position > -1);
                     entryID opcode = decodedInstruction->getEntry()->getID(locs);
@@ -231,6 +231,10 @@ namespace Dyninst
                         e = getModRMDisplacement(b);
                     }
         
+                }
+                if(locs->modrm_rm == 0x6 && addrSizePrefixPresent)
+                {
+                    e = getModRMDisplacement(b);
                 }
                 if(opType == op_lea)
                 {

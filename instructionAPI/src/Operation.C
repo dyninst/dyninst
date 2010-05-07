@@ -48,7 +48,7 @@ namespace Dyninst
     }
     RegisterAST::Ptr makeRegFromID(MachRegister regID)
     {
-        return make_shared(singleton_object_pool<RegisterAST>::construct(regID, 0, regID.size()));
+        return make_shared(singleton_object_pool<RegisterAST>::construct(regID, 0, regID.size() * 8));
     }
 
     Operation::Operation(entryID id, const char* mnem, Architecture arch)
