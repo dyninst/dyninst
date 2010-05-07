@@ -40,26 +40,38 @@
 
 
 #include <deque>
-#include <boost/assign/list_of.hpp>
 
 using namespace Dyninst;
 using namespace InstructionAPI;
 
-std::map<Architecture, RegisterAST::Ptr> IA_IAPI::framePtr = boost::assign::map_list_of
-        (Arch_x86, RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_x86))))
-        (Arch_x86_64, RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_x86_64))))
-        (Arch_ppc32, RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_ppc32))))
-        (Arch_ppc64, RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_ppc64))));
-std::map<Architecture, RegisterAST::Ptr> IA_IAPI::stackPtr = boost::assign::map_list_of
-        (Arch_x86, RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_x86))))
-        (Arch_x86_64, RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_x86_64))))
-        (Arch_ppc32, RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_ppc32))))
-        (Arch_ppc64, RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_ppc64))));
-std::map<Architecture, RegisterAST::Ptr> IA_IAPI::thePC = boost::assign::map_list_of
-        (Arch_x86, RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_x86))))
-        (Arch_x86_64, RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_x86_64))))
-        (Arch_ppc32, RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_ppc32))))
-        (Arch_ppc64, RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_ppc64))));
+std::map<Architecture, RegisterAST::Ptr> IA_IAPI::framePtr;
+std::map<Architecture, RegisterAST::Ptr> IA_IAPI::stackPtr;
+std::map<Architecture, RegisterAST::Ptr> IA_IAPI::thePC;
+
+void IA_IAPI::initASTs()
+{
+    if(framePtr.empty())
+    {
+        framePtr[Arch_x86] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_x86)));
+        framePtr[Arch_x86_64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_x86_64)));
+        framePtr[Arch_ppc32] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_ppc32)));
+        framePtr[Arch_ppc64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_ppc64)));
+    }
+    if(stackPtr.empty())
+    {
+        stackPtr[Arch_x86] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_x86)));
+        stackPtr[Arch_x86_64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_x86_64)));
+        stackPtr[Arch_ppc32] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_ppc32)));
+        stackPtr[Arch_ppc64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_ppc64)));
+    }
+    if(thePC.empty())
+    {
+        thePC[Arch_x86] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_x86)));
+        thePC[Arch_x86_64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_x86_64)));
+        thePC[Arch_ppc32] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_ppc32)));
+        thePC[Arch_ppc64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_ppc64)));
+    }
+}
 
 IA_IAPI::IA_IAPI(InstructionDecoder dec_, Address where_,
                 image_func* f)
@@ -69,6 +81,7 @@ IA_IAPI::IA_IAPI(InstructionDecoder dec_, Address where_,
     hascftstatus.first = false;
     tailCall.first = false;
     boost::tuples::tie(curInsnIter, boost::tuples::ignore) = allInsns.insert(std::make_pair(current, dec.decode()));
+    initASTs();
 }
 
 IA_IAPI::IA_IAPI(InstructionDecoder dec_, Address where_,
@@ -79,6 +92,7 @@ IA_IAPI::IA_IAPI(InstructionDecoder dec_, Address where_,
     hascftstatus.first = false;
     tailCall.first = false;
     boost::tuples::tie(curInsnIter, boost::tuples::ignore) = allInsns.insert(std::make_pair(current, dec.decode()));
+    initASTs();
 }
 
 void IA_IAPI::advance()

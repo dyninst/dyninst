@@ -125,6 +125,7 @@ class IA_IAPI : public InstructionAdapter
         static std::map<Architecture, Dyninst::InstructionAPI::RegisterAST::Ptr> stackPtr;
         static std::map<Architecture, Dyninst::InstructionAPI::RegisterAST::Ptr> thePC;
         static std::map<Address, bool> thunkAtTarget;
+        static void initASTs();
 };
 
 
