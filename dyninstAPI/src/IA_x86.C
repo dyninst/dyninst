@@ -101,8 +101,8 @@ bool IA_IAPI::isFrameSetupInsn(Instruction::Ptr i) const
 {
     if(i->getOperation().getID() == e_mov)
     {
-        if(i->isRead(stackPtr) &&
-           i->isWritten(framePtr))
+        if(i->isRead(stackPtr[img->getArch()]) &&
+           i->isWritten(framePtr[img->getArch()]))
         {
             return true;
         }
@@ -322,8 +322,7 @@ bool IA_IAPI::parseJumpTable(image_basicBlock* currBlk,
             parsing_printf("\tchecking instruction %s at 0x%lx for IP-relative LEA\n", tableLoc->second->format().c_str(),
                            tableLoc->first);
             Expression::Ptr IPRelAddr = tableLoc->second->getOperand(1).getValue();
-            static RegisterAST* thePC = new RegisterAST(RegisterAST::makePC(img->getArch()));
-            IPRelAddr->bind(thePC, Result(s64, tableLoc->first + tableLoc->second->size()));
+            IPRelAddr->bind(thePC[img->getArch()].get(), Result(s64, tableLoc->first + tableLoc->second->size()));
             Result iprel = IPRelAddr->eval();
             if(iprel.defined)
             {
@@ -469,8 +468,7 @@ Address IA_IAPI::findThunkInBlock(image_basicBlock* curBlock, Address& thunkOffs
             parsing_printf("\tchecking instruction %s at 0x%lx for IP-relative LEA\n", block.getInstruction()->format().c_str(),
                            block.getAddr());
             Expression::Ptr IPRelAddr = block.getInstruction()->getOperand(1).getValue();
-            static RegisterAST* thePC = new RegisterAST(RegisterAST::makePC(img->getArch()));
-            IPRelAddr->bind(thePC, Result(s64, block.getNextAddr()));
+            IPRelAddr->bind(thePC[img->getArch()].get(), Result(s64, block.getNextAddr()));
             Result iprel = IPRelAddr->eval();
             if(iprel.defined)
             {
@@ -872,7 +870,7 @@ bool IA_IAPI::isThunk() const {
                    thunkSecond->format().c_str());
     if(thunkFirst && (thunkFirst->getOperation().getID() == e_mov))
     {
-        if(thunkFirst->isRead(stackPtr))
+        if(thunkFirst->isRead(stackPtr[img->getArch()]))
         {
             parsing_printf("... checking second insn\n");
             if(!thunkSecond) {
@@ -927,7 +925,7 @@ bool IA_IAPI::isTailCall(unsigned int) const
         }
         if(prevInsn->getOperation().getID() == e_pop)
         {
-            if(prevInsn->isWritten(framePtr))
+            if(prevInsn->isWritten(framePtr[img->getArch()]))
             {
                 parsing_printf("\tprev insn was %s, TAIL CALL\n", prevInsn->format().c_str());
                 tailCall.second = true;
@@ -968,7 +966,7 @@ bool IA_IAPI::savesFP() const
 {
     if(curInsn()->getOperation().getID() == e_push)
     {
-        return(curInsn()->isRead(framePtr));
+        return(curInsn()->isRead(framePtr[img->getArch()]));
     }
     return false;
 }
