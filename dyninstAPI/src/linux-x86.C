@@ -1849,11 +1849,17 @@ static bool replaceHandler(int_function *origHandler, int_function *newHandler,
     const pdvector<instPoint *> &entries = origHandler->funcEntries();
     AstNodePtr funcJump = AstNode::funcReplacementNode(const_cast<int_function *>(newHandler));
     for(unsigned j = 0; j < entries.size(); ++j) {
-        miniTramp *mini = entries[j]->instrument(funcJump,
+        miniTramp *mini = entries[j]->addInst(funcJump,
                 callPreInsn, orderFirstAtPoint, true, false);
         if( !mini ) {
             return false;
         }
+
+        // XXX the func jumps are not being generated properly if this is set
+        mini->baseT->setCreateFrame(false);
+
+        pdvector<instPoint *> ignored;
+        entries[j]->func()->performInstrumentation(false, ignored);
     }
 
     /* create the special relocation for the new list -- search the RT library for
