@@ -63,10 +63,15 @@ namespace Dyninst
       operationID = e->getID(l);
       if(p && p->getCount())
       {
-	if (p->getPrefix(0) == PREFIX_REP || p->getPrefix(0) == PREFIX_REPNZ)
+        if (p->getPrefix(0) == PREFIX_REP || p->getPrefix(0) == PREFIX_REPNZ)
 	{
             otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::df : x86_64::df));
             otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::ecx : x86_64::rcx));
+            otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::ecx : x86_64::rcx));
+            if(p->getPrefix(0) == PREFIX_REPNZ)
+            {
+                otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::zf : x86_64::zf));
+            }
         }
         int segPrefix = p->getPrefix(1);
         switch(segPrefix)
