@@ -2615,8 +2615,8 @@ library_suffix(Platform, Suffix) :-
 compiler_platform('gcc', Plat) :- platform(_, OS, _, Plat), OS \= 'windows'.
 compiler_platform('g++', Plat) :- platform(_, OS, _, Plat), OS \= 'windows'.
 % g77 only runs on i386 Linux
-compiler_platform('g77', 'i386-unknown-linux2.4').
-compiler_platform('g77', 'i386-unknown-linux2.6').
+compiler_platform('gfortran', 'i386-unknown-linux2.4').
+compiler_platform('gfortran', 'i386-unknown-linux2.6').
 % Visual C/C++ only runs on Windows
 compiler_platform('VC', Plat) :- platform(_, OS, _, Plat), OS == 'windows'.
 compiler_platform('VC++', Plat) :- platform(_, OS, _, Plat), OS == 'windows'.
@@ -2656,7 +2656,7 @@ linker(Platform, Linker) :-
 % for compiling files where were not trying to test the output of the compiler
 aux_compiler_for_platform(Platform, 'c', 'gcc') :-
     platform(_, 'linux', _, Platform).
-aux_compiler_for_platform(Platform, 'fortran', 'g77') :-
+aux_compiler_for_platform(Platform, 'fortran', 'gfortran') :-
     platform('i386', 'linux', _, Platform).
 aux_compiler_for_platform(Platform, 'nasm_asm', 'nasm') :-
     platform('i386', 'linux', _, Platform).
@@ -2728,7 +2728,7 @@ insane('Too many compilers on platform P1 for extension P2',
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Compiler/language constraints
-comp_lang('g77', 'fortran').
+comp_lang('gfortran', 'fortran').
 comp_lang(Compiler, 'c') :-
     member(Compiler, ['gcc', 'pgcc', 'VC', 'cc', 'sun_cc', 'xlc', 'icc']);
     member(Compiler, ['g++', 'pgCC', 'VC++', 'cxx', 'CC', 'xlC', 'iCC']).
@@ -2742,7 +2742,7 @@ comp_lang('gcc', 'att_asm') :-
 % Mutatee Compiler Defns
 % mutatee_comp(compiler name)
 mutatee_comp('gcc').
-mutatee_comp('g77').
+mutatee_comp('gfortran').
 mutatee_comp('g++').
 mutatee_comp('pgcc').
 mutatee_comp('pgCC').
@@ -2783,7 +2783,7 @@ compiler_define_string('VC++', 'native_cxx').
 compiler_define_string('cxx', 'native_cxx').
 compiler_define_string('CC', 'native_cxx').
 compiler_define_string('xlC', 'native_cxx').
-compiler_define_string('g77', 'gnu_fc').
+compiler_define_string('gfortran', 'gnu_fc').
 compiler_define_string('icc', 'intel_cc').
 compiler_define_string('iCC', 'intel_CC').
 
@@ -2818,14 +2818,14 @@ compiler_s('iCC', 'icpc').
 % FIXME Im also not sure that all these compilers default to no optimization
 compiler_opt_trans(_, 'none', '').
 compiler_opt_trans(Comp, 'low', '-O1') :-
-    member(Comp, ['gcc', 'g++', 'pgcc', 'pgCC', 'cc', 'cxx', 'g77', 'icc', 'iCC']).
+    member(Comp, ['gcc', 'g++', 'pgcc', 'pgCC', 'cc', 'cxx', 'gfortran', 'icc', 'iCC']).
 compiler_opt_trans(Comp, 'low', '/O1') :- Comp == 'VC++'; Comp == 'VC'.
 compiler_opt_trans(SunWorkshop, 'low', '-O') :-
     member(SunWorkshop, ['sun_cc', 'CC']).
 compiler_opt_trans(IBM, 'low', '-O') :-
     member(IBM, ['xlc', 'xlC']).
 compiler_opt_trans(Comp, 'high', '-O2') :-
-    member(Comp, ['gcc', 'g++', 'pgcc', 'pgCC', 'cc', 'cxx', 'g77', 'icc', 'iCC']).
+    member(Comp, ['gcc', 'g++', 'pgcc', 'pgCC', 'cc', 'cxx', 'gfortran', 'icc', 'iCC']).
 compiler_opt_trans(Comp, 'high', '/O2') :- Comp == 'VC++'; Comp == 'VC'.
 compiler_opt_trans(SunWorkshop, 'high', '-xO3') :-
     member(SunWorkshop, ['sun_cc', 'CC']).
@@ -2850,7 +2850,7 @@ insane('P1 not defined as a compiler, but has optimization translation defined',
 % partial_compile: compile to an object file rather than an executable
 compiler_parm_trans(Comp, 'partial_compile', '-c') :-
     member(Comp, ['gcc', 'g++', 'pgcc', 'pgCC', 'cc', 'sun_cc', 'CC',
-                  'xlc', 'xlC', 'cxx', 'g77', 'VC', 'VC++', 'icc', 'iCC']).
+                  'xlc', 'xlC', 'cxx', 'gfortran', 'VC', 'VC++', 'icc', 'iCC']).
 
 % Mutator compiler defns
 mutator_comp('g++').
@@ -2909,9 +2909,9 @@ comp_mutatee_flags_str('icc', '-DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src').
 comp_mutatee_flags_str('iCC', '-x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src').
 
 % g77 flags
-comp_std_flags_str('g77', '-g').
-comp_mutatee_flags_str('g77', '$(MUTATEE_G77_FFLAGS)').
-mutatee_link_options('g77', '$(MUTATEE_G77_LDFLAGS)').
+comp_std_flags_str('gfortran', '-g').
+comp_mutatee_flags_str('gfortran', '$(MUTATEE_G77_FFLAGS)').
+mutatee_link_options('gfortran', '$(MUTATEE_G77_LDFLAGS)').
 
 % NASM (for test_mem (formerly test6))
 comp_lang('nasm', 'nasm_asm').
