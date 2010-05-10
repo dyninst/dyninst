@@ -304,23 +304,23 @@ namespace Dyninst
       foundRegs = op_data(archDecodedFrom).nonOperandRegisterReads.find(operationID);
       if(foundRegs != op_data(archDecodedFrom).nonOperandRegisterReads.end())
       {
-	otherRead = foundRegs->second;
+          otherRead.insert(foundRegs->second.begin(), foundRegs->second.end());
       }
       foundRegs = op_data(archDecodedFrom).nonOperandRegisterWrites.find(operationID);
       if(foundRegs != op_data(archDecodedFrom).nonOperandRegisterWrites.end())
       {
-	otherWritten = foundRegs->second;
+          otherWritten.insert(foundRegs->second.begin(), foundRegs->second.end());
       }
       dyn_hash_map<entryID, VCSet >::const_iterator foundMem;
       foundMem = op_data(archDecodedFrom).nonOperandMemoryReads.find(operationID);
       if(foundMem != op_data(archDecodedFrom).nonOperandMemoryReads.end())
       {
-	otherEffAddrsRead = foundMem->second;
+          otherEffAddrsRead.insert(foundMem->second.begin(), foundMem->second.end());
       }
       foundMem = op_data(archDecodedFrom).nonOperandMemoryWrites.find(operationID);
       if(foundMem != op_data(archDecodedFrom).nonOperandMemoryWrites.end())
       {
-	otherEffAddrsWritten = foundMem->second;
+          otherEffAddrsWritten.insert(foundMem->second.begin(), foundMem->second.end());
       }
       
       if(needFlags && !doneFlagsSetup)
