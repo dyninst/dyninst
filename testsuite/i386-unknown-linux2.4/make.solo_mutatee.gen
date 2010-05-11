@@ -2408,13 +2408,11 @@ test_exception.mutatee_solo_dynamic_icpc_32_none: test_exception_mutatee_solo_ic
 
 ifdef ICC
 # We only want to build these targets if the compiler exists
-proccontrol_SOLO_MUTATEES_intel_CC = pc_breakpoint.mutatee_solo_dynamic_icpc_32_none pc_exec_targ.mutatee_solo_dynamic_icpc_32_high pc_exec_targ.mutatee_solo_dynamic_icpc_32_low pc_exec_targ.mutatee_solo_dynamic_icpc_32_max pc_exec_targ.mutatee_solo_dynamic_icpc_32_none pc_fork.mutatee_solo_dynamic_icpc_32_none pc_fork_exec.mutatee_solo_dynamic_icpc_32_none pc_irpc.mutatee_solo_dynamic_icpc_32_none pc_launch.mutatee_solo_dynamic_icpc_32_none pc_library.mutatee_solo_dynamic_icpc_32_none pc_singlestep.mutatee_solo_dynamic_icpc_32_none pc_thread_cont.mutatee_solo_dynamic_icpc_32_none 
+proccontrol_SOLO_MUTATEES_intel_CC = pc_exec_targ.mutatee_solo_dynamic_icpc_32_high pc_exec_targ.mutatee_solo_dynamic_icpc_32_low pc_exec_targ.mutatee_solo_dynamic_icpc_32_max pc_exec_targ.mutatee_solo_dynamic_icpc_32_none 
 endif
 
 # Now a list of rules for compiling the mutatees with iCC
 
-pc_breakpoint.mutatee_solo_dynamic_icpc_32_none: pc_breakpoint_mutatee_solo_icpc_32_none.o mutatee_util_icpc_32_none.o mutatee_util_mt_icpc_32_none.o pcontrol_mutatee_tools_icpc_32_none.o mutatee_driver_solo_icpc_32.o
-	$(M_intel_CC) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
 pc_exec_targ.mutatee_solo_dynamic_icpc_32_high: pc_exec_targ_mutatee_solo_icpc_32_high.o mutatee_util_icpc_32_high.o mutatee_driver_solo_icpc_32.o
 	$(M_intel_CC) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 pc_exec_targ.mutatee_solo_dynamic_icpc_32_low: pc_exec_targ_mutatee_solo_icpc_32_low.o mutatee_util_icpc_32_low.o mutatee_driver_solo_icpc_32.o
@@ -2423,20 +2421,6 @@ pc_exec_targ.mutatee_solo_dynamic_icpc_32_max: pc_exec_targ_mutatee_solo_icpc_32
 	$(M_intel_CC) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 pc_exec_targ.mutatee_solo_dynamic_icpc_32_none: pc_exec_targ_mutatee_solo_icpc_32_none.o mutatee_util_icpc_32_none.o mutatee_driver_solo_icpc_32.o
 	$(M_intel_CC) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-pc_fork.mutatee_solo_dynamic_icpc_32_none: pc_fork_mutatee_solo_icpc_32_none.o mutatee_util_icpc_32_none.o mutatee_util_mt_icpc_32_none.o pcontrol_mutatee_tools_icpc_32_none.o mutatee_driver_solo_icpc_32.o
-	$(M_intel_CC) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
-pc_fork_exec.mutatee_solo_dynamic_icpc_32_none: pc_fork_exec_mutatee_solo_icpc_32_none.o mutatee_util_icpc_32_none.o mutatee_util_mt_icpc_32_none.o pcontrol_mutatee_tools_icpc_32_none.o mutatee_driver_solo_icpc_32.o
-	$(M_intel_CC) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
-pc_irpc.mutatee_solo_dynamic_icpc_32_none: pc_irpc_mutatee_solo_icpc_32_none.o mutatee_util_icpc_32_none.o mutatee_util_mt_icpc_32_none.o pcontrol_mutatee_tools_icpc_32_none.o mutatee_driver_solo_icpc_32.o
-	$(M_intel_CC) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
-pc_launch.mutatee_solo_dynamic_icpc_32_none: pc_launch_mutatee_solo_icpc_32_none.o mutatee_util_icpc_32_none.o mutatee_util_mt_icpc_32_none.o pcontrol_mutatee_tools_icpc_32_none.o mutatee_driver_solo_icpc_32.o
-	$(M_intel_CC) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
-pc_library.mutatee_solo_dynamic_icpc_32_none: pc_library_mutatee_solo_icpc_32_none.o mutatee_util_icpc_32_none.o mutatee_util_mt_icpc_32_none.o pcontrol_mutatee_tools_icpc_32_none.o mutatee_driver_solo_icpc_32.o
-	$(M_intel_CC) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
-pc_singlestep.mutatee_solo_dynamic_icpc_32_none: pc_singlestep_mutatee_solo_icpc_32_none.o mutatee_util_icpc_32_none.o mutatee_util_mt_icpc_32_none.o pcontrol_mutatee_tools_icpc_32_none.o mutatee_driver_solo_icpc_32.o
-	$(M_intel_CC) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
-pc_thread_cont.mutatee_solo_dynamic_icpc_32_none: pc_thread_cont_mutatee_solo_icpc_32_none.o mutatee_util_icpc_32_none.o mutatee_util_mt_icpc_32_none.o pcontrol_mutatee_tools_icpc_32_none.o mutatee_driver_solo_icpc_32.o
-	$(M_intel_CC) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
 
 # Exceptional rules for mutatees compiled with iCC
 
@@ -4147,33 +4131,17 @@ symtab_group_test.mutatee_solo_dynamic_pgCC_32_none: symtab_group_test_group_pgC
 
 ifdef PGI
 # We only want to build these targets if the compiler exists
-proccontrol_SOLO_MUTATEES_pg_cxx = pc_breakpoint.mutatee_solo_dynamic_pgCC_32_none pc_exec_targ.mutatee_solo_dynamic_pgCC_32_high pc_exec_targ.mutatee_solo_dynamic_pgCC_32_low pc_exec_targ.mutatee_solo_dynamic_pgCC_32_none pc_fork.mutatee_solo_dynamic_pgCC_32_none pc_fork_exec.mutatee_solo_dynamic_pgCC_32_none pc_irpc.mutatee_solo_dynamic_pgCC_32_none pc_launch.mutatee_solo_dynamic_pgCC_32_none pc_library.mutatee_solo_dynamic_pgCC_32_none pc_singlestep.mutatee_solo_dynamic_pgCC_32_none pc_thread_cont.mutatee_solo_dynamic_pgCC_32_none 
+proccontrol_SOLO_MUTATEES_pg_cxx = pc_exec_targ.mutatee_solo_dynamic_pgCC_32_high pc_exec_targ.mutatee_solo_dynamic_pgCC_32_low pc_exec_targ.mutatee_solo_dynamic_pgCC_32_none 
 endif
 
 # Now a list of rules for compiling the mutatees with pgCC
 
-pc_breakpoint.mutatee_solo_dynamic_pgCC_32_none: pc_breakpoint_mutatee_solo_pgCC_32_none.o mutatee_util_pgCC_32_none.o mutatee_util_mt_pgCC_32_none.o pcontrol_mutatee_tools_pgCC_32_none.o mutatee_driver_solo_pgCC_32.o
-	$(M_pg_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  -ldl -lpthread 
 pc_exec_targ.mutatee_solo_dynamic_pgCC_32_high: pc_exec_targ_mutatee_solo_pgCC_32_high.o mutatee_util_pgCC_32_high.o mutatee_driver_solo_pgCC_32.o
 	$(M_pg_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
 pc_exec_targ.mutatee_solo_dynamic_pgCC_32_low: pc_exec_targ_mutatee_solo_pgCC_32_low.o mutatee_util_pgCC_32_low.o mutatee_driver_solo_pgCC_32.o
 	$(M_pg_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
 pc_exec_targ.mutatee_solo_dynamic_pgCC_32_none: pc_exec_targ_mutatee_solo_pgCC_32_none.o mutatee_util_pgCC_32_none.o mutatee_driver_solo_pgCC_32.o
 	$(M_pg_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-pc_fork.mutatee_solo_dynamic_pgCC_32_none: pc_fork_mutatee_solo_pgCC_32_none.o mutatee_util_pgCC_32_none.o mutatee_util_mt_pgCC_32_none.o pcontrol_mutatee_tools_pgCC_32_none.o mutatee_driver_solo_pgCC_32.o
-	$(M_pg_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  -ldl -lpthread 
-pc_fork_exec.mutatee_solo_dynamic_pgCC_32_none: pc_fork_exec_mutatee_solo_pgCC_32_none.o mutatee_util_pgCC_32_none.o mutatee_util_mt_pgCC_32_none.o pcontrol_mutatee_tools_pgCC_32_none.o mutatee_driver_solo_pgCC_32.o
-	$(M_pg_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  -ldl -lpthread 
-pc_irpc.mutatee_solo_dynamic_pgCC_32_none: pc_irpc_mutatee_solo_pgCC_32_none.o mutatee_util_pgCC_32_none.o mutatee_util_mt_pgCC_32_none.o pcontrol_mutatee_tools_pgCC_32_none.o mutatee_driver_solo_pgCC_32.o
-	$(M_pg_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  -ldl -lpthread 
-pc_launch.mutatee_solo_dynamic_pgCC_32_none: pc_launch_mutatee_solo_pgCC_32_none.o mutatee_util_pgCC_32_none.o mutatee_util_mt_pgCC_32_none.o pcontrol_mutatee_tools_pgCC_32_none.o mutatee_driver_solo_pgCC_32.o
-	$(M_pg_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  -ldl -lpthread 
-pc_library.mutatee_solo_dynamic_pgCC_32_none: pc_library_mutatee_solo_pgCC_32_none.o mutatee_util_pgCC_32_none.o mutatee_util_mt_pgCC_32_none.o pcontrol_mutatee_tools_pgCC_32_none.o mutatee_driver_solo_pgCC_32.o
-	$(M_pg_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  -ldl -lpthread 
-pc_singlestep.mutatee_solo_dynamic_pgCC_32_none: pc_singlestep_mutatee_solo_pgCC_32_none.o mutatee_util_pgCC_32_none.o mutatee_util_mt_pgCC_32_none.o pcontrol_mutatee_tools_pgCC_32_none.o mutatee_driver_solo_pgCC_32.o
-	$(M_pg_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  -ldl -lpthread 
-pc_thread_cont.mutatee_solo_dynamic_pgCC_32_none: pc_thread_cont_mutatee_solo_pgCC_32_none.o mutatee_util_pgCC_32_none.o mutatee_util_mt_pgCC_32_none.o pcontrol_mutatee_tools_pgCC_32_none.o mutatee_driver_solo_pgCC_32.o
-	$(M_pg_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  -ldl -lpthread 
 
 # Exceptional rules for mutatees compiled with pgCC
 
@@ -7624,13 +7592,11 @@ symtab_group_test.mutatee_solo_dynamic_icc_32_none: symtab_group_test_group_icc_
 
 ifdef ICC
 # We only want to build these targets if the compiler exists
-proccontrol_SOLO_MUTATEES_intel_cc = pc_breakpoint.mutatee_solo_dynamic_icc_32_none pc_exec_targ.mutatee_solo_dynamic_icc_32_high pc_exec_targ.mutatee_solo_dynamic_icc_32_low pc_exec_targ.mutatee_solo_dynamic_icc_32_max pc_exec_targ.mutatee_solo_dynamic_icc_32_none pc_fork.mutatee_solo_dynamic_icc_32_none pc_fork_exec.mutatee_solo_dynamic_icc_32_none pc_irpc.mutatee_solo_dynamic_icc_32_none pc_launch.mutatee_solo_dynamic_icc_32_none pc_library.mutatee_solo_dynamic_icc_32_none pc_singlestep.mutatee_solo_dynamic_icc_32_none pc_thread_cont.mutatee_solo_dynamic_icc_32_none 
+proccontrol_SOLO_MUTATEES_intel_cc = pc_exec_targ.mutatee_solo_dynamic_icc_32_high pc_exec_targ.mutatee_solo_dynamic_icc_32_low pc_exec_targ.mutatee_solo_dynamic_icc_32_max pc_exec_targ.mutatee_solo_dynamic_icc_32_none 
 endif
 
 # Now a list of rules for compiling the mutatees with icc
 
-pc_breakpoint.mutatee_solo_dynamic_icc_32_none: pc_breakpoint_mutatee_solo_icc_32_none.o mutatee_util_icc_32_none.o mutatee_util_mt_icc_32_none.o pcontrol_mutatee_tools_icc_32_none.o mutatee_driver_solo_icc_32.o
-	$(M_intel_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
 pc_exec_targ.mutatee_solo_dynamic_icc_32_high: pc_exec_targ_mutatee_solo_icc_32_high.o mutatee_util_icc_32_high.o mutatee_driver_solo_icc_32.o
 	$(M_intel_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 pc_exec_targ.mutatee_solo_dynamic_icc_32_low: pc_exec_targ_mutatee_solo_icc_32_low.o mutatee_util_icc_32_low.o mutatee_driver_solo_icc_32.o
@@ -7639,20 +7605,6 @@ pc_exec_targ.mutatee_solo_dynamic_icc_32_max: pc_exec_targ_mutatee_solo_icc_32_m
 	$(M_intel_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
 pc_exec_targ.mutatee_solo_dynamic_icc_32_none: pc_exec_targ_mutatee_solo_icc_32_none.o mutatee_util_icc_32_none.o mutatee_driver_solo_icc_32.o
 	$(M_intel_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-pc_fork.mutatee_solo_dynamic_icc_32_none: pc_fork_mutatee_solo_icc_32_none.o mutatee_util_icc_32_none.o mutatee_util_mt_icc_32_none.o pcontrol_mutatee_tools_icc_32_none.o mutatee_driver_solo_icc_32.o
-	$(M_intel_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
-pc_fork_exec.mutatee_solo_dynamic_icc_32_none: pc_fork_exec_mutatee_solo_icc_32_none.o mutatee_util_icc_32_none.o mutatee_util_mt_icc_32_none.o pcontrol_mutatee_tools_icc_32_none.o mutatee_driver_solo_icc_32.o
-	$(M_intel_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
-pc_irpc.mutatee_solo_dynamic_icc_32_none: pc_irpc_mutatee_solo_icc_32_none.o mutatee_util_icc_32_none.o mutatee_util_mt_icc_32_none.o pcontrol_mutatee_tools_icc_32_none.o mutatee_driver_solo_icc_32.o
-	$(M_intel_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
-pc_launch.mutatee_solo_dynamic_icc_32_none: pc_launch_mutatee_solo_icc_32_none.o mutatee_util_icc_32_none.o mutatee_util_mt_icc_32_none.o pcontrol_mutatee_tools_icc_32_none.o mutatee_driver_solo_icc_32.o
-	$(M_intel_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
-pc_library.mutatee_solo_dynamic_icc_32_none: pc_library_mutatee_solo_icc_32_none.o mutatee_util_icc_32_none.o mutatee_util_mt_icc_32_none.o pcontrol_mutatee_tools_icc_32_none.o mutatee_driver_solo_icc_32.o
-	$(M_intel_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
-pc_singlestep.mutatee_solo_dynamic_icc_32_none: pc_singlestep_mutatee_solo_icc_32_none.o mutatee_util_icc_32_none.o mutatee_util_mt_icc_32_none.o pcontrol_mutatee_tools_icc_32_none.o mutatee_driver_solo_icc_32.o
-	$(M_intel_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
-pc_thread_cont.mutatee_solo_dynamic_icc_32_none: pc_thread_cont_mutatee_solo_icc_32_none.o mutatee_util_icc_32_none.o mutatee_util_mt_icc_32_none.o pcontrol_mutatee_tools_icc_32_none.o mutatee_driver_solo_icc_32.o
-	$(M_intel_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
 
 # Exceptional rules for mutatees compiled with icc
 
@@ -9317,33 +9269,17 @@ symtab_group_test.mutatee_solo_dynamic_pgcc_32_none: symtab_group_test_group_pgc
 
 ifdef PGI
 # We only want to build these targets if the compiler exists
-proccontrol_SOLO_MUTATEES_pg_cc = pc_breakpoint.mutatee_solo_dynamic_pgcc_32_none pc_exec_targ.mutatee_solo_dynamic_pgcc_32_high pc_exec_targ.mutatee_solo_dynamic_pgcc_32_low pc_exec_targ.mutatee_solo_dynamic_pgcc_32_none pc_fork.mutatee_solo_dynamic_pgcc_32_none pc_fork_exec.mutatee_solo_dynamic_pgcc_32_none pc_irpc.mutatee_solo_dynamic_pgcc_32_none pc_launch.mutatee_solo_dynamic_pgcc_32_none pc_library.mutatee_solo_dynamic_pgcc_32_none pc_singlestep.mutatee_solo_dynamic_pgcc_32_none pc_thread_cont.mutatee_solo_dynamic_pgcc_32_none 
+proccontrol_SOLO_MUTATEES_pg_cc = pc_exec_targ.mutatee_solo_dynamic_pgcc_32_high pc_exec_targ.mutatee_solo_dynamic_pgcc_32_low pc_exec_targ.mutatee_solo_dynamic_pgcc_32_none 
 endif
 
 # Now a list of rules for compiling the mutatees with pgcc
 
-pc_breakpoint.mutatee_solo_dynamic_pgcc_32_none: pc_breakpoint_mutatee_solo_pgcc_32_none.o mutatee_util_pgcc_32_none.o mutatee_util_mt_pgcc_32_none.o pcontrol_mutatee_tools_pgcc_32_none.o mutatee_driver_solo_pgcc_32.o
-	$(M_pg_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  -ldl -lpthread 
 pc_exec_targ.mutatee_solo_dynamic_pgcc_32_high: pc_exec_targ_mutatee_solo_pgcc_32_high.o mutatee_util_pgcc_32_high.o mutatee_driver_solo_pgcc_32.o
 	$(M_pg_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
 pc_exec_targ.mutatee_solo_dynamic_pgcc_32_low: pc_exec_targ_mutatee_solo_pgcc_32_low.o mutatee_util_pgcc_32_low.o mutatee_driver_solo_pgcc_32.o
 	$(M_pg_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
 pc_exec_targ.mutatee_solo_dynamic_pgcc_32_none: pc_exec_targ_mutatee_solo_pgcc_32_none.o mutatee_util_pgcc_32_none.o mutatee_driver_solo_pgcc_32.o
 	$(M_pg_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  
-pc_fork.mutatee_solo_dynamic_pgcc_32_none: pc_fork_mutatee_solo_pgcc_32_none.o mutatee_util_pgcc_32_none.o mutatee_util_mt_pgcc_32_none.o pcontrol_mutatee_tools_pgcc_32_none.o mutatee_driver_solo_pgcc_32.o
-	$(M_pg_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  -ldl -lpthread 
-pc_fork_exec.mutatee_solo_dynamic_pgcc_32_none: pc_fork_exec_mutatee_solo_pgcc_32_none.o mutatee_util_pgcc_32_none.o mutatee_util_mt_pgcc_32_none.o pcontrol_mutatee_tools_pgcc_32_none.o mutatee_driver_solo_pgcc_32.o
-	$(M_pg_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  -ldl -lpthread 
-pc_irpc.mutatee_solo_dynamic_pgcc_32_none: pc_irpc_mutatee_solo_pgcc_32_none.o mutatee_util_pgcc_32_none.o mutatee_util_mt_pgcc_32_none.o pcontrol_mutatee_tools_pgcc_32_none.o mutatee_driver_solo_pgcc_32.o
-	$(M_pg_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  -ldl -lpthread 
-pc_launch.mutatee_solo_dynamic_pgcc_32_none: pc_launch_mutatee_solo_pgcc_32_none.o mutatee_util_pgcc_32_none.o mutatee_util_mt_pgcc_32_none.o pcontrol_mutatee_tools_pgcc_32_none.o mutatee_driver_solo_pgcc_32.o
-	$(M_pg_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  -ldl -lpthread 
-pc_library.mutatee_solo_dynamic_pgcc_32_none: pc_library_mutatee_solo_pgcc_32_none.o mutatee_util_pgcc_32_none.o mutatee_util_mt_pgcc_32_none.o pcontrol_mutatee_tools_pgcc_32_none.o mutatee_driver_solo_pgcc_32.o
-	$(M_pg_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  -ldl -lpthread 
-pc_singlestep.mutatee_solo_dynamic_pgcc_32_none: pc_singlestep_mutatee_solo_pgcc_32_none.o mutatee_util_pgcc_32_none.o mutatee_util_mt_pgcc_32_none.o pcontrol_mutatee_tools_pgcc_32_none.o mutatee_driver_solo_pgcc_32.o
-	$(M_pg_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  -ldl -lpthread 
-pc_thread_cont.mutatee_solo_dynamic_pgcc_32_none: pc_thread_cont_mutatee_solo_pgcc_32_none.o mutatee_util_pgcc_32_none.o mutatee_util_mt_pgcc_32_none.o pcontrol_mutatee_tools_pgcc_32_none.o mutatee_driver_solo_pgcc_32.o
-	$(M_pg_cc) -o $@ $(filter %.o,$^) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE)  -ldl -lpthread 
 
 # Exceptional rules for mutatees compiled with pgcc
 

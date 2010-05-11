@@ -2346,6 +2346,11 @@ pcMutateeLibs(Libs) :-
        Libs = ['dl', 'pthread']
    ).
 
+compiler_for_mutatee(Mutatee, Compiler) :-
+           test(T, _, Mutatee),
+    tests_module(T, 'proccontrol'),
+    member(Compiler, ['gcc', 'g++']).
+           
 test('pc_launch', 'pc_launch', 'pc_launch').
 test_description('pc_launch', 'Launch a process').
 test_platform('pc_launch', Platform) :- pcPlatforms(Platform).
@@ -2356,7 +2361,6 @@ test_processmode('pc_launch', 'Processes').
 test_start_state('pc_launch', 'stopped').
 tests_module('pc_launch', 'proccontrol').
 mutatee('pc_launch', ['pc_launch_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
-compiler_for_mutatee('pc_launch', Compiler) :- comp_lang(Compiler, 'c').
 mutatee_requires_libs('pc_launch', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_launch', _, Opt) :- member(Opt, ['none']).
 
@@ -2370,7 +2374,6 @@ test_processmode('pc_thread_cont', 'Processes').
 test_start_state('pc_thread_cont', 'stopped').
 tests_module('pc_thread_cont', 'proccontrol').
 mutatee('pc_thread_cont', ['pc_thread_cont_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
-compiler_for_mutatee('pc_thread_cont', Compiler) :- comp_lang(Compiler, 'c').
 mutatee_requires_libs('pc_thread_cont', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_thread_cont', _, Opt) :- member(Opt, ['none']).
 
@@ -2384,7 +2387,6 @@ test_processmode('pc_breakpoint', 'Processes').
 test_start_state('pc_breakpoint', 'stopped').
 tests_module('pc_breakpoint', 'proccontrol').
 mutatee('pc_breakpoint', ['pc_breakpoint_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
-compiler_for_mutatee('pc_breakpoint', Compiler) :- comp_lang(Compiler, 'c').
 mutatee_requires_libs('pc_breakpoint', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_breakpoint', _, Opt) :- member(Opt, ['none']).
 
@@ -2398,7 +2400,6 @@ test_processmode('pc_library', 'Processes').
 test_start_state('pc_library', 'stopped').
 tests_module('pc_library', 'proccontrol').
 mutatee('pc_library', ['pc_library_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
-compiler_for_mutatee('pc_library', Compiler) :- comp_lang(Compiler, 'c').
 mutatee_requires_libs('pc_library', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_library', _, Opt) :- member(Opt, ['none']).
 
@@ -2412,7 +2413,6 @@ test_processmode('pc_singlestep', 'Processes').
 test_start_state('pc_singlestep', 'stopped').
 tests_module('pc_singlestep', 'proccontrol').
 mutatee('pc_singlestep', ['pc_singlestep_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
-compiler_for_mutatee('pc_singlestep', Compiler) :- comp_lang(Compiler, 'c').
 mutatee_requires_libs('pc_singlestep', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_singlestep', _, Opt) :- member(Opt, ['none']).
 
@@ -2426,7 +2426,6 @@ test_processmode('pc_fork', 'Processes').
 test_start_state('pc_fork', 'stopped').
 tests_module('pc_fork', 'proccontrol').
 mutatee('pc_fork', ['pc_fork_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
-compiler_for_mutatee('pc_fork', Compiler) :- comp_lang(Compiler, 'c').
 mutatee_requires_libs('pc_fork', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_fork', _, Opt) :- member(Opt, ['none']).
 
@@ -2440,7 +2439,6 @@ test_processmode('pc_fork_exec', 'Processes').
 test_start_state('pc_fork_exec', 'stopped').
 tests_module('pc_fork_exec', 'proccontrol').
 mutatee('pc_fork_exec', ['pc_fork_exec_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
-compiler_for_mutatee('pc_fork_exec', Compiler) :- comp_lang(Compiler, 'c').
 mutatee_requires_libs('pc_fork_exec', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_fork_exec', _, Opt) :- member(Opt, ['none']).
 mutatee('pc_exec_targ', ['pc_exec_targ_mutatee.c']).
@@ -2457,7 +2455,6 @@ test_processmode('pc_irpc', 'Processes').
 test_start_state('pc_irpc', 'stopped').
 tests_module('pc_irpc', 'proccontrol').
 mutatee('pc_irpc', ['pc_irpc_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
-compiler_for_mutatee('pc_irpc', Compiler) :- comp_lang(Compiler, 'c').
 mutatee_requires_libs('pc_irpc', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_irpc', _, Opt) :- member(Opt, ['none']).
 
