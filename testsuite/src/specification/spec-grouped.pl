@@ -2536,7 +2536,7 @@ compiler_format(_, 'dynamicMutatee').
 % For the time being, static mutatees only built for GNU compilers
 compiler_format('g++', 'staticMutatee').
 compiler_format('gcc', 'staticMutatee').
-compiler_format('g77', 'staticMutatee').
+compiler_format('gfortran', 'staticMutatee').
 
 % format_runmode (Platform, RunMode, Format)
 format_runmode(_, 'binary', 'staticMutatee').
@@ -2614,7 +2614,7 @@ library_suffix(Platform, Suffix) :-
 % gcc and g++ run on everything but Windows
 compiler_platform('gcc', Plat) :- platform(_, OS, _, Plat), OS \= 'windows'.
 compiler_platform('g++', Plat) :- platform(_, OS, _, Plat), OS \= 'windows'.
-% g77 only runs on i386 Linux
+% gfortran only runs on i386 Linux
 compiler_platform('gfortran', 'i386-unknown-linux2.4').
 compiler_platform('gfortran', 'i386-unknown-linux2.6').
 % Visual C/C++ only runs on Windows
@@ -2908,7 +2908,7 @@ comp_std_flags_str('iCC', '$(CXXFLAGS)').
 comp_mutatee_flags_str('icc', '-DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src').
 comp_mutatee_flags_str('iCC', '-x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src').
 
-% g77 flags
+% gfortran flags
 comp_std_flags_str('gfortran', '-g').
 comp_mutatee_flags_str('gfortran', '$(MUTATEE_G77_FFLAGS)').
 mutatee_link_options('gfortran', '$(MUTATEE_G77_LDFLAGS)').
