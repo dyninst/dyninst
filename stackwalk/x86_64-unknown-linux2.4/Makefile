@@ -33,6 +33,20 @@ include ../../make.library.tmpl
 
 # Now make any necessary architecture specific changes to variables:
 
+ifdef LIBELF_INC
+MYFLAGS += -I$(LIBELF_INC)
+endif
+ifdef LIBDWARF_INC
+MYFLAGS += -I$(LIBDWARF_INC)
+endif
+
+ifdef LIBELF_LIB
+MYFLAGS += -L$(LIBELF_LIB)
+endif
+ifdef LIBDWARF_LIB
+MYFLAGS += -L$(LIBDWARF_LIB)
+endif
+
 LIBS	+= 
 CFLAGS  += -fno-omit-frame-pointer -Dcap_sw_catchfaults $(MYFLAGS)
 CXXFLAGS  += -fno-omit-frame-pointer -Dcap_sw_catchfaults $(MYFLAGS)

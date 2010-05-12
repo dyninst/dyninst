@@ -199,7 +199,7 @@ class Symtab : public LookupInterface,
    SYMTAB_EXPORT bool isExec() const;
    SYMTAB_EXPORT bool isStripped();
    SYMTAB_EXPORT ObjectType getObjectType() const;
-
+   SYMTAB_EXPORT Dyninst::Architecture getArchitecture();
    SYMTAB_EXPORT bool isCode(const Offset where) const;
    SYMTAB_EXPORT bool isData(const Offset where) const;
    SYMTAB_EXPORT bool isValidOffset(const Offset where) const;

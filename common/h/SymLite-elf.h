@@ -39,6 +39,8 @@ class SymElf : public Dyninst::SymReader
    virtual Dyninst::Offset dataOffset() { assert(0); return 0; }
    int ref_count;
    bool construction_error;
+   
+   Elf_X *getElfHandle() { return &elf; }
 };
 
 class SymElfFactory : public Dyninst::SymbolReaderFactory

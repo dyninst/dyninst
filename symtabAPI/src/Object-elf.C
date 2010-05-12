@@ -5391,3 +5391,20 @@ bool Object::getTruncateLinePaths()
 {
    return truncateLineFilenames;
 }
+
+Dyninst::Architecture Object::getArch()
+{
+#if defined(arch_power)
+   if (getAddressWidth() == 4) {
+      return Dyninst::Arch_ppc32;
+   }
+   return Dyninst::Arch_ppc64;
+#elif defined(arch_x86) || defined(arch_x86_64)
+   if (getAddressWidth() == 4) {
+      return Dyninst::Arch_x86;
+   }
+   return Dyninst::Arch_x86_64;
+#else
+   return Arch_none;
+#endif
+}

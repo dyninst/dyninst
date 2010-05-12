@@ -390,51 +390,6 @@ void LookupFuncStart::clear_func_mapping(Dyninst::PID pid)
    delete fs;
 }
 
-gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in, 
-                                                   Frame &out, Symtab *symtab)
-{
-   MachRegisterVal frame_value, stack_value, ret_value;
-   bool result;
-
-   result = symtab->getRegValueAtFrame(pc, Dyninst::ReturnAddr,
-                                       ret_value, this);
-   if (!result) {
-      sw_printf("[%s:%u] - Couldn't get return debug info at %lx\n",
-                __FILE__, __LINE__, in.getRA());
-      return gcf_not_me;
-   }
-
-   unsigned addr_width = getProcessState()->getAddressWidth();
-   
-   
-   Dyninst::MachRegister frame_reg;
-   if (addr_width == 4)
-      frame_reg = x86::ebp;
-   else
-      frame_reg = x86_64::rbp;
-
-   result = symtab->getRegValueAtFrame(pc, frame_reg,
-                                       frame_value, this);
-   if (!result) {
-      sw_printf("[%s:%u] - Couldn't get frame debug info at %lx\n",
-                 __FILE__, __LINE__, in.getRA());
-      return gcf_not_me;
-   }
-
-   result = symtab->getRegValueAtFrame(pc, Dyninst::FrameBase,
-                                       stack_value, this);
-   if (!result) {
-      sw_printf("[%s:%u] - Couldn't get stack debug info at %lx\n",
-                 __FILE__, __LINE__, in.getRA());
-      return gcf_not_me;
-   }
-
-   out.setRA(ret_value);
-   out.setFP(frame_value);
-   out.setSP(stack_value);
-
-   return gcf_success;
-}
 #else
 
 FrameFuncHelper::alloc_frame_t LookupFuncStart::allocatesFrame(Address /*addr*/)

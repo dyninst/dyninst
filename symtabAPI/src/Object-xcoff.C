@@ -2125,3 +2125,10 @@ bool Region::isStandardCode()
    return (getRegionPermissions() == RP_RX ||
            getRegionPermissions() == RP_RWX);
 }
+
+Dyninst::Architecture Object::getArch()
+{
+   if (getAddressWidth() == 4)
+      return Dyninst::Arch_ppc32;
+   return Dyninst::Arch_ppc64;
+}

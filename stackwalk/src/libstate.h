@@ -29,39 +29,54 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef DBGSTEPPER_IMPL_
-#define DBGSTEPPER_IMPL_
+#include "dynutil/h/ProcReader.h"
+#include "dynutil/h/SymReader.h"
+#include "stackwalk/h/procstate.h"
+#include "common/h/addrtranslate.h"
+#include <set>
 
-#if defined(cap_stackwalker_use_symtab)
-
-#include "stackwalk/h/framestepper.h"
-class DwarfSW;
 namespace Dyninst {
 namespace Stackwalker {
 
-class DebugStepperImpl : public FrameStepper, public Dyninst::SymtabAPI::MemRegReader {
+class swkProcessReader : public ProcessReader {
  private:
-   DebugStepper *parent_stepper;
-   const Frame *cur_frame; //TODO: Thread safety
+   ProcessState *procstate;
  public:
-  DebugStepperImpl(Walker *w, DebugStepper *parent);
-  virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
-  virtual unsigned getPriority() const;
-  virtual void registerStepperGroup(StepperGroup *group);
-  virtual bool ReadMem(Address addr, void *buffer, unsigned size);
-  virtual bool GetReg(MachRegister reg, MachRegisterVal &val);
-  virtual ~DebugStepperImpl();  
-  virtual bool start() { return true; }
-  virtual bool done() { return true; }
- protected:
-  gcframe_ret_t getCallerFrameArch(Address pc, const Frame &in, Frame &out, 
-                                   DwarfSW *dinfo);
-  bool isFrameRegister(MachRegister reg);
-  bool isStackRegister(MachRegister reg);
+   swkProcessReader(ProcessState *pstate, const std::string& executable_);
+   virtual bool start();
+   virtual bool ReadMem(Address inTraced, void *inSelf, unsigned amount);
+   virtual bool GetReg(Dyninst::MachRegister, Dyninst::MachRegisterVal&) { return false; }
+   virtual bool done();
+   virtual ~swkProcessReader();
 };
 
-}
-}
+class TrackLibState : public LibraryState {
+ private:
+   bool needs_update;
+   bool has_updated;
+   AddressTranslate *translate;
+   static SymbolReaderFactory *symfactory;
+   swkProcessReader procreader;
+   
+   bool updateLibs();
+   bool updateLibsArch();
+   bool refresh();
+   std::vector<std::pair<LibAddrPair, unsigned> > arch_libs;
 
-#endif
-#endif
+   void getCurList(std::set<LibAddrPair> &list);
+ public:
+   TrackLibState(ProcessState *parent, std::string executable = "");
+   virtual bool getLibraryAtAddr(Address addr, LibAddrPair &olib);
+   virtual bool getLibraries(std::vector<LibAddrPair> &olibs);
+   virtual bool getLibc(LibAddrPair &lc);
+   virtual bool getLibthread(LibAddrPair &lt);
+   virtual bool getAOut(LibAddrPair &ao);
+   virtual void notifyOfUpdate();
+   virtual Address getLibTrapAddress();
+   virtual ~TrackLibState();
+};
+
+SymbolReaderFactory *getDefaultSymbolReader();
+
+}
+}

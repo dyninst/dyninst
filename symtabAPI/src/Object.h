@@ -131,6 +131,7 @@ public:
                                                   Dyninst::MachRegisterVal & /*reg_result*/,
                                                   Dyninst::SymtabAPI::MemRegReader * /*reader*/) {return false;}
     
+    SYMTAB_EXPORT virtual Dyninst::Architecture getArch() { return Arch_none; };
     SYMTAB_EXPORT const std::string findModuleForSym(Symbol *sym);
     SYMTAB_EXPORT void clearSymsToMods();
     SYMTAB_EXPORT bool hasError() const;

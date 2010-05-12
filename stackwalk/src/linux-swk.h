@@ -126,4 +126,7 @@ vsys_info *getVsysInfo(ProcessState *ps);
 }
 }
 
+class Elf_X;
+Elf_X *getElfHandle(std::string s);
+
 #endif

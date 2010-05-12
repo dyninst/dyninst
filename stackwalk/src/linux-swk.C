@@ -133,6 +133,17 @@ SymbolReaderFactory *Dyninst::Stackwalker::getDefaultSymbolReader()
    return &symelffact;
 }
 
+class Elf_X;
+Elf_X *getElfHandle(std::string s)
+{
+   SymbolReaderFactory *fact = getDefaultSymbolReader();
+   SymReader *reader = fact->openSymbolReader(s);
+   SymElf *symelf = dynamic_cast<SymElf *>(reader);
+   if (symelf)
+      return symelf->getElfHandle();
+   return NULL;
+}
+
 static void registerLibSpotterSelf(ProcSelf *pself);
 ProcSelf::ProcSelf() :
    ProcessState(getpid())

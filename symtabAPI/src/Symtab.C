@@ -2754,6 +2754,11 @@ SYMTAB_EXPORT ObjectType Symtab::getObjectType() const
    return object_type_;
 }
 
+SYMTAB_EXPORT Dyninst::Architecture Symtab::getArchitecture()
+{
+   return getObject()->getArch();
+}
+
 SYMTAB_EXPORT char *Symtab::mem_image() const 
 {
    return (char *)mf->base_addr();
