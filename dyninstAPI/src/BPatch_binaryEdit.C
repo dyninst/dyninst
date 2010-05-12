@@ -399,7 +399,7 @@ bool BPatch_binaryEdit::loadLibraryInt(const char *libname, bool deps)
   return true;
 }
 
-bool BPatch_binaryEdit::staticExecutableLoadedInt() {
+bool BPatch_binaryEdit::isStaticExecutableInt() {
     return origBinEdit->getMappedObject()->isStaticExec();
 }
 

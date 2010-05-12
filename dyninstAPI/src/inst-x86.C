@@ -1681,7 +1681,7 @@ void EmitterIA32::emitASload(int ra, int rb, int sc, long imm, Register dest, co
    
    // assuming 32-bit addressing (for now)
    
-   if (ra == REGNUM_ESP && !haverb && sc == 0) {
+   if (ra == REGNUM_ESP && !haverb && sc == 0 && gen.bti()) {
       //Optimization, common for push/pop
       RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
       stackItemLocation loc = getHeightOf(stackItem(stackItem::stacktop), gen);

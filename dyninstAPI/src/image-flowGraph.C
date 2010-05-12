@@ -54,6 +54,13 @@
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/debug.h"
 
+#if defined(cap_symeval_syscall)
+#error "DYNINST DEPENDENCY ON SYMEVAL"
+#include "symEval/h/Absloc.h"
+#include "symEval/h/AbslocInterface.h"
+#include "symEval/h/slicing.h"
+#include "Graph.h"
+#endif
 
 #include "dyninstAPI/h/BPatch_flowGraph.h"
 
@@ -104,7 +111,8 @@ bool image::analyzeImage()
 #if defined(arch_x86) || defined(arch_x86_64)
     arch = (getObject()->getAddressWidth() == 8) ? Dyninst::Arch_x86_64 : Dyninst::Arch_x86;
 #elif defined(arch_power)
-    arch = (getObject()->getAddressWidth() == 8) ? Dyninst::Arch_ppc64 : Dyninst::Arch_ppc32;
+#warning "FORCING ARCH TO POWER_32"
+    arch = (getObject()->getAddressWidth() == 8) ? Dyninst::Arch_ppc32 : Dyninst::Arch_ppc32;
 #else
     arch = Dyninst::Arch_none;
 #endif
@@ -434,9 +442,7 @@ bool image::gap_heuristic_GCC(Address addr)
     if (!isStackFramePrecheck_gcc(bufferBegin))
         return false;
 
-    dyn_detail::boost::shared_ptr<InstructionDecoder> dec =
-            makeDecoder(arch, bufferBegin, -1 - (Address)(bufferBegin));
-    dec->setMode(getAddressWidth() == 8);
+    InstructionDecoder dec(bufferBegin, -1 - (Address)(bufferBegin), arch);
     IA_IAPI ah(dec, addr, this);
 #else
     typedef IA_InstrucIter InstructionAdapter_t;
@@ -461,9 +467,7 @@ bool image::gap_heuristic_MSVS(Address addr)
     if (!isStackFramePrecheck_msvs(bufferBegin))
         return false;
 
-    dyn_detail::boost::shared_ptr<InstructionDecoder> dec =
-            makeDecoder(arch, bufferBegin, -1 - (Address)(bufferBegin));
-    dec->setMode(getAddressWidth() == 8);
+    InstructionDecoder dec(bufferBegin, -1 - (Address)(bufferBegin), arch);
     IA_IAPI ah(dec, addr, this);
 #else
     typedef IA_InstrucIter InstructionAdapter_t;
@@ -580,9 +584,7 @@ bool image_func::parse()
                 FILE__, __LINE__);
         return false;
     }
-    dyn_detail::boost::shared_ptr<InstructionDecoder> dec =
-            makeDecoder(img()->getArch(), bufferBegin, -1 - (Address)(bufferBegin));
-    dec->setMode(img()->getAddressWidth() == 8);
+    InstructionDecoder dec(bufferBegin, -1 - (Address)(bufferBegin), img()->getArch());
     IA_IAPI ah(dec, funcBegin, this);
 #else
     typedef IA_InstrucIter InstructionAdapter_t;
@@ -635,7 +637,10 @@ bool image_func::parse()
                             this,
                             functionEntry);
     funcEntries_.push_back(p);
-
+#if defined(arch_power)
+    // On POWER, assume that we make no calls until we find the requisite save.
+    makesNoCalls_ = true;
+#endif
     int frameSize;
     if(ah.isStackFramePreamble(frameSize))
     {
@@ -730,12 +735,13 @@ bool image_func::parse()
  *  All architecture-specific code is abstracted away in the image-arch
  *  modules.
  */
+
 bool image_func::buildCFG(
         pdvector<image_basicBlock *>& funcEntries,
         Address funcBegin)
 {
     // Parsing worklist
-    pdvector< Address > worklist;
+  std::priority_queue< worklist_entry > worklist;
 
     // Basic block lookup
     std::set< Address > leaders;
@@ -779,41 +785,41 @@ bool image_func::buildCFG(
         Address a = funcEntries[j]->firstInsnOffset();
         leaders.insert(a);
         leadersToBlock[a] = funcEntries[j];
-        worklist.push_back(a);
+        worklist.push(worklist_entry(a));
 
         if (pltFuncs->defines(a)) {
            isPLTFunction_ = true;
         }
     }
 
-    for(unsigned i=0; i < worklist.size(); i++)
+    while(!worklist.empty())
     {
+      Address wl_current = worklist.top().a;
+      worklist.pop();
 #if defined(cap_instruction_api)
         using namespace Dyninst::InstructionAPI;
-        const unsigned char* bufferBegin = (const unsigned char*)(img()->getPtrToInstruction(worklist[i], this));
+        const unsigned char* bufferBegin = (const unsigned char*)(img()->getPtrToInstruction(wl_current, this));
         if( bufferBegin == NULL ) {
             parsing_printf("%s[%d]: failed to get pointer to instruction by offset\n",
                     FILE__, __LINE__);
             return false;
         }
-        dyn_detail::boost::shared_ptr<InstructionDecoder> dec =
-                makeDecoder(img()->getArch(), bufferBegin, -1 - (Address)(bufferBegin));
-        dec->setMode(img()->getAddressWidth() == 8);
-        InstructionAdapter_t ah(dec, worklist[i], this);
+        InstructionDecoder dec(bufferBegin, -1 - (Address)(bufferBegin), img()->getArch());
+        InstructionAdapter_t ah(dec, wl_current, this);
 #else        
-        InstrucIter iter(worklist[i],this);
+        InstrucIter iter(wl_current,this);
         InstructionAdapter_t ah(iter, this);
 #endif        
-        image_basicBlock* currBlk = leadersToBlock[worklist[i]];
+        image_basicBlock* currBlk = leadersToBlock[wl_current];
 
         parsing_printf("[%s] parsing block at 0x%lx, "
                        "first insn offset 0x%lx\n",
                        FILE__,
-                       worklist[i], 
+                       wl_current, 
                        currBlk->firstInsnOffset());
 
         // debuggin' 
-        assert(currBlk->firstInsnOffset() == worklist[i]);
+        assert(currBlk->firstInsnOffset() == wl_current);
 
         // If this function has already parsed the block, skip
         if(containsBlock(currBlk))
@@ -840,7 +846,7 @@ bool image_func::buildCFG(
         if(image_->basicBlocksByRange.successor(ah.getNextAddr(),tmpRange))
         {
             nextExistingBlock = dynamic_cast<image_basicBlock*>(tmpRange);
-            if(nextExistingBlock->firstInsnOffset_ > worklist[i])
+            if(nextExistingBlock->firstInsnOffset_ > wl_current)
             {
                 nextExistingBlockAddr = nextExistingBlock->firstInsnOffset_;
             }
@@ -873,7 +879,7 @@ bool image_func::buildCFG(
                 {
                     leaders.insert(currAddr);
                     leadersToBlock[currAddr] = nextExistingBlock;
-                    worklist.push_back(currAddr);
+                    worklist.push(worklist_entry(currAddr));
                     parsing_printf("- adding address 0x%lx to worklist\n",
                                     currAddr);
 
@@ -1294,7 +1300,6 @@ bool image_func::buildCFG(
                               leadersToBlock,
                               ET_FALLTHROUGH,
                               worklist);
-
                 break;
             }
 #if defined(arch_ia64)
@@ -1779,3 +1784,4 @@ bool image_func::isNonReturningCall(image_func* targetFunc,
     }
 
 }
+

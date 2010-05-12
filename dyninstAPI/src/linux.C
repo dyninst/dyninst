@@ -2703,6 +2703,10 @@ void BinaryEdit::makeInitAndFiniIfNeeded()
                 emptyFunction = empty_32;
                 emptyFuncSize = 5;
             }
+#elif defined (arch_power)
+            static unsigned char empty[] = { 0x4e, 0x80, 0x00, 0x20};
+             emptyFunction = empty;
+             emptyFuncSize = 4;
 #endif //defined(arch_x86) || defined(arch_x86_64)
             linkedFile->addRegion(highWaterMark_, (void*)(emptyFunction), emptyFuncSize, ".init.dyninst",
                                   Dyninst::SymtabAPI::Region::RT_TEXT, true);
@@ -2746,6 +2750,11 @@ void BinaryEdit::makeInitAndFiniIfNeeded()
                 emptyFunction = empty_32;
                 emptyFuncSize = 5;
             }
+
+#elif defined (arch_power)
+            static unsigned char empty[] = { 0x4e, 0x80, 0x00, 0x20};
+             emptyFunction = empty;
+             emptyFuncSize = 4;
 #endif //defined(arch_x86) || defined(arch_x86_64)
             linkedFile->addRegion(highWaterMark_, (void*)(emptyFunction), emptyFuncSize, ".fini.dyninst",
                                   Dyninst::SymtabAPI::Region::RT_TEXT, true);

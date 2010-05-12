@@ -47,7 +47,6 @@
 #include <string>
 #include "common/h/Types.h"
 #include "arch-x86.h"
-#include "RegisterIDs-x86.h"
 #include <iostream>
 #include "Register.h"
 #include <dynutil/h/dyntypes.h>
@@ -97,6 +96,7 @@ enum {
 };
 
 #define Zz   { 0, 0 }
+#define ImplImm { am_ImplImm, op_b }
 #define Ap   { am_A, op_p }
 #define Cd   { am_C, op_d }
 #define Dd   { am_D, op_d }
@@ -216,8 +216,8 @@ enum {
 #define EBP { am_reg, x86::iebp }
 #define ESI { am_reg, x86::iesi }
 #define EDI { am_reg, x86::iedi }
-#define ECXEBX { am_tworeghack, r_ECXEBX }
-#define EDXEAX { am_tworeghack, r_EDXEAX }
+#define ECXEBX { am_tworeghack, op_ecxebx }
+#define EDXEAX { am_tworeghack, op_edxeax }
 #define rAX { am_reg, x86_64::irax }
 #define rBX { am_reg, x86_64::irbx }
 #define rCX { am_reg, x86_64::ircx }
@@ -412,6 +412,7 @@ dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_int, "int")
   (e_int3, "int 3")
   (e_int1, "int1")
+  (e_int80, "int 80")
   (e_into, "into")
   (e_invd, "invd")
   (e_invlpg, "invlpg")
@@ -696,143 +697,151 @@ const dyn_hash_map<entryID, flagInfo>& ia32_instruction::getFlagTable()
   return flagTable;
 }
 
-const vector<IA32Regs> standardFlags = list_of(r_OF)(r_SF)(r_ZF)(r_AF)(r_PF)(r_CF);
+const vector<Dyninst::MachRegister> standardFlags = list_of(x86::of)(x86::sf)(x86::zf)(x86::af)(x86::pf)(x86::cf);
 
   
 void ia32_instruction::initFlagTable(dyn_hash_map<entryID, flagInfo>& flagTable)
 {
-  flagTable[e_aaa] = flagInfo(list_of(r_AF), standardFlags);
-  flagTable[e_aad] = flagInfo(vector<IA32Regs>(), standardFlags);
-  flagTable[e_aam] = flagInfo(vector<IA32Regs>(), standardFlags);
-  flagTable[e_aas] = flagInfo(list_of(r_AF), standardFlags);
-  flagTable[e_adc] = flagInfo(list_of(r_CF), standardFlags);
-  flagTable[e_add] = flagInfo(vector<IA32Regs>(), standardFlags);
-  flagTable[e_and] = flagInfo(vector<IA32Regs>(), standardFlags);
-  flagTable[e_arpl] = flagInfo(vector<IA32Regs>(), list_of(r_ZF));
-  flagTable[e_bsf] = flagInfo(vector<IA32Regs>(), standardFlags);
-  flagTable[e_bt] = flagInfo(vector<IA32Regs>(), standardFlags);
-  flagTable[e_bts] = flagInfo(vector<IA32Regs>(), standardFlags);
-  flagTable[e_btr] = flagInfo(vector<IA32Regs>(), standardFlags);
-  flagTable[e_btc] = flagInfo(vector<IA32Regs>(), standardFlags);
-  flagTable[e_clc] = flagInfo(vector<IA32Regs>(), list_of(r_CF));
-  flagTable[e_cld] = flagInfo(vector<IA32Regs>(), list_of(r_DF));
-  flagTable[e_cli] = flagInfo(vector<IA32Regs>(), list_of(r_IF));
-  flagTable[e_cmc] = flagInfo(vector<IA32Regs>(), list_of(r_CF));
-  flagTable[e_cmovbe] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_cmove] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_cmovnae] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_cmovnb] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_cmovnbe] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_cmovne] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_cmovng] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_cmovnge] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_cmovnl] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_cmovno] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_cmovns] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_cmovo] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_cmovpe] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_cmovpo] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_cmovs] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_cmp] = flagInfo(vector<IA32Regs>(), standardFlags);
-  flagTable[e_cmpsb] = flagInfo(vector<IA32Regs>(), standardFlags);
-  flagTable[e_cmpsd] = flagInfo(vector<IA32Regs>(), standardFlags);
-  flagTable[e_cmpss] = flagInfo(vector<IA32Regs>(), standardFlags);
-  flagTable[e_cmpsw] = flagInfo(vector<IA32Regs>(), standardFlags);
-  flagTable[e_cmpxch] = flagInfo(vector<IA32Regs>(), standardFlags);
-  flagTable[e_cmpxch8b] = flagInfo(vector<IA32Regs>(), list_of(r_ZF));
-  flagTable[e_comisd] = flagInfo(vector<IA32Regs>(), standardFlags);
-  flagTable[e_comiss] = flagInfo(vector<IA32Regs>(), standardFlags);
-  flagTable[e_daa] = flagInfo(list_of(r_AF)(r_CF), standardFlags);
-  flagTable[e_das] = flagInfo(list_of(r_AF)(r_CF), standardFlags);
-  flagTable[e_dec] = flagInfo(vector<IA32Regs>(), list_of(r_OF)(r_SF)(r_ZF)(r_AF)(r_PF));
-  flagTable[e_div] = flagInfo(list_of(r_AF)(r_CF), standardFlags);
+  flagTable[e_aaa] = flagInfo(list_of(x86::af), standardFlags);
+  flagTable[e_aad] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
+  flagTable[e_aam] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
+  flagTable[e_aas] = flagInfo(list_of(x86::af), standardFlags);
+  flagTable[e_adc] = flagInfo(list_of(x86::cf), standardFlags);
+  flagTable[e_add] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
+  flagTable[e_and] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
+  flagTable[e_arpl] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::zf));
+  flagTable[e_bsf] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
+  flagTable[e_bsr] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
+  flagTable[e_bt] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
+  flagTable[e_bts] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
+  flagTable[e_btr] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
+  flagTable[e_btc] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
+  flagTable[e_clc] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::cf));
+  flagTable[e_cld] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::df));
+  flagTable[e_cli] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::if_));
+  flagTable[e_cmc] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::cf));
+  flagTable[e_cmovbe] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_cmove] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_cmovnae] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_cmovnb] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_cmovnbe] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_cmovne] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_cmovng] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_cmovnge] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_cmovnl] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_cmovno] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_cmovns] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_cmovo] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_cmovpe] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_cmovpo] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_cmovs] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_cmp] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
+  flagTable[e_cmpsb] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
+  flagTable[e_cmpsd] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
+  flagTable[e_cmpss] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
+  flagTable[e_cmpsw] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
+  flagTable[e_cmpxch] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
+  flagTable[e_cmpxch8b] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::zf));
+  flagTable[e_comisd] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
+  flagTable[e_comiss] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
+  flagTable[e_daa] = flagInfo(list_of(x86::af)(x86::cf), standardFlags);
+  flagTable[e_das] = flagInfo(list_of(x86::af)(x86::cf), standardFlags);
+  flagTable[e_dec] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::of)(x86::sf)(x86::zf)(x86::af)(x86::pf));
+  flagTable[e_div] = flagInfo(list_of(x86::af)(x86::cf), standardFlags);
   // TODO: FCMOVcc (not in our entry table) (reads zf/pf/cf)
   // TODO: FCOMI/FCOMIP/FUCOMI/FUCOMIP (writes/zf/pf/cf)
-  flagTable[e_idiv] = flagInfo(vector<IA32Regs>(), standardFlags);
-  flagTable[e_imul] = flagInfo(vector<IA32Regs>(), standardFlags);
-  flagTable[e_inc] = flagInfo(vector<IA32Regs>(), list_of(r_OF)(r_SF)(r_ZF)(r_AF)(r_PF));
-  flagTable[e_insb] = flagInfo(list_of(r_DF), vector<IA32Regs>());
-  flagTable[e_insw_d] = flagInfo(list_of(r_DF), vector<IA32Regs>());
-  flagTable[e_int] = flagInfo(vector<IA32Regs>(), list_of(r_TF)(r_NT));
-  flagTable[e_int3] = flagInfo(vector<IA32Regs>(), list_of(r_TF)(r_NT));
-  flagTable[e_into] = flagInfo(list_of(r_OF), list_of(r_TF)(r_NT));
-  flagTable[e_ucomisd] = flagInfo(vector<IA32Regs>(), standardFlags);
-  flagTable[e_ucomiss] = flagInfo(vector<IA32Regs>(), standardFlags);
-  flagTable[e_iret] = flagInfo(list_of(r_NT), list_of(r_OF)(r_SF)(r_ZF)(r_AF)(r_PF)(r_CF)(r_TF)(r_IF)(r_DF));
-  flagTable[e_jb] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_jb_jnaej_j] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_jbe] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_jcxz_jec] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_jl] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_jle] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_jnb] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_jnb_jae_j] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_jnbe] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_jnl] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_jnle] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_jno] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_jnp] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_jns] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_jnz] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_jo] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_jp] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_js] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_jz] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_lar] = flagInfo(vector<IA32Regs>(), list_of(r_ZF));
-  flagTable[e_loop] = flagInfo(list_of(r_DF), vector<IA32Regs>());
-  flagTable[e_loope] = flagInfo(list_of(r_ZF), vector<IA32Regs>());
-  flagTable[e_loopn] = flagInfo(list_of(r_ZF), vector<IA32Regs>());
-  flagTable[e_lsl] = flagInfo(vector<IA32Regs>(), list_of(r_ZF));
+  flagTable[e_idiv] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
+  flagTable[e_imul] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
+  flagTable[e_inc] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::of)(x86::sf)(x86::zf)(x86::af)(x86::pf));
+  flagTable[e_insb] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
+  flagTable[e_insw_d] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
+  flagTable[e_int] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::tf)(x86::nt_));
+  flagTable[e_int3] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::tf)(x86::nt_));
+  flagTable[e_int80] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::tf)(x86::nt_));
+  flagTable[e_into] = flagInfo(list_of(x86::of), list_of(x86::tf)(x86::nt_));
+  flagTable[e_ucomisd] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
+  flagTable[e_ucomiss] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
+  flagTable[e_iret] = flagInfo(list_of(x86::nt_),
+list_of(x86::of)(x86::sf)(x86::zf)(x86::af)(x86::pf)(x86::cf)(x86::tf)(x86::if_)(x86::df));
+  flagTable[e_jb] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_jb_jnaej_j] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_jbe] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_jl] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_jle] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_jnb] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_jnb_jae_j] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_jnbe] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_jnl] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_jnle] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_jno] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_jnp] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_jns] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_jnz] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_jo] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_jp] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_js] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_jz] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_lar] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::zf));
+  flagTable[e_lodsb] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
+  flagTable[e_lodsw] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
+  flagTable[e_loope] = flagInfo(list_of(x86::zf), vector<Dyninst::MachRegister>());
+  flagTable[e_loopn] = flagInfo(list_of(x86::zf), vector<Dyninst::MachRegister>());
+  flagTable[e_lsl] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::zf));
   // I'd expect that mov control/debug/test gets handled when we do operand analysis
   // If it doesn't, fix later
-  flagTable[e_mul] = flagInfo(vector<IA32Regs>(), standardFlags);
-  flagTable[e_neg] = flagInfo(vector<IA32Regs>(), standardFlags);
-  flagTable[e_or] = flagInfo(vector<IA32Regs>(), standardFlags);
-  flagTable[e_outsb] = flagInfo(list_of(r_DF), vector<IA32Regs>());
-  flagTable[e_outsw_d] = flagInfo(list_of(r_DF), vector<IA32Regs>());
-  flagTable[e_popf_d] = flagInfo(vector<IA32Regs>(), list_of(r_OF)(r_SF)(r_ZF)(r_AF)(r_PF)(r_CF)(r_TF)(r_IF)(r_DF)(r_NT));
-  flagTable[e_rcl] = flagInfo(list_of(r_CF), list_of(r_OF)(r_CF));
-  flagTable[e_rcr] = flagInfo(list_of(r_CF), list_of(r_OF)(r_CF));
-  flagTable[e_rol] = flagInfo(list_of(r_CF), list_of(r_OF)(r_CF));
-  flagTable[e_ror] = flagInfo(list_of(r_CF), list_of(r_OF)(r_CF));
-  flagTable[e_rsm] = flagInfo(vector<IA32Regs>(), list_of(r_OF)(r_SF)(r_ZF)(r_AF)(r_PF)(r_CF)(r_TF)(r_IF)(r_DF)(r_NT)(r_RF));
-  flagTable[e_sahf] = flagInfo(list_of(r_SF)(r_ZF)(r_AF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_sar] = flagInfo(vector<IA32Regs>(), standardFlags);
-  flagTable[e_shr] = flagInfo(vector<IA32Regs>(), standardFlags);
-  flagTable[e_setb] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_setbe] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_setl] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_setle] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_setnb] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_setnbe] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_setnl] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_setnle] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_setno] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_setnp] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_setns] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_setnz] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_seto] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_setp] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_sets] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_setz] = flagInfo(list_of(r_OF)(r_SF)(r_ZF)(r_PF)(r_CF), vector<IA32Regs>());
-  flagTable[e_shld] = flagInfo(vector<IA32Regs>(), standardFlags);
-  flagTable[e_shrd] = flagInfo(vector<IA32Regs>(), standardFlags);
-  flagTable[e_shl_sal] = flagInfo(vector<IA32Regs>(), standardFlags);
-  flagTable[e_stc] = flagInfo(vector<IA32Regs>(), list_of(r_CF));
-  flagTable[e_std] = flagInfo(vector<IA32Regs>(), list_of(r_DF));
-  flagTable[e_sti] = flagInfo(vector<IA32Regs>(), list_of(r_IF));
-  flagTable[e_stosb] = flagInfo(list_of(r_DF), vector<IA32Regs>());
-  flagTable[e_stosw_d] = flagInfo(list_of(r_DF), vector<IA32Regs>());
-  flagTable[e_sub] = flagInfo(vector<IA32Regs>(), standardFlags);
-  flagTable[e_verr] = flagInfo(vector<IA32Regs>(), list_of(r_ZF));
-  flagTable[e_verw] = flagInfo(vector<IA32Regs>(), list_of(r_ZF));
-  flagTable[e_xadd] = flagInfo(vector<IA32Regs>(), standardFlags);
-  flagTable[e_xor] = flagInfo(vector<IA32Regs>(), standardFlags);
-  flagTable[e_scasb] = flagInfo(list_of(r_DF), vector<IA32Regs>());
-  flagTable[e_scasw_d] = flagInfo(list_of(r_DF), vector<IA32Regs>());
+  flagTable[e_mul] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
+  flagTable[e_neg] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
+  flagTable[e_or] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
+  flagTable[e_outsb] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
+  flagTable[e_outsw_d] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
+  flagTable[e_popf_d] = flagInfo(vector<Dyninst::MachRegister>(),
+list_of(x86::of)(x86::sf)(x86::zf)(x86::af)(x86::pf)(x86::cf)(x86::tf)(x86::if_)(x86::df)(x86::nt_));
+  flagTable[e_rcl] = flagInfo(list_of(x86::cf), list_of(x86::of)(x86::cf));
+  flagTable[e_rcr] = flagInfo(list_of(x86::cf), list_of(x86::of)(x86::cf));
+  flagTable[e_rol] = flagInfo(list_of(x86::cf), list_of(x86::of)(x86::cf));
+  flagTable[e_ror] = flagInfo(list_of(x86::cf), list_of(x86::of)(x86::cf));
+  flagTable[e_rsm] = flagInfo(vector<Dyninst::MachRegister>(),
+list_of(x86::of)(x86::sf)(x86::zf)(x86::af)(x86::pf)(x86::cf)(x86::tf)(x86::if_)(x86::df)(x86::nt_)(x86::rf));
+  flagTable[e_sahf] = flagInfo(list_of(x86::sf)(x86::zf)(x86::af)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_sar] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
+  flagTable[e_shr] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
+  flagTable[e_salc] = flagInfo(list_of(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_sbb] = flagInfo(list_of(x86::cf), standardFlags);
+  flagTable[e_setb] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_setbe] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_setl] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_setle] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_setnb] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_setnbe] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_setnl] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_setnle] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_setno] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_setnp] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_setns] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_setnz] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_seto] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_setp] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_sets] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_setz] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
+  flagTable[e_shld] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
+  flagTable[e_shrd] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
+  flagTable[e_shl_sal] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
+  flagTable[e_stc] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::cf));
+  flagTable[e_std] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::df));
+  flagTable[e_sti] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::if_));
+  flagTable[e_stosb] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
+  flagTable[e_stosw_d] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
+  flagTable[e_sub] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
+  flagTable[e_test] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
+  flagTable[e_verr] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::zf));
+  flagTable[e_verw] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::zf));
+  flagTable[e_xadd] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
+  flagTable[e_xor] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
+  flagTable[e_scasb] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
+  flagTable[e_scasw_d] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
 }
 
-bool ia32_entry::flagsUsed(std::set<IA32Regs>& flagsRead, std::set<IA32Regs>& flagsWritten, ia32_locations* locs)
+bool ia32_entry::flagsUsed(std::set<MachRegister>& flagsRead, std::set<MachRegister>& flagsWritten, ia32_locations* locs)
 {
   dyn_hash_map<entryID, flagInfo>::const_iterator found = ia32_instruction::getFlagTable().find(getID(locs));
   if(found == ia32_instruction::getFlagTable().end())
@@ -1093,8 +1102,8 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_into,    t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
   { e_iret,    t_done, 0, false, { Zz, Zz, Zz }, (IS_RET), fIRET << FPOS},
   /* D0 */
-  { e_No_Entry, t_grp, Grp2, true, { Eb, Zz, Zz }, 0, s1RW }, // const1
-  { e_No_Entry, t_grp, Grp2, true, { Ev, Zz, Zz }, 0, s1RW }, // --"--
+  { e_No_Entry, t_grp, Grp2, true, { Eb, ImplImm, Zz }, 0, s1RW2R }, // const1
+  { e_No_Entry, t_grp, Grp2, true, { Ev, ImplImm, Zz }, 0, s1RW2R }, // --"--
   { e_No_Entry, t_grp, Grp2, true, { Eb, CL, Zz }, 0, s1RW2R },
   { e_No_Entry, t_grp, Grp2, true, { Ev, CL, Zz }, 0, s1RW2R },
   { e_aam,  t_done, 0, false, { AX, Ib, Zz }, 0, s1RW2R },
@@ -1158,7 +1167,7 @@ static ia32_entry twoByteMap[256] = {
   { e_No_Entry, t_grp, Grp7, false, { Zz, Zz, Zz }, 0, 0 },
   { e_lar,        t_done, 0, true, { Gv, Ew, Zz }, 0, s1W2R | (fSEGDESC << FPOS) },
   { e_lsl,        t_done, 0, true, { Gv, Ew, Zz }, 0, s1W2R | (fSEGDESC << FPOS) },
-  { e_No_Entry,            t_ill,  0, false, { Zz, Zz, Zz }, 0, 0 },
+  { e_No_Entry,    t_ill, 0, false, { Zz, Zz, Zz }, 0, 0},
   { e_syscall,    t_done, 0, false, { eCX, Zz, Zz }, 0, s1W }, // AMD: writes return address to eCX; for liveness, treat as hammering all
   { e_clts,       t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
   { e_sysret,     t_done, 0, false, { eCX, Zz, Zz }, 0, s1R }, // AMD; reads return address from eCX; unlikely to occur in Dyninst use cases but we'll be paranoid
@@ -1590,7 +1599,7 @@ static ia32_entry groupMap[][8] = {
 
  { /* group 3a - operands are defined here */
   { e_test, t_done, 0, true, { Eb, Ib, Zz }, 0, s1R2R },
-  { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_test, t_done, 0, true, { Eb, Ib, Zz }, 0, s1R2R }, // book swears this is illegal, sandpile claims it's an aliased TEST
   { e_not,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1RW },
   { e_neg,  t_done, 0, true, { Eb, Zz, Zz }, 0, s1RW },
   { e_mul,  t_done, 0, true, { AX, AL, Eb }, 0, s1W2RW3R },
@@ -1601,7 +1610,7 @@ static ia32_entry groupMap[][8] = {
 
  { /* group 3b - operands are defined here */
   { e_test, t_done, 0, true, { Ev, Iz, Zz }, 0, s1R2R },
-  { e_No_Entry, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
+  { e_test, t_done, 0, true, { Ev, Iz, Zz }, 0, s1R2R }, // book swears this is illegal, sandpile claims it's an aliased TEST
   { e_not,  t_done, 0, true, { Ev, Zz, Zz }, 0, s1RW },
   { e_neg,  t_done, 0, true, { Ev, Zz, Zz }, 0, s1RW },
   { e_mul,  t_done, 0, true, { eDX, eAX, Ev }, 0, s1W2RW3R },
@@ -2645,7 +2654,7 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
 {
   ia32_prefixes& pref = instruct.prf;
   unsigned int table, nxtab;
-  unsigned int idx, sseidx = 0;
+  unsigned int idx = 0, sseidx = 0;
   ia32_entry *gotit = NULL;
   int condbits = 0;
 
@@ -2657,15 +2666,22 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
     instruct.legacy_type = ILLEGAL;
     return instruct;
   }
-
+  
+  if((pref.getOpcodePrefix()) && pref.getCount())
+  {
+    idx = pref.getOpcodePrefix();
+    addr--;
+  }
+  
 
   if (instruct.loc) instruct.loc->num_prefixes = pref.getCount();
   instruct.size = pref.getCount();
   addr += instruct.size;
 
   table = t_oneB;
-  idx = addr[0];
+  if(idx == 0) idx = addr[0];
   gotit = &oneByteMap[idx];
+  
   nxtab = gotit->otable;
   instruct.size += 1;
   addr += 1;
@@ -3513,6 +3529,7 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
                                    ia32_memacc *mac)
 {
   ia32_locations *loc = instruct.loc;
+  if (loc) loc->imm_cnt = 0;
   unsigned int nib = 0 /* # of bytes in instruction */;
 
   int addrSzAttr = (pref.getPrefix(3) == PREFIX_SZADDR ? 1 : 2);
@@ -3596,8 +3613,15 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
       case am_J: { /* instruction pointer offset */
          int imm_size = type2size(op.optype, operSzAttr);
          if (loc) {
-            loc->imm_position = nib + loc->opcode_position + loc->opcode_size;
-            loc->imm_size = imm_size;
+            // sanity
+            if(loc->imm_cnt > 1) {
+                fprintf(stderr,"Oops, more than two immediate operands\n");
+            } else {
+                loc->imm_position[loc->imm_cnt] = 
+                    nib + loc->opcode_position + loc->opcode_size;
+                loc->imm_size[loc->imm_cnt] = imm_size;
+                ++loc->imm_cnt;
+            }
          }
          nib += imm_size;
          break;
@@ -3615,6 +3639,10 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
       case am_stackP: /* stack pop */
 	assert(0 && "Wrong table!");
         break;
+      case am_tworeghack:
+      case am_ImplImm:
+	// Don't do nuthin'
+	break;
       default:
         assert(0 && "Bad addressing mode!");
       }
@@ -3709,6 +3737,8 @@ static const unsigned char sse_prefix[256] = {
   /* Fx */ 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
 };
 
+#define REX_ISREX(x) (((x) >> 4) == 4)
+
 
 // FIXME: lookahead might blow up...
 bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
@@ -3727,6 +3757,14 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
           pref.opcode_prefix = addr[0];
           break;
        }
+       if(mode_64 && REX_ISREX(addr[1]) &&
+	  addr[2]==0x0F && sse_prefix[addr[3]]) 
+       {
+	 ++pref.count;
+          pref.opcode_prefix = addr[0];
+          break;
+       }
+       
     case PREFIX_LOCK:
        ++pref.count;
        pref.prfx[0] = addr[0];
@@ -3745,6 +3783,13 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
           pref.opcode_prefix = addr[0];
           break;
        }
+       if(mode_64 && REX_ISREX(addr[1]) &&
+	  addr[2]==0x0F && sse_prefix[addr[3]]) 
+       {
+	 ++pref.count;
+          pref.opcode_prefix = addr[0];
+          break;
+       }
        ++pref.count;
        pref.prfx[2] = addr[0];
        break;
@@ -3755,6 +3800,7 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
     default:
        in_prefix=false;
     }
+    
     ++addr;
   }
 
@@ -3766,7 +3812,6 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref,
   return result;
 }
 
-#define REX_ISREX(x) (((x) >> 4) == 4)
 #define REX_W(x) ((x) & 0x8)
 #define REX_R(x) ((x) & 0x4)
 #define REX_X(x) ((x) & 0x2)
@@ -3782,6 +3827,7 @@ bool ia32_decode_rex(const unsigned char* addr, ia32_prefixes& pref,
                      ia32_locations *loc)
 {
    if (REX_ISREX(addr[0])) {
+     
       ++pref.count;
       pref.prfx[4] = addr[0];
 
@@ -3799,7 +3845,9 @@ bool ia32_decode_rex(const unsigned char* addr, ia32_prefixes& pref,
       // that could be used as an SSE opcode extension follows our
       // REX
       if (addr[1] == PREFIX_SZOPER || addr[1] == PREFIX_REPNZ || addr[1] == PREFIX_REP)
+      {
          return false;
+      }
    }
 
    return true;
@@ -4063,125 +4111,6 @@ bool insn_hasDisp32(unsigned ModRMbyte){
     /* unsigned Reg = (ModRMbyte >> 3) & 0x07; */
     unsigned RM = ModRMbyte & 0x07;
     return (Mod == 0 && RM == 5) || (Mod == 2);
-}
-
-// This function decodes the addressing modes used for call instructions
-// For documentation on these mode, and how to decode them, see tables
-// 2-2 and 2-3 from the intel software developers manual.
-//     02/05 GQ: modified to talk with newer decoding tables
-int get_instruction_operand(const unsigned char *ptr, Register& base_reg,
-                            Register& index_reg, int& displacement, 
-                            unsigned& scale, unsigned &Mod){
-   ia32_entry *desc;
-  
-   unsigned ModRMbyte;
-   unsigned RM=0;
-   unsigned REG;
-   unsigned SIBbyte = 0;
-   bool hasSIB;
-   ia32_prefixes prefs;
-
-   // Initialize default values to an appropriately devilish number 
-   base_reg = 666;
-   index_reg = 666;
-   displacement = 0;
-   scale = 0;
-   Mod = 0;
-  
-   ptr = skip_headers(ptr, &prefs);  
-   desc = &oneByteMap[*ptr++];
-
-   if (desc->tabidx != Grp5) {
-      //We should never get here, there should never be a non group5
-      //indirect call instruction
-      return -1;
-   }
-  
-   //If the instruction has a mod/rm byte
-   if (desc->hasModRM) {
-      ModRMbyte = *ptr++;
-      Mod = ModRMbyte >> 6;
-      RM = ModRMbyte & 0x07;
-      REG = (ModRMbyte >> 3) & 0x07;
-      hasSIB = (Mod != 3) && (RM == 4);
-      if (hasSIB) {
-         SIBbyte = *ptr++;
-      }
-
-      if(REG == 2 || REG == 4){ // call to 32-bit near pointer
-         if (Mod == 3){ //Standard call where address is in register
-            base_reg = (Register) RM;
-            if (prefs.rexB()) base_reg += 8;
-            return REGISTER_DIRECT;
-         }
-         else if (Mod == 2){
-            displacement = *( ( const unsigned int * ) ptr );
-            ptr+= wordSzB;
-            if(hasSIB){
-               decode_SIB(SIBbyte, scale, index_reg, base_reg);
-               if (prefs.rexB()) base_reg += 8;
-               if (prefs.rexX()) index_reg += 8;
-               return SIB;
-            }	
-            else {
-               base_reg = (Register) RM;
-               if (prefs.rexB()) base_reg += 8;
-               return REGISTER_INDIRECT_DISPLACED; 
-            }
-         }
-         else if(Mod == 1){//call with 8-bit signed displacement
-            displacement = *( const char * )ptr;
-            ptr+= byteSzB;
-            if(hasSIB){
-               decode_SIB(SIBbyte, scale, index_reg, base_reg);
-               if (prefs.rexB()) base_reg += 8;
-               if (prefs.rexX()) index_reg += 8;
-               return SIB;
-            }
-            else {
-               base_reg = (Register) RM;
-               if (prefs.rexB()) base_reg += 8;
-               return REGISTER_INDIRECT_DISPLACED; 
-            }
-         }
-         else if(Mod == 0){
-            if(hasSIB){
-               decode_SIB(SIBbyte, scale, index_reg, base_reg);
-               if(base_reg == 5){
-                  displacement = *( ( const unsigned int * )ptr );
-                  ptr+= wordSzB;
-               }
-               else 
-                  displacement = 0;
-               if (prefs.rexB()) base_reg += 8;
-               if (prefs.rexX()) index_reg += 8;
-               return SIB;
-            }
-            else if(RM == 5){ //The disp32 field from Table 2-2 of IA guide
-               displacement = *( ( const unsigned int * ) ptr );
-               ptr+= wordSzB;
-               #if defined(arch_x86_64)
-                  return IP_INDIRECT_DISPLACED;
-               #else
-                  return DISPLACED;
-               #endif
-            }
-            else {
-               base_reg = (Register) RM;
-               if (prefs.rexB()) base_reg += 8;
-               return REGISTER_INDIRECT;
-            }
-         }
-      }
-      else if(REG==3){ 
-         //The call instruction is a far call, for which there
-         //is no monitoring code
-         return -1;
-      }
-      else assert(0);
-   }
- 
-   return -1;
 }
 
 // We keep an array-let that represents various fixed

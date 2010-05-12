@@ -32,12 +32,12 @@ SRCS =          ../src/linux.C \
                 ../src/inst-power.C \
                 ../src/arch-power.C \
                 ../src/unix.C \
-		../src/InstrucIter-power.C \
 		../src/image-power.C \
 		../src/syscall-linux.C \
-		../src/IA_InstrucIter.C \
-		../src/InstrucIter-Function.C \
-		../src/InstrucIter-xplat.C
+		../src/IA_power.C \
+		../src/IA_IAPI.C \
+		../src/BPatch_memoryAccessAdapter.C \
+		../src/stackanalysis.C
 #		../src/addLibraryLinux.C \
 #		../src/writeBackElf.C \
 #		../src/saveSharedLibrary.C \
@@ -79,8 +79,6 @@ endif
 LIBS    += -lgcc
 
 # AS		= /usr/bin/as
-# InstructionAPI is just x86 and power at this point
-LIBS    += -linstructionAPI
 
 # no support for elf64_XXX() functions
 # CXXFLAGS	+= -DUSES_ELF32_ONLY

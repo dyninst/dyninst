@@ -15,8 +15,7 @@ include ../../make.config
 # Now make any necessary architecture specific changes to variables:
 
 SRCS = 	../src/arch-x86.C \
-	../src/InstructionDecoder-x86.C \
-	../src/RegisterIDs-x86.C
+	../src/InstructionDecoder-x86.C
 
 CXXFLAGS        += $(MYFLAGS)
 CFLAGS          += $(MYFLAGS)

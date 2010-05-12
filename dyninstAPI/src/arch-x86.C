@@ -53,10 +53,12 @@
 #include "InstructionDecoder.h"
 #include "Instruction.h"
 
-#include "dyninstAPI/src/emit-x86.h"
+#include "emit-x86.h"
 #include "process.h"
 #include "inst-x86.h"
-#include "instructionAPI/h/RegisterIDs-x86.h"
+
+#include "instructionAPI/h/RegisterIDs.h"
+#include "pcrel.h"
 
 using namespace std;
 using namespace boost::assign;
@@ -93,22 +95,22 @@ Address get_immediate_operand(instruction *instr)
     // now find the immediate value in the locations
     Address immediate = 0;
 
-    switch(loc.imm_size) {
+    switch(loc.imm_size[0]) {
         case 8:
-            immediate = *(const unsigned long*)(instr->ptr()+loc.imm_position);
+            immediate = *(const unsigned long*)(instr->ptr()+loc.imm_position[0]);
             break;
         case 4:
-            immediate = *(const unsigned int*)(instr->ptr()+loc.imm_position);
+            immediate = *(const unsigned int*)(instr->ptr()+loc.imm_position[0]);
             break;
         case 2:
-            immediate = *(const unsigned short*)(instr->ptr()+loc.imm_position);
+            immediate = *(const unsigned short*)(instr->ptr()+loc.imm_position[0]);
             break;
         case 1:
-            immediate = *(const unsigned char*)(instr->ptr()+loc.imm_position);
+            immediate = *(const unsigned char*)(instr->ptr()+loc.imm_position[0]);
             break;
         default:
             parsing_printf("%s[%u]:  invalid immediate size %d in insn\n",
-                FILE__,__LINE__,loc.imm_size);
+                FILE__,__LINE__,loc.imm_size[0]);
             break;
     }
 
@@ -267,6 +269,7 @@ bool isStackFramePrecheck_msvs( const unsigned char *buffer )
    return (gap_initial_bytes[*buffer] != 0);
 }  
 
+/*
 bool isStackFramePreamble( instruction& insn1 )
 {       
     instruction insn2, insn3;
@@ -305,7 +308,7 @@ bool isStackFramePreamble( instruction& insn1 )
     
     return false;
 }
-
+*/
 // We keep an array-let that represents various fixed
 // insns
 unsigned char illegalRep[2] = {0x0f, 0x0b};
@@ -578,21 +581,6 @@ static void addPatch(codeGen &gen, patchTarget *src, imm_location_t &imm)
 }
 */
 
-class pcRelJump : public pcRelRegion {
-private:
-   Address addr_targ;
-   patchTarget *targ;
-    bool copy_prefixes_;
-
-   Address get_target();
-public:
-   pcRelJump(patchTarget *t, const instruction &i, bool copyPrefixes = true);
-   pcRelJump(Address target, const instruction &i, bool copyPrefixes = true);
-   virtual unsigned apply(Address addr);
-   virtual unsigned maxSize();        
-   virtual bool canPreApply();
-   virtual ~pcRelJump();
-};
 
 pcRelJump::pcRelJump(patchTarget *t, const instruction &i, bool copyPrefixes) :
    pcRelRegion(i),
@@ -653,21 +641,6 @@ bool pcRelJump::canPreApply()
 {
    return gen->startAddr() && (!targ || get_target());
 }
-
-class pcRelJCC : public pcRelRegion {
-private:
-   Address addr_targ;
-   patchTarget *targ;
-
-   Address get_target();
-public:
-   pcRelJCC(patchTarget *t, const instruction &i);
-   pcRelJCC(Address target, const instruction &i);
-   virtual unsigned apply(Address addr);
-   virtual unsigned maxSize();        
-   virtual bool canPreApply();
-   virtual ~pcRelJCC();
-};
 
 pcRelJCC::pcRelJCC(patchTarget *t, const instruction &i) :
    pcRelRegion(i),
@@ -792,21 +765,6 @@ bool pcRelJCC::canPreApply()
    return gen->startAddr() && (!targ || get_target());
 }
 
-class pcRelCall: public pcRelRegion {
-private:
-   Address targ_addr;
-   patchTarget *targ;
-
-   Address get_target();
-public:
-   pcRelCall(patchTarget *t, const instruction &i);
-   pcRelCall(Address targ_addr, const instruction &i);
-
-   virtual unsigned apply(Address addr);
-   virtual unsigned maxSize();        
-   virtual bool canPreApply();
-   ~pcRelCall();
-};
 
 pcRelCall::pcRelCall(patchTarget *t, const instruction &i) :
    pcRelRegion(i),
@@ -862,16 +820,6 @@ bool pcRelCall::canPreApply()
 {
    return gen->startAddr() && (!targ || get_target());
 }
-
-class pcRelData : public pcRelRegion {
-private:
-   Address data_addr;
-public:
-   pcRelData(Address a, const instruction &i);
-   virtual unsigned apply(Address addr);
-   virtual unsigned maxSize();        
-   virtual bool canPreApply();
-};
 
 pcRelData::pcRelData(Address a, const instruction &i) :
    pcRelRegion(i),
@@ -1103,11 +1051,12 @@ bool instruction::generate(codeGen &gen,
       else if (addrSpace->isValidAddress(target)) {
          // Get us an instrucIter
           const unsigned char* buf = reinterpret_cast<const unsigned char*>(addrSpace->getPtrToInstruction(target));
-          dyn_detail::boost::shared_ptr<InstructionDecoder> d = makeDecoder(Dyninst::Arch_x86, buf,
-            2 * maxInstructionLength);
-          d->setMode(addrSpace->getAddressWidth() == 8);
-          Instruction::Ptr firstInsn = d->decode();
-          Instruction::Ptr secondInsn = d->decode();
+          
+          InstructionDecoder d(buf, 2* InstructionDecoder::maxInstructionLength,
+			       addrSpace->getAddressWidth() == 8 ?
+			       Dyninst::Arch_x86_64 : Dyninst::Arch_x86);
+          Instruction::Ptr firstInsn = d.decode();
+          Instruction::Ptr secondInsn = d.decode();
           if(firstInsn && firstInsn->getOperation().getID() == e_mov
              && firstInsn->readsMemory() && !firstInsn->writesMemory()
              && secondInsn && secondInsn->getCategory() == c_ReturnInsn)
@@ -1168,8 +1117,12 @@ bool instruction::generate(codeGen &gen,
          }
       }
       else {
-         fprintf(stderr, "Warning: call at 0x%lx did not have a valid "
+         parsing_printf("Warning: call at 0x%lx did not have a valid "
                  "calculated target addr 0x%lx\n", origAddr, target);
+         /* These need to be debug messages -- a call 0 is common in static binaries
+          * fprintf(stderr, "Warning: call at 0x%lx did not have a valid "
+          *       "calculated target addr 0x%lx\n", origAddr, target);
+          */
       }
    }
 
@@ -1395,59 +1348,59 @@ bool instruction::getUsedRegs(pdvector<int> &regs) {
 	using namespace Dyninst::InstructionAPI;
          //The instruction implicitely references a memory instruction
          switch (op.optype) {
-            case r_AH:   
-            case r_AL:   
-            case r_eAX:
-            case r_EAX:
+             case x86::iah:   
+             case x86::ial:
+             case x86::iax:   
+             case x86::ieax:
                regs.push_back(REGNUM_RAX);
                if (loc.rex_byte) regs.push_back(REGNUM_R8);
                break;
-            case r_BH:
-            case r_BL:
-            case r_eBX:
-            case r_EBX:
+             case x86::ibh:
+             case x86::ibl:
+             case x86::ibx:
+             case x86::iebx:
                regs.push_back(REGNUM_RBX);
                if (loc.rex_byte) regs.push_back(REGNUM_R11);
                break;
-            case r_CH:   
-            case r_CL:   
-            case r_eCX:
-            case r_ECX:
-               regs.push_back(REGNUM_RCX);
+             case x86::ich:
+             case x86::icl:
+             case x86::icx:
+             case x86::iecx:
+                 regs.push_back(REGNUM_RCX);
                if (loc.rex_byte) regs.push_back(REGNUM_R9);
                break;
-            case r_DL:
-            case r_DH:
-            case r_eDX:
-            case r_EDX:
-               regs.push_back(REGNUM_RDX);
+             case x86::idh:
+             case x86::idl:
+             case x86::idx:
+             case x86::iedx:
+                 regs.push_back(REGNUM_RDX);
                if (loc.rex_byte) regs.push_back(REGNUM_R10);
                break;
-            case r_eSP:
-            case r_ESP:
-               regs.push_back(REGNUM_RSP);
+             case x86::isp:
+             case x86::iesp:
+                regs.push_back(REGNUM_RSP);
                if (loc.rex_byte) regs.push_back(REGNUM_R12);
                break;
-            case r_eBP:
-            case r_EBP:
+             case x86::ibp:
+             case x86::iebp:
                regs.push_back(REGNUM_RBP);
                if (loc.rex_byte) regs.push_back(REGNUM_R13);
                break;
-            case r_eSI:
-            case r_ESI:
+             case x86::isi:
+             case x86::iesi:
                regs.push_back(REGNUM_RSI);
                if (loc.rex_byte) regs.push_back(REGNUM_R14);
                break;
-            case r_EDI:
-            case r_eDI:
+             case x86::idi:
+             case x86::iedi:
                regs.push_back(REGNUM_RDI);
                if (loc.rex_byte) regs.push_back(REGNUM_R15);
                break;
-            case r_EDXEAX:
+            case op_edxeax:
                regs.push_back(REGNUM_RAX);
                regs.push_back(REGNUM_RDX);
                break;
-            case r_ECXEBX:
+            case op_ecxebx:
                regs.push_back(REGNUM_RBX);
                regs.push_back(REGNUM_RCX);
                break;
@@ -1482,10 +1435,14 @@ bool instruction::generateMem(codeGen &gen,
     * Check parameters
     **********/
    Register newreg = Null_Register;
-   if (loadExpr != Null_Register && storeExpr != Null_Register) 
+   if (loadExpr != Null_Register && storeExpr != Null_Register) {
+     cerr << "error 1" << endl;
       return false; //Can only do one memory replace per instruction now
-   else if (loadExpr == Null_Register && storeExpr == Null_Register) 
-      return false; //None specified
+   }
+   else if (loadExpr == Null_Register && storeExpr == Null_Register)  {
+     cerr << "error 2" << endl;
+     return false; //None specified
+   }
    else if (loadExpr != Null_Register && storeExpr == Null_Register) 
       newreg = loadExpr;
    else if (loadExpr == Null_Register && storeExpr != Null_Register) 
@@ -1506,10 +1463,6 @@ bool instruction::generateMem(codeGen &gen,
    ia32_decode(IA32_DECODE_MEMACCESS | IA32_DECODE_CONDITION,
                insn_ptr, orig_instr);
    entry = orig_instr.getEntry();
-
-   if (gen.addrSpace()->getAddressWidth() != 8)
-      //Currently works only on IA-32e
-      return false; 
 
    if (orig_instr.getPrefix()->getPrefix(1) != 0)
       //The instruction accesses memory via segment registers.  Disallow.
@@ -1586,14 +1539,30 @@ bool instruction::generateMem(codeGen &gen,
       REX_SET_R(new_rex, loc.rex_r);
       REX_SET_X(new_rex, 0);
       REX_SET_B(new_rex, loc.rex_b); 
-      *walker++ = new_rex;
    }
    
    /**
     * Copy opcode
     **/
    for (int i=loc.num_prefixes; i<loc.num_prefixes+(int)loc.opcode_size; i++) {
-      *walker++ = insn_ptr[i];
+     //*walker++ = insn_ptr[i];
+     if ((insn_ptr[i] != 0xf0) &&
+	 (insn_ptr[i] != 0xf2) &&
+	 (insn_ptr[i] != 0xf3) &&
+	 (insn_ptr[i] != 0x2e) &&
+	 (insn_ptr[i] != 0x36) &&
+	 (insn_ptr[i] != 0x3e) &&
+	 (insn_ptr[i] != 0x26) &&
+	 (insn_ptr[i] != 0x64) &&
+	 (insn_ptr[i] != 0x65) &&
+	 (insn_ptr[i] != 0x66) &&
+	 (insn_ptr[i] != 0x67)) {
+       if (new_rex != 0) {
+	 *walker++ = new_rex;
+	 new_rex = 0;
+       }
+     }
+     *walker++ = insn_ptr[i];
    }
    
    /**
@@ -1623,9 +1592,9 @@ bool instruction::generateMem(codeGen &gen,
    /**
     * Emit immediate
     **/
-   for (unsigned i=0; i<loc.imm_size; i++)
+   for (unsigned i=0; i<loc.imm_size[0]; i++)
    {
-      *walker++ = insn_ptr[loc.imm_position + i];
+     *walker++ = insn_ptr[loc.imm_position[0] + i];
    }
 
    //Debug output.  Fix the end of testdump.c, compile it, the do an

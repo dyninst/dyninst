@@ -133,6 +133,10 @@ class LinkMap {
         Offset dtorRegionAlign;
         Region *originalDtorRegion;
         vector<Region *> newDtorRegions;
+
+        // Keep track of changes made to symbols and relocations
+        vector< pair<Symbol *, Offset> > origSymbols;
+        vector< pair<relocationEntry *, Symbol *> > origRels;
 };
 
 } // SymtabAPI

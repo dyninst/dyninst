@@ -1700,7 +1700,7 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
                             origSymtab->addLinkingResource(library);
                             return retMap;
                         }
-                        if( library ) delete library;
+                        //if( library ) delete library;
                     }
                 } else if (Symtab::openFile(singleObject, *pathIter)) {
                     BinaryEdit *temp = BinaryEdit::openFile(*pathIter);

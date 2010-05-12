@@ -34,6 +34,7 @@
 #include "common/h/linuxKludges.h"
 #include "common/h/parseauxv.h"
 
+#include <cstdio>
 #include <linux/limits.h>
 
 #include <sys/ptrace.h>

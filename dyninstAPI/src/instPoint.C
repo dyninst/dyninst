@@ -49,7 +49,8 @@
 #if defined(cap_instruction_api)
 #include "instructionAPI/h/InstructionDecoder.h"
 using namespace Dyninst::InstructionAPI;
-InstructionDecoder::Ptr instPointBase::dec;
+Dyninst::Architecture instPointBase::arch = Dyninst::Arch_none;
+
 #else
 #include "dyninstAPI/src/InstrucIter.h"
 #endif // defined(cap_instruction_api)
@@ -236,13 +237,13 @@ instPoint *instPoint::createArbitraryInstPoint(Address addr,
         return NULL;
     }
 #if defined(cap_instruction_api)
+    if (!proc->isValidAddress(bbl->firstInsnAddr())) return NULL;
+
     const unsigned char* buffer = reinterpret_cast<unsigned char*>(proc->getPtrToInstruction(bbl->firstInsnAddr()));
-    dyn_detail::boost::shared_ptr<InstructionDecoder> decoder =
-            makeDecoder(func->ifunc()->img()->getArch(), buffer, bbl->getSize());
-    decoder->setMode(proc->getAddressWidth() == 8);
+    InstructionDecoder decoder(buffer, bbl->getSize(), func->ifunc()->img()->getArch());
     Instruction::Ptr i;
     Address currentInsn = bbl->firstInsnAddr();
-    while((i = decoder->decode()) && (currentInsn < addr))
+    while((i = decoder.decode()) && (currentInsn < addr))
     {
         currentInsn += i->size();
     }

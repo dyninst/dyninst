@@ -34,6 +34,7 @@
 
 #include <assert.h>
 #include <stdio.h>
+#include <vector>
 
 template <class K, class V>
 class IntervalTree {

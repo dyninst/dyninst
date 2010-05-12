@@ -401,7 +401,7 @@ Register registerSpace::getScratchRegister(codeGen &gen, pdvector<Register> &exc
         toUse = reg;
         break;
     }
-
+/*
     if (toUse == NULL) {
         // Argh. Let's assume spilling is cheaper
         for (unsigned i = 0; i < couldBeSpilled.size(); i++) {
@@ -411,7 +411,7 @@ Register registerSpace::getScratchRegister(codeGen &gen, pdvector<Register> &exc
             }
         }
     }
-    
+*/    
     // Still?
     if (toUse == NULL) {
         for (unsigned i = 0; i < couldBeStolen.size(); i++) {
@@ -696,6 +696,10 @@ bool registerSpace::readProgramRegister(codeGen &gen,
     // so x86. 
     switch (src->spilledState) {
     case registerSlot::unspilled:
+	    printf(" emitMovRegToReg source %d dest %d \n", source, destination);
+		    printf(" emitMovRegToReg source %d dest %d GPR %d SPR %d \n", src->type, dest->type, registerSlot::GPR, registerSlot::SPR);
+			    printf(" emitMovRegToReg source %d dest %d \n", src->number, dest->number);
+
         gen.codeEmitter()->emitMoveRegToReg(src, dest, gen);
         return true;
         break;
@@ -706,7 +710,7 @@ bool registerSpace::readProgramRegister(codeGen &gen,
         // We can't use existing mechanisms because they're all built
         // off the "non-instrumented" case - emit a load from the
         // "original" frame pointer, whereas we want the current one. 
-        gen.codeEmitter()->emitLoadRelative(dest, src->saveOffset, frame, gen);
+        gen.codeEmitter()->emitLoadRelative(destination, src->saveOffset, framePointer(),  gen.addrSpace()->getAddressWidth(), gen);
         return true;
         break;
     }
@@ -756,7 +760,7 @@ bool registerSpace::writeProgramRegister(codeGen &gen,
 
         // When this register was saved we stored its offset from the base pointer.
         // Use that to load it. 
-        gen.codeEmitter()->emitStoreRelative(src, dest->saveOffset, frame, gen);
+        gen.codeEmitter()->emitStoreRelative(source, dest->saveOffset, framePointer(), gen.addrSpace()->getAddressWidth(), gen);
         return true;
         break;
     }

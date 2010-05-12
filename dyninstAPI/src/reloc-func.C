@@ -618,14 +618,12 @@ bool bblInstance::relocationSetup(bblInstance *orig, pdvector<funcMod *> &mods) 
 #if defined(cap_instruction_api)
    using namespace Dyninst::InstructionAPI;
    unsigned char* buffer = reinterpret_cast<unsigned char*>(orig->proc()->getPtrToInstruction(orig->firstInsnAddr()));
-   dyn_detail::boost::shared_ptr<InstructionDecoder> d =
-           makeDecoder(func()->ifunc()->img()->getArch(), buffer, orig->getSize());
-   d->setMode(orig->proc()->getAddressWidth() == 8);
+   InstructionDecoder d(buffer, orig->getSize(), func()->ifunc()->img()->getArch());
    
    size_t offset = 0;
    while(offset < orig->getSize())
    {
-     Instruction::Ptr tmp = d->decode();
+     Instruction::Ptr tmp = d.decode();
      
      reloc_info_t::relocInsn *reloc = new reloc_info_t::relocInsn;
 
@@ -633,7 +631,7 @@ bool bblInstance::relocationSetup(bblInstance *orig, pdvector<funcMod *> &mods) 
      reloc->relocAddr = 0;
      reloc->origInsn = new instruction;
      reloc->origPtr = buffer + offset;
-     reloc->origInsn->setInstruction((const unsigned char*)reloc->origPtr, reloc->origAddr);
+     reloc->origInsn->setInstruction((unsigned char*)reloc->origPtr, reloc->origAddr);
      reloc->relocTarget = 0;
      reloc->relocSize = 0;
 

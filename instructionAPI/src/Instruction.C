@@ -54,13 +54,20 @@ namespace Dyninst
   namespace InstructionAPI
   {
 
+      int Instruction::numInsnsAllocated = 0;
     INSTRUCTION_EXPORT Instruction::Instruction(Operation::Ptr what,
 			     size_t size, const unsigned char* raw,
-                             dyn_detail::boost::shared_ptr<InstructionDecoder> dec)
-      : m_InsnOp(what), m_Valid(true), m_dec(dec)
+                             Dyninst::Architecture arch)
+      : m_InsnOp(what), m_Valid(true), arch_decoded_from(arch)
     {
         copyRaw(size, raw);
-      
+#if defined(DEBUG_INSN_ALLOCATIONS)
+        numInsnsAllocated++;
+        if((numInsnsAllocated % 1000) == 0)
+        {
+            fprintf(stderr, "Instruction CTOR, %d insns allocated\n", numInsnsAllocated);
+        }
+#endif    
     }
 
     void Instruction::copyRaw(size_t size, const unsigned char* raw)
@@ -89,13 +96,21 @@ namespace Dyninst
     
     void Instruction::decodeOperands() const
     {
-        m_Operands.reserve(5);
-        m_dec->doDelayedDecode(this);
+        //m_Operands.reserve(5);
+        InstructionDecoder dec(ptr(), size(), arch_decoded_from);
+        dec.doDelayedDecode(this);
     }
     
     INSTRUCTION_EXPORT Instruction::Instruction() :
       m_Valid(false), m_size(0)
     {
+#if defined(DEBUG_INSN_ALLOCATIONS)
+        numInsnsAllocated++;
+        if((numInsnsAllocated % 1000) == 0)
+        {
+            fprintf(stderr, "Instruction CTOR, %d insns allocated\n", numInsnsAllocated);
+        }
+#endif
     }
     
     INSTRUCTION_EXPORT Instruction::~Instruction()
@@ -104,11 +119,17 @@ namespace Dyninst
       {
 	delete[] m_RawInsn.large_insn;
       }
-      
+#if defined(DEBUG_INSN_ALLOCATIONS)
+      numInsnsAllocated--;
+      if((numInsnsAllocated % 1000) == 0)
+      {
+          fprintf(stderr, "Instruction DTOR, %d insns allocated\n", numInsnsAllocated);
+      }
+#endif      
     }
 
     INSTRUCTION_EXPORT Instruction::Instruction(const Instruction& o) :
-            m_dec(o.m_dec)
+      arch_decoded_from(o.arch_decoded_from)
     {
         m_Operands.clear();
       //m_Operands.reserve(o.m_Operands.size());
@@ -131,6 +152,13 @@ namespace Dyninst
 
       m_InsnOp = o.m_InsnOp;
       m_Valid = o.m_Valid;
+#if defined(DEBUG_INSN_ALLOCATIONS)
+      numInsnsAllocated++;
+      if((numInsnsAllocated % 1000) == 0)
+      {
+          fprintf(stderr, "Instruction COPY CTOR, %d insns allocated\n", numInsnsAllocated);
+      }
+#endif
     }
 
     INSTRUCTION_EXPORT const Instruction& Instruction::operator=(const Instruction& rhs)
@@ -157,7 +185,7 @@ namespace Dyninst
 
       m_InsnOp = rhs.m_InsnOp;
       m_Valid = rhs.m_Valid;
-      m_dec = rhs.m_dec;
+      arch_decoded_from = rhs.arch_decoded_from;
       return *this;
     }    
     
@@ -193,7 +221,9 @@ namespace Dyninst
 	  // Out of range = empty operand
             return Operand(Expression::Ptr(), false, false);
         }
-        return m_Operands[index];
+        std::list<Operand>::const_iterator found = m_Operands.begin();
+        std::advance(found, index);
+        return *found;
      }
 
      INSTRUCTION_EXPORT const void* Instruction::ptr() const
@@ -232,7 +262,7 @@ namespace Dyninst
       {
 	decodeOperands();
       }
-      for(std::vector<Operand>::const_iterator curOperand = m_Operands.begin();
+      for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
 	  curOperand != m_Operands.end();
 	  ++curOperand)
       {
@@ -248,7 +278,7 @@ namespace Dyninst
       {
 	decodeOperands();
       }
-      for(std::vector<Operand>::const_iterator curOperand = m_Operands.begin();
+      for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
 	  curOperand != m_Operands.end();
 	  ++curOperand)
       {
@@ -265,7 +295,7 @@ regsWritten.begin()));
       {
 	decodeOperands();
       }
-      for(std::vector<Operand >::const_iterator curOperand = m_Operands.begin();
+      for(std::list<Operand >::const_iterator curOperand = m_Operands.begin();
 	  curOperand != m_Operands.end();
 	  ++curOperand)
       {
@@ -283,7 +313,7 @@ regsWritten.begin()));
       {
 	decodeOperands();
       }
-      for(std::vector<Operand>::const_iterator curOperand = m_Operands.begin();
+      for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
 	  curOperand != m_Operands.end();
 	  ++curOperand)
       {
@@ -305,7 +335,7 @@ regsWritten.begin()));
       {
           return false;
       }
-      for(std::vector<Operand>::const_iterator curOperand = m_Operands.begin();
+      for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
 	  curOperand != m_Operands.end();
 	  ++curOperand)
       {
@@ -323,7 +353,7 @@ regsWritten.begin()));
       {
 	decodeOperands();
       }
-      for(std::vector<Operand>::const_iterator curOperand = m_Operands.begin();
+      for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
           curOperand != m_Operands.end();
 	  ++curOperand)
       {
@@ -341,7 +371,7 @@ regsWritten.begin()));
       {
 	decodeOperands();
       }
-      for(std::vector<Operand>::const_iterator curOperand = m_Operands.begin();
+      for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
 	  curOperand != m_Operands.end();
 	  ++curOperand)
       {
@@ -357,7 +387,7 @@ memAccessors.begin()));
       {
 	decodeOperands();
       }
-      for(std::vector<Operand>::const_iterator curOperand = m_Operands.begin();
+      for(std::list<Operand>::const_iterator curOperand = m_Operands.begin();
           curOperand != m_Operands.end();
 	  ++curOperand)
       {
@@ -401,7 +431,7 @@ memAccessors.begin()));
 
       std::string retVal = m_InsnOp->format();
       retVal += " ";
-      std::vector<Operand>::const_iterator curOperand;
+      std::list<Operand>::const_iterator curOperand;
       for(curOperand = m_Operands.begin();
 	  curOperand != m_Operands.end();
 	  ++curOperand)
@@ -473,7 +503,16 @@ memAccessors.begin()));
       case e_syscall:
 	return false;
       default:
-	return true;
+      {
+	decodeOperands();
+          for(cftConstIter targ = m_Successors.begin();
+              targ != m_Successors.end();
+              ++targ)
+          {
+	    if(targ->isFallthrough) return true;
+          }
+          return m_Successors.empty();
+      }
       }
       
     }

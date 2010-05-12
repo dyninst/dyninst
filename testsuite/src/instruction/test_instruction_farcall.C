@@ -75,19 +75,15 @@ test_results_t test_instruction_farcall_Mutator::executeTest()
 #endif
     
   
-  dyn_detail::boost::shared_ptr<InstructionDecoder> d =
-          makeDecoder(curArch, buffer, size);
-#if defined(arch_x86_64_test)
-    d->setMode(true);
-#endif
-  std::vector<Instruction::Ptr> decodedInsns;
-  Instruction::Ptr i;
-  do
-  {
-    i = d->decode();
-    decodedInsns.push_back(i);
-  }
-  while(i && i->isValid());
+    InstructionDecoder d(buffer, size, curArch);
+    std::vector<Instruction::Ptr> decodedInsns;
+    Instruction::Ptr i;
+    do
+    {
+      i = d.decode();
+      decodedInsns.push_back(i);
+    }
+    while(i && i->isValid());
 #if defined(arch_x86_64_test)
   if(decodedInsns.empty() || !decodedInsns[0] || !decodedInsns[0]->isValid() || decodedInsns[0]->isLegalInsn())
   {

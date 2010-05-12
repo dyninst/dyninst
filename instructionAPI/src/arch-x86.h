@@ -32,16 +32,18 @@
 // $Id: arch-x86.h,v 1.6 2008/10/28 18:42:41 bernat Exp $
 // x86 instruction declarations
 
+#ifndef _ARCH_X86_IAPI_H
+#define _ARCH_X86_IAPI_H
+
 #include <stdio.h>
 #include <set>
 #include <map>
 #include <vector>
 #include "../../common/h/Types.h"
-#include "../h/RegisterIDs-x86.h"
-#include "../h/entryIDs-IA32.h"
+#include "dyn_regs.h"
+#include "entryIDs.h"
+#include "common/h/ia32_locations.h"
 
-#ifndef _ARCH_X86_IAPI_H
-#define _ARCH_X86_IAPI_H
 
 #if defined(i386_unknown_nt4_0)
 // disable VC++ warning C4800: (performance warning)
@@ -104,186 +106,6 @@ typedef int dword_t;   /* a double word (32-bit) operand */
 /* end of instruction type descriptor values */
 
  
-/* opcodes of some one byte opcode instructions */
-/* ADD */
-#define ADD_EB_GB (0x00)
-#define ADD_EV_GV (0x01)
-#define ADD_GB_EB (0x02)
-#define ADD_GV_EV (0x03)
-#define ADD_AL_LB (0x04)
-#define ADD_RAX_LZ (0x05)
-
-#define PUSHES    (0x06) /* Invalid in 64 bit mode */
-#define POPES     (0x07) /* Invalid in 64 bit mode */
-
-/* OR */
-#define OR_EB_GB (0x08)
-#define OR_EV_GV (0x09)
-#define OR_GB_EB (0x0A)
-#define OR_GV_EV (0x0B)
-#define OR_AL_LB (0x0C)
-#define OR_RAX_LZ (0x0D)
-
-#define PUSHCS    (0x0E) /* Invalid in 64 bit mode */
-#define TWO_BYTE_OPCODE (0x0F)
-
-/* ADC */
-#define ADC_EB_GB (0x10)
-#define ADC_EV_GV (0x11)
-#define ADC_GB_EB (0x12)
-#define ADC_GV_EV (0x13)
-#define ADC_AL_LB (0x14)
-#define ADC_RAX_LZ (0x15)
-
-#define PUSHSS    (0x16) /* Invalid in 64 bit mode */
-#define POPSS     (0x17) /* Invalid in 64 bit mode */
-
-/* SBB */
-#define SBB_EB_GB (0x18)
-#define SBB_EV_GV (0x19)
-#define SBB_GB_EB (0x1A)
-#define SBB_GV_EV (0x1B)
-#define SBB_AL_LB (0x1C)
-#define SBB_RAX_LZ (0x1D)
-
-#define PUSH_DS  (0x1E) /* Invalid in 64 bit mode */
-#define POP_DS   (0X1F) /* Invalid in 64 bit mode */
-
-/* AND */
-#define AND_EB_GB (0x20)
-#define AND_EV_GV (0x21)
-#define AND_GB_EB (0x22)
-#define AND_GV_EV (0x23)
-#define AND_AL_LB (0x24)
-#define AND_RAX_LZ (0x25)
-
-#define SEG_ES (0x26) /* Null prefix in 64-bit mode */
-#define DAA    (0x27) /* Invalid in 64-bit mode */
-
-/* SUB */
-#define SUB_EB_GB (0x28)
-#define SUB_EV_GV (0x29)
-#define SUB_GB_EB (0x2A)
-#define SUB_GV_EV (0x2B)
-#define SUB_AL_LB (0x2C)
-#define SUB_RAX_LZ (0x2D)
-
-//(0x2E)
-//   (0x2F)
-
-/* XOR */
-#define XOR_EB_GB (0x30)
-#define XOR_EV_GV (0x31)
-#define XOR_GB_EB (0x32)
-#define XOR_GV_EV (0x33)
-#define XOR_AL_LB (0x34)
-#define XOR_RAX_LZ (0x35)
-
-#define XOR_RM16_R16 (0x31)
-#define XOR_RM32_R32 (0x31)
-#define XOR_R8_RM8 (0x32)
-#define XOR_R16_RM16 (0x33)
-#define XOR_R32_RM32 (0x33)
-
-#define SEG_SS (0x36) /* Null prefix in 64 bit mode */
-#define AAA (0x37)    /* Invalid in 64-bit mode */
-
-
-/* CMP */
-#define CMP_EB_GB (0x38)
-#define CMP_EV_GV (0x39)
-#define CMP_GB_EB (0x3A)
-#define CMP_GV_EV (0x3B)
-#define CMP_AL_LB (0x3C)
-#define CMP_RAX_LZ (0x3D)
-
-//   (0x3E)
-//   (0x3F)
-
-/* INC - REX Prefixes in 64 bit mode*/
-#define INC_EAX  (0x40)
-#define INC_ECX  (0x41)
-#define INC_EDX  (0x42)
-#define INC_EBX  (0x43)
-#define INC_ESP  (0x44)
-#define INC_EBP  (0x45)
-#define INC_ESI  (0x46)
-#define INC_EDI  (0x47)
-
-/* DEC - REX Prefixes in 64 bit mode */
-#define DEC_EAX  (0x48)
-#define DEC_ECX  (0x49)
-#define DEC_EDX  (0x50)
-#define DEC_EBX  (0x51)
-#define DEC_ESP  (0x52)
-#define DEC_EBP  (0x53)
-#define DEC_ESI  (0x54)
-#define DEC_EDI  (0x55)
-
-/* PUSH */
-#define PUSHEAX  (0x50)
-#define PUSHECX  (0x51)
-#define PUSHEDX  (0x52)
-#define PUSHEBX  (0x53)
-#define PUSHESP  (0x54)
-#define PUSHEBP  (0x55)
-#define PUSHESI  (0x56)
-#define PUSHEDI  (0x57)
-
-/* POP */
-#define POP_EAX  (0x58)
-#define POP_ECX  (0x59)
-#define POP_EDX  (0x5A)
-#define POP_EBX  (0x5b)
-#define POP_ESP  (0x5c)
-#define POP_EBP  (0x5d)
-#define POP_EBI  (0x5e)
-#define POP_EDI  (0x5f)
-
-
-#define PUSHAD   (0x60)
-#define POPAD    (0x61)
-
-
-
-
-#define JE_R8    (0x74)
-#define JNE_R8   (0x75)
-#define JL_R8    (0x7C)
-#define JLE_R8   (0x7E)
-#define JG_R8    (0x7F)
-#define JGE_R8   (0x7D)
-
-
-#define MOVREGMEM_REG (0x8b) 
-#define MOV_R8_TO_RM8 (0x88)     //move r8 to r/m8
-#define MOV_R16_TO_RM16 (0x89)   //move r16 to r/m16
-#define MOV_R32_TO_RM32 (0x89)   //move r32 to r/m32
-#define MOV_RM8_TO_R8 (0x8A)
-#define MOV_RM16_TO_R16 (0x8b)
-#define MOV_RM32_TO_R32 (0x8b)
-
-
-
-#define NOP      (0x90)
-#define PUSHFD   (0x9C)
-#define POPFD    (0x9D)
-
-
-#define JCXZ     (0xE3)
-
-
-
-
-
-
-#define FSAVE    (0x9BDD)
-#define FSAVE_OP (6)
-
-#define FRSTOR   (0xDD)
-#define FRSTOR_OP (4)
-
-const unsigned char SYSCALL[] = {0x0F, 0x05};
 
 /* limits */
 #define MIN_IMM8 (-128)
@@ -330,41 +152,22 @@ INSTRUCTION_EXPORT bool ia32_is_mode_64();
 // and am_stackX for stack operands [this kinda' messy since there are actually two operands:
 // the stack byte/word/dword and the (E)SP register itself - but is better than naught]
 // added: am_reg, am_stack, am_allgprs
+// ADDED: am_ImplImm for implicit immediates
+
 enum { am_A=1, am_C, am_D, am_E, am_F, am_G, am_I, am_J, am_M, am_O, // 10
        am_P, am_Q, am_R, am_S, am_T, am_V, am_W, am_X, am_Y, am_reg, // 20
-       am_stackH, am_stackP, am_allgprs, am_VR, am_tworeghack }; // pusH and poP produce different addresses
+       am_stackH, am_stackP, am_allgprs, am_VR, am_tworeghack, am_ImplImm }; // pusH and poP produce different addresses
 
 // operand types - idem, but I invented quite a few to make implicit operands explicit.
 enum { op_a=1, op_b, op_c, op_d, op_dq, op_p, op_pd, op_pi, op_ps, // 9 
        op_q, op_s, op_sd, op_ss, op_si, op_v, op_w, op_z, op_lea, op_allgprs, op_512,
-       op_f, op_dbl, op_14, op_28};
+       op_f, op_dbl, op_14, op_28, op_edxeax, op_ecxebx};
 
 
 // tables and pseudotables
 enum {
   t_ill=0, t_oneB, t_twoB, t_prefixedSSE, t_coprocEsc, t_grp, t_sse, t_grpsse, t_3dnow, t_done=99
 };
-
-
-// registers [only fancy names, not used right now]
-/* enum RegisterID { r_AH=100, r_BH, r_CH, r_DH, r_AL, r_BL, r_CL, r_DL, //107 */
-/* 		  r_AX, r_DX, //109 */
-/* 		  r_eAX, r_eBX, r_eCX, r_eDX, //113 */
-/* 		  r_EAX, r_EBX, r_ECX, r_EDX, //117 */
-/* 		  r_CS, r_DS, r_ES, r_FS, r_GS, r_SS, //123 */
-/* 		  r_eSP, r_eBP, r_eSI, r_eDI, //127 */
-/* 		  r_ESP, r_EBP, r_ESI, r_EDI, //131 */
-/* 		  r_EDXEAX, r_ECXEBX, //133 */
-/* 		  // above two are hacks for cmpxch8b which would have 5 operands otherwise!!! */
-/* 		  r_OF, r_SF, r_ZF, r_AF, r_PF, r_CF, r_TF, r_IF, r_DF, r_NT, r_RF, */
-/* 		  // flags need to be separate registers for proper liveness analysis */
-/* 		  r_DummyFPR, r_Reserved, */
-/* 		  // and we have a dummy register to make liveness consistent since floating point saves are all/none at present */
-/* 		  r_R8, r_R9, r_R10, r_R11, r_R12, r_R13, r_R14, r_R15 */
-/* 		  // AMD64 GPRs */
-/* };  */
-
-
 
 // registers used for memory access
 enum { mRAX=0, mRCX, mRDX, mRBX,
@@ -422,42 +225,6 @@ struct sIBByte {
  * This structure can be passed to ia32_decode to have it fill in the 
  * locations of where it found the individual parts of an instruction.
  **/
-typedef struct ia32_locations {
-   ia32_locations() : num_prefixes(0), opcode_size(0), opcode_position(-1),
-        disp_size(0), disp_position(-1), imm_position(-1), imm_size(0),
-        modrm_position(-1), modrm_operand(-1), modrm_byte(0), modrm_mod(0),
-        modrm_rm(0), modrm_reg(0), sib_byte(0), sib_position(-1), 
-        rex_position(-1), rex_byte(0), rex_w(0), rex_r(0), rex_x(0), rex_b(0),
-        address_size(0) {}
-   int num_prefixes;
-   unsigned opcode_size;
-   int opcode_position;
-   
-   unsigned disp_size;
-   int disp_position;
-
-   int imm_position;
-   unsigned imm_size;
-   
-   int modrm_position;
-   int modrm_operand;
-   unsigned char modrm_byte;
-   unsigned char modrm_mod;
-   unsigned char modrm_rm;
-   unsigned char modrm_reg;
-
-   unsigned char sib_byte;
-   int sib_position;
-   
-   int rex_position;
-   unsigned char rex_byte;
-   unsigned char rex_w;
-   unsigned char rex_r;
-   unsigned char rex_x;
-   unsigned char rex_b;
-
-   int address_size;
-} ia32_locations;
 
 class ia32_prefixes
 {
@@ -598,7 +365,8 @@ struct ia32_entry {
   const char* name(ia32_locations* locs = NULL);
   INSTRUCTION_EXPORT entryID getID(ia32_locations* locs = NULL) const;
   // returns true if any flags are read/written, false otherwise
-  INSTRUCTION_EXPORT bool flagsUsed(std::set<Dyninst::InstructionAPI::IA32Regs>& flagsRead, std::set<Dyninst::InstructionAPI::IA32Regs>& flagsWritten,
+  INSTRUCTION_EXPORT bool flagsUsed(std::set<Dyninst::MachRegister>& flagsRead, std::set<Dyninst::MachRegister>&
+flagsWritten,
 		 ia32_locations* locs = NULL);
   entryID id;
   unsigned int otable;       // which opcode table is next; if t_done it is the current one
@@ -615,15 +383,15 @@ struct ia32_entry {
 using std::vector;
 struct flagInfo
 {
-  flagInfo(const vector<Dyninst::InstructionAPI::IA32Regs>& rf, const vector<Dyninst::InstructionAPI::IA32Regs>& wf) : readFlags(rf), writtenFlags(wf) 
+  flagInfo(const vector<Dyninst::MachRegister>& rf, const vector<Dyninst::MachRegister>& wf) : readFlags(rf), writtenFlags(wf)
   {
   }
   flagInfo() 
   {
   }
   
-  vector<Dyninst::InstructionAPI::IA32Regs> readFlags;
-  vector<Dyninst::InstructionAPI::IA32Regs> writtenFlags;
+  vector<Dyninst::MachRegister> readFlags;
+  vector<Dyninst::MachRegister> writtenFlags;
 };
 
 class ia32_instruction
@@ -757,9 +525,9 @@ inline bool is_disp16(long disp) {
 }
 
 
-INSTRUCTION_EXPORT int get_instruction_operand(const unsigned char *i_ptr, Register& base_reg,
+/*INSTRUCTION_EXPORT int get_instruction_operand(const unsigned char *i_ptr, Register& base_reg,
 			    Register& index_reg, int& displacement, 
-			    unsigned& scale, unsigned &mod);
+			    unsigned& scale, unsigned &mod);*/
 INSTRUCTION_EXPORT void decode_SIB(unsigned sib, unsigned& scale, Register& index_reg, Register& base_reg);
 INSTRUCTION_EXPORT const unsigned char* skip_headers(const unsigned char*, ia32_prefixes* = NULL);
 

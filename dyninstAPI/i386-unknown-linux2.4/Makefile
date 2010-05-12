@@ -41,6 +41,7 @@ SRCS =          ../src/linux.C \
 		../src/stackanalysis.C \
 		../src/IAPI_to_AST.C \
 		../src/IA_IAPI.C \
+		../src/IA_x86.C \
 		../src/BPatch_memoryAccessAdapter.C \
 		../src/RegisterConversion-x86.C
 #		../src/addLibraryLinux.C \
@@ -82,9 +83,6 @@ else
 LIBS    += -lelf
 endif
 LIBS    += -lgcc
-
-# InstructionAPI is x86-only at this point
-LIBS    += -linstructionAPI
 
 AS		= /usr/bin/as
 

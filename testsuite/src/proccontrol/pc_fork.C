@@ -1,6 +1,8 @@
 #include "proccontrol_comp.h"
 #include "communication.h"
 
+#include <cstdio>
+
 using namespace std;
 
 class pc_forkMutator : public ProcControlMutator {

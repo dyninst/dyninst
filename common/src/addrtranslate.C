@@ -31,6 +31,8 @@
 
 #include "common/h/addrtranslate.h"
 
+#include <cstdio>
+
 using namespace Dyninst;
 using namespace std;
 

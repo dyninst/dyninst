@@ -39,10 +39,11 @@
 
 class IA_IAPI : public InstructionAdapter
 {
+  friend class image_func;
     public:
-        IA_IAPI(dyn_detail::boost::shared_ptr<Dyninst::InstructionAPI::InstructionDecoder> dec_,
+  IA_IAPI(Dyninst::InstructionAPI::InstructionDecoder dec_,
                 Address start_, image_func* f);
-        IA_IAPI(dyn_detail::boost::shared_ptr<Dyninst::InstructionAPI::InstructionDecoder> dec_,
+        IA_IAPI(Dyninst::InstructionAPI::InstructionDecoder dec_,
                 Address start_, image * im);
         virtual ~IA_IAPI() {
         }
@@ -54,7 +55,7 @@ class IA_IAPI : public InstructionAdapter
         virtual bool isAbortOrInvalidInsn() const;
         virtual bool isAllocInsn() const;
         virtual void
-                getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >&
+                getNewEdges(pdvector<std::pair< Address, EdgeTypeEnum> >&
                 outEdges, image_basicBlock* currBlk,
                 unsigned int num_insns,
                 dictionary_hash<Address, std::string> *pltFuncs) const;
@@ -76,13 +77,15 @@ class IA_IAPI : public InstructionAdapter
         virtual bool isConditional() const;
         virtual bool isBranch() const;
         virtual bool isInterruptOrSyscall() const;
+        virtual bool isSyscall() const;
+        virtual bool isInterrupt() const;
     private:
         virtual bool isRealCall() const;
         virtual bool isThunk() const;
         bool parseJumpTable(image_basicBlock* currBlk,
-                            std::vector<std::pair< Address, EdgeTypeEnum > >& outEdges) const;
+                            pdvector<std::pair< Address, EdgeTypeEnum > >& outEdges) const;
         bool isIPRelativeBranch() const;
-        bool isMovAPSTable(std::vector<std::pair< Address, EdgeTypeEnum > >& outEdges) const;
+        bool isMovAPSTable(pdvector<std::pair< Address, EdgeTypeEnum > >& outEdges) const;
         std::pair<Address, Address> findThunkAndOffset(image_basicBlock* start) const;
         bool isTableInsn(Dyninst::InstructionAPI::Instruction::Ptr i) const;
         std::map<Address, Dyninst::InstructionAPI::Instruction::Ptr>::const_iterator findTableInsn() const;
@@ -100,7 +103,7 @@ class IA_IAPI : public InstructionAdapter
                               Address tableBase,
                               unsigned tableSize,
                               unsigned tableStride,
-                              std::vector<std::pair< Address, EdgeTypeEnum> >& outEdges) const;
+                              pdvector<std::pair< Address, EdgeTypeEnum> >& outEdges) const;
         Address getTableAddress(Dyninst::InstructionAPI::Instruction::Ptr tableInsn,
                                 Address thunkOffset) const;
         bool isFrameSetupInsn(Dyninst::InstructionAPI::Instruction::Ptr i) const;
@@ -110,7 +113,7 @@ class IA_IAPI : public InstructionAdapter
 
 
 
-        dyn_detail::boost::shared_ptr<Dyninst::InstructionAPI::InstructionDecoder> dec;
+        Dyninst::InstructionAPI::InstructionDecoder dec;
         std::map<Address, Dyninst::InstructionAPI::Instruction::Ptr> allInsns;
         Dyninst::InstructionAPI::Instruction::Ptr curInsn() const;
         std::map<Address, Dyninst::InstructionAPI::Instruction::Ptr>::const_iterator curInsnIter;
@@ -118,10 +121,11 @@ class IA_IAPI : public InstructionAdapter
         mutable Address cachedCFT;
         mutable std::pair<bool, bool> hascftstatus;
         mutable std::pair<bool, bool> tailCall;
-        Dyninst::InstructionAPI::RegisterAST::Ptr framePtr;
-        Dyninst::InstructionAPI::RegisterAST::Ptr stackPtr;
-        Dyninst::InstructionAPI::RegisterAST::Ptr thePC;
+        static std::map<Architecture, Dyninst::InstructionAPI::RegisterAST::Ptr> framePtr;
+        static std::map<Architecture, Dyninst::InstructionAPI::RegisterAST::Ptr> stackPtr;
+        static std::map<Architecture, Dyninst::InstructionAPI::RegisterAST::Ptr> thePC;
         static std::map<Address, bool> thunkAtTarget;
+        static void initASTs();
 };
 
 
