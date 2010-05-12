@@ -2315,7 +2315,7 @@ Dwarf_Debug *DwarfHandle::dbg()
       init_dwarf_status = dwarf_status_error;
       return NULL;
    }
-   sw = new DwarfSW(&dbg_data, obj->getAddressWidth());
+   sw = new DwarfSW(dbg_data, obj->getAddressWidth());
 
    init_dwarf_status = dwarf_status_ok;
    return &dbg_data;

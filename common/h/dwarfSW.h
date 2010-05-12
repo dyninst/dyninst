@@ -78,7 +78,7 @@ inline DwarfSW::~DwarfSW()
       return;
    for (unsigned i=0; i<fde_data.size(); i++)
    {
-      dwarf_fde_cie_list_dealloc(*dbg, 
+      dwarf_fde_cie_list_dealloc(dbg, 
                                  fde_data[i].cie_data, fde_data[i].cie_count, 
                                  fde_data[i].fde_data, fde_data[i].fde_count);
    }
@@ -245,7 +245,7 @@ inline bool DwarfSW::getRegValueAtFrame(Address pc,
    {
       Dwarf_Locdesc *llbuf = NULL;
       Dwarf_Signed listlen = 0;
-      result = dwarf_loclist_from_expr(*dbg, block_ptr, offset_or_block_len, &llbuf, &listlen, &err);
+      result = dwarf_loclist_from_expr(dbg, block_ptr, offset_or_block_len, &llbuf, &listlen, &err);
       if (result != DW_DLV_OK) {
          return false;
       }
@@ -254,8 +254,8 @@ inline bool DwarfSW::getRegValueAtFrame(Address pc,
       long int end_result;
       bool bresult = decodeDwarfExpression(llbuf, NULL, NULL, locset, reader, 
                                            arch, end_result);
-      dwarf_dealloc(*dbg, llbuf->ld_s, DW_DLA_LOC_BLOCK);
-      dwarf_dealloc(*dbg, llbuf, DW_DLA_LOCDESC);
+      dwarf_dealloc(dbg, llbuf->ld_s, DW_DLA_LOC_BLOCK);
+      dwarf_dealloc(dbg, llbuf, DW_DLA_LOCDESC);
       reg_result = end_result;
       return bresult;
    }
@@ -293,17 +293,17 @@ void DwarfSW::setupFdeData()
        fde_dwarf_status == dwarf_status_error)
       return;
 
-   if (!*dbg) {
+   if (!dbg) {
       fde_dwarf_status = dwarf_status_error;
       return;
    }
 
 #if defined(dwarf_has_setframe)
-   dwarf_set_frame_cfa_value(*dbg, DW_FRAME_CFA_COL3);
+   dwarf_set_frame_cfa_value(dbg, DW_FRAME_CFA_COL3);
 #endif
 
    fde_cie_data fc;
-   int result = dwarf_get_fde_list(*dbg, 
+   int result = dwarf_get_fde_list(dbg, 
                                    &fc.cie_data, &fc.cie_count,
                                    &fc.fde_data, &fc.fde_count,
                                    &err);
@@ -311,7 +311,7 @@ void DwarfSW::setupFdeData()
       fde_data.push_back(fc);
    }
 
-   result = dwarf_get_fde_list_eh(*dbg, 
+   result = dwarf_get_fde_list_eh(dbg, 
                                   &fc.cie_data, &fc.cie_count,
                                   &fc.fde_data, &fc.fde_count,
                                   &err);
