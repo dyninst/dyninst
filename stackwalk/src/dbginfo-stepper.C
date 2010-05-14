@@ -35,7 +35,6 @@
 #include "stackwalk/h/swk_errors.h"
 #include "stackwalk/h/steppergroup.h"
 #include "stackwalk/h/walker.h"
-#include "stackwalk/src/symtab-swk.h"
 #include "stackwalk/src/dbgstepper-impl.h"
 #include "stackwalk/src/linux-swk.h"
 #include "dynutil/h/dyntypes.h"
@@ -45,6 +44,27 @@ using namespace Dyninst;
 using namespace Stackwalker;
 
 static std::map<std::string, DwarfSW *> dwarf_info;
+
+typedef enum {
+   storageAddr,
+   storageReg,
+   storageRegOffset
+} storageClass;
+
+typedef enum {
+   storageRef,
+   storageNoRef
+} storageRefClass;
+
+class VariableLocation {
+public:
+   storageClass stClass;
+   storageRefClass refClass;
+   int reg;
+   long frameOffset;
+   Address lowPC;
+   Address hiPC;
+};
 
 #include "dwarf.h"
 #include "libdwarf.h"

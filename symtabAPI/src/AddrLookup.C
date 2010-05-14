@@ -73,7 +73,7 @@ AddressLookup *AddressLookup::createAddressLookup(ProcessReader *reader)
    return ar;
 }
 
-AddressLookup *AddressLookup::createAddressLookup(const std::vector<LoadedLibrary> &name_addrs)
+AddressLookup *AddressLookup::createAddressLookup(const std::vector<LoadedLibrary> &/*name_addrs*/)
 {
    assert(0); //TODO Implement
    return NULL;

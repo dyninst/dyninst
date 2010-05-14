@@ -164,6 +164,12 @@ std::string SymtabReader::getSymbolName(const Symbol_t &sym)
    return symbol->getMangledName();
 }
 
+std::string SymtabReader::getDemangledName(const Symbol_t &sym) {
+   assert(sym.v2);
+   Symbol *symbol = (Symbol *) sym.v2;
+   return symbol->getTypedName();
+}
+
 unsigned long SymtabReader::getSymbolSize(const Symbol_t &sym)
 {
    assert(sym.v2);
@@ -184,6 +190,46 @@ Dyninst::Offset SymtabReader::imageOffset()
 Dyninst::Offset SymtabReader::dataOffset()
 {
    return symtab->dataOffset();
+}
+
+Section_t SymtabReader::getSectionByName(std::string name)
+{
+   Region *region;
+   Section_t ret;
+   ret.v1 = NULL;
+   bool result = symtab->findRegion(region, name);
+   if (!result) {
+      return ret;
+   }
+   ret.v1 = (void *) region;
+   return ret;
+}
+
+Section_t SymtabReader::getSectionByAddress(Dyninst::Address addr)
+{
+   Region *region = symtab->findEnclosingRegion(addr);
+   Section_t ret;
+   ret.v1 = (void *) region;
+   return ret;
+}
+
+Dyninst::Address SymtabReader::getSectionAddress(Section_t sec)
+{
+   Region *region = (Region *) sec.v1;
+   assert(region);
+   return region->getRegionAddr();
+}
+
+std::string SymtabReader::getSectionName(Section_t sec)
+{
+   Region *region = (Region *) sec.v1;
+   assert(region);
+   return region->getRegionName();
+}
+
+bool SymtabReader::isValidSection(Section_t sec)
+{
+   return (sec.v1 != NULL);
 }
 
 SymtabReaderFactory::SymtabReaderFactory()

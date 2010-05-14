@@ -102,6 +102,7 @@ public:
    virtual unsigned getPriority() const;
    virtual void registerStepperGroup(StepperGroup *group);
    virtual void newLibraryNotification(LibAddrPair *la, lib_change_t change);
+   virtual const char *getName() const;
    virtual ~SigHandlerStepperImpl();  
 };
 

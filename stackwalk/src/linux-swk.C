@@ -67,12 +67,6 @@
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
-#if defined(cap_stackwalker_use_symtab)
-#include "symtabAPI/h/Symtab.h"
-#include "symtabAPI/h/Symbol.h"
-using namespace Dyninst::SymtabAPI;
-#endif
-
 #ifndef SYS_tkill
 #define SYS_tkill 238
 #endif
@@ -1267,11 +1261,10 @@ bool TrackLibState::updateLibsArch()
    vsyscall_page.first = ss.str();
    vsyscall_page.second = vsys->start;
    
-#if defined(cap_stackwalker_use_symtab)
-   Symtab *vsyscall_symtab;
-   Symtab::openFile(vsyscall_symtab, (char *) vsys->vsys_mem, vsys->end - vsys->start);
-   SymtabWrapper::notifyOfSymtab(vsyscall_symtab, vsyscall_page.first);
-#endif
+   SymbolReaderFactory *fact = getDefaultSymbolReader();
+   SymReader *reader = fact->openSymbolReader((char *) vsys->vsys_mem, vsys->end - vsys->start);
+   if (reader)
+      LibraryWrapper::registerLibrary(reader, vsyscall_page.first);
 
    std::pair<LibAddrPair, unsigned int> vsyscall_lib_pair;
    vsyscall_lib_pair.first = vsyscall_page;
@@ -1387,10 +1380,12 @@ void SigHandlerStepperImpl::registerStepperGroup(StepperGroup *group)
    vsys_info *vsyscall = getVsysInfo(ps);
    if (!vsyscall)
    {
+#if !defined(arch_x86_64)
       sw_printf("[%s:%u] - Odd.  Couldn't find vsyscall page. Signal handler"
                 " stepping may not work\n", __FILE__, __LINE__);
+#endif
    }
-   if (vsyscall)
+   else
    {
       SymReader *vsys_syms = vsyscall->syms;
       if (!vsys_syms) {
@@ -1542,12 +1537,14 @@ void BottomOfStackStepperImpl::initialize()
          if (aout->isValidSymbol(start_sym)) {
             Dyninst::Address start = aout->getSymbolOffset(start_sym)+aout_addr.second;
             Dyninst::Address end = aout->getSymbolSize(start_sym) + start;
+            if (start == end)
+               end = start + 43;
             ra_stack_tops.push_back(std::pair<Address, Address>(start, end));
          }
       }
    }
 
-   if (libthread_init)
+   if (!libthread_init)
    {
       LibAddrPair libthread_addr;
       SymReader *libthread = NULL;

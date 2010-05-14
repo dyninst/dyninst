@@ -66,7 +66,7 @@ public:
   virtual void newLibraryNotification(LibAddrPair *libaddr, 
                                       lib_change_t change);
   virtual void registerStepperGroup(StepperGroup *group);
-  virtual const char *getName() const;
+  virtual const char *getName() const = 0;
   
   virtual ~FrameStepper();
 

@@ -62,7 +62,7 @@ class DwarfSW {
                            Dyninst::MachRegister reg, 
                            Dyninst::MachRegisterVal &reg_result,
                            Dyninst::Architecture arch,
-                           MemRegReader *reader);
+                           ProcessReader *reader);
 };
 
 inline DwarfSW::DwarfSW(Dwarf_Debug dbg_, unsigned addr_width_) :
@@ -94,7 +94,7 @@ inline bool DwarfSW::getRegValueAtFrame(Address pc,
                                         Dyninst::MachRegister reg,
                                         Dyninst::MachRegisterVal &reg_result,
                                         Dyninst::Architecture arch,
-                                        MemRegReader *reader)
+                                        ProcessReader *reader)
 {
 	int result;
 	Dwarf_Fde fde;

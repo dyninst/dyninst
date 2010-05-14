@@ -29,6 +29,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#if !defined(LIBSTATE_H_)
+#define LIBSTATE_H_
+
 #include "dynutil/h/ProcReader.h"
 #include "dynutil/h/SymReader.h"
 #include "stackwalk/h/procstate.h"
@@ -78,5 +81,15 @@ class TrackLibState : public LibraryState {
 
 SymbolReaderFactory *getDefaultSymbolReader();
 
+class LibraryWrapper {
+  private:
+   std::map<std::string, SymReader *> file_map;
+  public:
+   static SymReader *getLibrary(std::string filename);
+   static void registerLibrary(SymReader *reader, std::string filename);
+};
+
 }
 }
+
+#endif

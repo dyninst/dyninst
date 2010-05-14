@@ -300,7 +300,7 @@ bool ProcessReaderSelf::ReadMem(Address inTraced, void *inSelf, unsigned amount)
    return true;
 }
 
-bool ProcessReaderSelf::GetReg(MachRegister reg, MachRegisterVal &val)
+bool ProcessReaderSelf::GetReg(MachRegister /*reg*/, MachRegisterVal &/*val*/)
 {
    assert(0);
    return false;
@@ -313,7 +313,7 @@ vector< pair<Address, unsigned long> > *LoadedLib::getMappedRegions()
    {
       return &mapped_regions;
    }
-   
+
    FCNode *fc = files.getNode(name, symreader_factory);
    if (!fc)
       return false;

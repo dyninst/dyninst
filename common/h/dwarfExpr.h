@@ -112,7 +112,7 @@ Dwarf_Signed DynToDwarfReg(Dyninst::MachRegister reg)
 bool decodeDwarfExpression(Dwarf_Locdesc *dwlocs,
                            long int *initialStackValue,
                            VariableLocation *loc, bool &isLocSet,
-                           MemRegReader *reader,
+                           ProcessReader *reader,
                            Dyninst::Architecture arch,
                            long int &end_result)
 {

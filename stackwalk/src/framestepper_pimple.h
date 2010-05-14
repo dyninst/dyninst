@@ -50,6 +50,15 @@ const char *PIMPL_CLASS::getName() const
 
 #if defined(PIMPL_IMPL_CLASS)
 
+const char *PIMPL_IMPL_CLASS::getName() const
+{
+#if defined(PIMPL_NAME)
+   return PIMPL_NAME;
+#else
+   return "<ERROR>";
+#endif
+}
+
 PIMPL_CLASS::PIMPL_CLASS(Walker *w
 #if defined(PIMPL_ARG1)
 			 , PIMPL_ARG1 arg1

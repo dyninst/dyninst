@@ -1299,183 +1299,183 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
    break;
 
   case DW_TAG_formal_parameter: 
-    {
-		dwarf_printf(" DW_TAG_formal_parameter \n");
-      /* A formal parameter must occur in the context of a function.
-	 (That is, we can't do anything with a formal parameter to a
-	 function we don't know about.) */
-    /* It's probably worth noting that a formal parameter may have a
-       default value.  Since, AFAIK, Dyninst does nothing with this information,
-       neither will we. */
-      if ( currentFunction == NULL ) {
-	dwarf_printf( "%s[%d]: ignoring formal parameter without corresponding function.\n", __FILE__, __LINE__ );
-	break;
+  {
+     dwarf_printf(" DW_TAG_formal_parameter \n");
+     /* A formal parameter must occur in the context of a function.
+        (That is, we can't do anything with a formal parameter to a
+        function we don't know about.) */
+     /* It's probably worth noting that a formal parameter may have a
+        default value.  Since, AFAIK, Dyninst does nothing with this information,
+        neither will we. */
+     if ( currentFunction == NULL ) {
+        dwarf_printf( "%s[%d]: ignoring formal parameter without corresponding function.\n", __FILE__, __LINE__ );
+        break;
       }
+     
+     /* We need the formal parameter's name, its type, its line number,
+        and its offset from the frame base in order to tell the 
+        rest of Dyninst about it.  A single _formal_parameter
+        DIE may not have all of this information; if it does not,
+        we will ignore it, hoping to catch it when it is later
+        referenced as an _abstract_origin from another _formal_parameter
+        DIE.  If we never find such a DIE, than there is not enough
+        information to introduce it to Dyninst. */
+     
+     /* We begin with the location, since this is the attribute
+        most likely to require using the _abstract_origin. */
+     Dwarf_Bool hasLocation = false;
+     status = dwarf_hasattr( dieEntry, DW_AT_location, & hasLocation, NULL );
+     DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+     
+     if ( !hasLocation ) {
+        dwarf_printf( "%s[%d]: ignoring formal parameter without location.\n", __FILE__, __LINE__ );
+        break;
+     }
+     
+     /* Acquire the location of this formal parameter. */
+     Dwarf_Attribute locationAttribute;
+     status = dwarf_attr( dieEntry, DW_AT_location, & locationAttribute, NULL );
+     DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+     
+     Dwarf_Locdesc **locationList;
+     Dwarf_Signed listLength;
+     status = dwarf_loclist_n( locationAttribute, & locationList, & listLength, NULL );
+     dwarf_dealloc( dbg, locationAttribute, DW_DLA_ATTR );
+     if ( status != DW_DLV_OK ) {
+        /* I think this is legal if the parameter was optimized away. */
+        dwarf_printf( "%s[%d]: ignoring formal parameter with bogus location.\n", __FILE__, __LINE__ );
+        break;
+     }
+     DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+     
+     vector<VariableLocation> locs;
+     bool decodedOffset = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, objFile, locs, lowpc, NULL);
+     deallocateLocationList( dbg, locationList, listLength );
+     
+     if ( ! decodedOffset ) {
+        dwarf_printf( "%s[%d]: ignoring formal parameter with undecodable location.\n", __FILE__, __LINE__ );
+        break;
+     }
+     
+     assert( locs[0].stClass != storageAddr );
          
-      /* We need the formal parameter's name, its type, its line number,
-	 and its offset from the frame base in order to tell the 
-	 rest of Dyninst about it.  A single _formal_parameter
-	 DIE may not have all of this information; if it does not,
-	 we will ignore it, hoping to catch it when it is later
-	 referenced as an _abstract_origin from another _formal_parameter
-	 DIE.  If we never find such a DIE, than there is not enough
-	 information to introduce it to Dyninst. */
+     /* If the DIE has an _abstract_origin, we'll use that for the
+        remainder of our inquiries. */
+     Dwarf_Die originEntry = dieEntry;
          
-      /* We begin with the location, since this is the attribute
-	 most likely to require using the _abstract_origin. */
-      Dwarf_Bool hasLocation = false;
-      status = dwarf_hasattr( dieEntry, DW_AT_location, & hasLocation, NULL );
-      DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+     Dwarf_Attribute originAttribute;
+     status = dwarf_attr( dieEntry, DW_AT_abstract_origin, & originAttribute, NULL );
+     DWARF_NEXT_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+     
+     if ( status == DW_DLV_OK ) {
+        Dwarf_Off originOffset;
+        status = dwarf_global_formref( originAttribute, & originOffset, NULL );
+        DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+        
+        status = dwarf_offdie( dbg, originOffset, & originEntry, NULL );
+        DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+        
+        dwarf_dealloc( dbg, originAttribute, DW_DLA_ATTR );
+     } /* end if the DIE has an _abstract_origin */
+     
+     /* Acquire the parameter's name. */
+     char * parameterName;
+     status = dwarf_diename( originEntry, & parameterName, NULL );
+     DWARF_NEXT_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+     
+     /* We can't do anything with anonymous parameters. */
+     if ( status == DW_DLV_NO_ENTRY ) { break; }
+     DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+     
+     /* Acquire the parameter's type. */
+     Dwarf_Attribute typeAttribute;
+     status = dwarf_attr( originEntry, DW_AT_type, & typeAttribute, NULL );
+     DWARF_NEXT_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+     
+     if ( status == DW_DLV_NO_ENTRY ) { break; }
+     DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+     
+     Dwarf_Off typeOffset;
+     status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
+     DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+     
+     /* The typeOffset forms a module-unique type identifier,
+        so the Type look-ups by it rather than name. */
+     dwarf_printf( "%s[%d]: found formal parameter %s with type %ld\n", __FILE__, __LINE__, parameterName, typeOffset );
+     Type * parameterType = tc->findOrCreateType( (int) typeOffset );
+     
+     dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
+     
          
-      if ( !hasLocation ) {
-	dwarf_printf( "%s[%d]: ignoring formal parameter without location.\n", __FILE__, __LINE__ );
-	break;
-      }
-         
-      /* Acquire the location of this formal parameter. */
-      Dwarf_Attribute locationAttribute;
-      status = dwarf_attr( dieEntry, DW_AT_location, & locationAttribute, NULL );
-      DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-         
-      Dwarf_Locdesc **locationList;
-      Dwarf_Signed listLength;
-      status = dwarf_loclist_n( locationAttribute, & locationList, & listLength, NULL );
-      dwarf_dealloc( dbg, locationAttribute, DW_DLA_ATTR );
-      if ( status != DW_DLV_OK ) {
-	/* I think this is legal if the parameter was optimized away. */
-	dwarf_printf( "%s[%d]: ignoring formal parameter with bogus location.\n", __FILE__, __LINE__ );
-	break;
-      }
-      DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-         
-      vector<VariableLocation> locs;
-      bool decodedOffset = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, objFile, locs, lowpc, NULL);
-      deallocateLocationList( dbg, locationList, listLength );
-         
-      if ( ! decodedOffset ) {
-	dwarf_printf( "%s[%d]: ignoring formal parameter with undecodable location.\n", __FILE__, __LINE__ );
-	break;
-      }
-         
-      assert( locs[0].stClass != storageAddr );
-         
-      /* If the DIE has an _abstract_origin, we'll use that for the
-	 remainder of our inquiries. */
-      Dwarf_Die originEntry = dieEntry;
-         
-      Dwarf_Attribute originAttribute;
-      status = dwarf_attr( dieEntry, DW_AT_abstract_origin, & originAttribute, NULL );
-      DWARF_NEXT_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-         
-      if ( status == DW_DLV_OK ) {
-	Dwarf_Off originOffset;
-	status = dwarf_global_formref( originAttribute, & originOffset, NULL );
-	DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-            
-	status = dwarf_offdie( dbg, originOffset, & originEntry, NULL );
-	DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-            
-	dwarf_dealloc( dbg, originAttribute, DW_DLA_ATTR );
-      } /* end if the DIE has an _abstract_origin */
-         
-      /* Acquire the parameter's name. */
-      char * parameterName;
-      status = dwarf_diename( originEntry, & parameterName, NULL );
-      DWARF_NEXT_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-         
-      /* We can't do anything with anonymous parameters. */
-      if ( status == DW_DLV_NO_ENTRY ) { break; }
-      DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-         
-      /* Acquire the parameter's type. */
-      Dwarf_Attribute typeAttribute;
-      status = dwarf_attr( originEntry, DW_AT_type, & typeAttribute, NULL );
-      DWARF_NEXT_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-         
-      if ( status == DW_DLV_NO_ENTRY ) { break; }
-      DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-         
-      Dwarf_Off typeOffset;
-      status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
-      DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-         
-      /* The typeOffset forms a module-unique type identifier,
-	 so the Type look-ups by it rather than name. */
-      dwarf_printf( "%s[%d]: found formal parameter %s with type %ld\n", __FILE__, __LINE__, parameterName, typeOffset );
-      Type * parameterType = tc->findOrCreateType( (int) typeOffset );
-         
-      dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
-         
-         
-      Dwarf_Attribute fileDeclAttribute;
-      std::string fileName;
-      status = dwarf_attr( originEntry, DW_AT_decl_file, & fileDeclAttribute, NULL );
-      DWARF_NEXT_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-      Dwarf_Unsigned fileNameDeclVal;
-      if ( status == DW_DLV_OK ) {
-	status = dwarf_formudata(fileDeclAttribute, &fileNameDeclVal, NULL);
-	DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-	dwarf_dealloc( dbg, fileDeclAttribute, DW_DLA_ATTR );
-      }
-      if ( status == DW_DLV_NO_ENTRY )
-	fileName = "";
-      else	
-	fileName = convertCharToString(srcFiles[fileNameDeclVal-1]);
-         
-      /* Acquire the parameter's lineNo. */
-      Dwarf_Attribute lineNoAttribute;
-      Dwarf_Unsigned parameterLineNo;
-      status = dwarf_attr( originEntry, DW_AT_decl_line, & lineNoAttribute, NULL );
-      DWARF_NEXT_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-         
-      if ( status == DW_DLV_NO_ENTRY ) {
-	dwarf_printf( "%s[%d]: ignoring formal parameter without line number.\n", __FILE__, __LINE__ );
-	parameterLineNo = 0;
-      }
-      else{
-	status = dwarf_formudata( lineNoAttribute, & parameterLineNo, NULL );
-	DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-	dwarf_dealloc( dbg, lineNoAttribute, DW_DLA_ATTR );
+     Dwarf_Attribute fileDeclAttribute;
+     std::string fileName;
+     status = dwarf_attr( originEntry, DW_AT_decl_file, & fileDeclAttribute, NULL );
+     DWARF_NEXT_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+     Dwarf_Unsigned fileNameDeclVal;
+     if ( status == DW_DLV_OK ) {
+        status = dwarf_formudata(fileDeclAttribute, &fileNameDeclVal, NULL);
+        DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+        dwarf_dealloc( dbg, fileDeclAttribute, DW_DLA_ATTR );
+     }
+     if ( status == DW_DLV_NO_ENTRY )
+        fileName = "";
+     else	
+        fileName = convertCharToString(srcFiles[fileNameDeclVal-1]);
+     
+     /* Acquire the parameter's lineNo. */
+     Dwarf_Attribute lineNoAttribute;
+     Dwarf_Unsigned parameterLineNo;
+     status = dwarf_attr( originEntry, DW_AT_decl_line, & lineNoAttribute, NULL );
+     DWARF_NEXT_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+     
+     if ( status == DW_DLV_NO_ENTRY ) {
+        dwarf_printf( "%s[%d]: ignoring formal parameter without line number.\n", __FILE__, __LINE__ );
+        parameterLineNo = 0;
+     }
+     else{
+        status = dwarf_formudata( lineNoAttribute, & parameterLineNo, NULL );
+        DWARF_NEXT_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+        dwarf_dealloc( dbg, lineNoAttribute, DW_DLA_ATTR );
       }	
          
          
-      /* We now have the parameter's location, name, type, and line number.
-	 Tell Dyninst about it. */
-      std::string pName = convertCharToString(parameterName);
-            localVar * newParameter = new localVar( pName, parameterType, fileName, (int) parameterLineNo, currentFunction);
-      assert( newParameter != NULL );
+     /* We now have the parameter's location, name, type, and line number.
+        Tell Dyninst about it. */
+     std::string pName = convertCharToString(parameterName);
+     localVar * newParameter = new localVar( pName, parameterType, fileName, (int) parameterLineNo, currentFunction);
+     assert( newParameter != NULL );
 	  for (unsigned int i = 0; i < locs.size(); ++i)
 	  {
 		  newParameter->addLocation(locs[i]);
 	  }
 
       /* This is just brutally ugly.  Why don't we take care of this invariant automatically? */
-      localVarCollection *lvs = NULL;
-      if (!currentFunction->getAnnotation(lvs, FunctionParametersAnno))
-	{
-	  lvs = new localVarCollection();
-	  if (!currentFunction->addAnnotation(lvs, FunctionParametersAnno)) 
-	    {
-	      fprintf(stderr, "%s[%d]:  failed to add annotation here\n", 
-		      FILE__, __LINE__);
-	      break;
-	    }
-	}
+     localVarCollection *lvs = NULL;
+     if (!currentFunction->getAnnotation(lvs, FunctionParametersAnno))
+     {
+        lvs = new localVarCollection();
+        if (!currentFunction->addAnnotation(lvs, FunctionParametersAnno)) 
+        {
+           fprintf(stderr, "%s[%d]:  failed to add annotation here\n", 
+                   FILE__, __LINE__);
+           break;
+        }
+     }
+     
+     if (!lvs)
+     {
+        fprintf(stderr, "%s[%d]:  failed to add annotation here\n", 
+                FILE__, __LINE__);
+        break;
+     }
          
-      if (!lvs)
-	{
-	  fprintf(stderr, "%s[%d]:  failed to add annotation here\n", 
-		  FILE__, __LINE__);
-	  break;
-	}
-         
-      lvs->addLocalVar(newParameter);
-         
-      //TODO ??NOT REQUIRED??
-      //currentFunction->addParam( parameterName, parameterType, parameterLineNo, parameterOffset );
-         
-      dwarf_printf( "%s[%d]: added formal parameter '%s' of type %p from line %lu.\n", __FILE__, __LINE__, parameterName, parameterType, (unsigned long)parameterLineNo );
-    } break;
+     lvs->addLocalVar(newParameter);
+     
+     //TODO ??NOT REQUIRED??
+     //currentFunction->addParam( parameterName, parameterType, parameterLineNo, parameterOffset );
+     
+     dwarf_printf( "%s[%d]: added formal parameter '%s' of type %p from line %lu.\n", __FILE__, __LINE__, parameterName, parameterType, (unsigned long)parameterLineNo );
+  } break;
 
   case DW_TAG_base_type: 
     {
@@ -2279,6 +2279,8 @@ void Object::parseDwarfTypes( Symtab *objFile)
 
 bool Object::hasFrameDebugInfo()
 {
+   dwarf.dbg();
+   assert(dwarf.sw);
    return dwarf.sw->hasFrameDebugInfo();
 }
 
@@ -2287,6 +2289,7 @@ bool Object::getRegValueAtFrame(Address pc,
 		Dyninst::MachRegisterVal &reg_result,
 		MemRegReader *reader)
 {
+   dwarf.dbg();
    return dwarf.sw->getRegValueAtFrame(pc, reg, reg_result, getArch(), reader);
 }
 

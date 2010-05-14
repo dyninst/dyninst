@@ -107,7 +107,9 @@ bool TrackLibState::updateLibs()
       needs_update = true;
    }
    if (!updateLibsArch()) {
+#if !defined(os_linux) && !defined(arch_x86_64)
       sw_printf("[%s:%u] - updateLibsArch failed\n",  __FILE__, __LINE__);
+#endif
    }
 
    getCurList(post);
@@ -297,7 +299,7 @@ bool TrackLibState::getAOut(LibAddrPair &addr_pair)
    return true;
 }
 
-swkProcessReader::swkProcessReader(ProcessState *pstate, const std::string& executable) :
+swkProcessReader::swkProcessReader(ProcessState *pstate, const std::string& /*executable*/) :
    procstate(pstate)
 {
 }
@@ -319,4 +321,26 @@ bool swkProcessReader::start()
 bool swkProcessReader::done()
 {
    return true;
+}
+
+static LibraryWrapper libs;
+
+SymReader *LibraryWrapper::getLibrary(std::string filename)
+{
+   std::map<std::string, SymReader *>::iterator i = libs.file_map.find(filename);
+   if (i != libs.file_map.end()) {
+      return i->second;
+   }
+   
+   SymbolReaderFactory *fact = getDefaultSymbolReader();
+   SymReader *reader = fact->openSymbolReader(filename);
+   if (!reader)
+      return NULL;
+   libs.file_map[filename] = reader;
+   return reader;
+}
+
+void LibraryWrapper::registerLibrary(SymReader *reader, std::string filename)
+{
+   libs.file_map[filename] = reader;
 }

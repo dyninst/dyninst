@@ -52,7 +52,7 @@ public:
    ProcessReaderPtrace(int pid_);
    virtual bool start();
    virtual bool ReadMem(Address inTraced, void *inSelf, unsigned amount);
-   virtual bool GetReg(MachRegister reg, MachRegisterVal &val) { assert(0); }
+   virtual bool GetReg(MachRegister /*reg*/, MachRegisterVal &/*val*/) { assert(0); }
    virtual bool done();
 
    virtual ~ProcessReaderPtrace();
@@ -205,5 +205,7 @@ const string& AddressTranslateSysV::getExecName()
 LoadedLib *AddressTranslateSysV::getAOut()
 {
    // TODO: shouldn't this just return exec if it's set?
-   return new LoadedLib(getExecName(), 0);
+   LoadedLib *ll = new LoadedLib(getExecName(), 0);
+   ll->setFactory(symfactory);
+   return ll;
 }

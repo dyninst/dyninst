@@ -35,6 +35,7 @@
 #include <set>
 #include "common/h/addrRange.h"
 #include "stackwalk/h/framestepper.h"
+#include "stackwalk/src/libstate.h"
 
 namespace Dyninst {
 namespace Stackwalker {
@@ -79,6 +80,7 @@ class FrameFuncStepperImpl : public FrameStepper
    static gcframe_ret_t getBasicCallerFrame(const Frame &in, 
 					    Frame &out);
    virtual unsigned getPriority() const;
+   virtual const char *getName() const;
 };
 
 class BottomOfStackStepperImpl : public FrameStepper {
@@ -96,7 +98,24 @@ public:
    virtual unsigned getPriority() const;
    virtual void registerStepperGroup(StepperGroup *group);
    virtual void newLibraryNotification(LibAddrPair *la, lib_change_t change);
-   virtual ~BottomOfStackStepperImpl();  
+   virtual ~BottomOfStackStepperImpl();
+   virtual const char *getName() const;  
+};
+
+class DyninstInstrStepperImpl : public FrameStepper {
+ private:
+   static std::map<SymReader *, bool> isRewritten;
+   FrameStepper *parent;
+  
+ public:
+   DyninstInstrStepperImpl(Walker *w, FrameStepper *p);
+   virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
+   gcframe_ret_t getCallerFrameArch(const Frame &in, Frame &out, Address base, Address lib_base, 
+				    unsigned size, unsigned stack_height);
+   virtual unsigned getPriority() const;
+   virtual void registerStepperGroup(StepperGroup *group);
+   virtual const char *getName() const;
+   virtual ~DyninstInstrStepperImpl();
 };
 
 }

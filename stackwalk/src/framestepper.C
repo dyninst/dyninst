@@ -85,17 +85,103 @@ void FrameStepper::registerStepperGroup(StepperGroup *group)
       assert(0 && "Unknown architecture word size");
 }
 
-const char *FrameStepper::getName() const
-{
-   return "<UNKNOWN>";
-}
-
 FrameFuncHelper::FrameFuncHelper(ProcessState *proc_) :
    proc(proc_)
 {
 }
 
 FrameFuncHelper::~FrameFuncHelper()
+{
+}
+
+std::map<SymReader*, bool> DyninstInstrStepperImpl::isRewritten;
+
+DyninstInstrStepperImpl::DyninstInstrStepperImpl(Walker *w, FrameStepper *p) :
+  FrameStepper(w),
+  parent(p)
+{
+}
+
+gcframe_ret_t DyninstInstrStepperImpl::getCallerFrame(const Frame &in, Frame &out)
+{
+   LibAddrPair lib;
+   bool result;
+
+   result = getProcessState()->getLibraryTracker()->getLibraryAtAddr(in.getRA(), lib);
+   if (!result) {
+      sw_printf("[%s:%u] - Stackwalking through an invalid PC at %lx\n",
+                 __FILE__, __LINE__, in.getRA());
+      return gcf_stackbottom;
+   }
+
+   SymReader *reader = LibraryWrapper::getLibrary(lib.first);
+   if (!reader) {
+      sw_printf("[%s:%u] - Could not open file %s\n",
+                 __FILE__, __LINE__, lib.first.c_str());
+      setLastError(err_nofile, "Could not open file for Debugging stackwalker\n");
+      return gcf_error;
+   }
+
+   std::map<SymReader *, bool>::iterator i = isRewritten.find(reader);
+   bool is_rewritten_binary;
+   if (i == isRewritten.end()) {
+      Section_t sec = reader->getSectionByName(".dyninstInst");
+      is_rewritten_binary = reader->isValidSection(sec);
+      isRewritten[reader] = is_rewritten_binary;
+   }
+   else {
+     is_rewritten_binary = (*i).second;
+   }
+   if (!is_rewritten_binary) {
+     sw_printf("[%s:u] - Decided that current binary is not rewritten, "
+	       "DyninstInstrStepper returning gcf_not_me at %lx\n",
+	       __FILE__, __LINE__, in.getRA());
+     return gcf_not_me;
+   }
+
+   std::string name;
+   in.getName(name);
+   const char *s = name.c_str();
+   if (strstr(s, "dyninst") != s)
+   {
+     sw_printf("[%s:%u] - Current function %s not dyninst generated\n",
+		__FILE__, __LINE__, s);
+     return gcf_not_me;
+   }
+
+   if (strstr(s, "dyninstBT") != s)
+   {
+     sw_printf("[%s:%u] - Dyninst, but don't know how to read non-tramp %s\n",
+		__FILE__, __LINE__, s);
+     return gcf_not_me;
+   }
+    
+   sw_printf("[%s:%u] - Current function %s is baseTramp\n",
+	      __FILE__, __LINE__, s);
+   Address base;
+   unsigned size, stack_height;
+   int num_read = sscanf(s, "dyninstBT_%lx_%u_%x", &base, &size, &stack_height);
+   bool has_stack_frame = (num_read == 3);
+   if (!has_stack_frame) {
+     sw_printf("[%s:%u] - Don't know how to walk through instrumentation without a stack frame\n"
+		__FILE__, __LINE__);
+     return gcf_not_me;
+   }
+     
+   return getCallerFrameArch(in, out, base, lib.second, size, stack_height);
+}
+
+unsigned DyninstInstrStepperImpl::getPriority() const
+{
+  return dyninstr_priority;
+}
+
+void DyninstInstrStepperImpl::registerStepperGroup(StepperGroup *group)
+{
+  FrameStepper::registerStepperGroup(group);
+}
+
+DyninstInstrStepperImpl::~DyninstInstrStepperImpl()
 {
 }
 
@@ -108,6 +194,7 @@ BottomOfStackStepperImpl::BottomOfStackStepperImpl(Walker *w, BottomOfStackStepp
 {
    sw_printf("[%s:%u] - Constructing BottomOfStackStepperImpl at %p\n",
              __FILE__, __LINE__, this);
+   initialize();
 }
 
 gcframe_ret_t BottomOfStackStepperImpl::getCallerFrame(const Frame &in, Frame & /*out*/)
@@ -169,7 +256,7 @@ BottomOfStackStepperImpl::~BottomOfStackStepperImpl()
 #undef PIMPL_ARG1
 
 //DyninstInstrStepper defined here
-#if defined(cap_stackwalker_use_symtab) && (defined(arch_x86) || defined(arch_x86_64))
+#if defined(arch_x86) || defined(arch_x86_64)
 #include "stackwalk/src/symtab-swk.h"
 #define PIMPL_IMPL_CLASS DyninstInstrStepperImpl
 #endif
@@ -182,7 +269,7 @@ BottomOfStackStepperImpl::~BottomOfStackStepperImpl()
 
 //BottomOfStackStepper defined here
 #define OVERLOAD_NEWLIBRARY
-#if defined(cap_stackwalker_use_symtab) && defined(os_linux)
+#if defined(os_linux)
 #include "stackwalk/src/linux-swk.h"
 #define PIMPL_IMPL_CLASS BottomOfStackStepperImpl
 #endif
@@ -195,7 +282,7 @@ BottomOfStackStepperImpl::~BottomOfStackStepperImpl()
 #undef OVERLOAD_NEWLIBRARY
 
 //DebugStepper defined here
-#if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64)) && defined(cap_stackwalker_use_symtab)
+#if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))
 #include "stackwalk/src/dbgstepper-impl.h"
 #define PIMPL_IMPL_CLASS DebugStepperImpl
 #endif

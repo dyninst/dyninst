@@ -36,9 +36,6 @@
 #include <assert.h>
 #include <string>
 #include <vector>
-#if defined(cap_stackwalker_use_symtab)
-#include "stackwalk/src/symtab-swk.h"
-#endif
 
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;

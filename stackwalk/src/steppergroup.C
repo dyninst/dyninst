@@ -57,13 +57,6 @@ Walker *StepperGroup::getWalker() const
 void StepperGroup::newLibraryNotification(LibAddrPair *libaddr,
                                           lib_change_t change)
 {
-   if (change == library_load) {
-      fprintf(stderr, "[%s:%u] - Loaded %s\n", __FILE__, __LINE__, 
-              libaddr->first.c_str());
-   }
-   if (change == library_unload) {
-      fprintf(stderr, "Unloaded %s\n", libaddr->first.c_str());
-   }
    std::set<FrameStepper *>::iterator i = steppers.begin();
    for (; i != steppers.end(); i++)
    {

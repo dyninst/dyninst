@@ -82,7 +82,14 @@ class SymtabReader : public SymReader {
 
    virtual Dyninst::Offset getSymbolOffset(const Symbol_t &sym);
    virtual std::string getSymbolName(const Symbol_t &sym);
+   virtual std::string getDemangledName(const Symbol_t &sym);
    virtual bool isValidSymbol(const Symbol_t &sym);
+
+   virtual Section_t getSectionByName(std::string name);
+   virtual Section_t getSectionByAddress(Dyninst::Address addr);
+   virtual Dyninst::Address getSectionAddress(Section_t sec);
+   virtual std::string getSectionName(Section_t sec);
+   virtual bool isValidSection(Section_t sec);
 
    virtual Dyninst::Offset imageOffset();
    virtual Dyninst::Offset dataOffset();   
