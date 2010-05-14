@@ -2295,7 +2295,8 @@ bool Object::getRegValueAtFrame(Address pc,
 
 DwarfHandle::DwarfHandle(Object *obj_) :
    sw(NULL),
-   obj(obj_)
+   obj(obj_),
+   init_dwarf_status(dwarf_status_uninitialized)
 {
    assert(obj);
 }
