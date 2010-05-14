@@ -440,7 +440,20 @@ bool ProcDebugLinux::debug_handle_event(DebugEvent ev)
        LibraryState *ls = getLibraryTracker();
        assert(ls);
        ls->notifyOfUpdate();
-       
+
+#if defined(arch_power)
+       /**
+	* Forward over the trap instruction
+	**/
+       Dyninst::MachRegisterVal newpc = ls->getLibTrapAddress() + 4;
+       bool result = setRegValue(Dyninst::ReturnAddr, thr->getTid(), newpc);
+       if (!result) {
+	 sw_printf("[%s:%u] - Error! Could not set PC past trap!\n",
+		   __FILE__, __LINE__);
+	 setLastError(err_internal, "Could not set PC after trap\n");
+	 return false;
+       }
+#endif
        result = debug_continue_with(thr, 0);
        if (!result) {
           sw_printf("[%s:%u] - Debug continue failed on %d/%d with %d\n", 

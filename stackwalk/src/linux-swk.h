@@ -65,6 +65,9 @@ class ProcDebugLinux : public ProcDebug {
   virtual ~ProcDebugLinux();
 
   virtual bool getRegValue(Dyninst::MachRegister reg, Dyninst::THR_ID thread, Dyninst::MachRegisterVal &val);
+  virtual bool setRegValue(Dyninst::MachRegister reg, 
+			   Dyninst::THR_ID t, 
+			   Dyninst::MachRegisterVal val);
   virtual bool readMem(void *dest, Dyninst::Address source, size_t size);
   virtual bool getThreadIds(std::vector<Dyninst::THR_ID> &threads);
   virtual bool getDefaultThread(Dyninst::THR_ID &default_tid);

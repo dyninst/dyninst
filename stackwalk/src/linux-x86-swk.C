@@ -302,6 +302,16 @@ bool ProcDebugLinux::getRegValue(Dyninst::MachRegister reg, Dyninst::THR_ID t,
    return true;
 }
 
+bool ProcDebugLinux::setRegValue(Dyninst::MachRegister, 
+				 Dyninst::THR_ID, 
+				 Dyninst::MachRegisterVal)
+{
+  //Not needed on x86
+  assert(0);
+  return false;
+}
+
+
 bool Walker::createDefaultSteppers()
 {
   FrameStepper *stepper;

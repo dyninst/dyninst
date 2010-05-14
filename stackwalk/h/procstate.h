@@ -139,8 +139,10 @@ typedef enum {
   dbg_setmem_ack,
   dbg_reg_ack,      // 10
   dbg_allregs_ack,
+  dbg_setreg_ack,
   dbg_attached,
   dbg_thread_info,
+  dbg_detached      // 15
 } dbg_t;
 
 class ProcDebug;

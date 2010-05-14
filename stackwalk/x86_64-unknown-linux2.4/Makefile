@@ -41,10 +41,10 @@ MYFLAGS += -I$(LIBDWARF_INC)
 endif
 
 ifdef LIBELF_LIB
-MYFLAGS += -L$(LIBELF_LIB)
+MYFLAGS += -L$(LIBELF_LIB) -lelf
 endif
 ifdef LIBDWARF_LIB
-MYFLAGS += -L$(LIBDWARF_LIB)
+MYFLAGS += -L$(LIBDWARF_LIB) -ldwarf
 endif
 
 LIBS	+= 

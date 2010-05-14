@@ -256,10 +256,7 @@ BottomOfStackStepperImpl::~BottomOfStackStepperImpl()
 #undef PIMPL_ARG1
 
 //DyninstInstrStepper defined here
-#if defined(arch_x86) || defined(arch_x86_64)
-#include "stackwalk/src/symtab-swk.h"
 #define PIMPL_IMPL_CLASS DyninstInstrStepperImpl
-#endif
 #define PIMPL_CLASS DyninstInstrStepper
 #define PIMPL_NAME "DyninstInstrStepper"
 #include "framestepper_pimple.h"

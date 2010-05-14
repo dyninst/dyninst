@@ -30,12 +30,16 @@
  */
 
 #include "stackwalk/src/libstate.h"
+
 #include "stackwalk/h/swk_errors.h"
 #include "stackwalk/h/steppergroup.h"
 #include "stackwalk/h/walker.h"
+
 #include <set>
 #include <algorithm>
 #include <iterator>
+
+#include <string.h>
 
 using namespace Dyninst;
 using namespace Stackwalker;
