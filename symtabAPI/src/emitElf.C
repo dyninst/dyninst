@@ -624,7 +624,6 @@ bool emitElf::driver(Symtab *obj, string fName){
       {
 	symStrData = newdata;
 	updateSymbols(symTabData, symStrData, loadSecTotalSize);
-        updateSymbols(dynsymData, dynStrData, loadSecTotalSize);
       }
 	    
     //Change sh_link for .symtab to point to .strtab
@@ -727,6 +726,9 @@ bool emitElf::driver(Symtab *obj, string fName){
 	 sectionNumber++;
          createNewPhdrRegion(newNameIndexMapping);
 	}
+
+        // Update the heap symbols, now that loadSecTotalSize is set
+        updateSymbols(dynsymData, dynStrData, loadSecTotalSize);
     }
 
     if ( 0 > elf_update(newElf, ELF_C_NULL))
