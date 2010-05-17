@@ -467,14 +467,6 @@ Dyninst::Architecture linux_process::getTargetArch()
    return arch;
 }
 
-unsigned linux_process::getTargetPageSize()
-{
-   static unsigned pgsize = 0;
-   if (!pgsize)
-      pgsize = getpagesize();
-   return pgsize;
-}
-
 Dyninst::Address linux_process::plat_mallocExecMemory(Dyninst::Address min, unsigned size)
 {
    Dyninst::Address result = 0x0;
@@ -546,26 +538,8 @@ bool linux_process::plat_create_int()
          exit(-1);
       }
 
-      typedef const char * const_str;
-      
-      const_str *new_argv = (const_str *) calloc(argv.size()+3, sizeof(char *));
-      new_argv[0] = executable.c_str();
-      for (i=1; i<argv.size()+1; i++) {
-         new_argv[i] = argv[i-1].c_str();
-      }
-      new_argv[i+1] = (char *) NULL;
-      
-      result = execv(executable.c_str(), const_cast<char * const*>(new_argv));
-      int errnum = errno;         
-      pthrd_printf("Failed to exec %s: %s\n", 
-                   executable.c_str(), strerror(errnum));
-      if (errnum == ENOENT)
-         setLastError(err_nofile, "No such file");
-      if (errnum == EPERM || errnum == EACCES)
-         setLastError(err_prem, "Premission denied");
-      else
-         setLastError(err_internal, "Unable to exec process");
-      exit(-1);
+      // Never returns
+      plat_execv();
    }
    return true;
 }
@@ -1297,78 +1271,6 @@ HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool)
 
 bool ProcessPool::LWPIDsAreUnique()
 {
-   return true;
-}
-
-void int_notify::writeToPipe()
-{
-   if (pipe_out == -1) 
-      return;
-
-   char c = 'e';
-   ssize_t result = write(pipe_out, &c, 1);
-   if (result == -1) {
-      int error = errno;
-      setLastError(err_internal, "Could not write to notification pipe\n");
-      perr_printf("Error writing to notification pipe: %s\n", strerror(error));
-      return;
-   }
-   pthrd_printf("Wrote to notification pipe %d\n", pipe_out);
-}
-
-void int_notify::readFromPipe()
-{
-   if (pipe_out == -1)
-      return;
-
-   char c;
-   ssize_t result;
-   int error;
-   do {
-      result = read(pipe_in, &c, 1);
-      error = errno;
-   } while (result == -1 && error == EINTR);
-   if (result == -1) {
-      int error = errno;
-      if (error == EAGAIN) {
-         pthrd_printf("Notification pipe had no data available\n");
-         return;
-      }
-      setLastError(err_internal, "Could not read from notification pipe\n");
-      perr_printf("Error reading from notification pipe: %s\n", strerror(error));
-   }
-   assert(result == 1 && c == 'e');
-   pthrd_printf("Cleared notification pipe %d\n", pipe_in);
-}
-
-bool int_notify::createPipe()
-{
-   if (pipe_in != -1 || pipe_out != -1)
-      return true;
-
-   int fds[2];
-   int result = pipe(fds);
-   if (result == -1) {
-      int error = errno;
-      setLastError(err_internal, "Error creating notification pipe\n");
-      perr_printf("Error creating notification pipe: %s\n", strerror(error));
-      return false;
-   }
-   assert(fds[0] != -1);
-   assert(fds[1] != -1);
-
-   result = fcntl(fds[0], F_SETFL, O_NONBLOCK);
-   if (result == -1) {
-      int error = errno;
-      setLastError(err_internal, "Error setting properties of notification pipe\n");
-      perr_printf("Error calling fcntl for O_NONBLOCK on %d: %s\n", fds[0], strerror(error));
-      return false;
-   }
-   pipe_in = fds[0];
-   pipe_out = fds[1];
-
-
-   pthrd_printf("Created notification pipe: in = %d, out = %d\n", pipe_in, pipe_out);
    return true;
 }
 

@@ -20,6 +20,8 @@ TARGET = libpcontrol.so
 MYFLAGS += -fPIC
 endif
 
+LDFLAGS += -L../../common/$(PLATFORM)
+
 ifndef USES_NATIVE_CC
 LD		= $(GXX)
 LDFLAGS		+= -shared

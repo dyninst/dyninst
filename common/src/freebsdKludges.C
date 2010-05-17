@@ -30,6 +30,9 @@
  */
 
 #include "common/h/headers.h"
+#include <sys/sysctl.h>
+#include <sys/types.h>
+#include <sys/user.h>
 
 char * P_cplus_demangle( const char * symbol, bool,
 				bool includeTypes ) 
@@ -52,4 +55,101 @@ char * P_cplus_demangle( const char * symbol, bool,
    }
 
    return demangled;
+}
+
+// Process Information Queries //
+// No procfs mounted by default -- need to rely on sysctl //
+
+/*
+ * Gets the full path of the executable for the specified process
+ *
+ * pid  The pid for the process
+ */
+char *sysctl_getExecPathname(pid_t pid) {
+    int mib[4];
+    mib[0] = CTL_KERN;
+    mib[1] = KERN_PROC;
+    mib[2] = KERN_PROC_PATHNAME;
+    mib[3] = pid;
+
+    size_t length;
+    if( sysctl(mib, 4, NULL, &length, NULL, 0) ) {
+        return NULL;
+    }
+
+    char *pathname = (char *)calloc(length, sizeof(char));
+
+    if( sysctl(mib, 4, pathname, &length, NULL, 0) ) {
+        free(pathname);
+        return NULL;
+    }
+
+    return pathname;
+}
+
+static struct kinfo_proc *getProcInfo(pid_t pid, size_t &length, bool getThreads) {
+    int mib[4];
+    mib[0] = CTL_KERN;
+    mib[1] = KERN_PROC;
+    mib[2] = KERN_PROC_PID | ( getThreads ? KERN_PROC_INC_THREAD : 0 );
+    mib[3] = pid;
+
+    if( sysctl(mib, 4, NULL, &length, NULL, 0) ) {
+        return NULL;
+    }
+
+    struct kinfo_proc *procInfo = (struct kinfo_proc *)malloc(length);
+
+    if( sysctl(mib, 4, procInfo, &length, NULL, 0) ) {
+        free(procInfo);
+        return NULL;
+    }
+
+    return procInfo;
+}
+
+int sysctl_computeAddrWidth(pid_t pid) {
+    int retSize = sizeof(void *);
+
+#if defined(arch_64bit)
+    // XXX this hasn't been tested. It might not work
+    
+    // If this doesn't work, could try parsing ki_emul
+    // string in kinfo_proc
+    
+    const int X86_ADDR_WIDTH = 4;
+
+    size_t length;
+    struct kinfo_proc *procInfo = getProcInfo(pid, length, false);
+    if( NULL == procInfo ) {
+        fprintf(stderr, "Failed to determine address width of process %d\n", pid);
+        return -1;
+    }
+
+    if( KINFO_PROC_SIZE != procInfo->ki_structsize ) {
+        retSize = X86_ADDR_WIDTH;
+    }
+    free(procInfo);
+#endif
+
+    return retSize;
+}
+
+bool sysctl_findProcLWPs(pid_t pid, std::vector<pid_t> &lwps) {
+    size_t length;
+    struct kinfo_proc *procInfo = getProcInfo(pid, length, true);
+    if( NULL == procInfo ) {
+        fprintf(stderr, "Failed to determine LWP ids for process %d\n", pid);
+        return false;
+    }
+
+    assert( length > 0 && "process information not parsed correctly" );
+
+    int numEntries = length / procInfo->ki_structsize;
+    for(int i = 0; i < numEntries; ++i) {
+        lwps.push_back(procInfo[i].ki_tid);
+    }
+    free(procInfo);
+
+    return true;
 }

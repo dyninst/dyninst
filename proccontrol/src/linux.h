@@ -82,7 +82,6 @@ class linux_process : public sysv_process
    virtual bool needIndividualThreadAttach();
    virtual bool getThreadLWPs(std::vector<Dyninst::LWP> &lwps);
    virtual Dyninst::Architecture getTargetArch();
-   virtual unsigned getTargetPageSize();
    virtual Dyninst::Address plat_mallocExecMemory(Dyninst::Address, unsigned size);
    virtual bool independentLWPControl();
    virtual bool plat_individualRegAccess();

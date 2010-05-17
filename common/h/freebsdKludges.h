@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2010 Barton P. Miller
+ * Copyright (c) 1996-2009 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -29,12 +29,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#if !defined(i386_unknown_freebsd8_0) \
- && !defined(i386_unknown_freebsd7_0)
-#error "invalid architecture-os inclusion"
+#if !defined(_freebsd_kludges_h)
+#define _freebsd_kludges_h
+
+#include <vector>
+
+int sysctl_computeAddrWidth(pid_t pid);
+char *sysctl_getExecPathname(pid_t pid);
+bool sysctl_findProcLWPs(pid_t pid, std::vector<pid_t> &lwps);
+
 #endif
 
-#ifndef FREEBSD_X86_HDR
-#define FREEBSD_X86_HDR
-
-#endif

@@ -404,8 +404,12 @@ bool BinaryEdit::isMultiThreadCapable()
    std::vector<std::string> depends = symtab->getDependencies();
    for (std::vector<std::string>::iterator curDep = depends.begin();
         curDep != depends.end(); curDep++) {
-     if((curDep->find("libpthread") != std::string::npos) || (curDep->find("libthread") != std::string::npos))
-       return true;
+     if(    (curDep->find("libpthread") != std::string::npos) 
+         || (curDep->find("libthread") != std::string::npos)
+         || (curDep->find("libthr") != std::string::npos) )
+     {
+        return true;
+     }
    }
 
    return archSpecificMultithreadCapable();

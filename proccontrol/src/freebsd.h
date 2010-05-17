@@ -29,7 +29,6 @@ class GeneratorFreeBSD : public GeneratorMT
 
 class ArchEventFreeBSD : public ArchEvent
 {
-    static std::vector<ArchEventFreeBSD *> pending events;
     public:
         int status;
         pid_t pid;
@@ -75,7 +74,6 @@ class freebsd_process : public sysv_process
     virtual bool needIndividualThreadAttach();
     virtual bool getThreadLWPs(std::vector<Dyninst::LWP> &lwps);
     virtual Dyninst::Architecture getTargetArch();
-    virtual unsigned getTargetPageSize();
     virtual Dyninst::Address plat_mallocExecMemory(Dyninst::Address, unsigned size);
     virtual bool independentLWPControl();
     virtual bool plat_individualRegAccess();

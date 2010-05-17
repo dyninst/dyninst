@@ -121,7 +121,12 @@ bool Archive::parseMember(Symtab *&img, ArchiveMember *member)
 
     size_t rawSize;
     char * rawMember = elf_rawfile(elfHdr, &rawSize);
-    if( rawMember == NULL ) {
+
+    if( 0 == rawSize ) {
+        rawSize = arhdr->ar_size;
+    }
+
+    if( rawMember == NULL || rawSize == 0 ) {
         serr = Obj_Parsing;
         errMsg = elf_errmsg(elf_errno());
         return false;

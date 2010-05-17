@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.5 2008/09/03 06:08:44 jaw Exp $
+# $Id: Makefile,v 1.13 2008/11/03 15:19:24 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -10,9 +10,10 @@ DEBUG_FLAG = -g
 NO_IMPLICIT_TEMPLATES = true
 USES_DWARF_DEBUG = true
 USES_LIBELF = true
+NO_LIBDL = true
 
 # For debugging.
-#NO_OPT_FLAG = true
+# NO_OPT_FLAG = true
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
@@ -21,10 +22,16 @@ include ../../make.config
 
 # Now make any necessary architecture specific changes to variables:
 
-SRCS =		../../common/src/timing-freebsd.C \
-		../../common/src/freebsdKludges.C \
-		../../common/src/addrtranslate-static.C \
-		../../common/src/dthread-unix.C
+SRCS =          ../src/Object-elf.C \
+		../src/Archive.C \
+		../src/Archive-elf.C \
+		../src/parseDwarf.C \
+		../src/parseStab.C \
+		../src/emitElf.C \
+		../src/LinkMap.C \
+		../src/emitElfStatic.C \
+		../src/emitElfStatic-x86.C \
+		../src/relocationEntry-elf-x86.C
 
 #MYFLAGS	+= -DNO_MDL_PRINT
 #MYFLAGS	+= -DLD_DEBUG
@@ -35,20 +42,37 @@ SRCS =		../../common/src/timing-freebsd.C \
 #MYFLAGS	+= -DINST_TRAP_DEBUG
 #MYFLAGS	+= -DSIGNAL_DEBUG
 #MYFLAGS	+= -DASTDEBUG
-#MYFLAGS	+= -DINFERIOR_RPC_DEBUG
+#MYFLAGS		+= -DINFERIOR_RPC_DEBUG
+MYFLAGS		+= -DUSES_DWARF_DEBUG -I$(LIBDWARF_INC)
+MYFLAGS     	+= -I$(LIBELF_INC)
 
 CXXFLAGS        += $(MYFLAGS)
 CFLAGS          += $(MYFLAGS)
 TFLAGS          += $(MYFLAGS)
-LDFLAGS		+= -L/usr/local/lib -lpthread
+LDFLAGS         += -Wl,-rpath,$(LIBDWARF_LIB)
 
 # Tradeoff: adding -g to TFLAGS aids gdb but uses gobs of disk space
 #TFLAGS		+= -g
 
-LIBS    += -liberty
+SYSLIBS		=
+
+LIBS	  +=  -L$(LIBDWARF_LIB) -L$(LIBELF_LIB) -lpthread
+ifndef LIBDWARF_STATIC
+LIBS += -ldwarf
+endif
+ifndef LIBELF_STATIC
+LIBS += -lelf
+endif
+ifndef LIBIBERTY_STATIC
+LIBS	+= -liberty
+endif
 
 AS		= /usr/bin/as
 
+# no support for elf64_XXX() functions
+CXXFLAGS	+= -DUSES_ELF32_ONLY
+CFLAGS		+= -DUSES_ELF32_ONLY
+TFLAGS		+= -DUSES_ELF32_ONLY
 
 # Add preprocessor and special link information for G++
 G_PTHREAD	= -pthread

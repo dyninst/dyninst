@@ -72,7 +72,7 @@ Address getRegValueAtFrame(void *ehf, Address pc, int reg,
 
 typedef int handleT; // a /proc file descriptor
 
-#if defined(i386_unknown_freebsd8_0)
+#if defined(i386_unknown_freebsd8_0) || defined(i386_unknown_freebsd7_0)
 #include "freebsd-x86.h"
 #else
 #error Invalid or unknown architecture-os inclusion

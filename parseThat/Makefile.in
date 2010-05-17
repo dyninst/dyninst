@@ -96,6 +96,10 @@ ifneq (, $(findstring ia64, $(PLATFORM)))
 LIBS        += -ldl
 endif
 
+ifeq (freebsd, $(findstring freebsd, $(PLATFORM)))
+LIBS	    += -lpthread
+endif
+
 all: ready parseThat
 
 install: parseThat

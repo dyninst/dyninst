@@ -69,9 +69,12 @@ class sysv_process : public int_process
 
    bool isLibraryTrap(Dyninst::Address trap_addr);
    virtual bool plat_execed();
+   virtual unsigned getTargetPageSize();
    
  protected:
    static int_breakpoint *lib_trap;
+
+   virtual void plat_execv();
 
  private:
    std::set<LoadedLib*, LoadedLibCmp> loaded_libs;
