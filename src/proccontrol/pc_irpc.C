@@ -32,6 +32,8 @@
 #include "proccontrol_comp.h"
 #include "communication.h"
 
+#include <cstdio>
+
 using namespace std;
 
 class pc_irpcMutator : public ProcControlMutator {

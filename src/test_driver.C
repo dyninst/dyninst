@@ -43,6 +43,7 @@
 #include <algorithm>
 #include <sys/stat.h>
 #include <time.h>
+#include <limits.h>
 
 #if defined(os_windows_test)
 #define vsnprintf _vsnprintf
@@ -82,7 +83,7 @@ struct compiler_t {
 compiler_t compilers[] = {
    { "-gcc", "gcc", false },
    { "-g++", "g++", true },
-   { "-g77", "g77", true },
+   { "-gfortran", "gfortran", true },
    { "-icc", "icc", false },
    { "-icpc", "icpc", false },
    { "-pgcc", "pgcc", false },
@@ -606,8 +607,8 @@ void disableUnwantedTests(std::vector<RunGroup *> groups)
    }
    if( !runAllLinks && (!runDynamicLink || !runStaticLink) ) {
        for (unsigned i = 0; i < groups.size(); i++) {
-           if( (!runStaticLink && groups[i]->linktype == StaticLink) ||
-               (!runDynamicLink && groups[i]->linktype == DynamicLink) )
+           if( (!runStaticLink && (groups[i]->linktype == StaticLink)) ||
+                 (!runDynamicLink && (groups[i]->linktype == DynamicLink)) )
            {
                groups[i]->disabled = true;
            }
