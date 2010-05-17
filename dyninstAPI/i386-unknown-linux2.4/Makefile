@@ -84,9 +84,6 @@ LIBS    += -lelf
 endif
 LIBS    += -lgcc
 
-# InstructionAPI is x86-only at this point
-LIBS    += -linstructionAPI
-
 AS		= /usr/bin/as
 
 # no support for elf64_XXX() functions

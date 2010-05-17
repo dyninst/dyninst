@@ -730,15 +730,14 @@ StackAnalysis::Height StackAnalysis::getStackCleanAmount(image_func *func) {
         return funcCleanAmounts[func];
     }
 
-    dyn_detail::boost::shared_ptr<InstructionDecoder> decoder = makeDecoder(func->img()->getArch(), NULL, 0);
-    decoder->setMode(func->img()->getAddressWidth() == 8);
+    InstructionDecoder decoder((const unsigned char*)NULL, 0, func->img()->getArch());
     unsigned char *cur;
 
     std::set<Height> returnCleanVals;
     
     for (unsigned i=0; i < func->funcExits().size(); i++) {
         cur = (unsigned char *) func->getPtrToInstruction(func->funcExits()[i]->offset());
-        Instruction::Ptr insn = decoder->decode(cur);
+        Instruction::Ptr insn = decoder.decode(cur);
         
         entryID what = insn->getOperation().getID();
         if (what != e_ret_near)

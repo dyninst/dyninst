@@ -79,8 +79,6 @@ endif
 LIBS    += -lgcc
 
 # AS		= /usr/bin/as
-# InstructionAPI is just x86 and power at this point
-LIBS    += -linstructionAPI
 
 # no support for elf64_XXX() functions
 # CXXFLAGS	+= -DUSES_ELF32_ONLY

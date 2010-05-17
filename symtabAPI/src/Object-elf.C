@@ -1228,10 +1228,13 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
               }
           }
 
-          if(!glink) {
-              //fprintf(stderr, "couldn't find glink section\n");
+          if (!glink) {
+              fprintf(stderr, "*** Cound not find .glink section for '%s'.\n",
+                      mf->pathname().c_str());
+              fprintf(stderr, "*** It may not be a ppc32 elf object.\n");
               return false;
           }
+
           // Find PLT function stubs.  They preceed the glink section.
           stub_addr = glink_addr - (rel_plt_size_/rel_plt_entry_size_) * 16;
 
@@ -5437,4 +5440,31 @@ bool Region::isStandardCode()
            ((name_ == std::string(".text")) ||
             (name_ == std::string(".init")) ||
             (name_ == std::string(".fini"))));
+}
+
+void Object::setTruncateLinePaths(bool value)
+{
+   truncateLineFilenames = value;
+}
+
+bool Object::getTruncateLinePaths()
+{
+   return truncateLineFilenames;
+}
+
+Dyninst::Architecture Object::getArch()
+{
+#if defined(arch_power)
+   if (getAddressWidth() == 4) {
+      return Dyninst::Arch_ppc32;
+   }
+   return Dyninst::Arch_ppc64;
+#elif defined(arch_x86) || defined(arch_x86_64)
+   if (getAddressWidth() == 4) {
+      return Dyninst::Arch_x86;
+   }
+   return Dyninst::Arch_x86_64;
+#else
+   return Arch_none;
+#endif
 }

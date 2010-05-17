@@ -3454,263 +3454,263 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   tests.push_back(rg);
 #endif // defined(ICC)
   test_count = 0;
-  rg = new RunGroup("test1_1F.mutatee_solo_dynamic_g77_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_1F", "test1_1", "test1_1.so", false, "{test: test1_1F, mutator: test1_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_1F, optimization: none, compiler: g77, run_mode: createProcess}"));
+  rg = new RunGroup("test1_1F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_1F", "test1_1", "test1_1.so", false, "{test: test1_1F, mutator: test1_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_1F, optimization: none, compiler: gfortran, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_1F.mutatee_solo_dynamic_g77_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_1F", "test1_1", "test1_1.so", false, "{test: test1_1F, mutator: test1_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_1F, optimization: none, compiler: g77, run_mode: useAttach}"));
+  rg = new RunGroup("test1_1F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_1F", "test1_1", "test1_1.so", false, "{test: test1_1F, mutator: test1_1, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_1F, optimization: none, compiler: gfortran, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_2F.mutatee_solo_dynamic_g77_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_2F", "test1_2", "test1_2.so", false, "{test: test1_2F, mutator: test1_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_2F, optimization: none, compiler: g77, run_mode: createProcess}"));
+  rg = new RunGroup("test1_2F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_2F", "test1_2", "test1_2.so", false, "{test: test1_2F, mutator: test1_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_2F, optimization: none, compiler: gfortran, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_2F.mutatee_solo_dynamic_g77_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_2F", "test1_2", "test1_2.so", false, "{test: test1_2F, mutator: test1_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_2F, optimization: none, compiler: g77, run_mode: useAttach}"));
+  rg = new RunGroup("test1_2F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_2F", "test1_2", "test1_2.so", false, "{test: test1_2F, mutator: test1_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_2F, optimization: none, compiler: gfortran, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_3F.mutatee_solo_dynamic_g77_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_3F", "test1_3", "test1_3.so", false, "{test: test1_3F, mutator: test1_3, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_3F, optimization: none, compiler: g77, run_mode: createProcess}"));
+  rg = new RunGroup("test1_3F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_3F", "test1_3", "test1_3.so", false, "{test: test1_3F, mutator: test1_3, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_3F, optimization: none, compiler: gfortran, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_3F.mutatee_solo_dynamic_g77_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_3F", "test1_3", "test1_3.so", false, "{test: test1_3F, mutator: test1_3, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_3F, optimization: none, compiler: g77, run_mode: useAttach}"));
+  rg = new RunGroup("test1_3F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_3F", "test1_3", "test1_3.so", false, "{test: test1_3F, mutator: test1_3, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_3F, optimization: none, compiler: gfortran, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_4F.mutatee_solo_dynamic_g77_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_4F", "test1_4", "test1_4.so", false, "{test: test1_4F, mutator: test1_4, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_4F, optimization: none, compiler: g77, run_mode: createProcess}"));
+  rg = new RunGroup("test1_4F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_4F", "test1_4", "test1_4.so", false, "{test: test1_4F, mutator: test1_4, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_4F, optimization: none, compiler: gfortran, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_4F.mutatee_solo_dynamic_g77_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_4F", "test1_4", "test1_4.so", false, "{test: test1_4F, mutator: test1_4, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_4F, optimization: none, compiler: g77, run_mode: useAttach}"));
+  rg = new RunGroup("test1_4F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_4F", "test1_4", "test1_4.so", false, "{test: test1_4F, mutator: test1_4, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_4F, optimization: none, compiler: gfortran, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_5F.mutatee_solo_dynamic_g77_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_5F", "test1_5", "test1_5.so", false, "{test: test1_5F, mutator: test1_5, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_5F, optimization: none, compiler: g77, run_mode: createProcess}"));
+  rg = new RunGroup("test1_5F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_5F", "test1_5", "test1_5.so", false, "{test: test1_5F, mutator: test1_5, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_5F, optimization: none, compiler: gfortran, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_5F.mutatee_solo_dynamic_g77_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_5F", "test1_5", "test1_5.so", false, "{test: test1_5F, mutator: test1_5, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_5F, optimization: none, compiler: g77, run_mode: useAttach}"));
+  rg = new RunGroup("test1_5F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_5F", "test1_5", "test1_5.so", false, "{test: test1_5F, mutator: test1_5, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_5F, optimization: none, compiler: gfortran, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_6F.mutatee_solo_dynamic_g77_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_6F", "test1_6", "test1_6.so", false, "{test: test1_6F, mutator: test1_6, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_6F, optimization: none, compiler: g77, run_mode: createProcess}"));
+  rg = new RunGroup("test1_6F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_6F", "test1_6", "test1_6.so", false, "{test: test1_6F, mutator: test1_6, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_6F, optimization: none, compiler: gfortran, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_6F.mutatee_solo_dynamic_g77_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_6F", "test1_6", "test1_6.so", false, "{test: test1_6F, mutator: test1_6, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_6F, optimization: none, compiler: g77, run_mode: useAttach}"));
+  rg = new RunGroup("test1_6F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_6F", "test1_6", "test1_6.so", false, "{test: test1_6F, mutator: test1_6, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_6F, optimization: none, compiler: gfortran, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_7F.mutatee_solo_dynamic_g77_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_7F", "test1_7", "test1_7.so", false, "{test: test1_7F, mutator: test1_7, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_7F, optimization: none, compiler: g77, run_mode: createProcess}"));
+  rg = new RunGroup("test1_7F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_7F", "test1_7", "test1_7.so", false, "{test: test1_7F, mutator: test1_7, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_7F, optimization: none, compiler: gfortran, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_7F.mutatee_solo_dynamic_g77_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_7F", "test1_7", "test1_7.so", false, "{test: test1_7F, mutator: test1_7, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_7F, optimization: none, compiler: g77, run_mode: useAttach}"));
+  rg = new RunGroup("test1_7F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_7F", "test1_7", "test1_7.so", false, "{test: test1_7F, mutator: test1_7, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_7F, optimization: none, compiler: gfortran, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_8F.mutatee_solo_dynamic_g77_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_8F", "test1_8", "test1_8.so", false, "{test: test1_8F, mutator: test1_8, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_8F, optimization: none, compiler: g77, run_mode: createProcess}"));
+  rg = new RunGroup("test1_8F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_8F", "test1_8", "test1_8.so", false, "{test: test1_8F, mutator: test1_8, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_8F, optimization: none, compiler: gfortran, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_8F.mutatee_solo_dynamic_g77_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_8F", "test1_8", "test1_8.so", false, "{test: test1_8F, mutator: test1_8, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_8F, optimization: none, compiler: g77, run_mode: useAttach}"));
+  rg = new RunGroup("test1_8F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_8F", "test1_8", "test1_8.so", false, "{test: test1_8F, mutator: test1_8, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_8F, optimization: none, compiler: gfortran, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_9F.mutatee_solo_dynamic_g77_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_9F", "test1_9", "test1_9.so", false, "{test: test1_9F, mutator: test1_9, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_9F, optimization: none, compiler: g77, run_mode: createProcess}"));
+  rg = new RunGroup("test1_9F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_9F", "test1_9", "test1_9.so", false, "{test: test1_9F, mutator: test1_9, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_9F, optimization: none, compiler: gfortran, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_9F.mutatee_solo_dynamic_g77_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_9F", "test1_9", "test1_9.so", false, "{test: test1_9F, mutator: test1_9, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_9F, optimization: none, compiler: g77, run_mode: useAttach}"));
+  rg = new RunGroup("test1_9F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_9F", "test1_9", "test1_9.so", false, "{test: test1_9F, mutator: test1_9, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_9F, optimization: none, compiler: gfortran, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_10F.mutatee_solo_dynamic_g77_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_10F", "test1_10", "test1_10.so", false, "{test: test1_10F, mutator: test1_10, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_10F, optimization: none, compiler: g77, run_mode: createProcess}"));
+  rg = new RunGroup("test1_10F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_10F", "test1_10", "test1_10.so", false, "{test: test1_10F, mutator: test1_10, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_10F, optimization: none, compiler: gfortran, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_10F.mutatee_solo_dynamic_g77_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_10F", "test1_10", "test1_10.so", false, "{test: test1_10F, mutator: test1_10, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_10F, optimization: none, compiler: g77, run_mode: useAttach}"));
+  rg = new RunGroup("test1_10F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_10F", "test1_10", "test1_10.so", false, "{test: test1_10F, mutator: test1_10, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_10F, optimization: none, compiler: gfortran, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_11F.mutatee_solo_dynamic_g77_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_11F", "test1_11", "test1_11.so", false, "{test: test1_11F, mutator: test1_11, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_11F, optimization: none, compiler: g77, run_mode: createProcess}"));
+  rg = new RunGroup("test1_11F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_11F", "test1_11", "test1_11.so", false, "{test: test1_11F, mutator: test1_11, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_11F, optimization: none, compiler: gfortran, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_11F.mutatee_solo_dynamic_g77_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_11F", "test1_11", "test1_11.so", false, "{test: test1_11F, mutator: test1_11, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_11F, optimization: none, compiler: g77, run_mode: useAttach}"));
+  rg = new RunGroup("test1_11F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_11F", "test1_11", "test1_11.so", false, "{test: test1_11F, mutator: test1_11, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_11F, optimization: none, compiler: gfortran, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_12F.mutatee_solo_dynamic_g77_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, true, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_12F", "test1_12", "test1_12.so", false, "{test: test1_12F, mutator: test1_12, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_12F, optimization: none, compiler: g77, run_mode: createProcess}"));
+  rg = new RunGroup("test1_12F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, true, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_12F", "test1_12", "test1_12.so", false, "{test: test1_12F, mutator: test1_12, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_12F, optimization: none, compiler: gfortran, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_12F.mutatee_solo_dynamic_g77_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, true, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_12F", "test1_12", "test1_12.so", false, "{test: test1_12F, mutator: test1_12, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_12F, optimization: none, compiler: g77, run_mode: useAttach}"));
+  rg = new RunGroup("test1_12F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, true, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_12F", "test1_12", "test1_12.so", false, "{test: test1_12F, mutator: test1_12, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_12F, optimization: none, compiler: gfortran, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_13F.mutatee_solo_dynamic_g77_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_13F", "test1_13", "test1_13.so", false, "{test: test1_13F, mutator: test1_13, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_13F, optimization: none, compiler: g77, run_mode: createProcess}"));
+  rg = new RunGroup("test1_13F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_13F", "test1_13", "test1_13.so", false, "{test: test1_13F, mutator: test1_13, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_13F, optimization: none, compiler: gfortran, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_13F.mutatee_solo_dynamic_g77_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_13F", "test1_13", "test1_13.so", false, "{test: test1_13F, mutator: test1_13, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_13F, optimization: none, compiler: g77, run_mode: useAttach}"));
+  rg = new RunGroup("test1_13F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_13F", "test1_13", "test1_13.so", false, "{test: test1_13F, mutator: test1_13, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_13F, optimization: none, compiler: gfortran, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_14F.mutatee_solo_dynamic_g77_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_14F", "test1_14", "test1_14.so", false, "{test: test1_14F, mutator: test1_14, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_14F, optimization: none, compiler: g77, run_mode: createProcess}"));
+  rg = new RunGroup("test1_14F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_14F", "test1_14", "test1_14.so", false, "{test: test1_14F, mutator: test1_14, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_14F, optimization: none, compiler: gfortran, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_14F.mutatee_solo_dynamic_g77_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_14F", "test1_14", "test1_14.so", false, "{test: test1_14F, mutator: test1_14, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_14F, optimization: none, compiler: g77, run_mode: useAttach}"));
+  rg = new RunGroup("test1_14F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_14F", "test1_14", "test1_14.so", false, "{test: test1_14F, mutator: test1_14, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_14F, optimization: none, compiler: gfortran, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_15F.mutatee_solo_dynamic_g77_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, true, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_15F", "test1_15", "test1_15.so", false, "{test: test1_15F, mutator: test1_15, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_15F, optimization: none, compiler: g77, run_mode: createProcess}"));
+  rg = new RunGroup("test1_15F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, true, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_15F", "test1_15", "test1_15.so", false, "{test: test1_15F, mutator: test1_15, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_15F, optimization: none, compiler: gfortran, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_15F.mutatee_solo_dynamic_g77_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, true, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_15F", "test1_15", "test1_15.so", false, "{test: test1_15F, mutator: test1_15, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_15F, optimization: none, compiler: g77, run_mode: useAttach}"));
+  rg = new RunGroup("test1_15F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, true, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_15F", "test1_15", "test1_15.so", false, "{test: test1_15F, mutator: test1_15, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_15F, optimization: none, compiler: gfortran, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_16F.mutatee_solo_dynamic_g77_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_16F", "test1_16", "test1_16.so", false, "{test: test1_16F, mutator: test1_16, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_16F, optimization: none, compiler: g77, run_mode: createProcess}"));
+  rg = new RunGroup("test1_16F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_16F", "test1_16", "test1_16.so", false, "{test: test1_16F, mutator: test1_16, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_16F, optimization: none, compiler: gfortran, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_16F.mutatee_solo_dynamic_g77_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_16F", "test1_16", "test1_16.so", false, "{test: test1_16F, mutator: test1_16, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_16F, optimization: none, compiler: g77, run_mode: useAttach}"));
+  rg = new RunGroup("test1_16F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_16F", "test1_16", "test1_16.so", false, "{test: test1_16F, mutator: test1_16, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_16F, optimization: none, compiler: gfortran, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_17F.mutatee_solo_dynamic_g77_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_17F", "test1_17", "test1_17.so", false, "{test: test1_17F, mutator: test1_17, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_17F, optimization: none, compiler: g77, run_mode: createProcess}"));
+  rg = new RunGroup("test1_17F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_17F", "test1_17", "test1_17.so", false, "{test: test1_17F, mutator: test1_17, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_17F, optimization: none, compiler: gfortran, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_17F.mutatee_solo_dynamic_g77_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_17F", "test1_17", "test1_17.so", false, "{test: test1_17F, mutator: test1_17, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_17F, optimization: none, compiler: g77, run_mode: useAttach}"));
+  rg = new RunGroup("test1_17F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_17F", "test1_17", "test1_17.so", false, "{test: test1_17F, mutator: test1_17, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_17F, optimization: none, compiler: gfortran, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_18F.mutatee_solo_dynamic_g77_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_18F", "test1_18", "test1_18.so", false, "{test: test1_18F, mutator: test1_18, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_18F, optimization: none, compiler: g77, run_mode: createProcess}"));
+  rg = new RunGroup("test1_18F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_18F", "test1_18", "test1_18.so", false, "{test: test1_18F, mutator: test1_18, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_18F, optimization: none, compiler: gfortran, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_18F.mutatee_solo_dynamic_g77_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_18F", "test1_18", "test1_18.so", false, "{test: test1_18F, mutator: test1_18, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_18F, optimization: none, compiler: g77, run_mode: useAttach}"));
+  rg = new RunGroup("test1_18F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_18F", "test1_18", "test1_18.so", false, "{test: test1_18F, mutator: test1_18, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_18F, optimization: none, compiler: gfortran, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_19F.mutatee_solo_dynamic_g77_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, true, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_19F", "test1_19", "test1_19.so", false, "{test: test1_19F, mutator: test1_19, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_19F, optimization: none, compiler: g77, run_mode: createProcess}"));
+  rg = new RunGroup("test1_19F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, true, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_19F", "test1_19", "test1_19.so", false, "{test: test1_19F, mutator: test1_19, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_19F, optimization: none, compiler: gfortran, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_19F.mutatee_solo_dynamic_g77_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, true, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_19F", "test1_19", "test1_19.so", false, "{test: test1_19F, mutator: test1_19, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_19F, optimization: none, compiler: g77, run_mode: useAttach}"));
+  rg = new RunGroup("test1_19F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, true, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_19F", "test1_19", "test1_19.so", false, "{test: test1_19F, mutator: test1_19, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_19F, optimization: none, compiler: gfortran, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_20F.mutatee_solo_dynamic_g77_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_20F", "test1_20", "test1_20.so", false, "{test: test1_20F, mutator: test1_20, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_20F, optimization: none, compiler: g77, run_mode: createProcess}"));
+  rg = new RunGroup("test1_20F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_20F", "test1_20", "test1_20.so", false, "{test: test1_20F, mutator: test1_20, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_20F, optimization: none, compiler: gfortran, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_20F.mutatee_solo_dynamic_g77_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_20F", "test1_20", "test1_20.so", false, "{test: test1_20F, mutator: test1_20, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_20F, optimization: none, compiler: g77, run_mode: useAttach}"));
+  rg = new RunGroup("test1_20F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_20F", "test1_20", "test1_20.so", false, "{test: test1_20F, mutator: test1_20, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_20F, optimization: none, compiler: gfortran, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_25F.mutatee_solo_dynamic_g77_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_25F", "test1_25", "test1_25.so", false, "{test: test1_25F, mutator: test1_25, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_25F, optimization: none, compiler: g77, run_mode: createProcess}"));
+  rg = new RunGroup("test1_25F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_25F", "test1_25", "test1_25.so", false, "{test: test1_25F, mutator: test1_25, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_25F, optimization: none, compiler: gfortran, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_25F.mutatee_solo_dynamic_g77_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_25F", "test1_25", "test1_25.so", false, "{test: test1_25F, mutator: test1_25, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_25F, optimization: none, compiler: g77, run_mode: useAttach}"));
+  rg = new RunGroup("test1_25F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_25F", "test1_25", "test1_25.so", false, "{test: test1_25F, mutator: test1_25, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_25F, optimization: none, compiler: gfortran, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_29F.mutatee_solo_dynamic_g77_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_29F", "test1_29", "test1_29.so", false, "{test: test1_29F, mutator: test1_29, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_29F, optimization: none, compiler: g77, run_mode: createProcess}"));
+  rg = new RunGroup("test1_29F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_29F", "test1_29", "test1_29.so", false, "{test: test1_29F, mutator: test1_29, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_29F, optimization: none, compiler: gfortran, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_29F.mutatee_solo_dynamic_g77_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_29F", "test1_29", "test1_29.so", false, "{test: test1_29F, mutator: test1_29, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_29F, optimization: none, compiler: g77, run_mode: useAttach}"));
+  rg = new RunGroup("test1_29F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_29F", "test1_29", "test1_29.so", false, "{test: test1_29F, mutator: test1_29, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_29F, optimization: none, compiler: gfortran, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_31F.mutatee_solo_dynamic_g77_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_31F", "test1_31", "test1_31.so", false, "{test: test1_31F, mutator: test1_31, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_31F, optimization: none, compiler: g77, run_mode: createProcess}"));
+  rg = new RunGroup("test1_31F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_31F", "test1_31", "test1_31.so", false, "{test: test1_31F, mutator: test1_31, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_31F, optimization: none, compiler: gfortran, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_31F.mutatee_solo_dynamic_g77_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_31F", "test1_31", "test1_31.so", false, "{test: test1_31F, mutator: test1_31, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_31F, optimization: none, compiler: g77, run_mode: useAttach}"));
+  rg = new RunGroup("test1_31F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_31F", "test1_31", "test1_31.so", false, "{test: test1_31F, mutator: test1_31, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_31F, optimization: none, compiler: gfortran, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_32F.mutatee_solo_dynamic_g77_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_32F", "test1_32", "test1_32.so", false, "{test: test1_32F, mutator: test1_32, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_32F, optimization: none, compiler: g77, run_mode: createProcess}"));
+  rg = new RunGroup("test1_32F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_32F", "test1_32", "test1_32.so", false, "{test: test1_32F, mutator: test1_32, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_32F, optimization: none, compiler: gfortran, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_32F.mutatee_solo_dynamic_g77_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_32F", "test1_32", "test1_32.so", false, "{test: test1_32F, mutator: test1_32, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_32F, optimization: none, compiler: g77, run_mode: useAttach}"));
+  rg = new RunGroup("test1_32F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_32F", "test1_32", "test1_32.so", false, "{test: test1_32F, mutator: test1_32, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_32F, optimization: none, compiler: gfortran, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_34F.mutatee_solo_dynamic_g77_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_34F", "test1_34", "test1_34.so", false, "{test: test1_34F, mutator: test1_34, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_34F, optimization: none, compiler: g77, run_mode: createProcess}"));
+  rg = new RunGroup("test1_34F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_34F", "test1_34", "test1_34.so", false, "{test: test1_34F, mutator: test1_34, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_34F, optimization: none, compiler: gfortran, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_34F.mutatee_solo_dynamic_g77_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_34F", "test1_34", "test1_34.so", false, "{test: test1_34F, mutator: test1_34, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_34F, optimization: none, compiler: g77, run_mode: useAttach}"));
+  rg = new RunGroup("test1_34F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_34F", "test1_34", "test1_34.so", false, "{test: test1_34F, mutator: test1_34, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_34F, optimization: none, compiler: gfortran, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_36F.mutatee_solo_dynamic_g77_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_36F", "test1_36", "test1_36.so", false, "{test: test1_36F, mutator: test1_36, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_36F, optimization: none, compiler: g77, run_mode: createProcess}"));
+  rg = new RunGroup("test1_36F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, CREATE, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_36F", "test1_36", "test1_36.so", false, "{test: test1_36F, mutator: test1_36, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_36F, optimization: none, compiler: gfortran, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
-  rg = new RunGroup("test1_36F.mutatee_solo_dynamic_g77_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "g77", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "test1_36F", "test1_36", "test1_36.so", false, "{test: test1_36F, mutator: test1_36, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_36F, optimization: none, compiler: g77, run_mode: useAttach}"));
+  rg = new RunGroup("test1_36F.mutatee_solo_dynamic_gfortran_32_none", STOPPED, USEATTACH, TNone, PNone, DynamicLink, false, "dyninst", "gfortran", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test1_36F", "test1_36", "test1_36.so", false, "{test: test1_36F, mutator: test1_36, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: test1_36F, optimization: none, compiler: gfortran, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -3753,118 +3753,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "pc_launch", "pc_launch", "pc_launch.so", false, "{test: pc_launch, mutator: pc_launch, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_launch, optimization: none, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_launch.mutatee_solo_dynamic_pgcc_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_launch", "pc_launch", "pc_launch.so", false, "{test: pc_launch, mutator: pc_launch, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_launch, optimization: none, compiler: pgcc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_launch.mutatee_solo_dynamic_pgcc_32_none", STOPPED, CREATE, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_launch", "pc_launch", "pc_launch.so", false, "{test: pc_launch, mutator: pc_launch, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_launch, optimization: none, compiler: pgcc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_launch.mutatee_solo_dynamic_pgcc_32_none", STOPPED, CREATE, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_launch", "pc_launch", "pc_launch.so", false, "{test: pc_launch, mutator: pc_launch, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_launch, optimization: none, compiler: pgcc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_launch.mutatee_solo_dynamic_pgcc_32_none", STOPPED, CREATE, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_launch", "pc_launch", "pc_launch.so", false, "{test: pc_launch, mutator: pc_launch, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_launch, optimization: none, compiler: pgcc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_launch.mutatee_solo_dynamic_pgcc_32_none", STOPPED, USEATTACH, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_launch", "pc_launch", "pc_launch.so", false, "{test: pc_launch, mutator: pc_launch, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_launch, optimization: none, compiler: pgcc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_launch.mutatee_solo_dynamic_pgcc_32_none", STOPPED, USEATTACH, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_launch", "pc_launch", "pc_launch.so", false, "{test: pc_launch, mutator: pc_launch, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_launch, optimization: none, compiler: pgcc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_launch.mutatee_solo_dynamic_pgcc_32_none", STOPPED, USEATTACH, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_launch", "pc_launch", "pc_launch.so", false, "{test: pc_launch, mutator: pc_launch, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_launch, optimization: none, compiler: pgcc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_launch.mutatee_solo_dynamic_pgcc_32_none", STOPPED, USEATTACH, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_launch", "pc_launch", "pc_launch.so", false, "{test: pc_launch, mutator: pc_launch, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_launch, optimization: none, compiler: pgcc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_launch.mutatee_solo_dynamic_icc_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_launch", "pc_launch", "pc_launch.so", false, "{test: pc_launch, mutator: pc_launch, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_launch, optimization: none, compiler: icc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_launch.mutatee_solo_dynamic_icc_32_none", STOPPED, CREATE, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_launch", "pc_launch", "pc_launch.so", false, "{test: pc_launch, mutator: pc_launch, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_launch, optimization: none, compiler: icc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_launch.mutatee_solo_dynamic_icc_32_none", STOPPED, CREATE, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_launch", "pc_launch", "pc_launch.so", false, "{test: pc_launch, mutator: pc_launch, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_launch, optimization: none, compiler: icc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_launch.mutatee_solo_dynamic_icc_32_none", STOPPED, CREATE, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_launch", "pc_launch", "pc_launch.so", false, "{test: pc_launch, mutator: pc_launch, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_launch, optimization: none, compiler: icc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_launch.mutatee_solo_dynamic_icc_32_none", STOPPED, USEATTACH, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_launch", "pc_launch", "pc_launch.so", false, "{test: pc_launch, mutator: pc_launch, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_launch, optimization: none, compiler: icc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_launch.mutatee_solo_dynamic_icc_32_none", STOPPED, USEATTACH, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_launch", "pc_launch", "pc_launch.so", false, "{test: pc_launch, mutator: pc_launch, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_launch, optimization: none, compiler: icc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_launch.mutatee_solo_dynamic_icc_32_none", STOPPED, USEATTACH, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_launch", "pc_launch", "pc_launch.so", false, "{test: pc_launch, mutator: pc_launch, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_launch, optimization: none, compiler: icc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_launch.mutatee_solo_dynamic_icc_32_none", STOPPED, USEATTACH, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_launch", "pc_launch", "pc_launch.so", false, "{test: pc_launch, mutator: pc_launch, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_launch, optimization: none, compiler: icc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
   test_count = 0;
   rg = new RunGroup("pc_launch.mutatee_solo_dynamic_g++_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "pc_launch", "pc_launch", "pc_launch.so", false, "{test: pc_launch, mutator: pc_launch, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_launch, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -3905,118 +3793,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "pc_launch", "pc_launch", "pc_launch.so", false, "{test: pc_launch, mutator: pc_launch, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_launch, optimization: none, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_launch.mutatee_solo_dynamic_pgCC_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_launch", "pc_launch", "pc_launch.so", false, "{test: pc_launch, mutator: pc_launch, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_launch, optimization: none, compiler: pgCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_launch.mutatee_solo_dynamic_pgCC_32_none", STOPPED, CREATE, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_launch", "pc_launch", "pc_launch.so", false, "{test: pc_launch, mutator: pc_launch, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_launch, optimization: none, compiler: pgCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_launch.mutatee_solo_dynamic_pgCC_32_none", STOPPED, CREATE, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_launch", "pc_launch", "pc_launch.so", false, "{test: pc_launch, mutator: pc_launch, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_launch, optimization: none, compiler: pgCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_launch.mutatee_solo_dynamic_pgCC_32_none", STOPPED, CREATE, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_launch", "pc_launch", "pc_launch.so", false, "{test: pc_launch, mutator: pc_launch, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_launch, optimization: none, compiler: pgCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_launch.mutatee_solo_dynamic_pgCC_32_none", STOPPED, USEATTACH, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_launch", "pc_launch", "pc_launch.so", false, "{test: pc_launch, mutator: pc_launch, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_launch, optimization: none, compiler: pgCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_launch.mutatee_solo_dynamic_pgCC_32_none", STOPPED, USEATTACH, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_launch", "pc_launch", "pc_launch.so", false, "{test: pc_launch, mutator: pc_launch, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_launch, optimization: none, compiler: pgCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_launch.mutatee_solo_dynamic_pgCC_32_none", STOPPED, USEATTACH, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_launch", "pc_launch", "pc_launch.so", false, "{test: pc_launch, mutator: pc_launch, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_launch, optimization: none, compiler: pgCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_launch.mutatee_solo_dynamic_pgCC_32_none", STOPPED, USEATTACH, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_launch", "pc_launch", "pc_launch.so", false, "{test: pc_launch, mutator: pc_launch, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_launch, optimization: none, compiler: pgCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_launch.mutatee_solo_dynamic_icpc_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_launch", "pc_launch", "pc_launch.so", false, "{test: pc_launch, mutator: pc_launch, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_launch, optimization: none, compiler: iCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_launch.mutatee_solo_dynamic_icpc_32_none", STOPPED, CREATE, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_launch", "pc_launch", "pc_launch.so", false, "{test: pc_launch, mutator: pc_launch, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_launch, optimization: none, compiler: iCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_launch.mutatee_solo_dynamic_icpc_32_none", STOPPED, CREATE, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_launch", "pc_launch", "pc_launch.so", false, "{test: pc_launch, mutator: pc_launch, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_launch, optimization: none, compiler: iCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_launch.mutatee_solo_dynamic_icpc_32_none", STOPPED, CREATE, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_launch", "pc_launch", "pc_launch.so", false, "{test: pc_launch, mutator: pc_launch, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_launch, optimization: none, compiler: iCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_launch.mutatee_solo_dynamic_icpc_32_none", STOPPED, USEATTACH, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_launch", "pc_launch", "pc_launch.so", false, "{test: pc_launch, mutator: pc_launch, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_launch, optimization: none, compiler: iCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_launch.mutatee_solo_dynamic_icpc_32_none", STOPPED, USEATTACH, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_launch", "pc_launch", "pc_launch.so", false, "{test: pc_launch, mutator: pc_launch, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_launch, optimization: none, compiler: iCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_launch.mutatee_solo_dynamic_icpc_32_none", STOPPED, USEATTACH, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_launch", "pc_launch", "pc_launch.so", false, "{test: pc_launch, mutator: pc_launch, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_launch, optimization: none, compiler: iCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_launch.mutatee_solo_dynamic_icpc_32_none", STOPPED, USEATTACH, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_launch", "pc_launch", "pc_launch.so", false, "{test: pc_launch, mutator: pc_launch, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_launch, optimization: none, compiler: iCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
   test_count = 0;
   rg = new RunGroup("pc_thread_cont.mutatee_solo_dynamic_gcc_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "pc_thread_cont", "pc_thread_cont", "pc_thread_cont.so", false, "{test: pc_thread_cont, mutator: pc_thread_cont, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_thread_cont, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -4057,118 +3833,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "pc_thread_cont", "pc_thread_cont", "pc_thread_cont.so", false, "{test: pc_thread_cont, mutator: pc_thread_cont, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_thread_cont, optimization: none, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_thread_cont.mutatee_solo_dynamic_pgcc_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_thread_cont", "pc_thread_cont", "pc_thread_cont.so", false, "{test: pc_thread_cont, mutator: pc_thread_cont, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_thread_cont, optimization: none, compiler: pgcc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_thread_cont.mutatee_solo_dynamic_pgcc_32_none", STOPPED, CREATE, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_thread_cont", "pc_thread_cont", "pc_thread_cont.so", false, "{test: pc_thread_cont, mutator: pc_thread_cont, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_thread_cont, optimization: none, compiler: pgcc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_thread_cont.mutatee_solo_dynamic_pgcc_32_none", STOPPED, CREATE, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_thread_cont", "pc_thread_cont", "pc_thread_cont.so", false, "{test: pc_thread_cont, mutator: pc_thread_cont, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_thread_cont, optimization: none, compiler: pgcc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_thread_cont.mutatee_solo_dynamic_pgcc_32_none", STOPPED, CREATE, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_thread_cont", "pc_thread_cont", "pc_thread_cont.so", false, "{test: pc_thread_cont, mutator: pc_thread_cont, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_thread_cont, optimization: none, compiler: pgcc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_thread_cont.mutatee_solo_dynamic_pgcc_32_none", STOPPED, USEATTACH, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_thread_cont", "pc_thread_cont", "pc_thread_cont.so", false, "{test: pc_thread_cont, mutator: pc_thread_cont, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_thread_cont, optimization: none, compiler: pgcc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_thread_cont.mutatee_solo_dynamic_pgcc_32_none", STOPPED, USEATTACH, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_thread_cont", "pc_thread_cont", "pc_thread_cont.so", false, "{test: pc_thread_cont, mutator: pc_thread_cont, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_thread_cont, optimization: none, compiler: pgcc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_thread_cont.mutatee_solo_dynamic_pgcc_32_none", STOPPED, USEATTACH, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_thread_cont", "pc_thread_cont", "pc_thread_cont.so", false, "{test: pc_thread_cont, mutator: pc_thread_cont, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_thread_cont, optimization: none, compiler: pgcc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_thread_cont.mutatee_solo_dynamic_pgcc_32_none", STOPPED, USEATTACH, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_thread_cont", "pc_thread_cont", "pc_thread_cont.so", false, "{test: pc_thread_cont, mutator: pc_thread_cont, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_thread_cont, optimization: none, compiler: pgcc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_thread_cont.mutatee_solo_dynamic_icc_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_thread_cont", "pc_thread_cont", "pc_thread_cont.so", false, "{test: pc_thread_cont, mutator: pc_thread_cont, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_thread_cont, optimization: none, compiler: icc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_thread_cont.mutatee_solo_dynamic_icc_32_none", STOPPED, CREATE, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_thread_cont", "pc_thread_cont", "pc_thread_cont.so", false, "{test: pc_thread_cont, mutator: pc_thread_cont, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_thread_cont, optimization: none, compiler: icc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_thread_cont.mutatee_solo_dynamic_icc_32_none", STOPPED, CREATE, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_thread_cont", "pc_thread_cont", "pc_thread_cont.so", false, "{test: pc_thread_cont, mutator: pc_thread_cont, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_thread_cont, optimization: none, compiler: icc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_thread_cont.mutatee_solo_dynamic_icc_32_none", STOPPED, CREATE, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_thread_cont", "pc_thread_cont", "pc_thread_cont.so", false, "{test: pc_thread_cont, mutator: pc_thread_cont, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_thread_cont, optimization: none, compiler: icc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_thread_cont.mutatee_solo_dynamic_icc_32_none", STOPPED, USEATTACH, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_thread_cont", "pc_thread_cont", "pc_thread_cont.so", false, "{test: pc_thread_cont, mutator: pc_thread_cont, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_thread_cont, optimization: none, compiler: icc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_thread_cont.mutatee_solo_dynamic_icc_32_none", STOPPED, USEATTACH, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_thread_cont", "pc_thread_cont", "pc_thread_cont.so", false, "{test: pc_thread_cont, mutator: pc_thread_cont, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_thread_cont, optimization: none, compiler: icc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_thread_cont.mutatee_solo_dynamic_icc_32_none", STOPPED, USEATTACH, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_thread_cont", "pc_thread_cont", "pc_thread_cont.so", false, "{test: pc_thread_cont, mutator: pc_thread_cont, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_thread_cont, optimization: none, compiler: icc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_thread_cont.mutatee_solo_dynamic_icc_32_none", STOPPED, USEATTACH, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_thread_cont", "pc_thread_cont", "pc_thread_cont.so", false, "{test: pc_thread_cont, mutator: pc_thread_cont, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_thread_cont, optimization: none, compiler: icc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
   test_count = 0;
   rg = new RunGroup("pc_thread_cont.mutatee_solo_dynamic_g++_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "pc_thread_cont", "pc_thread_cont", "pc_thread_cont.so", false, "{test: pc_thread_cont, mutator: pc_thread_cont, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_thread_cont, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -4209,118 +3873,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "pc_thread_cont", "pc_thread_cont", "pc_thread_cont.so", false, "{test: pc_thread_cont, mutator: pc_thread_cont, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_thread_cont, optimization: none, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_thread_cont.mutatee_solo_dynamic_pgCC_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_thread_cont", "pc_thread_cont", "pc_thread_cont.so", false, "{test: pc_thread_cont, mutator: pc_thread_cont, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_thread_cont, optimization: none, compiler: pgCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_thread_cont.mutatee_solo_dynamic_pgCC_32_none", STOPPED, CREATE, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_thread_cont", "pc_thread_cont", "pc_thread_cont.so", false, "{test: pc_thread_cont, mutator: pc_thread_cont, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_thread_cont, optimization: none, compiler: pgCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_thread_cont.mutatee_solo_dynamic_pgCC_32_none", STOPPED, CREATE, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_thread_cont", "pc_thread_cont", "pc_thread_cont.so", false, "{test: pc_thread_cont, mutator: pc_thread_cont, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_thread_cont, optimization: none, compiler: pgCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_thread_cont.mutatee_solo_dynamic_pgCC_32_none", STOPPED, CREATE, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_thread_cont", "pc_thread_cont", "pc_thread_cont.so", false, "{test: pc_thread_cont, mutator: pc_thread_cont, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_thread_cont, optimization: none, compiler: pgCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_thread_cont.mutatee_solo_dynamic_pgCC_32_none", STOPPED, USEATTACH, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_thread_cont", "pc_thread_cont", "pc_thread_cont.so", false, "{test: pc_thread_cont, mutator: pc_thread_cont, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_thread_cont, optimization: none, compiler: pgCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_thread_cont.mutatee_solo_dynamic_pgCC_32_none", STOPPED, USEATTACH, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_thread_cont", "pc_thread_cont", "pc_thread_cont.so", false, "{test: pc_thread_cont, mutator: pc_thread_cont, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_thread_cont, optimization: none, compiler: pgCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_thread_cont.mutatee_solo_dynamic_pgCC_32_none", STOPPED, USEATTACH, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_thread_cont", "pc_thread_cont", "pc_thread_cont.so", false, "{test: pc_thread_cont, mutator: pc_thread_cont, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_thread_cont, optimization: none, compiler: pgCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_thread_cont.mutatee_solo_dynamic_pgCC_32_none", STOPPED, USEATTACH, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_thread_cont", "pc_thread_cont", "pc_thread_cont.so", false, "{test: pc_thread_cont, mutator: pc_thread_cont, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_thread_cont, optimization: none, compiler: pgCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_thread_cont.mutatee_solo_dynamic_icpc_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_thread_cont", "pc_thread_cont", "pc_thread_cont.so", false, "{test: pc_thread_cont, mutator: pc_thread_cont, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_thread_cont, optimization: none, compiler: iCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_thread_cont.mutatee_solo_dynamic_icpc_32_none", STOPPED, CREATE, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_thread_cont", "pc_thread_cont", "pc_thread_cont.so", false, "{test: pc_thread_cont, mutator: pc_thread_cont, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_thread_cont, optimization: none, compiler: iCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_thread_cont.mutatee_solo_dynamic_icpc_32_none", STOPPED, CREATE, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_thread_cont", "pc_thread_cont", "pc_thread_cont.so", false, "{test: pc_thread_cont, mutator: pc_thread_cont, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_thread_cont, optimization: none, compiler: iCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_thread_cont.mutatee_solo_dynamic_icpc_32_none", STOPPED, CREATE, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_thread_cont", "pc_thread_cont", "pc_thread_cont.so", false, "{test: pc_thread_cont, mutator: pc_thread_cont, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_thread_cont, optimization: none, compiler: iCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_thread_cont.mutatee_solo_dynamic_icpc_32_none", STOPPED, USEATTACH, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_thread_cont", "pc_thread_cont", "pc_thread_cont.so", false, "{test: pc_thread_cont, mutator: pc_thread_cont, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_thread_cont, optimization: none, compiler: iCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_thread_cont.mutatee_solo_dynamic_icpc_32_none", STOPPED, USEATTACH, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_thread_cont", "pc_thread_cont", "pc_thread_cont.so", false, "{test: pc_thread_cont, mutator: pc_thread_cont, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_thread_cont, optimization: none, compiler: iCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_thread_cont.mutatee_solo_dynamic_icpc_32_none", STOPPED, USEATTACH, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_thread_cont", "pc_thread_cont", "pc_thread_cont.so", false, "{test: pc_thread_cont, mutator: pc_thread_cont, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_thread_cont, optimization: none, compiler: iCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_thread_cont.mutatee_solo_dynamic_icpc_32_none", STOPPED, USEATTACH, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_thread_cont", "pc_thread_cont", "pc_thread_cont.so", false, "{test: pc_thread_cont, mutator: pc_thread_cont, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_thread_cont, optimization: none, compiler: iCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
   test_count = 0;
   rg = new RunGroup("pc_breakpoint.mutatee_solo_dynamic_gcc_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "pc_breakpoint", "pc_breakpoint", "pc_breakpoint.so", false, "{test: pc_breakpoint, mutator: pc_breakpoint, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_breakpoint, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -4361,118 +3913,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "pc_breakpoint", "pc_breakpoint", "pc_breakpoint.so", false, "{test: pc_breakpoint, mutator: pc_breakpoint, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_breakpoint, optimization: none, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_breakpoint.mutatee_solo_dynamic_pgcc_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_breakpoint", "pc_breakpoint", "pc_breakpoint.so", false, "{test: pc_breakpoint, mutator: pc_breakpoint, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_breakpoint, optimization: none, compiler: pgcc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_breakpoint.mutatee_solo_dynamic_pgcc_32_none", STOPPED, CREATE, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_breakpoint", "pc_breakpoint", "pc_breakpoint.so", false, "{test: pc_breakpoint, mutator: pc_breakpoint, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_breakpoint, optimization: none, compiler: pgcc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_breakpoint.mutatee_solo_dynamic_pgcc_32_none", STOPPED, CREATE, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_breakpoint", "pc_breakpoint", "pc_breakpoint.so", false, "{test: pc_breakpoint, mutator: pc_breakpoint, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_breakpoint, optimization: none, compiler: pgcc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_breakpoint.mutatee_solo_dynamic_pgcc_32_none", STOPPED, CREATE, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_breakpoint", "pc_breakpoint", "pc_breakpoint.so", false, "{test: pc_breakpoint, mutator: pc_breakpoint, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_breakpoint, optimization: none, compiler: pgcc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_breakpoint.mutatee_solo_dynamic_pgcc_32_none", STOPPED, USEATTACH, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_breakpoint", "pc_breakpoint", "pc_breakpoint.so", false, "{test: pc_breakpoint, mutator: pc_breakpoint, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_breakpoint, optimization: none, compiler: pgcc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_breakpoint.mutatee_solo_dynamic_pgcc_32_none", STOPPED, USEATTACH, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_breakpoint", "pc_breakpoint", "pc_breakpoint.so", false, "{test: pc_breakpoint, mutator: pc_breakpoint, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_breakpoint, optimization: none, compiler: pgcc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_breakpoint.mutatee_solo_dynamic_pgcc_32_none", STOPPED, USEATTACH, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_breakpoint", "pc_breakpoint", "pc_breakpoint.so", false, "{test: pc_breakpoint, mutator: pc_breakpoint, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_breakpoint, optimization: none, compiler: pgcc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_breakpoint.mutatee_solo_dynamic_pgcc_32_none", STOPPED, USEATTACH, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_breakpoint", "pc_breakpoint", "pc_breakpoint.so", false, "{test: pc_breakpoint, mutator: pc_breakpoint, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_breakpoint, optimization: none, compiler: pgcc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_breakpoint.mutatee_solo_dynamic_icc_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_breakpoint", "pc_breakpoint", "pc_breakpoint.so", false, "{test: pc_breakpoint, mutator: pc_breakpoint, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_breakpoint, optimization: none, compiler: icc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_breakpoint.mutatee_solo_dynamic_icc_32_none", STOPPED, CREATE, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_breakpoint", "pc_breakpoint", "pc_breakpoint.so", false, "{test: pc_breakpoint, mutator: pc_breakpoint, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_breakpoint, optimization: none, compiler: icc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_breakpoint.mutatee_solo_dynamic_icc_32_none", STOPPED, CREATE, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_breakpoint", "pc_breakpoint", "pc_breakpoint.so", false, "{test: pc_breakpoint, mutator: pc_breakpoint, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_breakpoint, optimization: none, compiler: icc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_breakpoint.mutatee_solo_dynamic_icc_32_none", STOPPED, CREATE, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_breakpoint", "pc_breakpoint", "pc_breakpoint.so", false, "{test: pc_breakpoint, mutator: pc_breakpoint, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_breakpoint, optimization: none, compiler: icc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_breakpoint.mutatee_solo_dynamic_icc_32_none", STOPPED, USEATTACH, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_breakpoint", "pc_breakpoint", "pc_breakpoint.so", false, "{test: pc_breakpoint, mutator: pc_breakpoint, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_breakpoint, optimization: none, compiler: icc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_breakpoint.mutatee_solo_dynamic_icc_32_none", STOPPED, USEATTACH, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_breakpoint", "pc_breakpoint", "pc_breakpoint.so", false, "{test: pc_breakpoint, mutator: pc_breakpoint, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_breakpoint, optimization: none, compiler: icc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_breakpoint.mutatee_solo_dynamic_icc_32_none", STOPPED, USEATTACH, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_breakpoint", "pc_breakpoint", "pc_breakpoint.so", false, "{test: pc_breakpoint, mutator: pc_breakpoint, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_breakpoint, optimization: none, compiler: icc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_breakpoint.mutatee_solo_dynamic_icc_32_none", STOPPED, USEATTACH, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_breakpoint", "pc_breakpoint", "pc_breakpoint.so", false, "{test: pc_breakpoint, mutator: pc_breakpoint, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_breakpoint, optimization: none, compiler: icc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
   test_count = 0;
   rg = new RunGroup("pc_breakpoint.mutatee_solo_dynamic_g++_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "pc_breakpoint", "pc_breakpoint", "pc_breakpoint.so", false, "{test: pc_breakpoint, mutator: pc_breakpoint, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_breakpoint, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -4513,118 +3953,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "pc_breakpoint", "pc_breakpoint", "pc_breakpoint.so", false, "{test: pc_breakpoint, mutator: pc_breakpoint, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_breakpoint, optimization: none, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_breakpoint.mutatee_solo_dynamic_pgCC_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_breakpoint", "pc_breakpoint", "pc_breakpoint.so", false, "{test: pc_breakpoint, mutator: pc_breakpoint, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_breakpoint, optimization: none, compiler: pgCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_breakpoint.mutatee_solo_dynamic_pgCC_32_none", STOPPED, CREATE, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_breakpoint", "pc_breakpoint", "pc_breakpoint.so", false, "{test: pc_breakpoint, mutator: pc_breakpoint, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_breakpoint, optimization: none, compiler: pgCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_breakpoint.mutatee_solo_dynamic_pgCC_32_none", STOPPED, CREATE, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_breakpoint", "pc_breakpoint", "pc_breakpoint.so", false, "{test: pc_breakpoint, mutator: pc_breakpoint, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_breakpoint, optimization: none, compiler: pgCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_breakpoint.mutatee_solo_dynamic_pgCC_32_none", STOPPED, CREATE, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_breakpoint", "pc_breakpoint", "pc_breakpoint.so", false, "{test: pc_breakpoint, mutator: pc_breakpoint, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_breakpoint, optimization: none, compiler: pgCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_breakpoint.mutatee_solo_dynamic_pgCC_32_none", STOPPED, USEATTACH, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_breakpoint", "pc_breakpoint", "pc_breakpoint.so", false, "{test: pc_breakpoint, mutator: pc_breakpoint, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_breakpoint, optimization: none, compiler: pgCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_breakpoint.mutatee_solo_dynamic_pgCC_32_none", STOPPED, USEATTACH, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_breakpoint", "pc_breakpoint", "pc_breakpoint.so", false, "{test: pc_breakpoint, mutator: pc_breakpoint, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_breakpoint, optimization: none, compiler: pgCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_breakpoint.mutatee_solo_dynamic_pgCC_32_none", STOPPED, USEATTACH, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_breakpoint", "pc_breakpoint", "pc_breakpoint.so", false, "{test: pc_breakpoint, mutator: pc_breakpoint, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_breakpoint, optimization: none, compiler: pgCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_breakpoint.mutatee_solo_dynamic_pgCC_32_none", STOPPED, USEATTACH, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_breakpoint", "pc_breakpoint", "pc_breakpoint.so", false, "{test: pc_breakpoint, mutator: pc_breakpoint, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_breakpoint, optimization: none, compiler: pgCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_breakpoint.mutatee_solo_dynamic_icpc_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_breakpoint", "pc_breakpoint", "pc_breakpoint.so", false, "{test: pc_breakpoint, mutator: pc_breakpoint, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_breakpoint, optimization: none, compiler: iCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_breakpoint.mutatee_solo_dynamic_icpc_32_none", STOPPED, CREATE, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_breakpoint", "pc_breakpoint", "pc_breakpoint.so", false, "{test: pc_breakpoint, mutator: pc_breakpoint, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_breakpoint, optimization: none, compiler: iCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_breakpoint.mutatee_solo_dynamic_icpc_32_none", STOPPED, CREATE, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_breakpoint", "pc_breakpoint", "pc_breakpoint.so", false, "{test: pc_breakpoint, mutator: pc_breakpoint, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_breakpoint, optimization: none, compiler: iCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_breakpoint.mutatee_solo_dynamic_icpc_32_none", STOPPED, CREATE, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_breakpoint", "pc_breakpoint", "pc_breakpoint.so", false, "{test: pc_breakpoint, mutator: pc_breakpoint, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_breakpoint, optimization: none, compiler: iCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_breakpoint.mutatee_solo_dynamic_icpc_32_none", STOPPED, USEATTACH, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_breakpoint", "pc_breakpoint", "pc_breakpoint.so", false, "{test: pc_breakpoint, mutator: pc_breakpoint, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_breakpoint, optimization: none, compiler: iCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_breakpoint.mutatee_solo_dynamic_icpc_32_none", STOPPED, USEATTACH, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_breakpoint", "pc_breakpoint", "pc_breakpoint.so", false, "{test: pc_breakpoint, mutator: pc_breakpoint, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_breakpoint, optimization: none, compiler: iCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_breakpoint.mutatee_solo_dynamic_icpc_32_none", STOPPED, USEATTACH, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_breakpoint", "pc_breakpoint", "pc_breakpoint.so", false, "{test: pc_breakpoint, mutator: pc_breakpoint, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_breakpoint, optimization: none, compiler: iCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_breakpoint.mutatee_solo_dynamic_icpc_32_none", STOPPED, USEATTACH, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_breakpoint", "pc_breakpoint", "pc_breakpoint.so", false, "{test: pc_breakpoint, mutator: pc_breakpoint, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_breakpoint, optimization: none, compiler: iCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
   test_count = 0;
   rg = new RunGroup("pc_library.mutatee_solo_dynamic_gcc_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "pc_library", "pc_library", "pc_library.so", false, "{test: pc_library, mutator: pc_library, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_library, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -4665,118 +3993,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "pc_library", "pc_library", "pc_library.so", false, "{test: pc_library, mutator: pc_library, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_library, optimization: none, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_library.mutatee_solo_dynamic_pgcc_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_library", "pc_library", "pc_library.so", false, "{test: pc_library, mutator: pc_library, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_library, optimization: none, compiler: pgcc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_library.mutatee_solo_dynamic_pgcc_32_none", STOPPED, CREATE, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_library", "pc_library", "pc_library.so", false, "{test: pc_library, mutator: pc_library, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_library, optimization: none, compiler: pgcc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_library.mutatee_solo_dynamic_pgcc_32_none", STOPPED, CREATE, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_library", "pc_library", "pc_library.so", false, "{test: pc_library, mutator: pc_library, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_library, optimization: none, compiler: pgcc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_library.mutatee_solo_dynamic_pgcc_32_none", STOPPED, CREATE, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_library", "pc_library", "pc_library.so", false, "{test: pc_library, mutator: pc_library, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_library, optimization: none, compiler: pgcc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_library.mutatee_solo_dynamic_pgcc_32_none", STOPPED, USEATTACH, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_library", "pc_library", "pc_library.so", false, "{test: pc_library, mutator: pc_library, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_library, optimization: none, compiler: pgcc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_library.mutatee_solo_dynamic_pgcc_32_none", STOPPED, USEATTACH, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_library", "pc_library", "pc_library.so", false, "{test: pc_library, mutator: pc_library, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_library, optimization: none, compiler: pgcc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_library.mutatee_solo_dynamic_pgcc_32_none", STOPPED, USEATTACH, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_library", "pc_library", "pc_library.so", false, "{test: pc_library, mutator: pc_library, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_library, optimization: none, compiler: pgcc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_library.mutatee_solo_dynamic_pgcc_32_none", STOPPED, USEATTACH, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_library", "pc_library", "pc_library.so", false, "{test: pc_library, mutator: pc_library, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_library, optimization: none, compiler: pgcc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_library.mutatee_solo_dynamic_icc_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_library", "pc_library", "pc_library.so", false, "{test: pc_library, mutator: pc_library, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_library, optimization: none, compiler: icc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_library.mutatee_solo_dynamic_icc_32_none", STOPPED, CREATE, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_library", "pc_library", "pc_library.so", false, "{test: pc_library, mutator: pc_library, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_library, optimization: none, compiler: icc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_library.mutatee_solo_dynamic_icc_32_none", STOPPED, CREATE, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_library", "pc_library", "pc_library.so", false, "{test: pc_library, mutator: pc_library, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_library, optimization: none, compiler: icc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_library.mutatee_solo_dynamic_icc_32_none", STOPPED, CREATE, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_library", "pc_library", "pc_library.so", false, "{test: pc_library, mutator: pc_library, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_library, optimization: none, compiler: icc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_library.mutatee_solo_dynamic_icc_32_none", STOPPED, USEATTACH, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_library", "pc_library", "pc_library.so", false, "{test: pc_library, mutator: pc_library, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_library, optimization: none, compiler: icc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_library.mutatee_solo_dynamic_icc_32_none", STOPPED, USEATTACH, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_library", "pc_library", "pc_library.so", false, "{test: pc_library, mutator: pc_library, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_library, optimization: none, compiler: icc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_library.mutatee_solo_dynamic_icc_32_none", STOPPED, USEATTACH, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_library", "pc_library", "pc_library.so", false, "{test: pc_library, mutator: pc_library, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_library, optimization: none, compiler: icc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_library.mutatee_solo_dynamic_icc_32_none", STOPPED, USEATTACH, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_library", "pc_library", "pc_library.so", false, "{test: pc_library, mutator: pc_library, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_library, optimization: none, compiler: icc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
   test_count = 0;
   rg = new RunGroup("pc_library.mutatee_solo_dynamic_g++_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "pc_library", "pc_library", "pc_library.so", false, "{test: pc_library, mutator: pc_library, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_library, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -4817,118 +4033,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "pc_library", "pc_library", "pc_library.so", false, "{test: pc_library, mutator: pc_library, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_library, optimization: none, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_library.mutatee_solo_dynamic_pgCC_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_library", "pc_library", "pc_library.so", false, "{test: pc_library, mutator: pc_library, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_library, optimization: none, compiler: pgCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_library.mutatee_solo_dynamic_pgCC_32_none", STOPPED, CREATE, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_library", "pc_library", "pc_library.so", false, "{test: pc_library, mutator: pc_library, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_library, optimization: none, compiler: pgCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_library.mutatee_solo_dynamic_pgCC_32_none", STOPPED, CREATE, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_library", "pc_library", "pc_library.so", false, "{test: pc_library, mutator: pc_library, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_library, optimization: none, compiler: pgCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_library.mutatee_solo_dynamic_pgCC_32_none", STOPPED, CREATE, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_library", "pc_library", "pc_library.so", false, "{test: pc_library, mutator: pc_library, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_library, optimization: none, compiler: pgCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_library.mutatee_solo_dynamic_pgCC_32_none", STOPPED, USEATTACH, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_library", "pc_library", "pc_library.so", false, "{test: pc_library, mutator: pc_library, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_library, optimization: none, compiler: pgCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_library.mutatee_solo_dynamic_pgCC_32_none", STOPPED, USEATTACH, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_library", "pc_library", "pc_library.so", false, "{test: pc_library, mutator: pc_library, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_library, optimization: none, compiler: pgCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_library.mutatee_solo_dynamic_pgCC_32_none", STOPPED, USEATTACH, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_library", "pc_library", "pc_library.so", false, "{test: pc_library, mutator: pc_library, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_library, optimization: none, compiler: pgCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_library.mutatee_solo_dynamic_pgCC_32_none", STOPPED, USEATTACH, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_library", "pc_library", "pc_library.so", false, "{test: pc_library, mutator: pc_library, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_library, optimization: none, compiler: pgCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_library.mutatee_solo_dynamic_icpc_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_library", "pc_library", "pc_library.so", false, "{test: pc_library, mutator: pc_library, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_library, optimization: none, compiler: iCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_library.mutatee_solo_dynamic_icpc_32_none", STOPPED, CREATE, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_library", "pc_library", "pc_library.so", false, "{test: pc_library, mutator: pc_library, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_library, optimization: none, compiler: iCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_library.mutatee_solo_dynamic_icpc_32_none", STOPPED, CREATE, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_library", "pc_library", "pc_library.so", false, "{test: pc_library, mutator: pc_library, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_library, optimization: none, compiler: iCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_library.mutatee_solo_dynamic_icpc_32_none", STOPPED, CREATE, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_library", "pc_library", "pc_library.so", false, "{test: pc_library, mutator: pc_library, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_library, optimization: none, compiler: iCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_library.mutatee_solo_dynamic_icpc_32_none", STOPPED, USEATTACH, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_library", "pc_library", "pc_library.so", false, "{test: pc_library, mutator: pc_library, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_library, optimization: none, compiler: iCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_library.mutatee_solo_dynamic_icpc_32_none", STOPPED, USEATTACH, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_library", "pc_library", "pc_library.so", false, "{test: pc_library, mutator: pc_library, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_library, optimization: none, compiler: iCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_library.mutatee_solo_dynamic_icpc_32_none", STOPPED, USEATTACH, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_library", "pc_library", "pc_library.so", false, "{test: pc_library, mutator: pc_library, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_library, optimization: none, compiler: iCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_library.mutatee_solo_dynamic_icpc_32_none", STOPPED, USEATTACH, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_library", "pc_library", "pc_library.so", false, "{test: pc_library, mutator: pc_library, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_library, optimization: none, compiler: iCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
   test_count = 0;
   rg = new RunGroup("pc_singlestep.mutatee_solo_dynamic_gcc_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "pc_singlestep", "pc_singlestep", "pc_singlestep.so", false, "{test: pc_singlestep, mutator: pc_singlestep, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_singlestep, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -4969,118 +4073,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "pc_singlestep", "pc_singlestep", "pc_singlestep.so", false, "{test: pc_singlestep, mutator: pc_singlestep, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_singlestep, optimization: none, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_singlestep.mutatee_solo_dynamic_pgcc_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_singlestep", "pc_singlestep", "pc_singlestep.so", false, "{test: pc_singlestep, mutator: pc_singlestep, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_singlestep, optimization: none, compiler: pgcc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_singlestep.mutatee_solo_dynamic_pgcc_32_none", STOPPED, CREATE, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_singlestep", "pc_singlestep", "pc_singlestep.so", false, "{test: pc_singlestep, mutator: pc_singlestep, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_singlestep, optimization: none, compiler: pgcc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_singlestep.mutatee_solo_dynamic_pgcc_32_none", STOPPED, CREATE, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_singlestep", "pc_singlestep", "pc_singlestep.so", false, "{test: pc_singlestep, mutator: pc_singlestep, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_singlestep, optimization: none, compiler: pgcc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_singlestep.mutatee_solo_dynamic_pgcc_32_none", STOPPED, CREATE, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_singlestep", "pc_singlestep", "pc_singlestep.so", false, "{test: pc_singlestep, mutator: pc_singlestep, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_singlestep, optimization: none, compiler: pgcc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_singlestep.mutatee_solo_dynamic_pgcc_32_none", STOPPED, USEATTACH, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_singlestep", "pc_singlestep", "pc_singlestep.so", false, "{test: pc_singlestep, mutator: pc_singlestep, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_singlestep, optimization: none, compiler: pgcc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_singlestep.mutatee_solo_dynamic_pgcc_32_none", STOPPED, USEATTACH, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_singlestep", "pc_singlestep", "pc_singlestep.so", false, "{test: pc_singlestep, mutator: pc_singlestep, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_singlestep, optimization: none, compiler: pgcc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_singlestep.mutatee_solo_dynamic_pgcc_32_none", STOPPED, USEATTACH, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_singlestep", "pc_singlestep", "pc_singlestep.so", false, "{test: pc_singlestep, mutator: pc_singlestep, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_singlestep, optimization: none, compiler: pgcc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_singlestep.mutatee_solo_dynamic_pgcc_32_none", STOPPED, USEATTACH, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_singlestep", "pc_singlestep", "pc_singlestep.so", false, "{test: pc_singlestep, mutator: pc_singlestep, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_singlestep, optimization: none, compiler: pgcc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_singlestep.mutatee_solo_dynamic_icc_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_singlestep", "pc_singlestep", "pc_singlestep.so", false, "{test: pc_singlestep, mutator: pc_singlestep, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_singlestep, optimization: none, compiler: icc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_singlestep.mutatee_solo_dynamic_icc_32_none", STOPPED, CREATE, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_singlestep", "pc_singlestep", "pc_singlestep.so", false, "{test: pc_singlestep, mutator: pc_singlestep, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_singlestep, optimization: none, compiler: icc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_singlestep.mutatee_solo_dynamic_icc_32_none", STOPPED, CREATE, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_singlestep", "pc_singlestep", "pc_singlestep.so", false, "{test: pc_singlestep, mutator: pc_singlestep, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_singlestep, optimization: none, compiler: icc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_singlestep.mutatee_solo_dynamic_icc_32_none", STOPPED, CREATE, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_singlestep", "pc_singlestep", "pc_singlestep.so", false, "{test: pc_singlestep, mutator: pc_singlestep, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_singlestep, optimization: none, compiler: icc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_singlestep.mutatee_solo_dynamic_icc_32_none", STOPPED, USEATTACH, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_singlestep", "pc_singlestep", "pc_singlestep.so", false, "{test: pc_singlestep, mutator: pc_singlestep, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_singlestep, optimization: none, compiler: icc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_singlestep.mutatee_solo_dynamic_icc_32_none", STOPPED, USEATTACH, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_singlestep", "pc_singlestep", "pc_singlestep.so", false, "{test: pc_singlestep, mutator: pc_singlestep, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_singlestep, optimization: none, compiler: icc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_singlestep.mutatee_solo_dynamic_icc_32_none", STOPPED, USEATTACH, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_singlestep", "pc_singlestep", "pc_singlestep.so", false, "{test: pc_singlestep, mutator: pc_singlestep, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_singlestep, optimization: none, compiler: icc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_singlestep.mutatee_solo_dynamic_icc_32_none", STOPPED, USEATTACH, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_singlestep", "pc_singlestep", "pc_singlestep.so", false, "{test: pc_singlestep, mutator: pc_singlestep, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_singlestep, optimization: none, compiler: icc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
   test_count = 0;
   rg = new RunGroup("pc_singlestep.mutatee_solo_dynamic_g++_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "pc_singlestep", "pc_singlestep", "pc_singlestep.so", false, "{test: pc_singlestep, mutator: pc_singlestep, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_singlestep, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -5121,118 +4113,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "pc_singlestep", "pc_singlestep", "pc_singlestep.so", false, "{test: pc_singlestep, mutator: pc_singlestep, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_singlestep, optimization: none, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_singlestep.mutatee_solo_dynamic_pgCC_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_singlestep", "pc_singlestep", "pc_singlestep.so", false, "{test: pc_singlestep, mutator: pc_singlestep, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_singlestep, optimization: none, compiler: pgCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_singlestep.mutatee_solo_dynamic_pgCC_32_none", STOPPED, CREATE, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_singlestep", "pc_singlestep", "pc_singlestep.so", false, "{test: pc_singlestep, mutator: pc_singlestep, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_singlestep, optimization: none, compiler: pgCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_singlestep.mutatee_solo_dynamic_pgCC_32_none", STOPPED, CREATE, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_singlestep", "pc_singlestep", "pc_singlestep.so", false, "{test: pc_singlestep, mutator: pc_singlestep, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_singlestep, optimization: none, compiler: pgCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_singlestep.mutatee_solo_dynamic_pgCC_32_none", STOPPED, CREATE, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_singlestep", "pc_singlestep", "pc_singlestep.so", false, "{test: pc_singlestep, mutator: pc_singlestep, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_singlestep, optimization: none, compiler: pgCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_singlestep.mutatee_solo_dynamic_pgCC_32_none", STOPPED, USEATTACH, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_singlestep", "pc_singlestep", "pc_singlestep.so", false, "{test: pc_singlestep, mutator: pc_singlestep, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_singlestep, optimization: none, compiler: pgCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_singlestep.mutatee_solo_dynamic_pgCC_32_none", STOPPED, USEATTACH, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_singlestep", "pc_singlestep", "pc_singlestep.so", false, "{test: pc_singlestep, mutator: pc_singlestep, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_singlestep, optimization: none, compiler: pgCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_singlestep.mutatee_solo_dynamic_pgCC_32_none", STOPPED, USEATTACH, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_singlestep", "pc_singlestep", "pc_singlestep.so", false, "{test: pc_singlestep, mutator: pc_singlestep, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_singlestep, optimization: none, compiler: pgCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_singlestep.mutatee_solo_dynamic_pgCC_32_none", STOPPED, USEATTACH, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_singlestep", "pc_singlestep", "pc_singlestep.so", false, "{test: pc_singlestep, mutator: pc_singlestep, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_singlestep, optimization: none, compiler: pgCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_singlestep.mutatee_solo_dynamic_icpc_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_singlestep", "pc_singlestep", "pc_singlestep.so", false, "{test: pc_singlestep, mutator: pc_singlestep, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_singlestep, optimization: none, compiler: iCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_singlestep.mutatee_solo_dynamic_icpc_32_none", STOPPED, CREATE, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_singlestep", "pc_singlestep", "pc_singlestep.so", false, "{test: pc_singlestep, mutator: pc_singlestep, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_singlestep, optimization: none, compiler: iCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_singlestep.mutatee_solo_dynamic_icpc_32_none", STOPPED, CREATE, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_singlestep", "pc_singlestep", "pc_singlestep.so", false, "{test: pc_singlestep, mutator: pc_singlestep, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_singlestep, optimization: none, compiler: iCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_singlestep.mutatee_solo_dynamic_icpc_32_none", STOPPED, CREATE, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_singlestep", "pc_singlestep", "pc_singlestep.so", false, "{test: pc_singlestep, mutator: pc_singlestep, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_singlestep, optimization: none, compiler: iCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_singlestep.mutatee_solo_dynamic_icpc_32_none", STOPPED, USEATTACH, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_singlestep", "pc_singlestep", "pc_singlestep.so", false, "{test: pc_singlestep, mutator: pc_singlestep, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_singlestep, optimization: none, compiler: iCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_singlestep.mutatee_solo_dynamic_icpc_32_none", STOPPED, USEATTACH, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_singlestep", "pc_singlestep", "pc_singlestep.so", false, "{test: pc_singlestep, mutator: pc_singlestep, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_singlestep, optimization: none, compiler: iCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_singlestep.mutatee_solo_dynamic_icpc_32_none", STOPPED, USEATTACH, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_singlestep", "pc_singlestep", "pc_singlestep.so", false, "{test: pc_singlestep, mutator: pc_singlestep, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_singlestep, optimization: none, compiler: iCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_singlestep.mutatee_solo_dynamic_icpc_32_none", STOPPED, USEATTACH, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_singlestep", "pc_singlestep", "pc_singlestep.so", false, "{test: pc_singlestep, mutator: pc_singlestep, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_singlestep, optimization: none, compiler: iCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
   test_count = 0;
   rg = new RunGroup("pc_fork.mutatee_solo_dynamic_gcc_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "pc_fork", "pc_fork", "pc_fork.so", false, "{test: pc_fork, mutator: pc_fork, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_fork, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -5273,118 +4153,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "pc_fork", "pc_fork", "pc_fork.so", false, "{test: pc_fork, mutator: pc_fork, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_fork, optimization: none, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_fork.mutatee_solo_dynamic_pgcc_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork", "pc_fork", "pc_fork.so", false, "{test: pc_fork, mutator: pc_fork, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_fork, optimization: none, compiler: pgcc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_fork.mutatee_solo_dynamic_pgcc_32_none", STOPPED, CREATE, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork", "pc_fork", "pc_fork.so", false, "{test: pc_fork, mutator: pc_fork, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_fork, optimization: none, compiler: pgcc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_fork.mutatee_solo_dynamic_pgcc_32_none", STOPPED, CREATE, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork", "pc_fork", "pc_fork.so", false, "{test: pc_fork, mutator: pc_fork, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_fork, optimization: none, compiler: pgcc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_fork.mutatee_solo_dynamic_pgcc_32_none", STOPPED, CREATE, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork", "pc_fork", "pc_fork.so", false, "{test: pc_fork, mutator: pc_fork, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_fork, optimization: none, compiler: pgcc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_fork.mutatee_solo_dynamic_pgcc_32_none", STOPPED, USEATTACH, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork", "pc_fork", "pc_fork.so", false, "{test: pc_fork, mutator: pc_fork, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_fork, optimization: none, compiler: pgcc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_fork.mutatee_solo_dynamic_pgcc_32_none", STOPPED, USEATTACH, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork", "pc_fork", "pc_fork.so", false, "{test: pc_fork, mutator: pc_fork, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_fork, optimization: none, compiler: pgcc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_fork.mutatee_solo_dynamic_pgcc_32_none", STOPPED, USEATTACH, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork", "pc_fork", "pc_fork.so", false, "{test: pc_fork, mutator: pc_fork, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_fork, optimization: none, compiler: pgcc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_fork.mutatee_solo_dynamic_pgcc_32_none", STOPPED, USEATTACH, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork", "pc_fork", "pc_fork.so", false, "{test: pc_fork, mutator: pc_fork, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_fork, optimization: none, compiler: pgcc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_fork.mutatee_solo_dynamic_icc_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork", "pc_fork", "pc_fork.so", false, "{test: pc_fork, mutator: pc_fork, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_fork, optimization: none, compiler: icc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_fork.mutatee_solo_dynamic_icc_32_none", STOPPED, CREATE, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork", "pc_fork", "pc_fork.so", false, "{test: pc_fork, mutator: pc_fork, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_fork, optimization: none, compiler: icc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_fork.mutatee_solo_dynamic_icc_32_none", STOPPED, CREATE, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork", "pc_fork", "pc_fork.so", false, "{test: pc_fork, mutator: pc_fork, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_fork, optimization: none, compiler: icc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_fork.mutatee_solo_dynamic_icc_32_none", STOPPED, CREATE, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork", "pc_fork", "pc_fork.so", false, "{test: pc_fork, mutator: pc_fork, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_fork, optimization: none, compiler: icc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_fork.mutatee_solo_dynamic_icc_32_none", STOPPED, USEATTACH, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork", "pc_fork", "pc_fork.so", false, "{test: pc_fork, mutator: pc_fork, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_fork, optimization: none, compiler: icc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_fork.mutatee_solo_dynamic_icc_32_none", STOPPED, USEATTACH, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork", "pc_fork", "pc_fork.so", false, "{test: pc_fork, mutator: pc_fork, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_fork, optimization: none, compiler: icc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_fork.mutatee_solo_dynamic_icc_32_none", STOPPED, USEATTACH, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork", "pc_fork", "pc_fork.so", false, "{test: pc_fork, mutator: pc_fork, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_fork, optimization: none, compiler: icc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_fork.mutatee_solo_dynamic_icc_32_none", STOPPED, USEATTACH, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork", "pc_fork", "pc_fork.so", false, "{test: pc_fork, mutator: pc_fork, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_fork, optimization: none, compiler: icc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
   test_count = 0;
   rg = new RunGroup("pc_fork.mutatee_solo_dynamic_g++_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "pc_fork", "pc_fork", "pc_fork.so", false, "{test: pc_fork, mutator: pc_fork, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_fork, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -5425,118 +4193,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "pc_fork", "pc_fork", "pc_fork.so", false, "{test: pc_fork, mutator: pc_fork, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_fork, optimization: none, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_fork.mutatee_solo_dynamic_pgCC_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork", "pc_fork", "pc_fork.so", false, "{test: pc_fork, mutator: pc_fork, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_fork, optimization: none, compiler: pgCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_fork.mutatee_solo_dynamic_pgCC_32_none", STOPPED, CREATE, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork", "pc_fork", "pc_fork.so", false, "{test: pc_fork, mutator: pc_fork, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_fork, optimization: none, compiler: pgCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_fork.mutatee_solo_dynamic_pgCC_32_none", STOPPED, CREATE, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork", "pc_fork", "pc_fork.so", false, "{test: pc_fork, mutator: pc_fork, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_fork, optimization: none, compiler: pgCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_fork.mutatee_solo_dynamic_pgCC_32_none", STOPPED, CREATE, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork", "pc_fork", "pc_fork.so", false, "{test: pc_fork, mutator: pc_fork, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_fork, optimization: none, compiler: pgCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_fork.mutatee_solo_dynamic_pgCC_32_none", STOPPED, USEATTACH, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork", "pc_fork", "pc_fork.so", false, "{test: pc_fork, mutator: pc_fork, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_fork, optimization: none, compiler: pgCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_fork.mutatee_solo_dynamic_pgCC_32_none", STOPPED, USEATTACH, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork", "pc_fork", "pc_fork.so", false, "{test: pc_fork, mutator: pc_fork, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_fork, optimization: none, compiler: pgCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_fork.mutatee_solo_dynamic_pgCC_32_none", STOPPED, USEATTACH, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork", "pc_fork", "pc_fork.so", false, "{test: pc_fork, mutator: pc_fork, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_fork, optimization: none, compiler: pgCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_fork.mutatee_solo_dynamic_pgCC_32_none", STOPPED, USEATTACH, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork", "pc_fork", "pc_fork.so", false, "{test: pc_fork, mutator: pc_fork, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_fork, optimization: none, compiler: pgCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_fork.mutatee_solo_dynamic_icpc_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork", "pc_fork", "pc_fork.so", false, "{test: pc_fork, mutator: pc_fork, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_fork, optimization: none, compiler: iCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_fork.mutatee_solo_dynamic_icpc_32_none", STOPPED, CREATE, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork", "pc_fork", "pc_fork.so", false, "{test: pc_fork, mutator: pc_fork, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_fork, optimization: none, compiler: iCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_fork.mutatee_solo_dynamic_icpc_32_none", STOPPED, CREATE, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork", "pc_fork", "pc_fork.so", false, "{test: pc_fork, mutator: pc_fork, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_fork, optimization: none, compiler: iCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_fork.mutatee_solo_dynamic_icpc_32_none", STOPPED, CREATE, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork", "pc_fork", "pc_fork.so", false, "{test: pc_fork, mutator: pc_fork, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_fork, optimization: none, compiler: iCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_fork.mutatee_solo_dynamic_icpc_32_none", STOPPED, USEATTACH, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork", "pc_fork", "pc_fork.so", false, "{test: pc_fork, mutator: pc_fork, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_fork, optimization: none, compiler: iCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_fork.mutatee_solo_dynamic_icpc_32_none", STOPPED, USEATTACH, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork", "pc_fork", "pc_fork.so", false, "{test: pc_fork, mutator: pc_fork, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_fork, optimization: none, compiler: iCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_fork.mutatee_solo_dynamic_icpc_32_none", STOPPED, USEATTACH, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork", "pc_fork", "pc_fork.so", false, "{test: pc_fork, mutator: pc_fork, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_fork, optimization: none, compiler: iCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_fork.mutatee_solo_dynamic_icpc_32_none", STOPPED, USEATTACH, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork", "pc_fork", "pc_fork.so", false, "{test: pc_fork, mutator: pc_fork, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_fork, optimization: none, compiler: iCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
   test_count = 0;
   rg = new RunGroup("pc_fork_exec.mutatee_solo_dynamic_gcc_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "pc_fork_exec", "pc_fork_exec", "pc_fork_exec.so", false, "{test: pc_fork_exec, mutator: pc_fork_exec, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_fork_exec, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -5577,118 +4233,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "pc_fork_exec", "pc_fork_exec", "pc_fork_exec.so", false, "{test: pc_fork_exec, mutator: pc_fork_exec, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_fork_exec, optimization: none, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_fork_exec.mutatee_solo_dynamic_pgcc_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork_exec", "pc_fork_exec", "pc_fork_exec.so", false, "{test: pc_fork_exec, mutator: pc_fork_exec, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_fork_exec, optimization: none, compiler: pgcc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_fork_exec.mutatee_solo_dynamic_pgcc_32_none", STOPPED, CREATE, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork_exec", "pc_fork_exec", "pc_fork_exec.so", false, "{test: pc_fork_exec, mutator: pc_fork_exec, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_fork_exec, optimization: none, compiler: pgcc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_fork_exec.mutatee_solo_dynamic_pgcc_32_none", STOPPED, CREATE, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork_exec", "pc_fork_exec", "pc_fork_exec.so", false, "{test: pc_fork_exec, mutator: pc_fork_exec, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_fork_exec, optimization: none, compiler: pgcc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_fork_exec.mutatee_solo_dynamic_pgcc_32_none", STOPPED, CREATE, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork_exec", "pc_fork_exec", "pc_fork_exec.so", false, "{test: pc_fork_exec, mutator: pc_fork_exec, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_fork_exec, optimization: none, compiler: pgcc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_fork_exec.mutatee_solo_dynamic_pgcc_32_none", STOPPED, USEATTACH, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork_exec", "pc_fork_exec", "pc_fork_exec.so", false, "{test: pc_fork_exec, mutator: pc_fork_exec, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_fork_exec, optimization: none, compiler: pgcc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_fork_exec.mutatee_solo_dynamic_pgcc_32_none", STOPPED, USEATTACH, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork_exec", "pc_fork_exec", "pc_fork_exec.so", false, "{test: pc_fork_exec, mutator: pc_fork_exec, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_fork_exec, optimization: none, compiler: pgcc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_fork_exec.mutatee_solo_dynamic_pgcc_32_none", STOPPED, USEATTACH, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork_exec", "pc_fork_exec", "pc_fork_exec.so", false, "{test: pc_fork_exec, mutator: pc_fork_exec, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_fork_exec, optimization: none, compiler: pgcc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_fork_exec.mutatee_solo_dynamic_pgcc_32_none", STOPPED, USEATTACH, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork_exec", "pc_fork_exec", "pc_fork_exec.so", false, "{test: pc_fork_exec, mutator: pc_fork_exec, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_fork_exec, optimization: none, compiler: pgcc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_fork_exec.mutatee_solo_dynamic_icc_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork_exec", "pc_fork_exec", "pc_fork_exec.so", false, "{test: pc_fork_exec, mutator: pc_fork_exec, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_fork_exec, optimization: none, compiler: icc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_fork_exec.mutatee_solo_dynamic_icc_32_none", STOPPED, CREATE, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork_exec", "pc_fork_exec", "pc_fork_exec.so", false, "{test: pc_fork_exec, mutator: pc_fork_exec, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_fork_exec, optimization: none, compiler: icc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_fork_exec.mutatee_solo_dynamic_icc_32_none", STOPPED, CREATE, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork_exec", "pc_fork_exec", "pc_fork_exec.so", false, "{test: pc_fork_exec, mutator: pc_fork_exec, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_fork_exec, optimization: none, compiler: icc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_fork_exec.mutatee_solo_dynamic_icc_32_none", STOPPED, CREATE, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork_exec", "pc_fork_exec", "pc_fork_exec.so", false, "{test: pc_fork_exec, mutator: pc_fork_exec, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_fork_exec, optimization: none, compiler: icc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_fork_exec.mutatee_solo_dynamic_icc_32_none", STOPPED, USEATTACH, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork_exec", "pc_fork_exec", "pc_fork_exec.so", false, "{test: pc_fork_exec, mutator: pc_fork_exec, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_fork_exec, optimization: none, compiler: icc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_fork_exec.mutatee_solo_dynamic_icc_32_none", STOPPED, USEATTACH, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork_exec", "pc_fork_exec", "pc_fork_exec.so", false, "{test: pc_fork_exec, mutator: pc_fork_exec, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_fork_exec, optimization: none, compiler: icc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_fork_exec.mutatee_solo_dynamic_icc_32_none", STOPPED, USEATTACH, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork_exec", "pc_fork_exec", "pc_fork_exec.so", false, "{test: pc_fork_exec, mutator: pc_fork_exec, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_fork_exec, optimization: none, compiler: icc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_fork_exec.mutatee_solo_dynamic_icc_32_none", STOPPED, USEATTACH, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork_exec", "pc_fork_exec", "pc_fork_exec.so", false, "{test: pc_fork_exec, mutator: pc_fork_exec, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_fork_exec, optimization: none, compiler: icc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
   test_count = 0;
   rg = new RunGroup("pc_fork_exec.mutatee_solo_dynamic_g++_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "pc_fork_exec", "pc_fork_exec", "pc_fork_exec.so", false, "{test: pc_fork_exec, mutator: pc_fork_exec, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_fork_exec, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -5729,118 +4273,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "pc_fork_exec", "pc_fork_exec", "pc_fork_exec.so", false, "{test: pc_fork_exec, mutator: pc_fork_exec, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_fork_exec, optimization: none, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_fork_exec.mutatee_solo_dynamic_pgCC_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork_exec", "pc_fork_exec", "pc_fork_exec.so", false, "{test: pc_fork_exec, mutator: pc_fork_exec, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_fork_exec, optimization: none, compiler: pgCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_fork_exec.mutatee_solo_dynamic_pgCC_32_none", STOPPED, CREATE, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork_exec", "pc_fork_exec", "pc_fork_exec.so", false, "{test: pc_fork_exec, mutator: pc_fork_exec, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_fork_exec, optimization: none, compiler: pgCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_fork_exec.mutatee_solo_dynamic_pgCC_32_none", STOPPED, CREATE, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork_exec", "pc_fork_exec", "pc_fork_exec.so", false, "{test: pc_fork_exec, mutator: pc_fork_exec, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_fork_exec, optimization: none, compiler: pgCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_fork_exec.mutatee_solo_dynamic_pgCC_32_none", STOPPED, CREATE, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork_exec", "pc_fork_exec", "pc_fork_exec.so", false, "{test: pc_fork_exec, mutator: pc_fork_exec, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_fork_exec, optimization: none, compiler: pgCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_fork_exec.mutatee_solo_dynamic_pgCC_32_none", STOPPED, USEATTACH, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork_exec", "pc_fork_exec", "pc_fork_exec.so", false, "{test: pc_fork_exec, mutator: pc_fork_exec, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_fork_exec, optimization: none, compiler: pgCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_fork_exec.mutatee_solo_dynamic_pgCC_32_none", STOPPED, USEATTACH, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork_exec", "pc_fork_exec", "pc_fork_exec.so", false, "{test: pc_fork_exec, mutator: pc_fork_exec, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_fork_exec, optimization: none, compiler: pgCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_fork_exec.mutatee_solo_dynamic_pgCC_32_none", STOPPED, USEATTACH, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork_exec", "pc_fork_exec", "pc_fork_exec.so", false, "{test: pc_fork_exec, mutator: pc_fork_exec, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_fork_exec, optimization: none, compiler: pgCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_fork_exec.mutatee_solo_dynamic_pgCC_32_none", STOPPED, USEATTACH, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork_exec", "pc_fork_exec", "pc_fork_exec.so", false, "{test: pc_fork_exec, mutator: pc_fork_exec, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_fork_exec, optimization: none, compiler: pgCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_fork_exec.mutatee_solo_dynamic_icpc_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork_exec", "pc_fork_exec", "pc_fork_exec.so", false, "{test: pc_fork_exec, mutator: pc_fork_exec, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_fork_exec, optimization: none, compiler: iCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_fork_exec.mutatee_solo_dynamic_icpc_32_none", STOPPED, CREATE, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork_exec", "pc_fork_exec", "pc_fork_exec.so", false, "{test: pc_fork_exec, mutator: pc_fork_exec, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_fork_exec, optimization: none, compiler: iCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_fork_exec.mutatee_solo_dynamic_icpc_32_none", STOPPED, CREATE, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork_exec", "pc_fork_exec", "pc_fork_exec.so", false, "{test: pc_fork_exec, mutator: pc_fork_exec, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_fork_exec, optimization: none, compiler: iCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_fork_exec.mutatee_solo_dynamic_icpc_32_none", STOPPED, CREATE, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork_exec", "pc_fork_exec", "pc_fork_exec.so", false, "{test: pc_fork_exec, mutator: pc_fork_exec, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_fork_exec, optimization: none, compiler: iCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_fork_exec.mutatee_solo_dynamic_icpc_32_none", STOPPED, USEATTACH, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork_exec", "pc_fork_exec", "pc_fork_exec.so", false, "{test: pc_fork_exec, mutator: pc_fork_exec, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_fork_exec, optimization: none, compiler: iCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_fork_exec.mutatee_solo_dynamic_icpc_32_none", STOPPED, USEATTACH, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork_exec", "pc_fork_exec", "pc_fork_exec.so", false, "{test: pc_fork_exec, mutator: pc_fork_exec, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_fork_exec, optimization: none, compiler: iCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_fork_exec.mutatee_solo_dynamic_icpc_32_none", STOPPED, USEATTACH, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork_exec", "pc_fork_exec", "pc_fork_exec.so", false, "{test: pc_fork_exec, mutator: pc_fork_exec, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_fork_exec, optimization: none, compiler: iCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_fork_exec.mutatee_solo_dynamic_icpc_32_none", STOPPED, USEATTACH, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_fork_exec", "pc_fork_exec", "pc_fork_exec.so", false, "{test: pc_fork_exec, mutator: pc_fork_exec, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_fork_exec, optimization: none, compiler: iCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
   test_count = 0;
   rg = new RunGroup("pc_irpc.mutatee_solo_dynamic_gcc_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "pc_irpc", "pc_irpc", "pc_irpc.so", false, "{test: pc_irpc, mutator: pc_irpc, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_irpc, optimization: none, compiler: gcc, run_mode: createProcess}"));
@@ -5881,118 +4313,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "pc_irpc", "pc_irpc", "pc_irpc.so", false, "{test: pc_irpc, mutator: pc_irpc, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_irpc, optimization: none, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_irpc.mutatee_solo_dynamic_pgcc_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_irpc", "pc_irpc", "pc_irpc.so", false, "{test: pc_irpc, mutator: pc_irpc, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_irpc, optimization: none, compiler: pgcc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_irpc.mutatee_solo_dynamic_pgcc_32_none", STOPPED, CREATE, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_irpc", "pc_irpc", "pc_irpc.so", false, "{test: pc_irpc, mutator: pc_irpc, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_irpc, optimization: none, compiler: pgcc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_irpc.mutatee_solo_dynamic_pgcc_32_none", STOPPED, CREATE, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_irpc", "pc_irpc", "pc_irpc.so", false, "{test: pc_irpc, mutator: pc_irpc, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_irpc, optimization: none, compiler: pgcc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_irpc.mutatee_solo_dynamic_pgcc_32_none", STOPPED, CREATE, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_irpc", "pc_irpc", "pc_irpc.so", false, "{test: pc_irpc, mutator: pc_irpc, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_irpc, optimization: none, compiler: pgcc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_irpc.mutatee_solo_dynamic_pgcc_32_none", STOPPED, USEATTACH, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_irpc", "pc_irpc", "pc_irpc.so", false, "{test: pc_irpc, mutator: pc_irpc, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_irpc, optimization: none, compiler: pgcc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_irpc.mutatee_solo_dynamic_pgcc_32_none", STOPPED, USEATTACH, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_irpc", "pc_irpc", "pc_irpc.so", false, "{test: pc_irpc, mutator: pc_irpc, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_irpc, optimization: none, compiler: pgcc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_irpc.mutatee_solo_dynamic_pgcc_32_none", STOPPED, USEATTACH, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_irpc", "pc_irpc", "pc_irpc.so", false, "{test: pc_irpc, mutator: pc_irpc, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_irpc, optimization: none, compiler: pgcc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_irpc.mutatee_solo_dynamic_pgcc_32_none", STOPPED, USEATTACH, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgcc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_irpc", "pc_irpc", "pc_irpc.so", false, "{test: pc_irpc, mutator: pc_irpc, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_irpc, optimization: none, compiler: pgcc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_irpc.mutatee_solo_dynamic_icc_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_irpc", "pc_irpc", "pc_irpc.so", false, "{test: pc_irpc, mutator: pc_irpc, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_irpc, optimization: none, compiler: icc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_irpc.mutatee_solo_dynamic_icc_32_none", STOPPED, CREATE, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_irpc", "pc_irpc", "pc_irpc.so", false, "{test: pc_irpc, mutator: pc_irpc, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_irpc, optimization: none, compiler: icc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_irpc.mutatee_solo_dynamic_icc_32_none", STOPPED, CREATE, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_irpc", "pc_irpc", "pc_irpc.so", false, "{test: pc_irpc, mutator: pc_irpc, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_irpc, optimization: none, compiler: icc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_irpc.mutatee_solo_dynamic_icc_32_none", STOPPED, CREATE, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_irpc", "pc_irpc", "pc_irpc.so", false, "{test: pc_irpc, mutator: pc_irpc, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_irpc, optimization: none, compiler: icc, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_irpc.mutatee_solo_dynamic_icc_32_none", STOPPED, USEATTACH, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_irpc", "pc_irpc", "pc_irpc.so", false, "{test: pc_irpc, mutator: pc_irpc, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_irpc, optimization: none, compiler: icc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_irpc.mutatee_solo_dynamic_icc_32_none", STOPPED, USEATTACH, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_irpc", "pc_irpc", "pc_irpc.so", false, "{test: pc_irpc, mutator: pc_irpc, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_irpc, optimization: none, compiler: icc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_irpc.mutatee_solo_dynamic_icc_32_none", STOPPED, USEATTACH, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_irpc", "pc_irpc", "pc_irpc.so", false, "{test: pc_irpc, mutator: pc_irpc, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_irpc, optimization: none, compiler: icc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_irpc.mutatee_solo_dynamic_icc_32_none", STOPPED, USEATTACH, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "icc", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_irpc", "pc_irpc", "pc_irpc.so", false, "{test: pc_irpc, mutator: pc_irpc, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_irpc, optimization: none, compiler: icc, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
   test_count = 0;
   rg = new RunGroup("pc_irpc.mutatee_solo_dynamic_g++_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "pc_irpc", "pc_irpc", "pc_irpc.so", false, "{test: pc_irpc, mutator: pc_irpc, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_irpc, optimization: none, compiler: g++, run_mode: createProcess}"));
@@ -6033,118 +4353,6 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "pc_irpc", "pc_irpc", "pc_irpc.so", false, "{test: pc_irpc, mutator: pc_irpc, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_irpc, optimization: none, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_irpc.mutatee_solo_dynamic_pgCC_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_irpc", "pc_irpc", "pc_irpc.so", false, "{test: pc_irpc, mutator: pc_irpc, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_irpc, optimization: none, compiler: pgCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_irpc.mutatee_solo_dynamic_pgCC_32_none", STOPPED, CREATE, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_irpc", "pc_irpc", "pc_irpc.so", false, "{test: pc_irpc, mutator: pc_irpc, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_irpc, optimization: none, compiler: pgCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_irpc.mutatee_solo_dynamic_pgCC_32_none", STOPPED, CREATE, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_irpc", "pc_irpc", "pc_irpc.so", false, "{test: pc_irpc, mutator: pc_irpc, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_irpc, optimization: none, compiler: pgCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_irpc.mutatee_solo_dynamic_pgCC_32_none", STOPPED, CREATE, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_irpc", "pc_irpc", "pc_irpc.so", false, "{test: pc_irpc, mutator: pc_irpc, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_irpc, optimization: none, compiler: pgCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_irpc.mutatee_solo_dynamic_pgCC_32_none", STOPPED, USEATTACH, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_irpc", "pc_irpc", "pc_irpc.so", false, "{test: pc_irpc, mutator: pc_irpc, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_irpc, optimization: none, compiler: pgCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_irpc.mutatee_solo_dynamic_pgCC_32_none", STOPPED, USEATTACH, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_irpc", "pc_irpc", "pc_irpc.so", false, "{test: pc_irpc, mutator: pc_irpc, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_irpc, optimization: none, compiler: pgCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_irpc.mutatee_solo_dynamic_pgCC_32_none", STOPPED, USEATTACH, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_irpc", "pc_irpc", "pc_irpc.so", false, "{test: pc_irpc, mutator: pc_irpc, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_irpc, optimization: none, compiler: pgCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef PGI
-  test_count = 0;
-  rg = new RunGroup("pc_irpc.mutatee_solo_dynamic_pgCC_32_none", STOPPED, USEATTACH, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "pgCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_irpc", "pc_irpc", "pc_irpc.so", false, "{test: pc_irpc, mutator: pc_irpc, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_irpc, optimization: none, compiler: pgCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(PGI)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_irpc.mutatee_solo_dynamic_icpc_32_none", STOPPED, CREATE, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_irpc", "pc_irpc", "pc_irpc.so", false, "{test: pc_irpc, mutator: pc_irpc, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_irpc, optimization: none, compiler: iCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_irpc.mutatee_solo_dynamic_icpc_32_none", STOPPED, CREATE, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_irpc", "pc_irpc", "pc_irpc.so", false, "{test: pc_irpc, mutator: pc_irpc, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_irpc, optimization: none, compiler: iCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_irpc.mutatee_solo_dynamic_icpc_32_none", STOPPED, CREATE, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_irpc", "pc_irpc", "pc_irpc.so", false, "{test: pc_irpc, mutator: pc_irpc, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_irpc, optimization: none, compiler: iCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_irpc.mutatee_solo_dynamic_icpc_32_none", STOPPED, CREATE, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_irpc", "pc_irpc", "pc_irpc.so", false, "{test: pc_irpc, mutator: pc_irpc, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_irpc, optimization: none, compiler: iCC, run_mode: createProcess}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_irpc.mutatee_solo_dynamic_icpc_32_none", STOPPED, USEATTACH, MultiThreaded, MultiProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_irpc", "pc_irpc", "pc_irpc.so", false, "{test: pc_irpc, mutator: pc_irpc, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_irpc, optimization: none, compiler: iCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_irpc.mutatee_solo_dynamic_icpc_32_none", STOPPED, USEATTACH, MultiThreaded, SingleProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_irpc", "pc_irpc", "pc_irpc.so", false, "{test: pc_irpc, mutator: pc_irpc, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: MultiThreaded, mutatee: pc_irpc, optimization: none, compiler: iCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_irpc.mutatee_solo_dynamic_icpc_32_none", STOPPED, USEATTACH, SingleThreaded, MultiProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_irpc", "pc_irpc", "pc_irpc.so", false, "{test: pc_irpc, mutator: pc_irpc, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: MultiProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_irpc, optimization: none, compiler: iCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
-#ifdef ICC
-  test_count = 0;
-  rg = new RunGroup("pc_irpc.mutatee_solo_dynamic_icpc_32_none", STOPPED, USEATTACH, SingleThreaded, SingleProcess, DynamicLink, true, "proccontrol", "iCC", "none", "32");
-  rg->tests.push_back(new TestInfo(test_count++, "pc_irpc", "pc_irpc", "pc_irpc.so", false, "{test: pc_irpc, mutator: pc_irpc, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: SingleProcess, abi: 32, thread_mode: SingleThreaded, mutatee: pc_irpc, optimization: none, compiler: iCC, run_mode: useAttach}"));
-  rg->index = group_count++;
-  tests.push_back(rg);
-#endif // defined(ICC)
   test_count = 0;
   rg = new RunGroup("", STOPPED, CREATE, TNone, PNone, DynamicLink, true, "instruction", "", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_instruction_read_write", "test_instruction_read_write", "test_instruction_read_write.so", false, "{test: test_instruction_read_write, mutator: test_instruction_read_write, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"));
@@ -6302,6 +4510,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   tests.push_back(rg);
   test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_static_gcc_32_none", STOPPED, DISK, TNone, PNone, StaticLink, false, "dyninst", "gcc", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "snip_change_shlib_var", "snip_change_shlib_var", "snip_change_shlib_var.so", false, "{test: snip_change_shlib_var, mutator: snip_change_shlib_var, grouped: false, start_state: stopped, format: staticMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: dyninst_group_test, optimization: none, compiler: gcc, run_mode: binary}"));
+  rg->tests.push_back(new TestInfo(test_count++, "snip_ref_shlib_var", "snip_ref_shlib_var", "snip_ref_shlib_var.so", false, "{test: snip_ref_shlib_var, mutator: snip_ref_shlib_var, grouped: false, start_state: stopped, format: staticMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: dyninst_group_test, optimization: none, compiler: gcc, run_mode: binary}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", false, "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, format: staticMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: dyninst_group_test, optimization: none, compiler: gcc, run_mode: binary}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_10", "test1_10", "test1_10.so", false, "{test: test1_10, mutator: test1_10, grouped: false, start_state: stopped, format: staticMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: dyninst_group_test, optimization: none, compiler: gcc, run_mode: binary}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_11", "test1_11", "test1_11.so", false, "{test: test1_11, mutator: test1_11, grouped: false, start_state: stopped, format: staticMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: dyninst_group_test, optimization: none, compiler: gcc, run_mode: binary}"));
@@ -6465,6 +4675,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   tests.push_back(rg);
   test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_static_gcc_32_low", STOPPED, DISK, TNone, PNone, StaticLink, false, "dyninst", "gcc", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "snip_change_shlib_var", "snip_change_shlib_var", "snip_change_shlib_var.so", false, "{test: snip_change_shlib_var, mutator: snip_change_shlib_var, grouped: false, start_state: stopped, format: staticMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: binary}"));
+  rg->tests.push_back(new TestInfo(test_count++, "snip_ref_shlib_var", "snip_ref_shlib_var", "snip_ref_shlib_var.so", false, "{test: snip_ref_shlib_var, mutator: snip_ref_shlib_var, grouped: false, start_state: stopped, format: staticMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: binary}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", false, "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, format: staticMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: binary}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_10", "test1_10", "test1_10.so", false, "{test: test1_10, mutator: test1_10, grouped: false, start_state: stopped, format: staticMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: binary}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_11", "test1_11", "test1_11.so", false, "{test: test1_11, mutator: test1_11, grouped: false, start_state: stopped, format: staticMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: dyninst_group_test, optimization: low, compiler: gcc, run_mode: binary}"));
@@ -6628,6 +4840,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   tests.push_back(rg);
   test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_static_gcc_32_high", STOPPED, DISK, TNone, PNone, StaticLink, false, "dyninst", "gcc", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "snip_change_shlib_var", "snip_change_shlib_var", "snip_change_shlib_var.so", false, "{test: snip_change_shlib_var, mutator: snip_change_shlib_var, grouped: false, start_state: stopped, format: staticMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: dyninst_group_test, optimization: high, compiler: gcc, run_mode: binary}"));
+  rg->tests.push_back(new TestInfo(test_count++, "snip_ref_shlib_var", "snip_ref_shlib_var", "snip_ref_shlib_var.so", false, "{test: snip_ref_shlib_var, mutator: snip_ref_shlib_var, grouped: false, start_state: stopped, format: staticMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: dyninst_group_test, optimization: high, compiler: gcc, run_mode: binary}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", false, "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, format: staticMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: dyninst_group_test, optimization: high, compiler: gcc, run_mode: binary}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_10", "test1_10", "test1_10.so", false, "{test: test1_10, mutator: test1_10, grouped: false, start_state: stopped, format: staticMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: dyninst_group_test, optimization: high, compiler: gcc, run_mode: binary}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_11", "test1_11", "test1_11.so", false, "{test: test1_11, mutator: test1_11, grouped: false, start_state: stopped, format: staticMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: dyninst_group_test, optimization: high, compiler: gcc, run_mode: binary}"));
@@ -6791,6 +5005,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   tests.push_back(rg);
   test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_static_gcc_32_max", STOPPED, DISK, TNone, PNone, StaticLink, false, "dyninst", "gcc", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "snip_change_shlib_var", "snip_change_shlib_var", "snip_change_shlib_var.so", false, "{test: snip_change_shlib_var, mutator: snip_change_shlib_var, grouped: false, start_state: stopped, format: staticMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: binary}"));
+  rg->tests.push_back(new TestInfo(test_count++, "snip_ref_shlib_var", "snip_ref_shlib_var", "snip_ref_shlib_var.so", false, "{test: snip_ref_shlib_var, mutator: snip_ref_shlib_var, grouped: false, start_state: stopped, format: staticMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: binary}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", false, "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, format: staticMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: binary}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_10", "test1_10", "test1_10.so", false, "{test: test1_10, mutator: test1_10, grouped: false, start_state: stopped, format: staticMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: binary}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_11", "test1_11", "test1_11.so", false, "{test: test1_11, mutator: test1_11, grouped: false, start_state: stopped, format: staticMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: dyninst_group_test, optimization: max, compiler: gcc, run_mode: binary}"));
@@ -7892,6 +6108,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   tests.push_back(rg);
   test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_static_g++_32_none", STOPPED, DISK, TNone, PNone, StaticLink, false, "dyninst", "g++", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "snip_change_shlib_var", "snip_change_shlib_var", "snip_change_shlib_var.so", false, "{test: snip_change_shlib_var, mutator: snip_change_shlib_var, grouped: false, start_state: stopped, format: staticMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: dyninst_group_test, optimization: none, compiler: g++, run_mode: binary}"));
+  rg->tests.push_back(new TestInfo(test_count++, "snip_ref_shlib_var", "snip_ref_shlib_var", "snip_ref_shlib_var.so", false, "{test: snip_ref_shlib_var, mutator: snip_ref_shlib_var, grouped: false, start_state: stopped, format: staticMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: dyninst_group_test, optimization: none, compiler: g++, run_mode: binary}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", false, "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, format: staticMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: dyninst_group_test, optimization: none, compiler: g++, run_mode: binary}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_10", "test1_10", "test1_10.so", false, "{test: test1_10, mutator: test1_10, grouped: false, start_state: stopped, format: staticMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: dyninst_group_test, optimization: none, compiler: g++, run_mode: binary}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_11", "test1_11", "test1_11.so", false, "{test: test1_11, mutator: test1_11, grouped: false, start_state: stopped, format: staticMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: dyninst_group_test, optimization: none, compiler: g++, run_mode: binary}"));
@@ -8055,6 +6273,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   tests.push_back(rg);
   test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_static_g++_32_low", STOPPED, DISK, TNone, PNone, StaticLink, false, "dyninst", "g++", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "snip_change_shlib_var", "snip_change_shlib_var", "snip_change_shlib_var.so", false, "{test: snip_change_shlib_var, mutator: snip_change_shlib_var, grouped: false, start_state: stopped, format: staticMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: binary}"));
+  rg->tests.push_back(new TestInfo(test_count++, "snip_ref_shlib_var", "snip_ref_shlib_var", "snip_ref_shlib_var.so", false, "{test: snip_ref_shlib_var, mutator: snip_ref_shlib_var, grouped: false, start_state: stopped, format: staticMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: binary}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", false, "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, format: staticMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: binary}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_10", "test1_10", "test1_10.so", false, "{test: test1_10, mutator: test1_10, grouped: false, start_state: stopped, format: staticMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: binary}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_11", "test1_11", "test1_11.so", false, "{test: test1_11, mutator: test1_11, grouped: false, start_state: stopped, format: staticMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: dyninst_group_test, optimization: low, compiler: g++, run_mode: binary}"));
@@ -8218,6 +6438,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   tests.push_back(rg);
   test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_static_g++_32_high", STOPPED, DISK, TNone, PNone, StaticLink, false, "dyninst", "g++", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "snip_change_shlib_var", "snip_change_shlib_var", "snip_change_shlib_var.so", false, "{test: snip_change_shlib_var, mutator: snip_change_shlib_var, grouped: false, start_state: stopped, format: staticMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: dyninst_group_test, optimization: high, compiler: g++, run_mode: binary}"));
+  rg->tests.push_back(new TestInfo(test_count++, "snip_ref_shlib_var", "snip_ref_shlib_var", "snip_ref_shlib_var.so", false, "{test: snip_ref_shlib_var, mutator: snip_ref_shlib_var, grouped: false, start_state: stopped, format: staticMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: dyninst_group_test, optimization: high, compiler: g++, run_mode: binary}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", false, "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, format: staticMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: dyninst_group_test, optimization: high, compiler: g++, run_mode: binary}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_10", "test1_10", "test1_10.so", false, "{test: test1_10, mutator: test1_10, grouped: false, start_state: stopped, format: staticMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: dyninst_group_test, optimization: high, compiler: g++, run_mode: binary}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_11", "test1_11", "test1_11.so", false, "{test: test1_11, mutator: test1_11, grouped: false, start_state: stopped, format: staticMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: dyninst_group_test, optimization: high, compiler: g++, run_mode: binary}"));
@@ -8381,6 +6603,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   tests.push_back(rg);
   test_count = 0;
   rg = new RunGroup("dyninst_group_test.mutatee_solo_static_g++_32_max", STOPPED, DISK, TNone, PNone, StaticLink, false, "dyninst", "g++", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "snip_change_shlib_var", "snip_change_shlib_var", "snip_change_shlib_var.so", false, "{test: snip_change_shlib_var, mutator: snip_change_shlib_var, grouped: false, start_state: stopped, format: staticMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: binary}"));
+  rg->tests.push_back(new TestInfo(test_count++, "snip_ref_shlib_var", "snip_ref_shlib_var", "snip_ref_shlib_var.so", false, "{test: snip_ref_shlib_var, mutator: snip_ref_shlib_var, grouped: false, start_state: stopped, format: staticMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: binary}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_1", "test1_1", "test1_1.so", false, "{test: test1_1, mutator: test1_1, grouped: false, start_state: stopped, format: staticMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: binary}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_10", "test1_10", "test1_10.so", false, "{test: test1_10, mutator: test1_10, grouped: false, start_state: stopped, format: staticMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: binary}"));
   rg->tests.push_back(new TestInfo(test_count++, "test1_11", "test1_11", "test1_11.so", false, "{test: test1_11, mutator: test1_11, grouped: false, start_state: stopped, format: staticMutatee, process_mode: None, abi: 32, thread_mode: None, mutatee: dyninst_group_test, optimization: max, compiler: g++, run_mode: binary}"));

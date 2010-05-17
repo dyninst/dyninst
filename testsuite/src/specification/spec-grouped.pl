@@ -391,7 +391,6 @@ mutator('snip_ref_shlib_var', ['snip_ref_shlib_var.C']).
 test_runmode('snip_ref_shlib_var', 'staticdynamic').
 test_start_state('snip_ref_shlib_var', 'stopped').
 tests_module('snip_ref_shlib_var', 'dyninst').
-test_exclude_format('snip_ref_shlib_var', 'staticMutatee').
 
 test('snip_change_shlib_var', 'snip_change_shlib_var', 'dyninst_group_test').
 test_description('snip_change_shlib_var', 'Inst modifies variable in shared lib').
@@ -401,7 +400,6 @@ mutator('snip_change_shlib_var', ['snip_change_shlib_var.C']).
 test_runmode('snip_change_shlib_var', 'staticdynamic').
 test_start_state('snip_change_shlib_var', 'stopped').
 tests_module('snip_change_shlib_var', 'dyninst').
-test_exclude_format('snip_change_shlib_var', 'staticMutatee').
 
 % test_snip_remove
 test('test_snip_remove', 'test_snip_remove', 'test_snip_remove').
@@ -2378,6 +2376,11 @@ pcMutateeLibs(Libs) :-
        Libs = ['dl', 'pthread']
    ).
 
+compiler_for_mutatee(Mutatee, Compiler) :-
+           test(T, _, Mutatee),
+    tests_module(T, 'proccontrol'),
+    member(Compiler, ['gcc', 'g++']).
+           
 test('pc_launch', 'pc_launch', 'pc_launch').
 test_description('pc_launch', 'Launch a process').
 test_platform('pc_launch', Platform) :- pcPlatforms(Platform).
@@ -2388,7 +2391,6 @@ test_processmode('pc_launch', 'Processes').
 test_start_state('pc_launch', 'stopped').
 tests_module('pc_launch', 'proccontrol').
 mutatee('pc_launch', ['pc_launch_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
-compiler_for_mutatee('pc_launch', Compiler) :- comp_lang(Compiler, 'c').
 mutatee_requires_libs('pc_launch', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_launch', _, Opt) :- member(Opt, ['none']).
 
@@ -2402,7 +2404,6 @@ test_processmode('pc_thread_cont', 'Processes').
 test_start_state('pc_thread_cont', 'stopped').
 tests_module('pc_thread_cont', 'proccontrol').
 mutatee('pc_thread_cont', ['pc_thread_cont_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
-compiler_for_mutatee('pc_thread_cont', Compiler) :- comp_lang(Compiler, 'c').
 mutatee_requires_libs('pc_thread_cont', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_thread_cont', _, Opt) :- member(Opt, ['none']).
 
@@ -2416,7 +2417,6 @@ test_processmode('pc_breakpoint', 'Processes').
 test_start_state('pc_breakpoint', 'stopped').
 tests_module('pc_breakpoint', 'proccontrol').
 mutatee('pc_breakpoint', ['pc_breakpoint_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
-compiler_for_mutatee('pc_breakpoint', Compiler) :- comp_lang(Compiler, 'c').
 mutatee_requires_libs('pc_breakpoint', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_breakpoint', _, Opt) :- member(Opt, ['none']).
 
@@ -2430,7 +2430,6 @@ test_processmode('pc_library', 'Processes').
 test_start_state('pc_library', 'stopped').
 tests_module('pc_library', 'proccontrol').
 mutatee('pc_library', ['pc_library_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
-compiler_for_mutatee('pc_library', Compiler) :- comp_lang(Compiler, 'c').
 mutatee_requires_libs('pc_library', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_library', _, Opt) :- member(Opt, ['none']).
 
@@ -2444,7 +2443,6 @@ test_processmode('pc_singlestep', 'Processes').
 test_start_state('pc_singlestep', 'stopped').
 tests_module('pc_singlestep', 'proccontrol').
 mutatee('pc_singlestep', ['pc_singlestep_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
-compiler_for_mutatee('pc_singlestep', Compiler) :- comp_lang(Compiler, 'c').
 mutatee_requires_libs('pc_singlestep', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_singlestep', _, Opt) :- member(Opt, ['none']).
 
@@ -2458,7 +2456,6 @@ test_processmode('pc_fork', 'Processes').
 test_start_state('pc_fork', 'stopped').
 tests_module('pc_fork', 'proccontrol').
 mutatee('pc_fork', ['pc_fork_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
-compiler_for_mutatee('pc_fork', Compiler) :- comp_lang(Compiler, 'c').
 mutatee_requires_libs('pc_fork', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_fork', _, Opt) :- member(Opt, ['none']).
 
@@ -2472,7 +2469,6 @@ test_processmode('pc_fork_exec', 'Processes').
 test_start_state('pc_fork_exec', 'stopped').
 tests_module('pc_fork_exec', 'proccontrol').
 mutatee('pc_fork_exec', ['pc_fork_exec_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
-compiler_for_mutatee('pc_fork_exec', Compiler) :- comp_lang(Compiler, 'c').
 mutatee_requires_libs('pc_fork_exec', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_fork_exec', _, Opt) :- member(Opt, ['none']).
 mutatee('pc_exec_targ', ['pc_exec_targ_mutatee.c']).
@@ -2489,7 +2485,6 @@ test_processmode('pc_irpc', 'Processes').
 test_start_state('pc_irpc', 'stopped').
 tests_module('pc_irpc', 'proccontrol').
 mutatee('pc_irpc', ['pc_irpc_mutatee.c'], ['pcontrol_mutatee_tools.c', 'mutatee_util_mt.c']).
-compiler_for_mutatee('pc_irpc', Compiler) :- comp_lang(Compiler, 'c').
 mutatee_requires_libs('pc_irpc', Libs) :- pcMutateeLibs(Libs).
 optimization_for_mutatee('pc_irpc', _, Opt) :- member(Opt, ['none']).
 
@@ -2571,7 +2566,7 @@ compiler_format(_, 'dynamicMutatee').
 % For the time being, static mutatees only built for GNU compilers
 compiler_format('g++', 'staticMutatee').
 compiler_format('gcc', 'staticMutatee').
-compiler_format('g77', 'staticMutatee').
+compiler_format('gfortran', 'staticMutatee').
 
 % format_runmode (Platform, RunMode, Format)
 format_runmode(_, 'binary', 'staticMutatee').
@@ -2649,9 +2644,9 @@ library_suffix(Platform, Suffix) :-
 % gcc and g++ run on everything but Windows
 compiler_platform('gcc', Plat) :- platform(_, OS, _, Plat), OS \= 'windows'.
 compiler_platform('g++', Plat) :- platform(_, OS, _, Plat), OS \= 'windows'.
-% g77 only runs on i386 Linux
-compiler_platform('g77', 'i386-unknown-linux2.4').
-compiler_platform('g77', 'i386-unknown-linux2.6').
+% gfortran only runs on i386 Linux
+compiler_platform('gfortran', 'i386-unknown-linux2.4').
+compiler_platform('gfortran', 'i386-unknown-linux2.6').
 % Visual C/C++ only runs on Windows
 compiler_platform('VC', Plat) :- platform(_, OS, _, Plat), OS == 'windows'.
 compiler_platform('VC++', Plat) :- platform(_, OS, _, Plat), OS == 'windows'.
@@ -2691,7 +2686,7 @@ linker(Platform, Linker) :-
 % for compiling files where were not trying to test the output of the compiler
 aux_compiler_for_platform(Platform, 'c', 'gcc') :-
     platform(_, 'linux', _, Platform).
-aux_compiler_for_platform(Platform, 'fortran', 'g77') :-
+aux_compiler_for_platform(Platform, 'fortran', 'gfortran') :-
     platform('i386', 'linux', _, Platform).
 aux_compiler_for_platform(Platform, 'nasm_asm', 'nasm') :-
     platform('i386', 'linux', _, Platform).
@@ -2763,7 +2758,7 @@ insane('Too many compilers on platform P1 for extension P2',
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Compiler/language constraints
-comp_lang('g77', 'fortran').
+comp_lang('gfortran', 'fortran').
 comp_lang(Compiler, 'c') :-
     member(Compiler, ['gcc', 'pgcc', 'VC', 'cc', 'sun_cc', 'xlc', 'icc']);
     member(Compiler, ['g++', 'pgCC', 'VC++', 'cxx', 'CC', 'xlC', 'iCC']).
@@ -2777,7 +2772,7 @@ comp_lang('gcc', 'att_asm') :-
 % Mutatee Compiler Defns
 % mutatee_comp(compiler name)
 mutatee_comp('gcc').
-mutatee_comp('g77').
+mutatee_comp('gfortran').
 mutatee_comp('g++').
 mutatee_comp('pgcc').
 mutatee_comp('pgCC').
@@ -2818,7 +2813,7 @@ compiler_define_string('VC++', 'native_cxx').
 compiler_define_string('cxx', 'native_cxx').
 compiler_define_string('CC', 'native_cxx').
 compiler_define_string('xlC', 'native_cxx').
-compiler_define_string('g77', 'gnu_fc').
+compiler_define_string('gfortran', 'gnu_fc').
 compiler_define_string('icc', 'intel_cc').
 compiler_define_string('iCC', 'intel_CC').
 
@@ -2853,14 +2848,14 @@ compiler_s('iCC', 'icpc').
 % FIXME Im also not sure that all these compilers default to no optimization
 compiler_opt_trans(_, 'none', '').
 compiler_opt_trans(Comp, 'low', '-O1') :-
-    member(Comp, ['gcc', 'g++', 'pgcc', 'pgCC', 'cc', 'cxx', 'g77', 'icc', 'iCC']).
+    member(Comp, ['gcc', 'g++', 'pgcc', 'pgCC', 'cc', 'cxx', 'gfortran', 'icc', 'iCC']).
 compiler_opt_trans(Comp, 'low', '/O1') :- Comp == 'VC++'; Comp == 'VC'.
 compiler_opt_trans(SunWorkshop, 'low', '-O') :-
     member(SunWorkshop, ['sun_cc', 'CC']).
 compiler_opt_trans(IBM, 'low', '-O') :-
     member(IBM, ['xlc', 'xlC']).
 compiler_opt_trans(Comp, 'high', '-O2') :-
-    member(Comp, ['gcc', 'g++', 'pgcc', 'pgCC', 'cc', 'cxx', 'g77', 'icc', 'iCC']).
+    member(Comp, ['gcc', 'g++', 'pgcc', 'pgCC', 'cc', 'cxx', 'gfortran', 'icc', 'iCC']).
 compiler_opt_trans(Comp, 'high', '/O2') :- Comp == 'VC++'; Comp == 'VC'.
 compiler_opt_trans(SunWorkshop, 'high', '-xO3') :-
     member(SunWorkshop, ['sun_cc', 'CC']).
@@ -2885,7 +2880,7 @@ insane('P1 not defined as a compiler, but has optimization translation defined',
 % partial_compile: compile to an object file rather than an executable
 compiler_parm_trans(Comp, 'partial_compile', '-c') :-
     member(Comp, ['gcc', 'g++', 'pgcc', 'pgCC', 'cc', 'sun_cc', 'CC',
-                  'xlc', 'xlC', 'cxx', 'g77', 'VC', 'VC++', 'icc', 'iCC']).
+                  'xlc', 'xlC', 'cxx', 'gfortran', 'VC', 'VC++', 'icc', 'iCC']).
 
 % Mutator compiler defns
 mutator_comp('g++').
@@ -2945,10 +2940,10 @@ comp_std_flags_str('iCC', '$(CXXFLAGS)').
 comp_mutatee_flags_str('icc', '-DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src').
 comp_mutatee_flags_str('iCC', '-x c++ -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src').
 
-% g77 flags
-comp_std_flags_str('g77', '-g').
-comp_mutatee_flags_str('g77', '$(MUTATEE_G77_FFLAGS)').
-mutatee_link_options('g77', '$(MUTATEE_G77_LDFLAGS)').
+% gfortran flags
+comp_std_flags_str('gfortran', '-g').
+comp_mutatee_flags_str('gfortran', '$(MUTATEE_G77_FFLAGS)').
+mutatee_link_options('gfortran', '$(MUTATEE_G77_LDFLAGS)').
 
 % NASM (for test_mem (formerly test6))
 comp_lang('nasm', 'nasm_asm').

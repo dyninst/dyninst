@@ -32,9 +32,9 @@
 #if !defined(INSTRUCTION_DECODER_X86_H)
 #define INSTRUCTION_DECODER_X86_H
 
-#include "InstructionDecoder.h"
+#include "InstructionDecoderImpl.h"
 
-#include "ia32_locations.h"
+#include "common/h/ia32_locations.h"
 
 struct ia32_operand;
 class ia32_instruction;
@@ -57,34 +57,17 @@ namespace Dyninst
     /// and the buffer may be specified at the time \c decode is called.  This method of use may be
     /// more convenient for users who are decoding non-contiguous instructions.
 
-        class InstructionDecoder_x86 : public InstructionDecoder
+        class InstructionDecoder_x86 : public InstructionDecoderImpl
         {
             friend class Instruction;
-            friend dyn_detail::boost::shared_ptr<InstructionDecoder> makeDecoder(Architecture arch, const unsigned char* buffer,
-                unsigned len);
-      
             public:
-      /// Construct an %InstructionDecoder object that decodes from \c buffer, up to \c size bytes.
-                INSTRUCTION_EXPORT InstructionDecoder_x86(const unsigned char* buffer, size_t size,
-                                                         Architecture arch);
+                INSTRUCTION_EXPORT InstructionDecoder_x86(Architecture a);
       
-      /// Construct an %InstructionDecoder object with no buffer specified.
-                INSTRUCTION_EXPORT InstructionDecoder_x86();
-            public:
                 INSTRUCTION_EXPORT virtual ~InstructionDecoder_x86();
             private:
                 INSTRUCTION_EXPORT InstructionDecoder_x86(const InstructionDecoder_x86& o);
-      /// Decode the current instruction in this %InstructionDecoder object's buffer, interpreting it as 
-      /// machine language of the type understood by this %InstructionDecoder.
-      /// If the buffer does not contain a valid instruction stream, a null %Instruction pointer
-      /// will be returned.  The %Instruction's \c size field will contain the size of the instruction decoded.
             public:
-                INSTRUCTION_EXPORT Instruction::Ptr decode();
-      /// Decode the instruction at \c buffer, interpreting it as machine language of the type
-      /// understood by this %InstructionDecoder.  If the buffer does not contain a valid instruction stream, 
-      /// a null %Instruction pointer will be returned.  The %Instruction's \c size field will contain
-      /// the size of the instruction decoded.
-                INSTRUCTION_EXPORT virtual Instruction::Ptr decode(const unsigned char* buffer);
+                INSTRUCTION_EXPORT virtual Instruction::Ptr decode(InstructionDecoder::buffer& b);
       
                 INSTRUCTION_EXPORT virtual void setMode(bool is64);
                 virtual void doDelayedDecode(const Instruction* insn_to_complete);
@@ -93,22 +76,24 @@ namespace Dyninst
       
                 virtual bool decodeOperands(const Instruction* insn_to_complete);
 
-                bool decodeOneOperand(const ia32_operand& operand,
+                bool decodeOneOperand(const InstructionDecoder::buffer& b,
+				      const ia32_operand& operand,
                                       int & imm_index,
                                       const Instruction* insn_to_complete, bool isRead, bool isWritten);
-                virtual unsigned int decodeOpcode();
+                virtual void decodeOpcode(InstructionDecoder::buffer& b);
       
-                Expression::Ptr makeSIBExpression();
-                Expression::Ptr makeModRMExpression(unsigned int opType);
-                Expression::Ptr getModRMDisplacement();
+                Expression::Ptr makeSIBExpression(const InstructionDecoder::buffer& b);
+                Expression::Ptr makeModRMExpression(const InstructionDecoder::buffer& b,
+						    unsigned int opType);
+                Expression::Ptr getModRMDisplacement(const InstructionDecoder::buffer& b);
                 MachRegister makeRegisterID(unsigned int intelReg, unsigned int opType, bool isExtendedReg = false);
-                Expression::Ptr decodeImmediate(unsigned int opType, unsigned int position, bool isSigned = false);
+                Expression::Ptr decodeImmediate(unsigned int opType, const unsigned char* immStart, bool isSigned = false);
                 virtual Result_Type makeSizeType(unsigned int opType);
 
             private:
-                void doIA32Decode();
+                void doIA32Decode(InstructionDecoder::buffer& b);
       
-                ia32_locations locs;
+                ia32_locations* locs;
                 ia32_instruction* decodedInstruction;
                 bool is32BitMode;
                 bool sizePrefixPresent;

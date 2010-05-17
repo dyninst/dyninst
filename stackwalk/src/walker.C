@@ -269,7 +269,6 @@ Walker::~Walker() {
 #define getInitialFrameImpl(frame, thread) \
 { \
   result = true; \
-  Dyninst::Architecture arch; \
   Dyninst::MachRegister pc_reg, frm_reg, stk_reg; \
   Dyninst::MachRegisterVal pc, sp, fp; \
   if (thread == NULL_THR_ID) { \
@@ -425,12 +424,12 @@ bool Walker::walkSingleFrame(const Frame &in, Frame &out)
         result = false;
         goto done;
      }
-     sw_printf("[%s:%u] - Attempting to use stepper %p\n", 
-               __FILE__, __LINE__, cur_stepper);
+     sw_printf("[%s:%u] - Attempting to use stepper %s\n", 
+               __FILE__, __LINE__, cur_stepper->getName());
      gcf_result = cur_stepper->getCallerFrame(in, out);
      if (gcf_result == gcf_success) {
-       sw_printf("[%s:%u] - Success using stepper %p on 0x%lx\n", 
-                 __FILE__, __LINE__, cur_stepper, in.getRA());
+       sw_printf("[%s:%u] - Success using stepper %s on 0x%lx\n", 
+                 __FILE__, __LINE__, cur_stepper->getName(), in.getRA());
        if (!checkValidFrame(in, out)) {
           sw_printf("[%s:%u] - Resulting frame is not valid\n", __FILE__, __LINE__);
           result = false;
@@ -443,13 +442,13 @@ bool Walker::walkSingleFrame(const Frame &in, Frame &out)
      }
      else if (gcf_result == gcf_not_me) {
        last_stepper = cur_stepper;
-       sw_printf("[%s:%u] - Stepper %p declined address 0x%lx\n", 
-                 __FILE__, __LINE__, cur_stepper, in.getRA());
+       sw_printf("[%s:%u] - Stepper %s declined address 0x%lx\n", 
+                 __FILE__, __LINE__, cur_stepper->getName(), in.getRA());
        continue; 
      }
      else if (gcf_result == gcf_stackbottom) {
-        sw_printf("[%s:%u] - Stepper %p bottomed out on 0x%lx\n", 
-                  __FILE__, __LINE__, cur_stepper, in.getRA());
+        sw_printf("[%s:%u] - Stepper %s bottomed out on 0x%lx\n", 
+                  __FILE__, __LINE__, cur_stepper->getName(), in.getRA());
        setLastError(err_stackbottom, "walkSingleFrame reached bottom of stack");
        result = false;
        goto done;
@@ -553,8 +552,8 @@ ProcessState *Walker::createDefaultProcess(const std::string &exec_name,
 bool Walker::addStepper(FrameStepper *s)
 {
    assert(group);
-   sw_printf("[%s:%u] - Registering stepper %p with group %p\n",
-             __FILE__, __LINE__, s, group);
+   sw_printf("[%s:%u] - Registering stepper %s with group %p\n",
+             __FILE__, __LINE__, s->getName(), group);
    group->registerStepper(s);
    return true;
 }

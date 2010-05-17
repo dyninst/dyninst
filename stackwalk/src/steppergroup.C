@@ -90,7 +90,8 @@ bool AddrRangeGroup::findStepperForAddr(Address addr, FrameStepper* &out,
 {
    addrRange *range;
    sw_printf("[%s:%u] - AddrRangeGroup trying to find stepper at %lx " 
-             "(last_tried = %p)\n", __FILE__, __LINE__, addr, last_tried);
+             "(last_tried = %s)\n", __FILE__, __LINE__, addr, 
+             last_tried ? last_tried->getName() : "<NONE>");
 
    bool result = impl->range_map.find(addr, range);
     if (!result) {
@@ -107,8 +108,8 @@ bool AddrRangeGroup::findStepperForAddr(Address addr, FrameStepper* &out,
       assert(stepper_set->steppers.size());
       StepperSet::iterator iter = stepper_set->steppers.begin();
       out = *(iter);
-      sw_printf("[%s:%u] - Found FrameStepper %p at address %lx\n",
-                 __FILE__, __LINE__, out, addr);
+      sw_printf("[%s:%u] - Found FrameStepper %s at address %lx\n",
+                __FILE__, __LINE__, out->getName(), addr);
       return true;
     }
 
@@ -127,8 +128,8 @@ bool AddrRangeGroup::findStepperForAddr(Address addr, FrameStepper* &out,
    }
     
    out = *iter;
-   sw_printf("[%s:%u] - Found FrameStepper %p at address %lx\n",
-              __FILE__, __LINE__, out, addr);
+   sw_printf("[%s:%u] - Found FrameStepper %s at address %lx\n",
+             __FILE__, __LINE__, out->getName(), addr);
    return true;
 }
 
@@ -139,15 +140,15 @@ bool AddrRangeGroup::addStepper(FrameStepper *stepper, Address start, Address en
 
    if (!stepper || end <= start)
    {
-      sw_printf("[%s:%u] - addStepper called with bad params: %p, %lx, %lx\n",
-                __FILE__, __LINE__, stepper, start, end);
+      sw_printf("[%s:%u] - addStepper called with bad params: %s, %lx, %lx\n",
+                __FILE__, __LINE__, stepper->getName(), start, end);
       setLastError(err_badparam, "Invalid parameters");
       return false;
    }
 
    steppers.insert(stepper);
-   sw_printf("[%s:%u] - Adding stepper %p to address ranges %lx -> %lx\n",
-              __FILE__, __LINE__, stepper, start, end);
+   sw_printf("[%s:%u] - Adding stepper %s to address ranges %lx -> %lx\n",
+             __FILE__, __LINE__, stepper->getName(), start, end);
    if (!result) {
       //We don't have anything that overlaps.  Just add the stepper.
       AddrRangeStepper *new_range = new AddrRangeStepper(start, end);

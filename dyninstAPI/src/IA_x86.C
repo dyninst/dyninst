@@ -45,13 +45,64 @@
 using namespace Dyninst;
 using namespace InstructionAPI;
 
+class zeroAllRegisters : public InstructionAPI::Visitor
+{
+    public:
+    zeroAllRegisters() : defined(true) {}
+    virtual ~zeroAllRegisters() {}
+    bool defined;
+    std::deque<long> results;
+    long getResult() {
+        if(results.empty()) return 0;
+        return results.front();
+    }
+    bool isDefined() {
+        return defined && (results.size() == 1);
+    }
+    virtual void visit(BinaryFunction* b)
+    {
+        if(!defined) return;
+        long arg1 = results.back();
+        results.pop_back();
+        long arg2 = results.back();
+        results.pop_back();
+        if(b->isAdd())
+        {
+            results.push_back(arg1+arg2);
+        }
+        else if(b->isMultiply())
+        {
+            results.push_back(arg1*arg2);
+        }
+        else
+        {
+            defined = false;
+        }
+    }
+    virtual void visit(Immediate* i)
+    {
+        if(!defined) return;
+        results.push_back(i->eval().convert<long>());
+    }
+    virtual void visit(RegisterAST* )
+    {
+        if(!defined) return;
+        results.push_back(0);
+    }
+    virtual void visit(Dereference* )
+    {
+        defined = false;
+    }
+    
+};
+
 
 bool IA_IAPI::isFrameSetupInsn(Instruction::Ptr i) const
 {
     if(i->getOperation().getID() == e_mov)
     {
-        if(i->isRead(stackPtr) &&
-           i->isWritten(framePtr))
+        if(i->isRead(stackPtr[img->getArch()]) &&
+           i->isWritten(framePtr[img->getArch()]))
         {
             return true;
         }
@@ -115,14 +166,13 @@ bool IA_IAPI::isMovAPSTable(std::vector<std::pair< Address, EdgeTypeEnum > >& ou
     }
 
     unsigned int size = (img->imageOffset() + img->imageLength()) - current;
-    dyn_detail::boost::shared_ptr<InstructionDecoder> d = makeDecoder(img->getArch(), bufferBegin, size);
-    d->setMode(img->getAddressWidth() == 8);
+    InstructionDecoder d(bufferBegin, size, img->getArch());
     Address cur = current;
     unsigned last_insn_size = 0;
-    InstructionAPI::Instruction::Ptr i = d->decode();
+    InstructionAPI::Instruction::Ptr i = d.decode();
     cur += i->size();
     for (;;) {
-        InstructionAPI::Instruction::Ptr insn = d->decode();
+        InstructionAPI::Instruction::Ptr insn = d.decode();
         //All insns in sequence are movaps
         parsing_printf("\t\tChecking instruction %s\n", insn->format().c_str());
         if (insn->getOperation().getID() != e_movapd &&
@@ -177,42 +227,10 @@ std::map<Address, Instruction::Ptr>::const_iterator IA_IAPI::findTableInsn() con
         if(tmp.size() == 1)
         {
             Expression::Ptr cftAddr = dyn_detail::boost::dynamic_pointer_cast<Expression>(tmp[0]);
+            zeroAllRegisters z;
+            cftAddr->apply(&z);
             parsing_printf("\tChecking indirect jump %s for table insn\n", curInsn()->format().c_str());
-            static RegisterAST* eax = new RegisterAST(x86::eax);
-            static RegisterAST* ecx = new RegisterAST(x86::ecx);
-            static RegisterAST* edx = new RegisterAST(x86::edx);
-            static RegisterAST* ebx = new RegisterAST(x86::ebx);
-            static RegisterAST* esp = new RegisterAST(x86::esp);
-            static RegisterAST* ebp = new RegisterAST(x86::ebp);
-            static RegisterAST* esi = new RegisterAST(x86::esi);
-            static RegisterAST* edi = new RegisterAST(x86::edi);
-            cftAddr->bind(eax, Result(u32, 0));
-            cftAddr->bind(ecx, Result(u32, 0));
-            cftAddr->bind(edx, Result(u32, 0));
-            cftAddr->bind(ebx, Result(u32, 0));
-            cftAddr->bind(esp, Result(u32, 0));
-            cftAddr->bind(ebp, Result(u32, 0));
-            cftAddr->bind(esi, Result(u32, 0));
-            cftAddr->bind(edi, Result(u32, 0));
-            static RegisterAST* rax = new RegisterAST(x86_64::rax);
-            static RegisterAST* rcx = new RegisterAST(x86_64::rcx);
-            static RegisterAST* rdx = new RegisterAST(x86_64::rdx);
-            static RegisterAST* rbx = new RegisterAST(x86_64::rbx);
-            static RegisterAST* rsp = new RegisterAST(x86_64::rsp);
-            static RegisterAST* rbp = new RegisterAST(x86_64::rbp);
-            static RegisterAST* rsi = new RegisterAST(x86_64::rsi);
-            static RegisterAST* rdi = new RegisterAST(x86_64::rdi);
-            cftAddr->bind(rax, Result(u64, 0));
-            cftAddr->bind(rcx, Result(u64, 0));
-            cftAddr->bind(rdx, Result(u64, 0));
-            cftAddr->bind(rbx, Result(u64, 0));
-            cftAddr->bind(rsp, Result(u64, 0));
-            cftAddr->bind(rbp, Result(u64, 0));
-            cftAddr->bind(rsi, Result(u64, 0));
-            cftAddr->bind(rdi, Result(u64, 0));
-
-            Result base = cftAddr->eval();
-            if(base.defined && base.convert<Address>())
+            if(z.isDefined() && z.getResult())
             {
                 parsing_printf("\tAddress in jump\n");
                 return allInsns.find(current);
@@ -304,8 +322,7 @@ bool IA_IAPI::parseJumpTable(image_basicBlock* currBlk,
             parsing_printf("\tchecking instruction %s at 0x%lx for IP-relative LEA\n", tableLoc->second->format().c_str(),
                            tableLoc->first);
             Expression::Ptr IPRelAddr = tableLoc->second->getOperand(1).getValue();
-            static RegisterAST* thePC = new RegisterAST(RegisterAST::makePC(img->getArch()));
-            IPRelAddr->bind(thePC, Result(s64, tableLoc->first + tableLoc->second->size()));
+            IPRelAddr->bind(thePC[img->getArch()].get(), Result(s64, tableLoc->first + tableLoc->second->size()));
             Result iprel = IPRelAddr->eval();
             if(iprel.defined)
             {
@@ -386,9 +403,9 @@ Address IA_IAPI::findThunkInBlock(image_basicBlock* curBlock, Address& thunkOffs
         return false;
     }
     
-    dyn_detail::boost::shared_ptr<InstructionDecoder> dec =
-            makeDecoder(img->getArch(), buf, curBlock->getSize() + maxInstructionLength);
-    dec->setMode(img->getAddressWidth() == 8);
+    InstructionDecoder dec(buf, 
+			   curBlock->getSize() + InstructionDecoder::maxInstructionLength, 
+			   img->getArch());
     IA_IAPI * blockptr = NULL;
     if(context)
         blockptr = new IA_IAPI(dec,curBlock->firstInsnOffset(),context);
@@ -451,8 +468,7 @@ Address IA_IAPI::findThunkInBlock(image_basicBlock* curBlock, Address& thunkOffs
             parsing_printf("\tchecking instruction %s at 0x%lx for IP-relative LEA\n", block.getInstruction()->format().c_str(),
                            block.getAddr());
             Expression::Ptr IPRelAddr = block.getInstruction()->getOperand(1).getValue();
-            static RegisterAST* thePC = new RegisterAST(RegisterAST::makePC(img->getArch()));
-            IPRelAddr->bind(thePC, Result(s64, block.getNextAddr()));
+            IPRelAddr->bind(thePC[img->getArch()].get(), Result(s64, block.getNextAddr()));
             Result iprel = IPRelAddr->eval();
             if(iprel.defined)
             {
@@ -541,12 +557,10 @@ boost::tuple<Instruction::Ptr,
                            FILE__, __LINE__);
             return boost::make_tuple(Instruction::Ptr(), Instruction::Ptr(), false);
         }
-        dyn_detail::boost::shared_ptr<InstructionDecoder> dec =
-                makeDecoder(img->getArch(), buf, curBlk->getSize());
-        dec->setMode(img->getAddressWidth() == 8);
+        InstructionDecoder dec(buf, curBlk->getSize(), img->getArch());
         Instruction::Ptr i;
         Address curAdr = curBlk->firstInsnOffset();
-        while(i = dec->decode())
+        while(i = dec.decode())
         {
             if(i->getCategory() == c_CompareInsn)
             // check for cmp
@@ -660,42 +674,13 @@ Address IA_IAPI::getTableAddress(Instruction::Ptr tableInsn, Address thunkOffset
             displacementSrc = op;
         }
     }
-    static RegisterAST* eax = new RegisterAST(x86::eax);
-    static RegisterAST* ecx = new RegisterAST(x86::ecx);
-    static RegisterAST* edx = new RegisterAST(x86::edx);
-    static RegisterAST* ebx = new RegisterAST(x86::ebx);
-    static RegisterAST* esp = new RegisterAST(x86::esp);
-    static RegisterAST* ebp = new RegisterAST(x86::ebp);
-    static RegisterAST* esi = new RegisterAST(x86::esi);
-    static RegisterAST* edi = new RegisterAST(x86::edi);
-    displacementSrc->bind(eax, Result(u32, 0));
-    displacementSrc->bind(ecx, Result(u32, 0));
-    displacementSrc->bind(edx, Result(u32, 0));
-    displacementSrc->bind(ebx, Result(u32, 0));
-    displacementSrc->bind(esp, Result(u32, 0));
-    displacementSrc->bind(ebp, Result(u32, 0));
-    displacementSrc->bind(esi, Result(u32, 0));
-    displacementSrc->bind(edi, Result(u32, 0));
-    static RegisterAST* rax = new RegisterAST(x86_64::rax);
-    static RegisterAST* rcx = new RegisterAST(x86_64::rcx);
-    static RegisterAST* rdx = new RegisterAST(x86_64::rdx);
-    static RegisterAST* rbx = new RegisterAST(x86_64::rbx);
-    static RegisterAST* rsp = new RegisterAST(x86_64::rsp);
-    static RegisterAST* rbp = new RegisterAST(x86_64::rbp);
-    static RegisterAST* rsi = new RegisterAST(x86_64::rsi);
-    static RegisterAST* rdi = new RegisterAST(x86_64::rdi);
-    displacementSrc->bind(rax, Result(u64, 0));
-    displacementSrc->bind(rcx, Result(u64, 0));
-    displacementSrc->bind(rdx, Result(u64, 0));
-    displacementSrc->bind(rbx, Result(u64, 0));
-    displacementSrc->bind(rsp, Result(u64, 0));
-    displacementSrc->bind(rbp, Result(u64, 0));
-    displacementSrc->bind(rsi, Result(u64, 0));
-    displacementSrc->bind(rdi, Result(u64, 0));
-
-    Result disp = displacementSrc->eval();
+    
+    zeroAllRegisters z;
+    displacementSrc->apply(&z);
+    
     Address jumpTable = 0;
-    if(!disp.defined)
+    //if(!disp.defined)
+    if(!z.isDefined())
     {
         if(!thunkOffset)
         {
@@ -706,7 +691,8 @@ Address IA_IAPI::getTableAddress(Instruction::Ptr tableInsn, Address thunkOffset
     }
     else
     {
-        jumpTable = disp.convert<Address>();
+//        jumpTable = disp.convert<Address>();
+        jumpTable = z.getResult();
     }
     parsing_printf("\tjumpTable set to 0x%lx\n",jumpTable);
 
@@ -876,16 +862,15 @@ bool IA_IAPI::isThunk() const {
             (const unsigned char *)img->getPtrToInstruction(getCFT());
   // We're decoding two instructions: possible move and possible return.
   // Check for move from the stack pointer followed by a return.
-    dyn_detail::boost::shared_ptr<Dyninst::InstructionAPI::InstructionDecoder> targetChecker =
-            makeDecoder(img->getArch(), target, 2 * maxInstructionLength);
-    targetChecker->setMode(img->getAddressWidth() == 8);
-    Instruction::Ptr thunkFirst = targetChecker->decode();
-    Instruction::Ptr thunkSecond = targetChecker->decode();
+    InstructionDecoder targetChecker(target, 2 * InstructionDecoder::maxInstructionLength,
+				     img->getArch());
+    Instruction::Ptr thunkFirst = targetChecker.decode();
+    Instruction::Ptr thunkSecond = targetChecker.decode();
     parsing_printf("... checking call target for thunk, insns are %s, %s\n", thunkFirst->format().c_str(),
                    thunkSecond->format().c_str());
     if(thunkFirst && (thunkFirst->getOperation().getID() == e_mov))
     {
-        if(thunkFirst->isRead(stackPtr))
+        if(thunkFirst->isRead(stackPtr[img->getArch()]))
         {
             parsing_printf("... checking second insn\n");
             if(!thunkSecond) {
@@ -940,7 +925,7 @@ bool IA_IAPI::isTailCall(unsigned int) const
         }
         if(prevInsn->getOperation().getID() == e_pop)
         {
-            if(prevInsn->isWritten(framePtr))
+            if(prevInsn->isWritten(framePtr[img->getArch()]))
             {
                 parsing_printf("\tprev insn was %s, TAIL CALL\n", prevInsn->format().c_str());
                 tailCall.second = true;
@@ -981,7 +966,7 @@ bool IA_IAPI::savesFP() const
 {
     if(curInsn()->getOperation().getID() == e_push)
     {
-        return(curInsn()->isRead(framePtr));
+        return(curInsn()->isRead(framePtr[img->getArch()]));
     }
     return false;
 }
@@ -990,10 +975,10 @@ bool IA_IAPI::isStackFramePreamble(int& /*frameSize*/) const
 {
     if(savesFP())
     {
-        dyn_detail::boost::shared_ptr<InstructionDecoder> tmp(dec);
+        InstructionDecoder tmp(dec);
         std::vector<Instruction::Ptr> nextTwoInsns;
-        nextTwoInsns.push_back(tmp->decode());
-        nextTwoInsns.push_back(tmp->decode());
+        nextTwoInsns.push_back(tmp.decode());
+        nextTwoInsns.push_back(tmp.decode());
         if(isFrameSetupInsn(nextTwoInsns[0]) ||
            isFrameSetupInsn(nextTwoInsns[1]))
         {

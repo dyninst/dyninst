@@ -35,17 +35,65 @@
 #include "stackwalk/h/swk_errors.h"
 #include "stackwalk/h/steppergroup.h"
 #include "stackwalk/h/walker.h"
-#include "stackwalk/src/symtab-swk.h"
 #include "stackwalk/src/dbgstepper-impl.h"
-
+#include "stackwalk/src/linux-swk.h"
 #include "dynutil/h/dyntypes.h"
 
 
 using namespace Dyninst;
 using namespace Stackwalker;
-using namespace SymtabAPI;
 
-#if defined(cap_stackwalker_use_symtab)
+static std::map<std::string, DwarfSW *> dwarf_info;
+
+typedef enum {
+   storageAddr,
+   storageReg,
+   storageRegOffset
+} storageClass;
+
+typedef enum {
+   storageRef,
+   storageNoRef
+} storageRefClass;
+
+class VariableLocation {
+public:
+   storageClass stClass;
+   storageRefClass refClass;
+   int reg;
+   long frameOffset;
+   Address lowPC;
+   Address hiPC;
+};
+
+#include "dwarf.h"
+#include "libdwarf.h"
+#define setSymtabError(x) 
+#define dwarf_printf sw_printf
+#include "common/h/dwarfExpr.h"
+#include "common/h/dwarfSW.h"
+#include "common/h/Elf_X.h"
+
+DwarfSW *getDwarfInfo(std::string s)
+{
+   static std::map<std::string, DwarfSW *> dwarf_info;
+   std::map<std::string, DwarfSW *>::iterator i = dwarf_info.find(s);
+   if (i != dwarf_info.end())
+      return i->second;
+
+   DwarfSW *ret;
+   Elf_X *elfx = getElfHandle(s);
+   Elf *elf = elfx->e_elfp();
+   Dwarf_Debug dbg;
+   int status = dwarf_elf_init(elf, DW_DLC_READ, NULL, NULL, &dbg, NULL);
+   if (status != DW_DLV_OK)
+      goto done;
+   ret = new DwarfSW(dbg, elfx->wordSize());
+
+  done:
+   dwarf_info[s] = ret;
+   return ret;
+}
 
 DebugStepperImpl::DebugStepperImpl(Walker *w, DebugStepper *parent) :
    FrameStepper(w),
@@ -87,29 +135,27 @@ gcframe_ret_t DebugStepperImpl::getCallerFrame(const Frame &in, Frame &out)
    result = getProcessState()->getLibraryTracker()->getLibraryAtAddr(in.getRA(), lib);
    if (!result) {
       sw_printf("[%s:%u] - Stackwalking through an invalid PC at %lx\n",
-                 __FILE__, __LINE__, in.getRA());
+                __FILE__, __LINE__, in.getRA());
       return gcf_stackbottom;
    }
-
-   Symtab *symtab = SymtabWrapper::getSymtab(lib.first);
-   if (!symtab) {
-      sw_printf("[%s:%u] - Could not open file %s with SymtabAPI %s\n",
-                 __FILE__, __LINE__, lib.first.c_str());
+   
+   DwarfSW *dinfo = getDwarfInfo(lib.first);
+   if (!dinfo) {
+      sw_printf("[%s:%u] - Could not open file %s for DWARF info\n",
+                __FILE__, __LINE__, lib.first.c_str());
       setLastError(err_nofile, "Could not open file for Debugging stackwalker\n");
       return gcf_error;
    }
-   
-   if (!symtab->hasStackwalkDebugInfo())
+   if (!dinfo->hasFrameDebugInfo())
    {
       sw_printf("[%s:%u] - Library %s does not have stackwalking debug info\n",
                  __FILE__, __LINE__, lib.first.c_str());
       return gcf_not_me;
-   }
-   
+   }   
    Address pc = in.getRA() - lib.second;
 
    cur_frame = &in;
-   gcframe_ret_t gcresult =  getCallerFrameArch(pc, in, out, symtab);
+   gcframe_ret_t gcresult = getCallerFrameArch(pc, in, out, dinfo);
    cur_frame = NULL;
    return gcresult;
 }
@@ -136,6 +182,59 @@ DebugStepperImpl::~DebugStepperImpl()
 {
 }
 
+#if defined(arch_x86) || defined(arch_x86_64)
+gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in, 
+                                                   Frame &out, DwarfSW *dinfo)
+{
+   MachRegisterVal frame_value, stack_value, ret_value;
+   bool result;
+
+   Dyninst::Architecture arch;
+   unsigned addr_width = getProcessState()->getAddressWidth();
+   if (addr_width == 4)
+      arch = Dyninst::Arch_x86;
+   else
+      arch = Dyninst::Arch_x86_64;
+
+   result = dinfo->getRegValueAtFrame(pc, Dyninst::ReturnAddr,
+                                      ret_value, arch, this);
+   if (!result) {
+      sw_printf("[%s:%u] - Couldn't get return debug info at %lx\n",
+                __FILE__, __LINE__, in.getRA());
+      return gcf_not_me;
+   }
+
+ 
+   
+   Dyninst::MachRegister frame_reg;
+   if (addr_width == 4)
+      frame_reg = x86::ebp;
+   else
+      frame_reg = x86_64::rbp;
+
+   result = dinfo->getRegValueAtFrame(pc, frame_reg,
+                                      frame_value, arch, this);
+   if (!result) {
+      sw_printf("[%s:%u] - Couldn't get frame debug info at %lx\n",
+                 __FILE__, __LINE__, in.getRA());
+      return gcf_not_me;
+   }
+
+   result = dinfo->getRegValueAtFrame(pc, Dyninst::FrameBase,
+                                      stack_value, arch, this);
+   if (!result) {
+      sw_printf("[%s:%u] - Couldn't get stack debug info at %lx\n",
+                 __FILE__, __LINE__, in.getRA());
+      return gcf_not_me;
+   }
+
+   out.setRA(ret_value);
+   out.setFP(frame_value);
+   out.setSP(stack_value);
+
+   return gcf_success;
+}
 #endif
+
 
 

@@ -44,31 +44,55 @@
 using namespace Dyninst;
 using namespace InstructionAPI;
 
+std::map<Architecture, RegisterAST::Ptr> IA_IAPI::framePtr;
+std::map<Architecture, RegisterAST::Ptr> IA_IAPI::stackPtr;
+std::map<Architecture, RegisterAST::Ptr> IA_IAPI::thePC;
 
-IA_IAPI::IA_IAPI(dyn_detail::boost::shared_ptr<Dyninst::InstructionAPI::InstructionDecoder> dec_, Address where_,
+void IA_IAPI::initASTs()
+{
+    if(framePtr.empty())
+    {
+        framePtr[Arch_x86] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_x86)));
+        framePtr[Arch_x86_64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_x86_64)));
+        framePtr[Arch_ppc32] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_ppc32)));
+        framePtr[Arch_ppc64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(Arch_ppc64)));
+    }
+    if(stackPtr.empty())
+    {
+        stackPtr[Arch_x86] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_x86)));
+        stackPtr[Arch_x86_64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_x86_64)));
+        stackPtr[Arch_ppc32] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_ppc32)));
+        stackPtr[Arch_ppc64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(Arch_ppc64)));
+    }
+    if(thePC.empty())
+    {
+        thePC[Arch_x86] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_x86)));
+        thePC[Arch_x86_64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_x86_64)));
+        thePC[Arch_ppc32] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_ppc32)));
+        thePC[Arch_ppc64] = RegisterAST::Ptr(new RegisterAST(MachRegister::getPC(Arch_ppc64)));
+    }
+}
+
+IA_IAPI::IA_IAPI(InstructionDecoder dec_, Address where_,
                 image_func* f)
     : InstructionAdapter(where_, f), dec(dec_),
     validCFT(false), cachedCFT(0)
 {
     hascftstatus.first = false;
     tailCall.first = false;
-    boost::tuples::tie(curInsnIter, boost::tuples::ignore) = allInsns.insert(std::make_pair(current, dec->decode()));
-    stackPtr.reset(new RegisterAST(MachRegister::getStackPointer(img->getArch())));
-    framePtr.reset(new RegisterAST(MachRegister::getFramePointer(img->getArch())));
-    thePC.reset(new RegisterAST(MachRegister::getPC(img->getArch())));
+    boost::tuples::tie(curInsnIter, boost::tuples::ignore) = allInsns.insert(std::make_pair(current, dec.decode()));
+    initASTs();
 }
 
-IA_IAPI::IA_IAPI(dyn_detail::boost::shared_ptr<Dyninst::InstructionAPI::InstructionDecoder> dec_, Address where_,
+IA_IAPI::IA_IAPI(InstructionDecoder dec_, Address where_,
                 image * im)
     : InstructionAdapter(where_, im), dec(dec_),
     validCFT(false), cachedCFT(0)
 {
     hascftstatus.first = false;
     tailCall.first = false;
-    boost::tuples::tie(curInsnIter, boost::tuples::ignore) = allInsns.insert(std::make_pair(current, dec->decode()));
-    stackPtr.reset(new RegisterAST(MachRegister::getStackPointer(img->getArch())));
-    framePtr.reset(new RegisterAST(MachRegister::getFramePointer(img->getArch())));
-    thePC.reset(new RegisterAST(MachRegister::getPC(img->getArch())));
+    boost::tuples::tie(curInsnIter, boost::tuples::ignore) = allInsns.insert(std::make_pair(current, dec.decode()));
+    initASTs();
 }
 
 void IA_IAPI::advance()
@@ -80,7 +104,7 @@ void IA_IAPI::advance()
     }
     InstructionAdapter::advance();
     current += curInsn()->size();
-    boost::tuples::tie(curInsnIter, boost::tuples::ignore) = allInsns.insert(std::make_pair(current, dec->decode()));
+    boost::tuples::tie(curInsnIter, boost::tuples::ignore) = allInsns.insert(std::make_pair(current, dec.decode()));
     if(!curInsn())
     {
         parsing_printf("......WARNING: after advance at 0x%lx, curInsn() NULL\n", current);
@@ -337,7 +361,7 @@ bool IA_IAPI::isIPRelativeBranch() const
         !getCFT())
 {
     Expression::Ptr cft = curInsn()->getControlFlowTarget();
-    if(cft->isUsed(thePC))
+    if(cft->isUsed(thePC[img->getArch()]))
     {
         parsing_printf("\tIP-relative indirect jump to %s at 0x%lx\n",
                        cft->format().c_str(), current);
@@ -407,9 +431,9 @@ Address IA_IAPI::getCFT() const
     if(validCFT) return cachedCFT;
     Expression::Ptr callTarget = curInsn()->getControlFlowTarget();
         // FIXME: templated bind(),dammit!
-    callTarget->bind(thePC.get(), Result(s64, current));
-    parsing_printf("%s[%d]: binding PC in %s to 0x%x...", FILE__, __LINE__,
-                   curInsn()->format().c_str(), current);
+    callTarget->bind(thePC[img->getArch()].get(), Result(s64, current));
+    parsing_printf("%s[%d]: binding PC %s in %s to 0x%x...", FILE__, __LINE__,
+                   thePC[img->getArch()]->format().c_str(), curInsn()->format().c_str(), current);
     Result actualTarget = callTarget->eval();
     if(actualTarget.defined)
     {

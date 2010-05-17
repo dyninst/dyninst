@@ -41,9 +41,9 @@ class IA_IAPI : public InstructionAdapter
 {
   friend class image_func;
     public:
-        IA_IAPI(dyn_detail::boost::shared_ptr<Dyninst::InstructionAPI::InstructionDecoder> dec_,
+  IA_IAPI(Dyninst::InstructionAPI::InstructionDecoder dec_,
                 Address start_, image_func* f);
-        IA_IAPI(dyn_detail::boost::shared_ptr<Dyninst::InstructionAPI::InstructionDecoder> dec_,
+        IA_IAPI(Dyninst::InstructionAPI::InstructionDecoder dec_,
                 Address start_, image * im);
         virtual ~IA_IAPI() {
         }
@@ -113,7 +113,7 @@ class IA_IAPI : public InstructionAdapter
 
 
 
-        dyn_detail::boost::shared_ptr<Dyninst::InstructionAPI::InstructionDecoder> dec;
+        Dyninst::InstructionAPI::InstructionDecoder dec;
         std::map<Address, Dyninst::InstructionAPI::Instruction::Ptr> allInsns;
         Dyninst::InstructionAPI::Instruction::Ptr curInsn() const;
         std::map<Address, Dyninst::InstructionAPI::Instruction::Ptr>::const_iterator curInsnIter;
@@ -121,10 +121,11 @@ class IA_IAPI : public InstructionAdapter
         mutable Address cachedCFT;
         mutable std::pair<bool, bool> hascftstatus;
         mutable std::pair<bool, bool> tailCall;
-        Dyninst::InstructionAPI::RegisterAST::Ptr framePtr;
-        Dyninst::InstructionAPI::RegisterAST::Ptr stackPtr;
-        Dyninst::InstructionAPI::RegisterAST::Ptr thePC;
+        static std::map<Architecture, Dyninst::InstructionAPI::RegisterAST::Ptr> framePtr;
+        static std::map<Architecture, Dyninst::InstructionAPI::RegisterAST::Ptr> stackPtr;
+        static std::map<Architecture, Dyninst::InstructionAPI::RegisterAST::Ptr> thePC;
         static std::map<Address, bool> thunkAtTarget;
+        static void initASTs();
 };
 
 

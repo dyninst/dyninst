@@ -179,6 +179,12 @@ WandererHelper::~WandererHelper()
 {
 }
 
+gcframe_ret_t DyninstInstrStepperImpl::getCallerFrameArch(const Frame &/*in*/, Frame &/*out*/, 
+                                                          Address /*base*/, Address /*lib_base*/,
+                                                          unsigned /*size*/, unsigned /*stack_height*/)
+{
+  return gcf_not_me;
+}
 
 namespace Dyninst {
   namespace Stackwalker {
@@ -209,3 +215,4 @@ namespace Dyninst {
     }
   }
 }
+

@@ -199,7 +199,7 @@ class Symtab : public LookupInterface,
    SYMTAB_EXPORT bool isExec() const;
    SYMTAB_EXPORT bool isStripped();
    SYMTAB_EXPORT ObjectType getObjectType() const;
-
+   SYMTAB_EXPORT Dyninst::Architecture getArchitecture();
    SYMTAB_EXPORT bool isCode(const Offset where) const;
    SYMTAB_EXPORT bool isData(const Offset where) const;
    SYMTAB_EXPORT bool isValidOffset(const Offset where) const;
@@ -217,6 +217,8 @@ class Symtab : public LookupInterface,
          Offset highExclAddr);
    SYMTAB_EXPORT bool addAddressRange(Offset lowInclAddr, Offset highExclAddr, std::string lineSource,
          unsigned int lineNo, unsigned int lineOffset = 0);
+   SYMTAB_EXPORT void setTruncateLinePaths(bool value);
+   SYMTAB_EXPORT bool getTruncateLinePaths();
 
    /***** Type Information *****/
    SYMTAB_EXPORT virtual bool findType(Type *&type, std::string name);

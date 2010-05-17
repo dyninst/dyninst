@@ -137,6 +137,48 @@ namespace Dyninst {
       return false;
     }
 
+    bool ProcDebugBGP::cleanOnDetach() {
+      bool result = pause();
+      if (!result) {
+	sw_printf("[%s:%u] - Failed to pause process for detach clean\n");
+      }
+
+      lib_load_trap = library_tracker->getLibTrapAddress();
+      if (!lib_load_trap) {
+        sw_printf("[%s:%u] - Couldn't get trap addr, couldn't set up "
+                  "library loading notification.\n", __FILE__, __LINE__);
+        return false;
+      }
+
+      // construct a bg debugger msg to clean out the trap 
+      BG_Debugger_Msg write_trap_msg(SET_MEM, pid, 0, 0, 0);
+      write_trap_msg.header.dataLength = sizeof(write_trap_msg.dataArea.SET_MEM);
+      memcpy(write_trap_msg.dataArea.SET_MEM.data, lib_trap_orig_mem, trap_len);
+      write_trap_msg.dataArea.SET_MEM.addr = lib_load_trap;
+      write_trap_msg.dataArea.SET_MEM.len  = trap_len;
+
+      sw_printf("[%s:%u] - Restoring memory over library trap at %lx\n", 
+                  __FILE__, __LINE__, lib_load_trap);
+      write_ack = false;
+      if (!BG_Debugger_Msg::writeOnFd(BG_DEBUGGER_WRITE_PIPE, write_trap_msg))
+      {
+        sw_printf("[%s:%u] - Couldn't write BG trap at load address: %lx\n", 
+                  __FILE__, __LINE__, lib_load_trap);
+        return false;
+      }
+
+      bool handled;
+      while (!write_ack) {
+	result = debug_wait_and_handle(true, false, handled);
+	if (result) {
+	  sw_printf("[%s:%u] - Unable to get ack for setmem in " 
+		    "registerLibSpotter()\n", __FILE__, __LINE__);
+	  break;
+	}
+      }
+      
+      return true;
+    }
 
     void ProcDebugBGP::registerLibSpotter() 
     {
@@ -157,7 +199,6 @@ namespace Dyninst {
       }
 
       // construct a bg debugger msg to install a trap instruction at the loader trap address.
-      unsigned trap_len;
       BG_Debugger_Msg write_trap_msg(SET_MEM, pid, 0, 0, 0);
 
       getTrapInstruction((char*)write_trap_msg.dataArea.SET_MEM.data,
@@ -166,18 +207,33 @@ namespace Dyninst {
       write_trap_msg.dataArea.SET_MEM.addr = lib_load_trap;
       write_trap_msg.dataArea.SET_MEM.len  = trap_len;
 
+      sw_printf("[%s:%u] - Reading original memory at library trap\n",
+		__FILE__, __LINE__);
+      assert(trap_len <= sizeof(lib_trap_orig_mem));
+      memset(lib_trap_orig_mem, 0, sizeof(lib_trap_orig_mem));
+      bool result = readMem(lib_trap_orig_mem, lib_load_trap, trap_len);
+      if (!result) {
+	sw_printf("Failed to read memory for library trap\n");
+	return;
+      }
+
       sw_printf("[%s:%u] - Installing BG trap at load address: %lx\n", 
                   __FILE__, __LINE__, lib_load_trap);
-
-      if (!BG_Debugger_Msg::writeOnFd(BG_DEBUGGER_WRITE_PIPE, write_trap_msg)) {
+      write_ack = false;
+      if (!BG_Debugger_Msg::writeOnFd(BG_DEBUGGER_WRITE_PIPE, write_trap_msg))
+      {
         sw_printf("[%s:%u] - Couldn't write BG trap at load address: %lx\n", 
                   __FILE__, __LINE__, lib_load_trap);
         return;
       }
 
       bool handled;
-      if (!debug_wait_and_handle(true, false, handled) && handled) {
+      while (!write_ack) {
+	result = debug_wait_and_handle(true, false, handled);
+	if (result) {
         sw_printf("[%s:%u] - Unable to get ack for setmem in registerLibSpotter()\n", __FILE__, __LINE__);
+	  break;
+	}
       }
       
       sw_printf("[%s:%u] - Successfully wrote BG library trap at %lx\n",
@@ -223,11 +279,11 @@ namespace Dyninst {
 
     void ProcDebugBGP::translate_event(const BG_Debugger_Msg& msg, DebugEvent& ev) {
       ThreadState *ts = ev.thr;
-
       switch (msg.header.messageType) {
       case SIGNAL_ENCOUNTERED:
         // this is special handling for library loads, which we'll only see on BGP
-        if (ev.data.idata == SIGTRAP && state() == ps_running && isLibraryTrap(ts->getTid())) {
+	ev.data.idata = msg.dataArea.SIGNAL_ENCOUNTERED.signal;
+        if (ev.data.idata == SIGTRAP && isLibraryTrap(ts->getTid())) {
           ev.dbg = dbg_libraryload;
           sw_printf("[%s:%u] - Decoded library load event\n", __FILE__, __LINE__);
         } else {
@@ -275,6 +331,18 @@ namespace Dyninst {
             return false;
           }
           ls->notifyOfUpdate();
+          
+	  /**
+	   * Forward over the trap instructoin
+	   **/
+	  Dyninst::MachRegisterVal newpc = ls->getLibTrapAddress() + 4;
+	  bool result = setRegValue(Dyninst::MachRegPC, tid, newpc);
+	  if (!result) {
+	    sw_printf("[%s:%u] - Error! Could not set PC past trap!\n",
+		      __FILE__, __LINE__);
+	    setLastError(err_internal, "Could not set PC after trap\n");
+	    return false;
+	  }
           
           if (!debug_continue(ts)) {
             sw_printf("[%s:%u] - Debug continue failed on %d/%d with %d\n", 

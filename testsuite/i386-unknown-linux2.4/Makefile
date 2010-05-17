@@ -17,7 +17,7 @@ include $(TO_CORE)/make.config
 # Now make any necessary architecture specific changes to variables:
 
 #if M_G77 is defined, g77 mutatees will be built
-M_G77 = g77
+M_G77 = gfortran
 
 NATIVE_CC = gcc
 NATIVE_CXX = g++ 
@@ -45,8 +45,8 @@ MUTATEE_LDFLAGS_GNU += -Wl,-export-dynamic
 MUTATEE_LDFLAGS_NATIVE += -Wl,-export-dynamic
 
 COMMA=,
-MUTATEE_G77_FFLAGS += -Di386_unknown_linux2_0 -DF77 -fno-second-underscore -g
-MUTATEE_G77_CFLAGS += $(filter-out -Wl$(COMMA)-export-dynamic, $(MUTATEE_CFLAGS_GNU)) 
+MUTATEE_G77_FFLAGS += -Di386_unknown_linux2_0 -DF77 -fno-second-underscore -ffixed-line-length-none -fno-range-check -g
+MUTATEE_G77_CFLAGS += $(filter-out -Wl$(COMMA)-export-dynamic, $(MUTATEE_CFLAGS_GNU))
 MUTATEE_G77_CFLAGS += -DF77 -DFortran -g $(MUTATEE_FFLAGS) -c -I../src
 TEST1_FORTRAN_CSOURCE = test1.mutateeFortC.c
 

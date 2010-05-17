@@ -45,7 +45,8 @@ SRCS +=	../src/Instruction.C \
 	../src/InstructionCategories.C \
 	../src/Immediate.C \
 	../src/InstructionDecoder.C \
-	../src/InstructionDecoder-power.C
+	../src/InstructionDecoder-power.C \
+	../src/InstructionDecoderImpl.C
 
 
 IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../common/h -I../../dynutil/h -I../../symtabAPI/h -I../external
@@ -55,7 +56,7 @@ DOCDIR	= ../doc
 TO_INC = ../h
 PUBLIC_H =      BinaryFunction.h \
                 Dereference.h \
-                entryIDs-IA32.h \
+                entryIDs.h \
                 Expression.h \
                 Immediate.h \
                 InstructionAST.h \
@@ -64,12 +65,10 @@ PUBLIC_H =      BinaryFunction.h \
                 Operand.h \
                 Operation.h \
                 Register.h \
-                RegisterIDs-x86.h \
+                RegisterIDs.h \
                 Result.h \
 	       InstructionCategories.h \
-	       Visitor.h \
-	       InstructionDecoder-power.h \
-	       ia32_locations.h
+	       Visitor.h
 
 
 

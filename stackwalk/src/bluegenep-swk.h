@@ -48,7 +48,7 @@ namespace Dyninst {
       virtual ~ProcDebugBGP();
       virtual bool isLibraryTrap(Dyninst::THR_ID thrd);
       virtual bool getThreadIds(std::vector<THR_ID> &threads);
-
+      virtual bool cleanOnDetach();
     protected:
       virtual bool pollForNewThreads();
       virtual bool debug_post_attach(ThreadState *ts);
@@ -56,10 +56,11 @@ namespace Dyninst {
       virtual bool debug_handle_event(DebugEvent ev);
       virtual void translate_event(const DebuggerInterface::BG_Debugger_Msg& msg, 
                                    DebugEvent& ev);
-      
       /* Protected Data */
       bool gprs_set;  
       Address lib_load_trap;
+      unsigned trap_len;
+      unsigned char lib_trap_orig_mem[16];
     };
     
   } // Stackwalker

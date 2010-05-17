@@ -2251,6 +2251,15 @@ SYMTAB_EXPORT bool Symtab::addAddressRange( Offset lowInclusiveAddr, Offset high
             lineSource.c_str(), lineNo, lineOffset));
 }
 
+void Symtab::setTruncateLinePaths(bool value)
+{
+   getObject()->setTruncateLinePaths(value);
+}
+
+bool Symtab::getTruncateLinePaths()
+{
+   return getObject()->getTruncateLinePaths();
+}
 
 void Symtab::parseTypes()
 {
@@ -2752,6 +2761,11 @@ SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size)
 SYMTAB_EXPORT ObjectType Symtab::getObjectType() const 
 {
    return object_type_;
+}
+
+SYMTAB_EXPORT Dyninst::Architecture Symtab::getArchitecture()
+{
+   return getObject()->getArch();
 }
 
 SYMTAB_EXPORT char *Symtab::mem_image() const 

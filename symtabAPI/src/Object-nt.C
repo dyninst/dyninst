@@ -1899,3 +1899,8 @@ bool Region::isStandardCode()
    return (getRegionPermissions() == RP_RX ||
            getRegionPermissions() == RP_RWX);
 }
+
+Dyninst::Architecture Object::getArch()
+{
+   return Dyninst::Arch_x86;
+}

@@ -130,7 +130,6 @@ public:
                               bool ex, const char *modname_,
                               const char *compiler_, const char *optlevel_, 
                               const char *abi_);
-
   TESTLIB_DLL_EXPORT ~RunGroup();
 };
 

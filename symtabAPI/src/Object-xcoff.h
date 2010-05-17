@@ -231,7 +231,8 @@ class Object : public AObject {
     	return lineInfo_; 
     }
 #endif
-    
+
+    Dyninst::Architecture getArch();
     ObjectType objType() const;
     bool isEEL() const { return false; }
 
