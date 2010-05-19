@@ -2499,7 +2499,7 @@ Dyninst::Address installed_breakpoint::getAddr() const
 
 int_library::int_library(std::string n, Dyninst::Address load_addr) :
    name(n),
-   load_address(load_address),
+   load_address(load_addr),
    data_load_address(0),
    has_data_load(false),
    marked(false)
