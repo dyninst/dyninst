@@ -473,7 +473,7 @@ SymEval<a>::convert(const InstructionAPI::Instruction::Ptr &insn, uint64_t addr)
     {
         InstructionAPI::Operand &currOperand = *opi;
 	//cerr << "Converting operand " << currOperand.format() << endl;
-        SgAsmExpression* converted = convert(currOperand);
+        SgAsmExpression* converted = convert(currOperand, addr);
         SgAsmExpression* final = SymEvalArchTraits<a>::convertOperand(rinsn.get_kind(), i, converted);
         if(final != NULL) {
             roperands->append_operand(final);
@@ -485,14 +485,14 @@ SymEval<a>::convert(const InstructionAPI::Instruction::Ptr &insn, uint64_t addr)
 }
 
 template <Architecture a>
-SgAsmExpression *SymEval<a>::convert(const InstructionAPI::Operand &operand) {
-    return convert(operand.getValue());
+SgAsmExpression *SymEval<a>::convert(const InstructionAPI::Operand &operand, uint64_t addr) {
+    return convert(operand.getValue(), addr);
 }
 
 template <Architecture a>
-SgAsmExpression *SymEval<a>::convert(const Expression::Ptr expression) {
+SgAsmExpression *SymEval<a>::convert(const Expression::Ptr expression, uint64_t addr) {
   if(!expression) return NULL;
-  Visitor_t visitor;
+  Visitor_t visitor(addr);
   expression->apply(&visitor);
   return visitor.getRoseExpression();
 }
@@ -574,7 +574,7 @@ template <Architecture a>
 void ExpressionConversionVisitor<a>::visit(RegisterAST* regast) {
     // has no children
 
-    m_stack.push_front(ConversionArchTraits<a>::archSpecificRegisterProc(regast));
+    m_stack.push_front(ConversionArchTraits<a>::archSpecificRegisterProc(regast, addr));
     roseExpression = m_stack.front();
     return;
 }
@@ -630,14 +630,18 @@ void ExpressionConversionVisitor<a>::visit(Dereference* deref) {
     roseExpression = result;
 }
 
-SgAsmExpression* ConversionArchTraits<Arch_x86>::archSpecificRegisterProc(InstructionAPI::RegisterAST* regast)
+SgAsmExpression* ConversionArchTraits<Arch_x86>::archSpecificRegisterProc(InstructionAPI::RegisterAST* regast, uint64_t addr)
 {
     int rreg_class;
     int rreg_num;
     int rreg_pos;
 
     MachRegister machReg = regast->getID();
-    if(machReg.isPC()) return NULL;
+    if(machReg.isPC()) {
+      // ideally this would be symbolic
+      SgAsmExpression *constAddrExpr = new SgAsmDoubleWordValueExpression(addr);
+      return constAddrExpr;
+    }
     machReg.getROSERegister(rreg_class, rreg_num, rreg_pos);
 
     SgAsmExpression* roseRegExpr = new regRef((regClass)rreg_class,
@@ -652,7 +656,7 @@ SgAsmExpression* ConversionArchTraits<Arch_x86>::makeSegRegExpr()
             x86_segreg_none, x86_regpos_all);
 }
 
-SgAsmExpression* ConversionArchTraits<Arch_ppc32>::archSpecificRegisterProc(InstructionAPI::RegisterAST* regast)
+SgAsmExpression* ConversionArchTraits<Arch_ppc32>::archSpecificRegisterProc(InstructionAPI::RegisterAST* regast, uint64_t addr)
 {
     int rreg_class;
     int rreg_num;

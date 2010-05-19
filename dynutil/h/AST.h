@@ -82,6 +82,7 @@ class ASTVisitor;
  class InputVariableAST;
  class ReferenceAST;
  class StpAST;
+ class YicesAST;
 
 #define DEF_AST_LEAF_TYPE(name, type)					\
 class name : public AST {						\
@@ -175,7 +176,8 @@ class AST : public dyn_detail::boost::enable_shared_from_this<AST> {
     // Concolic execution
     V_InputVariableAST,
     V_ReferenceAST,
-    V_StpAST } ID;
+    V_StpAST,
+    V_YicesAST } ID;
 
   typedef dyn_detail::boost::shared_ptr<AST> Ptr;
   typedef std::vector<AST::Ptr> Children;      
@@ -229,6 +231,7 @@ class AST : public dyn_detail::boost::enable_shared_from_this<AST> {
    virtual ASTPtr visit(InputVariableAST *) {return AST::Ptr();};
    virtual ASTPtr visit(ReferenceAST *) {return AST::Ptr();};
    virtual ASTPtr visit(StpAST *) {return AST::Ptr();};
+   virtual ASTPtr visit(YicesAST *) {return AST::Ptr();};
 
    virtual ~ASTVisitor() {};
  };

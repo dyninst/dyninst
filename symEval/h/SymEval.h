@@ -317,7 +317,8 @@ struct SymEvalArchTraits
 
 struct ConversionArchTraitsBase
 {
-    virtual SgAsmExpression* archSpecificRegisterProc(InstructionAPI::RegisterAST* regast) = 0;
+    virtual SgAsmExpression* archSpecificRegisterProc(InstructionAPI::RegisterAST* regast,
+      uint64_t addr = 0) = 0;
     virtual SgAsmExpression* makeSegRegExpr() = 0;
     virtual ~ConversionArchTraitsBase() {}
 };
@@ -325,7 +326,8 @@ struct ConversionArchTraitsBase
 template <Architecture a>
         struct ConversionArchTraits : public ConversionArchTraitsBase
 {
-    virtual SgAsmExpression* archSpecificRegisterProc(InstructionAPI::RegisterAST* regast)
+    virtual SgAsmExpression* archSpecificRegisterProc(InstructionAPI::RegisterAST* regast,
+      uint64_t addr = 0)
     {
         return NULL;
     }
@@ -342,7 +344,8 @@ template <Architecture a>
 template <>
         struct ConversionArchTraits<Arch_x86> : public ConversionArchTraitsBase
 {
-    virtual SgAsmExpression* archSpecificRegisterProc(InstructionAPI::RegisterAST* regast);
+    virtual SgAsmExpression* archSpecificRegisterProc(InstructionAPI::RegisterAST* regast,
+      uint64_t addr = 0);
     virtual SgAsmExpression* makeSegRegExpr();
     typedef SgAsmx86RegisterReferenceExpression regRef;
     typedef X86RegisterClass regClass;
@@ -353,7 +356,8 @@ template <>
 template <>
         struct ConversionArchTraits<Arch_ppc32> : public ConversionArchTraitsBase
 {
-    virtual SgAsmExpression* archSpecificRegisterProc(InstructionAPI::RegisterAST* regast);
+    virtual SgAsmExpression* archSpecificRegisterProc(InstructionAPI::RegisterAST* regast,
+      uint64_t addr = 0);
     virtual SgAsmExpression* makeSegRegExpr()
     {
         return NULL;
@@ -372,7 +376,7 @@ template <Architecture a = Arch_x86>
         typedef typename ConversionArchTraits<a>::regRef regRef;
         typedef typename ConversionArchTraits<a>::regClass regClass;
         typedef typename ConversionArchTraits<a>::regClass regField;
-        ExpressionConversionVisitor() { roseExpression = NULL; }
+        ExpressionConversionVisitor(uint64_t ad) { roseExpression = NULL; addr = ad; }
 
         SgAsmExpression *getRoseExpression() { return roseExpression; }
 
@@ -384,6 +388,7 @@ template <Architecture a = Arch_x86>
     private:
         SgAsmExpression *roseExpression;
         std::list<SgAsmExpression*> m_stack;
+        uint64_t addr;
 };
 
 
@@ -460,8 +465,8 @@ public:
   {
       return SymEvalArchTraits<a>::convert(opcode,mnem);
   }
-  static SgAsmExpression *convert(const InstructionAPI::Operand &operand);
-  static SgAsmExpression *convert(const InstructionAPI::Expression::Ptr expression);
+  static SgAsmExpression *convert(const InstructionAPI::Operand &operand, uint64_t addr);
+  static SgAsmExpression *convert(const InstructionAPI::Expression::Ptr expression, uint64_t addr);
 
   // Symbolically evaluate an instruction and assign 
   // an AST representation to every written absloc
