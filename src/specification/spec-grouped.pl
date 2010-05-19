@@ -2367,12 +2367,14 @@ tests_module('power_cft', 'instruction').
 % ProcessControlAPI Tests
 pcPlatforms(P) :- platform('x86_64', 'linux', _, P).
 pcPlatforms(P) :- platform('i386', 'linux', _, P).
+pcPlatforms(P) :- platform('i386', 'freebsd', _,P).
 
 pcMutateeLibs(Libs) :-
    current_platform(P),
    platform(_, OS, _, P),
    (
        OS = 'solaris' -> Libs = ['dl', 'pthread', 'rt'];
+       OS = 'freebsd' -> Libs = ['pthread'];
        Libs = ['dl', 'pthread']
    ).
 

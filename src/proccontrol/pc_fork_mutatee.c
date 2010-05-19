@@ -35,6 +35,10 @@
 #include <sys/wait.h>
 #include <string.h>
 
+#if defined(os_freebsd_test)
+#include <assert.h>
+#endif
+
 #include "pcontrol_mutatee_tools.h"
 
 #define EXIT_CODE 4

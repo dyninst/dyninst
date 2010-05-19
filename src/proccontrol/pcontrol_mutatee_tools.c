@@ -64,7 +64,7 @@ void *ThreadTrampoline(void *d)
    testLock(&thread_startup_lock);
    testUnlock(&thread_startup_lock);
 
-   func_result = func(thread_id, data);
+   func_result = func((int)thread_id, data);
    
    return (void *) (long) func_result;
 }
@@ -98,7 +98,7 @@ int MultiThreadInit(int (*init_func)(int, void*), void *thread_data)
       testLock(&thread_startup_lock);
       for (j = 0; j < num_threads; j++) {
          datagram *data = (datagram *) malloc(sizeof(datagram));
-         data->thread_id = j;
+         data->thread_id = (thread_t)j;
          data->func = init_func;
          data->data = thread_data;
          threads[j] = spawnNewThread((void *) ThreadTrampoline, (void *) data);
