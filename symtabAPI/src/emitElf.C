@@ -695,7 +695,7 @@ bool emitElf::driver(Symtab *obj, string fName){
     if(foundSec->isDirty()) 
       dirtySecsChange += newshdr->sh_size - shdr->sh_size;
 
-    if(BSSExpandFlag && newshdr->sh_addr){
+    if(BSSExpandFlag && newshdr->sh_addr) {
       unsigned newOff = newshdr->sh_offset - (newshdr->sh_offset & (pgSize-1)) + (newshdr->sh_addr & (pgSize-1));
       if(newOff < newshdr->sh_offset)
 	newOff += pgSize;
@@ -1097,7 +1097,7 @@ void emitElf::updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned lon
     Elf32_Sym *symPtr=(Elf32_Sym*)symtabData->d_buf;
     for(unsigned int i=0;i< symtabData->d_size/(sizeof(Elf32_Sym));i++,symPtr++){
       if(!(strcmp("_end", (char*) strData->d_buf + symPtr->st_name))){
-        if( newSegmentStart > symPtr->st_value ) {
+        if( newSegmentStart >= symPtr->st_value ) {
             symPtr->st_value += ((newSegmentStart - symPtr->st_value) + loadSecsSize);
 
             // Advance the location to the next page boundary

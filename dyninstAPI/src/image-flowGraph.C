@@ -421,7 +421,7 @@ image::compute_gap(
 bool image::gap_heuristics(Address addr)
 {
     bool ret = false;
-#if defined(i386_unknown_linux2_0) || defined(x86_64_unknown_linux2_4)
+#if defined(i386_unknown_linux2_0) || defined(x86_64_unknown_linux2_4) || defined(i386_unknown_freebsd8_0) || defined(i386_unknown_freebsd7_0)
     ret = gap_heuristic_GCC(addr);
 #elif defined(i386_unknown_nt4_0)
     ret = gap_heuristic_MSVS(addr);

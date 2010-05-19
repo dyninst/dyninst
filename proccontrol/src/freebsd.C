@@ -370,7 +370,7 @@ freebsd_process::~freebsd_process()
 
 /*
  * The man page says that only some requests will return -1 on error.
- * It says to set errno to 0 before the call, and check it after words.
+ * It says to set errno to 0 before the call, and check it afterwards.
  */
 static inline long int bsd_ptrace(int request, pid_t pid, caddr_t addr, int data) {
     long int result;
@@ -534,11 +534,10 @@ bool freebsd_process::plat_individualRegAccess() {
 freebsd_thread::freebsd_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l)
     : int_thread(p, t, l)
 {
-    assert(!NA_FREEBSD);
 }
 
-freebsd_thread::~freebsd_thread() {
-    assert(!NA_FREEBSD);
+freebsd_thread::~freebsd_thread() 
+{
 }
 
 bool freebsd_thread::plat_cont() {
