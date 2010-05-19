@@ -643,7 +643,10 @@ using namespace boost::assign;
         if(field<8,8>(insn) && field<6,6>(insn))
         {
             size_t found = insn_in_progress->getOperation().mnemonic.rfind("c");
-            insn_in_progress->getOperation().mnemonic.erase(found, 1);
+            if(found != std::string::npos)
+            {
+                insn_in_progress->getOperation().mnemonic.erase(found, 1);
+            }
             bcIsConditional = false;
         }
         else

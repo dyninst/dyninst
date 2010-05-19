@@ -302,6 +302,16 @@ bool ProcDebugLinux::getRegValue(Dyninst::MachRegister reg, Dyninst::THR_ID t,
    return true;
 }
 
+bool ProcDebugLinux::setRegValue(Dyninst::MachRegister, 
+				 Dyninst::THR_ID, 
+				 Dyninst::MachRegisterVal)
+{
+  //Not needed on x86
+  assert(0);
+  return false;
+}
+
+
 bool Walker::createDefaultSteppers()
 {
   FrameStepper *stepper;
@@ -412,10 +422,6 @@ gcframe_ret_t SigHandlerStepperImpl::getCallerFrame(const Frame &in, Frame &out)
    return gcf_success;
 }
 
-#if defined(cap_stackwalker_use_symtab)
-
-#include "symtabAPI/h/Symtab.h"
-
 bool DebugStepperImpl::isFrameRegister(MachRegister reg)
 {
    if (getProcessState()->getAddressWidth() == 4)
@@ -431,8 +437,6 @@ bool DebugStepperImpl::isStackRegister(MachRegister reg)
    else 
       return (reg == x86_64::rsp);
 }
-
-#endif
 
 void ProcDebugLinux::detach_arch_cleanup()
 {

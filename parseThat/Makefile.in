@@ -94,8 +94,12 @@ endif
 all: ready parseThat
 
 install: parseThat
-	$(INSTALL) -d $(prefix)
-	$(INSTALL) parseThat $(prefix)/parseThat
+	@if [ $(prefix) != "." ]; then                           \
+		echo "$(INSTALL) -d $(prefix)";                  \
+		$(INSTALL) -d $(prefix);                         \
+		echo "$(INSTALL) parseThat $(prefix)/parseThat"; \
+		$(INSTALL) parseThat $(prefix)/parseThat;        \
+	fi
 
 clean:
 	rm -f parseThat *.o *.so

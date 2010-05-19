@@ -884,7 +884,7 @@ bool linux_process::plat_detach()
    //ProcPool lock should be held.
    int_threadPool *tp = threadPool();
    bool had_error = false;
-   for (int_threadPool::iterator i = tp->begin(); i != tp->end(); tp++) {
+   for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++) {
       int_thread *thr = *i;
       pthrd_printf("PTRACE_DETACH on %d\n", thr->getLWP());
       long result = do_ptrace((pt_req) PTRACE_DETACH, thr->getLWP(), NULL, (void *) 0);

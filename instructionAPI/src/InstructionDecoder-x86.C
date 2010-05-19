@@ -215,7 +215,7 @@ namespace Dyninst
                 if(locs->modrm_rm == modrm_use_sib) {
                     e = makeSIBExpression(b);
                 }
-                if(locs->modrm_rm == 0x5)
+                if(locs->modrm_rm == 0x5 && !addrSizePrefixPresent)
                 {
                     assert(locs->opcode_position > -1);
                     entryID opcode = decodedInstruction->getEntry()->getID(locs);
@@ -231,6 +231,10 @@ namespace Dyninst
                         e = getModRMDisplacement(b);
                     }
         
+                }
+                if(locs->modrm_rm == 0x6 && addrSizePrefixPresent)
+                {
+                    e = getModRMDisplacement(b);
                 }
                 if(opType == op_lea)
                 {
@@ -568,6 +572,7 @@ namespace Dyninst
 	}
       bool isCFT = false;
       bool isCall = false;
+      bool isConditional = false;
       InsnCategory cat = insn_to_complete->getCategory();
       if(cat == c_BranchInsn || cat == c_CallInsn)
 	{
@@ -577,6 +582,10 @@ namespace Dyninst
 	      isCall = true;
 	    }
 	}
+      if (cat == c_BranchInsn && insn_to_complete->getOperation().getID() != e_jmp) {
+	isConditional = true;
+      }
+
       unsigned int optype = operand.optype;
       if (sizePrefixPresent && 
 	  ((optype == op_v) ||
@@ -660,7 +669,9 @@ namespace Dyninst
                         Expression::Ptr postEIP(makeAddExpression(EIP, InsnSize, u32));
 
                         Expression::Ptr op(makeAddExpression(Offset, postEIP, u32));
-                        insn_to_complete->addSuccessor(op, isCall, false, false, false);
+                        insn_to_complete->addSuccessor(op, isCall, false, isConditional, false);
+			if (isConditional) 
+			  insn_to_complete->addSuccessor(postEIP, false, false, true, true);
                     }
                     break;
                     case am_O:

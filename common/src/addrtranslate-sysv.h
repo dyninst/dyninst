@@ -58,6 +58,7 @@ protected:
    SymbolReaderFactory *factory;
 
    void parsefile();
+
 public:
    FCNode(string f, dev_t d, ino_t i, SymbolReaderFactory *factory_);
 
@@ -101,7 +102,6 @@ public:
    bool setInterpreter();
    bool setAddressSize();
    bool setInterpreterBase();
-   
    bool init();
    virtual bool refresh();
    

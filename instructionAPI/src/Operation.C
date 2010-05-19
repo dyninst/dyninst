@@ -48,7 +48,7 @@ namespace Dyninst
     }
     RegisterAST::Ptr makeRegFromID(MachRegister regID)
     {
-        return make_shared(singleton_object_pool<RegisterAST>::construct(regID, 0, regID.size()));
+        return make_shared(singleton_object_pool<RegisterAST>::construct(regID, 0, regID.size() * 8));
     }
 
     Operation::Operation(entryID id, const char* mnem, Architecture arch)
@@ -63,10 +63,16 @@ namespace Dyninst
       operationID = e->getID(l);
       if(p && p->getCount())
       {
-	if (p->getPrefix(0) == PREFIX_REP || p->getPrefix(0) == PREFIX_REPNZ)
+        if (p->getPrefix(0) == PREFIX_REP || p->getPrefix(0) == PREFIX_REPNZ)
 	{
             otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::df : x86_64::df));
-	}
+            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::ecx : x86_64::rcx));
+            otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::ecx : x86_64::rcx));
+            if(p->getPrefix(0) == PREFIX_REPNZ)
+            {
+                otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::zf : x86_64::zf));
+            }
+        }
         int segPrefix = p->getPrefix(1);
         switch(segPrefix)
         {
@@ -303,23 +309,23 @@ namespace Dyninst
       foundRegs = op_data(archDecodedFrom).nonOperandRegisterReads.find(operationID);
       if(foundRegs != op_data(archDecodedFrom).nonOperandRegisterReads.end())
       {
-	otherRead = foundRegs->second;
+          otherRead.insert(foundRegs->second.begin(), foundRegs->second.end());
       }
       foundRegs = op_data(archDecodedFrom).nonOperandRegisterWrites.find(operationID);
       if(foundRegs != op_data(archDecodedFrom).nonOperandRegisterWrites.end())
       {
-	otherWritten = foundRegs->second;
+          otherWritten.insert(foundRegs->second.begin(), foundRegs->second.end());
       }
       dyn_hash_map<entryID, VCSet >::const_iterator foundMem;
       foundMem = op_data(archDecodedFrom).nonOperandMemoryReads.find(operationID);
       if(foundMem != op_data(archDecodedFrom).nonOperandMemoryReads.end())
       {
-	otherEffAddrsRead = foundMem->second;
+          otherEffAddrsRead.insert(foundMem->second.begin(), foundMem->second.end());
       }
       foundMem = op_data(archDecodedFrom).nonOperandMemoryWrites.find(operationID);
       if(foundMem != op_data(archDecodedFrom).nonOperandMemoryWrites.end())
       {
-	otherEffAddrsWritten = foundMem->second;
+          otherEffAddrsWritten.insert(foundMem->second.begin(), foundMem->second.end());
       }
       
       if(needFlags && !doneFlagsSetup)

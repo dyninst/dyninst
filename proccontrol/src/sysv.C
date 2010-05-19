@@ -126,7 +126,7 @@ bool PCProcReader::ReadMem(Address addr, void *buffer, unsigned size)
    return true;
 }
 
-bool PCProcReader::GetReg(MachRegister reg, MachRegisterVal &val)
+bool PCProcReader::GetReg(MachRegister /*reg*/, MachRegisterVal & /*val*/)
 {
    assert(0); //Not needed
    return true;

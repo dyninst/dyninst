@@ -95,6 +95,21 @@ bool LineInformation::getSourceLines( Offset addressInRange,
    return getValues( addressInRange, lines );
 } /* end getLinesFromAddress() */
 
+bool LineInformation::getSourceLines( Offset addressInRange, 
+                                      vector<LineNoTuple> &lines) 
+{
+   vector<Statement *> plines;
+   bool result = getValues(addressInRange, plines);
+   if (!result) {
+      return false;
+   }
+   for (vector<Statement *>::iterator i = plines.begin(); i != plines.end(); i++) {
+      LineNoTuple lnt = **i;
+      lines.push_back(lnt);
+   }
+   return true;
+} /* end getLinesFromAddress() */
+
 bool LineInformation::getAddressRanges( const char * lineSource, 
       unsigned int lineNo, vector< AddressRange > & ranges ) 
 {

@@ -163,6 +163,8 @@ bool int_process::attach()
    pthrd_printf("Attaching to process %d\n", pid);
    bool result = plat_attach();
    if (!result) {
+      ProcPool()->condvar()->broadcast();
+      ProcPool()->condvar()->unlock();
       pthrd_printf("Could not attach to debuggee, %d\n", pid);
       return false;
    }
@@ -714,8 +716,6 @@ bool int_process::detach(bool &should_delete)
       tp->intStop(true);
    }
    
-   ProcPool()->condvar()->lock();
-
    while (!mem->breakpoints.empty())
    {      
       std::map<Dyninst::Address, installed_breakpoint *>::iterator i = mem->breakpoints.begin();
@@ -726,6 +726,8 @@ bool int_process::detach(bool &should_delete)
          goto done;
       }
    }
+
+   ProcPool()->condvar()->lock();
 
    result = plat_detach();
    if (!result) {
@@ -2501,7 +2503,7 @@ Dyninst::Address installed_breakpoint::getAddr() const
 
 int_library::int_library(std::string n, Dyninst::Address load_addr) :
    name(n),
-   load_address(load_address),
+   load_address(load_addr),
    data_load_address(0),
    has_data_load(false),
    marked(false)

@@ -105,9 +105,9 @@ test_results_t test1_22_Mutator::mutatorTest22()
 		BPatch_module *m = (*mods)[i];
 		m->getName(buf, 1024);
 		// module names sometimes have "_module" appended
-		if (!strcmpcase(libNameA, buf))
+                if( std::string(buf).find(libNameAroot) != std::string::npos )
 			modA = m;
-		else if (!strcmpcase(libNameB, buf))
+		else if ( std::string(buf).find(libNameBroot) != std::string::npos )
 			modB = m;
 	}
 
@@ -270,10 +270,15 @@ test_results_t test1_22_Mutator::executeTest()
 #if defined(arch_x86_64_test) || defined(ppc64_linux_test)
 	pointer_size = pointerSize(appImage);
 #endif
+        bool isStatic = false;
+        if( NULL != appBinEdit ) {
+            isStatic = appBinEdit->isStaticExecutable();
+        }
+
 	strncpy(libNameA, libNameAroot, 127);
-	addLibArchExt(libNameA,127, pointer_size);
+	addLibArchExt(libNameA,127, pointer_size, isStatic);
 	strncpy(libNameB, libNameBroot, 127);
-	addLibArchExt(libNameB,127, pointer_size);
+	addLibArchExt(libNameB,127, pointer_size, isStatic);
 
 	char libA[128], libB[128];
 	snprintf(libA, 128, "./%s", libNameA);

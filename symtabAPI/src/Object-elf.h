@@ -69,6 +69,7 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 
+class DwarfSW;
 
 namespace Dyninst{
 namespace SymtabAPI{
@@ -286,35 +287,23 @@ class Symtab;
 class Region;
 class Object;
 
-typedef struct {
-  Dwarf_Fde *fde_data;
-  Dwarf_Signed fde_count;
-  Dwarf_Cie *cie_data;
-  Dwarf_Signed cie_count;   
-} fde_cie_data;
-
 class DwarfHandle {
    friend class Object;
  private:
+   DwarfSW *sw;
+   Object *obj;
    typedef enum {
       dwarf_status_uninitialized,
       dwarf_status_error,
       dwarf_status_ok
    } dwarf_status_t;
-   dwarf_status_t fde_dwarf_status;
    dwarf_status_t init_dwarf_status;
-
-   std::vector<fde_cie_data> fde_data;
    Dwarf_Debug dbg_data;
-   Object *obj;
-
  public:
   DwarfHandle(Object *obj_);
   ~DwarfHandle();
 
-
   Dwarf_Debug *dbg();
-  void setupFdeData();
 };
 
 class Object : public AObject {
@@ -409,6 +398,8 @@ class Object : public AObject {
 	    return false;
 	}
 
+   Dyninst::Architecture getArch();
+
 	bool is_offset_in_plt(Offset offset) const;
     Elf_X_Shdr *getRegionHdrByAddr(Offset addr);
     int getRegionHdrIndexByAddr(Offset addr);
@@ -420,7 +411,7 @@ class Object : public AObject {
                             Dyninst::MachRegisterVal &reg_result,
                             MemRegReader *reader);
     bool hasFrameDebugInfo();
-
+    
     bool convertDebugOffset(Offset off, Offset &new_off);
 
     std::vector< std::vector<Offset> > getMoveSecAddrRange() const {return moveSecAddrRange;};
@@ -448,6 +439,9 @@ class Object : public AObject {
 
     Offset getInitAddr() const {return init_addr_; }
     Offset getFiniAddr() const { return fini_addr_; }
+
+    virtual void setTruncateLinePaths(bool value);
+    virtual bool getTruncateLinePaths();
 
   private:
   static void log_elferror (void (*)(const char *), const char *);

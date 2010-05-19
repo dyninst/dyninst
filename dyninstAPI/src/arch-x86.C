@@ -57,6 +57,9 @@
 #include "process.h"
 #include "inst-x86.h"
 
+#include "instructionAPI/h/RegisterIDs.h"
+#include "pcrel.h"
+
 using namespace std;
 using namespace boost::assign;
 using namespace Dyninst::InstructionAPI;
@@ -578,21 +581,6 @@ static void addPatch(codeGen &gen, patchTarget *src, imm_location_t &imm)
 }
 */
 
-class pcRelJump : public pcRelRegion {
-private:
-   Address addr_targ;
-   patchTarget *targ;
-    bool copy_prefixes_;
-
-   Address get_target();
-public:
-   pcRelJump(patchTarget *t, const instruction &i, bool copyPrefixes = true);
-   pcRelJump(Address target, const instruction &i, bool copyPrefixes = true);
-   virtual unsigned apply(Address addr);
-   virtual unsigned maxSize();        
-   virtual bool canPreApply();
-   virtual ~pcRelJump();
-};
 
 pcRelJump::pcRelJump(patchTarget *t, const instruction &i, bool copyPrefixes) :
    pcRelRegion(i),
@@ -653,21 +641,6 @@ bool pcRelJump::canPreApply()
 {
    return gen->startAddr() && (!targ || get_target());
 }
-
-class pcRelJCC : public pcRelRegion {
-private:
-   Address addr_targ;
-   patchTarget *targ;
-
-   Address get_target();
-public:
-   pcRelJCC(patchTarget *t, const instruction &i);
-   pcRelJCC(Address target, const instruction &i);
-   virtual unsigned apply(Address addr);
-   virtual unsigned maxSize();        
-   virtual bool canPreApply();
-   virtual ~pcRelJCC();
-};
 
 pcRelJCC::pcRelJCC(patchTarget *t, const instruction &i) :
    pcRelRegion(i),
@@ -792,21 +765,6 @@ bool pcRelJCC::canPreApply()
    return gen->startAddr() && (!targ || get_target());
 }
 
-class pcRelCall: public pcRelRegion {
-private:
-   Address targ_addr;
-   patchTarget *targ;
-
-   Address get_target();
-public:
-   pcRelCall(patchTarget *t, const instruction &i);
-   pcRelCall(Address targ_addr, const instruction &i);
-
-   virtual unsigned apply(Address addr);
-   virtual unsigned maxSize();        
-   virtual bool canPreApply();
-   ~pcRelCall();
-};
 
 pcRelCall::pcRelCall(patchTarget *t, const instruction &i) :
    pcRelRegion(i),
@@ -862,16 +820,6 @@ bool pcRelCall::canPreApply()
 {
    return gen->startAddr() && (!targ || get_target());
 }
-
-class pcRelData : public pcRelRegion {
-private:
-   Address data_addr;
-public:
-   pcRelData(Address a, const instruction &i);
-   virtual unsigned apply(Address addr);
-   virtual unsigned maxSize();        
-   virtual bool canPreApply();
-};
 
 pcRelData::pcRelData(Address a, const instruction &i) :
    pcRelRegion(i),
@@ -1169,8 +1117,12 @@ bool instruction::generate(codeGen &gen,
          }
       }
       else {
-         fprintf(stderr, "Warning: call at 0x%lx did not have a valid "
+         parsing_printf("Warning: call at 0x%lx did not have a valid "
                  "calculated target addr 0x%lx\n", origAddr, target);
+         /* These need to be debug messages -- a call 0 is common in static binaries
+          * fprintf(stderr, "Warning: call at 0x%lx did not have a valid "
+          *       "calculated target addr 0x%lx\n", origAddr, target);
+          */
       }
    }
 
@@ -1483,10 +1435,14 @@ bool instruction::generateMem(codeGen &gen,
     * Check parameters
     **********/
    Register newreg = Null_Register;
-   if (loadExpr != Null_Register && storeExpr != Null_Register) 
+   if (loadExpr != Null_Register && storeExpr != Null_Register) {
+     cerr << "error 1" << endl;
       return false; //Can only do one memory replace per instruction now
-   else if (loadExpr == Null_Register && storeExpr == Null_Register) 
-      return false; //None specified
+   }
+   else if (loadExpr == Null_Register && storeExpr == Null_Register)  {
+     cerr << "error 2" << endl;
+     return false; //None specified
+   }
    else if (loadExpr != Null_Register && storeExpr == Null_Register) 
       newreg = loadExpr;
    else if (loadExpr == Null_Register && storeExpr != Null_Register) 
@@ -1507,10 +1463,6 @@ bool instruction::generateMem(codeGen &gen,
    ia32_decode(IA32_DECODE_MEMACCESS | IA32_DECODE_CONDITION,
                insn_ptr, orig_instr);
    entry = orig_instr.getEntry();
-
-   if (gen.addrSpace()->getAddressWidth() != 8)
-      //Currently works only on IA-32e
-      return false; 
 
    if (orig_instr.getPrefix()->getPrefix(1) != 0)
       //The instruction accesses memory via segment registers.  Disallow.
@@ -1587,14 +1539,30 @@ bool instruction::generateMem(codeGen &gen,
       REX_SET_R(new_rex, loc.rex_r);
       REX_SET_X(new_rex, 0);
       REX_SET_B(new_rex, loc.rex_b); 
-      *walker++ = new_rex;
    }
    
    /**
     * Copy opcode
     **/
    for (int i=loc.num_prefixes; i<loc.num_prefixes+(int)loc.opcode_size; i++) {
-      *walker++ = insn_ptr[i];
+     //*walker++ = insn_ptr[i];
+     if ((insn_ptr[i] != 0xf0) &&
+	 (insn_ptr[i] != 0xf2) &&
+	 (insn_ptr[i] != 0xf3) &&
+	 (insn_ptr[i] != 0x2e) &&
+	 (insn_ptr[i] != 0x36) &&
+	 (insn_ptr[i] != 0x3e) &&
+	 (insn_ptr[i] != 0x26) &&
+	 (insn_ptr[i] != 0x64) &&
+	 (insn_ptr[i] != 0x65) &&
+	 (insn_ptr[i] != 0x66) &&
+	 (insn_ptr[i] != 0x67)) {
+       if (new_rex != 0) {
+	 *walker++ = new_rex;
+	 new_rex = 0;
+       }
+     }
+     *walker++ = insn_ptr[i];
    }
    
    /**
@@ -1626,7 +1594,7 @@ bool instruction::generateMem(codeGen &gen,
     **/
    for (unsigned i=0; i<loc.imm_size[0]; i++)
    {
-      *walker++ = insn_ptr[loc.imm_position[0] + i];
+     *walker++ = insn_ptr[loc.imm_position[0] + i];
    }
 
    //Debug output.  Fix the end of testdump.c, compile it, the do an

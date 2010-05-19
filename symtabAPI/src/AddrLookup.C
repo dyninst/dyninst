@@ -32,8 +32,10 @@
 #include "symtabAPI/h/Symtab.h"
 #include "symtabAPI/h/Symbol.h"
 #include "symtabAPI/h/AddrLookup.h"
+#include "symtabAPI/h/SymtabReader.h"
 
 #include "common/h/addrtranslate.h"
+
 
 #include <vector>
 #include <algorithm>
@@ -47,7 +49,7 @@ dyn_hash_map<string, std::vector<Symbol *> > AddressLookup::syms;
 
 AddressLookup *AddressLookup::createAddressLookup(PID pid, ProcessReader *reader)
 {
-   AddressTranslate *trans = AddressTranslate::createAddressTranslator(pid, reader);
+   AddressTranslate *trans = AddressTranslate::createAddressTranslator(pid, reader, getSymtabReaderFactory());
 
    if (!trans)
       return NULL;
@@ -60,7 +62,7 @@ AddressLookup *AddressLookup::createAddressLookup(PID pid, ProcessReader *reader
 
 AddressLookup *AddressLookup::createAddressLookup(ProcessReader *reader)
 {
-   AddressTranslate *trans = AddressTranslate::createAddressTranslator(reader);
+   AddressTranslate *trans = AddressTranslate::createAddressTranslator(reader, getSymtabReaderFactory());
    if (!trans) {
       return NULL;
    }
@@ -71,7 +73,7 @@ AddressLookup *AddressLookup::createAddressLookup(ProcessReader *reader)
    return ar;
 }
 
-AddressLookup *AddressLookup::createAddressLookup(const std::vector<LoadedLibrary> &name_addrs)
+AddressLookup *AddressLookup::createAddressLookup(const std::vector<LoadedLibrary> &/*name_addrs*/)
 {
    assert(0); //TODO Implement
    return NULL;
