@@ -162,6 +162,8 @@ bool int_process::attach()
    pthrd_printf("Attaching to process %d\n", pid);
    bool result = plat_attach();
    if (!result) {
+      ProcPool()->condvar()->broadcast();
+      ProcPool()->condvar()->unlock();
       pthrd_printf("Could not attach to debuggee, %d\n", pid);
       return false;
    }
@@ -713,8 +715,6 @@ bool int_process::detach(bool &should_delete)
       tp->intStop(true);
    }
    
-   ProcPool()->condvar()->lock();
-
    while (!mem->breakpoints.empty())
    {      
       std::map<Dyninst::Address, installed_breakpoint *>::iterator i = mem->breakpoints.begin();
@@ -725,6 +725,8 @@ bool int_process::detach(bool &should_delete)
          goto done;
       }
    }
+
+   ProcPool()->condvar()->lock();
 
    result = plat_detach();
    if (!result) {
