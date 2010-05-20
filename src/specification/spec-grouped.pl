@@ -560,6 +560,7 @@ test_platform('test1_35', 'sparc-sun-solaris2.8').
 test_platform('test1_35', 'sparc-sun-solaris2.9').
 test_platform('test1_35', 'i386-unknown-freebsd8.0').
 test_platform('test1_35', 'i386-unknown-freebsd7.2').
+test_platform('test1_35', 'amd64-unknown-freebsd7.2').
 groupable_test('test1_35').
 mutator('test1_35', ['test1_35.C']).
 mutatee('test1_35', ['test1_35_mutatee.c'], Sources) :-
@@ -573,6 +574,8 @@ mutatee('test1_35', ['test1_35_mutatee.c'], Sources) :-
             Sources = ['call35_1_x86_linux.s'];
         (Arch = 'i386', OS = 'freebsd') ->
             Sources = ['call35_1_x86_linux.s'];
+        (Arch = 'x86_64', OS = 'freebsd') ->
+            Sources = ['call35_1_x86_64_linux.s'];
         (Arch = 'i386', OS = 'solaris') ->
             Sources = ['call35_1_x86_solaris.s'];
         Sources = ['call35_1.c']
@@ -2368,6 +2371,7 @@ tests_module('power_cft', 'instruction').
 pcPlatforms(P) :- platform('x86_64', 'linux', _, P).
 pcPlatforms(P) :- platform('i386', 'linux', _, P).
 pcPlatforms(P) :- platform('i386', 'freebsd', _,P).
+pcPlatforms(P) :- platform('x86_64', 'freebsd', _,P).
 
 pcMutateeLibs(Libs) :-
    current_platform(P),
@@ -2539,6 +2543,7 @@ platform('power', 'linux', 'linux2.6', 'ppc64_linux').
 platform('power', 'linux', 'linux2.6', 'ppc32_linux').
 platform('i386', 'freebsd', 'freebsd8.0', 'i386-unknown-freebsd8.0').
 platform('i386', 'freebsd', 'freebsd7.2', 'i386-unknown-freebsd7.2').
+platform('x86_64', 'freebsd', 'freebsd7.2', 'amd64-unknown-freebsd7.2').
 
 % Platform Defns
 % platform/1
@@ -2562,6 +2567,7 @@ platform_format(_, 'dynamicMutatee').
 platform_format(P, 'staticMutatee') :- platform('i386', 'linux', _, P).
 platform_format(P, 'staticMutatee') :- platform('x86_64', 'linux', _, P).
 platform_format(P, 'staticMutatee') :- platform('i386', 'freebsd', _, P).
+platform_format(P, 'staticMutatee') :- platform('x86_64', 'freebsd', _, P).
 
 % compiler_format (Compiler, Format)
 compiler_format(_, 'dynamicMutatee').
@@ -3179,6 +3185,7 @@ runmode_platform(P, 'binary') :- platform('i386', 'linux', _, P).
 runmode_platform(P, 'binary') :- platform('x86_64', 'linux', _, P).
 runmode_platform(P, 'binary') :- platform('power', 'linux', _, P).
 runmode_platform(P, 'binary') :- platform('i386', 'freebsd', _, P).
+runmode_platform(P, 'binary') :- platform('x86_64', 'freebsd', _,P).
 % runmode_platform(P, 'deserialize') :- platform(_, _, _, P).
 
 % mutatee_peers/2
