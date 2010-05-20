@@ -36,7 +36,7 @@ MUTATEE_LDFLAGS_GNU += -Wl,-export-dynamic
 MUTATEE_LDFLAGS_NATIVE += -Wl,-export-dynamic
 
 COMMA=,
-MUTATEE_G77_FFLAGS += -Di386_unknown_freebsd7_0 -DF77 -fno-second-underscore -g
+MUTATEE_G77_FFLAGS += -Damd64_unknown_freebsd7_0 -DF77 -fno-second-underscore -g
 MUTATEE_G77_CFLAGS += $(filter-out -Wl$(COMMA)-export-dynamic, $(MUTATEE_CFLAGS_GNU)) 
 MUTATEE_G77_CFLAGS += -DF77 -DFortran -g $(MUTATEE_FFLAGS) -c -I../src
 TEST1_FORTRAN_CSOURCE = test1.mutateeFortC.c
