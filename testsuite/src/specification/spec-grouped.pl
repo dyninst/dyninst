@@ -2601,6 +2601,7 @@ platform_abi('ia64-unknown-linux2.4', 64).
 platform_abi('x86_64-unknown-linux2.4', 64).
 platform_abi('ppc64_linux', 64).
 platform_abi('rs6000-ibm-aix64-5.2', 64).
+platform_abi('amd64-unknown-freebsd7.2', 64).
 
 % restricted_abi_for_arch(Test, Arch, ABI)
 % Limits the test Test to only running with mutatees compiled to ABI on the
@@ -3008,11 +3009,15 @@ compiler_platform_abi_s(Compiler, Platform, ABI, '') :-
     mutatee_abi(ABI),
     platform_abi(Platform, ABI),
     \+ (member(Compiler, ['gcc', 'g++']), Platform = 'x86_64-unknown-linux2.4',
+        ABI = 32),
+    \+ (member(Compiler, ['gcc', 'g++']), Platform = 'amd64-unknown-freebsd7.2',
         ABI = 32).
 compiler_platform_abi_s(Compiler, 'x86_64-unknown-linux2.4', 32,
                         '-m32 -Di386_unknown_linux2_4 -Dm32_test') :-
     member(Compiler, ['gcc', 'g++']).
-
+compiler_platform_abi_s(Compiler, 'amd64-unknown-freebsd7.2', 32,
+                        '-m32 -Di386_unknown_freebsd7_2 -Dm32_test') :-
+    member(Compiler, ['gcc', 'g++']).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TEST SPECIFICATION GLUE
