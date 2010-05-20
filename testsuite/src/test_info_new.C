@@ -82,6 +82,21 @@ RunGroup::RunGroup(const char *mutatee_name, start_state_t state_init,
    Module::registerGroupInModule(std::string(modname_), this);
 }
 
+// Constructor for RunGroup with no initial test specified
+RunGroup::RunGroup(const char *mutatee_name, start_state_t state_init,
+                   create_mode_t attach_init, 
+                   bool ex, const char *modname_,
+                   const char *compiler_, const char *optlevel_, 
+                   const char *abi_)
+  : mutatee(mutatee_name), state(state_init), useAttach(attach_init),
+    customExecution(ex), disabled(false), mod(NULL),
+    threadmode(TNone), procmode(PNone),
+    linktype(DynamicLink),
+    compiler(compiler_), optlevel(optlevel_), abi(abi_)
+{
+   Module::registerGroupInModule(std::string(modname_), this);
+}
+
 // RunGroup's destructor clears its vector of tests
 RunGroup::~RunGroup() {
    assert(0);

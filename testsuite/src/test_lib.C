@@ -89,9 +89,28 @@ FILE *outlog = NULL;
 FILE *errlog = NULL;
 const char *outlogname = "-";
 const char *errlogname = "-";
-char *resumelog_name = "resumelog";
 
-char *binedit_dir = BINEDIT_BASENAME;
+static char *binedit_dir = BINEDIT_BASENAME;
+
+char *get_binedit_dir()
+{
+	return binedit_dir;
+}
+
+void set_binedit_dir(char *d)
+{
+	binedit_dir = d;
+}
+
+static char *resumelog_name = "resumelog";
+char *get_resumelog_name() {
+	return resumelog_name;
+}
+
+void set_resumelog_name(char *s) {
+	resumelog_name = s;
+}
+
 
 LocErr::LocErr(const char *__file__, const int __line__, const std::string msg) :
 	msg__(msg),

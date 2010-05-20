@@ -123,7 +123,7 @@ void parseMEMCPUFile()
 }
 
 #if !defined(os_linux_test)
-ssize_t getline(char **line, size_t *line_size, FILE *f)
+int getline(char **line, size_t *line_size, FILE *f)
 {
    if (*line == NULL) {
       *line = (char *) malloc(4096);
@@ -436,7 +436,7 @@ int main(int argc, char *argv[])
          FILE *f = fopen(test_drivers[driver].outputlog.c_str(), "r");
          if (f) {
             for (;;) {
-               ssize_t result = getline(&line, &line_size, f);
+               int result = (int) getline(&line, &line_size, f);
                if (result == -1)
                   break;
                fprintf(outputlog_file, "%s", line);

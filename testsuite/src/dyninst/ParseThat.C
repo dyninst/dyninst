@@ -31,6 +31,7 @@
 #include "ParseThat.h"
 #include "util.h"
 #include "dyninst_comp.h"
+#include "test_lib.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 using namespace Dyninst;
@@ -336,12 +337,11 @@ test_results_t ParseThat::sys_execute(std::string cmd, std::vector<std::string> 
 #endif
 }
 
-extern char *binedit_dir;
-
 test_results_t ParseThat::operator()(std::string exec_path, std::vector<std::string> &mutatee_args)
 {
 	
 	struct stat statbuf;
+	char *binedit_dir = get_binedit_dir();
 	int result = stat(binedit_dir, &statbuf);
 	if (-1 == result)
 	{
