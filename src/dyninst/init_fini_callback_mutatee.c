@@ -46,12 +46,16 @@ void entry_call(const char* msg)
     dprintf("entry_call %d/%d (%s)\n", called_entry, expected_entry, msg);
 }
 
+extern int unique_id;
+
 void exit_call(const char* msg)
 {
+    char filename[256];
+    snprintf(filename, 256, "init_fini_log.%d", unique_id);
     if(called_entry != expected_entry)
     {
         const char* buf = "NO";
-        int fd = creat("init_fini_log", 0x4 << 6);
+        int fd = creat(filename, 0x4 << 6);
         write(fd, buf, 2);
         fsync(fd);
         close(fd);
@@ -62,7 +66,7 @@ void exit_call(const char* msg)
     if(called_exit == expected_exit)
     {
         const char* buf = "OK";
-        int fd = creat("init_fini_log", 0x4 << 6);
+        int fd = creat(filename, 0x4 << 6);
         write(fd, buf, 2);
         fsync(fd);
         close(fd);

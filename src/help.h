@@ -125,4 +125,15 @@ static void print_help()
    fprintf(stderr, "                                    test_driver should print a SQL file that\n");
    fprintf(stderr, "                                    is suitable for submission to a database.\n");
    fprintf(stderr, "\n");
+   fprintf(stderr, "Running Tests in Parallel\n");
+   fprintf(stderr, "-------------------------\n");
+   fprintf(stderr, "  -j [number]                       Run [number] copies of test_driver in\n");
+   fprintf(stderr, "                                    parallel.  As a rule-of-thumb, run one copy of\n");
+   fprintf(stderr, "                                    test_driver for each CPU core on a machine.\n");
+   fprintf(stderr, "                                    This option is only valid when passed to runTests\n");
+   fprintf(stderr, "\n");
+   fprintf(stderr, "  -hosts [host1] [host2] ...        Use ssh to run test_driver instances on the given\n");
+   fprintf(stderr, "                                    hosts.  Use with the -j option when running on\n");
+   fprintf(stderr, "                                    multiple hosts.  This option is only valid when\n");
+   fprintf(stderr, "                                    passed to runTests\n");
 }

@@ -336,17 +336,19 @@ test_results_t ParseThat::sys_execute(std::string cmd, std::vector<std::string> 
 #endif
 }
 
+extern char *binedit_dir;
+
 test_results_t ParseThat::operator()(std::string exec_path, std::vector<std::string> &mutatee_args)
 {
 	
 	struct stat statbuf;
-	int result = stat(BINEDIT_DIR, &statbuf);
+	int result = stat(binedit_dir, &statbuf);
 	if (-1 == result)
 	{
-		result = mkdir(BINEDIT_DIR, 0700);
+		result = mkdir(binedit_dir, 0700);
 		if (result == -1) {
 			logerror("%s[%d]: Could not mkdir %s: %s\n ", FILE__, __LINE__, 
-					BINEDIT_DIR,strerror(errno) );
+					binedit_dir,strerror(errno) );
 			return FAILED;
 		}
 	}
