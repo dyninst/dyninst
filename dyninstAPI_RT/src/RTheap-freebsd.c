@@ -48,6 +48,11 @@ int     DYNINSTheap_align = 4; /* heaps are word-aligned */
 
 Address DYNINSTheap_loAddr = 0x50000000;
 Address DYNINSTheap_hiAddr = 0xb0000000;
+#elif defined(MUTATEE64)
+int     DYNINSTheap_align = 4; /* heaps are word-aligned */
+
+Address DYNINSTheap_loAddr = 0x4096;
+Address DYNINSTheap_hiAddr = ~0x0;
 #else
 #error Architecture unimplemented
 #endif

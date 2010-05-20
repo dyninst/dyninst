@@ -144,7 +144,8 @@ int test1_27_mutatee() {
  && !defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
  && !defined(i386_unknown_solaris2_5_test) \
  && !defined(i386_unknown_nt4_0_test) \
- && !defined(ia64_unknown_linux2_4_test)
+ && !defined(ia64_unknown_linux2_4_test) \
+ && !defined(os_freebsd_test)
 
     logerror("Skipped test #27 (type compatibility)\n");
     logerror("\t- not implemented on this platform\n");

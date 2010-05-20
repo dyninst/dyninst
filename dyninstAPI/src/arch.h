@@ -51,7 +51,8 @@
    || defined(i386_unknown_linux2_0) \
    || defined(x86_64_unknown_linux2_4) \
    || defined(i386_unknown_freebsd8_0) \
-   || defined(i386_unknown_freebsd7_0)
+   || defined(i386_unknown_freebsd7_0) \
+   || defined(amd64_unknown_freebsd7_0)
 #include "arch-x86.h"
 
 #elif defined(ia64_unknown_linux2_4)

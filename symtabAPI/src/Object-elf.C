@@ -47,7 +47,7 @@
 
 #include "debug.h"
 
-#if defined(x86_64_unknown_linux2_4) || defined(ia64_unknown_linux2_4) || defined(ppc64_linux)
+#if defined(arch_x86_64)
 #include "emitElf-64.h"
 #endif
 
@@ -4326,7 +4326,8 @@ bool Object::emitDriver(Symtab *obj, string fName,
       if( !em->createSymbolTables(obj, allSymbols) ) return false;
       return em->driver(obj, fName);
     }
-#if defined(x86_64_unknown_linux2_4) || defined(ia64_unknown_linux2_4) || defined(ppc64_linux)
+//#if defined(x86_64_unknown_linux2_4) || defined(ia64_unknown_linux2_4) || defined(ppc64_linux)
+#if defined(arch_x86_64)
   else if (elfHdr.e_ident()[EI_CLASS] == ELFCLASS64) 
     {
       emitElf64 *em = new emitElf64(elfHdr, isStripped, this, err_func_);

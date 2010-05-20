@@ -30,7 +30,8 @@
  */
 
 #if !defined(i386_unknown_freebsd8_0) \
- && !defined(i386_unknown_freebsd7_0)
+ && !defined(i386_unknown_freebsd7_0) \
+ && !defined(amd64_unknown_freebsd7_0)
 #error "invalid architecture-os inclusion"
 #endif
 

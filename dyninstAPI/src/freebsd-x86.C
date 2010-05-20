@@ -160,6 +160,13 @@ bool AddressSpace::getDyninstRTLibName() {
     return true;
 }
 
+#if defined(arch_x86_64)
+void print_regs(dyn_lwp *lwp)
+{
+    // XXX this is a debugging function
+}
+#endif
+
 static const std::string LIBC_CTOR_HANDLER("__do_global_ctors_aux");
 static const std::string LIBC_DTOR_HANDLER("__do_global_dtors_aux");
 static const std::string DYNINST_CTOR_HANDLER("DYNINSTglobal_ctors_handler");

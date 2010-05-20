@@ -3494,6 +3494,9 @@ SYMTAB_EXPORT bool Symtab::addSysVDynamic(long name, long value)
 SYMTAB_EXPORT bool Symtab::addExternalSymbolReference(Symbol *externalSym, Region *localRegion,
         relocationEntry localRel)
 {
+    // Adjust this to the correct value
+    localRel.setRegionType(getObject()->getRelType());
+
     // Create placeholder Symbol for external Symbol reference
     Symbol *symRef = new Symbol(externalSym->getName(),
                                 externalSym->getType(),

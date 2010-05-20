@@ -580,10 +580,6 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
                 localRel.setRelAddr(to - mobj->imageOffset());
             }
 
-	    if (!symObj->hasReldyn() && symObj->hasReladyn()) {
-                localRel.setRegionType(Region::RT_RELA);
-            }
-
             symObj->addExternalSymbolReference(referring, newSec, localRel);
 
 	    /*

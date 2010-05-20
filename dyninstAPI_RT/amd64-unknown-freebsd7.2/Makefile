@@ -19,7 +19,8 @@ endif
 # Now make any necessary architecture specific changes to variables:
 LD		= $(GCC)
 LDFLAGS         += -shared
-CFLAGS		+= -O2
+LDFLAGS		+= -m64
+CFLAGS		+= -Wall -m64 -DMUTATEE64
 
 # if we want to produce a shared object...
 CC              = $(GCC)
@@ -39,7 +40,7 @@ SRCS		+= ../src/RTposix.c \
 		   ../src/RTheap-freebsd.c \
 		   ../src/RTthread.c \
 	           ../src/RTthread-index.c \
-		   ../src/RTthread-x86_64.c \
+		   ../src/RTthread-x86-64.c \
 		   ../src/RTspace.S \
 		   ../src/RTsignal-x86_64.S \
 		   ../src/RTtlsgetaddr-x86_64.S \
