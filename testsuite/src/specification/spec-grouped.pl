@@ -2618,10 +2618,10 @@ compiler_platform('gfortran', 'i386-unknown-linux2.6').
 compiler_platform('VC', Plat) :- platform(_, OS, _, Plat), OS == 'windows'.
 compiler_platform('VC++', Plat) :- platform(_, OS, _, Plat), OS == 'windows'.
 % Portland Group compiler only runs on i386 Linux
-compiler_platform('pgcc', Plat) :-
-    platform(Arch, OS, _, Plat), Arch == 'i386', OS == 'linux'.
-compiler_platform('pgCC', Plat) :-
-    platform(Arch, OS, _, Plat), Arch == 'i386', OS == 'linux'.
+compiler_platform('pgcc', Plat) :- platform(Arch, OS, _, Plat), Arch == 'i386', OS == 'linux'.
+compiler_platform('pgCC', Plat) :- platform(Arch, OS, _, Plat), Arch == 'i386', OS == 'linux'.
+compiler_platform('pgcc', Plat) :- platform(Arch, OS, _, Plat), Arch == 'x86_64', OS == 'linux'.
+compiler_platform('pgCC', Plat) :- platform(Arch, OS, _, Plat), Arch == 'x86_64', OS == 'linux'.
 % Alphas native compilers are cc & cxx
 compiler_platform('cc', 'alpha-dec-osf5.1').
 compiler_platform('cxx', 'alpha-dec-osf5.1').
@@ -2636,6 +2636,10 @@ compiler_platform('icc', Plat) :-
     platform(Arch, OS, _, Plat), Arch == 'i386', OS == 'linux'.
 compiler_platform('iCC', Plat) :-
     platform(Arch, OS, _, Plat), Arch == 'i386', OS == 'linux'.
+compiler_platform('icc', Plat) :- 
+    platform(Arch, OS, _, Plat), Arch == 'x86_64', OS == 'linux'.
+compiler_platform('iCC', Plat) :-
+    platform(Arch, OS, _, Plat), Arch == 'x86_64', OS == 'linux'.
 
 % linker/2
 % linker(?Platform, ?Linker)

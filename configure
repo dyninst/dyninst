@@ -866,6 +866,8 @@ Optional Packages:
   --with-libxml2-libdir   LIBXML2 library directory
   --with-libunwind-incdir LIBUNWIND include directory
   --with-libunwind-libdir LIBUNWIND library directory
+  --with-icc              Path to Intel's ICC compiler
+  --with-pgcc             Path to Pathscale's PGCC compiler
   --with-libflex-libdir   Absolute path to flex library
 
 Some influential environment variables:
@@ -5114,6 +5116,33 @@ rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
 
 fi
 
+
+
+if test "$host_cpu" != "x86_64" -a "$host_cpu" != "i686"; then
+   { echo "$as_me:$LINENO: Not x86/x86_64, skipping icc on $host_cpu..." >&5
+echo "$as_me: Not x86/x86_64, skipping icc on $host_cpu..." >&6;}
+else
+
+# Check whether --with-icc or --without-icc was given.
+if test "${with_icc+set}" = set; then
+  withval="$with_icc"
+  _ICC_="${withval}"; _ICPC_=`dirname ${withval}`/icpc;
+fi;
+fi
+
+
+
+if test "$host_cpu" != "x86_64" -a "$host_cpu" != "i686"; then
+   { echo "$as_me:$LINENO: Not x86/x86_64, skipping pgcc on $host_cpu..." >&5
+echo "$as_me: Not x86/x86_64, skipping pgcc on $host_cpu..." >&6;}
+else
+
+# Check whether --with-pgcc or --without-pgcc was given.
+if test "${with_pgcc+set}" = set; then
+  withval="$with_pgcc"
+  _PGC_="${withval}"; _PGCXX_=`dirname ${withval}`/pgCC;
+fi;
+fi
 
 
 
