@@ -76,7 +76,7 @@ static volatile int unused; /* move decl here to dump compiler warning - jkh */
 #define MAGIC22_6   2200600
 #define MAGIC22_7   2200700
 
-#if defined(x86_64_unknown_linux2_4_test) && (__WORDSIZE == 32)
+#if (defined(x86_64_unknown_linux2_4_test) || defined(amd64_unknown_freebsd7_0_test)) && (__WORDSIZE == 32)
 static const char *libNameA = "libtestA_m32.so";
 #elif defined(os_windows_test)
 static const char *libNameA = "libtestA.dll";

@@ -97,7 +97,8 @@ int test1_30_mutatee() {
  || defined(ia64_unknown_linux2_4_test) \
  || defined(i386_unknown_nt4_0_test) \
  || defined(rs6000_ibm_aix4_1_test) \
- || defined(alpha_dec_osf4_0_test)
+ || defined(alpha_dec_osf4_0_test) \
+ || defined(os_freebsd_test)
     
     func30_2();
 

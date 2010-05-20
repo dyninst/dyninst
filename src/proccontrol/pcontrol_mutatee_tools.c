@@ -64,7 +64,7 @@ void *ThreadTrampoline(void *d)
    testLock(&thread_startup_lock);
    testUnlock(&thread_startup_lock);
 
-   func_result = func((int)thread_id, data);
+   func_result = func((unsigned long)thread_id, data);
    
    return (void *) (long) func_result;
 }
