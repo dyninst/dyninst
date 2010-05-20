@@ -124,6 +124,11 @@ public:
                               const char *modname_, const char *compiler_, const char *optlevel_, 
                               const char *abi_);
   TESTLIB_DLL_EXPORT RunGroup(const char *mutatee_name, start_state_t state_init,
+                              create_mode_t attach_init,
+							  bool ex, const char *modname_, 
+                              const char *compiler_, const char *optlevel_,
+							  const char *abi);
+  TESTLIB_DLL_EXPORT RunGroup(const char *mutatee_name, start_state_t state_init,
                               create_mode_t attach_init, 
                               test_threadstate_t threads_, test_procstate_t procs_, 
                               test_linktype_t linktype_,

@@ -257,6 +257,7 @@ BPatch_binaryEdit *startBinaryTest(BPatch *bpatch, RunGroup *group)
 static void clearBinEditFiles()
 {
    struct dirent **files;
+   char *binedit_dir = get_binedit_dir();
    int result = scandir(binedit_dir, &files, NULL, NULL);
    if (result == -1) {
       return;
@@ -284,6 +285,7 @@ static void clearBinEditFiles()
 
 static bool cdBinDir()
 {
+   char *binedit_dir = get_binedit_dir();
    int result = chdir(binedit_dir);
    if (result != -1) {
       return true;
@@ -402,6 +404,7 @@ bool runBinaryTest(BPatch *bpatch, RunGroup *group,
    int pid;
    std::string outfile;
 
+   char *binedit_dir = get_binedit_dir();
    if (unique_id) {
       unsigned buffer_len = strlen(BINEDIT_BASENAME) + 32;
       char *buffer = (char *) malloc(buffer_len);
@@ -409,8 +412,9 @@ bool runBinaryTest(BPatch *bpatch, RunGroup *group,
       if (strcmp(buffer, binedit_dir) == 0) {
          free(buffer);
       }
-      else {
+      else {	    
          binedit_dir = buffer;
+		 set_binedit_dir(buffer);
       }
    }
 

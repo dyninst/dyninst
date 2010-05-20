@@ -152,7 +152,6 @@ int errorPrint = 0;
 int debugPrint = 0;
 int unique_id = 0;
 int max_unique_id = 0;
-extern char *resumelog_name;
 char *humanlog_name = "-";
 char *crashlog_name = "crashlog";
 char *measureFileName = "-";
@@ -922,7 +921,7 @@ void startAllTests(std::vector<RunGroup *> &groups,
    ParamInt noclean_p((int) noclean);
    ParamInt uniqueid_p((int) unique_id);
    ParamString humanname_p(humanlog_name);
-   std::string mutateeresume_name = std::string("mutatee_") + resumelog_name;
+   std::string mutateeresume_name = std::string("mutatee_") + get_resumelog_name();
    ParamString resumelog_p(mutateeresume_name.c_str());
 
    param["logfilename"] = &logfile_p;
@@ -1214,8 +1213,8 @@ int main(int argc, char *argv[]) {
    if (unique_id) {
       char id_string[32];
       snprintf(id_string, 32, "%d", unique_id);
-      std::string newname = std::string(resumelog_name) + std::string(".") + std::string(id_string);
-      resumelog_name = strdup(newname.c_str());
+      std::string newname = std::string(get_resumelog_name()) + std::string(".") + std::string(id_string);
+      set_resumelog_name(strdup(newname.c_str()));
    }
 
    // Fill in tests vector with lists of test to run
@@ -1230,7 +1229,7 @@ int main(int argc, char *argv[]) {
 
    // Set the resume log name
    if ( getenv("RESUMELOG") ) {
-      resumelog_name = getenv("RESUMELOG");
+      set_resumelog_name(getenv("RESUMELOG"));
    }
 
    if ( shouldDebugBreak ) {
@@ -1586,7 +1585,7 @@ int parseArgs(int argc, char *argv[])
             getOutput()->log(STDERR, "-resumelog-name must be followed by a filename\n");
             return NOTESTS;
          }
-         resumelog_name = argv[++i];
+         set_resumelog_name(argv[++i]);
       }
       else if (strcmp(argv[i], "-unique") == 0) {
          if (i + 1 < argc) {

@@ -42,7 +42,6 @@
 #include <string.h>
 
 static bool enableLog = false;
-extern char *resumelog_name;
 
 #define RESULT_REPORTED -1
 #define RESUME_POINT -2
@@ -75,7 +74,7 @@ bool isLogging()
 
 void setLoggingFilename(char *f)
 {
-   resumelog_name = f;
+   set_resumelog_name(f);
 }
 
 void rebuild_resumelog(const std::vector<resumeLogEntry> &entries)
@@ -83,7 +82,7 @@ void rebuild_resumelog(const std::vector<resumeLogEntry> &entries)
    if (!enableLog)
       return;
 
-   FILE *f = fopen(resumelog_name, "a");
+   FILE *f = fopen(get_resumelog_name(), "a");
    
    for (unsigned i=0; i<entries.size(); i++)
    {
@@ -101,7 +100,7 @@ static void log_line(int groupnum, int testnum, int runstate, bool append)
    if (!enableLog)
       return;
 
-   FILE *f = fopen(resumelog_name, append ? "a" : "w");
+   FILE *f = fopen(get_resumelog_name(), append ? "a" : "w");
    if (!f) {
       getOutput()->log(STDERR, "Failed to update the resume log");
       return;
@@ -120,7 +119,7 @@ void log_testresult(test_results_t result)
    if (!enableLog)
       return;
 
-   FILE *f = fopen(resumelog_name, "a");
+   FILE *f = fopen(get_resumelog_name(), "a");
    if (!f) {
       getOutput()->log(STDERR, "Failed to update the resume log");
       return;
@@ -146,7 +145,7 @@ void log_clear()
 {
    if (!enableLog)
       return;
-   FILE *f = fopen(resumelog_name, "w");
+   FILE *f = fopen(get_resumelog_name(), "w");
    if (f)
       fclose(f);
 }
@@ -157,7 +156,7 @@ void parse_resumelog(std::vector<RunGroup *> &groups)
       return;
 
 
-   FILE *f = fopen(resumelog_name, "r");
+   FILE *f = fopen(get_resumelog_name(), "r");
    if (!f) {
       return;
    }
