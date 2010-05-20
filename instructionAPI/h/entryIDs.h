@@ -807,6 +807,12 @@ enum entryID {
           
 };
 
+enum prefixEntryID {
+  prefix_none,
+  prefix_rep,
+  prefix_repnz
+};
+
 #if defined(__GNUC__)
 //***************** GCC ***********************
   #if !defined(cap_tr1)
@@ -816,6 +822,13 @@ enum entryID {
     template<> struct hash<entryID> {
       hash<unsigned int> h;
       unsigned operator()(const entryID &e) const 
+      {
+	return h(static_cast<unsigned int>(e));
+      };
+    };
+    template<> struct hash<prefixEntryID> {
+      hash<unsigned int> h;
+      unsigned operator()(const prefixEntryID &e) const 
       {
 	return h(static_cast<unsigned int>(e));
       };
@@ -834,10 +847,19 @@ enum entryID {
 	  return static_cast<size_t>(eid);
 	}
       };
+      template <>
+      struct hash<prefixEntryID>
+      {
+	size_t operator()(const prefixEntryID &eid) const
+	{
+	  return static_cast<size_t>(eid);
+	}
+      };
     }
   }
 	#endif
 #endif
 extern dyn_hash_map<entryID, std::string> entryNames_IAPI;
+extern dyn_hash_map<prefixEntryID, std::string> prefixEntryNames_IAPI;
 
 #endif // defined(ENTRYIDS_IA32_H)

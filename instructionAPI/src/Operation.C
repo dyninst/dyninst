@@ -52,12 +52,12 @@ namespace Dyninst
     }
 
     Operation::Operation(entryID id, const char* mnem, Architecture arch)
-          : mnemonic(mnem), operationID(id), doneOtherSetup(true), doneFlagsSetup(true), archDecodedFrom(arch)
+          : mnemonic(mnem), operationID(id), doneOtherSetup(true), doneFlagsSetup(true), archDecodedFrom(arch), prefixID(prefix_none)
     {
     }
     
     Operation::Operation(ia32_entry* e, ia32_prefixes* p, ia32_locations* l, Architecture arch) :
-      doneOtherSetup(false), doneFlagsSetup(false), archDecodedFrom(arch)
+      doneOtherSetup(false), doneFlagsSetup(false), archDecodedFrom(arch), prefixID(prefix_none)
     
     {
       operationID = e->getID(l);
@@ -71,7 +71,16 @@ namespace Dyninst
             if(p->getPrefix(0) == PREFIX_REPNZ)
             {
                 otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::zf : x86_64::zf));
+                prefixID = prefix_repnz;
             }
+            else
+            {
+                prefixID = prefix_rep;
+            }
+        }
+        else
+        {
+          prefixID = prefix_none;
         }
         int segPrefix = p->getPrefix(1);
         switch(segPrefix)
@@ -108,6 +117,7 @@ namespace Dyninst
       doneOtherSetup = o.doneOtherSetup;
       doneFlagsSetup = o.doneFlagsSetup;
       archDecodedFrom = o.archDecodedFrom;
+      prefixID = prefix_none;
       
     }
     const Operation& Operation::operator=(const Operation& o)
@@ -120,11 +130,13 @@ namespace Dyninst
       doneOtherSetup = o.doneOtherSetup;
       doneFlagsSetup = o.doneFlagsSetup;
       archDecodedFrom = o.archDecodedFrom;
+      prefixID = o.prefixID;
       return *this;
     }
     Operation::Operation()
     {
       operationID = e_No_Entry;
+      prefixID = prefix_none;
     }
     
     const Operation::registerSet&  Operation::implicitReads() const
@@ -209,15 +221,32 @@ namespace Dyninst
         {
             return mnemonic;
         }
+      dyn_hash_map<prefixEntryID, std::string>::const_iterator foundPrefix = prefixEntryNames_IAPI.find(prefixID);
       dyn_hash_map<entryID, std::string>::const_iterator found = entryNames_IAPI.find(operationID);
+      std::string result;
+      if(foundPrefix != prefixEntryNames_IAPI.end())
+      {
+        result += (foundPrefix->second + " ");
+      }
       if(found != entryNames_IAPI.end())
-	return found->second;
-      return "[INVALID]";
+      {
+	result += found->second;
+      }
+      else
+      {
+        result += "[INVALID]";
+      }
+      return result;
     }
 
     entryID Operation::getID() const
     {
       return operationID;
+    }
+
+    prefixEntryID Operation::getPrefixID() const
+    {
+      return prefixID;
     }
 
     struct OperationMaps

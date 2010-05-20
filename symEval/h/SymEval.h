@@ -408,7 +408,7 @@ struct SymEvalArchTraits<Arch_x86>
     static void handleSpecialCases(InstructionAPI::Instruction::Ptr,
 				   std::vector<InstructionAPI::Operand>&);
 
-    static InstructionKind_t convert(entryID e, std::string);
+    static InstructionKind_t convert(entryID e, prefixEntryID pe, std::string);
     static void processInstruction(SageInstruction_t* insn, SymEvalPolicy& policy);
 };
 template <>
@@ -424,7 +424,7 @@ struct SymEvalArchTraits<Arch_ppc32>
     static bool handleSpecialCases(entryID iapi_opcode, SageInstruction_t& rose_insn,
                                    SgAsmOperandList* rose_operands);
     static void handleSpecialCases(InstructionAPI::Instruction::Ptr insn, std::vector<InstructionAPI::Operand>& operands);
-    static InstructionKind_t convert(entryID e, std::string mnem);
+    static InstructionKind_t convert(entryID e, prefixEntryID pe, std::string mnem);
     static void processInstruction(SageInstruction_t* insn, SymEvalPolicy& policy);
 };
 
@@ -461,9 +461,9 @@ public:
   static void process(AssignNode::Ptr, SymEval::Result_t &res);
 
   static SageInstruction_t convert(const InstructionAPI::Instruction::Ptr &insn, uint64_t addr);
-  static InstructionKind_t convert(entryID opcode, std::string mnem)
+  static InstructionKind_t convert(entryID opcode, prefixEntryID prefix, std::string mnem)
   {
-      return SymEvalArchTraits<a>::convert(opcode,mnem);
+      return SymEvalArchTraits<a>::convert(opcode,prefix,mnem);
   }
   static SgAsmExpression *convert(const InstructionAPI::Operand &operand, uint64_t addr);
   static SgAsmExpression *convert(const InstructionAPI::Expression::Ptr expression, uint64_t addr);

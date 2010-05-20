@@ -686,6 +686,10 @@ dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_3dnow_generic, "[FIXME: GENERIC 3DNow INSN]")
         ;
 
+dyn_hash_map<prefixEntryID, std::string> prefixEntryNames_IAPI = map_list_of
+  (prefix_rep, "REP")
+  (prefix_repnz, "REPNZ")
+        ;
 
 const dyn_hash_map<entryID, flagInfo>& ia32_instruction::getFlagTable()
 {

@@ -316,6 +316,11 @@ void SymEvalArchTraits<Arch_x86>::handleSpecialCases(InstructionAPI::Instruction
     // No operands
     operands.clear();
     break;
+  case e_scasb:
+  case e_scasw_d:
+    // Same here
+    operands.clear();
+    break;
   case e_stosb:
   case e_stosw_d:
     // Also, no operands
@@ -443,7 +448,7 @@ SymEval<a>::convert(const InstructionAPI::Instruction::Ptr &insn, uint64_t addr)
 
     rinsn.set_address(addr);
     rinsn.set_mnemonic(insn->format());
-    rinsn.set_kind(convert(insn->getOperation().getID(), insn->getOperation().format()));
+    rinsn.set_kind(convert(insn->getOperation().getID(), insn->getOperation().getPrefixID(), insn->getOperation().format()));
     // semantics don't support 64-bit code
     rinsn.set_operandSize(x86_insnsize_32);
     rinsn.set_addressSize(x86_insnsize_32);

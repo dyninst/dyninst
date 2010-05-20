@@ -47,9 +47,42 @@ template class SymEval<Arch_x86>;
 template class SymEval<Arch_ppc32>;
 
     
-SymEvalArchTraits<Arch_x86>::InstructionKind_t SymEvalArchTraits<Arch_x86>::convert(entryID opcode,
-										    std::string)
+SymEvalArchTraits<Arch_x86>::InstructionKind_t SymEvalArchTraits<Arch_x86>::convert(entryID opcode, prefixEntryID prefix, std::string)
 {
+  switch (prefix) {
+    case prefix_rep:
+        switch (opcode) {
+          case e_insb: return x86_rep_insb;
+          case e_insw_d: return x86_rep_insw;
+          case e_lodsb: return x86_rep_lodsb;
+          case e_lodsw: return x86_rep_lodsw;
+          case e_movsb: return x86_rep_movsb;
+          case e_movsd: return x86_rep_movsd;
+          case e_movsw_d: return x86_rep_movsw;
+          case e_outsb: return x86_rep_outsb;
+          case e_outsw_d: return x86_rep_outsw;
+          case e_stosb: return x86_rep_stosb;
+          case e_stosw_d: return x86_rep_stosw;
+          case e_cmpsb: return x86_repe_cmpsb;
+          case e_cmpsd: return x86_repe_cmpsd;
+          case e_cmpsw: return x86_repe_cmpsw;
+          case e_scasb: return x86_repe_scasb;
+          case e_scasw_d: return x86_repe_scasw;
+          default: return x86_unknown_instruction;
+        }
+    break;
+    case prefix_repnz:
+        switch (opcode) {
+          case e_cmpsb: return x86_repne_cmpsb;
+          case e_cmpsd: return x86_repne_cmpsd;
+          case e_cmpsw: return x86_repne_cmpsw;
+          case e_scasb: return x86_repne_scasb;
+          case e_scasw_d: return x86_repne_scasw;
+          default: return x86_unknown_instruction;
+        }
+    break;
+    case prefix_none:
+    default:
     switch (opcode) {
         case e_jb:
             return x86_jb;
@@ -912,10 +945,11 @@ SymEvalArchTraits<Arch_x86>::InstructionKind_t SymEvalArchTraits<Arch_x86>::conv
         default:
             return x86_unknown_instruction;
         }
+    break;
+  }
 }
 
-SymEvalArchTraits<Arch_ppc32>::InstructionKind_t SymEvalArchTraits<Arch_ppc32>::convert(entryID opcode,
-											std::string mnem)
+SymEvalArchTraits<Arch_ppc32>::InstructionKind_t SymEvalArchTraits<Arch_ppc32>::convert(entryID opcode, prefixEntryID prefix, std::string mnem)
 {
   InstructionKind_t ret = powerpc_unknown_instruction;
     switch(opcode)
