@@ -2594,7 +2594,8 @@ whitelist([['platform', Platform], ['mutatee_abi', ABI]]) :-
 % FIXME Does ppc64 support 32-bit mutatees?
 platform_abi(Platform, 32) :-
     platform(Arch, _, _, Platform),
-    Arch \= 'ia64'.
+    Arch \= 'ia64',
+    Platform \= 'amd64-unknown-freebsd7.2'.
 
 % A smaller list of platforms with for 64-bit mutatees
 platform_abi('ia64-unknown-linux2.4', 64).
@@ -3009,15 +3010,11 @@ compiler_platform_abi_s(Compiler, Platform, ABI, '') :-
     mutatee_abi(ABI),
     platform_abi(Platform, ABI),
     \+ (member(Compiler, ['gcc', 'g++']), Platform = 'x86_64-unknown-linux2.4',
-        ABI = 32),
-    \+ (member(Compiler, ['gcc', 'g++']), Platform = 'amd64-unknown-freebsd7.2',
         ABI = 32).
 compiler_platform_abi_s(Compiler, 'x86_64-unknown-linux2.4', 32,
                         '-m32 -Di386_unknown_linux2_4 -Dm32_test') :-
     member(Compiler, ['gcc', 'g++']).
-compiler_platform_abi_s(Compiler, 'amd64-unknown-freebsd7.2', 32,
-                        '-m32 -Di386_unknown_freebsd7_2 -Dm32_test') :-
-    member(Compiler, ['gcc', 'g++']).
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TEST SPECIFICATION GLUE
