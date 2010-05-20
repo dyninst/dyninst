@@ -563,7 +563,7 @@ memAccessors.begin()));
     {
         CFT c(e, isCall, isIndirect, isConditional, isFallthrough);
         m_Successors.push_back(c);
-        appendOperand(e, true, false);
+        if (!isFallthrough) appendOperand(e, true, false);
     }
     void Instruction::appendOperand(Expression::Ptr e, bool isRead, bool isWritten) const
     {
