@@ -66,10 +66,12 @@ extern "C" DLLEXPORT TestMutator *test_pt_ls_factory()
   return new test_pt_ls_Mutator();
 }
 
+extern char *binedit_dir;
+
 test_results_t test_pt_ls_Mutator::executeTest() 
 {
 
-	std::string prefix = std::string(BINEDIT_DIR) + std::string("/test_pt_ls");
+	std::string prefix = std::string(binedit_dir) + std::string("/test_pt_ls");
 	std::string bin_outfile;
 	ParseThat parseThat;
 	parseThat.pt_output_redirect(prefix + std::string("_output1"));

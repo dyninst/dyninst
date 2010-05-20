@@ -73,6 +73,9 @@
 #define PASS 0
 #define FAIL -1
 
+#define BINEDIT_BASENAME "./binaries"
+TESTLIB_DLL_EXPORT extern char *binedit_dir;
+
 // New logging system
 TESTLIB_DLL_EXPORT TestOutputDriver * getOutput();
 TESTLIB_DLL_EXPORT void setOutput(TestOutputDriver * new_output);

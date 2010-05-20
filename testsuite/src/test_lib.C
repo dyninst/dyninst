@@ -89,6 +89,9 @@ FILE *outlog = NULL;
 FILE *errlog = NULL;
 const char *outlogname = "-";
 const char *errlogname = "-";
+char *resumelog_name = "resumelog";
+
+char *binedit_dir = BINEDIT_BASENAME;
 
 LocErr::LocErr(const char *__file__, const int __line__, const std::string msg) :
 	msg__(msg),
@@ -341,7 +344,7 @@ void registerPID(int pid) {
 	}
 	FILE *pidFile = fopen(pidFilename, "a");
 	if (NULL == pidFile) {
-		fprintf(stderr, "[%s:%u] - Error registering mutatee PID: unable to open PID file\n", __FILE__, __LINE__);
+		//fprintf(stderr, "[%s:%u] - Error registering mutatee PID: unable to open PID file\n", __FILE__, __LINE__);
 	} else {
      fprintf(pidFile, "%d\n", pid);
      fclose(pidFile);
@@ -621,14 +624,19 @@ int startNewProcessForAttach(const char *pathname, const char *argv[],
       char *ld_path = getenv("LD_LIBRARY_PATH");
       char *new_ld_path = NULL;
       if (ld_path) {
-         new_ld_path = (char *) malloc(strlen(ld_path) + strlen("./binaries") + 2);
-         strcpy(new_ld_path, "./binaries:");
+         new_ld_path = (char *) malloc(strlen(ld_path) + strlen(binedit_dir) + 3);
+         strcpy(new_ld_path, "./");
+         strcat(new_ld_path, binedit_dir);
+         strcat(new_ld_path, ":");
          strcat(new_ld_path, ld_path);
-         setenv("LD_LIBRARY_PATH", new_ld_path, 1);
       }
       else {
-         setenv("LD_LIBRARY_PATH", "./binaries", 1);
+         new_ld_path = (char *) malloc(strlen(binedit_dir) + 3);
+         strcpy(new_ld_path, "./");
+         strcat(new_ld_path, binedit_dir);
+         strcat(new_ld_path, ":");
       }
+      setenv("LD_LIBRARY_PATH", new_ld_path, 1);
 
 	  //fprintf(stderr, "%s[%d]:  before exec '%s':  LD_LIBRARY_PATH='%s'\n", 
 	  //FILE__, __LINE__, pathname, getenv("LD_LIBRARY_PATH"));

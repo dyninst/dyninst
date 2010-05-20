@@ -39,8 +39,6 @@
 #include "BPatch_process.h"
 #include "BPatch_function.h"
 
-#define BINEDIT_DIR "./binaries"
-
 // Base class for the mutator part of a test
 class COMPLIB_DLL_EXPORT DyninstMutator : public TestMutator {
 public:
@@ -214,9 +212,9 @@ COMPLIB_DLL_EXPORT BPatch_thread *startMutateeTestGeneric(BPatch *bpatch, const 
 
 COMPLIB_DLL_EXPORT BPatch_thread *startMutateeTest(BPatch *bpatch, const char *mutatee, const char *testname, bool useAttach, char *logfilename, char *humanlogname);
 
-COMPLIB_DLL_EXPORT BPatch_thread *startMutateeTest(BPatch *bpatch, RunGroup *group, char *logfilename, char *humanlogname, bool verboseFormat, bool printLabels, int debugPrint, char *pidfilename);
+COMPLIB_DLL_EXPORT BPatch_thread *startMutateeTest(BPatch *bpatch, RunGroup *group, char *logfilename, char *humanlogname, bool verboseFormat, bool printLabels, int debugPrint, char *pidfilename, char *mutatee_resumelog, int unique);
 
-COMPLIB_DLL_EXPORT BPatch_thread *startMutateeTest(BPatch *bpatch, RunGroup *group, char *logfilename, char *humanlogname, bool verboseFormat, bool printLabels, int debugPrint, char *pidfilename);
+COMPLIB_DLL_EXPORT BPatch_thread *startMutateeTest(BPatch *bpatch, RunGroup *group, char *logfilename, char *humanlogname, bool verboseFormat, bool printLabels, int debugPrint, char *pidfilename, char *mutatee_resumelog, int unique);
 
 COMPLIB_DLL_EXPORT BPatch_binaryEdit *startBinaryTest(BPatch *bpatch, RunGroup *group);
 
@@ -226,6 +224,8 @@ COMPLIB_DLL_EXPORT bool runBinaryTest(BPatch *bpatch, RunGroup *group,
                                       bool verboseFormat, bool printLabels,
                                       int debugPrint, 
                                       char *pidfilename,
+                                      char *mutatee_resumelog,
+                                      int unique_id,
                                       bool noClean,
                                       test_results_t &test_result);
 
