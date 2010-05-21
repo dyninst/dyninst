@@ -110,9 +110,10 @@ namespace Dyninst {
       virtual bool getDefaultThread(Dyninst::THR_ID &default_tid);
       virtual unsigned getAddressWidth();
       virtual bool getRegValue(Dyninst::MachRegister reg, Dyninst::THR_ID thread, Dyninst::MachRegisterVal &val);
+      virtual bool setRegValue(Dyninst::MachRegister reg, Dyninst::THR_ID thread, Dyninst::MachRegisterVal val);
       virtual bool readMem(void *dest, Dyninst::Address source, size_t size);
       virtual bool isLibraryTrap(Dyninst::THR_ID thrd);
-      
+      virtual bool cleanOnDetach();
     protected:
       ProcDebugBG(Dyninst::PID pid, std::string exe);
       virtual ~ProcDebugBG();
@@ -132,6 +133,8 @@ namespace Dyninst {
       unsigned char *read_cache;
       Dyninst::Address read_cache_start;
       unsigned read_cache_size;
+      bool detached;
+      bool write_ack;
     };
 
     // helper for dealing with filehandles
@@ -156,6 +159,7 @@ namespace Dyninst {
 
       DebuggerInterface::BG_GPRSet_t gprs;   // Per-thread register cache.
       bool gprs_set;                         // Valid flag for register cache.
+      bool write_ack;
     };
 
     /// Copy one thread's state to another.  

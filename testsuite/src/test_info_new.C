@@ -51,12 +51,14 @@ TestInfo::TestInfo(unsigned int i, const char *iname, const char *imrname,
 RunGroup::RunGroup(const char *mutatee_name, start_state_t state_init,
                    create_mode_t attach_init, 
                    test_threadstate_t threads_, test_procstate_t procs_, 
+                   test_linktype_t linktype_,
                    bool ex, TestInfo *test_init,
                    const char *modname_, const char *compiler_, const char *optlevel_, 
                    const char *abi_)
   : mutatee(mutatee_name), state(state_init), useAttach(attach_init),
     customExecution(ex), disabled(false), mod(NULL),
     threadmode(threads_), procmode(procs_),
+    linktype(linktype_),
     compiler(compiler_), optlevel(optlevel_), abi(abi_)
 {
   Module::registerGroupInModule(std::string(modname_), this);
@@ -67,12 +69,14 @@ RunGroup::RunGroup(const char *mutatee_name, start_state_t state_init,
 RunGroup::RunGroup(const char *mutatee_name, start_state_t state_init,
                    create_mode_t attach_init, 
                    test_threadstate_t threads_, test_procstate_t procs_,
+                   test_linktype_t linktype_,
                    bool ex, const char *modname_,
                    const char *compiler_, const char *optlevel_, 
                    const char *abi_)
   : mutatee(mutatee_name), state(state_init), useAttach(attach_init),
     customExecution(ex), disabled(false), mod(NULL),
     threadmode(threads_), procmode(procs_),
+    linktype(linktype_),
     compiler(compiler_), optlevel(optlevel_), abi(abi_)
 {
    Module::registerGroupInModule(std::string(modname_), this);
@@ -87,6 +91,7 @@ RunGroup::RunGroup(const char *mutatee_name, start_state_t state_init,
   : mutatee(mutatee_name), state(state_init), useAttach(attach_init),
     customExecution(ex), disabled(false), mod(NULL),
     threadmode(TNone), procmode(PNone),
+    linktype(DynamicLink),
     compiler(compiler_), optlevel(optlevel_), abi(abi_)
 {
    Module::registerGroupInModule(std::string(modname_), this);

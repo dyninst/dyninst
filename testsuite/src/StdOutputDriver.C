@@ -109,6 +109,12 @@ void StdOutputDriver::logResult(test_results_t result, int stage) {
    else
       run_mode_str = orig_run_mode_str;
 
+   const char *linkage_str = NULL;
+   if( (*attributes)["format"] == std::string("staticMutatee") )
+       linkage_str = "static";
+   else
+       linkage_str = "dynamic";
+
    char thread_str[5];
    if (last_group->threadmode == TNone && last_group->procmode == PNone) {
       strncpy(thread_str, "none", 5);
@@ -156,11 +162,13 @@ void StdOutputDriver::logResult(test_results_t result, int stage) {
    }
 #endif
 #if defined(cap_32_64_test)
-   fprintf(out, "%s compiler: %-3s  opt: %-4s  abi: %-2s  mode: %-10s thread: %4s  result: ",
-           name_align_buffer, last_group->compiler, last_group->optlevel, last_group->abi, run_mode_str, thread_str);
+   fprintf(out, "%s compiler: %-3s  opt: %-4s  abi: %-2s  mode: %-10s thread: %4s link: %-7s  result: ",
+           name_align_buffer, last_group->compiler, last_group->optlevel, last_group->abi, 
+           run_mode_str, thread_str, linkage_str);
 #else
-   fprintf(out, "%s compiler: %-3s  opt: %-4s  mode: %-10s thread %4s  result: ",
-           name_align_buffer, last_group->compiler, last_group->optlevel, run_mode_str, thread_str);
+   fprintf(out, "%s compiler: %-3s  opt: %-4s  mode: %-10s thread: %4s link: %-7s  result: ",
+           name_align_buffer, last_group->compiler, last_group->optlevel, run_mode_str, thread_str,
+           linkage_str);
 #endif
    free(name_align_buffer);
    switch(result) {

@@ -827,14 +827,23 @@ bool Symtab::addSymbolToAggregates(Symbol *&sym)
         }
         else {
             /* XXX
-             * See comment above about uniqueness of symbols in relocatable
-             * files
+             * For relocatable files, the offset is not a unique identifier for
+             * a Symbol. With functions, the Region and offset could be used to
+             * identify the symbol. With variables, the Region and offset may 
+             * not uniquely identify the symbol. The only case were this occurs
+             * is with COMMON symbols -- their offset is their memory alignment
+             * and their Region is undefined. In this case, always create a 
+             * new variable.
              */
-            if( var->getRegion() != sym->getRegion() ) {
+            if( obj_RelocatableFile == getObjectType() &&
+                ( var->getRegion() != sym->getRegion() ||
+                  NULL == sym->getRegion() ) )
+            {
                 var = new Variable(sym);
                 everyVariable.push_back(var);
+            }else{
+                var->addSymbol(sym);
             }
-            var->addSymbol(sym);
         }
         sym->setVariable(var);
         break;
@@ -2262,6 +2271,15 @@ SYMTAB_EXPORT bool Symtab::addAddressRange( Offset lowInclusiveAddr, Offset high
             lineSource.c_str(), lineNo, lineOffset));
 }
 
+void Symtab::setTruncateLinePaths(bool value)
+{
+   getObject()->setTruncateLinePaths(value);
+}
+
+bool Symtab::getTruncateLinePaths()
+{
+   return getObject()->getTruncateLinePaths();
+}
 
 void Symtab::parseTypes()
 {
@@ -2765,6 +2783,11 @@ SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size)
 SYMTAB_EXPORT ObjectType Symtab::getObjectType() const 
 {
    return object_type_;
+}
+
+SYMTAB_EXPORT Dyninst::Architecture Symtab::getArchitecture()
+{
+   return getObject()->getArch();
 }
 
 SYMTAB_EXPORT char *Symtab::mem_image() const 
