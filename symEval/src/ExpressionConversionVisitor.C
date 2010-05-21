@@ -199,4 +199,3 @@ void ExpressionConversionVisitor::visit(BinaryFunction* binfunc) {
   }
   m_stack.push_front(roseExpression);
 }
-

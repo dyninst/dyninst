@@ -123,8 +123,12 @@ bool miniTramp::uninstrument() {
     
     if(BPatch::bpatch->baseTrampDeletion())
         {
-            baseT->deleteIfEmpty();
+	  if (baseT) 
+	    baseT->deleteIfEmpty();
       }
+
+    // Inform the AddressSpace that we have modified a particular function.
+    proc()->addModifiedFunction(func());
     
     stats_instru.stopTimer(INST_REMOVE_TIMER);
     return true;

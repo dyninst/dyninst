@@ -95,6 +95,7 @@ void RoseInsnX86Factory::setSizes(SgAsmInstruction *insn) {
 
 bool RoseInsnX86Factory::handleSpecialCases(entryID, SgAsmInstruction *, SgAsmOperandList *) {
   // Does nothing?
+
   return false;
 }
 

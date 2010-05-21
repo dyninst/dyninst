@@ -251,16 +251,16 @@ class registerSpace {
                               unsigned size);
 
 
-    Register allocateRegister(codeGen &gen, bool noCost);
+    Register allocateRegister(codeGen &gen, bool noCost, bool realReg = false);
     bool allocateSpecificRegister(codeGen &gen, Register r, bool noCost = true);
 
 
     // Like allocate, but don't keep it around; if someone else tries to
     // allocate they might get this one. 
-    Register getScratchRegister(codeGen &gen, bool noCost = true); 
+    Register getScratchRegister(codeGen &gen, bool noCost = true, bool realReg = false); 
     // Like the above, but excluding a set of registers (that we don't want
     // to touch)
-    Register getScratchRegister(codeGen &gen, pdvector<Register> &excluded, bool noCost = true);
+    Register getScratchRegister(codeGen &gen, pdvector<Register> &excluded, bool noCost = true, bool realReg = false);
 
 
     bool trySpecificRegister(codeGen &gen, Register reg, bool noCost = true);
@@ -330,6 +330,8 @@ class registerSpace {
     pdvector <registerSlot *> &realRegs();
 
     pdvector <registerSlot *> &trampRegs(); //realRegs() on x86-32, GPRs on all others
+
+    registerSlot *physicalRegs(Register reg) { return physicalRegisters_[reg]; }
 
     registerSlot *operator[](Register);
 
@@ -425,8 +427,12 @@ class registerSpace {
     
     int currStackPointer; 
 
+    // This structure is permanently tainted by its association with
+    // virtual registers...
     typedef dictionary_hash_iter<Register, registerSlot *> regDictIter;
     dictionary_hash<Register, registerSlot *> registers_;
+
+    std::map<Register, registerSlot *> physicalRegisters_;
 
     // And convenience vectors
     pdvector<registerSlot *> GPRs_;

@@ -247,6 +247,8 @@ class baseTramp {
     miniTramp *firstMini;
     miniTramp *lastMini;
 
+    bool empty() const { return firstMini == NULL; };
+
     // Normal constructor
     baseTramp(instPoint *iP, callWhen when);
     // Fork constructor

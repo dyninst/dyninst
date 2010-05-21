@@ -2049,6 +2049,11 @@ bblInstance * bblInstance::getFallthroughBBL() {
 bool int_function::performInstrumentation(bool stopOnFailure,
                                           pdvector<instPoint *> &failedInstPoints) {
 
+  if (symTabName() == "__i686.get_pc_thunk.bx") {
+    cerr << "Skipping thunk! Maybe" << endl;
+    return true;
+  }
+
     // We have the following possible side-effects:
     // 
     // 1) Generating an instPoint (e.g., creating the multiTramp and its code)
@@ -2368,13 +2373,15 @@ void bblInstance::getInsnInstances(std::vector<std::pair<InstructionAPI::Instruc
   }
 }
 #endif
-#if 0
+
 int_basicBlock *int_function::findBlockByImage(image_basicBlock *block) {
   unsigned img_id = block->id();
   unsigned int_id = blockIDmap[img_id];
   return blockList[int_id];
 }
-#endif
+
+// ??
+//#endif
 
 
 /* removes all function blocks in the specified range
@@ -2420,5 +2427,3 @@ bool int_function::removeFunctionSubRange(
     
     return true;
 }
-
-

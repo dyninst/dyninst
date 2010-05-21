@@ -36,7 +36,7 @@ ifneq ($(findstring cap_instruction_api,$(CAP_DEF)),)
 	LDFLAGS += -linstructionAPI
 endif
 
-LDFLAGS += -lpthread -lsymtabAPI -lcommon -lparseAPI
+LDFLAGS += -lpthread -lsymtabAPI -lcommon -lparseAPI -lsymEval
 
 LDFLAGS     += -L../../common/$(PLATFORM) 
 LDFLAGS     += -L../../symtabAPI/$(PLATFORM) 
@@ -45,7 +45,7 @@ LDFLAGS     += -L../../parseAPI/$(PLATFORM)
 
 ifndef USES_NATIVE_CC
 LD		= $(GXX)
-LDFLAGS		+= -shared $(G_PTHREAD_LD)
+LDFLAGS		+= -shared $(G_PTHREAD_LD) 
 CFLAGS		+= -fPIC
 CXXFLAGS	+= -fPIC $(G_PTHREAD)
 else
@@ -140,7 +140,25 @@ SRCS	     +=	../src/BPatch.C \
                 ../src/Parsing-arch.C \
                 ../src/hybridInstrumentation.C \
                 ../src/hybridOverwrites.C \
-                ../src/hybridCallbacks.C
+                ../src/hybridCallbacks.C \
+		../src/r_CodeMover.C \
+		../src/r_Springboard.C \
+		../src/r_e_Base.C \
+		../src/r_e_ControlFlow.C \
+		../src/r_e_CopyInsn.C \
+		../src/r_e_GetPC.C \
+		../src/r_e_Instrumentation.C \
+		../src/r_e_MemoryEmulator.C \
+		../src/r_e_RelData.C \
+		../src/r_t_CF_Localization.C \
+		../src/r_t_ControlFlow.C \
+		../src/r_t_EmulateMemory.C \
+		../src/r_t_Instrumenter.C \
+		../src/r_t_Movement-adhoc.C \
+		../src/r_t_Movement-analysis.C \
+		../src/r_AddressMapper.C 
+
+>>>>>>> CodeMover prototype:dyninstAPI/make.module.tmpl
 TO_INC   = ../h
 PUBLIC_H = BPatch_addressSpace.h \
            BPatch_basicBlock.h \

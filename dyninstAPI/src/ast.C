@@ -578,7 +578,10 @@ Register AstNode::allocateAndKeep(codeGen &gen, bool noCost)
     ast_printf("Allocating register for node %p, useCount %d\n", this, useCount);
     // Allocate a register
     Register dest = gen.rs()->allocateRegister(gen, noCost);
-    
+
+    ast_printf("Allocator returned %d\n", dest);
+    assert(dest != REG_NULL);
+
     if (useCount > 1) {
         ast_printf("Adding kept register %d for node %p: useCount %d\n", dest, this, useCount);
         // If use count is 0 or 1, we don't want to keep
@@ -657,8 +660,8 @@ bool AstNode::generateCode(codeGen &gen,
     }
     
     if (top_level) {
-        delete gen.tracker();
-        gen.setRegTracker(NULL);
+      delete gen.tracker();
+      gen.setRegTracker(NULL);
     }
     
     ast_printf("====== Code Generation End ===== \n");

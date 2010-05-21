@@ -1,0 +1,163 @@
+/*
+ * Copyright (c) 1996-2009 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
+
+
+
+#include "r_t_Base.h"
+#include "r_t_CF_Localization.h"
+#include "debug.h"
+#include "r_e_Base.h"
+#include "r_e_Target.h"
+#include "r_e_ControlFlow.h"
+
+
+using namespace std;
+using namespace Dyninst;
+using namespace Relocation;
+using namespace InstructionAPI;
+
+bool LocalizeCF::processBlock(BlockList::iterator &iter) {
+  // We don't care about elements that aren't CFElements
+  // We may remove CFElements and replace them with a new 
+  // CFElement
+
+  const Block::ElementList &elements = (*iter)->elements();
+
+  relocation_cerr << "localCFTransformer going to work on block " 
+		  << std::hex << (*iter)->origAddr() << std::dec << endl;
+
+  // We don't need to iterate over all the elements; by definition
+  // the only one we care about is the last one. 
+  // 
+  // FIXME if this assumption no longer holds; that is, if we start
+  // using traces instead of blocks. 
+
+  CFElement::Ptr cf = dyn_detail::boost::dynamic_pointer_cast<CFElement>(elements.back() );
+  
+  if (!cf) return true;
+
+  // If this CFElement contains a Target that is a bblInstance
+  // in our map, replace it with a Target to that block.
+  for (CFElement::DestinationMap::iterator d_iter = cf->destMap_.begin();
+       d_iter != cf->destMap_.end(); ++d_iter) {
+
+    if (d_iter->second->valid() == false) {
+      // Whatnow?
+      continue;
+    }
+    
+    // Can't use d_iter->first because that can contain the distinguished
+    // values Taken and Fallthrough...
+    Address addr = d_iter->second->addr();
+    relocation_cerr << "   considering destination " 
+		    << std::hex << addr << std::dec << endl;
+    BlockMap::const_iterator found = bMap_.find(addr);
+    if (found != bMap_.end()) {
+      relocation_cerr << "      found matching block " << found->second.get() << endl;
+
+      // First, record the bblInstance we removed an edge from. We will check
+      // later to see if we removed all the incoming edges from this instance...
+      recordIncomingEdges(d_iter->second);
+
+      // And be sure not to leak
+      if (d_iter->second)
+	delete d_iter->second;
+
+      Target<Block::Ptr> *t = new Target<Block::Ptr>(found->second);
+      d_iter->second = t;
+
+      // If we're modelling fallthrough behavior we don't actually need
+      // a branch here, since we'll generate the next Block at the
+      // next address. It's a lot easier to handle this here than to
+      // try and figure it out later. 
+      //
+      // If the Block stream is modified for any reason (e.g., to insert
+      // new blocks) then we need to set the Necessary flag at that point.
+      // This is already done for edge instrumentation. 
+      if (d_iter->first != CFElement::Fallthrough) {
+	d_iter->second->setNecessary();
+      }
+
+      relocation_cerr << "        Incrementing removed edge count for " 
+		      << std::hex << found->first << std::dec << endl;
+      replacedCount_[found->first]++;
+    }
+  }
+  return true;
+}
+
+// Count up how many incoming edges we still have
+// to see if we need to branch in to this block
+bool LocalizeCF::postprocess(BlockList &) {
+  relocation_cerr << "Postprocessing LocalizeCF" << endl;
+  for (std::map<Address, int>::iterator iter = replacedCount_.begin();
+       iter != replacedCount_.end(); ++iter) {
+    Address addr = iter->first;
+
+    int removedEdges = iter->second;
+
+    // see if this block has any incoming edges that we didn't remove
+    int incomingEdges = incomingCount_[addr];
+
+    relocation_cerr << "   Considering block at " 
+		    << std::hex << addr << std::dec
+		    << ": incoming " << incomingEdges 
+		    << " and removed " << removedEdges
+		    << endl;
+
+    
+    if (removedEdges == incomingEdges) {
+      pMap_[addr] = Suggested;
+    }
+    else {
+      pMap_[addr] = Required;
+    }
+  }
+  return true;
+}
+
+int LocalizeCF::getInEdgeCount(const bblInstance *bbl) {
+  relocation_cerr << "   ... getting number of in edges for block at "
+		  << std::hex << bbl->firstInsnAddr() << std::dec << endl;
+
+  // Need to duck to internals to get interprocedural counts
+  return bbl->block()->llb()->sources().size();
+}
+
+void LocalizeCF::recordIncomingEdges(const TargetInt *in) {
+  if (!in) return;
+  if (incomingCount_.find(in->addr()) != incomingCount_.end()) return;
+
+  const Target<const bblInstance *> *targ = dynamic_cast<const Target<const bblInstance *> *>(in);
+  if (!targ) return;
+ 
+  incomingCount_[targ->addr()] = getInEdgeCount(targ->t());
+}

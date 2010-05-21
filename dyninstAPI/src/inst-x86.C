@@ -214,6 +214,12 @@ void registerSpace::initialize32() {
     // on the REGNUM_FOO numbering
 #if defined(cap_liveness)
     returnRead_ = getBitArray();
+    // Callee-save registers...
+    returnRead_[REGNUM_EBX] = true;
+    returnRead_[REGNUM_ESI] = true;
+    returnRead_[REGNUM_EDI] = true;
+    // And return value
+    returnRead_[REGNUM_EAX] = true;
     // Return reads no registers
 
     callRead_ = getBitArray();
@@ -224,13 +230,15 @@ void registerSpace::initialize32() {
 
     // PLT entries use ebx
     callRead_[REGNUM_EBX] = true;
-
+    
     // TODO: Fix this for platform-specific calling conventions
 
     // Assume calls write flags
     callWritten_ = callRead_;
     for (unsigned i = REGNUM_OF; i <= REGNUM_RF; i++) 
         callWritten_[i] = true;
+    // And eax...
+    callWritten_[REGNUM_EAX] = true;
 
 
     // And assume a syscall reads or writes _everything_
@@ -258,7 +266,8 @@ void registerSpace::initialize64() {
 
     registerSlot * rax = new registerSlot(REGNUM_RAX,
                                           "rax",
-                                          true, // We use it implicitly _everywhere_
+					  // TODO FIXME but I need it...
+                                          false, // We use it implicitly _everywhere_
                                           registerSlot::deadABI,
                                           registerSlot::GPR);
     registerSlot * rcx = new registerSlot(REGNUM_RCX,
@@ -818,7 +827,8 @@ void emitAddressingMode(unsigned base, unsigned index,
       return;
    }
    
-   assert(index != REGNUM_ESP);
+   // This isn't true for AMD-64...
+   //assert(index != REGNUM_ESP);
    
    if(index == Null_Register) {
       assert(base == REGNUM_ESP); // not necessary, but sane
@@ -926,7 +936,7 @@ void emitOpRMReg(unsigned opcode, RealRegister base, int disp,
 void emitOpExtRegImm(int opcode, int ext, RealRegister dest, int imm,
                      codeGen &gen) 
 {
-   GET_PTR(insn, gen);
+  GET_PTR(insn, gen);
    *insn++ = opcode;
    *insn++ = makeModRMbyte(3, (char) ext, dest.reg());
    *((int *)insn) = imm;
@@ -1563,16 +1573,20 @@ stackItemLocation getHeightOf(stackItem sitem, codeGen &gen)
       {
          if (addr_width == 8)
             offset += STACK_PAD_CONSTANT;
-         if (!gen.bti() || gen.bti()->flagsSaved())
+         if (!gen.bti() || gen.bti()->flagsSaved()) {
             offset += addr_width;
+	 }
          pdvector<registerSlot *> &regs = gen.rs()->trampRegs();
          for (unsigned i=0; i<regs.size(); i++) {
             registerSlot *reg = regs[i];
-            if (reg->spilledState != registerSlot::unspilled)
-               offset += addr_width;
+            if (reg->spilledState != registerSlot::unspilled) {
+	      offset += addr_width;
+	    }
          }
-         offset += (gen.bti()->funcJumpSlotSize() * addr_width);
-         if (gen.bti()->hasStackFrame()) {
+         offset += (gen.bti()->funcJumpSlotSize() * addr_width); 
+	 if (gen.bti()->funcJumpSlotSize()) {
+	 }
+	 if (gen.bti()->hasStackFrame()) {
             //Save of EBP adds addr_width--ebp may have been counted once above
             // and here again if a pusha and frame were created, but that's
             // okay.
@@ -1609,14 +1623,14 @@ Register restoreGPRtoReg(RealRegister reg, codeGen &gen, RealRegister *dest_to_u
       dest_r = *dest_to_use;
    }
    else {
-      dest = gen.rs()->getScratchRegister(gen);
+     dest = gen.rs()->getScratchRegister(gen, false, true);
    }
    
    if (reg.reg() == REGNUM_EBP) {
       //Special handling for EBP with and without instr stack frame
       if (dest_r.reg() == -1)
          dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
-      if (gen.bti()->hasStackFrame()) {
+      if (gen.bti() && gen.bti()->hasStackFrame()) {
          emitMovRMToReg(dest_r, RealRegister(REGNUM_EBP), 0, gen);
       }
       else {
@@ -1650,7 +1664,7 @@ Register restoreGPRtoReg(RealRegister reg, codeGen &gen, RealRegister *dest_to_u
    {
       //Register is still in its pristine state from app, leave it.
       if (dest_r.reg() == -1)
-         gen.rs()->noteVirtualInReal(dest, reg);
+	gen.rs()->noteVirtualInReal(dest, reg);
       else if (dest_r.reg() != reg.reg())
          emitMovRegToReg(dest_r, reg, gen);
       return dest;
@@ -1703,8 +1717,14 @@ void EmitterIA32::emitASload(int ra, int rb, int sc, long imm, Register dest, co
    RealRegister src1_r(-1);
    Register src1 = REG_NULL;
    if (havera) {
-      src1 = restoreGPRtoReg(RealRegister(ra), gen);
-      src1_r = gen.rs()->loadVirtual(src1, gen);
+     if (gen.bti()) {
+       src1 = restoreGPRtoReg(RealRegister(ra), gen);
+       src1_r = gen.rs()->loadVirtual(src1, gen);
+     }
+     else {
+       // Don't have a base tramp - use only reals
+       src1_r = RealRegister(ra);
+     }
    }
 
    RealRegister src2_r(-1);
@@ -1713,23 +1733,39 @@ void EmitterIA32::emitASload(int ra, int rb, int sc, long imm, Register dest, co
       if (ra == rb) {
          src2_r = src1_r;
       }
+      else if (gen.bti()) {
+	src2 = restoreGPRtoReg(RealRegister(rb), gen);
+	src2_r = gen.rs()->loadVirtual(src2, gen);
+      }
       else {
-         src2 = restoreGPRtoReg(RealRegister(rb), gen);
-         src2_r = gen.rs()->loadVirtual(src2, gen);
+	src2_r = RealRegister(rb);
       }
    }
    
    if (havera && !haverb && !sc && !imm) {
       //Optimized case, just use the existing src1_r
-      gen.rs()->freeRegister(src1);
-      gen.rs()->noteVirtualInReal(dest, src1_r);
-      return;
+     if (gen.bti()) {
+       gen.rs()->freeRegister(src1);
+       gen.rs()->noteVirtualInReal(dest, src1_r);
+       return;
+     }
+     else {
+       // No base tramp, no virtual registers - emit a move?
+       emitMovRegToReg(RealRegister(dest), src1_r, gen);
+       return;
+     }
    }
 
    // Emit the lea to do the math for us:
    // e.g. lea eax, [eax + edx * sc + imm] if both ra and rb had to be
    // restored
-   RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);      
+   RealRegister dest_r; 
+   if (gen.bti()) {
+     dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
+   }
+   else {
+     dest_r = RealRegister(dest);
+   }
    emitLEA(src1_r, src2_r, sc, (long) imm, dest_r, gen);   
 
    if (src1 != REG_NULL)

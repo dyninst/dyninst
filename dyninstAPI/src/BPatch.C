@@ -94,6 +94,7 @@ BPatch::BPatch()
     asyncActive(false),
     delayedParsing_(false),
     instrFrames(false),
+    useNewReloc_(true),
     systemPrelinkCommand(NULL),
     mutateeStatusChange(false),
     waitingForStatusChange(false),
@@ -296,7 +297,8 @@ void BPatch::setSaveFPRInt(bool x)
   saveFloatingPointsOn = x;
 }
 
-
+bool BPatch::useNewRelocInt() { return useNewReloc_; }
+void BPatch::setNewRelocInt(bool x) { useNewReloc_ = x; }
 
 
 /*

@@ -223,9 +223,6 @@ bool Slicer::getStackDepth(ParseAPI::Function *func, Address callAddr, long &hei
   }
   
   height = heightSA.height();
-  
-  // The height will include the effects of the call
-  // Should check the region... 
 
   //slicing_cerr << "Get stack depth at " << std::hex << callAddr
   //<< std::dec << " " << (int) height << endl;
@@ -301,6 +298,9 @@ bool Slicer::handleCallDetails(AbsRegion &reg,
   if (!getStackDepth(caller, callerBlock->end(), stack_depth)) {
     return false;
   }
+
+  // By definition, the stack of the callee starts _before_ the call instruction,
+  // so we take the pre-call stack height and run with it. 
 
   // Increment the context
   pushContext(context, callee, callerBlock, stack_depth);
@@ -562,6 +562,7 @@ bool Slicer::handleCall(ParseAPI::Block *block,
 			   newElement.con,
 			   current.loc.block,
 			   newElement.loc.func)) {
+      slicing_cerr << "Handle of call details failed!" << endl;
       err = true;
       return false;
     }
@@ -577,6 +578,7 @@ bool Slicer::handleCall(ParseAPI::Block *block,
 		       newElement,
 		       p,
 		       err)) {
+      slicing_cerr << "handleDefault failed!" << endl;
       err = true;
       return false;
     }
@@ -794,6 +796,8 @@ void Slicer::insertPair(Graph::Ptr ret,
 			Element &target) {
   AssignNode::Ptr s = createNode(source);
   AssignNode::Ptr t = createNode(target);
+
+  slicing_cerr << "Inserting pair: " << s->format() << ", " << t->format() << endl;
 
   ret->insertPair(s, t);
   

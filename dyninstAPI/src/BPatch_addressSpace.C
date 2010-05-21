@@ -245,13 +245,12 @@ bool BPatch_addressSpace::deleteSnippetInt(BPatchSnippetHandle *handle)
    }
 
    if (handle->addSpace_ == this) {  
-
        // if this is a process, check to see if the instrumentation is
        // executing on the call stack
        if ( handle->getProcess() ) {
            handle->getProcess()->lowlevel_process()->updateActiveMultis();
            if (handle->mtHandles_.size() > 1) {
-               mal_printf("ERROR: Removing snippet that is installed in "
+	     mal_printf("ERROR: Removing snippet that is installed in "
                           "multiple miniTramps %s[%d]\n",FILE__,__LINE__);
            }
        }
@@ -263,7 +262,7 @@ bool BPatch_addressSpace::deleteSnippetInt(BPatchSnippetHandle *handle)
            handle->mtHandles_[i]->uninstrument();
            BPatch_point *bPoint = findOrCreateBPPoint(NULL, iPoint);
            assert(bPoint);
-           bPoint->deleteSnippet(handle);
+           bPoint->removeSnippet(handle);
        }
 
        delete handle;
@@ -739,9 +738,9 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetWhen(const BPatch_snippet
 
 // A lot duplicated from the single-point version. This is unfortunate.
 BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch_snippet &expr,
-      const BPatch_Vector<BPatch_point *> &points,
-      BPatch_callWhen when,
-      BPatch_snippetOrder order)
+								    const BPatch_Vector<BPatch_point *> &points,
+								    BPatch_callWhen when,
+								    BPatch_snippetOrder order)
 {
 
    if (dyn_debug_inst) {
@@ -771,24 +770,17 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
       return false;
    }
 
-
-   batchInsertionRecord *rec = new batchInsertionRecord;
-   rec->thread_ = NULL;
-   rec->snip = expr;
-   rec->trampRecursive_ = BPatch::bpatch->isTrampRecursive();
-
    BPatchSnippetHandle *ret = new BPatchSnippetHandle(this);
-   rec->handle_ = ret;
 
    for (unsigned i = 0; i < points.size(); i++) {
-      BPatch_point *point = points[i];
+      BPatch_point *bppoint = points[i];
 
-      if (point->addSpace == NULL) {
+      if (bppoint->addSpace == NULL) {
          fprintf(stderr, "Error: attempt to use point with no process info\n");
          continue;
       }
 
-      if (dynamic_cast<BPatch_addressSpace *>(point->addSpace) != this) {
+      if (dynamic_cast<BPatch_addressSpace *>(bppoint->addSpace) != this) {
          fprintf(stderr, "Error: attempt to use point specific to a different process\n");
          continue;
       }        
@@ -796,33 +788,33 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
       callWhen ipWhen;
       callOrder ipOrder;
 
-      if (!BPatchToInternalArgs(point, when, order, ipWhen, ipOrder)) {
+      if (!BPatchToInternalArgs(bppoint, when, order, ipWhen, ipOrder)) {
          inst_printf("[%s:%u] - BPatchToInternalArgs failed for point %d\n",
                FILE__, __LINE__, i);
          return NULL;
       }
 
-      rec->points_.push_back(point);
-      rec->when_.push_back(ipWhen);
-      rec->order_ = ipOrder;
+      miniTramp *mini = bppoint->point->addInst(expr.ast_wrapper,
+						ipWhen,
+						ipOrder,
+						BPatch::bpatch->isTrampRecursive(), 
+						false);
 
-      point->recordSnippet(when, order, ret);
+      if (mini) {
+	ret->mtHandles_.push_back(mini);
+      }
+      else {
+	cerr << "Error: failed to insert instrumentation" << endl;
+      }
    }
+   
+   if (pendingInsertions == NULL) {
+     // Trigger it now
+     bool tmp;
+     finalizeInsertionSet(false, &tmp);
+   }
+   
 
-   assert(rec->points_.size() == rec->when_.size());
-
-   // Okey dokey... now see if we just tack it on, or insert now.
-   if (pendingInsertions) {
-      pendingInsertions->push_back(rec);
-   }
-   else {
-      BPatch_process *proc = dynamic_cast<BPatch_process *>(this);
-      assert(proc);
-      proc->beginInsertionSetInt();
-      pendingInsertions->push_back(rec);
-      // All the insertion work was moved here...
-      proc->finalizeInsertionSetInt(false);
-   }
    return ret;
 }
 

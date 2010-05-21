@@ -205,23 +205,23 @@ class AbsRegion {
   SYMEVAL_EXPORT void erase(const AbsRegion &reg);
 
   SYMEVAL_EXPORT AbsRegion() :
-    type_(Absloc::Unknown),
+  type_(Absloc::Unknown),
     size_(0) {};
-
+  
   SYMEVAL_EXPORT AbsRegion(Absloc::Type t) :
-    type_(t),
+  type_(t),
     size_(0) {}
-
+  
   SYMEVAL_EXPORT AbsRegion(Absloc a) :
-    type_(Absloc::Unknown),
-      absloc_(a),
-      size_(0) {}
-
-
-	SYMEVAL_EXPORT void setGenerator(AST::Ptr generator) {
-      generator_ = generator;
+  type_(Absloc::Unknown),
+    absloc_(a),
+    size_(0) {}
+  
+  
+  SYMEVAL_EXPORT void setGenerator(AST::Ptr generator) {
+    generator_ = generator;
   }
-
+  
   SYMEVAL_EXPORT void setSize(size_t size) {
     size_ = size;
   }

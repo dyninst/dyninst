@@ -124,10 +124,14 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
    // Internal functions. Don't use these unless you know what you're
    // doing.
    int_basicBlock *lowlevel_block()  { return iblock; }
+
    void setlowlevel_block(int_basicBlock *b)  { iblock = b; }
    void  getAllPoints(std::vector<BPatch_point*>& allPoints);
    BPatch_function *getCallTarget();
    // end internal functions
+
+   API_EXPORT(Int, (),
+	      BPatch_flowGraph *, getFlowGraph, () CONST_EXPORT);
 
 	/** BPatch_basicBlock::getSources   */
 	/** method that returns the predecessors of the basic block */

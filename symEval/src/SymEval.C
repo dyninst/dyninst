@@ -133,7 +133,8 @@ void SymEval::expand(Graph::Ptr slice, Result_t &res) {
     if (visited.find(ptr) != visited.end()) continue;
     visited.insert(ptr);
 
-    process(aNode, res);
+    assert(0 && "Unimplemented!");
+    //process(aNode, res);
 
     NodeIterator nbegin, nend;
     aNode->outs(nbegin, nend);

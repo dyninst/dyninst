@@ -79,6 +79,7 @@ bool replacedInstruction::generateCode(codeGen &gen,
     gen.setPoint(point());
 
     registerSpace *localRegSpace = registerSpace::actualRegSpace(point(), callPreInsn);
+    assert(localRegSpace);
     gen.setRegisterSpace(localRegSpace);
 
     unsigned start = gen.used();

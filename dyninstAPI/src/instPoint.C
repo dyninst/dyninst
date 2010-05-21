@@ -104,6 +104,9 @@ miniTramp *instPoint::addInst(AstNodePtr ast,
 
     hasAnyInstrumentation_ = true;
     hasNewInstrumentation_ = true;
+
+    // And record this function as being modified
+    proc()->addModifiedFunction(func());
     
     return miniT;
 }

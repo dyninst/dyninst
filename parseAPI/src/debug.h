@@ -41,6 +41,8 @@ namespace ParseAPI {
     extern int dyn_debug_parsing;
     extern int dyn_debug_initialized;
 
+#define parsing_cerr if (dyn_debug_parsing) cerr
+
 #if defined(__GNUC__)
 #define parsing_printf(format, args...) do { if(!dyn_debug_initialized || dyn_debug_parsing) parsing_printf_int(format, ## args); } while(0)
 #else

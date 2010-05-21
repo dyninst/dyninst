@@ -246,6 +246,9 @@ std::map<Address, Instruction::Ptr>::const_iterator IA_IAPI::findTableInsn() con
             }
         }
     }
+    else {
+      parsing_cerr << "\t Current insn " << curInsn()->format() << " has no CFT!" << endl;
+    }
     std::map<Address, Instruction::Ptr>::const_iterator c =
             allInsns.find(current);
     while(!isTableInsn(c->second) && c != allInsns.begin())
@@ -888,6 +891,10 @@ bool IA_IAPI::computeTableBounds(Instruction::Ptr maxSwitchInsn,
 }
 
 bool IA_IAPI::isThunk() const {
+  // FIXME HACK
+  // I don't want thunks special-cased because they disappear from our parsing...
+  return false;
+
   // Before we go a-wandering, check the target
     if (!_isrc->isValidAddress(getCFT()))
     {

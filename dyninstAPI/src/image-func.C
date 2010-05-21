@@ -520,8 +520,8 @@ void image_basicBlock::getInsnInstances(std::vector<std::pair<InstructionAPI::In
     if (ptr == NULL) return;
     InstructionDecoder d(ptr, getSize(),obj()->cs()->getArch());
     while (off < endOffset()) {
-        instances.push_back(std::make_pair(d.decode(), off));
-        off += instances.back().first->size();
+      instances.push_back(std::make_pair(d.decode(), off));
+      off += instances.back().first->size();
     }
 }
 #endif

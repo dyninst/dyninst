@@ -87,6 +87,14 @@ void registerSpace::specializeSpace(const bitArray &liveRegs) {
                 break;
             }
         }
+
+	for (unsigned i = 0; i < realRegisters_.size(); ++i) {
+	  if (liveRegs[realRegisters_[i]->number])
+	    realRegisters_[i]->liveState = registerSlot::live;
+	  else
+	    realRegisters_[i]->liveState = registerSlot::dead;
+	}
+
         // All we care about for now.
         return;
     }
@@ -100,11 +108,6 @@ void registerSpace::specializeSpace(const bitArray &liveRegs) {
             i.currval()->liveState = registerSlot::dead;
         }
     }
-#if defined(arch_x86_64)
-    // ???
-    registers_[REGNUM_RAX]->liveState = registerSlot::live;
-#endif
-
 }
 
 const bitArray &image_basicBlock::getLivenessIn(image_func * context) {
@@ -131,9 +134,15 @@ const bitArray image_basicBlock::getLivenessOut(image_func * context) {
         if ((*eit)->type() == CATCH) continue;
         
         // TODO: multiple entry functions and you?
-       
         out |= ((image_basicBlock*)(*eit)->trg())->getLivenessIn(context);
     }
+    
+    liveness_cerr << " Returning liveness " << endl;
+    liveness_cerr << "  ?XXXXXXXXMMMMMMMMRNDITCPAZSOF11111100DSBSBDCA" << endl;
+    liveness_cerr << "  ?7654321076543210FTFFFFFFFFFP54321098IIPPXXXX" << endl;
+    liveness_cerr << "  " << out << endl;
+
+
     return out;
 }
 
@@ -178,6 +187,8 @@ void image_basicBlock::summarizeBlockLivenessInfo(image_func *context)
       
      liveness_printf("%s[%d] After instruction at address 0x%lx:\n",
                      FILE__, __LINE__, current);
+     liveness_cerr << "        " << "?XXXXXXXXMMMMMMMMRNDITCPAZSOF11111100DSBSBDCA" << endl;
+     liveness_cerr << "        " << "?7654321076543210FTFFFFFFFFFP54321098IIPPXXXX" << endl;
      liveness_cerr << "Read    " << curInsnRW.read << endl;
      liveness_cerr << "Written " << curInsnRW.written << endl;
      liveness_cerr << "Used    " << use << endl;
@@ -419,7 +430,8 @@ bitArray instPoint::liveRegisters(callWhen when) {
     }
     
     ret &= (~curInsnRW.written);
-    ret |= curInsnRW.read;
+    if (when == callPreInsn)
+      ret |= curInsnRW.read;
 
     liveness_printf("Liveness out for instruction at 0x%lx\n",
                       addr());

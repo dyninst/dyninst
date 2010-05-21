@@ -114,8 +114,10 @@ class bblInstance : public codeRange {
     void *getPtrToInstruction(Address addr) const;
     void *get_local_ptr() const;
 
+    // Singular CF target...
     bblInstance *getTargetBBL();
     bblInstance *getFallthroughBBL();
+
 
     const void *getPtrToOrigInstruction(Address addr) const;
     unsigned getRelocInsnSize(Address addr) const;
@@ -128,10 +130,6 @@ class bblInstance : public codeRange {
     int_basicBlock *block() const;
     int version() const;
 
-#if defined(cap_instruction_api)
-    void getInsnInstances(std::vector<std::pair<InstructionAPI::Instruction::Ptr,
-			  Address> > &instances) const;
-#endif
 
 #if defined(cap_relocation)
     // Get the most space necessary to relocate this basic block,
@@ -161,6 +159,10 @@ class bblInstance : public codeRange {
     unsigned &minSize();
     Address getFuncRelocBase() { return reloc_info->funcRelocBase_; }
     void setFuncRelocBase(Address frb) { reloc_info->funcRelocBase_ = frb; }
+#endif
+
+#if defined(cap_instruction_api)
+    void getInsnInstances(std::vector<std::pair<InstructionAPI::Instruction::Ptr, Address> >&instances) const;
 #endif
 
 #if defined(cap_relocation)
@@ -224,6 +226,7 @@ class bblInstance : public codeRange {
 
 class int_basicBlock {
     friend class int_function;
+    friend class bblInstance;
  public:
     int_basicBlock(image_basicBlock *ib, Address baseAddr, int_function *func, int id);
     int_basicBlock(const int_basicBlock *parent, int_function *func, int id);
@@ -306,6 +309,7 @@ class int_basicBlock {
 };
 
 class int_function : public patchTarget {
+  friend class bblInstance;
   friend class int_basicBlock;
  public:
    //static std::string emptyString;
@@ -386,10 +390,14 @@ class int_function : public patchTarget {
 
    const std::set< int_basicBlock* , int_basicBlock::compare > &blocks();
 
+
+
    // Perform a lookup (either linear or log(n)).
    int_basicBlock *findBlockByAddr(Address addr);
    int_basicBlock *findBlockByOffset(Address offset) { return findBlockByAddr(offset + getAddress()); }
    bblInstance *findBlockInstanceByAddr(Address addr);
+   int_basicBlock *findBlockByImage(image_basicBlock *block);
+
 
    void findBlocksByRange(std::vector<int_basicBlock*> &funcs, 
                           Address start, Address end);

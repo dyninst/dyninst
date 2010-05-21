@@ -384,10 +384,10 @@ void EmitterIA32::emitGetParam(Register dest, Register param_num, instPointType_
    // Parameters are addressed by a positive offset from ebp,
    // the first is PARAM_OFFSET[ebp]
    stackItemLocation loc = getHeightOf(stackItem(stackItem::stacktop), gen);
-
+   
    if (pt_type != callSite) {
-      //Return value before any parameters
-      loc.offset += 4;
+     //Return value before any parameters
+     loc.offset += 4;
    }
    loc.offset += param_num*4;
 
@@ -888,7 +888,7 @@ static void emitOpRegRM64(unsigned opcode, Register dest, Register base, int dis
     gen.markRegDefined(dest);
 }
 
-static void emitOpRegImm64(unsigned opcode, unsigned opcode_ext, Register rm_reg, int imm,
+void emitOpRegImm64(unsigned opcode, unsigned opcode_ext, Register rm_reg, int imm,
 			   bool is_64, codeGen &gen)
 {
     Register tmp_rm_reg = rm_reg;
@@ -1334,16 +1334,16 @@ void EmitterAMD64::emitLoadOrigRegister(Address register_num, Register destinati
     registerSlot *dest = (*gen.rs())[destination];
     assert(dest);
 
-    if (register_num == REGNUM_ESP) {
-       stackItemLocation loc = getHeightOf(stackItem(stackItem::stacktop), gen);
-       emitLEA64(loc.reg.reg(), Null_Register, 0, loc.offset, destination, true, gen);
-       return;
-    }
-
     if (src->spilledState == registerSlot::unspilled)
     {
        emitMoveRegToReg((Register) register_num, destination, gen);
        return;
+    }
+
+    if (register_num == REGNUM_ESP) {
+      stackItemLocation loc = getHeightOf(stackItem(stackItem::stacktop), gen);
+      emitLEA64(loc.reg.reg(), Null_Register, 0, loc.offset, destination, true, gen);
+      return;
     }
 
     stackItemLocation loc = getHeightOf(stackItem(RealRegister(register_num)), gen);
@@ -1526,9 +1526,9 @@ Register EmitterAMD64::emitCall(opCode op, codeGen &gen, const pdvector<AstNodeP
       unsigned reg = REG_NULL;
 
       if (gen.rs()->allocateSpecificRegister(gen, (unsigned) amd64_arg_regs[u], true))
-         reg = amd64_arg_regs[u];
+	reg = amd64_arg_regs[u];
       else
-         assert(0);
+	assert(0);
       gen.markRegDefined(reg);
       if (!operands[u]->generateCode_phase2(gen,
                                             noCost, 
@@ -1737,7 +1737,7 @@ void EmitterAMD64::emitFuncJump(int_function *f, instPointType_t /*ptType*/, boo
        GET_PTR(patch_start, gen);
        emitMovPCRMToReg64(dest, 0, 8, gen, false);
        
-       //Add the distance from the current PC to the end if this
+       //Add the distance from the current PC to the end of this
        // baseTramp (which isn't known yet).
        emitRex(true, &dest, NULL, NULL, gen);
        GET_PTR(insn, gen);
@@ -1827,36 +1827,51 @@ void EmitterAMD64::emitFuncJump(int_function *f, instPointType_t /*ptType*/, boo
 
 void EmitterAMD64::emitASload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen)
 {
-    Register scratch = Null_Register;
-    bool havera = ra > -1, haverb = rb > -1;
+  Register use_a = Null_Register;
+  Register use_b = Null_Register;
 
-    // if ra is specified, move its inst-point value into our
-    // destination register
-    gen.markRegDefined(dest);
-    if(havera) {
-        if (ra == mRIP) {
-            // special case: rip-relative data addressing
-            // the correct address has been stuffed in imm
-            emitMovImmToReg64(dest, imm, true, gen);
-            return;
-        }
-        emitLoadOrigRegister(ra, dest, gen);
+  bool havera = ra > -1, haverb = rb > -1;
+
+
+  // if ra is specified, move its inst-point value into our
+  // destination register
+  gen.markRegDefined(dest);
+  if(havera) {
+    if (ra == mRIP) {
+      // special case: rip-relative data addressing
+      // the correct address has been stuffed in imm
+      emitMovImmToReg64(dest, imm, true, gen);
+      return;
     }
-    
-    // if rb is specified, move its inst-point value into RAX
-    if(haverb) {
-        scratch = gen.rs()->getScratchRegister(gen);
-        gen.markRegDefined(scratch);
-        emitLoadOrigRegister(rb, scratch, gen);
+    if (gen.bti()) {
+      use_a = dest;
+      emitLoadOrigRegister(ra, dest, gen);
     }
-    // emitLEA64 will not handle the [disp32] case properly, so
-    // we special case that
-    if (!havera && !haverb)
-        emitMovImmToReg64(dest, imm, false, gen);
     else {
-        emitLEA64((havera ? dest : Null_Register), (haverb ? scratch : Null_Register),
-                  sc, (int)imm, dest, true, gen);
+      use_a = ra;
     }
+  }
+  
+  // if rb is specified, move its inst-point value into RAX
+  if(haverb) {
+    if (gen.bti()) {
+      use_b = gen.rs()->getScratchRegister(gen);
+      gen.markRegDefined(use_b);
+      emitLoadOrigRegister(rb, use_b, gen);
+    }
+    else {
+      use_b = rb;
+    }
+  }
+  // emitLEA64 will not handle the [disp32] case properly, so
+  // we special case that
+  if (!havera && !haverb)
+    emitMovImmToReg64(dest, imm, false, gen);
+  else {
+    emitLEA64(use_a, use_b,
+	      sc, (int)imm, 
+	      dest, true, gen);
+  }
 }
 
 void EmitterAMD64::emitCSload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen)
@@ -2004,11 +2019,17 @@ void EmitterAMD64::emitRestoreFlagsFromStackSlot(codeGen &gen)
 }
 
 bool shouldSaveReg(registerSlot *reg, baseTrampInstance *inst)
-{
-   if (reg->liveState != registerSlot::live)
-      return false;
-   if (inst && inst->hasOptInfo() && !inst->definedRegs[reg->encoding()])
-      return false;
+{ 
+  regalloc_printf("\t shouldSaveReg for BTI %p\n", inst);
+  if (reg->liveState != registerSlot::live) {
+    regalloc_printf("\t Reg %d not live, concluding don't save\n", reg->number);
+    return false;
+  }
+  if (inst && inst->hasOptInfo() && !inst->definedRegs[reg->encoding()]) {
+    regalloc_printf("\t Base tramp instance doesn't have reg %d (num %d) defined; concluding don't save\n",
+		    reg->encoding(), reg->number);
+    return false;
+  }
    return true;
 }
 
@@ -2016,7 +2037,7 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt, baseTrampInstance *inst, codeGen &
 {
     // save flags (PUSHFQ)
     //emitSimpleInsn(0x9C, gen);
-   
+
    int funcJumpSlotSize = 0;
    if (inst) {
       funcJumpSlotSize = inst->funcJumpSlotSize();

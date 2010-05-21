@@ -274,18 +274,27 @@ void registerSpace::createRegSpaceInt(pdvector<registerSlot *> &registers,
         rs->registersByName[registers[i]->name] = registers[i]->number;
 
         switch (registers[i]->type) {
-        case registerSlot::GPR: 
-            rs->GPRs_.push_back(registers[i]);
-            break;
+        case registerSlot::GPR: {
+	  bool physical = true;
+#if defined(arch_x86) || defined(arch_x86_64)
+	  if (rs->addr_width == 4)
+	    physical = false;
+#endif
+	  if (physical) rs->physicalRegisters_[reg] = registers[i];
+
+	  rs->GPRs_.push_back(registers[i]);
+	  break;
+	}
         case registerSlot::FPR:
-            rs->FPRs_.push_back(registers[i]);
-            break;
+	  rs->FPRs_.push_back(registers[i]);
+	  break;
         case registerSlot::SPR:
-            rs->SPRs_.push_back(registers[i]);
-            break;
+	  rs->SPRs_.push_back(registers[i]);
+	  break;
         case registerSlot::realReg:
-            rs->realRegisters_.push_back(registers[i]);
-            break;
+	  rs->physicalRegisters_[reg] = registers[i];
+	  rs->realRegisters_.push_back(registers[i]);
+	  break;
         default:
             fprintf(stderr, "Error: no match for %d\n", registers[i]->type);
             assert(0);
@@ -324,63 +333,89 @@ bool registerSpace::trySpecificRegister(codeGen &gen, Register num,
 bool registerSpace::allocateSpecificRegister(codeGen &gen, Register num,
 					     bool noCost) 
 {
+  regalloc_printf("Allocating specific register %d\n", num);
+
+  debugPrint();
+
     registerSlot *tmp;
     registers_.find(num, tmp);
-    if (!tmp) return false;
+    if (!tmp) {
+      regalloc_printf("Error: register does not exist!\n");
+      return false;
+    }
 
     registerSlot *reg = registers_[num];
-    if (reg->offLimits) return false;
-    else if (reg->refCount > 0) return false;
+    if (reg->offLimits) {
+      regalloc_printf("Error: register off limits!\n");
+      return false;
+    }
+    else if (reg->refCount > 0) {
+      regalloc_printf("Error: register currently in use!\n");
+      return false;
+    }
     else if (reg->liveState == registerSlot::live) {
-        if (!spillRegister(num, gen, noCost)) {
-            return false;
-        }
+      if (!spillRegister(num, gen, noCost)) { 
+	regalloc_printf("Error: specific register could not be spilled!\n");
+	return false;
+      }
     }
     else if (reg->keptValue) {
-        if (!stealRegister(num, gen, noCost)) return false;
+      if (!stealRegister(num, gen, noCost)) {
+	regalloc_printf("Error: register has cached value, unable to steal!\n");
+	return false;
+      }
     }
     
     reg->markUsed(true);
+    gen.markRegDefined(reg->number);
+      
 
     regalloc_printf("Allocated register %d\n", num);
 
     return true;
 }
 
-Register registerSpace::getScratchRegister(codeGen &gen, bool noCost) {
+Register registerSpace::getScratchRegister(codeGen &gen, bool noCost, bool realReg) {
     pdvector<Register> empty;
-    return getScratchRegister(gen, empty, noCost);
+    return getScratchRegister(gen, empty, noCost, realReg);
 }
 
-Register registerSpace::getScratchRegister(codeGen &gen, pdvector<Register> &excluded, bool noCost) {
-   static int num_allocs = 0;
+Register registerSpace::getScratchRegister(codeGen &gen, pdvector<Register> &excluded, bool noCost, bool realReg) {
+  static int num_allocs = 0;
+  
+  pdvector<registerSlot *> couldBeStolen;
+  pdvector<registerSlot *> couldBeSpilled;
+  
+  debugPrint();
 
-    pdvector<registerSlot *> couldBeStolen;
-    pdvector<registerSlot *> couldBeSpilled;
+  registerSlot *toUse = NULL;
 
-    debugPrint();
+  regalloc_printf("Allocating register: selection is %s\n",
+		  realReg ? (realRegisters_.empty() ? "GPRS" : "Real registers") : "GPRs");
 
-    registerSlot *toUse = NULL;
+  pdvector<registerSlot *> &regs = (realReg ? (realRegisters_.empty() ? GPRs_ : realRegisters_ ) : GPRs_ );
+  regalloc_printf("%d options in registers\n", regs.size());
 
-    for (unsigned i = 0; i < GPRs_.size(); i++) {
-        registerSlot *reg = GPRs_[i];
-
-        regalloc_printf("%s[%d]: getting scratch register, examining %d of %d: reg %d, offLimits %d, refCount %d, liveState %s, keptValue %d\n",
-                        FILE__, __LINE__, i, GPRs_.size(),
-                        reg->number,
-                        reg->offLimits,
-                        reg->refCount,
-                        (reg->liveState == registerSlot::live) ? "live" : ((reg->liveState == registerSlot::dead) ? "dead" : "spilled"),
-                        reg->keptValue);
-
-        bool found = false;
-        for (unsigned int i = 0; i < excluded.size(); ++i) {
-           Register &ex_reg = excluded[i];
-           if (reg->number == ex_reg) {
-              found = true;
-              break;
-           }
-        }
+  for (unsigned i = 0; i < regs.size(); i++) {
+    registerSlot *reg = regs[i];
+      
+    regalloc_printf("%s[%d]: getting scratch register, examining %d of %d: reg %d (%s), offLimits %d, refCount %d, liveState %s, keptValue %d\n",
+		    FILE__, __LINE__, i, regs.size(),
+		    reg->number,
+		    reg->name.c_str(),
+		    reg->offLimits,
+		    reg->refCount,
+		    (reg->liveState == registerSlot::live) ? "live" : ((reg->liveState == registerSlot::dead) ? "dead" : "spilled"),
+		    reg->keptValue);
+      
+    bool found = false;
+    for (unsigned int i = 0; i < excluded.size(); ++i) {
+      Register &ex_reg = excluded[i];
+      if (reg->number == ex_reg) {
+	found = true;
+	break;
+      }
+    }
 
         if (found) continue;
 
@@ -400,7 +435,7 @@ Register registerSpace::getScratchRegister(codeGen &gen, pdvector<Register> &exc
         toUse = reg;
         break;
     }
-/*
+
     if (toUse == NULL) {
         // Argh. Let's assume spilling is cheaper
         for (unsigned i = 0; i < couldBeSpilled.size(); i++) {
@@ -410,7 +445,7 @@ Register registerSpace::getScratchRegister(codeGen &gen, pdvector<Register> &exc
             }
         }
     }
-*/    
+    
     // Still?
     if (toUse == NULL) {
         for (unsigned i = 0; i < couldBeStolen.size(); i++) {
@@ -431,29 +466,36 @@ Register registerSpace::getScratchRegister(codeGen &gen, pdvector<Register> &exc
     toUse->alloc_num = num_allocs;
     num_allocs++;
 
-    toUse->markUsed(false);
-    return toUse->number;
+  toUse->markUsed(false);
+
+  gen.markRegDefined(toUse->number);
+
+  return toUse->number;
 }
 
 Register registerSpace::allocateRegister(codeGen &gen, 
-                                         bool noCost) 
+                                         bool noCost,
+					 bool realReg) 
 {
-    regalloc_printf("Allocating and retaining register...\n");
-    Register reg = getScratchRegister(gen, noCost);
-    regalloc_printf("retaining register %d\n", reg);
-    if (reg == REG_NULL) return REG_NULL;
-
+  regalloc_printf("Allocating and retaining register...\n");
+  Register reg = getScratchRegister(gen, noCost, realReg);
+  regalloc_printf("retaining register %d\n", reg);
+  if (reg == REG_NULL) return REG_NULL;
+  if (realReg) {
+    physicalRegs(reg)->refCount = 1;
+  }
+  else {
     registers_[reg]->refCount = 1;
-    regalloc_printf("Allocated register %d\n", reg);
-    return reg;
+  }
+  regalloc_printf("Allocated register %d\n", reg);
+  return reg;
 }
 
-bool registerSpace::spillRegister(Register reg, codeGen &/*gen*/, bool /*noCost*/) {
-    assert(!registers_[reg]->offLimits);
+bool registerSpace::spillRegister(Register reg, codeGen &gen, bool /*noCost*/) {
+  assert(!registers_[reg]->offLimits);
 
-    assert(0 && "Unimplemented!");
-
-    return true;
+  //assert(0 && "Unimplemented!");
+  return false;
 }
 
 bool registerSpace::stealRegister(Register reg, codeGen &gen, bool /*noCost*/) {
@@ -495,6 +537,7 @@ bool registerSpace::saveVolatileRegisters(codeGen &gen) {
         
         // Okay, save.
         
+
         // save flags (PUSHFQ)
         
         emitSimpleInsn(0x9C, gen);
@@ -547,9 +590,6 @@ bool registerSpace::restoreVolatileRegisters(codeGen &gen) {
         }
         if (!doWeRestore) return false; // All done
         
-        // Okay, save.
-        
-        // save flags (POPFQ)
         emitSimpleInsn(0x9D, gen);
         
         // Don't care about their state...
@@ -843,25 +883,31 @@ void registerSlot::debugPrint(const char *prefix) {
 }
 
 void registerSpace::debugPrint() {
-    if (!dyn_debug_regalloc) return;
-
-	// Dump out our data
-	fprintf(stderr, "Beginning debug print of registerSpace at %p...", this);
-	fprintf(stderr, "GPRs: %ld, FPRs: %ld, SPRs: %ld\n", 
-           (long) GPRs_.size(), (long) FPRs_.size(), (long) SPRs_.size());
-	fprintf(stderr, "Stack pointer is at %d\n",
-                currStackPointer);
-	fprintf(stderr, "Register dump:");
-	fprintf(stderr, "=====GPRs=====\n");
-	for (unsigned i = 0; i < GPRs_.size(); i++) {
-      GPRs_[i]->debugPrint("\t");
-   }
-	for (unsigned i = 0; i < FPRs_.size(); i++) {
-      FPRs_[i]->debugPrint("\t");
-   }
-	for (unsigned i = 0; i < SPRs_.size(); i++) {
-      SPRs_[i]->debugPrint("\t");
-   }
+  if (!dyn_debug_regalloc) return;
+  
+  // Dump out our data
+  fprintf(stderr, "Beginning debug print of registerSpace at %p...", this);
+  fprintf(stderr, "GPRs: %ld, FPRs: %ld, SPRs: %ld\n", 
+	  (long) GPRs_.size(), (long) FPRs_.size(), (long) SPRs_.size());
+  fprintf(stderr, "Stack pointer is at %d\n",
+	  currStackPointer);
+  fprintf(stderr, "Register dump:");
+  fprintf(stderr, "=====GPRs=====\n");
+  for (unsigned i = 0; i < GPRs_.size(); i++) {
+    GPRs_[i]->debugPrint("\t");
+  }
+  fprintf(stderr, "=====FPRs=====\n");
+  for (unsigned i = 0; i < FPRs_.size(); i++) {
+    FPRs_[i]->debugPrint("\t");
+  }
+  fprintf(stderr, "=====SPRs=====\n");
+  for (unsigned i = 0; i < SPRs_.size(); i++) {
+    SPRs_[i]->debugPrint("\t");
+  }
+  fprintf(stderr, "=====RealRegs=====\n");
+  for (unsigned i = 0; i < realRegisters_.size(); i++) {
+    realRegisters_[i]->debugPrint("\t");
+  }
 }
 
 bool registerSpace::markKeptRegister(Register reg) {

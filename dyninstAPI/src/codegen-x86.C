@@ -50,6 +50,8 @@
 #include "instructionAPI/h/RegisterIDs.h"
 #include "pcrel.h"
 
+#include "dyninstAPI/src/pcrel.h"
+
 using namespace std;
 using namespace boost::assign;
 using namespace Dyninst::InstructionAPI;
@@ -146,6 +148,8 @@ bool convert_to_rel32(const unsigned char*&origInsn, unsigned char *&newInsn) {
     *newInsn++ = *origInsn++;
     return true;
   }
+
+  // TODO handle loops
 
   // Oops...
   fprintf(stderr, "Unhandled jump conversion case: opcode is 0x%x\n", *origInsn);
@@ -518,7 +522,6 @@ bool pcRelJCC::canPreApply()
 {
    return gen->startAddr() && (!targ || get_target());
 }
-
 
 pcRelCall::pcRelCall(patchTarget *t, const instruction &i) :
    pcRelRegion(i),
@@ -1032,23 +1035,28 @@ bool insnCodeGen::generateMem(codeGen &gen,
 
    if (orig_instr.getPrefix()->getPrefix(1) != 0)
       //The instruction accesses memory via segment registers.  Disallow.
-      return false;
-   
-   if (loc.modrm_position == -1)
+     //cerr << "Error: insn uses segment regs" << endl;
+     return false;
+   if (loc.modrm_position == -1) {
       //Only supporting MOD/RM instructions now
       return false; 
-   
-   if (loc.address_size == 1)
-      //Don't support 16-bit instructions yet
-      return false;
+   }
+
+   if (loc.address_size == 1) {
+     //Don't support 16-bit instructions yet
+     //cerr << "Error: insn is 16-bit" << endl;
+     return false;
+   }
 
    if (loc.modrm_reg == 4 && !loc.rex_r) {
+     //cerr << "Error: insn uses esp/rsp" << endl;
       //The non-memory access register is %rsp/%esp, we can't work with
       // this register due to our register saving techniques.
       return false;
    }
 
    if (loc.modrm_mod == 3) {
+     //cerr << "Error: insn doesn't use MOD/RM (2)" <<  endl;
       //This instruction doesn't use the MOD/RM to access memory
       return false;
    }
@@ -1087,13 +1095,14 @@ bool insnCodeGen::generateMem(codeGen &gen,
    /**
     * Emit prefixes
     **/
-   unsigned char new_rex = 0;
-   
+
    //Emit all prefixes except for rex
    for (int i=0; i<loc.num_prefixes; i++) {
       if (i != loc.rex_position)
          *walker++ = insn_ptr[i];
    }
+
+   unsigned char new_rex = 0;
    
    //Emit the rex
    if (loc.rex_position != -1 || (newreg & 8)) {
@@ -1103,7 +1112,9 @@ bool insnCodeGen::generateMem(codeGen &gen,
       REX_INIT(new_rex);
       REX_SET_W(new_rex, loc.rex_w);
       REX_SET_R(new_rex, loc.rex_r);
+
       REX_SET_X(new_rex, 0);
+
       REX_SET_B(new_rex, loc.rex_b); 
    }
    

@@ -38,6 +38,7 @@
 #include "BPatch_snippet.h" // snippetOrder
 #include "BPatch_Set.h"
 
+
 class InstrucIter;
 class process;
 class instPoint;
@@ -199,7 +200,7 @@ class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
 
     void recordSnippet(BPatch_callWhen, BPatch_snippetOrder,
                        BPatchSnippetHandle*);
-    bool deleteSnippet(BPatchSnippetHandle* handle);
+    bool removeSnippet(BPatchSnippetHandle* handle);
 
     void attachMemAcc(BPatch_memoryAccess *memacc);
 

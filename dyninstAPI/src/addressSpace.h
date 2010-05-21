@@ -39,8 +39,11 @@
 #include "ast.h"
 #include "symtabAPI/h/Symtab.h"
 #include "dyninstAPI/src/trapMappings.h"
+#include <list>
 
 #include "parseAPI/h/InstructionSource.h"
+#include "r_Relocation.h"
+#include "r_AddressMapper.h"
 
 class codeRange;
 class multiTramp;
@@ -70,6 +73,7 @@ class int_symbol;
 class Dyn_Symbol;
 class BinaryEdit;
 class trampTrapMappings;
+
 
 // This file serves to define an "address space", a set of routines that 
 // code generation and instrumentation rely on to perform their duties. 
@@ -140,6 +144,9 @@ class AddressSpace : public InstructionSource {
     // instrumentation is incredibly wasteful.
     virtual bool inferiorRealloc(Address item, unsigned newSize) = 0;
     bool inferiorReallocInternal(Address item, unsigned newSize);
+    bool inferiorShrinkBlock(heapItem *h, Address block, unsigned newSize);
+    bool inferiorExpandBlock(heapItem *h, Address block, unsigned newSize);
+
 
     bool isInferiorAllocated(Address block);
 
@@ -389,6 +396,34 @@ class AddressSpace : public InstructionSource {
     bool canUseTraps();
     void setUseTraps(bool usetraps);
 
+    //////////////////////////////////////////////////////
+    // The New Hotness
+    //////////////////////////////////////////////////////
+    //
+    // This is the top interface for the new (experimental)
+    // (probably not working) code generation interface. 
+    // The core idea is to feed a set of int_functions 
+    // (actually, a set of blocks, but functions are convenient)
+    // into a CodeMover class, let it chew on the code, and 
+    // spit out a buffer of moved code. 
+    // We also get a priority list of patches; (origAddr,
+    // movedAddr) pairs. We then get to decide what we want
+    // to do with those patches: put in a branch or say to 
+    // heck with it.
+    
+    bool relocate();
+		   
+    void getRelocAddrs(Address orig, std::list<Address> &relocs) const;
+
+    void causeTemplateInstantiations();
+
+    Address heapBase() const { return 0x8050000; }
+    Address instBase() const { return 0x804a000; }
+    Address dataBase() const { return 0x8048608; }
+    Address textBase() const { return 0x8048000; }
+
+    void addModifiedFunction(int_function *func);
+    
  protected:
 
     // inferior malloc support functions
@@ -425,7 +460,22 @@ class AddressSpace : public InstructionSource {
     void *up_ptr_;
 
     Address costAddr_;
+
+    /////// New instrumentation system
+    typedef std::list<AddressMapper> AddressMapperCollection;
+    AddressMapperCollection instAddrMappers_;
+
+    bool transform(Dyninst::Relocation::CodeMoverPtr cm);
+    Address generateCode(Dyninst::Relocation::CodeMoverPtr cm, Address near);
+    bool patchCode(Dyninst::Relocation::CodeMoverPtr cm,
+		   Dyninst::Relocation::SpringboardBuilderPtr spb);
+
+    typedef std::set<int_function *> FuncSet;
+    std::map<mapped_object *, FuncSet> modifiedFunctions_;
+
+	bool relocateInt(FuncSet::const_iterator begin, FuncSet::const_iterator end, Address near);
 };
+
 
 extern int heapItemCmpByAddr(const heapItem **A, const heapItem **B);
 

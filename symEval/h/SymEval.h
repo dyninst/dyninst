@@ -305,7 +305,6 @@ DEF_AST_INTERNAL_TYPE(RoseAST, ROSEOperation);
 class SymEvalPolicy;
 
 class  SymEval {
-
 public:
     typedef std::map<Assignment::Ptr, AST::Ptr> Result_t;
     typedef dyn_detail::boost::shared_ptr<AssignNode> AssignNodePtr;
@@ -340,7 +339,6 @@ public:
 			 Result_t& res);
 
   static void process(AssignNodePtr ptr, Result_t &dbase);
-  
 };
 
 };

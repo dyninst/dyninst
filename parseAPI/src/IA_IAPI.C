@@ -262,11 +262,11 @@ bool IA_IAPI::isInterrupt() const
 }
 
 void IA_IAPI::getNewEdges(
-        std::vector<std::pair< Address, EdgeTypeEnum> >& outEdges,
-        Function* context,
-        Block* currBlk,
-        unsigned int num_insns,
-        dyn_hash_map<Address, std::string> *plt_entries) const
+			  std::vector<std::pair< Address, EdgeTypeEnum> >& outEdges,
+			  Function* context,
+			  Block* currBlk,
+			  unsigned int num_insns,
+			  dyn_hash_map<Address, std::string> *plt_entries) const
 {
     Instruction::Ptr ci = curInsn();
 
@@ -440,6 +440,7 @@ bool IA_IAPI::isRealCall() const
 
 std::map<Address, bool> IA_IAPI::thunkAtTarget;
 
+
 bool IA_IAPI::isConditional() const
 {
     return curInsn()->allowsFallThrough();
@@ -447,6 +448,17 @@ bool IA_IAPI::isConditional() const
 
 bool IA_IAPI::simulateJump() const
 {
+    // HACK
+    if (getCFT() == getNextAddr() + 6) {
+      parsing_printf("... HACKED getPC\n");
+      return true;
+    }
+
+    if (getCFT() == getNextAddr() + 5) {
+      parsing_printf("... HACKED getPC\n");
+      return true;
+    }
+
     // TODO: we don't simulate jumps on x86 architectures; add logic as we need it.                
     return false;
 }

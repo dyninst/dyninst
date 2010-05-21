@@ -148,32 +148,41 @@ bool baseTrampInstance::shouldRegenBaseTramp(registerSpace *rs)
    unsigned actually_saved = 0;
    int needed_saved = 0;
    
+   regalloc_printf("BT: checking for unneeded saved registers (in %p)\n", this);
+
    if (spilledRegisters() && !hasLocalSpace())
       return true;
 
    pdvector<registerSlot *> &regs = rs->trampRegs();
    for (unsigned i = 0; i < regs.size(); i++) {
       registerSlot *reg = regs[i];
+      regalloc_printf("[%s:%u] - checking reg (index %d, number %d, encoding %d)\n", __FILE__, 
+		      __LINE__, i, reg->number, reg->encoding());
+
       if (reg->spilledState != registerSlot::unspilled) {
+	regalloc_printf("[%s:%u] - reg %d saved\n", __FILE__, 
+			__LINE__, reg->number);
          actually_saved++;
       }
       if (definedRegs[reg->encoding()]) {
-         needed_saved++;
+	regalloc_printf("[%s:%u] - reg %d used\n", __FILE__, 
+			__LINE__, reg->number);
+	needed_saved++;
       }
 
-      if (reg->spilledState != registerSlot::unspilled &&
-          !definedRegs[reg->encoding()] &&
-          !reg->offLimits)
+      if ((reg->spilledState != registerSlot::unspilled) &&
+          (!definedRegs[reg->encoding()]) &&
+          (!reg->offLimits))
       {
          saved_unneeded++;
          regalloc_printf("[%s:%u] - baseTramp saved unneeded register %d, "
-                         "suggesting regen\n", __FILE__, __LINE__, i);
+                         "suggesting regen\n", __FILE__, __LINE__, reg->number);
       }
       if (!reg->liveState == registerSlot::spilled &&
           definedRegs[reg->encoding()])
       {
          regalloc_printf("[%s:%u] - Decided not to save a defined register %d. "
-                         "App liveness?\n",  __FILE__, __LINE__, reg->encoding());         
+                         "App liveness?\n",  __FILE__, __LINE__, reg->number);         
       }
    }
    regalloc_printf("[%s:%u] - Should regen found %d unneeded saves\n",
@@ -184,8 +193,9 @@ bool baseTrampInstance::shouldRegenBaseTramp(registerSpace *rs)
       //No regen if we did a pusha and saved more regs than the 
       // X86_REGS_SAVE_LIMIT recommended limit.
       if (actually_saved == regs.size() &&
-          needed_saved > X86_REGS_SAVE_LIMIT)
+          needed_saved > X86_REGS_SAVE_LIMIT) {
          return false;
+      }
    }
 #endif
    return (saved_unneeded != 0);
@@ -361,9 +371,10 @@ bool baseTrampInstance::generateCode(codeGen &gen,
        if (!spilledRegisters())
           setSpilledRegisters(gen.rs()->spilledAnything());
 
-       if (!shouldRegenBaseTramp(gen.rs()))
+       if (!shouldRegenBaseTramp(gen.rs())) {
           break;
-
+       }
+	  
        gen.setPCRelUseCount(gen.rs()->pc_rel_use_count);
        
        markChanged(true);
@@ -373,6 +384,7 @@ bool baseTrampInstance::generateCode(codeGen &gen,
           gen.allPatches().pop_back();
        }
     }
+
     gen.setBTI(NULL);
     return true;
 }
@@ -385,11 +397,13 @@ bool baseTrampInstance::generateCodeInlined(codeGen &gen,
                                             Address baseInMutatee,
                                             UNW_INFO_TYPE **
                                             ) {
-    if (!hasChanged() && generated_) {
-        assert(gen.currAddr(baseInMutatee) == trampAddr_);
-        gen.moveIndex(trampSize_);
-        return true;
+#if 0
+    if (!hasChanged() && generated_ &&
+	(gen.currAddr(baseInMutatee) == trampAddr_)) {
+      gen.moveIndex(trampSize_);
+      return true;
     }
+#endif
 
     // Experiment: use AST-based code generation....
 

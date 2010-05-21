@@ -50,6 +50,11 @@
 #include "parseAPI/src/InstrucIter.h"
 #endif //defined(cap_instruction_api)
 
+#include "r_CodeMover.h"
+#include "r_Springboard.h"
+#include "r_t_Include.h"
+#include "r_AddressMapper.h"
+
 // Implementations of non-virtual functions in the address space
 // class.
 
@@ -700,12 +705,22 @@ bool AddressSpace::inferiorReallocInternal(Address block, unsigned newSize) {
     assert(h);
     infmalloc_printf("%s[%d]: inferiorRealloc found block with addr 0x%lx, length %d\n",
                      FILE__, __LINE__, h->addr, h->length);
-    
-    if (h->length < newSize) {
-        return false; // Cannot make bigger...
-    }
+
     if (h->length == newSize)
-        return true;
+      return true;
+    else if (h->length > newSize) {
+      // Shrink the block
+      return inferiorShrinkBlock(h, block, newSize);
+    }
+    else {
+      // See if we can grow this block
+      return inferiorExpandBlock(h, block, newSize);
+    }
+}
+
+bool AddressSpace::inferiorShrinkBlock(heapItem *h, 
+				       Address block, 
+				       unsigned newSize) {
 
     // We make a new "free" block that is the end of this one.
     Address freeStart = block + newSize;
@@ -762,8 +777,50 @@ bool AddressSpace::inferiorReallocInternal(Address block, unsigned newSize) {
     heap_.totalFreeMemAvailable += shrink;
     heap_.freed += shrink;
 
-    
     return true;
+}    
+
+bool AddressSpace::inferiorExpandBlock(heapItem *h, 
+				       Address, 
+				       unsigned newSize) {
+  // We attempt to find a free block that immediately succeeds
+  // this one. If we find such a block we expand this block into
+  // the next; if this is possible we return true. Otherwise
+  // we return false.
+
+  Address succAddr = h->addr + h->length;
+  int expand = newSize - h->length;
+  assert(expand > 0);
+    
+  // New speedy way. Find the block that is the successor of the
+  // active block; if it exists, simply enlarge it "downwards". Otherwise,
+  // make a new block. 
+  heapItem *succ = NULL;
+  for (unsigned i = 0; i < heap_.heapFree.size(); i++) {
+    heapItem *tmp = heap_.heapFree[i];
+    assert(tmp);
+    if (tmp->addr == succAddr) {
+      succ = tmp;
+      break;
+    }
+  }
+  if (succ != NULL) {
+    if (succ->length < (unsigned) expand) {
+      // Can't fit
+      return false;
+    }
+    Address newFreeBase = succAddr + expand;
+    int newFreeLen = succ->length - expand;
+    succ->addr = newFreeBase;
+    succ->length = newFreeLen;
+  }
+  else {
+    return false;
+  }
+
+  heap_.totalFreeMemAvailable -= expand;
+  
+  return true;
 }    
 
 /////////////////////////////////////////
@@ -1640,4 +1697,213 @@ bool AddressSpace::sameRegion(Address addr1, Address addr2)
         return false;
     }
     return true;
+////////////////////////////////////////////////////////////////////////////////////////
+
+using namespace Dyninst;
+using namespace Relocation;
+
+bool AddressSpace::relocate() {
+  bool ret = true;
+  for (std::map<mapped_object *, FuncSet>::const_iterator iter = modifiedFunctions_.begin();
+       iter != modifiedFunctions_.end(); ++iter) {
+    assert(iter->first);
+
+    if (!relocateInt(iter->second.begin(), iter->second.end(), iter->first->codeAbs())) {
+      ret = false;
+    }
+  }
+  modifiedFunctions_.clear();
+  return ret;
+}
+
+// iter is some sort of functions
+bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_iterator end, Address nearTo) {
+  if (begin == end) {
+    return true;
+  }
+
+  // Create a CodeMover covering these functions
+  //cerr << "Creating a CodeMover" << endl;
+  
+  CodeMover::Ptr cm = CodeMover::createFunc(begin, end);
+  SpringboardBuilder::Ptr spb = SpringboardBuilder::createFunc(begin, end, this);
+
+  transform(cm);
+
+  //cerr << "Debugging CodeMover" << endl;
+  //cerr << cm->format() << endl;
+
+  relocation_cerr << "  Entering code generation loop" << endl;
+  Address baseAddr = generateCode(cm, nearTo);
+  if (!baseAddr) {
+    relocation_cerr << "  ERROR: generateCode returned baseAddr of " << baseAddr << ", exiting" << endl;
+    return false;
+  }
+
+  // Copy it in
+  relocation_cerr << "  Writing " << cm->size() << " bytes of data into program at "
+		  << std::hex << baseAddr << std::dec << endl;
+  if (!writeTextSpace((void *)baseAddr,
+		      cm->size(),
+		      cm->ptr()))
+    return false;
+
+  // Now handle patching; AKA linking
+  relocation_cerr << "  Patching in jumps to generated code" << endl;
+
+  if (!patchCode(cm, spb))
+    return false;
+  
+  return true;
+}
+
+bool AddressSpace::transform(CodeMover::Ptr cm) {
+  // Ensure each block ends with an appropriate CFElement
+  CFElementCreator c;
+  cm->transform(c);
+
+  //cerr << "Applying PCSens transformer" << endl;
+  //PCSensitiveTransformer v(this, cm->priorityMap());
+  //cm->transform(v);
+
+  adhocMovementTransformer a(this);
+  cm->transform(a);
+
+  //cerr << "Memory emulator" << endl;
+  //MemEmulatorTransformer m;
+  //cm->transform(m);
+
+  // Localize control transfers
+  //cerr << "  Applying control flow localization" << endl;
+  LocalizeCF t(cm->blockMap(), 
+	       cm->priorityMap());
+  cm->transform(t);
+
+  // Add instrumentation
+  // For ease of edge instrumentation this should occur post-LocalCFTransformer-age
+  //cerr << "Inst transformer" << endl;
+  Instrumenter i;
+  cm->transform(i);
+  return true;
+
+}
+
+Address AddressSpace::generateCode(CodeMover::Ptr cm, Address nearTo) {
+  // And now we start the relocation process.
+  // This is at heart an iterative process, using the following
+  // algorithm
+  // size = code size estimate
+  // done = false
+  // While (!done), do
+  //   addr = inferiorMalloc(size)
+  //   cm.relocate(addr)
+  //   if ((cm.size <= size) || (inferiorRealloc(addr, cm.size)))
+  //     done = true
+  //   else
+  //     size = cm.size
+  //     inferiorFree(addr)
+  // In effect, we keep trying until we get a code generation that fits
+  // in the space we have allocated.
+
+  Address baseAddr = 0;
+
+  codeGen genTemplate;
+  genTemplate.setAddrSpace(this);
+  // Set the code emitter?
+  
+  if (!cm->initialize(genTemplate)) {
+    return 0;
+  }
+
+  while (1) {
+    relocation_cerr << "   Attempting to allocate " << cm->size() << "bytes" << endl;
+    baseAddr = inferiorMalloc(cm->size(), anyHeap, nearTo);
+    relocation_cerr << "   inferiorMalloc returned " 
+		    << std::hex << baseAddr << std::dec << endl;
+
+
+    relocation_cerr << "   Calling CodeMover::relocate" << endl;
+    if (!cm->relocate(baseAddr)) {
+      // Whoa
+      relocation_cerr << "   ERROR: CodeMover failed relocation!" << endl;
+      return 0;
+    }
+
+    // Either attempt to expand or shrink...
+    relocation_cerr << "   Calling inferiorRealloc to fit new size " << cm->size() 
+		    << ", current base addr is " 
+		    << std::hex << baseAddr << std::dec << endl;
+    if (!inferiorRealloc(baseAddr, cm->size())) {
+      relocation_cerr << "   ... inferiorRealloc failed, trying again" << endl;
+      inferiorFree(baseAddr);
+      continue;
+    }
+    else {
+      relocation_cerr << "   ... inferiorRealloc succeeded, finished" << endl;
+      break;
+    }
+  }
+  
+  // Create the address map
+  // We create first because there's less copying this way.
+  AddressMapper addrMap;
+  instAddrMappers_.push_back(AddressMapper());
+
+  cm->extractAddressMap(instAddrMappers_.back(), baseAddr);
+
+
+  relocation_cerr << "   ... fixpoint finished, returning baseAddr " 
+		  << std::hex << baseAddr << std::dec << endl;
+
+  //addrMap.debug();
+
+  return baseAddr;
+}
+
+bool AddressSpace::patchCode(CodeMover::Ptr cm,
+			     SpringboardBuilder::Ptr spb) {
+
+  const SpringboardMap &p = cm->sBoardMap();
+  
+  // A SpringboardMap has three priority sets: Required, Suggested, and
+  // NotRequired. We care about:
+  // Required: all
+  // Suggested: function entries
+  // NotRequired: none
+
+  std::list<codeGen> patches;
+
+  if (!spb->generate(patches, p)) { 
+    return false;
+  }
+
+  for (std::list<codeGen>::iterator iter = patches.begin();
+       iter != patches.end(); ++iter) {
+    if (!writeTextSpace((void *)iter->startAddr(),
+			iter->used(),
+			iter->start_ptr()))
+      return false;
+  }
+
+
+  return true;
+};
+
+void AddressSpace::causeTemplateInstantiations() {
+}
+
+void AddressSpace::getRelocAddrs(Address orig, std::list<Address> &relocs) const {
+  for (AddressMapperCollection::const_iterator iter = instAddrMappers_.begin();
+       iter != instAddrMappers_.end(); ++iter) {
+    Address reloc;
+    if (iter->origToReloc(orig, reloc)) {
+      relocs.push_back(reloc);
+    }
+  }
+}      
+
+void AddressSpace::addModifiedFunction(int_function *func) {
+  assert(func->obj());
+
+  modifiedFunctions_[func->obj()].insert(func);
 }
