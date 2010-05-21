@@ -186,6 +186,7 @@ class AbsRegion {
   //iterator &end();
 
   bool operator==(const AbsRegion &rhs) const;
+  bool operator!=(const AbsRegion &rhs) const;
   bool operator<(const AbsRegion &rhs) const;
 
   const std::string format() const;
