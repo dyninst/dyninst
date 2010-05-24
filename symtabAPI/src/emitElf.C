@@ -439,7 +439,7 @@ void emitElf::renameSection(const std::string &oldStr, const std::string &newStr
 
 bool emitElf::driver(Symtab *obj, string fName){
   int newfd;
-  Region *foundSec;
+  Region *foundSec = NULL;
   unsigned pgSize = getpagesize();
   //open ELf File for writing
   if((newfd = (open(fName.c_str(), O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP)))==-1){ 
