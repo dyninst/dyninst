@@ -42,10 +42,7 @@
 #include <errno.h>
 #include <unistd.h>
 
-#if !defined(DYNINST_RT_STATIC_LIB)
 #include <dlfcn.h>
-#endif
-
 #include <sys/types.h>
 #include <sys/syscall.h>
 #include <string.h>
@@ -59,6 +56,8 @@
 /* FreeBSD libc has stubs so a static version shouldn't need libpthreads */
 #include <pthread.h>
 
+/* TODO threading support, mutatee traps */
+
 extern double DYNINSTstaticHeap_512K_lowmemHeap_1[];
 extern double DYNINSTstaticHeap_16M_anyHeap_1[];
 extern unsigned long sizeOfLowMemHeap1;
@@ -66,26 +65,7 @@ extern unsigned long sizeOfAnyHeap1;
 
 static struct trap_mapping_header *getStaticTrapMap(unsigned long addr);
 
-/************************************************************************
- * void DYNINSTbreakPoint(void)
- *
- * stop oneself.
-************************************************************************/
-void DYNINSTbreakPoint()
-{
-    assert(!NOT_ON_FREEBSD);
-}
-
-static int failed_breakpoint = 0;
-void uncaught_breakpoint(int sig)
-{
-   failed_breakpoint = 1;
-}
-
-void DYNINSTsafeBreakPoint()
-{
-    assert(!NOT_ON_FREEBSD);
-}
+/** RT lib initialization **/
 
 void mark_heaps_exec() {
     RTprintf( "*** Initializing dyninstAPI runtime.\n" );
@@ -125,13 +105,43 @@ void mark_heaps_exec() {
     RTprintf( "*** Marked memory from 0x%lx to 0x%lx executable.\n", alignedHeapPointer, alignedHeapPointer + adjustedSize );
 } /* end mark_heaps_exec() */
 
-/************************************************************************
- * void DYNINSTos_init(void)
- *
- * OS initialization function
-************************************************************************/
 int DYNINST_sysEntry;
 void DYNINSTos_init(int calledByFork, int calledByAttach)
+{
+    assert(!NOT_ON_FREEBSD);
+}
+
+#if defined(cap_binary_rewriter) && !defined(DYNINST_RT_STATIC_LIB)
+/* For a static binary, all global constructors are combined in an undefined
+ * order. Also, DYNINSTBaseInit must be run after all global constructors have
+ * been run. Since the order of global constructors is undefined, DYNINSTBaseInit
+ * cannot be run as a constructor in static binaries. Instead, it is run from a
+ * special constructor handler that processes all the global constructors in
+ * the binary. Leaving this code in would create a global constructor for the
+ * function runDYNINSTBaseInit(). See DYNINSTglobal_ctors_handler.
+ */ 
+extern void DYNINSTBaseInit();
+void runDYNINSTBaseInit() __attribute__((constructor));
+void runDYNINSTBaseInit()
+{
+   DYNINSTBaseInit();
+}
+#endif
+
+/** Dynamic instrumentation support **/
+
+void DYNINSTbreakPoint()
+{
+    assert(!NOT_ON_FREEBSD);
+}
+
+static int failed_breakpoint = 0;
+void uncaught_breakpoint(int sig)
+{
+   failed_breakpoint = 1;
+}
+
+void DYNINSTsafeBreakPoint()
 {
     assert(!NOT_ON_FREEBSD);
 }
@@ -157,10 +167,24 @@ int DYNINSTloadLibrary(char *libname)
     return 1;
 }
 
+/** threading support **/
+
 int dyn_lwp_self()
 {
-    assert(!NOT_ON_FREEBSD);
-    return -1;
+    static int gettid_not_valid = 0;
+    int result;
+    
+    if( gettid_not_valid )
+        return getpid();
+
+    long lwp_id;
+    result = syscall(SYS_thr_self, &lwp_id);
+    if( result && errno == ENOSYS ) {
+        gettid_not_valid = 1;
+        return getpid();
+    }
+
+    return lwp_id;
 }
 
 int dyn_pid_self()
@@ -189,87 +213,15 @@ dyntid_t dyn_pthread_self()
    platform-ness here. 
 */
 int DYNINST_am_initial_thread( dyntid_t tid ) {
-    assert(!NOT_ON_FREEBSD);
+    if( dyn_lwp_self() == getpid() ) {
+        return 1;
+    }
     return 0;
 } /* end DYNINST_am_initial_thread() */
 
-/* TODO pthread interactions, context, mutatee traps */
+// TODO
+#define READ_OPAQUE(buffer, pos, type) *((type *)(buffer + pos))
 
-int dyn_var = 0;
+int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev) {
 
-#if defined(cap_binary_rewriter) && !defined(DYNINST_RT_STATIC_LIB)
-/* For a static binary, all global constructors are combined in an undefined
- * order. Also, DYNINSTBaseInit must be run after all global constructors have
- * been run. Since the order of global constructors is undefined, DYNINSTBaseInit
- * cannot be run as a constructor in static binaries. Instead, it is run from a
- * special constructor handler that processes all the global constructors in
- * the binary. Leaving this code in would create a global constructor for the
- * function runDYNINSTBaseInit(). See DYNINSTglobal_ctors_handler.
- */ 
-extern void DYNINSTBaseInit();
-void runDYNINSTBaseInit() __attribute__((constructor));
-void runDYNINSTBaseInit()
-{
-   DYNINSTBaseInit();
 }
-#endif
-
-
-/*
-//Small program for finding the correct values to fill in pos_in_pthreadt
-// above
-#include <pthread.h>
-#include <stdio.h>
-#include <sys/syscall.h>
-#include <sys/types.h>
-#include <unistd.h>
-
-#define gettid() syscall(SYS_gettid)
-
-pthread_attr_t attr;
-
-void *foo(void *f) {
-  pid_t pid, tid;
-  unsigned stack_addr;
-  unsigned best_stack = 0xffffffff;
-  int best_stack_pos = 0;
-  void *start_func;
-  int *p;
-  int i = 0;
-  pid = getpid();
-  tid = gettid();
-  start_func = foo;
-  //x86 only.  
-  asm("movl %%ebp,%0" : "=r" (stack_addr));
-  p = (int *) pthread_self();
-  while (i < 1000)
-  {
-    if (*p == (unsigned) pid)
-      printf("pid @ %d\n", i);
-    if (*p == (unsigned) tid)
-      printf("lwp @ %d\n", i);
-    if (*p > stack_addr && *p < best_stack)
-    {
-      best_stack = *p;
-      best_stack_pos = i;
-    }
-    if (*p == (unsigned) start_func)
-      printf("func @ %d\n", i);
-    i += sizeof(int);
-    p++;
-  }  
-  printf("stack @ %d\n", best_stack_pos);
-  return NULL;
-}
-
-int main(int argc, char *argv[])
-{
-  pthread_t t;
-  void *result;
-  pthread_attr_init(&attr);
-  pthread_create(&t, &attr, foo, NULL);
-  pthread_join(t, &result);
-  return 0;
-}
-*/
-

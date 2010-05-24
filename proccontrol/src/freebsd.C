@@ -541,8 +541,30 @@ freebsd_thread::~freebsd_thread()
 }
 
 bool freebsd_thread::plat_cont() {
-    assert(!NA_FREEBSD);
-    return false;
+    // XXX the whole process is continued
+    //
+    // On FreeBSD, individual threads are controlled by stopping the whole
+    // process and then suspending or resuming individual threads before
+    // continuing the process.
+    //
+
+    int result;
+    if (singleStep()) {
+        pthrd_printf("Calling PT_STEP with signal %d\n", continueSig_);
+        result = bsd_ptrace(PT_STEP, proc_->getPid(), (caddr_t)1, continueSig_);
+    } else {
+        pthrd_printf("Calling PT_CONTINUE with signal %d\n", continueSig_);
+        result = bsd_ptrace(PT_CONTINUE, proc_->getPid(), (caddr_t)1, continueSig_);
+    }
+
+    if (result == -1) {
+        int error = errno;
+        perr_printf("low-level continue failed: %s\n", strerror(error));
+        setLastError(err_internal, "Low-level continue failed\n");
+        return false;
+    }
+
+    return true;
 }
 
 bool freebsd_thread::plat_stop() {
@@ -571,6 +593,6 @@ bool freebsd_thread::plat_setRegister(Dyninst::MachRegister, Dyninst::MachRegist
 }
 
 bool freebsd_thread::attach() {
-    assert(!NA_FREEBSD);
-    return false;
+    // XXX single thread for the time being
+    return true;
 }

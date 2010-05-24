@@ -42,6 +42,10 @@
 #include "emitElfStatic.h"
 #include "debug.h"
 
+#if defined(os_freebsd)
+#define R_X86_64_JUMP_SLOT R_X86_64_JMP_SLOT
+#endif
+
 extern void symtab_log_perror(const char *msg);
 using namespace Dyninst;
 using namespace Dyninst::SymtabAPI;
@@ -978,8 +982,9 @@ void emitElf64::fixPhdrs(unsigned &extraAlignSize)
 
 //This method updates the .dynamic section to reflect the changes to the relocation section
 void emitElf64::updateDynamic(unsigned tag, Elf64_Addr val){
-  if(dynamicSecData.find(tag) == dynamicSecData.end())
+  if(dynamicSecData.find(tag) == dynamicSecData.end()) {
     return;
+  }
     
    switch(dynamicSecData[tag][0]->d_tag) {
   case DT_STRSZ:
@@ -1068,19 +1073,62 @@ void emitElf64::updateHeapVariables(Symtab *obj, unsigned long newSecsEndAddress
     }
 }
 
-void emitElf64::updatePltGotRelocations(Symtab *obj, relocationEntry &rel) {
-#if defined(arch_x86) || defined(arch_x86_64)
-    // Currently, only verified on x86 and x86_64 -- this may work on other architectures
-    Region *gotRegion = obj->findEnclosingRegion(rel.rel_addr());
+inline
+static bool adjustValInRegion(Region *reg, Offset offInReg, Offset addressWidth, int adjust) {
+    Offset newValue;
+    unsigned char *oldValues;
 
-    if( NULL != gotRegion ) {
-        Offset newValue;
-        unsigned char *oldValues = (unsigned char *)gotRegion->getPtrToRawData();
-        memcpy(&newValue, &oldValues[rel.rel_addr() - gotRegion->getRegionAddr()], sizeof(Offset));
-        newValue += library_adjust;
-        gotRegion->patchData(rel.rel_addr() - gotRegion->getRegionAddr(), &newValue, sizeof(Offset));
+    oldValues = reinterpret_cast<unsigned char *>(reg->getPtrToRawData());
+    memcpy(&newValue, &oldValues[offInReg], addressWidth);
+    newValue += adjust;
+    return reg->patchData(offInReg, &newValue, addressWidth);
+}
+
+void emitElf64::updateRelocation(Symtab *obj, relocationEntry &rel) {
+    // XXX Yep, this is the same in both emitElf64 and emitElf, once these are combined
+    // this function will only exist once
+
+    // Currently, only verified on x86 and x86_64 -- this may work on other architectures
+#if defined(arch_x86) || defined(arch_x86_64)
+    Region *targetRegion = obj->findEnclosingRegion(rel.rel_addr());
+    assert( NULL != targetRegion && "Failed to find enclosing Region for relocation");
+
+    // Used to update a Region
+    unsigned addressWidth = obj->getAddressWidth();
+    if( addressWidth == 8 ) {
+        switch(rel.getRelType()) {
+            case R_X86_64_RELATIVE:
+                rel.setAddend(rel.addend() + library_adjust);
+                break;
+            case R_X86_64_JUMP_SLOT:
+                assert(    adjustValInRegion(targetRegion, 
+                           rel.rel_addr() - targetRegion->getRegionAddr(),
+                           addressWidth, library_adjust)
+                        && "Failed to update relocation");
+                break;
+            default:
+                // Do nothing
+                break;
+        }
     }else{
-        fprintf(stderr, "WARNING: failed to update GOT entry...behavior undefined\n");
+        switch(rel.getRelType()) {
+            case R_386_RELATIVE:
+                // On x86, addends are stored in their target location
+                assert(    adjustValInRegion(targetRegion, 
+                           rel.rel_addr() - targetRegion->getRegionAddr(),
+                           addressWidth, library_adjust)
+                        && "Failed to update relocation");
+                break;
+            case R_386_JMP_SLOT:
+                assert(    adjustValInRegion(targetRegion, 
+                           rel.rel_addr() - targetRegion->getRegionAddr(),
+                           addressWidth, library_adjust)
+                        && "Failed to update relocation");
+                break;
+            default:
+                // Do nothing
+                break;
+        }
     }
 
     // XXX The GOT also holds a pointer to the DYNAMIC segment -- this is currently not
@@ -1171,8 +1219,8 @@ bool emitElf64::createLoadableSections(Elf64_Shdr* &shdr, unsigned &extraAlignSi
          loadSecTotalSize += newshdr->sh_offset - (shdr->sh_offset+shdr->sh_size);
      }
 
-      if(newSecs[i]->getMemOffset()) {
-         newshdr->sh_addr = newSecs[i]->getMemOffset() + library_adjust;
+      if(newSecs[i]->getDiskOffset()) {
+         newshdr->sh_addr = newSecs[i]->getDiskOffset();
       }
       else{
          newshdr->sh_addr = prevshdr->sh_addr + prevshdr->sh_size;
@@ -1785,7 +1833,7 @@ bool emitElf64::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
     if(obj->findRegion(sec, ".dynamic")) {
         // Need to ensure that DT_REL and related fields added to .dynamic
         // The values of these fields will be set
-        if( !object->hasReldyn() ) {
+        if( !object->hasReldyn() && !object->hasReladyn() ) {
             if( object->getRelType() == Region::RT_REL ) {
                 new_dynamic_entries.push_back(make_pair(DT_REL,0));
                 new_dynamic_entries.push_back(make_pair(DT_RELSZ,0));
@@ -1940,14 +1988,15 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
    //reconstruct .rel
    for(i=0;i<relocation_table.size();i++) 
    {
-      if (relocation_table[i].regionType() == Region::RT_REL) {
-         if( library_adjust && !isDynRelocs) {
-             // PLT relocations depend on the GOT and the GOT contains some offsets
-             // referencing the PLT -- these need to be updated if we are shifting
-             // the library down a page
-             updatePltGotRelocations(obj, relocation_table[i]);
-         }
 
+     if( library_adjust ) {
+         // If we are shifting the library down in memory, we need to update
+         // any relative offsets in the library. These relative offsets are 
+         // found via relocations
+         updateRelocation(obj, relocation_table[i]);
+     }
+
+      if (relocation_table[i].regionType() == Region::RT_REL) {
          rels[j].r_offset = relocation_table[i].rel_addr() + library_adjust;
          if(relocation_table[i].name().length() &&
             dynSymNameMapping.find(relocation_table[i].name()) != dynSymNameMapping.end()) {

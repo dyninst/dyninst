@@ -143,7 +143,7 @@ class emitElf{
 
     void updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned long loadSecsSize);
     void updateHeapVariables(Symtab *obj, unsigned long loadSecsSize);
-    void updatePltGotRelocations(Symtab *obj, relocationEntry &rel);
+    void updateRelocation(Symtab *obj, relocationEntry &rel);
 
     bool hasRewrittenTLS;
     bool TLSExists;

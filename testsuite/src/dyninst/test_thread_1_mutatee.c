@@ -84,7 +84,7 @@ void register_my_lock(unsigned long id, unsigned int val)
   dprintf("%s[%d]:  %sregister lock for thread %lu\n", __FILE__, __LINE__,
            val ? "" : "un", id);
   for (i = 0; i < TEST1_THREADS; ++i) {
-    if (pthread_equal(test1threads[i],(pthread_t)id)) {
+    if (pthread_equal((pthread_t)test1threads[i],(pthread_t)id)) {
       found = 1;
       current_locks[i] = (unsigned)val;
       break;

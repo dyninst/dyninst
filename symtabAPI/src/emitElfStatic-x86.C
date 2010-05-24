@@ -504,7 +504,7 @@ void emitElfStatic::buildGOT(LinkMap &lmap) {
     // symbol into the table, additionally store the offset in the GOT
     // back into the map
     Offset curOffset = GOT_RESERVED_SLOTS*slotSize;
-    bzero(&targetData[lmap.gotRegionOffset], GOT_RESERVED_SLOTS*slotSize);
+    memset(&targetData[lmap.gotRegionOffset], 0, GOT_RESERVED_SLOTS*slotSize);
 
     map<Symbol *, Offset>::iterator sym_it;
     for(sym_it = lmap.gotSymbols.begin(); sym_it != lmap.gotSymbols.end(); ++sym_it) {

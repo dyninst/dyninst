@@ -181,6 +181,7 @@ void image::findMain()
 #if defined(i386_unknown_linux2_0) \
 || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
 || defined(i386_unknown_solaris2_5) \
+|| defined(amd64_unknown_freebsd7_0)
    
     if(!desc_.isSharedObject())
     {
@@ -211,7 +212,6 @@ void image::findMain()
             const unsigned char* p;
 		                   
             p = (( const unsigned char * ) textsec->getPtrToRawData());
-            const unsigned char *lastP = 0;
 
             switch(linkedFile->getAddressWidth()) {
        	    	case 4:
@@ -232,7 +232,10 @@ void image::findMain()
 
             instruction insn;
             insn.setInstruction( p );
- 
+            Address mainAddress = 0;
+
+#if !defined(os_freebsd)
+            const unsigned char *lastP = 0;
             while( !insn.isCall() )
             {
             	lastP = p;
@@ -248,12 +251,50 @@ void image::findMain()
             instruction preCall;
             preCall.setInstruction(lastP);
 
-            Address mainAddress;
             mainAddress = get_immediate_operand(&preCall);
+#else
+            // Heuristic: main is the target of the 4th call in the text section
+            using namespace Dyninst::InstructionAPI;
+
+            unsigned bytesSeen = 0, numCalls = 0;
+            InstructionDecoder decoder(p, textsec->getRegionSize(), getArch());
+
+            Instruction::Ptr curInsn = decoder.decode();
+            while( numCalls < 4 && curInsn && curInsn->isValid() &&
+                   bytesSeen < textsec->getRegionSize())
+            {
+                InsnCategory category = curInsn->getCategory();
+                if( category == c_CallInsn ) {
+                    numCalls++;
+                }
+
+                if( numCalls < 4 ) {
+                    bytesSeen += curInsn->size();
+                    curInsn = decoder.decode();
+                }
+            }
+
+            if( numCalls != 4 ) {
+                logLine("heuristic for finding global constructor function failed\n");
+            }else{
+                Address callAddress = textsec->getRegionAddr() + bytesSeen;
+                RegisterAST thePC = RegisterAST(Dyninst::MachRegister::getPC(getArch()));
+
+                Expression::Ptr callTarget = curInsn->getControlFlowTarget();
+
+                if( callTarget.get() ) {
+                    callTarget->bind(&thePC, Result(s64, callAddress));
+                    Result actualTarget = callTarget->eval();
+                    if( actualTarget.defined ) {
+                        mainAddress = actualTarget.convert<Address>();
+                    }
+                }
+            }
+#endif
 
             if(!mainAddress || !isValidAddress(mainAddress)) {
                 startup_printf("%s[%u]:  invalid main address 0x%lx\n",
-                    mainAddress);   
+                    FILE__, __LINE__, mainAddress);   
             } else {
                 startup_printf("%s[%u]:  set main address to 0x%lx\n",
                     FILE__,__LINE__,mainAddress);

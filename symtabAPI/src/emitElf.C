@@ -46,6 +46,9 @@
 #include <sys/link.h>
 #endif
 
+#if defined(os_freebsd)
+#define R_X86_64_JUMP_SLOT R_X86_64_JMP_SLOT
+#endif
 
 extern void symtab_log_perror(const char *msg);
 using namespace Dyninst;
@@ -1146,19 +1149,62 @@ void emitElf::updateHeapVariables(Symtab *obj, unsigned long newSecsEndAddress )
     }
 }
 
-void emitElf::updatePltGotRelocations(Symtab *obj, relocationEntry &rel) {
-#if defined(arch_x86)
-    // Currently, only verified on x86 -- this may work on other architectures
-    Region *gotRegion = obj->findEnclosingRegion(rel.rel_addr());
+inline
+static bool adjustValInRegion(Region *reg, Offset offInReg, Offset addressWidth, int adjust) {
+    Offset newValue;
+    unsigned char *oldValues;
 
-    if( NULL != gotRegion ) {
-        Offset newValue;
-        unsigned char *oldValues = (unsigned char *)gotRegion->getPtrToRawData();
-        memcpy(&newValue, &oldValues[rel.rel_addr() - gotRegion->getRegionAddr()], sizeof(Offset));
-        newValue += library_adjust;
-        gotRegion->patchData(rel.rel_addr() - gotRegion->getRegionAddr(), &newValue, sizeof(Offset));
+    oldValues = reinterpret_cast<unsigned char *>(reg->getPtrToRawData());
+    memcpy(&newValue, &oldValues[offInReg], addressWidth);
+    newValue += adjust;
+    return reg->patchData(offInReg, &newValue, addressWidth);
+}
+
+void emitElf::updateRelocation(Symtab *obj, relocationEntry &rel) {
+    // XXX Yep, this is the same in both emitElf64 and emitElf, once these are combined
+    // this function will only exist once
+
+    // Currently, only verified on x86 and x86_64 -- this may work on other architectures
+#if defined(arch_x86) || defined(arch_x86_64)
+    Region *targetRegion = obj->findEnclosingRegion(rel.rel_addr());
+    assert( NULL != targetRegion && "Failed to find enclosing Region for relocation");
+
+    // Used to update a Region
+    unsigned addressWidth = obj->getAddressWidth();
+    if( addressWidth == 8 ) {
+        switch(rel.getRelType()) {
+            case R_X86_64_RELATIVE:
+                rel.setAddend(rel.addend() + library_adjust);
+                break;
+            case R_X86_64_JUMP_SLOT:
+                assert(    adjustValInRegion(targetRegion, 
+                           rel.rel_addr() - targetRegion->getRegionAddr(),
+                           addressWidth, library_adjust)
+                        && "Failed to update relocation");
+                break;
+            default:
+                // Do nothing
+                break;
+        }
     }else{
-        fprintf(stderr, "WARNING: failed to update GOT entry...behavior undefined\n");
+        switch(rel.getRelType()) {
+            case R_386_RELATIVE:
+                // On x86, addends are stored in their target location
+                assert(    adjustValInRegion(targetRegion, 
+                           rel.rel_addr() - targetRegion->getRegionAddr(),
+                           addressWidth, library_adjust)
+                        && "Failed to update relocation");
+                break;
+            case R_386_JMP_SLOT:
+                assert(    adjustValInRegion(targetRegion, 
+                           rel.rel_addr() - targetRegion->getRegionAddr(),
+                           addressWidth, library_adjust)
+                        && "Failed to update relocation");
+                break;
+            default:
+                // Do nothing
+                break;
+        }
     }
 
     // XXX The GOT also holds a pointer to the DYNAMIC segment -- this is currently not
@@ -2125,7 +2171,7 @@ void emitElf::createRelocationSections(Symtab *obj, std::vector<relocationEntry>
               // PLT relocations depend on the GOT and the GOT contains some offsets
               // referencing the PLT -- these need to be updated if we are shifting
               // the library down a page
-              updatePltGotRelocations(obj, relocation_table[i]);
+              updateRelocation(obj, relocation_table[i]);
           }
 
          rels[j].r_offset = relocation_table[i].rel_addr() + library_adjust;
