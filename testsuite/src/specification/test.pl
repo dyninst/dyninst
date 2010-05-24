@@ -291,6 +291,7 @@ rungroup_tuple(Mutatee, Compiler, Optimization, RunMode, StartState,
                     test_platform_abi(T, Platform, ABI),
                     test_runmode(T, RunMode), test_start_state(T, StartState),
                     \+ test_exclude_format(T, Format),
+                    \+ test_exclude_compiler(T, Compiler),
                     test_threadmode(T, ThreadMode),
                     test_processmode(T, ProcessMode),
                     ((groupable_test(T), Groupable = true);
