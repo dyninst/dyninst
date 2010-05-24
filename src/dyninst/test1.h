@@ -62,6 +62,9 @@
 #elif defined (ppc64_linux_test)
 #define	TEST_PTR_SIZE	8
 #define	TEST_PTR		TEST_PTR_64BIT
+#elif defined(i386_unknown_freebsd7_2)
+#define TEST_PTR_SIZE   4
+#define TEST_PTR                TEST_PTR_32BIT
 #elif defined(amd64_unknown_freebsd7_0_test)
 #define TEST_PTR_SIZE   8
 #define TEST_PTR                TEST_PTR_64BIT
