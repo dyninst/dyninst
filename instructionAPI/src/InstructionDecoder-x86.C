@@ -221,7 +221,7 @@ namespace Dyninst
                     entryID opcode = decodedInstruction->getEntry()->getID(locs);
         // treat FP decodes as legacy mode since it appears that's what we've got in our
         // old code...
-                    if(ia32_is_mode_64() && (opcode < e_fadd || opcode > e_fxsave) && opcode != e_fp_generic)
+                    if(ia32_is_mode_64()/* && (opcode < e_fadd || opcode > e_fxsave) && opcode != e_fp_generic*/)
                     {
                         e = makeAddExpression(makeRegisterExpression(x86_64::rip),
                                             getModRMDisplacement(b), aw);
