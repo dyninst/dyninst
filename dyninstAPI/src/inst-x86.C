@@ -219,6 +219,12 @@ void registerSpace::initialize32() {
 
     callRead_ = getBitArray();
     // CallRead reads no registers
+    // We wish...
+    callRead_[REGNUM_ECX] = true;
+    callRead_[REGNUM_EDX] = true;
+
+    // PLT entries use ebx
+    callRead_[REGNUM_EBX] = true;
 
     // TODO: Fix this for platform-specific calling conventions
 

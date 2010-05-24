@@ -150,7 +150,8 @@ int testLimit = 0;
 int testsRun = 0;
 int errorPrint = 0;
 int debugPrint = 0;
-char *resumelog_name = "resumelog";
+int unique_id = 0;
+int max_unique_id = 0;
 char *humanlog_name = "-";
 char *crashlog_name = "crashlog";
 char *measureFileName = "-";
@@ -630,6 +631,29 @@ void disableUnwantedTests(std::vector<RunGroup *> groups)
    }
 #endif
 
+   if (unique_id && max_unique_id) {
+      unsigned cur_test = 0;
+      unsigned cur_test_limitgroup = 0;
+      for (unsigned i=0; i < groups.size(); i++) 
+      {
+         if (groups[i]->disabled) continue;
+         for (unsigned j=0; j<groups[i]->tests.size(); j++) 
+         {
+            if (groups[i]->tests[j]->disabled) {
+               continue;
+            }
+            if (cur_test && cur_test % testLimit == 0) {
+               cur_test_limitgroup++;
+            }
+            cur_test++;
+
+            if (cur_test_limitgroup % max_unique_id != (unique_id-1)) {
+               groups[i]->tests[j]->disabled = true;
+            }
+         }       
+      }
+   }
+
    parse_resumelog(groups);
 
    if (testLimit) {
@@ -895,7 +919,10 @@ void startAllTests(std::vector<RunGroup *> &groups,
    ParamInt printlabels_p((int) printLabels);
    ParamInt debugprint_p((int) debugPrint);
    ParamInt noclean_p((int) noclean);
+   ParamInt uniqueid_p((int) unique_id);
    ParamString humanname_p(humanlog_name);
+   std::string mutateeresume_name = std::string("mutatee_") + get_resumelog_name();
+   ParamString resumelog_p(mutateeresume_name.c_str());
 
    param["logfilename"] = &logfile_p;
    param["verbose"] = &verbose_p;
@@ -904,6 +931,8 @@ void startAllTests(std::vector<RunGroup *> &groups,
    param["printlabels"] = &printlabels_p;
    param["debugPrint"] = &debugprint_p;
    param["noClean"] = &noclean_p;
+   param["mutatee_resumelog"] = &resumelog_p;
+   param["unique_id"] = &uniqueid_p;
 
    // Print Test Log Header
    getOutput()->log(LOGINFO, "Commencing test(s) ...\n");
@@ -1181,6 +1210,13 @@ int main(int argc, char *argv[]) {
    if (result)
       exit(result);
 
+   if (unique_id) {
+      char id_string[32];
+      snprintf(id_string, 32, "%d", unique_id);
+      std::string newname = std::string(get_resumelog_name()) + std::string(".") + std::string(id_string);
+      set_resumelog_name(strdup(newname.c_str()));
+   }
+
    // Fill in tests vector with lists of test to run
    std::vector<RunGroup *> tests;
    initialize_mutatees(tests);  
@@ -1193,7 +1229,7 @@ int main(int argc, char *argv[]) {
 
    // Set the resume log name
    if ( getenv("RESUMELOG") ) {
-      resumelog_name = getenv("RESUMELOG");
+      set_resumelog_name(getenv("RESUMELOG"));
    }
 
    if ( shouldDebugBreak ) {
@@ -1540,6 +1576,32 @@ int parseArgs(int argc, char *argv[])
          testLimit = strtol(argv[++i], NULL, 10);
          if ((0 == testLimit) && (EINVAL == errno)) {
             getOutput()->log(STDERR, "-limit must be followed by an integer limit\n");
+            return NOTESTS;
+         }
+      }
+      else if (strcmp(argv[i], "-resumelog-name") == 0)
+      {
+         if (i + 1 >= argc) {
+            getOutput()->log(STDERR, "-resumelog-name must be followed by a filename\n");
+            return NOTESTS;
+         }
+         set_resumelog_name(argv[++i]);
+      }
+      else if (strcmp(argv[i], "-unique") == 0) {
+         if (i + 1 < argc) {
+            unique_id = atoi(argv[++i]);
+         }
+         if (!unique_id) {
+            getOutput()->log(STDERR, "-unique must be followed by a non-zero integer\n");
+            return NOTESTS;
+         }
+      }
+      else if (strcmp(argv[i], "-max-unique") == 0) {
+         if (i + 1 < argc) {
+            max_unique_id = atoi(argv[++i]);
+         }
+         if (!max_unique_id) {
+            getOutput()->log(STDERR, "-max_unique must be followed by a non-zero integer\n");
             return NOTESTS;
          }
       }

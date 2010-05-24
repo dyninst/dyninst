@@ -60,6 +60,7 @@ namespace Dyninst
                              Dyninst::Architecture arch)
       : m_InsnOp(what), m_Valid(true), arch_decoded_from(arch)
     {
+
         copyRaw(size, raw);
 #if defined(DEBUG_INSN_ALLOCATIONS)
         numInsnsAllocated++;
@@ -104,6 +105,7 @@ namespace Dyninst
     INSTRUCTION_EXPORT Instruction::Instruction() :
       m_Valid(false), m_size(0)
     {
+
 #if defined(DEBUG_INSN_ALLOCATIONS)
         numInsnsAllocated++;
         if((numInsnsAllocated % 1000) == 0)
@@ -115,6 +117,7 @@ namespace Dyninst
     
     INSTRUCTION_EXPORT Instruction::~Instruction()
     {
+
       if(m_size > sizeof(unsigned int))
       {
 	delete[] m_RawInsn.large_insn;
@@ -559,7 +562,11 @@ memAccessors.begin()));
       }
       return c;
     }
-    void Instruction::addSuccessor(Expression::Ptr e, bool isCall, bool isIndirect, bool isConditional, bool isFallthrough) const
+    void Instruction::addSuccessor(Expression::Ptr e, 
+				   bool isCall, 
+				   bool isIndirect, 
+				   bool isConditional, 
+				   bool isFallthrough) const
     {
         CFT c(e, isCall, isIndirect, isConditional, isFallthrough);
         m_Successors.push_back(c);

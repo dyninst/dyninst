@@ -460,6 +460,8 @@ SymEval<a>::convert(const InstructionAPI::Instruction::Ptr &insn, uint64_t addr)
     // operand list
     SgAsmOperandList *roperands = new SgAsmOperandList;
 
+    //cerr << "Converting " << insn->format() << " @" << hex << addr << dec << endl;
+
     //cerr << "checking instruction: " << insn->format() << " for special handling" << endl;
     if(SymEvalArchTraits<a>::handleSpecialCases(insn->getOperation().getID(), rinsn, roperands))
     {
@@ -469,6 +471,7 @@ SymEval<a>::convert(const InstructionAPI::Instruction::Ptr &insn, uint64_t addr)
     //cerr << "no special handling by opcode, checking if we should mangle operands..." << endl;
     std::vector<InstructionAPI::Operand> operands;
     insn->getOperands(operands);
+    //cerr << "\t " << operands.size() << " operands" << endl;
     SymEvalArchTraits<a>::handleSpecialCases(insn, operands);
     int i = 0;
     //cerr << "converting insn " << insn->format() << endl;

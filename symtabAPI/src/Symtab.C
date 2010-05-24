@@ -648,9 +648,11 @@ bool Symtab::createAggregates()
     // In VxWorks, symbol offsets are not complete until object is loaded.
 
     for (unsigned i = 0; i < everyDefinedSymbol.size(); i++) 
-	{
-        addSymbolToAggregates(everyDefinedSymbol[i]);
-    }
+      {
+	if (!doNotAggregate(everyDefinedSymbol[i])) {
+	  addSymbolToAggregates(everyDefinedSymbol[i]);
+	}
+      }
 #endif
 
     return true;
@@ -768,6 +770,7 @@ bool Symtab::addSymbolToIndices(Symbol *&sym)
 
 bool Symtab::addSymbolToAggregates(Symbol *&sym) 
 {
+
     switch(sym->getType()) {
     case Symbol::ST_FUNCTION: {
         // We want to do the following:
@@ -850,6 +853,23 @@ bool Symtab::addSymbolToAggregates(Symbol *&sym)
     }
     }
     return true;
+}
+
+// A hacky override for specially treating symbols that appear
+// to be functions or variables but aren't.
+//
+// Example: IA-32/AMD-64 libc (and others compiled with libc headers)
+// uses outlined locking primitives. These are named _L_lock_<num>
+// and _L_unlock_<num> and labelled as functions. We explicitly do
+// not include them in function scope.
+bool Symtab::doNotAggregate(Symbol *&sym) {
+  if (sym->getMangledName().compare(0, strlen("_L_lock_"), "_L_lock_") == 0) {
+    return true;
+  }
+  if (sym->getMangledName().compare(0, strlen("_L_unlock_"), "_L_unlock_") == 0) {
+    return true;
+  }
+  return false;
 }
 
 /* Add the new name to the appropriate symbol index */
@@ -2621,7 +2641,9 @@ SYMTAB_EXPORT bool Symtab::fixup_SymbolAddr(const char* name, Offset newOffset)
         symsByOffset[newOffset].push_back(sym);
 
     // Update aggregates.
-    addSymbolToAggregates(sym);
+    if (!doNotAggregate(sym)) {
+      addSymbolToAggregates(sym);
+    }
 
 #if 0
     if (funcsByOffset.count(oldOffset) > 0) {

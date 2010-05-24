@@ -225,6 +225,25 @@ fi
 AC_SUBST(LIBUNWIND_INC_DIR)
 AC_SUBST(LIBUNWIND_LIB_DIR)
 
+if test "$host_cpu" != "x86_64" -a "$host_cpu" != "i686"; then
+   AC_MSG_NOTICE([Not x86/x86_64, skipping icc on $host_cpu...])
+else
+   AC_ARG_WITH(icc,
+               [AS_HELP_STRING([--with-icc],[Path to Intel's ICC compiler])],
+               [_ICC_="${withval}"; _ICPC_=`dirname ${withval}`/icpc;],)
+fi
+AC_SUBST(_ICC_)
+AC_SUBST(_ICPC_)
+
+if test "$host_cpu" != "x86_64" -a "$host_cpu" != "i686"; then
+   AC_MSG_NOTICE([Not x86/x86_64, skipping pgcc on $host_cpu...])
+else
+   AC_ARG_WITH(pgcc,
+               [AS_HELP_STRING([--with-pgcc],[Path to Pathscale's PGCC compiler])],
+               [_PGC_="${withval}"; _PGCXX_=`dirname ${withval}`/pgCC;],)
+fi
+AC_SUBST(_PGC_)
+AC_SUBST(_PGCXX_)
 
 AC_ARG_WITH(libflex-libdir,
             [AS_HELP_STRING([--with-libflex-libdir],[Absolute path to flex library])],

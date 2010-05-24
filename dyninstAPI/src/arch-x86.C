@@ -56,7 +56,6 @@
 #include "emit-x86.h"
 #include "process.h"
 #include "inst-x86.h"
-
 #include "instructionAPI/h/RegisterIDs.h"
 #include "pcrel.h"
 
@@ -641,6 +640,7 @@ bool pcRelJump::canPreApply()
 {
    return gen->startAddr() && (!targ || get_target());
 }
+
 
 pcRelJCC::pcRelJCC(patchTarget *t, const instruction &i) :
    pcRelRegion(i),
@@ -1471,7 +1471,7 @@ bool instruction::generateMem(codeGen &gen,
    if (loc.modrm_position == -1)
       //Only supporting MOD/RM instructions now
       return false; 
-
+   
    if (loc.address_size == 1)
       //Don't support 16-bit instructions yet
       return false;
@@ -1545,7 +1545,6 @@ bool instruction::generateMem(codeGen &gen,
     * Copy opcode
     **/
    for (int i=loc.num_prefixes; i<loc.num_prefixes+(int)loc.opcode_size; i++) {
-     //*walker++ = insn_ptr[i];
      if ((insn_ptr[i] != 0xf0) &&
 	 (insn_ptr[i] != 0xf2) &&
 	 (insn_ptr[i] != 0xf3) &&
