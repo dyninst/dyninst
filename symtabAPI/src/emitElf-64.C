@@ -407,7 +407,7 @@ void emitElf64::renameSection(const std::string &oldStr, const std::string &newS
 
 bool emitElf64::driver(Symtab *obj, string fName){
   int newfd;
-  Region *foundSec;
+  Region *foundSec = NULL;
   unsigned pgSize = getpagesize();
 
   //open ELf File for writing
@@ -482,8 +482,9 @@ bool emitElf64::driver(Symtab *obj, string fName){
     bool result = obj->findRegion(foundSec, shdr->sh_addr, shdr->sh_size);
     if (!result) {
       result = obj->findRegion(foundSec, name);
-    }else if( previousSec == foundSec ) {
-        result = obj->findRegion(foundSec, name);
+    } 
+    else if(previousSec == foundSec ) {
+       result = obj->findRegion(foundSec, name);
     }
 
     // write the shstrtabsection at the end
