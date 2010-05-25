@@ -63,7 +63,7 @@ extern double DYNINSTstaticHeap_16M_anyHeap_1[];
 extern unsigned long sizeOfLowMemHeap1;
 extern unsigned long sizeOfAnyHeap1;
 
-static struct trap_mapping_header *getStaticTrapMap(unsigned long addr);
+//static struct trap_mapping_header *getStaticTrapMap(unsigned long addr);
 
 /** RT lib initialization **/
 
@@ -156,10 +156,12 @@ typedef struct dlopen_args {
 
 void *(*DYNINST_do_dlopen)(dlopen_args_t *) = NULL;
 
+/*
 static int get_dlopen_error() {
     assert(!NOT_ON_FREEBSD);
     return 1;
 }
+*/
 
 int DYNINSTloadLibrary(char *libname)
 {
@@ -219,9 +221,115 @@ int DYNINST_am_initial_thread( dyntid_t tid ) {
     return 0;
 } /* end DYNINST_am_initial_thread() */
 
-// TODO
+/*
+ * This code extracts the lwp, the address of the thread entry function,
+ * and the top of the thread's stack. It uses predefined offset to 
+ * extract this information from pthread_t, which is usually opaque. 
+ * 
+ * Hopefully, only one set of offsets should be needed per architecture
+ * because there should exist only one version of FreeBSD libc per 
+ * FreeBSD version.
+ *
+ * If different versions are encountered, see the Linux version of this
+ * for ideas on how to handle them.
+ *
+ * Finally, there is a problem that can be used to determine these offsets
+ * at the end of this file.
+ */
 #define READ_OPAQUE(buffer, pos, type) *((type *)(buffer + pos))
 
-int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev) {
+typedef struct pthread_offset_t {
+    unsigned long lwp_pos;
+    unsigned long start_func_pos;
+    unsigned long stack_start_pos;
+    unsigned long stack_size_pos;
+} pthread_offset_t;
 
+#if defined(amd64_unknown_freebsd7_0)
+static pthread_offset_t offsets = { 0, 112, 152, 160 };
+#else
+#error pthread_t offsets undefined for this architecture
+#endif
+
+int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev) {
+    static int err_printed = 0;
+    unsigned char *buffer = (unsigned char *)ev->tid;
+
+    unsigned long lwp = READ_OPAQUE(buffer, offsets.lwp_pos, unsigned long);
+    ev->stack_addr = (void *)(READ_OPAQUE(buffer, offsets.stack_start_pos, unsigned long) + 
+        READ_OPAQUE(buffer, offsets.stack_size_pos, unsigned long));
+    ev->start_pc = (void *)(READ_OPAQUE(buffer, offsets.start_func_pos, unsigned long));
+
+    if( lwp != ev->lwp && !err_printed ) {
+        RTprintf("%s[%d]: Failed to parse pthread_t information. Making a best effort guess.\n",
+                __FILE__, __LINE__);
+        err_printed = 1;
+    }
+
+    return 1;
 }
+
+
+/*
+ * A program to determine the offsets of certain thread structures on FreeBSD
+ *
+ * This program should be compiled with the headers from the libthr library from
+ * /usr/src. This can be installed using sysinstall. The following arguments 
+ * should be added to the compile once these headers are installed.
+ *
+ * -I/usr/src/lib/libthr/arch/amd64/include -I/usr/src/lib/libthr/thread
+ *
+ * Change amd64 to what ever is appropriate.
+
+#include <pthread.h>
+#include <stdio.h>
+#include <sys/syscall.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+#include "thr_private.h"
+
+pthread_attr_t attr;
+
+void *foo(void *f) {
+    unsigned long stack_addr;
+    void *(*start_func)(void *);
+    unsigned long tid;
+
+    // Get all the values
+    syscall(SYS_thr_self, &tid);
+
+    start_func = foo;
+
+    asm("mov %%rbp,%0" : "=r" (stack_addr));
+
+    pthread_t threadSelf = pthread_self();
+
+    printf("TID: %u == %u\n", tid, threadSelf->tid);
+    printf("STACK: 0x%lx == 0x%lx\n", stack_addr, threadSelf->attr.stackaddr_attr + threadSelf->attr.stacksize_attr);
+    printf("START: 0x%lx == 0x%lx\n", (unsigned long)start_func, (unsigned long)threadSelf->start_routine);
+
+    unsigned char *ptr = (unsigned char *)threadSelf;
+    unsigned long tidVal = *((unsigned long *)(ptr + offsetof(struct pthread, tid)));
+    unsigned long stackAddrVal = *((unsigned long *)(ptr + offsetof(struct pthread, attr) + offsetof(struct pthread_attr, stackaddr_attr)));
+    unsigned long stackSizeVal = *((unsigned long *)(ptr + offsetof(struct pthread, attr) + offsetof(struct pthread_attr, stacksize_attr)));
+    unsigned long startFuncVal = *((unsigned long *)(ptr + offsetof(struct pthread, start_routine)));
+
+    printf("TID = %u, offset = %u\n", tidVal, offsetof(struct pthread, tid));
+    printf("STACK = 0x%lx, offset = %u\n", stackAddrVal, offsetof(struct pthread, attr) + offsetof(struct pthread_attr, stackaddr_attr));
+    printf("SIZE = 0x%lx, offset = %u\n", stackSizeVal, offsetof(struct pthread, attr) + offsetof(struct pthread_attr, stacksize_attr));
+    printf("START = 0x%lx, offset = %u\n", startFuncVal, offsetof(struct pthread, start_routine));
+
+    return NULL;
+}
+
+int main(int argc, char *argv[]) {
+    pthread_t t;
+    void *result;
+    pthread_attr_init(&attr);
+    pthread_create(&t, &attr, foo, NULL);
+    pthread_join(t, &result);
+
+    return 0;
+}
+*/
