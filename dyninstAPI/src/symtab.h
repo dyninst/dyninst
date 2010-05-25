@@ -430,8 +430,8 @@ class image : public codeRange, public InstructionSource {
 
    // This method is invoked to find the global constructors function and add a
    // symbol for the function if the image has no symbols
-   bool findGlobalConstructorFunc();
-   bool findGlobalDestructorFunc();
+   bool findGlobalConstructorFunc(const std::string &ctorHandler);
+   bool findGlobalDestructorFunc(const std::string &dtorHandler);
 
  private:
 

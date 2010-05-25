@@ -39,7 +39,7 @@
 #include "binaryEdit.h"
 
 /*
- * XXX This was copied from Linux -- it needs to be verified
+ * This was copied from Linux
  */
 int EmitterIA32::emitCallParams(codeGen &gen, 
                               const pdvector<AstNodePtr> &operands,
@@ -74,7 +74,7 @@ int EmitterIA32::emitCallParams(codeGen &gen,
 }
 
 /*
- * XXX This was copied from Linux -- it needs to be verified.
+ * This was copied from Linux
  */
 bool EmitterIA32::emitCallCleanup(codeGen &gen,
                                 int_function * /*target*/, 
@@ -167,260 +167,11 @@ void print_regs(dyn_lwp *lwp)
 }
 #endif
 
-static const std::string LIBC_CTOR_HANDLER("__do_global_ctors_aux");
-static const std::string LIBC_DTOR_HANDLER("__do_global_dtors_aux");
-static const std::string DYNINST_CTOR_HANDLER("DYNINSTglobal_ctors_handler");
-static const std::string DYNINST_CTOR_LIST("DYNINSTctors_addr");
-static const std::string DYNINST_DTOR_HANDLER("DYNINSTglobal_dtors_handler");
-static const std::string DYNINST_DTOR_LIST("DYNINSTdtors_addr");
-static const std::string SYMTAB_CTOR_LIST_REL("__SYMTABAPI_CTOR_LIST__");
-static const std::string SYMTAB_DTOR_LIST_REL("__SYMTABAPI_DTOR_LIST__");
-
-bool BinaryEdit::doStaticBinarySpecialCases() {
-    Symtab *origBinary = mobj->parse_img()->getObject();
-
-    /* Special Case 1: Handling global constructor and destructor Regions
-     *
-     * Replace global ctors function with special ctors function,
-     * and create a special relocation for the ctors list used by the special
-     * ctors function
-     *
-     * Replace global dtors function with special dtors function,
-     * and create a special relocation for the dtors list used by the special
-     * dtors function
-     */
-    if( !mobj->parse_img()->findGlobalConstructorFunc() ) {
-        return false;
-    }
-
-    if( !mobj->parse_img()->findGlobalDestructorFunc() ) {
-        return false;
-    }
-
-    int_function *globalCtorHandler = findOnlyOneFunction(LIBC_CTOR_HANDLER);
-    if( !globalCtorHandler ) {
-        logLine("failed to find libc constructor handler\n");
-        return false;
-    }
-
-    int_function *dyninstCtorHandler = findOnlyOneFunction(DYNINST_CTOR_HANDLER);
-    if( !dyninstCtorHandler ) {
-        logLine("failed to find Dyninst constructor handler\n");
-        return false;
-    }
-
-    int_function *globalDtorHandler = findOnlyOneFunction(LIBC_DTOR_HANDLER);
-    if( !globalDtorHandler ) {
-        logLine("failed to find libc destructor handler\n");
-        return false;
-    }
-
-    int_function *dyninstDtorHandler = findOnlyOneFunction(DYNINST_DTOR_HANDLER);
-    if( !dyninstDtorHandler ) {
-        logLine("failed to find Dyninst destructor handler\n");
-        return false;
-    }
-
-    /* 
-     * Replace all calls to the global ctor and dtor handlers with the special
-     * handler 
-     */
-    pdvector<int_function *> allFuncs;
-    getAllFunctions(allFuncs);
-
-    bool success = false;
-    for(unsigned i = 0; i < allFuncs.size(); ++i) {
-        int_function *func = allFuncs[i];
-        if( !func ) continue;
-
-        const pdvector<instPoint *> &calls = func->funcCalls();
-
-        for(unsigned j = 0; j < calls.size(); ++j) {
-            instPoint *point = calls[j];
-            if ( !point ) continue;
-
-            Address target = point->callTarget();
-
-            if( !target ) continue;
-
-            if( target == globalCtorHandler->getAddress() ) {
-                if( !replaceFunctionCall(point, dyninstCtorHandler) ) {
-                    success = false;
-                }else{
-                    inst_printf("%s[%d]: replaced call to %s in %s with %s\n",
-                            FILE__, __LINE__, LIBC_CTOR_HANDLER.c_str(),
-                            func->prettyName().c_str(), DYNINST_CTOR_HANDLER.c_str());
-                    success = true;
-                }
-            }else if( target == globalDtorHandler->getAddress() ) {
-                if( !replaceFunctionCall(point, dyninstDtorHandler) ) {
-                    success = false;
-                }else{
-                    inst_printf("%s[%d]: replaced call to %s in %s with %s\n",
-                            FILE__, __LINE__, LIBC_CTOR_HANDLER.c_str(),
-                            func->prettyName().c_str(), DYNINST_DTOR_HANDLER.c_str());
-                    success = true;
-                }
-            }
-        }
-    }
-
-    if( !success ) {
-        logLine("failed to replace libc ctor or dtor handler with special handler\n");
-        return false;
-    }
-
-    /* create the special relocation for the ctors and dtors list -- search the
-     * RT library for the symbol 
-     */
-    int_symbol ctorsListInt;
-    int_symbol dtorsListInt;
-    bool ctorFound = false, dtorFound = false; 
-    std::vector<BinaryEdit *>::iterator rtlib_it;
-    for(rtlib_it = rtlib.begin(); rtlib_it != rtlib.end(); ++rtlib_it) {
-        if( (*rtlib_it)->getSymbolInfo(DYNINST_CTOR_LIST, ctorsListInt) ) {
-            ctorFound = true;
-            if( dtorFound ) break;
-        }
-
-        if( (*rtlib_it)->getSymbolInfo(DYNINST_DTOR_LIST, dtorsListInt) ) {
-            dtorFound = true;
-            if( ctorFound ) break;
-        }
-    }
-
-    if( !ctorFound ) {
-         logLine("failed to find ctors list symbol\n");
-         return false;
-    }
-
-    if( !dtorFound ) {
-        logLine("failed to find dtors list symbol\n");
-        return false;
-    }
-
-    Symbol *ctorsList = const_cast<Symbol *>(ctorsListInt.sym());
-    
-    std::vector<Region *> allRegions;
-    if( !ctorsList->getSymtab()->getAllRegions(allRegions) ) {
-        logLine("failed to find ctors list relocation\n");
-        return false;
-    }
-
-    success = false;
-    std::vector<Region *>::iterator reg_it;
-    for(reg_it = allRegions.begin(); reg_it != allRegions.end(); ++reg_it) {
-        std::vector<relocationEntry> &region_rels = (*reg_it)->getRelocations();
-        vector<relocationEntry>::iterator rel_it;
-        for( rel_it = region_rels.begin(); rel_it != region_rels.end(); ++rel_it) {
-            if( rel_it->getDynSym() == ctorsList ) {
-                relocationEntry *rel = &(*rel_it);
-                rel->setName(SYMTAB_CTOR_LIST_REL);
-                success = true;
-            }
-        }
-    }
-
-    if( !success ) {
-        logLine("failed to change relocation for ctors list\n");
-        return false;
-    }
-
-    Symbol *dtorsList = const_cast<Symbol *>(dtorsListInt.sym());
-    
-    if( !dtorsList->getSymtab()->getAllRegions(allRegions) ) {
-        logLine("failed to find dtors list relocation\n");
-        return false;
-    }
-
-    success = false;
-    for(reg_it = allRegions.begin(); reg_it != allRegions.end(); ++reg_it) {
-        std::vector<relocationEntry> &region_rels = (*reg_it)->getRelocations();
-        vector<relocationEntry>::iterator rel_it;
-        for( rel_it = region_rels.begin(); rel_it != region_rels.end(); ++rel_it) {
-            if( rel_it->getDynSym() == dtorsList ) {
-                relocationEntry *rel = &(*rel_it);
-                rel->setName(SYMTAB_DTOR_LIST_REL);
-                success = true;
-            }
-        }
-    }
-
-    if( !success ) {
-        logLine("failed to change relocation for dtors list\n");
-        return false;
-    }
-
-    /*
-     * Special Case 3: Issue a warning if attempting to link pthreads into a binary
-     * that originally did not support it or into a binary that is stripped. This
-     * scenario is not supported with the initial release of the binary rewriter for
-     * static binaries.
-     *
-     * The other side of the coin, if working with a binary that does have pthreads
-     * support, it is a good idea to load pthreads.
-     */
-    bool isMTCapable = isMultiThreadCapable();
-    bool foundPthreads = false;
-
-    vector<Archive *> libs;
-    vector<Archive *>::iterator libIter;
-    if( origBinary->getLinkingResources(libs) ) {
-        for(libIter = libs.begin(); libIter != libs.end(); ++libIter) {
-            if( (*libIter)->name().find("libpthread") != std::string::npos ) {
-                foundPthreads = true;
-                break;
-            }
-        }
-    }
-
-    if( foundPthreads && (!isMTCapable || origBinary->isStripped()) ) {
-        fprintf(stderr,
-            "\nWARNING: the pthreads library has been loaded and\n"
-            "the original binary is not multithread-capable or\n"
-            "it is stripped. Currently, the combination of these two\n"
-            "scenarios is unsupported and unexpected behavior may occur.\n");
-    }else if( !foundPthreads && isMTCapable ) {
-        fprintf(stderr,
-            "\nWARNING: the pthreads library has not been loaded and\n"
-            "the original binary is multithread-capable. Unexpected\n"
-            "behavior may occur because some pthreads routines are\n"
-            "unavailable in the original binary\n");
-    }
-
-    /* 
-     * Special Case 4:
-     * The RT library has some dependencies -- Symtab always needs to know
-     * about these dependencies. So if the dependencies haven't already been
-     * loaded, load them.
-     */
-    bool loadLibc = true;
-
-    for(libIter = libs.begin(); libIter != libs.end(); ++libIter) {
-        if( (*libIter)->name().find("libc") != std::string::npos ) {
-            loadLibc = false;
-        }
-    }
-
-    if( loadLibc ) {
-        std::map<std::string, BinaryEdit *> res = openResolvedLibraryName("libc.a");
-        std::map<std::string, BinaryEdit *>::iterator bedit_it;
-        for(bedit_it = res.begin(); bedit_it != res.end(); ++bedit_it) {
-            if( bedit_it->second == NULL ) {
-                logLine("Failed to load DyninstAPI_RT library dependency (libc.a)");
-                return false;
-            }
-        }
-    }
-
-    return true;
-}
-
-bool image::findGlobalConstructorFunc() {
+bool image::findGlobalConstructorFunc(const std::string &ctorHandler) {
     using namespace Dyninst::InstructionAPI;
 
     vector<Function *> funcs;
-    if( linkedFile->findFunctionsByName(funcs, LIBC_CTOR_HANDLER) ) {
+    if( linkedFile->findFunctionsByName(funcs, ctorHandler) ) {
         return true;
     }
 
@@ -431,9 +182,8 @@ bool image::findGlobalConstructorFunc() {
      * ...
      * some instructions
      * ...
-     * call call_gmon_start
      * call frame_dummy
-     * call __do_global_ctors_aux
+     * call ctor_handler
      */
     Region *initRegion = NULL;
     if( !linkedFile->findRegion(initRegion, ".init") ) {
@@ -466,7 +216,7 @@ bool image::findGlobalConstructorFunc() {
         }
     }
 
-    // Search for last of 3 calls
+    // Search for last of 2 calls
     Address ctorAddress = 0;
     unsigned bytesSeen = 0;
     unsigned numCalls = 0;
@@ -475,20 +225,20 @@ bool image::findGlobalConstructorFunc() {
     InstructionDecoder decoder(p, initRegion->getRegionSize(), getArch());
 
     Instruction::Ptr curInsn = decoder.decode();
-    while(numCalls < 3 && curInsn && curInsn->isValid() &&
+    while(numCalls < 2 && curInsn && curInsn->isValid() &&
           bytesSeen < initRegion->getRegionSize()) 
     {
         InsnCategory category = curInsn->getCategory();
         if( category == c_CallInsn ) {
             numCalls++;
         }
-        if( numCalls < 3 ) {
+        if( numCalls < 2 ) {
             bytesSeen += curInsn->size();
             curInsn = decoder.decode();
         }
     }
 
-    if( numCalls != 3 ) {
+    if( numCalls != 2 ) {
         logLine("heuristic for finding global constructor function failed\n");
         return false;
     }
@@ -518,7 +268,7 @@ bool image::findGlobalConstructorFunc() {
         return false;
     }
 
-    if( addFunctionStub(ctorAddress, LIBC_CTOR_HANDLER.c_str()) == NULL ) {
+    if( addFunctionStub(ctorAddress, ctorHandler.c_str()) == NULL ) {
         logLine("unable to create representation for global constructor function\n");
         return false;
     }else{
@@ -529,11 +279,11 @@ bool image::findGlobalConstructorFunc() {
     return true;
 }
 
-bool image::findGlobalDestructorFunc() {
+bool image::findGlobalDestructorFunc(const std::string &dtorHandler) {
     using namespace Dyninst::InstructionAPI;
 
     vector<Function *> funcs;
-    if( linkedFile->findFunctionsByName(funcs, LIBC_DTOR_HANDLER) ) {
+    if( linkedFile->findFunctionsByName(funcs, dtorHandler) ) {
         return true;
     }
 
@@ -547,7 +297,7 @@ bool image::findGlobalDestructorFunc() {
      *
      * ... some code ...
      *
-     * call LIBC_DTOR_HANDLER
+     * call dtor_handler
      *
      * ... prologue ...
      */
@@ -598,6 +348,7 @@ bool image::findGlobalDestructorFunc() {
         InsnCategory category = curInsn->getCategory();
         if( category == c_CallInsn ) {
             lastCall = curInsn;
+            break;
         }
             bytesSeen += curInsn->size();
             curInsn = decoder.decode();
@@ -633,7 +384,7 @@ bool image::findGlobalDestructorFunc() {
         return false;
     }
 
-    if( addFunctionStub(dtorAddress, LIBC_DTOR_HANDLER.c_str()) == NULL ) {
+    if( addFunctionStub(dtorAddress, dtorHandler.c_str()) == NULL ) {
         logLine("unable to create representation for global destructor function\n");
         return false;
     }else{

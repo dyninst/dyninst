@@ -1975,14 +1975,15 @@ image_variable* image::createImageVariable(Offset offset, std::string name, int 
     return ret;
 }
 
-#if !defined(os_linux) && !(defined(arch_x86) || defined(arch_x86_64))
-bool image::findGlobalConstructorFunc() {
-    assert("!Not implemented");
+#if !( (defined(os_linux) || defined(os_freebsd)) && \
+       (defined(arch_x86) || defined(arch_x86_64)) )
+bool image::findGlobalConstructorFunc(const std::string &) {
+    assert(!"Not implemented");
     return false;
 }
 
-bool image::findGlobalDestructorFunc() {
-    assert("!Not implemented");
+bool image::findGlobalDestructorFunc(const std::string &) {
+    assert(!"Not implemented");
     return false;
 }
 #endif

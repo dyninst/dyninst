@@ -347,7 +347,7 @@ BinaryEdit *BinaryEdit::openFile(const std::string &file, const std::string &mem
     return newBinaryEdit;
 }
 
-#if !defined(os_linux)
+#if !defined(os_linux) && !defined(os_freebsd)
 void BinaryEdit::makeInitAndFiniIfNeeded()
 {
 }

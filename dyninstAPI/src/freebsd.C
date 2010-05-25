@@ -119,6 +119,34 @@ bool BinaryEdit::getResolvedLibraryPath(const std::string &filename, std::vector
 
 sharedLibHook::~sharedLibHook() {}
 
+bool BinaryEdit::archSpecificMultithreadCapable() {
+    /*
+     * The heuristic on FreeBSD is to check for some symbols that are
+     * only included in a binary when pthreads has been linked into the
+     * binary. If the binary contains these symbols, it is multithread
+     * capable.
+     */
+    const int NUM_PTHREAD_SYMS = 6;
+    const char *pthreadSyms[NUM_PTHREAD_SYMS] =
+    { "pthread_attr_get_np", "pthread_attr_getaffinity_np",
+      "pthread_attr_getstack", "pthread_attr_setaffinity_np",
+      "pthread_attr_setcreatesuspend_np", "pthread_attr_setstack"
+    };
+
+    if( mobj->isStaticExec() ) {
+        int numSymsFound = 0;
+        for(int i = 0; i < NUM_PTHREAD_SYMS; ++i) {
+            const pdvector<int_function *> *tmpFuncs = 
+                mobj->findFuncVectorByPretty(pthreadSyms[i]);
+            if( tmpFuncs != NULL && tmpFuncs->size() ) numSymsFound++;
+        }
+
+        if( numSymsFound == NUM_PTHREAD_SYMS ) return true;
+    }
+
+    return false;
+}
+
 /* START unimplemented functions */
 
 #define FREEBSD_NOT_IMPLEMENTED "This function is not implemented on FreeBSD"
