@@ -419,7 +419,7 @@ test_description('init_fini_callback', 'Adds callbacks for rewritten module on l
 % ELF platforms only
     test_platform('init_fini_callback', Platform) :-
     platform(Arch, OS, _, Platform),
-    member(OS, ['linux']),
+    member(OS, ['linux', 'freebsd']),
     member(Arch, ['i386', 'x86_64']).
 mutator('init_fini_callback', ['init_fini_callback.C']).
 mutatee('init_fini_callback', ['init_fini_callback_mutatee.c']).
