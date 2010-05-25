@@ -29,6 +29,7 @@ NATIVE_CC = pgcc
 NATIVE_CXX = pgCC
 COMPILERT_NATIVE_CC = $(shell $(NATIVE_CC) -V 2>/dev/null | grep '^pg' | head -1)
 COMPILERT_NATIVE_CXX = $(shell $(NATIVE_CXX) -V 2>/dev/null | grep '^pg' | head -1)
+MUTATEE_LDFLAGS_NATIVE += -Wl,-E
 endif
 
 GNU_WARNING_FLAGS = -W -Wall
