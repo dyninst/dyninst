@@ -181,7 +181,7 @@ void registerSpace::initialize32() {
     }
     // Create a single FPR representation to represent
     // whether any FPR is live
-    registerSlot *fpr = new registerSlot(REGNUM_DUMMYFPR,
+    registerSlot *fpr = new registerSlot(IA32_FPR_VIRTUAL_REGISTER,
                                          "virtFPR",
                                          true, // off-limits...
                                          registerSlot::liveAlways, // because we check this via overapproximation and not the

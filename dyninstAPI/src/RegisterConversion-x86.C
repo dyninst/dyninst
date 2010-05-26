@@ -131,7 +131,13 @@ Register convertRegID(MachRegister reg, bool &wasUpcast) {
     if(found == reverseRegisterMap.end()) {
       assert(!"Bad register ID");
     }
-    if(found->second == REGNUM_DUMMYFPR) wasUpcast = true;
+    if(found->second == REGNUM_DUMMYFPR) {
+        wasUpcast = true;
+        if(reg.getArchitecture() == Arch_x86)
+        {
+            return IA32_FPR_VIRTUAL_REGISTER;
+        }
+    }
     return found->second;
 }
 
