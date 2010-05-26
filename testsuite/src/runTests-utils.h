@@ -101,7 +101,7 @@ void initPIDFilename(char *buffer, size_t len);
 // Kills any remaining mutatee processes that are listed in the PID file
 void cleanupMutatees(char *pidFilename);
 
-int RunTest(unsigned int iteration, bool useLog, bool staticTests,
+test_pid_t RunTest(unsigned int iteration, bool useLog, bool staticTests,
 			std::string logfile, int testLimit, vector<char *> child_argv,
             const char *pidFilename, const char *memcpu_name,
             std::string hostname);
