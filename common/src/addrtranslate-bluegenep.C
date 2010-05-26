@@ -76,7 +76,7 @@ static string deref_link(const char *path) {
 }
 
 
-const string& AddressTranslateSysV::getExecName() 
+string AddressTranslateSysV::getExecName() 
 {
   if (exec_name.empty())
   {
