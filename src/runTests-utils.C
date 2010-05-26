@@ -184,7 +184,7 @@ int CollectTestResults(vector<test_driver_t> &test_drivers, int parallel_copies)
    return retval;
 }
 
-int RunTest(unsigned int iteration, bool useLog, bool staticTests,
+test_pid_t RunTest(unsigned int iteration, bool useLog, bool staticTests,
             string logfile, int testLimit, vector<char *> child_argv,
             const char *pidFilename, const char *memcpu_name,
             std::string hostname) {
