@@ -292,12 +292,6 @@ void SymEvalArchTraits<Arch_x86>::handleSpecialCases(InstructionAPI::Instruction
 						     std::vector<InstructionAPI::Operand>& operands)
 {
   switch (insn->getOperation().getID()) {
-  case e_lea: {
-    Dereference::Ptr tmp = Dereference::Ptr(new Dereference(operands[1].getValue(), u32));
-    operands[1] = Operand(tmp, operands[1].isRead(), operands[1].isWritten());
-    operands.resize(2);
-    break;
-  }
   case e_push:
   case e_pop:
     operands.resize(1);
