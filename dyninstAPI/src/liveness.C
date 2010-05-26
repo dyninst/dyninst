@@ -575,9 +575,29 @@ ReadWriteInfo calcRWSets(Instruction::Ptr curInsn, image_basicBlock* blk, unsign
     break;
   default:
     {
-      entryID cur_op = curInsn->getOperation().getID();
-      if(cur_op == e_syscall || cur_op == power_op_svcs)
-      {
+      bool isInterrupt = false;
+      bool isSyscall = false;
+
+
+      if ((curInsn->getOperation().getID() == e_int) ||
+	  (curInsn->getOperation().getID() == e_int3)) {
+	isInterrupt = true;
+      }
+      static RegisterAST::Ptr gs(new RegisterAST(x86::gs));
+      if (((curInsn->getOperation().getID() == e_call) &&
+	   /*(curInsn()->getOperation().isRead(gs))) ||*/
+	   (curInsn->getOperand(0).format() == "16")) ||
+	  (curInsn->getOperation().getID() == e_syscall) || 
+	  (curInsn->getOperation().getID() == e_int) || 
+	  (curInsn->getOperation().getID() == power_op_sc)) {
+	isSyscall = true;
+      }
+
+      if (curInsn->getOperation().getID() == power_op_svcs) {
+	isSyscall = true;
+      }
+
+      if (isInterrupt || isSyscall) {
 	ret.read |= (registerSpace::getRegisterSpace(width)->getSyscallReadRegisters());
 	ret.written |= (registerSpace::getRegisterSpace(width)->getSyscallWrittenRegisters());
       }

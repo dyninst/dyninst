@@ -261,11 +261,16 @@ bool emitElf64::createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf64_
 		  mpos += sprintf(mpos, "verdef: symbol=%s  version=%s ", symbol->getName().c_str(), (*vers)[0].c_str());
 		  if (verdefEntries.find((*vers)[0]) != verdefEntries.end())
 		    {
-		      versionSymTable.push_back((unsigned short) verdefEntries[(*vers)[0]]);
+		      unsigned short index = verdefEntries[(*vers)[0]];
+		      if (symbol->getVersionHidden()) index += 0x8000;
+		      versionSymTable.push_back(index);
 		    }
 		  else 
 		    {
-		      versionSymTable.push_back((unsigned short) curVersionNum);
+		      unsigned short index = curVersionNum;
+		      if (symbol->getVersionHidden()) index += 0x8000;
+		      versionSymTable.push_back(index);
+
 		      verdefEntries[(*vers)[0]] = curVersionNum;
 		      curVersionNum++;
 		    }
