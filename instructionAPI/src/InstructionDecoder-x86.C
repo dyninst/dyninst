@@ -218,10 +218,7 @@ namespace Dyninst
                 if(locs->modrm_rm == 0x5 && !addrSizePrefixPresent)
                 {
                     assert(locs->opcode_position > -1);
-                    entryID opcode = decodedInstruction->getEntry()->getID(locs);
-        // treat FP decodes as legacy mode since it appears that's what we've got in our
-        // old code...
-                    if(ia32_is_mode_64()/* && (opcode < e_fadd || opcode > e_fxsave) && opcode != e_fp_generic*/)
+                    if(ia32_is_mode_64())
                     {
                         e = makeAddExpression(makeRegisterExpression(x86_64::rip),
                                             getModRMDisplacement(b), aw);
@@ -241,6 +238,8 @@ namespace Dyninst
                     return e;
                 }
                 return makeDereferenceExpression(e, makeSizeType(opType));
+                assert(0);
+                break;
             case 1:
             case 2:
             {
@@ -254,13 +253,17 @@ namespace Dyninst
                 }
                 return makeDereferenceExpression(disp_e, makeSizeType(opType));
             }
+            assert(0);
+            break;
             case 3:
-	      return makeRegisterExpression(makeRegisterID(locs->modrm_rm, opType, (locs->rex_b == 1)));
+                return makeRegisterExpression(makeRegisterID(locs->modrm_rm, opType, (locs->rex_b == 1)));
             default:
                 return Expression::Ptr();
         
         };
-        
+        // can't get here, but make the compiler happy...
+        assert(0);
+        return Expression::Ptr();
     }
 
     Expression::Ptr InstructionDecoder_x86::decodeImmediate(unsigned int opType, const unsigned char* immStart, 
@@ -406,7 +409,8 @@ namespace Dyninst
         b_dr,
         b_tr,
         b_amd64ext,
-        b_8bitWithREX
+        b_8bitWithREX,
+        b_fpstack
     };
     using namespace x86;
     
@@ -446,6 +450,9 @@ namespace Dyninst
         },
         {
             x86_64::al, x86_64::cl, x86_64::dl, x86_64::bl, x86_64::spl, x86_64::bpl, x86_64::sil, x86_64::dil
+        },
+        {
+            st0, st1, st2, st3, st4, st5, st6, st7
         }
 
     };
@@ -480,8 +487,15 @@ namespace Dyninst
                 case op_w:
 		  retVal = IntelRegTable[b_16bit][intelReg];
 		  break;
+                case op_f:
+                case op_dbl:
+                    retVal = IntelRegTable[b_fpstack][intelReg];
+                    break;
                 case op_d:
                 case op_si:
+                case op_v:
+                    retVal = IntelRegTable[b_32bit][intelReg];
+                    break;
                 default:
                     retVal = IntelRegTable[b_32bit][intelReg];
                     break;
