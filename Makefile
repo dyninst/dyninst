@@ -239,7 +239,7 @@ umd-nightly:
 	$(MAKE) DyninstAPI ValueAdded
 
 # Used for UW nightly builds
-nightly: DyninstAPI ValueAdded parseThat 
+nightly: all ValueAdded
 	$(MAKE) -C testsuite/$(PLATFORM) all
 
 #nightly:

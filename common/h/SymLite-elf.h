@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <unistd.h>
 #include <assert.h>
 
 #include <map>
@@ -255,6 +256,24 @@ inline std::string SymElf::getInterpreterName()
          continue;
       Dyninst::Offset off = (Dyninst::Offset) phdr.p_offset();
       
+      if (fd != -1) {
+         off_t old_offset = lseek(fd, 0, SEEK_CUR);
+         lseek(fd, off, SEEK_SET);
+         char interp_buffer[4096];
+         ssize_t result;
+         do {
+            result = read(fd, interp_buffer, 4096);
+         } while (result == -1 && errno == EINTR);
+         lseek(fd, old_offset, SEEK_SET);
+         if (result != -1) {
+            return std::string(interp_buffer);
+         }
+      }
+      else if (buffer) {
+         return std::string(buffer + off);
+      }
+
+      //rawfile is expensive
       size_t filesize;
       const char *whole_file = elf.e_rawfile(filesize);
       if (filesize < off) {

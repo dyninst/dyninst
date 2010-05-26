@@ -593,16 +593,15 @@ int startNewProcessForAttach(const char *pathname, const char *argv[],
 #else
    /* Make a pipe that we will use to signal that the mutatee has started. */
    int fds[2];
+   char fdstr[32];
    if (attach) {
       if (pipe(fds) != 0) {
          fprintf(stderr, "*ERROR*: Unable to create pipe.\n");
          return -1;
       }
+      /* Create the argv string for the child process. */
+      sprintf(fdstr, "%d", fds[1]);
    }
-
-   /* Create the argv string for the child process. */
-   char fdstr[32];
-   sprintf(fdstr, "%d", fds[1]);
 
    int i;
    for (i = 0; argv[i] != NULL; i++) ;
@@ -643,14 +642,14 @@ int startNewProcessForAttach(const char *pathname, const char *argv[],
       char *ld_path = getenv("LD_LIBRARY_PATH");
       char *new_ld_path = NULL;
       if (ld_path) {
-         new_ld_path = (char *) malloc(strlen(ld_path) + strlen(binedit_dir) + 3);
+         new_ld_path = (char *) malloc(strlen(ld_path) + strlen(binedit_dir) + 4);
          strcpy(new_ld_path, "./");
          strcat(new_ld_path, binedit_dir);
          strcat(new_ld_path, ":");
          strcat(new_ld_path, ld_path);
       }
       else {
-         new_ld_path = (char *) malloc(strlen(binedit_dir) + 3);
+         new_ld_path = (char *) malloc(strlen(binedit_dir) + 4);
          strcpy(new_ld_path, "./");
          strcat(new_ld_path, binedit_dir);
          strcat(new_ld_path, ":");

@@ -173,8 +173,6 @@ void image_basicBlock::summarizeBlockLivenessInfo()
       
      liveness_printf("%s[%d] After instruction at address 0x%lx:\n",
                      FILE__, __LINE__, current);
-     //liveness_cerr << "        " << "?XXXXXXXXMMMMMMMMRNDITCPAZSOF11111100DSBSBDCA" << endl;
-     //liveness_cerr << "        " << "?7654321076543210FTFFFFFFFFFP54321098IIPPXXXX" << endl;
      liveness_cerr << "Read    " << curInsnRW.read << endl;
      liveness_cerr << "Written " << curInsnRW.written << endl;
      liveness_cerr << "Used    " << use << endl;
