@@ -36,7 +36,8 @@
                   restricted_amd64_abi/1, compiler_presence_def/2,
                   restricted_abi_for_arch/3, insane/2, module/1,
                   compiler_static_link/3, compiler_dynamic_link/3,
-                  tests_module/2, mutator_requires_libs/2, test_exclude_compiler/2]).
+                  compiler_platform_abi/3, tests_module/2, mutator_requires_libs/2, 
+                  test_exclude_compiler/2]).
 
 %%%%%%%%%%
 %
@@ -2978,6 +2979,17 @@ compiler_platform_abi_s(Compiler, 'x86_64-unknown-linux2.4', 32,
                         '-m32 -Di386_unknown_linux2_4 -Dm32_test') :-
     member(Compiler, ['gcc', 'g++']).
 
+
+compiler_platform_abi(Compiler, Platform, ABI) :-
+   mutatee_comp(Compiler),
+   platform(Platform),
+   compiler_platform(Compiler, Platform),
+   mutatee_abi(ABI),
+   \+ (
+      member(Platform, ['x86_64-unknown-linux2.4']),
+      member(Compiler, ['icc', 'iCC', 'pgcc', 'pgCC']),
+      member(ABI, [32])
+   ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TEST SPECIFICATION GLUE
