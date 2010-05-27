@@ -356,6 +356,15 @@ mutator('test1_20', ['test1_20.C']).
 test_runmode('test1_20', 'staticdynamic').
 test_start_state('test1_20', 'stopped').
 tests_module('test1_20', 'dyninst').
+mutator_requires_libs('test1_20', L) :-
+        current_platform(P),
+        platform(Arch, _, _, P),
+        (Arch = 'i386' -> L = ['instructionAPI'];
+         Arch = 'x86_64' -> L = ['instructionAPI'];
+         Arch = 'power' -> L = ['instructionAPI'];
+         Arch = 'powerpc' -> L = ['instructionAPI'];
+         L = []
+                ).
 
 test('test1_21', 'test1_21', 'dyninst_group_test').
 test_description('test1_21', 'findFunction in module').
