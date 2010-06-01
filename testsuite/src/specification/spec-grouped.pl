@@ -36,7 +36,8 @@
                   restricted_amd64_abi/1, compiler_presence_def/2,
                   restricted_abi_for_arch/3, insane/2, module/1,
                   compiler_static_link/3, compiler_dynamic_link/3,
-                  tests_module/2, mutator_requires_libs/2]).
+                  compiler_platform_abi/3, tests_module/2, mutator_requires_libs/2, 
+                  test_exclude_compiler/2]).
 
 %%%%%%%%%%
 %
@@ -355,6 +356,15 @@ mutator('test1_20', ['test1_20.C']).
 test_runmode('test1_20', 'staticdynamic').
 test_start_state('test1_20', 'stopped').
 tests_module('test1_20', 'dyninst').
+mutator_requires_libs('test1_20', L) :-
+        current_platform(P),
+        platform(Arch, _, _, P),
+        (Arch = 'i386' -> L = ['instructionAPI'];
+         Arch = 'x86_64' -> L = ['instructionAPI'];
+         Arch = 'power' -> L = ['instructionAPI'];
+         Arch = 'powerpc' -> L = ['instructionAPI'];
+         L = []
+                ).
 
 test('test1_21', 'test1_21', 'dyninst_group_test').
 test_description('test1_21', 'findFunction in module').
@@ -1000,6 +1010,7 @@ test_start_state('test5_7', 'stopped').
 groupable_test('test5_7').
 restricted_amd64_abi('test5_7').
 tests_module('test5_7', 'dyninst').
+test_exclude_compiler('test5_7', 'pgCC').
 
 test('test5_8', 'test5_8', 'dyninst_cxx_group_test').
 % test5_8 only runs on Linux, Solaris, and Windows
@@ -1011,6 +1022,7 @@ test_runmode('test5_8', 'staticdynamic').
 test_start_state('test5_8', 'stopped').
 groupable_test('test5_8').
 restricted_amd64_abi('test5_8').
+% pgCC uses non-standard name mangling for templates
 tests_module('test5_8', 'dyninst').
 
 test('test5_9', 'test5_9', 'dyninst_cxx_group_test').
@@ -1024,6 +1036,8 @@ test_start_state('test5_9', 'stopped').
 groupable_test('test5_9').
 restricted_amd64_abi('test5_9').
 tests_module('test5_9', 'dyninst').
+% pgCC uses non-standard name mangling for templates
+test_exclude_compiler('test5_9', 'pgCC').
 
 % Convenience rule for mapping platforms to the asm sources for test_mem
 test_mem_mutatee_aux(P, Aux) :-
@@ -2974,6 +2988,17 @@ compiler_platform_abi_s(Compiler, 'x86_64-unknown-linux2.4', 32,
                         '-m32 -Di386_unknown_linux2_4 -Dm32_test') :-
     member(Compiler, ['gcc', 'g++']).
 
+
+compiler_platform_abi(Compiler, Platform, ABI) :-
+   mutatee_comp(Compiler),
+   platform(Platform),
+   compiler_platform(Compiler, Platform),
+   mutatee_abi(ABI),
+   \+ (
+      member(Platform, ['x86_64-unknown-linux2.4']),
+      member(Compiler, ['icc', 'iCC', 'pgcc', 'pgCC']),
+      member(ABI, [32])
+   ).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TEST SPECIFICATION GLUE

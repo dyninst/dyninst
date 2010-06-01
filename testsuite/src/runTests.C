@@ -430,6 +430,15 @@ int main(int argc, char *argv[])
          fprintf(stderr, "Press ctrl-c again with-in 2 seconds to abort runTests.\n");
          sleep(2);
       }
+      if (test_drivers[driver].last_result == -4) {
+         //Exec error
+         fprintf(stderr, "Failed to exec test_driver\n");
+         break;
+      }
+      if (test_drivers[driver].last_result == -5) {
+         //Help
+         break;
+      }
 
       if (parallel_copies > 1)
       {
@@ -447,10 +456,6 @@ int main(int argc, char *argv[])
       }
       
       int ret_result = test_drivers[driver].last_result;
-      if (ret_result == -5) {
-         //Help
-         break;
-      }
    }
 
    // Remove the PID file, now that we're done with it

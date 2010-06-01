@@ -161,7 +161,7 @@ int CollectTestResults(vector<test_driver_t> &test_drivers, int parallel_copies)
             fprintf(stderr, "*** Child terminated abnormally via signal %d.\n", WTERMSIG(child_status));
             child_ret = -2;
          } else {
-            child_ret = WEXITSTATUS(child_status);
+            child_ret = (signed char) WEXITSTATUS(child_status);
          }
          for (unsigned i=0; i<parallel_copies; i++)
          {
@@ -184,7 +184,7 @@ int CollectTestResults(vector<test_driver_t> &test_drivers, int parallel_copies)
    return retval;
 }
 
-int RunTest(unsigned int iteration, bool useLog, bool staticTests,
+test_pid_t RunTest(unsigned int iteration, bool useLog, bool staticTests,
             string logfile, int testLimit, vector<char *> child_argv,
             const char *pidFilename, const char *memcpu_name,
             std::string hostname) {
@@ -205,6 +205,8 @@ int RunTest(unsigned int iteration, bool useLog, bool staticTests,
    } else if (0 == child_pid) {
       // Child
       execvp(exec_args[0], exec_args);
+      std::string newexec = std::string("./") + exec_args[0];
+      execvp(newexec.c_str(), exec_args);
       exit(-4);
    }
 

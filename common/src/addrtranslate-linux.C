@@ -130,9 +130,7 @@ bool AddressTranslateSysV::setInterpreter()
    if (interpreter)
       return true;
 
-   char name[64];
-   sprintf(name, "/proc/%d/exe", pid);
-   string sname(name);
+   string sname = getExecName();
    string interp_name;
 
    FCNode *exe = files.getNode(sname, symfactory);
@@ -191,7 +189,7 @@ static char *deref_link(const char *path)
 }
 
 
-const string& AddressTranslateSysV::getExecName() 
+string AddressTranslateSysV::getExecName() 
 {
    if (exec_name.empty()) {
       char name[64];

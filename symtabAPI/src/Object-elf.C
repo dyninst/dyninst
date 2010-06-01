@@ -2177,18 +2177,24 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
       
 #if !defined(os_solaris)
       if(versymSec) {
-         if(versionFileNameMapping.find(symVersions.get(i)) != versionFileNameMapping.end()) {
-            //printf("version filename for %s: %s\n", sname.c_str(),
-            //versionFileNameMapping[symVersions.get(i)].c_str());
-            newsym->setVersionFileName(versionFileNameMapping[symVersions.get(i)]);
+	unsigned short raw = symVersions.get(i);
+	bool hidden = raw >> 15;
+	int index = raw & 0x7fff;
+         if(versionFileNameMapping.find(index) != versionFileNameMapping.end()) {
+	   //printf("version filename for %s: %s\n", sname.c_str(),
+	   //versionFileNameMapping[index].c_str());
+            newsym->setVersionFileName(versionFileNameMapping[index]);
          }
-         if(versionMapping.find(symVersions.get(i)) != versionMapping.end()) {
-            //printf("versions for %s: ", sname.c_str());
-            //for (unsigned k=0; k < versionMapping[symVersions.get(i)].size(); k++)
-            //printf(" %s", versionMapping[symVersions.get(i)][k].c_str());
-            newsym->setVersions(versionMapping[symVersions.get(i)]);
-            //printf("\n");
+         if(versionMapping.find(index) != versionMapping.end()) {
+	   //printf("versions for %s: ", sname.c_str());
+	   //for (unsigned k=0; k < versionMapping[index].size(); k++)
+	   //printf(" %s", versionMapping[index][k].c_str());
+	   newsym->setVersions(versionMapping[index]);
+	   //printf("\n");
          }
+	 if (hidden) {
+	   newsym->setVersionHidden();
+	 }
       }
 #endif
       // register symbol in dictionary

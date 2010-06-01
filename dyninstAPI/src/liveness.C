@@ -173,8 +173,6 @@ void image_basicBlock::summarizeBlockLivenessInfo()
       
      liveness_printf("%s[%d] After instruction at address 0x%lx:\n",
                      FILE__, __LINE__, current);
-     //liveness_cerr << "        " << "?XXXXXXXXMMMMMMMMRNDITCPAZSOF11111100DSBSBDCA" << endl;
-     //liveness_cerr << "        " << "?7654321076543210FTFFFFFFFFFP54321098IIPPXXXX" << endl;
      liveness_cerr << "Read    " << curInsnRW.read << endl;
      liveness_cerr << "Written " << curInsnRW.written << endl;
      liveness_cerr << "Used    " << use << endl;
@@ -577,9 +575,29 @@ ReadWriteInfo calcRWSets(Instruction::Ptr curInsn, image_basicBlock* blk, unsign
     break;
   default:
     {
-      entryID cur_op = curInsn->getOperation().getID();
-      if(cur_op == e_syscall || cur_op == power_op_svcs)
-      {
+      bool isInterrupt = false;
+      bool isSyscall = false;
+
+
+      if ((curInsn->getOperation().getID() == e_int) ||
+	  (curInsn->getOperation().getID() == e_int3)) {
+	isInterrupt = true;
+      }
+      static RegisterAST::Ptr gs(new RegisterAST(x86::gs));
+      if (((curInsn->getOperation().getID() == e_call) &&
+	   /*(curInsn()->getOperation().isRead(gs))) ||*/
+	   (curInsn->getOperand(0).format() == "16")) ||
+	  (curInsn->getOperation().getID() == e_syscall) || 
+	  (curInsn->getOperation().getID() == e_int) || 
+	  (curInsn->getOperation().getID() == power_op_sc)) {
+	isSyscall = true;
+      }
+
+      if (curInsn->getOperation().getID() == power_op_svcs) {
+	isSyscall = true;
+      }
+
+      if (isInterrupt || isSyscall) {
 	ret.read |= (registerSpace::getRegisterSpace(width)->getSyscallReadRegisters());
 	ret.written |= (registerSpace::getRegisterSpace(width)->getSyscallWrittenRegisters());
       }

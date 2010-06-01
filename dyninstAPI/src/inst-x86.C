@@ -468,7 +468,7 @@ void registerSpace::initialize64() {
 					 registerSlot::liveAlways,
 					 registerSlot::FPR));
     registers.push_back(new registerSlot(REGNUM_XMM1,
-					 "XMM1)",
+					 "XMM1",
 					 true,
 					 registerSlot::liveAlways,
 					 registerSlot::FPR));
