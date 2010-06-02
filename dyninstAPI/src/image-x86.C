@@ -182,7 +182,7 @@ bool image_func::writesFPRs(unsigned level) {
             return true; 
         }
 	InstructionDecoder d (buf, endOffset_ - getOffset(), img()->getArch());
-        Instruction::Ptr i;
+        Instruction::Ptr insn;
         static RegisterAST::Ptr st0(new RegisterAST(x86::st0));
         static RegisterAST::Ptr st1(new RegisterAST(x86::st1));
         static RegisterAST::Ptr st2(new RegisterAST(x86::st2));
@@ -191,15 +191,15 @@ bool image_func::writesFPRs(unsigned level) {
         static RegisterAST::Ptr st5(new RegisterAST(x86::st5));
         static RegisterAST::Ptr st6(new RegisterAST(x86::st6));
         static RegisterAST::Ptr st7(new RegisterAST(x86::st7));
-        while (i = d.decode()) {
-            if(i->isWritten(st0) ||
-               i->isWritten(st1) ||
-               i->isWritten(st2) ||
-               i->isWritten(st3) ||
-               i->isWritten(st4) ||
-               i->isWritten(st5) ||
-               i->isWritten(st6) ||
-               i->isWritten(st7)
+        while (insn = d.decode()) {
+            if(insn->isWritten(st0) ||
+               insn->isWritten(st1) ||
+               insn->isWritten(st2) ||
+               insn->isWritten(st3) ||
+               insn->isWritten(st4) ||
+               insn->isWritten(st5) ||
+               insn->isWritten(st6) ||
+               insn->isWritten(st7)
               )
             {
                 containsFPRWrites_ = used;
