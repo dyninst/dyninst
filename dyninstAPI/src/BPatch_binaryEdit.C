@@ -314,7 +314,7 @@ bool BPatch_binaryEdit::writeFileInt(const char * outFile)
     if( !origBinEdit->writeFile(outFile) ) return false;
 
     std::map<std::string, BinaryEdit *>::iterator curBinEdit;
-    for (curBinEdit = llBinEdits.begin(); curBinEdit != llBinEdits.end(); i++) {
+    for (curBinEdit = llBinEdits.begin(); curBinEdit != llBinEdits.end(); curBinEdit++) {
        BinaryEdit *bin = (*curBinEdit).second;
        if (bin == origBinEdit)
           continue;
