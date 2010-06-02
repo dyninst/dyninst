@@ -410,18 +410,23 @@ BPatch_flowGraph::createLoops()
                 // l1 contains l2
                 l1->containedLoops += l2;
 
-                // l2 has no parent, l1 is best so far
-                if(!l2->parent) 
+                // if l2 does not also contain l1, set parent rel'nship
+                if( ! (l2->hasBlock(l1->getLoopHead()) &&
+                       l2->hasBlock(l1->getBackEdge()->source)) ) 
                 {
-                    l2->parent = l1;
-                }
-                else
-                {
-                   // if l1 is closer to l2 than l2's existing parent
-                    if(l2->parent->hasBlock(l1->getLoopHead()) &&
-                       l2->parent->hasBlock(l1->getBackEdge()->source))
+                    // l2 has no parent, l1 is best so far
+                    if(!l2->parent) 
                     {
                         l2->parent = l1;
+                    }
+                    else
+                    {
+                        // if l1 is closer to l2 than l2's existing parent
+                        if(l2->parent->hasBlock(l1->getLoopHead()) &&
+                           l2->parent->hasBlock(l1->getBackEdge()->source))
+                        {
+                            l2->parent = l1;
+                        }
                     }
                 }
             }
