@@ -63,7 +63,7 @@ string SimpleShellEscape(string &str)
 
 // RunTest:
 // Sets up the command string to run the tests and executes test_driver
-int RunTest(unsigned int iteration, bool useLog, bool staticTests,
+test_pid_t RunTest(unsigned int iteration, bool useLog, bool staticTests,
 			std::string logfile, int testLimit, std::vector<char *> child_argv,
 			const char *pidFilename, const char * /*memcpu_file*/, std::string /*hostname*/) {
 	string shellString;
@@ -92,11 +92,11 @@ int RunTest(unsigned int iteration, bool useLog, bool staticTests,
 		fprintf(stderr, "command line: %s\n", lpsz_shellString);
 		fprintf(stderr, "[%s:%u] - Error creating process: error code %ld\n",
 			__FILE__, __LINE__, GetLastError());
-		return -4;
+		return (test_pid_t)(-4);
 	}
 	free(lpsz_shellString);
 	CloseHandle(pi.hThread);
-	return (int) pi.hProcess;
+	return pi.hProcess;
 }
 
 static HANDLE *hndls = NULL;

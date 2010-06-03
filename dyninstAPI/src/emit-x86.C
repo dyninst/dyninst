@@ -1637,20 +1637,13 @@ bool EmitterAMD64Stat::emitCallInstruction(codeGen &gen, int_function *callee, R
     if (gen.func()->obj() != callee->obj()) {
        // create or retrieve jump slot
        dest = getInterModuleFuncAddr(callee, gen);
-       
-       Register ptr = gen.rs()->allocateRegister(gen, false);
-       gen.markRegDefined(ptr);
-       Register effective = ptr;
-       emitMovPCRMToReg64(effective, dest-gen.currAddr(), 8, gen, true);
-       
-       if(effective >= REGNUM_R8) {
-           emitRex(false, NULL, NULL, &effective, gen);
-       }       
        GET_PTR(insn, gen);
        *insn++ = 0xFF;
-       *insn++ = static_cast<unsigned char>(0xD0 | effective);
+       *insn++ = 0x15;
+       *(unsigned int*)insn = dest - (gen.currAddr() + sizeof(unsigned int) + 2);
+       insn += sizeof(unsigned int);
        SET_PTR(insn, gen);
-       gen.rs()->freeRegister(ptr);
+       
     } else {
        dest = callee->getAddress();
        signed long disp = dest - (gen.currAddr() + 5);

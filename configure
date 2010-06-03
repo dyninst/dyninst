@@ -5575,7 +5575,7 @@ else
 fi;
 
 if test "x$enable_testsuite" != xyes; then
-  TESTSUITE="DONT_BUILD_TESTSUITE=1"
+  TESTSUITE="DONT_BUILD_NEWTESTSUITE=1"
 else
   TESTSUITE=""
 fi

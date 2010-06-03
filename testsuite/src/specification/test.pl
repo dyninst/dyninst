@@ -258,6 +258,7 @@ rungroup_tuple(Mutatee, Compiler, Optimization, RunMode, StartState,
          compiler_opt_trans(Compiler, Optimization, _))
     ),
     platform_abi(Platform, ABI),
+    compiler_platform_abi(Compiler, Platform, ABI),
     runmode_platform(Platform, RunMode),
     format_runmode(Platform, RunMode, Format),
     platform_format(Platform, Format),

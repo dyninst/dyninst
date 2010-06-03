@@ -167,7 +167,7 @@ FILE *outlog = NULL;
 FILE *errlog = NULL;
 
 char *pdscrdir = NULL;
-char *uw_pdscrdir = "/p/paradyn/builds/scripts";
+char *uw_pdscrdir = "/scratch/paradyn/builds/scripts";
 char *umd_pdscrdir = "/fs/dyninst/dyninst/current/scripts";
 
 int parseArgs(int argc, char *argv[]);

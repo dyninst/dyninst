@@ -66,9 +66,9 @@ void test1_2_func2_1() {
 
 void test1_2_call2_1(int arg1, int arg2, char *arg3, void *arg4)
 {
+   unsigned long val = TEST_VAL; //val variable works around bug in pgCC
    call2_1_called = TRUE;
    assert(TEST_PTR_SIZE == sizeof(void *));
-   unsigned long val = TEST_VAL; //val variable works around bug in pgCC
    if ((arg1 == 1) && (arg2 == 2) && (!strcmp(arg3, "testString2_1")) &&
        (arg4 == (void *) val)) {
       logerror("Passed test #2 (four parameter function)\n");

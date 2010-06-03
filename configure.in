@@ -291,7 +291,7 @@ AC_SUBST([DEFS])
 AC_ARG_ENABLE(testsuite, AS_HELP_STRING([--disable-testsuite], [Disable the Dyninst test suite (default is no)]),
 			 [], [enable_testsuite=yes])
 
-AS_IF([test "x$enable_testsuite" != xyes], [TESTSUITE="DONT_BUILD_TESTSUITE=1"], [TESTSUITE=""])
+AS_IF([test "x$enable_testsuite" != xyes], [TESTSUITE="DONT_BUILD_NEWTESTSUITE=1"], [TESTSUITE=""])
 AC_SUBST([TESTSUITE])
 
 AC_CONFIG_FILES([make.config.local:autodyninst/make.config.local.in])
