@@ -488,6 +488,15 @@ bool syncRunState(int_process *p, void *r)
                       p->getPid(), thr->getLWP());
          thr->intCont();                      
       }
+      else if (pstop_rpc && 
+               thr->getInternalState() == int_thread::running && 
+               thr->getHandlerState() == int_thread::stopped &&
+               pstop_rpc == thr->runningRPC())
+      {
+         pthrd_printf("Thread %d/%d was stopped during proccstopper (maybe due to signal).",
+                      p->getPid(), thr->getLWP());
+         thr->intCont();
+      }
       else if (thr->getInternalState() == int_thread::running && 
                thr->getHandlerState() == int_thread::stopped &&
                !force_leave_stopped)
