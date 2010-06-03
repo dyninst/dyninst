@@ -208,7 +208,7 @@ dyner codeCoverage dyninstAPI/tests testsuite: dyninstAPI
 testsuite: $(coreSubdirs_explicitInstall)
 testsuite: parseThat
 parseThat: $(coreSubdirs_explicitInstall)
-proccontrol: $(coreSubdirs_explicitInstall)
+proccontrol: common dynutil
 #depGraphAPI: instructionAPI $(coreSubdirs_explicitInstall)
 # depGraphAPI: instructionAPI dyninstAPI
 
