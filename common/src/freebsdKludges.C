@@ -64,6 +64,8 @@ char * P_cplus_demangle( const char * symbol, bool,
  * Gets the full path of the executable for the specified process
  *
  * pid  The pid for the process
+ *
+ * Returns the full path (caller is responsible for free'ing)
  */
 char *sysctl_getExecPathname(pid_t pid) {
     int mib[4];
@@ -78,6 +80,8 @@ char *sysctl_getExecPathname(pid_t pid) {
     }
 
     char *pathname = (char *)calloc(length, sizeof(char));
+
+    if( !pathname ) return NULL;
 
     if( sysctl(mib, 4, pathname, &length, NULL, 0) ) {
         free(pathname);
@@ -99,6 +103,7 @@ static struct kinfo_proc *getProcInfo(pid_t pid, size_t &length, bool getThreads
     }
 
     struct kinfo_proc *procInfo = (struct kinfo_proc *)malloc(length);
+    if( !procInfo ) return NULL;
 
     if( sysctl(mib, 4, procInfo, &length, NULL, 0) ) {
         free(procInfo);
@@ -112,11 +117,6 @@ int sysctl_computeAddrWidth(pid_t pid) {
     int retSize = sizeof(void *);
 
 #if defined(arch_64bit)
-    // XXX this hasn't been tested. It might not work
-    
-    // If this doesn't work, could try parsing ki_emul
-    // string in kinfo_proc
-    
     const int X86_ADDR_WIDTH = 4;
 
     size_t length;
@@ -126,7 +126,7 @@ int sysctl_computeAddrWidth(pid_t pid) {
         return -1;
     }
 
-    if( KINFO_PROC_SIZE != procInfo->ki_structsize ) {
+    if( std::string(procInfo->ki_emul).find("ELF32") != std::string::npos ) {
         retSize = X86_ADDR_WIDTH;
     }
     free(procInfo);

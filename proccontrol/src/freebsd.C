@@ -368,20 +368,6 @@ freebsd_process::~freebsd_process()
 {
 }
 
-/*
- * The man page says that only some requests will return -1 on error.
- * It says to set errno to 0 before the call, and check it afterwards.
- */
-static inline long int bsd_ptrace(int request, pid_t pid, caddr_t addr, int data) {
-    long int result;
-    errno = 0;
-    result = ptrace(request, pid, addr, data);
-    if( 0 != errno ) {
-        result = -1;
-    }
-    return result;
-}
-
 bool freebsd_process::plat_create() {
     pid = fork();
     if( -1 == pid ) {
@@ -394,7 +380,7 @@ bool freebsd_process::plat_create() {
 
     if( !pid ) {
         // Child
-        long int result = bsd_ptrace(PT_TRACE_ME, 0, 0, 0);
+        int result = ptrace(PT_TRACE_ME, 0, 0, 0);
         if( -1 == result ) {
             pthrd_printf("Faild to execute a PT_TRACE_ME.\n");
             setLastError(err_internal, "Unable to debug trace new process");
@@ -410,7 +396,7 @@ bool freebsd_process::plat_create() {
 
 bool freebsd_process::plat_attach() {
     pthrd_printf("Attaching to pid %d\n", pid);
-    if( 0 != bsd_ptrace(PT_ATTACH, pid, (caddr_t)1, 0) ) {
+    if( 0 != ptrace(PT_ATTACH, pid, (caddr_t)1, 0) ) {
         int errnum = errno;
         pthrd_printf("Unable to attach to process %d: %s\n", pid, strerror(errnum));
         if( EPERM == errnum ) {
@@ -456,7 +442,7 @@ bool freebsd_process::plat_execed() {
 bool freebsd_process::plat_detach() {
     // TODO this will change for multiple threads
     pthrd_printf("PT_DETACH on %d\n", getPid());
-    if( 0 != bsd_ptrace(PT_DETACH, getPid(), (caddr_t)1, 0) ) {
+    if( 0 != ptrace(PT_DETACH, getPid(), (caddr_t)1, 0) ) {
         perr_printf("Failed to PT_DETACH on %d\n", getPid());
         setLastError(err_internal, "PT_DETACH operation failed\n");
     }
@@ -465,7 +451,7 @@ bool freebsd_process::plat_detach() {
 
 bool freebsd_process::plat_terminate(bool &needs_sync) {
     pthrd_printf("Terminating process %d\n", getPid());
-    if( 0 != bsd_ptrace(PT_KILL, getPid(), (caddr_t)1, 0) ) {
+    if( 0 != ptrace(PT_KILL, getPid(), (caddr_t)1, 0) ) {
         perr_printf("Failed to PT_KILL process %d\n", getPid());
         setLastError(err_internal, "PT_KILL operation failed\n");
         return false;
@@ -551,10 +537,10 @@ bool freebsd_thread::plat_cont() {
     int result;
     if (singleStep()) {
         pthrd_printf("Calling PT_STEP with signal %d\n", continueSig_);
-        result = bsd_ptrace(PT_STEP, proc_->getPid(), (caddr_t)1, continueSig_);
+        result = ptrace(PT_STEP, proc_->getPid(), (caddr_t)1, continueSig_);
     } else {
         pthrd_printf("Calling PT_CONTINUE with signal %d\n", continueSig_);
-        result = bsd_ptrace(PT_CONTINUE, proc_->getPid(), (caddr_t)1, continueSig_);
+        result = ptrace(PT_CONTINUE, proc_->getPid(), (caddr_t)1, continueSig_);
     }
 
     if (result == -1) {

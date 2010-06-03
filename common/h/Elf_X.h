@@ -938,10 +938,11 @@ class Elf_X {
              elf = elf_begin(input, cmd, ref->e_elfp());
           else
              elf = elf_begin(input, cmd, NULL);
-          int err;
-          if ((err = elf_errno()) != 0)
+          int errnum;
+          if ((errnum = elf_errno()) != 0)
           {
-             //const char *msg = elf_errmsg(err);
+             //const char *msg = elf_errmsg(errnum);
+             //fprintf(stderr, "Elf error: %s\n", msg);
           }
           if (elf) {
              if (elf_kind(elf) == ELF_K_ELF) {

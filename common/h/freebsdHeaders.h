@@ -70,9 +70,6 @@ typedef int (*P_xdrproc_t)(XDR*, ...);
 extern const char *sys_errlist[];
 */
 
-#ifndef SYS_tkill
-#define SYS_tkill 238
-#endif
 /* POSIX */
 int P_getopt(int argc, char *argv[], const char *optstring);
 inline void P_abort (void) { abort();}
@@ -99,7 +96,6 @@ int P_system(const char *string);
 inline int P_fstat (int FILEDES, struct stat *BUF) { return (fstat(FILEDES, BUF));}
 inline pid_t P_getpid () { return (getpid());}
 inline int P_kill(pid_t PID, int SIGNUM) { return (kill(PID, SIGNUM));}
-inline long int P_tkill(pid_t PID, int SIGNUM) { return (syscall(SYS_tkill, PID, SIGNUM));}
 inline off_t P_lseek (int FILEDES, off_t OFFSET, int WHENCE) {
   return (lseek(FILEDES, OFFSET, WHENCE));}
 inline int P_open(const char *FILENAME, int FLAGS, mode_t MODE) {

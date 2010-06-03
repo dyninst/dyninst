@@ -32,6 +32,10 @@
 #if !defined(_freebsd_kludges_h)
 #define _freebsd_kludges_h
 
+#include <sys/types.h>
+#include <sys/ptrace.h>
+#include <errno.h>
+
 #include <vector>
 
 int sysctl_computeAddrWidth(pid_t pid);
