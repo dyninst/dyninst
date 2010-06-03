@@ -255,7 +255,8 @@ struct Handle {
                             Handle<1> cond) {
     return Handle<Len>(getBinaryAST(ROSEOperation::derefOp,
                                     addr.var(),
-                                    cond.var()));
+                                    cond.var(),
+                                    Len));
      }
      template <size_t Len>
      void writeMemory(X86SegmentRegister,
