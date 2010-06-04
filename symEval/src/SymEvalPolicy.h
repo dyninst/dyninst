@@ -272,6 +272,7 @@ struct Handle {
      std::map<Absloc, Assignment::Ptr>::iterator i = aaMap.find(Absloc(0));
      if (i != aaMap.end()) {
        i->second->out().setGenerator(addr.var());
+       i->second->out().setSize(Len);
        
        if (cond == true_()) {
 	 res[i->second] = getBinaryAST(ROSEOperation::writeRepOp,
@@ -294,6 +295,7 @@ struct Handle {
         std::map<Absloc, Assignment::Ptr>::iterator i = aaMap.find(Absloc(0));
         if (i != aaMap.end()) {
             i->second->out().setGenerator(addr.var());
+            i->second->out().setSize(Len);
             if (cond == true_()) {
                 // Thinking about it... I think we avoid the "writeOp"
                 // because it's implicit in what we're setting; the 
@@ -318,6 +320,7 @@ struct Handle {
      std::map<Absloc, Assignment::Ptr>::iterator i = aaMap.find(Absloc(0));
      if (i != aaMap.end()) {
        i->second->out().setGenerator(addr.var());
+       i->second->out().setSize(Len);
        if (cond == true_()) {	 
 	 // Thinking about it... I think we avoid the "writeOp"
 	 // because it's implicit in what we're setting; the 

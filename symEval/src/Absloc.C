@@ -262,7 +262,9 @@ const std::string AbsRegion::format() const {
   std::stringstream ret;
 
   if (absloc_ != Absloc()) {
-    ret << "[" << absloc_.format() << "]";
+    ret << "[" << absloc_.format();
+    if (size_) ret << ":" << size_;
+    ret << "]";
   }
   else {
     switch(type_) {

@@ -198,18 +198,25 @@ class AbsRegion {
   void erase(const AbsRegion &reg);
 
   AbsRegion() :
-    type_(Absloc::Unknown) {};
+    type_(Absloc::Unknown),
+    size_(0) {};
 
   AbsRegion(Absloc::Type t) :
-    type_(t) {};
+    type_(t),
+    size_(0) {};
 
   AbsRegion(Absloc a) :
     type_(Absloc::Unknown),
-      absloc_(a) {};
+      absloc_(a),
+      size_(0) {};
 
 
   void setGenerator(AST::Ptr generator) {
       generator_ = generator;
+  }
+
+  void setSize(size_t size) {
+    size_ = size;
   }
 
   static bool equivalent(const AbsRegion &lhs,
@@ -220,6 +227,7 @@ class AbsRegion {
 
   const Absloc absloc() const { return absloc_; }
   const Absloc::Type type() const { return type_; }
+  size_t size() const { return size_; }
 
  private:
   // Type is for "we're on the stack but we don't know where".
@@ -232,6 +240,9 @@ class AbsRegion {
   // And the AST that gave rise to this Absloc. We use this
   // as a generating function (if present and not overridden)
   AST::Ptr generator_;
+
+  // Size in bits
+  size_t size_;
 };
 
 
