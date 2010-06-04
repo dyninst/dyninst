@@ -42,5 +42,10 @@ int sysctl_computeAddrWidth(pid_t pid);
 char *sysctl_getExecPathname(pid_t pid);
 bool sysctl_findProcLWPs(pid_t pid, std::vector<pid_t> &lwps);
 
+map_entries *getVMMaps(int pid, unsigned &maps_size);
+
+bool PtraceBulkRead(Dyninst::Address inTraced, unsigned size, void *inSelf, int pid);
+bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned size, void *inSelf, int pid);
+
 #endif
 

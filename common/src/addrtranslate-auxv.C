@@ -38,16 +38,7 @@
 using namespace Dyninst;
 
 /* 
- * This file factors out some functionality that is specific to platforms
- * where the r_debug structure and trap address are derived from symbols
- * in the interpreter/dynamic linker. There are two steps to this process.
- * The first is to determine the base address of the dynamic linker in
- * memory. The second is to combine the base address with the offset of
- * the symbol for the r_debug structure to get the address of the r_debug
- * structure in memory.
- *
- * This functionality is in a separate file because on some platforms,
- * the interpreter doesn't contain the necessary symbol information.
+ * This file should be used when a system has an AuxvParser
  */
 bool AddressTranslateSysV::setInterpreterBase() {
     if (set_interp_base) return true;
@@ -60,37 +51,4 @@ bool AddressTranslateSysV::setInterpreterBase() {
 
     parser->deleteAuxvParser();
     return true;
-}
-
-bool AddressTranslateSysV::parseInterpreter() {
-   bool result;
-
-   result = setInterpreter();
-   if (!result) {
-     translate_printf("[%s:%u] - Failed to set interpreter.\n", __FILE__, __LINE__);
-     return false;
-   }
-
-   result = setAddressSize();
-   if (!result) {
-      translate_printf("[%s:%u] - Failed to set address size.\n", __FILE__, __LINE__);
-      return false;
-   }
-
-   result = setInterpreterBase();
-   if (!result) {
-      translate_printf("[%s:%u] - Failed to set interpreter base.\n", __FILE__, __LINE__);
-      return false;
-   }
-
-   if (interpreter) {
-      r_debug_addr = interpreter->get_r_debug() + interpreter_base;
-      trap_addr = getTrapAddrFromRdebug();
-   }
-   else {
-      r_debug_addr = 0;
-      trap_addr = 0;
-   }
-
-   return true;
 }

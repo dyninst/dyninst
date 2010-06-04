@@ -71,23 +71,5 @@ class AuxvParser
    Address getVsyscallEnd();
 };
 
-#define PREMS_PRIVATE (1 << 4)
-#define PREMS_SHARED  (1 << 3)
-#define PREMS_READ    (1 << 2)
-#define PREMS_WRITE   (1 << 1)
-#define PREMS_EXEC    (1 << 0)
-
-typedef struct maps_entries {
-   Address start;
-   Address end;
-   unsigned prems;
-   Address offset;
-   int dev_major;
-   int dev_minor;
-   int inode;
-   char path[512];
-} map_entries;
-
-map_entries *getLinuxMaps(int pid, unsigned &maps_size);
 
 #endif

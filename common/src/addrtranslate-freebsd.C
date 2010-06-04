@@ -60,25 +60,35 @@ class ProcessReaderPtrace : public ProcessReader {
 };
 
 bool ProcessReaderPtrace::start() {
-    if( 0 != ptrace(PT_ATTACH, pid, (caddr_t)1, 0) ) return false;
+    if( 0 != ptrace(PT_ATTACH, pid, (caddr_t)1, 0) ) {
+        translate_printf("[%s:%u] - Failed to attach to process %u: %s\n",
+                __FILE__, __LINE__, pid, strerror(errno));
+        return false;
+    }
 
     int status;
-    for (;;) {
+    while(true) {
         int result = (long) waitpid(pid, &status, 0);
         if (result == -1 && errno == EINTR) {
             continue;
         } else if (result == -1 || WIFEXITED(status) || WIFSIGNALED(status)) {
+            translate_printf("[%s:%u] - Failed to stop process %u: %s\n",
+                    __FILE__, __LINE__, pid, strerror(errno));
             done();
             return false;
-        } else if (WIFSTOPPED(status) && WSTOPSIG(status) == SIGSTOP) {
+        } else if (WIFSTOPPED(status) && (WSTOPSIG(status) == SIGSTOP 
+                || WSTOPSIG(status) == SIGTRAP) ) {
             break;
         } else if (WIFSTOPPED(status) && WSTOPSIG(status) != SIGSTOP) {
-            // Continue the process, sending a stop
             if( 0 != ptrace(PT_CONTINUE, pid, (caddr_t)1, WSTOPSIG(status)) ) {
+                translate_printf("[%s:%u] - Failed to continue process %u: %s\n"
+                        __FILE__, __LINE__, pid, strerror(errno));
                 done();
                 return false;
             }
         } else {
+            translate_printf("[%s:%u] - Unknown error encountered for process %u: %s\n",
+                    __FILE__, __LINE__, pid, strerror(errno));
             done();
             return false;
         }
@@ -101,27 +111,14 @@ ProcessReaderPtrace::~ProcessReaderPtrace()
 {
 }
 
-bool ProcessReaderPtrace::ReadMem(Address inTraced, void *inSelf, unsigned amount)
-{
-    struct ptrace_io_desc io;
-
-    io.piod_op = PIOD_READ_D;
-    io.piod_addr = inSelf;
-    io.piod_offs = (void *)inTraced;
-    io.piod_len = amount;
-
-    unsigned amountRead = 0;
-
-    while( amountRead < amount ) {
-        io.piod_len -= amountRead;
-        io.piod_addr = ((unsigned char *)io.piod_addr) + amountRead;
-        io.piod_offs = ((unsigned char *)io.piod_offs) + amountRead;
-
-        if( 0 != ptrace(PT_IO, pid, (caddr_t)&io, 0) ) return false;
-        amountRead += io.piod_len;
+bool ProcessReaderPtrace::ReadMem(Address inTraced, void *inSelf, unsigned amount) {
+    bool result = PtraceBulkRead(inTraced, amount, inSelf, pid);
+    if( !result ) {
+        translate_printf("[%s:%u] - Failed to read memory from process: %s\n", 
+                __FILE__, __LINE__, strerror(errno));
     }
 
-    return true;
+    return result;
 }
 
 /* Complete the implementation of the AddressTranslateSysV class */
@@ -133,8 +130,29 @@ ProcessReader *AddressTranslateSysV::createDefaultDebugger(int pid)
 
 
 bool AddressTranslateSysV::setInterpreter() {
-    assert(!"This function should not be called on FreeBSD");
-    return false;
+    if( interpreter ) return true;
+
+    string l_exec = getExecName();
+    if( l_exec.empty() ) {
+        return false;
+    }
+
+    FCNode *exe = files.getNode(l_exec, symfactory);
+    if( !exe ) {
+        translate_printf("[%s:%u] - Failed to get FCNode for %s\n",
+                __FILE__, __LINE__, l_exec.c_str());
+        return false;
+    }
+
+    interpreter = files.getNode(exe->getInterpreter(), symfactory);
+    if( interpreter ) interpreter->markInterpreter();
+    else{
+        translate_printf("[%s:%u] - Failed to set interpreter for %s\n",
+                __FILE__, __LINE__, l_exec.c_str());
+        return false;
+    }
+
+    return true;
 }
 
 bool AddressTranslateSysV::setAddressSize() {
@@ -142,6 +160,48 @@ bool AddressTranslateSysV::setAddressSize() {
 
     if( (address_size = sysctl_computeAddrWidth(pid)) == -1 ) {
         address_size = 0;
+        return false;
+    }
+
+    return true;
+}
+
+bool AddressTranslateSysV::setInterpreterBase() {
+    if( set_interp_base ) return true;
+
+    string l_exec = getExecName();
+    if( l_exec.empty() ) {
+        return false;
+    }
+
+    FCNode *exe = files.getNode(l_exec, symfactory);
+    if( !exe ) {
+        translate_printf("[%s:%u] - Failed to get FCNode for %s\n",
+                __FILE__, __LINE__, l_exec.c_str());
+        return false;
+    }
+
+    unsigned maps_size;
+    map_entries *maps = getVMMaps(pid, maps_size);
+    if( !maps ) {
+        translate_printf("[%s:%u] - Failed to get VM maps\n",
+                __FILE__, __LINE__);
+        return false;
+    }
+
+    string interp_name = exe->getInterpreter();
+    for(unsigned i = 0; i < maps_size; ++i) {
+        if( string(maps[i].path) == interp_name ) {
+            interpreter_base = maps[i].start;
+            set_interp_base = true;
+            break;
+        }
+    }
+    free(maps);
+
+    if( !set_interp_base ) {
+        translate_printf("[%s:%u] - Failed to get locate interpreter in memory map\n",
+                __FILE__, __LINE__);
         return false;
     }
 

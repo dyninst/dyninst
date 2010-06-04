@@ -39,7 +39,6 @@
 #include "proccontrol/src/irpc.h"
 #include "proccontrol/src/freebsd.h"
 #include "proccontrol/src/int_handler.h"
-#include "common/h/parseauxv.h"
 #include "common/h/freebsdKludges.h"
 
 // System includes
@@ -315,12 +314,6 @@ int_thread *int_thread::createThreadPlat(int_process *proc, Dyninst::THR_ID thr_
     return static_cast<int_thread *>(lthrd);
 }
 
-bool installed_breakpoint::plat_install(int_process *, bool) {
-    // TODO
-    assert(!NA_FREEBSD);
-    return NULL;
-}
-
 HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool) {
     // TODO add any platform-specific handlers
 
@@ -461,18 +454,16 @@ bool freebsd_process::plat_terminate(bool &needs_sync) {
     return true;
 }
 
-bool freebsd_process::plat_readMem(int_thread *, void *, 
-                         Dyninst::Address, size_t) {
-    // TODO
-    assert(!NA_FREEBSD);
-    return false;
+bool freebsd_process::plat_readMem(int_thread *thr, void *local, 
+                         Dyninst::Address remote, size_t size) 
+{
+    return PtraceBulkRead(remote, size, local, thr->llproc()->getPid());
 }
 
-bool freebsd_process::plat_writeMem(int_thread *, void *, 
-                          Dyninst::Address, size_t) {
-    // TODO
-    assert(!NA_FREEBSD);
-    return false;
+bool freebsd_process::plat_writeMem(int_thread *thr, void *local, 
+                          Dyninst::Address remote, size_t size) 
+{
+    return PtraceBulkWrite(remote, size, local, thr->llproc()->getPid());
 }
 
 bool freebsd_process::needIndividualThreadAttach() {
@@ -513,8 +504,7 @@ bool freebsd_process::independentLWPControl() {
 }
 
 bool freebsd_process::plat_individualRegAccess() {
-    assert(!NA_FREEBSD);
-    return false;
+    return true;
 }
 
 freebsd_thread::freebsd_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l)

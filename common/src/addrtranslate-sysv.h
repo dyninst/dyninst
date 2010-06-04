@@ -69,6 +69,7 @@ public:
    void getRegions(vector<SymRegion> &regs);
    unsigned getAddrSize();
    Offset get_r_debug();
+   Offset get_r_trap();
 };
 
 class FileCache

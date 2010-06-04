@@ -778,49 +778,6 @@ void linux_thread::setOptions()
    }   
 }
 
-bool installed_breakpoint::plat_install(int_process *proc, bool should_save)
-{
-   pthrd_printf("Platform breakpoint install at %lx in %d\n", 
-                addr, proc->getPid());
-   if (should_save) {
-     switch (proc->getTargetArch())
-     {
-       case Arch_x86_64:
-       case Arch_x86:
-         buffer_size = 1;
-         break;
-       default:
-         assert(0);
-     }
-     assert((unsigned) buffer_size < sizeof(buffer));
-     
-     bool result = proc->readMem(&buffer, addr, buffer_size);
-     if (!result) {
-       pthrd_printf("Error reading from process\n");
-       return result;
-     }
-   }
-   
-   bool result;
-   switch (proc->getTargetArch())
-   {
-      case Arch_x86_64:
-      case Arch_x86: {
-         unsigned char trap_insn = 0xcc;
-         result = proc->writeMem(&trap_insn, addr, 1);
-         break;
-      }
-      default:
-         assert(0);
-   }
-   if (!result) {
-      pthrd_printf("Error writing breakpoint to process\n");
-      return result;
-   }
-
-   return true;
-}
-
 bool linux_process::plat_individualRegAccess()
 {
    return true;

@@ -45,5 +45,7 @@ bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned size, const void *inSel
 
 bool findProcLWPs(pid_t pid, std::vector<pid_t> &lwps);
 
+map_entries *getLinuxMaps(int pid, unsigned &maps_size);
+
 #endif
 

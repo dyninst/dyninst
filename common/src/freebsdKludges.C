@@ -33,6 +33,8 @@
 #include <sys/sysctl.h>
 #include <sys/types.h>
 #include <sys/user.h>
+#include <sys/ptrace.h>
+#include <libutil.h>
 
 char * P_cplus_demangle( const char * symbol, bool,
 				bool includeTypes ) 
@@ -110,7 +112,55 @@ static struct kinfo_proc *getProcInfo(pid_t pid, size_t &length, bool getThreads
         return NULL;
     }
 
+    assert( length > 0 && "process information not parsed correctly" );
+
     return procInfo;
+}
+
+map_entries *getVMMaps(int pid, unsigned &maps_size) {
+    const int VM_PATH_MAX = 512;
+    struct kinfo_vmentry *maps;
+    map_entries *retMaps;
+
+    maps = kinfo_getvmmap(pid, (int *)&maps_size);
+    if( !maps ) {
+        return NULL;
+    }
+
+    retMaps = (map_entries *)calloc(maps_size, sizeof(map_entries));
+    if( !retMaps ) {
+        free(maps);
+        return NULL;
+    }
+
+    // Translate from one structure to another
+    for(unsigned i = 0; i < maps_size; ++i) {
+        retMaps[i].start = maps[i].kve_start;
+        retMaps[i].end = maps[i].kve_end;
+        retMaps[i].offset = maps[i].kve_offset; 
+        retMaps[i].dev_major = 0; // N/A
+        retMaps[i].dev_minor = 0; // N/A
+        retMaps[i].inode = maps[i].kve_fileid;
+
+        retMaps[i].prems = 0;
+        if( KVME_PROT_READ & maps[i].kve_protection ) {
+            retMaps[i].prems |= PREMS_READ;
+        }
+
+        if( KVME_PROT_WRITE & maps[i].kve_protection ) {
+            retMaps[i].prems |= PREMS_WRITE;
+        }
+
+        if( KVME_PROT_EXEC & maps[i].kve_protection ) {
+            retMaps[i].prems |= PREMS_EXEC;
+        }
+
+        strncpy(retMaps[i].path, maps[i].kve_path, VM_PATH_MAX-1);
+        retMaps[i].path[VM_PATH_MAX-1] = '\0';
+    }
+
+    free(maps);
+    return retMaps;
 }
 
 int sysctl_computeAddrWidth(pid_t pid) {
@@ -143,7 +193,6 @@ bool sysctl_findProcLWPs(pid_t pid, std::vector<pid_t> &lwps) {
         return false;
     }
 
-    assert( length > 0 && "process information not parsed correctly" );
 
     int numEntries = length / procInfo->ki_structsize;
     for(int i = 0; i < numEntries; ++i) {
@@ -152,4 +201,34 @@ bool sysctl_findProcLWPs(pid_t pid, std::vector<pid_t> &lwps) {
     free(procInfo);
 
     return true;
+}
+
+static bool PtraceBulkAccess(Dyninst::Address inTraced, unsigned size, void *inSelf, int pid, bool read) {
+    struct ptrace_io_desc io;
+
+    io.piod_op = (read ? PIOD_READ_D : PIOD_WRITE_D);
+    io.piod_addr = inSelf;
+    io.piod_offs = (void *)inTraced;
+    io.piod_len = size;
+
+    unsigned amountRead = 0;
+
+    while( amountRead < size ) {
+        io.piod_len -= amountRead;
+        io.piod_addr = ((unsigned char *)io.piod_addr) + amountRead;
+        io.piod_offs = ((unsigned char *)io.piod_offs) + amountRead;
+
+        if( 0 != ptrace(PT_IO, pid, (caddr_t)&io, 0) ) return false;
+        amountRead += io.piod_len;
+    }
+
+    return true;
+}
+
+bool PtraceBulkRead(Dyninst::Address inTraced, unsigned size, void *inSelf, int pid) {
+    return PtraceBulkAccess(inTraced, size, inSelf, pid, true);
+}
+
+bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned size, void *inSelf, int pid) {
+    return PtraceBulkAccess(inTraced, size, inSelf, pid, false);
 }

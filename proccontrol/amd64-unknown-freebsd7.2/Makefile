@@ -16,7 +16,7 @@ TARGET = libpcontrol.so
 LDFLAGS     += $(LIBDIR) -lcommon
 
 SRCS = ../src/sysv.C \
-       ../src/freebsd.C
+       ../src/freebsd.C \
 
 ifdef LIBELF_DIR
 MYLAGS += -I$(LIBELF_DIR)
