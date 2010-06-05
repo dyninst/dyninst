@@ -32,11 +32,20 @@
 #include <cassert>
 #include <vector>
 #include <string>
+#include <cstring>
+#include <cstdio>
+#include <cstdlib>
+#include <algorithm>
 
+#include "help.h"
 #include "CmdLine.h"
 #include "ResumeLog.h"
 #include "test_info_new.h"
 #include "error.h"
+
+#if !defined(os_windows_test)
+#include <fnmatch.h>
+#endif
 
 using namespace std;
 
@@ -68,6 +77,8 @@ static int handleArgs(int argc, char *argv[]);
 static void disableUnwantedTests(std::vector<RunGroup *> &groups);
 static void sortGroups(std::vector<RunGroup *> &groups);
 static void setIndexes(std::vector<RunGroup *> groups);
+static void setupArgDictionary(ParameterDict &params);
+static void setupGroupDictionary(ParameterDict &params);
 
 #define END       0
 #define COMPILERS (1 << 1)
@@ -114,10 +125,10 @@ ModeGroup mode_args[] = {
    { "instruction", COMPS,     defaultOn  },
    { "32",          ABI,       defaultOff },
    { "64",          ABI,       defaultOn  },
-   { "st"           THRDMODE,  defaultOn  },
-   { "mt"           THRDMODE,  defaultOff },
-   { "sp"           PROCMODE,  defaultOn  },
-   { "mp"           PROCMODE,  defaultOff },
+   { "st",          THRDMODE,  defaultOn  },
+   { "mt",          THRDMODE,  defaultOff },
+   { "sp",          PROCMODE,  defaultOn  },
+   { "mp",          PROCMODE,  defaultOff },
    { "dynamiclink", LINKMODE,  defaultOff },
    { "staticlink",  LINKMODE,  defaultOff },
    { NULL,          NONE,      defaultOff } };
@@ -126,23 +137,26 @@ static std::vector<char *> mutatee_list;
 static std::vector<char *> test_list; 
 
 static bool useHumanLog = true;
-static char *humanlog_name = "-";
 static bool shouldDebugBreak = false;
 static bool called_from_runTests = false;
 static bool printMutateeLogHeader = false;
 static bool measureMEMCPU = false;
-static char *measureFileName = "-";
-static bool limitSkippedTests = false;
-static int limitResumeGroup = -1;
-static int limitResumeTest = -1;
 static bool noclean = false;
 static int testLimit = 0;
+static int groupLimit = 0;
+static bool limitedTests = false;
 static bool debugPrint = false;
 static int unique_id = 0;
 static int max_unique_id = 0;
-static char *logfilename = DEFAULT_LOGNAME;
+static int next_resume_group = -1;
+static int next_resume_test = -1;
 
-static std::vector<RunGroup *> groups;             
+static char *humanlog_name = NULL;
+static char *measureFileName = NULL;
+static char *logfilename = NULL;
+static char *dbfilename = NULL;
+
+static std::vector<RunGroup *> group_list;
 
 int parseArgs(int argc, char *argv[], ParameterDict &params)
 {
@@ -151,14 +165,53 @@ int parseArgs(int argc, char *argv[], ParameterDict &params)
    if (result)
       return result;
 
+   //Initialize dictionary parameters from args
+   setupArgDictionary(params);
+
+   return 0;
+}
+
+void getGroupList(std::vector<RunGroup *> &group_list, ParameterDict &params)
+{
    //Initialize and enable tests according to options
    initialize_mutatees(group_list);
    sortGroups(group_list);
    disableUnwantedTests(group_list);
-   setIndexes(groups);   
+   setIndexes(group_list);
 
-   //Initialize dictionary parameters from args
-   setupDictionary(params); //TODO here
+   setupGroupDictionary(params);
+}
+void setupArgDictionary(ParameterDict &params)
+{
+   params["usehumanlog"] = new ParamInt((int) useHumanLog);
+   params["debugPrint"] = new ParamInt((int) debugPrint);
+   params["noClean"] = new ParamInt((int) noclean);
+   params["unique_id"] = new ParamInt((int) unique_id);
+   params["debugbreak"] = new ParamInt((int) shouldDebugBreak);
+   params["under_runtests"] = new ParamInt((int) called_from_runTests);
+   params["measure_memcpu"] = new ParamInt((int) measureMEMCPU);
+   params["printMutateeLogHeader"] = new ParamInt((int) printMutateeLogHeader);
+
+   if (!logfilename)
+      logfilename = const_cast<char *>(DEFAULT_LOGNAME);
+   if (!humanlog_name)
+      humanlog_name = const_cast<char *>("-");
+   if (!measureFileName)
+      measureFileName = const_cast<char *>("-");
+   
+
+   params["logfilename"] = new ParamString(logfilename);
+   params["measure_memcpu_name"] = new ParamString(measureFileName);
+   params["mutatee_resumelog"] = new ParamString("mutatee_resumelog");
+   params["humanlogname"] = new ParamString(humanlog_name);
+   params["dboutput"] = new ParamString(dbfilename);
+}
+
+void setupGroupDictionary(ParameterDict &params)
+{
+   params["limited_tests"] = new ParamInt((int) limitedTests);
+   params["next_resume_group"] = new ParamInt((int) next_resume_group);
+   params["next_resume_test"] = new ParamInt((int) next_resume_test);
 }
 
 static int handleArgs(int argc, char *argv[])
@@ -170,16 +223,15 @@ static int handleArgs(int argc, char *argv[])
          char *tests;
          char *name;
 
-         runAllTests = false;
          if ( i + 1 >= argc )
          {
-            getOutput()->log(STDERR, "-test must be followed by a testname\n");
+            fprintf(stderr, "-test must be followed by a testname\n");
             return NOTESTS;
          }
 
          tests = strdup(argv[++i]);
 
-         name = strtok(tests, ","); // FIXME Use strtok_r()
+         name = strtok(tests, ",");
          test_list.push_back(name);
          while ( name != NULL )
          {
@@ -193,7 +245,6 @@ static int handleArgs(int argc, char *argv[])
       else if ( strcmp(argv[i], "-run") == 0)
       {
          unsigned int j;
-         runAllTests = false;
          for ( j = i+1; j < argc; j++ )
          {
             if ( argv[j][0] == '-' )
@@ -213,25 +264,24 @@ static int handleArgs(int argc, char *argv[])
          char *mutatees;
          char *name;
 
-         runAllMutatees = false;
          if ( i + 1 >= argc )
          {
-            getOutput()->log(STDERR, "-mutatee must be followed by mutatee names\n");
+            fprintf(stderr, "-mutatee must be followed by mutatee names\n");
             return NOTESTS;
          }
 
          mutatees = strdup(argv[++i]);
 
-         name = strtok(mutatees, ","); // FIXME Use strtok_r()
+         name = strtok(mutatees, ",");
          if (NULL == name) {
             // Special handling for a "" mutatee specified on the command line
-            mutatee_list.push_back("");
+            mutatee_list.push_back(strdup(""));
          } else {
             mutatee_list.push_back(name);
          }
          while ( name != NULL )
          {
-            name = strtok(NULL, ","); // FIXME Use strtok_r()
+            name = strtok(NULL, ",");
             if ( name != NULL )
             {
                mutatee_list.push_back(name);
@@ -283,7 +333,7 @@ static int handleArgs(int argc, char *argv[])
             else if (argv[i+1][1] == '\0')
             {
                i++;
-               measureFileName = "-";
+               measureFileName = const_cast<char *>("-");
             }
          }
       }
@@ -293,7 +343,7 @@ static int handleArgs(int argc, char *argv[])
       }
       else if ( strcmp(argv[i], "-log")==0)
       {
-         logfilename = "-";
+         logfilename = const_cast<char *>("-");
          if ((i + 1) < argc) {
             if ((argv[i + 1][0] != '-') || (argv[i + 1][1] == '\0')) {
                i += 1;
@@ -303,10 +353,10 @@ static int handleArgs(int argc, char *argv[])
       }
       else if ( strcmp(argv[i], "-logfile") == 0) 
       {
-         getOutput()->log(STDERR, "WARNING: -logfile is a deprecated option; use -log instead\n");
+         fprintf(stderr, "WARNING: -logfile is a deprecated option; use -log instead\n");
          /* Store the log file name */
          if ((i + 1) >= argc) {
-            getOutput()->log(STDERR, "Missing log file name\n");
+            fprintf(stderr, "Missing log file name\n");
             return NOTESTS;
          }
          i += 1;
@@ -325,17 +375,36 @@ static int handleArgs(int argc, char *argv[])
       {
          printMutateeLogHeader = true;
       } 
-      else if ( strcmp(argv[i], "-limit") == 0 ) 
+      else if ( strcmp(argv[i], "-limit") == 0 || strcmp(argv[i], "-test-limit") ) 
       {
-         if ( i + 1 >= argc ) {
-            getOutput()->log(STDERR, "-limit must be followed by an integer limit\n");
+         if (strcmp(argv[i], "-limit") == 0) {
+            fprintf(stderr, "-limit is deprecated, use -test-limit instead\n");
+         }
+         if (i + 1 < argc) {
+            testLimit = strtol(argv[++i], NULL, 10);
+         }
+         if (!testLimit) {
+            fprintf(stderr, "-test-limit must be followed by an integer limit\n");
             return NOTESTS;
          }
-         testLimit = strtol(argv[++i], NULL, 10);
-         if ((0 == testLimit) && (EINVAL == errno)) {
-            getOutput()->log(STDERR, "-limit must be followed by an integer limit\n");
+         if (testLimit && groupLimit) {
+            fprintf(stderr, "-test-limit and -group-limit are mutually exclusive options\n");
             return NOTESTS;
          }
+      }
+      else if ( strcmp(argv[i], "-group-limit") == 0)
+      {
+         if (i + 1 < argc) {
+            groupLimit = strtol(argv[++i], NULL, 10);
+         }
+         if (!groupLimit) {
+            fprintf(stderr, "-group-limit must be followed by an integer limit\n");
+            return NOTESTS;
+         }
+         if (testLimit && groupLimit) {
+            fprintf(stderr, "-group-limit and -group-limit are mutually exclusive options\n");
+            return NOTESTS;
+         } 
       }
       else if (strcmp(argv[i], "-unique") == 0) 
       {
@@ -343,7 +412,7 @@ static int handleArgs(int argc, char *argv[])
             unique_id = atoi(argv[++i]);
          }
          if (!unique_id) {
-            getOutput()->log(STDERR, "-unique must be followed by a non-zero integer\n");
+            fprintf(stderr, "-unique must be followed by a non-zero integer\n");
             return NOTESTS;
          }
       }
@@ -353,7 +422,7 @@ static int handleArgs(int argc, char *argv[])
             max_unique_id = atoi(argv[++i]);
          }
          if (!max_unique_id) {
-            getOutput()->log(STDERR, "-max_unique must be followed by a non-zero integer\n");
+            fprintf(stderr, "-max_unique must be followed by a non-zero integer\n");
             return NOTESTS;
          }
       }
@@ -361,7 +430,7 @@ static int handleArgs(int argc, char *argv[])
          // Verify that the following argument exists
          if ( i + 1 >= argc )
          {
-            getOutput()->log(STDERR, "-humanlog must by followed by a filename\n");
+            fprintf(stderr, "-humanlog must by followed by a filename\n");
             return NOTESTS;
          }
 
@@ -379,41 +448,24 @@ static int handleArgs(int argc, char *argv[])
          exit(-5);
       }
       else if (strcmp(argv[i], "-dboutput") == 0) {
-         char * failedOutputFile = NULL;
          //check if a failed output file is specified
          if ((i + 1) < argc) {
             if (argv[i+1][0] != '-' || argv[i+1][1] == '\0') {
                //either it doesn't start with - or it's exactly -
                i++;
-               failedOutputFile = argv[i];
+               dbfilename = argv[i];
             }
          }
-
-         if (NULL == failedOutputFile) {
-            //TODO insert proper value
+         if (!dbfilename) {
             time_t rawtime;
             struct tm * timeinfo = (tm *)malloc(sizeof(struct tm));
 
             time(&rawtime);
             timeinfo = localtime(&rawtime);
 
-            failedOutputFile = (char*)malloc(sizeof(char) * strlen("sql_dblog-xxxx-xx-xx0"));
-            if (failedOutputFile == NULL) {
-               fprintf(stderr, "[%s:%u] - Out of memory!\n", __FILE__, __LINE__);
-               // TODO Handle error;
-            }
-            sprintf(failedOutputFile, "sql_dblog-%4d-%02d-%02d",
+            dbfilename = (char*)malloc(sizeof(char) * strlen("sql_dblog-xxxx-xx-xx0"));
+            sprintf(dbfilename, "sql_dblog-%4d-%02d-%02d",
                     timeinfo->tm_year + 1900, timeinfo->tm_mon + 1, timeinfo->tm_mday);
-
-            getOutput()->log(STDERR, "No 'SQL log file' found, using default %s\n", failedOutputFile);
-         }
-
-         std::string s_failedOutputFile(failedOutputFile);
-         TestOutputDriver *newoutput = loadOutputDriver("DatabaseOutputDriver", &s_failedOutputFile);
-
-         //make sure it loaded correctly before replacing default output
-         if (newoutput != NULL) {
-            setOutput(newoutput);
          }
       }
    }
@@ -422,7 +474,7 @@ static int handleArgs(int argc, char *argv[])
    return 0;
 }
 
-static bool setAllOn(int groups, bool force)
+static void setAllOn(int groups, bool force)
 {
    for (unsigned i=0; mode_args[i].option != NULL; i++) {
       if (!(groups & mode_args[i].group))
@@ -448,7 +500,7 @@ static bool isModeParam(const char *param) {
    unsigned i;
    for (i=0; mode_args[i].option != NULL; i++) 
    {
-      if (strcmp(option, param) != 0) 
+      if (strcmp(mode_args[i].option, param) != 0) 
          continue;
       found_param = true;
       mode_args[i].mode = explicitOn;
@@ -466,7 +518,7 @@ static bool isModeParam(const char *param) {
    {
       if (mode_args[i].group != group)
          continue;
-      if (mode_args[i].mode == defaultOn || mode_args[i] == defaultOff)
+      if (mode_args[i].mode == defaultOn || mode_args[i].mode == defaultOff)
          mode_args[i].mode = explicitOff;
    }
    return true;
@@ -487,7 +539,8 @@ struct groupcmp
 {
    bool operator()(const RunGroup* lv, const RunGroup* rv)
    {
-      int mod_cmp = strcmp(lv->mod ? lv->mod->name : "", rv->mod ? rv->mod->name : "");
+      int mod_cmp = strcmp(lv->mod ? lv->mod->name.c_str() : "", 
+                           rv->mod ? rv->mod->name.c_str() : "");
       if (mod_cmp)
          return mod_cmp == -1;
       
@@ -507,6 +560,35 @@ struct groupcmp
       return false;
    }
 };
+
+#define is_int(x) (x >= '0' && x <= '9')
+static bool strint_lt(const char *lv, const char *rv)
+{
+   int i = 0;
+   while (lv[i] != '\0' && rv[i] != '\0')
+   {
+      if (lv[i] == rv[i]) {
+         i++;
+         continue;
+      }
+
+      bool lint = is_int(lv[i]);
+      bool rint = is_int(rv[i]);
+
+      if (lint && !rint)
+         return true;
+      else if (!lint && rint)
+         return false;
+      else if (!lint && !rint)
+         return (lv[i] < rv[i]);
+      else {
+         return atoi(lv+i) < atoi(rv+i);
+      }
+   }
+   if (lv[i] == '\0' && rv[i] != '\0')
+      return true;
+   return false;
+}
 
 struct testcmp 
 {
@@ -528,10 +610,10 @@ static void disableUnwantedTests(std::vector<RunGroup *> &groups)
    for (unsigned  i = 0; i < groups.size(); i++) 
    {
       //RunMode
-      if (((groups[i]->useAttach == CREATE) && !paramOn("create")) ||
-          ((groups[i]->useAttach == USEATTACH) && !paramOn("attach")) ||
-          ((groups[i]->useAttach == DISK) && !paramOn("rewriter")) ||
-          ((groups[i]->useAttach == DESERIALIZE) && !paramOn("serialize")))
+      if (((groups[i]->createmode == CREATE) && !paramOn("create")) ||
+          ((groups[i]->createmode == USEATTACH) && !paramOn("attach")) ||
+          ((groups[i]->createmode == DISK) && !paramOn("rewriter")) ||
+          ((groups[i]->createmode == DESERIALIZE) && !paramOn("serialize")))
       {
          groups[i]->disabled = true;
          continue;
@@ -575,8 +657,8 @@ static void disableUnwantedTests(std::vector<RunGroup *> &groups)
          continue;
       }
       //Process mode
-      if ((groups[i]->threadmode == MultiProcess && !paramOn("mp")) ||
-          (groups[i]->threadmode == SingleProcess && !paramOn("sp")))
+      if ((groups[i]->threadmode == MultiThreaded && !paramOn("mp")) ||
+          (groups[i]->threadmode == SingleThreaded && !paramOn("sp")))
       {
          groups[i]->disabled = true;
          continue;
@@ -604,7 +686,7 @@ static void disableUnwantedTests(std::vector<RunGroup *> &groups)
       }      
    }
 
-   if (unique_id && max_unique_id) {
+   if (unique_id && max_unique_id && testLimit) {
       unsigned cur_test = 0;
       unsigned cur_test_limitgroup = 0;
       for (unsigned i=0; i < groups.size(); i++) 
@@ -626,7 +708,22 @@ static void disableUnwantedTests(std::vector<RunGroup *> &groups)
          }       
       }
    }
+   else if (unique_id && max_unique_id && groupLimit) {
+      unsigned cur_group = 0;
+      unsigned cur_limitgroup = 0;
+      for (unsigned i=0; i < groups.size(); i++) 
+      {
+         if (groups[i]->disabled) continue;
+         if (cur_group && cur_group % groupLimit == 0) {
+            cur_limitgroup++;
+         }
+         cur_group++;
 
+         if (cur_limitgroup % max_unique_id != (unique_id-1)) {
+            groups[i]->disabled = true;
+         }
+      }
+   }
    parse_resumelog(groups);
 
    if (testLimit) {
@@ -644,13 +741,40 @@ static void disableUnwantedTests(std::vector<RunGroup *> &groups)
                continue;
             }
 
-            groups[i]->tests[j]->disabled = true;
-            if (!limitSkippedTests) {
-               limitSkippedTests = true;
-               limitResumeGroup = i;
-               limitResumeTest = j;
+            if (!groups[i]->tests[j]->disabled) {
+               groups[i]->tests[j]->disabled = true;
+               groups[i]->tests[j]->limit_disabled = true;
+               limitedTests = true;
+               if (next_resume_group == -1) {
+                  next_resume_group = i;
+                  next_resume_test = j;
+               }
             }
          }      
+      }
+   }
+   else if (groupLimit) {
+      int groups_run = 0;
+      for (unsigned  i = 0; i < groups.size(); i++) 
+      {
+         if (groups[i]->disabled)
+            continue;
+         if (groups_run < groupLimit) {
+            groups_run++;
+            continue;
+         }
+
+         if (!groups[i]->disabled) {
+            for (unsigned j=0; j<groups[i]->tests.size(); j++) 
+            {
+               if (!groups[i]->tests[j]->disabled) {
+                  groups[i]->tests[j]->disabled = true;
+                  groups[i]->tests[j]->limit_disabled = true;
+                  limitedTests = true;
+               }
+               groups[i]->disabled = true;
+            }
+         }
       }
    }
 
@@ -677,6 +801,19 @@ static void setIndexes(std::vector<RunGroup *> groups)
    }
 }   
 
+
+// Performs a wildcard string match on Unix-like systems, and a standard string
+// match on Windows
+// Returns true for match found, false for no match
+static bool nameMatches(const char *wcname, const char *tomatch) {
+#if defined(os_windows_test)
+   // Sadly, we can't assume the presence of fnmatch on Windows
+   return (strcmp(wcname, tomatch) == 0);
+#else
+   // The other systems we support are unix-based and should provide fnmatch (?)
+   return (fnmatch(wcname, tomatch, 0) == 0);
+#endif
+}
 
 // Returns true if the vector mutatee_list contains the string mutatee, and
 // returns false if it does not
@@ -707,3 +844,4 @@ static bool testListContains(TestInfo * test, std::vector<char *> &testsn) {
    }
    return false;
 }
+ 

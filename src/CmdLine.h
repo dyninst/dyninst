@@ -29,9 +29,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#if !defined(CMD_LINE_H_)
+#define CMD_LINE_H_
+
 #include "ParameterDict.h"
+#include "test_info_new.h"
 
-void parseArgs(int argc, char *argv[], ParameterDict &params);
+int parseArgs(int argc, char *argv[]);
+void getGroupList(std::vector<RunGroup *> &group_list, ParameterDict &params);
 
-std::vector<RunGroup *> &getGroups();
-
+#endif

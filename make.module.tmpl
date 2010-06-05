@@ -519,8 +519,12 @@ runTests: runTests.o runTests-utils.o test_driver_templates.o
 runTests_static: runTests_static.o runTests-utils.o test_driver_templates.o 
 	$(CXX) $(CXXFLAGS) -o runTests runTests_static.o runTests-utils.o test_driver_templates.o 
 
+CmdLine.o: ../src/CmdLine.C $(DEPENDDIR)/CmdLine.dep
+	$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/CmdLine.C
+
 test_driver.o: ../src/test_driver.C $(DEPENDDIR)/test_driver.dep
 	$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/test_driver.C
+
 
 test_driver_static.o: ../src/test_driver.C $(DEPENDDIR)/test_driver_static.dep
 	$(CXX) -c -o $@ -DSTATIC_TEST_DRIVER $(CXXFLAGS) $(MUTATEE_DEFS) ../src/test_driver.C
@@ -552,7 +556,7 @@ output_drivers: $(OUTPUT_DRIVERS)
 ###  Depends
 #######################################################################
 
-DEPS_MUTATORS           += $(DEPENDDIR)/test_driver.dep
+DEPS_MUTATORS           += $(DEPENDDIR)/test_driver.dep $(DEPENDDIR)/CmdLine.dep
 DEPS_MUTATORS           += $(DEPENDDIR)/runTests.dep $(DEPENDDIR)/runTests-utils.dep
 DEPS_SYMTAB_MUTATORS    += $(addprefix $(DEPENDDIR)/,$(symtab_OBJS_ALL_MUTATORS:%.o=%.dep))
 DEPS_DYNINST_MUTATORS    += $(addprefix $(DEPENDDIR)/,$(dyninst_OBJS_ALL_MUTATORS:%.o=%.dep))
