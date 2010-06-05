@@ -83,6 +83,7 @@ public:
   bool serialize_enable;
   // This test has been explicitly disabled, probably by the resumelog system
   bool disabled;
+  bool limit_disabled;
   bool enabled;
   unsigned int index;
   

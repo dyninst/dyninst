@@ -65,25 +65,15 @@
 #include "TestOutputDriver.h"
 #include "StdOutputDriver.h"
 #include "comptester.h"
-#include "help.h"
-
-#define opt_none 1<<0
-#define opt_low 1<<1
-#define opt_high 1<<2
-#define opt_max 1<<3
-#define opt_all (opt_none|opt_low|opt_high|opt_max)
+#include "CmdLine.h"
 
 int testsRun = 0;
 
 FILE *outlog = NULL;
 FILE *errlog = NULL;
+char *logfilename;
 
-char *pdscrdir = NULL;
-char *uw_pdscrdir = "/scratch/paradyn/builds/scripts";
-char *umd_pdscrdir = "/fs/dyninst/dyninst/current/scripts";
-
-int parseArgs(int argc, char *argv[]);
-int setupLogs();
+int setupLogs(ParameterDict &params);
 
 #if !defined(os_windows_test)
 int runScript(const char *name, ...)
@@ -125,18 +115,18 @@ static struct tms start_time;
 
 #include <unistd.h>
 
-void measureStart()
+void measureStart(ParameterDict &params)
 {
-   if (!measureMEMCPU)
+   if (!params["measure_memcpu"]->getInt())
       return;
 
    mem_start = sbrk(0);
    times(&start_time);
 }
 
-void measureEnd()
+void measureEnd(ParameterDict &params)
 {
-   if (!measureMEMCPU)
+   if (!params["measure_memcpu"]->getInt())
       return;
 
    void *mem_end = sbrk(0);
@@ -147,6 +137,7 @@ void measureEnd()
    clock_t utime = end_time.tms_utime - start_time.tms_utime;
    clock_t stime = end_time.tms_stime - start_time.tms_stime;
 
+   char *measureFileName = params["measure_memcpu_name"]->getString();
    FILE *measure_file = NULL;
    bool using_stdout;
    if (strcmp(measureFileName, "-") == 0) {
@@ -169,25 +160,13 @@ void measureEnd()
       fclose(measure_file);
 }
 
-void setupProcessGroup()
-{
-   if (!called_from_runTests)
-      return;
-
-   setpgrp();
-}
-
 #else
 
-void measureStart()
+void measureStart(ParameterDict &)
 {
 }
 
-void measureEnd()
-{
-}
-
-void setupProcessGroup()
+void measureEnd(ParameterDict &)
 {
 }
 
@@ -202,13 +181,11 @@ void printLogMutateeHeader(const char *mutatee, test_linktype_t linktype)
    if ( (mutatee != NULL) && (strcmp(mutatee, "") != 0) ) {
       getOutput()->log(LOGINFO, "[Tests with %s]\n", mutatee);
 #if !defined(os_windows_test)
-      if ( pdscrdir ) {
-         runScript("ls -lLF %s", mutatee);
-         if( linktype == DynamicLink ) 
-            runScript("%s/ldd_PD %s", pdscrdir, mutatee);
-         else
-            getOutput()->log(LOGINFO, "%s: statically linked\n", mutatee);
-      }
+      runScript("ls -lLF %s", mutatee);
+      if( linktype == DynamicLink ) 
+         runScript("ldd %s", mutatee);
+      else
+         getOutput()->log(LOGINFO, "%s: statically linked\n", mutatee);
 #endif
    } else {
       getOutput()->log(LOGINFO, "[Tests with none]\n");
@@ -219,13 +196,10 @@ void printLogMutateeHeader(const char *mutatee, test_linktype_t linktype)
    flushErrorLog();
 }
 
-void printLogOptionHeader(TestInfo *tinfo)
+void printLogOptionHeader(TestInfo *tinfo, ParameterDict &params)
 {
-   if (!printMutateeLogHeader)
+   if (!params["printMutateeLogHeader"]->getInt())
       return;
-   flushOutputLog();
-   flushErrorLog();
-   // Full test description
    getOutput()->log(LOGINFO, "test-info: %s\n", tinfo->label);
    flushOutputLog();
    flushErrorLog();
@@ -281,19 +255,6 @@ struct failureInfo
    bool createMode;
    bool wasCrash;
 };
-
-// Performs a wildcard string match on Unix-like systems, and a standard string
-// match on Windows
-// Returns true for match found, false for no match
-bool nameMatches(const char *wcname, const char *tomatch) {
-#if defined(os_windows_test)
-   // Sadly, we can't assume the presence of fnmatch on Windows
-   return (strcmp(wcname, tomatch) == 0);
-#else
-   // The other systems we support are unix-based and should provide fnmatch (?)
-   return (fnmatch(wcname, tomatch, 0) == 0);
-#endif
-}
 
 int numUnreportedTests(RunGroup *group)
 {
@@ -377,7 +338,7 @@ void executeGroup(ComponentTester *tester, RunGroup *group,
 
    ParamString mutatee_prm(group->mutatee);
    ParamInt startstate_prm((int) group->state);
-   ParamInt createmode_prm((int) group->useAttach);
+   ParamInt createmode_prm((int) group->createmode);
    ParamInt customexecution_prm((int) group->customExecution);
    ParamInt selfstart_prm((int) group->selfStart);
    ParamInt threadmode_prm((int) group->threadmode);
@@ -413,8 +374,8 @@ void executeGroup(ComponentTester *tester, RunGroup *group,
    for(unsigned i = 0; i < group->tests.size(); i++)
    {
       // Print mutator log header
-	  assert(group->tests[i]);
-      printLogOptionHeader(group->tests[i]);
+      assert(group->tests[i]);
+      printLogOptionHeader(group->tests[i], param);
 
       if (shouldRunTest(group, group->tests[i])) {
          log_teststart(groupnum, i, test_init_rs);
@@ -459,35 +420,6 @@ void executeGroup(ComponentTester *tester, RunGroup *group,
    }
 }
 
-#define is_int(x) (x >= '0' && x <= '9')
-bool strint_lt(const char *lv, const char *rv)
-{
-   int i = 0;
-   while (lv[i] != '\0' && rv[i] != '\0')
-   {
-      if (lv[i] == rv[i]) {
-         i++;
-         continue;
-      }
-
-      bool lint = is_int(lv[i]);
-      bool rint = is_int(rv[i]);
-
-      if (lint && !rint)
-         return true;
-      else if (!lint && rint)
-         return false;
-      else if (!lint && !rint)
-         return (lv[i] < rv[i]);
-      else {
-         return atoi(lv+i) < atoi(rv+i);
-      }
-   }
-   if (lv[i] == '\0' && rv[i] != '\0')
-      return true;
-   return false;
-}
-
 void initModuleIfNecessary(RunGroup *group, std::vector<RunGroup *> &groups, 
                            ParameterDict &params)
 {
@@ -522,41 +454,17 @@ void initModuleIfNecessary(RunGroup *group, std::vector<RunGroup *> &groups,
 }
          
 
-void startAllTests(std::vector<RunGroup *> &groups,
-                   std::vector<char *> mutatee_list)
+void startAllTests(std::vector<RunGroup *> &groups, ParameterDict &param)
 {
    // Begin setting up test parameters
-   ParameterDict param;
    unsigned i;
    bool aborted_group = false;
-
-   ParamString logfile_p(logfilename);
-   ParamInt verbose_p((int) !quietFormat);
-   ParamInt usehuman_p((int) useHumanLog);
-   ParamInt debugprint_p((int) debugPrint);
-   ParamInt noclean_p((int) noclean);
-   ParamInt uniqueid_p((int) unique_id);
-   ParamString humanname_p(humanlog_name);
-   std::string mutateeresume_name = std::string("mutatee_") + get_resumelog_name();
-   ParamString resumelog_p(mutateeresume_name.c_str());
-
-   param["logfilename"] = &logfile_p;
-   param["verbose"] = &verbose_p;
-   param["usehumanlog"] = &usehuman_p;
-   param["humanlogname"] = &humanname_p;
-   param["debugPrint"] = &debugprint_p;
-   param["noClean"] = &noclean_p;
-   param["mutatee_resumelog"] = &resumelog_p;
-   param["unique_id"] = &uniqueid_p;
 
    // Print Test Log Header
    getOutput()->log(LOGINFO, "Commencing test(s) ...\n");
 #if !defined(os_windows_test)
-   if ( pdscrdir )
-   {
-      runScript("date");
-      runScript("uname -a");
-   }
+   runScript("date");
+   runScript("uname -a");
    getOutput()->log(LOGINFO, "TESTDIR=%s\n", getenv("PWD"));
 #else
 	char* cwd = _getcwd(NULL, 0);
@@ -572,7 +480,7 @@ void startAllTests(std::vector<RunGroup *> &groups,
    std::vector<Module *> modules;
    Module::getAllModules(modules);
 
-   measureStart();
+   measureStart(param);
 
    for (i = 0; i < groups.size(); i++) {
       if (groups[i]->disabled)
@@ -634,14 +542,16 @@ void startAllTests(std::vector<RunGroup *> &groups,
    }
 
    if (!aborted_group) {
-     if (limitSkippedTests) {
-       log_resumepoint(limitResumeGroup, limitResumeTest);
+      
+     if (param["limited_tests"]->getInt()) {
+        log_resumepoint(param["next_resume_group"]->getInt(), 
+                        param["next_resume_test"]->getInt());
      } else {
        log_clear();
      }
    }
       
-   measureEnd();
+   measureEnd(param);
 
    cleanPIDFile();
    return;
@@ -658,62 +568,6 @@ void DebugPause() {
 #endif
 }
 
-// Find the paradyn scripts directory.  It can be specified in the environment
-// variable 'PDSCRDIR', or we pick up a default location for the UW and UMD
-// sites, or we generate a default based on the DYNINST_ROOT directory, or
-// we use a default '../../../scripts'.
-void setPDScriptDir(bool skip_warning)
-{
-   pdscrdir = getenv("PDSCRDIR");
-   if ( pdscrdir == NULL )
-   {
-#if !defined(os_windows_test)
-      // Environment variable not set, try default wisc/umd directories
-      DIR *dir;
-      dir = opendir(uw_pdscrdir);
-      if ( dir != NULL ) {
-         closedir(dir);
-         pdscrdir = uw_pdscrdir;
-         return;
-      }
-      dir = opendir(umd_pdscrdir);
-      if ( dir != NULL ) {
-         closedir(dir);
-         pdscrdir = umd_pdscrdir;
-         return;
-      }
-
-      // Environment variable not set and default UW/UMD directories missing.
-      // Derive default from DYNINST_ROOT
-      char *basedir = getenv("DYNINST_ROOT");
-      if (NULL == basedir) {
-         // DYNINST_ROOT not set.  Print a warning, and default it to "../../.."
-         if (!skip_warning) {
-            getOutput()->log(STDERR, "** WARNING: DYNINST_ROOT not set.  Please set the environment variable\n");
-            getOutput()->log(STDERR, "\tto the path for the top of the Dyninst library installation.\n");
-            getOutput()->log(STDERR, "\tUsing default: '../../..'\n");
-         }
-         basedir = "../../..";
-      }
-      int basedir_len = strlen(basedir);
-      int pdscrdir_len = basedir_len + strlen("/scripts") + 1;
-      // BUG This allocated array lasts for the lifetime of the program, so it's
-      // currently not worth worrying about freeing the memory.
-      pdscrdir = new char[pdscrdir_len];
-      strncpy(pdscrdir, basedir, basedir_len + 1);
-      strcat(pdscrdir, "/scripts");
-
-      dir = opendir(pdscrdir);
-      if (!dir) {
-         pdscrdir = NULL;
-      } else {
-         closedir(dir);
-      }
-
-#endif
-   }
-}
-   
 void updateSearchPaths(const char *filename) {
 #if !defined(os_windows_test)
    // First, find the directory we reside in
@@ -811,68 +665,56 @@ bool testsRemain(std::vector<RunGroup *> &groups)
 
 int main(int argc, char *argv[]) {
    updateSearchPaths(argv[0]);
-
    setOutput(new StdOutputDriver(NULL));
-   
+
+   ParameterDict params;
    int result = parseArgs(argc, argv);
    if (result)
       exit(result);
 
-   if (unique_id) {
-      char id_string[32];
-      snprintf(id_string, 32, "%d", unique_id);
-      std::string newname = std::string(get_resumelog_name()) + std::string(".") + std::string(id_string);
-      set_resumelog_name(strdup(newname.c_str()));
-   }
-
    // Fill in tests vector with lists of test to run
-   std::vector<RunGroup *> tests;
-   initialize_mutatees(tests);  
+   std::vector<RunGroup *> groups;
+   getGroupList(groups, params);
 
-   result = setupLogs();
+   result = setupLogs(params);
    if (result)
       exit(result);
 
-   setupProcessGroup();
-
-   // Set the resume log name
-   if ( getenv("RESUMELOG") ) {
-      set_resumelog_name(getenv("RESUMELOG"));
-   }
-
-   if ( shouldDebugBreak ) {
+   if ( params["debugbreak"]->getInt() ) {
       DebugPause();
    }
 
-   startAllTests(tests, mutatee_list);
+   startAllTests(groups, params);
 
    if ((outlog != NULL) && (outlog != stdout)) {
       fclose(outlog);
    }
    fflush(stdout);
 
-   if (!testsRemain(tests) && !limitSkippedTests)
+   if (!testsRemain(groups) && !params["limited_tests"]->getInt())
       return NOTESTS;
    return 0;
 }
 
-int setupLogs()
+int setupLogs(ParameterDict &params)
 {
-   // Set the script dir if we require scripts
-   setPDScriptDir(true);
-
+   logfilename = params["logfilename"]->getString();
    // Set up the logging file..
-   if ((logfilename != NULL) && (strcmp(logfilename, "-") != 0)) {
+   if (strcmp(logfilename, "-") == 0) 
+   {
+      outlog = stdout;
+      errlog = stderr;
+   }
+   else
+   {
       outlog = fopen(logfilename, "a");
-      if (NULL == outlog) {
+      if (!outlog) {
          getOutput()->log(STDERR, "Error opening log file '%s'\n", logfilename);
          return NOTESTS;
       }
       errlog = outlog;
-   } else {
-      outlog = stdout;
-      errlog = stderr;
-   }
+   } 
+
    setOutputLog(outlog);
    setErrorLog(errlog);
    setOutputLogFilename(logfilename);
@@ -882,11 +724,37 @@ int setupLogs()
       getOutput()->redirectStream(LOGINFO, logfilename);
       getOutput()->redirectStream(LOGERR, logfilename);
    }
-   if (useHumanLog) {
-      getOutput()->redirectStream(HUMAN, humanlog_name);
+
+   if (params["usehumanlog"]->getInt()) {
+      getOutput()->redirectStream(HUMAN, params["humanlogname"]->getString());
    } else {
       getOutput()->redirectStream(HUMAN, NULL);
    }
+
+   char *dbname = params["dboutput"]->getString();
+   if (dbname) {
+      TestOutputDriver *newoutput = loadOutputDriver(const_cast<char *>("DatabaseOutputDriver"), dbname);
+      //make sure it loaded correctly before replacing default output
+      if (newoutput != NULL) {
+         setOutput(newoutput);
+      }      
+   }
+
+   int unique_id = params["unique_id"]->getInt();
+   if (unique_id) {
+      char id_string[32];
+      snprintf(id_string, 32, "%d", unique_id);
+      std::string newname = std::string("resumelog.") +  std::string(id_string);
+      set_resumelog_name(strdup(newname.c_str()));
+   }
+   else {
+      set_resumelog_name(const_cast<char *>("resumelog"));
+   }
+
+   
    return 0;
 }
+
+
+
 
