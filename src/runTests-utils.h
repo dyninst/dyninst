@@ -61,6 +61,41 @@
 
 using namespace std;
 
+extern char* scriptname;
+
+#if defined(os_windows_test)
+typedef HANDLE test_pid_t;
+#else
+typedef int test_pid_t;
+#endif
+
+class test_driver_t {
+  public:
+
+  test_driver_t() :
+         pid(0),
+         last_result(0),
+         unique(0),
+         useLog(false),
+         staticTests(false),
+         testLimit(0)
+         {
+         }
+
+   test_pid_t pid;
+   int last_result;
+   int unique;
+   bool useLog;
+   bool staticTests;
+   string logfile;
+   int testLimit;
+   vector<char *> child_argv;
+   std::string pidFilename;
+   std::string memcpu_name;
+   std::string hostname;
+   std::string outputlog;
+};
+
 // fills the buffer with the name of a file to use for PID
 // registration for mutatee cleanup
 void initPIDFilename(char *buffer, size_t len);
@@ -68,9 +103,12 @@ void initPIDFilename(char *buffer, size_t len);
 // Kills any remaining mutatee processes that are listed in the PID file
 void cleanupMutatees(char *pidFilename);
 
-int RunTest(unsigned int iteration, bool useLog, bool staticTests,
-	    string logfile, int testLimit, vector<char *> child_argv,
-            char *pidFilename, const char *memcpu_name);
+test_pid_t RunTest(unsigned int iteration, bool useLog, bool staticTests,
+			std::string logfile, int testLimit, vector<char *> child_argv,
+            const char *pidFilename, const char *memcpu_name,
+            std::string hostname);
+
+int CollectTestResults(vector<test_driver_t> &test_drivers, int parallel_copies);
 
 bool isRegFile(const string& filename);
 
@@ -88,5 +126,7 @@ char *setResumeEnv();
 char *setLibPath();
 
 void setupVars(bool useLog, string &logfile);
+
+char *createParallelScript();
 
 #endif /* RUNTESTS_UTILS_H */
