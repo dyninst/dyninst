@@ -279,11 +279,16 @@ bool emitElf64::createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf64_
 		  mpos += sprintf(mpos, "verdef: symbol=%s  version=%s ", symbol->getName().c_str(), (*vers)[0].c_str());
 		  if (verdefEntries.find((*vers)[0]) != verdefEntries.end())
 		    {
-		      versionSymTable.push_back((unsigned short) verdefEntries[(*vers)[0]]);
+		      unsigned short index = verdefEntries[(*vers)[0]];
+		      if (symbol->getVersionHidden()) index += 0x8000;
+		      versionSymTable.push_back(index);
 		    }
 		  else 
 		    {
-		      versionSymTable.push_back((unsigned short) curVersionNum);
+		      unsigned short index = curVersionNum;
+		      if (symbol->getVersionHidden()) index += 0x8000;
+		      versionSymTable.push_back(index);
+
 		      verdefEntries[(*vers)[0]] = curVersionNum;
 		      curVersionNum++;
 		    }
@@ -427,7 +432,7 @@ void emitElf64::renameSection(const std::string &oldStr, const std::string &newS
 
 bool emitElf64::driver(Symtab *obj, string fName){
   int newfd;
-  Region *foundSec;
+  Region *foundSec = NULL;
   unsigned pgSize = getpagesize();
 
   //open ELf File for writing
@@ -505,8 +510,9 @@ bool emitElf64::driver(Symtab *obj, string fName){
     bool result = obj->findRegion(foundSec, shdr->sh_addr, shdr->sh_size);
     if (!result) {
       result = obj->findRegion(foundSec, name);
-    }else if( previousSec == foundSec ) {
-        result = obj->findRegion(foundSec, name);
+    } 
+    else if(previousSec == foundSec ) {
+       result = obj->findRegion(foundSec, name);
     }
 
     // write the shstrtabsection at the end

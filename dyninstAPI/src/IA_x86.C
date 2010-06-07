@@ -45,13 +45,14 @@
 using namespace Dyninst;
 using namespace InstructionAPI;
 
-class zeroAllRegisters : public InstructionAPI::Visitor
+class zeroAllGPRegisters : public InstructionAPI::Visitor
 {
     public:
-    zeroAllRegisters() : defined(true) {}
-    virtual ~zeroAllRegisters() {}
+    zeroAllGPRegisters(Address ip) : defined(true), m_ip(ip) {}
+    virtual ~zeroAllGPRegisters() {}
     bool defined;
     std::deque<long> results;
+    Address m_ip;
     long getResult() {
         if(results.empty()) return 0;
         return results.front();
@@ -84,9 +85,16 @@ class zeroAllRegisters : public InstructionAPI::Visitor
         if(!defined) return;
         results.push_back(i->eval().convert<long>());
     }
-    virtual void visit(RegisterAST* )
+    virtual void visit(RegisterAST* r)
     {
         if(!defined) return;
+        if(r->getID() == x86::eip ||
+           r->getID() == x86_64::eip ||
+           r->getID() == x86_64::rip)
+        {
+            results.push_back(m_ip);
+            return;
+        }
         results.push_back(0);
     }
     virtual void visit(Dereference* )
@@ -227,7 +235,7 @@ std::map<Address, Instruction::Ptr>::const_iterator IA_IAPI::findTableInsn() con
         if(tmp.size() == 1)
         {
             Expression::Ptr cftAddr = dyn_detail::boost::dynamic_pointer_cast<Expression>(tmp[0]);
-            zeroAllRegisters z;
+            zeroAllGPRegisters z(current);
             cftAddr->apply(&z);
             parsing_printf("\tChecking indirect jump %s for table insn\n", curInsn()->format().c_str());
             if(z.isDefined() && z.getResult())
@@ -675,7 +683,7 @@ Address IA_IAPI::getTableAddress(Instruction::Ptr tableInsn, Address thunkOffset
         }
     }
     
-    zeroAllRegisters z;
+    zeroAllGPRegisters z(current);
     displacementSrc->apply(&z);
     
     Address jumpTable = 0;
@@ -774,7 +782,10 @@ bool IA_IAPI::fillTableEntries(Address thunkOffset,
 {
     jumpAddress += thunkOffset;
 }
-                if (!(tableRegion->isOffsetInRegion(jumpAddress))) {
+                // We can't use isOffsetInRegion here, because while logical, it breaks Windows.
+                // Don't ask.
+                if (jumpAddress < tableRegion->getRegionAddr() ||
+                    jumpAddress > tableRegion->getRegionAddr() + tableRegion->getRegionSize()) {
                     parsing_printf("\tentry %d [0x%lx] -> 0x%lx, invalid addr, skipping\n",
                                    i, tableEntry, jumpAddress);
                     continue;

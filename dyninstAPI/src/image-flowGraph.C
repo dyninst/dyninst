@@ -610,7 +610,7 @@ bool image_func::parse()
             // Recursively parse this function
                 bindCallTarget(target,NULL);
             } else {
-        // Create instrumentation point for on-demand parsing
+	      // Create instrumentation point for on-demand parsing
                 ///// DEBUG HACKERY!
                 p = new image_instPoint(ah.getAddr(),
                                         ah.getInstruction(),
@@ -1085,11 +1085,23 @@ bool image_func::buildCFG(
                                 {
                                     parsing_printf("%s: tail call %x -> %x inheriting return status of target\n",
                                             FILE__, currAddr, curEdge->first);
-                                    if(targetFunc && retStatus_ != RS_RETURN &&
-                                       targetFunc->returnStatus() != RS_NORETURN)
-                                    {
-                                        retStatus_ = targetFunc->returnStatus();
-                                    }
+				    if (targetFunc) {
+				      if (targetFunc->returnStatus() > retStatus_) {
+					parsing_printf("%s: \t return status is %d\n",
+						       FILE__, targetFunc->returnStatus());
+					retStatus_ = targetFunc->returnStatus();
+				      } 
+				      else if (targetFunc->returnStatus() == RS_UNSET) {
+					parsing_printf("%s: \t Incomplete parsing in target function, assuming call returns\n",
+						       FILE__);
+					retStatus_ = RS_UNKNOWN;
+				      }
+				      else {
+					parsing_printf("%s: \t not reverting return status from current %d to callee %d\n",
+						       FILE__, retStatus_, targetFunc->returnStatus());
+				      }
+				    }
+
                                     if(!targetFunc)
                                     {
                                         bool isInPLT = false;
@@ -1220,9 +1232,9 @@ bool image_func::buildCFG(
 /*                        parsing_printf("unresolved control flow, adding to unresolved list\n");*/
                         pdmod()->addUnresolvedControlFlow(p);
                         if(!isDynamicCall && (insnRetStatus != RS_UNKNOWN))
-                        {
-/*                            parsing_printf("[%s] setting return status to RS_UNKNOWN (URCF) at 0x%x\n",
-                                            FILE__, currAddr);*/
+			  {
+			    /*                            parsing_printf("[%s] setting return status to RS_UNKNOWN (URCF) at 0x%x\n",
+							  FILE__, currAddr);*/
                             retStatus_ = RS_UNKNOWN;
                         }
                     }
@@ -1356,8 +1368,11 @@ bool image_func::buildCFG(
 
     // If the status hasn't been updated to UNKNOWN or RETURN by now,
     // set it to RS_NORETURN
-    if(retStatus_ == RS_UNSET)
-        retStatus_ = RS_NORETURN;
+    if(retStatus_ == RS_UNSET) {
+      parsing_printf("%s: retStatus_ is unset, concluding non-returning\n",
+		     FILE__);
+      retStatus_ = RS_NORETURN;
+    }
 
     parsing_printf("Setting %s retStatus_ to %d \n", prettyName().c_str(), retStatus_); 
     return true;
@@ -1561,6 +1576,11 @@ void image_func::parseSharedBlocks(image_basicBlock * firstBlock,
     // remember that we have shared blocks
     containsSharedBlocks_ = true;
 
+    // If the other function is uninstrumentable, then we're uninstrumentable.
+    if (!firstBlock->getFirstFunc()->isInstrumentable()) {
+      instLevel_ = UNINSTRUMENTABLE;
+    }
+
     // assume that return status is UNKNOWN because we do not do a detailed
     // parse of the code. This assumption leads to the greatest code 
     // coverage
@@ -1600,6 +1620,7 @@ void image_func::parseSharedBlocks(image_basicBlock * firstBlock,
             image_func * first = *curBlk->funcs_.begin();
             first->containsSharedBlocks_ = true;
             first->needsRelocation_ = true;
+	    
         }
 
         // If this block is a stub, we'll revisit it when parsing is done
@@ -1733,6 +1754,21 @@ bool image_func::isNonReturningCall(image_func* targetFunc,
                                    Address currAddr,
                                    Address target)
 {
+  // Mmmm throw-catch blocks...
+
+  if (targetFunc && 
+      ((targetFunc->symTabName() == "_ZSt17__throw_bad_allocv") ||
+       (targetFunc->symTabName() == "_ZSt20__throw_length_errorPKc"))) {
+    return true;
+  }
+  if (isInPLT &&
+      ((pltEntryForTarget == "_ZSt17__throw_bad_allocv") ||
+       (pltEntryForTarget == "_ZSt20__throw_length_errorPKc"))) {
+    return true;
+  }
+
+
+
     if(targetFunc && (targetFunc->symTabName() == "exit" ||
        targetFunc->symTabName() == "abort" ||
        targetFunc->symTabName() == "__f90_stop" ||

@@ -61,7 +61,7 @@ CondVar *ProcessPool::condvar()
    return &var;
 }
 
-void ProcessPool::addThread(int_process *proc, int_thread *thr)
+void ProcessPool::addThread(int_process * /*proc*/, int_thread *thr)
 {
    if (!LWPIDsAreUnique())
       return;

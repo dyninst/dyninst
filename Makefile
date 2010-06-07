@@ -6,7 +6,7 @@
 
 TO_CORE = .
 # Include additional local definitions (if available)
--include ./make.config.local
+include ./make.config.local
 # Include the make configuration specification (site configuration options)
 include ./make.config
 
@@ -208,7 +208,7 @@ dyner codeCoverage dyninstAPI/tests testsuite: dyninstAPI
 testsuite: $(coreSubdirs_explicitInstall)
 testsuite: parseThat
 parseThat: $(coreSubdirs_explicitInstall)
-proccontrol: $(coreSubdirs_explicitInstall)
+proccontrol: common dynutil
 #depGraphAPI: instructionAPI $(coreSubdirs_explicitInstall)
 # depGraphAPI: instructionAPI dyninstAPI
 
@@ -239,7 +239,7 @@ umd-nightly:
 	$(MAKE) DyninstAPI ValueAdded
 
 # Used for UW nightly builds
-nightly: DyninstAPI ValueAdded parseThat 
+nightly: all ValueAdded
 	$(MAKE) -C testsuite/$(PLATFORM) all
 
 #nightly:

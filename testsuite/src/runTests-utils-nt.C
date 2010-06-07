@@ -63,13 +63,13 @@ string SimpleShellEscape(string &str)
 
 // RunTest:
 // Sets up the command string to run the tests and executes test_driver
-int RunTest(unsigned int iteration, bool useLog, bool staticTests,
+test_pid_t RunTest(unsigned int iteration, bool useLog, bool staticTests,
 			std::string logfile, int testLimit, std::vector<char *> child_argv,
-            char *pidFilename, char const * /*memcpu_file*/) {
+			const char *pidFilename, const char * /*memcpu_file*/, std::string /*hostname*/) {
 	string shellString;
 
 	generateTestString(iteration > 0, useLog, staticTests, logfile,
-	testLimit, child_argv, shellString, pidFilename);
+	testLimit, child_argv, shellString, const_cast<char *>(pidFilename));
 	
 	STARTUPINFO si;
 	PROCESS_INFORMATION pi;
@@ -88,23 +88,77 @@ int RunTest(unsigned int iteration, bool useLog, bool staticTests,
 	// we want to return something meaningful that will keep us from infinite
 	// looping
 	DWORD exitcode = -4;
-	if (CreateProcess(NULL, lpsz_shellString, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
-		// wait for process, or timeout
-		WaitForSingleObject(pi.hProcess, timeout * 1000);
-		GetExitCodeProcess(pi.hProcess, &exitcode);
-		CloseHandle(pi.hProcess);
-		CloseHandle(pi.hThread);
-		// TODO catch crash, etc
-	} else {
-		// TODO failed to create process, handle error
+	if (!CreateProcess(NULL, lpsz_shellString, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
 		fprintf(stderr, "command line: %s\n", lpsz_shellString);
 		fprintf(stderr, "[%s:%u] - Error creating process: error code %ld\n",
 			__FILE__, __LINE__, GetLastError());
+		return (test_pid_t)(-4);
+	}
+	free(lpsz_shellString);
+	CloseHandle(pi.hThread);
+	return pi.hProcess;
+}
+
+static HANDLE *hndls = NULL;
+int CollectTestResults(vector<test_driver_t> &test_drivers, int parallel_copies)
+{
+	if (!hndls)
+		hndls = (HANDLE *) malloc(parallel_copies * sizeof(HANDLE));
+
+	memset(hndls, 0, parallel_copies * sizeof(HANDLE));
+
+	unsigned num = 0;
+	for (unsigned i=0; i<parallel_copies; i++) {
+		if (!test_drivers[i].pid)
+			continue;
+		hndls[num++] = test_drivers[i].pid;
+
+		DWORD exitcode;
+		bool result = GetExitCodeProcess(test_drivers[i].pid, &exitcode);
+		if (!result) {
+			fprintf(stderr, "[%s:%u] - Failed to read exit code of process\n", __FILE__, __LINE__);
+			continue;
+		}
+		if (exitcode != STILL_ACTIVE) {
+		    CloseHandle(test_drivers[i].pid);
+			test_drivers[i].pid = 0;
+			test_drivers[i].last_result = exitcode;
+			return i;
+		}
 	}
 
-	free(lpsz_shellString);
-	
-	return exitcode;
+	DWORD result = WaitForMultipleObjects(num, hndls, false, timeout * 1000);
+	if (result == WAIT_TIMEOUT) {
+		fprintf(stderr, "Process exceeded time limit.  Reaping children\n");
+		//TODO: Reap
+		return -1;
+	}
+	if (result == WAIT_FAILED) {
+		fprintf(stderr, "Process wait failed.\n");
+	}
+
+	for (unsigned i=0; i<parallel_copies; i++) {
+		if (!test_drivers[i].pid)
+			continue;
+		DWORD exitcode;
+		bool result = GetExitCodeProcess(test_drivers[i].pid, &exitcode);
+		if (!result) {
+			fprintf(stderr, "[%s:%u] - Failed to read exit code of process\n", __FILE__, __LINE__);
+			continue;
+		}
+		if (exitcode != STILL_ACTIVE) {
+		    CloseHandle(test_drivers[i].pid);
+			test_drivers[i].pid = 0;
+			test_drivers[i].last_result = exitcode;
+			return i;
+		}
+	}
+	return -1;
+}
+
+char *createParallelScript()
+{
+	return NULL;
 }
 
 void generateTestString(bool resume, bool useLog, bool staticTests,
@@ -114,7 +168,8 @@ void generateTestString(bool resume, bool useLog, bool staticTests,
 {
    stringstream testString;
    testString << "test_driver.exe -under-runtests -enable-resume -limit " << testLimit;
-   testString << " -pidfile " << pidFilename;
+   if (pidFilename && strlen(pidFilename))
+	  testString << " -pidfile " << pidFilename;
 
    if ( resume )
    {

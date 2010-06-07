@@ -531,7 +531,7 @@ void StackAnalysis::computeInsnEffects(const Block *block,
     }
 
     int word_size = func->img()->getAddressWidth();
-    if (insn->getControlFlowTarget()) {
+    if (insn->getControlFlowTarget() && insn->getCategory() == c_CallInsn) {
       if (off != block->lastInsnOffset()) {
 	// Call in the middle of the block? Must be a get PC operation
 	iFunc.delta() = -1*word_size;
@@ -539,44 +539,44 @@ void StackAnalysis::computeInsnEffects(const Block *block,
 	return;
       }
 
-        pdvector<image_edge *> outs;
-        block->getTargets(outs);
-        for (unsigned i=0; i<outs.size(); i++) {
-            image_edge *cur_edge = outs[i];
-
-	    if (cur_edge->getType() == ET_DIRECT) {
-	      // For some reason we're treating this
-	      // call as a branch. So it shifts the stack
-	      // like a push (heh) and then we're done.
-	      iFunc.delta() = -1*word_size;
-	      stackanalysis_printf("\t\t\t Stack height changed by simulate-jump call\n");
-	      return;
-	    }
-
-            if (cur_edge->getType() != ET_CALL) 
-                continue;
-            
-            image_basicBlock *target_bbl = cur_edge->getTarget();
-            image_func *target_func = target_bbl->getEntryFunc();
-            if (!target_func)
-                continue;
-            Height h = getStackCleanAmount(target_func);
-            if (h == Height::bottom) {
-                iFunc == InsnTransferFunc::bottom;
-            }
-            else {
-                iFunc.delta() = h.height();
-            }
-
-            stackanalysis_printf("\t\t\t Stack height changed by self-cleaning function: %s\n", iFunc.format().c_str());
-            return;
-        }
-        stackanalysis_printf("\t\t\t Stack height assumed unchanged by call\n");
-        return;
+      pdvector<image_edge *> outs;
+      block->getTargets(outs);
+      for (unsigned i=0; i<outs.size(); i++) {
+	image_edge *cur_edge = outs[i];
+	
+	if (cur_edge->getType() == ET_DIRECT) {
+	  // For some reason we're treating this
+	  // call as a branch. So it shifts the stack
+	  // like a push (heh) and then we're done.
+	  iFunc.delta() = -1*word_size;
+	  stackanalysis_printf("\t\t\t Stack height changed by simulate-jump call\n");
+	  return;
+	}
+	
+	if (cur_edge->getType() != ET_CALL) 
+	  continue;
+	
+	image_basicBlock *target_bbl = cur_edge->getTarget();
+	image_func *target_func = target_bbl->getEntryFunc();
+	if (!target_func)
+	  continue;
+	Height h = getStackCleanAmount(target_func);
+	if (h == Height::bottom) {
+	  iFunc == InsnTransferFunc::bottom;
+	}
+	else {
+	  iFunc.delta() = h.height();
+	}
+	
+	stackanalysis_printf("\t\t\t Stack height changed by self-cleaning function: %s\n", iFunc.format().c_str());
+	return;
+      }
+      stackanalysis_printf("\t\t\t Stack height assumed unchanged by call\n");
+      return;
     }
     
     if(!insn->isWritten(theStackPtr)) {
-         return;
+      return;
     }
 
     // Here's one for you:
@@ -708,6 +708,19 @@ void StackAnalysis::computeInsnEffects(const Block *block,
             stackanalysis_printf("\t\t\t Stack height changed by evalled stwu: %s\n", iFunc.format().c_str());
             return;
         }
+    }
+    case e_mov: {
+      // Special case: mov ebp, esp is a stack teardown that we need to handle
+      // correctly. Things to think about... moving the FP analysis before the SP
+      // analysis? Or add an "assignment" func? For now, special-casing...
+      if (insn->isRead(theFramePtr)) {
+	// Awesome
+	iFunc.abs() = true;
+	iFunc.delta() = -2*word_size;
+	stackanalysis_printf("\t\t\t Stack height changed by mov ebp, esp: %s\n", iFunc.format().c_str());
+	return;
+      }
+      // Otherwise fall through to default
     }
     default:
         iFunc.range() = Range(Range::infinite, 0, off);

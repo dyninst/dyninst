@@ -41,8 +41,9 @@
 #include <fcntl.h>
 
 class init_fini_callback_Mutator : public DyninstMutator {
-        virtual test_results_t executeTest();
-        virtual test_results_t postExecution();
+   virtual test_results_t setup(ParameterDict &param);
+   virtual test_results_t executeTest();
+   virtual test_results_t postExecution();
 };
 
 extern "C" DLLEXPORT  TestMutator *init_fini_callback_factory()
@@ -50,12 +51,24 @@ extern "C" DLLEXPORT  TestMutator *init_fini_callback_factory()
     return new init_fini_callback_Mutator();
 }
 
+static int unique_id;
+
+test_results_t init_fini_callback_Mutator::setup(ParameterDict &param)
+{
+   unique_id = param["unique_id"]->getInt();
+   return DyninstMutator::setup(param);
+}
+
 test_results_t init_fini_callback_Mutator::postExecution()
 {
     // verify file output
-    int fd = open("init_fini_log", O_RDONLY);
+   char filename[256];
+   snprintf(filename, 256, "init_fini_log.%d", unique_id);
+
+    int fd = open(filename, O_RDONLY);
     if(fd == -1) {
-        fd = open("binaries/init_fini_log", O_RDONLY);
+       snprintf(filename, 256, "binaries.%d/init_fini_log.%d", unique_id, unique_id);
+       fd = open(filename, O_RDONLY);
         if(fd == -1)
         {
             logerror("FAILED: couldn't open init_fini_log after test\n");
@@ -65,7 +78,7 @@ test_results_t init_fini_callback_Mutator::postExecution()
     char buffer[2];
     read(fd, buffer, 2);
     close(fd);
-    //unlink("init_fini_log");
+    //unlink(filename);
     if(strncmp(buffer, "OK", 2) == 0)
     {
         return FAILED;

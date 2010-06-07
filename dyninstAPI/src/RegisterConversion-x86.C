@@ -85,14 +85,14 @@ map<MachRegister, Register> reverseRegisterMap = map_list_of
         (x86_64::xmm5, REGNUM_XMM5)
         (x86_64::xmm6, REGNUM_XMM6)
         (x86_64::xmm7, REGNUM_XMM7)
-        (x86_64::mm0, REGNUM_MM0)
-        (x86_64::mm1, REGNUM_MM1)
-        (x86_64::mm2, REGNUM_MM2)
-        (x86_64::mm3, REGNUM_MM3)
-        (x86_64::mm4, REGNUM_MM4)
-        (x86_64::mm5, REGNUM_MM5)
-        (x86_64::mm6, REGNUM_MM6)
-        (x86_64::mm7, REGNUM_MM7)
+        (x86_64::mm0, REGNUM_DUMMYFPR)
+        (x86_64::mm1, REGNUM_DUMMYFPR)
+        (x86_64::mm2, REGNUM_DUMMYFPR)
+        (x86_64::mm3, REGNUM_DUMMYFPR)
+        (x86_64::mm4, REGNUM_DUMMYFPR)
+        (x86_64::mm5, REGNUM_DUMMYFPR)
+        (x86_64::mm6, REGNUM_DUMMYFPR)
+        (x86_64::mm7, REGNUM_DUMMYFPR)
         (x86_64::cr0, REGNUM_IGNORED)
         (x86_64::cr1, REGNUM_IGNORED)
         (x86_64::cr2, REGNUM_IGNORED)
@@ -109,14 +109,14 @@ map<MachRegister, Register> reverseRegisterMap = map_list_of
         (x86_64::dr5, REGNUM_IGNORED)
         (x86_64::dr6, REGNUM_IGNORED)
         (x86_64::dr7, REGNUM_IGNORED)
-        (x86_64::st0, REGNUM_IGNORED)
-        (x86_64::st1, REGNUM_IGNORED)
-        (x86_64::st2, REGNUM_IGNORED)
-        (x86_64::st3, REGNUM_IGNORED)
-        (x86_64::st4, REGNUM_IGNORED)
-        (x86_64::st5, REGNUM_IGNORED)
-        (x86_64::st6, REGNUM_IGNORED)
-        (x86_64::st7, REGNUM_IGNORED)
+        (x86_64::st0, REGNUM_DUMMYFPR)
+        (x86_64::st1, REGNUM_DUMMYFPR)
+        (x86_64::st2, REGNUM_DUMMYFPR)
+        (x86_64::st3, REGNUM_DUMMYFPR)
+        (x86_64::st4, REGNUM_DUMMYFPR)
+        (x86_64::st5, REGNUM_DUMMYFPR)
+        (x86_64::st6, REGNUM_DUMMYFPR)
+        (x86_64::st7, REGNUM_DUMMYFPR)
         ;
 
 Register convertRegID(MachRegister reg, bool &wasUpcast) {
@@ -131,7 +131,13 @@ Register convertRegID(MachRegister reg, bool &wasUpcast) {
     if(found == reverseRegisterMap.end()) {
       assert(!"Bad register ID");
     }
-
+    if(found->second == REGNUM_DUMMYFPR) {
+        wasUpcast = true;
+        if(reg.getArchitecture() == Arch_x86)
+        {
+            return IA32_FPR_VIRTUAL_REGISTER;
+        }
+    }
     return found->second;
 }
 

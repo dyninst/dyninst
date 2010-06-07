@@ -398,6 +398,10 @@ else
 	$(CC) $(M_ABI_FLAG) $(TESTLIB_FLAGS) -I../src/ $(filter %.c,$^) -o $@
 endif
 
+ifdef cap_instruction_api
+    INSNAPI_LINK = -linstructionAPI
+endif
+
 $(DYNINST_STATIC_TESTLIBS_ABI): %_$(M_ABI).a : dyninst/%.c $(DEPENDDIR)/%.dep
 	$(CC) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
 	$(AR) rcs $@ $*.o

@@ -308,11 +308,16 @@ bool emitElf::createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf32_Sy
 		  mpos += sprintf(mpos, "verdef: symbol=%s  version=%s ", symbol->getName().c_str(), (*vers)[0].c_str());
 		  if (verdefEntries.find((*vers)[0]) != verdefEntries.end())
 		    {
-		      versionSymTable.push_back((unsigned short) verdefEntries[(*vers)[0]]);
+		      unsigned short index = verdefEntries[(*vers)[0]];
+		      if (symbol->getVersionHidden()) index += 0x8000;
+		      versionSymTable.push_back(index);
 		    }
 		  else 
 		    {
-		      versionSymTable.push_back((unsigned short) curVersionNum);
+		      unsigned short index = curVersionNum;
+		      if (symbol->getVersionHidden()) index += 0x8000;
+		      versionSymTable.push_back(index);
+
 		      verdefEntries[(*vers)[0]] = curVersionNum;
 		      curVersionNum++;
 		    }
@@ -460,7 +465,7 @@ void emitElf::renameSection(const std::string &oldStr, const std::string &newStr
 
 bool emitElf::driver(Symtab *obj, string fName){
   int newfd;
-  Region *foundSec;
+  Region *foundSec = NULL;
   unsigned pgSize = getpagesize();
 
   //open ELf File for writing
@@ -2261,7 +2266,8 @@ void emitElf::createRelocationSections(Symtab *obj, std::vector<relocationEntry>
    }
 
    if (   !isDynRelocs
-       && object->getRelType() == Region::RT_REL ) 
+       && (obj->hasRelplt() || 
+           object->getRelType() == Region::RT_REL) ) 
    {
       new_name = ".rel.plt";
       dtype = DT_JMPREL;
@@ -2271,7 +2277,8 @@ void emitElf::createRelocationSections(Symtab *obj, std::vector<relocationEntry>
    }
 
    if (   !isDynRelocs 
-       && object->getRelType() == Region::RT_RELA ) 
+       && (obj->hasRelaplt() || 
+           object->getRelType() == Region::RT_RELA ) )
    {
       new_name = ".rela.plt";
       dtype = DT_JMPREL;

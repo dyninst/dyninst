@@ -347,6 +347,7 @@ class Symtab : public LookupInterface,
    bool demangleSymbol(Symbol *&sym);
    bool addSymbolToIndices(Symbol *&sym);
    bool addSymbolToAggregates(Symbol *&sym);
+   bool doNotAggregate(Symbol *&sym);
    bool updateIndices(Symbol *sym, std::string newName, NameType nameType);
 
 

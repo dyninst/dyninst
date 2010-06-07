@@ -70,7 +70,7 @@ namespace Dyninst
             otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::ecx : x86_64::rcx));
             if(p->getPrefix(0) == PREFIX_REPNZ)
             {
-                otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::zf : x86_64::zf));
+	      otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::zf : x86_64::zf));
             }
         }
         int segPrefix = p->getPrefix(1);

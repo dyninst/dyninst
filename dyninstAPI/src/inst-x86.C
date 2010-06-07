@@ -219,6 +219,12 @@ void registerSpace::initialize32() {
 
     callRead_ = getBitArray();
     // CallRead reads no registers
+    // We wish...
+    callRead_[REGNUM_ECX] = true;
+    callRead_[REGNUM_EDX] = true;
+
+    // PLT entries use ebx
+    callRead_[REGNUM_EBX] = true;
 
     // TODO: Fix this for platform-specific calling conventions
 
@@ -462,7 +468,7 @@ void registerSpace::initialize64() {
 					 registerSlot::liveAlways,
 					 registerSlot::FPR));
     registers.push_back(new registerSlot(REGNUM_XMM1,
-					 "XMM1)",
+					 "XMM1",
 					 true,
 					 registerSlot::liveAlways,
 					 registerSlot::FPR));
