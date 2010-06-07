@@ -294,7 +294,8 @@ dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_btr, "btr")
   (e_bts, "bts")
   (e_call, "call")
-  (e_cbw_cwde, "cbw/cwde")
+  (e_cbw, "cbw")
+  (e_cdq, "cdq")
   (e_clc, "clc")
   (e_cld, "cld")
   (e_clflush, "clflush")
@@ -350,7 +351,8 @@ dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_cvttps2pi, "cvttps2pi")
   (e_cvttsd2si, "cvttsd2si")
   (e_cvttss2si, "cvttss2si")
-  (e_cwd_cdq, "cwd/cdq")
+  (e_cwd, "cwd")
+  (e_cwde, "cwde")
   (e_daa, "daa")
   (e_das, "das")
   (e_dec, "dec")
@@ -410,8 +412,9 @@ dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_in, "in")
   (e_inc, "inc")
   (e_insb, "insb")
+  (e_insd, "insd")
   (e_insertq, "insertq")
-  (e_insw_d, "insw/d")
+  (e_insw, "insw")
   (e_int, "int")
   (e_int3, "int 3")
   (e_int1, "int1")
@@ -455,6 +458,7 @@ dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_lldt, "lldt")
   (e_lmsw, "lmsw")
   (e_lodsb, "lodsb")
+  (e_lodsd, "lodsd")
   (e_lodsw, "lodsw")
   (e_loop, "loop")
   (e_loope, "loope")
@@ -500,7 +504,7 @@ dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_movsb, "movsb")
   (e_movsd, "movsd")
   (e_movss, "movss")
-  (e_movsw_d, "movsw/d")
+  (e_movsw, "movsw")
   (e_movsx, "movsx")
   (e_movsxd, "movsxd")
   (e_movupd, "movupd")
@@ -519,7 +523,8 @@ dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_orps, "orps")
   (e_out, "out")
   (e_outsb, "outsb")
-  (e_outsw_d, "outsw/d")
+  (e_outsd, "outsd")
+  (e_outsw, "outsw")
   (e_packssdw, "packssdw")
   (e_packsswb, "packsswb")
   (e_packuswb, "packuswb")
@@ -554,8 +559,10 @@ dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_pmullw, "pmullw")
   (e_pmuludq, "pmuludq")
   (e_pop, "pop")
-  (e_popa_d, "popa(d)")
-  (e_popf_d, "popf(d)")
+  (e_popa, "popa")
+  (e_popad, "popad")
+  (e_popf, "popf")
+  (e_popfd, "popfd")
   (e_por, "por")
   (e_prefetch, "prefetch")
   (e_prefetchNTA, "prefetchNTA")
@@ -595,8 +602,10 @@ dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_punpcklqld, "punpcklqld")
   (e_punpcklwd, "punpcklwd")
   (e_push, "push")
-  (e_pusha_d, "pusha(d)")
-  (e_pushf_d, "pushf(d)")
+  (e_pusha, "pusha")
+  (e_pushad, "pushad")
+  (e_pushf, "pushf")
+  (e_pushfd, "pushfd")
   (e_pxor, "pxor")
   (e_rcl, "rcl")
   (e_rcpps, "rcpps")
@@ -617,7 +626,8 @@ dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_sar, "sar")
   (e_sbb, "sbb")
   (e_scasb, "scasb")
-  (e_scasw_d, "scasw/d")
+  (e_scasd, "scasd")
+  (e_scasw, "scasw")
   (e_setb, "setb")
   (e_setbe, "setbe")
   (e_setl, "setl")
@@ -654,7 +664,8 @@ dyn_hash_map<entryID, std::string> entryNames_IAPI = map_list_of
   (e_sti, "sti")
   (e_stmxcsr, "stmxcsr")
   (e_stosb, "stosb")
-  (e_stosw_d, "stosw/d")
+  (e_stosd, "stosd")
+  (e_stosw, "stosw")
   (e_str, "str")
   (e_sub, "sub")
   (e_subpd, "subpd")
@@ -761,7 +772,8 @@ void ia32_instruction::initFlagTable(dyn_hash_map<entryID, flagInfo>& flagTable)
   flagTable[e_imul] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
   flagTable[e_inc] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::of)(x86::sf)(x86::zf)(x86::af)(x86::pf));
   flagTable[e_insb] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
-  flagTable[e_insw_d] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
+  flagTable[e_insw] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
+  flagTable[e_insd] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
   flagTable[e_int] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::tf)(x86::nt_));
   flagTable[e_int3] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::tf)(x86::nt_));
   flagTable[e_int80] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::tf)(x86::nt_));
@@ -790,6 +802,7 @@ list_of(x86::of)(x86::sf)(x86::zf)(x86::af)(x86::pf)(x86::cf)(x86::tf)(x86::if_)
   flagTable[e_jz] = flagInfo(list_of(x86::of)(x86::sf)(x86::zf)(x86::pf)(x86::cf), vector<Dyninst::MachRegister>());
   flagTable[e_lar] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::zf));
   flagTable[e_lodsb] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
+  flagTable[e_lodsd] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
   flagTable[e_lodsw] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
   flagTable[e_loope] = flagInfo(list_of(x86::zf), vector<Dyninst::MachRegister>());
   flagTable[e_loopn] = flagInfo(list_of(x86::zf), vector<Dyninst::MachRegister>());
@@ -800,8 +813,11 @@ list_of(x86::of)(x86::sf)(x86::zf)(x86::af)(x86::pf)(x86::cf)(x86::tf)(x86::if_)
   flagTable[e_neg] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
   flagTable[e_or] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
   flagTable[e_outsb] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
-  flagTable[e_outsw_d] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
-  flagTable[e_popf_d] = flagInfo(vector<Dyninst::MachRegister>(),
+  flagTable[e_outsw] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
+  flagTable[e_outsd] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
+  flagTable[e_popf] = flagInfo(vector<Dyninst::MachRegister>(),
+list_of(x86::of)(x86::sf)(x86::zf)(x86::af)(x86::pf)(x86::cf)(x86::tf)(x86::if_)(x86::df)(x86::nt_));
+  flagTable[e_popfd] = flagInfo(vector<Dyninst::MachRegister>(),
 list_of(x86::of)(x86::sf)(x86::zf)(x86::af)(x86::pf)(x86::cf)(x86::tf)(x86::if_)(x86::df)(x86::nt_));
   flagTable[e_rcl] = flagInfo(list_of(x86::cf), list_of(x86::of)(x86::cf));
   flagTable[e_rcr] = flagInfo(list_of(x86::cf), list_of(x86::of)(x86::cf));
@@ -837,7 +853,8 @@ list_of(x86::of)(x86::sf)(x86::zf)(x86::af)(x86::pf)(x86::cf)(x86::tf)(x86::if_)
   flagTable[e_std] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::df));
   flagTable[e_sti] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::if_));
   flagTable[e_stosb] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
-  flagTable[e_stosw_d] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
+  flagTable[e_stosd] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
+  flagTable[e_stosw] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
   flagTable[e_sub] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
   flagTable[e_test] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
   flagTable[e_verr] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::zf));
@@ -845,7 +862,8 @@ list_of(x86::of)(x86::sf)(x86::zf)(x86::af)(x86::pf)(x86::cf)(x86::tf)(x86::if_)
   flagTable[e_xadd] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
   flagTable[e_xor] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
   flagTable[e_scasb] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
-  flagTable[e_scasw_d] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
+  flagTable[e_scasw] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
+  flagTable[e_scasd] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
 }
 
 bool ia32_entry::flagsUsed(std::set<MachRegister>& flagsRead, std::set<MachRegister>& flagsWritten, ia32_locations* locs)
@@ -981,8 +999,8 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_pop, t_done, 0, false, { rSI, eSP, Zz }, 0, s1W2RW },
   { e_pop, t_done, 0, false, { rDI, eSP, Zz }, 0, s1W2RW },
   /* 60 */
-  { e_pusha_d, t_done, 0, false, { GPRS, eSP, Zz }, 0, s1R2RW },
-  { e_popa_d,  t_done, 0, false, { GPRS, eSP, Zz }, 0, s1W2RW },
+  { e_pushad, t_done, 0, false, { GPRS, eSP, Zz }, 0, s1R2RW },
+  { e_popad,  t_done, 0, false, { GPRS, eSP, Zz }, 0, s1W2RW },
   { e_bound,    t_done, 0, true, { Gv, Ma, Zz }, 0, s1R2R },
   { e_arpl,     t_done, 0, true, { Ew, Gw, Zz }, 0, s1R2R },
   { e_No_Entry,          t_ill,  0, false, { Zz, Zz, Zz }, 0, 0 }, // PREFIX_SEG_OVR
@@ -995,9 +1013,9 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_push,    t_done, 0, false, { Ib, eSP, Zz }, 0, s1R2RW },
   { e_imul,    t_done, 0, true, { Gv, Ev, Ib }, 0, s1W2R3R },
   { e_insb,    t_done, 0, false, { Yb, DX, Zz }, 0, s1W2R | (fREP << FPOS) }, // (e)SI/DI changed
-  { e_insw_d,  t_done, 0, false, { Yv, DX, Zz }, 0, s1W2R | (fREP << FPOS) },
+  { e_insd,  t_done, 0, false, { Yv, DX, Zz }, 0, s1W2R | (fREP << FPOS) },
   { e_outsb,   t_done, 0, false, { DX, Xb, Zz }, 0, s1W2R | (fREP << FPOS) },
-  { e_outsw_d, t_done, 0, false, { DX, Xv, Zz }, 0, s1W2R | (fREP << FPOS) },
+  { e_outsd, t_done, 0, false, { DX, Xv, Zz }, 0, s1W2R | (fREP << FPOS) },
   /* 70 */
   { e_jo,         t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
   { e_jno,        t_done, 0, false, { Jb, Zz, Zz }, (IS_JCC | REL_B), s1R },
@@ -1045,12 +1063,12 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_xchg, t_done, 0, false, { eSI, eAX, Zz }, 0, s1RW2RW },
   { e_xchg, t_done, 0, false, { eDI, eAX, Zz }, 0, s1RW2RW },
   /* 98 */
-  { e_cbw_cwde, t_done, 0, false, { eAX, Zz, Zz }, 0, s1RW },
-  { e_cwd_cdq,  t_done, 0, false, { eDX, eAX, Zz }, 0, s1W2R },
+  { e_cwde, t_done, 0, false, { eAX, Zz, Zz }, 0, s1RW },
+  { e_cdq,  t_done, 0, false, { eDX, eAX, Zz }, 0, s1W2R },
   { e_call,     t_done, 0, false, { Ap, Zz, Zz }, IS_CALL | PTR_WX, s1R },
   { e_wait,     t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
-  { e_pushf_d, t_done, 0, false, { Fv, eSP, Zz }, 0, s1R2RW },
-  { e_popf_d,  t_done, 0, false, { Fv, eSP, Zz }, 0, s1W2RW },
+  { e_pushfd, t_done, 0, false, { Fv, eSP, Zz }, 0, s1R2RW },
+  { e_popfd,  t_done, 0, false, { Fv, eSP, Zz }, 0, s1W2RW },
   { e_sahf,     t_done, 0, false, { Zz, Zz, Zz }, 0, 0 }, // FIXME Intel
   { e_lahf,     t_done, 0, false, { Zz, Zz, Zz }, 0, 0 }, // FIXME Intel
   /* A0 */
@@ -1060,18 +1078,18 @@ true, { Eb, Gb, Zz }, 0, s1RW2R },
   { e_mov,   t_done, 0, false, { Ov, eAX, Zz }, 0, s1W2R },
   // XXX: Xv is source, Yv is destination for movs, so they're swapped!
   { e_movsb, t_done, 0, false, { Yb, Xb, Zz },  0, s1W2R | (fREP << FPOS) }, // (e)SI/DI changed
-  { e_movsw_d, t_done, 0, false, { Yv, Xv, Zz }, 0, s1W2R | (fREP << FPOS) },
+  { e_movsd, t_done, 0, false, { Yv, Xv, Zz }, 0, s1W2R | (fREP << FPOS) },
   { e_cmpsb, t_done, 0, false, { Xb, Yb, Zz },  0, s1R2R | (fCMPS << FPOS) },
   { e_cmpsw, t_done, 0, false, { Xv, Yv, Zz },  0, s1R2R | (fCMPS << FPOS) },
   /* A8 */
   { e_test,     t_done, 0, false, { AL, Ib, Zz },  0, s1R2R },
   { e_test,     t_done, 0, false, { eAX, Iz, Zz }, 0, s1R2R },
   { e_stosb,    t_done, 0, false, { Yb, AL, Zz },  0, s1W2R | (fREP << FPOS) },
-  { e_stosw_d,  t_done, 0, false, { Yv, eAX, Zz }, 0, s1W2R | (fREP << FPOS) },
+  { e_stosd,  t_done, 0, false, { Yv, eAX, Zz }, 0, s1W2R | (fREP << FPOS) },
   { e_lodsb,    t_done, 0, false, { AL, Xb, Zz },  0, s1W2R | (fREP << FPOS) },
-  { e_lodsw,    t_done, 0, false, { eAX, Xv, Zz }, 0, s1W2R | (fREP << FPOS) },
+  { e_lodsd,    t_done, 0, false, { eAX, Xv, Zz }, 0, s1W2R | (fREP << FPOS) },
   { e_scasb,    t_done, 0, false, { AL, Yb, Zz },  0, s1R2R | (fSCAS << FPOS) },
-  { e_scasw_d,  t_done, 0, false, { eAX, Yv, Zz }, 0, s1R2R | (fSCAS << FPOS) },
+  { e_scasd,  t_done, 0, false, { eAX, Yv, Zz }, 0, s1R2R | (fSCAS << FPOS) },
   /* B0 */
   { e_mov, t_done, 0, false, { AL, Ib, Zz }, 0, s1W2R },
   { e_mov, t_done, 0, false, { CL, Ib, Zz }, 0, s1W2R },
@@ -2756,6 +2774,13 @@ void ia32_memacc::print()
 	    regs[0], regs[1], scale, imm, imm, size, addr_size);
 }
 
+int getOperSz(const ia32_prefixes &pref) 
+{
+   if (pref.rexW()) return 4;
+   else if (pref.getPrefix(2) == PREFIX_SZOPER) return 1;
+   else return 2;
+}
+
 ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32_instruction& instruct)
 {
   ia32_prefixes& pref = instruct.prf;
@@ -3058,6 +3083,28 @@ ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr, ia32
     int hack = gotit->opsema >> FPOS;
     if(hack == fCOND)
       instruct.cond->set(condbits);
+  }
+
+  // flip id of opcodes overloaded on operand size prefix
+  int operSzAttr = getOperSz(pref);
+  if (1 == operSzAttr) {
+    entryID newID = gotit->id;
+    switch (gotit->id) {
+    case e_cwde: newID = e_cbw; break;
+    case e_cdq: newID = e_cwd; break;
+    case e_insd: newID = e_insw; break;
+    case e_lodsd: newID = e_lodsw; break;
+    case e_movsd: newID = e_movsw; break;
+    case e_outsd: newID = e_outsw; break;
+    case e_popad: newID = e_popa; break;
+    case e_popfd: newID = e_popf; break;
+    case e_pushad: newID = e_pusha; break;
+    case e_pushfd: newID = e_pushf; break;
+    case e_scasd: newID = e_scasw; break;
+    case e_stosd: newID = e_stosw; break;
+    default: break;
+    }
+    gotit->id = newID;
   }
 
   instruct.entry = gotit;
@@ -3620,14 +3667,6 @@ static inline int type2size(unsigned int optype, unsigned int operSzAttr)
 //    RegisterAST reg(optype);
 //    return reg.eval().size();
   }
-}
-
-
-int getOperSz(const ia32_prefixes &pref) 
-{
-   if (pref.rexW()) return 4;
-   else if (pref.getPrefix(2) == PREFIX_SZOPER) return 1;
-   else return 2;
 }
 
 unsigned int ia32_decode_operands (const ia32_prefixes& pref, 

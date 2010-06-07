@@ -300,7 +300,8 @@ void SymEvalArchTraits<Arch_x86>::handleSpecialCases(InstructionAPI::Instruction
     operands.resize(2);
     break;
   case e_movsb:
-  case e_movsw_d:
+  case e_movsd:
+  case e_movsw:
     // No operands
     operands.clear();
     break;
@@ -311,19 +312,22 @@ void SymEvalArchTraits<Arch_x86>::handleSpecialCases(InstructionAPI::Instruction
     operands.clear();
     break;
   case e_scasb:
-  case e_scasw_d:
+  case e_scasd:
+  case e_scasw:
     // Same here
     operands.clear();
     break;
   case e_stosb:
-  case e_stosw_d:
+  case e_stosd:
+  case e_stosw:
     // Also, no operands
     operands.clear();
     break;
   case e_jcxz_jec:
     operands.resize(1);
     break;
-  case e_cbw_cwde:
+  case e_cbw:
+  case e_cwde:
     // Nada
     operands.clear();
     break;

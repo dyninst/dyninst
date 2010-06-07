@@ -1630,9 +1630,13 @@ int instruction::getStackDelta()
       return -4;
    if (instruc.getEntry()->id == e_pop)
       return 4;
-   if (instruc.getEntry()->id == e_pusha_d)
+   if (instruc.getEntry()->id == e_pusha)
+      return (-2 * 9);
+   if (instruc.getEntry()->id == e_pushad)
       return (-4 * 9);
-   if (instruc.getEntry()->id == e_popa_d)
+   if (instruc.getEntry()->id == e_popa)
+      return (2 * 9);
+   if (instruc.getEntry()->id == e_popad)
       return (4 * 9);
 
    if (p[0] == 0x83 && p[1] == 0xec) {
