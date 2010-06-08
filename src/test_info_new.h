@@ -102,7 +102,7 @@ class RunGroup {
 public:
   const char *mutatee;
   start_state_t state;
-  create_mode_t useAttach;
+  create_mode_t createmode;
   bool customExecution;
   bool selfStart;
   unsigned int index;
