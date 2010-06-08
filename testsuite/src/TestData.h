@@ -47,7 +47,7 @@ enum create_mode_t {
    CREATE = 0,
    USEATTACH,
    DISK,
-   DESERIALIZE
+   DESERIALIZE //Keep deserialize last to maintain proper sort
 };
 
 enum cleanup_mode_t {
