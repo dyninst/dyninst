@@ -23,7 +23,8 @@ include ../../make.config
 
 SRCS =		../../common/src/timing-freebsd.C \
 		../../common/src/freebsdKludges.C \
-		../../common/src/addrtranslate-static.C \
+		../../common/src/addrtranslate-sysv.C \
+		../../common/src/addrtranslate-freebsd.C \
 		../../common/src/dthread-unix.C
 
 #MYFLAGS	+= -DNO_MDL_PRINT

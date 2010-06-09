@@ -467,6 +467,7 @@ bool AddressTranslateSysV::parseDTDebug() {
         for(unsigned i = 0; i < (dynSize / sizeof(Elf64_Dyn)); ++i) {
             if( DT_DEBUG == dynDataElf[i].d_tag ) {
                 r_debug_addr = (Address) dynDataElf[i].d_un.d_ptr;
+                break;
             }
         }
     }else{
@@ -474,6 +475,7 @@ bool AddressTranslateSysV::parseDTDebug() {
         for(unsigned i = 0; i < (dynSize / sizeof(Elf32_Dyn)); ++i) {
             if( DT_DEBUG == dynDataElf[i].d_tag ) {
                 r_debug_addr = (Address) dynDataElf[i].d_un.d_ptr;
+                break;
             }
         }
     }
@@ -745,6 +747,8 @@ FCNode::FCNode(string f, dev_t d, ino_t i, SymbolReaderFactory *factory_) :
    parsed_file(false),
    parse_error(false),
    is_interpreter(false),
+   r_debug_offset(0),
+   r_trap_offset(0),
    symreader(NULL),
    factory(factory_)
 {

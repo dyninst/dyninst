@@ -3107,7 +3107,16 @@ Process::ptr Process::createProcess(std::string executable, const std::vector<st
 {
    MTLock lock_this_func(MTLock::allow_init, MTLock::deliver_callbacks);
 
-   pthrd_printf("User asked to launch executable %s\n", executable.c_str());
+   pthrd_printf("User asked to launch executable %s [ ", executable.c_str());
+
+   if( dyninst_debug_proccontrol ) {
+       std::vector<std::string>::const_iterator argvIter;
+       for(argvIter = argv.begin(); argvIter != argv.end(); ++argvIter) {
+           pclean_printf("%s ", argvIter->c_str());
+       }
+   }
+   pclean_printf("]\n");
+
    if (int_process::isInCB()) {
       perr_printf("User attempted call on process create while in CB, erroring.");
       setLastError(err_incallback, "Cannot createProcess from callback\n");

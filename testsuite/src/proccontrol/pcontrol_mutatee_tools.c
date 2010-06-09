@@ -225,7 +225,7 @@ int initMutatorConnection()
       struct sockaddr_un server_addr;
       memset(&server_addr, 0, sizeof(struct sockaddr_un));
       server_addr.sun_family = PF_UNIX;
-      strncpy(server_addr.sun_path, un_socket, 128);
+      strncpy(server_addr.sun_path, un_socket, sizeof(server_addr.sun_path));
 
       result = connect(sockfd, (struct sockaddr *) &server_addr, sizeof(struct sockaddr_un));
       if (result != 0) {

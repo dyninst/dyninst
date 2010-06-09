@@ -815,7 +815,6 @@ bool linux_process::plat_terminate(bool &needs_sync)
    return true;
 }
 
-typedef std::map<Dyninst::MachRegister, std::pair<unsigned int, unsigned int> > dynreg_to_user_t;
 dynreg_to_user_t dynreg_to_user;
 static void init_dynreg_to_user()
 {

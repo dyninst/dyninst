@@ -9,10 +9,6 @@
 #include "proccontrol/src/sysv.h"
 #include "common/h/dthread.h"
 
-// System includes
-#include <sys/types.h>
-#include <sys/ptrace.h>
-
 using namespace Dyninst;
 using namespace ProcControlAPI;
 
@@ -49,6 +45,7 @@ class DecoderFreeBSD : public Decoder
         virtual ~DecoderFreeBSD();
         virtual unsigned getPriority() const;
         virtual bool decode(ArchEvent *ae, std::vector<Event::ptr> &events);
+        Dyninst::Address adjustTrapAddr(Dyninst::Address address, Dyninst::Architecture arch);
 };
 
 class freebsd_process : public sysv_process
