@@ -60,7 +60,7 @@ AST::Ptr SymEval<a>::expand(const Assignment::Ptr &assignment) {
 }
 
 template <Architecture a>
-void SymEval<a>::expand(Result_t &res) {
+void SymEval<a>::expand(Result_t &res, bool applyVisitors) {
   // Symbolic evaluation works off an Instruction
   // so we have something to hand to ROSE. 
   for (Result_t::iterator i = res.begin(); i != res.end(); ++i) {
@@ -76,23 +76,25 @@ void SymEval<a>::expand(Result_t &res) {
 
   }
 
-  // Must apply the visitor to each filled in element
-  for (Result_t::iterator i = res.begin(); i != res.end(); ++i) {
-    if (i->second == AST::Ptr()) {
-      // Must not have been filled in above
-      continue;
-    }
-    Assignment::Ptr ptr = i->first;
+  if (applyVisitors) {
+    // Must apply the visitor to each filled in element
+    for (Result_t::iterator i = res.begin(); i != res.end(); ++i) {
+      if (i->second == AST::Ptr()) {
+        // Must not have been filled in above
+        continue;
+      }
+      Assignment::Ptr ptr = i->first;
 
-    // Let's experiment with simplification
-    image_func *func = ptr->func();
-    StackAnalysis sA(func);
-    StackAnalysis::Height sp = sA.findSP(ptr->addr());
-    StackAnalysis::Height fp = sA.findFP(ptr->addr());
-    
-    StackVisitor sv(ptr->addr(), func->symTabName(), sp, fp);
-    if (i->second)
-      i->second = i->second->accept(&sv);
+      // Let's experiment with simplification
+      image_func *func = ptr->func();
+      StackAnalysis sA(func);
+      StackAnalysis::Height sp = sA.findSP(ptr->addr());
+      StackAnalysis::Height fp = sA.findFP(ptr->addr());
+
+      StackVisitor sv(ptr->addr(), func->symTabName(), sp, fp);
+      if (i->second)
+        i->second = i->second->accept(&sv);
+    }
   }
 }
 

@@ -450,7 +450,7 @@ public:
   // get back a map of Assignments->ASTs
   // We assume the assignments are prepped in the input; whatever
   // they point to is discarded.
-  static void expand(Result_t &res);
+  static void expand(Result_t &res, bool applyVisitors = true);
 
   // Hand in a Graph (of AssignNodes, natch) and get back a Result;
   // prior results from the Graph
