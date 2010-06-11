@@ -460,23 +460,11 @@ symtab_group_test.mutatee_solo_dynamic_g++_64_none: symtab_group_test_group_g++_
 # Mutatees compiled with g++ for proccontrol
 ######################################################################
 
-proccontrol_SOLO_MUTATEES_gnu_cxx = pc_breakpoint.mutatee_solo_dynamic_g++_64_none pc_exec_targ.mutatee_solo_dynamic_g++_64_high pc_exec_targ.mutatee_solo_dynamic_g++_64_low pc_exec_targ.mutatee_solo_dynamic_g++_64_max pc_exec_targ.mutatee_solo_dynamic_g++_64_none pc_fork.mutatee_solo_dynamic_g++_64_none pc_fork_exec.mutatee_solo_dynamic_g++_64_none pc_irpc.mutatee_solo_dynamic_g++_64_none pc_launch.mutatee_solo_dynamic_g++_64_none pc_library.mutatee_solo_dynamic_g++_64_none pc_singlestep.mutatee_solo_dynamic_g++_64_none pc_thread_cont.mutatee_solo_dynamic_g++_64_none 
+proccontrol_SOLO_MUTATEES_gnu_cxx = pc_breakpoint.mutatee_solo_dynamic_g++_64_none pc_irpc.mutatee_solo_dynamic_g++_64_none pc_launch.mutatee_solo_dynamic_g++_64_none pc_library.mutatee_solo_dynamic_g++_64_none pc_singlestep.mutatee_solo_dynamic_g++_64_none pc_thread_cont.mutatee_solo_dynamic_g++_64_none 
 
 # Now a list of rules for compiling the mutatees with g++
 
 pc_breakpoint.mutatee_solo_dynamic_g++_64_none: pc_breakpoint_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_util_mt_g++_64_none.o pcontrol_mutatee_tools_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -lpthread 
-pc_exec_targ.mutatee_solo_dynamic_g++_64_high: pc_exec_targ_mutatee_solo_g++_64_high.o mutatee_util_g++_64_high.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-pc_exec_targ.mutatee_solo_dynamic_g++_64_low: pc_exec_targ_mutatee_solo_g++_64_low.o mutatee_util_g++_64_low.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-pc_exec_targ.mutatee_solo_dynamic_g++_64_max: pc_exec_targ_mutatee_solo_g++_64_max.o mutatee_util_g++_64_max.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-pc_exec_targ.mutatee_solo_dynamic_g++_64_none: pc_exec_targ_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-pc_fork.mutatee_solo_dynamic_g++_64_none: pc_fork_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_util_mt_g++_64_none.o pcontrol_mutatee_tools_g++_64_none.o mutatee_driver_solo_g++_64.o
-	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -lpthread 
-pc_fork_exec.mutatee_solo_dynamic_g++_64_none: pc_fork_exec_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_util_mt_g++_64_none.o pcontrol_mutatee_tools_g++_64_none.o mutatee_driver_solo_g++_64.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -lpthread 
 pc_irpc.mutatee_solo_dynamic_g++_64_none: pc_irpc_mutatee_solo_g++_64_none.o mutatee_util_g++_64_none.o mutatee_util_mt_g++_64_none.o pcontrol_mutatee_tools_g++_64_none.o mutatee_driver_solo_g++_64.o
 	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -lpthread 
@@ -1433,8 +1421,6 @@ symtab_group_test_group_g++_64_low.o: symtab_group_test_group.c
 # Generic rules for g++'s mutatees and varying optimization levels for proccontrol
 pc_singlestep_mutatee_solo_g++_64_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
 	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
-pc_exec_targ_mutatee_solo_g++_64_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_exec_targ_mutatee.c
-	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -I../src/proccontrol -DTEST_NAME=pc_exec_targ -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_exec_targ_mutatee.c -o $@ $<
 pc_launch_mutatee_solo_g++_64_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
 	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
 pc_library_mutatee_solo_g++_64_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
@@ -1445,14 +1431,8 @@ pc_breakpoint_mutatee_solo_g++_64_high.o: ../src/solo_mutatee_boilerplate.c ../s
 	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
 pc_thread_cont_mutatee_solo_g++_64_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
 	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
-pc_fork_exec_mutatee_solo_g++_64_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_fork_exec_mutatee.c
-	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -I../src/proccontrol -DTEST_NAME=pc_fork_exec -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_fork_exec_mutatee.c -o $@ $<
-pc_fork_mutatee_solo_g++_64_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_fork_mutatee.c
-	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -I../src/proccontrol -DTEST_NAME=pc_fork -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_fork_mutatee.c -o $@ $<
 pc_singlestep_mutatee_solo_g++_64_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
 	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
-pc_exec_targ_mutatee_solo_g++_64_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_exec_targ_mutatee.c
-	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -I../src/proccontrol -DTEST_NAME=pc_exec_targ -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_exec_targ_mutatee.c -o $@ $<
 pc_launch_mutatee_solo_g++_64_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
 	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
 pc_library_mutatee_solo_g++_64_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
@@ -1463,14 +1443,8 @@ pc_breakpoint_mutatee_solo_g++_64_max.o: ../src/solo_mutatee_boilerplate.c ../sr
 	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
 pc_thread_cont_mutatee_solo_g++_64_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
 	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
-pc_fork_exec_mutatee_solo_g++_64_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_fork_exec_mutatee.c
-	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -I../src/proccontrol -DTEST_NAME=pc_fork_exec -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_fork_exec_mutatee.c -o $@ $<
-pc_fork_mutatee_solo_g++_64_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_fork_mutatee.c
-	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -I../src/proccontrol -DTEST_NAME=pc_fork -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_fork_mutatee.c -o $@ $<
 pc_singlestep_mutatee_solo_g++_64_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
 	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
-pc_exec_targ_mutatee_solo_g++_64_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_exec_targ_mutatee.c
-	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -I../src/proccontrol -DTEST_NAME=pc_exec_targ -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_exec_targ_mutatee.c -o $@ $<
 pc_launch_mutatee_solo_g++_64_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
 	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
 pc_library_mutatee_solo_g++_64_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
@@ -1481,14 +1455,8 @@ pc_breakpoint_mutatee_solo_g++_64_none.o: ../src/solo_mutatee_boilerplate.c ../s
 	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
 pc_thread_cont_mutatee_solo_g++_64_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
 	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
-pc_fork_exec_mutatee_solo_g++_64_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_fork_exec_mutatee.c
-	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -I../src/proccontrol -DTEST_NAME=pc_fork_exec -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_fork_exec_mutatee.c -o $@ $<
-pc_fork_mutatee_solo_g++_64_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_fork_mutatee.c
-	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -I../src/proccontrol -DTEST_NAME=pc_fork -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_fork_mutatee.c -o $@ $<
 pc_singlestep_mutatee_solo_g++_64_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
 	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
-pc_exec_targ_mutatee_solo_g++_64_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_exec_targ_mutatee.c
-	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -I../src/proccontrol -DTEST_NAME=pc_exec_targ -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_exec_targ_mutatee.c -o $@ $<
 pc_launch_mutatee_solo_g++_64_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
 	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
 pc_library_mutatee_solo_g++_64_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
@@ -1499,10 +1467,6 @@ pc_breakpoint_mutatee_solo_g++_64_low.o: ../src/solo_mutatee_boilerplate.c ../sr
 	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
 pc_thread_cont_mutatee_solo_g++_64_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
 	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
-pc_fork_exec_mutatee_solo_g++_64_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_fork_exec_mutatee.c
-	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -I../src/proccontrol -DTEST_NAME=pc_fork_exec -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_fork_exec_mutatee.c -o $@ $<
-pc_fork_mutatee_solo_g++_64_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_fork_mutatee.c
-	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -I../src/proccontrol -DTEST_NAME=pc_fork -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_fork_mutatee.c -o $@ $<
 
 %_g++_64_high.o: ../src/proccontrol/%.c
 	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -o $@ $<
@@ -1984,23 +1948,11 @@ symtab_group_test.mutatee_solo_dynamic_gcc_64_none: symtab_group_test_group_gcc_
 # Mutatees compiled with gcc for proccontrol
 ######################################################################
 
-proccontrol_SOLO_MUTATEES_gnu_cc = pc_breakpoint.mutatee_solo_dynamic_gcc_64_none pc_exec_targ.mutatee_solo_dynamic_gcc_64_high pc_exec_targ.mutatee_solo_dynamic_gcc_64_low pc_exec_targ.mutatee_solo_dynamic_gcc_64_max pc_exec_targ.mutatee_solo_dynamic_gcc_64_none pc_fork.mutatee_solo_dynamic_gcc_64_none pc_fork_exec.mutatee_solo_dynamic_gcc_64_none pc_irpc.mutatee_solo_dynamic_gcc_64_none pc_launch.mutatee_solo_dynamic_gcc_64_none pc_library.mutatee_solo_dynamic_gcc_64_none pc_singlestep.mutatee_solo_dynamic_gcc_64_none pc_thread_cont.mutatee_solo_dynamic_gcc_64_none 
+proccontrol_SOLO_MUTATEES_gnu_cc = pc_breakpoint.mutatee_solo_dynamic_gcc_64_none pc_irpc.mutatee_solo_dynamic_gcc_64_none pc_launch.mutatee_solo_dynamic_gcc_64_none pc_library.mutatee_solo_dynamic_gcc_64_none pc_singlestep.mutatee_solo_dynamic_gcc_64_none pc_thread_cont.mutatee_solo_dynamic_gcc_64_none 
 
 # Now a list of rules for compiling the mutatees with gcc
 
 pc_breakpoint.mutatee_solo_dynamic_gcc_64_none: pc_breakpoint_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_util_mt_gcc_64_none.o pcontrol_mutatee_tools_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -lpthread 
-pc_exec_targ.mutatee_solo_dynamic_gcc_64_high: pc_exec_targ_mutatee_solo_gcc_64_high.o mutatee_util_gcc_64_high.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-pc_exec_targ.mutatee_solo_dynamic_gcc_64_low: pc_exec_targ_mutatee_solo_gcc_64_low.o mutatee_util_gcc_64_low.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-pc_exec_targ.mutatee_solo_dynamic_gcc_64_max: pc_exec_targ_mutatee_solo_gcc_64_max.o mutatee_util_gcc_64_max.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-pc_exec_targ.mutatee_solo_dynamic_gcc_64_none: pc_exec_targ_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  
-pc_fork.mutatee_solo_dynamic_gcc_64_none: pc_fork_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_util_mt_gcc_64_none.o pcontrol_mutatee_tools_gcc_64_none.o mutatee_driver_solo_gcc_64.o
-	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -lpthread 
-pc_fork_exec.mutatee_solo_dynamic_gcc_64_none: pc_fork_exec_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_util_mt_gcc_64_none.o pcontrol_mutatee_tools_gcc_64_none.o mutatee_driver_solo_gcc_64.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -lpthread 
 pc_irpc.mutatee_solo_dynamic_gcc_64_none: pc_irpc_mutatee_solo_gcc_64_none.o mutatee_util_gcc_64_none.o mutatee_util_mt_gcc_64_none.o pcontrol_mutatee_tools_gcc_64_none.o mutatee_driver_solo_gcc_64.o
 	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -lpthread 
@@ -3033,8 +2985,6 @@ symtab_group_test_group_gcc_64_low.o: symtab_group_test_group.c
 # Generic rules for gcc's mutatees and varying optimization levels for proccontrol
 pc_singlestep_mutatee_solo_gcc_64_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
-pc_exec_targ_mutatee_solo_gcc_64_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_exec_targ_mutatee.c
-	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -I../src/proccontrol -DTEST_NAME=pc_exec_targ -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_exec_targ_mutatee.c -o $@ $<
 pc_launch_mutatee_solo_gcc_64_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
 pc_library_mutatee_solo_gcc_64_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
@@ -3045,14 +2995,8 @@ pc_breakpoint_mutatee_solo_gcc_64_high.o: ../src/solo_mutatee_boilerplate.c ../s
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
 pc_thread_cont_mutatee_solo_gcc_64_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
-pc_fork_exec_mutatee_solo_gcc_64_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_fork_exec_mutatee.c
-	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -I../src/proccontrol -DTEST_NAME=pc_fork_exec -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_fork_exec_mutatee.c -o $@ $<
-pc_fork_mutatee_solo_gcc_64_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_fork_mutatee.c
-	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -I../src/proccontrol -DTEST_NAME=pc_fork -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_fork_mutatee.c -o $@ $<
 pc_singlestep_mutatee_solo_gcc_64_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
-pc_exec_targ_mutatee_solo_gcc_64_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_exec_targ_mutatee.c
-	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -I../src/proccontrol -DTEST_NAME=pc_exec_targ -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_exec_targ_mutatee.c -o $@ $<
 pc_launch_mutatee_solo_gcc_64_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
 pc_library_mutatee_solo_gcc_64_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
@@ -3063,14 +3007,8 @@ pc_breakpoint_mutatee_solo_gcc_64_max.o: ../src/solo_mutatee_boilerplate.c ../sr
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
 pc_thread_cont_mutatee_solo_gcc_64_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
-pc_fork_exec_mutatee_solo_gcc_64_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_fork_exec_mutatee.c
-	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -I../src/proccontrol -DTEST_NAME=pc_fork_exec -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_fork_exec_mutatee.c -o $@ $<
-pc_fork_mutatee_solo_gcc_64_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_fork_mutatee.c
-	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -I../src/proccontrol -DTEST_NAME=pc_fork -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_fork_mutatee.c -o $@ $<
 pc_singlestep_mutatee_solo_gcc_64_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
-pc_exec_targ_mutatee_solo_gcc_64_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_exec_targ_mutatee.c
-	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -I../src/proccontrol -DTEST_NAME=pc_exec_targ -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_exec_targ_mutatee.c -o $@ $<
 pc_launch_mutatee_solo_gcc_64_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
 pc_library_mutatee_solo_gcc_64_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
@@ -3081,14 +3019,8 @@ pc_breakpoint_mutatee_solo_gcc_64_none.o: ../src/solo_mutatee_boilerplate.c ../s
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
 pc_thread_cont_mutatee_solo_gcc_64_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
-pc_fork_exec_mutatee_solo_gcc_64_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_fork_exec_mutatee.c
-	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -I../src/proccontrol -DTEST_NAME=pc_fork_exec -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_fork_exec_mutatee.c -o $@ $<
-pc_fork_mutatee_solo_gcc_64_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_fork_mutatee.c
-	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -I../src/proccontrol -DTEST_NAME=pc_fork -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_fork_mutatee.c -o $@ $<
 pc_singlestep_mutatee_solo_gcc_64_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
-pc_exec_targ_mutatee_solo_gcc_64_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_exec_targ_mutatee.c
-	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -I../src/proccontrol -DTEST_NAME=pc_exec_targ -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_exec_targ_mutatee.c -o $@ $<
 pc_launch_mutatee_solo_gcc_64_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
 pc_library_mutatee_solo_gcc_64_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
@@ -3099,10 +3031,6 @@ pc_breakpoint_mutatee_solo_gcc_64_low.o: ../src/solo_mutatee_boilerplate.c ../sr
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
 pc_thread_cont_mutatee_solo_gcc_64_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
 	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
-pc_fork_exec_mutatee_solo_gcc_64_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_fork_exec_mutatee.c
-	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -I../src/proccontrol -DTEST_NAME=pc_fork_exec -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_fork_exec_mutatee.c -o $@ $<
-pc_fork_mutatee_solo_gcc_64_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_fork_mutatee.c
-	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -I../src/proccontrol -DTEST_NAME=pc_fork -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_fork_mutatee.c -o $@ $<
 
 %_gcc_64_high.o: ../src/proccontrol/%.c
 	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -o $@ $<

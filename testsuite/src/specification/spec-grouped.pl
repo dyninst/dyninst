@@ -2468,7 +2468,11 @@ optimization_for_mutatee('pc_singlestep', _, Opt) :- member(Opt, ['none']).
 
 test('pc_fork', 'pc_fork', 'pc_fork').
 test_description('pc_fork', 'Fork processes').
-test_platform('pc_fork', Platform) :- pcPlatforms(Platform).
+% FreeBSD doesn't provide fork events
+test_platform('pc_fork', Platform) :- 
+    pcPlatforms(Platform),
+    platform(_, OS, _, Platform),
+    member(OS, ['linux']).
 mutator('pc_fork', ['pc_fork.C']).
 test_runmode('pc_fork', 'dynamic').
 test_threadmode('pc_fork', 'Threading').
@@ -2481,7 +2485,10 @@ optimization_for_mutatee('pc_fork', _, Opt) :- member(Opt, ['none']).
 
 test('pc_fork_exec', 'pc_fork_exec', 'pc_fork_exec').
 test_description('pc_fork_exec', 'Fork exec processes').
-test_platform('pc_fork_exec', Platform) :- pcPlatforms(Platform).
+test_platform('pc_fork_exec', Platform) :- 
+    pcPlatforms(Platform),
+    platform(_, OS, _, Platform),
+    member(OS, ['linux']).
 mutator('pc_fork_exec', ['pc_fork_exec.C']).
 test_runmode('pc_fork_exec', 'dynamic').
 test_threadmode('pc_fork_exec', 'Threading').

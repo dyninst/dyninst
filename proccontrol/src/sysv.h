@@ -70,6 +70,7 @@ class sysv_process : public int_process
    bool isLibraryTrap(Dyninst::Address trap_addr);
    virtual bool plat_execed();
    virtual unsigned getTargetPageSize();
+   virtual Dyninst::Address plat_mallocExecMemory(Dyninst::Address, unsigned size);
    
  protected:
    static int_breakpoint *lib_trap;

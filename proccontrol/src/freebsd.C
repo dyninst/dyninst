@@ -37,6 +37,7 @@
 #include "proccontrol/h/Handler.h"
 #include "proccontrol/src/procpool.h"
 #include "proccontrol/src/irpc.h"
+#include "proccontrol/src/snippets.h"
 #include "proccontrol/src/freebsd.h"
 #include "proccontrol/src/int_handler.h"
 #include "common/h/freebsdKludges.h"
@@ -50,6 +51,7 @@
 #include <signal.h>
 #include <sys/ptrace.h>
 #include <machine/reg.h>
+#include <sched.h>
 
 #include <cassert>
 #include <cerrno>
@@ -202,11 +204,11 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
         lproc = static_cast<freebsd_process *>(proc);
     }
 
-    //int_process *proc = ProcPool()->findProcByPid(archevent->pid);
-
     assert( (thread || proc) && "Couldn't locate process/thread that created the event");
 
     Event::ptr event = Event::ptr();
+
+    // TODO thread events (i.e., creation, exit, ...)
 
     pthrd_printf("Decoding event for %d/%d\n", proc ? proc->getPid() : -1,
             thread ? thread->getLWP() : -1);
@@ -245,7 +247,12 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
 
                 adjusted_addr = adjustTrapAddr(addr, proc->getTargetArch());
 
-                // TODO RPCTrap //
+                if (rpcMgr()->isRPCTrap(thread, adjusted_addr)) {
+                   pthrd_printf("Decoded event to rpc completion on %d/%d at %lx\n",
+                                proc->getPid(), thread->getLWP(), adjusted_addr);
+                   event = Event::ptr(new EventRPC(thread->runningRPC()->getWrapperForDecode()));
+                   break;
+                }
 
                 ibp = proc->getBreakpoint(adjusted_addr);
                 if( ibp && ibp != thread->isClearingBreakpoint() ) {
@@ -288,6 +295,19 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
             default:
                 pthrd_printf("Decoded event to signal %d on %d/%d\n",
                         stopsig, proc->getPid(), thread->getLWP());
+
+#if 1
+                //Debugging code
+                if (stopsig == SIGSEGV) {
+                   Dyninst::MachRegisterVal addr;
+                   result = thread->getRegister(MachRegister::getPC(proc->getTargetArch()), addr);
+                   if (!result) {
+                      fprintf(stderr, "Failed to read PC address upon crash\n");
+                   }
+                   fprintf(stderr, "Got crash at %lx\n", addr);               
+                   while (1) sleep(1);
+                }
+#endif
                 event = Event::ptr(new EventSignal(stopsig));
                 break;
         }
@@ -298,15 +318,10 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
         if( WIFEXITED(status) ) {
             int exitcode = WEXITSTATUS(status);
             /*
-             * TODO add a capability for this (plus a configure check for it)
-             * XXX This likely a kernel bug.
-             *
-             * Sometimes, when a traced process exits, an extraneous exit for the process
-             * will be returned by waitpid. That is, it will appear as if the
-             * process has exited twice.
-             *
-             * The workaround is to not generate a new exit event for a process if the
-             * generator has already seen the exit event
+             * On FreeBSD, an exit of a traced process is reported to both its original
+             * parent and the tracing process. When the traced process is created a
+             * ProcControlAPI process, ProcControlAPI will receive two copies of the exit
+             * event. The second event should be ignored.
              */
             if( int_thread::exited == thread->getGeneratorState() ) {
                 pthrd_printf("Decoded duplicate exit event of process %d/%d with code %d\n",
@@ -329,7 +344,6 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
             (*i)->setGeneratorState(int_thread::exited);
         }
     }
-    // TODO thread exit
 
     // Single event decoded
     assert(event);
@@ -377,34 +391,11 @@ int_thread *int_thread::createThreadPlat(int_process *proc, Dyninst::THR_ID thr_
 
 HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool) {
     // TODO add any platform-specific handlers
-
     return hpool;
 }
 
 bool ProcessPool::LWPIDsAreUnique() {
     return true;
-}
-
-bool iRPCMgr::collectAllocationResult(int_thread *, Dyninst::Address &, bool &) {
-    // TODO
-    assert(!NA_FREEBSD);
-    return false;
-}
-
-bool iRPCMgr::createDeallocationSnippet(int_process *, Dyninst::Address, unsigned long,
-        void * &, unsigned long &, unsigned long &)
-{
-    // TODO
-    assert(!NA_FREEBSD);
-    return false;
-}
-
-bool iRPCMgr::createAllocationSnippet(int_process *, Dyninst::Address,
-        bool, unsigned long, void * &, unsigned long &, unsigned long &)
-{
-    // TODO
-    assert(!NA_FREEBSD);
-    return false;
 }
 
 freebsd_process::freebsd_process(Dyninst::PID p, std::string e, std::vector<std::string> a)
@@ -526,7 +517,6 @@ bool freebsd_process::plat_writeMem(int_thread *thr, void *local,
 }
 
 bool freebsd_process::needIndividualThreadAttach() {
-    // TODO not explored in depth
     return false;
 }
 
@@ -550,12 +540,6 @@ Dyninst::Architecture freebsd_process::getTargetArch() {
     assert(!"Unknown architecture");
 #endif
     return arch;
-}
-
-Dyninst::Address freebsd_process::plat_mallocExecMemory(Dyninst::Address, unsigned) {
-    // TODO
-    assert(!NA_FREEBSD);
-    return 0;
 }
 
 bool freebsd_process::independentLWPControl() {
@@ -596,6 +580,16 @@ bool freebsd_thread::plat_cont() {
         return false;
     }
 
+    //
+    // XXX
+    //
+    // This attempts to get around the bug documented in FreeBSD problem
+    // report kern/142757 -- if we yield to the scheduler, we may avoid
+    // the race condition described in this bug report.
+    //
+    // I am unsure if this always works, or just works some of the time.
+    sched_yield();
+
     return true;
 }
 
@@ -632,7 +626,7 @@ bool freebsd_thread::plat_stop() {
     if( !t_kill(pid, lwp, SIGSTOP) ) {
         int errnum = errno;
         if( ESRCH == errnum ) {
-            pthrd_printf("t_kill failed for %d/%d, thread/process doesn't exit\n", lwp, pid);
+            pthrd_printf("t_kill failed for %d/%d, thread/process doesn't exist\n", lwp, pid);
             setLastError(err_noproc, "Thread no longer exists");
             return false;
         }
@@ -645,7 +639,7 @@ bool freebsd_thread::plat_stop() {
 }
 
 bool freebsd_thread::attach() {
-    // TODO this might be right
+    // On FreeBSD, an attach is not necessary for threads
     return true;
 }
 
@@ -661,7 +655,6 @@ static void init_dynreg_to_user() {
         return;
     }
 
-    // TODO implement this for other architectures
 #if defined(arch_x86_64)
     dynreg_to_user[x86_64::r15] =   make_pair(offsetof(reg, r_r15), 8);
     dynreg_to_user[x86_64::r14] =   make_pair(offsetof(reg, r_r14), 8);
@@ -716,6 +709,7 @@ static void init_dynreg_to_user() {
     dynreg_to_user[x86::ss] = make_pair(offsetof(reg, r_ss), 4);
     dynreg_to_user[x86::gs] = make_pair(offsetof(reg, r_gs), 4);
 #else
+    // TODO implement this for other architectures
     assert(!"Register conversion is not implemented for this architecture");
 #endif
 
@@ -815,7 +809,7 @@ bool freebsd_thread::plat_setAllRegisters(int_registerPool &regpool) {
     }
 
     if( 0 != ptrace(PT_SETREGS, lwp, (caddr_t)&registers, 0) ) {
-        perr_printf("Error setting registers for LWP %d\n", lwp);
+        perr_printf("Error setting registers for LWP %d: %s\n", lwp, strerror(errno));
         setLastError(err_internal, "Could not set registers in thread");
         return false;
     }
@@ -834,3 +828,52 @@ bool freebsd_thread::plat_setRegister(Dyninst::MachRegister, Dyninst::MachRegist
     assert(!"This platform does not have individual register access");
     return false;
 }
+
+// iRPC snippets
+const unsigned int x86_64_mmap_flags_position = 0;
+const unsigned int x86_64_mmap_size_position = 0;
+const unsigned int x86_64_mmap_addr_position = 0;
+const unsigned int x86_64_mmap_start_position = 0;
+const unsigned char x86_64_call_mmap[] = { 0x00 };
+const unsigned int x86_64_call_mmap_size = sizeof(x86_64_call_mmap);
+
+const unsigned int x86_64_munmap_size_position = 0;
+const unsigned int x86_64_munmap_addr_position = 0;
+const unsigned int x86_64_munmap_start_position = 0;
+const unsigned char x86_64_call_munmap[] = { 0x00 };
+const unsigned int x86_64_call_munmap_size = 0;
+
+const unsigned int x86_mmap_flags_position = 5;
+const unsigned int x86_mmap_size_position = 12;
+const unsigned int x86_mmap_addr_position = 17;
+const unsigned int x86_mmap_start_position = 0;
+const unsigned char x86_call_mmap[] = {
+0x6a, 0x00,                                     //push   $0x0 (offset)
+0x6a, 0xff,                                     //push   $0xffffffff (fd)
+0x68, 0x12, 0x10, 0x00, 0x00,                   //push   $0x1012 (flags)
+0x6a, 0x07,                                     //push   $0x7 (perms)
+0x68, 0x00, 0x00, 0x00, 0x00,                   //push   $0x0 (size)
+0x68, 0x00, 0x00, 0x00, 0x00,                   //push   $0x0 (addr)
+0xb8, 0xdd, 0x01, 0x00, 0x00,                   //mov    $0x1dd,%eax (SYS_mmap)
+0x50,                                           //push   %eax (required by calling convention)
+0xcd, 0x80,                                     //int    $0x80
+0x8d, 0x64, 0x24, 0x1c,                         //lea    0x1c(%esp),%esp
+0xcc,                                           //trap
+0x90                                            //nop
+};
+const unsigned int x86_call_mmap_size = sizeof(x86_call_mmap);
+
+const unsigned int x86_munmap_size_position = 1;
+const unsigned int x86_munmap_addr_position = 6;
+const unsigned int x86_munmap_start_position = 0;
+const unsigned char x86_call_munmap[] = {
+0x68, 0x00, 0x00, 0x00, 0x00,                   //push   $0x0 (size)    
+0x68, 0x00, 0x00, 0x00, 0x00,                   //push   $0x0 (addr)
+0xb8, 0x49, 0x00, 0x00, 0x00,                   //mov    $0x49,%eax (SYS_munmap)
+0x50,                                           //push   %eax (required by calling convention)
+0xcd, 0x80,                                     //int    $0x80
+0x8d, 0x64, 0x24, 0x0c,                         //lea    0xc(%esp),%esp 
+0xcc,                                           //trap
+0x90                                            //nop
+};
+const unsigned int x86_call_munmap_size = sizeof(x86_call_munmap);

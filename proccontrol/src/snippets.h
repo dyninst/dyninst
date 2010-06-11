@@ -28,27 +28,35 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
+#if !defined(SNIPPETS_H_)
+#define SNIPPETS_H_
 
+/* definitions for iRPC snippets */
 
-#if !defined(_linux_kludges_h)
-#define _linux_kludges_h
+extern const unsigned int x86_64_mmap_flags_position;
+extern const unsigned int x86_64_mmap_size_position;
+extern const unsigned int x86_64_mmap_addr_position;
+extern const unsigned int x86_64_mmap_start_position;
+extern const unsigned char x86_64_call_mmap[];
+extern const unsigned int x86_64_call_mmap_size;
 
-#include <vector>
+extern const unsigned int x86_64_munmap_size_position;
+extern const unsigned int x86_64_munmap_addr_position;
+extern const unsigned int x86_64_munmap_start_position;
+extern const unsigned char x86_64_call_munmap[];
+extern const unsigned int x86_64_call_munmap_size;
 
-unsigned long long PDYN_div1000(unsigned long long in);
-unsigned long long PDYN_divMillion(unsigned long long in);
-unsigned long long PDYN_mulMillion(unsigned long long in);
+extern const unsigned int x86_mmap_flags_position;
+extern const unsigned int x86_mmap_size_position;
+extern const unsigned int x86_mmap_addr_position;
+extern const unsigned int x86_mmap_start_position;
+extern const unsigned char x86_call_mmap[];
+extern const unsigned int x86_call_mmap_size;
 
-bool PtraceBulkRead(Dyninst::Address inTraced, unsigned size, const void *inSelf, int pid);
-
-bool PtraceBulkWrite(Dyninst::Address inTraced, unsigned size, const void *inSelf, int pid);
-
-bool findProcLWPs(pid_t pid, std::vector<pid_t> &lwps);
-
-// So the function doesn't have to be renamed throughout the rest of Dyninst
-#define getVMMaps getLinuxMaps
-
-map_entries *getLinuxMaps(int pid, unsigned &maps_size);
+extern const unsigned int x86_munmap_size_position;
+extern const unsigned int x86_munmap_addr_position;
+extern const unsigned int x86_munmap_start_position;
+extern const unsigned char x86_call_munmap[];
+extern const unsigned int x86_call_munmap_size;
 
 #endif
-

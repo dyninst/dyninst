@@ -32,6 +32,14 @@
 #include "dynutil/h/dyntypes.h"
 #include "common/h/SymLite-elf.h"
 #include "sysv.h"
+#include "irpc.h"
+#include "snippets.h"
+
+#if defined(os_linux)
+#include "common/h/linuxKludges.h"
+#elif defined(os_freebsd)
+#include "common/h/freebsdKludges.h"
+#endif
 
 #include <vector>
 #include <string>
@@ -249,8 +257,16 @@ bool sysv_process::plat_execed()
    return initLibraryMechanism();
 }
 
-// Never returns
+/*
+ * Note:
+ *
+ * The following functions are common to both Linux and FreeBSD.
+ *
+ * If there is another SysV platform that needs different versions of these
+ * functions, the following functions should be factored somehow.
+ */
 void sysv_process::plat_execv() {
+    // Never returns
     typedef const char * const_str;
 
     const_str *new_argv = (const_str *) calloc(argv.size()+3, sizeof(char *));
@@ -392,4 +408,164 @@ bool installed_breakpoint::plat_install(int_process *proc, bool should_save) {
    }
 
    return true;
+}
+
+bool iRPCMgr::collectAllocationResult(int_thread *thr, Dyninst::Address &addr, bool &err)
+{
+   switch (thr->llproc()->getTargetArch())
+   {
+      case Arch_x86_64: {
+         Dyninst::MachRegisterVal val = 0;
+         bool result = thr->getRegister(x86_64::rax, val);
+         assert(result);
+         addr = val;
+         break;
+      }
+      case Arch_x86: {
+         Dyninst::MachRegisterVal val = 0;
+         bool result = thr->getRegister(x86::eax, val);
+         assert(result);
+         addr = val;
+         break;
+      }
+      default:
+         assert(0);
+         break;
+   }
+   //TODO: check addr vs. possible mmap return values.
+   err = false;
+   return true;
+}
+
+// For compatibility 
+#ifndef MAP_ANONYMOUS
+#define MAP_ANONYMOUS MAP_ANON
+#endif
+
+bool iRPCMgr::createAllocationSnippet(int_process *proc, Dyninst::Address addr, 
+                                      bool use_addr, unsigned long size, 
+                                      void* &buffer, unsigned long &buffer_size, 
+                                      unsigned long &start_offset)
+{
+   const void *buf_tmp = NULL;
+   unsigned addr_size = 0;
+   unsigned addr_pos = 0;
+   unsigned flags_pos = 0;
+   unsigned size_pos = 0;
+
+   int flags = MAP_ANONYMOUS | MAP_PRIVATE;
+   if (use_addr) 
+      flags |= MAP_FIXED;
+   else
+      addr = 0x0;
+
+   switch (proc->getTargetArch())
+   {
+      case Arch_x86_64:
+         buf_tmp = x86_64_call_mmap;
+         buffer_size = x86_64_call_mmap_size;
+         start_offset = x86_64_mmap_start_position;
+         addr_pos = x86_64_mmap_addr_position;
+         flags_pos = x86_64_mmap_flags_position;
+         size_pos = x86_64_mmap_size_position;
+         addr_size = 8;
+         break;
+      case Arch_x86:
+         buf_tmp = x86_call_mmap;
+         buffer_size = x86_call_mmap_size;
+         start_offset = x86_mmap_start_position;
+         addr_pos = x86_mmap_addr_position;
+         flags_pos = x86_mmap_flags_position;
+         size_pos = x86_mmap_size_position;
+         addr_size = 4;
+         break;
+      default:
+         assert(0);
+   }
+   
+   buffer = malloc(buffer_size);
+   memcpy(buffer, buf_tmp, buffer_size);
+
+   //Assuming endianess of debugger and debugee match.
+   *((unsigned int *) (((char *) buffer)+size_pos)) = size;
+   *((unsigned int *) (((char *) buffer)+flags_pos)) = flags;
+   if (addr_size == 8)
+      *((unsigned long *) (((char *) buffer)+addr_pos)) = addr;
+   else if (addr_size == 4)
+      *((unsigned *) (((char *) buffer)+addr_pos)) = (unsigned) addr;
+   else 
+      assert(0);
+   return true;
+}
+
+bool iRPCMgr::createDeallocationSnippet(int_process *proc, Dyninst::Address addr, 
+                                        unsigned long size, void* &buffer, 
+                                        unsigned long &buffer_size, 
+                                        unsigned long &start_offset)
+{
+   const void *buf_tmp = NULL;
+   unsigned addr_size = 0;
+   unsigned addr_pos = 0;
+   unsigned size_pos = 0;
+
+   switch (proc->getTargetArch())
+   {
+      case Arch_x86_64:
+         buf_tmp = x86_64_call_munmap;
+         buffer_size = x86_64_call_munmap_size;
+         start_offset = x86_64_munmap_start_position;
+         addr_pos = x86_64_munmap_addr_position;
+         size_pos = x86_64_munmap_size_position;
+         addr_size = 8;
+         break;
+      case Arch_x86:
+         buf_tmp = x86_call_munmap;
+         buffer_size = x86_call_munmap_size;
+         start_offset = x86_munmap_start_position;
+         addr_pos = x86_munmap_addr_position;
+         size_pos = x86_munmap_size_position;
+         addr_size = 4;
+         break;
+      default:
+         assert(0);
+   }
+   
+   buffer = malloc(buffer_size);
+   memcpy(buffer, buf_tmp, buffer_size);
+
+   //Assuming endianess of debugger and debugee match.
+   *((unsigned int *) (((char *) buffer)+size_pos)) = size;
+   if (addr_size == 8)
+      *((unsigned long *) (((char *) buffer)+addr_pos)) = addr;
+   else if (addr_size == 4)
+      *((unsigned *) (((char *) buffer)+addr_pos)) = (unsigned) addr;
+   else 
+      assert(0);
+   return true;
+}
+
+Dyninst::Address sysv_process::plat_mallocExecMemory(Dyninst::Address min, unsigned size) {
+    Dyninst::Address result = 0x0;
+    bool found_result = false;
+    unsigned maps_size;
+    map_entries *maps = getVMMaps(getPid(), maps_size);
+    assert(maps); //TODO, Perhaps go to libraries for address map if no /proc/
+    for (unsigned i=0; i<maps_size; i++) {
+        if (!(maps[i].prems & PREMS_EXEC))
+            continue;
+        if (min + size > maps[i].end)
+            continue;
+        if (maps[i].end - maps[i].start < size)
+            continue;
+
+        if (maps[i].start > min)
+            result = maps[i].start;
+        else
+            result = min;
+        found_result = true;
+        break;
+    }
+    assert(found_result);
+    free(maps);
+    return result;
 }
