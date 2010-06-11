@@ -11,6 +11,7 @@
 #include <sys/types.h>
 #include <sys/ptrace.h>
 #include <linux/ptrace.h>
+#include <asm/ldt.h>
 
 using namespace Dyninst;
 using namespace ProcControlAPI;
@@ -105,6 +106,7 @@ class linux_thread : public int_thread
    virtual bool attach();
 
    void setOptions();
+   bool getSegmentBase(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val);
 };
 
 class LinuxPtrace
