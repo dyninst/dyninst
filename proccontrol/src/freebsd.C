@@ -304,7 +304,21 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
                    if (!result) {
                       fprintf(stderr, "Failed to read PC address upon crash\n");
                    }
-                   fprintf(stderr, "Got crash at %lx\n", addr);               
+                   fprintf(stderr, "Got crash at %lx\n", addr);
+
+                   size_t readSize = 10;
+                   void *local = malloc(readSize);
+                   if( !PtraceBulkRead(addr, readSize, local, proc->getPid()) ) {
+                       fprintf(stderr, "Failed to read memory at %lx\n", addr);
+                   }else{
+                       unsigned char *localBytes = (unsigned char *)local;
+                       fprintf(stderr, "%lx: ", addr);
+                       for(unsigned i = 0; i < readSize; ++i) {
+                           fprintf(stderr, "%x ", localBytes[i]);
+                       }
+                       fprintf(stderr, "\n");
+                   }
+
                    while (1) sleep(1);
                 }
 #endif
@@ -830,18 +844,40 @@ bool freebsd_thread::plat_setRegister(Dyninst::MachRegister, Dyninst::MachRegist
 }
 
 // iRPC snippets
-const unsigned int x86_64_mmap_flags_position = 0;
-const unsigned int x86_64_mmap_size_position = 0;
-const unsigned int x86_64_mmap_addr_position = 0;
+const unsigned int x86_64_mmap_flags_position = 17;
+const unsigned int x86_64_mmap_size_position = 30;
+const unsigned int x86_64_mmap_addr_position = 40;
 const unsigned int x86_64_mmap_start_position = 0;
-const unsigned char x86_64_call_mmap[] = { 0x00 };
+const unsigned char x86_64_call_mmap[] = {
+0x49, 0xc7, 0xc1, 0x00, 0x00, 0x00, 0x00,       //mov    $0x0,%r9 (offset)
+0x49, 0xc7, 0xc0, 0xff, 0xff, 0xff, 0xff,       //mov    $0xffffffffffffffff,%r8 (fd)
+0x49, 0xc7, 0xc2, 0x12, 0x10, 0x00, 0x00,       //mov    $0x1012,%r10 (flags)
+0x48, 0xc7, 0xc2, 0x07, 0x00, 0x00, 0x00,       //mov    $0x7,%rdx (perms)
+0x48, 0xbe, 0x00, 0x00, 0x00, 0x00, 0x00,       //mov    $0x0000000000000000,%rsi (size)
+0x00, 0x00, 0x00,                               //
+0x48, 0xbf, 0x00, 0x00, 0x00, 0x00, 0x00,       //mov    $0x0000000000000000,%rdi (addr)
+0x00, 0x00, 0x00,                               //
+0xb8, 0xdd, 0x01, 0x00, 0x00,                   //mov    $0x1dd,%eax (SYS_mmap)
+0x0f, 0x05,                                     //syscall
+0xcc,                                           //trap
+0x90                                            //nop
+};
 const unsigned int x86_64_call_mmap_size = sizeof(x86_64_call_mmap);
 
-const unsigned int x86_64_munmap_size_position = 0;
-const unsigned int x86_64_munmap_addr_position = 0;
+const unsigned int x86_64_munmap_size_position = 2;
+const unsigned int x86_64_munmap_addr_position = 12;
 const unsigned int x86_64_munmap_start_position = 0;
-const unsigned char x86_64_call_munmap[] = { 0x00 };
-const unsigned int x86_64_call_munmap_size = 0;
+const unsigned char x86_64_call_munmap[] = {
+0x48, 0xbe, 0x00, 0x00, 0x00, 0x00, 0x00,       //mov    $0x0000000000000000,%rsi
+0x00, 0x00, 0x00,                               //
+0x48, 0xbf, 0x00, 0x00, 0x00, 0x00, 0x00,       //mov    $0x0000000000000000,%rdi
+0x00, 0x00, 0x00,                               //
+0xb8, 0x49, 0x00, 0x00, 0x00,                   //mov    $0x49,%eax
+0x0f, 0x05,                                     //syscall
+0xcc,                                           //trap
+0x90                                            //nop
+};
+const unsigned int x86_64_call_munmap_size = sizeof(x86_64_call_munmap);
 
 const unsigned int x86_mmap_flags_position = 5;
 const unsigned int x86_mmap_size_position = 12;
