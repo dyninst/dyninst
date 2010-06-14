@@ -385,7 +385,8 @@ struct Handle {
      return Handle<To-From>(getTernaryAST(ROSEOperation::extractOp, 
 					  a.var(),
 					  number<Len>(From).var(),
-					  number<Len>(To).var()));
+					  number<Len>(To).var(),
+                                          To-From));
    }
 
    template <size_t Len>
@@ -424,7 +425,7 @@ struct Handle {
 
    template <size_t Len1, size_t Len2>
      Handle<Len1+Len2> concat(Handle<Len1> a, Handle<Len2> b) {
-     return Handle<Len1+Len2>(getBinaryAST(ROSEOperation::concatOp, a.var(), b.var()));
+     return Handle<Len1+Len2>(getBinaryAST(ROSEOperation::concatOp, a.var(), b.var(), Len1+Len2));
    }
 
    template <size_t Len>
