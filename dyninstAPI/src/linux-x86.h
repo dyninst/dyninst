@@ -32,8 +32,7 @@
 // $Id: linux-x86.h,v 1.7 2007/12/14 04:16:48 jaw Exp $
 
 #if !defined(i386_unknown_linux2_0) \
- && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- && !defined(ia64_unknown_linux2_4)
+ && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ 
 #error "invalid architecture-os inclusion"
 #endif
 
@@ -41,10 +40,7 @@
 #define LINUX_X86_HDR
 
 #include "inst-x86.h"
-#include "arch.h"
-#if 0
-#include "arch-x86.h"
-#endif
+#include "codegen.h"
 #include "sys/user.h"
 
 /* For linuxDL.C */

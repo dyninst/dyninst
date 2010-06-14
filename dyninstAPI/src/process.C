@@ -41,6 +41,7 @@
 #include <stdio.h>
 
 #include "common/h/headers.h"
+#include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/function.h"
 #include "symtabAPI/h/Symtab.h"
 //#include "dyninstAPI/src/func-reloc.h"
@@ -53,7 +54,6 @@
 #include "dyninstAPI/src/signalgenerator.h"
 #include "dyninstAPI/src/mailbox.h"
 #include "dyninstAPI/src/EventHandler.h"
-#include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
@@ -121,8 +121,7 @@ void printLoadDyninstLibraryError() {
 }
 
 /* AIX method defined in aix.C; hijacked for IA-64's GP. */
-#if !defined(arch_power) \
- && !defined(ia64_unknown_linux2_4)
+#if !defined(arch_power)
 Address process::getTOCoffsetInfo(Address /*dest */)
 {
   Address tmp = 0;
@@ -387,10 +386,6 @@ bool process::getInfHeapList(mapped_object *obj,
  */
 bool process::isInSignalHandler(Address addr)
 {
-#if defined(arch_ia64)
-    // We handle this elsewhere
-    return false;
-#endif
     codeRange *range;
     if (signalHandlerLocations_.find(addr, range))
         return true;
@@ -1572,15 +1567,6 @@ process::~process()
         assert(!isAttached());
     }
 
-#if defined( ia64_unknown_linux2_4 )
-	upaIterator iter = unwindProcessArgs.begin();
-	for( ; iter != unwindProcessArgs.end(); ++iter ) {
-		void * unwindProcessArg = * iter;
-		if( unwindProcessArg != NULL ) { getDBI()->UPTdestroy( unwindProcessArg ); }
-		}
-	if( unwindAddressSpace != NULL ) { getDBI()->destroyUnwindAddressSpace( unwindAddressSpace ); }
-#endif
-    
     // Most of the deletion is encapsulated in deleteProcess
     deleteProcess();
 
@@ -1659,10 +1645,6 @@ process::process(SignalGenerator *sh_) :
     traceSysCalls_(false),
     traceState_(noTracing_ts),
     libcstartmain_brk_addr(0)
-#if defined(arch_ia64)
-    , unwindAddressSpace( NULL )
-    , unwindProcessArgs( addrHash )
-#endif
 #if defined(os_linux)
     , vsys_status_(vsys_unknown)
     , vsyscall_start_(0)
@@ -2004,12 +1986,29 @@ bool process::setupFork()
     return true;
 }
 
+Architecture
+process::getArch() const {
+    if(mapped_objects.size() > 0)
+        return mapped_objects[0]->parse_img()->codeObject()->cs()->getArch();
+    // as with getAddressWidth(), we can call this before we've attached.. 
+    return Arch_none;
+}
 
 unsigned process::getAddressWidth() const { 
     if (mapped_objects.size() > 0)
-        return mapped_objects[0]->parse_img()->getObject()->getAddressWidth(); 
+        return mapped_objects[0]->parse_img()->codeObject()->cs()->getAddressWidth(); 
     // We can call this before we've attached.. 
     return 4;
+}
+
+Address process::offset() const {
+    fprintf(stderr,"process::offset() unimpl\n");
+    return 0;
+}
+
+Address process::length() const {
+    fprintf(stderr,"process::length() unimpl\n");
+    return 0;
 }
 
 bool process::setAOut(fileDescriptor &desc) 
@@ -2156,10 +2155,6 @@ process::process(process *parentProc, SignalGenerator *sg_, int childTrace_fd) :
     traceSysCalls_(parentProc->getTraceSysCalls()),
     traceState_(parentProc->getTraceState()),
     libcstartmain_brk_addr(parentProc->getlibcstartmain_brk_addr())
-#if defined(arch_ia64)
-    , unwindAddressSpace( NULL )
-    , unwindProcessArgs( addrHash )
-#endif
 #if defined(os_linux)
     , vsyscall_start_(parentProc->vsyscall_start_)
     , vsyscall_end_(parentProc->vsyscall_end_)
@@ -3188,8 +3183,6 @@ void process::writeDebugDataSpace(void *inTracedProcess, u_int amount,
     write_printf("amd64_");
 #elif defined(arch_x86)
   write_printf("x86_");
-#elif defined(arch_ia64)
-  write_printf("ia64_");
 #elif defined(arch_power)
   write_printf("power_");
 #elif defined(arch_sparc)
@@ -3860,11 +3853,11 @@ bool process::addASharedObject(mapped_object *new_obj)
     signal_printf("Adding shared object %s, addr range 0x%x to 0x%x\n",
                    new_obj->fileName().c_str(),
                    new_obj->getBaseAddress(),
-                   new_obj->get_size());
+                   new_obj->getBaseAddress() + new_obj->get_size());
     parsing_printf("Adding shared object %s, addr range 0x%x to 0x%x\n",
            new_obj->fileName().c_str(), 
            new_obj->getBaseAddress(),
-           new_obj->get_size());
+           new_obj->getBaseAddress() + new_obj->get_size());
     // TODO: check for "is_elf64" consistency (Object)
 
     // If the static inferior heap has been initialized, then 
@@ -4168,8 +4161,7 @@ bool process::detach(const bool leaveRunning )
 {
 
 #if !defined(i386_unknown_linux2_0) \
- && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- && !defined(ia64_unknown_linux2_4)
+ && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
     // Run the process if desired
     // Linux does not support this for two reasons: 1) the process must be paused
     // when we detach, and 2) the process is _always_ continued when we detach
@@ -4213,8 +4205,7 @@ bool process::detach(const bool leaveRunning )
 #endif
 
 #if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(ia64_unknown_linux2_4)
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
     // On Lee-nucks the process occasionally does _not_ continue. On the
     // other hand, we've detached from it. So here we send a SIGCONT
     // to continue the proc (if the user wants it) and SIGSTOP to stop it
@@ -4524,6 +4515,8 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests)
         for (unsigned funcIter = 0; funcIter < matchingFuncs.size(); funcIter++) {
             int_function *func = matchingFuncs[funcIter];
             if (!func) {
+                inst_printf("%s[%d]: null int_func detected\n",
+                    FILE__,__LINE__);
                 continue;  // probably should have a flag telling us whether errors
             }
             

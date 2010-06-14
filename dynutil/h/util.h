@@ -79,6 +79,18 @@
 #endif
 #endif
 
+#if !defined(PARSER_EXPORT)
+  #if defined(_MSC_VER)
+    #if defined(PARSER_LIB)
+      #define PARSER_EXPORT __declspec(dllexport)
+    #else
+      #define PARSER_EXPORT __declspec(dllimport)
+    #endif
+  #else
+    #define PARSER_EXPORT
+#endif
+#endif
+
 #if !defined(THROW) && !defined(THROW_SPEC)
 #if defined(_MSC_VER)
 #define THROW_SPEC(x)

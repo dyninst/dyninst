@@ -878,12 +878,6 @@ bool walkDwarvenTree(Dwarf_Debug & dbg, Dwarf_Die dieEntry,
 
 			dwarf_dealloc( dbg, frameBaseAttribute, DW_DLA_ATTR );
 
-#if defined(ia64_unknown_linux2_4)
-			/* Convert location list to an AST for later code generation. */
-			newFunction->setFramePtrRegnum(convertFrameBaseToAST( locationList[0], 
-						listLength, objFile ));
-#endif
-
 			dwarf_printf(" Frame Pointer Variable decodeLocationListForStaticOffsetOrAddress \n");
 			vector<VariableLocation> *funlocs = new vector<VariableLocation>();
 			bool decodedAddressOrOffset = decodeLocationListForStaticOffsetOrAddress( locationList, 

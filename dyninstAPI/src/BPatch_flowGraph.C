@@ -53,7 +53,7 @@
 #if defined(cap_instruction_api)
 #include "Instruction.h"
 #else
-#include "InstrucIter.h"
+#include "parseAPI/src/InstrucIter.h"
 #endif
 
 #include "BPatch_statement.h"
@@ -563,7 +563,10 @@ bool BPatch_flowGraph::createSourceBlocksInt() {
             }
         }
 #else
-        InstrucIter insnIterator( currentBlock );
+        InstrucIter insnIterator( 
+            currentBlock->getStartAddress(),
+            currentBlock->size(),
+            currentBlock->flowGraph->getllAddSpace());
         
         for( ; insnIterator.hasMore(); ++insnIterator ) {
             if( getAddSpace()->getSourceLines( * insnIterator, lines ) ) {

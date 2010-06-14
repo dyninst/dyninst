@@ -2036,11 +2036,7 @@ BPatch_thread *BPatch_process::createOrUpdateBPThread(
       threads.push_back(bpthr);
 
    BPatch_function *initial_func = NULL;
-#if defined(arch_ia64)
-   bpthr->llthread->update_sfunc_indir(start_addr);
-#else
    initial_func = getImage()->findFunction(start_addr);
-#endif
 
    if (!initial_func) {
      //fprintf(stderr, "%s[%d][%s]:  WARNING:  no function at %p found for thread\n",

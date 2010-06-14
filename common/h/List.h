@@ -145,7 +145,16 @@ template <class DataType, class KeyType> class ListBase {
       clear();
    }
    friend std::ostream &operator<<(std::ostream &os, 
-			      const ListBase<DataType, KeyType> &data);
+			   const ListBase<DataType, KeyType> &data) 
+   {
+    TYPENAME ListBase<DataType, KeyType>::iterator curr = data.begin();
+    TYPENAME ListBase<DataType, KeyType>::iterator endMarker = data.end();
+   
+    for(; curr != endMarker; ++curr) {
+      os << *curr << std::endl;
+    }
+    return os;
+   }
 
    // returns the first element
    DataType &front() { return *(begin()); }  
@@ -222,17 +231,6 @@ template <class DataType, class KeyType> class ListBase {
    node *head;
 };
 
-template <class DataType, class KeyType>
-inline std::ostream &operator<<(std::ostream &os, 
-			   const ListBase<DataType, KeyType> &data) {
-   TYPENAME ListBase<DataType, KeyType>::iterator curr = data.begin();
-   TYPENAME ListBase<DataType, KeyType>::iterator endMarker = data.end();
-   
-   for(; curr != endMarker; ++curr) {
-      os << *curr << std::endl;
-   }
-   return os;
-}
 
 template <class DataType> class List : public ListBase<DataType, void*> {
    typedef void* KeyType;

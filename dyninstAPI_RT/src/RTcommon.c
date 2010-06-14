@@ -63,14 +63,8 @@ int DYNINSTstaticMode = 1;
  * The IA-64 requires that instruction be 16-byte aligned, so we have to 
  * align the heaps if we want to use them for inferior RPCs. 
  **/
-#if defined(arch_ia64)
-typedef struct { uint64_t low; uint64_t high; } ia64_bundle_t;
-#define HEAP_TYPE ia64_bundle_t
-#define ALIGN_ATTRIB __attribute((aligned))
-#else
 #define HEAP_TYPE double
 #define ALIGN_ATTRIB 
-#endif
 
 #if defined(os_linux)
 #define HEAP_LOCAL extern

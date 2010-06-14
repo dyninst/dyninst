@@ -58,7 +58,7 @@
 #if defined(cap_instruction_api)
 #include "BPatch_memoryAccessAdapter.h"
 #else
-#include "InstrucIter.h"
+#include "parseAPI/src/InstrucIter.h"
 #endif
 
 #include "BPatch_edge.h"

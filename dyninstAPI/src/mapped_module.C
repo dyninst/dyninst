@@ -34,6 +34,7 @@
 #include "dyninstAPI/src/mapped_module.h"
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/debug.h"
 #include "process.h"
 #include <iomanip>
@@ -130,7 +131,7 @@ bool mapped_module::isNativeCompiler() const
    return pmod()->mod()->exec()->isNativeCompiler();
 }
 
-supportedLanguages mapped_module::language() const 
+SymtabAPI::supportedLanguages mapped_module::language() const 
 {
    return pmod()->language(); 
 }

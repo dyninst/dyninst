@@ -26,13 +26,10 @@ SRCS =		../src/solaris.C \
 		../src/inst-sparc.C \
 		../src/inst-sunos.C \
 		../src/unix.C \
-		../src/InstrucIter-sparc.C \
-		../src/InstrucIter-xplat.C \
 		../src/InstrucIter-Function.C \
-		../src/IA_InstrucIter.C \
 		../src/syscall-solproc.C \
 		../src/editSharedLibrary.C \
-		../src/arch-sparc.C \
+		../src/codegen-sparc.C \
 		../src/image-sparc.C
 #		../src/writeBackElf.C \
 #		../src/addLibrary.C \

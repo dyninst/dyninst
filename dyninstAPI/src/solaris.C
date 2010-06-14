@@ -64,6 +64,8 @@
 
 #include "signalgenerator.h"
 
+#include "function.h"
+
 #include "instPoint.h"
 #include "baseTramp.h"
 #include "miniTramp.h"
@@ -644,7 +646,7 @@ bool process::insertTrapAtEntryPointOfMain()
     Address addr = f_main->getAddress(); 
 
     codeGen gen(instruction::size());
-    instruction::generateTrap(gen);
+    insnCodeGen::generateTrap(gen);
 
     // save original instruction first
     readDataSpace((void *)addr, sizeof(savedCodeBuffer), savedCodeBuffer, true);
@@ -800,7 +802,7 @@ bool process::loadDYNINSTlib() {
 
     // Slap in a breakpoint
     dyninstlib_brk_addr = codeBase + scratchCodeBuffer.used();
-    instruction::generateTrap(scratchCodeBuffer);
+    insnCodeGen::generateTrap(scratchCodeBuffer);
     
     writeDataSpace((void *)codeBase, scratchCodeBuffer.used(), 
                    scratchCodeBuffer.start_ptr());
@@ -1020,7 +1022,7 @@ bool Frame::setPC(Address newpc) {
 }
 
 
-void print_read_error_info(const relocationEntry entry, 
+void print_read_error_info(const SymtabAPI::relocationEntry entry, 
                            int_function *&target_pdf, Address base_addr) {
 
    sprintf(errorLine, "  entry      : target_addr 0x%lx\n",
@@ -1051,7 +1053,7 @@ void print_read_error_info(const relocationEntry entry,
 // function symbol corresponding to the relocation entry in at the address
 // specified by entry and base_addr.  If it has been bound, then the callee 
 // function is returned in "target_pdf", else it returns false.
-bool process::hasBeenBound(const relocationEntry &entry, 
+bool process::hasBeenBound(const SymtabAPI::relocationEntry &entry, 
 			   int_function *&target_pdf, Address base_addr) {
 
 // TODO: the x86 and sparc versions should really go in seperate files 
@@ -1214,11 +1216,11 @@ int_function *instPoint::findCallee() {
     
     
     // else, get the relocation information for this image
-    Symtab *obj = func()->obj()->parse_img()->getObject();
-    vector<relocationEntry> fbtvector;
+    SymtabAPI::Symtab *obj = func()->obj()->parse_img()->getObject();
+    vector<SymtabAPI::relocationEntry> fbtvector;
     if(!obj->getFuncBindingTable(fbtvector))
     	return false;	// target cannot be found...it is an indirect call.
-    pdvector<relocationEntry> *fbt = new pdvector<relocationEntry>;
+    pdvector<SymtabAPI::relocationEntry> *fbt = new pdvector<SymtabAPI::relocationEntry>;
     for(unsigned index=0;index<fbtvector.size();index++)
     	fbt->push_back(fbtvector[index]);
     

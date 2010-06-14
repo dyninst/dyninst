@@ -38,12 +38,14 @@
 #include "common/h/Vector.h"
 #include "common/h/Types.h"
 #include "common/h/Pair.h"
+#include "codegen.h"
 #include "codeRange.h"
-#include "arch.h" // instruction
 #include "util.h"
 #include "image-func.h"
 
 #include "bitArray.h"
+
+#include "dyn_detail/boost/shared_ptr.hpp"
 
 class process;
 class mapped_module;
@@ -55,10 +57,6 @@ class BPatch_basicBlock;
 class BPatch_basicBlockLoop;
 
 class instPointInstance;
-
-#if defined(arch_ia64)
-#include "dyninstAPI/h/BPatch_Set.h"
-#endif
 
 #include "dyninstAPI/src/ast.h"
 
@@ -174,9 +172,11 @@ class bblInstance : public codeRange {
           const void *origPtr;
           Address relocTarget;
           unsigned relocSize;
+
+          typedef dyn_detail::boost::shared_ptr<relocInsn> Ptr;
        };
        
-       pdvector<relocInsn *> relocs_;
+       pdvector<relocInsn::Ptr> relocs_;
 
        reloc_info_t();
        reloc_info_t(reloc_info_t *parent, int_basicBlock *block);
@@ -186,14 +186,14 @@ class bblInstance : public codeRange {
  private:
 
     //Setter functions for relocation information
-    pdvector<reloc_info_t::relocInsn *> &relocs();
+    pdvector<reloc_info_t::relocInsn::Ptr> &relocs();
     bblInstance *&origInstance();
     pdvector<funcMod *> &appliedMods();
     codeGen &generatedBlock();
     functionReplacement *&jumpToBlock();
 
 
-    pdvector<reloc_info_t::relocInsn *> &get_relocs() const;
+    pdvector<reloc_info_t::relocInsn::Ptr> &get_relocs() const;
 
     unsigned getMaxSize() const;
     bblInstance *getOrigInstance() const;
@@ -269,35 +269,12 @@ class int_basicBlock {
     //process *proc() const;
     AddressSpace *proc() const;
 
-#if defined(arch_ia64)
-    // Data flow... for register analysis. Right now just used for 
-    // IA64 alloc calculations
-    // We need a set...
-    void setDataFlowIn(BPatch_Set<int_basicBlock *> *in);
-    void setDataFlowOut(BPatch_Set<int_basicBlock *> *out);
-    void setDataFlowGen(int_basicBlock *gen);
-    void setDataFlowKill(int_basicBlock *kill);
-
-    BPatch_Set<int_basicBlock *> *getDataFlowOut();
-    BPatch_Set<int_basicBlock *> *getDataFlowIn();
-    int_basicBlock *getDataFlowGen();
-    int_basicBlock *getDataFlowKill();    
-#endif
-
     void setHighLevelBlock(void *newb);
     void *getHighLevelBlock() const;
 
  private:
     void *highlevel_block; //Should point to a BPatch_basicBlock, if they've
                            //been created.
-#if defined(arch_ia64)
-    BPatch_Set<int_basicBlock *> *dataFlowIn;
-    BPatch_Set<int_basicBlock *> *dataFlowOut;
-    int_basicBlock *dataFlowGen;
-    int_basicBlock *dataFlowKill;
-#endif
-
-
     int_function *func_;
     image_basicBlock *ib_;
 
@@ -400,7 +377,6 @@ class int_function : public patchTarget {
 
 
    bool hasNoStackFrame() const {return ifunc_->hasNoStackFrame();}
-   bool makesNoCalls() const {return ifunc_->makesNoCalls();}
    bool savesFramePointer() const {return ifunc_->savesFramePointer();}
 
    //BPatch_flowGraph * getCFG();
@@ -454,7 +430,6 @@ class int_function : public patchTarget {
    ////////////////////////////////////////////////
 
    bool canBeRelocated() const { return ifunc_->canBeRelocated(); }
-   bool needsRelocation() const { return ifunc_->needsRelocation(); }
    int version() const { return version_; }
 
 
@@ -494,42 +469,16 @@ class int_function : public patchTarget {
     void getStaticCallers(pdvector <int_function *> &callers);
 
    codeRange *copy() const;
-    
-#if defined(arch_alpha)
-   int frame_size() const { return ifunc_->frame_size; };
-
-#endif
 
 #if defined(sparc_sun_solaris2_4)
    bool is_o7_live(){ return ifunc_->is_o7_live(); }
 #endif
 
-   void updateForFork(process *childProcess, const process *parentProcess);
-
-#if defined(arch_ia64)
-   // We need to know where all the alloc instructions in the
-   // function are to do a reasonable job of register allocation
-   // in the base tramp.
-   
- private:
-   Address baseAddr_;
-   pdvector< Address > cachedAllocs;
-    
- public:
-   // Accessor function that ensures that the cachedAllocs are
-   // up-to-date.  Necessary because of delayed parsing.
-   pdvector< Address > & getAllocs();
-   
-   // Since the IA-64 ABI does not define a frame pointer register,
-   // we use DWARF debug records (DW_AT_frame_base entries) to 
-   // construct an AST which calculates the frame pointer.
-   AstNodePtr getFramePointerCalculator();
-   
-   // Place to store the results of doFloatingPointStaticAnalysis().
-   // This way, if they are ever needed in a mini-tramp, emitFuncJump()
-   // for example, the expensive operation doesn't need to happen again.
-   bool * getUsedFPregs();
+#if defined(arch_power)
+   bool savesReturnAddr() const { return ifunc_->savesReturnAddr(); }
 #endif
+
+   void updateForFork(process *childProcess, const process *parentProcess);
 
 #if defined(cap_relocation)
    // These are defined in reloc-func.C to keep large chunks of

@@ -60,8 +60,6 @@
 #elif defined(arch_x86) || defined(arch_x86_64)
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/emit-x86.h"
-#elif defined(arch_ia64)
-#include "dyninstAPI/src/inst-ia64.h"
 #endif
 
 registerSpace *registerSpace::globalRegSpace_ = NULL;
@@ -581,10 +579,7 @@ void registerSpace::freeRegister(Register num)
     regalloc_printf("Freed register %d: refcount now %d\n", num, reg->refCount);
 
     if( reg->refCount < 0 ) {
-#if !defined(arch_ia64)
-        // IA-64 gets this with the frame pointer...
         bperr( "Freed free register!\n" );
-#endif
         reg->refCount = 0;
     }
 

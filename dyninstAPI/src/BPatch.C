@@ -61,6 +61,8 @@
 #include "nt_signal_emul.h"
 #endif
 
+using namespace SymtabAPI;
+
 extern void loadNativeDemangler();
 
 BPatch *BPatch::bpatch = NULL;

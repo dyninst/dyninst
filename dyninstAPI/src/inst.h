@@ -39,7 +39,7 @@
 #include "common/h/Dictionary.h"
 #include "opcode.h" // enum opCode now defined here.
 #include "common/h/Types.h"
-#include "arch.h" // codeBufIndex_t 
+#include "codegen.h" // codeBufIndex_t 
 #include "dyninstAPI/src/ast.h" // astNodePtr
 
 /****************************************************************************/

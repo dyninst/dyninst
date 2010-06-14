@@ -79,13 +79,14 @@ copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 			IntermediateDirectory="i386-unknown-nt4.0"
 			ConfigurationType="2"
 			CharacterSet="2"
-			ManagedExtensions="TRUE">
+			ManagedExtensions="FALSE">
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalIncludeDirectories="..;../../i386-unknown-nt4.0/include;../dynutil/h;../external"
-				PreprocessorDefinitions="WIN32;os_windows;arch_x86;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_async_events;cap_threads;cap_tramp_liveness;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;BPATCH_LIBRARY;BPATCH_DLL_BUILD;snprintf=_snprintf"
+				PreprocessorDefinitions="WIN32;os_windows;arch_x86;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_async_events;cap_threads;cap_tramp_liveness;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;BPATCH_LIBRARY;BPATCH_DLL_BUILD;COMMON_LIB;snprintf=_snprintf"
 				MinimalRebuild="FALSE"
 				RuntimeLibrary="0"
+				RuntimeTypeInfo="TRUE"
 				WarningLevel="3"
 				DebugInformationFormat="3"/>
 			<Tool
@@ -181,6 +182,21 @@ copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\arch-x86.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\debugOstream.C">
 				<FileConfiguration
 					Name="Debug|Win32">
@@ -193,7 +209,8 @@ copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAsManaged="0"/>
+						CompileAsManaged="0"
+						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
 			<File
@@ -224,7 +241,8 @@ copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAsManaged="0"/>
+						CompileAsManaged="0"
+						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
 			<File
@@ -240,7 +258,8 @@ copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAsManaged="0"/>
+						CompileAsManaged="0"
+						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
 			<File
@@ -256,7 +275,8 @@ copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAsManaged="0"/>
+						CompileAsManaged="0"
+						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
 			<File
@@ -442,7 +462,8 @@ copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAsManaged="0"/>
+						CompileAsManaged="0"
+						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
 			<File
@@ -470,6 +491,12 @@ copy $(TargetDir)libcommon.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 			</File>
 			<File
 				RelativePath="..\dynutil\h\Annotatable.h">
+			</File>
+			<File
+				RelativePath=".\h\arch-x86.h">
+			</File>
+			<File
+				RelativePath=".\h\arch.h">
 			</File>
 			<File
 				RelativePath="..\dynutil\h\AST.h">

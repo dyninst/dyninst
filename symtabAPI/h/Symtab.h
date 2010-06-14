@@ -571,6 +571,9 @@ class Symtab : public LookupInterface,
    static Type *type_Error;
    static Type *type_Untyped;
 
+ private:
+    unsigned _ref_cnt;
+
  public:
    /********************************************************************/
    /**** DEPRECATED ****************************************************/
