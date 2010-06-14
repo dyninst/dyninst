@@ -35,6 +35,7 @@
 #include "Register.h"
 #include "Expression.h"
 #include "entryIDs.h"
+#include "Result.h"
 #include <set>
 
 #include "util.h"
@@ -139,6 +140,7 @@ namespace Dyninst
       mutable bool doneOtherSetup;
       mutable bool doneFlagsSetup;
       Architecture archDecodedFrom;
+      Result_Type addrWidth;
       
     };
   };
