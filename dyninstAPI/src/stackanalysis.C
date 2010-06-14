@@ -48,6 +48,7 @@
 
 using namespace Dyninst;
 using namespace InstructionAPI;
+using namespace Dyninst::ParseAPI;
 
 const StackAnalysis::Height StackAnalysis::Height::bottom(StackAnalysis::Height::notUnique);
 const StackAnalysis::Height StackAnalysis::Height::top(StackAnalysis::Height::uninitialized);
@@ -85,7 +86,12 @@ bool StackAnalysis::analyze()
 {
   stackanalysis_printf("Beginning stack analysis for function %s\n",
 		       func->symTabName().c_str());
-    blocks = func->blocks();
+
+    ParseAPI::Function::blocklist & bs = func->blocks();
+    ParseAPI::Function::blocklist::iterator bit = bs.begin();
+    for( ; bit != bs.end(); ++bit)
+        blocks.insert((Block*)*bit);
+
     if (blocks.empty()) return false;
     
     stackanalysis_printf("\tSummarizing block effects\n");
@@ -198,6 +204,9 @@ void StackAnalysis::sp_fixpoint() {
 
     std::queue<Block *> worklist;
 
+    ParseAPI::Intraproc epred; // ignore calls, returns in edge iteration
+    NoSinkPredicate epred2(&epred); // ignore sink node (unresolvable)
+
     worklist.push(func->entryBlock());
 
     while (!worklist.empty()) {
@@ -220,7 +229,7 @@ void StackAnalysis::sp_fixpoint() {
 #if defined(arch_power)
 	  inEffects.insert(BlockTransferFunc(0, true, true));
 #elif (defined(arch_x86) || defined(arch_x86_64))
-	  int word_size = func->img()->getAddressWidth();
+	  int word_size = func->isrc()->getAddressWidth();
 	  inEffects.insert(BlockTransferFunc(-1*word_size,
 					     true, true));
 #else
@@ -230,13 +239,16 @@ void StackAnalysis::sp_fixpoint() {
 	  stackanalysis_printf("\t Primed initial block\n");
         }
         else {
-            std::vector<Edge *> inEdges; block->getSources(inEdges);
-            for (unsigned i = 0; i < inEdges.size(); i++) {
-                Edge *edge = inEdges[i];
-                if (edge->getType() == ET_CALL) continue;
-                inEffects.insert(sp_outBlockEffects[edge->getSource()]);
-                stackanalysis_printf("\t\t Inserting 0x%lx: %s\n", edge->getSource()->firstInsnOffset(),
-				     sp_outBlockEffects[edge->getSource()].format().c_str());
+
+            ParseAPI::Block::edgelist & inEdges = block->sources();
+            ParseAPI::Block::edgelist::iterator eit = inEdges.begin(&epred2);
+            for( ; eit != inEdges.end(); ++eit) {
+                Edge *edge = (Edge*)*eit;
+                //if (edge->type() == CALL || edge->type() == RET) continue;
+                inEffects.insert(sp_outBlockEffects[edge->src()]);
+                stackanalysis_printf("\t\t Inserting 0x%lx: %s\n", 
+                     edge->src()->start(),
+				     sp_outBlockEffects[edge->src()].format().c_str());
             }
         }
         
@@ -268,11 +280,11 @@ void StackAnalysis::sp_fixpoint() {
 
         // Step 4: push all children on the worklist.
 
-        std::vector<Edge *> outEdges; block->getTargets(outEdges);
-
-        for (unsigned i = 0; i < outEdges.size(); i++) {
-            if (outEdges[i]->getType() == ET_CALL) continue;
-            worklist.push(outEdges[i]->getTarget());
+        ParseAPI::Block::edgelist & outEdges = block->targets();
+        ParseAPI::Block::edgelist::iterator eit = outEdges.begin(&epred2);
+        for( ; eit != outEdges.end(); ++eit) {
+            //if ((*eit)->type() == CALL) continue;
+            worklist.push((Block*)(*eit)->trg());
         }
     }
 }
@@ -347,6 +359,9 @@ void StackAnalysis::fp_fixpoint() {
 
   std::queue<Block *> worklist;
 
+  ParseAPI::Intraproc epred; // ignore calls, returns
+  NoSinkPredicate epred2(&epred);
+
   worklist.push(func->entryBlock());
 
   while (!worklist.empty()) {
@@ -368,15 +383,16 @@ void StackAnalysis::fp_fixpoint() {
       stackanalysis_printf("\t Primed initial block\n");
     }
     else {
-      std::vector<Edge *> inEdges; block->getSources(inEdges);
-      for (unsigned i = 0; i < inEdges.size(); i++) {
-	Edge *edge = inEdges[i];
-	if (edge->getType() == ET_CALL) continue;
-	inHeights.insert(fp_outBlockHeights[edge->getSource()]);
-	stackanalysis_printf("\t\t Inserting 0x%lx: %s\n", 
-			     edge->getSource()->firstInsnOffset(),
-			     fp_outBlockHeights[edge->getSource()].format().c_str());
-      }
+        ParseAPI::Block::edgelist & inEdges = block->sources();
+        ParseAPI::Block::edgelist::iterator eit = inEdges.begin(&epred2);
+        for( ; eit != inEdges.end(); ++eit) {
+	        Edge *edge = (Edge*)*eit;
+	        //if (edge->type() == CALL) continue;
+	        inHeights.insert(fp_outBlockHeights[edge->src()]);
+	        stackanalysis_printf("\t\t Inserting 0x%lx: %s\n", 
+			     edge->src()->firstInsnOffset(),
+			     fp_outBlockHeights[edge->src()].format().c_str());
+        }
     }
     
     Height newInHeight = meet(inHeights);
@@ -424,12 +440,12 @@ void StackAnalysis::fp_fixpoint() {
 			 fp_outBlockHeights[block].format().c_str());
       
     // Step 4: push all children on the worklist.
-      
-    std::vector<Edge *> outEdges; block->getTargets(outEdges);
-      
-    for (unsigned i = 0; i < outEdges.size(); i++) {
-      if (outEdges[i]->getType() == ET_CALL) continue;
-      worklist.push(outEdges[i]->getTarget());
+     
+    ParseAPI::Block::edgelist & outEdges = block->targets();
+    ParseAPI::Block::edgelist::iterator eit = outEdges.begin(&epred2);
+    for( ; eit != outEdges.end(); ++eit) { 
+      //if ((*eit)->type() == CALL) continue;
+      worklist.push((Block*)(*eit)->trg());
     }
   }
 }
@@ -505,15 +521,15 @@ void StackAnalysis::fp_createIntervals() {
   }
 }
 
-void StackAnalysis::computeInsnEffects(const Block *block,
+void StackAnalysis::computeInsnEffects(Block *block,
                                        const Instruction::Ptr &insn,
                                        Offset off,
                                        InsnTransferFunc &iFunc,
 				       fp_State &fpState) 
 {
     stackanalysis_printf("\t\tInsn at 0x%lx\n", off);
-    static Expression::Ptr theStackPtr(new RegisterAST(MachRegister::getStackPointer(func->img()->getArch())));
-    static Expression::Ptr theFramePtr(new RegisterAST(MachRegister::getFramePointer(func->img()->getArch())));
+    static Expression::Ptr theStackPtr(new RegisterAST(MachRegister::getStackPointer(func->isrc()->getArch())));
+    static Expression::Ptr theFramePtr(new RegisterAST(MachRegister::getFramePointer(func->isrc()->getArch())));
     
     //TODO: Integrate entire test into analysis lattice
     entryID what = insn->getOperation().getID();
@@ -530,7 +546,7 @@ void StackAnalysis::computeInsnEffects(const Block *block,
       }
     }
 
-    int word_size = func->img()->getAddressWidth();
+    int word_size = func->isrc()->getAddressWidth();
     if (insn->getControlFlowTarget() && insn->getCategory() == c_CallInsn) {
       if (off != block->lastInsnOffset()) {
 	// Call in the middle of the block? Must be a get PC operation
@@ -538,41 +554,41 @@ void StackAnalysis::computeInsnEffects(const Block *block,
 	stackanalysis_printf("\t\t\t getPC call: %s\n", iFunc.format().c_str());
 	return;
       }
+        
+        ParseAPI::Block::edgelist & outs = block->targets();  
+        ParseAPI::Block::edgelist::iterator eit = outs.begin();
+        for( ; eit != outs.end(); ++eit) {
+            Edge *cur_edge = (Edge*)*eit;
 
-      pdvector<image_edge *> outs;
-      block->getTargets(outs);
-      for (unsigned i=0; i<outs.size(); i++) {
-	image_edge *cur_edge = outs[i];
-	
-	if (cur_edge->getType() == ET_DIRECT) {
-	  // For some reason we're treating this
-	  // call as a branch. So it shifts the stack
-	  // like a push (heh) and then we're done.
-	  iFunc.delta() = -1*word_size;
-	  stackanalysis_printf("\t\t\t Stack height changed by simulate-jump call\n");
-	  return;
-	}
-	
-	if (cur_edge->getType() != ET_CALL) 
-	  continue;
-	
-	image_basicBlock *target_bbl = cur_edge->getTarget();
-	image_func *target_func = target_bbl->getEntryFunc();
-	if (!target_func)
-	  continue;
-	Height h = getStackCleanAmount(target_func);
-	if (h == Height::bottom) {
-	  iFunc == InsnTransferFunc::bottom;
-	}
-	else {
-	  iFunc.delta() = h.height();
-	}
-	
-	stackanalysis_printf("\t\t\t Stack height changed by self-cleaning function: %s\n", iFunc.format().c_str());
-	return;
-      }
-      stackanalysis_printf("\t\t\t Stack height assumed unchanged by call\n");
-      return;
+	        if (cur_edge->type() == DIRECT) {
+	            // For some reason we're treating this
+	            // call as a branch. So it shifts the stack
+	            // like a push (heh) and then we're done.
+	            iFunc.delta() = -1*word_size;
+	            stackanalysis_printf("\t\t\t Stack height changed by simulate-jump call\n");
+	            return;
+	        }
+
+            if (cur_edge->type() != CALL) 
+                continue;
+            
+            Block *target_bbl = cur_edge->trg();
+            Function *target_func = target_bbl->getEntryFunc();
+            if (!target_func)
+                continue;
+            Height h = getStackCleanAmount(target_func);
+            if (h == Height::bottom) {
+                iFunc == InsnTransferFunc::bottom;
+            }
+            else {
+                iFunc.delta() = h.height();
+            }
+
+            stackanalysis_printf("\t\t\t Stack height changed by self-cleaning function: %s\n", iFunc.format().c_str());
+            return;
+        }
+        stackanalysis_printf("\t\t\t Stack height assumed unchanged by call\n");
+        return;
     }
     
     if(!insn->isWritten(theStackPtr)) {
@@ -743,13 +759,15 @@ StackAnalysis::Height StackAnalysis::getStackCleanAmount(image_func *func) {
         return funcCleanAmounts[func];
     }
 
-    InstructionDecoder decoder((const unsigned char*)NULL, 0, func->img()->getArch());
+    InstructionDecoder decoder((const unsigned char*)NULL, 0, func->isrc()->getArch());
     unsigned char *cur;
 
     std::set<Height> returnCleanVals;
-    
-    for (unsigned i=0; i < func->funcExits().size(); i++) {
-        cur = (unsigned char *) func->getPtrToInstruction(func->funcExits()[i]->offset());
+  
+    pdvector<image_instPoint*> exits;
+    func->funcExits(exits);
+    for (unsigned i=0; i < exits.size(); i++) {
+        cur = (unsigned char *) func->getPtrToInstruction(exits[i]->offset());
         Instruction::Ptr insn = decoder.decode(cur);
         
         entryID what = insn->getOperation().getID();

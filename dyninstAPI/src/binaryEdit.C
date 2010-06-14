@@ -39,6 +39,9 @@
 #include "debug.h"
 #include "os.h"
 #include "instPoint.h"
+#include "function.h"
+
+using namespace Dyninst::SymtabAPI;
 
 // #define USE_ADDRESS_MAPS
 
@@ -240,10 +243,26 @@ bool BinaryEdit::inferiorRealloc(Address item, unsigned newsize)
   return true;
 }
 
+Architecture BinaryEdit::getArch() const {
+    assert(mapped_objects.size());
+   
+    // XXX presumably all of the objects in the BinaryEdit collection
+    //     must be the same architecture.
+    return mapped_objects[0]->parse_img()->codeObject()->cs()->getArch();
+}
+
 unsigned BinaryEdit::getAddressWidth() const {
     assert(mapped_objects.size());
     
-    return mapped_objects[0]->parse_img()->getObject()->getAddressWidth();
+    return mapped_objects[0]->parse_img()->codeObject()->cs()->getAddressWidth();
+}
+Address BinaryEdit::offset() const {
+    fprintf(stderr,"error BinaryEdit::offset() unimpl\n");
+    return 0;
+}
+Address BinaryEdit::length() const {
+    fprintf(stderr,"error BinaryEdit::length() unimpl\n");
+    return 0;
 }
 
 bool BinaryEdit::multithread_capable(bool) {

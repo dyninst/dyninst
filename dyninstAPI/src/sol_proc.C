@@ -1485,7 +1485,7 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall)
       trappedSyscall->trapAddr = trapAddr;
 
       codeGen gen(instruction::size());
-      instruction::generateTrap(gen);
+      insnCodeGen::generateTrap(gen);
 
       bool ret = writeDataSpace((void *)trapAddr, 
             gen.used(),

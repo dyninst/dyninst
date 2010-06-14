@@ -53,7 +53,6 @@ class image_basicBlock;
 class image_edge;
 
 namespace Dyninst {
-class InstructionAPI::Instruction; 
 
  
 class StackAnalysis {
@@ -583,7 +582,7 @@ class StackAnalysis {
     void fp_fixpoint();
     void fp_createIntervals();
 
-    void computeInsnEffects(const Block *block,
+    void computeInsnEffects(Block *block,
                             const InstructionAPI::Instruction::Ptr &insn,
                             const Offset off,
                             InsnTransferFunc &spFunc,

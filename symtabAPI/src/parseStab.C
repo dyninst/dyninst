@@ -1249,8 +1249,7 @@ int guessSize(const char *low, const char *hi)
 }
 
 #if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(ia64_unknown_linux2_4) /* temporary duplication - TLM */
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ 
 //
 // parse range type of the form:	
 //

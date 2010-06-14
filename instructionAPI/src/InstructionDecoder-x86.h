@@ -36,8 +36,11 @@
 
 #include "common/h/ia32_locations.h"
 
+namespace NS_x86 {
 struct ia32_operand;
 class ia32_instruction;
+}
+
 namespace Dyninst
 {
     namespace InstructionAPI
@@ -77,7 +80,7 @@ namespace Dyninst
                 virtual bool decodeOperands(const Instruction* insn_to_complete);
 
                 bool decodeOneOperand(const InstructionDecoder::buffer& b,
-				      const ia32_operand& operand,
+				      const NS_x86::ia32_operand& operand,
                                       int & imm_index,
                                       const Instruction* insn_to_complete, bool isRead, bool isWritten);
                 virtual void decodeOpcode(InstructionDecoder::buffer& b);
@@ -94,7 +97,7 @@ namespace Dyninst
                 void doIA32Decode(InstructionDecoder::buffer& b);
       
                 ia32_locations* locs;
-                ia32_instruction* decodedInstruction;
+                NS_x86::ia32_instruction* decodedInstruction;
                 bool is32BitMode;
                 bool sizePrefixPresent;
                 bool addrSizePrefixPresent;

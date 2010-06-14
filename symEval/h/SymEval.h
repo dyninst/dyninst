@@ -43,7 +43,7 @@
 #include "Absloc.h"
 #include "AST.h"
 
-#include "slicing.h"
+//#include "slicing.h"
 
 #include "external/rose/rose-compat.h"
 #include "external/rose/powerpcInstructionEnum.h"
@@ -458,7 +458,7 @@ public:
   static void expand(Graph::Ptr slice, Result_t &res);
   
  private:
-  static void process(AssignNode::Ptr, SymEval::Result_t &res);
+  //static void process(AssignNode::Ptr, SymEval::Result_t &res);
 
   static SageInstruction_t convert(const InstructionAPI::Instruction::Ptr &insn, uint64_t addr);
   static InstructionKind_t convert(entryID opcode, prefixEntryID prefix, std::string mnem)

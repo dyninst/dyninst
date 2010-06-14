@@ -32,8 +32,8 @@ TO_INC   = ../h
 
 PUBLIC_H = Absloc.h \
 	 AbslocInterface.h \
-	 slicing.h \
 	 SymEval.h
+#	 slicing.h \
 
 SRCS +=	../src/Absloc.C \
      	../src/AbslocInterface.C \
@@ -41,8 +41,8 @@ SRCS +=	../src/Absloc.C \
         ../src/SymEvalPolicy.C \
         ../src/convertOpcodes.C \
         ../src/RoseImpl.C \
-	../src/slicing.C \
 	../src/Visitors.C
+#	../src/slicing.C \
 
 
 ifndef USES_NATIVE_CC

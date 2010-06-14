@@ -75,7 +75,7 @@ class mapped_module {
       // Were we compiled with the native compiler?
       bool isNativeCompiler() const;
 
-      supportedLanguages language() const;
+      SymtabAPI::supportedLanguages language() const;
 
       const pdvector<int_function *> &getAllFunctions();
       const pdvector<int_variable *> &getAllVariables();

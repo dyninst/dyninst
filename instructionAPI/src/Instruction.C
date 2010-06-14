@@ -39,13 +39,16 @@
 #include "Dereference.h"
 #include <boost/iterator/indirect_iterator.hpp>
 #include <iostream>
-#include "arch-x86.h"
 #include <sstream>
 #include <iomanip>
 #include <set>
 #include <functional>
 
+#define INSIDE_INSTRUCTION_API
+#include "common/h/arch-x86.h"
+
 using namespace std;
+using namespace NS_x86;
 
 #include "../../common/h/singleton_object_pool.h"
 

@@ -51,6 +51,7 @@
 #include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -62,7 +63,6 @@
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/emit-x86.h"
 #include "dyninstAPI/src/dyn_thread.h"
-//#include "dyninstAPI/src/InstrucIter.h"
 
 #include "dyninstAPI/src/mapped_object.h" 
 #include "dyninstAPI/src/signalgenerator.h" 
@@ -86,6 +86,9 @@
 
 #include "instructionAPI/h/InstructionDecoder.h"
 #include "instructionAPI/h/Instruction.h"
+
+using namespace Dyninst;
+using namespace Dyninst::SymtabAPI;
 
 #define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
 
@@ -389,7 +392,7 @@ bool process::insertTrapAtEntryPointOfMain()
    }
 
    codeGen gen(1);
-   instruction::generateTrap(gen);
+   insnCodeGen::generateTrap(gen);
 
    if (!writeDataSpace((void *)addr, gen.used(), gen.start_ptr())) {
       fprintf(stderr, "%s[%d][%s]:  failing insertTrapAtEntryPointOfMain\n",
@@ -741,7 +744,7 @@ bool process::instrumentLibcStartMain()
          FILE__, __LINE__, sizeof(savedCodeBuffer));
    // insert trap
    codeGen gen(1);
-   instruction::generateTrap(gen);
+   insnCodeGen::generateTrap(gen);
    if (!writeDataSpace((void *)addr, gen.used(), gen.start_ptr())) {
       fprintf(stderr, "%s[%d][%s]:  failing instrumentLibcStartMain\n",
             __FILE__, __LINE__, getThreadStr(getExecThreadID()));
@@ -1458,7 +1461,7 @@ bool process::loadDYNINSTlib_hidden() {
       
       startup_printf("(%d): emitting call from 0x%x to 0x%x\n",
 		     getPid(), codeBase + scratchCodeBuffer.used(), dlopen_addr);
-      instruction::generateCall(scratchCodeBuffer, scratchCodeBuffer.used() + codeBase, dlopen_addr);
+      insnCodeGen::generateCall(scratchCodeBuffer, scratchCodeBuffer.used() + codeBase, dlopen_addr);
       
 
 #if defined(cap_32_64)
@@ -1491,7 +1494,7 @@ bool process::loadDYNINSTlib_hidden() {
 
   // And the break point
   dyninstlib_brk_addr = codeBase + scratchCodeBuffer.used();
-  instruction::generateTrap(scratchCodeBuffer);
+  insnCodeGen::generateTrap(scratchCodeBuffer);
 
   if(mprotect_call_addr != 0) {
     startup_printf("(%d) mprotect call addr at 0x%lx\n", getPid(), mprotect_call_addr);
@@ -1615,13 +1618,13 @@ bool process::loadDYNINSTlib_exported(const char *dlopen_name)
 		// Push string addr
 		emitPushImm(dyninstlib_str_addr, scratchCodeBuffer);
 
-		instruction::generateCall(scratchCodeBuffer,
+		insnCodeGen::generateCall(scratchCodeBuffer,
 				scratchCodeBuffer.used() + codeBase,
 				dlopen_addr);
 
 		// And the break point
 		dyninstlib_brk_addr = codeBase + scratchCodeBuffer.used();
-		instruction::generateTrap(scratchCodeBuffer);
+		insnCodeGen::generateTrap(scratchCodeBuffer);
 	}
 	else 
 	{
@@ -1637,7 +1640,7 @@ bool process::loadDYNINSTlib_exported(const char *dlopen_name)
 
 		// And the break point
 		dyninstlib_brk_addr = codeBase + scratchCodeBuffer.used();
-		instruction::generateTrap(scratchCodeBuffer);
+		insnCodeGen::generateTrap(scratchCodeBuffer);
 	}
 
 	if (!readDataSpace((void *)codeBase,
@@ -1739,7 +1742,7 @@ Address process::tryUnprotectStack(codeGen &buf, Address codeBase)
      
       startup_printf("(%d): emitting call for mprotect from 0x%x to 0x%x\n",
 		     getPid(), codeBase + buf.used(), func_addr);
-      instruction::generateCall(buf, buf.used() + codeBase, func_addr);
+      insnCodeGen::generateCall(buf, buf.used() + codeBase, func_addr);
 #if defined(arch_x86_64)
   } else {
       // Push caller
@@ -2087,6 +2090,8 @@ bool image::findGlobalConstructorFunc() {
      * If the function associated with the .init Region doesn't exist, it needs to
      * be created
      */
+
+    /* FIXME need to handle on-demand function parsing!!
     if( !findFuncByEntry(initRegion->getRegionAddr()) ) {
         image_func *initStub = addFunctionStub(initRegion->getRegionAddr(), "_init");
         if( initStub == NULL ) {
@@ -2098,6 +2103,7 @@ bool image::findGlobalConstructorFunc() {
                 initRegion->getRegionAddr());
         }
     }
+    */
 
     // Search for last of 3 calls
     Address ctorAddress = 0;
@@ -2105,7 +2111,8 @@ bool image::findGlobalConstructorFunc() {
     unsigned numCalls = 0;
     const unsigned char *p = reinterpret_cast<const unsigned char *>(initRegion->getPtrToRawData());
 
-    InstructionDecoder decoder(p, initRegion->getRegionSize(), getArch());
+    InstructionDecoder decoder(p, initRegion->getRegionSize(),
+        codeObject()->cs()->getArch()); 
 
     Instruction::Ptr curInsn = decoder.decode();
     while(numCalls < 3 && curInsn && curInsn->isValid() &&
@@ -2128,7 +2135,8 @@ bool image::findGlobalConstructorFunc() {
 
     Address callAddress = initRegion->getRegionAddr() + bytesSeen;
 
-    RegisterAST thePC = RegisterAST(Dyninst::MachRegister::getPC(getArch()));
+    RegisterAST thePC = RegisterAST(
+        Dyninst::MachRegister::getPC(codeObject()->cs()->getArch()));
 
     Expression::Ptr callTarget = curInsn->getControlFlowTarget();
     if( !callTarget.get() ) {
@@ -2146,7 +2154,7 @@ bool image::findGlobalConstructorFunc() {
         return false;
     }
 
-    if( !ctorAddress || !isValidAddress(ctorAddress) ) {
+    if( !ctorAddress || !codeObject()->cs()->isValidAddress(ctorAddress) ) {
         logLine("invalid address for global constructor function\n");
         return false;
     }
@@ -2203,6 +2211,8 @@ bool image::findGlobalDestructorFunc() {
      * If the function associated with the .fini Region doesn't exist, it needs to
      * be created
      */
+
+    /* FIXME need to handle on-demand function parsing !! 
     if( !findFuncByEntry(finiRegion->getRegionAddr()) ) {
         image_func *finiStub = addFunctionStub(finiRegion->getRegionAddr(), "_fini");
         if( finiStub == NULL ) {
@@ -2214,13 +2224,15 @@ bool image::findGlobalDestructorFunc() {
                 finiRegion->getRegionAddr());
         }
     }
+    */
 
     // Search for last call in the function
     Address dtorAddress = 0;
     unsigned bytesSeen = 0;
     const unsigned char *p = reinterpret_cast<const unsigned char *>(finiRegion->getPtrToRawData());
 
-    InstructionDecoder decoder(p, finiRegion->getRegionSize(), getArch());
+    InstructionDecoder decoder(p, finiRegion->getRegionSize(),
+        codeObject()->cs()->getArch());
 
     Instruction::Ptr lastCall;
     Instruction::Ptr curInsn = decoder.decode();
@@ -2243,7 +2255,8 @@ bool image::findGlobalDestructorFunc() {
 
     Address callAddress = finiRegion->getRegionAddr() + bytesSeen;
 
-    RegisterAST thePC = RegisterAST(Dyninst::MachRegister::getPC(getArch()));
+    RegisterAST thePC = RegisterAST(
+        Dyninst::MachRegister::getPC(codeObject()->cs()->getArch()));
 
     Expression::Ptr callTarget = lastCall->getControlFlowTarget();
     if( !callTarget.get() ) {
@@ -2261,7 +2274,7 @@ bool image::findGlobalDestructorFunc() {
         return false;
     }
 
-    if( !dtorAddress || !isValidAddress(dtorAddress) ) {
+    if( !dtorAddress || !codeObject()->cs()->isValidAddress(dtorAddress) ) {
         logLine("invalid address for global destructor function\n");
         return false;
     }

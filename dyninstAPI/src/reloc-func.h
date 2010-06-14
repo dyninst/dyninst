@@ -35,9 +35,9 @@
 #define FUNC_RELOC_H
 
 #include "common/h/Types.h"
+#include "arch-forward-decl.h" // instruction
 
 class int_basicBlock;
-class instruction;
 
 
 // MOVE ME SOMEWHERE ELSE
@@ -45,10 +45,10 @@ class instruction;
 class funcMod {
  public:
     virtual bool modifyBBL(int_basicBlock *block,
-                           pdvector<bblInstance::reloc_info_t::relocInsn *> &insns, 
+                           pdvector<bblInstance::reloc_info_t::relocInsn::Ptr> &insns, 
                            bblInstance &bbl) = 0;
     virtual bool update(int_basicBlock *block,
-                        pdvector<bblInstance::reloc_info_t::relocInsn *> &insns,
+                        pdvector<bblInstance::reloc_info_t::relocInsn::Ptr> &insns,
                         unsigned size) = 0;
     virtual ~funcMod() {}
 };
@@ -61,11 +61,11 @@ class enlargeBlock : public funcMod {
     virtual ~enlargeBlock() {};
 
     virtual bool modifyBBL(int_basicBlock *block,
-                           pdvector<bblInstance::reloc_info_t::relocInsn *> &,
+                           pdvector<bblInstance::reloc_info_t::relocInsn::Ptr> &,
                            bblInstance &bbl);
 
     virtual bool update(int_basicBlock *block,
-                        pdvector<bblInstance::reloc_info_t::relocInsn *> &,
+                        pdvector<bblInstance::reloc_info_t::relocInsn::Ptr> &,
                         unsigned size);
 
     int_basicBlock *targetBlock_;

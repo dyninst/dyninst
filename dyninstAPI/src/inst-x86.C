@@ -49,7 +49,7 @@
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/function.h"
-#include "dyninstAPI/src/arch.h"
+#include "dyninstAPI/src/codegen.h"
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/baseTramp.h"
@@ -64,7 +64,6 @@
 #include "dyninstAPI/src/instP.h" // class returnInstance
 #include "dyninstAPI/src/rpcMgr.h"
 #include "dyninstAPI/src/dyn_thread.h"
-//#include "InstrucIter.h"
 #include "mapped_module.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #include "IAPI_to_AST.h"
@@ -1423,7 +1422,7 @@ codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, Register dest,
          // dest is the displacement from the current value of insn
          // this will need to work for both 32-bits and 64-bits
          // (since there is no JMP rel64)
-         instruction::generateBranch(gen, dest);
+         insnCodeGen::generateBranch(gen, dest);
          retval = gen.getIndex();
          break;
       }
@@ -2318,7 +2317,7 @@ void EmitterIA32::emitFuncJump(int_function *f, instPointType_t /*ptType*/, bool
        SET_PTR(insn, gen);
     }
 
-    instruction::generateIllegal(gen);
+    insnCodeGen::generateIllegal(gen);
 }
 
 bool EmitterIA32::emitPush(codeGen &gen, Register reg) {
@@ -2483,12 +2482,6 @@ Emitter *AddressSpace::getEmitter()
        return &emitter32Stat;
    }
 }
-
-bool image::isAligned(const Address/* where*/) const 
-{
-   return true;
-}
-
 
 #if defined(arch_x86_64)
 int registerSpace::framePointer() { 

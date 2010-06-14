@@ -32,6 +32,7 @@
 #include "addressSpace.h"
 #include "codeRange.h"
 #include "process.h"
+#include "function.h"
 #include "binaryEdit.h"
 
 #include "miniTramp.h"
@@ -45,9 +46,8 @@
 #if defined(cap_instruction_api)
 #include "InstructionDecoder.h"
 #include "Instruction.h"
-
 #else
-#include "InstrucIter.h"
+#include "parseAPI/src/InstrucIter.h"
 #endif //defined(cap_instruction_api)
 
 // Implementations of non-virtual functions in the address space
@@ -660,13 +660,7 @@ void AddressSpace::inferiorFreeInternal(Address block) {
 
 void AddressSpace::inferiorMallocAlign(unsigned &size) {
     // Align to the process word
-
-#if !defined(arch_ia64)
     unsigned alignment = (getAddressWidth() - 1);
-#else
-    unsigned alignment = (128 - 1);
-#endif
-
     size = (size + alignment) & ~alignment;
 }
     
@@ -894,7 +888,7 @@ bool AddressSpace::findVarsByAll(const std::string &varname,
 // copy for images, or a relocated function's self copy.
 // TODO: is this really worth it? Or should we just use ptrace?
 
-void *AddressSpace::getPtrToInstruction(Address addr) const {
+void *AddressSpace::getPtrToInstruction(const Address addr) const {
     codeRange *range;
 
     if (textRanges_.find(addr, range)) {
@@ -905,19 +899,36 @@ void *AddressSpace::getPtrToInstruction(Address addr) const {
         assert(data);
         return data->obj->getPtrToData(addr);
     }
+    fprintf(stderr,"[%s:%d] failed to find matching range for address %lx\n",
+        FILE__,__LINE__,addr);
     assert(0);
     return NULL;
 }
 
-bool AddressSpace::isExecutableAddress(const Address &addr) const {
+void *
+AddressSpace::getPtrToData(const Address addr) const {
+    codeRange *range = NULL;
+    if(dataRanges_.find(addr,range)) {
+        mappedObjData * data = dynamic_cast<mappedObjData *>(range);
+        assert(data);
+        return data->obj->getPtrToData(addr);
+    }
+    assert(0);
+    return NULL;
+}
+
+bool AddressSpace::isCode(const Address addr) const {
     codeRange *dontcare;
     if (textRanges_.find(addr, dontcare))
         return true;
     else
         return false;
 }
+bool AddressSpace::isData(const Address addr) const {
+    return !isCode(addr) && isValidAddress(addr);
+}
 
-bool AddressSpace::isValidAddress(const Address& addr) const{
+bool AddressSpace::isValidAddress(const Address addr) const{
     // "Is this part of the process address space?"
     codeRange *dontcare;
     if (textRanges_.find(addr, dontcare))
@@ -1084,15 +1095,14 @@ int_function *AddressSpace::findJumpTargetFuncByAddr(Address addr) {
     if (!range->is_mapped_object()) 
         return NULL;
 #if defined(cap_instruction_api)
-    mapped_object* mobj = dynamic_cast<mapped_object*>(range);
     using namespace Dyninst::InstructionAPI;
     InstructionDecoder decoder((const unsigned char*)getPtrToInstruction(addr),
-			       InstructionDecoder::maxInstructionLength,
-			       mobj->parse_img()->getArch());
+            InstructionDecoder::maxInstructionLength,
+            getArch());
     Instruction::Ptr curInsn = decoder.decode();
     
     Expression::Ptr target = curInsn->getControlFlowTarget();
-    RegisterAST thePC = RegisterAST::makePC(mobj->parse_img()->getArch());
+    RegisterAST thePC = RegisterAST::makePC(getArch());
     target->bind(&thePC, Result(u32, addr));
     Result cft = target->eval();
     if(cft.defined)
@@ -1493,7 +1503,8 @@ void trampTrapMappings::allocateTable()
    assert(result);   
    current_table = table_header + sizeof(trap_mapping_header);
 
-   Symtab *symtab = binedit->getMappedObject()->parse_img()->getObject();
+   SymtabAPI::Symtab *symtab = 
+        binedit->getMappedObject()->parse_img()->getObject();
    if( !symtab->isStaticBinary() ) {
        symtab->addSysVDynamic(DT_DYNINST, table_header);
        symtab->addLibraryPrereq(proc()->dyninstRT_name);
@@ -1540,11 +1551,12 @@ bool AddressSpace::findFuncsByAddr(Address addr, std::vector<int_function *> &fu
    {
       //Get the multiple functions from the image block, convert to
       // int_functions and return them.
-      const set<image_func *> & img_funcs = img_block->getFuncs();
+      vector<ParseAPI::Function *> img_funcs;
+      img_block->getFuncs(img_funcs);
       assert(img_funcs.size());
-      set<image_func *>::const_iterator fit = img_funcs.begin();
+      vector<ParseAPI::Function *>::iterator fit = img_funcs.begin();
       for( ; fit != img_funcs.end(); ++fit) {
-         int_func = findFuncByInternalFunc(*fit);
+         int_func = findFuncByInternalFunc(static_cast<image_func*>(*fit));
          funcs.push_back(int_func);
       }
       return true;

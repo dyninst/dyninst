@@ -31,6 +31,7 @@
 
 #include "parRegion.h"
 #include "image-func.h"
+#include "function.h"
 
 #include "process.h"
 

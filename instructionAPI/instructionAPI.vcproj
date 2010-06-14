@@ -28,6 +28,7 @@
 				BasicRuntimeChecks="0"
 				RuntimeLibrary="3"
 				RuntimeTypeInfo="TRUE"
+				BrowseInformation="0"
 				WarningLevel="3"
 				DebugInformationFormat="3"/>
 			<Tool
@@ -85,9 +86,9 @@ copy $(InputDir)h\*.h $(TargetDir)..\..\..\include
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalIncludeDirectories="./h;..;../external;../dynutil/h;../symtabAPI/h"
-				PreprocessorDefinitions="WIN32;NDEBUG;os_windows;arch_x86;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_async_events;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_tramp_liveness;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;BPATCH_LIBRARY;BPATCH_DLL_BUILD;snprintf=_snprintf"
+				PreprocessorDefinitions="WIN32;NDEBUG;os_windows;arch_x86;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_async_events;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_tramp_liveness;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;BPATCH_LIBRARY;INSTRUCTION_LIB;snprintf=_snprintf"
 				MinimalRebuild="FALSE"
-				ExceptionHandling="FALSE"
+				ExceptionHandling="TRUE"
 				RuntimeLibrary="0"
 				RuntimeTypeInfo="TRUE"
 				WarningLevel="3"
@@ -140,18 +141,15 @@ copy $(TargetDir)libinstructionAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\l
 			Filter="cpp;c;cxx;def;odl;idl;hpj;bat;asm;asmx"
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}">
 			<File
-				RelativePath=".\src\arch-x86.C">
+				RelativePath=".\src\BinaryFunction.C">
 				<FileConfiguration
 					Name="Debug|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
 						CompileAs="2"/>
 				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\BinaryFunction.C">
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
 						CompileAs="2"/>
@@ -165,11 +163,23 @@ copy $(TargetDir)libinstructionAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\l
 						Name="VCCLCompilerTool"
 						CompileAs="2"/>
 				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\src\groups.C">
 				<FileConfiguration
 					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
 						CompileAs="2"/>
@@ -183,11 +193,23 @@ copy $(TargetDir)libinstructionAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\l
 						Name="VCCLCompilerTool"
 						CompileAs="2"/>
 				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\src\Instruction.C">
 				<FileConfiguration
 					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
 						CompileAs="2"/>
@@ -201,11 +223,23 @@ copy $(TargetDir)libinstructionAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\l
 						Name="VCCLCompilerTool"
 						CompileAs="2"/>
 				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\src\InstructionCategories.C">
 				<FileConfiguration
 					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
 						CompileAs="2"/>
@@ -219,11 +253,23 @@ copy $(TargetDir)libinstructionAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\l
 						Name="VCCLCompilerTool"
 						CompileAs="2"/>
 				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\src\InstructionDecoder-x86.C">
 				<FileConfiguration
 					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
 						CompileAs="2"/>
@@ -237,11 +283,23 @@ copy $(TargetDir)libinstructionAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\l
 						Name="VCCLCompilerTool"
 						CompileAs="2"/>
 				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\src\InstructionDecoderImpl.C">
 				<FileConfiguration
 					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
 						CompileAs="2"/>
@@ -255,11 +313,23 @@ copy $(TargetDir)libinstructionAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\l
 						Name="VCCLCompilerTool"
 						CompileAs="2"/>
 				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\src\Operand.C">
 				<FileConfiguration
 					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
 						CompileAs="2"/>
@@ -273,11 +343,23 @@ copy $(TargetDir)libinstructionAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\l
 						Name="VCCLCompilerTool"
 						CompileAs="2"/>
 				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\src\Register.C">
 				<FileConfiguration
 					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
 						CompileAs="2"/>
@@ -288,9 +370,6 @@ copy $(TargetDir)libinstructionAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\l
 			Name="Header Files"
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}">
-			<File
-				RelativePath=".\src\arch-x86.h">
-			</File>
 			<File
 				RelativePath=".\h\BinaryFunction.h">
 			</File>

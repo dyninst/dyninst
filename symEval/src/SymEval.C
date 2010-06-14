@@ -98,6 +98,7 @@ void SymEval<a>::expand(Result_t &res, bool applyVisitors) {
   }
 }
 
+#if 0
 // Do the previous, but use a Graph as a guide for
 // performing forward substitution on the AST results
 template<Architecture a>
@@ -136,6 +137,7 @@ void SymEval<a>::expand(Graph::Ptr slice, Result_t &res) {
     }
   }
 }
+#endif
 
 void SymEvalArchTraits<Arch_x86>::processInstruction(SageInstruction_t* roseInsn,
                                                     SymEvalPolicy& policy)
@@ -192,6 +194,7 @@ SgAsmExpression* SymEvalArchTraits<Arch_x86>::convertOperand(InstructionKind_t o
     }
 }
 
+#if 0
 template<Architecture a>
 void SymEval<a>::process(AssignNode::Ptr ptr,
 			 SymEval::Result_t &dbase) {
@@ -260,7 +263,7 @@ void SymEval<a>::process(AssignNode::Ptr ptr,
   }
   dbase[ptr->assign()] = ast;
 }
-
+#endif
 
 PowerpcInstructionKind makeRoseBranchOpcode(entryID iapi_opcode, bool isAbsolute, bool isLink)
 {

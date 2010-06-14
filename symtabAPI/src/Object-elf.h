@@ -359,9 +359,7 @@ class Object : public AObject {
 
 //TODO Later - change this #ifdef later.. make getTOCoffset available for all platforms  
 
-#if defined(arch_ia64)
-  Offset getTOCoffset() const { return gp; }
-#elif defined(os_linux) && defined(arch_power) && defined(arch_64bit)
+#if defined(os_linux) && defined(arch_power) && defined(arch_64bit)
   // 64-bit PowerPC ELF ABI Supplement, Version 1.9, 2004-10-23:
   //   The TOC section contains a conventional ELF GOT, and may optionally
   //   contain a small data area.
@@ -507,9 +505,6 @@ class Object : public AObject {
 
   DwarfHandle dwarf;
 
-#if defined(arch_ia64)
-  Offset   gp;			 // The gp for this object.
-#endif
   bool      EEL;                 // true if EEL rewritten
   bool 	    did_open;		// true if the file has been mmapped
   ObjectType obj_type_;

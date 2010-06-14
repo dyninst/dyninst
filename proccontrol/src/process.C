@@ -489,6 +489,15 @@ bool syncRunState(int_process *p, void *r)
                       p->getPid(), thr->getLWP());
          thr->intCont();                      
       }
+      else if (pstop_rpc && 
+               thr->getInternalState() == int_thread::running && 
+               thr->getHandlerState() == int_thread::stopped &&
+               pstop_rpc == thr->runningRPC())
+      {
+         pthrd_printf("Thread %d/%d was stopped during proccstopper (maybe due to signal).",
+                      p->getPid(), thr->getLWP());
+         thr->intCont();
+      }
       else if (thr->getInternalState() == int_thread::running && 
                thr->getHandlerState() == int_thread::stopped &&
                !force_leave_stopped)
@@ -1310,10 +1319,17 @@ bool int_thread::cont(bool user_cont)
       return false;
    }
    if (ret == sc_error) {
-      pthrd_printf("Error continuing thread %d/%d\n", llproc()->getPid(), getLWP());
-      return false;
+      if (user_cont) {
+         //The internal state is running, so there was an internal error during continue, but
+         // the user state was stopped.  We won't treat this as a user error and instead
+         // just change the user state.
+         pthrd_printf("Ignoring previous error on %d/%d\n", llproc()->getPid(), getLWP());
+      }
+      else {
+         pthrd_printf("Error continuing thread %d/%d\n", llproc()->getPid(), getLWP());
+         return false;
+      }
    }
-   assert(ret == sc_success || ret == sc_success_pending);
 
    if (user_cont) 
    {

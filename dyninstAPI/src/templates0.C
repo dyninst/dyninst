@@ -110,14 +110,13 @@ template class  pdvector<const instPoint *>;
 class instPointInstance;
 template class  pdvector<instPointInstance *>;
 
-class instruction;
-template class  pdvector<instruction *>;
 
 class baseTrampInstance;
 template class  pdvector<baseTrampInstance *>;
 
-#include "arch.h"
+#include "common/h/arch.h"
 template class  pdvector<instruction>;
+template class  pdvector<instruction *>;
 
 #include "symtab.h"
 template class  pdvector< ExceptionBlock >;
@@ -195,6 +194,7 @@ template class pdvector<funcMod *>;
 
 // Clean this up...
 #if defined(cap_relocation)
+#include "dyninstAPI/src/function.h"
 template class pdvector<bblInstance::reloc_info_t::relocInsn *>;
 #endif
 

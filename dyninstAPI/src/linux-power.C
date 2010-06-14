@@ -46,6 +46,7 @@
 #include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/signalgenerator.h"
 #include "dyninstAPI/src/registerSpace.h"
+#include "dyninstAPI/src/function.h"
 
 #define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
 
@@ -492,7 +493,8 @@ Frame Frame::getCallerFrame()
 
   if (uppermost_) {
     if (func) {
-      isLeaf = func->makesNoCalls();
+      //isLeaf = func->isLeafFunc();
+      isLeaf = !func->savesReturnAddr();
       noFrame = func->hasNoStackFrame();
     }
   }
@@ -793,7 +795,7 @@ bool process::insertTrapAtEntryPointOfMain()
     readDataSpace((void *)addr, instruction::size(), savedCodeBuffer, true);
     // and now, insert trap
     codeGen gen(instruction::size());
-    instruction::generateTrap(gen);
+    insnCodeGen::generateTrap(gen);
 
     assert(instruction::size() == gen.used());
     if (!writeDataSpace((void *)addr, gen.used(), gen.start_ptr()))
@@ -919,7 +921,7 @@ bool process::loadDYNINSTlib_exported(const char *)
     popStack(scratchCodeBuffer);                           //aix.C
  
     dyninstlib_brk_addr = codeBase + scratchCodeBuffer.used();
-    instruction::generateTrap(scratchCodeBuffer);
+    insnCodeGen::generateTrap(scratchCodeBuffer);
 
     if (!readDataSpace((void *)codeBase,
                        sizeof(savedCodeBuffer), savedCodeBuffer, true)) {
@@ -1177,7 +1179,7 @@ bool process::loadDYNINSTlib_hidden() {
 
   // And the break point
   dyninstlib_brk_addr = codeBase + scratchCodeBuffer.used();
-  instruction::generateTrap(scratchCodeBuffer);
+  insnCodeGen::generateTrap(scratchCodeBuffer);
 
   startup_printf("(%d) dyninst lib string addr at 0x%x\n", getPid(),
                                                            dyninstlib_str_addr);

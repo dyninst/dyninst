@@ -896,7 +896,9 @@ enum prefixEntryID {
   }
 	#endif
 #endif
-extern dyn_hash_map<entryID, std::string> entryNames_IAPI;
-extern dyn_hash_map<prefixEntryID, std::string> prefixEntryNames_IAPI;
+namespace NS_x86 {
+COMMON_EXPORT extern dyn_hash_map<entryID, std::string> entryNames_IAPI;
+COMMON_EXPORT extern dyn_hash_map<prefixEntryID, std::string> prefixEntryNames_IAPI;
+}
 
 #endif // defined(ENTRYIDS_IA32_H)

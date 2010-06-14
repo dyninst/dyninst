@@ -29,14 +29,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#define INSIDE_INSTRUCTION_API
+
 #include "Operation.h"
-#include "arch-x86.h"
+#include "common/h/arch-x86.h"
 #include "entryIDs.h"
-#include "../../common/h/Singleton.h"
+#include "common/h/Singleton.h"
 #include "Register.h"
 #include <map>
-#include "../../common/h/singleton_object_pool.h"
+#include "common/h/singleton_object_pool.h"
 
+using namespace NS_x86;
 
 namespace Dyninst
 {
