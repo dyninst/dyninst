@@ -230,7 +230,7 @@ AbsRegion AbsRegionConverter::stack(Address addr,
     }
 
     if (push) {
-      int word_size = func->img()->getAddressWidth();
+      int word_size = func->isrc()->getAddressWidth();
       spHeight -= word_size;
     }
 
@@ -253,7 +253,7 @@ AbsRegion AbsRegionConverter::frame(Address addr,
     }
 
     if (push) {
-      int word_size = func->img()->getAddressWidth();
+      int word_size = func->isrc()->getAddressWidth();
       fpHeight -= word_size;
     }
     
@@ -378,7 +378,7 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
     // This can be seen as a push of the PC...
 
     std::vector<AbsRegion> pcRegion;
-    pcRegion.push_back(Absloc::makePC(func->img()->getArch()));
+    pcRegion.push_back(Absloc::makePC(func->isrc()->getArch()));
     
     handlePushEquivalent(I, addr, func, pcRegion, assignments);
     break;
@@ -429,8 +429,8 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
 
     // TODO FIXME update stack analysis to make this really work. 
         
-    AbsRegion sp(Absloc::makeSP(func->img()->getArch()));
-    AbsRegion fp(Absloc::makeFP(func->img()->getArch()));
+    AbsRegion sp(Absloc::makeSP(func->isrc()->getArch()));
+    AbsRegion fp(Absloc::makeFP(func->isrc()->getArch()));
 
     // Should be "we assign SP using FP"
     Assignment::Ptr spA = Assignment::Ptr(new Assignment(I,
@@ -463,14 +463,14 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
     // SP = SP + 4/8
     // Like pop, except it's all implicit.
 
-    AbsRegion pc = AbsRegion(Absloc::makePC(func->img()->getArch()));
+    AbsRegion pc = AbsRegion(Absloc::makePC(func->isrc()->getArch()));
     Assignment::Ptr pcA = Assignment::Ptr(new Assignment(I, 
 							 addr,
 							 func,
 							 pc));
     pcA->addInput(aConverter.stack(addr, func, false));
 
-    AbsRegion sp = AbsRegion(Absloc::makeSP(func->img()->getArch()));
+    AbsRegion sp = AbsRegion(Absloc::makeSP(func->isrc()->getArch()));
     Assignment::Ptr spA = Assignment::Ptr(new Assignment(I,
 							 addr,
 							 func,
@@ -568,7 +568,7 @@ void AssignmentConverter::handlePushEquivalent(const Instruction::Ptr I,
   // And then we update SP
   
   AbsRegion stackTop = aConverter.stack(addr, func, true);
-  AbsRegion sp(Absloc::makeSP(func->img()->getArch()));
+  AbsRegion sp(Absloc::makeSP(func->isrc()->getArch()));
 
   Assignment::Ptr spA = Assignment::Ptr(new Assignment(I,
 						       addr,
@@ -593,7 +593,7 @@ void AssignmentConverter::handlePopEquivalent(const Instruction::Ptr I,
   // (Can you pop into memory?)
 
   AbsRegion stackTop = aConverter.stack(addr, func, false);
-  AbsRegion sp(Absloc::makeSP(func->img()->getArch()));
+  AbsRegion sp(Absloc::makeSP(func->isrc()->getArch()));
   
   Assignment::Ptr spA = Assignment::Ptr(new Assignment(I,
 						       addr,

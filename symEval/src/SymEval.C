@@ -387,7 +387,7 @@ bool SymEvalArchTraits<Arch_ppc32>::handleSpecialCases(entryID iapi_opcode,
         case power_op_svcs:
 	  {
 	    //cerr << "special-casing syscall insn" << endl;
-	    unsigned int raw;
+	    unsigned int raw = 0;
             std::vector<unsigned char> bytes = rose_insn.get_raw_bytes();
             for(unsigned i = 0; i < bytes.size(); i++)
             {
