@@ -55,7 +55,7 @@
 
 #include "AST.h"
 #include "Operation.h"
-#include "Absloc.h"
+#include "../h/Absloc.h"
 
 #include <iostream>
 #include <fstream>
@@ -66,7 +66,7 @@
 // Also need ROSE header files... argh. 
 
 // For typedefs
-#include "SymEval.h"
+#include "../h/SymEval.h"
 
 namespace Dyninst {
 

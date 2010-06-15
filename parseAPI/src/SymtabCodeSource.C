@@ -294,7 +294,7 @@ SymtabCodeSource::init_regions(hint_filt * filt)
         parsing_printf("\n");
 
         if(HASHDEF(rmap,*rit)) {
-            fprintf(stderr,"[%s:%d] duplicate region at address %lx\n",
+            parsing_printf("[%s:%d] duplicate region at address %lx\n",
                 FILE__,__LINE__,(*rit)->getRegionAddr());
         }
         CodeRegion * cr = new SymtabCodeRegion(_symtab,*rit);
@@ -334,11 +334,13 @@ SymtabCodeSource::init_hints(dyn_hash_map<void*, CodeRegion*> & rmap,
         if(HASHDEF(seen,(*fsit)->getOffset())) {
             // XXX it looks as though symtabapi now does de-duplication
             //     of function symbols automatically, so this code should
-            //     never be reached
-            fprintf(stderr,"[%s:%d] duplicate function at address %lx: %s\n",
-                FILE__,__LINE__,(*fsit)->getOffset(),(*fsit)->getFirstSymbol()->getName().c_str());
+            //     never be reached, except in the case of overlapping
+            //     regions
+           parsing_printf("[%s:%d] duplicate function at address %lx: %s\n",
+                FILE__,__LINE__,
+                (*fsit)->getOffset(),
+                (*fsit)->getFirstSymbol()->getName().c_str());
             ++dupes;
-            continue;
         }
         seen[(*fsit)->getOffset()] = true;
 

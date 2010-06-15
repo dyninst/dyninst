@@ -83,221 +83,256 @@ namespace Dyninst {
       // out how to move forward on edge classes
       std::map<AssignNode::Ptr, unsigned> assignMap_;
     };
-    
-    
-    
-    class Slicer {
-    public:
-      Slicer(AssignmentPtr a,
-	     image_basicBlock *block,
-	     image_func *func);
-      
-      typedef boost::function<bool (AssignmentPtr a)> PredicateFunc;
-      typedef boost::function<bool (image_func *c, std::stack<std::pair<image_func *, int> > &cs, bool plt, AbsRegion a)>
-	CallStackFunc;
-      typedef boost::function<bool (const AbsRegion &in, const AbsRegion &out)> AbsRegionFunc;
-      
-      GraphPtr forwardSlice(PredicateFunc &e, PredicateFunc &w, CallStackFunc &c, AbsRegionFunc &a);      
-      GraphPtr backwardSlice(PredicateFunc &e, PredicateFunc &w);
-      
-      static bool isWidenNode(Node::Ptr n);
-      
-    private:
-      typedef std::pair<InstructionPtr, Address> InsnInstance;
-      typedef std::vector<InsnInstance> InsnVec;
-      
-      typedef enum {
-	forward,
-	backward } Direction;
-      
-      typedef std::map<image_basicBlock *, InsnVec> InsnCache;
-      
-      struct Predicates {
-	// It's safe for these to be references because they will only exist
-	// under a forward/backwardSlice call.
-	PredicateFunc &end;
-	PredicateFunc &widen;
-	CallStackFunc &followCall;
-	AbsRegionFunc &assignmentWiden;
-	
-      Predicates(PredicateFunc &e, PredicateFunc &w, CallStackFunc &c, AbsRegionFunc &a) : end(e), widen(w), followCall(c), assignmentWiden(a) {};
-	
-      };
-      
-      // Our slicing is context-sensitive; that is, if we enter
-      // a function foo from a caller bar, all return edges
-      // from foo must enter bar. This makes an assumption that
-      // the return address is not modified, but hey. 
-      // We represent this as a list of call sites. This is redundant
-      // with the image_instPoint data structure, but hopefully that
-      // one will be going away. 
-      
-      struct ContextElement {
-	// We can implicitly find the callsite given a block,
-	// since calls end blocks. It's easier to look up 
-	// the successor this way than with an address.
-	
-	image_func *func;
-	
-	// If non-NULL this must be an internal context
-	// element, since we have an active call site.
-	image_basicBlock *block;
-	
-	// To enter or leave a function we must be able to
-	// map corresponding abstract regions. 
-	// In particular, we need to know the depth of the 
-	// stack in the caller.
-	long stackDepth;
-	
-      ContextElement(image_func *f) : 
-	func(f), block(NULL), stackDepth(-1) {};
-      ContextElement(image_func *f, long depth) :
-	func(f), block(NULL), stackDepth(depth) {};
-      };
-      
-      // This should be sufficient...
-      typedef std::deque<ContextElement> Context;
-      
-      bool getStackDepth(image_func *func, Address callAddr, long &height);
-      
-      // Add the newly called function to the given Context.
-      void pushContext(Context &context,
-		       image_func *callee,
-		       image_basicBlock *callBlock,
-		       long stackDepth);
-      
-      // And remove it as appropriate
-      void popContext(Context &context);
-      
-      // Shift an abs region by a given stack offset
-      void shiftAbsRegion(AbsRegion &callerReg,
-			  AbsRegion &calleeReg,
-			  long stack_depth,
-			  image_func *callee);
-      
-      // Handling a call does two things:
-      // 1) Translates the given AbsRegion into the callee-side
-      //    view; this just means adjusting stack locations. 
-      // 2) Increases the given context
-      // Returns false if we didn't translate the absregion correctly
-      bool handleCallDetails(AbsRegion &reg,
-			     Context &context,
-			     image_basicBlock *callerBlock,
-			     image_func *callee);
-      
-      // Where we are in a particular search...
-      struct Location {
-	// The block we're looking through
-	image_func *func;
-	image_basicBlock *block; // current block
-	
-	// Where we are in the block
-	InsnVec::iterator current;
-	InsnVec::iterator end;
-	
-	Address addr() const { return current->second; }
-	
-      Location(image_func *f,
-	       image_basicBlock *b) : func(f), block(b) {};
-      Location() : func(NULL), block(NULL) {};
-      };
+<<<<<<< HEAD:symEval/h/slicing.h
 
-      typedef std::queue<Location> LocList;
+
+
+    class Slicer {
+        public:
+            Slicer(AssignmentPtr a,
+                   image_basicBlock *block,
+                   image_func *func);
+
+            typedef boost::function<bool (AssignmentPtr a)> PredicateFunc;
+            typedef boost::function<bool (image_func *c, std::stack<std::pair<image_func *, int> > &cs, bool plt, AbsRegion a)>
+                    CallStackFunc;
+
       
-      // And the tuple of (context, AbsRegion, Location)
-      // that specifies both context and what to search for
-      // in that context
-      struct Element {
-	Location loc;
-	Context con;
-	AbsRegion reg;
-	// This is for returns, and not for the intermediate
-	// steps. OTOH, I'm being a bit lazy...
-	Assignment::Ptr ptr;
-	unsigned usedIndex;
-	
-	Address addr() const { return loc.addr(); }
-      };
-      typedef std::queue<Element> Elements;
-      
-      bool followCall(image_basicBlock *b,
-		      Direction d,
-		      Element &current,
-		      Predicates &p);
-      
-      bool handleDefault(image_edge *e,
-			 Element &current,
-			 Element &newElement,
-			 Predicates &p,
-			 bool &err);
-      
-      bool handleCall(image_basicBlock *block,
-		      Element &current,
-		      Element &newElement,
-		      Predicates &p,
-		      bool &err);
-      
-      bool handleReturn(image_basicBlock *b,
-			Element &current,
-			Element &newElement,
-			Predicates &p,
-			bool &err);
-      
-      void handleReturnDetails(AbsRegion &reg,
-			       Context &context);
-      
-      bool getSuccessors(Element &current,
-			 Elements &worklist,
-			 Predicates &p);
-      
-      
-      bool forwardSearch(Element &current,
-			 Elements &foundList,
-			 Predicates &p);
-      
-      void widen(GraphPtr graph, Element &source);
-      
-      void insertPair(GraphPtr graph,
-		      Element &source,
-		      Element &target);
-      
-      void convertInstruction(InstructionPtr,
-			      Address,
-			      image_func *,
-			      std::vector<AssignmentPtr> &);
-      
-      void fastForward(Location &loc, Address addr);
-      
-      AssignNode::Ptr widenNode();
-      
-      void markAsExitNode(GraphPtr ret, Element &current);
-      
-      
-      void getInsns(Location &loc);
-      
-      void setAliases(Assignment::Ptr, Element &);
-      
-      AssignNode::Ptr createNode(Element &);
-      
-      void cleanGraph(GraphPtr g);
-      
-      image_basicBlock *getBlock(image_edge *e,
-				 Direction dir);
-      
-      void constructInitialElement(Element &initial);
-      
-      InsnCache insnCache_;
-      
-      AssignmentPtr a_;
-      image_basicBlock *b_;
-      image_func *f_;
-      
-      std::set<AssignNode::Ptr> visited_;
-      std::map<AssignmentPtr, AssignNode::Ptr> created_;
-      
-      AssignmentConverter converter;
-      
-      AssignNode::Ptr widen_;
+            typedef boost::function<bool (const AbsRegion &in, const AbsRegion &out)> AbsRegionFunc;
+            
+            GraphPtr forwardSlice(PredicateFunc &e, PredicateFunc &w, CallStackFunc &c);
+  
+            GraphPtr backwardSlice(PredicateFunc &e, PredicateFunc &w, CallStackFunc &c);
+  
+            static bool isWidenNode(Node::Ptr n);
+
+        private:
+            typedef std::pair<InstructionPtr, Address> InsnInstance;
+            typedef std::vector<InsnInstance> InsnVec;
+
+            typedef enum {
+                forward,
+                backward } Direction;
+
+                typedef std::map<image_basicBlock *, InsnVec> InsnCache;
+
+                struct Predicates {
+    // It's safe for these to be references because they will only exist
+    // under a forward/backwardSlice call.
+                    PredicateFunc &end;
+                    PredicateFunc &widen;
+                    CallStackFunc &followCall;
+    
+                    Predicates(PredicateFunc &e, PredicateFunc &w, CallStackFunc &c, AbsRegionFunc &a) : end(e), widen(w), followCall(c) {};
+
+                };
+
+  // Our slicing is context-sensitive; that is, if we enter
+  // a function foo from a caller bar, all return edges
+  // from foo must enter bar. This makes an assumption that
+  // the return address is not modified, but hey. 
+  // We represent this as a list of call sites. This is redundant
+  // with the image_instPoint data structure, but hopefully that
+  // one will be going away. 
+
+                struct ContextElement {
+    // We can implicitly find the callsite given a block,
+    // since calls end blocks. It's easier to look up 
+    // the successor this way than with an address.
+
+                    image_func *func;
+
+    // If non-NULL this must be an internal context
+    // element, since we have an active call site.
+                    image_basicBlock *block;
+
+    // To enter or leave a function we must be able to
+    // map corresponding abstract regions. 
+    // In particular, we need to know the depth of the 
+    // stack in the caller.
+                    long stackDepth;
+
+  ContextElement(image_func *f) : 
+          func(f), block(NULL), stackDepth(-1) {};
+  ContextElement(image_func *f, long depth) :
+          func(f), block(NULL), stackDepth(depth) {};
+                };
+
+  // This should be sufficient...
+                typedef std::deque<ContextElement> Context;
+
+                bool getStackDepth(image_func *func, Address callAddr, long &height);
+
+  // Add the newly called function to the given Context.
+                void pushContext(Context &context,
+                                 image_func *callee,
+                                 image_basicBlock *callBlock,
+                                 long stackDepth);
+
+  // And remove it as appropriate
+                void popContext(Context &context);
+
+  // Shift an abs region by a given stack offset
+                void shiftAbsRegion(AbsRegion &callerReg,
+                                    AbsRegion &calleeReg,
+                                    long stack_depth,
+                                    image_func *callee);
+
+  // Handling a call does two things:
+  // 1) Translates the given AbsRegion into the callee-side
+  //    view; this just means adjusting stack locations. 
+  // 2) Increases the given context
+  // Returns false if we didn't translate the absregion correctly
+                bool handleCallDetails(AbsRegion &reg,
+                                       Context &context,
+                                       image_basicBlock *callerBlock,
+                                       image_func *callee);
+
+                bool handleCallDetailsBackward(AbsRegion &reg,
+                        Context &context,
+                        image_basicBlock *calleeBlock,
+                        image_func *caller);
+
+  // Where we are in a particular search...
+                struct Location {
+    // The block we're looking through
+                    image_func *func;
+                    image_basicBlock *block; // current block
+
+    // Where we are in the block
+    InsnVec::iterator current;
+    InsnVec::iterator end;
+
+    bool fwd;
+
+    InsnVec::reverse_iterator rcurrent;
+    InsnVec::reverse_iterator rend;
+
+    Address addr() const { if(fwd) return current->second; else return rcurrent->second;}
+
+  Location(image_func *f,
+	   image_basicBlock *b) : func(f), block(b), fwd(true){};
+  Location() : func(NULL), block(NULL), fwd(true) {};
+  };
+    
+                typedef std::queue<Location> LocList;
+  
+  // And the tuple of (context, AbsRegion, Location)
+  // that specifies both context and what to search for
+  // in that context
+                struct Element {
+                    Location loc;
+                    Context con;
+                    AbsRegion reg;
+    // This is for returns, and not for the intermediate
+    // steps. OTOH, I'm being a bit lazy...
+                    Assignment::Ptr ptr;
+                    unsigned usedIndex;
+
+                    Address addr() const { return loc.addr(); }
+                };
+                typedef std::queue<Element> Elements;
+
+                bool followCall(image_basicBlock *b,
+                                Direction d,
+                                Element &current,
+                                Predicates &p);
+
+                bool handleDefault(image_edge *e,
+                                   Element &current,
+                                   Element &newElement,
+                                   Predicates &p,
+                                   bool &err);
+                
+                bool handleDefaultBackward(image_edge *e,
+                                   Element &current,
+                                   Element &newElement,
+                                   Predicates &p,
+                                   bool &err);
+
+                bool handleCall(image_basicBlock *block,
+                                Element &current,
+                                Element &newElement,
+                                Predicates &p,
+                                bool &err);
+
+                bool handleReturn(image_basicBlock *b,
+                                  Element &current,
+                                  Element &newElement,
+                                  Predicates &p,
+                                  bool &err);
+
+                void handleReturnDetails(AbsRegion &reg,
+                        Context &context);
+
+                bool getSuccessors(Element &current,
+                        Elements &worklist,
+                        Predicates &p);
+
+                bool getPredecessors(Element &current,
+                        Elements &worklist,
+                        Predicates &p);
+
+                bool forwardSearch(Element &current,
+                                   Elements &foundList,
+                                   Predicates &p);
+
+                bool backwardSearch(Element &current,
+                        Elements &foundList,
+                        Predicates &p);
+
+                void widen(GraphPtr graph, Element &source);
+
+                void widenBackward(GraphPtr graph, Element &target);
+
+                void insertPair(GraphPtr graph,
+                                Element &source,
+                                Element &target);
+
+                void convertInstruction(InstructionPtr,
+                                        Address,
+                                        image_func *,
+                                        std::vector<AssignmentPtr> &);
+
+                void fastForward(Location &loc, Address addr);
+
+                void fastBackward(Location &loc, Address addr);
+
+                AssignNode::Ptr widenNode();
+
+                void markAsExitNode(GraphPtr ret, Element &current);
+
+                void markAsEntryNode(GraphPtr ret, Element &current);
+
+                void getInsns(Location &loc);
+
+                void getInsnsBackward(Location &loc);
+
+                void setAliases(Assignment::Ptr, Element &);
+
+                AssignNode::Ptr createNode(Element &);
+
+                void cleanGraph(GraphPtr g);
+
+                image_basicBlock *getBlock(image_edge *e,
+                                           Direction dir);
+  
+                void constructInitialElement(Element &initial);
+
+                void constructInitialElementBackward(Element &initial);
+
+                InsnCache insnCache_;
+
+                AssignmentPtr a_;
+                image_basicBlock *b_;
+                image_func *f_;
+
+                std::set<AssignNode::Ptr> visited_;
+                std::map<AssignmentPtr, AssignNode::Ptr> created_;
+
+                AssignmentConverter converter;
+
+                AssignNode::Ptr widen_;
     };
 };
 
