@@ -98,7 +98,7 @@ void SymEval<a>::expand(Result_t &res, bool applyVisitors) {
   }
 }
 
-#if 0
+#ifndef DISABLE_SLICING
 // Do the previous, but use a Graph as a guide for
 // performing forward substitution on the AST results
 template<Architecture a>
@@ -137,7 +137,7 @@ void SymEval<a>::expand(Graph::Ptr slice, Result_t &res) {
     }
   }
 }
-#endif
+#endif // DISABLE_SLICING
 
 void SymEvalArchTraits<Arch_x86>::processInstruction(SageInstruction_t* roseInsn,
                                                     SymEvalPolicy& policy)
@@ -194,7 +194,7 @@ SgAsmExpression* SymEvalArchTraits<Arch_x86>::convertOperand(InstructionKind_t o
     }
 }
 
-#if 0
+#ifndef DISABLE_SLICING
 template<Architecture a>
 void SymEval<a>::process(AssignNode::Ptr ptr,
 			 SymEval::Result_t &dbase) {
@@ -263,7 +263,7 @@ void SymEval<a>::process(AssignNode::Ptr ptr,
   }
   dbase[ptr->assign()] = ast;
 }
-#endif
+#endif // DISABLE_SLICING
 
 PowerpcInstructionKind makeRoseBranchOpcode(entryID iapi_opcode, bool isAbsolute, bool isLink)
 {

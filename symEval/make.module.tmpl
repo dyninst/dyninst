@@ -27,13 +27,17 @@ LDFLAGS		+= -G
 endif #sparc
 endif #USES_NATIVE
 
+DISABLE_SLICING = 1
 
 TO_INC   = ../h
 
 PUBLIC_H = Absloc.h \
 	 AbslocInterface.h \
 	 SymEval.h
-#	 slicing.h \
+
+ifndef DISABLE_SLICING
+PUBLIC_H += slicing.h
+endif
 
 SRCS +=	../src/Absloc.C \
      	../src/AbslocInterface.C \
@@ -42,8 +46,15 @@ SRCS +=	../src/Absloc.C \
         ../src/convertOpcodes.C \
         ../src/RoseImpl.C \
 	../src/Visitors.C
-#	../src/slicing.C \
 
+ifndef DISABLE_SLICING
+SRCS += ../src/slicing.C 
+endif 
+
+ifdef DISABLE_SLICING
+CFLAGS += -DDISABLE_SLICING
+CXXFLAGS += -DDISABLE_SLICING
+endif
 
 ifndef USES_NATIVE_CC
 ifdef CROSSCOMPILER
