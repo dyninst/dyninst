@@ -21,7 +21,6 @@ include ../../make.config
 
 SRCS = 	../src/Instruction.C \
 	../src/InstructionAST.C \
-	../src/arch-x86.C \
 	../src/InstructionDecoder.C \
 	../src/Operation.C \
 	../src/Operand.C \

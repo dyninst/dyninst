@@ -25,7 +25,7 @@ int Handler::getPriority() const
    return DefaultPriority;
 }
 
-Event::ptr Handler::convertEventForCB(Event::ptr orig)
+Event::ptr Handler::convertEventForCB(Event::ptr /*orig*/)
 {
    return Event::ptr();
 }
@@ -731,7 +731,7 @@ int HandleCallbacks::getPriority() const
    return CallbackPriority;
 }
 
-void HandleCallbacks::getEventTypesHandled(std::vector<EventType> &etypes)
+void HandleCallbacks::getEventTypesHandled(std::vector<EventType> & /*etypes*/)
 {
    //Callbacks are special cased, they respond to all event types.
 }

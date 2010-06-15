@@ -38,8 +38,8 @@
 #define _EMIT_X86_H
 
 #include "common/h/headers.h"
+#include "common/h/arch.h"
 #include "dyninstAPI/src/instPoint.h"
-#include "dyninstAPI/src/arch-x86.h"
 #include "dyninstAPI/src/baseTramp.h"
 
 #include "dyninstAPI/src/emitter.h"

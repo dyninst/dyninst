@@ -39,50 +39,51 @@ namespace Dyninst {
 // replace OperationNodes when we fix up
 // the DDG code.
     class AssignNode : public Node {
-        public:
-            typedef dyn_detail::boost::shared_ptr<AssignNode> Ptr;
-
-            static AssignNode::Ptr create(AssignmentPtr ptr,
-                                          image_basicBlock *block,
-                                          image_func *func) {
-                                              return Ptr(new AssignNode(ptr, block, func));
-                                          }
-
-                                          image_basicBlock *block() const { return b_; };
-                                          image_func *func() const { return f_; };
-                                          Address addr() const;
-                                          AssignmentPtr assign() const { return a_; }
-
-                                          Node::Ptr copy() { return Node::Ptr(); }
-                                          bool isVirtual() const { return false; }
-
-                                          std::string format() const;
-    
-                                          virtual ~AssignNode() {};
-
-                                          void addAssignment(AssignNode::Ptr p, unsigned u) {
-                                              assignMap_[p] = u;
-                                          }
-
-                                          unsigned getAssignmentIndex(AssignNode::Ptr p) {
-                                              return assignMap_[p];
-                                          }
-
-        private:
-
-            AssignNode(AssignmentPtr ptr,
-                       image_basicBlock *block,
+    public:
+      typedef dyn_detail::boost::shared_ptr<AssignNode> Ptr;
+      
+      static AssignNode::Ptr create(AssignmentPtr ptr,
+				    image_basicBlock *block,
+				    image_func *func) {
+	return Ptr(new AssignNode(ptr, block, func));
+      }
+      
+      image_basicBlock *block() const { return b_; };
+      image_func *func() const { return f_; };
+      Address addr() const;
+      AssignmentPtr assign() const { return a_; }
+      
+      Node::Ptr copy() { return Node::Ptr(); }
+      bool isVirtual() const { return false; }
+      
+      std::string format() const;
+      
+      virtual ~AssignNode() {};
+      
+      void addAssignment(AssignNode::Ptr p, unsigned u) {
+	assignMap_[p] = u;
+      }
+      
+      unsigned getAssignmentIndex(AssignNode::Ptr p) {
+	return assignMap_[p];
+      }
+      
+    private:
+      
+    AssignNode(AssignmentPtr ptr,
+	       image_basicBlock *block,
                image_func *func) : 
-                a_(ptr), b_(block), f_(func) {};
-
-            AssignmentPtr a_;
-            image_basicBlock *b_;
-            image_func *f_;
-
-    // This is ugly and should be cleaned up once we've figured
-    // out how to move forward on edge classes
-            std::map<AssignNode::Ptr, unsigned> assignMap_;
+      a_(ptr), b_(block), f_(func) {};
+      
+      AssignmentPtr a_;
+      image_basicBlock *b_;
+      image_func *f_;
+      
+      // This is ugly and should be cleaned up once we've figured
+      // out how to move forward on edge classes
+      std::map<AssignNode::Ptr, unsigned> assignMap_;
     };
+<<<<<<< HEAD:symEval/h/slicing.h
 
 
 
@@ -96,6 +97,9 @@ namespace Dyninst {
             typedef boost::function<bool (image_func *c, std::stack<std::pair<image_func *, int> > &cs, bool plt, AbsRegion a)>
                     CallStackFunc;
 
+      
+            typedef boost::function<bool (const AbsRegion &in, const AbsRegion &out)> AbsRegionFunc;
+            
             GraphPtr forwardSlice(PredicateFunc &e, PredicateFunc &w, CallStackFunc &c);
   
             GraphPtr backwardSlice(PredicateFunc &e, PredicateFunc &w, CallStackFunc &c);
@@ -119,7 +123,7 @@ namespace Dyninst {
                     PredicateFunc &widen;
                     CallStackFunc &followCall;
     
-                    Predicates(PredicateFunc &e, PredicateFunc &w, CallStackFunc &c) : end(e), widen(w), followCall(c) {};
+                    Predicates(PredicateFunc &e, PredicateFunc &w, CallStackFunc &c, AbsRegionFunc &a) : end(e), widen(w), followCall(c) {};
 
                 };
 

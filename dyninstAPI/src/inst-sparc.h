@@ -43,7 +43,7 @@
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"
 
-#include "dyninstAPI/src/arch-sparc.h"
+#include "common/h/arch.h"
 #include "dyninstAPI/src/util.h"
 #include "common/h/stats.h"
 #include "dyninstAPI/src/os.h"
@@ -56,13 +56,6 @@
 /****************************************************************************/
 
 #define INSN_SIZE ( sizeof( instruction ) )
-
-// some macros for helping code which contains register symbolic names
-#define REG_I(x) (x + 24)
-#define REG_L(x) (x + 16) 
-#define REG_O(x) (x + 8)
-#define REG_G(x) (x)
-
 
 #define REG_MT_POS           REG_G(6)   /* Register which contains the current POS
 					   value (for caching) */
@@ -78,12 +71,6 @@
 #define LOW10(x) ((x) & 0x3ff)
 #define LOW13(x) ((x) & 0x1fff)
 #define HIGH22(x) ((x) >> 10)
-
-inline Address ABS(int x) {
-   if (x < 0) return -x;
-   return x;
-}
-//#define ABS(x)		((x) > 0 ? x : -x)
 
 //#define MAX_BRANCH	(0x1<<23)
 

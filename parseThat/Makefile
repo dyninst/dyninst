@@ -36,5 +36,5 @@ clean:
 distclean:
 	rm -rf $(PLATFORM)
 
-install:
+install: $(PLATFORM)/parseThat
 	cd $(PLATFORM); $(MAKE) install;

@@ -33,12 +33,14 @@
 #include "stackwalk/h/frame.h"
 #include "stackwalk/h/swk_errors.h"
 #include "stackwalk/h/procstate.h"
+
 #include "stackwalk/src/x86-swk.h"
 #include "stackwalk/src/symtab-swk.h"
+#include "stackwalk/src/libstate.h"
 
 #include "common/h/Types.h"
 
-#include "symtabAPI/h/Function.h"
+#include "dynutil/h/SymReader.h"
 
 using namespace Dyninst;
 using namespace Stackwalker;
@@ -254,17 +256,14 @@ bool WandererHelper::isPCInFunc(Address func_entry, Address pc)
       return false;
    if (func_entry == pc)
       return true;
-#if defined(cap_stackwalker_use_symtab)
-   Symtab *symtab = NULL;
+
+   SymReader *reader = NULL;
    LibAddrPair func_lib, pc_lib;
    LibraryState *tracker = proc->getLibraryTracker();
-   std::vector<Symbol *> funcs;
-   Region *func_region;
-   Offset pc_offset, func_entry_offset;
+   Offset pc_offset, func_entry_offset, func_offset;
    bool result;
-   SymtabAPI::Function *func_symbol = NULL;
-   SymtabAPI::Function *pc_symbol = NULL;
-
+   Symbol_t func_symbol, pc_symbol;
+   Section_t section;
 
    result = tracker->getLibraryAtAddr(func_entry, func_lib);
    if (!result) {
@@ -274,15 +273,15 @@ bool WandererHelper::isPCInFunc(Address func_entry, Address pc)
    }
    func_entry_offset = func_entry - func_lib.second;
 
-   symtab = SymtabWrapper::getSymtab(func_lib.first);
-   if (!symtab) {
-      sw_printf("[%s:%u] - Failed to open symtab for %s\n", 
+   reader = LibraryWrapper::getLibrary(func_lib.first);
+   if (!reader) {
+      sw_printf("[%s:%u] - Failed to open reader for %s\n", 
                 __FILE__, __LINE__, func_lib.first.c_str());
-      goto symtab_fail;
+      goto reader_fail;
    }
-
-   func_region = symtab->findEnclosingRegion(func_entry_offset);
-   if (func_region->getRegionName() == std::string(".plt")) {
+   
+   section = reader->getSectionByAddress(func_entry_offset);
+   if (reader->getSectionName(section) == std::string(".plt")) {
       sw_printf("[%s:%u] - %lx is a PLT entry, trying to map to real target\n",
                 __FILE__, __LINE__, func_entry);
       int got_offset = -1;
@@ -311,7 +310,7 @@ bool WandererHelper::isPCInFunc(Address func_entry, Address pc)
       }
       if (proc->getAddressWidth() == 8) {
          //32-bit mode.  Recognize common PLT idioms
-         #define MAX_PLT64_IDIOM_SIZE 6
+#define MAX_PLT64_IDIOM_SIZE 6
          unsigned char buffer[MAX_PLT64_IDIOM_SIZE];
          result = proc->readMem(buffer, func_entry, MAX_PLT64_IDIOM_SIZE);
          if (buffer[0] == 0xff && buffer[1] == 0x25) {
@@ -331,9 +330,11 @@ bool WandererHelper::isPCInFunc(Address func_entry, Address pc)
       if (got_offset != -1) {
          sw_printf("[%s:%u] - Computed PLT to be going through GOT offset %d\n",
                    __FILE__, __LINE__, got_offset);
-         Region *got_region = NULL;
-         result = symtab->findRegion(got_region, ".got");
-         got_abs = got_offset + got_region->getMemOffset() + func_lib.second;
+         Section_t got_section = reader->getSectionByName(".got");
+         if (reader->isValidSection(got_section)) {
+            got_abs = got_offset + reader->getSectionAddress(got_section) + 
+                      func_lib.second;
+         }
       }
 
       if (got_abs) {
@@ -368,25 +369,27 @@ bool WandererHelper::isPCInFunc(Address func_entry, Address pc)
       return false;
    }
 
-   result = symtab->getContainingFunction(func_entry_offset, func_symbol);
-   if (!result || !func_symbol) {
+   func_symbol = reader->getContainingSymbol(func_entry_offset);
+   if (!reader->isValidSymbol(func_symbol)) {
       sw_printf("[%s:%u] - No functions begin at %lx\n", 
                 __FILE__, __LINE__, func_entry_offset);
-      goto symtab_fail;
+      goto reader_fail;
    }
 
-   result = symtab->getContainingFunction(pc_offset, pc_symbol);
-   if (!result || !pc_symbol) {
+   pc_symbol = reader->getContainingSymbol(pc_offset);
+   if (!reader->isValidSymbol(pc_symbol)) {
       sw_printf("[%s:%u] - No functions begin at %lx\n", 
                 __FILE__, __LINE__, func_entry_offset);
-      goto symtab_fail;
+      goto reader_fail;
    }
 
+   func_offset = reader->getSymbolOffset(func_symbol);
+   pc_offset = reader->getSymbolOffset(pc_symbol);
    sw_printf("[%s:%u] - Decided func at offset %lx and pc-func at offset %lx\n",
-             __FILE__, __LINE__, func_symbol->getOffset(), pc_symbol->getOffset());
-   return (func_symbol->getOffset() == pc_symbol->getOffset());
- symtab_fail:   
-#endif
+             __FILE__, __LINE__, func_offset, pc_offset);
+   return (func_offset == pc_offset);
+ reader_fail:   
+
    //We don't have much to work with.  This is all heuristics anyway, so assume
    // that if pc is within 8k of func_entry that it's a part of the function.
    return (pc >= func_entry && pc < func_entry + 8192);

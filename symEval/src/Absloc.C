@@ -195,8 +195,16 @@ bool AbsRegion::containsOfType(Absloc::Type t) const {
 }
 
 bool AbsRegion::operator==(const AbsRegion &rhs) const {
-  return (contains(rhs) && rhs.contains(*this));
+  // return contains(rhs) && rhs.contains(*this));
+  return ((type_ == rhs.type_) &&
+	  (absloc_ == rhs.absloc_));
 }
+
+bool AbsRegion::operator!=(const AbsRegion &rhs) const { 
+  return ((type_ != rhs.type_) ||
+	  (absloc_ != rhs.absloc_));
+}
+
 
 bool AbsRegion::operator<(const AbsRegion &rhs) const {
   if (absloc_ < rhs.absloc_) return true;

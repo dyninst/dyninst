@@ -37,6 +37,7 @@
 #include "dyntypes.h"
 #include <set>
 
+#include "dynutil/h/SymReader.h"
 #include "stackwalk/src/get_trap_instruction.h"
 #define MAX_TRAP_LEN 8
 
@@ -64,6 +65,9 @@ class ProcDebugLinux : public ProcDebug {
   virtual ~ProcDebugLinux();
 
   virtual bool getRegValue(Dyninst::MachRegister reg, Dyninst::THR_ID thread, Dyninst::MachRegisterVal &val);
+  virtual bool setRegValue(Dyninst::MachRegister reg, 
+			   Dyninst::THR_ID t, 
+			   Dyninst::MachRegisterVal val);
   virtual bool readMem(void *dest, Dyninst::Address source, size_t size);
   virtual bool getThreadIds(std::vector<Dyninst::THR_ID> &threads);
   virtual bool getDefaultThread(Dyninst::THR_ID &default_tid);
@@ -93,15 +97,40 @@ class SigHandlerStepperImpl : public FrameStepper {
 private:
    SigHandlerStepper *parent_stepper;
    void registerStepperGroupNoSymtab(StepperGroup *group);
+   bool init_libc;
+   bool init_libthread;
 public:
    SigHandlerStepperImpl(Walker *w, SigHandlerStepper *parent);
    virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
    virtual unsigned getPriority() const;
    virtual void registerStepperGroup(StepperGroup *group);
+   virtual void newLibraryNotification(LibAddrPair *la, lib_change_t change);
+   virtual const char *getName() const;
    virtual ~SigHandlerStepperImpl();  
 };
 
+struct vsys_info {
+   void *vsys_mem;
+   Dyninst::Address start;
+   Dyninst::Address end;
+   Dyninst::SymReader *syms;
+   vsys_info() :
+      vsys_mem(NULL),
+      start(0),
+      end(0),
+      syms(NULL)
+   {
+   }
+   ~vsys_info() {
+      if (vsys_mem) free(vsys_mem);
+   }
+};
+
+vsys_info *getVsysInfo(ProcessState *ps);
 }
 }
+
+class Elf_X;
+Elf_X *getElfHandle(std::string s);
 
 #endif

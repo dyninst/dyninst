@@ -42,7 +42,7 @@
 #include "process.h"
 #include "function.h"
 #if !defined(cap_instruction_api)
-#include "InstrucIter.h"
+#include "parseAPI/src/InstrucIter.h"
 #endif
 #include "BPatch_instruction.h"
 #include "Instruction.h"
@@ -488,7 +488,7 @@ BPatch_Vector<BPatch_point*> *BPatch_basicBlock::findPointInt(const BPatch_Set<B
     return findPointByPredicate(filter);
 #else
     // Use an instruction iterator
-    InstrucIter ii(this);
+    InstrucIter ii(getStartAddress(),size(),flowGraph->getllAddSpace());
     BPatch_function *func = flowGraph->getBFunction();
     
     return BPatch_point::getPoints(ops, ii, func);
@@ -522,7 +522,7 @@ BPatch_Vector<BPatch_instruction*> *BPatch_basicBlock::getInstructionsInt(void) 
   if (!instructions) {
 
     instructions = new BPatch_Vector<BPatch_instruction*>;
-    InstrucIter ii(this);
+    InstrucIter ii(getStartAddress(),size(),flowGraph->getllAddSpace());
     
     while(ii.hasMore()) {
       BPatch_instruction *instr = ii.getBPInstruction();
@@ -546,9 +546,10 @@ BPatch_Vector<BPatch_instruction*> *BPatch_basicBlock::getInstructionsInt(void) 
 bool BPatch_basicBlock::getInstructionsInt(std::vector<InstructionAPI::Instruction::Ptr>& insns) {
   using namespace InstructionAPI;
 
-  InstructionDecoder d((const unsigned char*)(iblock->proc()->getPtrToInstruction(getStartAddress())),
-		       size(),
-		       iblock->llb()->getFirstFunc()->img()->getArch());
+  InstructionDecoder d((const unsigned char*)
+        (iblock->proc()->getPtrToInstruction(getStartAddress())),
+        size(),
+        iblock->llb()->obj()->cs()->getArch());
   do {
       insns.push_back(d.decode());
   } while (insns.back() && insns.back()->isValid());
@@ -564,7 +565,7 @@ bool BPatch_basicBlock::getInstructionsAddrs(std::vector<std::pair<InstructionAP
   Address addr = getStartAddress();
   const unsigned char *ptr = (const unsigned char *)iblock->proc()->getPtrToInstruction(addr);
   if (ptr == NULL) return false;
-  InstructionDecoder d(ptr, size(), iblock->llb()->getFirstFunc()->img()->getArch());
+  InstructionDecoder d(ptr, size(), iblock->llb()->obj()->cs()->getArch());
 
   while (addr < getEndAddress()) {
       insnInstances.push_back(std::make_pair(d.decode(), addr));
@@ -574,12 +575,12 @@ bool BPatch_basicBlock::getInstructionsAddrs(std::vector<std::pair<InstructionAP
   return !insnInstances.empty();  
 }
 #else
-bool BPatch_basicBlock::getInstructionsInt(std::vector<InstructionAPI::Instruction::Ptr>& insns)
+bool BPatch_basicBlock::getInstructionsInt(std::vector<InstructionAPI::Instruction::Ptr>& /* insns */)
 {
   return false;
 }
 
-bool BPatch_basicBlock::getInstructionsAddrs(std::vector<std::pair<InstructionAPI::Instruction::Ptr, Address> >& insnInstances)
+bool BPatch_basicBlock::getInstructionsAddrs(std::vector<std::pair<InstructionAPI::Instruction::Ptr, Address> >& /* insnInstances */)
 {
   return false;
 }

@@ -40,11 +40,13 @@ Slicer::Slicer(Assignment::Ptr a,
   a_(a),
   b_(block),
   f_(func),
-  converter(true) {};
+  converter(true) {
+};
 
 Graph::Ptr Slicer::forwardSlice(PredicateFunc &e,
 				PredicateFunc &w,
-				CallStackFunc &c) {
+				CallStackFunc &c,
+				AbsRegionFunc &a) {
   // The End functor tells us when we should end the slice
   // The Widen functor tells us when we should give up and say
   // "this could go anywhere", which is represented with a
@@ -79,7 +81,7 @@ Graph::Ptr Slicer::forwardSlice(PredicateFunc &e,
   Element initial;
   constructInitialElement(initial);
 
-  Predicates p(e, w, c);
+  Predicates p(e, w, c, a);
 
   AssignNode::Ptr aP = createNode(initial);
   slicing_cerr << "Inserting entry node " << aP << "/" << aP->format() << endl;
@@ -90,10 +92,10 @@ Graph::Ptr Slicer::forwardSlice(PredicateFunc &e,
 
   std::set<Assignment::Ptr> visited;
 
+  int counter = 0;
+
   while (!worklist.empty()) {
     Element current = worklist.front(); worklist.pop();
-
-    slicing_cerr << "Slicing from " << current.ptr->format() << endl;
 
     assert(current.ptr);
 
@@ -108,6 +110,16 @@ Graph::Ptr Slicer::forwardSlice(PredicateFunc &e,
     else {
       visited.insert(current.ptr);
     }
+
+    slicing_cerr << "\tSlicing from " << current.ptr->format() << endl;
+#if 0
+    // DEBUG CODE
+    counter++;
+    if (counter > 10000)  {
+      cerr << "Slice from " << aP->format() << endl;
+      assert(0 && "Odd case in slicing!");
+    }
+#endif
     
     // Do we widen out? This should check the defined
     // abstract region...
@@ -144,7 +156,7 @@ Graph::Ptr Slicer::forwardSlice(PredicateFunc &e,
   }
 
   cleanGraph(ret);
-
+  slicing_cerr << "... done" << endl;
   return ret;
 }
 
@@ -718,14 +730,14 @@ bool Slicer::forwardSearch(Element &initial,
   // the first definition anyway (hence visited is implicit)
 
   Elements worklist;
-
-  slicing_cerr << "\t\t Getting forward successors \
-from " << initial.ptr->format()
-	       << " - " << initial.reg.format() << endl;
+  
+  slicing_cerr << "\t\t Getting forward successors from " << initial.ptr->format()
+  << " - " << initial.reg.format() << endl;
 
   if (!getSuccessors(initial,
 		     worklist,
 		     p)) {
+    slicing_cerr << "Initial successors failed" << endl;
     ret = false;
   }
 

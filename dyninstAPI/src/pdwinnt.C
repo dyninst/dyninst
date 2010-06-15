@@ -50,11 +50,13 @@
 #include <windows.h>
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/emit-x86.h"
-#include "dyninstAPI/src/arch-x86.h"
+#include "common/h/arch.h"
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/registerSpace.h"
 
 #include "dyninstAPI/src/ast.h"
+
+#include "dyninstAPI/src/function.h"
 
 /* XXX This is only needed for emulating signals. */
 #include "BPatch_thread.h"
@@ -1474,7 +1476,7 @@ void dyn_lwp::representativeLWP_detach_()
 // Insert a breakpoint at the entry of main()
 bool process::insertTrapAtEntryPointOfMain() {
   mapped_object *aout = getAOut();
-  Symtab *aout_obj = aout->parse_img()->getObject();
+  SymtabAPI::Symtab *aout_obj = aout->parse_img()->getObject();
   pdvector<int_function *> funcs;
   Address min_addr = 0xffffffff;
   Address max_addr = 0x0;

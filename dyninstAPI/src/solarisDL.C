@@ -242,7 +242,7 @@ sharedLibHook::sharedLibHook(process *p, sharedLibHookType t, Address b)
     // the retl instruction by changing the value of the %o7 register
     // so that it looks like the retl instruction has executed
     codeGen gen(instruction::size());
-    instruction::generateTrap(gen);
+    insnCodeGen::generateTrap(gen);
     proc_->writeDataSpace((caddr_t)breakAddr_,
                           gen.used(),
                           gen.start_ptr());

@@ -184,7 +184,7 @@ static bool hasAllocatedFrame(Address addr, process *proc, int &offset)
         range->is_basicBlockInstance()) {
       frameChecker fc((const unsigned char*)(proc->getPtrToInstruction(addr)),
 		      range->get_size() - (addr - range->get_address()),
-		      proc->getAOut()->parse_img()->getArch());
+		      proc->getAOut()->parse_img()->codeObject()->cs()->getArch());
       if(fc.isReturn() || fc.isStackPreamble())
       {
 	offset = 0;
@@ -349,7 +349,7 @@ Frame Frame::getCallerFrame()
    if (status == frame_vsyscall)
    {
 #if defined(os_linux)
-      Symtab *vsys_obj;
+      SymtabAPI::Symtab *vsys_obj;
 
       if ((vsys_obj = getProc()->getVsyscallObject()) == NULL ||
           !vsys_obj->hasStackwalkDebugInfo())

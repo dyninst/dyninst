@@ -21,6 +21,20 @@ SRCS = 	../src/linux-swk.C \
 	../src/ppc-swk.C \
 	../src/symtab-swk.C
 
+ifdef LIBELF_INC
+MYFLAGS += -I$(LIBELF_INC)
+endif
+ifdef LIBDWARF_INC
+MYFLAGS += -I$(LIBDWARF_INC)
+endif
+
+ifdef LIBELF_LIB
+MYFLAGS += -L$(LIBELF_LIB) -lelf
+endif
+ifdef LIBDWARF_LIB
+MYFLAGS += -L$(LIBDWARF_LIB) -ldwarf
+endif
+
 LIBS	+=
 CFLAGS  += -m32 $(MYFLAGS)
 CXXFLAGS  += -m32 $(MYFLAGS)

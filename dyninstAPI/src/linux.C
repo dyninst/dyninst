@@ -86,6 +86,7 @@
 // #include "saveSharedLibrary.h" 
 #endif
 #include "symtabAPI/h/Symtab.h"
+using namespace Dyninst::SymtabAPI;
 
 //TODO: Remove the writeBack functions and get rid of this include
 #ifdef PAPI
@@ -97,8 +98,6 @@
 #if !defined(PTRACE_SETOPTIONS)
 #if defined(arch_x86)
 #define PTRACE_SETOPTIONS 21
-#elif defined(arch_ia64)
-#define PTRACE_SETOPTIONS 0x4200
 #endif
 #endif
 
@@ -665,7 +664,7 @@ bool SignalGenerator::suppressSignalWhenStopping(EventRecord &ev)
 #if defined(arch_x86) || defined(arch_x86_64)
      Address trap_pc = ev.lwp->getActiveFrame().getPC();
      ev.lwp->changePC(trap_pc - 1, NULL);
-#endif /* defined( arch_ia64 ) */
+#endif 
   }
 
   ev.lwp->continueLWP_(0, true);

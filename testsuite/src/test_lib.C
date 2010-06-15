@@ -90,6 +90,28 @@ FILE *errlog = NULL;
 const char *outlogname = "-";
 const char *errlogname = "-";
 
+static char *binedit_dir = BINEDIT_BASENAME;
+
+char *get_binedit_dir()
+{
+	return binedit_dir;
+}
+
+void set_binedit_dir(char *d)
+{
+	binedit_dir = d;
+}
+
+static char *resumelog_name = "resumelog";
+char *get_resumelog_name() {
+	return resumelog_name;
+}
+
+void set_resumelog_name(char *s) {
+	resumelog_name = s;
+}
+
+
 LocErr::LocErr(const char *__file__, const int __line__, const std::string msg) :
 	msg__(msg),
 	file__(std::string(__file__)),
@@ -341,7 +363,7 @@ void registerPID(int pid) {
 	}
 	FILE *pidFile = fopen(pidFilename, "a");
 	if (NULL == pidFile) {
-		fprintf(stderr, "[%s:%u] - Error registering mutatee PID: unable to open PID file\n", __FILE__, __LINE__);
+		//fprintf(stderr, "[%s:%u] - Error registering mutatee PID: unable to open PID file\n", __FILE__, __LINE__);
 	} else {
      fprintf(pidFile, "%d\n", pid);
      fclose(pidFile);
@@ -571,16 +593,15 @@ int startNewProcessForAttach(const char *pathname, const char *argv[],
 #else
    /* Make a pipe that we will use to signal that the mutatee has started. */
    int fds[2];
+   char fdstr[32];
    if (attach) {
       if (pipe(fds) != 0) {
          fprintf(stderr, "*ERROR*: Unable to create pipe.\n");
          return -1;
       }
+      /* Create the argv string for the child process. */
+      sprintf(fdstr, "%d", fds[1]);
    }
-
-   /* Create the argv string for the child process. */
-   char fdstr[32];
-   sprintf(fdstr, "%d", fds[1]);
 
    int i;
    for (i = 0; argv[i] != NULL; i++) ;
@@ -621,14 +642,19 @@ int startNewProcessForAttach(const char *pathname, const char *argv[],
       char *ld_path = getenv("LD_LIBRARY_PATH");
       char *new_ld_path = NULL;
       if (ld_path) {
-         new_ld_path = (char *) malloc(strlen(ld_path) + strlen("./binaries") + 2);
-         strcpy(new_ld_path, "./binaries:");
+         new_ld_path = (char *) malloc(strlen(ld_path) + strlen(binedit_dir) + 4);
+         strcpy(new_ld_path, "./");
+         strcat(new_ld_path, binedit_dir);
+         strcat(new_ld_path, ":");
          strcat(new_ld_path, ld_path);
-         setenv("LD_LIBRARY_PATH", new_ld_path, 1);
       }
       else {
-         setenv("LD_LIBRARY_PATH", "./binaries", 1);
+         new_ld_path = (char *) malloc(strlen(binedit_dir) + 4);
+         strcpy(new_ld_path, "./");
+         strcat(new_ld_path, binedit_dir);
+         strcat(new_ld_path, ":");
       }
+      setenv("LD_LIBRARY_PATH", new_ld_path, 1);
 
 	  //fprintf(stderr, "%s[%d]:  before exec '%s':  LD_LIBRARY_PATH='%s'\n", 
 	  //FILE__, __LINE__, pathname, getenv("LD_LIBRARY_PATH"));
@@ -700,7 +726,7 @@ void dprintf(const char *fmt, ...) {
 
 // Build Architecture specific libname
 // FIXME Is this used any more?  Is it necessary?
-void addLibArchExt(char *dest, unsigned int dest_max_len, int psize)
+void addLibArchExt(char *dest, unsigned int dest_max_len, int psize, bool isStatic)
 {
    int dest_len;
 
@@ -730,8 +756,13 @@ void addLibArchExt(char *dest, unsigned int dest_max_len, int psize)
    strncat(dest, ".dll", dest_max_len - dest_len);
    dest_len += 4;
 #else
-   strncat(dest, ".so", dest_max_len - dest_len);
-   dest_len += 3;
+   if( isStatic ) {
+       strncat(dest, ".a", dest_max_len - dest_len);
+       dest_len += 2;
+   }else{
+       strncat(dest, ".so", dest_max_len - dest_len);
+       dest_len += 3;
+   }
 #endif
 }
 

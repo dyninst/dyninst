@@ -32,6 +32,7 @@
 #include "common/h/addrtranslate.h"
 #include "common/src/addrtranslate-sysv.h"
 #include "common/h/linuxKludges.h"
+#include "common/h/parseauxv.h"
 
 #include <cstdio>
 #include <linux/limits.h>
@@ -51,7 +52,7 @@ public:
    ProcessReaderPtrace(int pid_);
    virtual bool start();
    virtual bool ReadMem(Address inTraced, void *inSelf, unsigned amount);
-   virtual bool GetReg(MachRegister reg, MachRegisterVal &val) { assert(0); }
+   virtual bool GetReg(MachRegister /*reg*/, MachRegisterVal &/*val*/) { assert(0); }
    virtual bool done();
 
    virtual ~ProcessReaderPtrace();
@@ -129,9 +130,7 @@ bool AddressTranslateSysV::setInterpreter()
    if (interpreter)
       return true;
 
-   char name[64];
-   sprintf(name, "/proc/%d/exe", pid);
-   string sname(name);
+   string sname = getExecName();
    string interp_name;
 
    FCNode *exe = files.getNode(sname, symfactory);
@@ -190,7 +189,7 @@ static char *deref_link(const char *path)
 }
 
 
-const string& AddressTranslateSysV::getExecName() 
+string AddressTranslateSysV::getExecName() 
 {
    if (exec_name.empty()) {
       char name[64];
@@ -204,7 +203,7 @@ const string& AddressTranslateSysV::getExecName()
 LoadedLib *AddressTranslateSysV::getAOut()
 {
    // TODO: shouldn't this just return exec if it's set?
-   return new LoadedLib(getExecName(), 0);
+   LoadedLib *ll = new LoadedLib(getExecName(), 0);
+   ll->setFactory(symfactory);
+   return ll;
 }
-
-

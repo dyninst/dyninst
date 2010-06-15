@@ -110,6 +110,11 @@ LoadedLib *AddressTranslate::getExecutable()
    return exec;
 }
 
+bool AddressTranslate::getArchLibs(std::vector<LoadedLib *> &)
+{
+   return true;
+}
+
 string LoadedLib::getName() const {
    return name;
 }

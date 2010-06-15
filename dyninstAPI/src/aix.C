@@ -59,14 +59,15 @@
 #include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/inst-power.h" // Tramp constants
 #include "dyninstAPI/src/multiTramp.h"
-#include "dyninstAPI/src/InstrucIter.h"
-
 #include "dyninstAPI/src/registerSpace.h"
+#include "dyninstAPI/src/function.h"
 
 #include "dyninstAPI/h/BPatch.h"
 #include "dyninstAPI/h/BPatch_process.h"
 #include "dyninstAPI/h/BPatch_function.h"
 
+// FIXME remove and remove InstrucIter references
+#include "parseAPI/src/InstrucIter.h"
 
 #include "mapped_module.h"
 #include "mapped_object.h"
@@ -122,7 +123,9 @@ Frame Frame::getCallerFrame()
 
   if (uppermost_) {
     if (func) {
-      isLeaf = func->makesNoCalls();
+      // on Power architectures we want to know if it saves the return addr.
+      //isLeaf = func->isLeafFunc();
+      isLeaf = !func->savesReturnAddr();
       noFrame = func->hasNoStackFrame();
     }
   }
@@ -377,26 +380,6 @@ void OS::osDisconnect(void)
   ioctl (ttyfd, TIOCNOTTY, NULL); 
   P_close (ttyfd);
 }
-
-#if defined(duplicated_in_process_c_because_linux_ia64_needs_it)
-Address process::getTOCoffsetInfo(Address dest)
-{
-  // We have an address, and want to find the module the addr is
-  // contained in. Given the probabilities, we (probably) want
-  // the module dyninst_rt is contained in. 
-  // I think this is the right func to use
-
-  if (symbols->findFuncByAddr(dest, this))
-    return (Address) (symbols->getObject())->getTOCoffset();
-
-  if (shared_objects)
-      for (u_int j=0; j < shared_objects->size(); j++)
-      if (((*shared_objects)[j])->getImage()->findFuncByAddr(dest, this))
-	return (Address) (((*shared_objects)[j])->getImage()->getObject())->getTOCoffset();
-  // Serious error! Assert?
-  return 0;
-}
-#endif
 
 #if defined(cap_dynamic_heap)
 
@@ -1301,7 +1284,7 @@ bool process::insertTrapAtEntryPointOfMain()
     readDataSpace((void *)addr, instruction::size(), savedCodeBuffer, true);
     // and now, insert trap
     codeGen gen(instruction::size());
-    instruction::generateTrap(gen);
+    insnCodeGen::generateTrap(gen);
 
     if (!writeDataSpace((void *)addr, gen.used(), gen.start_ptr()))
         fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
@@ -1446,7 +1429,7 @@ bool process::loadDYNINSTlib()
     popStack(scratchCodeBuffer);
 
     dyninstlib_brk_addr = codeBase + scratchCodeBuffer.used();
-    instruction::generateTrap(scratchCodeBuffer);
+    insnCodeGen::generateTrap(scratchCodeBuffer);
 
     startup_printf("[%d]: call to dlopen breaks at 0x%lx\n", getPid(),
                    dyninstlib_brk_addr);
@@ -2024,7 +2007,7 @@ int_function *instPoint::findCallee() {
     using namespace Dyninst::InstructionAPI;
     const unsigned char* buffer = (const unsigned char*)(proc()->getPtrToInstruction(callTarget()));
     parsing_printf("Checking for linkage at addr 0x%lx\n", callTarget());
-    InstructionDecoder d(buffer, 24, img_p_->func()->img()->getArch());
+    InstructionDecoder d(buffer, 24, proc()->getArch());
     std::vector<Instruction::Ptr> insns;
     Instruction::Ptr tmp;
     while(tmp = d.decode()) insns.push_back(tmp);

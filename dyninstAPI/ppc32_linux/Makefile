@@ -30,12 +30,10 @@ SRCS =          ../src/linux.C \
 		../src/linuxMT.C \
                 ../src/inst-linux.C \
                 ../src/inst-power.C \
-                ../src/arch-power.C \
                 ../src/unix.C \
+        ../src/codegen-power.C\
 		../src/image-power.C \
 		../src/syscall-linux.C \
-		../src/IA_power.C \
-		../src/IA_IAPI.C \
 		../src/BPatch_memoryAccessAdapter.C \
 		../src/stackanalysis.C
 #		../src/addLibraryLinux.C \

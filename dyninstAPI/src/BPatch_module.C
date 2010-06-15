@@ -36,6 +36,7 @@
 #define BPATCH_FILE
 
 #include "process.h"
+#include "function.h"
 #include "debug.h"
 #include "BPatch.h"
 #include "BPatch_module.h"
@@ -49,9 +50,7 @@
 #include "mapped_object.h"
 #include "instPoint.h"
 
-#if defined(arch_ia64)
-#include "arch-ia64.h"
-#endif
+using namespace SymtabAPI;
 
 std::string current_func_name;
 std::string current_mangled_func_name;
@@ -235,7 +234,7 @@ bool BPatch_module::parseTypesIfNecessary()
 	if (!isValid())
 		return false;
 
-	bool is64 = (mod->pmod()->imExec()->getAddressWidth() == 8);
+	bool is64 = (mod->pmod()->imExec()->codeObject()->cs()->getAddressWidth() == 8);
 
 	if (sizeof(void *) == 8 && !is64) 
 	{
@@ -826,7 +825,7 @@ BPatch_Vector<BPatch_point *> *BPatch_module::getUnresolvedControlFlowInt()
     while (cIter != ctrlTransfers.end()) {
         image_instPoint *curPoint = *cIter;
         Address curAddr = curPoint->offset() 
-            + curPoint->func()->img()->desc().loadAddr();
+            + lowlevel_mod()->pmod()->imExec()->desc().loadAddr();
         // if this is a static CT skip if target leads to known code
         if ( ! curPoint->isDynamic() && 
              getAS()->findOrigByAddr(curPoint->callTarget())) {

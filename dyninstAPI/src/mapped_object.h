@@ -41,11 +41,13 @@
 //  we really do not want to have this defined, but I'm defining it for the moment to get thru paradyn seperation
 #define CHECK_ALL_CALL_POINTS  // we depend on this for Paradyn
 
+using namespace Dyninst;
+
 class mapped_module;
 
 class int_symbol {
  public:
-    int_symbol(Symbol *sym, Address base) : addr_(base + sym->getOffset()), sym_(sym) {}
+    int_symbol(SymtabAPI::Symbol *sym, Address base) : addr_(base + sym->getOffset()), sym_(sym) {}
     int_symbol() : addr_(0), sym_(NULL) {};
 
     Address getAddr() const { return addr_; }
@@ -53,11 +55,11 @@ class int_symbol {
     const string &symTabName() const { return sym_->getMangledName(); }
     const string &prettyName() const { return sym_->getPrettyName(); }
     const string &typedName() const { return sym_->getTypedName(); }
-    const Symbol *sym() const { return sym_; }
+    const SymtabAPI::Symbol *sym() const { return sym_; }
 
  private:
     Address addr_;
-    const Symbol *sym_;
+    const SymtabAPI::Symbol *sym_;
 };
 
 

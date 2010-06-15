@@ -31,26 +31,30 @@
  
 // $Id: reloc-func.C,v 1.41 2008/09/08 16:44:05 bernat Exp $
 
-
-
 #include "common/h/Types.h"
+
 #include "function.h"
 #include "process.h"
+
 #include "debug.h"
 #include "codeRange.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/multiTramp.h"
 #if defined(cap_instruction_api)
-#include "dyninstAPI/src/arch.h"
+#include "common/h/arch.h"
 #include "instructionAPI/h/InstructionDecoder.h"
 #include "instructionAPI/h/Instruction.h"
 #else
-#include "dyninstAPI/src/InstrucIter.h"
+#include "parseAPI/src/InstrucIter.h"
 #endif
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/patch.h"
+
+#include "arch-forward-decl.h" // instruction
+
+#include "dyn_detail/boost/make_shared.hpp"
+
 class int_basicBlock;
-class instruction;
 
 // We'll also try to limit this to relocation-capable platforms
 // in the Makefile. Just in case, though....
@@ -552,7 +556,7 @@ bool int_function::expandForInstrumentation() {
         if (bblI->getSize() < multi->sizeDesired()) {
             reloc_printf("Enlarging basic block %d; currently %d, %d bytes required; start addr 0x%lx\n",
                          i, bblI->getSize(), multi->sizeDesired(), bblI->firstInsnAddr());
-            pdvector<bblInstance::reloc_info_t::relocInsn *> whocares;
+            pdvector<bblInstance::reloc_info_t::relocInsn::Ptr> whocares;
             bool found = false;
             // Check to see if there's already a request for it...
             for (unsigned j = 0; j < enlargeMods_.size(); j++) {
@@ -606,9 +610,10 @@ bool bblInstance::relocationSetup(bblInstance *orig, pdvector<funcMod *> &mods) 
    assert(origInstance());
    // First, build the insns vector
 
-   for (i = 0; i < relocs().size(); i++) {
-     delete relocs()[i];
-   }
+   //shared_ptr now
+   //for (i = 0; i < relocs().size(); i++) {
+   //  delete relocs()[i];
+   //}
 
    relocs().clear();
 
@@ -618,14 +623,16 @@ bool bblInstance::relocationSetup(bblInstance *orig, pdvector<funcMod *> &mods) 
 #if defined(cap_instruction_api)
    using namespace Dyninst::InstructionAPI;
    unsigned char* buffer = reinterpret_cast<unsigned char*>(orig->proc()->getPtrToInstruction(orig->firstInsnAddr()));
-   InstructionDecoder d(buffer, orig->getSize(), func()->ifunc()->img()->getArch());
+   InstructionDecoder d(buffer, orig->getSize(), func()->ifunc()->isrc()->getArch());
    
    size_t offset = 0;
    while(offset < orig->getSize())
    {
      Instruction::Ptr tmp = d.decode();
      
-     reloc_info_t::relocInsn *reloc = new reloc_info_t::relocInsn;
+     //reloc_info_t::relocInsn *reloc = new reloc_info_t::relocInsn;
+     reloc_info_t::relocInsn::Ptr reloc = 
+        dyn_detail::boost::make_shared<reloc_info_t::relocInsn>();
 
      reloc->origAddr = orig->firstInsnAddr() + offset;
      reloc->relocAddr = 0;
@@ -643,11 +650,13 @@ bool bblInstance::relocationSetup(bblInstance *orig, pdvector<funcMod *> &mods) 
    
   
 #else
-   InstrucIter insnIter(orig);
+   InstrucIter insnIter(orig->firstInsnAddr(),orig->getSize(),orig->proc());
    while (insnIter.hasMore()) {
      instruction *insnPtr = insnIter.getInsnPtr();
      assert(insnPtr);
-     reloc_info_t::relocInsn *reloc = new reloc_info_t::relocInsn;
+     //reloc_info_t::relocInsn *reloc = new reloc_info_t::relocInsn;
+     reloc_info_t::relocInsn::Ptr reloc =
+        dyn_detail::boost::make_shared<reloc_info_t::relocInsn>();
 
      reloc->origAddr = *insnIter;
      reloc->relocAddr = 0;
@@ -739,7 +748,8 @@ bool bblInstance::generate(bblInstance *nextBBL) {
           fallthroughOverride = fallthrough;
       }
 
-      relocs()[i]->origInsn->generate(generatedBlock(),
+      insnCodeGen::generate(generatedBlock(),
+                                      *relocs()[i]->origInsn,
                                       proc(),
                                       origAddr,
                                       currAddr,
@@ -815,7 +825,7 @@ bool bblInstance::link(pdvector<codeRange *> &overwrittenObjs) {
 }
 
 bool enlargeBlock::modifyBBL(int_basicBlock *block,
-                             pdvector<bblInstance::reloc_info_t::relocInsn *> &,
+                             pdvector<bblInstance::reloc_info_t::relocInsn::Ptr> &,
                              bblInstance &bbl)
 {
    if (block == targetBlock_) {
@@ -836,7 +846,7 @@ bool enlargeBlock::modifyBBL(int_basicBlock *block,
 }
 
 bool enlargeBlock::update(int_basicBlock *block,
-                          pdvector<bblInstance::reloc_info_t::relocInsn *> &,
+                          pdvector<bblInstance::reloc_info_t::relocInsn::Ptr> &,
                           unsigned size) {
     if (block == targetBlock_) {
         if (size == (unsigned) -1) {
@@ -908,7 +918,7 @@ bool functionReplacement::generateFuncRepJump(pdvector<int_function *> &needRelo
 		 targetInst->firstInsnAddr(),
 		 targetVersion_);
 
-    instruction::generateInterFunctionBranch(jumpToRelocated,
+    insnCodeGen::generateInterFunctionBranch(jumpToRelocated,
                                              sourceInst->firstInsnAddr(),
                                              targetInst->firstInsnAddr());
 
@@ -1055,7 +1065,7 @@ bool functionReplacement::generateFuncRepTrap(pdvector<int_function *> &needRelo
 		 targetInst->firstInsnAddr(),
 		 targetVersion_);
 
-    instruction::generateTrap(jumpToRelocated);
+    insnCodeGen::generateTrap(jumpToRelocated);
 
     // Determine whether relocation of this function will force relocation
     // of any other functions:
@@ -1137,7 +1147,7 @@ bool int_basicBlock::needsJumpToNewVersion() {
     pdvector<int_basicBlock *> sources;
     getSources(sources);
     for (unsigned i = 0; i < sources.size(); i++) {
-        if (getSourceEdgeType(sources[i]) == ET_INDIR)
+        if (getSourceEdgeType(sources[i]) == ParseAPI::INDIRECT)
             return true;
     }
     return false;

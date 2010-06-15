@@ -13,6 +13,7 @@ ICC = @_ICC_@
 ICPC = @_ICPC_@
 endif
 
+PGI = @_PGC_@
 M_pg_cc = @_PGC_@
 M_pg_cxx = @_PGCXX_@
 # PGI is defined in environment to point to path; needed for licensing, so we can rely on it

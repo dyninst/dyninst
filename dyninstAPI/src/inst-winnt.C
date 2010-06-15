@@ -42,6 +42,8 @@
 #include "common/h/stats.h"
 #include "dyninstAPI/src/instPoint.h"
 
+#include "dyninstAPI/src/function.h"
+
 #include "Instruction.h"
 #include "InstructionDecoder.h"
 using namespace Dyninst::InstructionAPI;
@@ -104,7 +106,7 @@ void initPrimitiveCost()
 
 // hasBeenBound: returns false
 // dynamic linking not implemented on this platform
-bool process::hasBeenBound(const relocationEntry &,int_function *&, Address ) {
+bool process::hasBeenBound(const SymtabAPI::relocationEntry &,int_function *&, Address ) {
     return false;
 }
 
@@ -146,21 +148,24 @@ int_function *instPoint::findCallee()
 	  if (cr == NULL) {
          return NULL;
 	  }
-      // if target address is a known function, return it
+
       int_function* func = cr->is_function();
-      if (func != NULL) {
-         callee_ = func;
-         return func;
-      }
-      mapped_object *obj = cr->is_mapped_object();
-      if (obj == NULL)
+	  mapped_object *obj = cr->is_mapped_object();
+      if (func == NULL && obj == NULL)
          return NULL;
       
+	  /*
+       * Handle the idiom discussed above, of calls to an entry in the ILT
+	   * that then branch direct to the real function. If the instruction
+	   * at `callTarget' is a branch to the start of a known function, 
+	   * return that function as `callee_'; otherwise if there is a 
+	   * function at `callTarget', return it as `callee_'.
+	   */
       // get a "local" pointer to the call target instruction
         static const unsigned max_insn_size = 16; // covers AMD64
       const unsigned char *insnLocalAddr =
         (unsigned char *)(proc()->getPtrToInstruction(callTarget));
-	  InstructionDecoder d(insnLocalAddr, max_insn_size, img_p_->func()->img()->getArch());
+	  InstructionDecoder d(insnLocalAddr, max_insn_size, proc()->getArch());
       Instruction::Ptr insn = d.decode();
       if(insn && (insn->getCategory() == c_BranchInsn))
       {
@@ -184,6 +189,10 @@ int_function *instPoint::findCallee()
 			  parsing_printf("WARNING: couldn't evaluate IAT jump at 0x%lx: %s\n", callTarget, insn->format().c_str());
 		  }
       }
+	  if(NULL == callee_ && NULL != func) {
+		  callee_ = func;
+		  return callee_;
+	  }
    }
    else
    {

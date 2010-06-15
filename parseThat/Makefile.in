@@ -45,7 +45,7 @@ endif
 OBJS         = $(SRCS:%.C=%.o)
 
 CXXFLAGS    += -Wall
-LIBS        += -lcommon -ldyninstAPI -lsymtabAPI -liberty
+LIBS        += -lcommon -ldyninstAPI -lsymtabAPI -liberty -lparseAPI
 
 ifneq (, $(findstring solaris, $(PLATFORM)))
 LIBS        += -ldwarf  -lelf
@@ -83,6 +83,10 @@ ifneq (, $(findstring x86_64, $(PLATFORM)))
 LIBS        += -linstructionAPI -lsymEval
 endif
 
+ifneq (, $(findstring ppc32_linux, $(PLATFORM)))
+LIBS        += -linstructionAPI
+endif
+
 ifneq (, $(findstring alpha, $(PLATFORM)))
 CXXFLAGS    += -pthread
 endif
@@ -94,8 +98,12 @@ endif
 all: ready parseThat
 
 install: parseThat
-	$(INSTALL) -d $(prefix)
-	$(INSTALL) parseThat $(prefix)/parseThat
+	@if [ $(prefix) != "." ]; then                           \
+		echo "$(INSTALL) -d $(prefix)";                  \
+		$(INSTALL) -d $(prefix);                         \
+		echo "$(INSTALL) parseThat $(prefix)/parseThat"; \
+		$(INSTALL) parseThat $(prefix)/parseThat;        \
+	fi
 
 clean:
 	rm -f parseThat *.o *.so

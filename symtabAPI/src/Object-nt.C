@@ -507,7 +507,9 @@ void Object::ParseGlobalSymbol(PSYMBOL_INFO pSymInfo)
 	}
 	else if ((pSymInfo->Flags == SYMFLAG_EXPORT && 
 	    isText((Offset) pSymInfo->Address - (Offset)mf->base_addr())) ||
-	    !strcmp(pSymInfo->Name, "_loadsnstores"))
+	    (pSymInfo->Name && (!strcmp(pSymInfo->Name, "loadsnstores") ||
+		!strcmp(pSymInfo->Name, "_loadsnstores"))
+		))
 	{
 		symType = Symbol::ST_FUNCTION;
 		symLinkage = Symbol::SL_UNKNOWN;
@@ -1898,4 +1900,9 @@ bool Region::isStandardCode()
 {
    return (getRegionPermissions() == RP_RX ||
            getRegionPermissions() == RP_RWX);
+}
+
+Dyninst::Architecture Object::getArch()
+{
+   return Dyninst::Arch_x86;
 }

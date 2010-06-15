@@ -313,9 +313,9 @@ bool BPatch_binaryEdit::writeFileInt(const char * outFile)
 
     if( !origBinEdit->writeFile(outFile) ) return false;
 
-    std::map<std::string, BinaryEdit *>::iterator i;
-    for (i = llBinEdits.begin(); i != llBinEdits.end(); i++) {
-       BinaryEdit *bin = (*i).second;
+    std::map<std::string, BinaryEdit *>::iterator curBinEdit;
+    for (curBinEdit = llBinEdits.begin(); curBinEdit != llBinEdits.end(); curBinEdit++) {
+       BinaryEdit *bin = (*curBinEdit).second;
        if (bin == origBinEdit)
           continue;
        if (!bin->isDirty())
@@ -399,7 +399,7 @@ bool BPatch_binaryEdit::loadLibraryInt(const char *libname, bool deps)
   return true;
 }
 
-bool BPatch_binaryEdit::staticExecutableLoadedInt() {
+bool BPatch_binaryEdit::isStaticExecutableInt() {
     return origBinEdit->getMappedObject()->isStaticExec();
 }
 

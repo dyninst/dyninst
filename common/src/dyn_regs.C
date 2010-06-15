@@ -1025,3 +1025,18 @@ int MachRegister::getDwarfEnc() const
    //Invalid register passed
    return -1;
 }
+
+unsigned Dyninst::getArchAddressWidth(Dyninst::Architecture arch)
+{
+   switch (arch) {
+      case Arch_none: 
+         return 0;
+      case Arch_x86:
+      case Arch_ppc32:
+         return 4;
+      case Arch_x86_64:
+      case Arch_ppc64:
+         return 8;
+   }
+   return 0;
+}

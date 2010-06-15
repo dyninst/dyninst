@@ -48,13 +48,7 @@ class process;
 #include "symtabAPI/h/Symtab.h"
 #include "symtabAPI/h/Archive.h"
 
-#if !defined( ia64_unknown_linux2_4 )
 #define BYTES_TO_SAVE   256
-#else
-/* More than the number of bundles necessary for loadDYNINSTlib()'s code. */
-#define CODE_BUFFER_SIZE	512
-#define BYTES_TO_SAVE		(CODE_BUFFER_SIZE * 16)
-#endif
 
 #define EXIT_NAME "_exit"
 
@@ -85,9 +79,7 @@ Address getRegValueAtFrame(void *ehf, Address pc, int reg,
 
 typedef int handleT; // a /proc file descriptor
 
-#if defined( ia64_unknown_linux2_4 )
-#include "linux-ia64.h"
-#elif defined(i386_unknown_linux2_0) \
+#if defined(i386_unknown_linux2_0) \
    || defined(x86_64_unknown_linux2_4)
 #include "linux-x86.h"
 #elif defined(os_linux) && defined(arch_power)

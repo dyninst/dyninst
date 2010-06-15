@@ -329,14 +329,16 @@ SYMTAB_EXPORT Symtab::Symtab(MappedFile *mf_) :
    AnnotatableSparse(),
    mf(mf_), 
    mfForDebugInfo(mf_),
-   obj_private(NULL)
+   obj_private(NULL),
+   _ref_cnt(1)
 {   
     init_debug_symtabAPI();
 }   
 
 
 SYMTAB_EXPORT Symtab::Symtab() :
-   obj_private(NULL)
+   obj_private(NULL),
+   _ref_cnt(1)
 {
     init_debug_symtabAPI();
     create_printf("%s[%d]: Created symtab via default constructor\n", FILE__, __LINE__);
@@ -648,9 +650,11 @@ bool Symtab::createAggregates()
     // In VxWorks, symbol offsets are not complete until object is loaded.
 
     for (unsigned i = 0; i < everyDefinedSymbol.size(); i++) 
-	{
-        addSymbolToAggregates(everyDefinedSymbol[i]);
-    }
+      {
+	if (!doNotAggregate(everyDefinedSymbol[i])) {
+	  addSymbolToAggregates(everyDefinedSymbol[i]);
+	}
+      }
 #endif
 
     return true;
@@ -768,6 +772,7 @@ bool Symtab::addSymbolToIndices(Symbol *&sym)
 
 bool Symtab::addSymbolToAggregates(Symbol *&sym) 
 {
+
     switch(sym->getType()) {
     case Symbol::ST_FUNCTION: {
         // We want to do the following:
@@ -824,14 +829,23 @@ bool Symtab::addSymbolToAggregates(Symbol *&sym)
         }
         else {
             /* XXX
-             * See comment above about uniqueness of symbols in relocatable
-             * files
+             * For relocatable files, the offset is not a unique identifier for
+             * a Symbol. With functions, the Region and offset could be used to
+             * identify the symbol. With variables, the Region and offset may 
+             * not uniquely identify the symbol. The only case were this occurs
+             * is with COMMON symbols -- their offset is their memory alignment
+             * and their Region is undefined. In this case, always create a 
+             * new variable.
              */
-            if( var->getRegion() != sym->getRegion() ) {
+            if( obj_RelocatableFile == getObjectType() &&
+                ( var->getRegion() != sym->getRegion() ||
+                  NULL == sym->getRegion() ) )
+            {
                 var = new Variable(sym);
                 everyVariable.push_back(var);
+            }else{
+                var->addSymbol(sym);
             }
-            var->addSymbol(sym);
         }
         sym->setVariable(var);
         break;
@@ -841,6 +855,23 @@ bool Symtab::addSymbolToAggregates(Symbol *&sym)
     }
     }
     return true;
+}
+
+// A hacky override for specially treating symbols that appear
+// to be functions or variables but aren't.
+//
+// Example: IA-32/AMD-64 libc (and others compiled with libc headers)
+// uses outlined locking primitives. These are named _L_lock_<num>
+// and _L_unlock_<num> and labelled as functions. We explicitly do
+// not include them in function scope.
+bool Symtab::doNotAggregate(Symbol *&sym) {
+  if (sym->getMangledName().compare(0, strlen("_L_lock_"), "_L_lock_") == 0) {
+    return true;
+  }
+  if (sym->getMangledName().compare(0, strlen("_L_unlock_"), "_L_unlock_") == 0) {
+    return true;
+  }
+  return false;
 }
 
 /* Add the new name to the appropriate symbol index */
@@ -1057,7 +1088,8 @@ Symtab::Symtab(std::string filename,bool &err) :
    nativeCompiler(false), 
    isLineInfoValid_(false), 
    isTypeInfoValid_(false),
-   obj_private(NULL)
+   obj_private(NULL),
+   _ref_cnt(1)
 {
     init_debug_symtabAPI();
    // Initialize error parameter
@@ -1105,7 +1137,8 @@ Symtab::Symtab(char *mem_image, size_t image_size, bool &err) :
    nativeCompiler(false),
    isLineInfoValid_(false),
    isTypeInfoValid_(false),
-   obj_private(NULL)
+   obj_private(NULL),
+   _ref_cnt(1)
 {
    // Initialize error parameter
    err = false;
@@ -1152,7 +1185,8 @@ Symtab::Symtab(std::string filename, std::string member_name, Offset offset,
    nativeCompiler(false), 
    isLineInfoValid_(false),
    isTypeInfoValid_(false), 
-   obj_private(NULL)
+   obj_private(NULL),
+   _ref_cnt(1)
 {
    mf = MappedFile::createMappedFile(filename);
    assert(mf);
@@ -1183,7 +1217,8 @@ Symtab::Symtab(char *mem_image, size_t image_size, std::string member_name,
    main_call_addr_(0),
    nativeCompiler(false), 
    isLineInfoValid_(false), 
-   isTypeInfoValid_(false)
+   isTypeInfoValid_(false),
+   _ref_cnt(1)
 {
    mf = MappedFile::createMappedFile(mem_image, image_size);
    assert(mf);
@@ -1460,7 +1495,8 @@ bool Symtab::extractInfo(Object *linkedFile)
 Symtab::Symtab(const Symtab& obj) :
    LookupInterface(),
    Serializable(),
-   AnnotatableSparse()
+   AnnotatableSparse(),
+   _ref_cnt(1)
 {
     create_printf("%s[%d]: Creating symtab 0x%p from symtab 0x%p\n", FILE__, __LINE__, this, &obj);
   
@@ -1889,16 +1925,20 @@ bool Symtab::closeSymtab(Symtab *st)
 	bool found = false;
 	if (!st) return false;
 
+    --(st->_ref_cnt);
+
 	std::vector<Symtab *>::reverse_iterator iter;
 	for (iter = allSymtabs.rbegin(); iter != allSymtabs.rend() ; iter++)
 	{
 		if (*iter == st)
 		{
-			allSymtabs.erase(iter.base() -1);
+            if(0 == st->_ref_cnt)
+			    allSymtabs.erase(iter.base() -1);
 			found = true;
 		}
 	}
-	delete(st);
+    if(0 == st->_ref_cnt)
+	    delete(st);
 	return found;
 }
 
@@ -1911,6 +1951,7 @@ Symtab *Symtab::findOpenSymtab(std::string filename)
 		if (filename == allSymtabs[u]->file() && 
           allSymtabs[u]->mf->canBeShared()) 
 		{
+            allSymtabs[u]->_ref_cnt++;
 			// return it
 			return allSymtabs[u];
 		}
@@ -1965,6 +2006,7 @@ bool Symtab::openFile(Symtab *&obj, std::string filename)
 #endif
 
    obj = new Symtab(filename, err);
+
 #if defined(TIMED_PARSE)
    struct timeval endtime;
    gettimeofday(&endtime, NULL);
@@ -2242,6 +2284,15 @@ SYMTAB_EXPORT bool Symtab::addAddressRange( Offset lowInclusiveAddr, Offset high
             lineSource.c_str(), lineNo, lineOffset));
 }
 
+void Symtab::setTruncateLinePaths(bool value)
+{
+   getObject()->setTruncateLinePaths(value);
+}
+
+bool Symtab::getTruncateLinePaths()
+{
+   return getObject()->getTruncateLinePaths();
+}
 
 void Symtab::parseTypes()
 {
@@ -2603,7 +2654,9 @@ SYMTAB_EXPORT bool Symtab::fixup_SymbolAddr(const char* name, Offset newOffset)
         symsByOffset[newOffset].push_back(sym);
 
     // Update aggregates.
-    addSymbolToAggregates(sym);
+    if (!doNotAggregate(sym)) {
+      addSymbolToAggregates(sym);
+    }
 
 #if 0
     if (funcsByOffset.count(oldOffset) > 0) {
@@ -2743,6 +2796,11 @@ SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size)
 SYMTAB_EXPORT ObjectType Symtab::getObjectType() const 
 {
    return object_type_;
+}
+
+SYMTAB_EXPORT Dyninst::Architecture Symtab::getArchitecture()
+{
+   return getObject()->getArch();
 }
 
 SYMTAB_EXPORT char *Symtab::mem_image() const 
