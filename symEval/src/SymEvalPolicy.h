@@ -61,6 +61,13 @@
 #include <fstream>
 #include <sstream>
 
+#if !defined(_MSC_VER)
+#include <stdint.h>
+#else
+#include "external/stdint-win.h"
+#endif
+
+
 #include "../rose/SgAsmx86Instruction.h"
 #include "../rose/SgAsmPowerpcInstruction.h"
 // Also need ROSE header files... argh. 

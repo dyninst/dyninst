@@ -33,6 +33,7 @@
 
 #include "SymEval.h"
 #include "SymEvalPolicy.h"
+#include "RoseInsnFactory.h"
 
 #include "AST.h"
 
@@ -42,14 +43,8 @@
 using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;
 using namespace Dyninst::SymbolicEvaluation;
-
-template class SymEval<Arch_x86>;
-template class SymEval<Arch_ppc32>;
-
     
-SymEvalArchTraits<Arch_x86>::InstructionKind_t SymEvalArchTraits<Arch_x86>::convert(entryID opcode,
-										    std::string)
-{
+X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode) {
     switch (opcode) {
         case e_jb:
             return x86_jb;
@@ -914,8 +909,8 @@ SymEvalArchTraits<Arch_x86>::InstructionKind_t SymEvalArchTraits<Arch_x86>::conv
         }
 }
 
-SymEvalArchTraits<Arch_ppc32>::InstructionKind_t SymEvalArchTraits<Arch_ppc32>::convert(entryID opcode,
-											std::string mnem)
+PowerpcInstructionKind RoseInsnPPCFactory::convertKind(entryID opcode,
+						       std::string mnem)
 {
   InstructionKind_t ret = powerpc_unknown_instruction;
     switch(opcode)
@@ -1264,4 +1259,30 @@ SymEvalArchTraits<Arch_ppc32>::InstructionKind_t SymEvalArchTraits<Arch_ppc32>::
       ret = (PowerpcInstructionKind)((int)ret + 1);
     }
     return ret;
+}
+
+PowerpcInstructionKind RoseInsnPPCFactory::makeRoseBranchOpcode(entryID iapi_opcode, bool isAbsolute, bool isLink) {
+  switch(iapi_opcode) {
+  case power_op_b:
+    if(isAbsolute && isLink) return powerpc_bla;
+    if(isAbsolute) return powerpc_ba;
+    if(isLink) return powerpc_bl;
+    return powerpc_b;
+  case power_op_bc:
+    if(isAbsolute && isLink) return powerpc_bcla;
+    if(isAbsolute) return powerpc_bca;
+    if(isLink) return powerpc_bcl;
+    return powerpc_bc;
+  case power_op_bcctr:
+    assert(!isAbsolute);
+    if(isLink) return powerpc_bcctrl;
+    return powerpc_bcctr;
+  case power_op_bclr:
+    assert(!isAbsolute);
+    if(isLink) return powerpc_bclrl;
+    return powerpc_bclr;
+  default:
+    assert(!"makeRoseBranchOpcode called with unknown branch opcode!");
+    return powerpc_unknown_instruction;
+  }
 }

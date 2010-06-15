@@ -37,7 +37,7 @@
 #include "instructionAPI/h/Instruction.h"
 #include "instructionAPI/h/Expression.h"
 
-#include "dyninstAPI/src/stackanalysis.h"
+#include "symEval/h/stackanalysis.h"
 
 #include <sstream>
 

@@ -41,7 +41,7 @@ typedef dyn_detail::boost::shared_ptr<InstructionAPI::Instruction> InstructionPt
 // Used in temp slicer; should probably
 // replace OperationNodes when we fix up
 // the DDG code.
- class AssignNode : public Node {
+class SYMEVAL_EXPORT AssignNode : public Node {
  public:
   typedef dyn_detail::boost::shared_ptr<AssignNode> Ptr;
       
@@ -87,7 +87,7 @@ typedef dyn_detail::boost::shared_ptr<InstructionAPI::Instruction> InstructionPt
   std::map<AssignNode::Ptr, unsigned> assignMap_;
 };
 
-class Slicer {
+class SYMEVAL_EXPORT Slicer {
  public:
   typedef std::pair<InstructionPtr, Address> InsnInstance;
   typedef std::vector<InsnInstance> InsnVec;
@@ -95,24 +95,21 @@ class Slicer {
   Slicer(AssignmentPtr a,
 	 ParseAPI::Block *block,
 	 ParseAPI::Function *func);
-
   typedef boost::function<bool (AssignmentPtr a)> PredicateFunc;
   typedef boost::function<bool (ParseAPI::Function *c, 
 				std::stack<std::pair<ParseAPI::Function *, int> > &cs, 
-				AbsRegion a)> CallStackFunc;
-
-      
+				AbsRegion a)> CallStackFunc;    
   typedef boost::function<bool (const AbsRegion &in, const AbsRegion &out)> AbsRegionFunc;
-	    
+  
   GraphPtr forwardSlice(PredicateFunc &e, 
-			PredicateFunc &w, 
-			CallStackFunc &c,
-			AbsRegionFunc &a);
+				       PredicateFunc &w, 
+				       CallStackFunc &c,
+				       AbsRegionFunc &a);
   
   GraphPtr backwardSlice(PredicateFunc &e, 
-			 PredicateFunc &w, 
-			 CallStackFunc &c,
-			 AbsRegionFunc &a);
+					PredicateFunc &w, 
+					CallStackFunc &c,
+					AbsRegionFunc &a);
   
   static bool isWidenNode(Node::Ptr n);
 
@@ -236,7 +233,6 @@ class Slicer {
     // steps. OTOH, I'm being a bit lazy...
     Assignment::Ptr ptr;
     unsigned usedIndex;
-
     Address addr() const { return loc.addr(); }
   };
 

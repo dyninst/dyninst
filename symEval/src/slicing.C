@@ -1,6 +1,5 @@
 // Simple search mechanism to assist in short-range slicing.
 
-#include "dyninstAPI/src/image-func.h"
 #include <set>
 #include <vector>
 #include <queue>
@@ -8,8 +7,7 @@
 #include "symEval/h/AbslocInterface.h"
 #include "Instruction.h"
 
-#include "dyninstAPI/src/stackanalysis.h"
-#include "dyninstAPI/src/symtab.h"
+#include "symEval/h/stackanalysis.h"
 
 #include "symEval/h/slicing.h"
 
@@ -17,16 +15,16 @@
 #include "instructionAPI/h/Instruction.h"
 #include "instructionAPI/h/InstructionDecoder.h"
 
+#include "debug.h"
+
+#include "CFG.h"
+#include "CodeSource.h"
+#include "CodeObject.h"
 
 using namespace Dyninst;
 using namespace InstructionAPI;
 using namespace std;
 using namespace ParseAPI;
-
-
-#define slicing_cerr if (debug) cerr
-
-static int debug = 0;
 
 Address AssignNode::addr() const { 
   if (a_)
@@ -85,6 +83,7 @@ Slicer::Slicer(Assignment::Ptr a,
   b_(block),
   f_(func),
   converter(true) {
+  init_debug();
 };
 
 Graph::Ptr Slicer::forwardSlice(PredicateFunc &e,
@@ -222,7 +221,7 @@ bool Slicer::getMatchingElements(Element &current,
 }
 
 bool Slicer::getStackDepth(ParseAPI::Function *func, Address callAddr, long &height) {
-  StackAnalysis sA(dynamic_cast<image_func *>(func));
+  StackAnalysis sA(func);
 
   StackAnalysis::Height heightSA = sA.findSP(callAddr);
 

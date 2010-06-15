@@ -32,7 +32,10 @@
 #if !defined(STACK_ANALYSIS_H)
 #define STACK_ANALYSIS_H
 
+#if !defined(_MSC_VER)
 #include <values.h>
+#endif
+
 #include "dyntypes.h"
 #include <set>
 #include <string>
@@ -40,7 +43,7 @@
 #include "common/h/IntervalTree.h"
 
 // for blockSet...
-#include "dyninstAPI/src/image-func.h"
+//#include "dyninstAPI/src/image-func.h"
 
 #include "dyn_detail/boost/shared_ptr.hpp"
 
@@ -48,14 +51,21 @@
 #include "dynutil/h/AST.h"
 
 // These are _NOT_ in the Dyninst namespace...
-class image_func;
-class image_basicBlock;
-class image_edge;
-
 namespace Dyninst {
+
+  namespace ParseAPI {
+    class Function;
+    class Block;
+  };
+
+  namespace InstructionAPI {
+    class Instruction;
+  };
 
  
 class StackAnalysis {
+  typedef dyn_detail::boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
+
  public:
     
     // The height of a stack is actually a value from a lattice:
@@ -546,24 +556,20 @@ class StackAnalysis {
     
     typedef class IntervalTree<Offset, Height> HeightTree;
     
-    typedef image_basicBlock Block;
-    typedef image_edge Edge;
-    typedef image_func Function;
-    
     typedef std::map<Offset, InsnTransferFunc> InsnFuncs;
-    typedef std::map<Block *, InsnFuncs> BlockToInsnFuncs;
+    typedef std::map<ParseAPI::Block *, InsnFuncs> BlockToInsnFuncs;
 
-    typedef std::map<Function *, Height> FuncCleanAmounts;
+    typedef std::map<ParseAPI::Function *, Height> FuncCleanAmounts;
     
-    typedef std::map<Block *, BlockTransferFunc> BlockEffects;
+    typedef std::map<ParseAPI::Block *, BlockTransferFunc> BlockEffects;
 
     typedef std::pair<fp_State, Offset> FPChange;
     typedef std::vector<FPChange> FPChangePoints;
-    typedef std::map<Block *, FPChangePoints> BlockToFPChangePoints;
-    typedef std::map<Block *, Height> BlockHeights;
+    typedef std::map<ParseAPI::Block *, FPChangePoints> BlockToFPChangePoints;
+    typedef std::map<ParseAPI::Block *, Height> BlockHeights;
 
     StackAnalysis();
-    StackAnalysis(Function *f);
+    StackAnalysis(ParseAPI::Function *f);
     
     // Lookup functions; preferred over the above
     Height findSP(Address addr);
@@ -582,18 +588,18 @@ class StackAnalysis {
     void fp_fixpoint();
     void fp_createIntervals();
 
-    void computeInsnEffects(Block *block,
-                            const InstructionAPI::Instruction::Ptr &insn,
+    void computeInsnEffects(ParseAPI::Block *block,
+                            const InstructionPtr &insn,
                             const Offset off,
                             InsnTransferFunc &spFunc,
                             fp_State &fpCopied);
 
-    Height getStackCleanAmount(Function *func);
+    Height getStackCleanAmount(ParseAPI::Function *func);
 
     Region::Ptr getRegion(Ranges &ranges);
     
-    Block::blockSet blocks;
-    Function *func;
+    //Block::blockSet blocks;
+    ParseAPI::Function *func;
 
     // SP effect tracking
     BlockToInsnFuncs sp_blockToInsnFuncs;
