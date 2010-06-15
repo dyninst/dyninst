@@ -389,9 +389,6 @@ class image : public codeRange {
    bool findGlobalConstructorFunc();
    bool findGlobalDestructorFunc();
 
-   Dyninst::Architecture getArch() { return arch; }
-   virtual unsigned getAddressWidth() const { return linkedFile->getAddressWidth(); };
-
  private:
    void findModByAddr (const SymtabAPI::Symbol *lookUp, vector<SymtabAPI::Symbol *> &mods,
                        string &modName, Address &modAddr, 
