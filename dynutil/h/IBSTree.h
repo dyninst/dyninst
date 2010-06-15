@@ -676,6 +676,11 @@ void IBSTree<ITYPE>::findIntervals(ITYPE * I, IBSNode<ITYPE> *R, set<ITYPE *> &S
     }
     if(low <= R->value() && high > R->value()) {
         S.insert(R->equal.begin(),R->equal.end());
+    } 
+    else if(low == R->value() && high == R->value()) {
+        // XXX explicitly allow zero-length intervals
+        //     to `match' the starting value
+        S.insert(R->equal.begin(),R->equal.end());
     }
 }
 
