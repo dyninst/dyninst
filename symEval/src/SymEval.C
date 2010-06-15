@@ -87,7 +87,7 @@ void SymEval<a>::expand(Result_t &res) {
     Assignment::Ptr ptr = i->first;
 
     // Let's experiment with simplification
-    image_func *func = ptr->func();
+    image_func *func = dynamic_cast<image_func *>(ptr->func());
     StackAnalysis sA(func);
     StackAnalysis::Height sp = sA.findSP(ptr->addr());
     StackAnalysis::Height fp = sA.findFP(ptr->addr());
@@ -397,7 +397,7 @@ bool SymEvalArchTraits<Arch_ppc32>::handleSpecialCases(entryID iapi_opcode,
         case power_op_svcs:
 	  {
 	    //cerr << "special-casing syscall insn" << endl;
-	    unsigned int raw;
+	    unsigned int raw = 0;
             std::vector<unsigned char> bytes = rose_insn.get_raw_bytes();
             for(unsigned i = 0; i < bytes.size(); i++)
             {

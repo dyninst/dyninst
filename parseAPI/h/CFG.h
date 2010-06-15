@@ -55,7 +55,7 @@ enum EdgeTypeEnum {
     CALL_FT,        // fallthrough after call instruction
     RET,
     NOEDGE,
-    __edgetype__end__
+    _edgetype_end_
 };
 
 #define FLIST_BADNEXT ((void*)0x111)

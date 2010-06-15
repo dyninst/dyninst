@@ -50,9 +50,11 @@
 #include "Instruction.h"
 #include "AST.h"
 
-class image_func;
-
 namespace Dyninst {
+
+  namespace ParseAPI {
+    class Function;
+  };
 
 class Absloc {
  public:
@@ -215,8 +217,8 @@ class AbsRegion {
   static bool equivalent(const AbsRegion &lhs,
 			 const AbsRegion &rhs,
 			 Address addr,
-			 image_func *caller,
-			 image_func *callee);
+			 ParseAPI::Function *caller,
+			 ParseAPI::Function *callee);
 
   const Absloc absloc() const { return absloc_; }
   const Absloc::Type type() const { return type_; }
@@ -260,7 +262,7 @@ class Assignment {
 
   Assignment(const InstructionAPI::Instruction::Ptr i,
 	     const Address a,
-	     image_func *f,
+	     ParseAPI::Function *f,
 	     const std::vector<AbsRegion> &ins,
 	     const AbsRegion &o) : 
     insn_(i),
@@ -271,7 +273,7 @@ class Assignment {
 
   Assignment(const InstructionAPI::Instruction::Ptr i,
 	     const Address a,
-	     image_func *f,
+	     ParseAPI::Function *f,
 	     const AbsRegion &o) : 
     insn_(i),
     addr_(a),
@@ -286,13 +288,13 @@ class Assignment {
   void addInput(const AbsRegion &reg);
   void addInputs(const std::vector<AbsRegion> &regions);
 
-  image_func *func() const { return func_; }
+  ParseAPI::Function *func() const { return func_; }
 
  private:
   InstructionAPI::Instruction::Ptr insn_;
   Address addr_;
 
-  image_func *func_;
+  ParseAPI::Function *func_;
 
   std::vector<AbsRegion> inputs_;
   AbsRegion out_;

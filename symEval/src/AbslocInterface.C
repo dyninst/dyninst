@@ -22,7 +22,7 @@ using namespace Dyninst::InstructionAPI;
 
 void AbsRegionConverter::convertAll(InstructionAPI::Expression::Ptr expr,
 				    Address addr,
-				    image_func *func,
+				    ParseAPI::Function *func,
 				    std::vector<AbsRegion> &regions) {
   // If we're a memory dereference, then convert us and all
   // used registers.
@@ -48,7 +48,7 @@ void AbsRegionConverter::convertAll(InstructionAPI::Expression::Ptr expr,
 
 void AbsRegionConverter::convertAll(InstructionAPI::Instruction::Ptr insn,
 				    Address addr,
-				    image_func *func,
+				    ParseAPI::Function *func,
 				    std::vector<AbsRegion> &used,
 				    std::vector<AbsRegion> &defined) {
   if (!usedCache(addr, func, used)) {
@@ -109,7 +109,7 @@ AbsRegion AbsRegionConverter::convert(RegisterAST::Ptr reg) {
 
 AbsRegion AbsRegionConverter::convert(Expression::Ptr exp,
 				      Address addr,
-				      image_func *func) {
+				      ParseAPI::Function *func) {
     // We want to simplify the expression as much as possible given 
     // currently known state, and then quantify it as one of the following:
     // 
@@ -189,7 +189,7 @@ AbsRegion AbsRegionConverter::convert(Expression::Ptr exp,
       if (res.defined && frameDefined) {
 	return AbsRegion(Absloc(res.convert<Address>(),
 				fpRegion,
-				func->symTabName()));
+				func->name()));
       }
       else {
 	return AbsRegion(Absloc::Stack);
@@ -200,7 +200,7 @@ AbsRegion AbsRegionConverter::convert(Expression::Ptr exp,
       if (res.defined && stackDefined) {
 	return AbsRegion(Absloc(res.convert<Address>(),
 				spRegion,
-				func->symTabName()));
+				func->name()));
       }
       else {
 	return AbsRegion(Absloc::Stack);
@@ -217,7 +217,7 @@ AbsRegion AbsRegionConverter::convert(Expression::Ptr exp,
 }
 
 AbsRegion AbsRegionConverter::stack(Address addr,
-				    image_func *func,
+				    ParseAPI::Function *func,
 				    bool push) {
     long spHeight = 0;
     int spRegion = 0;
@@ -230,17 +230,17 @@ AbsRegion AbsRegionConverter::stack(Address addr,
     }
 
     if (push) {
-      int word_size = func->img()->getAddressWidth();
+      int word_size = func->isrc()->getAddressWidth();
       spHeight -= word_size;
     }
 
     return AbsRegion(Absloc(spHeight,
 			    spRegion,
-			    func->symTabName()));
+			    func->name()));
 }
 
 AbsRegion AbsRegionConverter::frame(Address addr,
-				    image_func *func,
+				    ParseAPI::Function *func,
 				    bool push) {
     long fpHeight = 0;
     int fpRegion = 0;
@@ -253,20 +253,20 @@ AbsRegion AbsRegionConverter::frame(Address addr,
     }
 
     if (push) {
-      int word_size = func->img()->getAddressWidth();
+      int word_size = func->isrc()->getAddressWidth();
       fpHeight -= word_size;
     }
     
     return AbsRegion(Absloc(fpHeight,
 			    fpRegion,
-			    func->symTabName()));
+			    func->name()));
 }
 
-bool AbsRegionConverter::getCurrentStackHeight(image_func *func,
+bool AbsRegionConverter::getCurrentStackHeight(ParseAPI::Function *func,
 					       Address addr,
 					       long &height,
 					       int &region) {
-  StackAnalysis sA(func);
+  StackAnalysis sA(dynamic_cast<image_func *>(func));
 
   StackAnalysis::Height heightSA = sA.findSP(addr);
 
@@ -283,11 +283,11 @@ bool AbsRegionConverter::getCurrentStackHeight(image_func *func,
   return true;
 }
 
-bool AbsRegionConverter::getCurrentFrameHeight(image_func *func,
+bool AbsRegionConverter::getCurrentFrameHeight(ParseAPI::Function *func,
 					       Address addr,
 					       long &height,
 					       int &region) {
-  StackAnalysis sA(func);
+  StackAnalysis sA(dynamic_cast<image_func *>(func));
 
   StackAnalysis::Height heightSA = sA.findFP(addr);
 
@@ -306,7 +306,7 @@ bool AbsRegionConverter::getCurrentFrameHeight(image_func *func,
 
 
 bool AbsRegionConverter::usedCache(Address addr,
-				   image_func *func,
+				   ParseAPI::Function *func,
 				   std::vector<AbsRegion> &used) {
   if (!cacheEnabled_) return false;
   FuncCache::iterator iter = used_cache_.find(func);
@@ -318,7 +318,7 @@ bool AbsRegionConverter::usedCache(Address addr,
 }
 
 bool AbsRegionConverter::definedCache(Address addr,
-				      image_func *func,
+				      ParseAPI::Function *func,
 				      std::vector<AbsRegion> &defined) {
   if (!cacheEnabled_) return false;
   FuncCache::iterator iter = defined_cache_.find(func);
@@ -336,7 +336,7 @@ bool AbsRegionConverter::definedCache(Address addr,
 
 void AssignmentConverter::convert(const Instruction::Ptr I, 
                                   const Address &addr,
-				  image_func *func,
+				  ParseAPI::Function *func,
 				  std::vector<Assignment::Ptr> &assignments) {
   if (cache(func, addr, assignments)) return;
 
@@ -378,7 +378,7 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
     // This can be seen as a push of the PC...
 
     std::vector<AbsRegion> pcRegion;
-    pcRegion.push_back(Absloc::makePC(func->img()->getArch()));
+    pcRegion.push_back(Absloc::makePC(func->isrc()->getArch()));
     
     handlePushEquivalent(I, addr, func, pcRegion, assignments);
     break;
@@ -429,8 +429,8 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
 
     // TODO FIXME update stack analysis to make this really work. 
         
-    AbsRegion sp(Absloc::makeSP(func->img()->getArch()));
-    AbsRegion fp(Absloc::makeFP(func->img()->getArch()));
+    AbsRegion sp(Absloc::makeSP(func->isrc()->getArch()));
+    AbsRegion fp(Absloc::makeFP(func->isrc()->getArch()));
 
     // Should be "we assign SP using FP"
     Assignment::Ptr spA = Assignment::Ptr(new Assignment(I,
@@ -443,7 +443,7 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
     /*
       AbsRegion stackTop(Absloc(0,
       0,
-      func->symTabName()));
+      func->name()));
     */
     // Actually, I think this is ebp = pop esp === ebp = pop ebp
     Assignment::Ptr fpA = Assignment::Ptr(new Assignment(I,
@@ -463,14 +463,14 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
     // SP = SP + 4/8
     // Like pop, except it's all implicit.
 
-    AbsRegion pc = AbsRegion(Absloc::makePC(func->img()->getArch()));
+    AbsRegion pc = AbsRegion(Absloc::makePC(func->isrc()->getArch()));
     Assignment::Ptr pcA = Assignment::Ptr(new Assignment(I, 
 							 addr,
 							 func,
 							 pc));
     pcA->addInput(aConverter.stack(addr, func, false));
 
-    AbsRegion sp = AbsRegion(Absloc::makeSP(func->img()->getArch()));
+    AbsRegion sp = AbsRegion(Absloc::makeSP(func->isrc()->getArch()));
     Assignment::Ptr spA = Assignment::Ptr(new Assignment(I,
 							 addr,
 							 func,
@@ -561,14 +561,14 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
 
 void AssignmentConverter::handlePushEquivalent(const Instruction::Ptr I,
 					       Address addr,
-					       image_func *func,
+					       ParseAPI::Function *func,
 					       std::vector<AbsRegion> &operands,
 					       std::vector<Assignment::Ptr> &assignments) {
   // The handled-in operands are used to define *SP
   // And then we update SP
   
   AbsRegion stackTop = aConverter.stack(addr, func, true);
-  AbsRegion sp(Absloc::makeSP(func->img()->getArch()));
+  AbsRegion sp(Absloc::makeSP(func->isrc()->getArch()));
 
   Assignment::Ptr spA = Assignment::Ptr(new Assignment(I,
 						       addr,
@@ -586,14 +586,14 @@ void AssignmentConverter::handlePushEquivalent(const Instruction::Ptr I,
 
 void AssignmentConverter::handlePopEquivalent(const Instruction::Ptr I,
 					      Address addr,
-					      image_func *func,
+					      ParseAPI::Function *func,
 					      std::vector<AbsRegion> &operands,
 					      std::vector<Assignment::Ptr> &assignments) {
   // We use the top of the stack and any operands beyond the first.
   // (Can you pop into memory?)
 
   AbsRegion stackTop = aConverter.stack(addr, func, false);
-  AbsRegion sp(Absloc::makeSP(func->img()->getArch()));
+  AbsRegion sp(Absloc::makeSP(func->isrc()->getArch()));
   
   Assignment::Ptr spA = Assignment::Ptr(new Assignment(I,
 						       addr,
@@ -614,7 +614,7 @@ void AssignmentConverter::handlePopEquivalent(const Instruction::Ptr I,
   assignments.push_back(spB);
 }
 
-bool AssignmentConverter::cache(image_func *func, 
+bool AssignmentConverter::cache(ParseAPI::Function *func, 
 				Address addr, 
 				std::vector<Assignment::Ptr> &assignments) {
   if (!cacheEnabled_) {
