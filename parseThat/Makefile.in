@@ -64,23 +64,23 @@ LIBS        += -lstdc++ -lsocket -lrt
 endif
 
 ifneq (, $(findstring i386, $(PLATFORM)))
-LIBS        += -linstructionAPI
+LIBS        += -linstructionAPI -lsymEval
 endif
 
 ifneq (, $(findstring i486, $(PLATFORM)))
-LIBS        += -linstructionAPI
+LIBS        += -linstructionAPI -lsymEval
 endif
 
 ifneq (, $(findstring i586, $(PLATFORM)))
-LIBS        += -linstructionAPI
+LIBS        += -linstructionAPI -lsymEval
 endif
 
 ifneq (, $(findstring i686, $(PLATFORM)))
-LIBS        += -linstructionAPI 
+LIBS        += -linstructionAPI -lsymEval
 endif
 
 ifneq (, $(findstring x86_64, $(PLATFORM)))
-LIBS        += -linstructionAPI 
+LIBS        += -linstructionAPI -lsymEval
 endif
 
 ifneq (, $(findstring alpha, $(PLATFORM)))

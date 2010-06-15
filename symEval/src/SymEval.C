@@ -70,6 +70,8 @@ void SymEval<a>::expand(Result_t &res) {
     }
     Assignment::Ptr ptr = i->first;
 
+    //cerr << "Expand called for insn " << ptr->insn()->format() << endl;
+
     expandInsn(ptr->insn(),
 	       ptr->addr(),
 	       res);
@@ -100,12 +102,14 @@ void SymEval<a>::expand(Result_t &res) {
 // performing forward substitution on the AST results
 template<Architecture a>
 void SymEval<a>::expand(Graph::Ptr slice, Result_t &res) {
+    //cout << "Calling expand" << endl;
   // Other than the substitution this is pretty similar to the first example.
   NodeIterator gbegin, gend;
   slice->entryNodes(gbegin, gend);
 
   std::queue<Node::Ptr> worklist;
   for (; gbegin != gend; ++gbegin) {
+      //cout << "adding " << (*gbegin)->format() << " to worklist" << endl;
     worklist.push(*gbegin);
   }
   std::set<Node::Ptr> visited;
@@ -117,7 +121,7 @@ void SymEval<a>::expand(Graph::Ptr slice, Result_t &res) {
 
     if (!aNode->assign()) continue; // Could be a widen point
 
-    //cerr << "Visiting node " << ass->assign()->format() << endl;
+    //cerr << "Visiting node " << aNode->assign()->format() << endl;
     if (visited.find(ptr) != visited.end()) continue;
     visited.insert(ptr);
 
@@ -129,7 +133,7 @@ void SymEval<a>::expand(Graph::Ptr slice, Result_t &res) {
       AssignNode::Ptr target = dyn_detail::boost::dynamic_pointer_cast<AssignNode>(*nbegin);
       if (!target) continue;
       if (!target->assign()) continue;
-      //cerr << "\t Pushing successors " << ass2->assign()->format() << endl;
+      //cerr << "\t Pushing successors " << aNode->assign()->format() << endl;
       worklist.push(*nbegin);
     }
   }
@@ -153,7 +157,7 @@ void SymEvalArchTraits<Arch_ppc32>::processInstruction(SageInstruction_t* roseIn
 template <Architecture a>
 void SymEval<a>::expandInsn(const InstructionAPI::Instruction::Ptr insn,
 			 const uint64_t addr,
-			 Result_t &res) {
+             Result_t &res) {
   SageInstruction_t roseInsn = convert(insn, addr);
   SymEvalPolicy policy(res, addr, insn->getArch());
   SymEvalArchTraits<a>::processInstruction(&roseInsn, policy);    
@@ -213,11 +217,13 @@ void SymEval<a>::process(AssignNode::Ptr ptr,
 
     // Find which input this assignNode maps to
     unsigned index = ptr->getAssignmentIndex(in);
+    //cerr << "Assigning input " << index << " from assignment " << assign->format() << endl;
     if (inputMap.find(index) == inputMap.end()) {
       inputMap[index] = assign;
     }
     else {
       // Need join operator!
+      //cerr << "\t Overlap in inputs, setting to null assignment pointer" << endl;
       inputMap[index] = Assignment::Ptr(); // Null equivalent
     }
   }
@@ -228,16 +234,17 @@ void SymEval<a>::process(AssignNode::Ptr ptr,
   // If not (like this one), add it
 
   AST::Ptr ast = SymEval::expand(ptr->assign());
-  //cerr << "\t ... resulting in " << res->format() << endl;
-
+  //cerr << "\t ... resulting in " << dbase.format() << endl;
+  
   // We have an AST. Now substitute in all of its predecessors.
   for (std::map<unsigned, Assignment::Ptr>::iterator iter = inputMap.begin();
        iter != inputMap.end(); ++iter) {
     if (!iter->second) {
       // Colliding definitions; skip.
+      //cerr << "Skipping subsitution for input " << iter->first << endl;
       continue;
     }
-
+    //cerr << "Substituting input " << iter->first << endl;
     // The region used by the current assignment...
     const AbsRegion &reg = ptr->assign()->inputs()[iter->first];
 
@@ -253,9 +260,12 @@ void SymEval<a>::process(AssignNode::Ptr ptr,
       continue;
     }
 
+    //cerr << "Before substitution: " << (ast ? ast->format() : "<NULL AST>") << endl;
+
     ast = AST::substitute(ast, use, definition);
     //cerr << "\t result is " << res->format() << endl;
-  }
+    }
+  //cerr << "Result of subsitution: " << ptr->assign()->format() << " == " << (ast ? ast->format() : "<NULL AST>") << endl;
   dbase[ptr->assign()] = ast;
 }
 

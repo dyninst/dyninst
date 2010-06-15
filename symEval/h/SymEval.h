@@ -430,8 +430,8 @@ public:
   // Return type: mapping AbsRegions to ASTs
   // We then can map Assignment::AbsRegions to 
   // SymEval::AbsRegions and come up with the answer
-  //static const AST::Ptr Placeholder;
-  
+  // static const AST::Ptr Placeholder;
+  //
   // Single version: hand in an Assignment, get an AST
   static AST::Ptr expand(const Assignment::Ptr &assignment);
 
@@ -461,8 +461,8 @@ public:
   // an AST representation to every written absloc
   static void expandInsn(const InstructionAPI::Instruction::Ptr insn,
 			 const uint64_t addr,
-			 Result_t& res);
-  
+             Result_t& res);
+
   friend class ExpressionConversionVisitor<a>;
 };
 

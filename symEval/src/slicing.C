@@ -82,7 +82,7 @@ Graph::Ptr Slicer::forwardSlice(PredicateFunc &e,
   Predicates p(e, w, c);
 
   AssignNode::Ptr aP = createNode(initial);
-  //cerr << "Inserting entry node " << aP << "/" << aP->format() << endl;
+  slicing_cerr << "Inserting entry node " << aP << "/" << aP->format() << endl;
   ret->insertEntryNode(aP);
 
   Elements worklist;
@@ -148,6 +148,119 @@ Graph::Ptr Slicer::forwardSlice(PredicateFunc &e,
   return ret;
 }
 
+Graph::Ptr Slicer::backwardSlice(PredicateFunc &e, 
+        PredicateFunc &w,
+        CallStackFunc &c) {
+    // The End functor tells us when we should end the slice
+    // The Widen functor tells us when we should give up and say
+    // "this could go anywhere", which is represented with a
+    // Node::Ptr. 
+    
+    Graph::Ptr ret = Graph::createGraph();
+
+    // A backward slice is a graph of all instructions that define
+    // vars used at the particular point we have identified. 
+    // We derive it as follows:
+
+    /* 
+       Worklist W;
+       Graph G;
+       End E;
+       Widen Wi;
+
+       W.push(assignmentPtr);
+
+       while(!W.empty)
+           working = W.pop;
+           if (E(working)) continue;
+           if (Wi(working))
+               G.insert(working, widenMarker);
+        continue;
+            // Otherwise, find parent(s) and enque them
+            Let C = findDefs(working);
+            Foreach c in C:
+                G.insert(working, c)
+                w.push(c) 
+    */
+    Element initial;
+    constructInitialElementBackward(initial);
+
+    Predicates p(e,w,c);
+
+    AssignNode::Ptr aP = createNode(initial);
+    slicing_cerr << "Inserting exit node " << aP << "/" << aP->format() << endl;
+    ret->insertExitNode(aP);
+
+    Elements worklist;
+    worklist.push(initial);
+
+    std::set<Assignment::Ptr> visited;
+
+    while (!worklist.empty()) {
+        Element current = worklist.front(); worklist.pop();
+
+        slicing_cerr << "Slicing from " << current.ptr->format() << endl;
+
+        assert(current.ptr);
+
+        if (visited.find(current.ptr) != visited.end()) {
+            slicing_cerr << "\t Already visited, skipping" << endl;
+            continue;
+        } else {
+            visited.insert(current.ptr);
+        }
+
+        // Do we widen out? This should check the defined abstract
+        // region
+        if (p.widen(current.ptr)) {
+            slicing_cerr << "\t\t... widens slice" << endl;
+            widenBackward(ret, current);
+            continue;
+        }   
+
+        // Do we stop here according to the end predicate?
+        if (p.end(current.ptr)) {
+            slicing_cerr << "\t\t... ends slice" << endl;
+            markAsEntryNode(ret, current);
+            continue;
+        }
+
+        Elements found;
+
+        // Find everyone who defines what this instruction uses
+        vector<AbsRegion> inputs = current.ptr->inputs();
+
+        if (inputs.empty()) {
+            // We're ending here, so make sure this is labelled
+            // as an entry point.
+            markAsEntryNode(ret, current);
+        }
+        else {
+	    for (unsigned int k = 0; k < inputs.size(); ++k) {
+                // Do processing on each input
+	      current.reg = inputs[k];
+	      
+	      if (!backwardSearch(current, found, p)) {
+		slicing_cerr << "\t\t... backward search failed" << endl;
+		widenBackward(ret, current);
+	      }
+	      while (!found.empty()) {
+		Element target = found.front(); found.pop();
+		
+		slicing_cerr << "\t Adding edge to " << target.ptr->format() << endl;
+		current.usedIndex = k;
+		insertPair(ret, target, current);
+		worklist.push(target);
+	      }
+            }
+        }
+    }
+
+    cleanGraph(ret);
+
+    return ret;
+}
+
 bool Slicer::getStackDepth(image_func *func, Address callAddr, long &height) {
   StackAnalysis sA(func);
 
@@ -176,11 +289,11 @@ void Slicer::pushContext(Context &context,
 			 image_func *callee,
 			 image_basicBlock *callBlock,
 			 long stackDepth) {
-  //slicing_cerr << "pushContext with " << context.size() << " elements" << endl;
+  slicing_cerr << "pushContext with " << context.size() << " elements" << endl;
   assert(context.front().block == NULL);
   context.front().block = callBlock;
 
-  //slicing_cerr << "\t" << (context.front().func ? context.front().func->symTabName() : "NULL")
+  slicing_cerr << "\t" << (context.front().func ? context.front().func->symTabName() : "NULL")
   //<< ", " << context.front().stackDepth << endl;
 
   context.push_front(ContextElement(callee, stackDepth));
@@ -227,9 +340,9 @@ void Slicer::shiftAbsRegion(AbsRegion &callerReg,
 }
 
 bool Slicer::handleCallDetails(AbsRegion &reg,
-			       Context &context,
-			       image_basicBlock *callerBlock,
-			       image_func *callee) {
+			Context &context,
+			image_basicBlock *callerBlock,
+			image_func *callee) {
   image_func *caller = context.front().func;
   AbsRegion newReg = reg;
 
@@ -331,67 +444,144 @@ bool Slicer::getSuccessors(Element &current,
     }
   }
   else if (current.loc.block->containsRet()) { 
-    Element newElement;
-    slicing_cerr << "\t\t Handling return:";
-    if (handleReturn(current.loc.block,
-		     current,
-		     newElement,
-		     p,
-		     err)) {
-      slicing_cerr << " succeeded, err " << err << endl;
-      succ.push(newElement);
-    }
-    else {
-      slicing_cerr << " failed, err " << err << endl;
-    }
-  }
-  else {
-    pdvector<image_edge *> outs;
-    current.loc.block->getTargets(outs);
-
-    if (outs.empty()) { 
-      if (current.loc.block->canBeRelocated()) {
-	// Should be a halt. 
+      Element newElement;
+      slicing_cerr << "\t\t Handling return:";
+      if (handleReturn(current.loc.block,
+                  current,
+                  newElement,
+                  p,
+                  err)) {
+          slicing_cerr << " succeeded, err " << err << endl;
+          succ.push(newElement);
       }
       else {
-	ret = false;
+          slicing_cerr << " failed, err " << err << endl;
       }
-    }
-    else {
-      for (unsigned i = 0; i < outs.size(); ++i) {
-	Element newElement;
-	if (handleDefault(outs[i],
-			  current,
-			  newElement,
-			  p,
-			  err)) {
-	  succ.push(newElement);
-	}
+  }
+  else {
+      pdvector<image_edge *> outs;
+      current.loc.block->getTargets(outs);
+
+      if (outs.empty()) { 
+          if (current.loc.block->canBeRelocated()) {
+              // Should be a halt. 
+          }
+          else {
+              ret = false;
+          }
       }
-    }
+      else {
+          for (unsigned i = 0; i < outs.size(); ++i) {
+              Element newElement;
+              if (handleDefault(outs[i],
+                          current,
+                          newElement,
+                          p,
+                          err)) {
+                  succ.push(newElement);
+              }
+          }
+      }
   }
   if (err) {
-    ret = false;
+      ret = false;
   }
 
   return ret;
 }
 
+bool Slicer::getPredecessors(Element &current, 
+        Elements &pred,
+        Predicates &p) 
+{
+    // Simple case: if we're not at the beginning of the instructions
+    // in the block, then add the previous one and return
+    InsnVec::reverse_iterator prev = current.loc.rcurrent;
+    prev++;
+
+    if (prev != current.loc.rend) {
+        Element newElement = current;
+        // We're in the same context since we're in the same block
+        // Also, AbsRegion
+        // But update the Location
+        newElement.loc.rcurrent = prev;
+        pred.push(newElement);
+
+        slicing_cerr << "\t\t\t\t Adding intra-block predecessor " 
+            << std::hex << newElement.loc.addr() << " "  
+            << newElement.reg.format() << endl;
+        slicing_cerr << "\t\t\t\t Current region is " << current.reg.format() 
+            << endl;
+
+        return true;
+    }
+    
+    bool ret = true;
+    bool err = false;
+
+    pdvector<image_edge *> ins;
+    current.loc.block->getSources(ins);
+    pdvector<image_edge *>::iterator iter;
+    for (iter = ins.begin(); iter != ins.end(); ++iter) {   
+        if ((*iter)->getType() == ET_CALL) {
+            slicing_cerr << "\t\t Handling call:";
+            slicing_cerr << "TODO: this case currently unhandled" << endl;
+        } else if ((*iter)->getType() == ET_NOEDGE) {
+            slicing_cerr << "TODO: found ET_NOEDGE" << endl;
+        } else if ((*iter)->getType() == ET_FUNLINK) {
+            slicing_cerr << "TODO: found ET_FUNLINK" << endl;
+        } else {
+            Element newElement;
+            if (handleDefaultBackward((*iter),
+                        current,
+                        newElement,
+                        p,
+                        err)) {
+                pred.push(newElement);
+            }
+        }     
+    }
+
+    if (err) {
+        ret = false;
+    }
+
+    return ret;
+}
+
 bool Slicer::handleDefault(image_edge *e,
-			   Element &current,
-			   Element &newElement,
-			   Predicates &,
-			   bool &) {
+        Element &current,
+        Element &newElement,
+        Predicates &,
+        bool &) {
     // Since we're in the same function we can keep the AbsRegion
     // and Context. Instead we only need to update the Location
     newElement = current;
-  newElement.loc.block = e->getTarget();
-  
-  // Cache the new vector of instruction instances and get iterators into it
-  getInsns(newElement.loc);
-  
-  return true;
+    newElement.loc.block = e->getTarget();
+
+    // Cache the new vector of instruction instances and get iterators into it
+    getInsns(newElement.loc);
+
+    return true;
+
 }
+
+bool Slicer::handleDefaultBackward(image_edge *e,
+        Element &current,
+        Element &newElement,
+        Predicates &,
+        bool &) {
+    // Since we're in the same function we can keep the AbsRegion
+    // and Context. Instead we only need to update the Location
+    newElement = current;
+    newElement.loc.block = e->getSource();
+
+    // Cache the new vector of instruction instances and get iterators into it
+    getInsnsBackward(newElement.loc);
+
+    return true;
+}
+  
 
 bool Slicer::handleCall(image_basicBlock *block,
 			Element &current,
@@ -581,54 +771,155 @@ from " << initial.ptr->format()
 		       assignments);
     bool addSucc = true;
 
-    for (std::vector<Assignment::Ptr>::iterator iter =
-	   assignments.begin();
-	 iter != assignments.end(); ++iter) {
-      Assignment::Ptr &assign = *iter;
+    for (std::vector<Assignment::Ptr>::iterator iter = 
+            assignments.begin();
+            iter != assignments.end(); ++iter) {
+        Assignment::Ptr &assign = *iter;
 
-      slicing_cerr << "\t\t\t\t Assignment " <<
-	assign->format() << endl;
+        slicing_cerr << "\t\t\t\t Assignment " <<
+            assign->format() << endl;
 
-      // If this assignment uses an absRegion that overlaps with 
-      // searchRegion, add it to the return list. 
+        // If this assignment uses an absRegion that overlaps with
+        // searchRegion, add it to the return list.
+        
+        for (unsigned k = 0; k < assign->inputs().size();
+                ++k) {
+            const AbsRegion &uReg = assign->inputs()[k];
+            slicing_cerr << "\t\t\t\t\t\t" << uReg.format() <<
+                endl;
+            if (searchRegion.contains(uReg)) {
+                slicing_cerr << "\t\t\t\t\t Overlaps, adding" <<
+                    endl;
+                // We make a copy of each Element for each Assignment...
+                current.ptr = assign;
+                current.usedIndex = k;
+                succ.push(current);
+            }
+        }
 
-      for (unsigned k = 0; k < assign->inputs().size();
-	   ++k) {
-	const AbsRegion &uReg = assign->inputs()[k];
-	slicing_cerr << "\t\t\t\t\t\t" << uReg.format() <<
-	  endl;
-	if (searchRegion.contains(uReg)) {
-	  slicing_cerr << "\t\t\t\t\t Overlaps, adding" <<
-	    endl;
-          // We make a copy of each Element for each Assignment...
-	  current.ptr = assign;
-	  current.usedIndex = k;
-	  succ.push(current);
-	}
-      }
-      // Did we find a definition of the same abstract region?
-      // TBD: overlaps isn't quite the right thing here. "contained
-      // by" would be better, but we need to get the AND/OR 
-      // of abslocs hammered out.
-      if (searchRegion.contains(assign->out())) {
-	slicing_cerr << "\t\t\t\t\t Kills, stopping" <<
-	  endl;
-	addSucc = false;
-      }
+        // Did we find a definition of the same abstract region?
+        // TBD: overlaps ins't quite the right thing here. "contained
+        // by" would be better, but we need to get the AND/OR
+        // of abslocs hammered out.
+        if (searchRegion.contains(assign->out())) {
+            slicing_cerr << "\t\t\t\t\t Kills, stopping" <<
+                endl;
+            addSucc = false;
+        }
     }
     if (addSucc) {
-      if (!getSuccessors(current,
-			 worklist,
-			 p))  {
-	ret = false;
-      }
+        if (!getSuccessors(current,
+                    worklist,
+                    p)) {
+            ret = false;
+        }
     }
   }
   return ret;
 }
 
-AssignNode::Ptr Slicer::createNode(Element &elem)
+
+bool Slicer::backwardSearch(Element &initial, 
+        Elements &pred,
+        Predicates &p)
 {
+    bool ret = true;
+
+    // Might as well use a breadth-first search
+    //
+    // Worklist W = {}
+    // For each pred in start.insn.predcessors
+    //      W.push(pred)
+    // While W != {}
+    //      Let insn I = W.pop
+    //      Foreach assignment A in I.assignments
+    //          If A.uses(start.defs)
+    //              foundList.push_back(A)
+    //          If A.defins(start.defs)
+    //              defined = true
+    //          If (!defined)
+    //              Foreach pred in I.predecessors
+    //                  If !visited(I.block)
+    //                      W.push(pred)
+
+
+    Elements worklist;
+
+    slicing_cerr << "\t\t Getting backward predecesors from " 
+        << initial.ptr->format() << " - " 
+        << initial.reg.format() << endl;
+
+    if (!getPredecessors(initial, worklist, p)) {
+        ret = false;
+    }
+
+    // Need this so we don't get trapped in a loop
+    std::set<Address> visited;
+
+    while (!worklist.empty()) {
+        Element current = worklist.front(); worklist.pop();
+
+        if (visited.find(current.addr()) != visited.end()) {
+            slicing_cerr << "Already visited instruction @ "
+                << std::hex << current.addr() << std::dec
+                << endl;
+            continue;
+        } else {
+            visited.insert(current.addr());
+        }
+        
+        // What we're looking for
+        // This gets updated as we move from function to function,
+        // so always pull it off current
+        const AbsRegion searchRegion = current.reg;
+
+        // After this point we treat current as scratch space
+        // to scribble on and return
+
+        slicing_cerr << "\t\t\t Examining predecessor @ " << std::hex
+            << /*current.loc.rcurrent->second*/ current.loc.addr()
+            << std::dec << " with region " << searchRegion.format() << endl;
+
+        // Split the instruction up
+        std::vector<Assignment::Ptr> assignments;
+        convertInstruction(current.loc.rcurrent->first,
+                current.addr(),
+                current.loc.func,
+                assignments);
+        bool addPred = true;
+
+        for (std::vector<Assignment::Ptr>::iterator iter = assignments.begin();
+                iter != assignments.end();
+                ++iter) {
+            Assignment::Ptr &assign = *iter;
+
+            slicing_cerr << "\t\t\t\t Assignment " << assign->format() << endl;
+
+            // If this assignment uses an AbsRegion that overlaps
+            // with searchRegion, add it to the return list
+            
+            const AbsRegion &oReg = assign->out();
+            slicing_cerr << "\t\t\t\t\t\t" << oReg.format() << endl;
+            if (searchRegion.contains(oReg)) {
+                slicing_cerr << "\t\t\t\t\t Overlaps, adding" << endl;
+                // We make a copy of each Element for each Assignment...
+                current.ptr = assign;
+            
+                pred.push(current);
+                addPred = false;
+
+            }
+        }   
+        
+        if (addPred) {
+            if (!getPredecessors(current, worklist, p))
+                ret = false;
+        }
+    }
+    return ret;
+}
+
+AssignNode::Ptr Slicer::createNode(Element &elem) {
   if (created_.find(elem.ptr) != created_.end()) {
     return created_[elem.ptr];
   }
@@ -666,12 +957,21 @@ void Slicer::getInsns(Location &loc) {
   InsnCache::iterator iter =
     insnCache_.find(loc.block);
   if (iter == insnCache_.end()) {
-                                                                               
     loc.block->getInsnInstances(insnCache_[loc.block]);
   }
   
   loc.current = insnCache_[loc.block].begin();
   loc.end = insnCache_[loc.block].end();
+}
+
+void Slicer::getInsnsBackward(Location &loc) {
+    InsnCache::iterator iter = insnCache_.find(loc.block);
+    if (iter == insnCache_.end()) {
+        loc.block->getInsnInstances(insnCache_[loc.block]);
+    }
+
+    loc.rcurrent = insnCache_[loc.block].rbegin();
+    loc.rend = insnCache_[loc.block].rend();
 }
 
 void Slicer::insertPair(Graph::Ptr ret,
@@ -683,6 +983,7 @@ void Slicer::insertPair(Graph::Ptr ret,
   ret->insertPair(s, t);
 
   // Also record which input to t is defined by s
+  slicing_cerr << "adding assignment with usedIndex = " << target.usedIndex << endl;
   t->addAssignment(s, target.usedIndex);
 }
 
@@ -690,9 +991,15 @@ void Slicer::widen(Graph::Ptr ret,
 		   Element &source) {
   ret->insertPair(createNode(source),
 		  widenNode());
-  //cerr << "Inserting exit node " << widenNode() << endl;
+  slicing_cerr << "Inserting exit node " << widenNode() << endl;
 
   ret->insertExitNode(widenNode());
+}
+
+void Slicer::widenBackward(Graph::Ptr ret,
+        Element &target) {
+    ret->insertPair(widenNode(), createNode(target));
+    ret->insertEntryNode(widenNode());
 }
 
 AssignNode::Ptr Slicer::widenNode() {
@@ -707,8 +1014,14 @@ AssignNode::Ptr Slicer::widenNode() {
 
 void Slicer::markAsExitNode(Graph::Ptr ret,
 			    Element &e) {
-  //cerr << "Inserting exit node for assignment " << e.ptr->format() << endl;
-  ret->insertExitNode(createNode(e));
+    slicing_cerr << "Marking " << createNode(e)->format() << " as exit node" << endl;
+    ret->insertExitNode(createNode(e));
+}
+
+void Slicer::markAsEntryNode(Graph::Ptr ret,
+        Element &e) {
+    slicing_cerr << "Marking " << createNode(e)->format() << " as entry node" << endl;
+    ret->insertEntryNode(createNode(e));
 }
 
 void Slicer::fastForward(Location &loc, Address
@@ -719,6 +1032,15 @@ void Slicer::fastForward(Location &loc, Address
   }
   assert(loc.current != loc.end);
   assert(loc.addr() == addr);
+}
+
+void Slicer::fastBackward(Location &loc, Address addr) {
+    while ((loc.rcurrent != loc.rend) &&
+	 (loc.addr() > addr)) {
+    loc.rcurrent++;
+  }
+  assert(loc.rcurrent != loc.rend);
+  assert(loc.addr() == addr);  
 }
 
 void Slicer::cleanGraph(Graph::Ptr ret) {
@@ -811,4 +1133,17 @@ void Slicer::constructInitialElement(Element
   initial.reg = a_->out();
   initial.ptr = a_;
 }
+
+void Slicer::constructInitialElementBackward(Element &initial) {
+    // Cons up the first Element. We need a context, a location, and an
+  // abstract region
+  ContextElement context(f_);
+  initial.con.push_front(ContextElement(f_));
+  initial.loc = Location(f_, b_);
+  initial.loc.fwd = false;
+  getInsnsBackward(initial.loc);
+  fastBackward(initial.loc, a_->addr());
+  initial.reg = a_->out();
+  initial.ptr = a_;
+}   
                                     

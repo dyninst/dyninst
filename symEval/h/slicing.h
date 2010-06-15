@@ -98,7 +98,7 @@ namespace Dyninst {
 
             GraphPtr forwardSlice(PredicateFunc &e, PredicateFunc &w, CallStackFunc &c);
   
-            GraphPtr backwardSlice(PredicateFunc &e, PredicateFunc &w);
+            GraphPtr backwardSlice(PredicateFunc &e, PredicateFunc &w, CallStackFunc &c);
   
             static bool isWidenNode(Node::Ptr n);
 
@@ -184,6 +184,11 @@ namespace Dyninst {
                                        image_basicBlock *callerBlock,
                                        image_func *callee);
 
+                bool handleCallDetailsBackward(AbsRegion &reg,
+                        Context &context,
+                        image_basicBlock *calleeBlock,
+                        image_func *caller);
+
   // Where we are in a particular search...
                 struct Location {
     // The block we're looking through
@@ -191,15 +196,20 @@ namespace Dyninst {
                     image_basicBlock *block; // current block
 
     // Where we are in the block
-                    InsnVec::iterator current;
-                    InsnVec::iterator end;
+    InsnVec::iterator current;
+    InsnVec::iterator end;
 
-                    Address addr() const { return current->second; }
+    bool fwd;
 
-                    Location(image_func *f,
-                             image_basicBlock *b) : func(f), block(b) {};
-                    Location() : func(NULL), block(NULL) {};
-                };
+    InsnVec::reverse_iterator rcurrent;
+    InsnVec::reverse_iterator rend;
+
+    Address addr() const { if(fwd) return current->second; else return rcurrent->second;}
+
+  Location(image_func *f,
+	   image_basicBlock *b) : func(f), block(b), fwd(true){};
+  Location() : func(NULL), block(NULL), fwd(true) {};
+  };
     
                 typedef std::queue<Location> LocList;
   
@@ -229,6 +239,12 @@ namespace Dyninst {
                                    Element &newElement,
                                    Predicates &p,
                                    bool &err);
+                
+                bool handleDefaultBackward(image_edge *e,
+                                   Element &current,
+                                   Element &newElement,
+                                   Predicates &p,
+                                   bool &err);
 
                 bool handleCall(image_basicBlock *block,
                                 Element &current,
@@ -243,18 +259,27 @@ namespace Dyninst {
                                   bool &err);
 
                 void handleReturnDetails(AbsRegion &reg,
-                                         Context &context);
+                        Context &context);
 
                 bool getSuccessors(Element &current,
-                                   Elements &worklist,
-                                   Predicates &p);
+                        Elements &worklist,
+                        Predicates &p);
 
+                bool getPredecessors(Element &current,
+                        Elements &worklist,
+                        Predicates &p);
 
                 bool forwardSearch(Element &current,
                                    Elements &foundList,
                                    Predicates &p);
 
+                bool backwardSearch(Element &current,
+                        Elements &foundList,
+                        Predicates &p);
+
                 void widen(GraphPtr graph, Element &source);
+
+                void widenBackward(GraphPtr graph, Element &target);
 
                 void insertPair(GraphPtr graph,
                                 Element &source,
@@ -267,12 +292,17 @@ namespace Dyninst {
 
                 void fastForward(Location &loc, Address addr);
 
+                void fastBackward(Location &loc, Address addr);
+
                 AssignNode::Ptr widenNode();
 
                 void markAsExitNode(GraphPtr ret, Element &current);
-  
+
+                void markAsEntryNode(GraphPtr ret, Element &current);
 
                 void getInsns(Location &loc);
+
+                void getInsnsBackward(Location &loc);
 
                 void setAliases(Assignment::Ptr, Element &);
 
@@ -284,6 +314,8 @@ namespace Dyninst {
                                            Direction dir);
   
                 void constructInitialElement(Element &initial);
+
+                void constructInitialElementBackward(Element &initial);
 
                 InsnCache insnCache_;
 
