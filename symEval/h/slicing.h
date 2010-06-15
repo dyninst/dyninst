@@ -83,9 +83,6 @@ namespace Dyninst {
       // out how to move forward on edge classes
       std::map<AssignNode::Ptr, unsigned> assignMap_;
     };
-<<<<<<< HEAD:symEval/h/slicing.h
-
-
 
     class Slicer {
         public:
