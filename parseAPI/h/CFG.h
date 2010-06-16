@@ -31,6 +31,10 @@
 #ifndef _PARSER_CFG_H_
 #define _PARSER_CFG_H_
 
+#if !defined(_MSC_VER)
+#include <stdint.h>
+#endif
+
 #include <vector>
 #include <map>
 #include <string>
