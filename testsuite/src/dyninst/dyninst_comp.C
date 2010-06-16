@@ -581,7 +581,14 @@ int replaceFunctionCalls(BPatch_addressSpace *appAddrSpace, BPatch_image *appIma
    if (replacement != NULL) {
       
       BPatch_Vector<BPatch_function *> bpfv;
-      if (NULL == appImage->findFunction(replacement, bpfv) || !bpfv.size()
+      /*
+       * Include `uninstrumentable' functions here because function
+       * call replacement works regardless of whether the target is
+       * instrumentable or not. This is required to support targets
+       * in static libraries, where all code is uinstrumentable by
+       * default.
+       */
+      if (NULL == appImage->findFunction(replacement, bpfv,true,true,true) || !bpfv.size()
           || NULL == bpfv[0]){
          logerror("**Failed** test #%d (%s)\n", testNo, testName);
          logerror("    Unable to find function %s\n", replacement);
