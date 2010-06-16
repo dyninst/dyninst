@@ -40,6 +40,8 @@
 #include "common/h/singleton_object_pool.h"
 
 using namespace NS_x86;
+#include "BinaryFunction.h"
+#include "Immediate.h"
 
 namespace Dyninst
 {
@@ -57,6 +59,16 @@ namespace Dyninst
     Operation::Operation(entryID id, const char* mnem, Architecture arch)
           : mnemonic(mnem), operationID(id), doneOtherSetup(true), doneFlagsSetup(true), archDecodedFrom(arch), prefixID(prefix_none)
     {
+        switch(archDecodedFrom)
+        {
+            case Arch_x86:
+            case Arch_ppc32:
+                addrWidth = u32;
+                break;
+            default:
+                addrWidth = u64;
+                break;
+        }
     }
     
     Operation::Operation(ia32_entry* e, ia32_prefixes* p, ia32_locations* l, Architecture arch) :
@@ -64,6 +76,18 @@ namespace Dyninst
     
     {
       operationID = e->getID(l);
+      // Defaults for no size prefix
+      switch(archDecodedFrom)
+      {
+          case Arch_x86:
+          case Arch_ppc32:
+              addrWidth = u32;
+              break;
+          default:
+              addrWidth = u64;
+              break;
+      }
+      
       if(p && p->getCount())
       {
         if (p->getPrefix(0) == PREFIX_REP || p->getPrefix(0) == PREFIX_REPNZ)
@@ -107,6 +131,10 @@ namespace Dyninst
                 otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::ss : x86_64::ss));
                 break;
         }
+        if(p->getAddrSzPrefix())
+        {
+            addrWidth = u16;
+        }
       }
     }
 
@@ -121,6 +149,7 @@ namespace Dyninst
       doneFlagsSetup = o.doneFlagsSetup;
       archDecodedFrom = o.archDecodedFrom;
       prefixID = prefix_none;
+      addrWidth = o.addrWidth;
       
     }
     const Operation& Operation::operator=(const Operation& o)
@@ -134,6 +163,7 @@ namespace Dyninst
       doneFlagsSetup = o.doneFlagsSetup;
       archDecodedFrom = o.archDecodedFrom;
       prefixID = o.prefixID;
+      addrWidth = o.addrWidth;
       return *this;
     }
     Operation::Operation()
@@ -354,12 +384,28 @@ namespace Dyninst
       {
           otherEffAddrsRead.insert(foundMem->second.begin(), foundMem->second.end());
       }
-      foundMem = op_data(archDecodedFrom).nonOperandMemoryWrites.find(operationID);
-      if(foundMem != op_data(archDecodedFrom).nonOperandMemoryWrites.end())
+      if(operationID == e_push)
       {
-          otherEffAddrsWritten.insert(foundMem->second.begin(), foundMem->second.end());
+          static BinaryFunction::funcT::Ptr adder(new BinaryFunction::addResult());
+                    // special case for push: we write at the new value of the SP.
+          Result dummy(addrWidth, 0);
+          Expression::Ptr push_addr(new BinaryFunction(
+                  *(op_data(archDecodedFrom).stackPointerAsExpr.begin()),
+          Immediate::makeImmediate(Result(s8, -(dummy.size()))),
+          addrWidth,
+          adder));
+                
+          otherEffAddrsWritten.insert(push_addr);
+                  
       }
-      
+      else
+      {
+          foundMem = op_data(archDecodedFrom).nonOperandMemoryWrites.find(operationID);
+          if(foundMem != op_data(archDecodedFrom).nonOperandMemoryWrites.end())
+          {
+              otherEffAddrsWritten.insert(foundMem->second.begin(), foundMem->second.end());
+          }
+      }
       if(needFlags && !doneFlagsSetup)
       {
 	
