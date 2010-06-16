@@ -91,45 +91,42 @@ Graph::Ptr Slicer::forwardSlice(PredicateFunc &e,
 				PredicateFunc &w,
 				CallStackFunc &c,
 				AbsRegionFunc &a) {
-  // The End functor tells us when we should end the slice
-  // The Widen functor tells us when we should give up and say
-  // "this could go anywhere", which is represented with a
-  // Node::Ptr. 
+  return sliceInternal(forward, e, w, c, a);
+}
 
+Graph::Ptr Slicer::backwardSlice(PredicateFunc &e, 
+				 PredicateFunc &w,
+				 CallStackFunc &c,
+				 AbsRegionFunc &a) {
+  return sliceInternal(backward, e, w, c, a);
+}
+
+Graph::Ptr Slicer::sliceInternal(Direction dir,
+				 PredicateFunc &e, 
+				 PredicateFunc &w,
+				 CallStackFunc &c,
+				 AbsRegionFunc &a) {
   Graph::Ptr ret = Graph::createGraph();
 
-  // A forward slice is a graph of all instructions that are affected
-  // by the particular point we have identified. We derive it as follows:
+  // This does the work of forward or backwards slicing;
+  // the few different operations are flagged by the
+  // direction.
 
-  /*
-    Worklist W;
-    Graph G;
-    End E;
-    Widen Wi;
-
-    W.push(assignmentPtr);
-
-    while (!W.empty)
-    working = W.pop;
-    if (E(working)) continue;
-    if (Wi(working))
-    G.insert(working, widenMarker);
-    continue;
-    // Otherwise find children of working and enqueue them
-    Let C = findReachingDefs(working);
-    Foreach c in C:
-    G.insert(working, C)
-    W.push(c)
-  */
-
+  // e tells us when we should end (naturally)
+  // w tells us when we should end and widen
+  // c determines whether a call should be followed or skipped
+  // a does ???
+  
   Element initial;
-  constructInitialElement(initial);
+  constructInitialElement(initial, dir);
+  //     constructInitialElementBackward(initial);
 
   Predicates p(e, w, c, a);
 
   AssignNode::Ptr aP = createNode(initial);
   slicing_cerr << "Inserting entry node " << aP << "/" << aP->format() << endl;
-  ret->insertEntryNode(aP);
+
+  insertInitialNode(ret, dir, aP);
 
   Elements worklist;
   worklist.push(initial);
@@ -154,45 +151,33 @@ Graph::Ptr Slicer::forwardSlice(PredicateFunc &e,
     }
 
     slicing_cerr << "\tSlicing from " << current.ptr->format() << endl;
-#if 0
-    // DEBUG CODE
-    counter++;
-    if (counter > 10000)  {
-      cerr << "Slice from " << aP->format() << endl;
-      assert(0 && "Odd case in slicing!");
-    }
-#endif
     
     // Do we widen out? This should check the defined
     // abstract region...
     if (p.widen(current.ptr)) {
       slicing_cerr << "\t\t... widens slice" << endl;
-      widen(ret, current);
+      widen(ret, dir, current);
       continue;
     }
 
     // Do we stop here according to the end predicate?
     if (p.end(current.ptr)) {
       slicing_cerr << "\t\t... ends slice" << endl;
-      markAsExitNode(ret, current);
+      markAsEndNode(ret, dir, current);
       continue;
     }
 
     Elements found;
-
-    // Find everyone who uses what this ptr defines
-    current.reg = current.ptr->out();
-
-    if (!forwardSearch(current, found, p)) {
-      slicing_cerr << "\t\t... forward search failed" << endl;
-      widen(ret, current);
+    
+    if (!getMatchingElements(current, found, p, dir)) {
+      widen(ret, dir, current);
     }
+    // We actually want to fall through; it's possible to have
+    // a partially successful search.
+
     while (!found.empty()) {
-      Element target = found.front(); found.pop();
-
-      slicing_cerr << "\t Adding edge to " << target.ptr->format() << endl;
-
-      insertPair(ret, current, target);
+      Element &target = found.front(); found.pop();
+      insertPair(ret, dir, current, target);
       worklist.push(target);
     }
   }
@@ -201,119 +186,39 @@ Graph::Ptr Slicer::forwardSlice(PredicateFunc &e,
   slicing_cerr << "... done" << endl;
   return ret;
 }
-
-Graph::Ptr Slicer::backwardSlice(PredicateFunc &e, 
-				 PredicateFunc &w,
-				 CallStackFunc &c,
-				 AbsRegionFunc &a) {
-    // The End functor tells us when we should end the slice
-    // The Widen functor tells us when we should give up and say
-    // "this could go anywhere", which is represented with a
-    // Node::Ptr. 
+  
+bool Slicer::getMatchingElements(Element &current,
+				 Elements &found,
+				 Predicates &p,
+				 Direction dir) {
+  bool ret = true;
+  if (dir == forward) {
+    // Find everyone who uses what this ptr defines
+    current.reg = current.ptr->out();
     
-    Graph::Ptr ret = Graph::createGraph();
-
-    // A backward slice is a graph of all instructions that define
-    // vars used at the particular point we have identified. 
-    // We derive it as follows:
-
-    /* 
-       Worklist W;
-       Graph G;
-       End E;
-       Widen Wi;
-
-       W.push(assignmentPtr);
-
-       while(!W.empty)
-           working = W.pop;
-           if (E(working)) continue;
-           if (Wi(working))
-               G.insert(working, widenMarker);
-        continue;
-            // Otherwise, find parent(s) and enque them
-            Let C = findDefs(working);
-            Foreach c in C:
-                G.insert(working, c)
-                w.push(c) 
-    */
-    Element initial;
-    constructInitialElementBackward(initial);
-
-    Predicates p(e,w,c,a);
-
-    AssignNode::Ptr aP = createNode(initial);
-    slicing_cerr << "Inserting exit node " << aP << "/" << aP->format() << endl;
-    ret->insertExitNode(aP);
-
-    Elements worklist;
-    worklist.push(initial);
-
-    std::set<Assignment::Ptr> visited;
-
-    while (!worklist.empty()) {
-        Element current = worklist.front(); worklist.pop();
-
-        slicing_cerr << "Slicing from " << current.ptr->format() << endl;
-
-        assert(current.ptr);
-
-        if (visited.find(current.ptr) != visited.end()) {
-            slicing_cerr << "\t Already visited, skipping" << endl;
-            continue;
-        } else {
-            visited.insert(current.ptr);
-        }
-
-        // Do we widen out? This should check the defined abstract
-        // region
-        if (p.widen(current.ptr)) {
-            slicing_cerr << "\t\t... widens slice" << endl;
-            widenBackward(ret, current);
-            continue;
-        }   
-
-        // Do we stop here according to the end predicate?
-        if (p.end(current.ptr)) {
-            slicing_cerr << "\t\t... ends slice" << endl;
-            markAsEntryNode(ret, current);
-            continue;
-        }
-
-        Elements found;
-
-        // Find everyone who defines what this instruction uses
-        vector<AbsRegion> inputs = current.ptr->inputs();
-
-        if (inputs.empty()) {
-            // We're ending here, so make sure this is labelled
-            // as an entry point.
-            markAsEntryNode(ret, current);
-        }
-        else {
-	    for (unsigned int k = 0; k < inputs.size(); ++k) {
-                // Do processing on each input
-	      current.reg = inputs[k];
-	      
-	      if (!backwardSearch(current, found, p)) {
-		slicing_cerr << "\t\t... backward search failed" << endl;
-		widenBackward(ret, current);
-	      }
-	      while (!found.empty()) {
-		Element target = found.front(); found.pop();
-		
-		slicing_cerr << "\t Adding edge to " << target.ptr->format() << endl;
-		current.usedIndex = k;
-		insertPair(ret, target, current);
-		worklist.push(target);
-	      }
-            }
-        }
+    if (!search(current, found, p, 0, // Index doesn't matter as
+		// it's set when we find a match
+		forward)) {
+      ret = false;
     }
+  }
+  else {
+    assert(dir == backward);
 
-    cleanGraph(ret);
+    // Find everyone who defines what this instruction uses
+    vector<AbsRegion> inputs = current.ptr->inputs();
 
-    return ret;
+    for (unsigned int k = 0; k < inputs.size(); ++k) {
+      // Do processing on each input
+      current.reg = inputs[k];
+
+      if (!search(current, found, p, k, backward)) {
+	slicing_cerr << "\t\t... backward search failed" << endl;
+	ret = false;
+      }
+    }
+  }
+  return ret;
 }
 
 bool Slicer::getStackDepth(ParseAPI::Function *func, Address callAddr, long &height) {
@@ -733,82 +638,39 @@ bool Slicer::handleReturn(ParseAPI::Block *,
   return true;
 };
 
-bool Slicer::forwardSearch(Element &initial,
-			   Elements &succ,
-			   Predicates &p) {
+bool Slicer::search(Element &initial,
+		    Elements &succ,
+		    Predicates &p,
+		    int index,
+		    Direction dir) {
   bool ret = true;
   
   Assignment::Ptr source = initial.ptr;
-
-  // Might as well use a breadth-first search
-  //
-  // Worklist W = {}
-  // For each succ in start.insn.successors
-  //   W.push(succ)
-  // While W != {}
-  //   Let insn I = W.pop
-  //   Foreach assignment A in I.assignments
-  //     If A.uses(start.defs)
-  //       foundList.push_back(A)
-  //     If A.defines(start.defs)
-  //       defined = true
-  //   If (!defined)
-  //     Foreach succ in I.successors
-  //       If !visisted(I.block)
-  //         W.push(succ)
-
-  // The worklist is a queue of (block, int) pairs - 
-  // where the int is the index of the instruction within
-  // the block.
-
-  // I don't believe we need to keep a visited set, as we stop
-  // the first definition anyway (hence visited is implicit)
 
   Elements worklist;
   
   slicing_cerr << "\t\t Getting forward successors from " << initial.ptr->format()
   << " - " << initial.reg.format() << endl;
 
-  if (!getSuccessors(initial,
-		     worklist,
-		     p)) {
-    slicing_cerr << "Initial successors failed" << endl;
+  if (!getNextCandidates(initial, worklist, p, dir))
     ret = false;
-  }
 
   // Need this so we don't get trapped in a loop (literally) 
   std::set<Address> visited;
-  
   
   while (!worklist.empty()) {
     Element current = worklist.front();
     worklist.pop();
 
-    if (visited.find(current.addr()) != visited.end())
-      {
-	slicing_cerr << "Already visited instruction @ "
-		     << std::hex << current.addr() << std::dec
-		     << endl;
-	continue;
-      }
+    if (visited.find(current.addr()) != visited.end()) {
+      continue;
+    }
     else {
       visited.insert(current.addr());
     }
-
-    // What we're looking for
-    // This gets updated as we move from function to function,
-    // so always pull it off current
-    const AbsRegion searchRegion = current.reg;
-
+    
     // After this point we treat current as a scratch space to scribble in
     // and return...
-
-    slicing_cerr << "\t\t\t Examining successor @ " <<
-      std::hex << current.loc.current->second
-		 << std::dec << " with region " <<
-      searchRegion.format() << endl;
-
-
 
     // Split the instruction up
     std::vector<Assignment::Ptr> assignments;
@@ -816,162 +678,67 @@ bool Slicer::forwardSearch(Element &initial,
 		       current.addr(),
 		       current.loc.func,
 		       assignments);
-    bool addSucc = true;
+    bool keepGoing = true;
+    
+    for (std::vector<Assignment::Ptr>::iterator iter = assignments.begin();
+	 iter != assignments.end(); ++iter) {
+      Assignment::Ptr &assign = *iter;
 
-    for (std::vector<Assignment::Ptr>::iterator iter = 
-            assignments.begin();
-            iter != assignments.end(); ++iter) {
-        Assignment::Ptr &assign = *iter;
+      findMatches(current, assign, dir, index, succ);
 
-        slicing_cerr << "\t\t\t\t Assignment " <<
-            assign->format() << endl;
-
-        // If this assignment uses an absRegion that overlaps with
-        // searchRegion, add it to the return list.
-        
-        for (unsigned k = 0; k < assign->inputs().size();
-                ++k) {
-            const AbsRegion &uReg = assign->inputs()[k];
-            slicing_cerr << "\t\t\t\t\t\t" << uReg.format() <<
-                endl;
-            if (searchRegion.contains(uReg)) {
-                slicing_cerr << "\t\t\t\t\t Overlaps, adding" <<
-                    endl;
-                // We make a copy of each Element for each Assignment...
-                current.ptr = assign;
-                current.usedIndex = k;
-                succ.push(current);
-            }
-        }
-
-        // Did we find a definition of the same abstract region?
-        // TBD: overlaps ins't quite the right thing here. "contained
-        // by" would be better, but we need to get the AND/OR
-        // of abslocs hammered out.
-        if (searchRegion.contains(assign->out())) {
-            slicing_cerr << "\t\t\t\t\t Kills, stopping" <<
-                endl;
-            addSucc = false;
-        }
+      if (kills(current, assign)) {
+	keepGoing = false;
+      }
     }
-    if (addSucc) {
-        if (!getSuccessors(current,
-                    worklist,
-                    p)) {
-            ret = false;
-        }
+    if (keepGoing) {
+      if (!getNextCandidates(current, worklist, p, dir)) {
+	ret = false;
+      }
     }
   }
   return ret;
 }
 
 
-bool Slicer::backwardSearch(Element &initial, 
-        Elements &pred,
-        Predicates &p)
-{
-    bool ret = true;
-
-    // Might as well use a breadth-first search
-    //
-    // Worklist W = {}
-    // For each pred in start.insn.predcessors
-    //      W.push(pred)
-    // While W != {}
-    //      Let insn I = W.pop
-    //      Foreach assignment A in I.assignments
-    //          If A.uses(start.defs)
-    //              foundList.push_back(A)
-    //          If A.defins(start.defs)
-    //              defined = true
-    //          If (!defined)
-    //              Foreach pred in I.predecessors
-    //                  If !visited(I.block)
-    //                      W.push(pred)
-
-
-    Elements worklist;
-
-    slicing_cerr << "\t\t Getting backward predecesors from " 
-        << initial.ptr->format() << " - " 
-        << initial.reg.format() << endl;
-
-    if (!getPredecessors(initial, worklist, p)) {
-        ret = false;
+void Slicer::findMatches(Element &current, Assignment::Ptr &assign, Direction dir, int index, Elements &succ) {
+  if (dir == forward) {
+    // We compare the AbsRegion in current to the inputs
+    // of assign
+    
+    for (unsigned k = 0; k < assign->inputs().size(); ++k) {
+      const AbsRegion &uReg = assign->inputs()[k];
+      if (current.reg.contains(uReg)) {
+	// We make a copy of each Element for each Assignment...
+	current.ptr = assign;
+	current.usedIndex = k;
+	succ.push(current);
+      }
     }
-
-    // Need this so we don't get trapped in a loop
-    std::set<Address> visited;
-
-    while (!worklist.empty()) {
-        Element current = worklist.front(); worklist.pop();
-
-        if (visited.find(current.addr()) != visited.end()) {
-            slicing_cerr << "Already visited instruction @ "
-                << std::hex << current.addr() << std::dec
-                << endl;
-            continue;
-        } else {
-            visited.insert(current.addr());
-        }
-        
-        // What we're looking for
-        // This gets updated as we move from function to function,
-        // so always pull it off current
-        const AbsRegion searchRegion = current.reg;
-
-        // After this point we treat current as scratch space
-        // to scribble on and return
-
-        slicing_cerr << "\t\t\t Examining predecessor @ " << std::hex
-            << /*current.loc.rcurrent->second*/ current.loc.addr()
-            << std::dec << " with region " << searchRegion.format() << endl;
-
-        // Split the instruction up
-        std::vector<Assignment::Ptr> assignments;
-        convertInstruction(current.loc.rcurrent->first,
-                current.addr(),
-                current.loc.func,
-                assignments);
-        bool addPred = true;
-
-        for (std::vector<Assignment::Ptr>::iterator iter = assignments.begin();
-                iter != assignments.end();
-                ++iter) {
-            Assignment::Ptr &assign = *iter;
-
-            slicing_cerr << "\t\t\t\t Assignment " << assign->format() << endl;
-
-            // If this assignment uses an AbsRegion that overlaps
-            // with searchRegion, add it to the return list
-            
-            const AbsRegion &oReg = assign->out();
-            slicing_cerr << "\t\t\t\t\t\t" << oReg.format() << endl;
-            if (searchRegion.contains(oReg)) {
-                slicing_cerr << "\t\t\t\t\t Overlaps, adding" << endl;
-                // We make a copy of each Element for each Assignment...
-                current.ptr = assign;
-            
-                pred.push(current);
-                addPred = false;
-
-            }
-        }   
-        
-        if (addPred) {
-            if (!getPredecessors(current, worklist, p))
-                ret = false;
-        }
+  }
+  else {
+    assert(dir == backward);
+    const AbsRegion &oReg = assign->out();
+    if (current.reg.contains(oReg)) {
+      current.ptr = assign;
+      current.usedIndex = index;
+      succ.push(current);
     }
-    return ret;
+  }
+}
+
+bool Slicer::kills(Element &current, Assignment::Ptr &assign) {
+  // Did we find a definition of the same abstract region?
+  // TBD: overlaps ins't quite the right thing here. "contained
+  // by" would be better, but we need to get the AND/OR
+  // of abslocs hammered out.
+  return current.reg.contains(assign->out());
 }
 
 AssignNode::Ptr Slicer::createNode(Element &elem) {
   if (created_.find(elem.ptr) != created_.end()) {
     return created_[elem.ptr];
   }
-  AssignNode::Ptr newNode =
-    AssignNode::create(elem.ptr, elem.loc.block, elem.loc.func);
+  AssignNode::Ptr newNode = AssignNode::create(elem.ptr, elem.loc.block, elem.loc.func);
   created_[elem.ptr] = newNode;
   return newNode;
 }
@@ -1000,8 +767,7 @@ void Slicer::convertInstruction(Instruction::Ptr insn,
 
 void Slicer::getInsns(Location &loc) {
 
-  InsnCache::iterator iter =
-    insnCache_.find(loc.block);
+  InsnCache::iterator iter = insnCache_.find(loc.block);
   if (iter == insnCache_.end()) {
     getInsnInstances(loc.block, insnCache_[loc.block]);
   }
@@ -1021,31 +787,31 @@ void Slicer::getInsnsBackward(Location &loc) {
 }
 
 void Slicer::insertPair(Graph::Ptr ret,
+			Direction,
 			Element &source,
 			Element &target) {
   AssignNode::Ptr s = createNode(source);
   AssignNode::Ptr t = createNode(target);
 
   ret->insertPair(s, t);
-
+  
   // Also record which input to t is defined by s
   slicing_cerr << "adding assignment with usedIndex = " << target.usedIndex << endl;
   t->addAssignment(s, target.usedIndex);
 }
 
 void Slicer::widen(Graph::Ptr ret,
-		   Element &source) {
-  ret->insertPair(createNode(source),
-		  widenNode());
-  slicing_cerr << "Inserting exit node " << widenNode() << endl;
-
-  ret->insertExitNode(widenNode());
-}
-
-void Slicer::widenBackward(Graph::Ptr ret,
-        Element &target) {
-    ret->insertPair(widenNode(), createNode(target));
+		   Direction dir,
+		   Element &e) {
+  if (dir == forward) {
+    ret->insertPair(createNode(e),
+		    widenNode());
+    ret->insertExitNode(widenNode());
+  }
+  else {
+    ret->insertPair(widenNode(), createNode(e));
     ret->insertEntryNode(widenNode());
+  }
 }
 
 AssignNode::Ptr Slicer::widenNode() {
@@ -1058,16 +824,13 @@ AssignNode::Ptr Slicer::widenNode() {
   return widen_;
 }
 
-void Slicer::markAsExitNode(Graph::Ptr ret,
-			    Element &e) {
-    slicing_cerr << "Marking " << createNode(e)->format() << " as exit node" << endl;
+void Slicer::markAsEndNode(Graph::Ptr ret, Direction dir, Element &e) {
+  if (dir == forward) {    
     ret->insertExitNode(createNode(e));
-}
-
-void Slicer::markAsEntryNode(Graph::Ptr ret,
-        Element &e) {
-    slicing_cerr << "Marking " << createNode(e)->format() << " as entry node" << endl;
+  }
+  else {
     ret->insertEntryNode(createNode(e));
+  }
 }
 
 void Slicer::fastForward(Location &loc, Address
@@ -1150,7 +913,7 @@ bool Slicer::followCall(ParseAPI::Block *target, Direction dir, Element &current
   //cerr << "Calling followCall with stack and " << (callee ? callee->name() : "<NULL>") << endl;
   // FIXME: assuming that this is not a PLT function, since I have no idea at present.
   // -- BW, April 2010
-  return p.followCall(callee, callStack, false, current.reg);
+  return p.followCall(callee, callStack, current.reg);
 }
 
 ParseAPI::Block *Slicer::getBlock(ParseAPI::Edge *e,
@@ -1166,29 +929,24 @@ bool Slicer::isWidenNode(Node::Ptr n) {
   return false;
 }
 
-void Slicer::constructInitialElement(Element
-				     &initial) {
+void Slicer::constructInitialElement(Element &initial, Direction dir) {
   // Cons up the first Element. We need a context, a location, and an
   // abstract region
   ContextElement context(f_);
   initial.con.push_front(ContextElement(f_));
   initial.loc = Location(f_, b_);
-  getInsns(initial.loc);
-  fastForward(initial.loc, a_->addr());
   initial.reg = a_->out();
   initial.ptr = a_;
-}
 
-void Slicer::constructInitialElementBackward(Element &initial) {
-    // Cons up the first Element. We need a context, a location, and an
-  // abstract region
-  ContextElement context(f_);
-  initial.con.push_front(ContextElement(f_));
-  initial.loc = Location(f_, b_);
-  initial.loc.fwd = false;
-  getInsnsBackward(initial.loc);
-  fastBackward(initial.loc, a_->addr());
-  initial.reg = a_->out();
-  initial.ptr = a_;
+  if (dir == forward) {
+    initial.loc.fwd = true;
+    getInsns(initial.loc);
+    fastForward(initial.loc, a_->addr());
+  }
+  else {
+    initial.loc.fwd = false;
+    getInsnsBackward(initial.loc);
+    fastBackward(initial.loc, a_->addr());
+  }
 }   
                                     
