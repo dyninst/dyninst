@@ -88,7 +88,7 @@ void SymEval<a>::expand(Result_t &res, bool applyVisitors) {
       Assignment::Ptr ptr = i->first;
 
       // Let's experiment with simplification
-      image_func *func = ptr->func();
+      image_func *func = dynamic_cast<image_func *>(ptr->func());
       StackAnalysis sA(func);
       StackAnalysis::Height sp = sA.findSP(ptr->addr());
       StackAnalysis::Height fp = sA.findFP(ptr->addr());
@@ -100,7 +100,6 @@ void SymEval<a>::expand(Result_t &res, bool applyVisitors) {
   }
 }
 
-#ifndef DISABLE_SLICING
 // Do the previous, but use a Graph as a guide for
 // performing forward substitution on the AST results
 template<Architecture a>
@@ -141,7 +140,6 @@ void SymEval<a>::expand(Graph::Ptr slice, Result_t &res) {
     }
   }
 }
-#endif // DISABLE_SLICING
 
 void SymEvalArchTraits<Arch_x86>::processInstruction(SageInstruction_t* roseInsn,
                                                     SymEvalPolicy& policy)
@@ -198,7 +196,6 @@ SgAsmExpression* SymEvalArchTraits<Arch_x86>::convertOperand(InstructionKind_t o
     }
 }
 
-#ifndef DISABLE_SLICING
 template<Architecture a>
 void SymEval<a>::process(AssignNode::Ptr ptr,
 			 SymEval::Result_t &dbase) {
@@ -273,7 +270,6 @@ void SymEval<a>::process(AssignNode::Ptr ptr,
   //cerr << "Result of subsitution: " << ptr->assign()->format() << " == " << (ast ? ast->format() : "<NULL AST>") << endl;
   dbase[ptr->assign()] = ast;
 }
-#endif // DISABLE_SLICING
 
 PowerpcInstructionKind makeRoseBranchOpcode(entryID iapi_opcode, bool isAbsolute, bool isLink)
 {
@@ -405,7 +401,7 @@ bool SymEvalArchTraits<Arch_ppc32>::handleSpecialCases(entryID iapi_opcode,
         case power_op_svcs:
 	  {
 	    //cerr << "special-casing syscall insn" << endl;
-	    unsigned int raw;
+	    unsigned int raw = 0;
             std::vector<unsigned char> bytes = rose_insn.get_raw_bytes();
             for(unsigned i = 0; i < bytes.size(); i++)
             {

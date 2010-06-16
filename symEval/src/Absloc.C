@@ -317,8 +317,8 @@ std::ostream &operator<<(std::ostream &os, const Assignment::Ptr &a) {
 bool AbsRegion::equivalent(const AbsRegion &lhs,
 			   const AbsRegion &rhs,
 			   Address addr,
-			   image_func *caller,
-			   image_func *callee) {
+			   ParseAPI::Function *caller,
+			   ParseAPI::Function *callee) {
   // Check equivalence given a particular location (and thus
   // possible stack overlap)
   if (lhs == rhs) return true;
@@ -336,13 +336,13 @@ bool AbsRegion::equivalent(const AbsRegion &lhs,
   int caller_offset = -1;
   int callee_offset = -1;
 
-  if (lLoc.func() == caller->symTabName()) {
-    if (rLoc.func() != callee->symTabName()) return false;
+  if (lLoc.func() == caller->name()) {
+    if (rLoc.func() != callee->name()) return false;
     caller_offset = lLoc.off();
     callee_offset = rLoc.off();
   }
-  else if (rLoc.func() == caller->symTabName()) {
-    if (lLoc.func() != callee->symTabName()) return false;
+  else if (rLoc.func() == caller->name()) {
+    if (lLoc.func() != callee->name()) return false;
     caller_offset = rLoc.off();
     callee_offset = lLoc.off();
   }

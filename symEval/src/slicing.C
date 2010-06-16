@@ -15,10 +15,14 @@
 
 #include "dynutil/h/Graph.h"
 #include "instructionAPI/h/Instruction.h"
+#include "instructionAPI/h/InstructionDecoder.h"
+
 
 using namespace Dyninst;
 using namespace InstructionAPI;
 using namespace std;
+using namespace ParseAPI;
+
 
 #define slicing_cerr if (debug) cerr
 
@@ -30,13 +34,53 @@ Address AssignNode::addr() const {
   return 0;
 }
 
+bool containsCall(ParseAPI::Block *block) {
+  // We contain a call if the out-edges include
+  // either a CALL or a CALL_FT edge
+  const Block::edgelist &targets = block->targets();
+  Block::edgelist::iterator eit = targets.begin();
+  for (; eit != targets.end(); ++eit) {
+    ParseAPI::Edge *edge = *eit;
+    if (edge->type() == CALL) return true;
+  }
+  return false;
+}
+
+bool containsRet(ParseAPI::Block *block) {
+  // We contain a call if the out-edges include
+  // either a CALL or a CALL_FT edge
+  const Block::edgelist &targets = block->targets();
+  Block::edgelist::iterator eit = targets.begin();
+  for (; eit != targets.end(); ++eit) {
+    ParseAPI::Edge *edge = *eit;
+    if (edge->type() == RET) return true;
+  }
+  return false;
+}
+
+void getInsnInstances(ParseAPI::Block *block,
+		      Slicer::InsnVec &insns) {
+  Offset off = block->start();
+  const unsigned char *ptr = (const unsigned char *)block->region()->getPtrToInstruction(off);
+  if (ptr == NULL) return;
+  InstructionDecoder d(ptr, block->size(), block->obj()->cs()->getArch());
+  while (off < block->end()) {
+    insns.push_back(std::make_pair(d.decode(), off));
+    off += insns.back().first->size();
+  }
+}
+
+ParseAPI::Function *getEntryFunc(ParseAPI::Block *block) {
+  return block->obj()->findFuncByEntry(block->region(), block->start());
+}
+
 // Constructor. Takes the initial point we slice from. 
 
 // TODO: make this function-less interprocedural. That would throw the
 // stack analysis for a loop, but is generally doable...
 Slicer::Slicer(Assignment::Ptr a,
-               image_basicBlock *block,
-               image_func *func) : 
+               ParseAPI::Block *block,
+               ParseAPI::Function *func) : 
   a_(a),
   b_(block),
   f_(func),
@@ -91,8 +135,6 @@ Graph::Ptr Slicer::forwardSlice(PredicateFunc &e,
   worklist.push(initial);
 
   std::set<Assignment::Ptr> visited;
-
-  int counter = 0;
 
   while (!worklist.empty()) {
     Element current = worklist.front(); worklist.pop();
@@ -161,8 +203,9 @@ Graph::Ptr Slicer::forwardSlice(PredicateFunc &e,
 }
 
 Graph::Ptr Slicer::backwardSlice(PredicateFunc &e, 
-        PredicateFunc &w,
-        CallStackFunc &c) {
+				 PredicateFunc &w,
+				 CallStackFunc &c,
+				 AbsRegionFunc &a) {
     // The End functor tells us when we should end the slice
     // The Widen functor tells us when we should give up and say
     // "this could go anywhere", which is represented with a
@@ -197,7 +240,7 @@ Graph::Ptr Slicer::backwardSlice(PredicateFunc &e,
     Element initial;
     constructInitialElementBackward(initial);
 
-    Predicates p(e,w,c);
+    Predicates p(e,w,c,a);
 
     AssignNode::Ptr aP = createNode(initial);
     slicing_cerr << "Inserting exit node " << aP << "/" << aP->format() << endl;
@@ -273,8 +316,8 @@ Graph::Ptr Slicer::backwardSlice(PredicateFunc &e,
     return ret;
 }
 
-bool Slicer::getStackDepth(image_func *func, Address callAddr, long &height) {
-  StackAnalysis sA(func);
+bool Slicer::getStackDepth(ParseAPI::Function *func, Address callAddr, long &height) {
+  StackAnalysis sA(dynamic_cast<image_func *>(func));
 
   StackAnalysis::Height heightSA = sA.findSP(callAddr);
 
@@ -298,17 +341,20 @@ bool Slicer::getStackDepth(image_func *func, Address callAddr, long &height) {
 }
 
 void Slicer::pushContext(Context &context,
-			 image_func *callee,
-			 image_basicBlock *callBlock,
+			 ParseAPI::Function *callee,
+			 ParseAPI::Block *callBlock,
 			 long stackDepth) {
   slicing_cerr << "pushContext with " << context.size() << " elements" << endl;
   assert(context.front().block == NULL);
   context.front().block = callBlock;
 
-  slicing_cerr << "\t" << (context.front().func ? context.front().func->symTabName() : "NULL")
-  //<< ", " << context.front().stackDepth << endl;
+  slicing_cerr << "\t" 
+	       << (context.front().func ? context.front().func->name() : "NULL")
+	       << ", " 
+	       << context.front().stackDepth 
+	       << endl;
 
-  context.push_front(ContextElement(callee, stackDepth));
+    context.push_front(ContextElement(callee, stackDepth));
 };
 
 void Slicer::popContext(Context &context) {
@@ -320,7 +366,7 @@ void Slicer::popContext(Context &context) {
 void Slicer::shiftAbsRegion(AbsRegion &callerReg,
 			    AbsRegion &calleeReg,
 			    long stack_depth,
-			    image_func *callee) {
+			    ParseAPI::Function *callee) {
   if (callerReg.absloc() == Absloc()) {
     // Typed, so just keep the same type and call it a day
     calleeReg = callerReg;
@@ -342,10 +388,10 @@ void Slicer::shiftAbsRegion(AbsRegion &callerReg,
       else {
         //slicing_cerr << "*** Shifting caller absloc " << callerAloc.off()
         //<< " by stack depth " << stack_depth 
-        //<< " and setting to function " << callee->symTabName() << endl;
+        //<< " and setting to function " << callee->name() << endl;
 	calleeReg = AbsRegion(Absloc(callerAloc.off() - stack_depth,
 				     0, // Entry point has region 0 by definition
-				     callee->symTabName()));
+				     callee->name()));
       }
     }
   }
@@ -353,13 +399,13 @@ void Slicer::shiftAbsRegion(AbsRegion &callerReg,
 
 bool Slicer::handleCallDetails(AbsRegion &reg,
 			Context &context,
-			image_basicBlock *callerBlock,
-			image_func *callee) {
-  image_func *caller = context.front().func;
+			ParseAPI::Block *callerBlock,
+			ParseAPI::Function *callee) {
+  ParseAPI::Function *caller = context.front().func;
   AbsRegion newReg = reg;
 
   long stack_depth;
-  if (!getStackDepth(caller, callerBlock->endOffset(), stack_depth)) {
+  if (!getStackDepth(caller, callerBlock->end(), stack_depth)) {
     return false;
   }
 
@@ -373,7 +419,7 @@ bool Slicer::handleCallDetails(AbsRegion &reg,
 		 callee);
 
   //slicing_cerr << "After call, context has " << context.size() << " elements" << endl;
-  //slicing_cerr << "\t" << (context.front().func ? context.front().func->symTabName() : "NULL")
+  //slicing_cerr << "\t" << (context.front().func ? context.front().func->name() : "NULL")
   //       << ", " << context.front().stackDepth << endl;
 
   reg = newReg;
@@ -386,7 +432,7 @@ void Slicer::handleReturnDetails(AbsRegion &reg,
   // reversing what we did in handleCall
 
   //  slicing_cerr << "Return: context has " << context.size() << " elements" << endl;
-  //slicing_cerr << "\t" << (context.front().func ? context.front().func->symTabName() : "NULL")
+  //slicing_cerr << "\t" << (context.front().func ? context.front().func->name() : "NULL")
   //<< ", " << context.front().stackDepth << endl;
 
   long stack_depth = context.front().stackDepth;
@@ -396,7 +442,7 @@ void Slicer::handleReturnDetails(AbsRegion &reg,
   assert(!context.empty());
 
   slicing_cerr << "\t" << (context.front().func ?
-			   context.front().func->symTabName() : "NULL")
+			   context.front().func->name() : "NULL")
 	       << ", " << context.front().stackDepth << endl;
 
 
@@ -440,7 +486,7 @@ bool Slicer::getSuccessors(Element &current,
   // At the end of the block: set up the next blocks.
   bool err = false;
 
-  if (current.loc.block->containsCall()) {
+  if (containsCall(current.loc.block)) {
     Element newElement;
     slicing_cerr << "\t\t Handling call:";
     if (handleCall(current.loc.block,
@@ -455,56 +501,45 @@ bool Slicer::getSuccessors(Element &current,
       slicing_cerr << " failed, err " << err << endl;
     }
   }
-  else if (current.loc.block->containsRet()) { 
-      Element newElement;
-      slicing_cerr << "\t\t Handling return:";
-      if (handleReturn(current.loc.block,
-                  current,
-                  newElement,
-                  p,
-                  err)) {
-          slicing_cerr << " succeeded, err " << err << endl;
-          succ.push(newElement);
-      }
-      else {
-          slicing_cerr << " failed, err " << err << endl;
-      }
+  else if (containsRet(current.loc.block)) {
+    Element newElement;
+    slicing_cerr << "\t\t Handling return:";
+    if (handleReturn(current.loc.block,
+		     current,
+		     newElement,
+		     p,
+		     err)) {
+      slicing_cerr << " succeeded, err " << err << endl;
+      succ.push(newElement);
+    }
+    else {
+      slicing_cerr << " failed, err " << err << endl;
+    }
   }
   else {
-      pdvector<image_edge *> outs;
-      current.loc.block->getTargets(outs);
-
-      if (outs.empty()) { 
-          if (current.loc.block->canBeRelocated()) {
-              // Should be a halt. 
-          }
-          else {
-              ret = false;
-          }
+    const Block::edgelist &targets = current.loc.block->targets();
+    Block::edgelist::iterator eit = targets.begin();
+    for (; eit != targets.end(); ++eit) {
+      Element newElement;
+      if (handleDefault(*eit,
+			current,
+			newElement,
+			p,
+			err)) {
+	succ.push(newElement);
       }
-      else {
-          for (unsigned i = 0; i < outs.size(); ++i) {
-              Element newElement;
-              if (handleDefault(outs[i],
-                          current,
-                          newElement,
-                          p,
-                          err)) {
-                  succ.push(newElement);
-              }
-          }
-      }
+    }
   }
   if (err) {
-      ret = false;
+    ret = false;
   }
-
+  
   return ret;
 }
 
 bool Slicer::getPredecessors(Element &current, 
-        Elements &pred,
-        Predicates &p) 
+			     Elements &pred,
+			     Predicates &p) 
 {
     // Simple case: if we're not at the beginning of the instructions
     // in the block, then add the previous one and return
@@ -531,45 +566,48 @@ bool Slicer::getPredecessors(Element &current,
     bool ret = true;
     bool err = false;
 
-    pdvector<image_edge *> ins;
-    current.loc.block->getSources(ins);
-    pdvector<image_edge *>::iterator iter;
-    for (iter = ins.begin(); iter != ins.end(); ++iter) {   
-        if ((*iter)->getType() == ET_CALL) {
-            slicing_cerr << "\t\t Handling call:";
-            slicing_cerr << "TODO: this case currently unhandled" << endl;
-        } else if ((*iter)->getType() == ET_NOEDGE) {
-            slicing_cerr << "TODO: found ET_NOEDGE" << endl;
-        } else if ((*iter)->getType() == ET_FUNLINK) {
-            slicing_cerr << "TODO: found ET_FUNLINK" << endl;
-        } else {
-            Element newElement;
-            if (handleDefaultBackward((*iter),
-                        current,
-                        newElement,
-                        p,
-                        err)) {
-                pred.push(newElement);
-            }
-        }     
+    const Block::edgelist &sources = current.loc.block->sources();
+    Block::edgelist::iterator eit = sources.begin();
+    for ( ; eit != sources.end(); ++eit) {   
+      switch ((*eit)->type()) {
+      case CALL:
+	slicing_cerr << "\t\t Handling call:";
+	slicing_cerr << "TODO: this case currently unhandled" << endl;
+	break;
+      case NOEDGE:
+	slicing_cerr << "TODO: found NOEDGE" << endl;
+	break;
+      case CALL_FT:
+	slicing_cerr << "TODO: found call fallthrough" << endl;
+	break;
+      default:
+	Element newElement;
+	if (handleDefaultBackward((*eit),
+				  current,
+				  newElement,
+				  p,
+				  err)) {
+	  pred.push(newElement);
+	}
+      }     
     }
-
+    
     if (err) {
-        ret = false;
+      ret = false;
     }
 
     return ret;
 }
 
-bool Slicer::handleDefault(image_edge *e,
-        Element &current,
-        Element &newElement,
-        Predicates &,
-        bool &) {
+bool Slicer::handleDefault(ParseAPI::Edge *e,
+			   Element &current,
+			   Element &newElement,
+			   Predicates &,
+			   bool &) {
     // Since we're in the same function we can keep the AbsRegion
     // and Context. Instead we only need to update the Location
     newElement = current;
-    newElement.loc.block = e->getTarget();
+    newElement.loc.block = e->trg();
 
     // Cache the new vector of instruction instances and get iterators into it
     getInsns(newElement.loc);
@@ -578,7 +616,7 @@ bool Slicer::handleDefault(image_edge *e,
 
 }
 
-bool Slicer::handleDefaultBackward(image_edge *e,
+bool Slicer::handleDefaultBackward(ParseAPI::Edge *e,
         Element &current,
         Element &newElement,
         Predicates &,
@@ -586,7 +624,7 @@ bool Slicer::handleDefaultBackward(image_edge *e,
     // Since we're in the same function we can keep the AbsRegion
     // and Context. Instead we only need to update the Location
     newElement = current;
-    newElement.loc.block = e->getSource();
+    newElement.loc.block = e->src();
 
     // Cache the new vector of instruction instances and get iterators into it
     getInsnsBackward(newElement.loc);
@@ -595,23 +633,22 @@ bool Slicer::handleDefaultBackward(image_edge *e,
 }
   
 
-bool Slicer::handleCall(image_basicBlock *block,
+bool Slicer::handleCall(ParseAPI::Block *block,
 			Element &current,
 			Element &newElement,
 			Predicates &p,
 			bool &err) {
-  // Best attempt: find the callee
-  pdvector<image_edge *> outs;
-  block->getTargets(outs);
+  ParseAPI::Block *callee = NULL;
+  ParseAPI::Edge *funlink = NULL;
 
-  image_basicBlock *callee = NULL;
-  image_edge *funlink = NULL;
-  for (unsigned i = 0; i < outs.size(); ++i) {
-    if (outs[i]->getType() == ET_CALL) {
-      callee = outs[i]->getTarget();
+  const Block::edgelist &targets = block->targets();
+  Block::edgelist::iterator eit = targets.begin();
+  for (; eit != targets.end(); ++eit) {
+    if ((*eit)->type() == CALL) {
+      callee = (*eit)->trg();
     }
-    else if (outs[i]->getType() == ET_FUNLINK) {
-      funlink = outs[i];
+    else if ((*eit)->type() == CALL_FT) {
+      funlink = (*eit);
     }
   }
 
@@ -624,7 +661,7 @@ bool Slicer::handleCall(image_basicBlock *block,
     newElement = current;
     // Update location
     newElement.loc.block = callee;
-    newElement.loc.func = callee->getEntryFunc();
+    newElement.loc.func = getEntryFunc(callee);
     getInsns(newElement.loc);
     
     // HandleCall updates both an AbsRegion and a context...
@@ -655,7 +692,7 @@ bool Slicer::handleCall(image_basicBlock *block,
   return true;
 }
 
-bool Slicer::handleReturn(image_basicBlock *,
+bool Slicer::handleReturn(ParseAPI::Block *,
 			  Element &current,
 			  Element &newElement,
 			  Predicates &,
@@ -671,15 +708,13 @@ bool Slicer::handleReturn(image_basicBlock *,
     return false;
   }
 
-  image_basicBlock *retBlock = NULL;
+  ParseAPI::Block *retBlock = NULL;
 
-  std::vector<image_edge *> outEdges;
-  callerCon.front().block->getTargets(outEdges);
-  for (std::vector<image_edge *>::iterator iter =
-	 outEdges.begin();
-       iter != outEdges.end(); iter++) {
-    if ((*iter)->getType() == ET_FUNLINK) {
-      retBlock = (*iter)->getTarget();
+  const Block::edgelist &targets = current.loc.block->targets();
+  Block::edgelist::iterator eit = targets.begin();
+  for (; eit != targets.end(); ++eit) {
+    if ((*eit)->type() == CALL_FT) {
+      retBlock = (*eit)->trg();
       break;
     }
   }
@@ -948,14 +983,13 @@ std::string AssignNode::format() const {
 
   stringstream ret;
   ret << "(" << a_->format() << "@" <<
-    f_->symTabName() << ")";
+    f_->name() << ")";
   return ret.str();
 }
 
-void Slicer::convertInstruction(Instruction::Ptr
-				insn,
+void Slicer::convertInstruction(Instruction::Ptr insn,
 				Address addr,
-				image_func *func,
+				ParseAPI::Function *func,
 				std::vector<Assignment::Ptr> &ret) {
   converter.convert(insn,
 		    addr,
@@ -969,7 +1003,7 @@ void Slicer::getInsns(Location &loc) {
   InsnCache::iterator iter =
     insnCache_.find(loc.block);
   if (iter == insnCache_.end()) {
-    loc.block->getInsnInstances(insnCache_[loc.block]);
+    getInsnInstances(loc.block, insnCache_[loc.block]);
   }
   
   loc.current = insnCache_[loc.block].begin();
@@ -979,7 +1013,7 @@ void Slicer::getInsns(Location &loc) {
 void Slicer::getInsnsBackward(Location &loc) {
     InsnCache::iterator iter = insnCache_.find(loc.block);
     if (iter == insnCache_.end()) {
-        loc.block->getInsnInstances(insnCache_[loc.block]);
+      getInsnInstances(loc.block, insnCache_[loc.block]);
     }
 
     loc.rcurrent = insnCache_[loc.block].rbegin();
@@ -1091,7 +1125,7 @@ void Slicer::cleanGraph(Graph::Ptr ret) {
   }
 }
 
-bool Slicer::followCall(image_basicBlock *target, Direction dir, Element &current, Predicates &p)
+bool Slicer::followCall(ParseAPI::Block *target, Direction dir, Element &current, Predicates &p)
 {
   // We provide the call stack and the potential callee.
   // It returns whether we follow the call or not.
@@ -1101,28 +1135,27 @@ bool Slicer::followCall(image_basicBlock *target, Direction dir, Element &curren
   
   // Find the callee
   assert(dir == forward);
-  image_func *callee = (target ? target->getEntryFunc() : NULL);
+  ParseAPI::Function *callee = (target ? getEntryFunc(target) : NULL);
   // Create a call stack
-  std::stack<std::pair<image_func *, int> > callStack;
+  std::stack<std::pair<ParseAPI::Function *, int> > callStack;
   for (Context::reverse_iterator calls = current.con.rbegin();
        calls != current.con.rend();
        ++calls)
     {
       if (calls->func)  {
-	//cerr << "Adding " << calls->func->symTabName() << " to call stack" << endl;
-	callStack.push(std::make_pair<image_func*, int>(calls->func, calls->stackDepth));
+	//cerr << "Adding " << calls->func->name() << " to call stack" << endl;
+	callStack.push(std::make_pair<ParseAPI::Function*, int>(calls->func, calls->stackDepth));
       }
     }
-  //cerr << "Calling followCall with stack and " << (callee ? callee->symTabName() : "<NULL>") << endl;
+  //cerr << "Calling followCall with stack and " << (callee ? callee->name() : "<NULL>") << endl;
   // FIXME: assuming that this is not a PLT function, since I have no idea at present.
   // -- BW, April 2010
   return p.followCall(callee, callStack, false, current.reg);
 }
 
-image_basicBlock *Slicer::getBlock(image_edge *e,
+ParseAPI::Block *Slicer::getBlock(ParseAPI::Edge *e,
 				   Direction dir) {
-  return ((dir == forward) ? e->getTarget() :
-	  e->getSource());
+  return ((dir == forward) ? e->trg() : e->src());
 }
 
 bool Slicer::isWidenNode(Node::Ptr n) {
