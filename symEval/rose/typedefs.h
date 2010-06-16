@@ -1,6 +1,10 @@
 #if !defined(ROSE_TYPEDEFS_H)
 #define ROSE_TYPEDEFS_H
 
+#if !defined(_MSC_VER)
+#include <stdint.h>
+#endif
+
 #include <vector>
 
 typedef std::vector<unsigned char> SgUnsignedCharList;
