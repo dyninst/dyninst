@@ -105,6 +105,8 @@ class Absloc {
   int off() const { assert(type_ == Stack); return off_; };
   int region() const { assert(type_ == Stack); return region_; };
   const std::string &func() const { assert(type_ == Stack); return func_; };
+
+  Address addr() const { assert(type_ == Heap); return addr_; };
   
   bool operator<(const Absloc &rhs) const {
     if (type_ != rhs.type_) 
