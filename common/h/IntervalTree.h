@@ -59,7 +59,8 @@ class IntervalTree {
   }
 
   bool find(K key, V &value) const {
-    K lb, ub;
+    K lb = 0;
+    K ub = 0;
     V val;
     if (!precessor(key, lb, ub, val))
       return false;
