@@ -46,16 +46,16 @@ class Operation {
     typedef dyn_detail::boost::shared_ptr<Operation> Ptr;
     typedef std::set<Operation::Ptr> OperationSet;
 
-    static decompose(Instruction::Ptr insn,
+    SYMEVAL_EXPORT static decompose(Instruction::Ptr insn,
                      Address addr,
                      OperationSet &ops);
 
-    std::string format() const;
-    Address addr() const { return addr_; }
-    Instruction::Ptr insn() const { return insn_; }
-    Absloc::Ptr absloc() const { return absloc_; }
+    SYMEVAL_EXPORT std::string format() const;
+    SYMEVAL_EXPORT Address addr() const { return addr_; }
+    SYMEVAL_EXPORT Instruction::Ptr insn() const { return insn_; }
+    SYMEVAL_EXPORT Absloc::Ptr absloc() const { return absloc_; }
 
-    Operation(Instruction::Ptr insn,
+    SYMEVAL_EXPORT Operation(Instruction::Ptr insn,
               Address addr,
               Absloc::Ptr absloc) :
         insn_(insn), addr_(addr), absloc_(absloc) {};

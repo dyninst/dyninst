@@ -43,7 +43,7 @@
 namespace Dyninst {
 namespace SymbolicEvaluation {
 
-class SYMEVAL_EXPORT StackVisitor : public ASTVisitor {
+class StackVisitor : public ASTVisitor {
  public:
   StackVisitor(Address a,
 	       std::string funcname,
@@ -51,14 +51,14 @@ class SYMEVAL_EXPORT StackVisitor : public ASTVisitor {
 	       StackAnalysis::Height &frameHeight) :
     addr_(a), func_(funcname), stack_(stackHeight), frame_(frameHeight) {};
 
-    virtual AST::Ptr visit(AST *);
-    virtual AST::Ptr visit(BottomAST *);
-    virtual AST::Ptr visit(ConstantAST *);
-    virtual AST::Ptr visit(VariableAST *);
-    virtual AST::Ptr visit(RoseAST *);
-    virtual AST::Ptr visit(StackAST *);
+    SYMEVAL_EXPORT virtual AST::Ptr visit(AST *);
+    SYMEVAL_EXPORT virtual AST::Ptr visit(BottomAST *);
+    SYMEVAL_EXPORT virtual AST::Ptr visit(ConstantAST *);
+    SYMEVAL_EXPORT virtual AST::Ptr visit(VariableAST *);
+    SYMEVAL_EXPORT virtual AST::Ptr visit(RoseAST *);
+    SYMEVAL_EXPORT virtual AST::Ptr visit(StackAST *);
   
-  virtual ~StackVisitor() {};
+  SYMEVAL_EXPORT virtual ~StackVisitor() {};
 
   private:
   Address addr_;

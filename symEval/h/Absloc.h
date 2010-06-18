@@ -50,7 +50,8 @@
 #endif
 
 #include "Instruction.h"
-#include "dynutil/h/AST.h"
+#include "AST.h"
+#include "util.h"
 
 namespace Dyninst {
 
@@ -66,9 +67,9 @@ class Absloc {
     Heap,
     Unknown } Type;
 
-  SYMEVAL_EXPORT static Absloc makePC(Dyninst::Architecture arch);
-  SYMEVAL_EXPORT static Absloc makeSP(Dyninst::Architecture arch);
-  SYMEVAL_EXPORT static Absloc makeFP(Dyninst::Architecture arch);
+   SYMEVAL_EXPORT static Absloc makePC(Dyninst::Architecture arch);
+   SYMEVAL_EXPORT static Absloc makeSP(Dyninst::Architecture arch);
+   SYMEVAL_EXPORT static Absloc makeFP(Dyninst::Architecture arch);
   
   // Some static functions for "well-known" Abslocs
   SYMEVAL_EXPORT bool isPC() const;

@@ -86,25 +86,16 @@ Slicer::Slicer(Assignment::Ptr a,
   init_debug();
 };
 
-Graph::Ptr Slicer::forwardSlice(PredicateFunc &e,
-				PredicateFunc &w,
-				CallStackFunc &c,
-				AbsRegionFunc &a) {
-  return sliceInternal(forward, e, w, c, a);
+Graph::Ptr Slicer::forwardSlice(Predicates &predicates) {
+  return sliceInternal(forward, predicates);
 }
 
-Graph::Ptr Slicer::backwardSlice(PredicateFunc &e, 
-				 PredicateFunc &w,
-				 CallStackFunc &c,
-				 AbsRegionFunc &a) {
-  return sliceInternal(backward, e, w, c, a);
+Graph::Ptr Slicer::backwardSlice(Predicates &predicates) {
+  return sliceInternal(backward, predicates);
 }
 
 Graph::Ptr Slicer::sliceInternal(Direction dir,
-				 PredicateFunc &e, 
-				 PredicateFunc &w,
-				 CallStackFunc &c,
-				 AbsRegionFunc &a) {
+				 Predicates &p) {
   Graph::Ptr ret = Graph::createGraph();
 
   // This does the work of forward or backwards slicing;
@@ -119,8 +110,6 @@ Graph::Ptr Slicer::sliceInternal(Direction dir,
   Element initial;
   constructInitialElement(initial, dir);
   //     constructInitialElementBackward(initial);
-
-  Predicates p(e, w, c, a);
 
   AssignNode::Ptr aP = createNode(initial);
   slicing_cerr << "Inserting entry node " << aP << "/" << aP->format() << endl;
@@ -153,14 +142,14 @@ Graph::Ptr Slicer::sliceInternal(Direction dir,
     
     // Do we widen out? This should check the defined
     // abstract region...
-    if (p.widen(current.ptr)) {
+    if (p.widenAtPoint(current.ptr)) {
       slicing_cerr << "\t\t... widens slice" << endl;
       widen(ret, dir, current);
       continue;
     }
 
     // Do we stop here according to the end predicate?
-    if (p.end(current.ptr)) {
+    if (p.endAtPoint(current.ptr)) {
       slicing_cerr << "\t\t... ends slice" << endl;
       markAsEndNode(ret, dir, current);
       continue;

@@ -39,6 +39,7 @@
 #include "dyntypes.h"
 #include <set>
 #include <string>
+#include "util.h"
 
 #include "common/h/IntervalTree.h"
 
@@ -48,7 +49,7 @@
 #include "dyn_detail/boost/shared_ptr.hpp"
 
 // To define StackAST
-#include "dynutil/h/AST.h"
+#include "AST.h"
 
 // These are _NOT_ in the Dyninst namespace...
 namespace Dyninst {
@@ -63,7 +64,7 @@ namespace Dyninst {
   };
 
  
-class SYMEVAL_EXPORT StackAnalysis {
+class StackAnalysis {
   typedef dyn_detail::boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
 
  public:
@@ -568,14 +569,14 @@ class SYMEVAL_EXPORT StackAnalysis {
     typedef std::map<ParseAPI::Block *, FPChangePoints> BlockToFPChangePoints;
     typedef std::map<ParseAPI::Block *, Height> BlockHeights;
 
-    StackAnalysis();
-    StackAnalysis(ParseAPI::Function *f);
+    SYMEVAL_EXPORT StackAnalysis();
+    SYMEVAL_EXPORT StackAnalysis(ParseAPI::Function *f);
     
     // Lookup functions; preferred over the above
-    Height findSP(Address addr);
-    Height findFP(Address addr);
+    SYMEVAL_EXPORT Height findSP(Address addr);
+    SYMEVAL_EXPORT Height findFP(Address addr);
     
-    void debug();
+    SYMEVAL_EXPORT void debug();
     
  private:
     

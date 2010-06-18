@@ -109,8 +109,6 @@ int P_getopt(int argc, char *argv[], const char *optstring);
 inline void P_abort (void) { abort();}
 inline int P_close (int FILEDES) { return (_close(FILEDES));}
 inline int P__dup2(int OLD, int NEW) { return (_dup2(OLD, NEW)); }
-inline int P__execvp(const char *fname, const char *const argv[]) {
-  return (_execvp(fname, argv)); }
 inline void P__exit (int STATUS) { _exit(STATUS);}
 inline FILE * P_fdopen (int FILEDES, const char *OPENTYPE) {
   return (_fdopen(FILEDES, OPENTYPE));}

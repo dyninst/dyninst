@@ -66,48 +66,48 @@ namespace SymbolicEvaluation {
 
 // Define the operations used by ROSE
 
-struct SYMEVAL_EXPORT Variable {
-  Variable() : reg(), addr(0) {};
-  Variable(AbsRegion r) : reg(r), addr(0) {};
-  Variable(AbsRegion r, Address a) : reg(r), addr(a) {};
+struct Variable {
+  SYMEVAL_EXPORT Variable() : reg(), addr(0) {};
+  SYMEVAL_EXPORT Variable(AbsRegion r) : reg(r), addr(0) {};
+  SYMEVAL_EXPORT Variable(AbsRegion r, Address a) : reg(r), addr(a) {};
 
-  bool operator==(const Variable &rhs) const { 
+  SYMEVAL_EXPORT bool operator==(const Variable &rhs) const { 
     return ((rhs.addr == addr) && (rhs.reg == reg));
   }
 
-  bool operator<(const Variable &rhs) const { 
+  SYMEVAL_EXPORT bool operator<(const Variable &rhs) const { 
     if (addr < rhs.addr) return true;
     if (reg < rhs.reg) return true;
     return false;
   }
 
-  const std::string format() const {
+  SYMEVAL_EXPORT const std::string format() const {
     std::stringstream ret;
     ret << reg;
     if (addr) ret << ":" << std::hex << addr << std::dec;
     return ret.str();
   }
 
-  AbsRegion reg;
-  Address addr;
+   AbsRegion reg;
+   Address addr;
 };
 
-struct SYMEVAL_EXPORT Constant {
-  Constant() : val(0), size(0) {};
-  Constant(uint64_t v) : val(v), size(0) {};
-  Constant(uint64_t v, size_t s) : val(v), size(s) {};
+struct Constant {
+  SYMEVAL_EXPORT Constant() : val(0), size(0) {};
+  SYMEVAL_EXPORT Constant(uint64_t v) : val(v), size(0) {};
+  SYMEVAL_EXPORT Constant(uint64_t v, size_t s) : val(v), size(s) {};
 
-  bool operator==(const Constant &rhs) const {
+ SYMEVAL_EXPORT  bool operator==(const Constant &rhs) const {
     return ((rhs.val == val) && (rhs.size == size));
   }
 
-  bool operator<(const Constant &rhs) const {
+  SYMEVAL_EXPORT bool operator<(const Constant &rhs) const {
     if (val < rhs.val) return true;
     if (size < rhs.size) return true;
     return false;
   }
 
-  const std::string format() const {
+  SYMEVAL_EXPORT const std::string format() const {
     std::stringstream ret;
     ret << val;
     if (size) {
@@ -116,8 +116,8 @@ struct SYMEVAL_EXPORT Constant {
     return ret.str();
   }
   
-  uint64_t val;
-  size_t size;
+   uint64_t val;
+   size_t size;
 };
 
 // Define the operations used by ROSE
@@ -157,14 +157,14 @@ typedef enum {
     extendMSBOp
 } Op;
 
-ROSEOperation(Op o) : op(o), size(0) {};
-ROSEOperation(Op o, size_t s) : op(o), size(s) {};
+SYMEVAL_EXPORT ROSEOperation(Op o) : op(o), size(0) {};
+SYMEVAL_EXPORT ROSEOperation(Op o, size_t s) : op(o), size(s) {};
 
-bool operator==(const ROSEOperation &rhs) const {
+SYMEVAL_EXPORT bool operator==(const ROSEOperation &rhs) const {
     return ((rhs.op == op) && (rhs.size == size));
 }
 
-const std::string format() const {
+SYMEVAL_EXPORT const std::string format() const {
     std::stringstream ret;
     ret << "<";
     switch(op) {
@@ -304,7 +304,7 @@ DEF_AST_INTERNAL_TYPE(RoseAST, ROSEOperation);
 
 class SymEvalPolicy;
 
-class SYMEVAL_EXPORT SymEval {
+class  SymEval {
 
 public:
     typedef std::map<Assignment::Ptr, AST::Ptr> Result_t;
@@ -316,18 +316,18 @@ public:
   // static const AST::Ptr Placeholder;
   //
   // Single version: hand in an Assignment, get an AST
-  static AST::Ptr expand(const Assignment::Ptr &assignment);
+  SYMEVAL_EXPORT static AST::Ptr expand(const Assignment::Ptr &assignment);
 
   // Hand in a set of Assignments
   // get back a map of Assignments->ASTs
   // We assume the assignments are prepped in the input; whatever
   // they point to is discarded.
-  static void expand(Result_t &res, bool applyVisitors = true);
+  SYMEVAL_EXPORT static void expand(Result_t &res, bool applyVisitors = true);
 
   // Hand in a Graph (of AssignNodes, natch) and get back a Result;
   // prior results from the Graph
   // are substituted into anything that uses them.
-  static void expand(Graph::Ptr slice, Result_t &res);
+  SYMEVAL_EXPORT static void expand(Graph::Ptr slice, Result_t &res);
   
  private:
 

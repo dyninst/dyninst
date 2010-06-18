@@ -42,9 +42,9 @@ namespace SymbolicEvaluation {
     typedef dyn_detail::boost::shared_ptr<InstructionAPI::Expression> ExpressionPtr;
     typedef dyn_detail::boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
   public:
-    RoseInsnFactory(void) {};
-    virtual ~RoseInsnFactory(void) {};
-    virtual SgAsmInstruction *convert(const InstructionPtr &insn, uint64_t addr);
+    SYMEVAL_EXPORT RoseInsnFactory(void) {};
+    SYMEVAL_EXPORT virtual ~RoseInsnFactory(void) {};
+    SYMEVAL_EXPORT virtual SgAsmInstruction *convert(const InstructionPtr &insn, uint64_t addr);
 
   protected:
     virtual SgAsmInstruction *createInsn() = 0;
@@ -62,8 +62,8 @@ namespace SymbolicEvaluation {
 
 class RoseInsnX86Factory : public RoseInsnFactory {
   public:
-    RoseInsnX86Factory() {};
-    virtual ~RoseInsnX86Factory() {};
+    SYMEVAL_EXPORT RoseInsnX86Factory() {};
+    SYMEVAL_EXPORT virtual ~RoseInsnX86Factory() {};
     
   private:
     virtual SgAsmInstruction *createInsn();
@@ -79,8 +79,8 @@ class RoseInsnX86Factory : public RoseInsnFactory {
 
   class RoseInsnPPCFactory : public RoseInsnFactory {
   public:
-    RoseInsnPPCFactory(void) {};
-    virtual ~RoseInsnPPCFactory(void) {};
+    SYMEVAL_EXPORT RoseInsnPPCFactory(void) {};
+    SYMEVAL_EXPORT virtual ~RoseInsnPPCFactory(void) {};
 
   private:
     virtual SgAsmInstruction *createInsn();

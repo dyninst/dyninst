@@ -93,7 +93,7 @@
 
 #if !defined(SYMEVAL_EXPORT)
   #if defined(_MSC_VER)
-    #if defined(PARSER_LIB)
+    #if defined(SYMEVAL_LIB)
       #define SYMEVAL_EXPORT __declspec(dllexport)
     #else
       #define SYMEVAL_EXPORT __declspec(dllimport)

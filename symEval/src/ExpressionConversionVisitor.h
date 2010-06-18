@@ -17,6 +17,12 @@ class SgAsmPowerpcRegisterReferenceExpression;
 #include "external/rose/powerpcInstructionEnum.h"
 #include "Visitor.h"
 
+#if !defined(_MSC_VER)
+#include <stdint.h>
+#else
+#include "external/stdint-win.h"
+#endif
+
 #include <list>
 
 namespace Dyninst
@@ -33,15 +39,15 @@ namespace Dyninst
       typedef PowerpcConditionRegisterAccessGranularity regField;
 
     public:
-    ExpressionConversionVisitor(Architecture a, uint64_t ad) :
+    SYMEVAL_EXPORT ExpressionConversionVisitor(Architecture a, uint64_t ad) :
       roseExpression(NULL), arch(a), addr(ad) {};
       
-      SgAsmExpression *getRoseExpression() { return roseExpression; }
+      SYMEVAL_EXPORT SgAsmExpression *getRoseExpression() { return roseExpression; }
       
-      virtual void visit(InstructionAPI::BinaryFunction *binfunc);
-      virtual void visit(InstructionAPI::Immediate *immed);
-      virtual void visit(InstructionAPI::RegisterAST *regast);
-      virtual void visit(InstructionAPI::Dereference *deref);
+      SYMEVAL_EXPORT virtual void visit(InstructionAPI::BinaryFunction *binfunc);
+      SYMEVAL_EXPORT virtual void visit(InstructionAPI::Immediate *immed);
+      SYMEVAL_EXPORT virtual void visit(InstructionAPI::RegisterAST *regast);
+      SYMEVAL_EXPORT virtual void visit(InstructionAPI::Dereference *deref);
       
     private:
 

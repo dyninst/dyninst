@@ -13,9 +13,8 @@
 #include <list>
 #include <stack>
 
-#include "boost/function.hpp"
-
-#include "dynutil/h/Node.h"
+#include "util.h"
+#include "Node.h"
 
 #include "AbslocInterface.h"
 
@@ -41,33 +40,33 @@ typedef dyn_detail::boost::shared_ptr<InstructionAPI::Instruction> InstructionPt
 // Used in temp slicer; should probably
 // replace OperationNodes when we fix up
 // the DDG code.
-class SYMEVAL_EXPORT AssignNode : public Node {
+class AssignNode : public Node {
  public:
   typedef dyn_detail::boost::shared_ptr<AssignNode> Ptr;
       
-  static AssignNode::Ptr create(AssignmentPtr ptr,
+  SYMEVAL_EXPORT static AssignNode::Ptr create(AssignmentPtr ptr,
 				ParseAPI::Block *block,
 				ParseAPI::Function *func) {
     return Ptr(new AssignNode(ptr, block, func));
   }
       
-  ParseAPI::Block *block() const { return b_; };
-  ParseAPI::Function *func() const { return f_; };
-  Address addr() const;
-  AssignmentPtr assign() const { return a_; }
+  SYMEVAL_EXPORT ParseAPI::Block *block() const { return b_; };
+  SYMEVAL_EXPORT ParseAPI::Function *func() const { return f_; };
+  SYMEVAL_EXPORT Address addr() const;
+  SYMEVAL_EXPORT AssignmentPtr assign() const { return a_; }
       
-  Node::Ptr copy() { return Node::Ptr(); }
-  bool isVirtual() const { return false; }
+  SYMEVAL_EXPORT Node::Ptr copy() { return Node::Ptr(); }
+  SYMEVAL_EXPORT bool isVirtual() const { return false; }
       
-  std::string format() const;
+  SYMEVAL_EXPORT std::string format() const;
       
-  virtual ~AssignNode() {};
+  SYMEVAL_EXPORT virtual ~AssignNode() {};
       
-  void addAssignment(AssignNode::Ptr p, unsigned u) {
+  SYMEVAL_EXPORT void addAssignment(AssignNode::Ptr p, unsigned u) {
     assignMap_[p] = u;
   }
       
-  unsigned getAssignmentIndex(AssignNode::Ptr p) {
+  SYMEVAL_EXPORT unsigned getAssignmentIndex(AssignNode::Ptr p) {
     return assignMap_[p];
   }
       
@@ -87,31 +86,35 @@ class SYMEVAL_EXPORT AssignNode : public Node {
   std::map<AssignNode::Ptr, unsigned> assignMap_;
 };
 
-class SYMEVAL_EXPORT Slicer {
+class Slicer {
  public:
   typedef std::pair<InstructionPtr, Address> InsnInstance;
   typedef std::vector<InsnInstance> InsnVec;
 
-  Slicer(AssignmentPtr a,
+  SYMEVAL_EXPORT Slicer(AssignmentPtr a,
 	 ParseAPI::Block *block,
 	 ParseAPI::Function *func);
-  typedef boost::function<bool (AssignmentPtr a)> PredicateFunc;
-  typedef boost::function<bool (ParseAPI::Function *c, 
-				std::stack<std::pair<ParseAPI::Function *, int> > &cs, 
-				AbsRegion a)> CallStackFunc;    
-  typedef boost::function<bool (const AbsRegion &in, const AbsRegion &out)> AbsRegionFunc;
+    
+  SYMEVAL_EXPORT static bool isWidenNode(Node::Ptr n);
+
+  class Predicates {
+  public:
+    typedef std::pair<ParseAPI::Function *, int> StackDepth_t;
+    typedef std::stack<StackDepth_t> CallStack_t;
+
+    SYMEVAL_EXPORT virtual bool widenAtPoint(AssignmentPtr) { return false; }
+    SYMEVAL_EXPORT virtual bool endAtPoint(AssignmentPtr) { return false; }
+    SYMEVAL_EXPORT virtual bool followCall(ParseAPI::Function *callee,
+			    CallStack_t &cs,
+			    AbsRegion argument) { return false; }
+    SYMEVAL_EXPORT virtual bool widenAtAssignment(const AbsRegion &in,
+				   const AbsRegion &out) { return false; }
+    SYMEVAL_EXPORT virtual ~Predicates() {};
+  };
+
+  SYMEVAL_EXPORT GraphPtr forwardSlice(Predicates &predicates);
   
-  GraphPtr forwardSlice(PredicateFunc &e, 
-			PredicateFunc &w, 
-			CallStackFunc &c,
-			AbsRegionFunc &a);
-  
-  GraphPtr backwardSlice(PredicateFunc &e, 
-					PredicateFunc &w, 
-					CallStackFunc &c,
-					AbsRegionFunc &a);
-  
-  static bool isWidenNode(Node::Ptr n);
+  SYMEVAL_EXPORT GraphPtr backwardSlice(Predicates &predicates);
 
  private:
 
@@ -121,17 +124,6 @@ class SYMEVAL_EXPORT Slicer {
 
   typedef std::map<ParseAPI::Block *, InsnVec> InsnCache;
 
-  struct Predicates {
-    // It's safe for these to be references because they will only exist
-    // under a forward/backwardSlice call.
-    PredicateFunc &end;
-    PredicateFunc &widen;
-    CallStackFunc &followCall;
-    AbsRegionFunc &abs;
-
-    Predicates(PredicateFunc &e, PredicateFunc &w, CallStackFunc &c, AbsRegionFunc &a) : end(e), widen(w), followCall(c), abs(a) {};
-
-  };
 
   // Our slicing is context-sensitive; that is, if we enter
   // a function foo from a caller bar, all return edges
@@ -240,10 +232,7 @@ class SYMEVAL_EXPORT Slicer {
   typedef std::queue<Element> Elements;
 
   GraphPtr sliceInternal(Direction dir,
-			 PredicateFunc &e, 
-			 PredicateFunc &w, 
-			 CallStackFunc &c,
-			 AbsRegionFunc &a);
+			 Predicates &predicates);
   
   bool getMatchingElements(Element &initial, Elements &worklist,
 			   Predicates &p, Direction dir);

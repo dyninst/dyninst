@@ -58,6 +58,11 @@ using namespace NS_x86;
 
 #include "arch-forward-decl.h" // instruction
 
+//hateful windows.h
+#if defined(_MSC_VER)
+#undef max
+#endif
+
 class dyn_lwp;
 class dyn_thread;
 class process;
