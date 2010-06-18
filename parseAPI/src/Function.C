@@ -26,6 +26,7 @@ Function::Function() :
         _cache_valid(false),
         _bl(_blocks),
         _call_edge_list(_call_edges),
+	_retBL(_return_blocks),
         _no_stack_frame(true),
         _saves_fp(false),
         _cleans_stack(false),
@@ -80,6 +81,13 @@ Function::callEdges() {
     if(!_cache_valid)
         finalize();
     return _call_edge_list; 
+}
+
+Function::blocklist &
+Function::returnBlocks() {
+  if (!_cache_valid) 
+    finalize();
+  return _retBL;
 }
 
 vector<FuncExtent *> const&

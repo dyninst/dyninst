@@ -41,6 +41,8 @@
 #include "InstructionSource.h"
 #include "ParseContainers.h"
 
+#include "Annotatable.h"
+
 namespace Dyninst {
 namespace ParseAPI {
 
@@ -195,6 +197,22 @@ class Intraproc : public EdgePredicate {
     PARSER_EXPORT bool pred_impl(Edge *) const;
 };
 
+/*
+ * For proper ostritch-like denial of 
+ * unresolved control flow edges
+ */
+class NoSinkPredicate : public ParseAPI::EdgePredicate {
+ public:
+    NoSinkPredicate() { }
+    NoSinkPredicate(EdgePredicate * next)
+        : EdgePredicate(next) 
+    { } 
+
+    bool pred_impl(ParseAPI::Edge * e) const {
+        return !e->sinkEdge() && EdgePredicate::pred_impl(e);
+    }
+};
+
 class Function;
 class SingleContext : public EdgePredicate {
  private:
@@ -342,7 +360,7 @@ enum FuncSource {
 class CodeObject;
 class CodeRegion;
 class FuncExtent;
-class Function : public allocatable {
+class Function : public allocatable, public AnnotatableSparse {
  protected:
     Address _start;
     CodeObject * _obj;
@@ -387,6 +405,7 @@ class Function : public allocatable {
     PARSER_EXPORT blocklist & blocks();
     PARSER_EXPORT bool contains(Block *b);
     PARSER_EXPORT edgelist & callEdges();
+    PARSER_EXPORT blocklist & returnBlocks();
 
     /* Function details */
     PARSER_EXPORT bool hasNoStackFrame() const { return _no_stack_frame; }
@@ -424,6 +443,8 @@ class Function : public allocatable {
     std::vector<Edge *> _call_edges;
     edgelist _call_edge_list;
     std::vector<Block *> _return_blocks;
+    blocklist _retBL;
+
 
     /* function details */
     bool _no_stack_frame;
