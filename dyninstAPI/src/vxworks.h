@@ -63,9 +63,7 @@ class process;
 
 typedef int handleT; // a /proc file descriptor
 
-#if defined( ia64_unknown_linux2_4 )
-#include "linux-ia64.h"
-#elif defined(i386_unknown_linux2_0) \
+#if defined(i386_unknown_linux2_0) \
    || defined(x86_64_unknown_linux2_4)
 #include "linux-x86.h"
 #elif defined(os_linux) && defined(arch_power)

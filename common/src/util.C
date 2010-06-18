@@ -211,10 +211,6 @@ const char *platform_string()
 	return "ppc32_linux";
 #endif
 #endif
-#elif defined (arch_ia64)
-#if defined (os_linux)
-	return "ia64-unknown-linux2.4";
-#endif
 #elif defined (arch_sparc)
 #if defined (os_solaris)
 	return "sparc-sun-solaris2.9";

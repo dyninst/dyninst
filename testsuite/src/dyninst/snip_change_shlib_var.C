@@ -89,7 +89,7 @@ test_results_t snip_change_shlib_var_Mutator::mutatorTest()
 	BPatch_function *inst_func = funcs[0];
 	funcs.clear();
 
-	appImage->findFunction(check_fname, funcs);
+	appImage->findFunction(check_fname, funcs, true,true,true);
 	if (!funcs.size())
 	{
 		logerror("%s[%d]:  failed to find function %s\n", FILE__, __LINE__, check_fname);
@@ -167,10 +167,16 @@ test_results_t snip_change_shlib_var_Mutator::executeTest()
 #if defined(arch_x86_64_test) || defined(ppc64_linux_test)
 	pointer_size = pointerSize(appImage);
 #endif
+
+        bool isStatic = false;
+        if( NULL != appBinEdit ) {
+            isStatic = appBinEdit->isStaticExecutable();
+        }
+
 	strncpy(libNameA, libNameAroot, 128);
-	addLibArchExt(libNameA,128, pointer_size);
+	addLibArchExt(libNameA,128, pointer_size, isStatic);
 	strncpy(libNameB, libNameBroot, 128);
-	addLibArchExt(libNameB,128, pointer_size);
+	addLibArchExt(libNameB,128, pointer_size, isStatic);
 
 	char libA[128], libB[128];
 	snprintf(libA, 128, "./%s", libNameA);

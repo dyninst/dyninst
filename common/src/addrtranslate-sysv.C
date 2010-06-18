@@ -41,6 +41,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <limits.h>
 
 #include <vector>
 #include <string>
@@ -299,7 +300,7 @@ bool ProcessReaderSelf::ReadMem(Address inTraced, void *inSelf, unsigned amount)
    return true;
 }
 
-bool ProcessReaderSelf::GetReg(MachRegister reg, MachRegisterVal &val)
+bool ProcessReaderSelf::GetReg(MachRegister /*reg*/, MachRegisterVal &/*val*/)
 {
    assert(0);
    return false;
@@ -312,7 +313,7 @@ vector< pair<Address, unsigned long> > *LoadedLib::getMappedRegions()
    {
       return &mapped_regions;
    }
-   
+
    FCNode *fc = files.getNode(name, symreader_factory);
    if (!fc)
       return false;
@@ -489,7 +490,7 @@ bool AddressTranslateSysV::refresh()
       if (!exec) {
          exec = getAOut();
       }
-      libs.push_back(exec);
+      getArchLibs(libs);
       return true; 
    }
 
@@ -503,6 +504,7 @@ bool AddressTranslateSysV::refresh()
    }   
    exec->setShouldClean(false);
    libs.push_back(exec);
+   getArchLibs(libs);
    
    reader->start();
 
@@ -725,8 +727,8 @@ void FCNode::parsefile()
       
       regions.push_back(sr);
    }
-   factory->closeSymbolReader(symreader);
-   symreader = NULL;
+   /*factory->closeSymbolReader(symreader);
+     symreader = NULL;*/
 }
 
 FCNode *FileCache::getNode(const string &filename, SymbolReaderFactory *factory)

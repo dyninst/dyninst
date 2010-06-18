@@ -58,6 +58,7 @@ protected:
    SymbolReaderFactory *factory;
 
    void parsefile();
+
 public:
    FCNode(string f, dev_t d, ino_t i, SymbolReaderFactory *factory_);
 
@@ -101,7 +102,6 @@ public:
    bool setInterpreter();
    bool setAddressSize();
    bool setInterpreterBase();
-   
    bool init();
    virtual bool refresh();
    
@@ -125,7 +125,7 @@ private:
    Address trap_addr;
 
    std::string exec_name;   // access this through get_exec_name()
-   const std::string& getExecName();
+   std::string getExecName();
 
    LoadedLib *getLoadedLibByNameAddr(Address addr, std::string name);
    typedef std::map<std::pair<Address, std::string>, LoadedLib *, LibCmp> sorted_libs_t;

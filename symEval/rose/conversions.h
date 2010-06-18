@@ -31,6 +31,7 @@ class SgAsmUnaryRrx;
 class SgAsmMemoryReferenceExpression;
 class SgAsmRegisterReferenceExpression;
 class SgAsmx86RegisterReferenceExpression;
+class SgAsmPowerpcRegisterReferenceExpression;
 class SgAsmInstruction;
 class SgAsmOperandList;
 class SgAsmType;
@@ -45,6 +46,7 @@ class SgAsmTypeSingleFloat;
 class SgAsmTypeDoubleFloat;
 class SgAsmTypeVector;
 class SgAsmx86Instruction;
+class SgAsmPowerpcInstruction;
 
 class SageInterface {
  public:
@@ -111,6 +113,8 @@ SgAsmRegisterReferenceExpression* isSgAsmRegisterReferenceExpression( SgNode *);
 const SgAsmRegisterReferenceExpression* isSgAsmRegisterReferenceExpression( const SgNode * s );
 SgAsmx86RegisterReferenceExpression* isSgAsmx86RegisterReferenceExpression( SgNode *);
 const SgAsmx86RegisterReferenceExpression* isSgAsmx86RegisterReferenceExpression( const SgNode * s );
+SgAsmPowerpcRegisterReferenceExpression* isSgAsmPowerpcRegisterReferenceExpression( SgNode *);
+const SgAsmPowerpcRegisterReferenceExpression* isSgAsmPowerpcRegisterReferenceExpression( const SgNode * s );
 SgAsmInstruction* isSgAsmInstruction( SgNode *);
 const SgAsmInstruction* isSgAsmInstruction( const SgNode * s );
 SgAsmOperandList* isSgAsmOperandList( SgNode *);
@@ -139,4 +143,6 @@ SgAsmTypeVector* isSgAsmTypeVector( SgNode *);
 const SgAsmTypeVector* isSgAsmTypeVector( const SgNode * s );
 SgAsmx86Instruction* isSgAsmx86Instruction( SgNode *);
 const SgAsmx86Instruction* isSgAsmx86Instruction( const SgNode * s );
+SgAsmPowerpcInstruction* isSgAsmPowerpcInstruction( SgNode *);
+const SgAsmPowerpcInstruction* isSgAsmPowerpcInstruction( const SgNode * s );
 #endif

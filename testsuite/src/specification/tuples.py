@@ -40,7 +40,7 @@ def parse_list(list):
 			# bracket and parse it as a list
 			matching_close = find_matching_close(list[start:])
 			elements.append(parse_element(list[start:start+matching_close]))
-			start = start + matching_close + 1
+                        start = start + matching_close + 1
 		elif list[start:start + 1] == "'":
 			# First element in the list is within quotes
 			matching_quote = list[start+1:].find("'") + 1
@@ -99,7 +99,7 @@ def parse_mutators(tuplestring):
 def parse_mutatees(tuplestring):
 	mutatee_labels = ('name', 'preprocessed_sources', 'raw_sources',
 					  'libraries', 'platform', 'abi', 'compiler',
-					  'optimization', 'groupable', 'module')
+					  'optimization', 'groupable', 'module', 'format')
 	mutatee_list = parse_pllist(tuplestring)
 	return map(lambda x: dict(zip(mutatee_labels, x)), mutatee_list)
 
@@ -110,7 +110,8 @@ def parse_tests(tuplestring):
 def parse_compilers(tuplestring):
 	compiler_tuple_labels = ('executable', 'defstring', 'platforms',
 							 'presencevar', 'optimization', 'parameters',
-							 'languages', 'flags', 'abiflags')
+							 'languages', 'flags', 'abiflags', 'staticlink',
+                                                         'dynamiclink', 'platform')
 	compiler_list = parse_pllist(tuplestring)
 	compiler_dict = dict(map(lambda x: (x[0], dict(zip(compiler_tuple_labels,x[1:]))), compiler_list))
 	for c in compiler_dict:
@@ -130,7 +131,7 @@ def parse_compilers(tuplestring):
 def parse_rungroups(tuplestring):
 	rungroups_tuple_labels = ('mutatee', 'compiler', 'optimization',
 							  'run_mode', 'start_state', 'groupable', 'tests',
-							  'abi', 'thread_mode', 'process_mode')
+							  'abi', 'thread_mode', 'process_mode', 'format')
 	rungroups_list = parse_pllist(tuplestring)
 	return map(lambda x: dict(zip(rungroups_tuple_labels, x)), rungroups_list)
 

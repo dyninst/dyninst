@@ -111,7 +111,7 @@ namespace Dyninst
       /// in the %Operation object \c what to the value computations in \c operandSource.
 
       INSTRUCTION_EXPORT Instruction(Operation::Ptr what, size_t size, const unsigned char* raw,
-                                     dyn_detail::boost::shared_ptr<InstructionDecoder> dec);
+                                     Dyninst::Architecture arch);
       INSTRUCTION_EXPORT Instruction();
       
       INSTRUCTION_EXPORT virtual ~Instruction();
@@ -275,14 +275,14 @@ namespace Dyninst
       void addSuccessor(Expression::Ptr e, bool isCall, bool isIndirect, bool isConditional, bool isFallthrough) const;
       void copyRaw(size_t size, const unsigned char* raw);
       Expression::Ptr makeReturnExpression() const;
-      mutable std::vector<Operand> m_Operands;
+      mutable std::list<Operand> m_Operands;
       Operation::Ptr m_InsnOp;
       bool m_Valid;
       raw_insn_T m_RawInsn;
       unsigned int m_size;
       Architecture arch_decoded_from;
       mutable std::list<CFT> m_Successors;
-      dyn_detail::boost::shared_ptr<InstructionDecoder> m_dec;
+      static int numInsnsAllocated;
       
     };
   };

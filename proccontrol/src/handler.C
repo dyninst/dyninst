@@ -25,7 +25,7 @@ int Handler::getPriority() const
    return DefaultPriority;
 }
 
-Event::ptr Handler::convertEventForCB(Event::ptr orig)
+Event::ptr Handler::convertEventForCB(Event::ptr /*orig*/)
 {
    return Event::ptr();
 }
@@ -275,7 +275,10 @@ bool HandlePostExit::handleEvent(Event::ptr ev)
    ProcPool()->condvar()->signal();
    ProcPool()->condvar()->unlock();
 
-   delete proc;
+   if (int_process::in_waitHandleProc == proc) {
+      pthrd_printf("Postponing delete due to being in waitAndHandleForProc\n");
+      delete proc;
+   }
 
    return true;
 }
@@ -730,7 +733,7 @@ int HandleCallbacks::getPriority() const
    return CallbackPriority;
 }
 
-void HandleCallbacks::getEventTypesHandled(std::vector<EventType> &etypes)
+void HandleCallbacks::getEventTypesHandled(std::vector<EventType> & /*etypes*/)
 {
    //Callbacks are special cased, they respond to all event types.
 }

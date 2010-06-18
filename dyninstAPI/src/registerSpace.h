@@ -83,9 +83,7 @@ class RealRegister {
    int reg() const { return r; }
 };
 
-#if defined(ia64_unknown_linux2_4)
-#include "inst-ia64.h"
-#elif defined(arch_x86_64)
+#if defined(arch_x86_64)
 #include "inst-x86.h"
 #endif
 
@@ -458,20 +456,6 @@ class registerSpace {
  public:
     static bool hasXMM;  // for Intel architectures, XMM registers
     
-    
-#if defined(ia64_unknown_linux2_4)
-    
- public:
-    int originalLocals;
-    int originalOutputs;
-    int originalRotates;
-    int sizeOfStack;
-    
-    // storageMap[] needs to be of type 'int' as opposed to
-    // 'Register' becuase negative values may be used.
-    int storageMap[ BP_R_MAX ];
-#endif
-
  public:
 #if defined(arch_power)
     typedef enum { r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12,

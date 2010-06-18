@@ -60,8 +60,6 @@
 #elif defined(arch_x86) || defined(arch_x86_64)
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/emit-x86.h"
-#elif defined(arch_ia64)
-#include "dyninstAPI/src/inst-ia64.h"
 #endif
 
 registerSpace *registerSpace::globalRegSpace_ = NULL;
@@ -401,7 +399,7 @@ Register registerSpace::getScratchRegister(codeGen &gen, pdvector<Register> &exc
         toUse = reg;
         break;
     }
-
+/*
     if (toUse == NULL) {
         // Argh. Let's assume spilling is cheaper
         for (unsigned i = 0; i < couldBeSpilled.size(); i++) {
@@ -411,7 +409,7 @@ Register registerSpace::getScratchRegister(codeGen &gen, pdvector<Register> &exc
             }
         }
     }
-    
+*/    
     // Still?
     if (toUse == NULL) {
         for (unsigned i = 0; i < couldBeStolen.size(); i++) {
@@ -581,10 +579,7 @@ void registerSpace::freeRegister(Register num)
     regalloc_printf("Freed register %d: refcount now %d\n", num, reg->refCount);
 
     if( reg->refCount < 0 ) {
-#if !defined(arch_ia64)
-        // IA-64 gets this with the frame pointer...
         bperr( "Freed free register!\n" );
-#endif
         reg->refCount = 0;
     }
 
@@ -696,6 +691,10 @@ bool registerSpace::readProgramRegister(codeGen &gen,
     // so x86. 
     switch (src->spilledState) {
     case registerSlot::unspilled:
+	    printf(" emitMovRegToReg source %d dest %d \n", source, destination);
+		    printf(" emitMovRegToReg source %d dest %d GPR %d SPR %d \n", src->type, dest->type, registerSlot::GPR, registerSlot::SPR);
+			    printf(" emitMovRegToReg source %d dest %d \n", src->number, dest->number);
+
         gen.codeEmitter()->emitMoveRegToReg(src, dest, gen);
         return true;
         break;
@@ -706,7 +705,7 @@ bool registerSpace::readProgramRegister(codeGen &gen,
         // We can't use existing mechanisms because they're all built
         // off the "non-instrumented" case - emit a load from the
         // "original" frame pointer, whereas we want the current one. 
-        gen.codeEmitter()->emitLoadRelative(dest, src->saveOffset, frame, gen);
+        gen.codeEmitter()->emitLoadRelative(destination, src->saveOffset, framePointer(),  gen.addrSpace()->getAddressWidth(), gen);
         return true;
         break;
     }
@@ -756,7 +755,7 @@ bool registerSpace::writeProgramRegister(codeGen &gen,
 
         // When this register was saved we stored its offset from the base pointer.
         // Use that to load it. 
-        gen.codeEmitter()->emitStoreRelative(src, dest->saveOffset, frame, gen);
+        gen.codeEmitter()->emitStoreRelative(source, dest->saveOffset, framePointer(), gen.addrSpace()->getAddressWidth(), gen);
         return true;
         break;
     }

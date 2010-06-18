@@ -56,6 +56,8 @@
 
 #include "addressSpace.h"
 
+#include "parseAPI/h/CodeSource.h"
+
 #include "ast.h"
 using namespace Dyninst;
 using namespace std;
@@ -1160,19 +1162,37 @@ bool reparseObject(BPatch_addressSpace *addSpace,
                    BPatch_Vector<BPatch_module*> &affectedModules,
                    mapped_object *obj, vector<Address> &funcEntryAddrs)
 {
+    using ParseAPI::CodeRegion;
+    using ParseAPI::CodeSource;
+    using ParseAPI::SymtabCodeRegion;
+
     // parse all functions with valid entry addresses in the module
     bool reparsedObject = false;
     Address baseAddress = obj->parse_img()->desc().loadAddr();
     vector<Address>::iterator curEntry = funcEntryAddrs.begin();
-    Region *reg;
     vector<image_func*> regFuncs;
     while (curEntry != funcEntryAddrs.end()) {
-        reg = obj->parse_img()->getObject()->findEnclosingRegion
-            ((*curEntry)-baseAddress);
+        CodeSource * cs = obj->parse_img()->codeObject()->cs();
+        set<CodeRegion *> match;
+        int mcnt = cs->findRegions((*curEntry)-baseAddress,match);
+        SymtabCodeRegion * scr = NULL;
+        if(mcnt > 1) {
+            fprintf(stderr,"[%s:%d] matched %d overlapping regions at %lx.\n"
+                            "       probably this is not what you want.\n",
+                FILE__,__LINE__,mcnt,(*curEntry)-baseAddress);
+        }
+        if(mcnt > 0) {
+            scr = dynamic_cast<SymtabCodeRegion*>(*match.begin()); 
+            if(!scr)
+                fprintf(stderr,"[%s:%d] unexpected failed specialization of "
+                               "SymtabCodeRegion; contact nater@cs\n",
+                    FILE__,__LINE__);
+        }
+
         // if the address is in some region of the binary
         // and isCode is true, meaning that that code was mapped into
         // the binary from disk, analyze the function entry
-        if (reg != NULL && obj->parse_img()->isCode((*curEntry) - baseAddress)) {
+        if (scr != NULL && scr->isCode((*curEntry) - baseAddress)) {
             image_func *imgfunc = obj->parse_img()->addFunctionStub
                 ((*curEntry) - baseAddress);
             regFuncs.clear();
@@ -1190,7 +1210,7 @@ bool reparseObject(BPatch_addressSpace *addSpace,
         return reparsedObject;
     }
     // get the binary's code regions from symtabAPI or return 
-    std::vector<Region*> regions;
+    std::vector<SymtabAPI::Region*> regions;
     if( ! obj->parse_img()->getObject()->getCodeRegions(regions) ) {
         fprintf(stderr,"%s[%d] Found no code regions for object %s\n", 
                 __FILE__,__LINE__, obj->parse_img()->pathname().c_str());
@@ -1367,13 +1387,13 @@ bool BPatch_image::parseNewFunctionsInt
         Address regStart, regEnd;
         Address baseAddress = curImg->desc().loadAddr();
         // iterate through executable regions
-        std::vector<Region*> regions;
+        std::vector<SymtabAPI::Region*> regions;
         if( ! curImg->getObject()->getCodeRegions(regions) ) {
             fprintf(stderr,"%s[%d] Found no code regions for object %s\n", 
                     __FILE__,__LINE__, curImg->pathname().c_str());
             break;
         }
-        std::vector<Region *>::const_iterator curreg = regions.begin();
+        std::vector<SymtabAPI::Region *>::const_iterator curreg = regions.begin();
         while(curreg != regions.end() && funcEntryAddrs_.size()) {
             regStart = baseAddress + (*curreg)->getRegionAddr();
             regEnd = regStart + (*curreg)->getMemSize();

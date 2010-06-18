@@ -3,7 +3,8 @@
 #include "proccontrol/src/irpc.h"
 #include "proccontrol/src/int_process.h"
 
-#include <assert.h>
+#include <cstring>
+#include <cassert>
 
 unsigned long int_iRPC::next_id;
 
@@ -919,7 +920,12 @@ bool iRPCMgr::stopNeededThreads(int_process *p, bool sync)
    }
 
    if (stopped_something && sync) {
-      bool result = int_process::waitAndHandleEvents(true);
+      bool proc_exited;
+      bool result = int_process::waitAndHandleForProc(true, p, proc_exited);
+      if (proc_exited) {
+         pthrd_printf("Process exited during iRPC setup\n");
+         return false;
+      }
       if (!result) {
          perr_printf("Error handling stop events\n");
          error = true;

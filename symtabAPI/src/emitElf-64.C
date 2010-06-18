@@ -261,11 +261,16 @@ bool emitElf64::createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf64_
 		  mpos += sprintf(mpos, "verdef: symbol=%s  version=%s ", symbol->getName().c_str(), (*vers)[0].c_str());
 		  if (verdefEntries.find((*vers)[0]) != verdefEntries.end())
 		    {
-		      versionSymTable.push_back((unsigned short) verdefEntries[(*vers)[0]]);
+		      unsigned short index = verdefEntries[(*vers)[0]];
+		      if (symbol->getVersionHidden()) index += 0x8000;
+		      versionSymTable.push_back(index);
 		    }
 		  else 
 		    {
-		      versionSymTable.push_back((unsigned short) curVersionNum);
+		      unsigned short index = curVersionNum;
+		      if (symbol->getVersionHidden()) index += 0x8000;
+		      versionSymTable.push_back(index);
+
 		      verdefEntries[(*vers)[0]] = curVersionNum;
 		      curVersionNum++;
 		    }
@@ -407,7 +412,7 @@ void emitElf64::renameSection(const std::string &oldStr, const std::string &newS
 
 bool emitElf64::driver(Symtab *obj, string fName){
   int newfd;
-  Region *foundSec;
+  Region *foundSec = NULL;
   unsigned pgSize = getpagesize();
 
   //open ELf File for writing
@@ -482,8 +487,9 @@ bool emitElf64::driver(Symtab *obj, string fName){
     bool result = obj->findRegion(foundSec, shdr->sh_addr, shdr->sh_size);
     if (!result) {
       result = obj->findRegion(foundSec, name);
-    }else if( previousSec == foundSec ) {
-        result = obj->findRegion(foundSec, name);
+    } 
+    else if(previousSec == foundSec ) {
+       result = obj->findRegion(foundSec, name);
     }
 
     // write the shstrtabsection at the end
@@ -571,6 +577,7 @@ bool emitElf64::driver(Symtab *obj, string fName){
     if(obj->getObject()->getSymtabAddr() != 0 && 
        obj->getObject()->getSymtabAddr() == shdr->sh_addr){
       newshdr->sh_link = secNames.size();
+      changeMapping[sectionNumber] = 1;
       symTabData = newdata;
     }
 
@@ -639,8 +646,10 @@ bool emitElf64::driver(Symtab *obj, string fName){
       if(!createLoadableSections(newshdr, extraAlignSize, 
                                  newNameIndexMapping, sectionNumber))
          return false;
-      if (!movePHdrsFirst)
+      if (!movePHdrsFirst) {
+	 sectionNumber++;
          createNewPhdrRegion(newNameIndexMapping);
+	}
     }
 
     if ( 0 >  elf_update(newElf, ELF_C_NULL))
@@ -1207,8 +1216,8 @@ bool emitElf64::createLoadableSections(Elf64_Shdr* &shdr, unsigned &extraAlignSi
 
       if (0 > elf_update(newElf, ELF_C_NULL))
       {
-         fprintf(stderr, "%s[%d]:  elf_update failed\n", FILE__, __LINE__);
-         return false;
+          fprintf(stderr, "%s[%d]:  elf_update failed: %d, %s\n", FILE__, __LINE__, elf_errno(), elf_errmsg(elf_errno()));
+          return false;
       }
 
       shdr = newshdr;
@@ -1742,11 +1751,11 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
     }
   }
 
-  unsigned i,j,k;
+   unsigned i,j,k,l,m;
     
    Elf64_Rel *rels = (Elf64_Rel *)malloc(sizeof(Elf64_Rel) * (relocation_table.size()+newRels.size()));
    Elf64_Rela *relas = (Elf64_Rela *)malloc(sizeof(Elf64_Rela) * (relocation_table.size()+newRels.size()));
-   j=0; k=0;
+   j=0; k=0; l=0; m=0;
    //reconstruct .rel
    for(i=0;i<relocation_table.size();i++) 
    {
@@ -1799,6 +1808,7 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
 #endif
          }
          j++;
+	 l++;
       } else {
          relas[k].r_offset = newRels[i].rel_addr();
          relas[k].r_addend = newRels[i].addend();
@@ -1824,6 +1834,7 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
 #endif
          }
          k++;
+	 m++;
       }
    }
 
@@ -1831,7 +1842,7 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
    fprintf(stderr, "%s[%d]:  FIXME:  This does not work on solaris\n", FILE__, __LINE__);
 #else
    dyn_hash_map<int, Region*> secTagRegionMapping = obj->getObject()->getTagRegionMapping();
-   int reloc_size;
+   int reloc_size, old_reloc_size, dynamic_reloc_size;
    const char *new_name;
    Region::RegionType rtype;
    int dtype;
@@ -1870,14 +1881,15 @@ void emitElf64::createRelocationSections(Symtab *obj, std::vector<relocationEntr
       dsize_type = DT_PLTRELSZ;
       buffer = relas;
    }
-   
+   old_reloc_size =  dynamicSecData[dsize_type][0]->d_un.d_val;
+   dynamic_reloc_size = old_reloc_size+  l*sizeof(Elf64_Rel)+ m*sizeof(Elf64_Rela);
    string name;
    if (secTagRegionMapping.find(dtype) != secTagRegionMapping.end())
       name = secTagRegionMapping[dtype]->getRegionName();
    else
       name = std::string(new_name);
    obj->addRegion(0, buffer, reloc_size, name, rtype, true);
-   updateDynamic(dsize_type, reloc_size); 
+   updateDynamic(dsize_type, dynamic_reloc_size); 
 #endif
 
 }

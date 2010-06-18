@@ -8,7 +8,8 @@
 #include "proccontrol/h/Event.h"
 #include "proccontrol/h/Handler.h"
 
-#include <assert.h>
+#include <cstring>
+#include <cassert>
 
 using namespace Dyninst;
 using namespace std;
@@ -58,20 +59,20 @@ bool int_process::create()
 
 bool int_process::waitfor_startup()
 {
+   bool proc_exited;
    for (;;) {
       bool result;
       
       pthrd_printf("Waiting for startup to complete for %d\n", pid);
-      result = waitAndHandleEvents(true);
+      result = waitAndHandleForProc(true, this, proc_exited);
+      if (proc_exited || getState() == exited) {
+         pthrd_printf("Error.  Proces exited during create/attach\n");
+         return false;
+      }
       if (!result || getState() == errorstate) {
          pthrd_printf("Error.  Process %d errored during create/attach\n", pid);
          return false;
       }
-      if (getState() == exited) {
-         pthrd_printf("Error.  Process %d exited during create/attach\n", pid);
-         return false;
-      }
-
       if (getState() == running) {
          pthrd_printf("Successfully completed create/attach on %d\n", pid);
          return true;
@@ -161,6 +162,8 @@ bool int_process::attach()
    pthrd_printf("Attaching to process %d\n", pid);
    bool result = plat_attach();
    if (!result) {
+      ProcPool()->condvar()->broadcast();
+      ProcPool()->condvar()->unlock();
       pthrd_printf("Could not attach to debuggee, %d\n", pid);
       return false;
    }
@@ -485,6 +488,15 @@ bool syncRunState(int_process *p, void *r)
                       p->getPid(), thr->getLWP());
          thr->intCont();                      
       }
+      else if (pstop_rpc && 
+               thr->getInternalState() == int_thread::running && 
+               thr->getHandlerState() == int_thread::stopped &&
+               pstop_rpc == thr->runningRPC())
+      {
+         pthrd_printf("Thread %d/%d was stopped during proccstopper (maybe due to signal).",
+                      p->getPid(), thr->getLWP());
+         thr->intCont();
+      }
       else if (thr->getInternalState() == int_thread::running && 
                thr->getHandlerState() == int_thread::stopped &&
                !force_leave_stopped)
@@ -519,6 +531,29 @@ bool syncRunState(int_process *p, void *r)
    }
    return true;
 }
+
+int_process *int_process::in_waitHandleProc = NULL;
+bool int_process::waitAndHandleForProc(bool block, int_process *proc, bool &proc_exited)
+{
+   assert(in_waitHandleProc == NULL);
+   in_waitHandleProc = proc;
+
+   bool result = waitAndHandleEvents(block);
+
+
+   if (proc->getState() == int_process::exited) {
+      pthrd_printf("Deleting proc %d from waitAndHandleForProc\n", proc->getPid());
+      delete proc;
+      proc_exited = true;
+   }
+   else {
+      proc_exited = false;
+   }
+
+   in_waitHandleProc = NULL;
+   return result;
+}
+
 
 bool int_process::waitAndHandleEvents(bool block)
 {
@@ -689,8 +724,6 @@ bool int_process::detach(bool &should_delete)
       tp->intStop(true);
    }
    
-   ProcPool()->condvar()->lock();
-
    while (!mem->breakpoints.empty())
    {      
       std::map<Dyninst::Address, installed_breakpoint *>::iterator i = mem->breakpoints.begin();
@@ -701,6 +734,8 @@ bool int_process::detach(bool &should_delete)
          goto done;
       }
    }
+
+   ProcPool()->condvar()->lock();
 
    result = plat_detach();
    if (!result) {
@@ -869,7 +904,13 @@ Dyninst::Address int_process::infMalloc(unsigned long size, bool use_addr, Dynin
 
    if (rpc->getState() != int_iRPC::Finished) 
    {
-      result = waitAndHandleEvents(true);
+      bool proc_exited;
+      result = waitAndHandleForProc(true, this, proc_exited);
+      if (proc_exited) {
+         perr_printf("Process exited during infMalloc\n");
+         setLastError(err_exited, "Process exited during infMalloc\n");
+         return 0;
+      }
       if (!result) {
          pthrd_printf("Error in waitAndHandleEvents");
          return 0;
@@ -908,7 +949,13 @@ bool int_process::infFree(Dyninst::Address addr)
 
    if (rpc->getState() != int_iRPC::Finished) 
    {
-      result = waitAndHandleEvents(true);
+      bool proc_exited;
+      result = waitAndHandleForProc(true, this, proc_exited);
+      if (proc_exited) {
+         perr_printf("Process exited during infFree\n");
+         setLastError(err_exited, "Process exited during infFree\n");
+         return false;
+      }
       if (!result) {
          pthrd_printf("Error in waitAndHandleEvents");
          return false;
@@ -1170,10 +1217,6 @@ int_process::~int_process()
    //Do not delete handlerpool yet, we're currently under
    // an event handler.  We do want to delete this if called
    // from detach.
-   /*if (handlerpool) {
-     delete handlerpool;
-     handlerpool = NULL;
-     }*/
    bool should_clean;
    mem->rmProc(this, should_clean);
    if (should_clean) {
@@ -1272,10 +1315,17 @@ bool int_thread::cont(bool user_cont)
       return false;
    }
    if (ret == sc_error) {
-      pthrd_printf("Error continuing thread %d/%d\n", llproc()->getPid(), getLWP());
-      return false;
+      if (user_cont) {
+         //The internal state is running, so there was an internal error during continue, but
+         // the user state was stopped.  We won't treat this as a user error and instead
+         // just change the user state.
+         pthrd_printf("Ignoring previous error on %d/%d\n", llproc()->getPid(), getLWP());
+      }
+      else {
+         pthrd_printf("Error continuing thread %d/%d\n", llproc()->getPid(), getLWP());
+         return false;
+      }
    }
-   assert(ret == sc_success || ret == sc_success_pending);
 
    if (user_cont) 
    {
@@ -1407,7 +1457,13 @@ bool int_threadPool::stop(bool user_stop, bool sync)
 
    if (needs_sync && sync)
    {
-      bool result = int_process::waitAndHandleEvents(true);
+      bool proc_exited;
+      bool result = int_process::waitAndHandleForProc(true, proc(), proc_exited);
+      if (proc_exited) {
+         pthrd_printf("Process exited during stop\n");
+         setLastError(err_exited, "Process exited during stop\n");
+         return false;
+      }
       if (!result) {
          perr_printf("Error waiting for events after stop on %d\n", proc()->getPid());
          return false;
@@ -1520,7 +1576,13 @@ bool int_thread::stop(bool user_stop, bool sync)
       return true;
    }
 
-   bool result = int_process::waitAndHandleEvents(true);
+   bool proc_exited;
+   bool result = int_process::waitAndHandleForProc(true, llproc(), proc_exited);
+   if (proc_exited) {
+      pthrd_printf("Process exited during thread stop\n");
+      setLastError(err_exited, "Process exited during stop\n");
+      return false;
+   }
    if (!result) {
       perr_printf("Error waiting for events after stop on %d\n", getLWP());
       return false;
@@ -2453,7 +2515,7 @@ Dyninst::Address installed_breakpoint::getAddr() const
 
 int_library::int_library(std::string n, Dyninst::Address load_addr) :
    name(n),
-   load_address(load_address),
+   load_address(load_addr),
    data_load_address(0),
    has_data_load(false),
    marked(false)
@@ -3059,12 +3121,7 @@ Process::ptr Process::createProcess(std::string executable, const std::vector<st
    bool result = llproc->create();
    if (!result) {
       pthrd_printf("Unable to create process %s\n", executable.c_str());
-      bool should_sync;
-      bool result = llproc->terminate(should_sync);
-      if (!result) {
-         return Process::ptr();
-      }
-      delete llproc;
+      return Process::ptr();
    }
 
    return newproc;
@@ -3316,8 +3373,9 @@ bool Process::terminate()
    }
 
    if (needsSync) {
-      while (llproc_) {
-         bool result = int_process::waitAndHandleEvents(true);
+      bool proc_exited = false;
+      while (!proc_exited) {
+         bool result = int_process::waitAndHandleForProc(true, llproc(), proc_exited);
          if (!result) {
             perr_printf("Error waiting for process to terminate\n");
             return false;

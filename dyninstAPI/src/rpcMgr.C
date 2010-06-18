@@ -926,14 +926,6 @@ Address rpcMgr::createRPCImage(AstNodePtr action,
 
 /* ***************************************************** */
 
-
-#if !defined(arch_ia64)
-
-// IA64 has to figure out what to save before it can do things correctly. This is very
-// nasty (see inst-ia64.C), and so we're leaving it alone. Everyone else
-// is relatively normal. If the saves are ever wrapped into a function we could
-// probably get rid of the ifdef
-
 bool rpcMgr::emitInferiorRPCheader(codeGen &gen) 
 {
     assert(irpcTramp);
@@ -950,7 +942,7 @@ bool rpcMgr::emitInferiorRPCtrailer(codeGen &gen,
     if (shouldStopForResult) {
         // Trappity!
         stopForResultOffset = gen.used();
-        instruction::generateTrap(gen);
+        insnCodeGen::generateTrap(gen);
         justAfter_stopForResultOffset = gen.used();
     }
     assert(irpcTramp);
@@ -959,9 +951,9 @@ bool rpcMgr::emitInferiorRPCtrailer(codeGen &gen,
     irpcTramp->generateRestores(gen, gen.rs(), NULL);
 
     breakOffset = gen.used();
-    instruction::generateTrap(gen);
+    insnCodeGen::generateTrap(gen);
     
-    instruction::generateTrap(gen);
+    insnCodeGen::generateTrap(gen);
 
 #if (defined(arch_x86) || defined(arch_x86_64))
      // X86 traps at the next insn, not the trap. So shift the
@@ -977,7 +969,6 @@ bool rpcMgr::emitInferiorRPCtrailer(codeGen &gen,
     return true;
 }
 
-#endif
 
 
 bool rpcMgr::cancelRPC(unsigned id) {

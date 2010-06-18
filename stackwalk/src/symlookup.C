@@ -32,6 +32,11 @@
 #include "stackwalk/h/symlookup.h"
 #include "stackwalk/h/swk_errors.h"
 #include "stackwalk/h/walker.h"
+#include "stackwalk/h/procstate.h"
+#include "dynutil/h/SymReader.h"
+
+#include "stackwalk/src/libstate.h"
+
 #include <assert.h>
 
 using namespace Dyninst;
@@ -62,15 +67,9 @@ ProcessState *SymbolLookup::getProcessState()
   return walker->getProcessState();
 }
 
-#if defined(cap_stackwalker_use_symtab)
 SymbolLookup *Walker::createDefaultSymLookup(const std::string &exec_name)
 {
-  return new SwkSymtab(this, exec_name);
-}
-#else
-SymbolLookup *Walker::createDefaultSymLookup(const std::string &)
-{
-  return NULL;
+   return new SymDefaultLookup(this, exec_name);
 }
 
 SwkSymtab::SwkSymtab(Walker *w, const std::string &s) :
@@ -87,5 +86,47 @@ bool SwkSymtab::lookupAtAddr(Dyninst::Address,
    return false;
 }
 
-#endif
+SwkSymtab::~SwkSymtab()
+{
+}
 
+SymDefaultLookup::SymDefaultLookup(Walker *w, const std::string &s) :
+   SymbolLookup(w, s)
+{
+}
+
+bool SymDefaultLookup::lookupAtAddr(Dyninst::Address addr, 
+                                    std::string &out_name, 
+                                    void* &out_value)
+{
+   LibraryState *ls = walker->getProcessState()->getLibraryTracker();
+   LibAddrPair lib;
+   bool result = ls->getLibraryAtAddr(addr, lib);
+   if (!result) {
+      sw_printf("[%s:%u] - Failed to find a library at %lx for lookup\n",
+                __FILE__, __LINE__, addr);
+      return false;
+   }
+
+   SymReader *reader = LibraryWrapper::getLibrary(lib.first);
+   if (!reader) {
+      sw_printf("[%s:%u] - Failed to open a symbol reader for %s\n", 
+                __FILE__, __LINE__, lib.first.c_str());
+      return false;
+   }
+   
+   Offset off = addr - lib.second;
+   Symbol_t sym = reader->getContainingSymbol(off);
+   if (!reader->isValidSymbol(sym)) {
+      sw_printf("[%s:%u] - Could not find symbol in binary\n", __FILE__, __LINE__);
+      return false;
+   }
+
+   out_name = reader->getDemangledName(sym);
+   out_value = NULL;
+   return true;
+}
+
+SymDefaultLookup::~SymDefaultLookup()
+{
+}

@@ -34,9 +34,6 @@
 #include "function.h"
 #include "process.h"
 #include "instPoint.h"
-//#include "BPatch_basicBlockLoop.h"
-//#include "BPatch_basicBlock.h"
-//#include "InstrucIter.h"
 #include "multiTramp.h"
 
 #include "mapped_object.h"
@@ -48,7 +45,10 @@
 
 //std::string int_function::emptyString("");
 
+#include "Parsing.h"
+
 using namespace Dyninst;
+using namespace Dyninst::ParseAPI;
 
 
 int int_function_count = 0;
@@ -57,11 +57,6 @@ int int_function_count = 0;
 int_function::int_function(image_func *f,
 			   Address baseAddr,
 			   mapped_module *mod) :
-#if defined( arch_ia64 )
-	/* We can generate int_functions before parsing, so we need to be able
-	   to update the allocs list, which needs the base address. */
-	baseAddr_(baseAddr),
-#endif			   
     ifunc_(f),
     mod_(mod),
     blockIDmap(intHash),
@@ -163,11 +158,6 @@ int_function::int_function(const int_function *parFunc,
          arbitraryPoints_.push_back(childIP);
      }
 
-#if defined(arch_ia64)
-	for( unsigned i = 0; i < parFunc->cachedAllocs.size(); i++ ) {
-		cachedAllocs.push_back( parFunc->cachedAllocs[i] );
-		}
-#endif
      // TODO: relocated functions
 }
 
@@ -175,6 +165,7 @@ int_function::~int_function() {
     // ifunc_ doesn't keep tabs on us, so don't need to let it know.
     // mod_ is cleared by the mapped_object
     // blockList isn't allocated
+
 
     // instPoints are process level (should be deleted here and refcounted)
 
@@ -192,6 +183,10 @@ int_function::~int_function() {
         delete arbitraryPoints_[i];
     }
 
+    // int_basicBlocks
+    for(unsigned i = 0; i < blockList.size(); i++) {
+        delete blockList[i];
+    }
 
 #if defined(cap_relocation)
     for (unsigned i = 0; i < enlargeMods_.size(); i++)
@@ -207,37 +202,6 @@ int_function::~int_function() {
       delete parallelRegions_[i];
       
 }
-
-#if defined( arch_ia64 )
-
-pdvector< Address > & int_function::getAllocs() {
-	if( cachedAllocs.size() != ifunc_->allocs.size() ) {
-		cachedAllocs.clear();
-	    for( unsigned i = 0; i < ifunc_->allocs.size(); i++ ) {
-    	    cachedAllocs.push_back( baseAddr_ + ifunc_->allocs[i] );
-		    }        
-		}
-
-	return cachedAllocs;
-	} /* end getAllocs() */
-
-AstNodePtr int_function::getFramePointerCalculator() {
-    if(ifunc_->getFramePointerCalculator() == -1)
-        return AstNodePtr();
-
-    AstNodePtr constantZero = AstNode::operandNode(AstNode::Constant, (void *)0);
-	AstNodePtr framePointer = AstNode::operandNode(AstNode::DataReg, (void *)(long unsigned int)ifunc_->getFramePointerCalculator());
-	AstNodePtr moveFPtoDestination = AstNode::operatorNode(plusOp,
-														 constantZero,
-														 framePointer);
-	return moveFPtoDestination;
-}
-	
-bool * int_function::getUsedFPregs() {
-	return ifunc_->usedFPregs;
-	}
-
-#endif /* defined( arch_ia64 ) */
 
 // This needs to go away: how is "size" defined? Used bytes? End-start?
 
@@ -255,7 +219,8 @@ void int_function::addArbitraryPoint(instPoint *insp) {
 
 const pdvector<instPoint *> &int_function::funcEntries() {
     if (entryPoints_.size() == 0) {
-        const pdvector<image_instPoint *> &img_entries = ifunc_->funcEntries();        
+        pdvector<image_instPoint *> img_entries;
+        ifunc_->funcEntries(img_entries);
 #if defined (cap_use_pdvector)
         entryPoints_.reserve_exact(img_entries.size());
 #endif
@@ -263,7 +228,7 @@ const pdvector<instPoint *> &int_function::funcEntries() {
 
             // TEMPORARY FIX: we're seeing points identified by low-level
             // code that aren't actually in the function.            
-            Address offsetInFunc = img_entries[i]->offset() - img_entries[i]->func()->getOffset();
+            Address offsetInFunc = img_entries[i]->offset()-ifunc_->getOffset();
             if (!findBlockByOffset(offsetInFunc)) {
                 fprintf(stderr, "Warning: unable to find block for entry point at 0x%lx (0x%lx) (func 0x%lx to 0x%lx\n",
                         offsetInFunc,
@@ -289,7 +254,8 @@ const pdvector<instPoint *> &int_function::funcEntries() {
 
 const pdvector<instPoint*> &int_function::funcExits() {
     if (exitPoints_.size() == 0) {
-        const pdvector<image_instPoint *> &img_exits = ifunc_->funcExits();
+        pdvector<image_instPoint *> img_exits;
+        ifunc_->funcExits(img_exits);
 #if defined (cap_use_pdvector)
         exitPoints_.reserve_exact(img_exits.size());
 #endif
@@ -297,7 +263,7 @@ const pdvector<instPoint*> &int_function::funcExits() {
         for (unsigned i = 0; i < img_exits.size(); i++) {
             // TEMPORARY FIX: we're seeing points identified by low-level
             // code that aren't actually in the function.            
-            Address offsetInFunc = img_exits[i]->offset() - img_exits[i]->func()->getOffset();
+            Address offsetInFunc = img_exits[i]->offset()-ifunc_->getOffset();
             if (!findBlockByOffset(offsetInFunc)) {
                 fprintf(stderr, "Warning: unable to find block for exit point at 0x%lx (0x%lx) (func 0x%lx to 0x%lx\n",
                         offsetInFunc,
@@ -324,7 +290,8 @@ const pdvector<instPoint*> &int_function::funcExits() {
 
 const pdvector<instPoint*> &int_function::funcCalls() {
     if (callPoints_.size() == 0) {
-        const pdvector<image_instPoint *> &img_calls = ifunc_->funcCalls();
+        pdvector<image_instPoint *> img_calls;
+        ifunc_->funcCalls(img_calls);
 #if defined (cap_use_pdvector)
         callPoints_.reserve_exact(img_calls.size());
 #endif
@@ -332,7 +299,7 @@ const pdvector<instPoint*> &int_function::funcCalls() {
         for (unsigned i = 0; i < img_calls.size(); i++) {
             // TEMPORARY FIX: we're seeing points identified by low-level
             // code that aren't actually in the function.            
-            Address offsetInFunc = img_calls[i]->offset() - img_calls[i]->func()->getOffset();
+            Address offsetInFunc = img_calls[i]->offset()-ifunc_->getOffset();
             if (!findBlockByOffset(offsetInFunc)) {
                 fprintf(stderr, "Warning: unable to find block for call point at 0x%lx (0x%lx) (func 0x%lx to 0x%lx, %s/%s)\n",
                         offsetInFunc,
@@ -448,15 +415,15 @@ const std::vector<int_basicBlock *> &int_function::blocks()
     if (blockList.size() == 0) {
         Address base = getAddress() - ifunc_->getOffset();
 
-        const set<image_basicBlock *, image_basicBlock::compare> & img_blocks =
-            ifunc_->blocks();
-        set<image_basicBlock *, image_basicBlock::compare>::const_iterator sit;
+        Function::blocklist & img_blocks = ifunc_->blocks();
+        Function::blocklist::iterator sit = img_blocks.begin();
 
-        for(sit = img_blocks.begin(); sit != img_blocks.end(); sit++) {
-            blockList.push_back(new int_basicBlock(*sit,
+        for( ; sit != img_blocks.end(); ++sit) {
+            image_basicBlock *b = (image_basicBlock*)*sit;
+            blockList.push_back(new int_basicBlock(b,
                                                    base,
                                                    this,i));
-            blockIDmap[(*sit)->id()] = i;
+            blockIDmap[b->id()] = i;
             ++i;
         }
     }
@@ -475,88 +442,91 @@ AddressSpace *int_basicBlock::proc() const {
 // that this block's int_function represents will not be included in
 // the returned block collection
 void int_basicBlock::getSources(pdvector<int_basicBlock *> &ins) const {
-    pdvector<image_edge *> ib_ins;
-    ib_->getSources(ib_ins);
-    for (unsigned i = 0; i < ib_ins.size(); i++) {
-        if(ib_ins[i]->getType() != ET_CALL)
-        {
-            if(ib_ins[i]->getSource()->containedIn(func()->ifunc()))
-            {
+
+    /* Only allow edges that are within this current function; hide sharing */
+    /* Also avoid CALL and RET edges */
+    SingleContext epred(func()->ifunc(),true,true);
+    Intraproc epred2(&epred);
+
+    Block::edgelist & ib_ins = ib_->sources();
+    Block::edgelist::iterator eit = ib_ins.begin(&epred2);
+
+    for( ; eit != ib_ins.end(); ++eit) {
+        // FIXME debugging assert
+        assert((*eit)->type() != CALL && (*eit)->type() != RET);
+
+        //if((*eit)->type() != CALL)
+        //{
+                image_basicBlock * sb = (image_basicBlock*)(*eit)->src();
                 // Note the mapping between int_basicBlock::id() and
                 // image_basicBlock::id()
-                unsigned img_id = ib_ins[i]->getSource()->id();
+                unsigned img_id = sb->id();
                 unsigned int_id = func()->blockIDmap[img_id];
                 ins.push_back(func()->blockList[int_id]);
-            }
-        }
+        //}
     }
 }
 
 void int_basicBlock::getTargets(pdvector<int_basicBlock *> &outs) const {
-    pdvector<image_edge *> ib_outs;
-    ib_->getTargets(ib_outs);
-    for (unsigned i = 0; i < ib_outs.size(); i++) {
-        if(ib_outs[i]->getType() != ET_CALL)
-        {
-            if(ib_outs[i]->getTarget()->containedIn(func()->ifunc()))
-            {
+    SingleContext epred(func()->ifunc(),true,true);
+    Intraproc epred2(&epred);
+    NoSinkPredicate epred3(&epred2);
+
+    Block::edgelist & ib_outs = ib_->targets();
+    Block::edgelist::iterator eit = ib_outs.begin(&epred3);
+
+    for( ; eit != ib_outs.end(); ++eit) {
+        // FIXME debugging assert
+        assert((*eit)->type() != CALL && (*eit)->type() != RET);
+        //if((*eit)->type() != CALL)
+        //{
+                image_basicBlock * tb = (image_basicBlock*)(*eit)->trg();
                 // Note the mapping between int_basicBlock::id() and
                 // image_basicBlock::id()
-                unsigned img_id = ib_outs[i]->getTarget()->id();
+                unsigned img_id = tb->id();
                 unsigned int_id = func()->blockIDmap[img_id];
                 outs.push_back(func()->blockList[int_id]);
-            }
-        }
+        //}
     }
 }
 
 EdgeTypeEnum int_basicBlock::getTargetEdgeType(int_basicBlock * target) const {
-    pdvector<image_edge *> ib_outs;
-
-    ib_->getTargets(ib_outs);
-    for(unsigned i=0; i< ib_outs.size(); i++) {
-        if(ib_outs[i]->getTarget() == target->ib_)
-            return ib_outs[i]->getType();
-    }
-
-    return ET_NOEDGE;
+    SingleContext epred(func()->ifunc(),true,true);
+    Block::edgelist & ib_outs = ib_->targets();
+    Block::edgelist::iterator eit = ib_outs.begin(&epred);
+    for( ; eit != ib_outs.end(); ++eit)
+        if((*eit)->trg() == target->ib_)
+            return (*eit)->type();
+    return NOEDGE;
 }
 
 EdgeTypeEnum int_basicBlock::getSourceEdgeType(int_basicBlock *source) const {
-    pdvector<image_edge *> ib_ins;
-
-    ib_->getSources(ib_ins);
-    for(unsigned i=0; i< ib_ins.size(); i++) {
-        if(ib_ins[i]->getSource() == source->ib_)
-            return ib_ins[i]->getType();
-    }
-
-    return ET_NOEDGE;
+    SingleContext epred(func()->ifunc(),true,true);
+    Block::edgelist & ib_ins = ib_->sources();
+    Block::edgelist::iterator eit = ib_ins.begin(&epred);
+    for( ; eit != ib_ins.end(); ++eit)
+        if((*eit)->trg() == source->ib_)
+            return (*eit)->type();
+    return NOEDGE;
 }
 
 int_basicBlock *int_basicBlock::getFallthrough() const {
-    // We could keep it special...
-  pdvector<image_edge *> ib_outs;
-  ib_->getTargets(ib_outs);
-  for (unsigned i = 0; i < ib_outs.size(); i++) {
-    if (ib_outs[i]->getType() == ET_FALLTHROUGH ||
-        ib_outs[i]->getType() == ET_FUNLINK ||
-        ib_outs[i]->getType() == ET_COND_NOT_TAKEN) 
-    {
-      if (ib_outs[i]->getTarget()->containedIn(func()->ifunc())) {
-        // Get the int_basicBlock equivalent of that image_basicBlock
-         unsigned img_id = ib_outs[i]->getTarget()->id();
-         unsigned int_id = func()->blockIDmap[img_id];
-         return func()->blockList[int_id];
-      }
-      else {
-        // Odd... fallthrough, but not in our function???
-        assert(0);
-      }
+    SingleContext epred(func()->ifunc(),true,true);
+    NoSinkPredicate epred2(&epred);
+    Block::edgelist & ib_outs = ib_->targets();
+    Block::edgelist::iterator eit = ib_outs.begin(&epred2);
+    for( ; eit != ib_outs.end(); ++eit) {
+        Edge * e = *eit;
+        if(e->type() == FALLTHROUGH ||
+           e->type() == CALL_FT ||
+           e->type() == COND_NOT_TAKEN)
+        {
+            unsigned img_id = ((image_basicBlock*)e->trg())->id();
+            unsigned int_id = func()->blockIDmap[img_id];
+            return func()->blockList[int_id];
+        }
     }
-  }
-  
-  return NULL;
+    return NULL;
 }
 
 bool int_basicBlock::needsRelocation() const {
@@ -648,18 +618,18 @@ void int_function::getStaticCallers(pdvector< int_function * > &callers)
     if(!ifunc_ || !ifunc_->entryBlock())
         return;
 
-    ifunc_->entryBlock()->getSources(ib_ins);
-
-    for (unsigned i = 0; i < ib_ins.size(); i++) {
-        if(ib_ins[i]->getType() == ET_CALL)
+    Block::edgelist & ins = ifunc_->entryBlock()->sources();
+    Block::edgelist::iterator eit = ins.begin();
+    for( ; eit != ins.end(); ++eit) {
+        if((*eit)->type() == CALL)
         {   
-            const set<image_func *> & ifuncs = 
-                ib_ins[i]->getSource()->getFuncs();
-            set<image_func *>::const_iterator ifit = ifuncs.begin();
+            vector<Function *> ifuncs;
+            (*eit)->src()->getFuncs(ifuncs);
+            vector<Function *>::iterator ifit = ifuncs.begin();
             for( ; ifit != ifuncs.end(); ++ifit)
             {   
                 int_function * f;
-                f = obj()->findFunction(*ifit);
+                f = obj()->findFunction((image_func*)*ifit);
                 
                 callers.push_back(f);
             }
@@ -681,49 +651,9 @@ image_func *int_function::ifunc() {
     return ifunc_;
 }
 
-#if defined(arch_ia64)
-BPatch_Set<int_basicBlock *> *int_basicBlock::getDataFlowOut() {
-    return dataFlowOut;
-}
-
-BPatch_Set<int_basicBlock *> *int_basicBlock::getDataFlowIn() {
-    return dataFlowIn;
-}
-
-int_basicBlock *int_basicBlock::getDataFlowGen() {
-    return dataFlowGen;
-}
-
-int_basicBlock *int_basicBlock::getDataFlowKill() {
-    return dataFlowKill;
-}
-
-void int_basicBlock::setDataFlowIn(BPatch_Set<int_basicBlock *> *in) {
-    dataFlowIn = in;
-}
-
-void int_basicBlock::setDataFlowOut(BPatch_Set<int_basicBlock *> *out) {
-    dataFlowOut = out;
-}
-
-void int_basicBlock::setDataFlowGen(int_basicBlock *gen) {
-    dataFlowGen = gen;
-}
-
-void int_basicBlock::setDataFlowKill(int_basicBlock *kill) {
-    dataFlowKill = kill;
-}
-#endif
-
 int int_basicBlock_count = 0;
 
 int_basicBlock::int_basicBlock(image_basicBlock *ib, Address baseAddr, int_function *func, int id) :
-#if defined(arch_ia64)
-    dataFlowIn(NULL),
-    dataFlowOut(NULL),
-    dataFlowGen(NULL),
-    dataFlowKill(NULL),
-#endif
     func_(func),
     ib_(ib),
     id_(id)
@@ -746,11 +676,6 @@ int_basicBlock::int_basicBlock(image_basicBlock *ib, Address baseAddr, int_funct
 }
 
 int_basicBlock::int_basicBlock(const int_basicBlock *parent, int_function *func,int id) :
-#if defined(arch_ia64)
-    dataFlowGen(NULL),
-    dataFlowKill(NULL),
-#endif
-
     func_(func),
     ib_(parent->ib_),
     id_(id)
@@ -763,11 +688,6 @@ int_basicBlock::int_basicBlock(const int_basicBlock *parent, int_function *func,
 }
 
 int_basicBlock::~int_basicBlock() {
-#if defined(arch_ia64)
-    if (dataFlowIn) delete dataFlowIn;
-    if (dataFlowOut) delete dataFlowOut;
-#endif
-    // Do not delete dataFlowGen and dataFlowKill; they're legal pointers
     // don't kill func_;
     // don't kill ib_;
     for (unsigned i = 0; i < instances_.size(); i++) {
@@ -1062,12 +982,12 @@ functionReplacement *&bblInstance::jumpToBlock() {
   return reloc_info->jumpToBlock_;
 }
 
-pdvector<bblInstance::reloc_info_t::relocInsn *> &bblInstance::get_relocs() const {
+pdvector<bblInstance::reloc_info_t::relocInsn::Ptr> &bblInstance::get_relocs() const {
   assert(reloc_info);
   return reloc_info->relocs_;
 }
 
-pdvector<bblInstance::reloc_info_t::relocInsn *> &bblInstance::relocs() {
+pdvector<bblInstance::reloc_info_t::relocInsn::Ptr> &bblInstance::relocs() {
   if (!reloc_info)
     reloc_info = new reloc_info_t();
   return get_relocs();
@@ -1131,9 +1051,12 @@ bblInstance::reloc_info_t::reloc_info_t(reloc_info_t *parent,
 }
 
 bblInstance::reloc_info_t::~reloc_info_t() {
-  for (unsigned i = 0; i < relocs_.size(); i++) {
-    delete relocs_[i];
-  }
+  // XXX this wasn't safe, as copies of bblInstances
+  //     reference the same relocInsns.
+  //     relocs_ now holds shared_ptrs
+  //for (unsigned i = 0; i < relocs_.size(); i++) {
+  //  delete relocs_[i];
+  //}
 
 #if defined (cap_use_pdvector)
   relocs_.zap();
@@ -1174,10 +1097,11 @@ bool int_function::getSharingFuncs(int_basicBlock *b,
     if(!b->hasSharedBase())
         return ret;
 
-    const set<image_func *> & lfuncs = b->llb()->getFuncs();
-    set<image_func *>::const_iterator fit = lfuncs.begin();
+    vector<Function *> lfuncs;
+    b->llb()->getFuncs(lfuncs);
+    vector<Function *>::iterator fit = lfuncs.begin();
     for( ; fit != lfuncs.end(); ++fit) {
-        image_func *ll_func = *fit;
+        image_func *ll_func = static_cast<image_func*>(*fit);
         int_function *hl_func = obj()->findFunction(ll_func);
         assert(hl_func);
 
@@ -1255,20 +1179,19 @@ bblInstance * bblInstance::getTargetBBL() {
     // We have edge types on the internal data, so we drop down and get that. 
     // We want to find the "branch taken" edge and override the destination
     // address for that guy.
-    pdvector<image_edge *> out_edges;
-    block_->llb()->getTargets(out_edges);
+    Block::edgelist & out_edges = block_->llb()->targets();
     
     // May be greater; we add "extra" edges for things like function calls, etc.
     assert (out_edges.size() >= targets.size());
-    
-    for (unsigned edge_iter = 0; edge_iter < out_edges.size(); edge_iter++) {
-        EdgeTypeEnum edgeType = out_edges[edge_iter]->getType();
-        // Update to Nate's commit...
-        if ((edgeType == ET_COND_TAKEN) ||
-            (edgeType == ET_DIRECT)) {
+   
+    Block::edgelist::iterator eit = out_edges.begin();
+    for( ; eit != out_edges.end(); ++eit) {
+        EdgeTypeEnum edgeType = (*eit)->type();
+        if ((edgeType == COND_TAKEN) ||
+            (edgeType == DIRECT)) {
             // Got the right edge... now find the matching high-level
             // basic block
-            image_basicBlock *llTarget = out_edges[edge_iter]->getTarget();
+            image_basicBlock *llTarget = (image_basicBlock*)(*eit)->trg();
             int_basicBlock *hlTarget = NULL;
             for (unsigned t_iter = 0; t_iter < targets.size(); t_iter++) {
                 // Should be the same index, but this is a small set...
@@ -1292,21 +1215,22 @@ bblInstance * bblInstance::getFallthroughBBL() {
     // We have edge types on the internal data, so we drop down and get that. 
     // We want to find the "branch taken" edge and override the destination
     // address for that guy.
-    pdvector<image_edge *> out_edges;
-    block_->llb()->getTargets(out_edges);
+    Block::edgelist & out_edges = block_->llb()->targets();
     
     // May be greater; we add "extra" edges for things like function calls, etc.
     assert (out_edges.size() >= targets.size());
+
+    NoSinkPredicate nsp;
     
-    for (unsigned edge_iter = 0; edge_iter < out_edges.size(); edge_iter++) {
-        EdgeTypeEnum edgeType = out_edges[edge_iter]->getType();
-        // Update to Nate's commit...
-        if ((edgeType == ET_COND_NOT_TAKEN) ||
-            (edgeType == ET_FALLTHROUGH) ||
-            (edgeType == ET_FUNLINK)) {
+    Block::edgelist::iterator eit = out_edges.begin(&nsp);
+    for( ; eit != out_edges.end(); ++eit) {
+        EdgeTypeEnum edgeType = (*eit)->type();
+        if ((edgeType == COND_NOT_TAKEN) ||
+            (edgeType == FALLTHROUGH) ||
+            (edgeType == CALL_FT)) {
             // Got the right edge... now find the matching high-level
             // basic block
-            image_basicBlock *llTarget = out_edges[edge_iter]->getTarget();
+            image_basicBlock *llTarget = (image_basicBlock*)(*eit)->trg();
             int_basicBlock *hlTarget = NULL;
             for (unsigned t_iter = 0; t_iter < targets.size(); t_iter++) {
                 // Should be the same index, but this is a small set...

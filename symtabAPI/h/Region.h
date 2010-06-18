@@ -89,7 +89,7 @@ class Region : public Serializable, public AnnotatableSparse {
    SYMTAB_EXPORT static Region *createRegion(Offset diskOff, perm_t perms, RegionType regType,
                 unsigned long diskSize = 0, Offset memOff = 0, unsigned long memSize = 0,
                 std::string name = "", char *rawDataPtr = NULL, bool isLoadable = false,
-                bool isTLS = false, unsigned long memAlign = 1);
+                bool isTLS = false, unsigned long memAlign = sizeof(unsigned));
    SYMTAB_EXPORT Region(const Region &reg);
    SYMTAB_EXPORT Region& operator=(const Region &reg);
    SYMTAB_EXPORT std::ostream& operator<< (std::ostream &os);
@@ -143,7 +143,7 @@ class Region : public Serializable, public AnnotatableSparse {
    SYMTAB_EXPORT Region(unsigned regnum, std::string name, Offset diskOff,
          unsigned long diskSize, Offset memOff, unsigned long memSize,
          char *rawDataPtr, perm_t perms, RegionType regType, bool isLoadable = false,
-         bool isTLS = false, unsigned long memAlign = 1);
+         bool isTLS = false, unsigned long memAlign = sizeof(unsigned));
    private:
    unsigned regNum_;
    std::string name_;

@@ -32,7 +32,7 @@ SRCS =          ../src/linux.C \
 		../src/cpuid-x86.S \
                 ../src/inst-x86.C \
 		../src/emit-x86.C \
-                ../src/arch-x86.C \
+                ../src/codegen-x86.C \
                 ../src/unix.C \
 		../src/stackwalk-x86.C \
 		../src/image-x86.C \
@@ -40,9 +40,8 @@ SRCS =          ../src/linux.C \
 		../src/frameChecker.C \
 		../src/stackanalysis.C \
 		../src/IAPI_to_AST.C \
-		../src/IA_IAPI.C \
 		../src/BPatch_memoryAccessAdapter.C \
-		../src/RegisterConversion-x86.C
+		../src/RegisterConversion-x86.C\
 #		../src/addLibraryLinux.C \
 #		../src/writeBackElf.C \
 #		../src/saveSharedLibrary.C \
@@ -82,9 +81,6 @@ else
 LIBS    += -lelf
 endif
 LIBS    += -lgcc
-
-# InstructionAPI is x86-only at this point
-LIBS    += -linstructionAPI
 
 AS		= /usr/bin/as
 

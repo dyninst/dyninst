@@ -373,6 +373,12 @@ class Elf_X_Sym {
                static_cast<unsigned char>(ELF32_ST_VISIBILITY(sym32[i].st_other)) :
                static_cast<unsigned char>(ELF64_ST_VISIBILITY(sym64[i].st_other))); 
     }
+    void *st_symptr(int i) const {
+       return (!is64 ? (void *) (sym32 + i) : (void *) (sym64 + i));
+    }
+    unsigned st_entsize() const {
+       return is64 ? sizeof(Elf64_Sym) : sizeof(Elf32_Sym);
+    }
 
     // Write Interface
     void st_name(int i, unsigned long input) { 

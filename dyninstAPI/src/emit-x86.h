@@ -38,8 +38,8 @@
 #define _EMIT_X86_H
 
 #include "common/h/headers.h"
+#include "common/h/arch.h"
 #include "dyninstAPI/src/instPoint.h"
-#include "dyninstAPI/src/arch-x86.h"
 #include "dyninstAPI/src/baseTramp.h"
 
 #include "dyninstAPI/src/emitter.h"
@@ -68,8 +68,8 @@ public:
     void emitLoad(Register dest, Address addr, int size, codeGen &gen);
     void emitLoadConst(Register dest, Address imm, codeGen &gen);
     void emitLoadIndir(Register dest, Register addr_reg, int size, codeGen &gen);
-    bool emitLoadRelative(Register dest, Address offset, Register base, codeGen &gen);
-    bool emitLoadRelative(registerSlot* /*dest*/, Address /*offset*/, registerSlot* /*base*/, codeGen &/*gen*/) { assert(0); return true; }
+    bool emitCallRelative(Register, Address, Register, codeGen &) {assert (0); return false; }
+    bool emitLoadRelative(Register dest, Address offset, Register base, int size, codeGen &gen);
     void emitLoadShared(opCode op, Register dest, const image_variable *var, bool is_local,int size, codeGen &gen, Address offset);
     void emitLoadFrameAddr(Register dest, Address offset, codeGen &gen);
     void emitLoadOrigFrameRelative(Register dest, Address offset, codeGen &gen);
@@ -81,10 +81,7 @@ public:
     void emitStore(Address addr, Register src, int size, codeGen &gen);
     void emitStoreIndir(Register addr_reg, Register src, int size, codeGen &gen);
     void emitStoreFrameRelative(Address offset, Register src, Register scratch, int size, codeGen &gen);
-
-    void emitStoreRelative(Register source, Address offset, Register base, codeGen &gen);
-    void emitStoreRelative(registerSlot* /*source*/, Address /*offset*/, registerSlot* /*base*/, codeGen &/*gen*/) { assert(0); }
-
+    void emitStoreRelative(Register source, Address offset, Register base, int size, codeGen &gen);
     void emitStoreShared(Register source, const image_variable *var, bool is_local,int size, codeGen &gen);
 
     bool clobberAllFuncCall(registerSpace *rs,int_function *callee);
@@ -93,6 +90,7 @@ public:
     virtual Register emitCall(opCode op, codeGen &gen,
                               const pdvector<AstNodePtr> &operands,
                               bool noCost, int_function *callee);
+    //virtual bool emitPIC(codeGen& /*gen*/, Address, Address )=0;
     int emitCallParams(codeGen &gen, 
                        const pdvector<AstNodePtr> &operands,
                        int_function *target, 
@@ -135,6 +133,7 @@ class EmitterIA32Dyn : public EmitterIA32 {
     
  protected:
     bool emitCallInstruction(codeGen &gen, int_function *target, Register ret);
+    //virtual bool emitPIC(codeGen& /*gen*/, Address, Address );
 };
 
 class EmitterIA32Stat : public EmitterIA32 {
@@ -144,6 +143,7 @@ class EmitterIA32Stat : public EmitterIA32 {
     
  protected:
     bool emitCallInstruction(codeGen &gen, int_function *target, Register ret);
+    //virtual bool emitPIC(codeGen& /*gen*/, Address, Address );
 };
 
 extern EmitterIA32Dyn emitterIA32Dyn;
@@ -179,8 +179,8 @@ public:
     void emitLoad(Register dest, Address addr, int size, codeGen &gen);
     void emitLoadConst(Register dest, Address imm, codeGen &gen);
     void emitLoadIndir(Register dest, Register addr_reg, int size, codeGen &gen);
-    bool emitLoadRelative(Register dest, Address offset, Register base, codeGen &gen);
-    bool emitLoadRelative(registerSlot *dest, Address offset, registerSlot *base, codeGen &gen);
+    bool emitCallRelative(Register, Address, Register, codeGen &) {assert (0); return false; }
+    bool emitLoadRelative(Register dest, Address offset, Register base, int size, codeGen &gen);
     void emitLoadFrameAddr(Register dest, Address offset, codeGen &gen);
 
     void emitLoadOrigFrameRelative(Register dest, Address offset, codeGen &gen);
@@ -193,9 +193,8 @@ public:
     void emitStore(Address addr, Register src, int size, codeGen &gen);
     void emitStoreIndir(Register addr_reg, Register src, int size, codeGen &gen);
     void emitStoreFrameRelative(Address offset, Register src, Register scratch, int size, codeGen &gen);
-    void emitStoreRelative(Register source, Address offset, Register base, codeGen &gen);
+    void emitStoreRelative(Register source, Address offset, Register base, int size, codeGen &gen);
 
-    void emitStoreRelative(registerSlot *source, Address offset, registerSlot *base, codeGen &gen);
     void emitStoreShared(Register source, const image_variable *var, bool is_local,int size, codeGen &gen);
 
     bool clobberAllFuncCall(registerSpace *rs, int_function *callee);
@@ -204,6 +203,7 @@ public:
     virtual Register emitCall(opCode op, codeGen &gen,
                               const pdvector<AstNodePtr> &operands,
                               bool noCost, int_function *callee);
+    //virtual bool emitPIC(codeGen& /*gen*/, Address, Address )=0;
     void emitGetRetVal(Register dest, bool addr_of, codeGen &gen);
     void emitGetParam(Register dest, Register param_num, instPointType_t pt_type, bool addr_of, codeGen &gen);
     void emitFuncJump(int_function *f, instPointType_t ptType, bool callOp, codeGen &gen);
@@ -239,6 +239,7 @@ class EmitterAMD64Dyn : public EmitterAMD64 {
     ~EmitterAMD64Dyn() {}
 
     bool emitCallInstruction(codeGen &gen, int_function *target, Register ret);
+    //virtual bool emitPIC(codeGen& /*gen*/, Address, Address );
 };
 
 class EmitterAMD64Stat : public EmitterAMD64 {
@@ -246,6 +247,7 @@ class EmitterAMD64Stat : public EmitterAMD64 {
     ~EmitterAMD64Stat() {};
     
     bool emitCallInstruction(codeGen &gen, int_function *target, Register ret);
+    //virtual bool emitPIC(codeGen& /*gen*/, Address, Address );
 };
 
 extern EmitterAMD64Dyn emitterAMD64Dyn;

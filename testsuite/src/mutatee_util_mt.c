@@ -45,7 +45,7 @@ thread_t spawnNewThread(void *initial_func, void *param) {
     return newthr;
 }
 
-void joinThread(thread_t threadid) {
+void* joinThread(thread_t threadid) {
     HANDLE tid;
     DWORD result;
 
@@ -58,6 +58,7 @@ void joinThread(thread_t threadid) {
         Sleep(500);
     }
     CloseHandle(tid);
+    return NULL;
 }
 
 thread_t threadSelf() {

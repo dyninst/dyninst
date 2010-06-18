@@ -88,7 +88,7 @@ std::string Absloc::format() const {
     ret << reg_.name();
     break;
   case Stack: {
-    ret << "S[" << func_ << "," << off_ << "]";
+    ret << "S[" << func_ << "," << off_ << "," << region_ << "]";
     break;
   }
   case Heap:
@@ -114,8 +114,16 @@ bool AbsRegion::contains(const Absloc &loc) const {
     // with our type
     return (type_ == loc.type());
   }
+  //if (loc.type() != Absloc::Unknown) {
+  //return (type() == loc.type());
+  //}
+
   // See if any of our abslocs matches
   if (absloc_ == loc) return true;
+
+  if (loc.type() == Absloc::Unknown) {
+    cerr << "Weird case: comp " << format() << " /w/ " << loc.format() << endl;
+  }
 
   return false;
 }  
@@ -129,6 +137,19 @@ bool AbsRegion::contains(const AbsRegion &rhs) const {
     if (rhs.type_ == type_) return true;
     if (rhs.absloc_.type() == type_) return true;
     return false;
+  }
+
+  if (rhs.type() != Absloc::Unknown) {
+    if (absloc_.type() == rhs.type()) return true;
+  }
+
+  // Stack slots operate kinda... odd...
+  if ((absloc_.type() == Absloc::Stack) &&
+      (rhs.absloc_.type() == Absloc::Stack)) {
+    // Return true if we're in the same function but different
+    // regions
+    if ((absloc_.func() == rhs.absloc_.func()) &&
+	(absloc_.region() != rhs.absloc_.region())) return true;
   }
 
   if (absloc_ == rhs.absloc_) return true;
@@ -174,8 +195,16 @@ bool AbsRegion::containsOfType(Absloc::Type t) const {
 }
 
 bool AbsRegion::operator==(const AbsRegion &rhs) const {
-  return (contains(rhs) && rhs.contains(*this));
+  // return contains(rhs) && rhs.contains(*this));
+  return ((type_ == rhs.type_) &&
+	  (absloc_ == rhs.absloc_));
 }
+
+bool AbsRegion::operator!=(const AbsRegion &rhs) const { 
+  return ((type_ != rhs.type_) ||
+	  (absloc_ != rhs.absloc_));
+}
+
 
 bool AbsRegion::operator<(const AbsRegion &rhs) const {
   if (absloc_ < rhs.absloc_) return true;
@@ -259,11 +288,9 @@ const std::string Assignment::format() const {
   std::stringstream ret;
   ret << "(@"<< std::hex << addr_ << std::dec
       << "<" << out_.format();
-  /*
   for (unsigned i = 0; i < inputs_.size(); i++) {
     ret << ">" << inputs_[i].format();
   }
-  */
   ret << ")";
 
   return ret.str();
@@ -288,8 +315,8 @@ std::ostream &operator<<(std::ostream &os, const Assignment::Ptr &a) {
 bool AbsRegion::equivalent(const AbsRegion &lhs,
 			   const AbsRegion &rhs,
 			   Address addr,
-			   image_func *caller,
-			   image_func *callee) {
+			   ParseAPI::Function *caller,
+			   ParseAPI::Function *callee) {
   // Check equivalence given a particular location (and thus
   // possible stack overlap)
   if (lhs == rhs) return true;
@@ -307,13 +334,13 @@ bool AbsRegion::equivalent(const AbsRegion &lhs,
   int caller_offset = -1;
   int callee_offset = -1;
 
-  if (lLoc.func() == caller->symTabName()) {
-    if (rLoc.func() != callee->symTabName()) return false;
+  if (lLoc.func() == caller->name()) {
+    if (rLoc.func() != callee->name()) return false;
     caller_offset = lLoc.off();
     callee_offset = rLoc.off();
   }
-  else if (rLoc.func() == caller->symTabName()) {
-    if (lLoc.func() != callee->symTabName()) return false;
+  else if (rLoc.func() == caller->name()) {
+    if (lLoc.func() != callee->name()) return false;
     caller_offset = rLoc.off();
     callee_offset = lLoc.off();
   }

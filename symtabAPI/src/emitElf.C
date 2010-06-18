@@ -289,11 +289,16 @@ bool emitElf::createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf32_Sy
 		  mpos += sprintf(mpos, "verdef: symbol=%s  version=%s ", symbol->getName().c_str(), (*vers)[0].c_str());
 		  if (verdefEntries.find((*vers)[0]) != verdefEntries.end())
 		    {
-		      versionSymTable.push_back((unsigned short) verdefEntries[(*vers)[0]]);
+		      unsigned short index = verdefEntries[(*vers)[0]];
+		      if (symbol->getVersionHidden()) index += 0x8000;
+		      versionSymTable.push_back(index);
 		    }
 		  else 
 		    {
-		      versionSymTable.push_back((unsigned short) curVersionNum);
+		      unsigned short index = curVersionNum;
+		      if (symbol->getVersionHidden()) index += 0x8000;
+		      versionSymTable.push_back(index);
+
 		      verdefEntries[(*vers)[0]] = curVersionNum;
 		      curVersionNum++;
 		    }
@@ -439,7 +444,7 @@ void emitElf::renameSection(const std::string &oldStr, const std::string &newStr
 
 bool emitElf::driver(Symtab *obj, string fName){
   int newfd;
-  Region *foundSec;
+  Region *foundSec = NULL;
   unsigned pgSize = getpagesize();
   //open ELf File for writing
   if((newfd = (open(fName.c_str(), O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP)))==-1){ 
@@ -607,6 +612,7 @@ bool emitElf::driver(Symtab *obj, string fName){
     if(obj->getObject()->getSymtabAddr() != 0 && 
        obj->getObject()->getSymtabAddr() == shdr->sh_addr){
       newshdr->sh_link = secNames.size();
+      changeMapping[sectionNumber] = 1;
       symTabData = newdata;
     }
 
@@ -676,8 +682,10 @@ bool emitElf::driver(Symtab *obj, string fName){
       if(!createLoadableSections(newshdr, extraAlignSize, 
                                  newNameIndexMapping, sectionNumber))        
          return false;
-      if (!movePHdrsFirst)
+      if (!movePHdrsFirst) {
+	 sectionNumber++;
          createNewPhdrRegion(newNameIndexMapping);
+	}
     }
 
     if ( 0 > elf_update(newElf, ELF_C_NULL))
@@ -703,39 +711,40 @@ bool emitElf::driver(Symtab *obj, string fName){
 
   // Second iteration to fix the link fields to point to the correct section
   scn = NULL;
-
-  //fprintf(stderr, "======== changeMapping ===========\n");
+/*
+  fprintf(stderr, "======== changeMapping ===========\n");
   
   for(dyn_hash_map<unsigned, unsigned>::iterator current = changeMapping.begin();
       current != changeMapping.end();
       ++current)
   {
-    //fprintf(stderr, "%d => %d\n", current->first, current->second);
+    fprintf(stderr, "%d => %d\n", current->first, current->second);
   }
-  //fprintf(stderr, "======== secLinkMapping ===========\n");
+  fprintf(stderr, "======== secLinkMapping ===========\n");
   
   for(dyn_hash_map<unsigned, unsigned>::iterator current = secLinkMapping.begin();
       current != secLinkMapping.end();
       ++current)
   {
-    //fprintf(stderr, "%d => %d\n", current->first, current->second);
+    fprintf(stderr, "%d => %d\n", current->first, current->second);
   }
-  //fprintf(stderr, "======== oldIndexNameMapping ===========\n");
+  fprintf(stderr, "======== oldIndexNameMapping ===========\n");
   
   for(dyn_hash_map<unsigned, string>::iterator current = oldIndexNameMapping.begin();
       current != oldIndexNameMapping.end();
       ++current)
   {
-    //fprintf(stderr, "%d => %s\n", current->first, current->second.c_str());
+    fprintf(stderr, "%d => %s\n", current->first, current->second.c_str());
   }
-  //fprintf(stderr, "======== newNameIndexMapping ===========\n");
+  fprintf(stderr, "======== newNameIndexMapping ===========\n");
   
   for(dyn_hash_map<string, unsigned>::iterator current = newNameIndexMapping.begin();
       current != newNameIndexMapping.end();
       ++current)
   {
-    //fprintf(stderr, "%s => %d\n", current->first.c_str(), current->second);
+    fprintf(stderr, "%s => %d\n", current->first.c_str(), current->second);
   }  
+*/
   for (scncount = 0; (scn = elf_nextscn(newElf, scn)); scncount++){
     shdr = elf32_getshdr(scn);
     
@@ -1136,7 +1145,7 @@ bool emitElf::createLoadableSections(Elf32_Shdr* &shdr, unsigned &extraAlignSize
 #endif
      }
      else if(newSecs[i]->getRegionType() == Region::RT_RELA ||    //Relocation section
-             newSecs[i]->getRegionType() == Region::RT_PLTREL)
+             newSecs[i]->getRegionType() == Region::RT_PLTRELA)
      {
         newshdr->sh_type = SHT_RELA;
         newshdr->sh_flags = SHF_ALLOC;
@@ -1147,7 +1156,7 @@ bool emitElf::createLoadableSections(Elf32_Shdr* &shdr, unsigned &extraAlignSize
 #if !defined(os_solaris)
         if (newSecs[i]->getRegionType() == Region::RT_RELA)
            updateDynamic(DT_RELA, newshdr->sh_addr);
-        else if(newSecs[i]->getRegionType() == Region::RT_PLTREL)
+        else if(newSecs[i]->getRegionType() == Region::RT_PLTRELA)
            updateDynamic(DT_JMPREL, newshdr->sh_addr);
 #endif
      }
@@ -1339,8 +1348,8 @@ bool emitElf::createLoadableSections(Elf32_Shdr* &shdr, unsigned &extraAlignSize
 
      if (0 > elf_update(newElf, ELF_C_NULL))
      {
-        fprintf(stderr, "%s[%d]:  elf_update failed\n", FILE__, __LINE__);
-        return false;
+       fprintf(stderr, "%s[%d]:  elf_update failed: %d, %s\n", FILE__, __LINE__, errno, elf_errmsg(elf_errno()));
+       return false;
      }
 
      shdr = newshdr;
@@ -1916,11 +1925,11 @@ void emitElf::createRelocationSections(Symtab *obj, std::vector<relocationEntry>
       }
    }
 
-   unsigned i,j,k;
+   unsigned i,j,k,l,m;
     
    Elf32_Rel *rels = (Elf32_Rel *)malloc(sizeof(Elf32_Rel) * (relocation_table.size()+newRels.size()));
    Elf32_Rela *relas = (Elf32_Rela *)malloc(sizeof(Elf32_Rela) * (relocation_table.size()+newRels.size()));
-   j=0; k=0;
+   j=0; k=0; l=0; m=0;
    //reconstruct .rel
    for(i=0;i<relocation_table.size();i++) 
    {
@@ -1959,6 +1968,7 @@ void emitElf::createRelocationSections(Symtab *obj, std::vector<relocationEntry>
                     relocationEntry::getGlobalRelType(obj->getAddressWidth()));
          }
          j++;
+	 l++;
       } else {
          relas[k].r_offset = newRels[i].rel_addr();
          relas[k].r_addend = newRels[i].addend();
@@ -1970,6 +1980,7 @@ void emitElf::createRelocationSections(Symtab *obj, std::vector<relocationEntry>
                     relocationEntry::getGlobalRelType(obj->getAddressWidth()));
          }
          k++;
+	 m++;
       }
    }
 
@@ -1977,7 +1988,7 @@ void emitElf::createRelocationSections(Symtab *obj, std::vector<relocationEntry>
    fprintf(stderr, "%s[%d]:  FIXME:  This does not work on solaris\n", FILE__, __LINE__);
 #else
    dyn_hash_map<int, Region*> secTagRegionMapping = obj->getObject()->getTagRegionMapping();
-   int reloc_size;
+   int reloc_size, old_reloc_size, dynamic_reloc_size;
    const char *new_name;
    Region::RegionType rtype;
    int dtype;
@@ -2002,14 +2013,14 @@ void emitElf::createRelocationSections(Symtab *obj, std::vector<relocationEntry>
       dsize_type = DT_RELASZ;
       buffer = relas;
    }
-   if (!isDynRelocs && obj->hasReldyn()) {
+   if (!isDynRelocs && obj->hasRelplt()) {
       new_name = ".rel.plt";
       dtype = DT_JMPREL;
       rtype = Region::RT_PLTREL;
       dsize_type = DT_PLTRELSZ;
       buffer = rels;
    }
-   if (!isDynRelocs && obj->hasReladyn()) {
+   if (!isDynRelocs && obj->hasRelaplt()) {
       new_name = ".rela.plt";
       dtype = DT_JMPREL;
       rtype = Region::RT_PLTRELA;
@@ -2017,13 +2028,21 @@ void emitElf::createRelocationSections(Symtab *obj, std::vector<relocationEntry>
       buffer = relas;
    }
    
+   /* The original binary may have overlapping rel.dyn and rel.plt section. The overlap is determined
+      by the size given by the dynamic entry DT_RELSZ/DT_RELASZ. We try to reproduce similar overlap
+      in the rewritten binary to keep the loader happy. We add new entries to the end of the original 
+      rel.dyn section followed by rel.plt section */
+
+   old_reloc_size =  dynamicSecData[dsize_type][0]->d_un.d_val;
+   dynamic_reloc_size = old_reloc_size+  l*sizeof(Elf32_Rel)+ m*sizeof(Elf32_Rela); 
+   // If dynamic_reloc_size > reloc_size => overlap
    string name;
    if (secTagRegionMapping.find(dtype) != secTagRegionMapping.end())
       name = secTagRegionMapping[dtype]->getRegionName();
    else
       name = std::string(new_name);
    obj->addRegion(0, buffer, reloc_size, name, rtype, true);
-   updateDynamic(dsize_type, reloc_size); 
+   updateDynamic(dsize_type, dynamic_reloc_size); 
 #endif
 
 } 

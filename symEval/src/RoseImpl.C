@@ -34,8 +34,10 @@
 #include <iostream>
 
 #include "../rose/SgAsmx86Instruction.h"
+#include "../rose/SgAsmPowerpcInstruction.h"
 #include "external/rose/rose-compat.h"
 #include "../rose/x86InstructionSemantics.h"
+#include "../rose/powerpcInstructionSemantics.h"
 
 // SgAsmType.h
 
@@ -498,6 +500,10 @@ SgAsmType* SgAsmRegisterReferenceExpression::get_type()
 {
   return p_type;
 }
+void SgAsmRegisterReferenceExpression::set_type(SgAsmType* type)
+{
+    p_type = type;
+}
 
 std::string SgAsmRegisterReferenceExpression::class_name() const
 {
@@ -513,6 +519,8 @@ SgAsmRegisterReferenceExpression::~SgAsmRegisterReferenceExpression()
 {
 
 }
+
+
 
 SgAsmx86RegisterReferenceExpression::SgAsmx86RegisterReferenceExpression(X86RegisterClass register_class, int register_number, X86PositionInRegister position_in_register)
 {
@@ -542,10 +550,6 @@ SgAsmx86RegisterReferenceExpression::SgAsmx86RegisterReferenceExpression(X86Regi
   }
 }
 
-SgAsmType* SgAsmx86RegisterReferenceExpression::get_type()
-{
-  return p_type;
-}
 
 std::string SgAsmx86RegisterReferenceExpression::class_name() const
 {
@@ -670,18 +674,57 @@ SgAsmByteValueExpression* isSgAsmByteValueExpression(SgNode* s)
 {
   return dynamic_cast<SgAsmByteValueExpression*>(s);
 }
+SgAsmWordValueExpression* isSgAsmWordValueExpression(SgNode* s)
+{
+    return dynamic_cast<SgAsmWordValueExpression*>(s);
+}
+SgAsmDoubleWordValueExpression* isSgAsmDoubleWordValueExpression(SgNode* s)
+{
+    return dynamic_cast<SgAsmDoubleWordValueExpression*>(s);
+}
+SgAsmQuadWordValueExpression* isSgAsmQuadWordValueExpression(SgNode* s)
+{
+    return dynamic_cast<SgAsmQuadWordValueExpression*>(s);
+}
 
 SgAsmMemoryReferenceExpression* isSgAsmMemoryReferenceExpression(SgNode* s)
 {
   return dynamic_cast<SgAsmMemoryReferenceExpression*>(s);
 }
 
+SgAsmPowerpcRegisterReferenceExpression* isSgAsmPowerpcRegisterReferenceExpression(SgNode* s)
+{
+    return dynamic_cast<SgAsmPowerpcRegisterReferenceExpression*>(s);
+}
+
 const char * regclassToString(X86RegisterClass)
 {
   return "NOT IMPLEMENTED";
 }
+const char * regclassToString(PowerpcRegisterClass c)
+{
+    switch(c)
+    {
+        case powerpc_regclass_gpr:
+            return "GPR";
+        case powerpc_regclass_spr:
+            return "SPR";
+        case powerpc_regclass_fpr:
+            return "FPR";
+        case powerpc_regclass_sr:
+            return "SR";
+        default:
+            return "unexpected register class--not gpr, spr, segment, or fpr";
+    }
+}
 
 // SgAsmx86Instruction.h
+SgAsmPowerpcInstruction::SgAsmPowerpcInstruction(rose_addr_t address, std::string mnemonic, PowerpcInstructionKind kind)
+{
+    p_address = address;
+    p_mnemonic = mnemonic;
+    p_kind = kind;
+}
 
 SgAsmx86Instruction::SgAsmx86Instruction(rose_addr_t address,
                         std::string mnemonic,
@@ -703,9 +746,18 @@ std::string SgAsmx86Instruction::class_name() const
   return "SgAsmx86Instruction";
 }
 
+std::string SgAsmPowerpcInstruction::class_name() const
+{
+    return "SgAsmPowerpcInstruction";
+}
+
 VariantT SgAsmx86Instruction::variantT() const
 {
   return static_variant;
+}
+VariantT SgAsmPowerpcInstruction::variantT() const
+{
+    return static_variant;
 }
 
 SgAsmx86Instruction::~SgAsmx86Instruction()
@@ -718,9 +770,20 @@ rose_addr_t SgAsmx86Instruction::get_address() const
   return p_address;
 }
 
+rose_addr_t SgAsmPowerpcInstruction::get_address() const
+{
+    return p_address;
+}
+
+
 X86InstructionKind SgAsmx86Instruction::get_kind() const
 {
   return p_kind;
+}
+
+PowerpcInstructionKind SgAsmPowerpcInstruction::get_kind() const
+{
+    return p_kind;
 }
 
 X86InstructionSize SgAsmx86Instruction::get_addressSize() const
@@ -748,9 +811,24 @@ std::string SgAsmx86Instruction::get_mnemonic() const
   return p_mnemonic;
 }
 
+SgAsmOperandList* SgAsmPowerpcInstruction::get_operandList() const
+{
+    return p_operandList;
+}
+
+std::string SgAsmPowerpcInstruction::get_mnemonic() const
+{
+    return p_mnemonic;
+}
+
+
 SgUnsignedCharList SgAsmx86Instruction::get_raw_bytes() const
 {
   return p_raw_bytes;
+}
+SgUnsignedCharList SgAsmPowerpcInstruction::get_raw_bytes() const
+{
+    return p_raw_bytes;
 }
 
 void SgAsmx86Instruction::set_address(rose_addr_t address)
@@ -758,9 +836,18 @@ void SgAsmx86Instruction::set_address(rose_addr_t address)
   p_address = address;
 }
 
+void SgAsmPowerpcInstruction::set_address(rose_addr_t address)
+{
+    p_address = address;
+}
+
 void SgAsmx86Instruction::set_kind(X86InstructionKind kind)
 {
   p_kind = kind;
+}
+void SgAsmPowerpcInstruction::set_kind(PowerpcInstructionKind kind)
+{
+    p_kind = kind;
 }
 
 void SgAsmx86Instruction::set_addressSize(X86InstructionSize size)
@@ -777,15 +864,27 @@ void SgAsmx86Instruction::set_operandList(SgAsmOperandList* operandList)
 {
   p_operandList = operandList;
 }
+void SgAsmPowerpcInstruction::set_operandList(SgAsmOperandList* operandList)
+{
+    p_operandList = operandList;
+}
 
 void SgAsmx86Instruction::set_mnemonic(std::string mnemonic)
 {
   p_mnemonic = mnemonic;
 }
+void SgAsmPowerpcInstruction::set_mnemonic(std::string mnemonic)
+{
+    p_mnemonic = mnemonic;
+}
 
 void SgAsmx86Instruction::set_raw_bytes(std::vector<unsigned char> raw_bytes)
 {
   p_raw_bytes = raw_bytes;
+}
+void SgAsmPowerpcInstruction::set_raw_bytes(std::vector<unsigned char> raw_bytes)
+{
+    p_raw_bytes = raw_bytes;
 }
 
 // SgAsmOperandList.h
@@ -820,3 +919,46 @@ SgAsmOperandList::~SgAsmOperandList()
 
 }
 
+//        PowerpcRegisterClass p_register_class;
+//        int p_register_number;
+//        PowerpcConditionRegisterAccessGranularity p_conditionRegisterGranularity;
+
+PowerpcRegisterClass SgAsmPowerpcRegisterReferenceExpression::get_register_class() const
+{
+    return p_register_class;
+}
+void SgAsmPowerpcRegisterReferenceExpression::set_register_class(PowerpcRegisterClass register_class)
+{
+    p_register_class = register_class;
+}
+int SgAsmPowerpcRegisterReferenceExpression::get_register_number() const
+{
+    return p_register_number;
+}
+void SgAsmPowerpcRegisterReferenceExpression::set_register_number(int register_number)
+{
+    p_register_number = register_number;
+}
+PowerpcConditionRegisterAccessGranularity
+SgAsmPowerpcRegisterReferenceExpression::get_conditionRegisterGranularity() const
+{
+    return p_conditionRegisterGranularity;
+}
+void SgAsmPowerpcRegisterReferenceExpression::set_conditionRegisterGranularity(
+        PowerpcConditionRegisterAccessGranularity conditionRegisterGranularity)
+{
+    p_conditionRegisterGranularity = conditionRegisterGranularity;
+}
+
+SgAsmPowerpcRegisterReferenceExpression::~SgAsmPowerpcRegisterReferenceExpression()
+{
+}
+
+SgAsmPowerpcRegisterReferenceExpression::SgAsmPowerpcRegisterReferenceExpression(
+        PowerpcRegisterClass register_class,
+        int register_number,
+        PowerpcConditionRegisterAccessGranularity conditionRegisterGranularity)
+    : p_register_class(register_class), p_register_number(register_number),
+    p_conditionRegisterGranularity(conditionRegisterGranularity)
+{
+}

@@ -126,7 +126,7 @@ bool PCProcReader::ReadMem(Address addr, void *buffer, unsigned size)
    return true;
 }
 
-bool PCProcReader::GetReg(MachRegister reg, MachRegisterVal &val)
+bool PCProcReader::GetReg(MachRegister /*reg*/, MachRegisterVal & /*val*/)
 {
    assert(0); //Not needed
    return true;
@@ -142,7 +142,6 @@ bool sysv_process::initLibraryMechanism()
    pthrd_printf("Initializing library mechanism for process %d\n", getPid());
    assert(!procreader);
    procreader = new PCProcReader(this);
-
    if (!symreader_factory) {
       symreader_factory = (SymbolReaderFactory *) new SymElfFactory();
       assert(symreader_factory);
@@ -167,10 +166,7 @@ bool sysv_process::initLibraryMechanism()
    if (breakpoint_addr) {
       result = addBreakpoint(breakpoint_addr, lib_trap);
    }
-   if (!result) {
-      perr_printf("Failed to install library breakpoint at %lx\n", breakpoint_addr);
-      return false;
-   }
+
    return true;
 }
 

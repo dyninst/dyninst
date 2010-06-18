@@ -42,7 +42,6 @@
 #include <string.h>
 
 static bool enableLog = false;
-static const char *resumelog_name = "resumelog";
 
 #define RESULT_REPORTED -1
 #define RESUME_POINT -2
@@ -75,7 +74,7 @@ bool isLogging()
 
 void setLoggingFilename(char *f)
 {
-   resumelog_name = f;
+   set_resumelog_name(f);
 }
 
 void rebuild_resumelog(const std::vector<resumeLogEntry> &entries)
@@ -83,7 +82,7 @@ void rebuild_resumelog(const std::vector<resumeLogEntry> &entries)
    if (!enableLog)
       return;
 
-   FILE *f = fopen(resumelog_name, "a");
+   FILE *f = fopen(get_resumelog_name(), "a");
    
    for (unsigned i=0; i<entries.size(); i++)
    {
@@ -101,7 +100,7 @@ static void log_line(int groupnum, int testnum, int runstate, bool append)
    if (!enableLog)
       return;
 
-   FILE *f = fopen(resumelog_name, append ? "a" : "w");
+   FILE *f = fopen(get_resumelog_name(), append ? "a" : "w");
    if (!f) {
       getOutput()->log(STDERR, "Failed to update the resume log");
       return;
@@ -120,7 +119,7 @@ void log_testresult(test_results_t result)
    if (!enableLog)
       return;
 
-   FILE *f = fopen(resumelog_name, "a");
+   FILE *f = fopen(get_resumelog_name(), "a");
    if (!f) {
       getOutput()->log(STDERR, "Failed to update the resume log");
       return;
@@ -146,7 +145,7 @@ void log_clear()
 {
    if (!enableLog)
       return;
-   FILE *f = fopen(resumelog_name, "w");
+   FILE *f = fopen(get_resumelog_name(), "w");
    if (f)
       fclose(f);
 }
@@ -157,7 +156,7 @@ void parse_resumelog(std::vector<RunGroup *> &groups)
       return;
 
 
-   FILE *f = fopen(resumelog_name, "r");
+   FILE *f = fopen(get_resumelog_name(), "r");
    if (!f) {
       return;
    }
@@ -241,14 +240,13 @@ void parse_resumelog(std::vector<RunGroup *> &groups)
    rebuild_resumelog(recreate_entries);
 }
 
-char *mutatee_resumelog_name = "mutatee_resumelog";
-char *alt_mutatee_resumelog_name = "../mutatee_resumelog";
-
-void parse_mutateelog(RunGroup *group)
+void parse_mutateelog(RunGroup *group, char *logname)
 {
-   FILE *f = fopen(mutatee_resumelog_name, "r");
-   if (!f)
-      f = fopen(alt_mutatee_resumelog_name, "r");
+   FILE *f = fopen(logname, "r");
+   if (!f) {
+      std::string alt_logname = std::string("../") + logname;
+      f = fopen(alt_logname.c_str(), "r");
+   }
    assert(f);
    char testname[256];
    for (;;)
@@ -289,9 +287,13 @@ void parse_mutateelog(RunGroup *group)
    fclose(f);
 }
 
-void clear_mutateelog()
+void clear_mutateelog(char *logname)
 {
-   FILE *f = fopen(mutatee_resumelog_name, "w");
+   FILE *f = fopen(logname, "w");
+   if (!f) {
+      std::string alt_logname = std::string("../") + logname;
+      f = fopen(alt_logname.c_str(), "w");
+   }
    if (!f) {
       getOutput()->log(STDERR, "Unable to reset mutatee log\n");
       exit(0);

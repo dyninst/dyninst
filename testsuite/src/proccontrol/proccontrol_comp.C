@@ -1,8 +1,10 @@
 #include "ParameterDict.h"
 #include "proccontrol_comp.h"
 #include "communication.h"
-#include <errno.h>
-#include <string.h>
+
+#include <cstdio>
+#include <cerrno>
+#include <cstring>
 
 TEST_DLL_EXPORT ComponentTester *componentTesterFactory()
 {

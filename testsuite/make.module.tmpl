@@ -133,10 +133,14 @@ dyninst_MUTATOR_FLAGS = -L. -ltestdyninst -ldyninstAPI
 
 ifdef M_ABI
 DYNINST_TESTLIBS = $(notdir $(SRCS_DYNINSTTESTLIB:%.c=%.so))
+DYNINST_STATIC_TESTLIBS = $(notdir $(SRCS_DYNINSTTESTLIB:%.c=%.a))
 DYNINST_TESTLIBS_ABI = $(addsuffix _$(M_ABI).so, $(notdir $(SRCS_DYNINSTTESTLIB:%.c=%)))
+DYNINST_STATIC_TESTLIBS_ABI = $(addsuffix _$(M_ABI).a, $(notdir $(SRCS_DYNINSTTESTLIB:%.c=%)))
 else
 DYNINST_TESTLIBS = $(notdir $(SRCS_DYNINSTTESTLIB:%.c=%.so))
+DYNINST_STATIC_TESTLIBS = $(notdir $(SRCS_DYNINSTTESTLIB:%.c=%.a))
 DYNINST_TESTLIBS_ABI =
+DYNINST_STATIC_TESTLIBS_ABI = 
 endif
 
 ifdef USE_LIBTESTSUITE_EXT_A
@@ -271,9 +275,9 @@ mutatees: $(filter-out $(BUILD_FILTER), $(dyninst_SOLO_MUTATEES))
 mutatees_minimum: $(filter-out $(BUILD_FILTER), $(filter-out $(MINIMUM_BUILD_FILTER), $(dyninst_SOLO_MUTATEES)))
 mutators: $(dyninst_MUTATORS_SO)
 components: $(LIBDYNINSTCOMP)
-testlibs: $(DYNINST_TESTLIBS)
+testlibs: $(DYNINST_TESTLIBS) $(DYNINST_STATIC_TESTLIBS)
 ifndef SKIP_BUILD_RTLIB_32
-testlibs: $(DYNINST_TESTLIBS_ABI)
+testlibs: $(DYNINST_TESTLIBS_ABI) $(DYNINST_STATIC_TESTLIBS_ABI)
 endif
 endif
 
@@ -324,7 +328,7 @@ clean: clean_solo_mutatees dyninst_clean_solo_mutatees
 	@$(RM) $(LIBDYNINSTCOMP)
 	@$(RM) $(LIBSYMTABCOMP)
 	@$(RM) $(LIBINSTRUCTIONCOMP)
-	@$(RM) $(DYNINST_TESTLIBS) $(DYNINST_TESTLIBS_ABI)
+	@$(RM) $(DYNINST_TESTLIBS) $(DYNINST_STATIC_TESTLIBS) $(DYNINST_TESTLIBS_ABI) $(DYNINST_STATIC_TESTLIBS_ABI)
 	@$(RM) *.o
 	@$(RM) test11
 	@$(RM) imagefile
@@ -375,6 +379,10 @@ else
 	$(CC) $(TESTLIB_FLAGS) -I../src/ $(filter %.c,$^) -o $@
 endif
 
+$(DYNINST_STATIC_TESTLIBS): %.a : dyninst/%.c $(DEPENDDIR)/%.dep
+	$(CC) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
+	$(AR) rcs $@ $*.o
+
 ifdef M_ABI
 $(DYNINST_TESTLIBS_ABI): %_$(M_ABI).so : dyninst/%.c $(DEPENDDIR)/%.dep
 ifdef MAKE_SHARED_LIB
@@ -383,6 +391,14 @@ ifdef MAKE_SHARED_LIB
 else
 	$(CC) $(M_ABI_FLAG) $(TESTLIB_FLAGS) -I../src/ $(filter %.c,$^) -o $@
 endif
+
+ifdef cap_instruction_api
+    INSNAPI_LINK = -linstructionAPI
+endif
+
+$(DYNINST_STATIC_TESTLIBS_ABI): %_$(M_ABI).a : dyninst/%.c $(DEPENDDIR)/%.dep
+	$(CC) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
+	$(AR) rcs $@ $*.o
 endif
 
 $(OBJS_TEMPLATES): %.o : ../src/%.C
@@ -407,7 +423,8 @@ $(OBJS_LIBTESTSUITE): %.o : ../src/%.C $(DEPENDDIR)/%.dep
 	$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/$*.C
 
 $(LIBDYNINSTCOMP) : $(OBJS_DYNINSTCOMP_LIB) $(LIBTESTSUITE)
-	$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_DYNINSTCOMP_LIB) -o $@ -L. -ltestSuite -ldyninstAPI -lsymtabAPI -lcommon
+	$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_DYNINSTCOMP_LIB) -o $@ -L. -ltestSuite -ldyninstAPI -lsymtabAPI \
+-lcommon
 
 $(LIBSYMTABCOMP) : $(OBJS_SYMTABCOMP_LIB) $(LIBTESTSUITE)
 	$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_SYMTABCOMP_LIB) -o $@ -L. -ltestSuite -lsymtabAPI -lcommon

@@ -51,34 +51,39 @@ unsigned ProcDebugLinux::getAddressWidth()
 
 #define USER_OFFSET_OF(register) ((signed int) &(((struct user *) NULL)->regs.register))
 
+static int getRegOffset(Dyninst::MachRegister reg, int addr_width)
+{
+  if (addr_width == 4)
+  {
+    switch (reg.val()) {
+      case Dyninst::iReturnAddr:
+      case Dyninst::ppc32::ipc:
+	return USER_OFFSET_OF(nip);
+      case Dyninst::iStackTop:
+	return -2;
+      case Dyninst::iFrameBase:
+      case Dyninst::ppc32::ir1:
+	return USER_OFFSET_OF(gpr[1]);
+    }
+  }
+  return -1;
+}
+
 bool ProcDebugLinux::getRegValue(Dyninst::MachRegister reg, 
                                  Dyninst::THR_ID t, 
                                  Dyninst::MachRegisterVal &val)
 {
    int result;
-   signed int offset = -1;
-
-   if (getAddressWidth() == 4)
-   {
-      switch (reg.val()) {
-         case Dyninst::iReturnAddr:
-         case Dyninst::ppc32::ipc:
-            offset = USER_OFFSET_OF(nip);
-            break;
-         case Dyninst::iStackTop:
-            val = 0x0;
-            return false;
-         case Dyninst::iFrameBase:
-         case Dyninst::ppc32::ir1:
-            offset = USER_OFFSET_OF(gpr[1]);
-            break;
-      }
+   signed int offset = getRegOffset(reg, getAddressWidth());
+   if (offset == -2) {
+     val = 0x0;
+     return true;
    }
    if (offset == -1) {
-         sw_printf("[%s:%u] - Request for unsupported register %s\n",
-                   __FILE__, __LINE__, reg.name());
-         setLastError(err_badparam, "Unknown register passed in reg field");
-         return false;
+     sw_printf("[%s:%u] - Request for unsupported register %s\n",
+	       __FILE__, __LINE__, reg.name());
+     setLastError(err_badparam, "Unknown register passed in reg field");
+     return false;
    }
    
    errno = 0;
@@ -94,6 +99,31 @@ bool ProcDebugLinux::getRegValue(Dyninst::MachRegister reg,
 
    val = result;
 
+   return true;
+}
+
+bool ProcDebugLinux::setRegValue(Dyninst::MachRegister reg, 
+                                 Dyninst::THR_ID t, 
+                                 Dyninst::MachRegisterVal val)
+{
+   int result;
+   signed int offset = getRegOffset(reg, getAddressWidth());
+   if (offset < 0) {
+     sw_printf("[%s:%u] - Request for unsupported register %s\n",
+	       __FILE__, __LINE__, reg.name());
+     setLastError(err_badparam, "Unknown register passed in reg field");
+     return false;
+   }
+   
+   result = ptrace(PTRACE_POKEUSER, (pid_t) t, (void*) offset, (void *) val);
+   if (result == -1)
+   {
+      int errnum = errno;
+      sw_printf("[%s:%u] - Could not write to gprs in %d: %s\n", 
+                __FILE__, __LINE__, t, strerror(errnum));
+      setLastError(err_procread, "Could not write registers to process");
+      return false;
+   }
    return true;
 }
 

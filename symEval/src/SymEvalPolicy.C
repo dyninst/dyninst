@@ -6,7 +6,7 @@ using namespace Dyninst;
 using namespace Dyninst::SymbolicEvaluation;
 using namespace Dyninst::InstructionAPI;
 
-SymEvalPolicy::SymEvalPolicy(SymEval::Result &r, 
+SymEvalPolicy::SymEvalPolicy(Result_t &r,
 			     Address a,
 			     Architecture ac) :
   res(r),
@@ -15,7 +15,7 @@ SymEvalPolicy::SymEvalPolicy(SymEval::Result &r,
   ip_(Handle<32>(wrap(Absloc::makePC(arch)))) {
 
   // We also need to build aaMap FTW!!!
-  for (SymEval::Result::iterator iter = r.begin();
+  for (Result_t::iterator iter = r.begin();
        iter != r.end(); ++iter) {
     Assignment::Ptr a = iter->first;
     // For a different instruction...
@@ -24,6 +24,7 @@ SymEvalPolicy::SymEvalPolicy(SymEval::Result &r,
 
     if (o.containsOfType(Absloc::Register)) {
       // We're assuming this is a single register...
+      //std::cerr << "Marking register " << a << std::endl;
       aaMap[o.absloc()] = a;
     }
     else {
@@ -40,7 +41,54 @@ void SymEvalPolicy::startInstruction(SgAsmx86Instruction *) {
 
 void SymEvalPolicy::finishInstruction(SgAsmx86Instruction *) {
 }
+void SymEvalPolicy::startInstruction(SgAsmPowerpcInstruction *) {
+}
 
+void SymEvalPolicy::finishInstruction(SgAsmPowerpcInstruction *) {
+}
+
+Absloc SymEvalPolicy::convert(PowerpcRegisterClass regtype, int regNum)
+{
+    switch(regtype)
+    {
+        case powerpc_regclass_gpr:
+            return Absloc(MachRegister(ppc32::GPR | regNum | Arch_ppc32));
+        case powerpc_regclass_spr:
+            return Absloc(MachRegister(ppc32::SPR | regNum | Arch_ppc32));
+        case powerpc_regclass_cr:
+        {
+            if(regNum == -1)
+                return Absloc(ppc32::cr);
+            switch(regNum)
+            {
+                case 0:
+                    return Absloc(ppc32::cr0);
+                case 1:
+                    return Absloc(ppc32::cr1);
+                case 2:
+                    return Absloc(ppc32::cr2);
+                case 3:
+                    return Absloc(ppc32::cr3);
+                case 4:
+                    return Absloc(ppc32::cr4);
+                case 5:
+                    return Absloc(ppc32::cr5);
+                case 6:
+                    return Absloc(ppc32::cr6);
+                case 7:
+                    return Absloc(ppc32::cr7);
+                default:
+                    assert(!"bad CR field!");
+                    return Absloc();
+            }
+        }
+        default:
+            assert(!"unknown power register class!");
+            return Absloc();
+            
+    }
+}
+        
 Absloc SymEvalPolicy::convert(X86GeneralPurposeRegister r)
 {
 

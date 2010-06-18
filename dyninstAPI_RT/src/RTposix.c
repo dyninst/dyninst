@@ -95,8 +95,8 @@ void libdyninstAPI_RT_init()
    if (initCalledOnce) return;
    initCalledOnce++;
 
-#if defined(arch_x86) || defined(arch_x86_64) || defined(arch_ia64)
-   /* Modern x86-32/x86-64/ia64 cpus have non-executable data */
+#if defined(arch_x86) || defined(arch_x86_64)
+   /* Modern x86-32/x86-64 cpus have non-executable data */
    mark_heaps_exec();
 #endif
 

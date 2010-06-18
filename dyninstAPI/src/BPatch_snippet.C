@@ -50,7 +50,7 @@
 #include "mapped_object.h" // for savetheworld
 #include "mapped_module.h"
 #include "ast.h"
-#include "symtab.h"
+#include "function.h"
 #include "process.h"
 #include "instPoint.h"
 #include "registerSpace.h"
@@ -68,8 +68,6 @@ using namespace Dyninst::SymtabAPI;
 #include "inst-x86.h"
 #elif defined(arch_power)
 #include "inst-power.h"
-#elif defined(arch_ia64)
-#include "inst-ia64.h"
 #elif defined(arch_sparc)
 #include "inst-sparc.h"
 #endif

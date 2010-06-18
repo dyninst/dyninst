@@ -47,21 +47,14 @@ SRCS = 		../src/aix.C \
 		../src/inst-aix.C \
 		../src/image-power.C \
 		../src/unix.C \
-		../src/arch-power.C \
-		../src/InstrucIter-power.C \
+		../src/codegen-power.C \
 		../src/syscall-solproc.C \
-		../src/IA_InstrucIter.C \
-		../src/InstrucIter-xplat.C \
-		../src/InstrucIter-Function.C
+		../src/BPatch_memoryAccessAdapter.C
 
 # Add preprocessor and special link information for G++
 G_PTHREAD       = -pthread
 # Commented out for daily wisc builds
 #G_PTHREAD_LD	= -pthread
-
-# InstructionAPI is just x86 and power at this point
-LIBS    += -linstructionAPI
-
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

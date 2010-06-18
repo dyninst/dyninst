@@ -236,7 +236,7 @@ void pushStack(codeGen &gen);
 void popStack(codeGen &gen);
 unsigned saveGPRegisters(codeGen &gen, 
                          registerSpace *theRegSpace,
-                         int save_off);
+                         int save_off, int numReqGPRs=-1);
 unsigned restoreGPRegisters(codeGen &gen, 
                             registerSpace *theRegSpace,
                             int save_off);

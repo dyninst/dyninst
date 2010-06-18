@@ -4,8 +4,6 @@
 
 # Define any symbols needed to invoke configuration changes in make.config
 
-NO_IMPLICIT_TEMPLATES = true
-
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
 
@@ -18,8 +16,8 @@ LDFLAGS     += $(LIBDIR) -lcommon
 SRCS = 	../src/linux.C \
          ../src/sysv.C
 
-ifdef LIBELF_DIR
-MYLAGS += -I$(LIBELF_DIR)
+ifdef LIBELF_INC
+MYFLAGS += -I$(LIBELF_INC)
 endif
 
 CXXFLAGS += $(MYFLAGS)

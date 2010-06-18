@@ -66,10 +66,8 @@ class Emitter {
     virtual void emitLoad(Register dest, Address addr, int size, codeGen &gen) = 0;
     virtual void emitLoadConst(Register dest, Address imm, codeGen &gen) = 0;
     virtual void emitLoadIndir(Register dest, Register addr_reg, int size, codeGen &gen) = 0;
-
-    virtual bool emitLoadRelative(Register dest, Address offset, Register base, codeGen &gen) = 0;
-    virtual bool emitLoadRelative(registerSlot *dest, Address offset, registerSlot *base, codeGen &gen) = 0;
-
+    virtual bool emitCallRelative(Register, Address, Register, codeGen &) = 0;
+    virtual bool emitLoadRelative(Register dest, Address offset, Register base, int size, codeGen &gen) = 0;
     virtual void emitLoadShared(opCode op, Register dest, const image_variable *var, bool is_local, int size, codeGen &gen, Address offset) = 0;
 
     virtual void emitLoadFrameAddr(Register dest, Address offset, codeGen &gen) = 0;
@@ -84,10 +82,7 @@ class Emitter {
     virtual void emitStore(Address addr, Register src, int size, codeGen &gen) = 0;
     virtual void emitStoreIndir(Register addr_reg, Register src, int size, codeGen &gen) = 0;
     virtual void emitStoreFrameRelative(Address offset, Register src, Register scratch, int size, codeGen &gen) = 0;
-
-    virtual void emitStoreRelative(Register source, Address offset, Register base, codeGen &gen) = 0;
-    virtual void emitStoreRelative(registerSlot *source, Address offset, registerSlot *base, codeGen &gen) = 0;
-
+    virtual void emitStoreRelative(Register source, Address offset, Register base, int size, codeGen &gen) = 0;
     virtual void emitStoreShared(Register source, const image_variable *var, bool is_local, int size, codeGen &gen) = 0;
 
     virtual bool emitMoveRegToReg(Register src, Register dest, codeGen &gen) = 0;
@@ -95,6 +90,7 @@ class Emitter {
 
     virtual Register emitCall(opCode op, codeGen &gen, const pdvector<AstNodePtr> &operands,
 			      bool noCost, int_function *callee) = 0;
+
     virtual void emitGetRetVal(Register dest, bool addr_of, codeGen &gen) = 0;
     virtual void emitGetParam(Register dest, Register param_num, instPointType_t pt_type, bool addr_of, codeGen &gen) = 0;
     virtual void emitFuncJump(int_function *f, instPointType_t ptType, bool callOp, codeGen &gen) = 0;
@@ -116,6 +112,7 @@ class Emitter {
 
     Address getInterModuleFuncAddr(int_function *func, codeGen& gen);
     Address getInterModuleVarAddr(const image_variable *var, codeGen& gen);
+    //bool emitPIC(codeGen& /*gen*/, Address, Address );
 };
 
 #endif

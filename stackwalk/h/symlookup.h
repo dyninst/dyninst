@@ -65,6 +65,16 @@ class SwkSymtab : public SymbolLookup {
     virtual bool lookupAtAddr(Dyninst::Address addr, 
                               std::string &out_name, 
                               void* &out_value);
+    virtual ~SwkSymtab();
+};
+
+class SymDefaultLookup : public SymbolLookup {
+  public:
+    SymDefaultLookup(Walker *w, const std::string &exec_name);
+    virtual bool lookupAtAddr(Dyninst::Address addr, 
+                              std::string &out_name, 
+                              void* &out_value);
+    virtual ~SymDefaultLookup();
 };
 
 }

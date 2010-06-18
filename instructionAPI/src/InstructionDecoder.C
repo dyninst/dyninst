@@ -29,143 +29,56 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "../h/InstructionDecoder.h"
-#include "../h/InstructionDecoder-x86.h"
-#include "../h/InstructionDecoder-power.h"
-#include "../h/Expression.h"
-#include "../src/arch-x86.h"
-#include "../h/Register.h"
-#include "../h/Dereference.h"
-#include "../h/Immediate.h"
-#include "../h/BinaryFunction.h"
-#include "../../common/h/singleton_object_pool.h"
+#include "InstructionDecoder.h"
+#include "InstructionDecoderImpl.h"
+#include "Instruction.h"
 
 using namespace std;
 namespace Dyninst
 {
   namespace InstructionAPI
   {
-    
-    
     INSTRUCTION_EXPORT InstructionDecoder::InstructionDecoder(const unsigned char* buffer, size_t size, Architecture arch) :
-      bufferBegin(buffer),
-      bufferSize(size),
-      rawInstruction(bufferBegin),
-      m_Arch(arch)
+        m_buf(buffer, size)
     {
+        m_Impl = InstructionDecoderImpl::makeDecoderImpl(arch);
+        m_Impl->setMode(arch == Arch_x86_64);
     }
-    INSTRUCTION_EXPORT InstructionDecoder::InstructionDecoder() :
-      bufferBegin(NULL),
-      bufferSize(0),
-      rawInstruction(NULL),
-      m_Arch(Arch_none)
+    INSTRUCTION_EXPORT InstructionDecoder::InstructionDecoder(const void* buffer, size_t size, Architecture arch) :
+        m_buf(reinterpret_cast<const unsigned char*>(buffer), size)
     {
+        m_Impl = InstructionDecoderImpl::makeDecoderImpl(arch);
+        m_Impl->setMode(arch == Arch_x86_64);
     }
-#if 0    
     INSTRUCTION_EXPORT InstructionDecoder::InstructionDecoder(const InstructionDecoder& o) :
-            dyn_detail::boost::enable_shared_from_this<InstructionDecoder>(o), 
-    bufferBegin(o.bufferBegin),
-    bufferSize(o.bufferSize),
-    rawInstruction(o.rawInstruction),
-    m_Arch(o.m_Arch)
+    m_buf(o.m_buf),
+    m_Impl(o.m_Impl)
     {
     }
-#endif
     INSTRUCTION_EXPORT InstructionDecoder::~InstructionDecoder()
     {
-    }
-    Instruction* InstructionDecoder::makeInstruction(entryID opcode, const char* mnem,
-            unsigned int decodedSize, const unsigned char* raw)
-    {
-        Operation::Ptr tmp(make_shared(singleton_object_pool<Operation>::construct(opcode, mnem, m_Arch)));
-        return singleton_object_pool<Instruction>::construct(tmp, decodedSize, raw, shared_from_this());
     }
     
     INSTRUCTION_EXPORT Instruction::Ptr InstructionDecoder::decode()
     {
-      if(rawInstruction < bufferBegin || rawInstruction >= bufferBegin + bufferSize) return Instruction::Ptr();
-      unsigned int decodedSize = decodeOpcode();
+        if(m_buf.start >= m_buf.end) return Instruction::Ptr();
       
-      rawInstruction += decodedSize;
-      return make_shared(singleton_object_pool<Instruction>::construct(m_Operation, decodedSize,
-									 rawInstruction - decodedSize,
-                                                                         shared_from_this()));
+      Instruction::Ptr ret = m_Impl->decode(m_buf);
+      return ret;
     }
     
-    INSTRUCTION_EXPORT Instruction::Ptr InstructionDecoder::decode(const unsigned char* buffer)
+    INSTRUCTION_EXPORT Instruction::Ptr InstructionDecoder::decode(const unsigned char* b)
     {
-        setBuffer(buffer);
-        unsigned int decodedSize = decodeOpcode();
-        resetBuffer();
-        return make_shared(singleton_object_pool<Instruction>::construct(m_Operation, decodedSize,
-									 buffer,
-                                                                         shared_from_this()));
-    }
-    Expression::Ptr InstructionDecoder::makeAddExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType)
-    {
-      static BinaryFunction::funcT::Ptr adder(new BinaryFunction::addResult());
+      buffer tmp(b, b+maxInstructionLength);
       
-      return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, adder));
+      return m_Impl->decode(tmp);
     }
-    Expression::Ptr InstructionDecoder::makeMultiplyExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType)
+    INSTRUCTION_EXPORT void InstructionDecoder::doDelayedDecode(const Instruction* i)
     {
-      static BinaryFunction::funcT::Ptr multiplier(new BinaryFunction::multResult());
-      return make_shared(singleton_object_pool<BinaryFunction>::construct(lhs, rhs, resultType, multiplier));
-    }
-    Expression::Ptr InstructionDecoder::makeDereferenceExpression(Expression::Ptr addrToDereference, Result_Type resultType)
-    {
-        return make_shared(singleton_object_pool<Dereference>::construct(addrToDereference, resultType));
-    }
-    Expression::Ptr InstructionDecoder::makeRegisterExpression(MachRegister registerID)
-    {
-        int newID = registerID.val();
-        int minusArch = newID & ~(registerID.getArchitecture());
-        int convertedID = minusArch | m_Arch;
-        MachRegister converted(convertedID);
-        return make_shared(singleton_object_pool<RegisterAST>::construct(converted, 0, registerID.size() * 8));
+        m_Impl->doDelayedDecode(i);
     }
     
 
-    void InstructionDecoder::setBuffer(const unsigned char* buffer, unsigned int size)
-    {
-        oldBuffer = rawInstruction;
-        oldBufferBegin = bufferBegin;
-        oldBufferSize = bufferSize;
-      rawInstruction = buffer;
-      bufferBegin = buffer;
-      bufferSize = size;
-    }
-
-    void InstructionDecoder::resetBuffer()
-    {
-        rawInstruction = oldBuffer;
-        bufferBegin = oldBufferBegin;
-        bufferSize = oldBufferSize;
-    }
-    dyn_detail::boost::shared_ptr<InstructionDecoder> makeDecoder(Architecture arch, const unsigned char* buffer, unsigned len)
-    {
-        switch(arch)
-        {
-            case Arch_x86:
-            case Arch_x86_64:
-                return dyn_detail::boost::shared_ptr<InstructionDecoder>(
-                        new InstructionDecoder_x86(buffer, len, arch));
-                break;
-            case Arch_ppc32:
-            case Arch_ppc64:
-                return dyn_detail::boost::shared_ptr<InstructionDecoder>(
-                        new InstructionDecoder_power(buffer, len, arch));
-                break;
-            case Arch_none:
-                return dyn_detail::boost::shared_ptr<InstructionDecoder>();
-                break;
-            default:
-                assert(!"not implemented");
-                return dyn_detail::boost::shared_ptr<InstructionDecoder>();
-                break;
-        }
-    }
-    
   };
 };
 
