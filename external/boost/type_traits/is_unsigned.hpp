@@ -10,17 +10,14 @@
 #ifndef BOOST_TT_IS_UNSIGNED_HPP_INCLUDED
 #define BOOST_TT_IS_UNSIGNED_HPP_INCLUDED
 
-#include <boost/type_traits/is_integral.hpp>
-#include <boost/type_traits/is_enum.hpp>
-#include <boost/type_traits/remove_cv.hpp>
-#include <boost/type_traits/detail/ice_or.hpp>
+#include "boost/type_traits/is_integral.hpp"
+#include "boost/type_traits/is_enum.hpp"
+#include "boost/type_traits/detail/ice_or.hpp"
 
 // should be the last #include
-#include <boost/type_traits/detail/bool_trait_def.hpp>
+#include "boost/type_traits/detail/bool_trait_def.hpp"
 
 namespace boost {
-
-#if !defined( __CODEGEARC__ )
 
 namespace detail{
 
@@ -29,8 +26,7 @@ namespace detail{
 template <class T>
 struct is_ununsigned_helper
 {
-   typedef typename remove_cv<T>::type no_cv_t;
-   BOOST_STATIC_CONSTANT(bool, value = (static_cast<no_cv_t>(-1) > 0));
+   BOOST_STATIC_CONSTANT(bool, value = (static_cast<T>(-1) > 0));
 };
 
 template <bool integral_type>
@@ -106,18 +102,13 @@ template <> struct is_unsigned_imp<const volatile wchar_t> : public true_type{};
 
 #endif
 
+
 }
 
-#endif // !defined( __CODEGEARC__ )
-
-#if defined( __CODEGEARC__ )
-BOOST_TT_AUX_BOOL_TRAIT_DEF1(is_unsigned,T,__is_unsigned(T))
-#else
 BOOST_TT_AUX_BOOL_TRAIT_DEF1(is_unsigned,T,::boost::detail::is_unsigned_imp<T>::value)
-#endif
 
 } // namespace boost
 
-#include <boost/type_traits/detail/bool_trait_undef.hpp>
+#include "boost/type_traits/detail/bool_trait_undef.hpp"
 
 #endif // BOOST_TT_IS_MEMBER_FUNCTION_POINTER_HPP_INCLUDED

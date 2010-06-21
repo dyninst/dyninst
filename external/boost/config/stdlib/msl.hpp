@@ -9,7 +9,7 @@
 //  Metrowerks standard library:
 
 #ifndef __MSL_CPP__
-#  include <boost/config/no_tr1/utility.hpp>
+#  include <utility>
 #  ifndef __MSL_CPP__
 #     error This is not the MSL standard library!
 #  endif

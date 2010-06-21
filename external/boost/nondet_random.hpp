@@ -5,7 +5,7 @@
  * accompanying file LICENSE_1_0.txt or copy at
  * http://www.boost.org/LICENSE_1_0.txt)
  *
- * $Id: nondet_random.hpp 49314 2008-10-13 09:00:03Z johnmaddock $
+ * $Id: nondet_random.hpp,v 1.9 2004/07/27 03:43:27 dgregor Exp $
  *
  * Revision history
  *  2000-02-18  Portability fixes (thanks to Beman Dawes)
@@ -19,7 +19,7 @@
 
 #include <string>                       // std::abs
 #include <algorithm>                    // std::min
-#include <boost/config/no_tr1/cmath.hpp>
+#include <cmath>
 #include <boost/config.hpp>
 #include <boost/utility.hpp>            // noncopyable
 #include <boost/integer_traits.hpp>     // compile-time integral limits

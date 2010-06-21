@@ -42,7 +42,7 @@ public:
 
     virtual char const * what() const throw()
     {
-        return "tr1::bad_weak_ptr";
+        return "boost::bad_weak_ptr";
     }
 };
 

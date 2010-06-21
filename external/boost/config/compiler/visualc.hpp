@@ -56,7 +56,6 @@
 #  define BOOST_NO_SFINAE
 #  define BOOST_NO_POINTER_TO_MEMBER_TEMPLATE_PARAMETERS
 #  define BOOST_NO_IS_ABSTRACT
-#  define BOOST_NO_FUNCTION_TYPE_SPECIALIZATIONS
 // TODO: what version is meant here? Have there really been any fixes in cl 12.01 (as e.g. shipped with eVC4)?
 #  if (_MSC_VER > 1200)
 #     define BOOST_NO_MEMBER_FUNCTION_SPECIALIZATIONS
@@ -64,14 +63,7 @@
 
 #endif
 
-#if _MSC_VER < 1400 
-// although a conforming signature for swprint exists in VC7.1
-// it appears not to actually work:
-#  define BOOST_NO_SWPRINTF
-#endif
-
-#if defined(UNDER_CE)
-// Windows CE does not have a conforming signature for swprintf
+#if _MSC_VER < 1310 // 1310 == VC++ 7.1
 #  define BOOST_NO_SWPRINTF
 #endif
 
@@ -79,28 +71,18 @@
 #  define BOOST_NO_MEMBER_TEMPLATE_FRIENDS
 #endif
 
-#if _MSC_VER <= 1500  // 1500 == VC++ 9.0
-#  define BOOST_NO_TWO_PHASE_NAME_LOOKUP
-#endif
-
-#if _MSC_VER == 1500  // 1500 == VC++ 9.0
-   // A bug in VC9:
-#  define BOOST_NO_ADL_BARRIER
-#endif
-
 #ifndef _NATIVE_WCHAR_T_DEFINED
 #  define BOOST_NO_INTRINSIC_WCHAR_T
 #endif
 
-#if defined(_WIN32_WCE) || defined(UNDER_CE)
+#ifdef _WIN32_WCE
 #  define BOOST_NO_THREADEX
 #  define BOOST_NO_GETSYSTEMTIMEASFILETIME
-#  define BOOST_NO_SWPRINTF
 #endif
 
 //   
 // check for exception handling support:   
-#ifndef _CPPUNWIND 
+#ifndef _CPPUNWIND   
 #  define BOOST_NO_EXCEPTIONS   
 #endif 
 
@@ -113,18 +95,12 @@
 #if (_MSC_VER >= 1310) && defined(_MSC_EXTENSIONS)
 #   define BOOST_HAS_LONG_LONG
 #endif
-#if (_MSC_VER >= 1400) && !defined(_DEBUG)
-#   define BOOST_HAS_NRVO
-#endif
 //
 // disable Win32 API's if compiler extentions are
 // turned off:
 //
 #ifndef _MSC_EXTENSIONS
 #  define BOOST_DISABLE_WIN32
-#endif
-#ifndef _CPPRTTI
-#  define BOOST_NO_RTTI
 #endif
 
 //
@@ -152,14 +128,9 @@
       // Note: these are so far off, they are not really supported
 #   elif _MSC_VER < 1300 // eVC++ 4 comes with 1200-1202
 #     define BOOST_COMPILER_VERSION evc4.0
-#   elif _MSC_VER == 1400
-#     define BOOST_COMPILER_VERSION evc8
+#     error unknown CE compiler
 #   else
-#      if defined(BOOST_ASSERT_CONFIG)
-#         error "Unknown EVC++ compiler version - please run the configure tests and report the results"
-#      else
-#         pragma message("Unknown EVC++ compiler version - please run the configure tests and report the results")
-#      endif
+#     error unknown CE compiler
 #   endif
 # else
 #   if _MSC_VER < 1200
@@ -173,8 +144,6 @@
 #     define BOOST_COMPILER_VERSION 7.1
 #   elif _MSC_VER == 1400
 #     define BOOST_COMPILER_VERSION 8.0
-#   elif _MSC_VER == 1500
-#     define BOOST_COMPILER_VERSION 9.0
 #   else
 #     define BOOST_COMPILER_VERSION _MSC_VER
 #   endif
@@ -189,8 +158,8 @@
 #error "Compiler not supported or configured - please reconfigure"
 #endif
 //
-// last known and checked version is 1500 (VC9):
-#if (_MSC_VER > 1500)
+// last known and checked version is 1400 (VC8):
+#if (_MSC_VER > 1400)
 #  if defined(BOOST_ASSERT_CONFIG)
 #     error "Unknown compiler version - please run the configure tests and report the results"
 #  else

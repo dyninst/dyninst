@@ -24,14 +24,9 @@
 
 #ifdef BOOST_ITERATOR_REF_CONSTNESS_KILLS_WRITABILITY
 # include <boost/type_traits/remove_reference.hpp>
-
-# if BOOST_WORKAROUND(__CODEGEARC__, BOOST_TESTED_AT(0x610))
-#   include <boost/type_traits/add_reference.hpp>
-# endif
-
-#else
+#else 
 # include <boost/type_traits/add_reference.hpp>
-#endif
+#endif 
 
 #include <boost/iterator/detail/config_def.hpp>
 
@@ -115,7 +110,7 @@ namespace boost
              is_same<From,To>
            , is_convertible<From, To>
          >
-      , boost::detail::enable_type
+      , detail::enable_type
       , int&
      >::type type;
   };
@@ -125,7 +120,7 @@ namespace boost
   template <class From, class To>
   struct enable_if_convertible
   {
-      typedef boost::detail::enable_type type;
+      typedef detail::enable_type type;
   };
   
 #  elif BOOST_WORKAROUND(_MSC_FULL_VER, BOOST_TESTED_AT(13102292)) && BOOST_MSVC > 1300
@@ -139,7 +134,7 @@ namespace boost
             is_same<From,To>
           , is_convertible<From, To>
         >
-      , boost::detail::enable_type
+      , detail::enable_type
     >
   {};
   
@@ -149,7 +144,7 @@ namespace boost
   struct enable_if_convertible
     : iterators::enable_if<
           is_convertible<From, To>
-        , boost::detail::enable_type
+        , detail::enable_type
       >
   {};
       
@@ -188,7 +183,7 @@ namespace boost
             Derived
             
 # ifdef BOOST_ITERATOR_REF_CONSTNESS_KILLS_WRITABILITY
-          , typename boost::detail::ia_dflt_help<
+          , typename detail::ia_dflt_help<
                 Value
               , mpl::eval_if<
                     is_same<Reference,use_default>
@@ -197,17 +192,17 @@ namespace boost
                 >
             >::type
 # else
-          , typename boost::detail::ia_dflt_help<
+          , typename detail::ia_dflt_help<
                 Value, iterator_value<Base>
             >::type
 # endif
             
-          , typename boost::detail::ia_dflt_help<
+          , typename detail::ia_dflt_help<
                 Traversal
               , iterator_traversal<Base>
             >::type
 
-          , typename boost::detail::ia_dflt_help<
+          , typename detail::ia_dflt_help<
                 Reference
               , mpl::eval_if<
                     is_same<Value,use_default>
@@ -216,7 +211,7 @@ namespace boost
                 >
             >::type
 
-          , typename boost::detail::ia_dflt_help<
+          , typename detail::ia_dflt_help<
                 Difference, iterator_difference<Base>
             >::type
         >
@@ -265,14 +260,14 @@ namespace boost
     , class Difference   = use_default
   >
   class iterator_adaptor
-    : public boost::detail::iterator_adaptor_base<
+    : public detail::iterator_adaptor_base<
         Derived, Base, Value, Traversal, Reference, Difference
       >::type
   {
       friend class iterator_core_access;
 
    protected:
-      typedef typename boost::detail::iterator_adaptor_base<
+      typedef typename detail::iterator_adaptor_base<
           Derived, Base, Value, Traversal, Reference, Difference
       >::type super_t;
    public:
@@ -328,7 +323,7 @@ namespace boost
       >::type my_traversal;
 
 # define BOOST_ITERATOR_ADAPTOR_ASSERT_TRAVERSAL(cat) \
-      boost::detail::iterator_adaptor_assert_traversal<my_traversal, cat>();
+      detail::iterator_adaptor_assert_traversal<my_traversal, cat>();
 
       void advance(typename super_t::difference_type n)
       {

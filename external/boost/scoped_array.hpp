@@ -46,9 +46,6 @@ private:
 
     typedef scoped_array<T> this_type;
 
-    void operator==( scoped_array const& ) const;
-    void operator!=( scoped_array const& ) const;
-
 public:
 
     typedef T element_type;

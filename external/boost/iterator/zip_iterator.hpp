@@ -1,7 +1,22 @@
-// Copyright David Abrahams and Thomas Becker 2000-2006. Distributed
-// under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at
-// http://www.boost.org/LICENSE_1_0.txt)
+// (C) Copyright David Abrahams and Thomas Becker 2000. Permission to
+// copy, use, modify, sell and distribute this software is granted
+// provided this copyright notice appears in all copies. This software
+// is provided "as is" without express or implied warranty, and with
+// no claim as to its suitability for any purpose.
+//
+// Compilers Tested:
+// =================
+// Metrowerks Codewarrior Pro 7.2, 8.3
+// gcc 2.95.3
+// gcc 3.2
+// Microsoft VC 6sp5 (test fails due to some compiler bug)
+// Microsoft VC 7 (works)
+// Microsoft VC 7.1
+// Intel 5
+// Intel 6
+// Intel 7.1
+// Intel 8
+// Borland 5.5.1 (broken due to lack of support from Boost.Tuples)
 
 #ifndef BOOST_ZIP_ITERATOR_TMB_07_13_2003_HPP_
 # define BOOST_ZIP_ITERATOR_TMB_07_13_2003_HPP_
@@ -166,11 +181,11 @@ namespace boost {
       >
       struct tuple_meta_accumulate
         : mpl::eval_if<
-#if BOOST_WORKAROUND(BOOST_MSVC, < 1300)
+#if BOOST_WORKAROUND(BOOST_MSVC, == 1200)
               mpl::or_<
 #endif 
                   boost::is_same<Tuple, tuples::null_type>
-#if BOOST_WORKAROUND(BOOST_MSVC, < 1300)
+#if BOOST_WORKAROUND(BOOST_MSVC, == 1200)
                 , boost::is_same<Tuple,int>
               >
 #endif 
@@ -301,7 +316,7 @@ namespace boost {
       // No point in bringing in a bunch of #ifdefs here. This is
       // going to go away with the next tuple implementation anyway.
       //
-      inline bool tuple_equal(tuples::null_type, tuples::null_type)
+      bool tuple_equal(tuples::null_type, tuples::null_type)
       { return true; }
 
       template<typename Tuple1, typename Tuple2>
@@ -367,7 +382,7 @@ namespace boost {
       >::type type;
     };
 
-#if BOOST_WORKAROUND(BOOST_MSVC, < 1300) // ETI workaround
+#if BOOST_WORKAROUND(BOOST_MSVC, == 1200) // ETI workaround
       template <>
       struct minimum_traversal_category_in_iterator_tuple<int>
       {

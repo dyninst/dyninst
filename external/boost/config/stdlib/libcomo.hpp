@@ -10,7 +10,7 @@
 //  Comeau STL:
 
 #if !defined(__LIBCOMO__)
-#  include <boost/config/no_tr1/utility.hpp>
+#  include <utility>
 #  if !defined(__LIBCOMO__)
 #      error "This is not the Comeau STL!"
 #  endif

@@ -29,7 +29,7 @@ namespace detail
 
 #ifndef BOOST_USE_WINDOWS_H
 
-struct critical_section
+struct CRITICAL_SECTION
 {
     struct critical_section_debug * DebugInfo;
     long LockCount;
@@ -43,14 +43,10 @@ struct critical_section
 #endif
 };
 
-extern "C" __declspec(dllimport) void __stdcall InitializeCriticalSection(critical_section *);
-extern "C" __declspec(dllimport) void __stdcall EnterCriticalSection(critical_section *);
-extern "C" __declspec(dllimport) void __stdcall LeaveCriticalSection(critical_section *);
-extern "C" __declspec(dllimport) void __stdcall DeleteCriticalSection(critical_section *);
-
-#else
-
-typedef ::CRITICAL_SECTION critical_section;
+extern "C" __declspec(dllimport) void __stdcall InitializeCriticalSection(CRITICAL_SECTION *);
+extern "C" __declspec(dllimport) void __stdcall EnterCriticalSection(CRITICAL_SECTION *);
+extern "C" __declspec(dllimport) void __stdcall LeaveCriticalSection(CRITICAL_SECTION *);
+extern "C" __declspec(dllimport) void __stdcall DeleteCriticalSection(CRITICAL_SECTION *);
 
 #endif // #ifndef BOOST_USE_WINDOWS_H
 
@@ -58,7 +54,7 @@ class lightweight_mutex
 {
 private:
 
-    critical_section cs_;
+    CRITICAL_SECTION cs_;
 
     lightweight_mutex(lightweight_mutex const &);
     lightweight_mutex & operator=(lightweight_mutex const &);

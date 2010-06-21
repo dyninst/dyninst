@@ -47,9 +47,6 @@ private:
 
     typedef scoped_ptr<T> this_type;
 
-    void operator==( scoped_ptr const& ) const;
-    void operator!=( scoped_ptr const& ) const;
-
 public:
 
     typedef T element_type;

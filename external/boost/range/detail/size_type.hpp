@@ -54,7 +54,55 @@ namespace boost
             };
         };
 
-  
+        template<>
+        struct range_size_type_<char_array_>
+        { 
+            template< typename A >
+            struct pts
+            {
+                typedef std::size_t type;
+            };
+        };
+
+        template<>
+        struct range_size_type_<char_ptr_>
+        {
+            template< typename S >
+            struct pts
+            {
+                typedef std::size_t type;
+            };         
+        };
+        
+        template<>
+        struct range_size_type_<const_char_ptr_>
+        {
+            template< typename S >
+            struct pts
+            {
+                typedef std::size_t type;
+            };         
+        };
+        
+        template<>
+        struct range_size_type_<wchar_t_ptr_>
+        {
+            template< typename S >
+            struct pts
+            {
+                typedef std::size_t type;
+            };         
+        };
+        
+        template<>
+        struct range_size_type_<const_wchar_t_ptr_>
+        {
+            template< typename S >
+            struct pts
+            {
+                typedef std::size_t type;
+            };         
+        };  
     } 
     
     template< typename C >

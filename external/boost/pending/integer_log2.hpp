@@ -1,24 +1,25 @@
-// -----------------------------------------------------------
+// -------------------------------------
 // integer_log2.hpp
 //
 //   Gives the integer part of the logarithm, in base 2, of a
 // given number. Behavior is undefined if the argument is <= 0.
 //
-//         Copyright (c) 2003-2004, 2008 Gennaro Prota
+//
+//       (C) Copyright Gennaro Prota 2003 - 2004.
 //
 // Distributed under the Boost Software License, Version 1.0.
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 //
-// -----------------------------------------------------------
+// ------------------------------------------------------
+
+
 
 #ifndef BOOST_INTEGER_LOG2_HPP_GP_20030301
 #define BOOST_INTEGER_LOG2_HPP_GP_20030301
 
-#include <assert.h>
-#ifdef __BORLANDC__
-#include <climits>
-#endif
+#include <cassert>
+#include <climits> // actually used for Borland only
 #include "boost/limits.hpp"
 #include "boost/config.hpp"
 
@@ -33,7 +34,7 @@ namespace boost {
 
       while (x != 1) {
 
-          const T t = static_cast<T>(x >> n);
+          const T t = x >> n;
           if (t) {
               result += n;
               x = t;

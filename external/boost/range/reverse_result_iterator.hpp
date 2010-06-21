@@ -15,17 +15,22 @@
 # pragma once
 #endif
 
-#include <boost/range/reverse_iterator.hpp>
+#include <boost/range/config.hpp>
+#include <boost/range/result_iterator.hpp>
+#include <boost/iterator/reverse_iterator.hpp>
 
 namespace boost
 {
-    //
-    // This interface is deprecated, use range_reverse_iterator<T>
-    //
+    //////////////////////////////////////////////////////////////////////////
+    // default
+    //////////////////////////////////////////////////////////////////////////
    
     template< typename C >
-    struct range_reverse_result_iterator : range_reverse_iterator<C>
-    { };
+    struct range_reverse_result_iterator
+    {
+        typedef reverse_iterator< 
+            BOOST_RANGE_DEDUCED_TYPENAME range_result_iterator<C>::type > type;
+    };
     
 } // namespace boost
 

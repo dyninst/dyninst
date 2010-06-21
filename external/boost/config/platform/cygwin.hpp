@@ -12,8 +12,6 @@
 #define BOOST_NO_CWCHAR
 #define BOOST_NO_SWPRINTF
 #define BOOST_HAS_DIRENT_H
-#define BOOST_HAS_LOG1P
-#define BOOST_HAS_EXPM1
 
 //
 // Threading API:
@@ -45,7 +43,6 @@
 // boilerplate code:
 #include <boost/config/posix_features.hpp>
  
-
 
 
 

@@ -14,13 +14,13 @@
 #ifndef BOOST_TT_DETAIL_IS_MEM_FUN_POINTER_TESTER_HPP_INCLUDED
 #define BOOST_TT_DETAIL_IS_MEM_FUN_POINTER_TESTER_HPP_INCLUDED
 
-#include <boost/type_traits/detail/yes_no_type.hpp>
-#include <boost/type_traits/config.hpp>
+#include "boost/type_traits/detail/yes_no_type.hpp"
+#include "boost/type_traits/config.hpp"
 
 #if defined(BOOST_TT_PREPROCESSING_MODE)
-#   include <boost/preprocessor/iterate.hpp>
-#   include <boost/preprocessor/enum_params.hpp>
-#   include <boost/preprocessor/comma_if.hpp>
+#   include "boost/preprocessor/iterate.hpp"
+#   include "boost/preprocessor/enum_params.hpp"
+#   include "boost/preprocessor/comma_if.hpp"
 #endif
 
 namespace boost {
@@ -29,8 +29,7 @@ namespace type_traits {
 no_type BOOST_TT_DECL is_mem_fun_pointer_tester(...);
 
 #if !defined(BOOST_TT_PREPROCESSING_MODE)
-// pre-processed code, don't edit, try GNU cpp with 
-// cpp -I../../../ -DBOOST_TT_PREPROCESSING_MODE -x c++ -P filename
+// preprocessor-generated part, don't edit by hand!
 
 template <class R, class T >
 yes_type is_mem_fun_pointer_tester(R (T::*const volatile*)());
@@ -82,7 +81,6 @@ yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( ...) volat
 template <class R, class T >
 yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( ...) const volatile);
 
-#ifndef _MANAGED
 template <class R, class T >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)());
 
@@ -106,7 +104,6 @@ yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( ...) vola
 
 template <class R, class T >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( ...) const volatile);
-#endif
 
 template <class R, class T >
 yes_type is_mem_fun_pointer_tester(R (__cdecl T::*const volatile*)());
@@ -182,7 +179,6 @@ yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 ...) vo
 template <class R, class T , class T0 >
 yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 ...) const volatile);
 
-#ifndef _MANAGED
 template <class R, class T , class T0 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0));
 
@@ -206,7 +202,6 @@ yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 ...) v
 
 template <class R, class T , class T0 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 ...) const volatile);
-#endif
 
 template <class R, class T , class T0 >
 yes_type is_mem_fun_pointer_tester(R (__cdecl T::*const volatile*)( T0));
@@ -282,7 +277,6 @@ yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 ..
 template <class R, class T , class T0 , class T1 >
 yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 ...) const volatile);
 
-#ifndef _MANAGED
 template <class R, class T , class T0 , class T1 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1));
 
@@ -306,7 +300,6 @@ yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 .
 
 template <class R, class T , class T0 , class T1 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 ...) const volatile);
-#endif
 
 template <class R, class T , class T0 , class T1 >
 yes_type is_mem_fun_pointer_tester(R (__cdecl T::*const volatile*)( T0 , T1));
@@ -382,7 +375,6 @@ yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , 
 template <class R, class T , class T0 , class T1 , class T2 >
 yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , T2 ...) const volatile);
 
-#ifndef _MANAGED
 template <class R, class T , class T0 , class T1 , class T2 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2));
 
@@ -406,7 +398,6 @@ yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 ,
 
 template <class R, class T , class T0 , class T1 , class T2 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 ...) const volatile);
-#endif
 
 template <class R, class T , class T0 , class T1 , class T2 >
 yes_type is_mem_fun_pointer_tester(R (__cdecl T::*const volatile*)( T0 , T1 , T2));
@@ -482,7 +473,6 @@ yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 >
 yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , T2 , T3 ...) const volatile);
 
-#ifndef _MANAGED
 template <class R, class T , class T0 , class T1 , class T2 , class T3 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3));
 
@@ -506,7 +496,6 @@ yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 ,
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 ...) const volatile);
-#endif
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 >
 yes_type is_mem_fun_pointer_tester(R (__cdecl T::*const volatile*)( T0 , T1 , T2 , T3));
@@ -582,7 +571,6 @@ yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 >
 yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 ...) const volatile);
 
-#ifndef _MANAGED
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4));
 
@@ -606,7 +594,6 @@ yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 ,
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 ...) const volatile);
-#endif
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 >
 yes_type is_mem_fun_pointer_tester(R (__cdecl T::*const volatile*)( T0 , T1 , T2 , T3 , T4));
@@ -682,7 +669,6 @@ yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 >
 yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 ...) const volatile);
 
-#ifndef _MANAGED
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5));
 
@@ -706,7 +692,6 @@ yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 ,
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 ...) const volatile);
-#endif
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 >
 yes_type is_mem_fun_pointer_tester(R (__cdecl T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5));
@@ -782,7 +767,6 @@ yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 >
 yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 ...) const volatile);
 
-#ifndef _MANAGED
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6));
 
@@ -806,7 +790,6 @@ yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 ,
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 ...) const volatile);
-#endif
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 >
 yes_type is_mem_fun_pointer_tester(R (__cdecl T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6));
@@ -882,7 +865,6 @@ yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 >
 yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 ...) const volatile);
 
-#ifndef _MANAGED
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7));
 
@@ -906,7 +888,6 @@ yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 ,
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 ...) const volatile);
-#endif
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 >
 yes_type is_mem_fun_pointer_tester(R (__cdecl T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7));
@@ -982,7 +963,6 @@ yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 >
 yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 ...) const volatile);
 
-#ifndef _MANAGED
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8));
 
@@ -1006,7 +986,6 @@ yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 ,
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 ...) const volatile);
-#endif
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 >
 yes_type is_mem_fun_pointer_tester(R (__cdecl T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8));
@@ -1082,7 +1061,6 @@ yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 >
 yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 ...) const volatile);
 
-#ifndef _MANAGED
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9));
 
@@ -1106,7 +1084,6 @@ yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 ,
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 ...) const volatile);
-#endif
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 >
 yes_type is_mem_fun_pointer_tester(R (__cdecl T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9));
@@ -1182,7 +1159,6 @@ yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 >
 yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 ...) const volatile);
 
-#ifndef _MANAGED
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10));
 
@@ -1206,7 +1182,6 @@ yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 ,
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 ...) const volatile);
-#endif
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 >
 yes_type is_mem_fun_pointer_tester(R (__cdecl T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10));
@@ -1282,7 +1257,6 @@ yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 >
 yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 ...) const volatile);
 
-#ifndef _MANAGED
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11));
 
@@ -1306,7 +1280,6 @@ yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 ,
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 ...) const volatile);
-#endif
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 >
 yes_type is_mem_fun_pointer_tester(R (__cdecl T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11));
@@ -1382,7 +1355,6 @@ yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 >
 yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 ...) const volatile);
 
-#ifndef _MANAGED
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12));
 
@@ -1406,7 +1378,6 @@ yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 ,
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 ...) const volatile);
-#endif
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 >
 yes_type is_mem_fun_pointer_tester(R (__cdecl T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12));
@@ -1482,7 +1453,6 @@ yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 >
 yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 ...) const volatile);
 
-#ifndef _MANAGED
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13));
 
@@ -1506,7 +1476,6 @@ yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 ,
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 ...) const volatile);
-#endif
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 >
 yes_type is_mem_fun_pointer_tester(R (__cdecl T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13));
@@ -1582,7 +1551,6 @@ yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 >
 yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 ...) const volatile);
 
-#ifndef _MANAGED
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14));
 
@@ -1606,7 +1574,6 @@ yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 ,
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 ...) const volatile);
-#endif
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 >
 yes_type is_mem_fun_pointer_tester(R (__cdecl T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14));
@@ -1682,7 +1649,6 @@ yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 , class T15 >
 yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 , T15 ...) const volatile);
 
-#ifndef _MANAGED
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 , class T15 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 , T15));
 
@@ -1706,7 +1672,6 @@ yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 ,
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 , class T15 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 , T15 ...) const volatile);
-#endif
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 , class T15 >
 yes_type is_mem_fun_pointer_tester(R (__cdecl T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 , T15));
@@ -1782,7 +1747,6 @@ yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 , class T15 , class T16 >
 yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 , T15 , T16 ...) const volatile);
 
-#ifndef _MANAGED
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 , class T15 , class T16 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 , T15 , T16));
 
@@ -1806,7 +1770,6 @@ yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 ,
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 , class T15 , class T16 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 , T15 , T16 ...) const volatile);
-#endif
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 , class T15 , class T16 >
 yes_type is_mem_fun_pointer_tester(R (__cdecl T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 , T15 , T16));
@@ -1882,7 +1845,6 @@ yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 , class T15 , class T16 , class T17 >
 yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 , T15 , T16 , T17 ...) const volatile);
 
-#ifndef _MANAGED
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 , class T15 , class T16 , class T17 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 , T15 , T16 , T17));
 
@@ -1906,7 +1868,6 @@ yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 ,
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 , class T15 , class T16 , class T17 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 , T15 , T16 , T17 ...) const volatile);
-#endif
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 , class T15 , class T16 , class T17 >
 yes_type is_mem_fun_pointer_tester(R (__cdecl T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 , T15 , T16 , T17));
@@ -1982,7 +1943,6 @@ yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 , class T15 , class T16 , class T17 , class T18 >
 yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 , T15 , T16 , T17 , T18 ...) const volatile);
 
-#ifndef _MANAGED
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 , class T15 , class T16 , class T17 , class T18 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 , T15 , T16 , T17 , T18));
 
@@ -2006,7 +1966,6 @@ yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 ,
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 , class T15 , class T16 , class T17 , class T18 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 , T15 , T16 , T17 , T18 ...) const volatile);
-#endif
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 , class T15 , class T16 , class T17 , class T18 >
 yes_type is_mem_fun_pointer_tester(R (__cdecl T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 , T15 , T16 , T17 , T18));
@@ -2082,7 +2041,6 @@ yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 , class T15 , class T16 , class T17 , class T18 , class T19 >
 yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 , T15 , T16 , T17 , T18 , T19 ...) const volatile);
 
-#ifndef _MANAGED
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 , class T15 , class T16 , class T17 , class T18 , class T19 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 , T15 , T16 , T17 , T18 , T19));
 
@@ -2106,7 +2064,6 @@ yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 ,
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 , class T15 , class T16 , class T17 , class T18 , class T19 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 , T15 , T16 , T17 , T18 , T19 ...) const volatile);
-#endif
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 , class T15 , class T16 , class T17 , class T18 , class T19 >
 yes_type is_mem_fun_pointer_tester(R (__cdecl T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 , T15 , T16 , T17 , T18 , T19));
@@ -2182,7 +2139,6 @@ yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 , class T15 , class T16 , class T17 , class T18 , class T19 , class T20 >
 yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 , T15 , T16 , T17 , T18 , T19 , T20 ...) const volatile);
 
-#ifndef _MANAGED
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 , class T15 , class T16 , class T17 , class T18 , class T19 , class T20 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 , T15 , T16 , T17 , T18 , T19 , T20));
 
@@ -2206,7 +2162,6 @@ yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 ,
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 , class T15 , class T16 , class T17 , class T18 , class T19 , class T20 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 , T15 , T16 , T17 , T18 , T19 , T20 ...) const volatile);
-#endif
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 , class T15 , class T16 , class T17 , class T18 , class T19 , class T20 >
 yes_type is_mem_fun_pointer_tester(R (__cdecl T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 , T15 , T16 , T17 , T18 , T19 , T20));
@@ -2282,7 +2237,6 @@ yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 , class T15 , class T16 , class T17 , class T18 , class T19 , class T20 , class T21 >
 yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 , T15 , T16 , T17 , T18 , T19 , T20 , T21 ...) const volatile);
 
-#ifndef _MANAGED
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 , class T15 , class T16 , class T17 , class T18 , class T19 , class T20 , class T21 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 , T15 , T16 , T17 , T18 , T19 , T20 , T21));
 
@@ -2306,7 +2260,6 @@ yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 ,
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 , class T15 , class T16 , class T17 , class T18 , class T19 , class T20 , class T21 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 , T15 , T16 , T17 , T18 , T19 , T20 , T21 ...) const volatile);
-#endif
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 , class T15 , class T16 , class T17 , class T18 , class T19 , class T20 , class T21 >
 yes_type is_mem_fun_pointer_tester(R (__cdecl T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 , T15 , T16 , T17 , T18 , T19 , T20 , T21));
@@ -2382,7 +2335,6 @@ yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 , class T15 , class T16 , class T17 , class T18 , class T19 , class T20 , class T21 , class T22 >
 yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 , T15 , T16 , T17 , T18 , T19 , T20 , T21 , T22 ...) const volatile);
 
-#ifndef _MANAGED
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 , class T15 , class T16 , class T17 , class T18 , class T19 , class T20 , class T21 , class T22 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 , T15 , T16 , T17 , T18 , T19 , T20 , T21 , T22));
 
@@ -2406,7 +2358,6 @@ yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 ,
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 , class T15 , class T16 , class T17 , class T18 , class T19 , class T20 , class T21 , class T22 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 , T15 , T16 , T17 , T18 , T19 , T20 , T21 , T22 ...) const volatile);
-#endif
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 , class T15 , class T16 , class T17 , class T18 , class T19 , class T20 , class T21 , class T22 >
 yes_type is_mem_fun_pointer_tester(R (__cdecl T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 , T15 , T16 , T17 , T18 , T19 , T20 , T21 , T22));
@@ -2482,7 +2433,6 @@ yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 , class T15 , class T16 , class T17 , class T18 , class T19 , class T20 , class T21 , class T22 , class T23 >
 yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 , T15 , T16 , T17 , T18 , T19 , T20 , T21 , T22 , T23 ...) const volatile);
 
-#ifndef _MANAGED
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 , class T15 , class T16 , class T17 , class T18 , class T19 , class T20 , class T21 , class T22 , class T23 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 , T15 , T16 , T17 , T18 , T19 , T20 , T21 , T22 , T23));
 
@@ -2506,7 +2456,6 @@ yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 ,
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 , class T15 , class T16 , class T17 , class T18 , class T19 , class T20 , class T21 , class T22 , class T23 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 , T15 , T16 , T17 , T18 , T19 , T20 , T21 , T22 , T23 ...) const volatile);
-#endif
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 , class T15 , class T16 , class T17 , class T18 , class T19 , class T20 , class T21 , class T22 , class T23 >
 yes_type is_mem_fun_pointer_tester(R (__cdecl T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 , T15 , T16 , T17 , T18 , T19 , T20 , T21 , T22 , T23));
@@ -2582,7 +2531,6 @@ yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 , class T15 , class T16 , class T17 , class T18 , class T19 , class T20 , class T21 , class T22 , class T23 , class T24 >
 yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 , T15 , T16 , T17 , T18 , T19 , T20 , T21 , T22 , T23 , T24 ...) const volatile);
 
-#ifndef _MANAGED
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 , class T15 , class T16 , class T17 , class T18 , class T19 , class T20 , class T21 , class T22 , class T23 , class T24 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 , T15 , T16 , T17 , T18 , T19 , T20 , T21 , T22 , T23 , T24));
 
@@ -2606,7 +2554,6 @@ yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 ,
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 , class T15 , class T16 , class T17 , class T18 , class T19 , class T20 , class T21 , class T22 , class T23 , class T24 >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 , T15 , T16 , T17 , T18 , T19 , T20 , T21 , T22 , T23 , T24 ...) const volatile);
-#endif
 
 template <class R, class T , class T0 , class T1 , class T2 , class T3 , class T4 , class T5 , class T6 , class T7 , class T8 , class T9 , class T10 , class T11 , class T12 , class T13 , class T14 , class T15 , class T16 , class T17 , class T18 , class T19 , class T20 , class T21 , class T22 , class T23 , class T24 >
 yes_type is_mem_fun_pointer_tester(R (__cdecl T::*const volatile*)( T0 , T1 , T2 , T3 , T4 , T5 , T6 , T7 , T8 , T9 , T10 , T11 , T12 , T13 , T14 , T15 , T16 , T17 , T18 , T19 , T20 , T21 , T22 , T23 , T24));
@@ -2666,7 +2613,7 @@ yes_type is_mem_fun_pointer_tester(R (T::*const volatile*)(BOOST_PP_ENUM_PARAMS(
 template <class R, class T BOOST_PP_COMMA_IF(BOOST_PP_COUNTER) BOOST_PP_ENUM_PARAMS(BOOST_PP_COUNTER,class T) >
 yes_type is_mem_fun_pointer_tester(R (T::*const volatile*)(BOOST_PP_ENUM_PARAMS(BOOST_PP_COUNTER,T)) const volatile);
 
-@#ifndef BOOST_TT_NO_ELLIPSIS_IN_FUNC_TESTING
+#ifndef BOOST_TT_NO_ELLIPSIS_IN_FUNC_TESTING
 template <class R, class T BOOST_PP_COMMA_IF(BOOST_PP_COUNTER) BOOST_PP_ENUM_PARAMS(BOOST_PP_COUNTER,class T) >
 yes_type is_mem_fun_pointer_tester(R (T::*const volatile*)(BOOST_PP_ENUM_PARAMS(BOOST_PP_COUNTER,T) ...));
 
@@ -2678,8 +2625,8 @@ yes_type is_mem_fun_pointer_tester(R (T::*const volatile*)(BOOST_PP_ENUM_PARAMS(
 
 template <class R, class T BOOST_PP_COMMA_IF(BOOST_PP_COUNTER) BOOST_PP_ENUM_PARAMS(BOOST_PP_COUNTER,class T) >
 yes_type is_mem_fun_pointer_tester(R (T::*const volatile*)(BOOST_PP_ENUM_PARAMS(BOOST_PP_COUNTER,T) ...) const volatile);
-@#endif
-@#ifdef BOOST_TT_TEST_MS_FUNC_SIGS // Other calling conventions used by MS compatible compilers:
+#endif
+#ifdef BOOST_TT_TEST_MS_FUNC_SIGS // Other calling conventions used by MS compatible compilers:
 template <class R, class T BOOST_PP_COMMA_IF(BOOST_PP_COUNTER) BOOST_PP_ENUM_PARAMS(BOOST_PP_COUNTER,class T) >
 yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)(BOOST_PP_ENUM_PARAMS(BOOST_PP_COUNTER,T)));
 
@@ -2704,7 +2651,6 @@ yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)(BOOST_PP_EN
 template <class R, class T BOOST_PP_COMMA_IF(BOOST_PP_COUNTER) BOOST_PP_ENUM_PARAMS(BOOST_PP_COUNTER,class T) >
 yes_type is_mem_fun_pointer_tester(R (__stdcall T::*const volatile*)(BOOST_PP_ENUM_PARAMS(BOOST_PP_COUNTER,T) ...) const volatile);
 
-@#ifndef _MANAGED
 template <class R, class T BOOST_PP_COMMA_IF(BOOST_PP_COUNTER) BOOST_PP_ENUM_PARAMS(BOOST_PP_COUNTER,class T) >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)(BOOST_PP_ENUM_PARAMS(BOOST_PP_COUNTER,T)));
 
@@ -2728,7 +2674,6 @@ yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)(BOOST_PP_E
 
 template <class R, class T BOOST_PP_COMMA_IF(BOOST_PP_COUNTER) BOOST_PP_ENUM_PARAMS(BOOST_PP_COUNTER,class T) >
 yes_type is_mem_fun_pointer_tester(R (__fastcall T::*const volatile*)(BOOST_PP_ENUM_PARAMS(BOOST_PP_COUNTER,T) ...) const volatile);
-@#endif
 
 template <class R, class T BOOST_PP_COMMA_IF(BOOST_PP_COUNTER) BOOST_PP_ENUM_PARAMS(BOOST_PP_COUNTER,class T) >
 yes_type is_mem_fun_pointer_tester(R (__cdecl T::*const volatile*)(BOOST_PP_ENUM_PARAMS(BOOST_PP_COUNTER,T)));
@@ -2753,7 +2698,7 @@ yes_type is_mem_fun_pointer_tester(R (__cdecl T::*const volatile*)(BOOST_PP_ENUM
 
 template <class R, class T BOOST_PP_COMMA_IF(BOOST_PP_COUNTER) BOOST_PP_ENUM_PARAMS(BOOST_PP_COUNTER,class T) >
 yes_type is_mem_fun_pointer_tester(R (__cdecl T::*const volatile*)(BOOST_PP_ENUM_PARAMS(BOOST_PP_COUNTER,T) ...) const volatile);
-@#endif
+#endif
 
 #undef BOOST_PP_COUNTER
 #endif // BOOST_PP_IS_ITERATING

@@ -10,9 +10,9 @@
 //
 // See http://www.boost.org/libs/mpl for documentation.
 
-// $Id: or.hpp 49267 2008-10-11 06:19:02Z agurtovoy $
-// $Date: 2008-10-11 02:19:02 -0400 (Sat, 11 Oct 2008) $
-// $Revision: 49267 $
+// $Source: /cvsroot/boost/boost/boost/mpl/or.hpp,v $
+// $Date: 2004/09/02 15:40:42 $
+// $Revision: 1.4 $
 
 #include <boost/mpl/aux_/config/use_preprocessed.hpp>
 
@@ -30,12 +30,10 @@
 // has to be checked in a separate condition, otherwise GCC complains 
 // about 'or' being an alternative token
 #if defined(_MSC_VER)
-#ifndef __GCCXML__
 #if defined(or)
 #   pragma push_macro("or")
 #   undef or
 #   define or(x)
-#endif
 #endif
 #endif
 
@@ -43,10 +41,8 @@
 #   include <boost/mpl/aux_/include_preprocessed.hpp>
 
 #if defined(_MSC_VER) 
-#ifndef __GCCXML__
 #if defined(or)
 #   pragma pop_macro("or")
-#endif
 #endif
 #endif
 

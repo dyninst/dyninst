@@ -1,7 +1,6 @@
 //  (C) Copyright John Maddock 2001 - 2003. 
 //  (C) Copyright Jens Maurer 2001. 
 //  (C) Copyright David Abrahams 2003. 
-//  (C) Copyright Boris Gubenko 2007. 
 //  Use, modification and distribution are subject to the 
 //  Boost Software License, Version 1.0. (See accompanying file 
 //  LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -11,7 +10,7 @@
 //  Rogue Wave std lib:
 
 #if !defined(__STD_RWCOMPILER_H__) && !defined(_RWSTD_VER)
-#  include <boost/config/no_tr1/utility.hpp>
+#  include <utility>
 #  if !defined(__STD_RWCOMPILER_H__) && !defined(_RWSTD_VER)
 #     error This is not the Rogue Wave standard library
 #  endif
@@ -29,14 +28,8 @@
 
 #ifndef _RWSTD_VER
 #  define BOOST_STDLIB "Rogue Wave standard library version (Unknown version)"
-#elif _RWSTD_VER < 0x04010200
- #  define BOOST_STDLIB "Rogue Wave standard library version " BOOST_STRINGIZE(_RWSTD_VER)
 #else
-#  ifdef _RWSTD_VER_STR
-#    define BOOST_STDLIB "Apache STDCXX standard library version " _RWSTD_VER_STR
-#  else
-#    define BOOST_STDLIB "Apache STDCXX standard library version " BOOST_STRINGIZE(_RWSTD_VER)
-#  endif
+#  define BOOST_STDLIB "Rogue Wave standard library version " BOOST_STRINGIZE(_RWSTD_VER)
 #endif
 
 //
@@ -131,23 +124,4 @@
 //
 #if !defined(_RWSTD_LONG_LONG) && defined(BOOST_HAS_LONG_LONG)
 #  undef BOOST_HAS_LONG_LONG
-#endif
-
-//
-// check that on HP-UX, the proper RW library is used
-//
-#if defined(__HP_aCC) && !defined(_HP_NAMESPACE_STD)
-#  error "Boost requires Standard RW library. Please compile and link with -AA"
-#endif
-
-//
-// Define macros specific to RW V2.2 on HP-UX
-//
-#if defined(__HP_aCC) && (BOOST_RWSTD_VER == 0x02020100)
-#  ifndef __HP_TC1_MAKE_PAIR
-#    define __HP_TC1_MAKE_PAIR
-#  endif
-#  ifndef _HP_INSTANTIATE_STD2_VL
-#    define _HP_INSTANTIATE_STD2_VL
-#  endif
 #endif

@@ -27,10 +27,6 @@
 #include <boost/type_traits/is_same.hpp>
 #include <boost/call_traits.hpp>
 
-#ifdef BOOST_MSVC
-# pragma warning(push)
-# pragma warning(disable:4512)
-#endif 
 namespace boost
 {
 
@@ -136,7 +132,7 @@ namespace details
 
    template <class T1, class T2>
    class compressed_pair_imp<T1, T2, 1>
-      : protected ::boost::remove_cv<T1>::type
+      : private ::boost::remove_cv<T1>::type
    {
    public:
       typedef T1                                                 first_type;
@@ -178,7 +174,7 @@ namespace details
 
    template <class T1, class T2>
    class compressed_pair_imp<T1, T2, 2>
-      : protected ::boost::remove_cv<T2>::type
+      : private ::boost::remove_cv<T2>::type
    {
    public:
       typedef T1                                                 first_type;
@@ -221,8 +217,8 @@ namespace details
 
    template <class T1, class T2>
    class compressed_pair_imp<T1, T2, 3>
-      : protected ::boost::remove_cv<T1>::type,
-        protected ::boost::remove_cv<T2>::type
+      : private ::boost::remove_cv<T1>::type,
+        private ::boost::remove_cv<T2>::type
    {
    public:
       typedef T1                                                 first_type;
@@ -257,14 +253,11 @@ namespace details
 
    // JM
    // 4    T1 == T2, T1 and T2 both empty
-   //      Originally this did not store an instance of T2 at all
-   //      but that led to problems beause it meant &x.first() == &x.second()
-   //      which is not true for any other kind of pair, so now we store an instance
-   //      of T2 just in case the user is relying on first() and second() returning
-   //      different objects (albeit both empty).
+   //      Note does not actually store an instance of T2 at all -
+   //      but reuses T1 base class for both first() and second().
    template <class T1, class T2>
    class compressed_pair_imp<T1, T2, 4>
-      : protected ::boost::remove_cv<T1>::type
+      : private ::boost::remove_cv<T1>::type
    {
    public:
       typedef T1                                                 first_type;
@@ -434,10 +427,6 @@ swap(compressed_pair<T1, T2>& x, compressed_pair<T1, T2>& y)
 }
 
 } // boost
-
-#ifdef BOOST_MSVC
-# pragma warning(pop)
-#endif 
 
 #endif // BOOST_DETAIL_COMPRESSED_PAIR_HPP
 

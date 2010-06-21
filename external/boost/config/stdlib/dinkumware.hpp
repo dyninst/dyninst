@@ -12,7 +12,7 @@
 //  Dinkumware standard library config:
 
 #if !defined(_YVALS) && !defined(_CPPLIB_VER)
-#include <boost/config/no_tr1/utility.hpp>
+#include <utility>
 #if !defined(_YVALS) && !defined(_CPPLIB_VER)
 #error This is not the Dinkumware lib!
 #endif

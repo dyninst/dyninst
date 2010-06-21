@@ -1,7 +1,9 @@
-// Copyright (c) 2001 Ronald Garcia, Indiana University (garcia@osl.iu.edu)
-// Andrew Lumsdaine, Indiana University (lums@osl.iu.edu).
-// Distributed under the Boost Software License, Version 1.0. (See accompany-
-// ing file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
+// Copyright © 2001 Ronald Garcia, Indiana University (garcia@osl.iu.edu)
+// Andrew Lumsdaine, Indiana University (lums@osl.iu.edu). Permission to copy, 
+// use, modify, sell and distribute this software is granted provided this
+// copyright notice appears in all copies. This software is provided "as is"
+// without express or implied warranty, and with no claim as to its suitability
+// for any purpose.
 
 #ifndef BOOST_UTF8_CODECVT_FACET_HPP
 #define BOOST_UTF8_CODECVT_FACET_HPP
@@ -90,7 +92,7 @@
 namespace std {
     #if defined(__LIBCOMO__)
         using ::mbstate_t;
-    #elif defined(BOOST_DINKUMWARE_STDLIB) && !defined(__BORLANDC__)
+    #elif defined(BOOST_DINKUMWARE_STDLIB)
         using ::mbstate_t;
     #elif defined(__SGI_STL_PORT)
     #elif defined(BOOST_NO_STDC_NAMESPACE)
@@ -160,7 +162,7 @@ protected:
     virtual std::codecvt_base::result do_unshift(
         std::mbstate_t&,
         char * from,
-        char * /*to*/,
+        char * to,
         char * & next
     ) const 
     {
