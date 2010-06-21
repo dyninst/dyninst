@@ -37,8 +37,8 @@
 #include <assert.h>
 #include <stdio.h>
 #include "common/h/Types.h"
-#include "dyninstAPI/src/arch.h"
-#include "dyninstAPI/src/arch-x86.h"
+#include "dyninstAPI/src/codegen.h"
+#include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/emit-x86.h"
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/debug.h"
@@ -255,7 +255,7 @@ void EmitterIA32::emitLoadOrigFrameRelative(Register dest, Address offset, codeG
    emitMovRMToReg(dest_r, RealRegister(REGNUM_EBP), offset, gen);
 }
 
-bool EmitterIA32::emitLoadRelative(Register /*dest*/, Address /*offset*/, Register /*base*/, 
+bool EmitterIA32::emitLoadRelative(Register /*dest*/, Address /*offset*/, Register /*base*/, int /*size*/,
                                    codeGen &/*gen*/)
 {
     assert(0);
@@ -263,7 +263,7 @@ bool EmitterIA32::emitLoadRelative(Register /*dest*/, Address /*offset*/, Regist
 }
 
 void EmitterIA32::emitStoreRelative(Register /*src*/, Address /*offset*/, 
-                                    Register /*base*/, codeGen &/*gen*/)
+                                    Register /*base*/, int /*size*/, codeGen &/*gen*/)
 {
     assert(0);
     return;
@@ -1275,18 +1275,13 @@ void EmitterAMD64::emitLoadOrigFrameRelative(Register dest, Address offset, code
    emitMovRMToReg64(dest, REGNUM_RBP, offset, 4, gen);
 }
 
-bool EmitterAMD64::emitLoadRelative(Register dest, Address offset, Register base, codeGen &gen)
+bool EmitterAMD64::emitLoadRelative(Register dest, Address offset, Register base, int /* size */, codeGen &gen)
 {
     // mov offset(%base), %dest
    emitMovRMToReg64(dest, base, offset,
                     gen.addrSpace()->getAddressWidth(), gen);
    gen.markRegDefined(dest);
    return true;
-}
-
-bool EmitterAMD64::emitLoadRelative(registerSlot *dest, Address offset, registerSlot *base, codeGen &gen)
-{
-    return emitLoadRelative(dest->encoding(), offset, base->encoding(), gen);
 }
 
 void EmitterAMD64::emitLoadFrameAddr(Register dest, Address offset, codeGen &gen)
@@ -1353,7 +1348,7 @@ void EmitterAMD64::emitLoadOrigRegister(Address register_num, Register destinati
 
     stackItemLocation loc = getHeightOf(stackItem(RealRegister(register_num)), gen);
     registerSlot *stack = (*gen.rs())[loc.reg.reg()];
-    emitLoadRelative(dest, loc.offset, stack, gen);
+    emitLoadRelative(dest->encoding(), loc.offset, stack->encoding(), gen.addrSpace()->getAddressWidth(), gen);
     gen.markRegDefined(destination);
     return;
 }
@@ -1395,7 +1390,7 @@ void EmitterAMD64::emitStoreFrameRelative(Address offset, Register src, Register
    emitMovRegToRM64(REGNUM_RBP, offset, src, size, gen);
 }
 
-void EmitterAMD64::emitStoreRelative(Register src, Address offset, Register base, codeGen &gen) {
+void EmitterAMD64::emitStoreRelative(Register src, Address offset, Register base, int /* size */, codeGen &gen) {
     emitMovRegToRM64(base, 
                      offset*gen.addrSpace()->getAddressWidth(), 
                      src, 
@@ -1403,10 +1398,6 @@ void EmitterAMD64::emitStoreRelative(Register src, Address offset, Register base
                      gen);
 }
 
-void EmitterAMD64::emitStoreRelative(registerSlot *src, Address offset, registerSlot *base, codeGen &gen) {
-    return emitStoreRelative(src->encoding(), offset, base->encoding(), gen);
-}
-    
 void EmitterAMD64::setFPSaveOrNot(const int * liveFPReg,bool saveOrNot)
 {
    if (liveFPReg != NULL)
@@ -1646,20 +1637,13 @@ bool EmitterAMD64Stat::emitCallInstruction(codeGen &gen, int_function *callee, R
     if (gen.func()->obj() != callee->obj()) {
        // create or retrieve jump slot
        dest = getInterModuleFuncAddr(callee, gen);
-       
-       Register ptr = gen.rs()->allocateRegister(gen, false);
-       gen.markRegDefined(ptr);
-       Register effective = ptr;
-       emitMovPCRMToReg64(effective, dest-gen.currAddr(), 8, gen, true);
-       
-       if(effective >= REGNUM_R8) {
-           emitRex(false, NULL, NULL, &effective, gen);
-       }       
        GET_PTR(insn, gen);
        *insn++ = 0xFF;
-       *insn++ = static_cast<unsigned char>(0xD0 | effective);
+       *insn++ = 0x15;
+       *(unsigned int*)insn = dest - (gen.currAddr() + sizeof(unsigned int) + 2);
+       insn += sizeof(unsigned int);
        SET_PTR(insn, gen);
-       gen.rs()->freeRegister(ptr);
+       
     } else {
        dest = callee->getAddress();
        signed long disp = dest - (gen.currAddr() + 5);
@@ -2316,7 +2300,7 @@ Address Emitter::getInterModuleFuncAddr(int_function *func, codeGen& gen)
     }
 
     // find the Symbol corresponding to the int_function
-    std::vector<Symbol *> syms;
+    std::vector<SymtabAPI::Symbol *> syms;
     func->ifunc()->func()->getSymbols(syms);
 
     if (syms.size() == 0) {
@@ -2329,7 +2313,7 @@ Address Emitter::getInterModuleFuncAddr(int_function *func, codeGen& gen)
 
     // try to find a dynamic symbol
     // (take first static symbol if none are found)
-    Symbol *referring = syms[0];
+    SymtabAPI::Symbol *referring = syms[0];
     for (unsigned k=0; k<syms.size(); k++) {
         if (syms[k]->isInDynSymtab()) {
             referring = syms[k];
@@ -2368,7 +2352,7 @@ Address Emitter::getInterModuleVarAddr(const image_variable *var, codeGen& gen)
     }
 
     // find the Symbol corresponding to the int_variable
-    std::vector<Symbol *> syms;
+    std::vector<SymtabAPI::Symbol *> syms;
     var->svar()->getSymbols(syms);
 
     if (syms.size() == 0) {
@@ -2381,7 +2365,7 @@ Address Emitter::getInterModuleVarAddr(const image_variable *var, codeGen& gen)
 
     // try to find a dynamic symbol
     // (take first static symbol if none are found)
-    Symbol *referring = syms[0];
+    SymtabAPI::Symbol *referring = syms[0];
     for (unsigned k=0; k<syms.size(); k++) {
         if (syms[k]->isInDynSymtab()) {
             referring = syms[k];

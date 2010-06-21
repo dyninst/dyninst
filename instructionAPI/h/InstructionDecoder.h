@@ -32,97 +32,63 @@
 #if !defined(INSTRUCTION_DECODER_H)
 #define INSTRUCTION_DECODER_H
 
-#include "InstructionAST.h"
-#include "Expression.h"
-#include "Operation.h"
-#include "Operand.h"
 #include "Instruction.h"
-#include "dyn_regs.h"
-
-#include <vector>
-#include <dyn_detail/boost/enable_shared_from_this.hpp>
 
     
 namespace Dyninst
 {
   namespace InstructionAPI
   {
-      class InstructionDecoder;
-      static const unsigned int maxInstructionLength = 16;
-    dyn_detail::boost::shared_ptr<InstructionDecoder> makeDecoder(Architecture arch, const unsigned char* buffer, unsigned len =
-        maxInstructionLength);
-    /// The %InstructionDecoder class decodes instructions, given a buffer of bytes and a length,
-    /// and constructs an %Instruction.
-    /// The %InstructionDecoder will, by default, be constructed to decode machine language
-    /// on the platform on which it has been compiled.  The buffer
-    /// will be treated as if there is an instruction stream starting at the beginning of the buffer.
+    /// The %InstructionDecoder class decodes instructions, given a buffer of bytes and a length, and
+    /// the architecture for which to decode instructions, 
+    /// and constructs shared pointers to %Instruction objects representing those instructions.
     /// %InstructionDecoder objects are given a buffer from which to decode at construction.
     /// Calls to \c decode will proceed to decode instructions sequentially from that buffer until its
-    /// end is reached.  At that point, all subsequent calls to \c decode will return an invalid
-    /// %Instruction object.
+    /// end is reached.  At that point, all subsequent calls to \c decode will return a null %Instruction pointer.
     ///
-    /// An %InstructionDecoder object may alternately be constructed without designating a buffer,
-    /// and the buffer may be specified at the time \c decode is called.  This method of use may be
-    /// more convenient for users who are decoding non-contiguous instructions.
-
-    class InstructionDecoder : public dyn_detail::boost::enable_shared_from_this<InstructionDecoder>
+      class InstructionDecoderImpl;
+      
+    class INSTRUCTION_EXPORT InstructionDecoder
     {
       friend class Instruction;
-      friend dyn_detail::boost::shared_ptr<InstructionDecoder> makeDecoder(Architecture arch,
-              const unsigned char* buffer, unsigned len);
-        protected:
-      /// Construct an %InstructionDecoder object that decodes from \c buffer, up to \c size bytes.
-      INSTRUCTION_EXPORT InstructionDecoder(const unsigned char* buffer, size_t size, Architecture arch);
-      
-      /// Construct an %InstructionDecoder object with no buffer specified.
-      INSTRUCTION_EXPORT InstructionDecoder();
-      
         public:
-      INSTRUCTION_EXPORT virtual ~InstructionDecoder();
-        private:
-      INSTRUCTION_EXPORT InstructionDecoder(const InstructionDecoder& o);
+        static const unsigned int maxInstructionLength = 16;
+      /// Construct an %InstructionDecoder object that decodes \c arch from \c buffer, up to \c size bytes.
+      /// Valid values for \c arch are \c Arch_x86, \c Arch_x86_64, \c Arch_ppc32, and \c Arch_ppc64. 
+      InstructionDecoder(const unsigned char* buffer, size_t size, Architecture arch);
+      InstructionDecoder(const void* buffer, size_t size, Architecture arch);
+      
+      ~InstructionDecoder();
+      InstructionDecoder(const InstructionDecoder& o);
       /// Decode the current instruction in this %InstructionDecoder object's buffer, interpreting it as 
       /// machine language of the type understood by this %InstructionDecoder.
       /// If the buffer does not contain a valid instruction stream, a null %Instruction pointer
       /// will be returned.  The %Instruction's \c size field will contain the size of the instruction decoded.
-        public:
-      INSTRUCTION_EXPORT virtual Instruction::Ptr decode();
+      Instruction::Ptr decode();
       /// Decode the instruction at \c buffer, interpreting it as machine language of the type
       /// understood by this %InstructionDecoder.  If the buffer does not contain a valid instruction stream, 
       /// a null %Instruction pointer will be returned.  The %Instruction's \c size field will contain
       /// the size of the instruction decoded.
-      INSTRUCTION_EXPORT virtual Instruction::Ptr decode(const unsigned char* buffer);
-      
-      INSTRUCTION_EXPORT virtual void setMode(bool is64) = 0;
+      Instruction::Ptr decode(const unsigned char* buffer);
+      void doDelayedDecode(const Instruction* insn_to_complete);
+      struct INSTRUCTION_EXPORT buffer
+      {
+          const unsigned char* start;
+          const unsigned char* end;
+          buffer(const unsigned char* b, unsigned int len) :
+                  start(b), end(b+len) {}
+          buffer(const void* b, unsigned int len) :
+	start(reinterpret_cast<const unsigned char*>(b)), end(start+len) {}
+          buffer(const unsigned char* b, const unsigned char* e) :
+                  start(b), end(e) {}
+      };
 
-      virtual void doDelayedDecode(const Instruction* insn_to_complete) = 0;
-      void setBuffer(const unsigned char* buffer, unsigned int size = 0);
-      void resetBuffer();
-    protected:
-      
-      virtual bool decodeOperands(const Instruction* insn_to_complete) = 0;
-
-      virtual unsigned int decodeOpcode() = 0;
-      
-      virtual Expression::Ptr makeAddExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType);
-      virtual Expression::Ptr makeMultiplyExpression(Expression::Ptr lhs, Expression::Ptr rhs, Result_Type resultType);
-      virtual Expression::Ptr makeDereferenceExpression(Expression::Ptr addrToDereference, Result_Type resultType);
-      virtual Expression::Ptr makeRegisterExpression(MachRegister reg);
-      virtual Result_Type makeSizeType(unsigned int opType) = 0;
-      Instruction* makeInstruction(entryID opcode, const char* mnem, unsigned int decodedSize,
-              const unsigned char* raw);
-      
-    protected:
-      Operation::Ptr m_Operation;
-      const unsigned char* bufferBegin;
-      size_t bufferSize;
-      const unsigned char* rawInstruction;
-      const unsigned char* oldBufferBegin;
-      size_t oldBufferSize;
-      const unsigned char* oldBuffer;
-      Architecture m_Arch;
-      
+        private:
+            buffer m_buf;
+        const unsigned char* rawInstruction;
+      dyn_detail::boost::shared_ptr<InstructionDecoderImpl> m_Impl;
     };
+          
   };
 };
 

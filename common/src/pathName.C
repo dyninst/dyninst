@@ -33,6 +33,7 @@
 #include "common/h/headers.h"  // P_strrchr()
 #include <ctype.h>
 #include <assert.h>
+#include <limits.h>
 #include "common/h/String.h"
 #include "common/h/pathName.h"
 

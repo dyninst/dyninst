@@ -36,7 +36,7 @@
 
 #include "common/h/Dictionary.h"
 #include "codeRange.h"
-#include "arch.h"
+#include "codegen.h"
 #include "instP.h"
 #include "mapped_object.h"
 #include "ast.h"

@@ -49,13 +49,15 @@
 #if defined(cap_instruction_api)
 #include "instructionAPI/h/InstructionDecoder.h"
 using namespace Dyninst::InstructionAPI;
+Dyninst::Architecture instPointBase::arch = Dyninst::Arch_none;
+
 #else
-#include "dyninstAPI/src/InstrucIter.h"
+#include "parseAPI/src/InstrucIter.h"
 #endif // defined(cap_instruction_api)
 
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/image-func.h"
-#include "dyninstAPI/src/arch.h"
+#include "common/h/arch.h"
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/emitter.h"
 #if defined(arch_x86_64)
@@ -235,21 +237,21 @@ instPoint *instPoint::createArbitraryInstPoint(Address addr,
         return NULL;
     }
 #if defined(cap_instruction_api)
+    if (!proc->isValidAddress(bbl->firstInsnAddr())) return NULL;
+
     const unsigned char* buffer = reinterpret_cast<unsigned char*>(proc->getPtrToInstruction(bbl->firstInsnAddr()));
-    dyn_detail::boost::shared_ptr<InstructionDecoder> decoder =
-            makeDecoder(func->ifunc()->img()->getArch(), buffer, bbl->getSize());
-    decoder->setMode(proc->getAddressWidth() == 8);
+    InstructionDecoder decoder(buffer, bbl->getSize(), proc->getArch());
     Instruction::Ptr i;
     Address currentInsn = bbl->firstInsnAddr();
-    while((i = decoder->decode()) && (currentInsn < addr))
+    while((i = decoder.decode()) && (currentInsn < addr))
     {
         currentInsn += i->size();
     }
     if(currentInsn != addr)
     {
-      inst_printf("Unaligned try for instruction iterator, ret null\n");
-      fprintf(stderr, "%s[%d]: Unaligned try for instruction iterator, ret null\n", FILE__, __LINE__);
-      return NULL; // Not aligned
+        inst_printf("Unaligned try for instruction iterator, ret null\n");
+            fprintf(stderr, "%s[%d]: Unaligned try for instruction iterator, ret null\n", FILE__, __LINE__);
+            return NULL; // Not aligned
     }
     newIP = new instPoint(proc,
                           i,
@@ -259,7 +261,7 @@ instPoint *instPoint::createArbitraryInstPoint(Address addr,
 #error "Instruction API not yet implemented for SPARC, cap_instruction_api is illegal"
 #endif // defined(arch_sparc)
 #else
-    InstrucIter newIter(bbl);
+    InstrucIter newIter(bbl->firstInsnAddr(),bbl->getSize(),bbl->proc());
     while ((*newIter) < addr) newIter++;
     if (*newIter != addr) {
         inst_printf("Unaligned try for instruction iterator, ret null\n");
@@ -666,12 +668,13 @@ int instPoint_count = 0;
 instPoint::instPoint(AddressSpace *proc,
 #if defined(cap_instruction_api)
     Dyninst::InstructionAPI::Instruction::Ptr insn,
-#else                     
+#else
                         instruction insn,
 #endif
                      Address addr,
                      int_basicBlock *block) :
-    instPointBase(insn, otherPoint),
+    instPointBase(insn, 
+                otherPoint),
     funcVersion(-1),
     callee_(NULL),
     isDynamic_(false),
@@ -702,7 +705,7 @@ instPoint::instPoint(AddressSpace *proc,
                      image_instPoint *img_p,
                      Address addr,
                      int_basicBlock *block) :
-    instPointBase(img_p->insn(),
+        instPointBase(img_p->insn(),
                   img_p->getPointType(),
                   img_p->id()),
     funcVersion(-1),
@@ -734,7 +737,7 @@ instPoint::instPoint(AddressSpace *proc,
 instPoint::instPoint(instPoint *parP,
                      int_basicBlock *child,
                      process *childP) :
-    instPointBase(parP->insn(),
+        instPointBase(parP->insn(),
                   parP->getPointType(),
                   parP->id()),
     funcVersion(parP->funcVersion),
@@ -767,7 +770,14 @@ instPoint *instPoint::createParsePoint(int_function *func,
                 img_p->getPointType());
 
 
-    Address offsetInFunc = img_p->offset() - img_p->func()->getOffset();
+    //assert(img_p->offset() >= func->ifunc->getOffset());
+    if(img_p->offset() < func->ifunc()->getOffset()) {
+        inst_printf("  -- Failed: image_instPoint offset %lx preceeds "
+                    "image_func offset %lx: untested case\n",
+                    img_p->offset(),func->ifunc()->getOffset());
+        return NULL;
+    }
+    Address offsetInFunc = img_p->offset() - func->ifunc()->getOffset();
     Address absAddr = offsetInFunc + func->getAddress();
 
     instPoint *newIP = func->findInstPByAddr(absAddr);
@@ -782,7 +792,7 @@ instPoint *instPoint::createParsePoint(int_function *func,
                 absAddr);
     
     int_basicBlock *block = func->findBlockByAddr(absAddr);
-    if (!block) return false; // Not in the function...
+    if (!block) return NULL; // Not in the function...
     assert(block);
 
     newIP = new instPoint(func->proc(),

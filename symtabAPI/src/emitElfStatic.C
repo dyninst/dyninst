@@ -62,8 +62,8 @@ static const string TLS_DATA_NAME(".dyninstTdata");
 static const string DEFAULT_COM_NAME(".common");
 
 /* Used by architecture specific functions, but not architecture specific */
-const string Dyninst::SymtabAPI::SYMTAB_CTOR_LIST_REL = "__SYMTABAPI_CTOR_LIST__";
-const string Dyninst::SymtabAPI::SYMTAB_DTOR_LIST_REL = "__SYMTABAPI_DTOR_LIST__";
+const string Dyninst::SymtabAPI::SYMTAB_CTOR_LIST_REL("__SYMTABAPI_CTOR_LIST__");
+const string Dyninst::SymtabAPI::SYMTAB_DTOR_LIST_REL("__SYMTABAPI_DTOR_LIST__");
 
 emitElfStatic::emitElfStatic(unsigned addressWidth, bool isStripped) :
     addressWidth_(addressWidth),
@@ -85,7 +85,7 @@ emitElfStatic::emitElfStatic(unsigned addressWidth, bool isStripped) :
  * target       relocatable files will be linked into this Symtab
  *
  * Returns a pointer to a block of data containing the results of the link
- * The caller is responsible for free'ing this block of data
+ * The caller is responsible for delete'ing this block of data
  */
 char *emitElfStatic::linkStatic(Symtab *target, 
         StaticLinkError &err, string &errMsg) 
@@ -130,7 +130,7 @@ char *emitElfStatic::linkStatic(Symtab *target,
 
     // Holds all necessary dependencies, as determined by resolveSymbols
     vector<Symtab *> relocatableObjects;
-    if( !resolveSymbols(target, relocatableObjects, err, errMsg) ) {
+    if( !resolveSymbols(target, relocatableObjects, lmap, err, errMsg) ) {
         return NULL;
     }
 
@@ -159,6 +159,24 @@ char *emitElfStatic::linkStatic(Symtab *target,
         return NULL;
     }
 
+    // Restore the offset of the modified symbols
+    vector< pair<Symbol *, Offset> >::iterator symOff_it;
+    for(symOff_it = lmap.origSymbols.begin();
+        symOff_it != lmap.origSymbols.end();
+        ++symOff_it)
+    {
+        symOff_it->first->setOffset(symOff_it->second);
+    }
+
+    // Restore the symbols of the modified relocations
+   vector< pair<relocationEntry *, Symbol *> >::iterator relSym_it;
+   for(relSym_it = lmap.origRels.begin();
+       relSym_it != lmap.origRels.end();
+       ++relSym_it)
+   {
+       relSym_it->first->addDynSym(relSym_it->second);
+   }
+
     rewrite_printf("\n*** Finished static linking\n\n");
 
     rewrite_printf("END link map output\n");
@@ -182,6 +200,7 @@ char *emitElfStatic::linkStatic(Symtab *target,
  */
 bool emitElfStatic::resolveSymbols(Symtab *target, 
         vector<Symtab *> &relocatableObjects,
+        LinkMap &lmap,
         StaticLinkError &err, string &errMsg) 
 {
     // Collection of Symtabs that currently need their symbols resolved
@@ -234,6 +253,7 @@ bool emitElfStatic::resolveSymbols(Symtab *target,
             vector<relocationEntry>::iterator rel_it;
             for( rel_it = region_rels.begin(); rel_it != region_rels.end(); ++rel_it) {
                 symToRels[rel_it->getDynSym()].push_back(&(*rel_it));
+                lmap.origRels.push_back(make_pair(&(*rel_it), rel_it->getDynSym()));
             }
         }
 
@@ -424,9 +444,6 @@ bool emitElfStatic::createLinkMap(Symtab *target,
         StaticLinkError &err, string &errMsg) 
 {
     rewrite_printf("\n*** Allocating storage for relocatable objects\n\n");
-
-    // Create a temporary region for COMMON storage
-    Region *commonStorage;
 
     // Used to create a new COMMON block
     multimap<Offset, Symbol *> commonAlignments;
@@ -675,6 +692,7 @@ bool emitElfStatic::createLinkMap(Symtab *target,
                     if( result != lmap.regionAllocs.end() ) {
                         Offset regionOffset = result->second.second;
                         Offset symbolOffset = (*sym_it)->getOffset();
+                        lmap.origSymbols.push_back(make_pair(*sym_it, symbolOffset));
 
                         symbolOffset += regionOffset - lmap.tlsRegionOffset;
                         symbolOffset = adjustTLSOffset(symbolOffset, lmap.tlsSize);
@@ -698,6 +716,8 @@ bool emitElfStatic::createLinkMap(Symtab *target,
             for(sym_it = definedSyms.begin(); sym_it != definedSyms.end(); ++sym_it) {
                 if( (*sym_it)->getType() == Symbol::ST_TLS ) {
                     Offset symbolOffset = (*sym_it)->getOffset();
+                    lmap.origSymbols.push_back(make_pair(*sym_it, symbolOffset));
+
                     symbolOffset = adjustTLSOffset(symbolOffset, lmap.tlsSize);
                     (*sym_it)->setOffset(symbolOffset);
                 }
@@ -757,6 +777,7 @@ bool emitElfStatic::createLinkMap(Symtab *target,
             align_it != commonAlignments.end(); ++align_it)
         {
             commonOffset += computePadding(commonOffset, align_it->first);
+            lmap.origSymbols.push_back(make_pair(align_it->second, align_it->first));
 
             // Update symbol with place in new linked data
             align_it->second->setOffset(globalOffset + commonOffset);
@@ -766,11 +787,11 @@ bool emitElfStatic::createLinkMap(Symtab *target,
         // Update the size of COMMON storage
         if( commonAlignments.size() > 0 ) {
             // A COMMON region is not really complete
-            commonStorage = Region::createRegion(0, Region::RP_RW,
+            lmap.commonStorage = Region::createRegion(0, Region::RP_RW,
                     Region::RT_BSS, commonOffset - commonStartOffset, 0, 
                     commonOffset - commonStartOffset,
                     DEFAULT_COM_NAME, NULL, true, false, commonRegionAlign);
-            lmap.bssRegions.push_front(commonStorage);
+            lmap.bssRegions.push_front(lmap.commonStorage);
         }
     }
 
@@ -801,6 +822,7 @@ bool emitElfStatic::createLinkMap(Symtab *target,
                     if( result != lmap.regionAllocs.end() ) {
                         Offset regionOffset = result->second.second;
                         Offset symbolOffset = (*sym_it)->getOffset();
+                        lmap.origSymbols.push_back(make_pair(*sym_it, symbolOffset));
 
                         symbolOffset += globalOffset + regionOffset;
 
@@ -1198,6 +1220,8 @@ Offset emitElfStatic::tlsLayoutVariant2(Offset globalOffset, Region *dataTLS, Re
 
         Offset regionOffset = result->second.second;
         Offset symbolOffset = (*sym_it)->getOffset();
+        lmap.origSymbols.push_back(make_pair((*sym_it), symbolOffset));
+
         symbolOffset += (regionOffset - lmap.tlsRegionOffset) - (adjustedEnd + tlsBssSize);
         (*sym_it)->setOffset(symbolOffset);
     }

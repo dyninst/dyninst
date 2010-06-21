@@ -74,9 +74,11 @@ WindowsNT    nonexistant
    typedef __int64 int64_t;
    typedef __int32 int32_t;
    typedef __int16 int16_t;
+   typedef __int8 int8_t;
    typedef unsigned __int64 uint64_t;
    typedef unsigned __int32 uint32_t;
    typedef unsigned __int16 uint16_t;
+   typedef unsigned __int8 uint8_t;
 
 #elif defined(os_aix)  
 #if defined (arch_power)
@@ -117,7 +119,7 @@ WindowsNT    nonexistant
 #define __STDC_LIMIT_MACROS
 #endif
 #include <stdint.h>
-#if defined(arch_x86_64) || defined(arch_ia64) || defined(arch_64bit)
+#if defined(arch_x86_64) || defined(arch_64bit)
 #define TYPE64BIT
 #endif
 #if defined(os_cnl) && defined(arch_x86_64)
@@ -150,6 +152,25 @@ typedef long double double128_t;
 #include <inttypes.h>
 #elif defined(os_solaris)
 #include <inttypes.h>
+
+#elif defined(os_vxworks)
+#if !defined(__STDC_CONSTANT_MACROS)
+#define __STDC_CONSTANT_MACROS
+#endif
+#if !defined(__STDC_LIMIT_MACROS)
+#define __STDC_LIMIT_MACROS
+#endif
+#ifndef __RTLIB__
+#include <stdint.h>
+#endif
+#include <limits.h>
+#if !defined(INT64_C)
+#define INT64_C(c) ((signed long long) (c))
+#endif
+#if !defined(UINT64_C)
+#define UINT64_C(c) ((unsigned long long) (c))
+#endif
+
 #else
 #error Unknown architecture
 #endif
@@ -193,6 +214,7 @@ typedef long double double128_t;
    warning is printed when the ...808 int64 minimum is used, so we'll get the
    value with some trickery */
 #define I64_MIN    (-I64_MAX-1)
+
 #elif defined(os_windows)
 			 /* nt ----------------------------- */
 #include <limits.h>

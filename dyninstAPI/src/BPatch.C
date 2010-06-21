@@ -61,6 +61,8 @@
 #include "nt_signal_emul.h"
 #endif
 
+using namespace SymtabAPI;
+
 extern void loadNativeDemangler();
 
 BPatch *BPatch::bpatch = NULL;
@@ -122,7 +124,6 @@ BPatch::BPatch()
     
     BPatch::bpatch->registerErrorCallback(defaultErrorFunc);
     bpinfo("installed default error reporting function");
-    initCyclesPerSecond();
     
     /*
      * Create the list of processes.
@@ -150,7 +151,7 @@ BPatch::BPatch()
     for(unsigned i=0; i< sTypes->size(); i++)
         builtInTypes->addBuiltInType(new BPatch_type((*sTypes)[i]));
 
-    loadNativeDemangler();
+    //loadNativeDemangler();
 
     global_async_event_handler = new BPatch_asyncEventHandler();
 #if defined(cap_async_events)
@@ -1322,6 +1323,7 @@ BPatch_process *BPatch::processCreateInt(const char *path, const char *argv[],
    }
 
    //  and ensure its executable (does not check permissions):
+#if !defined(os_vxworks) // Not necessary for VxWorks modules
    if (! ( (statbuf.st_mode & S_IXUSR)
             || (statbuf.st_mode & S_IXGRP)
             || (statbuf.st_mode & S_IXOTH) )) {
@@ -1330,6 +1332,7 @@ BPatch_process *BPatch::processCreateInt(const char *path, const char *argv[],
       reportError(BPatchFatal, 68, ebuf);
       return NULL;
    }
+#endif // VxWorks
 #endif
 
    BPatch_process *ret = 

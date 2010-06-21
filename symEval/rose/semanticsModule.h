@@ -9,6 +9,7 @@
 #define __STDC_FORMAT_MACROS
 #endif
 #include <inttypes.h>
+#include <stdlib.h>
 
 static inline int numBytesInAsmType(SgAsmType* ty) {
   switch (ty->variantT()) {

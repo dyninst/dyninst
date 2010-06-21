@@ -54,9 +54,6 @@ Frame::Frame() :
   thread_(NULL), 
   lwp_(NULL), 
   range_(0), 
-#if defined(arch_ia64)
-  hasValidCursor(false),
-#endif
   pcAddr_(0) {
     stackwalk_cerr << "*** Null frame ***" << endl;
 }
@@ -72,9 +69,6 @@ Frame::Frame(Address pc, Address fp, Address sp,
   pc_(pc), fp_(fp), sp_(sp),
   pid_(pid), proc_(proc), thread_(thread), lwp_(lwp), 
   range_(0), 
-#if defined(arch_ia64)
-  hasValidCursor(false),
-#endif
   pcAddr_(pcAddr) {
   stackwalk_cerr << "Base frame:   " << (*this) << endl;
 };
@@ -88,9 +82,6 @@ Frame::Frame(Address pc, Address fp, Address sp,
   pid_(f->pid_), proc_(f->proc_),
   thread_(f->thread_), lwp_(f->lwp_),
   range_(0), 
-#if defined(arch_ia64)
-    hasValidCursor(false), 
-#endif   
 pcAddr_(pcAddr) {
   stackwalk_cerr << "Called frame: " << (*this) << endl;
 }

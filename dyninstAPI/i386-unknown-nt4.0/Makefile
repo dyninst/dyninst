@@ -22,7 +22,7 @@ SRCS =		../src/pdwinnt.C \
 		../src/cpuid-x86.S \
 		../src/inst-x86.C \
 		../src/emit-x86.C \
-		../src/arch-x86.C \
+		../src/codegen-x86.C \
 		../src/syscall-nt.C \
 		../src/pdwinntDL.C \
 		../src/dynamiclinking.C \
@@ -37,7 +37,7 @@ SRCS =		../src/pdwinnt.C \
 OBJS = 		pdwinnt.obj \
 		inst-winnt.obj \
 		inst-x86.obj \
-		arch-x86.obj \
+		codegen-x86.obj \
 		emit-x86.obj \
 		codeRange.obj \
 		syscall-nt.obj \

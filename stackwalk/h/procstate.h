@@ -36,6 +36,7 @@
 #define PROCSTATE_H_
 
 #include "basetypes.h"
+#include "dyn_regs.h"
 
 #include <vector>
 #include <map>
@@ -82,6 +83,9 @@ public:
   //Return the size of an address in process in bytes
   virtual unsigned getAddressWidth() = 0;
 
+  //Get Architecture, see dyn_regs.h
+  virtual Dyninst::Architecture getArchitecture() = 0;
+
   virtual ~ProcessState();
 
   Walker *getWalker() const;
@@ -108,6 +112,7 @@ class ProcSelf : public ProcessState {
   virtual bool getDefaultThread(Dyninst::THR_ID &default_tid);
   virtual unsigned getAddressWidth();
   virtual bool isFirstParty();
+  virtual Dyninst::Architecture getArchitecture();
   virtual ~ProcSelf();
 };
 
@@ -210,6 +215,7 @@ class ProcDebug : public ProcessState {
 
   proc_state state();
   void setState(proc_state p);
+
  public:
   
   static ProcDebug *newProcDebug(Dyninst::PID pid, std::string executable="");
@@ -243,6 +249,9 @@ class ProcDebug : public ProcessState {
 
   typedef void (*sig_callback_func)(int &signum, ThreadState *thr);
   void registerSignalCallback(sig_callback_func f);
+
+  virtual Dyninst::Architecture getArchitecture();
+
  protected:
   /**
    * Helper for polling for new threads.  Sees if the thread exists, 
@@ -288,6 +297,9 @@ class LibraryState {
    virtual bool getLibraries(std::vector<LibAddrPair> &libs) = 0;
    virtual void notifyOfUpdate() = 0;
    virtual Address getLibTrapAddress() = 0;
+   virtual bool getLibc(LibAddrPair &lc) = 0;
+   virtual bool getLibthread(LibAddrPair &lt) = 0;
+   virtual bool getAOut(LibAddrPair &ao) = 0;
    virtual ~LibraryState();
 };
 

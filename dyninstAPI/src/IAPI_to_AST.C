@@ -34,7 +34,9 @@
 #include "Immediate.h"
 #include "Register.h"
 #include "Dereference.h"
+#if defined(arch_x86) || defined(arch_x86_64)
 #include "RegisterConversion-x86.h"
+#endif
 
 using namespace Dyninst::InstructionAPI;
 
@@ -80,7 +82,15 @@ void ASTFactory::visit(Immediate* i)
 
 void ASTFactory::visit(RegisterAST* r)
 {
-  bool unused;
+#if defined(arch_x86) || defined(arch_x86_64)  
+    bool unused;
     m_stack.push_back(AstNode::operandNode(AstNode::origRegister,
                       (void*)(convertRegID(r, unused))));
+#else
+    MachRegister reg = r->getID();
+    reg = reg.getBaseRegister();
+    Register astreg = reg.val() & ~reg.getArchitecture();
+    m_stack.push_back(AstNode::operandNode(AstNode::origRegister,
+                      (void*)(astreg)));
+#endif
 }

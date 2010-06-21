@@ -47,7 +47,7 @@
 
 #include "debug.h"
 
-#if defined(x86_64_unknown_linux2_4) || defined(ia64_unknown_linux2_4) || defined(ppc64_linux)
+#if defined(x86_64_unknown_linux2_4) || defined(ppc64_linux)
 #include "emitElf-64.h"
 #endif
 
@@ -312,10 +312,10 @@ const char* STABSTR_INDX_NAME= ".stab.indexstr";
 const char* OPD_NAME         = ".opd"; // PPC64 Official Procedure Descriptors
 // sections from dynamic executables and shared objects
 const char* PLT_NAME         = ".plt";
-#if ! defined( arch_ia64 )
+#if defined(os_vxworks)
+const char* REL_PLT_NAME     = ".rela.text";
+#else
 const char* REL_PLT_NAME     = ".rela.plt"; // sparc-solaris
-#else  
-const char* REL_PLT_NAME     = ".rela.IA_64.pltoff";
 #endif  
 const char* REL_PLT_NAME2    = ".rel.plt";  // x86-solaris
 const char* GOT_NAME         = ".got";
@@ -757,17 +757,17 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
       stabstrscnp = scnp;
       stabstr_off_ = scnp->sh_offset();
     } 
-#if !defined(os_solaris)
-    else if ((secAddrTagMapping.find(scnp->sh_addr()) != secAddrTagMapping.end() ) && 
-	     secAddrTagMapping[scnp->sh_addr()] == DT_JMPREL ) {
+#if defined(os_solaris) || defined(os_vxworks)
+    else if ((strcmp(name, REL_PLT_NAME) == 0) || 
+             (strcmp(name, REL_PLT_NAME2) == 0)) {
       rel_plt_scnp = scnp;
       rel_plt_addr_ = scnp->sh_addr();
       rel_plt_size_ = scnp->sh_size();
       rel_plt_entry_size_ = scnp->sh_entsize();
     }
 #else
-    else if ((strcmp(name, REL_PLT_NAME) == 0) || 
-             (strcmp(name, REL_PLT_NAME2) == 0)) {
+    else if ((secAddrTagMapping.find(scnp->sh_addr()) != secAddrTagMapping.end() ) && 
+	     secAddrTagMapping[scnp->sh_addr()] == DT_JMPREL ) {
       rel_plt_scnp = scnp;
       rel_plt_addr_ = scnp->sh_addr();
       rel_plt_size_ = scnp->sh_size();
@@ -778,7 +778,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
       plt_scnp = scnp;
       plt_addr_ = scnp->sh_addr();
       plt_size_ = scnp->sh_size();
-#if defined(arch_x86)
+#if defined(arch_x86) || defined(arch_x86_64)
       //
       // On x86, the GNU linker purposefully sets the PLT
       // table entry size to an incorrect value to be
@@ -815,6 +815,19 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
       assert( plt_entry_size_ == 16 );
 #else
       plt_entry_size_ = scnp->sh_entsize();
+      
+      // X86-64: if we're on a 32-bit binary then set the PLT entry size to 16
+      // as above
+#if defined(arch_x86_64)
+      if (addressWidth_nbytes == 4) {
+	plt_entry_size_ = 16;
+	assert( plt_entry_size_ == 16 );
+      }
+      else {
+	assert(addressWidth_nbytes == 8);
+      }
+#endif
+
 
 #if defined (ppc32_linux)
       if (scnp->sh_flags() & SHF_EXECINSTR) {
@@ -873,31 +886,10 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
     else if (strcmp(name, INTERP_NAME) == 0) {
       interp_scnp = scnp;
     }
-    //TODO clean up this. it is ugly
-#if defined(arch_ia64)
-    else if (i == dynamic_section_index) {
-      dynamic_scnp = scnp;
-      dynamic_addr_ = scnp->sh_addr();
-      Elf_X_Data data = scnp->get_data();
-      Elf_X_Dyn dyns = data.get_dyn();
-      for (unsigned i = 0; i < dyns.count(); ++i) {
-	switch(dyns.d_tag(i)) {
-	case DT_PLTGOT:
-	  this->gp = dyns.d_ptr(i);
-	  ///* DEBUG */ fprintf( stderr, "%s[%d]: GP = 0x%lx\n", __FILE__, __LINE__, this->gp );
-	  break;
-    
-	default:
-	  break;
-	} // switch
-      } // for
-    }
-#else
     else if (i == dynamic_section_index) {
       dynamic_scnp = scnp;
       dynamic_addr_ = scnp->sh_addr();
     }
-#endif /* ia64_unknown_linux2_4 */
   }
 
   if(!symscnp || !strscnp) {
@@ -978,6 +970,12 @@ void Object::parseDynamic(Elf_X_Shdr *&dyn_scnp, Elf_X_Shdr *&dynsym_scnp,
       rel_addr_ = (Offset) dyns.d_ptr(i);
       rel_scnp_index = getRegionHdrIndexByAddr(dyns.d_ptr(i));
       break;
+    case DT_JMPREL:
+	rel_plt_addr_ = (Offset) dyns.d_ptr(i);
+	break;
+    case DT_PLTRELSZ:
+	rel_plt_size_ = dyns.d_val(i) ;
+	break;
     case DT_RELSZ:
     case DT_RELASZ:
       rel_size_ = dyns.d_val(i) ;
@@ -985,6 +983,8 @@ void Object::parseDynamic(Elf_X_Shdr *&dyn_scnp, Elf_X_Shdr *&dynsym_scnp,
     case DT_RELENT:
     case DT_RELAENT:
       rel_entry_size_ = dyns.d_val(i);
+      /* Maybe */
+      //rel_plt_entry_size_ = dyns.d_val(i);
       break;
     case DT_INIT:
         init_addr_ = dyns.d_val(i);
@@ -1022,8 +1022,13 @@ bool Object::get_relocationDyn_entries( unsigned rel_scnp_index,
   Elf_X_Sym sym = symdata.get_sym();
 
   unsigned num_rel_entries_found = 0;
-
-  while (num_rel_entries_found != rel_size_/rel_entry_size_) {
+  unsigned num_rel_entries = rel_size_/rel_entry_size_;
+  
+  if (rel_addr_ + rel_size_ > rel_plt_addr_){
+	// REL/RELA section overlaps with REL PLT section
+	num_rel_entries = (rel_plt_addr_-rel_addr_)/rel_entry_size_;
+  }
+  while (num_rel_entries_found != num_rel_entries) {
     rel_scnp = getRegionHdrByIndex(rel_scnp_index++);
     Elf_X_Data reldata = rel_scnp->get_data();
 
@@ -1092,27 +1097,7 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
     if( reldata.isValid() && symdata.isValid() && strdata.isValid() ) {
       Offset next_plt_entry_addr = plt_addr_;
 
-#if defined( ia64_unknown_linux2_4 ) 
-      unsigned int functionDescriptorCount = ( rel_plt_size_ / rel_plt_entry_size_ );
-      /* The IA-64 PLT contains 1 special entry, and two entries for each functionDescriptor
-	 in the function descriptor table (.IA_64.pltoff, whose count we're deriving from
-	 its relocation entries).  These entries are in two groups, the second of which is
-	 sometimes separated from the first by 128 bits of zeroes.  The entries in the latter group
-	 are call targets that makes an indirect jump using an FD table entry.  If the
-	 function they want to call hasn't been linked yet, the FD will point to one of 
-	 former group's entries, which will then jump to the first, special entry, in order
-	 to invoke the linker.  The linker, after doing the link, will rewrite the FD to
-	 point directly to the requested function. 
-
-	 As we're only interested in call targets, skip the first group and the buffer entirely,
-	 if it's present.
-      */
-      next_plt_entry_addr += (0x10 * 3) + (functionDescriptorCount * 0x10);
-
-      unsigned long long * bufferPtr = (unsigned long long*)(void *)const_cast<char *>(elf_vaddr_to_ptr(next_plt_entry_addr));
-      if( bufferPtr[0] == 0 && bufferPtr[1] == 0 ) { next_plt_entry_addr += 0x10; }
-
-#elif defined(arch_x86) || defined(arch_x86_64)
+#if defined(arch_x86) || defined(arch_x86_64)
       next_plt_entry_addr += plt_entry_size_;  // 1st PLT entry is special
 
 #elif defined (ppc32_linux)
@@ -1179,6 +1164,13 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
                   glink = regions_[iter];
                   break;
               }
+          }
+
+          if (!glink) {
+              fprintf(stderr, "*** Cound not find .glink section for '%s'.\n",
+                      mf->pathname().c_str());
+              fprintf(stderr, "*** It may not be a ppc32 elf object.\n");
+              return false;
           }
 
           // Find PLT function stubs.  They preceed the glink section.
@@ -1309,7 +1301,7 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
 
       if (sym.isValid() && (rel.isValid() || rela.isValid()) && strs) {
 
-        // Sometime, PPC32 Linux may use this loop to update fbt entries.
+        // Sometimes, PPC32 Linux may use this loop to update fbt entries.
         // Should stay -1 for all other platforms.  See notes above.
         int fbt_iter = -1;
         if (fbt_.size() > 0 && fbt_[0].name() != "@plt")
@@ -1320,7 +1312,7 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
 	  long addend;
 	  long index;
 	  unsigned long type;
-	  Region::RegionType rtype = Region::RT_REL;
+          Region::RegionType rtype;
 
 	  switch (reldata.d_type()) {
 	  case ELF_T_REL:
@@ -1328,6 +1320,7 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
 	    addend = 0;
 	    index = rel.R_SYM(i);
 	    type = rel.R_TYPE(i);
+            rtype = Region::RT_REL;
 	    break;
 
 	  case ELF_T_RELA:
@@ -1351,14 +1344,21 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
             dynsym_list.clear();
           }
 
+#if defined(os_vxworks)
+          // VxWorks Kernel Images don't use PLT's, but we'll use the fbt to
+          // note all function call relocations, and we'll fix these up later
+          // in Symtab::fixup_RegionAddr()
+          next_plt_entry_addr = sym.st_value(index);
+#endif
+
           if (fbt_iter == -1) { // Create new relocation entry.
             relocationEntry re( next_plt_entry_addr, offset, targ_name,
                                 NULL, type );
-	  re.setAddend(addend);
-	  re.setRegionType(rtype);
+            re.setAddend(addend);
+            re.setRegionType(rtype);
             if (dynsym_list.size() > 0)
-              re.addDynSym(dynsym_list[0]);
-	  fbt_.push_back(re);
+                re.addDynSym(dynsym_list[0]);
+            fbt_.push_back(re);
 
           } else { // Update existing relocation entry.
             while ((unsigned)fbt_iter < fbt_.size() &&
@@ -1374,9 +1374,8 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
             }
           }
 
-#if defined( arch_ia64 )
-	  /* IA-64 headers don't declare a size, because it varies. */
-	  next_plt_entry_addr += 0x20;
+#if defined(os_vxworks)
+          // Nothing to increment here.
 #else
 	  next_plt_entry_addr += plt_entry_size_;
 #endif
@@ -1442,6 +1441,9 @@ void Object::load_object(bool alloc_syms)
     // find code and data segments....
     find_code_and_data(elfHdr, txtaddr, dataddr);
 
+#if !defined(os_vxworks)
+    // ET_REL doesn't quite mean the same thing in VxWorks.
+
     if (elfHdr.e_type() != ET_REL) 
       {
 	if (!code_ptr_ || !code_len_) 
@@ -1456,6 +1458,7 @@ void Object::load_object(bool alloc_syms)
             goto cleanup;
 	  }
       }
+#endif
     get_valid_memory_areas(elfHdr);
 
     //fprintf(stderr, "[%s:%u] - Exe Name\n", __FILE__, __LINE__);
@@ -1540,6 +1543,13 @@ void Object::load_object(bool alloc_syms)
 	  {
             parseDynamic(dynamic_scnp, dynsym_scnp, dynstr_scnp);
 	  }
+
+#if defined(os_vxworks)
+        if (rel_plt_scnp && symscnp && strscnp) {
+            if (!get_relocation_entries(rel_plt_scnp, symscnp, strscnp))
+                goto cleanup;
+        }
+#endif
 
 	// populate "fbt_"
 	if (rel_plt_scnp && dynsym_scnp && dynstr_scnp) 
@@ -1819,30 +1829,6 @@ void fix_opd_symbol(char *opdData, unsigned long opdStart,
   }
 }
 
-// Libc section function handler
-//
-// Some versions of libc have internal memory handling functions
-// that only have NOTYPE symbols to represent them.  However,
-// these symbols do have corresponding regions of the same name.
-
-void fix_libc_section_function_symbol(std::vector< Region *> *regions, Symbol *sym)
-{
-  if (!regions || !sym) return;
-
-  if (sym->getType() == Symbol::ST_NOTYPE) {
-    for (unsigned j = 0; j < regions->size(); ++j) {
-      const char *regionName = (*regions)[j]->getRegionName().c_str();
-      if ((*regions)[j]->isText() &&
-	  strstr(regionName, "_libc_") &&
-	  strstr(sym->getMangledName().c_str(), regionName) &&
-	  (*regions)[j]->getMemOffset() == sym->getOffset()) {
-
-	sym->setSymbolType(Symbol::ST_FUNCTION);
-      }
-    }
-  }
-}
-
 // parse_symbols(): populate "allsymbols"
 bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
                            Elf_X_Shdr* bssscnp,
@@ -1950,10 +1936,9 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
                                      (secNumber == SHN_COMMON));
          if (stype == Symbol::ST_UNKNOWN)
             newsym->setInternalType(etype);
-	 
+
          if (opdscnp)
             fix_opd_symbol(opdData, opdStart, opdEnd, newsym);
-         fix_libc_section_function_symbol(&regions_, newsym);
 
          symbols_[sname].push_back(newsym);
          symsByOffset_[newsym->getOffset()].push_back(newsym);
@@ -2117,22 +2102,27 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
       
       if (opdscnp)
          fix_opd_symbol(opdData, opdStart, opdEnd, newsym);
-      fix_libc_section_function_symbol(&regions_, newsym);
       
 #if !defined(os_solaris)
       if(versymSec) {
-         if(versionFileNameMapping.find(symVersions.get(i)) != versionFileNameMapping.end()) {
-            //printf("version filename for %s: %s\n", sname.c_str(),
-            //versionFileNameMapping[symVersions.get(i)].c_str());
-            newsym->setVersionFileName(versionFileNameMapping[symVersions.get(i)]);
+	unsigned short raw = symVersions.get(i);
+	bool hidden = raw >> 15;
+	int index = raw & 0x7fff;
+         if(versionFileNameMapping.find(index) != versionFileNameMapping.end()) {
+	   //printf("version filename for %s: %s\n", sname.c_str(),
+	   //versionFileNameMapping[index].c_str());
+            newsym->setVersionFileName(versionFileNameMapping[index]);
          }
-         if(versionMapping.find(symVersions.get(i)) != versionMapping.end()) {
-            //printf("versions for %s: ", sname.c_str());
-            //for (unsigned k=0; k < versionMapping[symVersions.get(i)].size(); k++)
-            //printf(" %s", versionMapping[symVersions.get(i)][k].c_str());
-            newsym->setVersions(versionMapping[symVersions.get(i)]);
-            //printf("\n");
+         if(versionMapping.find(index) != versionMapping.end()) {
+	   //printf("versions for %s: ", sname.c_str());
+	   //for (unsigned k=0; k < versionMapping[index].size(); k++)
+	   //printf(" %s", versionMapping[index][k].c_str());
+	   newsym->setVersions(versionMapping[index]);
+	   //printf("\n");
          }
+	 if (hidden) {
+	   newsym->setVersionHidden();
+	 }
       }
 #endif
       // register symbol in dictionary
@@ -2602,9 +2592,14 @@ bool Object::fixSymbolsInModule( Dwarf_Debug dbg, string & moduleName, Dwarf_Die
       dieEntry = siblingDwarf;
       goto start;
    }
-   return true;
+   else
+   {
+       dwarf_dealloc( dbg, dieEntry, DW_DLA_DIE );
+       return true;
+   }
  error:
-   return false;
+ dwarf_dealloc( dbg, dieEntry, DW_DLA_DIE );
+ return false;
 } /* end fixSymbolsInModule */
 
 
@@ -2989,45 +2984,44 @@ void Object::find_code_and_data(Elf_X &elf,
 				Offset txtaddr, 
 				Offset dataddr) 
 {
+    /* Note:
+     * .o's don't have program headers, so these fields are populated earlier
+     * when the sections are processed -> see loaded_elf()
+     */
 
-  /* Note:
-   * .o's don't have program headers, so these fields are populated earlier
-   * when the sections are processed -> see loaded_elf()
-   */
-    
-  for (int i = 0; i < elf.e_phnum(); ++i) {
-    Elf_X_Phdr phdr = elf.get_phdr(i);
+    for (int i = 0; i < elf.e_phnum(); ++i) {
+        Elf_X_Phdr phdr = elf.get_phdr(i);
 
-    char *file_ptr = (char *)mf->base_addr();
+        char *file_ptr = (char *)mf->base_addr();
 
-    if(!isRegionPresent(phdr.p_paddr(), phdr.p_filesz(), phdr.p_flags()))
-      regions_.push_back(new Region(i, "", phdr.p_paddr(), phdr.p_filesz(), phdr.p_vaddr(), phdr.p_memsz(), &file_ptr[phdr.p_offset()], getSegmentPerms(phdr.p_flags()), getSegmentType(phdr.p_type(), phdr.p_flags())));
+        if(!isRegionPresent(phdr.p_paddr(), phdr.p_filesz(), phdr.p_flags()))
+            regions_.push_back(new Region(i, "", phdr.p_paddr(), phdr.p_filesz(), phdr.p_vaddr(), phdr.p_memsz(), &file_ptr[phdr.p_offset()], getSegmentPerms(phdr.p_flags()), getSegmentType(phdr.p_type(), phdr.p_flags())));
 
-    // The code pointer, offset, & length should be set even if
-    // txtaddr=0, so in this case we set these values by
-    // identifying the segment that contains the entryAddress
-    if (((phdr.p_vaddr() <= txtaddr) && 
-	 (phdr.p_vaddr() + phdr.p_filesz() >= txtaddr)) || 
-	(!txtaddr && ((phdr.p_vaddr() <= entryAddress_) &&
-		      (phdr.p_vaddr() + phdr.p_filesz() >= entryAddress_)))) {
+        // The code pointer, offset, & length should be set even if
+        // txtaddr=0, so in this case we set these values by
+        // identifying the segment that contains the entryAddress
+        if (((phdr.p_vaddr() <= txtaddr) && 
+             (phdr.p_vaddr() + phdr.p_filesz() >= txtaddr)) || 
+            (!txtaddr && ((phdr.p_vaddr() <= entryAddress_) &&
+                          (phdr.p_vaddr() + phdr.p_filesz() >= entryAddress_)))) {
 
-      if (code_ptr_ == 0 && code_off_ == 0 && code_len_ == 0) {
-	code_ptr_ = (char *)(void*)&file_ptr[phdr.p_offset()];
-	code_off_ = (Offset)phdr.p_vaddr();
-	code_len_ = (unsigned)phdr.p_filesz();
-      }
+            if (code_ptr_ == 0 && code_off_ == 0 && code_len_ == 0) {
+                code_ptr_ = (char *)(void*)&file_ptr[phdr.p_offset()];
+                code_off_ = (Offset)phdr.p_vaddr();
+                code_len_ = (unsigned)phdr.p_filesz();
+            }
 
-    } else if (((phdr.p_vaddr() <= dataddr) && 
-		(phdr.p_vaddr() + phdr.p_filesz() >= dataddr)) || 
-	       (!dataddr && (phdr.p_type() == PT_LOAD))) {
-      if (data_ptr_ == 0 && data_off_ == 0 && data_len_ == 0) {
-	data_ptr_ = (char *)(void *)&file_ptr[phdr.p_offset()];
-	data_off_ = (Offset)phdr.p_vaddr();
-	data_len_ = (unsigned)phdr.p_filesz();
-      }
+        } else if (((phdr.p_vaddr() <= dataddr) && 
+                    (phdr.p_vaddr() + phdr.p_filesz() >= dataddr)) || 
+                   (!dataddr && (phdr.p_type() == PT_LOAD))) {
+            if (data_ptr_ == 0 && data_off_ == 0 && data_len_ == 0) {
+                data_ptr_ = (char *)(void *)&file_ptr[phdr.p_offset()];
+                data_off_ = (Offset)phdr.p_vaddr();
+                data_len_ = (unsigned)phdr.p_filesz();
+            }
+        }
     }
-  }
-  //if (addressWidth_nbytes == 8) bperr( ">>> 64-bit find_code_and_data() successful\n");
+    //if (addressWidth_nbytes == 8) bperr( ">>> 64-bit find_code_and_data() successful\n");
 }
 
 const char *Object::elf_vaddr_to_ptr(Offset vaddr) const
@@ -3189,7 +3183,9 @@ void Object::log_elferror(void (*err_func)(const char *), const char* msg)
 
 bool Object::get_func_binding_table(std::vector<relocationEntry> &fbt) const 
 {
+#if !defined(os_vxworks)
   if(!plt_addr_ || (!fbt_.size())) return false;
+#endif
   fbt = fbt_;
   return true;
 }
@@ -4237,7 +4233,7 @@ bool Object::emitDriver(Symtab *obj, string fName,
       if( !em->createSymbolTables(obj, allSymbols) ) return false;
       return em->driver(obj, fName);
     }
-#if defined(x86_64_unknown_linux2_4) || defined(ia64_unknown_linux2_4) || defined(ppc64_linux)
+#if defined(x86_64_unknown_linux2_4) || defined(ppc64_linux)
   else if (elfHdr.e_ident()[EI_CLASS] == ELFCLASS64) 
     {
       emitElf64 *em = new emitElf64(elfHdr, isStripped, this, err_func_);
@@ -5351,4 +5347,31 @@ bool Region::isStandardCode()
            ((name_ == std::string(".text")) ||
             (name_ == std::string(".init")) ||
             (name_ == std::string(".fini"))));
+}
+
+void Object::setTruncateLinePaths(bool value)
+{
+   truncateLineFilenames = value;
+}
+
+bool Object::getTruncateLinePaths()
+{
+   return truncateLineFilenames;
+}
+
+Dyninst::Architecture Object::getArch()
+{
+#if defined(arch_power)
+   if (getAddressWidth() == 4) {
+      return Dyninst::Arch_ppc32;
+   }
+   return Dyninst::Arch_ppc64;
+#elif defined(arch_x86) || defined(arch_x86_64)
+   if (getAddressWidth() == 4) {
+      return Dyninst::Arch_x86;
+   }
+   return Dyninst::Arch_x86_64;
+#else
+   return Arch_none;
+#endif
 }

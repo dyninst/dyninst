@@ -329,14 +329,16 @@ SYMTAB_EXPORT Symtab::Symtab(MappedFile *mf_) :
    AnnotatableSparse(),
    mf(mf_), 
    mfForDebugInfo(mf_),
-   obj_private(NULL)
+   obj_private(NULL),
+   _ref_cnt(1)
 {   
     init_debug_symtabAPI();
 }   
 
 
 SYMTAB_EXPORT Symtab::Symtab() :
-   obj_private(NULL)
+   obj_private(NULL),
+   _ref_cnt(1)
 {
     init_debug_symtabAPI();
     create_printf("%s[%d]: Created symtab via default constructor\n", FILE__, __LINE__);
@@ -377,6 +379,20 @@ SYMTAB_EXPORT Offset Symtab::imageLength() const
 {
     return imageLen_;
 }
+
+SYMTAB_EXPORT void Symtab::fixup_code_and_data(Offset newImageOffset,
+                                               Offset newImageLength,
+                                               Offset newDataOffset,
+                                               Offset newDataLength)
+{
+    imageOffset_ = newImageOffset;
+    imageLen_ = newImageLength;
+    dataOffset_ = newDataOffset;
+    dataLen_ = newDataLength;
+
+    // Should we update the underlying Object?
+}
+
 /*
 SYMTAB_EXPORT char* Symtab::image_ptr ()  const 
 {
@@ -549,10 +565,12 @@ bool Symtab::extractSymbolsFromFile(Object *linkedFile, std::vector<Symbol *> &r
         // relocation entries have references to these undefined dynamic symbols.
         // We also have undefined symbols for the static binary case.
         
+#if !defined(os_vxworks)
         if (sym->getSec() == NULL && !sym->isAbsolute() && !sym->isCommonStorage()) {
             undefDynSyms[sym->getMangledName()].push_back(sym);
             continue;
         }
+#endif
 
         // Check whether this symbol has a valid offset. If they do not we have a
         // consistency issue. This should be a null check.
@@ -628,10 +646,17 @@ bool Symtab::createIndices(std::vector<Symbol *> &raw_syms) {
 
 bool Symtab::createAggregates() 
 {
+#if !defined(os_vxworks)
+    // In VxWorks, symbol offsets are not complete until object is loaded.
+
     for (unsigned i = 0; i < everyDefinedSymbol.size(); i++) 
-	{
-        addSymbolToAggregates(everyDefinedSymbol[i]);
-    }
+      {
+	if (!doNotAggregate(everyDefinedSymbol[i])) {
+	  addSymbolToAggregates(everyDefinedSymbol[i]);
+	}
+      }
+#endif
+
     return true;
 }
  
@@ -730,9 +755,12 @@ bool Symtab::addSymbolToIndices(Symbol *&sym)
 //	sym->index_ = everyDefinedSymbol.size();
 
     everyDefinedSymbol.push_back(sym);
-    
+
+#if !defined(os_vxworks)    
+    // VxWorks doesn't know symbol addresses until object is loaded.
     symsByOffset[sym->getAddr()].push_back(sym);
-    
+#endif
+
     symsByMangledName[sym->getMangledName()].push_back(sym);
 
     symsByPrettyName[sym->getPrettyName()].push_back(sym);
@@ -744,6 +772,7 @@ bool Symtab::addSymbolToIndices(Symbol *&sym)
 
 bool Symtab::addSymbolToAggregates(Symbol *&sym) 
 {
+
     switch(sym->getType()) {
     case Symbol::ST_FUNCTION: {
         // We want to do the following:
@@ -780,7 +809,7 @@ bool Symtab::addSymbolToAggregates(Symbol *&sym)
                 sorted_everyFunction = false;
             }
             func->addSymbol(sym);
-        }
+        } 
         sym->setFunction(func);
 
         break;
@@ -800,14 +829,23 @@ bool Symtab::addSymbolToAggregates(Symbol *&sym)
         }
         else {
             /* XXX
-             * See comment above about uniqueness of symbols in relocatable
-             * files
+             * For relocatable files, the offset is not a unique identifier for
+             * a Symbol. With functions, the Region and offset could be used to
+             * identify the symbol. With variables, the Region and offset may 
+             * not uniquely identify the symbol. The only case were this occurs
+             * is with COMMON symbols -- their offset is their memory alignment
+             * and their Region is undefined. In this case, always create a 
+             * new variable.
              */
-            if( var->getRegion() != sym->getRegion() ) {
+            if( obj_RelocatableFile == getObjectType() &&
+                ( var->getRegion() != sym->getRegion() ||
+                  NULL == sym->getRegion() ) )
+            {
                 var = new Variable(sym);
                 everyVariable.push_back(var);
+            }else{
+                var->addSymbol(sym);
             }
-            var->addSymbol(sym);
         }
         sym->setVariable(var);
         break;
@@ -817,6 +855,23 @@ bool Symtab::addSymbolToAggregates(Symbol *&sym)
     }
     }
     return true;
+}
+
+// A hacky override for specially treating symbols that appear
+// to be functions or variables but aren't.
+//
+// Example: IA-32/AMD-64 libc (and others compiled with libc headers)
+// uses outlined locking primitives. These are named _L_lock_<num>
+// and _L_unlock_<num> and labelled as functions. We explicitly do
+// not include them in function scope.
+bool Symtab::doNotAggregate(Symbol *&sym) {
+  if (sym->getMangledName().compare(0, strlen("_L_lock_"), "_L_lock_") == 0) {
+    return true;
+  }
+  if (sym->getMangledName().compare(0, strlen("_L_unlock_"), "_L_unlock_") == 0) {
+    return true;
+  }
+  return false;
 }
 
 /* Add the new name to the appropriate symbol index */
@@ -1033,7 +1088,8 @@ Symtab::Symtab(std::string filename,bool &err) :
    nativeCompiler(false), 
    isLineInfoValid_(false), 
    isTypeInfoValid_(false),
-   obj_private(NULL)
+   obj_private(NULL),
+   _ref_cnt(1)
 {
     init_debug_symtabAPI();
    // Initialize error parameter
@@ -1081,7 +1137,8 @@ Symtab::Symtab(char *mem_image, size_t image_size, bool &err) :
    nativeCompiler(false),
    isLineInfoValid_(false),
    isTypeInfoValid_(false),
-   obj_private(NULL)
+   obj_private(NULL),
+   _ref_cnt(1)
 {
    // Initialize error parameter
    err = false;
@@ -1128,7 +1185,8 @@ Symtab::Symtab(std::string filename, std::string member_name, Offset offset,
    nativeCompiler(false), 
    isLineInfoValid_(false),
    isTypeInfoValid_(false), 
-   obj_private(NULL)
+   obj_private(NULL),
+   _ref_cnt(1)
 {
    mf = MappedFile::createMappedFile(filename);
    assert(mf);
@@ -1159,7 +1217,8 @@ Symtab::Symtab(char *mem_image, size_t image_size, std::string member_name,
    main_call_addr_(0),
    nativeCompiler(false), 
    isLineInfoValid_(false), 
-   isTypeInfoValid_(false)
+   isTypeInfoValid_(false),
+   _ref_cnt(1)
 {
    mf = MappedFile::createMappedFile(mem_image, image_size);
    assert(mf);
@@ -1436,7 +1495,8 @@ bool Symtab::extractInfo(Object *linkedFile)
 Symtab::Symtab(const Symtab& obj) :
    LookupInterface(),
    Serializable(),
-   AnnotatableSparse()
+   AnnotatableSparse(),
+   _ref_cnt(1)
 {
     create_printf("%s[%d]: Creating symtab 0x%p from symtab 0x%p\n", FILE__, __LINE__, this, &obj);
   
@@ -1507,6 +1567,11 @@ bool Symtab::isValidOffset(const Offset where) const
  */
 bool Symtab::isCode(const Offset where)  const
 {
+#if defined(os_vxworks)
+    // All memory is valid in the kernel.  Kinda.
+    //return true;
+#endif
+
    if (!codeRegions_.size()) 
    {
       fprintf(stderr, "%s[%d] No code regions in %s \n",
@@ -1860,16 +1925,20 @@ bool Symtab::closeSymtab(Symtab *st)
 	bool found = false;
 	if (!st) return false;
 
+    --(st->_ref_cnt);
+
 	std::vector<Symtab *>::reverse_iterator iter;
 	for (iter = allSymtabs.rbegin(); iter != allSymtabs.rend() ; iter++)
 	{
 		if (*iter == st)
 		{
-			allSymtabs.erase(iter.base() -1);
+            if(0 == st->_ref_cnt)
+			    allSymtabs.erase(iter.base() -1);
 			found = true;
 		}
 	}
-	delete(st);
+    if(0 == st->_ref_cnt)
+	    delete(st);
 	return found;
 }
 
@@ -1882,6 +1951,7 @@ Symtab *Symtab::findOpenSymtab(std::string filename)
 		if (filename == allSymtabs[u]->file() && 
           allSymtabs[u]->mf->canBeShared()) 
 		{
+            allSymtabs[u]->_ref_cnt++;
 			// return it
 			return allSymtabs[u];
 		}
@@ -1936,6 +2006,7 @@ bool Symtab::openFile(Symtab *&obj, std::string filename)
 #endif
 
    obj = new Symtab(filename, err);
+
 #if defined(TIMED_PARSE)
    struct timeval endtime;
    gettimeofday(&endtime, NULL);
@@ -2213,6 +2284,15 @@ SYMTAB_EXPORT bool Symtab::addAddressRange( Offset lowInclusiveAddr, Offset high
             lineSource.c_str(), lineNo, lineOffset));
 }
 
+void Symtab::setTruncateLinePaths(bool value)
+{
+   getObject()->setTruncateLinePaths(value);
+}
+
+bool Symtab::getTruncateLinePaths()
+{
+   return getObject()->getTruncateLinePaths();
+}
 
 void Symtab::parseTypes()
 {
@@ -2496,6 +2576,112 @@ SYMTAB_EXPORT bool Symtab::getMappedRegions(std::vector<Region *> &mappedRegs) c
    return false;
 }
 
+SYMTAB_EXPORT bool Symtab::fixup_RegionAddr(const char* name, Offset memOffset, long memSize)
+{
+    Region *sec;
+
+    if (!findRegion(sec, name)) {
+        fprintf(stderr, "Couldn't find region %s\n", name);
+        assert(0);
+        return false;
+    }
+
+    if (!strcmp(name, ".text")) {
+        vector<relocationEntry> relocs;
+
+        // Fix relocation table with correct memory address
+        getObject()->get_func_binding_table(relocs);
+//        fprintf(stderr, "There are %d relocs in this symtab.\n", relocs.size());
+        for (unsigned i=0; i < relocs.size(); i++) {
+            Offset value = relocs[i].rel_addr();
+            relocs[i].setRelAddr(memOffset + value);
+//            fprintf(stderr, "Fixing relocation from 0x%x to 0x%x\n", value, memOffset + value);
+        }
+
+        relocation_table_ = relocs;
+    }
+
+#if defined(_MSC_VER)
+    regionsByEntryAddr.erase(sec->getRegionAddr());
+#endif
+
+    sec->setMemOffset(memOffset);
+    sec->setMemSize(memSize);
+
+#if defined(_MSC_VER)
+    regionsByEntryAddr[sec->getRegionAddr()] = sec;
+#endif
+
+    std::sort(codeRegions_.begin(), codeRegions_.end(), sort_reg_by_addr);
+    std::sort(dataRegions_.begin(), dataRegions_.end(), sort_reg_by_addr);
+    std::sort(regions_.begin(), regions_.end(), sort_reg_by_addr);
+    return true;
+}
+
+SYMTAB_EXPORT bool Symtab::fixup_SymbolAddr(const char* name, Offset newOffset)
+{
+    // Find the symbol.
+    Symbol *sym = NULL;
+    unsigned int i;
+    for (i = 0; i < everyDefinedSymbol.size(); ++i)
+        if (everyDefinedSymbol[i]->getMangledName() == name) {
+            sym = everyDefinedSymbol[i];
+            break;
+        }
+    if (!sym) {
+        fprintf(stderr, "VxWorks found symbol %s that we didn't know about.  Skipping...\n", name);
+        assert(0);
+        return false;
+    }
+
+    // Update symbol.
+    Offset oldOffset = sym->getOffset();
+    sym->setOffset(newOffset);
+    //fprintf(stderr, "Fixing symbol %s from 0x%x to 0x%x\n", name, oldOffset, newOffset);
+
+    // Update hashes.
+    if (symsByOffset.count(oldOffset)) {
+        std::vector<Symbol *>::iterator iter = symsByOffset[oldOffset].begin();
+        while (iter != symsByOffset[oldOffset].end()) {
+            if (*iter == sym) {
+                symsByOffset[oldOffset].erase(iter);
+                iter = symsByOffset[oldOffset].begin();
+
+            } else iter++;
+        }
+    }
+    if (!findSymbolByOffset(newOffset))
+        symsByOffset[newOffset].push_back(sym);
+
+    // Update aggregates.
+    if (!doNotAggregate(sym)) {
+      addSymbolToAggregates(sym);
+    }
+
+#if 0
+    if (funcsByOffset.count(oldOffset) > 0) {
+        Function *func = funcsByOffset[oldOffset];
+
+        func->changeSymbolOffset(sym);
+        funcsByOffset.erase(oldOffset);
+        funcsByOffset[newOffset] = func;
+
+        // DEBUG fprintf(stderr, "Symbol was a function\n");
+    }
+
+    if (varsByOffset.count(oldOffset) > 0) {
+        Variable *var = varsByOffset[oldOffset];
+
+        var->changeSymbolOffset(sym);
+        varsByOffset.erase(oldOffset);
+        varsByOffset[newOffset] = var;
+        // DEBUG fprintf(stderr, "Symbol was a variable\n");
+    }
+#endif
+
+    return true;
+}
+
 SYMTAB_EXPORT bool Symtab::updateRegion(const char* name, void *buffer, unsigned size)
 {
    Region *sec;
@@ -2525,7 +2711,6 @@ SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size)
    Offset highWaterMark = 0;
    Offset secoffset = 0;
    Offset prevSecoffset = 0;
-
    Object *linkedFile = getObject();
 	if (!linkedFile)
 	{
@@ -2611,6 +2796,11 @@ SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size)
 SYMTAB_EXPORT ObjectType Symtab::getObjectType() const 
 {
    return object_type_;
+}
+
+SYMTAB_EXPORT Dyninst::Architecture Symtab::getArchitecture()
+{
+   return getObject()->getArch();
 }
 
 SYMTAB_EXPORT char *Symtab::mem_image() const 
@@ -3232,10 +3422,6 @@ void Symtab::parseTypesNow()
       return;
 
    parseTypes();
-}
-
-MemRegReader::~MemRegReader()
-{
 }
 
 #if defined (cap_serialization)

@@ -26,7 +26,7 @@ SRCS =		../src/pdwinnt.C \
 		../src/LocalAlteration.C \
 		../src/LocalAlteration-x86.C \
 		../src/FunctionExpansionRecord.C \
-		../src/arch-x86.C \
+		../src/codegen-x86.C \
 		../src/InstrucIter-x86.C \
 		../src/pdwinntDL.C \
 		../src/dynamiclinking.C
@@ -36,7 +36,7 @@ SRCS =		../src/pdwinnt.C \
 OBJS = 		pdwinnt.obj \
 		inst-winnt.obj \
 		inst-x86.obj \
-		arch-x86.obj \
+		codegen-x86.obj \
 		syscall-nt.obj \
 		func-reloc.obj \
 		LocalAlteration.obj \

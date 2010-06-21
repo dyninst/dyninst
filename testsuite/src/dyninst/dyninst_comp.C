@@ -84,6 +84,7 @@ public:
 
 bool isMutateeMABI32(const char *name);
 bool isMutateeXLC(const char *name);
+
 static bool debugPrint;
 
 DyninstComponent::DyninstComponent() :
@@ -159,7 +160,8 @@ test_results_t DyninstComponent::group_setup(RunGroup *group,
    appProc = NULL;
    appAddrSpace = NULL;
    appBinEdit = NULL;
-   clear_mutateelog();
+   char *mutatee_resumelog = params["mutatee_resumelog"]->getString();
+   clear_mutateelog(mutatee_resumelog);
 
    /*   if (group->customExecution)
    {
@@ -179,11 +181,13 @@ test_results_t DyninstComponent::group_setup(RunGroup *group,
          bool printLabels = (bool) params["printlabels"]->getInt();
          bool debugPrint = (bool) params["debugPrint"]->getInt();
          char *humanlogname = params["humanlogname"]->getString();
+         int uniqueid = params["unique_id"]->getInt();
          
          appThread = startMutateeTest(bpatch, group, logfilename,
                                       (humanlog) ? humanlogname : NULL,
                                       verboseFormat, printLabels, debugPrint,
-                                      getPIDFilename());
+                                      getPIDFilename(),
+                                      mutatee_resumelog, uniqueid);
          if (!appThread) {
             getOutput()->log(STDERR, "Skipping test because startup failed\n");
             err_msg = std::string("Unable to run test program: ") + 
@@ -246,6 +250,7 @@ test_results_t DyninstComponent::group_teardown(RunGroup *group,
          someTestPassed = true;
       }
    }
+   char *mutatee_resumelog = params["mutatee_resumelog"]->getString();
 
    if (group->useAttach == DISK) {
       if (!someTestPassed)
@@ -257,11 +262,12 @@ test_results_t DyninstComponent::group_teardown(RunGroup *group,
       bool debugPrint = (bool) params["debugPrint"]->getInt();
       char *humanlogname = params["humanlogname"]->getString();
       bool noClean = (bool) params["noClean"]->getInt();
+      int unique_id = params["unique_id"]->getInt();
       
       test_results_t test_result;
       runBinaryTest(bpatch, group, appBinEdit,
                     logfilename, humanlogname, verboseFormat, printLabels,
-                    debugPrint, getPIDFilename(), noClean, test_result);
+                    debugPrint, getPIDFilename(), mutatee_resumelog, unique_id, noClean, test_result);
       return test_result;
    }
 
@@ -300,7 +306,7 @@ test_results_t DyninstComponent::group_teardown(RunGroup *group,
       getOutput()->log(LOGINFO, "Mutatee exit code 0x%x\n", exitCode);
    }
 
-   parse_mutateelog(group);
+   parse_mutateelog(group, mutatee_resumelog);
 
    return UNKNOWN;
 }
@@ -575,7 +581,14 @@ int replaceFunctionCalls(BPatch_addressSpace *appAddrSpace, BPatch_image *appIma
    if (replacement != NULL) {
       
       BPatch_Vector<BPatch_function *> bpfv;
-      if (NULL == appImage->findFunction(replacement, bpfv) || !bpfv.size()
+      /*
+       * Include `uninstrumentable' functions here because function
+       * call replacement works regardless of whether the target is
+       * instrumentable or not. This is required to support targets
+       * in static libraries, where all code is uinstrumentable by
+       * default.
+       */
+      if (NULL == appImage->findFunction(replacement, bpfv,true,true,true) || !bpfv.size()
           || NULL == bpfv[0]){
          logerror("**Failed** test #%d (%s)\n", testNo, testName);
          logerror("    Unable to find function %s\n", replacement);

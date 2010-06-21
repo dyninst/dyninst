@@ -37,7 +37,6 @@
 #include <map>
 #include <sstream>
 
-//#include "RegisterIDs-x86.h"
 #include "dyn_regs.h"
 
 namespace Dyninst

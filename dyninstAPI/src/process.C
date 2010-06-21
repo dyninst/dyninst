@@ -41,6 +41,7 @@
 #include <stdio.h>
 
 #include "common/h/headers.h"
+#include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/function.h"
 #include "symtabAPI/h/Symtab.h"
 //#include "dyninstAPI/src/func-reloc.h"
@@ -53,7 +54,6 @@
 #include "dyninstAPI/src/signalgenerator.h"
 #include "dyninstAPI/src/mailbox.h"
 #include "dyninstAPI/src/EventHandler.h"
-#include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
@@ -121,8 +121,7 @@ void printLoadDyninstLibraryError() {
 }
 
 /* AIX method defined in aix.C; hijacked for IA-64's GP. */
-#if !defined(arch_power) \
- && !defined(ia64_unknown_linux2_4)
+#if !defined(arch_power)
 Address process::getTOCoffsetInfo(Address /*dest */)
 {
   Address tmp = 0;
@@ -188,7 +187,7 @@ extern void calcVSyscallFrame(process *p);
 
 // Note: stack walks may terminate early. In this case, return what we can.
 // Relies on the getCallerFrame method in the various <os>.C files
-#if !defined(os_linux)
+#if !defined(os_linux) 
 Frame process::preStackWalkInit(Frame startFrame) {
     return startFrame;
 }
@@ -387,10 +386,6 @@ bool process::getInfHeapList(mapped_object *obj,
  */
 bool process::isInSignalHandler(Address addr)
 {
-#if defined(arch_ia64)
-    // We handle this elsewhere
-    return false;
-#endif
     codeRange *range;
     if (signalHandlerLocations_.find(addr, range))
         return true;
@@ -1572,15 +1567,6 @@ process::~process()
         assert(!isAttached());
     }
 
-#if defined( ia64_unknown_linux2_4 )
-	upaIterator iter = unwindProcessArgs.begin();
-	for( ; iter != unwindProcessArgs.end(); ++iter ) {
-		void * unwindProcessArg = * iter;
-		if( unwindProcessArg != NULL ) { getDBI()->UPTdestroy( unwindProcessArg ); }
-		}
-	if( unwindAddressSpace != NULL ) { getDBI()->destroyUnwindAddressSpace( unwindAddressSpace ); }
-#endif
-    
     // Most of the deletion is encapsulated in deleteProcess
     deleteProcess();
 
@@ -1659,10 +1645,6 @@ process::process(SignalGenerator *sh_) :
     traceSysCalls_(false),
     traceState_(noTracing_ts),
     libcstartmain_brk_addr(0)
-#if defined(arch_ia64)
-    , unwindAddressSpace( NULL )
-    , unwindProcessArgs( addrHash )
-#endif
 #if defined(os_linux)
     , vsys_status_(vsys_unknown)
     , vsyscall_start_(0)
@@ -2004,12 +1986,29 @@ bool process::setupFork()
     return true;
 }
 
+Architecture
+process::getArch() const {
+    if(mapped_objects.size() > 0)
+        return mapped_objects[0]->parse_img()->codeObject()->cs()->getArch();
+    // as with getAddressWidth(), we can call this before we've attached.. 
+    return Arch_none;
+}
 
 unsigned process::getAddressWidth() const { 
     if (mapped_objects.size() > 0)
-        return mapped_objects[0]->parse_img()->getObject()->getAddressWidth(); 
+        return mapped_objects[0]->parse_img()->codeObject()->cs()->getAddressWidth(); 
     // We can call this before we've attached.. 
     return 4;
+}
+
+Address process::offset() const {
+    fprintf(stderr,"process::offset() unimpl\n");
+    return 0;
+}
+
+Address process::length() const {
+    fprintf(stderr,"process::length() unimpl\n");
+    return 0;
 }
 
 bool process::setAOut(fileDescriptor &desc) 
@@ -2156,10 +2155,6 @@ process::process(process *parentProc, SignalGenerator *sg_, int childTrace_fd) :
     traceSysCalls_(parentProc->getTraceSysCalls()),
     traceState_(parentProc->getTraceState()),
     libcstartmain_brk_addr(parentProc->getlibcstartmain_brk_addr())
-#if defined(arch_ia64)
-    , unwindAddressSpace( NULL )
-    , unwindProcessArgs( addrHash )
-#endif
 #if defined(os_linux)
     , vsyscall_start_(parentProc->vsyscall_start_)
     , vsyscall_end_(parentProc->vsyscall_end_)
@@ -2492,9 +2487,11 @@ bool process::loadDyninstLib() {
        
       setBootstrapState(loadingRT_bs);
 
+#if !defined(os_vxworks)
       if (!sh->continueProcessAsync()) {
          assert(0);
       }
+#endif
        
       // Loop until the dyninst lib is loaded
       while (!reachedBootstrapState(loadedRT_bs)) {
@@ -2776,11 +2773,11 @@ bool process::finalizeDyninstLib()
 {
    startup_printf("%s[%d]:  isAttached() = %s\n", FILE__, __LINE__, isAttached() ? "true" : "false");
    startup_printf("%s[%d]: %s\n", FILE__, __LINE__, getStatusAsString().c_str());
-   
-    assert (isStopped());
-    if (reachedBootstrapState(bootstrapped_bs)) {
-        return true;
-    }
+
+   assert (isStopped());
+   if (reachedBootstrapState(bootstrapped_bs)) {
+       return true;
+   }
 
    DYNINST_bootstrapStruct bs_record;
    if (!extractBootstrapStruct(&bs_record))
@@ -3186,8 +3183,6 @@ void process::writeDebugDataSpace(void *inTracedProcess, u_int amount,
     write_printf("amd64_");
 #elif defined(arch_x86)
   write_printf("x86_");
-#elif defined(arch_ia64)
-  write_printf("ia64_");
 #elif defined(arch_power)
   write_printf("power_");
 #elif defined(arch_sparc)
@@ -3211,6 +3206,26 @@ void process::writeDebugDataSpace(void *inTracedProcess, u_int amount,
 /*
  * Copy data from controller process to the named process.
  */
+#if defined(endian_mismatch)
+bool process::writeDataWord(void *inTracedProcess, unsigned size,
+                            const void *inSelf)
+{
+    if (size != 2 && size != 4 && size != 8) return false;
+
+    char buf[8];
+    const char *word = (const char *)inSelf;
+    unsigned int head, tail;
+    for (head = 0, tail = size - 1; head < size; ++head, --tail)
+        buf[head] = word[tail];
+
+    return writeDataSpace(inTracedProcess, size, buf);
+}
+#else
+bool process::writeDataWord(void *inTracedProcess, unsigned size,
+                            const void *inSelf)
+{ return writeDataSpace(inTracedProcess, size, inSelf); }
+#endif
+
 bool process::writeDataSpace(void *inTracedProcess, unsigned size,
                              const void *inSelf) 
 {
@@ -3250,7 +3265,30 @@ bool process::writeDataSpace(void *inTracedProcess, unsigned size,
    return true;
 }
 
-bool process::readDataSpace(const void *inTracedProcess, unsigned size,
+#if defined(endian_mismatch)
+bool process::readDataWord(const void *inTracedProcess, u_int size,
+                           void *inSelf, bool displayErrMsg)
+{
+    if ((size != 2 && size != 4 && size != 8) ||
+        !readDataSpace(inTracedProcess, size, inSelf, displayErrMsg))
+        return false;
+
+    char *buf = (char *)inSelf;
+    unsigned int head, tail;
+    for (head = 0, tail = size - 1; tail > head; ++head, --tail) {
+        buf[head] = buf[head] ^ buf[tail];
+        buf[tail] = buf[head] ^ buf[tail];
+        buf[head] = buf[head] ^ buf[tail];
+    }
+    return true;
+}
+#else
+bool process::readDataWord(const void *inTracedProcess, u_int size,
+                           void *inSelf, bool displayErrMsg)
+{ return readDataSpace(inTracedProcess, size, inSelf, displayErrMsg); }
+#endif
+
+bool process::readDataSpace(const void *inTracedProcess, u_int size,
                             void *inSelf, bool displayErrMsg) 
 {
    bool needToCont = false;
@@ -3297,6 +3335,27 @@ bool process::readDataSpace(const void *inTracedProcess, unsigned size,
    return res;
 }
 
+#if defined(endian_mismatch)
+bool process::writeTextWord(void *inTracedProcess, u_int amount,
+                            const void *inSelf)
+{
+    if (amount != 2 && amount != 4 && amount != 8) return false;
+
+    char buf[8];
+    const char *word = (const char *)inSelf;
+    unsigned int head, tail;
+    for (head = 0, tail = amount - 1; head < amount; ++head, --tail)
+        buf[head] = word[tail];
+
+    return writeTextSpace(inTracedProcess, amount, buf);
+}
+#else
+bool process::writeTextWord(void *inTracedProcess, u_int amount,
+                            const void *inSelf)
+{ return writeTextSpace(inTracedProcess, amount, inSelf); }
+#endif
+
+#if 0
 bool process::writeTextWord(caddr_t inTracedProcess, int data) {
    bool needToCont = false;
 
@@ -3332,6 +3391,7 @@ bool process::writeTextWord(caddr_t inTracedProcess, int data) {
   }
   return true;
 }
+#endif
 
 bool process::writeTextSpace(void *inTracedProcess, u_int amount, 
                              const void *inSelf) 
@@ -3378,9 +3438,32 @@ bool process::writeTextSpace(void *inTracedProcess, u_int amount,
   return true;
 }
 
+#if defined(endian_mismatch)
+bool process::readTextWord(const void *inTracedProcess, u_int amount,
+                           void *inSelf)
+{
+    if ((amount != 2 && amount != 4 && amount != 8) ||
+        !readTextSpace(inTracedProcess, amount, inSelf))
+        return false;
+
+    char *buf = (char *)inSelf;
+    unsigned int head, tail;
+    for (head = 0, tail = amount - 1; tail > amount; ++head, --tail) {
+        buf[head] = buf[head] ^ buf[tail];
+        buf[tail] = buf[head] ^ buf[tail];
+        buf[head] = buf[head] ^ buf[tail];
+    }
+    return true;
+}
+#else
+bool process::readTextWord(const void *inTracedProcess, u_int amount,
+                           void *inSelf)
+{ return readTextSpace(inTracedProcess, amount, inSelf); }
+#endif
+
 // InsrucIter uses readTextSpace
 bool process::readTextSpace(const void *inTracedProcess, u_int amount,
-                            const void *inSelf)
+                            void *inSelf)
 {
    bool needToCont = false;
 
@@ -3398,9 +3481,7 @@ bool process::readTextSpace(const void *inTracedProcess, u_int amount,
       }
    }
 
-   bool res = stopped_lwp->readTextSpace(const_cast<void*>(inTracedProcess),
-                                         amount, inSelf);
-
+   bool res = stopped_lwp->readTextSpace(inTracedProcess, amount, inSelf);
    if (!res) {
       sprintf(errorLine, "System error: "
               "<>unable to read %d@%s from process text space: %s (pid=%d)",
@@ -3737,6 +3818,11 @@ check_rtinst(process *proc, mapped_object *so)
      if (! proc->readDataSpace((void*)((*vars)[0]->getAddress()), sizeof(val), (void*)&val, true)) {
          return 0;
      }
+
+#if defined(endian_mismatch)
+     val = swapBytesIfNeeded(val);
+#endif
+
      if (val == 0) {
          /* The library has been loaded, but not initialized */
          return 1;
@@ -3767,11 +3853,11 @@ bool process::addASharedObject(mapped_object *new_obj)
     signal_printf("Adding shared object %s, addr range 0x%x to 0x%x\n",
                    new_obj->fileName().c_str(),
                    new_obj->getBaseAddress(),
-                   new_obj->get_size());
+                   new_obj->getBaseAddress() + new_obj->get_size());
     parsing_printf("Adding shared object %s, addr range 0x%x to 0x%x\n",
            new_obj->fileName().c_str(), 
            new_obj->getBaseAddress(),
-           new_obj->get_size());
+           new_obj->getBaseAddress() + new_obj->get_size());
     // TODO: check for "is_elf64" consistency (Object)
 
     // If the static inferior heap has been initialized, then 
@@ -4075,8 +4161,7 @@ bool process::detach(const bool leaveRunning )
 {
 
 #if !defined(i386_unknown_linux2_0) \
- && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- && !defined(ia64_unknown_linux2_4)
+ && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
     // Run the process if desired
     // Linux does not support this for two reasons: 1) the process must be paused
     // when we detach, and 2) the process is _always_ continued when we detach
@@ -4098,9 +4183,29 @@ bool process::detach(const bool leaveRunning )
         lwp->detach();
     }
 
+    // Get rid of everything that could contain a trap that we'll no longer handle.
+    // This means the dynamic linker trap, syscall traps, and trap-based instrumentation.
+    if(dyn) {
+        dyn->uninstallTracing();
+    }
+
+    if (tracedSyscalls_) {
+        delete tracedSyscalls_;
+        tracedSyscalls_ = NULL;
+    }
+
+#if defined(cap_syscall_trap)
+    for (unsigned iter = 0; iter < syscallTraps_.size(); iter++) {
+        if(syscallTraps_[iter] != NULL) {
+            clearSyscallTrapInternal(syscallTraps_[iter]);
+            delete syscallTraps_[iter];
+        }
+    }
+    syscallTraps_.clear();
+#endif
+
 #if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(ia64_unknown_linux2_4)
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
     // On Lee-nucks the process occasionally does _not_ continue. On the
     // other hand, we've detached from it. So here we send a SIGCONT
     // to continue the proc (if the user wants it) and SIGSTOP to stop it
@@ -4410,6 +4515,8 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests)
         for (unsigned funcIter = 0; funcIter < matchingFuncs.size(); funcIter++) {
             int_function *func = matchingFuncs[funcIter];
             if (!func) {
+                inst_printf("%s[%d]: null int_func detected\n",
+                    FILE__,__LINE__);
                 continue;  // probably should have a flag telling us whether errors
             }
             
@@ -4498,7 +4605,7 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests)
 }
 
 
-
+#if !defined(os_vxworks)
 bool process::extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record)
 {
   const std::string vrbleName = "DYNINST_bootstrap_info";
@@ -4517,6 +4624,7 @@ bool process::extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record)
   }
   return true;
 }
+#endif
 
 bool process::isAttached() const {
     if (status_ == exited ||
@@ -5313,7 +5421,7 @@ bool process::recognize_threads(process *parent)
             
         if (lwp->is_asLWP()) continue;
         
-        const pdvector<int_function *> *thread_funcs;
+        const pdvector<int_function *> *thread_funcs = NULL;
         
         pdvector<mapped_object *>::iterator runtime_lib_it;
         for(runtime_lib_it = runtime_lib.begin(); 

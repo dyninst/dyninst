@@ -36,11 +36,15 @@
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/mapped_module.h"
 #include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/debug.h"
 #include "symtabAPI/h/Symtab.h"
 #include "process.h"
 
+#include "Parsing.h"
+
 using namespace Dyninst;
+using namespace Dyninst::ParseAPI;
 
 #define FS_FIELD_SEPERATOR '/'
 
@@ -97,7 +101,7 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
       // GCC-ism. This is a shared library with a a.out-like codeOffset.
       // We need to make our base the difference between the two...
       codeBase_ -= image_->imageOffset();
-      Region *sec;
+      SymtabAPI::Region *sec;
       image_->getObject()->findRegion(sec, ".text");
       //fprintf(stderr, "codeBase 0x%x, rawPtr 0x%x, BaseOffset 0x%x, size %d\n",
       //	codeBase_, (Address)sec->getPtrToRawData() , image_->getObject()->getBaseAddress());
@@ -110,7 +114,7 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
       // of file to interesting bits"). 
       // Non-GCC shared libraries.
       //codeBase_ += image_->getObject()->text_reloc();
-      Region *sec;
+      SymtabAPI::Region *sec;
       image_->getObject()->findRegion(sec, ".text");
       //fprintf(stderr, "codeBase 0x%x, rawPtr 0x%x, BaseOffset 0x%x, size %d\n",
       //	codeBase_, (Address)sec->getPtrToRawData() , image_->getObject()->getBaseOffset());
@@ -150,20 +154,8 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
    // Sets "fileName_"
    set_short_name();
 
-#if 0
-   // Let's try delayed parsing, shall we?
-
-   const pdvector<image_func *> &exportedFuncs = image_->getExportedFunctions();
-   //fprintf(stderr, "%d exported functions\n", exportedFuncs.size());
-    for (unsigned fi = 0; fi < exportedFuncs.size(); fi++) {
-        addFunction(exportedFuncs[fi]);
-    }
-    const pdvector<image_variable *> &exportedVars = image_->getExportedVariables();
-    //fprintf(stderr, "%d exported variables\n", exportedVars.size());
-    for (unsigned vi = 0; vi < exportedVars.size(); vi++) {
-        addVariable(exportedVars[vi]);
-
-    }
+#if defined(os_vxworks)
+    launch_task(fileDesc.file(), this);
 #endif
 }
 
@@ -210,7 +202,7 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
       // binary (which is different from the isSharedObject()) call above.
       // If so, we need to update the load address.
       if (p->proc() &&
-            (img->getObject()->getObjectType() == obj_SharedLib)) {
+            (img->getObject()->getObjectType() == SymtabAPI::obj_SharedLib)) {
          //Executable is a shared lib
          p->proc()->setAOutLoadAddress(desc);
       }
@@ -221,7 +213,7 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
       // More specifically, x86 and x86_64 linux
 #if defined(arch_x86) || defined(arch_x86_64)
 
-      vector <Function *> main;
+      vector <SymtabAPI::Function *> main;
       if (p->proc() && 
           (p->proc()->getTraceState() == noTracing_ts) &&
           !p->proc()->wasCreatedViaAttach() &&
@@ -374,10 +366,12 @@ bool mapped_object::analyze()
 
   // We already have exported ones. Force analysis (if needed) and get
   // the functions we created via analysis.
-  pdvector<image_func *> unmappedFuncs = image_->getCreatedFunctions();
+  CodeObject::funclist & allFuncs = parse_img()->getAllFunctions();
+  CodeObject::funclist::iterator fit = allFuncs.begin();
+  for( ; fit != allFuncs.end(); ++fit) {
   // For each function, we want to add our base address
-  for (unsigned fi = 0; fi < unmappedFuncs.size(); fi++) {
-      findFunction(unmappedFuncs[fi]);
+      if((*fit)->src() != HINT)
+        findFunction((image_func*)*fit);
   }
   
   // Remember: variables don't.
@@ -392,6 +386,8 @@ bool mapped_object::analyze()
  * phase, we need to trigger analysis and enter it into the
  * appropriate datastructures.
  */
+
+// FIXME has not been updated for ParseAPI
 bool mapped_object::analyzeNewFunctions(vector<image_func *> *funcs)
 {
     if (!funcs || !funcs->size()) {
@@ -403,10 +399,15 @@ bool mapped_object::analyzeNewFunctions(vector<image_func *> *funcs)
         if (everyUniqueFunction.defines(*curfunc)) {
             curfunc = funcs->erase(curfunc);
         } else {
+
+
+
             // do control-flow traversal parsing starting from this function
+            /* FIXME IMPLEMENT for parseapi
             if((*curfunc)->parse()) {
                 parse_img()->recordFunction(*curfunc);
             } // FIXME else?
+            */
 
             curfunc++;
         }
@@ -415,12 +416,15 @@ bool mapped_object::analyzeNewFunctions(vector<image_func *> *funcs)
         return true;
     }
 
-    // add the functions we created to our datastructures
-    pdvector<image_func *> newFuncs = parse_img()->getCreatedFunctions();
-    for (unsigned i=0; i < newFuncs.size(); i++) {
-        image_func *curFunc = newFuncs[i];
+    // add the functions we created (non-HINT source) to our datastructures
+    CodeObject::funclist & allFuncs = parse_img()->getAllFunctions();
+    CodeObject::funclist::iterator fit = allFuncs.begin();
+    for( ; fit != allFuncs.end(); ++fit) {
+        image_func *curFunc = (image_func*)*fit;
+        if(curFunc->src() == HINT)
+            continue;
         if ( ! everyUniqueFunction.defines(curFunc) ) { 
-            curFunc->checkCallPoints();
+            //curFunc->checkCallPoints();
             // add function to datastructures
             findFunction(curFunc);
         }
@@ -580,7 +584,7 @@ const pdvector <int_function *> *mapped_object::findFuncVectorByMangled(const st
     // First, check the underlying image.
     const pdvector<image_func *> *img_funcs = parse_img()->findFuncVectorByMangled(funcname);
     if (img_funcs == NULL) return NULL;
-    
+
     assert(img_funcs->size());
     // Fast path:
     if (allFunctionsByMangledName.defines(funcname)) {
@@ -691,36 +695,33 @@ codeRange *mapped_object::findCodeRangeByAddress(const Address &addr)  {
         return NULL;
     }
 
-    codeRange *range;
+    codeRange *range = NULL;
     if (codeRangesByAddr_.find(addr, range)) {
         return range;
     }
+    // reset range, which may have been modified
+    // by codeRange::find
+    range = NULL;
 
     // Duck into the image class to see if anything matches
-    codeRange *img_range = parse_img()->findCodeRangeByOffset(addr - codeBase());
-    if (!img_range)
-        return NULL;
-
-    if (img_range->is_image_func()) {
-        image_func *img_func = img_range->is_image_func();
+    set<ParseAPI::Function*> stab;
+    parse_img()->findFuncs(addr - codeBase(),stab);
+    if(!stab.empty()) {
+        // FIXME what if there are multiple functions at this point?
+        image_func * img_func = (image_func*)*stab.begin();
         int_function *func = findFunction(img_func);
         assert(func);
         func->blocks(); // Adds to codeRangesByAddr_...
         // And repeat...
         bool res = codeRangesByAddr_.find(addr, range);
-        
         if (!res) {
             // Possible: we do a basic-block level search at this point, and a gap (or non-symtab parsing)
             // may skip an address.
             return NULL;
         }
-        return range;
     }
-    else {
-        fprintf(stderr, "ERROR: unknown lookup type at %s/%d, findCodeRange(0x%lx)\n",
-                __FILE__, __LINE__, addr);
-    }
-    return NULL;
+    
+    return range;
 }
 
 int_function *mapped_object::findFuncByAddr(const Address &addr) {
@@ -745,15 +746,13 @@ const pdvector<mapped_module *> &mapped_object::getModules() {
 bool mapped_object::getAllFunctions(pdvector<int_function *> &funcs) {
     unsigned start = funcs.size();
 
-    const set<image_func *,image_func::compare> &img_funcs = 
-        parse_img()->getAllFunctions();
-    set<image_func *,image_func::compare>::const_iterator fit = 
-        img_funcs.begin();
+    CodeObject::funclist &img_funcs = parse_img()->getAllFunctions();
+    CodeObject::funclist::iterator fit = img_funcs.begin();
     for( ; fit != img_funcs.end(); ++fit) {
-        if(!everyUniqueFunction.defines(*fit)) {
-            findFunction(*fit);
+        if(!everyUniqueFunction.defines((image_func*)*fit)) {
+            findFunction((image_func*)*fit);
         }
-        funcs.push_back(everyUniqueFunction[*fit]);
+        funcs.push_back(everyUniqueFunction[(image_func*)*fit]);
     }
     return funcs.size() > start;
 }
@@ -883,16 +882,13 @@ int_variable *mapped_object::findVariable(image_variable *img_var) {
     
     mapped_module *mod = findModule(img_var->pdmod());
     assert(mod);
-    
-    int_variable *var = new int_variable(img_var,
-                                         dataBase_,
-                                         mod);
 
+    int_variable *var = new int_variable(img_var, dataBase_, mod);
     addVariable(var);
     return var;
 }
 
- void mapped_object::addVariable(int_variable *var) { 
+void mapped_object::addVariable(int_variable *var) { 
     
     // Possibly multiple demangled (pretty) names...
     // And multiple functions (different addr) with the same pretty
@@ -1028,7 +1024,7 @@ void mapped_object::getInferiorHeaps(vector<pair<string, Address> > &foundHeaps)
         // it goes (ARGH) so we pad the end of the code segment to
         // try and avoid it.
         
-        Region *sec;
+        SymtabAPI::Region *sec;
         image_->getObject()->findRegion(sec, ".loader");
         Address loader_end = codeAbs() + 
             //sec.getSecAddr() +
@@ -1075,7 +1071,7 @@ void *mapped_object::getPtrToInstruction(Address addr) const
    // Only subtract off the codeBase, not the codeBase plus
    // codeOffset -- the image class includes the codeOffset.
    Address offset = addr - codeBase();
-   return image_->getPtrToInstruction(offset);
+   return image_->codeObject()->cs()->getPtrToInstruction(offset);
 }
 
 void *mapped_object::getPtrToData(Address addr) const 
@@ -1086,7 +1082,7 @@ void *mapped_object::getPtrToData(Address addr) const
    // Don't go from the code base... the image adds back in the code
    // offset.
    Address offset = addr - dataBase();
-   return image_->getPtrToData(offset);
+   return image_->codeObject()->cs()->getPtrToData(offset);
 }
 
 // mapped objects may contain multiple Symtab::Regions, this function
@@ -1102,6 +1098,8 @@ void *mapped_object::get_local_ptr() const
 
 bool mapped_object::getSymbolInfo(const std::string &n, int_symbol &info) 
 {
+    using SymtabAPI::Symbol;
+
     assert(image_);
 
     Symbol *lowlevel_sym = image_->symbol_info(n);

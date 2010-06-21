@@ -43,6 +43,7 @@
 #include <algorithm>
 #include <sys/stat.h>
 #include <time.h>
+#include <limits.h>
 
 #if defined(os_windows_test)
 #define vsnprintf _vsnprintf
@@ -82,7 +83,7 @@ struct compiler_t {
 compiler_t compilers[] = {
    { "-gcc", "gcc", false },
    { "-g++", "g++", true },
-   { "-g77", "g77", true },
+   { "-gfortran", "gfortran", true },
    { "-icc", "icc", false },
    { "-icpc", "icpc", false },
    { "-pgcc", "pgcc", false },
@@ -130,6 +131,16 @@ bool runABI_32 = false;
 bool runABI_64 = false;
 bool limitSkippedTests = false;
 bool noclean = false;
+bool runMT = true;
+bool runST = true;
+bool setT = false;
+bool runMP = true;
+bool runSP = true;
+bool setP = false;
+bool runProcControl = false;
+bool runDynamicLink = false;
+bool runStaticLink = false;
+bool runAllLinks = true;
 int limitResumeGroup = -1;
 int limitResumeTest = -1;
 int skipToTest = 0;
@@ -139,7 +150,8 @@ int testLimit = 0;
 int testsRun = 0;
 int errorPrint = 0;
 int debugPrint = 0;
-char *resumelog_name = "resumelog";
+int unique_id = 0;
+int max_unique_id = 0;
 char *humanlog_name = "-";
 char *crashlog_name = "crashlog";
 char *measureFileName = "-";
@@ -155,7 +167,7 @@ FILE *outlog = NULL;
 FILE *errlog = NULL;
 
 char *pdscrdir = NULL;
-char *uw_pdscrdir = "/p/paradyn/builds/scripts";
+char *uw_pdscrdir = "/scratch/paradyn/builds/scripts";
 char *umd_pdscrdir = "/fs/dyninst/dyninst/current/scripts";
 
 int parseArgs(int argc, char *argv[]);
@@ -272,7 +284,7 @@ void setupProcessGroup()
 
 #endif
 
-void printLogMutateeHeader(const char *mutatee)
+void printLogMutateeHeader(const char *mutatee, test_linktype_t linktype)
 {
    if (!enableLogging)
       return;
@@ -285,7 +297,10 @@ void printLogMutateeHeader(const char *mutatee)
 #if !defined(os_windows_test)
       if ( pdscrdir ) {
          runScript("ls -lLF %s", mutatee);
-         runScript("%s/ldd_PD %s", pdscrdir, mutatee);
+         if( linktype == DynamicLink ) 
+            runScript("%s/ldd_PD %s", pdscrdir, mutatee);
+         else
+            getOutput()->log(LOGINFO, "%s: statically linked\n", mutatee);
       }
 #endif
    } else {
@@ -505,7 +520,8 @@ void disableUnwantedTests(std::vector<RunGroup *> groups)
          if (!groups[i]->mod || 
              (!runDyninst && groups[i]->mod->name == std::string("dyninst")) ||
              (!runSymtab && groups[i]->mod->name == std::string("symtab")) ||
-	     (!runInstruction && groups[i]->mod->name == std::string("instruction")))
+             (!runInstruction && groups[i]->mod->name == std::string("instruction")) ||
+             (!runProcControl && groups[i]->mod->name == std::string("proccontrol")))
          {
             groups[i]->disabled = true;
          }
@@ -561,6 +577,44 @@ void disableUnwantedTests(std::vector<RunGroup *> groups)
          groups[i]->disabled = true;
       }      
    }
+   if (!runMT) {
+      for (unsigned  i = 0; i < groups.size(); i++) {
+         if (groups[i]->threadmode == MultiThreaded) {
+            groups[i]->disabled = true;
+         }
+      }
+   }
+   if (!runST) {
+      for (unsigned  i = 0; i < groups.size(); i++) {
+         if (groups[i]->threadmode == SingleThreaded) {
+            groups[i]->disabled = true;
+         }
+      }
+   }
+   if (!runMP) {
+      for (unsigned  i = 0; i < groups.size(); i++) {
+         if (groups[i]->procmode == MultiProcess) {
+            groups[i]->disabled = true;
+         }
+      }
+   }
+   if (!runSP) {
+      for (unsigned  i = 0; i < groups.size(); i++) {
+         if (groups[i]->procmode == SingleProcess) {
+            groups[i]->disabled = true;
+         }
+      }
+   }
+   if( !runAllLinks && (!runDynamicLink || !runStaticLink) ) {
+       for (unsigned i = 0; i < groups.size(); i++) {
+           if( (!runStaticLink && (groups[i]->linktype == StaticLink)) ||
+                 (!runDynamicLink && (groups[i]->linktype == DynamicLink)) )
+           {
+               groups[i]->disabled = true;
+           }
+       }
+   }
+
 #if defined(cap_32_64_test)
    if (!runAllABIs && runAllMutatees)
    {
@@ -576,6 +630,29 @@ void disableUnwantedTests(std::vector<RunGroup *> groups)
       }
    }
 #endif
+
+   if (unique_id && max_unique_id) {
+      unsigned cur_test = 0;
+      unsigned cur_test_limitgroup = 0;
+      for (unsigned i=0; i < groups.size(); i++) 
+      {
+         if (groups[i]->disabled) continue;
+         for (unsigned j=0; j<groups[i]->tests.size(); j++) 
+         {
+            if (groups[i]->tests[j]->disabled) {
+               continue;
+            }
+            if (cur_test && cur_test % testLimit == 0) {
+               cur_test_limitgroup++;
+            }
+            cur_test++;
+
+            if (cur_test_limitgroup % max_unique_id != (unique_id-1)) {
+               groups[i]->tests[j]->disabled = true;
+            }
+         }       
+      }
+   }
 
    parse_resumelog(groups);
 
@@ -658,11 +735,16 @@ void executeGroup(ComponentTester *tester, RunGroup *group,
    ParamInt createmode_prm((int) group->useAttach);
    ParamInt customexecution_prm((int) group->customExecution);
    ParamInt selfstart_prm((int) group->selfStart);
+   ParamInt threadmode_prm((int) group->threadmode);
+   ParamInt procmode_prm((int) group->procmode);
+
    param["pathname"] = &mutatee_prm;
    param["startState"] = &startstate_prm;
    param["useAttach"] = &createmode_prm;
    param["customExecution"] = &customexecution_prm;
    param["selfStart"] = &selfstart_prm;
+   param["threadMode"] = &threadmode_prm;
+   param["processMode"] = &procmode_prm;
 
    for (unsigned i=0; i<group->tests.size(); i++)
    {
@@ -837,7 +919,10 @@ void startAllTests(std::vector<RunGroup *> &groups,
    ParamInt printlabels_p((int) printLabels);
    ParamInt debugprint_p((int) debugPrint);
    ParamInt noclean_p((int) noclean);
+   ParamInt uniqueid_p((int) unique_id);
    ParamString humanname_p(humanlog_name);
+   std::string mutateeresume_name = std::string("mutatee_") + get_resumelog_name();
+   ParamString resumelog_p(mutateeresume_name.c_str());
 
    param["logfilename"] = &logfile_p;
    param["verbose"] = &verbose_p;
@@ -846,6 +931,8 @@ void startAllTests(std::vector<RunGroup *> &groups,
    param["printlabels"] = &printlabels_p;
    param["debugPrint"] = &debugprint_p;
    param["noClean"] = &noclean_p;
+   param["mutatee_resumelog"] = &resumelog_p;
+   param["unique_id"] = &uniqueid_p;
 
    // Print Test Log Header
    getOutput()->log(LOGINFO, "Commencing test(s) ...\n");
@@ -889,7 +976,7 @@ void startAllTests(std::vector<RunGroup *> &groups,
       initModuleIfNecessary(groups[i], groups, param);
 
       // Print mutatee (run group) header
-      printLogMutateeHeader(groups[i]->mutatee);
+      printLogMutateeHeader(groups[i]->mutatee, groups[i]->linktype);
 
       int before_group = numUnreportedTests(groups[i]);
       if (!before_group)
@@ -1123,6 +1210,13 @@ int main(int argc, char *argv[]) {
    if (result)
       exit(result);
 
+   if (unique_id) {
+      char id_string[32];
+      snprintf(id_string, 32, "%d", unique_id);
+      std::string newname = std::string(get_resumelog_name()) + std::string(".") + std::string(id_string);
+      set_resumelog_name(strdup(newname.c_str()));
+   }
+
    // Fill in tests vector with lists of test to run
    std::vector<RunGroup *> tests;
    initialize_mutatees(tests);  
@@ -1135,7 +1229,7 @@ int main(int argc, char *argv[]) {
 
    // Set the resume log name
    if ( getenv("RESUMELOG") ) {
-      resumelog_name = getenv("RESUMELOG");
+      set_resumelog_name(getenv("RESUMELOG"));
    }
 
    if ( shouldDebugBreak ) {
@@ -1195,7 +1289,6 @@ int parseArgs(int argc, char *argv[])
 {
    for (unsigned i=1; i < argc; i++ )
    {
-
       if (strncmp(argv[i], "-v+", 3) == 0)
          errorPrint++;
       if (strncmp(argv[i], "-v++", 4) == 0)
@@ -1366,6 +1459,7 @@ int parseArgs(int argc, char *argv[])
          runAttach = true;
          runDeserialize = true;
          runRewriter = true;
+         runAllLinks = true;
          runAllCompilers = true;
          runAllComps = true;
       }
@@ -1376,6 +1470,7 @@ int parseArgs(int argc, char *argv[])
          runAttach = true;
          runDeserialize = true;
          runRewriter = true;
+         runAllLinks = true;
          runAllCompilers = true;
          runAllComps = true;
          optLevel = opt_all;
@@ -1392,14 +1487,19 @@ int parseArgs(int argc, char *argv[])
       }
       else if (strcmp(argv[i], "-instruction") == 0)
       {
-	runInstruction = true;
-	runAllComps = false;
+         runInstruction = true;
+         runAllComps = false;
+      }
+      else if (strcmp(argv[i], "-proccontrol") == 0)
+      {
+         runProcControl = true;
+         runAllComps = false;
       }
       else if (strcmp(argv[i], "-allcomp") == 0)
       {
          runSymtab = true;
          runDyninst = true;
-	 runInstruction = true;
+         runInstruction = true;
          runAllComps = true;
       }
       else if (strcmp(argv[i], "-max") == 0)
@@ -1479,6 +1579,32 @@ int parseArgs(int argc, char *argv[])
             return NOTESTS;
          }
       }
+      else if (strcmp(argv[i], "-resumelog-name") == 0)
+      {
+         if (i + 1 >= argc) {
+            getOutput()->log(STDERR, "-resumelog-name must be followed by a filename\n");
+            return NOTESTS;
+         }
+         set_resumelog_name(argv[++i]);
+      }
+      else if (strcmp(argv[i], "-unique") == 0) {
+         if (i + 1 < argc) {
+            unique_id = atoi(argv[++i]);
+         }
+         if (!unique_id) {
+            getOutput()->log(STDERR, "-unique must be followed by a non-zero integer\n");
+            return NOTESTS;
+         }
+      }
+      else if (strcmp(argv[i], "-max-unique") == 0) {
+         if (i + 1 < argc) {
+            max_unique_id = atoi(argv[++i]);
+         }
+         if (!max_unique_id) {
+            getOutput()->log(STDERR, "-max_unique must be followed by a non-zero integer\n");
+            return NOTESTS;
+         }
+      }
       else if ( strcmp(argv[i], "-humanlog") == 0 ) {
          // Verify that the following argument exists
          if ( i + 1 >= argc )
@@ -1549,6 +1675,42 @@ int parseArgs(int argc, char *argv[])
       {
          runDefaultCompilers = false;
          runAllCompilers = true;
+      }
+      else if (strcmp(argv[i], "-mt") == 0)
+      {
+         runMT = true;
+         if (!setT)
+            runST = false;
+         setT = true;
+      }
+      else if (strcmp(argv[i], "-st") == 0)
+      {
+         runST = true;
+         if (!setT)
+            runMT = false;
+         setT = true;
+      }
+      else if (strcmp(argv[i], "-mp") == 0)
+      {
+         runMP = true;
+         if (!setP)
+            runSP = false;
+         setP = true;
+      }
+      else if (strcmp(argv[i], "-sp") == 0)
+      {
+         runSP = true;
+         if (!setP)
+            runMP = false;
+         setP = true;
+      }
+      else if( strcmp(argv[i], "-dynamiclink") == 0) {
+          runDynamicLink = true;
+          runAllLinks = false;
+      }
+      else if( strcmp(argv[i], "-staticlink") == 0) {
+          runStaticLink = true;
+          runAllLinks = false;
       }
       else
       {

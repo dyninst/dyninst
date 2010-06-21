@@ -6,7 +6,7 @@
 
 TO_CORE = .
 # Include additional local definitions (if available)
--include ./make.config.local
+include ./make.config.local
 # Include the make configuration specification (site configuration options)
 include ./make.config
 
@@ -14,9 +14,11 @@ BUILD_ID = "$(SUITE_NAME) v$(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)"
 
 SymtabAPI 	= ready common symtabAPI dynutil
 StackwalkerAPI = ready common symtabAPI stackwalk
-DyninstAPI	= ready common symtabAPI instructionAPI dyninstAPI_RT dyninstAPI dynutil
+DyninstAPI	= ready common symtabAPI instructionAPI parseAPI dyninstAPI_RT dyninstAPI dynutil
 InstructionAPI	= ready common instructionAPI dynutil
+ProcControlAPI = ready common proccontrol
 DepGraphAPI = depGraphAPI
+ParseAPI = ready common symtabAPI instructionAPI parseAPI
 ValueAdded = valueAdded/sharedMem
 SymEval = symEval
 
@@ -29,6 +31,11 @@ fullSystem	+= $(DyninstAPI)
 Build_list	+= DyninstAPI
 endif
 
+ifndef DONT_BUILD_PROCCONTROL
+fullSystem += proccontrol
+Build_list += proccontrol
+endif
+
 ifndef DONT_BUILD_NEWTESTSUITE
 testsuites += testsuite parseThat
 allSubdirs_noinstall += testsuite 
@@ -36,8 +43,10 @@ fullSystem += testsuite parseThat
 Build_list += testsuite parseThat
 endif
 
-allCoreSubdirs	= dyninstAPI_RT common dyninstAPI symtabAPI dynutil instructionAPI
-allSubdirs	= $(allCoreSubdirs) parseThat testsuites valueAdded/sharedMem depGraphAPI stackwalk symEval
+fullSystem += parseAPI
+
+allCoreSubdirs	= dyninstAPI_RT common dyninstAPI symtabAPI dynutil instructionAPI parseAPI
+allSubdirs	= $(allCoreSubdirs) parseThat testsuites valueAdded/sharedMem depGraphAPI stackwalk symEval proccontrol
 
 # We're not building the new test suite on all platforms yet
 
@@ -135,7 +144,7 @@ world: intro
 
 # "make Paradyn" and "make DyninstAPI" are also useful and valid build targets!
 
-DyninstAPI SymtabAPI StackwalkerAPI basicComps subSystems testsuites InstructionAPI ValueAdded DepGraphAPI SymEval: 
+DyninstAPI SymtabAPI StackwalkerAPI basicComps subSystems testsuites InstructionAPI ValueAdded DepGraphAPI ParseAPI SymEval ProcControlAPI: 
 	$(MAKE) $($@)
 	@echo "Build of $@ complete."
 	@date
@@ -202,6 +211,7 @@ dyner codeCoverage dyninstAPI/tests testsuite: dyninstAPI
 testsuite: $(coreSubdirs_explicitInstall)
 testsuite: parseThat
 parseThat: $(coreSubdirs_explicitInstall)
+proccontrol: common dynutil
 #depGraphAPI: instructionAPI $(coreSubdirs_explicitInstall)
 # depGraphAPI: instructionAPI dyninstAPI
 
@@ -232,7 +242,7 @@ umd-nightly:
 	$(MAKE) DyninstAPI ValueAdded
 
 # Used for UW nightly builds
-nightly: DyninstAPI ValueAdded parseThat 
+nightly: all ValueAdded
 	$(MAKE) -C testsuite/$(PLATFORM) all
 
 #nightly:

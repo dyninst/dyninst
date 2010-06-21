@@ -87,6 +87,7 @@ class emitElfStatic {
 
     bool resolveSymbols(Symtab *target, 
                         vector<Symtab *> &relocatableObjects, 
+                        LinkMap &lmap,
                         StaticLinkError &err, 
                         string &errMsg);
 

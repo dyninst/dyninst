@@ -34,7 +34,6 @@
 
 #include "Instruction.h"
 #include "InstructionDecoder.h"
-#include "RegisterIDs-x86.h"
 #include <boost/assign/list_of.hpp>
 #include <deque>
 using namespace Dyninst;
@@ -69,17 +68,17 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
     0xc7, 0x45, 0xfc, 0x01, 0x00, 0x00, 0x00, // MOVL 0x01, -0x4(EBP)
     0x88, 0x55, 0xcc, // MOVB DL, -0x34(EBP)
     0xF2, 0x0F, 0x12, 0xC0, // MOVDDUP XMM0, XMM1
-    0x66, 0x0F, 0x7C, 0xC9  // HADDPD XMM1, XMM1
+    0x66, 0x0F, 0x7C, 0xC9,  // HADDPD XMM1, XMM1
+    0x8d, 0x83, 0x18, 0xff, 0xff, 0xff // LEA -0xe8(%ebx), %eax
   };
-  unsigned int size = 34;
-  unsigned int expectedInsns = 11;
-  dyn_detail::boost::shared_ptr<InstructionDecoder> d =
-          makeDecoder(Dyninst::Arch_x86, buffer, size);
+  unsigned int size = 40;
+  unsigned int expectedInsns = 12;
+  InstructionDecoder d(buffer, size, Dyninst::Arch_x86);
   std::deque<Instruction::Ptr> decodedInsns;
   Instruction::Ptr i;
   do
   {
-    i = d->decode();
+    i = d.decode();
     decodedInsns.push_back(i);
   }
   while(i && i->isValid());
@@ -109,12 +108,14 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
       using namespace x86;
   
   RegisterAST::Ptr r_eax(new RegisterAST(eax));
-  RegisterAST::Ptr r_adjust(new RegisterAST(flags, r_AF, r_AF));
-  RegisterAST::Ptr r_zero(new RegisterAST(flags, r_ZF, r_ZF));
-  RegisterAST::Ptr r_overflow(new RegisterAST(flags, r_OF, r_OF));
-  RegisterAST::Ptr r_parity(new RegisterAST(flags, r_PF, r_PF));
-  RegisterAST::Ptr r_sign(new RegisterAST(flags, r_SF, r_SF));
-  RegisterAST::Ptr r_carry(new RegisterAST(flags, r_CF, r_CF));
+  RegisterAST::Ptr r_ebx(new RegisterAST(ebx));
+  RegisterAST::Ptr r_adjust(new RegisterAST(af));
+  RegisterAST::Ptr r_zero(new RegisterAST(zf));
+  RegisterAST::Ptr r_overflow(new RegisterAST(of));
+  RegisterAST::Ptr r_parity(new RegisterAST(pf));
+  RegisterAST::Ptr r_sign(new RegisterAST(sf));
+  RegisterAST::Ptr r_carry(new RegisterAST(cf));
+
   expectedRead.insert(expectedRead.begin(), r_eax);
   expectedWritten = list_of(r_eax)(r_adjust)(r_zero)(r_overflow)(r_parity)(r_sign)(r_carry);
   
@@ -209,7 +210,16 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
     retVal = FAILED;
   }  
   decodedInsns.pop_front();
+  
+  expectedRead.clear();
+  expectedWritten.clear();
+  expectedRead = list_of(r_ebx);
+  expectedWritten = list_of(r_eax);
+  retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), expectedRead, expectedWritten));
+  decodedInsns.pop_front();    
   }
+
+  
 #if defined(arch_x86_64_test)
   const unsigned char amd64_specific[] = 
   {
@@ -219,13 +229,11 @@ test_results_t test_instruction_read_write_Mutator::executeTest()
   unsigned int amd64_num_valid_insns = 1;
   deque<Instruction::Ptr> amd64Insns;
   
-  dyn_detail::boost::shared_ptr<InstructionDecoder> amd64_decoder =
-          makeDecoder(Dyninst::Arch_x86_64, amd64_specific, amd64_size);
-  amd64_decoder->setMode(true);
+  InstructionDecoder amd64_decoder(amd64_specific, amd64_size, Dyninst::Arch_x86_64);
   Instruction::Ptr tmp;
   do
   {
-    tmp = amd64_decoder->decode();
+    tmp = amd64_decoder.decode();
     amd64Insns.push_back(tmp);
   } while(tmp && tmp->isValid());
   amd64Insns.pop_back();

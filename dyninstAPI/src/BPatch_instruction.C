@@ -39,11 +39,12 @@
 #include "BPatch_basicBlock.h"
 #include "BPatch_libInfo.h"
 #include "BPatch_process.h"
-#include "arch.h"
 #include "util.h"
 #include "function.h"
 #include "process.h"
 #include "instPoint.h"
+
+#include "legacy-instruction.h"
 
 /**************************************************************************
  * BPatch_instruction
@@ -55,7 +56,7 @@ const unsigned int BPatch_instruction::nmaxacc_NP = 2;
 const unsigned int BPatch_instruction::nmaxacc_NP = 1;
 #endif
 
-BPatch_instruction::BPatch_instruction(instruction *insn,
+BPatch_instruction::BPatch_instruction(internal_instruction *insn,
                                        Address addr_) : nacc(0), insn_(insn), addr(addr_)
 {
   isLoad = new bool[nmaxacc_NP];
@@ -74,7 +75,7 @@ BPatch_instruction::BPatch_instruction(instruction *insn,
 
 }
 
-instruction *BPatch_instruction::insn() { return insn_; }
+internal_instruction *BPatch_instruction::insn() { return insn_; }
 
 BPatch_instruction::~BPatch_instruction() {
 
@@ -83,6 +84,9 @@ BPatch_instruction::~BPatch_instruction() {
    delete[] preFcn;
    delete[] condition;
    delete[] nonTemporal;
+
+   if(insn_)
+    delete insn_;
 }
 
 BPatch_basicBlock *BPatch_instruction::getParentInt()

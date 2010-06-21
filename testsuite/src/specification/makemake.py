@@ -146,7 +146,8 @@ def mutatee_binary(mutatee):
    # Returns standard name for the solo mutatee binary for this mutatee
    platform = find_platform(os.environ.get('PLATFORM'))
    es = platform['filename_conventions']['executable_suffix']
-   return "%s.mutatee_solo%s%s" % (mutatee['name'],
+   format = mutatee_format(mutatee['format'])
+   return "%s.mutatee_solo%s%s%s" % (mutatee['name'], format,
                            mutatee_bto_component(mutatee),
                            es)
 
@@ -288,9 +289,17 @@ def mutatee_filename(rungroup, compilers):
                             rungroup['abi'],
                             rungroup['optimization'])
       platform = find_platform(os.environ.get('PLATFORM'))
+      format = mutatee_format(rungroup['format'])
       es = platform['filename_conventions']['executable_suffix']
-      retval = "%s.mutatee_solo%s%s" % (mutatee, bto, es)
+      retval = "%s.mutatee_solo%s%s%s" % (mutatee, format, bto, es)
    return retval
+
+def mutatee_format(formatSpec):
+    if formatSpec == 'staticMutatee':
+        format = '_static'
+    else:
+        format = '_dynamic'
+    return format
 
 # Return the name of the mutator for this test
 def test_mutator(testname):
@@ -355,6 +364,22 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 			out.write('DESERIALIZE, ')
 		else:
 			out.write('DISK, ')
+		if group['thread_mode'] == 'None':
+			out.write('TNone, ')
+		elif group['thread_mode'] == 'SingleThreaded':
+			out.write('SingleThreaded, ')
+		elif group['thread_mode'] == 'MultiThreaded':
+			out.write('MultiThreaded, ')
+		if group['process_mode'] == 'None':
+			out.write('PNone, ')
+		elif group['process_mode'] == 'SingleProcess':
+			out.write('SingleProcess, ')
+		elif group['process_mode'] == 'MultiProcess':
+			out.write('MultiProcess, ')
+                if group['format'] == 'staticMutatee':
+                        out.write('StaticLink, ')
+                else:
+                        out.write('DynamicLink, ')
 		if group['groupable'] == 'true':
 			out.write('false') # !groupable
 		else:
@@ -557,11 +582,16 @@ def print_mutatee_rules(out, mutatees, compiler, module):
 			out.write("mutatee_driver_solo_%s_%s%s\n"
 					  % (aux_c, m['abi'], ObjSuffix))
 		# Print the actions used to link the mutatee executable
-		out.write("\t%s -o $@ $(filter %%%s,$^) %s %s "
+		out.write("\t%s -o $@ $(filter %%%s,$^) %s %s"
 				  % (platform['linker'] or "$(M_%s)" % compiler['defstring'],
 					 ObjSuffix,
 					 compiler['flags']['link'],
 					 compiler['abiflags'][platform['name']][m['abi']]))
+                if m['format'] == 'staticMutatee':
+                    linkage = compiler['staticlink']
+                else:
+                    linkage = compiler['dynamiclink']
+                out.write("%s " % linkage)
 		for l in m['libraries']:
 			# Need to include the required libraries on the command line
 			# FIXME Use a compiler-specific command-line flag instead of '-l'

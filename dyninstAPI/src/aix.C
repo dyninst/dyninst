@@ -59,14 +59,15 @@
 #include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/inst-power.h" // Tramp constants
 #include "dyninstAPI/src/multiTramp.h"
-#include "dyninstAPI/src/InstrucIter.h"
-
 #include "dyninstAPI/src/registerSpace.h"
+#include "dyninstAPI/src/function.h"
 
 #include "dyninstAPI/h/BPatch.h"
 #include "dyninstAPI/h/BPatch_process.h"
 #include "dyninstAPI/h/BPatch_function.h"
 
+// FIXME remove and remove InstrucIter references
+#include "parseAPI/src/InstrucIter.h"
 
 #include "mapped_module.h"
 #include "mapped_object.h"
@@ -122,7 +123,9 @@ Frame Frame::getCallerFrame()
 
   if (uppermost_) {
     if (func) {
-      isLeaf = func->makesNoCalls();
+      // on Power architectures we want to know if it saves the return addr.
+      //isLeaf = func->isLeafFunc();
+      isLeaf = !func->savesReturnAddr();
       noFrame = func->hasNoStackFrame();
     }
   }
@@ -301,58 +304,57 @@ bool Frame::setPC(Address newpc)
 void decodeInstr(unsigned instr_raw) 
 {
   // Decode an instruction. Fun, eh?
-  union instructUnion instr;
-  instr.raw = instr_raw;
+  instruction i(instr_raw);
 
-  switch(instr.generic.op) {
+  switch(GENERIC_OP(i)) {
   case Bop:
     bperr( "Branch (abs=%d, link=%d) to 0x%x\n",
-	    instr.iform.aa, instr.iform.lk, instr.iform.li);
+            IFORM_AA(i), IFORM_LK(i), IFORM_LI(i));
     break;
   case CMPIop:
     bperr( "CMPI reg(%d), 0x%x\n",
-	    instr.dform.ra, instr.dform.d_or_si);
+            DFORM_RA(i), DFORM_SI(i));
     break;
   case SIop:
     bperr( "SI src(%d), tgt(%d), 0x%x\n",
-	    instr.dform.ra, instr.dform.rt, instr.dform.d_or_si);
+            DFORM_RA(i), DFORM_RT(i), DFORM_SI(i));
     break;
   case CALop:
     bperr( "CAL src(%d), tgt(%d), 0x%x\n",
-	    instr.dform.ra, instr.dform.rt, instr.dform.d_or_si);
+            DFORM_RA(i), DFORM_RT(i), DFORM_SI(i));
     break;
   case CAUop:
     bperr( "CAU src(%d), tgt(%d), 0x%x\n",
-	    instr.dform.ra, instr.dform.rt, instr.dform.d_or_si);
+            DFORM_RA(i), DFORM_RT(i), DFORM_SI(i));
     break;
   case ORILop:
     bperr( "ORIL src(%d), tgt(%d), 0x%x\n",
-	    instr.dform.rt, instr.dform.ra, instr.dform.d_or_si);
+            DFORM_RT(i), DFORM_RA(i), DFORM_SI(i));
     break;
   case ANDILop:
     bperr( "CAU src(%d), tgt(%d), 0x%x\n",
-	    instr.dform.rt, instr.dform.ra, instr.dform.d_or_si);
+            DFORM_RT(i), DFORM_RA(i), DFORM_SI(i));
     break;
   case Lop:
     bperr( "L src(%d)+0x%x, tgt(%d)\n",
-	    instr.dform.ra, instr.dform.d_or_si, instr.dform.rt);
+            DFORM_RA(i), DFORM_SI(i), DFORM_RT(i));
     break;
   case STop:
     bperr( "L src(%d), tgt(%d)+0x%x\n",
-	    instr.dform.rt, instr.dform.ra, instr.dform.d_or_si);
+            DFORM_RT(i), DFORM_RA(i), DFORM_SI(i));
     break;
   case BCop:
     bperr( "BC op(0x%x), CR bit(0x%x), abs(%d), link(%d), tgt(0x%x)\n",
-	    instr.bform.bo, instr.bform.bi, instr.bform.aa, instr.bform.lk, instr.bform.bd);
+            BFORM_BO(i), BFORM_BI(i), BFORM_AA(i), BFORM_LK(i), BFORM_BD(i));
     break;
   case BCLRop:
-    switch (instr.xform.xo) {
+    switch (XFORM_XO(i)) {
     case BCLRxop:
       bperr( "BCLR op(0x%x), bit(0x%x), link(%d)\n",
-	      instr.xform.rt, instr.xform.ra, instr.xform.rc);
+              XFORM_RT(i), XFORM_RA(i), XFORM_RC(i));
       break;
     default:
-      bperr( "%x\n", instr.raw);
+      bperr( "%x\n", instr.asInt());
       break;
     }
     break;
@@ -361,7 +363,7 @@ void decodeInstr(unsigned instr_raw)
     break;
   default:
     bperr( "Unknown instr with opcode %d\n",
-	    instr.generic.op);
+	    GENERIC_OP(i));
 
     break;
   }
@@ -378,26 +380,6 @@ void OS::osDisconnect(void)
   ioctl (ttyfd, TIOCNOTTY, NULL); 
   P_close (ttyfd);
 }
-
-#if defined(duplicated_in_process_c_because_linux_ia64_needs_it)
-Address process::getTOCoffsetInfo(Address dest)
-{
-  // We have an address, and want to find the module the addr is
-  // contained in. Given the probabilities, we (probably) want
-  // the module dyninst_rt is contained in. 
-  // I think this is the right func to use
-
-  if (symbols->findFuncByAddr(dest, this))
-    return (Address) (symbols->getObject())->getTOCoffset();
-
-  if (shared_objects)
-      for (u_int j=0; j < shared_objects->size(); j++)
-      if (((*shared_objects)[j])->getImage()->findFuncByAddr(dest, this))
-	return (Address) (((*shared_objects)[j])->getImage()->getObject())->getTOCoffset();
-  // Serious error! Assert?
-  return 0;
-}
-#endif
 
 #if defined(cap_dynamic_heap)
 
@@ -1302,7 +1284,7 @@ bool process::insertTrapAtEntryPointOfMain()
     readDataSpace((void *)addr, instruction::size(), savedCodeBuffer, true);
     // and now, insert trap
     codeGen gen(instruction::size());
-    instruction::generateTrap(gen);
+    insnCodeGen::generateTrap(gen);
 
     if (!writeDataSpace((void *)addr, gen.used(), gen.start_ptr()))
         fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
@@ -1447,7 +1429,7 @@ bool process::loadDYNINSTlib()
     popStack(scratchCodeBuffer);
 
     dyninstlib_brk_addr = codeBase + scratchCodeBuffer.used();
-    instruction::generateTrap(scratchCodeBuffer);
+    insnCodeGen::generateTrap(scratchCodeBuffer);
 
     startup_printf("[%d]: call to dlopen breaks at 0x%lx\n", getPid(),
                    dyninstlib_brk_addr);
@@ -2013,6 +1995,7 @@ int_function *instPoint::findCallee() {
         return NULL;
     }
         
+#if !defined(cap_instruction_api)
     InstrucIter targetIter(callTarget(), proc());
     if (!targetIter.getInstruction().valid()) {
         return NULL;
@@ -2020,6 +2003,31 @@ int_function *instPoint::findCallee() {
     Address toc_offset = 0;
 
     if (targetIter.isInterModuleCallSnippet(toc_offset)) {
+#else
+    using namespace Dyninst::InstructionAPI;
+    const unsigned char* buffer = (const unsigned char*)(proc()->getPtrToInstruction(callTarget()));
+    parsing_printf("Checking for linkage at addr 0x%lx\n", callTarget());
+    InstructionDecoder d(buffer, 24, proc()->getArch());
+    std::vector<Instruction::Ptr> insns;
+    Instruction::Ptr tmp;
+    while(tmp = d.decode()) insns.push_back(tmp);
+    if(insns.size() != 6) return NULL;
+    static RegisterAST::Ptr r2(new RegisterAST(ppc32::r2));
+    static RegisterAST::Ptr r12(new RegisterAST(ppc32::r12));
+    Address toc_offset = 0;
+    if(insns[0]->getOperation().getID() != power_op_lwz) return NULL;
+    if(insns[2]->getOperation().getID() != power_op_lwz) return NULL;
+    if(insns[5]->getOperation().getID() != power_op_bcctr) return NULL;
+    if(insns[0]->isWritten(r12) && insns[0]->isRead(r2))
+    {
+        std::vector<InstructionAST::Ptr> tmp;
+        insns[0]->getOperand(1).getValue()->getChildren(tmp);
+        assert(tmp.size() == 1);
+        Expression::Ptr child_as_expr = dyn_detail::boost::dynamic_pointer_cast<Expression>(tmp[0]);
+        assert(child_as_expr);
+        child_as_expr->bind(r2.get(), Result(u32, 0));
+        toc_offset = child_as_expr->eval().convert<Address>();
+#endif
         Address TOC_addr = (func()->obj()->parse_img()->getObject())->getTOCoffset();
         
         // We need to read out of memory rather than disk... so this is a call to

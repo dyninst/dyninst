@@ -31,7 +31,7 @@ SRCS =          ../src/linux.C \
                 ../src/inst-linux.C \
                 ../src/inst-x86.C \
 		../src/emit-x86.C \
-                ../src/arch-x86.C \
+                ../src/codegen-x86.C \
                 ../src/unix.C \
       ../src/stackwalk-x86.C \
 		../src/image-x86.C \
@@ -39,8 +39,8 @@ SRCS =          ../src/linux.C \
 		../src/frameChecker.C \
 		../src/RegisterConversion-x86.C \
 		../src/BPatch_memoryAccessAdapter.C \
-		../src/IA_IAPI.C \
-		../src/IAPI_to_AST.C 
+		../src/IAPI_to_AST.C \
+		../src/stackanalysis.C
 #		../src/InstrucIter-x86.C
 
 #MYFLAGS	+= -DNO_MDL_PRINT
@@ -56,7 +56,7 @@ SRCS =          ../src/linux.C \
 MYFLAGS		+= -DUSES_DWARF_DEBUG -I$(LIBDWARF_INC)
 MYFLAGS     += -I$(LIBELF_INC) 
 MYFLAGS		+= -I/usr/include/libelf
-
+MYFLAGS		+= -g
 
 CXXFLAGS        += $(MYFLAGS)
 CFLAGS          += $(MYFLAGS)
@@ -79,8 +79,6 @@ else
 LIBS    += -lelf
 endif
 LIBS    += -lgcc
-#LIBS	+= -lInstruction
-LIBS	+= -linstructionAPI
 
 AS		= /usr/bin/as
 

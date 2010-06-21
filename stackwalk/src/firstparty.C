@@ -75,3 +75,8 @@ ThreadState* ThreadState::createThreadState(ProcDebug *parent,
    ThreadState *ts = new ThreadState(parent, 0);
    return ts;
 }
+
+Dyninst::Architecture ProcDebug::getArchitecture()
+{
+   return Dyninst::Arch_none;
+}

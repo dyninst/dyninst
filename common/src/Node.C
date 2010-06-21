@@ -309,3 +309,11 @@ Graph::Ptr Node::backwardSubgraph() {
     }
     return ret;
 }
+
+void Node::deleteInEdge(EdgeIterator e) {
+  ins_.erase(*e);
+}
+
+void Node::deleteOutEdge(EdgeIterator e) {
+  outs_.erase(*e);
+}

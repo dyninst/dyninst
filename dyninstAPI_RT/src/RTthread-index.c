@@ -45,7 +45,7 @@
 #include "RTthread.h"
 #include "RTcommon.h"
 
-#define NONE -1
+#define IDX_NONE -1
 
 static DECLARE_TC_LOCK(DYNINST_index_lock);
 
@@ -90,18 +90,18 @@ void DYNINST_initialize_index_list()
   assert( DYNINST_thread_hash != NULL );
 
   for (i=0; i < DYNINST_thread_hash_size; i++)
-      DYNINST_thread_hash[i] = NONE;
+      DYNINST_thread_hash[i] = IDX_NONE;
 
   for (i=0; i<DYNINST_max_num_threads-1; i++) {
       DYNINST_thread_structs[i].next_free = i+1;
       DYNINST_thread_structs[i].thread_state = UNALLOC;
   }
-  DYNINST_thread_structs[DYNINST_max_num_threads-1].next_free = NONE;
+  DYNINST_thread_structs[DYNINST_max_num_threads-1].next_free = IDX_NONE;
   DYNINST_thread_structs[DYNINST_max_num_threads-1].thread_state = UNALLOC;
   
   /* We reserve 0 for the 'initial thread' */
   first_free = 1;
-  first_deleted = NONE;
+  first_deleted = IDX_NONE;
   num_free = DYNINST_max_num_threads;
   num_deleted = 0;
 }
@@ -137,11 +137,11 @@ unsigned DYNINSTthreadIndexSLOW(dyntid_t tid)
    for (;;) 
    {
       index = DYNINST_thread_hash[hash_id];
-      if (index != NONE && DYNINST_thread_structs[index].tid == tid) {
+      if (index != IDX_NONE && DYNINST_thread_structs[index].tid == tid) {
 
           if (DYNINST_thread_structs[index].thread_state == LWP_EXITED) {
               /* "Hey, this guy got cleaned up!" */
-              DYNINST_thread_hash[hash_id] = NONE;
+              DYNINST_thread_hash[hash_id] = IDX_NONE;
               break;
           }
           else if (DYNINST_thread_structs[index].lwp != dyn_lwp_self()) {
@@ -170,10 +170,10 @@ unsigned DYNINSTthreadIndexSLOW(dyntid_t tid)
 static unsigned get_free_index() {
     /* Assert: we are locked */
     unsigned ret = 0;
-    assert(first_free != NONE);
+    assert(first_free != IDX_NONE);
     ret = first_free;
     first_free = DYNINST_thread_structs[first_free].next_free;
-    if (first_free != NONE) {
+    if (first_free != IDX_NONE) {
         assert(DYNINST_thread_structs[first_free].thread_state == UNALLOC);
     }
     return ret;
@@ -190,13 +190,13 @@ static void clean_thread_list() {
     unsigned hash_iter = 0;
     for (hash_iter = 0; hash_iter < DYNINST_thread_hash_size; hash_iter++) {
         unsigned index = DYNINST_thread_hash[hash_iter];
-        if (index == NONE) continue;
+        if (index == IDX_NONE) continue;
         
         if (DYNINST_thread_structs[index].thread_state != LWP_EXITED)
             continue;
             
         /* Okay, this one was deleted. Remove it from the hash... */
-        DYNINST_thread_hash[hash_iter] = NONE;
+        DYNINST_thread_hash[hash_iter] = IDX_NONE;
         /* Mark it as unallocated... */
         DYNINST_thread_structs[index].tid = 0;
         DYNINST_thread_structs[index].thread_state = UNALLOC;
@@ -255,13 +255,13 @@ unsigned DYNINST_alloc_index(dyntid_t tid)
    /*Initialize the dyninst_thread_t object*/
    DYNINST_thread_structs[t].tid = tid;
    DYNINST_thread_structs[t].thread_state = THREAD_ACTIVE;
-   DYNINST_thread_structs[t].next_free = NONE;
+   DYNINST_thread_structs[t].next_free = IDX_NONE;
    DYNINST_thread_structs[t].lwp = dyn_lwp_self();
    
    /*Put it in the hash table*/
    hash_id = tid_val % DYNINST_thread_hash_size;
    orig = hash_id;
-   while (DYNINST_thread_hash[hash_id] != NONE)
+   while (DYNINST_thread_hash[hash_id] != IDX_NONE)
    {
        hash_id++;
        if (hash_id == DYNINST_thread_hash_size)
@@ -304,7 +304,7 @@ int DYNINST_free_index(dyntid_t tid)
    for (;;)
    {
       index = DYNINST_thread_hash[hash_id];
-      if (index != NONE && DYNINST_thread_structs[index].tid == tid)
+      if (index != IDX_NONE && DYNINST_thread_structs[index].tid == tid)
           break;
       hash_id++;
       if (hash_id == DYNINST_thread_hash_size)
@@ -332,7 +332,7 @@ void DYNINST_print_lists()
    unsigned i;
    int index;
    printf("  Free:    ");
-   for (i = first_free; i != NONE; i = threads[i].next_free)
+   for (i = first_free; i != IDX_NONE; i = threads[i].next_free)
       printf("%u@%u ", threads[i].tid, i);
    printf("\n");
 
@@ -340,7 +340,7 @@ void DYNINST_print_lists()
    for (i = 0; i<threads_hash_size; i++)
    {
       index = threads_hash[i];
-      if (index != NONE)
+      if (index != IDX_NONE)
          printf("%u@%u ", threads[index].tid, i);
    }
    printf("\n");

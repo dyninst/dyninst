@@ -51,7 +51,7 @@ namespace Dyninst
     class INSTRUCTION_EXPORT BinaryFunction : public Expression
     {
     public:
-      class funcT
+      class INSTRUCTION_EXPORT funcT
       {
       public:
 	funcT(std::string name) : m_name(name) 

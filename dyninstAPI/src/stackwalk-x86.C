@@ -38,11 +38,7 @@
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/mapped_object.h"
 
-#if defined(cap_instruction_api)
 #include "dyninstAPI/src/frameChecker.h"
-#else
-#include "dyninstAPI/src/InstrucIter.h"
-#endif // defined(cap_instruction_api)
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -163,11 +159,7 @@ static bool isPrevInstrACall(Address addr, process *p, int_function **callee)
 
      // Argh. We need to check for each call site in each
      // instantiation of the function.
-#if defined(cap_instruction_api)     
      if (site->match(addr - site->insn()->size())) {
-#else
-     if (site->match(addr - site->insn().size())) {
-#endif         
     *callee = site->findCallee();
         return true;
      }
@@ -190,27 +182,9 @@ static bool hasAllocatedFrame(Address addr, process *proc, int &offset)
 
     if (range &&
         range->is_basicBlockInstance()) {
-#if !defined(cap_instruction_api)
-        int frameSizeDontCare;
-        InstrucIter ii(range->get_address(),
-                       range->get_size(),
-                       proc);
-        ii.setCurrentAddress(addr);
-        if (ii.isAReturnInstruction() ||
-            ii.isStackFramePreamble(frameSizeDontCare))
-            {
-                offset = 0;
-                return false;
-            }
-        if (ii.isFrameSetup())
-            {
-                offset = proc->getAddressWidth();
-                return false;
-            }
-    }
-    
-#else
-      frameChecker fc((const unsigned char*)(proc->getPtrToInstruction(addr)), range->get_size() - (addr - range->get_address()));
+      frameChecker fc((const unsigned char*)(proc->getPtrToInstruction(addr)),
+		      range->get_size() - (addr - range->get_address()),
+		      proc->getAOut()->parse_img()->codeObject()->cs()->getArch());
       if(fc.isReturn() || fc.isStackPreamble())
       {
 	offset = 0;
@@ -222,8 +196,7 @@ static bool hasAllocatedFrame(Address addr, process *proc, int &offset)
 	return false;
       }
     }
-#endif
-    return true;       
+    return true;
 }
 
 /**
@@ -310,6 +283,14 @@ class DyninstMemRegReader : public Dyninst::SymtabAPI::MemRegReader
       return true;
    }
 
+   bool start() {
+      return true;
+   }
+
+   bool done() {
+      return true;
+   }
+   
    virtual ~DyninstMemRegReader() {};
 };
 
@@ -368,7 +349,7 @@ Frame Frame::getCallerFrame()
    if (status == frame_vsyscall)
    {
 #if defined(os_linux)
-      Symtab *vsys_obj;
+      SymtabAPI::Symtab *vsys_obj;
 
       if ((vsys_obj = getProc()->getVsyscallObject()) == NULL ||
           !vsys_obj->hasStackwalkDebugInfo())

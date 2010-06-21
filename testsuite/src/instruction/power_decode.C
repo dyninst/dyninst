@@ -33,7 +33,7 @@
 #include "test_lib.h"
 
 #include "Instruction.h"
-#include "InstructionDecoder-power.h"
+#include "InstructionDecoder.h"
 #include "Register.h"
 #include "dyn_regs.h"
 #include <boost/assign/list_of.hpp>
@@ -85,19 +85,19 @@ test_results_t power_decode_Mutator::executeTest()
       0x00, 0x01, 0x00, 0x96, // fxcsmul fpr0, fpr1
       0x40, 0x01, 0x01, 0x01, // bdnzl cr0, +0x100
       0x40, 0x01, 0x01, 0x00, // bdnz cr0, +0x100
+      0x7c, 0xa7, 0x4a, 0x6e, // lhzux r9, r7, r5
                 
   };
-  unsigned int expectedInsns = 24;
+  unsigned int expectedInsns = 25;
   unsigned int size = expectedInsns * 4;
   ++expectedInsns;
-  dyn_detail::boost::shared_ptr<InstructionDecoder> d =
-          makeDecoder(Dyninst::Arch_ppc32, buffer, size);
+  InstructionDecoder d(buffer, size, Dyninst::Arch_ppc32);
   
   std::deque<Instruction::Ptr> decodedInsns;
   Instruction::Ptr i;
   do
   {
-    i = d->decode();
+    i = d.decode();
     decodedInsns.push_back(i);
   }
   while(i && i->isValid());
@@ -123,6 +123,8 @@ test_results_t power_decode_Mutator::executeTest()
   RegisterAST::Ptr r0(new RegisterAST(ppc32::r0));
   RegisterAST::Ptr r1(new RegisterAST(ppc32::r1));
   RegisterAST::Ptr r2(new RegisterAST(ppc32::r2));
+  RegisterAST::Ptr r5(new RegisterAST(ppc32::r5));
+  RegisterAST::Ptr r7(new RegisterAST(ppc32::r7));
   RegisterAST::Ptr r8(new RegisterAST(ppc32::r8));
   RegisterAST::Ptr r9(new RegisterAST(ppc32::r9));
   RegisterAST::Ptr cr0(new RegisterAST(ppc32::cr0));
@@ -313,12 +315,29 @@ test_results_t power_decode_Mutator::executeTest()
   expectedWritten.push_back(tmpWritten);
   tmpRead.clear();
   tmpWritten.clear();
+  // lhzux r5, r7, r9
+  tmpRead = list_of(r7)(r9);
+  tmpWritten = list_of(r5)(r7);
+  expectedRead.push_back(tmpRead);
+  expectedWritten.push_back(tmpWritten);
+  tmpRead.clear();
+  tmpWritten.clear();
 
   decodedInsns.pop_back();
   while(!decodedInsns.empty())
   {
       retVal = failure_accumulator(retVal, verify_read_write_sets(decodedInsns.front(), expectedRead.front(),
                                    expectedWritten.front()));
+      // TEMP
+      if(decodedInsns.size() == 1)
+      {
+          if(!decodedInsns.front()->readsMemory())
+          {
+              logerror("**FAILED**: insn %s did not read memory, expected lhzux r5, r7, r9\n",
+                       decodedInsns.front()->format().c_str());
+              return FAILED;
+          }
+      }
       decodedInsns.pop_front();
   
       expectedRead.pop_front();

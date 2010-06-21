@@ -1,6 +1,7 @@
 
 CC = g++ -g
-DYNINST_CFLAGS = -I$(DYNINST_ROOT)/dyninst/dynutil/h -I$(DYNINST_ROOT)/include -I$(DYNINST_ROOT)/dyninst/symEval/src -I$(DYNINST_ROOT)/dyninst/symEval/h
+DYNINST_CFLAGS = -I$(DYNINST_ROOT)/dyninst/dynutil/h -I$(DYNINST_ROOT)/include -I$(DYNINST_ROOT)/dyninst/symEval/src \
+-I$(DYNINST_ROOT)/dyninst/symEval/h -I$(DYNINST_ROOT)/dyninst
 
 
 

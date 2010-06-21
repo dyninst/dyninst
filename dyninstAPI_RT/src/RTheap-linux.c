@@ -44,16 +44,7 @@
 #include <sys/mman.h>                 /* mmap() */
 #include "RTheap.h"
 
-#if defined( ia64_unknown_linux2_4 )
-/* Align the heap at the IP granularity. */
-int	DYNINSTheap_align = 16;
-
-/* Try to stay away from the mutatee's stack and heap.
-   For now, stash everything in what's supposed to
-   be the shared memory region. */
-Address	DYNINSTheap_loAddr = 0x2000000000000000;
-Address DYNINSTheap_hiAddr = 0x3fffffffffffffff;
-#elif defined(MUTATEE64)
+#if defined(MUTATEE64)
 
 int     DYNINSTheap_align = 4; /* heaps are word-aligned */
 

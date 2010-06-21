@@ -39,6 +39,9 @@
 #include "debug.h"
 #include "os.h"
 #include "instPoint.h"
+#include "function.h"
+
+using namespace Dyninst::SymtabAPI;
 
 // #define USE_ADDRESS_MAPS
 
@@ -54,7 +57,7 @@
 
 bool BinaryEdit::readTextSpace(const void *inOther,
                                u_int size,
-                               const void *inSelf) {
+                               void *inSelf) {
     Address addr = (Address) inOther;
     
     // Look up this address in the code range tree of memory
@@ -67,7 +70,7 @@ bool BinaryEdit::readTextSpace(const void *inOther,
     assert(offset < range->get_size());
 
     void *local_ptr = ((void *) (offset + (Address)range->get_local_ptr()));
-    memcpy(const_cast<void *>(inSelf), local_ptr, size);
+    memcpy(inSelf, local_ptr, size);
 
     return true;
 }
@@ -137,6 +140,27 @@ bool BinaryEdit::writeDataSpace(void *inOther,
                             const void *inSelf) {
     return writeTextSpace(inOther, amount, inSelf);
 }
+
+bool BinaryEdit::readTextWord(const void *inOther,
+                              u_int size,
+                              void *inSelf)
+{ return readTextSpace(inOther, size, inSelf); }
+
+bool BinaryEdit::writeTextWord(void *inOther,
+                               u_int size,
+                               const void *inSelf)
+{ return writeTextSpace(inOther, size, inSelf); }
+
+bool BinaryEdit::readDataWord(const void *inOther,
+                              u_int amount,
+                              void *inSelf,
+                              bool)
+{ return readTextSpace(inOther, amount, inSelf); }
+
+bool BinaryEdit::writeDataWord(void *inOther,
+                               u_int amount,
+                               const void *inSelf)
+{ return writeTextSpace(inOther, amount, inSelf); }
 
 const Address ADDRESS_LO = (Address)0;
 const Address ADDRESS_HI = (Address)(~(Address)0);
@@ -219,10 +243,26 @@ bool BinaryEdit::inferiorRealloc(Address item, unsigned newsize)
   return true;
 }
 
+Architecture BinaryEdit::getArch() const {
+    assert(mapped_objects.size());
+   
+    // XXX presumably all of the objects in the BinaryEdit collection
+    //     must be the same architecture.
+    return mapped_objects[0]->parse_img()->codeObject()->cs()->getArch();
+}
+
 unsigned BinaryEdit::getAddressWidth() const {
     assert(mapped_objects.size());
     
-    return mapped_objects[0]->parse_img()->getObject()->getAddressWidth();
+    return mapped_objects[0]->parse_img()->codeObject()->cs()->getAddressWidth();
+}
+Address BinaryEdit::offset() const {
+    fprintf(stderr,"error BinaryEdit::offset() unimpl\n");
+    return 0;
+}
+Address BinaryEdit::length() const {
+    fprintf(stderr,"error BinaryEdit::length() unimpl\n");
+    return 0;
 }
 
 bool BinaryEdit::multithread_capable(bool) {
@@ -371,7 +411,7 @@ bool BinaryEdit::getResolvedLibraryPath(const std::string &, std::vector<std::st
 }
 #endif
 
-#if !defined(cap_binary_rewriter)
+#if !(defined(cap_binary_rewriter) && (defined(arch_x86) || defined(arch_x86_64))) 
 bool BinaryEdit::doStaticBinarySpecialCases() {
     return true;
 }
@@ -979,7 +1019,7 @@ bool BinaryEdit::needsPIC()
    assert(symtab);
    if(getMappedObject()->fileName().find("lib") == 0)
    {
-       if(getMappedObject()->fileName().find(".so") != -1)
+       if(getMappedObject()->fileName().find(".so") != std::string::npos)
        {
            return true;
        }

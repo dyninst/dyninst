@@ -41,10 +41,12 @@
 #include "Annotatable.h"
 #include "Serialization.h"
 
+#include "ProcReader.h"
+
 class MappedFile;
 
-namespace Dyninst{
-namespace SymtabAPI{
+namespace Dyninst {
+namespace SymtabAPI {
 
 class Archive;
 class builtInTypeCollection;
@@ -55,12 +57,7 @@ class localVar;
 class relocationEntry;
 class Type;
 
-class MemRegReader {
- public:
-   virtual bool ReadMem(Address addr, void *buffer, unsigned size) = 0;
-   virtual bool GetReg(MachRegister reg, MachRegisterVal &val) = 0;
-   virtual ~MemRegReader();
-};
+typedef Dyninst::ProcessReader MemRegReader;
 
 class Symtab : public LookupInterface,
                public Serializable,
@@ -202,7 +199,7 @@ class Symtab : public LookupInterface,
    SYMTAB_EXPORT bool isExec() const;
    SYMTAB_EXPORT bool isStripped();
    SYMTAB_EXPORT ObjectType getObjectType() const;
-
+   SYMTAB_EXPORT Dyninst::Architecture getArchitecture();
    SYMTAB_EXPORT bool isCode(const Offset where) const;
    SYMTAB_EXPORT bool isData(const Offset where) const;
    SYMTAB_EXPORT bool isValidOffset(const Offset where) const;
@@ -220,6 +217,8 @@ class Symtab : public LookupInterface,
          Offset highExclAddr);
    SYMTAB_EXPORT bool addAddressRange(Offset lowInclAddr, Offset highExclAddr, std::string lineSource,
          unsigned int lineNo, unsigned int lineOffset = 0);
+   SYMTAB_EXPORT void setTruncateLinePaths(bool value);
+   SYMTAB_EXPORT bool getTruncateLinePaths();
 
    /***** Type Information *****/
    SYMTAB_EXPORT virtual bool findType(Type *&type, std::string name);
@@ -250,7 +249,7 @@ class Symtab : public LookupInterface,
    SYMTAB_EXPORT bool emitSymbols(Object *linkedFile, std::string filename, unsigned flag = 0);
    SYMTAB_EXPORT bool addRegion(Offset vaddr, void *data, unsigned int dataSize, 
          std::string name, Region::RegionType rType_, bool loadable = false,
-         unsigned long memAlign = 1, bool tls = false);
+         unsigned long memAlign = sizeof(unsigned), bool tls = false);
    SYMTAB_EXPORT bool addRegion(Region *newreg);
    SYMTAB_EXPORT bool emit(std::string filename, unsigned flag = 0);
 
@@ -258,6 +257,13 @@ class Symtab : public LookupInterface,
    SYMTAB_EXPORT std::string getDynLibSubstitution(std::string name);
 
    SYMTAB_EXPORT bool getSegments(std::vector<Segment> &segs) const;
+   
+   SYMTAB_EXPORT void fixup_code_and_data(Offset newImageOffset,
+                                          Offset newImageLength,
+                                          Offset newDataOffset,
+                                          Offset newDataLength);
+   SYMTAB_EXPORT bool fixup_RegionAddr(const char* name, Offset memOffset, long memSize);
+   SYMTAB_EXPORT bool fixup_SymbolAddr(const char* name, Offset newOffset);
    SYMTAB_EXPORT bool updateRegion(const char* name, void *buffer, unsigned size);
    SYMTAB_EXPORT bool updateCode(void *buffer, unsigned size);
    SYMTAB_EXPORT bool updateData(void *buffer, unsigned size);
@@ -341,6 +347,7 @@ class Symtab : public LookupInterface,
    bool demangleSymbol(Symbol *&sym);
    bool addSymbolToIndices(Symbol *&sym);
    bool addSymbolToAggregates(Symbol *&sym);
+   bool doNotAggregate(Symbol *&sym);
    bool updateIndices(Symbol *sym, std::string newName, NameType nameType);
 
 
@@ -564,6 +571,9 @@ class Symtab : public LookupInterface,
    static Type *type_Error;
    static Type *type_Untyped;
 
+ private:
+    unsigned _ref_cnt;
+
  public:
    /********************************************************************/
    /**** DEPRECATED ****************************************************/
@@ -651,6 +661,7 @@ class relocationEntry : public Serializable, public AnnotatableSparse {
       SYMTAB_EXPORT Symbol *getDynSym() const;
       SYMTAB_EXPORT bool addDynSym(Symbol *dynref);
       SYMTAB_EXPORT unsigned long getRelType() const;
+
       SYMTAB_EXPORT void setTargetAddr(const Offset);
       SYMTAB_EXPORT void setRelAddr(const Offset);
       SYMTAB_EXPORT void setAddend(const Offset);

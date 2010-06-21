@@ -63,14 +63,8 @@ int DYNINSTstaticMode = 1;
  * The IA-64 requires that instruction be 16-byte aligned, so we have to 
  * align the heaps if we want to use them for inferior RPCs. 
  **/
-#if defined(arch_ia64)
-typedef struct { uint64_t low; uint64_t high; } ia64_bundle_t;
-#define HEAP_TYPE ia64_bundle_t
-#define ALIGN_ATTRIB __attribute((aligned))
-#else
 #define HEAP_TYPE double
 #define ALIGN_ATTRIB 
-#endif
 
 #if defined(os_linux)
 #define HEAP_LOCAL extern
@@ -79,9 +73,15 @@ typedef struct { uint64_t low; uint64_t high; } ia64_bundle_t;
 #endif
 
 
+#if !defined(target_smallmem)
 HEAP_LOCAL HEAP_TYPE DYNINSTglobalData[SYN_INST_BUF_SIZE/sizeof(HEAP_TYPE)] ALIGN_ATTRIB;
 HEAP_LOCAL HEAP_TYPE DYNINSTstaticHeap_512K_lowmemHeap_1[512*1024/sizeof(HEAP_TYPE)] ALIGN_ATTRIB;
 HEAP_LOCAL HEAP_TYPE DYNINSTstaticHeap_16M_anyHeap_1[16*1024*1024/sizeof(HEAP_TYPE)] ALIGN_ATTRIB;
+#else
+HEAP_LOCAL HEAP_TYPE DYNINSTglobalData[SYN_INST_BUF_SIZE/sizeof(HEAP_TYPE)] ALIGN_ATTRIB;
+HEAP_LOCAL HEAP_TYPE DYNINSTstaticHeap_512K_lowmemHeap_1[4*1024/sizeof(HEAP_TYPE)] ALIGN_ATTRIB;
+HEAP_LOCAL HEAP_TYPE DYNINSTstaticHeap_16M_anyHeap_1[16*1024/sizeof(HEAP_TYPE)] ALIGN_ATTRIB;
+#endif
 
 /* These are necessary because of silly C-style 'extern'/linking conventions. */
 const unsigned long sizeOfLowMemHeap1 = sizeof( DYNINSTstaticHeap_512K_lowmemHeap_1 );

@@ -35,7 +35,7 @@
 
 #include <string.h>
 #include <string>
-#include "symtab.h"
+#include "function.h"
 #include "process.h"
 #include "instPoint.h"
 #include "ast.h"
@@ -563,7 +563,7 @@ void BPatch_function::constructVarsAndParams()
     }
 
     //Check flag to see if vars & params are already constructed
-    std::vector<localVar *>vars;
+    std::vector<SymtabAPI::localVar *>vars;
 
     if (lowlevel_func()->ifunc()->getSymtabFunction()->getLocalVariables(vars)) 
 	{
@@ -578,7 +578,7 @@ void BPatch_function::constructVarsAndParams()
 	    }    
     }
 
-    std::vector<localVar *>parameters;
+    std::vector<SymtabAPI::localVar *>parameters;
 
     if (lowlevel_func()->ifunc()->getSymtabFunction()->getParams(parameters)) 
 	{
@@ -732,35 +732,6 @@ BPatch_variableExpr *BPatch_function::getFunctionRefInt()
   //  only the vector was newly allocated, not the parameters themselves
   delete [] params;
   
-#if defined( arch_ia64 )
-  // IA-64 function pointers actually point to structures.  We insert such
-  // a structure in the mutatee so that instrumentation can use it. */
-  Address entryPoint = (Address)getBaseAddr();
-  
-  //RUTAR, need to change this over when we start to support IA64
-  assert(addSpace->getType() == TRADITIONAL_PROCESS);
-  BPatch_process * proc = dynamic_cast<BPatch_process *>(addSpace);
-  Address gp = proc->llproc->getTOCoffsetInfo( entryPoint );
-  
-  remoteAddress = proc->llproc->inferiorMalloc( sizeof( Address ) * 2 );
-  assert( remoteAddress != (Address)NULL );
-  
-  if (!proc->llproc->writeDataSpace( (void *)remoteAddress, sizeof( Address ), & entryPoint ))
-     fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
-  if (!proc->llproc->writeDataSpace( (void *)(remoteAddress + sizeof( Address )), 
-                                     sizeof( Address ), & gp ))
-     fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
-  
-  
-  AstNodePtr wrapper(AstNode::operandNode(AstNode::Constant, (void *) remoteAddress));
-  // variableExpr owns the AST
-  return new BPatch_variableExpr(fname, proc, lladdSpace, wrapper, 
-                                 type, (void *) remoteAddress); 
-  //return (BPatch_function::voidVoidFunctionPointer)remoteAddress;
-  
-#else
-  //  For other platforms, the baseAddr of the function should be sufficient.
-  
   //  In truth it would make more sense for this to be a BPatch_constExpr,
   //  But since we are adding this as part of the DPCL compatibility process
   //  we use the IBM API, to eliminate one API difference.
@@ -771,7 +742,6 @@ BPatch_variableExpr *BPatch_function::getFunctionRefInt()
   return new BPatch_variableExpr(fname, addSpace, lladdSpace, ast, 
                                  type, (void *) remoteAddress);
   
-#endif
 
 } /* end getFunctionRef() */
 
@@ -938,4 +908,3 @@ bool BPatch_function::findOverlappingInt(BPatch_Vector<BPatch_function *> &funcs
 
     return true;
 }
-

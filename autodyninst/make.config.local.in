@@ -13,6 +13,7 @@ ICC = @_ICC_@
 ICPC = @_ICPC_@
 endif
 
+PGI = @_PGC_@
 M_pg_cc = @_PGC_@
 M_pg_cxx = @_PGCXX_@
 # PGI is defined in environment to point to path; needed for licensing, so we can rely on it
@@ -56,6 +57,7 @@ LIBIBERTY_DYNAMIC = @LIBIBERTY_DYNAMIC@
 
 XLC_BUILD = @BUILD_XLC@
 HAVE_NATIVE_DEMANGLER = @BUILD_XLC@
+HAVE_LIBIBERTY = @HAVE_LIBIBERTY@
 
 #nasm is needed for the Linux/x86 dyninst tests
 NASM = @NASM@

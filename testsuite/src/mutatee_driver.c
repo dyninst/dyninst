@@ -89,13 +89,14 @@ int pointerSize = sizeof (void *);
 /* Global copies of argc and argv, for tests that require them */
 int gargc;
 char **gargv;
+int unique_id;
 
 int debugPrint = 0;
 
 #define USAGE "Usage: mutatee [-attach <fd>] [-verbose] -run <num> .."
 
 void setRunTest(const char *testname) {
-  unsigned int i;
+  signed int i;
   if (NULL == testname) { /* Sanity check */
     return;
   }
@@ -120,6 +121,7 @@ int checkIfAttached()
   return isAttached;
 }
 
+extern char *resumelog_name;
 /* Note which test we're running so we can detect crashes */
 void updateResumeLog(const char *resumelogname, const char *testname) {
   FILE *resumelog;
@@ -159,7 +161,8 @@ void setLabel(unsigned int label_ndx, char *label) {
 int main(int iargc, char *argv[])
 {                                       /* despite different conventions */
    unsigned argc = (unsigned) iargc;   /* make argc consistently unsigned */
-   unsigned int i, j;
+   unsigned int i;
+   signed int j;
 #if !defined(i386_unknown_nt4_0_test)
    int pfd;
 #endif
@@ -270,6 +273,12 @@ int main(int iargc, char *argv[])
       } else if (!strcmp(argv[i], "-dboutput")) {
          /* Set up database output */
          initDatabaseOutputDriver();
+      } else if (!strcmp(argv[i], "-resumelog")) {
+         i += 1;
+         resumelog_name = argv[i];
+      } else if (!strcmp(argv[i], "-uniqueid")) {
+         i += 1;
+         unique_id = atoi(argv[i]);
       } else {
          /* Let's just ignore unrecognized parameters.  They might be
           * important to a specific test.

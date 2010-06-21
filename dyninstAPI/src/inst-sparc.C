@@ -38,7 +38,7 @@
 #include "dyninstAPI/src/multiTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/baseTramp.h"
-#include "dyninstAPI/src/InstrucIter.h"
+
 #include "dyninstAPI/src/registerSpace.h"
 
 #include "dyninstAPI/src/dyn_thread.h" // get_index
@@ -47,8 +47,10 @@
 #include "dyninstAPI/h/BPatch.h"
 
 #include "dyninstAPI/src/addressSpace.h"
+#include "dyninstAPI/src/function.h"
 
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
+
 
 /****************************************************************************/
 /****************************************************************************/
@@ -240,43 +242,43 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
         // integer ops
     case plusOp:
         op3 = ADDop3;
-        instruction::generateImm(gen, op3, src1, src2imm, dest);
+        insnCodeGen::generateImm(gen, op3, src1, src2imm, dest);
         break;
         
     case minusOp:
         op3 = SUBop3;
-        instruction::generateImm(gen, op3, src1, src2imm, dest);
+        insnCodeGen::generateImm(gen, op3, src1, src2imm, dest);
         break;
         
     case timesOp:
         op3 = SMULop3;
         if (isPowerOf2(src2imm,result) && (result<32))
-                    instruction::generateLShift(gen, src1, (Register)result, dest);           
+                    insnCodeGen::generateLShift(gen, src1, (Register)result, dest);           
                 else 
-                    instruction::generateImm(gen, op3, src1, src2imm, dest);
+                    insnCodeGen::generateImm(gen, op3, src1, src2imm, dest);
                 break;
                 
             case divOp:
                 op3 = SDIVop3;
                 if (isPowerOf2(src2imm,result) && (result<32))
-                    instruction::generateRShift(gen, src1, (Register)result, 
+                    insnCodeGen::generateRShift(gen, src1, (Register)result, 
                                                 dest);           
                 else { // needs to set the Y register to zero first
                     // Set the Y register to zero: Zhichen
-                    instruction::generateImm(gen, WRYop3, REG_G(0), 0, 0);
-                    instruction::generateImm(gen, op3, src1, src2imm, dest);
+                    insnCodeGen::generateImm(gen, WRYop3, REG_G(0), 0, 0);
+                    insnCodeGen::generateImm(gen, op3, src1, src2imm, dest);
                 }
                 break;
 
             // Bool ops
             case orOp:
                 op3 = ORop3;
-                instruction::generateImm(gen, op3, src1, src2imm, dest);
+                insnCodeGen::generateImm(gen, op3, src1, src2imm, dest);
                 break;
 
             case andOp:
                 op3 = ANDop3;
-                instruction::generateImm(gen, op3, src1, src2imm, dest);
+                insnCodeGen::generateImm(gen, op3, src1, src2imm, dest);
                 break;
 
             // rel ops
@@ -284,27 +286,27 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
             // the opposite in order to get the right value (e.g. for >=
             // we need BLTcond) - naim
             case eqOp:
-                instruction::generateImmRelOp(gen, BNEcond, src1, src2imm, dest);
+                insnCodeGen::generateImmRelOp(gen, BNEcond, src1, src2imm, dest);
                 break;
 
             case neOp:
-                instruction::generateImmRelOp(gen, BEcond, src1, src2imm, dest);
+                insnCodeGen::generateImmRelOp(gen, BEcond, src1, src2imm, dest);
                 break;
 
             case lessOp:
-                instruction::generateImmRelOp(gen, BGEcond, src1, src2imm, dest);
+                insnCodeGen::generateImmRelOp(gen, BGEcond, src1, src2imm, dest);
                 break;
 
             case leOp:
-                instruction::generateImmRelOp(gen, BGTcond, src1, src2imm, dest);
+                insnCodeGen::generateImmRelOp(gen, BGTcond, src1, src2imm, dest);
                 break;
 
             case greaterOp:
-                instruction::generateImmRelOp(gen, BLEcond, src1, src2imm, dest);
+                insnCodeGen::generateImmRelOp(gen, BLEcond, src1, src2imm, dest);
                 break;
 
             case geOp:
-                instruction::generateImmRelOp(gen, BLTcond, src1, src2imm, dest);
+                insnCodeGen::generateImmRelOp(gen, BLTcond, src1, src2imm, dest);
                 break;
 
             default:
@@ -530,7 +532,7 @@ void emitFuncJump(opCode op, codeGen &gen,
         // ldd [%fp + -24], %g4
         // ldd [%fp + -32], %g6
         
-        instruction::generateLoadD(gen, REG_FPTR, 
+        insnCodeGen::generateLoadD(gen, REG_FPTR, 
                                    -(8+(g_iter*4)), REG_G(g_iter));
     }
 
@@ -539,12 +541,12 @@ void emitFuncJump(opCode op, codeGen &gen,
     // The jmpl instruction stores the jump address; we don't want that.
     // So we "invisi-jump" by making the jump, _then_ executing the
     // restore.
-    //instruction::generateSimple(i, RESTOREop3, 0, 0, 0);
+    //insnCodeGen::generateSimple(i, RESTOREop3, 0, 0, 0);
     
-    instruction::generateSetHi(gen, addr, 13);
+    insnCodeGen::generateSetHi(gen, addr, 13);
     // don't want the return address to be used
-    instruction::generateImm(gen, JMPLop3, 13, LOW10(addr), 0);
-    instruction::generateSimple(gen, RESTOREop3, 0, 0, 0);
+    insnCodeGen::generateImm(gen, JMPLop3, 13, LOW10(addr), 0);
+    insnCodeGen::generateSimple(gen, RESTOREop3, 0, 0, 0);
 }
 
 #include <sys/systeminfo.h>
@@ -636,7 +638,7 @@ bool baseTramp::generateSaves(codeGen &gen,
         frameShift = -120;
 
     // save %sp, -120, %sp
-    instruction::generateImm(gen, SAVEop3, REG_SPTR, frameShift, REG_SPTR);
+    insnCodeGen::generateImm(gen, SAVEop3, REG_SPTR, frameShift, REG_SPTR);
 
     for (unsigned g_iter = 0; g_iter <= 6; g_iter += 2) {
         // std %g[iter], [ %fp + -(8 + (g_iter*4))]
@@ -646,7 +648,7 @@ bool baseTramp::generateSaves(codeGen &gen,
         // std %g4, [ %fp + -24]
         // std %g6, [ %fp + -32]
 
-        instruction::generateStoreD(gen, REG_G(g_iter), REG_FPTR, 
+        insnCodeGen::generateStoreD(gen, REG_G(g_iter), REG_FPTR, 
                                     -(8+(g_iter*4)));
     }
 
@@ -654,17 +656,17 @@ bool baseTramp::generateSaves(codeGen &gen,
     if (isConservative() && BPatch::bpatch->isSaveFPROn() ) {
         for (unsigned f_iter = 0; f_iter <= 30; f_iter += 2) {
             // std %f[iter], [%fp + -(40 + iter*4)]
-            instruction::generateStoreFD(gen, f_iter, REG_FPTR, 
+            insnCodeGen::generateStoreFD(gen, f_iter, REG_FPTR, 
                                          -(40 + (f_iter*4)));
         }
         
         // I hate constants... anyone know what this pattern means?
         // save codes to %g1?
         instruction saveConditionCodes(0x83408000);
-        saveConditionCodes.generate(gen);
+        insnCodeGen::generate(gen,saveConditionCodes);
         
         // And store them.
-        instruction::generateStore(gen, REG_G(1), REG_FPTR,
+        insnCodeGen::generateStore(gen, REG_G(1), REG_FPTR,
                                    -164);
     }
     
@@ -677,18 +679,18 @@ bool baseTramp::generateRestores(codeGen &gen,
     if (isConservative() && BPatch::bpatch->isSaveFPROn()) {
         for (unsigned f_iter = 0; f_iter <= 30; f_iter += 2) {
             // std %f[iter], [%fp + -(40 + iter*4)]
-            instruction::generateLoadFD(gen, REG_FPTR, 
+            insnCodeGen::generateLoadFD(gen, REG_FPTR, 
                                         -(40+(f_iter*4)), f_iter);
         }
         
         // load them...
-        instruction::generateLoad(gen, REG_FPTR,
+        insnCodeGen::generateLoad(gen, REG_FPTR,
                                   -164, REG_G(1));
 
         // I hate constants... anyone know what this pattern means?
         // restore codes from g1?
         instruction restoreConditionCodes(0x85806000);
-        restoreConditionCodes.generate(gen);
+        insnCodeGen::generate(gen,restoreConditionCodes);
     }
 
 
@@ -698,13 +700,13 @@ bool baseTramp::generateRestores(codeGen &gen,
         // ldd [%fp + -24], %g4
         // ldd [%fp + -32], %g6
         
-        instruction::generateLoadD(gen, REG_FPTR, 
+        insnCodeGen::generateLoadD(gen, REG_FPTR, 
                                    -(8+(g_iter*4)), REG_G(g_iter));
     }
 
     // And pop the stack
 
-    instruction::generateSimple(gen, RESTOREop3, 0, 0, 0);
+    insnCodeGen::generateSimple(gen, RESTOREop3, 0, 0, 0);
 
     return true;
 }
@@ -746,9 +748,9 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
       frame*/
 
     if(isUltraSparc())
-        instruction::generateFlushw(gen);
+        insnCodeGen::generateFlushw(gen);
     else 
-        instruction::generateTrapRegisterSpill(gen);
+        insnCodeGen::generateTrapRegisterSpill(gen);
     
     if(frame_offset == 0){
         emitV(loadIndirOp, 30, 0, dest, gen,  noCost, NULL, size);
@@ -825,7 +827,7 @@ Register emitFuncCall(opCode op,
          showErrorCallback(94,msg);
          cleanUpAndExit(-1);
       }
-      instruction::generateSimple(gen, ORop3, 0, srcs[u], u+8);
+      insnCodeGen::generateSimple(gen, ORop3, 0, srcs[u], u+8);
       gen.rs()->freeRegister(srcs[u]);
    }
    
@@ -836,9 +838,9 @@ Register emitFuncCall(opCode op,
    // We can do better:
    //   call <addr>    (but note that the call true-instr is pc-relative jump)
    //   nop
-   instruction::generateSetHi(gen, callee->getAddress(), 13);
-   instruction::generateImm(gen, JMPLop3, 13, LOW10(callee->getAddress()), 15); 
-   instruction::generateNOOP(gen);
+   insnCodeGen::generateSetHi(gen, callee->getAddress(), 13);
+   insnCodeGen::generateImm(gen, JMPLop3, 13, LOW10(callee->getAddress()), 15); 
+   insnCodeGen::generateNOOP(gen);
    
    // return value is the register with the return value from the function.
    // This needs to be %o0 since it is back in the caller's scope.
@@ -885,7 +887,7 @@ Register emitFuncCall(opCode op,
          showErrorCallback(94,msg);
          cleanUpAndExit(-1);
       }
-      instruction::generateSimple(gen, ORop3, 0, srcs[u], u+8);
+      insnCodeGen::generateSimple(gen, ORop3, 0, srcs[u], u+8);
       gen.rs()->freeRegister(srcs[u]);
    }
    
@@ -896,9 +898,9 @@ Register emitFuncCall(opCode op,
    // We can do better:
    //   call <addr>    (but note that the call true-instr is pc-relative jump)
    //   nop
-   instruction::generateSetHi(gen, callee_addr_, 13);
-   instruction::generateImm(gen, JMPLop3, 13, LOW10(callee_addr_), 15); 
-   instruction::generateNOOP(gen);
+   insnCodeGen::generateSetHi(gen, callee_addr_, 13);
+   insnCodeGen::generateImm(gen, JMPLop3, 13, LOW10(callee_addr_), 15); 
+   insnCodeGen::generateNOOP(gen);
    
    // return value is the register with the return value from the function.
    // This needs to be %o0 since it is back in the caller's scope.
@@ -925,18 +927,18 @@ codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, Register dest,
     switch (op) {
     case ifOp: 
         // cmp src1,0
-        instruction::generateImm(gen, SUBop3cc, src1, 0, 0);
+        insnCodeGen::generateImm(gen, SUBop3cc, src1, 0, 0);
 	//genSimpleInsn(gen, SUBop3cc, src1, 0, 0); insn++;
         retval = gen.getIndex();
-        instruction::generateCondBranch(gen, dest, BEcond, false);
+        insnCodeGen::generateCondBranch(gen, dest, BEcond, false);
 
-	instruction::generateNOOP(gen);
+	insnCodeGen::generateNOOP(gen);
         break;
     case branchOp: 
 	// Unconditional branch
         retval = gen.getIndex();
-        instruction::generateBranch(gen, dest);
-        instruction::generateNOOP(gen);
+        insnCodeGen::generateBranch(gen, dest);
+        insnCodeGen::generateNOOP(gen);
         break;
     case trampPreamble: {
         return(0);      // let's hope this is expected!
@@ -1031,7 +1033,7 @@ Register emitR(opCode op, Register src1, Register src2, Register dest,
     case getParamOp: {
         if(for_multithreaded) {
             // saving CT/vector address on the stack
-            instruction::generateStore(gen, REG_MT_POS, REG_FPTR, -40);
+            insnCodeGen::generateStore(gen, REG_MT_POS, REG_FPTR, -40);
         }
         // We have managed to emit two saves since the entry point of
         // the function, so the first 6 parameters are in the previous
@@ -1040,36 +1042,36 @@ Register emitR(opCode op, Register src1, Register src2, Register dest,
         // generate the FLUSHW instruction to make sure that previous
         // windows are written to the register save area on the stack
         if (isUltraSparc()) {
-            instruction::generateFlushw(gen);
+            insnCodeGen::generateFlushw(gen);
         }
         else {
-            instruction::generateTrapRegisterSpill(gen);
+            insnCodeGen::generateTrapRegisterSpill(gen);
         }
 
         if (src1 < 6) {
             // The arg is in a previous frame's I register. Get it from
             // the register save area
             if (src2 != REG_NULL)
-                instruction::generateStore(gen, src2, REG_FPTR, 4*8 + 4*src1);
-            instruction::generateLoad(gen, REG_FPTR, 4*8 + 4*src1, dest);
+                insnCodeGen::generateStore(gen, src2, REG_FPTR, 4*8 + 4*src1);
+            insnCodeGen::generateLoad(gen, REG_FPTR, 4*8 + 4*src1, dest);
         }
         else {
             // The arg is on the stack, two frames above us. Get the previous
             // FP (i6) from the register save area
-            instruction::generateLoad(gen, REG_FPTR, 4*8 + 4*6, dest);
+            insnCodeGen::generateLoad(gen, REG_FPTR, 4*8 + 4*6, dest);
             // old fp is in dest now
 
             // Write new value, if any
             if (src2 != REG_NULL)
-                instruction::generateStore(gen, src2, dest, 92 + 4 * (src1 - 6));
+                insnCodeGen::generateStore(gen, src2, dest, 92 + 4 * (src1 - 6));
 
             // Finally, load the arg from the stack
-            instruction::generateLoad(gen, dest, 92 + 4 * (src1 - 6), dest);
+            insnCodeGen::generateLoad(gen, dest, 92 + 4 * (src1 - 6), dest);
         }
 
         if(for_multithreaded) {
             // restoring CT/vector address back in REG_MT_POS
-            instruction::generateLoad(gen, REG_FPTR, -40, REG_MT_POS);
+            insnCodeGen::generateLoad(gen, REG_FPTR, -40, REG_MT_POS);
         }
 
         return dest;
@@ -1081,14 +1083,14 @@ Register emitR(opCode op, Register src1, Register src2, Register dest,
         if (src1 < 6) {
             // Param is in an I register
             if (src2 != REG_NULL)
-                instruction::generateSimple(gen, ORop3, 0, src2, REG_I(src1));
+                insnCodeGen::generateSimple(gen, ORop3, 0, src2, REG_I(src1));
             return(REG_I(src1));
         }
         else {
             // Param is on the stack
             if (src2 != REG_NULL)
-                instruction::generateStore(gen, src2, REG_FPTR, 92 + 4 * (src1 - 6));
-            instruction::generateLoad(gen, REG_FPTR, 92 + 4 * (src1 - 6), dest);
+                insnCodeGen::generateStore(gen, src2, REG_FPTR, 92 + 4 * (src1 - 6));
+            insnCodeGen::generateLoad(gen, REG_FPTR, 92 + 4 * (src1 - 6), dest);
             return dest;
         }
     }
@@ -1100,20 +1102,20 @@ Register emitR(opCode op, Register src1, Register src2, Register dest,
         // generate the FLUSHW instruction to make sure that previous
         // windows are written to the register save area on the stack
         if (isUltraSparc()) {
-            instruction::generateFlushw(gen);
+            insnCodeGen::generateFlushw(gen);
         }
         else {
-            instruction::generateTrapRegisterSpill(gen);
+            insnCodeGen::generateTrapRegisterSpill(gen);
         }
 
         if (src2 != REG_NULL)
-            instruction::generateStore(gen, src2, REG_FPTR, 4*8);
-        instruction::generateLoad(gen, REG_FPTR, 4*8, dest);
+            insnCodeGen::generateStore(gen, src2, REG_FPTR, 4*8);
+        insnCodeGen::generateLoad(gen, REG_FPTR, 4*8, dest);
         return dest;
     }
     case getSysRetValOp:
         if (src2 != REG_NULL)
-            instruction::generateSimple(gen, ORop3, 0, src2, REG_I(0));
+            insnCodeGen::generateSimple(gen, ORop3, 0, src2, REG_I(0));
         return(REG_I(0));
 
     default:
@@ -1156,11 +1158,11 @@ static inline void emitAddOriginal(Register src, Register acc,
         mustFree = true;
         
         // Cause repeated spills, till all windows but current are clear
-        instruction::generateFlushw(gen); // only ultraSPARC supported here
+        insnCodeGen::generateFlushw(gen); // only ultraSPARC supported here
         
         // the spill trap puts these at offset from the previous %sp now %fp (r30)
         unsigned offset = (src-16) * sizeof(long); // FIXME for 64bit mutator/32bit mutatee
-        instruction::generateLoad(gen, 30, offset, temp);
+        insnCodeGen::generateLoad(gen, 30, offset, temp);
     }
     else if (src >= 8)
         temp = src + 16;
@@ -1172,7 +1174,7 @@ static inline void emitAddOriginal(Register src, Register acc,
         
         // the base tramp puts these at offset from %fp (r30)
         unsigned offset = ((src%2) ? src : (src+2)) * -sizeof(long); // FIXME too
-        instruction::generateLoad(gen, 30, offset, temp);
+        insnCodeGen::generateLoad(gen, 30, offset, temp);
         
         if (src >= 5)
             logLine("SPARC WARNING: Restoring original value of g5-g7 is unreliable!");
@@ -1227,11 +1229,11 @@ void emitCSload(const BPatch_addrSpec_NP *as, Register dest, codeGen &gen,
 //
 int getFP(codeGen &gen, Register dest)
 {
-    instruction::generateSimple(gen, RESTOREop3, 0, 0, 0);
-    instruction::generateStore(gen, REG_FPTR, REG_SPTR, 68);
+    insnCodeGen::generateSimple(gen, RESTOREop3, 0, 0, 0);
+    insnCodeGen::generateStore(gen, REG_FPTR, REG_SPTR, 68);
 	  
-    instruction::generateImm(gen, SAVEop3, REG_SPTR, -112, REG_SPTR);
-    instruction::generateLoad(gen, REG_SPTR, 112+68, dest); 
+    insnCodeGen::generateImm(gen, SAVEop3, REG_SPTR, -112, REG_SPTR);
+    insnCodeGen::generateLoad(gen, REG_SPTR, 112+68, dest); 
 
 
     return(4*instruction::size());
@@ -1251,7 +1253,7 @@ void emitVload(opCode op, Address src1, Register src2, Register dest,
         
         if ((src1) > ( unsigned )MAX_IMM13 || (src1) < ( unsigned )MIN_IMM13) {
             // src1 is out of range of imm13, so we need an extra instruction
-            instruction::generateSetHi(gen, src1, dest);
+            insnCodeGen::generateSetHi(gen, src1, dest);
             
 	    // or regd,imm,regd
 
@@ -1259,21 +1261,21 @@ void emitVload(opCode op, Address src1, Register src2, Register dest,
             // and if so, don't generate the following bitwise-or instruction,
             // since in that case nothing would be done.
 
-	    instruction::generateImm(gen, ORop3, dest, LOW10(src1), dest);
+	    insnCodeGen::generateImm(gen, ORop3, dest, LOW10(src1), dest);
 	} else {
 	    // really or %g0,imm,regd
-	    instruction::generateImm(gen, ORop3, 0, src1, dest);
+	    insnCodeGen::generateImm(gen, ORop3, 0, src1, dest);
 	}
     } else if (op ==  loadOp) {
 	// dest = [src1]   TODO
-	instruction::generateSetHi(gen, src1, dest);
+	insnCodeGen::generateSetHi(gen, src1, dest);
 
         if (size == 1)
-            instruction::generateLoadB(gen, dest, LOW10(src1), dest);
+            insnCodeGen::generateLoadB(gen, dest, LOW10(src1), dest);
         else if (size == 2)
-            instruction::generateLoadH(gen, dest, LOW10(src1), dest);
+            insnCodeGen::generateLoadH(gen, dest, LOW10(src1), dest);
         else
-            instruction::generateLoad(gen, dest, LOW10(src1), dest);
+            insnCodeGen::generateLoad(gen, dest, LOW10(src1), dest);
     } else if (op ==  loadFrameRelativeOp) {
 	// return the value that is FP offset from the original fp
 	//   need to restore old fp and save it on the stack to get at it.
@@ -1284,17 +1286,17 @@ void emitVload(opCode op, Address src1, Register src2, Register dest,
 	    int offset = (int) src1;
 
 	    // emit sethi src2, offset
-	    instruction::generateSetHi(gen, offset, src2);
+	    insnCodeGen::generateSetHi(gen, offset, src2);
 
 	    // or src2, offset, src2
-	    instruction::generateImm(gen, ORop3, src2, LOW10(offset), src2);
+	    insnCodeGen::generateImm(gen, ORop3, src2, LOW10(offset), src2);
 
 	    // add dest, src2, dest
-	    instruction::generateSimple(gen, ADDop3, dest, src2, src2);
+	    insnCodeGen::generateSimple(gen, ADDop3, dest, src2, src2);
 
-	    instruction::generateLoad(gen, src2, 0, dest);
+	    insnCodeGen::generateLoad(gen, src2, 0, dest);
 	}  else {
-	    instruction::generateLoad(gen, dest, src1, dest);
+	    insnCodeGen::generateLoad(gen, dest, src1, dest);
 	}
     } else if (op == loadFrameAddr) {
 	// offsets are signed!
@@ -1304,20 +1306,20 @@ void emitVload(opCode op, Address src1, Register src2, Register dest,
 
 	if (((int) offset < MIN_IMM13) || ((int) offset > MAX_IMM13)) {
 	    // emit sethi src2, offset
-	    instruction::generateSetHi(gen, offset, src2);
+	    insnCodeGen::generateSetHi(gen, offset, src2);
 
 	    // or src2, offset, src2
-	    instruction::generateImm(gen, ORop3, src2, LOW10(offset), src2);
+	    insnCodeGen::generateImm(gen, ORop3, src2, LOW10(offset), src2);
 
 	    // add dest, src2, dest
-	    instruction::generateSimple(gen, ADDop3, dest, src2, dest);
+	    insnCodeGen::generateSimple(gen, ADDop3, dest, src2, dest);
 	}  else {
 	    // fp is in dest, just add the offset
-	    instruction::generateImm(gen, ADDop3, dest, offset, dest);
+	    insnCodeGen::generateImm(gen, ADDop3, dest, offset, dest);
 	}
     } else if(op == loadRegRelativeAddr) {
       int offset = (int) src1;
-      instruction::generateLoad(gen, src2, offset, dest);
+      insnCodeGen::generateLoad(gen, src2, offset, dest);
       
     } else {
         abort();       // unexpected op for this emit!
@@ -1340,9 +1342,9 @@ void emitVstore(opCode op, Register src1, Register src2, Address dest,
 	(*insn).sethi.rd = src2;
 	(*insn).sethi.op2 = SETHIop2;
 	(*insn).sethi.imm22 = HIGH22(dest);
-        insn.generate(gen);
+        insnCodeGen::generate(gen,insn);
 
-	instruction::generateStore(gen, src1, src2, LOW10(dest));
+	insnCodeGen::generateStore(gen, src1, src2, LOW10(dest));
     } else if (op == storeFrameRelativeOp) {
 	// offsets are signed!
 	int offset = (int) dest;
@@ -1352,19 +1354,19 @@ void emitVstore(opCode op, Register src1, Register src2, Address dest,
 	if ((offset < MIN_IMM13) || (offset > MAX_IMM13)) {
 	    // We are really one regsiter short here, so we put the
 	    //   value to store onto the stack for part of the sequence
-	    instruction::generateStore(gen, src1, REG_SPTR, 112+68);
+	    insnCodeGen::generateStore(gen, src1, REG_SPTR, 112+68);
 
-	    instruction::generateSetHi(gen, offset, src1);
+	    insnCodeGen::generateSetHi(gen, offset, src1);
 
-	    instruction::generateImm(gen, ORop3, src1, LOW10(offset), src1);
+	    insnCodeGen::generateImm(gen, ORop3, src1, LOW10(offset), src1);
 
-	    instruction::generateSimple(gen, ADDop3, src1, src2, src2);
+	    insnCodeGen::generateSimple(gen, ADDop3, src1, src2, src2);
 
-	    instruction::generateLoad(gen, REG_SPTR, 112+68, src1); 
+	    insnCodeGen::generateLoad(gen, REG_SPTR, 112+68, src1); 
 
-	    instruction::generateStore(gen, src1, src2, 0);
+	    insnCodeGen::generateStore(gen, src1, src2, 0);
 	} else {
-	    instruction::generateStore(gen, src1, src2, dest);
+	    insnCodeGen::generateStore(gen, src1, src2, dest);
 	}
     } else {
         abort();       // unexpected op for this emit!
@@ -1397,11 +1399,11 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
     
     
     if (op == loadIndirOp) {
-	instruction::generateLoad(gen, src1, 0, dest);
+	insnCodeGen::generateLoad(gen, src1, 0, dest);
     } else if (op == storeIndirOp) {
-	instruction::generateStore(gen, src1, dest, 0);
+	insnCodeGen::generateStore(gen, src1, dest, 0);
     } else if (op == noOp) {
-	instruction::generateNOOP(gen);
+	insnCodeGen::generateNOOP(gen);
     } else if (op == saveRegOp) {
 	// should never be called for this platform.
         // VG(12/02/01): Unfortunately allocateRegister *may* call this
@@ -1425,7 +1427,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
         case divOp:
             op3 = SDIVop3;
             //need to set the Y register to Zero, Zhichen
-            instruction::generateImm(gen, WRYop3, REG_G(0), 0, 0);
+            insnCodeGen::generateImm(gen, WRYop3, REG_G(0), 0, 0);
             break;
             
 	    // Bool ops
@@ -1442,27 +1444,27 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
             // the opposite in order to get the right value (e.g. for >=
             // we need BLTcond) - naim
         case eqOp:
-            instruction::generateRelOp(gen, BNEcond, src1, src2, dest);
+            insnCodeGen::generateRelOp(gen, BNEcond, src1, src2, dest);
             break;
             
         case neOp:
-            instruction::generateRelOp(gen, BEcond, src1, src2, dest);
+            insnCodeGen::generateRelOp(gen, BEcond, src1, src2, dest);
             break;
             
         case lessOp:
-            instruction::generateRelOp(gen, BGEcond, src1, src2, dest);
+            insnCodeGen::generateRelOp(gen, BGEcond, src1, src2, dest);
             break;
             
         case leOp:
-            instruction::generateRelOp(gen, BGTcond, src1, src2, dest);
+            insnCodeGen::generateRelOp(gen, BGTcond, src1, src2, dest);
             break;
             
         case greaterOp:
-            instruction::generateRelOp(gen, BLEcond, src1, src2, dest);
+            insnCodeGen::generateRelOp(gen, BLEcond, src1, src2, dest);
             break;
 
         case geOp:
-            instruction::generateRelOp(gen, BLTcond, src1, src2, dest);
+            insnCodeGen::generateRelOp(gen, BLTcond, src1, src2, dest);
             break;
             
         default:
@@ -1471,7 +1473,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
 	}
         if (op3 != -1) {
             // I.E. was set above...
-            instruction::generateSimple(gen, op3, src1, src2, dest);
+            insnCodeGen::generateSimple(gen, op3, src1, src2, dest);
         }
       }
    return;
@@ -1495,10 +1497,6 @@ bool writeFunctionPtr(AddressSpace *p, Address addr, int_function *f)
 {
    Address val_to_write = f->getAddress();
    return p->writeDataSpace((void *) addr, sizeof(Address), &val_to_write);   
-}
-
-bool image::isAligned(const Address where) const {
-   return (!(where & 0x3));
 }
 
 Emitter *AddressSpace::getEmitter() {

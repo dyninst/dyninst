@@ -38,11 +38,13 @@
 #include <stdlib.h>
 #include "common/h/Types.h"
 #include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/src/arch.h" // instruction
+#include "common/h/arch.h" // instruction
 #include "dyninstAPI/src/codeRange.h"
 #include "common/h/stats.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/bitArray.h"
+
+#include "arch-forward-decl.h" // instruction
 
 class image_func;
 class int_function;
@@ -51,9 +53,6 @@ class process;
 class image;
 
 class int_basicBlock;
-#if defined(__XLC__) || defined(__xlC__)
-class BPatch_point;
-#endif
 class Frame;
 class instPointInstance;
 
@@ -77,10 +76,12 @@ typedef enum {
 
 class multiTramp;
 class instPoint;
-class instruction;
+
+
 
 #if defined(cap_instruction_api)
 #include "Instruction.h"
+#include "InstructionDecoder.h"
 #endif
 // As above: common class for both parse-time and run-time instPoints
 
@@ -94,43 +95,97 @@ class instPointBase {
 
   // Single instruction we're instrumenting (if at all)
 #if defined(cap_instruction_api)
-  Dyninst::InstructionAPI::Instruction::Ptr insn() const { return insn_; }
+  static void setArch(Dyninst::Architecture a, bool) 
+  {
+    arch = a;
+  }
+  static Dyninst::Architecture arch;
+  
+    Dyninst::InstructionAPI::Instruction::Ptr insn() {
+      Dyninst::InstructionAPI::InstructionDecoder dec((const unsigned char*)NULL, 0, arch);
+      return dec.decode(insn_);
+    }
 #else
-  const instruction &insn() const { return insn_; }
+    static void setArch(Dyninst::Architecture, bool) {}
+    const instruction &insn()  { 
+        // XXX super-evil cast due to incoherant "codeBuf_t" typedefs
+        if(dec_insn_.size() == 0)
+          dec_insn_.setInstruction((NS_sparc::codeBuf_t*)insn_,0);
+        return dec_insn_; 
+    }
 #endif
   instPointBase(
-#if defined(cap_instruction_api)
-          Dyninst::InstructionAPI::Instruction::Ptr insn,
-#else
-                                 instruction insn,
-#endif
-                instPointType_t type) :
-    ipType_(type),
-    insn_(insn)
-      { id_ = id_ctr++; }
+    unsigned char * insn_buf,
+    size_t insn_len,
+    instPointType_t type) :
+    ipType_(type)
+    { id_ = id_ctr++;
+      insn_ = (unsigned char*)(malloc(insn_len));
+      memcpy(insn_, insn_buf, insn_len);
+    }
   // We need to have a manually-set-everything method
   instPointBase(
-#if defined(cap_instruction_api)
-          Dyninst::InstructionAPI::Instruction::Ptr insn,
-#else
-                                 instruction insn,
-#endif
-                instPointType_t type,
+          unsigned char * insn_buf,
+          size_t insn_len,
+          instPointType_t type,
                 unsigned int id) :
       id_(id),
-      ipType_(type),
-    insn_(insn)
-      {}
+      ipType_(type)
+      {
+        insn_ = (unsigned char*)(malloc(insn_len));
+        memcpy(insn_, insn_buf, insn_len);
+      }
+  // convenience for creations from instPoint
+  instPointBase(
+#if defined(cap_instruction_api)
+    Dyninst::InstructionAPI::Instruction::Ptr insn,
+#else
+    instruction insn,
+#endif
+    instPointType_t type) :
+    ipType_(type)
+    {
+        id_ = id_ctr++;
+#if defined(cap_instruction_api)
+        insn_ = (unsigned char*)malloc(insn->size());
+        memcpy(insn_,insn->ptr(),insn->size());
+#else
+        insn_ = (unsigned char*)malloc(insn.size());
+        memcpy(insn_,insn.ptr(),insn.size());
+#endif
+    } 
+  instPointBase(
+#if defined(cap_instruction_api)
+    Dyninst::InstructionAPI::Instruction::Ptr insn,
+#else
+    instruction insn,
+#endif
+    instPointType_t type,
+    unsigned int id) :
+    id_(id),
+    ipType_(type)
+    {
+        id_ = id_ctr++;
+#if defined(cap_instruction_api)
+        insn_ = (unsigned char*)malloc(insn->size());
+        memcpy(insn_,insn->ptr(),insn->size());
+#else
+        insn_ = (unsigned char*)malloc(insn.size());
+        memcpy(insn_,insn.ptr(),insn.size());
+#endif
+    } 
 
   int id() const { return id_; }
-    virtual ~instPointBase() {}
+    virtual ~instPointBase() {
+        if(insn_)
+            free(insn_);
+    }
  protected:
   unsigned int id_;
   instPointType_t ipType_;
-#if defined(cap_instruction_api)
-    Dyninst::InstructionAPI::Instruction::Ptr insn_;
-#else
-    instruction insn_;
+  unsigned char* insn_;
+#if !defined(cap_instruction_api)
+  instruction dec_insn_;
 #endif
 };
 
@@ -140,43 +195,36 @@ class image_instPoint : public instPointBase {
  public:
     // Entry/exit
     image_instPoint(Address offset,
-#if defined(cap_instruction_api)
-    Dyninst::InstructionAPI::Instruction::Ptr insn,
-#else
-                  instruction insn,
-#endif
-		  image_func *func,
-		  instPointType_t type);
+                    unsigned char * insn_buf,
+                    size_t insn_len,
+                    image * img,
+                    instPointType_t type);
     // Call site or otherPoint that has a target
     image_instPoint(Address offset,
-#if defined(cap_instruction_api)
-    Dyninst::InstructionAPI::Instruction::Ptr insn,
-#else
-                    instruction insn,
-#endif
-                    image_func *func,
-                    Address callTarget_,
+                    unsigned char * insn_buf,
+                    size_t insn_len,
+                    image * img,
+                    Address callTarget,
                     bool isDynamic,
-                    bool isAbsolute = false,
-                    instPointType_t type = callSite);
+                    bool isAbsolute,
+                    instPointType_t type);
 
   Address offset_;
   Address offset() const { return offset_; }
 
-  image_func *func() const { return func_; }
-  image_func *func_;
   // For call-site points:
-
-  image_func *callee_;
+private:
+  image * image_;
+  mutable image_func *callee_; // cache
   std::string callee_name_;
   Address callTarget_;
   bool targetIsAbsolute_;
+public:
   Address callTarget() const { return callTarget_; }
   bool targetIsAbsolute() const { return targetIsAbsolute_; }
   bool isDynamic_; 
   bool isDynamic() const { return isDynamic_; }
-
-  image_func *getCallee() const { return callee_; }
+  image_func *getCallee() const;
   void setCallee(image_func *f) { callee_ = f; }
   std::string getCalleeName() const { return callee_name_; }
   void setCalleeName(std::string s) { callee_name_ = s; }
@@ -310,7 +358,7 @@ class instPoint : public instPointBase {
     // Generic instPoint...
     instPoint(AddressSpace *proc,
 #if defined(cap_instruction_api)
-                                 Dyninst::InstructionAPI::Instruction::Ptr insn,
+    Dyninst::InstructionAPI::Instruction::Ptr insn,
 #else
                                  instruction insn,
 #endif

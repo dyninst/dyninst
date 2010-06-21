@@ -383,9 +383,6 @@ bool baseTrampInstance::generateCode(codeGen &gen,
 bool baseTrampInstance::generateCodeInlined(codeGen &gen,
                                             Address baseInMutatee,
                                             UNW_INFO_TYPE **
-#if defined(arch_ia64)
-                                            unwindRegion
-#endif
                                             ) {
     if (!hasChanged() && generated_) {
         assert(gen.currAddr(baseInMutatee) == trampAddr_);
@@ -812,10 +809,6 @@ unsigned baseTrampInstance::maxSizeRequired() {
     for (unsigned i = 0; i < mtis.size(); i++)
       size += mtis[i]->maxSizeRequired();
     
-#if defined(arch_ia64)
-	size *= 8; // Enormous on this platform...
-#endif
-
     return size;
 }
 
@@ -1186,8 +1179,12 @@ int baseTrampInstance::numDefinedRegs()
    return count;
 }
 
-Symbol *baseTrampInstance::createBTSymbol()
+SymtabAPI::Symbol *baseTrampInstance::createBTSymbol()
 {
+  using SymtabAPI::Symtab;
+  using SymtabAPI::Symbol;
+  using SymtabAPI::Region;
+
   //Make a symbol on this baseTramp to help ID it.
   BinaryEdit *binedit = dynamic_cast<BinaryEdit *>(proc());
   assert(binedit);

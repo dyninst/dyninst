@@ -37,6 +37,7 @@
 
 #include <regex.h>
 
+#include "symtabAPI/h/Symtab.h"
 #include "symtabAPI/src/Object.h"
 #include "common/h/pathName.h"
 
@@ -483,7 +484,7 @@ bool Object::fillExceptionTable(struct exceptab *etab, unsigned int etab_size, b
 		//  Warn:  header files expressly warn against using sizeof(EXCEPTTAB)
 		if (is64)
 		{
-			char lang = tabentry->_u._s64._lang64;
+			//char lang = tabentry->_u._s64._lang64;
 			char reason = tabentry->_u._s64._reason64;
 			if (reason == 0)
 			{
@@ -491,19 +492,19 @@ bool Object::fillExceptionTable(struct exceptab *etab, unsigned int etab_size, b
 				//  for a given function.  If this is zero, the address
 				//  field contains the symbol table entry of the 
 				//  relevant function
-				int symindex = tabentry->_u._s64._addr64.e_symndx;
-				struct syment *sym = (struct syment *) (((char *)symbols) + symindex * SYMESZ);
-				const char *name =  &stringPool[ sym->n_offset64 ];
+				//int symindex = tabentry->_u._s64._addr64.e_symndx;
+				//struct syment *sym = (struct syment *) (((char *)symbols) + symindex * SYMESZ);
+				//const char *name =  &stringPool[ sym->n_offset64 ];
 			}
 			else
 			{
-				uint64_t addr = tabentry->_u._s64._addr64.e_paddr;
+				//uint64_t addr = tabentry->_u._s64._addr64.e_paddr;
 			}
 			//catch_addrs_.push_back(new ExceptionBlock(addr));
 		}
 		else 
 		{
-			char lang = tabentry->_u._s32._lang32;
+			//char lang = tabentry->_u._s32._lang32;
 			char reason = tabentry->_u._s32._reason32;
 			if (reason == 0)
 			{
@@ -511,13 +512,13 @@ bool Object::fillExceptionTable(struct exceptab *etab, unsigned int etab_size, b
 				//  for a given function.  If this is zero, the address
 				//  field contains the symbol table entry of the 
 				//  relevant function
-				int symindex = tabentry->_u._s32._addr32.e_symndx;
-				struct syment *sym = (struct syment *) (((char *)symbols) + symindex * SYMESZ);
-				const char *name =  &stringPool[ sym->n_offset32 ] ;
+				//int symindex = tabentry->_u._s32._addr32.e_symndx;
+				//struct syment *sym = (struct syment *) (((char *)symbols) + symindex * SYMESZ);
+				//const char *name =  &stringPool[ sym->n_offset32 ] ;
 			}
 			else
 			{
-				uint32_t addr = tabentry->_u._s32._addr32.e_paddr;
+				//uint32_t addr = tabentry->_u._s32._addr32.e_paddr;
 			}
 		}
 	}
@@ -546,7 +547,9 @@ void Object::parse_aout(int offset, bool /*is_aout*/, bool alloc_syms)
    bool foundText = false;
        
    unsigned exceptab_size_ = 0;
+#if 0
    struct exceptab * exceptab_ = NULL;
+#endif
 
    stabs_ = NULL;
    nstabs_ = 0;
@@ -1887,10 +1890,6 @@ void Object::parseTypeInfo(Symtab *obj)
    get_stab_info(stabstr, nstabs, syms_void, stringPool);
    syms = (SYMENT *) syms_void;
 
-   bool parseActive = true;
-   //int num_active = 0;
-   //
-
    for (i=0; i < nstabs; i++) {
       /* do the pointer addition by hand since sizeof(struct syment)
        *   seems to be 20 not 18 as it should be */
@@ -2125,4 +2124,11 @@ bool Region::isStandardCode()
 {
    return (getRegionPermissions() == RP_RX ||
            getRegionPermissions() == RP_RWX);
+}
+
+Dyninst::Architecture Object::getArch()
+{
+   if (getAddressWidth() == 4)
+      return Dyninst::Arch_ppc32;
+   return Dyninst::Arch_ppc64;
 }

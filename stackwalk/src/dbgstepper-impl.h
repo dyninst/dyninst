@@ -32,15 +32,14 @@
 #ifndef DBGSTEPPER_IMPL_
 #define DBGSTEPPER_IMPL_
 
-#if defined(cap_stackwalker_use_symtab)
-
-#include "symtabAPI/h/Symtab.h"
 #include "stackwalk/h/framestepper.h"
+#include "dynutil/h/ProcReader.h"
 
+class DwarfSW;
 namespace Dyninst {
 namespace Stackwalker {
 
-class DebugStepperImpl : public FrameStepper, public Dyninst::SymtabAPI::MemRegReader {
+class DebugStepperImpl : public FrameStepper, public Dyninst::ProcessReader {
  private:
    DebugStepper *parent_stepper;
    const Frame *cur_frame; //TODO: Thread safety
@@ -52,9 +51,12 @@ class DebugStepperImpl : public FrameStepper, public Dyninst::SymtabAPI::MemRegR
   virtual bool ReadMem(Address addr, void *buffer, unsigned size);
   virtual bool GetReg(MachRegister reg, MachRegisterVal &val);
   virtual ~DebugStepperImpl();  
+  virtual bool start() { return true; }
+  virtual bool done() { return true; }
+  virtual const char *getName() const;
  protected:
   gcframe_ret_t getCallerFrameArch(Address pc, const Frame &in, Frame &out, 
-                                   Dyninst::SymtabAPI::Symtab *symtab);
+                                   DwarfSW *dinfo);
   bool isFrameRegister(MachRegister reg);
   bool isStackRegister(MachRegister reg);
 };
@@ -62,5 +64,4 @@ class DebugStepperImpl : public FrameStepper, public Dyninst::SymtabAPI::MemRegR
 }
 }
 
-#endif
 #endif

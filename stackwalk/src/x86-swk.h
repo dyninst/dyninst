@@ -36,9 +36,7 @@
 #include "stackwalk/h/framestepper.h"
 #include "dynutil/h/dyntypes.h"
 
-#if defined(cap_cache_func_starts)
 #include "common/h/lru_cache.h"
-#endif
 
 namespace Dyninst {
 namespace Stackwalker {
@@ -57,6 +55,7 @@ class StepperWandererImpl : public FrameStepper {
    virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
    virtual unsigned getPriority() const;
    void registerStepperGroup(StepperGroup *group);
+   virtual const char *getName() const;
    virtual ~StepperWandererImpl();
 };
 
@@ -66,15 +65,13 @@ private:
    static std::map<Dyninst::PID, LookupFuncStart*> all_func_starts;
    LookupFuncStart(ProcessState *proc_);
    int ref_count;
-private:
+
    void updateCache(Address addr, alloc_frame_t result);
    bool checkCache(Address addr, alloc_frame_t &result);
-#if defined(cap_cache_func_starts)
    //We need some kind of re-entrant safe synhronization before we can
    // globally turn this caching on, but it would sure help things.
    static const unsigned int cache_size = 64;
    LRUCache<Address, alloc_frame_t> cache;
-#endif
 public:
    static LookupFuncStart *getLookupFuncStart(ProcessState *p);
    void releaseMe();

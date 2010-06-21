@@ -49,31 +49,34 @@ int main(int argc, char *argv[])
   std::set<BPatch_basicBlock *> blocks;
   cfg->getAllBasicBlocks(blocks);
 
+  AssignmentConverter converter(true);
+
   for (std::set<BPatch_basicBlock *>::iterator b_iter = blocks.begin();
        b_iter != blocks.end(); ++b_iter) {
     std::vector<std::pair<Instruction::Ptr, Address> > insns;
     (*b_iter)->getInstructions(insns);
     for (unsigned i = 0; i < insns.size(); ++i) {
-      std::set<Assignment::Ptr> assigns;
+      std::vector<Assignment::Ptr> assigns;
       cerr << insns[i].first->format() << endl;
 
-      AssignmentConverter::convert(insns[i].first,
-				   insns[i].second,
-				   function[0],
-				   assigns);
+      converter.convert(insns[i].first,
+			insns[i].second,
+			function[0],
+			assigns);
 
       // Build a map stating which assignments we're interested in
-      SymEval::Result res;
-      for (std::set<Assignment::Ptr>::iterator a_iter = assigns.begin();
+      Result_t res;
+      for (std::vector<Assignment::Ptr>::iterator a_iter = assigns.begin();
 	   a_iter != assigns.end(); ++a_iter) {
+	//cerr << "Recording interest in " << (*a_iter)->format() << endl;
 	res[*a_iter] = AST::Ptr();
       }
 
       // Feed the map into the symbolic evaluator
-      SymEval::expand(res);
+      SymEval<Arch_x86>::expand(res);
 
       // What do we have here?
-      for (SymEval::Result::const_iterator r_iter = res.begin();
+      for (Result_t::const_iterator r_iter = res.begin();
 	   r_iter != res.end(); ++r_iter) {
 	cout << "-----------------" << endl;
 	cout << r_iter->first->format();
@@ -86,4 +89,3 @@ int main(int argc, char *argv[])
 
   return 0;
 }
-

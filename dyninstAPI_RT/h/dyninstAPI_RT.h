@@ -46,7 +46,12 @@
  *  mini-trampolines to reach within this area.
  */
 
+#if !defined(target_smallmem)
 #define SYN_INST_BUF_SIZE (1024*1024*4)
+#else
+#define SYN_INST_BUF_SIZE (1024*1024*1)
+#endif
+
 #define DYNINST_BREAKPOINT_SIGNUM SIGBUS
 
 #include <stdio.h>
@@ -177,6 +182,9 @@ typedef struct {
 #define TRAP_HEADER_SIG 0x759191D6
 #define DT_DYNINST 0x6D191957
 
+#if defined(_MSC_VER)
+#pragma warning(disable:4200)
+#endif
 struct trap_mapping_header {
    uint32_t signature;
    uint32_t num_entries;

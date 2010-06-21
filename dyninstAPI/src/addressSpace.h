@@ -36,10 +36,11 @@
 
 #include "infHeap.h"
 #include "codeRange.h"
-#include "InstructionSource.h"
 #include "ast.h"
 #include "symtabAPI/h/Symtab.h"
 #include "dyninstAPI/src/trapMappings.h"
+
+#include "parseAPI/h/InstructionSource.h"
 
 class codeRange;
 class multiTramp;
@@ -61,7 +62,7 @@ class generatedCodeObject;
 class fileDescriptor;
 
 using namespace Dyninst;
-using namespace SymtabAPI;
+//using namespace SymtabAPI;
 
 class int_function;
 class int_symbol;
@@ -95,18 +96,31 @@ class AddressSpace : public InstructionSource {
 
     // We have read/write for both "text" and "data". This comes in handy,
     // somewhere, I'm sure
+    virtual bool readDataWord(const void *inOther, 
+                              u_int amount, 
+                              void *inSelf, 
+                              bool showError) = 0;
     virtual bool readDataSpace(const void *inOther, 
                                u_int amount, 
                                void *inSelf, 
                                bool showError) = 0;
+    virtual bool readTextWord(const void *inOther, 
+                              u_int amount, 
+                              void *inSelf) = 0;
     virtual bool readTextSpace(const void *inOther, 
                                u_int amount, 
-                               const void *inSelf) = 0;
+                               void *inSelf) = 0;
     
 
+    virtual bool writeDataWord(void *inOther,
+                               u_int amount,
+                               const void *inSelf) = 0;
     virtual bool writeDataSpace(void *inOther,
                                 u_int amount,
                                 const void *inSelf) = 0;
+    virtual bool writeTextWord(void *inOther,
+                               u_int amount,
+                               const void *inSelf) = 0;
     virtual bool writeTextSpace(void *inOther,
                                 u_int amount,
                                 const void *inSelf) = 0;
@@ -129,9 +143,6 @@ class AddressSpace : public InstructionSource {
 
     bool isInferiorAllocated(Address block);
 
-    // Get the pointer size of the app we're modifying
-    virtual unsigned getAddressWidth() const = 0;
-
     // We need a mechanism to track what exists at particular addresses in the
     // address space - both for lookup and to ensure that there are no collisions.
     // We have a multitude of ways to "muck with" the application (function replacement,
@@ -149,9 +160,16 @@ class AddressSpace : public InstructionSource {
 
     bool getDyninstRTLibName();
 
-    virtual void *getPtrToInstruction(Address) const;
-    virtual bool isValidAddress(const Address &) const;
-    virtual bool isExecutableAddress(const Address &) const;
+    // InstructionSource 
+    virtual bool isValidAddress(const Address) const;
+    virtual void *getPtrToInstruction(const Address) const;
+    virtual void *getPtrToData(const Address) const;
+    virtual unsigned getAddressWidth() const = 0;
+    virtual bool isCode(const Address) const;
+    virtual bool isData(const Address) const;
+    virtual Address offset() const = 0;
+    virtual Address length() const = 0;
+    virtual Architecture getArch() const = 0;
 
     // Trap address to base tramp address (for trap instrumentation)
     trampTrapMappings trapMapping;
@@ -290,7 +308,7 @@ class AddressSpace : public InstructionSource {
                                 pdvector<AstNodePtr> &args);
 
     // Default to "nope"
-    virtual bool hasBeenBound(const relocationEntry &, 
+    virtual bool hasBeenBound(const SymtabAPI::relocationEntry &, 
                               int_function *&, 
                               Address) { return false; }
     

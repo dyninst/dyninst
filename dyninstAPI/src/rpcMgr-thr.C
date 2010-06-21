@@ -37,6 +37,10 @@
 #include "dyninstAPI/src/mailbox.h"
 #include "dyninstAPI/src/callbacks.h"
 
+#if defined(os_vxworks)
+#include "vxworks.h"
+#endif
+
 rpcThr::rpcThr(rpcThr *parT, rpcMgr *cM, dyn_thread *cT) :
     mgr_(cM),
     thr_(cT),
@@ -356,13 +360,7 @@ irpcLaunchState_t rpcThr::runPendingIRPC()
 #endif    
 
     // Launch this sucker. Change the PC, and the caller will set running
-#if !defined(ia64_unknown_linux2_4)
     if (!lwp->changePC(runningRPC_->rpcStartAddr, NULL)) {
-#else
-	/* Syscalls can actually rewind the PC by 0x10, so we need
-	   a bundle _before_ the new PC to check for this. */
-    if (!lwp->changePC(runningRPC_->rpcStartAddr + 0x10, NULL)) {
-#endif
         cerr << "launchRPC failed: couldn't set PC" << endl;
         return irpcError;
     }
@@ -383,6 +381,13 @@ irpcLaunchState_t rpcThr::runPendingIRPC()
 	      << endl;
          return irpcError;
       }
+#endif
+
+#if defined(os_vxworks)
+      // No signals on VxWorks
+      if (runningRPC_->rpcResultAddr)
+          addBreakpoint(runningRPC_->rpcResultAddr);
+      addBreakpoint(runningRPC_->rpcCompletionAddr);
 #endif
 
       if (mgr_->proc()->IndependentLwpControl())

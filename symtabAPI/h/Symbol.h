@@ -203,10 +203,12 @@ class Symbol : public Serializable,
    SYMTAB_EXPORT bool  setVersionFileName(std::string &fileName);
    SYMTAB_EXPORT bool  setVersions(std::vector<std::string> &vers);
    SYMTAB_EXPORT bool  setVersionNum(unsigned verNum);
+   SYMTAB_EXPORT void setVersionHidden() { versionHidden_ = true; }
 
    SYMTAB_EXPORT bool  getVersionFileName(std::string &fileName);
    SYMTAB_EXPORT bool  getVersions(std::vector<std::string> *&vers);
    SYMTAB_EXPORT bool  getVersionNum(unsigned &verNum);
+   SYMTAB_EXPORT bool  getVersionHidden() { return versionHidden_; }
 
    friend
       std::ostream& operator<< (std::ostream &os, const Symbol &s);
@@ -254,6 +256,8 @@ class Symbol : public Serializable,
    bool          isCommonStorage_;
 
    std::vector<std::string> verNames_;
+
+   bool versionHidden_;
 
    void restore_module_and_region(SerializerBase *, 
 		   std::string &, Offset) THROW_SPEC (SerializerError);

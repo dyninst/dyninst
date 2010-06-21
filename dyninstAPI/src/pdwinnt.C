@@ -50,11 +50,13 @@
 #include <windows.h>
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/emit-x86.h"
-#include "dyninstAPI/src/arch-x86.h"
+#include "common/h/arch.h"
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/registerSpace.h"
 
 #include "dyninstAPI/src/ast.h"
+
+#include "dyninstAPI/src/function.h"
 
 /* XXX This is only needed for emulating signals. */
 #include "BPatch_thread.h"
@@ -668,8 +670,8 @@ bool process::flushInstructionCache_(void *baseAddr, size_t size){ //ccw 25 june
    return FlushInstructionCache((HANDLE)replwp->getProcessHandle(), baseAddr, size);
 }
 
-bool dyn_lwp::readTextSpace(void *inTraced, u_int amount, const void *inSelf) {
-   return readDataSpace(inTraced, amount, (void *)inSelf);
+bool dyn_lwp::readTextSpace(const void *inTraced, u_int amount, void *inSelf) {
+   return readDataSpace(inTraced, amount, inSelf);
 }
 
 bool dyn_lwp::writeDataSpace(void *inTraced, u_int amount, const void *inSelf)
@@ -1474,7 +1476,7 @@ void dyn_lwp::representativeLWP_detach_()
 // Insert a breakpoint at the entry of main()
 bool process::insertTrapAtEntryPointOfMain() {
   mapped_object *aout = getAOut();
-  Symtab *aout_obj = aout->parse_img()->getObject();
+  SymtabAPI::Symtab *aout_obj = aout->parse_img()->getObject();
   pdvector<int_function *> funcs;
   Address min_addr = 0xffffffff;
   Address max_addr = 0x0;

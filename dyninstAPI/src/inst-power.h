@@ -130,6 +130,9 @@
                   sizeof(uint32_t)    /* Stack frame back chain */  \
               )                                                     \
         )
+#elif defined(os_vxworks)
+#define PARAM_OFFSET(bah) (0)
+
 #else
 #error "Unknown operating system in inst-power.h"
 #endif
@@ -233,7 +236,7 @@ void pushStack(codeGen &gen);
 void popStack(codeGen &gen);
 unsigned saveGPRegisters(codeGen &gen, 
                          registerSpace *theRegSpace,
-                         int save_off);
+                         int save_off, int numReqGPRs=-1);
 unsigned restoreGPRegisters(codeGen &gen, 
                             registerSpace *theRegSpace,
                             int save_off);

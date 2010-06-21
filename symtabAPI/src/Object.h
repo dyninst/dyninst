@@ -47,6 +47,7 @@
 #include <vector>
 
 #include "Symbol.h"
+#include "Symtab.h"
 #include "LineInformation.h"
 #include "common/h/headers.h"
 #include "common/h/MappedFile.h"
@@ -74,8 +75,6 @@ const char MULTIPLE_WILDCARD_CHARACTER = '*';
  *   and a length of the code section, and ditto for the data
  *   section....
 ************************************************************************/
-
-class MemRegReader;
 
 class AObject {
 public:
@@ -130,11 +129,15 @@ public:
     SYMTAB_EXPORT virtual bool getRegValueAtFrame(Address /*pc*/,
                                                   Dyninst::MachRegister /*reg*/, 
                                                   Dyninst::MachRegisterVal & /*reg_result*/,
-                                                  MemRegReader * /*reader*/) {return false;}
+                                                  Dyninst::SymtabAPI::MemRegReader * /*reader*/) {return false;}
     
+    SYMTAB_EXPORT virtual Dyninst::Architecture getArch() { return Arch_none; };
     SYMTAB_EXPORT const std::string findModuleForSym(Symbol *sym);
     SYMTAB_EXPORT void clearSymsToMods();
     SYMTAB_EXPORT bool hasError() const;
+    
+    virtual void setTruncateLinePaths(bool value);
+    virtual bool getTruncateLinePaths();
 
 protected:
     SYMTAB_EXPORT virtual ~AObject();
@@ -204,7 +207,7 @@ private:
  * include the architecture-operating system specific object files.
 ************************************************************************/
 
-#if defined(os_solaris) || defined(os_linux) || defined(os_bg_ion)
+#if defined(os_solaris) || defined(os_linux) || defined(os_bg_ion) || defined(os_vxworks)
 #include "Object-elf.h"
 #elif defined(os_aix)
 #include "Object-xcoff.h"

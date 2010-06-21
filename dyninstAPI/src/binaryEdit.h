@@ -34,14 +34,16 @@
 #ifndef BINARY_H
 #define BINARY_H
 
-#include "infHeap.h"
-#include "addressSpace.h"
-#include "codeRange.h"
-#include "InstructionSource.h"
-#include "ast.h"
 #include <map>
 #include <functional>
 #include <queue>
+
+#include "infHeap.h"
+#include "addressSpace.h"
+#include "codeRange.h"
+#include "ast.h"
+
+#include "parseAPI/h/InstructionSource.h"
 
 class fileDescriptor;
 class int_function;
@@ -59,8 +61,7 @@ class BinaryEdit : public AddressSpace {
                        bool showError);
     bool readTextSpace(const void *inOther, 
                        u_int amount, 
-                       const void *inSelf);
-    
+                       void *inSelf);
 
     bool writeDataSpace(void *inOther,
                         u_int amount,
@@ -68,6 +69,22 @@ class BinaryEdit : public AddressSpace {
     bool writeTextSpace(void *inOther,
                         u_int amount,
                         const void *inSelf);
+
+    // "Read"/"Write" to an address space with correct endian swapping.
+    bool readDataWord(const void *inOther, 
+                      u_int amount, 
+                      void *inSelf, 
+                      bool showError);
+    bool readTextWord(const void *inOther, 
+                      u_int amount, 
+                      void *inSelf);
+
+    bool writeDataWord(void *inOther,
+                       u_int amount,
+                       const void *inSelf);
+    bool writeTextWord(void *inOther,
+                       u_int amount,
+                       const void *inSelf);
 
     // Memory allocation
     // We don't specify how it should be done, only that it is. The model is
@@ -83,14 +100,17 @@ class BinaryEdit : public AddressSpace {
     virtual void inferiorFree(Address item);
     virtual bool inferiorRealloc(Address item, unsigned newSize);
 
-    // Get the pointer size of the app we're modifying
+    /* AddressSpace pure virtual implementation */
     unsigned getAddressWidth() const;
+    Address offset() const;
+    Address length() const;
+    Architecture getArch() const;
 
     /*
     // Until we need these different from AddressSpace,
     // I'm not implementing.
     void *getPtrToInstruction(Address) const;
-    bool isValidAddress(const Address &) const;
+    bool isValidAddress(const Address) const;
     */
 
     // If true is passed for ignore_if_mt_not_set, then an error won't be
@@ -107,7 +127,7 @@ class BinaryEdit : public AddressSpace {
     bool multithread_ready(bool ignore_if_mt_not_set = false);
 
     // Default to "nope"
-    virtual bool hasBeenBound(const relocationEntry &, 
+    virtual bool hasBeenBound(const SymtabAPI::relocationEntry &, 
                               int_function *&, 
                               Address) { return false; }
 
@@ -136,10 +156,10 @@ class BinaryEdit : public AddressSpace {
     bool openSharedLibrary(const std::string &file, bool openDependencies = true);
 
     // add a shared library relocation
-	void addDependentRelocation(Address to, Symbol *referring);
+	void addDependentRelocation(Address to, SymtabAPI::Symbol *referring);
 
     // search for a shared library relocation
-	Address getDependentRelocationAddr(Symbol *referring);
+	Address getDependentRelocationAddr(SymtabAPI::Symbol *referring);
 
    void setupRTLibrary(std::vector<BinaryEdit *> &r);
    std::vector<BinaryEdit *> &rtLibrary();
@@ -192,9 +212,9 @@ class BinaryEdit : public AddressSpace {
 
     std::vector<depRelocation *> dependentRelocations;
 
-    void buildDyninstSymbols(pdvector<Symbol *> &newSyms, 
-                             Region *newSec,
-                             Module *mod);
+    void buildDyninstSymbols(pdvector<SymtabAPI::Symbol *> &newSyms, 
+                             SymtabAPI::Region *newSec,
+                             SymtabAPI::Module *mod);
     mapped_object *mobj;
     std::vector<BinaryEdit *> rtlib;
     std::vector<BinaryEdit *> siblings;
@@ -203,13 +223,13 @@ class BinaryEdit : public AddressSpace {
 
 class depRelocation {
 	public:
-		depRelocation(Address a, Symbol *r) : to(a), referring(r) { }
+		depRelocation(Address a, SymtabAPI::Symbol *r) : to(a), referring(r) { }
 		Address getAddress() const { return to; }
-		Symbol *getReferring() const { return referring; }
+		SymtabAPI::Symbol *getReferring() const { return referring; }
 
 	private:
 		Address to;
-		Symbol *referring;
+		SymtabAPI::Symbol *referring;
 };
 
 class memoryTracker : public codeRange {

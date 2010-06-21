@@ -9,9 +9,14 @@
 #include "Operand.h"
 #include "Absloc.h"
 
-class image_func;
+class int_function;
+class BPatch_function;
 
 namespace Dyninst {
+
+  namespace ParseAPI {
+    class Function; 
+  };
 
 class AbsRegionConverter {
  public:
@@ -24,12 +29,12 @@ class AbsRegionConverter {
 
   void convertAll(InstructionAPI::Expression::Ptr expr,
 		  Address addr,
-		  image_func *func,
+		  ParseAPI::Function *func,
 		  std::vector<AbsRegion> &regions);
 
   void convertAll(InstructionAPI::Instruction::Ptr insn,
 		  Address addr,
-		  image_func *func,
+		  ParseAPI::Function *func,
 		  std::vector<AbsRegion> &used,
 		  std::vector<AbsRegion> &defined);
 
@@ -39,33 +44,37 @@ class AbsRegionConverter {
 
   AbsRegion convert(InstructionAPI::Expression::Ptr expr,
 		    Address addr,
-		    image_func *func);
+		    ParseAPI::Function *func);
 
   // Cons up a stack reference at the current addr
   AbsRegion stack(Address addr,
-		  image_func *func,
+		  ParseAPI::Function *func,
+		  bool push);
+
+  AbsRegion frame(Address addr,
+		  ParseAPI::Function *func,
 		  bool push);
 
  private:
     // Returns false if the current height is unknown.
-  bool getCurrentStackHeight(image_func *func,
+  bool getCurrentStackHeight(ParseAPI::Function *func,
 			     Address addr, 
 			     long &height, int &region);
-  bool getCurrentFrameHeight(image_func *func,
+  bool getCurrentFrameHeight(ParseAPI::Function *func,
 			     Address addr, 
 			     long &height, int &region);
 
   bool convertResultToAddr(const InstructionAPI::Result &res, Address &addr);
   bool convertResultToSlot(const InstructionAPI::Result &res, int &slot);
 
-  bool usedCache(Address, image_func *, std::vector<AbsRegion> &used);
-  bool definedCache(Address, image_func *, std::vector<AbsRegion> &defined);
+  bool usedCache(Address, ParseAPI::Function *, std::vector<AbsRegion> &used);
+  bool definedCache(Address, ParseAPI::Function *, std::vector<AbsRegion> &defined);
 
   // Caching mechanism...
   typedef std::vector<AbsRegion> RegionVec;
 
   typedef std::map<Address, RegionVec> AddrCache;
-  typedef std::map<image_func *, AddrCache> FuncCache;
+  typedef std::map<ParseAPI::Function *, AddrCache> FuncCache;
 
   FuncCache used_cache_;
   FuncCache defined_cache_;
@@ -78,25 +87,35 @@ class AssignmentConverter {
 
   void convert(InstructionAPI::Instruction::Ptr insn,
 	       const Address &addr,
-	       image_func *func,
+	       ParseAPI::Function *func,
 	       std::vector<Assignment::Ptr> &assignments);
+  void convert(InstructionAPI::Instruction::Ptr insn,
+	       const Address &addr,
+	       int_function *func,
+	       std::vector<Assignment::Ptr> &assignments);
+  void convert(InstructionAPI::Instruction::Ptr insn,
+	       const Address &addr,
+	       BPatch_function *func,
+	       std::vector<Assignment::Ptr> &assignments);
+
+
  private:
   void handlePushEquivalent(const InstructionAPI::Instruction::Ptr I,
 			    Address addr,
-			    image_func *func,
+			    ParseAPI::Function *func,
 			    std::vector<AbsRegion> &operands,
 			    std::vector<Assignment::Ptr> &assignments);
   void handlePopEquivalent(const InstructionAPI::Instruction::Ptr I,
 			   Address addr,
-			   image_func *func,
+			   ParseAPI::Function *func,
 			   std::vector<AbsRegion> &operands,
 			   std::vector<Assignment::Ptr> &assignments);
 
-  bool cache(image_func *func, Address addr, std::vector<Assignment::Ptr> &assignments);
+  bool cache(ParseAPI::Function *func, Address addr, std::vector<Assignment::Ptr> &assignments);
 
   typedef std::vector<Assignment::Ptr> AssignmentVec;
   typedef std::map<Address, AssignmentVec> AddrCache;
-  typedef std::map<image_func *, AddrCache> FuncCache;
+  typedef std::map<ParseAPI::Function *, AddrCache> FuncCache;
 
   FuncCache cache_;
   bool cacheEnabled_;

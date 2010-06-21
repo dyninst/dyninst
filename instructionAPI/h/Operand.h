@@ -60,6 +60,7 @@ namespace Dyninst
     {
     public:
         typedef dyn_detail::boost::shared_ptr<Operand> Ptr;
+    Operand() : m_isRead(false), m_isWritten(false) {}
       /// \brief Create an operand from a %Expression and flags describing whether the %ValueComputation
       /// is read, written or both.
       /// \param val Reference-counted pointer to the %Expression that will be contained in the %Operand being constructed
@@ -96,6 +97,11 @@ namespace Dyninst
       INSTRUCTION_EXPORT bool isRead(Expression::Ptr candidate) const;
       /// Returns true if this operand is written
       INSTRUCTION_EXPORT bool isWritten(Expression::Ptr candidate) const;
+
+      INSTRUCTION_EXPORT bool isRead() const {
+	return m_isRead; }
+      INSTRUCTION_EXPORT bool isWritten() const {
+	return m_isWritten; }
       
       /// Returns true if this operand reads memory
       INSTRUCTION_EXPORT bool readsMemory() const;

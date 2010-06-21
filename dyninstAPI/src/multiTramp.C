@@ -36,14 +36,15 @@
 #include "miniTramp.h"
 #include "instPoint.h"
 #include "process.h"
+#include "function.h"
 #if defined(cap_instruction_api)
 #include "instructionAPI/h/InstructionDecoder.h"
 #else
-#include "InstrucIter.h"
+#include "parseAPI/src/InstrucIter.h"
 #endif // defined(cap_instruction_api)
 #include "BPatch.h"
 // Need codebuf_t, Address
-#include "arch.h"
+#include "codegen.h"
 #include <sstream>
 
 using namespace Dyninst;
@@ -365,7 +366,7 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
       // platform where we wouldn't is IA-64, which doesn't do function relocation.
 
       // uhh....
-      pdvector<bblInstance::reloc_info_t::relocInsn *> &relocInsns = bbl->get_relocs();
+      pdvector<bblInstance::reloc_info_t::relocInsn::Ptr> &relocInsns = bbl->get_relocs();
       assert(relocInsns[0]->relocAddr == startAddr);
       for (unsigned i = 0; i < relocInsns.size(); i++) {
 	relocatedInstruction *reloc = new relocatedInstruction(relocInsns[i]->origInsn,
@@ -398,9 +399,7 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
       const unsigned char* relocatedInsnBuffer =
       reinterpret_cast<const unsigned char*>(proc->getPtrToInstruction(startAddr));
       
-      dyn_detail::boost::shared_ptr<InstructionDecoder> decoder =
-              makeDecoder(func->ifunc()->img()->getArch(), relocatedInsnBuffer, size);
-      decoder->setMode(proc->getAddressWidth() == 8);
+      InstructionDecoder decoder(relocatedInsnBuffer, size, proc->getArch());
       while(offset < size)
       {
 	Address insnAddr = startAddr + offset;
@@ -416,7 +415,7 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
 	}
 	reloc->setPrevious(prev);
 	prev = reloc;	
-	offset += decoder->decode()->size();
+	offset += decoder.decode()->size();
 	#if defined(arch_sparc)
 	#error "Instruction API not implemented for SPARC yet"
 	// delay slot handling goes here
@@ -513,27 +512,12 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
 
 // Get the footprint for the multiTramp at this address. The MT may
 // not exist yet; our instrumentation code needs this.
-#if defined(arch_ia64)
-bool multiTramp::getMultiTrampFootprint(Address instAddr,
-                                        AddressSpace * /* proc */,
-                                        Address &startAddr,
-                                        unsigned &size,
-					bool &basicBlock)
-#else
 bool multiTramp::getMultiTrampFootprint(Address instAddr,
                                         AddressSpace *proc,
                                         Address &startAddr,
                                         unsigned &size,
 					bool &basicBlock)
-#endif
 {
-#if defined(arch_ia64)
-    // IA64 bundle-izes
-    startAddr = instAddr - (instAddr % 16);
-    size = 16; // bundlesize
-    basicBlock = false;
-    return true;
-#else
     // We use basic blocks
     // Otherwise, make one.
     codeRange *range = proc->findOrigByAddr(instAddr);
@@ -569,13 +553,11 @@ bool multiTramp::getMultiTrampFootprint(Address instAddr,
         
         startAddr = instAddr;
 #if defined(cap_instruction_api)
-        static const int maxInsnSize = 16; // 16 byte instruction is max on all IAPI platforms
 	using namespace Dyninst::InstructionAPI;
-	dyn_detail::boost::shared_ptr<InstructionDecoder> decoder =
-                makeDecoder(bbl->func()->ifunc()->img()->getArch(), (unsigned char*)(proc->getPtrToInstruction(instAddr)),
-                            maxInsnSize);
-        decoder->setMode(proc->getAddressWidth() == 8);
-        Instruction::Ptr instInsn = decoder->decode();
+	InstructionDecoder decoder((unsigned char*)(proc->getPtrToInstruction(instAddr)),
+				   InstructionDecoder::maxInstructionLength,
+				   proc->getArch());
+        Instruction::Ptr instInsn = decoder.decode();
 	size = instInsn->size();
 #else
         InstrucIter ah(instAddr,proc);
@@ -591,7 +573,6 @@ bool multiTramp::getMultiTrampFootprint(Address instAddr,
     basicBlock = true;
 
     return true;
-#endif
 }
 
 void multiTramp::updateInstInstances() {
@@ -702,11 +683,6 @@ void multiTramp::updateInstInstances() {
                 obj->setTarget(targetBTI);
                 // And a tramp end marker goes here as well.
                 Address origTarget = insn->originalTarget();
-#if defined(arch_ia64)
-                // Target lookups on ia64 need to be adjusted for offsets
-                // from the start of the bundle
-                origTarget = origTarget - (origTarget % 0x10);
-#endif
                 targetBTI->setFallthrough(new trampEnd(this, origTarget));
                 targetBTI->fallthrough_->setPrevious(targetBTI);
                 changedSinceLastGeneration_ = true;
@@ -1290,7 +1266,7 @@ bool multiTramp::linkCode() {
     // Time to stomp old multiTramps with traps...
     if (previousInsnAddrs_ && BPatch::bpatch->isMergeTramp()) {
         codeGen gen(16); // Overkill, it's either 1, 4, or 16.
-        instruction::generateTrap(gen);
+        insnCodeGen::generateTrap(gen);
 
         for (unsigned i = 0; i < previousInsnAddrs_->size(); i++) {
             pdpair<Address, Address> addrs = (*previousInsnAddrs_)[i];
@@ -2431,15 +2407,9 @@ bool multiTramp::catchupRequired(Address pc, miniTramp *newMT,
     return false;
 }
 
-#if defined (arch_ia64)
-bool relocatedInstruction::generateCode(codeGen &gen,
-                                        Address baseInMutatee,
-                                        UNW_INFO_TYPE ** unwindInformation ) 
-#else
 bool relocatedInstruction::generateCode(codeGen &gen,
                                         Address baseInMutatee,
                                         UNW_INFO_TYPE ** /* unwindInformation*/ ) 
-#endif
 {
   if( ! alreadyGenerated(gen, baseInMutatee) ) {
     generateSetup(gen, baseInMutatee);
@@ -2455,7 +2425,8 @@ bool relocatedInstruction::generateCode(codeGen &gen,
        target = targetOverride_;
     }
 
-    if (!insn->generate(gen,
+    if (!insnCodeGen::generate(gen,
+                        *insn,
                         multiT->proc(),
                         origAddr_,
                         addrInMutatee_,
@@ -2475,11 +2446,11 @@ bool relocatedInstruction::generateCode(codeGen &gen,
     if (insn->isDCTI()) {
       if (ds_insn) {
         inst_printf("... copying delay slot\n");
-	    ds_insn->generate(gen);
+        insnCodeGen::generate(gen,*ds_insn);
       }
       if (agg_insn) {
         inst_printf("... copying aggregate\n");
-	    agg_insn->generate(gen);
+        insnCodeGen::generate(gen,*agg_insn);
       }
     }
 #endif
@@ -2539,13 +2510,13 @@ bool multiTramp::fillJumpBuf(codeGen &gen) {
                // map onto a real instruction
                proc()->trapMapping.addTrapMapping(origAddr, addrInMulti, false);
             }
-            instruction::generateTrap(gen);
+            insnCodeGen::generateTrap(gen);
         }
     }
     else {
         // Don't want to use traps, but we still need to fill
         // this up. So instead we use noops. 
-        instruction::generateNOOP(gen, instSize() - gen.used());
+        insnCodeGen::generateNOOP(gen, instSize() - gen.used());
     }
     return true;
 }
@@ -2581,7 +2552,7 @@ bool multiTramp::generateBranchToTramp(codeGen &gen)
         return true;
     }
 #endif
-    instruction::generateBranch(gen, instAddr_, trampAddr_);
+    insnCodeGen::generateBranch(gen, instAddr_, trampAddr_);
 
     branchSize_ = gen.used() - origUsed;
 
@@ -2597,7 +2568,7 @@ bool multiTramp::generateTrapToTramp(codeGen &gen) {
     // as "finished" address... so use that one (not instAddr_)
     proc()->trapMapping.addTrapMapping(gen.currAddr(instAddr_), trampAddr_, true);
     unsigned start = gen.used();
-    instruction::generateTrap(gen);
+    insnCodeGen::generateTrap(gen);
     branchSize_ = gen.used() - start;
 
     usedTrap_ = true;
@@ -2667,8 +2638,9 @@ relocatedInstruction::relocatedInstruction(const unsigned char* insnPtr, Address
    multiT(m), 
    targetOverride_(NULL) 
 {
+  const codeBuf_t *buf = reinterpret_cast<const codeBuf_t*>(insnPtr);
   insn = new instruction;
-  insn->setInstruction((const codeBuf_t*)insnPtr, (Address)(o));
+  insn->setInstruction(const_cast<codeBuf_t*>(buf), (Address)(o));
 }
 #endif
 

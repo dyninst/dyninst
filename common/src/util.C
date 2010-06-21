@@ -34,10 +34,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
-#include "dynutil/h/util.h"
-
+#include "dynutil/h/dyntypes.h"
 
 namespace Dyninst {
+
 COMMON_EXPORT unsigned addrHashCommon(const Address &addr)
 {
    // inspired by hashs of string class
@@ -210,10 +210,6 @@ const char *platform_string()
 #else
 	return "ppc32_linux";
 #endif
-#endif
-#elif defined (arch_ia64)
-#if defined (os_linux)
-	return "ia64-unknown-linux2.4";
 #endif
 #elif defined (arch_sparc)
 #if defined (os_solaris)

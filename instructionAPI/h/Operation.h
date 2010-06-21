@@ -34,7 +34,7 @@
 
 #include "Register.h"
 #include "Expression.h"
-#include "entryIDs-IA32.h"
+#include "entryIDs.h"
 #include <set>
 
 #include "util.h"
@@ -54,9 +54,12 @@
 // Use cases:
 // OpCode + raw instruction -> Operation + ExpressionPtrs
 // Operation + ExpressionPtrs -> Instruction + Operands
+
+namespace NS_x86 {
 struct ia32_entry;
 class ia32_prefixes;
-struct ia32_locations;
+}
+class ia32_locations;
 
 namespace Dyninst
 {
@@ -96,7 +99,7 @@ namespace Dyninst
       friend class InstructionDecoder_power; // for editing mnemonics after creation
       
     public:
-      INSTRUCTION_EXPORT Operation(ia32_entry* e, ia32_prefixes* p = NULL, ia32_locations* l = NULL,
+      INSTRUCTION_EXPORT Operation(NS_x86::ia32_entry* e, NS_x86::ia32_prefixes* p = NULL, ia32_locations* l = NULL,
                                   Architecture arch = Arch_none);
       INSTRUCTION_EXPORT Operation(const Operation& o);
       INSTRUCTION_EXPORT Operation();

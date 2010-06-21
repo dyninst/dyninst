@@ -66,6 +66,17 @@ map<MachRegister, Register> reverseRegisterMap = map_list_of
         (x86_64::rsi, REGNUM_RSI)
         (x86_64::rdi, REGNUM_RDI)
         (x86_64::rip, REGNUM_IGNORED)
+        (x86_64::cf, REGNUM_CF)
+        (x86_64::pf, REGNUM_PF)
+        (x86_64::af, REGNUM_AF)
+        (x86_64::zf, REGNUM_ZF)  
+        (x86_64::sf, REGNUM_SF)
+        (x86_64::tf, REGNUM_TF)
+        (x86_64::df, REGNUM_DF)
+        (x86_64::of, REGNUM_OF)
+        (x86_64::nt_, REGNUM_NT)
+        (x86_64::if_, REGNUM_IF)
+        (x86_64::flags, REGNUM_EFLAGS)
         (x86_64::xmm0, REGNUM_XMM0)
         (x86_64::xmm1, REGNUM_XMM1)
         (x86_64::xmm2, REGNUM_XMM2)
@@ -74,14 +85,14 @@ map<MachRegister, Register> reverseRegisterMap = map_list_of
         (x86_64::xmm5, REGNUM_XMM5)
         (x86_64::xmm6, REGNUM_XMM6)
         (x86_64::xmm7, REGNUM_XMM7)
-        (x86_64::mm0, REGNUM_MM0)
-        (x86_64::mm1, REGNUM_MM1)
-        (x86_64::mm2, REGNUM_MM2)
-        (x86_64::mm3, REGNUM_MM3)
-        (x86_64::mm4, REGNUM_MM4)
-        (x86_64::mm5, REGNUM_MM5)
-        (x86_64::mm6, REGNUM_MM6)
-        (x86_64::mm7, REGNUM_MM7)
+        (x86_64::mm0, REGNUM_DUMMYFPR)
+        (x86_64::mm1, REGNUM_DUMMYFPR)
+        (x86_64::mm2, REGNUM_DUMMYFPR)
+        (x86_64::mm3, REGNUM_DUMMYFPR)
+        (x86_64::mm4, REGNUM_DUMMYFPR)
+        (x86_64::mm5, REGNUM_DUMMYFPR)
+        (x86_64::mm6, REGNUM_DUMMYFPR)
+        (x86_64::mm7, REGNUM_DUMMYFPR)
         (x86_64::cr0, REGNUM_IGNORED)
         (x86_64::cr1, REGNUM_IGNORED)
         (x86_64::cr2, REGNUM_IGNORED)
@@ -98,15 +109,37 @@ map<MachRegister, Register> reverseRegisterMap = map_list_of
         (x86_64::dr5, REGNUM_IGNORED)
         (x86_64::dr6, REGNUM_IGNORED)
         (x86_64::dr7, REGNUM_IGNORED)
-  (x86_64::st0, REGNUM_IGNORED)
-  (x86_64::st1, REGNUM_IGNORED)
-  (x86_64::st2, REGNUM_IGNORED)
-  (x86_64::st3, REGNUM_IGNORED)
-  (x86_64::st4, REGNUM_IGNORED)
-  (x86_64::st5, REGNUM_IGNORED)
-  (x86_64::st6, REGNUM_IGNORED)
-  (x86_64::st7, REGNUM_IGNORED)
+        (x86_64::st0, REGNUM_DUMMYFPR)
+        (x86_64::st1, REGNUM_DUMMYFPR)
+        (x86_64::st2, REGNUM_DUMMYFPR)
+        (x86_64::st3, REGNUM_DUMMYFPR)
+        (x86_64::st4, REGNUM_DUMMYFPR)
+        (x86_64::st5, REGNUM_DUMMYFPR)
+        (x86_64::st6, REGNUM_DUMMYFPR)
+        (x86_64::st7, REGNUM_DUMMYFPR)
         ;
+
+Register convertRegID(MachRegister reg, bool &wasUpcast) {
+    wasUpcast = false;
+    if(reg.getBaseRegister().val() != reg.val()) wasUpcast = true;
+    MachRegister baseReg = MachRegister((reg.getBaseRegister().val() & ~reg.getArchitecture()) | Arch_x86_64);
+//    RegisterAST::Ptr debug(new RegisterAST(baseReg));
+//    fprintf(stderr, "DEBUG: converting %s", toBeConverted->format().c_str());
+//    fprintf(stderr, " to %s\n", debug->format().c_str());
+    map<MachRegister, Register>::const_iterator found =
+            reverseRegisterMap.find(baseReg);
+    if(found == reverseRegisterMap.end()) {
+      assert(!"Bad register ID");
+    }
+    if(found->second == REGNUM_DUMMYFPR) {
+        wasUpcast = true;
+        if(reg.getArchitecture() == Arch_x86)
+        {
+            return IA32_FPR_VIRTUAL_REGISTER;
+        }
+    }
+    return found->second;
+}
 
 
 Register convertRegID(RegisterAST::Ptr toBeConverted, bool& wasUpcast)
@@ -120,49 +153,5 @@ Register convertRegID(RegisterAST* toBeConverted, bool& wasUpcast)
         //assert(0);
         return REGNUM_IGNORED;
     }
-    MachRegister tmp(toBeConverted->getID());
-    wasUpcast = false;
-    if(tmp.getBaseRegister().val() != tmp.val()) wasUpcast = true;
-    MachRegister baseReg = MachRegister((tmp.getBaseRegister().val() & ~tmp.getArchitecture()) | Arch_x86_64);
-//    RegisterAST::Ptr debug(new RegisterAST(baseReg));
-//    fprintf(stderr, "DEBUG: converting %s", toBeConverted->format().c_str());
-//    fprintf(stderr, " to %s\n", debug->format().c_str());
-    map<MachRegister, Register>::const_iterator found =
-            reverseRegisterMap.find(baseReg);
-    if(found == reverseRegisterMap.end()) {
-        if(baseReg == x86_64::flags)
-        {
-            switch(toBeConverted->lowBit())
-            {
-                case r_OF:
-                    return REGNUM_OF;
-                case r_SF:
-                    return REGNUM_SF;
-                case r_ZF:
-                    return REGNUM_ZF;
-                case r_AF:
-                    return REGNUM_AF;
-                case r_PF:
-                    return REGNUM_PF;
-                case r_CF:
-                    return REGNUM_CF;
-                case r_TF:
-                    return REGNUM_TF;
-                case r_IF:
-                    return REGNUM_IF;
-                case r_DF:
-                    return REGNUM_DF;
-                case r_NT:
-                    return REGNUM_NT;
-                case r_RF:
-                    return REGNUM_RF;
-            }
-                
-        }
-
-        fprintf(stderr, "Register ID for %s not found in reverseRegisterLookup!\n", toBeConverted->format().c_str());
-        assert(!"Bad register ID");
-    }
-
-    return found->second;
+    return convertRegID(toBeConverted->getID(), wasUpcast);
 }

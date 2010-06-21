@@ -45,9 +45,6 @@
 
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 
-#include "common/h/Dictionary.h"
-#include "common/h/Types.h"
-#include "common/h/Timer.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/inst.h" // callWhen
 #include "dyninstAPI/src/frame.h"
@@ -61,13 +58,15 @@
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/callbacks.h"
+#include "dyninstAPI/src/addressSpace.h"
 
 #include "debug.h"
 
-// Making this an InstructionSource for InstrucIter
-#include "dyninstAPI/src/InstructionSource.h"
+#include "common/h/Dictionary.h"
+#include "common/h/Types.h"
+#include "common/h/Timer.h"
 
-#include "dyninstAPI/src/addressSpace.h"
+#include "parseAPI/h/InstructionSource.h"
 
 // Annoying... Solaris has two /proc header files, one for the
 // multiple-FD /proc and one for an ioctl-based compatibility /proc.
@@ -117,7 +116,7 @@ typedef enum { noTracing_ts, libcOpenCall_ts, libcOpenRet_ts, libcClose_ts, inst
 const int LOAD_DYNINST_BUF_SIZE = 256;
 
 using namespace Dyninst;
-using namespace Dyninst::SymtabAPI;
+//using namespace Dyninst::SymtabAPI;
 
 class instPoint;
 class multiTramp;
@@ -308,9 +307,12 @@ class process : public AddressSpace {
     void overwriteImage( image* /*img */) {
         assert(0);
     }
-    
-    // Appears to be the system pointer size. 
-    virtual unsigned getAddressWidth() const; 
+   
+    /* pure virtual AddressSpace implementations */ 
+    unsigned getAddressWidth() const; 
+    Address offset() const;
+    Address length() const;
+    Architecture getArch() const;
     
     // this is only used on aix so far - naim
     // And should really be defined in a arch-dependent place, not process.h - bernat
@@ -395,14 +397,22 @@ class process : public AddressSpace {
                              const void *inSelf);
     bool writeDataSpace(void *inTracedProcess,
                         u_int amount, const void *inSelf);
+    bool writeDataWord(void *inTracedProcess,
+                       u_int amount, const void *inSelf);
     bool readDataSpace(const void *inTracedProcess, u_int amount,
                        void *inSelf, bool displayErrMsg);
-    
+    bool readDataWord(const void *inTracedProcess, u_int amount,
+                       void *inSelf, bool displayErrMsg);
+
     bool writeTextSpace(void *inTracedProcess, u_int amount, const void *inSelf);
+    bool writeTextWord(void *inTracedProcess, u_int amount, const void *inSelf);
+#if 0
     bool writeTextWord(caddr_t inTracedProcess, int data);
-    
+#endif
     bool readTextSpace(const void *inTracedProcess, u_int amount,
-                       const void *inSelf);
+                       void *inSelf);
+    bool readTextWord(const void *inTracedProcess, u_int amount,
+                      void *inSelf);
     
     static bool IndependentLwpControl() { return INDEPENDENT_LWP_CONTROL; }
     void independentLwpControlInit();
@@ -793,7 +803,7 @@ private:
     // function symbol corresponding to the relocation entry in at the address 
     // specified by entry and base_addr.  If it has been bound, then the callee 
     // function is returned in "target_pdf", else it returns false. 
-    virtual bool hasBeenBound(const relocationEntry &entry, int_function *&target_pdf, 
+    virtual bool hasBeenBound(const SymtabAPI::relocationEntry &entry, int_function *&target_pdf, 
                               Address base_addr) ;
  private:
 
@@ -1033,14 +1043,6 @@ private:
   ///////////////////////////////
   // Platform-specific
   ///////////////////////////////
-
-#if defined( arch_ia64 )
-  unw_addr_space * unwindAddressSpace;
-  dictionary_hash< Address, void * > unwindProcessArgs;
-  typedef dictionary_hash< Address, void * >::iterator upaIterator;
-  
-  bool insertAndRegisterDynamicUnwindInformation( unw_dyn_info_t * unwindInformation );
-#endif
 
 #if defined(os_linux)
   //////////////////
