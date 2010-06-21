@@ -1706,6 +1706,10 @@
 						CompileAs="2"
 					/>
 				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\r_AddressMapper.C"
+				>
 				<FileConfiguration
 					Name="Release|Win32"
 					>
@@ -1717,142 +1721,188 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\r_AddressMapper.C">
+				RelativePath=".\src\r_CodeMover.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\r_CodeMover.C">
+				RelativePath=".\src\r_e_Base.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\r_e_Base.C">
+				RelativePath=".\src\r_e_ControlFlow.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\r_e_ControlFlow.C">
+				RelativePath=".\src\r_e_CopyInsn.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\r_e_CopyInsn.C">
+				RelativePath=".\src\r_e_GetPC.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\r_e_GetPC.C">
+				RelativePath=".\src\r_e_Instrumentation.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\r_e_Instrumentation.C">
+				RelativePath=".\src\r_e_MemoryEmulator.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\r_e_MemoryEmulator.C">
+				RelativePath=".\src\r_e_RelData.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\r_e_RelData.C">
+				RelativePath=".\src\r_Springboard.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\r_Springboard.C">
+				RelativePath=".\src\r_t_CF_Localization.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\r_t_CF_Localization.C">
+				RelativePath=".\src\r_t_ControlFlow.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\r_t_ControlFlow.C">
+				RelativePath=".\src\r_t_EmulateMemory.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\r_t_EmulateMemory.C">
+				RelativePath=".\src\r_t_Instrumenter.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\r_t_Instrumenter.C">
+				RelativePath=".\src\r_t_Movement-adhoc.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\r_t_Movement-adhoc.C">
+				RelativePath=".\src\r_t_Movement-analysis.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\RegisterConversion-x86.C">
+				RelativePath=".\src\RegisterConversion-x86.C"
+				>
 				<FileConfiguration
 					Name="Debug|Win32"
 					>
@@ -2541,76 +2591,93 @@
 				RelativePath=".\src\process.h"
 				>
 			</File>
+			<File>
+				RelativePath=".\src\r_AddressMapper.h"
+			        >
+			</File>
 			<File
-<<<<<<< HEAD:dyninstAPI/dyninstAPI.vcproj
+				RelativePath=".\src\r_CodeMover.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\r_e_Base.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\r_e_ControlFlow.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\r_e_CopyInsn.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\r_e_GetPC.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\r_e_Include.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\r_e_Instrumentation.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\r_e_MemoryEmulator.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\r_e_RelData.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\r_e_Target.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\r_Relocation.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\r_Springboard.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\r_t_Base.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\r_t_CF_Localization.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\r_t_ControlFlow.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\r_t_EmulateMemory.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\r_t_Include.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\r_t_Instrumenter.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\r_t_Movement-adhoc.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\r_t_Movement-analysis.h"
+				>
+			</File>
+			<File>
 				RelativePath="..\common\h\refCounter.h"
 				>
-=======
-				RelativePath=".\src\r_AddressMapper.h">
-			</File>
-			<File
-				RelativePath=".\src\r_CodeMover.h">
-			</File>
-			<File
-				RelativePath=".\src\r_e_Base.h">
-			</File>
-			<File
-				RelativePath=".\src\r_e_ControlFlow.h">
-			</File>
-			<File
-				RelativePath=".\src\r_e_CopyInsn.h">
-			</File>
-			<File
-				RelativePath=".\src\r_e_GetPC.h">
-			</File>
-			<File
-				RelativePath=".\src\r_e_Include.h">
-			</File>
-			<File
-				RelativePath=".\src\r_e_Instrumentation.h">
-			</File>
-			<File
-				RelativePath=".\src\r_e_MemoryEmulator.h">
-			</File>
-			<File
-				RelativePath=".\src\r_e_RelData.h">
-			</File>
-			<File
-				RelativePath=".\src\r_e_Target.h">
-			</File>
-			<File
-				RelativePath=".\src\r_Relocation.h">
-			</File>
-			<File
-				RelativePath=".\src\r_Springboard.h">
-			</File>
-			<File
-				RelativePath=".\src\r_t_Base.h">
-			</File>
-			<File
-				RelativePath=".\src\r_t_CF_Localization.h">
-			</File>
-			<File
-				RelativePath=".\src\r_t_ControlFlow.h">
-			</File>
-			<File
-				RelativePath=".\src\r_t_EmulateMemory.h">
-			</File>
-			<File
-				RelativePath=".\src\r_t_Include.h">
-			</File>
-			<File
-				RelativePath=".\src\r_t_Instrumenter.h">
-			</File>
-			<File
-				RelativePath=".\src\r_t_Movement-adhoc.h">
-			</File>
-			<File
-				RelativePath=".\src\r_t_Movement-analysis.h">
-			</File>
-			<File
-				RelativePath="..\common\h\refCounter.h">
->>>>>>> Windows build hackery.:dyninstAPI/dyninstAPI.vcproj
 			</File>
 			<File
 				RelativePath=".\src\registerSpace.h"
