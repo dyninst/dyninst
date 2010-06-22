@@ -271,6 +271,7 @@ bool HandlePostExit::handleEvent(Event::ptr ev)
 
    proc->setState(int_process::exited);
    ProcPool()->rmProcess(proc);
+   ProcPool()->rmThread(thrd);
 
    ProcPool()->condvar()->signal();
    ProcPool()->condvar()->unlock();
@@ -601,8 +602,9 @@ bool HandlePostBreakpoint::handleEvent(Event::ptr ev)
                 proc->getPid());
    int_threadPool *pool = proc->threadPool();
    for (int_threadPool::iterator i = pool->begin(); i != pool->end(); i++) {
-      if ((*i)->getInternalState() == int_thread::running)
+      if ((*i)->getInternalState() == int_thread::running) {
          (*i)->setInternalState(int_thread::stopped);
+      }
    }
 
    EventBreakpoint *evbp = static_cast<EventBreakpoint *>(ev.get());
@@ -783,6 +785,8 @@ static const char *action_str(Process::cb_action_t action)
       default:
          assert(0);
    }
+
+   return NULL;
 }
 
 bool HandleCallbacks::handleCBReturn(Process::const_ptr proc, Thread::const_ptr thrd, 

@@ -76,7 +76,7 @@ LIBS    += -Wl,-static -lelf -Wl,-call_shared
 else
 LIBS    += -lelf
 endif
-LIBS    += -lgcc -lpthread
+LIBS    += -lgcc -pthread
 
 # InstructionAPI is x86-only at this point
 LIBS    += -linstructionAPI

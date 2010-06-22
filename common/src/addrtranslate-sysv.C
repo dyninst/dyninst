@@ -443,6 +443,7 @@ bool AddressTranslateSysV::parseDTDebug() {
             break;
         }
     }
+    symfactory->closeSymbolReader(exe);
 
     if( !dynAddress || !dynSize ) {
         // This is okay for static binaries
@@ -610,7 +611,8 @@ bool AddressTranslateSysV::refresh()
        // On systems that use DT_DEBUG to determine r_debug_addr, DT_DEBUG might
        // not be set right away -- read DT_DEBUG now and see if it is set
        if( !parseDTDebug() && !interpreter ) {
-          //Static binary
+          translate_printf("[%s:%u] - Working with static binary, no libraries to refresh\n",
+                  __FILE__, __LINE__);
           libs.clear();
           if (!exec) {
              exec = getAOut();

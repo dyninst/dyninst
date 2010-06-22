@@ -16,7 +16,8 @@ TARGET = libpcontrol.so
 LDFLAGS     += $(LIBDIR) -lcommon
 
 SRCS = ../src/sysv.C \
-       ../src/freebsd.C
+       ../src/freebsd.C \
+       ../src/int_thread_db.C
 
 ifdef LIBELF_DIR
 MYLAGS += -I$(LIBELF_DIR)
@@ -32,7 +33,7 @@ endif
 ifdef LIBELF_LIB
 LIBS += -L$(LIBELF_LIB)
 endif
-LIBS += -lelf
+LIBS += -lelf -lthread_db -pthread
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

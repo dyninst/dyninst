@@ -63,7 +63,6 @@ sysv_process::sysv_process(Dyninst::PID pid_, int_process *p) :
    int_process(pid_, p)
 {
    sysv_process *sp = static_cast<sysv_process *>(p);
-   loaded_libs = sp->loaded_libs;
    breakpoint_addr = sp->breakpoint_addr;
    lib_initialized = sp->lib_initialized;
    if (sp->procreader)
@@ -252,7 +251,6 @@ bool sysv_process::plat_execed()
       procreader = NULL;
    }
    breakpoint_addr = 0x0;
-   loaded_libs.clear();
    lib_initialized = false;
    return initLibraryMechanism();
 }

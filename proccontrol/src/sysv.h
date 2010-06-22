@@ -77,8 +77,6 @@ class sysv_process : public int_process
 
    virtual void plat_execv();
 
- private:
-   std::set<LoadedLib*, LoadedLibCmp> loaded_libs;
    Address breakpoint_addr;
    AddressTranslate *translator;
    bool lib_initialized;

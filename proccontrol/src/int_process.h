@@ -63,12 +63,12 @@ class int_process
  protected:
    bool create();
    virtual bool plat_create() = 0;
-   bool post_create();
+   virtual bool post_create();
 
    bool attach();
    virtual bool plat_attach() = 0;
    bool attachThreads();
-   bool post_attach();
+   virtual bool post_attach();
 
   public:
    bool forked();

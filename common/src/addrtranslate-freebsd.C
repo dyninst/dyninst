@@ -144,6 +144,12 @@ bool AddressTranslateSysV::setInterpreter() {
         return false;
     }
 
+    if( exe->getInterpreter().empty() ) {
+        translate_printf("[%s:%u] - No interpreter found\n",
+                __FILE__, __LINE__);
+        return true;
+    }
+
     interpreter = files.getNode(exe->getInterpreter(), symfactory);
     if( interpreter ) interpreter->markInterpreter();
     else{
