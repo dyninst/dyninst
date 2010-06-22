@@ -655,6 +655,47 @@ void BPatch_point::recordSnippet(BPatch_callWhen when,
 
 }
 
+// Removes snippet from datastructures, doesn't actually remove the 
+// instrumentation.  Is invoked by BPatch_addressSpace::deleteSnippet
+bool BPatch_point::deleteSnippet(BPatchSnippetHandle *handle)
+{
+    bool foundHandleInAll = false;    
+    bool foundHandle = false;
+
+    for (unsigned all = 0; all < allSnippets.size(); all++) {
+        if (handle == allSnippets[all]) {
+            if (all != allSnippets.size()-1) {
+                allSnippets[all] = allSnippets.back();
+            }
+            allSnippets.pop_back();
+            foundHandleInAll = true;
+            break;
+        }
+    }
+    for (unsigned pre = 0; !foundHandle && pre < preSnippets.size(); pre++) {
+        if (handle == preSnippets[pre]) {
+            if (pre != preSnippets.size()-1) {
+                preSnippets[pre] = preSnippets.back();
+            }
+            preSnippets.pop_back();
+            foundHandle = true;
+        }
+    }
+    for (unsigned post = 0; !foundHandle && post < postSnippets.size(); post++){
+        if (handle == postSnippets[post]) {
+            if (post != postSnippets.size()-1) {
+                postSnippets[post] = postSnippets.back();
+            }
+            postSnippets.pop_back();
+            foundHandle = true;
+        }
+    }
+    // ensure that structures are consistent
+    assert( (foundHandle && foundHandleInAll) || 
+            (! foundHandle && ! foundHandleInAll) );
+    return foundHandle;
+}
+
 // Create an arbitrary BPatch point
 BPatch_point *BPatch_point::createInstructionInstPoint(BPatch_addressSpace *addSpace,
                                                        void *address,
