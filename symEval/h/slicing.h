@@ -102,9 +102,9 @@ class SYMEVAL_EXPORT Slicer {
   typedef boost::function<bool (const AbsRegion &in, const AbsRegion &out)> AbsRegionFunc;
   
   GraphPtr forwardSlice(PredicateFunc &e, 
-				       PredicateFunc &w, 
-				       CallStackFunc &c,
-				       AbsRegionFunc &a);
+			PredicateFunc &w, 
+			CallStackFunc &c,
+			AbsRegionFunc &a);
   
   GraphPtr backwardSlice(PredicateFunc &e, 
 					PredicateFunc &w, 
@@ -127,8 +127,9 @@ class SYMEVAL_EXPORT Slicer {
     PredicateFunc &end;
     PredicateFunc &widen;
     CallStackFunc &followCall;
+    AbsRegionFunc &abs;
 
-  Predicates(PredicateFunc &e, PredicateFunc &w, CallStackFunc &c, AbsRegionFunc &a) : end(e), widen(w), followCall(c) {};
+    Predicates(PredicateFunc &e, PredicateFunc &w, CallStackFunc &c, AbsRegionFunc &a) : end(e), widen(w), followCall(c), abs(a) {};
 
   };
 

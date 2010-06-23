@@ -210,8 +210,7 @@ class image_func_registers {
   std::set<Register> specialPurposeRegisters;
 };
 
-class image_func : public ParseAPI::Function,
-                   public AnnotatableSparse
+class image_func : public ParseAPI::Function
 {
   friend class DynCFGFactory;
   friend class DynParseCallback;

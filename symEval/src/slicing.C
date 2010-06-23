@@ -175,7 +175,7 @@ Graph::Ptr Slicer::sliceInternal(Direction dir,
     // a partially successful search.
 
     while (!found.empty()) {
-      Element &target = found.front(); found.pop();
+      Element target = found.front(); found.pop();
       insertPair(ret, dir, current, target);
       worklist.push(target);
     }
@@ -698,6 +698,15 @@ bool Slicer::search(Element &initial,
   return ret;
 }
 
+bool Slicer::getNextCandidates(Element &current, Elements &worklist,
+			       Predicates &p, Direction dir) {
+  if (dir == forward) {
+    return getSuccessors(current, worklist, p);
+  }
+  else {
+    return getPredecessors(current, worklist, p);
+  }
+}
 
 void Slicer::findMatches(Element &current, Assignment::Ptr &assign, Direction dir, int index, Elements &succ) {
   if (dir == forward) {
@@ -927,6 +936,17 @@ bool Slicer::isWidenNode(Node::Ptr n) {
   if (!foozle->assign()) return true;
   return false;
 }
+
+void Slicer::insertInitialNode(GraphPtr ret, Direction dir, AssignNode::Ptr aP) {
+  if (dir == forward) {
+    // Entry node
+    ret->insertEntryNode(aP);
+  }
+  else {
+    ret->insertExitNode(aP);
+  }
+}
+  
 
 void Slicer::constructInitialElement(Element &initial, Direction dir) {
   // Cons up the first Element. We need a context, a location, and an
