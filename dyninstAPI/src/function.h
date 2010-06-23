@@ -125,6 +125,11 @@ class bblInstance : public codeRange {
     int_basicBlock *block() const;
     int version() const;
 
+#if defined(cap_instruction_api)
+    void getInsnInstances(std::vector<std::pair<InstructionAPI::Instruction::Ptr,
+			  Address> > &instances) const;
+#endif
+
 #if defined(cap_relocation)
     // Get the most space necessary to relocate this basic block,
     // using worst-case analysis.
