@@ -659,16 +659,15 @@ void BPatch_point::recordSnippet(BPatch_callWhen when,
 // instrumentation.  Is invoked by BPatch_addressSpace::deleteSnippet
 bool BPatch_point::deleteSnippet(BPatchSnippetHandle *handle)
 {
-    bool foundHandleInAll = false;    
     bool foundHandle = false;
 
+    // this vector may not have been initialized
     for (unsigned all = 0; all < allSnippets.size(); all++) {
         if (handle == allSnippets[all]) {
             if (all != allSnippets.size()-1) {
                 allSnippets[all] = allSnippets.back();
             }
             allSnippets.pop_back();
-            foundHandleInAll = true;
             break;
         }
     }
@@ -690,9 +689,6 @@ bool BPatch_point::deleteSnippet(BPatchSnippetHandle *handle)
             foundHandle = true;
         }
     }
-    // ensure that structures are consistent
-    assert( (foundHandle && foundHandleInAll) || 
-            (! foundHandle && ! foundHandleInAll) );
     return foundHandle;
 }
 
