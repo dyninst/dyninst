@@ -41,11 +41,16 @@
 
 #include "../rose/x86InstructionSemantics.h"
 #include "../rose/powerpcInstructionSemantics.h"
+#include "../rose/SgAsmInstruction.h"
 #include "../h/stackanalysis.h"
 #include "SymEvalVisitors.h"
 
 #include "RoseInsnFactory.h"
 #include "SymbolicExpansion.h"
+
+#include "../h/Absloc.h"
+
+#include "../h/slicing.h" // AssignNode
 
 using namespace Dyninst;
 using namespace InstructionAPI;
@@ -126,8 +131,7 @@ void SymEval::expand(Graph::Ptr slice, Result_t &res) {
     if (visited.find(ptr) != visited.end()) continue;
     visited.insert(ptr);
 
-    assert(0 && "Unimplemented!");
-    //process(aNode, res);
+    process(aNode, res);
 
     NodeIterator nbegin, nend;
     aNode->outs(nbegin, nend);
@@ -147,21 +151,26 @@ void SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,
 
   SymEvalPolicy policy(res, addr, insn->getArch());
 
-  SageInstruction_t *roseInsn;
+  SgAsmInstruction *roseInsn;
   switch(insn->getArch()) {
-  case Arch_x86: 
+  case Arch_x86:  {
     RoseInsnX86Factory fac;
     roseInsn = fac.convert(insn, addr);
     
-    SymbolicExpansionX86 exp;
-    exp.expand(roseInsn, policy);
+    SymbolicExpansion exp;
+    exp.expandX86(roseInsn, policy);
     break;
-  case Arch_ppc32:
+  }
+  case Arch_ppc32: {
     RoseInsnPPCFactory fac;
-    roseInsn = fac->convert(insn, addr);
+    roseInsn = fac.convert(insn, addr);
 
-    SymbolicExpansionPPC exp;
-    exp.expand(roseInsn, policy);
+    SymbolicExpansion exp;
+    exp.expandPPC(roseInsn, policy);
+    break;
+  }
+  default:
+    assert(0 && "Unimplemented symbolic expansion architecture");
     break;
   }
   return;

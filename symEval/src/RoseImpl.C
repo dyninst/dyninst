@@ -765,14 +765,9 @@ SgAsmx86Instruction::~SgAsmx86Instruction()
 
 }
 
-rose_addr_t SgAsmx86Instruction::get_address() const
+rose_addr_t SgAsmInstruction::get_address() const
 {
   return p_address;
-}
-
-rose_addr_t SgAsmPowerpcInstruction::get_address() const
-{
-    return p_address;
 }
 
 
@@ -801,44 +796,24 @@ X86SegmentRegister SgAsmx86Instruction::get_segmentOverride() const
   return p_segmentOverride;
 }
 
-SgAsmOperandList* SgAsmx86Instruction::get_operandList() const
+SgAsmOperandList* SgAsmInstruction::get_operandList() const
 {
   return p_operandList;
 }
 
-std::string SgAsmx86Instruction::get_mnemonic() const
+std::string SgAsmInstruction::get_mnemonic() const
 {
   return p_mnemonic;
 }
 
-SgAsmOperandList* SgAsmPowerpcInstruction::get_operandList() const
-{
-    return p_operandList;
-}
-
-std::string SgAsmPowerpcInstruction::get_mnemonic() const
-{
-    return p_mnemonic;
-}
-
-
-SgUnsignedCharList SgAsmx86Instruction::get_raw_bytes() const
+SgUnsignedCharList SgAsmInstruction::get_raw_bytes() const
 {
   return p_raw_bytes;
 }
-SgUnsignedCharList SgAsmPowerpcInstruction::get_raw_bytes() const
-{
-    return p_raw_bytes;
-}
 
-void SgAsmx86Instruction::set_address(rose_addr_t address)
+void SgAsmInstruction::set_address(rose_addr_t address)
 {
   p_address = address;
-}
-
-void SgAsmPowerpcInstruction::set_address(rose_addr_t address)
-{
-    p_address = address;
 }
 
 void SgAsmx86Instruction::set_kind(X86InstructionKind kind)
@@ -860,31 +835,19 @@ void SgAsmx86Instruction::set_operandSize(X86InstructionSize size)
   p_operandSize = size;
 }
 
-void SgAsmx86Instruction::set_operandList(SgAsmOperandList* operandList)
-{
-  p_operandList = operandList;
-}
-void SgAsmPowerpcInstruction::set_operandList(SgAsmOperandList* operandList)
+void SgAsmInstruction::set_operandList(SgAsmOperandList* operandList)
 {
     p_operandList = operandList;
 }
 
-void SgAsmx86Instruction::set_mnemonic(std::string mnemonic)
+void SgAsmInstruction::set_mnemonic(std::string mnemonic)
 {
   p_mnemonic = mnemonic;
 }
-void SgAsmPowerpcInstruction::set_mnemonic(std::string mnemonic)
-{
-    p_mnemonic = mnemonic;
-}
 
-void SgAsmx86Instruction::set_raw_bytes(std::vector<unsigned char> raw_bytes)
+void SgAsmInstruction::set_raw_bytes(std::vector<unsigned char> raw_bytes)
 {
   p_raw_bytes = raw_bytes;
-}
-void SgAsmPowerpcInstruction::set_raw_bytes(std::vector<unsigned char> raw_bytes)
-{
-    p_raw_bytes = raw_bytes;
 }
 
 // SgAsmOperandList.h

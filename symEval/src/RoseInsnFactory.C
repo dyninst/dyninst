@@ -1,13 +1,26 @@
-#include "./roseInsnFactory.h"
-#include "../rose/x86InstructionSemantics.h"
-#include "../rose/powerpcInstructionSemantics.h"
+#include "RoseInsnFactory.h"
+//#include "../rose/x86InstructionSemantics.h"
+//#include "../rose/powerpcInstructionSemantics.h"
+
+#include "Instruction.h"
+#include "Operand.h"
+#include "Expression.h"
+#include "Dereference.h"
+#include "Immediate.h"
+
+#include "../rose/SgAsmInstruction.h"
+#include "../rose/SgAsmPowerpcInstruction.h"
+#include "../rose/SgAsmx86Instruction.h"
+#include "../rose/SgAsmExpression.h"
+
+#include "ExpressionConversionVisitor.h"
 
 using namespace Dyninst;
 using namespace InstructionAPI;
 using namespace SymbolicEvaluation;
 
-SageInstruction_t *RoseInsnFactory::convert(const InstructionAPI::Instruction::Ptr &insn, uint64_t addr) {
-  SageInstruction_t *rinsn = createInsn();
+SgAsmInstruction *RoseInsnFactory::convert(const InstructionAPI::Instruction::Ptr &insn, uint64_t addr) {
+  SgAsmInstruction *rinsn = createInsn();
   
   rinsn->set_address(addr);
   rinsn->set_mnemonic(insn->format());
@@ -34,16 +47,11 @@ SageInstruction_t *RoseInsnFactory::convert(const InstructionAPI::Instruction::P
     return rinsn;
   }
 
-  if(RoseInsnFactoryArchTraits<a>::handleSpecialCases(insn->getOperation().getID(), rinsn, roperands)) {
-    rinsn->set_operandList(roperands);
-    return rinsn;
-  }
-
   //cerr << "no special handling by opcode, checking if we should mangle operands..." << endl;
   std::vector<InstructionAPI::Operand> operands;
   insn->getOperands(operands);
   //cerr << "\t " << operands.size() << " operands" << endl;
-  handleSpecialCases(insn, operands);
+  massageOperands(insn, operands);
   int i = 0;
   //cerr << "converting insn " << insn->format() << endl;
   for (std::vector<InstructionAPI::Operand>::iterator opi = operands.begin();
@@ -51,7 +59,7 @@ SageInstruction_t *RoseInsnFactory::convert(const InstructionAPI::Instruction::P
        ++opi, ++i) {
     InstructionAPI::Operand &currOperand = *opi;
     //cerr << "Converting operand " << currOperand.format() << endl;
-    roperands->append_operand(convertOperand(currOperand));
+    roperands->append_operand(convertOperand(currOperand.getValue()));
   }  
   rinsn->set_operandList(roperands);
   return rinsn;
@@ -59,32 +67,38 @@ SageInstruction_t *RoseInsnFactory::convert(const InstructionAPI::Instruction::P
 
 SgAsmExpression *RoseInsnFactory::convertOperand(const Expression::Ptr expression) {
   if(!expression) return NULL;
-  Visitor_t visitor;
+  ExpressionConversionVisitor visitor(arch());
   expression->apply(&visitor);
   return visitor.getRoseExpression();
 }
 
 ///////////// X86 //////////////////
 
+SgAsmInstruction *RoseInsnX86Factory::createInsn() {
+  return new SgAsmx86Instruction;
+}
+
 // Note: convertKind is defined in convertOpcodes.C
 
-void RoseInsnX86Factory::setOpcode(SageInstruction_t *insn, entryID opcode, std::string) {
-  SgAsmX86Instruction *tmp = static_cast<SgAsmX86Instruction *>(insn);
+void RoseInsnX86Factory::setOpcode(SgAsmInstruction *insn, entryID opcode, std::string) {
+  SgAsmx86Instruction *tmp = static_cast<SgAsmx86Instruction *>(insn);
+  
   tmp->set_kind(convertKind(opcode));
 }
 
-void RoseInsnX86Factory::setSizes(SageInstruction_t *insn) {
+void RoseInsnX86Factory::setSizes(SgAsmInstruction *insn) {
   // FIXME when we go 64-bit...
-  insn->set_operandSize(x86_insnsize_32);
-  insn->set_addressSize(x86_insnsize_32);
+  SgAsmx86Instruction *tmp = static_cast<SgAsmx86Instruction *>(insn);
+  tmp->set_operandSize(x86_insnsize_32);
+  tmp->set_addressSize(x86_insnsize_32);
 }
 
-bool RoseInsnX86Factory::handleSpecialCases(entryID, SageInstruction_t *, SgAsmOperandList *) {
+bool RoseInsnX86Factory::handleSpecialCases(entryID, SgAsmInstruction *, SgAsmOperandList *) {
   // Does nothing?
   return false;
 }
 
-void RoseInsnX86Factory::massageOperands(InstructionAPI::Instruction::Ptr &insn, 
+void RoseInsnX86Factory::massageOperands(const InstructionAPI::Instruction::Ptr &insn, 
 					 std::vector<InstructionAPI::Operand> &operands) {
   switch (insn->getOperation().getID()) {
   case e_lea: {
@@ -132,17 +146,24 @@ void RoseInsnX86Factory::massageOperands(InstructionAPI::Instruction::Ptr &insn,
 //////////// PPC ///////////////////
 // Note: convertKind is defined in convertOpcodes.C
 
-void RoseInsnPPCFactory::setOpcode(SageInstruction_t *insn, entryID opcode, std::string mnem) {
+SgAsmInstruction *RoseInsnPPCFactory::createInsn() {
+  return new SgAsmPowerpcInstruction;
+}
+
+void RoseInsnPPCFactory::setOpcode(SgAsmInstruction *insn, entryID opcode, std::string mnem) {
   SgAsmPowerpcInstruction *tmp = static_cast<SgAsmPowerpcInstruction *>(insn);
-  tmp->set_kind(convertKind(opcode, mnem));
+  kind = convertKind(opcode, mnem);
+  tmp->set_kind(kind);
 }
 
 
-void RoseInsnPPCFactory::setSizes(SageInstruction_t *insn) {
+void RoseInsnPPCFactory::setSizes(SgAsmInstruction *) {
 }
 
 
-bool RoseInsnPPCFactory::handleSpecialCases(entryID iapi_opcode, SageInstruction_t *insn, SgAsmOperandList *rose_operands) {
+bool RoseInsnPPCFactory::handleSpecialCases(entryID iapi_opcode, 
+					    SgAsmInstruction *insn, 
+					    SgAsmOperandList *rose_operands) {
   SgAsmPowerpcInstruction *rose_insn = static_cast<SgAsmPowerpcInstruction *>(insn);
 
   switch(iapi_opcode) {
@@ -207,7 +228,7 @@ bool RoseInsnPPCFactory::handleSpecialCases(entryID iapi_opcode, SageInstruction
   
 }  
 
-void RoseInsnX86Factory::massageOperands(InstructionAPI::Instruction::Ptr &insn, 
+void RoseInsnPPCFactory::massageOperands(const InstructionAPI::Instruction::Ptr &insn, 
 					 std::vector<InstructionAPI::Operand> &operands) {
   if(insn->writesMemory())
     std::swap(operands[0], operands[1]);
@@ -234,7 +255,6 @@ void RoseInsnX86Factory::massageOperands(InstructionAPI::Instruction::Ptr &insn,
   }
 
   // Convert to ROSE so we can use numeric greater than/less than
-  PowerpcInstructionKind kind = convertKind(opcode);
 
   if(kind >= powerpc_lbz && kind <= powerpc_lwzx) {
     operands.resize(2);
@@ -244,36 +264,5 @@ void RoseInsnX86Factory::massageOperands(InstructionAPI::Instruction::Ptr &insn,
   }
 
   return;
-}
-
-/////////////// Visitor class /////////////////
-
-template <Architecture a>
-void ExpressionConversionVisitor<a>::visit(BinaryFunction* binfunc) {
-  assert(m_stack.size() >= 2);
-  SgAsmExpression *rhs = m_stack.front();
-  m_stack.pop_front();
-  SgAsmExpression *lhs = m_stack.front();
-  m_stack.pop_front();
-  // If the RHS didn't convert, that means it should disappear
-  // And we are just left with the LHS
-  if(!rhs && !lhs) {
-    roseExpression = NULL;
-  }
-  else if (!rhs) {
-    roseExpression = lhs;
-  }
-  else if(!lhs) {
-    roseExpression = rhs;
-  }
-  else {
-    // now build either add or multiply
-    if (binfunc->isAdd())
-      roseExpression = new SgAsmBinaryAdd(lhs, rhs);
-    else if (binfunc->isMultiply())
-      roseExpression = new SgAsmBinaryMultiply(lhs, rhs);
-    else roseExpression = NULL; // error
-  }
-  m_stack.push_front(roseExpression);
 }
 

@@ -122,7 +122,7 @@ bool StackAnalysis::analyze()
 
 typedef std::vector<std::pair<Instruction::Ptr, Offset> > InsnVec;
 
-void getInsnInstances(Block *block,
+static void getInsnInstances(Block *block,
 		      InsnVec &insns) {
   Offset off = block->start();
   const unsigned char *ptr = (const unsigned char *)block->region()->getPtrToInstruction(off);

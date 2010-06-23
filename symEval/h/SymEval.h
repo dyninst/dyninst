@@ -36,14 +36,8 @@
 
 #include <map>
 
-#include "Instruction.h"
-#include "BinaryFunction.h"
-#include "Dereference.h"
-#include "Immediate.h"
 #include "Absloc.h"
 #include "AST.h"
-
-#include "slicing.h"
 
 #include "external/rose/rose-compat.h"
 #include "external/rose/powerpcInstructionEnum.h"
@@ -287,6 +281,12 @@ std::ostream &operator<<(std::ostream &os, const Dyninst::SymbolicEvaluation::Va
 
 namespace Dyninst {
 
+namespace InstructionAPI {
+  class Instruction;
+}
+
+class AssignNode;
+
 namespace SymbolicEvaluation {
 
 typedef std::map<Assignment::Ptr, AST::Ptr> Result_t;
@@ -298,15 +298,11 @@ DEF_AST_INTERNAL_TYPE(RoseAST, ROSEOperation);
 
 class SymEvalPolicy;
 
-
-
-
-
-
-
 class SYMEVAL_EXPORT SymEval {
+  
 public:
     typedef std::map<Assignment::Ptr, AST::Ptr> Result_t;
+    typedef dyn_detail::boost::shared_ptr<AssignNode> AssignNodePtr;
 public:
   // Return type: mapping AbsRegions to ASTs
   // We then can map Assignment::AbsRegions to 
@@ -328,12 +324,17 @@ public:
   static void expand(Graph::Ptr slice, Result_t &res);
   
  private:
+
+ typedef dyn_detail::boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
+
   // Symbolically evaluate an instruction and assign 
   // an AST representation to every written absloc
-  static void expandInsn(const InstructionAPI::Instruction::Ptr insn,
+  static void expandInsn(const InstructionPtr insn,
 			 const uint64_t addr,
-             Result_t& res);
+			 Result_t& res);
 
+  static void process(AssignNodePtr ptr, Result_t &dbase);
+  
 };
 
 };

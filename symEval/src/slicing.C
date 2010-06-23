@@ -56,7 +56,7 @@ bool containsRet(ParseAPI::Block *block) {
   return false;
 }
 
-void getInsnInstances(ParseAPI::Block *block,
+static void getInsnInstances(ParseAPI::Block *block,
 		      Slicer::InsnVec &insns) {
   Offset off = block->start();
   const unsigned char *ptr = (const unsigned char *)block->region()->getPtrToInstruction(off);

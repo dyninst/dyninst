@@ -50,7 +50,7 @@
 #endif
 
 #include "Instruction.h"
-#include "AST.h"
+#include "dynutil/h/AST.h"
 
 namespace Dyninst {
 
@@ -205,14 +205,14 @@ class AbsRegion {
     type_(Absloc::Unknown) {};
 
   SYMEVAL_EXPORT AbsRegion(Absloc::Type t) :
-    type_(t) {};
+    type_(t) {}
 
   SYMEVAL_EXPORT AbsRegion(Absloc a) :
     type_(Absloc::Unknown),
-      absloc_(a) {};
+      absloc_(a) {}
 
 
-  SYMEVAL_EXPORT void setGenerator(AST::Ptr generator) {
+	SYMEVAL_EXPORT void setGenerator(AST::Ptr generator) {
       generator_ = generator;
   }
 

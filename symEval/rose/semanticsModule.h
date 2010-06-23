@@ -17,6 +17,7 @@
 #endif
 #include <stdlib.h>
 
+#include <iostream>
 
 static inline int numBytesInAsmType(SgAsmType* ty) {
   switch (ty->variantT()) {

@@ -39,37 +39,38 @@
 
 // Internal debugging
 
-int dyn_debug_slicing= 0;
-int dyn_debug_stackanalysis = 0;
-int dyn_debug_convert = 0;
-int dyn_debug_expand = 0;
+int sym_debug_slicing= 0;
+int sym_debug_stackanalysis = 0;
+int sym_debug_convert = 0;
+int sym_debug_expand = 0;
 
 bool init_debug() {
   static bool init = false;
-  if (init) return;
+  if (init) return true;
   init = true;
 
   char *p;
 
   if ((p=getenv("SYMEVAL_DEBUG_STACKANALYSIS"))) {
     fprintf(stderr, "Enabling SymEval stack analysis debugging\n");
-    dyn_debug_stackanalysis = 1;
+    sym_debug_stackanalysis = 1;
   }
 
   if ((p=getenv("SYMEVAL_DEBUG_SLICING"))) {
     fprintf(stderr, "Enabling SymEval slicing debugging\n");
-    dyn_debug_slicing = 1;
+    sym_debug_slicing = 1;
   }
 
   if ((p=getenv("SYMEVAL_DEBUG_CONVERT"))) {
     fprintf(stderr, "Enabling SymEval->ROSE conversion debugging\n");
-    dyn_debug_convert = 1;
+    sym_debug_convert = 1;
   }
 
   if ((p=getenv("SYMEVAL_DEBUG_EXPAND"))) {
     fprintf(stderr, "Enabling SymEval symbolic expansion debugging\n");
-    dyn_debug_expand = 1;
+    sym_debug_expand = 1;
   }
+  return true;
 }
 
 int stackanalysis_printf_int(const char *format, ...)

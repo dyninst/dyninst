@@ -63,7 +63,7 @@ namespace Dyninst {
   };
 
  
-class StackAnalysis {
+class SYMEVAL_EXPORT StackAnalysis {
   typedef dyn_detail::boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
 
  public:

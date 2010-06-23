@@ -50,7 +50,7 @@ class Graph;
 class NodeIterator;
 class EdgeIterator;
 
-class Node : public AnnotatableSparse {
+class COMMON_EXPORT Node  {
     friend class Edge;
     friend class Graph;
     
@@ -107,7 +107,7 @@ class Node : public AnnotatableSparse {
     static const Address INVALID_ADDR;
 };
  
-class PhysicalNode : public Node {
+class COMMON_EXPORT PhysicalNode : public Node {
 public:
     typedef dyn_detail::boost::shared_ptr<PhysicalNode> Ptr;
      
@@ -129,7 +129,7 @@ public:
     Address addr_; 
 };
 
-class VirtualNode : public Node {
+class  COMMON_EXPORT VirtualNode : public Node {
     friend class Edge;
     friend class Graph;
 
@@ -144,7 +144,7 @@ class VirtualNode : public Node {
     
     virtual bool isVirtual() const { return true; }
     
-    virtual ~VirtualNode() {};
+    virtual  ~VirtualNode() {};
 
     VirtualNode(std::string name) : name_(name) {};
     VirtualNode() : name_(defaultName) {};
@@ -159,7 +159,7 @@ class VirtualNode : public Node {
 
  class NodeIteratorImpl;
 
-class NodeIterator {
+class COMMON_EXPORT NodeIterator {
     friend class Node;
     friend class Graph;
     friend class Edge;

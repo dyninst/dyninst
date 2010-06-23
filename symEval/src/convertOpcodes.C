@@ -31,8 +31,8 @@
 
 // This file was automatically generated
 
-#include "SymEval.h"
-#include "SymEvalPolicy.h"
+//#include "SymEval.h"
+//#include "SymEvalPolicy.h"
 #include "RoseInsnFactory.h"
 
 #include "AST.h"
@@ -912,7 +912,7 @@ X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode) {
 PowerpcInstructionKind RoseInsnPPCFactory::convertKind(entryID opcode,
 						       std::string mnem)
 {
-  InstructionKind_t ret = powerpc_unknown_instruction;
+  PowerpcInstructionKind ret = powerpc_unknown_instruction;
     switch(opcode)
     {
         case power_op_stfdu: ret = powerpc_stfdu; break;

@@ -1,5 +1,9 @@
 #pragma once
 
+#if !defined(_EXPRESSION_CONVERSION_VISITOR_H_)
+#define _EXPRESSION_CONVERSION_VISITOR_H_
+
+
 #include "dyn_regs.h"
 
 class SgAsmx86Instruction;
@@ -13,83 +17,42 @@ class SgAsmPowerpcRegisterReferenceExpression;
 #include "external/rose/powerpcInstructionEnum.h"
 #include "Visitor.h"
 
+#include <list>
+
 namespace Dyninst
 {
-	namespace InstructionAPI
-	{
-		class RegisterAST;
-	}
-	namespace SymbolicEvaluation
-	{
-		struct ConversionArchTraitsBase
-		{
-			virtual SgAsmExpression* archSpecificRegisterProc(InstructionAPI::RegisterAST* regast) = 0;
-			virtual SgAsmExpression* makeSegRegExpr() = 0;
-			virtual ~ConversionArchTraitsBase() {}
-		};
+  namespace InstructionAPI
+  {
+    class RegisterAST;
+  }
+  namespace SymbolicEvaluation
+  {
+    class ExpressionConversionVisitor : public InstructionAPI::Visitor {
+      typedef SgAsmPowerpcRegisterReferenceExpression regRef;
+      typedef PowerpcRegisterClass regClass;
+      typedef PowerpcConditionRegisterAccessGranularity regField;
 
-		template <Architecture a>
-				struct ConversionArchTraits : public ConversionArchTraitsBase
-		{
-			virtual SgAsmExpression* archSpecificRegisterProc(InstructionAPI::RegisterAST* regast)
-			{
-				return NULL;
-			}
-			virtual SgAsmExpression* makeSegRegExpr()
-			{
-				return NULL;
-			}
-			virtual ~ConversionArchTraits() {}
-			typedef SgAsmPowerpcRegisterReferenceExpression regRef;
-			typedef PowerpcRegisterClass regClass;
-			typedef PowerpcConditionRegisterAccessGranularity regField;
-		};
-            
-		template <>
-				struct ConversionArchTraits<Arch_x86> : public ConversionArchTraitsBase
-		{
-			virtual SgAsmExpression* archSpecificRegisterProc(InstructionAPI::RegisterAST* regast);
-			virtual SgAsmExpression* makeSegRegExpr();
-			typedef SgAsmx86RegisterReferenceExpression regRef;
-			typedef X86RegisterClass regClass;
-			typedef X86PositionInRegister regField;
-			virtual ~ConversionArchTraits<Arch_x86>() {}
-		};
-            
-		template <>
-				struct ConversionArchTraits<Arch_ppc32> : public ConversionArchTraitsBase
-		{
-			virtual SgAsmExpression* archSpecificRegisterProc(InstructionAPI::RegisterAST* regast);
-			virtual SgAsmExpression* makeSegRegExpr()
-			{
-				return NULL;
-			}
-			virtual ~ConversionArchTraits<Arch_ppc32>() {}
-			typedef SgAsmPowerpcRegisterReferenceExpression regRef;
-			typedef PowerpcRegisterClass regClass;
-			typedef PowerpcConditionRegisterAccessGranularity regField;
+    public:
+    ExpressionConversionVisitor(Architecture a) :
+      roseExpression(NULL), arch(a) {};
+      
+      SgAsmExpression *getRoseExpression() { return roseExpression; }
+      
+      virtual void visit(InstructionAPI::BinaryFunction *binfunc);
+      virtual void visit(InstructionAPI::Immediate *immed);
+      virtual void visit(InstructionAPI::RegisterAST *regast);
+      virtual void visit(InstructionAPI::Dereference *deref);
+      
+    private:
 
-		};
+      SgAsmExpression* archSpecificRegisterProc(InstructionAPI::RegisterAST* regast);
+      SgAsmExpression* makeSegRegExpr();
 
-		template <Architecture a = Arch_x86>
-		class ExpressionConversionVisitor : public InstructionAPI::Visitor, public ConversionArchTraits<a>
-		{
-			public:
-				typedef typename ConversionArchTraits<a>::regRef regRef;
-				typedef typename ConversionArchTraits<a>::regClass regClass;
-				typedef typename ConversionArchTraits<a>::regClass regField;
-				ExpressionConversionVisitor() { roseExpression = NULL; }
-
-				SgAsmExpression *getRoseExpression() { return roseExpression; }
-
-				virtual void visit(InstructionAPI::BinaryFunction *binfunc);
-				virtual void visit(InstructionAPI::Immediate *immed);
-				virtual void visit(InstructionAPI::RegisterAST *regast);
-				virtual void visit(InstructionAPI::Dereference *deref);
-
-			private:
-				SgAsmExpression *roseExpression;
-				std::list<SgAsmExpression*> m_stack;
-		};
-	}
+      SgAsmExpression *roseExpression;
+      Architecture arch;
+      std::list<SgAsmExpression*> m_stack;
+    };
+  }
 }
+
+#endif
