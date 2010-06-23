@@ -722,6 +722,8 @@ HandleCallbacks *HandleCallbacks::getCB()
    if (!cb) {
       cb = new HandleCallbacks();
       assert(cb);
+      HandlerPool *hp = createDefaultHandlerPool();
+      delete hp;
    }
    return cb;
 }

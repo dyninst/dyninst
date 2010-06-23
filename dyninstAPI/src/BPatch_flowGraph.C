@@ -235,7 +235,7 @@ BPatch_flowGraph::findLoopInstPointsInt(const BPatch_procedureLocation loc,
         if (DEBUG_LOOP) fprintf(stderr,"loop end iter\n");
 
         // point for the backedge of this loop 
-        BPatch_edge *edge = loop->backEdge;
+        BPatch_edge *edge = loop->getBackEdge();
         if (DEBUG_LOOP) edge->dump();
 	BPatch_point *iP = edge->getPoint();
 	iP->overrideType(BPatch_locLoopEndIter);
@@ -385,6 +385,7 @@ BPatch_flowGraph::createLoops()
 
     BPatch_loop **allLoops = new BPatch_loop*[loops->size()];
     loops->elements(allLoops);
+    std::vector<BPatch_loop*> dupLoops;
     
     // for each pair of loops l1,l2
     for (i = 0; i < loops->size(); i++) {
@@ -410,24 +411,42 @@ BPatch_flowGraph::createLoops()
                 // l1 contains l2
                 l1->containedLoops += l2;
 
-                // l2 has no parent, l1 is best so far
-                if(!l2->parent) 
+                if( l2->hasBlock(l1->getLoopHead()) &&
+                    l2->hasBlock(l1->getBackEdge()->source) )
                 {
-                    l2->parent = l1;
+                    if (i < j) { // merge l2 into l1 if i < j
+                        dupLoops.push_back(l2);
+                        std::vector<BPatch_edge*> l2edges;
+                        l2->getBackEdges(l2edges);
+                        l1->addBackEdges(l2edges);
+                    }
                 }
-                else
+                else 
                 {
-                   // if l1 is closer to l2 than l2's existing parent
-                    if(l2->parent->hasBlock(l1->getLoopHead()) &&
-                       l2->parent->hasBlock(l1->getBackEdge()->source))
+                    // l2 has no parent, l1 is best so far
+                    if(!l2->parent) 
                     {
                         l2->parent = l1;
+                    }
+                    else
+                    {
+                        // if l1 is closer to l2 than l2's existing parent
+                        if(l2->parent->hasBlock(l1->getLoopHead()) &&
+                           l2->parent->hasBlock(l1->getBackEdge()->source))
+                        {
+                            l2->parent = l1;
+                        }
                     }
                 }
             }
         }
     }
-    
+
+    // remove duplicate loops 
+    for (unsigned idx=0; idx < dupLoops.size(); idx++) {
+        loops->remove(dupLoops[idx]);
+    }
+   
     delete[] allLoops;
 }
 

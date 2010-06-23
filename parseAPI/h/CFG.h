@@ -42,6 +42,9 @@
 #include "ParseContainers.h"
 
 #include "Annotatable.h"
+#if !defined(_MSC_VER)
+#include <stdint.h>
+#endif
 
 namespace Dyninst {
 namespace ParseAPI {
