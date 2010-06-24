@@ -879,9 +879,10 @@ enum prefixEntryID {
       template <>
       struct hash<entryID>
       {
+        hash<size_t> h;
 	size_t operator()(const entryID &eid) const
 	{
-	  return static_cast<size_t>(eid);
+	  return h(static_cast<size_t>(eid));
 	}
       };
       template <>
