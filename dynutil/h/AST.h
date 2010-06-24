@@ -202,7 +202,7 @@ class AST : public dyn_detail::boost::enable_shared_from_this<AST> {
   // Substitutes every occurrence of a with b in
   // AST in. Returns a new AST. 
 
-  static AST::Ptr substitute(AST::Ptr in, AST::Ptr a, AST::Ptr b); 
+  static COMMON_EXPORT AST::Ptr substitute(AST::Ptr in, AST::Ptr a, AST::Ptr b); 
 
   virtual ID getID() const { return V_AST; };
 

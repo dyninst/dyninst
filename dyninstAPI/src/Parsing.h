@@ -120,21 +120,5 @@ class DynParseCallback : public ParseAPI::ParseCallback {
     image * _img;
 };
 
-/*
- * For proper ostritch-like denial of 
- * unresolved control flow edges
- */
-class NoSinkPredicate : public ParseAPI::EdgePredicate {
- public:
-    NoSinkPredicate() { }
-    NoSinkPredicate(EdgePredicate * next)
-        : EdgePredicate(next) 
-    { } 
-
-    bool pred_impl(ParseAPI::Edge * e) const {
-        return !e->sinkEdge() && EdgePredicate::pred_impl(e);
-    }
-};
-
 
 #endif

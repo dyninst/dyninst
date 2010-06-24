@@ -89,6 +89,14 @@ class AssignmentConverter {
 	       const Address &addr,
 	       ParseAPI::Function *func,
 	       std::vector<Assignment::Ptr> &assignments);
+  SYMEVAL_EXPORT void convert(InstructionAPI::Instruction::Ptr insn,
+	       const Address &addr,
+	       int_function *func,
+	       std::vector<Assignment::Ptr> &assignments);
+  SYMEVAL_EXPORT void convert(InstructionAPI::Instruction::Ptr insn,
+	       const Address &addr,
+	       BPatch_function *func,
+	       std::vector<Assignment::Ptr> &assignments);
 
 
  private:

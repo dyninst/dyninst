@@ -1517,3 +1517,20 @@ const pdvector< int_parRegion* > &int_function::parRegions()
     }
   return parallelRegions_;
 }
+
+#if defined(cap_instruction_api) 
+void bblInstance::getInsnInstances(std::vector<std::pair<InstructionAPI::Instruction::Ptr, Address> >&instances) const {
+  instances.clear();
+  block()->llb()->getInsnInstances(instances);
+  for (unsigned i = 0; i < instances.size(); ++i) {
+    instances[i].second += firstInsnAddr_ - block()->llb()->start();
+  }
+}
+#endif
+#if 0
+int_basicBlock *int_function::findBlockByImage(image_basicBlock *block) {
+  unsigned img_id = block->id();
+  unsigned int_id = blockIDmap[img_id];
+  return blockList[int_id];
+}
+#endif

@@ -31,19 +31,24 @@ TO_INC   = ../h
 
 PUBLIC_H = Absloc.h \
 	 AbslocInterface.h \
+	 slicing.h \
 	 SymEval.h \
-         slicing.h
-
+	 stackanalysis.h
 
 SRCS +=	../src/Absloc.C \
      	../src/AbslocInterface.C \
+	../src/convertOpcodes.C \
+	../src/debug.C \
+	../src/ExpressionConversionVisitor.C \
+	../src/RoseImpl.C \
+	../src/RoseInsnFactory.C \
+	../src/slicing.C \
+	../src/stackanalysis.C \
+	../src/SymbolicExpansion.C \
 	../src/SymEval.C \
-        ../src/SymEvalPolicy.C \
-        ../src/convertOpcodes.C \
-        ../src/RoseImpl.C \
-	../src/Visitors.C \
-        ../src/slicing.C 
-
+	../src/SymEvalPolicy.C \
+	../src/templates.C \
+	../src/Visitors.C
 
 ifndef USES_NATIVE_CC
 ifdef CROSSCOMPILER

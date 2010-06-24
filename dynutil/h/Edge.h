@@ -41,7 +41,7 @@ namespace Dyninst {
 class Graph;
 class Node;
     
-class Edge : public AnnotatableSparse {
+class COMMON_EXPORT Edge : public AnnotatableSparse {
     friend class Node;
     friend class Graph;
     friend class Creator;
@@ -69,7 +69,7 @@ class Edge : public AnnotatableSparse {
 
  class EdgeIteratorImpl;
 
-class EdgeIterator {
+class COMMON_EXPORT EdgeIterator {
     friend class Node;
     friend class Graph;
     friend class Edge;

@@ -245,8 +245,17 @@ bool BPatch_addressSpace::deleteSnippetInt(BPatchSnippetHandle *handle)
    }
 
    if (handle->addSpace_ == this) {  
+
+       // uninstrument and remove snippet handle from point datastructures
        for (unsigned int i=0; i < handle->mtHandles_.size(); i++)
+       {
+           instPoint *iPoint = handle->mtHandles_[i]->instP();
            handle->mtHandles_[i]->uninstrument();
+           BPatch_point *bPoint = findOrCreateBPPoint(NULL, iPoint);
+           assert(bPoint);
+           bPoint->deleteSnippet(handle);
+       }
+
        delete handle;
        return true;
    } 

@@ -68,7 +68,7 @@ class BPATCH_DLL_EXPORT BPatch_basicBlockLoop :
                                            std::string level);
 
 private:
-	BPatch_edge *backEdge;
+        std::set<BPatch_edge*> backEdges;
 
         // the flow graph this loop is part of
         BPatch_flowGraph *flowGraph;
@@ -79,6 +79,8 @@ private:
 	/** the basic blocks in the loop */
 	BPatch_Set<BPatch_basicBlock*> basicBlocks;
 
+        /** this func is only invoked by BPatch_flowGraph::createLoops */
+        void addBackEdges(std::vector<BPatch_edge*> &edges);
 
 public:
 	/** If loop which directly encloses this loop. NULL if no such loop */
@@ -99,10 +101,16 @@ public:
 
 
 	/** BPatch_basicBlockLoop::getBackEdge    */
-        /** return the back edge which defines this loop */
+        /** return a back edge that defines this loop */
         API_EXPORT(Int, (),
 
         BPatch_edge *,getBackEdge,());
+
+	/** BPatch_basicBlockLoop::getBackEdges */
+        /** Sets edges to the set of back edges that define this loop,
+            returns the number of back edges that define this loop */
+        API_EXPORT(Int, (edges),
+        int,getBackEdges,(BPatch_Vector<BPatch_edge*> &edges));
 
 	/** BPatch_basicBlockLoop::getContainedLoops    */
 	/** returns vector of contained loops */

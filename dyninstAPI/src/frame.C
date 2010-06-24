@@ -221,20 +221,33 @@ Address Frame::getUninstAddr() {
     miniTrampInstance *mt_ptr = range->is_minitramp();
     baseTrampInstance *bt_ptr = range->is_basetramp_multi();
     bblInstance *bbl_ptr = range->is_basicBlockInstance();
+    Address uninst =0;
 
     if (m_ptr) {
         // Figure out where in the multiTramp we are
-        return m_ptr->instToUninstAddr(getPC());
+        uninst = m_ptr->instToUninstAddr(getPC());
     }
     else if (mt_ptr) {
         // Don't need the actual PC for minitramps
-        return mt_ptr->uninstrumentedAddr();
+        uninst = mt_ptr->uninstrumentedAddr();
     }
     else if (bt_ptr) {
         // Don't need actual PC here either
-        return bt_ptr->uninstrumentedAddr();
+        uninst = bt_ptr->uninstrumentedAddr();
     }
-    else if (bbl_ptr) {
+
+    if (0 != uninst) {
+        range = proc_->findOrigByAddr(uninst);
+        if (!range) {
+            return uninst;
+        }
+        bbl_ptr = range->is_basicBlockInstance();
+        if (!bbl_ptr) {
+            return uninst;
+        }
+    }
+
+    if (bbl_ptr) {
         // Relocated function... back-track
         assert(range->is_basicBlock());
         return bbl_ptr->equivAddr(range->is_basicBlock()->origInstance(), getPC());

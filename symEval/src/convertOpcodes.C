@@ -31,8 +31,9 @@
 
 // This file was automatically generated
 
-#include "SymEval.h"
-#include "SymEvalPolicy.h"
+//#include "SymEval.h"
+//#include "SymEvalPolicy.h"
+#include "RoseInsnFactory.h"
 
 #include "AST.h"
 
@@ -42,53 +43,8 @@
 using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;
 using namespace Dyninst::SymbolicEvaluation;
-
-template class SymEval<Arch_x86>;
-template class SymEval<Arch_ppc32>;
-
     
-SymEvalArchTraits<Arch_x86>::InstructionKind_t SymEvalArchTraits<Arch_x86>::convert(entryID opcode, prefixEntryID prefix, std::string)
-{
-  switch (prefix) {
-    case prefix_rep:
-        switch (opcode) {
-          case e_insb: return x86_rep_insb;
-          case e_insd: return x86_rep_insd;
-          case e_insw: return x86_rep_insw;
-          case e_lodsb: return x86_rep_lodsb;
-          case e_lodsd: return x86_rep_lodsd;
-          case e_lodsw: return x86_rep_lodsw;
-          case e_movsb: return x86_rep_movsb;
-          case e_movsd: return x86_rep_movsd;
-          case e_movsw: return x86_rep_movsw;
-          case e_outsb: return x86_rep_outsb;
-          case e_outsd: return x86_rep_outsd;
-          case e_outsw: return x86_rep_outsw;
-          case e_stosb: return x86_rep_stosb;
-          case e_stosd: return x86_rep_stosd;
-          case e_stosw: return x86_rep_stosw;
-          case e_cmpsb: return x86_repe_cmpsb;
-          case e_cmpsd: return x86_repe_cmpsd;
-          case e_cmpsw: return x86_repe_cmpsw;
-          case e_scasb: return x86_repe_scasb;
-          case e_scasd: return x86_repe_scasd;
-          case e_scasw: return x86_repe_scasw;
-          default: return x86_unknown_instruction;
-        }
-    break;
-    case prefix_repnz:
-        switch (opcode) {
-          case e_cmpsb: return x86_repne_cmpsb;
-          case e_cmpsd: return x86_repne_cmpsd;
-          case e_cmpsw: return x86_repne_cmpsw;
-          case e_scasb: return x86_repne_scasb;
-          case e_scasd: return x86_repne_scasd;
-          case e_scasw: return x86_repne_scasw;
-          default: return x86_unknown_instruction;
-        }
-    break;
-    case prefix_none:
-    default:
+X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode) {
     switch (opcode) {
         case e_jb:
             return x86_jb;
@@ -977,9 +933,10 @@ SymEvalArchTraits<Arch_x86>::InstructionKind_t SymEvalArchTraits<Arch_x86>::conv
   }
 }
 
-SymEvalArchTraits<Arch_ppc32>::InstructionKind_t SymEvalArchTraits<Arch_ppc32>::convert(entryID opcode, prefixEntryID prefix, std::string mnem)
+PowerpcInstructionKind RoseInsnPPCFactory::convertKind(entryID opcode,
+						       std::string mnem)
 {
-  InstructionKind_t ret = powerpc_unknown_instruction;
+  PowerpcInstructionKind ret = powerpc_unknown_instruction;
     switch(opcode)
     {
         case power_op_stfdu: ret = powerpc_stfdu; break;
@@ -1326,4 +1283,30 @@ SymEvalArchTraits<Arch_ppc32>::InstructionKind_t SymEvalArchTraits<Arch_ppc32>::
       ret = (PowerpcInstructionKind)((int)ret + 1);
     }
     return ret;
+}
+
+PowerpcInstructionKind RoseInsnPPCFactory::makeRoseBranchOpcode(entryID iapi_opcode, bool isAbsolute, bool isLink) {
+  switch(iapi_opcode) {
+  case power_op_b:
+    if(isAbsolute && isLink) return powerpc_bla;
+    if(isAbsolute) return powerpc_ba;
+    if(isLink) return powerpc_bl;
+    return powerpc_b;
+  case power_op_bc:
+    if(isAbsolute && isLink) return powerpc_bcla;
+    if(isAbsolute) return powerpc_bca;
+    if(isLink) return powerpc_bcl;
+    return powerpc_bc;
+  case power_op_bcctr:
+    assert(!isAbsolute);
+    if(isLink) return powerpc_bcctrl;
+    return powerpc_bcctr;
+  case power_op_bclr:
+    assert(!isAbsolute);
+    if(isLink) return powerpc_bclrl;
+    return powerpc_bclr;
+  default:
+    assert(!"makeRoseBranchOpcode called with unknown branch opcode!");
+    return powerpc_unknown_instruction;
+  }
 }
