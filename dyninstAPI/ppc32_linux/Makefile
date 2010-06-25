@@ -34,8 +34,7 @@ SRCS =          ../src/linux.C \
         ../src/codegen-power.C\
 		../src/image-power.C \
 		../src/syscall-linux.C \
-		../src/BPatch_memoryAccessAdapter.C \
-		../src/stackanalysis.C
+		../src/BPatch_memoryAccessAdapter.C
 #		../src/addLibraryLinux.C \
 #		../src/writeBackElf.C \
 #		../src/saveSharedLibrary.C \
