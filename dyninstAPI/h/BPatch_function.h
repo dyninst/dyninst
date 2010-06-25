@@ -57,6 +57,12 @@ class BPatchTranslatorBase;
 class ParameterType;
 class ReturnParameterType;
 
+namespace Dyninst {
+  namespace ParseAPI {
+    class Function;
+  };
+};
+
 #ifdef DYNINST_CLASS_NAME
 #undef DYNINST_CLASS_NAME
 #endif
@@ -321,6 +327,8 @@ public:
     // always be a block) with this function.
     API_EXPORT( Int, (funcs), bool, findOverlapping, (BPatch_Vector<BPatch_function *> &funcs));
 
+    //  Get the underlying ParseAPI Function
+    API_EXPORT( Int, (), Dyninst::ParseAPI::Function *, getParseAPIFunc, () );
 
 #ifdef IBM_BPATCH_COMPAT
     API_EXPORT(Int, (start, end),
