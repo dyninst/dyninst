@@ -8,10 +8,10 @@ using namespace Dyninst::InstructionAPI;
 
 SymEvalPolicy::SymEvalPolicy(Result_t &r,
 			     Address a,
-			     Architecture ac) :
+			     Dyninst::Architecture ac) :
   res(r),
-  addr(a),
   arch(ac),
+  addr(a),
   ip_(Handle<32>(wrap(Absloc::makePC(arch)))) {
 
   // We also need to build aaMap FTW!!!

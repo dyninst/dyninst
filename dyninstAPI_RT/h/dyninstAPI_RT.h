@@ -189,6 +189,7 @@ struct trap_mapping_header {
    uint32_t signature;
    uint32_t num_entries;
    int32_t pos;
+  uint32_t padding;
    uint64_t low_entry;
    uint64_t high_entry;
    trapMapping_t traps[]; //Don't change this to a pointer, despite any compiler warnings

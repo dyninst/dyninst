@@ -384,7 +384,6 @@ class image : public codeRange {
    bool updatePltFunc(image_func *caller_func, Address stub_targ);
 #endif
 
-
    // This method is invoked to find the global constructors function and add a
    // symbol for the function if the image has no symbols
    bool findGlobalConstructorFunc();

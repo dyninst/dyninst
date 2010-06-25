@@ -199,6 +199,7 @@ class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
 
     void recordSnippet(BPatch_callWhen, BPatch_snippetOrder,
                        BPatchSnippetHandle*);
+    bool deleteSnippet(BPatchSnippetHandle* handle);
 
     void attachMemAcc(BPatch_memoryAccess *memacc);
 

@@ -571,8 +571,6 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 ct = ctp.first;
                 ce = ctp.second;
 
-                func->_call_edges.push_back(ce);
-    
                 work->mark_call();
             } else {
                 ct = _parse_data->findFunc(frame.codereg,work->target());

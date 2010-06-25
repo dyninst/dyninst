@@ -139,8 +139,8 @@ ProcDebug::ProcDebug(PID p, string exe) :
   executable_path(exe),
   sigfunc(NULL)
 {
-   initial_thread = ThreadState::createThreadState(this);
-   threads[initial_thread->getTid()] = initial_thread;   
+  initial_thread = ThreadState::createThreadState(this);
+  threads[initial_thread->getTid()] = initial_thread;   
 }
 
 ProcDebug::ProcDebug(const std::string & /*executable*/, 
@@ -818,7 +818,8 @@ ThreadState::ThreadState(ProcDebug *p, Dyninst::THR_ID id) :
    should_resume(false),
    tid(id),
    thr_state(ps_neonatal),
-   parent(p)
+   parent(p),
+   pending_sigstops(0)
 {
 }
 
@@ -876,4 +877,16 @@ ProcDebug* ThreadState::proc()
 
 ThreadState::~ThreadState()
 {
+}
+
+void ThreadState::markPendingStop() {
+  pending_sigstops++;
+}
+
+void ThreadState::clearPendingStop() {
+  pending_sigstops--;
+}
+
+bool ThreadState::hasPendingStop() {
+  return pending_sigstops != 0;
 }

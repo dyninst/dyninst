@@ -211,8 +211,6 @@ void Parser::ProcessCFInsn(
             }
             if(!ah.isCall())
                 newedge->_type._interproc = true;
-    
-            frame.func->_call_edges.push_back(newedge);
         }
         /*
          * All other edge types are handled identically

@@ -78,19 +78,11 @@ class ASTVisitor;
 
  // Codegen...
 
- class ASTVisitor {
- public:
-   typedef dyn_detail::boost::shared_ptr<AST> ASTPtr;
-   virtual ASTPtr visit(AST *) = 0;
-   virtual ASTPtr visit(SymbolicEvaluation::BottomAST *) = 0;
-   virtual ASTPtr visit(SymbolicEvaluation::ConstantAST *) = 0;
-   virtual ASTPtr visit(SymbolicEvaluation::VariableAST *) = 0;
-   virtual ASTPtr visit(SymbolicEvaluation::RoseAST *) = 0;
-   virtual ASTPtr visit(StackAST *) = 0;
-
-   virtual ~ASTVisitor() {};
- };
-
+ // Concolic execution...
+ class InputVariableAST;
+ class ReferenceAST;
+ class StpAST;
+ class YicesAST;
 
 #define DEF_AST_LEAF_TYPE(name, type)					\
 class name : public AST {						\
@@ -180,7 +172,12 @@ class AST : public dyn_detail::boost::enable_shared_from_this<AST> {
     V_VariableAST,
     V_RoseAST,
     // Stack analysis
-    V_StackAST } ID;
+    V_StackAST,
+    // Concolic execution
+    V_InputVariableAST,
+    V_ReferenceAST,
+    V_StpAST,
+    V_YicesAST } ID;
 
   typedef dyn_detail::boost::shared_ptr<AST> Ptr;
   typedef std::vector<AST::Ptr> Children;      
@@ -205,12 +202,12 @@ class AST : public dyn_detail::boost::enable_shared_from_this<AST> {
   // Substitutes every occurrence of a with b in
   // AST in. Returns a new AST. 
 
-  static AST::Ptr substitute(AST::Ptr in, AST::Ptr a, AST::Ptr b); 
+  static COMMON_EXPORT AST::Ptr substitute(AST::Ptr in, AST::Ptr a, AST::Ptr b); 
 
   virtual ID getID() const { return V_AST; };
 
   // VISITOR wooo....
-  virtual Ptr accept(ASTVisitor *v) { return v->visit(this); }
+  virtual Ptr accept(ASTVisitor *);
 
   Ptr ptr() { return shared_from_this(); }
 
@@ -221,6 +218,23 @@ class AST : public dyn_detail::boost::enable_shared_from_this<AST> {
  protected:
   virtual bool isStrictEqual(const AST &rhs) const = 0;
 };
+
+ class ASTVisitor {
+ public:
+   typedef dyn_detail::boost::shared_ptr<AST> ASTPtr;
+   virtual ASTPtr visit(AST *) {return AST::Ptr();};
+   virtual ASTPtr visit(SymbolicEvaluation::BottomAST *) {return AST::Ptr();};
+   virtual ASTPtr visit(SymbolicEvaluation::ConstantAST *) {return AST::Ptr();};
+   virtual ASTPtr visit(SymbolicEvaluation::VariableAST *) {return AST::Ptr();};
+   virtual ASTPtr visit(SymbolicEvaluation::RoseAST *) {return AST::Ptr();};
+   virtual ASTPtr visit(StackAST *) {return AST::Ptr();};
+   virtual ASTPtr visit(InputVariableAST *) {return AST::Ptr();};
+   virtual ASTPtr visit(ReferenceAST *) {return AST::Ptr();};
+   virtual ASTPtr visit(StpAST *) {return AST::Ptr();};
+   virtual ASTPtr visit(YicesAST *) {return AST::Ptr();};
+
+   virtual ~ASTVisitor() {};
+ };
 
 }
 #endif // AST_H

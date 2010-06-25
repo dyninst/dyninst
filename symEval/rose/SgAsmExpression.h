@@ -6,6 +6,13 @@
 #include "SgAsmType.h"
 #include "external/rose/powerpcInstructionEnum.h"
 
+#if !defined(_MSC_VER)
+#include <stdint.h>
+#else
+#include "external/stdint-win.h"
+#endif
+
+
 class SgAsmExpression : public SgNode {
  public:
     virtual SgAsmType* get_type();

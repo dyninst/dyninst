@@ -806,11 +806,14 @@ bool IA_IAPI::fillTableEntries(Address thunkOffset,
 #if defined(os_windows)
         jumpAddress -= _obj->cs()->loadAddress();
 #endif
-        if(thunkOffset)
+        if(thunkOffset && _isrc->isCode(jumpAddress + thunkOffset))
         {
+            // XXX We assume that if thunkOffset is set that
+            //     entries in the table are relative, but only
+            //     if the absolute address would be valid
             jumpAddress += thunkOffset;
         }
-        if(!(_isrc->isCode(jumpAddress))) {
+        else if(!(_isrc->isCode(jumpAddress))) {
             parsing_printf("\tentry %d [0x%lx] -> 0x%lx, invalid, skipping\n",
                                    i, tableEntry, jumpAddress);
                     continue;

@@ -9,13 +9,9 @@
 #include "Result.h"
 #include "Dereference.h"
 
+#include "symEval/h/stackanalysis.h"
 
-// Dyninst internals...
-
-#include "dyninstAPI/src/function.h"
-#include "dyninstAPI/src/image-func.h"
-#include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/stackanalysis.h"
+#include "parseAPI/h/CFG.h"
 
 using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;
@@ -266,7 +262,7 @@ bool AbsRegionConverter::getCurrentStackHeight(ParseAPI::Function *func,
 					       Address addr,
 					       long &height,
 					       int &region) {
-  StackAnalysis sA(dynamic_cast<image_func *>(func));
+  StackAnalysis sA(func);
 
   StackAnalysis::Height heightSA = sA.findSP(addr);
 
@@ -287,7 +283,7 @@ bool AbsRegionConverter::getCurrentFrameHeight(ParseAPI::Function *func,
 					       Address addr,
 					       long &height,
 					       int &region) {
-  StackAnalysis sA(dynamic_cast<image_func *>(func));
+  StackAnalysis sA(func);
 
   StackAnalysis::Height heightSA = sA.findFP(addr);
 
@@ -630,28 +626,6 @@ bool AssignmentConverter::cache(ParseAPI::Function *func,
   }
   assignments = iter2->second;
   return true;
-}
-
-
-//////////////////////////////////
-
-#include "dyninstAPI/src/function.h"
-#include "dyninstAPI/h/BPatch_function.h"
-
-void AssignmentConverter::convert(const Instruction::Ptr I, 
-                                  const Address &addr,
-				  int_function *func,
-				  std::vector<Assignment::Ptr> &assignments) {
-  return convert(I, addr, func->ifunc(), assignments);
-}
-
-
-
-void AssignmentConverter::convert(const Instruction::Ptr I, 
-                                  const Address &addr,
-				  BPatch_function *func,
-				  std::vector<Assignment::Ptr> &assignments) {
-  return convert(I, addr, func->lowlevel_func(), assignments);
 }
 
 

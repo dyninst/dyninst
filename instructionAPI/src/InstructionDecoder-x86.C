@@ -862,8 +862,29 @@ namespace Dyninst
                         break;
                     case am_X:
                     {
+			MachRegister si_reg;
+			if(m_Arch == Arch_x86)
+			{
+				if(addrSizePrefixPresent)
+				{
+					si_reg = x86::si;
+				} else
+				{
+					si_reg = x86::esi;
+				}
+			}
+			else
+			{
+				if(addrSizePrefixPresent)
+				{
+					si_reg = x86_64::esi;
+				} else
+				{
+					si_reg = x86_64::rsi;
+				}
+			}
                         Expression::Ptr ds(makeRegisterExpression(m_Arch == Arch_x86 ? x86::ds : x86_64::ds));
-                        Expression::Ptr si(makeRegisterExpression(m_Arch == Arch_x86 ? x86::si : x86_64::si));
+                        Expression::Ptr si(makeRegisterExpression(si_reg));
                         Expression::Ptr segmentOffset(make_shared(singleton_object_pool<Immediate>::construct(
                                 Result(u32, 0x10))));
                         Expression::Ptr ds_segment = makeMultiplyExpression(ds, segmentOffset, u32);
@@ -874,8 +895,29 @@ namespace Dyninst
                     break;
                     case am_Y:
                     {
+			MachRegister di_reg;
+			if(m_Arch == Arch_x86)
+			{
+				if(addrSizePrefixPresent)
+				{
+					di_reg = x86::di;
+				} else
+				{
+					di_reg = x86::edi;
+				}
+			}
+			else
+			{
+				if(addrSizePrefixPresent)
+				{
+					di_reg = x86_64::edi;
+				} else
+				{
+					di_reg = x86_64::rdi;
+				}
+			}
                         Expression::Ptr es(makeRegisterExpression(m_Arch == Arch_x86 ? x86::es : x86_64::es));
-                        Expression::Ptr di(makeRegisterExpression(m_Arch == Arch_x86 ? x86::di : x86_64::di));
+                        Expression::Ptr di(makeRegisterExpression(di_reg));
                         Expression::Ptr es_segment = makeMultiplyExpression(es,
                             make_shared(singleton_object_pool<Immediate>::construct(Result(u32, 0x10))), u32);
                         Expression::Ptr es_di = makeAddExpression(es_segment, di, u32);

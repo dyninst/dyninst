@@ -819,7 +819,7 @@ bool Object::getCatchBlock(ExceptionBlock &b, Offset addr,
 
 bool Object::isText( const Offset addr ) const 
 {
-   return( addr >= code_off_ && addr <= code_len_ );
+   return( addr >= code_off_ && addr <= code_off_ + code_len_ );
 }
 
 void fixup_filename(std::string &filename)

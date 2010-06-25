@@ -9,11 +9,9 @@
 
 #include "external/rose/rose-compat.h"
 #include "typedefs.h"
-#include "SgNode.h"
+#include "SgAsmInstruction.h"
 
-#include "SgAsmOperandList.h"
-
-class SgAsmx86Instruction : public SgNode {
+class SgAsmx86Instruction : public SgAsmInstruction {
  public:
     /*! \brief returns a string representing the class name */
     virtual std::string class_name() const;
@@ -62,34 +60,8 @@ class SgAsmx86Instruction : public SgNode {
                         X86InstructionSize baseSize = x86_insnsize_none, 
                         X86InstructionSize operandSize = x86_insnsize_none, 
                         X86InstructionSize addressSize = x86_insnsize_none); 
-
-    std::string get_mnemonic() const;
-    void set_mnemonic(std::string mnemonic);
-    
-    SgUnsignedCharList get_raw_bytes() const;
-    void set_raw_bytes(SgUnsignedCharList raw_bytes);
-    
-    SgAsmOperandList* get_operandList() const;
-    void set_operandList(SgAsmOperandList* operandList);
-    
-    rose_addr_t get_address() const;
-    void set_address(rose_addr_t address);
-
-    std::string get_comment() const;
-    void set_comment(std::string comment);
-    
     
  protected:
-    std::string p_mnemonic;
-    
-    SgUnsignedCharList p_raw_bytes;
-    
-    SgAsmOperandList* p_operandList;
-
-    rose_addr_t p_address;
-          
-    std::string p_comment;
-
 
     X86InstructionKind p_kind;
     
