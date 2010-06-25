@@ -239,8 +239,15 @@ test_results_t DyninstComponent::group_setup(RunGroup *group,
 test_results_t DyninstComponent::group_teardown(RunGroup *group,
                                                 ParameterDict &params)
 {
-   if (group->customExecution)
-      return PASSED;
+    if (group->customExecution) {
+        // We don't care about pass/fail here but we most definitely care about mutatee cleanup.
+        // Just kill the process...
+        if(appProc)
+        {
+            appProc->terminateExecution();
+        }      
+        return PASSED;
+    }
 
    bool someTestPassed;
    for (unsigned i=0; i<group->tests.size(); i++)
