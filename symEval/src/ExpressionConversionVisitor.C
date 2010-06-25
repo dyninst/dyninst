@@ -63,7 +63,7 @@ void ExpressionConversionVisitor::visit(InstructionAPI::Immediate* immed) {
 void ExpressionConversionVisitor::visit(RegisterAST* regast) {
   // has no children
   
-  m_stack.push_front(archSpecificRegisterProc(regast));
+  m_stack.push_front(archSpecificRegisterProc(regast, addr));
   roseExpression = m_stack.front();
   return;
 }
@@ -117,7 +117,7 @@ void ExpressionConversionVisitor::visit(Dereference* deref) {
   roseExpression = result;
 }
 
-SgAsmExpression* ExpressionConversionVisitor::archSpecificRegisterProc(InstructionAPI::RegisterAST* regast)
+SgAsmExpression* ExpressionConversionVisitor::archSpecificRegisterProc(InstructionAPI::RegisterAST* regast, uint64_t addr)
 {
   MachRegister machReg = regast->getID();
   if(machReg.isPC()) return NULL;
@@ -127,7 +127,13 @@ SgAsmExpression* ExpressionConversionVisitor::archSpecificRegisterProc(Instructi
     int regClass;
     int regNum;
     int regPos;
-    
+   
+    MachRegister machReg = regast->getID();
+    if(machReg.isPC()) {
+      // ideally this would be symbolic
+      SgAsmExpression *constAddrExpr = new SgAsmDoubleWordValueExpression(addr);
+      return constAddrExpr;
+    } 
     machReg.getROSERegister(regClass, regNum, regPos);
     
     return new SgAsmx86RegisterReferenceExpression((X86RegisterClass) regClass,

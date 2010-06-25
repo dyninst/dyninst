@@ -48,12 +48,12 @@ namespace SymbolicEvaluation {
 
   protected:
     virtual SgAsmInstruction *createInsn() = 0;
-    virtual void setOpcode(SgAsmInstruction *insn, entryID opcode, std::string mnem) = 0;
+    virtual void setOpcode(SgAsmInstruction *insn, entryID opcode, prefixEntryID prefix, std::string mnem) = 0;
     virtual void setSizes(SgAsmInstruction *insn) = 0; 
     virtual bool handleSpecialCases(entryID opcode, SgAsmInstruction *rinsn, SgAsmOperandList *roperands) = 0;
     virtual void massageOperands(const InstructionPtr &insn, std::vector<InstructionAPI::Operand> &operands) = 0;
 
-    virtual SgAsmExpression *convertOperand(const ExpressionPtr expression);
+    virtual SgAsmExpression *convertOperand(const ExpressionPtr expression, uint64_t addr);
 
     friend class ExpressionConversionVisitor;
 
@@ -67,12 +67,12 @@ class RoseInsnX86Factory : public RoseInsnFactory {
     
   private:
     virtual SgAsmInstruction *createInsn();
-    virtual void setOpcode(SgAsmInstruction *insn, entryID opcode, std::string mnem);
+    virtual void setOpcode(SgAsmInstruction *insn, entryID opcode, prefixEntryID prefix, std::string mnem);
     virtual void setSizes(SgAsmInstruction *insn);
     virtual bool handleSpecialCases(entryID opcode, SgAsmInstruction *rinsn, SgAsmOperandList *roperands);
     virtual void massageOperands(const InstructionPtr &insn, std::vector<InstructionAPI::Operand> &operands);
 
-    X86InstructionKind convertKind(entryID opcode);
+    X86InstructionKind convertKind(entryID opcode, prefixEntryID prefix);
 
     virtual Architecture arch() { return Arch_x86; };
   };
@@ -84,7 +84,7 @@ class RoseInsnX86Factory : public RoseInsnFactory {
 
   private:
     virtual SgAsmInstruction *createInsn();
-    virtual void setOpcode(SgAsmInstruction *insn, entryID opcode, std::string mnem);
+    virtual void setOpcode(SgAsmInstruction *insn, entryID opcode, prefixEntryID prefix, std::string mnem);
     virtual void setSizes(SgAsmInstruction *insn);
     virtual bool handleSpecialCases(entryID opcode, SgAsmInstruction *rinsn, SgAsmOperandList *roperands);
     virtual void massageOperands(const InstructionPtr &insn, std::vector<InstructionAPI::Operand> &operands);

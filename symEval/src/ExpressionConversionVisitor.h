@@ -33,8 +33,8 @@ namespace Dyninst
       typedef PowerpcConditionRegisterAccessGranularity regField;
 
     public:
-    ExpressionConversionVisitor(Architecture a) :
-      roseExpression(NULL), arch(a) {};
+    ExpressionConversionVisitor(Architecture a, uint64_t ad) :
+      roseExpression(NULL), arch(a), addr(ad) {};
       
       SgAsmExpression *getRoseExpression() { return roseExpression; }
       
@@ -45,12 +45,13 @@ namespace Dyninst
       
     private:
 
-      SgAsmExpression* archSpecificRegisterProc(InstructionAPI::RegisterAST* regast);
+      SgAsmExpression* archSpecificRegisterProc(InstructionAPI::RegisterAST* regast, uint64_t addr);
       SgAsmExpression* makeSegRegExpr();
 
       SgAsmExpression *roseExpression;
       Architecture arch;
       std::list<SgAsmExpression*> m_stack;
+      uint64_t addr;
     };
   }
 }

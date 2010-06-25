@@ -44,7 +44,47 @@ using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;
 using namespace Dyninst::SymbolicEvaluation;
     
-X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode) {
+X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID prefix) {
+  switch (prefix) {
+    case prefix_rep:
+        switch (opcode) {
+          case e_insb: return x86_rep_insb;
+          case e_insd: return x86_rep_insd;
+          case e_insw: return x86_rep_insw;
+          case e_lodsb: return x86_rep_lodsb;
+          case e_lodsd: return x86_rep_lodsd;
+          case e_lodsw: return x86_rep_lodsw;
+          case e_movsb: return x86_rep_movsb;
+          case e_movsd: return x86_rep_movsd;
+          case e_movsw: return x86_rep_movsw;
+          case e_outsb: return x86_rep_outsb;
+          case e_outsd: return x86_rep_outsd;
+          case e_outsw: return x86_rep_outsw;
+          case e_stosb: return x86_rep_stosb;
+          case e_stosd: return x86_rep_stosd;
+          case e_stosw: return x86_rep_stosw;
+          case e_cmpsb: return x86_repe_cmpsb;
+          case e_cmpsd: return x86_repe_cmpsd;
+          case e_cmpsw: return x86_repe_cmpsw;
+          case e_scasb: return x86_repe_scasb;
+          case e_scasd: return x86_repe_scasd;
+          case e_scasw: return x86_repe_scasw;
+          default: return x86_unknown_instruction;
+        }
+    break;
+    case prefix_repnz:
+        switch (opcode) {
+          case e_cmpsb: return x86_repne_cmpsb;
+          case e_cmpsd: return x86_repne_cmpsd;
+          case e_cmpsw: return x86_repne_cmpsw;
+          case e_scasb: return x86_repne_scasb;
+          case e_scasd: return x86_repne_scasd;
+          case e_scasw: return x86_repne_scasw;
+          default: return x86_unknown_instruction;
+        }
+    break;
+    case prefix_none:
+    default:
     switch (opcode) {
         case e_jb:
             return x86_jb;

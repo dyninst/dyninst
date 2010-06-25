@@ -24,7 +24,7 @@ SgAsmInstruction *RoseInsnFactory::convert(const InstructionAPI::Instruction::Pt
   
   rinsn->set_address(addr);
   rinsn->set_mnemonic(insn->format());
-  setOpcode(rinsn, insn->getOperation().getID(), insn->getOperation().format());
+  setOpcode(rinsn, insn->getOperation().getID(), insn->getOperation().getPrefixID(), insn->getOperation().format());
 
   // semantics don't support 64-bit code
   setSizes(rinsn);
@@ -59,15 +59,15 @@ SgAsmInstruction *RoseInsnFactory::convert(const InstructionAPI::Instruction::Pt
        ++opi, ++i) {
     InstructionAPI::Operand &currOperand = *opi;
     //cerr << "Converting operand " << currOperand.format() << endl;
-    roperands->append_operand(convertOperand(currOperand.getValue()));
+    roperands->append_operand(convertOperand(currOperand.getValue(), addr));
   }  
   rinsn->set_operandList(roperands);
   return rinsn;
 }
 
-SgAsmExpression *RoseInsnFactory::convertOperand(const Expression::Ptr expression) {
+SgAsmExpression *RoseInsnFactory::convertOperand(const Expression::Ptr expression, uint64_t addr) {
   if(!expression) return NULL;
-  ExpressionConversionVisitor visitor(arch());
+  ExpressionConversionVisitor visitor(arch(), addr);
   expression->apply(&visitor);
   return visitor.getRoseExpression();
 }
@@ -80,10 +80,10 @@ SgAsmInstruction *RoseInsnX86Factory::createInsn() {
 
 // Note: convertKind is defined in convertOpcodes.C
 
-void RoseInsnX86Factory::setOpcode(SgAsmInstruction *insn, entryID opcode, std::string) {
+void RoseInsnX86Factory::setOpcode(SgAsmInstruction *insn, entryID opcode, prefixEntryID prefix, std::string) {
   SgAsmx86Instruction *tmp = static_cast<SgAsmx86Instruction *>(insn);
   
-  tmp->set_kind(convertKind(opcode));
+  tmp->set_kind(convertKind(opcode, prefix));
 }
 
 void RoseInsnX86Factory::setSizes(SgAsmInstruction *insn) {
@@ -101,12 +101,6 @@ bool RoseInsnX86Factory::handleSpecialCases(entryID, SgAsmInstruction *, SgAsmOp
 void RoseInsnX86Factory::massageOperands(const InstructionAPI::Instruction::Ptr &insn, 
 					 std::vector<InstructionAPI::Operand> &operands) {
   switch (insn->getOperation().getID()) {
-  case e_lea: {
-    Dereference::Ptr tmp = Dereference::Ptr(new Dereference(operands[1].getValue(), u32));
-    operands[1] = Operand(tmp, operands[1].isRead(), operands[1].isWritten());
-    operands.resize(2);
-    break;
-  }
   case e_push:
   case e_pop:
     operands.resize(1);
@@ -115,7 +109,8 @@ void RoseInsnX86Factory::massageOperands(const InstructionAPI::Instruction::Ptr 
     operands.resize(2);
     break;
   case e_movsb:
-  case e_movsw_d:
+  case e_movsd:
+  case e_movsw:
     // No operands
     operands.clear();
     break;
@@ -125,15 +120,23 @@ void RoseInsnX86Factory::massageOperands(const InstructionAPI::Instruction::Ptr 
     // No operands
     operands.clear();
     break;
+  case e_scasb:
+  case e_scasd:
+  case e_scasw:
+    // Same here
+    operands.clear();
+    break;
   case e_stosb:
-  case e_stosw_d:
+  case e_stosd:
+  case e_stosw:
     // Also, no operands
     operands.clear();
     break;
   case e_jcxz_jec:
     operands.resize(1);
     break;
-  case e_cbw_cwde:
+  case e_cbw:
+  case e_cwde:
     // Nada
     operands.clear();
     break;
@@ -150,7 +153,7 @@ SgAsmInstruction *RoseInsnPPCFactory::createInsn() {
   return new SgAsmPowerpcInstruction;
 }
 
-void RoseInsnPPCFactory::setOpcode(SgAsmInstruction *insn, entryID opcode, std::string mnem) {
+void RoseInsnPPCFactory::setOpcode(SgAsmInstruction *insn, entryID opcode, prefixEntryID prefix, std::string mnem) {
   SgAsmPowerpcInstruction *tmp = static_cast<SgAsmPowerpcInstruction *>(insn);
   kind = convertKind(opcode, mnem);
   tmp->set_kind(kind);
