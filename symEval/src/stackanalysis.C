@@ -83,7 +83,7 @@ AnnotationClass <StackAnalysis::HeightTree> FP_Anno(std::string("FP_Anno"));
 
 bool StackAnalysis::analyze()
 {
-  init_debug();
+  symeval_init_debug();
   stackanalysis_printf("Beginning stack analysis for function %s\n",
 		       func->name().c_str());
 
@@ -1050,6 +1050,9 @@ StackAnalysis::Height StackAnalysis::findSP(Address addr) {
     if(!analyze()) return Height();
   }
   sp_intervals_->find(addr, ret);
+  if (ret.isTop()) {
+    cerr << "Error: address " << hex << addr << dec << " was not analyzed!" << endl;
+  }
   assert(!ret.isTop());
   return ret;
 }

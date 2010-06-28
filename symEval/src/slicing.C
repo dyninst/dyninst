@@ -83,7 +83,7 @@ Slicer::Slicer(Assignment::Ptr a,
   b_(block),
   f_(func),
   converter(true) {
-  init_debug();
+  symeval_init_debug();
 };
 
 Graph::Ptr Slicer::forwardSlice(Predicates &predicates) {
@@ -295,7 +295,7 @@ bool Slicer::handleCallDetails(AbsRegion &reg,
   AbsRegion newReg = reg;
 
   long stack_depth;
-  if (!getStackDepth(caller, callerBlock->end(), stack_depth)) {
+  if (!getStackDepth(caller, callerBlock->lastInsnAddr(), stack_depth)) {
     return false;
   }
 
@@ -537,6 +537,11 @@ bool Slicer::handleCall(ParseAPI::Block *block,
   const Block::edgelist &targets = block->targets();
   Block::edgelist::iterator eit = targets.begin();
   for (; eit != targets.end(); ++eit) {
+    if ((*eit)->sinkEdge()) {
+      err = true; 
+      continue;
+    }
+
     if ((*eit)->type() == CALL) {
       callee = (*eit)->trg();
     }
@@ -555,6 +560,7 @@ bool Slicer::handleCall(ParseAPI::Block *block,
     // Update location
     newElement.loc.block = callee;
     newElement.loc.func = getEntryFunc(callee);
+    assert(newElement.loc.func);
     getInsns(newElement.loc);
     
     // HandleCall updates both an AbsRegion and a context...

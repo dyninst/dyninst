@@ -52,6 +52,8 @@
 
 #include "../h/slicing.h" // AssignNode
 
+#include "debug.h"
+
 using namespace Dyninst;
 using namespace InstructionAPI;
 using namespace SymbolicEvaluation;
@@ -133,8 +135,7 @@ void SymEval::expand(Graph::Ptr slice, Result_t &res) {
     if (visited.find(ptr) != visited.end()) continue;
     visited.insert(ptr);
 
-    assert(0 && "Unimplemented!");
-    //process(aNode, res);
+    process(aNode, res);
 
     NodeIterator nbegin, nend;
     aNode->outs(nbegin, nend);
@@ -182,6 +183,8 @@ void SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,
 
 void SymEval::process(AssignNode::Ptr ptr,
 			 Result_t &dbase) {
+  symeval_init_debug();
+
   std::map<unsigned, Assignment::Ptr> inputMap;
 
   //cerr << "Calling process on " << ptr->format() << endl;

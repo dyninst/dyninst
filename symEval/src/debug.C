@@ -37,6 +37,8 @@
 #include <string>
 #include "debug.h"
 
+#include <iostream>
+
 // Internal debugging
 
 int sym_debug_slicing= 0;
@@ -44,12 +46,13 @@ int sym_debug_stackanalysis = 0;
 int sym_debug_convert = 0;
 int sym_debug_expand = 0;
 
-bool init_debug() {
+bool symeval_init_debug() {
   static bool init = false;
   if (init) return true;
   init = true;
 
   char *p;
+  std::cerr << "Initializing symEval debugging" << std::endl;
 
   if ((p=getenv("SYMEVAL_DEBUG_STACKANALYSIS"))) {
     fprintf(stderr, "Enabling SymEval stack analysis debugging\n");
