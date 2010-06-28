@@ -61,6 +61,13 @@
 #include <fstream>
 #include <sstream>
 
+#if !defined(_MSC_VER)
+#include <stdint.h>
+#else
+#include "external/stdint-win.h"
+#endif
+
+
 #include "../rose/SgAsmx86Instruction.h"
 #include "../rose/SgAsmPowerpcInstruction.h"
 // Also need ROSE header files... argh. 
@@ -255,7 +262,8 @@ struct Handle {
                             Handle<1> cond) {
     return Handle<Len>(getBinaryAST(ROSEOperation::derefOp,
                                     addr.var(),
-                                    cond.var()));
+                                    cond.var(),
+                                    Len));
      }
      template <size_t Len>
      void writeMemory(X86SegmentRegister,
@@ -271,6 +279,7 @@ struct Handle {
      std::map<Absloc, Assignment::Ptr>::iterator i = aaMap.find(Absloc(0));
      if (i != aaMap.end()) {
        i->second->out().setGenerator(addr.var());
+       i->second->out().setSize(Len);
        
        if (cond == true_()) {
 	 res[i->second] = getBinaryAST(ROSEOperation::writeRepOp,
@@ -293,6 +302,7 @@ struct Handle {
         std::map<Absloc, Assignment::Ptr>::iterator i = aaMap.find(Absloc(0));
         if (i != aaMap.end()) {
             i->second->out().setGenerator(addr.var());
+            i->second->out().setSize(Len);
             if (cond == true_()) {
                 // Thinking about it... I think we avoid the "writeOp"
                 // because it's implicit in what we're setting; the 
@@ -317,6 +327,7 @@ struct Handle {
      std::map<Absloc, Assignment::Ptr>::iterator i = aaMap.find(Absloc(0));
      if (i != aaMap.end()) {
        i->second->out().setGenerator(addr.var());
+       i->second->out().setSize(Len);
        if (cond == true_()) {	 
 	 // Thinking about it... I think we avoid the "writeOp"
 	 // because it's implicit in what we're setting; the 
@@ -381,7 +392,8 @@ struct Handle {
      return Handle<To-From>(getTernaryAST(ROSEOperation::extractOp, 
 					  a.var(),
 					  number<Len>(From).var(),
-					  number<Len>(To).var()));
+					  number<Len>(To).var(),
+                                          To-From));
    }
 
    template <size_t Len>
@@ -420,7 +432,7 @@ struct Handle {
 
    template <size_t Len1, size_t Len2>
      Handle<Len1+Len2> concat(Handle<Len1> a, Handle<Len2> b) {
-     return Handle<Len1+Len2>(getBinaryAST(ROSEOperation::concatOp, a.var(), b.var()));
+     return Handle<Len1+Len2>(getBinaryAST(ROSEOperation::concatOp, a.var(), b.var(), Len1+Len2));
    }
 
    template <size_t Len>

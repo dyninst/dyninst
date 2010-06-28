@@ -91,6 +91,18 @@
 #endif
 #endif
 
+#if !defined(SYMEVAL_EXPORT)
+  #if defined(_MSC_VER)
+    #if defined(PARSER_LIB)
+      #define SYMEVAL_EXPORT __declspec(dllexport)
+    #else
+      #define SYMEVAL_EXPORT __declspec(dllimport)
+    #endif
+  #else
+    #define SYMEVAL_EXPORT
+#endif
+#endif
+
 #if !defined(THROW) && !defined(THROW_SPEC)
 #if defined(_MSC_VER)
 #define THROW_SPEC(x)

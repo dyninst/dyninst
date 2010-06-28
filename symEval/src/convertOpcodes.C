@@ -31,8 +31,9 @@
 
 // This file was automatically generated
 
-#include "SymEval.h"
-#include "SymEvalPolicy.h"
+//#include "SymEval.h"
+//#include "SymEvalPolicy.h"
+#include "RoseInsnFactory.h"
 
 #include "AST.h"
 
@@ -42,14 +43,48 @@
 using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;
 using namespace Dyninst::SymbolicEvaluation;
-
-template class SymEval<Arch_x86>;
-template class SymEval<Arch_ppc32>;
-
     
-SymEvalArchTraits<Arch_x86>::InstructionKind_t SymEvalArchTraits<Arch_x86>::convert(entryID opcode,
-										    std::string)
-{
+X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID prefix) {
+  switch (prefix) {
+    case prefix_rep:
+        switch (opcode) {
+          case e_insb: return x86_rep_insb;
+          case e_insd: return x86_rep_insd;
+          case e_insw: return x86_rep_insw;
+          case e_lodsb: return x86_rep_lodsb;
+          case e_lodsd: return x86_rep_lodsd;
+          case e_lodsw: return x86_rep_lodsw;
+          case e_movsb: return x86_rep_movsb;
+          case e_movsd: return x86_rep_movsd;
+          case e_movsw: return x86_rep_movsw;
+          case e_outsb: return x86_rep_outsb;
+          case e_outsd: return x86_rep_outsd;
+          case e_outsw: return x86_rep_outsw;
+          case e_stosb: return x86_rep_stosb;
+          case e_stosd: return x86_rep_stosd;
+          case e_stosw: return x86_rep_stosw;
+          case e_cmpsb: return x86_repe_cmpsb;
+          case e_cmpsd: return x86_repe_cmpsd;
+          case e_cmpsw: return x86_repe_cmpsw;
+          case e_scasb: return x86_repe_scasb;
+          case e_scasd: return x86_repe_scasd;
+          case e_scasw: return x86_repe_scasw;
+          default: return x86_unknown_instruction;
+        }
+    break;
+    case prefix_repnz:
+        switch (opcode) {
+          case e_cmpsb: return x86_repne_cmpsb;
+          case e_cmpsd: return x86_repne_cmpsd;
+          case e_cmpsw: return x86_repne_cmpsw;
+          case e_scasb: return x86_repne_scasb;
+          case e_scasd: return x86_repne_scasd;
+          case e_scasw: return x86_repne_scasw;
+          default: return x86_unknown_instruction;
+        }
+    break;
+    case prefix_none:
+    default:
     switch (opcode) {
         case e_jb:
             return x86_jb;
@@ -191,8 +226,10 @@ SymEvalArchTraits<Arch_x86>::InstructionKind_t SymEvalArchTraits<Arch_x86>::conv
             return x86_btr;
         case e_bts:
             return x86_bts;
-        case e_cbw_cwde:
+        case e_cbw:
             return x86_cbw;
+        case e_cdq:
+            return x86_cdq;
         case e_clc:
             return x86_clc;
         case e_cld:
@@ -285,8 +322,10 @@ SymEvalArchTraits<Arch_x86>::InstructionKind_t SymEvalArchTraits<Arch_x86>::conv
             return x86_cvttsd2si;
         case e_cvttss2si:
             return x86_cvttss2si;
-        case e_cwd_cdq:
+        case e_cwd:
             return x86_cwd;
+        case e_cwde:
+            return x86_cwde;
         case e_daa:
             return x86_daa;
         case e_das:
@@ -403,9 +442,11 @@ SymEvalArchTraits<Arch_x86>::InstructionKind_t SymEvalArchTraits<Arch_x86>::conv
             return x86_inc;
         case e_insb:
             return x86_insb;
+        case e_insd:
+            return x86_insd;
         case e_insertq:
             return x86_insertq;
-        case e_insw_d:
+        case e_insw:
             return x86_insw;
         case e_int:
             return x86_int;
@@ -453,6 +494,8 @@ SymEvalArchTraits<Arch_x86>::InstructionKind_t SymEvalArchTraits<Arch_x86>::conv
             return x86_lmsw;
         case e_lodsb:
             return x86_lodsb;
+        case e_lodsd:
+            return x86_lodsd;
         case e_lodsw:
             return x86_lodsw;
         case e_lsl:
@@ -545,7 +588,7 @@ SymEvalArchTraits<Arch_x86>::InstructionKind_t SymEvalArchTraits<Arch_x86>::conv
             return x86_movsldup;
         case e_movss:
             return x86_movss;
-        case e_movsw_d:
+        case e_movsw:
             return x86_movsw;
         case e_movsx:
             return x86_movsx;
@@ -583,7 +626,9 @@ SymEvalArchTraits<Arch_x86>::InstructionKind_t SymEvalArchTraits<Arch_x86>::conv
             return x86_out;
         case e_outsb:
             return x86_outsb;
-        case e_outsw_d:
+        case e_outsd:
+            return x86_outsd;
+        case e_outsw:
             return x86_outsw;
         case e_packssdw:
             return x86_packssdw;
@@ -653,10 +698,14 @@ SymEvalArchTraits<Arch_x86>::InstructionKind_t SymEvalArchTraits<Arch_x86>::conv
             return x86_pmuludq;
         case e_pop:
             return x86_pop;
-        case e_popa_d:
+        case e_popa:
             return x86_popa;
-        case e_popf_d:
+        case e_popad:
+            return x86_popad;
+        case e_popf:
             return x86_popf;
+        case e_popfd:
+            return x86_popfd;
         case e_popcnt:
             return x86_popcnt;
         case e_por:
@@ -723,10 +772,14 @@ SymEvalArchTraits<Arch_x86>::InstructionKind_t SymEvalArchTraits<Arch_x86>::conv
             return x86_punpcklwd;
         case e_push:
             return x86_push;
-        case e_pusha_d:
+        case e_pusha:
             return x86_pusha;
-        case e_pushf_d:
+        case e_pushad:
+            return x86_pushad;
+        case e_pushf:
             return x86_pushf;
+        case e_pushfd:
+            return x86_pushfd;
         case e_pxor:
             return x86_pxor;
         case e_rcl:
@@ -763,7 +816,9 @@ SymEvalArchTraits<Arch_x86>::InstructionKind_t SymEvalArchTraits<Arch_x86>::conv
             return x86_sbb;
         case e_scasb:
             return x86_scasb;
-        case e_scasw_d:
+        case e_scasd:
+            return x86_scasd;
+        case e_scasw:
             return x86_scasw;
         case e_setb:
             return x86_setb;
@@ -837,7 +892,9 @@ SymEvalArchTraits<Arch_x86>::InstructionKind_t SymEvalArchTraits<Arch_x86>::conv
             return x86_stmxcsr;
         case e_stosb:
             return x86_stosb;
-        case e_stosw_d:
+        case e_stosd:
+            return x86_stosd;
+        case e_stosw:
             return x86_stosw;
         case e_str:
             return x86_str;
@@ -912,12 +969,14 @@ SymEvalArchTraits<Arch_x86>::InstructionKind_t SymEvalArchTraits<Arch_x86>::conv
         default:
             return x86_unknown_instruction;
         }
+    break;
+  }
 }
 
-SymEvalArchTraits<Arch_ppc32>::InstructionKind_t SymEvalArchTraits<Arch_ppc32>::convert(entryID opcode,
-											std::string mnem)
+PowerpcInstructionKind RoseInsnPPCFactory::convertKind(entryID opcode,
+						       std::string mnem)
 {
-  InstructionKind_t ret = powerpc_unknown_instruction;
+  PowerpcInstructionKind ret = powerpc_unknown_instruction;
     switch(opcode)
     {
         case power_op_stfdu: ret = powerpc_stfdu; break;
@@ -1264,4 +1323,30 @@ SymEvalArchTraits<Arch_ppc32>::InstructionKind_t SymEvalArchTraits<Arch_ppc32>::
       ret = (PowerpcInstructionKind)((int)ret + 1);
     }
     return ret;
+}
+
+PowerpcInstructionKind RoseInsnPPCFactory::makeRoseBranchOpcode(entryID iapi_opcode, bool isAbsolute, bool isLink) {
+  switch(iapi_opcode) {
+  case power_op_b:
+    if(isAbsolute && isLink) return powerpc_bla;
+    if(isAbsolute) return powerpc_ba;
+    if(isLink) return powerpc_bl;
+    return powerpc_b;
+  case power_op_bc:
+    if(isAbsolute && isLink) return powerpc_bcla;
+    if(isAbsolute) return powerpc_bca;
+    if(isLink) return powerpc_bcl;
+    return powerpc_bc;
+  case power_op_bcctr:
+    assert(!isAbsolute);
+    if(isLink) return powerpc_bcctrl;
+    return powerpc_bcctr;
+  case power_op_bclr:
+    assert(!isAbsolute);
+    if(isLink) return powerpc_bclrl;
+    return powerpc_bclr;
+  default:
+    assert(!"makeRoseBranchOpcode called with unknown branch opcode!");
+    return powerpc_unknown_instruction;
+  }
 }

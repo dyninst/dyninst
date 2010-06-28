@@ -224,7 +224,6 @@ enum TrapRegs {
 }; 
 
 class image_func : public ParseAPI::Function,
-                   public AnnotatableSparse
 {
   friend class DynCFGFactory;
   friend class DynParseCallback;

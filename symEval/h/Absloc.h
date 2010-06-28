@@ -45,10 +45,12 @@
 #if !defined(ABSLOC_H)
 #define ABSLOC_H
 
+#if !defined(_MSC_VER)
 #include <values.h>
+#endif
 
 #include "Instruction.h"
-#include "AST.h"
+#include "dynutil/h/AST.h"
 
 namespace Dyninst {
 
@@ -64,31 +66,31 @@ class Absloc {
     Heap,
     Unknown } Type;
 
-  static Absloc makePC(Dyninst::Architecture arch);
-  static Absloc makeSP(Dyninst::Architecture arch);
-  static Absloc makeFP(Dyninst::Architecture arch);
+  SYMEVAL_EXPORT static Absloc makePC(Dyninst::Architecture arch);
+  SYMEVAL_EXPORT static Absloc makeSP(Dyninst::Architecture arch);
+  SYMEVAL_EXPORT static Absloc makeFP(Dyninst::Architecture arch);
   
   // Some static functions for "well-known" Abslocs
-  bool isPC() const;
-  bool isSPR() const;
+  SYMEVAL_EXPORT bool isPC() const;
+  SYMEVAL_EXPORT bool isSPR() const;
   
-  bool isSP() const;
-  bool isFP() const;
+  SYMEVAL_EXPORT bool isSP() const;
+  SYMEVAL_EXPORT bool isFP() const;
 
- Absloc() :
+ SYMEVAL_EXPORT Absloc() :
   type_(Unknown),
     reg_(),
     off_(-1),
     region_(-1),
     addr_(-1) {};
- Absloc(MachRegister reg) :
+ SYMEVAL_EXPORT Absloc(MachRegister reg) :
   type_(Register),
     reg_(reg) {};
     
- Absloc(Address addr) :
+ SYMEVAL_EXPORT Absloc(Address addr) :
   type_(Heap),
     addr_(addr) {};
- Absloc(int o,
+ SYMEVAL_EXPORT Absloc(int o,
 	int r,
 	const std::string &f) :
     type_(Stack),
@@ -96,17 +98,19 @@ class Absloc {
       region_(r),
       func_(f) {};
     
-  std::string format() const;
+  SYMEVAL_EXPORT std::string format() const;
 
-  const Type &type() const { return type_; };
+  SYMEVAL_EXPORT const Type &type() const { return type_; };
 
-  const MachRegister &reg() const { assert(type_ == Register); return reg_; };
+  SYMEVAL_EXPORT const MachRegister &reg() const { assert(type_ == Register); return reg_; };
 
-  int off() const { assert(type_ == Stack); return off_; };
-  int region() const { assert(type_ == Stack); return region_; };
-  const std::string &func() const { assert(type_ == Stack); return func_; };
+  SYMEVAL_EXPORT int off() const { assert(type_ == Stack); return off_; };
+  SYMEVAL_EXPORT int region() const { assert(type_ == Stack); return region_; };
+  SYMEVAL_EXPORT const std::string &func() const { assert(type_ == Stack); return func_; };
+
+  SYMEVAL_EXPORT Address addr() const { assert(type_ == Heap); return addr_; };
   
-  bool operator<(const Absloc &rhs) const {
+  SYMEVAL_EXPORT bool operator<(const Absloc &rhs) const {
     if (type_ != rhs.type_) 
       return type_ < rhs.type_;
     switch(type_) {
@@ -126,7 +130,7 @@ class Absloc {
     }
   }
 
-  bool operator==(const Absloc &rhs) const {
+  SYMEVAL_EXPORT bool operator==(const Absloc &rhs) const {
     if (type_ != rhs.type_) return false;
     switch(type_) {
     case Register:
@@ -142,11 +146,11 @@ class Absloc {
     }
   }
 
-  bool operator!=(const Absloc &rhs) const {
+  SYMEVAL_EXPORT bool operator!=(const Absloc &rhs) const {
     return !(*this == rhs);
   }
 
-  static char typeToChar(const Type t) {
+  SYMEVAL_EXPORT static char typeToChar(const Type t) {
     switch(t) {
     case Register:
       return 'r';
@@ -176,52 +180,60 @@ class AbsRegion {
   // Set operations get included here? Or third-party
   // functions?
   
-  bool contains(const Absloc::Type t) const;
-  bool contains(const Absloc &abs) const;
-  bool contains(const AbsRegion &rhs) const;
+  SYMEVAL_EXPORT bool contains(const Absloc::Type t) const;
+  SYMEVAL_EXPORT bool contains(const Absloc &abs) const;
+  SYMEVAL_EXPORT bool contains(const AbsRegion &rhs) const;
   // Logically, "intersect(rhs) != 0"
   //bool overlaps(const AbsRegion &rhs) const;
 
-  bool containsOfType(Absloc::Type t) const;
+  SYMEVAL_EXPORT bool containsOfType(Absloc::Type t) const;
 
   //iterator &begin();
   //iterator &end();
 
-  bool operator==(const AbsRegion &rhs) const;
-  bool operator!=(const AbsRegion &rhs) const;
-  bool operator<(const AbsRegion &rhs) const;
+  SYMEVAL_EXPORT bool operator==(const AbsRegion &rhs) const;
+  SYMEVAL_EXPORT bool operator!=(const AbsRegion &rhs) const;
+  SYMEVAL_EXPORT bool operator<(const AbsRegion &rhs) const;
 
-  const std::string format() const;
+  SYMEVAL_EXPORT const std::string format() const;
 
-  void insert(const Absloc &abs);
-  void insert(const AbsRegion &reg);
+  SYMEVAL_EXPORT void insert(const Absloc &abs);
+  SYMEVAL_EXPORT void insert(const AbsRegion &reg);
 
-  void erase(const Absloc &abs);
-  void erase(const AbsRegion &reg);
+  SYMEVAL_EXPORT void erase(const Absloc &abs);
+  SYMEVAL_EXPORT void erase(const AbsRegion &reg);
 
-  AbsRegion() :
-    type_(Absloc::Unknown) {};
-
-  AbsRegion(Absloc::Type t) :
-    type_(t) {};
-
-  AbsRegion(Absloc a) :
+  SYMEVAL_EXPORT AbsRegion() :
     type_(Absloc::Unknown),
-      absloc_(a) {};
+    size_(0) {};
+
+  SYMEVAL_EXPORT AbsRegion(Absloc::Type t) :
+    type_(t),
+    size_(0) {}
+
+  SYMEVAL_EXPORT AbsRegion(Absloc a) :
+    type_(Absloc::Unknown),
+      absloc_(a),
+      size_(0) {}
 
 
-  void setGenerator(AST::Ptr generator) {
+	SYMEVAL_EXPORT void setGenerator(AST::Ptr generator) {
       generator_ = generator;
   }
 
-  static bool equivalent(const AbsRegion &lhs,
+  SYMEVAL_EXPORT void setSize(size_t size) {
+    size_ = size;
+  }
+
+  SYMEVAL_EXPORT static bool equivalent(const AbsRegion &lhs,
 			 const AbsRegion &rhs,
 			 Address addr,
 			 ParseAPI::Function *caller,
 			 ParseAPI::Function *callee);
 
-  const Absloc absloc() const { return absloc_; }
-  const Absloc::Type type() const { return type_; }
+  SYMEVAL_EXPORT const Absloc absloc() const { return absloc_; }
+  SYMEVAL_EXPORT const Absloc::Type type() const { return type_; }
+  SYMEVAL_EXPORT size_t size() const { return size_; }
 
  private:
   // Type is for "we're on the stack but we don't know where".
@@ -234,6 +246,9 @@ class AbsRegion {
   // And the AST that gave rise to this Absloc. We use this
   // as a generating function (if present and not overridden)
   AST::Ptr generator_;
+
+  // Size in bits
+  size_t size_;
 };
 
 
@@ -242,25 +257,25 @@ class Assignment {
   typedef dyn_detail::boost::shared_ptr<Assignment> Ptr;
   typedef std::set<AbsRegion> Aliases;
 
-  const std::vector<AbsRegion> &inputs() const { return inputs_; }
-  std::vector<AbsRegion> &inputs() { return inputs_; }
+  SYMEVAL_EXPORT const std::vector<AbsRegion> &inputs() const { return inputs_; }
+  SYMEVAL_EXPORT std::vector<AbsRegion> &inputs() { return inputs_; }
 
-  const InstructionAPI::Instruction::Ptr insn() const { return insn_; }
-  const Address addr() const { return addr_; }
+  SYMEVAL_EXPORT const InstructionAPI::Instruction::Ptr insn() const { return insn_; }
+  SYMEVAL_EXPORT const Address addr() const { return addr_; }
 
-  const AbsRegion &out() const { return out_; }
-  AbsRegion &out() { return out_; }
+  SYMEVAL_EXPORT const AbsRegion &out() const { return out_; }
+  SYMEVAL_EXPORT AbsRegion &out() { return out_; }
 
-  const std::string format() const;
+  SYMEVAL_EXPORT const std::string format() const;
 
   // FIXME
   Aliases aliases;
 
   // Factory functions. 
-  static std::set<Assignment::Ptr> create(InstructionAPI::Instruction::Ptr insn,
+  SYMEVAL_EXPORT static std::set<Assignment::Ptr> create(InstructionAPI::Instruction::Ptr insn,
 					  Address addr);
 
-  Assignment(const InstructionAPI::Instruction::Ptr i,
+  SYMEVAL_EXPORT Assignment(const InstructionAPI::Instruction::Ptr i,
 	     const Address a,
 	     ParseAPI::Function *f,
 	     const std::vector<AbsRegion> &ins,
@@ -271,7 +286,7 @@ class Assignment {
     inputs_(ins),
     out_(o) {};
 
-  Assignment(const InstructionAPI::Instruction::Ptr i,
+  SYMEVAL_EXPORT Assignment(const InstructionAPI::Instruction::Ptr i,
 	     const Address a,
 	     ParseAPI::Function *f,
 	     const AbsRegion &o) : 
@@ -285,10 +300,10 @@ class Assignment {
   // we'll add it to the dependence list. Otherwise 
   // we'll join the provided input set to the known
   // inputs.
-  void addInput(const AbsRegion &reg);
-  void addInputs(const std::vector<AbsRegion> &regions);
+  SYMEVAL_EXPORT void addInput(const AbsRegion &reg);
+  SYMEVAL_EXPORT void addInputs(const std::vector<AbsRegion> &regions);
 
-  ParseAPI::Function *func() const { return func_; }
+  SYMEVAL_EXPORT ParseAPI::Function *func() const { return func_; }
 
  private:
   InstructionAPI::Instruction::Ptr insn_;

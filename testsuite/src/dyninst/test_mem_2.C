@@ -330,8 +330,9 @@ test_results_t test_mem_2_Mutator::executeTest() {
     failtest(testnum, testdesc, "Store sequence failed validation.\n");
 
   if (instCall(appThread, "Store", res1) < 0) {
-    return FAILED;
+      failtest(testnum, testdesc, "Failed to instrument stores.\n");
   }
+  appThread->continueExecution();
   return PASSED;
 #endif
 }

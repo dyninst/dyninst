@@ -35,6 +35,7 @@
 #include "Register.h"
 #include "Expression.h"
 #include "entryIDs.h"
+#include "Result.h"
 #include <set>
 
 #include "util.h"
@@ -117,6 +118,9 @@ namespace Dyninst
       /// Returns the entry ID corresponding to this operation.  Entry IDs are enumerated values that correspond
       /// to assembly mnemonics.
       INSTRUCTION_EXPORT entryID getID() const;
+      /// Returns the prefix entry ID corresponding to this operation, if any.
+      /// Prefix IDs are enumerated values that correspond to assembly prefix mnemonics.
+      INSTRUCTION_EXPORT prefixEntryID getPrefixID() const;
 
       /// Returns true if the expression represented by \c candidate is read implicitly.
       INSTRUCTION_EXPORT bool isRead(Expression::Ptr candidate) const;
@@ -139,6 +143,8 @@ namespace Dyninst
       mutable bool doneOtherSetup;
       mutable bool doneFlagsSetup;
       Architecture archDecodedFrom;
+      prefixEntryID prefixID;
+      Result_Type addrWidth;
       
     };
   };

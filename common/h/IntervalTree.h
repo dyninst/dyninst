@@ -90,13 +90,16 @@ class IntervalTree {
   }
 
   bool precessor(K key, Entry &e) const {
+    if (tree_.empty()) return false;
     c_iter iter = tree_.lower_bound(key);
-    if (iter->first != key) {
+    if ((iter == tree_.end()) ||
+	(iter->first != key)) {
       if (iter == tree_.begin()) {
 	return false;
       }
       --iter;
     }
+    if (iter->first > key) return false;
 
     lb(e) = iter->first;
     ub(e) = iter->second.first;

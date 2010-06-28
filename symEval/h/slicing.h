@@ -22,117 +22,116 @@
 
 namespace Dyninst {
 
-  namespace ParseAPI {
-    class Block;
-    class Edge;
-    class Function;
-  };
+namespace ParseAPI {
+  class Block;
+  class Edge;
+  class Function;
+};
 
-    class Assignment;
-    class AbsRegion;
-    typedef dyn_detail::boost::shared_ptr<Assignment> AssignmentPtr;
+class Assignment;
+class AbsRegion;
+typedef dyn_detail::boost::shared_ptr<Assignment> AssignmentPtr;
 
-    class Graph;
-    typedef dyn_detail::boost::shared_ptr<Graph> GraphPtr;
+class Graph;
+typedef dyn_detail::boost::shared_ptr<Graph> GraphPtr;
 
-    class InstructionAPI::Instruction;
-    typedef dyn_detail::boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
+class InstructionAPI::Instruction;
+typedef dyn_detail::boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
 
 // Used in temp slicer; should probably
 // replace OperationNodes when we fix up
 // the DDG code.
-    class AssignNode : public Node {
-    public:
-      typedef dyn_detail::boost::shared_ptr<AssignNode> Ptr;
+class SYMEVAL_EXPORT AssignNode : public Node {
+ public:
+  typedef dyn_detail::boost::shared_ptr<AssignNode> Ptr;
       
-      static AssignNode::Ptr create(AssignmentPtr ptr,
-				    ParseAPI::Block *block,
-				    ParseAPI::Function *func) {
-	return Ptr(new AssignNode(ptr, block, func));
-      }
+  static AssignNode::Ptr create(AssignmentPtr ptr,
+				ParseAPI::Block *block,
+				ParseAPI::Function *func) {
+    return Ptr(new AssignNode(ptr, block, func));
+  }
       
-      ParseAPI::Block *block() const { return b_; };
-      ParseAPI::Function *func() const { return f_; };
-      Address addr() const;
-      AssignmentPtr assign() const { return a_; }
+  ParseAPI::Block *block() const { return b_; };
+  ParseAPI::Function *func() const { return f_; };
+  Address addr() const;
+  AssignmentPtr assign() const { return a_; }
       
-      Node::Ptr copy() { return Node::Ptr(); }
-      bool isVirtual() const { return false; }
+  Node::Ptr copy() { return Node::Ptr(); }
+  bool isVirtual() const { return false; }
       
-      std::string format() const;
+  std::string format() const;
       
-      virtual ~AssignNode() {};
+  virtual ~AssignNode() {};
       
-      void addAssignment(AssignNode::Ptr p, unsigned u) {
-	assignMap_[p] = u;
-      }
+  void addAssignment(AssignNode::Ptr p, unsigned u) {
+    assignMap_[p] = u;
+  }
       
-      unsigned getAssignmentIndex(AssignNode::Ptr p) {
-	return assignMap_[p];
-      }
+  unsigned getAssignmentIndex(AssignNode::Ptr p) {
+    return assignMap_[p];
+  }
       
-    private:
+ private:
       
-    AssignNode(AssignmentPtr ptr,
-	       ParseAPI::Block *block,
-               ParseAPI::Function *func) : 
-      a_(ptr), b_(block), f_(func) {};
+ AssignNode(AssignmentPtr ptr,
+	    ParseAPI::Block *block,
+	    ParseAPI::Function *func) : 
+  a_(ptr), b_(block), f_(func) {};
       
-      AssignmentPtr a_;
-      ParseAPI::Block *b_;
-      ParseAPI::Function *f_;
+  AssignmentPtr a_;
+  ParseAPI::Block *b_;
+  ParseAPI::Function *f_;
       
-      // This is ugly and should be cleaned up once we've figured
-      // out how to move forward on edge classes
-      std::map<AssignNode::Ptr, unsigned> assignMap_;
-    };
+  // This is ugly and should be cleaned up once we've figured
+  // out how to move forward on edge classes
+  std::map<AssignNode::Ptr, unsigned> assignMap_;
+};
 
-    class Slicer {
-        public:
-            typedef std::pair<InstructionPtr, Address> InsnInstance;
-            typedef std::vector<InsnInstance> InsnVec;
+class SYMEVAL_EXPORT Slicer {
+ public:
+  typedef std::pair<InstructionPtr, Address> InsnInstance;
+  typedef std::vector<InsnInstance> InsnVec;
 
-            Slicer(AssignmentPtr a,
-                   ParseAPI::Block *block,
-                   ParseAPI::Function *func);
-
-            typedef boost::function<bool (AssignmentPtr a)> PredicateFunc;
-            typedef boost::function<bool (ParseAPI::Function *c, std::stack<std::pair<ParseAPI::Function *, int> > &cs, bool plt, AbsRegion a)>
-                    CallStackFunc;
-
-      
-            typedef boost::function<bool (const AbsRegion &in, const AbsRegion &out)> AbsRegionFunc;
-            
-            GraphPtr forwardSlice(PredicateFunc &e, 
-				  PredicateFunc &w, 
-				  CallStackFunc &c,
-				  AbsRegionFunc &a);
+  Slicer(AssignmentPtr a,
+	 ParseAPI::Block *block,
+	 ParseAPI::Function *func);
+  typedef boost::function<bool (AssignmentPtr a)> PredicateFunc;
+  typedef boost::function<bool (ParseAPI::Function *c, 
+				std::stack<std::pair<ParseAPI::Function *, int> > &cs, 
+				AbsRegion a)> CallStackFunc;    
+  typedef boost::function<bool (const AbsRegion &in, const AbsRegion &out)> AbsRegionFunc;
   
-            GraphPtr backwardSlice(PredicateFunc &e, 
-				   PredicateFunc &w, 
-				   CallStackFunc &c,
-				   AbsRegionFunc &a);
+  GraphPtr forwardSlice(PredicateFunc &e, 
+			PredicateFunc &w, 
+			CallStackFunc &c,
+			AbsRegionFunc &a);
   
-            static bool isWidenNode(Node::Ptr n);
+  GraphPtr backwardSlice(PredicateFunc &e, 
+					PredicateFunc &w, 
+					CallStackFunc &c,
+					AbsRegionFunc &a);
+  
+  static bool isWidenNode(Node::Ptr n);
 
-        private:
+ private:
 
-            typedef enum {
-                forward,
-                backward } Direction;
+  typedef enum {
+    forward,
+    backward } Direction;
 
-                typedef std::map<ParseAPI::Block *, InsnVec> InsnCache;
+  typedef std::map<ParseAPI::Block *, InsnVec> InsnCache;
 
-                struct Predicates {
+  struct Predicates {
     // It's safe for these to be references because they will only exist
     // under a forward/backwardSlice call.
-		  PredicateFunc &end;
-		  PredicateFunc &widen;
-		  CallStackFunc &followCall;
+    PredicateFunc &end;
+    PredicateFunc &widen;
+    CallStackFunc &followCall;
+    AbsRegionFunc &abs;
 
-                    Predicates(PredicateFunc &e, PredicateFunc &w, CallStackFunc &c, AbsRegionFunc &a) : end(e), widen(w), followCall(c) {};
+    Predicates(PredicateFunc &e, PredicateFunc &w, CallStackFunc &c, AbsRegionFunc &a) : end(e), widen(w), followCall(c), abs(a) {};
 
-                };
+  };
 
   // Our slicing is context-sensitive; that is, if we enter
   // a function foo from a caller bar, all return edges
@@ -142,69 +141,69 @@ namespace Dyninst {
   // with the image_instPoint data structure, but hopefully that
   // one will be going away. 
 
-                struct ContextElement {
+  struct ContextElement {
     // We can implicitly find the callsite given a block,
     // since calls end blocks. It's easier to look up 
     // the successor this way than with an address.
 
-                    ParseAPI::Function *func;
+    ParseAPI::Function *func;
 
     // If non-NULL this must be an internal context
     // element, since we have an active call site.
-                    ParseAPI::Block *block;
+    ParseAPI::Block *block;
 
     // To enter or leave a function we must be able to
     // map corresponding abstract regions. 
     // In particular, we need to know the depth of the 
     // stack in the caller.
-                    long stackDepth;
+    long stackDepth;
 
   ContextElement(ParseAPI::Function *f) : 
-          func(f), block(NULL), stackDepth(-1) {};
+    func(f), block(NULL), stackDepth(-1) {};
   ContextElement(ParseAPI::Function *f, long depth) :
-          func(f), block(NULL), stackDepth(depth) {};
-                };
+    func(f), block(NULL), stackDepth(depth) {};
+  };
 
   // This should be sufficient...
-                typedef std::deque<ContextElement> Context;
+  typedef std::deque<ContextElement> Context;
 
-                bool getStackDepth(ParseAPI::Function *func, Address callAddr, long &height);
+  bool getStackDepth(ParseAPI::Function *func, Address callAddr, long &height);
 
   // Add the newly called function to the given Context.
-                void pushContext(Context &context,
-                                 ParseAPI::Function *callee,
-                                 ParseAPI::Block *callBlock,
-                                 long stackDepth);
+  void pushContext(Context &context,
+		   ParseAPI::Function *callee,
+		   ParseAPI::Block *callBlock,
+		   long stackDepth);
 
   // And remove it as appropriate
-                void popContext(Context &context);
+  void popContext(Context &context);
 
   // Shift an abs region by a given stack offset
-                void shiftAbsRegion(AbsRegion &callerReg,
-                                    AbsRegion &calleeReg,
-                                    long stack_depth,
-                                    ParseAPI::Function *callee);
+  void shiftAbsRegion(AbsRegion &callerReg,
+		      AbsRegion &calleeReg,
+		      long stack_depth,
+		      ParseAPI::Function *callee);
 
   // Handling a call does two things:
   // 1) Translates the given AbsRegion into the callee-side
-  //    view; this just means adjusting stack locations. 
+  //	view; this just means adjusting stack locations. 
   // 2) Increases the given context
   // Returns false if we didn't translate the absregion correctly
-                bool handleCallDetails(AbsRegion &reg,
-                                       Context &context,
-                                       ParseAPI::Block *callerBlock,
-                                       ParseAPI::Function *callee);
+  bool handleCallDetails(AbsRegion &reg,
+			 Context &context,
+			 ParseAPI::Block *callerBlock,
+			 ParseAPI::Function *callee);
 
-                bool handleCallDetailsBackward(AbsRegion &reg,
-                        Context &context,
-                        ParseAPI::Block *calleeBlock,
-                        ParseAPI::Function *caller);
+  bool handleCallDetailsBackward(AbsRegion &reg,
+				 Context &context,
+				 ParseAPI::Block *calleeBlock,
+				 ParseAPI::Function *caller);
 
   // Where we are in a particular search...
-                struct Location {
+  struct Location {
     // The block we're looking through
-                    ParseAPI::Function *func;
-                    ParseAPI::Block *block; // current block
+    ParseAPI::Function *func;
+    ParseAPI::Block *block; // current block
 
     // Where we are in the block
     InsnVec::iterator current;
@@ -222,125 +221,141 @@ namespace Dyninst {
   Location() : func(NULL), block(NULL), fwd(true) {};
   };
     
-                typedef std::queue<Location> LocList;
+  typedef std::queue<Location> LocList;
   
   // And the tuple of (context, AbsRegion, Location)
   // that specifies both context and what to search for
   // in that context
-                struct Element {
-                    Location loc;
-                    Context con;
-                    AbsRegion reg;
+  struct Element {
+    Location loc;
+    Context con;
+    AbsRegion reg;
     // This is for returns, and not for the intermediate
     // steps. OTOH, I'm being a bit lazy...
-                    Assignment::Ptr ptr;
-                    unsigned usedIndex;
+    Assignment::Ptr ptr;
+    unsigned usedIndex;
+    Address addr() const { return loc.addr(); }
+  };
 
-                    Address addr() const { return loc.addr(); }
-                };
-                typedef std::queue<Element> Elements;
+  typedef std::queue<Element> Elements;
 
-                bool followCall(ParseAPI::Block *b,
-                                Direction d,
-                                Element &current,
-                                Predicates &p);
-
-                bool handleDefault(ParseAPI::Edge *e,
-                                   Element &current,
-                                   Element &newElement,
-                                   Predicates &p,
-                                   bool &err);
-                
-                bool handleDefaultBackward(ParseAPI::Edge *e,
-                                   Element &current,
-                                   Element &newElement,
-                                   Predicates &p,
-                                   bool &err);
-
-                bool handleCall(ParseAPI::Block *block,
-                                Element &current,
-                                Element &newElement,
-                                Predicates &p,
-                                bool &err);
-
-                bool handleReturn(ParseAPI::Block *b,
-                                  Element &current,
-                                  Element &newElement,
-                                  Predicates &p,
-                                  bool &err);
-
-                void handleReturnDetails(AbsRegion &reg,
-                        Context &context);
-
-                bool getSuccessors(Element &current,
-                        Elements &worklist,
-                        Predicates &p);
-
-                bool getPredecessors(Element &current,
-                        Elements &worklist,
-                        Predicates &p);
-
-                bool forwardSearch(Element &current,
-                                   Elements &foundList,
-                                   Predicates &p);
-
-                bool backwardSearch(Element &current,
-                        Elements &foundList,
-                        Predicates &p);
-
-                void widen(GraphPtr graph, Element &source);
-
-                void widenBackward(GraphPtr graph, Element &target);
-
-                void insertPair(GraphPtr graph,
-                                Element &source,
-                                Element &target);
-
-                void convertInstruction(InstructionPtr,
-                                        Address,
-                                        ParseAPI::Function *,
-                                        std::vector<AssignmentPtr> &);
-
-                void fastForward(Location &loc, Address addr);
-
-                void fastBackward(Location &loc, Address addr);
-
-                AssignNode::Ptr widenNode();
-
-                void markAsExitNode(GraphPtr ret, Element &current);
-
-                void markAsEntryNode(GraphPtr ret, Element &current);
-
-                void getInsns(Location &loc);
-
-                void getInsnsBackward(Location &loc);
-
-                void setAliases(Assignment::Ptr, Element &);
-
-                AssignNode::Ptr createNode(Element &);
-
-                void cleanGraph(GraphPtr g);
-
-                ParseAPI::Block *getBlock(ParseAPI::Edge *e,
-                                           Direction dir);
+  GraphPtr sliceInternal(Direction dir,
+			 PredicateFunc &e, 
+			 PredicateFunc &w, 
+			 CallStackFunc &c,
+			 AbsRegionFunc &a);
   
-                void constructInitialElement(Element &initial);
+  bool getMatchingElements(Element &initial, Elements &worklist,
+			   Predicates &p, Direction dir);
+  
+  bool getNextCandidates(Element &initial, Elements &worklist,
+			 Predicates &p, Direction dir);
 
-                void constructInitialElementBackward(Element &initial);
+  void findMatches(Element &current, Assignment::Ptr &assign, 
+		   Direction dir, int index, Elements &succ); 
 
-                InsnCache insnCache_;
+  bool kills(Element &current, Assignment::Ptr &assign);
 
-                AssignmentPtr a_;
-                ParseAPI::Block *b_;
-                ParseAPI::Function *f_;
+  bool followCall(ParseAPI::Block *b,
+		  Direction d,
+		  Element &current,
+		  Predicates &p);
 
-                std::set<AssignNode::Ptr> visited_;
-                std::map<AssignmentPtr, AssignNode::Ptr> created_;
+  bool handleDefault(ParseAPI::Edge *e,
+		     Element &current,
+		     Element &newElement,
+		     Predicates &p,
+		     bool &err);
+                
+  bool handleDefaultBackward(ParseAPI::Edge *e,
+			     Element &current,
+			     Element &newElement,
+			     Predicates &p,
+			     bool &err);
 
-                AssignmentConverter converter;
+  bool handleCall(ParseAPI::Block *block,
+		  Element &current,
+		  Element &newElement,
+		  Predicates &p,
+		  bool &err);
 
-                AssignNode::Ptr widen_;
-    };
+  bool handleReturn(ParseAPI::Block *b,
+		    Element &current,
+		    Element &newElement,
+		    Predicates &p,
+		    bool &err);
+
+  void handleReturnDetails(AbsRegion &reg,
+			   Context &context);
+
+  bool getSuccessors(Element &current,
+		     Elements &worklist,
+		     Predicates &p);
+
+  bool getPredecessors(Element &current,
+		       Elements &worklist,
+		       Predicates &p);
+
+  bool search(Element &current,
+	      Elements &foundList,
+	      Predicates &p,
+	      int index,
+	      Direction dir);
+
+  void widen(GraphPtr graph, Direction dir, Element &source);
+
+  void insertPair(GraphPtr graph,
+		  Direction dir,
+		  Element &source,
+		  Element &target);
+
+  void convertInstruction(InstructionPtr,
+			  Address,
+			  ParseAPI::Function *,
+			  std::vector<AssignmentPtr> &);
+
+  void fastForward(Location &loc, Address addr);
+
+  void fastBackward(Location &loc, Address addr);
+
+  AssignNode::Ptr widenNode();
+
+  void markAsEndNode(GraphPtr ret, Direction dir, Element &current);
+  
+  void markAsExitNode(GraphPtr ret, Element &current);
+
+  void markAsEntryNode(GraphPtr ret, Element &current);
+
+  void getInsns(Location &loc);
+
+  void getInsnsBackward(Location &loc);
+
+  void setAliases(Assignment::Ptr, Element &);
+
+  AssignNode::Ptr createNode(Element &);
+
+  void cleanGraph(GraphPtr g);
+
+  ParseAPI::Block *getBlock(ParseAPI::Edge *e,
+			    Direction dir);
+  
+  void constructInitialElement(Element &initial, Direction dir);
+
+  void insertInitialNode(GraphPtr ret, Direction dir, AssignNode::Ptr aP);
+
+  InsnCache insnCache_;
+
+  AssignmentPtr a_;
+  ParseAPI::Block *b_;
+  ParseAPI::Function *f_;
+
+  std::set<AssignNode::Ptr> visited_;
+  std::map<AssignmentPtr, AssignNode::Ptr> created_;
+
+  AssignmentConverter converter;
+
+  AssignNode::Ptr widen_;
+};
 };
 
 #endif

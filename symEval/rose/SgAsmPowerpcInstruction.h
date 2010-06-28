@@ -15,25 +15,14 @@
 
 #include "external/rose/rose-compat.h"
 #include "typedefs.h"
-#include "SgNode.h"
-#include "SgAsmOperandList.h"
 #include "external/rose/powerpcInstructionEnum.h"
+#include "SgAsmInstruction.h"
 
 // Class Definition for SgAsmPowerpcInstruction
-class SgAsmPowerpcInstruction : public SgNode
+class SgAsmPowerpcInstruction : public SgAsmInstruction
 {
 
     public:
-        rose_addr_t get_address() const;
-        void set_address(rose_addr_t addr);
-        void set_mnemonic(std::string mnem);
-        std::string get_mnemonic() const;
-        void set_operandSize(X86InstructionSize) {}
-        void set_addressSize(X86InstructionSize) {}
-        void set_raw_bytes(std::vector<unsigned char> bytes);
-        SgUnsignedCharList get_raw_bytes() const;
-        virtual SgAsmOperandList* get_operandList() const;
-        void set_operandList(SgAsmOperandList* operands);
         /*! \brief returns a string representing the class name */
         virtual std::string class_name() const;
 

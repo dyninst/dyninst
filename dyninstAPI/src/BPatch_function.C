@@ -908,3 +908,10 @@ bool BPatch_function::findOverlappingInt(BPatch_Vector<BPatch_function *> &funcs
 
     return true;
 }
+
+ParseAPI::Function * BPatch_function::getParseAPIFuncInt() {
+  assert(func);
+ 
+  return func->ifunc();
+}
+

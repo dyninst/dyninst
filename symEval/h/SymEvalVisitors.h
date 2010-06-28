@@ -32,7 +32,7 @@
 #if !defined(_SYM_EVAL_VISITORS_H_)
 #define _SYM_EVAL_VISITORS_H_
 
-#include "dyninstAPI/src/stackanalysis.h"
+#include "../h/stackanalysis.h"
 #include "dynutil/h/AST.h"
 #include "symEval/h/Absloc.h"
 #include "SymEvalPolicy.h"
@@ -43,7 +43,7 @@
 namespace Dyninst {
 namespace SymbolicEvaluation {
 
-class StackVisitor : public ASTVisitor {
+class SYMEVAL_EXPORT StackVisitor : public ASTVisitor {
  public:
   StackVisitor(Address a,
 	       std::string funcname,

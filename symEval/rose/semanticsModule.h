@@ -4,12 +4,20 @@
 #include "SgAsmType.h"
 
 //#include "rose.h"
+#if !defined(_MSC_VER)
 #include <stdint.h>
+#include <inttypes.h>
+#else
+#include "external/stdint-win.h"
+#include "external/inttypes-win.h"
+#endif
+
 #ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS
 #endif
-#include <inttypes.h>
 #include <stdlib.h>
+
+#include <iostream>
 
 static inline int numBytesInAsmType(SgAsmType* ty) {
   switch (ty->variantT()) {
