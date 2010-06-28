@@ -221,11 +221,6 @@ CFElement::~CFElement() {
 
 void CFElement::addDestination(Address index, TargetInt *dest) {
   // Annoying required copy... 
-  if (destMap_.find(index) != destMap_.end()) {
-    // Multiple destinations for the same original
-    // address? Complain.
-    cerr << "WARNING: re-used original destination in CFElement: " << std::hex << index << std::dec << endl;
-  }
   destMap_[index] = dest;
 }
 
