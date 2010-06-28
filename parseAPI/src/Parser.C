@@ -145,6 +145,32 @@ Parser::add_hint(Function * f)
         record_func(f);
 }
 
+bool 
+Parser::libraryFingerprintingSetup()
+{
+    /* build structures that'll be used for library fingerprinting */
+    if (!obj().buildLibraryIDMappings()) {
+        fprintf(stderr, "Error: build of structures for library fingerprinting failed\n");
+        return false;
+    }
+#if 0
+    /* locate address of _dl_sysinfo function, which is used to 
+     * trap in statically-linked 32-bit glibc */
+    SymtabAPI::Symtab * symObj = getObject();
+    vector<Symbol* > symVec;
+    const string name = "_dl_sysinfo";
+    if (symObj->findSymbol(symVec, (string)"_dl_sysinfo", Symbol::ST_UNKNOWN, SymtabAPI::anyName, false, false)) {
+        Symbol * sym = *(symVec.begin());
+        Offset symAddr = sym->getOffset();
+        cout << "_dl_sysinfo_int80 at " << symAddr << endl;
+        _dl_sysinfo_addr = symAddr;
+    } else {
+        return false;
+    }
+#endif
+    return true; 
+}
+
 void
 Parser::parse()
 {
@@ -153,6 +179,10 @@ Parser::parse()
 
     assert(!_in_parse);
     _in_parse = true;
+
+    if (!libraryFingerprintingSetup()) {
+        parsing_printf("libraryFingerprintingSetup() failed\n");
+    }
 
     parse_vanilla();
 
@@ -777,7 +807,20 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 }
                 break;
             }
-            
+           
+            if (ah.isSyscall()) {
+                cout << "Parser.C: found trap at " << ah.getAddr() << endl;
+                /* register a callback for the syscall location */
+                ParseCallback::interproc_details det;
+                det.ibuf = (unsigned char*)
+                    frame.func->isrc()->getPtrToInstruction(ah.getAddr());
+                det.isize = ah.getSize();
+                det.type = ParseCallback::interproc_details::syscall;
+
+
+               _pcb.interproc_cf(frame.func, ah.getAddr(), &det); 
+            }   
+
             /** Particular instruction handling (calls, branches, etc) **/
             ++num_insns; 
             if(ah.hasCFT()) {
@@ -1110,6 +1153,18 @@ Parser::findFuncs(CodeRegion *r, Address addr, set<Function *> & funcs)
     }
     return _parse_data->findFuncs(r,addr,funcs);
 }
+
+Function * 
+Parser::findFuncByName(CodeRegion * r, const std::string name)
+{
+   if (_parse_state < COMPLETE) {   
+       parsing_printf("[%s:%d] Parser::findFuncsByName([%lx,%lx)) "
+               "forced parsing\n",
+               FILE__,__LINE__,r->low(),r->high());
+       parse();
+   } 
+    return _parse_data->findFuncByName(r,name);
+}   
 
 Block *
 Parser::findBlockByEntry(CodeRegion *r, Address entry)

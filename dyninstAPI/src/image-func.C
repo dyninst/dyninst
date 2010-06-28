@@ -202,6 +202,11 @@ bool image_func::isPLTFunction() {
            obj()->cs()->linkage().end();
 }
 
+void image_func::addTrapAddress(Address currAddr)
+{
+    trapAddresses.push_back(currAddr);    
+}
+
 int image_basicBlock_count = 0;
 
 /*
@@ -489,3 +494,5 @@ void image_basicBlock::getInsnInstances(std::vector<std::pair<InstructionAPI::In
     }
 }
 #endif
+
+

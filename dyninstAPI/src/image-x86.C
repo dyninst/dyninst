@@ -49,6 +49,24 @@
 #include "instructionAPI/h/Instruction.h"
 #include "instructionAPI/h/InstructionDecoder.h"
 
+#include "Instruction.h"
+#include "dynutil/h/dyn_regs.h"
+#include "dynutil/h/AST.h"
+#include "instructionAPI/h/Register.h"
+#include "symEval/h/Absloc.h"
+#include "symEval/h/AbslocInterface.h"
+#include "symEval/h/slicing.h"
+#include "Graph.h"
+#include "symEval/h/SymEval.h"
+#include "symEval/src/SymEvalPolicy.h"
+#include "boost/tuple/tuple.hpp"
+#include "boost/tuple/tuple_comparison.hpp"
+#include "boost/tuple/tuple_io.hpp"
+
+#include "dynutil/h/dyntypes.h"
+
+#include "Parsing.h"
+
 using namespace Dyninst::ParseAPI;
 
 bool image_func::writesFPRs(unsigned level) {
@@ -146,4 +164,551 @@ bool image_func::writesFPRs(unsigned level) {
     
     assert(0);
     return false;
+}
+
+class Predicates {
+    public:
+        static bool end (Assignment::Ptr) { return false;}
+        static bool widen (Assignment::Ptr) { return false;}
+        static bool call (Function *c, std::stack<std::pair<Function *, int> > &cs, bool plt, AbsRegion a) {return false;};
+};
+
+string getTrapRegString(int reg)
+{
+    switch(reg) {
+        case EAX:
+            return "EAX";
+            break;
+        case EBX:
+            return "EBX";
+            break;
+        case ECX:
+            return "ECX";
+            break;
+        case EDX:
+            return "EDX";
+            break;
+        case EDI:
+            return "EDI";
+            break;
+        case ESI:
+            return "ESI";
+            break;
+        case EBP:
+            return "EBP";
+            break;
+        default:
+            return "Unknown";
+            break;
+    }
+}
+
+string idToGenerateTuple(idTuple id, string name);
+
+bool image_func::identifyLibraryFunc()
+{
+    cout << "Entered identifyLibraryFunc() for " << symTabName() << endl;
+
+    char* mappingType = getenv("MAPPING_TYPE");
+    if (!mappingType) mappingType="tpc";
+
+    using namespace SymbolicEvaluation;
+    vector<Address> addrs;
+    getTrapAddresses(addrs);
+
+    set< vector<int> > traps;
+    set<string> calls;
+
+    /* for each address that was a trap instruction, backward slice
+     * for the value of EAX (the trap num) and also any constant
+     * parameter values */    
+    vector<Address>::iterator addr_iter;
+
+    image_basicBlock * block;
+    image_basicBlock * callBlock;
+    InstructionAPI::Instruction::Ptr instr;
+
+    //const set<image_basicBlock*, image_basicBlock::compare> & BBs = blocks();
+    fact_list<Block> BBs = this->blocks_;
+    set<image_basicBlock*, image_basicBlock::compare>::const_iterator BB_iter;
+
+    for (addr_iter = addrs.begin();
+            addr_iter != addrs.end();
+            addr_iter++) {
+        
+        Address addr = (*addr_iter);
+
+        /* Find the basic block and the instruction associated
+         * with the address */
+        
+        bool foundBB=false, foundInstr=false;
+
+        
+        for (BB_iter = BBs.begin();
+                BB_iter != BBs.end();
+                ++BB_iter) {
+            block = (*BB_iter);
+            if ( ((*BB_iter)->firstInsnOffset() <= addr) &&
+                    ((*BB_iter)->lastInsnOffset() >= addr) ) {
+                /* Found the basic block! */
+                foundBB = true;
+
+                /* Find the instruction */
+                vector<pair<InstructionAPI::Instruction::Ptr, Offset> > instrs;
+                block->getInsnInstances(instrs);
+                vector<pair<InstructionAPI::Instruction::Ptr, Offset> >::iterator instr_iter;
+                for (instr_iter = instrs.begin();
+                        instr_iter != instrs.end();
+                        ++instr_iter) {
+                    if ((*instr_iter).second == addr) {
+                        /* Found the instruction! */
+                        foundInstr = true;
+                        instr = (*instr_iter).first;
+                    }
+                }
+                break;
+            } 
+        }
+
+        assert(foundBB);
+        assert(foundInstr);
+              
+        /* Backward slice to get the value in 
+         * EAX, EBX, ECX, EDX, EDI, ESI, and EBP at this addr */
+        vector<int> curTraps;
+        
+        Dyninst::Absloc eax_reg(x86::eax);
+        Dyninst::Absloc ebx_reg(x86::ebx);
+        Dyninst::Absloc ecx_reg(x86::ecx);
+        Dyninst::Absloc edx_reg(x86::edx);
+        Dyninst::Absloc edi_reg(x86::edi);
+        Dyninst::Absloc esi_reg(x86::esi);
+        Dyninst::Absloc ebp_reg(x86::ebp);
+        unsigned int curEAX, curEBX, curECX, curEDX, curEDI, curESI, curEBP;
+
+        if (retrieveValue(block, instr, addr, eax_reg, curEAX))
+            curTraps.push_back(curEAX);
+        else curTraps.push_back(-1);
+
+        /* based on the trap #, decide how many params to examine */
+        map<int,int> syscallParams = img()->getSyscallParams();
+        map<int,int>::iterator param_iter = syscallParams.find(curEAX);
+        int numParams = 0;
+        if (param_iter != syscallParams.end()) {
+            numParams = param_iter->second;
+        } 
+        //cout << curEAX << " uses " << numParams << " params" << endl;
+
+        if ( (!strcmp(mappingType, "tpc")) || (!strcmp(mappingType, "tp"))) {
+            if (numParams > 0) {
+                if (retrieveValue(block, instr, addr, ebx_reg, curEBX))
+                    curTraps.push_back(curEBX);
+                else curTraps.push_back(-1);
+                if (numParams > 1) {
+                    if (retrieveValue(block, instr, addr, ecx_reg, curECX))
+                        curTraps.push_back(curECX);
+                    else curTraps.push_back(-1);
+                    if (numParams > 2) {
+                        if (retrieveValue(block, instr, addr, edx_reg, curEDX))
+                            curTraps.push_back(curEDX);
+                        else curTraps.push_back(-1);
+                        if (numParams > 3) {
+                            if (retrieveValue(block, instr, addr, edi_reg, curEDI))
+                                curTraps.push_back(curEDI);
+                            else curTraps.push_back(-1);
+                            if (numParams > 4) {
+                                if (retrieveValue(block, instr, addr, esi_reg, curESI))
+                                    curTraps.push_back(curESI);
+                                else curTraps.push_back(-1);
+                                if (numParams > 5) {
+                                    if (retrieveValue(block, instr, addr, ebp_reg, curEBP))
+                                        curTraps.push_back(curEBP);
+                                    else curTraps.push_back(-1);
+                                }}}}}
+            }}
+        traps.insert(curTraps);
+    }
+
+    /* add call information */ 
+    if ( (!strcmp(mappingType, "tpc")) || (!strcmp(mappingType, "tc"))) {
+        for (BB_iter = BBs.begin();
+                BB_iter != BBs.end();
+                ++BB_iter) {
+            callBlock = (*BB_iter);
+
+            /* Look for any calls made from this basic block */
+            pdvector<image_edge *> edges;
+            callBlock->getTargets(edges);
+            pdvector<image_edge *>::iterator edge_iter;
+            for (edge_iter = edges.begin();
+                    edge_iter != edges.end();
+                    ++edge_iter) {
+                bool foundCallName = false;
+                if ((*edge_iter)->getType() == ET_CALL) {
+#if 0
+                    /* Get the offset of the call */
+                    image_basicBlock * sourceBB = (*edge_iter)->getSource();
+                    Address callOffset = sourceBB->lastInsnOffset();
+                    Region * symReg = NULL;
+                    if (!symObj->findRegion(symReg, ".text")) {
+                        break;
+                    }
+
+                    std::vector<relocationEntry> & relocs = symReg->getRelocations();
+
+                    std::vector<relocationEntry>::iterator rel_iter;
+                    for (rel_iter = relocs.begin();
+                            rel_iter != relocs.end();
+                            ++rel_iter) {
+                        relocationEntry rel = *rel_iter;
+
+                        if (rel.rel_addr() == (callOffset+1)) {
+                            calls.push_back(rel.name());
+                            foundCallName = true;
+                            break;
+                        } 
+                    } 
+#endif
+                    if (!foundCallName) {
+                        image_basicBlock * targetBB = (*edge_iter)->getTarget();
+                        image_func * curFunc = targetBB->getFirstFunc();
+                        string curFuncName = curFunc->symTabName();
+                        if (img()->syscallFuncs.find(curFuncName) != img()->syscallFuncs.end()) {
+                            char * curName = (char*)curFuncName.c_str();
+                            calls.insert(curName);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    id = boost::make_tuple("", traps, calls);
+
+#if 0
+    if (addrs.size()) 
+        cout << idstring << symTabName() << endl;
+#endif
+#if 0
+    if (addrs.size()) {
+        string toprint = idToGenerateTuple(id, symTabName());
+        cout << toprint << endl;
+    }
+#endif
+    map<idTuple,string> ids = img()->getLibraryIDMappings();
+    map<idTuple,string>::iterator id_iter = ids.find(id);
+    if (addrs.size()) {
+
+        if (id_iter != ids.end()) {
+            cout << printidTuple(id) << " ( " << symTabName() << " was identified" << endl;
+        } else {
+            cout << printidTuple(id) << " ( " << symTabName() << " UNIDENTIFIED" << endl;
+        }
+    }
+#if 0
+    if (addrs.size()) {
+        string toprint = printCSV(id);
+        cout << symTabName() << "&" << toprint << endl;
+    }
+#endif
+    
+#endif
+    return true;
+}
+
+string printCSV(idTuple id) {
+    stringstream idstring;
+
+    set<vector<int> > traps = id.get<1>();
+    set<string> calls = id.get<2>();
+
+    set<vector<int> >::iterator trap_iter;
+    for (trap_iter = traps.begin();
+            trap_iter != traps.end();
+            ++trap_iter) {
+        vector<int> values = *trap_iter;
+        for (unsigned i = 0; i < values.size(); i++) {
+            idstring << values[i];
+            if (i+1 != values.size())
+                idstring << ",";
+        }
+        idstring << ";";
+    }
+
+    set<string>::iterator call_iter;
+    for (call_iter = calls.begin(); 
+            call_iter != calls.end();
+            ++call_iter) {
+        idstring << *call_iter << ";";
+    }
+
+    return idstring.str();
+}
+
+string printidTuple(idTuple id) {
+#if 0
+    char* mappingType = getenv("MAPPING_TYPE");
+    if (!mappingType) {
+        mappingType="tpc";
+    } else {
+        cout << "mapping type = " << mappingType << endl;
+    }
+    stringstream idstring;
+    idstring << "{ ";
+
+    set< vector<int> > traps =  id.get<1>();
+    set<string> calls = id.get<2>();
+
+    /* print values */
+    set< vector<int> >::iterator trap_iter;
+    for (trap_iter = traps.begin();
+            trap_iter != traps.end();
+            ++trap_iter) {
+        idstring << "( ";
+        vector<int> values = (*trap_iter);
+        if ((!strcmp(mappingType, "tpc")) || (!strcmp(mappingType,"tp"))) {
+            for (unsigned i = 0; i < values.size(); i++) {
+                idstring << getTrapRegString(i) << "=" << values[i] << " ";
+            }
+        } else {
+            if (values[0] != -1) {
+                idstring << getTrapRegString(0) << "=" << values[0] << " ";
+            }
+        }
+        idstring << ") ";
+    }
+
+    if ((!strcmp(mappingType,"tpc")) || (!strcmp(mappingType, "tc"))) {
+        /* print calls */
+        set<string>::iterator call_iter;
+        for (call_iter = calls.begin(); call_iter != calls.end(); ++call_iter) {
+            idstring << (*call_iter) << " ";
+        }
+    } 
+
+    idstring << "}";
+
+    return idstring.str();
+#endif
+    return "";
+}
+
+string idToGenerateTuple(idTuple id, string name) {
+#if 0
+    char* mappingType = getenv("MAPPING_TYPE");
+    if (!mappingType) {
+        mappingType="tpc";
+    } else {
+        cout << "mapping type = " << mappingType << endl;
+    }
+
+    //if (!strcmp(mappingType,"tpc")) {
+
+    stringstream idstring;
+    idstring << "traps.clear(); ";
+
+    set< vector<int> > traps =  id.get<1>();
+    set<string> calls = id.get<2>();
+
+    /* print values */
+    set< vector<int> >::iterator trap_iter;
+    for (trap_iter = traps.begin();
+            trap_iter != traps.end();
+            ++trap_iter) {
+        vector<int> values = (*trap_iter);
+        if ((!strcmp(mappingType, "tpc")) || (!strcmp(mappingType,"tp"))) {
+            idstring << "makeTrapVector(traps, " << values.size() << ", ";
+            for (unsigned i = 0; i < values.size(); i++) {
+                if ( i+1 == values.size()) {
+                    idstring << values[i] << ");";
+                } else {
+                    idstring << values[i] << ",";
+                }
+                //if (values[i] != -1) {
+                    //idstring << getTrapRegString(i) << "=" << values[i] << " ";
+                //}
+            }
+        } else {
+            //if (values[0] != -1) {
+                //idstring << getTrapRegString(0) << "=" << values[0] << " ";
+            //}
+            idstring << "makeTrapVector(traps, 1, " << values[0] << ");";
+        }
+        //idstring << ") ";
+        set<vector<int> >::iterator trap_iter_tmp = trap_iter;
+        trap_iter_tmp++;
+    }
+    idstring << "addMapping(traps, ";
+
+    if ((!strcmp(mappingType,"tpc")) || (!strcmp(mappingType, "tc"))) {
+    idstring << "makeCallSet(" << calls.size();
+    if (calls.size() > 0) {
+        idstring << ", ";
+    }
+        /* print calls */
+        set<string>::iterator call_iter;
+        for (call_iter = calls.begin(); call_iter != calls.end(); ++call_iter) {
+            //idstring << (*call_iter) << " ";
+            idstring << "\"" << *call_iter << "\"";
+            set<string>::iterator call_iter_tmp = call_iter;
+            call_iter_tmp++;
+            if (call_iter_tmp != calls.end()) {
+                idstring << ",";
+            }
+        }
+    } else {
+        idstring << "makeCallSet(0";
+    } 
+    idstring << "), ";
+
+    idstring << "\"" << name << "\");";
+
+    return idstring.str();
+#endif 
+    return "";
+}
+
+string image_func::idToString() {
+    char* mappingType = getenv("MAPPING_TYPE");
+    if (!mappingType) {
+        mappingType="tpc";
+    } else {
+        cout << "mapping type = " << mappingType << endl;
+    }
+
+    //if (!strcmp(mappingType,"tpc")) {
+
+    stringstream idstring;
+    idstring << "{ ";
+
+    set< vector<int> > traps =  id.get<1>();
+    set<string> calls = id.get<2>();
+
+    /* print values */
+    set< vector<int> >::iterator trap_iter;
+    for (trap_iter = traps.begin();
+            trap_iter != traps.end();
+            ++trap_iter) {
+        idstring << "( ";
+        vector<int> values = (*trap_iter);
+        if ((!strcmp(mappingType, "tpc")) || (!strcmp(mappingType,"tp"))) {
+            for (unsigned i = 0; i < values.size(); i++) {
+                if (values[i] != -1) {
+                    idstring << getTrapRegString(i) << "=" << values[i] << " ";
+                }
+            }
+        } else {
+            if (values[0] != -1) {
+                idstring << getTrapRegString(0) << "=" << values[0] << " ";
+            }
+        }
+        idstring << ") ";
+    }
+
+    if (!strcmp(mappingType,"tpc")) {
+        /* print calls */
+        set<string>::iterator call_iter;
+        for (call_iter = calls.begin(); call_iter != calls.end(); ++call_iter) {
+            idstring << (*call_iter) << " ";
+        }
+    } 
+
+    idstring << "}";
+
+    return idstring.str();
+}
+
+bool image_func::retrieveValue(image_basicBlock * block, InstructionAPI::Instruction::Ptr instr, Offset addr, Dyninst::Absloc reg, unsigned int & val) {
+#if 0 
+    using namespace SymbolicEvaluation;
+
+    std::vector<AbsRegion> ins;
+    ins.push_back(AbsRegion(reg));
+    Assignment::Ptr assign = Assignment::Ptr(new Assignment(instr, addr, this, ins, AbsRegion(reg)));
+
+    Slicer slicer(assign, block, this);
+
+    //cout << "Assignment being sliced for is " << assign->format() << endl;
+
+    Slicer::PredicateFunc end = &(Predicates::end);
+    Slicer::PredicateFunc widen = &(Predicates::widen);
+    Slicer::CallStackFunc call = &(Predicates::call);
+
+    Graph::Ptr g = slicer.backwardSlice(end, widen, call);
+    
+    /* print the graph for verification */
+    stringstream name;
+    static int called = 0;
+    name << "/p/paradyn/development/jacobson/Dyninst/libc/tmp/" << symTabName() << std::hex
+        << "_" << addr << std::dec << "_" << called++ << ".dot";
+    g->printDOT(name.str());
+
+    //cout << "Nodes in the graph:" << endl;
+    NodeIterator nodeIter, nodeBegin, nodeEnd;
+    g->allNodes(nodeBegin, nodeEnd);
+    for (nodeIter = nodeBegin; nodeIter != nodeEnd; ++nodeIter) {
+        //cout << (*nodeIter)->format() << endl;        
+    }
+
+    //cout << "Entry nodes in the graph: " << endl;
+    g->entryNodes(nodeBegin, nodeEnd);
+    for (nodeIter = nodeBegin; nodeIter != nodeEnd; ++nodeIter) {
+        //cout << (*nodeIter)->format() << endl;        
+    }
+
+    /* Retreive value in register */
+    SymEval<Arch_x86>::Result_t res;
+    SymEval<Arch_x86>::expand(g, res);
+
+    /* We want the value at the assignment node, but because this is 
+     * a contrived instruction, we'll get the value at its predecessor */
+    NodeIterator exitIter, exitBegin, exitEnd;
+    g->exitNodes(exitBegin, exitEnd);
+    bool foundExit = false;
+    bool ret = false;
+    for (exitIter = exitBegin; exitIter != exitEnd; ++exitIter) {
+        if (foundExit) {
+            cout << "There shouldn't be more than on exit node..." << endl;
+            return false;
+        } else {
+            foundExit = true;
+        }
+        NodeIterator inIter, inBegin, inEnd;
+        (*exitIter)->ins(inBegin, inEnd);
+        bool mult = false;
+        unsigned int cur_val;
+
+        for (inIter = inBegin; inIter != inEnd; ++inIter) {
+            Node::Ptr ptr = *inIter;
+            AssignNode::Ptr aNode = dyn_detail::boost::dynamic_pointer_cast<AssignNode>(ptr);
+            Assignment::Ptr aAssign = aNode->assign();
+            SymEval<Arch_x86>::Result_t::const_iterator iter = res.find(aAssign);
+            if (iter == res.end()) return false;
+            AST::Ptr p = iter->second;
+            if (!p) return false;
+
+            if (p->getID() == AST::V_ConstantAST) {
+                if (mult) {
+                    //cout << "Found an additional input, ";
+                    cur_val = SymbolicEvaluation::ConstantAST::convert(p)->val().val;
+                    //cout << " val is " << cur_val << endl;
+                    if (cur_val != val) {
+                        return false;
+                    }
+                } else {
+                    //cout << "First time through, ";
+                    val = SymbolicEvaluation::ConstantAST::convert(p)->val().val;
+                    //cout << " val is " << val << endl;
+                    mult = true;
+                    ret = true;
+                }
+            } else {
+                return false;
+            }
+        }
+    }
+
+    return ret;
+#endif
+    return true;
 }

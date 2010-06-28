@@ -144,6 +144,7 @@ class region_data {
     Block * findBlock(Address entry);
     int findFuncs(Address addr, set<Function *> & funcs);
     int findBlocks(Address addr, set<Block *> & blocks);
+    Function * findFuncByName(const std::string);
 };
 
 /** region_data inlines **/
@@ -180,6 +181,11 @@ region_data::findFuncs(Address addr, set<Function *> & funcs)
  
     return funcs.size() - sz;
 }
+inline Function *
+region_data::findFuncByName(const std::string)
+{
+    return NULL;    
+}
 inline int
 region_data::findBlocks(Address addr, set<Block *> & blocks)
 {
@@ -202,6 +208,7 @@ class ParseData {
     //
     virtual Function * findFunc(CodeRegion *, Address) =0;
     virtual Block * findBlock(CodeRegion *, Address) =0;
+    virtual Function * findFuncByName(CodeRegion *, const std::string) =0;
     virtual int findFuncs(CodeRegion *, Address, set<Function*> &) =0;
     virtual int findBlocks(CodeRegion *, Address, set<Block*> &) =0;
     virtual ParseFrame * findFrame(CodeRegion *, Address) = 0;
@@ -237,6 +244,7 @@ class StandardParseData : public ParseData {
 
     Function * findFunc(CodeRegion * pf, Address addr);
     Block * findBlock(CodeRegion * pf, Address addr);
+    Function * findFuncByName(CodeRegion * pf, const std::string name);
     int findFuncs(CodeRegion *, Address, set<Function*> &);
     int findBlocks(CodeRegion *, Address, set<Block*> &);
     ParseFrame * findFrame(CodeRegion *, Address);
@@ -282,6 +290,7 @@ class OverlappingParseData : public ParseData {
     /* interface implementation */
     Function * findFunc(CodeRegion *, Address addr);
     Block * findBlock(CodeRegion *, Address addr);
+    Function * findFuncByName(CodeRegion *, const std::string name);
     int findFuncs(CodeRegion *, Address, set<Function*> &);
     int findBlocks(CodeRegion *, Address, set<Block*> &);
     ParseFrame * findFrame(CodeRegion *, Address);

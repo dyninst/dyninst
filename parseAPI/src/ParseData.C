@@ -66,6 +66,13 @@ StandardParseData::findBlock(CodeRegion * /* cr */, Address entry)
     return _rdata.findBlock(entry);
 }
 
+Function *
+StandardParseData::findFuncByName(CodeRegion * /* cr */, const std::string name) 
+{
+    // TODO
+    return NULL;
+}
+
 int
 StandardParseData::findFuncs(CodeRegion * /* cr */, Address addr, 
     set<Function *> & funcs)
@@ -188,6 +195,12 @@ OverlappingParseData::findBlock(CodeRegion * cr, Address entry)
     if(!HASHDEF(rmap,cr)) return NULL;
     region_data * rd = rmap[cr];
     return rd->findBlock(entry);
+}
+Function *
+OverlappingParseData::findFuncByName(CodeRegion * cr, const std::string name)
+{
+    // TODO
+    return NULL;
 }
 int
 OverlappingParseData::findFuncs(CodeRegion * cr, Address addr, 

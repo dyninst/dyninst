@@ -242,12 +242,16 @@ bool IA_IAPI::isInterruptOrSyscall() const
 bool IA_IAPI::isSyscall() const
 {
     static RegisterAST::Ptr gs(new RegisterAST(x86::gs));
+   
+    Immediate::Ptr dl_sysinfo_call_ptr = Immediate::makeImmediate(Result(s32, _obj->get_dl_sysinfo_addr()));
+    Dereference dl_sysinfo_call(dl_sysinfo_call_ptr, u32);
     
     Instruction::Ptr ci = curInsn();
 
     return (((ci->getOperation().getID() == e_call) &&
-            /*(curInsn()->getOperation().isRead(gs))) ||*/
-            (ci->getOperand(0).format() == "16")) ||
+            (ci->isRead(gs))) ||
+            ((ci->getOperation().getID() == e_call) &&
+             (*(ci->getControlFlowTarget()) == dl_sysinfo_call)) ||
             (ci->getOperation().getID() == e_syscall) || 
             (ci->getOperation().getID() == e_int) || 
             (ci->getOperation().getID() == power_op_sc));
