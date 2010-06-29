@@ -52,11 +52,11 @@
 #include "Instruction.h"
 #include "dynutil/h/dyn_regs.h"
 #include "dynutil/h/AST.h"
+#include "Graph.h"
 #include "instructionAPI/h/Register.h"
 #include "symEval/h/Absloc.h"
 #include "symEval/h/AbslocInterface.h"
 #include "symEval/h/slicing.h"
-#include "Graph.h"
 #include "symEval/h/SymEval.h"
 #include "symEval/src/SymEvalPolicy.h"
 #include "boost/tuple/tuple.hpp"
@@ -170,7 +170,9 @@ class Predicates {
     public:
         static bool end (Assignment::Ptr) { return false;}
         static bool widen (Assignment::Ptr) { return false;}
-        static bool call (Function *c, std::stack<std::pair<Function *, int> > &cs, bool plt, AbsRegion a) {return false;};
+        static bool call (ParseAPI::Function *, std::stack<std::pair<ParseAPI::Function *, int> > &, AbsRegion) {return false;}
+        static bool abs (const AbsRegion &, const AbsRegion &) {return false;}
+            ;
 };
 
 string getTrapRegString(int reg)
@@ -204,6 +206,8 @@ string getTrapRegString(int reg)
 }
 
 string idToGenerateTuple(idTuple id, string name);
+string printCSV(idTuple id);
+string printidTuple(idTuple id);
 
 bool image_func::identifyLibraryFunc()
 {
@@ -224,13 +228,12 @@ bool image_func::identifyLibraryFunc()
      * parameter values */    
     vector<Address>::iterator addr_iter;
 
-    image_basicBlock * block;
-    image_basicBlock * callBlock;
+    ParseAPI::Block * block;
+    ParseAPI::Block * callBlock;
     InstructionAPI::Instruction::Ptr instr;
 
-    //const set<image_basicBlock*, image_basicBlock::compare> & BBs = blocks();
-    fact_list<Block> BBs = this->blocks_;
-    set<image_basicBlock*, image_basicBlock::compare>::const_iterator BB_iter;
+    blocklist & BBs = blocks();
+    blocklist::iterator BB_iter;
 
     for (addr_iter = addrs.begin();
             addr_iter != addrs.end();
@@ -247,28 +250,31 @@ bool image_func::identifyLibraryFunc()
         for (BB_iter = BBs.begin();
                 BB_iter != BBs.end();
                 ++BB_iter) {
-            block = (*BB_iter);
-            if ( ((*BB_iter)->firstInsnOffset() <= addr) &&
-                    ((*BB_iter)->lastInsnOffset() >= addr) ) {
-                /* Found the basic block! */
-                foundBB = true;
-
-                /* Find the instruction */
-                vector<pair<InstructionAPI::Instruction::Ptr, Offset> > instrs;
-                block->getInsnInstances(instrs);
-                vector<pair<InstructionAPI::Instruction::Ptr, Offset> >::iterator instr_iter;
-                for (instr_iter = instrs.begin();
-                        instr_iter != instrs.end();
-                        ++instr_iter) {
-                    if ((*instr_iter).second == addr) {
-                        /* Found the instruction! */
-                        foundInstr = true;
-                        instr = (*instr_iter).first;
-                    }
+            block = *BB_iter;
+            if (block->region()->contains(addr)) {
+                void * insn = block->region()->getPtrToInstruction(addr);
+                if (insn) {
+                    InstructionAPI::InstructionDecoder decoder(reinterpret_cast<const unsigned char*>(insn), ((image_basicBlock*)block)->getSize(), obj()->cs()->getArch());
+                    instr = decoder.decode();
+                    cout << "found instruction: " << instr->format() << endl;
+                    foundInstr = true;
                 }
                 break;
             } 
         }
+        for (BB_iter = BBs.begin();
+                BB_iter != BBs.end();
+                ++BB_iter) {
+            block = *BB_iter;
+            if ((block->start() <= addr) &&
+                    (block->end() >= addr)) {
+                foundBB = true;
+                break;
+            }
+        }
+
+        cout << "block: " << block->start() << " to " << block->end() << endl;
+        cout << "addr: " << addr << endl;
 
         assert(foundBB);
         assert(foundInstr);
@@ -291,7 +297,7 @@ bool image_func::identifyLibraryFunc()
         else curTraps.push_back(-1);
 
         /* based on the trap #, decide how many params to examine */
-        map<int,int> syscallParams = img()->getSyscallParams();
+        map<int,int> syscallParams = img()->codeObject()->getSyscallParams();
         map<int,int>::iterator param_iter = syscallParams.find(curEAX);
         int numParams = 0;
         if (param_iter != syscallParams.end()) {
@@ -334,48 +340,32 @@ bool image_func::identifyLibraryFunc()
         for (BB_iter = BBs.begin();
                 BB_iter != BBs.end();
                 ++BB_iter) {
-            callBlock = (*BB_iter);
+            callBlock = *BB_iter;
 
             /* Look for any calls made from this basic block */
-            pdvector<image_edge *> edges;
-            callBlock->getTargets(edges);
-            pdvector<image_edge *>::iterator edge_iter;
+            ParseAPI::Block::edgelist & edges = callBlock->targets();
+            ParseAPI::Block::edgelist::iterator edge_iter;
             for (edge_iter = edges.begin();
                     edge_iter != edges.end();
                     ++edge_iter) {
                 bool foundCallName = false;
-                if ((*edge_iter)->getType() == ET_CALL) {
-#if 0
-                    /* Get the offset of the call */
-                    image_basicBlock * sourceBB = (*edge_iter)->getSource();
-                    Address callOffset = sourceBB->lastInsnOffset();
-                    Region * symReg = NULL;
-                    if (!symObj->findRegion(symReg, ".text")) {
-                        break;
-                    }
-
-                    std::vector<relocationEntry> & relocs = symReg->getRelocations();
-
-                    std::vector<relocationEntry>::iterator rel_iter;
-                    for (rel_iter = relocs.begin();
-                            rel_iter != relocs.end();
-                            ++rel_iter) {
-                        relocationEntry rel = *rel_iter;
-
-                        if (rel.rel_addr() == (callOffset+1)) {
-                            calls.push_back(rel.name());
-                            foundCallName = true;
-                            break;
-                        } 
-                    } 
-#endif
+                if ((*edge_iter)->type() == CALL) {
                     if (!foundCallName) {
-                        image_basicBlock * targetBB = (*edge_iter)->getTarget();
-                        image_func * curFunc = targetBB->getFirstFunc();
-                        string curFuncName = curFunc->symTabName();
-                        if (img()->syscallFuncs.find(curFuncName) != img()->syscallFuncs.end()) {
-                            char * curName = (char*)curFuncName.c_str();
-                            calls.insert(curName);
+                        ParseAPI::Block * targetBB = (*edge_iter)->trg();
+                        vector<ParseAPI::Function *> funcs;
+                        targetBB->getFuncs(funcs);
+                        if (funcs.size()) {
+                            ParseAPI::Function * curFunc = funcs[0];
+                            string curFuncName = curFunc->name();
+
+                            set<string> syscallFuncs = img()->codeObject()->getSyscallFuncs();
+                            if (syscallFuncs.find(curFuncName) != syscallFuncs.end()) {
+                                const char * curName = curFuncName.c_str();
+                                calls.insert(curName);
+                                cout << "Found call: " << curName << endl;
+                            }
+                        } else {
+                            cout << "targetBB didn't have any funcs associated with it" << endl;
                         }
                     }
                 }
@@ -395,7 +385,7 @@ bool image_func::identifyLibraryFunc()
         cout << toprint << endl;
     }
 #endif
-    map<idTuple,string> ids = img()->getLibraryIDMappings();
+    map<idTuple,string> ids = img()->codeObject()->getLibraryIDMappings();
     map<idTuple,string>::iterator id_iter = ids.find(id);
     if (addrs.size()) {
 
@@ -412,7 +402,6 @@ bool image_func::identifyLibraryFunc()
     }
 #endif
     
-#endif
     return true;
 }
 
@@ -446,7 +435,6 @@ string printCSV(idTuple id) {
 }
 
 string printidTuple(idTuple id) {
-#if 0
     char* mappingType = getenv("MAPPING_TYPE");
     if (!mappingType) {
         mappingType="tpc";
@@ -489,12 +477,9 @@ string printidTuple(idTuple id) {
     idstring << "}";
 
     return idstring.str();
-#endif
-    return "";
 }
 
 string idToGenerateTuple(idTuple id, string name) {
-#if 0
     char* mappingType = getenv("MAPPING_TYPE");
     if (!mappingType) {
         mappingType="tpc";
@@ -564,8 +549,6 @@ string idToGenerateTuple(idTuple id, string name) {
     idstring << "\"" << name << "\");";
 
     return idstring.str();
-#endif 
-    return "";
 }
 
 string image_func::idToString() {
@@ -618,23 +601,29 @@ string image_func::idToString() {
     return idstring.str();
 }
 
-bool image_func::retrieveValue(image_basicBlock * block, InstructionAPI::Instruction::Ptr instr, Offset addr, Dyninst::Absloc reg, unsigned int & val) {
-#if 0 
+bool image_func::retrieveValue(ParseAPI::Block* block, InstructionAPI::Instruction::Ptr instr, Offset addr, Dyninst::Absloc reg, unsigned int & val) {
     using namespace SymbolicEvaluation;
+
+    ParseAPI::Function * func = (ParseAPI::Function*)this;
 
     std::vector<AbsRegion> ins;
     ins.push_back(AbsRegion(reg));
-    Assignment::Ptr assign = Assignment::Ptr(new Assignment(instr, addr, this, ins, AbsRegion(reg)));
+    Assignment::Ptr assign = Assignment::Ptr(new Assignment(instr, 
+                addr, 
+                func, 
+                ins, 
+                AbsRegion(reg)));
 
-    Slicer slicer(assign, block, this);
+    Slicer slicer(assign, block, func);
 
-    //cout << "Assignment being sliced for is " << assign->format() << endl;
+    cout << "Assignment being sliced for is " << assign->format() << endl;
 
     Slicer::PredicateFunc end = &(Predicates::end);
     Slicer::PredicateFunc widen = &(Predicates::widen);
     Slicer::CallStackFunc call = &(Predicates::call);
+    Slicer::AbsRegionFunc abs = &(Predicates::abs);
 
-    Graph::Ptr g = slicer.backwardSlice(end, widen, call);
+    Graph::Ptr g = slicer.backwardSlice(end, widen, call, abs);
     
     /* print the graph for verification */
     stringstream name;
@@ -657,8 +646,8 @@ bool image_func::retrieveValue(image_basicBlock * block, InstructionAPI::Instruc
     }
 
     /* Retreive value in register */
-    SymEval<Arch_x86>::Result_t res;
-    SymEval<Arch_x86>::expand(g, res);
+    SymEval::Result_t res;
+    SymEval::expand(g, res);
 
     /* We want the value at the assignment node, but because this is 
      * a contrived instruction, we'll get the value at its predecessor */
@@ -682,7 +671,7 @@ bool image_func::retrieveValue(image_basicBlock * block, InstructionAPI::Instruc
             Node::Ptr ptr = *inIter;
             AssignNode::Ptr aNode = dyn_detail::boost::dynamic_pointer_cast<AssignNode>(ptr);
             Assignment::Ptr aAssign = aNode->assign();
-            SymEval<Arch_x86>::Result_t::const_iterator iter = res.find(aAssign);
+            SymEval::Result_t::const_iterator iter = res.find(aAssign);
             if (iter == res.end()) return false;
             AST::Ptr p = iter->second;
             if (!p) return false;
@@ -709,6 +698,4 @@ bool image_func::retrieveValue(image_basicBlock * block, InstructionAPI::Instruc
     }
 
     return ret;
-#endif
-    return true;
 }

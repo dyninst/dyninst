@@ -223,7 +223,7 @@ enum TrapRegs {
     EBP
 }; 
 
-class image_func : public ParseAPI::Function,
+class image_func : public ParseAPI::Function
 {
   friend class DynCFGFactory;
   friend class DynParseCallback;
@@ -322,7 +322,7 @@ class image_func : public ParseAPI::Function,
 
    bool identifyLibraryFunc();
    string idToString();
-   bool retrieveValue(image_basicBlock * block, InstructionAPI::Instruction::Ptr instr, Offset addr, Dyninst::Absloc reg, unsigned int & val);
+   bool retrieveValue(ParseAPI::Block * block, InstructionAPI::Instruction::Ptr instr, Offset addr, Dyninst::Absloc reg, unsigned int & val);
 
    // ----------------------------------------------------------------------
 
