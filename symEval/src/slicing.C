@@ -673,12 +673,17 @@ bool Slicer::search(Element &initial,
 
     // Split the instruction up
     std::vector<Assignment::Ptr> assignments;
-    convertInstruction(current.loc.current->first,
-		       current.addr(),
-		       current.loc.func,
-		       assignments);
+    Instruction::Ptr insn;
+    if (dir == forward)
+        insn = current.loc.current->first;
+    else
+        insn = current.loc.rcurrent->first;
+    convertInstruction(insn,
+            current.addr(),
+            current.loc.func,
+            assignments);
     bool keepGoing = true;
-    
+
     for (std::vector<Assignment::Ptr>::iterator iter = assignments.begin();
 	 iter != assignments.end(); ++iter) {
       Assignment::Ptr &assign = *iter;
@@ -856,6 +861,7 @@ void Slicer::fastBackward(Location &loc, Address addr) {
 	 (loc.addr() > addr)) {
     loc.rcurrent++;
   }
+    
   assert(loc.rcurrent != loc.rend);
   assert(loc.addr() == addr);  
 }
