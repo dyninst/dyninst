@@ -69,8 +69,6 @@
 
 #include "dyninstAPI/src/Parsing.h"
 
-#include "boost/tuple/tuple.hpp"
-
 using namespace Dyninst;
 
 typedef bool (*functionNameSieve_t)(const char *test,void *data);
@@ -438,7 +436,7 @@ class image : public codeRange {
 #endif
 #endif
 
-      //
+   //
    //  ****  PRIVATE DATA MEMBERS  ****
    //
  private:

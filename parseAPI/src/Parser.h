@@ -115,13 +115,10 @@ class Parser {
     // functions
     Function * findFuncByEntry(CodeRegion * cr, Address entry);
     int findFuncs(CodeRegion * cr, Address addr, set<Function*> & funcs);
-    Function * findFuncByName(CodeRegion * cr, const std::string name);
 
     // blocks
     Block * findBlockByEntry(CodeRegion * cr, Address entry);
     int findBlocks(CodeRegion * cr, Address addr, set<Block*> & blocks);
-
-    bool libraryFingerprintingSetup();
 
     void parse();
     void parse_at(CodeRegion *cr, Address addr, bool recursive, FuncSource src);

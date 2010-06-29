@@ -951,13 +951,11 @@ void image::analyzeIfNeeded() {
       parsing_printf("ANALYZING IMAGE %s\n",
               file().c_str());
       analyzeImage();
-  } else {
-    cout << "parseState_ != symtab" << endl;
   }
 }
 
 void image::analyzeImage() {
-    #if defined(TIMED_PARSE)
+#if defined(TIMED_PARSE)
     struct timeval starttime;
     gettimeofday(&starttime, NULL);
 #endif
@@ -1043,23 +1041,6 @@ void image::analyzeImage() {
     double dursecs = difftime/(1000 );
     cout << __FILE__ << ":" << __LINE__ <<": analyzeImage of " << name_ << " took "<<dursecs <<" msecs" << endl;
 #endif
-
-    /* added for library fingerprinting */
-    char * idLibrary = getenv("IDLIBRARY");
-    if (idLibrary) {
-        using namespace ParseAPI;
-        CodeObject * obj = codeObject(); 
-        CodeObject::funclist funcs = obj->funcs();
-        CodeObject::funclist::iterator func_iter;
-        for (func_iter = funcs.begin();
-                func_iter != funcs.end();
-                ++func_iter) {
-                image_func * imf = (image_func*)(*func_iter);
-                if (imf->hasTraps()) {
-                    imf->identifyLibraryFunc();
-                }
-        }   
-    } 
 }
 
 // Constructor for the image object. The fileDescriptor simply

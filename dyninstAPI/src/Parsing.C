@@ -270,11 +270,6 @@ DynParseCallback::interproc_cf(Function*f,Address addr,interproc_details*det)
                     _img,
                     functionExit);
             break;
-        case interproc_details::syscall:
-            ((image_func*)f)->addTrapAddress(addr);
-            ((image_func*)f)->hasTraps(true);
-            cout << "found trap instruction at " << std::hex << addr << endl;
-            break;
         default:
             assert(0);
     };

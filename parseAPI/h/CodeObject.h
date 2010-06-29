@@ -42,10 +42,6 @@
 #include "CFG.h"
 #include "ParseContainers.h"
 
-#include "boost/tuple/tuple.hpp"
-
-typedef boost::tuple<string, set<vector<int> >, set<string> > idTuple;
-
 namespace Dyninst {
 namespace ParseAPI {
 
@@ -88,7 +84,6 @@ class CodeObject {
     PARSER_EXPORT int findFuncs(CodeRegion * cr, 
             Address addr, 
             std::set<Function*> & funcs);
-    PARSER_EXPORT Function * findFuncByName(CodeRegion * cr, const std::string name);
     PARSER_EXPORT funclist & funcs() { return flist; }
 
     // blocks
@@ -106,13 +101,6 @@ class CodeObject {
      */
     PARSER_EXPORT void finalize();
 
-    PARSER_EXPORT Offset get_dl_sysinfo_addr() { return _dl_sysinfo_addr; }
-    PARSER_EXPORT map<idTuple, string> getLibraryIDMappings() { return libraryIDMappings; }
-    PARSER_EXPORT bool buildLibraryIDMappings();
-    PARSER_EXPORT void addMapping(set< vector<int> > traps, set<string> calls, string name);
-    PARSER_EXPORT map<int,int> getSyscallParams() { return syscallParams; }
-    PARSER_EXPORT set<string> getSyscallFuncs() { return syscallFuncs; }
-
  private:
     void process_hints();
     void add_edge(Block *src, Block * trg, EdgeTypeEnum et);
@@ -121,7 +109,6 @@ class CodeObject {
     friend void Function::delayed_link_return(CodeObject *,Block*);
     // allows Functions to finalize (need Parser access)
     friend void Function::finalize();
-
 
  private:
     CodeSource * _cs;
@@ -133,12 +120,6 @@ class CodeObject {
     bool owns_factory;
     bool owns_pcb;
     funclist flist;
-
-    Offset _dl_sysinfo_addr;
-    map<idTuple, string> libraryIDMappings;
-     set<string> syscallFuncs;
-    map<int,int> syscallParams;
-
 };
 
 }//namespace ParseAPI

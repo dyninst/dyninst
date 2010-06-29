@@ -53,9 +53,6 @@
 
 #include <queue>
 
-#include "symEval/h/Absloc.h"
-#include "boost/tuple/tuple.hpp"
-
 using namespace Dyninst;
 
 class pdmodule;
@@ -213,16 +210,6 @@ class image_func_registers {
   std::set<Register> specialPurposeRegisters;
 };
 
-enum TrapRegs {
-    EAX,
-    EBX,
-    ECX,
-    EDX,
-    EDI,
-    ESI,
-    EBP
-}; 
-
 class image_func : public ParseAPI::Function
 {
   friend class DynCFGFactory;
@@ -312,17 +299,6 @@ class image_func : public ParseAPI::Function
 
    void addCallInstPoint(image_instPoint *p);
    void addExitInstPoint(image_instPoint *p);
-
-    /* Added for library fingerprinting */
-
-   void addTrapAddress(Address currAddr);
-   void getTrapAddresses(vector<Address> &addrs) { addrs = trapAddresses; }
-   void hasTraps(bool b) { _hasTraps = b; }
-   bool hasTraps() { return _hasTraps; }
-
-   bool identifyLibraryFunc();
-   string idToString();
-   bool retrieveValue(ParseAPI::Block * block, InstructionAPI::Instruction::Ptr instr, Offset addr, Dyninst::Absloc reg, unsigned int & val);
 
    // ----------------------------------------------------------------------
 
@@ -425,11 +401,6 @@ class image_func : public ParseAPI::Function
    bool livenessCalculated_;
 #endif
    bool isPLTFunction_;
-
-   /* added for library fingerprinting */
-   bool _hasTraps; 
-   idTuple id;
-    vector<Address> trapAddresses;
 };
 
 typedef image_func *ifuncPtr;
