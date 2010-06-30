@@ -45,6 +45,8 @@
 #include <cstdio>
 #include <iostream>
 
+#include <algorithm>
+
 #include "emitElfStatic.h"
 #include "debug.h"
 
