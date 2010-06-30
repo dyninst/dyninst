@@ -242,8 +242,10 @@ void Parser::parse_gap_heuristic(CodeRegion * cr)
                 ++match;
                 parse_at(cr,curAddr,true,GAP);
 
-                if(reset_iterator)
+                if(reset_iterator) {
                     fit = sorted_funcs.begin();
+                    reset_iterator = false;
+                }
 
                 break;
             }
