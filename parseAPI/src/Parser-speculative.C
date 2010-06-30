@@ -78,8 +78,6 @@ namespace hd {
         Address lowerBound = cr->offset();
         Address upperBound = cr->offset() + cr->length();
 
-        parsing_printf("addr: %lx\n",addr);
-
         // special case for the first gap
         if(fit == funcs.begin()) {
             gapStart = lowerBound;
@@ -93,11 +91,14 @@ namespace hd {
             gapEnd = 0;
         }
 
+        //parsing_printf("addr: %lx gs: %lx ge: %lx\n",addr,gapStart,gapEnd);
+
         while(addr >= gapEnd ||
               gapsize <= MIN_GAP_SIZE)
         {
-            if(fit == funcs.end() || (*fit)->addr() > upperBound)
+            if(fit == funcs.end() || (*fit)->addr() > upperBound) {
                 return false;
+            }
             
             cur = *fit;
             gapStart = calc_end(cur); 
@@ -229,7 +230,8 @@ void Parser::parse_gap_heuristic(CodeRegion * cr)
 
     int match = 0;
 
-    // don't touch this iterator
+    // don't touch this iterator, except when it starts out empty
+    bool reset_iterator = sorted_funcs.empty();
     set<Function *,Function::less>::const_iterator fit = sorted_funcs.begin();
     while(hd::compute_gap(cr,curAddr,sorted_funcs,fit,gapStart,gapEnd)) {
         parsing_printf("[%s] scanning for prologues in [%lx,%lx)\n",
@@ -239,6 +241,10 @@ void Parser::parse_gap_heuristic(CodeRegion * cr)
                 assert(!findFuncByEntry(cr,curAddr));
                 ++match;
                 parse_at(cr,curAddr,true,GAP);
+
+                if(reset_iterator)
+                    fit = sorted_funcs.begin();
+
                 break;
             }
         }
