@@ -101,6 +101,14 @@ bool RoseInsnX86Factory::handleSpecialCases(entryID, SgAsmInstruction *, SgAsmOp
 void RoseInsnX86Factory::massageOperands(const InstructionAPI::Instruction::Ptr &insn, 
 					 std::vector<InstructionAPI::Operand> &operands) {
   switch (insn->getOperation().getID()) {
+  case e_lea: {
+    // ROSE expects there to be a "memory reference" statement wrapping the
+    // address calculation. It then unwraps it. 
+    Dereference::Ptr tmp = Dereference::Ptr(new Dereference(operands[1].getValue(), u32));
+    operands[1] = Operand(tmp, operands[1].isRead(), operands[1].isWritten());
+    operands.resize(2);
+    break;
+  }
   case e_push:
   case e_pop:
     operands.resize(1);
