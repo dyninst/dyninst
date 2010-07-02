@@ -271,7 +271,6 @@ SymtabCodeSource::init_regions(hint_filt * filt)
     vector<SymtabAPI::Region *> dregs;
     vector<SymtabAPI::Region *>::iterator rit;
 
-    // SymtabAPI has an embarassing deep copy mechanism for returning
     _symtab->getCodeRegions(regs);
     _symtab->getDataRegions(dregs);
     regs.insert(regs.end(),dregs.begin(),dregs.end());
@@ -346,18 +345,21 @@ SymtabCodeSource::init_hints(dyn_hash_map<void*, CodeRegion*> & rmap,
 
         SymtabAPI::Region * sr = (*fsit)->getRegion();
         if(!sr) {
-            fprintf(stderr,"[%s:%d] missing Region in function at %lx\n",
+            parsing_printf("[%s:%d] missing Region in function at %lx\n",
                 FILE__,__LINE__,(*fsit)->getOffset());
             continue;
         }
         if(!HASHDEF(rmap,sr)) {
-            fprintf(stderr,"[%s:%d] unrecognized Region %lx in function %lx\n",
+            parsing_printf("[%s:%d] unrecognized Region %lx in function %lx\n",
                 FILE__,__LINE__,sr->getRegionAddr(),(*fsit)->getOffset());
             continue;
         }
         CodeRegion * cr = rmap[sr];
         if(!cr->isCode((*fsit)->getOffset())) {
-            parsing_printf("\t<%lx> skipped non-code\n",(*fsit)->getOffset());
+            parsing_printf("\t<%lx> skipped non-code, region [%lx,%lx)\n",
+                (*fsit)->getOffset(),
+                sr->getRegionAddr(),
+                sr->getRegionAddr()+sr->getRegionSize());
         } else {
             _hints.push_back( Hint((*fsit)->getOffset(),
                                cr,

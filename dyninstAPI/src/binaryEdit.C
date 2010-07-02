@@ -811,7 +811,7 @@ void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms,
                 extendCurrentRegion = true;
             }
         }
-        if (bbl) {
+        else if (bbl) {
             if (bbl->func() != currFunc) {
                 finishCurrentRegion = true;
                 startNewRegion = true;
@@ -823,7 +823,6 @@ void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms,
         else
             continue;
 
-        
         if (finishCurrentRegion && (currFunc != NULL)) {
             std::string name = currFunc->prettyName();
             name.append("_dyninst");
