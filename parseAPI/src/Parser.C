@@ -679,19 +679,21 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
          */
         func->_cache_valid = false;
 
+        // NB Using block's region() here because it may differ from the
+        //    function's if control flow has jumped to another region
         unsigned size = 
-            frame.codereg->offset() + frame.codereg->length() - curAddr;
+            cur->region()->offset() + cur->region()->length() - curAddr;
 #if defined(cap_instruction_api)
         const unsigned char* bufferBegin = 
          (const unsigned char *)(func->isrc()->getPtrToInstruction(curAddr));
         InstructionDecoder dec(bufferBegin,size,frame.codereg->getArch());
 
         InstructionAdapter_t ah(dec, curAddr, func->obj(), 
-                                func->region(), func->isrc());
+                                cur->region(), func->isrc());
 #else        
         InstrucIter iter(curAddr, size, func->isrc());
         InstructionAdapter_t ah(iter, 
-            func->obj(), func->region(), func->isrc());
+            func->obj(), cur->region(), func->isrc());
 #endif        
 
         using boost::tuples::tie;
@@ -711,7 +713,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 ah.retreat();
                 curAddr = ah.getAddr();
 
-                end_block(frame.codereg,cur,ah);
+                end_block(cur,ah);
                 pair<Block*,Edge*> newedge =
                     add_edge(frame,frame.func,cur,
                              nextBlockAddr,FALLTHROUGH,NULL);
@@ -754,7 +756,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             if(isNopBlock && !ah.isNop()) {
                 ah.retreat();
 
-                end_block(frame.codereg,cur,ah);
+                end_block(cur,ah);
                 pair<Block*,Edge*> newedge =
                     add_edge(frame,frame.func,cur,curAddr,FALLTHROUGH,NULL);
                 Block * targ = newedge.first;
@@ -797,13 +799,13 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             else if( ah.isAbortOrInvalidInsn() )
             {
                 // 4. Invalid or `abort-causing' instructions
-                end_block(frame.codereg,cur,ah);
+                end_block(cur,ah);
                 break; 
             }
             else if( ah.isInterruptOrSyscall() )
             {
                 // 5. Raising instructions
-                end_block(frame.codereg,cur,ah);
+                end_block(cur,ah);
     
                 pair<Block*,Edge*> newedge =
                     add_edge(frame,frame.func,cur,ah.getNextAddr(),FALLTHROUGH,NULL);
@@ -836,16 +838,16 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 parsing_printf("[%s] next insn %lx is invalid\n",
                     FILE__,ah.getNextAddr());
 
-                end_block(frame.codereg,cur,ah);
+                end_block(cur,ah);
                 break;
             }
-            else if(!frame.codereg->contains(ah.getNextAddr()))
+            else if(!cur->region()->contains(ah.getNextAddr()))
             {
                 parsing_printf("[%s] next address %lx is outside [%lx,%lx)\n",
                     FILE__,ah.getNextAddr(),
-                    frame.codereg->offset(),
-                    frame.codereg->offset()+frame.codereg->length());
-                end_block(frame.codereg,cur,ah);
+                    cur->region()->offset(),
+                    cur->region()->offset()+cur->region()->length());
+                end_block(cur,ah);
                 break;
             }
             ah.advance();
@@ -866,20 +868,20 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
 }
 
 void
-Parser::end_block(CodeRegion * cr, Block * b, InstructionAdapter_t & ah)
+Parser::end_block(Block * b, InstructionAdapter_t & ah)
 {
     b->_lastInsn = ah.getAddr();
     b->_end = ah.getNextAddr();
 
-    record_block(cr,b);
+    record_block(b);
 }
 
 void
-Parser::record_block(CodeRegion * cr, Block *b)
+Parser::record_block(Block *b)
 {
     parsing_printf("[%s:%d] recording block [%lx,%lx)\n",
         FILE__,__LINE__,b->start(),b->end());
-    _parse_data->record_block(cr,b);
+    _parse_data->record_block(b->region(),b);
 }
 
 
@@ -952,7 +954,7 @@ Parser::block_at(
         }
     } else {
         ret = factory().mkblock(owner,cr,addr);
-        record_block(cr,ret);
+        record_block(ret);
     }
 
     if(unlikely(inconsistent)) {
@@ -1041,7 +1043,7 @@ Parser::split_block(
     ret->_parsed = true;
     link(b,ret,FALLTHROUGH,false); 
 
-    record_block(cr,ret);
+    record_block(ret);
 
     // b's range has changed
     rd->blocksByRange.remove(b);
