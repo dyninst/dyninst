@@ -73,6 +73,8 @@ public:
     ps_err_e getSymbolAddr(const char *objName, const char *symName, 
             psaddr_t *symbolAddr);
     virtual bool initThreadDB();
+    virtual void freeThreadDBAgent();
+    virtual bool getPostDestroyEvents(vector<Event::ptr> &events);
     static void addThreadDBHandlers(HandlerPool *hpool);
 
     /*
@@ -98,6 +100,7 @@ public:
 
 protected:
     static volatile bool thread_db_initialized;
+    static Mutex thread_db_init_lock;
 
     map<Dyninst::Address, pair<int_breakpoint *, EventType> > addr2Event;
     map<string, pair<LoadedLib *, SymReader *> > symReaders;
@@ -123,16 +126,36 @@ public:
 
     Event::ptr getThreadEvent();
     bool setEventReporting(bool on);
+
+    bool resume();
+    bool suspend();
+    void markDestroyed();
+    bool isDestroyed();
+
+protected:
+    // Initialization of the thread handle cannot be performed until 
+    // thread_db is loaded and initialized. When creating a process,
+    // we need to be able to create an instance of thread_db_thread
+    // before thread_db is initialized so we lazily initialize the
+    // thread handle
+    bool initThreadHandle();
+
+    td_thrhandle_t *threadHandle;
+
+    // Since a thread destroy event happens at a breakpoint, the 
+    // breakpoint needs to be cleaned up before the thread can be 
+    // removed from the threadPool and deleted.
+    bool destroyed;
 };
 
-class ThreadDBHandleNewThr : public Handler
+class ThreadDBCreateHandler : public Handler
 {
 public:
-    ThreadDBHandleNewThr();
-    virtual ~ThreadDBHandleNewThr();
+    ThreadDBCreateHandler();
+    virtual ~ThreadDBCreateHandler();
     virtual bool handleEvent(Event::ptr ev);
     virtual int getPriority() const;
-    void getEventTypesHandled(std::vector<EventType> &etypes);
+    void getEventTypesHandled(vector<EventType> &etypes);
 };
 
 class ThreadDBLibHandler : public Handler
@@ -140,6 +163,16 @@ class ThreadDBLibHandler : public Handler
 public:
     ThreadDBLibHandler();
     virtual ~ThreadDBLibHandler();
+    virtual bool handleEvent(Event::ptr ev);
+    virtual int getPriority() const;
+    void getEventTypesHandled(std::vector<EventType> &etypes);
+};
+
+class ThreadDBDestroyHandler : public Handler
+{
+public:
+    ThreadDBDestroyHandler();
+    virtual ~ThreadDBDestroyHandler();
     virtual bool handleEvent(Event::ptr ev);
     virtual int getPriority() const;
     void getEventTypesHandled(std::vector<EventType> &etypes);

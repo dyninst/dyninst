@@ -32,6 +32,7 @@ class EventCrash;
 class EventExec;
 class EventBreakpoint;
 class EventStop;
+class EventContinue;
 class EventNewThread;
 class EventThreadDestroy;
 class EventFork;
@@ -93,6 +94,9 @@ class Event : public dyn_detail::boost::enable_shared_from_this<Event>
 
    dyn_detail::boost::shared_ptr<EventStop> getEventStop();
    dyn_detail::boost::shared_ptr<const EventStop> getEventStop() const;
+
+   dyn_detail::boost::shared_ptr<EventContinue> getEventContinue();
+   dyn_detail::boost::shared_ptr<const EventContinue> getEventContinue() const;
 
    dyn_detail::boost::shared_ptr<EventBreakpoint> getEventBreakpoint();
    dyn_detail::boost::shared_ptr<const EventBreakpoint> getEventBreakpoint() const;
@@ -197,6 +201,20 @@ class EventStop : public Event
    typedef dyn_detail::boost::shared_ptr<const EventStop> const_ptr;
    EventStop();
    virtual ~EventStop();
+};
+
+class EventContinue : public Event
+{
+   friend void dyn_detail::boost::checked_delete<EventContinue>(EventContinue *);
+   friend void dyn_detail::boost::checked_delete<const EventContinue>(const EventContinue *);
+ private:
+   int continueSignal;
+ public:
+   typedef dyn_detail::boost::shared_ptr<EventContinue> ptr;
+   typedef dyn_detail::boost::shared_ptr<const EventContinue> const_ptr;
+   int getContinueSignal() const;
+   EventContinue(int contsig);
+   virtual ~EventContinue();
 };
 
 class EventBreakpoint : public Event

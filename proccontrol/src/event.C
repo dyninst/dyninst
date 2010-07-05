@@ -129,6 +129,7 @@ std::string EventType::name() const
       STR_CASE(SingleStep);
       STR_CASE(Library);
       STR_CASE(BreakpointClear);
+      STR_CASE(Continue);
       default: return prefix + std::string("Unknown");
    }
 }
@@ -178,6 +179,20 @@ int EventCrash::getTermSignal() const
 }
          
 EventCrash::~EventCrash()
+{
+}
+
+EventContinue::EventContinue(int contsig) :
+    Event(EventType(EventType::None, EventType::Continue)),
+    continueSignal(contsig)
+{
+}
+
+int EventContinue::getContinueSignal() const {
+    return continueSignal;
+}
+
+EventContinue::~EventContinue()
 {
 }
 
@@ -441,6 +456,7 @@ DEFN_EVENT_CAST(EventExit, Exit)
 DEFN_EVENT_CAST(EventCrash, Crash)
 DEFN_EVENT_CAST(EventExec, Exec)
 DEFN_EVENT_CAST(EventStop, Stop)
+DEFN_EVENT_CAST(EventContinue, Continue)
 DEFN_EVENT_CAST(EventBreakpoint, Breakpoint)
 DEFN_EVENT_CAST(EventNewThread, ThreadCreate)
 DEFN_EVENT_CAST(EventThreadDestroy, ThreadDestroy)

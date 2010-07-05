@@ -278,6 +278,7 @@ bool HandlePostExit::handleEvent(Event::ptr ev)
 
    if (int_process::in_waitHandleProc == proc) {
       pthrd_printf("Postponing delete due to being in waitAndHandleForProc\n");
+   }else{
       delete proc;
    }
 

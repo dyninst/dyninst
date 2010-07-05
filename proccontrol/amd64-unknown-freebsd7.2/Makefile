@@ -17,6 +17,7 @@ LDFLAGS     += $(LIBDIR) -lcommon
 
 SRCS = ../src/sysv.C \
        ../src/freebsd.C \
+       ../src/int_thread_db.C
 
 ifdef LIBELF_DIR
 MYLAGS += -I$(LIBELF_DIR)

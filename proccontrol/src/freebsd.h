@@ -102,8 +102,8 @@ public:
     virtual bool needIndividualThreadAttach();
     virtual bool getThreadLWPs(std::vector<Dyninst::LWP> &lwps);
     virtual Dyninst::Architecture getTargetArch();
-    virtual bool independentLWPControl();
     virtual bool plat_individualRegAccess();
+    virtual bool plat_contProcess();
 
     /* thread_db_process methods */
     virtual string getThreadLibName(const char *symName);
@@ -128,13 +128,26 @@ public:
     freebsd_thread();
     virtual ~freebsd_thread();
 
-    virtual bool plat_cont();
+    virtual bool plat_cont(bool user_cont);
     virtual bool plat_stop();
     virtual bool plat_getAllRegisters(int_registerPool &reg);
     virtual bool plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val);
     virtual bool plat_setAllRegisters(int_registerPool &reg);
     virtual bool plat_setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val);
     virtual bool attach();
+
+    /* FreeBSD-specific */
+    virtual bool plat_setStep();
+};
+
+class FreeBSDSyncHandler : public Handler
+{
+public:
+    FreeBSDSyncHandler();
+    virtual ~FreeBSDSyncHandler();
+    virtual bool handleEvent(Event::ptr ev);
+    virtual int getPriority() const;
+    void getEventTypesHandled(std::vector<EventType> &etypes);
 };
 
 #endif

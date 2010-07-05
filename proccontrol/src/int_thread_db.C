@@ -33,6 +33,7 @@
 #include <thread_db.h>
 
 #include <cassert>
+#include <cerrno>
 #include <set>
 using std::set;
 
@@ -50,15 +51,27 @@ ps_err_e ps_pglobal_lookup(struct ps_prochandle *handle, const char *objName,
 }
 
 ps_err_e ps_pread(struct ps_prochandle *handle, psaddr_t remote, void *local, size_t size) {
-    if( !handle->thread_db_proc->plat_readProcMem(local, (Dyninst::Address)remote, size) ) 
+    pthrd_printf("thread_db reading from %#lx to %#lx, size = %d on %d\n",
+            (unsigned long)remote, (unsigned long)local, size, handle->thread_db_proc->getPid());
+    if( !handle->thread_db_proc->plat_readProcMem(local, (Dyninst::Address)remote, size) )  {
+        pthrd_printf("Failed to read from %#lx to %#lx, size = %d on %d: %s\n",
+                    (unsigned long)remote, (unsigned long)local, size, handle->thread_db_proc->getPid(),
+                    strerror(errno));
         return PS_ERR;
+    }
 
     return PS_OK;
 }
 
 ps_err_e ps_pwrite(struct ps_prochandle *handle, psaddr_t remote, const void *local, size_t size) {
-    if( !handle->thread_db_proc->plat_writeProcMem(const_cast<void *>(local), (Dyninst::Address)remote, size) )
+    pthrd_printf("thread_db writing to %#lx write %#lx, size = %d on %d\n",
+            (unsigned long)remote, (unsigned long)local, size, handle->thread_db_proc->getPid());
+    if( !handle->thread_db_proc->plat_writeProcMem(const_cast<void *>(local), (Dyninst::Address)remote, size) ) {
+        pthrd_printf("Failed to write to %#lx write %#lx, size = %d on %d: %s\n",
+                (unsigned long)remote, (unsigned long)local, size, handle->thread_db_proc->getPid(),
+                strerror(errno));
         return PS_ERR;
+    }
 
     return PS_OK;
 }
@@ -187,6 +200,11 @@ Event::ptr decodeThreadEvent(td_event_msg_t *eventMsg) {
 
     switch(eventMsg->event) {
         case TD_CREATE:
+            if( TD_OK != (errVal = td_thr_dbsuspend(eventMsg->th_p)) ) {
+                perr_printf("Failed suspend new thread via thread_db: %s(%d)\n",
+                        tdErr2Str(errVal), errVal);
+                return Event::ptr();
+            }
             return Event::ptr(new EventNewThread((Dyninst::LWP)threadInfo.ti_lid));
             break;
         case TD_DEATH:
@@ -201,36 +219,26 @@ Event::ptr decodeThreadEvent(td_event_msg_t *eventMsg) {
 }
 
 volatile bool thread_db_process::thread_db_initialized = false;
+Mutex thread_db_process::thread_db_init_lock;
 
 thread_db_process::thread_db_process(Dyninst::PID p, std::string e, std::vector<std::string> a)
     : sysv_process(p, e, a), threadAgent(NULL)
 {
     self = new ps_prochandle();
-    self->thread_db_proc = this;
     assert(self);
+    self->thread_db_proc = this;
 }
 
 thread_db_process::thread_db_process(Dyninst::PID pid_, int_process *p) 
     : sysv_process(pid_, p), threadAgent(NULL)
 {
     self = new ps_prochandle();
-    self->thread_db_proc = this;
     assert(self);
+    self->thread_db_proc = this;
 }
 
 thread_db_process::~thread_db_process() 
 {
-    delete self;
-
-    if( thread_db_initialized && threadAgent ) {
-        td_err_e errVal = td_ta_delete(threadAgent);
-        if( TD_OK != errVal ) {
-            perr_printf("Failed to delete thread agent: %s(%d)\n",
-                    tdErr2Str(errVal), errVal);
-        }
-        assert( TD_OK == errVal && "Failed to delete thread agent" );
-    }
-
     // Free the breakpoints allocated for events
     map<Dyninst::Address, pair<int_breakpoint *, EventType> >::iterator brkptIter;
     for(brkptIter = addr2Event.begin(); brkptIter != addr2Event.end(); ++brkptIter) {
@@ -244,6 +252,8 @@ thread_db_process::~thread_db_process()
     {
         symreader_factory->closeSymbolReader(symReaderIter->second.second);
     }
+
+    delete self;
 }
 
 bool thread_db_process::initThreadDB() {
@@ -251,17 +261,21 @@ bool thread_db_process::initThreadDB() {
     // A: This function depends on the corresponding thread library being loaded
     // and this event occurs some time after process creation.
 
-    // Make sure thread_db is initialized
+    // Make sure thread_db is initialized - only once for all instances
     if( !thread_db_initialized ) {
-        td_err_e errVal;
-        if( TD_OK != (errVal = td_init()) ) {
-            perr_printf("Failed to initialize libthread_db: %s(%d)\n",
-                    tdErr2Str(errVal), errVal);
-            setLastError(err_internal, "libthread_db initialization failed");
-            return false;
+        thread_db_init_lock.lock();
+        if( !thread_db_initialized ) {
+            td_err_e errVal;
+            if( TD_OK != (errVal = td_init()) ) {
+                perr_printf("Failed to initialize libthread_db: %s(%d)\n",
+                        tdErr2Str(errVal), errVal);
+                setLastError(err_internal, "libthread_db initialization failed");
+                return false;
+            }
+            pthrd_printf("Sucessfully initialized thread_db\n");
+            thread_db_initialized = true;
         }
-        pthrd_printf("Sucessfully initialized thread_db\n");
-        thread_db_initialized = true;
+        thread_db_init_lock.unlock();
     }
 
     // Create the thread agent
@@ -340,6 +354,29 @@ bool thread_db_process::initThreadDB() {
     }
 
     return true;
+}
+
+void thread_db_process::freeThreadDBAgent() {
+    // XXX
+    // This code cannot be in the destructor because it makes use of
+    // the proc_service interface and this makes calls to functions
+    // that are pure virtual in this class.
+    //
+    // A possible, better solution would be to make the functions static
+    // but we lose all the convenience of pure virtual functions
+    //
+    // At any rate, this function should be called from a derived class' 
+    // destructor.
+
+    if( thread_db_initialized && threadAgent ) {
+        td_err_e errVal = td_ta_delete(threadAgent);
+        if( TD_OK != errVal ) {
+            perr_printf("Failed to delete thread agent: %s(%d)\n",
+                    tdErr2Str(errVal), errVal);
+        }
+        assert( TD_OK == errVal && "Failed to delete thread agent" );
+        threadAgent = NULL;
+    }
 }
 
 bool thread_db_process::getEventsAtAddr(Dyninst::Address addr, 
@@ -510,17 +547,40 @@ bool thread_db_process::post_attach() {
     return initThreadDB();
 }
 
+bool thread_db_process::getPostDestroyEvents(vector<Event::ptr> &events) {
+    unsigned oldSize = events.size();
+
+    int_threadPool::iterator i;
+    for(i = threadPool()->begin(); i != threadPool()->end(); ++i) {
+        thread_db_thread *tmpThread = static_cast<thread_db_thread *>(*i);
+        if( tmpThread->isDestroyed() ) {
+            pthrd_printf("Generating post-ThreadDestroy for %d/%d\n",
+                         getPid(), tmpThread->getLWP());
+
+            Event::ptr destroyEvent = Event::ptr(new EventThreadDestroy(EventType::Post));
+            destroyEvent->setThread(tmpThread->thread());
+            destroyEvent->setProcess(proc());
+            events.push_back(destroyEvent);
+        }
+    }
+
+    return events.size() != oldSize;
+}
+
 void thread_db_process::addThreadDBHandlers(HandlerPool *hpool) {
     static bool initialized = false;
     static ThreadDBLibHandler *libHandler = NULL;
-    static ThreadDBHandleNewThr *thrHandler = NULL;
+    static ThreadDBCreateHandler *createHandler = NULL;
+    static ThreadDBDestroyHandler *destroyHandler = NULL;
     if( !initialized ) {
         libHandler = new ThreadDBLibHandler();
-        thrHandler = new ThreadDBHandleNewThr();
+        createHandler = new ThreadDBCreateHandler();
+        destroyHandler = new ThreadDBDestroyHandler();
         initialized = true;
     }
     hpool->addHandler(libHandler);
-    hpool->addHandler(thrHandler);
+    hpool->addHandler(createHandler);
+    hpool->addHandler(destroyHandler);
 }
 
 ThreadDBLibHandler::ThreadDBLibHandler() :
@@ -564,62 +624,110 @@ void ThreadDBLibHandler::getEventTypesHandled(vector<EventType> &etypes) {
     etypes.push_back(EventType(EventType::None, EventType::Library));
 }
 
-ThreadDBHandleNewThr::ThreadDBHandleNewThr() :
+ThreadDBCreateHandler::ThreadDBCreateHandler() :
     Handler("thread_db New Thread Handler")
 {
 }
 
-ThreadDBHandleNewThr::~ThreadDBHandleNewThr() 
+ThreadDBCreateHandler::~ThreadDBCreateHandler() 
 {
 }
 
-bool ThreadDBHandleNewThr::handleEvent(Event::ptr ev) {
+bool ThreadDBCreateHandler::handleEvent(Event::ptr ev) {
     EventNewThread::const_ptr threadEv = ev->getEventNewThread();
 
     thread_db_thread *thread = static_cast<thread_db_thread *>(threadEv->getNewThread()->llthrd());
 
     assert(thread && "Thread was not initialized before calling this handler");
 
+    // Because the new thread was created during a Breakpoint, it is already of
+    // out of sync with the user state
+    thread->desyncInternalState();
+
     // Explicitly ignore errors here
     thread->setEventReporting(true);
+
+    // The initial generator state is stopped
+    thread->suspend();
 
     return true;
 }
 
-int ThreadDBHandleNewThr::getPriority() const {
+int ThreadDBCreateHandler::getPriority() const {
     return PostPlatformPriority;
 }
 
-void ThreadDBHandleNewThr::getEventTypesHandled(vector<EventType> &etypes) {
+void ThreadDBCreateHandler::getEventTypesHandled(vector<EventType> &etypes) {
     etypes.push_back(EventType(EventType::None, EventType::ThreadCreate));
 }
 
+ThreadDBDestroyHandler::ThreadDBDestroyHandler() :
+    Handler("thread_db Destroy Handler")
+{
+}
+
+ThreadDBDestroyHandler::~ThreadDBDestroyHandler()
+{
+}
+
+bool ThreadDBDestroyHandler::handleEvent(Event::ptr ev) {
+    thread_db_thread *thrd = static_cast<thread_db_thread *>(ev->getThread()->llthrd());
+    if( ev->getEventType().time() == EventType::Pre) {
+        pthrd_printf("Marking LWP %d destroyed\n", thrd->getLWP());
+        thrd->markDestroyed();
+    }else if( ev->getEventType().time() == EventType::Post) {
+        thrd->setGeneratorState(int_thread::exited);
+
+        // Need to make sure that the thread actually finishes at this point
+        thrd->resume();
+    }
+
+    return true;
+}
+
+int ThreadDBDestroyHandler::getPriority() const {
+    return PrePlatformPriority;
+}
+
+void ThreadDBDestroyHandler::getEventTypesHandled(vector<EventType> &etypes) {
+    etypes.push_back(EventType(EventType::Any, EventType::ThreadDestroy));
+}
+
 thread_db_thread::thread_db_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l)
-    : int_thread(p, t, l)
+    : int_thread(p, t, l), threadHandle(NULL), destroyed(false)
 {
 }
 
 thread_db_thread::~thread_db_thread() 
 {
+    delete threadHandle;
+}
+
+bool thread_db_thread::initThreadHandle() {
+    if( NULL != threadHandle ) return true;
+
+    threadHandle = new td_thrhandle_t;
+
+    thread_db_process *lproc = static_cast<thread_db_process *>(proc_);
+
+    td_err_e errVal = td_ta_map_lwp2thr(lproc->getThreadDBAgent(),
+            lwp, threadHandle);
+    if( TD_OK != errVal ) {
+        perr_printf("Failed to map LWP %d to thread_db thread: %s(%d)\n",
+                lwp, tdErr2Str(errVal), errVal);
+        setLastError(err_internal, "Failed to get thread_db thread handle");
+        return false;
+    }
+
+    return true;
 }
 
 Event::ptr thread_db_thread::getThreadEvent() {
-    thread_db_process *lproc = static_cast<thread_db_process *>(proc_);
-    td_thrhandle_t threadHandle;
-
-    // Get the thread handle
-    td_err_e errVal = td_ta_map_lwp2thr(lproc->getThreadDBAgent(),
-            lwp, &threadHandle);
-    if( TD_OK != errVal ) {
-        perr_printf("Failed to map lwp to thread_db thread: %s(%d)\n",
-                tdErr2Str(errVal), errVal);
-        setLastError(err_internal, "Failed to get thread_db thread handle");
-        return Event::ptr();
-    }
+    if( !initThreadHandle() ) return Event::ptr();
 
     td_event_msg_t eventMsg;
 
-    errVal = td_thr_event_getmsg(&threadHandle, &eventMsg);
+    td_err_e errVal = td_thr_event_getmsg(threadHandle, &eventMsg);
 
     if( TD_NOMSG == errVal ) {
         pthrd_printf("No message available for LWP %d via thread_db\n", lwp);
@@ -637,20 +745,9 @@ Event::ptr thread_db_thread::getThreadEvent() {
 }
 
 bool thread_db_thread::setEventReporting(bool on) {
-    thread_db_process *lproc = static_cast<thread_db_process *>(proc_);
-    td_thrhandle_t threadHandle;
+    if( !initThreadHandle() ) return false;
 
-    // Get the thread handle
-    td_err_e errVal = td_ta_map_lwp2thr(lproc->getThreadDBAgent(),
-            lwp, &threadHandle);
-    if( TD_OK != errVal ) {
-        perr_printf("Failed to map lwp to thread_db thread: %s(%d)\n",
-                tdErr2Str(errVal), errVal);
-        setLastError(err_internal, "Failed to get thread_db thread handle");
-        return false;
-    }
-
-    errVal = td_thr_event_enable(&threadHandle, (on ? 1 : 0 ));
+    td_err_e errVal = td_thr_event_enable(threadHandle, (on ? 1 : 0 ));
 
     if( TD_OK != errVal ) {
         perr_printf("Failed to enable events for LWP %d: %s(%d)\n",
@@ -662,4 +759,46 @@ bool thread_db_thread::setEventReporting(bool on) {
     pthrd_printf("Enabled thread_db events for LWP %d\n", lwp);
 
     return true;
+}
+
+bool thread_db_thread::resume() {
+    if( !initThreadHandle() ) return false;
+
+    td_err_e errVal = td_thr_dbresume(threadHandle);
+
+    if( TD_OK != errVal ) {
+        perr_printf("Failed to resume LWP %d: %s(%d)\n",
+                lwp, tdErr2Str(errVal), errVal);
+        setLastError(err_internal, "Failed to resume LWP");
+        return false;
+    }
+
+    pthrd_printf("Resumed LWP %d via thread_db\n", lwp);
+
+    return true;
+}
+
+bool thread_db_thread::suspend() {
+    if( !initThreadHandle() ) return false;
+
+    td_err_e errVal = td_thr_dbsuspend(threadHandle);
+
+    if( TD_OK != errVal ) {
+        perr_printf("Failed to suspend LWP %d: %s(%d)\n",
+                lwp, tdErr2Str(errVal), errVal);
+        setLastError(err_internal, "Failed to suspend LWP");
+        return false;
+    }
+
+    pthrd_printf("Suspended LWP %d via thread_db\n", lwp);
+
+    return true;
+}
+
+void thread_db_thread::markDestroyed() {
+    destroyed = true;
+}
+
+bool thread_db_thread::isDestroyed() {
+    return destroyed;
 }

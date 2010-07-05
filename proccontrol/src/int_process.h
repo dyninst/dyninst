@@ -71,6 +71,10 @@ class int_process
    virtual bool post_attach();
 
   public:
+   void setContSignal(int sig);
+   int getContSignal() const;
+   virtual bool plat_contProcess() = 0;
+
    bool forked();
   protected:
    virtual bool plat_forked() = 0;
@@ -151,7 +155,12 @@ class int_process
    virtual bool plat_writeMem(int_thread *thr, void *local, 
                               Dyninst::Address remote, size_t size) = 0;
    
-   virtual bool independentLWPControl() = 0;
+   typedef enum {
+       NoLWPControl = 0,
+       HybridLWPControl,
+       IndependentLWPControl
+   } ThreadControlMode;
+   static ThreadControlMode getThreadControlMode();
    static bool isInCB();
    static void setInCB(bool b);
 
@@ -187,6 +196,7 @@ class int_process
    mem_state::ptr mem;
    std::map<Dyninst::Address, unsigned> exec_mem_cache;
    std::queue<Event::ptr> proc_stoppers;
+   int continueSig;
 };
 
 class int_registerPool
@@ -305,14 +315,19 @@ class int_thread
    bool intStop(bool sync = true);
    bool intCont();
 
-   void setContSignal(int sig);   
+   void setContSignal(int sig);
+   int getContSignal();
    bool contWithSignal(int sigOverride = -1);
-   virtual bool plat_cont() = 0;
+   virtual bool plat_cont(bool user_cont) = 0;
    virtual bool plat_stop() = 0;
    void setPendingUserStop(bool b);
    bool hasPendingUserStop() const;
    void setPendingStop(bool b);
    bool hasPendingStop() const;
+   void setPendingUserContinue(bool b);
+   bool hasPendingUserContinue() const;
+   void setPendingContinue(bool b);
+   bool hasPendingContinue() const;
 
    //Single-step
    bool singleStepMode() const;
@@ -378,6 +393,8 @@ class int_thread
    unsigned sync_rpc_count;
    bool pending_user_stop;
    bool pending_stop;
+   bool pending_user_continue;
+   bool pending_continue;
    int num_locked_stops;
    bool user_single_step;
    bool single_step;

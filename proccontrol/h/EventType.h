@@ -28,6 +28,7 @@ class EventType
    //Users do not recieve CBs for the below event types--ProcControlAPI internal
    static const int InternalEvents      = 500;
    static const int BreakpointClear     = 500;
+   static const int Continue            = 501;
 
    //Users should define their own events at this value or higher.
    static const int MaxProcCtrlEvent    = 1000;

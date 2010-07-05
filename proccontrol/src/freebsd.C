@@ -144,8 +144,8 @@ ArchEvent *GeneratorFreeBSD::getEvent(bool block) {
         int errsv = errno;
         pthrd_printf("Failed to retrieve lwp for pid %d: %s\n", pid, strerror(errsv));
 
-        // It's an error for a stopped or signaled process
-        if( WIFSTOPPED(status) || WIFSIGNALED(status) ) {
+        // It's an error for a stopped
+        if( WIFSTOPPED(status) ) {
             newevent = new ArchEventFreeBSD(errsv);
             return newevent;
         }
@@ -250,14 +250,33 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
 
         pthrd_printf("Decoded to signal %s\n", strsignal(stopsig));
         switch( stopsig ) {
-            case SIGSTOP:
+            case SIGSTOP: {
                 if( lthread->hasPendingStop() ) {
-                    pthrd_printf("Received pending SIGSTOP on %d/%d\n",
-                            thread->llproc()->getPid(), thread->getLWP());
+                    pthrd_printf("Received pending stop on %d/%d\n",
+                            lthread->llproc()->getPid(), lthread->getLWP());
                     event = Event::ptr(new EventStop());
                     break;
                 }
+
+                bool foundPendingContinue = false;
+                int_threadPool::iterator i;
+                for(i = lproc->threadPool()->begin(); i != lproc->threadPool()->end(); ++i) {
+                    freebsd_thread *contThread = static_cast<freebsd_thread *>(*i);
+                    if( contThread->hasPendingContinue() ) {
+                        pthrd_printf("Received pending continue on %d/%d\n",
+                                contThread->llproc()->getPid(), contThread->getLWP());
+                        event = Event::ptr(new EventContinue(contThread->getContSignal()));
+                        foundPendingContinue = true;
+                        break;
+                    }
+                }
+
+                if( foundPendingContinue )
+                    break;
+
                 // Relying on fall through for bootstrap
+                assert( proc->getState() == int_process::neonatal_intermediate );
+            }
             case SIGTRAP: {
                 if( proc->getState() == int_process::neonatal_intermediate) {
                     pthrd_printf("Decoded event to bootstrap on %d/%d\n",
@@ -289,7 +308,6 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
                     pthrd_printf("Decoded breakpoint on %d/%d at %lx\n", proc->getPid(),
                             thread->getLWP(), adjusted_addr);
                     event = Event::ptr(new EventBreakpoint(adjusted_addr, ibp));
-                    event->setSyncType(Event::sync_thread);
 
                     if( adjusted_addr == lproc->getLibBreakpointAddr() ) {
                         pthrd_printf("Breakpoint is library load/unload\n");
@@ -301,9 +319,6 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
                         // Check for thread events
                         vector<Event::ptr> threadEvents;
                         if( lproc->getEventsAtAddr(adjusted_addr, lthread, threadEvents) ) {
-                            assert(thread->thread());
-                            assert(proc->proc());
-
                             vector<Event::ptr>::iterator threadEventIter;
                             for(threadEventIter = threadEvents.begin(); threadEventIter != threadEvents.end();
                                     ++threadEventIter)
@@ -318,9 +333,14 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
                                         freebsd_thread *newlThread = static_cast<freebsd_thread *>(newThread);
                                         pthrd_printf("Thread already created for LWP %d\n", createdLWP);
 
+                                        if( !newlThread->resume() ) {
+                                            perr_printf("Failed to resume already created LWP %d\n", createdLWP);
+                                            return false;
+                                        }
+
                                         // Still need to enable events for it -- this can't be done during
                                         // bootstrap because the thread_db library isn't guaranteed to 
-                                        // be initialized at this point
+                                        // be initialized at bootstrap
                                         newlThread->setEventReporting(true);
                                         continue;
                                     }
@@ -340,6 +360,17 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
                     if( ibp ) {
                         pthrd_printf("Decoded event to breakpoint cleanup\n");
                         event = Event::ptr(new EventBreakpointClear(ibp));
+
+                        // For a thread_db_process, post-ThreadDestroy events happen
+                        // after a BreakpointClear
+                        vector<Event::ptr> destroyEvents;
+                        if( lproc->getPostDestroyEvents(destroyEvents) ) {
+                            vector<Event::ptr>::iterator eventIter;
+                            for(eventIter = destroyEvents.begin(); eventIter != destroyEvents.end(); ++eventIter) {
+                                event->addSubservientEvent(*eventIter);
+                            }
+                        }
+
                         break;
                     }else{
                         pthrd_printf("Decoded event to single step on %d/%d\n",
@@ -357,13 +388,14 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
                     pthrd_printf("Decoded event to exec on %d/%d\n",
                             proc->getPid(), thread->getLWP());
                     event = Event::ptr(new EventExec(EventType::Post));
+                    event->setSyncType(Event::sync_process);
                 }
                 break;
             }
             default:
                 pthrd_printf("Decoded event to signal %d on %d/%d\n",
                         stopsig, proc->getPid(), thread->getLWP());
-#if 1
+#if 0
                 //Debugging code
                 if (stopsig == SIGSEGV) {
                    Dyninst::MachRegisterVal addr;
@@ -386,7 +418,7 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
                        fprintf(stderr, "\n");
                    }
 
-                   while (1) sleep(1);
+                   assert(!"Received crash");
                 }
 #endif
                 event = Event::ptr(new EventSignal(stopsig));
@@ -417,6 +449,8 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
                     proc->getPid(), thread->getLWP(), termsig);
             event = Event::ptr(new EventCrash(termsig));
         }
+        event->setSyncType(Event::sync_process);
+
         int_threadPool::iterator i = proc->threadPool()->begin();
         for(; i != proc->threadPool()->end(); ++i) {
             (*i)->setGeneratorState(int_thread::exited);
@@ -427,8 +461,7 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
     assert(proc->proc());
     assert(thread->thread());
 
-    // Most events on FreeBSD are sync_process - all signals stop the entire
-    // process
+    // All signals stop a process in FreeBSD
     if( event && event->getSyncType() == Event::unset)
         event->setSyncType(Event::sync_process);
 
@@ -461,6 +494,10 @@ int_process *int_process::createProcess(Dyninst::PID pid_, int_process *parent) 
     return static_cast<int_process *>(newproc);
 }
 
+int_process::ThreadControlMode int_process::getThreadControlMode() {
+    return int_process::HybridLWPControl;
+}
+
 int_thread *int_thread::createThreadPlat(int_process *proc, Dyninst::THR_ID thr_id,
         Dyninst::LWP lwp_id, bool initial_thrd)
 {
@@ -479,7 +516,13 @@ int_thread *int_thread::createThreadPlat(int_process *proc, Dyninst::THR_ID thr_
 }
 
 HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool) {
-    // TODO add special stop handler
+    static bool initialized = false;
+    static FreeBSDSyncHandler *lstop = NULL;
+    if( !initialized ) {
+        lstop = new FreeBSDSyncHandler();
+        initialized = true;
+    }
+    hpool->addHandler(lstop);
     thread_db_process::addThreadDBHandlers(hpool);
     return hpool;
 }
@@ -500,6 +543,7 @@ freebsd_process::freebsd_process(Dyninst::PID pid_, int_process *p)
 
 freebsd_process::~freebsd_process() 
 {
+    freeThreadDBAgent();
 }
 
 bool freebsd_process::plat_create() {
@@ -644,12 +688,17 @@ Dyninst::Architecture freebsd_process::getTargetArch() {
     return arch;
 }
 
-bool freebsd_process::independentLWPControl() {
-    // TODO for now, this will probably need to change to a hybrid
-    return true;
+freebsd_thread::freebsd_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l)
+    : thread_db_thread(p, t, l)
+{
+}
+
+freebsd_thread::~freebsd_thread() 
+{
 }
 
 bool freebsd_process::plat_getLWPInfo(lwpid_t lwp, void *lwpInfo) {
+    pthrd_printf("Calling PT_LWPINFO on %d\n", lwp);
     if( 0 != ptrace(PT_LWPINFO, lwp, (caddr_t)lwpInfo, sizeof(struct ptrace_lwpinfo)) ) {
         perr_printf("Failed to get thread info for lwp %d: %s\n",
                 lwp, strerror(errno));
@@ -661,6 +710,7 @@ bool freebsd_process::plat_getLWPInfo(lwpid_t lwp, void *lwpInfo) {
 }
 
 bool freebsd_process::plat_contThread(lwpid_t lwp) {
+    pthrd_printf("Calling PT_RESUME on %d\n", lwp);
     if( 0 != ptrace(PT_RESUME, lwp, (caddr_t)1, 0) ) {
         perr_printf("Failed to resume lwp %d: %s\n",
                 lwp, strerror(errno));
@@ -672,6 +722,7 @@ bool freebsd_process::plat_contThread(lwpid_t lwp) {
 }
 
 bool freebsd_process::plat_stopThread(lwpid_t lwp) {
+    pthrd_printf("Calling PT_SUSPEND on %d\n", lwp);
     if( 0 != ptrace(PT_SUSPEND, lwp, (caddr_t)1, 0) ) {
         perr_printf("Failed to suspend lwp %d: %s\n",
                 lwp, strerror(errno));
@@ -682,39 +733,109 @@ bool freebsd_process::plat_stopThread(lwpid_t lwp) {
     return true;
 }
 
-freebsd_thread::freebsd_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l)
-    : thread_db_thread(p, t, l)
-{
-}
+FreeBSDSyncHandler::FreeBSDSyncHandler() 
+    : Handler("FreeBSD Sync Handler")
+{}
 
-freebsd_thread::~freebsd_thread() 
-{
-}
+FreeBSDSyncHandler::~FreeBSDSyncHandler()
+{}
 
-bool freebsd_thread::plat_cont() {
-    // TODO the whole process is continued
-    //
-    // On FreeBSD, individual threads are controlled by stopping the whole
-    // process and then suspending or resuming individual threads before
-    // continuing the process.
-    //
-
-    pthrd_printf("Continuing thread %d\n", lwp);
-
-    int result;
-    if (singleStep()) {
-        pthrd_printf("Calling PT_STEP on %d with signal %d\n", 
-                lwp, continueSig_);
-        result = ptrace(PT_STEP, proc_->getPid(), (caddr_t)1, continueSig_);
-    } else {
-        pthrd_printf("Calling PT_CONTINUE on %d with signal %d\n", 
-                proc_->getPid(), continueSig_);
-        result = ptrace(PT_CONTINUE, proc_->getPid(), (caddr_t)1, continueSig_);
+static
+bool syncThreadState(freebsd_thread *lthread) {
+    if( dyninst_debug_proccontrol ) {
+        pthrd_printf("synchronize: Thread %d/%d is in handler state %s internal state %s\n",
+                     lthread->proc()->getPid(), lthread->getLWP(),
+                     int_thread::stateStr(lthread->getHandlerState()),
+                     int_thread::stateStr(lthread->getInternalState()));
     }
 
-    if (0 != result) {
-        int error = errno;
-        perr_printf("low-level continue failed: %s\n", strerror(error));
+    if( lthread->hasPendingContinue() ) {
+        pthrd_printf("Thread %d/%d has a pending continue\n",
+                lthread->proc()->getPid(), lthread->getLWP());
+        if( !lthread->resume() ) {
+            perr_printf("Failed to resume thread %d\n", lthread->getLWP());
+            return false;
+        }
+
+        pthrd_printf("Unsetting pending continue for thread %d\n", lthread->getLWP());
+        lthread->setPendingContinue(false);
+        if( lthread->hasPendingUserContinue() ) {
+            lthread->setPendingUserContinue(false);
+            lthread->setInternalState(int_thread::running);
+            lthread->setHandlerState(int_thread::running);
+            lthread->setGeneratorState(int_thread::running);
+        }
+    }else if( lthread->hasPendingStop() ) {
+        pthrd_printf("Thread %d/%d has a pending stop\n",
+                lthread->proc()->getPid(), lthread->getLWP());
+        if( !lthread->suspend() ) {
+            perr_printf("Failed to suspend thread %d\n", lthread->getLWP());
+            return false;
+        }
+    }else if( lthread->getHandlerState() == int_thread::running ) {
+        if( !lthread->resume() ) {
+            perr_printf("Failed to resume thread %d\n", lthread->getLWP());
+            return false;
+        }
+    }else if( lthread->getHandlerState() == int_thread::stopped ) {
+        if( !lthread->suspend() ) {
+            perr_printf("Failed to suspend thread %d\n", lthread->getLWP());
+            return false;
+        }
+    }
+
+    if( !lthread->plat_setStep() ) {
+        perr_printf("Failed to set single step setting for thread %d\n",
+                lthread->getLWP());
+        return false;
+    }
+
+    return true;
+}
+
+bool FreeBSDSyncHandler::handleEvent(Event::ptr ev) {
+    freebsd_process *lproc = static_cast<freebsd_process *>(ev->getProcess()->llproc());
+    freebsd_thread *lthread = static_cast<freebsd_thread *>(ev->getThread()->llthrd());
+
+    // No extra handling is required for single-threaded debuggees
+    if( lproc->threadPool()->size() <= 1 ) return true;
+
+    EventContinue::const_ptr evContinue = ev->getEventContinue();
+    if( evContinue ) {
+        lproc->setContSignal(evContinue->getContinueSignal());
+
+        int_threadPool::iterator i;
+        for(i = lproc->threadPool()->begin(); i != lproc->threadPool()->end(); ++i) {
+            if( !syncThreadState(static_cast<freebsd_thread *>(*i)) )
+                return false;
+        }
+    }else{
+        if( !syncThreadState(lthread) ) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+int FreeBSDSyncHandler::getPriority() const {
+    return PrePlatformPriority;
+}
+
+void FreeBSDSyncHandler::getEventTypesHandled(std::vector<EventType> &etypes) {
+    etypes.push_back(EventType(EventType::None, EventType::Stop));
+    etypes.push_back(EventType(EventType::None, EventType::Continue));
+}
+
+bool freebsd_process::plat_contProcess() {
+    /* Single-stepping is enabled/disabled using PT_SETSTEP
+     * and PT_CLEARSTEP instead of continuing the process
+     * with PT_STEP. See plat_setStep.
+     */
+    pthrd_printf("Calling PT_CONTINUE on %d with signal %d\n", 
+                getPid(), continueSig);
+    if (0 != ptrace(PT_CONTINUE, getPid(), (caddr_t)1, continueSig) ) {
+        perr_printf("low-level continue failed: %s\n", strerror(errno));
         setLastError(err_internal, "Low-level continue failed");
         return false;
     }
@@ -749,18 +870,13 @@ static bool t_kill(pid_t pid, long lwp, int sig) {
     static bool has_tkill = true;
     int result = 0;
 
-    pthrd_printf("Sending %d to %ld/%d\n", sig, lwp, pid);
+    pthrd_printf("Sending %d to %d/%ld\n", sig, pid, lwp);
 
     if( has_tkill ) {
-        // No threads have been created yet
-        if( pid == lwp ) {
-            result = kill(pid, sig);
-        }else{
-            result = syscall(SYS_thr_kill2, pid, lwp, sig);
-            if( 0 != result && ENOSYS == errno ) {
-                pthrd_printf("Using kill instead of tkill on this system\n");
-                has_tkill = false;
-            }
+        result = syscall(SYS_thr_kill2, pid, lwp, sig);
+        if( 0 != result && ENOSYS == errno ) {
+            pthrd_printf("Using kill instead of tkill on this system\n");
+            has_tkill = false;
         }
     }
 
@@ -772,8 +888,6 @@ static bool t_kill(pid_t pid, long lwp, int sig) {
 }
 
 bool freebsd_thread::plat_stop() {
-    assert(pending_stop);
-
     Dyninst::PID pid = proc_->getPid();
     if( !t_kill(pid, lwp, SIGSTOP) ) {
         int errnum = errno;
@@ -790,8 +904,103 @@ bool freebsd_thread::plat_stop() {
     return true;
 }
 
+bool freebsd_thread::plat_cont(bool user_cont) {
+    pthrd_printf("Continuing thread %d\n", lwp);
+
+    // Internal continues must happen when process is stopped and all internal
+    // continues need to eventually be followed by a call to plat_contProcess
+    // elsewhere
+    if (!user_cont) {
+        pthrd_printf("Performing internal contine for LWP %d\n", lwp);
+        if( !plat_setStep() ) return false;
+
+        if( proc_->threadPool()->size() > 1 ) 
+            if( !resume() ) return false;
+
+        // Because all signals stop the whole process, only one thread should
+        // have a non-zero continue signal
+        if( continueSig_ ) {
+            proc_->setContSignal(continueSig_);
+        }
+
+        setPendingContinue(true);
+        setPendingUserContinue(false);
+        return true;
+    }
+
+    if( hasPendingContinue() ) {
+        pthrd_printf("Thread %d already has a pending continue\n", lwp);
+        return true;
+    }
+
+    // There are two cases that need to be handled:
+    //
+    // 1) All threads are stopped
+    //    -> the thread needs to be resumed and the whole process continued
+    //
+    // 2) This thread is stopped, but other threads are running
+    //    -> send a SIGSTOP to the process and have the stop handler take care of
+    //       resuming the thread
+    
+    bool hasRunningThread = false;
+    int_thread *runningThread = NULL;
+    int_threadPool::iterator i;
+    for(i = proc_->threadPool()->begin(); i != proc_->threadPool()->end(); ++i) {
+        if( (*i)->getInternalState() == int_thread::running ) {
+            hasRunningThread = true;
+            runningThread = *i;
+            break;
+        }
+    }
+
+    if( !hasRunningThread ) {
+        pthrd_printf("No running thread found, doing simple continue for LWP %d\n", lwp);
+        if( !plat_setStep() ) return false;
+        if( proc_->threadPool()->size() > 1 )
+            if( !resume() ) return false;
+
+        proc_->setContSignal(continueSig_);
+        return proc_->plat_contProcess();
+    }else{
+        pthrd_printf("Running thread found, doing SIGSTOP continue for LWP %d\n", lwp);
+
+        setPendingContinue(true);
+        setPendingUserContinue(true);
+
+        // We cannot send the SIGSTOP to this thread because it is already suspended
+        // Instead send the SIGSTOP to any running thread, the whole process will
+        // be stopped and then this thread can be resumed
+        if( !runningThread->plat_stop() ) {
+            setPendingContinue(false);
+            setPendingUserContinue(false);
+            return false;
+        }
+    }
+
+    return true;
+}
+
 bool freebsd_thread::attach() {
     // On FreeBSD, an attach is not necessary for threads
+    return true;
+}
+
+bool freebsd_thread::plat_setStep() {
+    int result;
+    if( singleStep() ) {
+        pthrd_printf("Calling PT_SETSTEP on %d\n", lwp);
+        result = ptrace(PT_SETSTEP, lwp, (caddr_t)1, 0);
+    }else{
+        pthrd_printf("Calling PT_CLEARSTEP on %d\n", lwp);
+        result = ptrace(PT_CLEARSTEP, lwp, (caddr_t)1, 0);
+    }
+
+    if( 0 != result ) {
+        perr_printf("low-level single step change failed: %s\n", strerror(errno));
+        setLastError(err_internal, "Low-level single step change failed");
+        return false;
+    }
+
     return true;
 }
 
