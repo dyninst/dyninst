@@ -840,8 +840,8 @@ enum entryID {
   power_op_fsabs,
   power_op_fsneg,
   power_op_fsnabs,
-  power_op_lwa
-          
+  power_op_lwa,
+  _entry_ids_max_
 };
 
 enum prefixEntryID {
