@@ -53,6 +53,12 @@ namespace Relocation {
 
 class TargetInt {
  public:
+  typedef enum {
+    Illegal,
+    BlockTarget,
+    BBLTarget,
+    PLTTarget } type_t;
+
   virtual Address addr() const { return 0; }
   virtual Address adjAddr(int, int) const { return 0; }
   virtual bool valid() const { return false; }
@@ -60,6 +66,8 @@ class TargetInt {
   virtual ~TargetInt() {};
   virtual bool necessary() const { return true; }
   virtual void setNecessary() {};
+
+  virtual type_t type() const { return Illegal; };
 };
 
 template <typename T>
@@ -96,27 +104,31 @@ template <>
   bool necessary() const { return necessary_; };
   void setNecessary() { necessary_ = true; };
 
+  virtual type_t type() const { return BlockTarget; };
+
  private:
   const Block::Ptr t_;
   bool necessary_;
 };
 
 template <>
-class Target<const bblInstance *> : public TargetInt {
+class Target<bblInstance *> : public TargetInt {
  public:
   Address addr() const { return t_->firstInsnAddr(); }
   Address adjAddr(int, int) const { return addr(); }
   bool valid() const { return true; }
- Target(const bblInstance *t) : t_(t) {}
+ Target(bblInstance *t) : t_(t) {}
   ~Target() {}
 
-  const bblInstance *t() const { return t_; };
+  bblInstance *t() const { return t_; };
 
   bool necessary() const { return true; };
   void setNecessary() {};
 
+  virtual type_t type() const { return BBLTarget; };
+
  private:
-  const bblInstance *t_;
+  bblInstance *t_;
 };
 
 
@@ -134,6 +146,8 @@ class Target<PLT_Entry> : public TargetInt {
 
   bool necessary() const { return true; };
   void setNecessary() {};
+
+  virtual type_t type() const { return PLTTarget; };
 
  private:
   const PLT_Entry t_;

@@ -62,7 +62,7 @@ class CodeMover {
   typedef dyn_detail::boost::shared_ptr<CodeMover> Ptr;
   typedef dyn_detail::boost::shared_ptr<Block> BlockPtr;
   typedef std::list<BlockPtr> BlockList;
-  typedef std::map<Address, BlockPtr> BlockMap;
+  typedef std::map<bblInstance *, BlockPtr> BlockMap;
   typedef std::set<int_function *> FuncSet;
 
   // A generic mover of code; an instruction, a basic block, or
@@ -145,7 +145,6 @@ class CodeMover {
   // to a Block so we can wire together jumps within
   // moved code
   BlockMap blockMap_;
-
 
   Address addr_;
 

@@ -161,8 +161,6 @@ bool PCSensitiveTransformer::processBlock(BlockList::iterator &b_iter) {
       else {
 	if (!determineSensitivity(slice, intSens, extSens)) {
 	  // Analysis failed for some reason... go conservative
-	  static int tmp = 0;
-	  //cerr << "\t sensitivity analysis failed, returning extSens " << tmp++ << endl;
 	  intSens = true;
 	  extSens = true;
 	}
@@ -503,11 +501,17 @@ void PCSensitiveTransformer::handleThunkCall(BlockList::iterator &b_iter,
     }
   }
 }
- 
-
 
 void PCSensitiveTransformer::recordIntSensitive(Address addr) {
-  priMap[addr] = Required;
+  // All we have from this is a raw address. Suck...
+  // Look up the bblInstances that map to this address. 
+  std::vector<int_function *> funcs;
+  addrSpace->findFuncsByAddr(addr, funcs);
+
+  for (unsigned i = 0; i < funcs.size(); ++i) {
+    int_basicBlock *block = funcs[i]->findBlockByAddr(addr);
+    priMap[block->origInstance()] = Required;
+  }
 }
 
 void PCSensitiveTransformer::emulateInsn(BlockList::iterator &b_iter,

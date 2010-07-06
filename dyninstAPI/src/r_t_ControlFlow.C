@@ -183,7 +183,7 @@ void CFElementCreator::getInterproceduralSuccessors(const bblInstance *bbl,
     if (out.second != CALL) {
       int_basicBlock *targ = func->findBlockByImage(ib);
       assert(targ);
-      out.first = new Target<const bblInstance *>(targ->origInstance());
+      out.first = new Target<bblInstance *>(targ->origInstance());
     }
     else {
       // Block must be an entry point since we reach it with
@@ -196,7 +196,7 @@ void CFElementCreator::getInterproceduralSuccessors(const bblInstance *bbl,
 	callee->blocks();
 	// Same as above
 	int_basicBlock *targ = callee->findBlockByImage(ib);
-	out.first = new Target<const bblInstance *>(targ->origInstance());
+	out.first = new Target<bblInstance *>(targ->origInstance());
       }
       else {
 	// Okay. This is obviously (really) a call to a PLT

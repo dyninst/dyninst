@@ -72,9 +72,7 @@ typedef enum {
   OffLimits,
   MaxPriority } Priority;
  
-// Address here is typically original address...
-typedef std::map<Address, Priority> PriorityMap;
-
+ typedef std::map<bblInstance *, Priority> PriorityMap;
 
 class Transformer {
  public:
@@ -82,8 +80,6 @@ class Transformer {
   typedef std::list<ElementPtr> ElementList;
   typedef dyn_detail::boost::shared_ptr<Block> BlockPtr;
   typedef std::list<BlockPtr> BlockList;
-
-
 
   virtual bool preprocess(BlockList &) { return true;}
   virtual bool postprocess(BlockList &) { return true; }

@@ -1253,6 +1253,15 @@ bool int_basicBlock::isEntryBlock() const {
     return ib_->isEntryBlock(func_->ifunc());
 }
 
+int_basicBlock *int_function::entryBlock() {
+  blocks();
+
+  funcEntries();
+  assert(entryPoints_.size() == 1);
+  return entryPoints_[0]->block();
+
+}
+
 unsigned int_function::getNumDynamicCalls()
 {
    unsigned count=0;

@@ -34,6 +34,9 @@
 
 #include "r_t_Base.h"
 
+class int_function;
+class bblInstance; 
+
 namespace Dyninst {
 namespace Relocation {
 
@@ -46,18 +49,22 @@ namespace Relocation {
 // in this way so we can tell where we'll need
 // patch branches.
 class LocalizeCF : public Transformer {
- public:
+  public:
   /// Mimics typedefs in CodeMover.h, but I don't want
   // to include that file.
-  typedef std::map<Address, BlockPtr> BlockMap;
+  typedef std::list<BlockPtr> BlockList;
+  //typedef std::map<Address, BlockList> BlockMap;
+  typedef std::map<bblInstance *, BlockPtr> BlockMap;
 
   virtual bool processBlock(BlockList::iterator &);
   virtual bool postprocess(BlockList &); 
 
- LocalizeCF(const BlockMap &bmap, PriorityMap &p) : 
+  LocalizeCF(const BlockMap &bmap, PriorityMap &p) :
   bMap_(bmap), pMap_(p) {};
 
   virtual ~LocalizeCF() {};
+
+  BlockPtr findBlock(Address addr, int_function *func);
 
  private:
   int getInEdgeCount(const bblInstance *inst);
@@ -68,8 +75,8 @@ class LocalizeCF : public Transformer {
   // And the priority list that we modify
   PriorityMap &pMap_;
 
-  std::map<Address, int> replacedCount_;
-  std::map<Address, int> incomingCount_;
+  std::map<bblInstance *, int> replacedCount_;
+  std::map<bblInstance *, int> incomingCount_;
 };
 };
 };

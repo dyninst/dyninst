@@ -95,10 +95,8 @@ CodeMover::Ptr CodeMover::createFunc(FuncSet::const_iterator begin, FuncSet::con
     }
 
     // Add the function entry as Required in the priority map
-    if (func->getAddress() == 0x1d76ef) {
-      cerr << "Required due to function entry" << endl;
-    }
-    ret->priorityMap_[func->getAddress()] = Required;
+    bblInstance *entry = func->entryBlock()->origInstance();
+    ret->priorityMap_[entry] = Required;
   }
 
 
@@ -117,7 +115,7 @@ bool CodeMover::addBlocks(BlockIter begin, BlockIter end) {
     if (!block)
       return false;
     blocks_.push_back(block);
-    blockMap_[bbl->firstInsnAddr()] = block;
+    blockMap_[bbl] = block;
     relocation_cerr << "  Updated block map: " 
 		    << std::hex << bbl->firstInsnAddr() << std::dec
 		    << "->" << block.get() << endl;
@@ -134,7 +132,7 @@ bool CodeMover::addBlock(bblInstance *bbl) {
   if (!block)
     return false;
   blocks_.push_back(block);
-  blockMap_[bbl->firstInsnAddr()] = block;
+  blockMap_[bbl] = block;
   relocation_cerr << "  Updated block map: " 
 		  << std::hex << bbl->firstInsnAddr() << std::dec
 		  << "->" << block.get() << endl;
@@ -312,7 +310,7 @@ const SpringboardMap &CodeMover::sBoardMap() {
   if (sboardMap_.empty()) {
     for (PriorityMap::const_iterator iter = priorityMap_.begin();
 	 iter != priorityMap_.end(); ++iter) {
-      const Address &from = iter->first;
+      bblInstance *from = iter->first;
       const Priority &p = iter->second;
 
       // the priority map may include things not in the block
@@ -320,7 +318,7 @@ const SpringboardMap &CodeMover::sBoardMap() {
       BlockMap::const_iterator b_iter = blockMap_.find(from);
       if (b_iter != blockMap_.end()) {
 	const Address &to = b_iter->second->curAddr();
-	sboardMap_.add(from, to, p);
+	sboardMap_.add(from->firstInsnAddr(), to, p);
       }
     }
   }

@@ -398,6 +398,7 @@ class int_function : public patchTarget {
    bblInstance *findBlockInstanceByAddr(Address addr);
    int_basicBlock *findBlockByImage(image_basicBlock *block);
 
+   int_basicBlock *entryBlock();
 
    void findBlocksByRange(std::vector<int_basicBlock*> &funcs, 
                           Address start, Address end);
