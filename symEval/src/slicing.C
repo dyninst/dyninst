@@ -84,6 +84,14 @@ Slicer::Slicer(Assignment::Ptr a,
   f_(func),
   converter(true) {
   symeval_init_debug();
+
+  if (a->addr() == 0xee7) {
+    sym_debug_slicing = 1;
+  }
+  else {
+    sym_debug_slicing = 0;
+  }
+
 };
 
 Graph::Ptr Slicer::forwardSlice(Predicates &predicates) {
@@ -238,6 +246,8 @@ void Slicer::pushContext(Context &context,
   assert(context.front().block == NULL);
   context.front().block = callBlock;
 
+  //cerr << "Saving block @ " << hex << callBlock->end() << dec << " as call block" << endl;
+
   slicing_cerr << "\t" 
 	       << (context.front().func ? context.front().func->name() : "NULL")
 	       << ", " 
@@ -390,9 +400,6 @@ bool Slicer::getSuccessors(Element &current,
       slicing_cerr << " succeeded, err " << err << endl;
       succ.push(newElement);
     }
-    else {
-      slicing_cerr << " failed, err " << err << endl;
-    }
   }
   else if (containsRet(current.loc.block)) {
     Element newElement;
@@ -404,9 +411,6 @@ bool Slicer::getSuccessors(Element &current,
 		     err)) {
       slicing_cerr << " succeeded, err " << err << endl;
       succ.push(newElement);
-    }
-    else {
-      slicing_cerr << " failed, err " << err << endl;
     }
   }
   else {
@@ -420,6 +424,9 @@ bool Slicer::getSuccessors(Element &current,
 			p,
 			err)) {
 	succ.push(newElement);
+      }
+      else {
+	cerr << " failed handleDefault, err " << err << endl;
       }
     }
   }
@@ -611,6 +618,12 @@ bool Slicer::handleReturn(ParseAPI::Block *,
 
   ParseAPI::Block *retBlock = NULL;
 
+#if 0
+  // We'd want something like this for a non-context-sensitive traversal.
+  // However, what we need here is to strip out the saved block in the
+  // Context and use it instead of doing a pointless iteration.
+  // Also, looking for CALL_FT edges in a return is... odd... at best.
+
   const Block::edgelist &targets = current.loc.block->targets();
   Block::edgelist::iterator eit = targets.begin();
   for (; eit != targets.end(); ++eit) {
@@ -619,6 +632,8 @@ bool Slicer::handleReturn(ParseAPI::Block *,
       break;
     }
   }
+#endif
+  retBlock = callerCon.front().block;
   if (!retBlock) {
     err = true;
     return false;
@@ -648,8 +663,9 @@ bool Slicer::search(Element &initial,
   slicing_cerr << "\t\t Getting forward successors from " << initial.ptr->format()
   << " - " << initial.reg.format() << endl;
 
-  if (!getNextCandidates(initial, worklist, p, dir))
+  if (!getNextCandidates(initial, worklist, p, dir)) {
     ret = false;
+  }
 
   // Need this so we don't get trapped in a loop (literally) 
   std::set<Address> visited;

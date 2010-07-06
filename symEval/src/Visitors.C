@@ -35,10 +35,6 @@ using namespace Dyninst;
 using namespace Dyninst::SymbolicEvaluation;
 using namespace std;
 
-AST::Ptr StackVisitor::visit(AST *t) {
-  return t->ptr();
-}
-
 AST::Ptr StackVisitor::visit(BottomAST *b) {
   return b->ptr();
 }

@@ -41,6 +41,7 @@
 // A collection of visitors for SymEval AST classes
 
 namespace Dyninst {
+
 namespace SymbolicEvaluation {
 
 class StackVisitor : public ASTVisitor {
@@ -57,8 +58,12 @@ class StackVisitor : public ASTVisitor {
     SYMEVAL_EXPORT virtual AST::Ptr visit(VariableAST *);
     SYMEVAL_EXPORT virtual AST::Ptr visit(RoseAST *);
     SYMEVAL_EXPORT virtual AST::Ptr visit(StackAST *);
+    SYMEVAL_EXPORT virtual ASTVisitor::ASTPtr visit(InputVariableAST *x) { return ASTVisitor::visit(x); }
+    SYMEVAL_EXPORT virtual ASTVisitor::ASTPtr visit(ReferenceAST *x) { return ASTVisitor::visit(x); }
+    SYMEVAL_EXPORT virtual ASTVisitor::ASTPtr visit(StpAST *x) { return ASTVisitor::visit(x); }
+    SYMEVAL_EXPORT virtual ASTVisitor::ASTPtr visit(YicesAST *x) { return ASTVisitor::visit(x); }
   
-  SYMEVAL_EXPORT virtual ~StackVisitor() {};
+    SYMEVAL_EXPORT virtual ~StackVisitor() {};
 
   private:
   Address addr_;

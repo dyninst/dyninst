@@ -45,20 +45,20 @@ extern int sym_debug_expand;
 #define expand_cerr        if (sym_debug_expand) cerr
 
 extern int slicing_printf_int(const char *format, ...);
-extern int stackanalysis_printf_int(const char *format, ...);
+extern int sym_stackanalysis_printf_int(const char *format, ...);
 extern int convert_printf_int(const char *format, ...);
 extern int expand_printf_int(const char *format, ...);
 
 #if defined(__GNUC__)
 #define slicing_printf(format, args...) do {if (sym_debug_slicing) slicing_printf_int(format, ## args); } while(0)
-#define stackanalysis_printf(format, args...) do {if (sym_debug_stackanalysis) stackanalysis_printf_int(format, ## args); } while(0)
+#define sym_stackanalysis_printf(format, args...) do {if (sym_debug_stackanalysis) sym_stackanalysis_printf_int(format, ## args); } while(0)
 #define convert_printf(format, args...) do {if (sym_debug_convert) convert_printf_int(format, ## args); } while(0)
 #define expand_printf(format, args...) do {if (sym_debug_expand) expand_printf_int(format, ## args); } while(0)
 
 #else
 // Non-GCC doesn't have the ## macro
 #define slicing_printf slicing_printf_int
-#define stackanalysis_printf stackanalysis_printf_int
+#define sym_stackanalysis_printf sym_stackanalysis_printf_int
 #define convert_printf convert_printf_int
 #define expand_printf expand_printf_int
 

@@ -52,7 +52,6 @@ bool symeval_init_debug() {
   init = true;
 
   char *p;
-  std::cerr << "Initializing symEval debugging" << std::endl;
 
   if ((p=getenv("SYMEVAL_DEBUG_STACKANALYSIS"))) {
     fprintf(stderr, "Enabling SymEval stack analysis debugging\n");
@@ -76,7 +75,7 @@ bool symeval_init_debug() {
   return true;
 }
 
-int stackanalysis_printf_int(const char *format, ...)
+int sym_stackanalysis_printf_int(const char *format, ...)
 {
   if (!sym_debug_stackanalysis) return 0;
   if (NULL == format) return -1;
