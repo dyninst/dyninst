@@ -891,9 +891,11 @@ bool IA_IAPI::computeTableBounds(Instruction::Ptr maxSwitchInsn,
 }
 
 bool IA_IAPI::isThunk() const {
+#if 0
   // FIXME HACK
   // I don't want thunks special-cased because they disappear from our parsing...
   return false;
+#endif
 
   // Before we go a-wandering, check the target
     if (!_isrc->isValidAddress(getCFT()))

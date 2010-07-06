@@ -94,6 +94,11 @@ SpringboardReq() : from(0), to(0), priority(NotRequired) {};
  };
 
 class SpringboardBuilder {
+  typedef enum {
+    Failed,
+    MultiNeeded,
+    Succeeded } generateResult_t;
+
  public:
   typedef dyn_detail::boost::shared_ptr<SpringboardBuilder> Ptr;
   typedef std::set<int_function *> FuncSet;
@@ -105,8 +110,6 @@ class SpringboardBuilder {
   bool generate(std::list<codeGen> &springboards,
 		const SpringboardMap &input);
 
-
-  static void causeTemplateInstantiations();
  private:
 
   static const int Allocated;
@@ -116,30 +119,46 @@ class SpringboardBuilder {
   template <typename BlockIter> 
     bool addBlocks(BlockIter begin, BlockIter end);
 
-  bool generateSpringboard(std::list<codeGen> &input,
-			   const SpringboardReq &p);
+  generateResult_t generateSpringboard(std::list<codeGen> &input,
+				       const SpringboardReq &p);
+
+  bool generateMultiSpringboard(std::list<codeGen> &input,
+				const SpringboardReq &p);
 
   // Find all previous instrumentations and also overwrite 
   // them. 
   bool generateReplacements(std::list<codeGen> &input,
 			    const SpringboardReq &p,
 			    bool useTrap);
+  bool generateReplacementPairs(std::list<codeGen> &input,
+				Address from,
+				Address to);
 
   bool conflict(Address start, Address end);
   void registerBranch(Address start, Address end);
 
+  void addMultiNeeded(const SpringboardReq &p);
+
   void generateBranch(Address from, Address to, codeGen &input);
   void generateTrap(Address from, Address to, codeGen &input);
+
+  bool isLegalShortBranch(Address from, Address to);
+  Address shortBranchBack(Address from);
 
   void debugRanges();
 
   AddressSpace *addrSpace_;
+
+  
 
   // We don't really care about the payload; I just want an "easy to look up"
   // range data structure. 
   // Map this to an int because IntervalTree collapses similar ranges. Punks.
   IntervalTree<Address, int> validRanges_;
   int curRange_;
+
+  std::list<SpringboardReq> multis_;
+
 };
 
 };

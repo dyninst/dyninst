@@ -66,6 +66,7 @@ bool LocalizeCF::processBlock(BlockList::iterator &iter) {
 
   // If this CFElement contains a Target that is a bblInstance
   // in our map, replace it with a Target to that block.
+
   for (CFElement::DestinationMap::iterator d_iter = cf->destMap_.begin();
        d_iter != cf->destMap_.end(); ++d_iter) {
 
@@ -134,8 +135,8 @@ bool LocalizeCF::postprocess(BlockList &) {
 		    << endl;
 
     
-    if (removedEdges == incomingEdges) {
-      pMap_[addr] = Suggested;
+    if (removedEdges >= incomingEdges) {
+      //pMap_[addr] = Suggested;
     }
     else {
       pMap_[addr] = Required;

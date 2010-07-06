@@ -47,7 +47,8 @@ class GetPC : public Element {
 
    static Ptr create(InstructionAPI::Instruction::Ptr insn,
 		     Address addr,
-		     Absloc a);
+		     Absloc a,
+		     Address thunk = 0);
    virtual bool generate(Block &, GenStack &);
    virtual ~GetPC() {};
    virtual std::string format() const;
@@ -56,10 +57,12 @@ class GetPC : public Element {
  private:
    GetPC(InstructionAPI::Instruction::Ptr insn,
 	 Address addr,
-	 Absloc &a) : 
+	 Absloc &a,
+	 Address thunkAddr = 0) : 
    insn_(insn), 
      addr_(addr), 
-     a_(a) {};
+     a_(a),
+     thunkAddr_(thunkAddr) {};
 
 
    bool PCtoStack(GenStack &gens);
@@ -68,6 +71,8 @@ class GetPC : public Element {
    InstructionAPI::Instruction::Ptr insn_;
    Address addr_;
    Absloc a_;
+
+   Address thunkAddr_;
 };
 
 struct IPPatch : public Patch {
@@ -75,9 +80,9 @@ struct IPPatch : public Patch {
     Push, 
     Reg } Type;
  IPPatch(Type a, Address b) : 
-  type(a), orig_value(b), reg((Register)-1) {};
- IPPatch(Type a, Address b, Register c) :
-  type(a), orig_value(b), reg(c) {};
+  type(a), orig_value(b), reg((Register)-1), thunk(0) {};
+ IPPatch(Type a, Address b, Register c, Address d) :
+  type(a), orig_value(b), reg(c), thunk(d) {};
 
   virtual bool apply(codeGen &gen, int iteration, int shift);
   virtual bool preapply(codeGen &gen);
@@ -86,6 +91,7 @@ struct IPPatch : public Patch {
   Type type;
   Address orig_value;
   Register reg;
+  Address thunk;
 };
 
 

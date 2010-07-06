@@ -54,7 +54,7 @@ SpringboardBuilder::Ptr SpringboardBuilder::create(BlockIter begin,
 }
 
 SpringboardBuilder::Ptr SpringboardBuilder::createFunc(FuncSet::const_iterator begin,
-													   FuncSet::const_iterator end,
+						       FuncSet::const_iterator end,
 						       AddressSpace *as) {
   Ptr ret = Ptr(new SpringboardBuilder(as));
   if (!ret) return ret;
@@ -79,11 +79,37 @@ bool SpringboardBuilder::generate(std::list<codeGen> &springboards,
   for (SpringboardMap::const_iterator iter = input.begin(); 
        iter != input.end(); ++iter) {
     const SpringboardReq &req = iter->second;
-    if (!generateSpringboard(springboards, req)) {
+
+    switch (generateSpringboard(springboards, req)) {
+    case Failed:
       return false;
+      break;
+    case MultiNeeded:
+      // We want to try some multi-step jump to get to the relocated code. 
+      // We have to wait until all the primaries are done first; effectively
+      // a greedy algorithm of largest first.
+      multis_.push_back(req);
+      break;
+    case Succeeded:
+      // Good!
+      break;
     }
   }
-  return true;
+
+  bool ret = true;
+
+  for (std::list<SpringboardReq>::iterator iter = multis_.begin();
+       iter != multis_.end(); ++iter) {
+    if (!generateMultiSpringboard(springboards, *iter)) {
+      if (iter->priority == Required) {
+	cerr << "Failed required springboard @ " << hex << iter->from << endl;
+	ret = false;
+      }
+      // Otherwise it was a suggested, no worries.
+    }
+  }
+  
+  return ret;
 }
 
 template <typename BlockIter>
@@ -97,14 +123,18 @@ bool SpringboardBuilder::addBlocks(BlockIter begin, BlockIter end) {
   return true;
 }
 
-bool SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
-					     const SpringboardReq &r) {
+SpringboardBuilder::generateResult_t 
+SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
+					const SpringboardReq &r) {
   codeGen gen;
 
   bool usedTrap = false;
 
   generateBranch(r.from, r.to, gen);
+
   if (conflict(r.from, r.from + gen.used())) {
+    return MultiNeeded;
+#if 0
     // Errr...
     // Fine. Let's do the trap thing. 
     usedTrap = true;
@@ -114,6 +144,7 @@ bool SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
       debugRanges();
       assert(0);
     }
+#endif
   }
 
   registerBranch(r.from, r.from + gen.used());
@@ -121,6 +152,70 @@ bool SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
 
   // Now catch all the previously relocated copies.
   generateReplacements(springboards, r, usedTrap);
+
+  return Succeeded;
+}
+
+bool SpringboardBuilder::generateMultiSpringboard(std::list<codeGen> &input,
+						  const SpringboardReq &r) {
+  cerr << "Request to generate multi-branch springboard skipped @ " << hex << r.from << dec << endl;
+  // FIXME Override
+  return true;
+
+  // Much like the above, except try to do it in multiple steps. This works 
+  // well on x86 where we have 2-byte dinky jumps. Less so on fixed-length
+  // architectures...
+  Address from = r.from;
+  
+  // Let's assume that r.from is not really available. Let's find somewhere that
+  // is.
+  // Let's try walking forward first. 
+  Address tramp = r.from;
+  bool done = false;
+  codeGen gen;
+  do {
+    generateBranch(tramp, r.to, gen);
+    if (!conflict(tramp, tramp+gen.used())) {
+      // Cool
+      done = true;
+    }
+    else {
+      // FIXME POWER
+      // What happened to the "legal offset for the platform" function?
+      tramp++;
+    }
+    if (!isLegalShortBranch(r.from, tramp)) {
+      // Start at -offset
+      tramp = shortBranchBack(r.from);
+    }
+    if (tramp == (r.from - 1)) {
+      break;
+    }
+  } while (!done);
+  
+  if (!done) return false; 
+
+  // Okay, we've got a branch there. 
+  input.push_back(gen);
+  registerBranch(tramp, tramp + gen.used());
+  
+  // And catch its relocated copies. Argh.
+  SpringboardReq tmp(tramp, r.to, r.priority);
+  generateReplacements(input, tmp, false);
+
+  // Okay. Now we need to get _to_ the tramp jump.
+  codeGen shortie;
+  generateBranch(r.from, tramp, shortie);
+  if (conflict(r.from, r.from + shortie.used())) {
+    // Sucks to be us
+    return false;
+  }
+  
+  input.push_back(shortie);
+  registerBranch(r.from, r.from + shortie.used());
+
+  SpringboardReq tmp2(r.from, tramp, r.priority);
+  generateReplacements(input, tmp2, false);
 
   return true;
 }
@@ -199,6 +294,8 @@ void SpringboardBuilder::debugRanges() {
 }
 
 void SpringboardBuilder::generateBranch(Address from, Address to, codeGen &gen) {
+  assert (from != 0x3124c7);
+
   gen.invalidate();
   gen.allocate(16);
 
@@ -227,8 +324,8 @@ bool SpringboardBuilder::generateReplacements(std::list<codeGen> &springboards,
   addrSpace_->getRelocAddrs(r.from, relocAddrs);
   for (std::list<Address>::const_iterator iter = relocAddrs.begin();
        iter != relocAddrs.end(); ++iter) {
-    // We can add the addr mapping _before_ we generate branches...
-    if (*iter == r.to) continue;
+
+    assert(*iter != r.to);
 
     codeGen gen;
     if (useTrap) {
@@ -242,10 +339,29 @@ bool SpringboardBuilder::generateReplacements(std::list<codeGen> &springboards,
   return ret;
 }
 
-///////////////////
-// STUUUUUPIDITY!!!!
-///////////////////
-
-void SpringboardBuilder::causeTemplateInstantiations() {
-
+// Used in generating multi-branch springboards
+bool SpringboardBuilder::generateReplacementPairs(std::list<codeGen> &springboards,
+						  Address from,
+						  Address to) {
+  bool ret = true;
+  std::list<std::pair<Address, Address> > pairs;
+  addrSpace_->getRelocAddrPairs(from, to, pairs);
+  for (std::list<std::pair<Address, Address> >::const_iterator iter = pairs.begin();
+       iter != pairs.end(); ++iter) {
+    codeGen gen;
+    generateBranch(iter->first, iter->second, gen);
+    springboards.push_back(gen);
+  }
+  return ret;
 }
+
+bool SpringboardBuilder::isLegalShortBranch(Address from, Address to) {
+  // FIXME POWER...
+  int disp = to - (from + 2);
+  return ((disp >= -128) && (disp < 127));
+}
+
+Address SpringboardBuilder::shortBranchBack(Address from) {
+  return from + 2 - 128;
+};
+

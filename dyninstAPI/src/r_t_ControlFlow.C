@@ -170,6 +170,8 @@ void CFElementCreator::getInterproceduralSuccessors(const bblInstance *bbl,
   const ParseAPI::Block::edgelist &targets = block->llb()->targets();
   ParseAPI::Block::edgelist::iterator iter = targets.begin();
   for (; iter != targets.end(); ++iter) {
+    if ((*iter)->sinkEdge()) continue;
+
     Succ out;
     out.first = NULL;
     out.second = (*iter)->type();

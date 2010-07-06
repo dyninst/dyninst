@@ -42,8 +42,9 @@ using namespace InstructionAPI;
 ////////////////////////
 GetPC::Ptr GetPC::create(Instruction::Ptr insn,
 			 Address addr,
-			 Absloc a) {
-  return Ptr(new GetPC(insn, addr, a));
+			 Absloc a,
+			 Address thunk) {
+  return Ptr(new GetPC(insn, addr, a, thunk));
 }
 
 bool GetPC::generate(Block &, GenStack &gens) {
@@ -104,7 +105,7 @@ bool GetPC::PCtoReg(GenStack &gens) {
     SET_PTR(newInsn, gens());
   }
   else {
-    IPPatch *newPatch = new IPPatch(IPPatch::Reg, addr_ + insn_->size(), reg);
+    IPPatch *newPatch = new IPPatch(IPPatch::Reg, addr_ + insn_->size(), reg, thunkAddr_);
     gens.addPatch(newPatch);
   }
   return true;
@@ -118,38 +119,62 @@ string GetPC::format() const {
   return ret.str();
 }
 
+#include "registerSpace.h"
+#include "inst-x86.h"
 
 bool IPPatch::apply(codeGen &gen, int, int) {
   relocation_cerr << "\t\t IPPatch::apply" << endl;
 
   // We want to generate orig_value into the appropriate location.
 
-  GET_PTR(newInsn, gen); 
-  
-  *newInsn = 0xE8;
-  newInsn++;
-  unsigned int *temp = (uint32_t *) newInsn;
-  *temp = 0;
-  newInsn += sizeof(uint32_t);
-  SET_PTR(newInsn, gen);
-  Address offset = orig_value - gen.currAddr();
-  REGET_PTR(newInsn, gen);
-  *newInsn = 0x81;
-  newInsn++;
-  *newInsn = 0x04;
-  newInsn++;
-  *newInsn = 0x24;
-  newInsn++;
-  temp =  (uint32_t *) newInsn;
-  *temp = offset;
-  newInsn += sizeof(uint32_t);	  
-  
-  if (type == Reg) {
-    assert(reg != (Register) -1);
-    // pop...
-    *newInsn++ = static_cast<unsigned char>(0x58 + reg); // POP family
+  if (0 && (type == Reg) && thunk) {
+    // Let's try this...
+    insnCodeGen::generateCall(gen,
+			      gen.currAddr(),
+			      thunk); 
+    // Okay, now we'll be getting back the wrong number.
+    Address retAddr = gen.currAddr();
+    if (type != Reg) {
+      cerr << "Aborting at IPPatch, orig_value " << hex << orig_value << " and thunk " << thunk << endl;
+    }
+    assert(type == Reg);
+    emitLEA(RealRegister(reg),
+	    RealRegister(Null_Register),
+	    0,
+	    orig_value - retAddr,
+	    RealRegister(reg),
+	    gen);
   }
-  SET_PTR(newInsn, gen);
+  else {
+    GET_PTR(newInsn, gen); 
+    
+    *newInsn = 0xE8;
+    newInsn++;
+    unsigned int *temp = (uint32_t *) newInsn;
+    *temp = 0;
+    newInsn += sizeof(uint32_t);
+    SET_PTR(newInsn, gen);
+    Address offset = orig_value - gen.currAddr();
+    REGET_PTR(newInsn, gen);
+    *newInsn = 0x81;
+    newInsn++;
+    *newInsn = 0x04;
+    newInsn++;
+    *newInsn = 0x24;
+    newInsn++;
+    temp =  (uint32_t *) newInsn;
+    *temp = offset;
+    newInsn += sizeof(uint32_t);	  
+
+    //cerr << "Rewrote thunk with offset " << hex << offset << " @ addr " << gen.currAddr() << dec << endl;
+    
+    if (type == Reg) {
+      assert(reg != (Register) -1);
+      // pop...
+      *newInsn++ = static_cast<unsigned char>(0x58 + reg); // POP family
+    }
+    SET_PTR(newInsn, gen);
+  }
 
   return true;
 }

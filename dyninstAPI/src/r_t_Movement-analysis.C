@@ -54,6 +54,14 @@ using namespace SymtabAPI;
 
 using namespace SymbolicEvaluation;
 
+bool PCSensitiveTransformer::postprocess(BlockList &) {
+  //cerr << "Sensitive count: " << Sens_ << ", ext " << extSens_ << ", int " << intSens_ << endl;
+  return true;
+}
+
+int DEBUG_hi = -1;
+int DEBUG_lo = -1;
+
 bool PCSensitiveTransformer::processBlock(BlockList::iterator &b_iter) {
   const bblInstance *bbl = (*b_iter)->bbl();
   
@@ -87,6 +95,10 @@ bool PCSensitiveTransformer::processBlock(BlockList::iterator &b_iter) {
     // a non-PC location.
     // 2) Is it externally sensitive... will this instruction cause the program
     // to produce a different result.
+
+    if (isSyscall(insn, addr)) {
+      continue;
+    }
     
     AssignList sensitiveAssignments;
     // This function also returns the sensitive assignments
@@ -99,25 +111,32 @@ bool PCSensitiveTransformer::processBlock(BlockList::iterator &b_iter) {
     }
 
     // Optimization: before we do some heavyweight analysis, see if we can shortcut
+    bool intSens = false;
+    bool extSens = false;
     Absloc dest;
+
     if (insnIsThunkCall(insn, addr, dest)) {
+      relocation_cerr << "Thunk @ " << hex << addr << dec << endl;
       handleThunkCall(b_iter, iter, dest);
       continue;
     }
 
-
-    //cerr << std::hex << addr << std::dec
-    //<< ": Instruction " << insn->format() << " PC sensitive, analyzing" << endl;
-
-    //static int count = 0;
-
-    bool intSens = false;
-    bool extSens = false;
 #if 0
-    if ((count > 2100) &&
-	(count <= 2110)) {
-      extSens = true;
+    static int count = 0;
+  
+    if (DEBUG_hi != -1) {
+      if ((count >= DEBUG_lo) &&
+	  (count < DEBUG_hi)) {
+	//cerr << "Setting int and ext sens @ " << hex << addr << dec << endl;
+	intSens = true;
+	extSens = true;
+      }
+      else {
+	//cerr << "Setting int only @ " << hex << addr << ", count " << count << dec << endl;
+	intSens = true;
+      }
     }
+    
     count++;
 #endif
 
@@ -134,7 +153,7 @@ bool PCSensitiveTransformer::processBlock(BlockList::iterator &b_iter) {
 				      bbl->block()->llb(),
 				      bbl->func()->ifunc());
       if (!slice) {
-	//cerr << "\t slice failed, returning ext. sens." << endl;
+	cerr << "\t slice failed, returning ext. sens." << endl;
 	// Safe assumption, as always
 	extSens = true;
 	intSens = true;
@@ -142,6 +161,8 @@ bool PCSensitiveTransformer::processBlock(BlockList::iterator &b_iter) {
       else {
 	if (!determineSensitivity(slice, intSens, extSens)) {
 	  // Analysis failed for some reason... go conservative
+	  static int tmp = 0;
+	  //cerr << "\t sensitivity analysis failed, returning extSens " << tmp++ << endl;
 	  intSens = true;
 	  extSens = true;
 	}
@@ -151,6 +172,14 @@ bool PCSensitiveTransformer::processBlock(BlockList::iterator &b_iter) {
 	break; 
       }
     }
+
+    if (extSens)
+      extSens_++;
+    if (intSens)
+      intSens_++;
+
+    Sens_++;
+  
 
     if (extSens) {
       //cerr << "ExtSens @ " << std::hex << addr << std::dec << endl;
@@ -246,7 +275,7 @@ public:
     return false;
   }
 
-  static bool call (ParseAPI::Function *, 
+  static bool call (ParseAPI::Function *func, 
 		    std::stack<std::pair<ParseAPI::Function *, int> > &cs,
 		    AbsRegion a) {
     // If we're looking for a stack slot and entering
@@ -257,6 +286,14 @@ public:
     // this is a stack-passed parameter? Ugh...
 
     if (haveWidened) {
+      return false;
+    }
+
+    // We need to know when we hit a plt func. Thing is, I can't
+    // figure out how to do that directly. So we'll workaround...
+    image_func *f = static_cast<image_func *>(func);
+    if (f && f->isPLTFunction()) {
+      // Don't bother following
       return false;
     }
 
@@ -329,6 +366,7 @@ bool PCSensitiveTransformer::determineSensitivity(Graph::Ptr slice,
 
     if (v.isExtSens(ast)) {
       //cerr << "\t\t is externally sensitive" << endl;
+      //cerr << "\t\t\t @ " << hex << aNode->addr() << dec << endl;
       external = true;
     }
     else {
@@ -370,9 +408,15 @@ bool PCSensitiveTransformer::insnIsThunkCall(InstructionAPI::Instruction::Ptr in
   Address target = res.convert<Address>();
 
   // Check for a call to a thunk function
+  if (target == (addr + insn->size())) {
+    destination = Absloc(0, 0, "func");
+    relocation_cerr << "      ... call next insn, ret true" << endl;
+    return true;
+  }
   
   // This is yoinked from arch-x86.C...
   if (addrSpace->isValidAddress(target)) {
+
     // Get us an instrucIter    
     const unsigned char* buf = reinterpret_cast<const unsigned char*>(addrSpace->getPtrToInstruction(target));
 
@@ -418,6 +462,9 @@ void PCSensitiveTransformer::handleThunkCall(BlockList::iterator &b_iter,
 					     Block::ElementList::iterator &iter,
 					     Absloc &destination) {
 
+  relocation_cerr << "Handling thunk call at " << hex << (*iter)->addr() << dec << endl;
+  relocation_cerr << "\t from insn " << (*iter)->insn()->format() << endl;
+
   Element::Ptr replacement = GetPC::create((*iter)->insn(),
 					   (*iter)->addr(),
 					   destination);
@@ -457,10 +504,10 @@ void PCSensitiveTransformer::handleThunkCall(BlockList::iterator &b_iter,
   }
 }
  
+
+
 void PCSensitiveTransformer::recordIntSensitive(Address addr) {
-  //cerr << "Recording " << std::hex << addr << std::dec << " as internally sensitive" << endl;
   priMap[addr] = Required;
-  //externallySensitives.push_back(addr);
 }
 
 void PCSensitiveTransformer::emulateInsn(BlockList::iterator &b_iter,
@@ -733,3 +780,14 @@ bool ExtPCSensVisitor::isExtSens(AST::Ptr a) {
   }
 }
 
+bool PCSensitiveTransformer::isSyscall(InstructionAPI::Instruction::Ptr insn, Address addr) {
+  // call *%gs:0x10
+  // Build a GS
+  static Expression::Ptr x86_gs(new RegisterAST(x86::gs));
+
+  if (insn->isRead(x86_gs)) {
+    relocation_cerr << "Skipping syscall " << insn->format() << hex << "@ " << addr << dec << endl;
+    return true;
+  }
+  return false;
+}

@@ -58,7 +58,8 @@ class adhocMovementTransformer : public Transformer {
 		   Address &target);
   // Records where PC was stored
   bool isGetPC(ElementPtr ptr,
-	       Absloc &aloc);
+	       Absloc &aloc,
+	       Address &thunkAddr);
   // Used for finding call targets
   AddressSpace *addrSpace;
 };

@@ -414,6 +414,9 @@ class AddressSpace : public InstructionSource {
     bool relocate();
 		   
     void getRelocAddrs(Address orig, std::list<Address> &relocs) const;
+    void getRelocAddrPairs(Address first, Address second,
+			   std::list<std::pair<Address, Address> > &pairs) const;
+			   
 
     void causeTemplateInstantiations();
 

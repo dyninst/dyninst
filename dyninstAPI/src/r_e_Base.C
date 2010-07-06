@@ -76,6 +76,7 @@ Block::Ptr Block::create(bblInstance *bbl) {
 
   relocation_cerr << "Creating new Block" << endl;
 
+
   Ptr newBlock = Ptr(new Block(bbl));  
 
   // Get the list of instructions in the block

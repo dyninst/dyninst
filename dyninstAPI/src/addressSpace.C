@@ -1730,8 +1730,8 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
 
   transform(cm);
 
-  //cerr << "Debugging CodeMover" << endl;
-  //cerr << cm->format() << endl;
+  relocation_cerr << "Debugging CodeMover" << endl;
+  relocation_cerr << cm->format() << endl;
 
   relocation_cerr << "  Entering code generation loop" << endl;
   Address baseAddr = generateCode(cm, nearTo);
@@ -1753,6 +1753,14 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
 
   if (!patchCode(cm, spb))
     return false;
+
+    
+  // Create the address map
+  // We create first because there's less copying this way.
+  AddressMapper addrMap;
+  instAddrMappers_.push_back(AddressMapper());
+
+  cm->extractAddressMap(instAddrMappers_.back(), baseAddr);
   
   return true;
 }
@@ -1770,8 +1778,8 @@ bool AddressSpace::transform(CodeMover::Ptr cm) {
   //cm->transform(a);
 
   //cerr << "Memory emulator" << endl;
-  //MemEmulatorTransformer m;
-  //cm->transform(m);
+  MemEmulatorTransformer m;
+  cm->transform(m);
 
   // Localize control transfers
   //cerr << "  Applying control flow localization" << endl;
@@ -1782,8 +1790,8 @@ bool AddressSpace::transform(CodeMover::Ptr cm) {
   // Add instrumentation
   // For ease of edge instrumentation this should occur post-LocalCFTransformer-age
   //cerr << "Inst transformer" << endl;
-  Instrumenter i;
-  cm->transform(i);
+  //Instrumenter i;
+  //cm->transform(i);
   return true;
 
 }
@@ -1843,14 +1851,6 @@ Address AddressSpace::generateCode(CodeMover::Ptr cm, Address nearTo) {
       break;
     }
   }
-  
-  // Create the address map
-  // We create first because there's less copying this way.
-  AddressMapper addrMap;
-  instAddrMappers_.push_back(AddressMapper());
-
-  cm->extractAddressMap(instAddrMappers_.back(), baseAddr);
-
 
   relocation_cerr << "   ... fixpoint finished, returning baseAddr " 
 		  << std::hex << baseAddr << std::dec << endl;
@@ -1871,9 +1871,11 @@ bool AddressSpace::patchCode(CodeMover::Ptr cm,
   // Suggested: function entries
   // NotRequired: none
 
+
+
   std::list<codeGen> patches;
 
-  if (!spb->generate(patches, p)) { 
+  if (!spb->generate(patches, p)) {
     return false;
   }
 
@@ -1901,6 +1903,22 @@ void AddressSpace::getRelocAddrs(Address orig, std::list<Address> &relocs) const
     }
   }
 }      
+
+void AddressSpace::getRelocAddrPairs(Address from, Address to,
+				     std::list<std::pair<Address, Address> > &pairs) const {
+  for (AddressMapperCollection::const_iterator iter = instAddrMappers_.begin();
+       iter != instAddrMappers_.end(); ++iter) {
+    Address tmp1;
+    if (iter->origToReloc(from, tmp1)) {
+      Address tmp2;
+      bool ret = iter->origToReloc(to, tmp2);
+      assert(ret);
+      pairs.push_back(std::make_pair<Address, Address>(tmp1, tmp2));
+    }
+  }
+}
+    
+
 
 void AddressSpace::addModifiedFunction(int_function *func) {
   assert(func->obj());

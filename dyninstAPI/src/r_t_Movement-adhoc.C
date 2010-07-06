@@ -77,13 +77,12 @@ bool adhocMovementTransformer::processBlock(BlockList::iterator &b_iter) {
 							target);
       (*iter).swap(replacement);
     }
-    else if (isGetPC(*iter, aloc)) {
-      relocation_cerr << "  ... isGetPC at " 
-		      << std::hex << (*iter)->addr() << std::dec << endl;
+    else if (isGetPC(*iter, aloc, target)) {
 
       Element::Ptr replacement = GetPC::create((*iter)->insn(),
 					       (*iter)->addr(),
-					       aloc);
+					       aloc,
+					       target);
       // This is kind of complex. We don't want to just pull the getPC
       // because it also might end the basic block. If that happens we
       // need to pull the fallthough element out of the CFElement so
@@ -185,7 +184,8 @@ bool adhocMovementTransformer::isPCRelData(Element::Ptr ptr,
 }
 
 bool adhocMovementTransformer::isGetPC(Element::Ptr ptr,
-			       Absloc &aloc) {
+				       Absloc &aloc,
+				       Address &thunk) {
 
   // TODO:
   // Check for call + size;
@@ -264,6 +264,7 @@ bool adhocMovementTransformer::isGetPC(Element::Ptr ptr,
       firstInsn->getWriteSet(writes);
       assert(writes.size() == 1);
       aloc = Absloc((*(writes.begin()))->getID());
+      thunk = target;
       return true;
     }
   }

@@ -65,6 +65,10 @@ class ExtPCSensVisitor : public ASTVisitor {
   virtual AST::Ptr visit(SymbolicEvaluation::VariableAST *);
   virtual AST::Ptr visit(SymbolicEvaluation::RoseAST *);
   virtual AST::Ptr visit(StackAST *);
+  virtual ASTVisitor::ASTPtr visit(InputVariableAST *x) { return ASTVisitor::visit(x); }
+  virtual ASTVisitor::ASTPtr visit(ReferenceAST *x) { return ASTVisitor::visit(x); }
+  virtual ASTVisitor::ASTPtr visit(StpAST *x) { return ASTVisitor::visit(x); }
+  virtual ASTVisitor::ASTPtr visit(YicesAST *x) { return ASTVisitor::visit(x); }
   virtual ~ExtPCSensVisitor() {};
   
   bool isExtSens(AST::Ptr a);
@@ -85,8 +89,11 @@ class PCSensitiveTransformer : public Transformer {
  public:
   virtual bool processBlock(BlockList::iterator &);
  PCSensitiveTransformer(AddressSpace *as, PriorityMap &p) : 
-  aConverter(false), addrSpace(as), priMap(p) {};
+  aConverter(false), addrSpace(as), priMap(p),
+    Sens_(0), extSens_(0), intSens_(0) {};
   virtual ~PCSensitiveTransformer() {};
+
+  virtual bool postprocess(BlockList &);
 
  private:
   bool isPCSensitive(InstructionAPI::Instruction::Ptr insn,
@@ -111,14 +118,21 @@ class PCSensitiveTransformer : public Transformer {
 		   ElementList::iterator &iter,
 		   InstructionAPI::Instruction::Ptr insn,
 		   Address addr);
-
+  
   bool exceptionSensitive(Address addr, const bblInstance *bbl);
+
+  bool isSyscall(InstructionAPI::Instruction::Ptr insn, Address addr);
 
   AssignmentConverter aConverter;
 
   AddressSpace *addrSpace;
 
   PriorityMap &priMap;  
+  
+  long Sens_;
+  long extSens_;
+  long intSens_;
+
 };
 
 };

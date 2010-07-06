@@ -84,36 +84,21 @@ CodeMover::Ptr CodeMover::createFunc(FuncSet::const_iterator begin, FuncSet::con
     int_function *func = *begin;
 
     count++;
-    if (!func->isInstrumentable()) continue;
+
+    if (!func->isInstrumentable()) {
+      cerr << "Skipping func " << func->symTabName() << " that's uninstrumentable" << endl;
+      continue;
+    }
+
     if (!ret->addBlocks(func->blocks().begin(), func->blocks().end())) {
       return Ptr();
     }
-#if 0
 
-    //cerr << "Instrumenting function " << func->symTabName() << endl;
-    int blockCount = 0;
-    for (vector<int_basicBlock *>::const_iterator j = blocks.begin();
-	 j != blocks.end(); ++j) {      
-      
-      bblInstance *block = (*j)->origInstance();
-      if (block->get_size() < 5) continue;
-
-      blockCount++;
-      /*
-      bool skip2 = true;
-      if ((blockCount >= 1) &&
-	  (blockCount < 7)) skip2 = false;
-      if (skip2) continue;
-      */
-      //cerr << "Instrumenting block " << blockCount << endl;
-
-      if (!ret->addBlock(block)) 
-	return Ptr();
+    // Add the function entry as Required in the priority map
+    if (func->getAddress() == 0x1d76ef) {
+      cerr << "Required due to function entry" << endl;
     }
-    //cerr << "BlockCount is " << blockCount << endl;
-
-#endif
-
+    ret->priorityMap_[func->getAddress()] = Required;
   }
 
 
@@ -314,12 +299,6 @@ unsigned CodeMover::size() const {
 ///////////////////////
 
 PriorityMap &CodeMover::priorityMap() {
-  if (priorityMap_.empty()) {
-    for (BlockList::iterator i = blocks_.begin(); 
-	 i != blocks_.end(); ++i) {
-      priorityMap_[(*i)->origAddr()] = Required;
-    }
-  }
   return priorityMap_;
 }
 
@@ -335,6 +314,7 @@ const SpringboardMap &CodeMover::sBoardMap() {
 	 iter != priorityMap_.end(); ++iter) {
       const Address &from = iter->first;
       const Priority &p = iter->second;
+
       // the priority map may include things not in the block
       // map...
       BlockMap::const_iterator b_iter = blockMap_.find(from);

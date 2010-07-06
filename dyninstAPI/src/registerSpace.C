@@ -457,10 +457,10 @@ Register registerSpace::getScratchRegister(codeGen &gen, pdvector<Register> &exc
     }
 
     if (toUse == NULL) {
-        // Crap.
-        debugPrint();
-        assert(0 && "Failed to allocate register!");
-        return REG_NULL;
+      // Crap.
+      //debugPrint();
+      // assert(0 && "Failed to allocate register!");
+      return REG_NULL;
     }
 
     toUse->alloc_num = num_allocs;
