@@ -29,13 +29,39 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#if !defined(CMD_LINE_H_)
-#define CMD_LINE_H_
+#if !defined(MODULE_H_)
+#define MODULE_H_
 
-#include "ParameterDict.h"
-#include "test_info_new.h"
+#include <map>
+#include <vector>
+#include <string>
+#include <test_lib.h>
 
-int parseArgs(int argc, char *argv[], ParameterDict &params);
-void getGroupList(std::vector<RunGroup *> &group_list, ParameterDict &params);
+class RunGroup;
+class ComponentTester;
+
+class Module {
+   bool creation_error;
+   bool initialized;
+   bool setup_run;
+   static std::map<std::string, Module *> allmods;
+
+   Module(std::string name_);
+   ComponentTester *loadModuleLibrary();
+   void *libhandle;
+public:
+   std::string name;
+   ComponentTester *tester;
+   std::vector<RunGroup *> groups;
+
+   TESTLIB_DLL_EXPORT bool isInitialized();
+   TESTLIB_DLL_EXPORT void setInitialized(bool result);
+
+   TESTLIB_DLL_EXPORT bool setupRun();
+   TESTLIB_DLL_EXPORT void setSetupRun(bool result);
+
+   TESTLIB_DLL_EXPORT static bool registerGroupInModule(std::string modname, RunGroup *group);
+   TESTLIB_DLL_EXPORT static void getAllModules(std::vector<Module *> &mods);
+};
 
 #endif

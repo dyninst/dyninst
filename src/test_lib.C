@@ -102,16 +102,6 @@ void set_binedit_dir(char *d)
 	binedit_dir = d;
 }
 
-static char *resumelog_name = "resumelog";
-char *get_resumelog_name() {
-	return resumelog_name;
-}
-
-void set_resumelog_name(char *s) {
-	resumelog_name = s;
-}
-
-
 LocErr::LocErr(const char *__file__, const int __line__, const std::string msg) :
 	msg__(msg),
 	file__(std::string(__file__)),

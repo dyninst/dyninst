@@ -79,6 +79,7 @@ static void sortGroups(std::vector<RunGroup *> &groups);
 static void setIndexes(std::vector<RunGroup *> groups);
 static void setupArgDictionary(ParameterDict &params);
 static void setupGroupDictionary(ParameterDict &params);
+static bool fileExists(std::string f);
 
 #define END       0
 #define COMPILERS (1 << 1)
@@ -96,7 +97,7 @@ ModeGroup mode_args[] = {
    { "g++",         COMPILERS, defaultOn  },
    { "gfortran",    COMPILERS, defaultOn  },
    { "icc",         COMPILERS, defaultOff },
-   { "icpc",        COMPILERS, defaultOff },
+   { "iCC",         COMPILERS, defaultOff },
    { "pgcc",        COMPILERS, defaultOff },
    { "pgCC",        COMPILERS, defaultOff },
    { "cc",          COMPILERS, defaultOff },
@@ -129,7 +130,7 @@ ModeGroup mode_args[] = {
    { "mt",          THRDMODE,  defaultOff },
    { "sp",          PROCMODE,  defaultOn  },
    { "mp",          PROCMODE,  defaultOff },
-   { "dynamiclink", LINKMODE,  defaultOff },
+   { "dynamiclink", LINKMODE,  defaultOn  },
    { "staticlink",  LINKMODE,  defaultOff },
    { NULL,          NONE,      defaultOff } };
 
@@ -150,6 +151,7 @@ static int unique_id = 0;
 static int max_unique_id = 0;
 static int next_resume_group = -1;
 static int next_resume_test = -1;
+static bool no_header = false;
 
 static char *humanlog_name = NULL;
 static char *measureFileName = NULL;
@@ -157,6 +159,11 @@ static char *logfilename = NULL;
 static char *dbfilename = NULL;
 
 static std::vector<RunGroup *> group_list;
+
+static std::string given_mutatee = std::string("");
+static int given_mutator = -1;
+
+static bool in_runTests;
 
 int parseArgs(int argc, char *argv[], ParameterDict &params)
 {
@@ -189,9 +196,11 @@ void setupArgDictionary(ParameterDict &params)
    params["unique_id"] = new ParamInt((int) unique_id);
    params["debugbreak"] = new ParamInt((int) shouldDebugBreak);
    params["under_runtests"] = new ParamInt((int) called_from_runTests);
+   params["in_runtests"] = new ParamInt((int) in_runTests);
    params["measure_memcpu"] = new ParamInt((int) measureMEMCPU);
    params["printMutateeLogHeader"] = new ParamInt((int) printMutateeLogHeader);
-
+   params["no_header"] = new ParamInt((int) no_header);
+   
    if (!logfilename)
       logfilename = const_cast<char *>(DEFAULT_LOGNAME);
    if (!humanlog_name)
@@ -205,6 +214,12 @@ void setupArgDictionary(ParameterDict &params)
    params["mutatee_resumelog"] = new ParamString("mutatee_resumelog");
    params["humanlogname"] = new ParamString(humanlog_name);
    params["dboutput"] = new ParamString(dbfilename);
+
+   if (given_mutatee != std::string("") && given_mutator != -1)
+   {
+      params["given_mutatee"] = new ParamString(given_mutatee.c_str());
+      params["given_mutator"] = new ParamInt(given_mutator);
+   }
 }
 
 void setupGroupDictionary(ParameterDict &params)
@@ -216,6 +231,22 @@ void setupGroupDictionary(ParameterDict &params)
 
 static int handleArgs(int argc, char *argv[])
 {
+   char *exec_name = argv[0];
+   char *file_exec_name = strrchr(exec_name, '/');
+   if (!file_exec_name)
+      file_exec_name = strrchr(exec_name, '\\');
+   if (!file_exec_name)
+      file_exec_name = exec_name;
+
+   if (strstr(file_exec_name, "runTests")) {
+      in_runTests = true;
+   }
+   else {
+      assert(strstr(file_exec_name, "test_driver"));
+      in_runTests = false;         
+   }
+
+
    for (unsigned i=1; i < argc; i++ )
    {
       if ( strcmp(argv[i], "-test") == 0)
@@ -375,7 +406,7 @@ static int handleArgs(int argc, char *argv[])
       {
          printMutateeLogHeader = true;
       } 
-      else if ( strcmp(argv[i], "-limit") == 0 || strcmp(argv[i], "-test-limit") ) 
+      else if ( strcmp(argv[i], "-limit") == 0 || strcmp(argv[i], "-test-limit") == 0) 
       {
          if (strcmp(argv[i], "-limit") == 0) {
             fprintf(stderr, "-limit is deprecated, use -test-limit instead\n");
@@ -441,6 +472,10 @@ static int handleArgs(int argc, char *argv[])
       {
          called_from_runTests = true;
       }
+      else if (strcmp(argv[i], "-no-header") == 0)
+      {
+         no_header = true;
+      }
       else if ((strcmp(argv[i], "-help") == 0) ||
                (strcmp(argv[i], "--help") == 0)) 
       {
@@ -467,6 +502,28 @@ static int handleArgs(int argc, char *argv[])
             sprintf(dbfilename, "sql_dblog-%4d-%02d-%02d",
                     timeinfo->tm_year + 1900, timeinfo->tm_mon + 1, timeinfo->tm_mday);
          }
+      }
+      else if (strcmp(argv[i], "-given_mutatee") == 0) {
+         if (i + 1 == argc) {
+            fprintf(stderr, "-given_mutatee must be followed by a mutatee string\n");
+            return NOTESTS;
+         }
+         if (given_mutatee != std::string("")) {
+            fprintf(stderr, "-given_mutatee must be given only once\n");
+            return NOTESTS;
+         }
+         given_mutatee = std::string(argv[++i]);
+      }
+      else if (strcmp(argv[i], "-given_mutator") == 0) {
+         if (i + 1 == argc) {
+            fprintf(stderr, "-given_mutator must be followed by a mutator number\n");
+            return NOTESTS;
+         }
+         if (given_mutator != -1) {
+            fprintf(stderr, "-given_mutator must be given only once\n");
+            return NOTESTS;
+         }
+         given_mutator = atoi(argv[++i]);
       }
    }
 
@@ -539,10 +596,8 @@ struct groupcmp
 {
    bool operator()(const RunGroup* lv, const RunGroup* rv)
    {
-      int mod_cmp = strcmp(lv->mod ? lv->mod->name.c_str() : "", 
-                           rv->mod ? rv->mod->name.c_str() : "");
-      if (mod_cmp)
-         return mod_cmp == -1;
+      if (lv->modname != rv->modname)
+         return lv->modname < rv->modname;
       
       int mutatee_cmp = strcmp(lv->mutatee ? lv->mutatee : "", rv->mutatee ? rv->mutatee : "");
       if (mutatee_cmp)
@@ -619,17 +674,17 @@ static void disableUnwantedTests(std::vector<RunGroup *> &groups)
          continue;
       }
       //Component
-      if (!groups[i]->mod || 
-          (groups[i]->mod->name == std::string("dyninst") && !paramOn("dyninst")) ||
-          (groups[i]->mod->name == std::string("symtab") && !paramOn("symtab")) ||
-          (groups[i]->mod->name == std::string("instruction") && !paramOn("instruction")) ||
-          (groups[i]->mod->name == std::string("proccontrol") && !paramOn("proccontrol")))
+      if (groups[i]->modname == std::string("") || 
+          (groups[i]->modname == std::string("dyninst") && !paramOn("dyninst")) ||
+          (groups[i]->modname == std::string("symtab") && !paramOn("symtab")) ||
+          (groups[i]->modname == std::string("instruction") && !paramOn("instruction")) ||
+          (groups[i]->modname == std::string("proccontrol") && !paramOn("proccontrol")))
       {
          groups[i]->disabled = true;
          continue;
       }
-      //Mutatee list
-      if (!mutateeListContains(mutatee_list, groups[i]->mutatee))
+      //Mutatee list     
+      if (!mutatee_list.empty() && !mutateeListContains(mutatee_list, groups[i]->mutatee))
       {
          groups[i]->disabled = true;
          continue;
@@ -657,8 +712,8 @@ static void disableUnwantedTests(std::vector<RunGroup *> &groups)
          continue;
       }
       //Process mode
-      if ((groups[i]->threadmode == MultiThreaded && !paramOn("mp")) ||
-          (groups[i]->threadmode == SingleThreaded && !paramOn("sp")))
+      if ((groups[i]->procmode == MultiProcess && !paramOn("mp")) ||
+          (groups[i]->procmode == SingleProcess && !paramOn("sp")))
       {
          groups[i]->disabled = true;
          continue;
@@ -679,11 +734,11 @@ static void disableUnwantedTests(std::vector<RunGroup *> &groups)
 #endif
       for (unsigned j=0; j<groups[i]->tests.size(); j++) 
       {
-         if (!testListContains(groups[i]->tests[j], test_list)) 
+         if (!test_list.empty() && !testListContains(groups[i]->tests[j], test_list)) 
          {
             groups[i]->tests[j]->disabled = true;
          }
-      }      
+      }
    }
 
    if (unique_id && max_unique_id && testLimit) {
@@ -724,6 +779,16 @@ static void disableUnwantedTests(std::vector<RunGroup *> &groups)
          }
       }
    }
+
+   for (unsigned  i = 0; i < groups.size(); i++) 
+   {
+      if (groups[i]->disabled)
+         continue;
+      if (!fileExists(groups[i]->mutatee)) {
+         groups[i]->disabled = true;
+      }
+   }
+
    parse_resumelog(groups);
 
    if (testLimit) {
@@ -777,12 +842,26 @@ static void disableUnwantedTests(std::vector<RunGroup *> &groups)
          }
       }
    }
-
+   if (given_mutator != -1) {
+      for (unsigned  i = 0; i < groups.size(); i++) {
+         if (i != given_mutator && !groups[i]->disabled) {
+            for (unsigned j=0; j<groups[i]->tests.size(); j++) 
+            {
+               if (!groups[i]->tests[j]->disabled) {
+                  groups[i]->tests[j]->disabled = true;
+                  groups[i]->tests[j]->limit_disabled = true;
+                  limitedTests = true;
+               }
+               groups[i]->disabled = true;
+            }
+         }
+      }
+   }
    for (unsigned  i = 0; i < groups.size(); i++) {
       if (groups[i]->disabled)
          continue;
       groups[i]->disabled = true;
-      if (groups[i]->mod) {
+      if (groups[i]->modname != std::string("")) {
          for (unsigned j=0; j<groups[i]->tests.size(); j++) {
             if (!groups[i]->tests[j]->disabled)
                groups[i]->disabled = false;
@@ -845,3 +924,21 @@ static bool testListContains(TestInfo * test, std::vector<char *> &testsn) {
    return false;
 }
  
+#if !defined(os_windows_test)
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+static bool fileExists(std::string f)
+{
+   struct stat data;
+   int result = stat(f.c_str(), &data);
+
+   return (result == 0);
+}
+#else
+static bool fileExists(std::string f)
+{
+#error IMPLEMENT
+}
+#endif

@@ -202,6 +202,7 @@ static test_results_t mutatorTest(BPatch *bpatch, BPatch_thread *appThread)
     {
        bpatch->waitForStatusChange();
     }
+    printf("%d parent thread is terminated\n", parentThread->getPid());
 
     // At this point if childThread == NULL the postfork handler failed
     // to run.  Fail gracefully instead of segfaulting on 
@@ -212,10 +213,12 @@ static test_results_t mutatorTest(BPatch *bpatch, BPatch_thread *appThread)
        return FAILED;
     }
     
+    printf("Checking for %d child termination\n", childThread->getPid());
     while ( !childThread->isTerminated() )
     {
        bpatch->waitForStatusChange();
     }
+    printf("%d child thread is terminated\n", childThread->getPid());
 
     if (passedTest) {
       return PASSED;

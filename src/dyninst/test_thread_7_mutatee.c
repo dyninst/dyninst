@@ -178,10 +178,6 @@ int test_thread_7_mutatee() {
    unsigned i;
    int startedall = 0;
 
-#ifndef os_windows_test
-   char c = 'T';
-#endif
-
    initLock(&barrier_mutex);
    initLock(&count_mutex);
 
@@ -205,6 +201,8 @@ int test_thread_7_mutatee() {
          }
       }
    }
+
+   handleAttach();
 
    ok_to_go = 1;
    init_func(NULL);

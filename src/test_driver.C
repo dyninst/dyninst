@@ -66,6 +66,8 @@
 #include "StdOutputDriver.h"
 #include "comptester.h"
 #include "CmdLine.h"
+#include "module.h"
+#include "MutateeStart.h"
 
 int testsRun = 0;
 
@@ -336,21 +338,13 @@ void executeGroup(ComponentTester *tester, RunGroup *group,
 
    int groupnum = group->index;
 
-   ParamString mutatee_prm(group->mutatee);
-   ParamInt startstate_prm((int) group->state);
-   ParamInt createmode_prm((int) group->createmode);
-   ParamInt customexecution_prm((int) group->customExecution);
-   ParamInt selfstart_prm((int) group->selfStart);
-   ParamInt threadmode_prm((int) group->threadmode);
-   ParamInt procmode_prm((int) group->procmode);
+   setMutateeDict(group, param);
 
-   param["pathname"] = &mutatee_prm;
-   param["startState"] = &startstate_prm;
-   param["useAttach"] = &createmode_prm;
-   param["customExecution"] = &customexecution_prm;
-   param["selfStart"] = &selfstart_prm;
-   param["threadMode"] = &threadmode_prm;
-   param["processMode"] = &procmode_prm;
+   ParameterDict::iterator pdi = param.find("given_mutatee");
+   if (pdi != param.end())
+   {
+      registerMutatee(pdi->second->getString());
+   }
 
    for (unsigned i=0; i<group->tests.size(); i++)
    {
@@ -423,9 +417,12 @@ void executeGroup(ComponentTester *tester, RunGroup *group,
 void initModuleIfNecessary(RunGroup *group, std::vector<RunGroup *> &groups, 
                            ParameterDict &params)
 {
-   bool initModule = false;
    if (group->disabled)
       return;
+
+   Module::registerGroupInModule(group->modname, group);
+
+   bool initModule = false;
    for (unsigned j=0; j<group->tests.size(); j++)
    {
       if (group->mod && !group->mod->setupRun() && !group->tests[j]->disabled)
@@ -441,7 +438,7 @@ void initModuleIfNecessary(RunGroup *group, std::vector<RunGroup *> &groups,
    group->mod->setSetupRun(true);
 
    for (unsigned i=0; i<groups.size(); i++) {
-      if (groups[i]->disabled || groups[i]->mod != group->mod)
+      if (groups[i]->disabled || groups[i]->modname != group->modname)
          continue;
       for (unsigned j=0; j<groups[i]->tests.size(); j++) {
          if (groups[i]->tests[j]->disabled)
@@ -476,9 +473,6 @@ void startAllTests(std::vector<RunGroup *> &groups, ParameterDict &param)
 	free(cwd);
 #endif
 
-
-   std::vector<Module *> modules;
-   Module::getAllModules(modules);
 
    measureStart(param);
 
@@ -541,11 +535,14 @@ void startAllTests(std::vector<RunGroup *> &groups, ParameterDict &param)
      mod->setInitialized(false);
    }
 
-   if (!aborted_group) {
-      
+   if (!aborted_group) {      
      if (param["limited_tests"]->getInt()) {
-        log_resumepoint(param["next_resume_group"]->getInt(), 
-                        param["next_resume_test"]->getInt());
+        int next_resume_group = param["next_resume_group"]->getInt();
+        int next_resume_test = param["next_resume_test"]->getInt();
+        if (next_resume_group != -1 && next_resume_test != -1)
+           log_resumepoint(next_resume_group, next_resume_test);
+        else
+           log_clear();
      } else {
        log_clear();
      }
@@ -553,15 +550,15 @@ void startAllTests(std::vector<RunGroup *> &groups, ParameterDict &param)
       
    measureEnd(param);
 
-   cleanPIDFile();
    return;
 } // startAllTests()
 
 void DebugPause() {
-   getOutput()->log(STDERR, "Waiting for attach by debugger\n");
 #if defined(os_windows_test)
+   getOutput()->log(STDERR, "Waiting for attach by debugger\n");
    DebugBreak();
 #else
+   getOutput()->log(STDERR, "Waiting for attach by debugger to %d\n", getpid());
    static volatile int set_me = 0;
    while (!set_me)
      P_sleep(1);
@@ -668,9 +665,13 @@ int main(int argc, char *argv[]) {
    setOutput(new StdOutputDriver(NULL));
 
    ParameterDict params;
-   int result = parseArgs(argc, argv);
+   int result = parseArgs(argc, argv, params);
    if (result)
       exit(result);
+
+   if ( params["debugbreak"]->getInt() ) {
+      DebugPause();
+   }
 
    // Fill in tests vector with lists of test to run
    std::vector<RunGroup *> groups;
@@ -679,10 +680,6 @@ int main(int argc, char *argv[]) {
    result = setupLogs(params);
    if (result)
       exit(result);
-
-   if ( params["debugbreak"]->getInt() ) {
-      DebugPause();
-   }
 
    startAllTests(groups, params);
 
@@ -751,6 +748,12 @@ int setupLogs(ParameterDict &params)
       set_resumelog_name(const_cast<char *>("resumelog"));
    }
 
+   if (params["no_header"]->getInt()) {
+      getOutput()->setNeedsHeader(false);
+   }
+   else {
+      getOutput()->setNeedsHeader(true);
+   }
    
    return 0;
 }

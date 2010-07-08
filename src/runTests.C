@@ -49,6 +49,9 @@
 #include "runTests-utils.h"
 #include "error.h"
 #include "help.h"
+#include "MutateeStart.h"
+
+
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <cstring>
@@ -57,11 +60,12 @@
 // Default name for the resume log file
 #define DEFAULT_RESUMELOG "resumelog"
 // Default name for the crash log file
-#define DEFAULT_CRASHLOG "crashlog"
 
 #define MEMCPU_DEFAULT_LOG "memcpu_tmp.log";
 const char *memcpu_name = NULL;
 const char *memcpu_orig_name = NULL;
+
+bool launch_mutatees = true;
 
 bool staticTests = false;
 bool useLog = false;
@@ -305,6 +309,18 @@ static void clear_resumelog()
    unlink(mresumename.c_str());
 }
 
+#include "CmdLine.h"
+
+FILE *getOutputLog()
+{
+   return stdout;
+}
+
+FILE *getErrorLog()
+{
+   return stderr;
+}
+
 int main(int argc, char *argv[])
 {
    parseParameters(argc, argv);
@@ -328,6 +344,16 @@ int main(int argc, char *argv[])
       parallel_copies = 1;
    
    clear_resumelog();
+
+   ParameterDict params;
+   std::vector<RunGroup *> groups;
+   if (launch_mutatees) {
+      int result = parseArgs(argc, argv, params);
+      if (result) {
+         exit(result);
+      }
+      getGroupList(groups, params);      
+   }   
    
    char *parallel_copies_cs = NULL;
    {
@@ -351,6 +377,7 @@ int main(int argc, char *argv[])
       test_drivers[i].logfile = logfile + std::string(".") + unique_s;
       test_drivers[i].testLimit = testLimit;
       test_drivers[i].child_argv = child_argv;
+      
       if (pidFilename)
          test_drivers[i].pidFilename = pidFilename + std::string(".") + unique_s;
       if (memcpu_name)
@@ -390,6 +417,7 @@ int main(int argc, char *argv[])
    }
 
    bool done = false;
+   unsigned next_group = 0;
    for (;;)
    {
       done = true;
@@ -404,6 +432,34 @@ int main(int argc, char *argv[])
             continue;
          }
 
+         if (launch_mutatees)
+         {
+            if (test_drivers[i].last_result != DRIVER_CRASHED)
+            {
+               std::string given_mutatee = std::string("");
+               bool found_test = false;
+               unsigned j;
+               for (j=next_group; j<groups.size(); j++)
+               {
+                  if (groups[j]->disabled)
+                     continue;
+                  setMutateeDict(groups[j], params);
+                  test_drivers[i].given_mutatee = launchMutatee(groups[j], params);
+                  test_drivers[i].given_mutator = j;
+                  found_test = true;
+                  break;
+               }
+               if (!found_test) {
+                  return -1;
+               }    
+               next_group = j+1;
+            }
+            else { //Driver crashed
+               int mutator = test_drivers[i].given_mutator;
+               test_drivers[i].given_mutatee = launchMutatee(groups[mutator], params);
+            }
+         }               
+
          test_drivers[i].pid = RunTest(invocation,
                                        test_drivers[i].useLog,
                                        test_drivers[i].staticTests,
@@ -412,7 +468,9 @@ int main(int argc, char *argv[])
                                        test_drivers[i].child_argv,
                                        test_drivers[i].pidFilename.c_str(),
                                        test_drivers[i].memcpu_name.c_str(),
-                                       test_drivers[i].hostname);
+                                       test_drivers[i].hostname,
+                                       test_drivers[i].given_mutatee.c_str(), 
+                                       test_drivers[i].given_mutator);
          invocation++;
          if (test_drivers[i].pid < 0) {
             fprintf(stderr, "Could not execute test_driver\n");

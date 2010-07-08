@@ -76,7 +76,8 @@ class test_driver_t {
          unique(0),
          useLog(false),
          staticTests(false),
-         testLimit(0)
+         testLimit(0),
+         given_mutator(-1)
          {
          }
 
@@ -87,6 +88,8 @@ class test_driver_t {
    bool staticTests;
    string logfile;
    int testLimit;
+   int given_mutator;
+   std::string given_mutatee;
    vector<char *> child_argv;
    std::string pidFilename;
    std::string memcpu_name;
@@ -102,9 +105,9 @@ void initPIDFilename(char *buffer, size_t len);
 void cleanupMutatees(char *pidFilename);
 
 test_pid_t RunTest(unsigned int iteration, bool useLog, bool staticTests,
-			std::string logfile, int testLimit, vector<char *> child_argv,
-            const char *pidFilename, const char *memcpu_name,
-            std::string hostname);
+                   std::string logfile, int testLimit, vector<char *> child_argv,
+                   const char *pidFilename, const char *memcpu_name,
+                   std::string hostname, const char *given_mutatee, int given_mutator);
 
 int CollectTestResults(vector<test_driver_t> &test_drivers, int parallel_copies);
 

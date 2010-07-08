@@ -44,6 +44,7 @@
 #include "TestMutator.h"
 #include "test_info_new.h"
 #include "comptester.h"
+#include "module.h"
 
 TESTLIB_DLL_EXPORT TestOutputDriver *loadOutputDriver(char *odname, void * data) {
   std::stringstream fname;

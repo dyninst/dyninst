@@ -135,10 +135,6 @@ test_results_t test4_1_Mutator::mutatorTest() {
 
     child_argv[n++] = const_cast<char*>("-run");
     child_argv[n++] = const_cast<char*>("test4_1");
-    if (getPIDFilename() != NULL) {
-      child_argv[n++] = const_cast<char *>("-pidfile");
-      child_argv[n++] = getPIDFilename();
-    }
     child_argv[n] = NULL;
 
     // Start the mutatee
@@ -150,9 +146,6 @@ test_results_t test4_1_Mutator::mutatorTest() {
 	logerror("Unable to run test program.\n");
         return FAILED;
     }
-    // Register for cleanup
-    registerPID(appThread->getProcess()->getPid());
-
     contAndWaitForAllThreads(bpatch, appThread, mythreads, &threadCount);
 
     if ( !passedTest )

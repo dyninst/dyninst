@@ -35,7 +35,6 @@
  * #Desc: Create processes, process events, and kill them, no instrumentation
  * #Dep: 
  * #Arch:
- * #Notes:useAttach does not apply
  */
 
 #include "BPatch.h"
@@ -117,8 +116,6 @@ test_results_t test3_1_Mutator::executeTest() {
             return FAILED;
         }
         dprintf("Mutatee %d started, pid=%d\n", n, appThread[n]->getPid());
-	// Register mutatee for cleanup
-	registerPID(appThread[n]->getProcess()->getPid());
     }
 
     dprintf("Letting mutatee processes run a short while (5s).\n");

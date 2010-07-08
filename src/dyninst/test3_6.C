@@ -35,7 +35,6 @@
  * #Desc: Create processes (via standard OS methods, not BPatch::createProcess), process events, and kill them, no instrumentation
  * #Dep: 
  * #Arch:
- * #Notes:useAttach does not apply
  */
 
 #if !defined(os_windows_test)
@@ -115,10 +114,7 @@ static int forkNewMutatee(const char *filename, const char *child_argv[])
     //  fork error, fail test
     logerror("%s[%d]:  fork failed: %s\n", __FILE__, __LINE__, strerror(errno));
     return -1;
-  } else {
-    // Parent; register child for cleanup
-    registerPID(pid);
-  }
+  } 
 
   return pid;
 }
@@ -136,7 +132,6 @@ static bool grandparentForkMutatees(int num, int *pids, const char *filename, co
     int childpid = fork();
     if (childpid > 0) {
       //parent -- read grandchild pids
-      registerPID(childpid); // Register for cleanup
       for (unsigned int i = 0; i < num; ++i) {
         result = 0;
         do {

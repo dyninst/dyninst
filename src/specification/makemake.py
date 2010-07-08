@@ -354,6 +354,8 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 			out.write('STOPPED, ')
 		elif group['start_state'] == 'running':
 			out.write('RUNNING, ')
+		elif group['start_state'] == 'selfattach':
+			out.write('SELFATTACH, ')
 		else: # Assuming 'selfstart'
 			out.write('SELFSTART, ')
 		if group['run_mode'] == 'createProcess':
@@ -376,6 +378,10 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 			out.write('SingleProcess, ')
 		elif group['process_mode'] == 'MultiProcess':
 			out.write('MultiProcess, ')
+		if group['connection'] == 'true':
+			out.write('true, ')
+		elif group['connection'] == 'false':
+			out.write('false, ')
                 if group['format'] == 'staticMutatee':
                         out.write('StaticLink, ')
                 else:
@@ -1068,6 +1074,8 @@ void initialize_mutatees_%s(std::vector<RunGroup *> &tests) {
 			state_init = 'STOPPED'
 		elif group['start_state'] == 'running':
 			state_init = 'RUNNING'
+		elif group['start_state'] == 'selfattach':
+			state_init = 'SELFATTACH'
 		else: # Assuming 'selfstart'
 			state_init = 'SELFSTART'
 		if group['run_mode'] == 'createProcess':

@@ -81,10 +81,6 @@ int test4_2_mutatee() {
     pid = fork();
     dprintf("fork result: %d\n", pid);
 
-    if (pid > 0) {
-      registerPID(pid); /* Register for cleanup */
-    }
-
     if (pid >= 0) {
        /* both parent and child exit here */
        test4_2_func2();

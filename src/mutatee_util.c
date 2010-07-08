@@ -449,26 +449,6 @@ void dbLogResult(test_results_t result) {
 /* Support for cleaning up mutatees after a test crashes */
 /*********************************************************/
 
-static char *pidFilename = NULL;
-void setPIDFilename(char *pfn) {
-   pidFilename = pfn;
-}
-char *getPIDFilename() {
-   return pidFilename;
-}
-void registerPID(int pid) {
-   FILE *pidFile;
-   if (NULL == pidFilename) 
-      return;
-   pidFile = fopen(pidFilename, "a");
-   if (NULL == pidFile) {
-      logerror("[%s:%u] - Error registering mutatee PID: error opening pid file\n", __FILE__, __LINE__);
-   } else {
-      fprintf(pidFile, "%d\n", pid);
-      fclose(pidFile);
-   }
-}
-
 static int saved_stdout_fd = -1;
 static int stdout_fd = 1;
 /* setupFortranOutput() redirects stdout to point to outlog.  This seemed

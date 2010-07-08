@@ -121,7 +121,7 @@ test_results_t test2_13_Mutator::executeTest() {
 
 // extern "C" TEST_DLL_EXPORT int test2_13_mutatorMAIN(ParameterDict &param)
 test_results_t test2_13_Mutator::setup(ParameterDict &param) {
-    int useAttach = param["useAttach"]->getInt();
+    int createmode = param["createmode"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
 
     appThread = (BPatch_thread *)(param["appThread"]->getPtr());
@@ -130,8 +130,8 @@ test_results_t test2_13_Mutator::setup(ParameterDict &param) {
     appImage = appThread->getImage();
 
     // Signal the child that we've attached
-    if (useAttach) {
-	signalAttached(appThread, appImage);
+    if (createmode == USEATTACH) {
+       signalAttached(appThread, appImage);
     }
 
     return PASSED;
