@@ -142,10 +142,7 @@ bool sysv_process::initLibraryMechanism()
    pthrd_printf("Initializing library mechanism for process %d\n", getPid());
    assert(!procreader);
    procreader = new PCProcReader(this);
-   if (!symreader_factory) {
-      symreader_factory = (SymbolReaderFactory *) new SymElfFactory();
-      assert(symreader_factory);
-   }
+   symreader_factory = getDefaultSymbolReader();
 
    assert(!translator);
    translator = AddressTranslate::createAddressTranslator(getPid(), 
@@ -247,4 +244,14 @@ bool sysv_process::plat_execed()
    loaded_libs.clear();
    lib_initialized = false;
    return initLibraryMechanism();
+}
+
+SymbolReaderFactory *Dyninst::ProcControlAPI::getDefaultSymbolReader()
+{
+   static SymbolReaderFactory *symreader_factory = NULL;
+   if (!symreader_factory) {
+      symreader_factory = (SymbolReaderFactory *) new SymElfFactory();
+      assert(symreader_factory);
+   }
+   return symreader_factory;
 }

@@ -57,6 +57,9 @@ class int_notify;
 class HandlerPool;
 
 namespace Dyninst {
+
+class SymbolReaderFactory;
+
 namespace ProcControlAPI {
 
 class Process;
@@ -152,6 +155,9 @@ class LibraryPool
   const_iterator end() const;
 
   size_t size() const;
+
+  Library::ptr getExecutable();
+  const Library::ptr getExecutable() const;
 
   Library::ptr getLibraryByName(std::string s);
   const Library::ptr getLibraryByName(std::string s) const;
@@ -474,6 +480,8 @@ class EventNotify
    void removeCB(notify_cb_t cb);
 };
 EventNotify *evNotify();
+
+SymbolReaderFactory *getDefaultSymbolReader();
 
 }
 }

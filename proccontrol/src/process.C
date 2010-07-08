@@ -2934,6 +2934,7 @@ size_t LibraryPool::size() const
 
 Library::ptr LibraryPool::getLibraryByName(std::string s)
 {
+   MTLock lock_this_func;
    int_library *int_lib = proc->getLibraryByName(s);
    if (!int_lib)
       return NULL;
@@ -2942,10 +2943,21 @@ Library::ptr LibraryPool::getLibraryByName(std::string s)
 
 const Library::ptr LibraryPool::getLibraryByName(std::string s) const
 {
+   MTLock lock_this_func;
    int_library *int_lib = proc->getLibraryByName(s);
    if (!int_lib)
       return NULL;
    return int_lib->up_lib;
+}
+
+Library::ptr LibraryPool::getExecutable()
+{
+   return getLibraryByName(proc->getExecutable());
+}
+
+const Library::ptr LibraryPool::getExecutable() const
+{
+   return getLibraryByName(proc->getExecutable());
 }
 
 LibraryPool::iterator::iterator()
@@ -4362,4 +4374,3 @@ void MTManager::endWork()
    assert(!isGeneratorThread());
    work_lock.unlock();
 }
-
