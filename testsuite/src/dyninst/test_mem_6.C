@@ -77,9 +77,7 @@ test_results_t test_mem_6_Mutator::executeTest() {
   BPatch_Vector<BPatch_function *> found_funcs;
   const char *inFunction = "loadsnstores";
   if ((NULL == appImage->findFunction(inFunction, found_funcs, 1)) || !found_funcs.size()) {
-    logerror("    Unable to find function %s\n",
-	    inFunction);
-    return FAILED;
+      failtest(testnum, testdesc, "Unable to find function \"loadsnstores\".\n");
   }
        
   if (1 < found_funcs.size()) {
@@ -100,8 +98,9 @@ test_results_t test_mem_6_Mutator::executeTest() {
 
   //logerror("Doing test %d!!!!!!\n", testnum);
   if (instByteCnt(appThread, "ByteCnt", res1, false) < 0) {
-    return FAILED;
+      failtest(testnum, testdesc, "Unable to instrument byte counts.\n");
   }
+  appThread->continueExecution();
 
   return PASSED;
 #endif

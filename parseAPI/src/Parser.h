@@ -129,7 +129,7 @@ class Parser {
 
  public: 
     /** XXX all strictly internals below this point **/
-    void record_block(CodeRegion *cr, Block *b);
+    void record_block(Block *b);
     void record_func(Function *f);
 
     void init_frame(ParseFrame & frame);
@@ -144,7 +144,7 @@ class Parser {
     ParseFrame::Status frame_status(CodeRegion * cr, Address addr);
 
     /** CFG structure manipulations **/
-    void end_block(CodeRegion *cr, Block *b, InstructionAdapter_t & ah);
+    void end_block(Block *b, InstructionAdapter_t & ah);
     Block * block_at(Function * owner, 
             Address addr, 
             Block * & split);

@@ -157,7 +157,7 @@ void Parser::ProcessCFInsn(
     ParseWorkBundle * bundle = NULL;
 
     // terminate the block at this address
-    end_block(frame.codereg,cur,ah);
+    end_block(cur,ah);
     
     // Instruction adapter provides edge estimates from an instruction
     ah.getNewEdges(edges_out, frame.func, cur, frame.num_insns, &plt_entries); 

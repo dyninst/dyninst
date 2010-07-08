@@ -78,17 +78,20 @@ test_results_t test5_4_Mutator::executeTest() {
   BPatch_function *func;
   int bound = point4_1->size();
   BPatch_Vector<BPatch_variableExpr *> vect4_1;
+  bool found_func = false;
   
   while ((index < bound) && (vect4_1.size() < 2)) {
+    char fn[256];
+
     // Iterating over function calls in static_test::func_cpp()
     if ((func = (*point4_1)[index]->getCalledFunction()) == NULL) {
-      logerror("**Failed** test #4 (static member)\n");
-      logerror("    Can't find the invoked function\n");
-      return FAILED;
+      //logerror("**Failed** test #4 (static member)\n");
+      //logerror("    Can't find the invoked function\n");
+      //return FAILED;
+      // not-a-bug
     }
-
-    char fn[256];
-    if (!strcmp("static_test::call_cpp", func->getName(fn, 256))) {
+    else if (!strcmp("static_test::call_cpp", func->getName(fn, 256))) {
+      found_func = true;
       BPatch_Vector<BPatch_point *> *point4_2 = func->findPoint(BPatch_exit);
       assert(point4_2);
       
@@ -105,6 +108,12 @@ test_results_t test5_4_Mutator::executeTest() {
     }
 
     index ++;
+  }
+  if(!found_func) {
+    // this is what the above not-a-bug was trying to catch
+    logerror("**Failed** test #4 (static member)\n");
+    logerror("    Can't find the invoked function\n");
+    return FAILED;
   }
 
   if (2 != vect4_1.size()) {

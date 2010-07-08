@@ -76,6 +76,13 @@ test_results_t test2_14_Mutator::executeTest() {
 	    failed_this = true;
 	}
     }
+    // Because this uses the thread form of terminateExecution (deprecated),
+    // it also kills the process.  This means we'll access deleted memory if we try to terminate the process.
+    // So set the thread and proc to NULL, ensuring that we won't crash on any system with a real debug heap
+    // (e.g. Windows.)
+    // This means that the test teardown needs to pass these NULLifications back to the component...
+    appThread = NULL;
+    appProc = NULL;
 
     if (!failed_this) {
 	logerror("Passed test #14 (delete thread)\n");
