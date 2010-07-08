@@ -52,7 +52,7 @@ extern "C" DLLEXPORT TestMutator* test_lookup_var_factory()
 
 test_results_t test_lookup_func_Mutator::executeTest()
 {
-	if (useAttach == DESERIALIZE)
+	if (createmode == DESERIALIZE)
 		return SKIPPED;
    std::vector<Variable *> vars;
    bool result = symtab->findVariablesByName(vars, std::string("lookup_var"));

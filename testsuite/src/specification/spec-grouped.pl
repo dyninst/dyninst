@@ -37,7 +37,7 @@
                   restricted_abi_for_arch/3, insane/2, module/1,
                   compiler_static_link/3, compiler_dynamic_link/3,
                   compiler_platform_abi/3, tests_module/2, mutator_requires_libs/2, 
-                  test_exclude_compiler/2]).
+                  test_exclude_compiler/2, mutatee_needs_connection/1]).
 
 %%%%%%%%%%
 %
@@ -1097,10 +1097,10 @@ mutatee('test_mem_1', ['test_mem_1_mutatee.c'], Aux) :-
     test_mem_mutatee_aux(P, Aux).
 compiler_for_mutatee('test_mem_1', Compiler) :-
     comp_lang(Compiler, 'c').
-test_runmode('test_mem_1', 'createProcess').
+% test_runmode('test_mem_1', 'createProcess').
+test_runmode('test_mem_1', 'staticdynamic').
 test_start_state('test_mem_1', 'stopped').
-% I dont think these memory tests should be groupable
-% groupable_test('test_mem_1').
+groupable_test('test_mem_1').
 restricted_amd64_abi('test_mem_1').
 tests_module('test_mem_1', 'dyninst').
 
@@ -1117,6 +1117,7 @@ compiler_for_mutatee('test_mem_2', Compiler) :-
     comp_lang(Compiler, 'c').
 test_runmode('test_mem_2', 'createProcess').
 test_start_state('test_mem_2', 'stopped').
+groupable_test('test_mem_2').
 restricted_amd64_abi('test_mem_2').
 tests_module('test_mem_2', 'dyninst').
 
@@ -1132,6 +1133,7 @@ compiler_for_mutatee('test_mem_3', Compiler) :-
     comp_lang(Compiler, 'c').
 test_runmode('test_mem_3', 'createProcess').
 test_start_state('test_mem_3', 'stopped').
+groupable_test('test_mem_3').
 restricted_amd64_abi('test_mem_3').
 tests_module('test_mem_3', 'dyninst').
 
@@ -1147,6 +1149,7 @@ compiler_for_mutatee('test_mem_4', Compiler) :-
     comp_lang(Compiler, 'c').
 test_runmode('test_mem_4', 'createProcess').
 test_start_state('test_mem_4', 'stopped').
+groupable_test('test_mem_4').
 restricted_amd64_abi('test_mem_4').
 tests_module('test_mem_4', 'dyninst').
 
@@ -1163,6 +1166,7 @@ compiler_for_mutatee('test_mem_5', Compiler) :-
 test_runmode('test_mem_5', 'createProcess').
 test_start_state('test_mem_5', 'stopped').
 restricted_amd64_abi('test_mem_5').
+groupable_test('test_mem_5').
 tests_module('test_mem_5', 'dyninst').
 
 % test_mem_6, formerly test6_6
@@ -1177,6 +1181,7 @@ compiler_for_mutatee('test_mem_6', Compiler) :-
     comp_lang(Compiler, 'c').
 test_runmode('test_mem_6', 'createProcess').
 test_start_state('test_mem_6', 'stopped').
+groupable_test('test_mem_6').
 restricted_amd64_abi('test_mem_6').
 tests_module('test_mem_6', 'dyninst').
 
@@ -1192,6 +1197,7 @@ compiler_for_mutatee('test_mem_7', Compiler) :-
     comp_lang(Compiler, 'c').
 test_runmode('test_mem_7', 'createProcess').
 test_start_state('test_mem_7', 'stopped').
+groupable_test('test_mem_7').
 restricted_amd64_abi('test_mem_7').
 tests_module('test_mem_7', 'dyninst').
 
@@ -1207,6 +1213,7 @@ compiler_for_mutatee('test_mem_8', Compiler) :-
     comp_lang(Compiler, 'c').
 test_runmode('test_mem_8', 'createProcess').
 test_start_state('test_mem_8', 'stopped').
+groupable_test('test_mem_8').
 restricted_amd64_abi('test_mem_8').
 tests_module('test_mem_8', 'dyninst').
 
@@ -1504,7 +1511,7 @@ test('test_thread_6', 'test_thread_6', 'test_thread_6').
 test_description('test_thread_6', 'thread create and destroy callbacks?').
 test_runs_everywhere('test_thread_6').
 test_runmode('test_thread_6', 'dynamic').
-test_start_state('test_thread_6', 'selfstart').
+test_start_state('test_thread_6', 'selfattach').
 tests_module('test_thread_6', 'dyninst').
 
 % test_thread_7 (formerly test14_1)
@@ -1534,7 +1541,7 @@ test('test_thread_7', 'test_thread_7', 'test_thread_7').
 test_description('test_thread_7', 'multithreaded tramp guards').
 test_runs_everywhere('test_thread_7').
 test_runmode('test_thread_7', 'dynamic').
-test_start_state('test_thread_7', 'selfstart').
+test_start_state('test_thread_7', 'selfattach').
 tests_module('test_thread_7', 'dyninst').
 
 % test_thread_8 (formerly test15_1)
@@ -1556,7 +1563,7 @@ test('test_thread_8', 'test_thread_8', 'test_thread_8').
 test_description('test_thread_8', 'thread-specific one time codes').
 test_runs_everywhere('test_thread_8').
 test_runmode('test_thread_8', 'dynamic').
-test_start_state('test_thread_8', 'selfstart').
+test_start_state('test_thread_8', 'selfattach').
 tests_module('test_thread_8', 'dyninst').
 
 % The Fortran tests
@@ -2364,7 +2371,12 @@ compiler_for_mutatee(Mutatee, Compiler) :-
            test(T, _, Mutatee),
     tests_module(T, 'proccontrol'),
     member(Compiler, ['gcc', 'g++']).
-           
+
+mutatee_needs_connection(Mutatee) :- 
+   mutatee(Mutatee, _, _),
+   test(Test, Mutatee, _),
+   tests_module(Test, 'proccontrol').
+   
 test('pc_launch', 'pc_launch', 'pc_launch').
 test_description('pc_launch', 'Launch a process').
 test_platform('pc_launch', Platform) :- pcPlatforms(Platform).
@@ -2474,7 +2486,7 @@ optimization_for_mutatee('pc_irpc', _, Opt) :- member(Opt, ['none']).
 
 % test_start_state/2
 % test_start_state(?Test, ?State) specifies that Test should be run with its
-% mutatee in state State, with State in {stopped, running, selfstart}
+% mutatee in state State, with State in {stopped, running, selfstart, selfattach}
 
 % compiler_for_mutatee/2
 % compiler_for_mutatee(?Testname, ?Compiler)

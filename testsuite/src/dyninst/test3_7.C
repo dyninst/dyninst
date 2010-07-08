@@ -35,7 +35,6 @@
  * #Desc: Tests asynchronous one-time codes
  * #Dep: 
  * #Arch:
- * #Notes:useAttach does not apply
  */
 
 #include "BPatch.h"
@@ -129,8 +128,6 @@ test_results_t test3_7_Mutator::executeTest() {
             return FAILED;
         }
         dprintf("Mutatee %d started, pid=%d\n", n, appThread[n]->getPid());
-	// Register for cleanup
-	registerPID(appThread[n]->getProcess()->getPid());
     }
 
 	// Register a callback that we will use to check for done-ness

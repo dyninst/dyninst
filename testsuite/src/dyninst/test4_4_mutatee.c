@@ -120,9 +120,6 @@ int test4_4_mutatee()
       execvp(newArgv[0], newArgv);
       perror("execvp");
     } else {
-      if (pid > 0) {
-	registerPID(pid); /* Register for cleanup */
-      }
       test4_4_func2();
 #if defined(rs6000_ibm_aix4_1_test)
       /* On AIX the child dies when the parent exits, so wait */

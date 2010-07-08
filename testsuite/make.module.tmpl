@@ -92,13 +92,20 @@ FORALL_MUTATEES = mutatee_util
 
 SRCS_LIBTESTSUITE = test_lib.C \
                     test_lib_soExecution.C \
-                    ParameterDict.C \
                     TestData.C \
                     TestMutator.C \
                     TestOutputDriver.C \
                     StdOutputDriver.C \
-                    ResumeLog.C \
-                    test_info_new.C
+						  module.C
+
+SRCS_LIBTESTLAUNCH = CmdLine.C \
+							ParameterDict.C \
+						  	ResumeLog.C \
+							MutateeStart.C \
+							test_info_new.C
+# test_info_new.gen.C is also part of LIBTESTLAUNCH, but has special build rules
+
+OBJS_LIBTESTLAUNCH = $(SRCS_LIBTESTLAUNCH:%.C=%.o)
 
 SRCS_TEMPLATES = test_driver_templates.C 
 
@@ -107,8 +114,10 @@ OBJS_TEMPLATES = $(SRCS_TEMPLATES:%.C=%.o)
 
 ifdef USE_LIBTESTSUITE_EXT_A
 LIBTESTSUITE = libtestSuite.a
+LIBTESTLAUNCH = libtestlaunch.a
 else
 LIBTESTSUITE = libtestSuite.so
+LIBTESTLAUNCH = libtestlaunch.so
 endif
 
 #######################################################
@@ -215,12 +224,6 @@ default: testlibs mutators mutatees_minimum drivers output_drivers components
 	@echo "**********************************************************"
 
 all: testlibs mutators mutatees drivers output_drivers components
-
-# test_info_new.gen.o is special-cased because it makes use of the
-# COMPILER_CONTROL_DEFS to determine which mutatees to enable for compilers
-# that are not present at all sites.
-test_info_new.gen.o: test_info_new.gen.C
-	$(CXX) -c -o $@ $(CXXFLAGS) $(COMPILER_CONTROL_DEFS) -I../src/ test_info_new.gen.C
 
 #######################################################################
 ###  A list of all the targets we're building, for install purposes
@@ -422,6 +425,15 @@ $(OBJS_PROCCONTROLCOMP_LIB): %.o : ../src/proccontrol/%.C $(DEPENDDIR)/%.dep
 $(OBJS_LIBTESTSUITE): %.o : ../src/%.C $(DEPENDDIR)/%.dep
 	$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/$*.C
 
+# test_info_new.gen.o is special-cased because it makes use of the
+# COMPILER_CONTROL_DEFS to determine which mutatees to enable for compilers
+# that are not present at all sites.
+test_info_new.gen.o: test_info_new.gen.C
+	$(CXX) -c -fPIC -o $@ $(CXXFLAGS) $(COMPILER_CONTROL_DEFS) -I../src/ test_info_new.gen.C
+
+$(OBJS_LIBTESTLAUNCH): %.o :  ../src/%.C ../src/%.h $(DEPENDDIR)/%.dep
+	$(M_GXX) -c -fPIC -o $@ $(CXXFLAGS) -I../src/ ../src/$*.C
+
 $(LIBDYNINSTCOMP) : $(OBJS_DYNINSTCOMP_LIB) $(LIBTESTSUITE)
 	$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_DYNINSTCOMP_LIB) -o $@ -L. -ltestSuite -ldyninstAPI -lsymtabAPI \
 -lcommon
@@ -435,9 +447,11 @@ $(LIBINSTRUCTIONCOMP) : $(OBJS_INSTRUCTIONCOMP_LIB) $(LIBTESTSUITE)
 $(LIBPROCCONTROLCOMP) : $(OBJS_PROCCONTROLCOMP_LIB) $(LIBTESTSUITE)
 	$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_PROCCONTROLCOMP_LIB) -o $@ -L. -ltestSuite -lpcontrol -lcommon
 
-$(LIBTESTSUITE) : $(OBJS_LIBTESTSUITE) test_lib_templates.o test_lib.h
-	$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(LIBS_LIBTESTSUITE) $(OBJS_LIBTESTSUITE) test_lib_templates.o -o $@
+$(LIBTESTSUITE) : $(OBJS_LIBTESTSUITE) test_lib_templates.o test_lib.h $(LIBTESTLAUNCH)
+	$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(LIBS_LIBTESTSUITE) $(OBJS_LIBTESTSUITE) -L. -ltestlaunch test_lib_templates.o -o $@
 
+$(LIBTESTLAUNCH) : $(OBJS_LIBTESTLAUNCH) test_info_new.gen.o
+	$(CXX) -shared $(TESTUITE_FLAGS) $(LIBDIR) -o $@ $^
 #
 # Native Fortran mutatees
 # 
@@ -514,23 +528,19 @@ runTests_static.o: ../src/runTests.C $(DEPENDDIR)/runTests.dep
 runTests-utils.o: ../src/runTests-utils.C $(DEPENDDIR)/runTests-utils.dep
 	$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/runTests-utils.C
 
-runTests: runTests.o runTests-utils.o test_driver_templates.o 
-	$(CXX) $(CXXFLAGS) -o $@ runTests.o runTests-utils.o test_driver_templates.o 
+runTests: runTests.o runTests-utils.o test_driver_templates.o  $(LIBTESTLAUNCH)
+	$(CXX) $(CXXFLAGS) -o $@ runTests.o runTests-utils.o test_driver_templates.o -L. -ltestlaunch 
 runTests_static: runTests_static.o runTests-utils.o test_driver_templates.o 
 	$(CXX) $(CXXFLAGS) -o runTests runTests_static.o runTests-utils.o test_driver_templates.o 
-
-CmdLine.o: ../src/CmdLine.C $(DEPENDDIR)/CmdLine.dep
-	$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/CmdLine.C
 
 test_driver.o: ../src/test_driver.C $(DEPENDDIR)/test_driver.dep
 	$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/test_driver.C
 
-
 test_driver_static.o: ../src/test_driver.C $(DEPENDDIR)/test_driver_static.dep
 	$(CXX) -c -o $@ -DSTATIC_TEST_DRIVER $(CXXFLAGS) $(MUTATEE_DEFS) ../src/test_driver.C
 
-test_driver: test_driver.o test_driver_templates.o test_info_new.gen.o $(DEPENDDIR)/test_driver.dep $(LIBTESTSUITE)
-	$(CXX) -o $@ test_driver.o test_driver_templates.o test_info_new.gen.o -L. -ltestSuite $(MUTATOR_LDFLAGS) $(LIBS) $(TESTDRIVER_LDFLAGS) -lcommon
+test_driver: test_driver.o test_driver_templates.o $(DEPENDDIR)/test_driver.dep $(LIBTESTSUITE) $(LIBTESTLAUNCH)
+	$(CXX) -o $@ test_driver.o test_driver_templates.o test_info_new.gen.o -L. -ltestSuite $(MUTATOR_LDFLAGS) $(LIBS) $(TESTDRIVER_LDFLAGS) -lcommon -ltestlaunch
 
 ######################################################################
 ### Output Drivers
@@ -556,7 +566,7 @@ output_drivers: $(OUTPUT_DRIVERS)
 ###  Depends
 #######################################################################
 
-DEPS_MUTATORS           += $(DEPENDDIR)/test_driver.dep $(DEPENDDIR)/CmdLine.dep
+DEPS_MUTATORS           += $(DEPENDDIR)/test_driver.dep
 DEPS_MUTATORS           += $(DEPENDDIR)/runTests.dep $(DEPENDDIR)/runTests-utils.dep
 DEPS_SYMTAB_MUTATORS    += $(addprefix $(DEPENDDIR)/,$(symtab_OBJS_ALL_MUTATORS:%.o=%.dep))
 DEPS_DYNINST_MUTATORS    += $(addprefix $(DEPENDDIR)/,$(dyninst_OBJS_ALL_MUTATORS:%.o=%.dep))
@@ -568,6 +578,7 @@ DEPS_MUTATEES_GXX	+= $(addprefix $(DEPENDDIR)/,$(addsuffix _g++.dep, $(MUTATEES_
 DEPS_MUTATEES_GXX	+= $(addprefix $(DEPENDDIR)/,$(addsuffix _g++.dep, $(MUTATEES_CXX_ONLY)))
 DEPS_DYNINST_TESTLIBS	= $(addprefix $(DEPENDDIR)/,$(DYNINST_TESTLIBS:%.so=%.dep))
 DEPS_LIBTESTSUITE        = $(addprefix $(DEPENDDIR)/,$(SRCS_LIBTESTSUITE:%.C=%.dep))
+DEPS_LIBTESTLAUNCH        = $(addprefix $(DEPENDDIR)/,$(SRCS_LIBTESTLAUNCH:%.C=%.dep))
 DEPS_DYNINSTCOMP       =  $(addprefix $(DEPENDDIR)/,$(notdir $(SRCS_DYNINSTCOMP_LIB:%.C=%.dep)))
 DEPS_SYMTABCOMP        = $(addprefix $(DEPENDDIR)/,$(notdir $(SRCS_SYMTABCOMP_LIB:%.C=%.dep)))
 DEPS_INSTRUCTIONCOMP        = $(addprefix $(DEPENDDIR)/,$(notdir $(SRCS_INSTRUCTIONCOMP_LIB:%.C=%.dep)))
@@ -673,7 +684,7 @@ $(DEPS_DYNINST_TESTLIBS): $(DEPENDDIR)/lib%.dep : ../src/dyninst/lib%.c
 	@mkdir -p $(DEPENDDIR)
 	$(DEPCC) $(CXXFLAGS) $< $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) lib$*.so > $@
 
-$(DEPS_LIBTESTSUITE): $(DEPENDDIR)/%.dep : %.C
+$(DEPS_LIBTESTLAUNCH) $(DEPS_LIBTESTSUITE): $(DEPENDDIR)/%.dep : %.C
 	@mkdir -p $(DEPENDDIR)
 	$(DEPCC) $(CXXFLAGS) -I../src $< $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) $*.o > $@
 

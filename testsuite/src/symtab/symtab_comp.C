@@ -59,7 +59,7 @@ test_results_t SymtabComponent::group_setup(RunGroup *group, ParameterDict &para
 	//mutatee_p.setString(group->mutatee);
 	compiler_p.setString(group->compiler);
 #if defined (cap_serialization_test)
-	if (group->useAttach == DESERIALIZE)
+	if (group->createmode == DESERIALIZE)
 		return SKIPPED;
 
 	const char *ser_env = getenv(SERIALIZE_CONTROL_ENV_VAR);
@@ -72,7 +72,7 @@ test_results_t SymtabComponent::group_setup(RunGroup *group, ParameterDict &para
 	else
 	{
 		Symtab *s_open = Symtab::findOpenSymtab(std::string(group->mutatee));
-		switch (group->useAttach)
+		switch (group->createmode)
 		{
 			case DESERIALIZE:
 				{
@@ -159,7 +159,7 @@ test_results_t SymtabComponent::group_setup(RunGroup *group, ParameterDict &para
 			   return FAILED;
 
 #if defined (cap_serialization_test)
-		if  (group->useAttach == CREATE)
+		if  (group->createmode == CREATE)
 		{
 			// manually trigger the parsing of type and line info here
 			// so that everything gets serialized...  for the deserialize tests	
@@ -181,7 +181,7 @@ test_results_t SymtabComponent::group_setup(RunGroup *group, ParameterDict &para
    }
 
    params["Symtab"] = &symtab_ptr;
-   params["useAttach"]->setInt(group->useAttach);
+   params["createmode"]->setInt(group->createmode);
    //params["mutatee"] = &mutatee_p;
    params["compiler"] = &compiler_p;
    return PASSED;
@@ -206,7 +206,7 @@ test_results_t SymtabComponent::test_teardown(TestInfo *test, ParameterDict &par
 test_results_t SymtabMutator::setup(ParameterDict &param)
 {
    symtab = (Symtab *) param["Symtab"]->getPtr();
-   useAttach = (int) param["useAttach"]->getInt();
+   createmode = (create_mode_t) param["createmode"]->getInt();
    //mutatee = std::string((const char *)param["mutatee"]->getString());
    compiler = std::string((const char *)param["compiler"]->getString());
    return PASSED;

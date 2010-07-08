@@ -100,7 +100,7 @@ test_results_t test2_2_Mutator::executeTest() {
 
 // extern "C" TEST_DLL_EXPORT int test2_2_mutatorMAIN(ParameterDict &param)
 test_results_t test2_2_Mutator::setup(ParameterDict &param) {
-  int useAttach = param["useAttach"]->getInt();
+  bool useAttach = ((create_mode_t) param["createmode"]->getInt()) == USEATTACH;
   bpatch = (BPatch *)(param["bpatch"]->getPtr());
   
   // Get log file pointers

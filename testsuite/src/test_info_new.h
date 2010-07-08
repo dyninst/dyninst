@@ -28,6 +28,7 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
+
 #ifndef TEST_INFO_NEW_H
 #define TEST_INFO_NEW_H
 
@@ -72,8 +73,6 @@ typedef enum {
 } test_linktype_t;
 
 class TestInfo {
-private:
-	static int global_max_test_name_length;
 public:
   const char *name;
   const char *mutator_name;
@@ -90,8 +89,6 @@ public:
   test_results_t results[NUM_RUNSTATES];
   bool result_reported;
   
-  TESTLIB_DLL_EXPORT static int getMaxTestNameLength();
-  TESTLIB_DLL_EXPORT static void setMaxTestNameLength(int newlen);
   TESTLIB_DLL_EXPORT TestInfo(unsigned int i, const char *iname, const char *mrname,
 	   const char *isoname, bool _serialize_enable, const char *ilabel);
   TESTLIB_DLL_EXPORT ~TestInfo();
@@ -109,7 +106,9 @@ public:
   unsigned int index;
   std::vector<TestInfo *> tests;
   bool disabled;
+  bool connection;
   Module *mod;
+  std::string modname;
   test_threadstate_t threadmode;
   test_procstate_t procmode;
   test_linktype_t linktype;
@@ -120,47 +119,25 @@ public:
   TESTLIB_DLL_EXPORT RunGroup(const char *mutatee_name, start_state_t state_init,
                               create_mode_t attach_init, 
                               test_threadstate_t threads_, test_procstate_t procs_, 
+                              bool connection_,
                               test_linktype_t linktype_,
                               bool ex, TestInfo *test_init,
                               const char *modname_, const char *compiler_, const char *optlevel_, 
                               const char *abi_);
   TESTLIB_DLL_EXPORT RunGroup(const char *mutatee_name, start_state_t state_init,
                               create_mode_t attach_init,
-							  bool ex, const char *modname_, 
+                              bool ex, const char *modname_, 
                               const char *compiler_, const char *optlevel_,
-							  const char *abi);
+                              const char *abi);
   TESTLIB_DLL_EXPORT RunGroup(const char *mutatee_name, start_state_t state_init,
                               create_mode_t attach_init, 
                               test_threadstate_t threads_, test_procstate_t procs_, 
+                              bool connection_,
                               test_linktype_t linktype_,
                               bool ex, const char *modname_,
                               const char *compiler_, const char *optlevel_, 
                               const char *abi_);
   TESTLIB_DLL_EXPORT ~RunGroup();
-};
-
-class Module {
-   bool creation_error;
-   bool initialized;
-   bool setup_run;
-   static std::map<std::string, Module *> allmods;
-
-   Module(std::string name_);
-   ComponentTester *loadModuleLibrary();
-   void *libhandle;
-public:
-   std::string name;
-   ComponentTester *tester;
-   std::vector<RunGroup *> groups;
-
-   TESTLIB_DLL_EXPORT bool isInitialized();
-   TESTLIB_DLL_EXPORT void setInitialized(bool result);
-
-   TESTLIB_DLL_EXPORT bool setupRun();
-   TESTLIB_DLL_EXPORT void setSetupRun(bool result);
-
-   TESTLIB_DLL_EXPORT static bool registerGroupInModule(std::string modname, RunGroup *group);
-   TESTLIB_DLL_EXPORT static void getAllModules(std::vector<Module *> &mods);
 };
 
 //extern std::vector<RunGroup *> tests;

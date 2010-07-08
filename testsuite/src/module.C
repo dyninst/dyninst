@@ -29,17 +29,79 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#if !defined(MUTATEE_LAUNCH_H_)
-#define MUTATEE_LAUNCH_H_
+#include "module.h"
+#include "test_info_new.h"
 
-#include <vector>
-#include <string>
+Module::Module(std::string name_)
+{
+   name = name_;
+   tester = loadModuleLibrary();
+   creation_error = (tester == NULL);
+   if (creation_error) {
+      allmods[name] = NULL;
+      return;
+   }
+   allmods[name] = this;
+   initialized = true;
+   setup_run = false;
+}
+
+bool Module::registerGroupInModule(std::string modname, RunGroup *group)
+{
+   assert(group);
+   Module *mod = NULL;
+   if (allmods.count(modname)) {
+      mod = allmods[modname];
+   }
+   else {
+      mod = new Module(modname);
+      if (mod->creation_error) {
+         delete mod;
+         mod = NULL;
+      }
+   }
+
+   group->mod = mod;
+   if (!mod)
+      return false;
+
+   mod->groups.push_back(group);
+   return true;
+}
 
 
-bool getMutateeCmdLine(RunGroup *grp, const ParameterDict &params, 
-                       std::string &cmd, std::vector<std::string> &args);
-int startMutatee(RunGroup *grp, ParameterDict &params);
+void Module::getAllModules(std::vector<Module *> &mods)
+{
+   mods.clear();
+   std::map<std::string, Module *>::iterator i;
+   for (i=allmods.begin(); i!=allmods.end(); i++)
+   {
+      if ((*i).second)
+      {
+         mods.push_back((*i).second);
+      }
+   }
+}
+
+bool Module::setupRun()
+{
+   return setup_run;
+}
+
+void Module::setSetupRun(bool result)
+{
+   setup_run = result;
+}
+
+bool Module::isInitialized()
+{
+  return initialized;
+}
+
+void Module::setInitialized(bool result)
+{
+  initialized = result;
+}
 
 
-
-#endif
+std::map<std::string, Module *> Module::allmods;
