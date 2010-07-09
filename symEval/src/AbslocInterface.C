@@ -377,6 +377,27 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
     pcRegion.push_back(Absloc::makePC(func->isrc()->getArch()));
     
     handlePushEquivalent(I, addr, func, pcRegion, assignments);
+
+    // Now for the PC definition
+    // Assume full intra-dependence of non-flag and non-pc registers. 
+    std::vector<AbsRegion> used;
+    std::vector<AbsRegion> defined;
+
+    aConverter.convertAll(I,
+			  addr,
+			  func,
+			  used,
+			  defined);
+
+    Assignment::Ptr a = Assignment::Ptr(new Assignment(I, addr, func, pcRegion));
+    if (!used.empty()) {
+      // Indirect call
+      a->addInputs(used);
+    }
+    else {
+      a->addInputs(pcRegion);
+    }
+    assignments.push_back(a);
     break;
   }
   case e_pop: {
