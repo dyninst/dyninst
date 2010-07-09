@@ -5,7 +5,7 @@
 #include <queue>
 #include "symEval/h/Absloc.h"
 #include "symEval/h/AbslocInterface.h"
-#include "Instruction.h"
+#include "instructionAPI/h/Instruction.h"
 
 #include "symEval/h/stackanalysis.h"
 
@@ -17,9 +17,9 @@
 
 #include "debug.h"
 
-#include "CFG.h"
-#include "CodeSource.h"
-#include "CodeObject.h"
+#include "parseAPI/h/CFG.h"
+#include "parseAPI/h/CodeSource.h"
+#include "parseAPI/h/CodeObject.h"
 
 using namespace Dyninst;
 using namespace InstructionAPI;
