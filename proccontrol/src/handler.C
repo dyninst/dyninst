@@ -411,6 +411,11 @@ bool HandleThreadDestroy::handleEvent(Event::ptr ev)
    pthrd_printf("Handling post-thread destroy for %d\n", thrd->getLWP());
    ProcPool()->condvar()->lock();
 
+   if( int_process::getThreadControlMode() == int_process::HybridLWPControl ) {
+      // Need to make sure that the thread actually finishes at this point
+      thrd->plat_resume();
+   }
+
    thrd->setHandlerState(int_thread::exited);
    thrd->setInternalState(int_thread::exited);
    thrd->setUserState(int_thread::exited);
@@ -657,6 +662,13 @@ bool HandleBreakpointClear::handleEvent(Event::ptr ev)
    thrd->setSingleStepMode(false);
    thrd->markClearingBreakpoint(NULL);
    thrd->setInternalState(int_thread::stopped);
+
+   // Make sure the thread that caused the event remains stopped
+   if(    int_process::getThreadControlMode() == int_process::HybridLWPControl 
+       && proc->threadPool()->size() > 1 ) 
+   {
+       thrd->plat_suspend();
+   }
   
    proc->threadPool()->restoreInternalState(false);
 

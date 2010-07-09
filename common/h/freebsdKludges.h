@@ -41,6 +41,7 @@
 int sysctl_computeAddrWidth(pid_t pid);
 char *sysctl_getExecPathname(pid_t pid);
 bool sysctl_findProcLWPs(pid_t pid, std::vector<pid_t> &lwps);
+lwpid_t sysctl_getInitialLWP(pid_t pid);
 
 map_entries *getVMMaps(int pid, unsigned &maps_size);
 

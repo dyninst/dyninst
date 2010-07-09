@@ -157,7 +157,7 @@ class int_process
    
    typedef enum {
        NoLWPControl = 0,
-       HybridLWPControl,
+       HybridLWPControl, // see below for a description of these modes
        IndependentLWPControl
    } ThreadControlMode;
    static ThreadControlMode getThreadControlMode();
@@ -198,6 +198,27 @@ class int_process
    std::queue<Event::ptr> proc_stoppers;
    int continueSig;
 };
+
+/*
+ * Thread Control Modes (as defined above)
+ *
+ * Currently, there are 3 thread control modes: NoLWPControl, HybridLWPControl,
+ * and IndependentLWPControl.
+ *
+ * NoLWPControl is currently unused. This mode implies that no operations can
+ * be performed on just a LWP.
+ *
+ * HybridLWPControl is currently the mode on FreeBSD. This mode implies that
+ * operations can be performed on LWPs, but the whole process needs to be
+ * stopped before these operations can be performed. Additionally, it implies
+ * that threads cannot be continued and stopped; they must be resumed and
+ * suspended, and followed by a whole process continue. This means that the
+ * plat_suspend, plat_resume, and plat_contProcess functions will be used to
+ * implement thread stops and continues.
+ *
+ * IndependentLWPControl is currently the mode on Linux. This mode implies that
+ * operations can be performed on LWPs independent of each other's state.
+ */
 
 class int_registerPool
 {
@@ -318,16 +339,23 @@ class int_thread
    void setContSignal(int sig);
    int getContSignal();
    bool contWithSignal(int sigOverride = -1);
-   virtual bool plat_cont(bool user_cont) = 0;
+   virtual bool plat_cont() = 0;
    virtual bool plat_stop() = 0;
    void setPendingUserStop(bool b);
    bool hasPendingUserStop() const;
    void setPendingStop(bool b);
    bool hasPendingStop() const;
-   void setPendingUserContinue(bool b);
-   bool hasPendingUserContinue() const;
-   void setPendingContinue(bool b);
-   bool hasPendingContinue() const;
+   void setDeferredContinue(bool b);
+   bool hasDeferredContinue() const;
+   void setResumed(bool b);
+   bool isResumed() const;
+   void setClearingPendingStop(bool b);
+   bool clearingPendingStop() const;
+
+   // Needed for HybridLWPControl thread control mode
+   // These can be no-ops for other modes
+   virtual bool plat_suspend() = 0;
+   virtual bool plat_resume() = 0;
 
    //Single-step
    bool singleStepMode() const;
@@ -393,8 +421,9 @@ class int_thread
    unsigned sync_rpc_count;
    bool pending_user_stop;
    bool pending_stop;
-   bool pending_user_continue;
-   bool pending_continue;
+   bool deferred_continue;
+   bool resumed;
+   bool clearing_pending_stop;
    int num_locked_stops;
    bool user_single_step;
    bool single_step;

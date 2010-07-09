@@ -193,7 +193,6 @@ bool sysctl_findProcLWPs(pid_t pid, std::vector<pid_t> &lwps) {
         return false;
     }
 
-
     int numEntries = length / procInfo->ki_structsize;
     for(int i = 0; i < numEntries; ++i) {
         lwps.push_back(procInfo[i].ki_tid);
@@ -201,6 +200,35 @@ bool sysctl_findProcLWPs(pid_t pid, std::vector<pid_t> &lwps) {
     free(procInfo);
 
     return true;
+}
+
+lwpid_t sysctl_getInitialLWP(pid_t pid) {
+    size_t length;
+    struct kinfo_proc *procInfo = getProcInfo(pid, length, true);
+    if( NULL == procInfo ) {
+        fprintf(stderr, "Failed to determine initial LWP for process %d\n", pid);
+        return -1;
+    }
+
+    int numEntries = length / procInfo->ki_structsize;
+
+    // The string won't be set until there are multiple LWPs
+    if( numEntries == 1 ) {
+        lwpid_t ret = procInfo->ki_tid;
+        free(procInfo);
+        return ret;
+    }
+
+    for(int i = 0; i < numEntries; ++i) {
+        if( std::string(procInfo[i].ki_ocomm).find("initial") != std::string::npos ) {
+            lwpid_t ret = procInfo[i].ki_tid;
+            free(procInfo);
+            return ret;
+        }
+    }
+
+    free(procInfo);
+    return -1;
 }
 
 static bool PtraceBulkAccess(Dyninst::Address inTraced, unsigned size, void *inSelf, int pid, bool read) {

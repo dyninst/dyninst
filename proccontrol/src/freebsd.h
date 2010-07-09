@@ -116,6 +116,8 @@ public:
     virtual bool plat_contThread(lwpid_t lwp);
     virtual bool plat_stopThread(lwpid_t lwp);
 
+    virtual bool post_attach();
+
 protected:
     string libThreadName;
 };
@@ -128,7 +130,7 @@ public:
     freebsd_thread();
     virtual ~freebsd_thread();
 
-    virtual bool plat_cont(bool user_cont);
+    virtual bool plat_cont();
     virtual bool plat_stop();
     virtual bool plat_getAllRegisters(int_registerPool &reg);
     virtual bool plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val);
@@ -138,16 +140,42 @@ public:
 
     /* FreeBSD-specific */
     virtual bool plat_setStep();
+    void setBootstrapStop(bool b);
+    bool hasBootstrapStop() const;
+
+protected:
+    bool bootstrap_stop;
 };
 
-class FreeBSDSyncHandler : public Handler
+class FreeBSDStopHandler : public Handler
 {
 public:
-    FreeBSDSyncHandler();
-    virtual ~FreeBSDSyncHandler();
+    FreeBSDStopHandler();
+    virtual ~FreeBSDStopHandler();
     virtual bool handleEvent(Event::ptr ev);
     virtual int getPriority() const;
     void getEventTypesHandled(std::vector<EventType> &etypes);
 };
+
+class FreeBSDPostStopHandler : public Handler
+{
+public:
+    FreeBSDPostStopHandler();
+    virtual ~FreeBSDPostStopHandler();
+    virtual bool handleEvent(Event::ptr ev);
+    virtual int getPriority() const;
+    void getEventTypesHandled(std::vector<EventType> &etypes);
+};
+
+class FreeBSDBootstrapHandler : public Handler
+{
+public:
+    FreeBSDBootstrapHandler();
+    virtual ~FreeBSDBootstrapHandler();
+    virtual bool handleEvent(Event::ptr ev);
+    virtual int getPriority() const;
+    void getEventTypesHandled(std::vector<EventType> &etypes);
+};
+
 
 #endif

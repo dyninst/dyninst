@@ -64,10 +64,10 @@ ps_err_e ps_pread(struct ps_prochandle *handle, psaddr_t remote, void *local, si
 }
 
 ps_err_e ps_pwrite(struct ps_prochandle *handle, psaddr_t remote, const void *local, size_t size) {
-    pthrd_printf("thread_db writing to %#lx write %#lx, size = %d on %d\n",
+    pthrd_printf("thread_db writing to %#lx from %#lx, size = %d on %d\n",
             (unsigned long)remote, (unsigned long)local, size, handle->thread_db_proc->getPid());
     if( !handle->thread_db_proc->plat_writeProcMem(const_cast<void *>(local), (Dyninst::Address)remote, size) ) {
-        pthrd_printf("Failed to write to %#lx write %#lx, size = %d on %d: %s\n",
+        pthrd_printf("Failed to write to %#lx from %#lx, size = %d on %d: %s\n",
                 (unsigned long)remote, (unsigned long)local, size, handle->thread_db_proc->getPid(),
                 strerror(errno));
         return PS_ERR;
@@ -192,7 +192,7 @@ static
 Event::ptr decodeThreadEvent(td_event_msg_t *eventMsg) {
     td_thrinfo_t threadInfo;
     td_err_e errVal;
-    if( TD_OK != (errVal = td_thr_get_info(eventMsg->th_p, &threadInfo)) ) {
+    if( TD_OK != (errVal = td_thr_get_info((const td_thrhandle_t *)eventMsg->th_p, &threadInfo)) ) {
         perr_printf("Failed to get thread event info from event msg: %s(%d)\n",
                 tdErr2Str(errVal), errVal);
         return Event::ptr();
@@ -200,7 +200,7 @@ Event::ptr decodeThreadEvent(td_event_msg_t *eventMsg) {
 
     switch(eventMsg->event) {
         case TD_CREATE:
-            if( TD_OK != (errVal = td_thr_dbsuspend(eventMsg->th_p)) ) {
+            if( TD_OK != (errVal = td_thr_dbsuspend((const td_thrhandle_t *)eventMsg->th_p)) ) {
                 perr_printf("Failed suspend new thread via thread_db: %s(%d)\n",
                         tdErr2Str(errVal), errVal);
                 return Event::ptr();
@@ -256,6 +256,25 @@ thread_db_process::~thread_db_process()
     delete self;
 }
 
+// A callback passed to td_ta_thr_iter
+// A non-zero return value is an error
+static
+int bootstrap_cb(const td_thrhandle_t *handle, void *arg) {
+    bool suspend = *(bool *)arg;
+
+    if( suspend ) {
+        td_err_e errVal = td_thr_dbsuspend(handle);
+
+        if( TD_OK != errVal ) return 1;
+    }
+
+    td_err_e errVal = td_thr_event_enable(handle, 1);
+
+    if( TD_OK != errVal ) return 1;
+
+    return 0;
+}
+
 bool thread_db_process::initThreadDB() {
     // Q: Why isn't this in the constructor? 
     // A: This function depends on the corresponding thread library being loaded
@@ -282,6 +301,7 @@ bool thread_db_process::initThreadDB() {
     td_err_e errVal = td_ta_new(self, &threadAgent);
     switch(errVal) {
         case TD_OK:
+            pthrd_printf("Retrieved thread agent from thread_db\n");
             break;
         case TD_NOLIBTHREAD:
             pthrd_printf("Debuggee isn't multithreaded at this point, libthread_db not enabled\n");
@@ -300,6 +320,26 @@ bool thread_db_process::initThreadDB() {
     errVal = td_ta_set_event(threadAgent, &eventMask);
     if( TD_OK != errVal ) {
         perr_printf("Failed to enable events: %s(%d)\n",
+                tdErr2Str(errVal), errVal);
+        setLastError(err_internal, "Failed to enable libthread_db events");
+        return false;
+    }
+
+    bool suspend = false;
+
+    // Enable events for all threads, possibly suspending them
+    if( int_process::getThreadControlMode() == int_process::HybridLWPControl &&
+        threadPool()->size() > 1 ) 
+    {
+        suspend = true;
+    }
+
+    errVal = td_ta_thr_iter(threadAgent, bootstrap_cb, &suspend,
+                TD_THR_ANY_STATE, TD_THR_LOWEST_PRIORITY, TD_SIGNO_MASK,
+                TD_THR_ANY_USER_FLAGS);
+
+    if( TD_OK != errVal ) {
+        perr_printf("Failed to enable events for specific-threads: %s(%d)\n",
                 tdErr2Str(errVal), errVal);
         setLastError(err_internal, "Failed to enable libthread_db events");
         return false;
@@ -366,7 +406,7 @@ void thread_db_process::freeThreadDBAgent() {
     // but we lose all the convenience of pure virtual functions
     //
     // At any rate, this function should be called from a derived class' 
-    // destructor.
+    // destructor for the time being.
 
     if( thread_db_initialized && threadAgent ) {
         td_err_e errVal = td_ta_delete(threadAgent);
@@ -640,15 +680,17 @@ bool ThreadDBCreateHandler::handleEvent(Event::ptr ev) {
 
     assert(thread && "Thread was not initialized before calling this handler");
 
-    // Because the new thread was created during a Breakpoint, it is already of
+    // Because the new thread was created during a Breakpoint, it is already
     // out of sync with the user state
     thread->desyncInternalState();
 
     // Explicitly ignore errors here
     thread->setEventReporting(true);
 
-    // The initial generator state is stopped
-    thread->suspend();
+    if( int_process::getThreadControlMode() == int_process::HybridLWPControl ) {
+        // The initial generator state is stopped, explicitly ignore errors
+        thread->plat_suspend();
+    }
 
     return true;
 }
@@ -677,9 +719,6 @@ bool ThreadDBDestroyHandler::handleEvent(Event::ptr ev) {
         thrd->markDestroyed();
     }else if( ev->getEventType().time() == EventType::Post) {
         thrd->setGeneratorState(int_thread::exited);
-
-        // Need to make sure that the thread actually finishes at this point
-        thrd->resume();
     }
 
     return true;
@@ -716,6 +755,7 @@ bool thread_db_thread::initThreadHandle() {
         perr_printf("Failed to map LWP %d to thread_db thread: %s(%d)\n",
                 lwp, tdErr2Str(errVal), errVal);
         setLastError(err_internal, "Failed to get thread_db thread handle");
+        threadHandle = NULL;
         return false;
     }
 
@@ -761,7 +801,7 @@ bool thread_db_thread::setEventReporting(bool on) {
     return true;
 }
 
-bool thread_db_thread::resume() {
+bool thread_db_thread::plat_resume() {
     if( !initThreadHandle() ) return false;
 
     td_err_e errVal = td_thr_dbresume(threadHandle);
@@ -778,7 +818,7 @@ bool thread_db_thread::resume() {
     return true;
 }
 
-bool thread_db_thread::suspend() {
+bool thread_db_thread::plat_suspend() {
     if( !initThreadHandle() ) return false;
 
     td_err_e errVal = td_thr_dbsuspend(threadHandle);

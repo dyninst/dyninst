@@ -88,7 +88,8 @@ test_results_t pc_thread_contMutator::executeTest()
 
    EventType et(EventType::ThreadDestroy);
    Process::registerEventCallback(et, on_thread_exit);
-      
+ 
+/*   
    for (unsigned j=0; j<num_threads-1; j++) {
       expected_exits.clear();
 
@@ -128,6 +129,36 @@ test_results_t pc_thread_contMutator::executeTest()
       while (!expected_exits.empty())
          comp->block_for_events();
    }
+*/
+   // Start all the threads
+   for(i = comp->procs.begin(); i != comp->procs.end(); ++i) {
+       Process::ptr proc = *i;
+
+       // Make a local copy because the thread pool could change during iteration
+       vector<Thread::ptr> localThreads;
+       for(ThreadPool::iterator k = proc->threads().begin(); k != proc->threads().end(); ++k) {
+           localThreads.push_back(*k);
+       }
+
+       for(vector<Thread::ptr>::iterator k = localThreads.begin();
+           k != localThreads.end(); ++k)
+       {
+           if( (*k)->isInitialThread() ) {
+               continue;
+           }
+
+           expected_exits.insert(*k);
+           expected_pre_exits.insert(*k);
+           if( !(*k)->continueThread() ) {
+               logerror("Failed to continue thread\n");
+               error = true;
+           }
+       }
+   }
+
+   // Handle all the events
+   while (!expected_exits.empty()) 
+       comp->block_for_events();
 
    allow_exit ae;
    ae.code = ALLOWEXIT_CODE;

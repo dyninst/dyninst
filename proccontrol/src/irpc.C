@@ -654,10 +654,18 @@ bool iRPCMgr::prepNextRPC(int_thread *thr, bool sync_prep, bool &user_error)
       thr->llproc()->threadPool()->desyncInternalState();
    }
    else {
-      //Need to stop a single thread.
-      pthrd_printf("iRPC %lu needs a thread stop on %d/%d\n", rpc->id(),
-                   thr->llproc()->getPid(), thr->getLWP());
-      isStopped = (thr->getInternalState() == int_thread::stopped);
+      if( int_process::getThreadControlMode() != int_process::HybridLWPControl 
+          || thr->llproc()->threadPool()->size() <= 1 ) 
+      {
+        //Need to stop a single thread.
+        pthrd_printf("iRPC %lu needs a thread stop on %d/%d\n", rpc->id(),
+                       thr->llproc()->getPid(), thr->getLWP());
+        isStopped = (thr->getInternalState() == int_thread::stopped);
+      }else{
+        pthrd_printf("iRPC %lu needs a process stop on %d\n", rpc->id(),
+                thr->llproc()->getPid());
+        isStopped = thr->llproc()->threadPool()->allStopped();
+      }
    }
       
    if (isStopped) {
@@ -672,11 +680,22 @@ bool iRPCMgr::prepNextRPC(int_thread *thr, bool sync_prep, bool &user_error)
       result = stopNeededThreads(thr->llproc(), sync_prep);
    }
    else {
-      pthrd_printf("Stopping thread %d/%d for iRPC setup\n",
-                   thr->llproc()->getPid(), thr->getLWP());
-      rpc->setNeedsDesync(true);
-      thr->desyncInternalState();
-      result = thr->intStop(sync_prep);
+      if(    int_process::getThreadControlMode() == int_process::HybridLWPControl 
+          && thr->llproc()->threadPool()->size() <= 1 ) 
+      {
+          pthrd_printf("Stopping process %d for iRPC setup on %d/%d\n",
+                  thr->llproc()->getPid(), thr->llproc()->getPid(),
+                  thr->getLWP());
+          rpc->setNeedsDesync(true);
+          thr->llproc()->threadPool()->desyncInternalState();
+          result = thr->llproc()->threadPool()->intStop(sync_prep);
+      }else{
+          pthrd_printf("Stopping thread %d/%d for iRPC setup\n",
+                       thr->llproc()->getPid(), thr->getLWP());
+          rpc->setNeedsDesync(true);
+          thr->desyncInternalState();
+          result = thr->intStop(sync_prep);
+      }
    }
    if (!result) {
       pthrd_printf("Failed to stop process/thread for iRPC\n");
@@ -766,7 +785,13 @@ bool iRPCMgr::runNextRPC(int_thread *thr, bool block)
 
    if (!rpc->isProcStopRPC() && rpc->needsToDesync()) {
       rpc->setNeedsDesync(false);
-      thr->restoreInternalState(block);
+      if(    int_process::getThreadControlMode() == int_process::HybridLWPControl 
+          && thr->llproc()->threadPool()->size() <= 1 ) 
+      {
+        thr->llproc()->threadPool()->restoreInternalState(block);
+      }else{
+        thr->restoreInternalState(block);
+      }
    }
 
    return true;

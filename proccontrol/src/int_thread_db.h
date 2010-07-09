@@ -127,8 +127,8 @@ public:
     Event::ptr getThreadEvent();
     bool setEventReporting(bool on);
 
-    bool resume();
-    bool suspend();
+    bool plat_resume();
+    bool plat_suspend();
     void markDestroyed();
     bool isDestroyed();
 

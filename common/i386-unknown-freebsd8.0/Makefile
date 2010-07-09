@@ -46,7 +46,7 @@ LDFLAGS		+= -L/usr/local/lib -lpthread
 # Tradeoff: adding -g to TFLAGS aids gdb but uses gobs of disk space
 #TFLAGS		+= -g
 
-LIBS    += -liberty
+LIBS    += -liberty -lutil
 
 AS		= /usr/bin/as
 

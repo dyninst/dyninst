@@ -33,7 +33,7 @@ endif
 ifdef LIBELF_LIB
 LIBS += -L$(LIBELF_LIB)
 endif
-LIBS += -lelf
+LIBS += -lelf -lthread_db
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
