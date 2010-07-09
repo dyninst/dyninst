@@ -193,7 +193,7 @@ void Parser::ProcessCFInsn(
         }
 
         /*
-         * Call & bad indirect branch case 
+         * Call case 
          */ 
         if(curEdge->second == NOEDGE)
         {

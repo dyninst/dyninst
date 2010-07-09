@@ -890,7 +890,7 @@ enum prefixEntryID {
       {
 	size_t operator()(const prefixEntryID &eid) const
 	{
-	  return static_cast<size_t>(eid);
+	  return h(static_cast<size_t>(eid));
 	}
       };
     }

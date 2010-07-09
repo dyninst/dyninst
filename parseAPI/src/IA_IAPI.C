@@ -355,6 +355,10 @@ void IA_IAPI::getNewEdges(
                            ci->format().c_str(), current);
             parsedJumpTable = true;
             successfullyParsedJumpTable = parseJumpTable(currBlk, outEdges);
+
+            if(!successfullyParsedJumpTable || outEdges.empty()) {
+                outEdges.push_back(std::make_pair((Address)-1,INDIRECT));
+            }
             return;
         }
     }
