@@ -240,6 +240,13 @@ void codeGen::finalize() {
     isPadded_ = false;
 }
 
+void codeGen::copy(const void *b, const unsigned size, const codeBufIndex_t index) {
+  codeBufIndex_t current = getIndex();
+  setIndex(index);
+  copy(b, size);
+  setIndex(current);
+}
+
 void codeGen::copy(const void *b, const unsigned size) {
   assert(buffer_);
 
@@ -497,12 +504,12 @@ std::vector<relocPatch>& codeGen::allPatches() {
    return patches_;
 }
 
-void codeGen::addPatch(void *dest, patchTarget *source, 
+void codeGen::addPatch(codeBufIndex_t index, patchTarget *source, 
                        unsigned size,
                        relocPatch::patch_type_t ptype,
                        Dyninst::Offset off)
 {
-   relocPatch p(dest, source, ptype, this, off, size);
+   relocPatch p(index, source, ptype, this, off, size);
    patches_.push_back(p);
 }
 
@@ -519,16 +526,17 @@ void codeGen::applyPatches()
 }
 
 
-relocPatch::relocPatch(void *d, patchTarget *s, patch_type_t ptype,
+relocPatch::relocPatch(codeBufIndex_t index, patchTarget *s, patch_type_t ptype,
                        codeGen *gen, Dyninst::Offset off, unsigned size) :
-   dest_(d),
-   source_(s),
-   size_(size),
-   ptype_(ptype),
-   gen_(gen),
-   offset_(off),
-   applied_(false)
+  dest_(index),
+  source_(s),
+  size_(size),
+  ptype_(ptype),
+  gen_(gen),
+  offset_(off),
+  applied_(false)
 {
+
 }
 
 void relocPatch::applyPatch()
@@ -538,12 +546,13 @@ void relocPatch::applyPatch()
 
    Address addr = source_->get_address();
 
+
    switch (ptype_) {
       case pcrel:
-         addr = addr - (gen_->startAddr() + offset_);
+	addr = addr - (gen_->startAddr() + offset_);
       case abs:
-         memcpy(dest_, &addr, size_);
-         break;
+	gen_->copy(&addr, size_, dest_);
+	break;
       default:
          assert(0);
    }

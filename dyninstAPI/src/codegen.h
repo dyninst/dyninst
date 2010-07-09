@@ -123,6 +123,8 @@ class codeGen {
     
     // Copy a buffer into here and move the offset
     void copy(const void *buf, const unsigned size);
+    void copy(const void *buf, const unsigned size, const codeBufIndex_t index);
+    
     // Similar, but slurp from the start of the parameter
     void copy(codeGen &gen);
 
@@ -185,7 +187,7 @@ class codeGen {
     void addPatch(const relocPatch &p);
 
     //Create a patch into the codeRange
-    void addPatch(void *dest, patchTarget *source, 
+    void addPatch(codeBufIndex_t index, patchTarget *source, 
                   unsigned size = sizeof(Address),
                   relocPatch::patch_type_t ptype = relocPatch::abs,
                   Dyninst::Offset off = 0);

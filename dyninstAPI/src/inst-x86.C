@@ -2276,7 +2276,10 @@ void EmitterIA32::emitFuncJump(int_function *f, instPointType_t /*ptType*/, bool
        GET_PTR(insn, gen);
        *insn++ = 0x81;
        *insn++ = makeModRMbyte(3, 0, dest_r.reg());
-       void *patch_loc = (void *) insn;
+       SET_PTR(insn, gen);
+       
+       codeBufIndex_t patch_loc = gen.getIndex();
+       REGET_PTR(insn, gen);
        *((int *)insn) = 0x0;
        insn += sizeof(int);
        SET_PTR(insn, gen);

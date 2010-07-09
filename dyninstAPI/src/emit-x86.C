@@ -87,8 +87,10 @@ codeBufIndex_t EmitterIA32::emitIf(Register expr_reg, Register target, RegContro
    *insn++ = 0x84;
    *((int *)insn) = disp;
    if (disp == 0) {
-      gen.addPatch((void *) insn, NULL, sizeof(int), relocPatch::pcrel, 
-                   gen.used() + 6);
+     SET_PTR(insn, gen);
+     gen.addPatch(gen.getIndex(), NULL, sizeof(int), relocPatch::pcrel, 
+		  gen.used() + sizeof(int));
+     REGET_PTR(insn, gen);
    }
    insn += sizeof(int);
    SET_PTR(insn, gen);
@@ -1743,7 +1745,9 @@ void EmitterAMD64::emitFuncJump(int_function *f, instPointType_t /*ptType*/, boo
        GET_PTR(insn, gen);
        *insn++ = 0x81;
        *insn++ = makeModRMbyte(3, 0, dest);
-       void *patch_loc = (void *) insn;
+       SET_PTR(insn, gen);
+       codeBufIndex_t patch_loc = gen.getIndex();
+       REGET_PTR(insn, gen);
        *((int *)insn) = 0x0;
        insn += sizeof(int);
        SET_PTR(insn, gen);
