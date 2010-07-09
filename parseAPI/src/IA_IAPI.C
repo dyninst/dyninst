@@ -151,28 +151,34 @@ size_t IA_IAPI::getSize() const
 
 bool IA_IAPI::hasCFT() const
 {
-    if(hascftstatus.first) return hascftstatus.second;
-    InsnCategory c = curInsn()->getCategory();
-    hascftstatus.second = false;
-    if(c == c_BranchInsn ||
-       c == c_ReturnInsn)
-    {
-        hascftstatus.second = true;
-    }
-    if(c == c_CallInsn)
-    {
-        if(isRealCall()) {
-            hascftstatus.second = true;
-        }
-        if(isDynamicCall()) {
-            hascftstatus.second = true;
-        }
-        if(simulateJump()) {
-            hascftstatus.second = true;
-        }
-    }
-    hascftstatus.first = true;
+  parsing_cerr << "hasCFT called" << endl;
+  if(hascftstatus.first) {
+    parsing_cerr << "\t Returning cached entry: " << hascftstatus.second << endl;
     return hascftstatus.second;
+  }
+  InsnCategory c = curInsn()->getCategory();
+  hascftstatus.second = false;
+  if(c == c_BranchInsn ||
+     c == c_ReturnInsn) {
+    parsing_cerr << "\t branch or return, ret true" << endl;
+    hascftstatus.second = true;
+  }
+  if(c == c_CallInsn) {
+    if(isRealCall()) {
+      parsing_cerr << "\t is real call, ret true" << endl;
+      hascftstatus.second = true;
+    }
+    if(isDynamicCall()) {
+      parsing_cerr << "\t is dynamic call, ret true" << endl;
+      hascftstatus.second = true;
+    }
+    if(simulateJump()) {
+      parsing_cerr << "\t is a simulated jump, ret true" << endl;
+      hascftstatus.second = true;
+    }
+  }
+  hascftstatus.first = true;
+  return hascftstatus.second;
 }
 
 bool IA_IAPI::isAbortOrInvalidInsn() const
@@ -261,8 +267,7 @@ bool IA_IAPI::isInterrupt() const
             (ci->getOperation().getID() == e_int3));
 }
 
-void IA_IAPI::getNewEdges(
-			  std::vector<std::pair< Address, EdgeTypeEnum> >& outEdges,
+void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEdges,
 			  Function* context,
 			  Block* currBlk,
 			  unsigned int num_insns,
@@ -273,27 +278,19 @@ void IA_IAPI::getNewEdges(
     // Only call this on control flow instructions!
     if(ci->getCategory() == c_CallInsn)
     {
-        Address target = getCFT();
-        if(isRealCall() || isDynamicCall())
+        Address target = getCFT();	
+	if(simulateJump()) {
+	  parsing_printf("[%s:%u] call at 0x%lx simulated as "
+			 "jump to 0x%lx\n",
+			 FILE__,__LINE__,getAddr(),getCFT());
+	  outEdges.push_back(std::make_pair(target, DIRECT));
+	}
+        else if(isRealCall() || isDynamicCall())
         {
             outEdges.push_back(std::make_pair(target, NOEDGE));
-        }
-        else
-        {
-            if(_isrc->isValidAddress(target))
-            {
-                if(simulateJump())
-                {
-                    parsing_printf("[%s:%u] call at 0x%lx simulated as "
-                            "jump to 0x%lx\n",
-                    FILE__,__LINE__,getAddr(),getCFT());
-                    outEdges.push_back(std::make_pair(target, DIRECT));
-                    return;
-                }
-            }
-        }
-        outEdges.push_back(std::make_pair(getAddr() + getSize(),
-                           CALL_FT));
+	    outEdges.push_back(std::make_pair(getAddr() + getSize(),
+					      CALL_FT));
+	}
         return;
     }
     else if(ci->getCategory() == c_BranchInsn)
@@ -424,18 +421,23 @@ Instruction::Ptr IA_IAPI::getInstruction()
 
 bool IA_IAPI::isRealCall() const
 {
+#if 0
+  // Obviated by simulateJump
     if(getCFT() == getNextAddr())
     {
         parsing_printf("... getting PC\n");
         return false;
     }
+#endif
     if(!_isrc->isValidAddress(getCFT()))
     {
         parsing_printf(" isREalCall whacked by _isrc->isVAlidAddress(%lx)\n",
             getCFT());
         return false;
     }
-    return (!isThunk());
+    return true;
+    // Thunks are calls...
+    //return (!isThunk());
 }
 
 std::map<Address, bool> IA_IAPI::thunkAtTarget;
@@ -444,23 +446,6 @@ std::map<Address, bool> IA_IAPI::thunkAtTarget;
 bool IA_IAPI::isConditional() const
 {
     return curInsn()->allowsFallThrough();
-}
-
-bool IA_IAPI::simulateJump() const
-{
-    // HACK
-    if (getCFT() == getNextAddr() + 6) {
-      parsing_printf("... HACKED getPC\n");
-      return true;
-    }
-
-    if (getCFT() == getNextAddr() + 5) {
-      parsing_printf("... HACKED getPC\n");
-      return true;
-    }
-
-    // TODO: we don't simulate jumps on x86 architectures; add logic as we need it.                
-    return false;
 }
 
 Address IA_IAPI::getCFT() const

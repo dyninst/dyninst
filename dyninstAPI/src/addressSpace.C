@@ -1771,15 +1771,15 @@ bool AddressSpace::transform(CodeMover::Ptr cm) {
   cm->transform(c);
 
   //cerr << "Applying PCSens transformer" << endl;
-  PCSensitiveTransformer v(this, cm->priorityMap());
-  cm->transform(v);
+  //PCSensitiveTransformer v(this, cm->priorityMap());
+  //cm->transform(v);
 
-  //adhocMovementTransformer a(this);
-  //cm->transform(a);
+  adhocMovementTransformer a(this);
+  cm->transform(a);
 
   //cerr << "Memory emulator" << endl;
-  MemEmulatorTransformer m;
-  cm->transform(m);
+  //MemEmulatorTransformer m;
+  //cm->transform(m);
 
   // Localize control transfers
   //cerr << "  Applying control flow localization" << endl;
@@ -1790,8 +1790,8 @@ bool AddressSpace::transform(CodeMover::Ptr cm) {
   // Add instrumentation
   // For ease of edge instrumentation this should occur post-LocalCFTransformer-age
   //cerr << "Inst transformer" << endl;
-  //Instrumenter i;
-  //cm->transform(i);
+  Instrumenter i;
+  cm->transform(i);
   return true;
 
 }

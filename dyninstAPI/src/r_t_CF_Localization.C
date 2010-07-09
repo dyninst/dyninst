@@ -140,7 +140,11 @@ bool LocalizeCF::postprocess(BlockList &) {
 		    << endl;
 
     
-    if (removedEdges >= incomingEdges) {
+    if (removedEdges > incomingEdges) {
+      cerr << "Odd case: " << removedEdges << " removed @ block " << hex << bbl->firstInsnAddr() << dec
+	   << ", but only " << incomingEdges << " known." << endl;
+    }
+    else if (removedEdges == incomingEdges) {
       //pMap_[addr] = Suggested;
     }
     else {

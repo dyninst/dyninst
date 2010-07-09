@@ -405,10 +405,12 @@ bool PCSensitiveTransformer::insnIsThunkCall(InstructionAPI::Instruction::Ptr in
 
   Address target = res.convert<Address>();
 
+  cerr << "Checking for thunk: CFT from " << hex << addr << " to " << target << dec << endl;
+
   // Check for a call to a thunk function
   if (target == (addr + insn->size())) {
     destination = Absloc(0, 0, "func");
-    relocation_cerr << "      ... call next insn, ret true" << endl;
+    cerr << "      ... call next insn, ret true" << endl;
     return true;
   }
   
@@ -460,8 +462,8 @@ void PCSensitiveTransformer::handleThunkCall(BlockList::iterator &b_iter,
 					     Block::ElementList::iterator &iter,
 					     Absloc &destination) {
 
-  relocation_cerr << "Handling thunk call at " << hex << (*iter)->addr() << dec << endl;
-  relocation_cerr << "\t from insn " << (*iter)->insn()->format() << endl;
+  cerr << "Handling thunk call at " << hex << (*iter)->addr() << dec << endl;
+  cerr << "\t from insn " << (*iter)->insn()->format() << endl;
 
   Element::Ptr replacement = GetPC::create((*iter)->insn(),
 					   (*iter)->addr(),
@@ -480,9 +482,20 @@ void PCSensitiveTransformer::handleThunkCall(BlockList::iterator &b_iter,
     // We don't want to be doing this pre-CF-creation...
     assert(cf); 
     
+    // There are two types of thunks we deal with;
+    // one is a call to a thunk function (which we want to skip), 
+    // and the second is a call forward within the same function.
+    // The function call variant we want to replace with a (faked)
+    // fallthrough to wherever the call returned to. The jump
+    // equivalent doesn't _have_ a fallthrough, so we want to use
+    // the taken edge instead.
+
     // Ignore a taken edge, but create a new CFElement with the
     // required fallthrough edge
     CFElement::DestinationMap::iterator dest = cf->destMap_.find(CFElement::Fallthrough);
+    if (dest == cf->destMap_.end()) {
+      dest = cf->destMap_.find(CFElement::Taken);
+    }
     if (dest != cf->destMap_.end()) {
       CFElement::Ptr newCF = CFElement::create();
       // Explicitly do _NOT_ reuse old information - this is just a branch

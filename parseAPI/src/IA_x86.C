@@ -826,8 +826,7 @@ bool IA_IAPI::fillTableEntries(Address thunkOffset,
                 
     }
     if(outEdges.empty()) parsing_printf("\tno valid table entries, ret false\n");
-    return !outEdges.empty();
-    
+    return !outEdges.empty();    
 }
 
 
@@ -891,12 +890,6 @@ bool IA_IAPI::computeTableBounds(Instruction::Ptr maxSwitchInsn,
 }
 
 bool IA_IAPI::isThunk() const {
-#if 0
-  // FIXME HACK
-  // I don't want thunks special-cased because they disappear from our parsing...
-  return false;
-#endif
-
   // Before we go a-wandering, check the target
     if (!_isrc->isValidAddress(getCFT()))
     {
@@ -935,6 +928,54 @@ bool IA_IAPI::isThunk() const {
     parsing_printf("... real call found\n");
     return false;
 }
+
+
+bool IA_IAPI::simulateJump() const
+{
+  // We conclude that a call is a jump if the basic block it targets
+  // contains a pop of the return address. 
+  // 
+  // For example: 
+  // 2958:       83 ec 04                sub    $0x4,%esp
+  // 295b:       e8 00 00 00 00          call   2960 <_fini+0xc>
+  // 2960:       5b                      pop    %ebx
+  // 2961:       81 c3 ac 07 00 00       add    $0x7ac,%ebx
+  // 2967:       e8 a4 e5 ff ff          call   f10 <exit@plt+0x40>
+
+  // The first call (call 0) is considered a jump because its immediate target
+  // is a pop.
+  
+  if (!_isrc->isValidAddress(getCFT())) {
+    return false;
+  }
+
+  const unsigned char *target =
+    (const unsigned char *)_isrc->getPtrToInstruction(getCFT());
+
+  // Arbitrarily try four instructions. 
+  int maxInsns = 4;
+
+  InstructionDecoder targetChecker(target, 
+				   maxInsns*InstructionDecoder::maxInstructionLength, _isrc->getArch());
+  bool isGetPC = false;
+  for (int i = 0; i < maxInsns; ++i) {
+    Instruction::Ptr insn = targetChecker.decode();
+    if (!insn) break;
+
+    if (insn->getOperation().getID() == e_pop) {
+      // Nifty...
+      isGetPC = true;
+      break;
+    }
+    // Any other write of the stack pointer == baaaaad
+    if (insn->isWritten(stackPtr[_isrc->getArch()])) {
+      break;
+    }
+  }
+
+  return isGetPC;
+}
+
 
 bool IA_IAPI::isTailCall(Function * /*context*/,unsigned int) const
 {
