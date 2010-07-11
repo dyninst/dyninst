@@ -47,7 +47,8 @@ sysv_process::sysv_process(Dyninst::PID p, string e, vector<string> a, map<int,i
    int_process(p, e, a, f),
    translator(NULL),
    lib_initialized(false),
-   procreader(NULL)
+   procreader(NULL),
+   aout(NULL)
 {
 }
 
@@ -58,6 +59,7 @@ sysv_process::sysv_process(Dyninst::PID pid_, int_process *p) :
    loaded_libs = sp->loaded_libs;
    breakpoint_addr = sp->breakpoint_addr;
    lib_initialized = sp->lib_initialized;
+   aout = NULL;
    if (sp->procreader)
       procreader = new PCProcReader(this);
    if (sp->translator)
@@ -202,7 +204,7 @@ bool sysv_process::refresh_libraries(set<int_library *> &added_libs,
                    ll->getCodeLoadAddr());
       if (!lib) {
          pthrd_printf("Creating new library object for %s\n", ll->getName().c_str());
-         lib = new int_library(ll->getName(), ll->getCodeLoadAddr());
+         lib = new int_library(ll->getName(), ll->getCodeLoadAddr(), ll->getDynamicAddr());
          assert(lib);
          added_libs.insert(lib);
          ll->setUpPtr((void *) lib);
@@ -247,4 +249,20 @@ bool sysv_process::plat_execed()
    loaded_libs.clear();
    lib_initialized = false;
    return initLibraryMechanism();
+}
+
+int_library *sysv_process::getExecutableLib()
+{
+   if (aout)
+      return aout;
+
+   LoadedLib *ll = translator->getExecutable();
+   aout = (int_library *) ll->getUpPtr();
+   if (aout)
+      return aout;
+
+   aout = new int_library(ll->getName(), ll->getCodeLoadAddr(), ll->getDynamicAddr());
+   ll->setUpPtr((void *) aout);
+   
+   return aout;
 }

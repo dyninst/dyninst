@@ -16,7 +16,6 @@ class int_process;
 class int_thread;
 class iRPCAllocation;
 class int_iRPC;
-class Dyninst::ProcControlAPI::IRPC;
 
 class iRPCAllocation
 {

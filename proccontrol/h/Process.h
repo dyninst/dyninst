@@ -107,6 +107,10 @@ class Library
    std::string getName() const;
    Dyninst::Address getLoadAddress() const;
    Dyninst::Address getDataLoadAddress() const;
+   Dyninst::Address getDynamicAddress() const;
+   
+   void *getData() const;
+   void setData(void *p) const;
 };
 
 class LibraryPool
@@ -139,7 +143,7 @@ class LibraryPool
   public:
      const_iterator();
      ~const_iterator();
-     const Library::const_ptr operator*() const;
+     Library::const_ptr operator*() const;
      bool operator==(const const_iterator &i);
      bool operator!=(const const_iterator &i);
      LibraryPool::const_iterator operator++();
@@ -154,7 +158,10 @@ class LibraryPool
   size_t size() const;
 
   Library::ptr getLibraryByName(std::string s);
-  const Library::ptr getLibraryByName(std::string s) const;
+  Library::const_ptr getLibraryByName(std::string s) const;
+
+  Library::ptr getExecutable();
+  Library::const_ptr getExecutable() const;
 };
 
 class IRPC
