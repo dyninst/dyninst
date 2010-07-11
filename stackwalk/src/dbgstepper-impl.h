@@ -56,7 +56,7 @@ class DebugStepperImpl : public FrameStepper, public Dyninst::ProcessReader {
   virtual const char *getName() const;
  protected:
   gcframe_ret_t getCallerFrameArch(Address pc, const Frame &in, Frame &out, 
-                                   DwarfSW *dinfo);
+                                   DwarfSW *dinfo, bool isVsyscallPage);
   bool isFrameRegister(MachRegister reg);
   bool isStackRegister(MachRegister reg);
 };

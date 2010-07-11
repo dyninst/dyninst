@@ -57,6 +57,7 @@ namespace Stackwalker {
   const err_t err_nolibtracker   = 0x10014;
   const err_t err_nogroup        = 0x10015;
   const err_t err_nothrd         = 0x10016;
+  const err_t err_proccontrol    = 0x10017;
 
   err_t getLastError();
   void clearLastError();

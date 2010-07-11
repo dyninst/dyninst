@@ -157,12 +157,12 @@ bool Walker::createDefaultSteppers()
   return true;
 }
 
-#if defined(cap_stackwalker_use_symtab)
-
-bool SymtabLibState::updateLibsArch()
+bool LibraryState::updateLibsArch(vector<pair<LibAddrPair, unsigned int> > &)
 {
    return true;
 }
+
+#if defined(cap_stackwalker_use_symtab)
 
 static bool libNameMatch(const char *s, const char *libname)
 {
