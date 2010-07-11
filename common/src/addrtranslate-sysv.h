@@ -127,7 +127,7 @@ private:
    std::string exec_name;   // access this through get_exec_name()
    std::string getExecName();
 
-   LoadedLib *getLoadedLibByNameAddr(Address addr, std::string name);
+   LoadedLib *getLoadedLibByNameAddr(Address addr, std::string name, Address dynamic);
    typedef std::map<std::pair<Address, std::string>, LoadedLib *, LibCmp> sorted_libs_t;
    sorted_libs_t sorted_libs;
 
