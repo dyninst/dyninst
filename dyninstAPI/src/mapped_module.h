@@ -116,9 +116,10 @@ class mapped_module {
       void addVariable(int_variable *var);
       int_variable* createVariable(std::string name, Address offset, int size);
       
+      void removeFunction(int_function *func);
 
       static bool truncateLineFilenames;
-      int getFuncVectorSize() { return everyUniqueFunction.size(); }
+      unsigned int getFuncVectorSize() { return everyUniqueFunction.size(); }
 
    private:
 

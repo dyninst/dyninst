@@ -63,7 +63,8 @@ class CodeObject {
 
     PARSER_EXPORT CodeObject(CodeSource * cs, 
                CFGFactory * fact = NULL, 
-               ParseCallback * cb = NULL);
+               ParseCallback * cb = NULL,
+               bool defensiveMode = false);
     PARSER_EXPORT ~CodeObject();
 
     /** Parsing interface **/
@@ -94,7 +95,9 @@ class CodeObject {
     /* Misc */
     PARSER_EXPORT CodeSource * cs() const { return _cs; }
     PARSER_EXPORT CFGFactory * fact() const { return _fact; }
-
+    PARSER_EXPORT bool defensiveMode() { return defensive; }
+    PARSER_EXPORT void removeFunc(Function *);
+    PARSER_EXPORT void removeBlocks(vector<Block*> &blocks, Block * new_entry);
     /*
      * Calling finalize() forces completion of all on-demand
      * parsing operations for this object, if any remain.
@@ -103,7 +106,7 @@ class CodeObject {
 
  private:
     void process_hints();
-    void add_edge(Block *src, Block * trg, EdgeTypeEnum et);
+    void add_edge(Block *src, Block *trg, EdgeTypeEnum et);
     
     // allows Functions to link up return edges after-the-fact
     friend void Function::delayed_link_return(CodeObject *,Block*);
@@ -119,6 +122,7 @@ class CodeObject {
 
     bool owns_factory;
     bool owns_pcb;
+    bool defensive;
     funclist flist;
 };
 

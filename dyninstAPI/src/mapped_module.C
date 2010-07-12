@@ -56,7 +56,10 @@ const pdvector<int_function *> &mapped_module::getAllFunctions()
    }
 
    // FIXME this is debugging code that should be removed
-   if(everyUniqueFunction.size() != pdfuncs.size()) {
+   if( everyUniqueFunction.size() < pdfuncs.size() || 
+       ( ! obj()->isExploratoryModeOn() && 
+         everyUniqueFunction.size() > pdfuncs.size() ) )
+   {
     fprintf(stderr,"[%s:%u] EUF.size %u != pdfuncs.size %u\n",
             FILE__,__LINE__, (unsigned) everyUniqueFunction.size(),
             (unsigned) pdfuncs.size());
@@ -76,7 +79,9 @@ const pdvector<int_function *> &mapped_module::getAllFunctions()
                 pdfuncs[i]->getOffset());
         }
     }
-   assert(everyUniqueFunction.size() == pdfuncs.size());
+   assert( everyUniqueFunction.size() == pdfuncs.size() || 
+           ( obj()->isExploratoryModeOn() && 
+             everyUniqueFunction.size() < pdfuncs.size() ) );
 
    return everyUniqueFunction;
 }
@@ -107,6 +112,20 @@ void mapped_module::addFunction(int_function *func)
 void mapped_module::addVariable(int_variable *var) 
 {
    everyUniqueVariable.push_back(var);
+}
+
+// We rely on the mapped_object for pretty much everything...
+void mapped_module::removeFunction(int_function *func) 
+{
+   for (unsigned fIdx=0; fIdx < everyUniqueFunction.size(); fIdx++) {
+       if (everyUniqueFunction[fIdx] == func) {
+           if (fIdx != everyUniqueFunction.size()-1) {
+               everyUniqueFunction[fIdx] = everyUniqueFunction.back();
+           }
+           everyUniqueFunction.pop_back();
+           return;
+       }
+   }
 }
 
 const string &mapped_module::fileName() const 
@@ -301,5 +320,4 @@ int_variable* mapped_module::createVariable(std::string name, Address addr, int 
   obj()->addVariable(ret);
   return ret;
 }
-
 

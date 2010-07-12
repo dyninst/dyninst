@@ -222,6 +222,7 @@ void registerSpace::overwriteRegisterSpace64(Register first,
 
 
 registerSpace::registerSpace() :
+    savedFlagSize(0),
     currStackPointer(0),
     registers_(uiHash),
     addr_width(0)
@@ -487,6 +488,9 @@ bool registerSpace::saveVolatileRegisters(codeGen &gen) {
                 break;
             }
         }
+
+        savedFlagSize = 0;
+
         if (!doWeSave) return false; // All done
         
         // Okay, save.
@@ -500,6 +504,7 @@ bool registerSpace::saveVolatileRegisters(codeGen &gen) {
             registerSlot *reg = registers_[i];
             reg->liveState = registerSlot::spilled;
         }
+        savedFlagSize += addr_width;
         return true;
     }
     else {
@@ -511,9 +516,11 @@ bool registerSpace::saveVolatileRegisters(codeGen &gen) {
 		   gen.markRegDefined(REGNUM_EAX);
            //emitSimpleInsn(PUSHFD, gen);
            registers_[IA32_FLAG_VIRTUAL_REGISTER]->liveState = registerSlot::spilled;
+           savedFlagSize = addr_width;
            return true;
         }
         else {
+            savedFlagSize = 0;
             return false;
         }
     }

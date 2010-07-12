@@ -108,7 +108,8 @@ class DynParseCallback : public ParseAPI::ParseCallback {
   DynParseCallback(image * img) : _img(img) { }
   ~DynParseCallback() { }
 
-  void unresolved_cf(ParseAPI::Function*,Address,default_details*);
+  void unresolved_cf(Address,default_details*);
+  void abruptEnd_cf(Address,default_details*);
   void interproc_cf(ParseAPI::Function*,Address,interproc_details*);
 
   void overlapping_blocks(ParseAPI::Block*,ParseAPI::Block*);

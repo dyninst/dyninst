@@ -257,7 +257,7 @@ void Parser::ProcessCFInsn(
         ParseCallback::default_details det(
          (unsigned char*)frame.func->isrc()->getPtrToInstruction(ah.getAddr()),
          ah.getSize());
-        _pcb.unresolved_cf(frame.func,ah.getAddr(),&det);
+        _pcb.unresolved_cf(ah.getAddr(),&det);
     }
 
     if(ah.isDelaySlot())

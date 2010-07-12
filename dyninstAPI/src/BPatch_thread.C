@@ -113,7 +113,7 @@ bool BPatch_thread::getCallStackInt(BPatch_Vector<BPatch_frame>& stack)
             bblInstance *bbi = proc->lowlevel_process()->
                 findOrigByAddr(origPC)->is_basicBlockInstance();
             if (bbi && 0 != bbi->version()) {
-                origPC = bbi->equivAddr(bbi->block()->origInstance(), origPC);
+                origPC = bbi->equivAddr(0, origPC);
             }
             stack.push_back(BPatch_frame(this,
                                          (void *)origPC,
@@ -129,7 +129,7 @@ bool BPatch_thread::getCallStackInt(BPatch_Vector<BPatch_frame>& stack)
             bblInstance *bbi = proc->lowlevel_process()->
                 findOrigByAddr(origPC)->is_basicBlockInstance();
             if (bbi && 0 != bbi->version()) {
-                origPC = bbi->equivAddr(bbi->block()->origInstance(), origPC);
+                origPC = bbi->equivAddr(0, origPC);
             }
             stack.push_back(BPatch_frame(this,
                                          (void *)origPC,
@@ -147,7 +147,7 @@ bool BPatch_thread::getCallStackInt(BPatch_Vector<BPatch_frame>& stack)
          bblInstance *bbi = proc->lowlevel_process()->
              findOrigByAddr(frame.getPC())->is_basicBlockInstance();
          if (bbi && 0 != bbi->version()) {
-             origPC = bbi->equivAddr(bbi->block()->origInstance(), origPC);
+             origPC = bbi->equivAddr(0, origPC);
          }
          stack.push_back(BPatch_frame(this,
                                       (void *)origPC,

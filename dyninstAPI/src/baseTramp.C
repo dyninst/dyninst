@@ -206,6 +206,7 @@ baseTramp::baseTramp(instPoint *iP, callWhen when) :
     optimized_out_guards(false),
     guardState_(guarded_BTR),
     suppress_threads_(false),
+    savedFlagSize(0), 
     createFrame_(true),
     instVersion_(),
     when_(when)
@@ -956,6 +957,13 @@ void baseTrampInstance::removeCode(generatedCodeObject *subObject) {
     miniTrampInstance *delMTI = dynamic_cast<miniTrampInstance *>(subObject);
     multiTramp *delMulti = dynamic_cast<multiTramp *>(subObject);
     assert(delMTI || delMulti);
+    if (multiT && multiT->getIsActive()) {
+        mal_printf("Deleting baseTramp(trampAddr=%lx size=%lx) with "
+                "active multitramp %lx [%lx %lx] %s[%d]\n", trampAddr_, trampSize_,
+                multiT->instAddr(), multiT->getAddress(),
+                multiT->getAddress()+multiT->get_size()
+                ,FILE__,__LINE__);
+    }
 
     if (delMTI) {
         // We lost a miniTramp...
@@ -986,8 +994,9 @@ void baseTrampInstance::removeCode(generatedCodeObject *subObject) {
 	    //multiT->markChanged(true);
             bool doWeDelete = false;
             multiTramp::replaceMultiTramp(multiT, doWeDelete);
-            if (doWeDelete) 
+            if (doWeDelete && (!multiT || !multiT->getIsActive())) {
                 proc()->deleteGeneratedCode(multiT);
+            }
         }
     }
     else {

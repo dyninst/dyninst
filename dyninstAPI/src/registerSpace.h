@@ -404,6 +404,8 @@ class registerSpace {
     void movVRegToReal(registerSlot *v_reg, RealRegister r, codeGen &gen); 
     void movRegToReg(RealRegister dest, RealRegister src, codeGen &gen);
 
+    unsigned savedFlagSize;
+
  private:
 
     registerSpace(const registerSpace &);

@@ -1195,3 +1195,29 @@ Parser::frame_status(CodeRegion * cr, Address addr)
     //     is always cached
     return _parse_data->frameStatus(cr,addr);
 }
+
+void
+Parser::removeFunc(Function *func)
+{
+    if (sorted_funcs.end() != sorted_funcs.find(func)) {
+        sorted_funcs.erase(func);
+    }
+    if (HINT == func->src()) {
+        for (unsigned fidx=0; fidx < hint_funcs.size(); fidx++) {
+            if (hint_funcs[fidx] == func) {
+                hint_funcs[fidx] = hint_funcs[hint_funcs.size()-1];
+                hint_funcs.pop_back();
+                break;
+            }
+        }
+    }
+    else {
+        for (unsigned fidx=0; fidx < discover_funcs.size(); fidx++) {
+            if (discover_funcs[fidx] == func) {
+                discover_funcs[fidx] = discover_funcs[discover_funcs.size()-1];
+                discover_funcs.pop_back();
+                break;
+            }
+        }
+    }
+}

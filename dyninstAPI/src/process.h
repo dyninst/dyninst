@@ -59,7 +59,7 @@
 #include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/callbacks.h"
 #include "dyninstAPI/src/addressSpace.h"
-
+#include "dyninstAPI/h/BPatch_hybridAnalysis.h"
 #include "debug.h"
 
 #include "common/h/Dictionary.h"
@@ -170,7 +170,7 @@ class process : public AddressSpace {
  public:
     
     // Default constructor
-    process(SignalGenerator *sh_);
+    process(SignalGenerator *sh_,BPatch_hybridMode mode);
 
     // Fork constructor
     process(process *parentProc, SignalGenerator *sg_, int iTrace_fd);
@@ -667,7 +667,70 @@ class process : public AddressSpace {
   bool handleStopThread(EventRecord &ev);
   static int getStopThreadCB_ID(const Address cb);
 
-  public:
+
+
+  //////////////////////////////////////////////
+  // Begin Exploratory and Defensive mode stuff
+  //////////////////////////////////////////////
+
+  // active instrumentation tracking stuff
+  int_function *findActiveFuncByAddr(Address addr);
+  bool isBBIactive(bblInstance *bbi) 
+    { return activeBBIs.end() != activeBBIs.find(bbi); }
+  void updateActiveMultis();
+  void fixupActiveStackTargets();
+  void getActiveMultiMap(std::map<Address,multiTramp*> &map);
+  void invalidateActiveMultis() { isAMcacheValid = false; }
+  void addActiveMulti(multiTramp* multi);
+
+  // code overwrites 
+  bool getOverwrittenBlocks
+      ( std::map<Address, unsigned char *>& overwrittenPages,//input
+        std::map<Address,Address>& overwrittenRegions,//output
+        std::set<bblInstance *> &writtenBBIs);//output
+  bool getDeadCodeFuncs
+  ( std::set<bblInstance *> &deadBlocks, // input
+    std::set<int_function*> &affectedFuncs, //output
+    std::set<int_function*> &deadFuncs); //output
+  unsigned getMemoryPageSize() const { return memoryPageSize_; }
+
+  // synch modified mapped objects with current memory contents
+  mapped_object *createObjectNoFile(Address addr);
+  void updateMappedFile
+      ( std::map<Dyninst::Address,unsigned char*>& owPages,
+        std::map<Address,Address> owRegions );
+
+  // misc
+  bool hideDebugger();
+  void flushAddressCache_RT(codeRange *flushRange=NULL);
+  BPatch_hybridMode getHybridMode() { return analysisMode_; }
+  bool isExploratoryModeOn();
+  bool isRuntimeHeapAddr(Address addr);
+
+ private:
+  BPatch_hybridMode analysisMode_;
+  int memoryPageSize_;
+
+  //stopThread instrumentation
+  Address stopThreadCtrlTransfer  
+      (instPoint* intPoint, Address target);
+  static int stopThread_ID_counter;
+  static dictionary_hash< Address, unsigned > stopThread_callbacks;
+
+  // active instrumentation tracking
+  bool isAMcacheValid;
+  std::set<multiTramp*> activeMultis;
+  std::map<bblInstance*,Address> activeBBIs;
+  std::map<int_function*,std::set<Address>*> am_funcRelocs;
+
+  // runtime library stuff 
+  Address RT_address_cache_addr;
+  vector<heapItem*> dyninstRT_heaps;
+ public:
+  /////////////////////////////////////////////
+  // End Exploratory and Defensive mode stuff
+  /////////////////////////////////////////////
+
 
   dyn_thread *getThread(dynthread_t tid);
   dyn_lwp *getLWP(unsigned lwp_id);
@@ -732,6 +795,9 @@ public:
    bool uninstallMutations();
    bool reinstallMutations();
 
+  dyn_lwp *query_for_stopped_lwp();
+  dyn_lwp *stop_an_lwp(bool *wasRunning);
+
 private:
 
   bool flushInstructionCache_(void *baseAddr, size_t size); //ccw 25 june 2001
@@ -742,9 +808,6 @@ private:
   terminateProcStatus_t terminateProc_();
   bool dumpCore_(const std::string coreFile);
   bool osDumpImage(const std::string &imageFileName,  pid_t pid, Address codeOff);
-
-  dyn_lwp *query_for_stopped_lwp();
-  dyn_lwp *stop_an_lwp(bool *wasRunning);
 
   // stops a process
   bool stop_(bool waitForStop = true);
@@ -1035,10 +1098,9 @@ private:
   int libcHandle_;
   traceState_t traceState_;
   Address libcstartmain_brk_addr;
-  static int stopThread_ID_counter;
-  static dictionary_hash< Address, unsigned > stopThread_callbacks;
  public:  
   Address last_single_step;
+
 
   ///////////////////////////////
   // Platform-specific
@@ -1067,12 +1129,14 @@ private:
 
 
 process *ll_createProcess(const std::string file, pdvector<std::string> *argv, 
+                          BPatch_hybridMode &analysisMode, 
                           pdvector<std::string> *envp,
                           const std::string dir, int stdin_fd, int stdout_fd,
                           int stderr_fd);
 
-process *ll_attachProcess(const std::string &progpath, int pid, void *container_proc_);
-
+process *ll_attachProcess(const std::string &progpath, int pid, 
+                          void *container_proc_, 
+                          BPatch_hybridMode &analysisMode);
 
 bool isInferiorAllocated(process *p, Address block);
 

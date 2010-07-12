@@ -39,6 +39,7 @@
 #include "common/h/Vector.h"
 #include "dyninstAPI/src/EventHandler.h"
 #include "codeRange.h"
+#include "BPatch_hybridAnalysis.h"
 
 class SignalHandler;
 class EventGate;
@@ -62,11 +63,13 @@ class SignalGeneratorCommon : public EventHandler<EventRecord> {
  friend class global_wait_list_init_t;
  public:
    static process *newProcess(std::string file_, std::string dir, 
-                                            pdvector<std::string> *argv,
-                                            pdvector<std::string> *envp,
-                                            int stdin_fd, int stdout_fd, 
-                                            int stderr_fd);
-   static process *newProcess(std::string &progpath, int pid);
+                              pdvector<std::string> *argv,
+                              pdvector<std::string> *envp,
+                              int stdin_fd, int stdout_fd, 
+                              int stderr_fd, 
+                              BPatch_hybridMode mode);
+   static process *newProcess(std::string &progpath, int pid, 
+                              BPatch_hybridMode mode);
    process *newProcess(process *parent, int pid_, int traceLink);
 
    static void deleteSignalGenerator(SignalGenerator *sg);

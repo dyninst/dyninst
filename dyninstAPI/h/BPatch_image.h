@@ -88,7 +88,10 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eve
     BPatch_image(BPatch_addressSpace *addSpace);
     BPatch_image();
     virtual ~BPatch_image();
-
+    void getNewCodeRegions
+        (std::vector<BPatch_function*>&newFuncs, 
+         std::vector<BPatch_function*>&modFuncs);
+    void clearNewCodeRegions();
     // End functions for internal use only
 
     //  BPatch_image::getThr

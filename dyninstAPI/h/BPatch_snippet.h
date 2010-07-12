@@ -692,6 +692,12 @@ class BPATCH_DLL_EXPORT BPatch_insnExpr : public BPatch_snippet {
 
 };
 
+typedef enum {
+    BPatch_noInterp,
+    BPatch_interpAsTarget,
+    BPatch_interpAsReturnAddr,
+} BPatch_stInterpret;
+
 #ifdef DYNINST_CLASS_NAME
 #undef DYNINST_CLASS_NAME
 #endif
@@ -705,12 +711,14 @@ class BPATCH_DLL_EXPORT BPatch_stopThreadExpr : public BPatch_snippet {
   //  user program with the result of the calculation and a pointer to
   //  the BPatch_point at which the snippet was inserted
 
-  API_EXPORT_CTOR(Int, (cb, calculation),
+  API_EXPORT_CTOR(Int, (cb, calculation, useCache, interp),
   BPatch_stopThreadExpr, 
   (const BPatchStopThreadCallback &cb,
-   const BPatch_snippet &calculation));
-};
+   const BPatch_snippet &calculation,
+   bool useCache = false,
+   BPatch_stInterpret interp = BPatch_noInterp));
 
+};
 
 #ifdef DYNINST_CLASS_NAME
 #undef DYNINST_CLASS_NAME

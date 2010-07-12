@@ -226,3 +226,33 @@ Function::contains(Block *b)
 
     return HASHDEF(_bmap,b->start());
 }
+
+void 
+Function::removeBlocks(vector<Block*> &/*dead_blocks*/, Block * new_entry)
+{
+    _cache_valid = false;
+
+    _start = new_entry->start();
+    _entry = new_entry;
+    assert(0);
+    // remove dead blocks from _blocks
+    // re-sort block list
+    // disconnect dead blocks from CFG
+    // remove any call edges into dead entry block
+
+    // remove all function extents
+    //   from _extents
+    //   from rd::funcsByRange
+
+    // call finalize
+    //   fixes extents
+}
+
+bool 
+Function::parseNewEdges( vector<Block*> & /*sources*/, 
+                         vector<Address> & /*targets*/, 
+                         vector<EdgeTypeEnum> & /*edge_types*/)
+{
+    assert(0);
+    return false;
+}

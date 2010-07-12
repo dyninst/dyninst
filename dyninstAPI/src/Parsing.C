@@ -216,27 +216,41 @@ DynCFGFactory::mkedge(Block * src, Block * trg, EdgeTypeEnum type) {
 }
 
 void
-DynParseCallback::unresolved_cf(Function*f,Address addr,default_details*det)
+DynParseCallback::unresolved_cf(Address addr,default_details*det)
 {
-    pdmodule * mod;
-
     image_instPoint * p =
         new image_instPoint(
             addr,
             det->ibuf,
             det->isize,
             _img,
-            otherPoint);
-
-    mod = ((image_func*)f)->pdmod();
-    mod->addUnresolvedControlFlow(p);
+            otherPoint,
+            true);
 
     // check for instrumentability? FIXME
     // ah.getInstLevel or something
 
-    // also add to global lookup? FIXME
-    //_img->addInstPoint(p);
+    _img->addInstPoint(p);
 }
+
+void
+DynParseCallback::abruptEnd_cf(Address addr,default_details*det)
+{
+    image_instPoint * p =
+        new image_instPoint(
+            addr,
+            det->ibuf,
+            det->isize,
+            _img,
+            abruptEnd,
+            false);
+
+    // check for instrumentability? FIXME
+    // ah.getInstLevel or something
+
+    _img->addInstPoint(p);
+}
+
 
 void
 DynParseCallback::interproc_cf(Function*f,Address addr,interproc_details*det)

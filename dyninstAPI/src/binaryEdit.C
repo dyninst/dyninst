@@ -881,7 +881,7 @@ void BinaryEdit::setupRTLibrary(std::vector<BinaryEdit *> &r)
    runtime_lib.clear();
    std::vector<BinaryEdit *>::iterator rtlib_it;
    for(rtlib_it = r.begin(); rtlib_it != r.end(); ++rtlib_it) {
-       runtime_lib.push_back((*rtlib_it)->getMappedObject());
+       runtime_lib.insert((*rtlib_it)->getMappedObject());
    }
 }
 

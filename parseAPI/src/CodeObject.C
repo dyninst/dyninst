@@ -52,13 +52,17 @@ namespace {
     }
 }
 
-CodeObject::CodeObject(CodeSource *cs, CFGFactory *fact, ParseCallback * cb) :
+CodeObject::CodeObject(CodeSource *cs, 
+                       CFGFactory *fact, 
+                       ParseCallback * cb, 
+                       bool defMode) :
     _cs(cs),
     _fact(__fact_init(fact)),
     _pcb(__pcb_init(cb)),
     parser(new Parser(*this,*_fact,*_pcb) ),
     owns_factory(fact == NULL),
     owns_pcb(cb == NULL),
+    defensive(defMode),
     flist(parser->sorted_funcs)
 {
     process_hints(); // if any
@@ -156,3 +160,14 @@ void
 CodeObject::finalize() {
     parser->finalize();
 }
+
+void 
+CodeObject::removeFunc(Function *func)
+{
+    parser->removeFunc(func);
+    // remove function extents
+    // remove function blocks from any datastructures
+    // delete the function object? 
+    assert(0);
+}
+

@@ -93,6 +93,7 @@ typedef enum {
   evtLibcTrap, /* reached trap in __libc_start_main, handle the trap */
   evtStopThread, /* executed stop thread code snippet */
   evtSignalHandlerCB, /* invoke SignalHandlerCallback in response to signal */
+  evtCodeOverwrite, /* Analysis invalidated by code being over-written */
   evtProcessInit, /*aka "initialized" */
   evtProcessLoadedRT, /* dyninst RTlib has been loaded */
   evtProcessInitDone, /* aka bootstrapped */

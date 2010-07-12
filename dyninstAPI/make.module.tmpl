@@ -137,8 +137,10 @@ SRCS	     +=	../src/BPatch.C \
                 ../src/liveness.C \
 		../src/InstructionCache.C \
                 ../src/Parsing.C \
-                ../src/Parsing-arch.C
-
+                ../src/Parsing-arch.C \
+                ../src/hybridInstrumentation.C \
+                ../src/hybridOverwrites.C \
+                ../src/hybridCallbacks.C
 TO_INC   = ../h
 PUBLIC_H = BPatch_addressSpace.h \
            BPatch_basicBlock.h \
@@ -152,6 +154,7 @@ PUBLIC_H = BPatch_addressSpace.h \
            BPatch_frame.h \
            BPatch_function.h \
            BPatch.h \
+           BPatch_hybridAnalysis.h \
            BPatch_image.h \
            BPatch_instruction.h \
            BPatch_loopTreeNode.h \

@@ -39,6 +39,7 @@
 #include "BPatch_type.h"
 #include "BPatch_eventLock.h"
 #include "BPatch_process.h"
+#include "BPatch_hybridAnalysis.h"
 
 class BPatch_typeCollection;
 class BPatch_libInfo;
@@ -394,6 +395,18 @@ public:
      API_EXPORT(Int, (cb), 
      bool,removeSignalHandlerCallback,(BPatchSignalHandlerCallback cb)); 
 
+    API_EXPORT(Int, (cb), 
+    bool,registerCodeDiscoveryCallback,(BPatchCodeDiscoveryCallback cb));
+    API_EXPORT(Int, (cb), 
+    bool,removeCodeDiscoveryCallback,(BPatchCodeDiscoveryCallback cb));
+
+    // BPatch::registerCodeOverwriteCallbacks
+    // 
+    // Registers a callback at the beginning and end of overwrite events
+    API_EXPORT(Int, (cbBegin, cbEnd), 
+    bool,registerCodeOverwriteCallbacks,
+        (BPatchCodeOverwriteBeginCallback cbBegin,
+         BPatchCodeOverwriteEndCallback cbEnd));
 
     //  BPatch::getThreads:
     //  Get a vector of all threads
@@ -484,18 +497,21 @@ public:
 
     // BPatch::processCreate:
     // Create a new mutatee process
-    API_EXPORT(Int, (path, argv, envp, stdin_fd, stdout_fd, stderr_fd),
+    API_EXPORT(Int, (path, argv, envp, stdin_fd, stdout_fd, stderr_fd, mode),
     BPatch_process *,processCreate,(const char *path,
                                     const char *argv[],
                                     const char **envp = NULL,
                                     int stdin_fd=0,
                                     int stdout_fd=1,
-                                    int stderr_fd=2));
+                                    int stderr_fd=2,
+                                    BPatch_hybridMode mode=BPatch_normalMode));
+
 
     // BPatch::processAttach
     // Attach to mutatee process
-    API_EXPORT(Int, (path, pid),
-    BPatch_process *,processAttach,(const char *path, int pid));
+    API_EXPORT(Int, (path, pid, mode),
+    BPatch_process *,processAttach,(const char *path, int pid, 
+                                    BPatch_hybridMode mode=BPatch_normalMode));
 
     // BPatch::createProcess:
     // Create a new mutatee process

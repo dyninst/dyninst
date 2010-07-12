@@ -134,6 +134,23 @@ void fileDescriptor::setLoadAddr(Address a)
    data_ += a;
 }
 
+// only for non-files
+unsigned char* fileDescriptor::rawPtr()
+{
+
+#if defined(os_windows)
+
+    return rawPtr_;
+
+#else
+
+    return NULL;
+
+#endif
+
+}
+
+
 // All debug_ostream vrbles are defined in process.C (for no particular reason)
 extern unsigned enable_pd_sharedobj_debug;
 
@@ -772,7 +789,7 @@ unsigned int int_addrHash(const Address& addr) {
  *    physical offset. 
  */
 
-image *image::parseImage(fileDescriptor &desc, bool parseGaps)
+image *image::parseImage(fileDescriptor &desc, bool defensive, bool parseGaps)
 {
   /*
    * Check to see if we have parsed this image before. We will
@@ -809,7 +826,7 @@ image *image::parseImage(fileDescriptor &desc, bool parseGaps)
 #endif
 
   startup_printf("%s[%d]:  about to create image\n", FILE__, __LINE__);
-  image *ret = new image(desc, err, parseGaps); 
+  image *ret = new image(desc, err, defensive, parseGaps); 
   startup_printf("%s[%d]:  created image\n", FILE__, __LINE__);
 
   if(desc.isSharedObject()) 
@@ -915,6 +932,46 @@ int image::destroy() {
     if (refCount < 0)
         assert(0 && "NEGATIVE REFERENCE COUNT FOR IMAGE!");
     return refCount; 
+}
+
+void image::removeInstPoint(image_instPoint *p)
+{
+    instp_map_t::iterator iit = inst_pts_.find(p->offset());
+    if(iit != inst_pts_.end())
+        inst_pts_.erase(iit);
+}
+
+void image::removeFunc(image_func *func)
+{
+    // Remove the function's points, but not points that are shared
+    // with other functions since they might not be going away. 
+    vector<FuncExtent *>::const_iterator eit = func->extents().begin();
+    set<ParseAPI::Function *> pt_funcs;
+    for( ; eit != func->extents().end(); ++eit) {
+        FuncExtent * fe = *eit;
+        pdvector<image_instPoint *> pts;
+        getInstPoints(fe->start(),fe->end(),pts);
+        for(unsigned i=0;i<pts.size();++i) {
+            image_instPoint *p = pts[i];
+            findFuncs(p->offset(), pt_funcs);
+            if ( 1 == pt_funcs.size() )
+                removeInstPoint(p);
+            pt_funcs.clear();
+        }
+    }
+    // Remove the function's entry point whether it is shared or not
+    image_instPoint *p = getInstPoint(func->getOffset());
+    if (p) 
+        removeInstPoint(p);
+
+    // tell the parseAPI to remove the func from its datastructures
+    codeObject()->removeFunc(func);
+    
+    // remove the function from symtabAPI
+    SymtabAPI::Function *sym_func =NULL;
+    getObject()->findFuncByEntryOffset(sym_func, func->getOffset());
+    if (sym_func) 
+        getObject()->deleteFunction(sym_func);
 }
 
 #if 0   // FIXME ensure all necessary functionality preserved
@@ -1052,7 +1109,7 @@ void image::analyzeImage() {
 //        Both text and data sections have a relocation address
 
 
-image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
+image::image(fileDescriptor &desc, bool &err, bool defensive, bool parseGaps) :
    desc_(desc),
    activelyParsing(addrHash4),
    is_libdyninstRT(false),
@@ -1141,7 +1198,10 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
 #else
    string file = desc_.file();
    startup_printf("%s[%d]:  opening file %s\n", FILE__, __LINE__, file.c_str());
-   if(!SymtabAPI::Symtab::openFile(linkedFile, file)) 
+   if(desc.rawPtr()) {
+       linkedFile = new Symtab((char*)desc.rawPtr(), desc.length(), err);
+   } 
+   else if(!SymtabAPI::Symtab::openFile(linkedFile, file)) 
    {
       err = true;
       return;
@@ -1222,7 +1282,7 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
    // Continue ParseAPI init
    img_fact_ = new DynCFGFactory(this);
    parse_cb_ = new DynParseCallback(this);
-   obj_ = new CodeObject(cs_,img_fact_,parse_cb_);
+   obj_ = new CodeObject(cs_,img_fact_,parse_cb_,defensive);
 
    string msg;
    // give user some feedback....
@@ -1369,17 +1429,6 @@ void pdmodule::dumpMangled(std::string &prefix) const
       }
   }
   cerr << endl;
-}
-
-void pdmodule::addUnresolvedControlFlow(image_instPoint *badPt)
-{ 
-    unresolvedControlFlow.insert(badPt);
-}
-
-const std::set<image_instPoint*> &pdmodule::getUnresolvedControlFlow()
-{ 
-    imExec()->analyzeIfNeeded();
-    return unresolvedControlFlow; 
 }
 
 /* This function is useful for seeding image parsing with function
@@ -1769,7 +1818,7 @@ bool image::getExecCodeRanges(std::vector<std::pair<Address, Address> > &ranges)
    for (std::vector<Region *>::iterator i = regions.begin(); i != regions.end(); i++)
    {
       Region *r = *i;
-      if (!r->isStandardCode())
+      if (!r->isStandardCode() && !codeObject()->defensiveMode())
          continue;
       if (!found_something) {
          cur_start = r->getDiskOffset();
@@ -1871,3 +1920,21 @@ bool image::findGlobalDestructorFunc() {
     return false;
 }
 #endif
+
+const set<image_basicBlock*> & image::getSplitBlocks() const
+{
+    return splitBlocks_;
+}
+void image::clearSplitBlocks()
+{
+    splitBlocks_.clear();
+}
+const vector<image_basicBlock*> & image::getNewBlocks() const
+{
+    return newBlocks_;
+}
+void image::clearNewBlocks()
+{
+    newBlocks_.clear();
+}
+

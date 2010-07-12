@@ -101,6 +101,7 @@ image_func::image_func(
   containsSharedBlocks_(false),
   instLevel_(NORMAL),
   canBeRelocated_(true),
+  init_retstatus_(UNSET),
   o7_live(false),
   ppc_saves_return_addr_(false)
 #if defined(cap_liveness)
@@ -242,7 +243,8 @@ image_instPoint::image_instPoint(Address offset,
                                  unsigned char * insn_buf,
                                  size_t insn_len,
                                  image * img,
-                                 instPointType_t type) :
+                                 instPointType_t type,
+                                 bool isUnresolved) :
     instPointBase(insn_buf,
                   insn_len,
                   type),
@@ -250,6 +252,7 @@ image_instPoint::image_instPoint(Address offset,
     image_(img),
     callee_(NULL),
     callTarget_(0),
+    isUnres_(isUnresolved),
     isDynamic_(0)
 {
 #if defined(ROUGH_MEMORY_PROFILE)
@@ -268,7 +271,8 @@ image_instPoint::image_instPoint(Address offset,
                                  Address callTarget,
                                  bool isDynamic,
                                  bool isAbsolute,
-                                 instPointType_t ptType) :
+                                 instPointType_t ptType, 
+                                 bool isUnresolved) :
     instPointBase(insn_buf,
                   insn_len,
                   ptType),
@@ -277,6 +281,7 @@ image_instPoint::image_instPoint(Address offset,
     callee_(reinterpret_cast<image_func*>(-1)),
     callTarget_(callTarget),
     targetIsAbsolute_(isAbsolute),
+    isUnres_(isUnresolved),
     isDynamic_(isDynamic)
 {
 #if defined(ROUGH_MEMORY_PROFILE)
@@ -476,6 +481,37 @@ image_func::funcCalls(pdvector<image_instPoint*> &points)
     }
 }
 
+void image_func::funcUnresolvedControlFlow(pdvector<image_instPoint*> & points)
+{
+    vector<FuncExtent *>::const_iterator eit = extents().begin();
+    for( ; eit != extents().end(); ++eit) {
+        FuncExtent * fe = *eit;
+        pdvector<image_instPoint *> pts;
+        img()->getInstPoints(fe->start(),fe->end(),pts);
+        for(unsigned i=0;i<pts.size();++i) {
+            image_instPoint *p = pts[i];
+            if( p->isUnresolved() )
+                points.push_back(p);
+        }
+    }
+}
+
+void image_func::funcAbruptEnds(pdvector<image_instPoint*> & points)
+{
+    vector<FuncExtent *>::const_iterator eit = extents().begin();
+    for( ; eit != extents().end(); ++eit) {
+        FuncExtent * fe = *eit;
+        pdvector<image_instPoint *> pts;
+        img()->getInstPoints(fe->start(),fe->end(),pts);
+        for(unsigned i=0;i<pts.size();++i) {
+            image_instPoint *p = pts[i];
+            if(p->getPointType() == abruptEnd)
+                points.push_back(p);
+        }
+    }
+}
+
+
 #if defined(cap_instruction_api)
 void image_basicBlock::getInsnInstances(std::vector<std::pair<InstructionAPI::Instruction::Ptr, Offset> >&instances) {
     using namespace InstructionAPI;
@@ -489,3 +525,92 @@ void image_basicBlock::getInsnInstances(std::vector<std::pair<InstructionAPI::In
     }
 }
 #endif
+
+
+/* This function is static.
+ *
+ * Find the blocks that would become unreachable if we were to delete
+ * the dead blocks.
+ */
+void image_func::getUnreachableBlocks
+( std::set<image_basicBlock*> &deadBlocks,  // input
+  std::set<image_basicBlock*> &unreachable )// output
+{
+    using namespace ParseAPI;
+    mal_printf("GetUnreachableBlocks for %d dead blocks\n",deadBlocks.size());
+
+    // find all funcs containing dead blocks
+    std::set<image_func*> deadFuncs; 
+    vector<Function*> curfuncs;
+    for (set<image_basicBlock*>::iterator dIter = deadBlocks.begin();
+         dIter != deadBlocks.end(); 
+         dIter++) 
+    {
+        (*dIter)->getFuncs(curfuncs);
+        for (vector<Function*>::iterator fit = curfuncs.begin();
+             fit != curfuncs.end();
+             fit++) 
+        {
+            deadFuncs.insert(dynamic_cast<image_func*>(*fit));
+        }
+        curfuncs.clear();
+    }
+
+    // add function entry blocks to the worklist and the visited set
+    std::set<image_basicBlock*> visited;
+    std::list<image_basicBlock*> worklist;
+    for(std::set<image_func*>::iterator fIter=deadFuncs.begin(); 
+        fIter != deadFuncs.end();
+        fIter++) 
+    {
+        image_basicBlock *entryBlock = (*fIter)->entryBlock();
+        if (deadBlocks.end() == deadBlocks.find(entryBlock)) {
+            visited.insert(entryBlock);
+            worklist.push_back(entryBlock);
+            mal_printf("func [%lx %lx] entryBlock [%lx %lx]\n",
+                    (*fIter)->getOffset(),(*fIter)->getEndOffset(),
+                    entryBlock->firstInsnOffset(),
+                    entryBlock->endOffset());
+        }
+    }
+
+    // iterate through worklist, adding all blocks (except for
+    // deadBlocks) that are reachable through target edges to the
+    // visited set
+    while(worklist.size()) {
+        image_basicBlock *curBlock = worklist.front();
+        Block::edgelist & outEdges = curBlock->targets();
+        Block::edgelist::iterator tIter = outEdges.begin();
+        for (; tIter != outEdges.end(); tIter++) {
+            image_basicBlock *targB = (image_basicBlock*) (*tIter)->trg();
+            if ( CALL != (*tIter)->type() &&
+                 deadBlocks.end() == deadBlocks.find(targB) && 
+                 visited.end() == visited.find(targB) )
+            {   
+                worklist.push_back(targB);
+                visited.insert(targB);
+                mal_printf("block [%lx %lx] is reachable\n",
+                           targB->firstInsnOffset(),
+                           targB->endOffset());
+            }
+        }
+        worklist.pop_front();
+    } 
+
+    // add all blocks in deadFuncs but not in "visited" to the unreachable set
+    for(std::set<image_func*>::iterator fIter=deadFuncs.begin(); 
+        fIter != deadFuncs.end();
+        fIter++) 
+    {
+        Function::blocklist & blks = (*fIter)->blocks();
+        Function::blocklist::iterator bIter = blks.begin();
+        for( ; bIter != blks.end(); ++bIter) {
+            if (visited.end() == visited.find( (image_basicBlock*)(*bIter) )) {
+                unreachable.insert( (image_basicBlock*)(*bIter) );
+                mal_printf("block [%lx %lx] is unreachable\n",
+                           (*bIter)->start(), (*bIter)->end());
+            }
+        }
+    }
+}
+

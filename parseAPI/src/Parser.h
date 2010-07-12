@@ -127,6 +127,9 @@ class Parser {
     CFGFactory & factory() const { return _cfgfact; }
     CodeObject & obj() { return _obj; }
 
+    // removal
+    void removeFunc(Function *);
+
  public: 
     /** XXX all strictly internals below this point **/
     void record_block(Block *b);

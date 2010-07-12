@@ -128,6 +128,15 @@ public:
     BPatch_localVarCollection * funcParameters;
     void setReturnType(BPatch_type * _retType){retType = _retType;}
     void setModule(BPatch_module *module) { if (this->mod == NULL) this->mod = module;}
+    void removeCFG() { cfg = NULL; }
+    void getUnresolvedControlTransfers(BPatch_Vector<BPatch_point *> &unresolvedCF);
+    void getAbruptEndPoints(BPatch_Vector<BPatch_point *> &abruptEnds);
+    void getCallerPoints(std::vector<BPatch_point*>& callerPoints);
+    void getAllPoints(std::vector<BPatch_point*>& allPoints);
+    bool setHandlerFaultAddrAddr(Dyninst::Address addr, bool set);
+    void fixHandlerReturnAddr(Dyninst::Address addr);
+    bool removeInstrumentation();
+    bool parseNewEdge(Dyninst::Address source, Dyninst::Address target);
 
     void addParam(Dyninst::SymtabAPI::localVar *lvar);
 

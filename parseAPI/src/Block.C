@@ -135,3 +135,10 @@ int Block::containingFuncs() const {
     return _func_cnt;
 }
 
+void Edge::install()
+{
+    src()->addTarget(this);
+    trg()->addSource(this);
+}
+
+

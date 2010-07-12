@@ -261,6 +261,14 @@ bool miniTrampInstance::safeToFree(codeRange *range) {
 void miniTrampInstance::removeCode(generatedCodeObject *subObject) {
 
     baseTrampInstance *delBTI = dynamic_cast<baseTrampInstance *>(subObject);
+    if (baseTI && baseTI->multiT->getIsActive()) {
+        mal_printf("removing miniTrampInstance at %lx for point %lx in ACTIVE multiTramp"
+                "(instaddr=%lx [%lx %lx]) %s[%d]\n", baseTI->multiT->instAddr(),
+                baseTI->baseT->instP()->addr(), 
+                baseTI->multiT->instAddr(), baseTI->multiT->get_address(),
+                baseTI->multiT->get_address() + baseTI->multiT->get_size(), 
+                FILE__,__LINE__);
+    }
 
     assert((subObject == NULL) || delBTI);
 

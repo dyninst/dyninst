@@ -262,6 +262,8 @@ class dyn_lwp
   Address getThreadInfoBlockAddr();
 #endif
 
+  int changeMemoryProtections(Address addr, Offset size, unsigned rights);
+
   bool is_dead() const { return is_dead_; }
   void set_dead() { is_dead_ = true; }
 
