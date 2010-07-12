@@ -650,6 +650,7 @@
 					<Tool
 						Name="VCCLCompilerTool"
 						AdditionalOptions="/TP"
+						CompileAs="2"
 					/>
 				</FileConfiguration>
 				<FileConfiguration
@@ -1215,6 +1216,42 @@
 					<Tool
 						Name="VCCLCompilerTool"
 						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\hybridCallbacks.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\hybridInstrumentation.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\hybridOverwrites.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
 						CompileAs="2"
 					/>
 				</FileConfiguration>
@@ -2140,6 +2177,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\h\BPatch_hybridAnalysis.h"
+				>
+			</File>
+			<File
 				RelativePath=".\h\BPatch_image.h"
 				>
 			</File>
@@ -2293,6 +2334,10 @@
 			</File>
 			<File
 				RelativePath=".\src\function.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\hybridAnalysis.h"
 				>
 			</File>
 			<File
