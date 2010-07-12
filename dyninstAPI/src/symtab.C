@@ -1199,7 +1199,7 @@ image::image(fileDescriptor &desc, bool &err, bool defensive, bool parseGaps) :
    string file = desc_.file();
    startup_printf("%s[%d]:  opening file %s\n", FILE__, __LINE__, file.c_str());
    if(desc.rawPtr()) {
-       linkedFile = new Symtab((char*)desc.rawPtr(), desc.length(), err);
+       linkedFile = new SymtabAPI::Symtab((char*)desc.rawPtr(), desc.length(), err);
    } 
    else if(!SymtabAPI::Symtab::openFile(linkedFile, file)) 
    {

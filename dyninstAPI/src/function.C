@@ -1291,7 +1291,7 @@ void int_function::debugPrint() const {
             obj(),
             mod()->fileName().c_str(),
             mod());
-    for (set<int_basicBlock*,int_basicBlock::compare>::iterator 
+    for (set< int_basicBlock * , int_basicBlock::compare >::const_iterator 
              cb = blockList.begin();
          cb != blockList.end(); 
          cb++) 

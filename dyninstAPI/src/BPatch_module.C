@@ -772,7 +772,7 @@ void BPatch_module::setDefaultNamespacePrefix(char * /*name*/)
 bool BPatch_module::isSystemLib() 
 {
    if (!mod) return false;
-   return mod->obj()->isSystemLib();
+   return mod->obj()->isSystemLib(mod->obj()->fullName());
 }
 
 AddressSpace *BPatch_module::getAS()

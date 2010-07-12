@@ -53,6 +53,7 @@
 #include "common/h/arch.h"
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/registerSpace.h"
+#include "symtab.h"
 
 #include "dyninstAPI/src/ast.h"
 
@@ -520,12 +521,13 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
   return ret;
 }
 
-static bool decodeAccessViolation_defensive(EventRecord &ev)
+static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_active)
 {
+    bool ret = false;
+    wait_until_active = true;
     ev.address = (eventAddress_t) ev.info.u.Exception.ExceptionRecord.ExceptionAddress;
     Address violationAddr = 
         ev.info.u.Exception.ExceptionRecord.ExceptionInformation[1];
-    requested_wait_until_active = true; // return the exception to the mutatee
     mapped_object *obj = NULL;
 
     switch(ev.info.u.Exception.ExceptionRecord.ExceptionInformation[0]) {
@@ -571,22 +573,20 @@ static bool decodeAccessViolation_defensive(EventRecord &ev)
                 }
                 if (writeInsnBBI) {
                     fprintf(stderr,"---%s[%d] overwrite insn at %lx[%lx] in "
-                            "function\"%s\" [%lx %lx] orig[%lx], writing to "
+                            "function\"%s\" [%lx] orig[%lx], writing to "
                             "%lx \n",FILE__,__LINE__,ev.address, 
                             writeInsnBBI->equivAddr(0,faultAddr),
                             func->get_name().c_str(), func->get_address(), 
-                            func->get_address()+func->ifunc()->get_size(), 
-                            func->ifunc()->get_address() 
+                            func->ifunc()->addr() 
                             + func->ifunc()->img()->desc().loadAddr(), 
                             violationAddr);
                 }
                 else { // KEVINTODO: this case should never happen
                     fprintf(stderr,"---%s[%d] overwrite insn at %lx in function"
-                            "\"%s\" [%lx %lx] orig[%lx], writing to %lx \n",
+                            "\"%s\" [%lx] orig[%lx], writing to %lx \n",
                             __FILE__,__LINE__,ev.address, 
                             func->get_name().c_str(), func->get_address(), 
-                            func->get_address()+func->ifunc()->get_size(), 
-                            func->ifunc()->get_address()
+                            func->ifunc()->addr()
                             + func->ifunc()->img()->desc().loadAddr(), 
                             violationAddr);
                 }
@@ -611,6 +611,7 @@ static bool decodeAccessViolation_defensive(EventRecord &ev)
         // permissions don't match the current permissions of the written page
         obj = ev.proc->findObject(violationAddr);
         if (obj) {
+            using namespace SymtabAPI;
             Region *reg = obj->parse_img()->getObject()->
                 findEnclosingRegion(violationAddr - obj->codeBase());
             pdvector<CallbackBase *> callbacks;
@@ -622,7 +623,7 @@ static bool decodeAccessViolation_defensive(EventRecord &ev)
                     ev.info2 = reg;
                     ev.type = evtCodeOverwrite;
                     ret = true;
-                    requested_wait_until_active = false;
+                    wait_until_active = false;
                 }
             callbacks.clear();
         }
@@ -642,6 +643,7 @@ static bool decodeAccessViolation_defensive(EventRecord &ev)
     default:
         assert(0);
     }
+    return ret;
 }
 
 bool SignalGenerator::decodeException(EventRecord &ev) 
@@ -656,8 +658,10 @@ bool SignalGenerator::decodeException(EventRecord &ev)
      case EXCEPTION_ACCESS_VIOLATION:
      {
          requested_wait_until_active = true;
-         if ( BPatch_defensiveMode == ev.proc()->getHybridMode() ) {
-             ret = decodeAccessViolation_defensive(ev);
+         if ( BPatch_defensiveMode == ev.proc->getHybridMode() ) {
+             ret = decodeAccessViolation_defensive
+                        (ev,
+                         requested_wait_until_active);
          } 
          break;
      }
@@ -2501,12 +2505,10 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
  */
 bool SignalHandler::handleCodeOverwrite(EventRecord &ev)
 {
-    ev.proc->countOverwriteSignal++;
-
     //1. Get violation address
     Address violationAddr = 
         ev.info.u.Exception.ExceptionRecord.ExceptionInformation[1];
-    Region *reg = (Region*) ev.info2;
+    SymtabAPI::Region *reg = (SymtabAPI::Region*) ev.info2;
 
     // 2. Flush the runtime cache if we overwrote any code
     // Produce warning message if we've overwritten weird types of code: 
@@ -2722,7 +2724,8 @@ mapped_object *process::createObjectNoFile(Address addr)
                                     regionSize, rawRegion, true) );
         // set up file descriptor
         char regname[64];
-        snprintf(regname,63,"mmap_buffer_%lx_%lx",meminfo.AllocationBase,
+        snprintf(regname,63,"mmap_buffer_%lx_%lx",
+                 ((Address)meminfo.AllocationBase),
                  ((Address)meminfo.AllocationBase) + regionSize);
 
         fileDescriptor desc(string(regname), 
@@ -2730,7 +2733,7 @@ mapped_object *process::createObjectNoFile(Address addr)
                             (HANDLE)0, 
                             (HANDLE)0, 
                             true, 
-                            (Address)meminfo.AllocationBase
+                            (Address)meminfo.AllocationBase,
                             (Address)meminfo.RegionSize,
                             rawRegion);
         mapped_object *obj = mapped_object::createMappedObject

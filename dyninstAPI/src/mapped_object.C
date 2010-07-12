@@ -1862,9 +1862,9 @@ void mapped_object::removeRange(codeRange *range) {
     }
 }
 
-bool mapped_object::isSystemLib() const
+bool mapped_object::isSystemLib(const std::string &objname)
 {
-   const char *fname = fullName_.c_str();
+   const char * fname = objname.c_str();
    if (strstr(fname, "libdyninstAPI_RT"))
       return true;
 

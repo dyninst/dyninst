@@ -1674,7 +1674,7 @@ process::process(SignalGenerator *sh_, BPatch_hybridMode mode) :
     SYSTEM_INFO sysinfo;
     GetSystemInfo((LPSYSTEM_INFO) &sysinfo);
     memoryPageSize_ = sysinfo.dwPageSize;
-else
+#else
     memoryPageSize_ = getpagesize();
 #endif
 
