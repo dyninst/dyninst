@@ -1,0 +1,30 @@
+BPatch_addressSpace::deleteSnippetInt
+  - Implement updateActiveMultis
+
+BPatch_process::finalizeInsertionSet
+  - Any changes from Kevin?
+
+  Patch:
+       if (modified) *modified = false; 
+       -    for (unsigned ptIter = 0; ptIter < pts.size(); ptIter++) {
+       -        instPoint *pt = pts[ptIter];
+       -        for (unsigned thrIter = 0; thrIter < stacks.size(); thrIter++) {
+       -            for (unsigned sIter = 0; sIter < stacks[thrIter].size(); sIter++) {
+       -                if (pt->instrSideEffect(stacks[thrIter][sIter]))
+       +    for (unsigned thrIter = 0; thrIter < stacks.size(); thrIter++) {
+       +        for (unsigned sIter = 0; sIter < stacks[thrIter].size(); sIter++) {
+       +            bool fixedFrame = false;
+       +            for (unsigned ptIter = 0; 
+       +                 !fixedFrame && ptIter < pts.size(); 
+       +                 ptIter++) 
+       +            {
+       +                instPoint *pt = pts[ptIter];
+       +                if (pt->instrSideEffect(stacks[thrIter][sIter])) {
+                            if (modified) *modified = true;
+			    -             }
+			    +                    fixedFrame = true;
+			    +                }
+			    +            }
+			             }
+				          }
+
