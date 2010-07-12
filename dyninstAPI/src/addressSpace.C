@@ -1697,6 +1697,7 @@ bool AddressSpace::sameRegion(Address addr1, Address addr2)
         return false;
     }
     return true;
+}
 ////////////////////////////////////////////////////////////////////////////////////////
 
 using namespace Dyninst;
