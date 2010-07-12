@@ -888,6 +888,7 @@ enum prefixEntryID {
       template <>
       struct hash<prefixEntryID>
       {
+        hash<size_t> h;
 	size_t operator()(const prefixEntryID &eid) const
 	{
 	  return h(static_cast<size_t>(eid));
