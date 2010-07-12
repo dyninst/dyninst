@@ -1179,7 +1179,7 @@ bool mapped_object::splitIntLayer()
             image_func *imgFunc = dynamic_cast<image_func*>(*fIter);
             splitfuncs.insert(imgFunc);
             int_function   * intFunc  = findFunction(imgFunc);
-            int_basicBlock * intBlock = intFunc->findBlockByOffset
+            int_basicBlock * intBlock = intFunc->findBlockByOffsetInFunc
                 ( imgBlock->firstInsnOffset() - imgFunc->getOffset() );
 
             // add block to new int_function if necessary
