@@ -2383,14 +2383,13 @@ void bblInstance::getInsnInstances(std::vector<std::pair<InstructionAPI::Instruc
 }
 #endif
 
+#if 0
 int_basicBlock *int_function::findBlockByImage(image_basicBlock *block) {
   unsigned img_id = block->id();
   unsigned int_id = blockIDmap[img_id];
   return blockList[int_id];
 }
-
-// ??
-//#endif
+#endif
 
 
 /* removes all function blocks in the specified range
