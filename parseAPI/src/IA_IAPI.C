@@ -36,7 +36,7 @@
 #include "Dereference.h"
 #include "Immediate.h"
 #include "BinaryFunction.h"
-#include "debug.h"
+#include "debug_parse.h"
 
 #include <deque>
 #include <map>
@@ -435,7 +435,10 @@ bool IA_IAPI::isRealCall() const
             getCFT());
         return false;
     }
-    return (!isThunk());
+    if(isThunk()) {
+        return false;
+    }
+    return true;
 }
 
 std::map<Address, bool> IA_IAPI::thunkAtTarget;
@@ -447,6 +450,12 @@ bool IA_IAPI::isConditional() const
 
 bool IA_IAPI::simulateJump() const
 {
+    // obfuscated programs simulate jumps by calling into a block that 
+    // discards the return address from the stack, we check for these
+    // fake calls in malware mode
+    if (_obj->defensiveMode()) {
+        return isFakeCall();
+    }
     // TODO: we don't simulate jumps on x86 architectures; add logic as we need it.                
     return false;
 }

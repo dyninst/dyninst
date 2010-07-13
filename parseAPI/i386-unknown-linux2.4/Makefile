@@ -26,10 +26,11 @@ CXXFLAGS        += $(MYFLAGS)
 CFLAGS          += $(MYFLAGS)
 
 SRCS =  ../src/InstructionSource-x86.C \
+        ../src/StackTamperVisitor.C \
 		../src/IA_IAPI.C \
         ../src/IA_x86.C
 
-LIBS    += -lgcc
+LIBS    += -lgcc -lsymEval
 
 AS		= /usr/bin/as
 

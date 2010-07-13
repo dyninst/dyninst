@@ -6,7 +6,7 @@
 #include "CFG.h"
 
 #include "Parser.h"
-#include "debug.h"
+#include "debug_parse.h"
 #include "util.h"
 
 using namespace std;
@@ -30,7 +30,8 @@ Function::Function() :
         _no_stack_frame(true),
         _saves_fp(false),
         _cleans_stack(false),
-        _dangling(NULL)
+        _tamper(TAMPER_UNSET),
+        _tamper_addr(0)
 {
     fprintf(stderr,"PROBABLE ERROR, default ParseAPI::Function constructor\n");
 }
@@ -53,7 +54,8 @@ Function::Function(Address addr, string name, CodeObject * obj,
         _no_stack_frame(true),
         _saves_fp(false),
         _cleans_stack(false),
-        _dangling(NULL)
+        _tamper(TAMPER_UNSET),
+        _tamper_addr(0)
 {
     
 }
@@ -65,8 +67,6 @@ Function::~Function()
     for( ; eit != _extents.end(); ++eit) {
         delete *eit;
     }
-
-    if(_dangling) delete _dangling;
 }
 
 Function::blocklist &
@@ -228,31 +228,102 @@ Function::contains(Block *b)
 }
 
 void 
-Function::removeBlocks(vector<Block*> &/*dead_blocks*/, Block * new_entry)
+Function::deleteBlocks(vector<Block*> &dead_blocks, Block * new_entry)
 {
     _cache_valid = false;
+    if (new_entry) {
+        _start = new_entry->start();
+        _entry = new_entry;
+    }
 
-    _start = new_entry->start();
-    _entry = new_entry;
-    assert(0);
-    // remove dead blocks from _blocks
-    // re-sort block list
-    // disconnect dead blocks from CFG
-    // remove any call edges into dead entry block
+    for (unsigned didx=0; didx < dead_blocks.size(); didx++) {
+        bool found = false;
+        Block *dead = dead_blocks[didx];
 
-    // remove all function extents
-    //   from _extents
-    //   from rd::funcsByRange
+        // remove dead block from _blocks
+        std::vector<Block *>::iterator biter = _blocks.begin();
+        while ( !found && _blocks.end() != biter ) {
+            if (dead == *biter) {
+                found = true;
+                biter = _blocks.erase(biter);
+            }
+            else {
+                biter++;
+            }
+        }
+        if (!found) {
+            fprintf(stderr,"Error, tried to remove block [%lx,%lx) from "
+                    "function at %lx that it does not belong to at %s[%d]\n",
+                    dead->start(),dead->end(), addr(), FILE__,__LINE__);
+            assert(0);
+        }
 
-    // call finalize
-    //   fixes extents
+        // remove dead block from _return_blocks and its call edges from vector
+        Block::edgelist & outs = dead->targets();
+        found = false;
+        
+        for (Block::edgelist::iterator oit = outs.begin();
+             !found && outs.end() != oit; 
+             oit++ ) 
+        {
+            switch((*oit)->type()) {
+                case CALL:
+                    for (vector<Edge*>::iterator cit = _call_edges.begin(); 
+                         !found && _call_edges.end() != cit; 
+                         cit++) 
+                    {
+                        if (*oit == *cit) {
+                            found = true;
+                            _call_edges.erase(cit);
+                        }
+                    }
+                    assert(found);
+                    break;
+                case RET:
+                    for (vector<Block*>::iterator rit = _return_blocks.begin();
+                         !found && _return_blocks.end() != rit; 
+                         rit++) 
+                    {
+                        if ((*oit)->trg() == *rit) {
+                            found = true;
+                            _return_blocks.erase(rit);
+                        }
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+        // remove dead block from block map
+        _bmap.erase(dead->start());
+
+        // disconnect dead block from CFG
+        if (1 < dead->containingFuncs()) {
+            for (unsigned sidx=0; sidx < dead->_sources.size(); sidx++) {
+                Edge *edge = dead->_sources[sidx];
+                edge->src()->removeTarget( edge );
+            }
+            for (unsigned tidx=0; tidx < dead->_targets.size(); tidx++) {
+                Edge *edge = dead->_targets[tidx];
+                edge->trg()->removeSource( edge );
+            }
+        }
+    }
+
+    // call finalize, fixes extents
+    obj()->parser->finalize(this);
+
+    // delete the blocks
+    for (unsigned didx=0; didx < dead_blocks.size(); didx++) {
+        Block *dead = dead_blocks[didx];
+        if (1 <= dead->containingFuncs()) {
+            dead->removeFunc(this);
+            mal_printf("WARNING: removing shared block [%lx %lx] rather "
+                       "than deleting it %s[%d]\n", dead->start(), 
+                       dead->end(), FILE__,__LINE__);
+        } else {
+            obj()->fact()->free_block(dead);
+        }
+    }
 }
 
-bool 
-Function::parseNewEdges( vector<Block*> & /*sources*/, 
-                         vector<Address> & /*targets*/, 
-                         vector<EdgeTypeEnum> & /*edge_types*/)
-{
-    assert(0);
-    return false;
-}

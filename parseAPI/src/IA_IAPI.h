@@ -91,7 +91,8 @@ class IA_IAPI : public InstructionAdapter
         virtual bool isInterrupt() const;
         virtual bool isCall() const;
         virtual bool isReturnAddrSave() const;
-    private:
+        virtual ParseAPI::StackTamper tampersStack(ParseAPI::Function *func, Address &retAddr) const;
+private:
         virtual bool isRealCall() const;
         virtual bool isThunk() const;
         bool parseJumpTable(Dyninst::ParseAPI::Block* currBlk,
@@ -121,8 +122,8 @@ class IA_IAPI : public InstructionAdapter
                                 Address thunkOffset) const;
         bool isFrameSetupInsn(Dyninst::InstructionAPI::Instruction::Ptr i) const;
         virtual bool isReturn() const;
-
-
+        bool isFakeCall() const;
+        bool isIATcall() const;
 
 
         Dyninst::InstructionAPI::InstructionDecoder dec;

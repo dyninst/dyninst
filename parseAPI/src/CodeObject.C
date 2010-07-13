@@ -34,7 +34,7 @@
 #include "CodeObject.h"
 #include "CFG.h"
 #include "Parser.h"
-#include "debug.h"
+#include "debug_parse.h"
 
 using namespace std;
 using namespace Dyninst;
@@ -162,12 +162,32 @@ CodeObject::finalize() {
 }
 
 void 
-CodeObject::removeFunc(Function *func)
+CodeObject::deleteFunc(Function *func)
 {
-    parser->removeFunc(func);
-    // remove function extents
-    // remove function blocks from any datastructures
-    // delete the function object? 
-    assert(0);
+    assert(func->_cache_valid);
+    parser->remove_func(func);
+    func->deleteBlocks(func->_blocks, NULL);
+    fact()->free_func(func);
 }
 
+// create work elements and pass them to the parser
+bool 
+CodeObject::parseNewEdges( vector<Block*> & sources, 
+                           vector<Address> & targets,
+                           vector<EdgeTypeEnum> & edge_types )
+{
+    vector< ParseWorkElem * > work_elems;
+    for (unsigned idx=0; idx < sources.size(); idx++) {
+        ParseWorkElem *elem = new ParseWorkElem
+            ( NULL, 
+              parser->link_tempsink(sources[idx], edge_types[idx]),
+              targets[idx],
+              true,
+              false );
+        work_elems.push_back(elem);
+    }
+
+    parser->parse_edges( work_elems );
+
+    return true;
+}

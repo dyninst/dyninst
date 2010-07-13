@@ -15,7 +15,7 @@
 #include "instructionAPI/h/Instruction.h"
 #include "instructionAPI/h/InstructionDecoder.h"
 
-#include "debug.h"
+#include "debug_symeval.h"
 
 #include "CFG.h"
 #include "CodeSource.h"

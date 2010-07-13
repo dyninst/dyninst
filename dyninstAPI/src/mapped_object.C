@@ -59,6 +59,14 @@ unsigned imgVarHash(const image_variable * const &func)
     return addrHash4((Address) func);
 }
 
+// triggered when parsing needs to check if the underlying data has changed
+void codeBytesUpdateCB(void *objCB, SymtabAPI::Region *reg, Address addr)
+{
+    mapped_object *obj = (mapped_object*) objCB;
+    assert(obj);
+    obj->updateMappedFileIfNeeded(addr,reg);
+}
+
 mapped_object::mapped_object(fileDescriptor fileDesc,
       image *img,
       AddressSpace *proc,
@@ -173,8 +181,7 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
    startup_printf("%s[%d]:  about to parseImage\n", FILE__, __LINE__);
    startup_printf("%s[%d]: name %s, codeBase 0x%lx, dataBase 0x%lx\n",
                   FILE__, __LINE__, desc.file().c_str(), desc.code(), desc.data());
-   image *img = image::parseImage( desc, parseGaps, 
-                                   BPatch_defensiveMode == analysisMode );
+   image *img = image::parseImage( desc, analysisMode, parseGaps );
    if (!img)  {
       startup_printf("%s[%d]:  failed to parseImage\n", FILE__, __LINE__);
       return NULL;

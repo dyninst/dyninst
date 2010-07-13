@@ -39,7 +39,7 @@
 
 #include "common/h/arch.h"
 
-#include "parseAPI/src/debug.h"
+#include "parseAPI/src/debug_parse.h"
 
 #include <deque>
 #include <iostream>
@@ -610,4 +610,20 @@ bool IA_IAPI::isReturnAddrSave() const
     parsing_printf("[%s:%d] isReturnAddrSave examined %d instructions\n",   
         FILE__,__LINE__,cnt);
     return ret;
+}
+
+bool IA_IAPI::isFakeCall() const
+{
+    return false;
+}
+
+bool IA_IAPI::isIATcall() const
+{
+    return false;
+}
+
+ParseAPI::StackTamper 
+IA_IAPI::tampersStack(ParseAPI::Function *, Address &) const
+{
+    return TAMPER_NONE;
 }

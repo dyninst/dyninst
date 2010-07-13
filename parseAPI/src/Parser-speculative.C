@@ -43,7 +43,7 @@
 
 #include "Parser.h"
 #include "ParseData.h"
-#include "debug.h"
+#include "debug_parse.h"
 #include "util.h"
 
 using namespace std;

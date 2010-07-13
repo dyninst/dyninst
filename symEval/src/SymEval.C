@@ -52,7 +52,7 @@
 
 #include "../h/slicing.h" // AssignNode
 
-#include "debug.h"
+#include "debug_symeval.h"
 
 using namespace Dyninst;
 using namespace InstructionAPI;

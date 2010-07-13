@@ -32,7 +32,7 @@
 #include "parseAPI/h/CodeSource.h"
 
 #include "IA_InstrucIter.h"
-#include "debug.h"
+#include "debug_parse.h"
 
 using namespace Dyninst;
 using namespace Dyninst::InsnAdapter;

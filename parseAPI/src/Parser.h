@@ -123,12 +123,14 @@ class Parser {
     void parse();
     void parse_at(CodeRegion *cr, Address addr, bool recursive, FuncSource src);
     void parse_at(Address addr, bool recursive, FuncSource src);
+    void parse_edges(vector< ParseWorkElem * > & work_elems);
 
     CFGFactory & factory() const { return _cfgfact; }
     CodeObject & obj() { return _obj; }
 
     // removal
-    void removeFunc(Function *);
+    void remove_func(Function *);
+    void remove_block(Block *);
 
  public: 
     /** XXX all strictly internals below this point **/

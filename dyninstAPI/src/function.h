@@ -544,7 +544,7 @@ class int_function : public patchTarget {
    // Invalidates all relocated versions for the program
    bool relocationInvalidateAll();
    bool removePoint(instPoint*);
-   void removeBlock(int_basicBlock* block);
+   void deleteBlock(int_basicBlock* block);
    void removeFromAll();
    Address setNewEntryPoint(int_basicBlock *& newEntry);
    bool removeFunctionSubRange

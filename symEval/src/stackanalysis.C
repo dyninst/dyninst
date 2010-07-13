@@ -40,7 +40,7 @@
 
 #include "Annotatable.h"
 
-#include "debug.h"
+#include "debug_symeval.h"
 
 #include "parseAPI/h/CFG.h"
 #include "parseAPI/h/CodeObject.h"

@@ -40,7 +40,7 @@
 #include "CodeObject.h"
 #include "CFG.h"
 #include "ParserDetails.h"
-#include "debug.h"
+#include "debug_parse.h"
 
 
 using namespace std;
@@ -218,7 +218,12 @@ class ParseData {
     virtual void record_func(Function *) =0;
     virtual void record_block(CodeRegion *, Block *) =0;
     virtual void record_frame(ParseFrame *) =0;
+
+    // removal
     virtual void remove_frame(ParseFrame *) =0;
+    virtual void remove_func(Function *) =0;
+    virtual void remove_block(Block *) =0;
+    virtual void remove_extents(const std::vector<FuncExtent*> &extents) =0;
 
     // does the Right Thing(TM) for standard- and overlapping-region 
     // object types
@@ -250,7 +255,11 @@ class StandardParseData : public ParseData {
     void record_func(Function *f);
     void record_block(CodeRegion *cr, Block *b);
     void record_frame(ParseFrame *pf);
+
     void remove_frame(ParseFrame *);
+    void remove_func(Function *);
+    void remove_block(Block *);
+    void remove_extents(const std::vector<FuncExtent*> &extents);
 
     CodeRegion * reglookup(CodeRegion *cr, Address addr);
 };
@@ -295,7 +304,11 @@ class OverlappingParseData : public ParseData {
     void record_func(Function *f);
     void record_block(CodeRegion *cr, Block *b);
     void record_frame(ParseFrame *pf);
+
     void remove_frame(ParseFrame *);
+    void remove_func(Function *);
+    void remove_block(Block *);
+    void remove_extents(const std::vector<FuncExtent*> &extents);
 
     CodeRegion * reglookup(CodeRegion *cr, Address addr);
 };

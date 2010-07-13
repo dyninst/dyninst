@@ -41,8 +41,8 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="h;..;../dynutil/h;../../include;../external"
-				PreprocessorDefinitions="WIN32;os_windows;arch_x86;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_instruction_api;cap_async_events;cap_threads;cap_tramp_liveness;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;snprintf=_snprintf;PARSER_LIB"
+				AdditionalIncludeDirectories="h;..;../dynutil/h;../../include;../external;../symEval/h;../symEval/src"
+				PreprocessorDefinitions="WIN32;os_windows;arch_x86;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_instruction_api;cap_async_events;cap_threads;cap_tramp_liveness;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;snprintf=_snprintf;PARSER_LIB;SYMEVAL_LIB"
 				MinimalRebuild="false"
 				BasicRuntimeChecks="0"
 				RuntimeLibrary="3"
@@ -192,6 +192,30 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath="..\symEval\src\Absloc.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\symEval\src\AbslocInterface.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\Block.C"
 				>
 				<FileConfiguration
@@ -252,7 +276,19 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\debug.C"
+				RelativePath="..\symEval\src\convertOpcodes.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\debug_parse.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -264,6 +300,30 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\symEval\src\debug_symeval.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\symEval\src\ExpressionConversionVisitor.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -452,6 +512,102 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath="..\symEval\src\RoseImpl.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\symEval\src\RoseInsnFactory.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\symEval\src\slicing.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\symEval\src\stackanalysis.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\StackTamperVisitor.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\symEval\src\SymbolicExpansion.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\symEval\src\SymEval.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\symEval\src\SymEvalPolicy.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\SymtabCodeSource.C"
 				>
 				<FileConfiguration
@@ -471,12 +627,44 @@
 					/>
 				</FileConfiguration>
 			</File>
+			<File
+				RelativePath="..\symEval\src\templates.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\symEval\src\Visitors.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
+			<File
+				RelativePath="..\symEval\h\Absloc.h"
+				>
+			</File>
+			<File
+				RelativePath="..\symEval\h\AbslocInterface.h"
+				>
+			</File>
 			<File
 				RelativePath=".\h\CFG.h"
 				>
@@ -494,7 +682,15 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\debug.h"
+				RelativePath=".\src\debug_parse.h"
+				>
+			</File>
+			<File
+				RelativePath="..\symEval\src\debug_symeval.h"
+				>
+			</File>
+			<File
+				RelativePath="..\symEval\src\ExpressionConversionVisitor.h"
 				>
 			</File>
 			<File
@@ -507,6 +703,10 @@
 			</File>
 			<File
 				RelativePath=".\h\InstructionSource.h"
+				>
+			</File>
+			<File
+				RelativePath="..\symEval\src\Operations.h"
 				>
 			</File>
 			<File
@@ -527,6 +727,38 @@
 			</File>
 			<File
 				RelativePath=".\src\ParserDetails.h"
+				>
+			</File>
+			<File
+				RelativePath="..\symEval\src\RoseInsnFactory.h"
+				>
+			</File>
+			<File
+				RelativePath="..\symEval\src\RoseInsnFactoryArchTraits.h"
+				>
+			</File>
+			<File
+				RelativePath="..\symEval\h\slicing.h"
+				>
+			</File>
+			<File
+				RelativePath="..\symEval\h\stackanalysis.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\StackTamperVisitor.h"
+				>
+			</File>
+			<File
+				RelativePath="..\symEval\h\SymEval.h"
+				>
+			</File>
+			<File
+				RelativePath="..\symEval\src\SymEvalPolicy.h"
+				>
+			</File>
+			<File
+				RelativePath="..\symEval\h\SymEvalVisitors.h"
 				>
 			</File>
 			<File

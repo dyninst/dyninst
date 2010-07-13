@@ -294,6 +294,7 @@ class Block : public Dyninst::interval<Address>,
     void addTarget(Edge * e);
     void removeTarget(Edge * e);
     void removeSource(Edge * e);
+    void removeFunc(Function *);
 
  private:
     CodeObject * _obj;
@@ -365,6 +366,14 @@ enum FuncSource {
     _funcsource_end_
 };
 
+enum StackTamper {
+    TAMPER_UNSET,
+    TAMPER_NONE,
+    TAMPER_REL,
+    TAMPER_ABS,
+    TAMPER_NONZERO
+};
+
 class CodeObject;
 class CodeRegion;
 class FuncExtent;
@@ -420,13 +429,12 @@ class Function : public allocatable, public AnnotatableSparse {
     PARSER_EXPORT bool savesFramePointer() const { return _saves_fp; }
     PARSER_EXPORT bool cleansOwnStack() const { return _cleans_stack; }
 
-    /* Parse updates */
+    /* Parse updates and obfuscation */
     PARSER_EXPORT void set_retstatus(FuncReturnStatus rs) { _rs = rs; }
-    PARSER_EXPORT bool parseNewEdges( vector<Block*> & sources, 
-                                      vector<Address> & targets, 
-                                      vector<EdgeTypeEnum> & edge_types);
-    PARSER_EXPORT void removeBlocks( vector<Block*> & dead_funcs,
+    PARSER_EXPORT void deleteBlocks( vector<Block*> & dead_funcs,
                                      Block * new_entry );
+    PARSER_EXPORT StackTamper stackTamper() { return _tamper; }
+
     struct less
     {
         bool operator()(const Function * f1, const Function * f2) const
@@ -465,10 +473,11 @@ class Function : public allocatable, public AnnotatableSparse {
     bool _no_stack_frame;
     bool _saves_fp;
     bool _cleans_stack;
+    StackTamper _tamper;
+    Address _tamper_addr;
 
     /*** Internal parsing methods and state ***/
     void add_block(Block *b);
-    std::vector<Block *> * _dangling;
 
     friend class Parser;
     friend class CFGFactory;
