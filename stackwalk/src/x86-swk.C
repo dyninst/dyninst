@@ -289,7 +289,6 @@ FrameFuncHelper::alloc_frame_t LookupFuncStart::allocatesFrame(Address addr)
    }
    func_addr = reader->getSymbolOffset(sym) + lib.second;
 
-   result = proc->readMem(mem, func_addr, FUNCTION_PROLOG_TOCHECK);
    if (!result) {
       sw_printf("[%s:%u] - Error.  Couldn't read from memory at %lx\n",
                 __FILE__, __LINE__, func_addr);
@@ -381,6 +380,63 @@ gcframe_ret_t DyninstInstrStepperImpl::getCallerFrameArch(const Frame &in, Frame
   out.setRA(out.getRA() + lib_base);
   out.setSP(out.getSP() + stack_height);
   return gcf_success;
+}
+
+#include "analysis_stepper.h"
+gcframe_ret_t AnalysisStepperImpl::getCallerFrameArch(height_pair_t height,
+                                                      const Frame &in, Frame &out)
+{
+   Address in_sp = in.getSP();
+   StackAnalysis::Height pc_height = height.first;
+   StackAnalysis::Height fp_height = height.second;
+
+   ProcessState *proc = getProcessState();
+
+   Address ret_addr = 0;
+   
+   if (pc_height == StackAnalysis::Height::bottom) {
+      sw_printf("[%s:%u] - Analysis didn't find a stack height\n", 
+                __FILE__, __LINE__);
+      return gcf_not_me;
+   }
+
+   Address ret_loc = in_sp - pc_height.height() - proc->getAddressWidth();
+
+   bool result = proc->readMem(&ret_addr, ret_loc, proc->getAddressWidth());
+   if (!result) {
+      sw_printf("[%s:%u] - Error reading from return location %lx on stack\n",
+                __FILE__, __LINE__, ret_addr);
+      return gcf_not_me;
+   }
+   location_t ra_loc;
+   ra_loc.val.addr = ret_loc;
+   ra_loc.location = loc_address;
+   out.setRALocation(ra_loc);
+   out.setRA(ret_addr);
+   out.setSP(ret_loc + proc->getAddressWidth());
+
+   Address fp_addr = 0;
+   Address fp_loc = 0;
+   if (fp_height != StackAnalysis::Height::bottom) {
+      fp_loc = ret_loc + fp_height.height() - proc->getAddressWidth();
+      result = proc->readMem(&fp_addr, fp_loc, proc->getAddressWidth());
+      if (result) {
+         out.setFP(fp_addr);
+         location_t fp_loc;
+         ra_loc.val.addr = fp_addr;
+         ra_loc.location = loc_address;
+         out.setFPLocation(fp_loc);
+      }
+      else { 
+         sw_printf("[%s:%u] - Failed to read FP value\n", __FILE__, __LINE__);
+      }
+   }
+   else {
+      sw_printf("[%s:%u] - Did not find frame pointer in analysis\n",
+                __FILE__, __LINE__);
+   }
+
+   return gcf_success;
 }
 
 namespace Dyninst {

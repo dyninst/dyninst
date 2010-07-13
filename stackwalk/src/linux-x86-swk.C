@@ -100,6 +100,13 @@ bool Walker::createDefaultSteppers()
   sw_printf("[%s:%u] - Stepper %p is BottomOfStackStepper\n",
             __FILE__, __LINE__, stepper);
 
+  stepper = new AnalysisStepper(this);
+  result = addStepper(stepper);
+  if (!result)
+     goto error;
+  sw_printf("[%s:%u] - Stepper %p is AnalysisStepper\n",
+            __FILE__, __LINE__, stepper);
+
   return true;
  error:
   sw_printf("[%s:%u] - Error adding stepper %p\n", stepper);
