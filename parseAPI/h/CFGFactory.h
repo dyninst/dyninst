@@ -28,8 +28,8 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#ifndef _CFG_FACTORY_H_
-#define _CFG_FACTORY_H_
+#ifndef CFG_FACTORY_H__
+#define CFG_FACTORY_H__
 
 #include "dyntypes.h"
 

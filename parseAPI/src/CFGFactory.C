@@ -53,7 +53,7 @@ CFGFactory::mkfunc(Address addr, FuncSource src, string name,
 {
     Function * ret = new Function(addr,name,obj,reg,isrc);
     funcs_.add(*ret);
-    ret->_src =  src;
+    ret->src_ =  src;
     return ret;
 }
 

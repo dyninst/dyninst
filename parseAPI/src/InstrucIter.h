@@ -29,8 +29,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#if !defined(_InstrucIter_h_) && !defined(cap_instruction_api)
-#define _InstrucIter_h_
+#if !defined(InstrucIter_h__) && !defined(cap_instruction_api)
+#define InstrucIter_h__
 
 #include <vector>
 #include <set>
@@ -307,7 +307,7 @@ class InstrucIter {
   // Delay slot happiness. Thing is, a jump ends a basic block (especially
   // since you can branch into the delay slot, and we don't like overlapping
   // basic blocks). And I want to keep that. But we still need a way to say
-  // "grab me the delay slot insn", which might _not_ be in a basic block
+  // "grab me the delay slot insn", which might not__ be in a basic block
   // (say, unconditional jump). So I've added two instructions that go by 
   // address and grab delay slot (and aggregate doohickey)
 
@@ -321,4 +321,4 @@ class InstrucIter {
 
 };
 
-#endif /* _InstrucIter_h_ */
+#endif /* InstrucIter_h__ */

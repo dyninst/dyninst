@@ -28,8 +28,8 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#ifndef _ITERATORS_H_
-#define _ITERATORS_H_
+#ifndef ITERATORS_H__
+#define ITERATORS_H__
 
 /*
  * An iterator and a predicate interface, and a 
@@ -107,21 +107,21 @@ class PredicateIterator
     typedef ContainerWrapper<CONTAINER,VALUE,REFERENCE,PREDICATE> wrapper_t;
 
     PredicateIterator() : 
-        _m_cont(NULL), 
-        _m_pred(NULL), 
-        _m_init(false) 
+        m_cont_(NULL), 
+        m_pred_(NULL), 
+        m_init_(false) 
     { }
     PredicateIterator(const wrapper_t * cw) :
-        _m_cont(cw),
-        _m_pred(NULL),
-        _m_cur(cw->_m_container.begin()),
-        _m_init(true)
+        m_cont_(cw),
+        m_pred_(NULL),
+        m_cur_(cw->m_container_.begin()),
+        m_init_(true)
     { }
     PredicateIterator(const wrapper_t * cw, PREDICATE * p) :
-        _m_cont(cw),
-        _m_pred(p),
-        _m_cur(cw->_m_container.begin()),
-        _m_init(true)
+        m_cont_(cw),
+        m_pred_(p),
+        m_cur_(cw->m_container_.begin()),
+        m_init_(true)
     { }
 
  private:
@@ -129,12 +129,12 @@ class PredicateIterator
     REFERENCE   dereference() const;
     bool        equal(PredicateIterator const& o) const;
 
-    bool        uninit() const { return !_m_init; }
+    bool        uninit() const { return !m_init_; }
 
-    const wrapper_t *                   _m_cont;
-    PREDICATE *                         _m_pred;
-    typename CONTAINER::const_iterator  _m_cur;
-    bool                                _m_init;
+    const wrapper_t *                   m_cont_;
+    PREDICATE *                         m_pred_;
+    typename CONTAINER::const_iterator  m_cur_;
+    bool                                m_init_;
 
     friend class iterator_base<PredicateIterator,VALUE,REFERENCE>;
 };
@@ -151,7 +151,7 @@ class ContainerWrapper
  public:
     typedef PredicateIterator<CONTAINER,VALUE,REFERENCE,PREDICATE> iterator;
 
-    PARSER_EXPORT ContainerWrapper(CONTAINER & cont) : _m_container(cont) { }
+    PARSER_EXPORT ContainerWrapper(CONTAINER & cont) : m_container_(cont) { }
     PARSER_EXPORT ~ContainerWrapper() { }
 
     iterator        begin() const;
@@ -160,8 +160,8 @@ class ContainerWrapper
     size_t          size() const;
     bool            empty() const;
  private:
-    CONTAINER const& _m_container;
-    iterator         _m_end;
+    CONTAINER const& m_container_;
+    iterator         m_end_;
 
     friend class PredicateIterator<CONTAINER,VALUE,REFERENCE,PREDICATE>;
 };
@@ -180,7 +180,7 @@ inline PredicateIterator<C,V,R,P>
 ContainerWrapper<C,V,R,P>::begin(P * p) const
 {
     iterator ret(this,p);
-    if(ret != _m_end && !(*p)(*ret))
+    if(ret != m_end_ && !(*p)(*ret))
         ++ret;
     return ret;
 }
@@ -188,36 +188,36 @@ template<typename C,typename V,typename R,typename P>
 inline PredicateIterator<C,V,R,P> const&
 ContainerWrapper<C,V,R,P>::end() const
 {
-    return _m_end;
+    return m_end_;
 }
 template<typename C,typename V,typename R,typename P>
 inline size_t
 ContainerWrapper<C,V,R,P>::size() const
 {
-    return _m_container.size();
+    return m_container_.size();
 }
 template<typename C,typename V,typename R,typename P>
 inline bool
 ContainerWrapper<C,V,R,P>::empty() const
 {
-    return _m_container.empty();
+    return m_container_.empty();
 }
 
 template<typename C,typename V,typename R, typename P>
 inline void PredicateIterator<C,V,R,P>::increment()
 {
-    if(*this == _m_cont->end())
+    if(*this == m_cont_->end())
         return;
 
     do {
-        (void)++_m_cur;
-    } while(*this != _m_cont->end() && (_m_pred && !(*_m_pred)(*(*this))) );
+        (void)++m_cur_;
+    } while(*this != m_cont_->end() && (m_pred_ && !(*m_pred_)(*(*this))) );
 }
 
 template<typename C,typename V,typename R, typename P>
 inline R PredicateIterator<C,V,R,P>::dereference() const
 {
-    return *_m_cur;
+    return *m_cur_;
 }
 
 template<typename C,typename V,typename R, typename P>
@@ -225,8 +225,8 @@ inline bool PredicateIterator<C,V,R,P>::equal(PredicateIterator const& o) const
 {
     if(o.uninit() && uninit())
         return true;
-    return (o.uninit() && _m_cur == _m_cont->_m_container.end()) ||
-           (_m_cont == o._m_cont && _m_cur == o._m_cur);
+    return (o.uninit() && m_cur_ == m_cont_->m_container_.end()) ||
+           (m_cont_ == o.m_cont_ && m_cur_ == o.m_cur_);
 }
 
 /*** static binding implementation ***/

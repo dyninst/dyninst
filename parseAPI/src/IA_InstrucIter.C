@@ -224,7 +224,7 @@ void IA_InstrucIter::getNewEdges(
     {
         Address target = ii.getBranchTargetAddress(NULL);
         Address catchStart;
-        if(_cr->findCatchBlock(current + getSize(), catchStart))
+        if(cr_->findCatchBlock(current + getSize(), catchStart))
         {
             outEdges.push_back(std::make_pair(catchStart, CATCH));
         }
@@ -269,7 +269,7 @@ void IA_InstrucIter::getNewEdges(
         bool simulateJump = false;
 
         Address target = ii.getBranchTargetAddress();
-        if(ii.isRealCall(_isrc,validTarget,simulateJump))
+        if(ii.isRealCall(isrc_,validTarget,simulateJump))
         {
             outEdges.push_back(std::make_pair(target, NOEDGE));
         }
@@ -318,14 +318,14 @@ instruction IA_InstrucIter::getInstruction()
 bool IA_InstrucIter::isRealCall() const
 {
     bool ignored;
-    return ii.isRealCall(_isrc,ignored,ignored);
+    return ii.isRealCall(isrc_,ignored,ignored);
 }
 
 bool IA_InstrucIter::simulateJump() const
 {
     bool simulateJump = false;
     bool ignored;
-    (void) ii.isRealCall(_isrc,ignored,simulateJump);
+    (void) ii.isRealCall(isrc_,ignored,simulateJump);
     return simulateJump;
 }
 
@@ -340,7 +340,7 @@ bool IA_InstrucIter::isRelocatable(InstrumentableLevel lvl) const
         return true;
     }
     bool valid = false, simjump = false;
-    if(!ii.isRealCall(_isrc,valid,simjump))
+    if(!ii.isRealCall(isrc_,valid,simjump))
     {
         if(!valid)
         {

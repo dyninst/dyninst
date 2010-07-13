@@ -45,7 +45,7 @@ InstructionAdapter::InstructionAdapter(Address start, CodeObject *o, CodeRegion 
     isDynamicCall_(false), checkedDynamicCall_(false),
     isInvalidCallTarget_(false), checkedInvalidCallTarget_(false),
     //context(NULL), 
-    _obj(o), _cr(r), _isrc(isrc)
+    obj_(o), cr_(r), isrc_(isrc)
 {
 }
 

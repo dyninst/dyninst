@@ -151,7 +151,7 @@ bool IA_IAPI::parseJumpTable(Block* currBlk,
 Address initialAddress = current;
 static RegisterAST::Ptr toc_reg(new RegisterAST(ppc32::r2));
 
-Address TOC_address = _obj->cs()->getTOC();
+Address TOC_address = obj_->cs()->getTOC();
 detail::TOCandOffsetExtractor toc_visitor(TOC_address);
     
 // If there are no prior instructions then we can't be looking at a
@@ -365,9 +365,9 @@ if(!TOC_address)
     }
     Block* sourceBlock = (*sourceEdges.begin())->src();
     Address blockStart = sourceBlock->start();
-    const unsigned char* b = (const unsigned char*)(_isrc->getPtrToInstruction(blockStart));
-    InstructionDecoder dec(b, sourceBlock->size(), _isrc->getArch());
-    IA_IAPI prevBlock(dec, blockStart,_obj,_cr,_isrc);
+    const unsigned char* b = (const unsigned char*)(isrc_->getPtrToInstruction(blockStart));
+    InstructionDecoder dec(b, sourceBlock->size(), isrc_->getArch());
+    IA_IAPI prevBlock(dec, blockStart,obj_,cr_,isrc_);
     while(!prevBlock.hasCFT()) {
         prevBlock.advance();
     }
@@ -406,12 +406,12 @@ if(!TOC_address)
 
     Address jumpStart = 0;
     Address tableStart = 0;
-    bool is64 = (_isrc->getAddressWidth() == 8);
+    bool is64 = (isrc_->getAddressWidth() == 8);
 
     if(TOC_address)
     {
             if (tableIsRelative) {
-                void *jumpStartPtr = _isrc->getPtrToData(jumpStartAddress);
+                void *jumpStartPtr = isrc_->getPtrToData(jumpStartAddress);
                 parsing_printf("%s[%d]: jumpStartPtr (0x%lx) = %p\n", FILE__, __LINE__, jumpStartAddress, jumpStartPtr);
                 if (jumpStartPtr)
                     jumpStart = (is64
@@ -423,7 +423,7 @@ if(!TOC_address)
                     return false;
                 }
             }
-            void *tableStartPtr = _isrc->getPtrToData(tableStartAddress);
+            void *tableStartPtr = isrc_->getPtrToData(tableStartAddress);
             parsing_printf("%s[%d]: tableStartPtr (0x%lx) = %p\n", FILE__, __LINE__, tableStartAddress, tableStartPtr);
             tableStart = *((Address *)tableStartPtr);
             if (tableStartPtr)
@@ -440,19 +440,19 @@ if(!TOC_address)
             for(int i=0;i<maxSwitch;i++){
                 Address tableEntry = adjustEntry + tableStart + (i * instruction::size());
                 parsing_printf("\t\tTable entry at 0x%lx\n", tableEntry);
-                if (_isrc->isValidAddress(tableEntry)) {
+                if (isrc_->isValidAddress(tableEntry)) {
                     int jumpOffset;
                     if (tableData) {
-                        jumpOffset = *((int *)_isrc->getPtrToData(tableEntry));
+                        jumpOffset = *((int *)isrc_->getPtrToData(tableEntry));
                     }
                     else {
-                        jumpOffset = *((int *)_isrc->getPtrToInstruction(tableEntry));
+                        jumpOffset = *((int *)isrc_->getPtrToInstruction(tableEntry));
                     }
 
                     parsing_printf("\t\t\tjumpOffset 0x%lx\n", jumpOffset);
                     Address res = (Address)(jumpStart + jumpOffset);
 
-                    if (_isrc->isCode(res)) {
+                    if (isrc_->isCode(res)) {
                         outEdges.push_back(std::make_pair((Address)(jumpStart+jumpOffset), INDIRECT));
                         parsing_printf("\t\t\tEntry of 0x%lx\n", (Address)(jumpStart + jumpOffset));
                     }
@@ -470,9 +470,9 @@ if(!TOC_address)
         {
             void* ptr = NULL;
             Address tableEntry = tableStartAddress + i*instruction::size();
-            if(_isrc->isValidAddress(tableEntry))
+            if(isrc_->isValidAddress(tableEntry))
             {
-                ptr = _isrc->getPtrToInstruction(tableEntry);
+                ptr = isrc_->getPtrToInstruction(tableEntry);
             }
             if(ptr)
             {
@@ -594,7 +594,7 @@ bool IA_IAPI::isReturnAddrSave() const
     // walk to first control flow transfer instruction, looking
     // for a save of gpr0
     int cnt = 1;
-    IA_IAPI copy(dec,getAddr(),_obj,_cr,_isrc);
+    IA_IAPI copy(dec,getAddr(),obj_,cr_,isrc_);
     while(!copy.hasCFT() && copy.curInsn()) {
         ci = copy.curInsn();
         if(ci->writesMemory() &&

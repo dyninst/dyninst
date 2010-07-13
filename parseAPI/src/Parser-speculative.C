@@ -220,7 +220,7 @@ void Parser::parse_gap_heuristic(CodeRegion * cr)
 {
     // ensure that we've parsed and finalized
     // all vanilla parsing
-    if(_parse_state < COMPLETE)
+    if(parse_state_ < COMPLETE)
         parse();
     finalize();
 
@@ -237,7 +237,7 @@ void Parser::parse_gap_heuristic(CodeRegion * cr)
         parsing_printf("[%s] scanning for prologues in [%lx,%lx)\n",
             FILE__,gapStart,gapEnd);
         for(curAddr=gapStart; curAddr < gapEnd; ++curAddr) {
-            if(cr->isCode(curAddr) && hd::gap_heuristics(&_obj,cr,curAddr)) {
+            if(cr->isCode(curAddr) && hd::gap_heuristics(&obj_,cr,curAddr)) {
                 assert(!findFuncByEntry(cr,curAddr));
                 ++match;
                 parse_at(cr,curAddr,true,GAP);

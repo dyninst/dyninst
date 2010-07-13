@@ -280,7 +280,7 @@ void IA_IAPI::getNewEdges(
         }
         else
         {
-            if(_isrc->isValidAddress(target))
+            if(isrc_->isValidAddress(target))
             {
                 if(simulateJump())
                 {
@@ -310,7 +310,7 @@ void IA_IAPI::getNewEdges(
         else if((target = getCFT()) != 0)
         {
             Address catchStart;
-            if(_cr->findCatchBlock(getNextAddr(),catchStart))
+            if(cr_->findCatchBlock(getNextAddr(),catchStart))
             {
                 outEdges.push_back(std::make_pair(catchStart, CATCH));
             }
@@ -387,7 +387,7 @@ bool IA_IAPI::isIPRelativeBranch() const
         !getCFT())
 {
     Expression::Ptr cft = ci->getControlFlowTarget();
-    if(cft->isUsed(thePC[_isrc->getArch()]))
+    if(cft->isUsed(thePC[isrc_->getArch()]))
     {
         parsing_printf("\tIP-relative indirect jump to %s at 0x%lx\n",
                        cft->format().c_str(), current);
@@ -429,9 +429,9 @@ bool IA_IAPI::isRealCall() const
         parsing_printf("... getting PC\n");
         return false;
     }
-    if(!_isrc->isValidAddress(getCFT()))
+    if(!isrc_->isValidAddress(getCFT()))
     {
-        parsing_printf(" isREalCall whacked by _isrc->isVAlidAddress(%lx)\n",
+        parsing_printf(" isREalCall whacked by isrc_->isVAlidAddress(%lx)\n",
             getCFT());
         return false;
     }
@@ -456,9 +456,9 @@ Address IA_IAPI::getCFT() const
     if(validCFT) return cachedCFT;
     Expression::Ptr callTarget = curInsn()->getControlFlowTarget();
         // FIXME: templated bind(),dammit!
-    callTarget->bind(thePC[_isrc->getArch()].get(), Result(s64, current));
+    callTarget->bind(thePC[isrc_->getArch()].get(), Result(s64, current));
     parsing_printf("%s[%d]: binding PC %s in %s to 0x%x...", FILE__, __LINE__,
-                   thePC[_isrc->getArch()]->format().c_str(), curInsn()->format().c_str(), current);
+                   thePC[isrc_->getArch()]->format().c_str(), curInsn()->format().c_str(), current);
     Result actualTarget = callTarget->eval();
     if(actualTarget.defined)
     {
@@ -481,7 +481,7 @@ bool IA_IAPI::isRelocatable(InstrumentableLevel lvl) const
     {
         if(!isDynamicCall())
         {
-            if(!_isrc->isValidAddress(getCFT()))
+            if(!isrc_->isValidAddress(getCFT()))
             {
                 parsing_printf("... Call to 0x%lx is invalid (outside code or data)\n",
                                getCFT());

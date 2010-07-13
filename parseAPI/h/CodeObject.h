@@ -92,8 +92,8 @@ class CodeObject {
         Address addr, std::set<Block*> & blocks);
 
     /* Misc */
-    PARSER_EXPORT CodeSource * cs() const { return _cs; }
-    PARSER_EXPORT CFGFactory * fact() const { return _fact; }
+    PARSER_EXPORT CodeSource * cs() const { return cs_; }
+    PARSER_EXPORT CFGFactory * fact() const { return fact_; }
 
     /*
      * Calling finalize() forces completion of all on-demand
@@ -111,9 +111,9 @@ class CodeObject {
     friend void Function::finalize();
 
  private:
-    CodeSource * _cs;
-    CFGFactory * _fact;
-    ParseCallback * _pcb;
+    CodeSource * cs_;
+    CFGFactory * fact_;
+    ParseCallback * pcb_;
 
     Parser * parser; // parser implementation
 

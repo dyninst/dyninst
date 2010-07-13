@@ -28,8 +28,8 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#ifndef _PARSER_DETAILS_H_
-#define _PARSER_DETAILS_H_
+#ifndef PARSER_DETAILS_H__
+#define PARSER_DETAILS_H__
 
 
 
@@ -79,60 +79,60 @@ class ParseWorkElem
             Address target, 
             bool resolvable,
             bool tailcall)
-        : _bundle(b),
-          _edge(e),
-          _targ(target),
-          _can_resolve(resolvable),
-          _tailcall(tailcall),
-          _order(__parse_work_end__),
-          _call_processed(false)
+        : bundle_(b),
+          edge_(e),
+          targ_(target),
+          can_resolve_(resolvable),
+          tailcall_(tailcall),
+          order_(__parse_work_end__),
+          call_processed_(false)
     { 
       if(e) {
         switch(e->type()) {
             case CALL:
-                _order = call; break;
+                order_ = call; break;
             case COND_TAKEN:
-                _order = cond_taken; break;
+                order_ = cond_taken; break;
             case COND_NOT_TAKEN:
-                _order = cond_not_taken; break;
+                order_ = cond_not_taken; break;
             case INDIRECT:
-                _order = br_indirect; break;
+                order_ = br_indirect; break;
             case DIRECT:
-                _order = br_direct; break;
+                order_ = br_direct; break;
             case FALLTHROUGH:
-                _order = ret_fallthrough; break;
+                order_ = ret_fallthrough; break;
             case CATCH:
-                _order = catch_block; break;
+                order_ = catch_block; break;
             case CALL_FT:
-                _order = call_fallthrough; break;
+                order_ = call_fallthrough; break;
             default:
                 fprintf(stderr,"[%s:%d] FATAL: bad edge type %d\n",
                     FILE__,__LINE__,e->type());
                 assert(0);
         } 
       } else 
-        _order = seed_addr;
+        order_ = seed_addr;
     }
 
     ParseWorkElem()
-        : _bundle(NULL),
-          _edge(NULL),
-          _targ((Address)-1),
-          _can_resolve(false),
-          _tailcall(false),
-          _order(__parse_work_end__),
-          _call_processed(false)
+        : bundle_(NULL),
+          edge_(NULL),
+          targ_((Address)-1),
+          can_resolve_(false),
+          tailcall_(false),
+          order_(__parse_work_end__),
+          call_processed_(false)
     { } 
 
-    ParseWorkBundle *   bundle()        const { return _bundle; }
-    Edge *              edge()          const { return _edge; }
-    Address             target()        const { return _targ; }
-    bool                resolvable()    const { return _can_resolve; }
-    parse_work_order    order()         const { return _order; }
+    ParseWorkBundle *   bundle()        const { return bundle_; }
+    Edge *              edge()          const { return edge_; }
+    Address             target()        const { return targ_; }
+    bool                resolvable()    const { return can_resolve_; }
+    parse_work_order    order()         const { return order_; }
 
-    bool                tailcall()      const { return _tailcall; }
-    bool                callproc()      const { return _call_processed; }
-    void                mark_call()     { _call_processed = true; }
+    bool                tailcall()      const { return tailcall_; }
+    bool                callproc()      const { return call_processed_; }
+    void                mark_call()     { call_processed_ = true; }
 
     /* 
      * Note that compare treats the parse_work_order as `lowest is
@@ -160,13 +160,13 @@ class ParseWorkElem
     };
 
  private:
-    ParseWorkBundle * _bundle;
-    Edge * _edge;
-    Address _targ;
-    bool _can_resolve;
-    bool _tailcall;
-    parse_work_order _order;
-    bool _call_processed;
+    ParseWorkBundle * bundle_;
+    Edge * edge_;
+    Address targ_;
+    bool can_resolve_;
+    bool tailcall_;
+    parse_work_order order_;
+    bool call_processed_;
 };
 
 class ParseWorkBundle
@@ -175,18 +175,18 @@ class ParseWorkBundle
     ParseWorkBundle() {}
     ~ParseWorkBundle()
     {
-        for(unsigned i=0;i<_elems.size();++i)
-            delete _elems[i];
+        for(unsigned i=0;i<elems_.size();++i)
+            delete elems_[i];
     }
 
     ParseWorkElem* add(ParseWorkElem * e) 
     { 
-        _elems.push_back(e);
+        elems_.push_back(e);
         return e;
     }
-    vector<ParseWorkElem*> const& elems() { return _elems; }
+    vector<ParseWorkElem*> const& elems() { return elems_; }
  private:
-    vector<ParseWorkElem*> _elems;
+    vector<ParseWorkElem*> elems_;
 };
 
 } // ParseAPI

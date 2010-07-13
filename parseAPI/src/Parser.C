@@ -73,14 +73,14 @@ namespace {
 }
 
 Parser::Parser(CodeObject & obj, CFGFactory & fact, ParseCallback & pcb) :
-    _obj(obj),
-    _cfgfact(fact),
-    _pcb(pcb),
-    _parse_data(NULL),
-    _sink(NULL),
-    _parse_state(UNPARSED),
-    _in_parse(false),
-    _in_finalize(false)
+    obj_(obj),
+    cfgfact_(fact),
+    pcb_(pcb),
+    parse_data_(NULL),
+    sink_(NULL),
+    parse_state_(UNPARSED),
+    in_parse_(false),
+    in_finalize_(false)
 {
     // cache plt entries for fast lookup
     const map<Address, string> & lm = obj.cs()->linkage();
@@ -101,7 +101,7 @@ Parser::Parser(CodeObject & obj, CFGFactory & fact, ParseCallback & pcb) :
     sort(copy.begin(),copy.end(),less_cr());
 
     // allocate a sink block -- region is arbitrary
-    _sink = _cfgfact.mksink(&_obj,copy[0]);
+    sink_ = cfgfact_.mksink(&obj_,copy[0]);
 
     bool overlap = false;
     CodeRegion * prev = copy[0], *cur = NULL;
@@ -117,9 +117,9 @@ Parser::Parser(CodeObject & obj, CFGFactory & fact, ParseCallback & pcb) :
     }
 
     if(overlap)
-        _parse_data = new OverlappingParseData(this,copy);
+        parse_data_ = new OverlappingParseData(this,copy);
     else
-        _parse_data = new StandardParseData(this);
+        parse_data_ = new StandardParseData(this);
 }
 
 ParseFrame::~ParseFrame()
@@ -129,8 +129,8 @@ ParseFrame::~ParseFrame()
 
 Parser::~Parser()
 {
-    if(_parse_data)
-        delete _parse_data;
+    if(parse_data_)
+        delete parse_data_;
 
     vector<ParseFrame *>::iterator fit = frames.begin();
     for( ; fit != frames.end(); ++fit) 
@@ -141,7 +141,7 @@ Parser::~Parser()
 void
 Parser::add_hint(Function * f)
 {
-    if(!_parse_data->findFunc(f->region(),f->addr()))
+    if(!parse_data_->findFunc(f->region(),f->addr()))
         record_func(f);
 }
 
@@ -149,19 +149,19 @@ void
 Parser::parse()
 {
     parsing_printf("[%s:%d] parse() called on Parser with state %d\n",
-        FILE__,__LINE__,_parse_state);
+        FILE__,__LINE__,parse_state_);
 
-    assert(!_in_parse);
-    _in_parse = true;
+    assert(!in_parse_);
+    in_parse_ = true;
 
     parse_vanilla();
 
     // anything else by default...?
 
-    if(_parse_state < COMPLETE)
-        _parse_state = COMPLETE;
+    if(parse_state_ < COMPLETE)
+        parse_state_ = COMPLETE;
     
-    _in_parse = false;
+    in_parse_ = false;
 }
 
 void
@@ -183,35 +183,35 @@ Parser::parse_at(
         return;
     }
 
-    if(_parse_state < PARTIAL)
-        _parse_state = PARTIAL;
+    if(parse_state_ < PARTIAL)
+        parse_state_ = PARTIAL;
 
-    f = _parse_data->get_func(region,target,src);
+    f = parse_data_->get_func(region,target,src);
     if(!f) {
         parsing_printf("   could not create function at %lx\n",target);
         return;
     }
 
-    ParseFrame::Status exist = _parse_data->frameStatus(region,target);
+    ParseFrame::Status exist = parse_data_->frameStatus(region,target);
     if(exist != ParseFrame::BAD_LOOKUP && exist != ParseFrame::UNPARSED) {
         parsing_printf("   function at %lx already parsed, status %d\n",
             target, exist);
         return;
     }
 
-    if(!(pf = _parse_data->findFrame(region,target))) {
-        pf = new ParseFrame(f,_parse_data);
+    if(!(pf = parse_data_->findFrame(region,target))) {
+        pf = new ParseFrame(f,parse_data_);
         init_frame(*pf);
         frames.push_back(pf);
-        _parse_data->record_frame(pf);
+        parse_data_->record_frame(pf);
     } 
 
     work.push_back(pf);
     parse_frames(work,recursive);
 
     // downgrade state if necessary
-    if(_parse_state > COMPLETE)
-        _parse_state = COMPLETE;
+    if(parse_state_ > COMPLETE)
+        parse_state_ = COMPLETE;
 
 }
 
@@ -222,7 +222,7 @@ Parser::parse_at(Address target, bool recursive, FuncSource src)
 
     parsing_printf("[%s:%d] entered parse_at(%lx)\n",FILE__,__LINE__,target);
 
-    StandardParseData * spd = dynamic_cast<StandardParseData *>(_parse_data);
+    StandardParseData * spd = dynamic_cast<StandardParseData *>(parse_data_);
     if(!spd) {
         parsing_printf("   parse_at is invalid on overlapping regions\n");
         return;
@@ -247,11 +247,11 @@ Parser::parse_vanilla()
     parsing_printf("[%s:%d] entered parse_vanilla()\n",FILE__,__LINE__);
     parsing_printf("\t%d function hints\n",hint_funcs.size());
 
-    if(_parse_state < PARTIAL)
-        _parse_state = PARTIAL;
+    if(parse_state_ < PARTIAL)
+        parse_state_ = PARTIAL;
     else
         parsing_printf("\tparse state is %d, some parsing already done\n",
-            _parse_state);
+            parse_state_);
 
     /* Initialize parse frames from hints */
     for(fit=hint_funcs.begin();fit!=hint_funcs.end();++fit) {
@@ -265,11 +265,11 @@ Parser::parse_vanilla()
             continue;
         }
 
-        pf = new ParseFrame(hf,_parse_data);
+        pf = new ParseFrame(hf,parse_data_);
         init_frame(*pf);
         frames.push_back(pf);
         work.push_back(pf);
-        _parse_data->record_frame(pf);
+        parse_data_->record_frame(pf);
     }
 
     parse_frames(work,true);
@@ -302,17 +302,17 @@ Parser::parse_frames(vector<ParseFrame *> & work, bool recursive)
                 CodeRegion * cr = pf->call_target->region();
                 Address targ = pf->call_target->addr();
 
-                ParseFrame * tf = _parse_data->findFrame(cr,targ);
+                ParseFrame * tf = parse_data_->findFrame(cr,targ);
                 if(!tf)
                 {
                     // sanity
-                    if(_parse_data->frameStatus(cr,targ) == ParseFrame::PARSED)
+                    if(parse_data_->frameStatus(cr,targ) == ParseFrame::PARSED)
                         assert(0);
 
-                    tf = new ParseFrame(pf->call_target,_parse_data);
+                    tf = new ParseFrame(pf->call_target,parse_data_);
                     init_frame(*tf);
                     frames.push_back(tf);
-                    _parse_data->record_frame(tf);
+                    parse_data_->record_frame(tf);
                 }
                 if(likely(recursive))
                     work.push_back(tf);
@@ -325,7 +325,7 @@ Parser::parse_frames(vector<ParseFrame *> & work, bool recursive)
             }
             case ParseFrame::PARSED:
                 parsing_printf("[%s] frame %lx complete, return status: %d\n",
-                    FILE__,pf->func->addr(),pf->func->_rs);
+                    FILE__,pf->func->addr(),pf->func->rs_);
                 pf->cleanup();
                 break;
             case ParseFrame::FRAME_ERROR:
@@ -338,7 +338,7 @@ Parser::parse_frames(vector<ParseFrame *> & work, bool recursive)
     }
 
     for(unsigned i=0;i<frames.size();++i) {
-        _parse_data->remove_frame(frames[i]);
+        parse_data_->remove_frame(frames[i]);
         delete frames[i];
     }
     frames.clear();
@@ -352,10 +352,10 @@ Parser::parse_frames(vector<ParseFrame *> & work, bool recursive)
 void
 Parser::finalize(Function *f)
 {
-    if(f->_cache_valid)
+    if(f->cache_valid_)
         return;
 
-    if(!f->_parsed) {
+    if(!f->parsed_) {
         parsing_printf("[%s:%d] Parser::finalize(f[%lx]) "
                        "forced parsing\n",
             FILE__,__LINE__,f->addr());
@@ -365,7 +365,7 @@ Parser::finalize(Function *f)
     parsing_printf("[%s] finalizing %s (%lx)\n",
         FILE__,f->name().c_str(),f->addr());
 
-    region_data * rd = _parse_data->findRegion(f->region());
+    region_data * rd = parse_data_->findRegion(f->region());
     assert(rd);
 
     // finish delayed parsing and sorting
@@ -373,7 +373,7 @@ Parser::finalize(Function *f)
 
     // extents
     if(blocks.empty()) {
-        f->_cache_valid = true;
+        f->cache_valid_ = true;
         return;
     }
     
@@ -387,7 +387,7 @@ Parser::finalize(Function *f)
         if(b->start() > ext_e) {
             ext = new FuncExtent(f,ext_s,ext_e);
             parsing_printf("%lx extent [%lx,%lx)\n",f->addr(),ext_s,ext_e);
-            f->_extents.push_back(ext);
+            f->extents_.push_back(ext);
             rd->funcsByRange.insert(ext);
             ext_s = b->start();
         }
@@ -396,24 +396,24 @@ Parser::finalize(Function *f)
     ext = new FuncExtent(f,ext_s,ext_e);
     parsing_printf("%lx extent [%lx,%lx)\n",f->addr(),ext_s,ext_e);
     rd->funcsByRange.insert(ext);
-    f->_extents.push_back(ext);
+    f->extents_.push_back(ext);
 
-    f->_cache_valid = true;
+    f->cache_valid_ = true;
 }
 
 void
 Parser::finalize()
 {
-    assert(!_in_finalize);
-    _in_finalize = true;
+    assert(!in_finalize_);
+    in_finalize_ = true;
 
-    if(_parse_state < FINALIZED) {
+    if(parse_state_ < FINALIZED) {
         finalize_funcs(hint_funcs);
         finalize_funcs(discover_funcs);
-        _parse_state = FINALIZED;
+        parse_state_ = FINALIZED;
     }
 
-    _in_finalize = false;
+    in_finalize_ = false;
 }
 
 void
@@ -436,7 +436,7 @@ Parser::record_func(Function *f) {
 
     sorted_funcs.insert(f);
 
-    _parse_data->record_func(f);
+    parse_data_->record_func(f);
 }
 
 
@@ -450,7 +450,7 @@ Parser::init_frame(ParseFrame & frame)
     b = block_at(frame.func, frame.func->addr(),split);
     if(b) {
         frame.leadersToBlock[frame.func->addr()] = b;
-        frame.func->_entry = b;
+        frame.func->entry_ = b;
         frame.seed = new ParseWorkElem(NULL,NULL,frame.func->addr(),true,false);
         frame.pushWork(frame.seed);
     } else {
@@ -477,8 +477,8 @@ Parser::init_frame(ParseFrame & frame)
         frame.func->isrc());
 #endif
     if(ah.isStackFramePreamble())
-        frame.func->_no_stack_frame = false;
-    frame.func->_saves_fp = ah.savesFP();
+        frame.func->no_stack_frame_ = false;
+    frame.func->saves_fp_ = ah.savesFP();
 }
 
 void ParseFrame::cleanup()
@@ -507,13 +507,13 @@ namespace {
      */
     inline std::pair<Address, Block*> get_next_block(
         ParseFrame &frame, 
-        ParseData * _parse_data)
+        ParseData * parse_data_)
     {
         Block * nextBlock = NULL;
         Address nextBlockAddr;
 
         nextBlockAddr = numeric_limits<Address>::max();
-        region_data * rd = _parse_data->findRegion(frame.codereg);
+        region_data * rd = parse_data_->findRegion(frame.codereg);
 
         if((nextBlock = rd->blocksByRange.successor(frame.curAddr)) &&
            nextBlock->start() > frame.curAddr)
@@ -543,7 +543,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
         parsing_printf("[%s] ==== starting to parse frame %lx ====\n",
             FILE__,frame.func->addr());
         // prevents recursion of parsing
-        frame.func->_parsed = true;
+        frame.func->parsed_ = true;
     } else {
         parsing_printf("[%s] ==== resuming parse of frame %lx ====\n",
             FILE__,frame.func->addr());
@@ -573,7 +573,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
 
                 work->mark_call();
             } else {
-                ct = _parse_data->findFunc(frame.codereg,work->target());
+                ct = parse_data_->findFunc(frame.codereg,work->target());
             }
 
             if(recursive && ct &&
@@ -591,8 +591,8 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 return;
             }
             else if(ct && work->tailcall()) {
-                if(func->_rs != RETURN && ct->_rs > NORETURN)
-                    func->_rs = ct->_rs;
+                if(func->rs_ != RETURN && ct->rs_ > NORETURN)
+                    func->rs_ = ct->rs_;
             }
     
             continue;
@@ -606,7 +606,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             }
             else {
                 Address target = ce->trg()->start();
-                Function * ct = _parse_data->findFunc(frame.codereg,target);
+                Function * ct = parse_data_->findFunc(frame.codereg,target);
                 bool is_plt = false;
                 bool is_nonret = false;
 
@@ -658,16 +658,16 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
         visited[cur->start()] = true;
         leadersToBlock[cur->start()] = cur;
 
-        if(!cur->_parsed)
+        if(!cur->parsed_)
         {
             parsing_printf("[%s] parsing block %lx\n",
                 FILE__,cur->start());
-            cur->_parsed = true;
+            cur->parsed_ = true;
             curAddr = cur->start();
         } else {
             parsing_printf("[%s] deferring parse of shared block %lx\n",
                 FILE__,cur->start());
-            func->_rs = UNKNOWN;
+            func->rs_ = UNKNOWN;
             continue;
         }
 
@@ -677,7 +677,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
          * are invalidated because a new block is being added to the
          * function's view
          */
-        func->_cache_valid = false;
+        func->cache_valid_ = false;
 
         // NB Using block's region() here because it may differ from the
         //    function's if control flow has jumped to another region
@@ -697,7 +697,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
 #endif        
 
         using boost::tuples::tie;
-        tie(nextBlockAddr,nextBlock) = get_next_block(frame,_parse_data);
+        tie(nextBlockAddr,nextBlock) = get_next_block(frame,parse_data_);
 
         bool isNopBlock = ah.isNop();
 
@@ -742,16 +742,16 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
 
                 // NB "cur" hasn't ended, so its range may
                 // not look like it overlaps with nextBlock
-                _pcb.overlapping_blocks(cur,nextBlock);
+                pcb_.overlapping_blocks(cur,nextBlock);
 
                 tie(nextBlockAddr,nextBlock) = 
-                    get_next_block(frame,_parse_data);
+                    get_next_block(frame,parse_data_);
             }
 
             // per-instruction callback notification 
             ParseCallback::insn_details insn_det;
             insn_det.insn = &ah;
-            _pcb.instruction_cb(func,curAddr,&insn_det);
+            pcb_.instruction_cb(func,curAddr,&insn_det);
 
             if(isNopBlock && !ah.isNop()) {
                 ah.retreat();
@@ -786,15 +786,15 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 ProcessCFInsn(frame,cur,ah);
                 break;
             }
-            else if(func->_saves_fp && 
-                    func->_no_stack_frame &&  
+            else if(func->saves_fp_ && 
+                    func->no_stack_frame_ &&  
                     ah.isFrameSetupInsn()) // isframeSetup is expensive
             {
-                func->_no_stack_frame = false;
+                func->no_stack_frame_ = false;
             }
             else if(ah.isLeave())
             {
-                func->_no_stack_frame = false;
+                func->no_stack_frame_ = false;
             }
             else if( ah.isAbortOrInvalidInsn() )
             {
@@ -857,12 +857,12 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
     /** parsing complete **/
     if(HASHDEF(plt_entries,frame.func->addr())) {
         if(obj().cs()->nonReturning(frame.func->addr()))
-            frame.func->_rs = NORETURN;
+            frame.func->rs_ = NORETURN;
         else
-            frame.func->_rs = UNKNOWN; 
+            frame.func->rs_ = UNKNOWN; 
     }
-    else if(frame.func->_rs == UNSET)
-        frame.func->_rs = NORETURN;
+    else if(frame.func->rs_ == UNSET)
+        frame.func->rs_ = NORETURN;
 
     frame.set_status(ParseFrame::PARSED);
 }
@@ -870,8 +870,8 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
 void
 Parser::end_block(Block * b, InstructionAdapter_t & ah)
 {
-    b->_lastInsn = ah.getAddr();
-    b->_end = ah.getNextAddr();
+    b->lastInsn_ = ah.getAddr();
+    b->end_ = ah.getNextAddr();
 
     record_block(b);
 }
@@ -881,7 +881,7 @@ Parser::record_block(Block *b)
 {
     parsing_printf("[%s:%d] recording block [%lx,%lx)\n",
         FILE__,__LINE__,b->start(),b->end());
-    _parse_data->record_block(b->region(),b);
+    parse_data_->record_block(b->region(),b);
 }
 
 
@@ -903,7 +903,7 @@ Parser::block_at(
     if(owner->region()->contains(addr))
         cr = owner->region();
     else
-        cr = _parse_data->reglookup(owner->region(),addr);
+        cr = parse_data_->reglookup(owner->region(),addr);
 
     if(!is_code(owner,addr)) {
         parsing_printf("[%s] block address %lx rejected by isCode()\n",
@@ -911,8 +911,8 @@ Parser::block_at(
         return NULL;
     }
 
-    if(NULL == (exist = _parse_data->findBlock(cr,addr))) {
-        _parse_data->findBlocks(cr,addr,overlap);
+    if(NULL == (exist = parse_data_->findBlock(cr,addr))) {
+        parse_data_->findBlocks(cr,addr,overlap);
         if(overlap.size() > 1)
             parsing_printf("[%s] address %lx overlapped by %d blocks\n",
                 FILE__,addr,overlap.size());
@@ -958,7 +958,7 @@ Parser::block_at(
     }
 
     if(unlikely(inconsistent)) {
-       _pcb.overlapping_blocks(ret,inconsistent); 
+       pcb_.overlapping_blocks(ret,inconsistent); 
     }
 
     return ret;
@@ -1021,8 +1021,8 @@ Parser::split_block(
     if(owner->region()->contains(b->start()))
         cr = owner->region();
     else
-        cr = _parse_data->reglookup(owner->region(),b->start());
-    region_data * rd = _parse_data->findRegion(cr);
+        cr = parse_data_->reglookup(owner->region(),b->start());
+    region_data * rd = parse_data_->findRegion(cr);
 
     // enable for extra-safe testing, but callers are responsbible
     // assert(b->consistent(addr);
@@ -1030,25 +1030,25 @@ Parser::split_block(
     ret = factory().mkblock(owner,cr,addr);
 
     // move out edges
-    vector<Edge *> & trgs = b->_targets;
+    vector<Edge *> & trgs = b->targets_;
     vector<Edge *>::iterator tit = trgs.begin(); 
     for(;tit!=trgs.end();++tit) {
-        (*tit)->_source = ret;
-        ret->_targets.push_back(*tit);
+        (*tit)->source_ = ret;
+        ret->targets_.push_back(*tit);
     }
     trgs.clear();
 
-    ret->_end = b->_end;
-    ret->_lastInsn = b->_lastInsn;
-    ret->_parsed = true;
+    ret->end_ = b->end_;
+    ret->lastInsn_ = b->lastInsn_;
+    ret->parsed_ = true;
     link(b,ret,FALLTHROUGH,false); 
 
     record_block(ret);
 
     // b's range has changed
     rd->blocksByRange.remove(b);
-    b->_end = addr;
-    b->_lastInsn = previnsn;
+    b->end_ = addr;
+    b->lastInsn_ = previnsn;
     rd->blocksByRange.insert(b); 
 
     return ret;
@@ -1060,11 +1060,11 @@ Parser::bind_call(ParseFrame & frame, Address target, Block * cur, Edge * exist)
     Function * tfunc = NULL;
     Block * tblock = NULL;
     FuncSource how = RT;
-    if(frame.func->_src == GAP || frame.func->_src == GAPRT)
+    if(frame.func->src_ == GAP || frame.func->src_ == GAPRT)
         how = GAPRT;
 
     // look it up
-    tfunc = _parse_data->get_func(frame.codereg,target,how);
+    tfunc = parse_data_->get_func(frame.codereg,target,how);
     if(!tfunc) {
         parsing_printf("[%s:%d] can't bind call to %lx\n",
             FILE__,__LINE__,target);
@@ -1086,69 +1086,69 @@ Parser::bind_call(ParseFrame & frame, Address target, Block * cur, Edge * exist)
 Function *
 Parser::findFuncByEntry(CodeRegion *r, Address entry)
 {
-    if(_parse_state < PARTIAL) {
+    if(parse_state_ < PARTIAL) {
         parsing_printf("[%s:%d] Parser::findFuncByEntry([%lx,%lx),%lx) "
                        "forced parsing\n",
             FILE__,__LINE__,r->low(),r->high(),entry);
         parse();
     }
-    return _parse_data->findFunc(r,entry);
+    return parse_data_->findFunc(r,entry);
 }
 
 int 
 Parser::findFuncs(CodeRegion *r, Address addr, set<Function *> & funcs)
 {
-    if(_parse_state < COMPLETE) {
+    if(parse_state_ < COMPLETE) {
         parsing_printf("[%s:%d] Parser::findFuncs([%lx,%lx),%lx,...) "
                        "forced parsing\n",
             FILE__,__LINE__,r->low(),r->high(),addr);
         parse();
     }
-    if(_parse_state < FINALIZED) {
+    if(parse_state_ < FINALIZED) {
         parsing_printf("[%s:%d] Parser::findFuncs([%lx,%lx),%lx,...) "
                        "forced finalization\n",
             FILE__,__LINE__,r->low(),r->high(),addr);
         finalize();
     }
-    return _parse_data->findFuncs(r,addr,funcs);
+    return parse_data_->findFuncs(r,addr,funcs);
 }
 
 Block *
 Parser::findBlockByEntry(CodeRegion *r, Address entry)
 {
-    if(_parse_state < PARTIAL) {
+    if(parse_state_ < PARTIAL) {
         parsing_printf("[%s:%d] Parser::findBlockByEntry([%lx,%lx),%lx) "
                        "forced parsing\n",
             FILE__,__LINE__,r->low(),r->high(),entry);
         parse();
     }
-    return _parse_data->findBlock(r,entry);
+    return parse_data_->findBlock(r,entry);
 }
 
 int
 Parser::findBlocks(CodeRegion *r, Address addr, set<Block *> & blocks)
 {
-    if(_parse_state < COMPLETE) {
+    if(parse_state_ < COMPLETE) {
         parsing_printf("[%s:%d] Parser::findBlocks([%lx,%lx),%lx,...) "
                        "forced parsing\n",
             FILE__,__LINE__,r->low(),r->high(),addr);
         parse();
     }
-    return _parse_data->findBlocks(r,addr,blocks); 
+    return parse_data_->findBlocks(r,addr,blocks); 
 }
 
 Edge*
 Parser::link(Block *src, Block *dst, EdgeTypeEnum et, bool sink)
 {
     Edge * e = factory().mkedge(src,dst,et);
-    e->_type._sink = sink;
-    src->_targets.push_back(e);
-    dst->_sources.push_back(e);
+    e->type_.sink_ = sink;
+    src->targets_.push_back(e);
+    dst->sources_.push_back(e);
     return e;
 }
 
 /* 
- * During parsing, all edges are temporarily linked to the _tempsink
+ * During parsing, all edges are temporarily linked to the tempsink_
  * block. Adding and then removing edges to and from this block is
  * wasteful, especially given that removal is an O(N) operation with
  * vector storage. This call thus does not record edges into the sink.
@@ -1164,9 +1164,9 @@ Parser::link(Block *src, Block *dst, EdgeTypeEnum et, bool sink)
 Edge*
 Parser::link_tempsink(Block *src, EdgeTypeEnum et)
 {
-    Edge * e = factory().mkedge(src,_sink,et);
-    e->_type._sink = true;
-    src->_targets.push_back(e);
+    Edge * e = factory().mkedge(src,sink_,et);
+    e->type_.sink_ = true;
+    src->targets_.push_back(e);
     return e;
 }
 
@@ -1175,17 +1175,17 @@ Parser::relink(Edge * e, Block *src, Block *dst)
 {
     if(src != e->src()) {
         e->src()->removeTarget(e);
-        e->_source = src;
+        e->source_ = src;
         src->addTarget(e);
     }
     if(dst != e->trg()) { 
-        if(e->trg() != _sink)
+        if(e->trg() != sink_)
             e->trg()->removeSource(e);
-        e->_target = dst;
+        e->target_ = dst;
         dst->addSource(e);
     }
 
-    e->_type._sink = (dst == _sink);
+    e->type_.sink_ = (dst == sink_);
 }
 
 ParseFrame::Status
@@ -1193,5 +1193,5 @@ Parser::frame_status(CodeRegion * cr, Address addr)
 {
     // XXX parsing frames may have been cleaned up, but status
     //     is always cached
-    return _parse_data->frameStatus(cr,addr);
+    return parse_data_->frameStatus(cr,addr);
 }

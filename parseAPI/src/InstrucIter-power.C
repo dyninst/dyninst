@@ -1578,7 +1578,7 @@ bool InstrucIter::isStackFramePreamble() {
 // Doesn't matter if the function actually makes calls, but
 // where to find the return addr.
 // Should be "isReturnAddrSave", but that would recompiling
-// _everything_.
+// everything__.
 // As above; looking for "mflr r0", which should be followed
 // by a save.
 

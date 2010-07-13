@@ -28,8 +28,8 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#ifndef _PARSE_CALLBACK_H_
-#define _PARSE_CALLBACK_H_
+#ifndef PARSE_CALLBACK_H__
+#define PARSE_CALLBACK_H__
 
 /** A ParseCallback allows extenders of this library to
     receive notifications during parsing of a variety of events.

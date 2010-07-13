@@ -28,8 +28,8 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#ifndef _PARSER_CFG_H_
-#define _PARSER_CFG_H_
+#ifndef PARSER_CFG_H__
+#define PARSER_CFG_H__
 
 #include <vector>
 #include <map>
@@ -60,7 +60,7 @@ enum EdgeTypeEnum {
     CALL_FT,        // fallthrough after call instruction
     RET,
     NOEDGE,
-    _edgetype_end_
+    edgetype_end__
 };
 
 #define FLIST_BADNEXT ((void*)0x111)
@@ -127,8 +127,8 @@ class allocatable {
 class Block;
 class Edge : public allocatable {
  protected:
-    Block * _source;
-    Block * _target;
+    Block * source_;
+    Block * target_;
 
  private:
 
@@ -139,32 +139,32 @@ class Edge : public allocatable {
 
     struct EdgeType {
         EdgeType(EdgeTypeEnum t, bool s) :
-            _type_enum(t), _sink(s), _interproc(false)
+            type_enum_(t), sink_(s), interproc_(false)
         { }
-        uint16_t _type_enum;
-        uint8_t _sink;
-        uint8_t  _interproc;    // modifier for interprocedural branches
+        uint16_t type_enum_;
+        uint8_t sink_;
+        uint8_t  interproc_;    // modifier for interprocedural branches
                                 // (tail calls)
     };
-    EdgeType _type;
+    EdgeType type_;
 
  public:
     PARSER_EXPORT Edge(Block * source,
          Block * target,
          EdgeTypeEnum type) :
-        _source(source),
-        _target(target),
-        _type(type,false) { }
+        source_(source),
+        target_(target),
+        type_(type,false) { }
 
     PARSER_EXPORT virtual ~Edge() { }
 
-    PARSER_EXPORT virtual Block * src() const { return _source; }
-    PARSER_EXPORT virtual Block * trg() const { return _target; }
+    PARSER_EXPORT virtual Block * src() const { return source_; }
+    PARSER_EXPORT virtual Block * trg() const { return target_; }
     PARSER_EXPORT EdgeTypeEnum type() const { 
-        return static_cast<EdgeTypeEnum>(_type._type_enum); 
+        return static_cast<EdgeTypeEnum>(type_.type_enum_); 
     }
-    bool sinkEdge() const { return _type._sink != 0; }
-    bool interproc() const { return _type._interproc != 0; }
+    bool sinkEdge() const { return type_.sink_ != 0; }
+    bool interproc() const { return type_.interproc_ != 0; }
 
  friend class CFGFactory;
  friend class Parser;
@@ -184,10 +184,10 @@ class EdgePredicate
       >
 {
  protected:
-    EdgePredicate * _next; 
+    EdgePredicate * next_; 
  public:
-    PARSER_EXPORT EdgePredicate() : _next(NULL) { }
-    PARSER_EXPORT EdgePredicate(EdgePredicate * next) : _next(next) { }
+    PARSER_EXPORT EdgePredicate() : next_(NULL) { }
+    PARSER_EXPORT EdgePredicate(EdgePredicate * next) : next_(next) { }
     PARSER_EXPORT virtual ~EdgePredicate() { }
     PARSER_EXPORT virtual bool pred_impl(Edge *) const;
 };
@@ -219,14 +219,14 @@ class NoSinkPredicate : public ParseAPI::EdgePredicate {
 class Function;
 class SingleContext : public EdgePredicate {
  private:
-    Function * _context;
-    bool _forward;
-    bool _backward;
+    Function * context_;
+    bool forward_;
+    bool backward_;
  public:
     PARSER_EXPORT SingleContext(Function * f, bool forward, bool backward) : 
-        _context(f),
-        _forward(forward),
-        _backward(backward) { }
+        context_(f),
+        forward_(forward),
+        backward_(backward) { }
     PARSER_EXPORT ~SingleContext() { }
     PARSER_EXPORT bool pred_impl(Edge *) const;
 };
@@ -246,19 +246,19 @@ class Block : public Dyninst::interval<Address>,
     PARSER_EXPORT Block(CodeObject * o, CodeRegion * r, Address start);
     PARSER_EXPORT virtual ~Block();
 
-    PARSER_EXPORT Address start() const { return _start; }
-    PARSER_EXPORT Address end() const { return _end; }
-    PARSER_EXPORT Address lastInsnAddr() const { return _lastInsn; } 
-    PARSER_EXPORT Address size() const { return _end - _start; }
+    PARSER_EXPORT Address start() const { return start_; }
+    PARSER_EXPORT Address end() const { return end_; }
+    PARSER_EXPORT Address lastInsnAddr() const { return lastInsn_; } 
+    PARSER_EXPORT Address size() const { return end_ - start_; }
 
-    PARSER_EXPORT bool parsed() const { return _parsed; }
+    PARSER_EXPORT bool parsed() const { return parsed_; }
 
-    PARSER_EXPORT CodeObject * obj() const { return _obj; }
-    PARSER_EXPORT CodeRegion * region() const { return _region; }
+    PARSER_EXPORT CodeObject * obj() const { return obj_; }
+    PARSER_EXPORT CodeRegion * region() const { return region_; }
 
     /* Edge access */
-    PARSER_EXPORT edgelist & sources() { return _srclist; }
-    PARSER_EXPORT edgelist & targets() { return _trglist; }
+    PARSER_EXPORT edgelist & sources() { return srclist_; }
+    PARSER_EXPORT edgelist & targets() { return trglist_; }
 
     PARSER_EXPORT bool consistent(Address addr, Address & prev_insn) const;
 
@@ -292,20 +292,20 @@ class Block : public Dyninst::interval<Address>,
     void removeSource(Edge * e);
 
  private:
-    CodeObject * _obj;
-    CodeRegion * _region;
+    CodeObject * obj_;
+    CodeRegion * region_;
 
-    Address _start;
-    Address _end;
-    Address _lastInsn;
+    Address start_;
+    Address end_;
+    Address lastInsn_;
 
-    vector<Edge *> _sources;
-    vector<Edge *> _targets;
+    vector<Edge *> sources_;
+    vector<Edge *> targets_;
 
-    edgelist _srclist;
-    edgelist _trglist;
-    int _func_cnt;
-    bool _parsed;
+    edgelist srclist_;
+    edgelist trglist_;
+    int func_cnt_;
+    bool parsed_;
 
  friend class Function;
  friend class Parser;
@@ -314,30 +314,30 @@ class Block : public Dyninst::interval<Address>,
 
 inline void Block::addSource(Edge * e) 
 {
-    _sources.push_back(e);
+    sources_.push_back(e);
 }
 
 inline void Block::addTarget(Edge * e)
 {
-    _targets.push_back(e);
+    targets_.push_back(e);
 }
 
 inline void Block::removeTarget(Edge * e)
 {
-    for(unsigned i=0;i<_targets.size();++i) {
-        if(_targets[i] == e) {
-            _targets[i] = _targets.back();
-            _targets.pop_back();    
+    for(unsigned i=0;i<targets_.size();++i) {
+        if(targets_[i] == e) {
+            targets_[i] = targets_.back();
+            targets_.pop_back();    
             break;
         }
     }
 }
 
 inline void Block::removeSource(Edge * e) {
-    for(unsigned i=0;i<_sources.size();++i) {
-        if(_sources[i] == e) {
-            _sources[i] = _sources.back();
-            _sources.pop_back();    
+    for(unsigned i=0;i<sources_.size();++i) {
+        if(sources_[i] == e) {
+            sources_[i] = sources_.back();
+            sources_.pop_back();    
             break;
         }
     }
@@ -357,7 +357,7 @@ enum FuncSource {
     GAP,        // gap heuristics
     GAPRT,      // RT from gap-discovered function
     ONDEMAND,   // dynamically discovered
-    _funcsource_end_
+    funcsource_end__
 };
 
 class CodeObject;
@@ -365,16 +365,16 @@ class CodeRegion;
 class FuncExtent;
 class Function : public allocatable, public AnnotatableSparse {
  protected:
-    Address _start;
-    CodeObject * _obj;
-    CodeRegion * _region;
-    InstructionSource * _isrc;
+    Address start_;
+    CodeObject * obj_;
+    CodeRegion * region_;
+    InstructionSource * isrc_;
     
-    FuncSource _src;
-    FuncReturnStatus _rs;
+    FuncSource src_;
+    FuncReturnStatus rs_;
 
-    std::string _name;
-    Block * _entry;
+    std::string name_;
+    Block * entry_;
  protected:
     PARSER_EXPORT Function(); 
  public:
@@ -395,14 +395,14 @@ class Function : public allocatable, public AnnotatableSparse {
     PARSER_EXPORT virtual ~Function();
     PARSER_EXPORT virtual const string & name();
 
-    PARSER_EXPORT Address addr() const { return _start; }
-    PARSER_EXPORT CodeRegion * region() const { return _region; }
-    PARSER_EXPORT InstructionSource * isrc() const { return _isrc; }
-    PARSER_EXPORT CodeObject * obj() const { return _obj; }
-    PARSER_EXPORT FuncSource src() const { return _src; }
-    PARSER_EXPORT FuncReturnStatus retstatus() const { return _rs; }
-    PARSER_EXPORT Block * entry() const { return _entry; }
-    PARSER_EXPORT bool parsed() const { return _parsed; }
+    PARSER_EXPORT Address addr() const { return start_; }
+    PARSER_EXPORT CodeRegion * region() const { return region_; }
+    PARSER_EXPORT InstructionSource * isrc() const { return isrc_; }
+    PARSER_EXPORT CodeObject * obj() const { return obj_; }
+    PARSER_EXPORT FuncSource src() const { return src_; }
+    PARSER_EXPORT FuncReturnStatus retstatus() const { return rs_; }
+    PARSER_EXPORT Block * entry() const { return entry_; }
+    PARSER_EXPORT bool parsed() const { return parsed_; }
 
     /* Basic block and CFG access */
     PARSER_EXPORT blocklist & blocks();
@@ -411,9 +411,9 @@ class Function : public allocatable, public AnnotatableSparse {
     PARSER_EXPORT blocklist & returnBlocks();
 
     /* Function details */
-    PARSER_EXPORT bool hasNoStackFrame() const { return _no_stack_frame; }
-    PARSER_EXPORT bool savesFramePointer() const { return _saves_fp; }
-    PARSER_EXPORT bool cleansOwnStack() const { return _cleans_stack; }
+    PARSER_EXPORT bool hasNoStackFrame() const { return no_stack_frame_; }
+    PARSER_EXPORT bool savesFramePointer() const { return saves_fp_; }
+    PARSER_EXPORT bool cleansOwnStack() const { return cleans_stack_; }
 
     struct less
     {
@@ -431,32 +431,32 @@ class Function : public allocatable, public AnnotatableSparse {
     void delayed_link_return(CodeObject * co, Block * retblk);
     void finalize();
 
-    bool _parsed;
-    bool _cache_valid;
-    blocklist _bl;
-    std::vector<Block *> _blocks;
-    std::vector<FuncExtent *> _extents;
+    bool parsed_;
+    bool cache_valid_;
+    blocklist bl_;
+    std::vector<Block *> blocks_;
+    std::vector<FuncExtent *> extents_;
 
     /* rapid lookup for edge predicate tests */
     //typedef dyn_hash_map<Address, Block*> blockmap;
     typedef std::map<Address, Block*> blockmap;
-    blockmap _bmap;
+    blockmap bmap_;
 
     /* rapid lookup for interprocedural queries */
-    std::vector<Edge *> _call_edges;
-    edgelist _call_edge_list;
-    std::vector<Block *> _return_blocks;
-    blocklist _retBL;
+    std::vector<Edge *> call_edges_;
+    edgelist call_edge_list_;
+    std::vector<Block *> return_blocks_;
+    blocklist retBL_;
 
 
     /* function details */
-    bool _no_stack_frame;
-    bool _saves_fp;
-    bool _cleans_stack;
+    bool no_stack_frame_;
+    bool saves_fp_;
+    bool cleans_stack_;
 
     /*** Internal parsing methods and state ***/
     void add_block(Block *b);
-    std::vector<Block *> * _dangling;
+    std::vector<Block *> * dangling_;
 
     friend class Parser;
     friend class CFGFactory;
@@ -466,28 +466,28 @@ class Function : public allocatable, public AnnotatableSparse {
 /* Describes a contiguous extent of a Function object */
 class FuncExtent : public Dyninst::interval<Address> {
  private:
-    Function * _func;
-    Address _start;
-    Address _end;
+    Function * func_;
+    Address start_;
+    Address end_;
 
  public:
     FuncExtent(Function * f, Address start, Address end) :
-        _func(f),
-        _start(start),
-        _end(end) { }
+        func_(f),
+        start_(start),
+        end_(end) { }
 
     ~FuncExtent() {
-        _func = NULL;
+        func_ = NULL;
     }
 
-    PARSER_EXPORT Function * func() { return _func; }
+    PARSER_EXPORT Function * func() { return func_; }
 
-    PARSER_EXPORT Address start() const { return _start; }
-    PARSER_EXPORT Address end() const { return _end; }
+    PARSER_EXPORT Address start() const { return start_; }
+    PARSER_EXPORT Address end() const { return end_; }
 
     /* interval implementation */
-    PARSER_EXPORT Address low() const { return _start; }
-    PARSER_EXPORT Address high() const { return _end; } 
+    PARSER_EXPORT Address low() const { return start_; }
+    PARSER_EXPORT Address high() const { return end_; } 
 };
 
 

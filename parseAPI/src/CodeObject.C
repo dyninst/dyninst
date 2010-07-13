@@ -53,10 +53,10 @@ namespace {
 }
 
 CodeObject::CodeObject(CodeSource *cs, CFGFactory *fact, ParseCallback * cb) :
-    _cs(cs),
-    _fact(__fact_init(fact)),
-    _pcb(__pcb_init(cb)),
-    parser(new Parser(*this,*_fact,*_pcb) ),
+    cs_(cs),
+    fact_(__fact_init(fact)),
+    pcb_(__pcb_init(cb)),
+    parser(new Parser(*this,*fact_,*pcb_) ),
     owns_factory(fact == NULL),
     owns_pcb(cb == NULL),
     flist(parser->sorted_funcs)
@@ -72,13 +72,13 @@ CodeObject::process_hints()
     vector<Hint>::const_iterator hit;
 
     for(hit = hints.begin();hit!=hints.end();++hit) {
-        CodeRegion * cr = (*hit)._reg;
+        CodeRegion * cr = (*hit).reg_;
         if(!cs()->regionsOverlap())
             f = parser->factory().mkfunc(
-                (*hit)._addr,HINT,(*hit)._name,this,cr,cs());
+                (*hit).addr_,HINT,(*hit).name_,this,cr,cs());
         else
             f = parser->factory().mkfunc(
-                (*hit)._addr,HINT,(*hit)._name,this,cr,cr);
+                (*hit).addr_,HINT,(*hit).name_,this,cr,cr);
         if(f) {
             parsing_printf("[%s] adding hint %lx\n",FILE__,f->addr());
             parser->add_hint(f);
@@ -88,9 +88,9 @@ CodeObject::process_hints()
 
 CodeObject::~CodeObject() {
     if(owns_factory)
-        delete _fact;
+        delete fact_;
     if(owns_pcb)
-        delete _pcb;
+        delete pcb_;
     if(parser)
         delete parser;
 }

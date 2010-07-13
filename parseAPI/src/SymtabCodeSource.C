@@ -48,23 +48,23 @@ using namespace Dyninst::ParseAPI;
 void
 CodeSource::addRegion(CodeRegion * cr)
 {
-    _regions.push_back(cr);
+    regions_.push_back(cr);
 
     // check for overlapping regions
-    if(!_regions_overlap) {
+    if(!regions_overlap_) {
         set<CodeRegion *> exist;
-        _region_tree.find(cr,exist);
+        region_tree_.find(cr,exist);
         if(!exist.empty())
-            _regions_overlap = true;
+            regions_overlap_ = true;
     }
 
-    _region_tree.insert(cr);
+    region_tree_.insert(cr);
 }
 
 int
 CodeSource::findRegions(Address addr, set<CodeRegion *> & ret) const
 {
-    return _region_tree.find(addr,ret);
+    return region_tree_.find(addr,ret);
 }
 
 /** SymtabCodeRegion **/
@@ -77,8 +77,8 @@ SymtabCodeRegion::~SymtabCodeRegion()
 SymtabCodeRegion::SymtabCodeRegion(
         SymtabAPI::Symtab * st,
         SymtabAPI::Region * reg) :
-    _symtab(st),
-    _region(reg)
+    symtab_(st),
+    region_(reg)
 {
 
 }
@@ -91,7 +91,7 @@ SymtabCodeRegion::names(Address entry, vector<string> & names)
     //       two address spaces. That error is reflected
     //       here.
     SymtabAPI::Function * f = NULL;
-    bool found = _symtab->findFuncByEntryOffset(f,entry);
+    bool found = symtab_->findFuncByEntryOffset(f,entry);
     if(found) {
         // just pretty names?
         const vector<string> & pretty = f->getAllPrettyNames();
@@ -107,7 +107,7 @@ SymtabCodeRegion::findCatchBlock(Address addr, Address & catchStart)
     // FIXME SymtabAPI doesn't handle per-region catch block
     //       lookups either, so faking it for now.
     SymtabAPI::ExceptionBlock e;
-    if(_symtab->findCatchBlock(e,addr)) {
+    if(symtab_->findCatchBlock(e,addr)) {
         catchStart = e.catchStart();
         return true;
     }
@@ -128,8 +128,8 @@ SymtabCodeRegion::getPtrToInstruction(const Address addr) const
     if(!contains(addr)) return NULL;
 
     if(isCode(addr))
-        return (void*)((Address)_region->getPtrToRawData() + 
-                       addr - _region->getRegionAddr());
+        return (void*)((Address)region_->getPtrToRawData() + 
+                       addr - region_->getRegionAddr());
     else if(isData(addr))
         return getPtrToData(addr);
     else
@@ -142,8 +142,8 @@ SymtabCodeRegion::getPtrToData(const Address addr) const
     if(!contains(addr)) return NULL;
 
     if(isData(addr))
-        return (void*)((Address)_region->getPtrToRawData() +
-                        addr - _region->getRegionAddr());
+        return (void*)((Address)region_->getPtrToRawData() +
+                        addr - region_->getRegionAddr());
     else
         return NULL;
 }
@@ -151,7 +151,7 @@ SymtabCodeRegion::getPtrToData(const Address addr) const
 unsigned int
 SymtabCodeRegion::getAddressWidth() const
 {
-    return _symtab->getAddressWidth();
+    return symtab_->getAddressWidth();
 }
 
 Architecture
@@ -179,9 +179,9 @@ SymtabCodeRegion::isCode(const Address addr) const
 
     // XXX this is the predicate from Symtab::isCode(a) +
     //     the condition by which Symtab::codeRegions_ is filled
-    return !_region->isBSS() && 
-           (_region->getRegionType() == SymtabAPI::Region::RT_TEXT ||
-            _region->getRegionType() == SymtabAPI::Region::RT_TEXTDATA);
+    return !region_->isBSS() && 
+           (region_->getRegionType() == SymtabAPI::Region::RT_TEXT ||
+            region_->getRegionType() == SymtabAPI::Region::RT_TEXTDATA);
 }
 
 bool
@@ -191,60 +191,60 @@ SymtabCodeRegion::isData(const Address addr) const
 
     // XXX Symtab::isData(a) tests both RT_DATA (Region::isData(a))
     //     and RT_TEXTDATA. Mimicking that behavior
-    return _region->isData() || 
-           _region->getRegionType()==SymtabAPI::Region::RT_TEXTDATA;
+    return region_->isData() || 
+           region_->getRegionType()==SymtabAPI::Region::RT_TEXTDATA;
 }
 
 Address
 SymtabCodeRegion::offset() const
 {
-    return _region->getRegionAddr();
+    return region_->getRegionAddr();
 }
 
 Address
 SymtabCodeRegion::length() const
 {
-    return _region->getRegionSize();
+    return region_->getRegionSize();
 }
 
 /** SymtabCodeSource **/
 
 SymtabCodeSource::~SymtabCodeSource()
 {
-    if(owns_symtab && _symtab)
-        SymtabAPI::Symtab::closeSymtab(_symtab);
-    for(unsigned i=0;i<_regions.size();++i)
-        delete _regions[i]; 
+    if(owns_symtab && symtab_)
+        SymtabAPI::Symtab::closeSymtab(symtab_);
+    for(unsigned i=0;i<regions_.size();++i)
+        delete regions_[i]; 
 }
 
 SymtabCodeSource::SymtabCodeSource(SymtabAPI::Symtab * st, hint_filt * filt) : 
-    _symtab(st),
+    symtab_(st),
     owns_symtab(false),
-    _lookup_cache(NULL)
+    lookup_cache_(NULL)
 {
     init(filt);
 }
 
 SymtabCodeSource::SymtabCodeSource(SymtabAPI::Symtab * st) : 
-    _symtab(st),
+    symtab_(st),
     owns_symtab(false),
-    _lookup_cache(NULL)
+    lookup_cache_(NULL)
 {
     init(NULL);
 }
 
 SymtabCodeSource::SymtabCodeSource(char * file) :
-    _symtab(NULL),
+    symtab_(NULL),
     owns_symtab(true),
-    _lookup_cache(NULL)
+    lookup_cache_(NULL)
 {
     bool valid;
 
-    valid = SymtabAPI::Symtab::openFile(_symtab,file);
+    valid = SymtabAPI::Symtab::openFile(symtab_,file);
     if(!valid) {
         fprintf(stderr,"[%s] FATAL: can't create Symtab object for file %s\n",
             FILE__,file);
-        _symtab = NULL;
+        symtab_ = NULL;
         return;
     }
     init(NULL);
@@ -260,7 +260,7 @@ SymtabCodeSource::init(hint_filt * filt)
     init_linkage();
 
     // table of contents (only exists for some binary types)
-    _table_of_contents = _symtab->getTOCoffset();
+    table_of_contents_ = symtab_->getTOCoffset();
 }
 
 void 
@@ -271,12 +271,12 @@ SymtabCodeSource::init_regions(hint_filt * filt)
     vector<SymtabAPI::Region *> dregs;
     vector<SymtabAPI::Region *>::iterator rit;
 
-    _symtab->getCodeRegions(regs);
-    _symtab->getDataRegions(dregs);
+    symtab_->getCodeRegions(regs);
+    symtab_->getDataRegions(dregs);
     regs.insert(regs.end(),dregs.begin(),dregs.end());
 
     parsing_printf("[%s:%d] processing %d symtab regions in %s\n",
-        FILE__,__LINE__,regs.size(),_symtab->name().c_str());
+        FILE__,__LINE__,regs.size(),symtab_->name().c_str());
     for(rit = regs.begin(); rit != regs.end(); ++rit) {
         parsing_printf("   %lx %s",(*rit)->getRegionAddr(),
             (*rit)->getRegionName().c_str());
@@ -296,7 +296,7 @@ SymtabCodeSource::init_regions(hint_filt * filt)
             parsing_printf("[%s:%d] duplicate region at address %lx\n",
                 FILE__,__LINE__,(*rit)->getRegionAddr());
         }
-        CodeRegion * cr = new SymtabCodeRegion(_symtab,*rit);
+        CodeRegion * cr = new SymtabCodeRegion(symtab_,*rit);
         rmap[*rit] = cr;
         addRegion(cr);
     }
@@ -316,7 +316,7 @@ SymtabCodeSource::init_hints(dyn_hash_map<void*, CodeRegion*> & rmap,
     dyn_hash_map<Address,bool> seen;
     int dupes = 0;
 
-    if(!_symtab->getAllFunctions(fsyms))
+    if(!symtab_->getAllFunctions(fsyms))
         return;
 
     parsing_printf("[%s:%d] processing %d symtab hints\n",FILE__,__LINE__,
@@ -361,7 +361,7 @@ SymtabCodeSource::init_hints(dyn_hash_map<void*, CodeRegion*> & rmap,
                 sr->getRegionAddr(),
                 sr->getRegionAddr()+sr->getRegionSize());
         } else {
-            _hints.push_back( Hint((*fsit)->getOffset(),
+            hints_.push_back( Hint((*fsit)->getOffset(),
                                cr,
                                (*fsit)->getFirstSymbol()->getName()) );
             parsing_printf("\t<%lx,%s,[%lx,%lx)>\n",
@@ -379,11 +379,11 @@ SymtabCodeSource::init_linkage()
     vector<SymtabAPI::relocationEntry> fbt;
     vector<SymtabAPI::relocationEntry>::iterator fbtit;
 
-    if(!_symtab->getFuncBindingTable(fbt))
+    if(!symtab_->getFuncBindingTable(fbt))
         return;
 
     for(fbtit = fbt.begin(); fbtit != fbt.end(); ++fbtit)
-        _linkage[(*fbtit).target_addr()] = (*fbtit).name(); 
+        linkage_[(*fbtit).target_addr()] = (*fbtit).name(); 
 }
 
 bool
@@ -392,7 +392,7 @@ SymtabCodeSource::nonReturning(Address addr)
     SymtabAPI::Function * f = NULL;
     bool ret = false;
    
-    _symtab->findFuncByEntryOffset(f,addr); 
+    symtab_->findFuncByEntryOffset(f,addr); 
 
     if(f) {
         SymtabAPI::Symbol * s = f->getFirstSymbol();
@@ -414,28 +414,28 @@ SymtabCodeSource::nonReturning(string name)
             name == "__assert_fail" ||
             name == "ExitProcess" ||
             /* bernat, 5/2010 */
-            name == "_ZSt17__throw_bad_allocv" ||
-            name == "_ZSt20__throw_length_errorPKc");
+            name == "ZSt17__throw_bad_allocv_" ||
+            name == "ZSt20__throw_length_errorPKc_");
 }
 
 Address
 SymtabCodeSource::baseAddress() const
 {
-    return _symtab->getBaseOffset();
+    return symtab_->getBaseOffset();
 }
 
 Address
 SymtabCodeSource::loadAddress() const
 {
-    return _symtab->getLoadOffset();
+    return symtab_->getLoadOffset();
 }
 
 inline CodeRegion *
 SymtabCodeSource::lookup_region(const Address addr) const
 {
     CodeRegion * ret = NULL;
-    if(_lookup_cache && _lookup_cache->contains(addr))
-        ret = _lookup_cache;
+    if(lookup_cache_ && lookup_cache_->contains(addr))
+        ret = lookup_cache_;
     else {
         set<CodeRegion *> stab;
         int rcnt = findRegions(addr,stab);
@@ -461,12 +461,12 @@ SymtabCodeSource::lookup_region(const Address addr) const
                         ret = tmp;
                 }
             } 
-            _lookup_cache = ret; 
+            lookup_cache_ = ret; 
         }
 #else
         if(rcnt) {
             ret = *stab.begin();
-            _lookup_cache = ret;
+            lookup_cache_ = ret;
         } 
 #endif
     }
@@ -525,7 +525,7 @@ SymtabCodeSource::getPtrToData(const Address addr) const
 unsigned int
 SymtabCodeSource::getAddressWidth() const
 {
-    return _symtab->getAddressWidth();
+    return symtab_->getAddressWidth();
 }
 
 Architecture
@@ -573,11 +573,11 @@ SymtabCodeSource::isData(const Address addr) const
 Address
 SymtabCodeSource::offset() const
 {
-    return _symtab->imageOffset();
+    return symtab_->imageOffset();
 }
 
 Address
 SymtabCodeSource::length() const
 {
-    return _symtab->imageLength();
+    return symtab_->imageLength();
 }

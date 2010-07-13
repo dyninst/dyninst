@@ -108,8 +108,8 @@ bool IA_IAPI::isFrameSetupInsn(Instruction::Ptr i) const
 {
     if(i->getOperation().getID() == e_mov)
     {
-        if(i->isRead(stackPtr[_isrc->getArch()]) &&
-           i->isWritten(framePtr[_isrc->getArch()]))
+        if(i->isRead(stackPtr[isrc_->getArch()]) &&
+           i->isWritten(framePtr[isrc_->getArch()]))
         {
             return true;
         }
@@ -167,15 +167,15 @@ bool IA_IAPI::isMovAPSTable(std::vector<std::pair< Address, EdgeTypeEnum > >& ou
     parsing_printf("\tChecking for movaps table at 0x%lx...\n", current);
     std::set<Address> found;
     const unsigned char *bufferBegin =
-            (const unsigned char *)_isrc->getPtrToInstruction(current);
+            (const unsigned char *)isrc_->getPtrToInstruction(current);
     if( bufferBegin == NULL ) {
         parsing_printf("%s[%d]: failed to get pointer to instruction by offset\n",
                        FILE__, __LINE__);
         return false;
     }
 
-    unsigned int size = (_cr->offset() + _cr->length()) - current;
-    InstructionDecoder d(bufferBegin, size, _isrc->getArch());
+    unsigned int size = (cr_->offset() + cr_->length()) - current;
+    InstructionDecoder d(bufferBegin, size, isrc_->getArch());
     Address cur = current;
     unsigned last_insn_size = 0;
     InstructionAPI::Instruction::Ptr i = d.decode();
@@ -331,7 +331,7 @@ bool IA_IAPI::parseJumpTable(Block* currBlk,
             parsing_printf("\tchecking instruction %s at 0x%lx for IP-relative LEA\n", tableLoc->second->format().c_str(),
                            tableLoc->first);
             Expression::Ptr IPRelAddr = tableLoc->second->getOperand(1).getValue();
-            IPRelAddr->bind(thePC[_isrc->getArch()].get(), Result(s64, tableLoc->first + tableLoc->second->size()));
+            IPRelAddr->bind(thePC[isrc_->getArch()].get(), Result(s64, tableLoc->first + tableLoc->second->size()));
             Result iprel = IPRelAddr->eval();
             if(iprel.defined)
             {
@@ -425,7 +425,7 @@ namespace detail
 Address IA_IAPI::findThunkInBlock(Block* curBlock, Address& thunkOffset) const
 {
     const unsigned char* buf =
-            (const unsigned char*)(_isrc->getPtrToInstruction(curBlock->start()));
+            (const unsigned char*)(isrc_->getPtrToInstruction(curBlock->start()));
     if( buf == NULL ) {
         parsing_printf("%s[%d]: failed to get pointer to instruction by offset\n",
                        FILE__, __LINE__);
@@ -433,9 +433,9 @@ Address IA_IAPI::findThunkInBlock(Block* curBlock, Address& thunkOffset) const
     }
     
     InstructionDecoder dec(buf,curBlock->size() + InstructionDecoder::maxInstructionLength,
-                           _isrc->getArch());
+                           isrc_->getArch());
     IA_IAPI * blockptr = NULL;
-    blockptr = new IA_IAPI(dec,curBlock->start(),_obj,_cr,_isrc);
+    blockptr = new IA_IAPI(dec,curBlock->start(),obj_,cr_,isrc_);
     IA_IAPI & block = *blockptr;
 
     parsing_printf("\tchecking block at 0x%lx for thunk\n", curBlock->start());
@@ -493,7 +493,7 @@ Address IA_IAPI::findThunkInBlock(Block* curBlock, Address& thunkOffset) const
             parsing_printf("\tchecking instruction %s at 0x%lx for IP-relative LEA\n", block.getInstruction()->format().c_str(),
                            block.getAddr());
             Expression::Ptr IPRelAddr = block.getInstruction()->getOperand(1).getValue();
-            IPRelAddr->bind(thePC[_isrc->getArch()].get(), Result(s64, block.getNextAddr()));
+            IPRelAddr->bind(thePC[isrc_->getArch()].get(), Result(s64, block.getNextAddr()));
             Result iprel = IPRelAddr->eval();
             if(iprel.defined)
             {
@@ -581,13 +581,13 @@ boost::tuple<Instruction::Ptr,
         foundMaxSwitch = false;
         foundCondBranch = false;
         const unsigned char* buf =
-                (const unsigned char*)(_isrc->getPtrToInstruction(curBlk->start()));
+                (const unsigned char*)(isrc_->getPtrToInstruction(curBlk->start()));
         if( buf == NULL ) {
             parsing_printf("%s[%d]: failed to get pointer to instruction by offset\n",
                            FILE__, __LINE__);
             return boost::make_tuple(Instruction::Ptr(), Instruction::Ptr(), false);
         }
-        InstructionDecoder dec(buf, curBlk->size(), _isrc->getArch());
+        InstructionDecoder dec(buf, curBlk->size(), isrc_->getArch());
         Instruction::Ptr i;
         Address curAdr = curBlk->start();
         while(i = dec.decode())
@@ -750,9 +750,9 @@ Address IA_IAPI::getTableAddress(Instruction::Ptr tableInsn,
     // to conform to that standard so that Symtab actually believes that there's code
     // at the table's destination.
 #if defined(os_windows)
-	jumpTable -= _obj->cs()->loadAddress();
+	jumpTable -= obj_->cs()->loadAddress();
 #endif
-    if( !_isrc->isValidAddress(jumpTable) )
+    if( !isrc_->isValidAddress(jumpTable) )
 {
         // If the "jump table" has a start address that is outside
         // of the valid range of the binary, we can say with high
@@ -770,7 +770,7 @@ bool IA_IAPI::fillTableEntries(Address thunkOffset,
                                unsigned tableStride,
                                std::vector<std::pair< Address, EdgeTypeEnum> >& outEdges) const
 {
-    if( !_isrc->isValidAddress(tableBase) )
+    if( !isrc_->isValidAddress(tableBase) )
     {
         parsing_printf("\ttableBase 0x%lx invalid, returning false\n", tableBase);
         return false;
@@ -781,12 +781,12 @@ bool IA_IAPI::fillTableEntries(Address thunkOffset,
         Address tableEntry = tableBase + (i * tableStride);
         Address jumpAddress = 0;
                 
-        if(_isrc->isValidAddress(tableEntry))
+        if(isrc_->isValidAddress(tableEntry))
         {
             if(tableStride == sizeof(Address)) {
                                         // Unparseable jump table
                 jumpAddress = *(const Address *)
-                    _isrc->getPtrToInstruction(tableEntry);
+                    isrc_->getPtrToInstruction(tableEntry);
                 if( 0 == jumpAddress ) {
                     parsing_printf("%s[%d]: failed to get pointer to instruction by offset\n",
                                    FILE__, __LINE__);
@@ -795,7 +795,7 @@ bool IA_IAPI::fillTableEntries(Address thunkOffset,
             }
             else {
                 jumpAddress = *(const int *)
-                    _isrc->getPtrToInstruction(tableEntry);
+                    isrc_->getPtrToInstruction(tableEntry);
                 if( 0 == jumpAddress ) {
                     parsing_printf("%s[%d]: failed to get pointer to "
                         "instruction by offset\n", FILE__, __LINE__);
@@ -804,16 +804,16 @@ bool IA_IAPI::fillTableEntries(Address thunkOffset,
             }
         }
 #if defined(os_windows)
-        jumpAddress -= _obj->cs()->loadAddress();
+        jumpAddress -= obj_->cs()->loadAddress();
 #endif
-        if(thunkOffset && _isrc->isCode(jumpAddress + thunkOffset))
+        if(thunkOffset && isrc_->isCode(jumpAddress + thunkOffset))
         {
             // XXX We assume that if thunkOffset is set that
             //     entries in the table are relative, but only
             //     if the absolute address would be valid
             jumpAddress += thunkOffset;
         }
-        else if(!(_isrc->isCode(jumpAddress))) {
+        else if(!(isrc_->isCode(jumpAddress))) {
             parsing_printf("\tentry %d [0x%lx] -> 0x%lx, invalid, skipping\n",
                                    i, tableEntry, jumpAddress);
                     continue;
@@ -864,7 +864,7 @@ bool IA_IAPI::computeTableBounds(Instruction::Ptr maxSwitchInsn,
         }
     }
     parsing_printf("\tmaxSwitch set to %d\n", tableSize);
-    tableStride = _isrc->getAddressWidth();
+    tableStride = isrc_->getAddressWidth();
     std::set<Expression::Ptr> tableInsnReadAddr;
     tableInsn->getMemoryReadOperands(tableInsnReadAddr);
     if(tableStride == 8)
@@ -889,7 +889,7 @@ bool IA_IAPI::computeTableBounds(Instruction::Ptr maxSwitchInsn,
 
 bool IA_IAPI::isThunk() const {
   // Before we go a-wandering, check the target
-    if (!_isrc->isValidAddress(getCFT()))
+    if (!isrc_->isValidAddress(getCFT()))
     {
         parsing_printf("... Call to 0x%lx is invalid (outside code or data)\n",
                        getCFT());
@@ -897,18 +897,18 @@ bool IA_IAPI::isThunk() const {
     }
 
     const unsigned char *target =
-            (const unsigned char *)_isrc->getPtrToInstruction(getCFT());
+            (const unsigned char *)isrc_->getPtrToInstruction(getCFT());
   // We're decoding two instructions: possible move and possible return.
   // Check for move from the stack pointer followed by a return.
     InstructionDecoder targetChecker(target, 
-            2*InstructionDecoder::maxInstructionLength, _isrc->getArch());
+            2*InstructionDecoder::maxInstructionLength, isrc_->getArch());
     Instruction::Ptr thunkFirst = targetChecker.decode();
     Instruction::Ptr thunkSecond = targetChecker.decode();
     parsing_printf("... checking call target for thunk, insns are %s, %s\n", thunkFirst->format().c_str(),
                    thunkSecond->format().c_str());
     if(thunkFirst && (thunkFirst->getOperation().getID() == e_mov))
     {
-        if(thunkFirst->isRead(stackPtr[_isrc->getArch()]))
+        if(thunkFirst->isRead(stackPtr[isrc_->getArch()]))
         {
             parsing_printf("... checking second insn\n");
             if(!thunkSecond) {
@@ -936,7 +936,7 @@ bool IA_IAPI::isTailCall(Function * /*context*/,unsigned int) const
     tailCall.first = true;
 
     if(curInsn()->getCategory() == c_BranchInsn &&
-       _obj->findFuncByEntry(_cr,getCFT()))
+       obj_->findFuncByEntry(cr_,getCFT()))
     {
         parsing_printf("\tjump to 0x%lx, TAIL CALL\n", getCFT());
         tailCall.second = true;
@@ -964,7 +964,7 @@ bool IA_IAPI::isTailCall(Function * /*context*/,unsigned int) const
         }
         if(prevInsn->getOperation().getID() == e_pop)
         {
-            if(prevInsn->isWritten(framePtr[_isrc->getArch()]))
+            if(prevInsn->isWritten(framePtr[isrc_->getArch()]))
             {
                 parsing_printf("\tprev insn was %s, TAIL CALL\n", prevInsn->format().c_str());
                 tailCall.second = true;
@@ -982,7 +982,7 @@ bool IA_IAPI::savesFP() const
     Instruction::Ptr ci = curInsn();
     if(ci->getOperation().getID() == e_push)
     {
-        return(ci->isRead(framePtr[_isrc->getArch()]));
+        return(ci->isRead(framePtr[isrc_->getArch()]));
     }
     return false;
 }

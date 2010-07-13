@@ -111,9 +111,9 @@ const;
     mutable bool checkedDynamicCall_;
     mutable bool isInvalidCallTarget_;
     mutable bool checkedInvalidCallTarget_;
-    ParseAPI::CodeObject * _obj;
-    ParseAPI::CodeRegion * _cr;
-    InstructionSource * _isrc;
+    ParseAPI::CodeObject * obj_;
+    ParseAPI::CodeRegion * cr_;
+    InstructionSource * isrc_;
 };
 
 } // Dyninst

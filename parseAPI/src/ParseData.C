@@ -41,8 +41,8 @@ using namespace Dyninst::ParseAPI;
 
 void ParseFrame::set_status(Status s)
 {
-    _status = s;
-    _pd->setFrameStatus(codereg,func->addr(),s);
+    status_ = s;
+    pd_->setFrameStatus(codereg,func->addr(),s);
 }
 
 /**** Standard [no overlapping regions] ParseData ****/
@@ -57,26 +57,26 @@ StandardParseData::~StandardParseData()
 Function *
 StandardParseData::findFunc(CodeRegion * /* cr */, Address entry)
 {
-    return _rdata.findFunc(entry);
+    return rdata_.findFunc(entry);
 }
 
 Block *
 StandardParseData::findBlock(CodeRegion * /* cr */, Address entry)
 {
-    return _rdata.findBlock(entry);
+    return rdata_.findBlock(entry);
 }
 
 int
 StandardParseData::findFuncs(CodeRegion * /* cr */, Address addr, 
     set<Function *> & funcs)
 {
-    return _rdata.findFuncs(addr,funcs);
+    return rdata_.findFuncs(addr,funcs);
 }
 
 int StandardParseData::findBlocks(CodeRegion * /* cr */, Address addr,
     set<Block *> & blocks)
 {
-    return _rdata.findBlocks(addr,blocks);
+    return rdata_.findBlocks(addr,blocks);
 }
 
 Function *
@@ -90,14 +90,14 @@ StandardParseData::get_func(CodeRegion * cr, Address entry, FuncSource src)
         reg = reglookup(cr,entry); // get the *correct* CodeRegion
         if(reg && reg->isCode(entry)) {
 #if defined (os_windows)
-            _snprintf(name,32,"targ%lx",entry);
+            snprintf_(name,32,"targ%lx",entry);
 #else
             snprintf(name,32,"targ%lx",entry);
 #endif
             parsing_printf("[%s] new function for target %lx\n",FILE__,entry);
-            ret = _parser->factory().mkfunc(
-                entry,src,name,&_parser->obj(),reg,_parser->obj().cs());
-            _parser->record_func(ret);
+            ret = parser_->factory().mkfunc(
+                entry,src,name,&parser_->obj(),reg,parser_->obj().cs());
+            parser_->record_func(ret);
         }
     }
     return ret;
@@ -106,27 +106,27 @@ StandardParseData::get_func(CodeRegion * cr, Address entry, FuncSource src)
 void
 StandardParseData::record_frame(ParseFrame * pf)
 {
-    _rdata.frame_map[pf->func->addr()] = pf; 
+    rdata_.frame_map[pf->func->addr()] = pf; 
 }
 void
 StandardParseData::remove_frame(ParseFrame * pf)
 {
-    _rdata.frame_map.erase(pf->func->addr());
+    rdata_.frame_map.erase(pf->func->addr());
 }
 
 ParseFrame *
 StandardParseData::findFrame(CodeRegion * /* cr */, Address addr)
 {
-    if(HASHDEF(_rdata.frame_map,addr))
-        return _rdata.frame_map[addr];
+    if(HASHDEF(rdata_.frame_map,addr))
+        return rdata_.frame_map[addr];
     else
         return NULL;
 }
 ParseFrame::Status
 StandardParseData::frameStatus(CodeRegion * /* cr */, Address addr)
 {
-    if(HASHDEF(_rdata.frame_status,addr))
-        return _rdata.frame_status[addr];
+    if(HASHDEF(rdata_.frame_status,addr))
+        return rdata_.frame_status[addr];
     else
         return ParseFrame::BAD_LOOKUP;
 }
@@ -134,14 +134,14 @@ void
 StandardParseData::setFrameStatus(CodeRegion * /* cr */, Address addr,
     ParseFrame::Status status)
 {
-    _rdata.frame_status[addr] = status;
+    rdata_.frame_status[addr] = status;
 }
 
 CodeRegion *
 StandardParseData::reglookup(CodeRegion * /* cr */, Address addr)
 {
     set<CodeRegion *> regions;
-    int rcnt = _parser->obj().cs()->findRegions(addr,regions);
+    int rcnt = parser_->obj().cs()->findRegions(addr,regions);
     
     if(rcnt > 1) {
         fprintf(stderr,"Error, overlapping regoins at %lx:\n",addr);
@@ -246,9 +246,9 @@ OverlappingParseData::get_func(CodeRegion * cr, Address addr, FuncSource src)
         if(cr && cr->isCode(addr)) {
 #if defined (os_windows)
             if(src == GAP || src == GAPRT)
-                _snprintf(name,32,"gap%lx",addr);
+                snprintf_(name,32,"gap%lx",addr);
             else 
-                _snprintf(name,32,"targ%lx",addr);
+                snprintf_(name,32,"targ%lx",addr);
 #else
             if(src == GAP || src == GAPRT)
                 snprintf(name,32,"gap%lx",addr);
@@ -256,9 +256,9 @@ OverlappingParseData::get_func(CodeRegion * cr, Address addr, FuncSource src)
                 snprintf(name,32,"targ%lx",addr);
 #endif
             parsing_printf("[%s] new function for target %lx\n",FILE__,addr);
-            ret = _parser->factory().mkfunc(
-                addr,src,name,&_parser->obj(),cr,cr);
-            _parser->record_func(ret);
+            ret = parser_->factory().mkfunc(
+                addr,src,name,&parser_->obj(),cr,cr);
+            parser_->record_func(ret);
         }
     }
     return ret;

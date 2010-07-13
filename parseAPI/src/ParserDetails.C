@@ -106,7 +106,7 @@ void Parser::ProcessReturnInsn(
     InstructionAdapter_t & ah)
 {
     // returns always target the sink block
-    link(cur,_sink,RET,true);
+    link(cur,sink_,RET,true);
 
     ParseCallback::interproc_details det;
     det.ibuf = (unsigned char*)
@@ -114,7 +114,7 @@ void Parser::ProcessReturnInsn(
     det.isize = ah.getSize();
     det.type = ParseCallback::interproc_details::ret;
 
-    _pcb.interproc_cf(frame.func,ah.getAddr(),&det);
+    pcb_.interproc_cf(frame.func,ah.getAddr(),&det);
 }
 
 /*
@@ -144,7 +144,7 @@ void Parser::ProcessCallInsn(
     else
         det.type = ParseCallback::interproc_details::branch_interproc;
     
-    _pcb.interproc_cf(frame.func,ah.getAddr(),&det);
+    pcb_.interproc_cf(frame.func,ah.getAddr(),&det);
 }
 
 void Parser::ProcessCFInsn(
@@ -165,8 +165,8 @@ void Parser::ProcessCFInsn(
     insn_ret = ah.getReturnStatus(frame.func,frame.num_insns); 
 
     // Update function return status if possible
-    if(unlikely(insn_ret != UNSET && frame.func->_rs < RETURN))
-        frame.func->_rs = insn_ret; 
+    if(unlikely(insn_ret != UNSET && frame.func->rs_ < RETURN))
+        frame.func->rs_ = insn_ret; 
 
     // Return instructions need extra processing
     if(insn_ret == RETURN)
@@ -207,10 +207,10 @@ void Parser::ProcessCFInsn(
                 newedge = link_tempsink(cur,CALL);
             else {
                 resolvable_edge = false;
-                newedge = link(cur,_sink,CALL,true);
+                newedge = link(cur,sink_,CALL,true);
             }
             if(!ah.isCall())
-                newedge->_type._interproc = true;
+                newedge->type_.interproc_ = true;
         }
         /*
          * All other edge types are handled identically
@@ -220,7 +220,7 @@ void Parser::ProcessCFInsn(
             if(resolvable_edge)
                 newedge = link_tempsink(cur,curEdge->second);
             else
-                newedge = link(cur,_sink,curEdge->second,true);
+                newedge = link(cur,sink_,curEdge->second,true);
         }
 
         if(!bundle) {
@@ -257,12 +257,12 @@ void Parser::ProcessCFInsn(
         ParseCallback::default_details det(
          (unsigned char*)frame.func->isrc()->getPtrToInstruction(ah.getAddr()),
          ah.getSize());
-        _pcb.unresolved_cf(frame.func,ah.getAddr(),&det);
+        pcb_.unresolved_cf(frame.func,ah.getAddr(),&det);
     }
 
     if(ah.isDelaySlot())
         ah.advance();
 
-    if(!frame.func->_cleans_stack && ah.cleansStack())
-        frame.func->_cleans_stack = true;
+    if(!frame.func->cleans_stack_ && ah.cleansStack())
+        frame.func->cleans_stack_ = true;
 }

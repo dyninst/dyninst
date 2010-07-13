@@ -28,8 +28,8 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#ifndef _PARSE_DATA_H_
-#define _PARSE_DATA_H_
+#ifndef PARSE_DATA_H__
+#define PARSE_DATA_H__
 
 #include <set>
 #include <vector>
@@ -111,18 +111,18 @@ class ParseFrame {
         func(f),
         codereg(f->region()),
         seed(NULL),
-        _pd(pd)
+        pd_(pd)
     {
         set_status(UNPARSED);
     }
 
     ~ParseFrame();
 
-    Status status() const { return _status; }
+    Status status() const { return status_; }
     void set_status(Status);
  private:
-    Status _status;
-    ParseData * _pd;
+    Status status_;
+    ParseData * pd_;
 };
 
 /* per-CodeRegion parsing data */
@@ -194,8 +194,8 @@ region_data::findBlocks(Address addr, set<Block *> & blocks)
 
 class ParseData {
  protected:
-    ParseData(Parser *p) : _parser(p) { }
-    Parser * _parser;
+    ParseData(Parser *p) : parser_(p) { }
+    Parser * parser_;
  public:
     virtual ~ParseData() { }
 
@@ -229,7 +229,7 @@ class ParseData {
    overlapping CodeRegions. It has fast paths for lookup */
 class StandardParseData : public ParseData {
  private:
-    region_data _rdata;
+    region_data rdata_;
  public:
     /* interface implementation */
     StandardParseData(Parser *p);
@@ -257,16 +257,16 @@ class StandardParseData : public ParseData {
 
 inline region_data * StandardParseData::findRegion(CodeRegion * /* cr */)
 {
-    return &_rdata;
+    return &rdata_;
 }
 inline void StandardParseData::record_func(Function *f)
 {
-    _rdata.funcsByAddr[f->addr()] = f;
+    rdata_.funcsByAddr[f->addr()] = f;
 }
 inline void StandardParseData::record_block(CodeRegion * /* cr */, Block *b)
 {
-    _rdata.blocksByAddr[b->start()] = b;
-    _rdata.blocksByRange.insert(b);
+    rdata_.blocksByAddr[b->start()] = b;
+    rdata_.blocksByRange.insert(b);
 }
 
 /* OverlappingParseData handles binary code objects like .o files

@@ -28,8 +28,8 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#ifndef _CODE_SOURCE_H_
-#define _CODE_SOURCE_H_
+#ifndef CODE_SOURCE_H__
+#define CODE_SOURCE_H__
 
 #include <map>
 #include <vector>
@@ -71,26 +71,26 @@ class CodeRegion : public Dyninst::InstructionSource, public Dyninst::interval<A
     { return false; }
 
     /** interval implementation **/
-    PARSER_EXPORT Address low() const =0;
-    PARSER_EXPORT Address high() const =0;
+    PARSER_EXPORT virtual Address low() const =0;
+    PARSER_EXPORT virtual Address high() const =0;
 
     PARSER_EXPORT bool contains(const Address) const;
 };
 
 /* A starting point for parsing */
 struct Hint {
-    Hint() : _addr(0), _reg(NULL), _name("") { }
+    Hint() : addr_(0), reg_(NULL), name_("") { }
     Hint(Address a, CodeRegion * r, std::string s) :
-        _addr(a), _reg(r), _name(s) { }
+        addr_(a), reg_(r), name_(s) { }
 
-    Address _addr;
-    CodeRegion * _reg;
-    std::string _name;
+    Address addr_;
+    CodeRegion * reg_;
+    std::string name_;
 };
 
 class CodeSource : public Dyninst::InstructionSource {
  private:
-    bool _regions_overlap;
+    bool regions_overlap_;
 
  protected:
     /*
@@ -102,24 +102,24 @@ class CodeSource : public Dyninst::InstructionSource {
     /*
      * Named external linkage table (e.g. PLT on ELF). Optional.
      */
-    std::map<Address, std::string> _linkage;
+    std::map<Address, std::string> linkage_;
 
     /*
      * Table of Contents for position independent references. Optional.
      */
-    Address _table_of_contents;
+    Address table_of_contents_;
 
     /*
      * Code regions in the binary. At least one region is
      * required for parsing.
      */
-    std::vector<CodeRegion *> _regions;
+    std::vector<CodeRegion *> regions_;
 
     /*
      * Code region lookup. Must be consistent with
-     * the _regions vector. Mandatory.
+     * the regions_ vector. Mandatory.
      */
-    Dyninst::IBSTree<CodeRegion> _region_tree;
+    Dyninst::IBSTree<CodeRegion> region_tree_;
 
     /*
      * Hints for where to begin parsing. Required for
@@ -128,7 +128,7 @@ class CodeSource : public Dyninst::InstructionSource {
      * locations or using speculative methods) is supported
      * without hints.
      */
-    std::vector<Hint> _hints;
+    std::vector<Hint> hints_;
 
  public:
     /* Returns true if the function at an address is known to be
@@ -146,16 +146,16 @@ class CodeSource : public Dyninst::InstructionSource {
     PARSER_EXPORT virtual Address baseAddress() const { return 0; }
     PARSER_EXPORT virtual Address loadAddress() const { return 0; }
 
-    PARSER_EXPORT std::map< Address, std::string > const& linkage() const { return _linkage; }
-    PARSER_EXPORT std::vector< Hint > const& hints() const { return _hints; } 
-    PARSER_EXPORT std::vector<CodeRegion *> const& regions() const { return _regions; }
+    PARSER_EXPORT std::map< Address, std::string > const& linkage() const { return linkage_; }
+    PARSER_EXPORT std::vector< Hint > const& hints() const { return hints_; } 
+    PARSER_EXPORT std::vector<CodeRegion *> const& regions() const { return regions_; }
     PARSER_EXPORT int findRegions(Address addr, set<CodeRegion *> & ret) const;
-    PARSER_EXPORT bool regionsOverlap() const { return _regions_overlap; }
+    PARSER_EXPORT bool regionsOverlap() const { return regions_overlap_; }
 
-    PARSER_EXPORT Address getTOC() const { return _table_of_contents; }
+    PARSER_EXPORT Address getTOC() const { return table_of_contents_; }
  protected:
-    CodeSource() : _regions_overlap(false),
-                   _table_of_contents(0) {}
+    CodeSource() : regions_overlap_(false),
+                   table_of_contents_(0) {}
     virtual ~CodeSource() {}
 
     void addRegion(CodeRegion *);
@@ -167,8 +167,8 @@ class CodeSource : public Dyninst::InstructionSource {
 
 class SymtabCodeRegion : public CodeRegion {
  private:
-    SymtabAPI::Symtab * _symtab;
-    SymtabAPI::Region * _region;
+    SymtabAPI::Symtab * symtab_;
+    SymtabAPI::Region * region_;
  public:
     PARSER_EXPORT SymtabCodeRegion(SymtabAPI::Symtab *, SymtabAPI::Region *);
     PARSER_EXPORT ~SymtabCodeRegion();
@@ -191,14 +191,14 @@ class SymtabCodeRegion : public CodeRegion {
     PARSER_EXPORT Address low() const { return offset(); }
     PARSER_EXPORT Address high() const { return offset() + length(); }
 
-    PARSER_EXPORT SymtabAPI::Region * symRegion() const { return _region; }
+    PARSER_EXPORT SymtabAPI::Region * symRegion() const { return region_; }
 };
 
 class SymtabCodeSource : public CodeSource {
  private:
-    SymtabAPI::Symtab * _symtab;
+    SymtabAPI::Symtab * symtab_;
     bool owns_symtab;
-    mutable CodeRegion * _lookup_cache;
+    mutable CodeRegion * lookup_cache_;
  public:
     struct hint_filt {
         virtual ~hint_filt() { }

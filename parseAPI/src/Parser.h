@@ -28,8 +28,8 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#ifndef _PARSER_H_
-#define _PARSER_H_
+#ifndef PARSER_H__
+#define PARSER_H__
 
 #include <set>
 #include <vector>
@@ -67,16 +67,16 @@ namespace ParseAPI {
 class Parser {
  private:
     // Owning code object
-    CodeObject & _obj;
+    CodeObject & obj_;
 
     // CFG object factory
-    CFGFactory & _cfgfact;
+    CFGFactory & cfgfact_;
 
     // Callback notifications
-    ParseCallback & _pcb;
+    ParseCallback & pcb_;
 
     // region data store
-    ParseData * _parse_data;
+    ParseData * parse_data_;
 
     // All allocated frames
     vector<ParseFrame *> frames;
@@ -92,7 +92,7 @@ class Parser {
     dyn_hash_map<Address, string> plt_entries;
 
     // a sink block for unbound edges
-    Block * _sink;
+    Block * sink_;
 
     enum ParseState {
         UNPARSED,       // raw state
@@ -100,10 +100,10 @@ class Parser {
         COMPLETE,       // full parsing -- range queries are invalid
         FINALIZED
     };
-    ParseState _parse_state;
+    ParseState parse_state_;
     // XXX sanity checking
-    bool _in_parse;
-    bool _in_finalize;
+    bool in_parse_;
+    bool in_finalize_;
 
  public:
     Parser(CodeObject & obj, CFGFactory & fact, ParseCallback & pcb);
@@ -124,8 +124,8 @@ class Parser {
     void parse_at(CodeRegion *cr, Address addr, bool recursive, FuncSource src);
     void parse_at(Address addr, bool recursive, FuncSource src);
 
-    CFGFactory & factory() const { return _cfgfact; }
-    CodeObject & obj() { return _obj; }
+    CFGFactory & factory() const { return cfgfact_; }
+    CodeObject & obj() { return obj_; }
 
  public: 
     /** XXX all strictly internals below this point **/

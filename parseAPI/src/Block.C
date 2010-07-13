@@ -45,15 +45,15 @@ using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 
 Block::Block(CodeObject * o, CodeRegion *r, Address start) :
-    _obj(o),
-    _region(r),
-    _start(start),
-    _end(start),
-    _lastInsn(start),
-    _srclist(_sources),
-    _trglist(_targets),
-    _func_cnt(0),
-    _parsed(false)
+    obj_(o),
+    region_(r),
+    start_(start),
+    end_(start),
+    lastInsn_(start),
+    srclist_(sources_),
+    trglist_(targets_),
+    func_cnt_(0),
+    parsed_(false)
 {
 
 }
@@ -67,18 +67,18 @@ bool
 Block::consistent(Address addr, Address & prev_insn) const
 {
     InstructionSource * isrc;
-    if(!_obj->cs()->regionsOverlap())
-        isrc = _obj->cs();
+    if(!obj_->cs()->regionsOverlap())
+        isrc = obj_->cs();
     else
         isrc = region();
 #if defined(cap_instruction_api)
     const unsigned char * buf = 
-        (const unsigned char*)(region()->getPtrToInstruction(_start));
+        (const unsigned char*)(region()->getPtrToInstruction(start_));
     InstructionDecoder dec(buf,size(),isrc->getArch());
-    InstructionAdapter_t ah(dec,_start,_obj,region(),isrc);
+    InstructionAdapter_t ah(dec,start_,obj_,region(),isrc);
 #else
-    InstrucIter iter(_start,size(),isrc);
-    InstructionAdapter_t ah(iter,_obj,region(),isrc);
+    InstrucIter iter(start_,size(),isrc);
+    InstructionAdapter_t ah(iter,obj_,region(),isrc);
 #endif
 
     Address cur = ah.getAddr();
@@ -97,7 +97,7 @@ void
 Block::getFuncs(vector<Function *> & funcs)
 {
     set<Function *> stab;
-    _obj->findFuncs(region(),start(),stab);
+    obj_->findFuncs(region(),start(),stab);
     set<Function *>::iterator sit = stab.begin();
     for( ; sit != stab.end() ;++sit) {
         if((*sit)->contains(this))
@@ -108,8 +108,8 @@ Block::getFuncs(vector<Function *> & funcs)
 bool
 EdgePredicate::pred_impl(Edge * e) const
 {
-    if(_next)
-        return (*_next)(e);
+    if(next_)
+        return (*next_)(e);
     else
         return true;
 }
@@ -126,12 +126,12 @@ SingleContext::pred_impl(Edge * e) const
 {
     bool base = EdgePredicate::pred_impl(e);
     return base && 
-        (!_forward || _context->contains(e->trg())) &&
-        (!_backward || _context->contains(e->src()));
+        (!forward_ || context_->contains(e->trg())) &&
+        (!backward_ || context_->contains(e->src()));
 }
 
 int Block::containingFuncs() const {
-    _obj->finalize();
-    return _func_cnt;
+    obj_->finalize();
+    return func_cnt_;
 }
 

@@ -28,8 +28,8 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#ifndef _UTIL_H_
-#define _HTIL_H_
+#ifndef UTIL_H__
+#define HTIL_H__
 
 #define HASHDEF(h,k) (h.find(k) != h.end())
 
