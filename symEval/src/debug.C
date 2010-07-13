@@ -35,6 +35,7 @@
 #include <stdarg.h>
 #include <assert.h>
 #include <string>
+#include <stdlib.h>
 #include "debug.h"
 
 // Internal debugging

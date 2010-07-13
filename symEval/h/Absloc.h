@@ -232,8 +232,8 @@ class AbsRegion {
 			 ParseAPI::Function *caller,
 			 ParseAPI::Function *callee);
 
-  SYMEVAL_EXPORT const Absloc absloc() const { return absloc_; }
-  SYMEVAL_EXPORT const Absloc::Type type() const { return type_; }
+  SYMEVAL_EXPORT Absloc absloc() const { return absloc_; }
+  SYMEVAL_EXPORT Absloc::Type type() const { return type_; }
   SYMEVAL_EXPORT size_t size() const { return size_; }
 
  private:
@@ -262,7 +262,7 @@ class Assignment {
   SYMEVAL_EXPORT std::vector<AbsRegion> &inputs() { return inputs_; }
 
   SYMEVAL_EXPORT const InstructionAPI::Instruction::Ptr insn() const { return insn_; }
-  SYMEVAL_EXPORT const Address addr() const { return addr_; }
+  SYMEVAL_EXPORT Address addr() const { return addr_; }
 
   SYMEVAL_EXPORT const AbsRegion &out() const { return out_; }
   SYMEVAL_EXPORT AbsRegion &out() { return out_; }
