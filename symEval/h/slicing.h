@@ -186,10 +186,8 @@ class Slicer {
 			 ParseAPI::Block *callerBlock,
 			 ParseAPI::Function *callee);
 
-  bool handleCallDetailsBackward(AbsRegion &reg,
-				 Context &context,
-				 ParseAPI::Block *calleeBlock,
-				 ParseAPI::Function *caller);
+  void handleCallDetailsBackward(AbsRegion &reg,
+                                Context &context);
 
   // Where we are in a particular search...
   struct Location {
@@ -250,23 +248,29 @@ class Slicer {
 		  Element &current,
 		  Predicates &p);
 
+  bool followReturn(ParseAPI::Block *b,
+                    Direction d,
+                    Element &current,
+                    Predicates &p);
+
   bool handleDefault(ParseAPI::Edge *e,
+                     Direction dir,
 		     Element &current,
 		     Element &newElement,
 		     Predicates &p,
 		     bool &err);
                 
-  bool handleDefaultBackward(ParseAPI::Edge *e,
-			     Element &current,
-			     Element &newElement,
-			     Predicates &p,
-			     bool &err);
-
   bool handleCall(ParseAPI::Block *block,
 		  Element &current,
 		  Element &newElement,
 		  Predicates &p,
 		  bool &err);
+
+  bool handleCallBackward(ParseAPI::Edge *e,
+                          Element &current,
+                          Elements &newElements,
+                          Predicates &p,
+                          bool &err);
 
   bool handleReturn(ParseAPI::Block *b,
 		    Element &current,
@@ -274,8 +278,19 @@ class Slicer {
 		    Predicates &p,
 		    bool &err);
 
+  bool handleReturnBackward(ParseAPI::Edge *e,
+                            Element &current,
+                            Element &newElement,
+                            Predicates &p,
+                            bool &err);
+
   void handleReturnDetails(AbsRegion &reg,
 			   Context &context);
+
+  bool handleReturnDetailsBackward(AbsRegion &reg,
+                                    Context &context,
+                                    ParseAPI::Block *callBlock,
+                                    ParseAPI::Function *callee);
 
   bool getSuccessors(Element &current,
 		     Elements &worklist,

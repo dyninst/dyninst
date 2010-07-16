@@ -116,6 +116,9 @@ class COMMON_EXPORT Graph : public AnnotatableSparse {
     virtual void insertEntryNode(NodePtr entry);
     virtual void insertExitNode(NodePtr exit);
 
+    virtual void markAsEntryNode(NodePtr entry);
+    virtual void markAsExitNode(NodePtr exit);
+
     void deleteNode(NodePtr node);
 
     void addNode(NodePtr node);
