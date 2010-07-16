@@ -328,8 +328,8 @@ test_results_t DyninstComponent::test_teardown(TestInfo *test, ParameterDict &pa
 {
     // Take care of the things the test can delete out from under us
     DyninstMutator* theMutator = dynamic_cast<DyninstMutator*>(test->mutator);
-    if(theMutator->appThread == NULL) appThread == NULL;
-    if(theMutator->appProc == NULL) appProc == NULL;
+    if(theMutator->appThread == NULL) appThread = NULL;
+    if(theMutator->appProc == NULL) appProc = NULL;
    return PASSED;
 }
 
