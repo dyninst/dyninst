@@ -112,7 +112,10 @@ Graph::Ptr Slicer::sliceInternal(Direction dir,
   //     constructInitialElementBackward(initial);
 
   AssignNode::Ptr aP = createNode(initial);
-  slicing_cerr << "Inserting entry node " << aP << "/" << aP->format() << endl;
+  if (dir == forward)
+      slicing_cerr << "Inserting entry node " << aP << "/" << aP->format() << endl;
+  else
+      slicing_cerr << "Inserting exit node " << aP << "/" << aP->format() << endl;
 
   insertInitialNode(ret, dir, aP);
 
@@ -346,6 +349,52 @@ void Slicer::handleReturnDetails(AbsRegion &reg,
   reg = newRegion;
 }
 
+bool Slicer::handleReturnDetailsBackward(AbsRegion &reg,
+        Context &context,
+        ParseAPI::Block *callerBlock,
+        ParseAPI::Function *callee)
+{
+    ParseAPI::Function * caller = context.front().func;
+    AbsRegion newReg = reg;
+
+    long stack_depth;
+    if (!getStackDepth(caller, callerBlock->end(), stack_depth)) {
+        return false;
+    }
+
+    // Increment the context
+    pushContext(context, callee, callerBlock, stack_depth);
+
+    // Translate the AbsRegion from caller to callee
+    shiftAbsRegion(reg,
+            newReg,
+            stack_depth,
+            callee);
+
+    reg = newReg;
+    return true;
+}
+
+void Slicer::handleCallDetailsBackward(AbsRegion &reg,
+                                        Context &context) {
+    long stack_depth = context.front().stackDepth;
+
+    popContext(context);
+
+    assert(!context.empty());
+
+    slicing_cerr << "\t" << (context.front().func ?
+            context.front().func->name() : "NULL")
+        << ", " << context.front().stackDepth << endl;
+
+    AbsRegion newRegion;
+    shiftAbsRegion(reg, newRegion,
+            -1*stack_depth,
+            context.front().func);
+
+    reg = newRegion;
+}
+
 // Given a <location> this function returns a list of successors.
 // If the successor is in a different function the searched-for
 // AbsRegion should be updated (along with the context) but this
@@ -415,6 +464,7 @@ bool Slicer::getSuccessors(Element &current,
     for (; eit != targets.end(); ++eit) {
       Element newElement;
       if (handleDefault(*eit,
+                        forward,
 			current,
 			newElement,
 			p,
@@ -459,29 +509,53 @@ bool Slicer::getPredecessors(Element &current,
     bool ret = true;
     bool err = false;
 
+    Element newElement;
+    Elements newElements;
+
     const Block::edgelist &sources = current.loc.block->sources();
     Block::edgelist::iterator eit = sources.begin();
     for ( ; eit != sources.end(); ++eit) {   
       switch ((*eit)->type()) {
       case CALL:
-	slicing_cerr << "\t\t Handling call:";
-	slicing_cerr << "TODO: this case currently unhandled" << endl;
-	break;
-      case NOEDGE:
-	slicing_cerr << "TODO: found NOEDGE" << endl;
-	break;
-      case CALL_FT:
-	slicing_cerr << "TODO: found call fallthrough" << endl;
-	break;
+        slicing_cerr << "\t\t Handling call:";
+        if (handleCallBackward(*eit,
+                    current,
+                    newElements,
+                    p,
+                    err)) {
+            slicing_cerr << " succeeded, err " <<err << endl;
+            while (newElements.size()) {
+                newElement = newElements.front(); newElements.pop();
+                pred.push(newElement);
+            }
+        }
+        break;
+      case RET:
+        slicing_cerr << "\t\t Handling return:";
+        if (handleReturnBackward(*eit,
+                    current,
+                    newElement,
+                    p,
+                    err)) {
+            slicing_cerr << " succeeded, err " << err << endl;
+        }
+        pred.push(newElement);
+        break;
       default:
 	Element newElement;
-	if (handleDefaultBackward((*eit),
-				  current,
-				  newElement,
-				  p,
-				  err)) {
-	  pred.push(newElement);
-	}
+        if ((*eit)->src()->lastInsnAddr() < current.loc.func->entry()->start() ||
+                (*eit)->src()->lastInsnAddr() > current.loc.func->entry()->end()) {
+            slicing_cerr << "Oops! Found a default edge that goes into a different function" << endl;
+            /* NOTE: this will cause us to leave a node unmarked as entry. This will get fixed during cleanGraph() */
+        } else {if (handleDefault((*eit),
+                    backward,
+                    current,
+                    newElement,
+                    p,
+                    err)) {
+            pred.push(newElement);
+        }
+        }
       }     
     }
     
@@ -493,23 +567,7 @@ bool Slicer::getPredecessors(Element &current,
 }
 
 bool Slicer::handleDefault(ParseAPI::Edge *e,
-			   Element &current,
-			   Element &newElement,
-			   Predicates &,
-			   bool &) {
-    // Since we're in the same function we can keep the AbsRegion
-    // and Context. Instead we only need to update the Location
-    newElement = current;
-    newElement.loc.block = e->trg();
-
-    // Cache the new vector of instruction instances and get iterators into it
-    getInsns(newElement.loc);
-
-    return true;
-
-}
-
-bool Slicer::handleDefaultBackward(ParseAPI::Edge *e,
+        Direction dir,
         Element &current,
         Element &newElement,
         Predicates &,
@@ -517,14 +575,21 @@ bool Slicer::handleDefaultBackward(ParseAPI::Edge *e,
     // Since we're in the same function we can keep the AbsRegion
     // and Context. Instead we only need to update the Location
     newElement = current;
-    newElement.loc.block = e->src();
 
-    // Cache the new vector of instruction instances and get iterators into it
-    getInsnsBackward(newElement.loc);
+    if (dir == forward) {
+        newElement.loc.block = e->trg();
+
+        // Cache the new vector of instruction instances and get iterators into it
+        getInsns(newElement.loc);
+    } else {
+        newElement.loc.block = e->src();
+
+        getInsnsBackward(newElement.loc);
+    }
 
     return true;
+
 }
-  
 
 bool Slicer::handleCall(ParseAPI::Block *block,
 			Element &current,
@@ -537,6 +602,10 @@ bool Slicer::handleCall(ParseAPI::Block *block,
   const Block::edgelist &targets = block->targets();
   Block::edgelist::iterator eit = targets.begin();
   for (; eit != targets.end(); ++eit) {
+    if ((*eit)->sinkEdge()) {
+        err = true;
+        continue;
+    }
     if ((*eit)->type() == CALL) {
       callee = (*eit)->trg();
     }
@@ -573,6 +642,7 @@ bool Slicer::handleCall(ParseAPI::Block *block,
       return false;
     }
     if (!handleDefault(funlink,
+                       forward,
 		       current,
 		       newElement,
 		       p,
@@ -583,6 +653,45 @@ bool Slicer::handleCall(ParseAPI::Block *block,
   }
   
   return true;
+}
+
+bool Slicer::handleCallBackward(ParseAPI::Edge *edge,
+        Element &current,
+        Elements &newElements,
+        Predicates &,
+        bool &)
+{
+    Element newElement = current;
+
+    // Find the predecessor block...
+    Context callerCon = newElement.con;
+    callerCon.pop_front();
+
+    if (callerCon.empty()) {
+        return false;
+    }
+
+    newElement.loc.block = edge->src();
+
+    /* We don't know which function the caller block belongs to,
+     * follow each possibility */
+    vector<Function *> funcs;
+    newElement.loc.block->getFuncs(funcs);
+    vector<Function *>::iterator fit;
+    for (fit = funcs.begin(); fit != funcs.end(); ++fit) {
+        Element curElement = newElement;
+
+        // Pop AbsRegion and Context
+        handleCallDetailsBackward(newElement.reg,
+                newElement.con);
+
+        curElement.loc.func = *fit;
+        getInsnsBackward(curElement.loc);
+
+        newElements.push(curElement);
+    }
+
+    return true;
 }
 
 bool Slicer::handleReturn(ParseAPI::Block *,
@@ -624,7 +733,41 @@ bool Slicer::handleReturn(ParseAPI::Block *,
   newElement.loc.block = retBlock;
   getInsns(newElement.loc);
   return true;
-};
+}
+
+bool Slicer::handleReturnBackward(ParseAPI::Edge *edge,
+        Element &current,
+        Element &newElement,
+        Predicates &p,
+        bool &err)
+{
+    ParseAPI::Block * callee = edge->src();
+
+    if (followReturn(callee, backward, current, p)) {
+        if (!callee) {
+            err = true;
+            return false;
+        }
+
+        newElement = current;
+
+        // Update location
+        newElement.loc.block = callee;
+        newElement.loc.func = getEntryFunc(callee);
+        getInsnsBackward(newElement.loc);
+
+        // handleReturnDetailsBackward updates both an AbsRegion and a context
+        if (!handleReturnDetailsBackward(newElement.reg,
+                    newElement.con,
+                    current.loc.block,
+                    newElement.loc.func)) {
+            err = true;
+            return false;
+        }
+    }
+
+    return true;
+}
 
 bool Slicer::search(Element &initial,
 		    Elements &succ,
@@ -637,8 +780,13 @@ bool Slicer::search(Element &initial,
 
   Elements worklist;
   
-  slicing_cerr << "\t\t Getting forward successors from " << initial.ptr->format()
-  << " - " << initial.reg.format() << endl;
+  if (dir == forward)  {
+      slicing_cerr << "\t\t Getting forward successors from " << initial.ptr->format()
+          << " - " << initial.reg.format() << endl;
+  } else {
+      slicing_cerr << "\t\t Getting backward predecessors from " << initial.ptr->format()
+          << " - " << initial.reg.format() << endl;
+  }
 
   if (!getNextCandidates(initial, worklist, p, dir))
     ret = false;
@@ -789,17 +937,23 @@ void Slicer::getInsnsBackward(Location &loc) {
 }
 
 void Slicer::insertPair(Graph::Ptr ret,
-			Direction,
+			Direction dir,
 			Element &source,
 			Element &target) {
   AssignNode::Ptr s = createNode(source);
   AssignNode::Ptr t = createNode(target);
 
-  ret->insertPair(s, t);
-  
-  // Also record which input to t is defined by s
-  slicing_cerr << "adding assignment with usedIndex = " << target.usedIndex << endl;
-  t->addAssignment(s, target.usedIndex);
+  if (dir == forward) {
+      ret->insertPair(s, t);
+
+      // Also record which input to t is defined by s
+      slicing_cerr << "adding assignment with usedIndex = " << target.usedIndex << endl;
+      t->addAssignment(s, target.usedIndex);
+  } else {
+      ret->insertPair(t, s);
+      slicing_cerr << "adding assignment with usedIndex = " << target.usedIndex << endl;
+      s->addAssignment(t, target.usedIndex);
+  }
 }
 
 void Slicer::widen(Graph::Ptr ret,
@@ -875,6 +1029,12 @@ void Slicer::cleanGraph(Graph::Ptr ret) {
     //cerr << "Checking " << foozle << "/" << foozle->format() << endl;
     if ((*nbegin)->hasOutEdges()) {
       //cerr << "\t has out edges, leaving in" << endl;
+      
+        // This cleans up case where we ended a backward slice
+        // but never got to mark the node as an entry node
+        if (!(*nbegin)->hasInEdges()) {
+            ret->markAsEntryNode(foozle);
+        }
       continue;
     }
     if (ret->isExitNode(*nbegin)) {
@@ -917,6 +1077,25 @@ bool Slicer::followCall(ParseAPI::Block *target, Direction dir, Element &current
   // FIXME: assuming that this is not a PLT function, since I have no idea at present.
   // -- BW, April 2010
   return p.followCall(callee, callStack, current.reg);
+}
+
+bool Slicer::followReturn(ParseAPI::Block *source,
+                            Direction dir,
+                            Element &current,
+                            Predicates &p)
+{
+    assert(dir == backward);
+    ParseAPI::Function * callee = (source ? getEntryFunc(source) : NULL);
+    // Create a call stack
+    std::stack<std::pair<ParseAPI::Function *, int> > callStack;
+    for (Context::reverse_iterator calls = current.con.rbegin();
+            calls != current.con.rend();
+            ++calls) {
+        if (calls->func) {
+            callStack.push(std::make_pair<ParseAPI::Function *, int>(calls->func, calls->stackDepth));
+        }
+    }
+    return p.followCall(callee, callStack, current.reg);
 }
 
 ParseAPI::Block *Slicer::getBlock(ParseAPI::Edge *e,

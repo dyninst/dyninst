@@ -339,7 +339,7 @@ public:
 			 const uint64_t addr,
 			 Result_t& res);
 
-  static void process(AssignNodePtr ptr, Result_t &dbase);
+  static bool process(AssignNodePtr ptr, Result_t &dbase);
   
 };
 
