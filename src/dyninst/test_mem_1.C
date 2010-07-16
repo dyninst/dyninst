@@ -482,10 +482,10 @@ test_results_t test_mem_1_Mutator::executeTest() {
     failtest(testnum, testdesc, "Load sequence failed validation.\n");
   dprintf("load sequence ok\n");
 
-  if (instCall(appThread, "Load", res1) < 0) {
+  if (instCall(appAddrSpace, "Load", res1) < 0) {
       failtest(testnum, testdesc, "Failed to instrument loads.\n");
   }
-  appThread->continueExecution();
+  //appThread->continueExecution();
   return PASSED;
 #endif
 }

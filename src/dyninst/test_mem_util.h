@@ -200,6 +200,30 @@ extern char dlarge[512];
 extern void* rip_relative_load_address;
 
 void init_test_data();
+
+struct reduction {
+    unsigned int loadRed;
+    unsigned int storeRed;
+    unsigned int prefeRed;
+    unsigned int axsRed;
+    unsigned int axsShift;
+};
+
+extern const struct reduction mmxRed;
+extern const struct reduction sseRed;
+extern const struct reduction sse2Red;
+extern const struct reduction amdRed;
+extern const struct reduction ccRed;
+
+extern int ia32features();
+extern int amd_features();
+#define CAP_MMX   (1<<23)
+#define CAP_SSE   (1<<25)
+#define CAP_SSE2  (1<<26)
+#define CAP_3DNOW (1<<31)
+void reduce(const struct reduction x);
+void reduceCC(const struct reduction x);
+
 #endif /* defined(x86_64_unknown_linux2_4_test) */
 
 #ifdef ia64_unknown_linux2_4_test
@@ -282,10 +306,10 @@ int validateEA(void* ea1[], void* ea2[], unsigned int n);
 int validateBC(unsigned int bc1[], unsigned int bc2[], unsigned int n);
 
 /* functions called by the effective address/byte count instrumentation points */
-void listEffAddr(void* addr);
-void listByteCnt(unsigned int count);
-void listEffAddrCC(void* addr);
-void listByteCntCC(unsigned int count);
+void listEffAddr(const char* insn, void* addr);
+void listByteCnt(const char* insn, unsigned int count);
+void listEffAddrCC(const char* insn, void* addr);
+void listByteCntCC(const char* insn, unsigned int count);
 
 
 #ifdef __cplusplus
