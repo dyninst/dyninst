@@ -180,8 +180,8 @@ bool IA_IAPI::isMovAPSTable(std::vector<std::pair< Address, EdgeTypeEnum > >& ou
     unsigned last_insn_size = 0;
     InstructionAPI::Instruction::Ptr i = d.decode();
     cur += i->size();
-    for (;;) {
-        InstructionAPI::Instruction::Ptr insn = d.decode();
+    InstructionAPI::Instruction::Ptr insn;
+    while (NULL != (insn = d.decode())) {
         //All insns in sequence are movaps
         parsing_printf("\t\tChecking instruction %s\n", insn->format().c_str());
         if (insn->getOperation().getID() != e_movapd &&
