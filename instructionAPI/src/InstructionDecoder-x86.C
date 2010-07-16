@@ -954,7 +954,7 @@ namespace Dyninst
                     {
                         MachRegister r(optype);
                         r = MachRegister(r.val() & ~r.getArchitecture() | m_Arch);
-                        if(locs->rex_b)
+                        if(locs->rex_b && insn_to_complete->m_Operands.empty())
                         {
                             r = MachRegister((r.val()) | x86_64::r8.val());
                         }

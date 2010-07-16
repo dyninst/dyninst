@@ -3842,23 +3842,19 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref,
     if (mode_64 && operSzAttr == 2)
       operSzAttr = 4;
     mac[0].set(mESP, 0, addrSzAttr);
-    mac[0].size = type2size(op_d, operSzAttr);
+    mac[0].size = type2size(op_v, operSzAttr);
     mac[0].read = true;
   }
   if((gotit.id == e_ret_near || gotit.id == e_ret_far) && mac)
   {
-    // assuming 32-bit (64-bit for AMD64) stack segment
-    // AMD64: pop defaults to 64-bit operand size
-    if (mode_64 && operSzAttr == 2)
-      operSzAttr = 4;
     mac[0].set(mESP, 0, addrSzAttr);
-    mac[0].size = type2size(op_d, operSzAttr);
+    mac[0].size = type2size(op_v, addrSzAttr);
     mac[0].read = true;
   }
   if((gotit.id == e_call) && mac)
   {
       mac[0].set(mESP, -2 * addrSzAttr, addrSzAttr);
-      mac[0].size = type2size(op_d, addrSzAttr);
+      mac[0].size = type2size(op_v, addrSzAttr);
       mac[0].write = true;
             
   }

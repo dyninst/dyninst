@@ -186,11 +186,11 @@ test_results_t test_mem_3_Mutator::executeTest() {
   if(!validate(res1, prefeList, "prefetch"))
     failtest(testnum, testdesc, "Prefetch sequence failed validation.\n");
 
-  if (instCall(appThread, "Prefetch", res1) < 0) {
+  if (instCall(appAddrSpace, "Prefetch", res1) < 0) {
       failtest(testnum, testdesc, "Unable to instrument prefetches.\n");
   }
 
-  appThread->continueExecution();
+  //appThread->continueExecution();
   return PASSED;
 #endif
 }

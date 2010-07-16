@@ -583,9 +583,9 @@ void dyninstSetupContext(ucontext_t *context, unsigned long flags, void *retPoin
       unsigned long zero = 0;
       unsigned long one = 1;
       struct trap_mapping_header *hdr = getStaticTrapMap((unsigned long) orig_ip);
-      trapMapping_t *mapping = &(hdr->traps[0]);
       assert(hdr);
-      trap_to = dyninstTrapTranslate(orig_ip, 
+      trapMapping_t *mapping = &(hdr->traps[0]);
+      trap_to = dyninstTrapTranslate(orig_ip,
                                      (unsigned long *) &hdr->num_entries, 
                                      &zero, 
                                      (volatile trapMapping_t **) &mapping,

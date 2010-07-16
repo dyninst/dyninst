@@ -444,6 +444,10 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, baseTrampInstance *inst, codeGen &g
        emitSimpleInsn(PUSHAD, gen);
        num_saved = 8;
        gen.rs()->markSavedRegister(RealRegister(REGNUM_EAX), 7 + flags_saved_i + base_i);
+       if(flags_saved)
+       {
+           gen.rs()->markSavedRegister(IA32_FLAG_VIRTUAL_REGISTER, 7 + base_i);
+       }
        gen.rs()->markSavedRegister(RealRegister(REGNUM_ECX), 6 + base_i);
        gen.rs()->markSavedRegister(RealRegister(REGNUM_EDX), 5 + base_i);
        gen.rs()->markSavedRegister(RealRegister(REGNUM_EBX), 4 + base_i);
@@ -460,9 +464,14 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, baseTrampInstance *inst, codeGen &g
           registerSlot *reg = regs[i];
           if (inst->definedRegs[reg->encoding()]) {
              ::emitPush(RealRegister(reg->encoding()), gen);
-			 int eax_flags = (reg->encoding() == REGNUM_EAX) ? flags_saved_i : 0;
+             int eax_flags = (reg->encoding() == REGNUM_EAX) ? flags_saved_i : 0;
              gen.rs()->markSavedRegister(RealRegister(reg->encoding()),
                                          numRegsUsed - num_saved + base_i - 1 + eax_flags);
+             if(eax_flags)
+             {
+                 gen.rs()->markSavedRegister(IA32_FLAG_VIRTUAL_REGISTER,
+                    numRegsUsed - num_saved + base_i - 1);
+             }
              num_saved++;
           }
        }
@@ -2000,7 +2009,9 @@ void EmitterAMD64::emitPushFlags(codeGen &gen) {
 
 void EmitterAMD64::emitRestoreFlagsFromStackSlot(codeGen &gen)
 {
-    emitRestoreFlags(gen, SAVED_RFLAGS_OFFSET);
+    stackItemLocation loc = getHeightOf(stackItem(RealRegister(REGNUM_OF)), gen);
+    emitOpRMReg(PUSH_RM_OPC1, RealRegister(loc.reg.reg()), loc.offset, RealRegister(PUSH_RM_OPC2), gen);
+    emitSimpleInsn(0x9D, gen);
 }
 
 bool shouldSaveReg(registerSlot *reg, baseTrampInstance *inst)
