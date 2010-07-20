@@ -1,4 +1,5 @@
-/*
+
+ /*
  * Copyright (c) 1996-2009 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
@@ -28,8 +29,6 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-
-
 
 #include "r_t_Base.h"
 #include "r_t_ControlFlow.h"
@@ -70,7 +69,15 @@ bool CFElementCreator::processBlock(BlockList::iterator &iter) {
 		  << std::hex << (*iter)->origAddr() << std::dec << endl;
 
   SuccVec successors;
-  getInterproceduralSuccessors(bbl, successors);
+  // SD-Dyninst: if we haven't parsed past a call (or indirect branch?)
+  // we need to drop in a patch area for a future control flow fixup
+
+  bool needsFTPatchArea = false;
+  getInterproceduralSuccessors(bbl, successors, needsFTPatchArea);
+
+  if (unparsedFallthrough(bbl)) {
+    ender->setNeedsFTPadding();
+  }
 
   for (unsigned i = 0; i < successors.size(); ++i) {
     TargetInt *targ = successors[i].first;
@@ -133,7 +140,7 @@ bool CFElementCreator::processBlock(BlockList::iterator &iter) {
 
 
 void CFElementCreator::getInterproceduralSuccessors(const bblInstance *bbl,
-							SuccVec &succ) {
+						    SuccVec &succ) {
   int_basicBlock *block = bbl->block();
   int_function *func = block->func();
 
@@ -153,20 +160,8 @@ void CFElementCreator::getInterproceduralSuccessors(const bblInstance *bbl,
   // int_basicBlock, or bblInstance... useless. Instead I'm using the
   // Target concept to create a destination out of whole cloth.
 
-#if 0
-  // Nate swears this ugly hack is no longer necessary
-  // If we're a PLT call, then we just cons up an edge
-  if (block->llb()->callsPLT()) {
-    Address target = block->llb()->PLTAddr();
-    Succ out;
-    out.first = new Target<Address>(target);
-    out.second = ET_CALL;
-    //cerr << "\t handling PLT call to " << std::hex << block->llb()->PLTAddr() << std::dec << endl;
-    succ.push_back(out);
-  }
-#endif
-
   // This requires an... interesting... dodge through to the internals
+
   const ParseAPI::Block::edgelist &targets = block->llb()->targets();
   ParseAPI::Block::edgelist::iterator iter = targets.begin();
   for (; iter != targets.end(); ++iter) {
@@ -216,3 +211,28 @@ void CFElementCreator::getInterproceduralSuccessors(const bblInstance *bbl,
   }
 }
 
+bool CFElementCreator::unparsedFallthrough(const bblInstance *inst) {
+  // I'm not sure if Kevin marks these in the parseAPI. I'm guessing not,
+  // so if we see a call edge without a call_ft edge return yes.
+
+  bool seen_call = false;
+  bool seen_ft = false;
+
+  const ParseAPI::Block::edgelist &targets = block->llb()->targets();
+  ParseAPI::Block::edgelist::iterator iter = targets.begin();
+  for (; iter != targets.end(); ++iter) {
+    if ((*iter)->type() == ParseAPI::CALL) {
+      seen_call = true;
+    }
+    if ((*iter)->type() == ParseAPI::CALL_FT) {
+      seen_ft = true;
+    }
+  }
+  
+  if (seen_call && !seen_ft) {
+    return true;
+  }
+  else {
+    return false;
+  }
+}
