@@ -415,13 +415,15 @@ struct syncRunStateRet_t {
    bool hasStopPending;
    bool hasClearingBP;
    bool hasProcStopRPC;
+   bool hasDeferredContinue;
    std::vector<int_process *> readyProcStoppers;
    syncRunStateRet_t() :
       hasRunningThread(false),
       hasSyncRPC(false),
       hasStopPending(false),
       hasClearingBP(false),
-      hasProcStopRPC(false)
+      hasProcStopRPC(false),
+      hasDeferredContinue(false)
    {
    }
 };
@@ -472,7 +474,11 @@ bool syncRunState(int_process *p, void *r)
        for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++)
        {
           int_thread *thr = *i;
-          thr->handleNextPostedIRPC(false);
+          if(    int_process::getThreadControlMode() != int_process::HybridLWPControl
+              || tp->size() <= 1 )
+          {
+             thr->handleNextPostedIRPC(false);
+          }
 
           int_iRPC::ptr rpc = thr->hasRunningProcStopperRPC();
           if (!rpc)
@@ -498,10 +504,15 @@ bool syncRunState(int_process *p, void *r)
          ret->hasClearingBP = true;
       }
 
+      if (thr->hasDeferredContinue()) {
+          ret->hasDeferredContinue = true;
+      }
+
       int_iRPC::ptr pstop_rpc = thr->hasRunningProcStopperRPC();
       if (thr->hasPendingStop() && thr->getHandlerState() == int_thread::stopped) {
          pthrd_printf("Continuing thread %d/%d to clear out pending stop\n", 
                       thr->llproc()->getPid(), thr->getLWP());
+
          thr->setClearingPendingStop(true);
          thr->intCont();
       }
@@ -530,7 +541,7 @@ bool syncRunState(int_process *p, void *r)
          // handling a sync event). Go ahead and continue the thread.
          pthrd_printf("Continuing thread %d/%d to match internal state after events\n",
                       p->getPid(), thr->getLWP());
-         thr->setClearingPendingStop(true);
+         thr->setSyncingState(true);
          thr->intCont();
       }
 
@@ -563,6 +574,7 @@ bool doPlatContProcess(int_process *p, void * /*unused*/) {
     bool foundResumedThread = false;
     bool foundDeferredContinue = false;
     bool foundPendingStop = false;
+    bool foundSyncOperation = false;
 
     int_threadPool::iterator i;
     for(i = p->threadPool()->begin(); i != p->threadPool()->end(); ++i) {
@@ -582,11 +594,19 @@ bool doPlatContProcess(int_process *p, void * /*unused*/) {
             pthrd_printf("Found clear of pending stop for %d/%d\n",
                     p->getPid(), (*i)->getLWP());
             foundPendingStop = true;
-            (*i)->setClearingPendingStop(false);
+        }
+
+        if( (*i)->isSyncingState() ) {
+            pthrd_printf("Found sync operation for %d/%d\n",
+                    p->getPid(), (*i)->getLWP());
+            foundSyncOperation = true;
+            (*i)->setSyncingState(false);
         }
     }
 
-    if( foundPendingStop || (foundResumedThread && !foundDeferredContinue) ) {
+    if( foundPendingStop || foundSyncOperation || 
+            (foundResumedThread && !foundDeferredContinue) ) 
+    {
         if( !p->plat_contProcess() ) {
             perr_printf("Failed to continue whole process\n");
             return false;
@@ -594,6 +614,11 @@ bool doPlatContProcess(int_process *p, void * /*unused*/) {
 
         for(i = p->threadPool()->begin(); i != p->threadPool()->end(); ++i) {
             (*i)->setResumed(false);
+
+            if( p->threadPool()->size() > 1  && (*i)->clearingPendingStop() ) {
+                (*i)->plat_stop();
+            }
+            (*i)->setClearingPendingStop(false);
         }
     }
 
@@ -711,11 +736,12 @@ bool int_process::waitAndHandleEvents(bool block)
        * Check for new events
        **/
       bool should_block = ((block && !gotEvent) || ret.hasStopPending || 
-                           ret.hasSyncRPC || ret.hasClearingBP || ret.hasProcStopRPC );
-      pthrd_printf("%s for events (%d %d %d %d %d %d)\n", 
+                           (ret.hasSyncRPC && !ret.hasDeferredContinue) || ret.hasClearingBP || ret.hasProcStopRPC );
+      pthrd_printf("%s for events (%d %d %d %d %d %d %d)\n", 
                    should_block ? "Blocking" : "Polling",
                    (int) block, (int) gotEvent, (int) ret.hasStopPending, 
-                   (int) ret.hasSyncRPC, (int) ret.hasClearingBP, (int) ret.hasProcStopRPC);
+                   (int) ret.hasSyncRPC, (int) ret.hasClearingBP, (int) ret.hasProcStopRPC,
+                   (int) ret.hasDeferredContinue);
       Event::ptr ev = mbox()->dequeue(should_block);
 
       if (ev == Event::ptr())
@@ -1875,8 +1901,6 @@ bool int_thread::isResumed() const
     return resumed;
 }
 
-
-
 void int_thread::setClearingPendingStop(bool b)
 {
     clearing_pending_stop = b;
@@ -1885,6 +1909,16 @@ void int_thread::setClearingPendingStop(bool b)
 bool int_thread::clearingPendingStop() const
 {
     return clearing_pending_stop;
+}
+
+void int_thread::setSyncingState(bool b)
+{
+    syncing_state = b;
+}
+
+bool int_thread::isSyncingState() const
+{
+    return syncing_state;
 }
 
 Process::ptr int_thread::proc() const
@@ -2092,6 +2126,7 @@ int_thread::int_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    deferred_continue(false),
    resumed(false),
    clearing_pending_stop(false),
+   syncing_state(false),
    num_locked_stops(0),
    user_single_step(false),
    single_step(false),

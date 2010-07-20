@@ -259,6 +259,12 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
                     break;
                 }
 
+                if( proc->getState() != int_process::neonatal_intermediate ) {
+                    lthread->setBootstrapStop(true);
+                    event = Event::ptr(new EventStop());
+                    break;
+                }
+
                 assert( proc->getState() == int_process::neonatal_intermediate );
                 // Relying on fall through for bootstrap
             }
@@ -380,7 +386,7 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
             default:
                 pthrd_printf("Decoded event to signal %d on %d/%d\n",
                         stopsig, proc->getPid(), thread->getLWP());
-#if 0
+#if 1
                 //Debugging code
                 if (stopsig == SIGSEGV) {
                    Dyninst::MachRegisterVal addr;
@@ -390,20 +396,10 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
                    }
                    fprintf(stderr, "Got crash at %lx\n", addr);
 
-                   size_t readSize = 10;
-                   void *local = malloc(readSize);
-                   if( !PtraceBulkRead(addr, readSize, local, proc->getPid()) ) {
-                       fprintf(stderr, "Failed to read memory at %lx\n", addr);
-                   }else{
-                       unsigned char *localBytes = (unsigned char *)local;
-                       fprintf(stderr, "%lx: ", addr);
-                       for(unsigned i = 0; i < readSize; ++i) {
-                           fprintf(stderr, "%x ", localBytes[i]);
-                       }
-                       fprintf(stderr, "\n");
-                   }
+                   fprintf(stderr, "Sending SIGABRT to %d\n", proc->getPid());
+                   ptrace(PT_CONTINUE, proc->getPid(), (caddr_t)1, SIGABRT);
 
-                   assert(!"Received crash");
+                   while(1) sleep(1);
                 }
 #endif
                 event = Event::ptr(new EventSignal(stopsig));
