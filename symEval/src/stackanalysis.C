@@ -243,7 +243,7 @@ void StackAnalysis::sp_fixpoint() {
       inEffects.insert(BlockTransferFunc(-1*word_size,
 					 true, true));
 #else
-#error "Undefined architecture"
+      assert(0 && "Unimplemented architecture");
 #endif
       
       stackanalysis_printf("\t Primed initial block\n");
