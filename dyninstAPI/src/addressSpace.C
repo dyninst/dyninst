@@ -1763,6 +1763,8 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
 
   cm->extractAddressMap(instAddrMappers_.back(), baseAddr);
   
+  cm->extractPostCallPads(this);
+  
   return true;
 }
 
@@ -1925,4 +1927,9 @@ void AddressSpace::addModifiedFunction(int_function *func) {
   assert(func->obj());
 
   modifiedFunctions_[func->obj()].insert(func);
+}
+
+void AddressSpace::addPostCallPad(Address from, Address to) {
+  forwardCallPadMap_[from].insert(to);
+  reverseCallPadMap_[to] = from;
 }

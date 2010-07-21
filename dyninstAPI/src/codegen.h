@@ -237,6 +237,12 @@ class codeGen {
 
     void setPCRelUseCount(int c) { pc_rel_use_count = c; }
     int getPCRelUseCount() const { return pc_rel_use_count; }
+
+    // SD-DYNINST
+    // 
+    void registerPostCallPad(Address addr);
+    std::set<std::pair<Address, Address> > &getPostCallPads() { return postCallPads_; }
+    
  private:
     void realloc(unsigned newSize); 
 
@@ -268,6 +274,8 @@ class codeGen {
 
     std::vector<relocPatch> patches_;
     std::vector<pcRelRegion *> pcrels_;
+
+    std::set<std::pair<Address, Address> > postCallPads_;
 };
 
 #endif

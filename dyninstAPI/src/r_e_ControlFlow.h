@@ -116,35 +116,35 @@ class CFElement : public Element {
   // But for now they can go here
   // The Instruction input allows pulling out ancillary data (e.g.,
   // conditions, prediction, etc.
-  static bool generateBranch(GenStack &gens,
-			     TargetInt *to,
-			     InstructionAPI::Instruction::Ptr insn,
-			     bool fallthrough,
-			     Block &);
-  static bool generateCall(GenStack &gens,
-			   TargetInt *to,
-			   InstructionAPI::Instruction::Ptr insn,
-			   Block &);
-  static bool generateConditionalBranch(GenStack &gens,
-					TargetInt *to,
-					InstructionAPI::Instruction::Ptr insn,
-					Block &);
+  bool generateBranch(GenStack &gens,
+		      TargetInt *to,
+		      InstructionAPI::Instruction::Ptr insn,
+		      bool fallthrough,
+		      Block &);
+  bool generateCall(GenStack &gens,
+		    TargetInt *to,
+		    InstructionAPI::Instruction::Ptr insn,
+		    Block &);
+  bool generateConditionalBranch(GenStack &gens,
+				 TargetInt *to,
+				 InstructionAPI::Instruction::Ptr insn,
+				 Block &);
   // The Register holds the translated destination (if any)
   // TODO replace with the register IDs that Bill's building
   typedef unsigned Register;
-  static bool generateIndirect(GenStack &gens,
-			       Register reg,
-			       InstructionAPI::Instruction::Ptr insn,
-			       Block &);
-  static bool generateIndirectCall(GenStack &gens,
-				   Register reg,
-				   InstructionAPI::Instruction::Ptr insn,
-				   Address origAddr,
-				   Block &);
+  bool generateIndirect(GenStack &gens,
+			Register reg,
+			InstructionAPI::Instruction::Ptr insn,
+			Block &);
+  bool generateIndirectCall(GenStack &gens,
+			    Register reg,
+			    InstructionAPI::Instruction::Ptr insn,
+			    Address origAddr,
+			    Block &);
   
   bool generateAddressTranslator(codeGen &gen,
 				 Register &reg);  
-};
+ };
 
 struct CFPatch : public Patch {
   // What type of patch are we?
@@ -155,8 +155,10 @@ struct CFPatch : public Patch {
     Data } Type;
   // Data: RIP-relative expression for the destination
 
- CFPatch(Type a, InstructionAPI::Instruction::Ptr b, TargetInt *c) :
-  type(a), orig_insn(b), target(c) {};
+ CFPatch(Type a, InstructionAPI::Instruction::Ptr b, TargetInt *c,
+	 bool d = false, Address e = 0) :
+  type(a), orig_insn(b), target(c),
+    postCFPadding_(d), origAddr_(e) {};
   
   virtual bool apply(codeGen &gen, int iteration, int shift);
   virtual bool preapply(codeGen &gen);
@@ -165,6 +167,9 @@ struct CFPatch : public Patch {
   Type type;
   InstructionAPI::Instruction::Ptr orig_insn;
   TargetInt *target;
+  bool postCFPadding_;
+  Address origAddr_;
+  
 };
 
 };

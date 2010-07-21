@@ -105,6 +105,8 @@ class CodeMover {
 
   void extractAddressMap(AddressMapper &addrMap, Address baseAddr);
 
+  void extractPostCallPads(AddressSpace *);
+
   // Get a map from original addresses to new addresses
   // for all blocks
   typedef std::map<Address, Address> EntryMap;

@@ -290,7 +290,7 @@ bool CFElement::generateBranch(GenStack &gens,
   // the next instruction. So if we ever see that (a branch of offset
   // == size) back up the codeGen and shrink us down.
 
-  CFPatch *newPatch = new CFPatch(CFPatch::Jump, insn, to);
+  CFPatch *newPatch = new CFPatch(CFPatch::Jump, insn, to, padded_, addr_);
   gens.addPatch(newPatch);
 
   return true;
@@ -306,7 +306,7 @@ bool CFElement::generateCall(GenStack &gens,
     return true;
   }
 
-  CFPatch *newPatch = new CFPatch(CFPatch::Call, insn, to);
+  CFPatch *newPatch = new CFPatch(CFPatch::Call, insn, to, padded_, addr_);
   gens.addPatch(newPatch);
 
   return true;
@@ -318,7 +318,7 @@ bool CFElement::generateConditionalBranch(GenStack &gens,
 					  Block &block) {
   assert(to);
 
-  CFPatch *newPatch = new CFPatch(CFPatch::JCC, insn, to);
+  CFPatch *newPatch = new CFPatch(CFPatch::JCC, insn, to, padded_, addr_);
   gens.addPatch(newPatch);
 
   return true;
@@ -395,7 +395,7 @@ bool CFElement::generateIndirectCall(GenStack &gens,
     // We don't know our final address, so use the patching system
     assert(0 && "Unimplemented!");
     // This target better not be NULL...
-    CFPatch *newPatch = new CFPatch(CFPatch::Data, insn, NULL);
+    CFPatch *newPatch = new CFPatch(CFPatch::Data, insn, NULL, padded_, addr_);
     gens.addPatch(newPatch);
   }
   else {
@@ -469,7 +469,7 @@ bool CFPatch::apply(codeGen &gen, int iteration, int shift) {
     }
     }
   }
-     else {
+  else {
     switch(type) {
     case CFPatch::Jump:
       insnCodeGen::generateBranch(gen, gen.currAddr(), target->adjAddr(iteration, shift));
@@ -480,7 +480,13 @@ bool CFPatch::apply(codeGen &gen, int iteration, int shift) {
     default:
       assert(0);
     }
-  }  
+  }
+
+  if (postCFPadding_) {
+    gen.registerPostCallPad(origAddr_);
+    gen.fill(10, codeGen::cgIllegal);
+  }
+
   return true;
 }
 

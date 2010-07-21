@@ -339,3 +339,10 @@ string CodeMover::format() const {
   return ret.str();
 
 }
+
+void CodeMover::extractPostCallPads(AddressSpace *AS) {
+  for (std::set<std::pair<Address, Address> >::iterator iter = gen_.getPostCallPads().begin();
+       iter != gen_.getPostCallPads().end(); ++iter) {
+    AS->addPostCallPad(iter->first, iter->second);
+  }
+}

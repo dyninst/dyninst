@@ -420,6 +420,8 @@ class AddressSpace : public InstructionSource {
 
     void causeTemplateInstantiations();
 
+    void addPostCallPad(Address from, Address to); 
+
     Address heapBase() const { return 0x8050000; }
     Address instBase() const { return 0x804a000; }
     Address dataBase() const { return 0x8048608; }
@@ -476,7 +478,11 @@ class AddressSpace : public InstructionSource {
     typedef std::set<int_function *> FuncSet;
     std::map<mapped_object *, FuncSet> modifiedFunctions_;
 
-	bool relocateInt(FuncSet::const_iterator begin, FuncSet::const_iterator end, Address near);
+    bool relocateInt(FuncSet::const_iterator begin, FuncSet::const_iterator end, Address near);
+
+    std::map<Address, std::set<Address> > forwardCallPadMap_;
+    std::map<Address, Address> reverseCallPadMap_;
+
 };
 
 
