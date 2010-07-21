@@ -51,6 +51,7 @@
 #include "dyninstAPI/src/codeRange.h"
 #include "dyninstAPI/src/infHeap.h"
 #include "dyninstAPI/src/inst.h"
+#include "dyninstAPI/h/BPatch_hybridAnalysis.h"
 
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
@@ -255,7 +256,7 @@ class image : public codeRange {
  public:
    static image *parseImage(const std::string file);
    static image *parseImage(fileDescriptor &desc, 
-                            bool defensiveMode=false,
+                            BPatch_hybridMode mode = BPatch_normalMode,
                             bool parseGaps=false);
 
    // And to get rid of them if we need to re-parse
@@ -269,7 +270,7 @@ class image : public codeRange {
    static void removeImage(fileDescriptor &desc);
 
    image(fileDescriptor &desc, bool &err, 
-         bool defensiveMode,
+         BPatch_hybridMode mode,
          bool parseGaps=false);
 
    void analyzeIfNeeded();
@@ -373,13 +374,18 @@ class image : public codeRange {
 
    // element removal
    void removeInstPoint(image_instPoint *p);
-   void removeFunc(image_func *func);
+   void deleteFunc(image_func *func);
+   void addSplitBlock(image_basicBlock *blk) { splitBlocks_.insert(blk); }
    const set<image_basicBlock*> & getSplitBlocks() const;
    bool hasSplitBlocks() const { return 0 < splitBlocks_.size(); }
    void clearSplitBlocks();
    bool hasNewBlocks() const { return 0 < newBlocks_.size(); }
    const vector<image_basicBlock*> & getNewBlocks() const;
    void clearNewBlocks();
+   // callback that updates our view the binary's raw code bytes
+   void register_codeBytesUpdateCB(void *cb_arg0)
+       { cb_arg0_ = cb_arg0; }
+   void call_codeBytesUpdateCB(SymtabAPI::Region *reg, Address addr);
 
    // And when we parse, we might find more:
    // FIXME might be convenient to access HINT-only functions easily
@@ -488,6 +494,7 @@ class image : public codeRange {
    ParseAPI::SymtabCodeSource * cs_;
    DynCFGFactory * img_fact_;
    DynParseCallback * parse_cb_;
+   void *cb_arg0_; // argument for mapped_object callback
 
    map<SymtabAPI::Module *, pdmodule *> mods_;
 
@@ -528,10 +535,12 @@ class image : public codeRange {
    // new element tracking
    set<image_basicBlock*> splitBlocks_;
    vector<image_basicBlock*> newBlocks_;
+   bool trackNewBlocks_;
 
    int refCount;
    imageParseState_t parseState_;
    bool parseGaps_;
+   BPatch_hybridMode mode_;
    Dyninst::Architecture arch;
 };
 

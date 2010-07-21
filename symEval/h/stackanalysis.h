@@ -51,6 +51,15 @@
 // To define StackAST
 #include "AST.h"
 
+#if defined(os_aix) 
+// AIX is missing a MINLONG...
+#if defined(arch_64bit)
+#define MINLONG INT64_MIN
+#else
+#define MINLONG INT32_MIN
+#endif
+#endif
+
 // These are _NOT_ in the Dyninst namespace...
 namespace Dyninst {
 

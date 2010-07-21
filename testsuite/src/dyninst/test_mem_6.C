@@ -97,10 +97,9 @@ test_results_t test_mem_6_Mutator::executeTest() {
   }
 
   //logerror("Doing test %d!!!!!!\n", testnum);
-  if (instByteCnt(appThread, "ByteCnt", res1, false) < 0) {
+  if (instByteCnt(appAddrSpace, "ByteCnt", res1, false) < 0) {
       failtest(testnum, testdesc, "Unable to instrument byte counts.\n");
   }
-  appThread->continueExecution();
 
   return PASSED;
 #endif

@@ -52,7 +52,7 @@
 
 #include "../h/slicing.h" // AssignNode
 
-#include "debug.h"
+#include "debug_symeval.h"
 
 using namespace Dyninst;
 using namespace InstructionAPI;
@@ -113,40 +113,60 @@ void SymEval::expand(Result_t &res, bool applyVisitors) {
 // performing forward substitution on the AST results
 void SymEval::expand(Graph::Ptr slice, Result_t &res) {
     //cout << "Calling expand" << endl;
-  // Other than the substitution this is pretty similar to the first example.
-  NodeIterator gbegin, gend;
-  slice->entryNodes(gbegin, gend);
+    // Other than the substitution this is pretty similar to the first example.
+    NodeIterator gbegin, gend;
+    //slice->entryNodes(gbegin, gend);
+    slice->allNodes(gbegin, gend); /* add everything to the list */
 
-  std::queue<Node::Ptr> worklist;
-  for (; gbegin != gend; ++gbegin) {
-      //cout << "adding " << (*gbegin)->format() << " to worklist" << endl;
-    worklist.push(*gbegin);
-  }
-  std::set<Node::Ptr> visited;
-
-  while (!worklist.empty()) {
-    Node::Ptr ptr = worklist.front(); worklist.pop();
-    AssignNode::Ptr aNode = dyn_detail::boost::dynamic_pointer_cast<AssignNode>(ptr);
-    if (!aNode) continue; // They need to be AssignNodes
-
-    if (!aNode->assign()) continue; // Could be a widen point
-
-    //cerr << "Visiting node " << aNode->assign()->format() << endl;
-    if (visited.find(ptr) != visited.end()) continue;
-    visited.insert(ptr);
-
-    process(aNode, res);
-
-    NodeIterator nbegin, nend;
-    aNode->outs(nbegin, nend);
-    for (; nbegin != nend; ++nbegin) {
-      AssignNode::Ptr target = dyn_detail::boost::dynamic_pointer_cast<AssignNode>(*nbegin);
-      if (!target) continue;
-      if (!target->assign()) continue;
-      //cerr << "\t Pushing successors " << aNode->assign()->format() << endl;
-      worklist.push(*nbegin);
+    //std::queue<Node::Ptr> worklist;
+    std::list<Node::Ptr> worklist;
+    for (; gbegin != gend; ++gbegin) {
+        expand_cerr << "adding " << (*gbegin)->format() << " to worklist" << endl;
+        //worklist.push(*gbegin);
+        worklist.push_back(*gbegin);
     }
-  }
+    std::set<Node::Ptr> processed;
+
+    /* have a list
+     * for each node, process
+     * if processessing succeeded, remove the element
+     * if the size of the list has changed, continue */
+
+    unsigned size = worklist.size();
+    while (size) {
+        expand_cerr << "Current worklist size = " << size << endl;
+        std::list<Node::Ptr>::iterator nit;
+        for (nit = worklist.begin(); nit != worklist.end(); ++nit) {
+            Node::Ptr ptr = *nit;
+            AssignNode::Ptr aNode = dyn_detail::boost::dynamic_pointer_cast<AssignNode>(ptr);
+            if (!aNode) continue; // They need to be AssignNodes
+
+            if (!aNode->assign()) continue; // Could be a widen point
+
+            expand_cerr << "Visiting node " << aNode->assign()->format() << endl;
+
+            if (process(aNode, res)) {
+                expand_cerr << "Successfully processed " << aNode->assign()->format()
+                    << ", removing from worklist" << endl;
+                processed.insert(ptr);
+            }
+        }
+
+        /* Remove successfully processed elements */
+        std::set<Node::Ptr>::iterator pit;
+        for (pit = processed.begin(); pit != processed.end(); ++pit) {
+            worklist.remove(*pit);
+        }  
+
+        /* Check if we should continue processing */
+        unsigned cur_size = worklist.size();
+        if (cur_size == size) {
+            break;
+            expand_cerr << "Worklist did not change sizes, stopping" << endl; 
+        } else {
+            size = cur_size;
+        }
+    } 
 }
 
 void SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,
@@ -181,8 +201,9 @@ void SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,
 }
 
 
-void SymEval::process(AssignNode::Ptr ptr,
+bool SymEval::process(AssignNode::Ptr ptr,
 			 Result_t &dbase) {
+<<<<<<< HEAD:symEval/src/SymEval.C
   symeval_init_debug();
 
   std::map<unsigned, Assignment::Ptr> inputMap;
@@ -202,58 +223,86 @@ void SymEval::process(AssignNode::Ptr ptr,
     Assignment::Ptr assign = in->assign();
 
     if (!assign) continue;
+=======
+    bool ret = false;
+    
+    std::map<unsigned, Assignment::Ptr> inputMap;
+>>>>>>> e9f73237b2bd3f9a98cd183e64fbdb33177ba64a:symEval/src/SymEval.C
 
-    // Find which input this assignNode maps to
-    unsigned index = ptr->getAssignmentIndex(in);
-    //cerr << "Assigning input " << index << " from assignment " << assign->format() << endl;
-    if (inputMap.find(index) == inputMap.end()) {
-      inputMap[index] = assign;
-    }
-    else {
-      // Need join operator!
-      //cerr << "\t Overlap in inputs, setting to null assignment pointer" << endl;
-      inputMap[index] = Assignment::Ptr(); // Null equivalent
-    }
-  }
+    expand_cerr << "Calling process on " << ptr->format() << endl;
 
-  //cerr << "\t Input map has size " << inputMap.size() << endl;
+    // Don't try an expansion of a widen node...
+    if (!ptr->assign()) return ret;
 
-  // All of the expanded inputs are in the parameter dbase
-  // If not (like this one), add it
+    NodeIterator begin, end;
+    ptr->ins(begin, end);
 
-  AST::Ptr ast = SymEval::expand(ptr->assign());
-  //cerr << "\t ... resulting in " << dbase.format() << endl;
-  
-  // We have an AST. Now substitute in all of its predecessors.
-  for (std::map<unsigned, Assignment::Ptr>::iterator iter = inputMap.begin();
-       iter != inputMap.end(); ++iter) {
-    if (!iter->second) {
-      // Colliding definitions; skip.
-      //cerr << "Skipping subsitution for input " << iter->first << endl;
-      continue;
-    }
-    //cerr << "Substituting input " << iter->first << endl;
-    // The region used by the current assignment...
-    const AbsRegion &reg = ptr->assign()->inputs()[iter->first];
+    for (; begin != end; ++begin) {
+        AssignNode::Ptr in = dyn_detail::boost::dynamic_pointer_cast<AssignNode>(*begin);
+        if (!in) continue;
 
-    // Create an AST around this one
-    VariableAST::Ptr use = VariableAST::create(Variable(reg, ptr->addr()));
+        Assignment::Ptr assign = in->assign();
 
-    // And substitute whatever we have in the database for that AST
-    AST::Ptr definition = dbase[iter->second];
+        if (!assign) continue;
 
-    if (!definition) {
-      //cerr << "Odd; no expansion for " << iter->second->format() << endl;
-      // Can happen if we're expanding out of order, and is generally harmless.
-      continue;
+        // Find which input this assignNode maps to
+        unsigned index = ptr->getAssignmentIndex(in);
+        expand_cerr << "Assigning input " << index << " from assignment " << assign->format() << endl;
+        if (inputMap.find(index) == inputMap.end()) {
+            inputMap[index] = assign;
+        }
+        else {
+            // Need join operator!
+            expand_cerr << "\t Overlap in inputs, setting to null assignment pointer" << endl;
+            inputMap[index] = Assignment::Ptr(); // Null equivalent
+        }
     }
 
-    //cerr << "Before substitution: " << (ast ? ast->format() : "<NULL AST>") << endl;
+    expand_cerr << "\t Input map has size " << inputMap.size() << endl;
 
-    ast = AST::substitute(ast, use, definition);
-    //cerr << "\t result is " << res->format() << endl;
+    // All of the expanded inputs are in the parameter dbase
+    // If not (like this one), add it
+
+    AST::Ptr ast = SymEval::expand(ptr->assign());
+    //expand_cerr << "\t ... resulting in " << dbase.format() << endl;
+
+    // We have an AST. Now substitute in all of its predecessors.
+    for (std::map<unsigned, Assignment::Ptr>::iterator iter = inputMap.begin();
+            iter != inputMap.end(); ++iter) {
+        if (!iter->second) {
+            // Colliding definitions; skip.
+            //cerr << "Skipping subsitution for input " << iter->first << endl;
+            continue;
+        }
+        //cerr << "Substituting input " << iter->first << endl;
+        // The region used by the current assignment...
+        const AbsRegion &reg = ptr->assign()->inputs()[iter->first];
+
+        // Create an AST around this one
+        VariableAST::Ptr use = VariableAST::create(Variable(reg, ptr->addr()));
+
+        // And substitute whatever we have in the database for that AST
+        AST::Ptr definition = dbase[iter->second];
+
+        if (!definition) {
+            expand_cerr << "Odd; no expansion for " << iter->second->format() << endl;
+            // Can happen if we're expanding out of order, and is generally harmless.
+            continue;
+        }
+
+        expand_cerr << "Before substitution: " << (ast ? ast->format() : "<NULL AST>") << endl;
+
+        if (!ast) {
+            expand_cerr << "Skipping substitution because of null AST" << endl;
+        } else {
+            ast = AST::substitute(ast, use, definition);
+            ret = true;
+        }
+        //expand_cerr << "\t result is " << res->format() << endl;
     }
-  //cerr << "Result of subsitution: " << ptr->assign()->format() << " == " << (ast ? ast->format() : "<NULL AST>") << endl;
-  dbase[ptr->assign()] = ast;
+    expand_cerr << "Result of subsitution: " << ptr->assign()->format() << " == " << (ast ? ast->format() : "<NULL AST>") << endl;
+    dbase[ptr->assign()] = ast;
+    return ret;
 }
+
 

@@ -46,7 +46,7 @@
 #include "parseAPI/src/InstrucIter.h"
 #include "parseAPI/h/CodeObject.h"
 #include "parseAPI/h/CFG.h"
-#include "parseAPI/src/debug.h"
+#include "parseAPI/src/debug_parse.h"
 
 #include "dyninstAPI/src/legacy-instruction.h"
 

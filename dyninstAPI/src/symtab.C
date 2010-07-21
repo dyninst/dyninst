@@ -789,7 +789,9 @@ unsigned int int_addrHash(const Address& addr) {
  *    physical offset. 
  */
 
-image *image::parseImage(fileDescriptor &desc, bool defensive, bool parseGaps)
+image *image::parseImage(fileDescriptor &desc, 
+                         BPatch_hybridMode mode, 
+                         bool parseGaps)
 {
   /*
    * Check to see if we have parsed this image before. We will
@@ -826,7 +828,7 @@ image *image::parseImage(fileDescriptor &desc, bool defensive, bool parseGaps)
 #endif
 
   startup_printf("%s[%d]:  about to create image\n", FILE__, __LINE__);
-  image *ret = new image(desc, err, defensive, parseGaps); 
+  image *ret = new image(desc, err, mode, parseGaps); 
   startup_printf("%s[%d]:  created image\n", FILE__, __LINE__);
 
   if(desc.isSharedObject()) 
@@ -860,6 +862,13 @@ image *image::parseImage(fileDescriptor &desc, bool defensive, bool parseGaps)
   }
 
   allImages.push_back(ret);
+
+  // start tracking new blocks after initial parse
+  if ( BPatch_exploratoryMode == mode ||
+       BPatch_defensiveMode == mode ) 
+  {
+      ret->trackNewBlocks_ = true;
+  }
 
   // define all modules.
 
@@ -941,7 +950,7 @@ void image::removeInstPoint(image_instPoint *p)
         inst_pts_.erase(iit);
 }
 
-void image::removeFunc(image_func *func)
+void image::deleteFunc(image_func *func)
 {
     // Remove the function's points, but not points that are shared
     // with other functions since they might not be going away. 
@@ -964,15 +973,25 @@ void image::removeFunc(image_func *func)
     if (p) 
         removeInstPoint(p);
 
-    // tell the parseAPI to remove the func from its datastructures
-    codeObject()->removeFunc(func);
-    
     // remove the function from symtabAPI
     SymtabAPI::Function *sym_func =NULL;
     getObject()->findFuncByEntryOffset(sym_func, func->getOffset());
     if (sym_func) 
         getObject()->deleteFunction(sym_func);
+
+    // tell the parseAPI to remove the func from its datastructures
+    // and delete the function
+    codeObject()->deleteFunc(func);
+
 }
+
+extern void codeBytesUpdateCB(void *objCB, Region *reg, Address addr);
+void image::call_codeBytesUpdateCB(Region *reg, Address addr)
+{
+    assert(BPatch_normalMode != mode_);
+    codeBytesUpdateCB(cb_arg0_, reg, addr + desc().loadAddr());
+}
+
 
 #if 0   // FIXME ensure all necessary functionality preserved
 // Enter a function in all the appropriate tables
@@ -1109,7 +1128,10 @@ void image::analyzeImage() {
 //        Both text and data sections have a relocation address
 
 
-image::image(fileDescriptor &desc, bool &err, bool defensive, bool parseGaps) :
+image::image(fileDescriptor &desc, 
+             bool &err, 
+             BPatch_hybridMode mode, 
+             bool parseGaps) :
    desc_(desc),
    activelyParsing(addrHash4),
    is_libdyninstRT(false),
@@ -1123,9 +1145,11 @@ image::image(fileDescriptor &desc, bool &err, bool defensive, bool parseGaps) :
    nextBlockID_(0),
    pltFuncs(NULL),
    varsByAddr(addrHash4),
+   trackNewBlocks_(false),
    refCount(1),
    parseState_(unparsed),
    parseGaps_(parseGaps),
+   mode_(mode),
    arch(Dyninst::Arch_none)
 {
 
@@ -1199,7 +1223,7 @@ image::image(fileDescriptor &desc, bool &err, bool defensive, bool parseGaps) :
    string file = desc_.file();
    startup_printf("%s[%d]:  opening file %s\n", FILE__, __LINE__, file.c_str());
    if(desc.rawPtr()) {
-       linkedFile = new Symtab((char*)desc.rawPtr(), desc.length(), err);
+       linkedFile = new SymtabAPI::Symtab((char*)desc.rawPtr(), desc.length(), err);
    } 
    else if(!SymtabAPI::Symtab::openFile(linkedFile, file)) 
    {
@@ -1274,7 +1298,8 @@ image::image(fileDescriptor &desc, bool &err, bool defensive, bool parseGaps) :
     } nuke_heap;
     filt = &nuke_heap;
 #endif
-   cs_ = new SymtabCodeSource(linkedFile,filt);
+   bool parseInAllLoadableRegions = (BPatch_normalMode != mode_);
+   cs_ = new SymtabCodeSource(linkedFile,filt,parseInAllLoadableRegions);
    // XXX FIXME having this static member in instPointBase
    //     prevents support of multiple architectures simultaneously
    instPointBase::setArch(cs_->getArch(), (getObject()->getAddressWidth() == 8));
@@ -1282,7 +1307,7 @@ image::image(fileDescriptor &desc, bool &err, bool defensive, bool parseGaps) :
    // Continue ParseAPI init
    img_fact_ = new DynCFGFactory(this);
    parse_cb_ = new DynParseCallback(this);
-   obj_ = new CodeObject(cs_,img_fact_,parse_cb_,defensive);
+   obj_ = new CodeObject(cs_,img_fact_,parse_cb_,BPatch_defensiveMode == mode);
 
    string msg;
    // give user some feedback....

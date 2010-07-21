@@ -86,6 +86,7 @@ class Symtab : public LookupInterface,
    SYMTAB_EXPORT Symtab();
 
    SYMTAB_EXPORT Symtab(const Symtab& obj);
+   SYMTAB_EXPORT Symtab(char *mem_image, size_t image_size, bool &err);
 
    SYMTAB_EXPORT static bool openFile(Symtab *&obj, std::string filename);
    SYMTAB_EXPORT static bool openFile(Symtab *&obj,char *mem_image, size_t size);
@@ -331,7 +332,6 @@ class Symtab : public LookupInterface,
    /***** Private Member Functions *****/
    private:
    SYMTAB_EXPORT Symtab(std::string filename, bool &err); 
-   SYMTAB_EXPORT Symtab(char *mem_image, size_t image_size, bool &err);
 
    SYMTAB_EXPORT bool extractInfo(Object *linkedFile);
 

@@ -700,7 +700,7 @@ bool int_function::parseNewEdges( std::vector<ParseAPI::Block*> &sources,
     assert( !ifunc()->img()->hasSplitBlocks() && 
             !ifunc()->img()->hasNewBlocks());
     // parses and adds new blocks to image-layer datastructures
-    ifunc()->parseNewEdges(sources, targets, edgeTypes);
+    ifunc()->img()->codeObject()->parseNewEdges(sources, targets, edgeTypes);
 
 /* 2. Add function blocks to int-level datastructures         */
     //vector<int_basicBlock*> newBlocks;
@@ -794,7 +794,7 @@ void int_function::fixHandlerReturnAddr(Address faultAddr)
 
 // doesn't delete the ParseAPI::Block's, those are removed in a batch
 // call to the parseAPI
-void int_function::removeBlock(int_basicBlock* block) 
+void int_function::deleteBlock(int_basicBlock* block) 
 {
     // init stuff
     assert(block && this == block->func());
@@ -852,12 +852,12 @@ void int_function::removeFromAll()
         bblInstance *bbi = (*bIter)->origInstance();
         mal_printf("block [%lx %lx]\n",bbi->firstInsnAddr(), bbi->endAddr());
     }
-    // remove blocks 
+    // delete blocks 
     for (bIter = blockList.begin(); 
          bIter != blockList.end();
          bIter = blockList.begin()) 
     {
-        removeBlock(*bIter);// removes block from blockList too
+        deleteBlock(*bIter);// removes block from blockList too
     }
     // remove from mapped_object & mapped_module datastructures
     obj()->removeFunction(this);
@@ -872,8 +872,8 @@ void int_function::removeFromAll()
     unresolvedPoints_.clear();
     instPsByAddr_.clear();
 
-    // remove func & blocks from image-level & SymtabAPI datastructures
-    ifunc()->img()->removeFunc(ifunc());
+    // remove func & blocks from image, ParseAPI, & SymtabAPI datastructures
+    ifunc()->img()->deleteFunc(ifunc());
 }
 
 void int_function::addMissingBlock(image_basicBlock & imgBlock)
@@ -1300,7 +1300,7 @@ void int_function::debugPrint() const {
             obj(),
             mod()->fileName().c_str(),
             mod());
-    for (set<int_basicBlock*,int_basicBlock::compare>::iterator 
+    for (set< int_basicBlock * , int_basicBlock::compare >::const_iterator 
              cb = blockList.begin();
          cb != blockList.end(); 
          cb++) 
@@ -2425,14 +2425,14 @@ bool int_function::removeFunctionSubRange(
         papiDeadBlocks.push_back((*biter)->llb());
     }
     
-    // find new entry point 
+    // set new entry point 
     setNewEntryPoint( entryBlock );
 
-    // remove dead blocks
-    ifunc()->removeBlocks( papiDeadBlocks, entryBlock->llb() );
+    // remove dead image_basicBlocks and int_basicBlocks
+    ifunc()->deleteBlocks( papiDeadBlocks, entryBlock->llb() );
     for (biter = deadBlocks.begin(); biter != deadBlocks.end(); biter++) {
-        removeBlock(*biter);
+        deleteBlock(*biter);
     }
-    
+
     return true;
 }

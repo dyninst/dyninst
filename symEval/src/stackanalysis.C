@@ -40,7 +40,7 @@
 
 #include "Annotatable.h"
 
-#include "debug.h"
+#include "debug_symeval.h"
 
 #include "parseAPI/h/CFG.h"
 #include "parseAPI/h/CodeObject.h"
@@ -243,7 +243,7 @@ void StackAnalysis::sp_fixpoint() {
       inEffects.insert(BlockTransferFunc(-1*word_size,
 					 true, true));
 #else
-#error "Undefined architecture"
+      assert(0 && "Unimplemented architecture");
 #endif
       
       sym_stackanalysis_printf("\t Primed initial block\n");

@@ -185,6 +185,11 @@ DynCFGFactory::mkblock(Function * f, CodeRegion *r, Address addr) {
     blocks_.add(*ret);
 
     //fprintf(stderr,"mkbloc(%lx, %lx) returning %p\n",f->addr(),addr,ret);
+
+    if ( _img->trackNewBlocks_ ) 
+    {
+        _img->newBlocks_.push_back(ret);
+    }
     return ret;
 }
 Block *
@@ -251,6 +256,28 @@ DynParseCallback::abruptEnd_cf(Address addr,default_details*det)
     _img->addInstPoint(p);
 }
 
+void
+DynParseCallback::newfunction_retstatus(Function *func)
+{
+    dynamic_cast<image_func*>(func)->setinit_retstatus( func->retstatus() );
+}
+
+void
+DynParseCallback::block_split(Block *first_, Block *second_)
+{
+    image_basicBlock *second = (image_basicBlock*) second_;
+    static_cast<image_basicBlock*>(first_)->img()->addSplitBlock(second);
+}
+
+void
+DynParseCallback::patch_jump_neg1(Address addr)
+{
+    Architecture arch = _img->codeObject()->cs()->getArch();
+    assert( Arch_x86 == arch || Arch_x86_64 == arch );
+
+    unsigned char * ptr = (unsigned char *) _img->getPtrToInstruction(addr);
+    ptr[0] = 0x90;
+}
 
 void
 DynParseCallback::interproc_cf(Function*f,Address addr,interproc_details*det)

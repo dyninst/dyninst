@@ -35,7 +35,7 @@
 #include <stdarg.h>
 #include <assert.h>
 #include <string>
-#include "debug.h"
+#include "debug_symeval.h"
 
 #include <iostream>
 

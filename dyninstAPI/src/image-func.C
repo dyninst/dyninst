@@ -405,6 +405,13 @@ bool image_basicBlock::isExitBlock()
     return false;
 }
 
+image *image_basicBlock::img()
+{
+    vector<Function*> funcs;
+    getFuncs(funcs);
+    return static_cast<image_func*>(funcs[0])->img();
+}
+
 image_func *image_basicBlock::getEntryFunc() const {
     image_func *ret =
         static_cast<image_func*>(obj()->findFuncByEntry(region(),start()));
@@ -613,4 +620,3 @@ void image_func::getUnreachableBlocks
         }
     }
 }
-

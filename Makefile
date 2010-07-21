@@ -14,13 +14,13 @@ BUILD_ID = "$(SUITE_NAME) v$(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)"
 
 SymtabAPI 	= ready common symtabAPI dynutil
 StackwalkerAPI = ready common symtabAPI stackwalk
-DyninstAPI	= ready common symtabAPI instructionAPI parseAPI dyninstAPI_RT dyninstAPI dynutil
+DyninstAPI	= ready common symtabAPI instructionAPI parseAPI symEval dyninstAPI_RT dyninstAPI dynutil
 InstructionAPI	= ready common instructionAPI dynutil
 ProcControlAPI = ready common proccontrol
 DepGraphAPI = depGraphAPI
-ParseAPI = ready common symtabAPI instructionAPI parseAPI
+ParseAPI = ready common symtabAPI instructionAPI parseAPI symEval
 ValueAdded = valueAdded/sharedMem
-SymEval = symEval
+SymEval = parseAPI symEval
 
 
 testsuites = dyninstAPI/tests 

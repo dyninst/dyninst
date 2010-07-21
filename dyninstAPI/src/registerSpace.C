@@ -626,7 +626,7 @@ void registerSpace::freeRegister(Register num)
     regalloc_printf("Freed register %d: refcount now %d\n", num, reg->refCount);
 
     if( reg->refCount < 0 ) {
-        bperr( "Freed free register!\n" );
+        //bperr( "Freed free register!\n" );
         reg->refCount = 0;
     }
 
@@ -855,7 +855,7 @@ bool registerSpace::markSavedRegister(registerSlot *s, int offsetFromFP) {
         // Things to do... add this check in, yo. Right now we don't clean
         // properly.
         
-        assert(0);
+//        assert(0);
     }
 
     s->liveState = registerSlot::spilled;

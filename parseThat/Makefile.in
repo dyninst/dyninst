@@ -45,7 +45,7 @@ endif
 OBJS         = $(SRCS:%.C=%.o)
 
 CXXFLAGS    += -Wall
-LIBS        += -lcommon -ldyninstAPI -lsymtabAPI -liberty -lparseAPI
+LIBS        += -lcommon -ldyninstAPI -lsymtabAPI -liberty -lparseAPI -lsymEval
 
 ifneq (, $(findstring solaris, $(PLATFORM)))
 LIBS        += -ldwarf  -lelf

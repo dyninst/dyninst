@@ -99,6 +99,7 @@ class image_basicBlock : public codeRange, public ParseAPI::Block  {
     // misc utility
     int id() const { return blockNumber_; }
     void debugPrint();
+    image *img();
 
     // instrumentation-related
     bool canBeRelocated() const { return canBeRelocated_; }
@@ -306,9 +307,12 @@ class image_func : public ParseAPI::Function
    ///////////////////////////////////////////////////
    // Mutable function code, used for hybrid analysis
    ///////////////////////////////////////////////////
+
    static void getUnreachableBlocks( std::set<image_basicBlock*> &deadBlocks, 
                                      std::set<image_basicBlock*> &unreachable );
    ParseAPI::FuncReturnStatus init_retstatus() { return init_retstatus_; }
+   void setinit_retstatus(ParseAPI::FuncReturnStatus rs) { init_retstatus_ = rs; }
+
    // ----------------------------------------------------------------------
 
 

@@ -99,6 +99,14 @@ void Graph::insertExitNode(NodePtr exit) {
     exitNodes_.insert(exit);
 }
 
+void Graph::markAsEntryNode(NodePtr entry) {
+    entryNodes_.insert(entry);
+}
+
+void Graph::markAsExitNode(NodePtr exit) {
+    exitNodes_.insert(exit);
+}
+
 void Graph::addNode(Node::Ptr node) {
   //if (node->hasInEdges() || node->hasOutEdges()) return;
     nodes_.insert(node);

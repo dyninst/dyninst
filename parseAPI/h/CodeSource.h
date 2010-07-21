@@ -205,7 +205,9 @@ class SymtabCodeSource : public CodeSource {
         virtual bool operator()(SymtabAPI::Function * f) =0;
     };
 
-    PARSER_EXPORT SymtabCodeSource(SymtabAPI::Symtab *, hint_filt *);
+    PARSER_EXPORT SymtabCodeSource(SymtabAPI::Symtab *, 
+                                   hint_filt *, 
+                                   bool allLoadedRegions=false);
     PARSER_EXPORT SymtabCodeSource(SymtabAPI::Symtab *);
     PARSER_EXPORT SymtabCodeSource(char *);
 
@@ -231,8 +233,8 @@ class SymtabCodeSource : public CodeSource {
     PARSER_EXPORT void removeHint(Hint);
 
  private:
-    void init(hint_filt *);
-    void init_regions(hint_filt *);
+    void init(hint_filt *, bool);
+    void init_regions(hint_filt *, bool);
     void init_hints(dyn_hash_map<void*, CodeRegion*> &, hint_filt*);
     void init_linkage();
 

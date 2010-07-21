@@ -95,11 +95,9 @@ test_results_t test_mem_8_Mutator::executeTest() {
              "Number of accesses seems wrong in function \"loadsnstores\".\n");
 
   //logerror("Doing test %d!!!!!!\n", testnum);
-  if (instByteCnt(appThread, "ByteCnt", res1, true) < 0) {
+  if (instByteCnt(appAddrSpace, "ByteCnt", res1, true) < 0) {
       failtest(testnum, testdesc, "Unable to instrument byte counts.\n");
   }
-  appThread->continueExecution();
-
   return PASSED;
 #endif
 }

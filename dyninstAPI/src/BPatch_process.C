@@ -1790,7 +1790,7 @@ void BPatch_process::overwriteAnalysisUpdate
         }
     }
 
-    //2. purge dead code 
+    //2. identify the dead code 
     llproc->getDeadCodeFuncs(owBBIs,owIntFuncs,deadFuncs); // initializes owIntFuncs
 
     // remove instrumentation from affected funcs
@@ -1802,46 +1802,44 @@ void BPatch_process::overwriteAnalysisUpdate
 
     // if stubSrcBlocks and owBBIs overlap, replace overwritten stub  
     // blocks with ones that haven't been overwritten 
-    bool foundOWstubs = false;
-    set<image_basicBlock*> visitedBlocks;
-    set<image_edge*> worklist;
     unsigned sidx=0; 
     vector<ParseAPI::Function *> stubfuncs;
     while(sidx < stubSourceBlocks.size()) {
+
+        // find the stub's bblInstance and function
         using namespace ParseAPI;
         stubSourceBlocks[sidx]->getFuncs(stubfuncs);
         image_func *stubfunc = (image_func*)stubfuncs[0];
         stubfuncs.clear();
-
         Address baseAddr = stubfunc->img()->desc().loadAddr();
         bblInstance *curBBI = llproc->findOrigByAddr
             (stubSourceBlocks[sidx]->firstInsnOffset() + baseAddr)->
              is_basicBlockInstance();
         assert(curBBI);
 
+        // continue if the block hasn't been overwritten
         if (owBBIs.end() == owBBIs.find(curBBI)) {
             sidx++;
             continue;
         }
 
-        // the stub's been overwritten, replace it with a new one
-        foundOWstubs = true;
+        // the stub's been overwritten, choose a non-overwritten source
+        // block on a non-call edge as the new stub with which to replace it
         SingleContext epred_(stubfunc,true,true);
         Intraproc epred(&epred_);
         Block::edgelist inEdges = stubSourceBlocks[sidx]->sources();
         Block::edgelist::iterator eit = inEdges.begin(&epred);
         bool foundNewStub = false;
 
-        for( ; foundNewStub && eit != inEdges.end(); ++eit) 
+        for( ; !foundNewStub && eit != inEdges.end(); ++eit) 
         {
-            // choose a non-overwritten, non-call edge as the new stub
             if (CALL == (*eit)->type()) {
                 continue;
             }
-            curBBI = llproc->findOrigByAddr
+            bblInstance *srcBBI = llproc->findOrigByAddr
                 (stubSourceBlocks[sidx]->firstInsnOffset() + baseAddr)->
                 is_basicBlockInstance();
-            if (owBBIs.end() == owBBIs.find(curBBI)) {
+            if (owBBIs.end() == owBBIs.find(srcBBI)) {
                 stubSourceBlocks[sidx] = 
                     dynamic_cast<image_basicBlock*>((*eit)->src());
                 stubTargets[sidx] = stubSourceBlocks[sidx]->firstInsnOffset()
@@ -1850,80 +1848,92 @@ void BPatch_process::overwriteAnalysisUpdate
                 foundNewStub = true;
             }
         }
-        if (foundNewStub) {
-            sidx++;
-        }
-        else {
-            // all input edges are dead, all edges are overwritten. 
-            // pick a non-call edge that we haven't tried
+        if (!foundNewStub) {
+            // all input blocks are dead. Search backwards through whole 
+            // function for a non-call edge we haven't tried
+            set<image_basicBlock*> visitedBlocks;
+            std::queue<Edge*> worklist;
+            visitedBlocks.insert(stubSourceBlocks[sidx]);
+            Block::edgelist & inEdges = stubSourceBlocks[sidx]->sources();
             for(eit=inEdges.begin(&epred); eit != inEdges.end(); ++eit) {
                 if (CALL != (*eit)->type() && 
                     visitedBlocks.end() == 
                     visitedBlocks.find
-                      (dynamic_cast<image_basicBlock*>((*eit)->src())))
+                      (static_cast<image_basicBlock*>((*eit)->src())))
                 {
-                    if (!foundNewStub) {
-                        visitedBlocks.insert(dynamic_cast<image_basicBlock*>
-                                             ((*eit)->src()));
-                        stubSourceBlocks[sidx] = dynamic_cast<image_basicBlock*>
-                            ((*eit)->src());
-                        stubTargets[sidx] = baseAddr + 
-                            dynamic_cast<image_basicBlock*>
-                            ((*eit)->trg())->firstInsnOffset();
-                        stubEdgeTypes[sidx] = (*eit)->type();
-                        foundNewStub = true;
-                    } else {
-                        worklist.insert(dynamic_cast<image_edge*>(*eit));
+                    worklist.push(*eit);
+                }
+            }
+            while (worklist.size()) {
+                Edge *curEdge = worklist.front();
+                worklist.pop();
+                image_basicBlock *srcBlock = 
+                    static_cast<image_basicBlock*>(curEdge->src());
+                bblInstance *srcBBI = llproc->findOrigByAddr
+                    ( srcBlock->firstInsnOffset() + baseAddr )->
+                    is_basicBlockInstance();
+                assert(srcBBI);
+                if (owBBIs.end() == owBBIs.find(srcBBI)) {
+                    // found a valid stub block
+                    stubSourceBlocks[sidx] = srcBlock;
+                    stubTargets[sidx] = srcBBI->firstInsnAddr();
+                    stubEdgeTypes[sidx] = curEdge->type();
+                    foundNewStub = true;
+                    break;
+                }
+                else if (visitedBlocks.end() == visitedBlocks.find(srcBlock)) {
+                    Block::edgelist & edges = srcBlock->sources();
+                    for(eit=edges.begin(&epred); eit != edges.end(); ++eit) {
+                        if (CALL != (*eit)->type() && 
+                            visitedBlocks.end() == 
+                            visitedBlocks.find
+                              (static_cast<image_basicBlock*>((*eit)->src())))
+                        {
+                            worklist.push(*eit);
+                        }
                     }
                 }
+                visitedBlocks.insert(srcBlock);
             }
             if (!foundNewStub) {
-                if (worklist.size()) {
-                    stubSourceBlocks[sidx] = dynamic_cast<image_basicBlock*>
-                        ((*worklist.begin())->src());
-                    stubTargets[sidx] = baseAddr + 
-                        dynamic_cast<image_basicBlock*>
-                        ((*worklist.begin())->trg())->firstInsnOffset();
-                    stubEdgeTypes[sidx] = (*worklist.begin())->type();
-                    worklist.erase(worklist.begin());
-                    visitedBlocks.insert(stubSourceBlocks[sidx]);
-                } else {
-                    fprintf(stderr,"WARNING: failed to find stub to replace "
-                            "the overwritten stub [%lx %lx] for overwritten "
-                            "block at %lx %s[%d]\n",
-                            stubSourceBlocks[sidx]->firstInsnOffset(), 
-                            stubSourceBlocks[sidx]->endOffset(), 
-                            stubTargets[sidx],FILE__,__LINE__);
-                    assert(0); // the whole function should be gone if this 
-                    // is the case, or there's some weirdness I didn't predict
-                }
+                fprintf(stderr,"WARNING: failed to find stub to replace "
+                        "the overwritten stub [%lx %lx] for overwritten "
+                        "block at %lx %s[%d]\n",
+                        stubSourceBlocks[sidx]->firstInsnOffset(), 
+                        stubSourceBlocks[sidx]->endOffset(), 
+                        stubTargets[sidx],FILE__,__LINE__);
+                assert(0); // the whole function should be gone in this case
             }
         }
+        sidx++;
     }
 
     // now traverse stub lists to remove any duplicates that were introduced by 
     // overwritten stub replacement
-    if (foundOWstubs) {
-        for(unsigned i=0; i < stubSourceBlocks.size()-1; i++) {
-            for(unsigned j=i+1; j < stubSourceBlocks.size(); j++) {
-                if (stubSourceBlocks[i] == stubSourceBlocks[j]) {
-                    if (j < stubSourceBlocks.size()-1) {
-                        stubSourceBlocks[j] = 
-                            stubSourceBlocks[stubSourceBlocks.size()-1];
-                    }
-                    stubSourceBlocks.pop_back();
+    for(unsigned i=0; i < stubSourceBlocks.size()-1; i++) {
+        for(unsigned j=i+1; j < stubSourceBlocks.size(); j++) {
+            if (stubSourceBlocks[i] == stubSourceBlocks[j]) {
+                if (j < stubSourceBlocks.size()-1) {
+                    stubSourceBlocks[j] = 
+                        stubSourceBlocks[stubSourceBlocks.size()-1];
                 }
+                stubSourceBlocks.pop_back();
             }
         }
     }
 
-    // remove dead blocks from affected funcs, but not from dead funcs
+    // remove dead blocks belonging to affected funcs, but not dead funcs
     std::set<bblInstance*>::iterator bIter = owBBIs.begin();
+    vector<ParseAPI::Block*> owImgBs;
     for (; bIter != owBBIs.end(); bIter++) {
         if (deadFuncs.end() == deadFuncs.find((*bIter)->func())) {
-            (*bIter)->func()->removeBlock((*bIter)->block());
+            (*bIter)->func()->deleteBlock((*bIter)->block());
+            owImgBs.push_back((*bIter)->block()->llb());
+            (*bIter)->func()->ifunc()->deleteBlocks(owImgBs,NULL);
+            owImgBs.clear();
         }
     }
+
 
     for(fIter = deadFuncs.begin(); fIter != deadFuncs.end(); fIter++) {
 

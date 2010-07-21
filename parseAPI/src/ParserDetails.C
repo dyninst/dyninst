@@ -35,7 +35,7 @@
 #include "Parser.h"
 #include "ParserDetails.h"
 #include "ParseData.h"
-#include "debug.h"
+#include "debug_parse.h"
 #include "util.h"
 
 using namespace std;
@@ -208,6 +208,9 @@ void Parser::ProcessCFInsn(
             else {
                 resolvable_edge = false;
                 newedge = link(cur,_sink,CALL,true);
+                if (frame.func->obj()->defensiveMode()) {
+                    unresolved = true;
+                }
             }
             if(!ah.isCall())
                 newedge->_type._interproc = true;

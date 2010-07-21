@@ -28,33 +28,31 @@
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
-#include <stdio.h>
-#include <stdarg.h>
+#ifndef _PARSEAPI_DEBUG_
+#define _PARSEAPI_DEBUG_
+
 #include <stdlib.h>
+#include <stdio.h>
 
-#include "debug.h"
+namespace Dyninst {
+namespace ParseAPI {
 
-using namespace Dyninst::ParseAPI;
+    extern int parsing_printf_int(const char *format, ...);
+    extern int malware_printf_int(const char *format, ...);
+    extern int dyn_debug_parsing;
+    extern int dyn_debug_malware;
+    extern int dyn_debug_initialized;
 
-int Dyninst::ParseAPI::dyn_debug_parsing = 0;
-int Dyninst::ParseAPI::dyn_debug_initialized = 0;
+#define parsing_cerr if (dyn_debug_parsing) cerr
 
-int Dyninst::ParseAPI::parsing_printf_int(const char *format, ...)
-{
-    if(!dyn_debug_initialized) {
-        if(getenv("DYNINST_DEBUG_PARSING"))
-            dyn_debug_parsing = 1;
-        dyn_debug_initialized = 1;
-    }
-
-    if(!dyn_debug_parsing) return 0;
-    if(NULL == format) return -1;
-
-    va_list va;
-    va_start(va,format);
-    int ret = vfprintf(stderr, format, va);
-    va_end(va);
-
-    return ret;
+#if defined(__GNUC__)
+#define parsing_printf(format, args...) do { if(!dyn_debug_initialized || dyn_debug_parsing) parsing_printf_int(format, ## args); } while(0)
+#define mal_printf(format, args...) do { if(!dyn_debug_initialized || dyn_debug_malware) malware_printf_int(format, ## args); } while(0)
+#else
+#define parsing_printf parsing_printf_int
+#define mal_printf malware_printf_int
+#endif
 }
-        
+}
+
+#endif

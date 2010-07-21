@@ -2,11 +2,14 @@
 #define ROSE_TYPEDEFS_H
 
 #include <vector>
-#if !defined(_MSC_VER)
-#include <stdint.h>
-#else
+#if defined(_MSC_VER)
 #include "external/stdint-win.h"
+#elif defined(os_solaris)
+#include <inttypes.h>
+#else
+#include <stdint.h>
 #endif
+
 
 typedef std::vector<unsigned char> SgUnsignedCharList;
 typedef SgUnsignedCharList* SgUnsignedCharListPtr;

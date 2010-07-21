@@ -1,13 +1,7 @@
-#
-# $Id: Makefile,v 1.3 2008/09/15 18:37:49 jaw Exp $
-#
-
 # Define any symbols needed to invoke configuration changes in make.config
 
-#DEBUG_FLAG = -g
+DEBUG_FLAG = -g
 AUTO_TEMPLATES= true
-#NO_IMPLICIT_TEMPLATES = true
-USES_BOOST = true
 
 # For debugging.
 #NO_OPT_FLAG = true
@@ -15,26 +9,18 @@ USES_BOOST = true
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
 
-TO_CORE = ../..
-
-include $(TO_CORE)/make.config 
+include ../../make.config 
 
 # Now make any necessary architecture specific changes to variables:
-MYFLAGS         += -g
 
 CXXFLAGS        += $(MYFLAGS)
 CFLAGS          += $(MYFLAGS)
 
-SRCS =  ../src/InstructionSource-x86.C \
-        ../src/StackTamperVisitor.C \
-		../src/IA_IAPI.C \
-        ../src/IA_x86.C
-
-LIBS    += -lgcc -lsymEval
+LIBS    += -lgcc -linstructionAPI -lparseAPI
 
 AS		= /usr/bin/as
 
-TARGET = libparseAPI.so
+TARGET = libsymEval.a
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
 

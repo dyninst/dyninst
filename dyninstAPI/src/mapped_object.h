@@ -162,7 +162,7 @@ class mapped_object : public codeRange {
     image *parse_img() const { return image_; }
     bool isSharedLib() const;
     bool isStaticExec() const;
-    bool isSystemLib() const;
+    static bool isSystemLib(const std::string &name);
 
     // Return an appropriate identification string for debug purposes.
     // Will eventually be required by a debug base class.

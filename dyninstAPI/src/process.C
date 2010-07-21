@@ -1674,7 +1674,7 @@ process::process(SignalGenerator *sh_, BPatch_hybridMode mode) :
     SYSTEM_INFO sysinfo;
     GetSystemInfo((LPSYSTEM_INFO) &sysinfo);
     memoryPageSize_ = sysinfo.dwPageSize;
-else
+#else
     memoryPageSize_ = getpagesize();
 #endif
 
@@ -5108,7 +5108,10 @@ int_function *process::findActiveFuncByAddr(Address addr)
 void process::updateActiveMultis()
 {
     // return if cached results are valid
-    if ( isAMcacheValid ) {
+    if ( isAMcacheValid || 
+         ( analysisMode_ != BPatch_exploratoryMode &&
+           analysisMode_ != BPatch_defensiveMode      ) ) 
+    {
         return;
     }
 
@@ -5170,10 +5173,10 @@ void process::updateActiveMultis()
                      // Save the block & set relocAddr
 
                 // find the active block
-                if ( ( calleeFunc && calleeFunc->isSignalHandler() ) ||
-                    ( 0==j && 
-                      !findObject(curFrame->getPC())->
-                           parse_img()->codeObject()->defensiveMode() ) )
+                mapped_object *activeobj = findObject(curFrame->getPC());
+                if ( (calleeFunc && calleeFunc->isSignalHandler() ) ||
+                     ( 0==j && activeobj && 
+                       activeobj->parse_img()->codeObject()->defensiveMode() ) )
                 {   // there is a fault-raising instruction in this block, use framePC
                     activebbi = findOrigByAddr( curFrame->getPC() )->
                         is_basicBlockInstance();
@@ -5409,7 +5412,10 @@ void process::updateActiveMultis()
  */
 void process::fixupActiveStackTargets()
 {
-    if ( !isAMcacheValid ) {
+    if ( !isAMcacheValid || 
+         ( analysisMode_ != BPatch_exploratoryMode &&
+           analysisMode_ != BPatch_defensiveMode      ) ) 
+    {
         return; // if it's not valid, the analysis did not change
     }
 

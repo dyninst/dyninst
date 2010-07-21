@@ -146,6 +146,7 @@ void RoseInsnX86Factory::massageOperands(const InstructionAPI::Instruction::Ptr 
     break;
   case e_cbw:
   case e_cwde:
+  case e_cdq:
     // Nada
     operands.clear();
     break;
