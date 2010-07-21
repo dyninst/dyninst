@@ -2636,9 +2636,9 @@
 				RelativePath=".\src\process.h"
 				>
 			</File>
-			<File>
+			<File
 				RelativePath=".\src\r_AddressMapper.h"
-			        >
+			  >
 			</File>
 			<File
 				RelativePath=".\src\r_CodeMover.h"
@@ -2720,7 +2720,7 @@
 				RelativePath=".\src\r_t_Movement-analysis.h"
 				>
 			</File>
-			<File>
+			<File
 				RelativePath="..\common\h\refCounter.h"
 				>
 			</File>
