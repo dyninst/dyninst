@@ -389,7 +389,7 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
 			  used,
 			  defined);
 
-    Assignment::Ptr a = Assignment::Ptr(new Assignment(I, addr, func, pcRegion[0]));
+    Assignment::Ptr a = Assignment::Ptr(new Assignment(I, addr, func, pcRegion));
     if (!used.empty()) {
       // Indirect call
       a->addInputs(used);

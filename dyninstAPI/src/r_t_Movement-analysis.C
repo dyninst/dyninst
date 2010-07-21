@@ -248,19 +248,16 @@ bool PCSensitiveTransformer::isPCSensitive(Instruction::Ptr insn,
   return !sensitiveAssignments.empty();
 }
 
-class M_A_Predicates : public Slicer::Predicates {
+class Predicates {
 public:
-  bool haveWidened;
+  static bool haveWidened;
 
-  M_A_Predicates() : haveWidened(false) {};
-  virtual ~M_A_Predicates() {};
-
-  virtual bool endAtPoint (Assignment::Ptr p) {
+  static bool end (Assignment::Ptr p) {
     if (p->out().absloc().isPC()) return true;
     return false;
   }
 
-  virtual bool widenAtPoint (Assignment::Ptr p) {
+  static bool widen (Assignment::Ptr p) {
     if (p->out().absloc() == Absloc()) {
       haveWidened = true;
       return true;
@@ -268,17 +265,17 @@ public:
     return false;
   };
 
-  virtual bool widenAtAssignment(const AbsRegion &search, const AbsRegion &found) {
+  static bool widen2(const AbsRegion &search, const AbsRegion &found) {
     if (search != found) {
       haveWidened = true;
       return true;
     }
     return false;
   }
-  
-  virtual bool followCall (ParseAPI::Function *func, 
-			   std::stack<std::pair<ParseAPI::Function *, int> > &cs,
-			   AbsRegion a) {
+
+  static bool call (ParseAPI::Function *func, 
+		    std::stack<std::pair<ParseAPI::Function *, int> > &cs,
+		    AbsRegion a) {
     // If we're looking for a stack slot and entering
     // a grand-callee, call it quits. 
     // TODO: it'd be nice to have some way of saying 
@@ -289,7 +286,7 @@ public:
     if (haveWidened) {
       return false;
     }
-    
+
     // We need to know when we hit a plt func. Thing is, I can't
     // figure out how to do that directly. So we'll workaround...
     image_func *f = static_cast<image_func *>(func);
@@ -297,7 +294,7 @@ public:
       // Don't bother following
       return false;
     }
-    
+
     // Let's try to figure out some sort of reasonable way
     // to not worry about going into a grandparent stack frame...
     if (cs.size() > 1) {
@@ -311,13 +308,19 @@ public:
   }
 };
 
+bool Predicates::haveWidened = false;
+
 Graph::Ptr PCSensitiveTransformer::forwardSlice(Assignment::Ptr ptr,
 						image_basicBlock *block,
 						image_func *func) {
-  M_A_Predicates pred;
+  Predicates::haveWidened = false;
   Slicer slicer(ptr, block, func);
+  Slicer::PredicateFunc end = &(Predicates::end);
+  Slicer::PredicateFunc widen = &(Predicates::widen);
+  Slicer::CallStackFunc call = &(Predicates::call);
+  Slicer::AbsRegionFunc widen2 = &(Predicates::widen2);
 
-  Graph::Ptr g = slicer.forwardSlice(pred);
+  Graph::Ptr g = slicer.forwardSlice(end, widen, call, widen2);
   return g;
 }
 		     

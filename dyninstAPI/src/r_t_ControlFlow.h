@@ -57,7 +57,6 @@ class CFElementCreator : public Transformer {
   static void getInterproceduralSuccessors(const bblInstance *inst,
 					   SuccVec &succ);
 
-  static bool unparsedFallthrough(const bblInstance *inst);
 };
 
 };

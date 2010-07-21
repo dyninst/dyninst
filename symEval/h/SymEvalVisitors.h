@@ -52,7 +52,7 @@ class StackVisitor : public ASTVisitor {
 	       StackAnalysis::Height &frameHeight) :
     addr_(a), func_(funcname), stack_(stackHeight), frame_(frameHeight) {};
 
-    SYMEVAL_EXPORT virtual AST::Ptr visit(AST *x) { return ASTVisitor::visit(x); }
+    SYMEVAL_EXPORT virtual AST::Ptr visit(AST *);
     SYMEVAL_EXPORT virtual AST::Ptr visit(BottomAST *);
     SYMEVAL_EXPORT virtual AST::Ptr visit(ConstantAST *);
     SYMEVAL_EXPORT virtual AST::Ptr visit(VariableAST *);

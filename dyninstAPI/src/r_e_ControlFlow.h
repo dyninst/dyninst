@@ -67,7 +67,6 @@ class CFElement : public Element {
   void setCall() { isCall_ = true; };
   void setConditional() { isConditional_ = true; };
   void setIndirect() { isIndirect_ = true; };
-  void setNeedsFTPadding() { padded_ = true; };
 
   virtual ~CFElement();
 
@@ -85,13 +84,11 @@ class CFElement : public Element {
   isCall_(false),
     isConditional_(false),
     isIndirect_(false),
-    padded_(false),
     addr_(0) {};
 
   bool isCall_;
   bool isConditional_;
   bool isIndirect_;
-  bool padded_;
 
   InstructionAPI::Instruction::Ptr insn_;
   Address addr_;
