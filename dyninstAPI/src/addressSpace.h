@@ -481,8 +481,7 @@ class AddressSpace : public InstructionSource {
     bool relocateInt(FuncSet::const_iterator begin, FuncSet::const_iterator end, Address near);
 
     std::map<Address, std::set<Address> > forwardCallPadMap_;
-    std::map<Address, Address> reverseCallPadMap_;
-
+    IntervalTree<Address, Address> reverseCallPadMap_;
 };
 
 

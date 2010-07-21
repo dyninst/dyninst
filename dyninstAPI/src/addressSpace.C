@@ -1931,5 +1931,5 @@ void AddressSpace::addModifiedFunction(int_function *func) {
 
 void AddressSpace::addPostCallPad(Address from, Address to) {
   forwardCallPadMap_[from].insert(to);
-  reverseCallPadMap_[to] = from;
+  reverseCallPadMap_.insert(to, to+10, from);
 }

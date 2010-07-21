@@ -679,6 +679,16 @@ class process : public AddressSpace {
     { return activeBBIs.end() != activeBBIs.find(bbi); }
   void updateActiveMultis();
   void fixupActiveStackTargets();
+
+  typedef std::pair<Address, Address> AddrPair;
+  typedef std::set<AddrPair> AddrPairSet;
+  typedef std::set<Address> AddrSet;
+
+  void getActivePCs(AddrSet &);
+  void getActivePatchAreas(AddrPairSet &, AddrSet &);
+  void generateRequiredPatches(AddrPairSet &, AddrPairSet &);
+  void generatePatchBranches(AddrPairSet &);
+
   void getActiveMultiMap(std::map<Address,multiTramp*> &map);
   void invalidateActiveMultis() { isAMcacheValid = false; }
   void addActiveMulti(multiTramp* multi);

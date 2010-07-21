@@ -5107,324 +5107,60 @@ int_function *process::findActiveFuncByAddr(Address addr)
  */
 void process::updateActiveMultis()
 {
-    // return if cached results are valid
-    if ( isAMcacheValid || 
-         ( analysisMode_ != BPatch_exploratoryMode &&
-           analysisMode_ != BPatch_defensiveMode      ) ) 
-    {
-        return;
-    }
+  // For now it will suffice to leak like crazy. 
+  //
+  // TODO:
+  //   1) Relocate each function individually (?)
+  //      or be able to deallocate a chunk of alloc
+  //      memory
+  //   2) Determine which versions of functions have
+  //      been obsoleted. 
+  //   3) Compare those with the functions on the stack
+  //      to see which ones can be freed.
 
-    // walk the stacks 
-    pdvector<pdvector<Frame> >  stacks;
-    if ( false == walkStacks(stacks) ) {
-        fprintf(stderr,"ERROR: %s[%d], walkStacks failed\n", FILE__, __LINE__);
-        assert(0);
-    }
-
-    // build up new set of active tramps
-    std::set<multiTramp*> newActiveMultis;
-    std::map<bblInstance*,Address> newActiveBBIs; 
-    for (unsigned int i = 0; i < stacks.size(); ++i) {
-        pdvector<Frame> &stack = stacks[i];
-        mal_printf("updateActiveMultis stackwalk:\n");
-        int_function *calleeFunc = NULL;
-
-        // mark the multiTramps that contain calls as active
-        for (unsigned int j = 0; j < stack.size(); ++j) {
-            Frame *curFrame = &stack[j];
-            if (j < 64) {
-                mal_printf(" stackpc[%d]=0x%lx fp %lx sp %lx pcloc %lx\n", j, 
-                        stack[j].getPC(),stack[j].getFP(), 
-                        stack[j].getSP(), stack[j].getPClocation());
-            }
-            multiTramp *multi = findMultiTrampByAddr( curFrame->getPC() );
-            bblInstance *activebbi;
-            Address funcRelocAddr = 0;
-            if (NULL != multi) {
-                activebbi = findOrigByAddr
-                    ( multi->instAddr() + multi->instSize() -1 )->
-                    is_basicBlockInstance();
-                // Make the multi active if we're likely to execute it
-                // again, i.e., if it contains a call or if we're in a frame
-                // corresponding to a faulting instruction.
-                // The multi on the top-most stack frame may not contain a call,
-                // we mark it as active only if it does, as we will not re-enter
-                // it and its trampEnd should not have to be updated
-                if (activebbi && 
-                    (activebbi->block()->containsCall() ||
-                     activebbi->func()->obj()->parse_img()->codeObject()->
-                     defensiveMode()))
-                {
-                    do {
-                        newActiveMultis.insert( multi );
-                        multi->setIsActive(true);
-                        assert(NULL != activebbi);
-                        funcRelocAddr = multi->getFuncBaseInMutatee();
-                        multi = multi->getStompMulti();
-                    } while (NULL != multi);
-                } else {
-                    activebbi = NULL;
-                }
-
-            } else { // This is either the first frame on the call-stack, 
-                     // a call bbi on the stack, 
-                     // or a fault-raising instruction. 
-                     // Save the block & set relocAddr
-
-                // find the active block
-                mapped_object *activeobj = findObject(curFrame->getPC());
-                if ( (calleeFunc && calleeFunc->isSignalHandler() ) ||
-                     ( 0==j && activeobj && 
-                       activeobj->parse_img()->codeObject()->defensiveMode() ) )
-                {   // there is a fault-raising instruction in this block, use framePC
-                    activebbi = findOrigByAddr( curFrame->getPC() )->
-                        is_basicBlockInstance();
-
-                } else { // there's a call in the preceding block, use framePC-1
-                    activebbi = findOrigByAddr( curFrame->getPC()-1 )->
-                        is_basicBlockInstance();
-                }
-
-                // don't bother about multiTramps that have been removed since
-                // the previous stackwalk or about blocks in system libraries,
-                // or non-heap code in the runtime library
-                if ( NULL == activebbi || 
-                     (activebbi->func()->obj()->isSharedLib() && 
-                      (activebbi->func()->obj()->parse_img()->codeObject()->
-                       defensiveMode() ||
-                       (runtime_lib.end() != runtime_lib.find(activebbi->func()->obj()) &&
-                        !isRuntimeHeapAddr(curFrame->getPC()))))) 
-                {
-                    calleeFunc = findFuncByAddr(curFrame->getPC());
-                    continue;
-                }
-
-                mal_printf("Adding activeBBI %lx[%lx %lx] for framePC %lx "
-                           "%s[%d]\n", 
-                           activebbi->block()->origInstance()->firstInsnAddr(),
-                           activebbi->firstInsnAddr(), activebbi->endAddr(), 
-                           curFrame->getPC(), FILE__,__LINE__);
-                newActiveBBIs[ activebbi ] = curFrame->getPC();
-
-                // calculate funcRelocBase, the base address of the relocated
-                // function in which the activebbi resides
-                if ( 0 == activebbi->version() ) {
-                    // easy case, the function is not relocated 
-                    funcRelocAddr = activebbi->func()->getAddress();
-                } 
-
-                else if ( activebbi->version() > activebbi->func()->version() ||
-                          activebbi != 
-                          activebbi->block()->instVer( activebbi->version() ) )
-                {   // the block is a remnant of an invalidated function 
-                    // relocation, in which case we've saved the funcRelocBase
-                    assert( 0 != activebbi->getFuncRelocBase() );
-                    funcRelocAddr = activebbi->getFuncRelocBase();
-
-                } else {
-                    // funcRelocBase is the address of the first block in 
-                    // the function to contain a bbi that matches activebbi's 
-                    // function version.
-                    const set< int_basicBlock* , int_basicBlock::compare > *
-                        blocks = & activebbi->func()->blocks();
-                    set<int_basicBlock*,int_basicBlock::compare>::const_iterator
-                        bIter = blocks->begin();
-                    for(; 
-                        bIter != blocks->end() && 
-                        activebbi->version() >= (int)(*bIter)->instances().size();
-                        bIter++);
-                    assert( bIter != blocks->end() );
-                    funcRelocAddr = (*bIter)->instVer( activebbi->version() )->
-                                            firstInsnAddr();
-                    activebbi->setFuncRelocBase(funcRelocAddr);
-                }
-            }
-
-            // save the block's function relocation, if the block 
-            // is part of a relocated function
-            if ( activebbi != NULL && activebbi->version() > 0 ) {
-                if (am_funcRelocs.end() == 
-                    am_funcRelocs.find(activebbi->func())) 
-                {
-                    am_funcRelocs[activebbi->func()] = new set<Address>;
-                }
-                am_funcRelocs[activebbi->func()]->insert( funcRelocAddr );
-            }
-            calleeFunc = findFuncByAddr(curFrame->getPC());
-        }
-    }
-
-    // identify multiTramps that are no longer active
-    set<multiTramp*> prevActiveMultis;
-    std::set_difference(activeMultis.begin(), activeMultis.end(),
-                        newActiveMultis.begin(), newActiveMultis.end(),
-                        inserter(prevActiveMultis, 
-                                 prevActiveMultis.begin()));
-    // identify block instances that are no longer active
-    map<bblInstance*,Address> prevActiveBBIs;
-    std::set_difference(activeBBIs.begin(), activeBBIs.end(),
-                        newActiveBBIs.begin(), newActiveBBIs.end(),
-                        inserter(prevActiveBBIs, 
-                                 prevActiveBBIs.begin()));
-
-    map<Address,int_function*> relocsToRemove;
-
-    // for each multitramp that has become inactive:
-    for (set<multiTramp*>::iterator mIter = prevActiveMultis.begin();
-         mIter != prevActiveMultis.end();
-         mIter++) 
-    {
-        multiTramp *curMulti = *mIter;
-        // mark the tramp as inactive (is this flag necessary any more?)
-        curMulti->setIsActive(false);
-
-        // mark the reloc for possible removal and delete the block if the 
-        // reloc has been invalidated and no other active multis are 
-        // installed at the same block
-        bblInstance *bbi = 
-            findOrigByAddr(curMulti->instAddr())->is_basicBlockInstance();
-        assert(bbi);
-        if ( bbi->version() <= bbi->func()->version() && 
-             bbi != bbi->block()->instVer( bbi->version() ) ) 
-        {
-            bool blockStillActive = false;
-            for(set<multiTramp*>::iterator mIter = activeMultis.begin();
-                !blockStillActive && mIter != activeMultis.end(); mIter++) 
-            {
-                if (bbi->firstInsnAddr() == (*mIter)->instAddr()) {
-                    blockStillActive = true;
-                }
-            }
-            if ( !blockStillActive ) {
-                if ( bbi->version() > 0 ) {
-                    relocsToRemove[curMulti->getFuncBaseInMutatee()] = 
-                        bbi->func();
-                }
-                removeOrigRange(bbi);
-                bbi->block()->func()->deleteBBLInstance(bbi);
-                delete(bbi);
-            }
-        }
-
-        // if the multitramp is partlyGone, remove and delete it 
-        if ( true == curMulti->getPartlyGone() ) {
-            // Unfortunately, we can't remove the multi without removing its 
-            // BPatchSnippetHandles or we'll have dangling pointers
-
-            // remove the mutator's knowledge of the link to the multiTramp 
-            // since we can't delete it directly, 
-            // otherwise we'll find this multitramp by looking up its instAddr
-            instArea *jump = 
-                dynamic_cast<instArea *>(findModByAddr(curMulti->instAddr()));
-            if (jump && jump->multi == curMulti) {
-                removeModifiedRange(jump);
-                delete jump;
-            }
-            
-        }
-    }
-
-    // for each block that has become inactive:
-    for (map<bblInstance*,Address>::iterator bIter = prevActiveBBIs.begin();
-         bIter != prevActiveBBIs.end();
-         bIter++) 
-    {
-        bblInstance *bbi = bIter->first;
-        if ( NULL == bbi->block() ) {
-            delete(bbi); // it's been wiped out by removeBlock
-        }
-        // if the block and its func reloc have been invalidated
-        else if ( bbi->version() > bbi->func()->version() || 
-             bbi != bbi->block()->instVer( bbi->version() ) ) 
-        {
-            // mark the reloc for possible removal
-            assert( 0 != bbi->getFuncRelocBase() );//set by relocationInvalidate
-            if ( bbi->version() > 0 ) {
-                relocsToRemove[bbi->getFuncRelocBase()] = bbi->func();
-            }
-
-            // remove block from all datastructures
-            removeOrigRange(bbi);
-            bbi->block()->func()->deleteBBLInstance(bbi);
-            delete(bbi);
-        }
-    }
-
-    // update process's set of currently active tramps
-    activeMultis.clear();
-    activeMultis.insert(newActiveMultis.begin(),newActiveMultis.end());
-    activeBBIs.clear();
-    activeBBIs.insert(newActiveBBIs.begin(),newActiveBBIs.end());
-
-    // from the set of relocs that lost an active multiTramp, identify the 
-    // relocs that no longer have ANY active multitramps or active bblInstances
-    for (set<multiTramp*>::iterator mIter = activeMultis.begin();
-         mIter != activeMultis.end();
-         mIter++) 
-    {
-        if ( relocsToRemove.end() != 
-             relocsToRemove.find((*mIter)->getFuncBaseInMutatee()) )
-        {   // has an active multiTramp, can't remove this reloc
-            relocsToRemove.erase((*mIter)->getFuncBaseInMutatee());
-        }
-    }
-    for (map<bblInstance*,Address>::iterator bIter = activeBBIs.begin();
-         bIter != activeBBIs.end();
-         bIter++) 
-    {
-        if ( 0 == bIter->first->version() ) {
-            continue; // there is no reloc for origInstance blocks
-        } 
-        // the bbi is invalidated, so the reloc_info should have been set by 
-        // relocationInvalidate
-        Address funcRelocAddr = bIter->first->getFuncRelocBase();
-        assert( 0 != funcRelocAddr );
-        if ( relocsToRemove.end() != 
-             relocsToRemove.find(funcRelocAddr) )
-        {   // has an active bblInstance, can't remove this reloc
-            relocsToRemove.erase(funcRelocAddr);
-        }
-    }
-
-    // remove the relocs that are safe to remove
-    for (map<Address,int_function*>::iterator rIter = relocsToRemove.begin();
-         rIter != relocsToRemove.end();
-         rIter++) 
-    {
-        assert ( am_funcRelocs.end() != am_funcRelocs.find(rIter->second) );
-        assert ( NULL != am_funcRelocs[rIter->second] );
-        am_funcRelocs[rIter->second]->erase( rIter->first );
-        if (true == am_funcRelocs[rIter->second]->empty()) {
-            delete am_funcRelocs[rIter->second];
-            am_funcRelocs.erase( rIter->second );
-        }
-        mal_printf("freeing function relocation at %lx for func at %lx %s[%d]\n",
-                rIter->first, rIter->second->getAddress(), FILE__, __LINE__);
-        inferiorFree(rIter->first);
-    }
-
-    isAMcacheValid = true;
 }
 
 /* Update the trampEnds of active multiTramps
  * Update return addresses to invalidated function relocations
  */
+
 void process::fixupActiveStackTargets()
 {
-    if ( !isAMcacheValid || 
-         ( analysisMode_ != BPatch_exploratoryMode &&
-           analysisMode_ != BPatch_defensiveMode      ) ) 
-    {
-        return; // if it's not valid, the analysis did not change
-    }
+  // We've gone through and detected return addresses from
+  // calls that weren't parsed past initially. Since our
+  // initial instrumentation left these dangling, we want
+  // to patch in branches to the new relocated copy.
+  //
+  // Step 1: walk the stack
+  // Step 2: determine which return addresses are in these patch
+  //         areas left behind
+  // Step 3: for each such, determine where the return address
+  //         should be.
+  // Step 4: write in a jump from old to new. 
 
-    map<Address,Address> pcUpdates;
+
+  AddrSet activeAddrs;
+  getActivePCs(activeAddrs);
+
+  // [orig, cur addr] set
+  AddrPairSet activePatchAreas;
+  getActivePatchAreas(activePatchAreas, activeAddrs);
+
+  // [cur addr, new addr] set
+  AddrPairSet branchesNeeded;
+  generateRequiredPatches(activePatchAreas, branchesNeeded);
+
+  // Generate a pile of branches.
+  generatePatchBranches(branchesNeeded);
+
+#if 0
+
+  map<Address,Address> pcUpdates;
 
     /* Update the trampEnds of active multiTramps */
     for (set<multiTramp*>::iterator mIter = activeMultis.begin();
          mIter != activeMultis.end();
-         mIter++) 
+         mIter++)  
     {
         multiTramp *multi = *mIter;
 
@@ -5690,6 +5426,103 @@ void process::fixupActiveStackTargets()
             }
         }
     }
+#endif
+}
+
+void process::getActivePCs(AddrSet &pcs) {
+  pdvector<pdvector<Frame> > stacks;
+  if (!walkStacks(stacks)) assert(0);
+
+  for (unsigned i = 0; i < stacks.size(); ++i) {
+    for (unsigned j = 0; j < stacks[i].size(); ++j) {
+      pcs.insert(stacks[i][j].getPC());
+    }
+  }
+}
+
+void process::getActivePatchAreas(AddrPairSet &patches,
+				  AddrSet &pcs) {
+  for (std::set<Address>::iterator pc = pcs.begin(); pc != pcs.end(); ++pc) {
+    Address tmp1, tmp2, from;
+    if (reverseCallPadMap_.find(*pc, tmp1, tmp2, from)) {
+      // From holds the address of the _call_ associated with
+      // this patch area. 
+      patches.insert(std::make_pair<Address, Address>(from, *pc));
+    }
+  }
+}
+
+void process::generateRequiredPatches(AddrPairSet &patches,
+				      AddrPairSet &requests) {
+  for (AddrPairSet::iterator iter = patches.begin();
+       iter != patches.end(); ++iter) {
+    Address call = iter->first;
+    Address current = iter->second;
+    Address to = -1;
+
+    // We need to figure out where this patch should branch to.
+    // To do that, we're going to:
+    // 1) Look up the basic block instance associated with the call address;
+    // 2) Look up its fallthrough block;
+    // 3) Forward map the entry of the block to
+    //    its most recent relocated version (if that exists)
+    // TODO: this is not shared code safe since we map back
+    // to the original call. We would need to preserve
+    // the function ID in addition. 
+
+    // 1
+    bblInstance *bbi = findOrigByAddr(call)->is_basicBlockInstance();
+    assert(bbi);
+    
+    // 2
+    bblInstance *target = NULL;
+    vector<int_basicBlock *> outs;
+    bbi->block()->getTargets(outs);
+    for (unsigned i = 0; i < outs.size(); ++i) {
+      if (bbi->block()->getTargetEdgeType(outs[i]) == ParseAPI::CALL_FT) {
+	target = outs[i]->origInstance();
+      }
+    }
+    assert(target);
+
+    // 3
+    // We want the most recent map from original addresses
+    // to relocated addresses
+    assert(!instAddrMappers_.empty());
+    AddressMapper &mapper = instAddrMappers_.back();
+    if (!mapper.origToReloc(target->firstInsnAddr(),
+			    to)) {
+      assert(0);
+    }
+    
+    // 4 ;)
+    requests.insert(std::make_pair<Address, Address>(current, to));
+  }
+}
+
+void process::generatePatchBranches(AddrPairSet &branchesNeeded) {
+  for (AddrPairSet::iterator iter = branchesNeeded.begin();
+       iter != branchesNeeded.end(); ++iter) {
+    Address from = iter->first;
+    Address to = iter->second;
+
+    codeGen gen(64);
+    insnCodeGen::generateBranch(gen, from, to);
+
+    // Safety check: make sure we didn't overrun the patch area
+    Address lb, ub, tmp;
+    if (!reverseCallPadMap_.find(from, lb, ub, tmp)) {
+      // WTF? This worked before!
+      assert(0);
+    }
+    assert((from + gen.used()) <= ub);
+    
+    if (!writeTextSpace((void *)from, 
+			gen.used(),
+			gen.start_ptr())) {
+      assert(0);
+    }
+  }
 }
 
 void process::getActiveMultiMap(std::map<Address,multiTramp*> &map)
