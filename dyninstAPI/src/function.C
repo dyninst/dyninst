@@ -280,7 +280,7 @@ const pdvector<instPoint *> &int_function::funcEntries() {
                 entryPoints_.push_back( instPsByAddr_[offsetInFunc + getAddress()] );
                 continue;
             }
-            if (!findBlockByOffset(offsetInFunc)) {
+            if (!findBlockByOffsetInFunc(offsetInFunc)) {
                 fprintf(stderr, "Warning: unable to find block for entry point "
                         "at 0x%lx (0x%lx) (func 0x%lx to 0x%lx\n",
                         offsetInFunc,
@@ -322,7 +322,7 @@ const pdvector<instPoint*> &int_function::funcExits() {
                 exitPoints_.push_back( instPsByAddr_[offsetInFunc + getAddress()] );
                 continue;
             }
-            if (!findBlockByOffset(offsetInFunc)) {
+            if (!findBlockByOffsetInFunc(offsetInFunc)) {
                 fprintf(stderr, "Warning: unable to find block for exit point at 0x%lx (0x%lx) (func 0x%lx to 0x%lx\n",
                         offsetInFunc,
                         offsetInFunc+getAddress(),
@@ -364,7 +364,7 @@ const pdvector<instPoint*> &int_function::funcCalls() {
                 callPoints_.push_back( instPsByAddr_[offsetInFunc + getAddress()] );
                 continue;
             }
-            if (!findBlockByOffset(offsetInFunc)) {
+            if (!findBlockByOffsetInFunc(offsetInFunc)) {
                 fprintf(stderr, "Warning: unable to find block for call point "
                         "at 0x%lx (0x%lx) (func 0x%lx to 0x%lx, %s/%s)\n",
                         offsetInFunc,
@@ -878,7 +878,7 @@ void int_function::removeFromAll()
 
 void int_function::addMissingBlock(image_basicBlock & imgBlock)
 {
-    Address baseAddr = this->getAddress() - ifunc()->getOffset();
+  Address baseAddr = this->getAddress() - ifunc()->getOffset();
     int_basicBlock *intBlock = findBlockByAddr( 
         imgBlock.firstInsnOffset() + baseAddr );
 
@@ -1103,8 +1103,12 @@ int_basicBlock *int_function::findBlockByAddr(Address addr) {
     bblInstance *inst = findBlockInstanceByAddr(addr);
     if (inst)
         return inst->block();
-    else
-        return NULL;
+    else {
+      cerr << "Error: unable to find block with address " << hex << addr << endl;
+      debugPrint();
+      assert(0);
+      return NULL;
+    }
 }
 
 
@@ -1413,8 +1417,8 @@ int_basicBlock::~int_basicBlock() {
 }
 
 bblInstance *int_basicBlock::origInstance() const {
-    assert(instances_.size());
-    return instances_[0];
+  assert(instances_.size());
+  return instances_[0];
 }
 
 bblInstance *int_basicBlock::instVer(unsigned id) const {
@@ -2355,7 +2359,11 @@ void int_function::linkInstrumentation(std::set<instPoint *> &input,
 
 
 Offset int_function::addrToOffset(const Address addr) const { 
-    return addr - getAddress() + ifunc_->getOffset(); 
+  return addr - (getAddress() - ifunc_->getOffset());
+}
+
+Address int_function::offsetToAddr(const Offset off ) const { 
+  return off + (getAddress() - ifunc_->getOffset());
 }
 
 const pdvector< int_parRegion* > &int_function::parRegions()
@@ -2384,13 +2392,8 @@ void bblInstance::getInsnInstances(std::vector<std::pair<InstructionAPI::Instruc
 #endif
 
 int_basicBlock *int_function::findBlockByImage(image_basicBlock *block) {
-  unsigned img_id = block->id();
-  unsigned int_id = blockIDmap[img_id];
-  return blockList[int_id];
+  return findBlockByOffset(block->start());
 }
-
-// ??
-//#endif
 
 
 /* removes all function blocks in the specified range

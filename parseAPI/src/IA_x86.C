@@ -932,7 +932,8 @@ bool IA_IAPI::isThunk() const {
     return false;
 }
 
-
+#if 0
+// Replaced by Kevin's version in IA_IAPI.C
 bool IA_IAPI::simulateJump() const
 {
   // We conclude that a call is a jump if the basic block it targets
@@ -978,7 +979,7 @@ bool IA_IAPI::simulateJump() const
 
   return isGetPC;
 }
-
+#endif
 
 bool IA_IAPI::isTailCall(Function * /*context*/,unsigned int) const
 {

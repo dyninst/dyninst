@@ -394,7 +394,8 @@ class int_function : public patchTarget {
 
    // Perform a lookup (either linear or log(n)).
    int_basicBlock *findBlockByAddr(Address addr);
-   int_basicBlock *findBlockByOffset(Address offset) { return findBlockByAddr(offset + getAddress()); }
+   int_basicBlock *findBlockByOffset(Address offset) { return findBlockByAddr(offsetToAddr(offset)); }
+   int_basicBlock *findBlockByOffsetInFunc(Address offset) { return findBlockByAddr(offset + getAddress()); }
    bblInstance *findBlockInstanceByAddr(Address addr);
    int_basicBlock *findBlockByImage(image_basicBlock *block);
 
@@ -408,6 +409,7 @@ class int_function : public patchTarget {
    void addMissingPoints();
 
    Offset addrToOffset(const Address addr) const;
+   Address offsetToAddr(const Offset off) const; 
 
 
    bool hasNoStackFrame() const {return ifunc_->hasNoStackFrame();}

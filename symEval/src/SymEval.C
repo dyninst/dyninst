@@ -203,31 +203,9 @@ void SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,
 
 bool SymEval::process(AssignNode::Ptr ptr,
 			 Result_t &dbase) {
-<<<<<<< HEAD:symEval/src/SymEval.C
-  symeval_init_debug();
-
-  std::map<unsigned, Assignment::Ptr> inputMap;
-
-  //cerr << "Calling process on " << ptr->format() << endl;
-
-  // Don't try an expansion of a widen node...
-  if (!ptr->assign()) return;
-
-  NodeIterator begin, end;
-  ptr->ins(begin, end);
-  
-  for (; begin != end; ++begin) {
-    AssignNode::Ptr in = dyn_detail::boost::dynamic_pointer_cast<AssignNode>(*begin);
-    if (!in) continue;
-
-    Assignment::Ptr assign = in->assign();
-
-    if (!assign) continue;
-=======
     bool ret = false;
     
     std::map<unsigned, Assignment::Ptr> inputMap;
->>>>>>> e9f73237b2bd3f9a98cd183e64fbdb33177ba64a:symEval/src/SymEval.C
 
     expand_cerr << "Calling process on " << ptr->format() << endl;
 
