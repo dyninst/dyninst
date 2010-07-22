@@ -2239,6 +2239,26 @@ SYMTAB_EXPORT bool Symtab::getSourceLines(std::vector<Statement *> &lines, Offse
 
 }
 
+SYMTAB_EXPORT bool Symtab::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRange)
+{
+   unsigned int originalSize = lines.size();
+   
+   /* Iteratate over the modules, looking for ranges in each. */
+   for ( unsigned int i = 0; i < _mods.size(); i++ ) 
+   {
+      LineInformation *lineInformation = _mods[i]->getLineInformation();
+      
+      if (lineInformation)
+         lineInformation->getSourceLines( addressInRange, lines );
+      
+   } /* end iteration over modules */
+   
+   if ( lines.size() != originalSize )
+      return true;
+   
+   return false;
+}
+
 SYMTAB_EXPORT bool Symtab::addLine(std::string lineSource, unsigned int lineNo,
       unsigned int lineOffset, Offset lowInclAddr,
       Offset highExclAddr)
