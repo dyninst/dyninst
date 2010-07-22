@@ -162,7 +162,7 @@ SgAsmInstruction *RoseInsnPPCFactory::createInsn() {
   return new SgAsmPowerpcInstruction;
 }
 
-void RoseInsnPPCFactory::setOpcode(SgAsmInstruction *insn, entryID opcode, prefixEntryID prefix, std::string mnem) {
+void RoseInsnPPCFactory::setOpcode(SgAsmInstruction *insn, entryID opcode, prefixEntryID /*prefix*/, std::string mnem) {
   SgAsmPowerpcInstruction *tmp = static_cast<SgAsmPowerpcInstruction *>(insn);
   kind = convertKind(opcode, mnem);
   tmp->set_kind(kind);

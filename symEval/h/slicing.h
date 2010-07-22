@@ -104,11 +104,15 @@ class Slicer {
 
     SYMEVAL_EXPORT virtual bool widenAtPoint(AssignmentPtr) { return false; }
     SYMEVAL_EXPORT virtual bool endAtPoint(AssignmentPtr) { return false; }
-    SYMEVAL_EXPORT virtual bool followCall(ParseAPI::Function *callee,
-			    CallStack_t &cs,
-			    AbsRegion argument) { return false; }
-    SYMEVAL_EXPORT virtual bool widenAtAssignment(const AbsRegion &in,
-				   const AbsRegion &out) { return false; }
+    SYMEVAL_EXPORT virtual bool followCall(ParseAPI::Function * /*callee*/,
+                                           CallStack_t & /*cs*/,
+                                           AbsRegion /*argument*/) { 
+       return false; 
+    }
+    SYMEVAL_EXPORT virtual bool widenAtAssignment(const AbsRegion & /*in*/,
+                                                  const AbsRegion & /*out*/) { 
+       return false; 
+    }
     SYMEVAL_EXPORT virtual ~Predicates() {};
   };
 
