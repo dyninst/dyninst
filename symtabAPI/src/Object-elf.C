@@ -309,6 +309,7 @@ const char* STAB_NAME        = ".stab";
 const char* STABSTR_NAME     = ".stabstr";
 const char* STAB_INDX_NAME   = ".stab.index";
 const char* STABSTR_INDX_NAME= ".stab.indexstr";
+const char* COMMENT_NAME= ".comment";
 const char* OPD_NAME         = ".opd"; // PPC64 Official Procedure Descriptors
 // sections from dynamic executables and shared objects
 const char* PLT_NAME         = ".plt";
@@ -589,7 +590,10 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
     }
   }
 #endif 
-    
+   
+  isBlueGene_ = false;
+  hasNoteSection_ = false;
+ 
   for (int i = 0; i < elfHdr.e_shnum() + elfHdrForDebugInfo.e_shnum(); ++i) {
     const char *name;
 
@@ -631,6 +635,10 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 	delete scnp;
 	continue;
       }
+    }
+
+    if(scnp->sh_type() == SHT_NOTE) {
+	    hasNoteSection_ = true;
     }
 
 
@@ -846,7 +854,30 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
       }
 #endif
 #endif
-    }
+    } else if (strcmp(name, COMMENT_NAME) == 0) {
+                /* comment section is a sequence of NULL-terminated strings.
+                   We want to concatenate them and search for BGP to determine
+                   if the binary is built for BGP compute nodes */
+		Elf_X_Data data = scnp->get_data();
+                
+		unsigned int index = 0;
+		size_t size = data.d_size();
+		char *buf = (char *) data.d_buf();
+                char *str; char *comment = (char *) malloc (size);
+                while (index < size)
+                {
+                        str = buf+index;
+                        if (strlen(str) > 0 ) {
+                                strcat(comment, str);
+                                index = index+strlen(str);
+                        } else {
+                                index ++;
+                        }
+                }
+                if (strstr(comment, "BGP")) {
+                        isBlueGene_ = true;
+                }
+     }
 
 #if !defined(os_solaris)
     else if ((secAddrTagMapping.find(scnp->sh_addr()) != secAddrTagMapping.end() ) && 

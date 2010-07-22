@@ -122,7 +122,7 @@ AstNodePtr AstNode::operandNode(operandType ot, const image_variable* iv) {
 }
 
 AstNodePtr AstNode::sequenceNode(pdvector<AstNodePtr > &sequence) {
-    assert(sequence.size());
+//    assert(sequence.size());
     return AstNodePtr(new AstSequenceNode(sequence));
 }
 
