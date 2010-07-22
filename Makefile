@@ -18,7 +18,7 @@ DyninstAPI	= ready common symtabAPI instructionAPI parseAPI symEval dyninstAPI_R
 InstructionAPI	= ready common instructionAPI dynutil
 ProcControlAPI = ready common proccontrol
 DepGraphAPI = depGraphAPI
-ParseAPI = ready common symtabAPI instructionAPI parseAPI symEval
+ParseAPI = ready common symtabAPI instructionAPI parseAPI
 ValueAdded = valueAdded/sharedMem
 SymEval = parseAPI symEval
 
