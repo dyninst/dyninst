@@ -268,11 +268,6 @@ bool IA_IAPI::parseJumpTable(Block* currBlk,
         return false;
     }
 
-    // FIXME we should only care about intraprocedural edges
-    Block::edgelist & sourceEdges = currBlk->sources();
-    if(sourceEdges.empty())
-        return false;
-    
     if(isMovAPSTable(outEdges))
     {
         return true;
