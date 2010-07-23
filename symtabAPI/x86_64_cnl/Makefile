@@ -57,8 +57,6 @@ TFLAGS          += $(MYFLAGS)
 # Tradeoff: adding -g to TFLAGS aids gdb but uses gobs of disk space
 #TFLAGS		+= -g
 
-SYSLIBS		= -ldl 
-
 LIBS	  +=  -L$(LIBDWARF_LIB) -L$(LIBELF_LIB)
 LIBS += -ldwarf
 LIBS += -lelf

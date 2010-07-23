@@ -1456,17 +1456,20 @@ void pdmodule::dumpMangled(std::string &prefix) const
   cerr << endl;
 }
 
-/* This function is useful for seeding image parsing with function
- * stubs to start the control-flow-traversal parsing from.  The
- * function creates a module to add the symbol to if none exists.  
- * If parseState_ == analyzed, triggers parsing of the function
- */
-image_func *image::addFunctionStub(Address functionEntryAddr, const char *fName)
+image_func *image::addFunction(Address functionEntryAddr, const char *fName)
  {
-     // get or create module
+     set<CodeRegion *> regions;
+     CodeRegion * region;
+     codeObject()->cs()->findRegions(functionEntryAddr,regions);
+     if(regions.empty()) {
+        parsing_printf("[%s:%d] refusing to create function in nonexistent "
+                       "region at %lx\n",
+            FILE__,__LINE__,functionEntryAddr);
+        return NULL;
+     }
+     region = *(regions.begin()); // XXX pick one, throwing up hands. 
+
      pdmodule *mod = getOrCreateModule(linkedFile->getDefaultModule());
-     //KEVINTODO: if there are functions both preceding and succeeding
-     //this one that lie in the same module, use that module instead
 
      // copy or create function name
      char funcName[32];
@@ -1490,13 +1493,18 @@ image_func *image::addFunctionStub(Address functionEntryAddr, const char *fName)
      
      // Adding the symbol finds or creates a Function object...
      assert(funcSym->getFunction());
-     
-    assert(0 && "this has not been fixed to work with parseapi");
-     image_func *func = NULL; /* (image_func*)img_fact_->mkfunc(
-            functionEntryAddr, ONDEMAND, funcName, *obj_); */
 
-    // FIXME this is not what we want to do; we need to decide how
-    // to add a new hint or something to the parser
+     // Parse, but not recursively
+     codeObject()->parse(functionEntryAddr, false); 
+
+     image_func * func = static_cast<image_func*>(
+            codeObject()->findFuncByEntry(region,functionEntryAddr));
+
+     if(NULL == func) {
+        parsing_printf("[%s:%d] failed to create function at %lx\n",
+            FILE__,__LINE__,functionEntryAddr);
+        return NULL;
+     }
 
      if (!func->getSymtabFunction()->addAnnotation(func, ImageFuncUpPtrAnno))
      {
@@ -1515,7 +1523,6 @@ image_func *image::addFunctionStub(Address functionEntryAddr, const char *fName)
      func->addPrettyName( funcName );
      // funcsByEntryAddr[func->getOffset()] = func;
      //createdFunctions.push_back(func);
-
 
      return func;
 }
