@@ -51,7 +51,7 @@ class SgAsmx86RegisterReferenceExpression;
 class SgAsmPowerpcRegisterReferenceExpression;
 
 namespace Dyninst {
-namespace SymbolicEvaluation {
+namespace DataflowAPI {
 
 // The ROSE symbolic evaluation engine wants a data type that
 // is template parametrized on the number of bits in the data
@@ -281,9 +281,9 @@ size_t size;
 };
 
 // Get this out of the Dyninst namespace...
-std::ostream &operator<<(std::ostream &os, const Dyninst::SymbolicEvaluation::ROSEOperation &o);
-std::ostream &operator<<(std::ostream &os, const Dyninst::SymbolicEvaluation::Constant &o);
-std::ostream &operator<<(std::ostream &os, const Dyninst::SymbolicEvaluation::Variable &o);
+std::ostream &operator<<(std::ostream &os, const Dyninst::DataflowAPI::ROSEOperation &o);
+std::ostream &operator<<(std::ostream &os, const Dyninst::DataflowAPI::Constant &o);
+std::ostream &operator<<(std::ostream &os, const Dyninst::DataflowAPI::Variable &o);
 
 namespace Dyninst {
 
@@ -293,7 +293,7 @@ namespace InstructionAPI {
 
 class AssignNode;
 
-namespace SymbolicEvaluation {
+namespace DataflowAPI {
 
 typedef std::map<Assignment::Ptr, AST::Ptr> Result_t;
     

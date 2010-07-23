@@ -4,7 +4,7 @@
 class SgAsmInstruction;
 
 namespace Dyninst {
-namespace SymbolicEvaluation {
+namespace DataflowAPI {
 
 class SymEvalPolicy;
 

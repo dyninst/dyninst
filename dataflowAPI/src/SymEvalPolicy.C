@@ -3,7 +3,7 @@
 #include "dyn_regs.h"
 
 using namespace Dyninst;
-using namespace Dyninst::SymbolicEvaluation;
+using namespace Dyninst::DataflowAPI;
 using namespace Dyninst::InstructionAPI;
 
 SymEvalPolicy::SymEvalPolicy(Result_t &r,

@@ -7,6 +7,7 @@
 #include "Expression.h"
 #include "Dereference.h"
 #include "Immediate.h"
+#include <vector>
 
 #include "../rose/SgAsmInstruction.h"
 #include "../rose/SgAsmPowerpcInstruction.h"
@@ -17,7 +18,7 @@
 
 using namespace Dyninst;
 using namespace InstructionAPI;
-using namespace SymbolicEvaluation;
+using namespace DataflowAPI;
 
 SgAsmInstruction *RoseInsnFactory::convert(const InstructionAPI::Instruction::Ptr &insn, uint64_t addr) {
   SgAsmInstruction *rinsn = createInsn();

@@ -32,7 +32,7 @@
 #include "SymEvalVisitors.h"
 
 using namespace Dyninst;
-using namespace Dyninst::SymbolicEvaluation;
+using namespace Dyninst::DataflowAPI;
 using namespace std;
 
 AST::Ptr StackVisitor::visit(AST *t) {

@@ -33,7 +33,7 @@ namespace Dyninst
   {
     class RegisterAST;
   }
-  namespace SymbolicEvaluation
+  namespace DataflowAPI
   {
     class ExpressionConversionVisitor : public InstructionAPI::Visitor {
       typedef SgAsmPowerpcRegisterReferenceExpression regRef;

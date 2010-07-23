@@ -37,7 +37,7 @@
 #include "instructionAPI/h/Instruction.h"
 #include "instructionAPI/h/Expression.h"
 
-#include "symEval/h/stackanalysis.h"
+#include "dataflowAPI/h/stackanalysis.h"
 
 #include <sstream>
 

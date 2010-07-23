@@ -42,7 +42,7 @@
 
 using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;
-using namespace Dyninst::SymbolicEvaluation;
+using namespace Dyninst::DataflowAPI;
     
 X86InstructionKind RoseInsnX86Factory::convertKind(entryID opcode, prefixEntryID prefix) {
   switch (prefix) {

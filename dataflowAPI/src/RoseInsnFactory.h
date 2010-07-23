@@ -38,7 +38,7 @@ namespace InstructionAPI {
   class Instruction;
 }
 
-namespace SymbolicEvaluation {
+namespace DataflowAPI {
   class RoseInsnFactory {
   protected:
     typedef dyn_detail::boost::shared_ptr<InstructionAPI::Expression> ExpressionPtr;

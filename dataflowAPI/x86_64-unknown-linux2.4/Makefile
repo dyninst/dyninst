@@ -1,10 +1,10 @@
+#
+# $Id: Makefile,v 1.8 2008/05/27 20:44:58 giri Exp $
+#
+
 # Define any symbols needed to invoke configuration changes in make.config
 
 DEBUG_FLAG = -g
-AUTO_TEMPLATES= true
-
-# For debugging.
-#NO_OPT_FLAG = true
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
@@ -15,12 +15,14 @@ include ../../make.config
 
 CXXFLAGS        += $(MYFLAGS)
 CFLAGS          += $(MYFLAGS)
-
-LIBS    += -lgcc -linstructionAPI -lparseAPI
-
+TFLAGS          += $(MYFLAGS)
 AS		= /usr/bin/as
 
-TARGET = libsymEval.a
+# Add preprocessor and special link information for G++
+G_PTHREAD       = -pthread
+
+TARGET = libdataflowAPI.so
+
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
 

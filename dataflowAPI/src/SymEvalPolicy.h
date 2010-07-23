@@ -79,7 +79,7 @@
 
 namespace Dyninst {
 
-namespace SymbolicEvaluation {
+namespace DataflowAPI {
 
 // The ROSE symbolic evaluation engine wants a data type that
 // is template parametrized on the number of bits in the data

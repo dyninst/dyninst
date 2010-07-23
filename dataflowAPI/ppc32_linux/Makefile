@@ -21,7 +21,7 @@ AS		= /usr/bin/as
 # Add preprocessor and special link information for G++
 G_PTHREAD       = -pthread
 
-TARGET = libsymEval.so
+TARGET = libdataflowAPI.so
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

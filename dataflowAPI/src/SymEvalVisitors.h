@@ -34,14 +34,14 @@
 
 #include "../h/stackanalysis.h"
 #include "dynutil/h/AST.h"
-#include "symEval/h/Absloc.h"
+#include "dataflowAPI/h/Absloc.h"
 #include "SymEvalPolicy.h"
 #include <string>
 
 // A collection of visitors for SymEval AST classes
 
 namespace Dyninst {
-namespace SymbolicEvaluation {
+namespace DataflowAPI {
 
 class StackVisitor : public ASTVisitor {
  public:

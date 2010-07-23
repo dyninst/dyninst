@@ -16,7 +16,7 @@ using namespace Dyninst::InstructionAPI;
 //#include "../rose/powerpcInstructionSemantics.h"
 
 using namespace Dyninst;
-using namespace SymbolicEvaluation;
+using namespace DataflowAPI;
 
 void ExpressionConversionVisitor::visit(InstructionAPI::Immediate* immed) {
   // no children

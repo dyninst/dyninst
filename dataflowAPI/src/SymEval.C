@@ -52,11 +52,11 @@
 
 #include "../h/slicing.h" // AssignNode
 
-#include "debug_symeval.h"
+#include "debug_dataflow.h"
 
 using namespace Dyninst;
 using namespace InstructionAPI;
-using namespace SymbolicEvaluation;
+using namespace DataflowAPI;
 
 
 AST::Ptr SymEval::expand(const Assignment::Ptr &assignment) {

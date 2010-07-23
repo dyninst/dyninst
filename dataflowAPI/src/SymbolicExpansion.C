@@ -11,7 +11,7 @@
 
 
 using namespace Dyninst;
-using namespace SymbolicEvaluation;
+using namespace DataflowAPI;
 
 bool SymbolicExpansion::expandX86(SgAsmInstruction *rose_insn,
 				  SymEvalPolicy &policy) {

@@ -9,7 +9,7 @@
 #include "Result.h"
 #include "Dereference.h"
 
-#include "symEval/h/stackanalysis.h"
+#include "dataflowAPI/h/stackanalysis.h"
 
 #include "parseAPI/h/CFG.h"
 

@@ -3,19 +3,19 @@
 #include <set>
 #include <vector>
 #include <queue>
-#include "symEval/h/Absloc.h"
-#include "symEval/h/AbslocInterface.h"
+#include "dataflowAPI/h/Absloc.h"
+#include "dataflowAPI/h/AbslocInterface.h"
 #include "Instruction.h"
 
-#include "symEval/h/stackanalysis.h"
+#include "dataflowAPI/h/stackanalysis.h"
 
-#include "symEval/h/slicing.h"
+#include "dataflowAPI/h/slicing.h"
 
 #include "dynutil/h/Graph.h"
 #include "instructionAPI/h/Instruction.h"
 #include "instructionAPI/h/InstructionDecoder.h"
 
-#include "debug_symeval.h"
+#include "debug_dataflow.h"
 
 #include "CFG.h"
 #include "CodeSource.h"

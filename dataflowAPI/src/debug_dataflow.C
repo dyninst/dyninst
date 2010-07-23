@@ -35,14 +35,15 @@
 #include <stdarg.h>
 #include <assert.h>
 #include <string>
-#include "debug_symeval.h"
+#include "debug_dataflow.h"
+#include <stdlib.h>
 
 // Internal debugging
 
-int sym_debug_slicing= 0;
-int sym_debug_stackanalysis = 0;
-int sym_debug_convert = 0;
-int sym_debug_expand = 0;
+int df_debug_slicing= 0;
+int df_debug_stackanalysis = 0;
+int df_debug_convert = 0;
+int df_debug_expand = 0;
 
 bool init_debug() {
   static bool init = false;
@@ -53,29 +54,29 @@ bool init_debug() {
 
   if ((p=getenv("SYMEVAL_DEBUG_STACKANALYSIS"))) {
     fprintf(stderr, "Enabling SymEval stack analysis debugging\n");
-    sym_debug_stackanalysis = 1;
+    df_debug_stackanalysis = 1;
   }
 
   if ((p=getenv("SYMEVAL_DEBUG_SLICING"))) {
     fprintf(stderr, "Enabling SymEval slicing debugging\n");
-    sym_debug_slicing = 1;
+    df_debug_slicing = 1;
   }
 
   if ((p=getenv("SYMEVAL_DEBUG_CONVERT"))) {
     fprintf(stderr, "Enabling SymEval->ROSE conversion debugging\n");
-    sym_debug_convert = 1;
+    df_debug_convert = 1;
   }
 
   if ((p=getenv("SYMEVAL_DEBUG_EXPAND"))) {
     fprintf(stderr, "Enabling SymEval symbolic expansion debugging\n");
-    sym_debug_expand = 1;
+    df_debug_expand = 1;
   }
   return true;
 }
 
 int stackanalysis_printf_int(const char *format, ...)
 {
-  if (!sym_debug_stackanalysis) return 0;
+  if (!df_debug_stackanalysis) return 0;
   if (NULL == format) return -1;
 
   va_list va;
@@ -88,7 +89,7 @@ int stackanalysis_printf_int(const char *format, ...)
 
 int slicing_printf_int(const char *format, ...)
 {
-  if (!sym_debug_slicing) return 0;
+  if (!df_debug_slicing) return 0;
   if (NULL == format) return -1;
 
   va_list va;
@@ -101,7 +102,7 @@ int slicing_printf_int(const char *format, ...)
 
 int convert_printf_int(const char *format, ...)
 {
-  if (!sym_debug_convert) return 0;
+  if (!df_debug_convert) return 0;
   if (NULL == format) return -1;
 
   va_list va;
@@ -114,7 +115,7 @@ int convert_printf_int(const char *format, ...)
 
 int expand_printf_int(const char *format, ...)
 {
-  if (!sym_debug_expand) return 0;
+  if (!df_debug_expand) return 0;
   if (NULL == format) return -1;
 
   va_list va;

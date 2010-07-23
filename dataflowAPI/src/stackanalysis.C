@@ -40,7 +40,7 @@
 
 #include "Annotatable.h"
 
-#include "debug_symeval.h"
+#include "debug_dataflow.h"
 
 #include "parseAPI/h/CFG.h"
 #include "parseAPI/h/CodeObject.h"
@@ -103,7 +103,7 @@ bool StackAnalysis::analyze()
     
     func->addAnnotation(sp_intervals_, SP_Anno);
     func->addAnnotation(fp_intervals_, FP_Anno);
-    if (sym_debug_stackanalysis) {
+    if (df_debug_stackanalysis) {
         debug();
     }
 
