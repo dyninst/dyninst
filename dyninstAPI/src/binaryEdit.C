@@ -834,8 +834,8 @@ void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms,
                                         startAddr,
                                         newMod,
                                         newSec,
-                                        size,
-                                        (void *)startRange);
+                                        size);
+                                        
             newSyms.push_back(newSym);
 
             currFunc = NULL;
