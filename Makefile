@@ -14,7 +14,7 @@ BUILD_ID = "$(SUITE_NAME) v$(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)"
 
 SymtabAPI 	= ready common symtabAPI dynutil
 StackwalkerAPI = ready common symtabAPI stackwalk
-DyninstAPI	= ready common symtabAPI instructionAPI parseAPI dataflowAPI dyninstAPI_RT dyninstAPI dynutil
+DyninstAPI	= ready common symtabAPI instructionAPI parseAPI dyninstAPI_RT dyninstAPI dynutil
 InstructionAPI	= ready common instructionAPI dynutil
 ProcControlAPI = ready common proccontrol
 DepGraphAPI = depGraphAPI
@@ -46,7 +46,7 @@ endif
 fullSystem += parseAPI
 
 allCoreSubdirs	= dyninstAPI_RT common dyninstAPI symtabAPI dynutil instructionAPI parseAPI
-allSubdirs	= $(allCoreSubdirs) parseThat testsuites valueAdded/sharedMem depGraphAPI stackwalk dataflowAPI proccontrol
+allSubdirs	= $(allCoreSubdirs) parseThat testsuites valueAdded/sharedMem depGraphAPI stackwalk proccontrol
 
 # We're not building the new test suite on all platforms yet
 

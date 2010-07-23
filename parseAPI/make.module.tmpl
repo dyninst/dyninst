@@ -71,6 +71,13 @@ SRCS +=	../../dataflowAPI/src/Absloc.C \
 	../../dataflowAPI/src/templates.C \
 	../../dataflowAPI/src/Visitors.C
 VPATH += ../../dataflowAPI/src
+VPATH += ../../dataflowAPI/h
+
+PUBLIC_H += Absloc.h \
+	 AbslocInterface.h \
+	 slicing.h \
+	 SymEval.h \
+	 stackanalysis.h
 endif
 
 ifndef USES_NATIVE_CC
@@ -84,7 +91,7 @@ SYSLIBS		+= -ldemangle
 endif
 
 
-IFLAGS       += -I../$(PLATFORM) -I../src -I../../dataflowAPI/src -I../h -I../../dynutil/h -I../../symtabAPI/h -I../../common/h -I../../instructionAPI/h
+IFLAGS       += -I../$(PLATFORM) -I../src -I../../dataflowAPI/src -I../../dataflowAPI/h -I../h -I../../dynutil/h -I../../symtabAPI/h -I../../common/h -I../../instructionAPI/h
 
 
 # All that, and we finally get a target...
