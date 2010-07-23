@@ -1389,7 +1389,8 @@ bool emitElf::createLoadableSections(Symtab*obj, Elf32_Shdr* &shdr, unsigned &ex
      }
 #endif
 
-     if(createNewPhdr)
+     // Check to make sure the (vaddr for the start of the new segment - the offset) is page aligned
+     if(!firstNewLoadSec)
      {
         // Check to make sure the (vaddr for the start of the new segment - the offset) is page aligned
         if(!firstNewLoadSec)
@@ -1408,6 +1409,17 @@ bool emitElf::createLoadableSections(Symtab*obj, Elf32_Shdr* &shdr, unsigned &ex
            newoff += pgSize;
         extraAlignSize += newoff - newshdr->sh_offset;
         newshdr->sh_offset = newoff;
+
+	// For now, bluegene is the only system for which createNewPhdr is false. 
+	// Bluegene compute nodes have a 1MB alignment restructions on PT_LOAD section
+	// When we are replaceing PT_NOTE with PT_LOAD, we need to make sure the new PT_LOAD is 1MB aligned
+	if (!createNewPhdr && replaceNOTE)  {
+        	Offset newaddr = newshdr->sh_addr  - (newshdr->sh_addr & (0x100000-1));
+	        if(newaddr < newshdr->sh_addr)
+	             newaddr += 0x100000;
+	        newshdr->sh_addr = newaddr;
+	}
+        newSegmentStart = newshdr->sh_addr;
      }
 
      //Set up the data
