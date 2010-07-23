@@ -55,7 +55,22 @@ SRCS +=	../src/ParserDetails.C \
         ../src/InstructionAdapter.C\
         ../src/Parser-speculative.C
         
+SRCS +=	../../dataflowAPI/src/Absloc.C \
+     	../../dataflowAPI/src/AbslocInterface.C \
+	../../dataflowAPI/src/convertOpcodes.C \
+	../../dataflowAPI/src/debug_dataflow.C \
+	../../dataflowAPI/src/ExpressionConversionVisitor.C \
+	../../dataflowAPI/src/RoseImpl.C \
+	../../dataflowAPI/src/RoseInsnFactory.C \
+	../../dataflowAPI/src/slicing.C \
+	../../dataflowAPI/src/stackanalysis.C \
+	../../dataflowAPI/src/SymbolicExpansion.C \
+	../../dataflowAPI/src/SymEval.C \
+	../../dataflowAPI/src/SymEvalPolicy.C \
+	../../dataflowAPI/src/templates.C \
+	../../dataflowAPI/src/Visitors.C
 
+VPATH += ../../dataflowAPI/src
 
 ifndef USES_NATIVE_CC
 ifdef CROSSCOMPILER
@@ -68,7 +83,7 @@ SYSLIBS		+= -ldemangle
 endif
 
 
-IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../dynutil/h -I../../symtabAPI/h -I../../common/h -I../../instructionAPI/h
+IFLAGS       += -I../$(PLATFORM) -I../src -I../../dataflowAPI/src -I../h -I../../dynutil/h -I../../symtabAPI/h -I../../common/h -I../../instructionAPI/h
 
 
 # All that, and we finally get a target...

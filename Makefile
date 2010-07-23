@@ -20,8 +20,8 @@ ProcControlAPI = ready common proccontrol
 DepGraphAPI = depGraphAPI
 ParseAPI = ready common symtabAPI instructionAPI parseAPI
 ValueAdded = valueAdded/sharedMem
-DataflowAPI = instructionAPI parseAPI dataflowAPI
-
+#DataflowAPI = instructionAPI parseAPI dataflowAPI
+DataflowAPI = ParseAPI
 
 testsuites = dyninstAPI/tests 
 allSubdirs_noinstall =
