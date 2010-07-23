@@ -51,14 +51,14 @@ class StackVisitor : public ASTVisitor {
 	       StackAnalysis::Height &frameHeight) :
     addr_(a), func_(funcname), stack_(stackHeight), frame_(frameHeight) {};
 
-    SYMEVAL_EXPORT virtual AST::Ptr visit(AST *);
-    SYMEVAL_EXPORT virtual AST::Ptr visit(BottomAST *);
-    SYMEVAL_EXPORT virtual AST::Ptr visit(ConstantAST *);
-    SYMEVAL_EXPORT virtual AST::Ptr visit(VariableAST *);
-    SYMEVAL_EXPORT virtual AST::Ptr visit(RoseAST *);
-    SYMEVAL_EXPORT virtual AST::Ptr visit(StackAST *);
+    DATAFLOW_EXPORT virtual AST::Ptr visit(AST *);
+    DATAFLOW_EXPORT virtual AST::Ptr visit(BottomAST *);
+    DATAFLOW_EXPORT virtual AST::Ptr visit(ConstantAST *);
+    DATAFLOW_EXPORT virtual AST::Ptr visit(VariableAST *);
+    DATAFLOW_EXPORT virtual AST::Ptr visit(RoseAST *);
+    DATAFLOW_EXPORT virtual AST::Ptr visit(StackAST *);
   
-  SYMEVAL_EXPORT virtual ~StackVisitor() {};
+  DATAFLOW_EXPORT virtual ~StackVisitor() {};
 
   private:
   Address addr_;

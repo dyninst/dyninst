@@ -67,21 +67,21 @@ namespace DataflowAPI {
 // Define the operations used by ROSE
 
 struct Variable {
-  SYMEVAL_EXPORT Variable() : reg(), addr(0) {};
-  SYMEVAL_EXPORT Variable(AbsRegion r) : reg(r), addr(0) {};
-  SYMEVAL_EXPORT Variable(AbsRegion r, Address a) : reg(r), addr(a) {};
+  DATAFLOW_EXPORT Variable() : reg(), addr(0) {};
+  DATAFLOW_EXPORT Variable(AbsRegion r) : reg(r), addr(0) {};
+  DATAFLOW_EXPORT Variable(AbsRegion r, Address a) : reg(r), addr(a) {};
 
-  SYMEVAL_EXPORT bool operator==(const Variable &rhs) const { 
+  DATAFLOW_EXPORT bool operator==(const Variable &rhs) const { 
     return ((rhs.addr == addr) && (rhs.reg == reg));
   }
 
-  SYMEVAL_EXPORT bool operator<(const Variable &rhs) const { 
+  DATAFLOW_EXPORT bool operator<(const Variable &rhs) const { 
     if (addr < rhs.addr) return true;
     if (reg < rhs.reg) return true;
     return false;
   }
 
-  SYMEVAL_EXPORT const std::string format() const {
+  DATAFLOW_EXPORT const std::string format() const {
     std::stringstream ret;
     ret << reg;
     if (addr) ret << ":" << std::hex << addr << std::dec;
@@ -93,21 +93,21 @@ struct Variable {
 };
 
 struct Constant {
-  SYMEVAL_EXPORT Constant() : val(0), size(0) {};
-  SYMEVAL_EXPORT Constant(uint64_t v) : val(v), size(0) {};
-  SYMEVAL_EXPORT Constant(uint64_t v, size_t s) : val(v), size(s) {};
+  DATAFLOW_EXPORT Constant() : val(0), size(0) {};
+  DATAFLOW_EXPORT Constant(uint64_t v) : val(v), size(0) {};
+  DATAFLOW_EXPORT Constant(uint64_t v, size_t s) : val(v), size(s) {};
 
- SYMEVAL_EXPORT  bool operator==(const Constant &rhs) const {
+ DATAFLOW_EXPORT  bool operator==(const Constant &rhs) const {
     return ((rhs.val == val) && (rhs.size == size));
   }
 
-  SYMEVAL_EXPORT bool operator<(const Constant &rhs) const {
+  DATAFLOW_EXPORT bool operator<(const Constant &rhs) const {
     if (val < rhs.val) return true;
     if (size < rhs.size) return true;
     return false;
   }
 
-  SYMEVAL_EXPORT const std::string format() const {
+  DATAFLOW_EXPORT const std::string format() const {
     std::stringstream ret;
     ret << val;
     if (size) {
@@ -157,14 +157,14 @@ typedef enum {
     extendMSBOp
 } Op;
 
-SYMEVAL_EXPORT ROSEOperation(Op o) : op(o), size(0) {};
-SYMEVAL_EXPORT ROSEOperation(Op o, size_t s) : op(o), size(s) {};
+DATAFLOW_EXPORT ROSEOperation(Op o) : op(o), size(0) {};
+DATAFLOW_EXPORT ROSEOperation(Op o, size_t s) : op(o), size(s) {};
 
-SYMEVAL_EXPORT bool operator==(const ROSEOperation &rhs) const {
+DATAFLOW_EXPORT bool operator==(const ROSEOperation &rhs) const {
     return ((rhs.op == op) && (rhs.size == size));
 }
 
-SYMEVAL_EXPORT const std::string format() const {
+DATAFLOW_EXPORT const std::string format() const {
     std::stringstream ret;
     ret << "<";
     switch(op) {
@@ -316,18 +316,18 @@ public:
   // static const AST::Ptr Placeholder;
   //
   // Single version: hand in an Assignment, get an AST
-  SYMEVAL_EXPORT static AST::Ptr expand(const Assignment::Ptr &assignment);
+  DATAFLOW_EXPORT static AST::Ptr expand(const Assignment::Ptr &assignment);
 
   // Hand in a set of Assignments
   // get back a map of Assignments->ASTs
   // We assume the assignments are prepped in the input; whatever
   // they point to is discarded.
-  SYMEVAL_EXPORT static void expand(Result_t &res, bool applyVisitors = true);
+  DATAFLOW_EXPORT static void expand(Result_t &res, bool applyVisitors = true);
 
   // Hand in a Graph (of AssignNodes, natch) and get back a Result;
   // prior results from the Graph
   // are substituted into anything that uses them.
-  SYMEVAL_EXPORT static void expand(Graph::Ptr slice, Result_t &res);
+  DATAFLOW_EXPORT static void expand(Graph::Ptr slice, Result_t &res);
   
  private:
 

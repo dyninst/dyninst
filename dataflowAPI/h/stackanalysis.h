@@ -578,14 +578,14 @@ class StackAnalysis {
     typedef std::map<ParseAPI::Block *, FPChangePoints> BlockToFPChangePoints;
     typedef std::map<ParseAPI::Block *, Height> BlockHeights;
 
-    SYMEVAL_EXPORT StackAnalysis();
-    SYMEVAL_EXPORT StackAnalysis(ParseAPI::Function *f);
+    DATAFLOW_EXPORT StackAnalysis();
+    DATAFLOW_EXPORT StackAnalysis(ParseAPI::Function *f);
     
     // Lookup functions; preferred over the above
-    SYMEVAL_EXPORT Height findSP(Address addr);
-    SYMEVAL_EXPORT Height findFP(Address addr);
+    DATAFLOW_EXPORT Height findSP(Address addr);
+    DATAFLOW_EXPORT Height findFP(Address addr);
     
-    SYMEVAL_EXPORT void debug();
+    DATAFLOW_EXPORT void debug();
     
  private:
     

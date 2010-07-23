@@ -41,15 +41,15 @@ namespace Dyninst
       typedef PowerpcConditionRegisterAccessGranularity regField;
 
     public:
-    SYMEVAL_EXPORT ExpressionConversionVisitor(Architecture a, uint64_t ad) :
+    DATAFLOW_EXPORT ExpressionConversionVisitor(Architecture a, uint64_t ad) :
       roseExpression(NULL), arch(a), addr(ad) {};
       
-      SYMEVAL_EXPORT SgAsmExpression *getRoseExpression() { return roseExpression; }
+      DATAFLOW_EXPORT SgAsmExpression *getRoseExpression() { return roseExpression; }
       
-      SYMEVAL_EXPORT virtual void visit(InstructionAPI::BinaryFunction *binfunc);
-      SYMEVAL_EXPORT virtual void visit(InstructionAPI::Immediate *immed);
-      SYMEVAL_EXPORT virtual void visit(InstructionAPI::RegisterAST *regast);
-      SYMEVAL_EXPORT virtual void visit(InstructionAPI::Dereference *deref);
+      DATAFLOW_EXPORT virtual void visit(InstructionAPI::BinaryFunction *binfunc);
+      DATAFLOW_EXPORT virtual void visit(InstructionAPI::Immediate *immed);
+      DATAFLOW_EXPORT virtual void visit(InstructionAPI::RegisterAST *regast);
+      DATAFLOW_EXPORT virtual void visit(InstructionAPI::Dereference *deref);
       
     private:
 

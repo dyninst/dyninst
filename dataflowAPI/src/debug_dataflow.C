@@ -52,22 +52,22 @@ bool init_debug() {
 
   char *p;
 
-  if ((p=getenv("SYMEVAL_DEBUG_STACKANALYSIS"))) {
+  if ((p=getenv("DATAFLOW_DEBUG_STACKANALYSIS"))) {
     fprintf(stderr, "Enabling SymEval stack analysis debugging\n");
     df_debug_stackanalysis = 1;
   }
 
-  if ((p=getenv("SYMEVAL_DEBUG_SLICING"))) {
+  if ((p=getenv("DATAFLOW_DEBUG_SLICING"))) {
     fprintf(stderr, "Enabling SymEval slicing debugging\n");
     df_debug_slicing = 1;
   }
 
-  if ((p=getenv("SYMEVAL_DEBUG_CONVERT"))) {
+  if ((p=getenv("DATAFLOW_DEBUG_CONVERT"))) {
     fprintf(stderr, "Enabling SymEval->ROSE conversion debugging\n");
     df_debug_convert = 1;
   }
 
-  if ((p=getenv("SYMEVAL_DEBUG_EXPAND"))) {
+  if ((p=getenv("DATAFLOW_DEBUG_EXPAND"))) {
     fprintf(stderr, "Enabling SymEval symbolic expansion debugging\n");
     df_debug_expand = 1;
   }

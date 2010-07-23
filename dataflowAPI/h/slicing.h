@@ -44,29 +44,29 @@ class AssignNode : public Node {
  public:
   typedef dyn_detail::boost::shared_ptr<AssignNode> Ptr;
       
-  SYMEVAL_EXPORT static AssignNode::Ptr create(AssignmentPtr ptr,
+  DATAFLOW_EXPORT static AssignNode::Ptr create(AssignmentPtr ptr,
 				ParseAPI::Block *block,
 				ParseAPI::Function *func) {
     return Ptr(new AssignNode(ptr, block, func));
   }
       
-  SYMEVAL_EXPORT ParseAPI::Block *block() const { return b_; };
-  SYMEVAL_EXPORT ParseAPI::Function *func() const { return f_; };
-  SYMEVAL_EXPORT Address addr() const;
-  SYMEVAL_EXPORT AssignmentPtr assign() const { return a_; }
+  DATAFLOW_EXPORT ParseAPI::Block *block() const { return b_; };
+  DATAFLOW_EXPORT ParseAPI::Function *func() const { return f_; };
+  DATAFLOW_EXPORT Address addr() const;
+  DATAFLOW_EXPORT AssignmentPtr assign() const { return a_; }
       
-  SYMEVAL_EXPORT Node::Ptr copy() { return Node::Ptr(); }
-  SYMEVAL_EXPORT bool isVirtual() const { return false; }
+  DATAFLOW_EXPORT Node::Ptr copy() { return Node::Ptr(); }
+  DATAFLOW_EXPORT bool isVirtual() const { return false; }
       
-  SYMEVAL_EXPORT std::string format() const;
+  DATAFLOW_EXPORT std::string format() const;
       
-  SYMEVAL_EXPORT virtual ~AssignNode() {};
+  DATAFLOW_EXPORT virtual ~AssignNode() {};
       
-  SYMEVAL_EXPORT void addAssignment(AssignNode::Ptr p, unsigned u) {
+  DATAFLOW_EXPORT void addAssignment(AssignNode::Ptr p, unsigned u) {
     assignMap_[p] = u;
   }
       
-  SYMEVAL_EXPORT unsigned getAssignmentIndex(AssignNode::Ptr p) {
+  DATAFLOW_EXPORT unsigned getAssignmentIndex(AssignNode::Ptr p) {
     return assignMap_[p];
   }
       
@@ -91,34 +91,34 @@ class Slicer {
   typedef std::pair<InstructionPtr, Address> InsnInstance;
   typedef std::vector<InsnInstance> InsnVec;
 
-  SYMEVAL_EXPORT Slicer(AssignmentPtr a,
+  DATAFLOW_EXPORT Slicer(AssignmentPtr a,
 	 ParseAPI::Block *block,
 	 ParseAPI::Function *func);
     
-  SYMEVAL_EXPORT static bool isWidenNode(Node::Ptr n);
+  DATAFLOW_EXPORT static bool isWidenNode(Node::Ptr n);
 
   class Predicates {
   public:
     typedef std::pair<ParseAPI::Function *, int> StackDepth_t;
     typedef std::stack<StackDepth_t> CallStack_t;
 
-    SYMEVAL_EXPORT virtual bool widenAtPoint(AssignmentPtr) { return false; }
-    SYMEVAL_EXPORT virtual bool endAtPoint(AssignmentPtr) { return false; }
-    SYMEVAL_EXPORT virtual bool followCall(ParseAPI::Function * /*callee*/,
+    DATAFLOW_EXPORT virtual bool widenAtPoint(AssignmentPtr) { return false; }
+    DATAFLOW_EXPORT virtual bool endAtPoint(AssignmentPtr) { return false; }
+    DATAFLOW_EXPORT virtual bool followCall(ParseAPI::Function * /*callee*/,
                                            CallStack_t & /*cs*/,
                                            AbsRegion /*argument*/) { 
        return false; 
     }
-    SYMEVAL_EXPORT virtual bool widenAtAssignment(const AbsRegion & /*in*/,
+    DATAFLOW_EXPORT virtual bool widenAtAssignment(const AbsRegion & /*in*/,
                                                   const AbsRegion & /*out*/) { 
        return false; 
     }
-    SYMEVAL_EXPORT virtual ~Predicates() {};
+    DATAFLOW_EXPORT virtual ~Predicates() {};
   };
 
-  SYMEVAL_EXPORT GraphPtr forwardSlice(Predicates &predicates);
+  DATAFLOW_EXPORT GraphPtr forwardSlice(Predicates &predicates);
   
-  SYMEVAL_EXPORT GraphPtr backwardSlice(Predicates &predicates);
+  DATAFLOW_EXPORT GraphPtr backwardSlice(Predicates &predicates);
 
  private:
 

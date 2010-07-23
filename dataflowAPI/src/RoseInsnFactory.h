@@ -44,9 +44,9 @@ namespace DataflowAPI {
     typedef dyn_detail::boost::shared_ptr<InstructionAPI::Expression> ExpressionPtr;
     typedef dyn_detail::boost::shared_ptr<InstructionAPI::Instruction> InstructionPtr;
   public:
-    SYMEVAL_EXPORT RoseInsnFactory(void) {};
-    SYMEVAL_EXPORT virtual ~RoseInsnFactory(void) {};
-    SYMEVAL_EXPORT virtual SgAsmInstruction *convert(const InstructionPtr &insn, uint64_t addr);
+    DATAFLOW_EXPORT RoseInsnFactory(void) {};
+    DATAFLOW_EXPORT virtual ~RoseInsnFactory(void) {};
+    DATAFLOW_EXPORT virtual SgAsmInstruction *convert(const InstructionPtr &insn, uint64_t addr);
 
   protected:
     virtual SgAsmInstruction *createInsn() = 0;
@@ -64,8 +64,8 @@ namespace DataflowAPI {
 
 class RoseInsnX86Factory : public RoseInsnFactory {
   public:
-    SYMEVAL_EXPORT RoseInsnX86Factory() {};
-    SYMEVAL_EXPORT virtual ~RoseInsnX86Factory() {};
+    DATAFLOW_EXPORT RoseInsnX86Factory() {};
+    DATAFLOW_EXPORT virtual ~RoseInsnX86Factory() {};
     
   private:
     virtual SgAsmInstruction *createInsn();
@@ -81,8 +81,8 @@ class RoseInsnX86Factory : public RoseInsnFactory {
 
   class RoseInsnPPCFactory : public RoseInsnFactory {
   public:
-    SYMEVAL_EXPORT RoseInsnPPCFactory(void) {};
-    SYMEVAL_EXPORT virtual ~RoseInsnPPCFactory(void) {};
+    DATAFLOW_EXPORT RoseInsnPPCFactory(void) {};
+    DATAFLOW_EXPORT virtual ~RoseInsnPPCFactory(void) {};
 
   private:
     virtual SgAsmInstruction *createInsn();

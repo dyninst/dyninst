@@ -55,6 +55,7 @@ SRCS +=	../src/ParserDetails.C \
         ../src/InstructionAdapter.C\
         ../src/Parser-speculative.C
         
+ifneq ($(findstring cap_instruction_api,$(CAP_DEF)),)
 SRCS +=	../../dataflowAPI/src/Absloc.C \
      	../../dataflowAPI/src/AbslocInterface.C \
 	../../dataflowAPI/src/convertOpcodes.C \
@@ -69,8 +70,8 @@ SRCS +=	../../dataflowAPI/src/Absloc.C \
 	../../dataflowAPI/src/SymEvalPolicy.C \
 	../../dataflowAPI/src/templates.C \
 	../../dataflowAPI/src/Visitors.C
-
 VPATH += ../../dataflowAPI/src
+endif
 
 ifndef USES_NATIVE_CC
 ifdef CROSSCOMPILER

@@ -21,19 +21,19 @@ namespace Dyninst {
 
 class AbsRegionConverter {
  public:
- SYMEVAL_EXPORT AbsRegionConverter(bool cache) : 
+ DATAFLOW_EXPORT AbsRegionConverter(bool cache) : 
   cacheEnabled_(cache) {};
 
   // Definition: the first AbsRegion represents the expression.
   // If it's a memory reference, any other AbsRegions represent
   // registers used in this expression.
 
-  SYMEVAL_EXPORT void convertAll(InstructionAPI::Expression::Ptr expr,
+  DATAFLOW_EXPORT void convertAll(InstructionAPI::Expression::Ptr expr,
 		  Address addr,
 		  ParseAPI::Function *func,
 		  std::vector<AbsRegion> &regions);
 
-  SYMEVAL_EXPORT void convertAll(InstructionAPI::Instruction::Ptr insn,
+  DATAFLOW_EXPORT void convertAll(InstructionAPI::Instruction::Ptr insn,
 		  Address addr,
 		  ParseAPI::Function *func,
 		  std::vector<AbsRegion> &used,
@@ -41,18 +41,18 @@ class AbsRegionConverter {
 
   // Single converters
   
-  SYMEVAL_EXPORT AbsRegion convert(InstructionAPI::RegisterAST::Ptr reg);
+  DATAFLOW_EXPORT AbsRegion convert(InstructionAPI::RegisterAST::Ptr reg);
 
-  SYMEVAL_EXPORT AbsRegion convert(InstructionAPI::Expression::Ptr expr,
+  DATAFLOW_EXPORT AbsRegion convert(InstructionAPI::Expression::Ptr expr,
 		    Address addr,
 		    ParseAPI::Function *func);
 
   // Cons up a stack reference at the current addr
-  SYMEVAL_EXPORT AbsRegion stack(Address addr,
+  DATAFLOW_EXPORT AbsRegion stack(Address addr,
 		  ParseAPI::Function *func,
 		  bool push);
 
-  SYMEVAL_EXPORT AbsRegion frame(Address addr,
+  DATAFLOW_EXPORT AbsRegion frame(Address addr,
 		  ParseAPI::Function *func,
 		  bool push);
 
@@ -84,9 +84,9 @@ class AbsRegionConverter {
 
 class AssignmentConverter {
  public:  
- SYMEVAL_EXPORT AssignmentConverter(bool cache) : cacheEnabled_(cache), aConverter(false) {};
+ DATAFLOW_EXPORT AssignmentConverter(bool cache) : cacheEnabled_(cache), aConverter(false) {};
 
-  SYMEVAL_EXPORT void convert(InstructionAPI::Instruction::Ptr insn,
+  DATAFLOW_EXPORT void convert(InstructionAPI::Instruction::Ptr insn,
 	       const Address &addr,
 	       ParseAPI::Function *func,
 	       std::vector<Assignment::Ptr> &assignments);
