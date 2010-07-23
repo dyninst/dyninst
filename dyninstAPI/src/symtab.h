@@ -275,7 +275,7 @@ class image : public codeRange {
 
    void analyzeIfNeeded();
 
-   image_func* addFunctionStub(Address functionEntryAddr, const char *name=NULL);
+   image_func* addFunction(Address functionEntryAddr, const char *name=NULL);
 
    // creates the module if it does not exist
    pdmodule *getOrCreateModule (SymtabAPI::Module *mod);
