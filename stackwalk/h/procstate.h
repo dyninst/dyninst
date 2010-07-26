@@ -122,7 +122,7 @@ typedef enum {
   ps_attached,
   ps_running,
   ps_exited,
-  ps_errorstate,              // 5
+  ps_errorstate               // 5
 } proc_state;
 
 typedef enum {

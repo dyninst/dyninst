@@ -45,6 +45,10 @@
 
 class MappedFile;
 
+#define SYM_MAJOR 6
+#define SYM_MINOR 2
+#define SYM_BETA  1
+ 
 namespace Dyninst {
 namespace SymtabAPI {
 
@@ -213,6 +217,8 @@ class Symtab : public LookupInterface,
          std::string lineSource, unsigned int LineNo);
    SYMTAB_EXPORT bool getSourceLines(std::vector<Statement *> &lines, 
          Offset addressInRange);
+   SYMTAB_EXPORT bool getSourceLines(std::vector<LineNoTuple> &lines, 
+                                     Offset addressInRange);
    SYMTAB_EXPORT bool addLine(std::string lineSource, unsigned int lineNo,
          unsigned int lineOffset, Offset lowInclAddr,
          Offset highExclAddr);

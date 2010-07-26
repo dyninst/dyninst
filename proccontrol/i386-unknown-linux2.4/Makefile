@@ -14,7 +14,8 @@ TARGET = libpcontrol.so
 LDFLAGS     += $(LIBDIR) -lcommon
 
 SRCS = 	../src/linux.C \
-         ../src/sysv.C
+         ../src/sysv.C \
+			../../common/src/dthread-unix.C
 
 ifdef LIBELF_INC
 MYFLAGS += -I$(LIBELF_INC)
@@ -39,4 +40,6 @@ include ../make.module.tmpl
 include ../../make.library.tmpl
 
 # Now make any necessary architecture specific changes to variables:
+
+VPATH += ../../common/src
 
