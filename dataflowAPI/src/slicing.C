@@ -86,10 +86,10 @@ Slicer::Slicer(Assignment::Ptr a,
   symeval_init_debug();
 
   if (a->addr() == 0xee7) {
-    sym_debug_slicing = 1;
+    df_debug_slicing = 1;
   }
   else {
-    sym_debug_slicing = 0;
+    df_debug_slicing = 0;
   }
 
 };
