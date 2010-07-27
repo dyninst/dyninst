@@ -38,13 +38,13 @@
 #include "function.h"
 #include "r_e_ControlFlow.h"
 #include "r_e_GetPC.h"
-#include "symEval/h/stackanalysis.h"
+#include "dataflowAPI/h/stackanalysis.h"
 #include "addressSpace.h"
 #include "Symtab.h" 
 #include "mapped_object.h"
 #include "InstructionDecoder.h"
 
-#include "symEval/h/slicing.h"
+#include "dataflowAPI/h/slicing.h"
 
 using namespace std;
 using namespace Dyninst;
@@ -331,8 +331,8 @@ bool PCSensitiveTransformer::determineSensitivity(Graph::Ptr slice,
 						  bool &internal,
 						  bool &external) {
   // Step 1: get a symbolic expansion of each node in the slice
-  SymEval::Result_t results;
-  SymEval::expand(slice, results);
+  DataflowAPI::Result_t results;
+  DataflowAPI::expand(slice, results);
 
   // Step 2: iterate over each exit node in the slice
   NodeIterator exitBegin, exitEnd;

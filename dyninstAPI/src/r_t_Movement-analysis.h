@@ -35,11 +35,11 @@
 #include "r_t_Base.h"
 #include "LinearVariable.h"
 
-#include "symEval/h/Absloc.h" // MemEmulator analysis
-#include "symEval/h/AbslocInterface.h" // And more of the same
+#include "dataflowAPI/h/Absloc.h" // MemEmulator analysis
+#include "dataflowAPI/h/AbslocInterface.h" // And more of the same
 
 #include "Graph.h" // PC-sensitive transformer
-#include "symEval/h/SymEval.h" // Variable class
+#include "dataflowAPI/h/SymEval.h" // Variable class
 
 namespace Dyninst {
 
