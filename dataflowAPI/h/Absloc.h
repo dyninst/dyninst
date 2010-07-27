@@ -50,8 +50,7 @@
 #endif
 
 #include "Instruction.h"
-#include "AST.h"
-#include "util.h"
+#include "dynutil/h/AST.h"
 
 namespace Dyninst {
 

@@ -76,7 +76,7 @@ bool symeval_init_debug() {
   return true;
 }
 
-int sym_stackanalysis_printf_int(const char *format, ...)
+int stackanalysis_printf_int(const char *format, ...)
 {
   if (!df_debug_stackanalysis) return 0;
   if (NULL == format) return -1;

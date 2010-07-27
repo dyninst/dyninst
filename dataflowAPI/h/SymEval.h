@@ -42,6 +42,7 @@
 #include "external/rose/rose-compat.h"
 #include "external/rose/powerpcInstructionEnum.h"
 #include "Graph.h"
+#include "dynutil/h/util.h"
 
 class SgAsmx86Instruction;
 class SgAsmExpression;
