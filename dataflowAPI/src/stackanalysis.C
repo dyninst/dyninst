@@ -379,7 +379,7 @@ void StackAnalysis::fp_fixpoint() {
 
   while (!worklist.empty()) {
     Block *block = worklist.front();
-    stackanalysis_printf("\t Fixpoint analysis: visiting block at 0x%lx\n", bloc      
+    stackanalysis_printf("\t Fixpoint analysis: visiting block at 0x%lx\n", block->start());
     worklist.pop();
       
     // Step 1: calculate the meet over the heights of all incoming

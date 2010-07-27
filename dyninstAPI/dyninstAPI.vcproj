@@ -1748,6 +1748,14 @@
 				RelativePath=".\src\r_AddressMapper.C"
 				>
 				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
 					Name="Release|Win32"
 					>
 					<Tool
@@ -2638,7 +2646,7 @@
 			</File>
 			<File
 				RelativePath=".\src\r_AddressMapper.h"
-			  >
+				>
 			</File>
 			<File
 				RelativePath=".\src\r_CodeMover.h"
