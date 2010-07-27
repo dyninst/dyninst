@@ -333,7 +333,7 @@ bool PCSensitiveTransformer::determineSensitivity(Graph::Ptr slice,
 						  bool &external) {
   // Step 1: get a symbolic expansion of each node in the slice
   DataflowAPI::Result_t results;
-  DataflowAPI::expand(slice, results);
+  DataflowAPI::SymEval::expand(slice, results);
 
   // Step 2: iterate over each exit node in the slice
   NodeIterator exitBegin, exitEnd;
