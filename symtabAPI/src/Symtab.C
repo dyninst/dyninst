@@ -2810,6 +2810,7 @@ SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size)
 #else
 	unsigned pgSize = P_getpagesize();
 
+#if defined(os_linux)
         // Bluegene compute nodes have a 1MB alignment restructions on PT_LOAD section
 	Object *obj = getObject();
 	if (!obj)
@@ -2821,7 +2822,7 @@ SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size)
 	bool hasNoteSection = obj->hasNoteSection();
 	if (isBlueGene && hasNoteSection)
 		pgSize = 0x100000; 
-	
+#endif	
 	Offset newaddr = highWaterMark  - (highWaterMark & (pgSize-1));
 	if(newaddr < highWaterMark)
 		newaddr += pgSize;
