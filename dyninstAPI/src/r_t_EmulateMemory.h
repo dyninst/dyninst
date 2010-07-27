@@ -33,8 +33,8 @@
 #define _R_T_EMULATE_MEMORY_H_
 
 #include "r_t_Base.h"
-#include "symEval/h/Absloc.h" // MemEmulator analysis
-#include "symEval/h/AbslocInterface.h" // And more of the same
+#include "Absloc.h" // MemEmulator analysis
+#include "AbslocInterface.h" // And more of the same
 
 namespace Dyninst {
 namespace Relocation {

@@ -35,16 +35,16 @@
 #include "r_t_Base.h"
 #include "LinearVariable.h"
 
-#include "symEval/h/Absloc.h" // MemEmulator analysis
-#include "symEval/h/AbslocInterface.h" // And more of the same
+#include "Absloc.h" // MemEmulator analysis
+#include "AbslocInterface.h" // And more of the same
 
 #include "Graph.h" // PC-sensitive transformer
-#include "symEval/h/SymEval.h" // Variable class
+#include "SymEval.h" // Variable class
 
 namespace Dyninst {
 
 // ROSE symeval AST types
- namespace SymbolicEvaluation {
+ namespace DataflowAPI {
  class BottomAST;
  class ConstantAST;
  class AbsRegionAST;
@@ -60,10 +60,10 @@ class ExtPCSensVisitor : public ASTVisitor {
   ExtPCSensVisitor(const AbsRegion &a);
   
   virtual AST::Ptr visit(AST *);
-  virtual AST::Ptr visit(SymbolicEvaluation::BottomAST *);
-  virtual AST::Ptr visit(SymbolicEvaluation::ConstantAST *);
-  virtual AST::Ptr visit(SymbolicEvaluation::VariableAST *);
-  virtual AST::Ptr visit(SymbolicEvaluation::RoseAST *);
+  virtual AST::Ptr visit(DataflowAPI::BottomAST *);
+  virtual AST::Ptr visit(DataflowAPI::ConstantAST *);
+  virtual AST::Ptr visit(DataflowAPI::VariableAST *);
+  virtual AST::Ptr visit(DataflowAPI::RoseAST *);
   virtual AST::Ptr visit(StackAST *);
   virtual ASTVisitor::ASTPtr visit(InputVariableAST *x) { return ASTVisitor::visit(x); }
   virtual ASTVisitor::ASTPtr visit(ReferenceAST *x) { return ASTVisitor::visit(x); }
@@ -77,7 +77,7 @@ class ExtPCSensVisitor : public ASTVisitor {
   bool assignPC_;
   bool isExtSens_;
 
-  typedef linVar<Dyninst::SymbolicEvaluation::Variable> DiffVar;
+  typedef linVar<Dyninst::DataflowAPI::Variable> DiffVar;
 
   std::stack<DiffVar > diffs_;
 };

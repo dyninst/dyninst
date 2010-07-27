@@ -35,7 +35,7 @@
 #include "r_e_Base.h"
 
 // Define where the PC value is supposed to go
-#include "symEval/h/Absloc.h"
+#include "Absloc.h"
 
 namespace Dyninst {
 namespace Relocation {

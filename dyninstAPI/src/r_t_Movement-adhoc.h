@@ -35,8 +35,7 @@
 
 #include "r_t_Base.h"
 
-// FIXME...
-#include "symEval/h/Absloc.h" // MemEmulator analysis
+#include "Absloc.h" // MemEmulator analysis
 
 
 namespace Dyninst {
