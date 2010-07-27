@@ -1064,21 +1064,16 @@ bool IA_IAPI::isReturnAddrSave() const
     return false;
 }
 
-
-//class ST_Predicates : public Slicer::Predicates {};
+class ST_Predicates : public Slicer::Predicates {};
 
 // returns stackTamper, which is false if parsing should not resume 
 // after call instructions to this function.  
 // The function recommends parsing at an alternative address if the stack 
 // delta is a known absolute or relative value, otherwise we will instrument
 // this function's return instructions to see if the function returns
-StackTamper IA_IAPI::tampersStack(ParseAPI::Function *, 
-                                  Address &) const
+StackTamper IA_IAPI::tampersStack(ParseAPI::Function *func, 
+                                  Address &tamperAddr) const
 {
-    return TAMPER_NONE;
-
-#if 0
-
     using namespace SymbolicEvaluation;
     if (TAMPER_UNSET != func->stackTamper()) {
         return func->stackTamper();
@@ -1097,11 +1092,10 @@ StackTamper IA_IAPI::tampersStack(ParseAPI::Function *,
     vector<Assignment::Ptr> assgns;
     ST_Predicates preds;
     StackTamper tamper = TAMPER_UNSET;
-    //Absloc stkLoc (MachRegister::getStackPointer(_isrc->getArch()));
     Function::blocklist::iterator bit;
     for (bit = retblks.begin(); retblks.end() != bit; bit++) {
         Address retnAddr = (*bit)->lastInsnAddr();
-        InstructionDecoder retdec( _isrc->getPtrToInstruction( retnAddr ), 
+        InstructionDecoder retdec(_isrc->getPtrToInstruction( retnAddr ), 
                                   InstructionDecoder::maxInstructionLength, 
                                   _cr->getArch() );
         Instruction::Ptr retn = retdec.decode();
@@ -1132,7 +1126,6 @@ StackTamper IA_IAPI::tampersStack(ParseAPI::Function *,
         assgns.clear();
     }
     return tamper;
-#endif
 }
 
 /* returns true if the call leads to:

@@ -474,7 +474,7 @@ class Function : public allocatable, public AnnotatableSparse {
     bool _saves_fp;
     bool _cleans_stack;
     StackTamper _tamper;
-    Address _tamper_addr;
+    std::pair<Address,Address> *_tamper_edge;
 
     /*** Internal parsing methods and state ***/
     void add_block(Block *b);

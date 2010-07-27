@@ -734,6 +734,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\StackTamperVisitor.h"
+				>
+			</File>
+			<File
 				RelativePath="..\dataflowAPI\h\SymEval.h"
 				>
 			</File>

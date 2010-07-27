@@ -379,8 +379,7 @@ void StackAnalysis::fp_fixpoint() {
 
   while (!worklist.empty()) {
     Block *block = worklist.front();
-    stackanalysis_printf("\t Fixpoint analysis: visiting block at 0x%lx\n", block->start());
-      
+    stackanalysis_printf("\t Fixpoint analysis: visiting block at 0x%lx\n", bloc      
     worklist.pop();
       
     // Step 1: calculate the meet over the heights of all incoming
@@ -690,7 +689,6 @@ void StackAnalysis::computeInsnEffects(Block *block,
 	}
       }
       stackanalysis_printf("\t\t\t Stack height changed by return: %s\n", iFunc.format().c_str());
-      
       return;
     }
     case e_sub:

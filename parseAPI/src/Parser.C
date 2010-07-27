@@ -278,6 +278,9 @@ Parser::parse_vanilla()
 void
 Parser::parse_edges( vector< ParseWorkElem * > & work_elems )
 {
+    // build up set of needed parse frames and load them with work elements
+    set<ParseFrame*> frameset; // for dup checking
+    vector<ParseFrame*> frames;
     for (unsigned idx=0; idx < work_elems.size(); idx++) {
 
         ParseWorkElem *elem = work_elems[idx];
@@ -285,21 +288,29 @@ Parser::parse_edges( vector< ParseWorkElem * > & work_elems )
         ParseFrame *frame = _parse_data->findFrame
             ( src->region(), 
               src->lastInsnAddr() );
+        if (!frame) {
+            vector<Function*> funcs;
+            src->getFuncs(funcs);
+            frame = new ParseFrame(*funcs.begin(),_parse_data);
+            init_frame(frame);
+        }
         frame->pushWork(elem);
-
-        if(_parse_state < PARTIAL)
-            _parse_state = PARTIAL;
-        _in_parse = true;
-
-        vector< ParseFrame* > frames;
-        frames.push_back(frame);
-        parse_frames( frames, true );
-
-        if(_parse_state > COMPLETE)
-            _parse_state = COMPLETE;
-        _in_parse = false;
-
+        if (frameset.end() == frameset.find(frame)) {
+            frameset.insert(frame);
+            frames.push_back(frame);
+        }
     }
+
+    // now parse
+    if(_parse_state < PARTIAL)
+        _parse_state = PARTIAL;
+    _in_parse = true;
+
+    parse_frames( frames, true );
+
+    if(_parse_state > COMPLETE)
+        _parse_state = COMPLETE;
+    _in_parse = false;
 
     finalize();
 
@@ -665,6 +676,13 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 // Parsed return status tests
                 if(!is_nonret && !is_plt && ct) {
                     is_nonret |= (ct->retstatus() == NORETURN);
+                }
+                // Call-stack tampering tests
+                if (frame.func->obj()->defensiveMode() && ct) {
+                    StackTamper tamper = ct->stackTamper();
+                    if (TAMPER_NONE != tamper) {
+	                    is_nonret = true;
+                    }
                 }
 
                 if(is_nonret) {
