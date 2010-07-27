@@ -35,8 +35,12 @@
 
 #include "r_t_Base.h"
 
+<<<<<<< HEAD:dyninstAPI/src/r_t_Movement-adhoc.h
+#include "Absloc.h" // MemEmulator analysis
+=======
 // FIXME...
 #include "dataflowAPI/h/Absloc.h" // MemEmulator analysis
+>>>>>>> a94cc9e0c145043ac2318ee4aa0ad03b9f3f3b06:dyninstAPI/src/r_t_Movement-adhoc.h
 
 
 namespace Dyninst {

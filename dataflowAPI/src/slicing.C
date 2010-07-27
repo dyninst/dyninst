@@ -84,14 +84,6 @@ Slicer::Slicer(Assignment::Ptr a,
   f_(func),
   converter(true) {
   symeval_init_debug();
-
-  if (a->addr() == 0xee7) {
-    df_debug_slicing = 1;
-  }
-  else {
-    df_debug_slicing = 0;
-  }
-
 };
 
 Graph::Ptr Slicer::forwardSlice(Predicates &predicates) {

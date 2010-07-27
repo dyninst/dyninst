@@ -35,6 +35,10 @@ using namespace Dyninst;
 using namespace Dyninst::DataflowAPI;
 using namespace std;
 
+AST::Ptr StackVisitor::visit(AST *a) {
+  return a->ptr();
+}
+
 AST::Ptr StackVisitor::visit(BottomAST *b) {
   return b->ptr();
 }

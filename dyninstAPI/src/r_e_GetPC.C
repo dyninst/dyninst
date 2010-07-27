@@ -166,8 +166,6 @@ bool IPPatch::apply(codeGen &gen, int, int) {
     *temp = offset;
     newInsn += sizeof(uint32_t);	  
 
-    cerr << "Rewrote thunk with offset " << hex << offset << " @ addr " << gen.currAddr() << " and orig value " << orig_value << dec << endl;
-    
     if (type == Reg) {
       assert(reg != (Register) -1);
       // pop...

@@ -84,19 +84,19 @@ AnnotationClass <StackAnalysis::HeightTree> FP_Anno(std::string("FP_Anno"));
 bool StackAnalysis::analyze()
 {
   symeval_init_debug();
-  sym_stackanalysis_printf_int("Beginning stack analysis for function %s\n",
+  stackanalysis_printf("Beginning stack analysis for function %s\n",
 		       func->name().c_str());
 
-    sym_stackanalysis_printf_int("\tSummarizing block effects\n");
+    stackanalysis_printf("\tSummarizing block effects\n");
     summarizeBlocks();
     
-    sym_stackanalysis_printf_int("\tPerforming fixpoint analysis\n");
+    stackanalysis_printf("\tPerforming fixpoint analysis\n");
     sp_fixpoint();
 
-    sym_stackanalysis_printf_int("\tCreating SP interval tree\n");
+    stackanalysis_printf("\tCreating SP interval tree\n");
     sp_createIntervals();
 
-    sym_stackanalysis_printf_int("\tCreating FP interval tree\n");
+    stackanalysis_printf("\tCreating FP interval tree\n");
     fp_fixpoint();
 
     fp_createIntervals();
@@ -107,7 +107,7 @@ bool StackAnalysis::analyze()
         debug();
     }
 
-    sym_stackanalysis_printf_int("Finished stack analysis for function %s\n",
+    stackanalysis_printf("Finished stack analysis for function %s\n",
 			 func->name().c_str());
 
     return true;
@@ -168,7 +168,7 @@ void StackAnalysis::summarizeBlocks() {
     
     bFunc = BlockTransferFunc::top;
     
-    sym_stackanalysis_printf_int("\t Block starting at 0x%lx: %s\n", 
+    stackanalysis_printf("\t Block starting at 0x%lx: %s\n", 
 			 block->start(),
 			 bFunc.format().c_str());
     
@@ -200,11 +200,11 @@ void StackAnalysis::summarizeBlocks() {
 	fp_changePoints[block].push_back(std::make_pair<fp_State, Offset>(fpCopied, off + insn->size()));
       }
       
-      sym_stackanalysis_printf_int("\t\t\t At 0x%lx:  %s\n",
+      stackanalysis_printf("\t\t\t At 0x%lx:  %s\n",
 			   off,
 			   bFunc.format().c_str());
     }
-    sym_stackanalysis_printf_int("\t Block summary for 0x%lx: %s\n", block->start(), bFunc.format().c_str());
+    stackanalysis_printf("\t Block summary for 0x%lx: %s\n", block->start(), bFunc.format().c_str());
   }
 }
 
@@ -221,7 +221,7 @@ void StackAnalysis::sp_fixpoint() {
   
   while (!worklist.empty()) {
     Block *block = worklist.front();
-    sym_stackanalysis_printf_int("\t Fixpoint analysis: visiting block at 0x%lx\n", block->start());
+    stackanalysis_printf("\t Fixpoint analysis: visiting block at 0x%lx\n", block->start());
     
     worklist.pop();
     
@@ -246,7 +246,7 @@ void StackAnalysis::sp_fixpoint() {
       assert(0 && "Unimplemented architecture");
 #endif
       
-      sym_stackanalysis_printf_int("\t Primed initial block\n");
+      stackanalysis_printf("\t Primed initial block\n");
     }
     else {
       
@@ -256,7 +256,7 @@ void StackAnalysis::sp_fixpoint() {
 	Edge *edge = (Edge*)*eit;
 	//if (edge->type() == CALL || edge->type() == RET) continue;
 	inEffects.insert(sp_outBlockEffects[edge->src()]);
-	sym_stackanalysis_printf_int("\t\t Inserting 0x%lx: %s\n", 
+	stackanalysis_printf("\t\t Inserting 0x%lx: %s\n", 
 			     edge->src()->start(),
 			     sp_outBlockEffects[edge->src()].format().c_str());
       }
@@ -264,18 +264,18 @@ void StackAnalysis::sp_fixpoint() {
     
     BlockTransferFunc newInEffect = meet(inEffects);
     
-    sym_stackanalysis_printf_int("\t New in meet:  %s\n",
+    stackanalysis_printf("\t New in meet:  %s\n",
 			 newInEffect.format().c_str());
     
     // Step 2: see if the input has changed
     
     if (newInEffect == sp_inBlockEffects[block]) {
       // No new work here
-      sym_stackanalysis_printf_int("\t ... equal to current, skipping block\n");
+      stackanalysis_printf("\t ... equal to current, skipping block\n");
       continue;
     }
     
-    sym_stackanalysis_printf_int("\t ... inequal to current %s, analyzing block\n",
+    stackanalysis_printf("\t ... inequal to current %s, analyzing block\n",
 			 sp_inBlockEffects[block].format().c_str());
     
     sp_inBlockEffects[block] = newInEffect;
@@ -285,7 +285,7 @@ void StackAnalysis::sp_fixpoint() {
     sp_blockEffects[block].apply(newInEffect, 
 				 sp_outBlockEffects[block]);
     
-    sym_stackanalysis_printf_int("\t ... output from block: %s\n",
+    stackanalysis_printf("\t ... output from block: %s\n",
 			 sp_outBlockEffects[block].format().c_str());
     
     // Step 4: push all children on the worklist.
@@ -313,13 +313,13 @@ void StackAnalysis::sp_createIntervals() {
   for( ; bit != bs.end(); ++bit) {
     Block *block = *bit;
     
-    sym_stackanalysis_printf_int("\t Interval creation (H): visiting block at 0x%lx\n", block->start());
+    stackanalysis_printf("\t Interval creation (H): visiting block at 0x%lx\n", block->start());
     
     Offset curLB = block->start();
     Offset curUB = 0;
     BlockTransferFunc curHeight = sp_inBlockEffects[block];
     
-    sym_stackanalysis_printf_int("\t\t Block starting state: 0x%lx, %s\n", 
+    stackanalysis_printf("\t\t Block starting state: 0x%lx, %s\n", 
 			 curLB, curHeight.format().c_str());
     
     // We only cache points where the frame height changes. 
@@ -341,7 +341,7 @@ void StackAnalysis::sp_createIntervals() {
       // Adjust height
       iter->second.apply(curHeight);
       
-      sym_stackanalysis_printf_int("\t\t Block continuing state: 0x%lx, %s\n", 
+      stackanalysis_printf("\t\t Block continuing state: 0x%lx, %s\n", 
 			   curLB, curHeight.format().c_str());
     }
     
@@ -379,8 +379,7 @@ void StackAnalysis::fp_fixpoint() {
 
   while (!worklist.empty()) {
     Block *block = worklist.front();
-    sym_stackanalysis_printf_int("\t Fixpoint analysis: visiting block at 0x%lx\n", block->start());
-      
+    stackanalysis_printf("\t Fixpoint analysis: visiting block at 0x%lx\n", bloc      
     worklist.pop();
       
     // Step 1: calculate the meet over the heights of all incoming
@@ -393,7 +392,7 @@ void StackAnalysis::fp_fixpoint() {
       // The set height is... 0
       // And there is no input region.
       inHeights.insert(Height::bottom);
-      sym_stackanalysis_printf_int("\t Primed initial block\n");
+      stackanalysis_printf("\t Primed initial block\n");
     }
     else {
         Block::edgelist & inEdges = block->sources();
@@ -402,7 +401,7 @@ void StackAnalysis::fp_fixpoint() {
 	        Edge *edge = (Edge*)*eit;
 	        //if (edge->type() == CALL) continue;
 	        inHeights.insert(fp_outBlockHeights[edge->src()]);
-	        sym_stackanalysis_printf_int("\t\t Inserting 0x%lx: %s\n", 
+	        stackanalysis_printf("\t\t Inserting 0x%lx: %s\n", 
 			     edge->src()->start(),
 			     fp_outBlockHeights[edge->src()].format().c_str());
         }
@@ -410,18 +409,18 @@ void StackAnalysis::fp_fixpoint() {
     
     Height newInHeight = meet(inHeights);
     
-    sym_stackanalysis_printf_int("\t New in meet:  %s\n",
+    stackanalysis_printf("\t New in meet:  %s\n",
 			 newInHeight.format().c_str());
     
     // Step 2: see if the input has changed
       
     if (newInHeight == fp_inBlockHeights[block]) {
       // No new work here
-      sym_stackanalysis_printf_int("\t ... equal to current, skipping block\n");
+      stackanalysis_printf("\t ... equal to current, skipping block\n");
       continue;
     }
       
-    sym_stackanalysis_printf_int("\t ... inequal to current %s, analyzing block\n",
+    stackanalysis_printf("\t ... inequal to current %s, analyzing block\n",
 			 fp_inBlockHeights[block].format().c_str());
       
     fp_inBlockHeights[block] = newInHeight;
@@ -449,7 +448,7 @@ void StackAnalysis::fp_fixpoint() {
       fp_outBlockHeights[block] = newInHeight;
     }
 
-    sym_stackanalysis_printf_int("\t ... output from block: %s\n",
+    stackanalysis_printf("\t ... output from block: %s\n",
 			 fp_outBlockHeights[block].format().c_str());
       
     // Step 4: push all children on the worklist.
@@ -477,14 +476,14 @@ void StackAnalysis::fp_createIntervals() {
   for( ; bit != bs.end(); ++bit) {
     Block *block = *bit;
 
-    sym_stackanalysis_printf_int("\t Interval creation (H): visiting block at 0x%lx\n", 
+    stackanalysis_printf("\t Interval creation (H): visiting block at 0x%lx\n", 
 			 block->start());
     
     Offset curLB = block->start();
     Offset curUB = 0;
     Height curHeight = fp_inBlockHeights[block];
     
-    sym_stackanalysis_printf_int("\t\t Block starting state: 0x%lx, %s\n", 
+    stackanalysis_printf("\t\t Block starting state: 0x%lx, %s\n", 
 			 curLB, curHeight.format().c_str());
     
     // We only cache points where the frame height changes. 
@@ -500,7 +499,7 @@ void StackAnalysis::fp_createIntervals() {
       fp_intervals_->insert(curLB, curUB, 
 			    curHeight);
 
-      sym_stackanalysis_printf_int("\t\t\t Inserting interval: 0x%lx, 0x%lx, %s\n",
+      stackanalysis_printf("\t\t\t Inserting interval: 0x%lx, 0x%lx, %s\n",
 			   curLB, curUB, curHeight.format().c_str());
 
       switch(iter2->first) {
@@ -528,7 +527,7 @@ void StackAnalysis::fp_createIntervals() {
       }
 
 
-      sym_stackanalysis_printf_int("\t\t\t Inserting interval: 0x%lx, 0x%lx, %s\n",
+      stackanalysis_printf("\t\t\t Inserting interval: 0x%lx, 0x%lx, %s\n",
 			   curLB, curUB, curHeight.format().c_str());
       fp_intervals_->insert(curLB, curUB, 
 			    curHeight);
@@ -542,7 +541,7 @@ void StackAnalysis::computeInsnEffects(Block *block,
                                        InsnTransferFunc &iFunc,
 				       fp_State &fpState) 
 {
-    sym_stackanalysis_printf_int("\t\tInsn at 0x%lx\n", off);
+    stackanalysis_printf("\t\tInsn at 0x%lx\n", off);
     static Expression::Ptr theStackPtr(new RegisterAST(MachRegister::getStackPointer(func->isrc()->getArch())));
     static Expression::Ptr theFramePtr(new RegisterAST(MachRegister::getFramePointer(func->isrc()->getArch())));
     
@@ -550,11 +549,11 @@ void StackAnalysis::computeInsnEffects(Block *block,
     entryID what = insn->getOperation().getID();
 
     if (insn->isWritten(theFramePtr)) {
-      sym_stackanalysis_printf_int("\t\t\t FP written\n");
+      stackanalysis_printf("\t\t\t FP written\n");
       if (what == e_mov &&
           (insn->isRead(theStackPtr))) {
 	fpState = fp_created;
-	sym_stackanalysis_printf_int("\t\t\t Frame created\n");
+	stackanalysis_printf("\t\t\t Frame created\n");
       }
       else {
 	fpState = fp_destroyed;
@@ -570,7 +569,7 @@ void StackAnalysis::computeInsnEffects(Block *block,
 	// call-next-PCs do
 	// and it's impossible to distinguish without evaluating the CFT. 
 
-	sym_stackanalysis_printf_int("\t\t\t getPC call: %s\n", iFunc.format().c_str());
+	stackanalysis_printf("\t\t\t getPC call: %s\n", iFunc.format().c_str());
 	return;
       }
         
@@ -584,7 +583,7 @@ void StackAnalysis::computeInsnEffects(Block *block,
 	            // call as a branch. So it shifts the stack
 	            // like a push (heh) and then we're done.
 	            iFunc.delta() = -1*word_size;
-	            sym_stackanalysis_printf_int("\t\t\t Stack height changed by simulate-jump call\n");
+	            stackanalysis_printf("\t\t\t Stack height changed by simulate-jump call\n");
 	            return;
 	        }
 
@@ -604,10 +603,10 @@ void StackAnalysis::computeInsnEffects(Block *block,
                 iFunc.delta() = h.height();
             }
 
-            sym_stackanalysis_printf_int("\t\t\t Stack height changed by self-cleaning function: %s\n", iFunc.format().c_str());
+            stackanalysis_printf("\t\t\t Stack height changed by self-cleaning function: %s\n", iFunc.format().c_str());
             return;
         }
-        sym_stackanalysis_printf_int("\t\t\t Stack height assumed unchanged by call\n");
+        stackanalysis_printf("\t\t\t Stack height assumed unchanged by call\n");
         return;
     }
     
@@ -646,11 +645,11 @@ void StackAnalysis::computeInsnEffects(Block *block,
 	  if (res.defined) {
 	    iFunc.abs() = true;
 	    iFunc.delta() = res.convert<long>();
-            sym_stackanalysis_printf_int("\t\t\t Stack height changed by ref off FP %s: %s\n", insn->format().c_str(), iFunc.format().c_str());
+            stackanalysis_printf("\t\t\t Stack height changed by ref off FP %s: %s\n", insn->format().c_str(), iFunc.format().c_str());
 	  }
 	  else {
 	    iFunc.range() = Range(Range::infinite, 0, off);
-            sym_stackanalysis_printf_int("\t\t\t Stack height changed by unevalled ref off FP %s: %s\n", insn->format().c_str(), iFunc.format().c_str());
+            stackanalysis_printf("\t\t\t Stack height changed by unevalled ref off FP %s: %s\n", insn->format().c_str(), iFunc.format().c_str());
 	  }
 	}
       }
@@ -665,11 +664,11 @@ void StackAnalysis::computeInsnEffects(Block *block,
         Operand arg = insn->getOperand(0);
         if (arg.getValue()->eval().defined) {
             iFunc.delta() = sign * word_size;
-            sym_stackanalysis_printf_int("\t\t\t Stack height changed by evaluated push/pop: %s\n", iFunc.format().c_str());
+            stackanalysis_printf("\t\t\t Stack height changed by evaluated push/pop: %s\n", iFunc.format().c_str());
             return;
         }
         iFunc.delta() = sign * arg.getValue()->size();
-        sym_stackanalysis_printf_int("\t\t\t Stack height changed by unevalled push/pop: %s\n", iFunc.format().c_str());
+        stackanalysis_printf("\t\t\t Stack height changed by unevalled push/pop: %s\n", iFunc.format().c_str());
         return;
     }
     case e_ret_near:
@@ -689,8 +688,7 @@ void StackAnalysis::computeInsnEffects(Block *block,
 	  iFunc.range() = Range(Range::infinite, 0, off);
 	}
       }
-      sym_stackanalysis_printf_int("\t\t\t Stack height changed by return: %s\n", iFunc.format().c_str());
-      
+      stackanalysis_printf("\t\t\t Stack height changed by return: %s\n", iFunc.format().c_str());
       return;
     }
     case e_sub:
@@ -702,18 +700,18 @@ void StackAnalysis::computeInsnEffects(Block *block,
         Result delta = arg.getValue()->eval();
         if(delta.defined) {
 	  iFunc.delta() = sign * delta.convert<long>();
-	  sym_stackanalysis_printf_int("\t\t\t Stack height changed by evalled add/sub: %s\n", iFunc.format().c_str());
+	  stackanalysis_printf("\t\t\t Stack height changed by evalled add/sub: %s\n", iFunc.format().c_str());
 	  return;
         }
         iFunc.range() = Range(Range::infinite, 0, off);
-        sym_stackanalysis_printf_int("\t\t\t Stack height changed by unevalled add/sub: %s\n", iFunc.format().c_str());
+        stackanalysis_printf("\t\t\t Stack height changed by unevalled add/sub: %s\n", iFunc.format().c_str());
         return;
     }
         // We treat return as zero-modification right now
     case e_leave:
         iFunc.abs() = true;
         iFunc.delta() = -1*word_size;
-        sym_stackanalysis_printf_int("\t\t\t Stack height reset by leave: %s\n", iFunc.format().c_str());
+        stackanalysis_printf("\t\t\t Stack height reset by leave: %s\n", iFunc.format().c_str());
         return;
     case power_op_si:
         sign = -1;
@@ -724,24 +722,24 @@ void StackAnalysis::computeInsnEffects(Block *block,
         Result delta = arg.getValue()->eval();
         if(delta.defined && insn->isRead(theStackPtr)) {
 	    iFunc.delta() = sign * delta.convert<long>();
-	    sym_stackanalysis_printf_int("\t\t\t Stack height changed by evalled add/sub: %s\n", iFunc.format().c_str());
+	    stackanalysis_printf("\t\t\t Stack height changed by evalled add/sub: %s\n", iFunc.format().c_str());
 	    return;
         }
         iFunc.range() = Range(Range::infinite, 0, off);
-        sym_stackanalysis_printf_int("\t\t\t Stack height changed by unevalled add/sub: %s\n", iFunc.format().c_str());
+        stackanalysis_printf("\t\t\t Stack height changed by unevalled add/sub: %s\n", iFunc.format().c_str());
         return;
     }
     case power_op_stwu: {
         std::set<Expression::Ptr> memWriteAddrs;
         insn->getMemoryWriteOperands(memWriteAddrs);
 	Expression::Ptr stackWrite = *(memWriteAddrs.begin());
-        sym_stackanalysis_printf_int("\t\t\t ...checking operand %s\n", stackWrite->format().c_str());
-        sym_stackanalysis_printf_int("\t\t\t ...binding %s to 0\n", theStackPtr->format().c_str());
+        stackanalysis_printf("\t\t\t ...checking operand %s\n", stackWrite->format().c_str());
+        stackanalysis_printf("\t\t\t ...binding %s to 0\n", theStackPtr->format().c_str());
         stackWrite->bind(theStackPtr.get(), Result(u32, 0));
         Result delta = stackWrite->eval();
         if(delta.defined) {
             iFunc.delta() = delta.convert<long>();
-            sym_stackanalysis_printf_int("\t\t\t Stack height changed by evalled stwu: %s\n", iFunc.format().c_str());
+            stackanalysis_printf("\t\t\t Stack height changed by evalled stwu: %s\n", iFunc.format().c_str());
             return;
         }
     }
@@ -753,14 +751,14 @@ void StackAnalysis::computeInsnEffects(Block *block,
 	// Awesome
 	iFunc.abs() = true;
 	iFunc.delta() = -2*word_size;
-	sym_stackanalysis_printf_int("\t\t\t Stack height changed by mov ebp, esp: %s\n", iFunc.format().c_str());
+	stackanalysis_printf("\t\t\t Stack height changed by mov ebp, esp: %s\n", iFunc.format().c_str());
 	return;
       }
       // Otherwise fall through to default
     }
     default:
         iFunc.range() = Range(Range::infinite, 0, off);
-        sym_stackanalysis_printf_int("\t\t\t Stack height changed by unhandled insn \"%s\": %s\n", 
+        stackanalysis_printf("\t\t\t Stack height changed by unhandled insn \"%s\": %s\n", 
 			     insn->format().c_str(), iFunc.format().c_str());
         return;
     }
@@ -1001,7 +999,7 @@ StackAnalysis::Region::Ptr StackAnalysis::RangeTree::find(Ranges &str) {
     for (unsigned i = 0; i < str.size(); i++) {
         std::map<Range, Node *>::iterator iter = cur->children.find(str[i]);
         if (iter == cur->children.end()) {
-            sym_stackanalysis_printf_int("\t Creating new node for range %s\n", 
+            stackanalysis_printf("\t Creating new node for range %s\n", 
 				 str[i].format().c_str());
             // Need to create a new node...
             Node *newNode = new Node(Region::Ptr(new Region(getNewRegionID(),
@@ -1011,12 +1009,12 @@ StackAnalysis::Region::Ptr StackAnalysis::RangeTree::find(Ranges &str) {
             cur = newNode;
         }
         else {
-	  sym_stackanalysis_printf_int("\t Found existing node for range %s\n",
+	  stackanalysis_printf("\t Found existing node for range %s\n",
 			       str[i].format().c_str());
             cur = iter->second;
         }
     }
-    sym_stackanalysis_printf_int("\t Returning region %s\n", cur->region->format().c_str());
+    stackanalysis_printf("\t Returning region %s\n", cur->region->format().c_str());
     return cur->region;
 }
 
