@@ -113,7 +113,7 @@ class ParseCallback {
    */
   virtual void newfunction_retstatus(Function*) { }
   virtual void block_split(Block *, Block *) { }
-  virtual void patch_jump_neg1(Address) { }
+  virtual void patch_nop_jump(Address) { }
 };
 
 }

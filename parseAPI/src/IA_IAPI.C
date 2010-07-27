@@ -160,8 +160,11 @@ bool IA_IAPI::hasCFT() const
   hascftstatus.second = false;
   if(c == c_BranchInsn ||
      c == c_ReturnInsn) {
-    parsing_cerr << "\t branch or return, ret true" << endl;
-    hascftstatus.second = true;
+     if ( ! _obj->defensiveMode() ||
+         ! isNopJump() ) {
+        parsing_cerr << "\t branch or return, ret true" << endl;
+        hascftstatus.second = true;
+     }
   }
   if(c == c_CallInsn) {
     if(isRealCall()) {
@@ -279,18 +282,18 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
     if(ci->getCategory() == c_CallInsn)
     {
         Address target = getCFT();	
-	if(simulateJump()) {
-	  parsing_printf("[%s:%u] call at 0x%lx simulated as "
-			 "jump to 0x%lx\n",
-			 FILE__,__LINE__,getAddr(),getCFT());
-	  outEdges.push_back(std::make_pair(target, DIRECT));
-	}
+        if(simulateJump()) {
+            parsing_printf("[%s:%u] call at 0x%lx simulated as "
+                           "jump to 0x%lx\n",
+                           FILE__,__LINE__,getAddr(),getCFT());
+            outEdges.push_back(std::make_pair(target, DIRECT));
+    }
         else if(isRealCall() || isDynamicCall())
         {
             outEdges.push_back(std::make_pair(target, NOEDGE));
-	    outEdges.push_back(std::make_pair(getAddr() + getSize(),
-					      CALL_FT));
-	}
+            outEdges.push_back(std::make_pair(getAddr() + getSize(),
+                               CALL_FT));
+    }
         return;
     }
     else if(ci->getCategory() == c_BranchInsn)

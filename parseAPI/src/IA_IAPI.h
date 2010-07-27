@@ -91,7 +91,9 @@ class IA_IAPI : public InstructionAdapter
         virtual bool isInterrupt() const;
         virtual bool isCall() const;
         virtual bool isReturnAddrSave() const;
-        virtual ParseAPI::StackTamper tampersStack(ParseAPI::Function *func, Address &retAddr) const;
+        virtual ParseAPI::StackTamper tampersStack(ParseAPI::Function *func, 
+                                                   Address &retAddr) const;
+        virtual bool isNopJump() const;
 private:
         virtual bool isRealCall() const;
         virtual bool isThunk() const;

@@ -627,3 +627,8 @@ IA_IAPI::tampersStack(ParseAPI::Function *, Address &) const
 {
     return TAMPER_NONE;
 }
+
+bool IA_IAPI::isNopJump() const
+{
+    return false;
+}

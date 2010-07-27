@@ -82,6 +82,7 @@ class InstructionAdapter
 const;
     virtual ParseAPI::StackTamper tampersStack(ParseAPI::Function *, Address &) const 
         { return ParseAPI::TAMPER_NONE; }
+    virtual bool isNopJump() const { return false; }
     virtual bool simulateJump() const= 0;
     virtual void advance() = 0;
     virtual void retreat() = 0;

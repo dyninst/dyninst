@@ -38,14 +38,13 @@
 #include "function.h"
 #include "r_e_ControlFlow.h"
 #include "r_e_GetPC.h"
-#include "stackanalysis.h"
-
+#include "dataflowAPI/h/stackanalysis.h"
 #include "addressSpace.h"
 #include "Symtab.h" 
 #include "mapped_object.h"
 #include "InstructionDecoder.h"
 
-#include "slicing.h"
+#include "dataflowAPI/h/slicing.h"
 
 using namespace std;
 using namespace Dyninst;
@@ -403,6 +402,8 @@ bool PCSensitiveTransformer::insnIsThunkCall(InstructionAPI::Instruction::Ptr in
 
   Address target = res.convert<Address>();
 
+  cerr << "Checking for thunk: CFT from " << hex << addr << " to " << target << dec << endl;
+
   // Check for a call to a thunk function
   if (target == (addr + insn->size())) {
     destination = Absloc(0, 0, "func");
@@ -448,7 +449,6 @@ bool PCSensitiveTransformer::insnIsThunkCall(InstructionAPI::Instruction::Ptr in
       firstInsn->getWriteSet(writes);
       assert(writes.size() == 1);
       destination = Absloc((*(writes.begin()))->getID());
-      cerr << "Thunk @ " << hex << addr << endl;
       return true;
     }
   }

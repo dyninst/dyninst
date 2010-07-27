@@ -388,3 +388,8 @@ bool IA_InstrucIter::isReturnAddrSave() const
 {
     return ii.isReturnValueSave();
 }
+
+bool IA_InstrucIter::isNopJump() const
+{
+    return false;
+}

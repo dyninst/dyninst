@@ -269,7 +269,7 @@ DynParseCallback::block_split(Block *first_, Block *second_)
 }
 
 void
-DynParseCallback::patch_jump_neg1(Address addr)
+DynParseCallback::patch_nop_jump(Address addr)
 {
     Architecture arch = _img->codeObject()->cs()->getArch();
     assert( Arch_x86 == arch || Arch_x86_64 == arch );
