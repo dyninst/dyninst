@@ -37,6 +37,8 @@
 #include "Immediate.h"
 #include "BinaryFunction.h"
 #include "debug_parse.h"
+#include "dataflowAPI/h/slicing.h"
+#include "dataflowAPI/h/SymEval.h"
 
 #include <deque>
 
@@ -1108,8 +1110,8 @@ StackTamper IA_IAPI::tampersStack(ParseAPI::Function *func,
             if ( outReg.absloc().isPC() ) {
                 Slicer slicer(*ait,*bit,func);
                 Graph::Ptr slGraph = slicer.backwardSlice(preds);
-                SymEval::Result_t slRes;
-                SymEval::expand(slGraph,slRes);
+                DataflowAPI::Result_t slRes;
+                DataflowAPI::SymEval::expand(slGraph,slRes);
                 if (dyn_debug_malware) {
                     stringstream graphDump;
                     graphDump << "sliceDump_" << func->name() 
@@ -1121,8 +1123,11 @@ StackTamper IA_IAPI::tampersStack(ParseAPI::Function *func,
             }
         }
         assert(sliceAtRet != NULL);
+#if 0
         StackTamperVisitor vis((*ait)->out());
         tamper = vis.tampersStack(sliceAtRet, tamperAddr);
+#endif
+        assert(0 && "KEVINTODO: remove previous ifdef");
         assgns.clear();
     }
     return tamper;

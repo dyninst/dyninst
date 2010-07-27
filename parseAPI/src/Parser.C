@@ -292,7 +292,7 @@ Parser::parse_edges( vector< ParseWorkElem * > & work_elems )
             vector<Function*> funcs;
             src->getFuncs(funcs);
             frame = new ParseFrame(*funcs.begin(),_parse_data);
-            init_frame(frame);
+            init_frame(*frame);
         }
         frame->pushWork(elem);
         if (frameset.end() == frameset.find(frame)) {

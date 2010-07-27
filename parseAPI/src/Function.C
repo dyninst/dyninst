@@ -31,7 +31,7 @@ Function::Function() :
         _saves_fp(false),
         _cleans_stack(false),
         _tamper(TAMPER_UNSET),
-        _tamper_addr(0)
+        _tamper_edge(NULL)
 {
     fprintf(stderr,"PROBABLE ERROR, default ParseAPI::Function constructor\n");
 }
@@ -55,7 +55,7 @@ Function::Function(Address addr, string name, CodeObject * obj,
         _saves_fp(false),
         _cleans_stack(false),
         _tamper(TAMPER_UNSET),
-        _tamper_addr(0)
+        _tamper_edge(NULL)
 {
     
 }
