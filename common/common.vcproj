@@ -350,6 +350,16 @@
 					>
 					<Tool
 						Name="VCCLCompilerTool"
+						CompileAsManaged="0"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAsManaged="0"
 						CompileAs="2"
 					/>
 				</FileConfiguration>
@@ -362,16 +372,6 @@
 					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAsManaged="0"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAsManaged="0"
 						CompileAs="2"
 					/>
 				</FileConfiguration>
@@ -456,7 +456,7 @@
 				RelativePath=".\src\Node.C"
 				>
 				<FileConfiguration
-					Name="Release|Win32"
+					Name="Debug|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -469,6 +469,14 @@
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"

@@ -121,6 +121,7 @@ class emitElf{
     bool BSSExpandFlag;
     bool movePHdrsFirst;
     bool createNewPhdr;
+    bool replaceNOTE;
     unsigned loadSecTotalSize; 
 
     bool isStripped;

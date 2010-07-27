@@ -31,6 +31,12 @@
 
 #ifndef __SERDES_H__
 #define __SERDES_H__
+
+#if defined(cap_have_libxml)
+//Keeps causing problems and not currently used
+#undef cap_have_libxml
+#endif
+
 #include "common/h/headers.h"
 
 #include <string>

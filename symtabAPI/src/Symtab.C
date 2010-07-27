@@ -2239,6 +2239,26 @@ SYMTAB_EXPORT bool Symtab::getSourceLines(std::vector<Statement *> &lines, Offse
 
 }
 
+SYMTAB_EXPORT bool Symtab::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRange)
+{
+   unsigned int originalSize = lines.size();
+   
+   /* Iteratate over the modules, looking for ranges in each. */
+   for ( unsigned int i = 0; i < _mods.size(); i++ ) 
+   {
+      LineInformation *lineInformation = _mods[i]->getLineInformation();
+      
+      if (lineInformation)
+         lineInformation->getSourceLines( addressInRange, lines );
+      
+   } /* end iteration over modules */
+   
+   if ( lines.size() != originalSize )
+      return true;
+   
+   return false;
+}
+
 SYMTAB_EXPORT bool Symtab::addLine(std::string lineSource, unsigned int lineNo,
       unsigned int lineOffset, Offset lowInclAddr,
       Offset highExclAddr)
@@ -2789,6 +2809,20 @@ SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size)
 
 #else
 	unsigned pgSize = P_getpagesize();
+
+#if defined(os_linux)
+        // Bluegene compute nodes have a 1MB alignment restructions on PT_LOAD section
+	Object *obj = getObject();
+	if (!obj)
+	{
+		fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
+		return 0;
+	}
+	bool isBlueGene = obj->isBlueGene();
+	bool hasNoteSection = obj->hasNoteSection();
+	if (isBlueGene && hasNoteSection)
+		pgSize = 0x100000; 
+#endif	
 	Offset newaddr = highWaterMark  - (highWaterMark & (pgSize-1));
 	if(newaddr < highWaterMark)
 		newaddr += pgSize;

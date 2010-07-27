@@ -870,7 +870,7 @@ bool process::handleTrapAtLibcStartMain(dyn_lwp *trappingLWP)
                 (int)a_out->getFileDesc().loadAddr(),
                 (int)(a_out->getFileDesc().loadAddr() + a_out->imageSize()));
         // add function stub and parsed object
-        a_out->parse_img()->addFunctionStub(mainaddr, "main");
+        a_out->parse_img()->addFunction(mainaddr, "main");
         a_out->analyze(); 
     }
 
@@ -2091,19 +2091,16 @@ bool image::findGlobalConstructorFunc() {
      * be created
      */
 
-    /* FIXME need to handle on-demand function parsing!!
     if( !findFuncByEntry(initRegion->getRegionAddr()) ) {
-        image_func *initStub = addFunctionStub(initRegion->getRegionAddr(), "_init");
+        image_func *initStub = addFunction(initRegion->getRegionAddr(), "_init");
         if( initStub == NULL ) {
             logLine("unable to create function for .init \n");
             return false;
         }else{
-            initStub->parse();
             inst_printf("%s[%d]: set _init function address to 0x%lx\n", FILE__, __LINE__,
                 initRegion->getRegionAddr());
         }
     }
-    */
 
     // Search for last of 3 calls
     Address ctorAddress = 0;
@@ -2159,7 +2156,7 @@ bool image::findGlobalConstructorFunc() {
         return false;
     }
 
-    if( addFunctionStub(ctorAddress, LIBC_CTOR_HANDLER.c_str()) == NULL ) {
+    if( addFunction(ctorAddress, LIBC_CTOR_HANDLER.c_str()) == NULL ) {
         logLine("unable to create representation for global constructor function\n");
         return false;
     }else{
@@ -2212,19 +2209,16 @@ bool image::findGlobalDestructorFunc() {
      * be created
      */
 
-    /* FIXME need to handle on-demand function parsing !! 
     if( !findFuncByEntry(finiRegion->getRegionAddr()) ) {
-        image_func *finiStub = addFunctionStub(finiRegion->getRegionAddr(), "_fini");
+        image_func *finiStub = addFunction(finiRegion->getRegionAddr(), "_fini");
         if( finiStub == NULL ) {
             logLine("unable to create function for .fini \n");
             return false;
         }else{
-            finiStub->parse();
             inst_printf("%s[%d]: set _fini function address to 0x%lx\n", FILE__, __LINE__,
                 finiRegion->getRegionAddr());
         }
     }
-    */
 
     // Search for last call in the function
     Address dtorAddress = 0;
@@ -2279,7 +2273,7 @@ bool image::findGlobalDestructorFunc() {
         return false;
     }
 
-    if( addFunctionStub(dtorAddress, LIBC_DTOR_HANDLER.c_str()) == NULL ) {
+    if( addFunction(dtorAddress, LIBC_DTOR_HANDLER.c_str()) == NULL ) {
         logLine("unable to create representation for global destructor function\n");
         return false;
     }else{

@@ -5114,7 +5114,7 @@ void process::updateActiveMultis()
   //      or be able to deallocate a chunk of alloc
   //      memory
   //   2) Determine which versions of functions have
-  //      been obsoleted. 
+  //      been obsoleted. X
   //   3) Compare those with the functions on the stack
   //      to see which ones can be freed.
 

@@ -60,7 +60,7 @@ class ParseCallback {
     unsigned char * ibuf;
     size_t isize;
   };
-  virtual void unresolved_cf(Address,default_details*) { }
+  virtual void unresolved_cf(Function *,Address,default_details*) { }
   virtual void abruptEnd_cf(Address,default_details*) { }
 
   /*

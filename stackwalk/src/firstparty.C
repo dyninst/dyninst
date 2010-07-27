@@ -80,3 +80,4 @@ Dyninst::Architecture ProcDebug::getArchitecture()
 {
    return Dyninst::Arch_none;
 }
+

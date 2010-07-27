@@ -221,7 +221,7 @@ DynCFGFactory::mkedge(Block * src, Block * trg, EdgeTypeEnum type) {
 }
 
 void
-DynParseCallback::unresolved_cf(Address addr,default_details*det)
+DynParseCallback::unresolved_cf(Function *f,Address addr,default_details*det)
 {
     image_instPoint * p =
         new image_instPoint(
@@ -232,8 +232,7 @@ DynParseCallback::unresolved_cf(Address addr,default_details*det)
             otherPoint,
             true);
 
-    // check for instrumentability? FIXME
-    // ah.getInstLevel or something
+    static_cast<image_func*>(f)->setInstLevel(UNINSTRUMENTABLE);
 
     _img->addInstPoint(p);
 }
