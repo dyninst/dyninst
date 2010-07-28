@@ -61,7 +61,13 @@ extern "C" DLLEXPORT TestMutator* test_instruction_profile_factory()
 test_results_t test_instruction_profile_Mutator::executeTest()
 {
   Symtab *s;
-  if(!Symtab::openFile(s, "/lib/libc.so.6")) {
+  const char *libcPath = "/lib/libc.so.6";
+
+#if defined(os_freebsd_test)
+  libcPath = "/usr/lib/libc.so";
+#endif
+
+  if(!Symtab::openFile(s, libcPath)) {
     logerror("FAILED: couldn't open libc for parsing\n");
     return FAILED;
   }
@@ -107,7 +113,7 @@ test_results_t test_instruction_profile_Mutator::executeTest()
   }
   //fprintf(stderr, "Instruction counts: %d total, %d valid, %d control-flow\n", total_count, valid_count, cf_count);
   BPatch bp;
-  BPatch_addressSpace* libc = bp.openBinary("/lib/libc.so.6");
+  BPatch_addressSpace* libc = bp.openBinary(libcPath);
   if(!libc) {
     logerror("FAILED: Couldn't open libc for parse\n");
     return FAILED;

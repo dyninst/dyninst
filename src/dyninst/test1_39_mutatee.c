@@ -65,7 +65,8 @@ int test1_39_mutatee() {
  || defined(ia64_unknown_linux2_4_test) \
  || defined(mips_sgi_irix6_4_test) \
  || defined(rs6000_ibm_aix4_1_test) \
- || defined(os_linux_test) /* Use OS #define instead of platform - Greg */
+ || defined(os_linux_test) /* Use OS #define instead of platform - Greg */ \
+ || defined(os_freebsd_test)
 
     /* The only possible failures occur in the mutator. */
   if (1 == test1_39_passed) {

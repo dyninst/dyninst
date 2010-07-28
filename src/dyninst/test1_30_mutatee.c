@@ -75,7 +75,8 @@ static unsigned long globalVariable30_2 = 0;
  || defined(rs6000_ibm_aix4_1_test) \
  || defined(alpha_dec_osf4_0_test) \
  || defined(ia64_unknown_linux2_4_test) \
- || defined(os_linux_test) /* Use OS #define instead of platform - Greg */
+ || defined(os_linux_test) /* Use OS #define instead of platform - Greg */ \
+ || defined(os_freebsd_test)
 
 /* this function has to be only 1 line for test30 to pass */
 /* these two lines have to be together otherwise test30 will fail */
@@ -96,7 +97,8 @@ int test1_30_mutatee() {
  || defined(ia64_unknown_linux2_4_test) \
  || defined(i386_unknown_nt4_0_test) \
  || defined(rs6000_ibm_aix4_1_test) \
- || defined(alpha_dec_osf4_0_test)
+ || defined(alpha_dec_osf4_0_test) \
+ || defined(os_freebsd_test)
     
     func30_2();
 

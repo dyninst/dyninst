@@ -64,7 +64,7 @@ Process::cb_ret_t on_thread_exit(Event::const_ptr ev)
 }
 
 /**
- * After stopping all threads, continue each one one at a time until
+ * After stopping all threads, continue each thread, one at a time, until
  * exit.
  **/
 test_results_t pc_thread_contMutator::executeTest()
@@ -73,60 +73,111 @@ test_results_t pc_thread_contMutator::executeTest()
    bool error = false;
    cb_error = false;
 
-   int num_threads = 0;
-   for (i = comp->procs.begin(); i != comp->procs.end(); i++) {
-      Thread::ptr thr = (*i)->threads().getInitialThread();
-      bool result = thr->continueThread();
-      if (!result) {
-         logerror("Error continuing initial thread\n");
-         error = true;
-      }
-      if (!num_threads) {
-         num_threads = (*i)->threads().size();
-      }
-   }
-
    EventType et(EventType::ThreadDestroy);
    Process::registerEventCallback(et, on_thread_exit);
-      
-   for (unsigned j=0; j<num_threads-1; j++) {
-      expected_exits.clear();
 
-      for (i = comp->procs.begin(); i != comp->procs.end(); i++) {
-         Process::ptr proc = *i;
-         ThreadPool::iterator k = proc->threads().begin();
-         if (k == proc->threads().end()) {
-            logerror("No threads in process list\n");
-            error = true;
-            continue;
-         }
-         if (!(*k)->isInitialThread()) {
-            logerror("Initial thread wasn't first in iterator\n");
-            error = true;
-         }
-         k++;
-         if (k == proc->threads().end()) {
-            logerror("Not enough threads left in list\n");
-            error = true;
-            continue;
-         }
-         Thread::ptr thrd = *k;
-         if (thrd->isInitialThread()) {
-            logerror("Multiple initial threads or broken iterator\n");
-            error = true;
-         }
-         
-         expected_exits.insert(thrd);
-         expected_pre_exits.insert(thrd);
-         bool result = thrd->continueThread();
-         if (!result) {
-            logerror("Failed to continue thread\n");
-            error = true;
-         }
-      }
-      
-      while (!expected_exits.empty())
-         comp->block_for_events();
+   if( comp->num_threads > 0 ) {
+       // Continue the whole process
+       for(i = comp->procs.begin(); i != comp->procs.end(); ++i) {
+           if( !(*i)->continueProc() ) {
+               logerror("Error continuing whole process\n");
+               error = true;
+           }
+
+           if( (*i)->threads().size() != comp->num_threads+1 ) {
+               logerror("Unexpected size of thread pool\n");
+               error = true;
+           }
+       }
+
+       // Wait for all threads to reach the barrier
+       handshake stop_barrier[NUM_PARALLEL_PROCS];
+       if( !comp->recv_broadcast((unsigned char *)stop_barrier, sizeof(handshake)) ) {
+           logerror("Failed to receive sync broadcast\n");
+           error = true;
+       }
+       for(unsigned j = 0; j < comp->procs.size(); ++j) {
+           if( stop_barrier[j].code != HANDSHAKE_CODE ) {
+               logerror("Received unexpected message code\n");
+               error = true;
+           }
+       }
+
+       for(i = comp->procs.begin(); i != comp->procs.end(); ++i) {
+           // Stop the whole process
+           if( !(*i)->stopProc() ) {
+               logerror("Error stopping whole process\n");
+               error = true;
+           }
+
+           // Continue the initial thread
+           if( !(*i)->threads().getInitialThread()->continueThread() ) {
+               logerror("Error continuing initial thread\n");
+               error = true;
+           }
+
+           // Tell the mutatee that the process has stopped
+           handshake stopped;
+           stopped.code = HANDSHAKE_CODE;
+           if( !comp->send_message((unsigned char *)&stopped, sizeof(handshake), (*i)) ) {
+               logerror("Error sending handshake to mutatee\n");
+               error = true;
+           }
+       }
+
+       // Wait for the initial thread to unlock all the threads
+       if( !comp->recv_broadcast((unsigned char *)stop_barrier, sizeof(handshake)) ) {
+           logerror("Failed to receive sync broadcast\n");
+           error = true;
+       }
+
+       // Continue a single thread and wait for it to exit
+       for (unsigned j=0; j < comp->num_threads; j++) {
+          expected_exits.clear();
+
+          for (i = comp->procs.begin(); i != comp->procs.end(); i++) {
+             Process::ptr proc = *i;
+             ThreadPool::iterator k = proc->threads().begin();
+             if (k == proc->threads().end()) {
+                logerror("No threads in process list\n");
+                error = true;
+                continue;
+             }
+             if (!(*k)->isInitialThread()) {
+                logerror("Initial thread wasn't first in iterator\n");
+                error = true;
+             }
+             k++;
+             if (k == proc->threads().end()) {
+                logerror("Not enough threads left in list\n");
+                error = true;
+                continue;
+             }
+             Thread::ptr thrd = *k;
+             if (thrd->isInitialThread()) {
+                logerror("Multiple initial threads or broken iterator\n");
+                error = true;
+             }
+             
+             expected_exits.insert(thrd);
+             expected_pre_exits.insert(thrd);
+             bool result = thrd->continueThread();
+             if (!result) {
+                logerror("Failed to continue thread\n");
+                error = true;
+             }
+          }
+          
+          while (!expected_exits.empty())
+             comp->block_for_events();
+       }
+   }else{
+       for(i = comp->procs.begin(); i != comp->procs.end(); ++i) {
+           if( !(*i)->threads().getInitialThread()->continueThread() ) {
+               logerror("Error continuing initial thread\n");
+               error = true;
+           }
+       }
    }
 
    allow_exit ae;
