@@ -56,9 +56,10 @@ class ParseCallback {
    * Notify when control transfers have run `off the rails' 
    */
   struct default_details {
-    default_details(unsigned char*b,size_t s) : ibuf(b), isize(s) { }
+    default_details(unsigned char*b,size_t s, bool ib) : ibuf(b), isize(s), isbranch(ib) { }
     unsigned char * ibuf;
     size_t isize;
+    bool isbranch;
   };
   virtual void unresolved_cf(Function *,Address,default_details*) { }
   virtual void abruptEnd_cf(Address,default_details*) { }
