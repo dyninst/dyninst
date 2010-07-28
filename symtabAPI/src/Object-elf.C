@@ -855,28 +855,28 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 #endif
 #endif
     } else if (strcmp(name, COMMENT_NAME) == 0) {
-                /* comment section is a sequence of NULL-terminated strings.
-                   We want to concatenate them and search for BGP to determine
-                   if the binary is built for BGP compute nodes */
-		Elf_X_Data data = scnp->get_data();
-                
-		unsigned int index = 0;
-		size_t size = data.d_size();
-		char *buf = (char *) data.d_buf();
-                char *str; char *comment = (char *) malloc (size);
-                while (index < size)
-                {
-                        str = buf+index;
-                        if (strlen(str) > 0 ) {
-                                strcat(comment, str);
-                                index = index+strlen(str);
-                        } else {
-                                index ++;
-                        }
-                }
-                if (strstr(comment, "BGP")) {
+       /* comment section is a sequence of NULL-terminated strings.
+          We want to concatenate them and search for BGP to determine
+          if the binary is built for BGP compute nodes */
+
+	Elf_X_Data data = scnp->get_data();
+        
+	unsigned int index = 0;
+	size_t size = data.d_size();
+	char *buf = (char *) data.d_buf();
+        while (index < size)
+        {
+                string comment = buf+index;
+                size_t pos = comment.find("BGP");
+                if (pos !=string::npos) {
                         isBlueGene_ = true;
+                        break;
                 }
+                index += comment.size();
+                if (comment.size() == 0) { // Skip NULL characters in the comment section
+                        index ++;
+                }
+        }
      }
 
 #if !defined(os_solaris)
