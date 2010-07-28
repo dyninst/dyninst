@@ -328,9 +328,7 @@ bool thread_db_process::initThreadDB() {
     bool suspend = false;
 
     // Enable events for all threads, possibly suspending them
-    if( int_process::getThreadControlMode() == int_process::HybridLWPControl &&
-        threadPool()->size() > 1 ) 
-    {
+    if( useHybridLWPControl(threadPool()) ) {
         suspend = true;
     }
 
@@ -397,7 +395,6 @@ bool thread_db_process::initThreadDB() {
 }
 
 void thread_db_process::freeThreadDBAgent() {
-    // XXX
     // This code cannot be in the destructor because it makes use of
     // the proc_service interface and this makes calls to functions
     // that are pure virtual in this class.
@@ -424,7 +421,7 @@ bool thread_db_process::getEventsAtAddr(Dyninst::Address addr,
 {
     unsigned oldSize = threadEvents.size();
 
-    // Determine what type event occurs at the specified address
+    // Determine what type of event occurs at the specified address
     map<Dyninst::Address, pair<int_breakpoint *, EventType> >::iterator addrIter;
     addrIter = addr2Event.find(addr);
     if( addrIter == addr2Event.end() ) return false;
@@ -687,7 +684,7 @@ bool ThreadDBCreateHandler::handleEvent(Event::ptr ev) {
     // Explicitly ignore errors here
     thread->setEventReporting(true);
 
-    if( int_process::getThreadControlMode() == int_process::HybridLWPControl ) {
+    if( useHybridLWPControl(thread) ) {
         // The initial generator state is stopped, explicitly ignore errors
         thread->plat_suspend();
     }
@@ -745,9 +742,10 @@ thread_db_thread::~thread_db_thread()
 bool thread_db_thread::initThreadHandle() {
     if( NULL != threadHandle ) return true;
 
-    threadHandle = new td_thrhandle_t;
-
     thread_db_process *lproc = static_cast<thread_db_process *>(proc_);
+    if( NULL == lproc->getThreadDBAgent() ) return false;
+
+    threadHandle = new td_thrhandle_t;
 
     td_err_e errVal = td_ta_map_lwp2thr(lproc->getThreadDBAgent(),
             lwp, threadHandle);
@@ -807,13 +805,11 @@ bool thread_db_thread::plat_resume() {
     td_err_e errVal = td_thr_dbresume(threadHandle);
 
     if( TD_OK != errVal ) {
-        perr_printf("Failed to resume LWP %d: %s(%d)\n",
-                lwp, tdErr2Str(errVal), errVal);
+        perr_printf("Failed to resume %d/%d: %s(%d)\n",
+                proc_->getPid(), lwp, tdErr2Str(errVal), errVal);
         setLastError(err_internal, "Failed to resume LWP");
         return false;
     }
-
-    pthrd_printf("Resumed LWP %d via thread_db\n", lwp);
 
     return true;
 }
@@ -824,13 +820,11 @@ bool thread_db_thread::plat_suspend() {
     td_err_e errVal = td_thr_dbsuspend(threadHandle);
 
     if( TD_OK != errVal ) {
-        perr_printf("Failed to suspend LWP %d: %s(%d)\n",
-                lwp, tdErr2Str(errVal), errVal);
+        perr_printf("Failed to suspend %d/%d: %s(%d)\n",
+                proc_->getPid(), lwp, tdErr2Str(errVal), errVal);
         setLastError(err_internal, "Failed to suspend LWP");
         return false;
     }
-
-    pthrd_printf("Suspended LWP %d via thread_db\n", lwp);
 
     return true;
 }

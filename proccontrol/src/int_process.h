@@ -74,6 +74,8 @@ class int_process
    void setContSignal(int sig);
    int getContSignal() const;
    virtual bool plat_contProcess() = 0;
+   void setPendingProcStop(bool b);
+   bool hasPendingProcStop() const;
 
    bool forked();
   protected:
@@ -197,6 +199,7 @@ class int_process
    std::map<Dyninst::Address, unsigned> exec_mem_cache;
    std::queue<Event::ptr> proc_stoppers;
    int continueSig;
+   bool pendingProcStop;
 };
 
 /*
@@ -219,6 +222,12 @@ class int_process
  * IndependentLWPControl is currently the mode on Linux. This mode implies that
  * operations can be performed on LWPs independent of each other's state.
  */
+
+// For improved readability
+bool useHybridLWPControl(int_threadPool *tp);
+bool useHybridLWPControl(int_thread *thrd);
+bool useHybridLWPControl(int_process *p);
+bool useHybridLWPControl();
 
 class int_registerPool
 {
@@ -345,8 +354,6 @@ class int_thread
    bool hasPendingUserStop() const;
    void setPendingStop(bool b);
    bool hasPendingStop() const;
-   void setDeferredContinue(bool b);
-   bool hasDeferredContinue() const;
    void setResumed(bool b);
    bool isResumed() const;
    void setClearingPendingStop(bool b);
@@ -423,7 +430,6 @@ class int_thread
    unsigned sync_rpc_count;
    bool pending_user_stop;
    bool pending_stop;
-   bool deferred_continue;
    bool resumed;
    bool clearing_pending_stop;
    bool syncing_state;

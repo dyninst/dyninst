@@ -296,7 +296,7 @@ HandleCrash::~HandleCrash()
 
 void HandleCrash::getEventTypesHandled(std::vector<EventType> &etypes)
 {
-   etypes.push_back(EventType(EventType::Post, EventType::Crash));
+   etypes.push_back(EventType(EventType::None, EventType::Crash));
 }
 
 bool HandleCrash::handleEvent(Event::ptr ev)
@@ -411,7 +411,7 @@ bool HandleThreadDestroy::handleEvent(Event::ptr ev)
    pthrd_printf("Handling post-thread destroy for %d\n", thrd->getLWP());
    ProcPool()->condvar()->lock();
 
-   if( int_process::getThreadControlMode() == int_process::HybridLWPControl ) {
+   if( useHybridLWPControl(proc) ) {
       // Need to make sure that the thread actually finishes at this point
       thrd->plat_resume();
    }
@@ -608,9 +608,8 @@ bool HandlePostBreakpoint::handleEvent(Event::ptr ev)
                 proc->getPid());
    int_threadPool *pool = proc->threadPool();
    for (int_threadPool::iterator i = pool->begin(); i != pool->end(); i++) {
-      if ((*i)->getInternalState() == int_thread::running) {
+      if ((*i)->getInternalState() == int_thread::running)
          (*i)->setInternalState(int_thread::stopped);
-      }
    }
 
    EventBreakpoint *evbp = static_cast<EventBreakpoint *>(ev.get());
@@ -664,9 +663,7 @@ bool HandleBreakpointClear::handleEvent(Event::ptr ev)
    thrd->setInternalState(int_thread::stopped);
 
    // Make sure the thread that caused the event remains stopped
-   if(    int_process::getThreadControlMode() == int_process::HybridLWPControl 
-       && proc->threadPool()->size() > 1 ) 
-   {
+   if( useHybridLWPControl(proc) ) {
        thrd->plat_suspend();
    }
   

@@ -41,6 +41,7 @@ class EventRPC;
 class EventSingleStep;
 class EventBreakpointClear;
 class EventLibrary;
+class EventChangePCStop;
 
 class Event : public dyn_detail::boost::enable_shared_from_this<Event>
 {
@@ -123,6 +124,9 @@ class Event : public dyn_detail::boost::enable_shared_from_this<Event>
 
    dyn_detail::boost::shared_ptr<EventLibrary> getEventLibrary();
    dyn_detail::boost::shared_ptr<const EventLibrary> getEventLibrary() const;
+
+   dyn_detail::boost::shared_ptr<EventChangePCStop> getEventChangePCStop();
+   dyn_detail::boost::shared_ptr<const EventChangePCStop> getEventChangePCStop() const;
 
  protected:
    EventType etype;
@@ -349,6 +353,17 @@ class EventLibrary : public Event
                 const std::set<Library::ptr> &rmd_libs_);
    const std::set<Library::ptr> &libsAdded() const;
    const std::set<Library::ptr> &libsRemoved() const;
+};
+
+class EventChangePCStop : public Event
+{
+   friend void dyn_detail::boost::checked_delete<EventChangePCStop>(EventChangePCStop *);
+   friend void dyn_detail::boost::checked_delete<const EventChangePCStop>(const EventChangePCStop *);
+ public:
+   typedef dyn_detail::boost::shared_ptr<EventChangePCStop> ptr;
+   typedef dyn_detail::boost::shared_ptr<const EventChangePCStop> const_ptr;
+   EventChangePCStop();
+   ~EventChangePCStop();
 };
 
 }

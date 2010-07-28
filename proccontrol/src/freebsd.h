@@ -105,6 +105,11 @@ public:
     virtual bool plat_individualRegAccess();
     virtual bool plat_contProcess();
 
+    virtual bool post_attach();
+    virtual bool post_create();
+    virtual int getEventQueue();
+    virtual bool initKQueueEvents();
+    
     /* thread_db_process methods */
     virtual string getThreadLibName(const char *symName);
     virtual bool isSupportedThreadLib(const string &libName);
@@ -115,9 +120,7 @@ public:
     virtual bool plat_getLWPInfo(lwpid_t lwp, void *lwpInfo);
     virtual bool plat_contThread(lwpid_t lwp);
     virtual bool plat_stopThread(lwpid_t lwp);
-
-    virtual bool post_attach();
-
+    
 protected:
     string libThreadName;
 };
@@ -142,9 +145,18 @@ public:
     virtual bool plat_setStep();
     void setBootstrapStop(bool b);
     bool hasBootstrapStop() const;
+    void setPCBugCondition(bool b);
+    bool hasPCBugCondition() const;
+    void setPendingPCBugSignal(bool b);
+    bool hasPendingPCBugSignal() const;
+    void setSignalStopped(bool b);
+    bool isSignalStopped() const;
 
 protected:
-    bool bootstrap_stop;
+    bool bootstrapStop;
+    bool pcBugCondition;
+    bool pendingPCBugSignal;
+    bool signalStopped;
 };
 
 class FreeBSDStopHandler : public Handler
@@ -157,6 +169,7 @@ public:
     void getEventTypesHandled(std::vector<EventType> &etypes);
 };
 
+#if defined(bug_freebsd_mt_suspend)
 class FreeBSDPostStopHandler : public Handler
 {
 public:
@@ -176,6 +189,18 @@ public:
     virtual int getPriority() const;
     void getEventTypesHandled(std::vector<EventType> &etypes);
 };
+#endif
 
+#if defined(bug_freebsd_change_pc)
+class FreeBSDChangePCHandler : public Handler
+{
+public:
+    FreeBSDChangePCHandler();
+    virtual ~FreeBSDChangePCHandler();
+    virtual bool handleEvent(Event::ptr ev);
+    virtual int getPriority() const;
+    void getEventTypesHandled(std::vector<EventType> &etypes);
+};
+#endif
 
 #endif
