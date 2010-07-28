@@ -44,8 +44,15 @@
 #include "InstructionDecoder.h"
 #include "Instruction.h"
 
-#include "emit-x86.h"
+#include "addressSpace.h"
+#include "binaryEdit.h"
 #include "process.h"
+#include "miniTramp.h"
+#include "instPoint.h"
+#include "symtab.h"
+#include "baseTramp.h"
+
+#include "emit-x86.h"
 #include "inst-x86.h"
 #include "instructionAPI/h/RegisterIDs.h"
 #include "pcrel.h"
@@ -1185,4 +1192,3 @@ bool insnCodeGen::generateMem(codeGen &gen,
    SET_PTR(walker, gen);
    return true;
 }
-

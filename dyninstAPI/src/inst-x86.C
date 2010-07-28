@@ -597,7 +597,7 @@ int cpuidCall() {
     return result;
 }
 #endif
-#if !defined(x86_64_unknown_linux2_4)
+#if !defined(x86_64_unknown_linux2_4) && !defined(amd64_unknown_freebsd7_0)
 bool xmmCapable()
 {
   int features = cpuidCall();

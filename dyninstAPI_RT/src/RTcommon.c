@@ -67,7 +67,7 @@ int DYNINSTstaticMode = 1;
 #define HEAP_TYPE double
 #define ALIGN_ATTRIB 
 
-#if defined(os_linux)
+#if defined(os_linux) || defined(os_freebsd)
 #define HEAP_LOCAL extern
 #else
 #define HEAP_LOCAL

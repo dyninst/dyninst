@@ -85,7 +85,8 @@ test_results_t test1_21_Mutator::mutatorTest21()
 	|| defined(os_osf_test) \
 	|| defined(os_solaris_test) \
 	|| defined(os_linux_test) \
-	|| defined(os_windows_test)
+	|| defined(os_windows_test) \
+        || defined(os_freebsd_test)
 
 	// Lookup the libtestA.so and libtestB.so modules that we've just loaded
 

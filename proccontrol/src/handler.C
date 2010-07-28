@@ -271,12 +271,14 @@ bool HandlePostExit::handleEvent(Event::ptr ev)
 
    proc->setState(int_process::exited);
    ProcPool()->rmProcess(proc);
+   ProcPool()->rmThread(thrd);
 
    ProcPool()->condvar()->signal();
    ProcPool()->condvar()->unlock();
 
    if (int_process::in_waitHandleProc == proc) {
       pthrd_printf("Postponing delete due to being in waitAndHandleForProc\n");
+   }else{
       delete proc;
    }
 
@@ -294,7 +296,7 @@ HandleCrash::~HandleCrash()
 
 void HandleCrash::getEventTypesHandled(std::vector<EventType> &etypes)
 {
-   etypes.push_back(EventType(EventType::Post, EventType::Crash));
+   etypes.push_back(EventType(EventType::None, EventType::Crash));
 }
 
 bool HandleCrash::handleEvent(Event::ptr ev)
@@ -408,6 +410,11 @@ bool HandleThreadDestroy::handleEvent(Event::ptr ev)
 
    pthrd_printf("Handling post-thread destroy for %d\n", thrd->getLWP());
    ProcPool()->condvar()->lock();
+
+   if( useHybridLWPControl(proc) ) {
+      // Need to make sure that the thread actually finishes at this point
+      thrd->plat_resume();
+   }
 
    thrd->setHandlerState(int_thread::exited);
    thrd->setInternalState(int_thread::exited);
@@ -654,6 +661,11 @@ bool HandleBreakpointClear::handleEvent(Event::ptr ev)
    thrd->setSingleStepMode(false);
    thrd->markClearingBreakpoint(NULL);
    thrd->setInternalState(int_thread::stopped);
+
+   // Make sure the thread that caused the event remains stopped
+   if( useHybridLWPControl(proc) ) {
+       thrd->plat_suspend();
+   }
   
    proc->threadPool()->restoreInternalState(false);
 
@@ -785,6 +797,8 @@ static const char *action_str(Process::cb_action_t action)
       default:
          assert(0);
    }
+
+   return NULL;
 }
 
 bool HandleCallbacks::handleCBReturn(Process::const_ptr proc, Thread::const_ptr thrd, 

@@ -286,9 +286,9 @@ int DYNINSTinitializeTrapHandler()
    struct sigaction new_handler;
 
    new_handler.sa_sigaction = dyninstTrapHandler;
-   new_handler.sa_restorer = NULL;
+   //new_handler.sa_restorer = NULL; obsolete
    sigemptyset(&new_handler.sa_mask);
-   new_handler.sa_flags = SA_SIGINFO | SA_NOMASK;
+   new_handler.sa_flags = SA_SIGINFO | SA_NODEFER;
    
    result = sigaction(SIGTRAP, &new_handler, NULL);
    return (result == 0) ? 1 /*Success*/ : 0 /*Fail*/ ;

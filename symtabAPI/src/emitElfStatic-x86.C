@@ -57,6 +57,10 @@ static const Offset GOT_RESERVED_SLOTS = 3;
 static const unsigned X86_WIDTH = 4;
 static const unsigned X86_64_WIDTH = 8;
 
+#if defined(os_freebsd)
+#define R_X86_64_JUMP_SLOT R_X86_64_JMP_SLOT
+#endif
+
 // Used in an assert so needs to be a macro
 #define UNKNOWN_ADDRESS_WIDTH_ASSERT "An unknown address width was encountered, can't continue"
 
@@ -500,7 +504,7 @@ void emitElfStatic::buildGOT(LinkMap &lmap) {
     // symbol into the table, additionally store the offset in the GOT
     // back into the map
     Offset curOffset = GOT_RESERVED_SLOTS*slotSize;
-    bzero(&targetData[lmap.gotRegionOffset], GOT_RESERVED_SLOTS*slotSize);
+    memset(&targetData[lmap.gotRegionOffset], 0, GOT_RESERVED_SLOTS*slotSize);
 
     map<Symbol *, Offset>::iterator sym_it;
     for(sym_it = lmap.gotSymbols.begin(); sym_it != lmap.gotSymbols.end(); ++sym_it) {

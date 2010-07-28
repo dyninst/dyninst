@@ -43,7 +43,7 @@
 #include <sys/procfs.h>
 typedef prmap_t dyninstmm_t;
 
-#elif defined(os_linux)
+#elif defined(os_linux) || defined(os_freebsd)
 
 /* LINUX */
 typedef struct {

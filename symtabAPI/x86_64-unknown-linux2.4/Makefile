@@ -25,7 +25,7 @@ SRCS =          ../src/Object-elf.C \
 		../src/emitElf-64.C \
 		../src/LinkMap.C \
 		../src/emitElfStatic.C \
-		../src/emitElfStatic-linux-x86.C \
+		../src/emitElfStatic-x86.C \
 		../src/relocationEntry-elf-x86.C
 
 

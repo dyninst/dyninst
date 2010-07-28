@@ -24,6 +24,7 @@ class handlerpool;
 class int_iRPC;
 
 typedef dyn_detail::boost::shared_ptr<int_iRPC> int_iRPC_ptr;
+typedef std::map<Dyninst::MachRegister, std::pair<unsigned int, unsigned int> > dynreg_to_user_t;
 
 typedef std::list<int_iRPC_ptr> rpc_list_t;
 
@@ -62,14 +63,20 @@ class int_process
  protected:
    bool create();
    virtual bool plat_create() = 0;
-   bool post_create();
+   virtual bool post_create();
 
    bool attach();
    virtual bool plat_attach() = 0;
    bool attachThreads();
-   bool post_attach();
+   virtual bool post_attach();
 
   public:
+   void setContSignal(int sig);
+   int getContSignal() const;
+   virtual bool plat_contProcess() = 0;
+   void setPendingProcStop(bool b);
+   bool hasPendingProcStop() const;
+
    bool forked();
   protected:
    virtual bool plat_forked() = 0;
@@ -150,7 +157,12 @@ class int_process
    virtual bool plat_writeMem(int_thread *thr, void *local, 
                               Dyninst::Address remote, size_t size) = 0;
    
-   virtual bool independentLWPControl() = 0;
+   typedef enum {
+       NoLWPControl = 0,
+       HybridLWPControl, // see below for a description of these modes
+       IndependentLWPControl
+   } ThreadControlMode;
+   static ThreadControlMode getThreadControlMode();
    static bool isInCB();
    static void setInCB(bool b);
 
@@ -187,7 +199,36 @@ class int_process
    mem_state::ptr mem;
    std::map<Dyninst::Address, unsigned> exec_mem_cache;
    std::queue<Event::ptr> proc_stoppers;
+   int continueSig;
+   bool pendingProcStop;
 };
+
+/*
+ * Thread Control Modes (as defined above)
+ *
+ * Currently, there are 3 thread control modes: NoLWPControl, HybridLWPControl,
+ * and IndependentLWPControl.
+ *
+ * NoLWPControl is currently unused. This mode implies that no operations can
+ * be performed on just a LWP.
+ *
+ * HybridLWPControl is currently the mode on FreeBSD. This mode implies that
+ * operations can be performed on LWPs, but the whole process needs to be
+ * stopped before these operations can be performed. Additionally, it implies
+ * that threads cannot be continued and stopped; they must be resumed and
+ * suspended, and followed by a whole process continue. This means that the
+ * plat_suspend, plat_resume, and plat_contProcess functions will be used to
+ * implement thread stops and continues.
+ *
+ * IndependentLWPControl is currently the mode on Linux. This mode implies that
+ * operations can be performed on LWPs independent of each other's state.
+ */
+
+// For improved readability
+bool useHybridLWPControl(int_threadPool *tp);
+bool useHybridLWPControl(int_thread *thrd);
+bool useHybridLWPControl(int_process *p);
+bool useHybridLWPControl();
 
 class int_registerPool
 {
@@ -305,7 +346,8 @@ class int_thread
    bool intStop(bool sync = true);
    bool intCont();
 
-   void setContSignal(int sig);   
+   void setContSignal(int sig);
+   int getContSignal();
    bool contWithSignal(int sigOverride = -1);
    virtual bool plat_cont() = 0;
    virtual bool plat_stop() = 0;
@@ -313,6 +355,17 @@ class int_thread
    bool hasPendingUserStop() const;
    void setPendingStop(bool b);
    bool hasPendingStop() const;
+   void setResumed(bool b);
+   bool isResumed() const;
+   void setClearingPendingStop(bool b);
+   bool clearingPendingStop() const;
+   void setSyncingState(bool b);
+   bool isSyncingState() const;
+
+   // Needed for HybridLWPControl thread control mode
+   // These can be no-ops for other modes
+   virtual bool plat_suspend() = 0;
+   virtual bool plat_resume() = 0;
 
    //Single-step
    bool singleStepMode() const;
@@ -378,6 +431,9 @@ class int_thread
    unsigned sync_rpc_count;
    bool pending_user_stop;
    bool pending_stop;
+   bool resumed;
+   bool clearing_pending_stop;
+   bool syncing_state;
    int num_locked_stops;
    bool user_single_step;
    bool single_step;
