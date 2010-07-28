@@ -250,11 +250,24 @@ int send_message(unsigned char *msg, size_t msg_size)
 
 int recv_message(unsigned char *msg, size_t msg_size)
 {
-   int result;
-   result = recv(sockfd, msg, msg_size, MSG_WAITALL);
-   if (result == -1) {
-      perror("Mutatee unable to recieve message");
-      return -1;
+   int result = -1;
+   while( result != msg_size && result != 0 ) {
+       result = recv(sockfd, msg, msg_size, MSG_WAITALL);
+
+/* Sometimes result will be 29 for some unknown reason
+ * The diagnosis is a work in progress
+ */
+#if defined(os_freebsd_test)
+       if( result != msg_size ) {
+           fprintf(stderr, "Received message of unexpected size %d (expected %d)\n",
+                   result, msg_size);
+       }
+#endif
+
+       if (result == -1) {
+          perror("Mutatee unable to recieve message");
+          return -1;
+       }
    }
    return 0;
 }
