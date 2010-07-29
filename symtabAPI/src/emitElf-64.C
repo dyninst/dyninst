@@ -36,14 +36,18 @@
 */
 
 #include <algorithm>
-#include "common/h/parseauxv.h"
 #include "Symtab.h"
 #include "emitElf-64.h"
 #include "emitElfStatic.h"
 #include "debug.h"
 
 #if defined(os_freebsd)
+#include "common/h/freebsdKludges.h"
 #define R_X86_64_JUMP_SLOT R_X86_64_JMP_SLOT
+#endif
+
+#if defined(os_linux)
+#include "common/h/linuxKludges.h"
 #endif
 
 extern void symtab_log_perror(const char *msg);
@@ -69,7 +73,7 @@ static bool libelfso1Flag;
 static int libelfso1version_major;
 static int libelfso1version_minor;
 
-#if defined(os_linux)
+#if defined(os_linux) || defined(os_freebsd)
 static char *deref_link(const char *path)
 {
    static char buffer[PATH_MAX], *p;
@@ -89,9 +93,9 @@ static void setVersion(){
   libelfso1Flag = false;
   libelfso1version_major = 0;
   libelfso1version_minor = 0;
-#if defined(os_linux)
+#if defined(os_linux) || defined(os_freebsd)
   unsigned nEntries;
-  map_entries *maps = getLinuxMaps(getpid(), nEntries);
+  map_entries *maps = getVMMaps(getpid(), nEntries);
   for (unsigned i=0; i< nEntries; i++){
      if (!strstr(maps[i].path, "libelf"))
         continue;
@@ -113,9 +117,13 @@ static void setVersion(){
              "libelf.so.1!  SymtabAPI likely going to be unable to read "
              "and write elf files!\n");
   }
-#elif defined(os_freebsd)
-  // TODO
-  libelfso0Flag = true;
+
+#if defined(os_freebsd)
+  if( libelfso1Flag ) {
+      fprintf(stderr, "WARNING: SymtabAPI on FreeBSD is known to function "
+              "incorrectly when linked with libelf.so.1\n");
+  }
+#endif
 #endif
 }
 

@@ -606,9 +606,8 @@ bool linux_process::getThreadLWPs(std::vector<Dyninst::LWP> &lwps)
    return findProcLWPs(pid, lwps);
 }
 
-bool linux_process::independentLWPControl()
-{
-   return true;
+int_process::ThreadControlMode int_process::getThreadControlMode() {
+    return int_process::IndependentLWPControl;
 }
 
 bool linux_thread::plat_cont()

@@ -29,9 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#if !defined(i386_unknown_freebsd8_0) \
- && !defined(i386_unknown_freebsd7_0) \
- && !defined(amd64_unknown_freebsd7_0)
+#if !defined(arch_x86) && !defined(arch_x86_64)
 #error "invalid architecture-os inclusion"
 #endif
 

@@ -206,7 +206,7 @@ bool AddressTranslateSysV::setInterpreterBase() {
     free(maps);
 
     if( !set_interp_base ) {
-        translate_printf("[%s:%u] - Failed to get locate interpreter in memory map\n",
+        translate_printf("[%s:%u] - Failed to locate interpreter in memory map\n",
                 __FILE__, __LINE__);
         return false;
     }
@@ -214,7 +214,7 @@ bool AddressTranslateSysV::setInterpreterBase() {
     return true;
 }
 
-const string& AddressTranslateSysV::getExecName() {
+string AddressTranslateSysV::getExecName() {
     if( exec_name.empty() ) {
         char *pathname = sysctl_getExecPathname(pid);
         if( NULL != pathname ) {

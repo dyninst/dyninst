@@ -24,8 +24,7 @@ include ../../make.config
 SRCS =		../../common/src/timing-freebsd.C \
 		../../common/src/freebsdKludges.C \
 		../../common/src/addrtranslate-sysv.C \
-		../../common/src/addrtranslate-freebsd.C \
-		../../common/src/dthread-unix.C
+		../../common/src/addrtranslate-freebsd.C
 
 #MYFLAGS	+= -DNO_MDL_PRINT
 #MYFLAGS	+= -DLD_DEBUG
@@ -41,7 +40,7 @@ SRCS =		../../common/src/timing-freebsd.C \
 CXXFLAGS        += $(MYFLAGS)
 CFLAGS          += $(MYFLAGS)
 TFLAGS          += $(MYFLAGS)
-LDFLAGS		+= -L/usr/local/lib -lpthread
+LDFLAGS		+= -L/usr/local/lib
 
 # Tradeoff: adding -g to TFLAGS aids gdb but uses gobs of disk space
 #TFLAGS		+= -g

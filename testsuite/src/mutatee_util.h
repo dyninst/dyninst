@@ -54,7 +54,8 @@ typedef struct  {
     HANDLE hndl;
 } thread_t;
 
-// FIXME
+// TODO needs to be implemented if a barrier
+// is ever needed in the tests on Windows
 typedef int testbarrier_t;
 
 #else

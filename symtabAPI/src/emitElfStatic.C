@@ -1361,7 +1361,10 @@ bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int libra
     // Currently, only verified on x86 and x86_64 -- this may work on other architectures
 #if defined(arch_x86) || defined(arch_x86_64)
     Region *targetRegion = obj->findEnclosingRegion(rel.rel_addr());
-    assert( NULL != targetRegion && "Failed to find enclosing Region for relocation");
+    if( NULL == targetRegion ) {
+        rewrite_printf("Failed to find enclosing Region for relocation");
+        return false;
+    }
 
     // Used to update a Region
     unsigned addressWidth = obj->getAddressWidth();
@@ -1371,10 +1374,13 @@ bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int libra
                 rel.setAddend(rel.addend() + library_adjust);
                 break;
             case R_X86_64_JUMP_SLOT:
-                assert(    adjustValInRegion(targetRegion, 
+                if( !adjustValInRegion(targetRegion, 
                            rel.rel_addr() - targetRegion->getRegionAddr(),
-                           addressWidth, library_adjust)
-                        && "Failed to update relocation");
+                           addressWidth, library_adjust) )
+                {
+                    rewrite_printf("Failed to update relocation\n");
+                    return false;
+                }
                 break;
             default:
                 // Do nothing
@@ -1384,16 +1390,22 @@ bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int libra
         switch(rel.getRelType()) {
             case R_386_RELATIVE:
                 // On x86, addends are stored in their target location
-                assert(    adjustValInRegion(targetRegion, 
+                if( !adjustValInRegion(targetRegion, 
                            rel.rel_addr() - targetRegion->getRegionAddr(),
-                           addressWidth, library_adjust)
-                        && "Failed to update relocation");
+                           addressWidth, library_adjust) )
+                {
+                    rewrite_printf("Failed to update relocation\n");
+                    return false;
+                }
                 break;
             case R_386_JMP_SLOT:
-                assert(    adjustValInRegion(targetRegion, 
+                if( !adjustValInRegion(targetRegion, 
                            rel.rel_addr() - targetRegion->getRegionAddr(),
-                           addressWidth, library_adjust)
-                        && "Failed to update relocation");
+                           addressWidth, library_adjust) )
+                {
+                    rewrite_printf("Failed to update relocation\n");
+                    return false;
+                }
                 break;
             default:
                 // Do nothing
@@ -1415,6 +1427,8 @@ bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int libra
     // In order to implement this, would have determine the final address of a new .dynamic
     // section before outputting the patched GOT data -- this will require some refactoring.
 #else
-    assert(!"This function is not implemented on this architecture.");
+    rewrite_printf("WARNING: updateRelocation is not implemented on this architecture\n");
 #endif
+
+    return true;
 }

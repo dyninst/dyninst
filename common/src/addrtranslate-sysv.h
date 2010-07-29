@@ -128,7 +128,7 @@ private:
    sorted_libs_t sorted_libs;
 
    /* platform-specific functions */
-   const std::string& getExecName();
+   std::string getExecName();
    ProcessReader *createDefaultDebugger(int pid);
 
    /* 

@@ -39,7 +39,6 @@
 #include "image-func.h"
 #include "instPoint.h"
 #include "symtab.h"
-#include "binaryEdit.h"
 #include "dyninstAPI/h/BPatch_Set.h"
 #include "debug.h"
 #include <deque>
@@ -150,6 +149,16 @@ bool image_func::writesFPRs(unsigned level) {
 }
 
 #if defined(os_linux) || defined(os_freebsd)
+
+#include "binaryEdit.h"
+#include "addressSpace.h"
+#include "function.h"
+#include "miniTramp.h"
+#include "baseTramp.h"
+#include "symtab.h"
+
+using namespace Dyninst::SymtabAPI;
+
 /*
  * Static binary rewriting support
  *

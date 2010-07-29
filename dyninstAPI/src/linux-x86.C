@@ -1768,48 +1768,7 @@ Address process::tryUnprotectStack(codeGen &buf, Address codeBase)
     return ret_addr;
 }
 
-int EmitterIA32::emitCallParams(codeGen &gen, 
-                              const pdvector<AstNodePtr> &operands,
-                              int_function */*target*/, 
-                              pdvector<Register> &/*extra_saves*/, 
-                              bool noCost)
-{
-    pdvector <Register> srcs;
-    unsigned frame_size = 0;
-    unsigned u;
-    for (u = 0; u < operands.size(); u++) {
-        Address unused = ADDR_NULL;
-        Register reg = REG_NULL;
-        if (!operands[u]->generateCode_phase2(gen,
-                                              noCost,
-                                              unused,
-                                              reg)) assert(0); // ARGH....
-        assert (reg != REG_NULL); // Give me a real return path!
-        srcs.push_back(reg);
-    }
-    
-    // push arguments in reverse order, last argument first
-    // must use int instead of unsigned to avoid nasty underflow problem:
-    for (int i=srcs.size() - 1; i >= 0; i--) {
-       RealRegister r = gen.rs()->loadVirtual(srcs[i], gen);
-       ::emitPush(r, gen);
-       frame_size += 4;
-       if (operands[i]->decRefCount())
-          gen.rs()->freeRegister(srcs[i]);
-    }
-    return frame_size;
-}
 
-bool EmitterIA32::emitCallCleanup(codeGen &gen,
-                                int_function * /*target*/, 
-                                int frame_size, 
-                                pdvector<Register> &/*extra_saves*/)
-{
-   if (frame_size)
-      emitOpRegImm(0, RealRegister(REGNUM_ESP), frame_size, gen); // add esp, frame_size
-   gen.rs()->incStack(-1 * frame_size);
-   return true;
-}
 
 Frame process::preStackWalkInit(Frame startFrame) 
 {
@@ -1940,7 +1899,7 @@ bool image::findGlobalConstructorFunc(const std::string &ctorHandler) {
         return false;
     }
 
-    if( addFunctionStub(ctorAddress, ctorHandler.c_str()) == NULL ) {
+    if( addFunction(ctorAddress, ctorHandler.c_str()) == NULL ) {
         logLine("unable to create representation for global constructor function\n");
         return false;
     }else{
@@ -2058,7 +2017,7 @@ bool image::findGlobalDestructorFunc(const std::string &dtorHandler) {
         return false;
     }
 
-    if( addFunctionStub(dtorAddress, dtorHandler.c_str()) == NULL ) {
+    if( addFunction(dtorAddress, dtorHandler.c_str()) == NULL ) {
         logLine("unable to create representation for global destructor function\n");
         return false;
     }else{

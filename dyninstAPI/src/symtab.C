@@ -167,8 +167,8 @@ void image::findMain()
 #if defined(i386_unknown_linux2_0) \
 || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
 || defined(i386_unknown_solaris2_5) \
-|| defined(amd64_unknown_freebsd7_0)
-   
+|| (defined(os_freebsd) \
+    && (defined(arch_x86) || defined(arch_x86_64)))
     if(!desc_.isSharedObject())
     {
     	bool foundMain = false;

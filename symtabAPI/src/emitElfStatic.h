@@ -76,7 +76,7 @@ class emitElfUtils {
         Symtab *obj, vector<Region*> & sections);
     static bool sort_reg(const Region*a, const Region*b);
     static bool updateHeapVariables(Symtab *obj, unsigned long loadSecsSize);
-    static bool updateRelocation(Symtab *obj, relocationEntry &rel);
+    static bool updateRelocation(Symtab *obj, relocationEntry &rel, int library_adjust);
 };
 
 class emitElfStatic {

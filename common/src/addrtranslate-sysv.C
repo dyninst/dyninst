@@ -58,6 +58,10 @@
 #define R_DEBUG_NAME "r_debug"
 #endif
 
+#if defined(os_linux)
+#include "common/h/linuxKludges.h"
+#endif
+
 using namespace std;
 using namespace Dyninst;
 

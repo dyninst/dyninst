@@ -17,7 +17,8 @@ LDFLAGS     += $(LIBDIR) -lcommon
 
 SRCS = ../src/sysv.C \
        ../src/freebsd.C \
-       ../src/int_thread_db.C
+       ../src/int_thread_db.C \
+       ../../common/src/dthread-unix.C
 
 ifdef LIBELF_DIR
 MYLAGS += -I$(LIBELF_DIR)
@@ -46,4 +47,4 @@ include ../make.module.tmpl
 include ../../make.library.tmpl
 
 # Now make any necessary architecture specific changes to variables:
-
+VPATH += ../../common/src

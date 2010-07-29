@@ -31,6 +31,7 @@
 
 #include "common/h/headers.h"
 #include "common/h/parseauxv.h"
+#include "common/h/linuxKludges.h"
 
 #include <elf.h>
 

@@ -282,7 +282,7 @@ void sysv_process::plat_execv() {
         int oldfd = fdit->first;
         int newfd = fdit->second;
 
-        result = close(newfd);
+        int result = close(newfd);
         if (result == -1) {
             pthrd_printf("Could not close old file descriptor to redirect.\n");
             setLastError(err_internal, "Unable to close file descriptor for redirection");

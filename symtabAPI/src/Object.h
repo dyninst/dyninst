@@ -138,6 +138,7 @@ public:
     
     virtual void setTruncateLinePaths(bool value);
     virtual bool getTruncateLinePaths();
+    virtual Region::RegionType getRelType() const { return Region::RT_INVALID; }
 
 protected:
     SYMTAB_EXPORT virtual ~AObject();
