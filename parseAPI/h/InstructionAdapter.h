@@ -80,7 +80,7 @@ class InstructionAdapter
     virtual ParseAPI::FuncReturnStatus getReturnStatus(ParseAPI::Function* context, unsigned int num_insns) const ;
     virtual bool hasUnresolvedControlFlow(ParseAPI::Function* context, unsigned int num_insns)
 const;
-    virtual ParseAPI::StackTamper tampersStack(ParseAPI::Function *, Address &) const 
+    virtual static ParseAPI::StackTamper tampersStack(ParseAPI::Function *, Address &) const 
         { return ParseAPI::TAMPER_NONE; }
     virtual bool simulateJump() const= 0;
     virtual void advance() = 0;

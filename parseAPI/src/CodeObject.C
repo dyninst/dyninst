@@ -176,6 +176,8 @@ CodeObject::parseNewEdges( vector<Block*> & sources,
                            vector<Address> & targets,
                            vector<EdgeTypeEnum> & edge_types )
 {
+    map< Function * , FuncReturnStatus > modfuncs;
+
     vector< ParseWorkElem * > work_elems;
     for (unsigned idx=0; idx < sources.size(); idx++) {
         ParseWorkElem *elem = new ParseWorkElem
@@ -185,9 +187,57 @@ CodeObject::parseNewEdges( vector<Block*> & sources,
               true,
               false );
         work_elems.push_back(elem);
+
+        if (defensiveMode()) {
+            vector< Function * > funcs;
+            sources[idx]->getFuncs(funcs);
+            for (unsigned fidx=0; fidx < funcs.size(); fidx++) {
+                modfuncs[funcs[fidx]] = funcs[fidx]->retstatus();
+            }
+        }
     }
 
     parser->parse_edges( work_elems );
+
+    // the only functions whose parses could have been extended are those
+    // that have had new edges added to them, but stack tamper calculations 
+    // should be re-done on the extended functions and callers to those 
+    // functions can now be determined to be returning
+    for (map<Function*,FuncReturnStatus>::iterator fit = modfuncs.begin(); 
+         modfuncs.end() != fit; 
+         fit++) 
+    {
+        InstructionAdapter(Address start, ParseAPI::CodeObject *o , 
+            ParseAPI::CodeRegion* r, InstructionSource * isrc);
+        InstructionAdapter ah ((*fit).first->addr(), 
+                               this, 
+                               (*fit).first->region(), cs());
+        if ((*fit).first->retstatus() != (*fit).second) {
+            Address tamperAddr=0;
+            StackTamper st = ah.tampersStack((*fit).first, tamperAddr);
+            if (TAMPER_NONE == st || TAMPER_REL == st || TAMPER_ABS == st) {
+                vector<Block*> newsrcs;
+                vector<Address> newtrgs;
+                vector<edge_type> newtypes;
+                Function::edgelist calls = (*fit).first->callEdges();
+                for (Function::edgelist::iterator cit = calls.begin();
+                     cit != calls.end();
+                     cit++) 
+                {
+                     newsrcs.push_back((*cit)->src());
+                }
+                if (TAMPER_NONE == st) {
+                    for (unsigned idx=0; idx < calls.size(); idx++) {
+                        add calls;
+                    }
+                }
+                if (TAMPER_REL == st) {
+                }
+                if (TAMPER_ABS == st) {
+                }
+            }
+        }
+    }
 
     return true;
 }

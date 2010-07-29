@@ -1081,7 +1081,7 @@ StackTamper IA_IAPI::tampersStack(ParseAPI::Function *func,
         return func->stackTamper();
     }
 
-    if ( ! _obj->defensiveMode() ) { 
+    if ( ! func->obj()->defensiveMode() ) { 
         return TAMPER_NONE;
     }
 
@@ -1097,9 +1097,9 @@ StackTamper IA_IAPI::tampersStack(ParseAPI::Function *func,
     Function::blocklist::iterator bit;
     for (bit = retblks.begin(); retblks.end() != bit; bit++) {
         Address retnAddr = (*bit)->lastInsnAddr();
-        InstructionDecoder retdec(_isrc->getPtrToInstruction( retnAddr ), 
+        InstructionDecoder retdec(func->isrc()->getPtrToInstruction( retnAddr ), 
                                   InstructionDecoder::maxInstructionLength, 
-                                  _cr->getArch() );
+                                  func->region()->getArch() );
         Instruction::Ptr retn = retdec.decode();
         converter.convert(retn, retnAddr, func, assgns);
         vector<Assignment::Ptr>::iterator ait;
