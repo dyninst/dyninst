@@ -39,6 +39,7 @@
 #include "debug_parse.h"
 #include "dataflowAPI/h/slicing.h"
 #include "dataflowAPI/h/SymEval.h"
+#include "StackTamperVisitor.h"
 
 #include <deque>
 
@@ -1123,11 +1124,8 @@ StackTamper IA_IAPI::tampersStack(ParseAPI::Function *func,
             }
         }
         assert(sliceAtRet != NULL);
-#if 0
         StackTamperVisitor vis((*ait)->out());
         tamper = vis.tampersStack(sliceAtRet, tamperAddr);
-#endif
-        assert(0 && "KEVINTODO: remove previous ifdef");
         assgns.clear();
     }
     return tamper;
@@ -1323,4 +1321,13 @@ bool IA_IAPI::isIATcall() const
         return false;
 
     return true;
+}
+
+bool IA_IAPI::isNopJump() const
+{
+    InsnCategory cat = curInsn()->getCategory();
+    if(c_BranchInsn == cat && current+1 == getCFT()) {
+        return true;
+    }
+    return false;
 }

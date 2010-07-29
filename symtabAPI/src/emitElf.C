@@ -903,7 +903,7 @@ void emitElf::fixPhdrs(unsigned &extraAlignSize)
      * ascending order, sorted on the p_vaddr member.'
      * 
      * Note: replacing NOTE with LOAD section for bluegene systems 
-     * do not follow this rule.
+     * does not follow this rule.
      */
   
     Elf32_Phdr * insert_phdr = NULL;
@@ -1392,18 +1392,6 @@ bool emitElf::createLoadableSections(Symtab*obj, Elf32_Shdr* &shdr, unsigned &ex
      // Check to make sure the (vaddr for the start of the new segment - the offset) is page aligned
      if(!firstNewLoadSec)
      {
-        // Check to make sure the (vaddr for the start of the new segment - the offset) is page aligned
-        if(!firstNewLoadSec)
-        {
-           newSegmentStart = newshdr->sh_addr;
-           Offset newoff = newshdr->sh_offset  - (newshdr->sh_offset & (pgSize-1)) + (newshdr->sh_addr & (pgSize-1));
-           if(newoff < newshdr->sh_offset)
-              newoff += pgSize;
-           extraAlignSize += newoff - newshdr->sh_offset;
-           newshdr->sh_offset = newoff;
-        }    
-     }	
-     else{
         Offset newoff = newshdr->sh_offset  - (newshdr->sh_offset & (pgSize-1)) + (newshdr->sh_addr & (pgSize-1));
         if(newoff < newshdr->sh_offset)
            newoff += pgSize;

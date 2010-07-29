@@ -560,6 +560,18 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\StackTamperVisitor.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath="..\dataflowAPI\src\SymbolicExpansion.C"
 				>
 				<FileConfiguration

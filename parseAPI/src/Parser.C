@@ -891,6 +891,9 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 }
                 break;
             }
+            else if (_obj.defensiveMode() && ah.isNopJump()) {
+                _pcb.patch_nop_jump(ah.getAddr());
+            }
             else {
                 // default
             }
