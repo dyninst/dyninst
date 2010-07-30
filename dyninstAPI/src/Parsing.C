@@ -232,7 +232,8 @@ DynParseCallback::unresolved_cf(Function *f,Address addr,default_details*det)
             otherPoint,
             true);
 
-    static_cast<image_func*>(f)->setInstLevel(UNINSTRUMENTABLE);
+    if (det->isbranch)
+    	static_cast<image_func*>(f)->setInstLevel(UNINSTRUMENTABLE);
 
     _img->addInstPoint(p);
 }
