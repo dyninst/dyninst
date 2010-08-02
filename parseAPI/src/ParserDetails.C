@@ -175,6 +175,7 @@ void Parser::ProcessCFInsn(
     bool dynamic_call = ah.isDynamicCall();
     bool absolute_call = ah.isAbsoluteCall();
     bool unresolved = ah.hasUnresolvedControlFlow(frame.func,frame.num_insns);
+    bool isBranch = false;
 
     parsing_printf("\t\t%d edges:\n",edges_out.size());
     for(Edges_t::iterator curEdge = edges_out.begin();
@@ -188,6 +189,7 @@ void Parser::ProcessCFInsn(
         {
             if(curEdge->second != NOEDGE || !dynamic_call) {
                 unresolved = true;
+		isBranch = true;
                 resolvable_edge = false;
             }
         }
@@ -259,7 +261,7 @@ void Parser::ProcessCFInsn(
     {
         ParseCallback::default_details det(
          (unsigned char*)frame.func->isrc()->getPtrToInstruction(ah.getAddr()),
-         ah.getSize());
+         ah.getSize(), isBranch);
         _pcb.unresolved_cf(frame.func,ah.getAddr(),&det);
     }
 
