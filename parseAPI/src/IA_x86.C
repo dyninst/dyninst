@@ -1067,6 +1067,7 @@ bool IA_IAPI::isReturnAddrSave() const
     return false;
 }
 
+#if 0 //KEVINTODO: delete
 class ST_Predicates : public Slicer::Predicates {};
 
 // returns stackTamper, which is false if parsing should not resume 
@@ -1078,11 +1079,14 @@ StackTamper IA_IAPI::tampersStack(ParseAPI::Function *func,
                                   Address &tamperAddr) const
 {
     using namespace SymbolicEvaluation;
-    if (TAMPER_UNSET != func->stackTamper()) {
-        return func->stackTamper();
-    }
+    // want to re-calculate the tamper address
+    //if (TAMPER_UNSET != func->stackTamper()) {
+    //    tamperAddr = func->_tamper_addr;
+    //    return func->stackTamper();
+    //}
 
     if ( ! func->obj()->defensiveMode() ) { 
+        assert(0);
         return TAMPER_NONE;
     }
 
@@ -1125,11 +1129,31 @@ StackTamper IA_IAPI::tampersStack(ParseAPI::Function *func,
         }
         assert(sliceAtRet != NULL);
         StackTamperVisitor vis((*ait)->out());
-        tamper = vis.tampersStack(sliceAtRet, tamperAddr);
+        Address curTamperAddr=0;
+        StackTamper curtamper = vis.tampersStack(sliceAtRet, curTamperAddr);
+        if (TAMPER_UNSET == tamper || 
+            (TAMPER_NONZERO == tamper && 
+             TAMPER_NONE != curtamper))
+        {
+            tamper = curtamper;
+            tamperAddr = curTamperAddr;
+        } else if ((TAMPER_REL == tamper    || TAMPER_ABS == tamper) &&
+                   (TAMPER_REL == curtamper || TAMPER_ABS == curtamper)) {
+        {
+            if (tamper != curtamper || tamperAddr != curTamperAddr) {
+                fprintf(stderr, "WARNING! Unhandled case in stackTmaper "
+                        "analysis, func at %lx has distinct tamperAddrs "
+                        "%d:%lx %d:%lx at different return instructions, "
+                        "discarding second tamperAddr %s[%d]\n", 
+                        func->addr(), tamper,tamperAddr, curtamper, 
+                        curTamperAddr, FILE__, __LINE__);
+            }
+        }
         assgns.clear();
     }
     return tamper;
 }
+#endif
 
 /* returns true if the call leads to:
  * -an invalid instruction (or immediately branches/calls to an invalid insn)

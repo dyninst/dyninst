@@ -433,7 +433,7 @@ class Function : public allocatable, public AnnotatableSparse {
     PARSER_EXPORT void set_retstatus(FuncReturnStatus rs) { _rs = rs; }
     PARSER_EXPORT void deleteBlocks( vector<Block*> & dead_funcs,
                                      Block * new_entry );
-    PARSER_EXPORT StackTamper stackTamper() { return _tamper; }
+    PARSER_EXPORT StackTamper tampersStack(bool recalculate=false);
 
     struct less
     {
@@ -474,7 +474,7 @@ class Function : public allocatable, public AnnotatableSparse {
     bool _saves_fp;
     bool _cleans_stack;
     StackTamper _tamper;
-    std::pair<Address,Address> *_tamper_edge;
+    Address _tamper_addr;
 
     /*** Internal parsing methods and state ***/
     void add_block(Block *b);

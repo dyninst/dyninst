@@ -9,6 +9,12 @@
 #include "debug_parse.h"
 #include "util.h"
 
+#include "dataflowAPI/h/slicing.h"
+#include "dataflowAPI/h/AbslocInterface.h"
+#include "instructionAPI/h/InstructionDecoder.h"
+#include "dynutil/h/Graph.h"
+#include "StackTamperVisitor.h"
+
 using namespace std;
 
 using namespace Dyninst;
@@ -31,7 +37,7 @@ Function::Function() :
         _saves_fp(false),
         _cleans_stack(false),
         _tamper(TAMPER_UNSET),
-        _tamper_edge(NULL)
+        _tamper_addr(0)
 {
     fprintf(stderr,"PROBABLE ERROR, default ParseAPI::Function constructor\n");
 }
@@ -55,7 +61,7 @@ Function::Function(Address addr, string name, CodeObject * obj,
         _saves_fp(false),
         _cleans_stack(false),
         _tamper(TAMPER_UNSET),
-        _tamper_edge(NULL)
+        _tamper_addr(0)
 {
     
 }
@@ -327,3 +333,84 @@ Function::deleteBlocks(vector<Block*> &dead_blocks, Block * new_entry)
     }
 }
 
+class ST_Predicates : public Slicer::Predicates {};
+
+StackTamper 
+Function::tampersStack(bool recalculate)
+{
+    using namespace SymbolicEvaluation;
+    using namespace InstructionAPI;
+    // want to re-calculate the tamper address
+    if (!recalculate && TAMPER_UNSET != _tamper) {
+        return _tamper;
+    }
+
+    if ( ! this->obj()->defensiveMode() ) { 
+        assert(0);
+        return TAMPER_NONE;
+    }
+
+    Function::blocklist & retblks = this->returnBlocks();
+    if ( retblks.begin() == retblks.end() ) {
+        return TAMPER_NONE;
+    }
+
+    AssignmentConverter converter(true);
+    vector<Assignment::Ptr> assgns;
+    ST_Predicates preds;
+    _tamper = TAMPER_UNSET;
+    Function::blocklist::iterator bit;
+    for (bit = retblks.begin(); retblks.end() != bit; bit++) {
+        Address retnAddr = (*bit)->lastInsnAddr();
+        InstructionDecoder retdec(this->isrc()->getPtrToInstruction( retnAddr ), 
+                                  InstructionDecoder::maxInstructionLength, 
+                                  this->region()->getArch() );
+        Instruction::Ptr retn = retdec.decode();
+        converter.convert(retn, retnAddr, this, assgns);
+        vector<Assignment::Ptr>::iterator ait;
+        AST::Ptr sliceAtRet;
+
+        for (ait = assgns.begin(); assgns.end() != ait; ait++) {
+            AbsRegion & outReg = (*ait)->out();
+            if ( outReg.absloc().isPC() ) {
+                Slicer slicer(*ait,*bit,this);
+                Graph::Ptr slGraph = slicer.backwardSlice(preds);
+                DataflowAPI::Result_t slRes;
+                DataflowAPI::SymEval::expand(slGraph,slRes);
+                if (dyn_debug_malware) {
+                    stringstream graphDump;
+                    graphDump << "sliceDump_" << this->name() 
+                              << "_" << retnAddr << ".dot";
+                    slGraph->printDOT(graphDump.str());
+                }
+                sliceAtRet = slRes[*ait];
+                break;
+            }
+        }
+        assert(sliceAtRet != NULL);
+        StackTamperVisitor vis((*ait)->out());
+        Address curTamperAddr=0;
+        StackTamper curtamper = vis.tampersStack(sliceAtRet, curTamperAddr);
+        if (TAMPER_UNSET == _tamper || 
+            (TAMPER_NONZERO == _tamper && 
+             TAMPER_NONE != curtamper))
+        {
+            _tamper = curtamper;
+            _tamper_addr = curTamperAddr;
+        } 
+        else if ((TAMPER_REL == _tamper   || TAMPER_ABS == _tamper) &&
+                 (TAMPER_REL == curtamper || TAMPER_ABS == curtamper))
+        {
+            if (_tamper != curtamper || _tamper_addr != curTamperAddr) {
+                fprintf(stderr, "WARNING! Unhandled case in stackTmaper "
+                        "analysis, func at %lx has distinct tamperAddrs "
+                        "%d:%lx %d:%lx at different return instructions, "
+                        "discarding second tamperAddr %s[%d]\n", 
+                        this->addr(), _tamper,_tamper_addr, curtamper, 
+                        curTamperAddr, FILE__, __LINE__);
+            }
+        }
+        assgns.clear();
+    }
+    return _tamper;
+}
