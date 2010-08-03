@@ -1781,8 +1781,8 @@ bool AddressSpace::transform(CodeMover::Ptr cm) {
   cm->transform(a);
 
   //cerr << "Memory emulator" << endl;
-  MemEmulatorTransformer m;
-  cm->transform(m);
+  //MemEmulatorTransformer m;
+  //cm->transform(m);
 
   // Localize control transfers
   //cerr << "  Applying control flow localization" << endl;
@@ -1793,8 +1793,12 @@ bool AddressSpace::transform(CodeMover::Ptr cm) {
   // Add instrumentation
   // For ease of edge instrumentation this should occur post-LocalCFTransformer-age
   //cerr << "Inst transformer" << endl;
-  //Instrumenter i;
-  //cm->transform(i);
+  Instrumenter i;
+  cm->transform(i);
+
+  // And remove unnecessary jumps. This needs to be last.
+  Fallthroughs f;
+  cm->transform(f);
   return true;
 
 }

@@ -117,6 +117,9 @@ bool CFElement::generate(Block &block, GenStack &gens) {
 	return false;
       }
     }
+    else {
+      relocation_cerr << "    target reported unnecessary" << endl;
+    }
     break;
   }
   case Taken_FT: {
@@ -420,7 +423,7 @@ std::string CFElement::format() const {
   for (DestinationMap::const_iterator iter = destMap_.begin();
        iter != destMap_.end();
        ++iter) {
-    ret << iter->first << "->" << iter->second->addr() << ",";
+    ret << iter->first << "->" << iter->second->format() << ",";
   }
   ret << std::dec << ")";
   return ret.str();
@@ -484,7 +487,8 @@ bool CFPatch::apply(codeGen &gen, int iteration, int shift) {
 
   if (postCFPadding_) {
     gen.registerPostCallPad(origAddr_);
-    gen.fill(10, codeGen::cgIllegal);
+    //gen.fill(10, codeGen::cgIllegal);
+    gen.fill(10, codeGen::cgNOP);
   }
 
   return true;

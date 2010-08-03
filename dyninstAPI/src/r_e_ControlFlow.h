@@ -40,6 +40,7 @@ namespace Relocation {
  class TargetInt;
  class Instrumenter;
  class adhocMovementTransformer;
+ class Fallthroughs;
 
 class CFElement : public Element {
   friend class Transformer;
@@ -47,6 +48,7 @@ class CFElement : public Element {
   friend class Instrumenter; // For rewiring edge instrumentation
   friend class adhocMovementTransformer; // Also
   friend class PCSensitiveTransformer;
+  friend class Fallthroughs;
  public:
   static const Address Fallthrough;
   static const Address Taken;

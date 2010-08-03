@@ -39,7 +39,7 @@
 #include "debug_parse.h"
 #include "dataflowAPI/h/slicing.h"
 #include "dataflowAPI/h/SymEval.h"
-#include "StackTamperVisitor.h"
+//#include "StackTamperVisitor.h"
 
 #include <deque>
 
@@ -1077,6 +1077,7 @@ class ST_Predicates : public Slicer::Predicates {};
 StackTamper IA_IAPI::tampersStack(ParseAPI::Function *func, 
                                   Address &tamperAddr) const
 {
+  return TAMPER_NONE;
     using namespace SymbolicEvaluation;
     if (TAMPER_UNSET != func->stackTamper()) {
         return func->stackTamper();
@@ -1094,7 +1095,9 @@ StackTamper IA_IAPI::tampersStack(ParseAPI::Function *func,
     AssignmentConverter converter(true);
     vector<Assignment::Ptr> assgns;
     ST_Predicates preds;
-    StackTamper tamper = TAMPER_UNSET;
+    //StackTamper tamper = TAMPER_UNSET;
+    // TODO FIXME
+    StackTamper tamper = TAMPER_NONE;
     Function::blocklist::iterator bit;
     for (bit = retblks.begin(); retblks.end() != bit; bit++) {
         Address retnAddr = (*bit)->lastInsnAddr();
@@ -1124,8 +1127,8 @@ StackTamper IA_IAPI::tampersStack(ParseAPI::Function *func,
             }
         }
         assert(sliceAtRet != NULL);
-        StackTamperVisitor vis((*ait)->out());
-        tamper = vis.tampersStack(sliceAtRet, tamperAddr);
+        //StackTamperVisitor vis((*ait)->out());
+        //tamper = vis.tampersStack(sliceAtRet, tamperAddr);
         assgns.clear();
     }
     return tamper;

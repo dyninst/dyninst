@@ -134,6 +134,8 @@ class Block {
  public:
   friend class Transformer;
 
+  static int BlockID;
+
   typedef std::list<Element::Ptr> ElementList;
   typedef dyn_detail::boost::shared_ptr<Block> Ptr;
 
@@ -156,6 +158,8 @@ class Block {
   Address origAddr() const { return origAddr_; }
   Address curAddr() const { return curAddr_; }
   void setAddr(Address addr) { curAddr_ = addr; }
+
+  int id() const { return id_; }
 
   // Non-const for use by transformer classes
   ElementList &elements() { return elements_; }
@@ -181,13 +185,15 @@ class Block {
     size_(bbl->getSize()),
     origAddr_(bbl->firstInsnAddr()),
     bbl_(bbl),
-    iteration_(0) {};
+    iteration_(0),
+    id_(BlockID++) {};
  Block(baseTramp *) :
   curAddr_(0),
     size_(0), // Should estimate here
     origAddr_(0), // No original address...
     bbl_(NULL),
-    iteration_(0) {};
+    iteration_(0),
+    id_(BlockID++) {};
 
 
   typedef std::pair<InstructionAPI::Instruction::Ptr, Address> InsnInstance;
@@ -217,6 +223,8 @@ class Block {
   GenStack gens_;
 
   int iteration_;
+
+  int id_;
 };
 
 };
