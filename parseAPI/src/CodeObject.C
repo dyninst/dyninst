@@ -176,6 +176,8 @@ CodeObject::parseNewEdges( vector<Block*> & sources,
                            vector<Address> & targets,
                            vector<EdgeTypeEnum> & edge_types )
 {
+    map< Function * , FuncReturnStatus > modfuncs;
+
     vector< ParseWorkElem * > work_elems;
     for (unsigned idx=0; idx < sources.size(); idx++) {
         ParseWorkElem *elem = new ParseWorkElem
@@ -185,9 +187,77 @@ CodeObject::parseNewEdges( vector<Block*> & sources,
               true,
               false );
         work_elems.push_back(elem);
+
+        if (defensiveMode()) {
+            vector< Function * > funcs;
+            sources[idx]->getFuncs(funcs);
+            for (unsigned fidx=0; fidx < funcs.size(); fidx++) {
+                modfuncs[funcs[fidx]] = funcs[fidx]->retstatus();
+            }
+        }
     }
 
     parser->parse_edges( work_elems );
 
+#if 0
+    // the only functions whose parses could have been extended are those
+    // that have had new edges added to them, but stack tamper calculations 
+    // should be re-done on the extended functions and callers to those 
+    // functions can now be determined to be returning
+    vector<Block*> newsrcs;
+    vector<Address> newtrgs;
+    vector<edge_type> newtypes;
+    map<Address,CodeRegion*> newFuncEntries;
+
+    for (map<Function*,FuncReturnStatus>::iterator fit = modfuncs.begin(); 
+         modfuncs.end() != fit; 
+         fit++) 
+    {
+        if ((*fit).first->retstatus() != (*fit).second) {
+
+            InstructionAdapter(Address start, ParseAPI::CodeObject *o , 
+                ParseAPI::CodeRegion* r, InstructionSource * isrc);
+            InstructionAdapter ah ((*fit).first->addr(), 
+                                   this, 
+                                   (*fit).first->region(), cs());
+            Address tamperAddr=0;
+            StackTamper st = InstructionAdapter::tampersStack
+                ((*fit).first, (*fit).first->_tamper_addr);
+
+            if (TAMPER_NONE == st || TAMPER_REL == st || TAMPER_ABS == st) {
+                Function::edgelist calls = (*fit).first->callEdges();
+                for (Function::edgelist::iterator cit = calls.begin();
+                     cit != calls.end();
+                     cit++) 
+                {
+                    Block *srcblk = (*cit)->src();
+                    if ( findBlockByEntry(srcblk->region(),srcblk->end()) ) {
+                        if (TAMPER_NONE == st) {
+                            newsrcs.push_back(srcblk);
+                            newtrgs.push_back(srcblk->end());
+                            newtypes.push_back(FALLTHROUGH);
+                        }
+                        if (TAMPER_REL == st) {
+                            newFuncEntries[srcblk->end() + tamperAddr] = 
+                                srcblk->region();
+                        }
+                        if (TAMPER_ABS == st) {
+                            newFuncEntries[tamperAddr] = srcblk->region();
+                        }
+                    }
+                }
+            }
+        }
+    }
+    if (newsrcs.size()) {
+        parseNewEdges(newsrcs,newtargs,newtypes);
+    }
+    for (map<Address,CodeRegion*>::iterator eit = newFuncEntries.begin(); 
+         eit != newFuncEntries.end(); 
+         eit++) 
+    {
+        parser->parse_at((*eit).second,(*eit).first,true,ONDEMAND);
+    }
+#endif
     return true;
 }

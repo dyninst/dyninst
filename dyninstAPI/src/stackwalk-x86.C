@@ -244,7 +244,7 @@ static bool isPrevInstrACall(Address addr, process *proc, int_function **callee)
                 callBBI->func()->funcCalls();
                 callPoint = callBBI->func()->findInstPByAddr( callAddr );
             }
-            if (!callPoint) {
+            if (!callPoint || callSite != callPoint->getPointType()) {
                 assert(callBBI->func()->obj()->parse_img()->codeObject()->
                        defensiveMode());
                 mal_printf("Warning, call at %lx, found while "

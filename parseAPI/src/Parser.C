@@ -367,6 +367,19 @@ Parser::parse_frames(vector<ParseFrame *> & work, bool recursive)
             case ParseFrame::PARSED:
                 parsing_printf("[%s] frame %lx complete, return status: %d\n",
                     FILE__,pf->func->addr(),pf->func->_rs);
+                if (unlikely(_obj.defensiveMode() && 
+                             (TAMPER_ABS == pf->func->tampersStack() ||
+                              TAMPER_REL == pf->func->tampersStack())))
+                {
+                    vector<ParseFrame*> tamperFrames;
+                    getTamperFrames(pf->func, tamperFrames);
+                    for (unsigned tidx=0; tidx < tamperFrames.size(); tidx++) {
+                        ParseFrame *tf = tamperFrames[tidx];
+                        init_frame(*tf);
+                        frames.push_back(tf);
+                        _parse_data->record_frame(tf);
+                    }
+                }
                 pf->cleanup();
                 break;
             case ParseFrame::FRAME_ERROR:
@@ -688,7 +701,10 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 }
                 // Call-stack tampering tests
                 if (frame.func->obj()->defensiveMode() && ct) {
-                    StackTamper tamper = ct->stackTamper();
+                    StackTamper tamper = ct->tampersStack();
+                    if (TAMPER_UNSET == tamper) {
+                        tamper = ct->tampersStack();
+                    }
                     if (TAMPER_NONE != tamper) {
 		      parsing_printf("\t Disallowing FT edge: function tampers with its stack\n");
 		      is_nonret = true;
@@ -1308,4 +1324,42 @@ void
 Parser::remove_block(Dyninst::ParseAPI::Block *block)
 {
     _parse_data->remove_block(block);
+}
+
+void Parser::getTamperFrames(Function *func, std::vector<ParseFrame*> & frames)
+{
+    vector<Address> targs;
+    if (TAMPER_ABS == func->tampersStack()) {
+        targs.push_back(func->_tamper_addr);
+    } else if (TAMPER_REL == func->tampersStack()) {
+        Block *eblk = func->entry();
+        Block::edgelist el = eblk->sources();
+        for (Block::edgelist::iterator eit = el.begin(); 
+             eit != el.end(); 
+             eit++)
+        {
+            targs.push_back((*eit)->src()->end() + func->_tamper_addr);
+        }
+    }
+    for (unsigned tidx=0; tidx < targs.size(); tidx++) {
+        Function * tfunc = _parse_data->get_func
+            (func->region(), targs[tidx], func->src());
+        if(!tfunc) {
+            mal_printf("   could not create function at %lx\n",targs[tidx]);
+            continue;
+        }
+
+        ParseFrame::Status exist = _parse_data->frameStatus(tfunc->region(), 
+                                                            targs[tidx]);
+        if(exist != ParseFrame::BAD_LOOKUP && exist != ParseFrame::UNPARSED) {
+            mal_printf("   function at %lx already parsed, status %d\n",
+                           targs[tidx], exist);
+            continue;
+        }
+        ParseFrame *pf = _parse_data->findFrame(tfunc->region(),targs[tidx]);
+        if( !pf ) {
+            pf = new ParseFrame(tfunc,_parse_data);
+        } 
+        frames.push_back(pf);
+    }
 }

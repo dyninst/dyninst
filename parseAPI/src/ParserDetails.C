@@ -191,7 +191,7 @@ void Parser::ProcessCFInsn(
         {
             if(curEdge->second != NOEDGE || !dynamic_call) {
                 unresolved = true;
-		isBranch = true;
+                isBranch = true;
                 resolvable_edge = false;
             }
         }

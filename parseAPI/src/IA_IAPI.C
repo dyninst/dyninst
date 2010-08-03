@@ -280,36 +280,36 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
 
     // Only call this on control flow instructions!
     if(ci->getCategory() == c_CallInsn)
-      {
+    {
         Address target = getCFT();
         if(isRealCall() || isDynamicCall())
-	  {
+        {
             outEdges.push_back(std::make_pair(target, NOEDGE));
-	  }
+        }
         else
-	  {
+        {
             if(_isrc->isValidAddress(target))
-	      {
+            {
                 if(simulateJump())
-		  {
+                {
                     parsing_printf("[%s:%u] call at 0x%lx simulated as "
-				   "jump to 0x%lx\n",
-				   FILE__,__LINE__,getAddr(),getCFT());
+                            "jump to 0x%lx\n",
+                    FILE__,__LINE__,getAddr(),getCFT());
                     outEdges.push_back(std::make_pair(target, DIRECT));
                     return;
-		  }
-	      }
-	  }
+                }
+            }
+        }
         if ( ! _obj->defensiveMode()  // add fallthrough edge unless we're in
              || ( ( ! isDynamicCall() // defensive mode and this is call with
-                                      // a bad call target or an indirect call 
-                                      // that doesn't pass through the PE's
-                                      // Import Address Table (i.e., the IAT)
-		    )                  // otherwise, the call is unresolved.
-		  && _isrc->isValidAddress(target) ) ) 
-	  {
+#if defined (os_windows)              // a bad call target or an indirect call 
+                    || isIATcall()    // that doesn't pass through the PE's
+#endif                                // Import Address Table (i.e., the IAT)
+                   )                  // otherwise, the call is unresolved.
+                 && _isrc->isValidAddress(target) ) ) 
+        {
             outEdges.push_back(std::make_pair(getAddr() + getSize(),CALL_FT));
-	  }
+        }
         return;
       }
     else if(ci->getCategory() == c_BranchInsn)
@@ -330,7 +330,6 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
             {
                 outEdges.push_back(std::make_pair(catchStart, CATCH));
             }
-        
 
             if(!isTailCall(context,num_insns))
             {

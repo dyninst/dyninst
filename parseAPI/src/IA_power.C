@@ -622,7 +622,7 @@ bool IA_IAPI::isIATcall() const
     return false;
 }
 
-ParseAPI::StackTamper 
+static ParseAPI::StackTamper 
 IA_IAPI::tampersStack(ParseAPI::Function *, Address &) const
 {
     return TAMPER_NONE;
