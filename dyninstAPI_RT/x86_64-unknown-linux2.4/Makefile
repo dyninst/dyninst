@@ -71,19 +71,22 @@ LIBS_32      = -L/usr/lib $(LIBS)
 
 
 $(OBJS_32): %_m32.o: ../src/%.c
-	$(CC) $(subst -m64,-m32,$(CFLAGS_32)) -c $< -o $@
+	@echo "Compiling $< (32-bit)"
+	@$(CC) $(subst -m64,-m32,$(CFLAGS_32)) -c $< -o $@
 $(ASM_OBJS_32): %_m32.o: ../src/%.S
-	$(CC) $(subst -m64,-m32,$(CFLAGS_32)) -c $< -o $@
+	@echo "Compiling $< (32-bit)"
+	@$(CC) $(subst -m64,-m32,$(CFLAGS_32)) -c $< -o $@
 $(VOUCHER_32):
 	@echo Updating build voucher information: $(VOUCHER_32)
-	$(BUILDSTAMP) $(BUILD_ID) $(XTARGET)
-	$(MODCC) -m32 -c $(VOUCHER).c -o $(VOUCHER_32).o
+	@$(BUILDSTAMP) $(BUILD_ID) $(XTARGET)
+	@$(MODCC) -m32 -c $(VOUCHER).c -o $(VOUCHER_32).o
 $(TARGET_32_SO): $(OBJS_32) $(ASM_OBJS_32)
 	@$(RM) $(TARGET_32_SO)
 	@$(MAKE) $(VOUCHER_32)
 	$(LD) $(subst -m64,-m32,$(LDFLAGS_32)) -o $(TARGET_32_SO) $(VOUCHER_32).o $(OBJS_32) $(ASM_OBJS_32) $(LIBS_32)
 RTspace.o: ../src/RTspace.S
-	$(CC) $(CFLAGS) -c $< -o $@
+	@echo "Compiling RTspace"
+	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(DEST)/$(TARGET_32_SO): $(TARGET_32_SO)
 	-$(CP) $(TARGET_32_SO) $(DEST)
@@ -96,12 +99,14 @@ STATIC_ASM_OBJS_32  = $(patsubst %.S, %_nopic_m32.o, $(filter %.S,$(notdir $(ASM
 STATIC_CFLAGS_32    =  $(subst -DMUTATEE64,-DMUTATEE_32,$(STATIC_CFLAGS))
 
 $(STATIC_OBJS_32): %_nopic_m32.o: ../src/%.c
-	$(CC) $(subst -m64,-m32,$(STATIC_CFLAGS_32)) -c $< -o $@
+	@echo "Compiling $< (static 32-bit)"
+	@$(CC) $(subst -m64,-m32,$(STATIC_CFLAGS_32)) -c $< -o $@
 $(STATIC_ASM_OBJS_32): %_nopic_m32.o: ../src/%.S
-	$(CC) $(subst -m64,-m32,$(STATIC_CFLAGS_32)) -c $< -o $@
+	@echo "Compiling $< (static 32-bit)"
+	@$(CC) $(subst -m64,-m32,$(STATIC_CFLAGS_32)) -c $< -o $@
 $(STATIC_TARGET_32): $(STATIC_OBJS_32) $(STATIC_ASM_OBJS_32)
 	@$(RM) $(STATIC_TARGET_32)
-	$(AR) rcs $(STATIC_TARGET_32) $(STATIC_OBJS_32) $(STATIC_ASM_OBJS_32)
+	@$(AR) rcs $(STATIC_TARGET_32) $(STATIC_OBJS_32) $(STATIC_ASM_OBJS_32)
 
 $(DEST)/$(STATIC_TARGET_32): $(STATIC_TARGET_32)
 	-$(CP) $(STATIC_TARGET_32) $(DEST)
