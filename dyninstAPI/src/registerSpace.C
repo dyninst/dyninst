@@ -490,7 +490,7 @@ Register registerSpace::allocateRegister(codeGen &gen,
   return reg;
 }
 
-bool registerSpace::spillRegister(Register reg, codeGen &gen, bool /*noCost*/) {
+bool registerSpace::spillRegister(Register reg, codeGen &, bool /*noCost*/) {
   assert(!registers_[reg]->offLimits);
 
   //assert(0 && "Unimplemented!");

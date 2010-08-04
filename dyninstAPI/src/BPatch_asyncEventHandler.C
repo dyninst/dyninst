@@ -1544,7 +1544,7 @@ bool BPatch_asyncEventHandler::mutateeDetach(process *p)
    {
 	   return true;
    }
-   eventType evt;
+   eventType evt = evtUndefined;
    while(!doneDisconnect) {
        evt = p->sh->waitForEvent(evtRPCSignal, p, NULL /*lwp*/, statusRPCDone);
    }

@@ -917,7 +917,7 @@ void BPatch_process::beginInsertionSetInt()
  * then the function really should work.
  */
 
-bool BPatch_process::finalizeInsertionSetInt(bool atomic, bool *modified) 
+bool BPatch_process::finalizeInsertionSetInt(bool, bool *) 
 {
   // Can't insert code when mutations are not active.
   bool shouldContinue = false;
@@ -940,8 +940,8 @@ bool BPatch_process::finalizeInsertionSetInt(bool atomic, bool *modified)
 }
 
 
-bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool atomic, bool *modified, 
-                                               BPatch_Vector<BPatch_catchupInfo> &catchup_handles)
+bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool, bool *, 
+							BPatch_Vector<BPatch_catchupInfo> &)
 {
    return false;
 }
