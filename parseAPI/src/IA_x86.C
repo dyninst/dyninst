@@ -1078,8 +1078,7 @@ class ST_Predicates : public Slicer::Predicates {};
 StackTamper IA_IAPI::tampersStack(ParseAPI::Function *func, 
                                   Address &tamperAddr) const
 {
-  return TAMPER_NONE;
-    using namespace SymbolicEvaluation;
+    using namespace DataflowAPI;
     // want to re-calculate the tamper address
     //if (TAMPER_UNSET != func->stackTamper()) {
     //    tamperAddr = func->_tamper_addr;
@@ -1087,7 +1086,6 @@ StackTamper IA_IAPI::tampersStack(ParseAPI::Function *func,
     //}
 
     if ( ! func->obj()->defensiveMode() ) { 
-        assert(0);
         return TAMPER_NONE;
     }
 

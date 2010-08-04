@@ -75,6 +75,16 @@ void AbsRegionConverter::convertAll(InstructionAPI::Instruction::Ptr insn,
 	 i != regsWritten.end(); ++i) {
       defined.push_back(AbsRegionConverter::convert(*i));
     }
+
+    // special case for repeat-prefixed instructions on x86
+    // may disappear if Dyninst's representation of these instructions changes
+    if (insn->getArch() == Arch_x86) {
+      prefixEntryID insnPrefix = insn->getOperation().getPrefixID();
+      if ( (prefix_rep == insnPrefix) || (prefix_repnz == insnPrefix) ) {
+        defined.push_back(AbsRegionConverter::convert(RegisterAST::Ptr(
+          new RegisterAST(MachRegister::getPC(Arch_x86)))));
+      }
+    }
     
     if (insn->writesMemory()) {
       std::set<Expression::Ptr> memWrites;
