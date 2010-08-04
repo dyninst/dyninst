@@ -306,7 +306,7 @@ class AddressSpace : public InstructionSource {
     // instPoint isn't const; it may get an updated list of
     // instances since we generate them lazily.
     // Shouldn't this be an instPoint member function?
-    void replaceFunctionCall(instPoint *point,const int_function *newFunc);
+    void replaceFunctionCall(instPoint *point, int_function *newFunc);
     void revertReplacedCall(instPoint *point);
     void replaceFunction(int_function *oldfunc, int_function *newfunc);
     void revertReplacedFunction(int_function *oldfunc);
@@ -483,7 +483,7 @@ class AddressSpace : public InstructionSource {
     IntervalTree<Address, Address> reverseCallPadMap_;
 
     // Track desired function replacements/removals/call replacements
-    typedef std::map<instPoint *, const int_function *> CallReplaceMap;
+    typedef std::map<instPoint *, int_function *> CallReplaceMap;
     CallReplaceMap callReplacements_;
     typedef std::map<int_function *, int_function *> FuncReplaceMap;
     FuncReplaceMap functionReplacements_;

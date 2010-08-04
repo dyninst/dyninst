@@ -41,6 +41,7 @@ namespace Relocation {
  class Instrumenter;
  class adhocMovementTransformer;
  class Fallthroughs;
+ class Modification;
 
 class CFElement : public Element {
   friend class Transformer;
@@ -49,6 +50,7 @@ class CFElement : public Element {
   friend class adhocMovementTransformer; // Also
   friend class PCSensitiveTransformer;
   friend class Fallthroughs;
+  friend class Modification;
  public:
   static const Address Fallthrough;
   static const Address Taken;

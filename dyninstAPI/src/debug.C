@@ -243,6 +243,10 @@ static char *dyn_debug_write_filename = NULL;
 static FILE *dyn_debug_write_file = NULL;
 
 bool init_debug() {
+  static bool init = false;
+  if (init) return true;
+  init = true;
+
   char *p;
   if ( (p=getenv("DYNINST_DEBUG_MALWARE"))) {
     fprintf(stderr, "Enabling DyninstAPI malware debug\n");

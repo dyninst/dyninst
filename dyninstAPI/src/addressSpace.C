@@ -1504,7 +1504,7 @@ bool AddressSpace::sameRegion(Address addr1, Address addr2)
 }
 ////////////////////////////////////////////////////////////////////////////////////////
 
-void AddressSpace::replaceFunctionCall(instPoint *point, const int_function *newFunc) {
+void AddressSpace::replaceFunctionCall(instPoint *point, int_function *newFunc) {
   // Just register it for later code generation
   callReplacements_[point] = newFunc;
   addModifiedFunction(point->func());
@@ -1616,6 +1616,10 @@ bool AddressSpace::transform(CodeMover::Ptr cm) {
   //cerr << "Memory emulator" << endl;
   //MemEmulatorTransformer m;
   //cm->transform(m);
+
+  // Insert whatever binary modifications are desired
+  Modification mod(callReplacements_, functionReplacements_, callRemovals_);
+  cm->transform(mod);
 
   // Localize control transfers
   //cerr << "  Applying control flow localization" << endl;

@@ -71,6 +71,7 @@ bool LocalizeCF::processBlock(BlockList::iterator &iter) {
   for (CFElement::DestinationMap::iterator d_iter = cf->destMap_.begin();
        d_iter != cf->destMap_.end(); ++d_iter) {
 
+    assert(d_iter->second);
     if (d_iter->second->valid() == false) {
       // Whatnow?
       continue;
