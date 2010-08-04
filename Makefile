@@ -212,6 +212,7 @@ testsuite: $(coreSubdirs_explicitInstall)
 testsuite: parseThat
 parseThat: $(coreSubdirs_explicitInstall)
 proccontrol: common dynutil
+parseAPI: symtabAPI instructionAPI
 #depGraphAPI: instructionAPI $(coreSubdirs_explicitInstall)
 # depGraphAPI: instructionAPI dyninstAPI
 
