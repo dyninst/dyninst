@@ -14,8 +14,8 @@ VOUCHER	= V_$(XTARGET)
 
 $(VOUCHER):
 	@echo Updating build voucher information: $(VOUCHER)
-	$(BUILDSTAMP) $(BUILD_ID) $(XTARGET)
-	$(MODCC) -c $(MODCFLAGS) $(VOUCHER).c
+	@$(BUILDSTAMP) $(BUILD_ID) $(XTARGET)
+	@$(MODCC) -c $(MODCFLAGS) $(VOUCHER).c
 
 VPATH		+= ../src
 
@@ -70,16 +70,20 @@ ifdef STATIC_TARGET
 
 # pattern rules for building non-PIC .o's
 %_nopic.o: ../src/%.c
-	$(CC) -c -o $*_nopic.o $(CFLAGS) $(CPPFLAGS) ../src/$*.c
+	@echo "Compiling $< (noPIC)"
+	@$(CC) -c -o $*_nopic.o $(CFLAGS) $(CPPFLAGS) ../src/$*.c
 
 %_nopic.o: ../src/%.C
-	$(CXX) -c -o $*_nopic.o $(CPPFLAGS) $(CXXFLAGS) ../src/$*.C
+	@echo "Compiling $< (noPIC)"
+	@$(CXX) -c -o $*_nopic.o $(CPPFLAGS) $(CXXFLAGS) ../src/$*.C
 
 %_nopic.o: ../src/%.S
-	$(AS) $(ASFLAGS) -o $*_nopic.o ../src/$*.S
+	@echo "Compiling $< (noPIC)"
+	@$(AS) $(ASFLAGS) -o $*_nopic.o ../src/$*.S
 
 %_nopic.o: ../src/%.s
-	$(AS) $(ASFLAGS) -o $*_nopic.o ../src/$*.s
+	@echo "Compiling $< (noPIC)"
+	@$(AS) $(ASFLAGS) -o $*_nopic.o ../src/$*.s
 
 ifdef STATIC_CFLAGS
 $(STATIC_TARGET): CFLAGS = $(STATIC_CFLAGS)
@@ -168,8 +172,9 @@ ifndef DEPENDFLAGS
 endif
 
 DEPENDS:
-	touch DEPENDS
-	$(MAKE) $(SRCS)
+	@echo "Building depends files"
+	@touch DEPENDS
+#	@$(MAKE) $(SRCS)
 ifdef XLC_BUILD
   ifeq ($(DEPCC), xlC)
 	$(DEPCC) $(DEPENDFLAGS) $(MODCFLAGS) $(SRCS) > /dev/null
@@ -180,9 +185,9 @@ ifdef XLC_BUILD
   endif #aix/power platform
 else
 ifeq ($(MODCC),cc)
-	$(GCC) -MM $(MODCFLAGS) $(SRCS) > DEPENDS
+	@$(GCC) -MM $(MODCFLAGS) $(SRCS) > DEPENDS
 else
-	$(DEPCC) $(DEPENDFLAGS) $(MODCFLAGS) $(SRCS) > DEPENDS
+	@$(DEPCC) $(DEPENDFLAGS) $(MODCFLAGS) $(SRCS) > DEPENDS
 endif #XLC_BUILD
 endif
 
@@ -220,3 +225,13 @@ endif
 
 # platform-specific options
 include $(TO_CORE)/make.platform.tmpl
+
+# Let's trying prettyprinting the compile lines...
+
+%.o : %.c
+	@echo Compiling $<
+	@$(CC) -c $(CFLAGS) $(CPPFLAGS) $< -o $@ 
+
+%.o : %.C
+	@echo Compiling $<
+	@$(CXX) -c $(CXXFLAGS) $(CPPFLAGS) $< -o $@
