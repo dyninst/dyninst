@@ -1522,11 +1522,29 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
     }
     printf("Handling signal number 0x%X\n",ev.what);
 
-    //KEVINTODO: need one time code here to call sigaction so we can
+    //TODO: need one time code here to call sigaction so we can
     //retrieve the registered signal handler address and trigger a
     //callback, if there is one
     assert(false); // for now
     return false;
+}
+
+int dyn_lwp::changeMemoryProtections(Address , Offset , unsigned )
+{
+    assert(0);//not implemented for unix
+    return 0;
+}
+
+bool SignalHandler::handleCodeOverwrite(EventRecord &)
+{
+    assert(0);//not implemented for unix 
+    return false;
+}
+
+mapped_object *process::createObjectNoFile(Address)
+{
+    assert(0); //not implemented for unix
+    return NULL;
 }
 
 bool SignalGeneratorCommon::postSignalHandler() 
@@ -1707,3 +1725,8 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
 }
 
 #endif
+
+bool process::hideDebugger()
+{
+    return false;
+}

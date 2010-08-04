@@ -32,7 +32,7 @@
 #include "common/h/Types.h"
 //#include "arch.h"
 #include "InstructionAdapter.h"
-#include "debug.h"
+#include "debug_parse.h"
 
 #include "parseAPI/h/CodeObject.h"
 

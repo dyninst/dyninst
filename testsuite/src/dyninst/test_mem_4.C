@@ -99,18 +99,18 @@ test_results_t test_mem_4_Mutator::executeTest() {
              "Number of accesses seems wrong in function \"loadsnstores\".\n");
   }
   
-  if (instCall(appThread, "Access", res1) < 0) {
+  if (instCall(appAddrSpace, "Access", res1) < 0) {
       failtest(testnum, testdesc, "Unable to instrument accesses.\n");
   }
 #if defined(i386_unknown_linux2_0_test) \
  || defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
  || defined(i386_unknown_nt4_0_test)
   const BPatch_Vector<BPatch_point*>* res2 = BPatch_memoryAccess::filterPoints(*res1, 2);
-  if (instCall(appThread, "Access", res2) < 0) {
+  if (instCall(appAddrSpace, "Access", res2) < 0) {
       failtest(testnum, testdesc, "Unable to instrument all accesses.\n");
   }
 #endif
-  appThread->continueExecution();
+  //appThread->continueExecution();
 
   return PASSED;
 #endif

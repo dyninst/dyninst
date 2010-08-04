@@ -40,6 +40,7 @@
 #include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/signalgenerator.h"
 #include "dyninstAPI/h/BPatch_thread.h"
+#include "dyninstAPI/h/BPatch_function.h"
 
 CallbackManager *callback_manager = NULL;
 CallbackManager *getCBManager()
@@ -185,6 +186,22 @@ bool SyncCallback::do_it()
       if (reset_delete_enabled)
          enableDelete();
    }
+
+   // invoke trampEnd and return address fixup after any callback
+   // that could update the analysis of the code
+   if ( synchronous && getProcess() && 
+        ( dynamic_cast<StopThreadCallback*>(this) ||
+          dynamic_cast<DynLibraryCallback*>(this) ||
+          dynamic_cast<ForkCallback*>(this) ||
+          dynamic_cast<ExecCallback*>(this) ||
+          dynamic_cast<SignalCallback*>(this) ||
+          dynamic_cast<SignalHandlerCallback*>(this) ||
+          dynamic_cast<CodeOverwriteCallback*>(this) ||
+          dynamic_cast<AsyncThreadEventCallback*>(this) ) )
+   {
+       getProcess()->fixupActiveStackTargets();
+   }
+
    return true;
 }
 
@@ -329,7 +346,7 @@ bool DynamicCallsiteCallback::execute_real(void)
 }
 
 bool DynamicCallsiteCallback::operator()(BPatch_point *at_point, 
-      BPatch_function *called_function)
+                                         BPatch_function *called_function)
 {
    assert(lock->depth());
    pt = at_point;
@@ -360,9 +377,47 @@ bool UserEventCallback::operator()(BPatch_process *process, void *buffer, int bu
    return do_it();
 }
 
+
+process* SyncCallback::getProcess()
+{
+    return NULL;
+}
+process * StopThreadCallback::getProcess() 
+{
+    return point->getFunction()->getProc()->lowlevel_process();
+}
+process * CodeOverwriteCallback::getProcess() 
+{
+    return proc;
+}
+
+
+StopThreadCallback::StopThreadCallback(BPatchStopThreadCallback callback) : 
+    SyncCallback(),
+    cb(callback), 
+    point(NULL), 
+    return_value(NULL) 
+{
+    enableDelete(false);
+}
+StopThreadCallback::StopThreadCallback(StopThreadCallback &src) : 
+    SyncCallback(),
+    cb(src.cb), 
+    point(NULL), 
+    return_value(NULL) 
+{
+    enableDelete(false);
+}
+
+StopThreadCallback::~StopThreadCallback() 
+{
+    mal_printf("%s[%d] About to delete stopthread callback.  This is bad\n");
+    assert(0);
+}
+
 bool StopThreadCallback::execute_real(void) 
 {
-  cb(point, return_value);
+   cb(point, return_value);
   return true;
 }
 
@@ -377,7 +432,7 @@ bool StopThreadCallback::operator()(BPatch_point *atPoint, void *returnValue)
 
 bool SignalHandlerCallback::execute_real(void) 
 {
-  cb(point, signum, handlers);
+  cb(point, signum, *handlers);
   return true;
 }
 
@@ -397,6 +452,22 @@ bool SignalHandlerCallback::operator()(BPatch_point *at_point, long signal_numbe
   point = at_point;
   signum = signal_number;
   handlers = handler_vec;
+  return do_it();
+}
+
+bool CodeOverwriteCallback::execute_real(void) 
+{
+  cb_(fault_instr, v_target);
+  return true;
+}
+
+bool CodeOverwriteCallback::operator()
+(BPatch_point *fault_instr_, Address v_target_, process *proc_)
+{
+  assert(lock->depth());
+  fault_instr = fault_instr_;
+  v_target = v_target_;
+  proc = proc_;
   return do_it();
 }
 

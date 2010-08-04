@@ -157,7 +157,7 @@ class name : public AST {						\
   Children kids_;							\
  };									\
 
-class AST : public dyn_detail::boost::enable_shared_from_this<AST> {
+class COMMON_EXPORT AST : public dyn_detail::boost::enable_shared_from_this<AST> {
  public:
 
   // This is a global list of all AST types, including those that are not
@@ -202,7 +202,7 @@ class AST : public dyn_detail::boost::enable_shared_from_this<AST> {
   // Substitutes every occurrence of a with b in
   // AST in. Returns a new AST. 
 
-  static COMMON_EXPORT AST::Ptr substitute(AST::Ptr in, AST::Ptr a, AST::Ptr b); 
+  static AST::Ptr substitute(AST::Ptr in, AST::Ptr a, AST::Ptr b); 
 
   virtual ID getID() const { return V_AST; };
 
@@ -219,7 +219,7 @@ class AST : public dyn_detail::boost::enable_shared_from_this<AST> {
   virtual bool isStrictEqual(const AST &rhs) const = 0;
 };
 
- class ASTVisitor {
+ class COMMON_EXPORT ASTVisitor {
  public:
    typedef dyn_detail::boost::shared_ptr<AST> ASTPtr;
    virtual ASTPtr visit(AST *) {return AST::Ptr();};

@@ -36,7 +36,7 @@
 #include "Dereference.h"
 #include "Immediate.h"
 #include "BinaryFunction.h"
-#include "debug.h"
+#include "debug_parse.h"
 
 #include <deque>
 #include <map>
@@ -355,6 +355,10 @@ void IA_IAPI::getNewEdges(
                            ci->format().c_str(), current);
             parsedJumpTable = true;
             successfullyParsedJumpTable = parseJumpTable(currBlk, outEdges);
+
+            if(!successfullyParsedJumpTable || outEdges.empty()) {
+                outEdges.push_back(std::make_pair((Address)-1,INDIRECT));
+            }
             return;
         }
     }
@@ -431,7 +435,10 @@ bool IA_IAPI::isRealCall() const
             getCFT());
         return false;
     }
-    return (!isThunk());
+    if(isThunk()) {
+        return false;
+    }
+    return true;
 }
 
 std::map<Address, bool> IA_IAPI::thunkAtTarget;
@@ -443,6 +450,12 @@ bool IA_IAPI::isConditional() const
 
 bool IA_IAPI::simulateJump() const
 {
+    // obfuscated programs simulate jumps by calling into a block that 
+    // discards the return address from the stack, we check for these
+    // fake calls in malware mode
+    if (_obj->defensiveMode()) {
+        return isFakeCall();
+    }
     // TODO: we don't simulate jumps on x86 architectures; add logic as we need it.                
     return false;
 }

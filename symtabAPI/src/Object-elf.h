@@ -419,6 +419,8 @@ class Object : public AObject {
     bool hasReladyn() const {return hasReladyn_;}
     bool hasRelplt() const {return hasRelplt_;}
     bool hasRelaplt() const {return hasRelaplt_;}
+    bool isBlueGene() const {return isBlueGene_;}
+    bool hasNoteSection() const {return hasNoteSection_;}
 
     Offset getTextAddr() const {return text_addr_;}
     Offset getSymtabAddr() const {return symtab_addr_;}
@@ -457,6 +459,9 @@ class Object : public AObject {
   bool hasReladyn_;
   bool hasRelplt_;
   bool hasRelaplt_;
+
+  bool isBlueGene_;
+  bool hasNoteSection_;
 
   Offset   elf_hash_addr_; 	 //.hash section 
   Offset   gnu_hash_addr_; 	 //.gnu.hash section 

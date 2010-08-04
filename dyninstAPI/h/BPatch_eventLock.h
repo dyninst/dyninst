@@ -40,7 +40,7 @@
 #include "BPatch_dll.h"
 
 #if defined (_MSC_VER)
-#define CONST_EXPORT
+#define CONST_EXPORT const
 #else
 #define CONST_EXPORT const
 #endif

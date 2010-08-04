@@ -108,9 +108,14 @@ class DynParseCallback : public ParseAPI::ParseCallback {
   DynParseCallback(image * img) : _img(img) { }
   ~DynParseCallback() { }
 
+  // defensive and exploratory mode callbacks
   void unresolved_cf(ParseAPI::Function*,Address,default_details*);
+  void abruptEnd_cf(Address,default_details*);
+  void newfunction_retstatus(ParseAPI::Function*);
+  void block_split(ParseAPI::Block *first, ParseAPI::Block *second);
+  void patch_jump_neg1(Address);
+  // other callbacks
   void interproc_cf(ParseAPI::Function*,Address,interproc_details*);
-
   void overlapping_blocks(ParseAPI::Block*,ParseAPI::Block*);
 
 #if defined(arch_power) || defined(arch_sparc)

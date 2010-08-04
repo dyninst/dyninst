@@ -124,7 +124,10 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
    // Internal functions. Don't use these unless you know what you're
    // doing.
    int_basicBlock *lowlevel_block()  { return iblock; }
-
+   void setlowlevel_block(int_basicBlock *b)  { iblock = b; }
+   void  getAllPoints(std::vector<BPatch_point*>& allPoints);
+   BPatch_function *getCallTarget();
+   // end internal functions
 
 	/** BPatch_basicBlock::getSources   */
 	/** method that returns the predecessors of the basic block */
@@ -298,14 +301,19 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
    int blockNo() const;
     
    struct compare {
-      int operator()(const BPatch_basicBlock *b1, 
-                     const BPatch_basicBlock *b2) const 
+      int operator()(CONST_EXPORT BPatch_basicBlock *b1, 
+                     CONST_EXPORT BPatch_basicBlock *b2) CONST_EXPORT
       {
-         if (b1->blockNo() < b2->blockNo())
+         if (b1->getStartAddress() < b2->getStartAddress())
             return -1;
-         if (b1->blockNo() > b2->blockNo())
+         if (b1->getStartAddress() > b2->getStartAddress())
             return 1;
          return 0;
+         //if (b1->blockNo() < b2->blockNo())
+         //   return -1;
+         //if (b1->blockNo() > b2->blockNo())
+         //   return 1;
+         //return 0;
       }
    };
 };

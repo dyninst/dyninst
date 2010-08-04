@@ -84,6 +84,9 @@ extern int DYNINSTdebugPrintRT; /* control run-time lib debug/trace prints */
 #define RTprintf                if (DYNINSTdebugPrintRT) printf
 #endif
 
+#define TARGET_CACHE_WIDTH 128
+#define TARGET_CACHE_WAYS 2
+
 #define THREAD_AWAITING_DELETION -2
 
 #define ERROR_STRING_LENGTH 256

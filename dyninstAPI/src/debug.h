@@ -53,6 +53,7 @@ extern void showInfoCallback(std::string msg);
 
 void BPatch_reportError(int errLevel, int num, const char *str);
 
+extern int dyn_debug_malware;
 extern int dyn_debug_signal;
 extern int dyn_debug_infrpc;
 extern int dyn_debug_startup;
@@ -131,6 +132,7 @@ extern StatContainer stats_codegen;
 #define crash_cerr        if (dyn_debug_crash) cerr
 
 // C prototypes for internal debugging functions
+extern int mal_printf(const char *format, ...);
 extern int signal_printf_int(const char *format, ...);
 extern int inferiorrpc_printf_int(const char *format, ...);
 extern int startup_printf_int(const char *format, ...);

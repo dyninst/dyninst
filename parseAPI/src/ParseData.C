@@ -33,7 +33,7 @@
 #include "CodeObject.h"
 #include "CFGFactory.h"
 #include "util.h"
-#include "debug.h"
+#include "debug_parse.h"
 
 using namespace std;
 using namespace Dyninst;
@@ -156,6 +156,25 @@ StandardParseData::reglookup(CodeRegion * /* cr */, Address addr)
         return *regions.begin();
     else
         return NULL;
+}
+void
+StandardParseData::remove_func(Function *f)
+{
+    remove_extents(f->extents());
+    _rdata.funcsByAddr.erase(f->addr());
+}
+void
+StandardParseData::remove_block(Block *b)
+{
+    _rdata.blocksByAddr.erase(b->start());
+    _rdata.blocksByRange.remove(b);
+}
+void
+StandardParseData::remove_extents(const std::vector<FuncExtent*> & extents)
+{
+    for (unsigned idx=0; idx < extents.size(); idx++) {
+        _rdata.funcsByRange.remove( extents[idx] );
+    }
 }
 
 /**** Overlapping region ParseData ****/
@@ -292,6 +311,53 @@ OverlappingParseData::record_block(CodeRegion *cr, Block *b)
     region_data * rd = rmap[cr];
     rd->blocksByAddr[b->start()] = b;
     rd->blocksByRange.insert(b); 
+}
+void
+OverlappingParseData::remove_func(Function *f)
+{
+    remove_extents(f->extents());
+
+    CodeRegion * cr = f->region();
+    if(!HASHDEF(rmap,cr)) {
+        fprintf(stderr,"Error, invalid code region [%lx,%lx) in record_func\n",
+            cr->offset(),cr->offset()+cr->length());
+        return;
+    }
+    region_data * rd = rmap[cr];
+
+    rd->funcsByAddr.erase(f->addr());
+}
+void
+OverlappingParseData::remove_block(Block *b)
+{
+    CodeRegion * cr = b->region();
+    if(!HASHDEF(rmap,cr)) {
+        fprintf(stderr,"Error, invalid code region [%lx,%lx) in record_block\n",
+            cr->offset(),cr->offset()+cr->length());
+        return;
+    }
+    region_data * rd = rmap[cr];
+    rd->blocksByAddr.erase(b->start());
+    rd->blocksByRange.remove(b); 
+}
+void //extents should all belong to the same code region
+OverlappingParseData::remove_extents(const vector<FuncExtent*> & extents)
+{
+    if (0 == extents.size()) {
+        return;
+    }
+    CodeRegion * cr = extents[0]->func()->region();
+    if(!HASHDEF(rmap,cr)) {
+        fprintf(stderr,"Error, invalid code region [%lx,%lx) in record_func\n",
+            cr->offset(),cr->offset()+cr->length());
+        return;
+    }
+    region_data * rd = rmap[cr];
+    vector<FuncExtent*>::const_iterator fit;
+    for (fit = extents.begin(); fit != extents.end(); fit++) {
+        assert( (*fit)->func()->region() == cr );
+        rd->funcsByRange.remove( *fit );
+    }
 }
 void
 OverlappingParseData::record_frame(ParseFrame *pf)

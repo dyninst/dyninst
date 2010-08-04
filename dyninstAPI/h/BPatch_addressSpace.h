@@ -89,7 +89,7 @@ private:
     void addMiniTramp(miniTramp *m) { mtHandles_.push_back(m); }
     
 public:
-
+ 
     API_EXPORT_DTOR(_dtor, (),
     ~,BPatchSnippetHandle,());
 
@@ -107,7 +107,7 @@ public:
     
     API_EXPORT(Int, (),
     BPatch_Vector<BPatch_thread *> &, getCatchupThreads, ());
-   
+
 };
 
 #ifdef DYNINST_CLASS_NAME
@@ -175,6 +175,14 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
   //   the return value is hardcoded for BPatch_binaryEdit
   virtual bool getTerminated() = 0;
   virtual bool getMutationsActive() = 0;
+
+  // internal functions, do not use //
+  BPatch_module *findModuleByAddr(Dyninst::Address addr);//doesn't cause parsing
+  bool findFuncsByRange(Dyninst::Address startAddr,
+                        Dyninst::Address endAddr,
+                        std::set<BPatch_function*> &funcs);
+  // end internal functions........ //
+
 
   //  BPatch_addressSpace::insertSnippet
   //  
@@ -277,6 +285,14 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
 
     API_EXPORT(Int, (addr),
     BPatch_function *,findFunctionByAddr,(void *addr));
+
+    //  BPatch_addressSpace::findFunctionsByAddr
+    //  
+    //  Returns the functions containing an address 
+    //  (this is possible if there is shared code
+    API_EXPORT(Int, (addr,funcs),
+    bool, findFunctionsByAddr,(Dyninst::Address addr, 
+                               std::vector<BPatch_function*> &funcs));
 
      //  BPatch_addressSpace::getImage
     //

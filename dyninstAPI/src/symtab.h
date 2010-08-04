@@ -51,6 +51,7 @@
 #include "dyninstAPI/src/codeRange.h"
 #include "dyninstAPI/src/infHeap.h"
 #include "dyninstAPI/src/inst.h"
+#include "dyninstAPI/h/BPatch_hybridAnalysis.h"
 
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
@@ -164,21 +165,27 @@ class fileDescriptor {
      void setMember(string member) { member_ = member; }
      void setPid(int pid) { pid_ = pid; }
      void setIsShared(bool shared) { shared_ = shared; }
+     unsigned char* rawPtr();                   //only for non-files
 
 #if defined(os_windows)
      // Windows gives you file handles. Since I collapsed the fileDescriptors
      // to avoid having to track allocated/deallocated memory, these moved here.
      fileDescriptor(string name, Address baseAddr, HANDLE procH, HANDLE fileH,
-                    bool isShared, Address loadAddr) :
+                    bool isShared, Address loadAddr, 
+                    Address len=0, unsigned char* raw=NULL) :
          file_(name), code_(baseAddr), data_(baseAddr),
          procHandle_(procH), fileHandle_(fileH),
+         length_(len), rawPtr_(raw),
          shared_(isShared), pid_(0), loadAddr_(loadAddr) {}
      HANDLE procHandle() const { return procHandle_; }
      HANDLE fileHandle() const { return fileHandle_; }
 
+     Address length() const { return length_; }  //only for non-files
  private:
      HANDLE procHandle_;
      HANDLE fileHandle_;
+     Address length_;        // set only if this is not really a file
+     unsigned char* rawPtr_; // set only if this is not really a file
  public:
 #endif
 
@@ -248,7 +255,9 @@ class image : public codeRange {
    friend class DynCFGFactory;
  public:
    static image *parseImage(const std::string file);
-   static image *parseImage(fileDescriptor &desc, bool parseGaps=false);
+   static image *parseImage(fileDescriptor &desc, 
+                            BPatch_hybridMode mode = BPatch_normalMode,
+                            bool parseGaps=false);
 
    // And to get rid of them if we need to re-parse
    static void removeImage(image *img);
@@ -260,11 +269,13 @@ class image : public codeRange {
    static void removeImage(const string file);
    static void removeImage(fileDescriptor &desc);
 
-   image(fileDescriptor &desc, bool &err, bool parseGaps=false);
+   image(fileDescriptor &desc, bool &err, 
+         BPatch_hybridMode mode,
+         bool parseGaps=false);
 
    void analyzeIfNeeded();
 
-   image_func* addFunctionStub(Address functionEntryAddr, const char *name=NULL);
+   image_func* addFunction(Address functionEntryAddr, const char *name=NULL);
 
    // creates the module if it does not exist
    pdmodule *getOrCreateModule (SymtabAPI::Module *mod);
@@ -304,7 +315,7 @@ class image : public codeRange {
    // Code sharing allows multiple functions to overlap a given point
    int findFuncs(const Address offset, set<ParseAPI::Function *> & funcs);
    // Find the basic blocks that overlap the given address
-   int findBlocksByAddr(const Address addr, set<ParseAPI::Block*> & blocks);
+   int findBlocksByAddr(const Address offset, set<ParseAPI::Block*> & blocks);
   
    //Add an extra pretty name to a known function (needed for handling
    //overloaded functions in paradyn)
@@ -359,7 +370,22 @@ class image : public codeRange {
    image_instPoint * getInstPoint(Address addr);
    bool addInstPoint(image_instPoint*p);
    void getInstPoints(Address start, Address end, 
-        pdvector<image_instPoint*> &points);
+                      pdvector<image_instPoint*> &points); 
+
+   // element removal
+   void removeInstPoint(image_instPoint *p);
+   void deleteFunc(image_func *func);
+   void addSplitBlock(image_basicBlock *blk) { splitBlocks_.insert(blk); }
+   const set<image_basicBlock*> & getSplitBlocks() const;
+   bool hasSplitBlocks() const { return 0 < splitBlocks_.size(); }
+   void clearSplitBlocks();
+   bool hasNewBlocks() const { return 0 < newBlocks_.size(); }
+   const vector<image_basicBlock*> & getNewBlocks() const;
+   void clearNewBlocks();
+   // callback that updates our view the binary's raw code bytes
+   void register_codeBytesUpdateCB(void *cb_arg0)
+       { cb_arg0_ = cb_arg0; }
+   void call_codeBytesUpdateCB(SymtabAPI::Region *reg, Address addr);
 
    // And when we parse, we might find more:
    // FIXME might be convenient to access HINT-only functions easily
@@ -393,11 +419,6 @@ class image : public codeRange {
    void findModByAddr (const SymtabAPI::Symbol *lookUp, vector<SymtabAPI::Symbol *> &mods,
                        string &modName, Address &modAddr, 
                        const string &defName);
-
-
-   // Remove a function from the lists of instrumentable functions, once already inserted.
-   int removeFuncFromInstrumentable(image_func *func);
-
 
    //
    //  ****  PRIVATE MEMBERS FUNCTIONS  ****
@@ -473,6 +494,7 @@ class image : public codeRange {
    ParseAPI::SymtabCodeSource * cs_;
    DynCFGFactory * img_fact_;
    DynParseCallback * parse_cb_;
+   void *cb_arg0_; // argument for mapped_object callback
 
    map<SymtabAPI::Module *, pdmodule *> mods_;
 
@@ -510,9 +532,15 @@ class image : public codeRange {
    vector<pair<string, Address> > codeHeaps_;
    vector<pair<string, Address> > dataHeaps_;
 
+   // new element tracking
+   set<image_basicBlock*> splitBlocks_;
+   vector<image_basicBlock*> newBlocks_;
+   bool trackNewBlocks_;
+
    int refCount;
    imageParseState_t parseState_;
    bool parseGaps_;
+   BPatch_hybridMode mode_;
    Dyninst::Architecture arch;
 };
 
@@ -548,17 +576,12 @@ class pdmodule {
    SymtabAPI::supportedLanguages language() const;
    Address addr() const;
    bool isShared() const;
-   // Control flow targets that fail isCode or isValidAddress checks,
-   // or are statically unresolvable
-   const std::set<image_instPoint*> &getUnresolvedControlFlow();
-   void addUnresolvedControlFlow(image_instPoint* badPt);
 
    SymtabAPI::Module *mod();
 
    image *imExec() const { return exec_; }
    
  private:
-   std::set<image_instPoint*> unresolvedControlFlow;
    SymtabAPI::Module *mod_;
    image *exec_;
 };

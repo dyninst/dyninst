@@ -99,6 +99,7 @@ class image_basicBlock : public codeRange, public ParseAPI::Block  {
     // misc utility
     int id() const { return blockNumber_; }
     void debugPrint();
+    image *img();
 
     // instrumentation-related
     bool canBeRelocated() const { return canBeRelocated_; }
@@ -287,6 +288,9 @@ class image_func : public ParseAPI::Function
    void funcEntries(pdvector<image_instPoint*> &);
    void funcExits(pdvector<image_instPoint*> &);
    void funcCalls(pdvector<image_instPoint*> &);
+   // statically unresolvable control flow points
+   void funcUnresolvedControlFlow(pdvector<image_instPoint*> &);
+   void funcAbruptEnds(pdvector<image_instPoint*> &); 
   
    // Initiate parsing on this function
    bool parse();
@@ -297,10 +301,20 @@ class image_func : public ParseAPI::Function
    InstrumentableLevel instLevel() const { return instLevel_; }
    void setInstLevel(InstrumentableLevel l) { instLevel_ = l; }
 
-   void addCallInstPoint(image_instPoint *p);
-   void addExitInstPoint(image_instPoint *p);
+   // ----------------------------------------------------------------------
+
+
+   ///////////////////////////////////////////////////
+   // Mutable function code, used for hybrid analysis
+   ///////////////////////////////////////////////////
+
+   static void getUnreachableBlocks( std::set<image_basicBlock*> &deadBlocks, 
+                                     std::set<image_basicBlock*> &unreachable );
+   ParseAPI::FuncReturnStatus init_retstatus() { return init_retstatus_; }
+   void setinit_retstatus(ParseAPI::FuncReturnStatus rs) { init_retstatus_ = rs; }
 
    // ----------------------------------------------------------------------
+
 
    ////////////////////////////////////////////////
    // Misc
@@ -392,6 +406,8 @@ class image_func : public ParseAPI::Function
 
    // Some functions are known to be unparesable by name
    bool isInstrumentableByFunctionName();
+
+   ParseAPI::FuncReturnStatus init_retstatus_;
 
    // Architecture specific data
    bool o7_live;

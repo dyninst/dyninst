@@ -15,7 +15,7 @@ include ../../make.config
 
 TARGET = libstackwalk.a
 
-LDFLAGS     += $(LIBDIR) -lcommon -ldl
+LDFLAGS     += $(LIBDIR) -lcommon
 
 SRCS = 	../src/linux-swk.C \
 	../src/linux-x86-swk.C \

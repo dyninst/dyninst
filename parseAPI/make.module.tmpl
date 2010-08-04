@@ -34,14 +34,14 @@ endif
 TO_INC   = ../h
 
 PUBLIC_H = \
-    ../h/CFGFactory.h\
-    ../h/CFG.h\
-    ../h/CodeObject.h\
-    ../h/CodeSource.h\
-    ../h/InstructionAdapter.h\
-    ../h/InstructionSource.h\
-    ../h/ParseCallback.h\
-    ../h/ParseContainers.h
+    CFGFactory.h\
+    CFG.h\
+    CodeObject.h\
+    CodeSource.h\
+    InstructionAdapter.h\
+    InstructionSource.h\
+    ParseCallback.h\
+    ParseContainers.h
 
 SRCS +=	../src/ParserDetails.C \
         ../src/Parser.C \
@@ -49,13 +49,36 @@ SRCS +=	../src/ParserDetails.C \
         ../src/Function.C \
         ../src/Block.C \
 		../src/CodeObject.C \
-		../src/debug.C \
+		../src/debug_parse.C \
         ../src/SymtabCodeSource.C \
         ../src/ParseData.C\
         ../src/InstructionAdapter.C\
         ../src/Parser-speculative.C
         
+ifneq ($(findstring cap_instruction_api,$(CAP_DEF)),)
+SRCS +=	../../dataflowAPI/src/Absloc.C \
+     	../../dataflowAPI/src/AbslocInterface.C \
+	../../dataflowAPI/src/convertOpcodes.C \
+	../../dataflowAPI/src/debug_dataflow.C \
+	../../dataflowAPI/src/ExpressionConversionVisitor.C \
+	../../dataflowAPI/src/RoseImpl.C \
+	../../dataflowAPI/src/RoseInsnFactory.C \
+	../../dataflowAPI/src/slicing.C \
+	../../dataflowAPI/src/stackanalysis.C \
+	../../dataflowAPI/src/SymbolicExpansion.C \
+	../../dataflowAPI/src/SymEval.C \
+	../../dataflowAPI/src/SymEvalPolicy.C \
+	../../dataflowAPI/src/templates.C \
+	../../dataflowAPI/src/Visitors.C
+VPATH += ../../dataflowAPI/src
+VPATH += ../../dataflowAPI/h
 
+PUBLIC_H += Absloc.h \
+	 AbslocInterface.h \
+	 slicing.h \
+	 SymEval.h \
+	 stackanalysis.h
+endif
 
 ifndef USES_NATIVE_CC
 ifdef CROSSCOMPILER
@@ -68,7 +91,7 @@ SYSLIBS		+= -ldemangle
 endif
 
 
-IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../dynutil/h -I../../symtabAPI/h -I../../common/h -I../../instructionAPI/h
+IFLAGS       += -I../$(PLATFORM) -I../src -I../../dataflowAPI/src -I../../dataflowAPI/h -I../h -I../../dynutil/h -I../../symtabAPI/h -I../../common/h -I../../instructionAPI/h
 
 
 # All that, and we finally get a target...

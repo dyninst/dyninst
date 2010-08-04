@@ -33,6 +33,7 @@ using namespace DebuggerInterface;
 
 #include "stackwalk/src/bluegenel-swk.h"
 #include "stackwalk/src/bluegenep-swk.h"
+#include "stackwalk/src/sw.h"
 
 #include "stackwalk/h/swk_errors.h"
 #include "stackwalk/h/symlookup.h"
@@ -962,6 +963,10 @@ namespace Dyninst {
       }
       BGThreadState *ts = new BGThreadState(parent, thread_id);
       return ts;
+    }
+
+    void BottomOfStackStepperImpl::initialize()
+    {
     }
 
   } // namespace Stackwalker

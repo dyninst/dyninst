@@ -32,7 +32,7 @@
 # define DYN_DETAIL_BOOST_PP_LIST_FOLD_RIGHT_2ND_D DYN_DETAIL_BOOST_PP_LIST_FOLD_RIGHT_D
 #
 # if DYN_DETAIL_BOOST_PP_CONFIG_FLAGS() & DYN_DETAIL_BOOST_PP_CONFIG_EDG()
-#    include <dyn_detail/boost/preprocessor/list/detail/edg/fold_right.hpp>
+#    include <dyn_detail/boost/preprocessor/list/detail/fold_right.hpp>
 # else
 #    include <dyn_detail/boost/preprocessor/list/detail/fold_right.hpp>
 # endif

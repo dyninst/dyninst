@@ -244,11 +244,11 @@ test_results_t DyninstComponent::group_teardown(RunGroup *group,
         // Just kill the process...
         if(appProc)
         {
+            //fprintf(stderr, "killing mutatee proc\n");
             appProc->terminateExecution();
         }      
         return PASSED;
     }
-
    bool someTestPassed;
    for (unsigned i=0; i<group->tests.size(); i++)
    {
@@ -292,6 +292,7 @@ test_results_t DyninstComponent::group_teardown(RunGroup *group,
    }
 
    do {
+       //fprintf(stderr, "continuing mutatee...\n");
       appThread->continueExecution();
       bpatch->waitForStatusChange();
    } while (appThread && !appThread->isTerminated());
@@ -327,8 +328,8 @@ test_results_t DyninstComponent::test_teardown(TestInfo *test, ParameterDict &pa
 {
     // Take care of the things the test can delete out from under us
     DyninstMutator* theMutator = dynamic_cast<DyninstMutator*>(test->mutator);
-    if(theMutator->appThread == NULL) appThread == NULL;
-    if(theMutator->appProc == NULL) appProc == NULL;
+    if(theMutator->appThread == NULL) appThread = NULL;
+    if(theMutator->appProc == NULL) appProc = NULL;
    return PASSED;
 }
 
@@ -1182,7 +1183,7 @@ BPatch_callWhen instrumentWhere(  const BPatch_memoryAccess* memAccess){
 	return whenToCall;
 }
 
-int instCall(BPatch_thread* bpthr, const char* fname,
+int instCall(BPatch_addressSpace* as, const char* fname,
 		const BPatch_Vector<BPatch_point*>* res)
 {
 	char buf[256];
@@ -1191,7 +1192,7 @@ int instCall(BPatch_thread* bpthr, const char* fname,
 	snprintf(buf, 256, "count%s", fname);
 
 	BPatch_Vector<BPatch_snippet*> callArgs;
-	BPatch_image *appImage = bpthr->getImage();
+	BPatch_image *appImage = as->getImage();
 
 	BPatch_Vector<BPatch_function *> bpfv;
 	if (NULL == appImage->findFunction(buf, bpfv) || !bpfv.size()
@@ -1212,13 +1213,13 @@ int instCall(BPatch_thread* bpthr, const char* fname,
 		whenToCall = instrumentWhere( memAccess);
 
 #endif
-		bpthr->insertSnippet(countXXXCall, *((*res)[i]),whenToCall);
+		as->insertSnippet(countXXXCall, *((*res)[i]),whenToCall);
 	}
 
 	return 0;
 }
 
-int instEffAddr(BPatch_thread* bpthr, const char* fname,
+int instEffAddr(BPatch_addressSpace* as, const char* fname,
 		const BPatch_Vector<BPatch_point*>* res,
 		bool conditional)
 {
@@ -1226,11 +1227,11 @@ int instEffAddr(BPatch_thread* bpthr, const char* fname,
 	snprintf(buf, 30, "list%s%s", fname, (conditional ? "CC" : ""));
 	dprintf("CALLING: %s\n", buf);
 
-	BPatch_Vector<BPatch_snippet*> listArgs;
-	BPatch_effectiveAddressExpr eae;
-	listArgs.push_back(&eae);
+	//BPatch_Vector<BPatch_snippet*> listArgs;
+	//BPatch_effectiveAddressExpr eae;
+        //listArgs.push_back(&eae);
 
-	BPatch_image *appImage = bpthr->getImage();
+	BPatch_image *appImage = as->getImage();
 
 	BPatch_Vector<BPatch_function *> bpfv;
 	if (NULL == appImage->findFunction(buf, bpfv) || !bpfv.size()
@@ -1239,7 +1240,6 @@ int instEffAddr(BPatch_thread* bpthr, const char* fname,
 		return -1;
 	}
 	BPatch_function *listXXXFunc = bpfv[0];  
-	BPatch_funcCallExpr listXXXCall(*listXXXFunc, listArgs);
 
 
 	BPatch_callWhen whenToCall = BPatch_callBefore;
@@ -1251,11 +1251,22 @@ int instEffAddr(BPatch_thread* bpthr, const char* fname,
 
 		whenToCall = instrumentWhere( memAccess);
 #endif
-		if(!conditional)
-			bpthr->insertSnippet(listXXXCall, *((*res)[i]), whenToCall, BPatch_lastSnippet);
+                BPatch_Vector<BPatch_snippet*> listArgs;
+                BPatch_effectiveAddressExpr eae;
+#if defined(cap_instruction_api_test)                
+                BPatch_constExpr insn_str((*res)[i]->getInsnAtPoint()->format().c_str());
+#else
+                BPatch_constExpr insn_str("(unknown insn, no IAPI support here)");
+#endif
+                listArgs.push_back(&insn_str);
+                listArgs.push_back(&eae);
+                BPatch_funcCallExpr listXXXCall(*listXXXFunc, listArgs);
+		
+                if(!conditional)
+			as->insertSnippet(listXXXCall, *((*res)[i]), whenToCall, BPatch_lastSnippet);
 		else {
 			BPatch_ifMachineConditionExpr listXXXCallCC(listXXXCall);
-			bpthr->insertSnippet(listXXXCallCC, *((*res)[i]), whenToCall, BPatch_lastSnippet);
+			as->insertSnippet(listXXXCallCC, *((*res)[i]), whenToCall, BPatch_lastSnippet);
 		}
 	}
 
@@ -1263,26 +1274,48 @@ int instEffAddr(BPatch_thread* bpthr, const char* fname,
 	|| defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
 	|| defined(i386_unknown_nt4_0_test)
 	BPatch_effectiveAddressExpr eae2(1);
-	BPatch_Vector<BPatch_snippet*> listArgs2;
-	listArgs2.push_back(&eae2);
-
-	BPatch_funcCallExpr listXXXCall2(*listXXXFunc, listArgs2);
-
 	const BPatch_Vector<BPatch_point*>* res2 = BPatch_memoryAccess::filterPoints(*res, 2);
 
-	if(!conditional)
-		bpthr->insertSnippet(listXXXCall2, *res2, BPatch_lastSnippet);
-	else {
-		BPatch_ifMachineConditionExpr listXXXCallCC2(listXXXCall2);
-		bpthr->insertSnippet(listXXXCallCC2, *res2, BPatch_lastSnippet);    
-	}
+        if(!conditional) {
+            for(int i = 0; i < (*res2).size(); i++)
+            {
+                BPatch_Vector<BPatch_snippet*> listArgs2;
+#if defined(cap_instruction_api_test)
+                BPatch_constExpr insn_str2((*res2)[i]->getInsnAtPoint()->format().c_str());
+#else
+                BPatch_constExpr insn_str2("(unknown insn, no IAPI support here)");
+#endif
+                listArgs2.push_back(&insn_str2);
+                listArgs2.push_back(&eae2);
+                BPatch_funcCallExpr listXXXCall2(*listXXXFunc, listArgs2);
+                as->insertSnippet(listXXXCall2, *((*res2)[i]), BPatch_lastSnippet);
+            }
+
+        }
+        else {
+            for(int i = 0; i < (*res2).size(); i++)
+            {
+                BPatch_Vector<BPatch_snippet*> listArgs2;
+#if defined(cap_instruction_api_test)
+                std::string insn = (*res2)[i]->getInsnAtPoint()->format();
+#else
+                std::string insn = "(unknown insn, no IAPI support here)";
+#endif
+                BPatch_constExpr insn_str2(insn.c_str());
+                listArgs2.push_back(&insn_str2);
+                listArgs2.push_back(&eae2);
+                BPatch_funcCallExpr listXXXCall2(*listXXXFunc, listArgs2);
+                BPatch_ifMachineConditionExpr listXXXCallCC2(listXXXCall2);
+                as->insertSnippet(listXXXCallCC2, *((*res2)[i]), BPatch_lastSnippet);
+            }
+        }
 #endif
 
 	return 0;
 }
 
 
-int instByteCnt(BPatch_thread* bpthr, const char* fname,
+int instByteCnt(BPatch_addressSpace* as, const char* fname,
 		const BPatch_Vector<BPatch_point*>* res,
 		bool conditional)
 {
@@ -1290,11 +1323,8 @@ int instByteCnt(BPatch_thread* bpthr, const char* fname,
 	snprintf(buf, 30, "list%s%s", fname, (conditional ? "CC" : ""));
 	dprintf("CALLING: %s\n", buf);
 
-	BPatch_Vector<BPatch_snippet*> listArgs;
-	BPatch_bytesAccessedExpr bae;
-	listArgs.push_back(&bae);
 
-	BPatch_image *appImage = bpthr->getImage();
+	BPatch_image *appImage = as->getImage();
 
 	BPatch_Vector<BPatch_function *> bpfv;
 	if (NULL == appImage->findFunction(buf, bpfv) || !bpfv.size()
@@ -1307,6 +1337,7 @@ int instByteCnt(BPatch_thread* bpthr, const char* fname,
 	BPatch_callWhen whenToCall = BPatch_callBefore;
 
 	for(unsigned int i=0;i<(*res).size();i++){
+            BPatch_Vector<BPatch_snippet*> listArgs;
 
 #if defined(os_aix_test)
 		const BPatch_memoryAccess* memAccess;
@@ -1315,30 +1346,63 @@ int instByteCnt(BPatch_thread* bpthr, const char* fname,
 		whenToCall = instrumentWhere( memAccess);
 
 #endif
-		BPatch_funcCallExpr listXXXCall(*listXXXFunc, listArgs);
+                BPatch_bytesAccessedExpr bae;
+#if defined(cap_instruction_api_test)
+                std::string insn = (*res)[i]->getInsnAtPoint()->format();
+#else
+                std::string insn = "(unknown insn, no IAPI support here)";
+#endif
+                BPatch_constExpr insn_str(insn.c_str());
+                listArgs.push_back(&insn_str);
+                listArgs.push_back(&bae);
+                BPatch_funcCallExpr listXXXCall(*listXXXFunc, listArgs);
 		if(!conditional)
-			bpthr->insertSnippet(listXXXCall, *((*res)[i]), whenToCall, BPatch_lastSnippet);
+			as->insertSnippet(listXXXCall, *((*res)[i]), whenToCall, BPatch_lastSnippet);
 		else {
 			BPatch_ifMachineConditionExpr listXXXCallCC(listXXXCall);
-			bpthr->insertSnippet(listXXXCallCC, *((*res)[i]), whenToCall, BPatch_lastSnippet);
+			as->insertSnippet(listXXXCallCC, *((*res)[i]), whenToCall, BPatch_lastSnippet);
 		}
 	}
 
 #if defined(i386_unknown_linux2_0_test) \
 	|| defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
 	|| defined(i386_unknown_nt4_0_test)
-	BPatch_bytesAccessedExpr bae2(1);
-	BPatch_Vector<BPatch_snippet*> listArgs2;
-	listArgs2.push_back(&bae2);
 
-	BPatch_funcCallExpr listXXXCall2(*listXXXFunc, listArgs2);
-
+        BPatch_bytesAccessedExpr bae2(1);
 	const BPatch_Vector<BPatch_point*>* res2 = BPatch_memoryAccess::filterPoints(*res, 2);
-	if(!conditional)
-		bpthr->insertSnippet(listXXXCall2, *res2, BPatch_lastSnippet);
+	if(!conditional) {
+            for(int i = 0; i < (*res2).size(); i++)
+            {
+                BPatch_Vector<BPatch_snippet*> listArgs2;
+#if defined(cap_instruction_api_test)
+                std::string insn2 = (*res2)[i]->getInsnAtPoint()->format();
+#else
+                std::string insn2 = "(unknown insn, no IAPI support here)";
+#endif
+                BPatch_constExpr insn_str2(insn2.c_str());
+                listArgs2.push_back(&insn_str2);
+                listArgs2.push_back(&bae2);
+                BPatch_funcCallExpr listXXXCall2(*listXXXFunc, listArgs2);
+                as->insertSnippet(listXXXCall2, *((*res2)[i]), BPatch_lastSnippet);
+            }
+
+        }
 	else {
-		BPatch_ifMachineConditionExpr listXXXCallCC2(listXXXCall2);
-		bpthr->insertSnippet(listXXXCallCC2, *res2, BPatch_lastSnippet);
+            for(int i = 0; i < (*res2).size(); i++)
+            {
+                BPatch_Vector<BPatch_snippet*> listArgs2;
+#if defined(cap_instruction_api_test)
+                std::string insn = (*res2)[i]->getInsnAtPoint()->format();
+#else
+                std::string insn = "(unknown insn, no IAPI support here)";
+#endif
+                BPatch_constExpr insn_str2(insn.c_str());
+                listArgs2.push_back(&insn_str2);
+                listArgs2.push_back(&bae2);
+                BPatch_funcCallExpr listXXXCall2(*listXXXFunc, listArgs2);
+                BPatch_ifMachineConditionExpr listXXXCallCC2(listXXXCall2);
+                as->insertSnippet(listXXXCallCC2, *((*res2)[i]), BPatch_lastSnippet);
+            }
 	}
 #endif
 

@@ -85,6 +85,7 @@ class SyncCallback : public CallbackBase
    void setSynchronous(bool flag = true) {synchronous = flag;}
    static void signalCompletion(CallbackBase *cb); 
    virtual bool execute(void); 
+   process *getProcess();
   protected:
    virtual bool execute_real(void) = 0;
    virtual bool waitForCompletion(); 
@@ -283,16 +284,15 @@ class UserEventCallback : public SyncCallback
 class StopThreadCallback : public SyncCallback
 {
  public:
-    StopThreadCallback(BPatchStopThreadCallback callback) : SyncCallback(),
-        cb(callback), point(NULL), return_value(NULL) {}
-    StopThreadCallback(StopThreadCallback &src) : SyncCallback(),
-        cb(src.cb), point(NULL), return_value(NULL) {}
-    ~StopThreadCallback() {}
+    StopThreadCallback(BPatchStopThreadCallback callback);
+    StopThreadCallback(StopThreadCallback &src);
+    ~StopThreadCallback();
 
     CallbackBase *copy() { return new StopThreadCallback(*this); }
     bool execute_real(void);
     bool operator()(BPatch_point *atPoint, void *returnValue);
     BPatchStopThreadCallback getFunc() {return cb;}
+    process *getProcess();
  private:
     BPatchStopThreadCallback cb;
     BPatch_point *point;
@@ -302,7 +302,7 @@ class StopThreadCallback : public SyncCallback
 class SignalHandlerCallback : public SyncCallback
 {
  public:
-    SignalHandlerCallback(BPatchSignalHandlerCallback callback, 
+    SignalHandlerCallback(InternalSignalHandlerCallback callback, 
                           BPatch_Set<long> *signums) :
         SyncCallback(), 
         cb(callback), 
@@ -320,11 +320,11 @@ class SignalHandlerCallback : public SyncCallback
     bool execute_real(void);
     bool operator()(BPatch_point *at_point, long signum, 
                     BPatch_Vector<Dyninst::Address> *handlerVec);
-    BPatchSignalHandlerCallback getFunc() {return cb;}
+    InternalSignalHandlerCallback getFunc() {return cb;}
     Address getLastSigAddr() { return lastSigAddr; }
     bool handlesSignal(long signum);
  private:
-    BPatchSignalHandlerCallback cb;
+    InternalSignalHandlerCallback cb;
     BPatch_point *point;
     long signum;
     BPatch_Vector<Dyninst::Address> *handlers;
@@ -332,6 +332,30 @@ class SignalHandlerCallback : public SyncCallback
     Address lastSigAddr; // address of instruction that caused the previous signal 
 };
 
+class CodeOverwriteCallback : public SyncCallback
+{
+ public:
+    CodeOverwriteCallback(InternalCodeOverwriteCallback cb) :
+        SyncCallback(), 
+        cb_(cb), 
+        fault_instr(NULL), 
+        v_target(0)
+        {}
+    CodeOverwriteCallback(CodeOverwriteCallback &src) : SyncCallback(),
+        cb_(src.cb_), fault_instr(NULL), v_target(0) {}
+    ~CodeOverwriteCallback() {}
+    CallbackBase *copy() { return new CodeOverwriteCallback(*this); }
+    bool execute_real(void);
+    bool operator()(BPatch_point *f_instr_, Address v_target_, process *proc);
+    InternalCodeOverwriteCallback getFunc() {return cb_;}
+    Address getTargetAddr() { return v_target; }
+    process *getProcess();
+ private:
+    InternalCodeOverwriteCallback cb_;
+    BPatch_point *fault_instr;
+    Address v_target; // address targeted by overwriting instruction
+    process *proc;
+};
 
 class AsyncThreadEventCallback : public SyncCallback 
 {  

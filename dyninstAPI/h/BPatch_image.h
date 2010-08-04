@@ -88,7 +88,10 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eve
     BPatch_image(BPatch_addressSpace *addSpace);
     BPatch_image();
     virtual ~BPatch_image();
-
+    void getNewCodeRegions
+        (std::vector<BPatch_function*>&newFuncs, 
+         std::vector<BPatch_function*>&modFuncs);
+    void clearNewCodeRegions();
     // End functions for internal use only
 
     //  BPatch_image::getThr
@@ -310,16 +313,6 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eve
     bool ,parseNewFunctions, 
     (BPatch_Vector<BPatch_module*> &affectedModules, 
      const BPatch_Vector<Dyninst::Address> &funcEntryAddrs));
-
-    //  BPatch_image::GetUnresolvedControlFlow
-    //
-    //  Every call instruction that calls into a region of memory that
-    //  is not recognized by Dyninst as pertaining to a code region in
-    //  an existing program module is tracked. This function returns
-    //  a list of all such call targets
-    API_EXPORT(Int, (), 
-    BPatch_Vector<BPatch_point *> *,getUnresolvedControlFlow, ());
-
 
     //
     //  Reads a string from the target process

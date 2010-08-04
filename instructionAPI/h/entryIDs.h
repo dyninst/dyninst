@@ -840,8 +840,8 @@ enum entryID {
   power_op_fsabs,
   power_op_fsneg,
   power_op_fsnabs,
-  power_op_lwa
-          
+  power_op_lwa,
+  _entry_ids_max_
 };
 
 enum prefixEntryID {
@@ -888,9 +888,10 @@ enum prefixEntryID {
       template <>
       struct hash<prefixEntryID>
       {
+        hash<size_t> h;
 	size_t operator()(const prefixEntryID &eid) const
 	{
-	  return static_cast<size_t>(eid);
+	  return h(static_cast<size_t>(eid));
 	}
       };
     }

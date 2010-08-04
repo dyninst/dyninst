@@ -56,11 +56,13 @@ class ParseCallback {
    * Notify when control transfers have run `off the rails' 
    */
   struct default_details {
-    default_details(unsigned char*b,size_t s) : ibuf(b), isize(s) { }
+    default_details(unsigned char*b,size_t s, bool ib) : ibuf(b), isize(s), isbranch(ib) { }
     unsigned char * ibuf;
     size_t isize;
+    bool isbranch;
   };
-  virtual void unresolved_cf(Function*,Address,default_details*) { }
+  virtual void unresolved_cf(Function *,Address,default_details*) { }
+  virtual void abruptEnd_cf(Address,default_details*) { }
 
   /*
    * Notify for interprocedural control transfers
@@ -100,6 +102,19 @@ class ParseCallback {
    */
   virtual void overlapping_blocks(Block*,Block*) { }
 
+  /*
+   * Defensive-mode notifications:
+   * - Notify when a function's parse is finalized so Dyninst can 
+       save its initial return status
+   * - Notify every time a block is split, after the initial parse
+   *   of the function
+   * - Notify of the x86 obfuscation that performs a short jmp -1 (eb ff)
+   *   so that dyninst can patch the opcode with a nop (0x90), which will
+   *   keep code generation from doing bad things
+   */
+  virtual void newfunction_retstatus(Function*) { }
+  virtual void block_split(Block *, Block *) { }
+  virtual void patch_jump_neg1(Address) { }
 };
 
 }

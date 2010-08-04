@@ -301,6 +301,10 @@ class baseTramp {
     // Easier to do logic this way...
     bool guarded() const { return (guardState_ == guarded_BTR); }
 
+    // tells us how far up the stack to look for
+    // saved register addresses 
+    unsigned savedFlagSize;
+
  private:
     
     bool createFrame_;

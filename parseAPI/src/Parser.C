@@ -40,7 +40,7 @@
 #include "Parser.h"
 #include "CFG.h"
 #include "util.h"
-#include "debug.h"
+#include "debug_parse.h"
 
 #if defined(os_solaris)
 // XXX old GCC versions on solaris cause problems with
@@ -276,6 +276,36 @@ Parser::parse_vanilla()
 }
 
 void
+Parser::parse_edges( vector< ParseWorkElem * > & work_elems )
+{
+    for (unsigned idx=0; idx < work_elems.size(); idx++) {
+
+        ParseWorkElem *elem = work_elems[idx];
+        Block *src = elem->edge()->src();
+        ParseFrame *frame = _parse_data->findFrame
+            ( src->region(), 
+              src->lastInsnAddr() );
+        frame->pushWork(elem);
+
+        if(_parse_state < PARTIAL)
+            _parse_state = PARTIAL;
+        _in_parse = true;
+
+        vector< ParseFrame* > frames;
+        frames.push_back(frame);
+        parse_frames( frames, true );
+
+        if(_parse_state > COMPLETE)
+            _parse_state = COMPLETE;
+        _in_parse = false;
+
+    }
+
+    finalize();
+
+}
+
+void
 Parser::parse_frames(vector<ParseFrame *> & work, bool recursive)
 {
     ParseFrame * pf;
@@ -352,8 +382,13 @@ Parser::parse_frames(vector<ParseFrame *> & work, bool recursive)
 void
 Parser::finalize(Function *f)
 {
-    if(f->_cache_valid)
+    if(f->_cache_valid) {
+        if (f->obj()->defensiveMode()) {
+            printf("WARNING: finalizing func at %lx with cache_valid == true"
+                   " %s[%d]\n", f->addr(),FILE__,__LINE__);
+        }
         return;
+    }
 
     if(!f->_parsed) {
         parsing_printf("[%s:%d] Parser::finalize(f[%lx]) "
@@ -371,7 +406,16 @@ Parser::finalize(Function *f)
     // finish delayed parsing and sorting
     vector<Block*> const& blocks = f->blocks_int();
 
+    // if this is the first time we've parsed in this function, trigger
+    // new function callback
+    if (0 == f->_extents.size()) {
+        _pcb.newfunction_retstatus( f );
+    }
+    
     // extents
+    _parse_data->remove_extents(f->_extents);
+    f->_extents.clear();
+
     if(blocks.empty()) {
         f->_cache_valid = true;
         return;
@@ -534,6 +578,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
     Function * func = frame.func;
     dyn_hash_map<Address, bool> & visited = frame.visited;
     unsigned & num_insns = frame.num_insns;
+    func->_cache_valid = false;
 
     /** Non-persistent intermediate state **/
     Address nextBlockAddr;
@@ -1051,8 +1096,13 @@ Parser::split_block(
     b->_lastInsn = previnsn;
     rd->blocksByRange.insert(b); 
 
+    // if we're re-parsing in this function, inform user program of the split
+    if (owner->_extents.size()) {
+        _pcb.block_split(b,ret);
+    }
+
     return ret;
-}
+ }
 
 pair<Function *,Edge*>
 Parser::bind_call(ParseFrame & frame, Address target, Block * cur, Edge * exist)
@@ -1194,4 +1244,38 @@ Parser::frame_status(CodeRegion * cr, Address addr)
     // XXX parsing frames may have been cleaned up, but status
     //     is always cached
     return _parse_data->frameStatus(cr,addr);
+}
+
+void
+Parser::remove_func(Function *func)
+{
+    if (sorted_funcs.end() != sorted_funcs.find(func)) {
+        sorted_funcs.erase(func);
+    }
+    if (HINT == func->src()) {
+        for (unsigned fidx=0; fidx < hint_funcs.size(); fidx++) {
+            if (hint_funcs[fidx] == func) {
+                hint_funcs[fidx] = hint_funcs[hint_funcs.size()-1];
+                hint_funcs.pop_back();
+                break;
+            }
+        }
+    }
+    else {
+        for (unsigned fidx=0; fidx < discover_funcs.size(); fidx++) {
+            if (discover_funcs[fidx] == func) {
+                discover_funcs[fidx] = discover_funcs[discover_funcs.size()-1];
+                discover_funcs.pop_back();
+                break;
+            }
+        }
+    }
+    
+    _parse_data->remove_func(func);
+}
+
+void
+Parser::remove_block(Dyninst::ParseAPI::Block *block)
+{
+    _parse_data->remove_block(block);
 }

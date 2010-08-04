@@ -42,9 +42,6 @@
 #include "ParseContainers.h"
 
 #include "Annotatable.h"
-#if !defined(_MSC_VER)
-#include <stdint.h>
-#endif
 
 namespace Dyninst {
 namespace ParseAPI {
@@ -135,6 +132,9 @@ class Edge : public allocatable {
 #if defined(_MSC_VER)
 	typedef unsigned __int16 uint16_t;
 	typedef unsigned __int8 uint8_t;
+#else
+	typedef unsigned short uint16_t;
+	typedef unsigned char uint8_t;
 #endif
 
     struct EdgeType {
@@ -166,6 +166,8 @@ class Edge : public allocatable {
     bool sinkEdge() const { return _type._sink != 0; }
     bool interproc() const { return _type._interproc != 0; }
 
+    PARSER_EXPORT void install();
+
  friend class CFGFactory;
  friend class Parser;
 };
@@ -192,6 +194,7 @@ class EdgePredicate
     PARSER_EXPORT virtual bool pred_impl(Edge *) const;
 };
 
+/* may follow branches into the function if there is shared code */
 class Intraproc : public EdgePredicate {
  public:
     PARSER_EXPORT Intraproc() { }
@@ -216,6 +219,7 @@ class NoSinkPredicate : public ParseAPI::EdgePredicate {
     }
 };
 
+/* doesn't follow branches into the function if there is shared code */
 class Function;
 class SingleContext : public EdgePredicate {
  private:
@@ -290,6 +294,7 @@ class Block : public Dyninst::interval<Address>,
     void addTarget(Edge * e);
     void removeTarget(Edge * e);
     void removeSource(Edge * e);
+    void removeFunc(Function *);
 
  private:
     CodeObject * _obj;
@@ -307,6 +312,7 @@ class Block : public Dyninst::interval<Address>,
     int _func_cnt;
     bool _parsed;
 
+ friend class Edge;
  friend class Function;
  friend class Parser;
  friend class CFGFactory;
@@ -358,6 +364,14 @@ enum FuncSource {
     GAPRT,      // RT from gap-discovered function
     ONDEMAND,   // dynamically discovered
     _funcsource_end_
+};
+
+enum StackTamper {
+    TAMPER_UNSET,
+    TAMPER_NONE,
+    TAMPER_REL,
+    TAMPER_ABS,
+    TAMPER_NONZERO
 };
 
 class CodeObject;
@@ -415,6 +429,12 @@ class Function : public allocatable, public AnnotatableSparse {
     PARSER_EXPORT bool savesFramePointer() const { return _saves_fp; }
     PARSER_EXPORT bool cleansOwnStack() const { return _cleans_stack; }
 
+    /* Parse updates and obfuscation */
+    PARSER_EXPORT void set_retstatus(FuncReturnStatus rs) { _rs = rs; }
+    PARSER_EXPORT void deleteBlocks( vector<Block*> & dead_funcs,
+                                     Block * new_entry );
+    PARSER_EXPORT StackTamper stackTamper() { return _tamper; }
+
     struct less
     {
         bool operator()(const Function * f1, const Function * f2) const
@@ -453,10 +473,11 @@ class Function : public allocatable, public AnnotatableSparse {
     bool _no_stack_frame;
     bool _saves_fp;
     bool _cleans_stack;
+    StackTamper _tamper;
+    Address _tamper_addr;
 
     /*** Internal parsing methods and state ***/
     void add_block(Block *b);
-    std::vector<Block *> * _dangling;
 
     friend class Parser;
     friend class CFGFactory;

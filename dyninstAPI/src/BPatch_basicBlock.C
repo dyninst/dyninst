@@ -49,6 +49,7 @@
 #include "InstructionDecoder.h"
 #include "BPatch_libInfo.h"
 #include "BPatch_edge.h"
+#include "instPoint.h"
 
 int bpatch_basicBlock_count = 0;
 
@@ -503,6 +504,147 @@ BPatch_Vector<BPatch_point*> *BPatch_basicBlock::findPointInt(bool(*filter)(Inst
     return findPointByPredicate(filterPtr);
 }
 #endif
+
+// does not return duplicates even if some points belong to multiple categories
+//
+void BPatch_basicBlock::getAllPoints(std::vector<BPatch_point*>& bpPoints)
+{
+    set<BPatch_point*> dupCheck;
+    BPatch_addressSpace *addSpace = flowGraph->getBFunction()->getAddSpace();
+    pdvector<instPoint*> blockPoints = iblock->func()->funcEntries();
+    unsigned pIdx;
+    for (pIdx=0; pIdx < blockPoints.size(); pIdx++) {
+        if (iblock->origInstance()->firstInsnAddr() <= blockPoints[pIdx]->addr()
+            && iblock->origInstance()->endAddr() > blockPoints[pIdx]->addr()) 
+        {
+            BPatch_point *point = addSpace->findOrCreateBPPoint
+                ( flowGraph->getBFunction(), 
+                  blockPoints[pIdx], 
+                  BPatch_point::convertInstPointType_t
+                  (blockPoints[pIdx]->getPointType()) );
+            dupCheck.insert(point);
+            bpPoints.push_back(point);
+        }
+    }
+    blockPoints = iblock->func()->funcExits();
+    for (pIdx=0; pIdx < blockPoints.size(); pIdx++) {
+        if (iblock->origInstance()->firstInsnAddr() <= blockPoints[pIdx]->addr()
+            && iblock->origInstance()->endAddr() > blockPoints[pIdx]->addr()) 
+        {
+            BPatch_point *point = addSpace->findOrCreateBPPoint
+                ( flowGraph->getBFunction(), 
+                  blockPoints[pIdx], 
+                  BPatch_point::convertInstPointType_t
+                  (blockPoints[pIdx]->getPointType()) );
+            if (point && dupCheck.end() != dupCheck.find(point)) {
+                dupCheck.insert(point);
+                bpPoints.push_back(point);
+            }
+        }
+    }
+    blockPoints = iblock->func()->funcCalls();
+    for (pIdx=0; pIdx < blockPoints.size(); pIdx++) {
+        if (iblock->origInstance()->firstInsnAddr() <= blockPoints[pIdx]->addr()
+            && iblock->origInstance()->endAddr() > blockPoints[pIdx]->addr()) 
+        {
+            BPatch_point *point = addSpace->findOrCreateBPPoint
+                ( flowGraph->getBFunction(), 
+                  blockPoints[pIdx], 
+                  BPatch_point::convertInstPointType_t
+                  (blockPoints[pIdx]->getPointType()) );
+            if (point && dupCheck.end() != dupCheck.find(point)) {
+                dupCheck.insert(point);
+                bpPoints.push_back(point);
+            }
+        }
+    }
+    blockPoints = iblock->func()->funcArbitraryPoints();
+    for (pIdx=0; pIdx < blockPoints.size(); pIdx++) {
+        if (iblock->origInstance()->firstInsnAddr() <= blockPoints[pIdx]->addr()
+            && iblock->origInstance()->endAddr() > blockPoints[pIdx]->addr()) 
+        {
+            BPatch_point *point = addSpace->findOrCreateBPPoint
+                ( flowGraph->getBFunction(), 
+                  blockPoints[pIdx], 
+                  BPatch_point::convertInstPointType_t
+                  (blockPoints[pIdx]->getPointType()) );
+            if (point && dupCheck.end() != dupCheck.find(point)) {
+                dupCheck.insert(point);
+                bpPoints.push_back(point);
+            }
+        }
+    }
+    std::set<instPoint*> pointSet = iblock->func()->funcUnresolvedControlFlow();
+    std::set<instPoint*>::iterator pIter = pointSet.begin();
+    while (pIter != pointSet.end()) {
+        if (iblock->origInstance()->firstInsnAddr() <= (*pIter)->addr()
+            && iblock->origInstance()->endAddr() > (*pIter)->addr()) 
+        {
+            BPatch_point *point = addSpace->findOrCreateBPPoint
+                ( flowGraph->getBFunction(), 
+                  *pIter, 
+                  BPatch_point::convertInstPointType_t
+                  (blockPoints[pIdx]->getPointType()) );
+            if (point && dupCheck.end() != dupCheck.find(point)) {
+                dupCheck.insert(point);
+                bpPoints.push_back(point);
+            }
+        }
+        pIter++;
+    }
+    pointSet = iblock->func()->funcAbruptEnds();
+    pIter = pointSet.begin();
+    while (pIter != pointSet.end()) {
+        if (iblock->origInstance()->firstInsnAddr() <= (*pIter)->addr()
+            && iblock->origInstance()->endAddr() > (*pIter)->addr()) 
+        {
+            BPatch_point *point = addSpace->findOrCreateBPPoint
+                ( flowGraph->getBFunction(), 
+                  *pIter, 
+                  BPatch_point::convertInstPointType_t
+                  (blockPoints[pIdx]->getPointType()) );
+            if (point && dupCheck.end() != dupCheck.find(point)) {
+                dupCheck.insert(point);
+                bpPoints.push_back(point);
+            }
+        }
+        pIter++;
+    }
+}
+
+
+BPatch_function * BPatch_basicBlock::getCallTarget()
+{
+    image_instPoint* imgPt = iblock->func()->ifunc()->img()->getInstPoint
+        ( iblock->llb()->lastInsnAddr() );
+    if ( ! imgPt || callSite != imgPt->getPointType() ) {
+        return NULL;
+    }
+    Address baseAddr = iblock->func()->ifunc()->img()->desc().loadAddr();
+    Address targetAddr = imgPt->callTarget() + baseAddr;
+    Address pointAddr =  imgPt->offset() + baseAddr;
+    int_function *targFunc = 
+        flowGraph->getllAddSpace()->findFuncByAddr(targetAddr);
+
+    if (!targFunc && imgPt->isDynamic()) { 
+        // if this is an indirect call, use its saved target
+        instPoint *intCallPoint = iblock->func()->findInstPByAddr(pointAddr);
+        if (!intCallPoint) {
+            iblock->func()->funcCalls();
+            intCallPoint = iblock->func()->findInstPByAddr(pointAddr);
+        }
+        assert(intCallPoint);
+        targFunc = iblock->func()->proc()->findFuncByAddr
+            ( intCallPoint->getSavedTarget() );
+    }
+    if (!targFunc) {
+        return NULL;
+    }
+    BPatch_function * bpfunc = 
+        flowGraph->getAddSpace()->findOrCreateBPFunc(targFunc,NULL);
+    return bpfunc;
+}
+
 
 /*
  * BPatch_basicBlock::getInstructions

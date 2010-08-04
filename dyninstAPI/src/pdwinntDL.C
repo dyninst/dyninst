@@ -115,7 +115,10 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
                          (Address)ev.info.u.LoadDll.lpBaseOfDll);   
      // discover structure of new DLL, and incorporate into our
      // list of known DLLs
-     mapped_object *newobj = mapped_object::createMappedObject(desc, proc);
+     BPatch_hybridMode mode = proc->getHybridMode();
+     if (BPatch_defensiveMode != mode || mapped_object::isSystemLib(imageName))
+         mode = BPatch_normalMode;
+     mapped_object *newobj = mapped_object::createMappedObject(desc, proc, mode);
      if (!newobj) {
          fprintf(stderr, "[%s:%u] - Couldn't parse loaded module %s\n", 
                  FILE__,__LINE__, imageName.c_str());

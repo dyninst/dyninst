@@ -252,6 +252,9 @@ class AddressSpace : public InstructionSource {
     // checks if 'addr' is a jump to a function.
     int_function *findJumpTargetFuncByAddr(Address addr);
     
+    // true if the addrs are in the same object and region within the object
+    bool sameRegion(Dyninst::Address addr1, Dyninst::Address addr2);
+
     // findModule: returns the module associated with "mod_name" 
     // this routine checks both the a.out image and any shared object 
     // images for this module
@@ -277,7 +280,7 @@ class AddressSpace : public InstructionSource {
     const pdvector<mapped_object *> &mappedObjects() { return mapped_objects;  } 
 
     // And a shortcut pointer
-    pdvector<mapped_object *> runtime_lib;
+    std::set<mapped_object *> runtime_lib;
     // ... and keep the name around
     std::string dyninstRT_name;
     

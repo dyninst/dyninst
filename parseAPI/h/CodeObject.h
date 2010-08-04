@@ -63,7 +63,8 @@ class CodeObject {
 
     PARSER_EXPORT CodeObject(CodeSource * cs, 
                CFGFactory * fact = NULL, 
-               ParseCallback * cb = NULL);
+               ParseCallback * cb = NULL,
+               bool defensiveMode = false);
     PARSER_EXPORT ~CodeObject();
 
     /** Parsing interface **/
@@ -73,6 +74,11 @@ class CodeObject {
     
     // `exact-target' parsing; optinally recursive
     PARSER_EXPORT void parse(Address target, bool recursive);
+
+    // adds new edges to parsed functions
+    PARSER_EXPORT bool parseNewEdges( vector<Block*> & sources, 
+                                      vector<Address> & targets, 
+                                      vector<EdgeTypeEnum> & edge_types);
 
     // `speculative' parsing
     PARSER_EXPORT void parseGaps(CodeRegion *cr);
@@ -94,6 +100,8 @@ class CodeObject {
     /* Misc */
     PARSER_EXPORT CodeSource * cs() const { return _cs; }
     PARSER_EXPORT CFGFactory * fact() const { return _fact; }
+    PARSER_EXPORT bool defensiveMode() { return defensive; }
+    PARSER_EXPORT void deleteFunc(Function *);
 
     /*
      * Calling finalize() forces completion of all on-demand
@@ -103,8 +111,9 @@ class CodeObject {
 
  private:
     void process_hints();
-    void add_edge(Block *src, Block * trg, EdgeTypeEnum et);
-    
+    void add_edge(Block *src, Block *trg, EdgeTypeEnum et);
+    // allows Function to (re-)finalize
+    friend void Function::deleteBlocks(vector<Block*> &, Block *);
     // allows Functions to link up return edges after-the-fact
     friend void Function::delayed_link_return(CodeObject *,Block*);
     // allows Functions to finalize (need Parser access)
@@ -119,7 +128,9 @@ class CodeObject {
 
     bool owns_factory;
     bool owns_pcb;
+    bool defensive;
     funclist flist;
+
 };
 
 }//namespace ParseAPI

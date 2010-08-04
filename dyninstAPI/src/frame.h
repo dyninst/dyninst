@@ -123,6 +123,7 @@ class Frame {
   bool	   isSignalFrame();
   bool 	   isInstrumentation();
   bool     isSyscall();
+  Address  getPClocation() { return pcAddr_; }
 
   instPoint *getPoint(); // If we're in instrumentation returns the appropriate point
   int_function *getFunc(); // As above

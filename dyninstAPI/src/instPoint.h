@@ -62,6 +62,7 @@ typedef enum {
   functionEntry,
   functionExit,
   callSite,
+  abruptEnd,
   otherPoint
 } instPointType_t;
 
@@ -92,6 +93,7 @@ class instPointBase {
  public:
   static unsigned int id_ctr;  
   instPointType_t getPointType() const { return ipType_; }
+  void setPointType(instPointType_t type_) { ipType_ = type_; }
 
   // Single instruction we're instrumenting (if at all)
 #if defined(cap_instruction_api)
@@ -198,7 +200,8 @@ class image_instPoint : public instPointBase {
                     unsigned char * insn_buf,
                     size_t insn_len,
                     image * img,
-                    instPointType_t type);
+                    instPointType_t type, 
+                    bool isUnresolved=false);
     // Call site or otherPoint that has a target
     image_instPoint(Address offset,
                     unsigned char * insn_buf,
@@ -207,7 +210,8 @@ class image_instPoint : public instPointBase {
                     Address callTarget,
                     bool isDynamic,
                     bool isAbsolute,
-                    instPointType_t type);
+                    instPointType_t type, 
+                    bool isUnresolved=false);
 
   Address offset_;
   Address offset() const { return offset_; }
@@ -219,11 +223,14 @@ private:
   std::string callee_name_;
   Address callTarget_;
   bool targetIsAbsolute_;
+  bool isUnres_;
 public:
   Address callTarget() const { return callTarget_; }
   bool targetIsAbsolute() const { return targetIsAbsolute_; }
   bool isDynamic_; 
   bool isDynamic() const { return isDynamic_; }
+  bool isUnresolved() const { return isUnres_; }
+  void setResolved() { isUnres_ = false; }
   image_func *getCallee() const;
   void setCallee(image_func *f) { callee_ = f; }
   std::string getCalleeName() const { return callee_name_; }
@@ -435,6 +442,7 @@ class instPoint : public instPointBase {
   int_function *callee_;
   bool isDynamic_;
   bool isDynamic() const { return isDynamic_; }
+  bool isReturnInstruction();
 
   // Get the base tramp (conglomerate) corresponding to this instPoint
   // (conglomerate)
@@ -474,6 +482,19 @@ class instPoint : public instPointBase {
   Address addr() const { return addr_; }
 
   Address callTarget() const;
+
+  // the saved target for the point, kept in sync with other
+  // points at this address if there's function sharing
+  Address getSavedTarget();
+  void setSavedTarget(Address st_);
+  // returns false if it was already resolved
+  bool setResolved();
+  void removeMultiTramps();
+  // needed for blocks that are split after the initial parse
+  void setBlock( int_basicBlock* newBlock );
+
+
+
 
   // We use a three-phase instrumentation structure:
 
@@ -580,6 +601,8 @@ class instPoint : public instPointBase {
 
   AstNodePtr replacedCode() const { return replacedCode_; }
   
+  image_instPoint *imgPt() const { return img_p_; }
+
  private:
   baseTramp *preBaseTramp_;
   baseTramp *postBaseTramp_;
@@ -624,6 +647,9 @@ class instPoint : public instPointBase {
 
   bool hasNewInstrumentation_;
   bool hasAnyInstrumentation_;
+
+  Address savedTarget_;
+
 };
 
 typedef instPoint::iterator instPointIter;

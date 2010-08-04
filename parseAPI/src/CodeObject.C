@@ -34,7 +34,7 @@
 #include "CodeObject.h"
 #include "CFG.h"
 #include "Parser.h"
-#include "debug.h"
+#include "debug_parse.h"
 
 using namespace std;
 using namespace Dyninst;
@@ -52,13 +52,17 @@ namespace {
     }
 }
 
-CodeObject::CodeObject(CodeSource *cs, CFGFactory *fact, ParseCallback * cb) :
+CodeObject::CodeObject(CodeSource *cs, 
+                       CFGFactory *fact, 
+                       ParseCallback * cb, 
+                       bool defMode) :
     _cs(cs),
     _fact(__fact_init(fact)),
     _pcb(__pcb_init(cb)),
     parser(new Parser(*this,*_fact,*_pcb) ),
     owns_factory(fact == NULL),
     owns_pcb(cb == NULL),
+    defensive(defMode),
     flist(parser->sorted_funcs)
 {
     process_hints(); // if any
@@ -155,4 +159,35 @@ CodeObject::add_edge(Block * src, Block * trg, EdgeTypeEnum et)
 void
 CodeObject::finalize() {
     parser->finalize();
+}
+
+void 
+CodeObject::deleteFunc(Function *func)
+{
+    assert(func->_cache_valid);
+    parser->remove_func(func);
+    func->deleteBlocks(func->_blocks, NULL);
+    fact()->free_func(func);
+}
+
+// create work elements and pass them to the parser
+bool 
+CodeObject::parseNewEdges( vector<Block*> & sources, 
+                           vector<Address> & targets,
+                           vector<EdgeTypeEnum> & edge_types )
+{
+    vector< ParseWorkElem * > work_elems;
+    for (unsigned idx=0; idx < sources.size(); idx++) {
+        ParseWorkElem *elem = new ParseWorkElem
+            ( NULL, 
+              parser->link_tempsink(sources[idx], edge_types[idx]),
+              targets[idx],
+              true,
+              false );
+        work_elems.push_back(elem);
+    }
+
+    parser->parse_edges( work_elems );
+
+    return true;
 }

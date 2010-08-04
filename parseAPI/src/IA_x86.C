@@ -36,7 +36,7 @@
 #include "Dereference.h"
 #include "Immediate.h"
 #include "BinaryFunction.h"
-#include "debug.h"
+#include "debug_parse.h"
 
 #include <deque>
 
@@ -180,8 +180,8 @@ bool IA_IAPI::isMovAPSTable(std::vector<std::pair< Address, EdgeTypeEnum > >& ou
     unsigned last_insn_size = 0;
     InstructionAPI::Instruction::Ptr i = d.decode();
     cur += i->size();
-    for (;;) {
-        InstructionAPI::Instruction::Ptr insn = d.decode();
+    InstructionAPI::Instruction::Ptr insn;
+    while (NULL != (insn = d.decode())) {
         //All insns in sequence are movaps
         parsing_printf("\t\tChecking instruction %s\n", insn->format().c_str());
         if (insn->getOperation().getID() != e_movapd &&
@@ -268,11 +268,6 @@ bool IA_IAPI::parseJumpTable(Block* currBlk,
         return false;
     }
 
-    // FIXME we should only care about intraprocedural edges
-    Block::edgelist & sourceEdges = currBlk->sources();
-    if(sourceEdges.empty())
-        return false;
-    
     if(isMovAPSTable(outEdges))
     {
         return true;
@@ -410,11 +405,11 @@ bool IA_IAPI::parseJumpTable(Block* currBlk,
 }
 namespace detail
 {
-    bool isNonCallEdge(Edge* e)
+    bool isNonCallEdge(ParseAPI::Edge* e)
     {
         return e->type() != CALL;
     }
-    bool leadsToVisitedBlock(Edge* e, const std::set<Block*>& visited)
+    bool leadsToVisitedBlock(ParseAPI::Edge* e, const std::set<Block*>& visited)
     {
         Block* src = e->src();
         return visited.find(src) != visited.end();
@@ -540,7 +535,7 @@ std::pair<Address, Address> IA_IAPI::findThunkAndOffset(Block* start) const
 
         Block::edgelist::iterator sit = curBlock->sources().begin(&epred);
         for( ; sit != curBlock->sources().end(); ++sit) {
-            Edge *e = *sit;
+            ParseAPI::Edge *e = *sit;
 
             // FIXME debugging assert
             assert(detail::isNonCallEdge(e));
@@ -613,7 +608,7 @@ boost::tuple<Instruction::Ptr,
                 bool taken_hit = false;
                 bool fallthrough_hit = false;
                 for ( ; tit != curBlk->targets().end(); ++tit) {
-                    Edge *t = *tit;
+                    ParseAPI::Edge *t = *tit;
                     if (t->type() == COND_TAKEN &&
                         (visited.find(t->trg()) != visited.end()))
                     {
@@ -644,7 +639,7 @@ boost::tuple<Instruction::Ptr,
            
         for( ; sit != curBlk->sources().end(); ++sit) 
         {
-            Edge * s = *sit;
+            ParseAPI::Edge * s = *sit;
 
             // ignore return edges
             if(s->type() == RET)
@@ -1016,4 +1011,267 @@ bool IA_IAPI::isReturnAddrSave() const
 {
     // not implemented on non-power
     return false;
+}
+
+
+//class ST_Predicates : public Slicer::Predicates {};
+
+// returns stackTamper, which is false if parsing should not resume 
+// after call instructions to this function.  
+// The function recommends parsing at an alternative address if the stack 
+// delta is a known absolute or relative value, otherwise we will instrument
+// this function's return instructions to see if the function returns
+StackTamper IA_IAPI::tampersStack(ParseAPI::Function *, 
+                                  Address &) const
+{
+    return TAMPER_NONE;
+
+#if 0
+
+    using namespace SymbolicEvaluation;
+    if (TAMPER_UNSET != func->stackTamper()) {
+        return func->stackTamper();
+    }
+
+    if ( ! _obj->defensiveMode() ) { 
+        return TAMPER_NONE;
+    }
+
+    Function::blocklist & retblks = func->returnBlocks();
+    if ( retblks.begin() == retblks.end() ) {
+        return TAMPER_NONE;
+    }
+
+    AssignmentConverter converter(true);
+    vector<Assignment::Ptr> assgns;
+    ST_Predicates preds;
+    StackTamper tamper = TAMPER_UNSET;
+    //Absloc stkLoc (MachRegister::getStackPointer(_isrc->getArch()));
+    Function::blocklist::iterator bit;
+    for (bit = retblks.begin(); retblks.end() != bit; bit++) {
+        Address retnAddr = (*bit)->lastInsnAddr();
+        InstructionDecoder retdec( _isrc->getPtrToInstruction( retnAddr ), 
+                                  InstructionDecoder::maxInstructionLength, 
+                                  _cr->getArch() );
+        Instruction::Ptr retn = retdec.decode();
+        converter.convert(retn, retnAddr, func, assgns);
+        vector<Assignment::Ptr>::iterator ait;
+        AST::Ptr sliceAtRet;
+
+        for (ait = assgns.begin(); assgns.end() != ait; ait++) {
+            AbsRegion & outReg = (*ait)->out();
+            if ( outReg.absloc().isPC() ) {
+                Slicer slicer(*ait,*bit,func);
+                Graph::Ptr slGraph = slicer.backwardSlice(preds);
+                SymEval::Result_t slRes;
+                SymEval::expand(slGraph,slRes);
+                if (dyn_debug_malware) {
+                    stringstream graphDump;
+                    graphDump << "sliceDump_" << func->name() 
+                              << "_" << retnAddr << ".dot";
+                    slGraph->printDOT(graphDump.str());
+                }
+                sliceAtRet = slRes[*ait];
+                break;
+            }
+        }
+        assert(sliceAtRet != NULL);
+        StackTamperVisitor vis((*ait)->out());
+        tamper = vis.tampersStack(sliceAtRet, tamperAddr);
+        assgns.clear();
+    }
+    return tamper;
+#endif
+}
+
+/* returns true if the call leads to:
+ * -an invalid instruction (or immediately branches/calls to an invalid insn)
+ * -a block not ending in a return instruction that pops the return address 
+ *  off of the stack
+ */
+bool IA_IAPI::isFakeCall() const
+{
+    assert(_obj->defensiveMode());
+
+    // get instruction at entry of new func
+    bool tampers = false;
+    Address entry = getCFT();
+    if ( ! _cr->contains(entry) || ! _isrc->isCode(entry) ) {
+        mal_printf("WARNING: found call to function at %lx that "
+                "redirects to invalid address %lx %s[%d]\n", current, 
+                entry, FILE__,__LINE__);
+        return false;
+    }
+    const unsigned char* bufPtr =
+     (const unsigned char *)(_isrc->getPtrToInstruction(entry));
+    InstructionDecoder newdec( bufPtr,
+                              _isrc->offset() + _isrc->length() - entry,
+                              _cr->getArch() );
+    IA_IAPI ah(newdec, entry, _obj, _cr, _isrc);
+    Instruction::Ptr insn = ah.curInsn();
+
+    // follow ctrl transfers until you get a block containing non-ctrl 
+    // transfer instructions, or hit a return instruction
+    while (insn->getCategory() == c_CallInsn ||
+           insn->getCategory() == c_BranchInsn) 
+    {
+        Address entry = ah.getCFT();
+        if ( ! _cr->contains(entry) || ! _isrc->isCode(entry) ) {
+            mal_printf("WARNING: found call to function at %lx that "
+                    "redirects to invalid address %lx %s[%d]\n", current, 
+                    entry, FILE__,__LINE__);
+            return false;
+        }
+        bufPtr = (const unsigned char *)(_isrc->getPtrToInstruction(entry));
+        newdec = InstructionDecoder(bufPtr, 
+                                    _isrc->offset() + _isrc->length() - entry, 
+                                    _cr->getArch());
+        ah = IA_IAPI(newdec, entry, _obj, _cr, _isrc);
+        insn = ah.curInsn();
+    }
+
+    // calculate instruction stack deltas for the block, leaving the iterator
+    // at the last ins'n if it's a control transfer, or after calculating the 
+    // last instruction's delta if we run off the end of initialized memory
+    int stackDelta = 0;
+    int addrWidth = _isrc->getAddressWidth();
+    static Expression::Ptr theStackPtr
+        (new RegisterAST(MachRegister::getStackPointer(_isrc->getArch())));
+    Address curAddr = entry;
+
+    while(true) {
+
+        // exit condition 1
+        if (insn->getCategory() == c_CallInsn ||
+            insn->getCategory() == c_ReturnInsn ||
+            insn->getCategory() == c_BranchInsn) 
+        {
+            break;
+        }
+
+        // calculate instruction delta
+        if(insn->isWritten(theStackPtr)) {
+            entryID what = insn->getOperation().getID();
+            int sign = 1;
+            switch(what) 
+            {
+            case e_push:
+                sign = -1;
+            case e_pop: {
+                Operand arg = insn->getOperand(0);
+                if (arg.getValue()->eval().defined) {
+                    stackDelta += sign * addrWidth;
+                } else {
+                    assert(0);
+                }
+                break;
+            }
+            case e_pusha:
+            case e_pushad:
+                sign = -1;
+            case e_popa:
+            case e_popad:
+                stackDelta += sign * 8 * addrWidth;
+                break;
+
+            case e_pushf:
+            case e_pushfd:
+                sign = -1;
+            case e_popf:
+            case e_popfd:
+                stackDelta += sign * 4;
+                break;
+
+            case e_leave:
+            case e_enter:
+                fprintf(stderr, "WARNING: saw leave or enter instruction "
+                        "at %lx that is not handled by isFakeCall %s[%d]\n",
+                        curAddr, FILE__,__LINE__);//KEVINTODO: unhandled case
+            default:
+                assert(0);//what stack-writing instruction is this?
+            }
+        }
+
+        if (stackDelta > 0) {
+            tampers=true;
+        }
+
+        // exit condition 2
+        ah.advance();
+        Instruction::Ptr next = ah.curInsn();
+        if (NULL == next) {
+            break;
+        }
+        curAddr += insn->size();
+        insn = next;
+    } 
+
+    // not a fake call if it ends w/ a return instruction
+    if (insn->getCategory() == c_ReturnInsn) {
+        return false;
+    }
+
+    // if the stack delta is positive or the return address has been replaced
+    // with an absolute value, it's a fake call, since in both cases 
+    // the return address is gone and we cannot return to the caller
+    if ( 0 < stackDelta || tampers ) {
+        return true;
+    }
+
+    return tampers;
+}
+
+bool IA_IAPI::isIATcall() const
+{
+    if (!isDynamicCall()) {
+        return false;
+    }
+
+    if (!curInsn()->readsMemory()) {
+        return false;
+    }
+
+    std::set<Expression::Ptr> memReads;
+    curInsn()->getMemoryReadOperands(memReads);
+    if (memReads.size() != 1) {
+        return false;
+    }
+
+    Result memref = (*memReads.begin())->eval();
+    if (!memref.defined) {
+        return false;
+    }
+    Address entryAddr = memref.convert<Address>();
+
+    // convert to a relative address
+    if (_obj->cs()->loadAddress() < entryAddr) {
+        entryAddr -= _obj->cs()->loadAddress();
+    }
+    
+    if (!_obj->cs()->isValidAddress(entryAddr)) {
+        return false;
+    }
+
+    // calculate the address of the ASCII string pointer, 
+    // skip over the IAT entry's two-byte hint
+    Address funcAsciiAddr = 2 + *(Address*) (_obj->cs()->getPtrToData(entryAddr));
+    if (!_obj->cs()->isValidAddress(funcAsciiAddr)) {
+        return false;
+    }
+
+    // see if it's really a string that could be a function name
+    char *funcAsciiPtr = (char*) _obj->cs()->getPtrToData(funcAsciiAddr);
+    char cur = 'a';
+    int count=0;
+    do {
+        cur = funcAsciiPtr[count];
+        count++;
+    }while (count < 100 && 
+            _obj->cs()->isValidAddress(funcAsciiAddr+count) &&
+            ((cur >= 'A' && cur <= 'z') ||
+             (cur >= '0' && cur <= '9')));
+    if (cur != 0 || count <= 1) 
+        return false;
+
+    return true;
 }

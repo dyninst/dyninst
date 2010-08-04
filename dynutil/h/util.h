@@ -91,15 +91,15 @@
 #endif
 #endif
 
-#if !defined(SYMEVAL_EXPORT)
+#if !defined(DATAFLOW_EXPORT)
   #if defined(_MSC_VER)
-    #if defined(PARSER_LIB)
-      #define SYMEVAL_EXPORT __declspec(dllexport)
+    #if defined(DATAFLOW_LIB)
+      #define DATAFLOW_EXPORT __declspec(dllexport)
     #else
-      #define SYMEVAL_EXPORT __declspec(dllimport)
+      #define DATAFLOW_EXPORT __declspec(dllimport)
     #endif
   #else
-    #define SYMEVAL_EXPORT
+    #define DATAFLOW_EXPORT
 #endif
 #endif
 

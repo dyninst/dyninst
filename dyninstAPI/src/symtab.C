@@ -134,6 +134,23 @@ void fileDescriptor::setLoadAddr(Address a)
    data_ += a;
 }
 
+// only for non-files
+unsigned char* fileDescriptor::rawPtr()
+{
+
+#if defined(os_windows)
+
+    return rawPtr_;
+
+#else
+
+    return NULL;
+
+#endif
+
+}
+
+
 // All debug_ostream vrbles are defined in process.C (for no particular reason)
 extern unsigned enable_pd_sharedobj_debug;
 
@@ -772,7 +789,9 @@ unsigned int int_addrHash(const Address& addr) {
  *    physical offset. 
  */
 
-image *image::parseImage(fileDescriptor &desc, bool parseGaps)
+image *image::parseImage(fileDescriptor &desc, 
+                         BPatch_hybridMode mode, 
+                         bool parseGaps)
 {
   /*
    * Check to see if we have parsed this image before. We will
@@ -809,7 +828,7 @@ image *image::parseImage(fileDescriptor &desc, bool parseGaps)
 #endif
 
   startup_printf("%s[%d]:  about to create image\n", FILE__, __LINE__);
-  image *ret = new image(desc, err, parseGaps); 
+  image *ret = new image(desc, err, mode, parseGaps); 
   startup_printf("%s[%d]:  created image\n", FILE__, __LINE__);
 
   if(desc.isSharedObject()) 
@@ -843,6 +862,13 @@ image *image::parseImage(fileDescriptor &desc, bool parseGaps)
   }
 
   allImages.push_back(ret);
+
+  // start tracking new blocks after initial parse
+  if ( BPatch_exploratoryMode == mode ||
+       BPatch_defensiveMode == mode ) 
+  {
+      ret->trackNewBlocks_ = true;
+  }
 
   // define all modules.
 
@@ -916,6 +942,56 @@ int image::destroy() {
         assert(0 && "NEGATIVE REFERENCE COUNT FOR IMAGE!");
     return refCount; 
 }
+
+void image::removeInstPoint(image_instPoint *p)
+{
+    instp_map_t::iterator iit = inst_pts_.find(p->offset());
+    if(iit != inst_pts_.end())
+        inst_pts_.erase(iit);
+}
+
+void image::deleteFunc(image_func *func)
+{
+    // Remove the function's points, but not points that are shared
+    // with other functions since they might not be going away. 
+    vector<FuncExtent *>::const_iterator eit = func->extents().begin();
+    set<ParseAPI::Function *> pt_funcs;
+    for( ; eit != func->extents().end(); ++eit) {
+        FuncExtent * fe = *eit;
+        pdvector<image_instPoint *> pts;
+        getInstPoints(fe->start(),fe->end(),pts);
+        for(unsigned i=0;i<pts.size();++i) {
+            image_instPoint *p = pts[i];
+            findFuncs(p->offset(), pt_funcs);
+            if ( 1 == pt_funcs.size() )
+                removeInstPoint(p);
+            pt_funcs.clear();
+        }
+    }
+    // Remove the function's entry point whether it is shared or not
+    image_instPoint *p = getInstPoint(func->getOffset());
+    if (p) 
+        removeInstPoint(p);
+
+    // remove the function from symtabAPI
+    SymtabAPI::Function *sym_func =NULL;
+    getObject()->findFuncByEntryOffset(sym_func, func->getOffset());
+    if (sym_func) 
+        getObject()->deleteFunction(sym_func);
+
+    // tell the parseAPI to remove the func from its datastructures
+    // and delete the function
+    codeObject()->deleteFunc(func);
+
+}
+
+extern void codeBytesUpdateCB(void *objCB, Region *reg, Address addr);
+void image::call_codeBytesUpdateCB(Region *reg, Address addr)
+{
+    assert(BPatch_normalMode != mode_);
+    codeBytesUpdateCB(cb_arg0_, reg, addr + desc().loadAddr());
+}
+
 
 #if 0   // FIXME ensure all necessary functionality preserved
 // Enter a function in all the appropriate tables
@@ -1052,7 +1128,10 @@ void image::analyzeImage() {
 //        Both text and data sections have a relocation address
 
 
-image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
+image::image(fileDescriptor &desc, 
+             bool &err, 
+             BPatch_hybridMode mode, 
+             bool parseGaps) :
    desc_(desc),
    activelyParsing(addrHash4),
    is_libdyninstRT(false),
@@ -1066,9 +1145,11 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
    nextBlockID_(0),
    pltFuncs(NULL),
    varsByAddr(addrHash4),
+   trackNewBlocks_(false),
    refCount(1),
    parseState_(unparsed),
    parseGaps_(parseGaps),
+   mode_(mode),
    arch(Dyninst::Arch_none)
 {
 
@@ -1141,7 +1222,10 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
 #else
    string file = desc_.file();
    startup_printf("%s[%d]:  opening file %s\n", FILE__, __LINE__, file.c_str());
-   if(!SymtabAPI::Symtab::openFile(linkedFile, file)) 
+   if(desc.rawPtr()) {
+       linkedFile = new SymtabAPI::Symtab((char*)desc.rawPtr(), desc.length(), err);
+   } 
+   else if(!SymtabAPI::Symtab::openFile(linkedFile, file)) 
    {
       err = true;
       return;
@@ -1214,7 +1298,8 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
     } nuke_heap;
     filt = &nuke_heap;
 #endif
-   cs_ = new SymtabCodeSource(linkedFile,filt);
+   bool parseInAllLoadableRegions = (BPatch_normalMode != mode_);
+   cs_ = new SymtabCodeSource(linkedFile,filt,parseInAllLoadableRegions);
    // XXX FIXME having this static member in instPointBase
    //     prevents support of multiple architectures simultaneously
    instPointBase::setArch(cs_->getArch(), (getObject()->getAddressWidth() == 8));
@@ -1222,7 +1307,7 @@ image::image(fileDescriptor &desc, bool &err, bool parseGaps) :
    // Continue ParseAPI init
    img_fact_ = new DynCFGFactory(this);
    parse_cb_ = new DynParseCallback(this);
-   obj_ = new CodeObject(cs_,img_fact_,parse_cb_);
+   obj_ = new CodeObject(cs_,img_fact_,parse_cb_,BPatch_defensiveMode == mode);
 
    string msg;
    // give user some feedback....
@@ -1371,28 +1456,20 @@ void pdmodule::dumpMangled(std::string &prefix) const
   cerr << endl;
 }
 
-void pdmodule::addUnresolvedControlFlow(image_instPoint *badPt)
-{ 
-    unresolvedControlFlow.insert(badPt);
-}
-
-const std::set<image_instPoint*> &pdmodule::getUnresolvedControlFlow()
-{ 
-    imExec()->analyzeIfNeeded();
-    return unresolvedControlFlow; 
-}
-
-/* This function is useful for seeding image parsing with function
- * stubs to start the control-flow-traversal parsing from.  The
- * function creates a module to add the symbol to if none exists.  
- * If parseState_ == analyzed, triggers parsing of the function
- */
-image_func *image::addFunctionStub(Address functionEntryAddr, const char *fName)
+image_func *image::addFunction(Address functionEntryAddr, const char *fName)
  {
-     // get or create module
+     set<CodeRegion *> regions;
+     CodeRegion * region;
+     codeObject()->cs()->findRegions(functionEntryAddr,regions);
+     if(regions.empty()) {
+        parsing_printf("[%s:%d] refusing to create function in nonexistent "
+                       "region at %lx\n",
+            FILE__,__LINE__,functionEntryAddr);
+        return NULL;
+     }
+     region = *(regions.begin()); // XXX pick one, throwing up hands. 
+
      pdmodule *mod = getOrCreateModule(linkedFile->getDefaultModule());
-     //KEVINTODO: if there are functions both preceding and succeeding
-     //this one that lie in the same module, use that module instead
 
      // copy or create function name
      char funcName[32];
@@ -1416,13 +1493,18 @@ image_func *image::addFunctionStub(Address functionEntryAddr, const char *fName)
      
      // Adding the symbol finds or creates a Function object...
      assert(funcSym->getFunction());
-     
-    assert(0 && "this has not been fixed to work with parseapi");
-     image_func *func = NULL; /* (image_func*)img_fact_->mkfunc(
-            functionEntryAddr, ONDEMAND, funcName, *obj_); */
 
-    // FIXME this is not what we want to do; we need to decide how
-    // to add a new hint or something to the parser
+     // Parse, but not recursively
+     codeObject()->parse(functionEntryAddr, false); 
+
+     image_func * func = static_cast<image_func*>(
+            codeObject()->findFuncByEntry(region,functionEntryAddr));
+
+     if(NULL == func) {
+        parsing_printf("[%s:%d] failed to create function at %lx\n",
+            FILE__,__LINE__,functionEntryAddr);
+        return NULL;
+     }
 
      if (!func->getSymtabFunction()->addAnnotation(func, ImageFuncUpPtrAnno))
      {
@@ -1441,7 +1523,6 @@ image_func *image::addFunctionStub(Address functionEntryAddr, const char *fName)
      func->addPrettyName( funcName );
      // funcsByEntryAddr[func->getOffset()] = func;
      //createdFunctions.push_back(func);
-
 
      return func;
 }
@@ -1769,7 +1850,7 @@ bool image::getExecCodeRanges(std::vector<std::pair<Address, Address> > &ranges)
    for (std::vector<Region *>::iterator i = regions.begin(); i != regions.end(); i++)
    {
       Region *r = *i;
-      if (!r->isStandardCode())
+      if (!r->isStandardCode() && !codeObject()->defensiveMode())
          continue;
       if (!found_something) {
          cur_start = r->getDiskOffset();
@@ -1871,3 +1952,21 @@ bool image::findGlobalDestructorFunc() {
     return false;
 }
 #endif
+
+const set<image_basicBlock*> & image::getSplitBlocks() const
+{
+    return splitBlocks_;
+}
+void image::clearSplitBlocks()
+{
+    splitBlocks_.clear();
+}
+const vector<image_basicBlock*> & image::getNewBlocks() const
+{
+    return newBlocks_;
+}
+void image::clearNewBlocks()
+{
+    newBlocks_.clear();
+}
+

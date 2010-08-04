@@ -91,12 +91,10 @@ test_results_t test_mem_7_Mutator::executeTest() {
     failtest(testnum, testdesc, "Unable to find function \"loadsnstores\".\n");
 
   //logerror("Doing test %d!!!!!!\n", testnum);
-  if (instEffAddr(appThread, "EffAddr", res1, true) < 0) {
+  if (instEffAddr(appAddrSpace, "EffAddr", res1, true) < 0) {
       failtest(testnum, testdesc, "Unable to instrument effective addresses.\n");
   }
   
-  appThread->continueExecution();
-//appThread->detach(false);
   return PASSED;
 #endif
 }

@@ -36,7 +36,7 @@
 #include "Node.h"
 #include <assert.h>
 
-#include "NodeIterator.h"
+#include "../h/NodeIterator.h"
 #include <iostream>
 
 using namespace Dyninst;
@@ -96,6 +96,14 @@ void Graph::insertEntryNode(NodePtr entry) {
 
 void Graph::insertExitNode(NodePtr exit) {
     addNode(exit);
+    exitNodes_.insert(exit);
+}
+
+void Graph::markAsEntryNode(NodePtr entry) {
+    entryNodes_.insert(entry);
+}
+
+void Graph::markAsExitNode(NodePtr exit) {
     exitNodes_.insert(exit);
 }
 

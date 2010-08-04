@@ -242,6 +242,7 @@ void BPatch_memoryAccessAdapter::visit(RegisterAST* r)
         return;
     } else if(rb == -1) {
         rb = converted;
+        if(ra == 0) ra = -1;
         return;
     }
     else

@@ -39,7 +39,7 @@ using namespace Dyninst::InstructionAPI;
 #include "InstructionAdapter.h"
 
 #include "Parser.h"
-#include "debug.h"
+#include "debug_parse.h"
 
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
@@ -135,3 +135,17 @@ int Block::containingFuncs() const {
     return _func_cnt;
 }
 
+void Block::removeFunc(Function *) 
+{
+    if (0 == _func_cnt) {
+        _obj->finalize();
+    }
+    assert(0 != _func_cnt);
+    _func_cnt --;
+}
+
+void Edge::install()
+{
+    src()->addTarget(this);
+    trg()->addSource(this);
+}

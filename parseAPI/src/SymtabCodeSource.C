@@ -37,7 +37,7 @@
 #include "symtabAPI/h/Function.h"
 
 #include "CodeSource.h"
-#include "debug.h"
+#include "debug_parse.h"
 #include "util.h"
 
 using namespace std;
@@ -217,12 +217,14 @@ SymtabCodeSource::~SymtabCodeSource()
         delete _regions[i]; 
 }
 
-SymtabCodeSource::SymtabCodeSource(SymtabAPI::Symtab * st, hint_filt * filt) : 
+SymtabCodeSource::SymtabCodeSource(SymtabAPI::Symtab * st, 
+                                   hint_filt * filt,
+                                   bool allLoadedRegions) : 
     _symtab(st),
     owns_symtab(false),
     _lookup_cache(NULL)
 {
-    init(filt);
+    init(filt,allLoadedRegions);
 }
 
 SymtabCodeSource::SymtabCodeSource(SymtabAPI::Symtab * st) : 
@@ -230,7 +232,7 @@ SymtabCodeSource::SymtabCodeSource(SymtabAPI::Symtab * st) :
     owns_symtab(false),
     _lookup_cache(NULL)
 {
-    init(NULL);
+    init(NULL,false);
 }
 
 SymtabCodeSource::SymtabCodeSource(char * file) :
@@ -247,14 +249,14 @@ SymtabCodeSource::SymtabCodeSource(char * file) :
         _symtab = NULL;
         return;
     }
-    init(NULL);
+    init(NULL,false);
 }
 
 void
-SymtabCodeSource::init(hint_filt * filt)
+SymtabCodeSource::init(hint_filt * filt , bool allLoadedRegions)
 {
     // regions (and hints)
-    init_regions(filt);
+    init_regions(filt, allLoadedRegions);
 
     // external linkage
     init_linkage();
@@ -264,16 +266,21 @@ SymtabCodeSource::init(hint_filt * filt)
 }
 
 void 
-SymtabCodeSource::init_regions(hint_filt * filt)
+SymtabCodeSource::init_regions(hint_filt * filt , bool allLoadedRegions)
 {
     dyn_hash_map<void*,CodeRegion*> rmap;
     vector<SymtabAPI::Region *> regs;
     vector<SymtabAPI::Region *> dregs;
     vector<SymtabAPI::Region *>::iterator rit;
 
-    _symtab->getCodeRegions(regs);
-    _symtab->getDataRegions(dregs);
-    regs.insert(regs.end(),dregs.begin(),dregs.end());
+    if ( ! allLoadedRegions ) {
+        _symtab->getCodeRegions(regs);
+        _symtab->getDataRegions(dregs);
+        regs.insert(regs.end(),dregs.begin(),dregs.end());
+    }
+    else {
+        _symtab->getMappedRegions(regs);
+    }
 
     parsing_printf("[%s:%d] processing %d symtab regions in %s\n",
         FILE__,__LINE__,regs.size(),_symtab->name().c_str());
@@ -283,7 +290,8 @@ SymtabCodeSource::init_regions(hint_filt * filt)
     
         // XXX only TEXT, DATA, TEXTDATA?
         SymtabAPI::Region::RegionType rt = (*rit)->getRegionType();
-        if(rt != SymtabAPI::Region::RT_TEXT &&
+        if(false == allLoadedRegions &&
+           rt != SymtabAPI::Region::RT_TEXT &&
            rt != SymtabAPI::Region::RT_DATA &&
            rt != SymtabAPI::Region::RT_TEXTDATA)
         {

@@ -193,9 +193,40 @@ emitElf::emitElf(Elf_X &oldElfHandle_, bool isStripped_, Object *obj_, void (*er
   symTabData = NULL;
   hashData = NULL;
   rodata = NULL;
-     
-  //Don't expect to use to use this mechanism anymore
-  BSSExpandFlag = false; 
+ 
+  linkedStaticData = NULL;
+  hasRewrittenTLS = false;
+  newTLSData = NULL;
+   
+  oldElf = oldElfHandle.e_elfp();
+  curVersionNum = 2;
+  setVersion();
+ 
+  //Set variable based on the mechanism to add new load segment
+  // 1) createNewPhdr (Total program headers + 1) - default
+  //	(a) movePHdrsFirst
+  //    (b) create new section called dynphdrs and change pointers (createNewPhdrRegion)
+  // 2) Use existing Phdr (used in bleugene - will be handled in function fixPhdrs)
+  //    (a) replaceNOTE section - if NOTE exists
+  //    (b) BSSExpandFlag - expand BSS section - default option
+
+  // default
+  createNewPhdr = true; BSSExpandFlag = false; replaceNOTE = false; 
+
+  bool isBlueGene = obj_->isBlueGene();
+  bool hasNoteSection = obj_->hasNoteSection();
+
+  // for now, bluegene is the only system which uses the following mechanism for updating program header
+  if(isBlueGene){
+	createNewPhdr = false;
+        if(hasNoteSection) {
+                replaceNOTE = true;
+        } else {
+                BSSExpandFlag = true;
+        }
+  }
+
+
   //If we're dealing with a library that can be loaded anywhere,
   // then load the program headers into the later part of the binary,
   // this may trigger a kernel bug that was fixed in Summer 2007,
@@ -203,8 +234,7 @@ emitElf::emitElf(Elf_X &oldElfHandle_, bool isStripped_, Object *obj_, void (*er
   //If we're dealing with a library/executable that loads at a specific
   // address we'll put the phdrs into the page before that address.  This
   // works and will avoid the kernel bug.
-  movePHdrsFirst = object && object->getLoadAddress();
-  createNewPhdr = true;
+  movePHdrsFirst = createNewPhdr && object && object->getLoadAddress();
 
   //If we want to try a mode where we add the program headers to a library
   // that can be loaded anywhere, and put the program headers in the first 
@@ -213,14 +243,6 @@ emitElf::emitElf(Elf_X &oldElfHandle_, bool isStripped_, Object *obj_, void (*er
   // for the extra page for program headers.  This causes some significant
   // changes to the binary, and isn't well tested.
   library_adjust = 0;
-
-  linkedStaticData = NULL;
-  hasRewrittenTLS = false;
-  newTLSData = NULL;
-   
-  oldElf = oldElfHandle.e_elfp();
-  curVersionNum = 2;
-  setVersion();
 }
 
 bool emitElf::createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf32_Sym *> &symbols, bool dynSymFlag)
@@ -682,7 +704,7 @@ bool emitElf::driver(Symtab *obj, string fName){
       if(!createLoadableSections(obj,newshdr, extraAlignSize, 
                                  newNameIndexMapping, sectionNumber))        
          return false;
-      if (!movePHdrsFirst) {
+      if (createNewPhdr && !movePHdrsFirst) {
 	 sectionNumber++;
          createNewPhdrRegion(newNameIndexMapping);
 	}
@@ -858,9 +880,8 @@ void emitElf::fixPhdrs(unsigned &extraAlignSize)
   if(createNewPhdr) {
      newEhdr->e_phnum++;
   }
-  if(BSSExpandFlag)
-    newEhdr->e_phnum= oldEhdr->e_phnum;
   bool added_new_sec = false;    
+  bool replaced = false;
 
   if (!hasPHdrSectionBug())
      newPhdr = elf32_newphdr(newElf,newEhdr->e_phnum);
@@ -880,11 +901,14 @@ void emitElf::fixPhdrs(unsigned &extraAlignSize)
      *
      * `Loadable segment entries in the program header table appear in
      * ascending order, sorted on the p_vaddr member.'
+     * 
+     * Note: replacing NOTE with LOAD section for bluegene systems 
+     * does not follow this rule.
      */
   
     Elf32_Phdr * insert_phdr = NULL;
-    if(createNewPhdr && !added_new_sec) {
-        if(i+1 == oldEhdr->e_phnum) {
+   if(createNewPhdr && !added_new_sec) { 
+       	if(i+1 == oldEhdr->e_phnum) {
             // insert at end of phdrs
             insert_phdr = newPhdr+1;
         }
@@ -946,7 +970,10 @@ void emitElf::fixPhdrs(unsigned &extraAlignSize)
 	newPhdr->p_filesz = newPhdr->p_memsz;
      }
      else if(old->p_type == PT_PHDR){
-        newPhdr->p_vaddr = old->p_vaddr - pgSize;
+     	if (movePHdrsFirst)
+	        newPhdr->p_vaddr = old->p_vaddr - pgSize;
+	else
+	        newPhdr->p_vaddr = old->p_vaddr;
         newPhdr->p_paddr = newPhdr->p_vaddr;
         newPhdr->p_filesz = sizeof(Elf32_Phdr) * newEhdr->e_phnum;
         newPhdr->p_memsz = newPhdr->p_filesz;
@@ -958,7 +985,7 @@ void emitElf::fixPhdrs(unsigned &extraAlignSize)
           newPhdr->p_memsz = newTLSData->sh_size + old->p_memsz - old->p_filesz;
           newPhdr->p_align = newTLSData->sh_addralign;
      }else if (old->p_type == PT_LOAD) {
-        if(newPhdr->p_align > pgSize) {
+        if(!createNewPhdr && newPhdr->p_align > pgSize) { //not on bluegene
            newPhdr->p_align = pgSize;
         }
         if(BSSExpandFlag) {
@@ -984,8 +1011,17 @@ void emitElf::fixPhdrs(unsigned &extraAlignSize)
               newPhdr->p_vaddr += library_adjust;
            }
         }
-     }
-     else if (movePHdrsFirst && old->p_offset) {
+     }else if (replaceNOTE && old->p_type == PT_NOTE && !replaced) {
+	 replaced = true;
+         newPhdr->p_type = PT_LOAD;
+         newPhdr->p_offset = firstNewLoadSec->sh_offset;
+         newPhdr->p_vaddr = newSegmentStart;
+         newPhdr->p_paddr = newPhdr->p_vaddr; 
+         newPhdr->p_filesz = loadSecTotalSize - (newSegmentStart - firstNewLoadSec->sh_addr);
+         newPhdr->p_memsz = (currEndAddress - firstNewLoadSec->sh_addr) - (newSegmentStart - firstNewLoadSec->sh_addr);
+         newPhdr->p_flags = PF_R+PF_W+PF_X;
+         newPhdr->p_align = pgSize;
+     }else if (movePHdrsFirst && old->p_offset) {
         newPhdr->p_offset += pgSize;
         if (newPhdr->p_vaddr) {
            newPhdr->p_vaddr += library_adjust;
@@ -1353,25 +1389,25 @@ bool emitElf::createLoadableSections(Symtab*obj, Elf32_Shdr* &shdr, unsigned &ex
      }
 #endif
 
-     if(createNewPhdr)
+     // Check to make sure the (vaddr for the start of the new segment - the offset) is page aligned
+     if(!firstNewLoadSec)
      {
-        // Check to make sure the (vaddr for the start of the new segment - the offset) is page aligned
-        if(!firstNewLoadSec)
-        {
-           newSegmentStart = newshdr->sh_addr;
-           Offset newoff = newshdr->sh_offset  - (newshdr->sh_offset & (pgSize-1)) + (newshdr->sh_addr & (pgSize-1));
-           if(newoff < newshdr->sh_offset)
-              newoff += pgSize;
-           extraAlignSize += newoff - newshdr->sh_offset;
-           newshdr->sh_offset = newoff;
-        }    
-     }	
-     else{
         Offset newoff = newshdr->sh_offset  - (newshdr->sh_offset & (pgSize-1)) + (newshdr->sh_addr & (pgSize-1));
         if(newoff < newshdr->sh_offset)
            newoff += pgSize;
         extraAlignSize += newoff - newshdr->sh_offset;
         newshdr->sh_offset = newoff;
+
+	// For now, bluegene is the only system for which createNewPhdr is false. 
+	// Bluegene compute nodes have a 1MB alignment restructions on PT_LOAD section
+	// When we are replaceing PT_NOTE with PT_LOAD, we need to make sure the new PT_LOAD is 1MB aligned
+	if (!createNewPhdr && replaceNOTE)  {
+        	Offset newaddr = newshdr->sh_addr  - (newshdr->sh_addr & (0x100000-1));
+	        if(newaddr < newshdr->sh_addr)
+	             newaddr += 0x100000;
+	        newshdr->sh_addr = newaddr;
+	}
+        newSegmentStart = newshdr->sh_addr;
      }
 
      //Set up the data

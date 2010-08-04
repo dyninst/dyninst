@@ -208,6 +208,7 @@ int bpinfo(const char *format, ...)
 
 // Internal debugging
 
+int dyn_debug_malware = 0;
 int dyn_debug_signal = 0;
 int dyn_debug_infrpc = 0;
 int dyn_debug_startup = 0;
@@ -242,6 +243,10 @@ static FILE *dyn_debug_write_file = NULL;
 
 bool init_debug() {
   char *p;
+  if ( (p=getenv("DYNINST_DEBUG_MALWARE"))) {
+    fprintf(stderr, "Enabling DyninstAPI malware debug\n");
+    dyn_debug_malware = 1;
+  }
   if ( (p=getenv("DYNINST_DEBUG_SIGNAL"))) {
     fprintf(stderr, "Enabling DyninstAPI signal debug\n");
     dyn_debug_signal = 1;
@@ -369,6 +374,23 @@ bool init_debug() {
   debugPrintLock = new eventLock();
 
   return true;
+}
+
+int mal_printf(const char *format, ...)
+{
+  if (!dyn_debug_malware) return 0;
+  if (NULL == format) return -1;
+
+  debugPrintLock->_Lock(FILE__, __LINE__);
+
+  va_list va;
+  va_start(va, format);
+  int ret = vfprintf(stderr, format, va);
+  va_end(va);
+
+  debugPrintLock->_Unlock(FILE__, __LINE__);
+
+  return ret;
 }
 
 int signal_printf_int(const char *format, ...)

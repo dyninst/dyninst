@@ -211,8 +211,23 @@ int_function *Frame::getFunc() {
         return range->is_multitramp()->func();
     else if (range->is_minitramp())
         return range->is_minitramp()->baseTI->multiT->func();
-    else 
-        return NULL;
+    else if (BPatch_defensiveMode == getProc()->getHybridMode() && 
+             range->is_mapped_object()) {
+        // in defensive mode, return the function at getPC-1, since
+        // the PC could be at the fallthrough address of a call
+        // instruction that was assumed to be non-returning
+        range = getProc()->findModByAddr(getPC()-1);
+        if (range == NULL) 
+            return NULL;
+        if (range->is_function())
+            return range->is_function();
+        else if (range->is_multitramp())
+            return range->is_multitramp()->func();
+        else if (range->is_minitramp())
+            return range->is_minitramp()->baseTI->multiT->func();
+    }
+
+    return NULL;
 }
 
 Address Frame::getUninstAddr() {
@@ -250,7 +265,7 @@ Address Frame::getUninstAddr() {
     if (bbl_ptr) {
         // Relocated function... back-track
         assert(range->is_basicBlock());
-        return bbl_ptr->equivAddr(range->is_basicBlock()->origInstance(), getPC());
+        return bbl_ptr->equivAddr(0, getPC());
     }
     else {
         // Where are we?

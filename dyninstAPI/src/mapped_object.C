@@ -40,8 +40,9 @@
 #include "dyninstAPI/src/debug.h"
 #include "symtabAPI/h/Symtab.h"
 #include "process.h"
-
+#include "InstructionDecoder.h"
 #include "Parsing.h"
+#include "instPoint.h"
 
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
@@ -58,9 +59,18 @@ unsigned imgVarHash(const image_variable * const &func)
     return addrHash4((Address) func);
 }
 
+// triggered when parsing needs to check if the underlying data has changed
+void codeBytesUpdateCB(void *objCB, SymtabAPI::Region *reg, Address addr)
+{
+    mapped_object *obj = (mapped_object*) objCB;
+    assert(obj);
+    obj->updateMappedFileIfNeeded(addr,reg);
+}
+
 mapped_object::mapped_object(fileDescriptor fileDesc,
       image *img,
-      AddressSpace *proc):
+      AddressSpace *proc,
+      BPatch_hybridMode mode):
    desc_(fileDesc),
    fullName_(fileDesc.file()), 
    everyUniqueFunction(imgFuncHash),
@@ -74,7 +84,8 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
    image_(img),
    dlopenUsed(false),
    proc_(proc),
-   analyzed_(false)
+   analyzed_(false),
+   analysisMode_(mode)
 { 
    // Set occupied range (needs to be ranges)
    codeBase_ = fileDesc.code();
@@ -161,6 +172,7 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
 
 mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
       AddressSpace *p,
+      BPatch_hybridMode analysisMode, 
       bool parseGaps) 
 {
 
@@ -169,7 +181,7 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
    startup_printf("%s[%d]:  about to parseImage\n", FILE__, __LINE__);
    startup_printf("%s[%d]: name %s, codeBase 0x%lx, dataBase 0x%lx\n",
                   FILE__, __LINE__, desc.file().c_str(), desc.code(), desc.data());
-   image *img = image::parseImage(desc, parseGaps);
+   image *img = image::parseImage( desc, analysisMode, parseGaps );
    if (!img)  {
       startup_printf("%s[%d]:  failed to parseImage\n", FILE__, __LINE__);
       return NULL;
@@ -258,7 +270,8 @@ mapped_object::mapped_object(const mapped_object *s, process *child) :
    image_(s->image_),
    dlopenUsed(s->dlopenUsed),
    proc_(child),
-   analyzed_(s->analyzed_)
+   analyzed_(s->analyzed_),
+   analysisMode_(s->analysisMode_)
 {
    // Let's do modules
    for (unsigned k = 0; k < s->everyModule.size(); k++) {
@@ -424,7 +437,6 @@ bool mapped_object::analyzeNewFunctions(vector<image_func *> *funcs)
         if(curFunc->src() == HINT)
             continue;
         if ( ! everyUniqueFunction.defines(curFunc) ) { 
-            //curFunc->checkCallPoints();
             // add function to datastructures
             findFunction(curFunc);
         }
@@ -1141,4 +1153,758 @@ mapped_module* mapped_object::getDefaultModule()
   assert(everyModule.size() > 0);
   return everyModule[0];
   
+}
+
+
+// splits int-layer blocks in response to block-splitting at the image-layer,
+// adds the split image-layer blocks that are newly created, 
+// and adjusts point->block pointers accordingly 
+bool mapped_object::splitIntLayer()
+{
+
+#if ! defined (cap_instruction_api)
+    // not implemented (or needed, for now) on non-instruction API platforms
+    return false;
+#else
+
+    using namespace InstructionAPI;
+    // iterates through the blocks that were created during block splitting
+    std::set< image_basicBlock* > splits = parse_img()->getSplitBlocks();
+    set<image_basicBlock*>::iterator bIter;
+    std::set<image_func*> splitfuncs;
+    for (bIter = splits.begin(); bIter != splits.end(); bIter++) 
+    {
+        // foreach function corresponding to the block
+        image_basicBlock *imgBlock = (*bIter);
+
+        vector<Function *> funcs;
+        imgBlock->getFuncs(funcs);
+        for (std::vector<Function*>::iterator fIter = funcs.begin();
+             fIter != funcs.end(); 
+             fIter++) 
+        {
+            image_func *imgFunc = dynamic_cast<image_func*>(*fIter);
+            splitfuncs.insert(imgFunc);
+            int_function   * intFunc  = findFunction(imgFunc);
+            int_basicBlock * intBlock = intFunc->findBlockByOffset
+                ( imgBlock->firstInsnOffset() - imgFunc->getOffset() );
+
+            // add block to new int_function if necessary
+            if (!intBlock || intBlock->llb() != imgBlock) {
+                // this will adjust the previous block's length if necessary
+                intFunc->addMissingBlock(*imgBlock);
+            }
+
+            //warning: intBlock might still be null if we deemed this
+            // function uninstrumentable (probably because it is very
+            // short), keep that in mind
+            if (intBlock) {
+
+                // make point fixes
+                instPoint *point = NULL;
+                Address current = intBlock->origInstance()->firstInsnAddr();
+                InstructionDecoder dec
+                    (getPtrToInstruction(current),
+                     intBlock->origInstance()->get_size(),
+                     proc()->getArch());
+                Instruction::Ptr insn;
+                while(insn = dec.decode()) 
+                {
+                    point = intFunc->findInstPByAddr( current );
+                    if ( point && point->block() != intBlock ) {
+                        point->setBlock( intBlock );
+                    } 
+                    current += insn->size();
+                }
+                // we're at the last instruction, create a point if needed
+                if ( !point ) {
+                    if ( parse_img()->getInstPoint
+                         (intBlock->origInstance()->lastInsnAddr()) ) 
+                    {
+                        intFunc->addMissingPoints();
+                        point = intFunc->findInstPByAddr
+                            ( intBlock->origInstance()->lastInsnAddr() );
+                        if (!point) {
+                            fprintf(stderr,"WARNING: failed to find point for "
+                                    "block [%lx %lx] at the"
+                                    " block's lastInsnAddr = %lx %s[%d]\n", 
+                                    intBlock->origInstance()->firstInsnAddr(), 
+                                    intBlock->origInstance()->endAddr(),
+                                    intBlock->origInstance()->lastInsnAddr(),
+                                    FILE__,__LINE__);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // check arbitrary points in functions whose block boundaries may have changed 
+    Address baseAddress = parse_img()->desc().loadAddr();
+    for (std::set<image_func*>::iterator fIter = splitfuncs.begin();
+            fIter != splitfuncs.end(); 
+            fIter++) 
+    {
+        int_function *f = findFuncByAddr(baseAddress + (*fIter)->getOffset());
+        pdvector<instPoint*> points = f->funcArbitraryPoints();
+        for (pdvector<instPoint*>::iterator pIter = points.begin(); 
+             pIter != points.end(); pIter++) 
+        {
+            Address pointAddr = (*pIter)->addr();
+            bblInstance *bbi = (*pIter)->block()->origInstance();
+            // fix block boundaries if necessary
+            while (pointAddr <  bbi->firstInsnAddr()) 
+            {
+                bbi = bbi->block()->func()->findBlockInstanceByAddr(
+                    bbi->firstInsnAddr() -1 );
+                assert(bbi);
+            } 
+            while (pointAddr >= bbi->endAddr()) 
+            {
+                bbi = bbi->block()->func()->findBlockInstanceByAddr(
+                    bbi->endAddr() );
+                assert(bbi);
+            }
+            if (bbi != (*pIter)->block()->origInstance()) {
+                mal_printf("updating block (which was split) for arbitrary"
+                        " point %lx with %d instances %s[%d]\n",(*pIter)->addr(),
+                        (int)(*pIter)->instances.size(), FILE__,__LINE__);
+                (*pIter)->setBlock(bbi->block());
+            }
+        }
+    }
+
+    return true;
+
+#endif
+}
+
+
+void mapped_object::findBBIsByRange(Address startAddr,
+                                    Address endAddr,
+                                    std::vector<bblInstance*> &pageBlocks)
+{
+    codeRange *range=NULL;
+    if ( ! codeRangesByAddr_.find(startAddr,range) &&
+         ! codeRangesByAddr_.successor(startAddr,range) ) 
+    {
+        range = NULL;
+    }
+    while (range != NULL && 
+           range->get_address() < endAddr)
+    {
+        bblInstance* bbi = range->is_basicBlockInstance();
+        assert(bbi);
+        pageBlocks.push_back(bbi);
+        // advance to the next region
+        if ( ! codeRangesByAddr_.successor(
+                    range->get_address() + range->get_size(), 
+                    range) ) 
+        {
+           range = NULL;
+        }
+    }
+}
+
+void mapped_object::findFuncsByRange(Address startAddr,
+                                      Address endAddr,
+                                      std::set<int_function*> &pageFuncs)
+{
+    codeRange *range=NULL;
+    if ( ! codeRangesByAddr_.find(startAddr,range) &&
+         ! codeRangesByAddr_.successor(startAddr,range) ) 
+    {
+        range = NULL;
+    }
+    while (range != NULL && 
+           range->get_address() < endAddr)
+    {
+        bblInstance* bbi = range->is_basicBlockInstance();
+        assert(bbi);
+        pageFuncs.insert(bbi->func());
+        // advance to the next region
+        if ( ! codeRangesByAddr_.successor(
+                    range->get_address() + range->get_size(), 
+                    range) ) 
+        {
+           range = NULL;
+        }
+    }
+}
+
+
+/* Re-trigger parsing in the object.  This function should
+ * only be invoked if all funcEntryAddrs lie within the boundaries of
+ * the object.  
+ * 
+ * Copies over the raw data if a funcEntryAddr lies in between
+ * the region's disk size and memory size, also copies raw data 
+ * if the memory around the entry point has changed
+ * 
+ * A true return value means that new functions were parsed
+*/
+bool mapped_object::parseNewFunctions(vector<Address> &funcEntryAddrs)
+{
+
+    bool reparsedObject = false;
+    Address baseAddress = parse_img()->desc().loadAddr();
+    SymtabAPI::Region *reg;
+    std::set<SymtabAPI::Region*> visitedRegions;
+
+    if (parse_img()->codeObject()->defensiveMode()) {
+        clearUpdatedRegions();
+    }
+
+    assert( !parse_img()->hasSplitBlocks() && !parse_img()->hasNewBlocks());
+
+    // update regions if necessary, check that functions not parsed already
+    vector<Address>::iterator curEntry = funcEntryAddrs.begin();
+    while (curEntry != funcEntryAddrs.end()) {
+        Address entryOffset = (*curEntry)-baseAddress;
+        reg = parse_img()->getObject()->findEnclosingRegion(entryOffset);
+        if (reg != NULL) {
+
+            if (parse_img()->codeObject()->defensiveMode() && 
+                visitedRegions.end() == visitedRegions.find(reg))
+            {
+                updateMappedFileIfNeeded(*curEntry,reg);
+                visitedRegions.insert(reg);
+            }
+
+            if (parse_img()->findFuncByEntry(entryOffset)) {
+                fprintf(stderr,"WARNING: tried to parse at %lx, where a "
+                        "function entry exists already %s[%d]\n",
+                        *curEntry, FILE__,__LINE__);
+                curEntry = funcEntryAddrs.erase(curEntry);
+            } 
+            else {
+                curEntry++;
+            }
+
+        } 
+        else {
+            fprintf(stderr,"ERROR: passed invalid address %lx to "
+                    "parseNewFunctions %s[%d]\n", *curEntry,FILE__,__LINE__);
+            assert(0);
+            curEntry++;
+        }
+    }
+
+    // parse at funcEntryAddrs
+    curEntry = funcEntryAddrs.begin();
+    set<ParseAPI::Function*> tmpfuncs;
+    while (curEntry != funcEntryAddrs.end()) {
+        Address entryOffset = (*curEntry)  - baseAddress;
+        parse_img()->codeObject()->parse( entryOffset, true );
+        
+        if ( ! parse_img()->findFuncs(entryOffset, tmpfuncs) ) {
+            // parse failed, this can happen when the function is just a 
+            // jump or return instruction, but it doesn't mean that we 
+            // didn't do any parsing
+            fprintf(stderr,"WARNING, failed to parse function at %lx, "
+                    "%s[%d]\n", *curEntry, FILE__, __LINE__);
+        }
+        else {
+            reparsedObject = true;
+            tmpfuncs.clear();
+        }
+        curEntry++;
+    }
+
+
+
+    // add the functions we created to mapped_object datastructures
+    CodeObject::funclist newFuncs = parse_img()->getAllFunctions();
+    CodeObject::funclist::iterator fit = newFuncs.begin();
+    for( ; fit != newFuncs.end(); ++fit) {
+        image_func *curFunc = (image_func*) *fit;
+        if ( ! everyUniqueFunction.defines(curFunc) ) { 
+            findFunction(curFunc); // does all the work
+        }
+    }
+
+    // split int layer
+    if (parse_img()->hasSplitBlocks()) {
+        splitIntLayer();
+        parse_img()->clearSplitBlocks();
+    }
+
+    return reparsedObject;
+}
+
+
+void mapped_object::expandMappedFile(SymtabAPI::Region *reg)
+{
+    assert(reg);
+    Address baseAddress = parse_img()->desc().loadAddr();
+    void *mappedPtr = reg->getPtrToRawData();
+    Address regionStart = baseAddress + reg->getRegionAddr();
+    codeRange *range=NULL;
+
+    void* regBuf = NULL;
+    Address copySize = reg->getMemSize();
+
+    regBuf = malloc(copySize);
+    if (!proc()->readDataSpace((void*)regionStart, copySize, regBuf, true)) 
+    {
+        fprintf(stderr, "%s[%d] Failed to read from region [%lX %lX]\n",
+                __FILE__, __LINE__, (long)regionStart, copySize);
+        assert(0);
+    }
+
+    // find the first code range in the region
+    if ( ! codeRangesByAddr_.find(regionStart,range) &&
+            ! codeRangesByAddr_.successor(regionStart,range) ) 
+    {
+        range = NULL;
+    }
+    while (range != NULL && 
+            range->get_address() < regionStart + copySize)
+    {
+        // copy code ranges from mapped data into regBuf
+        if ( ! memcpy((void*)((Address)regBuf 
+                        + range->get_address()
+                        - regionStart),
+                        (void*)((Address)mappedPtr
+                        + range->get_address() 
+                        - regionStart),
+                        range->get_size()) )
+        {
+            assert(0);
+        }
+        // advance to the next region
+        if ( ! codeRangesByAddr_.successor(
+                    range->get_address() + range->get_size(), 
+                    range) ) 
+        {
+            range = NULL;
+        }
+    }
+
+    if (reg->isDirty()) {
+        // if isDirty is true, the pointer was created via malloc 
+        // and we can free it.  If not, isDirty is part of a mapped
+        // file and we can't free it
+        free( mappedPtr );
+    }
+
+    // KEVINTODO: This sets diskSize = memSize, but that's 
+    // disgusting, think of a cleaner solution than taking over 
+    // the mapped files, which won't work anyway for 
+    // VirtualAlloc'd and mmapped regions
+    reg->setPtrToRawData( regBuf , copySize );
+}
+
+// 1. use other update functions to update non-code areas of mapped files, 
+//    expanding them if we overwrote into unmapped areas
+// 2. copy overwritten regions into the mapped objects
+void mapped_object::updateMappedFile( std::map<Address,Address> owRanges )
+{
+// 1. use other update functions to update non-code areas of mapped files, 
+//    expanding them if we overwrote into unmapped areas
+
+    using namespace SymtabAPI;
+    std::set<Region *> updateregions;// so we don't update regions more than once
+    std::set<Region *> expansionregions;// so we don't update regions more than once
+    Address baseAddress = parse_img()->desc().loadAddr();
+    // figure out which regions need expansion and which need updating
+    std::map<Address,Address>::iterator rIter = owRanges.begin();
+    for(; rIter != owRanges.end(); rIter++) {
+        Address lastChangeOffset = (*rIter).second -1 -baseAddress;
+        Region *curReg = parse_img()->getObject()->findEnclosingRegion
+                                                    ( lastChangeOffset );
+        if ( lastChangeOffset - curReg->getRegionAddr() >= curReg->getDiskSize() ) {
+            expansionregions.insert(curReg);
+        } else {
+            updateregions.insert(curReg);
+        }        
+        updatedRegions.insert(curReg);
+    }
+    // expand and update regions
+    set<Region*>::iterator regIter;
+    for (regIter = expansionregions.begin(); 
+         regIter != expansionregions.end(); regIter++) 
+    {
+        updateregions.erase(*regIter);//won't be necessary to update after expansion
+        expandMappedFile(*regIter);
+    }
+    for (regIter = updateregions.begin(); 
+         regIter != updateregions.end(); regIter++) 
+    {
+        updateMappedFile(*regIter);
+    }
+
+// 2. copy overwritten regions into the mapped objects
+    for(rIter = owRanges.begin(); rIter != owRanges.end(); rIter++) 
+    {
+        Region *reg = parse_img()->getObject()->findEnclosingRegion
+            ( (*rIter).first - baseAddress );
+        unsigned char* regPtr = (unsigned char*)reg->getPtrToRawData() 
+            + (*rIter).first - baseAddress - reg->getRegionAddr();
+
+        assert ( proc()->readDataSpace((void*)(*rIter).first, 
+                                     (*rIter).second - (*rIter).first, 
+                                     regPtr, 
+                                     true) );
+    }
+}
+
+// this is a helper function
+// 
+// update mapped data, if reg=NULL, update mapped data for whole object, otherwise just for the region
+//
+//    Read non-code memory values into the mapped version
+//    (not code regions so we don't get instrumentation in our parse)
+void mapped_object::updateMappedFile(SymtabAPI::Region *reg=NULL)
+{
+    using namespace SymtabAPI;
+    Address baseAddress = parse_img()->desc().loadAddr();
+
+    std::vector<Region *> regions;
+    if ( reg ) {
+        regions.push_back(reg);
+    } else {
+        parse_img()->getObject()->getCodeRegions(regions);
+    }
+
+    codeRange *range=NULL;
+    for(unsigned rIdx=0; rIdx < regions.size(); rIdx++) {
+        Region *curReg = regions[rIdx];
+        void *mappedPtr = curReg->getPtrToRawData();
+        Address regionStart = baseAddress + curReg->getRegionAddr();
+
+        // find the first code range in the region
+        if ( ! codeRangesByAddr_.find(regionStart,range) &&
+             ! codeRangesByAddr_.successor(regionStart,range) ) 
+        {
+            range = NULL;
+        }
+        Address prevEndAddr = regionStart;
+        while ( range != NULL && 
+                range->get_address() < regionStart + curReg->getDiskSize() )
+        {
+            // if there's a gap between previous and current range
+            if (prevEndAddr < range->get_address()) {
+                // update the mapped file
+                if (!proc()->readDataSpace(
+                        (void*)(prevEndAddr), 
+                        range->get_address() - prevEndAddr, 
+                        (void*)((Address)mappedPtr 
+                            + prevEndAddr 
+                            - regionStart), 
+                        true)) 
+                {
+                    assert(0);//read failed
+                }
+            }
+            // set prevEndOffset
+            prevEndAddr = range->get_address() + range->get_size();
+            // advance to the next region
+            if ( ! codeRangesByAddr_.successor(prevEndAddr, 
+                                               range) ) 
+            {
+               range = NULL;
+            }
+        }
+        // read in from prevEndAddr to the end of the region
+		// (will read in whole region if there are no ranges in the region)
+        if (prevEndAddr < regionStart + curReg->getDiskSize() &&
+            !proc()->readDataSpace(
+                (void*)prevEndAddr, 
+                regionStart + curReg->getDiskSize() - prevEndAddr, 
+                (void*)((Address)mappedPtr 
+                    + prevEndAddr 
+                    - regionStart), 
+                true)) 
+        {
+            assert(0);// read failed
+        }
+    }
+}
+
+// not only checks if update is needed, but update gaps in-between 
+// code ranges for the code region that has an entry point into it, if necessary
+// Assumes that an expansion is not needed.
+// 
+// see if entry point has mapped data value or not, 
+// case 1: do nothing yet. 
+// case 2: see if memory needs to be updated by comparing non-code bytes, 
+//    if no change needed, return.
+// case 3:
+//    Uninitialized code in the region has been written to
+// 
+// case 1:  isCode(entryAddr) is false:
+//    We need to read the 
+//    [regStart+diskEnd, regStart+memEnd] from memory and
+//    expand the mapped rawData for the region to reach the
+//    end of memory.  This can only trigger once per region. 
+//    Copy code ranges from original mapped data into the region
+//    so that we don't have instrumentation in our parse
+// case 2:
+//    Read non-code memory values into the mapped version
+//    (not code regions so we don't get instrumentation in our parse)
+// case 3:
+//    Uninitialized code in the region has been written to
+bool mapped_object::isUpdateNeeded(Address entryAddr, SymtabAPI::Region* reg)
+{
+    void* regBuf = NULL;
+    Address baseAddress = parse_img()->desc().loadAddr();
+    bool updateNeeded = false;
+    assert( parse_img()->codeObject()->defensiveMode() );
+
+    if (!reg) {
+        reg = parse_img()->getObject()->findEnclosingRegion(entryAddr-baseAddress);
+        assert ( reg );
+    }
+
+    // see if the underlying bytes have changed
+
+    // read until the next basic block or until the end of the region
+    // to make sure nothing has changed, otherwise we'll want to read 
+    // the section in again
+    codeRange *range = NULL;
+    unsigned COMPARE_BYTES; 
+    //KEVINTODO: fix this, it's sometimes comparing the content of basic blocks, which is not the intent
+    if (codeRangesByAddr_.successor(entryAddr,range)) {
+        COMPARE_BYTES = range->get_address() - entryAddr;
+    } else {
+        COMPARE_BYTES = reg->getDiskSize() - 
+            ((entryAddr - baseAddress) - reg->getRegionAddr());
+    }
+    regBuf = malloc(COMPARE_BYTES);
+    mal_printf("%s[%d] Comparing %lx bytes starting at %lx\n",
+            FILE__,__LINE__,COMPARE_BYTES,entryAddr);
+    if (!proc()->readDataSpace((void*)entryAddr, COMPARE_BYTES, regBuf, true)) {
+        assert(0); 
+    }
+    // read until first difference, then see if the difference is to known
+    // in which case the difference is due to instrumentation, as we would 
+    // have otherwise detected the overwrite
+    void *mappedPtr = (void*)
+                      ((Address)reg->getPtrToRawData() +
+                        entryAddr - 
+                        reg->getRegionAddr() -
+                        baseAddress);
+    if (0 != memcmp(mappedPtr,regBuf,COMPARE_BYTES) ) {
+        updateNeeded = true;
+    }
+    free(regBuf);
+    regBuf = NULL;
+
+    return updateNeeded;
+}
+
+// checks to see if expansion is needed 
+bool mapped_object::isExpansionNeeded(Address entryAddr, 
+                                      SymtabAPI::Region *reg) 
+{
+
+    assert(reg);
+
+    if (reg->getMemSize() <= reg->getDiskSize()) {
+        return false;
+    }
+
+    Address baseAddress = parse_img()->desc().loadAddr();
+    if ( ! parse_img()->getObject()->isCode(entryAddr - baseAddress) ) {
+        return true;
+    } 
+
+    // if there is uninitialized space in the region, 
+    // see if the first few bytes have been updated
+    // KEVINTODO: make compareSize the maximum length of an instruction 
+    // on the current platform
+    Address compareStart = 
+        baseAddress + reg->getRegionAddr() + reg->getDiskSize();
+    unsigned compareSize = 2 * proc()->getAddressWidth(); 
+    Address uninitSize = reg->getMemSize() - reg->getDiskSize();
+    if (compareSize > uninitSize) {
+        compareSize = uninitSize;
+    }
+    unsigned char* regBuf = (unsigned char*) malloc(compareSize);
+    if (!proc()->readDataSpace((void*)compareStart,compareSize,regBuf,true)) {
+        fprintf(stderr, "%s[%d] Failed to read from region [%lX %lX]\n",
+                __FILE__, __LINE__, compareStart, compareStart+compareSize);
+        assert(0);
+    }
+    // compare to zero if the region has not been expanded yet
+    bool allZeros = true;
+    for (unsigned idx=0; allZeros && idx < compareSize; idx++) {
+        if (0 != regBuf[idx]) {
+            allZeros = false;
+        }
+    }
+    if (allZeros) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
+void mapped_object::updateMappedFileIfNeeded(Address entryAddr,
+                                             SymtabAPI::Region* reg)
+{
+    // only update if this is an obfuscated object, AND the region has not 
+    // already been updated
+    if ( ! parse_img()->codeObject()->defensiveMode() ||
+         (reg && updatedRegions.end() != updatedRegions.find(reg)))
+    {
+        return;
+    }
+
+    bool expandReg = isExpansionNeeded(entryAddr,reg);
+    if ( ! expandReg &&
+         ! isUpdateNeeded(entryAddr,reg) ) 
+    {
+        return;
+    }
+
+    // only mark the region updated if we update the region, the update 
+    // checks are not thorough, but region updates are
+    updatedRegions.insert(reg); 
+
+    Address baseAddress = parse_img()->desc().loadAddr();
+
+    if (!reg) {
+        reg = parse_img()->getObject()->findEnclosingRegion(entryAddr-baseAddress);
+    }
+
+    mal_printf("%s[%d] updating region [%lx %lx] for entry point %lx\n", 
+            FILE__,__LINE__,
+            reg->getRegionAddr(), 
+            reg->getRegionAddr()+reg->getDiskSize(),
+            entryAddr);
+
+    if ( expandReg ) {
+        expandMappedFile(reg);
+    } 
+    else {
+        updateMappedFile(reg);
+    }
+}
+
+void mapped_object::clearUpdatedRegions()
+{ 
+    updatedRegions.clear(); 
+}
+
+void mapped_object::removeFunction(int_function *func) {
+    // remove from int_function vectore
+    everyUniqueFunction.undef(func->ifunc());
+    // remove pretty names
+    pdvector<int_function *> *funcsByName = NULL;
+    for (unsigned pretty_iter = 0; 
+         pretty_iter < func->prettyNameVector().size();
+         pretty_iter++) {
+        allFunctionsByPrettyName.find
+            (func->prettyNameVector()[pretty_iter], funcsByName);
+        if (funcsByName) {
+            for (unsigned fIdx=0; fIdx < funcsByName->size(); fIdx++) {
+                if (func == (*funcsByName)[fIdx]) {
+                    unsigned lastIdx = funcsByName->size() -1;
+                    if (fIdx != lastIdx) {
+                        (*funcsByName)[fIdx] = (*funcsByName)[lastIdx];
+                    }
+                    funcsByName->pop_back();
+                    if (funcsByName->size() == 0) {
+                        allFunctionsByPrettyName.undef
+                            (func->symTabNameVector()[pretty_iter]);
+                    }
+                }
+            }
+        }
+    }
+    // remove typed names
+    for (unsigned typed_iter = 0; 
+         typed_iter < func->typedNameVector().size();
+         typed_iter++) {
+        allFunctionsByPrettyName.find
+            (func->typedNameVector()[typed_iter], funcsByName);
+        if (funcsByName) {
+            for (unsigned fIdx=0; fIdx < funcsByName->size(); fIdx++) {
+                if (func == (*funcsByName)[fIdx]) {
+                    unsigned lastIdx = funcsByName->size() -1;
+                    if (fIdx != lastIdx) {
+                        (*funcsByName)[fIdx] = (*funcsByName)[lastIdx];
+                    }
+                    funcsByName->pop_back();
+                    if (funcsByName->size() == 0) {
+                        allFunctionsByPrettyName.undef
+                            (func->symTabNameVector()[typed_iter]);
+                    }
+                }
+            }
+        }
+    }
+    // remove symtab names
+    for (unsigned symtab_iter = 0; 
+         symtab_iter < func->symTabNameVector().size();
+         symtab_iter++) {
+        allFunctionsByMangledName.find
+            (func->symTabNameVector()[symtab_iter], funcsByName);
+        if (funcsByName) {
+            for (unsigned fIdx=0; fIdx < funcsByName->size(); fIdx++) {
+                if (func == (*funcsByName)[fIdx]) {
+                    unsigned lastIdx = funcsByName->size() -1;
+                    if (fIdx != lastIdx) {
+                        (*funcsByName)[fIdx] = (*funcsByName)[lastIdx];
+                    }
+                    funcsByName->pop_back();
+                    if (funcsByName->size() == 0) {
+                        allFunctionsByMangledName.undef
+                            (func->symTabNameVector()[symtab_iter]);
+                    }
+                }
+            }
+        }
+    }  
+}
+
+// remove an element from range, these are always original bblInstance's
+void mapped_object::removeRange(codeRange *range) {
+    codeRange *foundrange = NULL;
+    codeRangesByAddr_.find(range->get_address(), foundrange);
+    if (range == foundrange) {
+        codeRangesByAddr_.remove(range->get_address());
+    }
+}
+
+bool mapped_object::isSystemLib(const std::string &objname)
+{
+   const char * fname = objname.c_str();
+   if (strstr(fname, "libdyninstAPI_RT"))
+      return true;
+
+#if defined(os_solaris)
+   // Solaris 2.8... we don't grab the initial func always,
+   // so fix up this code as well...
+   if (strstr(fname, "libthread"))
+      return true;
+#endif
+
+#if defined(os_linux)
+   if (strstr(fname, "libc.so"))
+      return true;
+   if (strstr(fname, "libpthread"))
+      return true;
+#endif
+
+#if defined(os_windows)
+   if (strstr(fname, "kernel32.dll"))
+      return true;
+   if (strstr(fname, "user32.dll"))
+      return true;
+   if (strstr(fname, "ntdll.dll"))
+      return true;
+   if (strstr(fname, "msvcrt") && strstr(fname, ".dll"))
+      return true;
+#endif
+
+   return false;
+}
+
+bool mapped_object::isExploratoryModeOn()
+{
+    return BPatch_exploratoryMode == analysisMode_ ||
+           BPatch_defensiveMode == analysisMode_;
 }
