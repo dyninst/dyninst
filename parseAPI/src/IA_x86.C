@@ -1028,7 +1028,7 @@ StackTamper IA_IAPI::tampersStack(ParseAPI::Function *,
 
 #if 0
 
-    using namespace SymbolicEvaluation;
+    using namespace DataflowAPI;
     if (TAMPER_UNSET != func->stackTamper()) {
         return func->stackTamper();
     }
