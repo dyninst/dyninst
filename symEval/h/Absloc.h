@@ -234,6 +234,7 @@ class AbsRegion {
   SYMEVAL_EXPORT const Absloc absloc() const { return absloc_; }
   SYMEVAL_EXPORT const Absloc::Type type() const { return type_; }
   SYMEVAL_EXPORT size_t size() const { return size_; }
+  SYMEVAL_EXPORT AST::Ptr generator() const { return generator_; }
 
  private:
   // Type is for "we're on the stack but we don't know where".
