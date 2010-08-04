@@ -29,55 +29,28 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "r_e_RelData.h"
-#include "Instruction.h"
-#include "debug.h"
+#if !defined(_R_T_FALLTHROUGHS_H_)
+#define _R_T_FALLTHROUGHS_H_
 
-using namespace Dyninst;
-using namespace Relocation;
-using namespace InstructionAPI;
+#include "r_t_Base.h"
 
-PCRelativeData::Ptr PCRelativeData::create(Instruction::Ptr insn,
-					   Address addr,
-					   Address target) {
-  assert(addr);
-  return Ptr(new PCRelativeData(insn, addr, target));
-}
+namespace Dyninst {
+namespace Relocation {
 
-bool PCRelativeData::generate(Block &, GenStack &gens) {
-  // We want to take the original instruction and emulate
-  // it at whatever our new address is. 
+class Fallthroughs : public Transformer {
+  public:
+    // Mimics typedefs in CodeMover.h, but I don't want
+    // to include that file.
+    typedef std::list<BlockPtr> BlockList;
+    //typedef std::map<Address, BlockList> BlockMap;
+    typedef std::map<bblInstance *, BlockPtr> BlockMap;
+    
+    virtual bool processBlock(BlockList::iterator &);
 
-  // Fortunately, we can reuse old code to handle the
-  // translation
+    Fallthroughs() {};
+    virtual ~Fallthroughs() {};
+  };
+};
+};
 
-  // Find the original target of the instruction 
-
-  relocation_cerr << "  Generating a PC-relative data access (" << insn_->format()
-		  << "," << std::hex << addr_ 
-		  <<"," << target_ << std::dec << ")" << endl;
-
-  RelDataPatch *newPatch = new RelDataPatch(insn_, target_);
-  gens.addPatch(newPatch);
-
-  return true;
-}
-
-string PCRelativeData::format() const {
-  stringstream ret;
-  ret << "PCRel(" << insn_->format() << ")";
-  return ret.str();
-}
-
-bool RelDataPatch::apply(codeGen &gen, int, int) {
-  instruction ugly_insn(orig_insn->ptr());
-  pcRelData pcr(target_addr, ugly_insn);
-  pcr.gen = &gen;
-  pcr.apply(gen.currAddr());
-  return true;
-}
-
-bool RelDataPatch::preapply(codeGen &) {
-  // Possible push/mov 64 -> reg / orig insn -> pop
-  return 2+10+7+2;
-}
+#endif

@@ -325,7 +325,10 @@ bool SpringboardBuilder::generateReplacements(std::list<codeGen> &springboards,
   addrSpace_->getRelocAddrs(r.from, relocAddrs);
   for (std::list<Address>::const_iterator iter = relocAddrs.begin();
        iter != relocAddrs.end(); ++iter) {
-
+    if (*iter == r.to) {
+      // Been here before
+      continue;
+    }
     assert(*iter != r.to);
 
     codeGen gen;

@@ -281,8 +281,8 @@ void CFElement::updateAddr(Address addr) {
 bool CFElement::generateBranch(GenStack &gens,
 			       TargetInt *to,
 			       Instruction::Ptr insn,
-			       bool fallthrough,
-			       Block &block) {
+			       bool,
+			       Block &) {
   assert(to);
 
   // We can put in an unconditional branch as an ender for 
@@ -302,7 +302,7 @@ bool CFElement::generateBranch(GenStack &gens,
 bool CFElement::generateCall(GenStack &gens,
 			     TargetInt *to,
 			     Instruction::Ptr insn,
-			     Block &block) {
+			     Block &) {
   if (!to) {
     // This can mean an inter-module branch...
     relocation_cerr << "    ... skipping call with no target!" << endl;
@@ -318,7 +318,7 @@ bool CFElement::generateCall(GenStack &gens,
 bool CFElement::generateConditionalBranch(GenStack &gens,
 					  TargetInt *to,
 					  Instruction::Ptr insn,
-					  Block &block) {
+					  Block &) {
   assert(to);
 
   CFPatch *newPatch = new CFPatch(CFPatch::JCC, insn, to, padded_, addr_);
@@ -390,8 +390,8 @@ bool CFElement::generateIndirect(GenStack &gens,
 bool CFElement::generateIndirectCall(GenStack &gens,
 				     Register,
 				     Instruction::Ptr insn,
-				     Address origAddr,
-				     Block &block) {
+				     Address /*origAddr*/,
+				     Block &) {
   // Check this to see if it's RIP-relative
   instruction ugly_insn(insn->ptr());
   if (ugly_insn.type() & REL_D_DATA) {
