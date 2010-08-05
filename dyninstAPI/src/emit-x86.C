@@ -1077,19 +1077,22 @@ void EmitterAMD64::emitRelOp(unsigned op, Register dest, Register src1, Register
     unsigned char jcc_opcode = jccOpcodeFromRelOp(op);
     GET_PTR(insn, gen);
     *insn++ = jcc_opcode;
-    codeBuf_t* disp = insn;
-    insn++;
-    codeBuf_t* after_jcc_insn = insn;
-    
+    SET_PTR(insn, gen);
+
+    codeBufIndex_t jcc_disp = gen.used();
+    gen.fill(1, codeGen::cgNOP);
+    codeBufIndex_t after_jcc = gen.used();
     // mov $1,  %dest
-    SET_PTR(insn, gen);
+
     emitMovImmToReg64(dest, 1, false, gen);
+    codeBufIndex_t after_mov = gen.used();
+
+    gen.setIndex(jcc_disp);
     REGET_PTR(insn, gen);
-
-    // write in the correct displacement
-    *disp = (insn - after_jcc_insn);
-
+    *insn = (char) codeGen::getDisplacement(after_jcc, after_mov);
     SET_PTR(insn, gen);
+
+    gen.setIndex(after_mov);
 }
 
 void EmitterAMD64::emitRelOpImm(unsigned op, Register dest, Register src1, RegValue src2imm,
@@ -1107,19 +1110,21 @@ void EmitterAMD64::emitRelOpImm(unsigned op, Register dest, Register src1, RegVa
     unsigned char opcode = jccOpcodeFromRelOp(op);
     GET_PTR(insn, gen);
     *insn++ = opcode;
-    codeBuf_t* disp = insn;
-    insn++;
-    codeBuf_t* after_jcc_insn = insn;
+    SET_PTR(insn, gen);
+    codeBufIndex_t jcc_disp = gen.used();
+    gen.fill(1, codeGen::cgNOP);
+    codeBufIndex_t after_jcc = gen.used();
 
     // mov $1,  %dest
-    SET_PTR(insn, gen);
     emitMovImmToReg64(dest, 1, false, gen);
-    REGET_PTR(insn, gen);
+    codeBufIndex_t after_mov = gen.used();
 
-    // write in the correct displacement
-    *disp = (insn - after_jcc_insn);
+    gen.setIndex(jcc_disp);
+    REGET_PTR(insn, gen);
+    *insn = (char) codeGen::getDisplacement(after_jcc, after_mov);
 
     SET_PTR(insn, gen);
+    gen.setIndex(after_mov);
 }
 
 void EmitterAMD64::emitDiv(Register dest, Register src1, Register src2, codeGen &gen)

@@ -29,29 +29,51 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#if !defined(_R_T_FALLTHROUGHS_H_)
-#define _R_T_FALLTHROUGHS_H_
+#if !defined (_R_E_AST_H_)
+#define _R_E_AST_H_
 
-#include "r_t_Base.h"
+#include "r_e_Base.h"
+
+class AstNode;
+typedef dyn_detail::boost::shared_ptr<AstNode> AstNodePtr;
 
 namespace Dyninst {
 namespace Relocation {
 
-class Fallthroughs : public Transformer {
-  public:
-    // Mimics typedefs in CodeMover.h, but I don't want
-    // to include that file.
-    typedef std::list<BlockPtr> BlockList;
-    //typedef std::map<Address, BlockList> BlockMap;
-    typedef std::map<bblInstance *, BlockPtr> BlockMap;
-    
-    virtual bool preprocess(BlockList &);
-    bool process(BlockList::iterator &, BlockPtr);
+class ASTElement : public Element {
+ public:
+  typedef dyn_detail::boost::shared_ptr<ASTElement> Ptr;
 
-    Fallthroughs() {};
-    virtual ~Fallthroughs() {};
-  };
+  static Ptr create(AstNodePtr, instPoint *);
+
+  ASTElement(AstNodePtr a, instPoint *p) : ast_(a), point_(p) {};
+
+  bool generate(Block &, GenStack &);
+  
+  virtual ~ASTElement() {};
+
+  virtual std::string format() const;
+
+ private:
+
+  AstNodePtr ast_;
+  // We need this for liveness
+  instPoint *point_;
+};
+
+struct AstPatch : public Patch {
+ AstPatch(AstNodePtr a, instPoint *b) : ast(a), point(b) {};
+  
+  virtual bool apply(codeGen &gen, int iteration, int shift);
+  virtual bool preapply(codeGen &gen);
+  virtual ~AstPatch();
+
+  AstNodePtr ast;
+  instPoint *point;
+};
+
+
+
 };
 };
-
 #endif

@@ -1537,6 +1537,7 @@ using namespace Dyninst;
 using namespace Relocation;
 
 bool AddressSpace::relocate() {
+  relocation_cerr << "ADDRSPACE::Relocate called!" << endl;
   bool ret = true;
   for (std::map<mapped_object *, FuncSet>::const_iterator iter = modifiedFunctions_.begin();
        iter != modifiedFunctions_.end(); ++iter) {
@@ -1618,6 +1619,8 @@ bool AddressSpace::transform(CodeMover::Ptr cm) {
   //cm->transform(m);
 
   // Insert whatever binary modifications are desired
+  // Right now needs to go before Instrumenters because we use
+  // instrumentation for function replacement.
   Modification mod(callReplacements_, functionReplacements_, callRemovals_);
   cm->transform(mod);
 

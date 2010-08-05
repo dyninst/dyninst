@@ -82,6 +82,7 @@ CodeMover::Ptr CodeMover::createFunc(FuncSet::const_iterator begin, FuncSet::con
   // A vector of Functions is just an extended vector of basic blocks...
   for (; begin != end; ++begin) {
     int_function *func = *begin;
+    relocation_cerr << "Adding function " << func->symTabName() << endl;
 
     count++;
 

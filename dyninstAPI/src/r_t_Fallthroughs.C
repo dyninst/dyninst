@@ -40,7 +40,18 @@ using namespace std;
 using namespace Dyninst;
 using namespace Relocation;
 
-bool Fallthroughs::processBlock(BlockList::iterator &iter) {
+bool Fallthroughs::preprocess(BlockList &blocks) {
+  if (blocks.begin() == blocks.end()) return true;
+  BlockList::iterator from = blocks.begin();
+  BlockList::iterator to = from; ++to;
+  while (to != blocks.end()) {
+    if (!process(from, *to)) return false;
+    ++from; ++to;
+  }
+  return true;
+}
+
+bool Fallthroughs::process(BlockList::iterator &iter, BlockPtr next) {
   // The logic is simple: 
   // For each target of the block
   //   If the target is indirect, skip
@@ -72,16 +83,14 @@ bool Fallthroughs::processBlock(BlockList::iterator &iter) {
 
     TargetInt *target = d_iter->second;
 
-    BlockList::iterator next = iter; ++next;
-
-    if (target->matches(*next)) {
+    if (target->matches(next)) {
       relocation_cerr << "\t " << d_iter->first << ": target " << target->format()
-		      << " and next block " << (*next)->id() << ", setting false" << endl;
+		      << " and next block " << next->id() << ", setting false" << endl;
       target->setNecessary(false);
     }
     else {
       relocation_cerr << "\t " << d_iter->first << ": target " << target->format()
-		      << " and next block " << (*next)->id() << ", setting true" << endl;
+		      << " and next block " << next->id() << ", setting true" << endl;
       target->setNecessary(true);
     }
   }

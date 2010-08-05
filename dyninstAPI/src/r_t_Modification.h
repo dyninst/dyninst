@@ -29,27 +29,50 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#if !defined(_R_T_FALLTHROUGHS_H_)
-#define _R_T_FALLTHROUGHS_H_
+#if !defined(_R_T_MODIFICATION_H_)
+#define _R_T_MODIFICATION_H_
 
 #include "r_t_Base.h"
+
+class int_function;
+class instPoint;
 
 namespace Dyninst {
 namespace Relocation {
 
-class Fallthroughs : public Transformer {
+class Modification : public Transformer {
   public:
     // Mimics typedefs in CodeMover.h, but I don't want
     // to include that file.
     typedef std::list<BlockPtr> BlockList;
     //typedef std::map<Address, BlockList> BlockMap;
     typedef std::map<bblInstance *, BlockPtr> BlockMap;
-    
-    virtual bool preprocess(BlockList &);
-    bool process(BlockList::iterator &, BlockPtr);
+    // These three mimic definitions in addressSpace.h
+    typedef std::map<instPoint *, int_function *> ext_CallReplaceMap;
+    typedef std::map<int_function *, int_function *> ext_FuncReplaceMap;
+    typedef std::set<instPoint *> ext_CallRemovalSet;
 
-    Fallthroughs() {};
-    virtual ~Fallthroughs() {};
+    typedef std::map<const bblInstance *, std::pair<int_function *, instPoint *> > CallReplaceMap;
+    typedef std::map<const bblInstance *, int_function *> FuncReplaceMap;
+    typedef std::set<const bblInstance *> CallRemovalSet;
+
+    virtual bool processBlock(BlockList::iterator &);
+
+    Modification(const ext_CallReplaceMap &callRepl,
+		 const ext_FuncReplaceMap &funcRepl,
+		 const ext_CallRemovalSet &callRem);
+
+    virtual ~Modification() {};
+
+  private:
+
+    void replaceCall(BlockPtr block, int_function *target, instPoint *cur);
+    void replaceFunction(BlockPtr block, int_function *target);
+    void removeCall(BlockPtr block);
+
+    CallReplaceMap callRep_;
+    FuncReplaceMap funcRep_;
+    CallRemovalSet callRem_;
   };
 };
 };

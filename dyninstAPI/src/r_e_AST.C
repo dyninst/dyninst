@@ -29,29 +29,44 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#if !defined(_R_T_FALLTHROUGHS_H_)
-#define _R_T_FALLTHROUGHS_H_
+#include "r_e_AST.h"
+#include "ast.h"
+#include "debug.h"
+#include "registerSpace.h"
 
-#include "r_t_Base.h"
+using namespace Dyninst;
+using namespace Relocation;
 
-namespace Dyninst {
-namespace Relocation {
+ASTElement::Ptr ASTElement::create(AstNodePtr a, instPoint *b) {
+  return Ptr(new ASTElement(a, b));
+}
 
-class Fallthroughs : public Transformer {
-  public:
-    // Mimics typedefs in CodeMover.h, but I don't want
-    // to include that file.
-    typedef std::list<BlockPtr> BlockList;
-    //typedef std::map<Address, BlockList> BlockMap;
-    typedef std::map<bblInstance *, BlockPtr> BlockMap;
-    
-    virtual bool preprocess(BlockList &);
-    bool process(BlockList::iterator &, BlockPtr);
+bool ASTElement::generate(Block &, GenStack &gens) {
+  AstPatch *patch = new AstPatch(ast_, point_);
+  gens.addPatch(patch);
+  return true;
+}
 
-    Fallthroughs() {};
-    virtual ~Fallthroughs() {};
-  };
-};
-};
+string ASTElement::format() const {
+  return "AST(*)";
+}
 
-#endif
+// Could be a lot smarter here...
+bool AstPatch::apply(codeGen &gen, int, int) {
+  relocation_cerr << "\t\t AstPatch::apply" << endl;
+  registerSpace *localRegSpace = registerSpace::actualRegSpace(point, callPreInsn);
+  gen.setRegisterSpace(localRegSpace);
+
+  return ast->generateCode(gen, true);
+}
+
+bool AstPatch::preapply(codeGen &gen) {
+  if (gen.startAddr() == (Address) -1) {
+    // baseTramps don't liiiiike this...
+    gen.setAddr(0);
+  }
+
+  return apply(gen, 0, 0);
+}
+
+AstPatch::~AstPatch() {}

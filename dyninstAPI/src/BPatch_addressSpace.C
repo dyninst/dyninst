@@ -769,15 +769,15 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
 
    if (BPatch::bpatch->isTypeChecked()) {
       if (expr.ast_wrapper->checkType() == BPatch::bpatch->type_Error) {
-         inst_printf("[%s:%u] - Type error inserting instrumentation\n",
-               FILE__, __LINE__);
+	fprintf(stderr, "[%s:%u] - Type error inserting instrumentation\n",
+		FILE__, __LINE__);
          expr.ast_wrapper->debugPrint();
          return false;
       }
    }
 
    if (!points.size()) {
-      inst_printf("%s[%d]:  request to insert snippet at zero points!\n", FILE__, __LINE__);
+     fprintf(stderr, "%s[%d]:  request to insert snippet at zero points!\n", FILE__, __LINE__);
       return false;
    }
 
@@ -800,7 +800,7 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
       callOrder ipOrder;
 
       if (!BPatchToInternalArgs(bppoint, when, order, ipWhen, ipOrder)) {
-         inst_printf("[%s:%u] - BPatchToInternalArgs failed for point %d\n",
+	fprintf(stderr, "[%s:%u] - BPatchToInternalArgs failed for point %d\n",
                FILE__, __LINE__, i);
          return NULL;
       }
@@ -814,9 +814,6 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
       if (mini) {
 	ret->mtHandles_.push_back(mini);
       }
-      else {
-	cerr << "Error: failed to insert instrumentation" << endl;
-      }
    }
 
    if (pendingInsertions == NULL) {
@@ -824,7 +821,6 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
      bool tmp;
      finalizeInsertionSet(false, &tmp);
    }   
-   
    return ret;
 }
 
