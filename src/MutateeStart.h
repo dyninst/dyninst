@@ -46,7 +46,7 @@ bool getMutateeParams(RunGroup *group, ParameterDict &params, std::string &exec_
                       std::vector<std::string> &args);
 char **getCParams(std::string executable, const std::vector<std::string> &args);
 
-void setMutateeDict(RunGroup *group, ParameterDict &params);
+//void setMutateeDict(RunGroup *group, ParameterDict &params);
 
 void registerMutatee(std::string mutatee_string);
 int getMutateePid(RunGroup *group);

@@ -165,6 +165,9 @@ static int given_mutator = -1;
 
 static bool in_runTests;
 
+static int port = 0;
+static string hostname;
+
 int parseArgs(int argc, char *argv[], ParameterDict &params)
 {
    //Parse args
@@ -220,6 +223,9 @@ void setupArgDictionary(ParameterDict &params)
       params["given_mutatee"] = new ParamString(given_mutatee.c_str());
       params["given_mutator"] = new ParamInt(given_mutator);
    }
+
+   params["port"] = new ParamInt(port);
+   params["hostname"] = new ParamString(hostname.c_str());
 }
 
 void setupGroupDictionary(ParameterDict &params)
@@ -242,7 +248,8 @@ static int handleArgs(int argc, char *argv[])
       in_runTests = true;
    }
    else {
-      assert(strstr(file_exec_name, "test_driver"));
+      assert(strstr(file_exec_name, "test_driver") || 
+             strstr(file_exec_name, "testdriver_be"));
       in_runTests = false;         
    }
 
@@ -332,12 +339,12 @@ static int handleArgs(int argc, char *argv[])
       }
       else if (strcmp(argv[i], "-all") == 0)
       {
-         setAllOn(COMPILERS || RUNMODES || COMPS || ABI || THRDMODE || PROCMODE || LINKMODE, false);
+         setAllOn(COMPILERS | RUNMODES | COMPS | ABI | THRDMODE | PROCMODE | LINKMODE, false);
       }
       else if (strcmp(argv[i], "-full") == 0)
       {
          //Like -all, but with full optimization levels
-         setAllOn(COMPILERS || OPTLEVELS || RUNMODES || COMPS || ABI || THRDMODE || PROCMODE || LINKMODE, false);
+         setAllOn(COMPILERS | OPTLEVELS | RUNMODES | COMPS | ABI | THRDMODE | PROCMODE | LINKMODE, false);
       }
       else if (strcmp(argv[i], "-allcomp") == 0)
       {
@@ -475,6 +482,23 @@ static int handleArgs(int argc, char *argv[])
       else if (strcmp(argv[i], "-no-header") == 0)
       {
          no_header = true;
+      }
+      else if ((strcmp(argv[i], "-port") == 0)) {
+         port = 0;
+         if ((i + 1) < argc) {
+            port = atoi(argv[++i]);
+         }
+         if (!port) {
+            fprintf(stderr, "-port requires an integer argument\n");
+            return NOTESTS;
+         }
+      }
+      else if ((strcmp(argv[i], "-hostname") == 0)) {
+         if ((i + 1) >= argc) {
+            fprintf(stderr, "-hostname requires an argument\n");
+            return NOTESTS;
+         }
+         hostname = argv[++i];
       }
       else if ((strcmp(argv[i], "-help") == 0) ||
                (strcmp(argv[i], "--help") == 0)) 
@@ -784,7 +808,7 @@ static void disableUnwantedTests(std::vector<RunGroup *> &groups)
    {
       if (groups[i]->disabled)
          continue;
-      if (!fileExists(groups[i]->mutatee)) {
+      if (groups[i]->mutatee && groups[i]->mutatee[0] && !fileExists(groups[i]->mutatee)) {
          groups[i]->disabled = true;
       }
    }
@@ -876,6 +900,7 @@ static void setIndexes(std::vector<RunGroup *> groups)
       groups[i]->index = i;
       for (unsigned j=0; j<groups[i]->tests.size(); j++) {
          groups[i]->tests[j]->index = j;
+         groups[i]->tests[j]->group_index = i;
       }
    }
 }   

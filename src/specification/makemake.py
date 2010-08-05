@@ -378,10 +378,14 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 			out.write('SingleProcess, ')
 		elif group['process_mode'] == 'MultiProcess':
 			out.write('MultiProcess, ')
-		if group['connection'] == 'true':
-			out.write('true, ')
-		elif group['connection'] == 'false':
-			out.write('false, ')
+
+		out.write(group['mutatorstart'])
+		out.write(', ')
+		out.write(group['mutateestart'])
+		out.write(', ')
+		out.write(group['mutateeruntime'])
+		out.write(', ')
+
                 if group['format'] == 'staticMutatee':
                         out.write('StaticLink, ')
                 else:
@@ -877,7 +881,7 @@ def accumulate_tests_by_mutatee(acc, g):
 
 def write_group_mutatee_boilerplate(filename_pre, filename_post, tuplefile):
    read_tuples(tuplefile)
-   groups = filter(lambda g: len(g['tests']) > 25, info['rungroups'])
+   groups = filter(lambda g: len(g['tests']) >= 2, info['rungroups'])
    tests_by_group = reduce(accumulate_tests_by_mutatee, groups, {})
    for mutatee, tests in tests_by_group.iteritems():
       write_group_mutatee_boilerplate_file(filename_pre + mutatee + filename_post, tests)

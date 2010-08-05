@@ -44,9 +44,12 @@ class Module {
    bool creation_error;
    bool initialized;
    bool setup_run;
-   static std::map<std::string, Module *> allmods;
+   bool remote;
+   static std::map<std::string, Module *> localmods;
+   static std::map<std::string, Module *> remotemods;
+   static std::map<std::string, Module *> &mods(bool remote) { return remote ? remotemods : localmods; }
 
-   Module(std::string name_);
+   Module(std::string name_, bool remote_);
    ComponentTester *loadModuleLibrary();
    void *libhandle;
 public:
@@ -60,7 +63,7 @@ public:
    TESTLIB_DLL_EXPORT bool setupRun();
    TESTLIB_DLL_EXPORT void setSetupRun(bool result);
 
-   TESTLIB_DLL_EXPORT static bool registerGroupInModule(std::string modname, RunGroup *group);
+   TESTLIB_DLL_EXPORT static bool registerGroupInModule(std::string modname, RunGroup *group, bool remote);
    TESTLIB_DLL_EXPORT static void getAllModules(std::vector<Module *> &mods);
 };
 

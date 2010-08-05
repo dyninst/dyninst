@@ -68,12 +68,22 @@
 #include "CmdLine.h"
 #include "module.h"
 #include "MutateeStart.h"
+#include "remotetest.h"
+
+using namespace std;
 
 int testsRun = 0;
 
 FILE *outlog = NULL;
 FILE *errlog = NULL;
 char *logfilename;
+
+int gargc;
+char **gargv;
+
+void initModuleIfNecessary(RunGroup *group, std::vector<RunGroup *> &groups, 
+                           ParameterDict &params);
+int LMONInvoke(RunGroup *, ParameterDict params, char *test_args[], char *daemon_args[], bool attach);
 
 int setupLogs(ParameterDict &params);
 
@@ -258,6 +268,29 @@ struct failureInfo
    bool wasCrash;
 };
 
+void setupRemoteTests(vector<RunGroup *> &groups)
+{
+   for (unsigned i=0; i < groups.size(); i++) {
+      if (groups[i]->disabled)
+         continue;
+      if (groups[i]->mutator_location == remote) {
+         groups[i]->modname = "remote::" + groups[i]->modname;
+      }
+   }
+}
+
+int setupRemoteMutator(RunGroup *group)
+{
+   int count = 0;
+   for (unsigned i=0; i<group->tests.size(); i++) {
+      if (group->tests[i]->disabled)
+         continue;
+      group->tests[i]->mutator = RemoteTestFE::createRemoteTestFE(group->tests[i], getConnection());
+      count++;
+   }
+   return count;
+}
+
 int numUnreportedTests(RunGroup *group)
 {
    int num_unreported = 0;
@@ -324,21 +357,29 @@ void tests_breakpoint()
   //Breakpoint here to get a binary with test libraries loaded.
 }
 
-void executeGroup(ComponentTester *tester, RunGroup *group, 
+void executeGroup(RunGroup *group,
+                  vector<RunGroup *> &groups,
                   ParameterDict param)
 {
+   setMutateeDict(group, param);
+
+   initModuleIfNecessary(group, groups, param);
+
    test_results_t result;
    // setupMutatorsForRunGroup creates TestMutator objects and
    // sets a pointer in the TestInfo object to point to the TestMutator for
    // each test.
-   int tests_found = setupMutatorsForRunGroup(group);
+   int tests_found;
+   if (group->mutator_location == remote)
+      tests_found = setupRemoteMutator(group);
+   else
+      tests_found = setupMutatorsForRunGroup(group);
+
    if (tests_found <= 0)
       return;
    tests_breakpoint();
 
    int groupnum = group->index;
-
-   setMutateeDict(group, param);
 
    ParameterDict::iterator pdi = param.find("given_mutatee");
    if (pdi != param.end())
@@ -351,6 +392,8 @@ void executeGroup(ComponentTester *tester, RunGroup *group,
       if (shouldRunTest(group, group->tests[i]))
          testsRun++;
    }
+
+   ComponentTester *tester = group->mod->tester;
 
    log_teststart(groupnum, 0, group_setup_rs);
    result = tester->group_setup(group, param);
@@ -414,13 +457,68 @@ void executeGroup(ComponentTester *tester, RunGroup *group,
    }
 }
 
+bool setupConnectionToRemote(RunGroup *group, ParameterDict &params)
+{
+
+   static Connection *con = NULL;
+   if (!con) {
+      con = new Connection();
+      setConnection(con);
+   }
+
+   //Setup connection
+   std::string hostname;
+   int port;
+   bool result = con->server_setup(hostname, port);
+   if (!result) {
+      fprintf(stderr, "Could not setup server socket\n");
+      return false;
+   }
+
+   //Mutatee params
+   string mutatee_exec;
+   vector<string> mutatee_args;
+   result = getMutateeParams(group, params, mutatee_exec, mutatee_args);
+   if (!result) {
+      fprintf(stderr, "Failed to collect mutatee params\n");
+   }
+   char **c_mutatee_args = getCParams(mutatee_exec, mutatee_args);
+
+   //driver params;
+   string driver_exec = "testdriver_be";
+   vector<string> driver_args;
+   char port_s[32];
+   snprintf(port_s, 32, "%d", port);
+   driver_args.push_back("-hostname");
+   driver_args.push_back(hostname);
+   driver_args.push_back("-port");
+   driver_args.push_back(port_s);
+   for (unsigned i=0; i<gargc; i++) {
+      driver_args.push_back(gargv[i]);
+   }
+   char **c_driver_args = getCParams(driver_exec, driver_args);
+
+   bool attach_mode = (group->createmode == USEATTACH);
+   int result_i = LMONInvoke(group, params, c_mutatee_args, c_driver_args, attach_mode);
+
+   result = con->server_accept();
+   if (!result) {
+      fprintf(stderr, "Failed to accept connection from client\n");
+      return false;
+   }
+}
+
 void initModuleIfNecessary(RunGroup *group, std::vector<RunGroup *> &groups, 
                            ParameterDict &params)
 {
    if (group->disabled)
       return;
 
-   Module::registerGroupInModule(group->modname, group);
+   bool is_remote = (group->mutator_location == remote);
+   if (is_remote)
+      setupConnectionToRemote(group, params);
+
+   Module::registerGroupInModule(group->modname, group, is_remote);
 
    bool initModule = false;
    for (unsigned j=0; j<group->tests.size(); j++)
@@ -449,7 +547,6 @@ void initModuleIfNecessary(RunGroup *group, std::vector<RunGroup *> &groups,
       }
    }
 }
-         
 
 void startAllTests(std::vector<RunGroup *> &groups, ParameterDict &param)
 {
@@ -473,6 +570,7 @@ void startAllTests(std::vector<RunGroup *> &groups, ParameterDict &param)
 	free(cwd);
 #endif
 
+   setupRemoteTests(groups);
 
    measureStart(param);
 
@@ -483,8 +581,6 @@ void startAllTests(std::vector<RunGroup *> &groups, ParameterDict &param)
       //If we fail then have the log resume us at this group
       log_resumepoint(i, 0);
 
-      initModuleIfNecessary(groups[i], groups, param);
-
       // Print mutatee (run group) header
       printLogMutateeHeader(groups[i]->mutatee, groups[i]->linktype);
 
@@ -492,7 +588,7 @@ void startAllTests(std::vector<RunGroup *> &groups, ParameterDict &param)
       if (!before_group)
          continue;
 
-      executeGroup(groups[i]->mod->tester, groups[i], param);
+      executeGroup(groups[i], groups, param);
       int after_group = numUnreportedTests(groups[i]);
    
       if (after_group) {
@@ -668,6 +764,9 @@ int main(int argc, char *argv[]) {
    int result = parseArgs(argc, argv, params);
    if (result)
       exit(result);
+
+   gargc = argc;
+   gargv = argv;
 
    if ( params["debugbreak"]->getInt() ) {
       DebugPause();

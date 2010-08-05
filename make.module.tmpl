@@ -11,7 +11,7 @@ M_GXX ?= $(GXX)
 DEPCC ?= $(GCC)
 DEPENDFLAGS ?= -MM -MT
 DEPENDDIR = ./depends
-VPATH 	= ../src $(DEPENDDIR)
+VPATH 	= ../src $(DEPENDDIR) ../src/dyninst
 
 IFLAGS += ../../../include
 #DYNINST_INCDIR = -I../../dyninstAPI/h
@@ -96,6 +96,7 @@ SRCS_LIBTESTSUITE = test_lib.C \
                     TestMutator.C \
                     TestOutputDriver.C \
                     StdOutputDriver.C \
+						  remotetest.C \
 						  module.C
 
 SRCS_LIBTESTLAUNCH = CmdLine.C \
@@ -131,8 +132,8 @@ SRCS_DYNINSTCOMP_LIB = dyninst/dyninst_comp.C \
                        dyninst/test_lib_test7.C \
                        dyninst/test_lib_test9.C
 OBJS_DYNINSTCOMP_LIB = $(notdir $(SRCS_DYNINSTCOMP_LIB:%.C=%.o))
-SRCS_DYNINSTTESTLIB = dyninst/libtestA.c \
-                      dyninst/libtestB.c \
+SRCS_DYNINSTTESTLIB = libtestA.c \
+                      libtestB.c \
                       dyninst/libTest12.c
 
 #                      dyninst/libInstMe.c \
@@ -357,7 +358,7 @@ endif
 
 testlibs: $(LIBTESTSUITE)
 
-drivers: test_driver runTests
+drivers: test_driver runTests testdriver_be
 
 .PHONY: clean install distclean mutators mutatees testlibs gnu_mutatees native_mutatees echo all
 
@@ -374,7 +375,7 @@ $(instruction_OBJS_ALL_MUTATORS): %.o : instruction/%.C $(DEPENDDIR)/%.dep
 $(proccontrol_OBJS_ALL_MUTATORS): %.o : proccontrol/%.C $(DEPENDDIR)/%.dep
 	$(CXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ -I../src/proccontrol ../src/proccontrol/$*.C
 
-$(DYNINST_TESTLIBS): %.so : dyninst/%.c $(DEPENDDIR)/%.dep
+$(DYNINST_TESTLIBS): %.so : %.c $(DEPENDDIR)/%.dep
 ifdef MAKE_SHARED_LIB
 	$(CC) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
 	$(MAKE_SHARED_LIB) $(TESTLIB_FLAGS) $*.o -o $@
@@ -382,12 +383,12 @@ else
 	$(CC) $(TESTLIB_FLAGS) -I../src/ $(filter %.c,$^) -o $@
 endif
 
-$(DYNINST_STATIC_TESTLIBS): %.a : dyninst/%.c $(DEPENDDIR)/%.dep
+$(DYNINST_STATIC_TESTLIBS): %.a : %.c $(DEPENDDIR)/%.dep
 	$(CC) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
 	$(AR) rcs $@ $*.o
 
 ifdef M_ABI
-$(DYNINST_TESTLIBS_ABI): %_$(M_ABI).so : dyninst/%.c $(DEPENDDIR)/%.dep
+$(DYNINST_TESTLIBS_ABI): %_$(M_ABI).so : %.c $(DEPENDDIR)/%.dep
 ifdef MAKE_SHARED_LIB
 	$(CC) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
 	$(MAKE_SHARED_LIB) $(TESTLIB_FLAGS) $*.o -o $@
@@ -399,7 +400,7 @@ ifdef cap_instruction_api
     INSNAPI_LINK = -linstructionAPI
 endif
 
-$(DYNINST_STATIC_TESTLIBS_ABI): %_$(M_ABI).a : dyninst/%.c $(DEPENDDIR)/%.dep
+$(DYNINST_STATIC_TESTLIBS_ABI): %_$(M_ABI).a : %.c $(DEPENDDIR)/%.dep
 	$(CC) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
 	$(AR) rcs $@ $*.o
 endif
@@ -536,11 +537,20 @@ runTests_static: runTests_static.o runTests-utils.o test_driver_templates.o
 test_driver.o: ../src/test_driver.C $(DEPENDDIR)/test_driver.dep
 	$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/test_driver.C
 
+test_driver_be.o: ../src/testdriver_be.C $(DEPENDDIR)/testdriver_be.dep
+	$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/testdriver_be.C
+
+dynlmon.o: ../src/dynlmon.C $(DEPENDDIR)/dynlmon.dep
+	$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/dynlmon.C
+
 test_driver_static.o: ../src/test_driver.C $(DEPENDDIR)/test_driver_static.dep
 	$(CXX) -c -o $@ -DSTATIC_TEST_DRIVER $(CXXFLAGS) $(MUTATEE_DEFS) ../src/test_driver.C
 
-test_driver: test_driver.o test_driver_templates.o $(DEPENDDIR)/test_driver.dep $(LIBTESTSUITE) $(LIBTESTLAUNCH)
-	$(CXX) -o $@ test_driver.o test_driver_templates.o test_info_new.gen.o -L. -ltestSuite $(MUTATOR_LDFLAGS) $(LIBS) $(TESTDRIVER_LDFLAGS) -lcommon -ltestlaunch
+test_driver: test_driver.o test_driver_templates.o dynlmon.o $(DEPENDDIR)/test_driver.dep $(LIBTESTSUITE) $(LIBTESTLAUNCH)
+	$(CXX) -o $@ test_driver.o test_driver_templates.o test_info_new.gen.o dynlmon.o -L. -ltestSuite $(MUTATOR_LDFLAGS) $(LIBS) $(TESTDRIVER_LDFLAGS) -lcommon -ltestlaunch
+
+testdriver_be: testdriver_be.o $(LIBTESTSUITE) $(LIBTESTLAUNCH)
+	$(CXX) -o $@ testdriver_be.o test_info_new.gen.o -L. -ltestSuite $(MUTATOR_LDFLAGS) $(LIBS) $(TESTDRIVER_LDFLAGS) -lcommon -ltestlaunch
 
 ######################################################################
 ### Output Drivers
@@ -567,6 +577,8 @@ output_drivers: $(OUTPUT_DRIVERS)
 #######################################################################
 
 DEPS_MUTATORS           += $(DEPENDDIR)/test_driver.dep
+DEPS_MUTATORS           += $(DEPENDDIR)/testdriver_be.dep
+DEPS_MUTATORS           += $(DEPENDDIR)/dynlmon.dep
 DEPS_MUTATORS           += $(DEPENDDIR)/runTests.dep $(DEPENDDIR)/runTests-utils.dep
 DEPS_SYMTAB_MUTATORS    += $(addprefix $(DEPENDDIR)/,$(symtab_OBJS_ALL_MUTATORS:%.o=%.dep))
 DEPS_DYNINST_MUTATORS    += $(addprefix $(DEPENDDIR)/,$(dyninst_OBJS_ALL_MUTATORS:%.o=%.dep))
@@ -680,7 +692,7 @@ $(DEPS_MUTATEES_NATIVE_CXX_OMP): $(DEPENDDIR)/test%.mutatee_$(NATIVE_CXX_OMP).de
 endif
 
 
-$(DEPS_DYNINST_TESTLIBS): $(DEPENDDIR)/lib%.dep : ../src/dyninst/lib%.c 
+$(DEPS_DYNINST_TESTLIBS): $(DEPENDDIR)/lib%.dep : lib%.c 
 	@mkdir -p $(DEPENDDIR)
 	$(DEPCC) $(CXXFLAGS) $< $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) lib$*.so > $@
 

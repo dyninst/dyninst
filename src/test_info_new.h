@@ -72,6 +72,18 @@ typedef enum {
     DynamicLink
 } test_linktype_t;
 
+typedef enum {
+   remote,
+   local,
+   not_run
+} run_location_t;
+
+typedef enum {
+   pre,
+   post,
+   no_launch
+} mutatee_runtime_t;
+
 class TestInfo {
 public:
   const char *name;
@@ -80,11 +92,11 @@ public:
   const char *label;
   TestMutator *mutator;
   bool serialize_enable;
-  // This test has been explicitly disabled, probably by the resumelog system
   bool disabled;
   bool limit_disabled;
   bool enabled;
   unsigned int index;
+  unsigned int group_index;
   
   test_results_t results[NUM_RUNSTATES];
   bool result_reported;
@@ -107,6 +119,9 @@ public:
   std::vector<TestInfo *> tests;
   bool disabled;
   bool connection;
+  run_location_t mutator_location;
+  run_location_t mutatee_location;
+  mutatee_runtime_t mutatee_runtime;
   Module *mod;
   std::string modname;
   test_threadstate_t threadmode;
@@ -119,7 +134,8 @@ public:
   TESTLIB_DLL_EXPORT RunGroup(const char *mutatee_name, start_state_t state_init,
                               create_mode_t attach_init, 
                               test_threadstate_t threads_, test_procstate_t procs_, 
-                              bool connection_,
+                              run_location_t mutator_location, run_location_t mutatee_location, 
+                              mutatee_runtime_t mutator_run_time,
                               test_linktype_t linktype_,
                               bool ex, TestInfo *test_init,
                               const char *modname_, const char *compiler_, const char *optlevel_, 
@@ -132,7 +148,8 @@ public:
   TESTLIB_DLL_EXPORT RunGroup(const char *mutatee_name, start_state_t state_init,
                               create_mode_t attach_init, 
                               test_threadstate_t threads_, test_procstate_t procs_, 
-                              bool connection_,
+                              run_location_t mutator_location_, run_location_t mutatee_location_,
+                              mutatee_runtime_t mutator_run_time_,
                               test_linktype_t linktype_,
                               bool ex, const char *modname_,
                               const char *compiler_, const char *optlevel_, 
