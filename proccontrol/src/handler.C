@@ -340,7 +340,7 @@ bool HandlePreExit::handleEvent(Event::ptr ev)
    pthrd_printf("Handling pre-exit for process %d on thread %d\n",
                 ev->getProcess()->llproc()->getPid(), 
                 ev->getThread()->llthrd()->getLWP());
-
+   ev->getProcess()->llproc()->setForceGeneratorBlock(false);
    return true;
 }
 

@@ -31,34 +31,46 @@
 
 #include "module.h"
 #include "test_info_new.h"
+#include "remotetest.h"
 
-Module::Module(std::string name_)
+Module::Module(std::string name_, bool remote_)
 {
    name = name_;
-   tester = loadModuleLibrary();
+   remote = remote_;
+   if (remote) {
+      tester = RemoteComponentFE::createRemoteComponentFE(name, getConnection());
+   }
+   else {
+      tester = loadModuleLibrary();
+   }
    creation_error = (tester == NULL);
    if (creation_error) {
-      allmods[name] = NULL;
+      mods(remote)[name] = NULL;
       return;
    }
-   allmods[name] = this;
+   mods(remote)[name] = this;
    initialized = true;
    setup_run = false;
 }
 
-bool Module::registerGroupInModule(std::string modname, RunGroup *group)
+bool Module::registerGroupInModule(std::string modname, RunGroup *group, bool remote)
 {
    assert(group);
    Module *mod = NULL;
-   if (allmods.count(modname)) {
-      mod = allmods[modname];
+   if (mods(remote).count(modname)) {
+      mod = mods(remote)[modname];
    }
    else {
-      mod = new Module(modname);
+      mod = new Module(modname, remote);
       if (mod->creation_error) {
          delete mod;
          mod = NULL;
       }
+   }
+
+   if (group->mod) {
+      assert(group->mod == mod);
+      return true;
    }
 
    group->mod = mod;
@@ -74,13 +86,10 @@ void Module::getAllModules(std::vector<Module *> &mods)
 {
    mods.clear();
    std::map<std::string, Module *>::iterator i;
-   for (i=allmods.begin(); i!=allmods.end(); i++)
-   {
-      if ((*i).second)
-      {
-         mods.push_back((*i).second);
-      }
-   }
+   for (i=localmods.begin(); i!=localmods.end(); i++)
+      if ((*i).second) mods.push_back((*i).second);
+   for (i=remotemods.begin(); i!=remotemods.end(); i++)
+      if ((*i).second) mods.push_back((*i).second);
 }
 
 bool Module::setupRun()
@@ -104,4 +113,5 @@ void Module::setInitialized(bool result)
 }
 
 
-std::map<std::string, Module *> Module::allmods;
+std::map<std::string, Module *> Module::remotemods;
+std::map<std::string, Module *> Module::localmods;

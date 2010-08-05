@@ -759,6 +759,7 @@ bool int_process::terminate(bool &needs_sync)
    pthrd_printf("Terminate requested on process %d\n", getPid());
    bool had_error = true;
    ProcPool()->condvar()->lock();
+   markForceTerminating();
    bool result = plat_terminate(needs_sync);
    if (!result) {
       pthrd_printf("plat_terminate failed on %d\n", getPid());
@@ -801,6 +802,7 @@ int_process::int_process(Dyninst::PID pid_, int_process *p) :
    crashSignal(p->crashSignal),
    hasExitCode(p->hasExitCode),
    forceGenerator(false),
+   forceTerminating(false),
    exitCode(p->exitCode),
    exec_mem_cache(exec_mem_cache)
 {
@@ -981,6 +983,16 @@ bool int_process::forceGeneratorBlock() const
 void int_process::setForceGeneratorBlock(bool b)
 {
    forceGenerator = b;
+}
+
+bool int_process::isForceTerminating() const
+{
+   return forceTerminating;
+}
+
+void int_process::markForceTerminating() 
+{
+   forceTerminating = true;
 }
 
 Event::ptr int_process::removeProcStopper()

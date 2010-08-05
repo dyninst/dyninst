@@ -29,25 +29,57 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#if !defined(component_tester_h)
-#define component_tester_h
-
-#include "test_results.h"
 #include "ParameterDict.h"
+#include "MutateeStart.h"
+#include "CmdLine.h"
 #include "test_info_new.h"
+#include "test_lib.h"
+#include "remotetest.h"
+
 #include <vector>
+#include <string>
 
-class ComponentTester {
- public:
-   virtual test_results_t program_setup(ParameterDict &params) = 0;
-   virtual test_results_t program_teardown(ParameterDict &params) = 0;
-   virtual test_results_t group_setup(RunGroup *group, ParameterDict &params) = 0;
-   virtual test_results_t group_teardown(RunGroup *group, ParameterDict &params) = 0;
-   virtual test_results_t test_setup(TestInfo *test, ParameterDict &params) = 0;
-   virtual test_results_t test_teardown(TestInfo *test, ParameterDict &params) = 0;
-   virtual std::string getLastErrorMsg() = 0;
-   virtual ~ComponentTester() { };
-};
+using namespace std;
 
-#endif
+int main(int argc, char *argv[])
+{
+   ParameterDict params;
+   vector<RunGroup *> groups;
 
+   static volatile int spin = 1;
+   fprintf(stderr, "testdriver_be running as %d\n", getpid());
+   while (!spin)
+   {
+      sleep(1);
+   }
+   
+   parseArgs(argc, argv, params);
+   getGroupList(groups, params);
+
+   int port = params["port"]->getInt();
+   string hostname = params["hostname"]->getString();
+
+   if (port == 0 || !hostname.length()) {
+      fprintf(stderr, "[%s:%u] - No connection info.  port = %d, hostname = %s\n",
+              __FILE__, __LINE__, port, hostname.c_str());
+      return -1;
+   }
+
+   Connection connection(hostname, port);
+   if (connection.hasError()) {
+      fprintf(stderr, "[%s:%u] - Error connecting to FE\n",
+              __FILE__, __LINE__);
+      return -1;
+   }
+
+   RemoteBE remotebe(groups, &connection);
+   for (;;) {
+      char *buffer = NULL;
+      bool result = connection.recv_message(buffer);
+      if (!result) {
+         //FE hangup.
+         return 0;
+      }
+      remotebe.dispatch(buffer);
+   }
+}

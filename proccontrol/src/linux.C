@@ -325,7 +325,12 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
       thread->setGeneratorState(int_thread::exited);
    }
    else if (WIFEXITED(status) || WIFSIGNALED(status)) {
-      if (WIFEXITED(status)) {
+      if (proc->isForceTerminating()) {
+         pthrd_printf("Decoded event to exit for terminate on %d/%d\n",
+                      proc->getPid(), thread->getLWP());
+         event = Event::ptr(new EventExit(EventType::Post, 0));
+      }
+      else if (WIFEXITED(status)) {
          int exitcode = WEXITSTATUS(status);
          pthrd_printf("Decoded event to exit of process %d/%d with code %d\n",
                       proc->getPid(), thread->getLWP(), exitcode);

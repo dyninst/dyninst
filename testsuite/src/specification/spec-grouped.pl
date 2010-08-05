@@ -37,7 +37,8 @@
                   restricted_abi_for_arch/3, insane/2, module/1,
                   compiler_static_link/3, compiler_dynamic_link/3,
                   compiler_platform_abi/3, tests_module/2, mutator_requires_libs/2, 
-                  test_exclude_compiler/2, mutatee_needs_connection/1]).
+                  test_exclude_compiler/2, remote_platform/1, remote_runmode_mutator/2,
+                  remote_runmode_mutatee/2, mutatee_launchtime/2, runmode_launch_params/5]).
 
 %%%%%%%%%%
 %
@@ -2182,7 +2183,7 @@ test_description('test_lookup_func', 'Lookup a single function with SymtabAPI').
 test_runs_everywhere('test_lookup_func').
 groupable_test('test_lookup_func').
 mutator('test_lookup_func', ['test_lookup_func.C']).
-test_runmode('test_lookup_func', 'createProcess').
+test_runmode('test_lookup_func', 'disk').
 test_start_state('test_lookup_func', 'stopped').
 tests_module('test_lookup_func', 'symtab').
 % test_serializable('test_lookup_func').
@@ -2192,7 +2193,7 @@ test_description('test_lookup_var', 'Lookup a single variable with SymtabAPI').
 test_runs_everywhere('test_lookup_var').
 groupable_test('test_lookup_var').
 mutator('test_lookup_var', ['test_lookup_var.C']).
-test_runmode('test_lookup_var', 'createProcess').
+test_runmode('test_lookup_var', 'disk').
 test_start_state('test_lookup_var', 'stopped').
 tests_module('test_lookup_var', 'symtab').
 % test_serializable('test_lookup_var').
@@ -2202,7 +2203,7 @@ test_description('test_line_info', 'SymtabAPI Line Information').
 test_runs_everywhere('test_line_info').
 groupable_test('test_line_info').
 mutator('test_line_info', ['test_line_info.C']).
-test_runmode('test_line_info', 'createProcess').
+test_runmode('test_line_info', 'disk').
 test_start_state('test_line_info', 'stopped').
 tests_module('test_line_info', 'symtab').
 % test_serializable('test_line_info').
@@ -2212,7 +2213,7 @@ test_description('test_module', 'SymtabAPI Module detection & management').
 test_runs_everywhere('test_module').
 groupable_test('test_module').
 mutator('test_module', ['test_module.C']).
-test_runmode('test_module', 'createProcess').
+test_runmode('test_module', 'disk').
 test_start_state('test_module', 'stopped').
 tests_module('test_module', 'symtab').
 % test_serializable('test_module').
@@ -2224,7 +2225,7 @@ test_platform('test_relocations', Platform) :-
     member(OS, ['linux']).
 groupable_test('test_relocations').
 mutator('test_relocations', ['test_relocations.C']).
-test_runmode('test_relocations', 'createProcess').
+test_runmode('test_relocations', 'disk').
 test_start_state('test_relocations', 'stopped').
 tests_module('test_relocations', 'symtab').
 mutatee_requires_libs('symtab_group_test', ['testA']).
@@ -2235,7 +2236,7 @@ test_description('test_type_info', 'SymtabAPI Type Information').
 test_runs_everywhere('test_type_info').
 groupable_test('test_type_info').
 mutator('test_type_info', ['test_type_info.C']).
-test_runmode('test_type_info', 'createProcess').
+test_runmode('test_type_info', 'disk').
 test_start_state('test_type_info', 'stopped').
 tests_module('test_type_info', 'symtab').
 % test_serializable('test_type_info').
@@ -2245,7 +2246,7 @@ test_description('test_symtab_ser_funcs', 'Base SymtabAPI seialization function 
 test_runs_everywhere('test_symtab_ser_funcs').
 groupable_test('test_symtab_ser_funcs').
 mutator('test_symtab_ser_funcs', ['test_symtab_ser_funcs.C']).
-test_runmode('test_symtab_ser_funcs', 'createProcess').
+test_runmode('test_symtab_ser_funcs', 'disk').
 test_start_state('test_symtab_ser_funcs', 'stopped').
 tests_module('test_symtab_ser_funcs', 'symtab').
 
@@ -2254,7 +2255,7 @@ test_description('test_ser_anno', 'Base SymtabAPI seialization function sanity c
 test_runs_everywhere('test_ser_anno').
 groupable_test('test_ser_anno').
 mutator('test_ser_anno', ['test_ser_anno.C']).
-test_runmode('test_ser_anno', 'createProcess').
+test_runmode('test_ser_anno', 'disk').
 test_start_state('test_ser_anno', 'stopped').
 tests_module('test_ser_anno', 'symtab').
 
@@ -2264,7 +2265,7 @@ test_description('test_anno_basic_types', 'Annotate objects with basic types').
 test_runs_everywhere('test_anno_basic_types').
 groupable_test('test_anno_basic_types').
 mutator('test_anno_basic_types', ['test_anno_basic_types.C']).
-test_runmode('test_anno_basic_types', 'createProcess').
+test_runmode('test_anno_basic_types', 'disk').
 test_start_state('test_anno_basic_types', 'stopped').
 tests_module('test_anno_basic_types', 'symtab').
 
@@ -2272,7 +2273,7 @@ test('test_exception', 'test_exception', 'test_exception').
 test_description('test_exception', 'SymtabAPI C++ Exception detection and sanity checks').
 groupable_test('test_exception').
 mutator('test_exception', ['test_exception.C']).
-test_runmode('test_exception', 'createProcess').
+test_runmode('test_exception', 'disk').
 % test_serializable('test_exception').
 test_start_state('test_exception', 'stopped').
 tests_module('test_exception', 'symtab').
@@ -2291,7 +2292,7 @@ test_platform('test_instruction_read_write', Platform) :-
         platform('i386', _, _, Platform);
         platform('x86_64', _, _, Platform).
 mutator('test_instruction_read_write', ['test_instruction_read_write.C']).
-test_runmode('test_instruction_read_write', 'createProcess').
+test_runmode('test_instruction_read_write', 'disk').
 test_start_state('test_instruction_read_write', 'stopped').
 tests_module('test_instruction_read_write', 'instruction').
 
@@ -2302,7 +2303,7 @@ test_platform('test_instruction_farcall', Platform) :-
         platform('i386', _, _, Platform);
         platform('x86_64', _, _, Platform).
 mutator('test_instruction_farcall', ['test_instruction_farcall.C']).
-test_runmode('test_instruction_farcall', 'createProcess').
+test_runmode('test_instruction_farcall', 'disk').
 test_start_state('test_instruction_farcall', 'stopped').
 tests_module('test_instruction_farcall', 'instruction').
 
@@ -2313,7 +2314,7 @@ test_platform('test_instruction_bind_eval', Platform) :-
         platform('i386', _, _, Platform);
         platform('x86_64', _, _, Platform).
 mutator('test_instruction_bind_eval', ['test_instruction_bind_eval.C']).
-test_runmode('test_instruction_bind_eval', 'createProcess').
+test_runmode('test_instruction_bind_eval', 'disk').
 test_start_state('test_instruction_bind_eval', 'stopped').
 tests_module('test_instruction_bind_eval', 'instruction').
 
@@ -2324,7 +2325,7 @@ test_platform('test_instruction_profile', Platform) :-
         platform('i386', OS, _, Platform), OS \= 'windows';
         platform('x86_64', OS, _, Platform), OS \= 'windows'.
 mutator('test_instruction_profile', ['test_instruction_profile.C']).
-test_runmode('test_instruction_profile', 'createProcess').
+test_runmode('test_instruction_profile', 'disk').
 test_start_state('test_instruction_profile', 'stopped').
 tests_module('test_instruction_profile', 'instruction').
 mutator_requires_libs('test_instruction_profile', ['symtabAPI', 'dyninstAPI']).
@@ -2338,7 +2339,7 @@ test_platform('power_decode', Platform) :-
         platform('powerpc', _, _, Platform);
         platform('x86_64', _, _, Platform).
 mutator('power_decode', ['power_decode.C']).
-test_runmode('power_decode', 'createProcess').
+test_runmode('power_decode', 'disk').
 test_start_state('power_decode', 'stopped').
 tests_module('power_decode', 'instruction').
 
@@ -2351,7 +2352,7 @@ test_platform('power_cft', Platform) :-
         platform('powerpc', _, _, Platform);
         platform('x86_64', _, _, Platform).
 mutator('power_cft', ['power_cft.C']).
-test_runmode('power_cft', 'createProcess').
+test_runmode('power_cft', 'disk').
 test_start_state('power_cft', 'stopped').
 tests_module('power_cft', 'instruction').
 
@@ -2372,11 +2373,6 @@ compiler_for_mutatee(Mutatee, Compiler) :-
     tests_module(T, 'proccontrol'),
     member(Compiler, ['gcc', 'g++']).
 
-mutatee_needs_connection(Mutatee) :- 
-   mutatee(Mutatee, _, _),
-   test(Test, Mutatee, _),
-   tests_module(Test, 'proccontrol').
-   
 test('pc_launch', 'pc_launch', 'pc_launch').
 test_description('pc_launch', 'Launch a process').
 test_platform('pc_launch', Platform) :- pcPlatforms(Platform).
@@ -2531,6 +2527,7 @@ platform('ia64', 'linux', 'linux2.4', 'ia64-unknown-linux2.4').
 platform('x86_64', 'linux', 'linux2.4', 'x86_64-unknown-linux2.4').
 platform('power', 'linux', 'linux2.6', 'ppc64_linux').
 platform('power', 'linux', 'linux2.6', 'ppc32_linux').
+platform('x86_64', 'linux', 'cnl', 'x86_64_cnl').
 
 % Platform Defns
 % platform/1
@@ -2566,6 +2563,7 @@ format_runmode(_, 'binary', 'staticMutatee').
 format_runmode(_, 'binary', 'dynamicMutatee').
 format_runmode(_, 'createProcess', 'dynamicMutatee').
 format_runmode(_, 'useAttach', 'dynamicMutatee').
+format_runmode(_, 'disk', 'dynamicMutatee').
 
 % Platform ABI support
 % Testing out how this looks with whitelist clauses
@@ -2586,6 +2584,47 @@ platform_abi('ia64-unknown-linux2.4', 64).
 platform_abi('x86_64-unknown-linux2.4', 64).
 platform_abi('ppc64_linux', 64).
 platform_abi('rs6000-ibm-aix64-5.2', 64).
+platform_abi('x86_64_cnl', 64).
+
+runmode_launch_params(Runmode, Platform, Mutator, Mutatee, Launchtime) :-
+   runmode(Runmode),
+   remote_runmode_mutator(Runmode, Rmutator),
+   (
+       \+ remote_platform(Platform) -> Mutator = 'local';
+       remote_platform(Platform) -> Mutator = Rmutator
+   ),
+   remote_runmode_mutatee(Runmode, Rmutatee),
+   (
+       \+ remote_platform(Platform) -> Mutatee = 'local';
+       remote_platform(Platform) -> Mutatee = Rmutatee
+   ),
+   mutatee_launchtime(Runmode, Launchtime).
+
+% Matt TODO: Fix this to be CrayXT and BlueGene/P--leaving all platforms on for testing only
+remote_platform(P) :- 
+   platform(_, OS, _, P),
+   member(OS, ['linux']).
+
+% Mutator and mutatee run remotely, test will launch mutatee
+remote_runmode_mutator('createProcess', 'remote').
+remote_runmode_mutatee('createProcess', 'remote').
+mutatee_launchtime('createProcess', 'no_launch').
+
+% Mutator and mutatee run remotely, launch mutatee before mutator runs
+remote_runmode_mutator('useAttach', 'remote').
+remote_runmode_mutatee('useAttach', 'remote').
+mutatee_launchtime('useAttach', 'pre').
+
+% Mutator runs locally, mutatee runs on BE.  Launch mutatee after test.
+remote_runmode_mutator('binary', 'local').
+remote_runmode_mutatee('binary', 'remote').
+mutatee_launchtime('binary', 'post').
+
+% Mutator runs locally, no mutatee.
+remote_runmode_mutator('disk', 'local').
+remote_runmode_mutatee('disk', 'not_run').
+mutatee_launchtime('disk', 'no_launch').
+
 
 % restricted_abi_for_arch(Test, Arch, ABI)
 % Limits the test Test to only running with mutatees compiled to ABI on the
@@ -3153,6 +3192,7 @@ test_processmode(Test, 'None') :- tests_module(Test, Module),
 runmode('createProcess').
 runmode('useAttach').
 runmode('binary').
+runmode('disk').
 
 % runmode('deserialize').
 
@@ -3182,6 +3222,8 @@ runmode_platform(P, 'useAttach') :- platform(_, _, _, P).
 runmode_platform(P, 'binary') :- platform('i386', 'linux', _, P).
 runmode_platform(P, 'binary') :- platform('x86_64', 'linux', _, P).
 runmode_platform(P, 'binary') :- platform('power', 'linux', _, P).
+runmode_platform(P, 'disk') :- platform(_, _, _, P).
+
 % runmode_platform(P, 'deserialize') :- platform(_, _, _, P).
 
 % mutatee_peers/2

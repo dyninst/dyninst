@@ -247,7 +247,8 @@ test_tuple(Name, Mutator, Mutatee, Platform, Groupable, Module) :-
 
 % Provide tuples for run groups
 rungroup_tuple(Mutatee, Compiler, Optimization, RunMode, StartState,
-               Groupable, Tests, Platform, ABI, ThreadMode, ProcessMode, Format, Connection) :-
+              Groupable, Tests, Platform, ABI, ThreadMode, ProcessMode, Format,
+              MutatorStart, MutateeStart, MutateeLaunchtime) :-
     mutatee(Mutatee, _, _),
     compiler_for_mutatee(Mutatee, Compiler),
     compiler_platform(Compiler, Platform),
@@ -256,10 +257,6 @@ rungroup_tuple(Mutatee, Compiler, Optimization, RunMode, StartState,
             compiler_opt_trans(Compiler, Optimization, _);
         (optimization_for_mutatee(Mutatee, Compiler, Optimization),
          compiler_opt_trans(Compiler, Optimization, _))
-    ),
-    (
-        (mutatee_needs_connection(Mutatee), Connection = true);
-        (\+ mutatee_needs_connection(Mutatee), Connection = false)
     ),
     platform_abi(Platform, ABI),
     compiler_platform_abi(Compiler, Platform, ABI),
@@ -270,6 +267,7 @@ rungroup_tuple(Mutatee, Compiler, Optimization, RunMode, StartState,
     mutatee_format(Mutatee, Format),
     % Enumerate / verify values for run-time options
     runmode(RunMode),
+    runmode_launch_params(RunMode, Platform, MutatorStart, MutateeStart, MutateeLaunchtime),
     threadmode(ThreadMode),
     processmode(ProcessMode),
     member(StartState, ['stopped', 'running', 'selfstart', 'selfattach']),
@@ -369,8 +367,8 @@ write_tuples(Filename, Platform) :-
             Tests),
     write_term(Stream, Tests, [quoted(true)]),
     write(Stream, '\n'),
-    findall([M, C, O, R, S, G, T, A, H, P, F, Con],
-            rungroup_tuple(M, C, O, R, S, G, T, Platform, A, H, P, F, Con),
+    findall([M, C, O, R, S, G, T, A, H, P, F, Smr, Sme, Mrt],
+            rungroup_tuple(M, C, O, R, S, G, T, Platform, A, H, P, F, Smr, Sme, Mrt),
             RunGroups),
     write_term(Stream, RunGroups, [quoted(true)]),
     write(Stream, '\n'),

@@ -162,6 +162,8 @@ class int_process
 
    bool forceGeneratorBlock() const;
    void setForceGeneratorBlock(bool b);
+   bool isForceTerminating() const;
+   void markForceTerminating();
 
    std::string getExecutable() const;
    static bool isInCallback();
@@ -181,6 +183,7 @@ class int_process
    int crashSignal;
    bool hasExitCode;
    bool forceGenerator;
+   bool forceTerminating;
    int exitCode;
    static bool in_callback;
    mem_state::ptr mem;
