@@ -226,6 +226,7 @@ enum entryID {
   e_fucomp,
   e_fucomi,
   e_fucomip,
+  e_fucompp,
   e_fxch,
   e_fxrstor,
   e_fxsave,
