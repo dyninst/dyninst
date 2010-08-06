@@ -39,7 +39,7 @@
 #include "instPoint.h"
 #include "baseTramp.h"
 #include "Relocation/Atoms/Instrumentation.h"
-#include "Relocation/Atoms/ControlFlow.h"
+#include "Relocation/Atoms/CFAtom.h"
 
 using namespace std;
 using namespace Dyninst;
