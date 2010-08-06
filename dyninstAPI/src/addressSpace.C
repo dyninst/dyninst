@@ -50,10 +50,10 @@
 #include "parseAPI/src/InstrucIter.h"
 #endif //defined(cap_instruction_api)
 
-#include "r_CodeMover.h"
-#include "r_Springboard.h"
-#include "r_t_Include.h"
-#include "r_AddressMapper.h"
+#include "Relocation/CodeMover.h"
+#include "Relocation/Springboard.h"
+#include "Relocation/Transformers/Include.h"
+#include "Relocation/AddressMapper.h"
 
 // Implementations of non-virtual functions in the address space
 // class.
@@ -1604,7 +1604,7 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
 
 bool AddressSpace::transform(CodeMover::Ptr cm) {
   // Ensure each block ends with an appropriate CFElement
-  CFElementCreator c;
+  CFAtomCreator c;
   cm->transform(c);
 
   //cerr << "Applying PCSens transformer" << endl;

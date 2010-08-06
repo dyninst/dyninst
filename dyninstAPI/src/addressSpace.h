@@ -42,8 +42,8 @@
 #include <list>
 
 #include "parseAPI/h/InstructionSource.h"
-#include "r_Relocation.h"
-#include "r_AddressMapper.h"
+#include "Relocation/Relocation.h"
+#include "Relocation/AddressMapper.h"
 
 class codeRange;
 class multiTramp;
