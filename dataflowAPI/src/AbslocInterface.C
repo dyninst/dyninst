@@ -385,6 +385,7 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
 
     std::vector<AbsRegion> pcRegion;
     pcRegion.push_back(Absloc::makePC(func->isrc()->getArch()));
+    Absloc sp = Absloc::makeSP(func->isrc()->getArch());
     
     handlePushEquivalent(I, addr, func, pcRegion, assignments);
 
@@ -401,8 +402,16 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
 
     Assignment::Ptr a = Assignment::Ptr(new Assignment(I, addr, func, pcRegion[0]));
     if (!used.empty()) {
-      // Indirect call
-      a->addInputs(used);
+        for(std::vector<AbsRegion>::const_iterator u = used.begin();
+            u != used.end();
+            ++u)
+        {
+            if(!(u->contains(pcRegion[0])) &&
+                 !(u->contains(sp)))
+            {
+                a->addInput(*u);
+            }
+        }
     }
     else {
       a->addInputs(pcRegion);
