@@ -205,13 +205,14 @@ $(coreSubdirs_explicitInstall): install_%: %
 # dependencies -- keep parallel make from building out of order
 symtabAPI igen: common
 stackwalk: symtabAPI dynutil
-dyninstAPI: symtabAPI instructionAPI
+dyninstAPI: symtabAPI instructionAPI parseAPI
 symtabAPI dyninstAPI: dynutil
 dyner codeCoverage dyninstAPI/tests testsuite: dyninstAPI
 testsuite: $(coreSubdirs_explicitInstall)
 testsuite: parseThat
 parseThat: $(coreSubdirs_explicitInstall)
 proccontrol: common dynutil
+parseAPI: symtabAPI instructionAPI
 #depGraphAPI: instructionAPI $(coreSubdirs_explicitInstall)
 # depGraphAPI: instructionAPI dyninstAPI
 

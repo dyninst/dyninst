@@ -598,6 +598,33 @@ void insnCodeGen::loadPartialImmIntoReg(codeGen &gen, Register rt, long value)
 #endif
 }
 
+int insnCodeGen::createStackFrame(codeGen &gen, int numRegs, pdvector<Register>& freeReg){
+              int gpr_off, fpr_off, ctr_off, stack_size;
+                //create new stack frame
+                gpr_off = TRAMP_GPR_OFFSET_32;
+                fpr_off = TRAMP_FPR_OFFSET_32;
+                ctr_off = STK_CTR_32;
+                pushStack(gen);
+                // Save GPRs
+                stack_size = saveGPRegisters(gen, gen.rs(), gpr_off, numRegs);
+		assert (stack_size == numRegs);
+		pdvector<Register> excludeReg;
+	        excludeReg.clear();	
+		for (int i = 0; i < numRegs; i++){
+			Register scratchReg = gen.rs()->getScratchRegister(gen, excludeReg, true);
+			assert (scratchReg != REG_NULL);
+			freeReg.push_back(scratchReg);
+			excludeReg.push_back(scratchReg);
+		}
+		return freeReg.size();
+}
+
+void insnCodeGen::removeStackFrame(codeGen &gen) {
+                int gpr_off = TRAMP_GPR_OFFSET_32;
+                restoreGPRegisters(gen, gen.rs(), gpr_off);
+                popStack(gen);
+}
+
 bool insnCodeGen::generate(codeGen &gen,
                            instruction &insn,
                            AddressSpace * /*proc*/,
@@ -627,53 +654,55 @@ bool insnCodeGen::generate(codeGen &gen,
 	registerSpace *rs = registerSpace::actualRegSpace(point,
 							callPreInsn);
 	gen.setRegisterSpace(rs);
+	
+	int stackSize = 0;
+	pdvector<Register> freeReg;
 
 	if(gen.addrSpace()->proc()){
 	        Address origRet = origAddr + 4;
         	Register scratch = gen.rs()->getScratchRegister(gen, true);
-	        assert(scratch != REG_NULL);
+		if (scratch == REG_NULL) {
+	      	 	stackSize = createStackFrame(gen, 1, freeReg);
+			assert(stackSize == 1);
+		 	scratch = freeReg[0];
+	      	}
 	        insnCodeGen::loadImmIntoReg(gen, scratch, origRet);
 	        insnCodeGen::generateMoveToLR(gen, scratch);
 	} else {
-	      Register scratchPCReg = gen.rs()->getScratchRegister(gen, true);
-      	      pdvector<Register> excludeReg;
-	      excludeReg.push_back(scratchPCReg);
-	      Register scratchReg = gen.rs()->getScratchRegister(gen, excludeReg, true);
-              Address newRelocAddr = relocAddr;
-	      bool newStackFrame = false;
-	      int stack_size = 0;
-	      int gpr_off, fpr_off, ctr_off;
-      	      if ((scratchPCReg == REG_NULL) || (scratchReg == REG_NULL)) {
-                newStackFrame = true;
-                //create new stack frame
-                gpr_off = TRAMP_GPR_OFFSET_32;
-                fpr_off = TRAMP_FPR_OFFSET_32;
-                ctr_off = STK_CTR_32;
-                pushStack(gen);
-                // Save GPRs
-                stack_size = saveGPRegisters(gen, gen.rs(), gpr_off, 2);
+	      	Register scratchPCReg = gen.rs()->getScratchRegister(gen, true);
+      	      	pdvector<Register> excludeReg;
+	      	excludeReg.push_back(scratchPCReg);
+	      	Register scratchReg = gen.rs()->getScratchRegister(gen, excludeReg, true);
+      	      	if ((scratchPCReg == REG_NULL) && (scratchReg == REG_NULL)) {
+	      		stackSize = createStackFrame(gen, 2, freeReg);
+			assert(stackSize == 2);
+		 	scratchPCReg = freeReg[0];
+		  	scratchReg = freeReg[1]; 
 
-                scratchPCReg = gen.rs()->getScratchRegister(gen, true);
-                assert(scratchPCReg != REG_NULL);
-                excludeReg.clear();
-                excludeReg.push_back(scratchPCReg);
-                scratchReg = gen.rs()->getScratchRegister(gen, excludeReg, true);
-                assert(scratchReg != REG_NULL);
-                // relocaAddr has moved since we added instructions to setup a new stack frame
-                newRelocAddr = relocAddr + ((stack_size + 1)*(gen.addrSpace()->getAddressWidth()));
-               }
+      	      	} else if (scratchPCReg == REG_NULL) {
+	      	 	stackSize = createStackFrame(gen, 1, freeReg);
+			assert(stackSize == 1);
+		 	scratchPCReg = freeReg[0];
+
+      	      	} else if (scratchReg == REG_NULL) {
+	      	 	stackSize = createStackFrame(gen, 1, freeReg);
+			assert(stackSize == 1);
+		 	scratchReg = freeReg[0];
+	      	}
+                // relocaAddr may have moved if we added instructions to setup a new stack frame
+                Address newRelocAddr = relocAddr + (stackSize?stackSize+1:0)*(gen.addrSpace()->getAddressWidth());
+
 	       insnCodeGen::generateBranch(gen, gen.currAddr(),  gen.currAddr()+4, true); // blrl
 	       insnCodeGen::generateMoveFromLR(gen, scratchPCReg); // mflr
 
                Address varOffset = origAddr - newRelocAddr;
 	       gen.emitter()->emitCallRelative(scratchReg, varOffset, scratchPCReg, gen);
                insnCodeGen::generateMoveToLR(gen, scratchReg);
-               if(newStackFrame) {
-              	restoreGPRegisters(gen, gen.rs(), gpr_off);
-                popStack(gen);
-               }
 
 	}
+        if( stackSize > 0) {
+		removeStackFrame(gen); 
+        }
     }
     else if (insn.isUncondBranch()) {
         // unconditional pc relative branch.
