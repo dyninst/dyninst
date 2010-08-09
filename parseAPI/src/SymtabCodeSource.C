@@ -181,7 +181,8 @@ SymtabCodeRegion::isCode(const Address addr) const
     //     the condition by which Symtab::codeRegions_ is filled
     return !_region->isBSS() && 
            (_region->getRegionType() == SymtabAPI::Region::RT_TEXT ||
-            _region->getRegionType() == SymtabAPI::Region::RT_TEXTDATA);
+            _region->getRegionType() == SymtabAPI::Region::RT_TEXTDATA ||
+            (_symtab->isDefensiveBinary() && _region->isLoadable()) );
 }
 
 bool
@@ -204,7 +205,7 @@ SymtabCodeRegion::offset() const
 Address
 SymtabCodeRegion::length() const
 {
-    return _region->getRegionSize();
+    return _region->getDiskSize();
 }
 
 /** SymtabCodeSource **/
@@ -363,7 +364,8 @@ SymtabCodeSource::init_hints(dyn_hash_map<void*, CodeRegion*> & rmap,
             continue;
         }
         CodeRegion * cr = rmap[sr];
-        if(!cr->isCode((*fsit)->getOffset())) {
+        if(!cr->isCode((*fsit)->getOffset()))
+        {
             parsing_printf("\t<%lx> skipped non-code, region [%lx,%lx)\n",
                 (*fsit)->getOffset(),
                 sr->getRegionAddr(),

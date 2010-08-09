@@ -2341,6 +2341,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\h\BPatch_callbacks.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\BPatch_collections.h"
 				>
 			</File>

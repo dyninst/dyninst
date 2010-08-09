@@ -748,6 +748,8 @@ void Object::FindInterestingSections(bool alloc_syms)
          getRegionType(IMAGE_SCN_CNT_CODE | IMAGE_SCN_CNT_INITIALIZED_DATA), 
          true));
    bool foundText = false;
+   Address prov_offset=0;
+   Address prov_len = 0;
    for( unsigned int i = 0; i < nSections; i++ ) {
       // rawDataPtr should be set to be zero if the amount of raw data
       // for the section is zero
@@ -798,7 +800,22 @@ void Object::FindInterestingSections(bool alloc_syms)
          data_len_ = (pScnHdr->SizeOfRawData < pScnHdr->Misc.VirtualSize ?
                       pScnHdr->SizeOfRawData : pScnHdr->Misc.VirtualSize);
       }
+      else {
+         if (i == 0 || pScnHdr->VirtualAddress < prov_offset) {
+            prov_offset = pScnHdr->VirtualAddress;
+         }
+         Address sec_len = (pScnHdr->SizeOfRawData < pScnHdr->Misc.VirtualSize ?
+                            pScnHdr->SizeOfRawData : pScnHdr->Misc.VirtualSize);
+         if (i == 0 || (prov_offset + prov_len) < (pScnHdr->VirtualAddress + sec_len)) {
+            prov_len = pScnHdr->VirtualAddress + sec_len - prov_offset;
+         }
+      }
       pScnHdr += 1;
+   } // end section for loop
+
+   if (0 == code_len_) {
+       code_len_ = prov_len;
+       code_off_ = prov_offset;
    }
 }
 

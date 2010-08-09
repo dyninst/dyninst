@@ -43,7 +43,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="h;..;../dynutil/h;&quot;../../i386-unknown-nt4.0/include&quot;;../external"
+				AdditionalIncludeDirectories="h;..;../dynutil/h;../../include;../external"
 				PreprocessorDefinitions="WIN32;os_windows;arch_x86;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_async_events;cap_threads;cap_tramp_liveness;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;snprintf=_snprintf;SYMTAB_LIB"
 				MinimalRebuild="false"
 				BasicRuntimeChecks="0"
