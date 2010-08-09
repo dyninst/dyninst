@@ -2387,6 +2387,18 @@ test_runmode('power_cft', 'createProcess').
 test_start_state('power_cft', 'stopped').
 tests_module('power_cft', 'instruction').
 
+test('fucompp', 'fucompp', none).
+test_description('fucompp', 'Tests the fucompp instruction').
+test_platform('fucompp', Platform) :-
+        platform(Platform),
+        platform('i386', _, _, Platform);
+        platform('x86_64', _, _, Platform).
+mutator('fucompp', ['fucompp.C']).
+test_runmode('fucompp', 'createProcess').
+test_start_state('fucompp', 'stopped').
+tests_module('fucompp', 'instruction').
+
+
 % ProcessControlAPI Tests
 pcPlatforms(P) :- platform('x86_64', 'linux', _, P).
 pcPlatforms(P) :- platform('i386', 'linux', _, P).
