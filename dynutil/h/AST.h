@@ -65,7 +65,7 @@ class ASTVisitor;
  class AST;
 
  // SymEval...
- namespace SymbolicEvaluation {
+ namespace DataflowAPI {
  class BottomAST;
  class ConstantAST;
  class VariableAST;
@@ -223,10 +223,10 @@ class COMMON_EXPORT AST : public dyn_detail::boost::enable_shared_from_this<AST>
  public:
    typedef dyn_detail::boost::shared_ptr<AST> ASTPtr;
    virtual ASTPtr visit(AST *) {return AST::Ptr();};
-   virtual ASTPtr visit(SymbolicEvaluation::BottomAST *) {return AST::Ptr();};
-   virtual ASTPtr visit(SymbolicEvaluation::ConstantAST *) {return AST::Ptr();};
-   virtual ASTPtr visit(SymbolicEvaluation::VariableAST *) {return AST::Ptr();};
-   virtual ASTPtr visit(SymbolicEvaluation::RoseAST *) {return AST::Ptr();};
+   virtual ASTPtr visit(DataflowAPI::BottomAST *) {return AST::Ptr();};
+   virtual ASTPtr visit(DataflowAPI::ConstantAST *) {return AST::Ptr();};
+   virtual ASTPtr visit(DataflowAPI::VariableAST *) {return AST::Ptr();};
+   virtual ASTPtr visit(DataflowAPI::RoseAST *) {return AST::Ptr();};
    virtual ASTPtr visit(StackAST *) {return AST::Ptr();};
    virtual ASTPtr visit(InputVariableAST *) {return AST::Ptr();};
    virtual ASTPtr visit(ReferenceAST *) {return AST::Ptr();};

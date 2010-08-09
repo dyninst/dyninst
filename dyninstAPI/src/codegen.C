@@ -367,15 +367,18 @@ void codeGen::fill(unsigned fillSize, int fillType) {
         break;
     case cgTrap: {
         unsigned curUsed = used();
-        while ((used() - curUsed > (unsigned) fillSize))
+        while ((used() - curUsed < (unsigned) fillSize))
             insnCodeGen::generateTrap(*this);
         assert((used() - curUsed) == (unsigned) fillSize);
         break;
     }
     case cgIllegal: {
         unsigned curUsed = used();
-        while ((used() - curUsed > (unsigned) fillSize))
+        while ((used() - curUsed) < (unsigned) fillSize)
             insnCodeGen::generateIllegal(*this);
+	if ((used() - curUsed) != fillSize) {
+	  cerr << "ABORTING: " << used() << " - " << curUsed << " != " << fillSize << endl;
+	}
         assert((used() - curUsed) == (unsigned) fillSize);
         break;
     }

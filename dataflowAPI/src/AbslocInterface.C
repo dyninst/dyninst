@@ -75,6 +75,16 @@ void AbsRegionConverter::convertAll(InstructionAPI::Instruction::Ptr insn,
 	 i != regsWritten.end(); ++i) {
       defined.push_back(AbsRegionConverter::convert(*i));
     }
+
+    // special case for repeat-prefixed instructions on x86
+    // may disappear if Dyninst's representation of these instructions changes
+    if (insn->getArch() == Arch_x86) {
+      prefixEntryID insnPrefix = insn->getOperation().getPrefixID();
+      if ( (prefix_rep == insnPrefix) || (prefix_repnz == insnPrefix) ) {
+        defined.push_back(AbsRegionConverter::convert(RegisterAST::Ptr(
+          new RegisterAST(MachRegister::getPC(Arch_x86)))));
+      }
+    }
     
     if (insn->writesMemory()) {
       std::set<Expression::Ptr> memWrites;
@@ -375,6 +385,7 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
 
     std::vector<AbsRegion> pcRegion;
     pcRegion.push_back(Absloc::makePC(func->isrc()->getArch()));
+    Absloc sp = Absloc::makeSP(func->isrc()->getArch());
     
     handlePushEquivalent(I, addr, func, pcRegion, assignments);
 
@@ -391,8 +402,16 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
 
     Assignment::Ptr a = Assignment::Ptr(new Assignment(I, addr, func, pcRegion[0]));
     if (!used.empty()) {
-      // Indirect call
-      a->addInputs(used);
+        for(std::vector<AbsRegion>::const_iterator u = used.begin();
+            u != used.end();
+            ++u)
+        {
+            if(!(u->contains(pcRegion[0])) &&
+                 !(u->contains(sp)))
+            {
+                a->addInput(*u);
+            }
+        }
     }
     else {
       a->addInputs(pcRegion);

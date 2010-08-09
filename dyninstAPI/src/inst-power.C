@@ -3323,6 +3323,8 @@ void EmitterPOWER::emitLoadShared(opCode op, Register dest, const image_variable
 {
    // create or retrieve jump slot
    Address addr;
+   int stackSize = 0;
+
    if(var == NULL) {
       addr = offset;
    }
@@ -3335,9 +3337,17 @@ void EmitterPOWER::emitLoadShared(opCode op, Register dest, const image_variable
 
    // load register with address from jump slot
 
+   inst_printf("emitLoadrelative addr 0x%lx curr adress 0x%lx offset %ld 0x%lx size %d\n", 
+   	addr, gen.currAddr(), addr - gen.currAddr()+4, addr - gen.currAddr()+4, size);
    Register scratchReg = gen.rs()->getScratchRegister(gen, true);
-   assert (scratchReg != REG_NULL);
-   inst_printf("emitLoadrelative addr 0x%lx curr adress 0x%lx offset %ld 0x%lx size %d\n", addr, gen.currAddr(), addr - gen.currAddr()+4, addr - gen.currAddr()+4, size);
+   if (scratchReg == REG_NULL) {
+   	pdvector<Register> freeReg;
+   	stackSize = insnCodeGen::createStackFrame(gen, 1, freeReg);
+   	assert (stackSize == 1);
+   	scratchReg = freeReg[0];
+   	inst_printf("emitLoadrelative - after new stack frame - addr 0x%lx curr adress 0x%lx offset %ld 0x%lx size %d\n", 
+		addr, gen.currAddr(), addr - gen.currAddr()+4, addr - gen.currAddr()+4, size);
+   }
 
    emitMovPCToReg(scratchReg, gen);
    Address varOffset = addr - gen.currAddr()+4;
@@ -3362,6 +3372,9 @@ void EmitterPOWER::emitLoadShared(opCode op, Register dest, const image_variable
 	}
    }
 
+   if (stackSize > 0)
+   	insnCodeGen::removeStackFrame(gen);
+
   return;
 }
 
@@ -3369,6 +3382,7 @@ void EmitterPOWER::emitStoreShared(Register source, const image_variable * var, 
 {
    // create or retrieve jump slot
    Address addr;
+   int stackSize = 0;
    if(!is_local) {
       addr = getInterModuleVarAddr(var, gen);
    }
@@ -3376,11 +3390,21 @@ void EmitterPOWER::emitStoreShared(Register source, const image_variable * var, 
       addr = (Address)var->getOffset();
    }
 
-   // load register with address from jump slot
-   Register scratchReg = gen.rs()->getScratchRegister(gen, true);
-   assert (scratchReg != REG_NULL);
    inst_printf("emitStoreRelative addr 0x%lx curr adress 0x%lx offset %ld 0x%lx size %d\n",
    		addr, gen.currAddr(), addr - gen.currAddr()+4, addr - gen.currAddr()+4, size);
+
+   // load register with address from jump slot
+   Register scratchReg = gen.rs()->getScratchRegister(gen, true);
+   if (scratchReg == REG_NULL) {
+   	pdvector<Register> freeReg;
+   	stackSize = insnCodeGen::createStackFrame(gen, 1, freeReg);
+	assert (stackSize == 1);
+	scratchReg = freeReg[0];
+	
+   	inst_printf("emitStoreRelative - after new stack frame- addr 0x%lx curr adress 0x%lx offset %ld 0x%lx size %d\n",
+   		addr, gen.currAddr(), addr - gen.currAddr()+4, addr - gen.currAddr()+4, size);
+   }
+   
    emitMovPCToReg(scratchReg, gen);
    Address varOffset = addr - gen.currAddr()+4;
    
@@ -3390,6 +3414,10 @@ void EmitterPOWER::emitStoreShared(Register source, const image_variable * var, 
    } else {
    	emitStoreRelative(source, varOffset, scratchReg, size, gen);
    }
+   
+   if (stackSize > 0)
+   	insnCodeGen::removeStackFrame(gen);
+  
   return;
 }
 

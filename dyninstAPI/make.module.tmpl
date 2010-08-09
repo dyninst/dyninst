@@ -206,13 +206,17 @@ all: $(TARGET) $(EXTRA_LIBS)
 #	$(CXX) $(DEBUG_FLAG) $(TFLAGS) -c $<
     
 BPatch_templates.o: ../src/BPatch_templates.C
-	$(CXX) $(TFLAGS) -c ../src/BPatch_templates.C
+	@echo "Building $<"
+	@$(CXX) $(TFLAGS) -c ../src/BPatch_templates.C
 
 templates0.o: ../src/templates0.C
-	$(CXX) $(TFLAGS) -c ../src/templates0.C
+	@echo "Building $<"
+	@$(CXX) $(TFLAGS) -c ../src/templates0.C
 
 templates1.o: ../src/templates1.C
-	$(CXX) $(TFLAGS) -c ../src/templates1.C
+	@echo "Building $<"
+	@$(CXX) $(TFLAGS) -c ../src/templates1.C
 
 templates2.o: ../src/templates2.C
-	$(CXX) $(TFLAGS) -c ../src/templates2.C
+	@echo "Building $<"
+	@$(CXX) $(TFLAGS) -c ../src/templates2.C

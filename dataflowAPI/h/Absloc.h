@@ -235,6 +235,7 @@ class AbsRegion {
   DATAFLOW_EXPORT const Absloc absloc() const { return absloc_; }
   DATAFLOW_EXPORT const Absloc::Type type() const { return type_; }
   DATAFLOW_EXPORT size_t size() const { return size_; }
+  DATAFLOW_EXPORT AST::Ptr generator() const { return generator_; }
 
  private:
   // Type is for "we're on the stack but we don't know where".
