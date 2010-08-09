@@ -975,11 +975,9 @@ bool BinaryEdit::replaceTrapHandler() {
     int_function *dyn_signal = findOnlyOneFunction("dyn_signal");
     assert(dyn_signal);
 
-    bool success = true;
-    
     pdvector<int_function *> allFuncs;
     getAllFunctions(allFuncs);
-
+    bool replaced = false;
     for (unsigned i = 0; i < allFuncs.size(); i++) {
         int_function *func = allFuncs[i];
         
@@ -994,22 +992,22 @@ bool BinaryEdit::replaceTrapHandler() {
             if ((calleeName == "sigaction") ||
                 (calleeName == "_sigaction") ||
                 (calleeName == "__sigaction")) {
-                if (!replaceFunctionCall(point, dyn_sigaction)) {
-                    success = false;
-                }
+	      replaceFunctionCall(point, dyn_sigaction);
+	      replaced = true;
             }
             else if ((calleeName == "signal") ||
                      (calleeName == "_signal") ||
                      (calleeName == "__signal"))
             {
-               if (!replaceFunctionCall(point, dyn_signal)) {
-                  success = false;
-               }
+	      replaceFunctionCall(point, dyn_sigaction);
+	      replaced = true;
             }
         }
     }
-    
-    return success;
+
+    if (!replaced) return true;
+
+    return relocate();
 }
 
 bool BinaryEdit::needsPIC()

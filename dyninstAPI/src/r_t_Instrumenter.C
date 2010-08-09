@@ -77,16 +77,19 @@ bool Instrumenter::processBlock(BlockList::iterator &iter) {
 
     // Assertion: we have no Inst elements already
     Address addr = (*e_iter)->addr();
+    if (addr == 0) continue;
     relocation_cerr << "  Checking for point at " << std::hex << addr << std::dec << endl;
 
     point = (*iter)->bbl()->func()->findInstPByAddr(addr);
     if (!point) continue;
 
-    relocation_cerr << "   Found instrumentation at addr " 
-		    << std::hex << addr << std::dec << endl;
-    
     pre = point->preBaseTramp();
 
+    relocation_cerr << "   Found instrumentation at addr " 
+		    << std::hex << addr << std::dec
+		    << ((post && !post->empty()) ? "<POST CARRYOVER>" : "")
+		    << ((pre && !pre->empty()) ? "<PRE>" : "") << endl;
+    
     Inst::Ptr inst = Inst::create();
     if (post && !post->empty())
       inst->addBaseTramp(post);
@@ -213,7 +216,6 @@ bool Instrumenter::addEdgeInstrumentation(baseTramp *tramp,
 
   // 3)
   d_iter->second = t;    
-  t->setNecessary();
   
   // 4) 
   // It's more efficient branch-wise to put a block in

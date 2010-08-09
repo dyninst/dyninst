@@ -45,6 +45,8 @@ using namespace Dyninst::ParseAPI;
 typedef std::pair< Address, EdgeTypeEnum > edge_pair_t;
 typedef vector< edge_pair_t > Edges_t;
 
+#define VERBOSE_EDGE_LOG
+
 namespace {
 
 inline void
@@ -75,7 +77,7 @@ verbose_log(Address currAddr, Edges_t::iterator & curEdge)
             parsing_printf("%s[%d]: adding conditional not taken edge %x->%x\n",
                            FILE__, __LINE__, currAddr, curEdge->first);
             break;
-        case INDIR:
+        case INDIRECT:
             parsing_printf("%s[%d]: adding indirect edge %x->%x\n",
                            FILE__, __LINE__, currAddr, curEdge->first);
             break;

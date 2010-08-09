@@ -90,9 +90,6 @@ bool syscallNotification::installPreFork() {
     
     proc->installInstrRequests(instReqs);
 
-    // Check to see if we put anything in the proggie
-    if (preForkInst->miniTramps.size() == 0)
-        return false;
     return true;
 }
 
@@ -111,9 +108,6 @@ bool syscallNotification::installPostFork() {
     
     proc->installInstrRequests(instReqs);
 
-    // Check to see if we put anything in the proggie
-    if (postForkInst->miniTramps.size() == 0)
-        return false;
     return true;
 }    
 
@@ -131,9 +125,6 @@ bool syscallNotification::installPreExec() {
     
     proc->installInstrRequests(instReqs);
 
-    // Check to see if we put anything in the proggie
-    if (preExecInst->miniTramps.size() == 0)
-        return false;
     return true;
 }    
 
@@ -160,9 +151,7 @@ bool syscallNotification::installPreExit() {
     instReqs.push_back(preExitInst);
     
     proc->installInstrRequests(instReqs);
-    // Check to see if we put anything in the proggie
-    if (preExitInst->miniTramps.size() == 0)
-        return false;
+
     return true;
 }    
 

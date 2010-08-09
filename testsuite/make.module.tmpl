@@ -129,7 +129,7 @@ SRCS_DYNINSTTESTLIB = dyninst/libtestA.c \
 #                      dyninst/libInstMe.c \
 #                      dyninst/libLoadMe.c \
 
-dyninst_MUTATOR_FLAGS = -L. -ltestdyninst -ldyninstAPI -lsymEval
+dyninst_MUTATOR_FLAGS = -L. -ltestdyninst -ldyninstAPI 
 
 ifdef M_ABI
 DYNINST_TESTLIBS = $(notdir $(SRCS_DYNINSTTESTLIB:%.c=%.so))

@@ -447,12 +447,14 @@ miniTramp *instPoint::instrument(AstNodePtr ast,
         return NULL;
     }
 
+    proc()->relocate();
+
+#if 0
     pdvector<instPoint *> ignored;
     func()->performInstrumentation(false,
                                    ignored);
 
     // Obsolete version below... we now use function-level control.
-#if 0
     if (!generateInst()) {
         cerr << "instPoint::instrument: failed generateInst, ret NULL" << endl;
         return NULL;

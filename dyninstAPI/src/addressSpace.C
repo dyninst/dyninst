@@ -115,35 +115,6 @@ void AddressSpace::copyAddressSpace(process *parent) {
     // Instrumentation (multiTramps on down)
     /////////////////////////
 
-    pdvector<codeRange *> ranges;
-    parent->modifiedRanges_.elements(ranges);
-
-    for (unsigned i = 0; i < ranges.size(); i++) {
-        instArea *area = dynamic_cast<instArea *>(ranges[i]);
-        replacedFunctionCall *rfc = dynamic_cast<replacedFunctionCall *>(ranges[i]);
-        // Not used yet
-        //functionReplacement *fr = dynamic_cast<functionReplacement *>(ranges[i]);
-        
-       if (area) {
-            // Create a new multiTramp and add it
-            multiTramp *pMulti = area->multi;
-            multiTramp *cMulti = new multiTramp(pMulti, proc());
-            addMultiTramp(cMulti);
-        }
-        else if (rfc) {
-            replacedFunctionCall *cRFC = new replacedFunctionCall((*rfc));
-            addReplacedCall(cRFC);
-        }
-#if 0
-// Apparently this was never implemented... it probably should be, though.
-        else if (fr) {
-            functionReplacement *cFR = new functionReplacement(cFR);
-            addFuncReplacement(cFR);
-        }
-#endif
-    }
-    // That will also create all baseTramps, miniTramps, ...
-
     /////////////////////////
     // Trap mappings
     /////////////////////////
@@ -175,10 +146,6 @@ void AddressSpace::deleteAddressSpace() {
     }
     ranges.clear();
     dataRanges_.clear();
-
-    // Modified code ranges we have to take care of. 
-    modifiedRanges_.elements(ranges);
-    modifiedRanges_.clear();
 
     for (unsigned i = 0; i < ranges.size(); i++) {
         // This is either a:
@@ -235,10 +202,6 @@ void AddressSpace::addOrigRange(codeRange *range) {
     }
 }
 
-void AddressSpace::addModifiedRange(codeRange *range) {
-    modifiedRanges_.insert(range);
-}
-
 void AddressSpace::removeOrigRange(codeRange *range) {
     codeRange *tmp = NULL;
     
@@ -250,46 +213,6 @@ void AddressSpace::removeOrigRange(codeRange *range) {
     textRanges_.remove(range->get_address());
 }
 
-void AddressSpace::removeModifiedRange(codeRange *range) {
-    codeRange *tmp = NULL;
-    
-    if (dynamic_cast<multiTramp*>(range) && 
-        dynamic_cast<multiTramp*>(range)->getIsActive()) 
-    {
-        fprintf(stderr,"ERROR: removeModifiedRange tried to remove active "
-                "multiTramp range [%lx %lx] %s[%d]\n",
-                range->get_address(), range->get_address() + range->get_size(),
-                FILE__,__LINE__);
-        assert(0);
-    }
-
-    if (!modifiedRanges_.find(range->get_address(), tmp))
-        return;
-
-    assert (range == tmp);
-
-    modifiedRanges_.remove(range->get_address());
-
-    instArea *area = dynamic_cast<instArea *>(range);
-    if (area) {
-      // We have just removed a multiTramp. If the dictionary
-      // entry is the same as the instArea pointer, remove it
-      // from the dictionary as well so we can't accidentally
-      // access it that way.
-
-      // If the pointers aren't equal, squawk because that shouldn't
-      // happen.
-      
-       if (area->multi) {
-          if (multiTrampsById_[area->multi->id()] == area->multi)
-             multiTrampsById_[area->multi->id()] = NULL;
-          else {
-             fprintf(stderr, "%s[%u]: Warning: odd case in removing instArea\n",
-                     FILE__, __LINE__);
-          }
-      }
-    }
-}
 
 codeRange *AddressSpace::findOrigByAddr(Address addr) {
     codeRange *range = NULL;
@@ -318,22 +241,6 @@ codeRange *AddressSpace::findOrigByAddr(Address addr) {
     return range;
 }
 
-codeRange *AddressSpace::findModByAddr(Address addr) {
-    codeRange *range = NULL;
-    
-    if (!modifiedRanges_.find(addr, range)) {
-        return NULL;
-    }
-    
-    assert(range);
-    
-    bool in_range = (addr >= range->get_address() &&
-                     addr <= (range->get_address() + range->get_size()));
-    assert(in_range); // Supposed to return NULL if this is the case
-
-    return range;
-}
-
 // Returns the named symbol from the image or a shared object
 bool AddressSpace::getSymbolInfo( const std::string &name, int_symbol &ret ) 
 {
@@ -347,11 +254,6 @@ bool AddressSpace::getSymbolInfo( const std::string &name, int_symbol &ret )
 
 bool AddressSpace::getOrigRanges(pdvector<codeRange *> &ranges) {
     textRanges_.elements(ranges);
-    return true;
-}
-
-bool AddressSpace::getModifiedRanges(pdvector<codeRange *> &ranges) {
-    modifiedRanges_.elements(ranges);
     return true;
 }
 
@@ -378,110 +280,12 @@ multiTramp *AddressSpace::findMultiTrampById(unsigned int id) {
 
 // Check to see if we're replacing an earlier multiTramp,
 // add to the unmodifiedAreas list
-void AddressSpace::addMultiTramp(multiTramp *multi) {
-    assert(multi);
-    assert(multi->instAddr());
-
-    // Actually... we haven't copied it yet, so don't add anything. 
-    //addOrigRange(multi);
-
-    codeRange *range = findModByAddr(multi->instAddr());
-    if (range) {
-        // We're overriding. Keep the instArea but update pointer.
-        instArea *area = dynamic_cast<instArea *>(range);
-        // It could be something else, which should have been
-        // caught already
-        if (!area) {
-            // Oops, someone already here... and multiTramps have
-            // the lowest priority.
-            return;
-        }
-        area->multi = multi;
-    }
-    else {
-        instArea *area = new instArea(multi);
-
-        modifiedRanges_.insert(area);
-    }
-
-    multiTrampsById_[multi->id()] = multi;
+void AddressSpace::addMultiTramp(multiTramp *) {
+  // TODO remove me
 }
 
-void AddressSpace::removeMultiTramp(multiTramp *multi) {
-
-    if (!multi || multi->getIsActive()) {
-        fprintf(stderr,"ERROR: Trying to remove active or NULL multitramp %lx "
-                "[%lx %lx], should not be doing this %s[%d]\n", 
-                multi->instAddr(), multi->getAddress(), 
-                multi->getAddress() + multi->get_size(), FILE__,__LINE__);
-        assert(0);
-    }
-
-    assert(multi->instAddr());
-
-    removeOrigRange(multi);
-
-    // For multiTramps we also have the "wrapper" that
-    // represents the jump to the multiTramp. If that's
-    // still associated with this one, then nuke it
-    // as well. If not, ignore.
-
-    instArea *jump = dynamic_cast<instArea *>(findModByAddr(multi->instAddr()));
-
-    if (jump && jump->multi == multi) {
-        removeModifiedRange(jump);
-        delete jump;
-    }
-}
-
-functionReplacement *AddressSpace::findFuncReplacement(Address addr) {
-    codeRange *range = findModByAddr(addr);
-    if (!range) return NULL;
-    
-    functionReplacement *rep = dynamic_cast<functionReplacement *>(range);
-    return rep;
-}
-
-void AddressSpace::addFuncReplacement(functionReplacement *rep) {
-    assert(rep);
-    Address currAddr = rep->get_address();
-
-    while (currAddr < (rep->get_address() + rep->get_size())) {
-        codeRange *range = findModByAddr(currAddr);
-
-        if (range) removeModifiedRange(range);
-        currAddr += 1;
-    }
-
-    addModifiedRange(rep);
-}
-
-void AddressSpace::removeFuncReplacement(functionReplacement *rep) {
-    removeModifiedRange(rep);
-}
-
-replacedFunctionCall *AddressSpace::findReplacedCall(Address addr) {
-    codeRange *range = findModByAddr(addr);
-    if (!range) return NULL;
-    
-    replacedFunctionCall *rep = dynamic_cast<replacedFunctionCall *>(range);
-    return rep;
-}
-
-void AddressSpace::addReplacedCall(replacedFunctionCall *repcall) {
-    codeRange *range = findModByAddr(repcall->get_address());
-    if (range) {
-        // Can't replace instrumentation right now...
-        assert(dynamic_cast<replacedFunctionCall *>(range));
-        removeModifiedRange(range);
-        delete range;
-    }
-    assert(repcall);
-    addModifiedRange(repcall);
-}
-
-void AddressSpace::removeReplacedCall(replacedFunctionCall *repcall) {
-    removeModifiedRange(repcall);
+void AddressSpace::removeMultiTramp(multiTramp *) {
+  // TODO remove me
 }
 
 bool heapItemLessByAddr(const heapItem *a, const heapItem *b)
@@ -1700,6 +1504,35 @@ bool AddressSpace::sameRegion(Address addr1, Address addr2)
 }
 ////////////////////////////////////////////////////////////////////////////////////////
 
+void AddressSpace::replaceFunctionCall(instPoint *point, int_function *newFunc) {
+  // Just register it for later code generation
+  callReplacements_[point] = newFunc;
+  addModifiedFunction(point->func());
+}
+
+void AddressSpace::replaceFunction(int_function *oldfunc, int_function *newfunc) {
+  functionReplacements_[oldfunc] = newfunc;
+  addModifiedFunction(oldfunc);
+}
+
+void AddressSpace::removeFunctionCall(instPoint *point) {
+  callRemovals_.insert(point);
+  addModifiedFunction(point->func());
+}
+
+// Why not be able to revert?
+void AddressSpace::revertReplacedCall(instPoint *point) {
+  callReplacements_.erase(point);
+  // TODO: need a "remove modified function"
+}
+void AddressSpace::revertReplacedFunction(int_function *oldfunc) {
+  functionReplacements_.erase(oldfunc);
+}
+void AddressSpace::revertRemovedFunctionCall(instPoint *point) {
+  callRemovals_.erase(point);
+}
+
+
 using namespace Dyninst;
 using namespace Relocation;
 
@@ -1781,8 +1614,12 @@ bool AddressSpace::transform(CodeMover::Ptr cm) {
   cm->transform(a);
 
   //cerr << "Memory emulator" << endl;
-  MemEmulatorTransformer m;
-  cm->transform(m);
+  //MemEmulatorTransformer m;
+  //cm->transform(m);
+
+  // Insert whatever binary modifications are desired
+  Modification mod(callReplacements_, functionReplacements_, callRemovals_);
+  cm->transform(mod);
 
   // Localize control transfers
   //cerr << "  Applying control flow localization" << endl;
@@ -1793,8 +1630,12 @@ bool AddressSpace::transform(CodeMover::Ptr cm) {
   // Add instrumentation
   // For ease of edge instrumentation this should occur post-LocalCFTransformer-age
   //cerr << "Inst transformer" << endl;
-  //Instrumenter i;
-  //cm->transform(i);
+  Instrumenter i;
+  cm->transform(i);
+
+  // And remove unnecessary jumps. This needs to be last.
+  Fallthroughs f;
+  cm->transform(f);
   return true;
 
 }

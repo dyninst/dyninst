@@ -71,6 +71,7 @@ bool LocalizeCF::processBlock(BlockList::iterator &iter) {
   for (CFElement::DestinationMap::iterator d_iter = cf->destMap_.begin();
        d_iter != cf->destMap_.end(); ++d_iter) {
 
+    assert(d_iter->second);
     if (d_iter->second->valid() == false) {
       // Whatnow?
       continue;
@@ -99,18 +100,6 @@ bool LocalizeCF::processBlock(BlockList::iterator &iter) {
 
       Target<Block::Ptr> *t = new Target<Block::Ptr>(found->second);
       d_iter->second = t;
-
-      // If we're modelling fallthrough behavior we don't actually need
-      // a branch here, since we'll generate the next Block at the
-      // next address. It's a lot easier to handle this here than to
-      // try and figure it out later. 
-      //
-      // If the Block stream is modified for any reason (e.g., to insert
-      // new blocks) then we need to set the Necessary flag at that point.
-      // This is already done for edge instrumentation. 
-      if (d_iter->first != CFElement::Fallthrough) {
-	d_iter->second->setNecessary();
-      }
 
       relocation_cerr << "        Incrementing removed edge count for " 
 		      << std::hex << found->first << std::dec << endl;

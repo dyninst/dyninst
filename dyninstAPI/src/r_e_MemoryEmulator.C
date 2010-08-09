@@ -342,13 +342,13 @@ codeBufIndex_t MemEmulator::generateInst(codeGen &gen) {
   // for the effective address so that derefing it will
   // result in a SEGV. Do so with an xor. 
   // The 9* is actually (effAddr_ + 8*effAddr_)
-   unsigned char modrm = 0xC0 + 9*effAddr_;
-
    /*
-  GET_PTR(buf, gen);
-  *buf++ = 0x31;
-  *buf++ = modrm;
-  SET_PTR(buf, gen);
+     unsigned char modrm = 0xC0 + 9*effAddr_;
+     
+     GET_PTR(buf, gen);
+     *buf++ = 0x31;
+     *buf++ = modrm;
+     SET_PTR(buf, gen);
    */
    return ret;
 }

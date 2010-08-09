@@ -160,10 +160,10 @@ class AddressSpace : public InstructionSource {
     void addModifiedRange(codeRange *range);
 
     void removeOrigRange(codeRange *range);
-    void removeModifiedRange(codeRange *range);
+    void removeModifiedRange(codeRange *) {};
 
     codeRange *findOrigByAddr(Address addr);
-    codeRange *findModByAddr(Address addr);
+    codeRange *findModByAddr(Address) { return NULL; }
 
     bool getDyninstRTLibName();
 
@@ -183,7 +183,11 @@ class AddressSpace : public InstructionSource {
     
     // Should return iterators
     bool getOrigRanges(pdvector<codeRange *> &);
-    bool getModifiedRanges(pdvector<codeRange *> &);
+
+    // Deprecated
+    functionReplacement *findFuncReplacement(Address) { return NULL; }
+    void removeFuncReplacement(functionReplacement *) {};
+    void addFuncReplacement(functionReplacement *) {};
 
     // Multitramp convenience functions
     multiTramp *findMultiTrampByAddr(Address addr);
@@ -191,15 +195,6 @@ class AddressSpace : public InstructionSource {
     void addMultiTramp(multiTramp *multi);
     void removeMultiTramp(multiTramp *multi);
 
-    // Function replacement (or relocated, actually) convenience functions
-    functionReplacement *findFuncReplacement(Address addr);
-    void addFuncReplacement(functionReplacement *funcrep);
-    void removeFuncReplacement(functionReplacement *funcrep);
-
-    // Function call replacement convenience functions
-    replacedFunctionCall *findReplacedCall(Address addr);
-    void addReplacedCall(replacedFunctionCall *rep);
-    void removeReplacedCall(replacedFunctionCall *rep);
 
     //////////////////////////////////////////////////////////////
     // Function/variable lookup code
@@ -311,8 +306,13 @@ class AddressSpace : public InstructionSource {
     // instPoint isn't const; it may get an updated list of
     // instances since we generate them lazily.
     // Shouldn't this be an instPoint member function?
-    bool replaceFunctionCall(instPoint *point,const int_function *newFunc);
-    
+    void replaceFunctionCall(instPoint *point, int_function *newFunc);
+    void revertReplacedCall(instPoint *point);
+    void replaceFunction(int_function *oldfunc, int_function *newfunc);
+    void revertReplacedFunction(int_function *oldfunc);
+    void removeFunctionCall(instPoint *point);
+    void revertRemovedFunctionCall(instPoint *point);
+
     // And this....
     bool getDynamicCallSiteArgs(instPoint *callSite, 
                                 pdvector<AstNodePtr> &args);
@@ -450,8 +450,6 @@ class AddressSpace : public InstructionSource {
     codeRangeTree textRanges_;
     // Data sections
     codeRangeTree dataRanges_;
-    // And address-space-wide patches that we've dropped in
-    codeRangeTree modifiedRanges_;
 
     // We label multiTramps by ID
     dictionary_hash<int, multiTramp *> multiTrampsById_;
@@ -480,8 +478,17 @@ class AddressSpace : public InstructionSource {
 
     bool relocateInt(FuncSet::const_iterator begin, FuncSet::const_iterator end, Address near);
 
+    // Kevin code
     std::map<Address, std::set<Address> > forwardCallPadMap_;
     IntervalTree<Address, Address> reverseCallPadMap_;
+
+    // Track desired function replacements/removals/call replacements
+    typedef std::map<instPoint *, int_function *> CallReplaceMap;
+    CallReplaceMap callReplacements_;
+    typedef std::map<int_function *, int_function *> FuncReplaceMap;
+    FuncReplaceMap functionReplacements_;
+    typedef std::set<instPoint *> CallRemovalSet;
+    CallRemovalSet callRemovals_;
 };
 
 

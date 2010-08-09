@@ -311,7 +311,7 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
             outEdges.push_back(std::make_pair(getAddr() + getSize(),CALL_FT));
         }
         return;
-    }
+      }
     else if(ci->getCategory() == c_BranchInsn)
     {
         Address target;

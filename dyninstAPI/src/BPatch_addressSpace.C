@@ -244,34 +244,40 @@ bool BPatch_addressSpace::deleteSnippetInt(BPatchSnippetHandle *handle)
        return false;
    }
 
-   if (handle->addSpace_ == this) {  
-       // if this is a process, check to see if the instrumentation is
-       // executing on the call stack
-       if ( handle->getProcess() ) {
-           handle->getProcess()->lowlevel_process()->updateActiveMultis();
-           if (handle->mtHandles_.size() > 1) {
-	     mal_printf("ERROR: Removing snippet that is installed in "
-                          "multiple miniTramps %s[%d]\n",FILE__,__LINE__);
-           }
-       }
+   if (handle->addSpace_ != this) {
+     bperr("Error: wrong address space in deleteSnippet\n");
+     return false;
+   }
 
-       // uninstrument and remove snippet handle from point datastructures
-       for (unsigned int i=0; i < handle->mtHandles_.size(); i++)
-       {
-           instPoint *iPoint = handle->mtHandles_[i]->instP();
-           handle->mtHandles_[i]->uninstrument();
-           BPatch_point *bPoint = findOrCreateBPPoint(NULL, iPoint);
-           assert(bPoint);
-           bPoint->removeSnippet(handle);
-       }
+   // if this is a process, check to see if the instrumentation is
+   // executing on the call stack
+   if ( handle->getProcess() ) {
+     handle->getProcess()->lowlevel_process()->updateActiveMultis();
+     if (handle->mtHandles_.size() > 1) {
+       mal_printf("ERROR: Removing snippet that is installed in "
+		  "multiple miniTramps %s[%d]\n",FILE__,__LINE__);
+     }
+   }
+   
+   // uninstrument and remove snippet handle from point datastructures
+   for (unsigned int i=0; i < handle->mtHandles_.size(); i++)
+     {
+       instPoint *iPoint = handle->mtHandles_[i]->instP();
+       handle->mtHandles_[i]->uninstrument();
+       BPatch_point *bPoint = findOrCreateBPPoint(NULL, iPoint);
+       assert(bPoint);
+       bPoint->removeSnippet(handle);
+     }
+   
+   delete handle;
+   
+   if (pendingInsertions == NULL) {
+     // Trigger it now
+     bool tmp;
+     finalizeInsertionSet(false, &tmp);
+   }
 
-       delete handle;
-       return true;
-   } 
-
-   // Handle isn't to a snippet instance in this process
-   bperr("Error: wrong address space in deleteSnippet\n");
-   return false;
+   return true;
 }
 
 /*
@@ -300,11 +306,15 @@ bool BPatch_addressSpace::replaceCodeInt(BPatch_point *point,
       return false;
    }
 
+   if (!point->point->replaceCode(snippet->ast_wrapper)) return false;
 
-   return point->point->replaceCode(snippet->ast_wrapper);
+   if (pendingInsertions == NULL) {
+     // Trigger it now
+     bool tmp;
+     finalizeInsertionSet(false, &tmp);
+   }   
+   return true;
 }
-
-
 
 /*
  * BPatch_addressSpace::replaceFunctionCall
@@ -327,19 +337,15 @@ bool BPatch_addressSpace::replaceFunctionCallInt(BPatch_point &point,
 
    assert(point.point && newFunc.lowlevel_func());
 
-#if defined(arch_x86) || defined(arch_x86_64)
-   bool old_recursion_flag = BPatch::bpatch->isTrampRecursive();
-   BPatch::bpatch->setTrampRecursive( true );
+   point.getAS()->replaceFunctionCall(point.point, 
+				      newFunc.lowlevel_func());
 
-   BPatch_funcJumpExpr fjmp(newFunc, true);
-   insertSnippet(fjmp, point, BPatch_lastSnippet);
-   
-   BPatch::bpatch->setTrampRecursive( old_recursion_flag );
+   if (pendingInsertions == NULL) {
+     // Trigger it now
+     bool tmp;
+     finalizeInsertionSet(false, &tmp);
+   }
    return true;
-#else
-   return point.getAS()->replaceFunctionCall(point.point, 
-                                             newFunc.lowlevel_func());
-#endif
 }
 
 /*
@@ -358,7 +364,15 @@ bool BPatch_addressSpace::removeFunctionCallInt(BPatch_point &point)
 
    assert(point.point);
 
-   return point.getAS()->replaceFunctionCall(point.point, NULL);
+   point.getAS()->removeFunctionCall(point.point);
+
+   if (pendingInsertions == NULL) {
+     // Trigger it now
+     bool tmp;
+     finalizeInsertionSet(false, &tmp);
+   }
+   
+   return true;
 }
 
 
@@ -374,38 +388,35 @@ bool BPatch_addressSpace::removeFunctionCallInt(BPatch_point &point)
 bool BPatch_addressSpace::replaceFunctionInt(BPatch_function &oldFunc,
       BPatch_function &newFunc)
 {
-  char oldname[1024];
-  char newname[1024];
-  oldFunc.getName(oldname, 1024);
-  newFunc.getName(newname, 1024);
-   assert(oldFunc.lowlevel_func() && newFunc.lowlevel_func());
-   if (!getMutationsActive())
-      return false;
+  assert(oldFunc.lowlevel_func() && newFunc.lowlevel_func());
+  if (!getMutationsActive())
+    return false;
+  
+  // Self replacement is a nop
+  // We should just test direct equivalence here...
+  if (oldFunc.lowlevel_func() == newFunc.lowlevel_func()) {
+    return true;
+  }
+  
+  oldFunc.lowlevel_func()->proc()->replaceFunction(oldFunc.lowlevel_func(), newFunc.lowlevel_func());
 
-   // Self replacement is a nop
-   // We should just test direct equivalence here...
-   if (oldFunc.lowlevel_func() == newFunc.lowlevel_func()) {
-      return true;
-   }
-
-   BPatch_Vector<BPatch_point *> *pts = oldFunc.findPoint(BPatch_entry);
-
-   if (! pts || ! pts->size()) {
-      return false;
-   }
-
-   BPatch_funcJumpExpr fje(newFunc);
-//#if defined(cap_instruction_replacement) && defined(arch_power)
+  if (pendingInsertions == NULL) {
+    // Trigger it now
+    bool tmp;
+    finalizeInsertionSet(false, &tmp);
+  }
+  return true;
 #if 0
-   // Replace the first instruction with fje
-   for (unsigned i = 0; i < pts->size(); i++) {
-       BPatch_point *point = (*pts)[i];
-       point->getPoint()->replaceCode(fje.ast_wrapper);
-   }
 
-   return true;
-#else
+  BPatch_Vector<BPatch_point *> *pts = oldFunc.findPoint(BPatch_entry);
+  
+  if (! pts || ! pts->size()) {
+    return false;
+  }
 
+  
+  
+   BPatch_funcJumpExpr fje(newFunc);
    bool old_recursion_flag = BPatch::bpatch->isTrampRecursive();
    BPatch::bpatch->setTrampRecursive( true );
 
@@ -807,14 +818,13 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
 	cerr << "Error: failed to insert instrumentation" << endl;
       }
    }
-   
+
    if (pendingInsertions == NULL) {
      // Trigger it now
      bool tmp;
      finalizeInsertionSet(false, &tmp);
-   }
+   }   
    
-
    return ret;
 }
 

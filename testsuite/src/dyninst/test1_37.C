@@ -84,8 +84,8 @@ static void sort_blocks(BPatch_Vector<BPatch_basicBlock*> &a, int n)
  */
 
 static void instrumentLoops(BPatch_addressSpace *appAddrSpace, BPatch_image *appImage,
-		BPatch_Vector<BPatch_basicBlockLoop*> &loops,
-		BPatch_funcCallExpr &callInc) 
+			    BPatch_Vector<BPatch_basicBlockLoop*> &loops,
+			    BPatch_snippet &snippet)
 {            
 	// for each loop (set of basic blocks)
 	for (unsigned int i = 0; i < loops.size(); i++) 
@@ -123,7 +123,7 @@ static void instrumentLoops(BPatch_addressSpace *appAddrSpace, BPatch_image *app
 			p = (*entries)[j];
 
 			BPatchSnippetHandle * han =
-				appAddrSpace->insertSnippet(callInc, *p, BPatch_callBefore);
+				appAddrSpace->insertSnippet(snippet, *p, BPatch_callBefore);
 
 			// did we insert the snippet?
 			if (han == NULL) 
@@ -138,7 +138,7 @@ static void instrumentLoops(BPatch_addressSpace *appAddrSpace, BPatch_image *app
 			p = (*exits)[j];
 
 			BPatchSnippetHandle * han =
-				appAddrSpace->insertSnippet(callInc, *p, BPatch_callBefore);
+				appAddrSpace->insertSnippet(snippet, *p, BPatch_callBefore);
 
 			// did we insert the snippet?
 			if (han == NULL) 
@@ -157,14 +157,14 @@ static void instrumentLoops(BPatch_addressSpace *appAddrSpace, BPatch_image *app
 		loops[i]->getOuterLoops(lps);
 
 		// recur with this loop's outer loops
-		instrumentLoops(appAddrSpace, appImage, lps, callInc);
+		instrumentLoops(appAddrSpace, appImage, lps, snippet);
 	}
 }
 
 static int instrumentFuncLoopsWithCall(BPatch_addressSpace *appAddrSpace, 
-		BPatch_image *appImage,
-		char *call_func,
-		char *inc_func)
+				       BPatch_image *appImage,
+				       char *call_func,
+				       char *inc_func)
 {
 	// get function * for call_func
 	BPatch_Vector<BPatch_function *> funcs;
@@ -199,6 +199,50 @@ static int instrumentFuncLoopsWithCall(BPatch_addressSpace *appAddrSpace,
 	return 0;
 }
 
+static int instrumentFuncLoopsWithInc(BPatch_addressSpace *appAddrSpace, 
+				      BPatch_image *appImage,
+				      char *call_func,
+				      char *var)
+{
+	// get function * for call_func
+	BPatch_Vector<BPatch_function *> funcs;
+
+	appImage->findFunction(call_func, funcs);
+	BPatch_function *func = funcs[0];
+
+	if (func == NULL) 
+	{
+		logerror("**Failed** test #37 (instrument loops)\n");
+		logerror("    Unable to get funcions.\n");
+		return -1;
+	}
+
+	// Look up global variable
+	const BPatch_variableExpr *varexpr = appImage->findVariable(var);
+	if (var == NULL) {
+	  logerror("**FAILED** test #37 (instrument loops)\n");
+	  logerror("      Unable to find global variable\n");
+	  return -1;
+	}
+
+	// Create increment snippet
+	BPatch_arithExpr assign(BPatch_assign,
+				*varexpr,
+				BPatch_arithExpr(BPatch_plus,
+						 *varexpr,
+						 BPatch_constExpr(1)));
+
+
+	// instrument the function's loops
+	BPatch_flowGraph *cfg = func->getCFG();
+	BPatch_Vector<BPatch_basicBlockLoop*> loops;
+	cfg->getOuterLoops(loops);
+
+	instrumentLoops(appAddrSpace, appImage, loops, assign);
+
+	return 0;
+}
+
 test_results_t test1_37_Mutator::executeTest() 
 {
 	if (isMutateeFortran(appImage)) 
@@ -206,14 +250,14 @@ test_results_t test1_37_Mutator::executeTest()
 		return SKIPPED;
 	} 
 
-	if (instrumentFuncLoopsWithCall(appAddrSpace, appImage,
-				"test1_37_call1", "test1_37_inc1") < 0) 
+	if (instrumentFuncLoopsWithInc(appAddrSpace, appImage,
+				"test1_37_call1", "globalVariable37_1") < 0) 
 	{
 		return FAILED;
 	}
 
-	if (instrumentFuncLoopsWithCall(appAddrSpace, appImage,
-				"test1_37_call2", "test1_37_inc2") < 0) 
+	if (instrumentFuncLoopsWithInc(appAddrSpace, appImage,
+				       "test1_37_call2", "globalVariable37_2") < 0) 
 	{
 		return FAILED;
 	}

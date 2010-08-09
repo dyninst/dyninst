@@ -5692,16 +5692,11 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests)
                 fprintf(stderr, "Unknown where: %d\n",
                         req->where);
             } // switch
-            pdvector<instPoint *> failedPoints; 
-            if (func->performInstrumentation(false, failedPoints)) {
-                for (unsigned i = 0; i < minis.size(); i++) {
-                    req->miniTramps.push_back(minis[i]);
-                }
-            }
 	    minis.clear();
         } // matchingFuncs        
         
     } // requests
+    relocate();
     return;
 }
 
@@ -5817,73 +5812,13 @@ std::string process::getStatusAsString() const
 }
 
 bool process::uninstallMutations() {
-    pdvector<codeRange *> modifiedRanges;
-    if (!getModifiedRanges(modifiedRanges))
-        return false;
-
-    for (unsigned i = 0; i < modifiedRanges.size(); i++) {
-        instArea *tmp = dynamic_cast<instArea *>(modifiedRanges[i]);
-        if (tmp) {
-            multiTramp *multi = tmp->multi;
-            multi->disable();
-            continue;
-        }
-        
-        replacedFunctionCall *rfc = dynamic_cast<replacedFunctionCall *>(modifiedRanges[i]);
-        if (rfc) {
-            if (!writeDataSpace((void *)rfc->callAddr,
-                                rfc->oldCall.used(),
-                                rfc->oldCall.start_ptr())) {
-                fprintf(stderr, "%s[%d]:  WDS failed\n", FILE__, __LINE__);
-            }
-            continue;
-        }
-        
-        functionReplacement *fr = dynamic_cast<functionReplacement *>(modifiedRanges[i]);
-        if (fr) {
-            // don't handle this yet...
-            continue;
-        }
-        
-        assert(0 && "Unhandled type of modified code in uninstallMutations!");
-    }
-    
-    return true;
+  assert(0);
+  return false;
 }
 
 bool process::reinstallMutations() {
-    pdvector<codeRange *> modifiedRanges;
-    if (!getModifiedRanges(modifiedRanges))
-        return false;
-    
-    for (unsigned i = 0; i < modifiedRanges.size(); i++) {
-        instArea *tmp = dynamic_cast<instArea *>(modifiedRanges[i]);
-        if (tmp) {
-            multiTramp *multi = tmp->multi;
-            multi->enable();
-            continue;
-        }
-        
-        replacedFunctionCall *rfc = dynamic_cast<replacedFunctionCall *>(modifiedRanges[i]);
-        if (rfc) {
-            if (!writeDataSpace((void *)rfc->callAddr,
-                                rfc->newCall.used(),
-                                rfc->newCall.start_ptr())) {
-                fprintf(stderr, "%s[%d]:  WDS failed\n", FILE__, __LINE__);
-            }
-            continue;
-        }
-        
-        functionReplacement *fr = dynamic_cast<functionReplacement *>(modifiedRanges[i]);
-        if (fr) {
-            // don't handle this yet...
-            continue;
-        }
-        
-        assert(0 && "Unhandled type of modified code in uninstallMutations!");
-    }
-    
-    return true;
+  assert(0);
+  return false;
 }
 
 // Function relocation requires a version of process::convertPCsToFuncs 

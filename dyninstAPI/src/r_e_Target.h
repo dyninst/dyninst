@@ -62,12 +62,18 @@ class TargetInt {
   virtual Address addr() const { return 0; }
   virtual Address adjAddr(int, int) const { return 0; }
   virtual bool valid() const { return false; }
-  TargetInt() {};
+ TargetInt() : necessary_(true) {};
   virtual ~TargetInt() {};
-  virtual bool necessary() const { return true; }
-  virtual void setNecessary() {};
+  virtual std::string format() const { return "<INVALID>"; }
+
+  virtual bool necessary() const { return necessary_; };
+  virtual void setNecessary(bool a) { necessary_ = a; };
 
   virtual type_t type() const { return Illegal; };
+
+  virtual bool matches(Block::Ptr) const { return false; };
+ private:
+  bool necessary_;
 };
 
 template <typename T>
@@ -81,11 +87,9 @@ class Target : public TargetInt{
 
   const T t() { return t_; }
 
-  virtual bool necessary() const;
-  virtual void setNecessary();
-
  private:
   const T &t_;
+
 };
 
 template <>
@@ -97,18 +101,22 @@ template <>
   }
 
   bool valid() const { return addr() != 0; }
- Target(Block::Ptr t) : t_(t), necessary_(false) {}
+ Target(Block::Ptr t) : t_(t) {}
   ~Target() {}
   const Block::Ptr &t() const { return t_; };
 
-  bool necessary() const { return necessary_; };
-  void setNecessary() { necessary_ = true; };
-
   virtual type_t type() const { return BlockTarget; };
+
+  virtual string format() const { 
+    stringstream ret;
+    ret << "B{" << t_->id() << "/" << (necessary() ? "T" : "S") << "}";
+    return ret.str();
+  }
+
+  virtual bool matches(Block::Ptr next) const { return t_ == next; }
 
  private:
   const Block::Ptr t_;
-  bool necessary_;
 };
 
 template <>
@@ -122,10 +130,13 @@ class Target<bblInstance *> : public TargetInt {
 
   bblInstance *t() const { return t_; };
 
-  bool necessary() const { return true; };
-  void setNecessary() {};
-
   virtual type_t type() const { return BBLTarget; };
+  
+  virtual string format() const { 
+    stringstream ret;
+    ret << "O{" << std::hex << t_->firstInsnAddr() << std::dec << "}";
+    return ret.str();
+  }
 
  private:
   bblInstance *t_;
@@ -144,10 +155,13 @@ class Target<PLT_Entry> : public TargetInt {
   ~Target() {}
   const PLT_Entry &t() const { return t_; }
 
-  bool necessary() const { return true; };
-  void setNecessary() {};
-
   virtual type_t type() const { return PLTTarget; };
+
+  virtual string format() const {
+    stringstream ret;
+    ret << "A{" << std::hex << t_ << std::dec << "}";
+    return ret.str();
+  }
 
  private:
   const PLT_Entry t_;

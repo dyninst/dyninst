@@ -267,6 +267,9 @@ const pdvector<instPoint *> &int_function::funcEntries() {
         entryPoints_.clear();
         pdvector<image_instPoint *> img_entries;
         ifunc_->funcEntries(img_entries);
+	if (img_entries.empty()) {
+	  cerr << "Warning: function " << prettyName() << " has no parsed entry points" << endl;
+	}
 #if defined (cap_use_pdvector)
         entryPoints_.reserve_exact(img_entries.size());
 #endif
@@ -301,6 +304,10 @@ const pdvector<instPoint *> &int_function::funcEntries() {
 #if defined (cap_use_pdvector)
     entryPoints_.reserve_exact(entryPoints_.size());
 #endif
+    if (entryPoints_.size() != 1) {
+      cerr << "Error: function " << prettyName() << ":" << obj()->fullName() <<" has " << entryPoints_.size() << " points!" << endl;
+    }
+    assert(entryPoints_.size() == 1);
     return entryPoints_;
 }
 

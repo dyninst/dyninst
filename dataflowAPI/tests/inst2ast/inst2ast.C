@@ -14,7 +14,7 @@
 #include "InstructionDecoder.h"
 using namespace Dyninst;
 using namespace Dyninst::InstructionAPI;
-using namespace Dyninst::SymbolicEvaluation;
+using namespace Dyninst::DataflowAPI;
 
 #include <iostream>
 #include <sstream>

@@ -1548,7 +1548,7 @@ static ia32_entry fpuMap[][2][8] = {
         { e_fcmovbe, t_done, 0, true, { ST0, Ef, Zz }, 0, s1RW2R },
         { e_fcmovu, t_done, 0, true,  { ST0, Ef, Zz }, 0, s1RW2R },
         { e_No_Entry,  t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE },
-        { e_No_Entry,  t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE },
+        { e_fucomp,  t_done, 0, true, { ST0, Efd, Zz }, 0, s1RW2R },
         { e_No_Entry,  t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE },
         { e_No_Entry,  t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE },
     },

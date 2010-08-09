@@ -70,6 +70,7 @@ using namespace std;
 // around is that control flow gets b0rked pretty badly, so we toss
 // the original instruction and regenerate it later.
 
+int Block::BlockID = 0;
 
 Block::Ptr Block::create(bblInstance *bbl) {
   if (!bbl) return Block::Ptr();
@@ -136,7 +137,7 @@ bool Block::generate(codeGen &templ,
 		     unsigned &sizeEstimate) {
   gens_.initialize(templ);
 
-  relocation_cerr << "Generating block orig @ " << hex << origAddr() << dec << endl;
+  relocation_cerr << "Generating block " << id() << " orig @ " << hex << origAddr() << dec << endl;
 
   Address last = 0;
 
@@ -259,6 +260,7 @@ std::string Block::format() const {
   stringstream ret;
   ret << "Block(" 
       << std::hex << origAddr() << std::dec
+      << "/" << id() 
       << ") {" << endl;
   for (ElementList::const_iterator iter = elements_.begin();
        iter != elements_.end(); ++iter) {
@@ -332,7 +334,7 @@ void GenStack::addPatch(Patch *patch) {
   gens_.back().patch = patch;
   gens_.back().index = cur().gen.getIndex();
   
-  relocation_cerr << "\t\t Adding patch to codeGen stack; cur at " << gens_.back().gen.used();
+  relocation_cerr << "\t\t Adding patch to codeGen stack; cur at " << gens_.back().gen.used() << endl;
 
   patch->preapply(gens_.back().gen);
   relocation_cerr << " and after preapply " << gens_.back().gen.used() << endl;

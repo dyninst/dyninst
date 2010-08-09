@@ -38,3 +38,5 @@
 #include "r_t_CF_Localization.h"
 #include "r_t_EmulateMemory.h"
 #include "r_t_Movement-analysis.h"
+#include "r_t_Fallthroughs.h"
+#include "r_t_Modification.h"

@@ -91,7 +91,7 @@ bool InstPatch::apply(codeGen &gen, int, int) {
 }
 
 bool InstPatch::preapply(codeGen &gen) {
-  if (gen.startAddr() == -1) {
+  if (gen.startAddr() == (Address) -1) {
     // baseTramps don't liiiiike this...
     gen.setAddr(0);
   }

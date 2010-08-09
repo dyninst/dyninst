@@ -527,11 +527,23 @@ void *BPatch_point::monitorCallsInt( BPatch_function * user_cb )
   AstNodePtr ast = AstNode::funcCallNode(fb, args);
   
 
+#if 0
   miniTramp *res = point->instrument(ast,
 				     callPreInsn,
 				     orderLastAtPoint,
 				     true,
 				     false);
+#endif
+  miniTramp *res = point->addInst(ast,
+				  callPreInsn,
+				  orderLastAtPoint,
+				  true,
+				  false);
+  if (addSpace->pendingInsertions == NULL) {
+    // Trigger it now
+    bool tmp;
+    addSpace->finalizeInsertionSet(false, &tmp);
+  }   
   
   if ( ! res ) {
      fprintf( stderr,"%s[%d]:  insertSnippet failed, cannot monitor call site\n",
