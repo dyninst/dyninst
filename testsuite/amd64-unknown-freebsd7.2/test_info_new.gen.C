@@ -1255,6 +1255,11 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
+  rg = new RunGroup("", STOPPED, CREATE, TNone, PNone, DynamicLink, true, "instruction", "", "none", "64");
+  rg->tests.push_back(new TestInfo(test_count++, "fucompp", "fucompp", "fucompp.so", false, "{test: fucompp, mutator: fucompp, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
   rg = new RunGroup("", SELFSTART, CREATE, TNone, PNone, DynamicLink, true, "dyninst", "", "none", "64");
   rg->tests.push_back(new TestInfo(test_count++, "test_pt_ls", "test_pt_ls", "test_pt_ls.so", false, "{test: test_pt_ls, mutator: test_pt_ls, grouped: false, start_state: selfstart, format: dynamicMutatee, process_mode: None, abi: 64, thread_mode: None, mutatee: none, optimization: none, compiler: , run_mode: createProcess}"));
   rg->index = group_count++;
