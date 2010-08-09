@@ -32,7 +32,7 @@
 #if !defined(STACK_ANALYSIS_H)
 #define STACK_ANALYSIS_H
 
-#if !defined(_MSC_VER)
+#if !defined(_MSC_VER) && !defined(os_freebsd)
 #include <values.h>
 #endif
 

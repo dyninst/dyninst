@@ -243,7 +243,7 @@ void image::findMain()
             using namespace Dyninst::InstructionAPI;
 
             unsigned bytesSeen = 0, numCalls = 0;
-            InstructionDecoder decoder(p, textsec->getRegionSize(), getArch());
+            InstructionDecoder decoder(p, textsec->getRegionSize(), cs_->getArch());
 
             Instruction::Ptr curInsn = decoder.decode();
             while( numCalls < 4 && curInsn && curInsn->isValid() &&
@@ -264,7 +264,7 @@ void image::findMain()
                 logLine("heuristic for finding global constructor function failed\n");
             }else{
                 Address callAddress = textsec->getRegionAddr() + bytesSeen;
-                RegisterAST thePC = RegisterAST(Dyninst::MachRegister::getPC(getArch()));
+                RegisterAST thePC = RegisterAST(Dyninst::MachRegister::getPC(cs_->getArch()));
 
                 Expression::Ptr callTarget = curInsn->getControlFlowTarget();
 

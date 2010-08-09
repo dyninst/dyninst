@@ -82,7 +82,7 @@ public:
 class freebsd_process : public thread_db_process
 {
 public:
-    freebsd_process(Dyninst::PID p, std::string e, std::vector<std::string> a);
+    freebsd_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int, int> f);
     freebsd_process(Dyninst::PID pid_, int_process *p);
     virtual ~freebsd_process();
 

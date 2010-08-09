@@ -566,14 +566,17 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
 
 int_process *int_process::createProcess(Dyninst::PID pid_, std::string exec) {
     std::vector<std::string> args;
-    freebsd_process *newproc = new freebsd_process(pid_, exec, args);
+    std::map<int, int> f;
+    freebsd_process *newproc = new freebsd_process(pid_, exec, args, f);
     assert(newproc);
 
     return static_cast<int_process *>(newproc);
 }
 
-int_process *int_process::createProcess(std::string exec, std::vector<std::string> args) {
-    freebsd_process *newproc = new freebsd_process(0, exec, args);
+int_process *int_process::createProcess(std::string exec,
+        std::vector<std::string> args, std::map<int, int> f) 
+{
+    freebsd_process *newproc = new freebsd_process(0, exec, args, f);
     assert(newproc);
     return static_cast<int_process *>(newproc);
 }
@@ -650,8 +653,8 @@ bool ProcessPool::LWPIDsAreUnique() {
     return true;
 }
 
-freebsd_process::freebsd_process(Dyninst::PID p, std::string e, std::vector<std::string> a)
-    : thread_db_process(p, e, a)
+freebsd_process::freebsd_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int, int> f)
+    : thread_db_process(p, e, a, f)
 {
 }
 

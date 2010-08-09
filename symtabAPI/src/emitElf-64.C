@@ -43,7 +43,6 @@
 
 #if defined(os_freebsd)
 #include "common/h/freebsdKludges.h"
-#define R_X86_64_JUMP_SLOT R_X86_64_JMP_SLOT
 #endif
 
 #if defined(os_linux)
@@ -667,8 +666,16 @@ bool emitElf64::driver(Symtab *obj, string fName){
     if(scncount > insertPoint && newshdr->sh_offset >= insertPointOffset)
       newshdr->sh_offset += loadSecTotalSize;
 
-    if (newshdr->sh_offset >= insertPointOffset )
-      newshdr->sh_offset += (int) (dirtySecsChange + extraAlignSize);
+    if (newshdr->sh_offset > 0 ) 
+        newshdr->sh_offset += dirtySecsChange;
+
+    if (BSSExpandFlag) {
+        if( newshdr->sh_offset > 0 ) {
+            newshdr->sh_offset += extraAlignSize;
+        }
+    }else if (newshdr->sh_offset >= insertPointOffset ) {
+        newshdr->sh_offset += extraAlignSize;
+    }
 
     if(foundSec->isDirty()) 
       dirtySecsChange += newshdr->sh_size - shdr->sh_size;
@@ -1170,7 +1177,7 @@ bool emitElf64::createLoadableSections(Symtab *obj, Elf64_Shdr* &shdr, unsigned 
          newshdr->sh_addr = newSecs[i]->getDiskOffset();
       }
       else if(!prevshdr) {
-         newshdr->sh_addr = zstart + library_adjust;
+         newshdr->sh_addr = zstart;
       } 
       else 
       {

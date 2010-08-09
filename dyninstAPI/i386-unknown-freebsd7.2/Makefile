@@ -29,15 +29,12 @@ SRCS =          ../src/freebsd.C \
 		../src/cpuid-x86.S \
                 ../src/inst-x86.C \
 		../src/emit-x86.C \
-                ../src/arch-x86.C \
+		../src/codegen-x86.C \
                 ../src/unix.C \
 		../src/stackwalk-x86.C \
 		../src/image-x86.C \
 		../src/frameChecker.C \
-		../src/stackanalysis.C \
 		../src/IAPI_to_AST.C \
-		../src/IA_IAPI.C \
-		../src/IA_x86.C \
 		../src/BPatch_memoryAccessAdapter.C \
 		../src/RegisterConversion-x86.C
 

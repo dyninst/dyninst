@@ -46,7 +46,6 @@
 #endif
 
 #if defined(os_freebsd)
-#define R_X86_64_JUMP_SLOT R_X86_64_JMP_SLOT
 #include "common/h/freebsdKludges.h"
 #endif
 
@@ -727,8 +726,16 @@ bool emitElf::driver(Symtab *obj, string fName){
     if(scncount > insertPoint && newshdr->sh_offset >= insertPointOffset )
       newshdr->sh_offset += loadSecTotalSize;
 
-    if (newshdr->sh_offset >= insertPointOffset )
-      newshdr->sh_offset += (int) (dirtySecsChange + extraAlignSize);
+    if (newshdr->sh_offset > 0 ) 
+        newshdr->sh_offset += dirtySecsChange;
+
+    if (BSSExpandFlag) {
+        if( newshdr->sh_offset > 0 ) {
+            newshdr->sh_offset += extraAlignSize;
+        }
+    }else if (newshdr->sh_offset >= insertPointOffset ) {
+        newshdr->sh_offset += extraAlignSize;
+    }
 
     if(foundSec->isDirty()) 
       dirtySecsChange += newshdr->sh_size - shdr->sh_size;
@@ -1284,12 +1291,10 @@ bool emitElf::createLoadableSections(Symtab*obj, Elf32_Shdr* &shdr, unsigned &ex
          loadSecTotalSize += newshdr->sh_offset - (shdr->sh_offset+shdr->sh_size);
      }
 
-     // FIXME in 64-bit we use getMemOffset. Which is correct?
      if(newSecs[i]->getDiskOffset())
         newshdr->sh_addr = newSecs[i]->getDiskOffset();
      else if(!prevshdr) {
-        newshdr->sh_addr = zstart; // FIXME in 64-bit we add library_adjust.
-                                   // Which is correct?
+        newshdr->sh_addr = zstart;
      }
      else{
         newshdr->sh_addr = prevshdr->sh_addr+ prevshdr->sh_size;
@@ -1356,7 +1361,7 @@ bool emitElf::createLoadableSections(Symtab*obj, Elf32_Shdr* &shdr, unsigned &ex
         else {
            newdata->d_type = ELF_T_BYTE;
            newdata->d_align = 1;
-           dynStrData = newdata; // TODO this should probably work for libelf.so.1
+           dynStrData = newdata;
         }
         newshdr->sh_link = SHN_UNDEF;
         newshdr->sh_flags=  SHF_ALLOC;
@@ -1378,7 +1383,7 @@ bool emitElf::createLoadableSections(Symtab*obj, Elf32_Shdr* &shdr, unsigned &ex
         else {
            newdata->d_type = ELF_T_SYM;
            newdata->d_align = 4;
-           dynsymData = newdata; // TODO this should probably work for libelf.so.1
+           dynsymData = newdata;
         }
         newshdr->sh_link = secNames.size();   //.symtab section should have sh_link = index of .strtab for .dynsym
         newshdr->sh_flags = SHF_ALLOC ;

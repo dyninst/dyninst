@@ -37,6 +37,7 @@
 #include "emit-x86.h"
 #include "inst-x86.h"
 #include "binaryEdit.h"
+#include "image-func.h"
 
 bool AddressSpace::getDyninstRTLibName() {
    startup_printf("dyninstRT_name: %s\n", dyninstRT_name.c_str());
@@ -120,6 +121,7 @@ void print_regs(dyn_lwp *lwp)
 
 bool image::findGlobalConstructorFunc(const std::string &ctorHandler) {
     using namespace Dyninst::InstructionAPI;
+    using namespace Dyninst::SymtabAPI;
 
     vector<Function *> funcs;
     if( linkedFile->findFunctionsByName(funcs, ctorHandler) ) {
@@ -161,7 +163,6 @@ bool image::findGlobalConstructorFunc(const std::string &ctorHandler) {
             logLine("unable to create function for .init \n");
             return false;
         }else{
-            initStub->parse();
             inst_printf("%s[%d]: set _init function address to 0x%lx\n", FILE__, __LINE__,
                 initRegion->getRegionAddr());
         }
@@ -173,7 +174,8 @@ bool image::findGlobalConstructorFunc(const std::string &ctorHandler) {
     unsigned numCalls = 0;
     const unsigned char *p = reinterpret_cast<const unsigned char *>(initRegion->getPtrToRawData());
 
-    InstructionDecoder decoder(p, initRegion->getRegionSize(), getArch());
+    InstructionDecoder decoder(p, initRegion->getRegionSize(), 
+            codeObject()->cs()->getArch());
 
     Instruction::Ptr curInsn = decoder.decode();
     while(numCalls < 2 && curInsn && curInsn->isValid() &&
@@ -196,7 +198,8 @@ bool image::findGlobalConstructorFunc(const std::string &ctorHandler) {
 
     Address callAddress = initRegion->getRegionAddr() + bytesSeen;
 
-    RegisterAST thePC = RegisterAST(Dyninst::MachRegister::getPC(getArch()));
+    RegisterAST thePC = RegisterAST(Dyninst::MachRegister::getPC(
+                codeObject()->cs()->getArch()));
 
     Expression::Ptr callTarget = curInsn->getControlFlowTarget();
     if( !callTarget.get() ) {
@@ -214,7 +217,7 @@ bool image::findGlobalConstructorFunc(const std::string &ctorHandler) {
         return false;
     }
 
-    if( !ctorAddress || !isValidAddress(ctorAddress) ) {
+    if( !ctorAddress || !codeObject()->cs()->isValidAddress(ctorAddress) ) {
         logLine("invalid address for global constructor function\n");
         return false;
     }
@@ -232,6 +235,7 @@ bool image::findGlobalConstructorFunc(const std::string &ctorHandler) {
 
 bool image::findGlobalDestructorFunc(const std::string &dtorHandler) {
     using namespace Dyninst::InstructionAPI;
+    using namespace Dyninst::SymtabAPI;
 
     vector<Function *> funcs;
     if( linkedFile->findFunctionsByName(funcs, dtorHandler) ) {
@@ -277,7 +281,6 @@ bool image::findGlobalDestructorFunc(const std::string &dtorHandler) {
             logLine("unable to create function for .fini \n");
             return false;
         }else{
-            finiStub->parse();
             inst_printf("%s[%d]: set _fini function address to 0x%lx\n", FILE__, __LINE__,
                 finiRegion->getRegionAddr());
         }
@@ -288,7 +291,8 @@ bool image::findGlobalDestructorFunc(const std::string &dtorHandler) {
     unsigned bytesSeen = 0;
     const unsigned char *p = reinterpret_cast<const unsigned char *>(finiRegion->getPtrToRawData());
 
-    InstructionDecoder decoder(p, finiRegion->getRegionSize(), getArch());
+    InstructionDecoder decoder(p, finiRegion->getRegionSize(), 
+            codeObject()->cs()->getArch());
 
     Instruction::Ptr lastCall;
     Instruction::Ptr curInsn = decoder.decode();
@@ -312,7 +316,8 @@ bool image::findGlobalDestructorFunc(const std::string &dtorHandler) {
 
     Address callAddress = finiRegion->getRegionAddr() + bytesSeen;
 
-    RegisterAST thePC = RegisterAST(Dyninst::MachRegister::getPC(getArch()));
+    RegisterAST thePC = RegisterAST(Dyninst::MachRegister::getPC(
+                codeObject()->cs()->getArch()));
 
     Expression::Ptr callTarget = lastCall->getControlFlowTarget();
     if( !callTarget.get() ) {
@@ -330,7 +335,7 @@ bool image::findGlobalDestructorFunc(const std::string &dtorHandler) {
         return false;
     }
 
-    if( !dtorAddress || !isValidAddress(dtorAddress) ) {
+    if( !dtorAddress || !codeObject()->cs()->isValidAddress(dtorAddress) ) {
         logLine("invalid address for global destructor function\n");
         return false;
     }
