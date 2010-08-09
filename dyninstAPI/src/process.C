@@ -5812,12 +5812,12 @@ std::string process::getStatusAsString() const
 }
 
 bool process::uninstallMutations() {
-  assert(0);
+  //assert(0);
   return false;
 }
 
 bool process::reinstallMutations() {
-  assert(0);
+  //assert(0);
   return false;
 }
 

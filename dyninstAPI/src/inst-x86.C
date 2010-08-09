@@ -1374,6 +1374,9 @@ Register EmitterIA32::emitCall(opCode op,
     }
 
 
+    if (op != callOp) {
+      cerr << "ERROR: emitCall with op == " << op << endl;
+    }
     assert(op == callOp);
     pdvector <Register> srcs;
     int param_size;

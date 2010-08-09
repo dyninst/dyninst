@@ -50,10 +50,10 @@
 #include "parseAPI/src/InstrucIter.h"
 #endif //defined(cap_instruction_api)
 
-#include "r_CodeMover.h"
-#include "r_Springboard.h"
-#include "r_t_Include.h"
-#include "r_AddressMapper.h"
+#include "Relocation/CodeMover.h"
+#include "Relocation/Springboard.h"
+#include "Relocation/Transformers/Include.h"
+#include "Relocation/AddressMapper.h"
 
 // Implementations of non-virtual functions in the address space
 // class.
@@ -1537,6 +1537,7 @@ using namespace Dyninst;
 using namespace Relocation;
 
 bool AddressSpace::relocate() {
+  relocation_cerr << "ADDRSPACE::Relocate called!" << endl;
   bool ret = true;
   for (std::map<mapped_object *, FuncSet>::const_iterator iter = modifiedFunctions_.begin();
        iter != modifiedFunctions_.end(); ++iter) {
@@ -1603,7 +1604,7 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
 
 bool AddressSpace::transform(CodeMover::Ptr cm) {
   // Ensure each block ends with an appropriate CFElement
-  CFElementCreator c;
+  CFAtomCreator c;
   cm->transform(c);
 
   //cerr << "Applying PCSens transformer" << endl;
@@ -1618,6 +1619,8 @@ bool AddressSpace::transform(CodeMover::Ptr cm) {
   //cm->transform(m);
 
   // Insert whatever binary modifications are desired
+  // Right now needs to go before Instrumenters because we use
+  // instrumentation for function replacement.
   Modification mod(callReplacements_, functionReplacements_, callRemovals_);
   cm->transform(mod);
 

@@ -921,8 +921,9 @@ bool BPatch_process::finalizeInsertionSetInt(bool, bool *)
 {
   // Can't insert code when mutations are not active.
   bool shouldContinue = false;
-  if (!mutationsActive)
+  if (!mutationsActive) {
     return false;
+  }
   
   if (!isStoppedInt()) {
     stopExecutionInt();
@@ -936,6 +937,11 @@ bool BPatch_process::finalizeInsertionSetInt(bool, bool *)
   if (shouldContinue) 
     continueExecutionInt();
   
+  if (pendingInsertions) {
+    delete pendingInsertions;
+    pendingInsertions = NULL;
+  }
+
   return ret;
 }
 

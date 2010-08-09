@@ -1745,7 +1745,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\r_AddressMapper.C"
+				RelativePath=".\src\Relocation\AddressMapper.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -1766,7 +1766,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\r_CodeMover.C"
+				RelativePath=".\src\Relocation\CodeMover.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -1778,7 +1778,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\r_e_Base.C"
+				RelativePath=".\src\Relocation\Atoms\Atom.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -1790,7 +1790,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\r_e_ControlFlow.C"
+				RelativePath=".\src\Relocation\Atoms\CFAtom.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -1802,7 +1802,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\r_e_CopyInsn.C"
+				RelativePath=".\src\Relocation\Atoms\CopiedInsn.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -1814,7 +1814,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\r_e_GetPC.C"
+				RelativePath=".\src\Relocation\Atoms\GetPC.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -1826,7 +1826,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\r_e_Instrumentation.C"
+				RelativePath=".\src\Relocation\Atoms\Instrumentation.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -1838,7 +1838,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\r_e_MemoryEmulator.C"
+				RelativePath=".\src\Relocation\Atoms\MemoryEmulator.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -1850,7 +1850,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\r_e_RelData.C"
+				RelativePath=".\src\Relocation\Atoms\RelData.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -1862,7 +1862,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\r_Springboard.C"
+				RelativePath=".\src\Relocation\Springboard.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -1874,7 +1874,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\r_t_CF_Localization.C"
+				RelativePath=".\src\Relocation\Transformers\CF_Localization.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -1886,7 +1886,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\r_t_ControlFlow.C"
+				RelativePath=".\src\Relocation\Transformers\ControlFlow.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -1898,7 +1898,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\r_t_EmulateMemory.C"
+				RelativePath=".\src\Relocation\Transformers\EmulateMemory.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -1910,7 +1910,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\r_t_Instrumenter.C"
+				RelativePath=".\src\Relocation\Transformers\Instrumenter.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -1922,7 +1922,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\r_t_Movement-adhoc.C"
+				RelativePath=".\src\Relocation\Transformers\Movement-adhoc.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -1934,7 +1934,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\r_t_Movement-analysis.C"
+				RelativePath=".\src\Relocation\Transformers\Movement-analysis.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -2649,87 +2649,87 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\r_AddressMapper.h"
+				RelativePath=".\src\Relocation\AddressMapper.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\r_CodeMover.h"
+				RelativePath=".\src\Relocation\CodeMover.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\r_e_Base.h"
+				RelativePath=".\src\Relocation\Atoms\Atom.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\r_e_ControlFlow.h"
+				RelativePath=".\src\Relocation\Atoms\CFAtom.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\r_e_CopyInsn.h"
+				RelativePath=".\src\Relocation\Atoms\CopyInsn.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\r_e_GetPC.h"
+				RelativePath=".\src\Relocation\Atoms\GetPC.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\r_e_Include.h"
+				RelativePath=".\src\Relocation\Atoms\Include.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\r_e_Instrumentation.h"
+				RelativePath=".\src\Relocation\Atoms\Instrumentation.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\r_e_MemoryEmulator.h"
+				RelativePath=".\src\Relocation\Atoms\MemoryEmulator.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\r_e_RelData.h"
+				RelativePath=".\src\Relocation\Atoms\RelData.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\r_e_Target.h"
+				RelativePath=".\src\Relocation\Atoms\Target.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\r_Relocation.h"
+				RelativePath=".\src\Relocation\Relocation.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\r_Springboard.h"
+				RelativePath=".\src\Relocation\Springboard.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\r_t_Base.h"
+				RelativePath=".\src\Relocation\Transformers\Transformer.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\r_t_CF_Localization.h"
+				RelativePath=".\src\Relocation\Transformers\CF_Localization.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\r_t_ControlFlow.h"
+				RelativePath=".\src\Relocation\Transformers\ControlFlow.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\r_t_EmulateMemory.h"
+				RelativePath=".\src\Relocation\Transformers\EmulateMemory.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\r_t_Include.h"
+				RelativePath=".\src\Relocation\Transformers\Include.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\r_t_Instrumenter.h"
+				RelativePath=".\src\Relocation\Transformers\Instrumenter.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\r_t_Movement-adhoc.h"
+				RelativePath=".\src\Relocation\Transformers\Movement-adhoc.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\r_t_Movement-analysis.h"
+				RelativePath=".\src\Relocation\Transformers\Movement-analysis.h"
 				>
 			</File>
 			<File
