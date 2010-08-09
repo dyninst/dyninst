@@ -86,11 +86,11 @@ void testUnlock(testlock_t *lck) {
     LeaveCriticalSection(lck);
 }
 
-void initBarrier(testbarrier_t *, int) {
+void initBarrier(testbarrier_t *barrier, unsigned int count) {
     //TODO
 }
 
-void waitTestBarrier(testbarrier_t *) {
+void waitTestBarrier(testbarrier_t *barrier) {
     //TODO
 }
 
