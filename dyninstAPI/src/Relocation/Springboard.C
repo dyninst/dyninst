@@ -29,7 +29,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "Relocation/Springboard.h"
+#include "Springboard.h"
 #include "dyninstAPI/src/addressSpace.h"
 
 #include "dyninstAPI/src/function.h"

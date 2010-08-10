@@ -207,6 +207,27 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\Relocation\AddressMapper.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\addressSpace.C"
 				>
 				<FileConfiguration
@@ -243,6 +264,30 @@
 					<Tool
 						Name="VCCLCompilerTool"
 						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\Atoms\ASTAtom.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\Atoms\Atom.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
 						CompileAs="2"
 					/>
 				</FileConfiguration>
@@ -891,6 +936,30 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\Relocation\Transformers\CF_Localization.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\Atoms\CFAtom.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\codegen-x86.C"
 				>
 				<FileConfiguration
@@ -931,6 +1000,18 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\Relocation\CodeMover.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\codeRange.C"
 				>
 				<FileConfiguration
@@ -947,6 +1028,30 @@
 					<Tool
 						Name="VCCLCompilerTool"
 						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\Transformers\ControlFlow.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\Atoms\CopyInsn.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
 						CompileAs="2"
 					/>
 				</FileConfiguration>
@@ -1117,6 +1222,18 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\Relocation\Transformers\EmulateMemory.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\eventgate.C"
 				>
 				<FileConfiguration
@@ -1154,6 +1271,18 @@
 					<Tool
 						Name="VCCLCompilerTool"
 						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\Transformers\Fallthroughs.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
 						CompileAs="2"
 					/>
 				</FileConfiguration>
@@ -1216,6 +1345,18 @@
 					<Tool
 						Name="VCCLCompilerTool"
 						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\Atoms\GetPC.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
 						CompileAs="2"
 					/>
 				</FileConfiguration>
@@ -1464,6 +1605,30 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\Relocation\Atoms\Instrumentation.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\Transformers\Instrumenter.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath="..\common\src\List.C"
 				>
 				<FileConfiguration
@@ -1589,6 +1754,18 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\Relocation\Atoms\MemoryEmulator.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\miniTramp.C"
 				>
 				<FileConfiguration
@@ -1605,6 +1782,42 @@
 					<Tool
 						Name="VCCLCompilerTool"
 						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\Transformers\Modification.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\Transformers\Movement-adhoc.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\Transformers\Movement-analysis.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
 						CompileAs="2"
 					/>
 				</FileConfiguration>
@@ -1745,207 +1958,6 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\AddressMapper.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="true"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\CodeMover.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\Atoms\Atom.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\Atoms\CFAtom.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\Atoms\CopiedInsn.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\Atoms\GetPC.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\Atoms\Instrumentation.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\Atoms\MemoryEmulator.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\Atoms\RelData.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\Springboard.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\Transformers\CF_Localization.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\Transformers\ControlFlow.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\Transformers\EmulateMemory.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\Transformers\Instrumenter.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\Transformers\Movement-adhoc.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\Transformers\Movement-analysis.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath=".\src\RegisterConversion-x86.C"
 				>
 				<FileConfiguration
@@ -1979,6 +1991,18 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\Atoms\RelData.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -2130,6 +2154,18 @@
 					<Tool
 						Name="VCCLCompilerTool"
 						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\Springboard.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
 						CompileAs="2"
 					/>
 				</FileConfiguration>
@@ -2289,6 +2325,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\Relocation\AddressMapper.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\addressSpace.h"
 				>
 			</File>
@@ -2298,6 +2338,14 @@
 			</File>
 			<File
 				RelativePath=".\src\ast.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\Atoms\ASTAtom.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\Atoms\Atom.h"
 				>
 			</File>
 			<File
@@ -2449,6 +2497,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\Relocation\Transformers\CF_Localization.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\Atoms\CFAtom.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\clock.h"
 				>
 			</File>
@@ -2461,7 +2517,19 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\Relocation\CodeMover.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\codeRange.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\Transformers\ControlFlow.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\Atoms\CopyInsn.h"
 				>
 			</File>
 			<File
@@ -2513,11 +2581,19 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\Relocation\Transformers\EmulateMemory.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\eventgate.h"
 				>
 			</File>
 			<File
 				RelativePath=".\src\EventHandler.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\Transformers\Fallthroughs.h"
 				>
 			</File>
 			<File
@@ -2530,6 +2606,10 @@
 			</File>
 			<File
 				RelativePath=".\src\function.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\Atoms\GetPC.h"
 				>
 			</File>
 			<File
@@ -2546,6 +2626,14 @@
 			</File>
 			<File
 				RelativePath=".\src\imageUpdate.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\Transformers\Include.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\Atoms\Include.h"
 				>
 			</File>
 			<File
@@ -2581,6 +2669,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\Relocation\Atoms\Instrumentation.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\Transformers\Instrumenter.h"
+				>
+			</File>
+			<File
 				RelativePath="..\common\h\List.h"
 				>
 			</File>
@@ -2601,7 +2697,23 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\Relocation\Atoms\MemoryEmulator.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\miniTramp.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\Transformers\Modification.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\Transformers\Movement-adhoc.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\Transformers\Movement-analysis.h"
 				>
 			</File>
 			<File
@@ -2649,90 +2761,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\AddressMapper.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\CodeMover.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\Atoms\Atom.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\Atoms\CFAtom.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\Atoms\CopyInsn.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\Atoms\GetPC.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\Atoms\Include.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\Atoms\Instrumentation.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\Atoms\MemoryEmulator.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\Atoms\RelData.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\Atoms\Target.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\Relocation.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\Springboard.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\Transformers\Transformer.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\Transformers\CF_Localization.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\Transformers\ControlFlow.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\Transformers\EmulateMemory.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\Transformers\Include.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\Transformers\Instrumenter.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\Transformers\Movement-adhoc.h"
-				>
-			</File>
-			<File
-				RelativePath=".\src\Relocation\Transformers\Movement-analysis.h"
-				>
-			</File>
-			<File
 				RelativePath="..\common\h\refCounter.h"
 				>
 			</File>
@@ -2741,7 +2769,15 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\Relocation\Atoms\RelData.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\reloc-func.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\Relocation.h"
 				>
 			</File>
 			<File
@@ -2777,6 +2813,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\Relocation\Springboard.h"
+				>
+			</File>
+			<File
 				RelativePath="..\common\h\String.h"
 				>
 			</File>
@@ -2790,6 +2830,14 @@
 			</File>
 			<File
 				RelativePath=".\src\syscalltrap.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\Atoms\Target.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\Transformers\Transformer.h"
 				>
 			</File>
 			<File
