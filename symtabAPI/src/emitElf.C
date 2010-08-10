@@ -227,6 +227,8 @@ emitElf::emitElf(Elf_X &oldElfHandle_, bool isStripped_, Object *obj_, void (*er
   // 1) createNewPhdr (Total program headers + 1) - default
   //	(a) movePHdrsFirst
   //    (b) create new section called dynphdrs and change pointers (createNewPhdrRegion)
+  //    (c) library_adjust - create room for a new program header in a position-indepdent library 
+  //                         by increasing all virtual addresses for the library
   // 2) Use existing Phdr (used in bleugene - will be handled in function fixPhdrs)
   //    (a) replaceNOTE section - if NOTE exists
   //    (b) BSSExpandFlag - expand BSS section - default option
@@ -1026,7 +1028,6 @@ void emitElf::fixPhdrs(unsigned &extraAlignSize)
      // Expand the data segment to include the new loadable sections
      // Also add a executable permission to the segment
      if(old->p_type == PT_DYNAMIC){
-        newPhdr->p_type = PT_DYNAMIC;
 	newPhdr->p_vaddr = dynSegAddr;
 	newPhdr->p_paddr = dynSegAddr;
 	newPhdr->p_offset = dynSegOff;
@@ -1034,7 +1035,6 @@ void emitElf::fixPhdrs(unsigned &extraAlignSize)
 	newPhdr->p_filesz = newPhdr->p_memsz;
      }
      else if(old->p_type == PT_PHDR){
-        newPhdr->p_type = PT_PHDR;
      	if (movePHdrsFirst)
 	        newPhdr->p_vaddr = old->p_vaddr - pgSize;
 	else
@@ -1356,7 +1356,7 @@ bool emitElf::createLoadableSections(Symtab*obj, Elf32_Shdr* &shdr, unsigned &ex
         else {
            newdata->d_type = ELF_T_BYTE;
            newdata->d_align = 1;
-           dynStrData = newdata; // TODO this should probably work for libelf.so.1
+           dynStrData = newdata;
         }
         newshdr->sh_link = SHN_UNDEF;
         newshdr->sh_flags=  SHF_ALLOC;
@@ -1378,7 +1378,7 @@ bool emitElf::createLoadableSections(Symtab*obj, Elf32_Shdr* &shdr, unsigned &ex
         else {
            newdata->d_type = ELF_T_SYM;
            newdata->d_align = 4;
-           dynsymData = newdata; // TODO this should probably work for libelf.so.1
+           dynsymData = newdata;
         }
         newshdr->sh_link = secNames.size();   //.symtab section should have sh_link = index of .strtab for .dynsym
         newshdr->sh_flags = SHF_ALLOC ;
@@ -1996,7 +1996,7 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
     if(obj->findRegion(sec, ".dynamic")) {
         // Need to ensure that DT_REL and related fields added to .dynamic
         // The values of these fields will be set
-        if( !object->hasReldyn() ) {
+        if( !object->hasReldyn() && !object->hasReladyn() ) {
             if( object->getRelType() == Region::RT_REL ) {
                 new_dynamic_entries.push_back(make_pair(DT_REL,0));
                 new_dynamic_entries.push_back(make_pair(DT_RELSZ,0));
