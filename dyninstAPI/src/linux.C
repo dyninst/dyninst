@@ -1410,7 +1410,8 @@ int_function *instPoint::findCallee()
       return NULL;
    }
 
-   assert(img_p_);
+   if (img_p_ == NULL) return NULL;
+
    image_func *icallee = img_p_->getCallee(); 
    if (icallee && !icallee->isPLTFunction()) {
      callee_ = proc()->findFuncByInternalFunc(icallee);
