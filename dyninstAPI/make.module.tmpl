@@ -207,16 +207,16 @@ all: $(TARGET) $(EXTRA_LIBS)
     
 BPatch_templates.o: ../src/BPatch_templates.C
 	@echo "Building $<"
-	@$(CXX) $(TFLAGS) -c ../src/BPatch_templates.C
+	$(HIDE_COMP)$(CXX) $(TFLAGS) -c ../src/BPatch_templates.C
 
 templates0.o: ../src/templates0.C
 	@echo "Building $<"
-	@$(CXX) $(TFLAGS) -c ../src/templates0.C
+	$(HIDE_COMP)$(CXX) $(TFLAGS) -c ../src/templates0.C
 
 templates1.o: ../src/templates1.C
 	@echo "Building $<"
-	@$(CXX) $(TFLAGS) -c ../src/templates1.C
+	$(HIDE_COMP)$(CXX) $(TFLAGS) -c ../src/templates1.C
 
 templates2.o: ../src/templates2.C
 	@echo "Building $<"
-	@$(CXX) $(TFLAGS) -c ../src/templates2.C
+	$(HIDE_COMP)$(CXX) $(TFLAGS) -c ../src/templates2.C

@@ -1765,6 +1765,8 @@ int_function *instPoint::findCallee() {
       return NULL;
    }
 
+   if( img_p_ == NULL ) return NULL;
+
    assert(img_p_);
    image_func *icallee = img_p_->getCallee(); 
    if (icallee && !icallee->isPLTFunction()) {
