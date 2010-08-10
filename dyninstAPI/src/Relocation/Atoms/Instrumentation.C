@@ -29,9 +29,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "Relocation/Atoms/Instrumentation.h"
-#include "baseTramp.h"
-#include "debug.h"
+#include "Instrumentation.h"
+#include "dyninstAPI/src/baseTramp.h"
+#include "dyninstAPI/src/debug.h"
 
 using namespace Dyninst;
 using namespace Relocation;

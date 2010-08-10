@@ -32,10 +32,10 @@
 #if !defined (_R_E_GET_PC_H_)
 #define _R_E_GET_PC_H_
 
-#include "Relocation/Atoms/Atom.h"
+#include "Atom.h"
 
 // Define where the PC value is supposed to go
-#include "Absloc.h"
+#include "dataflowAPI/h/Absloc.h"
 
 namespace Dyninst {
 namespace Relocation {

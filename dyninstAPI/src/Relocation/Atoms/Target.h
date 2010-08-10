@@ -32,7 +32,7 @@
 #if !defined (_R_E_TARGET_H_)
 #define _R_E_TARGET_H_
 
-#include "Relocation/Atoms/Atom.h"
+#include "Atom.h"
 
 namespace Dyninst {
 namespace Relocation {
@@ -109,7 +109,7 @@ template <>
 
   virtual string format() const { 
     stringstream ret;
-    ret << "B{" << t_->id() << "/" << (necessary() ? "T" : "S") << "}";
+    ret << "B{" << t_->id() << "" << (necessary() ? "T" : "S") << "}";
     return ret.str();
   }
 

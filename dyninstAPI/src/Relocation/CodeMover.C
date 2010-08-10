@@ -29,16 +29,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "Relocation/Relocation.h"
-#include "Relocation/CodeMover.h"
-#include "Relocation/Atoms/Atom.h"
+#include "Relocation.h"
+#include "CodeMover.h"
+#include "Atoms/Atom.h"
 
-#include "function.h" // bblInstance, int_basicTrace, int_function...
+#include "dyninstAPI/src/function.h" // bblInstance, int_basicTrace, int_function...
 
-#include "InstructionDecoder.h" // for debug
-#include "addressSpace.h" // Also for debug
+#include "instructionAPI/h/InstructionDecoder.h" // for debug
+#include "dyninstAPI/src/addressSpace.h" // Also for debug
 
-#include "debug.h"
+#include "dyninstAPI/src/debug.h"
 
 using namespace std;
 using namespace Dyninst;

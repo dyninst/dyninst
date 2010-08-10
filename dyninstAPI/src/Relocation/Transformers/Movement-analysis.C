@@ -31,18 +31,18 @@
 
 
 
-#include "Relocation/Transformers/Transformer.h"
-#include "Relocation/Transformers/Movement-analysis.h"
-#include "debug.h"
-#include "Relocation/Atoms/Atom.h"
-#include "function.h"
-#include "Relocation/Atoms/CFAtom.h"
-#include "Relocation/Atoms/GetPC.h"
+#include "Transformer.h"
+#include "Movement-analysis.h"
+#include "dyninstAPI/src/debug.h"
+#include "../Atoms/Atom.h"
+#include "dyninstAPI/src/function.h"
+#include "../Atoms/CFAtom.h"
+#include "../Atoms/GetPC.h"
 #include "dataflowAPI/h/stackanalysis.h"
-#include "addressSpace.h"
-#include "Symtab.h" 
-#include "mapped_object.h"
-#include "InstructionDecoder.h"
+#include "dyninstAPI/src/addressSpace.h"
+#include "symtabAPI/h/Symtab.h" 
+#include "dyninstAPI/src/mapped_object.h"
+#include "instructionAPI/h/InstructionDecoder.h"
 
 #include "dataflowAPI/h/slicing.h"
 

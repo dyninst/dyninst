@@ -32,7 +32,7 @@
 #if !defined(_R_T_INSTRUMENTER_H_)
 #define _R_T_INSTRUMENTER_H_
 
-#include "Relocation/Transformers/Transformer.h"
+#include "Transformer.h"
 
 namespace Dyninst {
 namespace Relocation {

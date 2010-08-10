@@ -29,11 +29,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "Relocation/Atoms/GetPC.h"
-#include "Instruction.h"
-#include "addressSpace.h" // For determining which type of getPC to emit
-#include "RegisterConversion-x86.h"
-#include "debug.h"
+#include "GetPC.h"
+#include "instructionAPI/h/Instruction.h"
+#include "dyninstAPI/src/addressSpace.h" // For determining which type of getPC to emit
+#include "dyninstAPI/src/RegisterConversion-x86.h"
+#include "dyninstAPI/src/debug.h"
 
 using namespace Dyninst;
 using namespace Relocation;
@@ -115,12 +115,12 @@ string GetPC::format() const {
   stringstream ret;
   ret << "GetPC(" 
       << std::hex << addr_ << std::dec;
-  ret << "/" << a_.format();
+  ret << "" << a_.format();
   return ret.str();
 }
 
-#include "registerSpace.h"
-#include "inst-x86.h"
+#include "dyninstAPI/src/registerSpace.h"
+#include "dyninstAPI/src/inst-x86.h"
 
 bool IPPatch::apply(codeGen &gen, int, int) {
   relocation_cerr << "\t\t IPPatch::apply" << endl;

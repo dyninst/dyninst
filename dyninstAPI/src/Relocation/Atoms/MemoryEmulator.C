@@ -29,11 +29,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "Relocation/Atoms/MemoryEmulator.h"
+#include "MemoryEmulator.h"
 
-#include "Relocation/Atoms/Atom.h"
-#include "Relocation/Atoms/Target.h"
-#include "Relocation/Atoms/CFAtom.h" // CFPatch
+#include "Atom.h"
+#include "Target.h"
+#include "CFAtom.h" // CFPatch
 
 // For our horribly horked memory effective address system
 // Which I'm not fixing here. 
@@ -41,14 +41,14 @@
 #include "dyninstAPI/h/BPatch_addressSpace.h" // bpatch_address... you get the picture
 
 // Memory hackitude
-#include "emit-x86.h"
-#include "inst-x86.h"
+#include "dyninstAPI/src/emit-x86.h"
+#include "dyninstAPI/src/inst-x86.h"
 
-#include "Instruction.h"
-#include "addressSpace.h"
+#include "instructionAPI/h/Instruction.h"
+#include "dyninstAPI/src/addressSpace.h"
 
-#include "debug.h"
-#include "registerSpace.h"
+#include "dyninstAPI/src/debug.h"
+#include "dyninstAPI/src/registerSpace.h"
 
 using namespace Dyninst;
 using namespace Relocation;
@@ -229,7 +229,7 @@ bool MemEmulator::allocRegisters(codeGen &gen) {
   
   return true;
 }
-#include "RegisterConversion-x86.h"
+#include "dyninstAPI/src/RegisterConversion-x86.h"
 
 bool MemEmulator::calcWriteSet(pdvector<Register> &excluded, bool writesRAX) {
   // Mostly stolen from liveness.C
