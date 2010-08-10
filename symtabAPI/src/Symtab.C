@@ -1081,13 +1081,14 @@ Module *Symtab::newModule(const std::string &name, const Offset addr, supportedL
     return (ret);
 }
 
-Symtab::Symtab(std::string filename,bool &err) :
+Symtab::Symtab(std::string filename, bool defensive_bin, bool &err) :
    member_offset_(0),
    is_a_out(false), 
    main_call_addr_(0),
    nativeCompiler(false), 
    isLineInfoValid_(false), 
    isTypeInfoValid_(false),
+   isDefensiveBinary_(defensive_bin),
    obj_private(NULL),
    _ref_cnt(1)
 {
@@ -1130,13 +1131,15 @@ Symtab::Symtab(std::string filename,bool &err) :
    defaultNamespacePrefix = "";
 }
 
-Symtab::Symtab(char *mem_image, size_t image_size, bool &err) :
+Symtab::Symtab(char *mem_image, size_t image_size, 
+               bool defensive_bin, bool &err) :
    member_offset_(0),
    is_a_out(false), 
    main_call_addr_(0),
    nativeCompiler(false),
    isLineInfoValid_(false),
    isTypeInfoValid_(false),
+   isDefensiveBinary_(defensive_bin),
    obj_private(NULL),
    _ref_cnt(1)
 {
@@ -1315,10 +1318,8 @@ bool Symtab::extractInfo(Object *linkedFile)
         if ( regions_[index]->isLoadable() ) 
         {
            if (     (regions_[index]->getRegionPermissions() == Region::RP_RX) 
-// KEVINTODO: find a better solution for this
-#if defined(_MSC_VER) // added this to deal with obfuscated programs (e.g. aspack)
-                 || (regions_[index]->getRegionPermissions() == Region::RP_RW)
-#endif
+                 || (isDefensiveBinary_ && 
+                     regions_[index]->getRegionPermissions() == Region::RP_RW)
                  || (regions_[index]->getRegionPermissions() == Region::RP_RWX)) 
            {
               codeRegions_.push_back(regions_[index]);
@@ -1510,6 +1511,7 @@ Symtab::Symtab(const Symtab& obj) :
     imageLen_ = obj.imageLen_;
     dataOffset_ = obj.dataOffset_;
     dataLen_ = obj.dataLen_;
+    isDefensiveBinary_ = obj.isDefensiveBinary_;
 
    isLineInfoValid_ = obj.isLineInfoValid_;
    isTypeInfoValid_ = obj.isTypeInfoValid_;
@@ -1891,7 +1893,7 @@ Symtab *Symtab::importBin(std::string file)
 }
 
 
-bool Symtab::openFile(Symtab *&obj, char *mem_image, size_t size)
+bool Symtab::openFile(Symtab *&obj, char *mem_image, size_t size, bool def_bin)
 {
    bool err = false;
 #if defined(TIMED_PARSE)
@@ -1899,7 +1901,7 @@ bool Symtab::openFile(Symtab *&obj, char *mem_image, size_t size)
    gettimeofday(&starttime, NULL);
 #endif
 
-   obj = new Symtab(mem_image, size, err);
+   obj = new Symtab(mem_image, size, err, def_bin);
 
 #if defined(TIMED_PARSE)
     struct timeval endtime;
@@ -1963,7 +1965,7 @@ Symtab *Symtab::findOpenSymtab(std::string filename)
 	return NULL;
 }
 
-bool Symtab::openFile(Symtab *&obj, std::string filename)
+bool Symtab::openFile(Symtab *&obj, std::string filename, bool def_binary)
 {
    bool err = false;
 #if defined(TIMED_PARSE)
@@ -2009,7 +2011,7 @@ bool Symtab::openFile(Symtab *&obj, std::string filename)
 #endif
 #endif
 
-   obj = new Symtab(filename, err);
+   obj = new Symtab(filename, def_binary, err);
 
 #if defined(TIMED_PARSE)
    struct timeval endtime;
@@ -3613,6 +3615,11 @@ SYMTAB_EXPORT Address Symtab::getLoadAddress()
 #else
    return 0x0;
 #endif
+}
+
+SYMTAB_EXPORT bool Symtab::isDefensiveBinary() const
+{
+    return isDefensiveBinary_;
 }
 
 SYMTAB_EXPORT bool Symtab::canBeShared()

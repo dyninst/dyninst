@@ -439,6 +439,7 @@ void image::findMain()
        vector <Symbol *>syms;
        vector<SymtabAPI::Function *> funcs;
        Address eAddr = linkedFile->getEntryOffset();
+       Region *eReg = linkedFile->findEnclosingRegion(eAddr);
        
        bool found_main = false;
        for (unsigned i=0; i<NUMBER_OF_MAIN_POSSIBILITIES; i++) {
@@ -457,7 +458,7 @@ void image::findMain()
                                               Symbol::SV_DEFAULT, 
                                               eAddr ,
                                               linkedFile->getDefaultModule(),
-                                              NULL,
+                                              eReg,
                                               UINT_MAX );
                linkedFile->addSymbol(startSym);
            }
@@ -470,20 +471,21 @@ void image::findMain()
                                           Symbol::SV_DEFAULT, 
                                           imageOffset_,
                                           linkedFile->getDefaultModule(),
-                                          NULL, 
+                                          linkedFile->findEnclosingRegion(imageOffset_), 
                                           UINT_MAX );
                linkedFile->addSymbol(sSym);
            }
            syms.clear();
            if(!linkedFile->findSymbol(syms,"winFini",Symbol::ST_UNKNOWN, SymtabAPI::mangledName)) {
                //make up one for the end of the text section
+               Address end_text = imageOffset_ + linkedFile->imageLength() - 1;
                Symbol *fSym = new Symbol( "winFini", 
                                           Symbol::ST_FUNCTION,
                                           Symbol::SL_GLOBAL, 
                                           Symbol::SV_DEFAULT, 
-                                          imageOffset_ + linkedFile->imageLength() - 1, 
+                                          end_text, 
                                           linkedFile->getDefaultModule(),
-                                          NULL, 
+                                          linkedFile->findEnclosingRegion(end_text),
                                           UINT_MAX );
                linkedFile->addSymbol(fSym);
            }
@@ -496,7 +498,8 @@ void image::findMain()
                                             Symbol::SL_GLOBAL, 
                                             Symbol::SV_DEFAULT,
                                             eAddr,
-                                            linkedFile->getDefaultModule()));
+                                            linkedFile->getDefaultModule(),
+                                            eReg));
        }
    }
 #endif
@@ -1169,7 +1172,7 @@ image::image(fileDescriptor &desc,
       else
       {
          startup_printf("%s[%d]:  opening file (not archive)\n", FILE__, __LINE__);
-         if (!SymtabAPI::Symtab::openFile(linkedFile, file)) 
+         if (!SymtabAPI::Symtab::openFile(linkedFile, file, BPatch_defensiveMode == mode)) 
          {
             startup_printf("%s[%d]:  opening file (not archive) failed\n", FILE__, __LINE__);
             err = true;
@@ -1201,7 +1204,7 @@ image::image(fileDescriptor &desc,
    string file = desc_.file().c_str();
    if( desc_.member().empty() ) {
        startup_printf("%s[%d]:  opening file %s\n", FILE__, __LINE__, file.c_str());
-       if( !SymtabAPI::Symtab::openFile(linkedFile, file) ) {
+       if( !SymtabAPI::Symtab::openFile(linkedFile, file, BPatch_defensiveMode == mode) ) {
            err = true;
            return;
        }
@@ -1223,9 +1226,12 @@ image::image(fileDescriptor &desc,
    string file = desc_.file();
    startup_printf("%s[%d]:  opening file %s\n", FILE__, __LINE__, file.c_str());
    if(desc.rawPtr()) {
-       linkedFile = new SymtabAPI::Symtab((char*)desc.rawPtr(), desc.length(), err);
+       linkedFile = new SymtabAPI::Symtab((char*)desc.rawPtr(), 
+                                          desc.length(), 
+                                          BPatch_defensiveMode == mode, 
+                                          err);
    } 
-   else if(!SymtabAPI::Symtab::openFile(linkedFile, file)) 
+   else if(!SymtabAPI::Symtab::openFile(linkedFile, file, BPatch_defensiveMode == mode)) 
    {
       err = true;
       return;
@@ -1275,6 +1281,10 @@ image::image(fileDescriptor &desc,
       return;
    }
 
+   //Now add Main and Dynamic Symbols if they are not present
+   startup_printf("%s[%d]:  before findMain\n", FILE__, __LINE__);
+   findMain();
+
    // Initialize ParseAPI 
    SymtabCodeSource::hint_filt * filt = NULL;
 
@@ -1314,10 +1324,6 @@ image::image(fileDescriptor &desc,
    msg = string("Parsing object file: ") + desc.file();
 
    statusLine(msg.c_str());
-
-   //Now add Main and Dynamic Symbols if they are not present
-   startup_printf("%s[%d]:  before findMain\n", FILE__, __LINE__);
-   findMain();
 
    // look for `main' or something similar to recognize a.outs
    startup_printf("%s[%d]:  before determineImageType\n", FILE__, __LINE__);

@@ -47,7 +47,7 @@ int df_debug_stackanalysis = 0;
 int df_debug_convert = 0;
 int df_debug_expand = 0;
 
-bool symeval_init_debug() {
+bool df_init_debug() {
   static bool init = false;
   if (init) return true;
   init = true;
