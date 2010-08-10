@@ -505,7 +505,6 @@ bool linux_process::plat_create_int()
    {
       //Child
       long int result = ptrace((pt_req) PTRACE_TRACEME, 0, 0, 0);
-      unsigned i;
       if (result == -1)
       {
          pthrd_printf("Failed to execute a PTRACE_TRACME.  Odd.\n");

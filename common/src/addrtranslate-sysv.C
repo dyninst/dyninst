@@ -159,6 +159,7 @@ r_debug_dyn<r_debug_X>::r_debug_dyn(ProcessReader *proc_, Address addr)
 {
    valid = proc->ReadMem(addr, &debug_elm, sizeof(debug_elm));
 
+   translate_printf("[%s:%u] - r_debug_dyn valid = %d\n", __FILE__, __LINE__, valid?1:0);
    translate_printf("[%s:%u] -     Read rdebug structure.  Values were:\n", __FILE__, __LINE__);
    translate_printf("[%s:%u] -       r_brk:    %lx\n", __FILE__, __LINE__, (unsigned long)debug_elm.r_brk);
    translate_printf("[%s:%u] -       r_map:    %lx\n", __FILE__, __LINE__, (unsigned long)debug_elm.r_map);
@@ -492,6 +493,10 @@ bool AddressTranslateSysV::parseDTDebug() {
 
     if( r_debug_addr ) {
         trap_addr = getTrapAddrFromRdebug();
+        if( trap_addr == 0 ) {
+            reader->done();
+            return false;
+        }
     }
 
     reader->done();
@@ -524,7 +529,22 @@ bool AddressTranslateSysV::parseInterpreter() {
     if (interpreter) {
         if( interpreter->get_r_debug() ) {
             r_debug_addr = interpreter->get_r_debug() + interpreter_base;
+
+            if( !reader->start() ) {
+                translate_printf("[%s:%u] - Failed to initialize process reader\n", __FILE__, __LINE__);
+                return false;
+            }
+
             trap_addr = getTrapAddrFromRdebug();
+
+            if( !reader->done() ) {
+                translate_printf("[%s:%u] - Failed to finalize process reader\n", __FILE__, __LINE__);
+                return false;
+            }
+
+            if( trap_addr == 0 ) {
+                trap_addr = interpreter->get_r_trap() + interpreter_base;
+            }
         }else{
             r_debug_addr = 0;
             trap_addr = interpreter->get_r_trap() + interpreter_base;
@@ -549,7 +569,7 @@ bool AddressTranslateSysV::init() {
        }
    }
 
-   translate_printf("[%s:%u] - trap_addr = 0x%x, r_debug_addr = 0x%x\n", __FILE__, __LINE__, trap_addr, r_debug_addr);
+   translate_printf("[%s:%u] - trap_addr = 0x%lx, r_debug_addr = 0x%lx\n", __FILE__, __LINE__, trap_addr, r_debug_addr);
    translate_printf("[%s:%u] - Done with AddressTranslateSysV::init()\n", __FILE__, __LINE__);
 
    return true;
@@ -583,12 +603,18 @@ Address AddressTranslateSysV::getTrapAddrFromRdebug() {
             translate_printf("[%s:%u] - Failed to parse r_debug struct.\n", __FILE__, __LINE__);
             return 0;
         }
+        if( !r_debug_native->is_valid() ) {
+            return 0;
+        }
         retVal = (Address) r_debug_native->r_brk();
         delete r_debug_native;
     }else{
         r_debug_dyn<r_debug_dyn32> *r_debug_32 = new r_debug_dyn<r_debug_dyn32>(reader, r_debug_addr);
         if( !r_debug_32 ) {
             translate_printf("[%s:%u] - Failed to parse r_debug struct.\n", __FILE__, __LINE__);
+            return 0;
+        }
+        if( !r_debug_32->is_valid() ) {
             return 0;
         }
         retVal = (Address) r_debug_32->r_brk();
@@ -834,7 +860,7 @@ void FCNode::parsefile()
          parse_error = true;
       }
       r_debug_offset = symreader->getSymbolOffset(r_debug_sym);
-#else
+#endif
       r_trap_offset = 0;
       for(unsigned i = 0; i < NUM_DBG_BREAK_NAMES; ++i) {
           Symbol_t r_trap_sym = symreader->getSymbolByName(dbg_break_names[i]);
@@ -849,7 +875,6 @@ void FCNode::parsefile()
                   __FILE__, __LINE__, filename.c_str());
           parse_error = true;
       }
-#endif
    }
 
    addr_size = symreader->getAddressWidth();   
