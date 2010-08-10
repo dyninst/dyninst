@@ -44,13 +44,27 @@ using namespace Dyninst;
 using namespace Relocation;
 using namespace InstructionAPI;
 
+bool MemEmulatorTransformer::preprocess(TraceList &t) {
+  // For each Register create a translator object
+  for (Register i = REGNUM_EAX; i <= REGNUM_EDI; ++i) {
+    createTranslator(i);
+    t.push_back(translators_[i]);
+  }
+
+  MemEmulator::initTranslators(translators_);
+
+  return true;
+}
 
 // Replace all memory accesses to a non-statically-determinable
 // location with an emulation sequence
 bool MemEmulatorTransformer::processTrace(TraceList::iterator &iter) {
+  if (!((*iter)->bbl())) return true;
+
   // AssignmentConverter is written in terms of image_func,
   // so translate
   int_function *func = (*iter)->bbl()->func();
+  
 
   AtomList &elements = (*iter)->elements();
   
@@ -69,46 +83,6 @@ bool MemEmulatorTransformer::processTrace(TraceList::iterator &iter) {
       //cerr << "\t\t Can't rewrite " << reloc->insn()->format() << endl;
       continue;
     }
-
-#if defined(MEM_DEBUG)
-    static int count = 1 ;
-
-
-    // Quick binary search to figure out where we're horkin'
-
-    bool in_range = false;
-
-    // 25000
-    // 0..12500 works
-    // 12501..18000 breaks
-    // 12501..15000 works
-    // 15001..16500 breaks
-    // 15001..15800 breaks
-    // 15001..15400 breaks
-    // 15001..15200 works
-    // 15201..15300 breaks
-    // 15201..15250 works
-    // 15251..15275 breaks
-    // 15251..15267 breaks
-    // 15251..15259 breaks
-    // 51..54 breaks
-    // 51..52 works
-    // 53..54 segfault
-    
-
-    //if ((count >= 1) && (count <= 4)) in_range = true;
-
-    //if (!in_range) continue;
-
-    
-    /*
-      cerr << "Creating replacement for insn @ " 
-      << std::hex << reloc->addr() << std::dec 
-      << " count " << count << endl;
-
-    count++;
-    */
-#endif
 
     Atom::Ptr replacement = createReplacement(reloc, func);
     if (!replacement) return false;
@@ -159,8 +133,9 @@ Atom::Ptr MemEmulatorTransformer::createReplacement(CopyInsn::Ptr reloc,
   
   // Replace this instruction with a MemEmulator
   Atom::Ptr memE = MemEmulator::create(reloc->insn(),
-					  reloc->addr(),
-					  point);
+				       reloc->addr(),
+				       point);
+  
   return memE;
 }
 
@@ -195,4 +170,10 @@ bool MemEmulatorTransformer::isSensitive(CopyInsn::Ptr reloc,
 
   return false;
 }
+
+void MemEmulatorTransformer::createTranslator(Register r) {
+  Atom::Ptr translator = MemEmulatorTranslator::create(r);
+  Trace::Ptr newTrace = Trace::create(translator);
+  translators_[r] = newTrace;
+};
 

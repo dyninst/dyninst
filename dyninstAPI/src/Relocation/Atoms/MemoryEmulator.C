@@ -31,6 +31,10 @@
 
 #include "Relocation/Atoms/MemoryEmulator.h"
 
+#include "Relocation/Atoms/Atom.h"
+#include "Relocation/Atoms/Target.h"
+#include "Relocation/Atoms/CFAtom.h" // CFPatch
+
 // For our horribly horked memory effective address system
 // Which I'm not fixing here. 
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
@@ -50,14 +54,22 @@ using namespace Dyninst;
 using namespace Relocation;
 using namespace InstructionAPI;
 
+MemEmulator::TranslatorMap MemEmulator::translators_;
+
 MemEmulator::Ptr MemEmulator::create(Instruction::Ptr insn,
 				     Address addr,
 				     instPoint *point) {
-  return Ptr(new MemEmulator(insn, addr, point, 0x600000));
+  MemEmulator::Ptr ptr = MemEmulator::Ptr(new MemEmulator(insn, addr, point));
+  return ptr;
+}
+
+void MemEmulator::initTranslators(TranslatorMap &t) {
+  // Keep a copy so we don't have smart pointer issues.
+  translators_ = t;
 }
 
 bool MemEmulator::generate(Trace &,  GenStack &gens) {
-  codeGen &gen = gens();
+  codeGen &prepatch = gens();
 
   // We want to ensure that a memory operation produces its
   // original result in the face of overwriting the text
@@ -97,61 +109,46 @@ bool MemEmulator::generate(Trace &,  GenStack &gens) {
 		  << std::hex << addr_
 		  << std::dec << endl;
 
-  if (!initialize(gen)) return false;
+  if (!initialize(prepatch)) return false;
 
-  if (!checkLiveFlags(gen)) return false;
+  if (!checkLiveFlags(prepatch)) return false;
 
-  if (!allocRegisters(gen)) {
+  if (!allocRegisters(prepatch)) {
     /*
     cerr << "Warning: failed to emulate memory insn @ " 
 	 << std::hex << addr_ << std::dec
 	 << ", no dead registers" << endl;
     */
-    gen.copy(insn_->ptr(), insn_->size());
+    prepatch.copy(insn_->ptr(), insn_->size());
     return true;
   }
     
-  if (!computeEffectiveAddress(gen)) {
+  if (!computeEffectiveAddress(prepatch)) {
     cerr << "Error: failed to compute eff. addr. of memory operation!" << endl;
     return false;
   }
 
-  if (!saveFlags(gen)) { 
+  if (!saveFlags(prepatch)) { 
     cerr << "Error failed to save live flags!" << endl;
   }
 
-  vector<codeBufIndex_t> donePatches;
-  vector<codeBufIndex_t> origPatches;
-  vector<codeBufIndex_t> textPatches;
-  vector<codeBufIndex_t> comparePatches;
-  vector<codeBufIndex_t> instPatches;
+#if 0
+  assert(translators_[effAddr_]);
+  // Call the appropriate translator for our particular effective address.
+  TargetInt *targ = new Target<Trace::Ptr>(translators_[effAddr_]);
+  CFPatch *patch = new CFPatch(CFPatch::Call,
+			       Instruction::Ptr(),
+			       targ);
+  gens.addPatch(patch);
+#endif
+  
+  DecisionTree dt(effAddr_);
+  dt.generate(prepatch);
 
-  codeBufIndex_t compare = gen.getIndex();
-  // Go into the loooooong chain of compares and branches
+  codeGen &postpatch = gens();
+  restoreFlags(postpatch);
 
-  origPatches.push_back(generateCompare(gen, gen.addrSpace()->heapBase()));
-  instPatches.push_back(generateCompare(gen, gen.addrSpace()->instBase()));
-  origPatches.push_back(generateCompare(gen, gen.addrSpace()->dataBase()));
-  textPatches.push_back(generateCompare(gen, gen.addrSpace()->textBase()));
-  origPatches.push_back(generateSkip(gen));
-
-  codeBufIndex_t instAccess = generateInst(gen);
-  origPatches.push_back(generateSkip(gen));
-  codeBufIndex_t textAccess = generateText(gen);
-
-
-
-  codeBufIndex_t origAccess = generateOrig(gen);
-
-  codeBufIndex_t done = gen.getIndex();
-
-  generateJumps(gen, done, donePatches);
-  generateJumps(gen, compare, comparePatches);
-  generateJCC(gen, origAccess, origPatches);
-  generateJCC(gen, textAccess, textPatches);
-  generateJCC(gen, instAccess, instPatches);
-
-  gen.setIndex(done);
+  generateOrigAccess(postpatch);
 
   return true;
 }
@@ -302,101 +299,6 @@ bool MemEmulator::saveFlags(codeGen &gen) {
   return true;
 }
 
-codeBufIndex_t MemEmulator::generateSkip(codeGen &gen) {
-  // A short branch
-  GET_PTR(jumpBuf, gen);
-  *jumpBuf++ = 0xEB;
-  SET_PTR(jumpBuf, gen);
-  REGET_PTR(jumpBuf, gen);
-  codeBufIndex_t ret = gen.getIndex();
-  *jumpBuf++ = 0x0;
-  SET_PTR(jumpBuf, gen);
-  return ret;
-}
-
-codeBufIndex_t MemEmulator::generateOrig(codeGen &gen) {
-  codeBufIndex_t ret = gen.getIndex();
-  restoreFlags(gen);
-  generateOrigAccess(gen);
-  return ret;
-}  
-
-codeBufIndex_t MemEmulator::generateText(codeGen &gen) {
-  // We want to add a constant to the register holding the effective
-  // address...
-  codeBufIndex_t ret = gen.getIndex();
-  /*  
-  emitLEA(RealRegister(effAddr_), 
-	  RealRegister(Null_Register), 
-	  0, 
-	  0x0000, 
-	  RealRegister(effAddr_), 
-	  gen);
-  */
-  return ret;
-}
-
-codeBufIndex_t MemEmulator::generateInst(codeGen &gen) {
-  codeBufIndex_t ret = gen.getIndex();
-  // We want to zero out whichever register we're using
-  // for the effective address so that derefing it will
-  // result in a SEGV. Do so with an xor. 
-  // The 9* is actually (effAddr_ + 8*effAddr_)
-   /*
-     unsigned char modrm = 0xC0 + 9*effAddr_;
-     
-     GET_PTR(buf, gen);
-     *buf++ = 0x31;
-     *buf++ = modrm;
-     SET_PTR(buf, gen);
-   */
-   return ret;
-}
-
-// Generate a <compare, jcc> sequence, returning the
-// codeBufIndex_t of the jcc's destination. 
-
-codeBufIndex_t MemEmulator::generateCompare(codeGen &gen, Address comp) {
-
-if (gen.addrSpace()->getAddressWidth() == 8) {
-#if defined(arch_x86_64)
-	emitOpRegImm64(0x81, EXTENDED_0x81_CMP, 
-		   effAddr_, comp, 
-		   true, gen);
-#endif
-  }
-  else {
-    emitOpExtRegImm(0x81, EXTENDED_0x81_CMP,
-		    RealRegister(effAddr_), comp, 
-		    gen);
-  }
-
-  GET_PTR(jumpBuf, gen);
-  *jumpBuf++ = 0x73;
-  SET_PTR(jumpBuf, gen);
-  REGET_PTR(jumpBuf, gen);
-  codeBufIndex_t ret = gen.getIndex();
-  *jumpBuf++ = 0x0;
-  SET_PTR(jumpBuf, gen);
-  return ret;
-}
-
-void MemEmulator::generateJumps(codeGen &gen,
-				codeBufIndex_t target,
-				vector<codeBufIndex_t> &sources) {
-  for (unsigned i = 0; i < sources.size(); ++i) {
-    gen.setIndex(sources[i]);
-    GET_PTR(jumpBuf, gen);
-    *jumpBuf = gen.getDisplacement(sources[i], target) - 1;
-  }
-}
-
-void MemEmulator::generateJCC(codeGen &gen,
-			      codeBufIndex_t target,
-			      vector<codeBufIndex_t> &sources) {
-  generateJumps(gen, target, sources);
-}
-
 bool MemEmulator::restoreFlags(codeGen &gen) {
   if (saveFlags_ == false) return true;
 
@@ -485,4 +387,156 @@ string MemEmulator::format() const {
   return ret.str();
 }
 
+
+
+//////////////////////////////////////////////////////////
+
+MemEmulatorTranslator::Ptr MemEmulatorTranslator::create(Register r) {
+  return Ptr(new MemEmulatorTranslator(r));
+}
+
+bool MemEmulatorTranslator::generate(Trace &, GenStack &gens) {
+  DecisionTree dt(reg_);
+  codeGen &gen = gens();
+
+  dt.generate(gen);
+
+  generateReturn(gen);
+
+  return true;
+}
+
+string MemEmulatorTranslator::format() const { 
+  stringstream ret;
+  ret << "MemE[T](" << reg_ << ")";
+  return ret.str();
+}
+
+bool MemEmulatorTranslator::generateReturn(codeGen &gen) { 
+  GET_PTR(insn, gen);
+  *insn++ = 0xc3; // return
+  SET_PTR(insn, gen);
+  return true;
+}
+
+////////////////////////////////
+
+bool DecisionTree::generate(codeGen &gen) {
+  vector<codeBufIndex_t> origPatches;
+  vector<codeBufIndex_t> textPatches;
+  vector<codeBufIndex_t> instPatches;
+
+  origPatches.push_back(generateCompare(gen, gen.addrSpace()->heapBase()));
+  instPatches.push_back(generateCompare(gen, gen.addrSpace()->instBase()));
+  origPatches.push_back(generateCompare(gen, gen.addrSpace()->dataBase()));
+  textPatches.push_back(generateCompare(gen, gen.addrSpace()->textBase()));
+  origPatches.push_back(generateSkip(gen));
+
+  codeBufIndex_t instShift = generateInst(gen);
+  origPatches.push_back(generateSkip(gen));
+  codeBufIndex_t textShift = generateText(gen);
+
+  codeBufIndex_t origShift = gen.getIndex();
+
+  generateJCC(gen, origShift, origPatches);
+  generateJCC(gen, textShift, textPatches);
+  generateJCC(gen, instShift, instPatches);
+  gen.setIndex(origShift);
+
+  return true;
+}
+
+
+codeBufIndex_t DecisionTree::generateSkip(codeGen &gen) {
+  // A short branch
+  GET_PTR(jumpBuf, gen);
+  *jumpBuf++ = 0xEB;
+  SET_PTR(jumpBuf, gen);
+  REGET_PTR(jumpBuf, gen);
+  codeBufIndex_t ret = gen.getIndex();
+  *jumpBuf++ = 0x0;
+  SET_PTR(jumpBuf, gen);
+  return ret;
+}
+
+codeBufIndex_t DecisionTree::generateOrig(codeGen &gen) {
+  codeBufIndex_t ret = gen.getIndex();
+  return ret;
+}  
+
+codeBufIndex_t DecisionTree::generateText(codeGen &gen) {
+  // We want to add a constant to the register holding the effective
+  // address...
+  codeBufIndex_t ret = gen.getIndex();
+  /*  
+  emitLEA(RealRegister(effAddr_), 
+	  RealRegister(Null_Register), 
+	  0, 
+	  0x0000, 
+	  RealRegister(effAddr_), 
+	  gen);
+  */
+  return ret;
+}
+
+codeBufIndex_t DecisionTree::generateInst(codeGen &gen) {
+  codeBufIndex_t ret = gen.getIndex();
+  // We want to zero out whichever register we're using
+  // for the effective address so that derefing it will
+  // result in a SEGV. Do so with an xor. 
+  // The 9* is actually (effAddr_ + 8*effAddr_)
+   /*
+     unsigned char modrm = 0xC0 + 9*effAddr_;
+     
+     GET_PTR(buf, gen);
+     *buf++ = 0x31;
+     *buf++ = modrm;
+     SET_PTR(buf, gen);
+   */
+   return ret;
+}
+
+// Generate a <compare, jcc> sequence, returning the
+// codeBufIndex_t of the jcc's destination. 
+
+codeBufIndex_t DecisionTree::generateCompare(codeGen &gen, Address comp) {
+
+if (gen.addrSpace()->getAddressWidth() == 8) {
+#if defined(arch_x86_64)
+	emitOpRegImm64(0x81, EXTENDED_0x81_CMP, 
+		   effAddr_, comp, 
+		   true, gen);
+#endif
+  }
+  else {
+    emitOpExtRegImm(0x81, EXTENDED_0x81_CMP,
+		    RealRegister(effAddr_), comp, 
+		    gen);
+  }
+
+  GET_PTR(jumpBuf, gen);
+  *jumpBuf++ = 0x73;
+  SET_PTR(jumpBuf, gen);
+  REGET_PTR(jumpBuf, gen);
+  codeBufIndex_t ret = gen.getIndex();
+  *jumpBuf++ = 0x0;
+  SET_PTR(jumpBuf, gen);
+  return ret;
+}
+
+void DecisionTree::generateJumps(codeGen &gen,
+				codeBufIndex_t target,
+				vector<codeBufIndex_t> &sources) {
+  for (unsigned i = 0; i < sources.size(); ++i) {
+    gen.setIndex(sources[i]);
+    GET_PTR(jumpBuf, gen);
+    *jumpBuf = gen.getDisplacement(sources[i], target) - 1;
+  }
+}
+
+void DecisionTree::generateJCC(codeGen &gen,
+			      codeBufIndex_t target,
+			      vector<codeBufIndex_t> &sources) {
+  generateJumps(gen, target, sources);
+}
 

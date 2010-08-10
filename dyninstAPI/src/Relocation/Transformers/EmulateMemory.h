@@ -39,13 +39,15 @@
 namespace Dyninst {
 namespace Relocation {
 
-  class CopyInsn;
+class CopyInsn;
 
 class MemEmulatorTransformer : public Transformer {
   typedef dyn_detail::boost::shared_ptr<CopyInsn> CopyInsnPtr;
-
  public:
-  
+  typedef std::map<Register, TracePtr> TranslatorMap;
+
+  virtual bool preprocess(TraceList &);
+
   virtual bool processTrace(TraceList::iterator &);
 
  MemEmulatorTransformer() :
@@ -63,6 +65,10 @@ class MemEmulatorTransformer : public Transformer {
 
   bool isSensitive(CopyInsnPtr reloc, 
 		   int_function *func);
+
+  void createTranslator(Register r);
+
+  TranslatorMap translators_;
 
   AssignmentConverter aConverter;
 

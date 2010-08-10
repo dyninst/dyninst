@@ -142,9 +142,12 @@ class Trace {
   // Creation via a known bblInstance
   static Ptr create(bblInstance *inst);
 
-  // Creation via a single AtomTramp;
+  // Creation via a single baseTramp;
   static Ptr create(baseTramp *base);
   
+  // Creation via a single Atom
+  static Ptr create(Atom::Ptr atom);
+
   // Generate code for this block
   // Return: whether generation was successful
   // gen: a codeGen object (AKA wrapper for all sorts
@@ -187,13 +190,15 @@ class Trace {
     bbl_(bbl),
     iteration_(0),
     id_(TraceID++) {};
- Trace(baseTramp *) :
+ Trace(Atom::Ptr a) :
   curAddr_(0),
     size_(0), // Should estimate here
     origAddr_(0), // No original address...
     bbl_(NULL),
     iteration_(0),
-    id_(TraceID++) {};
+    id_(TraceID++) { 
+    elements_.push_back(a);
+  };
 
 
   typedef std::pair<InstructionAPI::Instruction::Ptr, Address> InsnInstance;

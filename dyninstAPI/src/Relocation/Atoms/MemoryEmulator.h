@@ -34,16 +34,46 @@
 
 #include "Relocation/Atoms/Atom.h"
 
+
 namespace Dyninst {
 namespace Relocation {
 
+class MemEmulatorTranslator;
+
+struct DecisionTree {
+  Register effAddr_;
+
+DecisionTree(Register a) : effAddr_(a) {};
+  
+  bool generate(codeGen &gen);
+
+  codeBufIndex_t generateSkip(codeGen &gen);
+  codeBufIndex_t generateOrig(codeGen &gen);
+  codeBufIndex_t generateInst(codeGen &gen);
+  codeBufIndex_t generateText(codeGen &gen);
+  
+  codeBufIndex_t generateCompare(codeGen &gen, Address comp);
+  void generateJumps(codeGen &gen,
+		     codeBufIndex_t target, 
+		     vector<codeBufIndex_t> &sources);
+  void generateJCC(codeGen &gen, 
+		   codeBufIndex_t target, 
+		   vector<codeBufIndex_t> &sources);
+  
+};
+
 class MemEmulator : public Atom {
+  friend class MemEmulatorTranslator;
+  typedef std::map<Register, TracePtr> TranslatorMap;
  public:
    typedef dyn_detail::boost::shared_ptr<MemEmulator> Ptr;
    
    static Ptr create(InstructionAPI::Instruction::Ptr insn,
 		     Address addr,
 		     instPoint *point);
+
+   static void initTranslators(TranslatorMap &t); 
+
    virtual bool generate(Trace &, GenStack &);
    virtual ~MemEmulator() {};
    virtual std::string format() const;
@@ -51,12 +81,13 @@ class MemEmulator : public Atom {
    virtual Address addr() const { return addr_; }
    virtual unsigned size() const { return insn_->size(); }
 
+   Register effAddr() const { return effAddr_; }
+
  private:
    // TODO the compare should be a functor of some sort
    MemEmulator(InstructionAPI::Instruction::Ptr insn,
 	       Address addr,
-	       instPoint *point,
-	       Address compare) :
+	       instPoint *point) :
    insn_(insn), 
      addr_(addr),
      point_(point),
@@ -67,8 +98,7 @@ class MemEmulator : public Atom {
      saveRAX_(false),
      RAXWritten_(false),
      RAXSave_(Null_Register),
-     flagSave_(Null_Register),
-     compare_(compare)
+     flagSave_(Null_Register)
      {};
 
    bool initialize(codeGen &gen);
@@ -82,19 +112,6 @@ class MemEmulator : public Atom {
    bool computeEffectiveAddress(codeGen &gen);
 
    bool saveFlags(codeGen &gen);
-
-   codeBufIndex_t generateSkip(codeGen &gen);
-   codeBufIndex_t generateOrig(codeGen &gen);
-   codeBufIndex_t generateInst(codeGen &gen);
-   codeBufIndex_t generateText(codeGen &gen);
-
-   codeBufIndex_t generateCompare(codeGen &gen, Address comp);
-   void generateJumps(codeGen &gen,
-		      codeBufIndex_t target, 
-		      vector<codeBufIndex_t> &sources);
-   void generateJCC(codeGen &gen, 
-		    codeBufIndex_t target, 
-		    vector<codeBufIndex_t> &sources);
 
 
    bool restoreFlags(codeGen &gen);
@@ -124,8 +141,28 @@ class MemEmulator : public Atom {
    Register RAXSave_;
 
    Register flagSave_;
-   Address compare_;
+
+   static TranslatorMap translators_;
 };
+
+// A utility class that packages up the stream of compare/branch/arithmetic
+// used above. This lets us outline the code.
+class MemEmulatorTranslator : public Atom {
+ public:
+    typedef dyn_detail::boost::shared_ptr<MemEmulatorTranslator> Ptr;
+    static Ptr create(Register r);
+    virtual bool generate(Trace &, GenStack &);
+    virtual ~MemEmulatorTranslator() {};
+    virtual std::string format() const;
+    
+  private:
+  MemEmulatorTranslator(Register r) : reg_(r) {};
+
+    bool generateReturn(codeGen &gen);
+
+    Register reg_;
+};
+
 
 };
 };

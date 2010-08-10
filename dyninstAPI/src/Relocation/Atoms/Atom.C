@@ -112,12 +112,16 @@ Trace::Ptr Trace::create(baseTramp *base) {
   if (!inst) return Ptr();
   inst->addBaseTramp(base);
 
-  Ptr newTrace = Ptr(new Trace(base));
+  Ptr newTrace = Ptr(new Trace(inst));
 
-  newTrace->elements_.push_back(inst);
   return newTrace;
 }
   
+Trace::Ptr Trace::create(Atom::Ptr a) {
+  if (!a) return Ptr();
+  Ptr newTrace = Ptr(new Trace(a));
+  return newTrace;
+}
 
 // Returns false only on catastrophic failure.
 
