@@ -37,11 +37,11 @@
 #include "common/h/Types.h"
 #include <list>
 #include <map>
-#include "dyninstAPI/src/codegen.h" // codeGen structure
+#include "codegen.h" // codeGen structure
 
-#include "Transformers/Transformer.h"
+#include "Relocation/Transformers/Transformer.h"
 
-#include "Springboard.h"
+#include "Relocation/Springboard.h"
 
 class int_function;
 class int_basicTrace;

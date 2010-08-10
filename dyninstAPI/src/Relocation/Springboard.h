@@ -36,7 +36,7 @@
 #include <map>
 #include "common/h/IntervalTree.h"
 #include "dynutil/h/dyntypes.h"
-#include "Transformers/Transformer.h" // Priority enum
+#include "Relocation/Transformers/Transformer.h" // Priority enum
 
 class AddressSpace;
 

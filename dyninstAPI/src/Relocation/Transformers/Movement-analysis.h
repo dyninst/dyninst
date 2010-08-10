@@ -32,14 +32,14 @@
 #if !defined(_R_T_MOVEMENT_ANALYSIS_H_)
 #define _R_T_MOVEMENT_ANALYSIS_H_
 
-#include "Transformer.h"
-#include "dyninstAPI/src/LinearVariable.h"
+#include "Relocation/Transformers/Transformer.h"
+#include "LinearVariable.h"
 
-#include "dataflowAPI/h/Absloc.h" // MemEmulator analysis
-#include "dataflowAPI/h/AbslocInterface.h" // And more of the same
+#include "Absloc.h" // MemEmulator analysis
+#include "AbslocInterface.h" // And more of the same
 
-#include "dynutil/h/Graph.h" // PC-sensitive transformer
-#include "dataflowAPI/h/SymEval.h" // Variable class
+#include "Graph.h" // PC-sensitive transformer
+#include "SymEval.h" // Variable class
 
 namespace Dyninst {
 

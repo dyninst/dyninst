@@ -32,7 +32,7 @@
 #if !defined (_R_E_AST_H_)
 #define _R_E_AST_H_
 
-#include "Atom.h"
+#include "Relocation/Atoms/Atom.h"
 
 class AstNode;
 typedef dyn_detail::boost::shared_ptr<AstNode> AstNodePtr;

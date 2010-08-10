@@ -32,9 +32,9 @@
 #if !defined(_R_T_EMULATE_MEMORY_H_)
 #define _R_T_EMULATE_MEMORY_H_
 
-#include "Transformer.h"
-#include "dataflowAPI/h/Absloc.h" // MemEmulator analysis
-#include "dataflowAPI/h/AbslocInterface.h" // And more of the same
+#include "Relocation/Transformers/Transformer.h"
+#include "Absloc.h" // MemEmulator analysis
+#include "AbslocInterface.h" // And more of the same
 
 namespace Dyninst {
 namespace Relocation {

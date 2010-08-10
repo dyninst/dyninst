@@ -32,7 +32,7 @@
 #if !defined(_R_T_CONTROL_FLOW_H_)
 #define _R_T_CONTROL_FLOW_H_
 
-#include "Transformer.h"
+#include "Relocation/Transformers/Transformer.h"
 
 namespace Dyninst {
 namespace Relocation {

@@ -32,7 +32,7 @@
 #if !defined(_R_T_CF_LOCALIZATION_H_)
 #define _R_T_CF_LOCALIZATION_H_
 
-#include "Transformer.h"
+#include "Relocation/Transformers/Transformer.h"
 
 class int_function;
 class bblInstance; 

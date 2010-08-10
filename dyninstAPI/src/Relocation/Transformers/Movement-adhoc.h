@@ -33,9 +33,9 @@
 #define _R_T_MOVEMENT_ADHOC_H_
 
 
-#include "Transformer.h"
+#include "Relocation/Transformers/Transformer.h"
 
-#include "dataflowAPI/h/Absloc.h" // MemEmulator analysis
+#include "Absloc.h" // MemEmulator analysis
 
 
 namespace Dyninst {

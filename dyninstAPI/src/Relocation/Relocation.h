@@ -40,7 +40,7 @@
 #include "common/h/Types.h"
 #include <list>
 #include <map>
-#include "dyninstAPI/src/codegen.h" // codeGen structure
+#include "codegen.h" // codeGen structure
 
 namespace Dyninst {
 namespace Relocation {

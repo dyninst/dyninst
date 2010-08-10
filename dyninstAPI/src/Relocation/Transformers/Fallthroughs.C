@@ -29,12 +29,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "Transformer.h"
-#include "Fallthroughs.h"
-#include "dyninstAPI/src/debug.h"
-#include "../Atoms/Target.h"
-#include "../Atoms/Atom.h"
-#include "../Atoms/CFAtom.h"
+#include "Relocation/Transformers/Transformer.h"
+#include "Relocation/Transformers/Fallthroughs.h"
+#include "debug.h"
+#include "Relocation/Atoms/Target.h"
+#include "Relocation/Atoms/Atom.h"
+#include "Relocation/Atoms/CFAtom.h"
 
 using namespace std;
 using namespace Dyninst;

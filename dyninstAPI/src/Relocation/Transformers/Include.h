@@ -31,12 +31,12 @@
 
 // Convenience header file so we don't have to pull in each one individually.
 
-#include "Transformer.h"
-#include "Movement-adhoc.h"
-#include "ControlFlow.h"
-#include "Instrumenter.h"
-#include "CF_Localization.h"
-#include "EmulateMemory.h"
-#include "Movement-analysis.h"
-#include "Fallthroughs.h"
-#include "Modification.h"
+#include "Relocation/Transformers/Transformer.h"
+#include "Relocation/Transformers/Movement-adhoc.h"
+#include "Relocation/Transformers/ControlFlow.h"
+#include "Relocation/Transformers/Instrumenter.h"
+#include "Relocation/Transformers/CF_Localization.h"
+#include "Relocation/Transformers/EmulateMemory.h"
+#include "Relocation/Transformers/Movement-analysis.h"
+#include "Relocation/Transformers/Fallthroughs.h"
+#include "Relocation/Transformers/Modification.h"

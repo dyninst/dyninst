@@ -29,14 +29,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "CFAtom.h"
-#include "Atom.h"
-#include "Target.h"
+#include "Relocation/Atoms/CFAtom.h"
+#include "Relocation/Atoms/Atom.h"
+#include "Relocation/Atoms/Target.h"
 
-#include "instructionAPI/h/Instruction.h"
+#include "Instruction.h"
 
 
-#include "dyninstAPI/src/debug.h"
+#include "debug.h"
 
 using namespace Dyninst;
 using namespace Relocation;

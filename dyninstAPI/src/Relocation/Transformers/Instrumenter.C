@@ -31,15 +31,15 @@
 
 
 
-#include "Transformer.h"
-#include "Instrumenter.h"
-#include "dyninstAPI/src/debug.h"
-#include "../Atoms/Atom.h"
-#include "../Atoms/Target.h"
-#include "dyninstAPI/src/instPoint.h"
-#include "dyninstAPI/src/baseTramp.h"
-#include "../Atoms/Instrumentation.h"
-#include "../Atoms/CFAtom.h"
+#include "Relocation/Transformers/Transformer.h"
+#include "Relocation/Transformers/Instrumenter.h"
+#include "debug.h"
+#include "Relocation/Atoms/Atom.h"
+#include "Relocation/Atoms/Target.h"
+#include "instPoint.h"
+#include "baseTramp.h"
+#include "Relocation/Atoms/Instrumentation.h"
+#include "Relocation/Atoms/CFAtom.h"
 
 using namespace std;
 using namespace Dyninst;

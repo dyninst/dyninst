@@ -29,8 +29,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "CopyInsn.h"
-#include "instructionAPI/h/Instruction.h"
+#include "Relocation/Atoms/CopyInsn.h"
+#include "Instruction.h"
 
 using namespace Dyninst;
 using namespace Relocation;

@@ -32,7 +32,7 @@
 #if !defined (_R_E_CONTROL_FLOW_H_)
 #define _R_E_CONTROL_FLOW_H_
 
-#include "Atom.h"
+#include "Relocation/Atoms/Atom.h"
 
 namespace Dyninst {
 namespace Relocation {

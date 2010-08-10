@@ -31,12 +31,12 @@
 
 
 
-#include "Transformer.h"
-#include "CF_Localization.h"
-#include "dyninstAPI/src/debug.h"
-#include "../Atoms/Atom.h"
-#include "../Atoms/Target.h"
-#include "../Atoms/CFAtom.h"
+#include "Relocation/Transformers/Transformer.h"
+#include "Relocation/Transformers/CF_Localization.h"
+#include "debug.h"
+#include "Relocation/Atoms/Atom.h"
+#include "Relocation/Atoms/Target.h"
+#include "Relocation/Atoms/CFAtom.h"
 
 
 using namespace std;

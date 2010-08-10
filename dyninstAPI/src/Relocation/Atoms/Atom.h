@@ -34,13 +34,13 @@
 
 #include "dyn_detail/boost/shared_ptr.hpp" // shared_ptr
 #include "common/h/Types.h" // Address
-#include "dyninstAPI/src/codegen.h" // codeGen
-#include "instructionAPI/h/Instruction.h" // Instruction::Ptr
+#include "codegen.h" // codeGen
+#include "Instruction.h" // Instruction::Ptr
 
 #include <list> // stl::list
 #include "dyninstAPI/src/function.h" // bblInstance
 
-#include "../AddressMapper.h"
+#include "Relocation/AddressMapper.h"
 
 class baseTramp;
 class bblInstance;

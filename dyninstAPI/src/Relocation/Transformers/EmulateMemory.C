@@ -31,13 +31,13 @@
 
 
 
-#include "Transformer.h"
-#include "EmulateMemory.h"
-#include "dyninstAPI/src/debug.h"
-#include "../Atoms/Atom.h"
-#include "../Atoms/CopyInsn.h"
-#include "../Atoms/MemoryEmulator.h"
-#include "dyninstAPI/src/instPoint.h" // Memory insn modelling requirement.
+#include "Relocation/Transformers/Transformer.h"
+#include "Relocation/Transformers/EmulateMemory.h"
+#include "debug.h"
+#include "Relocation/Atoms/Atom.h"
+#include "Relocation/Atoms/CopyInsn.h"
+#include "Relocation/Atoms/MemoryEmulator.h"
+#include "instPoint.h" // Memory insn modelling requirement.
 
 using namespace std;
 using namespace Dyninst;

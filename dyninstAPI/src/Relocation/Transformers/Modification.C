@@ -29,16 +29,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "Transformer.h"
-#include "Modification.h"
-#include "dyninstAPI/src/debug.h"
-#include "../Atoms/Target.h"
-#include "../Atoms/Atom.h"
-#include "../Atoms/CFAtom.h"
-#include "../Atoms/ASTAtom.h"
-#include "../Atoms/Instrumentation.h"
-#include "dyninstAPI/src/instPoint.h"
-#include "dyninstAPI/src/function.h"
+#include "Relocation/Transformers/Transformer.h"
+#include "Relocation/Transformers/Modification.h"
+#include "debug.h"
+#include "Relocation/Atoms/Target.h"
+#include "Relocation/Atoms/Atom.h"
+#include "Relocation/Atoms/CFAtom.h"
+#include "Relocation/Atoms/ASTAtom.h"
+#include "Relocation/Atoms/Instrumentation.h"
+#include "instPoint.h"
+#include "function.h"
 
 using namespace std;
 using namespace Dyninst;
