@@ -595,9 +595,11 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
             relocationEntry localRel(to, referring->getMangledName(), referring,
                     relocationEntry::getGlobalRelType(getAddressWidth()));
 
+            /*
             if( mobj->isSharedLib() ) {
                 localRel.setRelAddr(to - mobj->imageOffset());
             }
+            */
 
             symObj->addExternalSymbolReference(referring, newSec, localRel);
 
