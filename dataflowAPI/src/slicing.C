@@ -83,7 +83,7 @@ Slicer::Slicer(Assignment::Ptr a,
   b_(block),
   f_(func),
   converter(true) {
-  init_debug();
+  df_init_debug();
 };
 
 Graph::Ptr Slicer::forwardSlice(Predicates &predicates) {

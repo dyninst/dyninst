@@ -1919,7 +1919,7 @@ bool emitElf64::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
               }
           }
 
-          if( emitElfUtils::updateHeapVariables(obj, lastRegionAddr + lastRegionSize) ) {
+          if( !emitElfUtils::updateHeapVariables(obj, lastRegionAddr + lastRegionSize) ) {
               return false;
           }
       }
