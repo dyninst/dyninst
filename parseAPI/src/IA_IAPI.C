@@ -469,7 +469,7 @@ bool IA_IAPI::simulateJump() const
     // obfuscated programs simulate jumps by calling into a block that 
     // discards the return address from the stack, we check for these
     // fake calls in malware mode
-    if (_obj->defensiveMode()) {
+    if (_obj->defensiveMode() && !isDynamicCall()) {
         return isFakeCall();
     }
     // TODO: we don't simulate jumps on x86 architectures; add logic as we need it.                

@@ -1165,29 +1165,35 @@ bool IA_IAPI::isFakeCall() const
 {
     assert(_obj->defensiveMode());
 
-    // get instruction at entry of new func
+    if (isDynamicCall()) {
+        return false;
+    }
+
+    // get func entry
     bool tampers = false;
     Address entry = getCFT();
     if ( ! _cr->contains(entry) || ! _isrc->isCode(entry) ) {
-        mal_printf("WARNING: found call to function at %lx that "
-                "redirects to invalid address %lx %s[%d]\n", current, 
-                entry, FILE__,__LINE__);
+        mal_printf("WARNING: found function call at %lx "
+                   "to invalid address %lx %s[%d]\n", current, 
+                   entry, FILE__,__LINE__);
         return false;
     }
+
+    // get instruction at func entry
     const unsigned char* bufPtr =
      (const unsigned char *)(_isrc->getPtrToInstruction(entry));
     InstructionDecoder newdec( bufPtr,
                               _isrc->offset() + _isrc->length() - entry,
                               _cr->getArch() );
-    IA_IAPI ah(newdec, entry, _obj, _cr, _isrc);
-    Instruction::Ptr insn = ah.curInsn();
+    IA_IAPI * ah = new IA_IAPI(newdec, entry, _obj, _cr, _isrc);
+    Instruction::Ptr insn = ah->curInsn();
 
     // follow ctrl transfers until you get a block containing non-ctrl 
     // transfer instructions, or hit a return instruction
     while (insn->getCategory() == c_CallInsn ||
            insn->getCategory() == c_BranchInsn) 
     {
-        Address entry = ah.getCFT();
+        Address entry = ah->getCFT();
         if ( ! _cr->contains(entry) || ! _isrc->isCode(entry) ) {
             mal_printf("WARNING: found call to function at %lx that "
                     "redirects to invalid address %lx %s[%d]\n", current, 
@@ -1198,8 +1204,9 @@ bool IA_IAPI::isFakeCall() const
         newdec = InstructionDecoder(bufPtr, 
                                     _isrc->offset() + _isrc->length() - entry, 
                                     _cr->getArch());
-        ah = IA_IAPI(newdec, entry, _obj, _cr, _isrc);
-        insn = ah.curInsn();
+        delete ah;
+        ah = new IA_IAPI(newdec, entry, _obj, _cr, _isrc);
+        insn = ah->curInsn();
     }
 
     // calculate instruction stack deltas for the block, leaving the iterator
@@ -1230,11 +1237,12 @@ bool IA_IAPI::isFakeCall() const
             case e_push:
                 sign = -1;
             case e_pop: {
-                Operand arg = insn->getOperand(0);
-                if (arg.getValue()->eval().defined) {
-                    stackDelta += sign * addrWidth;
-                } else {
-                    assert(0);
+                int size = insn->getOperand(0).getValue()->size();
+                stackDelta += sign * size;
+                if (1 == sign) {
+                    mal_printf("pop ins'n at %lx in func at %lx changes sp "
+                               "by %d. %s[%d]\n", ah->getAddr(), entry,
+                               sign * size, FILE__, __LINE__);
                 }
                 break;
             }
@@ -1243,24 +1251,67 @@ bool IA_IAPI::isFakeCall() const
                 sign = -1;
             case e_popa:
             case e_popad:
+                if (1 == sign) {
+                    mal_printf("popad ins'n at %lx in func at %lx changes sp "
+                               "by %d. %s[%d]\n", ah->getAddr(), 
+                               entry, 8 * sign * addrWidth, FILE__, __LINE__);
+                }
                 stackDelta += sign * 8 * addrWidth;
                 break;
-
             case e_pushf:
             case e_pushfd:
                 sign = -1;
             case e_popf:
             case e_popfd:
                 stackDelta += sign * 4;
+                if (1 == sign) {
+                    mal_printf("popf ins'n at %lx in func at %lx changes sp "
+                               "by %d. %s[%d]\n", ah->getAddr(), entry, 
+                               sign * 4, FILE__, __LINE__);
+                }
                 break;
-
-            case e_leave:
             case e_enter:
-                fprintf(stderr, "WARNING: saw leave or enter instruction "
-                        "at %lx that is not handled by isFakeCall %s[%d]\n",
-                        curAddr, FILE__,__LINE__);//KEVINTODO: unhandled case
-            default:
-                assert(0);//what stack-writing instruction is this?
+                //mal_printf("Saw enter instruction at %lx in isFakeCall, "
+                //           "quitting early, assuming not fake "
+                //           "%s[%d]\n",curAddr, FILE__,__LINE__);
+                //KEVIN: unhandled case, but not essential for correct analysis
+                return false;
+                break;
+            case e_leave:
+                mal_printf("WARNING: saw leave instruction "
+                           "at %lx that is not handled by isFakeCall %s[%d]\n",
+                           curAddr, FILE__,__LINE__);
+                //KEVIN: unhandled, not essential for correct analysis, would
+                // be a red flag if there wasn't an enter ins'n first and 
+                // we didn't end in a return instruction
+                break;
+            case e_sub:
+                //mal_printf("Saw subtract from stack ptr at %lx in "
+                //           "isFakeCall, quitting early, assuming not fake "
+                //           "%s[%d]\n",curAddr, FILE__,__LINE__);
+                //KEVIN: unhandled case, but not essential for correct analysis
+                return false;
+                break;
+            case e_add: 
+            default: {
+                fprintf(stderr,"WARNING: in isFakeCall non-push/pop "
+                        "ins'n at %lx (in first block of function at "
+                        "%lx) modifies the sp by an unknown amount. "
+                        "%s[%d]\n", ah->getAddr(), entry, 
+                        FILE__, __LINE__);
+                //std::set<Expression::Ptr> writes;
+                //insn->getMemoryWriteOperands(writes);
+                //set<Expression::Ptr>::iterator wit;
+                //for (wit = writes.begin(); wit != writes.end; wit++) {
+                //    if (wit->assignsSP())
+                //        if (wit->eval().defined) {
+                //            break;
+                //        } 
+                //    }
+                //}
+                assert(0); // what stack-altering instruction is this?
+                break;
+            } // end default block
             }
         }
 
@@ -1269,8 +1320,8 @@ bool IA_IAPI::isFakeCall() const
         }
 
         // exit condition 2
-        ah.advance();
-        Instruction::Ptr next = ah.curInsn();
+        ah->advance();
+        Instruction::Ptr next = ah->curInsn();
         if (NULL == next) {
             break;
         }
