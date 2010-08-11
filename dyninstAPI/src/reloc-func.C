@@ -31,26 +31,30 @@
  
 // $Id: reloc-func.C,v 1.41 2008/09/08 16:44:05 bernat Exp $
 
-
-
 #include "common/h/Types.h"
+
 #include "function.h"
 #include "process.h"
+
 #include "debug.h"
 #include "codeRange.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/multiTramp.h"
 #if defined(cap_instruction_api)
-#include "dyninstAPI/src/arch.h"
+#include "common/h/arch.h"
 #include "instructionAPI/h/InstructionDecoder.h"
 #include "instructionAPI/h/Instruction.h"
 #else
-#include "dyninstAPI/src/InstrucIter.h"
+#include "parseAPI/src/InstrucIter.h"
 #endif
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/patch.h"
+
+#include "arch-forward-decl.h" // instruction
+
+#include "dyn_detail/boost/make_shared.hpp"
+
 class int_basicBlock;
-class instruction;
 
 // We'll also try to limit this to relocation-capable platforms
 // in the Makefile. Just in case, though....
@@ -258,7 +262,7 @@ bool int_function::relocBlocks(Address baseInMutatee,
    // This builds the codeGen member of the bblInstance
    bool success = true;
    for (unsigned i = 0; i < newInstances.size(); i++) {
-      reloc_printf("... relocating block %d\n", blockList[i]->id());
+      reloc_printf("... relocating block %d\n", newInstances[i]->block()->id());
       // Hand in the physical successor block
       if (i < (newInstances.size() - 1))
           success &= newInstances[i]->generate(newInstances[i+1]);
@@ -273,7 +277,6 @@ bool int_function::relocBlocks(Address baseInMutatee,
 bool int_function::relocationGenerateInt(pdvector<funcMod *> &mods, 
                                       int sourceVersion,
                                       pdvector<int_function *> &needReloc) {
-    unsigned i;
 
     if(!canBeRelocated()) {
         return false;
@@ -303,12 +306,14 @@ bool int_function::relocationGenerateInt(pdvector<funcMod *> &mods,
 
     // Make the basic block instances; they're placeholders for now.
     pdvector<bblInstance *> newInstances;
-    for (i = 0; i < blockList.size(); i++) {
-        reloc_printf("Block %d, creating instance...\n", i);
-        bblInstance *newInstance = new bblInstance(blockList[i], generatedVersion_);
+    set< int_basicBlock* , int_basicBlock::compare >::iterator bIter;
+    for (bIter = blockList.begin(); bIter != blockList.end(); bIter++) {
+        reloc_printf("Block at %lx, creating instance...\n", 
+                     (*bIter)->origInstance()->firstInsnAddr());
+        bblInstance *newInstance = new bblInstance(*bIter, generatedVersion_);
         assert(newInstance);
         newInstances.push_back(newInstance);
-        blockList[i]->instances_.push_back(newInstance);
+        (*bIter)->instances_.push_back(newInstance);
     }
     assert(newInstances.size() == blockList.size());
 
@@ -316,11 +321,11 @@ bool int_function::relocationGenerateInt(pdvector<funcMod *> &mods,
     // We can also keep a tally of how much space we'll need while
     // we're at it...
     unsigned size_required = 0;
-    for (i = 0; i < newInstances.size(); i++) {
+    for (unsigned i = 0; i < newInstances.size(); i++) {
         reloc_printf("Calling newInst:relocationSetup(%d)\n",
                      sourceVersion);
-        newInstances[i]->relocationSetup(blockList[i]->instVer(sourceVersion),
-                                         mods);
+        newInstances[i]->relocationSetup
+            (newInstances[i]->block()->instVer(sourceVersion), mods);
         if (i < (newInstances.size() - 1))
             size_required += newInstances[i]->sizeRequired(newInstances[i+1]);
         else
@@ -344,14 +349,14 @@ bool int_function::relocationGenerateInt(pdvector<funcMod *> &mods,
     // TODO Since there is only one entry block to any function and the
     // image_function knows what it is, maybe it should be available at
     // this level so we didn't have to do all this.
-    for (i = 0; i < blockList.size(); i++) {
-        if (!blockList[i]->needsJumpToNewVersion()) continue;
-        functionReplacement *funcRep = new functionReplacement(blockList[i], 
-                                                             blockList[i],
+    for (bIter = blockList.begin(); bIter != blockList.end(); bIter++) {
+        if (!(*bIter)->needsJumpToNewVersion()) continue;
+        functionReplacement *funcRep = new functionReplacement((*bIter), 
+                                                             (*bIter),
                                                              sourceVersion,
                                                              generatedVersion_);
         if (funcRep->generateFuncRepJump(needReloc)) {            
-            blockList[i]->instVer(generatedVersion_)->jumpToBlock() = funcRep;
+            (*bIter)->instVer(generatedVersion_)->jumpToBlock() = funcRep;
         }
         else {
             // Try using traps...
@@ -359,7 +364,7 @@ bool int_function::relocationGenerateInt(pdvector<funcMod *> &mods,
             // before we decided a jump was bad news.
             //needReloc.clear();
             if (funcRep->generateFuncRepTrap(needReloc)) {
-                blockList[i]->instVer(generatedVersion_)->jumpToBlock() = funcRep; 
+                (*bIter)->instVer(generatedVersion_)->jumpToBlock() = funcRep; 
             }
             else {
                 relocationInvalidate();
@@ -377,7 +382,6 @@ bool int_function::relocationInstall() {
     // the version to be replaced, and replace each basic block
     // with a "jump to new basic block" combo.
     // If we overlap a bbl (which we probably will), oops.
-    unsigned i;
 
     reloc_printf("%s[%d]: RELOCATION INSTALL FOR %s\n",
                  FILE__, __LINE__, prettyName().c_str());
@@ -389,13 +393,14 @@ bool int_function::relocationInstall() {
     }
 
     bool success = true;
-    for (i = 0; i < blockList.size(); i++) {
-        success &= blockList[i]->instVer(generatedVersion_)->install();
+    set< int_basicBlock* , int_basicBlock::compare >::iterator bIter;
+    for (bIter = blockList.begin(); bIter != blockList.end(); bIter++) {
+        success &= (*bIter)->instVer(generatedVersion_)->install();
         if (!success) break;
         
         // Add all the basicBlocks to the process data range...
-        proc()->addOrigRange(blockList[i]->instVer(generatedVersion_));
-        addBBLInstance(blockList[i]->instVer(generatedVersion_));
+        proc()->addOrigRange((*bIter)->instVer(generatedVersion_));
+        addBBLInstance((*bIter)->instVer(generatedVersion_));
     }
     if (!success) {
         fprintf(stderr, "Warning: installation of relocated function failed\n");
@@ -409,12 +414,12 @@ bool int_function::relocationInstall() {
 }
 
 bool int_function::relocationCheck(pdvector<Address> &checkPCs) {
-    unsigned i;
 
     assert(generatedVersion_ == installedVersion_);
 
-    for (i = 0; i < blockList.size(); i++) {
-        if (!blockList[i]->instVer(installedVersion_)->check(checkPCs))
+    set< int_basicBlock* , int_basicBlock::compare >::iterator bIter;
+    for (bIter = blockList.begin(); bIter != blockList.end(); bIter++) {
+        if (!(*bIter)->instVer(installedVersion_)->check(checkPCs))
             return false;
     }
     return true;
@@ -422,8 +427,6 @@ bool int_function::relocationCheck(pdvector<Address> &checkPCs) {
         
 
 bool int_function::relocationLink(pdvector<codeRange *> &overwritten_objs) {
-
-    unsigned i;
 
     if (linkedVersion_ == installedVersion_) {
         assert(linkedVersion_ == version_);
@@ -434,8 +437,9 @@ bool int_function::relocationLink(pdvector<codeRange *> &overwritten_objs) {
     // update the global function version. That's _BAD_.
 
     bool success = true;
-    for (i = 0; i < blockList.size(); i++) {
-        success &= blockList[i]->instVer(installedVersion_)->link(overwritten_objs);
+    set< int_basicBlock* , int_basicBlock::compare >::iterator bIter;
+    for (bIter = blockList.begin(); bIter != blockList.end(); bIter++) {
+        success &= (*bIter)->instVer(installedVersion_)->link(overwritten_objs);
         if (!success)
             break;
     }
@@ -451,14 +455,58 @@ bool int_function::relocationLink(pdvector<codeRange *> &overwritten_objs) {
     return true;
 }
 
+
+// unlinks active multiTramps and 
+// returns true if the bbi has one or more active multitramps
+static bool unlinkActiveMultis
+(pdvector<bblInstance::reloc_info_t::relocInsn::Ptr> &relocs,
+ map<Address,multiTramp*> &activeMultiMap)
+{
+    bool foundMulti = false;
+    // see if the block contains an active multitramp
+    for( unsigned int bIdx = 0; 
+         bIdx < relocs.size(); 
+         bIdx++) 
+    {
+        multiTramp *bMulti = activeMultiMap[relocs[bIdx]->relocAddr];
+        if ( NULL != bMulti ) {
+            bMulti->removeCode(NULL);
+            foundMulti = true;
+        }
+    }
+    return foundMulti;
+}
+
+
+// there could be more than one multiTramp in this block instance
+// I made this a local function because it assumes that the bbi's are 
+// relocated and it will only be used in relocationInvalidate
+static void deleteBlockMultis
+    ( pdvector<bblInstance::reloc_info_t::relocInsn::Ptr> &relocs,
+  AddressSpace *addSpace )
+{
+    // iterate through each instruction in the block
+    for( unsigned int bIdx = 0; 
+         bIdx < relocs.size(); 
+         bIdx++) 
+    {
+        multiTramp *bMulti = addSpace->findModByAddr
+            ( relocs[bIdx]->relocAddr )->is_multitramp();
+        if ( NULL != bMulti ) {
+            delete bMulti;
+        }
+    }
+}
+
+
 bool int_function::relocationInvalidate() {
-    unsigned i;
     // The increase pattern goes like so:
     // generatedVersion_++;
     // installedVersion_++;
     // version_++; -- so that instpoints will be updated
     // linkedVersion_++;
-    reloc_printf("%s[%d]: relocationInvalidate for %s: linkedVersion %d, installedVersion %d, generatedVersion %d, version %d\n",
+    reloc_printf("%s[%d]: relocationInvalidate for %s: linkedVersion %d, "
+                 "installedVersion %d, generatedVersion %d, version %d\n",
                  FILE__, __LINE__, symTabName().c_str(), 
                  linkedVersion_,
                  installedVersion_,
@@ -475,20 +523,84 @@ bool int_function::relocationInvalidate() {
         return true;
     }
 
+
+    //-- special-case code that allows us to invalidate a function --//
+    //-- relocation even if it is currently on the call stack      --//
+    bool exploratoryMode = false;
+    bool freeMutateeReloc = true;
+    if ( proc()->proc() && proc()->proc()->isExploratoryModeOn() ) {
+        exploratoryMode = true;
+    }
+    set< int_basicBlock* > saveBlocks; // blocks that shouldn't be invalidated
+    // set this flag to false if the relocated function has an active 
+    // multiTramp with a call
+    // extract from the process::activeMultis set, a map of 
+    // installAddr->multiTramp pairs so we can detect when basicBlock 
+    // instances have active multiTramps, we can't just look up the 
+    // multiTramp at the block instance address, because if the multiTramp
+    // has been unlinked, the process::findMultiTrampByAddr() lookup fails
+    map<Address,multiTramp*> activeMultiAddrs;
+    if ( proc()->proc() && proc()->proc()->isExploratoryModeOn() ) { 
+        proc()->proc()->getActiveMultiMap( activeMultiAddrs );
+    }        
+
+
+    std::set< int_basicBlock* , int_basicBlock::compare >::iterator bIter;
+
     while (installedVersion_ > linkedVersion_) {
         reloc_printf("******* Removing installed version %d\n",
                      installedVersion_);
-        for (i = 0; i < blockList.size(); i++) {
+        Address funcRelocBase = 
+            (*blockList.begin())->instVer(installedVersion_)->firstInsnAddr();
+
+        int i=0;
+        for (i=0, bIter = blockList.begin(); 
+             bIter != blockList.end(); 
+             bIter++,i++) 
+        {
             reloc_printf("%s[%d]: Removing installed version %d of block %d\n",
                          FILE__, __LINE__, installedVersion_, i);
-            bblInstance *instance = blockList[i]->instVer(installedVersion_);
+
+            // in exploratory mode, a block can have fewer than the expected 
+            // number of instances if it is split since the previous relocation,
+            // in which case we continue without invalidating the block
+            if ((*bIter)->instances().size()-1 < (unsigned)installedVersion_) {
+                assert( 1 == (*bIter)->instances().size() );
+                mal_printf("Missing block instance due to block splitting, "
+                           "no problems should arise %s[%d]\n",FILE__,__LINE__);
+                continue; 
+            }
+
+            bblInstance *instance = (*bIter)->instVer(installedVersion_);
             assert(instance);
-            proc()->removeOrigRange(instance);
-            deleteBBLInstance(instance);
-            // Nuke any attached multiTramps...
-            multiTramp *multi = proc()->findMultiTrampByAddr(instance->firstInsnAddr());
-            if (multi)
-                delete multi;
+            
+            bool isBlockActive = false;
+            if ( exploratoryMode ) {
+                isBlockActive = unlinkActiveMultis( instance->relocs(), 
+                                                    activeMultiAddrs   );
+                if ( isBlockActive ) {
+                    // the subsequent loop will drop bblInstance from the 
+                    // int_basicBlock's instance vector, it will remain
+                    // in the process and function code range trees 
+                    mal_printf("reloc invalidate will not delete block %lx"
+                               "[%lx %lx] as it has an active multitramp that "
+                               "is on the call stack %s[%d]\n",
+                               instance->block()->origInstance()->
+                               firstInsnAddr(), 
+                               instance->firstInsnAddr(), instance->endAddr(), 
+                               FILE__,__LINE__);
+                    freeMutateeReloc = false;
+                    instance->reloc_info->funcRelocBase_ = funcRelocBase;
+                    saveBlocks.insert( *bIter );
+                }
+            }
+
+            if ( ! isBlockActive ) { 
+                proc()->removeOrigRange(instance);
+                deleteBBLInstance(instance);
+                // Nuke any attached multiTramps...
+                deleteBlockMultis(instance->relocs(), proc());
+            }
         }
         installedVersion_--;
     }
@@ -496,23 +608,58 @@ bool int_function::relocationInvalidate() {
     while (generatedVersion_ > installedVersion_) {
         reloc_printf("******* Removing generated version %d\n",
                      generatedVersion_);
-        proc()->inferiorFree(blockList[0]->instVer(generatedVersion_)->firstInsnAddr());
-        for (i = 0; i < blockList.size(); i++) {
-            reloc_printf("%s[%d]: Removing generated version %d of block %d\n",
-                         FILE__, __LINE__, generatedVersion_, i);
-            blockList[i]->removeVersion(generatedVersion_);
+
+        if ( freeMutateeReloc ) {
+            // in exploratory mode it's possible that an analysis
+            // update has added a new block to this function that
+            // precedes the block entry, so find the first block with
+            // a BBI that exists in this relocation of the function
+            for(bIter = blockList.begin(); 
+                bIter != blockList.end() && 
+                generatedVersion_ >= (int)(*bIter)->instances().size();
+                bIter++);
+            assert(bIter != blockList.end());
+
+            proc()->inferiorFree((*bIter)->
+                                 instVer(generatedVersion_)->
+                                 firstInsnAddr());
+            
+            // delete all BBI's for the reloc
+            for (bIter = blockList.begin(); bIter != blockList.end(); bIter++) {
+                reloc_printf("%s[%d]: Removing generated version %d of block "
+                             "at %lx\n", FILE__, __LINE__, generatedVersion_, 
+                             (*bIter)->id());
+                (*bIter)->removeVersion(generatedVersion_);
+            }
         }
+        
+        else { // remove only those BBI's that are not on the call stack
+            for (bIter = blockList.begin(); bIter != blockList.end(); bIter++) {
+                reloc_printf("%s[%d]: Removing generated version %d of block "
+                             "%d\n", FILE__, __LINE__, generatedVersion_, 
+                             (*bIter)->id());
+                if ( saveBlocks.end() == saveBlocks.find( *bIter ) ) {
+                    (*bIter)->removeVersion(generatedVersion_,true);
+                } else {
+                    (*bIter)->removeVersion(generatedVersion_,false);
+                }
+            }
+        }
+
         generatedVersion_--;
     }
     version_ = linkedVersion_;
 
     reloc_printf("%s[%d]: version %d, linked %d, installed %d, generated %d\n",
-                 FILE__, __LINE__, version_, linkedVersion_, installedVersion_, generatedVersion_);
-    for (i = 0; i < blockList.size(); i++) {
+                 FILE__, __LINE__, version_, linkedVersion_, installedVersion_, 
+                 generatedVersion_);
+    for (bIter = blockList.begin(); bIter != blockList.end(); bIter++) {
         reloc_printf("%s[%d]: block %d has %d versions\n",
-                     FILE__, __LINE__, i, blockList[i]->instances().size());
+                     FILE__, __LINE__, (*bIter)->id(), 
+                     (*bIter)->instances().size());
     }
 
+    unsigned i=0;
     for (i = 0; i < entryPoints_.size(); i++)
         entryPoints_[i]->updateInstances();
     for (i = 0; i < exitPoints_.size(); i++)
@@ -521,12 +668,68 @@ bool int_function::relocationInvalidate() {
         callPoints_[i]->updateInstances();
     for (i = 0; i < arbitraryPoints_.size(); i++)
         arbitraryPoints_[i]->updateInstances();
+    set<instPoint*>::iterator pIter = unresolvedPoints_.begin();
+    for(; pIter != unresolvedPoints_.end(); pIter++) {
+        (*pIter)->updateInstances();
+    }
+    for (pIter = abruptEnds_.begin(); pIter != abruptEnds_.end(); pIter++) {
+        (*pIter)->updateInstances();
+    }
 
     return true;
 }
 
+bool int_function::relocationInvalidateAll()
+{
+    mal_printf("%s[%d] in relocationInvalidateAll for function %lx\n",
+               FILE__,__LINE__,getAddress());
+
+    while (version() > 0) {
+        mal_printf("%s[%d]: invalidating reloc version %d of the function\n",
+                   FILE__,__LINE__,linkedVersion_);
+
+        // remove funcReplacement jumps for all blocks
+        set< int_basicBlock* , int_basicBlock::compare >::iterator bIter;
+        for (bIter = blockList.begin(); bIter != blockList.end(); bIter++) {
+            functionReplacement *jump = proc()->findFuncReplacement
+                ((*bIter)->origInstance()->firstInsnAddr());
+            if ( jump ) {
+                proc()->removeFuncReplacement(jump);
+            }
+
+            if (dyn_debug_malware) {
+                bblInstance *curInst = (*bIter)->instVer(version());
+                printf("invalidating block %lx [%lx %lx] ", 
+                       (*bIter)->origInstance()->firstInsnAddr(),
+                       curInst->firstInsnAddr(),
+                       curInst->endAddr());
+                Address blockBegin = curInst->firstInsnAddr();
+                Address blockSize = curInst->endAddr() - blockBegin;
+                unsigned char * memBuf = (unsigned char *) malloc(blockSize);
+                proc()->readDataSpace((void*)blockBegin, blockSize, memBuf, true);
+                for (unsigned idx=0; idx < blockSize; idx++) {
+                    printf("%02x", memBuf[idx]);
+                }
+                printf("\n");
+                free(memBuf);
+            }
+
+        }
+        
+        // invalidate the current relocation
+        if ( ! relocationInvalidate() ) {
+            assert(0);
+            return false;
+        }
+
+        linkedVersion_--;
+    }
+
+    return true;
+}
+
+
 bool int_function::expandForInstrumentation() {
-    unsigned i;
     // Take the most recent version of the function, check the instPoints
     // registered. If one needs more room, create an expansion record.
     // When we're done, relocate the function (most recent version only).
@@ -542,23 +745,40 @@ bool int_function::expandForInstrumentation() {
         return false;
     }
 
-    for (i = 0; i < blockList.size(); i++) {
-        bblInstance *bblI = blockList[i]->origInstance();
-        assert(bblI->block() == blockList[i]);
+    set< int_basicBlock* , int_basicBlock::compare >::iterator bIter;
+    for (bIter = blockList.begin(); bIter != blockList.end(); bIter++) {
+        bblInstance *bblI = (*bIter)->origInstance();
+        assert(bblI->block() == (*bIter));
         // Simplification: check if there's a multiTramp at the block.
         // If there isn't, then we don't care.
         multiTramp *multi = proc()->findMultiTrampByAddr(bblI->firstInsnAddr());
         if (!multi) continue;
-        if (bblI->getSize() < multi->sizeDesired()) {
-            reloc_printf("Enlarging basic block %d; currently %d, %d bytes required; start addr 0x%lx\n",
-                         i, bblI->getSize(), multi->sizeDesired(), bblI->firstInsnAddr());
-            pdvector<bblInstance::reloc_info_t::relocInsn *> whocares;
+
+        // multi->desiredSize() is set to size of trap ins'n if the
+        // function is too short to accommodate a jump, but in
+        // exploratory mode, the function can grow, making it possible
+        // that we previously used a trap but could now use a jump
+        unsigned desiredSize = multi->sizeDesired();
+        unsigned jumpSize = instruction::maxJumpSize(proc()->getAddressWidth());
+        if (proc()->proc() && 
+            proc()->proc()->isExploratoryModeOn() && 
+            desiredSize < jumpSize && 
+            jumpSize <= ifunc()->getEndOffset() - ifunc()->getOffset()) 
+        {
+            desiredSize = jumpSize;
+        }
+        if (bblI->getSize() < desiredSize) {
+            reloc_printf("Enlarging basic block %d; currently %d, %d bytes "
+                         "required; start addr 0x%lx\n",
+                         (*bIter)->id(), bblI->getSize(), desiredSize, 
+                         bblI->firstInsnAddr());
+            pdvector<bblInstance::reloc_info_t::relocInsn::Ptr> whocares;
             bool found = false;
             // Check to see if there's already a request for it...
             for (unsigned j = 0; j < enlargeMods_.size(); j++) {
                 if (enlargeMods_[j]->update(bblI->block(), 
                                             whocares,
-                                            multi->sizeDesired())) {
+                                            desiredSize)) {
                     found = true;
                     break;
                 }
@@ -579,6 +799,12 @@ bool int_function::expandForInstrumentation() {
 // classes.
 // This is a bit inefficient, since we rapidly use and delete
 // relocatedInstructions... ah, well :)
+//
+// in defensive mode we often don't parse past call blocks, so there
+// may not be a fallthrough block; since we will instrument the call
+// instruction to find out if there is a fallthrough block, we want
+// there to be enough space to jump to a  multiTramp without having 
+// to use a trap instruction
 unsigned bblInstance::sizeRequired(bblInstance *nextBBL) {
     assert(getMaxSize());
 
@@ -588,7 +814,11 @@ unsigned bblInstance::sizeRequired(bblInstance *nextBBL) {
         (nextBBL != getFallthroughBBL())) {
         jumpToFallthrough = instruction::maxJumpSize(proc()->getAddressWidth());
     }
-
+    else if ( func()->ifunc()->img()->codeObject()->defensiveMode() &&
+              !getFallthroughBBL() && 
+              block()->containsCall() ) {
+        jumpToFallthrough = instruction::maxJumpSize(proc()->getAddressWidth());
+    }
     return getMaxSize() + jumpToFallthrough;
 }
 
@@ -606,9 +836,10 @@ bool bblInstance::relocationSetup(bblInstance *orig, pdvector<funcMod *> &mods) 
    assert(origInstance());
    // First, build the insns vector
 
-   for (i = 0; i < relocs().size(); i++) {
-     delete relocs()[i];
-   }
+   //shared_ptr now
+   //for (i = 0; i < relocs().size(); i++) {
+   //  delete relocs()[i];
+   //}
 
    relocs().clear();
 
@@ -618,14 +849,16 @@ bool bblInstance::relocationSetup(bblInstance *orig, pdvector<funcMod *> &mods) 
 #if defined(cap_instruction_api)
    using namespace Dyninst::InstructionAPI;
    unsigned char* buffer = reinterpret_cast<unsigned char*>(orig->proc()->getPtrToInstruction(orig->firstInsnAddr()));
-   InstructionDecoder d(buffer, orig->getSize(), func()->ifunc()->img()->getArch());
+   InstructionDecoder d(buffer, orig->getSize(), func()->ifunc()->isrc()->getArch());
    
    size_t offset = 0;
    while(offset < orig->getSize())
    {
      Instruction::Ptr tmp = d.decode();
      
-     reloc_info_t::relocInsn *reloc = new reloc_info_t::relocInsn;
+     //reloc_info_t::relocInsn *reloc = new reloc_info_t::relocInsn;
+     reloc_info_t::relocInsn::Ptr reloc = 
+        dyn_detail::boost::make_shared<reloc_info_t::relocInsn>();
 
      reloc->origAddr = orig->firstInsnAddr() + offset;
      reloc->relocAddr = 0;
@@ -643,11 +876,13 @@ bool bblInstance::relocationSetup(bblInstance *orig, pdvector<funcMod *> &mods) 
    
   
 #else
-   InstrucIter insnIter(orig);
+   InstrucIter insnIter(orig->firstInsnAddr(),orig->getSize(),orig->proc());
    while (insnIter.hasMore()) {
      instruction *insnPtr = insnIter.getInsnPtr();
      assert(insnPtr);
-     reloc_info_t::relocInsn *reloc = new reloc_info_t::relocInsn;
+     //reloc_info_t::relocInsn *reloc = new reloc_info_t::relocInsn;
+     reloc_info_t::relocInsn::Ptr reloc =
+        dyn_detail::boost::make_shared<reloc_info_t::relocInsn>();
 
      reloc->origAddr = *insnIter;
      reloc->relocAddr = 0;
@@ -730,16 +965,27 @@ bool bblInstance::generate(bblInstance *nextBBL) {
       if ((nextBBL != NULL) &&
           (fallthrough != NULL) &&
           (fallthrough != nextBBL)) {
-          reloc_printf("%s[%d]: Handling case where fallthrough is not next block; func %s, block at 0x%lx, fallthrough at 0x%lx, next block at 0x%lx\n",
+          reloc_printf("%s[%d]: Handling case where fallthrough is not next "
+                       "block; func %s, block at 0x%lx, fallthrough at 0x%lx, "
+                       "next block at 0x%lx\n",
                        FILE__, __LINE__,
                        func()->prettyName().c_str(),
                        block()->origInstance()->firstInsnAddr(),
                        fallthrough->origInstance()->firstInsnAddr(),
                        nextBBL->origInstance()->firstInsnAddr());
+          mal_printf("%s[%d]: Handling case where fallthrough is not next "
+                     "block; func %s, block at 0x%lx, fallthrough at 0x%lx, "
+                     "next block at 0x%lx\n",
+                     FILE__, __LINE__,
+                     func()->prettyName().c_str(),
+                     block()->origInstance()->firstInsnAddr(),
+                     fallthrough->origInstance()->firstInsnAddr(),
+                     nextBBL->origInstance()->firstInsnAddr());
           fallthroughOverride = fallthrough;
       }
 
-      relocs()[i]->origInsn->generate(generatedBlock(),
+      insnCodeGen::generate(generatedBlock(),
+                                      *relocs()[i]->origInsn,
                                       proc(),
                                       origAddr,
                                       currAddr,
@@ -815,7 +1061,7 @@ bool bblInstance::link(pdvector<codeRange *> &overwrittenObjs) {
 }
 
 bool enlargeBlock::modifyBBL(int_basicBlock *block,
-                             pdvector<bblInstance::reloc_info_t::relocInsn *> &,
+                             pdvector<bblInstance::reloc_info_t::relocInsn::Ptr> &,
                              bblInstance &bbl)
 {
    if (block == targetBlock_) {
@@ -836,7 +1082,7 @@ bool enlargeBlock::modifyBBL(int_basicBlock *block,
 }
 
 bool enlargeBlock::update(int_basicBlock *block,
-                          pdvector<bblInstance::reloc_info_t::relocInsn *> &,
+                          pdvector<bblInstance::reloc_info_t::relocInsn::Ptr> &,
                           unsigned size) {
     if (block == targetBlock_) {
         if (size == (unsigned) -1) {
@@ -908,7 +1154,7 @@ bool functionReplacement::generateFuncRepJump(pdvector<int_function *> &needRelo
 		 targetInst->firstInsnAddr(),
 		 targetVersion_);
 
-    instruction::generateInterFunctionBranch(jumpToRelocated,
+    insnCodeGen::generateInterFunctionBranch(jumpToRelocated,
                                              sourceInst->firstInsnAddr(),
                                              targetInst->firstInsnAddr());
 
@@ -1055,7 +1301,7 @@ bool functionReplacement::generateFuncRepTrap(pdvector<int_function *> &needRelo
 		 targetInst->firstInsnAddr(),
 		 targetVersion_);
 
-    instruction::generateTrap(jumpToRelocated);
+    insnCodeGen::generateTrap(jumpToRelocated);
 
     // Determine whether relocation of this function will force relocation
     // of any other functions:
@@ -1137,7 +1383,7 @@ bool int_basicBlock::needsJumpToNewVersion() {
     pdvector<int_basicBlock *> sources;
     getSources(sources);
     for (unsigned i = 0; i < sources.size(); i++) {
-        if (getSourceEdgeType(sources[i]) == ET_INDIR)
+        if (getSourceEdgeType(sources[i]) == ParseAPI::INDIRECT)
             return true;
     }
     return false;

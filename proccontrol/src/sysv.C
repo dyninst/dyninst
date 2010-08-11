@@ -43,8 +43,8 @@ using namespace std;
 SymbolReaderFactory *sysv_process::symreader_factory = NULL;
 int_breakpoint *sysv_process::lib_trap = NULL;
 
-sysv_process::sysv_process(Dyninst::PID p, string e, vector<string> a) :
-   int_process(p, e, a),
+sysv_process::sysv_process(Dyninst::PID p, string e, vector<string> a, map<int,int> f) :
+   int_process(p, e, a, f),
    translator(NULL),
    lib_initialized(false),
    procreader(NULL)

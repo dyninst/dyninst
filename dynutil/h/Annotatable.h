@@ -164,7 +164,7 @@ class AnnotationClass : public AnnotationClassBase {
 
 typedef enum {
 	    sparse,
-		dense,
+		dense
 } sparse_or_dense_anno_t;
 
 typedef struct {

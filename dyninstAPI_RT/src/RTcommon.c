@@ -36,6 +36,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <assert.h>
+#include <string.h>
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 #include "RTcommon.h"
 #include "RTthread.h"
@@ -63,14 +64,8 @@ int DYNINSTstaticMode = 1;
  * The IA-64 requires that instruction be 16-byte aligned, so we have to 
  * align the heaps if we want to use them for inferior RPCs. 
  **/
-#if defined(arch_ia64)
-typedef struct { uint64_t low; uint64_t high; } ia64_bundle_t;
-#define HEAP_TYPE ia64_bundle_t
-#define ALIGN_ATTRIB __attribute((aligned))
-#else
 #define HEAP_TYPE double
 #define ALIGN_ATTRIB 
-#endif
 
 #if defined(os_linux)
 #define HEAP_LOCAL extern
@@ -120,6 +115,11 @@ int libdyninstAPI_RT_init_debug_flag=0;
 int DYNINST_mutatorPid;
 int DYNINSTdebugPrintRT = 0;
 int isMutatedExec = 0;
+
+// stopThread cache variables 
+char cacheLRUflags[TARGET_CACHE_WIDTH];
+void *DYNINST_target_cache[TARGET_CACHE_WIDTH][TARGET_CACHE_WAYS];
+
 
 unsigned *DYNINST_tramp_guards;
 
@@ -268,6 +268,10 @@ void DYNINSTinit(int cause, int pid, int maxthreads, int debug_flag)
    DYNINST_bootstrap_info.pid = dyn_pid_self();
    DYNINST_bootstrap_info.ppid = pid;    
    DYNINST_bootstrap_info.event = cause;
+   memset(DYNINST_target_cache, 
+          0, 
+          sizeof(void*) * TARGET_CACHE_WIDTH * TARGET_CACHE_WAYS);
+   memset(cacheLRUflags, 1, sizeof(char)*TARGET_CACHE_WIDTH);
    rtdebug_printf("%s[%d]:  leaving DYNINSTinit\n", __FILE__, __LINE__);
 }
 
@@ -394,24 +398,125 @@ void DYNINST_instLwpExit(void) {
 }
 
 
+// implementation of an N=2 way associative cache to keep access time low
+// width = 32
+// the cache contains valid addresses
+// add to the cache when an instrumented instruction misses in the cache
+// update flags for the cache when an instrumented instruction hits in the cache
+// instrumentation will take the form of a call to cache check  
+RT_Boolean cacheLookup(void *calculation)
+{
+    int index = ((unsigned long) calculation) % TARGET_CACHE_WIDTH;
+    if (DYNINST_target_cache[index][0] == calculation) {
+        cacheLRUflags[index] = 0;
+        return RT_TRUE;
+    } else if (DYNINST_target_cache[index][1] == calculation) {
+        cacheLRUflags[index] = 1;
+        return RT_TRUE;
+    } else { //miss
+        if (cacheLRUflags[index] == 0) {
+            DYNINST_target_cache[index][1] = calculation;
+            cacheLRUflags[index] = 1;
+        } else {
+            DYNINST_target_cache[index][0] = calculation;
+            cacheLRUflags[index] = 0;
+        }
+        return RT_FALSE;
+    }
+}
+
 /** 
  * Receives two snippets as arguments, stops the mutator, and sends
- * the arguments back to the mutator
+ * the arguments back to the mutator.  
+ * The flags are: 
+ * bit 0: useCache
+ * bit 1: true if interpAsTarget
+ * bit 2: true if interpAsReturnAddr
  **/     
-void DYNINST_stopThread (void * pointAddr, void *callBackID, void *calculation)
+void DYNINST_stopThread (void * pointAddr, void *callBackID, 
+                         void *flags, void *calculation)
 {
-   /* Set the state so the mutator knows what's up */
-   DYNINST_synch_event_id = DSE_stopThread;
-   DYNINST_synch_event_arg1 = pointAddr;
-   DYNINST_synch_event_arg2 = callBackID;
-   DYNINST_synch_event_arg3 = calculation;
-   /* Stop ourselves */
-   DYNINSTbreakPoint();
-   /* Once the stop completes, clean up */
-   DYNINST_synch_event_id = DSE_undefined;
-   DYNINST_synch_event_arg1 = NULL;
-   DYNINST_synch_event_arg2 = NULL;
-   DYNINST_synch_event_arg3 = NULL;
+    void* lookupAddr = calculation;
+    RT_Boolean isInCache = RT_FALSE;
+
+    tc_lock_lock(&DYNINST_trace_lock);
+
+    // KEVINTODO: assumes there is always a pushf at the start of the basetramp
+    // if this is a return insn, we want to look up the address differently
+    if (5 == (((long)flags) & 0x05) ) { // mask stackAddr flag bit
+        lookupAddr = (void*)* ( ((unsigned long*)calculation) + 1 );
+    }
+
+    // if the cache flag bit is not set, or if we get a cache miss, 
+    // stop the thread so that we can call back to the mutatee
+    if (0 != (((long)flags) & 0x03)) {
+        // do the lookup if the useCache bit is set, or if it represents 
+        // the address of real code, so that we cache the address in the
+        // latter instance even we will stop the thread in event of a hit
+        isInCache = cacheLookup(lookupAddr);
+    }
+    if (0 == (((long)flags) & 0x01) || 
+        ! isInCache ) 
+    {
+        /* Set vars for Dyninst to read */
+        DYNINST_synch_event_id = DSE_stopThread;
+        DYNINST_synch_event_arg1 = pointAddr;
+        DYNINST_synch_event_arg2 = callBackID;
+        DYNINST_synch_event_arg3 = calculation;
+
+        // encode interp as target or as return addr by making 
+        // callback ID negative
+        if (0 != (((long)flags) & 0x06)) 
+        { 
+            DYNINST_synch_event_arg2 = 
+                (void*) (-1 * (long)DYNINST_synch_event_arg2);
+        }
+
+
+        /* Stop ourselves */
+        DYNINSTbreakPoint();
+
+        /* Once the stop completes, clean up */
+        DYNINST_synch_event_id = DSE_undefined;
+        DYNINST_synch_event_arg1 = NULL;
+        DYNINST_synch_event_arg2 = NULL;
+        DYNINST_synch_event_arg3 = NULL;
+    }
+
+    tc_lock_unlock(&DYNINST_trace_lock);
+
+    return;
+}
+
+
+// boundsArray is a sequence of (blockStart,blockEnd) pairs
+RT_Boolean DYNINST_boundsCheck(void **boundsArray_, void *arrayLen_, 
+                               void *writeTarget_)
+{
+    RT_Boolean callStopThread = RT_FALSE;
+    const unsigned long writeTarget = (unsigned long)writeTarget_;
+    const long arrayLen = (long)arrayLen_;
+    unsigned long *boundsArray = (unsigned long*)boundsArray_;
+    // set idx to halfway into the array, ensuring we use a blockStart address
+    int idx = (int)arrayLen / 4 * 2; 
+    int lowIdx = 0;
+    int highIdx = (int)arrayLen;
+    while (lowIdx < highIdx) 
+    {
+        if (writeTarget < boundsArray[idx]) {
+            highIdx = idx;
+            idx = (highIdx - lowIdx) / 4 * 2 + lowIdx;
+        } 
+        else if (boundsArray[idx+1] <= writeTarget) {
+            lowIdx = idx+2;
+            idx = (highIdx - lowIdx) / 4 * 2 + lowIdx;
+        } 
+        else {
+            callStopThread = RT_TRUE;
+            break;
+        }
+    }
+    return callStopThread;
 }
 
 

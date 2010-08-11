@@ -1098,7 +1098,6 @@ mutatee('test_mem_1', ['test_mem_1_mutatee.c'], Aux) :-
     test_mem_mutatee_aux(P, Aux).
 compiler_for_mutatee('test_mem_1', Compiler) :-
     comp_lang(Compiler, 'c').
-% test_runmode('test_mem_1', 'createProcess').
 test_runmode('test_mem_1', 'staticdynamic').
 test_start_state('test_mem_1', 'stopped').
 groupable_test('test_mem_1').
@@ -1116,10 +1115,11 @@ mutatee('test_mem_2', ['test_mem_2_mutatee.c'], Aux) :-
     test_mem_mutatee_aux(Plat, Aux).
 compiler_for_mutatee('test_mem_2', Compiler) :-
     comp_lang(Compiler, 'c').
-test_runmode('test_mem_2', 'createProcess').
+test_runmode('test_mem_2', 'staticdynamic').
 test_start_state('test_mem_2', 'stopped').
 groupable_test('test_mem_2').
 restricted_amd64_abi('test_mem_2').
+groupable_test('test_mem_2').
 tests_module('test_mem_2', 'dyninst').
 
 % test_mem_3, formerly test6_3
@@ -1132,10 +1132,11 @@ mutatee('test_mem_3', ['test_mem_3_mutatee.c'], Aux) :-
     test_mem_mutatee_aux(Plat, Aux).
 compiler_for_mutatee('test_mem_3', Compiler) :-
     comp_lang(Compiler, 'c').
-test_runmode('test_mem_3', 'createProcess').
+test_runmode('test_mem_3', 'staticdynamic').
 test_start_state('test_mem_3', 'stopped').
 groupable_test('test_mem_3').
 restricted_amd64_abi('test_mem_3').
+groupable_test('test_mem_3').
 tests_module('test_mem_3', 'dyninst').
 
 % test_mem_4, formerly test6_4
@@ -1148,10 +1149,11 @@ mutatee('test_mem_4', ['test_mem_4_mutatee.c'], Aux) :-
     test_mem_mutatee_aux(Platform, Aux).
 compiler_for_mutatee('test_mem_4', Compiler) :-
     comp_lang(Compiler, 'c').
-test_runmode('test_mem_4', 'createProcess').
+test_runmode('test_mem_4', 'staticdynamic').
 test_start_state('test_mem_4', 'stopped').
 groupable_test('test_mem_4').
 restricted_amd64_abi('test_mem_4').
+groupable_test('test_mem_4').
 tests_module('test_mem_4', 'dyninst').
 
 % test_mem_5, formerly test6_5
@@ -1164,7 +1166,7 @@ mutatee('test_mem_5', ['test_mem_5_mutatee.c'], Aux) :-
     test_mem_mutatee_aux(Platform, Aux).
 compiler_for_mutatee('test_mem_5', Compiler) :-
     comp_lang(Compiler, 'c').
-test_runmode('test_mem_5', 'createProcess').
+test_runmode('test_mem_5', 'staticdynamic').
 test_start_state('test_mem_5', 'stopped').
 restricted_amd64_abi('test_mem_5').
 groupable_test('test_mem_5').
@@ -1180,11 +1182,12 @@ mutatee('test_mem_6', ['test_mem_6_mutatee.c'], Aux) :-
     test_mem_mutatee_aux(Platform, Aux).
 compiler_for_mutatee('test_mem_6', Compiler) :-
     comp_lang(Compiler, 'c').
-test_runmode('test_mem_6', 'createProcess').
+test_runmode('test_mem_6', 'staticdynamic').
 test_start_state('test_mem_6', 'stopped').
 groupable_test('test_mem_6').
 restricted_amd64_abi('test_mem_6').
 tests_module('test_mem_6', 'dyninst').
+groupable_test('test_mem_6').
 
 % test_mem_7, formerly test6_7
 test('test_mem_7', 'test_mem_7', 'test_mem_7').
@@ -1196,10 +1199,11 @@ mutatee('test_mem_7', ['test_mem_7_mutatee.c'], Aux) :-
     test_mem_mutatee_aux(Platform, Aux).
 compiler_for_mutatee('test_mem_7', Compiler) :-
     comp_lang(Compiler, 'c').
-test_runmode('test_mem_7', 'createProcess').
+test_runmode('test_mem_7', 'staticdynamic').
 test_start_state('test_mem_7', 'stopped').
 groupable_test('test_mem_7').
 restricted_amd64_abi('test_mem_7').
+groupable_test('test_mem_7').
 tests_module('test_mem_7', 'dyninst').
 
 % test_mem_8, formerly test6_8
@@ -1212,11 +1216,12 @@ mutatee('test_mem_8', ['test_mem_8_mutatee.c'], Aux) :-
     test_mem_mutatee_aux(Platform, Aux).
 compiler_for_mutatee('test_mem_8', Compiler) :-
     comp_lang(Compiler, 'c').
-test_runmode('test_mem_8', 'createProcess').
+test_runmode('test_mem_8', 'staticdynamic').
 test_start_state('test_mem_8', 'stopped').
 groupable_test('test_mem_8').
 restricted_amd64_abi('test_mem_8').
 tests_module('test_mem_8', 'dyninst').
+groupable_test('test_mem_8').
 
 test('test_fork_5', 'test_fork_5', 'test_fork_5'). % Formerly test7_1
 % No fork() on Windows
@@ -2356,6 +2361,18 @@ test_runmode('power_cft', 'disk').
 test_start_state('power_cft', 'stopped').
 tests_module('power_cft', 'instruction').
 
+test('fucompp', 'fucompp', none).
+test_description('fucompp', 'Tests the fucompp instruction').
+test_platform('fucompp', Platform) :-
+        platform(Platform),
+        platform('i386', _, _, Platform);
+        platform('x86_64', _, _, Platform).
+mutator('fucompp', ['fucompp.C']).
+test_runmode('fucompp', 'createProcess').
+test_start_state('fucompp', 'stopped').
+tests_module('fucompp', 'instruction').
+
+
 % ProcessControlAPI Tests
 pcPlatforms(P) :- platform('x86_64', 'linux', _, P).
 pcPlatforms(P) :- platform('i386', 'linux', _, P).
@@ -2523,7 +2540,6 @@ platform('i386', 'windows', 'winXP', 'i386-unknown-winXP').
 platform('power', 'aix', 'aix5.1', 'rs6000-ibm-aix5.1').
 platform('power', 'aix', 'aix5.2', 'rs6000-ibm-aix64-5.2').
 platform('alpha', 'osf', 'osf5.1', 'alpha-dec-osf5.1').
-platform('ia64', 'linux', 'linux2.4', 'ia64-unknown-linux2.4').
 platform('x86_64', 'linux', 'linux2.4', 'x86_64-unknown-linux2.4').
 platform('power', 'linux', 'linux2.6', 'ppc64_linux').
 platform('power', 'linux', 'linux2.6', 'ppc32_linux').

@@ -643,7 +643,7 @@ bool emitElf64::driver(Symtab *obj, string fName){
     if (shdr->sh_addr+shdr->sh_size == dataSegEnd && !createdLoadableSections) {
       createdLoadableSections = true;
       insertPoint = scncount;
-      if(!createLoadableSections(newshdr, extraAlignSize, 
+      if(!createLoadableSections(obj, newshdr, extraAlignSize, 
                                  newNameIndexMapping, sectionNumber))
          return false;
       if (!movePHdrsFirst) {
@@ -800,6 +800,70 @@ void emitElf64::fixPhdrs(unsigned &extraAlignSize)
   Elf64_Phdr newSeg;
   for(unsigned i=0;i<oldEhdr->e_phnum;i++)
   {
+    /*
+     * If we've created a new loadable segment, we need to insert a new
+     * program header amidst the other loadable segments.
+     * 
+     * ELF format says:
+     *
+     * `Loadable segment entries in the program header table appear in
+     * ascending order, sorted on the p_vaddr member.'
+     */
+
+    Elf64_Phdr * insert_phdr = NULL;
+      if(createNewPhdr && !added_new_sec && firstNewLoadSec) {
+        if(i+1 == oldEhdr->e_phnum) {
+            insert_phdr = newPhdr + 1;
+        }
+        else if(old->p_type == PT_LOAD && (old+1)->p_type != PT_LOAD) {
+            // insert at end of loadable phdrs
+            insert_phdr = newPhdr+1;
+        }
+        else if(old->p_type != PT_LOAD &&
+                (old+1)->p_type == PT_LOAD &&
+                newSegmentStart < (old+1)->p_vaddr)
+        {   
+            // insert at beginning of loadable list (after the
+            // current phdr)
+            insert_phdr = newPhdr+1;
+        }
+        else if(old->p_type == PT_LOAD &&
+                (old+1)->p_type == PT_LOAD &&
+                newSegmentStart >= old->p_vaddr &&
+                newSegmentStart < (old+1)->p_vaddr)
+        {
+            // insert in middle of loadable list, after current
+            insert_phdr = newPhdr+1;
+        }
+        else if(i == 0 && 
+                old->p_type == PT_LOAD &&
+                newSegmentStart < old->p_vaddr)
+        {
+            // insert BEFORE current phdr
+            insert_phdr = newPhdr;
+            newPhdr++;
+        }
+    }
+
+      if(insert_phdr)
+      {
+         newSeg.p_type = PT_LOAD;
+         newSeg.p_offset = firstNewLoadSec->sh_offset;
+         newSeg.p_vaddr = newSegmentStart;
+         newSeg.p_paddr = newSeg.p_vaddr;
+         newSeg.p_filesz = loadSecTotalSize - (newSegmentStart - firstNewLoadSec->sh_addr);
+         newSeg.p_memsz = (currEndAddress - firstNewLoadSec->sh_addr) - (newSegmentStart - firstNewLoadSec->sh_addr);
+         newSeg.p_flags = PF_R+PF_W+PF_X;
+         newSeg.p_align = pgSize;
+         memcpy(insert_phdr, &newSeg, oldEhdr->e_phentsize);
+         added_new_sec = true;
+#ifdef BINEDIT_DEBUG
+         fprintf(stderr, "Added New program header : offset 0x%lx,addr 0x%lx\n", newPhdr->p_offset, newPhdr->p_vaddr);
+#endif
+      }
+
+
+
      memcpy(newPhdr, old, oldEhdr->e_phentsize);
      // Expand the data segment to include the new loadable sections
      // Also add a executable permission to the segment
@@ -856,29 +920,10 @@ void emitElf64::fixPhdrs(unsigned &extraAlignSize)
            newPhdr->p_vaddr += library_adjust;
         }
      } 
-     
+
       newPhdr++;
-      if (createNewPhdr &&
-          (i+1 == oldEhdr->e_phnum || (old+1)->p_type != PT_LOAD) &&
-          old->p_type == PT_LOAD &&
-          !added_new_sec &&
-          firstNewLoadSec)
-      {
-         newSeg.p_type = PT_LOAD;
-         newSeg.p_offset = firstNewLoadSec->sh_offset;
-         newSeg.p_vaddr = newSegmentStart;
-         newSeg.p_paddr = newSeg.p_vaddr;
-         newSeg.p_filesz = loadSecTotalSize - (newSegmentStart - firstNewLoadSec->sh_addr);
-         newSeg.p_memsz = (currEndAddress - firstNewLoadSec->sh_addr) - (newSegmentStart - firstNewLoadSec->sh_addr);
-         newSeg.p_flags = PF_R+PF_W+PF_X;
-         newSeg.p_align = pgSize;
-         memcpy(newPhdr, &newSeg, oldEhdr->e_phentsize);
-         added_new_sec = true;
-#ifdef BINEDIT_DEBUG
-         fprintf(stderr, "Added New program header : offset 0x%lx,addr 0x%lx\n", newPhdr->p_offset, newPhdr->p_vaddr);
-#endif
-         newPhdr++;
-      }
+      if(insert_phdr)
+        newPhdr++;
       old++;
   }
   
@@ -956,7 +1001,7 @@ void emitElf64::updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned l
   }
 }
 
-bool emitElf64::createLoadableSections(Elf64_Shdr* &shdr, unsigned &extraAlignSize, dyn_hash_map<std::string, unsigned> &newNameIndexMapping, unsigned &sectionNumber)
+bool emitElf64::createLoadableSections(Symtab * obj, Elf64_Shdr* &shdr, unsigned &extraAlignSize, dyn_hash_map<std::string, unsigned> &newNameIndexMapping, unsigned &sectionNumber)
 {
    Elf_Scn *newscn;
    Elf_Data *newdata = NULL;
@@ -968,6 +1013,16 @@ bool emitElf64::createLoadableSections(Elf64_Shdr* &shdr, unsigned &extraAlignSi
    unsigned strtabIndex = 0;
    unsigned dynsymIndex = 0;
    Elf64_Shdr *prevshdr = NULL;
+
+   /*
+    * Order the new sections such that those with explicit
+    * memory offsets come before those without (that will be placed
+    * after the non-zero sections).
+    *
+    * zstart is used to place the first zero-offset section if
+    * no non-zero-offset sections exist.
+    */
+   Address zstart = emitElfUtils::orderLoadableSections(obj,newSecs);
 
    for(unsigned i=0; i < newSecs.size(); i++)
    {
@@ -1029,7 +1084,11 @@ bool emitElf64::createLoadableSections(Elf64_Shdr* &shdr, unsigned &extraAlignSi
       if(newSecs[i]->getMemOffset()) {
          newshdr->sh_addr = newSecs[i]->getMemOffset() + library_adjust;
       }
-      else{
+      else if(!prevshdr) {
+         newshdr->sh_addr = zstart + library_adjust;
+      } 
+      else 
+      {
          newshdr->sh_addr = prevshdr->sh_addr + prevshdr->sh_size;
       }
     	    
@@ -1422,6 +1481,7 @@ bool emitElf64::createNonLoadableSections(Elf64_Shdr *&shdr)
   shdr = prevshdr;
   return true;
 }    	
+
 
 /* Regenerates the .symtab, .strtab sections from the symbols
  * Add new .dynsym, .dynstr sections for the newly added dynamic symbols

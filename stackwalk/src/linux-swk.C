@@ -279,8 +279,8 @@ DebugEvent ProcDebug::debug_get_event(bool block)
    int flags = __WALL;
    if (!block)
      flags |= WNOHANG;
-   sw_printf("[%s:%u] - Calling waitpid(-1, %p, %d)\n",
-             __FILE__, __LINE__, &status, flags);
+   sw_printf("[%s:%u] - Calling waitpid(-1, %p, %s)\n",
+             __FILE__, __LINE__, &status, block ? "WALL|WNOHANG" : "WALL");
    p = waitpid(-1, &status, flags);
    sw_printf("[%s:%u] - waitpid returned status = 0x%x, p = %d\n",
              __FILE__, __LINE__, status, p);
@@ -423,14 +423,13 @@ bool ProcDebugLinux::debug_handle_event(DebugEvent ev)
         }
 #endif
         
-        if (ev.data.idata != SIGSTOP) {
-           result = debug_handle_signal(&ev);
-           if (!result) {
-              sw_printf("[%s:%u] - Debug continue failed on %d/%d with %d\n", 
-                        __FILE__, __LINE__, pid, thr->getTid(), ev.data.idata);
-              return false;
-           }
-        }
+	result = debug_handle_signal(&ev);
+	if (!result) {
+	  sw_printf("[%s:%u] - Debug continue failed on %d/%d with %d\n", 
+		    __FILE__, __LINE__, pid, thr->getTid(), ev.data.idata);
+	  return false;
+	}
+
         return true;
     case dbg_libraryload: 
     {
@@ -483,13 +482,29 @@ bool ProcDebugLinux::debug_handle_event(DebugEvent ev)
 bool ProcDebugLinux::debug_handle_signal(DebugEvent *ev)
 {
    assert(ev->dbg == dbg_stopped);
+   int sig = ev->data.idata;
+   ThreadState *thr = ev->thr;
    if (sigfunc) {
-      bool user_stopped = ev->thr->userIsStopped();
-      ev->thr->setUserStopped(true);
-      sigfunc(ev->data.idata, ev->thr);
-      ev->thr->setUserStopped(user_stopped);
+      bool user_stopped = thr->userIsStopped();
+      thr->setUserStopped(true);
+      sigfunc(sig, thr);
+      thr->setUserStopped(user_stopped);
    }
-   return debug_continue_with(ev->thr, ev->data.idata);
+
+   if (sig == SIGSTOP)
+   {
+     if (thr->hasPendingStop()) {
+       //Leave process as is, no need to handle.
+       sw_printf("Clearing pending SIGSTOP\n");
+       thr->clearPendingStop();
+       return true;
+     }
+     sw_printf("Dropping SIGSTOP and continuing process\n");
+     //Continue past sigstop with-out a signal
+     sig = 0;
+   }
+
+   return debug_continue_with(thr, sig);
 }
 
 #if defined(cap_ptrace_setoptions)   
@@ -589,6 +604,7 @@ bool ProcDebugLinux::debug_pause(ThreadState *thr)
                    "stopping");
       return false;
    }
+   thr->markPendingStop();
    
    return true;
 }

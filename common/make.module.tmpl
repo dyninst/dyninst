@@ -38,8 +38,6 @@ ifndef STATIC_COMPS
 MYFLAGS += -fPIC
 endif
 
-LDFLAGS += -lpthread
-
 LDFLAGS     += $(LIBDIR)
 ifndef USES_NATIVE_CC
 LD		= $(GXX)
@@ -78,7 +76,10 @@ SRCS	     +=	../../common/src/Ident.C \
       ../../common/src/DOT.C \
       ../../common/src/dyn_regs.C \
 		../../common/src/AST.C \
-      ../../common/src/addrtranslate.C
+      ../../common/src/addrtranslate.C\
+      ../../common/src/arch-x86.C\
+      ../../common/src/arch-power.C\
+      ../../common/src/arch-sparc.C
 #		../../common/src/Dictionary.C \
 #		../../common/src/vectorSet.C \
 
@@ -97,7 +98,7 @@ else
 SYSLIBS		+= -ldemangle
 endif
 
-IFLAGS       += -I../$(PLATFORM) -I../src -I../h
+IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../instructionAPI/h
 
 
 ifdef LIBXML2_INC

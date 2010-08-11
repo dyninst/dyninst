@@ -53,7 +53,7 @@
 #include "instructionAPI/h/Instruction.h"
 #include "instructionAPI/h/InstructionDecoder.h"
 #else
-#include "InstrucIter.h"
+#include "parseAPI/src/InstrucIter.h"
 #endif
 #include "callbacks.h"
 
@@ -80,7 +80,8 @@ BPatch_Vector<BPatch_instruction*> *BPatch_parRegion::getInstructionsInt(void) {
 
     instructions = new BPatch_Vector<BPatch_instruction*>;
 
-    InstrucIter ii(this);
+    InstrucIter ii(getStartAddress(),size(),
+        lowlevel_region()->intFunc()->proc());
     
     while(ii.hasMore()) {
 
@@ -102,7 +103,7 @@ bool BPatch_parRegion::getInstructionsInt(std::vector<InstructionAPI::Instructio
   (const unsigned char*)(lowlevel_region()->intFunc()->proc()->getPtrToInstruction(getStartAddress()));
   
   InstructionDecoder d(buffer, size(),
-		       lowlevel_region()->imagePar()->getAssociatedFunc()->img()->getArch());
+        lowlevel_region()->intFunc()->proc()->getArch());
   Instruction::Ptr curInsn = d.decode();
   while(curInsn && curInsn->isValid())
   {

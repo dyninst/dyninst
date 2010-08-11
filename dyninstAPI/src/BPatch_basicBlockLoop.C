@@ -48,7 +48,10 @@ BPatch_basicBlockLoop::BPatch_basicBlockLoop(BPatch_flowGraph *fg)
 
 BPatch_basicBlockLoop::BPatch_basicBlockLoop(BPatch_edge *be, 
 					     BPatch_flowGraph *fg) 
-    : backEdge(be), flowGraph(fg), parent(NULL) {}
+    : flowGraph(fg), parent(NULL) 
+{
+    backEdges.insert(be);
+}
 
 bool BPatch_basicBlockLoop::containsAddressInt(unsigned long addr)
 {
@@ -80,7 +83,22 @@ bool BPatch_basicBlockLoop::containsAddressInclusiveInt(unsigned long addr)
 
 BPatch_edge *BPatch_basicBlockLoop::getBackEdgeInt()
 {
-  return backEdge;
+  return  * backEdges.begin();
+}
+
+int BPatch_basicBlockLoop::getBackEdgesInt(BPatch_Vector<BPatch_edge*> &edges)
+{
+    for (unsigned idx =0; idx < edges.size(); idx++) {
+        backEdges.insert(edges[idx]);
+    }
+    return edges.size();
+}
+
+// this is a private function, invoked by BPatch_flowGraph::createLoops
+void BPatch_basicBlockLoop::addBackEdges
+(std::vector< BPatch_edge*> &newEdges)
+{
+    backEdges.insert(newEdges.begin(),newEdges.end());
 }
 
 bool 
@@ -202,8 +220,8 @@ bool BPatch_basicBlockLoop::hasBlockExclusiveInt(BPatch_basicBlock*block)
 //head of the back edge which defines the natural loop
 BPatch_basicBlock* BPatch_basicBlockLoop::getLoopHeadInt()
 {
-    assert(backEdge != NULL);
-    return backEdge->target;
+    assert(backEdges.size());
+    return (* backEdges.begin())->target;
 }
 
 

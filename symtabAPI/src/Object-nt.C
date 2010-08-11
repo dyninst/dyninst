@@ -695,9 +695,21 @@ void Object::FindInterestingSections(bool alloc_syms)
       code_len_ = (Offset) GetFileSize(hFile, NULL);
       is_aout_ = false;
       fprintf(stderr,"Adding Symtab object with no program header, will " 
-              "designate it as code\n");
-      if (alloc_syms)
-          regions_.push_back(new Region(0, ".text", code_off_, code_len_, code_off_, code_len_, 0, Region::RP_RX, Region::RT_TEXT));
+              "designate it as code, code_ptr_=%lx code_len_=%lx\n",code_ptr_,code_len_);
+      if (alloc_syms) {
+          Region *bufReg = new Region
+                    (0, //region number
+                     ".text", 
+                     code_off_, // disk offset
+                     code_len_, // disk size
+                     code_off_, // mem offset
+                     code_len_, // mem size
+                     code_ptr_, // raw data ptr
+                     Region::RP_RWX, 
+                     Region::RT_TEXT,
+                     true);// is loadable
+          regions_.push_back(bufReg);
+      }
       return;
    }
 
@@ -719,23 +731,45 @@ void Object::FindInterestingSections(bool alloc_syms)
    PIMAGE_SECTION_HEADER pScnHdr = (PIMAGE_SECTION_HEADER)(((char*)peHdr) + 
                                  sizeof(DWORD) + sizeof(IMAGE_FILE_HEADER) +
                                  peHdr->FileHeader.SizeOfOptionalHeader);
+   // add section for peHdr, determine the size taken up by the section in the program's address space.  
+   unsigned long secSize = ( peHdr->OptionalHeader.SizeOfHeaders 
+                             / peHdr->OptionalHeader.SectionAlignment ) 
+                          * peHdr->OptionalHeader.SectionAlignment;
+   if (  peHdr->OptionalHeader.SizeOfHeaders 
+       % peHdr->OptionalHeader.SectionAlignment ) 
+   {
+      secSize += peHdr->OptionalHeader.SectionAlignment;
+   }
+   regions_.push_back
+       (new Region
+        (0, "PROGRAM_HEADER", 0, peHdr->OptionalHeader.SizeOfHeaders, 
+         0, secSize, (char*)mapAddr,
+         getRegionPerms(IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_MEM_WRITE), 
+         getRegionType(IMAGE_SCN_CNT_CODE | IMAGE_SCN_CNT_INITIALIZED_DATA), 
+         true));
    bool foundText = false;
    for( unsigned int i = 0; i < nSections; i++ ) {
       // rawDataPtr should be set to be zero if the amount of raw data
       // for the section is zero
       void *rawDataPtr = 0;
       if (pScnHdr->SizeOfRawData != 0) {
-         rawDataPtr = (void*)((unsigned int)pScnHdr->PointerToRawData +
-                              (unsigned int)mapAddr);
+         // the loader rounds PointerToRawData to the previous fileAlignment 
+         // boundary  (usually 512 bytes)
+         rawDataPtr = (void*)
+             ((pScnHdr->PointerToRawData / peHdr->OptionalHeader.FileAlignment) 
+              * peHdr->OptionalHeader.FileAlignment + (unsigned long) mapAddr);
       }
-      unsigned long secSize = (pScnHdr->Misc.VirtualSize >= pScnHdr->SizeOfRawData) ? 
-          pScnHdr->Misc.VirtualSize : pScnHdr->SizeOfRawData ;
+      secSize = (pScnHdr->Misc.VirtualSize >= pScnHdr->SizeOfRawData) ? 
+          pScnHdr->Misc.VirtualSize : pScnHdr->SizeOfRawData;
       if (alloc_syms)
-          regions_.push_back(new Region(i, (const char *)pScnHdr->Name, 
-                                        pScnHdr->Misc.PhysicalAddress, pScnHdr->SizeOfRawData,
-                                        pScnHdr->VirtualAddress, secSize,
-                                        (char *)rawDataPtr, getRegionPerms(pScnHdr->Characteristics),
-                                        getRegionType(pScnHdr->Characteristics)));
+          regions_.push_back
+              (new Region(i+1, (const char *)pScnHdr->Name, 
+                          pScnHdr->Misc.PhysicalAddress, 
+                          pScnHdr->SizeOfRawData,
+                          pScnHdr->VirtualAddress, secSize,
+                          (char *)rawDataPtr, 
+                          getRegionPerms(pScnHdr->Characteristics),
+                          getRegionType(pScnHdr->Characteristics)));
 //        regions_.push_back(new Section(i, (const char*)pScnHdr->Name, 
 //                                      pScnHdr->VirtualAddress, 
 //                                      pScnHdr->Misc.VirtualSize, 
@@ -819,7 +853,7 @@ bool Object::getCatchBlock(ExceptionBlock &b, Offset addr,
 
 bool Object::isText( const Offset addr ) const 
 {
-   return( addr >= code_off_ && addr <= code_len_ );
+   return( addr >= code_off_ && addr < code_off_ + code_len_ );
 }
 
 void fixup_filename(std::string &filename)

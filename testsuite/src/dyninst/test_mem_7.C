@@ -77,9 +77,7 @@ test_results_t test_mem_7_Mutator::executeTest() {
   BPatch_Vector<BPatch_function *> found_funcs;
   const char *inFunction = "loadsnstores";
   if ((NULL == appImage->findFunction(inFunction, found_funcs, 1)) || !found_funcs.size()) {
-    logerror("    Unable to find function %s\n",
-	    inFunction);
-    return FAILED;
+      failtest(testnum, testdesc, "Unable to find function \"loadsnstores\".\n");
   }
        
   if (1 < found_funcs.size()) {
@@ -93,10 +91,10 @@ test_results_t test_mem_7_Mutator::executeTest() {
     failtest(testnum, testdesc, "Unable to find function \"loadsnstores\".\n");
 
   //logerror("Doing test %d!!!!!!\n", testnum);
-  if (instEffAddr(appThread, "EffAddr", res1, true) < 0) {
-    return FAILED;
+  if (instEffAddr(appAddrSpace, "EffAddr", res1, true) < 0) {
+      failtest(testnum, testdesc, "Unable to instrument effective addresses.\n");
   }
-  //appThread->detach(false);
+  
   return PASSED;
 #endif
 }

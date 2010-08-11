@@ -488,6 +488,11 @@ int main(int argc, char *argv[])
          fprintf(stderr, "Press ctrl-c again with-in 2 seconds to abort runTests.\n");
          sleep(2);
       }
+      if (driver == -1) {
+          for (unsigned idx=0; idx < parallel_copies; idx++) {
+             test_drivers[idx].last_result = -1;
+          }
+      }
       if (test_drivers[driver].last_result == -4) {
          //Exec error
          fprintf(stderr, "Failed to exec test_driver\n");

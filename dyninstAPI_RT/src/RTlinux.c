@@ -192,15 +192,6 @@ void mark_heaps_exec() {
 	RTprintf( "*** Marked memory from 0x%lx to 0x%lx executable.\n", alignedHeapPointer, alignedHeapPointer + adjustedSize );
 	} /* end mark_heaps_exec() */
 
-#if defined(arch_ia64)
-/* Ensure we an executable block of memory. */
-void R_BRK_TARGET() {
-        /* Make sure we've got room for two bundles. */
-        asm( "nop 0" ); asm( "nop 0" ); asm( "nop 0" );
-        asm( "nop 0" ); asm( "nop 0" ); asm( "nop 0" );
-        }
-#endif /*arch_ia64*/
-
 /************************************************************************
  * void DYNINSTos_init(void)
  *
@@ -303,8 +294,6 @@ int DYNINSTloadLibrary(char *libname)
 #define SYS_gettid 224
 #elif defined(arch_x86_64)
 #define SYS_gettid 186
-#elif defined(arch_ia64)
-#define SYS_gettid 1105
 #endif
 
 #endif
@@ -394,8 +383,7 @@ static pthread_offset_t positions[POS_ENTRIES] = { { 72, 476, 516, 576 },
                                                    { 72, 476, 516, 80 },
                                                    { 72, 76, 532, 96} }; 
 
-#elif defined(arch_x86_64) || defined(arch_ia64)
-//x86_64 and ia64 share structrues
+#elif defined(arch_x86_64) 
 #define POS_ENTRIES 4
 static pthread_offset_t positions[POS_ENTRIES] = { { 144, 952, 1008, 160 },
                                                    { 144, 148, 1000, 160 },
@@ -595,9 +583,9 @@ void dyninstSetupContext(ucontext_t *context, unsigned long flags, void *retPoin
       unsigned long zero = 0;
       unsigned long one = 1;
       struct trap_mapping_header *hdr = getStaticTrapMap((unsigned long) orig_ip);
-      trapMapping_t *mapping = &(hdr->traps[0]);
       assert(hdr);
-      trap_to = dyninstTrapTranslate(orig_ip, 
+      trapMapping_t *mapping = &(hdr->traps[0]);
+      trap_to = dyninstTrapTranslate(orig_ip,
                                      (unsigned long *) &hdr->num_entries, 
                                      &zero, 
                                      (volatile trapMapping_t **) &mapping,

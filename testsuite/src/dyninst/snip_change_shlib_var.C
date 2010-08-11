@@ -89,7 +89,7 @@ test_results_t snip_change_shlib_var_Mutator::mutatorTest()
 	BPatch_function *inst_func = funcs[0];
 	funcs.clear();
 
-	appImage->findFunction(check_fname, funcs);
+	appImage->findFunction(check_fname, funcs, true,true,true);
 	if (!funcs.size())
 	{
 		logerror("%s[%d]:  failed to find function %s\n", FILE__, __LINE__, check_fname);

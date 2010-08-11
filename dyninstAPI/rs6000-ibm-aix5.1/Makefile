@@ -47,10 +47,8 @@ SRCS = 		../src/aix.C \
 		../src/inst-aix.C \
 		../src/image-power.C \
 		../src/unix.C \
-		../src/arch-power.C \
+		../src/codegen-power.C \
 		../src/syscall-solproc.C \
-		../src/IA_IAPI.C \
-		../src/IA_power.C \
 		../src/BPatch_memoryAccessAdapter.C
 
 # Add preprocessor and special link information for G++

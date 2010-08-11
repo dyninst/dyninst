@@ -78,6 +78,7 @@ class BPATCH_DLL_EXPORT BPatch_flowGraph :
   BPatch_flowGraph (BPatch_function *func, bool &valid); 
 
   int_function *ll_func() const;
+  bool isValid_;
 public:
 
   //BPatch_process *getBProcess() const { return bproc; }
@@ -85,6 +86,8 @@ public:
   AddressSpace *getllAddSpace() const;
   BPatch_function *getBFunction() const { return func_; }
   BPatch_module *getModule() const { return mod; }
+  BPatch_basicBlock *findBlockByAddr(Dyninst::Address addr);
+  void invalidate(); // invoked when additional parsing takes place
   //  End of deprecated function
 
   //  Functions for use by Dyninst users
@@ -150,6 +153,9 @@ public:
   // Deprecated - this should not be an API method
   //API_EXPORT_V(Int, (),
   //void, initLivenessInfo,());
+
+  API_EXPORT(Int, (),
+  bool,isValid,()); 
 
   /*
   API_EXPORT(Int, (edge),

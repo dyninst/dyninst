@@ -206,6 +206,7 @@ baseTramp::baseTramp(instPoint *iP, callWhen when) :
     optimized_out_guards(false),
     guardState_(guarded_BTR),
     suppress_threads_(false),
+    savedFlagSize(0), 
     createFrame_(true),
     instVersion_(),
     when_(when)
@@ -383,9 +384,6 @@ bool baseTrampInstance::generateCode(codeGen &gen,
 bool baseTrampInstance::generateCodeInlined(codeGen &gen,
                                             Address baseInMutatee,
                                             UNW_INFO_TYPE **
-#if defined(arch_ia64)
-                                            unwindRegion
-#endif
                                             ) {
     if (!hasChanged() && generated_) {
         assert(gen.currAddr(baseInMutatee) == trampAddr_);
@@ -812,10 +810,6 @@ unsigned baseTrampInstance::maxSizeRequired() {
     for (unsigned i = 0; i < mtis.size(); i++)
       size += mtis[i]->maxSizeRequired();
     
-#if defined(arch_ia64)
-	size *= 8; // Enormous on this platform...
-#endif
-
     return size;
 }
 
@@ -963,6 +957,13 @@ void baseTrampInstance::removeCode(generatedCodeObject *subObject) {
     miniTrampInstance *delMTI = dynamic_cast<miniTrampInstance *>(subObject);
     multiTramp *delMulti = dynamic_cast<multiTramp *>(subObject);
     assert(delMTI || delMulti);
+    if (multiT && multiT->getIsActive()) {
+        mal_printf("Deleting baseTramp(trampAddr=%lx size=%lx) with "
+                "active multitramp %lx [%lx %lx] %s[%d]\n", trampAddr_, trampSize_,
+                multiT->instAddr(), multiT->getAddress(),
+                multiT->getAddress()+multiT->get_size()
+                ,FILE__,__LINE__);
+    }
 
     if (delMTI) {
         // We lost a miniTramp...
@@ -993,8 +994,9 @@ void baseTrampInstance::removeCode(generatedCodeObject *subObject) {
 	    //multiT->markChanged(true);
             bool doWeDelete = false;
             multiTramp::replaceMultiTramp(multiT, doWeDelete);
-            if (doWeDelete) 
+            if (doWeDelete && (!multiT || !multiT->getIsActive())) {
                 proc()->deleteGeneratedCode(multiT);
+            }
         }
     }
     else {
@@ -1186,8 +1188,12 @@ int baseTrampInstance::numDefinedRegs()
    return count;
 }
 
-Symbol *baseTrampInstance::createBTSymbol()
+SymtabAPI::Symbol *baseTrampInstance::createBTSymbol()
 {
+  using SymtabAPI::Symtab;
+  using SymtabAPI::Symbol;
+  using SymtabAPI::Region;
+
   //Make a symbol on this baseTramp to help ID it.
   BinaryEdit *binedit = dynamic_cast<BinaryEdit *>(proc());
   assert(binedit);

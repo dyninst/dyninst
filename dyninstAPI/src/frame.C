@@ -54,9 +54,6 @@ Frame::Frame() :
   thread_(NULL), 
   lwp_(NULL), 
   range_(0), 
-#if defined(arch_ia64)
-  hasValidCursor(false),
-#endif
   pcAddr_(0) {
     stackwalk_cerr << "*** Null frame ***" << endl;
 }
@@ -72,9 +69,6 @@ Frame::Frame(Address pc, Address fp, Address sp,
   pc_(pc), fp_(fp), sp_(sp),
   pid_(pid), proc_(proc), thread_(thread), lwp_(lwp), 
   range_(0), 
-#if defined(arch_ia64)
-  hasValidCursor(false),
-#endif
   pcAddr_(pcAddr) {
   stackwalk_cerr << "Base frame:   " << (*this) << endl;
 };
@@ -88,9 +82,6 @@ Frame::Frame(Address pc, Address fp, Address sp,
   pid_(f->pid_), proc_(f->proc_),
   thread_(f->thread_), lwp_(f->lwp_),
   range_(0), 
-#if defined(arch_ia64)
-    hasValidCursor(false), 
-#endif   
 pcAddr_(pcAddr) {
   stackwalk_cerr << "Called frame: " << (*this) << endl;
 }
@@ -220,8 +211,23 @@ int_function *Frame::getFunc() {
         return range->is_multitramp()->func();
     else if (range->is_minitramp())
         return range->is_minitramp()->baseTI->multiT->func();
-    else 
-        return NULL;
+    else if (BPatch_defensiveMode == getProc()->getHybridMode() && 
+             range->is_mapped_object()) {
+        // in defensive mode, return the function at getPC-1, since
+        // the PC could be at the fallthrough address of a call
+        // instruction that was assumed to be non-returning
+        range = getProc()->findModByAddr(getPC()-1);
+        if (range == NULL) 
+            return NULL;
+        if (range->is_function())
+            return range->is_function();
+        else if (range->is_multitramp())
+            return range->is_multitramp()->func();
+        else if (range->is_minitramp())
+            return range->is_minitramp()->baseTI->multiT->func();
+    }
+
+    return NULL;
 }
 
 Address Frame::getUninstAddr() {
@@ -230,23 +236,36 @@ Address Frame::getUninstAddr() {
     miniTrampInstance *mt_ptr = range->is_minitramp();
     baseTrampInstance *bt_ptr = range->is_basetramp_multi();
     bblInstance *bbl_ptr = range->is_basicBlockInstance();
+    Address uninst =0;
 
     if (m_ptr) {
         // Figure out where in the multiTramp we are
-        return m_ptr->instToUninstAddr(getPC());
+        uninst = m_ptr->instToUninstAddr(getPC());
     }
     else if (mt_ptr) {
         // Don't need the actual PC for minitramps
-        return mt_ptr->uninstrumentedAddr();
+        uninst = mt_ptr->uninstrumentedAddr();
     }
     else if (bt_ptr) {
         // Don't need actual PC here either
-        return bt_ptr->uninstrumentedAddr();
+        uninst = bt_ptr->uninstrumentedAddr();
     }
-    else if (bbl_ptr) {
+
+    if (0 != uninst) {
+        range = proc_->findOrigByAddr(uninst);
+        if (!range) {
+            return uninst;
+        }
+        bbl_ptr = range->is_basicBlockInstance();
+        if (!bbl_ptr) {
+            return uninst;
+        }
+    }
+
+    if (bbl_ptr) {
         // Relocated function... back-track
         assert(range->is_basicBlock());
-        return bbl_ptr->equivAddr(range->is_basicBlock()->origInstance(), getPC());
+        return bbl_ptr->equivAddr(0, getPC());
     }
     else {
         // Where are we?

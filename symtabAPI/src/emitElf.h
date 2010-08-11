@@ -121,6 +121,7 @@ class emitElf{
     bool BSSExpandFlag;
     bool movePHdrsFirst;
     bool createNewPhdr;
+    bool replaceNOTE;
     unsigned loadSecTotalSize; 
 
     bool isStripped;
@@ -136,7 +137,8 @@ class emitElf{
     void createNewPhdrRegion(dyn_hash_map<std::string, unsigned> &newNameIndexMapping);
     bool addSectionHeaderTable(Elf32_Shdr *shdr);
     bool createNonLoadableSections(Elf32_Shdr *& shdr);
-    bool createLoadableSections( Elf32_Shdr* &shdr, unsigned &extraAlignSize, 
+    bool createLoadableSections( Symtab * obj,
+                                 Elf32_Shdr* &shdr, unsigned &extraAlignSize, 
                                  dyn_hash_map<std::string,  unsigned>& newIndexMapping, 
                                  unsigned &sectionNumber);
     void createRelocationSections(Symtab *obj, std::vector<relocationEntry> &relocation_table, bool isDynRelocs, dyn_hash_map<std::string, unsigned> &dynSymNameMapping);

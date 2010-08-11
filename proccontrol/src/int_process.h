@@ -52,11 +52,11 @@ class int_process
 {
    friend class Dyninst::ProcControlAPI::Process;
  protected:
-   int_process(Dyninst::PID p, std::string e, std::vector<std::string> a);
+   int_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int,int> f);
    int_process(Dyninst::PID pid_, int_process *p);
  public:
    static int_process *createProcess(Dyninst::PID p, std::string e);
-   static int_process *createProcess(std::string e, std::vector<std::string> a);
+   static int_process *createProcess(std::string e, std::vector<std::string> a, std::map<int,int> f);
    static int_process *createProcess(Dyninst::PID pid_, int_process *p);
    virtual ~int_process();
  protected:
@@ -174,6 +174,7 @@ class int_process
    Dyninst::PID pid;
    std::string executable;
    std::vector<std::string> argv;
+   std::map<int,int> fds;
    Dyninst::Architecture arch;
    int_threadPool *threadpool;
    Process::ptr up_proc;

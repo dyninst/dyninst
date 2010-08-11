@@ -61,7 +61,8 @@
 
 // BREAK_POINT_INSN
 #if defined(os_aix)
-#include "dyninstAPI/src/arch-power.h"
+#include "common/h/arch-power.h"
+using namespace NS_power;
 #endif
 
 #include <sys/poll.h>
@@ -109,10 +110,6 @@ bool decodeWaitPidStatus(procWaitpidStatus_t status,
 
 bool SignalGenerator::decodeSigIll(EventRecord &ev) 
 {
-#if defined (arch_ia64) 
-  if ( ev.proc->getRpcMgr()->decodeEventIfDueToIRPC(ev))
-    return true;
-#endif
   ev.type = evtCritical;
   return true;
 }
@@ -502,32 +499,7 @@ bool SignalGenerator::decodeSignal(EventRecord &ev)
       case SIGILL:
          {
             signal_printf("%s[%d]:  SIGILL\n", FILE__, __LINE__);
-#if defined (arch_ia64)
-            if (!ev.lwp) {
-               fprintf(stderr, "%s[%d]:  CRITICAL SIGNAL\n", FILE__, __LINE__);
-               break;
-            }
-
-            Frame frame = ev.lwp->getActiveFrame();
-
-            Address pc = frame.getPC();
-
-            if (pc == ev.proc->dyninstlib_brk_addr ||
-                  pc == ev.proc->main_brk_addr ||
-                  ev.proc->getDyn()->reachedLibHook(pc)) {
-               ev.what = SIGTRAP;
-               decodeSigTrap(ev);
-            }
-            else
-               decodeSigIll(ev);
-
-            signal_printf("%s[%d]:  SIGILL:  main brk = %p, dyn brk = %p, pc = %p\n",
-                  FILE__, __LINE__, ev.proc->main_brk_addr, ev.proc->dyninstlib_brk_addr,
-                  pc);
-#else
-
             decodeSigIll(ev);
-#endif
             break;
          }
 
@@ -968,7 +940,7 @@ bool setEnvPreload(unsigned max_entries, char **envs, unsigned *pnum_entries, st
    bool use_abi_rt = false;
    std::string full_name;
 #if defined(arch_x86_64)
-   Symtab *symt_obj;
+   SymtabAPI::Symtab *symt_obj;
    bool result = SymtabAPI::Symtab::openFile(symt_obj, file);
    if (!result) {
      return false;
@@ -1550,11 +1522,29 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
     }
     printf("Handling signal number 0x%X\n",ev.what);
 
-    //KEVINTODO: need one time code here to call sigaction so we can
+    //TODO: need one time code here to call sigaction so we can
     //retrieve the registered signal handler address and trigger a
     //callback, if there is one
     assert(false); // for now
     return false;
+}
+
+int dyn_lwp::changeMemoryProtections(Address , Offset , unsigned )
+{
+    assert(0);//not implemented for unix
+    return 0;
+}
+
+bool SignalHandler::handleCodeOverwrite(EventRecord &)
+{
+    assert(0);//not implemented for unix 
+    return false;
+}
+
+mapped_object *process::createObjectNoFile(Address)
+{
+    assert(0); //not implemented for unix
+    return NULL;
 }
 
 bool SignalGeneratorCommon::postSignalHandler() 
@@ -1634,6 +1624,8 @@ bool SignalGenerator::isInstTrap(const EventRecord &ev, const Frame &af)
 
 #include "dyninstAPI/src/binaryEdit.h"
 #include "symtabAPI/h/Archive.h"
+
+using namespace Dyninst::SymtabAPI;
 
 std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::string filename) {
     std::map<std::string, BinaryEdit *> retMap;
@@ -1733,3 +1725,8 @@ std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::stri
 }
 
 #endif
+
+bool process::hideDebugger()
+{
+    return false;
+}

@@ -42,13 +42,14 @@
 #include "process.h"
 #include "function.h"
 #if !defined(cap_instruction_api)
-#include "InstrucIter.h"
+#include "parseAPI/src/InstrucIter.h"
 #endif
 #include "BPatch_instruction.h"
 #include "Instruction.h"
 #include "InstructionDecoder.h"
 #include "BPatch_libInfo.h"
 #include "BPatch_edge.h"
+#include "instPoint.h"
 
 int bpatch_basicBlock_count = 0;
 
@@ -488,7 +489,7 @@ BPatch_Vector<BPatch_point*> *BPatch_basicBlock::findPointInt(const BPatch_Set<B
     return findPointByPredicate(filter);
 #else
     // Use an instruction iterator
-    InstrucIter ii(this);
+    InstrucIter ii(getStartAddress(),size(),flowGraph->getllAddSpace());
     BPatch_function *func = flowGraph->getBFunction();
     
     return BPatch_point::getPoints(ops, ii, func);
@@ -503,6 +504,147 @@ BPatch_Vector<BPatch_point*> *BPatch_basicBlock::findPointInt(bool(*filter)(Inst
     return findPointByPredicate(filterPtr);
 }
 #endif
+
+// does not return duplicates even if some points belong to multiple categories
+//
+void BPatch_basicBlock::getAllPoints(std::vector<BPatch_point*>& bpPoints)
+{
+    set<BPatch_point*> dupCheck;
+    BPatch_addressSpace *addSpace = flowGraph->getBFunction()->getAddSpace();
+    pdvector<instPoint*> blockPoints = iblock->func()->funcEntries();
+    unsigned pIdx;
+    for (pIdx=0; pIdx < blockPoints.size(); pIdx++) {
+        if (iblock->origInstance()->firstInsnAddr() <= blockPoints[pIdx]->addr()
+            && iblock->origInstance()->endAddr() > blockPoints[pIdx]->addr()) 
+        {
+            BPatch_point *point = addSpace->findOrCreateBPPoint
+                ( flowGraph->getBFunction(), 
+                  blockPoints[pIdx], 
+                  BPatch_point::convertInstPointType_t
+                  (blockPoints[pIdx]->getPointType()) );
+            dupCheck.insert(point);
+            bpPoints.push_back(point);
+        }
+    }
+    blockPoints = iblock->func()->funcExits();
+    for (pIdx=0; pIdx < blockPoints.size(); pIdx++) {
+        if (iblock->origInstance()->firstInsnAddr() <= blockPoints[pIdx]->addr()
+            && iblock->origInstance()->endAddr() > blockPoints[pIdx]->addr()) 
+        {
+            BPatch_point *point = addSpace->findOrCreateBPPoint
+                ( flowGraph->getBFunction(), 
+                  blockPoints[pIdx], 
+                  BPatch_point::convertInstPointType_t
+                  (blockPoints[pIdx]->getPointType()) );
+            if (point && dupCheck.end() != dupCheck.find(point)) {
+                dupCheck.insert(point);
+                bpPoints.push_back(point);
+            }
+        }
+    }
+    blockPoints = iblock->func()->funcCalls();
+    for (pIdx=0; pIdx < blockPoints.size(); pIdx++) {
+        if (iblock->origInstance()->firstInsnAddr() <= blockPoints[pIdx]->addr()
+            && iblock->origInstance()->endAddr() > blockPoints[pIdx]->addr()) 
+        {
+            BPatch_point *point = addSpace->findOrCreateBPPoint
+                ( flowGraph->getBFunction(), 
+                  blockPoints[pIdx], 
+                  BPatch_point::convertInstPointType_t
+                  (blockPoints[pIdx]->getPointType()) );
+            if (point && dupCheck.end() != dupCheck.find(point)) {
+                dupCheck.insert(point);
+                bpPoints.push_back(point);
+            }
+        }
+    }
+    blockPoints = iblock->func()->funcArbitraryPoints();
+    for (pIdx=0; pIdx < blockPoints.size(); pIdx++) {
+        if (iblock->origInstance()->firstInsnAddr() <= blockPoints[pIdx]->addr()
+            && iblock->origInstance()->endAddr() > blockPoints[pIdx]->addr()) 
+        {
+            BPatch_point *point = addSpace->findOrCreateBPPoint
+                ( flowGraph->getBFunction(), 
+                  blockPoints[pIdx], 
+                  BPatch_point::convertInstPointType_t
+                  (blockPoints[pIdx]->getPointType()) );
+            if (point && dupCheck.end() != dupCheck.find(point)) {
+                dupCheck.insert(point);
+                bpPoints.push_back(point);
+            }
+        }
+    }
+    std::set<instPoint*> pointSet = iblock->func()->funcUnresolvedControlFlow();
+    std::set<instPoint*>::iterator pIter = pointSet.begin();
+    while (pIter != pointSet.end()) {
+        if (iblock->origInstance()->firstInsnAddr() <= (*pIter)->addr()
+            && iblock->origInstance()->endAddr() > (*pIter)->addr()) 
+        {
+            BPatch_point *point = addSpace->findOrCreateBPPoint
+                ( flowGraph->getBFunction(), 
+                  *pIter, 
+                  BPatch_point::convertInstPointType_t
+                  (blockPoints[pIdx]->getPointType()) );
+            if (point && dupCheck.end() != dupCheck.find(point)) {
+                dupCheck.insert(point);
+                bpPoints.push_back(point);
+            }
+        }
+        pIter++;
+    }
+    pointSet = iblock->func()->funcAbruptEnds();
+    pIter = pointSet.begin();
+    while (pIter != pointSet.end()) {
+        if (iblock->origInstance()->firstInsnAddr() <= (*pIter)->addr()
+            && iblock->origInstance()->endAddr() > (*pIter)->addr()) 
+        {
+            BPatch_point *point = addSpace->findOrCreateBPPoint
+                ( flowGraph->getBFunction(), 
+                  *pIter, 
+                  BPatch_point::convertInstPointType_t
+                  (blockPoints[pIdx]->getPointType()) );
+            if (point && dupCheck.end() != dupCheck.find(point)) {
+                dupCheck.insert(point);
+                bpPoints.push_back(point);
+            }
+        }
+        pIter++;
+    }
+}
+
+
+BPatch_function * BPatch_basicBlock::getCallTarget()
+{
+    image_instPoint* imgPt = iblock->func()->ifunc()->img()->getInstPoint
+        ( iblock->llb()->lastInsnAddr() );
+    if ( ! imgPt || callSite != imgPt->getPointType() ) {
+        return NULL;
+    }
+    Address baseAddr = iblock->func()->ifunc()->img()->desc().loadAddr();
+    Address targetAddr = imgPt->callTarget() + baseAddr;
+    Address pointAddr =  imgPt->offset() + baseAddr;
+    int_function *targFunc = 
+        flowGraph->getllAddSpace()->findFuncByAddr(targetAddr);
+
+    if (!targFunc && imgPt->isDynamic()) { 
+        // if this is an indirect call, use its saved target
+        instPoint *intCallPoint = iblock->func()->findInstPByAddr(pointAddr);
+        if (!intCallPoint) {
+            iblock->func()->funcCalls();
+            intCallPoint = iblock->func()->findInstPByAddr(pointAddr);
+        }
+        assert(intCallPoint);
+        targFunc = iblock->func()->proc()->findFuncByAddr
+            ( intCallPoint->getSavedTarget() );
+    }
+    if (!targFunc) {
+        return NULL;
+    }
+    BPatch_function * bpfunc = 
+        flowGraph->getAddSpace()->findOrCreateBPFunc(targFunc,NULL);
+    return bpfunc;
+}
+
 
 /*
  * BPatch_basicBlock::getInstructions
@@ -522,7 +664,7 @@ BPatch_Vector<BPatch_instruction*> *BPatch_basicBlock::getInstructionsInt(void) 
   if (!instructions) {
 
     instructions = new BPatch_Vector<BPatch_instruction*>;
-    InstrucIter ii(this);
+    InstrucIter ii(getStartAddress(),size(),flowGraph->getllAddSpace());
     
     while(ii.hasMore()) {
       BPatch_instruction *instr = ii.getBPInstruction();
@@ -546,9 +688,10 @@ BPatch_Vector<BPatch_instruction*> *BPatch_basicBlock::getInstructionsInt(void) 
 bool BPatch_basicBlock::getInstructionsInt(std::vector<InstructionAPI::Instruction::Ptr>& insns) {
   using namespace InstructionAPI;
 
-  InstructionDecoder d((const unsigned char*)(iblock->proc()->getPtrToInstruction(getStartAddress())),
-		       size(),
-		       iblock->llb()->getFirstFunc()->img()->getArch());
+  InstructionDecoder d((const unsigned char*)
+        (iblock->proc()->getPtrToInstruction(getStartAddress())),
+        size(),
+        iblock->llb()->obj()->cs()->getArch());
   do {
       insns.push_back(d.decode());
   } while (insns.back() && insns.back()->isValid());
@@ -564,7 +707,7 @@ bool BPatch_basicBlock::getInstructionsAddrs(std::vector<std::pair<InstructionAP
   Address addr = getStartAddress();
   const unsigned char *ptr = (const unsigned char *)iblock->proc()->getPtrToInstruction(addr);
   if (ptr == NULL) return false;
-  InstructionDecoder d(ptr, size(), iblock->llb()->getFirstFunc()->img()->getArch());
+  InstructionDecoder d(ptr, size(), iblock->llb()->obj()->cs()->getArch());
 
   while (addr < getEndAddress()) {
       insnInstances.push_back(std::make_pair(d.decode(), addr));
@@ -574,12 +717,12 @@ bool BPatch_basicBlock::getInstructionsAddrs(std::vector<std::pair<InstructionAP
   return !insnInstances.empty();  
 }
 #else
-bool BPatch_basicBlock::getInstructionsInt(std::vector<InstructionAPI::Instruction::Ptr>& insns)
+bool BPatch_basicBlock::getInstructionsInt(std::vector<InstructionAPI::Instruction::Ptr>& /* insns */)
 {
   return false;
 }
 
-bool BPatch_basicBlock::getInstructionsAddrs(std::vector<std::pair<InstructionAPI::Instruction::Ptr, Address> >& insnInstances)
+bool BPatch_basicBlock::getInstructionsAddrs(std::vector<std::pair<InstructionAPI::Instruction::Ptr, Address> >& /* insnInstances */)
 {
   return false;
 }

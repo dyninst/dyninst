@@ -50,7 +50,7 @@
 #include "mapped_object.h" // for savetheworld
 #include "mapped_module.h"
 #include "ast.h"
-#include "symtab.h"
+#include "function.h"
 #include "process.h"
 #include "instPoint.h"
 #include "registerSpace.h"
@@ -68,8 +68,6 @@ using namespace Dyninst::SymtabAPI;
 #include "inst-x86.h"
 #elif defined(arch_power)
 #include "inst-power.h"
-#elif defined(arch_ia64)
-#include "inst-ia64.h"
 #elif defined(arch_sparc)
 #include "inst-sparc.h"
 #endif
@@ -1559,6 +1557,12 @@ bool BPatch_insnExpr::overrideStoreAddressInt(BPatch_snippet &s) {
 }
 
 
+/* Causes us to create only one StopThreadCallback per
+   BPatchStopThreadCallback, though we create a function call snippet
+   to DYNINST_stopThread for each individual stopThreadExpr.  It's not
+   necessary that we limit StopThreadCallbacks creations like this. */
+static std::set<BPatchStopThreadCallback> *stopThread_cbs=NULL;
+
 /* BPatch_stopThreadExpr 
  *
  *  This snippet type stops the thread that executes it.  It
@@ -1568,24 +1572,46 @@ bool BPatch_insnExpr::overrideStoreAddressInt(BPatch_snippet &s) {
  */
 void BPatch_stopThreadExpr::BPatch_stopThreadExprInt
       (const BPatchStopThreadCallback &bp_cb,
-       const BPatch_snippet &calculation) 
+       const BPatch_snippet &calculation,
+       bool useCache,
+       BPatch_stInterpret interp)
 {
-    //register the callback 
-    StopThreadCallback *cb = new StopThreadCallback(bp_cb);
-    getCBManager()->registerCallback(evtStopThread, cb);
+    //register the callback if it's new
+    if (stopThread_cbs == NULL) {
+        stopThread_cbs = new std::set<BPatchStopThreadCallback>;
+    }
+    std::set<BPatchStopThreadCallback>::iterator cbIter = 
+        stopThread_cbs->find(bp_cb);
+    if (cbIter == stopThread_cbs->end()) {
+       StopThreadCallback *cb = new StopThreadCallback(bp_cb);
+       cb->enableDelete(false);
+       stopThread_cbs->insert(bp_cb);
+       getCBManager()->registerCallback(evtStopThread, cb);
+    }
 
     // create callback ID argument
     int cb_id = process::getStopThreadCB_ID((Address)bp_cb); 
-    AstNodePtr idNode = AstNode::operandNode(AstNode::Constant, (void*)(long) cb_id );
-    assert(BPatch::bpatch != NULL);
-    BPatch_type *type = BPatch::bpatch->stdTypes->findType("int");
-    assert(type != NULL);
-    idNode->setType(type);
+    AstNodePtr idNode = AstNode::operandNode(AstNode::Constant, (void*)(int) cb_id );
+    BPatch_type *inttype = BPatch::bpatch->stdTypes->findType("int");
+    assert(inttype != NULL);
+    idNode->setType(inttype);
+
+    // create interpret/usecache argument
+    int ic = 0;
+    if (useCache) 
+        ic += 1;
+    if (interp == BPatch_interpAsTarget) 
+        ic += 2;
+    else if (interp == BPatch_interpAsReturnAddr) 
+        ic += 4;
+    AstNodePtr icNode = AstNode::operandNode(AstNode::Constant, (void*) ic );
+    icNode->setType(inttype);
     
     // set up funcCall args
     pdvector<AstNodePtr> ast_args;
     ast_args.push_back(AstNode::originalAddrNode());
     ast_args.push_back(idNode);
+    ast_args.push_back(icNode);
     ast_args.push_back(calculation.ast_wrapper);
 
     // create func call & set type 

@@ -137,7 +137,7 @@ COMMON_EXPORT void printSerErr(const SerializerError &err);
 
 typedef enum {
 	ser_bin,
-	ser_xml,
+	ser_xml
 } ser_type_t;
 
 class SerContextBase 

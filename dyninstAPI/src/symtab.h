@@ -46,20 +46,17 @@
 
 #include <set>
 
+#include "dyninstAPI/src/dyninst.h"
+#include "dyninstAPI/src/util.h"
+#include "dyninstAPI/src/codeRange.h"
+#include "dyninstAPI/src/infHeap.h"
+#include "dyninstAPI/src/inst.h"
+#include "dyninstAPI/h/BPatch_hybridAnalysis.h"
+
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
-#include "dyninstAPI/src/dyninst.h"
-#include "dyninstAPI/src/arch.h"
-#include "dyninstAPI/src/util.h"
-
-#include "dyninstAPI/src/codeRange.h"
-#include "dyninstAPI/src/function.h"
-#include "dyninstAPI/src/InstructionSource.h"
-
-#include "dyninstAPI/src/infHeap.h"
-
+#include "common/h/List.h"
 #include "common/h/Types.h"
-#include "dyninstAPI/src/inst.h"
 
 #if defined(rs6000_ibm_aix4_1)||defined(rs6000_ibm_aix5_1)||defined(os_linux)||defined(os_solaris)
 #include "symtabAPI/h/Archive.h"
@@ -71,8 +68,9 @@
 #include "symtabAPI/h/Function.h"
 #include "symtabAPI/h/Variable.h"
 
+#include "dyninstAPI/src/Parsing.h"
+
 using namespace Dyninst;
-using namespace Dyninst::SymtabAPI;
 
 typedef bool (*functionNameSieve_t)(const char *test,void *data);
 #define RH_SEPERATOR '/'
@@ -108,6 +106,11 @@ class module;
 class BPatch_flowGraph;
 class BPatch_loopTreeNode;
 class instPoint;
+class image_instPoint;
+
+// ParseAPI classes
+class DynCFGFactory;
+class DynParseCallback;
 
 // File descriptor information
 class fileDescriptor {
@@ -162,21 +165,27 @@ class fileDescriptor {
      void setMember(string member) { member_ = member; }
      void setPid(int pid) { pid_ = pid; }
      void setIsShared(bool shared) { shared_ = shared; }
+     unsigned char* rawPtr();                   //only for non-files
 
 #if defined(os_windows)
      // Windows gives you file handles. Since I collapsed the fileDescriptors
      // to avoid having to track allocated/deallocated memory, these moved here.
      fileDescriptor(string name, Address baseAddr, HANDLE procH, HANDLE fileH,
-                    bool isShared, Address loadAddr) :
+                    bool isShared, Address loadAddr, 
+                    Address len=0, unsigned char* raw=NULL) :
          file_(name), code_(baseAddr), data_(baseAddr),
          procHandle_(procH), fileHandle_(fileH),
+         length_(len), rawPtr_(raw),
          shared_(isShared), pid_(0), loadAddr_(loadAddr) {}
      HANDLE procHandle() const { return procHandle_; }
      HANDLE fileHandle() const { return fileHandle_; }
 
+     Address length() const { return length_; }  //only for non-files
  private:
      HANDLE procHandle_;
      HANDLE fileHandle_;
+     Address length_;        // set only if this is not really a file
+     unsigned char* rawPtr_; // set only if this is not really a file
  public:
 #endif
 
@@ -199,7 +208,7 @@ class image_variable {
  private:
  public:
     image_variable() {}
-    image_variable(Variable *var,
+    image_variable(SymtabAPI::Variable *var,
     		   pdmodule *mod);
 
     Address getOffset() const;
@@ -212,9 +221,9 @@ class image_variable {
     bool addPrettyName(const std::string &, bool isPrimary = false);
 
     pdmodule *pdmod() const { return pdmod_; }
-    Variable *svar() const { return var_; }
+    SymtabAPI::Variable *svar() const { return var_; }
 
-    Variable *var_;
+    SymtabAPI::Variable *var_;
     pdmodule *pdmod_;
     
 };
@@ -231,10 +240,6 @@ class lineDict {
    dictionary_hash<unsigned, Address> lineMap;
 };
 
-void print_func_vector_by_pretty_name(std::string prefix,
-                                      pdvector<image_func *>*funcs);
-void print_module_vector_by_short_name(std::string prefix,
-                                       pdvector<pdmodule*> *mods);
 std::string getModuleName(std::string constraint);
 std::string getFunctionName(std::string constraint);
 
@@ -242,38 +247,17 @@ int rawfuncscmp( image_func*& pdf1, image_func*& pdf2 );
 
 typedef enum {unparsed, symtab, analyzing, analyzed} imageParseState_t;
 
-// modsByFileName
-// modsbyFullName
-// includedMods
-// excludedMods
-// allMods
-// includedFunctions
-// excludedFunctions
-// funcsByAddr
-// file_
-// name_
-// imageOffset_
-// imageLen_
-// dataOffset_
-// dataLen_
-// linkedFile
-// iSymsMap
-// allImages
-// varsByPretty
-// COMMENTS????
-//  Image class contains information about statically and dynamically linked code 
-//  belonging to a process....
-class image : public codeRange, public InstructionSource {
+//  Image class contains information about statically and 
+//  dynamically linked code belonging to a process
+class image : public codeRange {
    friend class process;
-   friend class image_func; // Access to "add<foo>Name"
    friend class image_variable;
-
-   //
-   // ****  PUBLIC MEMBER FUNCTIONS  ****
-   //
+   friend class DynCFGFactory;
  public:
    static image *parseImage(const std::string file);
-   static image *parseImage(fileDescriptor &desc, bool parseGaps=false);
+   static image *parseImage(fileDescriptor &desc, 
+                            BPatch_hybridMode mode = BPatch_normalMode,
+                            bool parseGaps=false);
 
    // And to get rid of them if we need to re-parse
    static void removeImage(image *img);
@@ -285,12 +269,16 @@ class image : public codeRange, public InstructionSource {
    static void removeImage(const string file);
    static void removeImage(fileDescriptor &desc);
 
-   image(fileDescriptor &desc, bool &err, bool parseGaps=false);
+   image(fileDescriptor &desc, bool &err, 
+         BPatch_hybridMode mode,
+         bool parseGaps=false);
 
    void analyzeIfNeeded();
 
-   image_func* addFunctionStub(Address functionEntryAddr, const char *name=NULL);
+   image_func* addFunction(Address functionEntryAddr, const char *name=NULL);
 
+   // creates the module if it does not exist
+   pdmodule *getOrCreateModule (SymtabAPI::Module *mod);
 
  protected:
    ~image();
@@ -298,10 +286,6 @@ class image : public codeRange, public InstructionSource {
    // 7JAN05: go through the removeImage call!
    int destroy();
  public:
-
-   // Check the list of symbols returned by the parser, return
-   // name/addr pair
-
    // find the named module  
    pdmodule *findModule(const string &name, bool wildcard = false);
 
@@ -321,17 +305,17 @@ class image : public codeRange, public InstructionSource {
                                                      void *user_data, 
                                                      pdvector<image_func *> *found);
 
+   /*********************************************************************/
+   /**** Function lookup (by name or address) routines               ****/
+   /****                                                             ****/
+   /**** Overlapping region objects MUST NOT use these routines      ****/
+   /*********************************************************************/
    // Find a function that begins at a particular address
    image_func *findFuncByEntry(const Address &entry);
-
-   // FIXME This function is poorly named: it searches for a *function*
-   //       that overlaps the given offset. Also, it fails to account
-   //       for functions overlapping a particular range due to code
-   //       sharing, so is broken by design.
-   codeRange *findCodeRangeByOffset(const Address &offset);
-
-   // Find the basic block that overlaps the given address
-   image_basicBlock *findBlockByAddr(const Address &addr);
+   // Code sharing allows multiple functions to overlap a given point
+   int findFuncs(const Address offset, set<ParseAPI::Function *> & funcs);
+   // Find the basic blocks that overlap the given address
+   int findBlocksByAddr(const Address offset, set<ParseAPI::Block*> & blocks);
   
    //Add an extra pretty name to a known function (needed for handling
    //overloaded functions in paradyn)
@@ -355,50 +339,57 @@ class image : public codeRange, public InstructionSource {
    Address dataLength() const { return dataLen_;} 
    Address imageLength() const { return imageLen_;} 
 
-
    // codeRange interface implementation
    Address get_address() const { return imageOffset(); }
    unsigned get_size() const { return imageLength(); }
-   virtual void *getPtrToInstruction(Address offset) const;
-   virtual void *getPtrToInstruction(Address offset, const image_func *context) const;
-   // Heh... going by address is a really awful way to work on AIX.
-   // Make it explicit.
-   void *getPtrToData(Address offset) const;
-   void * getPtrToDataInText( Address offset ) const;
 
-   Symtab *getObject() const { return linkedFile; }
-
-   // Figure out the address width in the image. Any ideas?
-   virtual unsigned getAddressWidth() const { return linkedFile->getAddressWidth(); };
+   SymtabAPI::Symtab *getObject() const { return linkedFile; }
+   ParseAPI::CodeObject *codeObject() const { return obj_; }
 
    bool isDyninstRTLib() const { return is_libdyninstRT; }
-
    bool isAOut() const { return is_a_out; }
+   bool isSharedObj() const { 
+    return (getObject()->getObjectType() == SymtabAPI::obj_SharedLib); 
+   }
+   bool isRelocatableObj() const { 
+    return (getObject()->getObjectType() == SymtabAPI::obj_RelocatableFile);
+   }
 
-   bool isSharedObj() const { return (getObject()->getObjectType() == obj_SharedLib); }
-   bool isRelocatableObj() const { return (getObject()->getObjectType() == obj_RelocatableFile); }
- 
-   bool isCode(const Address &where) const;
-   bool isData(const Address &where) const;
-   virtual bool isValidAddress(const Address &where) const;
-   virtual bool isExecutableAddress(const Address &where) const;
-   bool isAligned(const Address where) const;
    bool getExecCodeRanges(std::vector<std::pair<Address, Address> > &ranges);
 
    bool isNativeCompiler() const { return nativeCompiler; }
 
    // Return symbol table information
-   Symbol *symbol_info(const std::string& symbol_name);
+   SymtabAPI::Symbol *symbol_info(const std::string& symbol_name);
    // And used for finding inferior heaps.... hacky, but effective.
-   bool findSymByPrefix(const std::string &prefix, pdvector<Symbol *> &ret);
+   bool findSymByPrefix(const std::string &prefix, pdvector<SymtabAPI::Symbol *> &ret);
 
-   const std::set<image_func*,image_func::compare> &getAllFunctions();
+   ParseAPI::CodeObject::funclist &getAllFunctions();
    const pdvector<image_variable*> &getAllVariables();
 
-   // Get functions that were in a symbol table (exported funcs)
-   const pdvector<image_func *> &getExportedFunctions() const;
+   image_instPoint * getInstPoint(Address addr);
+   bool addInstPoint(image_instPoint*p);
+   void getInstPoints(Address start, Address end, 
+                      pdvector<image_instPoint*> &points); 
+
+   // element removal
+   void removeInstPoint(image_instPoint *p);
+   void deleteFunc(image_func *func);
+   void addSplitBlock(image_basicBlock *blk) { splitBlocks_.insert(blk); }
+   const set<image_basicBlock*> & getSplitBlocks() const;
+   bool hasSplitBlocks() const { return 0 < splitBlocks_.size(); }
+   void clearSplitBlocks();
+   bool hasNewBlocks() const { return 0 < newBlocks_.size(); }
+   const vector<image_basicBlock*> & getNewBlocks() const;
+   void clearNewBlocks();
+   // callback that updates our view the binary's raw code bytes
+   void register_codeBytesUpdateCB(void *cb_arg0)
+       { cb_arg0_ = cb_arg0; }
+   void call_codeBytesUpdateCB(SymtabAPI::Region *reg, Address addr);
+
    // And when we parse, we might find more:
-   const pdvector<image_func *> &getCreatedFunctions();
+   // FIXME might be convenient to access HINT-only functions easily
+   // XXX const pdvector<image_func *> &getCreatedFunctions();
 
    const pdvector<image_variable *> &getExportedVariables() const;
    const pdvector<image_variable *> &getCreatedVariables();
@@ -410,23 +401,14 @@ class image : public codeRange, public InstructionSource {
 
     int getNextBlockID() { return nextBlockID_++; }
 
-   //
-   //  ****  PUBLIC DATA MEMBERS  ****
-   //
-
    Address get_main_call_addr() const { return main_call_addr_; }
 
    void * getErrFunc() const { return (void *) dyninst_log_perror; }
 
    dictionary_hash<Address, std::string> *getPltFuncs();
 #if defined(arch_power)
-   bool updatePltFunc(image_func *caller_func, image_func *stub_func);
+   bool updatePltFunc(image_func *caller_func, Address stub_targ);
 #endif
-
-   // This method is invoked after parsing a function to record it in tables
-   // and to update other symtab-level data structures, like mangled names
-   void recordFunction(image_func *);
-    Dyninst::Architecture getArch() { return arch; }
 
    // This method is invoked to find the global constructors function and add a
    // symbol for the function if the image has no symbols
@@ -434,17 +416,9 @@ class image : public codeRange, public InstructionSource {
    bool findGlobalDestructorFunc();
 
  private:
-
-   void findModByAddr (const Symbol *lookUp, vector<Symbol *> &mods,
+   void findModByAddr (const SymtabAPI::Symbol *lookUp, vector<SymtabAPI::Symbol *> &mods,
                        string &modName, Address &modAddr, 
                        const string &defName);
-
-
-   // Remove a function from the lists of instrumentable functions, once already inserted.
-   int removeFuncFromInstrumentable(image_func *func);
-
-   image_func *makeImageFunction(Function *lookUp);
-
 
    //
    //  ****  PRIVATE MEMBERS FUNCTIONS  ****
@@ -455,34 +429,22 @@ class image : public codeRange, public InstructionSource {
    //       needs to be resolved wrt findMain returning void.
    void findMain();
 
-#ifdef CHECK_ALL_CALL_POINTS
-   void checkAllCallPoints();
-#endif
-
-   // creates the module if it does not exist
-   pdmodule *getOrCreateModule (Module *mod);
-
-   bool symbolsToFunctions(pdvector<image_func *> &raw_funcs);
-
-
-   //bool addAllVariables();
+   bool determineImageType();
    bool addSymtabVariables();
 
-   // And all those we find via analysis... like, how?
-   bool addDiscoveredVariables();
-
-   void getModuleLanguageInfo(dictionary_hash<std::string, supportedLanguages> *mod_langs);
-   void setModuleLanguages(dictionary_hash<std::string, supportedLanguages> *mod_langs);
+   void getModuleLanguageInfo(dictionary_hash<std::string, SymtabAPI::supportedLanguages> *mod_langs);
+   void setModuleLanguages(dictionary_hash<std::string, SymtabAPI::supportedLanguages> *mod_langs);
 
    // We have a _lot_ of lookup types; this handles proper entry
    void enterFunctionInTables(image_func *func);
 
    bool buildFunctionLists(pdvector<image_func *> &raw_funcs);
-   bool analyzeImage();
-   bool parseGaps() { return parseGaps_; }
+   void analyzeImage();
 
    //
    //  **** GAP PARSING SUPPORT  ****
+   bool parseGaps() { return parseGaps_; }
+#if 0
 #if defined(cap_stripped_binaries)
    bool compute_gap(
         Address,
@@ -492,6 +454,7 @@ class image : public codeRange, public InstructionSource {
    bool gap_heuristics(Address addr); 
    bool gap_heuristic_GCC(Address addr);
    bool gap_heuristic_MSVS(Address addr);
+#endif
 #endif
 
    //
@@ -521,35 +484,25 @@ class image : public codeRange, public InstructionSource {
    bool nativeCompiler;
 
    // data from the symbol table 
-   Symtab *linkedFile;
+   SymtabAPI::Symtab *linkedFile;
 #if defined (os_aix) || defined(os_linux) || defined(os_solaris)
-   Archive *archive;
+   SymtabAPI::Archive *archive;
 #endif
 
-   map<Module *, pdmodule *> mods_;
+   // ParseAPI
+   ParseAPI::CodeObject * obj_;
+   ParseAPI::SymtabCodeSource * cs_;
+   DynCFGFactory * img_fact_;
+   DynParseCallback * parse_cb_;
+   void *cb_arg0_; // argument for mapped_object callback
 
-   //
-   // Hash Tables of Functions....
-   //
+   map<SymtabAPI::Module *, pdmodule *> mods_;
 
-   // functions by address for all modules.  Only instrumentable functions
-   codeRangeTree funcsByRange;
-   // Keep this one as well for O(1) entry lookups
-   dictionary_hash <Address, image_func *> funcsByEntryAddr;
+   // instrumentation points by address
+   // NB this must be ordered
+   typedef map<Address, image_instPoint *> instp_map_t;
+   instp_map_t inst_pts_;
 
-   // Populated during symbol table parsing; these are the functions
-   // that are stored in "exportedFunctions" after a successful parse
-   pdvector<image_func *> symtabCandidateFuncs;
-
-   // A way to iterate over all the functions efficiently
-   std::set<image_func *,image_func::compare> everyUniqueFunction;
-
-   // We make an initial list of functions based off the symbol table,
-   // and may create more when we actually analyze. Keep track of
-   // those created ones so we can distinguish them if necessary
-   pdvector<image_func *> createdFunctions;
-   // And the counterpart "ones that are there right away"
-   pdvector<image_func *> exportedFunctions;
    pdvector<image_variable *> everyUniqueVariable;
    pdvector<image_variable *> createdVariables;
    pdvector<image_variable *> exportedVariables;
@@ -557,9 +510,6 @@ class image : public codeRange, public InstructionSource {
    // This contains all parallel regions on the image
    // These line up with the code generated to support OpenMP, UPC, Titanium, ...
    pdvector<image_parRegion *> parallelRegions;
-
-   // Basic blocks by spanned address range
-   codeRangeTree basicBlocksByRange;
 
    // unique (by image) numbering of basic blocks
    int nextBlockID_;
@@ -574,6 +524,7 @@ class image : public codeRange, public InstructionSource {
    dyn_hash_map <string, pdmodule*> modsByFullName;
 
    // "Function" symbol names that are PLT entries or the equivalent
+   // FIXME remove
    dictionary_hash<Address, std::string> *pltFuncs;
 
    dictionary_hash <Address, image_variable *> varsByAddr;
@@ -581,27 +532,26 @@ class image : public codeRange, public InstructionSource {
    vector<pair<string, Address> > codeHeaps_;
    vector<pair<string, Address> > dataHeaps_;
 
+   // new element tracking
+   set<image_basicBlock*> splitBlocks_;
+   vector<image_basicBlock*> newBlocks_;
+   bool trackNewBlocks_;
+
    int refCount;
    imageParseState_t parseState_;
    bool parseGaps_;
+   BPatch_hybridMode mode_;
    Dyninst::Architecture arch;
-   vector< pair<image_basicBlock *, image_func *> > reparse_shared;
 };
-
 
 class pdmodule {
    friend class image;
  public:
-   pdmodule(Module *mod, image *e)
+   pdmodule(SymtabAPI::Module *mod, image *e)
    	    : mod_(mod), exec_(e) {}
 
    void cleanProcessSpecific(process *p);
 
-#ifdef CHECK_ALL_CALL_POINTS
-   // JAW -- checking all call points is expensive and may not be necessary
-   //    --  if we can do this on-the-fly
-   void checkAllCallPoints();
-#endif
    bool getFunctions(pdvector<image_func *> &funcs);
 
    bool findFunction(const std::string &name,
@@ -623,21 +573,16 @@ class pdmodule {
    void dumpMangled(std::string &prefix) const;
    const string &fileName() const;
    const string &fullName() const;
-   supportedLanguages language() const;
+   SymtabAPI::supportedLanguages language() const;
    Address addr() const;
    bool isShared() const;
-   // Control flow targets that fail isCode or isValidAddress checks,
-   // or are statically unresolvable
-   const std::set<image_instPoint*> &getUnresolvedControlFlow();
-   void addUnresolvedControlFlow(image_instPoint* badPt);
 
-   Module *mod();
+   SymtabAPI::Module *mod();
 
    image *imExec() const { return exec_; }
    
  private:
-   std::set<image_instPoint*> unresolvedControlFlow;
-   Module *mod_;
+   SymtabAPI::Module *mod_;
    image *exec_;
 };
 

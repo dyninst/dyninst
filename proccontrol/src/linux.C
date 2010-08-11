@@ -385,16 +385,17 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 int_process *int_process::createProcess(Dyninst::PID p, std::string e)
 {
    std::vector<std::string> a;
+   std::map<int,int> f;
    LinuxPtrace::getPtracer(); //Make sure ptracer thread is initialized
-   linux_process *newproc = new linux_process(p, e, a);
+   linux_process *newproc = new linux_process(p, e, a, f);
    assert(newproc);
    return static_cast<int_process *>(newproc);
 }
 
-int_process *int_process::createProcess(std::string e, std::vector<std::string> a)
+int_process *int_process::createProcess(std::string e, std::vector<std::string> a, std::map<int,int> f)
 {
    LinuxPtrace::getPtracer(); //Make sure ptracer thread is initialized
-   linux_process *newproc = new linux_process(0, e, a);
+   linux_process *newproc = new linux_process(0, e, a, f);
    assert(newproc);
    return static_cast<int_process *>(newproc);
 }
@@ -507,8 +508,8 @@ Dyninst::Address linux_process::plat_mallocExecMemory(Dyninst::Address min, unsi
    return result;
 }
 
-linux_process::linux_process(Dyninst::PID p, std::string e, std::vector<std::string> a) :
-   sysv_process(p, e, a)
+linux_process::linux_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int,int> f) :
+   sysv_process(p, e, a, f)
 {
 }
 
@@ -560,6 +561,32 @@ bool linux_process::plat_create_int()
       }
       new_argv[i+1] = (char *) NULL;
       
+      for(std::map<int,int>::iterator fdit = fds.begin(),
+          fdend = fds.end();
+          fdit != fdend;
+          ++fdit)
+      {
+        int oldfd = fdit->first;
+        int newfd = fdit->second;
+
+        result = close(newfd);
+        if (result == -1)
+        {
+          pthrd_printf("Could not close old file descriptor to redirect.\n");
+          setLastError(err_internal, "Unable to close file descriptor for redirection");
+          exit(-1);
+        }
+
+        result = dup2(oldfd, newfd);
+        if (result == -1)
+        {
+          pthrd_printf("Could not redirect file descriptor.\n");
+          setLastError(err_internal, "Failed dup2 call.");
+          exit(-1);
+        }
+        pthrd_printf("DEBUG redirected file!\n");
+      }
+
       result = execv(executable.c_str(), const_cast<char * const*>(new_argv));
       int errnum = errno;         
       pthrd_printf("Failed to exec %s: %s\n", 
@@ -809,6 +836,55 @@ void linux_thread::setOptions()
    }   
 }
 
+bool linux_thread::getSegmentBase(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val)
+{
+   switch (llproc()->getTargetArch())
+   {
+      case Arch_x86_64:
+         // TODO
+         // use ptrace_arch_prctl     
+         pthrd_printf("Segment bases on x86_64 not implemented\n");
+         return false;
+      case Arch_x86: {
+         MachRegister segmentSelectorReg;
+         MachRegisterVal segmentSelectorVal;
+         unsigned long entryNumber;
+         struct user_desc entryDesc;
+
+         switch (reg.val())
+         {
+            case x86::ifsbase: segmentSelectorReg = x86::fs; break;
+            case x86::igsbase: segmentSelectorReg = x86::gs; break;
+            default: {
+               pthrd_printf("Failed to get unrecognized segment base\n");
+               return false;
+            }
+         }
+
+         if (!plat_getRegister(segmentSelectorReg, segmentSelectorVal))
+         {
+           pthrd_printf("Failed to get segment base with selector %s\n", segmentSelectorReg.name());
+           return false;
+         }
+         entryNumber = segmentSelectorVal / 8;
+
+         pthrd_printf("Get segment base doing PTRACE with entry %lu\n", entryNumber);
+         do_ptrace((pt_req) PTRACE_GET_THREAD_AREA, 
+            lwp, (void *) entryNumber, (void *) &entryDesc);
+         if (errno != 0) {
+            pthrd_printf("PTRACE to get segment base failed: %s\n", strerror(errno));
+            return false;
+         }
+
+         val = entryDesc.base_addr;
+         pthrd_printf("Got segment base: 0x%lx\n", val);
+         return true;
+      }
+      default:
+         assert(0);
+   }
+}
+
 bool installed_breakpoint::plat_install(int_process *proc, bool should_save)
 {
    pthrd_printf("Platform breakpoint install at %lx in %d\n", 
@@ -1040,6 +1116,11 @@ bool linux_thread::plat_getAllRegisters(int_registerPool &regpool)
 
 bool linux_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val)
 {
+   if (x86::fsbase == reg || x86::gsbase == reg 
+       || x86_64::fsbase == reg || x86_64::gsbase == reg) {
+      return getSegmentBase(reg, val);
+   }
+
    init_dynreg_to_user();
    dynreg_to_user_t::iterator i = dynreg_to_user.find(reg);
    if (i == dynreg_to_user.end() || reg.getArchitecture() != llproc()->getTargetArch()) {

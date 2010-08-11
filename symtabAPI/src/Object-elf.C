@@ -47,7 +47,7 @@
 
 #include "debug.h"
 
-#if defined(x86_64_unknown_linux2_4) || defined(ia64_unknown_linux2_4) || defined(ppc64_linux)
+#if defined(x86_64_unknown_linux2_4) || defined(ppc64_linux)
 #include "emitElf-64.h"
 #endif
 
@@ -309,12 +309,11 @@ const char* STAB_NAME        = ".stab";
 const char* STABSTR_NAME     = ".stabstr";
 const char* STAB_INDX_NAME   = ".stab.index";
 const char* STABSTR_INDX_NAME= ".stab.indexstr";
+const char* COMMENT_NAME= ".comment";
 const char* OPD_NAME         = ".opd"; // PPC64 Official Procedure Descriptors
 // sections from dynamic executables and shared objects
 const char* PLT_NAME         = ".plt";
-#if defined(arch_ia64)
-const char* REL_PLT_NAME     = ".rela.IA_64.pltoff";
-#elif defined(os_vxworks)
+#if defined(os_vxworks)
 const char* REL_PLT_NAME     = ".rela.text";
 #else
 const char* REL_PLT_NAME     = ".rela.plt"; // sparc-solaris
@@ -591,7 +590,10 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
     }
   }
 #endif 
-    
+   
+  isBlueGene_ = false;
+  hasNoteSection_ = false;
+ 
   for (int i = 0; i < elfHdr.e_shnum() + elfHdrForDebugInfo.e_shnum(); ++i) {
     const char *name;
 
@@ -633,6 +635,10 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
 	delete scnp;
 	continue;
       }
+    }
+
+    if(scnp->sh_type() == SHT_NOTE) {
+	    hasNoteSection_ = true;
     }
 
 
@@ -780,7 +786,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
       plt_scnp = scnp;
       plt_addr_ = scnp->sh_addr();
       plt_size_ = scnp->sh_size();
-#if defined(arch_x86)
+#if defined(arch_x86) || defined(arch_x86_64)
       //
       // On x86, the GNU linker purposefully sets the PLT
       // table entry size to an incorrect value to be
@@ -848,7 +854,30 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
       }
 #endif
 #endif
-    }
+    } else if (strcmp(name, COMMENT_NAME) == 0) {
+       /* comment section is a sequence of NULL-terminated strings.
+          We want to concatenate them and search for BGP to determine
+          if the binary is built for BGP compute nodes */
+
+	Elf_X_Data data = scnp->get_data();
+        
+	unsigned int index = 0;
+	size_t size = data.d_size();
+	char *buf = (char *) data.d_buf();
+        while (index < size)
+        {
+                string comment = buf+index;
+                size_t pos = comment.find("BGP");
+                if (pos !=string::npos) {
+                        isBlueGene_ = true;
+                        break;
+                }
+                index += comment.size();
+                if (comment.size() == 0) { // Skip NULL characters in the comment section
+                        index ++;
+                }
+        }
+     }
 
 #if !defined(os_solaris)
     else if ((secAddrTagMapping.find(scnp->sh_addr()) != secAddrTagMapping.end() ) && 
@@ -888,31 +917,10 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
     else if (strcmp(name, INTERP_NAME) == 0) {
       interp_scnp = scnp;
     }
-    //TODO clean up this. it is ugly
-#if defined(arch_ia64)
-    else if (i == dynamic_section_index) {
-      dynamic_scnp = scnp;
-      dynamic_addr_ = scnp->sh_addr();
-      Elf_X_Data data = scnp->get_data();
-      Elf_X_Dyn dyns = data.get_dyn();
-      for (unsigned i = 0; i < dyns.count(); ++i) {
-	switch(dyns.d_tag(i)) {
-	case DT_PLTGOT:
-	  this->gp = dyns.d_ptr(i);
-	  ///* DEBUG */ fprintf( stderr, "%s[%d]: GP = 0x%lx\n", __FILE__, __LINE__, this->gp );
-	  break;
-    
-	default:
-	  break;
-	} // switch
-      } // for
-    }
-#else
     else if (i == dynamic_section_index) {
       dynamic_scnp = scnp;
       dynamic_addr_ = scnp->sh_addr();
     }
-#endif /* ia64_unknown_linux2_4 */
   }
 
   if(!symscnp || !strscnp) {
@@ -1120,27 +1128,7 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
     if( reldata.isValid() && symdata.isValid() && strdata.isValid() ) {
       Offset next_plt_entry_addr = plt_addr_;
 
-#if defined( ia64_unknown_linux2_4 ) 
-      unsigned int functionDescriptorCount = ( rel_plt_size_ / rel_plt_entry_size_ );
-      /* The IA-64 PLT contains 1 special entry, and two entries for each functionDescriptor
-	 in the function descriptor table (.IA_64.pltoff, whose count we're deriving from
-	 its relocation entries).  These entries are in two groups, the second of which is
-	 sometimes separated from the first by 128 bits of zeroes.  The entries in the latter group
-	 are call targets that makes an indirect jump using an FD table entry.  If the
-	 function they want to call hasn't been linked yet, the FD will point to one of 
-	 former group's entries, which will then jump to the first, special entry, in order
-	 to invoke the linker.  The linker, after doing the link, will rewrite the FD to
-	 point directly to the requested function. 
-
-	 As we're only interested in call targets, skip the first group and the buffer entirely,
-	 if it's present.
-      */
-      next_plt_entry_addr += (0x10 * 3) + (functionDescriptorCount * 0x10);
-
-      unsigned long long * bufferPtr = (unsigned long long*)(void *)const_cast<char *>(elf_vaddr_to_ptr(next_plt_entry_addr));
-      if( bufferPtr[0] == 0 && bufferPtr[1] == 0 ) { next_plt_entry_addr += 0x10; }
-
-#elif defined(arch_x86) || defined(arch_x86_64)
+#if defined(arch_x86) || defined(arch_x86_64)
       next_plt_entry_addr += plt_entry_size_;  // 1st PLT entry is special
 
 #elif defined (ppc32_linux)
@@ -1417,10 +1405,7 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
             }
           }
 
-#if defined(arch_ia64)
-	  /* IA-64 headers don't declare a size, because it varies. */
-	  next_plt_entry_addr += 0x20;
-#elif defined(os_vxworks)
+#if defined(os_vxworks)
           // Nothing to increment here.
 #else
 	  next_plt_entry_addr += plt_entry_size_;
@@ -1875,30 +1860,6 @@ void fix_opd_symbol(char *opdData, unsigned long opdStart,
   }
 }
 
-// Libc section function handler
-//
-// Some versions of libc have internal memory handling functions
-// that only have NOTYPE symbols to represent them.  However,
-// these symbols do have corresponding regions of the same name.
-
-void fix_libc_section_function_symbol(std::vector< Region *> *regions, Symbol *sym)
-{
-  if (!regions || !sym) return;
-
-  if (sym->getType() == Symbol::ST_NOTYPE) {
-    for (unsigned j = 0; j < regions->size(); ++j) {
-      const char *regionName = (*regions)[j]->getRegionName().c_str();
-      if ((*regions)[j]->isText() &&
-	  strstr(regionName, "_libc_") &&
-	  strstr(sym->getMangledName().c_str(), regionName) &&
-	  (*regions)[j]->getMemOffset() == sym->getOffset()) {
-
-	sym->setSymbolType(Symbol::ST_FUNCTION);
-      }
-    }
-  }
-}
-
 // parse_symbols(): populate "allsymbols"
 bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
                            Elf_X_Shdr* bssscnp,
@@ -2009,7 +1970,6 @@ bool Object::parse_symbols(Elf_X_Data &symdata, Elf_X_Data &strdata,
 
          if (opdscnp)
             fix_opd_symbol(opdData, opdStart, opdEnd, newsym);
-         fix_libc_section_function_symbol(&regions_, newsym);
 
          symbols_[sname].push_back(newsym);
          symsByOffset_[newsym->getOffset()].push_back(newsym);
@@ -2173,7 +2133,6 @@ void Object::parse_dynamicSymbols (Elf_X_Shdr *&
       
       if (opdscnp)
          fix_opd_symbol(opdData, opdStart, opdEnd, newsym);
-      fix_libc_section_function_symbol(&regions_, newsym);
       
 #if !defined(os_solaris)
       if(versymSec) {
@@ -4305,7 +4264,7 @@ bool Object::emitDriver(Symtab *obj, string fName,
       if( !em->createSymbolTables(obj, allSymbols) ) return false;
       return em->driver(obj, fName);
     }
-#if defined(x86_64_unknown_linux2_4) || defined(ia64_unknown_linux2_4) || defined(ppc64_linux)
+#if defined(x86_64_unknown_linux2_4) || defined(ppc64_linux)
   else if (elfHdr.e_ident()[EI_CLASS] == ELFCLASS64) 
     {
       emitElf64 *em = new emitElf64(elfHdr, isStripped, this, err_func_);

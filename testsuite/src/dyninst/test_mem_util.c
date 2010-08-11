@@ -156,7 +156,7 @@ int eaExpOffset[] =    { 0, 17,3,1,2,  0,4,2,0,  2,2,2,2,  0,4,4,4,
 			 4,12,2,  0,0,0,0,  3,1,1,1,  2,6,2,2,
 			 0,4,4,4,  0,0,0,0,  0,0,0,0,  -76,-76,-24,-24,
 			 -20,-20,    0,0,0,0,  0,  0,4,0,4,  0,  0,8,8,8,
-			 4,4,0,0,  0,8,8,8,  0 };
+			 4,12,0,0,  0,8,8,8,  0 };
 
 /* _inline */ void init_test_data()
 {
@@ -496,20 +496,23 @@ void init_test_data()
 
 #ifdef x86_64_unknown_linux2_4_test
 unsigned int loadExp = 75;
-unsigned int storeExp = 25;
+unsigned int storeExp = 28;
 unsigned int prefeExp = 2;
-unsigned int accessExp = 98;
-unsigned int accessExpCC = 97;
+unsigned int accessExp = 103;
+unsigned int accessExpCC = 100;
 
 int eaExpOffset[] =    { 0,0,0,0,0,0,0,                             /* 7 initial stack pushes (EA not checked) */
 			 0,0,0,0,0,0,0,0,0,0,0,0,0,                 /* 13 mod=0 loads */
 			 4,8,-4,-8,4,8,-4,-8,4,8,-4,-8,127,-128,    /* 14 mod=1 loads */
 			 12,0,8,8,8,0,4,8,4,                        /* 9 SIB tests (same as x86) */
 			 4,4,4,0,4,0,4,8,0,4,0,0,                   /* 11 semantic tests (one has two accesses) */
+                         0,                                         /* call to ia32_features */
 			 0,8,0,                                     /* 3 MMX tests */
 			 0,0,0,                                     /* 3 SSE tests */
-			 0,0,                                       /* 2 SSE2 tests */
-			 0,8,0,                                     /* 3 3DNow! tests */
+                         0,                                         /* call to ia32_features */
+                         0,0,                                       /* 2 SSE2 tests */
+                         0,                                         /* call to amd_features */
+                         0,8,0,                                     /* 3 3DNow! tests */
 			 0,12,0,0,0,44,25,                          /* 5 REP tests (two have two accesses each) */
 			 0,0,0,0,4,8,                               /* x87 */
 			 0,0,0,2,4,8,
@@ -525,10 +528,13 @@ unsigned int bcExp[] = { 8,8,8,8,8,8,8,                  /* 7 initial stack push
 			 4,8,4,8,4,8,4,8,4,8,4,8,4,8,    /* 14 mod=1 loads */
 			 4,8,4,8,4,8,4,8,4,              /* 9 SIB tests */
 			 4,4,1,1,4,4,4,4,4,4,4,4,        /* 11 semantic tests (one has two accesses) */
-			 8,8,8,                          /* 3 MMX tests */                      
+                         8,                              /* call to ia32_features */
+                         8,8,8,                          /* 3 MMX tests */
 			 16,4,0,                         /* 3 SSE tests */
-			 16,8,                           /* 2 SSE2 tests */
-			 8,8,0,                          /* 3 3DNow! tests */
+                         8,                              /* call to ia32_features */
+                         16,8,                           /* 2 SSE2 tests */
+                         8,                              /* call to amd_features */
+                         8,8,0,                          /* 3 3DNow! tests */
 			 12,16,16,16,49,4,4,             /* 5 REP tests (two have two accesses each) */
 			 4,8,10,2,4,8,                   /* x87 */
 			 4,8,10,2,4,8,
@@ -548,7 +554,8 @@ char dlarge[512] = "keep the interface small and easy to understand.";
 /* FIXME Remove calls to assert() from this function */
 void init_test_data()
 {
-  int i;
+    int caps;
+    int i;
 
   dprintf("&divarw = %p\n", &divarw);
   dprintf("&dfvars = %p\n", &dfvars);
@@ -573,39 +580,42 @@ void init_test_data()
 
   // MMX
   assert(i == 55);
-  for (; i < 58; i++)
+  i++; // skip the call
+  for (; i < 59; i++)
       eaExp[i] = (void *)((unsigned long)&divarw + eaExpOffset[i]);
 
   // SSE
-  assert(i == 58);
-  for (; i < 60; i++)
+  assert(i == 59);
+  for (; i < 61; i++)
       eaExp[i] = (void *)((unsigned long)&dfvart + eaExpOffset[i]);
-  assert(i == 60);
+  assert(i == 61);
   eaExp[i] = (void *)((unsigned long)&divarw + eaExpOffset[i]); i++; // the prefetch
 
+  assert(i == 62);
   // SSE2
-  assert(i == 61);
-  for (; i < 63; i++)
+  i++; // skip the call
+  for (; i < 65; i++)
       eaExp[i] = (void *)((unsigned long)&dfvart + eaExpOffset[i]);
+  assert(i == 65);
 
   // 3DNow!
-  assert(i == 63);
-  for (; i < 65; i++)
-      eaExp[i] = (void *)((unsigned long)&dfvard + eaExpOffset[i]);
-  assert(i == 65);
+  i++; // skip the call        
+  assert(i == 66);
+  eaExp[i] = (void *)((unsigned long)&dfvard + eaExpOffset[i]); i++;
+  eaExp[i] = (void *)((unsigned long)&dfvard + eaExpOffset[i]); i++;
   eaExp[i] = (void *)((unsigned long)&divarw + eaExpOffset[i]); i++;
 
   // REP prefixes
-  assert(i == 66);
-  for (; i < 69; i++)
-      eaExp[i] = (void *)((unsigned long)&divarw + eaExpOffset[i]);
   assert(i == 69);
+  for (; i < 72; i++)
+      eaExp[i] = (void *)((unsigned long)&divarw + eaExpOffset[i]);
+  assert(i == 72);
   eaExp[i] = (void *)((unsigned long)&dfvars + eaExpOffset[i]); i++;
-  for (; i < 73; i++)
+  for (; i < 76; i++)
       eaExp[i] = (void *)((unsigned long)&dlarge + eaExpOffset[i]);
 
   // x87
-  assert(i == 73);
+  assert(i == 76);
   eaExp[i] = (void *)((unsigned long)&dfvars + eaExpOffset[i]); i++;
   eaExp[i] = (void *)((unsigned long)&dfvard + eaExpOffset[i]); i++;
   eaExp[i] = (void *)((unsigned long)&dfvart + eaExpOffset[i]); i++;
@@ -627,21 +637,73 @@ void init_test_data()
    eaExp[i] = (void *)((unsigned long)&dlarge + eaExpOffset[i]); i++;
 
   // conditional moves
-  assert(i == 89);
-  for (; i < 92; i++)
+  assert(i == 92);
+  for (; i < 95; i++)
       eaExp[i] = (void *)((unsigned long)&divarw + eaExpOffset[i]);
 
   // duplicate stream for CC (except the second-to-last item)
-  for(i = 0; i < 90 ; i++) {
-    eaExpCC[i] = eaExp[i];
-    bcExpCC[i] = bcExp[i];
+  for(i=0; i<accessExp; ++i) {
+      eaExpCC[i] = eaExp[i];
+      bcExpCC[i] = bcExp[i];
   }
-  assert(i == 90);
-  eaExpCC[i] = eaExp[i+1];
-  bcExpCC[i] = bcExp[i+1];
-  for(i = 91; i < 97; i++)
-      bcExpCC[i] = bcExp[i+1];
+
+  reduceCC(ccRed);
+  caps = amd_features();
+  if(!(caps & CAP_3DNOW))
+      reduce(amdRed);
+  caps = ia32features();
+  if(!(caps & CAP_SSE2))
+      reduce(sse2Red);
+  if(!(caps & CAP_SSE))
+      reduce(sseRed);
+  if(!(caps & CAP_MMX))
+      reduce(mmxRed);
+
 }
+
+const struct reduction mmxRed = { 2, 1, 0, 3, 55 };
+const struct reduction sseRed = { 2, 0, 1, 3, 59 };
+const struct reduction sse2Red = { 2, 0, 0, 2, 63 };
+const struct reduction amdRed = { 2, 0, 1, 3, 66 };
+const struct reduction ccRed = { 0, 0, 0, 1, 93 };
+
+void reduceCC(const struct reduction x)
+{
+    unsigned int i;
+
+    for(i=x.axsShift; i<accessExpCC; ++i)
+        eaExpCC[i] = eaExpCC[i+x.axsRed];
+
+    for(i=x.axsShift; i<accessExpCC; ++i)
+        bcExpCC[i] = bcExpCC[i+x.axsRed];
+
+    accessExpCC -= x.axsRed;
+}
+
+void reduce(const struct reduction x)
+{
+    unsigned int i;
+
+    loadExp  -= x.loadRed;
+    storeExp -= x.storeRed;
+    prefeExp -= x.prefeRed;
+
+    for(i=x.axsShift; i<accessExp; ++i)
+        eaExp[i] = eaExp[i+x.axsRed];
+
+    for(i=x.axsShift; i<accessExp; ++i)
+        bcExp[i] = bcExp[i+x.axsRed];
+
+    for(i=x.axsShift; i<accessExpCC; ++i)
+        eaExpCC[i] = eaExpCC[i+x.axsRed];
+
+    for(i=x.axsShift; i<accessExpCC; ++i)
+        bcExpCC[i] = bcExpCC[i+x.axsRed];
+
+    accessExp -= x.axsRed;
+    accessExpCC -= x.axsRed;
+}
+
 #endif /* defined(x86_64_unknown_linux2_4_test) */
 
 #ifdef ia64_unknown_linux2_4_test
@@ -718,72 +780,74 @@ int validateEA(void* ea1[], void* ea2[], unsigned int n)
 {
   int ok = 1;
   unsigned int i=0;
+  int ret = 1;
 
   for(; i<n; ++i) {
     ok = (ok && ((ea1[i] == ea2[i]) || ea1[i] == NULL));
-    if(!ok) {
+    if(!((ea1[i] == ea2[i]) || ea1[i] == NULL)) {
       logerror("EA Validation failed at access #%u. Expecting: %p. Got: %p.\n",
 	      i+1, ea1[i], ea2[i]);
-      return 0;
+      ret = 0;
     }
   }
-  return 1;
+  return ret;
 }
 
 int validateBC(unsigned int bc1[], unsigned int bc2[], unsigned int n)
 {
   int ok = 1;
   unsigned int i=0;
+  int ret = 1;
 
   for(; i<n; ++i) {
     ok = (ok && (bc1[i] == bc2[i]));
-    if(!ok) {
+    if(!bc1[i] == bc2[i]) {
       logerror("BC Validation failed at access #%d. Expecting: %d. Got: %d.\n",
 	      i+1, bc1[i], bc2[i]);
-      return 0;
+      ret = 0;
     }
   }
-  return 1;
+  return ret;
 }
 
 /* functions called by the effective address/byte count instrumentation points */
-void listEffAddr(void* addr)
+void listEffAddr(const char* insn, void* addr)
 {
   if(accessCntEA < accessExp)
     eaList[accessCntEA] = addr;
   else
     doomEA = 1;
   accessCntEA++;
-  dprintf("EA[%d]:%p\n", accessCntEA, addr);
+  dprintf("EA[%d] (%s):%p\n", accessCntEA, insn, addr);
 }
 
-void listByteCnt(unsigned int count)
+void listByteCnt(const char* insn, unsigned int count)
 {
   if(accessCntBC < accessExp)
     bcList[accessCntBC] = count;
   else
     doomBC = 1;
   accessCntBC++;
-  dprintf("BC[%d]:%d\n", accessCntBC, count);
+  dprintf("BC[%d] (%s):%d\n", accessCntBC, insn, count);
 }
 
 
-void listEffAddrCC(void* addr)
+void listEffAddrCC(const char* insn, void* addr)
 {
   if(accessCntEAcc < accessExpCC)
     eaListCC[accessCntEAcc] = addr;
   else
     doomEAcc = 1;
   accessCntEAcc++;
-  dprintf("?A[%d]:%p\n", accessCntEAcc, addr);
+  dprintf("?A[%d] (%s):%p\n", accessCntEAcc, insn, addr);
 }
 
-void listByteCntCC(unsigned int count)
+void listByteCntCC(const char* insn, unsigned int count)
 {
   if(accessCntBCcc < accessExpCC)
     bcListCC[accessCntBCcc] = count;
   else
     doomBCcc = 1;
   accessCntBCcc++;
-  dprintf("?C[%d]:%d\n", accessCntBCcc, count);
+  dprintf("?C[%d] (%s):%d\n", accessCntBCcc, insn, count);
 }

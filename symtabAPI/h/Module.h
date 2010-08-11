@@ -178,6 +178,8 @@ class Module : public LookupInterface,
          std::string lineSource, unsigned int LineNo);
    SYMTAB_EXPORT bool getSourceLines(std::vector<Statement *> &lines,
          Offset addressInRange);
+   SYMTAB_EXPORT bool getSourceLines(std::vector<LineNoTuple> &lines,
+         Offset addressInRange);
    SYMTAB_EXPORT bool getStatements(std::vector<Statement *> &statements);
    SYMTAB_EXPORT LineInformation *getLineInformation();
 

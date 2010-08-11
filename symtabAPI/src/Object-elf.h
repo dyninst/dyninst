@@ -359,9 +359,7 @@ class Object : public AObject {
 
 //TODO Later - change this #ifdef later.. make getTOCoffset available for all platforms  
 
-#if defined(arch_ia64)
-  Offset getTOCoffset() const { return gp; }
-#elif defined(os_linux) && defined(arch_power) && defined(arch_64bit)
+#if defined(os_linux) && defined(arch_power) && defined(arch_64bit)
   // 64-bit PowerPC ELF ABI Supplement, Version 1.9, 2004-10-23:
   //   The TOC section contains a conventional ELF GOT, and may optionally
   //   contain a small data area.
@@ -421,6 +419,8 @@ class Object : public AObject {
     bool hasReladyn() const {return hasReladyn_;}
     bool hasRelplt() const {return hasRelplt_;}
     bool hasRelaplt() const {return hasRelaplt_;}
+    bool isBlueGene() const {return isBlueGene_;}
+    bool hasNoteSection() const {return hasNoteSection_;}
 
     Offset getTextAddr() const {return text_addr_;}
     Offset getSymtabAddr() const {return symtab_addr_;}
@@ -459,6 +459,9 @@ class Object : public AObject {
   bool hasReladyn_;
   bool hasRelplt_;
   bool hasRelaplt_;
+
+  bool isBlueGene_;
+  bool hasNoteSection_;
 
   Offset   elf_hash_addr_; 	 //.hash section 
   Offset   gnu_hash_addr_; 	 //.gnu.hash section 
@@ -507,9 +510,6 @@ class Object : public AObject {
 
   DwarfHandle dwarf;
 
-#if defined(arch_ia64)
-  Offset   gp;			 // The gp for this object.
-#endif
   bool      EEL;                 // true if EEL rewritten
   bool 	    did_open;		// true if the file has been mmapped
   ObjectType obj_type_;

@@ -139,6 +139,7 @@ class SignalHandler : public EventHandler<EventRecord>
   bool handleProcessCreate(EventRecord &ev, bool &continueHint);
   bool handleProcessAttach(EventRecord &ev, bool &continueHint);
   bool handleSignalHandlerCallback(EventRecord &ev);
+  bool handleCodeOverwrite(EventRecord &ev);
 
   bool assignEvent(EventRecord &ev);
   pdvector<EventRecord> events_to_handle;

@@ -71,12 +71,14 @@ WindowsNT    nonexistant
 */
 
 #if defined(os_windows)
-   typedef __int64 int64_t;
-   typedef __int32 int32_t;
-   typedef __int16 int16_t;
+   typedef signed __int64 int64_t;
+   typedef signed __int32 int32_t;
+   typedef signed __int16 int16_t;
+   typedef signed __int8 int8_t;
    typedef unsigned __int64 uint64_t;
    typedef unsigned __int32 uint32_t;
    typedef unsigned __int16 uint16_t;
+   typedef unsigned __int8 uint8_t;
 
 #elif defined(os_aix)  
 #if defined (arch_power)
@@ -117,7 +119,7 @@ WindowsNT    nonexistant
 #define __STDC_LIMIT_MACROS
 #endif
 #include <stdint.h>
-#if defined(arch_x86_64) || defined(arch_ia64) || defined(arch_64bit)
+#if defined(arch_x86_64) || defined(arch_64bit)
 #define TYPE64BIT
 #endif
 #if defined(os_cnl) && defined(arch_x86_64)

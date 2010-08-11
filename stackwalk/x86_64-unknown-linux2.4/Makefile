@@ -11,7 +11,7 @@ NO_IMPLICIT_TEMPLATES = true
 
 include ../../make.config 
 
-LDFLAGS     += $(LIBDIR) -lcommon -ldl
+LDFLAGS     += $(LIBDIR) -lcommon
 
 SRCS = 	../src/linux-swk.C \
 	../src/linux-x86-swk.C \
@@ -41,10 +41,10 @@ MYFLAGS += -I$(LIBDWARF_INC)
 endif
 
 ifdef LIBELF_LIB
-MYFLAGS += -L$(LIBELF_LIB) -lelf
+LDFLAGS += -L$(LIBELF_LIB) -lelf
 endif
 ifdef LIBDWARF_LIB
-MYFLAGS += -L$(LIBDWARF_LIB) -ldwarf
+LDFLAGS += -L$(LIBDWARF_LIB) -ldwarf
 endif
 
 LIBS	+= 

@@ -77,9 +77,7 @@ test_results_t test_mem_4_Mutator::executeTest() {
   BPatch_Vector<BPatch_function *> found_funcs;
   const char *inFunction = "loadsnstores";
   if ((NULL == appImage->findFunction(inFunction, found_funcs, 1)) || !found_funcs.size()) {
-    logerror("    Unable to find function %s\n",
-	    inFunction);
-    return FAILED;
+      failtest(testnum, testdesc, "Unable to find function \"loadsnstores\".\n");
   }
        
   if (1 < found_funcs.size()) {
@@ -101,17 +99,18 @@ test_results_t test_mem_4_Mutator::executeTest() {
              "Number of accesses seems wrong in function \"loadsnstores\".\n");
   }
   
-  if (instCall(appThread, "Access", res1) < 0) {
-    return FAILED;
+  if (instCall(appAddrSpace, "Access", res1) < 0) {
+      failtest(testnum, testdesc, "Unable to instrument accesses.\n");
   }
 #if defined(i386_unknown_linux2_0_test) \
  || defined(x86_64_unknown_linux2_4_test) /* Blind duplication - Ray */ \
  || defined(i386_unknown_nt4_0_test)
   const BPatch_Vector<BPatch_point*>* res2 = BPatch_memoryAccess::filterPoints(*res1, 2);
-  if (instCall(appThread, "Access", res2) < 0) {
-    return FAILED;
+  if (instCall(appAddrSpace, "Access", res2) < 0) {
+      failtest(testnum, testdesc, "Unable to instrument all accesses.\n");
   }
 #endif
+  //appThread->continueExecution();
 
   return PASSED;
 #endif

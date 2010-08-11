@@ -133,6 +133,7 @@ bool dyn_lwp::continueLWP(int signalToContinueWith, bool clear_stackwalk)
 {
    if (clear_stackwalk) {
       clearStackwalk();
+      proc()->invalidateActiveMultis();
    }
     if (!proc()->IndependentLwpControl() &&
         (this != proc()->getRepresentativeLWP())) {

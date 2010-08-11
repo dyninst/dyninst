@@ -82,17 +82,19 @@ test_results_t test5_3_Mutator::executeTest() {
   char fn3[256];
   BPatch_function *func;
   while (index < point3_1->size()) {
-     if ((func = (*point3_1)[index]->getCalledFunction()) == NULL) {
-        logerror("**Failed** test #3 (overload operation)\n");
-        logerror("    Can't find the overload operator\n");
-        return FAILED;
-     }
-     if (!strcmp("overload_op_test::operator++", func->getName(fn3, 256)))
+     if ((func = (*point3_1)[index]->getCalledFunction()) != NULL &&
+         !strcmp("overload_op_test::operator++", func->getName(fn3, 256)))
      {
         break;
      }
      index ++;
   }
+  if(!func) {
+    logerror("**Failed** test #3 (overload operation)\n");
+    logerror("    Can't find the overload operator\n");
+    return FAILED;
+  }
+
   if (0 != strcmp("overload_op_test::operator++", func->getName(fn3, 256))) {
     logerror("**Failed** test #3 (overload operation)\n");
     logerror("    Can't find the overloaded operator\n");

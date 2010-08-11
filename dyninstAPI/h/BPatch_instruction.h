@@ -40,7 +40,8 @@
 class InstrucIter;
 class BPatch_basicBlock;
 class BPatch_point;
-class instruction;
+
+class internal_instruction;
 
 #ifdef DYNINST_CLASS_NAME
 #undef DYNINST_CLASS_NAME
@@ -57,7 +58,7 @@ class BPATCH_DLL_EXPORT BPatch_instruction : public BPatch_eventLock{
  protected:
 
   unsigned int nacc;
-  instruction *insn_;
+  internal_instruction *insn_;
   bool *isLoad;
   bool *isStore;
   int *preFcn;       // prefetch function (-1 = none)
@@ -69,13 +70,13 @@ class BPATCH_DLL_EXPORT BPatch_instruction : public BPatch_eventLock{
   long unsigned int addr;
  public:
 
-  BPatch_instruction(instruction *insn,
+  BPatch_instruction(internal_instruction *insn,
                      long unsigned int _addr);
   virtual ~BPatch_instruction();
 
   void getInstruction(const unsigned char *&_buffer, unsigned char &_length);
 
-  instruction *insn();
+  internal_instruction *insn();
 
   // Not yet implemented
   char *getMnemonic() const { return NULL; }
@@ -123,7 +124,7 @@ class BPATCH_DLL_EXPORT BPatch_branchInstruction : public BPatch_instruction{
     friend class BPatch_basicBlock;
 
  public:
-    BPatch_branchInstruction(instruction *insn,
+    BPatch_branchInstruction(internal_instruction *insn,
                              long unsigned int _addr,
                              void *target) :
         BPatch_instruction(insn, _addr),

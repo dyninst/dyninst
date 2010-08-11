@@ -105,7 +105,8 @@ enum entryID {
   e_btc,
   e_btr,
   e_bts,
-  e_cbw_cwde,
+  e_cbw,
+  e_cdq,
   e_clc,
   e_cld,
   e_clflush,
@@ -152,7 +153,8 @@ enum entryID {
   e_cvttps2pi,
   e_cvttsd2si,
   e_cvttss2si,
-  e_cwd_cdq,
+  e_cwd,
+  e_cwde,
   e_daa,
   e_das,
   e_dec,
@@ -224,6 +226,7 @@ enum entryID {
   e_fucomp,
   e_fucomi,
   e_fucomip,
+  e_fucompp,
   e_fxch,
   e_fxrstor,
   e_fxsave,
@@ -237,8 +240,9 @@ enum entryID {
   e_in,
   e_inc,
   e_insb,
+  e_insd,
   e_insertq,
-  e_insw_d,
+  e_insw,
   e_int,
   e_int3,
   e_int1,
@@ -263,6 +267,7 @@ enum entryID {
   e_lldt,
   e_lmsw,
   e_lodsb,
+  e_lodsd,
   e_lodsw,
   e_lsl,
   e_lss,
@@ -309,7 +314,7 @@ enum entryID {
   e_movshdup,
   e_movsldup,
   e_movss,
-  e_movsw_d,
+  e_movsw,
   e_movsx,
   e_movsxd,
   e_movupd,
@@ -328,7 +333,8 @@ enum entryID {
   e_orps,
   e_out,
   e_outsb,
-  e_outsw_d,
+  e_outsd,
+  e_outsw,
   e_packssdw,
   e_packsswb,
   e_packuswb,
@@ -363,8 +369,10 @@ enum entryID {
   e_pmullw,
   e_pmuludq,
   e_pop,
-  e_popa_d,
-  e_popf_d,
+  e_popa,
+  e_popad,
+  e_popf,
+  e_popfd,
   e_popcnt,
   e_por,
   e_psadbw,
@@ -398,8 +406,10 @@ enum entryID {
   e_punpcklqld,
   e_punpcklwd,
   e_push,
-  e_pusha_d,
-  e_pushf_d,
+  e_pusha,
+  e_pushad,
+  e_pushf,
+  e_pushfd,
   e_pxor,
   e_rcl,
   e_rcpps,
@@ -418,7 +428,8 @@ enum entryID {
   e_sar,
   e_sbb,
   e_scasb,
-  e_scasw_d,
+  e_scasd,
+  e_scasw,
   e_setb,
   e_setbe,
   e_setl,
@@ -455,7 +466,8 @@ enum entryID {
   e_sti,
   e_stmxcsr,
   e_stosb,
-  e_stosw_d,
+  e_stosd,
+  e_stosw,
   e_str,
   e_sub,
   e_subpd,
@@ -829,8 +841,14 @@ enum entryID {
   power_op_fsabs,
   power_op_fsneg,
   power_op_fsnabs,
-  power_op_lwa
-          
+  power_op_lwa,
+  _entry_ids_max_
+};
+
+enum prefixEntryID {
+  prefix_none,
+  prefix_rep,
+  prefix_repnz
 };
 
 #if defined(__GNUC__)
@@ -846,6 +864,13 @@ enum entryID {
 	return h(static_cast<unsigned int>(e));
       };
     };
+    template<> struct hash<prefixEntryID> {
+      hash<unsigned int> h;
+      unsigned operator()(const prefixEntryID &e) const 
+      {
+	return h(static_cast<unsigned int>(e));
+      };
+    };
   }
 	#else
   namespace std
@@ -855,15 +880,28 @@ enum entryID {
       template <>
       struct hash<entryID>
       {
+        hash<size_t> h;
 	size_t operator()(const entryID &eid) const
 	{
-	  return static_cast<size_t>(eid);
+	  return h(static_cast<size_t>(eid));
+	}
+      };
+      template <>
+      struct hash<prefixEntryID>
+      {
+        hash<size_t> h;
+	size_t operator()(const prefixEntryID &eid) const
+	{
+	  return h(static_cast<size_t>(eid));
 	}
       };
     }
   }
 	#endif
 #endif
-extern dyn_hash_map<entryID, std::string> entryNames_IAPI;
+namespace NS_x86 {
+COMMON_EXPORT extern dyn_hash_map<entryID, std::string> entryNames_IAPI;
+COMMON_EXPORT extern dyn_hash_map<prefixEntryID, std::string> prefixEntryNames_IAPI;
+}
 
 #endif // defined(ENTRYIDS_IA32_H)

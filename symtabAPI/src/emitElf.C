@@ -193,9 +193,40 @@ emitElf::emitElf(Elf_X &oldElfHandle_, bool isStripped_, Object *obj_, void (*er
   symTabData = NULL;
   hashData = NULL;
   rodata = NULL;
-     
-  //Don't expect to use to use this mechanism anymore
-  BSSExpandFlag = false; 
+ 
+  linkedStaticData = NULL;
+  hasRewrittenTLS = false;
+  newTLSData = NULL;
+   
+  oldElf = oldElfHandle.e_elfp();
+  curVersionNum = 2;
+  setVersion();
+ 
+  //Set variable based on the mechanism to add new load segment
+  // 1) createNewPhdr (Total program headers + 1) - default
+  //	(a) movePHdrsFirst
+  //    (b) create new section called dynphdrs and change pointers (createNewPhdrRegion)
+  // 2) Use existing Phdr (used in bleugene - will be handled in function fixPhdrs)
+  //    (a) replaceNOTE section - if NOTE exists
+  //    (b) BSSExpandFlag - expand BSS section - default option
+
+  // default
+  createNewPhdr = true; BSSExpandFlag = false; replaceNOTE = false; 
+
+  bool isBlueGene = obj_->isBlueGene();
+  bool hasNoteSection = obj_->hasNoteSection();
+
+  // for now, bluegene is the only system which uses the following mechanism for updating program header
+  if(isBlueGene){
+	createNewPhdr = false;
+        if(hasNoteSection) {
+                replaceNOTE = true;
+        } else {
+                BSSExpandFlag = true;
+        }
+  }
+
+
   //If we're dealing with a library that can be loaded anywhere,
   // then load the program headers into the later part of the binary,
   // this may trigger a kernel bug that was fixed in Summer 2007,
@@ -203,8 +234,7 @@ emitElf::emitElf(Elf_X &oldElfHandle_, bool isStripped_, Object *obj_, void (*er
   //If we're dealing with a library/executable that loads at a specific
   // address we'll put the phdrs into the page before that address.  This
   // works and will avoid the kernel bug.
-  movePHdrsFirst = object && object->getLoadAddress();
-  createNewPhdr = true;
+  movePHdrsFirst = createNewPhdr && object && object->getLoadAddress();
 
   //If we want to try a mode where we add the program headers to a library
   // that can be loaded anywhere, and put the program headers in the first 
@@ -213,14 +243,6 @@ emitElf::emitElf(Elf_X &oldElfHandle_, bool isStripped_, Object *obj_, void (*er
   // for the extra page for program headers.  This causes some significant
   // changes to the binary, and isn't well tested.
   library_adjust = 0;
-
-  linkedStaticData = NULL;
-  hasRewrittenTLS = false;
-  newTLSData = NULL;
-   
-  oldElf = oldElfHandle.e_elfp();
-  curVersionNum = 2;
-  setVersion();
 }
 
 bool emitElf::createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf32_Sym *> &symbols, bool dynSymFlag)
@@ -679,10 +701,10 @@ bool emitElf::driver(Symtab *obj, string fName){
       createdLoadableSections = true;
       insertPoint = scncount;
       
-      if(!createLoadableSections(newshdr, extraAlignSize, 
+      if(!createLoadableSections(obj,newshdr, extraAlignSize, 
                                  newNameIndexMapping, sectionNumber))        
          return false;
-      if (!movePHdrsFirst) {
+      if (createNewPhdr && !movePHdrsFirst) {
 	 sectionNumber++;
          createNewPhdrRegion(newNameIndexMapping);
 	}
@@ -858,9 +880,8 @@ void emitElf::fixPhdrs(unsigned &extraAlignSize)
   if(createNewPhdr) {
      newEhdr->e_phnum++;
   }
-  if(BSSExpandFlag)
-    newEhdr->e_phnum= oldEhdr->e_phnum;
   bool added_new_sec = false;    
+  bool replaced = false;
 
   if (!hasPHdrSectionBug())
      newPhdr = elf32_newphdr(newElf,newEhdr->e_phnum);
@@ -872,6 +893,72 @@ void emitElf::fixPhdrs(unsigned &extraAlignSize)
   Elf32_Phdr newSeg;
   for(unsigned i=0;i<oldEhdr->e_phnum;i++)
   {
+    /*
+     * If we've created a new loadable segment, we need to insert a new
+     * program header amidst the other loadable segments.
+     * 
+     * ELF format says:
+     *
+     * `Loadable segment entries in the program header table appear in
+     * ascending order, sorted on the p_vaddr member.'
+     * 
+     * Note: replacing NOTE with LOAD section for bluegene systems 
+     * does not follow this rule.
+     */
+  
+    Elf32_Phdr * insert_phdr = NULL;
+   if(createNewPhdr && !added_new_sec) { 
+       	if(i+1 == oldEhdr->e_phnum) {
+            // insert at end of phdrs
+            insert_phdr = newPhdr+1;
+        }
+        else if(old->p_type == PT_LOAD && (old+1)->p_type != PT_LOAD) {
+            // insert at end of loadable phdrs
+            insert_phdr = newPhdr+1;
+        }
+        else if(old->p_type != PT_LOAD &&
+                (old+1)->p_type == PT_LOAD &&
+                newSegmentStart < (old+1)->p_vaddr)
+        {
+            // insert at beginning of loadable list (after the
+            // current phdr)
+            insert_phdr = newPhdr+1;
+        }
+        else if(old->p_type == PT_LOAD &&
+                (old+1)->p_type == PT_LOAD &&
+                newSegmentStart >= old->p_vaddr &&
+                newSegmentStart < (old+1)->p_vaddr)
+        {
+            // insert in middle of loadable list, after current
+            insert_phdr = newPhdr+1;
+        }
+        else if(i == 0 && 
+                old->p_type == PT_LOAD && 
+                newSegmentStart < old->p_vaddr)
+        {
+            // insert BEFORE current phdr
+            insert_phdr = newPhdr;
+            newPhdr++;
+        }
+    }
+   
+      if(insert_phdr) 
+      {
+         newSeg.p_type = PT_LOAD;
+         newSeg.p_offset = firstNewLoadSec->sh_offset;
+         newSeg.p_vaddr = newSegmentStart;
+         newSeg.p_paddr = newSeg.p_vaddr;
+         newSeg.p_filesz = loadSecTotalSize - (newSegmentStart - firstNewLoadSec->sh_addr);
+         newSeg.p_memsz = (currEndAddress - firstNewLoadSec->sh_addr) - (newSegmentStart - firstNewLoadSec->sh_addr);
+         newSeg.p_flags = PF_R+PF_W+PF_X;
+         newSeg.p_align = pgSize;
+         memcpy(insert_phdr, &newSeg, oldEhdr->e_phentsize);
+         added_new_sec = true;
+#ifdef BINEDIT_DEBUG
+         fprintf(stderr, "Added New program header : offset 0x%lx,addr 0x%lx\n", newPhdr->p_offset, newPhdr->p_vaddr);
+#endif
+      }
+
      memcpy(newPhdr, old, oldEhdr->e_phentsize);
      // Expand the data segment to include the new loadable sections
      // Also add a executable permission to the segment
@@ -883,7 +970,10 @@ void emitElf::fixPhdrs(unsigned &extraAlignSize)
 	newPhdr->p_filesz = newPhdr->p_memsz;
      }
      else if(old->p_type == PT_PHDR){
-        newPhdr->p_vaddr = old->p_vaddr - pgSize;
+     	if (movePHdrsFirst)
+	        newPhdr->p_vaddr = old->p_vaddr - pgSize;
+	else
+	        newPhdr->p_vaddr = old->p_vaddr;
         newPhdr->p_paddr = newPhdr->p_vaddr;
         newPhdr->p_filesz = sizeof(Elf32_Phdr) * newEhdr->e_phnum;
         newPhdr->p_memsz = newPhdr->p_filesz;
@@ -895,7 +985,7 @@ void emitElf::fixPhdrs(unsigned &extraAlignSize)
           newPhdr->p_memsz = newTLSData->sh_size + old->p_memsz - old->p_filesz;
           newPhdr->p_align = newTLSData->sh_addralign;
      }else if (old->p_type == PT_LOAD) {
-        if(newPhdr->p_align > pgSize) {
+        if(!createNewPhdr && newPhdr->p_align > pgSize) { //not on bluegene
            newPhdr->p_align = pgSize;
         }
         if(BSSExpandFlag) {
@@ -921,8 +1011,17 @@ void emitElf::fixPhdrs(unsigned &extraAlignSize)
               newPhdr->p_vaddr += library_adjust;
            }
         }
-     }
-     else if (movePHdrsFirst && old->p_offset) {
+     }else if (replaceNOTE && old->p_type == PT_NOTE && !replaced) {
+	 replaced = true;
+         newPhdr->p_type = PT_LOAD;
+         newPhdr->p_offset = firstNewLoadSec->sh_offset;
+         newPhdr->p_vaddr = newSegmentStart;
+         newPhdr->p_paddr = newPhdr->p_vaddr; 
+         newPhdr->p_filesz = loadSecTotalSize - (newSegmentStart - firstNewLoadSec->sh_addr);
+         newPhdr->p_memsz = (currEndAddress - firstNewLoadSec->sh_addr) - (newSegmentStart - firstNewLoadSec->sh_addr);
+         newPhdr->p_flags = PF_R+PF_W+PF_X;
+         newPhdr->p_align = pgSize;
+     }else if (movePHdrsFirst && old->p_offset) {
         newPhdr->p_offset += pgSize;
         if (newPhdr->p_vaddr) {
            newPhdr->p_vaddr += library_adjust;
@@ -930,27 +1029,8 @@ void emitElf::fixPhdrs(unsigned &extraAlignSize)
      } 
      
       newPhdr++;
-      if (createNewPhdr &&
-          (i+1 == oldEhdr->e_phnum || (old+1)->p_type != PT_LOAD) &&
-          old->p_type == PT_LOAD &&
-          !added_new_sec &&
-          firstNewLoadSec)
-      {
-         newSeg.p_type = PT_LOAD;
-         newSeg.p_offset = firstNewLoadSec->sh_offset;
-         newSeg.p_vaddr = newSegmentStart;
-         newSeg.p_paddr = newSeg.p_vaddr;
-         newSeg.p_filesz = loadSecTotalSize - (newSegmentStart - firstNewLoadSec->sh_addr);
-         newSeg.p_memsz = (currEndAddress - firstNewLoadSec->sh_addr) - (newSegmentStart - firstNewLoadSec->sh_addr);
-         newSeg.p_flags = PF_R+PF_W+PF_X;
-         newSeg.p_align = pgSize;
-         memcpy(newPhdr, &newSeg, oldEhdr->e_phentsize);
-         added_new_sec = true;
-#ifdef BINEDIT_DEBUG
-         fprintf(stderr, "Added New program header : offset 0x%lx,addr 0x%lx\n", newPhdr->p_offset, newPhdr->p_vaddr);
-#endif
-         newPhdr++;
-      }
+      if(insert_phdr)
+        newPhdr++;
       old++;
   }
   
@@ -1029,7 +1109,7 @@ void emitElf::updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned lon
   }
 }
 
-bool emitElf::createLoadableSections(Elf32_Shdr* &shdr, unsigned &extraAlignSize, dyn_hash_map<std::string, unsigned> &newNameIndexMapping, unsigned &sectionNumber)
+bool emitElf::createLoadableSections(Symtab*obj, Elf32_Shdr* &shdr, unsigned &extraAlignSize, dyn_hash_map<std::string, unsigned> &newNameIndexMapping, unsigned &sectionNumber)
 {
   Elf_Scn *newscn;
   Elf_Data *newdata = NULL;
@@ -1043,6 +1123,15 @@ bool emitElf::createLoadableSections(Elf32_Shdr* &shdr, unsigned &extraAlignSize
   unsigned dynsymIndex = 0;
   Elf32_Shdr *prevshdr = NULL;
 
+   /*
+    * Order the new sections such that those with explicit
+    * memory offsets come before those without (that will be placed
+    * after the non-zero sections).
+    *
+    * zstart is used to place the first zero-offset section if
+    * no non-zero-offset sections exist.
+    */
+   Address zstart = emitElfUtils::orderLoadableSections(obj,newSecs);
 
   for(unsigned i=0; i < newSecs.size(); i++)
   {
@@ -1105,11 +1194,17 @@ bool emitElf::createLoadableSections(Elf32_Shdr* &shdr, unsigned &extraAlignSize
          loadSecTotalSize += newshdr->sh_offset - (shdr->sh_offset+shdr->sh_size);
      }
 
+     // FIXME in 64-bit we use getMemOffset. Which is correct?
      if(newSecs[i]->getDiskOffset())
         newshdr->sh_addr = newSecs[i]->getDiskOffset();
+     else if(!prevshdr) {
+        newshdr->sh_addr = zstart; // FIXME in 64-bit we add library_adjust.
+                                   // Which is correct?
+     }
      else{
         newshdr->sh_addr = prevshdr->sh_addr+ prevshdr->sh_size;
      }
+
     	    
      newshdr->sh_link = SHN_UNDEF;
      newshdr->sh_info = 0;
@@ -1294,25 +1389,25 @@ bool emitElf::createLoadableSections(Elf32_Shdr* &shdr, unsigned &extraAlignSize
      }
 #endif
 
-     if(createNewPhdr)
+     // Check to make sure the (vaddr for the start of the new segment - the offset) is page aligned
+     if(!firstNewLoadSec)
      {
-        // Check to make sure the (vaddr for the start of the new segment - the offset) is page aligned
-        if(!firstNewLoadSec)
-        {
-           newSegmentStart = newshdr->sh_addr;
-           Offset newoff = newshdr->sh_offset  - (newshdr->sh_offset & (pgSize-1)) + (newshdr->sh_addr & (pgSize-1));
-           if(newoff < newshdr->sh_offset)
-              newoff += pgSize;
-           extraAlignSize += newoff - newshdr->sh_offset;
-           newshdr->sh_offset = newoff;
-        }    
-     }	
-     else{
         Offset newoff = newshdr->sh_offset  - (newshdr->sh_offset & (pgSize-1)) + (newshdr->sh_addr & (pgSize-1));
         if(newoff < newshdr->sh_offset)
            newoff += pgSize;
         extraAlignSize += newoff - newshdr->sh_offset;
         newshdr->sh_offset = newoff;
+
+	// For now, bluegene is the only system for which createNewPhdr is false. 
+	// Bluegene compute nodes have a 1MB alignment restructions on PT_LOAD section
+	// When we are replaceing PT_NOTE with PT_LOAD, we need to make sure the new PT_LOAD is 1MB aligned
+	if (!createNewPhdr && replaceNOTE)  {
+        	Offset newaddr = newshdr->sh_addr  - (newshdr->sh_addr & (0x100000-1));
+	        if(newaddr < newshdr->sh_addr)
+	             newaddr += 0x100000;
+	        newshdr->sh_addr = newaddr;
+	}
+        newSegmentStart = newshdr->sh_addr;
      }
 
      //Set up the data

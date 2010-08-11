@@ -39,7 +39,7 @@
 # define DYN_DETAIL_BOOST_PP_WHILE_F(d, _) 0
 #
 # if DYN_DETAIL_BOOST_PP_CONFIG_FLAGS() & DYN_DETAIL_BOOST_PP_CONFIG_EDG()
-#    include <dyn_detail/boost/preprocessor/control/detail/edg/while.hpp>
+#    include <dyn_detail/boost/preprocessor/control/detail/while.hpp>
 # elif DYN_DETAIL_BOOST_PP_CONFIG_FLAGS() & DYN_DETAIL_BOOST_PP_CONFIG_MSVC()
 #    include <dyn_detail/boost/preprocessor/control/detail/msvc/while.hpp>
 # elif DYN_DETAIL_BOOST_PP_CONFIG_FLAGS() & DYN_DETAIL_BOOST_PP_CONFIG_DMC()

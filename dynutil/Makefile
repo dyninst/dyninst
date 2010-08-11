@@ -20,6 +20,7 @@ PUBLIC_H = Annotatable.h \
 		SymReader.h \
 		AST.h \
 		ProcReader.h \
+        IBSTree.h \
 		dyn_detail 
 
 #INSTALL_TARGETS = $(pathsubst %, $(INCLUDE_DEST)/%,$(PUBLIC_H))

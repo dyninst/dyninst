@@ -147,8 +147,8 @@ bool BPatch_asyncEventHandler::connectToProcess(process *p)
    //  find the variable to set with the port number to connect to
    int_variable *res = NULL;
 
-   pdvector<mapped_object *> &rtlib = llproc->runtime_lib;
-   pdvector<mapped_object *>::iterator rtlib_it;
+   set<mapped_object *> &rtlib = llproc->runtime_lib;
+   set<mapped_object *>::iterator rtlib_it;
    for(rtlib_it = rtlib.begin(); rtlib_it != rtlib.end(); ++rtlib_it) {
        if( !res ) res = const_cast<int_variable *>((*rtlib_it)->getVariable("connect_port"));
        else break;
@@ -1475,7 +1475,7 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
    }
    return true;
 }
-int disconnectCallback(process *p, unsigned , void * data, void *)
+int disconnectCallback(process *, unsigned , void * data, void *)
 {
     *((bool*)(data)) = true;
     return 0;

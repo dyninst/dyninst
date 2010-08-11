@@ -1,7 +1,8 @@
 /**
- * We've been told that this header is no longer IBM confidential.
+ * We've been told by IBM that this header is no longer IBM confidential.
  * The contents are being released and we were given premission to 
- * redistribute this.
+ * redistribute this--although they never gave us the new header without
+ * this copyright.
  **/
 
 /* begin_generated_IBM_copyright_prolog                             */

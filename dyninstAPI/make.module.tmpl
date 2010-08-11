@@ -36,10 +36,13 @@ ifneq ($(findstring cap_instruction_api,$(CAP_DEF)),)
 	LDFLAGS += -linstructionAPI
 endif
 
-LDFLAGS += -lpthread -lsymtabAPI -lcommon 
+LDFLAGS += -lpthread -lsymtabAPI -lcommon -lparseAPI
 
+LDFLAGS     += -L../../common/$(PLATFORM) 
+LDFLAGS     += -L../../symtabAPI/$(PLATFORM) 
+LDFLAGS     += -L../../instructionAPI/$(PLATFORM)
+LDFLAGS     += -L../../parseAPI/$(PLATFORM)
 
-LDFLAGS     += -L../../common/$(PLATFORM) -L../../symtabAPI/$(PLATFORM) -L../../instructionAPI/$(PLATFORM)
 ifndef USES_NATIVE_CC
 LD		= $(GXX)
 LDFLAGS		+= -shared $(G_PTHREAD_LD)
@@ -53,7 +56,7 @@ endif #USES_NATIVE
 TFLAGS		+= -fPIC
 
 VPATH	     += ../../dyninstAPI/src:../dyninstAPI/h:\
-		../../common/src:../../paradyn/h
+                ../../common/src:../../paradyn/h
 
 ifdef AUTO_TEMPLATES
 CFLAGS += -DAUTO_TEMPLATES
@@ -94,7 +97,7 @@ SRCS	     +=	../src/BPatch.C \
                 ../src/debug.C \
                 ../src/ast.C \
                 ../src/registerSpace.C \
-                ../src/arch.C \
+                ../src/codegen.C \
                 ../src/inst.C \
                 ../src/instPoint.C \
                 ../src/multiTramp.C \
@@ -119,7 +122,6 @@ SRCS	     +=	../src/BPatch.C \
                 ../src/rpcMgr-thr.C \
                 ../src/codeRange.C \
                 ../src/symtab.C \
-        ../src/image-flowGraph.C \
                 ../src/dominator.C \
                 ../src/image-func.C \
                 ../src/mapped_object.C \
@@ -134,13 +136,11 @@ SRCS	     +=	../src/BPatch.C \
                 ../src/parRegion.C \
                 ../src/liveness.C \
 		../src/InstructionCache.C \
-		../src/InstructionAdapter.C
-#		../src/IA_InstrucIter.C 
-#		../src/InstrucIter-Function.C
-#                ../src/InstrucIter-xplat.C
-#		../src/BPatch_dependenceGraphNode.C \
-#		../src/BPatch_dependenceGraphEdge.C \
-
+                ../src/Parsing.C \
+                ../src/Parsing-arch.C \
+                ../src/hybridInstrumentation.C \
+                ../src/hybridOverwrites.C \
+                ../src/hybridCallbacks.C
 TO_INC   = ../h
 PUBLIC_H = BPatch_addressSpace.h \
            BPatch_basicBlock.h \
@@ -154,6 +154,7 @@ PUBLIC_H = BPatch_addressSpace.h \
            BPatch_frame.h \
            BPatch_function.h \
            BPatch.h \
+           BPatch_hybridAnalysis.h \
            BPatch_image.h \
            BPatch_instruction.h \
            BPatch_loopTreeNode.h \
@@ -188,8 +189,9 @@ else
 SYSLIBS		+= -ldemangle
 endif
 
-
-IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../dynutil/h -I../../symtabAPI/h -I../../instructionAPI/h
+IFLAGS      += -I../$(PLATFORM) -I../src -I../h -I../../dynutil/h 
+IFLAGS      += -I../../symtabAPI/h -I../../instructionAPI/h
+IFLAGS      += -I../../parseAPI/h
 
 # All that, and we finally get a target...
 all: $(TARGET) $(EXTRA_LIBS)
@@ -204,13 +206,17 @@ all: $(TARGET) $(EXTRA_LIBS)
 #	$(CXX) $(DEBUG_FLAG) $(TFLAGS) -c $<
     
 BPatch_templates.o: ../src/BPatch_templates.C
-	$(CXX) $(TFLAGS) -c ../src/BPatch_templates.C
+	@echo "Building $<"
+	$(HIDE_COMP)$(CXX) $(TFLAGS) -c ../src/BPatch_templates.C
 
 templates0.o: ../src/templates0.C
-	$(CXX) $(TFLAGS) -c ../src/templates0.C
+	@echo "Building $<"
+	$(HIDE_COMP)$(CXX) $(TFLAGS) -c ../src/templates0.C
 
 templates1.o: ../src/templates1.C
-	$(CXX) $(TFLAGS) -c ../src/templates1.C
+	@echo "Building $<"
+	$(HIDE_COMP)$(CXX) $(TFLAGS) -c ../src/templates1.C
 
 templates2.o: ../src/templates2.C
-	$(CXX) $(TFLAGS) -c ../src/templates2.C
+	@echo "Building $<"
+	$(HIDE_COMP)$(CXX) $(TFLAGS) -c ../src/templates2.C

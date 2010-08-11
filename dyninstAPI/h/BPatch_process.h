@@ -39,6 +39,7 @@
 #include "BPatch_eventLock.h"
 #include "BPatch_point.h"
 #include "BPatch_addressSpace.h"
+#include "BPatch_hybridAnalysis.h"
 
 #include "BPatch_callbacks.h"
 
@@ -59,6 +60,7 @@ class BPatch_funcMap;
 class BPatch_instpMap;
 class int_function;
 class rpcMgr;
+class HybridAnalysis;
 struct batchInsertionRecord;
 
 typedef enum {
@@ -225,6 +227,8 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
     int activeOneTimeCodes_;
     bool resumeAfterCompleted_;
 
+    HybridAnalysis *hybridAnalysis_;
+
     static int oneTimeCodeCallbackDispatch(process *theProc,
                                            unsigned /* rpcid */, 
                                            void *userData,
@@ -240,10 +244,11 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
 
     protected:
     // for creating a process
-    BPatch_process(const char *path, const char *argv[], const char **envp = NULL, 
-                  int stdin_fd = 0, int stdout_fd = 1, int stderr_fd = 2);
+    BPatch_process(const char *path, const char *argv[], 
+                   BPatch_hybridMode mode, const char **envp = NULL, 
+                   int stdin_fd = 0, int stdout_fd = 1, int stderr_fd = 2);
     // for attaching
-    BPatch_process(const char *path, int pid);	
+    BPatch_process(const char *path, int pid, BPatch_hybridMode mode);	
 
     // for forking
     BPatch_process(process *proc);
@@ -261,21 +266,40 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
         
     public:
 
-    // DO NOT USE
+    // Begin internal functions, DO NOT USE
+    //
     // this function should go away as soon as Paradyn links against Dyninst
     process *lowlevel_process() { return llproc; }
-
-    // DO NOT USE
     // These internal funcs trigger callbacks registered to matching events
     bool triggerStopThread(instPoint *intPoint, int_function *intFunc, 
                             int cb_ID, void *retVal);
     bool triggerSignalHandlerCB(instPoint *point, int_function *func, long signum, 
                                BPatch_Vector<Dyninst::Address> *handlers); 
-
+    bool triggerCodeOverwriteCB(Dyninst::Address fault_instruc, 
+                                Dyninst::Address viol_target); 
+    bool setMemoryAccessRights(Dyninst::Address start, Dyninst::Address size, 
+                               int rights);
+    unsigned char *makeShadowPage(Dyninst::Address pageAddress);
+    void overwriteAnalysisUpdate
+        ( std::map<Dyninst::Address,unsigned char*>& owPages, //input
+          std::vector<Dyninst::Address>& deadBlockAddrs, //output
+          std::vector<BPatch_function*>& owFuncs,     //output
+          bool &changedPages, bool &changedCode ); //output
+    // take a function and split off the blocks that correspond to the range
+    bool removeFunctionSubRange
+        (BPatch_function &curFunc, 
+         Dyninst::Address startAddr, 
+         Dyninst::Address endAddr, 
+         std::vector<Dyninst::Address> &blockAddrs);
+    HybridAnalysis *getHybridAnalysis() { return hybridAnalysis_; }
+    bool protectAnalyzedCode();
     // DO NOT USE
     // This is an internal debugging function
     API_EXPORT_V(Int, (), 
     void, debugSuicide,());
+    //
+    // End internal functions
+
 
   
     //  BPatch_process::~BPatch_process
@@ -506,17 +530,29 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
     bool,oneTimeCodeAsync,(const BPatch_snippet &expr, void *userData = NULL,
                            BPatchOneTimeCodeCallback cb = NULL));
                            
-
-    // BPatch_process::setBeingDebuggedFlag
+    // BPatch_process::hideDebugger()
     //
-    // This is a Windows only function that sets the user-space
-    // debuggerPresent flag to 0 or 1, 0 meaning that the process is not
-    // being debugged.  The debugging process will still have debug
-    // access, but system calls that ask if the process is being debugged
-    // will say that it is not because they merely return the value of the
-    // user-space beingDebugged flag. 
-    API_EXPORT(Int, (debuggerPresent),
-    bool,setBeingDebuggedFlag,(bool debuggerPresent));
+    // This is a Windows only function that removes debugging artifacts that
+    // are added to user-space datastructures and the heap of the debugged 
+    // process, by CreateProcess and DebugActiveProcess.  Removing the artifacts
+    // doesn't have any effect on the process, as the kernel still knows that 
+    // the process is being debugged.  Three of the artifacts are flags that can
+    // be reached through the Process Environment Block of the debuggee (PEB):
+    //  1.  BeingDebugged, one byte at offset 2 in the PEB.  
+    //  2.  NtGlobalFlags, at offset 0x68 in the PEB
+    //  3.  There are two consecutive words of heap flags which are at offset 0x0c
+    //      from the beginning of the heap.  The heap base address is at offset
+    //      0x18 from the beginning of the PEB.  
+    // The other thing this method does is clear the 0xabababababababab value that
+    // it CreateProcess adds to the end of the heap section when creating a debugged
+    // process, in response to the heap flag: HEAP_TAIL_CHECKING_ENABLED, which it
+    // sets to true for debugged processes.  We are clearing that flag, but by the 
+    // time we do, the value is already written to disk. 
+    // 
+    // Various system calls can still be used by the debuggee to recognize that 
+    // it is being debugged, so this is not a complete solution.  
+    API_EXPORT(Int, (),
+    bool,hideDebugger,());
 
     //  BPatch_process::enableDumpPatchedImage
     //  

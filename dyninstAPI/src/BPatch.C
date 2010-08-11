@@ -56,10 +56,13 @@
 #include "signalgenerator.h"
 #include "mapped_module.h"
 #include "instPoint.h"
+#include "hybridAnalysis.h"
 
 #if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
 #include "nt_signal_emul.h"
 #endif
+
+using namespace SymtabAPI;
 
 extern void loadNativeDemangler();
 
@@ -1293,7 +1296,8 @@ void BPatch::unRegisterProcess(int pid, BPatch_process *proc)
  */
 BPatch_process *BPatch::processCreateInt(const char *path, const char *argv[], 
                                          const char **envp, int stdin_fd, 
-                                         int stdout_fd, int stderr_fd)
+                                         int stdout_fd, int stderr_fd,
+                                         BPatch_hybridMode mode)
 {
    clearError();
 
@@ -1334,9 +1338,7 @@ BPatch_process *BPatch::processCreateInt(const char *path, const char *argv[],
 #endif
 
    BPatch_process *ret = 
-      new BPatch_process(path, argv, 
-            envp, 
-            stdin_fd, stdout_fd, stderr_fd);
+      new BPatch_process(path, argv, mode, envp, stdin_fd,stdout_fd,stderr_fd);
 
    if (!ret->llproc 
          ||  ret->llproc->status() != stopped 
@@ -1388,7 +1390,8 @@ BPatch_thread *BPatch::createProcessInt(const char *path, const char *argv[],
  * path		The pathname of the executable for the process.
  * pid		The id of the process to attach to.
  */
-BPatch_process *BPatch::processAttachInt(const char *path, int pid)
+BPatch_process *BPatch::processAttachInt
+(const char *path, int pid, BPatch_hybridMode mode)
 {
    clearError();
    
@@ -1400,7 +1403,7 @@ BPatch_process *BPatch::processAttachInt(const char *path, int pid)
       return NULL;
    }
 
-   BPatch_process *ret = new BPatch_process(path, pid);
+   BPatch_process *ret = new BPatch_process(path, pid, mode);
 
    if (!ret->llproc ||
        ret->llproc->status() != stopped ||
@@ -2042,35 +2045,59 @@ bool BPatch::removeUserEventCallbackInt(BPatchUserEventCallback cb)
     return ret;
 }
 
-bool BPatch::registerSignalHandlerCallbackInt(BPatchSignalHandlerCallback func,
-                                              BPatch_Set<long> *signums)
+bool BPatch::registerCodeDiscoveryCallbackInt(BPatchCodeDiscoveryCallback cb)
+{
+    std::vector<BPatch_process*> *procs = getProcesses();
+    for(unsigned i =0; i < procs->size(); i++) {
+        HybridAnalysis *hybrid = (*procs)[i]->getHybridAnalysis();
+        hybrid->registerCodeDiscoveryCallback(cb);
+    }
+    return true;
+}
+
+bool BPatch::removeCodeDiscoveryCallbackInt(BPatchCodeDiscoveryCallback)
+{
+    std::vector<BPatch_process*> *procs = getProcesses();
+    for(unsigned i =0; i < procs->size(); i++) {
+        HybridAnalysis *hybrid = (*procs)[i]->getHybridAnalysis();
+        hybrid->removeCodeDiscoveryCallback();
+    }
+    return true;
+}
+
+bool BPatch::registerSignalHandlerCallbackInt
+    (BPatchSignalHandlerCallback bpatchCB, BPatch_Set<long> *signums)
 {
     pdvector<CallbackBase *> cbs;
     getCBManager()->removeCallbacks(evtSignalHandlerCB, cbs);
-    SignalHandlerCallback *cb = new SignalHandlerCallback(func, signums);
+    SignalHandlerCallback *cb = new SignalHandlerCallback
+        (HybridAnalysis::getSignalHandlerCB(), signums);
     bool ret = getCBManager()->registerCallback(evtSignalHandlerCB, cb);
+    std::vector<BPatch_process*> *procs = getProcesses();
+    for(unsigned i=0; i < procs->size(); i++) {
+        HybridAnalysis *hybrid = (*procs)[i]->getHybridAnalysis();
+        hybrid->registerSignalHandlerCallback(bpatchCB);
+    }
     return ret;
 }
 
-bool BPatch::removeSignalHandlerCallbackInt(BPatchSignalHandlerCallback cb)
+bool BPatch::removeSignalHandlerCallbackInt(BPatchSignalHandlerCallback)
 {
     bool ret = false;
     pdvector<CallbackBase *> cbs;
     if (!getCBManager()->removeCallbacks(evtSignalHandlerCB, cbs)) {
-        fprintf(stderr, "%s[%d]:  Cannot remove callback for evtSignalHandlerCB,"
-                " not found\n", FILE__, __LINE__);
+        fprintf(stderr, "%s[%d]:  Cannot remove callback for "
+                "evtSignalHandlerCB, not found\n", FILE__, __LINE__);
         return false;
     }
 
     //  See if supplied function was in the set of removed functions
     for (int i = cbs.size() -1; i >= 0; i--) {
         SignalHandlerCallback *test = (SignalHandlerCallback *)cbs[i];
-        if (test->getFunc() == cb) {
-            //  found it, destroy it
-            VECTOR_ERASE(cbs,i,i);
-            ret = true;
-            delete test;
-        } 
+        //  found it, destroy it
+        VECTOR_ERASE(cbs,i,i);
+        ret = true;
+        delete test;
     }
 
     //  we deleted any found target functions, put the others back.
@@ -2078,9 +2105,30 @@ bool BPatch::removeSignalHandlerCallbackInt(BPatchSignalHandlerCallback cb)
         if (!getCBManager()->registerCallback(evtSignalHandlerCB, cbs[i]))
             ret = false;
 
+    std::vector<BPatch_process*> *procs = getProcesses();
+    for(unsigned i=0; i < procs->size(); i++) {
+        HybridAnalysis *hybrid = (*procs)[i]->getHybridAnalysis();
+        hybrid->removeSignalHandlerCallback();
+    }
     return ret;
 }
 
+bool BPatch::registerCodeOverwriteCallbacksInt
+    (BPatchCodeOverwriteBeginCallback cbBegin,
+     BPatchCodeOverwriteEndCallback cbEnd)
+{
+    pdvector<CallbackBase *> cbs;
+    getCBManager()->removeCallbacks(evtCodeOverwrite, cbs);
+    CodeOverwriteCallback *cbInt = new CodeOverwriteCallback
+        (HybridAnalysisOW::getCodeOverwriteCB());
+    bool ret = getCBManager()->registerCallback(evtCodeOverwrite, cbInt);
+    std::vector<BPatch_process*> *procs = getProcesses();
+    for(unsigned i=0; i < procs->size(); i++) {
+        HybridAnalysis *hybrid = (*procs)[i]->getHybridAnalysis();
+        hybrid->hybridOW()->registerCodeOverwriteCallbacks(cbBegin,cbEnd);
+    }
+    return ret;
+}
 
 void BPatch::continueIfExists(int pid) 
 {

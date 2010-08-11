@@ -52,6 +52,9 @@ using namespace Dyninst::InstructionAPI;
 #include "inst-x86.h"
 #endif
 
+#include "Parsing.h"
+using namespace Dyninst::ParseAPI;
+
 ReadWriteInfo calcRWSets(Instruction::Ptr insn, image_basicBlock* blk, unsigned width);
 InstructionCache image_basicBlock::cachedLivenessInfo = InstructionCache();
 
@@ -104,35 +107,37 @@ void registerSpace::specializeSpace(const bitArray &liveRegs) {
 
 }
 
-const bitArray &image_basicBlock::getLivenessIn() {
+const bitArray &image_basicBlock::getLivenessIn(image_func * context) {
     // Calculate if it hasn't been done already
     if (in.size() == 0)
-        summarizeBlockLivenessInfo();
+        summarizeBlockLivenessInfo(context);
     return in;
 }
 
-const bitArray image_basicBlock::getLivenessOut() const {
+const bitArray image_basicBlock::getLivenessOut(image_func * context) {
     bitArray out(in.size());
 
+    // ignore call, return edges
+    Intraproc epred;
+
     // OUT(X) = UNION(IN(Y)) for all successors Y of X
-    pdvector<image_edge *> target_edges;
-    getTargets(target_edges);
-    
-    for(unsigned i = 0; i < target_edges.size(); i++) {
-        if (target_edges[i]->getType() == ET_CALL) continue;
+    Block::edgelist & target_edges = targets();
+    Block::edgelist::iterator eit = target_edges.begin(&epred);
+   
+    for( ; eit != target_edges.end(); ++eit) { 
+        // covered by Intraproc predicate
+        //if ((*eit)->type() == CALL) continue;
         // Is this correct?
-        if (target_edges[i]->getType() == ET_CATCH) continue;
+        if ((*eit)->type() == CATCH) continue;
         
         // TODO: multiple entry functions and you?
-        
-        if (target_edges[i]->getTarget()) {
-            out |= target_edges[i]->getTarget()->getLivenessIn();
-        }
+       
+        out |= ((image_basicBlock*)(*eit)->trg())->getLivenessIn(context);
     }
     return out;
 }
 
-void image_basicBlock::summarizeBlockLivenessInfo() 
+void image_basicBlock::summarizeBlockLivenessInfo(image_func *context) 
 {
    if(in.size())
    {
@@ -141,14 +146,14 @@ void image_basicBlock::summarizeBlockLivenessInfo()
 
    stats_codegen.startTimer(CODEGEN_LIVENESS_TIMER);
 
-   unsigned width = getFirstFunc()->img()->getObject()->getAddressWidth();
+   unsigned width = region()->getAddressWidth();
 
    in = registerSpace::getBitArray();
    def = in;
    use = in;
 
    liveness_printf("%s[%d]: Getting liveness summary for block starting at 0x%lx in %s\n",
-                   FILE__, __LINE__, firstInsnOffset(), getFirstFunc()->img()->pathname().c_str());
+                   FILE__, __LINE__, firstInsnOffset(), context->img()->pathname().c_str());
 
 
    using namespace Dyninst::InstructionAPI;
@@ -156,15 +161,15 @@ void image_basicBlock::summarizeBlockLivenessInfo()
    InstructionDecoder decoder(
                        reinterpret_cast<const unsigned char*>(getPtrToInstruction(firstInsnOffset())),
                        getSize(),
-		       getFirstFunc()->img()->getArch());
+                       obj()->cs()->getArch());
    Instruction::Ptr curInsn = decoder.decode();
    while(curInsn)
    {
      ReadWriteInfo curInsnRW;
-     if(!cachedLivenessInfo.getLivenessInfo(current, getFirstFunc(), curInsnRW))
+     if(!cachedLivenessInfo.getLivenessInfo(current, context, curInsnRW))
      {
        curInsnRW = calcRWSets(curInsn, this, width);
-       cachedLivenessInfo.insertInstructionInfo(current, curInsnRW, getFirstFunc());
+       cachedLivenessInfo.insertInstructionInfo(current, curInsnRW, context);
      }
 
      use |= (curInsnRW.read & ~def);
@@ -191,7 +196,7 @@ void image_basicBlock::summarizeBlockLivenessInfo()
 
 /* This is used to do fixed point iteration until 
    the in and out don't change anymore */
-bool image_basicBlock::updateBlockLivenessInfo() 
+bool image_basicBlock::updateBlockLivenessInfo(image_func * context) 
 {
   bool change = false;
 
@@ -200,7 +205,7 @@ bool image_basicBlock::updateBlockLivenessInfo()
   // old_IN = IN(X)
   bitArray oldIn = in;
   // tmp is an accumulator
-  bitArray out = getLivenessOut();
+  bitArray out = getLivenessOut(context);
   
   // Liveness is a reverse dataflow algorithm
  
@@ -227,13 +232,10 @@ bool image_basicBlock::updateBlockLivenessInfo()
 void image_func::calcBlockLevelLiveness() {
     if (livenessCalculated_) return;
 
-    // Make sure we have parsed...
-    blocks();
-
     // Step 1: gather the block summaries
-    set<image_basicBlock*,image_basicBlock::compare>::iterator sit;
-    for(sit = blockList.begin(); sit != blockList.end(); sit++) {
-        (*sit)->summarizeBlockLivenessInfo();
+    Function::blocklist::iterator sit = blocks().begin();
+    for( ; sit != blocks().end(); sit++) {
+        ((image_basicBlock*)(*sit))->summarizeBlockLivenessInfo(this);
     }
     
     // We now have block-level summaries of gen/kill info
@@ -242,8 +244,8 @@ void image_func::calcBlockLevelLiveness() {
     bool changed = true;
     while (changed) {
         changed = false;
-        for(sit = blockList.begin(); sit != blockList.end(); sit++) {
-            if ((*sit)->updateBlockLivenessInfo()) {
+        for(sit = blocks().begin(); sit != blocks().end(); sit++) {
+            if (((image_basicBlock*)(*sit))->updateBlockLivenessInfo(this)) {
                 changed = true;
             }
         }
@@ -281,7 +283,7 @@ void instPoint::calcLiveness() {
 
    // We know: 
    //    liveness _out_ at the block level:
-   const bitArray &block_out = block()->llb()->getLivenessOut();
+   const bitArray &block_out = block()->llb()->getLivenessOut(func()->ifunc());
 
    postLiveRegisters_ = block_out;
 
@@ -299,8 +301,8 @@ void instPoint::calcLiveness() {
    const unsigned char* insnBuffer = 
       reinterpret_cast<const unsigned char*>(block()->origInstance()->getPtrToInstruction(blockBegin));
     
-   InstructionDecoder decoder(insnBuffer, block()->origInstance()->getSize(),
-			      func()->ifunc()->img()->getArch());
+   InstructionDecoder decoder(insnBuffer,block()->origInstance()->getSize(),
+        func()->ifunc()->isrc()->getArch());
    Address curInsnAddr = blockBegin;
    do
    {
@@ -407,8 +409,9 @@ bitArray instPoint::liveRegisters(callWhen when) {
       using namespace Dyninst::InstructionAPI;
       const unsigned char* bufferToDecode =
               reinterpret_cast<const unsigned char*>(proc()->getPtrToInstruction(addr()));
-      InstructionDecoder decoder(bufferToDecode, InstructionDecoder::maxInstructionLength,
-				 func()->ifunc()->img()->getArch());
+      InstructionDecoder decoder(bufferToDecode, 
+            InstructionDecoder::maxInstructionLength,
+            func()->ifunc()->isrc()->getArch());
       Instruction::Ptr currentInsn = decoder.decode(bufferToDecode);
 
       curInsnRW = calcRWSets(currentInsn, block()->llb(), width);

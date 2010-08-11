@@ -54,11 +54,12 @@
 #include "instP.h"
 #include "baseTramp.h"
 #include "miniTramp.h"
+#include "function.h"
 
 #if defined(cap_instruction_api)
 #include "BPatch_memoryAccessAdapter.h"
 #else
-#include "InstrucIter.h"
+#include "parseAPI/src/InstrucIter.h"
 #endif
 
 #include "BPatch_edge.h"
@@ -251,8 +252,12 @@ BPatch_function *BPatch_point::getCalledFunctionInt()
    }
    }
    
-   int_function *_func;
+   if (point->getPointType() != callSite) {
+       parsing_printf("findCallee failed in getCalledFunction- not a call site\n");
+       return NULL;
+   }
    
+   int_function *_func;
    _func = point->findCallee();
    if (!_func) {
        parsing_printf("findCallee failed in getCalledFunction\n");
@@ -264,6 +269,62 @@ BPatch_function *BPatch_point::getCalledFunctionInt()
 std::string BPatch_point::getCalledFunctionNameInt()
 {
   return point->getCalleeName();
+}
+
+/*  BPatch_point::getCFTargets
+ *  Returns true if the point corresponds to a control flow
+ *  instruction whose target can be statically determined, in which
+ *  case "target" is set to the targets of the control flow instruction
+ */
+bool BPatch_point::getCFTargets(BPatch_Vector<Address> &targets)
+{
+    if (point->isDynamic()) {
+        if (point->getSavedTarget()) {
+            return point->getSavedTarget();
+        } else {
+            return false;
+        }
+    }
+    // callTarget() works for branches as well as calls
+    Address targ = point->callTarget();
+    if (!targ) {
+        // see if this point is an abrupt end point
+        if (abruptEnd == point->getPointType()) {
+            targets.push_back(point->block()->origInstance()->endAddr());
+        }
+        return false;
+    }
+    targets.push_back(targ);
+    return true;
+}
+
+Address BPatch_point::getCallFallThroughAddr()
+{
+    assert(point);
+    if (point->getPointType() != callSite && 
+        ( point->addr() != point->block()->origInstance()->lastInsnAddr() )) 
+    {
+        fprintf(stderr,"ERROR: requested fallthrough address for point at %lx "
+                "that is not a call %s[%d]\n", point->addr(), FILE__, __LINE__);
+    }
+#if defined(cap_instruction_api)
+    using namespace InstructionAPI;
+    mapped_object *obj = point->func()->obj();
+    InstructionDecoder dec(obj->getPtrToInstruction(point->addr()),
+                           InstructionDecoder::maxInstructionLength,
+                           point->proc()->getArch());
+    Instruction::Ptr insn = dec.decode();
+    assert(insn);
+    return point->addr() + insn->size(); 
+#else 
+    InstrucIter ii(point->addr(), point->proc());
+    return ii.peekNext();
+#endif
+}
+
+Address BPatch_point::getSavedTarget()
+{
+    return point->getSavedTarget();
 }
 
 void BPatch_point::attachMemAcc(BPatch_memoryAccess *newMemAcc) {
@@ -619,6 +680,30 @@ bool BPatchToInternalArgs(BPatch_point *point,
     return true;
 }
 
+BPatch_procedureLocation BPatch_point::convertInstPointType_t(int intType)
+{
+    BPatch_procedureLocation ret = (BPatch_procedureLocation)-1;
+    switch((instPointType_t) intType) {
+    case abruptEnd:
+    case otherPoint:
+    case noneType:
+        ret = BPatch_locInstruction;
+        break;
+    case functionEntry:
+        ret = BPatch_locEntry;
+        break;
+    case functionExit:
+        ret = BPatch_locExit;
+        break;
+    case callSite:
+        ret = BPatch_locSubroutine;
+        break;
+    default:
+        assert(0);
+    }
+    return ret;
+}
+
 void BPatch_point::recordSnippet(BPatch_callWhen when,
                                  BPatch_snippetOrder order,
                                  BPatchSnippetHandle *handle) {
@@ -653,6 +738,43 @@ void BPatch_point::recordSnippet(BPatch_callWhen when,
         }
     }        
 
+}
+
+// Removes snippet from datastructures, doesn't actually remove the 
+// instrumentation.  Is invoked by BPatch_addressSpace::deleteSnippet
+bool BPatch_point::deleteSnippet(BPatchSnippetHandle *handle)
+{
+    bool foundHandle = false;
+
+    // this vector may not have been initialized
+    for (unsigned all = 0; all < allSnippets.size(); all++) {
+        if (handle == allSnippets[all]) {
+            if (all != allSnippets.size()-1) {
+                allSnippets[all] = allSnippets.back();
+            }
+            allSnippets.pop_back();
+            break;
+        }
+    }
+    for (unsigned pre = 0; !foundHandle && pre < preSnippets.size(); pre++) {
+        if (handle == preSnippets[pre]) {
+            if (pre != preSnippets.size()-1) {
+                preSnippets[pre] = preSnippets.back();
+            }
+            preSnippets.pop_back();
+            foundHandle = true;
+        }
+    }
+    for (unsigned post = 0; !foundHandle && post < postSnippets.size(); post++){
+        if (handle == postSnippets[post]) {
+            if (post != postSnippets.size()-1) {
+                postSnippets[post] = postSnippets.back();
+            }
+            postSnippets.pop_back();
+            foundHandle = true;
+        }
+    }
+    return foundHandle;
 }
 
 // Create an arbitrary BPatch point
@@ -766,30 +888,17 @@ BPatch_Vector<BPatch_point*> *BPatch_point::getPoints(const BPatch_Set<BPatch_op
 }
 #endif
                                                           
-/*  BPatch_point::getCFTarget
- *  Returns true if the point corresponds to a control flow
- *  instruction whose target can be statically determined, in which
- *  case "target" is set to the targets of the control flow instruction
- */
-bool BPatch_point::getCFTargetInt(BPatch_Vector<Address> *targets)
-{
-    if (point->isDynamic()) {
-        return false;
-    }
-    // This works for branches as well as calls
-    unsigned long targ = point->callTarget();
-    
-    if (!targ) {
-        return false;
-    }
-    if (targets == NULL) {
-        targets = new BPatch_Vector<Address>();
-    }
-    targets->push_back(targ);
-    return true;
-}
-
 AddressSpace *BPatch_point::getAS()
 {
    return lladdSpace;
+}
+
+bool BPatch_point::isReturnInstruction()
+{
+    return point->isReturnInstruction();
+}
+
+void BPatch_point::setResolved()
+{
+    point->setResolved();
 }

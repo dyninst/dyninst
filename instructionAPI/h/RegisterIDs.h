@@ -139,7 +139,7 @@ namespace Dyninst
     /// \brief Register names for disassembly and debugging
     struct IA32RegTable
     {
-      IA32RegTable();
+      IA32RegTable() {}
       RegTable IA32_register_names;
       Result_Type getSize(int id) 
       {

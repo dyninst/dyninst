@@ -14,6 +14,7 @@
 using namespace Dyninst;
 using namespace std;
 
+const map<int,int> Process::emptyFDs;
 Process::thread_mode_t threadingMode = Process::GeneratorThreading;
 bool int_process::in_callback = false;
 
@@ -773,11 +774,14 @@ bool int_process::terminate(bool &needs_sync)
    return !had_error;
 }
 
-int_process::int_process(Dyninst::PID p, std::string e, std::vector<std::string> a) :
+int_process::int_process(Dyninst::PID p, std::string e,
+                         std::vector<std::string> a,
+                         std::map<int,int> f) :
    state(neonatal),
    pid(p),
    executable(e),
    argv(a),
+   fds(f),
    arch(Dyninst::Arch_none),
    threadpool(NULL),
    up_proc(Process::ptr()),
@@ -3127,7 +3131,9 @@ bool Process::setThreadingMode(thread_mode_t tm)
    return mt()->setThreadMode(tm);
 }
 
-Process::ptr Process::createProcess(std::string executable, const std::vector<std::string> &argv)
+Process::ptr Process::createProcess(std::string executable,
+                                    const std::vector<std::string> &argv,
+                                    const std::map<int,int> &fds)
 {
    MTLock lock_this_func(MTLock::allow_init, MTLock::deliver_callbacks);
 
@@ -3139,7 +3145,7 @@ Process::ptr Process::createProcess(std::string executable, const std::vector<st
    }
 
    Process::ptr newproc(new Process());
-   int_process *llproc = int_process::createProcess(executable, argv);
+   int_process *llproc = int_process::createProcess(executable, argv, fds);
    llproc->initializeProcess(newproc);
    
    bool result = llproc->create();

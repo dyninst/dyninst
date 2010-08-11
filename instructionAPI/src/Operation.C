@@ -29,14 +29,19 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#define INSIDE_INSTRUCTION_API
+
 #include "Operation.h"
-#include "arch-x86.h"
+#include "common/h/arch-x86.h"
 #include "entryIDs.h"
-#include "../../common/h/Singleton.h"
+#include "common/h/Singleton.h"
 #include "Register.h"
 #include <map>
-#include "../../common/h/singleton_object_pool.h"
+#include "common/h/singleton_object_pool.h"
 
+using namespace NS_x86;
+#include "BinaryFunction.h"
+#include "Immediate.h"
 
 namespace Dyninst
 {
@@ -52,15 +57,37 @@ namespace Dyninst
     }
 
     Operation::Operation(entryID id, const char* mnem, Architecture arch)
-          : mnemonic(mnem), operationID(id), doneOtherSetup(true), doneFlagsSetup(true), archDecodedFrom(arch)
+          : mnemonic(mnem), operationID(id), doneOtherSetup(true), doneFlagsSetup(true), archDecodedFrom(arch), prefixID(prefix_none)
     {
+        switch(archDecodedFrom)
+        {
+            case Arch_x86:
+            case Arch_ppc32:
+                addrWidth = u32;
+                break;
+            default:
+                addrWidth = u64;
+                break;
+        }
     }
     
     Operation::Operation(ia32_entry* e, ia32_prefixes* p, ia32_locations* l, Architecture arch) :
-      doneOtherSetup(false), doneFlagsSetup(false), archDecodedFrom(arch)
+      doneOtherSetup(false), doneFlagsSetup(false), archDecodedFrom(arch), prefixID(prefix_none)
     
     {
       operationID = e->getID(l);
+      // Defaults for no size prefix
+      switch(archDecodedFrom)
+      {
+          case Arch_x86:
+          case Arch_ppc32:
+              addrWidth = u32;
+              break;
+          default:
+              addrWidth = u64;
+              break;
+      }
+      
       if(p && p->getCount())
       {
         if (p->getPrefix(0) == PREFIX_REP || p->getPrefix(0) == PREFIX_REPNZ)
@@ -70,8 +97,17 @@ namespace Dyninst
             otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::ecx : x86_64::rcx));
             if(p->getPrefix(0) == PREFIX_REPNZ)
             {
-	      otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::zf : x86_64::zf));
+                otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::zf : x86_64::zf));
+                prefixID = prefix_repnz;
             }
+            else
+            {
+                prefixID = prefix_rep;
+            }
+        }
+        else
+        {
+          prefixID = prefix_none;
         }
         int segPrefix = p->getPrefix(1);
         switch(segPrefix)
@@ -95,6 +131,10 @@ namespace Dyninst
                 otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::ss : x86_64::ss));
                 break;
         }
+        if(p->getAddrSzPrefix())
+        {
+            addrWidth = u16;
+        }
       }
     }
 
@@ -108,6 +148,8 @@ namespace Dyninst
       doneOtherSetup = o.doneOtherSetup;
       doneFlagsSetup = o.doneFlagsSetup;
       archDecodedFrom = o.archDecodedFrom;
+      prefixID = prefix_none;
+      addrWidth = o.addrWidth;
       
     }
     const Operation& Operation::operator=(const Operation& o)
@@ -120,11 +162,14 @@ namespace Dyninst
       doneOtherSetup = o.doneOtherSetup;
       doneFlagsSetup = o.doneFlagsSetup;
       archDecodedFrom = o.archDecodedFrom;
+      prefixID = o.prefixID;
+      addrWidth = o.addrWidth;
       return *this;
     }
     Operation::Operation()
     {
       operationID = e_No_Entry;
+      prefixID = prefix_none;
     }
     
     const Operation::registerSet&  Operation::implicitReads() const
@@ -209,15 +254,32 @@ namespace Dyninst
         {
             return mnemonic;
         }
+      dyn_hash_map<prefixEntryID, std::string>::const_iterator foundPrefix = prefixEntryNames_IAPI.find(prefixID);
       dyn_hash_map<entryID, std::string>::const_iterator found = entryNames_IAPI.find(operationID);
+      std::string result;
+      if(foundPrefix != prefixEntryNames_IAPI.end())
+      {
+        result += (foundPrefix->second + " ");
+      }
       if(found != entryNames_IAPI.end())
-	return found->second;
-      return "[INVALID]";
+      {
+	result += found->second;
+      }
+      else
+      {
+        result += "[INVALID]";
+      }
+      return result;
     }
 
     entryID Operation::getID() const
     {
       return operationID;
+    }
+
+    prefixEntryID Operation::getPrefixID() const
+    {
+      return prefixID;
     }
 
     struct OperationMaps
@@ -322,12 +384,28 @@ namespace Dyninst
       {
           otherEffAddrsRead.insert(foundMem->second.begin(), foundMem->second.end());
       }
-      foundMem = op_data(archDecodedFrom).nonOperandMemoryWrites.find(operationID);
-      if(foundMem != op_data(archDecodedFrom).nonOperandMemoryWrites.end())
+      if(operationID == e_push)
       {
-          otherEffAddrsWritten.insert(foundMem->second.begin(), foundMem->second.end());
+          static BinaryFunction::funcT::Ptr adder(new BinaryFunction::addResult());
+                    // special case for push: we write at the new value of the SP.
+          Result dummy(addrWidth, 0);
+          Expression::Ptr push_addr(new BinaryFunction(
+                  *(op_data(archDecodedFrom).stackPointerAsExpr.begin()),
+          Immediate::makeImmediate(Result(s8, -(dummy.size()))),
+          addrWidth,
+          adder));
+                
+          otherEffAddrsWritten.insert(push_addr);
+                  
       }
-      
+      else
+      {
+          foundMem = op_data(archDecodedFrom).nonOperandMemoryWrites.find(operationID);
+          if(foundMem != op_data(archDecodedFrom).nonOperandMemoryWrites.end())
+          {
+              otherEffAddrsWritten.insert(foundMem->second.begin(), foundMem->second.end());
+          }
+      }
       if(needFlags && !doneFlagsSetup)
       {
 	

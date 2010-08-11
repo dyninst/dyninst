@@ -43,65 +43,14 @@
 #include "instPoint.h"
 #include "symtab.h"
 #include "parRegion.h"
-#include "InstrucIter.h"
 #include "debug.h"
-#include "arch.h"
 
+#include "common/h/arch.h"
 
-// not implemented on power
-bool image_func::archProcExceptionBlock(Address & /* catchStart */, Address /* a */)
-{
-    // Agnostic about exception blocks; the policy of champions
-    return false;
-}
-// Not used on power
-bool image_func::archIsUnparseable()
-{
-    return false;
-}
+#if !defined(cap_instruction_api)
+#include "parseAPI/h/InstrucIter.h"
+#endif
 
-// Not used on power
-bool image_func::archAvoidParsing()
-{
-    return false;
-}
-
-// Not used on power
-bool image_func::archNoRelocate()
-{
-    return false;
-}
-
-// Not used on power
-void image_func::archSetFrameSize(int /* fsize */)                  
-{
-    return;
-}
-
-#include "IA_IAPI.h"
-
-void image_func::archInstructionProc(InstructionAdapter & a)
-{
-  using namespace Dyninst::InstructionAPI;
-  IA_IAPI& ah = dynamic_cast<IA_IAPI&>(a);
-  static RegisterAST::Ptr theLR(new RegisterAST(ppc32::lr));
-  static RegisterAST::Ptr stackPtr(new RegisterAST(ppc32::r1));
-  static RegisterAST::Ptr gpr0(new RegisterAST(ppc32::r0));
-  static bool foundMFLR = false;
-  if(makesNoCalls_ && !foundMFLR &&
-     ah.curInsn()->getOperation().getID() == power_op_mfspr &&
-     ah.curInsn()->isRead(theLR) &&
-     ah.curInsn()->isWritten(gpr0)) {
-    foundMFLR = true;
-  }
-  else if(foundMFLR &&
-	  ah.curInsn()->writesMemory() &&
-	  ah.curInsn()->isRead(stackPtr) &&
-	  ah.curInsn()->isRead(gpr0)) {
-    makesNoCalls_ = false;
-    foundMFLR = false;
-  }
-}
 /*
 By parsing the function that actually sets up the parameters for the OMP
 region we discover informations such as what type of parallel region we're
@@ -150,7 +99,6 @@ bool image_func::parseOMPParent(image_parRegion * iPar, int desiredNum, int & cu
                ah.isADynamicCallInstruction() )
       {
 	  
-         // XXX move this out of archIsRealCall protection... safe?
          bool isAbsolute = false;
          Address target = ah.getBranchTargetAddress(&isAbsolute);
 	  
@@ -342,7 +290,11 @@ void image_func::parseOMP(image_parRegion * parReg, image_func * parentFunc, int
    }
    
    // sets the last instruction of the region
-   parReg->setLastInsn(get_address() + get_size());
+   //parReg->setLastInsn(get_address() + get_size());
+   // XXX this is equivalent to the above, but is it right?
+   //     it seems to be after the last instruction
+   Address last = extents().back()->end();
+   parReg->setLastInsn(last);
    
    // we need to parse the parent function to get all the information about the region, mostly for worksharing constructs
    bool hasLoop = parentFunc->parseOMPParent(parReg, desiredNum + totalSectionGroups, currentSectionNum);	    
@@ -359,13 +311,12 @@ void image_func::parseOMPFunc(bool hasLoop)
   
    /* We parse the parent to get info if we are in an outlined function, but there can be some
       inlined functions we might miss out on if we don't check those out too */
-   Address funcBegin = getOffset();
    int regValues[10 + 1];  /* Only care about registers 3-10 (params) */
    for (int i = 0; i < 11; i++)
       regValues[i] = -1;
   
 #if !defined(cap_instruction_api)
- 
+   Address funcBegin = getOffset();
    InstrucIter ah(funcBegin, this);
    while (ah.hasMore())
    {
@@ -525,13 +476,14 @@ void image_func::calcUsedRegs()
       usedRegisters = new image_func_registers();
     using namespace Dyninst::InstructionAPI;
     std::set<RegisterAST::Ptr> writtenRegs;
-    for(std::set<image_basicBlock*>::const_iterator curBlock = blockList.begin();
-       curBlock != blockList.end();
-       ++curBlock)
+
+    Function::blocklist & bl = blocks();
+    Function::blocklist::iterator curBlock = bl.begin();
+    for( ; curBlock != bl.end(); ++curBlock) 
     {
-        InstructionDecoder d(getPtrToInstruction((*curBlock)->firstInsnOffset()),
-        (*curBlock)->getSize(),
-        img()->getArch());
+        InstructionDecoder d(getPtrToInstruction((*curBlock)->start()),
+        (*curBlock)->size(),
+        isrc()->getArch());
         Instruction::Ptr i;
         while(i = d.decode())
         {

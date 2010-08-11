@@ -38,11 +38,6 @@
 #include "common/h/Types.h"
 #include "common/h/Vector.h"
 
-#if defined( arch_ia64 )
-#include <libunwind.h>
-#include <libunwind-ptrace.h>
-#endif
-
 class dyn_thread;
 class process;
 class dyn_lwp;
@@ -87,10 +82,6 @@ class Frame {
       thread_(f.thread_),
       lwp_(f.lwp_),
       range_(f.range_),
-#if defined(arch_ia64)
-      hasValidCursor(f.hasValidCursor),
-      unwindCursor(f.unwindCursor),
-#endif
       pcAddr_(f.pcAddr_) {};
 
   const Frame &operator=(const Frame &f) {
@@ -104,10 +95,6 @@ class Frame {
       thread_ = f.thread_;
       lwp_ = f.lwp_;
       range_ = f.range_;
-#if defined(arch_ia64)
-      hasValidCursor = f.hasValidCursor;
-      unwindCursor = f.unwindCursor;
-#endif
       pcAddr_ = f.pcAddr_;
       return *this;
   }
@@ -136,6 +123,7 @@ class Frame {
   bool	   isSignalFrame();
   bool 	   isInstrumentation();
   bool     isSyscall();
+  Address  getPClocation() { return pcAddr_; }
 
   instPoint *getPoint(); // If we're in instrumentation returns the appropriate point
   int_function *getFunc(); // As above
@@ -149,14 +137,6 @@ class Frame {
 #if defined(arch_power)
   // We store the actual return addr in a word on the stack
   bool setRealReturnAddr(Address retaddr);
-#endif
-
-#if defined( arch_ia64 )
-	/* FIXME: do copies of a reference duplicate data? */
-	void setUnwindCursor( unw_cursor_t & newUnwindCursor ) { 
-		hasValidCursor = true;
-		unwindCursor = newUnwindCursor;
-		}
 #endif
 
   // check for zero frame
@@ -181,10 +161,6 @@ class Frame {
   dyn_lwp *		lwp_;				// kernel-level thread (LWP)
   codeRange *	range_;				// If we've done a by-address lookup, keep it here
 
-#if defined( arch_ia64 )  
-  bool			hasValidCursor;		// IA-64
-  unw_cursor_t	unwindCursor;
-#endif  
   Address		pcAddr_;
   
 };

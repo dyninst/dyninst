@@ -219,8 +219,8 @@ loop2:	ldarx	5,0,7
 	stfsx	2,4,0		# s25
 	stfsu	3,0(4)		# s26
 	mr	4,5
-#	stfsux	3,0,4		# s27
-	stfsx	3,0,4		# s27
+	stfsux	3,0,4		# s27
+#	stfsx	3,0,4		# s27
 
 	stfd	1,0(6)		# s28 a69
 	li	9,8

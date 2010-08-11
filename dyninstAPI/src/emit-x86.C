@@ -37,8 +37,8 @@
 #include <assert.h>
 #include <stdio.h>
 #include "common/h/Types.h"
-#include "dyninstAPI/src/arch.h"
-#include "dyninstAPI/src/arch-x86.h"
+#include "dyninstAPI/src/codegen.h"
+#include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/emit-x86.h"
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/debug.h"
@@ -444,6 +444,10 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, baseTrampInstance *inst, codeGen &g
        emitSimpleInsn(PUSHAD, gen);
        num_saved = 8;
        gen.rs()->markSavedRegister(RealRegister(REGNUM_EAX), 7 + flags_saved_i + base_i);
+       if(flags_saved)
+       {
+           gen.rs()->markSavedRegister(IA32_FLAG_VIRTUAL_REGISTER, 7 + base_i);
+       }
        gen.rs()->markSavedRegister(RealRegister(REGNUM_ECX), 6 + base_i);
        gen.rs()->markSavedRegister(RealRegister(REGNUM_EDX), 5 + base_i);
        gen.rs()->markSavedRegister(RealRegister(REGNUM_EBX), 4 + base_i);
@@ -460,9 +464,14 @@ bool EmitterIA32::emitBTSaves(baseTramp* bt, baseTrampInstance *inst, codeGen &g
           registerSlot *reg = regs[i];
           if (inst->definedRegs[reg->encoding()]) {
              ::emitPush(RealRegister(reg->encoding()), gen);
-			 int eax_flags = (reg->encoding() == REGNUM_EAX) ? flags_saved_i : 0;
+             int eax_flags = (reg->encoding() == REGNUM_EAX) ? flags_saved_i : 0;
              gen.rs()->markSavedRegister(RealRegister(reg->encoding()),
                                          numRegsUsed - num_saved + base_i - 1 + eax_flags);
+             if(eax_flags)
+             {
+                 gen.rs()->markSavedRegister(IA32_FLAG_VIRTUAL_REGISTER,
+                    numRegsUsed - num_saved + base_i - 1);
+             }
              num_saved++;
           }
        }
@@ -1275,7 +1284,7 @@ void EmitterAMD64::emitLoadOrigFrameRelative(Register dest, Address offset, code
    emitMovRMToReg64(dest, REGNUM_RBP, offset, 4, gen);
 }
 
-bool EmitterAMD64::emitLoadRelative(Register dest, Address offset, Register base, int size, codeGen &gen)
+bool EmitterAMD64::emitLoadRelative(Register dest, Address offset, Register base, int /* size */, codeGen &gen)
 {
     // mov offset(%base), %dest
    emitMovRMToReg64(dest, base, offset,
@@ -1390,7 +1399,7 @@ void EmitterAMD64::emitStoreFrameRelative(Address offset, Register src, Register
    emitMovRegToRM64(REGNUM_RBP, offset, src, size, gen);
 }
 
-void EmitterAMD64::emitStoreRelative(Register src, Address offset, Register base, int size, codeGen &gen) {
+void EmitterAMD64::emitStoreRelative(Register src, Address offset, Register base, int /* size */, codeGen &gen) {
     emitMovRegToRM64(base, 
                      offset*gen.addrSpace()->getAddressWidth(), 
                      src, 
@@ -2000,7 +2009,9 @@ void EmitterAMD64::emitPushFlags(codeGen &gen) {
 
 void EmitterAMD64::emitRestoreFlagsFromStackSlot(codeGen &gen)
 {
-    emitRestoreFlags(gen, SAVED_RFLAGS_OFFSET);
+    stackItemLocation loc = getHeightOf(stackItem(RealRegister(REGNUM_OF)), gen);
+    emitOpRMReg(PUSH_RM_OPC1, RealRegister(loc.reg.reg()), loc.offset, RealRegister(PUSH_RM_OPC2), gen);
+    emitSimpleInsn(0x9D, gen);
 }
 
 bool shouldSaveReg(registerSlot *reg, baseTrampInstance *inst)
@@ -2300,7 +2311,7 @@ Address Emitter::getInterModuleFuncAddr(int_function *func, codeGen& gen)
     }
 
     // find the Symbol corresponding to the int_function
-    std::vector<Symbol *> syms;
+    std::vector<SymtabAPI::Symbol *> syms;
     func->ifunc()->func()->getSymbols(syms);
 
     if (syms.size() == 0) {
@@ -2313,7 +2324,7 @@ Address Emitter::getInterModuleFuncAddr(int_function *func, codeGen& gen)
 
     // try to find a dynamic symbol
     // (take first static symbol if none are found)
-    Symbol *referring = syms[0];
+    SymtabAPI::Symbol *referring = syms[0];
     for (unsigned k=0; k<syms.size(); k++) {
         if (syms[k]->isInDynSymtab()) {
             referring = syms[k];
@@ -2352,7 +2363,7 @@ Address Emitter::getInterModuleVarAddr(const image_variable *var, codeGen& gen)
     }
 
     // find the Symbol corresponding to the int_variable
-    std::vector<Symbol *> syms;
+    std::vector<SymtabAPI::Symbol *> syms;
     var->svar()->getSymbols(syms);
 
     if (syms.size() == 0) {
@@ -2365,7 +2376,7 @@ Address Emitter::getInterModuleVarAddr(const image_variable *var, codeGen& gen)
 
     // try to find a dynamic symbol
     // (take first static symbol if none are found)
-    Symbol *referring = syms[0];
+    SymtabAPI::Symbol *referring = syms[0];
     for (unsigned k=0; k<syms.size(); k++) {
         if (syms[k]->isInDynSymtab()) {
             referring = syms[k];

@@ -154,15 +154,15 @@ COMPLIB_DLL_EXPORT bool validate(BPatch_Vector<BPatch_point*>* res,
 
 COMPLIB_DLL_EXPORT BPatch_callWhen instrumentWhere(  const BPatch_memoryAccess* memAccess);
 
-COMPLIB_DLL_EXPORT int instCall(BPatch_thread* bpthr, const char* fname,
+COMPLIB_DLL_EXPORT int instCall(BPatch_addressSpace* as, const char* fname,
 				const BPatch_Vector<BPatch_point*>* res);
 
 
-COMPLIB_DLL_EXPORT int instEffAddr(BPatch_thread* bpthr, const char* fname,
+COMPLIB_DLL_EXPORT int instEffAddr(BPatch_addressSpace* as, const char* fname,
 		 const BPatch_Vector<BPatch_point*>* res,
                  bool conditional);
 
-COMPLIB_DLL_EXPORT int instByteCnt(BPatch_thread* bpthr, const char* fname,
+COMPLIB_DLL_EXPORT int instByteCnt(BPatch_addressSpace* as, const char* fname,
 		 const BPatch_Vector<BPatch_point*>* res,
                  bool conditional);
 

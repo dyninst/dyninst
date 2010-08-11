@@ -91,7 +91,7 @@
 #include "common/h/pathName.h"
 #include "mapped_object.h"
 #include "mapped_module.h"
-#include "dyninstAPI/src/InstrucIter.h"
+#include "parseAPI/src/InstrucIter.h"
 
 #include "ast.h" // instrumentation for MT
 

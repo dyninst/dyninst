@@ -56,6 +56,8 @@
 
 #include "addressSpace.h"
 
+#include "parseAPI/h/CodeSource.h"
+
 #include "ast.h"
 using namespace Dyninst;
 using namespace std;
@@ -430,7 +432,8 @@ BPatch_point *BPatch_image::createInstPointAtAddrWithAlt(void *address,
    instPoint *p = NULL;
 
    if ((p = func->findInstPByAddr(address_int))) {
-      return addSpace->findOrCreateBPPoint(NULL, p, BPatch_locInstruction);
+      return addSpace->findOrCreateBPPoint
+          (NULL, p, BPatch_point::convertInstPointType_t(p->getPointType()));
    }
 
    /* Look in the regular instPoints of the enclosing function. */
@@ -466,6 +469,27 @@ BPatch_point *BPatch_image::createInstPointAtAddrWithAlt(void *address,
          return addSpace->findOrCreateBPPoint(NULL, calls[i], BPatch_subroutine);
       }
    }
+
+   const set<instPoint*> &unres = func->funcUnresolvedControlFlow();
+   for (set<instPoint*>::const_iterator i = unres.begin(); 
+        i != unres.end(); i++) 
+   {
+      assert(*i);
+      if ((*i)->match(address_int))  {
+          return addSpace->findOrCreateBPPoint(NULL, (*i), 
+             BPatch_point::convertInstPointType_t((*i)->getPointType()));
+      }
+   }
+
+   const set<instPoint*> &abrupt = func->funcAbruptEnds();
+   for (set<instPoint*>::const_iterator i = abrupt.begin(); 
+        i != abrupt.end(); i++) {
+      assert(*i);
+      if ((*i)->match(address_int))  {
+          return addSpace->findOrCreateBPPoint(NULL, *i, BPatch_locInstruction);
+      }
+   }
+
 
    if (alternative)
       *alternative = NULL;
@@ -1081,259 +1105,15 @@ BPatch_module *BPatch_image::findOrCreateModule(mapped_module *base)
 }
 
 
-/* This function should only be invoked when regionStart and regionEnd
- * have been verified as not conflicting with existing mapped objects,
- * and when it has also been verified that all elements of
- * funcEntryAddrs lie between the region regionStart and regionEnd
- */
-BPatch_module *parseRegion(BPatch_process *bpProc, 
-                           const Address regionStart, const Address regionEnd, 
-                           const vector<Address> &funcEntryAddrs, 
-                           const string *namePrefix,
-                           Address loadAddress, 
-                           bool parseGaps = false)
-{
-    // Copy the region to a temp file
-    void *regionBuf = malloc(regionEnd - regionStart);
-    if (!bpProc->lowlevel_process()->readDataSpace
-          ((void*)regionStart, regionEnd-regionStart, regionBuf, false)) {
-        fprintf(stderr, "%s[%d]: Failed to read from region [%lX %lX]\n",
-                __FILE__, __LINE__,(long)regionStart, 
-                (long)regionEnd);
-    }
-    char regName[64];
-    if (namePrefix) {
-        sprintf(regName, "%s_%lX_%lX", namePrefix->c_str(), regionStart, regionEnd);
-    } else {
-        sprintf(regName, "MemRegion_%lX_%lX", regionStart, regionEnd);
-    }
-    FILE *regionFD = fopen(regName, "wb");
-    if (regionFD == NULL) {
-        fprintf(stderr,"%s[%d]Was unable to open file %s for writing\n",
-                FILE__, __LINE__, regName);
-        return NULL;
-    }
-    unsigned writeBytes = fwrite(regionBuf, 1, regionEnd-regionStart, regionFD);
-    if (writeBytes != regionEnd-regionStart) {
-        fprintf(stderr, "%s[%d] Wrote 0x%x bytes to file %s"
-                "when writing region [%lx %lx] to disk\n",
-                FILE__,__LINE__,writeBytes, regName, (long)regionStart, (long)regionEnd);
-    }
-    fclose(regionFD);
-    free(regionBuf);
-
-    // create a fileDescriptor and mapped_object and add region as shared object
-    fileDescriptor fdesc;
-    if (loadAddress == 0) {
-        loadAddress = regionStart;
-    }
-    fdesc = fileDescriptor(regName, regionStart - loadAddress, 
-                           regionEnd - regionStart, loadAddress);
-    mapped_object *obj = mapped_object::createMappedObject
-        (fdesc, bpProc->lowlevel_process(), parseGaps);
-
-    // add function stubs for the entry points we found
-    for (unsigned int i=0; i < funcEntryAddrs.size(); i++) {
-        obj->parse_img()->addFunctionStub(funcEntryAddrs[i] - loadAddress);
-    }
-
-    // force mapped_object to be parsed and return BPatch_module for it
-    obj->analyze(); 
-    bpProc->lowlevel_process()->addASharedObject(obj);
-    pdvector<mapped_module*> mods = obj->getModules();
-    if (mods.size() == 0) {
-        fprintf(stderr,"%s[%d] Failed to create module for region [%lx %lx]\n",
-                FILE__, __LINE__, regionStart, regionEnd);
-        return NULL;
-    }
-    return new BPatch_module(bpProc, mods[0]->proc(), mods[0], bpProc->getImage());
-}
-
-/* Object re-parsed, if new modules need to be created in order to do
- * so they are added to the affectedModules vector.  This function should
- * only be invoked if all funcEntryAddrs lie within the boundaries of
- * the module.  A true return value means that an EXISTING object was
- * re-parsed via the addition of new code, a false return value means
- * that this was not the case.  
-*/
-bool reparseObject(BPatch_addressSpace *addSpace, 
-                   BPatch_Vector<BPatch_module*> &affectedModules,
-                   mapped_object *obj, vector<Address> &funcEntryAddrs)
-{
-    // parse all functions with valid entry addresses in the module
-    bool reparsedObject = false;
-    Address baseAddress = obj->parse_img()->desc().loadAddr();
-    vector<Address>::iterator curEntry = funcEntryAddrs.begin();
-    Region *reg;
-    vector<image_func*> regFuncs;
-    while (curEntry != funcEntryAddrs.end()) {
-        reg = obj->parse_img()->getObject()->findEnclosingRegion
-            ((*curEntry)-baseAddress);
-        // if the address is in some region of the binary
-        // and isCode is true, meaning that that code was mapped into
-        // the binary from disk, analyze the function entry
-        if (reg != NULL && obj->parse_img()->isCode((*curEntry) - baseAddress)) {
-            image_func *imgfunc = obj->parse_img()->addFunctionStub
-                ((*curEntry) - baseAddress);
-            regFuncs.clear();
-            regFuncs.push_back(imgfunc);
-            obj->analyzeNewFunctions(&regFuncs);
-            curEntry = funcEntryAddrs.erase(curEntry);
-            reparsedObject = true;
-        } else {
-            curEntry++;
-        }
-    }
-
-    // return now if there are no more unresolved funcEntryAddrs
-    if (funcEntryAddrs.size() == 0) {
-        return reparsedObject;
-    }
-    // get the binary's code regions from symtabAPI or return 
-    std::vector<Region*> regions;
-    if( ! obj->parse_img()->getObject()->getCodeRegions(regions) ) {
-        fprintf(stderr,"%s[%d] Found no code regions for object %s\n", 
-                __FILE__,__LINE__, obj->parse_img()->pathname().c_str());
-        return false;
-    }
-    vector<Address> regEntries;
-    // for each region, determine which entry addrs lie within it
-    for (unsigned ridx=0; funcEntryAddrs.size() && ridx < regions.size(); ridx++) { 
-        regEntries.clear();
-        // if entry point in region, pass from funcEntryAddrs to regEntries
-        curEntry = funcEntryAddrs.begin();
-        while (curEntry != funcEntryAddrs.end()) {
-            if ((*curEntry) >=(regions[ridx]->getRegionAddr() + baseAddress) &&
-                (*curEntry) < (regions[ridx]->getRegionAddr() + 
-                               regions[ridx]->getMemSize() + baseAddress)) {
-                regEntries.push_back(*curEntry);
-                curEntry = funcEntryAddrs.erase(curEntry);
-            } else {
-                curEntry++;
-            }
-        }
-        if (regEntries.size()) {
-            // This case only happens on PE binaries.  We would like
-            // to re-parse the region, but we already know that the
-            // address lies in an unmapped memory region and SymtabAPI
-            // doesn't have memory allocated for those addresses.  If
-            // there's code here it didn't come from the binary on
-            // disk, so the region was overwritten dynamically and the
-            // data will have to be fetched from memory.
-            Address regionStart;
-            Address regionSize;
-            unsigned long rawDataSize = regions[ridx]->getDiskSize();
-            if (rawDataSize == 0 || regions[ridx]->getPtrToRawData() == NULL) {
-                // Case 1: There is no allocated memory for the region
-                // Set rawDataPtr for the region to a newly malloc'ed
-                // region and trigger parsing on the region.  
-                regionStart = regions[ridx]->getRegionAddr() + baseAddress;
-                regionSize = regions[ridx]->getMemSize();
-                void* regBuf = malloc (regionSize);
-                if (!((BPatch_process*)addSpace)->lowlevel_process()->
-                    readDataSpace((void*)regionStart, regionSize, regBuf, true)) {
-                    fprintf(stderr, "%s[%d] Failed to read from region [%lX %lX]\n",
-                            __FILE__, __LINE__,(long)regions[ridx]->getRegionAddr(), 
-                            regions[ridx]->getMemSize());
-                    free(regBuf);
-                    continue;
-                }
-                regions[ridx]->setPtrToRawData(regBuf,regions[ridx]->getMemSize());
-                curEntry = regEntries.begin();
-                regFuncs.clear();
-                while (curEntry != regEntries.end()) {
-                    image_func *imgfunc = obj->parse_img()->addFunctionStub
-                        ((*curEntry) - baseAddress);
-                    regFuncs.push_back(imgfunc);
-                    curEntry++;
-                }
-                obj->analyzeNewFunctions(&regFuncs);
-                reparsedObject = true;
-            } else {
-                // Case 2: The points lie past the end of mapped region memory
-                // Create a new module corresponding to the gap between
-                // the end of the mapped memory for the region and the
-                // end of the region boundary, and parse it. 
-                // KEVINTODO: a better approach for this case would be to
-                // malloc a new region and copy over the mapped part and
-                // grab the rest from the mutatee's address space, but I'm
-                // not sure what would happen if I did that.
-                regionStart = baseAddress + regions[ridx]->getDiskSize();
-                regionSize = baseAddress + regions[ridx]->getMemSize()
-                    - regionStart;
-                BPatch_module * mod = parseRegion((BPatch_process*)addSpace, 
-                                                  regionStart,
-                                                  regionStart + regionSize,
-                                                  regEntries,
-                                                  &obj->parse_img()->desc().file(),
-                                                  obj->parse_img()->desc().loadAddr());
-                affectedModules.push_back(mod);
-            }
-        }
-    }
-    return reparsedObject;
-}
-
-/* This function is only called when functionEntryAddrs contains
- * entries that do not overlap any existing mapped_object.  The
- * function's implementation depends on the second assumption.
- * Searches /proc for regions that might have mapped in.  The linker
- * tables changes are immediately handled and the mapped object list
- * gets updated, so we don't need to search for them.
- */
-#if defined(os_linux) //search /proc for regions
-void findNewEnclosingRegions(BPatch_Vector<Address> &funcEntryAddrs, 
-                          vector<Address> &regionStartVec, 
-                          vector<Address> &regionEndVec, 
-                          vector<vector<Address> > &regionEntryPoints,
-                          vector<string*> &regionNames, 
-                          process *proc)
-{
-    vector<Address>::iterator curEntry;
-    unsigned maps_size=0; 
-    map_entries *maps = getLinuxMaps(proc->getPid(), maps_size);
-    if (maps) {
-        for (unsigned i=0; i < maps_size; i++) {
-            curEntry = funcEntryAddrs.begin();
-            bool firstEntryInRegion = true;
-            while (curEntry != funcEntryAddrs.end()) {
-                if (maps[i].start <= (*curEntry) &&
-                    maps[i].end > (*curEntry)) {
-                    if (firstEntryInRegion) {
-                        regionStartVec.push_back(maps[i].start);
-                        regionEndVec.push_back(maps[i].end);
-                        regionEntryPoints.push_back(vector<Address>());
-                        regionNames.push_back(new string(maps[i].path));
-                        firstEntryInRegion = false;
-                    }
-                    regionEntryPoints.back().push_back(*curEntry);
-                    curEntry = funcEntryAddrs.erase(curEntry);
-                }
-                else {
-                    curEntry++;
-                }
-            }
-        }
-        free(maps);
-    }
-    return;
-}
-#else
-void findNewEnclosingRegions(BPatch_Vector<Address> &, 
-                             vector<Address> &,
-                             vector<Address> &,
-                             vector<vector<Address> > &,
-                             vector<string*> &,
-                             process *)
-{
-}
-#endif
-
 /* BPatch_image::parseNewFunctions
  *
  * Uses function entry addresses to trigger the parsing of new
  * functions.  It may re-trigger parsing on existing modules or create
  * new ones to be parsed. 
+ *
+ * 1. Assign entry points to mapped_objects or existing functions
+ * 2. Trigger parsing in mapped_objects that contain function entry points
+ * 3. Construct list of modules affected by the parsing
  *
  * (full description in ../h/BPatch_image.h)
  */
@@ -1341,6 +1121,7 @@ bool BPatch_image::parseNewFunctionsInt
      (BPatch_Vector<BPatch_module*> &affectedModules, 
       const BPatch_Vector<Dyninst::Address> &funcEntryAddrs)
 {
+    using namespace SymtabAPI;
     if (!addSpace->getType() == TRADITIONAL_PROCESS) {
         fprintf(stderr,"%s[%d] ERROR: parseNewFunctions has only been "
                 "implemented for live processes\n", __FILE__, __LINE__);
@@ -1352,115 +1133,75 @@ bool BPatch_image::parseNewFunctionsInt
         return false;
     }
 
+    getProcessInt()->lowlevel_process()->updateActiveMultis();
+
+/* 1. Assign entry points to mapped_objects or existing functions */
     std::vector<AddressSpace*> asv;
     addSpace->getAS(asv);
     AddressSpace *as = asv[0];
     pdvector<mapped_object *> allobjs = as->mappedObjects();
 
-    // group funcEntryAddrs by the mapped_objects that they fit into
+    // check that the functions have not been parsed yet
     vector<Address> funcEntryAddrs_(funcEntryAddrs); // make an editable copy
     vector<Address>::iterator curEntry;
     vector<Address> objEntries;
+    vector<ParseAPI::Function *> blockFuncs;
+
+    // group funcEntryAddrs by the mapped_objects that they fit into
     for (unsigned int i=0; i < allobjs.size() && funcEntryAddrs_.size(); i++) { 
-        image *curImg = allobjs[i]->parse_img();
-        // determine region start/end boundaries
-        Address regStart, regEnd;
-        Address baseAddress = curImg->desc().loadAddr();
-        // iterate through executable regions
-        std::vector<Region*> regions;
-        if( ! curImg->getObject()->getCodeRegions(regions) ) {
-            fprintf(stderr,"%s[%d] Found no code regions for object %s\n", 
-                    __FILE__,__LINE__, curImg->pathname().c_str());
-            break;
-        }
-        std::vector<Region *>::const_iterator curreg = regions.begin();
-        while(curreg != regions.end() && funcEntryAddrs_.size()) {
-            regStart = baseAddress + (*curreg)->getRegionAddr();
-            regEnd = regStart + (*curreg)->getMemSize();
-            // iterate through func entry addrs
-            curEntry = funcEntryAddrs_.begin();
-            while (curEntry != funcEntryAddrs_.end()) {
-                if ((*curEntry) >= regStart && (*curEntry) < regEnd) {
-                    objEntries.push_back(*curEntry);
-                    curEntry = funcEntryAddrs_.erase(curEntry);
-                } else {
-                    curEntry++;
-                }
+
+        Symtab *curSymtab = allobjs[i]->parse_img()->getObject();
+        Address baseAddress = allobjs[i]->codeBase();
+
+        // iterate through func entry addrs to see which of them correspond to
+        //  the current mapped object
+        curEntry = funcEntryAddrs_.begin();
+        while (curEntry != funcEntryAddrs_.end()) {
+            Region *region = curSymtab->findEnclosingRegion(*curEntry-baseAddress);
+            if (region) {
+                objEntries.push_back(*curEntry);
+                curEntry = funcEntryAddrs_.erase(curEntry);
+            } else {
+                curEntry++;
             }
-            curreg++;
         }
-        // re-parse object if it contains entry points
+
+        /* 2. Trigger parsing in mapped_objects that contain function entry points */
         if (objEntries.size()) {
-            if (reparseObject(addSpace, affectedModules, 
-                              allobjs[i], objEntries)) {
-                pdvector<mapped_module*> mods = allobjs[i]->getModules();
-                //reparseObject adds all new functions to mods[0]
-                // since that's what image::addFunctionStub does
-                affectedModules.push_back(findOrCreateModule(mods[0]));
+            allobjs[i]->parseNewFunctions(objEntries);
+
+            /* 3. Construct list of modules affected by parsing */
+            const std::vector<image_basicBlock*> blocks = 
+                allobjs[i]->parse_img()->getNewBlocks();
+            std::set<mapped_module*> mods;
+            for (unsigned int j=0; j < blocks.size(); j++) {
+                blocks[j]->getFuncs(blockFuncs);
+                pdmodule *pdmod = 
+                    dynamic_cast<image_func*>(blockFuncs[0])->pdmod();
+                mods.insert( allobjs[i]->findModule(pdmod) );
+                blockFuncs.clear();
             }
             objEntries.clear();
-        }
-    }
-    // if entry points left over, find regions that contain them
-    // and parse each region
-    if (funcEntryAddrs_.size()) {
-        vector<Address> regionStartVec, regionEndVec;
-        vector<vector<Address> > regionEntries;
-        vector<string*> regionNames;
-        findNewEnclosingRegions(funcEntryAddrs_, 
-                             regionStartVec, 
-                             regionEndVec, 
-                             regionEntries, 
-                             regionNames,
-                             (process*)as);
-        for (unsigned ridx=0; ridx < regionStartVec.size(); ridx++) {
-            BPatch_module *mod = parseRegion((BPatch_process*)addSpace, 
-                                             regionStartVec[ridx], 
-                                             regionEndVec[ridx],
-                                             regionEntries[ridx],
-                                             regionNames[ridx],0);
-            if (mod) {
-                affectedModules.push_back(mod);
+            // copy changed modules to affectedModules
+            std::set<mapped_module*>::iterator miter = mods.begin();
+            for (; miter != mods.end(); miter++) {
+                affectedModules.push_back(findOrCreateModule(*miter));
             }
-            free(regionNames[ridx]);
-            regionNames[ridx] = NULL;
         }
     }
+
+
+    if (funcEntryAddrs_.size()) {
+        fprintf(stderr, "%s[%d] parseNewFunctions failed to parse %d "
+                "functions which were not enclosed by known memory regions\n", 
+                __FILE__,__LINE__,(int)funcEntryAddrs_.size());
+        return false;
+    }
+
     if (affectedModules.size() == 0) {
         return false;
     }
     return true;
-}
-
-// Merges unresolved control flow vectors of all mapped objects return
-// the merged vector of all unresolved control flow do this by
-// grabbing one module per mapped object, and calling
-// BPatch_module::getUnresolvedControlFlow on that module
-BPatch_Vector<BPatch_point *> *BPatch_image::getUnresolvedControlFlowInt()
-{
-   unresolvedCF.clear();
-   pdvector<mapped_object *> objs;
-   
-   std::vector<AddressSpace *> asv;
-   addSpace->getAS(asv);
-   for (unsigned i=0; i<asv.size(); i++) {
-      const pdvector<mapped_object *> &mobjs = asv[i]->mappedObjects();
-      for (unsigned j=0; j<mobjs.size(); j++) {
-         objs.push_back(mobjs[j]);
-      }
-   }
-
-   for (unsigned i=0; i < objs.size(); i++) {
-      pdvector<mapped_module *> mods = objs[i]->getModules();
-      if (mods.size()) {
-         BPatch_Vector<BPatch_point*> *badCF = 
-             findOrCreateModule(mods[0])->getUnresolvedControlFlow();
-         for (unsigned j=0; j < badCF->size(); j++) {
-            unresolvedCF.push_back((*badCF)[j]);
-         }
-      }
-   }
-   return &unresolvedCF;
 }
 
 void BPatch_image::removeAllModules()
@@ -1604,5 +1345,56 @@ bool BPatch_image::readStringInt(Address addr, std::string &str, unsigned size_l
    }
    
    return result;
+}
+
+void BPatch_image::getNewCodeRegions
+        (std::vector<BPatch_function*>&newFuncs,
+         std::vector<BPatch_function*>&modFuncs)
+{
+    std::vector<AddressSpace *> asv;
+    getAddressSpace()->getAS(asv);
+    AddressSpace *as = asv[0];
+    assert(as);
+
+    std::set<image_func*> newImgFuncs;
+    std::set<image_func*> modImgFuncs;
+    const std::vector<image_basicBlock*> blocks = 
+        as->getAOut()->parse_img()->getNewBlocks();
+    for (unsigned int bidx=0; bidx < blocks.size(); bidx++) {
+        image_basicBlock *curB = blocks[bidx];
+        vector<ParseAPI::Function*> bfuncs;
+        curB->getFuncs(bfuncs);
+        vector<ParseAPI::Function*>::iterator fIter = bfuncs.begin();
+        for (; fIter !=  bfuncs.end(); fIter++) {
+            image_func *curFunc = dynamic_cast<image_func*>(*fIter);
+            if (curB == curFunc->entryBlock()) {
+                newImgFuncs.insert(curFunc);
+            } else {
+                modImgFuncs.insert(curFunc); 
+            }
+        }
+    }
+    std::set<image_func*>::iterator fIter = newImgFuncs.begin();
+    for (; fIter !=  newImgFuncs.end(); fIter++) {
+        newFuncs.push_back(addSpace->findOrCreateBPFunc
+            (as->findFuncByInternalFunc(*fIter),NULL));
+    }
+    // elements in modImgFuncs may also be in newImgFuncs, don't add such
+    // functions
+    for (fIter = modImgFuncs.begin(); fIter !=  modImgFuncs.end(); fIter++) {
+        if (newImgFuncs.end() == newImgFuncs.find(*fIter)) {
+            modFuncs.push_back(addSpace->findOrCreateBPFunc
+                (as->findFuncByInternalFunc(*fIter),NULL));
+        }
+    }
+}
+
+void BPatch_image::clearNewCodeRegions()
+{
+    std::vector<AddressSpace *> asv;
+    getAddressSpace()->getAS(asv);
+    AddressSpace *as = asv[0];
+    assert(as);
+    as->getAOut()->parse_img()->clearNewBlocks();
 }
 

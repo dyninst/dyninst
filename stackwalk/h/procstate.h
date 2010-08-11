@@ -122,7 +122,7 @@ typedef enum {
   ps_attached,
   ps_running,
   ps_exited,
-  ps_errorstate,              // 5
+  ps_errorstate               // 5
 } proc_state;
 
 typedef enum {
@@ -325,7 +325,12 @@ class ThreadState {
    void setState(proc_state s);
    
    ProcDebug *proc();
- protected:
+
+   //For internal use only
+   void markPendingStop();
+   void clearPendingStop();
+   bool hasPendingStop();
+protected:
    ThreadState(ProcDebug *p, Dyninst::THR_ID id);
    bool is_stopped;
    bool user_stopped;
@@ -333,6 +338,7 @@ class ThreadState {
    Dyninst::THR_ID tid;
    proc_state thr_state;
    ProcDebug *parent;
+   unsigned pending_sigstops;
 };
 
 // ----- Useful functors for dealing with ThreadStates. -----

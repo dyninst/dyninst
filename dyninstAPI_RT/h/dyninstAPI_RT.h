@@ -84,6 +84,9 @@ extern int DYNINSTdebugPrintRT; /* control run-time lib debug/trace prints */
 #define RTprintf                if (DYNINSTdebugPrintRT) printf
 #endif
 
+#define TARGET_CACHE_WIDTH 128
+#define TARGET_CACHE_WAYS 2
+
 #define THREAD_AWAITING_DELETION -2
 
 #define ERROR_STRING_LENGTH 256
@@ -189,6 +192,7 @@ struct trap_mapping_header {
    uint32_t signature;
    uint32_t num_entries;
    int32_t pos;
+  uint32_t padding;
    uint64_t low_entry;
    uint64_t high_entry;
    trapMapping_t traps[]; //Don't change this to a pointer, despite any compiler warnings

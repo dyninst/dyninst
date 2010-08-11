@@ -95,6 +95,7 @@ bool BPatch_thread::getCallStackInt(BPatch_Vector<BPatch_frame>& stack)
          // user. So instead of calling findOrCreateBPPoint, we manually
          // poke through the mapping table. If there isn't a point, we
          // skip this instrumentation frame instead
+
          instPoint *iP = frame.getPoint();
          if (iP) {
             point = proc->findOrCreateBPPoint(NULL, iP);
@@ -106,9 +107,16 @@ bool BPatch_thread::getCallStackInt(BPatch_Vector<BPatch_frame>& stack)
                                          false,
                                          true,
                                          point));
+
             // And the "top-level function" one.
+            Address origPC = frame.getUninstAddr();
+            bblInstance *bbi = proc->lowlevel_process()->
+                findOrigByAddr(origPC)->is_basicBlockInstance();
+            if (bbi && 0 != bbi->version()) {
+                origPC = bbi->equivAddr(0, origPC);
+            }
             stack.push_back(BPatch_frame(this,
-                                         (void *)stackWalk[i].getUninstAddr(),
+                                         (void *)origPC,
                                          (void *)stackWalk[i].getFP(),
                                          false, // not signal handler,
                                          false, // not inst.
@@ -117,8 +125,14 @@ bool BPatch_thread::getCallStackInt(BPatch_Vector<BPatch_frame>& stack)
          }
          else {
             // No point = internal instrumentation, make it go away.
+            Address origPC = frame.getUninstAddr();
+            bblInstance *bbi = proc->lowlevel_process()->
+                findOrigByAddr(origPC)->is_basicBlockInstance();
+            if (bbi && 0 != bbi->version()) {
+                origPC = bbi->equivAddr(0, origPC);
+            }
             stack.push_back(BPatch_frame(this,
-                                         (void *)stackWalk[i].getUninstAddr(),
+                                         (void *)origPC,
                                          (void *)stackWalk[i].getFP(),
                                          false, // not signal handler,
                                          false, // not inst.
@@ -129,9 +143,15 @@ bool BPatch_thread::getCallStackInt(BPatch_Vector<BPatch_frame>& stack)
       }
       else {
          // Not instrumentation, normal case
+         Address origPC = frame.getPC();
+         bblInstance *bbi = proc->lowlevel_process()->
+             findOrigByAddr(frame.getPC())->is_basicBlockInstance();
+         if (bbi && 0 != bbi->version()) {
+             origPC = bbi->equivAddr(0, origPC);
+         }
          stack.push_back(BPatch_frame(this,
-                                      (void *)stackWalk[i].getPC(),
-                                      (void *)stackWalk[i].getFP(),
+                                      (void *)origPC,
+                                      (void *)frame.getFP(),
                                       isSignalFrame));
       }
    }

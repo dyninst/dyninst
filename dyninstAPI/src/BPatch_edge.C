@@ -32,15 +32,18 @@
 #define BPATCH_FILE
 
 #include "util.h"
-#include "symtab.h"
+#include "function.h"
 
 #include "BPatch_edge.h"
 #include "BPatch_flowGraph.h"
 #include "BPatch_basicBlock.h"
 #include "instPoint.h"
 #include "process.h"
-//#include "InstrucIter.h"
 #include "BPatch_process.h"
+
+#include "Parsing.h"
+
+using namespace Dyninst::ParseAPI;
 
 string 
 edge_type_string(BPatch_edgeType t)
@@ -55,6 +58,7 @@ edge_type_string(BPatch_edgeType t)
     return ts;
 }
 
+
 BPatch_edgeType 
 BPatch_edge::getTypeInt()
 {
@@ -62,11 +66,11 @@ BPatch_edge::getTypeInt()
     lltype = source->lowlevel_block()->getTargetEdgeType(target->lowlevel_block());
 
     switch(lltype) {
-        case ET_NOEDGE: { return NonJump; break; }
-        case ET_COND_TAKEN: { return CondJumpTaken; break; }
-        case ET_COND_NOT_TAKEN: { return CondJumpNottaken; break; }
-        case ET_DIRECT:
-        case ET_INDIR: { return UncondJump; break; }
+        case NOEDGE: { return NonJump; break; }
+        case COND_TAKEN: { return CondJumpTaken; break; }
+        case COND_NOT_TAKEN: { return CondJumpNottaken; break; }
+        case DIRECT:
+        case INDIRECT: { return UncondJump; break; }
         default: { return NonJump; break; }
     }
 }

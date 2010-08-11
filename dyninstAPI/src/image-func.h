@@ -38,65 +38,31 @@
 #include "common/h/Vector.h"
 #include "common/h/Types.h"
 #include "common/h/Pair.h"
+#include "common/h/arch.h" // instruction
 #include "codeRange.h"
-#include "arch.h" // instruction
 #include "parRegion.h"
 #include "common/h/Dictionary.h"
 #include "symtabAPI/h/Symbol.h"
 #include "dyninstAPI/src/bitArray.h"
 #include "InstructionCache.h"
-#include "InstructionAdapter.h"
 #include <set>
+
+#include "Parsing.h"
 
 #include "symtabAPI/h/Function.h"
 
 #include <queue>
 
 using namespace Dyninst;
-using namespace Dyninst::SymtabAPI;
-using namespace std;
 
 class pdmodule;
-class InstrucIter;
 
-// Slight modifications (and specialization) of BPatch_*
 class image_basicBlock;
 class image_instPoint;
-
-// CFG edges are typed
 class image_edge;
-   
 
-class InstructionAdapter;
 #if !defined(ESSENTIAL_PARSING_ENUMS)
 #define ESSENTIAL_PARSING_ENUMS
-
-   
-enum EdgeTypeEnum {
-   ET_CALL,
-   ET_COND_TAKEN,
-   ET_COND_NOT_TAKEN,
-   ET_INDIR,
-   ET_DIRECT,
-   ET_FALLTHROUGH,
-   ET_CATCH,
-   ET_FUNLINK,  // connect block ended by call instruction with next block
-               // (see BIT)
-   ET_NOEDGE
-};
-
-// Function return status. We initially assume that all functions
-// do not return. Unresolvable control flow edges change the status
-// to UNKNOWN, and return instructions (or the equivalent) change
-// status to RETURN
-enum FuncReturnStatus {
-    RS_UNSET,       // convenience for parsing
-    RS_NORETURN,
-    RS_UNKNOWN,
-    RS_RETURN
-};
-
-
 // There are three levels of function-level "instrumentability":
 // 1) The function can be instrumented normally with no problems (normal case)
 // 2) The function contains unresolved indirect branches; we have to assume
@@ -110,77 +76,42 @@ enum InstrumentableLevel {
 };
 #endif //!defined(ESSENTIAL_PARSING_ENUMS)
 
-
-// Indicates the source of this function, e.g. whether
-// it was listed in a symbol table, discovered with
-// recursive traversal, speculatively found in gap parsing, etc
-enum FuncSource {
-    FS_SYMTAB,
-    FS_RT,
-    FS_GAP,
-    FS_ONDEMAND,
-    FS_GAPRT
-};
-
-class image_edge {
-    friend class image_basicBlock;
-    struct lt_edge {
-        bool operator()(image_edge* lhs, image_edge* rhs) {
-            if(lhs == NULL) return true;
-            if(rhs == NULL) return false;
-            if(lhs->source_ < rhs->source_) return true;
-            if(lhs->source_ > rhs->source_) return false;
-            if(lhs->target_ < rhs->target_) return true;
-            if(lhs->target_ > rhs->target_) return false;
-            return lhs->type_ < rhs->type_;
-        }
-    }; 
- public:
-   image_edge(image_basicBlock *source, 
-              image_basicBlock *target, 
-              EdgeTypeEnum type) :
-      source_(source),
-      target_(target),
-      type_(type) {}
-
-   image_basicBlock * getSource() const { return source_; }
-   image_basicBlock * getTarget() const { return target_; }
-   EdgeTypeEnum getType() const { return type_; }
-
-   void breakEdge();
-
-   const char * getTypeString();
-
- private:
-   image_basicBlock *source_;
-   image_basicBlock *target_;
-   EdgeTypeEnum type_;
-};
-
-class image_basicBlock : public codeRange {
+class image_basicBlock : public codeRange, public ParseAPI::Block  {
     friend class image_func;
-    friend class image_edge;
-    friend void addEdge(image_basicBlock *source,
-                        image_basicBlock *target,
-                        EdgeTypeEnum type);
+    friend class DynCFGFactory;
+ private:
+    image_basicBlock(ParseAPI::CodeObject *, ParseAPI::CodeRegion*, Address);
  public:
+    image_basicBlock(image_func*,ParseAPI::CodeRegion*,Address);
 
-    image_basicBlock(image_func *func, Address firstOffset);
+    // just pass through to Block
+    Address firstInsnOffset() const;
+    Address lastInsnOffset() const;
+    Address endOffset() const;
+    Address getSize() const;
 
-    Address firstInsnOffset() const { return firstInsnOffset_; }
-    Address lastInsnOffset() const { return lastInsnOffset_; }
-    // Just to be obvious -- this is the end addr of the block
-    Address endOffset() const { return blockEndOffset_; }
-    Address getSize() const { return blockEndOffset_ - firstInsnOffset_; }
-    
+    // cfg access & various predicates 
+    bool isShared() const { return containingFuncs() > 1; }
+    bool isExitBlock();
     bool isEntryBlock(image_func * f) const;
-    bool isExitBlock() const { return isExitBlock_; }
+    image_func *getEntryFunc() const;  // func starting with this bock
 
-    // Reverse if isEntryBlock; if we're the entry for a function return it.
-    image_func *getEntryFunc() const;
+    // misc utility
+    int id() const { return blockNumber_; }
+    void debugPrint();
+    image *img();
 
-    bool isShared() const { return isShared_; }
+    // instrumentation-related
+    bool canBeRelocated() const { return canBeRelocated_; }
+    bool needsRelocation() const { return needsRelocation_; }
+    void markAsNeedingRelocation() { needsRelocation_ = true; }
 
+    // codeRange implementation
+    void *getPtrToInstruction(Address addr) const;
+    Address get_address() const { return firstInsnOffset(); }
+    unsigned get_size() const { return getSize(); }
+
+    // etc.
     struct compare {
         bool operator()(image_basicBlock * const &b1,
                         image_basicBlock * const &b2) const {
@@ -198,94 +129,22 @@ class image_basicBlock : public codeRange {
             return false;
         }
     };
-
     typedef std::set<image_basicBlock *, image_basicBlock::compare> blockSet;
 
-    void debugPrint();
-
-    void getSources(pdvector<image_edge *> &ins) const;
-    void getTargets(pdvector<image_edge *> &outs) const;
-
-    Address get_address() const { return firstInsnOffset(); }
-    unsigned get_size() const { return getSize(); }
-    void *getPtrToInstruction(Address addr) const;
-
-    // splitting blocks
-    image_basicBlock * split(Address loc, image_func *succ_func);
-    void split(image_basicBlock * &newBlk);
-
-
-    int id() const { return blockNumber_; }
-
-    const set<image_func *> & getFuncs() const;
-
-    // convenience method: sometimes any function will do
-    image_func * getFirstFunc() const
-    {
-        if(!funcs_.empty())
-            return *funcs_.begin();
-        else
-            return NULL;
-    }
-
-    bool containedIn(image_func * f);
-
-    // add another owning function to this basic block
-    void addFunc(image_func *func);
-
-    bool containsRet() { return containsRet_; }
-
-    bool containsCall() { return containsCall_; }
-
-    image_instPoint * getCallInstPoint();
-    image_instPoint * getRetInstPoint();
-
-    bool canBeRelocated() const { return canBeRelocated_; }
-    bool needsRelocation() const { return needsRelocation_; }
-    void markAsNeedingRelocation() { needsRelocation_ = true; }
-
 #if defined(cap_liveness)
-    const bitArray &getLivenessIn();
+    const bitArray &getLivenessIn(image_func * context);
     // This is copied from the union of all successor blocks
-    const bitArray getLivenessOut() const;
+    const bitArray getLivenessOut(image_func * context);
 #endif
 
 #if defined(cap_instruction_api)
     void getInsnInstances(std::vector<std::pair<InstructionAPI::Instruction::Ptr, Offset> > &instances);
 #endif
 
-   private:
-       // ensure all use of these goes through addEdge and breakEdge
-       bool addTarget(image_edge *edge);
-       bool addSource(image_edge *edge);
-
-       void removeTarget(image_edge *edge);
-       void removeSource(image_edge *edge);
-    
-
-    // Try to shrink memory usage down.
-    void finalize();
-
-    Address firstInsnOffset_;
-    Address lastInsnOffset_;
-    Address blockEndOffset_;
-
-    bool isEntryBlock_;
-    bool isExitBlock_;
+ private:
     bool needsRelocation_;
-    bool isShared_;     // block shared by > 1 functions
-
     int blockNumber_;
-
-    bool isStub_;       // used in parsing -- if true, has not been parsed
-    bool containsRet_; // both of these are tantamount to saying "ends with X"
-    bool containsCall_;
     bool canBeRelocated_; // some blocks contain uninstrumentable constructs
-
-    pdvector<image_edge*> targets_;
-    pdvector<image_edge*> sources_;
-
-    set<image_func *> funcs_;
 
 #if defined(cap_liveness)
     /* Liveness analysis variables */
@@ -298,29 +157,53 @@ class image_basicBlock : public codeRange {
     static InstructionCache cachedLivenessInfo;
     
  private:
-    void summarizeBlockLivenessInfo();
+    void summarizeBlockLivenessInfo(image_func * context);
     // Returns true if any information changed; false otherwise
-    bool updateBlockLivenessInfo();
+    bool updateBlockLivenessInfo(image_func * context);
 #endif
 
 
 };
 
-// Handle creation of edges and insertion of source/target pointers
-// in basic block objects
-void addEdge(image_basicBlock *source, 
-             image_basicBlock *target, 
-             EdgeTypeEnum type);
+inline Address 
+image_basicBlock::firstInsnOffset() const {
+    return ParseAPI::Block::start(); 
+}
+inline Address 
+image_basicBlock::lastInsnOffset() const {
+    return ParseAPI::Block::lastInsnAddr();
+}
+inline Address 
+image_basicBlock::endOffset() const {
+    return ParseAPI::Block::end();
+}
+inline Address 
+image_basicBlock::getSize() const {
+    return ParseAPI::Block::size();
+}
 
 void checkIfRelocatable (instruction insn, bool &canBeRelocated);
 
-bool isRealCall(instruction insn, 
-                Address addr, 
-                image *owner, 
-                bool &validTarget);
+class image_edge : public ParseAPI::Edge {
+    friend class image_basicBlock;
+ public:
+    image_edge(image_basicBlock *source, 
+               image_basicBlock *target, 
+               EdgeTypeEnum type) :
+    ParseAPI::Edge(source,target,type)
+   { }
+
+    // MSVC++ 2003 does not properly support covariant return types
+    // in overloaded methods
+#if !defined _MSC_VER || _MSC_VER > 1310 
+   virtual image_basicBlock * src() const { return (image_basicBlock*)_source; }
+   virtual image_basicBlock * trg() const { return (image_basicBlock*)_target; }
+#endif
+
+   const char * getTypeString();
+};
 
 #include "ast.h"
-
 class image_func_registers {
  public:
   std::set<Register> generalPurposeRegisters;
@@ -328,53 +211,29 @@ class image_func_registers {
   std::set<Register> specialPurposeRegisters;
 };
 
-// Parse-level function object. Knows about offsets, names, and suchlike; 
-// does _not_ do function relocation.
-class image_func : public codeRange,
-                   public AnnotatableSparse
+class image_func : public ParseAPI::Function
 {
- public:
-   static std::string emptyString;
-   struct worklist_entry
-   {
-     Address a;
-     enum block_type {
-       bt_default = 0, // normal blocks
-       bt_indirect, // blocks ending in indirect branches--reparse after rest of function
-       bt_leaves_function // blocks leaving function--reparse after indirect branches
-     };
-     block_type b;
-   worklist_entry(Address addr) : a(addr), b(bt_default) {}
-   worklist_entry(Address addr, block_type t) : a(addr), b(t) {}
-     bool operator<(const worklist_entry& rhs) const
-     {
-       return (rhs.b < b) || ((rhs.b == b) && (rhs.a < a));
-     }
-   };
-
-
-   image_func() {}
-   // Almost everything gets filled in later.
-   image_func(const std::string &symbol, 
-	      Address offset, 
-	      const unsigned symTabSize, 
-	      pdmodule *m,
-	      image *i,
-          FuncSource src);
-  
-   image_func(Function *func, pdmodule *m, image *i, FuncSource src);
+  friend class DynCFGFactory;
+  friend class DynParseCallback;
+  public:
+   /* Annotatable requires a default constructor */
+   image_func() { }
+  public:
+   image_func(SymtabAPI::Function *func, 
+        pdmodule *m, 
+        image *i, 
+        ParseAPI::CodeObject * obj,
+        ParseAPI::CodeRegion * reg,
+        InstructionSource * isrc,
+        FuncSource src);
 
    ~image_func();
 
-
-   ////////////////////////////////////////////////
-   // Basic output functions
-   ////////////////////////////////////////////////
-
-   Function* getSymtabFunction() const{
+   SymtabAPI::Function* getSymtabFunction() const{
       return  func_; 
    }	
 
+   /*** Function naming ***/
    const string &symTabName() const { 
        return func_->getFirstSymbol()->getName();
    }
@@ -384,7 +243,6 @@ class image_func : public codeRange,
    const string &typedName() const {
        return func_->getFirstSymbol()->getTypedName();
    }
-
    const vector<string> &symTabNameVector() const {
        return func_->getAllMangledNames();
    }
@@ -395,27 +253,24 @@ class image_func : public codeRange,
        return func_->getAllTypedNames();
    }
    void copyNames(image_func *duplicate);
-
-   // Bool: returns true if the name is new (and therefore added)
+   // return true if the name is new (and therefore added)
    bool addSymTabName(std::string name, bool isPrimary = false);
    bool addPrettyName(std::string name, bool isPrimary = false);
    bool addTypedName(std::string name, bool isPrimary = false);
 
-   Address getOffset() const {return func_->getFirstSymbol()->getOffset();}
-   Address getPtrOffset() const {return func_->getFirstSymbol()->getPtrOffset();}
+   /*** Location queries ***/
+   Address getOffset() const;
+   Address getPtrOffset() const;
+   unsigned getSymTabSize() const;
    Address getEndOffset(); // May trigger parsing
-   unsigned getSymTabSize() const { return func_->getFirstSymbol()->getSize(); }
-
-   // coderange needs a get_address...
-   Address get_address() const { return getOffset();}
-   unsigned get_size() const { return endOffset_ - getOffset(); }
 
    void *getPtrToInstruction(Address addr) const;
 
-
-   // extra debuggering info....
+   /*** Debugging output operators ***/
    ostream & operator<<(ostream &s) const;
    friend ostream &operator<<(ostream &os, image_func &f);
+
+   /*** misc. accessors ***/
    pdmodule *pdmod() const { return mod_;}
    image *img() const { return image_; }
    void changeModule(pdmodule *mod);
@@ -424,109 +279,46 @@ class image_func : public codeRange,
    // CFG and other function body methods
    ////////////////////////////////////////////////
 
-   const set<image_basicBlock*, image_basicBlock::compare> &blocks();
-
-   bool hasNoStackFrame();
    bool makesNoCalls();
-   bool savesFramePointer();
-   bool cleansOwnStack();
 
-   ////////////////////////////////////////////////
-   // Parsing support methods
-   ////////////////////////////////////////////////
-
-   void parseSharedBlocks(image_basicBlock * firstBlock,
-                std::set< Address > &leaders,
-                dictionary_hash< Address, image_basicBlock * > &leadersToBlock,
-                Address & funcEnd);
-   void parseSharedBlocks(image_basicBlock * firstBlock);
-
-   // Helper function: create a new basic block and add to various data
-   // structures (if the new addr is valid)
-   bool addBasicBlock(Address newAddr,
-                      image_basicBlock *oldBlock,
-                      std::set<Address> &leaders,
-                      dictionary_hash<Address, image_basicBlock *> &leadersToBlock,
-                      EdgeTypeEnum edgeType,
-                      std::priority_queue<worklist_entry> &worklist);
-
-   // Add a basic block to the blocklist when this is not the function
-   // being parsed. Helps maintain consistency across basic block split
-   // operations initiated by another function's parsing.
-   void addToBlocklist(image_basicBlock *newBlk);
-
-   // Can we determine whether this function returns?
-   FuncReturnStatus returnStatus() { return retStatus_; }
-
-   // Sort basic block list, instrumentation points, and finalize vector
-   // data structures to reduce memory
-   bool finalize();
-
-   // Check the targets of _call_ instrumentation points and link up
-   // dangling targets, if possible
-   void checkCallPoints();
-   void checkCallPoints(pdvector<image_instPoint *> &points);
-    
-   Address newCallPoint(Address adr, const instruction code, bool &err);
-
-   ////////////////////////////////////////////////
-   // Architecture-dependent parsing support
-   ////////////////////////////////////////////////
-
-    bool archIsUnparseable();
-    bool archAvoidParsing();
-    bool archNoRelocate();
-    void archSetFrameSize(int frameSize);
-    bool archGetMultipleJumpTargets( 
-             std::set< Address >& targets,
-             image_basicBlock *currBlk,
-             InstrucIter &ah,
-             pdvector< instruction >& allInstructions);
-    bool archProcExceptionBlock(Address &catchStart, Address a);
-#if !defined(cap_instruction_api)    
-    bool archIsATailCall(InstrucIter &ah,
-             pdvector< instruction >& allInstructions);
-    bool archIsIndirectTailCall(InstrucIter &ah);
-    bool archIsRealCall(InstrucIter &ah, bool &validTarget, bool
-&simulateJump);
-    bool archCheckEntry(InstrucIter &ah, image_func *func );
-    bool archIsIPRelativeBranch(InstrucIter& ah);
-#endif    
-    void archInstructionProc(InstructionAdapter &ah);
-
-   
    ////////////////////////////////////////////////
    // Instpoints!
    ////////////////////////////////////////////////
 
-   const pdvector<image_instPoint*> &funcEntries();
-   const pdvector<image_instPoint*> &funcExits();
-   const pdvector<image_instPoint*> &funcCalls();
+   void funcEntries(pdvector<image_instPoint*> &);
+   void funcExits(pdvector<image_instPoint*> &);
+   void funcCalls(pdvector<image_instPoint*> &);
+   // statically unresolvable control flow points
+   void funcUnresolvedControlFlow(pdvector<image_instPoint*> &);
+   void funcAbruptEnds(pdvector<image_instPoint*> &); 
   
    // Initiate parsing on this function
    bool parse();
  
-   // Do most of the parsing work. Calls architecture-dependent routines
-   // defined in image-<arch>.C
-   bool buildCFG(pdvector<image_basicBlock *> &funcEntry, Address funcBegin);
-
-   bool isTrapFunc() const {return isTrap;}
-
    const pdvector<image_parRegion*> &parRegions();
 
    bool isInstrumentable() const { return instLevel_ != UNINSTRUMENTABLE; }
    InstrumentableLevel instLevel() const { return instLevel_; }
-
-   void addCallInstPoint(image_instPoint *p);
-   void addExitInstPoint(image_instPoint *p);
+   void setInstLevel(InstrumentableLevel l) { instLevel_ = l; }
 
    // ----------------------------------------------------------------------
+
+
+   ///////////////////////////////////////////////////
+   // Mutable function code, used for hybrid analysis
+   ///////////////////////////////////////////////////
+
+   static void getUnreachableBlocks( std::set<image_basicBlock*> &deadBlocks, 
+                                     std::set<image_basicBlock*> &unreachable );
+   ParseAPI::FuncReturnStatus init_retstatus() { return init_retstatus_; }
+   void setinit_retstatus(ParseAPI::FuncReturnStatus rs) { init_retstatus_ = rs; }
+
+   // ----------------------------------------------------------------------
+
 
    ////////////////////////////////////////////////
    // Misc
    ////////////////////////////////////////////////
-
-   codeRange *copy() const;
 
     struct compare {
         bool operator()(image_func * const &f1,
@@ -535,8 +327,7 @@ class image_func : public codeRange,
         }
     };
 
-#if defined(arch_ia64) || defined(arch_x86) || defined(arch_x86_64)
-
+#if defined(arch_x86) || defined(arch_x86_64)
    bool isTrueCallInsn(const instruction insn);
 #endif
 
@@ -544,30 +335,12 @@ class image_func : public codeRange,
    bool is_o7_live(){ return o7_live; }
 #endif
 
-   // Only defined on alpha right now
-   int             frame_size; // stack frame size
-
-#if defined(arch_ia64)
-   // We need to know where all the alloc instructions in the
-   // function are to do a reasonable job of register allocation
-   // in the base tramp.  
-   pdvector< Address > allocs;
-   
-   // Place to store the results of doFloatingPointStaticAnalysis().
-   // This way, if they are ever needed in a mini-tramp, emitFuncJump()
-   // for example, the expensive operation doesn't need to happen again.
-   bool * usedFPregs;
-   
-   // Since the IA-64 ABI does not define a frame pointer register,
-   // we use DWARF debug records (DW_AT_frame_base entries) to 
-   // construct an AST which calculates the frame pointer.
-   int getFramePointerCalculator();
+#if defined(arch_power)
+   bool savesReturnAddr() const { return ppc_saves_return_addr_; }
 #endif
 
    // Ifdef relocation... but set at parse time.
    bool canBeRelocated() const { return canBeRelocated_; }
-   bool needsRelocation() const { return needsRelocation_; }
-   void markAsNeedingRelocation(bool foo) { needsRelocation_ = foo; }
 
    bool containsSharedBlocks() const { return containsSharedBlocks_; }
 
@@ -581,12 +354,9 @@ class image_func : public codeRange,
    bool parseOMPParent(image_parRegion * iPar, int desiredNum, int & currentSectionNum);
    void addRegion(image_parRegion * iPar) { parRegionsList.push_back(iPar); }
    bool OMPparsed() { return OMPparsed_; }
-   bool isPLTFunction() { return isPLTFunction_; }
    /****************************************/
+   bool isPLTFunction();
 
-   bool parsed() { return parsed_; }
-
-   // Not completely implemented, and so commented out.
    std::set<Register> * usedGPRs() { calcUsedRegs(); return &(usedRegisters->generalPurposeRegisters);}
    std::set<Register> * usedFPRs() { calcUsedRegs(); return &(usedRegisters->floatingPointRegisters);}
 
@@ -599,79 +369,34 @@ class image_func : public codeRange,
    void calcBlockLevelLiveness();
 #endif
 
-   FuncSource howDiscovered() const { return howDiscovered_; }
-   
-   const Function *func() const { return func_; }
-
-   bool containsBlock(image_basicBlock *);
+   const SymtabAPI::Function *func() const { return func_; }
 
  private:
-     void markBlockEnd(image_basicBlock* curBlock,
-                       InstructionAdapter& ah,
-                       Address& funcEnd);
-     bool isNonReturningCall(image_func* targetFunc,
-                             bool isInPLT,
-                             std::string pltEntryForTarget,
-                             Address currAddr,
-                             Address target);
-   
    void calcUsedRegs();/* Does one time calculation of registers used in a function, if called again
                           it just refers to the stored values and returns that */
 
    ///////////////////// Basic func info
-   Function *func_;			/* pointer to the underlying symtab Function */
+   SymtabAPI::Function *func_;			/* pointer to the underlying symtab Function */
 
-   Address endOffset_;          /* Address of the (next instruction after) the end of the func */
    pdmodule *mod_;		/* pointer to file that defines func. */
    image *image_;
-   bool parsed_;                /* Set to true in findInstPoints */
    bool OMPparsed_;              /* Set true in parseOMPFunc */
-   bool cleansOwnStack_;
 
    /////  Variables for liveness Analysis
-   image_func_registers * usedRegisters;// container class for all the registers the function uses
-
    enum regUseState { unknown, used, unused };
-
-   regUseState containsFPRWrites_;   // does this function have floating point write instructions
-   regUseState containsSPRWrites_;   // Does this function write to SPRs.
-
+   image_func_registers * usedRegisters;
+   regUseState containsFPRWrites_;   // floating point registers
+   regUseState containsSPRWrites_;   // stack pointer registers
 
    ///////////////////// CFG and function body
-   set<image_basicBlock*, image_basicBlock::compare> blockList;
-
-   bool noStackFrame; // formerly "leaf".  True iff this fn has no stack frame.
-   bool makesNoCalls_;
-   bool savesFP_;
-
    bool containsSharedBlocks_;  // True if one or more blocks in this
                                 // function are shared with another function.
-
-   FuncReturnStatus retStatus_; // Does this function return or not?
-
-   // Bind a call target to the current basic block
-   // May initiate recursive parsing of the target function
-   image_func* bindCallTarget(Address target, image_basicBlock * curBlk);
-
-    // Find an existing image_func object or create a new one
-   image_func* FindOrCreateFunc(Address target, FuncSource src, bool & created);
-
-   
-   ///////////////////// Instpoints 
-
-   pdvector<image_instPoint*> funcEntries_;     /* place to instrument entry 
-                                                   (often not addr) */
-   pdvector<image_instPoint*> funcReturns;	/* return point(s). */
-   pdvector<image_instPoint*> calls;		/* pointer to the calls */
 
    //  OpenMP (and other parallel language) support
    pdvector<image_parRegion*> parRegionsList; /* vector of all parallel regions within function */
     void addParRegion(Address begin, Address end, parRegType t);
    // End OpenMP support
 
-
-
-   bool isTrap; 		// true if function contains a trap instruct
    InstrumentableLevel instLevel_;   // the degree of freedom we have in
                                     // instrumenting the function
    
@@ -679,27 +404,19 @@ class image_func : public codeRange,
                                    // relocating function
    bool needsRelocation_;          // Override -- "relocate this func"
 
-   void *originalCode;   // points to copy of original function
-
-   // Hacky way around parsing things -- we can stick things known to be 
-   // unparseable in here.
+   // Some functions are known to be unparesable by name
    bool isInstrumentableByFunctionName();
 
-   // Misc   
+   ParseAPI::FuncReturnStatus init_retstatus_;
 
-   // the vector "calls" should not be accessed until this is true.
+   // Architecture specific data
    bool o7_live;
-
-   // Functions only have one entry basic block
-   image_basicBlock *entryBlock_;
+   bool ppc_saves_return_addr_;
 
 #if defined(cap_liveness)
    bool livenessCalculated_;
 #endif
    bool isPLTFunction_;
-
-   // How we discovered this function (e.g., from symbol, RT, etc)
-   FuncSource howDiscovered_;
 };
 
 typedef image_func *ifuncPtr;
@@ -715,5 +432,20 @@ struct ifuncCmp
         return 0;
     }
 };
+
+inline Address 
+image_func::getOffset() const {
+    return ParseAPI::Function::addr();
+}
+inline Address 
+image_func::getPtrOffset() const {
+    return func_->getFirstSymbol()->getPtrOffset();
+}
+inline unsigned 
+image_func::getSymTabSize() const { 
+    return func_->getFirstSymbol()->getSize();
+}
+
+
 
 #endif /* FUNCTION_H */

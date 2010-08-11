@@ -45,7 +45,7 @@ endif
 OBJS         = $(SRCS:%.C=%.o)
 
 CXXFLAGS    += -Wall
-LIBS        += -lcommon -ldyninstAPI -lsymtabAPI -liberty
+LIBS        += -lcommon -ldyninstAPI -lsymtabAPI -liberty -lparseAPI
 
 ifneq (, $(findstring solaris, $(PLATFORM)))
 LIBS        += -ldwarf  -lelf
@@ -76,11 +76,15 @@ LIBS        += -linstructionAPI
 endif
 
 ifneq (, $(findstring i686, $(PLATFORM)))
-LIBS        += -linstructionAPI 
+LIBS        += -linstructionAPI
 endif
 
 ifneq (, $(findstring x86_64, $(PLATFORM)))
-LIBS        += -linstructionAPI 
+LIBS        += -linstructionAPI
+endif
+
+ifneq (, $(findstring ppc32_linux, $(PLATFORM)))
+LIBS        += -linstructionAPI
 endif
 
 ifneq (, $(findstring alpha, $(PLATFORM)))

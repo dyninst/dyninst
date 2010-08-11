@@ -30,7 +30,7 @@
  */
 
 #include "common/h/Types.h"
-#include "arch.h"
+#include "common/h/arch.h"
 #include "InstrucIter-Function.h"
 #include "function.h"
 #include "image-func.h"
@@ -39,10 +39,15 @@
 #include <string>
 #include <algorithm>
 
+#include "process.h"
+
 
 InstrucIter makeIter(int_basicBlock* fromThis)
 {
-  return InstrucIter(fromThis);
+  return InstrucIter(
+        fromThis->origInstance()->firstInsnAddr(),
+        fromThis->origInstance()->getSize(),
+        fromThis->proc());
 }
 
 std::string dumpSubIter(const InstrucIter& dumpIt)

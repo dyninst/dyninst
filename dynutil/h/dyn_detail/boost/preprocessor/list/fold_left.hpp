@@ -34,7 +34,7 @@
 # define DYN_DETAIL_BOOST_PP_LIST_FOLD_LEFT_2ND_D DYN_DETAIL_BOOST_PP_LIST_FOLD_LEFT_D
 #
 # if DYN_DETAIL_BOOST_PP_CONFIG_FLAGS() & DYN_DETAIL_BOOST_PP_CONFIG_EDG()
-#    include <dyn_detail/boost/preprocessor/list/detail/edg/fold_left.hpp>
+#    include <dyn_detail/boost/preprocessor/list/detail/fold_left.hpp>
 # elif DYN_DETAIL_BOOST_PP_CONFIG_FLAGS() & DYN_DETAIL_BOOST_PP_CONFIG_DMC()
 #    include <dyn_detail/boost/preprocessor/list/detail/dmc/fold_left.hpp>
 # else

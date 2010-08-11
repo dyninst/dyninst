@@ -329,14 +329,16 @@ SYMTAB_EXPORT Symtab::Symtab(MappedFile *mf_) :
    AnnotatableSparse(),
    mf(mf_), 
    mfForDebugInfo(mf_),
-   obj_private(NULL)
+   obj_private(NULL),
+   _ref_cnt(1)
 {   
     init_debug_symtabAPI();
 }   
 
 
 SYMTAB_EXPORT Symtab::Symtab() :
-   obj_private(NULL)
+   obj_private(NULL),
+   _ref_cnt(1)
 {
     init_debug_symtabAPI();
     create_printf("%s[%d]: Created symtab via default constructor\n", FILE__, __LINE__);
@@ -1086,7 +1088,8 @@ Symtab::Symtab(std::string filename,bool &err) :
    nativeCompiler(false), 
    isLineInfoValid_(false), 
    isTypeInfoValid_(false),
-   obj_private(NULL)
+   obj_private(NULL),
+   _ref_cnt(1)
 {
     init_debug_symtabAPI();
    // Initialize error parameter
@@ -1134,7 +1137,8 @@ Symtab::Symtab(char *mem_image, size_t image_size, bool &err) :
    nativeCompiler(false),
    isLineInfoValid_(false),
    isTypeInfoValid_(false),
-   obj_private(NULL)
+   obj_private(NULL),
+   _ref_cnt(1)
 {
    // Initialize error parameter
    err = false;
@@ -1181,7 +1185,8 @@ Symtab::Symtab(std::string filename, std::string member_name, Offset offset,
    nativeCompiler(false), 
    isLineInfoValid_(false),
    isTypeInfoValid_(false), 
-   obj_private(NULL)
+   obj_private(NULL),
+   _ref_cnt(1)
 {
    mf = MappedFile::createMappedFile(filename);
    assert(mf);
@@ -1212,7 +1217,8 @@ Symtab::Symtab(char *mem_image, size_t image_size, std::string member_name,
    main_call_addr_(0),
    nativeCompiler(false), 
    isLineInfoValid_(false), 
-   isTypeInfoValid_(false)
+   isTypeInfoValid_(false),
+   _ref_cnt(1)
 {
    mf = MappedFile::createMappedFile(mem_image, image_size);
    assert(mf);
@@ -1309,6 +1315,10 @@ bool Symtab::extractInfo(Object *linkedFile)
         if ( regions_[index]->isLoadable() ) 
         {
            if (     (regions_[index]->getRegionPermissions() == Region::RP_RX) 
+// KEVINTODO: find a better solution for this
+#if defined(_MSC_VER) // added this to deal with obfuscated programs (e.g. aspack)
+                 || (regions_[index]->getRegionPermissions() == Region::RP_RW)
+#endif
                  || (regions_[index]->getRegionPermissions() == Region::RP_RWX)) 
            {
               codeRegions_.push_back(regions_[index]);
@@ -1489,7 +1499,8 @@ bool Symtab::extractInfo(Object *linkedFile)
 Symtab::Symtab(const Symtab& obj) :
    LookupInterface(),
    Serializable(),
-   AnnotatableSparse()
+   AnnotatableSparse(),
+   _ref_cnt(1)
 {
     create_printf("%s[%d]: Creating symtab 0x%p from symtab 0x%p\n", FILE__, __LINE__, this, &obj);
   
@@ -1918,16 +1929,20 @@ bool Symtab::closeSymtab(Symtab *st)
 	bool found = false;
 	if (!st) return false;
 
+    --(st->_ref_cnt);
+
 	std::vector<Symtab *>::reverse_iterator iter;
 	for (iter = allSymtabs.rbegin(); iter != allSymtabs.rend() ; iter++)
 	{
 		if (*iter == st)
 		{
-			allSymtabs.erase(iter.base() -1);
+            if(0 == st->_ref_cnt)
+			    allSymtabs.erase(iter.base() -1);
 			found = true;
 		}
 	}
-	delete(st);
+    if(0 == st->_ref_cnt)
+	    delete(st);
 	return found;
 }
 
@@ -1940,6 +1955,7 @@ Symtab *Symtab::findOpenSymtab(std::string filename)
 		if (filename == allSymtabs[u]->file() && 
           allSymtabs[u]->mf->canBeShared()) 
 		{
+            allSymtabs[u]->_ref_cnt++;
 			// return it
 			return allSymtabs[u];
 		}
@@ -1994,6 +2010,7 @@ bool Symtab::openFile(Symtab *&obj, std::string filename)
 #endif
 
    obj = new Symtab(filename, err);
+
 #if defined(TIMED_PARSE)
    struct timeval endtime;
    gettimeofday(&endtime, NULL);
@@ -2220,6 +2237,26 @@ SYMTAB_EXPORT bool Symtab::getSourceLines(std::vector<Statement *> &lines, Offse
 
    return false;
 
+}
+
+SYMTAB_EXPORT bool Symtab::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRange)
+{
+   unsigned int originalSize = lines.size();
+   
+   /* Iteratate over the modules, looking for ranges in each. */
+   for ( unsigned int i = 0; i < _mods.size(); i++ ) 
+   {
+      LineInformation *lineInformation = _mods[i]->getLineInformation();
+      
+      if (lineInformation)
+         lineInformation->getSourceLines( addressInRange, lines );
+      
+   } /* end iteration over modules */
+   
+   if ( lines.size() != originalSize )
+      return true;
+   
+   return false;
 }
 
 SYMTAB_EXPORT bool Symtab::addLine(std::string lineSource, unsigned int lineNo,
@@ -2772,6 +2809,20 @@ SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size)
 
 #else
 	unsigned pgSize = P_getpagesize();
+
+#if defined(os_linux)
+        // Bluegene compute nodes have a 1MB alignment restructions on PT_LOAD section
+	Object *obj = getObject();
+	if (!obj)
+	{
+		fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
+		return 0;
+	}
+	bool isBlueGene = obj->isBlueGene();
+	bool hasNoteSection = obj->hasNoteSection();
+	if (isBlueGene && hasNoteSection)
+		pgSize = 0x100000; 
+#endif	
 	Offset newaddr = highWaterMark  - (highWaterMark & (pgSize-1));
 	if(newaddr < highWaterMark)
 		newaddr += pgSize;

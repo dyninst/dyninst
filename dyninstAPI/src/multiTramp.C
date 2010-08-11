@@ -36,14 +36,15 @@
 #include "miniTramp.h"
 #include "instPoint.h"
 #include "process.h"
+#include "function.h"
 #if defined(cap_instruction_api)
 #include "instructionAPI/h/InstructionDecoder.h"
 #else
-#include "InstrucIter.h"
+#include "parseAPI/src/InstrucIter.h"
 #endif // defined(cap_instruction_api)
 #include "BPatch.h"
 // Need codebuf_t, Address
-#include "arch.h"
+#include "codegen.h"
 #include <sstream>
 
 using namespace Dyninst;
@@ -121,6 +122,7 @@ void multiTramp::removeCode(generatedCodeObject *subObject) {
     // Have _no_ idea how to handle one of these guys going away.
     assert(!reloc);
     assert(!te);
+    assert(trampEnd_);
 
     // Un-replace an instruction? Not right now...
     // TODO
@@ -200,19 +202,19 @@ void multiTramp::removeCode(generatedCodeObject *subObject) {
            deletedObjs.push_back(bti);
     }
     
-    if (doWeDelete) {
-        // We're empty. Time to leave.
-        if (savedCodeBuf_) {
-            // Okay, they're all empty. Overwrite the jump to this guy with the saved buffer.
-            proc()->writeTextSpace((void *)instAddr_,
-                                             instSize_,
-                                             (void *)savedCodeBuf_);
-            // This better work, or we're going to be jumping into all sorts
-            // of hurt.
+    if ( doWeDelete && isActive_ && ! partlyGone_ ) {
+        mal_printf("Unlinking but not deleting multiTramp %lx [%lx %lx] on "
+                "grounds that it is actively executing %s[%d]\n",instAddr_,
+                trampAddr_, trampAddr_+trampSize_, FILE__,__LINE__);
+    }
 
-            free(savedCodeBuf_);
-            savedCodeBuf_ = 0;
-        }
+    // unlink the tramp if we haven't already
+    if ( doWeDelete && ! partlyGone_ ) {
+        disable();
+        partlyGone_ = true;
+    }
+
+    if (doWeDelete && !isActive_) {
 
         if (proc()->findMultiTrampById(id()) == this) {
             // Won't leak as the process knows to delete us
@@ -240,6 +242,7 @@ void multiTramp::removeCode(generatedCodeObject *subObject) {
 
         proc()->deleteGeneratedCode(this);
     }   
+    assert(trampEnd_);
     return;
 }
 
@@ -264,6 +267,9 @@ void multiTramp::freeCode() {
 }
 
 multiTramp::~multiTramp() {
+
+    mal_printf("Deleting multi instAddr 0x%lx trampAddr 0x%lx\n",
+               instAddr_,trampAddr_);
 
     for (unsigned i = 0; i < deletedObjs.size(); i++)
        if(deletedObjs[i] != NULL) {
@@ -293,29 +299,14 @@ multiTramp::~multiTramp() {
 
 // Assumes there is no matching multiTramp at this address
 int multiTramp::findOrCreateMultiTramp(Address pointAddr, 
-                                       AddressSpace *proc) {
+                                       bblInstance *bbl) {
+    AddressSpace *proc = bbl->func()->proc();
     multiTramp *newMulti = proc->findMultiTrampByAddr(pointAddr);
-    if (newMulti) {
+    if (newMulti && newMulti->func() == bbl->func()) { 
+        
         // Check whether we're in trap shape
         // Sticks to false if it ever is false
         return newMulti->id();
-    }
-
-    // Multitramps need to know their functions, so look it up.
-    codeRange *range = proc->findOrigByAddr(pointAddr);
-    if (!range) {
-        return 0;
-    }
-    bblInstance *bbl = range->is_basicBlockInstance();
-    if (!bbl) {
-        fprintf(stderr, "No bblInstance in createMultiTramp, ret NULL\n");
-        return 0;
-    }
-
-    int_function *func = range->is_function();
-    if (!func) {
-        fprintf(stderr, "No function in createMultiTramp, ret NULL\n");
-        return 0;
     }
 
     Address startAddr = 0;
@@ -345,7 +336,7 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
 
     newMulti = new multiTramp(startAddr,
                               size,
-                              func);
+                              bbl->func());
     
     // Iterate over the covered instructions and pull each one
     relocatedInstruction *prev = NULL;
@@ -365,7 +356,7 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
       // platform where we wouldn't is IA-64, which doesn't do function relocation.
 
       // uhh....
-      pdvector<bblInstance::reloc_info_t::relocInsn *> &relocInsns = bbl->get_relocs();
+      pdvector<bblInstance::reloc_info_t::relocInsn::Ptr> &relocInsns = bbl->get_relocs();
       assert(relocInsns[0]->relocAddr == startAddr);
       for (unsigned i = 0; i < relocInsns.size(); i++) {
 	relocatedInstruction *reloc = new relocatedInstruction(relocInsns[i]->origInsn,
@@ -398,7 +389,7 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
       const unsigned char* relocatedInsnBuffer =
       reinterpret_cast<const unsigned char*>(proc->getPtrToInstruction(startAddr));
       
-      InstructionDecoder decoder(relocatedInsnBuffer, size, func->ifunc()->img()->getArch());
+      InstructionDecoder decoder(relocatedInsnBuffer, size, proc->getArch());
       while(offset < size)
       {
 	Address insnAddr = startAddr + offset;
@@ -501,6 +492,8 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
     prev->setFallthrough(end);
     end->setPrevious(prev);
     
+    newMulti->trampEnd_ = end;
+
     // Put this off until we generate
     //newMulti->updateInstInstances();
 
@@ -511,27 +504,12 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
 
 // Get the footprint for the multiTramp at this address. The MT may
 // not exist yet; our instrumentation code needs this.
-#if defined(arch_ia64)
-bool multiTramp::getMultiTrampFootprint(Address instAddr,
-                                        AddressSpace * /* proc */,
-                                        Address &startAddr,
-                                        unsigned &size,
-					bool &basicBlock)
-#else
 bool multiTramp::getMultiTrampFootprint(Address instAddr,
                                         AddressSpace *proc,
                                         Address &startAddr,
                                         unsigned &size,
 					bool &basicBlock)
-#endif
 {
-#if defined(arch_ia64)
-    // IA64 bundle-izes
-    startAddr = instAddr - (instAddr % 16);
-    size = 16; // bundlesize
-    basicBlock = false;
-    return true;
-#else
     // We use basic blocks
     // Otherwise, make one.
     codeRange *range = proc->findOrigByAddr(instAddr);
@@ -567,11 +545,10 @@ bool multiTramp::getMultiTrampFootprint(Address instAddr,
         
         startAddr = instAddr;
 #if defined(cap_instruction_api)
-        static const int maxInsnSize = 16; // 16 byte instruction is max on all IAPI platforms
 	using namespace Dyninst::InstructionAPI;
 	InstructionDecoder decoder((unsigned char*)(proc->getPtrToInstruction(instAddr)),
 				   InstructionDecoder::maxInstructionLength,
-				   bbl->func()->ifunc()->img()->getArch());
+				   proc->getArch());
         Instruction::Ptr instInsn = decoder.decode();
 	size = instInsn->size();
 #else
@@ -588,7 +565,6 @@ bool multiTramp::getMultiTrampFootprint(Address instAddr,
     basicBlock = true;
 
     return true;
-#endif
 }
 
 void multiTramp::updateInstInstances() {
@@ -699,11 +675,6 @@ void multiTramp::updateInstInstances() {
                 obj->setTarget(targetBTI);
                 // And a tramp end marker goes here as well.
                 Address origTarget = insn->originalTarget();
-#if defined(arch_ia64)
-                // Target lookups on ia64 need to be adjusted for offsets
-                // from the start of the bundle
-                origTarget = origTarget - (origTarget % 0x10);
-#endif
                 targetBTI->setFallthrough(new trampEnd(this, origTarget));
                 targetBTI->fallthrough_->setPrevious(targetBTI);
                 changedSinceLastGeneration_ = true;
@@ -779,11 +750,26 @@ multiTramp::multiTramp(Address addr,
 #if defined( cap_unwind )
     unwindInformation(NULL),	
 #endif /* defined( cap_unwind ) */    
-    changedSinceLastGeneration_(false)
+    changedSinceLastGeneration_(false),
+    trampEnd_(NULL),
+    isActive_(false),
+    partlyGone_(false),
+    stompMulti_(NULL)
 {
     // .. filled in by createMultiTramp
     assert(proc());
     proc()->addMultiTramp(this);
+    mal_printf("new multi id=%d instAddr=%lx func %lx[%lx]\n",
+               id_,instAddr_,func_->ifunc()->getOffset(),
+               func_->get_address());
+    // find the base address at which the function relocation is created, the
+    // first block, in address order, is the first to be laid out in the 
+    // relocated function, it shouldn't be possible for the function to have 
+    // been updated since then, so there can't be new blocks that are not part 
+    // of the relocation, an assertion makes sure that this is the case 
+    int_basicBlock *firstBlock = func_->findBlockByAddr(func_->getAddress());
+    funcBaseInMutatee_ = 
+        firstBlock->instVer( firstBlock->numInstances()-1 )->firstInsnAddr();
 }
 
 
@@ -807,7 +793,12 @@ multiTramp::multiTramp(multiTramp *oM) :
 #if defined( cap_unwind )
     unwindInformation(NULL),	
 #endif /* defined( cap_unwind ) */    
-    changedSinceLastGeneration_(true) 
+    changedSinceLastGeneration_(true),
+    trampEnd_(NULL),
+    isActive_(false),
+    partlyGone_(false),
+    funcBaseInMutatee_(oM->funcBaseInMutatee_),
+    stompMulti_(NULL)
 {
     // This is superficial and insufficient to recreate the multiTramp; please
     // call replaceCode with the old tramp as an argument.
@@ -833,7 +824,12 @@ multiTramp::multiTramp(const multiTramp *parMulti, process *child) :
 #if defined( cap_unwind )
     unwindInformation(NULL),	
 #endif /* defined( cap_unwind ) */    
-    changedSinceLastGeneration_(parMulti->changedSinceLastGeneration_) 
+    changedSinceLastGeneration_(parMulti->changedSinceLastGeneration_),
+    trampEnd_(),
+    isActive_(false),
+    partlyGone_(false),
+    funcBaseInMutatee_(parMulti->funcBaseInMutatee_),
+    stompMulti_(NULL)
 {
     // TODO:
     // Copy logical state: insns_ and generatedCFG;
@@ -1287,7 +1283,7 @@ bool multiTramp::linkCode() {
     // Time to stomp old multiTramps with traps...
     if (previousInsnAddrs_ && BPatch::bpatch->isMergeTramp()) {
         codeGen gen(16); // Overkill, it's either 1, 4, or 16.
-        instruction::generateTrap(gen);
+        insnCodeGen::generateTrap(gen);
 
         for (unsigned i = 0; i < previousInsnAddrs_->size(); i++) {
             pdpair<Address, Address> addrs = (*previousInsnAddrs_)[i];
@@ -1395,10 +1391,28 @@ bool multiTramp::disable() {
     }
 
     assert(savedCodeBuf_);
+
+    bblInstance *bbi = func()->proc()->findOrigByAddr(instAddr_)->
+        is_basicBlockInstance();
+    if (bbi && 0 == bbi->version()) {
+        void *objPtr = func()->obj()->getPtrToInstruction(instAddr_);
+        if (memcmp(objPtr,savedCodeBuf_,instSize_)) {
+            mal_printf("WARNING: different bytes in the mappedFile and "
+                "multiTramp's saved code buf [%lx %lx], either the code was "
+                "overwritten or there's a bug %s[%d]\n",instAddr_,
+                instAddr_ + instSize_, FILE__, __LINE__);
+        }
+        if (!proc()->writeTextSpace((void *)instAddr_,
+                                    instSize_,
+                                    objPtr))
+            return false;
+    } 
+    else {
     if (!proc()->writeTextSpace((void *)instAddr_,
                                 instSize_,
                                 savedCodeBuf_))
         return false;
+    }
     return true;
 }
 
@@ -1427,7 +1441,16 @@ Address multiTramp::instToUninstAddr(Address addr) {
         if (insn && 
             (addr >= insn->relocAddr()) &&
             (addr < insn->relocAddr() + insn->get_size()))
-            return insn->fromAddr_;
+        {
+            // in exploratory mode, the function relocation may
+            // have been invalidated due to new code discovery;
+            // we may have to return the origAddr instead
+            if (proc()->findBasicBlockByAddr(insn->fromAddr_)) {
+                return insn->fromAddr_;
+            } else {
+                return insn->origAddr_;
+            }
+        }
         if (ri && 
             (addr >= ri->get_address()) &&
             (addr < ri->get_address() + ri->get_size()))
@@ -1452,7 +1475,14 @@ Address multiTramp::instToUninstAddr(Address addr) {
             fprintf(stderr, "Looking for 0x%lx\n", addr);
             fprintf(stderr, "multiTramp %p reports being 0x%lx to 0x%lx, from 0x%lx to 0x%lx in orig func\n",
                     this, trampAddr_, trampAddr_ + trampSize_, instAddr_, instAddr_ + instSize_);
-            assert(0);
+            if ( !func()->obj()->isExploratoryModeOn() ) {
+                assert(0);
+            } else {
+                // this can happen when a multitramp is marked as active 
+                // and the isntrumentation has been removed
+                // assert(0);
+                return point->addr();
+            }
         }
         if (end) {
             // Ah hell. 
@@ -1810,6 +1840,17 @@ bool multiTramp::replaceMultiTramp(multiTramp *oldMulti,
         if (!res) return false;
     }
     if (oldMulti->linked()) {
+
+        // record info about the multi that we're stomping, if there is one
+        if ( newMulti->previousInsnAddrs_ && 
+             newMulti->previousInsnAddrs_->size() ) {
+            oldMulti->stompMulti_ = newMulti;
+            if (oldMulti->isActive_) {
+                newMulti->setIsActive(true);
+                newMulti->proc()->proc()->addActiveMulti(newMulti);
+            }
+        }
+
         res = newMulti->linkCode();
         if (!res) return false;
     }
@@ -1903,6 +1944,7 @@ generatedCodeObject *generatedCFG_t::fork_int(const generatedCodeObject *parObj,
         assert(!ri);
         assert(!repI);
         childObj = new trampEnd(te, childMulti, child);
+        childMulti->setTrampEnd(*(trampEnd*) childObj);
     } 
     else if (ri) {
         assert(!bti);
@@ -2017,6 +2059,8 @@ generatedCodeObject *multiTramp::replaceCode(generatedCodeObject *newParent) {
     // and savedCodeBuf_ we want to take
     newMulti->savedCodeBuf_ = savedCodeBuf_;
     savedCodeBuf_ = NULL;
+
+    partlyGone_ = true; // multi is being unlinked and replaced
 
     // And final checking
     assert(newMulti->func_);
@@ -2133,8 +2177,9 @@ trampEnd::trampEnd(const trampEnd *parEnd,
 generatedCodeObject *trampEnd::replaceCode(generatedCodeObject *obj) {
     multiTramp *newMulti = dynamic_cast<multiTramp *>(obj);
     assert(newMulti);
-   
-    return new trampEnd(newMulti, target_);
+    trampEnd *newTE = new trampEnd(newMulti, target_);
+    newMulti->setTrampEnd(*newTE);
+    return newTE;
 }
 
 std::string generatedCodeObject::getTypeString() const
@@ -2428,15 +2473,9 @@ bool multiTramp::catchupRequired(Address pc, miniTramp *newMT,
     return false;
 }
 
-#if defined (arch_ia64)
-bool relocatedInstruction::generateCode(codeGen &gen,
-                                        Address baseInMutatee,
-                                        UNW_INFO_TYPE ** unwindInformation ) 
-#else
 bool relocatedInstruction::generateCode(codeGen &gen,
                                         Address baseInMutatee,
                                         UNW_INFO_TYPE ** /* unwindInformation*/ ) 
-#endif
 {
   if( ! alreadyGenerated(gen, baseInMutatee) ) {
     generateSetup(gen, baseInMutatee);
@@ -2452,7 +2491,8 @@ bool relocatedInstruction::generateCode(codeGen &gen,
        target = targetOverride_;
     }
 
-    if (!insn->generate(gen,
+    if (!insnCodeGen::generate(gen,
+                        *insn,
                         multiT->proc(),
                         origAddr_,
                         addrInMutatee_,
@@ -2472,11 +2512,11 @@ bool relocatedInstruction::generateCode(codeGen &gen,
     if (insn->isDCTI()) {
       if (ds_insn) {
         inst_printf("... copying delay slot\n");
-	    ds_insn->generate(gen);
+        insnCodeGen::generate(gen,*ds_insn);
       }
       if (agg_insn) {
         inst_printf("... copying aggregate\n");
-	    agg_insn->generate(gen);
+        insnCodeGen::generate(gen,*agg_insn);
       }
     }
 #endif
@@ -2536,13 +2576,13 @@ bool multiTramp::fillJumpBuf(codeGen &gen) {
                // map onto a real instruction
                proc()->trapMapping.addTrapMapping(origAddr, addrInMulti, false);
             }
-            instruction::generateTrap(gen);
+            insnCodeGen::generateTrap(gen);
         }
     }
     else {
         // Don't want to use traps, but we still need to fill
         // this up. So instead we use noops. 
-        instruction::generateNOOP(gen, instSize() - gen.used());
+        insnCodeGen::generateNOOP(gen, instSize() - gen.used());
     }
     return true;
 }
@@ -2578,7 +2618,7 @@ bool multiTramp::generateBranchToTramp(codeGen &gen)
         return true;
     }
 #endif
-    instruction::generateBranch(gen, instAddr_, trampAddr_);
+    insnCodeGen::generateBranch(gen, instAddr_, trampAddr_);
 
     branchSize_ = gen.used() - origUsed;
 
@@ -2594,7 +2634,7 @@ bool multiTramp::generateTrapToTramp(codeGen &gen) {
     // as "finished" address... so use that one (not instAddr_)
     proc()->trapMapping.addTrapMapping(gen.currAddr(instAddr_), trampAddr_, true);
     unsigned start = gen.used();
-    instruction::generateTrap(gen);
+    insnCodeGen::generateTrap(gen);
     branchSize_ = gen.used() - start;
 
     usedTrap_ = true;
@@ -2697,4 +2737,60 @@ generatedCodeObject *generatedCodeObject::nextObj()
    if (fallthrough_)
       return fallthrough_;
    return target_;
+}
+
+void trampEnd::changeTarget(Address newTarg) 
+{ 
+    target_ = newTarg; 
+}
+
+void multiTramp::setTrampEnd(trampEnd &newTramp)
+{
+    trampEnd_ = &newTramp;
+}
+
+
+void multiTramp::updateTrampEnd(instPoint *point)
+{
+    int_basicBlock * fallThroughB = point->block()->getFallthrough();
+    if ( ! fallThroughB ) {
+        return; // don't need to make any changes
+    }
+    assert( trampEnd_ ); // should exist if there's a fallthroughBlock
+
+    Address endTarget = trampEnd_->target(); // current target
+
+    // figure out the right target
+    bblInstance * fallThroughBBI = fallThroughB->instVer( 
+        fallThroughB->numInstances() -1 );
+    if ( endTarget == fallThroughBBI->firstInsnAddr() ) {
+        return; // no changes necessary
+    }
+    mal_printf("%s[%d] trampEnd at %lx in multi [%lx %lx]: target is %lx will "
+            "point it to block originally at %lx"
+            ", but now at %lx\n", FILE__,__LINE__,trampEnd_->get_address(), 
+            addrInMutatee_, 
+            addrInMutatee_ + get_size(), endTarget, 
+            fallThroughB->origInstance()->firstInsnAddr(), 
+            fallThroughBBI->firstInsnAddr() );
+
+    // trigger new code generation just for the trampEnd
+    trampEnd_->changeTarget( fallThroughBBI->firstInsnAddr() );
+    codeGen endGen(getAddress() + get_size() - trampEnd_->get_address());
+    trampEnd_->generateCode(endGen, trampEnd_->get_address(), NULL);
+    assert ( endGen.used() <= trampEnd_->get_size() );
+
+    // copy the newly generated code to the mutatee
+    proc()->writeTextSpace((void*)trampEnd_->get_address(), 
+                            trampEnd_->get_size(), 
+                            endGen.start_ptr());
+}
+
+void multiTramp::setIsActive(bool value) 
+{ 
+    if (value != isActive_) {
+        mal_printf("changing isactive to %d for multiTramp %lx [%lx %lx]\n",
+                value, instAddr_, trampAddr_, trampAddr_+trampSize_);
+    }
+    isActive_ = value; 
 }

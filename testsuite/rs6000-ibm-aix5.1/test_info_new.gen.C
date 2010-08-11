@@ -418,8 +418,18 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
+  rg = new RunGroup("test_mem_2.mutatee_solo_dynamic_gcc_32_none", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "gcc", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_2", "test_mem_2", "test_mem_2.so", false, "{test: test_mem_2, mutator: test_mem_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_2, mutatorstart: local, optimization: none, mutateestart: local, compiler: gcc, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
   rg = new RunGroup("test_mem_2.mutatee_solo_dynamic_gcc_32_low", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "gcc", "low", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_2", "test_mem_2", "test_mem_2.so", false, "{test: test_mem_2, mutator: test_mem_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_2, mutatorstart: local, optimization: low, mutateestart: local, compiler: gcc, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_mem_2.mutatee_solo_dynamic_gcc_32_low", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "gcc", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_2", "test_mem_2", "test_mem_2.so", false, "{test: test_mem_2, mutator: test_mem_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_2, mutatorstart: local, optimization: low, mutateestart: local, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -428,14 +438,31 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
+  rg = new RunGroup("test_mem_2.mutatee_solo_dynamic_gcc_32_high", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "gcc", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_2", "test_mem_2", "test_mem_2.so", false, "{test: test_mem_2, mutator: test_mem_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_2, mutatorstart: local, optimization: high, mutateestart: local, compiler: gcc, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
   rg = new RunGroup("test_mem_2.mutatee_solo_dynamic_gcc_32_max", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "gcc", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_2", "test_mem_2", "test_mem_2.so", false, "{test: test_mem_2, mutator: test_mem_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_2, mutatorstart: local, optimization: max, mutateestart: local, compiler: gcc, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_mem_2.mutatee_solo_dynamic_gcc_32_max", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "gcc", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_2", "test_mem_2", "test_mem_2.so", false, "{test: test_mem_2, mutator: test_mem_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_2, mutatorstart: local, optimization: max, mutateestart: local, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_2.mutatee_solo_dynamic_xlc_32_none", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_2", "test_mem_2", "test_mem_2.so", false, "{test: test_mem_2, mutator: test_mem_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_2, mutatorstart: local, optimization: none, mutateestart: local, compiler: xlc, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_mem_2.mutatee_solo_dynamic_xlc_32_none", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlc", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_2", "test_mem_2", "test_mem_2.so", false, "{test: test_mem_2, mutator: test_mem_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_2, mutatorstart: local, optimization: none, mutateestart: local, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -448,8 +475,22 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 #endif // defined(XLC)
 #ifdef XLC
   test_count = 0;
+  rg = new RunGroup("test_mem_2.mutatee_solo_dynamic_xlc_32_low", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlc", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_2", "test_mem_2", "test_mem_2.so", false, "{test: test_mem_2, mutator: test_mem_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_2, mutatorstart: local, optimization: low, mutateestart: local, compiler: xlc, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
   rg = new RunGroup("test_mem_2.mutatee_solo_dynamic_xlc_32_high", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_2", "test_mem_2", "test_mem_2.so", false, "{test: test_mem_2, mutator: test_mem_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_2, mutatorstart: local, optimization: high, mutateestart: local, compiler: xlc, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_mem_2.mutatee_solo_dynamic_xlc_32_high", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlc", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_2", "test_mem_2", "test_mem_2.so", false, "{test: test_mem_2, mutator: test_mem_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_2, mutatorstart: local, optimization: high, mutateestart: local, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -460,9 +501,21 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_mem_2.mutatee_solo_dynamic_xlc_32_max", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlc", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_2", "test_mem_2", "test_mem_2.so", false, "{test: test_mem_2, mutator: test_mem_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_2, mutatorstart: local, optimization: max, mutateestart: local, compiler: xlc, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_mem_2.mutatee_solo_dynamic_g++_32_none", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_2", "test_mem_2", "test_mem_2.so", false, "{test: test_mem_2, mutator: test_mem_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_2, mutatorstart: local, optimization: none, mutateestart: local, compiler: g++, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_mem_2.mutatee_solo_dynamic_g++_32_none", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "g++", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_2", "test_mem_2", "test_mem_2.so", false, "{test: test_mem_2, mutator: test_mem_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_2, mutatorstart: local, optimization: none, mutateestart: local, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -471,8 +524,18 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
+  rg = new RunGroup("test_mem_2.mutatee_solo_dynamic_g++_32_low", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "g++", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_2", "test_mem_2", "test_mem_2.so", false, "{test: test_mem_2, mutator: test_mem_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_2, mutatorstart: local, optimization: low, mutateestart: local, compiler: g++, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
   rg = new RunGroup("test_mem_2.mutatee_solo_dynamic_g++_32_high", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "g++", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_2", "test_mem_2", "test_mem_2.so", false, "{test: test_mem_2, mutator: test_mem_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_2, mutatorstart: local, optimization: high, mutateestart: local, compiler: g++, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_mem_2.mutatee_solo_dynamic_g++_32_high", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "g++", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_2", "test_mem_2", "test_mem_2.so", false, "{test: test_mem_2, mutator: test_mem_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_2, mutatorstart: local, optimization: high, mutateestart: local, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -480,10 +543,22 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_2", "test_mem_2", "test_mem_2.so", false, "{test: test_mem_2, mutator: test_mem_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_2, mutatorstart: local, optimization: max, mutateestart: local, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_mem_2.mutatee_solo_dynamic_g++_32_max", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "g++", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_2", "test_mem_2", "test_mem_2.so", false, "{test: test_mem_2, mutator: test_mem_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_2, mutatorstart: local, optimization: max, mutateestart: local, compiler: g++, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
 #ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_2.mutatee_solo_dynamic_xlC_32_none", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_2", "test_mem_2", "test_mem_2.so", false, "{test: test_mem_2, mutator: test_mem_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_2, mutatorstart: local, optimization: none, mutateestart: local, compiler: xlC, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_mem_2.mutatee_solo_dynamic_xlC_32_none", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlC", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_2", "test_mem_2", "test_mem_2.so", false, "{test: test_mem_2, mutator: test_mem_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_2, mutatorstart: local, optimization: none, mutateestart: local, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -496,8 +571,22 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 #endif // defined(XLC)
 #ifdef XLC
   test_count = 0;
+  rg = new RunGroup("test_mem_2.mutatee_solo_dynamic_xlC_32_low", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlC", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_2", "test_mem_2", "test_mem_2.so", false, "{test: test_mem_2, mutator: test_mem_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_2, mutatorstart: local, optimization: low, mutateestart: local, compiler: xlC, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
   rg = new RunGroup("test_mem_2.mutatee_solo_dynamic_xlC_32_high", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_2", "test_mem_2", "test_mem_2.so", false, "{test: test_mem_2, mutator: test_mem_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_2, mutatorstart: local, optimization: high, mutateestart: local, compiler: xlC, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_mem_2.mutatee_solo_dynamic_xlC_32_high", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlC", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_2", "test_mem_2", "test_mem_2.so", false, "{test: test_mem_2, mutator: test_mem_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_2, mutatorstart: local, optimization: high, mutateestart: local, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -508,9 +597,21 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_mem_2.mutatee_solo_dynamic_xlC_32_max", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlC", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_2", "test_mem_2", "test_mem_2.so", false, "{test: test_mem_2, mutator: test_mem_2, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_2, mutatorstart: local, optimization: max, mutateestart: local, compiler: xlC, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_mem_3.mutatee_solo_dynamic_gcc_32_none", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_3", "test_mem_3", "test_mem_3.so", false, "{test: test_mem_3, mutator: test_mem_3, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_3, mutatorstart: local, optimization: none, mutateestart: local, compiler: gcc, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_mem_3.mutatee_solo_dynamic_gcc_32_none", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "gcc", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_3", "test_mem_3", "test_mem_3.so", false, "{test: test_mem_3, mutator: test_mem_3, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_3, mutatorstart: local, optimization: none, mutateestart: local, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -519,8 +620,18 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
+  rg = new RunGroup("test_mem_3.mutatee_solo_dynamic_gcc_32_low", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "gcc", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_3", "test_mem_3", "test_mem_3.so", false, "{test: test_mem_3, mutator: test_mem_3, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_3, mutatorstart: local, optimization: low, mutateestart: local, compiler: gcc, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
   rg = new RunGroup("test_mem_3.mutatee_solo_dynamic_gcc_32_high", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "gcc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_3", "test_mem_3", "test_mem_3.so", false, "{test: test_mem_3, mutator: test_mem_3, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_3, mutatorstart: local, optimization: high, mutateestart: local, compiler: gcc, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_mem_3.mutatee_solo_dynamic_gcc_32_high", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "gcc", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_3", "test_mem_3", "test_mem_3.so", false, "{test: test_mem_3, mutator: test_mem_3, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_3, mutatorstart: local, optimization: high, mutateestart: local, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -528,10 +639,22 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_3", "test_mem_3", "test_mem_3.so", false, "{test: test_mem_3, mutator: test_mem_3, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_3, mutatorstart: local, optimization: max, mutateestart: local, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_mem_3.mutatee_solo_dynamic_gcc_32_max", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "gcc", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_3", "test_mem_3", "test_mem_3.so", false, "{test: test_mem_3, mutator: test_mem_3, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_3, mutatorstart: local, optimization: max, mutateestart: local, compiler: gcc, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
 #ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_3.mutatee_solo_dynamic_xlc_32_none", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_3", "test_mem_3", "test_mem_3.so", false, "{test: test_mem_3, mutator: test_mem_3, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_3, mutatorstart: local, optimization: none, mutateestart: local, compiler: xlc, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_mem_3.mutatee_solo_dynamic_xlc_32_none", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlc", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_3", "test_mem_3", "test_mem_3.so", false, "{test: test_mem_3, mutator: test_mem_3, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_3, mutatorstart: local, optimization: none, mutateestart: local, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -544,8 +667,22 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 #endif // defined(XLC)
 #ifdef XLC
   test_count = 0;
+  rg = new RunGroup("test_mem_3.mutatee_solo_dynamic_xlc_32_low", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlc", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_3", "test_mem_3", "test_mem_3.so", false, "{test: test_mem_3, mutator: test_mem_3, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_3, mutatorstart: local, optimization: low, mutateestart: local, compiler: xlc, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
   rg = new RunGroup("test_mem_3.mutatee_solo_dynamic_xlc_32_high", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_3", "test_mem_3", "test_mem_3.so", false, "{test: test_mem_3, mutator: test_mem_3, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_3, mutatorstart: local, optimization: high, mutateestart: local, compiler: xlc, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_mem_3.mutatee_solo_dynamic_xlc_32_high", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlc", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_3", "test_mem_3", "test_mem_3.so", false, "{test: test_mem_3, mutator: test_mem_3, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_3, mutatorstart: local, optimization: high, mutateestart: local, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -556,9 +693,21 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_mem_3.mutatee_solo_dynamic_xlc_32_max", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlc", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_3", "test_mem_3", "test_mem_3.so", false, "{test: test_mem_3, mutator: test_mem_3, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_3, mutatorstart: local, optimization: max, mutateestart: local, compiler: xlc, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_mem_3.mutatee_solo_dynamic_g++_32_none", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_3", "test_mem_3", "test_mem_3.so", false, "{test: test_mem_3, mutator: test_mem_3, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_3, mutatorstart: local, optimization: none, mutateestart: local, compiler: g++, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_mem_3.mutatee_solo_dynamic_g++_32_none", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "g++", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_3", "test_mem_3", "test_mem_3.so", false, "{test: test_mem_3, mutator: test_mem_3, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_3, mutatorstart: local, optimization: none, mutateestart: local, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -567,8 +716,18 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
+  rg = new RunGroup("test_mem_3.mutatee_solo_dynamic_g++_32_low", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "g++", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_3", "test_mem_3", "test_mem_3.so", false, "{test: test_mem_3, mutator: test_mem_3, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_3, mutatorstart: local, optimization: low, mutateestart: local, compiler: g++, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
   rg = new RunGroup("test_mem_3.mutatee_solo_dynamic_g++_32_high", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "g++", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_3", "test_mem_3", "test_mem_3.so", false, "{test: test_mem_3, mutator: test_mem_3, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_3, mutatorstart: local, optimization: high, mutateestart: local, compiler: g++, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_mem_3.mutatee_solo_dynamic_g++_32_high", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "g++", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_3", "test_mem_3", "test_mem_3.so", false, "{test: test_mem_3, mutator: test_mem_3, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_3, mutatorstart: local, optimization: high, mutateestart: local, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -576,10 +735,22 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_3", "test_mem_3", "test_mem_3.so", false, "{test: test_mem_3, mutator: test_mem_3, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_3, mutatorstart: local, optimization: max, mutateestart: local, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_mem_3.mutatee_solo_dynamic_g++_32_max", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "g++", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_3", "test_mem_3", "test_mem_3.so", false, "{test: test_mem_3, mutator: test_mem_3, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_3, mutatorstart: local, optimization: max, mutateestart: local, compiler: g++, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
 #ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_3.mutatee_solo_dynamic_xlC_32_none", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_3", "test_mem_3", "test_mem_3.so", false, "{test: test_mem_3, mutator: test_mem_3, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_3, mutatorstart: local, optimization: none, mutateestart: local, compiler: xlC, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_mem_3.mutatee_solo_dynamic_xlC_32_none", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlC", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_3", "test_mem_3", "test_mem_3.so", false, "{test: test_mem_3, mutator: test_mem_3, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_3, mutatorstart: local, optimization: none, mutateestart: local, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -592,8 +763,22 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 #endif // defined(XLC)
 #ifdef XLC
   test_count = 0;
+  rg = new RunGroup("test_mem_3.mutatee_solo_dynamic_xlC_32_low", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlC", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_3", "test_mem_3", "test_mem_3.so", false, "{test: test_mem_3, mutator: test_mem_3, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_3, mutatorstart: local, optimization: low, mutateestart: local, compiler: xlC, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
   rg = new RunGroup("test_mem_3.mutatee_solo_dynamic_xlC_32_high", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_3", "test_mem_3", "test_mem_3.so", false, "{test: test_mem_3, mutator: test_mem_3, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_3, mutatorstart: local, optimization: high, mutateestart: local, compiler: xlC, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_mem_3.mutatee_solo_dynamic_xlC_32_high", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlC", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_3", "test_mem_3", "test_mem_3.so", false, "{test: test_mem_3, mutator: test_mem_3, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_3, mutatorstart: local, optimization: high, mutateestart: local, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -604,9 +789,21 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_mem_3.mutatee_solo_dynamic_xlC_32_max", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlC", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_3", "test_mem_3", "test_mem_3.so", false, "{test: test_mem_3, mutator: test_mem_3, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_3, mutatorstart: local, optimization: max, mutateestart: local, compiler: xlC, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_mem_4.mutatee_solo_dynamic_gcc_32_none", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_4", "test_mem_4", "test_mem_4.so", false, "{test: test_mem_4, mutator: test_mem_4, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_4, mutatorstart: local, optimization: none, mutateestart: local, compiler: gcc, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_mem_4.mutatee_solo_dynamic_gcc_32_none", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "gcc", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_4", "test_mem_4", "test_mem_4.so", false, "{test: test_mem_4, mutator: test_mem_4, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_4, mutatorstart: local, optimization: none, mutateestart: local, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -615,8 +812,18 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
+  rg = new RunGroup("test_mem_4.mutatee_solo_dynamic_gcc_32_low", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "gcc", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_4", "test_mem_4", "test_mem_4.so", false, "{test: test_mem_4, mutator: test_mem_4, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_4, mutatorstart: local, optimization: low, mutateestart: local, compiler: gcc, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
   rg = new RunGroup("test_mem_4.mutatee_solo_dynamic_gcc_32_high", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "gcc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_4", "test_mem_4", "test_mem_4.so", false, "{test: test_mem_4, mutator: test_mem_4, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_4, mutatorstart: local, optimization: high, mutateestart: local, compiler: gcc, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_mem_4.mutatee_solo_dynamic_gcc_32_high", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "gcc", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_4", "test_mem_4", "test_mem_4.so", false, "{test: test_mem_4, mutator: test_mem_4, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_4, mutatorstart: local, optimization: high, mutateestart: local, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -624,10 +831,22 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_4", "test_mem_4", "test_mem_4.so", false, "{test: test_mem_4, mutator: test_mem_4, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_4, mutatorstart: local, optimization: max, mutateestart: local, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_mem_4.mutatee_solo_dynamic_gcc_32_max", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "gcc", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_4", "test_mem_4", "test_mem_4.so", false, "{test: test_mem_4, mutator: test_mem_4, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_4, mutatorstart: local, optimization: max, mutateestart: local, compiler: gcc, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
 #ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_4.mutatee_solo_dynamic_xlc_32_none", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_4", "test_mem_4", "test_mem_4.so", false, "{test: test_mem_4, mutator: test_mem_4, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_4, mutatorstart: local, optimization: none, mutateestart: local, compiler: xlc, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_mem_4.mutatee_solo_dynamic_xlc_32_none", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlc", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_4", "test_mem_4", "test_mem_4.so", false, "{test: test_mem_4, mutator: test_mem_4, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_4, mutatorstart: local, optimization: none, mutateestart: local, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -640,8 +859,22 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 #endif // defined(XLC)
 #ifdef XLC
   test_count = 0;
+  rg = new RunGroup("test_mem_4.mutatee_solo_dynamic_xlc_32_low", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlc", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_4", "test_mem_4", "test_mem_4.so", false, "{test: test_mem_4, mutator: test_mem_4, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_4, mutatorstart: local, optimization: low, mutateestart: local, compiler: xlc, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
   rg = new RunGroup("test_mem_4.mutatee_solo_dynamic_xlc_32_high", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_4", "test_mem_4", "test_mem_4.so", false, "{test: test_mem_4, mutator: test_mem_4, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_4, mutatorstart: local, optimization: high, mutateestart: local, compiler: xlc, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_mem_4.mutatee_solo_dynamic_xlc_32_high", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlc", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_4", "test_mem_4", "test_mem_4.so", false, "{test: test_mem_4, mutator: test_mem_4, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_4, mutatorstart: local, optimization: high, mutateestart: local, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -652,9 +885,21 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_mem_4.mutatee_solo_dynamic_xlc_32_max", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlc", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_4", "test_mem_4", "test_mem_4.so", false, "{test: test_mem_4, mutator: test_mem_4, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_4, mutatorstart: local, optimization: max, mutateestart: local, compiler: xlc, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_mem_4.mutatee_solo_dynamic_g++_32_none", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_4", "test_mem_4", "test_mem_4.so", false, "{test: test_mem_4, mutator: test_mem_4, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_4, mutatorstart: local, optimization: none, mutateestart: local, compiler: g++, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_mem_4.mutatee_solo_dynamic_g++_32_none", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "g++", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_4", "test_mem_4", "test_mem_4.so", false, "{test: test_mem_4, mutator: test_mem_4, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_4, mutatorstart: local, optimization: none, mutateestart: local, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -663,8 +908,18 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
+  rg = new RunGroup("test_mem_4.mutatee_solo_dynamic_g++_32_low", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "g++", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_4", "test_mem_4", "test_mem_4.so", false, "{test: test_mem_4, mutator: test_mem_4, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_4, mutatorstart: local, optimization: low, mutateestart: local, compiler: g++, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
   rg = new RunGroup("test_mem_4.mutatee_solo_dynamic_g++_32_high", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "g++", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_4", "test_mem_4", "test_mem_4.so", false, "{test: test_mem_4, mutator: test_mem_4, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_4, mutatorstart: local, optimization: high, mutateestart: local, compiler: g++, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_mem_4.mutatee_solo_dynamic_g++_32_high", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "g++", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_4", "test_mem_4", "test_mem_4.so", false, "{test: test_mem_4, mutator: test_mem_4, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_4, mutatorstart: local, optimization: high, mutateestart: local, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -672,10 +927,22 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_4", "test_mem_4", "test_mem_4.so", false, "{test: test_mem_4, mutator: test_mem_4, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_4, mutatorstart: local, optimization: max, mutateestart: local, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_mem_4.mutatee_solo_dynamic_g++_32_max", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "g++", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_4", "test_mem_4", "test_mem_4.so", false, "{test: test_mem_4, mutator: test_mem_4, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_4, mutatorstart: local, optimization: max, mutateestart: local, compiler: g++, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
 #ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_4.mutatee_solo_dynamic_xlC_32_none", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_4", "test_mem_4", "test_mem_4.so", false, "{test: test_mem_4, mutator: test_mem_4, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_4, mutatorstart: local, optimization: none, mutateestart: local, compiler: xlC, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_mem_4.mutatee_solo_dynamic_xlC_32_none", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlC", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_4", "test_mem_4", "test_mem_4.so", false, "{test: test_mem_4, mutator: test_mem_4, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_4, mutatorstart: local, optimization: none, mutateestart: local, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -688,8 +955,22 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 #endif // defined(XLC)
 #ifdef XLC
   test_count = 0;
+  rg = new RunGroup("test_mem_4.mutatee_solo_dynamic_xlC_32_low", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlC", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_4", "test_mem_4", "test_mem_4.so", false, "{test: test_mem_4, mutator: test_mem_4, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_4, mutatorstart: local, optimization: low, mutateestart: local, compiler: xlC, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
   rg = new RunGroup("test_mem_4.mutatee_solo_dynamic_xlC_32_high", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_4", "test_mem_4", "test_mem_4.so", false, "{test: test_mem_4, mutator: test_mem_4, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_4, mutatorstart: local, optimization: high, mutateestart: local, compiler: xlC, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_mem_4.mutatee_solo_dynamic_xlC_32_high", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlC", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_4", "test_mem_4", "test_mem_4.so", false, "{test: test_mem_4, mutator: test_mem_4, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_4, mutatorstart: local, optimization: high, mutateestart: local, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -700,9 +981,21 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_mem_4.mutatee_solo_dynamic_xlC_32_max", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlC", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_4", "test_mem_4", "test_mem_4.so", false, "{test: test_mem_4, mutator: test_mem_4, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_4, mutatorstart: local, optimization: max, mutateestart: local, compiler: xlC, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_mem_5.mutatee_solo_dynamic_gcc_32_none", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_5", "test_mem_5", "test_mem_5.so", false, "{test: test_mem_5, mutator: test_mem_5, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_5, mutatorstart: local, optimization: none, mutateestart: local, compiler: gcc, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_mem_5.mutatee_solo_dynamic_gcc_32_none", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "gcc", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_5", "test_mem_5", "test_mem_5.so", false, "{test: test_mem_5, mutator: test_mem_5, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_5, mutatorstart: local, optimization: none, mutateestart: local, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -711,8 +1004,18 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
+  rg = new RunGroup("test_mem_5.mutatee_solo_dynamic_gcc_32_low", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "gcc", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_5", "test_mem_5", "test_mem_5.so", false, "{test: test_mem_5, mutator: test_mem_5, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_5, mutatorstart: local, optimization: low, mutateestart: local, compiler: gcc, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
   rg = new RunGroup("test_mem_5.mutatee_solo_dynamic_gcc_32_high", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "gcc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_5", "test_mem_5", "test_mem_5.so", false, "{test: test_mem_5, mutator: test_mem_5, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_5, mutatorstart: local, optimization: high, mutateestart: local, compiler: gcc, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_mem_5.mutatee_solo_dynamic_gcc_32_high", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "gcc", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_5", "test_mem_5", "test_mem_5.so", false, "{test: test_mem_5, mutator: test_mem_5, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_5, mutatorstart: local, optimization: high, mutateestart: local, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -720,10 +1023,22 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_5", "test_mem_5", "test_mem_5.so", false, "{test: test_mem_5, mutator: test_mem_5, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_5, mutatorstart: local, optimization: max, mutateestart: local, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_mem_5.mutatee_solo_dynamic_gcc_32_max", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "gcc", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_5", "test_mem_5", "test_mem_5.so", false, "{test: test_mem_5, mutator: test_mem_5, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_5, mutatorstart: local, optimization: max, mutateestart: local, compiler: gcc, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
 #ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_5.mutatee_solo_dynamic_xlc_32_none", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_5", "test_mem_5", "test_mem_5.so", false, "{test: test_mem_5, mutator: test_mem_5, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_5, mutatorstart: local, optimization: none, mutateestart: local, compiler: xlc, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_mem_5.mutatee_solo_dynamic_xlc_32_none", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlc", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_5", "test_mem_5", "test_mem_5.so", false, "{test: test_mem_5, mutator: test_mem_5, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_5, mutatorstart: local, optimization: none, mutateestart: local, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -736,8 +1051,22 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 #endif // defined(XLC)
 #ifdef XLC
   test_count = 0;
+  rg = new RunGroup("test_mem_5.mutatee_solo_dynamic_xlc_32_low", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlc", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_5", "test_mem_5", "test_mem_5.so", false, "{test: test_mem_5, mutator: test_mem_5, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_5, mutatorstart: local, optimization: low, mutateestart: local, compiler: xlc, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
   rg = new RunGroup("test_mem_5.mutatee_solo_dynamic_xlc_32_high", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_5", "test_mem_5", "test_mem_5.so", false, "{test: test_mem_5, mutator: test_mem_5, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_5, mutatorstart: local, optimization: high, mutateestart: local, compiler: xlc, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_mem_5.mutatee_solo_dynamic_xlc_32_high", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlc", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_5", "test_mem_5", "test_mem_5.so", false, "{test: test_mem_5, mutator: test_mem_5, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_5, mutatorstart: local, optimization: high, mutateestart: local, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -748,9 +1077,21 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_mem_5.mutatee_solo_dynamic_xlc_32_max", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlc", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_5", "test_mem_5", "test_mem_5.so", false, "{test: test_mem_5, mutator: test_mem_5, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_5, mutatorstart: local, optimization: max, mutateestart: local, compiler: xlc, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_mem_5.mutatee_solo_dynamic_g++_32_none", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_5", "test_mem_5", "test_mem_5.so", false, "{test: test_mem_5, mutator: test_mem_5, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_5, mutatorstart: local, optimization: none, mutateestart: local, compiler: g++, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_mem_5.mutatee_solo_dynamic_g++_32_none", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "g++", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_5", "test_mem_5", "test_mem_5.so", false, "{test: test_mem_5, mutator: test_mem_5, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_5, mutatorstart: local, optimization: none, mutateestart: local, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -759,8 +1100,18 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
+  rg = new RunGroup("test_mem_5.mutatee_solo_dynamic_g++_32_low", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "g++", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_5", "test_mem_5", "test_mem_5.so", false, "{test: test_mem_5, mutator: test_mem_5, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_5, mutatorstart: local, optimization: low, mutateestart: local, compiler: g++, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
   rg = new RunGroup("test_mem_5.mutatee_solo_dynamic_g++_32_high", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "g++", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_5", "test_mem_5", "test_mem_5.so", false, "{test: test_mem_5, mutator: test_mem_5, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_5, mutatorstart: local, optimization: high, mutateestart: local, compiler: g++, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_mem_5.mutatee_solo_dynamic_g++_32_high", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "g++", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_5", "test_mem_5", "test_mem_5.so", false, "{test: test_mem_5, mutator: test_mem_5, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_5, mutatorstart: local, optimization: high, mutateestart: local, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -768,10 +1119,22 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_5", "test_mem_5", "test_mem_5.so", false, "{test: test_mem_5, mutator: test_mem_5, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_5, mutatorstart: local, optimization: max, mutateestart: local, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_mem_5.mutatee_solo_dynamic_g++_32_max", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "g++", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_5", "test_mem_5", "test_mem_5.so", false, "{test: test_mem_5, mutator: test_mem_5, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_5, mutatorstart: local, optimization: max, mutateestart: local, compiler: g++, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
 #ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_5.mutatee_solo_dynamic_xlC_32_none", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_5", "test_mem_5", "test_mem_5.so", false, "{test: test_mem_5, mutator: test_mem_5, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_5, mutatorstart: local, optimization: none, mutateestart: local, compiler: xlC, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_mem_5.mutatee_solo_dynamic_xlC_32_none", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlC", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_5", "test_mem_5", "test_mem_5.so", false, "{test: test_mem_5, mutator: test_mem_5, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_5, mutatorstart: local, optimization: none, mutateestart: local, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -784,8 +1147,22 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 #endif // defined(XLC)
 #ifdef XLC
   test_count = 0;
+  rg = new RunGroup("test_mem_5.mutatee_solo_dynamic_xlC_32_low", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlC", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_5", "test_mem_5", "test_mem_5.so", false, "{test: test_mem_5, mutator: test_mem_5, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_5, mutatorstart: local, optimization: low, mutateestart: local, compiler: xlC, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
   rg = new RunGroup("test_mem_5.mutatee_solo_dynamic_xlC_32_high", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_5", "test_mem_5", "test_mem_5.so", false, "{test: test_mem_5, mutator: test_mem_5, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_5, mutatorstart: local, optimization: high, mutateestart: local, compiler: xlC, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_mem_5.mutatee_solo_dynamic_xlC_32_high", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlC", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_5", "test_mem_5", "test_mem_5.so", false, "{test: test_mem_5, mutator: test_mem_5, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_5, mutatorstart: local, optimization: high, mutateestart: local, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -796,9 +1173,21 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_mem_5.mutatee_solo_dynamic_xlC_32_max", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlC", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_5", "test_mem_5", "test_mem_5.so", false, "{test: test_mem_5, mutator: test_mem_5, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_5, mutatorstart: local, optimization: max, mutateestart: local, compiler: xlC, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_mem_6.mutatee_solo_dynamic_gcc_32_none", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_6", "test_mem_6", "test_mem_6.so", false, "{test: test_mem_6, mutator: test_mem_6, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_6, mutatorstart: local, optimization: none, mutateestart: local, compiler: gcc, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_mem_6.mutatee_solo_dynamic_gcc_32_none", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "gcc", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_6", "test_mem_6", "test_mem_6.so", false, "{test: test_mem_6, mutator: test_mem_6, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_6, mutatorstart: local, optimization: none, mutateestart: local, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -807,8 +1196,18 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
+  rg = new RunGroup("test_mem_6.mutatee_solo_dynamic_gcc_32_low", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "gcc", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_6", "test_mem_6", "test_mem_6.so", false, "{test: test_mem_6, mutator: test_mem_6, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_6, mutatorstart: local, optimization: low, mutateestart: local, compiler: gcc, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
   rg = new RunGroup("test_mem_6.mutatee_solo_dynamic_gcc_32_high", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "gcc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_6", "test_mem_6", "test_mem_6.so", false, "{test: test_mem_6, mutator: test_mem_6, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_6, mutatorstart: local, optimization: high, mutateestart: local, compiler: gcc, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_mem_6.mutatee_solo_dynamic_gcc_32_high", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "gcc", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_6", "test_mem_6", "test_mem_6.so", false, "{test: test_mem_6, mutator: test_mem_6, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_6, mutatorstart: local, optimization: high, mutateestart: local, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -816,10 +1215,22 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_6", "test_mem_6", "test_mem_6.so", false, "{test: test_mem_6, mutator: test_mem_6, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_6, mutatorstart: local, optimization: max, mutateestart: local, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_mem_6.mutatee_solo_dynamic_gcc_32_max", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "gcc", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_6", "test_mem_6", "test_mem_6.so", false, "{test: test_mem_6, mutator: test_mem_6, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_6, mutatorstart: local, optimization: max, mutateestart: local, compiler: gcc, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
 #ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_6.mutatee_solo_dynamic_xlc_32_none", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_6", "test_mem_6", "test_mem_6.so", false, "{test: test_mem_6, mutator: test_mem_6, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_6, mutatorstart: local, optimization: none, mutateestart: local, compiler: xlc, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_mem_6.mutatee_solo_dynamic_xlc_32_none", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlc", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_6", "test_mem_6", "test_mem_6.so", false, "{test: test_mem_6, mutator: test_mem_6, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_6, mutatorstart: local, optimization: none, mutateestart: local, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -832,8 +1243,22 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 #endif // defined(XLC)
 #ifdef XLC
   test_count = 0;
+  rg = new RunGroup("test_mem_6.mutatee_solo_dynamic_xlc_32_low", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlc", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_6", "test_mem_6", "test_mem_6.so", false, "{test: test_mem_6, mutator: test_mem_6, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_6, mutatorstart: local, optimization: low, mutateestart: local, compiler: xlc, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
   rg = new RunGroup("test_mem_6.mutatee_solo_dynamic_xlc_32_high", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_6", "test_mem_6", "test_mem_6.so", false, "{test: test_mem_6, mutator: test_mem_6, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_6, mutatorstart: local, optimization: high, mutateestart: local, compiler: xlc, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_mem_6.mutatee_solo_dynamic_xlc_32_high", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlc", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_6", "test_mem_6", "test_mem_6.so", false, "{test: test_mem_6, mutator: test_mem_6, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_6, mutatorstart: local, optimization: high, mutateestart: local, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -844,9 +1269,21 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_mem_6.mutatee_solo_dynamic_xlc_32_max", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlc", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_6", "test_mem_6", "test_mem_6.so", false, "{test: test_mem_6, mutator: test_mem_6, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_6, mutatorstart: local, optimization: max, mutateestart: local, compiler: xlc, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_mem_6.mutatee_solo_dynamic_g++_32_none", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_6", "test_mem_6", "test_mem_6.so", false, "{test: test_mem_6, mutator: test_mem_6, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_6, mutatorstart: local, optimization: none, mutateestart: local, compiler: g++, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_mem_6.mutatee_solo_dynamic_g++_32_none", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "g++", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_6", "test_mem_6", "test_mem_6.so", false, "{test: test_mem_6, mutator: test_mem_6, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_6, mutatorstart: local, optimization: none, mutateestart: local, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -855,8 +1292,18 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
+  rg = new RunGroup("test_mem_6.mutatee_solo_dynamic_g++_32_low", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "g++", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_6", "test_mem_6", "test_mem_6.so", false, "{test: test_mem_6, mutator: test_mem_6, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_6, mutatorstart: local, optimization: low, mutateestart: local, compiler: g++, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
   rg = new RunGroup("test_mem_6.mutatee_solo_dynamic_g++_32_high", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "g++", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_6", "test_mem_6", "test_mem_6.so", false, "{test: test_mem_6, mutator: test_mem_6, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_6, mutatorstart: local, optimization: high, mutateestart: local, compiler: g++, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_mem_6.mutatee_solo_dynamic_g++_32_high", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "g++", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_6", "test_mem_6", "test_mem_6.so", false, "{test: test_mem_6, mutator: test_mem_6, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_6, mutatorstart: local, optimization: high, mutateestart: local, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -864,10 +1311,22 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_6", "test_mem_6", "test_mem_6.so", false, "{test: test_mem_6, mutator: test_mem_6, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_6, mutatorstart: local, optimization: max, mutateestart: local, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_mem_6.mutatee_solo_dynamic_g++_32_max", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "g++", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_6", "test_mem_6", "test_mem_6.so", false, "{test: test_mem_6, mutator: test_mem_6, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_6, mutatorstart: local, optimization: max, mutateestart: local, compiler: g++, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
 #ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_6.mutatee_solo_dynamic_xlC_32_none", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_6", "test_mem_6", "test_mem_6.so", false, "{test: test_mem_6, mutator: test_mem_6, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_6, mutatorstart: local, optimization: none, mutateestart: local, compiler: xlC, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_mem_6.mutatee_solo_dynamic_xlC_32_none", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlC", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_6", "test_mem_6", "test_mem_6.so", false, "{test: test_mem_6, mutator: test_mem_6, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_6, mutatorstart: local, optimization: none, mutateestart: local, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -880,8 +1339,22 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 #endif // defined(XLC)
 #ifdef XLC
   test_count = 0;
+  rg = new RunGroup("test_mem_6.mutatee_solo_dynamic_xlC_32_low", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlC", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_6", "test_mem_6", "test_mem_6.so", false, "{test: test_mem_6, mutator: test_mem_6, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_6, mutatorstart: local, optimization: low, mutateestart: local, compiler: xlC, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
   rg = new RunGroup("test_mem_6.mutatee_solo_dynamic_xlC_32_high", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_6", "test_mem_6", "test_mem_6.so", false, "{test: test_mem_6, mutator: test_mem_6, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_6, mutatorstart: local, optimization: high, mutateestart: local, compiler: xlC, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_mem_6.mutatee_solo_dynamic_xlC_32_high", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlC", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_6", "test_mem_6", "test_mem_6.so", false, "{test: test_mem_6, mutator: test_mem_6, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_6, mutatorstart: local, optimization: high, mutateestart: local, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -892,9 +1365,21 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_mem_6.mutatee_solo_dynamic_xlC_32_max", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlC", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_6", "test_mem_6", "test_mem_6.so", false, "{test: test_mem_6, mutator: test_mem_6, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_6, mutatorstart: local, optimization: max, mutateestart: local, compiler: xlC, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_mem_7.mutatee_solo_dynamic_gcc_32_none", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_7", "test_mem_7", "test_mem_7.so", false, "{test: test_mem_7, mutator: test_mem_7, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_7, mutatorstart: local, optimization: none, mutateestart: local, compiler: gcc, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_mem_7.mutatee_solo_dynamic_gcc_32_none", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "gcc", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_7", "test_mem_7", "test_mem_7.so", false, "{test: test_mem_7, mutator: test_mem_7, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_7, mutatorstart: local, optimization: none, mutateestart: local, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -903,8 +1388,18 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
+  rg = new RunGroup("test_mem_7.mutatee_solo_dynamic_gcc_32_low", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "gcc", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_7", "test_mem_7", "test_mem_7.so", false, "{test: test_mem_7, mutator: test_mem_7, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_7, mutatorstart: local, optimization: low, mutateestart: local, compiler: gcc, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
   rg = new RunGroup("test_mem_7.mutatee_solo_dynamic_gcc_32_high", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "gcc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_7", "test_mem_7", "test_mem_7.so", false, "{test: test_mem_7, mutator: test_mem_7, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_7, mutatorstart: local, optimization: high, mutateestart: local, compiler: gcc, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_mem_7.mutatee_solo_dynamic_gcc_32_high", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "gcc", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_7", "test_mem_7", "test_mem_7.so", false, "{test: test_mem_7, mutator: test_mem_7, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_7, mutatorstart: local, optimization: high, mutateestart: local, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -912,10 +1407,22 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_7", "test_mem_7", "test_mem_7.so", false, "{test: test_mem_7, mutator: test_mem_7, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_7, mutatorstart: local, optimization: max, mutateestart: local, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_mem_7.mutatee_solo_dynamic_gcc_32_max", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "gcc", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_7", "test_mem_7", "test_mem_7.so", false, "{test: test_mem_7, mutator: test_mem_7, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_7, mutatorstart: local, optimization: max, mutateestart: local, compiler: gcc, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
 #ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_7.mutatee_solo_dynamic_xlc_32_none", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_7", "test_mem_7", "test_mem_7.so", false, "{test: test_mem_7, mutator: test_mem_7, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_7, mutatorstart: local, optimization: none, mutateestart: local, compiler: xlc, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_mem_7.mutatee_solo_dynamic_xlc_32_none", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlc", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_7", "test_mem_7", "test_mem_7.so", false, "{test: test_mem_7, mutator: test_mem_7, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_7, mutatorstart: local, optimization: none, mutateestart: local, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -928,8 +1435,22 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 #endif // defined(XLC)
 #ifdef XLC
   test_count = 0;
+  rg = new RunGroup("test_mem_7.mutatee_solo_dynamic_xlc_32_low", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlc", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_7", "test_mem_7", "test_mem_7.so", false, "{test: test_mem_7, mutator: test_mem_7, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_7, mutatorstart: local, optimization: low, mutateestart: local, compiler: xlc, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
   rg = new RunGroup("test_mem_7.mutatee_solo_dynamic_xlc_32_high", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_7", "test_mem_7", "test_mem_7.so", false, "{test: test_mem_7, mutator: test_mem_7, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_7, mutatorstart: local, optimization: high, mutateestart: local, compiler: xlc, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_mem_7.mutatee_solo_dynamic_xlc_32_high", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlc", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_7", "test_mem_7", "test_mem_7.so", false, "{test: test_mem_7, mutator: test_mem_7, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_7, mutatorstart: local, optimization: high, mutateestart: local, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -940,9 +1461,21 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_mem_7.mutatee_solo_dynamic_xlc_32_max", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlc", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_7", "test_mem_7", "test_mem_7.so", false, "{test: test_mem_7, mutator: test_mem_7, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_7, mutatorstart: local, optimization: max, mutateestart: local, compiler: xlc, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_mem_7.mutatee_solo_dynamic_g++_32_none", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_7", "test_mem_7", "test_mem_7.so", false, "{test: test_mem_7, mutator: test_mem_7, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_7, mutatorstart: local, optimization: none, mutateestart: local, compiler: g++, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_mem_7.mutatee_solo_dynamic_g++_32_none", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "g++", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_7", "test_mem_7", "test_mem_7.so", false, "{test: test_mem_7, mutator: test_mem_7, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_7, mutatorstart: local, optimization: none, mutateestart: local, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -951,8 +1484,18 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
+  rg = new RunGroup("test_mem_7.mutatee_solo_dynamic_g++_32_low", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "g++", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_7", "test_mem_7", "test_mem_7.so", false, "{test: test_mem_7, mutator: test_mem_7, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_7, mutatorstart: local, optimization: low, mutateestart: local, compiler: g++, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
   rg = new RunGroup("test_mem_7.mutatee_solo_dynamic_g++_32_high", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "g++", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_7", "test_mem_7", "test_mem_7.so", false, "{test: test_mem_7, mutator: test_mem_7, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_7, mutatorstart: local, optimization: high, mutateestart: local, compiler: g++, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_mem_7.mutatee_solo_dynamic_g++_32_high", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "g++", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_7", "test_mem_7", "test_mem_7.so", false, "{test: test_mem_7, mutator: test_mem_7, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_7, mutatorstart: local, optimization: high, mutateestart: local, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -960,10 +1503,22 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_7", "test_mem_7", "test_mem_7.so", false, "{test: test_mem_7, mutator: test_mem_7, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_7, mutatorstart: local, optimization: max, mutateestart: local, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_mem_7.mutatee_solo_dynamic_g++_32_max", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "g++", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_7", "test_mem_7", "test_mem_7.so", false, "{test: test_mem_7, mutator: test_mem_7, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_7, mutatorstart: local, optimization: max, mutateestart: local, compiler: g++, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
 #ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_7.mutatee_solo_dynamic_xlC_32_none", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_7", "test_mem_7", "test_mem_7.so", false, "{test: test_mem_7, mutator: test_mem_7, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_7, mutatorstart: local, optimization: none, mutateestart: local, compiler: xlC, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_mem_7.mutatee_solo_dynamic_xlC_32_none", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlC", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_7", "test_mem_7", "test_mem_7.so", false, "{test: test_mem_7, mutator: test_mem_7, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_7, mutatorstart: local, optimization: none, mutateestart: local, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -976,8 +1531,22 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 #endif // defined(XLC)
 #ifdef XLC
   test_count = 0;
+  rg = new RunGroup("test_mem_7.mutatee_solo_dynamic_xlC_32_low", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlC", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_7", "test_mem_7", "test_mem_7.so", false, "{test: test_mem_7, mutator: test_mem_7, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_7, mutatorstart: local, optimization: low, mutateestart: local, compiler: xlC, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
   rg = new RunGroup("test_mem_7.mutatee_solo_dynamic_xlC_32_high", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_7", "test_mem_7", "test_mem_7.so", false, "{test: test_mem_7, mutator: test_mem_7, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_7, mutatorstart: local, optimization: high, mutateestart: local, compiler: xlC, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_mem_7.mutatee_solo_dynamic_xlC_32_high", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlC", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_7", "test_mem_7", "test_mem_7.so", false, "{test: test_mem_7, mutator: test_mem_7, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_7, mutatorstart: local, optimization: high, mutateestart: local, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -988,9 +1557,21 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_mem_7.mutatee_solo_dynamic_xlC_32_max", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlC", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_7", "test_mem_7", "test_mem_7.so", false, "{test: test_mem_7, mutator: test_mem_7, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_7, mutatorstart: local, optimization: max, mutateestart: local, compiler: xlC, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_mem_8.mutatee_solo_dynamic_gcc_32_none", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "gcc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_8", "test_mem_8", "test_mem_8.so", false, "{test: test_mem_8, mutator: test_mem_8, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_8, mutatorstart: local, optimization: none, mutateestart: local, compiler: gcc, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_mem_8.mutatee_solo_dynamic_gcc_32_none", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "gcc", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_8", "test_mem_8", "test_mem_8.so", false, "{test: test_mem_8, mutator: test_mem_8, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_8, mutatorstart: local, optimization: none, mutateestart: local, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -999,8 +1580,18 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
+  rg = new RunGroup("test_mem_8.mutatee_solo_dynamic_gcc_32_low", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "gcc", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_8", "test_mem_8", "test_mem_8.so", false, "{test: test_mem_8, mutator: test_mem_8, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_8, mutatorstart: local, optimization: low, mutateestart: local, compiler: gcc, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
   rg = new RunGroup("test_mem_8.mutatee_solo_dynamic_gcc_32_high", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "gcc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_8", "test_mem_8", "test_mem_8.so", false, "{test: test_mem_8, mutator: test_mem_8, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_8, mutatorstart: local, optimization: high, mutateestart: local, compiler: gcc, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_mem_8.mutatee_solo_dynamic_gcc_32_high", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "gcc", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_8", "test_mem_8", "test_mem_8.so", false, "{test: test_mem_8, mutator: test_mem_8, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_8, mutatorstart: local, optimization: high, mutateestart: local, compiler: gcc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -1008,10 +1599,22 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_8", "test_mem_8", "test_mem_8.so", false, "{test: test_mem_8, mutator: test_mem_8, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_8, mutatorstart: local, optimization: max, mutateestart: local, compiler: gcc, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_mem_8.mutatee_solo_dynamic_gcc_32_max", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "gcc", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_8", "test_mem_8", "test_mem_8.so", false, "{test: test_mem_8, mutator: test_mem_8, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_8, mutatorstart: local, optimization: max, mutateestart: local, compiler: gcc, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
 #ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_8.mutatee_solo_dynamic_xlc_32_none", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "xlc", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_8", "test_mem_8", "test_mem_8.so", false, "{test: test_mem_8, mutator: test_mem_8, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_8, mutatorstart: local, optimization: none, mutateestart: local, compiler: xlc, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_mem_8.mutatee_solo_dynamic_xlc_32_none", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlc", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_8", "test_mem_8", "test_mem_8.so", false, "{test: test_mem_8, mutator: test_mem_8, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_8, mutatorstart: local, optimization: none, mutateestart: local, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -1024,8 +1627,22 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 #endif // defined(XLC)
 #ifdef XLC
   test_count = 0;
+  rg = new RunGroup("test_mem_8.mutatee_solo_dynamic_xlc_32_low", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlc", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_8", "test_mem_8", "test_mem_8.so", false, "{test: test_mem_8, mutator: test_mem_8, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_8, mutatorstart: local, optimization: low, mutateestart: local, compiler: xlc, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
   rg = new RunGroup("test_mem_8.mutatee_solo_dynamic_xlc_32_high", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "xlc", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_8", "test_mem_8", "test_mem_8.so", false, "{test: test_mem_8, mutator: test_mem_8, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_8, mutatorstart: local, optimization: high, mutateestart: local, compiler: xlc, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_mem_8.mutatee_solo_dynamic_xlc_32_high", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlc", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_8", "test_mem_8", "test_mem_8.so", false, "{test: test_mem_8, mutator: test_mem_8, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_8, mutatorstart: local, optimization: high, mutateestart: local, compiler: xlc, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -1036,9 +1653,21 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_mem_8.mutatee_solo_dynamic_xlc_32_max", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlc", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_8", "test_mem_8", "test_mem_8.so", false, "{test: test_mem_8, mutator: test_mem_8, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_8, mutatorstart: local, optimization: max, mutateestart: local, compiler: xlc, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
   test_count = 0;
   rg = new RunGroup("test_mem_8.mutatee_solo_dynamic_g++_32_none", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "g++", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_8", "test_mem_8", "test_mem_8.so", false, "{test: test_mem_8, mutator: test_mem_8, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_8, mutatorstart: local, optimization: none, mutateestart: local, compiler: g++, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_mem_8.mutatee_solo_dynamic_g++_32_none", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "g++", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_8", "test_mem_8", "test_mem_8.so", false, "{test: test_mem_8, mutator: test_mem_8, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_8, mutatorstart: local, optimization: none, mutateestart: local, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -1047,8 +1676,18 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
+  rg = new RunGroup("test_mem_8.mutatee_solo_dynamic_g++_32_low", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "g++", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_8", "test_mem_8", "test_mem_8.so", false, "{test: test_mem_8, mutator: test_mem_8, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_8, mutatorstart: local, optimization: low, mutateestart: local, compiler: g++, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
   rg = new RunGroup("test_mem_8.mutatee_solo_dynamic_g++_32_high", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "g++", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_8", "test_mem_8", "test_mem_8.so", false, "{test: test_mem_8, mutator: test_mem_8, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_8, mutatorstart: local, optimization: high, mutateestart: local, compiler: g++, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_mem_8.mutatee_solo_dynamic_g++_32_high", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "g++", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_8", "test_mem_8", "test_mem_8.so", false, "{test: test_mem_8, mutator: test_mem_8, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_8, mutatorstart: local, optimization: high, mutateestart: local, compiler: g++, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
   test_count = 0;
@@ -1056,10 +1695,22 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_8", "test_mem_8", "test_mem_8.so", false, "{test: test_mem_8, mutator: test_mem_8, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_8, mutatorstart: local, optimization: max, mutateestart: local, compiler: g++, run_mode: createProcess}"));
   rg->index = group_count++;
   tests.push_back(rg);
+  test_count = 0;
+  rg = new RunGroup("test_mem_8.mutatee_solo_dynamic_g++_32_max", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "g++", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_8", "test_mem_8", "test_mem_8.so", false, "{test: test_mem_8, mutator: test_mem_8, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_8, mutatorstart: local, optimization: max, mutateestart: local, compiler: g++, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
 #ifdef XLC
   test_count = 0;
   rg = new RunGroup("test_mem_8.mutatee_solo_dynamic_xlC_32_none", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "xlC", "none", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_8", "test_mem_8", "test_mem_8.so", false, "{test: test_mem_8, mutator: test_mem_8, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_8, mutatorstart: local, optimization: none, mutateestart: local, compiler: xlC, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_mem_8.mutatee_solo_dynamic_xlC_32_none", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlC", "none", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_8", "test_mem_8", "test_mem_8.so", false, "{test: test_mem_8, mutator: test_mem_8, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_8, mutatorstart: local, optimization: none, mutateestart: local, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)
@@ -1072,6 +1723,13 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 #endif // defined(XLC)
 #ifdef XLC
   test_count = 0;
+  rg = new RunGroup("test_mem_8.mutatee_solo_dynamic_xlC_32_low", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlC", "low", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_8", "test_mem_8", "test_mem_8.so", false, "{test: test_mem_8, mutator: test_mem_8, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_8, mutatorstart: local, optimization: low, mutateestart: local, compiler: xlC, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
   rg = new RunGroup("test_mem_8.mutatee_solo_dynamic_xlC_32_high", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "xlC", "high", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_8", "test_mem_8", "test_mem_8.so", false, "{test: test_mem_8, mutator: test_mem_8, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_8, mutatorstart: local, optimization: high, mutateestart: local, compiler: xlC, run_mode: createProcess}"));
   rg->index = group_count++;
@@ -1079,8 +1737,22 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
 #endif // defined(XLC)
 #ifdef XLC
   test_count = 0;
+  rg = new RunGroup("test_mem_8.mutatee_solo_dynamic_xlC_32_high", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlC", "high", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_8", "test_mem_8", "test_mem_8.so", false, "{test: test_mem_8, mutator: test_mem_8, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_8, mutatorstart: local, optimization: high, mutateestart: local, compiler: xlC, run_mode: useAttach}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
   rg = new RunGroup("test_mem_8.mutatee_solo_dynamic_xlC_32_max", STOPPED, CREATE, TNone, PNone, local, local, no_launch, DynamicLink, false, "dyninst", "xlC", "max", "32");
   rg->tests.push_back(new TestInfo(test_count++, "test_mem_8", "test_mem_8", "test_mem_8.so", false, "{test: test_mem_8, mutator: test_mem_8, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: no_launch, mutatee: test_mem_8, mutatorstart: local, optimization: max, mutateestart: local, compiler: xlC, run_mode: createProcess}"));
+  rg->index = group_count++;
+  tests.push_back(rg);
+#endif // defined(XLC)
+#ifdef XLC
+  test_count = 0;
+  rg = new RunGroup("test_mem_8.mutatee_solo_dynamic_xlC_32_max", STOPPED, USEATTACH, TNone, PNone, local, local, pre, DynamicLink, false, "dyninst", "xlC", "max", "32");
+  rg->tests.push_back(new TestInfo(test_count++, "test_mem_8", "test_mem_8", "test_mem_8.so", false, "{test: test_mem_8, mutator: test_mem_8, grouped: false, start_state: stopped, format: dynamicMutatee, process_mode: None, abi: 32, thread_mode: None, mutateeruntime: pre, mutatee: test_mem_8, mutatorstart: local, optimization: max, mutateestart: local, compiler: xlC, run_mode: useAttach}"));
   rg->index = group_count++;
   tests.push_back(rg);
 #endif // defined(XLC)

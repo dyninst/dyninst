@@ -37,9 +37,8 @@
 #include "dyninstAPI/src/dyn_lwp.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/arch.h"
+#include "common/h/arch.h"
 #include "dyninstAPI/src/inst-power.h"
-#include "dyninstAPI/src/InstrucIter.h"
 #include "dyninstAPI/src/miniTramp.h"
 #include "common/h/debugOstream.h"
 #include <sys/ptrace.h>
@@ -250,7 +249,7 @@ sharedLibHook::sharedLibHook(process *p, sharedLibHookType t, Address b)
                          (void *)saved_, true);
 
     codeGen gen(instruction::size());
-    instruction::generateTrap(gen);
+    insnCodeGen::generateTrap(gen);
     
     if (!proc_->writeDataSpace((caddr_t)breakAddr_,
                           gen.used(),
