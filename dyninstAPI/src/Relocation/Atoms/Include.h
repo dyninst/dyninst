@@ -29,14 +29,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "Relocation/Atoms/Atom.h"
-#include "Relocation/Atoms/ASTAtom.h"
-#include "Relocation/Atoms/CFAtom.h"
-#include "Relocation/Atoms/GetPC.h"
-#include "Relocation/Atoms/Instrumentation.h"
-#include "Relocation/Atoms/MemoryEmulator.h"
-#include "Relocation/Atoms/RelData.h"
-#include "Relocation/Atoms/CopyInsn.h"
-#include "Relocation/Atoms/Target.h"
+#include "Atom.h"
+#include "ASTAtom.h"
+#include "CFAtom.h"
+#include "GetPC.h"
+#include "Instrumentation.h"
+#include "MemoryEmulator.h"
+#include "RelData.h"
+#include "CopyInsn.h"
+#include "Target.h"
 
 

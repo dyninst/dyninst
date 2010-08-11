@@ -32,9 +32,9 @@
 #include "Springboard.h"
 #include "dyninstAPI/src/addressSpace.h"
 
-#include "function.h"
-#include "debug.h"
-#include "codegen.h"
+#include "dyninstAPI/src/function.h"
+#include "dyninstAPI/src/debug.h"
+#include "dyninstAPI/src/codegen.h"
 
 using namespace Dyninst;
 using namespace Relocation;

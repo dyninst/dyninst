@@ -33,12 +33,11 @@
 #include <iostream>
 #include <iomanip>
 
-#include "Relocation/Relocation.h"
-#include "Relocation/Transformers/Transformer.h" // transformer class
-#include "Relocation/Atoms/Atom.h"
-#include "Relocation/Atoms/CopyInsn.h" // Default Atom in each Trace
-#include "Relocation/Atoms/Instrumentation.h" // For instrumentation Traces
-#include "debug.h"
+#include "../Transformers/Transformer.h" // transformer class
+#include "Atom.h"
+#include "CopyInsn.h" // Default Atom in each Trace
+#include "Instrumentation.h" // For instrumentation Traces
+#include "dyninstAPI/src/debug.h"
 
 #include <sstream>
 
@@ -264,7 +263,7 @@ std::string Trace::format() const {
   stringstream ret;
   ret << "Trace(" 
       << std::hex << origAddr() << std::dec
-      << "/" << id() 
+      << "" << id() 
       << ") {" << endl;
   for (AtomList::const_iterator iter = elements_.begin();
        iter != elements_.end(); ++iter) {

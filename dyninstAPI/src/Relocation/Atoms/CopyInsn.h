@@ -32,7 +32,7 @@
 #if !defined (_R_E_COPY_INSN_H_)
 #define _R_E_COPY_INSN_H_
 
-#include "Relocation/Atoms/Atom.h"
+#include "Atom.h"
 
 namespace Dyninst {
 namespace Relocation {

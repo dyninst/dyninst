@@ -29,10 +29,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "Relocation/Atoms/ASTAtom.h"
-#include "ast.h"
-#include "debug.h"
-#include "registerSpace.h"
+#include "ASTAtom.h"
+#include "dyninstAPI/src/ast.h"
+#include "dyninstAPI/src/debug.h"
+#include "dyninstAPI/src/registerSpace.h"
 
 using namespace Dyninst;
 using namespace Relocation;

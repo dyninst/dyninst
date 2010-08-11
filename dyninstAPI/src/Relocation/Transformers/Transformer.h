@@ -38,7 +38,7 @@
 #include <map>
 #include <stack>
 
-#include "image-func.h" // EdgeTypeEnum
+#include "dyninstAPI/src/image-func.h" // EdgeTypeEnum
 
 class bblInstance;
 class baseTramp;
