@@ -228,7 +228,7 @@ static void init_test_data() {
 
 
 #ifdef arch_x86_64_test
-static const unsigned int nstores = 25;
+static const unsigned int nstores = 28;
 
 static BPatch_memoryAccess* storeList[nstores];
 
@@ -253,8 +253,14 @@ static void init_test_data()
   storeList[++k] = MK_LS((long)divarwp+4,-1,-1,4); // shld
   storeList[++k] = MK_ST((long)divarwp,-1,-1,4); // mov
 
+  // call ia32features
+  storeList[++k] = NULL;
   // MMX store
   storeList[++k] = MK_STnt((long)divarwp,-1,-1,8); // mov
+  // call ia32features
+  storeList[++k] = NULL;
+  // call amdfeatures
+  storeList[++k] = NULL;
 
   // REP stores
   storeList[++k] = new BPatch_memoryAccess(NULL,0,
@@ -329,9 +335,10 @@ test_results_t test_mem_2_Mutator::executeTest() {
   if(!validate(res1, storeList, "store"))
     failtest(testnum, testdesc, "Store sequence failed validation.\n");
 
-  if (instCall(appThread, "Store", res1) < 0) {
-    return FAILED;
+  if (instCall(appAddrSpace, "Store", res1) < 0) {
+      failtest(testnum, testdesc, "Failed to instrument stores.\n");
   }
+  //appThread->continueExecution();
   return PASSED;
 #endif
 }

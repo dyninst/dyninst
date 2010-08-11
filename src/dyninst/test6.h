@@ -41,6 +41,7 @@
 
 #define failtest(i,d,r) { fprintf(stderr, "**Failed** test #%d (%s)\n", (i), (d)); \
                           fprintf(stderr, "    %s\n", (r)); \
+                          appThread->continueExecution(); \
                           return FAILED; \
                          }
 
@@ -99,7 +100,7 @@ const unsigned int naxses = 12;
 #endif
 
 #ifdef x86_64_unknown_linux2_4_test
-const unsigned int naxses = 97;
+const unsigned int naxses = 100;
 #endif
 
 #endif /* TEST6_H */
