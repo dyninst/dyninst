@@ -1119,6 +1119,15 @@ void emitElf::fixPhdrs(unsigned &extraAlignSize)
 
      old++;
   }
+
+  if( hasRewrittenTLS && !TLSExists ) {
+    newPhdr->p_type = PT_TLS;
+    newPhdr->p_offset = newTLSData->sh_offset;
+    newPhdr->p_vaddr = newTLSData->sh_addr;
+    newPhdr->p_filesz = newTLSData->sh_size;
+    newPhdr->p_memsz = newTLSData->sh_size;
+    newPhdr->p_align = newTLSData->sh_addralign;
+  }
   
   if (!phdrs_scn)
      return;
