@@ -1327,7 +1327,6 @@ bool emitElf64::createLoadableSections(Symtab *obj, Elf64_Shdr* &shdr, unsigned 
          // Check to make sure the (vaddr for the start of the new segment - the offset) is page aligned
          if(!firstNewLoadSec)
          {
-            newshdr->sh_addr += library_adjust;
             newSegmentStart = newshdr->sh_addr;
             Offset newoff = newshdr->sh_offset  - (newshdr->sh_offset & (pgSize-1)) + (newshdr->sh_addr & (pgSize-1));
             if(newoff < newshdr->sh_offset)
