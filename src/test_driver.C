@@ -141,6 +141,9 @@ bool runProcControl = false;
 bool runDynamicLink = false;
 bool runStaticLink = false;
 bool runAllLinks = true;
+bool runPic = false;
+bool runNonPic = true;
+
 int limitResumeGroup = -1;
 int limitResumeTest = -1;
 int skipToTest = 0;
@@ -631,7 +634,19 @@ void disableUnwantedTests(std::vector<RunGroup *> groups)
       }
    }
 #endif
-
+   if(!runPic || !runNonPic)
+   {
+       for (unsigned  i = 0; i < groups.size(); i++)
+       {
+           if (groups[i]->disabled)
+               continue;
+           if (groups[i]->pic == nonPIC && runNonPic)
+               continue;
+           if (groups[i]->pic == PIC && runPic)
+               continue;
+           groups[i]->disabled = true;
+       }
+   }
    if (unique_id && max_unique_id) {
       unsigned cur_test = 0;
       unsigned cur_test_limitgroup = 0;
@@ -1463,6 +1478,8 @@ int parseArgs(int argc, char *argv[])
          runAllLinks = true;
          runAllCompilers = true;
          runAllComps = true;
+         runPic = true;
+         runNonPic = true;
       }
       else if (strcmp(argv[i], "-full") == 0)
       {
@@ -1474,6 +1491,8 @@ int parseArgs(int argc, char *argv[])
          runAllLinks = true;
          runAllCompilers = true;
          runAllComps = true;
+         runPic = true;
+         runNonPic = true;
          optLevel = opt_all;
       }
       else if ( strcmp(argv[i], "-dyninst") == 0)
@@ -1545,6 +1564,11 @@ int parseArgs(int argc, char *argv[])
       {
          runAllABIs = false;
          runABI_64 = true;
+      }
+      else if (strcmp(argv[i], "-pic") == 0)
+      {
+          runPic = true;
+          runNonPic = false;
       }
       else if ((strcmp(argv[i], "-cpumem") == 0) ||
                (strcmp(argv[i], "-memcpu") == 0))
