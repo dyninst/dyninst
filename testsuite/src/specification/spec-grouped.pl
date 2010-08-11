@@ -2919,6 +2919,17 @@ compiler_opt_trans(IBM, 'max', '-O5') :-
     member(IBM, ['xlc', 'xlC']).
 compiler_opt_trans(Comp, 'max', '/Ox') :- Comp == 'VC++'; Comp == 'VC'.
 
+compiler_pic_trans(_, 'none', '').
+compiler_pic_trans(Comp, 'pic', '-fPIC') :-
+    member(Comp, ['gcc', 'g++']).
+compiler_pic_trans(Comp, 'pic', '') :-
+        member(Comp, ['pgcc', 'pgCC', 'cc', 'cxx', 'gfortran', 'icc', 'iCC', 'VC++', 'VC']).
+
+compiler_pic('g++', 'pic').
+compiler_pic('gcc', 'pic').
+compiler_pic(C, 'none') :-
+        mutatee_comp(C).
+        
 % Ensure that we're only defining translations for compilers that exist
 insane('P1 not defined as a compiler, but has optimization translation defined',
        [Compiler]) :-
