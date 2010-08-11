@@ -683,21 +683,21 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
    
                 // CodeSource-defined tests 
                 is_nonret = obj().cs()->nonReturning(target);
-		if (is_nonret) {
-		  parsing_printf("\t Disallowing FT edge: CodeSource reports nonreturning\n");
-		}
+                if (is_nonret) {
+                  parsing_printf("\t Disallowing FT edge: CodeSource reports nonreturning\n");
+                }
                 if(!is_nonret && is_plt) {
                     is_nonret |= obj().cs()->nonReturning(plt_entries[target]);
-		    if (is_nonret) {
-		      parsing_printf("\t Disallowing FT edge: CodeSource reports PLT nonreturning\n");
-		    }
+		            if (is_nonret) {
+		              parsing_printf("\t Disallowing FT edge: CodeSource reports PLT nonreturning\n");
+		            }
                 }
                 // Parsed return status tests
                 if(!is_nonret && !is_plt && ct) {
                     is_nonret |= (ct->retstatus() == NORETURN);
-		    if (is_nonret) {
-		      parsing_printf("\t Disallowing FT edge: function is non-returning\n");
-		    }
+		            if (is_nonret) {
+		              parsing_printf("\t Disallowing FT edge: function is non-returning\n");
+		            }
                 }
                 // Call-stack tampering tests
                 if (frame.func->obj()->defensiveMode() && ct) {
@@ -706,10 +706,11 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                         tamper = ct->tampersStack();
                     }
                     if (TAMPER_NONE != tamper) {
-		      parsing_printf("\t Disallowing FT edge: function tampers with its stack\n");
-		      is_nonret = true;
-		    }
-		}
+                        parsing_printf("\t Disallowing FT edge: function "
+                                       "tampers with its stack\n");
+                        is_nonret = true;
+                    }
+                }
                 if(is_nonret) {
 		  parsing_printf("[%s] no fallthrough for non-returning call "
                                    "to %lx at %lx\n",FILE__,target,

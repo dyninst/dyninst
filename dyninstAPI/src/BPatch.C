@@ -1363,6 +1363,10 @@ BPatch_process *BPatch::processCreateInt(const char *path, const char *argv[],
 
    if (!ret->updateThreadInfo()) return NULL;
 
+   if (ret->lowlevel_process()->isExploratoryModeOn()) {
+       ret->getHybridAnalysis()->init();
+   }
+
    return ret;
 }
 
@@ -1426,6 +1430,10 @@ BPatch_process *BPatch::processAttachInt
    asyncActive = true;
 #endif
    if (!ret->updateThreadInfo()) return false;
+
+   if (ret->lowlevel_process()->isExploratoryModeOn()) {
+       ret->getHybridAnalysis()->init();
+   }
 
    return ret;
 }

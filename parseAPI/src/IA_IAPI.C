@@ -300,6 +300,13 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
                 }
             }
         }
+//        if ( ! _obj->defensiveMode()  // add fallthrough edge if we're not in
+//             || ( ( ! isDynamicCall() // defensive mode or the call passes 
+//                                      // through the PE's
+//#endif                                // Import Address Table (i.e., the IAT)
+//                   )                  // otherwise, the call is unresolved.
+//                 && _isrc->isValidAddress(target) ) ) 
+
         if ( ! _obj->defensiveMode()  // add fallthrough edge unless we're in
              || ( ( ! isDynamicCall() // defensive mode and this is call with
 #if defined (os_windows)              // a bad call target or an indirect call 

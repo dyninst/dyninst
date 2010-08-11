@@ -378,7 +378,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
                     /* Code sharing will change the loops, the appropriate response
                     is to trigger early exit analysis and remove the loops if 
                     the underlying code hasn't changed */
-                    inst_printf("[%d] Removing loop instrumentation for func %lx\n", 
+                    mal_printf("[%d] Removing loop instrumentation for func %lx\n", 
                                 __LINE__,targFunc->getBaseAddr());
                     std::set<HybridAnalysisOW::owLoop*>::iterator lIter = 
                         loops.begin();

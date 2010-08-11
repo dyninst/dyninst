@@ -76,9 +76,6 @@ HybridAnalysis::HybridAnalysis(BPatch_hybridMode mode, BPatch_process* proc)
     sharedlib_runtime = 
         proc_->getImage()->findModule("libdyninstAPI_RT", true);
     assert(sharedlib_runtime);
-    if (mode != BPatch_normalMode) {
-        init();
-    }
 }
 
 bool HybridAnalysis::init()
@@ -104,7 +101,7 @@ bool HybridAnalysis::init()
         // instrument the a.out
         if ( (*allmods)[midx]->isExploratoryModeOn() ) 
         {
-            inst_printf("\nINSTRUMENTING MOD %s\n",namebuf);
+            mal_printf("\nINSTRUMENTING MOD %s\n",namebuf);
             if (false == instrumentModule((*allmods)[midx])) {
                 fprintf(stderr, "%s[%d] Applied no instrumentation to mod %s\n",
                         __FILE__,__LINE__,namebuf);
@@ -113,14 +110,13 @@ bool HybridAnalysis::init()
 
         } else if (!strncmp(namebuf,"msvcrt.dll",64)) {
             // instrument msvcrt initterm, since it calls into the application
-            vector<BPatch_function*> *funcs = new vector<BPatch_function*>;
-            (*allmods)[midx]->findFunction("initterm",*funcs,false,false);
+            vector<BPatch_function*> funcs;
+            (*allmods)[midx]->findFunction("initterm",funcs,false,false);
             proc()->beginInsertionSet();
-            for(unsigned fidx=0; fidx < funcs->size(); fidx++) {
-	            instrumentFunction((*funcs)[fidx],false,false);
+            for(unsigned fidx=0; fidx < funcs.size(); fidx++) {
+	            instrumentFunction(funcs[fidx],false,false);
             }
             proc()->finalizeInsertionSet(false);
-            delete funcs;
         }
     }
 
@@ -206,7 +202,7 @@ int HybridAnalysis::saveInstrumentationHandle(Address pointAddr,
         return 1;
     }
 
-    inst_printf("FAILED TO INSTRUMENT at point %lx %s[%d]\n", 
+    mal_printf("FAILED TO INSTRUMENT at point %lx %s[%d]\n", 
             (long) pointAddr,FILE__,__LINE__);
     return 0;
 }
@@ -220,7 +216,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
 						bool instrumentReturns) 
 {
     Address funcAddr = (Address) func->getBaseAddr();
-    inst_printf("instfunc at %lx\n", funcAddr);
+    mal_printf("instfunc at %lx\n", funcAddr);
     int pointCount = 0;
 
     // grab all unresolved control transfer points in the function
@@ -252,13 +248,13 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                 // use the address cache, use the unconditional DYNINST_stopThread
                 dynamicTransferSnippet = new BPatch_stopThreadExpr(
                     badTransferCB_wrapper, dynTarget, false,BPatch_interpAsTarget);
-                inst_printf("straycalls.cpp[%d] unconditional monitoring at 0x%lx:"
+                mal_printf("straycalls.cpp[%d] unconditional monitoring at 0x%lx:"
                             " call indirect\n", __LINE__,(long)curPoint->getAddress());
             }
             else {
                 dynamicTransferSnippet = new BPatch_stopThreadExpr(
                     badTransferCB_wrapper, dynTarget, true,BPatch_interpAsTarget);
-                inst_printf("straycalls.cpp[%d] monitoring at 0x%lx: indirect\n", 
+                mal_printf("straycalls.cpp[%d] monitoring at 0x%lx: indirect\n", 
                             __LINE__,(long) curPoint->getAddress());
             }
 
@@ -291,11 +287,11 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
 
             //output message
             if (curPoint->getPointType() == BPatch_locSubroutine) {
-                inst_printf("straycalls.cpp[%d]monitoring at 0x%lx: call 0x%lx\n",
+                mal_printf("straycalls.cpp[%d]monitoring at 0x%lx: call 0x%lx\n",
                             __LINE__,(long)curPoint->getAddress(), 
                             (long)targets[0]);
             } else {
-                inst_printf("straycalls.cpp[%d]monitoring at 0x%lx: jump 0x%lx\n",
+                mal_printf("straycalls.cpp[%d]monitoring at 0x%lx: jump 0x%lx\n",
                             __LINE__,(long)curPoint->getAddress(), 
                             (long)targets[0]);
             }
@@ -330,7 +326,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
             continue;
         }
         BPatch_point *curPoint = points[pidx];
-        inst_printf("straycalls.cpp[%d]monitoring at 0x%lx: abruptEnd point\n",
+        mal_printf("straycalls.cpp[%d]monitoring at 0x%lx: abruptEnd point\n",
                     __LINE__,(long)curPoint->getAddress());
 
         // set up args and instrument
@@ -406,7 +402,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                 // case 1: the point is at a return instruction
                 if (curPoint->isReturnInstruction()) {
                     interp = BPatch_interpAsReturnAddr;
-                    inst_printf("monitoring return from func[%lx %lx] at %lx\n", 
+                    mal_printf("monitoring return from func[%lx %lx] at %lx\n", 
                                 (long)func->getBaseAddr(), 
                                 (long)func->getBaseAddr() + func->getSize(), 
                                 (long)curPoint->getAddress());
@@ -417,7 +413,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                 // that leaves the region housing the rest of the function
                 else if (curPoint->isDynamic()) {
                     interp = BPatch_interpAsTarget;
-                    inst_printf("instrumenting indirect non-return exit "
+                    mal_printf("instrumenting indirect non-return exit "
                         "at 0x%lx %s[%d]\n", curPoint->getAddress(), 
                         FILE__,__LINE__);
                 }
@@ -442,7 +438,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
     // housekeeping: mark func as instrumented, close insertion set
     instrumentedFuncs->insert( (Address) func->getBaseAddr() );
     if (pointCount) {
-        inst_printf("instrumented %d points in function at %lx\n", 
+        mal_printf("instrumented %d points in function at %lx\n", 
                     pointCount,func->getBaseAddr());
         if (useInsertionSet) {
             proc()->finalizeInsertionSet(false);
@@ -654,7 +650,7 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
         }
         // if the point is dynamic, re-instrument it to use the cache
         if (callPoint->isDynamic()) {
-            inst_printf("replaced instrumentation at indirect call "
+            mal_printf("replaced instrumentation at indirect call "
                         "point %lx instrumentation that uses the cache "
                         "%s[%d]\n", callPoint->getAddress(),FILE__,__LINE__);
             BPatch_stopThreadExpr newSnippet (

@@ -1067,95 +1067,6 @@ bool IA_IAPI::isReturnAddrSave() const
     return false;
 }
 
-#if 0 //KEVINTODO: delete
-class ST_Predicates : public Slicer::Predicates {};
-
-// returns stackTamper, which is false if parsing should not resume 
-// after call instructions to this function.  
-// The function recommends parsing at an alternative address if the stack 
-// delta is a known absolute or relative value, otherwise we will instrument
-// this function's return instructions to see if the function returns
-StackTamper IA_IAPI::tampersStack(ParseAPI::Function *func, 
-                                  Address &tamperAddr) const
-{
-    using namespace DataflowAPI;
-    // want to re-calculate the tamper address
-    //if (TAMPER_UNSET != func->stackTamper()) {
-    //    tamperAddr = func->_tamper_addr;
-    //    return func->stackTamper();
-    //}
-
-    if ( ! func->obj()->defensiveMode() ) { 
-        return TAMPER_NONE;
-    }
-
-    Function::blocklist & retblks = func->returnBlocks();
-    if ( retblks.begin() == retblks.end() ) {
-        return TAMPER_NONE;
-    }
-
-    AssignmentConverter converter(true);
-    vector<Assignment::Ptr> assgns;
-    ST_Predicates preds;
-    //StackTamper tamper = TAMPER_UNSET;
-    // TODO FIXME
-    StackTamper tamper = TAMPER_NONE;
-    Function::blocklist::iterator bit;
-    for (bit = retblks.begin(); retblks.end() != bit; bit++) {
-        Address retnAddr = (*bit)->lastInsnAddr();
-        InstructionDecoder retdec(func->isrc()->getPtrToInstruction( retnAddr ), 
-                                  InstructionDecoder::maxInstructionLength, 
-                                  func->region()->getArch() );
-        Instruction::Ptr retn = retdec.decode();
-        converter.convert(retn, retnAddr, func, assgns);
-        vector<Assignment::Ptr>::iterator ait;
-        AST::Ptr sliceAtRet;
-
-        for (ait = assgns.begin(); assgns.end() != ait; ait++) {
-            AbsRegion & outReg = (*ait)->out();
-            if ( outReg.absloc().isPC() ) {
-                Slicer slicer(*ait,*bit,func);
-                Graph::Ptr slGraph = slicer.backwardSlice(preds);
-                DataflowAPI::Result_t slRes;
-                DataflowAPI::SymEval::expand(slGraph,slRes);
-                if (dyn_debug_malware) {
-                    stringstream graphDump;
-                    graphDump << "sliceDump_" << func->name() 
-                              << "_" << retnAddr << ".dot";
-                    slGraph->printDOT(graphDump.str());
-                }
-                sliceAtRet = slRes[*ait];
-                break;
-            }
-        }
-        assert(sliceAtRet != NULL);
-        StackTamperVisitor vis((*ait)->out());
-        Address curTamperAddr=0;
-        StackTamper curtamper = vis.tampersStack(sliceAtRet, curTamperAddr);
-        if (TAMPER_UNSET == tamper || 
-            (TAMPER_NONZERO == tamper && 
-             TAMPER_NONE != curtamper))
-        {
-            tamper = curtamper;
-            tamperAddr = curTamperAddr;
-        } else if ((TAMPER_REL == tamper    || TAMPER_ABS == tamper) &&
-                   (TAMPER_REL == curtamper || TAMPER_ABS == curtamper)) {
-        {
-            if (tamper != curtamper || tamperAddr != curTamperAddr) {
-                fprintf(stderr, "WARNING! Unhandled case in stackTmaper "
-                        "analysis, func at %lx has distinct tamperAddrs "
-                        "%d:%lx %d:%lx at different return instructions, "
-                        "discarding second tamperAddr %s[%d]\n", 
-                        func->addr(), tamper,tamperAddr, curtamper, 
-                        curTamperAddr, FILE__, __LINE__);
-            }
-        }
-        assgns.clear();
-    }
-    return tamper;
-}
-#endif
-
 /* returns true if the call leads to:
  * -an invalid instruction (or immediately branches/calls to an invalid insn)
  * -a block not ending in a return instruction that pops the return address 
@@ -1338,10 +1249,13 @@ bool IA_IAPI::isFakeCall() const
     // with an absolute value, it's a fake call, since in both cases 
     // the return address is gone and we cannot return to the caller
     if ( 0 < stackDelta || tampers ) {
+        mal_printf("Found fake call at %lx to %lx, where the first block "
+                   "pops off the return address %s[%d]\n", 
+                   current, entry, FILE__,__LINE__);
         return true;
     }
 
-    return tampers;
+    return false;
 }
 
 bool IA_IAPI::isIATcall() const
