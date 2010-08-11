@@ -982,6 +982,7 @@ void emitElf64::fixPhdrs(unsigned &extraAlignSize)
            }
            if (newPhdr->p_vaddr) {
               newPhdr->p_vaddr += library_adjust;
+              newPhdr->p_paddr += library_adjust;
            }
         }
      }
@@ -995,6 +996,7 @@ void emitElf64::fixPhdrs(unsigned &extraAlignSize)
         newPhdr->p_offset += pgSize;
         if (newPhdr->p_vaddr) {
            newPhdr->p_vaddr += library_adjust;
+           newPhdr->p_paddr += library_adjust;
         }
      } 
 
@@ -1174,10 +1176,10 @@ bool emitElf64::createLoadableSections(Symtab *obj, Elf64_Shdr* &shdr, unsigned 
      }
 
       if(newSecs[i]->getDiskOffset()) {
-         newshdr->sh_addr = newSecs[i]->getDiskOffset();
+         newshdr->sh_addr = newSecs[i]->getDiskOffset() + library_adjust;
       }
       else if(!prevshdr) {
-         newshdr->sh_addr = zstart;
+         newshdr->sh_addr = zstart + library_adjust;
       } 
       else 
       {

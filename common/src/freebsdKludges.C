@@ -163,7 +163,7 @@ map_entries *getVMMaps(int pid, unsigned &maps_size) {
     return retMaps;
 }
 
-int sysctl_computeAddrWidth(pid_t /*pid*/) {
+int sysctl_computeAddrWidth(pid_t pid) {
     int retSize = sizeof(void *);
 
 #if defined(arch_64bit)

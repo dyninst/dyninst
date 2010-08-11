@@ -1082,6 +1082,7 @@ void emitElf::fixPhdrs(unsigned &extraAlignSize)
            }
            if (newPhdr->p_vaddr) {
               newPhdr->p_vaddr += library_adjust;
+              newPhdr->p_paddr += library_adjust;
            }
         }
      }else if (replaceNOTE && old->p_type == PT_NOTE && !replaced) {
@@ -1105,6 +1106,7 @@ void emitElf::fixPhdrs(unsigned &extraAlignSize)
         newPhdr->p_offset += pgSize;
         if (newPhdr->p_vaddr) {
            newPhdr->p_vaddr += library_adjust;
+           newPhdr->p_paddr += library_adjust;
         }
      }
 
@@ -1292,15 +1294,14 @@ bool emitElf::createLoadableSections(Symtab*obj, Elf32_Shdr* &shdr, unsigned &ex
      }
 
      if(newSecs[i]->getDiskOffset())
-        newshdr->sh_addr = newSecs[i]->getDiskOffset();
+        newshdr->sh_addr = newSecs[i]->getDiskOffset() + library_adjust;
      else if(!prevshdr) {
-        newshdr->sh_addr = zstart;
+        newshdr->sh_addr = zstart + library_adjust;
      }
      else{
         newshdr->sh_addr = prevshdr->sh_addr+ prevshdr->sh_size;
      }
 
-    	    
      newshdr->sh_link = SHN_UNDEF;
      newshdr->sh_info = 0;
      newshdr->sh_addralign = newSecs[i]->getMemAlignment();
