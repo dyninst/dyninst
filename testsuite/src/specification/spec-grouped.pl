@@ -568,7 +568,6 @@ test_platform('test1_35', 'i386-unknown-linux2.6').
 test_platform('test1_35', 'x86_64-unknown-linux2.4').
 test_platform('test1_35', 'sparc-sun-solaris2.8').
 test_platform('test1_35', 'sparc-sun-solaris2.9').
-test_platform('test1_35', 'i386-unknown-freebsd8.0').
 test_platform('test1_35', 'i386-unknown-freebsd7.2').
 test_platform('test1_35', 'amd64-unknown-freebsd7.2').
 groupable_test('test1_35').
@@ -2579,7 +2578,6 @@ platform('alpha', 'osf', 'osf5.1', 'alpha-dec-osf5.1').
 platform('x86_64', 'linux', 'linux2.4', 'x86_64-unknown-linux2.4').
 platform('power', 'linux', 'linux2.6', 'ppc64_linux').
 platform('power', 'linux', 'linux2.6', 'ppc32_linux').
-platform('i386', 'freebsd', 'freebsd8.0', 'i386-unknown-freebsd8.0').
 platform('i386', 'freebsd', 'freebsd7.2', 'i386-unknown-freebsd7.2').
 platform('x86_64', 'freebsd', 'freebsd7.2', 'amd64-unknown-freebsd7.2').
 

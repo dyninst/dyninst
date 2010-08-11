@@ -245,9 +245,9 @@ typedef struct pthread_offset_t {
     unsigned long stack_size_pos;
 } pthread_offset_t;
 
-#if defined(amd64_unknown_freebsd7_0)
+#if defined(os_freebsd) && defined(arch_x86_64)
 static pthread_offset_t offsets = { 0, 112, 152, 160 };
-#elif defined(i386_unknown_freebsd7_0) || defined(i386_unknown_freebsd8_0)
+#elif defined(os_freebsd) && defined(arch_x86)
 static pthread_offset_t offsets = { 0, 80, 108, 112};
 #else
 #error pthread_t offsets undefined for this architecture
