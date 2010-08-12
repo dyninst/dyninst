@@ -83,10 +83,8 @@ class linux_process : public sysv_process
    virtual bool needIndividualThreadAttach();
    virtual bool getThreadLWPs(std::vector<Dyninst::LWP> &lwps);
    virtual Dyninst::Architecture getTargetArch();
-   virtual unsigned getTargetPageSize();
-   virtual Dyninst::Address plat_mallocExecMemory(Dyninst::Address, unsigned size);
-   virtual bool independentLWPControl();
    virtual bool plat_individualRegAccess();
+   virtual bool plat_contProcess() { return true; }
 };
 
 class linux_thread : public int_thread
@@ -104,6 +102,10 @@ class linux_thread : public int_thread
    virtual bool plat_setAllRegisters(int_registerPool &reg);
    virtual bool plat_setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val);
    virtual bool attach();
+
+   // Needed by HybridLWPControl, unused on Linux
+   virtual bool plat_resume() { return true; }
+   virtual bool plat_suspend() { return true; }
 
    void setOptions();
    bool getSegmentBase(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val);

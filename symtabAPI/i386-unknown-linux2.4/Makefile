@@ -29,7 +29,7 @@ SRCS =          ../src/Object-elf.C \
 		../src/emitElf.C \
 		../src/LinkMap.C \
 		../src/emitElfStatic.C \
-		../src/emitElfStatic-linux-x86.C \
+		../src/emitElfStatic-x86.C \
 		../src/relocationEntry-elf-x86.C
 
 #MYFLAGS	+= -DNO_MDL_PRINT

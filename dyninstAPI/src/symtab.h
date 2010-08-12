@@ -58,7 +58,7 @@
 #include "common/h/List.h"
 #include "common/h/Types.h"
 
-#if defined(rs6000_ibm_aix4_1)||defined(rs6000_ibm_aix5_1)||defined(os_linux)||defined(os_solaris)
+#if defined(rs6000_ibm_aix4_1)||defined(rs6000_ibm_aix5_1)||defined(os_linux)||defined(os_solaris)||defined(os_freebsd)
 #include "symtabAPI/h/Archive.h"
 #endif
 
@@ -412,8 +412,8 @@ class image : public codeRange {
 
    // This method is invoked to find the global constructors function and add a
    // symbol for the function if the image has no symbols
-   bool findGlobalConstructorFunc();
-   bool findGlobalDestructorFunc();
+   bool findGlobalConstructorFunc(const std::string &ctorHandler);
+   bool findGlobalDestructorFunc(const std::string &dtorHandler);
 
  private:
    void findModByAddr (const SymtabAPI::Symbol *lookUp, vector<SymtabAPI::Symbol *> &mods,
@@ -485,7 +485,7 @@ class image : public codeRange {
 
    // data from the symbol table 
    SymtabAPI::Symtab *linkedFile;
-#if defined (os_aix) || defined(os_linux) || defined(os_solaris)
+#if defined (os_aix) || defined(os_linux) || defined(os_solaris) || defined(os_freebsd)
    SymtabAPI::Archive *archive;
 #endif
 

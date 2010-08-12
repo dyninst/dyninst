@@ -64,7 +64,7 @@ void *ThreadTrampoline(void *d)
    testLock(&thread_startup_lock);
    testUnlock(&thread_startup_lock);
 
-   func_result = func(thread_id, data);
+   func_result = func((unsigned long)thread_id, data);
    
    return (void *) (long) func_result;
 }
@@ -98,7 +98,7 @@ int MultiThreadInit(int (*init_func)(int, void*), void *thread_data)
       testLock(&thread_startup_lock);
       for (j = 0; j < num_threads; j++) {
          datagram *data = (datagram *) malloc(sizeof(datagram));
-         data->thread_id = j;
+         data->thread_id = (thread_t)j;
          data->func = init_func;
          data->data = thread_data;
          threads[j] = spawnNewThread((void *) ThreadTrampoline, (void *) data);
@@ -225,7 +225,7 @@ int initMutatorConnection()
       struct sockaddr_un server_addr;
       memset(&server_addr, 0, sizeof(struct sockaddr_un));
       server_addr.sun_family = PF_UNIX;
-      strncpy(server_addr.sun_path, un_socket, 128);
+      strncpy(server_addr.sun_path, un_socket, sizeof(server_addr.sun_path));
 
       result = connect(sockfd, (struct sockaddr *) &server_addr, sizeof(struct sockaddr_un));
       if (result != 0) {
@@ -250,11 +250,24 @@ int send_message(unsigned char *msg, size_t msg_size)
 
 int recv_message(unsigned char *msg, size_t msg_size)
 {
-   int result;
-   result = recv(sockfd, msg, msg_size, MSG_WAITALL);
-   if (result == -1) {
-      perror("Mutatee unable to recieve message");
-      return -1;
+   int result = -1;
+   while( result != msg_size && result != 0 ) {
+       result = recv(sockfd, msg, msg_size, MSG_WAITALL);
+
+/* Sometimes result will be 29 for some unknown reason
+ * The diagnosis is a work in progress
+ */
+#if defined(os_freebsd_test)
+       if( result != msg_size ) {
+           fprintf(stderr, "Received message of unexpected size %d (expected %d)\n",
+                   result, msg_size);
+       }
+#endif
+
+       if (result == -1) {
+          perror("Mutatee unable to recieve message");
+          return -1;
+       }
    }
    return 0;
 }

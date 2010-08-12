@@ -40,8 +40,8 @@ SRCS		+= ../src/RTposix.c \
 			../src/RTthread.c \
 			../src/RTthread-index.c \
 			../src/RTspace.S \
-			../src/RTstatic_ctors_dtors-linux-x86.c \
-			../src/RTtlsgetaddr-linux-x86_64.S
+			../src/RTstatic_ctors_dtors-x86.c \
+			../src/RTtlsgetaddr-x86_64.S
 #		   ../src/RTmutatedBinary.c \
 #		   ../src/RTmutatedBinary_ELF.c \
 
@@ -58,7 +58,7 @@ endif
 include ../make.module.tmpl
 
 # 32-bit runtime library
-ASM_SRCS_32  = ../src/RTspace.S ../src/RTsignal-x86.S ../src/RTtlsgetaddr-linux-x86.S
+ASM_SRCS_32  = ../src/RTspace.S ../src/RTsignal-x86.S ../src/RTtlsgetaddr-x86.S
 
 TARGET_32_SO = libdyninstAPI_RT_m32.so.1
 XTARGET_32   = $(basename $(basename $(TARGET_32_SO)))

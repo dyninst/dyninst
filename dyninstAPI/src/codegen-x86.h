@@ -40,7 +40,9 @@
 #if !defined(i386_unknown_solaris2_5) \
  && !defined(i386_unknown_nt4_0) \
  && !defined(i386_unknown_linux2_0) \
- && !defined(x86_64_unknown_linux2_4)
+ && !defined(x86_64_unknown_linux2_4) \
+ && !(defined(os_freebsd) \
+      && (defined(arch_x86) || defined(arch_x86_64)))
 #error "invalid architecture-os inclusion"
 #endif
 
