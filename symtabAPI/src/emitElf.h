@@ -158,6 +158,7 @@ class emitElf{
 
     void log_elferror(void (*err_func)(const char *), const char* msg);
     bool hasPHdrSectionBug();
+    bool cannotRelocatePhdrs();
 };
 
 } // namespace SymtabAPI

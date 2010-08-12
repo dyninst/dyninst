@@ -149,6 +149,15 @@ bool emitElf::hasPHdrSectionBug()
    return (libelfso1version_major == 0 && libelfso1version_minor <= 137);
 }
 
+bool emitElf::cannotRelocatePhdrs()
+{
+#if defined(bug_phdrs_first_page)
+    return true;
+#else
+    return false;
+#endif
+}
+
 unsigned int elfHash(const char *name)
 {
   unsigned int h = 0, g;
@@ -265,12 +274,10 @@ emitElf::emitElf(Elf_X &oldElfHandle_, bool isStripped_, Object *obj_, void (*er
   // for the extra page for program headers.  This causes some significant
   // changes to the binary, and isn't well tested.
   library_adjust = 0;
-#if defined(os_freebsd)
-  if( !movePHdrsFirst ) {
+  if( cannotRelocatePhdrs() && !movePHdrsFirst ) {
       movePHdrsFirst = true;
       library_adjust = getpagesize();
   }
-#endif
 }
 
 bool emitElf::createElfSymbol(Symbol *symbol, unsigned strIndex, vector<Elf32_Sym *> &symbols, bool dynSymFlag)

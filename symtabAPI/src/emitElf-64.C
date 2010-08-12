@@ -135,6 +135,15 @@ bool emitElf64::hasPHdrSectionBug()
    return (libelfso1version_major == 0 && libelfso1version_minor <= 137);
 }
 
+bool emitElf64::cannotRelocatePhdrs()
+{
+#if defined(bug_phdrs_first_page)
+    return true;
+#else
+    return false;
+#endif
+}
+
 static int elfSymType(Symbol *sym)
 {
   switch (sym->getType()) {
@@ -205,12 +214,10 @@ emitElf64::emitElf64(Elf_X &oldElfHandle_, bool isStripped_, Object *obj_, void 
   // for the extra page for program headers.  This causes some significant
   // changes to the binary, and isn't well tested.
   library_adjust = 0;
-#if defined(os_freebsd)
-  if( !movePHdrsFirst ) {
+  if( cannotRelocatePhdrs() && !movePHdrsFirst ) {
       movePHdrsFirst = true;
       library_adjust = getpagesize();
   }
-#endif
 
   linkedStaticData = NULL;
   hasRewrittenTLS = false;
