@@ -2873,12 +2873,19 @@ compiler_opt_trans(Comp, 'max', '/Ox') :- Comp == 'VC++'; Comp == 'VC'.
 
 compiler_pic_trans(_, 'none', '').
 compiler_pic_trans(Comp, 'pic', '-fPIC') :-
-    member(Comp, ['gcc', 'g++']).
+    member(Comp, ['gcc', 'g++', 'gfortran', 'icc', 'iCC']).
+compiler_pic_trans(Comp, 'pic', '-KPIC') :-
+    member(Comp, ['pgcc', 'pgCC']).
 compiler_pic_trans(Comp, 'pic', '') :-
-        member(Comp, ['pgcc', 'pgCC', 'cc', 'cxx', 'gfortran', 'icc', 'iCC', 'VC++', 'VC']).
+        member(Comp, ['cc', 'cxx', 'VC++', 'VC']).
 
 compiler_pic('g++', 'pic').
 compiler_pic('gcc', 'pic').
+compiler_pic('pgCC', 'pic').
+compiler_pic('pgcc', 'pic').
+compiler_pic('iCC', 'pic').
+compiler_pic('icc', 'pic').
+compiler_pic('gfortran', 'pic').
 compiler_pic(C, 'none') :-
         mutatee_comp(C).
         
