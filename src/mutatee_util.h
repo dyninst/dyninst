@@ -54,12 +54,17 @@ typedef struct  {
     HANDLE hndl;
 } thread_t;
 
+// TODO needs to be implemented if a barrier
+// is ever needed in the tests on Windows
+typedef int testbarrier_t;
+
 #else
 
 #include <pthread.h>
 #include <unistd.h>
 typedef pthread_mutex_t testlock_t;
 typedef pthread_t thread_t;
+typedef pthread_barrier_t testbarrier_t;
 
 #endif
 
@@ -191,6 +196,8 @@ extern void initThreads();
 extern void initLock(testlock_t *newlock);
 extern void testLock(testlock_t *lck);
 extern void testUnlock(testlock_t *lck);
+extern void initBarrier(testbarrier_t *barrier, unsigned int count);
+extern void waitTestBarrier(testbarrier_t *barrier);
 extern thread_t threadSelf();
 extern unsigned long thread_int(thread_t a);
 extern void schedYield();

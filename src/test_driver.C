@@ -268,7 +268,8 @@ void setupProcessGroup()
    if (!called_from_runTests)
       return;
 
-   setpgrp();
+   /* This is used over setpgrp() for portability reasons */
+   setpgid(0,0);
 }
 
 #else
