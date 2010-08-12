@@ -1112,7 +1112,7 @@ void initialize_mutatees_%s(std::vector<RunGroup *> &tests) {
 		if(group_empty == 'false'):
 			rungroup_params.append({'presencevar': presencevar, 'mutatee_name': mutatee_name, 'state_init': state_init, 
 				'attach_init': attach_init, 'ex': ex, 'compiler': group['compiler'], 'optimization': group['optimization'],
-				'abi': group['abi'], 'pic': group['pic']})
+				'abi': group['abi'], 'pic': pic})
 
 	body = """struct {
 
@@ -1129,12 +1129,12 @@ void initialize_mutatees_%s(std::vector<RunGroup *> &tests) {
   } rungroup_params[] = {"""
 	out.write(body)
 
-        out.write(' {"%s", %s, %s, %s, %s, "%s", "%s", "%s", "%s", "%s"}' % (rungroup_params[0]['mutatee_name'], \
+        out.write(' {"%s", %s, %s, %s, %s, "%s", "%s", "%s", "%s", %s}' % (rungroup_params[0]['mutatee_name'], \
                 rungroup_params[0]['state_init'], rungroup_params[0]['attach_init'], rungroup_params[0]['ex'], \
                 rungroup_params[0]['presencevar'], module, rungroup_params[0]['compiler'], \
                 rungroup_params[0]['optimization'], rungroup_params[0]['abi'], rungroup_params[0]['pic']))
         for i in range(1, len(rungroup_params)):
-	        out.write(',\n {"%s", %s, %s, %s, %s, "%s", "%s", "%s", "%s", "%s"}' % (rungroup_params[i]['mutatee_name'], \
+	        out.write(',\n {"%s", %s, %s, %s, %s, "%s", "%s", "%s", "%s", %s}' % (rungroup_params[i]['mutatee_name'], \
                         rungroup_params[i]['state_init'], rungroup_params[i]['attach_init'], rungroup_params[i]['ex'], \
                         rungroup_params[i]['presencevar'], module, rungroup_params[i]['compiler'], \
                         rungroup_params[i]['optimization'], rungroup_params[i]['abi'], rungroup_params[i]['pic']))
@@ -1493,7 +1493,6 @@ def print_patterns_nt(c, out, module):
 	group_boilerplates = uniq(map(lambda g: g['mutatee'] + '_group.c', group_mutatee_list))
 	for abi in platform['abis']:
 		for o in compiler['optimization']:
-                    for p in compiler['pic']:
 			# Rules for compiling source files to .o files
 			cto = fullspec_cto_component_nt(compiler, abi, o)
 
@@ -1509,7 +1508,7 @@ def print_patterns_nt(c, out, module):
 						% (basename, cto, ObjSuffix, boilerplate))
 				out.write("\t$(M_%s) %s -DTEST_NAME=%s -DGROUPABLE=0 -DMUTATEE_SRC=../src/%s/%s -Fo$@ $**\n"
 						% (compiler['defstring'],
-						   object_flag_string(platform, compiler, abi, o, p),
+						   object_flag_string(platform, compiler, abi, o, "none"),
 						   basename, module, sourcefile))
 
 			for sourcefile in g_sources:
@@ -1521,7 +1520,7 @@ def print_patterns_nt(c, out, module):
 						% (basename, cto, ObjSuffix, boilerplate))
 				out.write("\t$(M_%s) %s -DTEST_NAME=%s -DGROUPABLE=1 -DMUTATEE_SRC=../src/%s/%s -Fo$@ $**\n"
 						% (compiler['defstring'],
-						   object_flag_string(platform, compiler, abi, o, p),
+						   object_flag_string(platform, compiler, abi, o, "none"),
 						   basename, module, sourcefile))
 
 
@@ -1531,7 +1530,7 @@ def print_patterns_nt(c, out, module):
 				out.write("%s%s%s: ../%s/%s\n" % (basename, cto, ObjSuffix, os.environ.get('PLATFORM'), sourcefile))
 				out.write("\t$(M_%s) $(%s_SOLO_MUTATEE_DEFS) %s -DGROUPABLE=1 -Fo$@ $**\n" 
 					% (compiler['defstring'], module, 
-					object_flag_string(platform, compiler, abi, o, p)))
+					object_flag_string(platform, compiler, abi, o, "none")))
 			for l in compiler['languages']:	
 				lang = find_language(l) # Get language dictionary from name
 				for e in lang['extensions']:
@@ -1541,7 +1540,7 @@ def print_patterns_nt(c, out, module):
 					out.write("%%%s%s: {../src/%s/}%%%s\n"
 							  % (cto, ObjSuffix, module, e))
 					out.write("\t$(M_%s) %s -Fo$@ $**\n"
-                                                % (compiler['defstring'], object_flag_string(platform, compiler, abi, o, p)))
+                                                % (compiler['defstring'], object_flag_string(platform, compiler, abi, o, "none")))
 	out.write("\n")
 
 # Main function for generating nmake.solo_mutatee.gen
