@@ -212,9 +212,6 @@ void Parser::ProcessCFInsn(
             else {
                 resolvable_edge = false;
                 newedge = link(cur,_sink,CALL,true);
-                if (frame.func->obj()->defensiveMode()) {
-                    unresolved = true;
-                }
             }
             if(!ah.isCall())
                 newedge->_type._interproc = true;
@@ -252,6 +249,9 @@ void Parser::ProcessCFInsn(
         if(resolvable_edge) {
             parsing_printf("[%s:%d] pushing %lx onto worklist\n",
                 FILE__,__LINE__,we->target());
+            if (frame.func->obj()->defensiveMode()) {
+                mal_printf("new block at %lx\n", we->target());
+            }
             frame.pushWork(we);
         }
     }

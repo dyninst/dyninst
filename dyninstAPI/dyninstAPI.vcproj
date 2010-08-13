@@ -52,6 +52,7 @@
 				WarningLevel="3"
 				DebugInformationFormat="3"
 				DisableSpecificWarnings="4251"
+				EnablePREfast="false"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -91,6 +92,7 @@
 			/>
 			<Tool
 				Name="VCFxCopTool"
+				EnableFxCop="false"
 			/>
 			<Tool
 				Name="VCAppVerifierTool"
@@ -2629,11 +2631,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Transformers\Include.h"
+				RelativePath=".\src\Relocation\Atoms\Include.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\Include.h"
+				RelativePath=".\src\Relocation\Transformers\Include.h"
 				>
 			</File>
 			<File

@@ -265,8 +265,10 @@ DynParseCallback::newfunction_retstatus(Function *func)
 void
 DynParseCallback::block_split(Block *first_, Block *second_)
 {
-    image_basicBlock *second = (image_basicBlock*) second_;
-    static_cast<image_basicBlock*>(first_)->img()->addSplitBlock(second);
+    if (BPatch_normalMode != _img->hybridMode()) {
+        image_basicBlock *second = (image_basicBlock*) second_;
+        static_cast<image_basicBlock*>(first_)->img()->addSplitBlock(second);
+    }
 }
 
 void
@@ -301,7 +303,8 @@ DynParseCallback::interproc_cf(Function*f,Address addr,interproc_details*det)
                     det->data.call.target,
                     det->data.call.dynamic_call,
                     det->data.call.absolute_address,
-                    callSite);                    
+                    callSite,
+                    det->data.call.dynamic_call && !det->data.call.target);
             break;
         case interproc_details::branch_interproc:
             p = new image_instPoint(

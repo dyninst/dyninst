@@ -463,6 +463,7 @@ void image::findMain()
                linkedFile->addSymbol(startSym);
            }
            syms.clear();
+#if 0 //KEVIN: this makes no sense, why would we parse at arbitrary locations?
            if(!linkedFile->findSymbol(syms,"winStart",Symbol::ST_UNKNOWN, SymtabAPI::mangledName)) {
                //make up a func name for the start of the text section
                Symbol *sSym = new Symbol( "winStart", 
@@ -489,6 +490,8 @@ void image::findMain()
                                           UINT_MAX );
                linkedFile->addSymbol(fSym);
            }
+           syms.clear();
+#endif
            // add entry point as main given that nothing else was found
            startup_printf("[%s:%u] - findmain could not find symbol "
                           "for main, using binary entry point %x\n",

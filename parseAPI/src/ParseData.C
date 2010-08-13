@@ -90,7 +90,7 @@ StandardParseData::get_func(CodeRegion * cr, Address entry, FuncSource src)
         reg = reglookup(cr,entry); // get the *correct* CodeRegion
         if(reg && reg->isCode(entry)) {
 #if defined (os_windows)
-            _snprintf(name,32,"targ%lx",entry);
+            _snprintf_s(name,32,"targ%lx",entry);
 #else
             snprintf(name,32,"targ%lx",entry);
 #endif
@@ -265,9 +265,9 @@ OverlappingParseData::get_func(CodeRegion * cr, Address addr, FuncSource src)
         if(cr && cr->isCode(addr)) {
 #if defined (os_windows)
             if(src == GAP || src == GAPRT)
-                _snprintf(name,32,"gap%lx",addr);
+                _snprintf_s(name,32,"gap%lx",addr);
             else 
-                _snprintf(name,32,"targ%lx",addr);
+                _snprintf_s(name,32,"targ%lx",addr);
 #else
             if(src == GAP || src == GAPRT)
                 snprintf(name,32,"gap%lx",addr);
