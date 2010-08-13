@@ -252,8 +252,12 @@ BPatch_function *BPatch_point::getCalledFunctionInt()
    }
    }
    
-   int_function *_func;
+   if (point->getPointType() != callSite) {
+       parsing_printf("findCallee failed in getCalledFunction- not a call site\n");
+       return NULL;
+   }
    
+   int_function *_func;
    _func = point->findCallee();
    if (!_func) {
        parsing_printf("findCallee failed in getCalledFunction\n");

@@ -146,6 +146,7 @@ class emitElf{
     void updateSymbols(Elf_Data* symtabData,Elf_Data* strData, unsigned long loadSecsSize);
 
     bool hasRewrittenTLS;
+    bool TLSExists;
     Elf32_Shdr *newTLSData;
 
 #if !defined(os_solaris)
@@ -157,6 +158,7 @@ class emitElf{
 
     void log_elferror(void (*err_func)(const char *), const char* msg);
     bool hasPHdrSectionBug();
+    bool cannotRelocatePhdrs();
 };
 
 } // namespace SymtabAPI

@@ -62,7 +62,7 @@ platform_tuple(Platform, ObjSuffix, ExecSuffix,LibPrefix, LibSuffix,
 %%% COMPILER TUPLES
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-compiler_tuple(Name, Executable, DefString, Platforms, PresenceVar, OptStrings,
+compiler_tuple(Name, Executable, DefString, Platforms, PresenceVar, OptStrings, PicStrings,
                ParmStrings, Languages, StdFlags, ABIFlags, StaticLink, DynamicLink, Platform) :-
     % The next two lines ensure that we only return compilers that are used to
     % build at least one mutator or mutatee, and we don't return the same
@@ -75,6 +75,7 @@ compiler_tuple(Name, Executable, DefString, Platforms, PresenceVar, OptStrings,
     compiler_s(Name, Executable),
     compiler_define_string(Name, DefString),
     findall([L, S], compiler_opt_trans(Name, L, S), OptStrings),
+    findall([L, S], compiler_pic_trans(Name, L, S), PicStrings),
     findall([P, S], compiler_parm_trans(Name, P, S), ParmStrings),
     findall(L, comp_lang(Name, L), Languages),
     % Mutatee link options defaults to empty
@@ -167,7 +168,7 @@ mutator_tuple_s([Name, Sources, Libraries, Platform, Compiler],
 % This clause generates duplicates which are removed by the sort/2 call in
 % write_tuples.
 mutatee_tuple(Name, PreprocessedSources, RawSources, Libraries, Platform,
-              ABI, Compiler, Optimization_level, Groupable, Module, Format) :-
+              ABI, Compiler, Optimization_level, Groupable, Module, Format, PIC) :-
     test(TestName, _, Name),
     test_platform(TestName, Platform),
     test_platform_abi(TestName, Platform, ABI),
@@ -189,6 +190,7 @@ mutatee_tuple(Name, PreprocessedSources, RawSources, Libraries, Platform,
     mutatee_requires_libs(Name, Libraries),
     compiler_for_mutatee(Name, Compiler),
     compiler_platform(Compiler, Platform),
+    compiler_pic(Compiler, PIC),
     (
         \+ optimization_for_mutatee(Name, _, _) ->
             compiler_opt_trans(Compiler, Optimization_level, _);
@@ -198,7 +200,7 @@ mutatee_tuple(Name, PreprocessedSources, RawSources, Libraries, Platform,
 
 % This one handles peers
 mutatee_tuple(Name, PreprocessedSources, RawSources, Libraries, Platform,
-              ABI, Compiler, Optimization_level, Groupable, Module, Format) :-
+              ABI, Compiler, Optimization_level, Groupable, Module, Format, PIC) :-
     mutatee(M1, _, _),
     test(TestName, _, M1),
     test_platform(TestName, Platform),
@@ -213,6 +215,7 @@ mutatee_tuple(Name, PreprocessedSources, RawSources, Libraries, Platform,
     mutatee_format(Name, Format),
     compiler_format(Compiler, Format),
     compiler_platform(Compiler, Platform),
+    compiler_pic(Compiler, PIC),
     (
         \+ optimization_for_mutatee(Name, _, _) ->
             compiler_opt_trans(Compiler, Optimization_level, _);
@@ -247,7 +250,7 @@ test_tuple(Name, Mutator, Mutatee, Platform, Groupable, Module) :-
 
 % Provide tuples for run groups
 rungroup_tuple(Mutatee, Compiler, Optimization, RunMode, StartState,
-               Groupable, Tests, Platform, ABI, ThreadMode, ProcessMode, Format) :-
+               Groupable, Tests, Platform, ABI, ThreadMode, ProcessMode, Format, PIC) :-
     mutatee(Mutatee, _, _),
     compiler_for_mutatee(Mutatee, Compiler),
     compiler_platform(Compiler, Platform),
@@ -264,6 +267,7 @@ rungroup_tuple(Mutatee, Compiler, Optimization, RunMode, StartState,
     platform_format(Platform, Format),
     compiler_format(Compiler, Format),
     mutatee_format(Mutatee, Format),
+    compiler_pic(Compiler, PIC),
     % Enumerate / verify values for run-time options
     runmode(RunMode),
     threadmode(ThreadMode),
@@ -346,8 +350,8 @@ write_tuples(Filename, Platform) :-
     findall([L, E], language_tuple(L, E), Languages),
     write_term(Stream, Languages, [quoted(true)]),
     write(Stream, '\n'),
-    findall([N, E, D, P, PV, O, PS, L, F, As, SL, DL, Platform],
-            compiler_tuple(N, E, D, P, PV, O, PS, L, F, As, SL, DL, Platform),
+    findall([N, E, D, P, PV, O, PIC, PS, L, F, As, SL, DL, Platform],
+            compiler_tuple(N, E, D, P, PV, O, PIC, PS, L, F, As, SL, DL, Platform),
             Compilers),
     write_term(Stream, Compilers, [quoted(true)]),
     write(Stream, '\n'),
@@ -355,8 +359,8 @@ write_tuples(Filename, Platform) :-
             mutator_tuple(N, S, L, Platform, C), Mutators),
     write_term(Stream, Mutators, [quoted(true)]),
     write(Stream, '\n'),
-    findall([N, PS, RS, L, Platform, A, C, O, G, MO, FO],
-            mutatee_tuple(N, PS, RS, L, Platform, A, C, O, G, MO, FO), Mutatees_t),
+    findall([N, PS, RS, L, Platform, A, C, O, G, MO, FO, PIC],
+            mutatee_tuple(N, PS, RS, L, Platform, A, C, O, G, MO, FO, PIC), Mutatees_t),
     sort(Mutatees_t, Mutatees),
     write_term(Stream, Mutatees, [quoted(true)]),
     write(Stream, '\n'),
@@ -365,8 +369,8 @@ write_tuples(Filename, Platform) :-
             Tests),
     write_term(Stream, Tests, [quoted(true)]),
     write(Stream, '\n'),
-    findall([M, C, O, R, S, G, T, A, H, P, F],
-            rungroup_tuple(M, C, O, R, S, G, T, Platform, A, H, P, F),
+    findall([M, C, O, R, S, G, T, A, H, P, F, PIC],
+            rungroup_tuple(M, C, O, R, S, G, T, Platform, A, H, P, F, PIC),
             RunGroups),
     write_term(Stream, RunGroups, [quoted(true)]),
     write(Stream, '\n'),

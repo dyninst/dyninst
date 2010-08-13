@@ -86,6 +86,14 @@ void testUnlock(testlock_t *lck) {
     LeaveCriticalSection(lck);
 }
 
+void initBarrier(testbarrier_t *barrier, unsigned int count) {
+    //TODO
+}
+
+void waitTestBarrier(testbarrier_t *barrier) {
+    //TODO
+}
+
 int threads_equal(thread_t a, thread_t b) {
     return a.threadid == b.threadid;
 }
@@ -143,6 +151,14 @@ void testLock(testlock_t *lck) {
 
 void testUnlock(testlock_t *lck) {
    pthread_mutex_unlock((pthread_mutex_t *) lck);
+}
+
+void initBarrier(testbarrier_t *barrier, unsigned int count) {
+    pthread_barrier_init((pthread_barrier_t *)barrier, NULL, count);
+}
+
+void waitTestBarrier(testbarrier_t *barrier) {
+    pthread_barrier_wait((pthread_barrier_t *)barrier);
 }
 
 thread_t threadSelf() {

@@ -93,6 +93,7 @@ int test1_24_mutatee() {
  && !defined(i386_unknown_solaris2_5_test) \
  && !defined(i386_unknown_nt4_0_test) \
  && !defined(ia64_unknown_linux2_4_test) \
+ && !defined(os_freebsd_test) \
  && !defined(os_linux_test) /* Use OS #define instead of platform - Greg */
 
     logerror("Skipped test #24 (array variables)\n");

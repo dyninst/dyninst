@@ -72,8 +72,8 @@ test_results_t test1_30_Mutator::executeTest() {
  || defined(i386_unknown_nt4_0_test) \
  || defined(rs6000_ibm_aix4_1_test) \
  || defined(alpha_dec_osf4_0_test) \
- || defined(os_linux_test) /* Use OS #define instead of platform - Greg */
-
+ || defined(os_linux_test) /* Use OS #define instead of platform - Greg */ \
+ || defined(os_freebsd_test)
   unsigned long n;
   unsigned long baseAddr,lastAddr;
   unsigned int call30_1_line_no;
