@@ -49,7 +49,7 @@ class IA_IAPI : public InstructionAdapter
 {
   friend class image_func;
     public:
-        IA_IAPI(Dyninst::InstructionAPI::InstructionDecoder dec_,
+        IA_IAPI(Dyninst::InstructionAPI::InstructionDecoder &dec_,
                 Address start_, 
                 Dyninst::ParseAPI::CodeObject* o,
                 Dyninst::ParseAPI::CodeRegion* r,
@@ -74,7 +74,7 @@ class IA_IAPI : public InstructionAdapter
         virtual bool isAbsoluteCall() const;
         virtual bool simulateJump() const;
         virtual void advance();
-        virtual void retreat();
+        virtual bool retreat();
         virtual bool isNop() const;
         virtual bool isLeave() const;
         virtual bool isDelaySlot() const;
@@ -126,7 +126,7 @@ private:
         bool isIATcall() const;
 
 
-        Dyninst::InstructionAPI::InstructionDecoder dec;
+        Dyninst::InstructionAPI::InstructionDecoder & dec;
         std::map<Address, Dyninst::InstructionAPI::Instruction::Ptr> allInsns;
         Dyninst::InstructionAPI::Instruction::Ptr curInsn() const;
         std::map<Address, Dyninst::InstructionAPI::Instruction::Ptr>::iterator curInsnIter;

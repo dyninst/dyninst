@@ -1562,7 +1562,7 @@ bool BPatch_process::triggerStopThread(instPoint *intPoint,
     if (!bpPoint) { 
         return false; 
     }
-
+    isVisiblyStopped = true;
     // trigger all callbacks matching the snippet and event type
     pdvector<CallbackBase *> cbs;
     getCBManager()->dispenseCallbacksMatching(evtStopThread,cbs);
@@ -1574,6 +1574,7 @@ bool BPatch_process::triggerStopThread(instPoint *intPoint,
             (*cb)(bpPoint, retVal);
         }
     }
+    isVisiblyStopped = false;
     return true;
 }
 

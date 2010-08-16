@@ -277,7 +277,8 @@ DynParseCallback::patch_nop_jump(Address addr)
     Architecture arch = _img->codeObject()->cs()->getArch();
     assert( Arch_x86 == arch || Arch_x86_64 == arch );
 
-    unsigned char * ptr = (unsigned char *) _img->getPtrToInstruction(addr);
+    unsigned char * ptr = (unsigned char *) 
+        _img->codeObject()->cs()->getPtrToInstruction(addr);
     ptr[0] = 0x90;
 }
 

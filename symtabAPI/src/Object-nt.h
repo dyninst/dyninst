@@ -173,7 +173,8 @@ class Object : public AObject
     Module* curModule;
 
  public:
-    SYMTAB_EXPORT Object(MappedFile *, MappedFile *, void (*)(const char *) = log_msg, bool alloc_syms = true);
+    SYMTAB_EXPORT Object(MappedFile *, MappedFile *, bool defensive, 
+                         void (*)(const char *) = log_msg, bool alloc_syms = true);
     SYMTAB_EXPORT Object(){};
   
     SYMTAB_EXPORT virtual ~Object( void );
@@ -215,7 +216,7 @@ class Object : public AObject
 private:
     SYMTAB_EXPORT void    ParseSymbolInfo( bool );
     SYMTAB_EXPORT void    parseFileLineInfo(Symtab *, dyn_hash_map<std::string, LineInformation> &);
-    SYMTAB_EXPORT void    FindInterestingSections( bool );
+    SYMTAB_EXPORT void    FindInterestingSections( bool, bool );
     Region *          findEnclosingRegion(const Offset where);
 
     Offset baseAddr;     // location of this object in mutatee address space

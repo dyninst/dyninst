@@ -310,7 +310,7 @@ class Object : public AObject {
   friend class DwarfHandle;
  public:
   Object() : dwarf(this) {}
-  Object(MappedFile *, MappedFile *, void (*)(const char *) = log_msg, bool alloc_syms = true);
+  Object(MappedFile *, MappedFile *, bool, void (*)(const char *) = log_msg, bool alloc_syms = true);
   Object(MappedFile *, MappedFile *, dyn_hash_map<std::string, LineInformation> &, std::vector<Region *> &, void (*)(const char *) = log_msg);
   Object(MappedFile *, MappedFile *, std::string &member_name, Offset offset,	
           void (*)(const char *) = log_msg, void *base = NULL, bool alloc_syms = true);
