@@ -34,6 +34,8 @@
 
 #include "debug_parse.h"
 
+#define _CRT_SECURE_NO_WARNINGS
+
 using namespace Dyninst::ParseAPI;
 
 int Dyninst::ParseAPI::dyn_debug_parsing = 0;

@@ -63,7 +63,9 @@ Function::Function(Address addr, string name, CodeObject * obj,
         _tamper(TAMPER_UNSET),
         _tamper_addr(0)
 {
-    
+    if (obj->defensiveMode()) {
+        mal_printf("new funct at %lx\n",addr);
+    }
 }
 
 
@@ -345,14 +347,16 @@ Function::tampersStack(bool recalculate)
         return _tamper;
     }
 
-    if ( ! this->obj()->defensiveMode() ) { 
+    if ( ! obj()->defensiveMode() ) { 
         assert(0);
-        return TAMPER_NONE;
+        _tamper = TAMPER_NONE;
+        return _tamper;
     }
 
-    Function::blocklist & retblks = this->returnBlocks();
+    Function::blocklist & retblks = returnBlocks();
     if ( retblks.begin() == retblks.end() ) {
-        return TAMPER_NONE;
+        _tamper = TAMPER_NONE;
+        return _tamper;
     }
 
     AssignmentConverter converter(true);

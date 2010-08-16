@@ -1291,7 +1291,11 @@ bool IA_IAPI::isIATcall() const
 
     // calculate the address of the ASCII string pointer, 
     // skip over the IAT entry's two-byte hint
-    Address funcAsciiAddr = 2 + *(Address*) (_obj->cs()->getPtrToData(entryAddr));
+    void * asciiPtr = _obj->cs()->getPtrToInstruction(entryAddr);
+    if (!asciiPtr) {
+        return false;
+    }
+    Address funcAsciiAddr = 2 + *(Address*) asciiPtr;
     if (!_obj->cs()->isValidAddress(funcAsciiAddr)) {
         return false;
     }

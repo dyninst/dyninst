@@ -138,42 +138,6 @@ HybridAnalysis::~HybridAnalysis()
     }
 }
 
-#if 0
-HybridMode HybridAnalysis::toIntHybridMode(BPatch_hybridMode bpmode)
-{
-    switch(bpmode) {
-    case BPatch_heuristicMode:
-        return heuristicMode;
-    case BPatch_normalMode:
-        return normalMode;
-    case BPatch_exploratoryMode:
-        return exploratoryMode;
-    case BPatch_defensiveMode:
-        return defensiveMode;
-    default :
-        assert(0);
-        return normalMode;
-    }
-}
-
-BPatch_hybridMode HybridAnalysis::toBPatchHybridMode(HybridMode hmode)
-{
-    switch(hmode) {
-    case heuristicMode:
-        return BPatch_heuristicMode;
-    case normalMode:
-        return BPatch_normalMode;
-    case exploratoryMode:
-        return BPatch_exploratoryMode;
-    case defensiveMode:
-        return BPatch_defensiveMode;
-    default :
-        assert(0);
-        return BPatch_normalMode;
-    }
-}
-#endif
-
 bool HybridAnalysis::setMode(BPatch_hybridMode mode)
 { 
     // can't move to (or from) defensive mode at runtime,

@@ -407,10 +407,6 @@ void
 Parser::finalize(Function *f)
 {
     if(f->_cache_valid) {
-        if (f->obj()->defensiveMode()) {
-            printf("WARNING: finalizing func at %lx with cache_valid == true"
-                   " %s[%d]\n", f->addr(),FILE__,__LINE__);
-        }
         return;
     }
 
@@ -702,17 +698,21 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 // Call-stack tampering tests
                 if (frame.func->obj()->defensiveMode() && ct) {
                     StackTamper tamper = ct->tampersStack();
-                    if (TAMPER_UNSET == tamper) {
-                        tamper = ct->tampersStack();
-                    }
                     if (TAMPER_NONE != tamper) {
+                        mal_printf("Disallowing FT edge: function at %lx "
+                                   "tampers with its stack\n", ct->addr());
                         parsing_printf("\t Disallowing FT edge: function "
                                        "tampers with its stack\n");
                         is_nonret = true;
+                    } else {
+                        Function::blocklist & retblks = ct->returnBlocks();
+                        if ( retblks.begin() == retblks.end() ) {
+                            is_nonret = true;
+                        }
                     }
                 }
                 if(is_nonret) {
-		  parsing_printf("[%s] no fallthrough for non-returning call "
+                    parsing_printf("[%s] no fallthrough for non-returning call "
                                    "to %lx at %lx\n",FILE__,target,
                                    work->edge()->src()->lastInsnAddr());
 
@@ -751,6 +751,9 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
         {
             parsing_printf("[%s] parsing block %lx\n",
                 FILE__,cur->start());
+            if (frame.func->obj()->defensiveMode()) {
+                mal_printf("new block at %lx\n",cur->start());
+            }
             cur->_parsed = true;
             curAddr = cur->start();
         } else {
@@ -798,7 +801,9 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             if(curAddr == nextBlockAddr) {
                 parsing_printf("[%s] straight-line parse into block at %lx\n",
                     FILE__,curAddr);
-
+                if (frame.func->obj()->defensiveMode()) {
+                    mal_printf("new block at %lx\n",curAddr);
+                }
                 ah.retreat();
                 curAddr = ah.getAddr();
 
@@ -918,6 +923,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 break;
             }
             else if (_obj.defensiveMode() && ah.isNopJump()) {
+                mal_printf("Nop jump at %lx, changing it to nop\n",ah.getAddr());
                 _pcb.patch_nop_jump(ah.getAddr());
             }
             else {
@@ -1041,6 +1047,10 @@ Parser::block_at(
         else {
             parsing_printf("[%s] address %lx splits [%lx,%lx) (%p)\n",
                FILE__,addr,exist->start(),exist->end(),exist);
+            if (owner->obj()->defensiveMode()) {
+                mal_printf("new block at %lx splits [%lx %lx)\n",
+                           addr, exist->start(), exist->end());
+            }
             split = exist;
             ret = split_block(owner,exist,addr,prev_insn);
         }

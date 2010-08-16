@@ -372,6 +372,8 @@ class image : public codeRange {
    void getInstPoints(Address start, Address end, 
                       pdvector<image_instPoint*> &points); 
 
+   //-----------DEFENSIVE-MODE CODE------------//
+   BPatch_hybridMode hybridMode() const { return mode_; }
    // element removal
    void removeInstPoint(image_instPoint *p);
    void deleteFunc(image_func *func);

@@ -31,7 +31,7 @@
 
 #include "dyntypes.h"
 #include "IA_IAPI.h"
-
+#include "util.h"
 #include "Register.h"
 #include "Dereference.h"
 #include "Immediate.h"
@@ -160,8 +160,9 @@ bool IA_IAPI::hasCFT() const
   hascftstatus.second = false;
   if(c == c_BranchInsn ||
      c == c_ReturnInsn) {
-     if ( ! _obj->defensiveMode() ||
-         ! isNopJump() ) {
+     if ( unlikely(_obj->defensiveMode() && isNopJump()) ) {
+     } 
+     else {
         parsing_cerr << "\t branch or return, ret true" << endl;
         hascftstatus.second = true;
      }
@@ -300,21 +301,18 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
                 }
             }
         }
-//        if ( ! _obj->defensiveMode()  // add fallthrough edge if we're not in
-//             || ( ( ! isDynamicCall() // defensive mode or the call passes 
-//                                      // through the PE's
-//#endif                                // Import Address Table (i.e., the IAT)
-//                   )                  // otherwise, the call is unresolved.
-//                 && _isrc->isValidAddress(target) ) ) 
-
-        if ( ! _obj->defensiveMode()  // add fallthrough edge unless we're in
-             || ( ( ! isDynamicCall() // defensive mode and this is call with
-#if defined (os_windows)              // a bad call target or an indirect call 
-                    || isIATcall()    // that doesn't pass through the PE's
-#endif                                // Import Address Table (i.e., the IAT)
-                   )                  // otherwise, the call is unresolved.
-                 && _isrc->isValidAddress(target) ) ) 
+        if ( _obj->defensiveMode() &&
+             ((!isDynamicCall() && !_isrc->isValidAddress(target)) ||
+              (isDynamicCall() && !isIATcall())) )
         {
+            // don't add fallthrough edge if we're in defensive mode 
+            // and we see a direct call to an invalid address or an
+            // indirect call that doesn't pass through the 
+            // Import Address Table (i.e., the IAT)
+            mal_printf("Unres call at %lx in getNewEdges %d\n", 
+                       current, __LINE__);
+        } 
+        else {
             outEdges.push_back(std::make_pair(getAddr() + getSize(),CALL_FT));
         }
         return;

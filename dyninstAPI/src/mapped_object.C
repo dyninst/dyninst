@@ -32,6 +32,8 @@
 // $Id: mapped_object.C,v 1.39 2008/09/03 06:08:44 jaw Exp $
 
 #include <string>
+#include <cctype>
+#include <algorithm>
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/mapped_module.h"
@@ -251,7 +253,7 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
 
    // Adds exported functions and variables..
    startup_printf("%s[%d]:  creating mapped object\n", FILE__, __LINE__);
-   mapped_object *obj = new mapped_object(desc, img, p);
+   mapped_object *obj = new mapped_object(desc, img, p, analysisMode);
    startup_printf("%s[%d]:  leaving createMappedObject(%s)\n", FILE__, __LINE__, desc.file().c_str());
 
    return obj;
@@ -1876,32 +1878,39 @@ void mapped_object::removeRange(codeRange *range) {
 
 bool mapped_object::isSystemLib(const std::string &objname)
 {
-   const char * fname = objname.c_str();
-   if (strstr(fname, "libdyninstAPI_RT"))
+   std::string lowname = objname;
+   std::transform(lowname.begin(),lowname.end(),lowname.begin(), 
+                  (int(*)(int))std::tolower);
+    
+   if (std::string::npos != lowname.find("libdyninstapi_rt"))
       return true;
 
 #if defined(os_solaris)
    // Solaris 2.8... we don't grab the initial func always,
    // so fix up this code as well...
-   if (strstr(fname, "libthread"))
+   if (std::string::npos != lowname.find("libthread"))
       return true;
 #endif
 
 #if defined(os_linux)
-   if (strstr(fname, "libc.so"))
+   if (std::string::npos != lowname.find("libc.so"))
       return true;
-   if (strstr(fname, "libpthread"))
+   if (std::string::npos != lowname.find("libpthread"))
       return true;
 #endif
 
 #if defined(os_windows)
-   if (strstr(fname, "kernel32.dll"))
+   if (std::string::npos != lowname.find("windows\\system32\\") &&
+       std::string::npos != lowname.find(".dll"))
+       return true;
+   if (std::string::npos != lowname.find("kernel32.dll"))
       return true;
-   if (strstr(fname, "user32.dll"))
+   if (std::string::npos != lowname.find("user32.dll"))
       return true;
-   if (strstr(fname, "ntdll.dll"))
+   if (std::string::npos != lowname.find("ntdll.dll"))
       return true;
-   if (strstr(fname, "msvcrt") && strstr(fname, ".dll"))
+   if (std::string::npos != lowname.find("msvcrt") && 
+       std::string::npos != lowname.find(".dll"))
       return true;
 #endif
 
