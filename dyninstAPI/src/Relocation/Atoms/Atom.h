@@ -112,8 +112,7 @@ class Atom {
   // Make binary from the thing
   // Current address (if we need it)
   // is in the codeGen object.
-  virtual bool generate(Trace &block,
-			GenStack &) = 0;
+  virtual bool generate(GenStack &) = 0;
 
   virtual std::string format() const = 0;
 

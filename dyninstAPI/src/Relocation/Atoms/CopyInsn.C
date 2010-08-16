@@ -38,7 +38,7 @@ using namespace InstructionAPI;
 
 /////////////////////////
 
-bool CopyInsn::generate(Trace &, GenStack &gens) {
+bool CopyInsn::generate(GenStack &gens) {
   gens().copy(insn_->ptr(), insn_->size());
   return true;
 }

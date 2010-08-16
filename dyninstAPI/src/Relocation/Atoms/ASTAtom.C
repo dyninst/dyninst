@@ -41,7 +41,7 @@ ASTAtom::Ptr ASTAtom::create(AstNodePtr a, instPoint *b) {
   return Ptr(new ASTAtom(a, b));
 }
 
-bool ASTAtom::generate(Trace &, GenStack &gens) {
+bool ASTAtom::generate(GenStack &gens) {
   AstPatch *patch = new AstPatch(ast_, point_);
   gens.addPatch(patch);
   return true;

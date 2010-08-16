@@ -68,7 +68,7 @@ void MemEmulator::initTranslators(TranslatorMap &t) {
   translators_ = t;
 }
 
-bool MemEmulator::generate(Trace &,  GenStack &gens) {
+bool MemEmulator::generate(GenStack &gens) {
   codeGen &prepatch = gens();
 
   // We want to ensure that a memory operation produces its
@@ -395,7 +395,7 @@ MemEmulatorTranslator::Ptr MemEmulatorTranslator::create(Register r) {
   return Ptr(new MemEmulatorTranslator(r));
 }
 
-bool MemEmulatorTranslator::generate(Trace &, GenStack &gens) {
+bool MemEmulatorTranslator::generate(GenStack &gens) {
   DecisionTree dt(reg_);
   codeGen &gen = gens();
 

@@ -55,7 +55,7 @@ class Inst : public Atom {
   void addBaseTramp(baseTramp *b);
   bool empty() const;
 
-  bool generate(Trace &, GenStack &);
+  bool generate(GenStack &);
   
   virtual ~Inst() {};
 

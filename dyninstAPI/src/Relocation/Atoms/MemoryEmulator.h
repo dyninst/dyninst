@@ -74,7 +74,7 @@ class MemEmulator : public Atom {
 
    static void initTranslators(TranslatorMap &t); 
 
-   virtual bool generate(Trace &, GenStack &);
+   virtual bool generate(GenStack &);
    virtual ~MemEmulator() {};
    virtual std::string format() const;
 
@@ -151,7 +151,7 @@ class MemEmulatorTranslator : public Atom {
  public:
     typedef dyn_detail::boost::shared_ptr<MemEmulatorTranslator> Ptr;
     static Ptr create(Register r);
-    virtual bool generate(Trace &, GenStack &);
+    virtual bool generate(GenStack &);
     virtual ~MemEmulatorTranslator() {};
     virtual std::string format() const;
     

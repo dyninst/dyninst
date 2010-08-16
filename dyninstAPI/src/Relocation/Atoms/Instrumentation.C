@@ -52,7 +52,7 @@ bool Inst::empty() const {
   return baseTramps_.empty();
 }
 
-bool Inst::generate(Trace &, GenStack &gens) {
+bool Inst::generate(GenStack &gens) {
   // Fun for the whole family!
   // Okay. This (initially) is going to hork
   // up all of our address/structure tracking because

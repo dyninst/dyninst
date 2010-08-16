@@ -154,7 +154,7 @@ bool Trace::generate(codeGen &templ,
     gens_.cur().addrMap.push_back(std::make_pair<Address, Offset>((*iter)->addr(),
 								  gens_().used()));
     
-    if (!(*iter)->generate(*this, gens_)) {
+    if (!(*iter)->generate(gens_)) {
       cerr << "Error: failed to generate element " << (*iter)->format() << endl;
       return false;
       // This leaves the block in an inconsistent state and should only be used

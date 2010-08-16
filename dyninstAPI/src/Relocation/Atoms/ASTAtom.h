@@ -48,7 +48,7 @@ class ASTAtom : public Atom {
 
   ASTAtom(AstNodePtr a, instPoint *p) : ast_(a), point_(p) {};
 
-  bool generate(Trace &, GenStack &);
+  bool generate(GenStack &);
   
   virtual ~ASTAtom() {};
 

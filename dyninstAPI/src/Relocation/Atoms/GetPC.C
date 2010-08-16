@@ -47,7 +47,7 @@ GetPC::Ptr GetPC::create(Instruction::Ptr insn,
   return Ptr(new GetPC(insn, addr, a, thunk));
 }
 
-bool GetPC::generate(Trace &, GenStack &gens) {
+bool GetPC::generate(GenStack &gens) {
   // Two options: top of stack (push origAddr) 
   // or into a register (/w/ a mov)
 
