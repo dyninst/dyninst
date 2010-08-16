@@ -37,7 +37,7 @@
 #include "dynutil/h/Annotatable.h"
 #include "mapped_object.h"
 
-image_variable::image_variable(Variable *var, pdmodule *mod) :
+image_variable::image_variable(SymtabAPI::Variable *var, pdmodule *mod) :
     var_(var),			       
     pdmod_(mod) 
 {

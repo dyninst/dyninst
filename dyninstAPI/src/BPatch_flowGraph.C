@@ -53,7 +53,7 @@
 #if defined(cap_instruction_api)
 #include "Instruction.h"
 #else
-#include "InstrucIter.h"
+#include "parseAPI/src/InstrucIter.h"
 #endif
 
 #include "BPatch_statement.h"
@@ -235,7 +235,7 @@ BPatch_flowGraph::findLoopInstPointsInt(const BPatch_procedureLocation loc,
         if (DEBUG_LOOP) fprintf(stderr,"loop end iter\n");
 
         // point for the backedge of this loop 
-        BPatch_edge *edge = loop->backEdge;
+        BPatch_edge *edge = loop->getBackEdge();
         if (DEBUG_LOOP) edge->dump();
 	BPatch_point *iP = edge->getPoint();
 	iP->overrideType(BPatch_locLoopEndIter);
@@ -317,8 +317,6 @@ BPatch_flowGraph::getAllBasicBlocksSTL(std::set<BPatch_basicBlock*>& abb)
    return true;
 }
 
-
-
 // this is the method that returns the set of entry points
 // basic blocks, to the control flow graph. Actually, there must be
 // only one entry point to each control flow graph but the definition
@@ -327,14 +325,12 @@ bool
 BPatch_flowGraph::getEntryBasicBlockInt(BPatch_Vector<BPatch_basicBlock*>& ebb) 
 {
    BPatch_basicBlock *bb;
-   int_function *func = ll_func();
-   for (unsigned i=0; i<func->blocks().size(); i++)
+   set< int_basicBlock* , int_basicBlock::compare > blockList; 
+   const pdvector<instPoint*> entryPoints = ll_func()->funcEntries();
+   for (unsigned i=0; i<entryPoints.size(); i++)
    {
-      if (func->blocks()[i]->isEntryBlock())
-      {
-         bb = (BPatch_basicBlock *) func->blocks()[i]->getHighLevelBlock();
-         ebb.push_back(bb);
-      }
+       bb = (BPatch_basicBlock *) entryPoints[i]->block()->getHighLevelBlock();
+       ebb.push_back(bb);
    }
    return true;
 }
@@ -347,16 +343,46 @@ bool
 BPatch_flowGraph::getExitBasicBlockInt(BPatch_Vector<BPatch_basicBlock*>& nbb)
 {
    BPatch_basicBlock *bb;
-   int_function *func = ll_func();
-   for (unsigned i=0; i<func->blocks().size(); i++)
+   const pdvector<instPoint*> exitPoints = ll_func()->funcExits();
+   for (unsigned i=0; i<exitPoints.size(); i++)
    {
-      if (func->blocks()[i]->isExitBlock())
-      {
-         bb = (BPatch_basicBlock *) func->blocks()[i]->getHighLevelBlock();
-         nbb.push_back(bb);
-      }
+       bb = (BPatch_basicBlock *) exitPoints[i]->block()->getHighLevelBlock();
+       nbb.push_back(bb);
    }
    return true;
+}
+
+/** returns the basic block that contains the address */
+BPatch_basicBlock* BPatch_flowGraph::findBlockByAddr(Address where)
+{
+    if (allBlocks.size() == 0) {
+        return NULL;
+    }
+    BPatch_basicBlock *ret =NULL;
+    BPatch_basicBlock** blocks = new BPatch_basicBlock* [allBlocks.size()];
+    // traverses the tree in order & loads all set elements into blocks array
+    allBlocks.elements(blocks);
+    // if these are ints instead of unsigned, the loop crashes if the address
+    // precedes the function
+    int first = 0;
+    int last = (int) allBlocks.size()-1;
+    int idx = (first+last)/2;
+    do  { // binary search
+        if (where < blocks[idx]->getStartAddress()) {
+            last = idx - 1;
+            idx = (first+last)/2;
+        } else if (where >= blocks[idx]->getEndAddress()) {
+            first = idx + 1;
+            idx = (first+last)/2;
+        } else {
+            break;
+        }
+    } while(first <= last);
+    if (first <= last) {
+        ret = blocks[idx];
+    }
+    delete blocks;
+    return ret;
 }
 
 
@@ -385,6 +411,7 @@ BPatch_flowGraph::createLoops()
 
     BPatch_loop **allLoops = new BPatch_loop*[loops->size()];
     loops->elements(allLoops);
+    std::vector<BPatch_loop*> dupLoops;
     
     // for each pair of loops l1,l2
     for (i = 0; i < loops->size(); i++) {
@@ -410,24 +437,42 @@ BPatch_flowGraph::createLoops()
                 // l1 contains l2
                 l1->containedLoops += l2;
 
-                // l2 has no parent, l1 is best so far
-                if(!l2->parent) 
+                if( l2->hasBlock(l1->getLoopHead()) &&
+                    l2->hasBlock(l1->getBackEdge()->source) )
                 {
-                    l2->parent = l1;
+                    if (i < j) { // merge l2 into l1 if i < j
+                        dupLoops.push_back(l2);
+                        std::vector<BPatch_edge*> l2edges;
+                        l2->getBackEdges(l2edges);
+                        l1->addBackEdges(l2edges);
+                    }
                 }
-                else
+                else 
                 {
-                   // if l1 is closer to l2 than l2's existing parent
-                    if(l2->parent->hasBlock(l1->getLoopHead()) &&
-                       l2->parent->hasBlock(l1->getBackEdge()->source))
+                    // l2 has no parent, l1 is best so far
+                    if(!l2->parent) 
                     {
                         l2->parent = l1;
+                    }
+                    else
+                    {
+                        // if l1 is closer to l2 than l2's existing parent
+                        if(l2->parent->hasBlock(l1->getLoopHead()) &&
+                           l2->parent->hasBlock(l1->getBackEdge()->source))
+                        {
+                            l2->parent = l1;
+                        }
                     }
                 }
             }
         }
     }
-    
+
+    // remove duplicate loops 
+    for (unsigned idx=0; idx < dupLoops.size(); idx++) {
+        loops->remove(dupLoops[idx]);
+    }
+   
     delete[] allLoops;
 }
 
@@ -501,11 +546,17 @@ bool BPatch_flowGraph::createBasicBlocks()
 { 
     assert(ll_func());
     // create blocks from int_basicBlocks
-    const std::vector< int_basicBlock* > &iblocks	= ll_func()->blocks();
-    for( unsigned int i = 0; i < iblocks.size(); i++ )
+    const std::set< int_basicBlock* , int_basicBlock::compare >&
+        iblocks = ll_func()->blocks();
+    set< int_basicBlock* , int_basicBlock::compare >::const_iterator ibIter;
+    //for( unsigned int i = 0; i < iblocks.size(); i++ )
+    for (ibIter = iblocks.begin(); 
+         ibIter != iblocks.end(); 
+         ibIter++) 
     {
-       BPatch_basicBlock *newblock = new BPatch_basicBlock(iblocks[i], this);
-       allBlocks += newblock;
+       BPatch_basicBlock *newblock = new BPatch_basicBlock(*ibIter, this);
+       allBlocks.insert(newblock);
+       assert (allBlocks.contains(newblock));
     }
 
     // create edges from target & source block lists in int_basicBlock
@@ -563,7 +614,10 @@ bool BPatch_flowGraph::createSourceBlocksInt() {
             }
         }
 #else
-        InstrucIter insnIterator( currentBlock );
+        InstrucIter insnIterator( 
+            currentBlock->getStartAddress(),
+            currentBlock->size(),
+            currentBlock->flowGraph->getllAddSpace());
         
         for( ; insnIterator.hasMore(); ++insnIterator ) {
             if( getAddSpace()->getSourceLines( * insnIterator, lines ) ) {
@@ -1010,3 +1064,7 @@ AddressSpace *BPatch_flowGraph::getllAddSpace() const
 { 
    return func_->lladdSpace; 
 }
+
+void BPatch_flowGraph::invalidate() { isValid_ = false; }
+bool BPatch_flowGraph::isValidInt() { return isValid_; }
+ 

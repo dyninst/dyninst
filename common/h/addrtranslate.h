@@ -48,6 +48,7 @@ namespace Dyninst {
 
 class LoadedLib {
    friend class AddressTranslate;
+   friend class AddressTranslateSysV;
  protected:
    string name;
    Address load_addr;
@@ -118,6 +119,7 @@ class AddressTranslate {
    COMMON_EXPORT PID getPid();
    COMMON_EXPORT bool getLibAtAddress(Address addr, LoadedLib* &lib);
    COMMON_EXPORT bool getLibs(vector<LoadedLib *> &libs_);
+   COMMON_EXPORT bool getArchLibs(vector<LoadedLib *> &olibs);
    COMMON_EXPORT LoadedLib *getLoadedLib(std::string name);
    COMMON_EXPORT LoadedLib *getLoadedLib(SymReader *sym);
    COMMON_EXPORT LoadedLib *getExecutable();

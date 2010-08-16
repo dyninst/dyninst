@@ -32,6 +32,7 @@
 #include "addressSpace.h"
 #include "codeRange.h"
 #include "process.h"
+#include "function.h"
 #include "binaryEdit.h"
 
 #include "miniTramp.h"
@@ -45,9 +46,8 @@
 #if defined(cap_instruction_api)
 #include "InstructionDecoder.h"
 #include "Instruction.h"
-
 #else
-#include "InstrucIter.h"
+#include "parseAPI/src/InstrucIter.h"
 #endif //defined(cap_instruction_api)
 
 // Implementations of non-virtual functions in the address space
@@ -248,6 +248,16 @@ void AddressSpace::removeOrigRange(codeRange *range) {
 void AddressSpace::removeModifiedRange(codeRange *range) {
     codeRange *tmp = NULL;
     
+    if (dynamic_cast<multiTramp*>(range) && 
+        dynamic_cast<multiTramp*>(range)->getIsActive()) 
+    {
+        fprintf(stderr,"ERROR: removeModifiedRange tried to remove active "
+                "multiTramp range [%lx %lx] %s[%d]\n",
+                range->get_address(), range->get_address() + range->get_size(),
+                FILE__,__LINE__);
+        assert(0);
+    }
+
     if (!modifiedRanges_.find(range->get_address(), tmp))
         return;
 
@@ -393,7 +403,14 @@ void AddressSpace::addMultiTramp(multiTramp *multi) {
 }
 
 void AddressSpace::removeMultiTramp(multiTramp *multi) {
-    if (!multi) return;
+
+    if (!multi || multi->getIsActive()) {
+        fprintf(stderr,"ERROR: Trying to remove active or NULL multitramp %lx "
+                "[%lx %lx], should not be doing this %s[%d]\n", 
+                multi->instAddr(), multi->getAddress(), 
+                multi->getAddress() + multi->get_size(), FILE__,__LINE__);
+        assert(0);
+    }
 
     assert(multi->instAddr());
 
@@ -660,13 +677,7 @@ void AddressSpace::inferiorFreeInternal(Address block) {
 
 void AddressSpace::inferiorMallocAlign(unsigned &size) {
     // Align to the process word
-
-#if !defined(arch_ia64)
     unsigned alignment = (getAddressWidth() - 1);
-#else
-    unsigned alignment = (128 - 1);
-#endif
-
     size = (size + alignment) & ~alignment;
 }
     
@@ -894,7 +905,7 @@ bool AddressSpace::findVarsByAll(const std::string &varname,
 // copy for images, or a relocated function's self copy.
 // TODO: is this really worth it? Or should we just use ptrace?
 
-void *AddressSpace::getPtrToInstruction(Address addr) const {
+void *AddressSpace::getPtrToInstruction(const Address addr) const {
     codeRange *range;
 
     if (textRanges_.find(addr, range)) {
@@ -905,19 +916,36 @@ void *AddressSpace::getPtrToInstruction(Address addr) const {
         assert(data);
         return data->obj->getPtrToData(addr);
     }
+    fprintf(stderr,"[%s:%d] failed to find matching range for address %lx\n",
+        FILE__,__LINE__,addr);
     assert(0);
     return NULL;
 }
 
-bool AddressSpace::isExecutableAddress(const Address &addr) const {
+void *
+AddressSpace::getPtrToData(const Address addr) const {
+    codeRange *range = NULL;
+    if(dataRanges_.find(addr,range)) {
+        mappedObjData * data = dynamic_cast<mappedObjData *>(range);
+        assert(data);
+        return data->obj->getPtrToData(addr);
+    }
+    assert(0);
+    return NULL;
+}
+
+bool AddressSpace::isCode(const Address addr) const {
     codeRange *dontcare;
     if (textRanges_.find(addr, dontcare))
         return true;
     else
         return false;
 }
+bool AddressSpace::isData(const Address addr) const {
+    return !isCode(addr) && isValidAddress(addr);
+}
 
-bool AddressSpace::isValidAddress(const Address& addr) const{
+bool AddressSpace::isValidAddress(const Address addr) const{
     // "Is this part of the process address space?"
     codeRange *dontcare;
     if (textRanges_.find(addr, dontcare))
@@ -946,6 +974,7 @@ int_function *AddressSpace::findFuncByAddr(Address addr) {
     int_function *func_ptr = range->is_function();
     multiTramp *multi = range->is_multitramp();
     miniTrampInstance *mti = range->is_minitramp();
+    mapped_object *obj = range->is_mapped_object();
 
     if(func_ptr) {
        return func_ptr;
@@ -955,6 +984,12 @@ int_function *AddressSpace::findFuncByAddr(Address addr) {
     }
     else if (mti) {
         return mti->baseTI->multiT->func();
+    }
+    else if (obj) {
+        if ( ! obj->isAnalyzed() ) {
+            obj->analyze();
+        }
+        return obj->findFuncByAddr( addr );
     }
     else {
         return NULL;
@@ -1084,15 +1119,14 @@ int_function *AddressSpace::findJumpTargetFuncByAddr(Address addr) {
     if (!range->is_mapped_object()) 
         return NULL;
 #if defined(cap_instruction_api)
-    mapped_object* mobj = dynamic_cast<mapped_object*>(range);
     using namespace Dyninst::InstructionAPI;
     InstructionDecoder decoder((const unsigned char*)getPtrToInstruction(addr),
-			       InstructionDecoder::maxInstructionLength,
-			       mobj->parse_img()->getArch());
+            InstructionDecoder::maxInstructionLength,
+            getArch());
     Instruction::Ptr curInsn = decoder.decode();
     
     Expression::Ptr target = curInsn->getControlFlowTarget();
-    RegisterAST thePC = RegisterAST::makePC(mobj->parse_img()->getArch());
+    RegisterAST thePC = RegisterAST::makePC(getArch());
     target->bind(&thePC, Result(u32, addr));
     Result cft = target->eval();
     if(cft.defined)
@@ -1290,7 +1324,7 @@ void trampTrapMappings::flush() {
    if (!needs_updating || blockFlushes)
       return;
 
-   pdvector<mapped_object *> &rtlib = proc()->runtime_lib;
+   set<mapped_object *> &rtlib = proc()->runtime_lib;
 
    //We'll sort addresses in the binary rewritter (when writting only happens
    // once and we may do frequent lookups)
@@ -1418,7 +1452,7 @@ void trampTrapMappings::flush() {
    {
       if (!trapTable) {
          //Lookup all variables that are in the rtlib
-         pdvector<mapped_object *>::iterator rtlib_it;
+         set<mapped_object *>::iterator rtlib_it;
          for(rtlib_it = rtlib.begin(); rtlib_it != rtlib.end(); ++rtlib_it) {
              if( !trapTableUsed ) trapTableUsed = (*rtlib_it)->getVariable("dyninstTrapTableUsed");
              if( !trapTableVersion ) trapTableVersion = (*rtlib_it)->getVariable("dyninstTrapTableVersion");
@@ -1493,7 +1527,8 @@ void trampTrapMappings::allocateTable()
    assert(result);   
    current_table = table_header + sizeof(trap_mapping_header);
 
-   Symtab *symtab = binedit->getMappedObject()->parse_img()->getObject();
+   SymtabAPI::Symtab *symtab = 
+        binedit->getMappedObject()->parse_img()->getObject();
    if( !symtab->isStaticBinary() ) {
        symtab->addSysVDynamic(DT_DYNINST, table_header);
        symtab->addLibraryPrereq(proc()->dyninstRT_name);
@@ -1540,11 +1575,12 @@ bool AddressSpace::findFuncsByAddr(Address addr, std::vector<int_function *> &fu
    {
       //Get the multiple functions from the image block, convert to
       // int_functions and return them.
-      const set<image_func *> & img_funcs = img_block->getFuncs();
+      vector<ParseAPI::Function *> img_funcs;
+      img_block->getFuncs(img_funcs);
       assert(img_funcs.size());
-      set<image_func *>::const_iterator fit = img_funcs.begin();
+      vector<ParseAPI::Function *>::iterator fit = img_funcs.begin();
       for( ; fit != img_funcs.end(); ++fit) {
-         int_func = findFuncByInternalFunc(*fit);
+         int_func = findFuncByInternalFunc(static_cast<image_func*>(*fit));
          funcs.push_back(int_func);
       }
       return true;
@@ -1560,6 +1596,10 @@ bool AddressSpace::canUseTraps()
    BinaryEdit *binEdit = dynamic_cast<BinaryEdit *>(this);
    if (binEdit && binEdit->getMappedObject()->parse_img()->getObject()->isStaticBinary())
    	return false;
+
+#if !defined(cap_mutatee_traps)
+   return false;
+#endif
    
    return useTraps_;
 }
@@ -1586,4 +1626,22 @@ bool AddressSpace::needsPIC(AddressSpace *s)
    if (this != s)
       return true; //Use PIC cross module
    return s->needsPIC(); //Use target module
+}
+
+bool AddressSpace::sameRegion(Address addr1, Address addr2)
+{
+    mapped_object *mobj = findObject(addr1);
+    if (!mobj || mobj != findObject(addr2)) {
+        return false;
+    }
+    Address loadAddr = mobj->parse_img()->desc().loadAddr();
+
+    SymtabAPI::Region *reg1 = 
+        mobj->parse_img()->getObject()->findEnclosingRegion( addr1 - loadAddr );
+
+    if (!reg1 || reg1 != mobj->parse_img()->getObject()->
+                         findEnclosingRegion( addr2 - loadAddr )) {
+        return false;
+    }
+    return true;
 }

@@ -53,25 +53,27 @@ class Statement : public AnnotatableSparse, public Serializable
 	friend class LineInformation;
 
 	Statement(const char *file, unsigned int line, unsigned int col = 0,
-			Offset start_addr = (Offset) -1L, Offset end_addr = (Offset) -1L) :
-		file_(file ? std::string(file) : std::string()),
-	    line_(line),
-	    column(col),
-	    start_addr_(start_addr),
-	    end_addr_(end_addr),
-	    first(file_.c_str()),
-	    second(line_)	{}
+             Offset start_addr = (Offset) -1L, Offset end_addr = (Offset) -1L) :
+      file_(file ? std::string(file) : std::string()),
+      line_(line),
+      start_addr_(start_addr),
+      end_addr_(end_addr),
+      first(file_.c_str()),
+      second(line_),
+      column(col)
+      {
+      }
 	
 	std::string file_; // Maybe this should be module?
 	unsigned int line_;
-	unsigned int column;
 	Offset start_addr_;
 	Offset end_addr_;
 
-	const char *first;
-	unsigned int &second;
-
 	public:
+	const char *first;
+	unsigned int second;
+	unsigned int column;
+
 	Statement() : first(NULL), second(line_) {}
 	struct StatementLess {
 		bool operator () ( const Statement &lhs, const Statement &rhs ) const;
@@ -111,7 +113,7 @@ class Module : public LookupInterface,
 
 	SYMTAB_EXPORT Module();
 	SYMTAB_EXPORT Module(supportedLanguages lang, Offset adr, std::string fullNm,
-			Symtab *img);
+                        Symtab *img);
 	SYMTAB_EXPORT Module(const Module &mod);
 	SYMTAB_EXPORT bool operator==(Module &mod);
 
@@ -175,6 +177,8 @@ class Module : public LookupInterface,
    SYMTAB_EXPORT bool getAddressRanges(std::vector<std::pair<Offset, Offset> >&ranges,
          std::string lineSource, unsigned int LineNo);
    SYMTAB_EXPORT bool getSourceLines(std::vector<Statement *> &lines,
+         Offset addressInRange);
+   SYMTAB_EXPORT bool getSourceLines(std::vector<LineNoTuple> &lines,
          Offset addressInRange);
    SYMTAB_EXPORT bool getStatements(std::vector<Statement *> &statements);
    SYMTAB_EXPORT LineInformation *getLineInformation();

@@ -14,8 +14,8 @@ VOUCHER	= V_$(XTARGET)
 
 $(VOUCHER):
 	@echo Updating build voucher information: $(VOUCHER)
-	$(BUILDSTAMP) $(BUILD_ID) $(XTARGET)
-	$(MODCC) -c $(MODCFLAGS) $(VOUCHER).c
+	$(HIDE_COMP)$(BUILDSTAMP) $(BUILD_ID) $(XTARGET)
+	$(HIDE_COMP)$(MODCC) -c $(MODCFLAGS) $(VOUCHER).c
 
 VPATH		+= ../src
 
@@ -56,13 +56,13 @@ endif
 ifndef OVERRIDE_LINK
 ifndef STATIC_LIBRARY
 $(TARGET): $(OBJS) $(EXTRA_LIBS)
-	@$(RM) $(TARGET)
-	@$(MAKE) $(VOUCHER)
+	$(HIDE_COMP)$(RM) $(TARGET)
+	$(HIDE_COMP)$(MAKE) $(VOUCHER)
 	$(LD) $(LIBDIR) $(LDFLAGS) -o $(TARGET) $(VOUCHER).o $(OBJS) $(LIBS)
 else # build a static lib
 $(TARGET): $(OBJS) $(EXTRA_LIBS)
-	@$(RM) $(TARGET)
-	@$(MAKE) $(VOUCHER)
+	$(HIDE_COMP)$(RM) $(TARGET)
+	$(HIDE_COMP)$(MAKE) $(VOUCHER)
 	$(AR) rcs $(TARGET) $(VOUCHER).o $(OBJS)
 endif # STATIC_LIBRARY
 
@@ -70,16 +70,20 @@ ifdef STATIC_TARGET
 
 # pattern rules for building non-PIC .o's
 %_nopic.o: ../src/%.c
-	$(CC) -c -o $*_nopic.o $(CFLAGS) $(CPPFLAGS) ../src/$*.c
+	@echo "Compiling $< (noPIC)"
+	$(HIDE_COMP)$(CC) -c -o $*_nopic.o $(CFLAGS) $(CPPFLAGS) ../src/$*.c
 
 %_nopic.o: ../src/%.C
-	$(CXX) -c -o $*_nopic.o $(CPPFLAGS) $(CXXFLAGS) ../src/$*.C
+	@echo "Compiling $< (noPIC)"
+	$(HIDE_COMP)$(CXX) -c -o $*_nopic.o $(CPPFLAGS) $(CXXFLAGS) ../src/$*.C
 
 %_nopic.o: ../src/%.S
-	$(AS) $(ASFLAGS) -o $*_nopic.o ../src/$*.S
+	@echo "Compiling $< (noPIC)"
+	$(HIDE_COMP)$(AS) $(ASFLAGS) -o $*_nopic.o ../src/$*.S
 
 %_nopic.o: ../src/%.s
-	$(AS) $(ASFLAGS) -o $*_nopic.o ../src/$*.s
+	@echo "Compiling $< (noPIC)"
+	$(HIDE_COMP)$(AS) $(ASFLAGS) -o $*_nopic.o ../src/$*.s
 
 ifdef STATIC_CFLAGS
 $(STATIC_TARGET): CFLAGS = $(STATIC_CFLAGS)
@@ -98,7 +102,7 @@ $(STATIC_TARGET): ASFLAGS = $(STATIC_ASFLAGS)
 endif
 
 $(STATIC_TARGET): $(STATIC_OBJS)
-	@$(RM) $(STATIC_TARGET)
+	$(HIDE_COMP)$(RM) $(STATIC_TARGET)
 	$(AR) rcs $(STATIC_TARGET) $(STATIC_OBJS)
 
 endif # STATIC_TARGET
@@ -168,8 +172,9 @@ ifndef DEPENDFLAGS
 endif
 
 DEPENDS:
-	touch DEPENDS
-	$(MAKE) $(SRCS)
+	@echo "Building depends files"
+	@touch DEPENDS
+#	@$(MAKE) $(SRCS)
 ifdef XLC_BUILD
   ifeq ($(DEPCC), xlC)
 	$(DEPCC) $(DEPENDFLAGS) $(MODCFLAGS) $(SRCS) > /dev/null
@@ -180,9 +185,9 @@ ifdef XLC_BUILD
   endif #aix/power platform
 else
 ifeq ($(MODCC),cc)
-	$(GCC) -MM $(MODCFLAGS) $(SRCS) > DEPENDS
+	$(HIDE_COMP)$(GCC) -MM $(MODCFLAGS) $(SRCS) > DEPENDS
 else
-	$(DEPCC) $(DEPENDFLAGS) $(MODCFLAGS) $(SRCS) > DEPENDS
+	$(HIDE_COMP)$(DEPCC) $(DEPENDFLAGS) $(MODCFLAGS) $(SRCS) > DEPENDS
 endif #XLC_BUILD
 endif
 
@@ -220,3 +225,13 @@ endif
 
 # platform-specific options
 include $(TO_CORE)/make.platform.tmpl
+
+# Let's trying prettyprinting the compile lines...
+
+%.o : %.c
+	@echo Compiling $<
+	$(HIDE_COMP) $(CC) -c $(CFLAGS) $(CPPFLAGS) $< -o $@ 
+
+%.o : %.C
+	@echo Compiling $<
+	$(HIDE_COMP) $(CXX) -c $(CXXFLAGS) $(CPPFLAGS) $< -o $@

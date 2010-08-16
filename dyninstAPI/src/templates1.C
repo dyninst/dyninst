@@ -54,6 +54,9 @@ class BPatch_variableExpr;
 
 #include "symtab.h" // supportedLanguages is a typedef; could move.
 
+using namespace Dyninst;
+using namespace Dyninst::SymtabAPI;
+
 template class  dictionary_hash <std::string, supportedLanguages>;
 template class  pdvector<dictionary_hash <std::string, supportedLanguages>::entry>;
 
@@ -159,9 +162,7 @@ template class  dictionary_hash_iter <Address, Address>;
 #if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) \
  || defined(i386_unknown_solaris2_4) \
- || defined(sparc_sun_solaris2_4) \
- || defined(mips_sgi_irix_6_4) \
- || defined(ia64_unknown_linux2_4)
+ || defined(sparc_sun_solaris2_4)
 class Elf_X_Shdr;
 template class pdvector<Elf_X_Shdr *>;
 #endif

@@ -76,3 +76,6 @@ include ../../make.library.tmpl
 
 RTthread-sparc-asm.o: ../src/RTthread-sparc-asm.S
 	$(CC) $(CFLAGS) -c -o RTthread-sparc-asm.o ../src/RTthread-sparc-asm.S
+
+RTthread-sparc-asm_nopic.o: ../src/RTthread-sparc-asm.S
+	$(CC) $(STATIC_CFLAGS) -c -o RTthread-sparc-asm_nopic.o $<

@@ -39,6 +39,9 @@
 #include "debug.h"
 #include "os.h"
 #include "instPoint.h"
+#include "function.h"
+
+using namespace Dyninst::SymtabAPI;
 
 // #define USE_ADDRESS_MAPS
 
@@ -240,10 +243,26 @@ bool BinaryEdit::inferiorRealloc(Address item, unsigned newsize)
   return true;
 }
 
+Architecture BinaryEdit::getArch() const {
+    assert(mapped_objects.size());
+   
+    // XXX presumably all of the objects in the BinaryEdit collection
+    //     must be the same architecture.
+    return mapped_objects[0]->parse_img()->codeObject()->cs()->getArch();
+}
+
 unsigned BinaryEdit::getAddressWidth() const {
     assert(mapped_objects.size());
     
-    return mapped_objects[0]->parse_img()->getObject()->getAddressWidth();
+    return mapped_objects[0]->parse_img()->codeObject()->cs()->getAddressWidth();
+}
+Address BinaryEdit::offset() const {
+    fprintf(stderr,"error BinaryEdit::offset() unimpl\n");
+    return 0;
+}
+Address BinaryEdit::length() const {
+    fprintf(stderr,"error BinaryEdit::length() unimpl\n");
+    return 0;
 }
 
 bool BinaryEdit::multithread_capable(bool) {
@@ -347,7 +366,7 @@ BinaryEdit *BinaryEdit::openFile(const std::string &file, const std::string &mem
     return newBinaryEdit;
 }
 
-#if !defined(os_linux)
+#if !defined(os_linux) && !defined(os_freebsd)
 void BinaryEdit::makeInitAndFiniIfNeeded()
 {
 }
@@ -364,7 +383,7 @@ bool BinaryEdit::getStatFileDescriptor(const std::string &name, fileDescriptor &
    return true;
 }
 
-#if !defined(os_linux) && !defined(os_solaris)
+#if !defined(os_linux) && !defined(os_solaris) && !defined(os_freebsd)
 std::map<std::string, BinaryEdit*> BinaryEdit::openResolvedLibraryName(std::string filename) {
     /*
      * Note: this does not actually do any library name resolution, as that is OS-dependent
@@ -404,8 +423,12 @@ bool BinaryEdit::isMultiThreadCapable()
    std::vector<std::string> depends = symtab->getDependencies();
    for (std::vector<std::string>::iterator curDep = depends.begin();
         curDep != depends.end(); curDep++) {
-     if((curDep->find("libpthread") != std::string::npos) || (curDep->find("libthread") != std::string::npos))
-       return true;
+     if(    (curDep->find("libpthread") != std::string::npos) 
+         || (curDep->find("libthread") != std::string::npos)
+         || (curDep->find("libthr") != std::string::npos) )
+     {
+        return true;
+     }
    }
 
    return archSpecificMultithreadCapable();
@@ -559,24 +582,24 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
             Address to = dependentRelocations[i]->getAddress();
             Symbol *referring = dependentRelocations[i]->getReferring();
 
+            /*
             if (!symObj->isStaticBinary() && !symObj->hasReldyn() && !symObj->hasReladyn()) {
 	      Address addr = referring->getOffset();
 	      bool result = writeDataSpace((void *) to, getAddressWidth(), &addr);
 	      assert(result);
 	      continue;
 	    }
+            */
 
             // Create the relocationEntry
             relocationEntry localRel(to, referring->getMangledName(), referring,
                     relocationEntry::getGlobalRelType(getAddressWidth()));
 
+            /*
             if( mobj->isSharedLib() ) {
                 localRel.setRelAddr(to - mobj->imageOffset());
             }
-
-	    if (!symObj->hasReldyn() && symObj->hasReladyn()) {
-                localRel.setRegionType(Region::RT_RELA);
-            }
+            */
 
             symObj->addExternalSymbolReference(referring, newSec, localRel);
 
@@ -792,7 +815,7 @@ void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms,
                 extendCurrentRegion = true;
             }
         }
-        if (bbl) {
+        else if (bbl) {
             if (bbl->func() != currFunc) {
                 finishCurrentRegion = true;
                 startNewRegion = true;
@@ -804,7 +827,6 @@ void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms,
         else
             continue;
 
-        
         if (finishCurrentRegion && (currFunc != NULL)) {
             std::string name = currFunc->prettyName();
             name.append("_dyninst");
@@ -816,8 +838,8 @@ void BinaryEdit::buildDyninstSymbols(pdvector<Symbol *> &newSyms,
                                         startAddr,
                                         newMod,
                                         newSec,
-                                        size,
-                                        (void *)startRange);
+                                        size);
+                                        
             newSyms.push_back(newSym);
 
             currFunc = NULL;
@@ -863,7 +885,7 @@ void BinaryEdit::setupRTLibrary(std::vector<BinaryEdit *> &r)
    runtime_lib.clear();
    std::vector<BinaryEdit *>::iterator rtlib_it;
    for(rtlib_it = r.begin(); rtlib_it != r.end(); ++rtlib_it) {
-       runtime_lib.push_back((*rtlib_it)->getMappedObject());
+       runtime_lib.insert((*rtlib_it)->getMappedObject());
    }
 }
 

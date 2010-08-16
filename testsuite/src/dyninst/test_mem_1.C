@@ -468,6 +468,7 @@ test_results_t test_mem_1_Mutator::executeTest() {
   if(!res1)
     failtest(testnum, testdesc, "Unable to find function \"loadsnstores\".\n");
 
+  dprintf("found loadsnstores\n");
   dumpvect(res1, "Loads");
 
   if((*res1).size() != nloads)
@@ -475,13 +476,16 @@ test_results_t test_mem_1_Mutator::executeTest() {
     logerror("%s[%d]:  FAILURE: expected %d loads, got %d\n", __FILE__, __LINE__, nloads, (*res1).size());
      failtest(testnum, testdesc, "Number of loads seems wrong in function \"loadsnstores.\"\n");   
   }
+  dprintf("found right num loads\n");
 
   if(!validate(res1, loadList, "load"))
     failtest(testnum, testdesc, "Load sequence failed validation.\n");
+  dprintf("load sequence ok\n");
 
-  if (instCall(appThread, "Load", res1) < 0) {
-    return FAILED;
+  if (instCall(appAddrSpace, "Load", res1) < 0) {
+      failtest(testnum, testdesc, "Failed to instrument loads.\n");
   }
+  //appThread->continueExecution();
   return PASSED;
 #endif
 }

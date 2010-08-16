@@ -52,6 +52,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <cstring>
+#include <vector>
 
 // Default name for the resume log file
 #define DEFAULT_RESUMELOG "resumelog"
@@ -67,10 +68,19 @@ bool useLog = false;
 string logfile;
 string pdscrdir;
 
+int parallel_copies = 0;
+vector<test_driver_t> test_drivers;
+vector<std::string> hosts;
+
 // Run No more than testLimit tests before re-exec'ing test_driver
 int testLimit = 10;
 
 vector<char *> child_argv;
+char *scriptname;
+
+char *outputlog_name;
+int outputlog_pos = -1;
+FILE *outputlog_file = NULL;
 
 void parseMEMCPUFile()
 {
@@ -111,6 +121,20 @@ void parseMEMCPUFile()
    if (f != stdout)
       fclose(f);
 }
+
+#if !defined(os_linux_test)
+int getline(char **line, size_t *line_size, FILE *f)
+{
+   if (*line == NULL) {
+      *line = (char *) malloc(4096);
+      *line_size = 4096;
+   }
+   char *result = fgets(*line, *line_size, f);
+   if (!result)
+      return -1;
+   return 0;
+}
+#endif
 
 // isRegFile:
 // Returns true if filename is a regular file
@@ -202,6 +226,37 @@ void parseParameters(int argc, char *argv[])
             memcpu_orig_name = "-";
          }
       }
+      else if (strcmp(argv[i], "-j") == 0) {
+         if (i+1 != argc)
+            parallel_copies = atoi(argv[++i]);
+         if (!parallel_copies) {
+            fprintf(stderr, "Error: -j requires a non-zero integer argument\n");
+            exit(-1);
+         }
+      }
+      else if (strcmp(argv[i], "-hosts") == 0)
+      {
+         for (;;)
+         {
+            i++;
+            if (i == argc)
+               break;
+            if (argv[i][0] == '-') {
+               i--;
+               break;
+            }
+            hosts.push_back(std::string(argv[i]));
+         }
+      }
+      else if (strcmp(argv[i], "-humanlog") == 0 || strcmp(argv[i], "-dboutput") == 0) {
+         child_argv.push_back(argv[i]);
+         if (i+1 != argc && (argv[i+1][0] != '-' || argv[i+1][1] == '\0')) {
+            i++;
+            outputlog_name = argv[i];
+            outputlog_pos = child_argv.size();
+            child_argv.push_back(argv[i]);
+         }
+      }
       else
       {
          // Pass uninterpreted arguments to test_driver
@@ -232,6 +287,24 @@ string ReplaceAllWith(const string &in, const string &replace, const string &wit
    
 }
 
+static void clear_resumelog()
+{
+   for (unsigned i=0; i<parallel_copies; i++)
+   {
+      char s[32];
+      snprintf(s, 32, "%d", i+1);
+    
+      std::string resumename = std::string(DEFAULT_RESUMELOG) + std::string(".") + std::string(s);
+      unlink(resumename.c_str());
+
+      std::string mresumename = std::string("mutatee_") + resumename;
+      unlink(mresumename.c_str());
+   }
+   unlink(DEFAULT_RESUMELOG);
+   std::string mresumename = std::string("mutatee_") + DEFAULT_RESUMELOG;
+   unlink(mresumename.c_str());
+}
+
 int main(int argc, char *argv[])
 {
    parseParameters(argc, argv);
@@ -242,67 +315,178 @@ int main(int argc, char *argv[])
    int result = 0;
    int invocation = 0;
 
-   // Remove a stale resumelog, if it exists
-   if ( getenv("RESUMELOG") && isRegFile(string(getenv("RESUMELOG"))) )
-   {
-	   if(unlink(getenv("RESUMELOG")) == -1) {
-		   fprintf(stderr, "Couldn't delete resume log: %s\n", getenv("RESUMELOG"));
-	   }
-   } else if (isRegFile(string(DEFAULT_RESUMELOG))) {
-	   if(unlink(DEFAULT_RESUMELOG) == -1) {
-		   fprintf(stderr, "Couldn't delete resume log: %s\n", DEFAULT_RESUMELOG);
-	   }
-   }
-
-   // Remove a stale crashlog, if it exists
-   if (getenv("CRASHLOG") && isRegFile(string(getenv("CRASHLOG")))) {
-	   if(unlink(getenv("CRASHLOG")) == -1) {
-		   fprintf(stderr, "Couldn't delete crash log: %s\n", getenv("CRASHLOG"));
-	   };
-      unlink(getenv("CRASHLOG"));
-   } else if (isRegFile(string(DEFAULT_CRASHLOG))) {
-	   if(unlink(DEFAULT_CRASHLOG) == -1) {
-		   fprintf(stderr, "Couldn't delete crash log: %s\n", DEFAULT_CRASHLOG);
-	   };
-   }
-
    // Create a PIDs file, to track mutatee PIDs
-   char *pidFilename = new char[80];
-   initPIDFilename(pidFilename, 80);
-   // result == 2 indicates that there are no more tests to run
-   while ( result != NOTESTS )
+   //char *pidFilename = new char[80];
+   //initPIDFilename(pidFilename, 80);
+   char *pidFilename = NULL;
+
+   char *line = NULL;
+   size_t line_size = 0;
+
+
+   if (!parallel_copies)
+      parallel_copies = 1;
+   
+   clear_resumelog();
+   
+   char *parallel_copies_cs = NULL;
    {
-      result = RunTest(invocation, useLog, staticTests, logfile, testLimit,
-                       child_argv, pidFilename, memcpu_name);
-      invocation++;
-      // I want to kill any remaining mutatees now, to clean up.  I should also
-      // set a timer in RunTest in case something goes weird with test_driver.
-      // (I think we'd be better off moving away from timer.pl)
-      cleanupMutatees(pidFilename);
-      if (-3 == result) {
+      char s[32];
+      snprintf(s, 32, "%d", parallel_copies);
+      parallel_copies_cs = strdup(s);
+   }
+
+   test_drivers.resize(parallel_copies);
+   for (unsigned i=0; i<parallel_copies; i++) {
+      char unique_cs[32];
+      int unique = i+1;
+      snprintf(unique_cs, 32, "%d", unique);
+      std::string unique_s(unique_cs);
+
+      test_drivers[i].pid = 0;
+      test_drivers[i].last_result = 0;
+      test_drivers[i].unique = unique;
+      test_drivers[i].useLog = useLog;
+      test_drivers[i].staticTests = staticTests;
+      test_drivers[i].logfile = logfile + std::string(".") + unique_s;
+      test_drivers[i].testLimit = testLimit;
+      test_drivers[i].child_argv = child_argv;
+      if (pidFilename)
+         test_drivers[i].pidFilename = pidFilename + std::string(".") + unique_s;
+      if (memcpu_name)
+         test_drivers[i].memcpu_name = memcpu_name + std::string(".") + unique_s;
+
+      if (parallel_copies > 1)
+      {
+         test_drivers[i].child_argv.push_back("-unique");
+         test_drivers[i].child_argv.push_back(strdup(unique_cs));
+         test_drivers[i].child_argv.push_back("-max-unique");
+         test_drivers[i].child_argv.push_back(parallel_copies_cs);
+
+         test_drivers[i].outputlog = std::string("par_outputlog.") + unique_s;
+         unlink(test_drivers[i].outputlog.c_str());
+         
+         if (outputlog_pos != -1) {
+            test_drivers[i].child_argv[outputlog_pos] = const_cast<char *>(test_drivers[i].outputlog.c_str());
+         }
+         else {
+            test_drivers[i].child_argv.push_back("-humanlog");
+            test_drivers[i].child_argv.push_back(const_cast<char *>(test_drivers[i].outputlog.c_str()));
+         }
+         if (outputlog_name && (strcmp(outputlog_name, "-") != 0)) {
+            outputlog_file = fopen(outputlog_name, "w");
+         }
+         else {
+            outputlog_file = stdout;
+         }         
+      }
+      if (hosts.size()) {
+         test_drivers[i].hostname = hosts[i % hosts.size()];
+      }
+   }
+
+   if (hosts.size()) {
+      scriptname = createParallelScript();
+   }
+
+   bool done = false;
+   for (;;)
+   {
+      done = true;
+      for (unsigned i=0; i<parallel_copies; i++) {         
+         if (test_drivers[i].last_result == NOTESTS) {
+            //This invocation is done
+            continue;
+         }
+         done = false;
+         if (test_drivers[i].pid) {
+            //Still running
+            continue;
+         }
+
+         test_drivers[i].pid = RunTest(invocation,
+                                       test_drivers[i].useLog,
+                                       test_drivers[i].staticTests,
+                                       test_drivers[i].logfile,
+                                       test_drivers[i].testLimit,
+                                       test_drivers[i].child_argv,
+                                       test_drivers[i].pidFilename.c_str(),
+                                       test_drivers[i].memcpu_name.c_str(),
+                                       test_drivers[i].hostname);
+         invocation++;
+         if (test_drivers[i].pid < 0) {
+            fprintf(stderr, "Could not execute test_driver\n");
+            return -1;
+         }
+      }
+      if (done)
+         break;
+
+      int driver = CollectTestResults(test_drivers, parallel_copies);
+      if (driver == -3) {
          // User interrupted the test run; allow them a couple of seconds to do
          // it again and kill runTests
          // TODO Make sure this is portable to Windows
          fprintf(stderr, "Press ctrl-c again with-in 2 seconds to abort runTests.\n");
          sleep(2);
       }
-      if (-4 == (signed char) result) {
-         fprintf(stderr, "Could not execute test_driver\n");
+      if (driver == -1) {
+          for (unsigned idx=0; idx < parallel_copies; idx++) {
+             test_drivers[idx].last_result = -1;
+          }
+      }
+      if (test_drivers[driver].last_result == -4) {
+         //Exec error
+         fprintf(stderr, "Failed to exec test_driver\n");
          break;
       }
-      if (-5 == (signed char) result) {
+      if (test_drivers[driver].last_result == -5) {
+         //Help
          break;
       }
+
+      if (parallel_copies > 1)
+      {
+         FILE *f = fopen(test_drivers[driver].outputlog.c_str(), "r");
+         if (f) {
+            for (;;) {
+               int result = (int) getline(&line, &line_size, f);
+               if (result == -1)
+                  break;
+               fprintf(outputlog_file, "%s", line);
+            }
+            fclose(f);
+            unlink(test_drivers[driver].outputlog.c_str());
+         }
+      }
+      
+      int ret_result = test_drivers[driver].last_result;
    }
 
    // Remove the PID file, now that we're done with it
    if (pidFilename && isRegFile(string(pidFilename))) {
       unlink(pidFilename);
    }
-   unlink(DEFAULT_RESUMELOG);
-   unlink(getenv("RESUMELOG"));
+   if (scriptname) {
+      unlink(scriptname);
+   }
    
+   for (unsigned i=0; i<parallel_copies; i++)
+   {
+      char s[32];
+      snprintf(s, 32, "%d", i+1);
+    
+      std::string resumename = std::string(DEFAULT_RESUMELOG) + std::string(".") + std::string(s);
+      unlink(resumename.c_str());
+
+      std::string mresumename = std::string("mutatee_") + resumename;
+      unlink(mresumename.c_str());
+   }
+
+   clear_resumelog();
 
    parseMEMCPUFile();
    return 0;
 }
+
+

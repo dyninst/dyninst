@@ -47,54 +47,6 @@ using namespace Dyninst::SymtabAPI;
 namespace Dyninst {
 namespace Stackwalker {
 
-class swkProcessReader : public ProcessReader {
- private:
-   ProcessState *procstate;
- public:
-   swkProcessReader(ProcessState *pstate, const std::string& executable);
-   virtual bool start();
-   virtual bool ReadMem(Address inTraced, void *inSelf, unsigned amount);
-   virtual bool GetReg(Dyninst::MachRegister, Dyninst::MachRegisterVal&) { return false; }
-   virtual bool done();
-   virtual ~swkProcessReader();
-};
-
-class SymtabLibState : public LibraryState {
- private:
-   bool needs_update;
-   AddressLookup *lookup;
-   swkProcessReader procreader;
-   bool updateLibs();
-   bool updateLibsArch();
-   bool refresh();
-   std::vector<std::pair<LibAddrPair, unsigned> > arch_libs;
-#if defined(os_linux)
- private:
-   void *vsyscall_mem;
-   Symtab *vsyscall_symtab;
-   LibAddrPair vsyscall_libaddr;
-   enum {vsys_unset, vsys_set, vsys_none, vsys_error} vsyscall_page_set;
- public:
-   Symtab *getVsyscallSymtab();
-   bool getVsyscallLibAddr(LibAddrPair &vsys);
-#endif
-
-#if defined(os_aix) || defined(os_linux)
- public:
-   bool getLibc(LibAddrPair &addr_pair);
-   bool getLibpthread(LibAddrPair &addr_pair);
-#endif
-
- public:
-   SymtabLibState(ProcessState *parent, std::string executable = "");
-   virtual bool getLibraryAtAddr(Address addr, LibAddrPair &olib);
-   virtual bool getLibraries(std::vector<LibAddrPair> &olibs);
-   virtual void notifyOfUpdate();
-   virtual Address getLibTrapAddress();
-   virtual ~SymtabLibState();
-   LibAddrPair getAOut();
-};
-
 class SymtabWrapper {
  private:
    dyn_hash_map<std::string, Symtab *> map;
@@ -105,21 +57,6 @@ class SymtabWrapper {
    static Symtab *getSymtab(std::string filename);
    static void notifyOfSymtab(Symtab *symtab, std::string name);
    ~SymtabWrapper();
-};
-
-class DyninstInstrStepperImpl : public FrameStepper {
- private:
-   static std::map<Symtab *, bool> isRewritten;
-   FrameStepper *parent;
-  
- public:
-   DyninstInstrStepperImpl(Walker *w, FrameStepper *p);
-   virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
-   gcframe_ret_t getCallerFrameArch(const Frame &in, Frame &out, Address base, Address lib_base, 
-				    unsigned size, unsigned stack_height);
-   virtual unsigned getPriority() const;
-   virtual void registerStepperGroup(StepperGroup *group);
-   virtual ~DyninstInstrStepperImpl();
 };
 
 }

@@ -245,11 +245,31 @@ bool BPatch_addressSpace::deleteSnippetInt(BPatchSnippetHandle *handle)
    }
 
    if (handle->addSpace_ == this) {  
+
+       // if this is a process, check to see if the instrumentation is
+       // executing on the call stack
+       if ( handle->getProcess() ) {
+           handle->getProcess()->lowlevel_process()->updateActiveMultis();
+           if (handle->mtHandles_.size() > 1) {
+               mal_printf("ERROR: Removing snippet that is installed in "
+                          "multiple miniTramps %s[%d]\n",FILE__,__LINE__);
+           }
+       }
+
+       // uninstrument and remove snippet handle from point datastructures
        for (unsigned int i=0; i < handle->mtHandles_.size(); i++)
+       {
+           instPoint *iPoint = handle->mtHandles_[i]->instP();
            handle->mtHandles_[i]->uninstrument();
+           BPatch_point *bPoint = findOrCreateBPPoint(NULL, iPoint);
+           assert(bPoint);
+           bPoint->deleteSnippet(handle);
+       }
+
        delete handle;
        return true;
    } 
+
    // Handle isn't to a snippet instance in this process
    bperr("Error: wrong address space in deleteSnippet\n");
    return false;
@@ -566,6 +586,85 @@ BPatch_function *BPatch_addressSpace::findFunctionByAddrInt(void *addr)
    }
 
    return findOrCreateBPFunc(func, NULL);
+}
+
+bool BPatch_addressSpace::findFuncsByRange(Address startAddr,
+                                           Address endAddr,
+                                           std::set<BPatch_function*> &bpFuncs)
+{
+    std::vector<AddressSpace *> as;
+    getAS(as);
+    assert(as.size());
+
+    // find the first code range in the region
+    mapped_object* mobj = as[0]->findObject(startAddr);
+    assert(mobj);
+    set<int_function*> intFuncs;
+    mobj->findFuncsByRange(startAddr,endAddr,intFuncs);
+    set<int_function*>::iterator fIter = intFuncs.begin();
+    for (; fIter != intFuncs.end(); fIter++) {
+        BPatch_function * bpfunc = findOrCreateBPFunc(*fIter,NULL);
+        bpFuncs.insert(bpfunc);
+    }
+    return 0 != bpFuncs.size();
+}
+
+
+/*
+ * BPatch_addressSpace::findFunctionsByAddr
+ *
+ * Returns the functions that contain the specified address, or NULL if the
+ * address is not within a function. (there could be multiple functions 
+ * because of the possibility of shared code)
+ *
+ * addr		The address to use for the lookup.
+ * returns false if there were no functions that matched the address
+ */
+bool BPatch_addressSpace::findFunctionsByAddrInt
+    (Address addr, std::vector<BPatch_function*> &funcs)
+{
+    std::vector<AddressSpace *> as;
+    getAS(as);
+    assert(as.size());
+
+    // grab the funcs, return false if there aren't any
+    std::vector<int_function*> intfuncs;
+    if (!as[0]->findFuncsByAddr( addr, intfuncs )) {
+        return false;
+    }
+    // convert to BPatch_functions
+    for (std::vector<int_function*>::iterator fiter=intfuncs.begin(); 
+         fiter != intfuncs.end(); fiter++) 
+    {
+        funcs.push_back(findOrCreateBPFunc(*fiter, NULL));
+    }
+    return 0 < funcs.size();
+}
+
+
+/*
+ * BPatch_addressSpace::findModuleByAddr
+ *
+ * Returns the module that contains the specified address, or NULL if the
+ * address is not within a module.  Does NOT trigger parsing
+ *
+ * addr		The address to use for the lookup.
+ */
+BPatch_module *BPatch_addressSpace::findModuleByAddr(Address addr)
+{
+   std::vector<AddressSpace *> as;
+   getAS(as);
+   assert(as.size());
+
+   mapped_object *obj = as[0]->findObject(addr);
+   if ( ! obj ) 
+       return NULL;
+
+   const pdvector<mapped_module*> mods = obj->getModules();
+   if (mods.size()) {
+       return getImage()->findOrCreateModule(mods[0]);
+   }
+   return NULL;
 }
 
 

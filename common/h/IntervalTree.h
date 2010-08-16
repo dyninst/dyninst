@@ -35,11 +35,105 @@
 #include <assert.h>
 #include <stdio.h>
 #include <vector>
+#include <map>
 
 template <class K, class V>
 class IntervalTree {
- private:
+  typedef typename std::map<K, std::pair<K, V> > Tree;
+  typedef typename Tree::const_iterator c_iter;
 
+ public:
+  typedef typename std::pair<K, K> Range;
+  typedef typename std::pair<Range, V> Entry;
+
+  IntervalTree() {};
+  ~IntervalTree() {};
+  int size() const { return tree_.size(); }
+  bool empty() const { return tree_.empty(); }
+  void insert(K lb, K ub, V v) {
+    tree_[lb] = std::make_pair<K, V>(ub, v);
+  }
+
+  void remove(K lb) {
+    tree_.erase(lb);
+  }
+
+  bool find(K key, V &value) const {
+    K lb = 0;
+    K ub = 0;
+    V val;
+    if (!precessor(key, lb, ub, val))
+      return false;
+    if (key < lb) return false;
+    if (key >= ub) return false;
+    value = val;
+    return true;
+  }
+
+  bool find(K key, K &l, K &u, V &value) const {
+    if (!precessor(key, l, u, value))
+      return false;
+    if (key < l) return false;
+    if (key >= u) return false;
+    return true;
+  }
+
+  bool precessor(K key, K &l, K &u, V &v) const {
+    Entry e;
+    if (!precessor(key, e)) {
+      return false;
+    }
+    l = lb(e);
+    u = ub(e);
+    v = value(e);
+    return true;
+  }
+
+  bool precessor(K key, Entry &e) const {
+    if (tree_.empty()) return false;
+    c_iter iter = tree_.lower_bound(key);
+    if ((iter == tree_.end()) ||
+	(iter->first != key)) {
+      if (iter == tree_.begin()) {
+	return false;
+      }
+      --iter;
+    }
+    if (iter->first > key) return false;
+
+    lb(e) = iter->first;
+    ub(e) = iter->second.first;
+    value(e) = iter->second.second;
+
+    assert(lb(e) <= key);
+    if (ub(e) <= key) return false;
+    return true;
+  }
+  void elements(std::vector<Entry> &buffer) const {
+    buffer.clear();
+    for (c_iter iter = tree_.begin();
+	 iter != tree_.end(); ++iter) {
+      Entry e;
+      lb(e) = iter->first;
+      ub(e) = iter->second.first;
+      value(e) = iter->second.second;
+      buffer.push_back(e);
+    }
+  }
+
+  void clear() { tree_.clear(); }
+
+ private:
+  
+  static V &value(Entry &e) { return e.second; }
+  static K &lb(Entry &e) { return e.first.first; }
+  static K &ub(Entry &e) { return e.first.second; }
+
+  Tree tree_;
+};
+  
+#if 0
+ private:
     typedef enum { TREE_RED, TREE_BLACK } color_t;
     typedef std::pair<K, K> Range;
 
@@ -70,7 +164,7 @@ class IntervalTree {
 	 */
 	entry(K lB_, K uB_, V value_, entry* e) 
 	    : lB(lB_), uB(uB_), value(value_), color(TREE_RED), left(e),
-	    right(e), parent(NULL) {}
+	  right(e), parent(NULL) {}
 
 	/** constructor 
 	 * @param e the entry structure that will be copied 
@@ -443,6 +537,26 @@ class IntervalTree {
         return true;
     }
 
+    /** Like above, but returns the lb/ub range **/
+    bool find(K key, K &lb, K &ub, V &value) const {
+        V val;
+        K lowerBound;
+        K upperBound;
+        if (!precessor(key, lowerBound, upperBound, val))
+            return false;
+        // Check to see if the range works
+        if (key < lowerBound) {
+            return false;
+        }
+        else if (key >= upperBound) {
+            return false;
+        }
+        value = val;
+	lb = lowerBound;
+	ub = upperBound;
+        return true;
+    }
+
     /** Returns the largest value less than or equal to the
      * lB given
      */
@@ -472,5 +586,6 @@ class IntervalTree {
         setSize = 0;
     }
 };
+#endif
 
 #endif

@@ -197,8 +197,8 @@ Archive::Archive(char *mem_image, size_t size, bool &err)
 
     if (!fo_->set(0)) 
     {
-        sprintf(errorLine, "Error reading memory image 0x%x with size %u\n", 
-                (unsigned int)mem_image, (unsigned int)size);
+        sprintf(errorLine, "Error reading memory image %p with size %u\n",
+                mem_image, (unsigned int)size);
         serr = Obj_Parsing;
         errMsg = errorLine;
         err = false;
@@ -206,8 +206,8 @@ Archive::Archive(char *mem_image, size_t size, bool &err)
     }
     if (!fo_->read((void *)magic_number, 2)) 
     {
-        sprintf(errorLine, "Error reading memory image 0x%x with size %u\n", 
-                (unsigned int)mem_image, (unsigned int)size);
+        sprintf(errorLine, "Error reading memory image %p with size %u\n",
+                mem_image, (unsigned int)size);
         serr = Obj_Parsing;
         errMsg = errorLine;
         err = false;
@@ -227,8 +227,8 @@ Archive::Archive(char *mem_image, size_t size, bool &err)
     }
     else if ( magic_number[0] != '<')
     {
-        sprintf(errorLine, "Error reading memory image 0x%x with size %u\n", 
-                (unsigned int)mem_image, (unsigned int)size);
+        sprintf(errorLine, "Error reading memory image %p with size %u\n",
+                mem_image, (unsigned int)size);
         serr = Obj_Parsing;
         errMsg = errorLine;
         err = false;
@@ -240,8 +240,8 @@ Archive::Archive(char *mem_image, size_t size, bool &err)
     // Start at the beginning...
     if (!fo_->set(0))
     {
-        sprintf(errorLine, "Error parsing memory image 0x%x with size %u : %s\n", 
-                (unsigned int)mem_image, (unsigned int)size, "Seeking to file start");
+        sprintf(errorLine, "Error parsing memory image %p with size %u : %s\n",
+                mem_image, (unsigned int)size, "Seeking to file start");
         serr = Obj_Parsing;
         errMsg = errorLine;
         err = false;
@@ -250,8 +250,8 @@ Archive::Archive(char *mem_image, size_t size, bool &err)
     char magicNumber[SAIAMAG];
     if (!fo_->read(magicNumber, SAIAMAG))
     {
-        sprintf(errorLine, "Error parsing memory image 0x%x with size %u : %s\n", 
-                (unsigned int)mem_image, (unsigned int)size, "Reading magic number");
+        sprintf(errorLine, "Error parsing memory image %p with size %u : %s\n",
+                mem_image, (unsigned int)size, "Reading magic number");
         serr = Obj_Parsing;
         errMsg = errorLine;
         err = false;
@@ -263,16 +263,16 @@ Archive::Archive(char *mem_image, size_t size, bool &err)
         archive = (xcoffArchive *) new xcoffArchive_64(fo_);
     else
     {
-        sprintf(errorLine, "Error parsing memory image 0x%x with size %u : %s\n", 
-                (unsigned int)mem_image, (unsigned int)size, "Unknown magic number");
+        sprintf(errorLine, "Error parsing memory image %p with size %u : %s\n",
+                mem_image, (unsigned int)size, "Unknown magic number");
         serr = Obj_Parsing;
         errMsg = errorLine;
         err = false;
     }    
     if (archive->read_arhdr())
     {
-        sprintf(errorLine, "Error parsing memory image 0x%x with size %u : %s\n", 
-                (unsigned int)mem_image, (unsigned int)size, "Reading file header");
+        sprintf(errorLine, "Error parsing memory image %p with size %u : %s\n",
+                mem_image, (unsigned int)size, "Reading file header");
         serr = Obj_Parsing;
         errMsg = errorLine;
         err = false;
@@ -282,8 +282,8 @@ Archive::Archive(char *mem_image, size_t size, bool &err)
     {
         if (archive->read_mbrhdr())
         {
-            sprintf(errorLine, "Error parsing memory image 0x%x with size %u : %s\n", 
-                    (unsigned int)mem_image, (unsigned int)size, "Reading memory header");
+            sprintf(errorLine, "Error parsing memory image %p with size %u : %s\n",
+                    mem_image, (unsigned int)size, "Reading memory header");
             serr = Obj_Parsing;
             errMsg = errorLine;
             err = false;

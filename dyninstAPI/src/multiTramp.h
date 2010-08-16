@@ -36,7 +36,7 @@
 
 #include "common/h/Dictionary.h"
 #include "codeRange.h"
-#include "arch.h"
+#include "codegen.h"
 #include "instP.h"
 #include "mapped_object.h"
 #include "ast.h"
@@ -237,6 +237,7 @@ class trampEnd : public generatedCodeObject {
     generatedCodeObject *replaceCode(generatedCodeObject *newParent);
 
     Address target() { return target_; }
+    void changeTarget(Address newTarg );
 
     virtual Address uninstrumentedAddr() const { return target_; }
     
@@ -501,7 +502,7 @@ class multiTramp : public generatedCodeObject {
   // us to replace them "under the hood"
 
   static int findOrCreateMultiTramp(Address pointAddr, 
-                                    AddressSpace *proc); 
+                                    bblInstance *bbl); 
 
   // MultiTramps span several instructions. By default, they cover a
   // basic block on non-IA64 platforms; due to the inefficiency of our
@@ -610,6 +611,19 @@ class multiTramp : public generatedCodeObject {
   bool safeToFree(codeRange *range);
   void freeCode();
   
+  // flags to help us recognize active instrumentation and not remove it
+  void setIsActive( bool value );
+  bool getIsActive() { return isActive_; }//true if multi is on the call stack
+  bool getPartlyGone() { return partlyGone_; }//true if multi has been unlinked
+  multiTramp *getStompMulti() { return stompMulti_; }
+  Address getFuncBaseInMutatee() { return funcBaseInMutatee_; }
+  trampEnd* getTrampEnd() { return trampEnd_; } 
+  // point trampEnd to relocated code, for use when the function is updated
+  // while instrumentation is active
+  void updateTrampEnd(instPoint *point);
+  void setTrampEnd(trampEnd &newTramp);
+  bool hasMultipleBaseTramps();
+
  private:
   Address instAddr_; 
   Address trampAddr_;  // Where we are
@@ -668,7 +682,19 @@ class multiTramp : public generatedCodeObject {
 #endif /* defined( cap_unwind ) */
 
   bool changedSinceLastGeneration_;
-  
+
+  trampEnd *trampEnd_;
+
+  // flags for active instrumentation 
+  bool isActive_;   // is the multitramp on the call stack 
+  bool partlyGone_; // true if multiTramp has been disabled (unlinked)
+  Address funcBaseInMutatee_; //track the base of the relocated function in 
+                              //the mutatee, as updates to the function's 
+                              //analysis can cause this information to be lost
+  multiTramp *stompMulti_; // if the multiTramp was replaced with a new one, 
+                           // store a pointer to it
+
+
   void setFirstInsn(generatedCodeObject *obj) { generatedCFG_.setStart(obj); }
 };
 

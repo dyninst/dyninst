@@ -65,6 +65,20 @@ namespace SymtabAPI{
 extern const std::string SYMTAB_CTOR_LIST_REL;
 extern const std::string SYMTAB_DTOR_LIST_REL;
 
+/*
+ * The above "not necessary" comment applies to this class as well.
+ * These routines should be in a private namespace inside a unified
+ * emit class file or something.
+ */
+class emitElfUtils {
+ public:
+    static Address orderLoadableSections(
+        Symtab *obj, vector<Region*> & sections);
+    static bool sort_reg(const Region*a, const Region*b);
+    static bool updateHeapVariables(Symtab *obj, unsigned long loadSecsSize);
+    static bool updateRelocation(Symtab *obj, relocationEntry &rel, int library_adjust);
+};
+
 class emitElfStatic {
     public:
 

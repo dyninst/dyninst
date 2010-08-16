@@ -33,7 +33,8 @@
 
 #include "common/h/Types.h"
 #include <vector>
-#include "InstrucIter.h"
+
+#include "parseAPI/src/InstrucIter.h"
 
 
 class image_func;

@@ -91,7 +91,7 @@ template class pdvector<fileDescriptor>;
 
 template class dictionary_hash<std::string, unsigned int>;
 template class dictionary_hash<std::string, std::string>;
-template class dictionary_hash<std::string, Symbol>;
+template class dictionary_hash<std::string, SymtabAPI::Symbol>;
 template class dictionary_hash<std::string, pdmodule *>;
 template class dictionary_hash<std::string, int_function *>;
 //template class dictionary_hash<std::string, internalSym *>;
@@ -144,11 +144,11 @@ template class BPatch_Vector<BPatch_frame>;
 template class dictionary_hash<Address, unsigned char>;
 template class pdvector<dictionary_hash <Address, unsigned char>::entry >;
 
-template class dictionary_hash<std::string,supportedLanguages>;
-template class pdvector<dictionary_hash<std::string,supportedLanguages>::entry>;
+template class dictionary_hash<std::string,SymtabAPI::supportedLanguages>;
+template class pdvector<dictionary_hash<std::string,SymtabAPI::supportedLanguages>::entry>;
 
-template class pdvector< Symbol >;
-template class dictionary_hash< std::string, pdvector< Symbol > >;
+template class pdvector< SymtabAPI::Symbol >;
+template class dictionary_hash< std::string, pdvector< SymtabAPI::Symbol > >;
 
 template class dictionary_hash<int, BPatch_process *>;
 template class pdvector<dictionary_hash <int, BPatch_process *>::entry>;

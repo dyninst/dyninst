@@ -95,8 +95,8 @@ void libdyninstAPI_RT_init()
    if (initCalledOnce) return;
    initCalledOnce++;
 
-#if defined(arch_x86) || defined(arch_x86_64) || defined(arch_ia64)
-   /* Modern x86-32/x86-64/ia64 cpus have non-executable data */
+#if defined(arch_x86) || defined(arch_x86_64)
+   /* Modern x86-32/x86-64 cpus have non-executable data */
    mark_heaps_exec();
 #endif
 
@@ -286,9 +286,9 @@ int DYNINSTinitializeTrapHandler()
    struct sigaction new_handler;
 
    new_handler.sa_sigaction = dyninstTrapHandler;
-   new_handler.sa_restorer = NULL;
+   //new_handler.sa_restorer = NULL; obsolete
    sigemptyset(&new_handler.sa_mask);
-   new_handler.sa_flags = SA_SIGINFO | SA_NOMASK;
+   new_handler.sa_flags = SA_SIGINFO | SA_NODEFER;
    
    result = sigaction(SIGTRAP, &new_handler, NULL);
    return (result == 0) ? 1 /*Success*/ : 0 /*Fail*/ ;

@@ -36,6 +36,7 @@
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/debugOstream.h"
 #include "dyninstAPI/src/dyn_thread.h"
+#include "dyninstAPI/src/function.h"
 
 #include <link.h>
 #include <libelf.h>
@@ -44,6 +45,8 @@
 #include <sys/ioctl.h>
 #include <dirent.h>
 #include <sys/stat.h>
+
+using namespace Dyninst::SymtabAPI;
 
 
 // ---------------------------------------------------------------
@@ -431,32 +434,6 @@ bool dynamic_linking::get_ld_info( Address & addr, unsigned &size, char ** path)
 } /* end get_ld_info() */
 
 
-#if defined(arch_ia64)
-
-////////////// IA-64 breakpoint routines
-
-sharedLibHook::sharedLibHook(process *p, sharedLibHookType t, Address b) 
-        : proc_(p), type_(t), breakAddr_(b), loadinst_(NULL) {
-
-	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( breakAddr_, proc_ );
-	/* Save the original instructions. */
-	iAddr.saveMyBundleTo( (uint8_t *)saved_ );
-
-	IA64_bundle trapBundle = generateTrapBundle();
-	iAddr.replaceBundleWith( trapBundle );
-}
-
-
-sharedLibHook::~sharedLibHook() {
-    if (!proc_->isAttached() || proc_->execing())
-        return;
-
-    InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( breakAddr_, proc_ );
-    iAddr.writeMyBundleFrom((uint8_t *)saved_);
-}
-
-
-#else
 
 /////////////// x86-linux breakpoint insertion routines
 sharedLibHook::sharedLibHook(process *p, sharedLibHookType t, Address b) 
@@ -473,7 +450,7 @@ sharedLibHook::sharedLibHook(process *p, sharedLibHookType t, Address b)
     // Need a "trap size" method...
     codeGen gen(1);
 #endif
-    instruction::generateTrap(gen);
+    insnCodeGen::generateTrap(gen);
     proc_->writeDataSpace((void*)breakAddr_, gen.used(), gen.start_ptr());
     
 }
@@ -490,7 +467,6 @@ sharedLibHook::~sharedLibHook()
         //fprintf(stderr, "%s[%d]:  WDS failed: %d bytes at %p\n", FILE__, __LINE__, SLH_SAVE_BUFFER_SIZE, breakAddr_);
     }
 }
-#endif
 
 // processLinkMaps: This routine is called by getSharedObjects to  
 // process all shared objects that have been mapped into the process's
@@ -851,7 +827,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
       if (!brk_lwp->changePC(retAddr, NULL))
           return false;
 
-#else   // ia64
+#else   
       dyn_lwp *lwp_to_use = NULL;
       lwp_to_use = proc->getRepresentativeLWP();
       if(lwp_to_use == NULL)
@@ -863,7 +839,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
       // fprintf(stderr, "Changing PC to 0x%llx\n", r_brk_target_addr);
       assert(r_brk_target_addr);
       lwp_to_use->changePC( r_brk_target_addr, NULL );
-#endif  //x86
+#endif  
     } // non-forced, clean up for breakpoint
     previous_r_state = current_r_state;
     return true;
@@ -927,32 +903,7 @@ bool dynamic_linking::installTracing()
     Address breakAddr = reinterpret_cast<Address>(debug_elm->r_brk());
     delete debug_elm;
 
-#if defined(arch_ia64)
-    /* The IA-64's function pointers don't actually point at the function,
-       because you also need to know the GP to call it.  Hence, another
-       indirection. */
-    if(! proc->readDataSpace( (void *)breakAddr, 8, (void *)&breakAddr, true ) ) {
-	bperr( "Failed to read breakAddr_.\n" );
-	return 0;
-    }
-
-    // We don't handle the trap directly, rather inserting a sequence of instructions
-    // in the runtime library that patch it up
-
-    /* Insert a return bundle for use in the handler. */
-    instruction memoryNOP( NOP_M );
-    instruction returnToBZero = generateReturnTo( 0 );
-    IA64_bundle returnBundle( MMBstop, memoryNOP, memoryNOP, returnToBZero );
-
-    int_symbol r_brk_target;
-    if (!proc->getSymbolInfo("R_BRK_TARGET", r_brk_target))
-        assert(0);
-    r_brk_target_addr = r_brk_target.getAddr(); assert( r_brk_target_addr );
-
-    InsnAddr jAddr = InsnAddr::generateFromAlignedDataAddress( r_brk_target_addr, proc );
-    jAddr.replaceBundleWith( returnBundle );
-
-#elif defined(arch_power) && defined(arch_64bit)
+#if defined(arch_power) && defined(arch_64bit)
     /* 64-bit POWER architectures also use function descriptors instead of directly
        pointing at the function code.  Find the actual address of the function.
     */

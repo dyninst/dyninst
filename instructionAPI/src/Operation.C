@@ -29,14 +29,19 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#define INSIDE_INSTRUCTION_API
+
 #include "Operation.h"
-#include "arch-x86.h"
+#include "common/h/arch-x86.h"
 #include "entryIDs.h"
-#include "../../common/h/Singleton.h"
+#include "common/h/Singleton.h"
 #include "Register.h"
 #include <map>
-#include "../../common/h/singleton_object_pool.h"
+#include "common/h/singleton_object_pool.h"
 
+using namespace NS_x86;
+#include "BinaryFunction.h"
+#include "Immediate.h"
 
 namespace Dyninst
 {
@@ -52,21 +57,58 @@ namespace Dyninst
     }
 
     Operation::Operation(entryID id, const char* mnem, Architecture arch)
-          : mnemonic(mnem), operationID(id), doneOtherSetup(true), doneFlagsSetup(true), archDecodedFrom(arch)
+          : mnemonic(mnem), operationID(id), doneOtherSetup(true), doneFlagsSetup(true), archDecodedFrom(arch), prefixID(prefix_none)
     {
+        switch(archDecodedFrom)
+        {
+            case Arch_x86:
+            case Arch_ppc32:
+                addrWidth = u32;
+                break;
+            default:
+                addrWidth = u64;
+                break;
+        }
     }
     
     Operation::Operation(ia32_entry* e, ia32_prefixes* p, ia32_locations* l, Architecture arch) :
-      doneOtherSetup(false), doneFlagsSetup(false), archDecodedFrom(arch)
+      doneOtherSetup(false), doneFlagsSetup(false), archDecodedFrom(arch), prefixID(prefix_none)
     
     {
       operationID = e->getID(l);
+      // Defaults for no size prefix
+      switch(archDecodedFrom)
+      {
+          case Arch_x86:
+          case Arch_ppc32:
+              addrWidth = u32;
+              break;
+          default:
+              addrWidth = u64;
+              break;
+      }
+      
       if(p && p->getCount())
       {
-	if (p->getPrefix(0) == PREFIX_REP || p->getPrefix(0) == PREFIX_REPNZ)
+        if (p->getPrefix(0) == PREFIX_REP || p->getPrefix(0) == PREFIX_REPNZ)
 	{
             otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::df : x86_64::df));
-	}
+            otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::ecx : x86_64::rcx));
+            otherWritten.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::ecx : x86_64::rcx));
+            if(p->getPrefix(0) == PREFIX_REPNZ)
+            {
+                otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::zf : x86_64::zf));
+                prefixID = prefix_repnz;
+            }
+            else
+            {
+                prefixID = prefix_rep;
+            }
+        }
+        else
+        {
+          prefixID = prefix_none;
+        }
         int segPrefix = p->getPrefix(1);
         switch(segPrefix)
         {
@@ -89,6 +131,10 @@ namespace Dyninst
                 otherRead.insert(makeRegFromID((archDecodedFrom == Arch_x86) ? x86::ss : x86_64::ss));
                 break;
         }
+        if(p->getAddrSzPrefix())
+        {
+            addrWidth = u16;
+        }
       }
     }
 
@@ -102,6 +148,8 @@ namespace Dyninst
       doneOtherSetup = o.doneOtherSetup;
       doneFlagsSetup = o.doneFlagsSetup;
       archDecodedFrom = o.archDecodedFrom;
+      prefixID = prefix_none;
+      addrWidth = o.addrWidth;
       
     }
     const Operation& Operation::operator=(const Operation& o)
@@ -114,11 +162,14 @@ namespace Dyninst
       doneOtherSetup = o.doneOtherSetup;
       doneFlagsSetup = o.doneFlagsSetup;
       archDecodedFrom = o.archDecodedFrom;
+      prefixID = o.prefixID;
+      addrWidth = o.addrWidth;
       return *this;
     }
     Operation::Operation()
     {
       operationID = e_No_Entry;
+      prefixID = prefix_none;
     }
     
     const Operation::registerSet&  Operation::implicitReads() const
@@ -203,15 +254,32 @@ namespace Dyninst
         {
             return mnemonic;
         }
+      dyn_hash_map<prefixEntryID, std::string>::const_iterator foundPrefix = prefixEntryNames_IAPI.find(prefixID);
       dyn_hash_map<entryID, std::string>::const_iterator found = entryNames_IAPI.find(operationID);
+      std::string result;
+      if(foundPrefix != prefixEntryNames_IAPI.end())
+      {
+        result += (foundPrefix->second + " ");
+      }
       if(found != entryNames_IAPI.end())
-	return found->second;
-      return "[INVALID]";
+      {
+	result += found->second;
+      }
+      else
+      {
+        result += "[INVALID]";
+      }
+      return result;
     }
 
     entryID Operation::getID() const
     {
       return operationID;
+    }
+
+    prefixEntryID Operation::getPrefixID() const
+    {
+      return prefixID;
     }
 
     struct OperationMaps
@@ -227,6 +295,10 @@ namespace Dyninst
           framePointer.insert(RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(arch))));
           spAndBP.insert(RegisterAST::Ptr(new RegisterAST(MachRegister::getStackPointer(arch))));
           spAndBP.insert(RegisterAST::Ptr(new RegisterAST(MachRegister::getFramePointer(arch))));
+          si.insert(RegisterAST::Ptr(new RegisterAST(arch == Arch_x86_64 ? x86_64::esi : x86::esi)));
+          di.insert(RegisterAST::Ptr(new RegisterAST(arch == Arch_x86_64 ? x86_64::edi : x86::edi)));
+          si_and_di.insert(RegisterAST::Ptr(new RegisterAST(arch == Arch_x86_64 ? x86_64::esi : x86::esi)));
+          si_and_di.insert(RegisterAST::Ptr(new RegisterAST(arch == Arch_x86_64 ? x86_64::edi : x86::edi)));
 	
           nonOperandRegisterReads[e_call] = pcAndSP;
           nonOperandRegisterReads[e_ret_near] = stackPointer;
@@ -268,6 +340,31 @@ namespace Dyninst
         nonOperandMemoryReads[e_ret_near] = stackPointerAsExpr;
         nonOperandMemoryReads[e_ret_far] = stackPointerAsExpr;
 	nonOperandMemoryReads[e_leave] = stackPointerAsExpr;
+        nonOperandRegisterWrites[e_cmpsb] = si_and_di;
+        nonOperandRegisterWrites[e_cmpsd] = si_and_di;
+        nonOperandRegisterWrites[e_cmpsw] = si_and_di;
+        nonOperandRegisterWrites[e_movsb] = si_and_di;
+        nonOperandRegisterWrites[e_movsd] = si_and_di;
+        nonOperandRegisterWrites[e_movsw] = si_and_di;
+        nonOperandRegisterWrites[e_cmpsb] = si_and_di;
+        nonOperandRegisterWrites[e_cmpsd] = si_and_di;
+        nonOperandRegisterWrites[e_cmpsw] = si_and_di;
+        nonOperandRegisterWrites[e_insb] = di;
+        nonOperandRegisterWrites[e_insd] = di;
+        nonOperandRegisterWrites[e_insw] = di;
+        nonOperandRegisterWrites[e_stosb] = di;
+        nonOperandRegisterWrites[e_stosd] = di;
+        nonOperandRegisterWrites[e_stosw] = di;
+        nonOperandRegisterWrites[e_scasb] = di;
+        nonOperandRegisterWrites[e_scasd] = di;
+        nonOperandRegisterWrites[e_scasw] = di;
+        nonOperandRegisterWrites[e_lodsb] = si;
+        nonOperandRegisterWrites[e_lodsd] = si;
+        nonOperandRegisterWrites[e_lodsw] = si;
+        nonOperandRegisterWrites[e_outsb] = si;
+        nonOperandRegisterWrites[e_outsd] = si;
+        nonOperandRegisterWrites[e_outsw] = si;
+        
       }
       Operation::registerSet thePC;
       Operation::registerSet pcAndSP;
@@ -275,6 +372,9 @@ namespace Dyninst
       Operation::VCSet stackPointerAsExpr;
       Operation::registerSet framePointer;
       Operation::registerSet spAndBP;
+      Operation::registerSet si;
+      Operation::registerSet di;
+      Operation::registerSet si_and_di;
       dyn_hash_map<entryID, Operation::registerSet > nonOperandRegisterReads;
       dyn_hash_map<entryID, Operation::registerSet > nonOperandRegisterWrites;
 
@@ -303,25 +403,41 @@ namespace Dyninst
       foundRegs = op_data(archDecodedFrom).nonOperandRegisterReads.find(operationID);
       if(foundRegs != op_data(archDecodedFrom).nonOperandRegisterReads.end())
       {
-	otherRead = foundRegs->second;
+          otherRead.insert(foundRegs->second.begin(), foundRegs->second.end());
       }
       foundRegs = op_data(archDecodedFrom).nonOperandRegisterWrites.find(operationID);
       if(foundRegs != op_data(archDecodedFrom).nonOperandRegisterWrites.end())
       {
-	otherWritten = foundRegs->second;
+          otherWritten.insert(foundRegs->second.begin(), foundRegs->second.end());
       }
       dyn_hash_map<entryID, VCSet >::const_iterator foundMem;
       foundMem = op_data(archDecodedFrom).nonOperandMemoryReads.find(operationID);
       if(foundMem != op_data(archDecodedFrom).nonOperandMemoryReads.end())
       {
-	otherEffAddrsRead = foundMem->second;
+          otherEffAddrsRead.insert(foundMem->second.begin(), foundMem->second.end());
       }
-      foundMem = op_data(archDecodedFrom).nonOperandMemoryWrites.find(operationID);
-      if(foundMem != op_data(archDecodedFrom).nonOperandMemoryWrites.end())
+      if(operationID == e_push)
       {
-	otherEffAddrsWritten = foundMem->second;
+          static BinaryFunction::funcT::Ptr adder(new BinaryFunction::addResult());
+                    // special case for push: we write at the new value of the SP.
+          Result dummy(addrWidth, 0);
+          Expression::Ptr push_addr(new BinaryFunction(
+                  *(op_data(archDecodedFrom).stackPointerAsExpr.begin()),
+          Immediate::makeImmediate(Result(s8, -(dummy.size()))),
+          addrWidth,
+          adder));
+                
+          otherEffAddrsWritten.insert(push_addr);
+                  
       }
-      
+      else
+      {
+          foundMem = op_data(archDecodedFrom).nonOperandMemoryWrites.find(operationID);
+          if(foundMem != op_data(archDecodedFrom).nonOperandMemoryWrites.end())
+          {
+              otherEffAddrsWritten.insert(foundMem->second.begin(), foundMem->second.end());
+          }
+      }
       if(needFlags && !doneFlagsSetup)
       {
 	

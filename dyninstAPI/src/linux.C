@@ -86,6 +86,7 @@
 // #include "saveSharedLibrary.h" 
 #endif
 #include "symtabAPI/h/Symtab.h"
+using namespace Dyninst::SymtabAPI;
 
 //TODO: Remove the writeBack functions and get rid of this include
 #ifdef PAPI
@@ -97,8 +98,6 @@
 #if !defined(PTRACE_SETOPTIONS)
 #if defined(arch_x86)
 #define PTRACE_SETOPTIONS 21
-#elif defined(arch_ia64)
-#define PTRACE_SETOPTIONS 0x4200
 #endif
 #endif
 
@@ -665,7 +664,7 @@ bool SignalGenerator::suppressSignalWhenStopping(EventRecord &ev)
 #if defined(arch_x86) || defined(arch_x86_64)
      Address trap_pc = ev.lwp->getActiveFrame().getPC();
      ev.lwp->changePC(trap_pc - 1, NULL);
-#endif /* defined( arch_ia64 ) */
+#endif 
   }
 
   ev.lwp->continueLWP_(0, true);
@@ -1382,124 +1381,6 @@ bool isPLT(int_function *f)
     if(obj->findRegion(sec, ".plt"))
 	return sec->isOffsetInRegion(f->ifunc()->getOffset());
     return false;	
-}
-
-// findCallee: finds the function called by the instruction corresponding
-// to the instPoint "instr". If the function call has been bound to an
-// address, then the callee function is returned in "target" and the 
-// instPoint "callee" data member is set to pt to callee's int_function.  
-// If the function has not yet been bound, then "target" is set to the 
-// int_function associated with the name of the target function (this is 
-// obtained by the PLT and relocation entries in the image), and the instPoint
-// callee is not set.  If the callee function cannot be found, (ex. function
-// pointers, or other indirect calls), it returns false.
-// Returns false on error (ex. process doesn't contain this instPoint).
-
-int_function *instPoint::findCallee() 
-{
-
-   // Already been bound
-   if (callee_) {
-      return callee_;
-   }  
-
-   /*  if (ipType_ != callSite) {
-      // Assert?
-      return NULL; 
-      }*/
-   if (isDynamic()) {
-      return NULL;
-   }
-
-   assert(img_p_);
-   image_func *icallee = img_p_->getCallee(); 
-   if (icallee && !icallee->isPLTFunction()) {
-     callee_ = proc()->findFuncByInternalFunc(icallee);
-     //callee_ may be NULL if the function is unloaded
-
-       //fprintf(stderr, "%s[%d]:  returning %p\n", FILE__, __LINE__, callee_);
-     return callee_;
-   }
-
-   // Do this the hard way - an inter-module jump
-   // get the target address of this function
-   Address target_addr = img_p_->callTarget();
-   if(!target_addr) {
-      // this is either not a call instruction or an indirect call instr
-      // that we can't get the target address
-       //fprintf(stderr, "%s[%d]:  returning NULL\n", FILE__, __LINE__);
-      return NULL;
-   }
-
-   // get the relocation information for this image
-   Symtab *obj = func()->obj()->parse_img()->getObject();
-   pdvector<relocationEntry> fbt;
-   vector <relocationEntry> fbtvector;
-   if (!obj->getFuncBindingTable(fbtvector)) {
-
-       //fprintf(stderr, "%s[%d]:  returning NULL\n", FILE__, __LINE__);
-   	return NULL;
-	}
-
-   /**
-    * Object files and static binaries will not have a function binding table
-    * because the function binding table holds relocations used by the dynamic
-    * linker
-    */
-   if (!fbtvector.size() && !obj->isStaticBinary() && 
-           obj->getObjectType() != obj_RelocatableFile ) 
-   {
-      fprintf(stderr, "%s[%d]:  WARN:  zero func bindings\n", FILE__, __LINE__);
-   }
-
-   for (unsigned index=0; index< fbtvector.size();index++)
-   	fbt.push_back(fbtvector[index]);
-  
-   Address base_addr = func()->obj()->codeBase();
-
-   // find the target address in the list of relocationEntries
-   for (u_int i=0; i < fbt.size(); i++) {
-      if (fbt[i].target_addr() == target_addr) 
-      {
-         // check to see if this function has been bound yet...if the
-         // PLT entry for this function has been modified by the runtime
-         // linker
-         int_function *target_pdf = 0;
-         if (proc()->hasBeenBound(fbt[i], target_pdf, base_addr)) {
-            callee_ = target_pdf;
-            img_p_->setCalleeName(target_pdf->symTabName());
-            //fprintf(stderr, "%s[%d]:  returning %p\n", FILE__, __LINE__, callee_);
-            return callee_;  // target has been bound
-         } 
-
-         const char *target_name = fbt[i].name().c_str();
-         process *dproc = dynamic_cast<process *>(proc());
-         BinaryEdit *bedit = dynamic_cast<BinaryEdit *>(proc());
-         img_p_->setCalleeName(std::string(target_name));
-         pdvector<int_function *> pdfv;
-         if (dproc) {
-            bool found = proc()->findFuncsByMangled(target_name, pdfv);
-            if (found) {
-               return pdfv[0];
-            }
-         }
-         else if (bedit) {
-            std::vector<BinaryEdit *>::iterator i;
-            for (i = bedit->getSiblings().begin(); i != bedit->getSiblings().end(); i++)
-            {
-               bool found = (*i)->findFuncsByMangled(target_name, pdfv);
-               if (found) {
-                  return pdfv[0];
-               }
-            }
-         }
-         else 
-            assert(0);
-         break;
-      }
-   }
-       //fprintf(stderr, "%s[%d]:  returning NULL: target addr = %p\n", FILE__, __LINE__, (void *)target_addr);
-   return NULL;
 }
 
 bool SignalGeneratorCommon::getExecFileDescriptor(std::string filename,
@@ -2660,124 +2541,6 @@ bool process::detachForDebugger(const EventRecord &/*crash_event*/) {
       fprintf(stderr, "PTrace detach failed: %s\n", strerror(ptrace_errno));
    }
    return (ret != -1);
-}
-
-void BinaryEdit::makeInitAndFiniIfNeeded()
-{
-    Symtab* linkedFile = getAOut()->parse_img()->getObject();
-
-    // Disable this for .o's and static binaries
-    if( linkedFile->isStaticBinary() || 
-        linkedFile->getObjectType() == obj_RelocatableFile ) 
-    {
-        return;
-    }
-
-    bool foundInit = false;
-    bool foundFini = false;
-    vector <Function *> funcs;
-    if (linkedFile->findFunctionsByName(funcs, "_init")) {
-        foundInit = true;
-    }
-    if (linkedFile->findFunctionsByName(funcs, "_fini")) {
-        foundFini = true;
-    }
-    if( !foundInit )
-    {
-        Offset initOffset = linkedFile->getInitOffset();
-        Region *initsec = linkedFile->findEnclosingRegion(initOffset);
-        if(!initOffset || !initsec)
-        {
-            unsigned char* emptyFunction = NULL;
-            int emptyFuncSize = 0;
-#if defined(arch_x86) || defined(arch_x86_64)
-            static unsigned char empty_32[] = { 0x55, 0x89, 0xe5, 0xc9, 0xc3 };
-            static unsigned char empty_64[] = { 0x55, 0x48, 0x89, 0xe5, 0xc9, 0xc3 };
-            if(linkedFile->getAddressWidth() == 8)
-            {
-                emptyFunction = empty_64;
-                emptyFuncSize = 6;
-            }
-            else
-            {
-                emptyFunction = empty_32;
-                emptyFuncSize = 5;
-            }
-#elif defined (arch_power)
-            static unsigned char empty[] = { 0x4e, 0x80, 0x00, 0x20};
-             emptyFunction = empty;
-             emptyFuncSize = 4;
-#endif //defined(arch_x86) || defined(arch_x86_64)
-            linkedFile->addRegion(highWaterMark_, (void*)(emptyFunction), emptyFuncSize, ".init.dyninst",
-                                  Dyninst::SymtabAPI::Region::RT_TEXT, true);
-            highWaterMark_ += emptyFuncSize;
-            lowWaterMark_ += emptyFuncSize;
-            linkedFile->findRegion(initsec, ".init.dyninst");
-            assert(initsec);
-            linkedFile->addSysVDynamic(DT_INIT, initsec->getRegionAddr());
-            startup_printf("%s[%d]: creating .init.dyninst region, region addr 0x%lx\n",
-                           FILE__, __LINE__, initsec->getRegionAddr());
-        }
-        startup_printf("%s[%d]: ADDING _init at 0x%lx\n", FILE__, __LINE__, initsec->getRegionAddr());
-        Symbol *initSym = new Symbol( "_init",
-                                      Symbol::ST_FUNCTION,
-                                      Symbol::SL_GLOBAL,
-                                      Symbol::SV_DEFAULT,
-                                      initsec->getRegionAddr(),
-                                      linkedFile->getDefaultModule(),
-                                      initsec,
-                                      UINT_MAX );
-        linkedFile->addSymbol(initSym);
-    }
-    if( !foundFini )
-    {
-        Offset finiOffset = linkedFile->getFiniOffset();
-        Region *finisec = linkedFile->findEnclosingRegion(finiOffset);
-        if(!finiOffset || !finisec)
-        {
-            unsigned char* emptyFunction = NULL;
-            int emptyFuncSize = 0;
-#if defined(arch_x86) || defined(arch_x86_64)
-            static unsigned char empty_32[] = { 0x55, 0x89, 0xe5, 0xc9, 0xc3 };
-            static unsigned char empty_64[] = { 0x55, 0x48, 0x89, 0xe5, 0xc9, 0xc3 };
-            if(linkedFile->getAddressWidth() == 8)
-            {
-                emptyFunction = empty_64;
-                emptyFuncSize = 6;
-            }
-            else
-            {
-                emptyFunction = empty_32;
-                emptyFuncSize = 5;
-            }
-
-#elif defined (arch_power)
-            static unsigned char empty[] = { 0x4e, 0x80, 0x00, 0x20};
-             emptyFunction = empty;
-             emptyFuncSize = 4;
-#endif //defined(arch_x86) || defined(arch_x86_64)
-            linkedFile->addRegion(highWaterMark_, (void*)(emptyFunction), emptyFuncSize, ".fini.dyninst",
-                                  Dyninst::SymtabAPI::Region::RT_TEXT, true);
-            highWaterMark_ += emptyFuncSize;
-            lowWaterMark_ += emptyFuncSize;
-            linkedFile->findRegion(finisec, ".fini.dyninst");
-            assert(finisec);
-            linkedFile->addSysVDynamic(DT_FINI, finisec->getRegionAddr());
-            startup_printf("%s[%d]: creating .fini.dyninst region, region addr 0x%lx\n",
-                           FILE__, __LINE__, finisec->getRegionAddr());
-
-        }
-        startup_printf("%s[%d]: ADDING _fini at 0x%lx\n", FILE__, __LINE__, finisec->getRegionAddr());
-        Symbol *finiSym = new Symbol( "_fini",
-                                      Symbol::ST_FUNCTION,
-                                      Symbol::SL_GLOBAL,
-                                      Symbol::SV_DEFAULT,
-                                      finisec->getRegionAddr(),
-                                      linkedFile->getDefaultModule(),
-                                      finisec,
-                                      UINT_MAX );
-        linkedFile->addSymbol(finiSym);
-    }
 }
 
 bool BinaryEdit::archSpecificMultithreadCapable() {

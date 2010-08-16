@@ -64,7 +64,7 @@
 #include "common/h/refCounter.h"
 #include "common/h/Types.h"
 #include "common/h/Pair.h"
-#include "symtab.h"
+#include "function.h"
 
 // VG(09/19/01): I don't think one can forward a typedefed enum (BPatch_opCode)
 //               so this must be included...

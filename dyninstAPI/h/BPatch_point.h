@@ -199,6 +199,7 @@ class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
 
     void recordSnippet(BPatch_callWhen, BPatch_snippetOrder,
                        BPatchSnippetHandle*);
+    bool deleteSnippet(BPatchSnippetHandle* handle);
 
     void attachMemAcc(BPatch_memoryAccess *memacc);
 
@@ -207,8 +208,18 @@ class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
 public:
     //~BPatch_point() { delete memacc; };
 
+    // Internal functions, DO NOT USE.
     // Hack to get edge information. DO NOT USE.
     const BPatch_edge *edge() const { return edge_; }
+    bool isReturnInstruction();
+    static BPatch_procedureLocation convertInstPointType_t(int intType);
+    instPoint *llpoint() { return point; } 
+    bool getCFTargets(BPatch_Vector<Dyninst::Address> &targets);
+    Dyninst::Address getCallFallThroughAddr();
+    void setResolved();
+    Dyninst::Address getSavedTarget();
+    // End internal functions
+
 
     // Get the loop ID
     API_EXPORT(Int, (),
@@ -330,14 +341,6 @@ public:
     API_EXPORT(Int, (),
 
     bool,usesTrap_NP,());
-
-    //  BPatch_point::getCFTarget
-    //  Returns true if the point corresponds to a control flow
-    //  instruction whose target can be statically determined, in
-    //  which case "target" is set to the target of the control flow
-    //  instruction
-    API_EXPORT(Int, (targets),
-    bool, getCFTarget, (BPatch_Vector<Dyninst::Address> *targets));
 
 #ifdef IBM_BPATCH_COMPAT
     void *getPointAddress() { return getAddress(); }

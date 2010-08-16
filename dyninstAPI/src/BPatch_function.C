@@ -35,7 +35,7 @@
 
 #include <string.h>
 #include <string>
-#include "symtab.h"
+#include "function.h"
 #include "process.h"
 #include "instPoint.h"
 #include "ast.h"
@@ -51,6 +51,7 @@
 #include "BPatch_basicBlock.h"
 #include "BPatch_statement.h"
 #include "mapped_module.h"
+#include "mapped_object.h"
 
 #include "common/h/Types.h"
 #if !defined(cap_instruction_api)
@@ -309,6 +310,205 @@ BPatch_type *BPatch_function::getReturnTypeInt()
     return retType;
 }
 
+/* 
+ * 1. First test to see if this is possible, if the target and source are not
+ *    in the same mapped region we want to parse them as separate functions 
+ * 2. Correct missing elements in BPatch-level datastructures
+*/
+bool BPatch_function::parseNewEdge(Dyninst::Address source, 
+                                   Dyninst::Address target)
+{
+/* 1. First test to see if this is possible, if the target and source are not
+      in the same mapped region, they must be parsed as separate functions  */
+    Address loadAddr = func->getAddress() - func->ifunc()->getOffset();
+    SymtabAPI::Region *targetRegion = func->ifunc()->img()->getObject()->
+        findEnclosingRegion( target-loadAddr );
+    if (func->ifunc()->img()->getObject()->findEnclosingRegion( source-loadAddr ) 
+        != targetRegion) 
+    {
+        fprintf(stderr,"%s[%d] Returning FALSE, parseNewEdge is being called for "
+                "source %lx and target %lx that are not in the same "
+                "section or module\n",__FILE__,__LINE__,source,target);
+        return false;
+    }
+
+    // do it here and not in int_function, as that would cause double effort
+    // for overwrites, which also call func->parseNewEdges
+    if (func->obj()->parse_img()->codeObject()->defensiveMode()) {
+        func->obj()->clearUpdatedRegions();
+    }
+
+    // set up arguments to lower level parseNewEdges and call it
+    int_basicBlock *sblock = lladdSpace->findBasicBlockByAddr(source);
+    assert(sblock);
+    vector<ParseAPI::Block*> sblocks;
+    vector<Address> targets;
+    sblocks.push_back(sblock->llb());
+    targets.push_back(target);
+    std::vector<EdgeTypeEnum> edgeTypes;
+    edgeTypes.push_back(ParseAPI::NOEDGE);//we don't know edge type yet
+
+    func->parseNewEdges(sblocks,targets,edgeTypes);
+
+/* 2. Correct missing elements in BPatch-level datastructures */
+    //   wipe out the BPatch_flowGraph CFG, we'll re-generate it
+    if ( cfg ) {
+        cfg->invalidate();
+    }
+
+    return true;
+}
+
+// Removes all instrumentation and relocation from the function and 
+// restores the original version
+// Also flushes the runtime library address cache, if present
+bool BPatch_function::removeInstrumentation()
+{
+    bool removedAll = true;
+
+    // remove instrumentation, point by point
+    std::vector<BPatch_point*> points;
+    getAllPoints(points);
+    for (unsigned pidx=0; pidx < points.size(); pidx++) {
+        vector<BPatchSnippetHandle*> allSnippets = 
+            points[pidx]->getCurrentSnippetsInt();
+        for (unsigned all = 0; all < allSnippets.size(); all++) 
+        {
+            if ( ! addSpace->deleteSnippetInt(allSnippets[all]) ) {
+                removedAll = false;
+            }
+        } 
+    }
+
+    // invalidate relocations
+    bool invalidationOK = func->relocationInvalidateAll(); 
+
+    return invalidationOK && removedAll;
+}
+
+/* Gets unresolved instPoints from int_function and converts them to
+   BPatch_points, puts them in unresolvedCF */
+void BPatch_function::getUnresolvedControlTransfers
+(BPatch_Vector<BPatch_point *> &unresolvedCF/*output*/)
+{
+    const std::set<instPoint*> badCF = func->funcUnresolvedControlFlow();
+    std::set<instPoint*>::const_iterator bIter = badCF.begin();
+    while (bIter != badCF.end()) {
+        BPatch_procedureLocation ptType = 
+            BPatch_point::convertInstPointType_t((*bIter)->getPointType());
+        if (ptType == BPatch_locInstruction) {
+            // since this must be a control transfer, it's either an indirect
+            // jump or a direct jump
+            mal_printf("WARNING: ambiguous point type translation for "
+                       "insn at %lx, setting to locLongJump %s[%d]\n",
+                       (*bIter)->addr(), FILE__,__LINE__);
+                ptType = BPatch_locLongJump;
+        }
+        BPatch_point *curPoint = addSpace->findOrCreateBPPoint
+            (this, const_cast<instPoint*>(*bIter), ptType);
+        unresolvedCF.push_back(curPoint);
+        bIter++;
+    }
+}
+
+/* Gets abrupt end instPoints from int_function and converts them to
+   BPatch_points, puts them in abruptEnds */
+void BPatch_function::getAbruptEndPoints
+(BPatch_Vector<BPatch_point *> &abruptEnds/*output*/)
+{
+    const std::set<instPoint*> abruptPts = func->funcAbruptEnds();
+    std::set<instPoint*>::const_iterator pIter = abruptPts.begin();
+    while (pIter != abruptPts.end()) {
+        BPatch_point *curPoint = addSpace->findOrCreateBPPoint
+            (this, const_cast<instPoint*>(*pIter), BPatch_locInstruction);
+             
+        abruptEnds.push_back(curPoint);
+        pIter++;
+    }
+}
+
+void BPatch_function::getCallerPoints(std::vector<BPatch_point*>& callerPoints)
+{
+    std::vector<instPoint*> intPoints; 
+    lowlevel_func()->getCallerPoints(intPoints);
+    std::vector<instPoint*>::iterator pIter = intPoints.begin();
+    while (pIter != intPoints.end()) {
+        callerPoints.push_back(addSpace->findOrCreateBPPoint(this,*pIter, 
+            BPatch_point::convertInstPointType_t((*pIter)->getPointType())));
+        pIter++;
+    }
+}
+
+void BPatch_function::getAllPoints(std::vector<BPatch_point*>& bpPoints)
+{
+    pdvector<instPoint*> curPoints = lowlevel_func()->funcEntries();
+    for (unsigned pIdx=0; pIdx < curPoints.size(); pIdx++) {
+        bpPoints.push_back(addSpace->findOrCreateBPPoint
+            (this, 
+             curPoints[pIdx], 
+             BPatch_point::convertInstPointType_t(curPoints[pIdx]->getPointType())));
+    }
+    curPoints = lowlevel_func()->funcExits();
+    for (unsigned pIdx=0; pIdx < curPoints.size(); pIdx++) {
+        bpPoints.push_back(addSpace->findOrCreateBPPoint
+            (this, 
+             curPoints[pIdx], 
+             BPatch_point::convertInstPointType_t(curPoints[pIdx]->getPointType())));
+    }
+    curPoints = lowlevel_func()->funcCalls();
+    for (unsigned pIdx=0; pIdx < curPoints.size(); pIdx++) {
+        bpPoints.push_back(addSpace->findOrCreateBPPoint
+            (this, 
+             curPoints[pIdx], 
+             BPatch_point::convertInstPointType_t(curPoints[pIdx]->getPointType())));
+    }
+    curPoints = lowlevel_func()->funcArbitraryPoints();
+    for (unsigned pIdx=0; pIdx < curPoints.size(); pIdx++) {
+        bpPoints.push_back(addSpace->findOrCreateBPPoint
+            (this, 
+             curPoints[pIdx], 
+             BPatch_point::convertInstPointType_t(curPoints[pIdx]->getPointType())));
+    }
+    std::set<instPoint*> pointSet = lowlevel_func()->funcUnresolvedControlFlow();
+    std::set<instPoint*>::iterator pIter = pointSet.begin();
+    while (pIter != pointSet.end()) {
+        bpPoints.push_back(addSpace->findOrCreateBPPoint
+            (this, 
+             *pIter, 
+             BPatch_point::convertInstPointType_t((*pIter)->getPointType())));
+        pIter++;
+    }
+    pointSet = lowlevel_func()->funcAbruptEnds();
+    pIter = pointSet.begin();
+    while (pIter != pointSet.end()) {
+        bpPoints.push_back(addSpace->findOrCreateBPPoint
+            (this, 
+             *pIter, 
+             BPatch_point::convertInstPointType_t((*pIter)->getPointType())));
+        pIter++;
+    }
+}
+
+// Sets the address in the structure at which the fault instruction's
+// address is stored if "set" is true.  Accesses the fault address and 
+// translates it back to an original address if it corresponds to 
+// relocated code in the Dyninst heap 
+bool BPatch_function::setHandlerFaultAddrAddr
+        (Dyninst::Address addr, bool set)
+{
+    if (lowlevel_func()->getHandlerFaultAddr()) {
+        lowlevel_func()->setHandlerFaultAddrAddr(addr,set);
+        return true;
+    }
+    return false;
+}
+
+void BPatch_function::fixHandlerReturnAddr(Dyninst::Address addr)
+{
+    func->fixHandlerReturnAddr(addr);    
+}
+
+
 /*
  * BPatch_function::getModule
  *
@@ -539,14 +739,18 @@ BPatch_flowGraph* BPatch_function::getCFGInt()
 {
     assert(mod);
     if (!mod->isValid()) return NULL;
-    if (cfg)
+    if (cfg && cfg->isValid() && 
+        ( ! mod->isExploratoryModeOn() || 
+          ! lowlevel_func()->obj()->parse_img()->hasNewBlocks()))
         return cfg;
     bool valid = false;
     cfg = new BPatch_flowGraph(this, valid);
     if (!valid) {
         delete cfg;
         cfg = NULL;
-        fprintf(stderr, "CFG is NULL in %s\n", lowlevel_func()->symTabName().c_str());
+        fprintf(stderr, "CFG is NULL for func %s at %lx %s[%d]\n", 
+                lowlevel_func()->symTabName().c_str(),
+                func->getAddress(),FILE__,__LINE__);
         return NULL;
     }
     return cfg;
@@ -557,20 +761,18 @@ void BPatch_function::constructVarsAndParams()
     if (varsAndParamsValid)
        return;
 
-    if (mod) 
-	{
+    if (mod) {
         mod->parseTypesIfNecessary();
     }
 
     //Check flag to see if vars & params are already constructed
-    std::vector<localVar *>vars;
+    std::vector<SymtabAPI::localVar *>vars;
 
     if (lowlevel_func()->ifunc()->getSymtabFunction()->getLocalVariables(vars)) 
 	{
         for (unsigned i = 0; i< vars.size(); i++) 
 	    {
-            if (mod) 
-			{
+            if (mod) {
                 vars[i]->fixupUnknown(mod->lowlevel_mod()->pmod()->mod());
             }
 
@@ -578,14 +780,13 @@ void BPatch_function::constructVarsAndParams()
 	    }    
     }
 
-    std::vector<localVar *>parameters;
+    std::vector<SymtabAPI::localVar *>parameters;
 
     if (lowlevel_func()->ifunc()->getSymtabFunction()->getParams(parameters)) 
 	{
         for (unsigned i = 0; i< parameters.size(); i++) 
 		{
-            if (mod) 
-			{
+            if (mod) {
                 parameters[i]->fixupUnknown(mod->lowlevel_mod()->pmod()->mod());
             }
 
@@ -732,35 +933,6 @@ BPatch_variableExpr *BPatch_function::getFunctionRefInt()
   //  only the vector was newly allocated, not the parameters themselves
   delete [] params;
   
-#if defined( arch_ia64 )
-  // IA-64 function pointers actually point to structures.  We insert such
-  // a structure in the mutatee so that instrumentation can use it. */
-  Address entryPoint = (Address)getBaseAddr();
-  
-  //RUTAR, need to change this over when we start to support IA64
-  assert(addSpace->getType() == TRADITIONAL_PROCESS);
-  BPatch_process * proc = dynamic_cast<BPatch_process *>(addSpace);
-  Address gp = proc->llproc->getTOCoffsetInfo( entryPoint );
-  
-  remoteAddress = proc->llproc->inferiorMalloc( sizeof( Address ) * 2 );
-  assert( remoteAddress != (Address)NULL );
-  
-  if (!proc->llproc->writeDataSpace( (void *)remoteAddress, sizeof( Address ), & entryPoint ))
-     fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
-  if (!proc->llproc->writeDataSpace( (void *)(remoteAddress + sizeof( Address )), 
-                                     sizeof( Address ), & gp ))
-     fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
-  
-  
-  AstNodePtr wrapper(AstNode::operandNode(AstNode::Constant, (void *) remoteAddress));
-  // variableExpr owns the AST
-  return new BPatch_variableExpr(fname, proc, lladdSpace, wrapper, 
-                                 type, (void *) remoteAddress); 
-  //return (BPatch_function::voidVoidFunctionPointer)remoteAddress;
-  
-#else
-  //  For other platforms, the baseAddr of the function should be sufficient.
-  
   //  In truth it would make more sense for this to be a BPatch_constExpr,
   //  But since we are adding this as part of the DPCL compatibility process
   //  we use the IBM API, to eliminate one API difference.
@@ -771,7 +943,6 @@ BPatch_variableExpr *BPatch_function::getFunctionRefInt()
   return new BPatch_variableExpr(fname, addSpace, lladdSpace, ast, 
                                  type, (void *) remoteAddress);
   
-#endif
 
 } /* end getFunctionRef() */
 
@@ -938,3 +1109,10 @@ bool BPatch_function::findOverlappingInt(BPatch_Vector<BPatch_function *> &funcs
 
     return true;
 }
+
+ParseAPI::Function * BPatch_function::getParseAPIFuncInt() {
+  assert(func);
+ 
+  return func->ifunc();
+}
+

@@ -150,7 +150,7 @@ endif
 endif
 
 test1_20.so: test1_20.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test1_20.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -liberty -ltestSuite 
+	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -liberty -linstructionAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@

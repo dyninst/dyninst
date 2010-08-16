@@ -160,11 +160,11 @@ static const char** parseArgsIndividual(RunGroup *group, TestInfo *test,
 static const char** parseArgs(RunGroup *group,
                               char *logfilename, char *humanlogname,
                               bool verboseFormat, bool printLabels,
-                              int debugPrint, char *pidfilename)
+                              int debugPrint, char *pidfilename, char *mutatee_resumelog, int unique)
 {
    std::vector<std::string> mutateeArgs;
    getOutput()->getMutateeArgs(mutateeArgs); // mutateeArgs is an output parameter
-   const char **child_argv = new const char *[12 + (4 * group->tests.size()) +
+   const char **child_argv = new const char *[16 + (4 * group->tests.size()) +
                                               mutateeArgs.size()];
    assert(child_argv);
    int n = 0;
@@ -181,6 +181,16 @@ static const char** parseArgs(RunGroup *group,
       child_argv[n++] = const_cast<char *>("-q");
       // TODO I'll also want to pass a parameter specifying a file to write
       // postponed messages to
+   }
+   if (mutatee_resumelog) {
+      child_argv[n++] = "-resumelog";
+      child_argv[n++] = mutatee_resumelog;
+   }
+   if (unique) {
+      static char buffer[32];
+      snprintf(buffer, 32, "%d", unique);
+      child_argv[n++] = "-unique";
+      child_argv[n++] = buffer;
    }
    if (debugPrint != 0) {
       child_argv[n++] = const_cast<char *>("-verbose");
@@ -213,11 +223,12 @@ static const char** parseArgs(RunGroup *group,
 BPatch_thread *startMutateeTest(BPatch *bpatch, RunGroup *group,
                                 char *logfilename, char *humanlogname,
                                 bool verboseFormat, bool printLabels,
-                                int debugPrint, char *pidfilename)
+                                int debugPrint, char *pidfilename, 
+                                char *mutatee_resumelog, int uniqueid)
 {
    const char **child_argv = parseArgs(group, logfilename, humanlogname,
                                        verboseFormat, printLabels, 
-                                       debugPrint, pidfilename);
+                                       debugPrint, pidfilename, mutatee_resumelog, uniqueid);
    
    // Start the mutatee
    dprintf("Starting \"%s\"\n", group->mutatee);
@@ -235,7 +246,8 @@ BPatch_binaryEdit *startBinaryTest(BPatch *bpatch, RunGroup *group)
 }
 
 
-#if defined(os_linux_test)
+#if defined(os_linux_test) || defined(os_freebsd_test)
+
 #include <dirent.h>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -246,7 +258,8 @@ BPatch_binaryEdit *startBinaryTest(BPatch *bpatch, RunGroup *group)
 static void clearBinEditFiles()
 {
    struct dirent **files;
-   int result = scandir(BINEDIT_DIR, &files, NULL, NULL);
+   char *binedit_dir = get_binedit_dir();
+   int result = scandir(binedit_dir, &files, NULL, NULL);
    if (result == -1) {
       return;
    }
@@ -254,12 +267,12 @@ static void clearBinEditFiles()
    int num_files = result;
    for (unsigned i=0; i<num_files; i++) {
       if ((strcmp(files[i]->d_name, ".") == 0) || 
-          (strcmp(files[i]->d_name, "..") == 0)) 
+          (strcmp(files[i]->d_name, "..") == 0))
       {
          free(files[i]);
          continue;
       }
-      std::string full_file = std::string(BINEDIT_DIR) + std::string("/") +
+      std::string full_file = std::string(binedit_dir) + std::string("/") +
          std::string(files[i]->d_name);
 	  if (!getenv("DYNINST_REWRITER_NO_UNLINK"))
 	  {
@@ -273,19 +286,20 @@ static void clearBinEditFiles()
 
 static bool cdBinDir()
 {
-   int result = chdir(BINEDIT_DIR);
+   char *binedit_dir = get_binedit_dir();
+   int result = chdir(binedit_dir);
    if (result != -1) {
       return true;
    }
 
-   result = mkdir(BINEDIT_DIR, 0700);
+   result = mkdir(binedit_dir, 0700);
    if (result == -1) {
-      perror("Could not mkdir " BINEDIT_DIR);
+      perror("Could not mkdir binaries");
       return false;
    }
-   result = chdir(BINEDIT_DIR);
+   result = chdir(binedit_dir);
    if (result == -1) {
-      perror("Could not chdir " BINEDIT_DIR);
+      perror("Could not chdir binaries");
       return false;
    }
    return true;
@@ -304,7 +318,12 @@ static bool cdBack()
 static bool waitForCompletion(int pid, bool &app_crash, int &app_return)
 {
    int result, status;
-   int options = __WALL;
+   int options = 0;
+
+#if defined(__WALL)
+   options = __WALL;
+#endif
+
    do {
       result = waitpid(pid, &status, options);
    } while (result == -1 && errno == EINTR);
@@ -377,6 +396,7 @@ bool runBinaryTest(BPatch *bpatch, RunGroup *group,
                    char *logfilename, char *humanlogname,
                    bool verboseFormat, bool printLabels,
                    int debugPrint, char *pidfilename,
+                   char *mutatee_resumelog, int unique_id,
                    bool noClean, test_results_t &test_result)
 {
    bool cd_done = false;
@@ -389,6 +409,20 @@ bool runBinaryTest(BPatch *bpatch, RunGroup *group,
    const char **child_argv = NULL;
    int pid;
    std::string outfile;
+
+   char *binedit_dir = get_binedit_dir();
+   if (unique_id) {
+      unsigned buffer_len = strlen(BINEDIT_BASENAME) + 32;
+      char *buffer = (char *) malloc(buffer_len);
+      snprintf(buffer, buffer_len-1, "%s.%d", BINEDIT_BASENAME, unique_id);
+      if (strcmp(buffer, binedit_dir) == 0) {
+         free(buffer);
+      }
+      else {	    
+         binedit_dir = buffer;
+		 set_binedit_dir(buffer);
+      }
+   }
 
    test_result = UNKNOWN;
 
@@ -405,7 +439,7 @@ bool runBinaryTest(BPatch *bpatch, RunGroup *group,
    }
    cd_done = true;
 
-   outfile = /*std::string(BINEDIT_DIR) +*/ std::string("rewritten_") + std::string(group->mutatee);
+   outfile = /*std::string(binedit_dir) +*/ std::string("rewritten_") + std::string(group->mutatee);
 
 #if !defined(os_windows_test)
    if (getenv("DYNINST_REWRITER_NO_UNLINK"))
@@ -439,7 +473,7 @@ bool runBinaryTest(BPatch *bpatch, RunGroup *group,
 
    child_argv = parseArgs(group, logfilename, humanlogname,
                           verboseFormat, printLabels, 
-                          debugPrint, pidfilename);
+                          debugPrint, pidfilename, mutatee_resumelog, unique_id);
    
    dprintf("%s[%d]:  starting rewritten process '%s ", FILE__, __LINE__, outfile.c_str());
    if (child_argv)
@@ -454,7 +488,7 @@ bool runBinaryTest(BPatch *bpatch, RunGroup *group,
      }
    }
    dprintf("'...\n\n\n");
-   outfile = "./binaries/" + outfile;
+   outfile = binedit_dir + std::string("/") + outfile;
    pid = startNewProcessForAttach(outfile.c_str(), child_argv,
                                   NULL, NULL, false);
    if (pid == -1) {
@@ -472,7 +506,7 @@ bool runBinaryTest(BPatch *bpatch, RunGroup *group,
 
    if ((app_crash)  || (app_return != 0))
    {
-     parse_mutateelog(group);
+     parse_mutateelog(group, mutatee_resumelog);
      test_result = UNKNOWN;
    }
    else {

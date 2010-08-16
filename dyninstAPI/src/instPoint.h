@@ -38,11 +38,13 @@
 #include <stdlib.h>
 #include "common/h/Types.h"
 #include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/src/arch.h" // instruction
+#include "common/h/arch.h" // instruction
 #include "dyninstAPI/src/codeRange.h"
 #include "common/h/stats.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/bitArray.h"
+
+#include "arch-forward-decl.h" // instruction
 
 class image_func;
 class int_function;
@@ -51,9 +53,6 @@ class process;
 class image;
 
 class int_basicBlock;
-#if defined(__XLC__) || defined(__xlC__)
-class BPatch_point;
-#endif
 class Frame;
 class instPointInstance;
 
@@ -63,6 +62,7 @@ typedef enum {
   functionEntry,
   functionExit,
   callSite,
+  abruptEnd,
   otherPoint
 } instPointType_t;
 
@@ -77,7 +77,8 @@ typedef enum {
 
 class multiTramp;
 class instPoint;
-class instruction;
+
+
 
 #if defined(cap_instruction_api)
 #include "Instruction.h"
@@ -92,6 +93,7 @@ class instPointBase {
  public:
   static unsigned int id_ctr;  
   instPointType_t getPointType() const { return ipType_; }
+  void setPointType(instPointType_t type_) { ipType_ = type_; }
 
   // Single instruction we're instrumenting (if at all)
 #if defined(cap_instruction_api)
@@ -101,65 +103,91 @@ class instPointBase {
   }
   static Dyninst::Architecture arch;
   
-    Dyninst::InstructionAPI::Instruction::Ptr insn() const {
+    Dyninst::InstructionAPI::Instruction::Ptr insn() {
       Dyninst::InstructionAPI::InstructionDecoder dec((const unsigned char*)NULL, 0, arch);
       return dec.decode(insn_);
     }
 #else
     static void setArch(Dyninst::Architecture, bool) {}
-    const instruction &insn() const { return insn_; }
+    const instruction &insn()  { 
+        // XXX super-evil cast due to incoherant "codeBuf_t" typedefs
+        if(dec_insn_.size() == 0)
+          dec_insn_.setInstruction((NS_sparc::codeBuf_t*)insn_,0);
+        return dec_insn_; 
+    }
 #endif
   instPointBase(
-#if defined(cap_instruction_api)
-    Dyninst::InstructionAPI::Instruction::Ptr insn,
-#else
-                                 instruction insn,
-#endif
+    unsigned char * insn_buf,
+    size_t insn_len,
     instPointType_t type) :
     ipType_(type)
-#if !defined(cap_instruction_api)
-      , insn_(insn)
-#endif
     { id_ = id_ctr++;
-#if defined(cap_instruction_api)
-      insn_ = (unsigned char*)(malloc(insn->size()));
-      memcpy(insn_, insn->ptr(), insn->size());
-#endif      
+      insn_ = (unsigned char*)(malloc(insn_len));
+      memcpy(insn_, insn_buf, insn_len);
     }
   // We need to have a manually-set-everything method
   instPointBase(
-#if defined(cap_instruction_api)
-          Dyninst::InstructionAPI::Instruction::Ptr insn,
-#else
-                                 instruction insn,
-#endif
+          unsigned char * insn_buf,
+          size_t insn_len,
           instPointType_t type,
                 unsigned int id) :
       id_(id),
       ipType_(type)
-#if !defined(cap_instruction_api)    
-      , insn_(insn)
-#endif
       {
-#if defined(cap_instruction_api)
-          insn_ = (unsigned char*)(malloc(insn->size()));
-          memcpy(insn_, insn->ptr(), insn->size());
-#endif
+        insn_ = (unsigned char*)(malloc(insn_len));
+        memcpy(insn_, insn_buf, insn_len);
       }
+  // convenience for creations from instPoint
+  instPointBase(
+#if defined(cap_instruction_api)
+    Dyninst::InstructionAPI::Instruction::Ptr insn,
+#else
+    instruction insn,
+#endif
+    instPointType_t type) :
+    ipType_(type)
+    {
+        id_ = id_ctr++;
+#if defined(cap_instruction_api)
+        insn_ = (unsigned char*)malloc(insn->size());
+        memcpy(insn_,insn->ptr(),insn->size());
+#else
+        insn_ = (unsigned char*)malloc(insn.size());
+        memcpy(insn_,insn.ptr(),insn.size());
+#endif
+    } 
+  instPointBase(
+#if defined(cap_instruction_api)
+    Dyninst::InstructionAPI::Instruction::Ptr insn,
+#else
+    instruction insn,
+#endif
+    instPointType_t type,
+    unsigned int id) :
+    id_(id),
+    ipType_(type)
+    {
+        id_ = id_ctr++;
+#if defined(cap_instruction_api)
+        insn_ = (unsigned char*)malloc(insn->size());
+        memcpy(insn_,insn->ptr(),insn->size());
+#else
+        insn_ = (unsigned char*)malloc(insn.size());
+        memcpy(insn_,insn.ptr(),insn.size());
+#endif
+    } 
 
   int id() const { return id_; }
     virtual ~instPointBase() {
-#if defined(cap_instruction_api)
-        free(insn_);
-#endif
+        if(insn_)
+            free(insn_);
     }
  protected:
   unsigned int id_;
   instPointType_t ipType_;
-#if defined(cap_instruction_api)
-    unsigned char* insn_;
-#else
-    instruction insn_;
+  unsigned char* insn_;
+#if !defined(cap_instruction_api)
+  instruction dec_insn_;
 #endif
 };
 
@@ -169,43 +197,41 @@ class image_instPoint : public instPointBase {
  public:
     // Entry/exit
     image_instPoint(Address offset,
-#if defined(cap_instruction_api)
-    Dyninst::InstructionAPI::Instruction::Ptr insn,
-#else
-                  instruction insn,
-#endif
-		  image_func *func,
-		  instPointType_t type);
+                    unsigned char * insn_buf,
+                    size_t insn_len,
+                    image * img,
+                    instPointType_t type, 
+                    bool isUnresolved=false);
     // Call site or otherPoint that has a target
     image_instPoint(Address offset,
-#if defined(cap_instruction_api)
-    Dyninst::InstructionAPI::Instruction::Ptr insn,
-#else
-                    instruction insn,
-#endif
-                    image_func *func,
-                    Address callTarget_,
+                    unsigned char * insn_buf,
+                    size_t insn_len,
+                    image * img,
+                    Address callTarget,
                     bool isDynamic,
-                    bool isAbsolute = false,
-                    instPointType_t type = callSite);
+                    bool isAbsolute,
+                    instPointType_t type, 
+                    bool isUnresolved=false);
 
   Address offset_;
   Address offset() const { return offset_; }
 
-  image_func *func() const { return func_; }
-  image_func *func_;
   // For call-site points:
-
-  image_func *callee_;
+private:
+  image * image_;
+  mutable image_func *callee_; // cache
   std::string callee_name_;
   Address callTarget_;
   bool targetIsAbsolute_;
+  bool isUnres_;
+public:
   Address callTarget() const { return callTarget_; }
   bool targetIsAbsolute() const { return targetIsAbsolute_; }
   bool isDynamic_; 
   bool isDynamic() const { return isDynamic_; }
-
-  image_func *getCallee() const { return callee_; }
+  bool isUnresolved() const { return isUnres_; }
+  void setResolved() { isUnres_ = false; }
+  image_func *getCallee() const;
   void setCallee(image_func *f) { callee_ = f; }
   std::string getCalleeName() const { return callee_name_; }
   void setCalleeName(std::string s) { callee_name_ = s; }
@@ -416,6 +442,7 @@ class instPoint : public instPointBase {
   int_function *callee_;
   bool isDynamic_;
   bool isDynamic() const { return isDynamic_; }
+  bool isReturnInstruction();
 
   // Get the base tramp (conglomerate) corresponding to this instPoint
   // (conglomerate)
@@ -455,6 +482,19 @@ class instPoint : public instPointBase {
   Address addr() const { return addr_; }
 
   Address callTarget() const;
+
+  // the saved target for the point, kept in sync with other
+  // points at this address if there's function sharing
+  Address getSavedTarget();
+  void setSavedTarget(Address st_);
+  // returns false if it was already resolved
+  bool setResolved();
+  void removeMultiTramps();
+  // needed for blocks that are split after the initial parse
+  void setBlock( int_basicBlock* newBlock );
+
+
+
 
   // We use a three-phase instrumentation structure:
 
@@ -561,6 +601,8 @@ class instPoint : public instPointBase {
 
   AstNodePtr replacedCode() const { return replacedCode_; }
   
+  image_instPoint *imgPt() const { return img_p_; }
+
  private:
   baseTramp *preBaseTramp_;
   baseTramp *postBaseTramp_;
@@ -605,6 +647,9 @@ class instPoint : public instPointBase {
 
   bool hasNewInstrumentation_;
   bool hasAnyInstrumentation_;
+
+  Address savedTarget_;
+
 };
 
 typedef instPoint::iterator instPointIter;

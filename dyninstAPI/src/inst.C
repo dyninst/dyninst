@@ -34,8 +34,6 @@
 // Misc constructs.
 
 #include <assert.h>
-//#include <sys/signal.h>
-//#include <sys/param.h>
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"
@@ -47,10 +45,9 @@
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/baseTramp.h"
-//#include "dyninstAPI/src/InstrucIter.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/image-func.h"
-#include "dyninstAPI/src/arch.h"
+#include "dyninstAPI/src/codegen.h"
 
 
 /*
@@ -93,9 +90,9 @@ unsigned generateAndWriteBranch(AddressSpace *proc,
     codeGen gen(fillSize);
 
 #if defined(os_aix)
-    instruction::generateInterFunctionBranch(gen, fromAddr, newAddr);
+    insnCodeGen::generateInterFunctionBranch(gen, fromAddr, newAddr);
 #else
-    instruction::generateBranch(gen, fromAddr, newAddr);
+    insnCodeGen::generateBranch(gen, fromAddr, newAddr);
 #endif
     gen.fillRemaining(codeGen::cgNOP);
     
@@ -144,13 +141,13 @@ bool trampEnd::generateCode(codeGen &gen,
     generateSetup(gen, baseInMutatee);
 
     if (target_) {
-        instruction::generateBranch(gen,
+        insnCodeGen::generateBranch(gen,
                                     gen.currAddr(baseInMutatee),
                                     target_);
     }
 
     // And a sigill insn
-    instruction::generateIllegal(gen);
+    insnCodeGen::generateIllegal(gen);
     
     size_ = gen.currAddr(baseInMutatee) - addrInMutatee_;
     generated_ = true;
@@ -244,9 +241,6 @@ void *trampEnd::getPtrToInstruction(Address) const {
 // track of what we put in. Since addresses are unique, we can do it with
 // a dictionary in the process class.
 
-#if !defined(arch_ia64)
-// arch-ia64 has its own version (of course...) since it's a lot
-// more complicated
 bool AddressSpace::replaceFunctionCall(instPoint *point,
                                        const int_function *func) {
    // Must be a call site
@@ -270,4 +264,3 @@ bool AddressSpace::replaceFunctionCall(instPoint *point,
 #endif
    return point->replaceCode(call);
 }
-#endif

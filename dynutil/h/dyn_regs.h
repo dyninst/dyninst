@@ -51,6 +51,7 @@ namespace Dyninst
       Arch_ppc64  = 0x28000000
    } Architecture;
 
+   unsigned getArchAddressWidth(Dyninst::Architecture arch);
    class COMMON_EXPORT MachRegister {
    private:
       signed int reg;

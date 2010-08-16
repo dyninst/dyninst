@@ -390,6 +390,7 @@ Serializable *Symbol::serialize_impl(SerializerBase *s, const char *tag) THROW_S
 		gtranslate(s, isDynamic_, "isDynamic");
 		gtranslate(s, isAbsolute_, "isAbsolute");
                 gtranslate(s, isCommonStorage_, "isCommonStorage");
+		gtranslate(s, versionHidden_, "versionHidden");
 		gtranslate(s, prettyName_, "prettyName");
 		gtranslate(s, mangledName_, "mangledName");
 		gtranslate(s, typedName_, "typedName");
@@ -535,6 +536,7 @@ bool Symbol::operator==(const Symbol& s) const
 			&& (isDynamic_ == s.isDynamic_)
 			&& (isAbsolute_ == s.isAbsolute_)
                         && (isCommonStorage_ == s.isCommonStorage_)
+		   && (versionHidden_ == s.versionHidden_)
 			&& (mangledName_ == s.mangledName_)
 			&& (prettyName_ == s.prettyName_)
 			&& (typedName_ == s.typedName_));
@@ -564,7 +566,8 @@ Symbol::Symbol () :
   tag_(TAG_UNKNOWN) ,
   index_(-1),
   strindex_(-1),
-  isCommonStorage_(false)
+  isCommonStorage_(false),
+  versionHidden_(false)
 {
 }
 
@@ -600,7 +603,8 @@ Symbol::Symbol(const std::string name,
   tag_(TAG_UNKNOWN),
   index_(index),
   strindex_(strindex),
-  isCommonStorage_(cs)
+  isCommonStorage_(cs),
+  versionHidden_(false)
 {
 }
 

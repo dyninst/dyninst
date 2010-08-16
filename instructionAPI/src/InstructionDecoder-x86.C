@@ -33,7 +33,7 @@
 
 #include "InstructionDecoder-x86.h"
 #include "Expression.h"
-#include "arch-x86.h"
+#include "common/h/arch-x86.h"
 #include "Register.h"
 #include "Dereference.h"
 #include "Immediate.h"
@@ -41,6 +41,7 @@
 #include "common/h/singleton_object_pool.h"
 
 using namespace std;
+using namespace NS_x86;
 namespace Dyninst
 {
     namespace InstructionAPI
@@ -202,13 +203,13 @@ namespace Dyninst
 								  unsigned int opType)
     {
         unsigned int regType = op_d;
+        Result_Type aw = ia32_is_mode_64() ? u32 : u64;
         if(ia32_is_mode_64())
         {
             regType = op_q;
         }
-        Result_Type aw = ia32_is_mode_64() ? u32 : u64;
         Expression::Ptr e =
-	  makeRegisterExpression(makeRegisterID(locs->modrm_rm, regType, (locs->rex_b == 1)));
+            makeRegisterExpression(makeRegisterID(locs->modrm_rm, regType, (locs->rex_b == 1)));
         switch(locs->modrm_mod)
         {
             case 0:
@@ -218,10 +219,7 @@ namespace Dyninst
                 if(locs->modrm_rm == 0x5 && !addrSizePrefixPresent)
                 {
                     assert(locs->opcode_position > -1);
-                    entryID opcode = decodedInstruction->getEntry()->getID(locs);
-        // treat FP decodes as legacy mode since it appears that's what we've got in our
-        // old code...
-                    if(ia32_is_mode_64() && (opcode < e_fadd || opcode > e_fxsave) && opcode != e_fp_generic)
+                    if(ia32_is_mode_64())
                     {
                         e = makeAddExpression(makeRegisterExpression(x86_64::rip),
                                             getModRMDisplacement(b), aw);
@@ -241,6 +239,8 @@ namespace Dyninst
                     return e;
                 }
                 return makeDereferenceExpression(e, makeSizeType(opType));
+                assert(0);
+                break;
             case 1:
             case 2:
             {
@@ -254,13 +254,17 @@ namespace Dyninst
                 }
                 return makeDereferenceExpression(disp_e, makeSizeType(opType));
             }
+            assert(0);
+            break;
             case 3:
-	      return makeRegisterExpression(makeRegisterID(locs->modrm_rm, opType, (locs->rex_b == 1)));
+                return makeRegisterExpression(makeRegisterID(locs->modrm_rm, opType, (locs->rex_b == 1)));
             default:
                 return Expression::Ptr();
         
         };
-        
+        // can't get here, but make the compiler happy...
+        assert(0);
+        return Expression::Ptr();
     }
 
     Expression::Ptr InstructionDecoder_x86::decodeImmediate(unsigned int opType, const unsigned char* immStart, 
@@ -406,88 +410,171 @@ namespace Dyninst
         b_dr,
         b_tr,
         b_amd64ext,
-        b_8bitWithREX
+        b_8bitWithREX,
+        b_fpstack
     };
-    using namespace x86;
-    
-    static MachRegister IntelRegTable[][8] = {
+    static MachRegister IntelRegTable32[][8] = {
         {
-            al, cl, dl, bl, ah, ch, dh, bh
+            x86::al, x86::cl, x86::dl, x86::bl, x86::ah, x86::ch, x86::dh, x86::bh
         },
         {
-            ax, cx, dx, bx, sp, bp, si, di
+            x86::ax, x86::cx, x86::dx, x86::bx, x86::sp, x86::bp, x86::si, x86::di
         },
         {
-            eax, ecx, edx, ebx, esp, ebp, esi, edi
+            x86::eax, x86::ecx, x86::edx, x86::ebx, x86::esp, x86::ebp, x86::esi, x86::edi
         },
         {
-            es, cs, ss, ds, fs, gs, InvalidReg, InvalidReg
+           x86::es, x86::cs, x86::ss, x86::ds, x86::fs, x86::gs, InvalidReg, InvalidReg
         },
         {
             x86_64::rax, x86_64::rcx, x86_64::rdx, x86_64::rbx, x86_64::rsp, x86_64::rbp, x86_64::rsi, x86_64::rdi
         },
         {
-            xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7
+            x86::xmm0, x86::xmm1, x86::xmm2, x86::xmm3, x86::xmm4, x86::xmm5, x86::xmm6, x86::xmm7
         },
         {
-            mm0, mm1, mm2, mm3, mm4, mm5, mm6, mm7
+            x86::mm0, x86::mm1, x86::mm2, x86::mm3, x86::mm4, x86::mm5, x86::mm6, x86::mm7
         },
         {
-            cr0, cr1, cr2, cr3, cr4, cr5, cr6, cr7
+            x86::cr0, x86::cr1, x86::cr2, x86::cr3, x86::cr4, x86::cr5, x86::cr6, x86::cr7
         },
         {
-            dr0, dr1, dr2, dr3, dr4, dr5, dr6, dr7
+            x86::dr0, x86::dr1, x86::dr2, x86::dr3, x86::dr4, x86::dr5, x86::dr6, x86::dr7
         },
         {
-            tr0, tr1, tr2, tr3, tr4, tr5, tr6, tr7
+            x86::tr0, x86::tr1, x86::tr2, x86::tr3, x86::tr4, x86::tr5, x86::tr6, x86::tr7
         },
         {
             x86_64::r8, x86_64::r9, x86_64::r10, x86_64::r11, x86_64::r12, x86_64::r13, x86_64::r14, x86_64::r15
         },
         {
             x86_64::al, x86_64::cl, x86_64::dl, x86_64::bl, x86_64::spl, x86_64::bpl, x86_64::sil, x86_64::dil
+        },
+        {
+            x86::st0, x86::st1, x86::st2, x86::st3, x86::st4, x86::st5, x86::st6, x86::st7
         }
 
     };
+    static MachRegister IntelRegTable64[][8] = {
+        {
+            x86_64::al, x86_64::cl, x86_64::dl, x86_64::bl, x86_64::ah, x86_64::ch, x86_64::dh, x86_64::bh
+        },
+        {
+            x86_64::ax, x86_64::cx, x86_64::dx, x86_64::bx, x86_64::sp, x86_64::bp, x86_64::si, x86_64::di
+        },
+        {
+            x86_64::eax, x86_64::ecx, x86_64::edx, x86_64::ebx, x86_64::esp, x86_64::ebp, x86_64::esi, x86_64::edi
+        },
+        {
+            x86_64::es, x86_64::cs, x86_64::ss, x86_64::ds, x86_64::fs, x86_64::gs, InvalidReg, InvalidReg
+        },
+        {
+            x86_64::rax, x86_64::rcx, x86_64::rdx, x86_64::rbx, x86_64::rsp, x86_64::rbp, x86_64::rsi, x86_64::rdi
+        },
+        {
+            x86_64::xmm0, x86_64::xmm1, x86_64::xmm2, x86_64::xmm3, x86_64::xmm4, x86_64::xmm5, x86_64::xmm6, x86_64::xmm7
+        },
+        {
+            x86_64::mm0, x86_64::mm1, x86_64::mm2, x86_64::mm3, x86_64::mm4, x86_64::mm5, x86_64::mm6, x86_64::mm7
+        },
+        {
+            x86_64::cr0, x86_64::cr1, x86_64::cr2, x86_64::cr3, x86_64::cr4, x86_64::cr5, x86_64::cr6, x86_64::cr7
+        },
+        {
+            x86_64::dr0, x86_64::dr1, x86_64::dr2, x86_64::dr3, x86_64::dr4, x86_64::dr5, x86_64::dr6, x86_64::dr7
+        },
+        {
+            x86_64::tr0, x86_64::tr1, x86_64::tr2, x86_64::tr3, x86_64::tr4, x86_64::tr5, x86_64::tr6, x86_64::tr7
+        },
+        {
+            x86_64::r8, x86_64::r9, x86_64::r10, x86_64::r11, x86_64::r12, x86_64::r13, x86_64::r14, x86_64::r15
+        },
+        {
+            x86_64::al, x86_64::cl, x86_64::dl, x86_64::bl, x86_64::spl, x86_64::bpl, x86_64::sil, x86_64::dil
+        },
+        {
+            x86_64::st0, x86_64::st1, x86_64::st2, x86_64::st3, x86_64::st4, x86_64::st5, x86_64::st6, x86_64::st7
+        }
+
+    };
+
+  /* Uses the appropriate lookup table based on the 
+     decoder architecture */
+  class IntelRegTable_access {
+    public:
+        inline MachRegister operator()(Architecture arch,
+                                       intelRegBanks bank,
+                                       int index)
+        {
+            assert(index >= 0 && index < 8);
+    
+            if(arch == Arch_x86_64)
+                return IntelRegTable64[bank][index];
+            else if(arch == Arch_x86)
+                return IntelRegTable32[bank][index];
+            else
+                assert(0);
+            return IntelRegTable32[bank][index];
+        }
+
+  };
+  static IntelRegTable_access IntelRegTable;
 
     MachRegister InstructionDecoder_x86::makeRegisterID(unsigned int intelReg, unsigned int opType,
                                         bool isExtendedReg)
     {
         MachRegister retVal;
+
         if(isExtendedReg)
         {
-            retVal = IntelRegTable[b_amd64ext][intelReg];
+            retVal = IntelRegTable(m_Arch,b_amd64ext,intelReg);
         }
+        /* Promotion to 64-bit only applies to the operand types
+           that are varible (c,v,z). Ignoring c and z because they
+           do the right thing on 32- and 64-bit code.
         else if(locs->rex_w)
         {
             // AMD64 with 64-bit operands
             retVal = IntelRegTable[b_64bit][intelReg];
         }
+        */
         else
         {
             switch(opType)
             {
+                case op_v:
+                    if(locs->rex_w)
+                        retVal = IntelRegTable(m_Arch,b_64bit,intelReg);
+                    else
+                        retVal = IntelRegTable(m_Arch,b_32bit,intelReg);
+                    break;
                 case op_b:
                     if (locs->rex_position == -1) {
-                        retVal = IntelRegTable[b_8bitNoREX][intelReg];
+                        retVal = IntelRegTable(m_Arch,b_8bitNoREX,intelReg);
                     } else {
-                        retVal = IntelRegTable[b_8bitWithREX][intelReg];
+                        retVal = IntelRegTable(m_Arch,b_8bitWithREX,intelReg);
                     }
                     break;
                 case op_q:
-                    retVal = IntelRegTable[b_64bit][intelReg];
+                    retVal = IntelRegTable(m_Arch,b_64bit,intelReg);
                     break;
                 case op_w:
-		  retVal = IntelRegTable[b_16bit][intelReg];
-		  break;
+                    retVal = IntelRegTable(m_Arch,b_16bit,intelReg);
+                    break;
+                case op_f:
+                case op_dbl:
+                    retVal = IntelRegTable(m_Arch,b_fpstack,intelReg);
+                    break;
                 case op_d:
                 case op_si:
-                default:
-                    retVal = IntelRegTable[b_32bit][intelReg];
+                    retVal = IntelRegTable(m_Arch,b_32bit,intelReg);
                     break;
-		  
+                default:
+                    retVal = IntelRegTable(m_Arch,b_32bit,intelReg);
+                    break;
             }
         }
+
         if (!ia32_is_mode_64()) {
 	  if ((retVal.val() & 0x00ffffff) == 0x0001000c)
 	    assert(0);
@@ -565,11 +652,6 @@ namespace Dyninst
 						  const Instruction* insn_to_complete, 
 						  bool isRead, bool isWritten)
     {
-      unsigned int regType = op_d;
-      if(ia32_is_mode_64())
-	{
-	  regType = op_q;
-	}
       bool isCFT = false;
       bool isCall = false;
       bool isConditional = false;
@@ -615,13 +697,13 @@ namespace Dyninst
                     break;
                     case am_C:
                     {
-                        Expression::Ptr op(makeRegisterExpression(IntelRegTable[b_cr][locs->modrm_reg]));
+                        Expression::Ptr op(makeRegisterExpression(IntelRegTable(m_Arch,b_cr,locs->modrm_reg)));
                         insn_to_complete->appendOperand(op, isRead, isWritten);
                     }
                     break;
                     case am_D:
                     {
-                        Expression::Ptr op(makeRegisterExpression(IntelRegTable[b_dr][locs->modrm_reg]));
+                        Expression::Ptr op(makeRegisterExpression(IntelRegTable(m_Arch,b_dr,locs->modrm_reg)));
                         insn_to_complete->appendOperand(op, isRead, isWritten);
                     }
                     break;
@@ -642,7 +724,7 @@ namespace Dyninst
                     break;
                     case am_F:
                     {
-                        Expression::Ptr op(makeRegisterExpression(flags));
+                        Expression::Ptr op(makeRegisterExpression(x86::flags));
                         insn_to_complete->appendOperand(op, isRead, isWritten);
                     }
                     break;
@@ -718,7 +800,7 @@ namespace Dyninst
                     }
                     break;
                     case am_P:
-                        insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable[b_mm][locs->modrm_reg]),
+                        insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch,b_mm,locs->modrm_reg)),
                                 isRead, isWritten);
                         break;
                     case am_Q:
@@ -733,7 +815,7 @@ namespace Dyninst
                                 break;
                             case 0x03:
                                 // use of actual register
-                                insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable[b_mm][locs->modrm_rm]),
+                                insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch,b_mm,locs->modrm_rm)),
                                                                isRead, isWritten);
                                 break;
                             default:
@@ -743,17 +825,17 @@ namespace Dyninst
                         break;
                     case am_S:
                     // Segment register in modrm reg field.
-                        insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable[b_segment][locs->modrm_reg]),
+                        insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch,b_segment,locs->modrm_reg)),
                                 isRead, isWritten);
                         break;
                     case am_T:
                         // test register in modrm reg; should only be tr6/tr7, but we'll decode any of them
                         // NOTE: this only appears in deprecated opcodes
-                        insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable[b_tr][locs->modrm_reg]),
+                        insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch,b_tr,locs->modrm_reg)),
                                                        isRead, isWritten);
                         break;
                     case am_V:
-                        insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable[b_xmm][locs->modrm_reg]),
+                        insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch,b_xmm,locs->modrm_reg)),
                                                        isRead, isWritten);
                         break;
                     case am_W:
@@ -769,7 +851,7 @@ namespace Dyninst
                             case 0x03:
                             // use of actual register
                             {
-                                insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable[b_xmm][locs->modrm_rm]),
+                                insn_to_complete->appendOperand(makeRegisterExpression(IntelRegTable(m_Arch,b_xmm,locs->modrm_rm)),
                                                                isRead, isWritten);
                                 break;
                             }
@@ -780,8 +862,29 @@ namespace Dyninst
                         break;
                     case am_X:
                     {
+			MachRegister si_reg;
+			if(m_Arch == Arch_x86)
+			{
+				if(addrSizePrefixPresent)
+				{
+					si_reg = x86::si;
+				} else
+				{
+					si_reg = x86::esi;
+				}
+			}
+			else
+			{
+				if(addrSizePrefixPresent)
+				{
+					si_reg = x86_64::esi;
+				} else
+				{
+					si_reg = x86_64::rsi;
+				}
+			}
                         Expression::Ptr ds(makeRegisterExpression(m_Arch == Arch_x86 ? x86::ds : x86_64::ds));
-                        Expression::Ptr si(makeRegisterExpression(m_Arch == Arch_x86 ? x86::si : x86_64::si));
+                        Expression::Ptr si(makeRegisterExpression(si_reg));
                         Expression::Ptr segmentOffset(make_shared(singleton_object_pool<Immediate>::construct(
                                 Result(u32, 0x10))));
                         Expression::Ptr ds_segment = makeMultiplyExpression(ds, segmentOffset, u32);
@@ -792,8 +895,29 @@ namespace Dyninst
                     break;
                     case am_Y:
                     {
+			MachRegister di_reg;
+			if(m_Arch == Arch_x86)
+			{
+				if(addrSizePrefixPresent)
+				{
+					di_reg = x86::di;
+				} else
+				{
+					di_reg = x86::edi;
+				}
+			}
+			else
+			{
+				if(addrSizePrefixPresent)
+				{
+					di_reg = x86_64::edi;
+				} else
+				{
+					di_reg = x86_64::rdi;
+				}
+			}
                         Expression::Ptr es(makeRegisterExpression(m_Arch == Arch_x86 ? x86::es : x86_64::es));
-                        Expression::Ptr di(makeRegisterExpression(m_Arch == Arch_x86 ? x86::di : x86_64::di));
+                        Expression::Ptr di(makeRegisterExpression(di_reg));
                         Expression::Ptr es_segment = makeMultiplyExpression(es,
                             make_shared(singleton_object_pool<Immediate>::construct(Result(u32, 0x10))), u32);
                         Expression::Ptr es_di = makeAddExpression(es_segment, di, u32);
@@ -830,7 +954,7 @@ namespace Dyninst
                     {
                         MachRegister r(optype);
                         r = MachRegister(r.val() & ~r.getArchitecture() | m_Arch);
-                        if(locs->rex_b)
+                        if(locs->rex_b && insn_to_complete->m_Operands.empty())
                         {
                             r = MachRegister((r.val()) | x86_64::r8.val());
                         }

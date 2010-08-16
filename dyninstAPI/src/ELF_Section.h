@@ -35,8 +35,7 @@
 
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(ia64_unknown_linux2_4)
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 
 #ifndef ELF_Section__
 #define ELF_Section__

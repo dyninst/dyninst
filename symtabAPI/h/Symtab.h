@@ -45,6 +45,10 @@
 
 class MappedFile;
 
+#define SYM_MAJOR 6
+#define SYM_MINOR 2
+#define SYM_BETA  1
+ 
 namespace Dyninst {
 namespace SymtabAPI {
 
@@ -86,6 +90,7 @@ class Symtab : public LookupInterface,
    SYMTAB_EXPORT Symtab();
 
    SYMTAB_EXPORT Symtab(const Symtab& obj);
+   SYMTAB_EXPORT Symtab(char *mem_image, size_t image_size, bool &err);
 
    SYMTAB_EXPORT static bool openFile(Symtab *&obj, std::string filename);
    SYMTAB_EXPORT static bool openFile(Symtab *&obj,char *mem_image, size_t size);
@@ -199,7 +204,7 @@ class Symtab : public LookupInterface,
    SYMTAB_EXPORT bool isExec() const;
    SYMTAB_EXPORT bool isStripped();
    SYMTAB_EXPORT ObjectType getObjectType() const;
-
+   SYMTAB_EXPORT Dyninst::Architecture getArchitecture();
    SYMTAB_EXPORT bool isCode(const Offset where) const;
    SYMTAB_EXPORT bool isData(const Offset where) const;
    SYMTAB_EXPORT bool isValidOffset(const Offset where) const;
@@ -212,11 +217,15 @@ class Symtab : public LookupInterface,
          std::string lineSource, unsigned int LineNo);
    SYMTAB_EXPORT bool getSourceLines(std::vector<Statement *> &lines, 
          Offset addressInRange);
+   SYMTAB_EXPORT bool getSourceLines(std::vector<LineNoTuple> &lines, 
+                                     Offset addressInRange);
    SYMTAB_EXPORT bool addLine(std::string lineSource, unsigned int lineNo,
          unsigned int lineOffset, Offset lowInclAddr,
          Offset highExclAddr);
    SYMTAB_EXPORT bool addAddressRange(Offset lowInclAddr, Offset highExclAddr, std::string lineSource,
          unsigned int lineNo, unsigned int lineOffset = 0);
+   SYMTAB_EXPORT void setTruncateLinePaths(bool value);
+   SYMTAB_EXPORT bool getTruncateLinePaths();
 
    /***** Type Information *****/
    SYMTAB_EXPORT virtual bool findType(Type *&type, std::string name);
@@ -329,7 +338,6 @@ class Symtab : public LookupInterface,
    /***** Private Member Functions *****/
    private:
    SYMTAB_EXPORT Symtab(std::string filename, bool &err); 
-   SYMTAB_EXPORT Symtab(char *mem_image, size_t image_size, bool &err);
 
    SYMTAB_EXPORT bool extractInfo(Object *linkedFile);
 
@@ -345,6 +353,7 @@ class Symtab : public LookupInterface,
    bool demangleSymbol(Symbol *&sym);
    bool addSymbolToIndices(Symbol *&sym);
    bool addSymbolToAggregates(Symbol *&sym);
+   bool doNotAggregate(Symbol *&sym);
    bool updateIndices(Symbol *sym, std::string newName, NameType nameType);
 
 
@@ -567,6 +576,9 @@ class Symtab : public LookupInterface,
    public:
    static Type *type_Error;
    static Type *type_Untyped;
+
+ private:
+    unsigned _ref_cnt;
 
  public:
    /********************************************************************/

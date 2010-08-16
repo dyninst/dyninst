@@ -42,7 +42,7 @@
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
 
-#if defined(os_linux)
+#if defined(os_linux) || defined(os_bg)
 
 #define GET_FRAME_BASE(spr) __asm__("or %0, %%r1, %%r1\n" : "=r"(spr))
 typedef struct {
@@ -50,7 +50,7 @@ typedef struct {
    Address out_ra;
 } ra_fp_pair_t;
 
-#else
+#elif defined(os_aix)
 
 #define GET_FRAME_BASE(spr) __asm__("or %0, 1, 1\n" : "=r"(spr))
 typedef struct {
@@ -58,6 +58,10 @@ typedef struct {
    Address unused;
    Address out_ra;
 } ra_fp_pair_t;
+
+#else
+
+#error Unknown platform
 
 #endif
 
@@ -179,6 +183,12 @@ WandererHelper::~WandererHelper()
 {
 }
 
+gcframe_ret_t DyninstInstrStepperImpl::getCallerFrameArch(const Frame &/*in*/, Frame &/*out*/, 
+                                                          Address /*base*/, Address /*lib_base*/,
+                                                          unsigned /*size*/, unsigned /*stack_height*/)
+{
+  return gcf_not_me;
+}
 
 namespace Dyninst {
   namespace Stackwalker {
@@ -209,3 +219,4 @@ namespace Dyninst {
     }
   }
 }
+

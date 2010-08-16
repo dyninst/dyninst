@@ -33,7 +33,7 @@
 # define DYN_DETAIL_BOOST_PP_FOR_SR_M(r, s) DYN_DETAIL_BOOST_PP_NIL
 #
 # if DYN_DETAIL_BOOST_PP_CONFIG_FLAGS() & DYN_DETAIL_BOOST_PP_CONFIG_EDG()
-#    include <dyn_detail/boost/preprocessor/repetition/detail/edg/for.hpp>
+#    include <dyn_detail/boost/preprocessor/repetition/detail/for.hpp>
 # elif DYN_DETAIL_BOOST_PP_CONFIG_FLAGS() & DYN_DETAIL_BOOST_PP_CONFIG_MSVC()
 #    include <dyn_detail/boost/preprocessor/repetition/detail/msvc/for.hpp>
 # elif DYN_DETAIL_BOOST_PP_CONFIG_FLAGS() & DYN_DETAIL_BOOST_PP_CONFIG_DMC()

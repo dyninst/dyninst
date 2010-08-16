@@ -48,6 +48,8 @@
 #include <dyn_detail/boost/shared_ptr.hpp>
 #include "BPatch_type.h"
 
+#include "arch-forward-decl.h" // instruction
+
 class process;
 class AddressSpace;
 class instPoint;
@@ -56,7 +58,6 @@ class int_variable;
 
 class codeGen;
 class codeRange;
-class instruction;
 class BPatch_instruction; // Memory, etc. are at BPatch. Might want to move 'em.
 //class BPatch_type;
 class image_variable;
@@ -642,8 +643,6 @@ class AstVariableNode : public AstNode {
     unsigned index;
 
 };
-
-class instruction;
 
 class AstInsnNode : public AstNode {
  public: 

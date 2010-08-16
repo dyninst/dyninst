@@ -40,11 +40,11 @@
 #include "stackwalk/src/dbgstepper-impl.h"
 #include "stackwalk/src/x86-swk.h"
 #include "stackwalk/src/sw.h"
-#include "symtabAPI/h/Function.h"
+#include "stackwalk/src/libstate.h"
 
-#if defined(cap_cache_func_starts)
 #include "common/h/lru_cache.h"
-#endif
+
+#include "dynutil/h/SymReader.h"
 
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
@@ -178,18 +178,14 @@ gcframe_ret_t FrameFuncStepperImpl::getCallerFrame(const Frame &in, Frame &out)
  
 std::map<Dyninst::PID, LookupFuncStart*> LookupFuncStart::all_func_starts;
 
-#if defined(cap_cache_func_starts)
 static int hash_address(Address a)
 {
    return (int) a;
 }
-#endif
 
 LookupFuncStart::LookupFuncStart(ProcessState *proc_) :
-   FrameFuncHelper(proc_)
-#if defined(cap_cache_func_starts)
-   , cache(cache_size, hash_address)
-#endif
+   FrameFuncHelper(proc_),
+   cache(cache_size, hash_address)
 {
    all_func_starts[proc->getProcessId()] = this;
    ref_count = 1;
@@ -242,8 +238,6 @@ unsigned FrameFuncStepperImpl::getPriority() const
   return frame_priority;
 }
 
-#if defined(cap_stackwalker_use_symtab)
-
 /**
  * Look at the first few bytes in the function and see if they contain
  * the standard set to allocate a stack frame.
@@ -257,14 +251,15 @@ static unsigned char rex_mov_esp_ebp = 0x48;
 FrameFuncHelper::alloc_frame_t LookupFuncStart::allocatesFrame(Address addr)
 {
    LibAddrPair lib;
-   Symtab *symtab = NULL;
-   SymtabAPI::Function *func = NULL;
    unsigned char mem[FUNCTION_PROLOG_TOCHECK];
    Address func_addr;
    unsigned cur;
    int push_ebp_pos = -1, mov_esp_ebp_pos = -1;
    alloc_frame_t res = alloc_frame_t(unknown_t, unknown_s);
    bool result;
+   SymReader *reader;
+   Offset off;
+   Symbol_t sym;
 
    result = checkCache(addr, res);
    if (result) {
@@ -280,21 +275,20 @@ FrameFuncHelper::alloc_frame_t LookupFuncStart::allocatesFrame(Address addr)
       goto done;
    }
 
-   symtab = SymtabWrapper::getSymtab(lib.first);
-   if (!symtab) {
-      sw_printf("[%s:%u] - Error. SymtabAPI couldn't open %s\n",
-                __FILE__, __LINE__, lib.first.c_str());
+   reader = LibraryWrapper::getLibrary(lib.first);
+   if (!reader) {
+      sw_printf("[%s:%u] - Failed to open symbol reader %s\n",
+                __FILE__, __LINE__, lib.first.c_str() );
+      goto done;
+   }   
+   off = addr - lib.second;
+   sym = reader->getContainingSymbol(off);
+   if (!reader->isValidSymbol(sym)) {
+      sw_printf("[%s:%u] - Could not find symbol in binary\n", __FILE__, __LINE__);
       goto done;
    }
+   func_addr = reader->getSymbolOffset(sym) + lib.second;
 
-   result = symtab->getContainingFunction(addr - lib.second, func);
-   if (!result || !func) {
-      sw_printf("[%s:%u] - Error.  Address %lx wasn't part of a function\n",
-                __FILE__, __LINE__, addr);
-      goto done;
-   }
-   func_addr = func->getOffset() + lib.second;
-   
    result = proc->readMem(mem, func_addr, FUNCTION_PROLOG_TOCHECK);
    if (!result) {
       sw_printf("[%s:%u] - Error.  Couldn't read from memory at %lx\n",
@@ -354,7 +348,6 @@ FrameFuncHelper::alloc_frame_t LookupFuncStart::allocatesFrame(Address addr)
    return res;
 }
 
-#if defined(cap_cache_func_starts)
 void LookupFuncStart::updateCache(Address addr, alloc_frame_t result)
 {
    cache.insert(addr, result);
@@ -364,18 +357,6 @@ bool LookupFuncStart::checkCache(Address addr, alloc_frame_t &result)
 {
    return cache.lookup(addr, result);
 }
-
-#else
-void LookupFuncStart::updateCache(Address /*addr*/, alloc_frame_t /*result*/)
-{
-   return;
-}
-
-bool LookupFuncStart::checkCache(Address /*addr*/, alloc_frame_t &/*result*/)
-{
-   return false;
-}
-#endif
 
 void LookupFuncStart::clear_func_mapping(Dyninst::PID pid)
 {
@@ -390,61 +371,9 @@ void LookupFuncStart::clear_func_mapping(Dyninst::PID pid)
    delete fs;
 }
 
-gcframe_ret_t DebugStepperImpl::getCallerFrameArch(Address pc, const Frame &in, 
-                                                   Frame &out, Symtab *symtab)
-{
-   MachRegisterVal frame_value, stack_value, ret_value;
-   bool result;
-
-   result = symtab->getRegValueAtFrame(pc, Dyninst::ReturnAddr,
-                                       ret_value, this);
-   if (!result) {
-      sw_printf("[%s:%u] - Couldn't get return debug info at %lx\n",
-                __FILE__, __LINE__, in.getRA());
-      return gcf_not_me;
-   }
-
-   unsigned addr_width = getProcessState()->getAddressWidth();
-   
-   
-   Dyninst::MachRegister frame_reg;
-   if (addr_width == 4)
-      frame_reg = x86::ebp;
-   else
-      frame_reg = x86_64::rbp;
-
-   result = symtab->getRegValueAtFrame(pc, frame_reg,
-                                       frame_value, this);
-   if (!result) {
-      sw_printf("[%s:%u] - Couldn't get frame debug info at %lx\n",
-                 __FILE__, __LINE__, in.getRA());
-      return gcf_not_me;
-   }
-
-   result = symtab->getRegValueAtFrame(pc, Dyninst::FrameBase,
-                                       stack_value, this);
-   if (!result) {
-      sw_printf("[%s:%u] - Couldn't get stack debug info at %lx\n",
-                 __FILE__, __LINE__, in.getRA());
-      return gcf_not_me;
-   }
-
-   out.setRA(ret_value);
-   out.setFP(frame_value);
-   out.setSP(stack_value);
-
-   return gcf_success;
-}
-#else
-
-FrameFuncHelper::alloc_frame_t LookupFuncStart::allocatesFrame(Address /*addr*/)
-{
-   return FrameFuncHelper::alloc_frame_t(unknown_t, unknown_s);
-}
-#endif
-
-gcframe_ret_t DyninstInstrStepperImpl::getCallerFrameArch(const Frame &in, Frame &out, Address /*base*/, Address lib_base,
-							  unsigned /*size*/, unsigned stack_height)
+gcframe_ret_t DyninstInstrStepperImpl::getCallerFrameArch(const Frame &in, Frame &out, 
+                                                          Address /*base*/, Address lib_base,
+                                                          unsigned /*size*/, unsigned stack_height)
 {
   gcframe_ret_t ret = HandleStandardFrame(in, out, getProcessState());
   if (ret != gcf_success)

@@ -39,7 +39,7 @@
  */
 
 #include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/src/arch.h"  // for type, instruction
+#include "common/h/arch.h"  // for type, instruction
 #include "dyninstAPI/src/frame.h"
 
 // base tramp template

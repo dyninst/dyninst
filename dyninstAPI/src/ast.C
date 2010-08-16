@@ -32,6 +32,7 @@
 // $Id: ast.C,v 1.209 2008/09/15 18:37:49 jaw Exp $
 
 #include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
@@ -44,7 +45,7 @@
 #include "Instruction.h"
 using namespace Dyninst::InstructionAPI;
 #else
-#include "dyninstAPI/src/InstrucIter.h"
+#include "parseAPI/src/InstrucIter.h"
 #endif
 
 #include "dyninstAPI/h/BPatch.h"
@@ -67,8 +68,6 @@ using namespace Dyninst::InstructionAPI;
 #include "dyninstAPI/src/inst-x86.h"
 extern int tramp_pre_frame_size_32;
 extern int tramp_pre_frame_size_64;
-#elif defined(arch_ia64)
-#include "dyninstAPI/src/inst-ia64.h"
 #else
 #error "Unknown architecture in ast.h"
 #endif
@@ -77,6 +76,8 @@ extern int tramp_pre_frame_size_64;
 
 #include "registerSpace.h"
 #include "mapped_module.h"
+
+#include "legacy-instruction.h"
 
 using namespace Dyninst;
 
@@ -121,7 +122,7 @@ AstNodePtr AstNode::operandNode(operandType ot, const image_variable* iv) {
 }
 
 AstNodePtr AstNode::sequenceNode(pdvector<AstNodePtr > &sequence) {
-    assert(sequence.size());
+//    assert(sequence.size());
     return AstNodePtr(new AstSequenceNode(sequence));
 }
 
@@ -185,10 +186,10 @@ AstNodePtr AstNode::miniTrampNode(AstNodePtr tramp) {
 AstNodePtr AstNode::insnNode(BPatch_instruction *insn) {
     // Figure out what kind of instruction we've got...
     if (dynamic_cast<BPatch_memoryAccess *>(insn)) {
-        return AstNodePtr(new AstInsnMemoryNode(insn->insn(), (Address) insn->getAddress()));
+        return AstNodePtr(new AstInsnMemoryNode(insn->insn()->insn(), (Address) insn->getAddress()));
     } 
     
-    return AstNodePtr(new AstInsnNode(insn->insn(), (Address) insn->getAddress()));
+    return AstNodePtr(new AstInsnNode(insn->insn()->insn(), (Address) insn->getAddress()));
 }
 
 AstNodePtr AstNode::originalAddrNode() {
@@ -499,12 +500,6 @@ Address AstMiniTrampNode::generateTramp(codeGen &gen,
 
     costAst->setOValue((void *) (long) trampCost);
     
-
-//#if defined( ia64_unknown_linux2_4 )
-//    extern Register deadRegisterList[];
-//    defineBaseTrampRegisterSpaceFor( gen.point(), gen.rs(), deadRegisterList);
-//#endif
-
     if (!preamble->generateCode(gen, noCost)) {
         fprintf(stderr, "[%s:%d] WARNING: failure to generate miniTramp preamble\n", __FILE__, __LINE__);
     }
@@ -539,11 +534,6 @@ Address AstMiniTrampNode::generateTramp(codeGen &gen,
 
 void AstNode::setUseCount() 
 {
-    // This code fails on IA-64. Until I can ask Todd about it, 
-    // it's just getting commented out...
-    //#if defined(arch_ia64)
-    //return;
-    //#endif
 	if (useCount) {
 		// If the useCount is 1, then it means this node can
 		// be shared, and there is a copy. In that case, we assume
@@ -1788,8 +1778,8 @@ bool AstVariableNode::generateCode_phase2(codeGen &gen, bool noCost,
 bool AstInsnNode::generateCode_phase2(codeGen &gen, bool,
                                       Address &, Register &) {
     assert(insn_);
-    
-    insn_->generate(gen, gen.addrSpace(), origAddr_, gen.currAddr());
+   
+    insnCodeGen::generate(gen,*insn_,gen.addrSpace(),origAddr_,gen.currAddr());
     decUseCount(gen);
     
     return true;
@@ -1808,7 +1798,7 @@ bool AstInsnBranchNode::generateCode_phase2(codeGen &gen, bool noCost,
     }
     // We'd now generate a fixed or register branch. But we don't. So there.
     assert(0 && "Unimplemented");
-    insn_->generate(gen, gen.addrSpace(), origAddr_, gen.currAddr(), 0, 0);
+    insnCodeGen::generate(gen,*insn_,gen.addrSpace(), origAddr_, gen.currAddr(), 0, 0);
 	decUseCount(gen);
 
     return true;
@@ -1851,7 +1841,7 @@ bool AstInsnMemoryNode::generateCode_phase2(codeGen &gen, bool noCost,
     gen.rs()->restoreVolatileRegisters(gen);
 
     // Step 4: generate the memory instruction
-    if (!insn_->generateMem(gen, origAddr_, gen.currAddr(), loadReg, storeReg)) {
+    if (!insnCodeGen::generateMem(gen,*insn_,origAddr_, gen.currAddr(), loadReg, storeReg)) {
         fprintf(stderr, "ERROR: generateMem call failed\n");
         return false;
     }
@@ -1937,12 +1927,6 @@ bool AstDynamicTargetNode::generateCode_phase2(codeGen &gen,
         emitVload(loadRegRelativeOp, 
                   (Address) sizeof(Address), 
                   REG_SP,
-                  retReg, 
-                  gen, noCost);
-#elif defined (arch_arch_ia64) // KEVINTODO: untested
-        emitVload(loadRegRelativeOp, 
-                  (Address) sizeof(Address), 
-                  REGISTER_SP, 
                   retReg, 
                   gen, noCost);
 #else

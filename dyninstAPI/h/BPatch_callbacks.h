@@ -32,11 +32,13 @@
 #ifndef _BPATCH_ERROR_H_
 #define _BPATCH_ERROR_H_
 
+#include "BPatch_Vector.h"
 class BPatch_process;
 class BPatch_thread;
 class BPatch_module;
 class BPatch_point;
 class BPatch_function;
+class BPatch_basicBlock;
 
 typedef enum {
     BPatchFatal, BPatchSerious, BPatchWarning, BPatchInfo
@@ -81,5 +83,36 @@ typedef void (*BPatchStopThreadCallback)(BPatch_point *at_point,
 
 typedef void (*BPatchSignalHandlerCallback)(BPatch_point *at_point, 
                          long signum, BPatch_Vector<Dyninst::Address> *handlers);
+
+typedef void (*InternalSignalHandlerCallback)
+             (BPatch_point *at_point, long signum, 
+              BPatch_Vector<Dyninst::Address> &handlers);
+
+typedef void (*InternalCodeOverwriteCallback)
+             (BPatch_point *fault_instruc, Dyninst::Address viol_target);
+
+//This callback is invoked whenever previously un-analyzed code is discovered through runtime 
+//analysis, and delivers a vector of  functions whose analysis has been modified and a vector 
+//of functions that are newly discovered.
+typedef void (*BPatchCodeDiscoveryCallback)
+             (BPatch_Vector<BPatch_function*> &newFuncs, 
+              BPatch_Vector<BPatch_function*> &modFuncs);
+
+//This callback allows the user to remove any instrumentation when the program 
+//starts writing to a code page, which may be desirable as instrumentation 
+//cannot be removed during the overwrite loop's execution, and any breakpoint 
+//instrumentation will dramatically slow the loop's execution.  Only invoked 
+//if hybrid analysis mode is set to BPatch_defensiveMode.
+typedef void (*BPatchCodeOverwriteBeginCallback)
+              (BPatch_Vector<BPatch_basicBlock*> &overwriteLoopBlocks);
+
+//This callback delivers the effects of the overwrite loop when it is done 
+//executing.  In many cases no code will have changed.  This function is only 
+//called if Dyninst's hybrid analysis mode is set to BPatch_defensiveMode.
+typedef void (*BPatchCodeOverwriteEndCallback)
+             (BPatch_Vector<Dyninst::Address> &deadBlockAddrs, 
+              BPatch_Vector<BPatch_function*> &owFuncs, 
+              BPatch_Vector<BPatch_function*> &modFuncs, 
+              BPatch_Vector<BPatch_function*> &newFuncs );
 
 #endif

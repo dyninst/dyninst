@@ -31,13 +31,11 @@
 
 #include "stackwalk/h/swk_errors.h"
 #include "stackwalk/h/procstate.h"
+#include "stackwalk/src/libstate.h"
 #include "common/h/headers.h"
 #include <assert.h>
 #include <string>
 #include <vector>
-#if defined(cap_stackwalker_use_symtab)
-#include "stackwalk/src/symtab-swk.h"
-#endif
 
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
@@ -111,15 +109,12 @@ bool ProcessState::postStackwalk(Dyninst::THR_ID)
 void ProcessState::setDefaultLibraryTracker()
 {
   if (library_tracker) return;
-#if defined(cap_stackwalker_use_symtab)
+
   std::string execp("");
   ProcDebug *pd = dynamic_cast<ProcDebug *>(this);
   if (pd) 
      execp = pd->getExecutablePath();
-  library_tracker = new SymtabLibState(this, execp);
-#else
-  library_tracker = new DefaultLibState(this);
-#endif
+  library_tracker = new TrackLibState(this, execp);
 }
 
 Walker *ProcessState::getWalker() const
@@ -144,8 +139,8 @@ ProcDebug::ProcDebug(PID p, string exe) :
   executable_path(exe),
   sigfunc(NULL)
 {
-   initial_thread = ThreadState::createThreadState(this);
-   threads[initial_thread->getTid()] = initial_thread;   
+  initial_thread = ThreadState::createThreadState(this);
+  threads[initial_thread->getTid()] = initial_thread;   
 }
 
 ProcDebug::ProcDebug(const std::string & /*executable*/, 
@@ -823,7 +818,8 @@ ThreadState::ThreadState(ProcDebug *p, Dyninst::THR_ID id) :
    should_resume(false),
    tid(id),
    thr_state(ps_neonatal),
-   parent(p)
+   parent(p),
+   pending_sigstops(0)
 {
 }
 
@@ -881,4 +877,16 @@ ProcDebug* ThreadState::proc()
 
 ThreadState::~ThreadState()
 {
+}
+
+void ThreadState::markPendingStop() {
+  pending_sigstops++;
+}
+
+void ThreadState::clearPendingStop() {
+  pending_sigstops--;
+}
+
+bool ThreadState::hasPendingStop() {
+  return pending_sigstops != 0;
 }

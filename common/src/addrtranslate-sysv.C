@@ -58,6 +58,10 @@
 #define R_DEBUG_NAME "r_debug"
 #endif
 
+#if defined(os_linux)
+#include "common/h/linuxKludges.h"
+#endif
+
 using namespace std;
 using namespace Dyninst;
 
@@ -155,10 +159,13 @@ r_debug_dyn<r_debug_X>::r_debug_dyn(ProcessReader *proc_, Address addr)
 {
    valid = proc->ReadMem(addr, &debug_elm, sizeof(debug_elm));
 
+   translate_printf("[%s:%u] - r_debug_dyn valid = %d\n", __FILE__, __LINE__, valid?1:0);
    translate_printf("[%s:%u] -     Read rdebug structure.  Values were:\n", __FILE__, __LINE__);
    translate_printf("[%s:%u] -       r_brk:    %lx\n", __FILE__, __LINE__, (unsigned long)debug_elm.r_brk);
    translate_printf("[%s:%u] -       r_map:    %lx\n", __FILE__, __LINE__, (unsigned long)debug_elm.r_map);
+#if !defined(os_freebsd)
    translate_printf("[%s:%u] -       r_ldbase: %lx\n", __FILE__, __LINE__, (unsigned long)debug_elm.r_ldbase);
+#endif
 }
 
 template<class r_debug_X> 
@@ -213,7 +220,7 @@ size_t link_map_dyn<link_map_X>::size()
 template<class link_map_X>
 uint64_t link_map_dyn<link_map_X>::l_addr() 
 {
-   return link_elm.l_addr;
+   return (uint64_t)link_elm.l_addr;
 }
 
 template<class link_map_X>
@@ -239,7 +246,7 @@ char *link_map_dyn<link_map_X>::l_name()
 template<class link_map_X>
 void *link_map_dyn<link_map_X>::l_ld() 
 { 
-   return reinterpret_cast<void *>(link_elm.l_ld); 
+   return const_cast<void *>(reinterpret_cast<const void *>(link_elm.l_ld)); 
 }
 
 template<class link_map_X>
@@ -300,7 +307,7 @@ bool ProcessReaderSelf::ReadMem(Address inTraced, void *inSelf, unsigned amount)
    return true;
 }
 
-bool ProcessReaderSelf::GetReg(MachRegister reg, MachRegisterVal &val)
+bool ProcessReaderSelf::GetReg(MachRegister /*reg*/, MachRegisterVal &/*val*/)
 {
    assert(0);
    return false;
@@ -313,7 +320,7 @@ vector< pair<Address, unsigned long> > *LoadedLib::getMappedRegions()
    {
       return &mapped_regions;
    }
-   
+
    FCNode *fc = files.getNode(name, symreader_factory);
    if (!fc)
       return false;
@@ -397,56 +404,172 @@ AddressTranslateSysV::AddressTranslateSysV(int pid, ProcessReader *reader_,
    }
 }
 
-bool AddressTranslateSysV::setInterpreterBase()
-{
-   if (set_interp_base)
-     return true;
+bool AddressTranslateSysV::parseDTDebug() {
+    //TODO this could possibly be used on other platforms
+#if !defined(os_freebsd)
+    return false;
+#else
+    if( !setAddressSize() ) {
+        translate_printf("[%s:%u] - Failed to set address size.\n", __FILE__, __LINE__);
+        return false;
+    }
 
-   AuxvParser *parser = AuxvParser::createAuxvParser(pid, address_size);
-   if (!parser) {
-      return false;
-   }
+    // This information is derived from the DT_DEBUG field in the
+    // executable's program headers -- however, the value needs to
+    // be read from the loaded executable image so determine the
+    // address of the DT_DEBUG field and then read it from the
+    // process
 
-   interpreter_base = parser->getInterpreterBase();
-   set_interp_base = true;
+    const char *l_err = "Failed to determine trap address.";
 
-   parser->deleteAuxvParser();
-   return true;
+    getExecName();
+    if( exec_name.empty() ) {
+        translate_printf("[%s:%u] - %s\n", __FILE__, __LINE__, l_err);
+        return false;
+    }
+
+    SymReader *exe = symfactory->openSymbolReader(exec_name);
+    if( !exe ) {
+        translate_printf("[%s:%u] - %s\n", __FILE__, __LINE__, l_err);
+        return false;
+    }
+        
+    // Need to get the address of the DYNAMIC segment
+    Address dynAddress = 0;
+    size_t dynSize = 0;
+    unsigned numRegs = exe->numRegions();
+    for(unsigned i = 0; i < numRegs; ++i) {
+        SymRegion reg;
+        exe->getRegion(i, reg);
+
+        if( PT_DYNAMIC == reg.type ) {
+            dynAddress = reg.mem_addr;
+            dynSize = reg.mem_size;
+            break;
+        }
+    }
+    symfactory->closeSymbolReader(exe);
+
+    if( !dynAddress || !dynSize ) {
+        // This is okay for static binaries
+        return false;
+    }
+
+    if( !reader->start() ) {
+        translate_printf("[%s:%u] - %s\n", __FILE__, __LINE__, l_err);
+        return false;
+    }
+
+    // Read the DYNAMIC segment from the process
+    void *dynData = malloc(dynSize);
+    if( !dynData || !reader->ReadMem(dynAddress, dynData, dynSize) ) {
+        translate_printf("[%s:%u] - %s\n", __FILE__, __LINE__, l_err);
+        if( dynData ) free(dynData);
+        return false;
+    }
+    
+    if( address_size == 8 ) {
+        Elf64_Dyn *dynDataElf = (Elf64_Dyn *)dynData;
+        for(unsigned i = 0; i < (dynSize / sizeof(Elf64_Dyn)); ++i) {
+            if( DT_DEBUG == dynDataElf[i].d_tag ) {
+                r_debug_addr = (Address) dynDataElf[i].d_un.d_ptr;
+                break;
+            }
+        }
+    }else{
+        Elf32_Dyn *dynDataElf = (Elf32_Dyn *)dynData;
+        for(unsigned i = 0; i < (dynSize / sizeof(Elf32_Dyn)); ++i) {
+            if( DT_DEBUG == dynDataElf[i].d_tag ) {
+                r_debug_addr = (Address) dynDataElf[i].d_un.d_ptr;
+                break;
+            }
+        }
+    }
+    free(dynData);
+
+    // When a process is initializing, the DT_DEBUG value could be zero
+    // This function needs to indicate an error so the trap address can
+    // be parsed from other sources (i.e., the interpreter)
+
+    if( r_debug_addr ) {
+        trap_addr = getTrapAddrFromRdebug();
+        if( trap_addr == 0 ) {
+            reader->done();
+            return false;
+        }
+    }
+
+    reader->done();
+    
+    return ( r_debug_addr != 0 );
+#endif
 }
 
-bool AddressTranslateSysV::init()
-{
-   bool result;
+bool AddressTranslateSysV::parseInterpreter() {
+    bool result;
+
+    result = setInterpreter();
+    if (!result) {
+        translate_printf("[%s:%u] - Failed to set interpreter.\n", __FILE__, __LINE__);
+        return false;
+    }
+
+    result = setAddressSize();
+    if (!result) {
+        translate_printf("[%s:%u] - Failed to set address size.\n", __FILE__, __LINE__);
+        return false;
+    }
+
+    result = setInterpreterBase();
+    if (!result) {
+        translate_printf("[%s:%u] - Failed to set interpreter base.\n", __FILE__, __LINE__);
+        return false;
+    }
+
+    if (interpreter) {
+        if( interpreter->get_r_debug() ) {
+            r_debug_addr = interpreter->get_r_debug() + interpreter_base;
+
+            if( !reader->start() ) {
+                translate_printf("[%s:%u] - Failed to initialize process reader\n", __FILE__, __LINE__);
+                return false;
+            }
+
+            trap_addr = getTrapAddrFromRdebug();
+
+            if( !reader->done() ) {
+                translate_printf("[%s:%u] - Failed to finalize process reader\n", __FILE__, __LINE__);
+                return false;
+            }
+
+            if( trap_addr == 0 ) {
+                trap_addr = interpreter->get_r_trap() + interpreter_base;
+            }
+        }else{
+            r_debug_addr = 0;
+            trap_addr = interpreter->get_r_trap() + interpreter_base;
+        }
+    } else {
+        r_debug_addr = 0;
+        trap_addr = 0;
+    }
+
+    return true;
+}
+
+bool AddressTranslateSysV::init() {
    translate_printf("[%s:%u] - Initing AddressTranslateSysV\n", __FILE__, __LINE__);
 
-   result = setInterpreter();
-
-   if (!result) {
-     translate_printf("[%s:%u] - Failed to set interpreter.\n", __FILE__, __LINE__);
-     return false;
+   // Try to use DT_DEBUG first, falling back to parsing the interpreter binary if possible
+   if( !parseDTDebug() ) {
+       if( !parseInterpreter() ) {
+           translate_printf("[%s:%u] - Failed to determine r_debug address\n", 
+                   __FILE__, __LINE__);
+           return false;
+       }
    }
 
-   result = setAddressSize();
-   if (!result) {
-      translate_printf("[%s:%u] - Failed to set address size.\n", __FILE__, __LINE__);
-      return false;
-   }
-
-   result = setInterpreterBase();
-   if (!result) {
-      translate_printf("[%s:%u] - Failed to set interpreter base.\n", __FILE__, __LINE__);
-      return false;
-   }
-
-   if (interpreter) {
-      r_debug_addr = interpreter->get_r_debug() + interpreter_base;
-      trap_addr = interpreter->get_r_trap() + interpreter_base;
-   }
-   else {
-      r_debug_addr = 0;
-      trap_addr = 0;
-   }
-   
+   translate_printf("[%s:%u] - trap_addr = 0x%lx, r_debug_addr = 0x%lx\n", __FILE__, __LINE__, trap_addr, r_debug_addr);
    translate_printf("[%s:%u] - Done with AddressTranslateSysV::init()\n", __FILE__, __LINE__);
 
    return true;
@@ -470,6 +593,36 @@ LoadedLib *AddressTranslateSysV::getLoadedLibByNameAddr(Address addr, std::strin
    return ll;
 }
 
+Address AddressTranslateSysV::getTrapAddrFromRdebug() {
+    Address retVal = 0;
+    assert( r_debug_addr && address_size );
+
+    if( address_size == sizeof(void *) ) {
+        r_debug_dyn<r_debug> *r_debug_native = new r_debug_dyn<r_debug>(reader, r_debug_addr);
+        if( !r_debug_native ) {
+            translate_printf("[%s:%u] - Failed to parse r_debug struct.\n", __FILE__, __LINE__);
+            return 0;
+        }
+        if( !r_debug_native->is_valid() ) {
+            return 0;
+        }
+        retVal = (Address) r_debug_native->r_brk();
+        delete r_debug_native;
+    }else{
+        r_debug_dyn<r_debug_dyn32> *r_debug_32 = new r_debug_dyn<r_debug_dyn32>(reader, r_debug_addr);
+        if( !r_debug_32 ) {
+            translate_printf("[%s:%u] - Failed to parse r_debug struct.\n", __FILE__, __LINE__);
+            return 0;
+        }
+        if( !r_debug_32->is_valid() ) {
+            return 0;
+        }
+        retVal = (Address) r_debug_32->r_brk();
+        delete r_debug_32;
+    }
+
+    return retVal;
+}
 
 bool AddressTranslateSysV::refresh()
 {
@@ -485,13 +638,18 @@ bool AddressTranslateSysV::refresh()
       return true;
 
    if (!r_debug_addr) {
-      //Static binary
-      libs.clear();
-      if (!exec) {
-         exec = getAOut();
-      }
-      libs.push_back(exec);
-      return true; 
+       // On systems that use DT_DEBUG to determine r_debug_addr, DT_DEBUG might
+       // not be set right away -- read DT_DEBUG now and see if it is set
+       if( !parseDTDebug() && !interpreter ) {
+          translate_printf("[%s:%u] - Working with static binary, no libraries to refresh\n",
+                  __FILE__, __LINE__);
+          libs.clear();
+          if (!exec) {
+             exec = getAOut();
+          }
+          getArchLibs(libs);
+          return true;
+       }
    }
 
    std::vector<LoadedLib *>::iterator i;
@@ -504,45 +662,46 @@ bool AddressTranslateSysV::refresh()
    }   
    exec->setShouldClean(false);
    libs.push_back(exec);
+   getArchLibs(libs);
    
-   reader->start();
+   if( !reader->start() ) {
+       translate_printf("[%s:%u] - Failed to refresh libraries\n", __FILE__, __LINE__);
+       return false;
+   }
 
    translate_printf("[%s:%u] -     Starting refresh.\n", __FILE__, __LINE__);
    translate_printf("[%s:%u] -       trap_addr:    %lx\n", __FILE__, __LINE__, trap_addr);
    translate_printf("[%s:%u] -       r_debug_addr: %lx\n", __FILE__, __LINE__, r_debug_addr);
 
-   if (address_size == sizeof(void*)) {
-      r_debug_native = new r_debug_dyn<r_debug>(reader, r_debug_addr);
-      if (!r_debug_native)
-      {
-        result = true;
-        goto done;
-      }
-      else if (!r_debug_native->is_valid())
-      {
-         libs.push_back(getLoadedLibByNameAddr(interpreter_base,
-                                               interpreter->getFilename()));
-         result = true;
-         goto done;
-      }
-      link_elm = new link_map_dyn<link_map>(reader, r_debug_native->r_map());
-   }
-   else { //64-bit mutator, 32-bit mutatee
-      r_debug_32 = new r_debug_dyn<r_debug_dyn32>(reader, r_debug_addr);
-      if (!r_debug_32)
-      {
-         result = true;
-         goto done;
-      }
-      else if (!r_debug_32->is_valid())
-      {
-         libs.push_back(getLoadedLibByNameAddr(interpreter_base,
-                                               interpreter->getFilename()));
-         result = true;
-         goto done;
-      }
-      link_elm = new link_map_dyn<link_map_dyn32>(reader, r_debug_32->r_map());
-   }
+    if (address_size == sizeof(void*)) {
+        r_debug_native = new r_debug_dyn<r_debug>(reader, r_debug_addr);
+        if (!r_debug_native) {
+            result = true;
+            goto done;
+        } else if (!r_debug_native->is_valid()) {
+            if( interpreter ) {
+                libs.push_back(getLoadedLibByNameAddr(interpreter_base,
+                                                      interpreter->getFilename()));
+            }
+            result = true;
+            goto done;
+        }
+        link_elm = new link_map_dyn<link_map>(reader, r_debug_native->r_map());
+    }else{ //64-bit mutator, 32-bit mutatee
+        r_debug_32 = new r_debug_dyn<r_debug_dyn32>(reader, r_debug_addr);
+        if (!r_debug_32) {
+            result = true;
+            goto done;
+        } else if (!r_debug_32->is_valid()) {
+            if( interpreter ) {
+                libs.push_back(getLoadedLibByNameAddr(interpreter_base,
+                                                      interpreter->getFilename()));
+            }
+            result = true;
+            goto done;
+        }
+        link_elm = new link_map_dyn<link_map_dyn32>(reader, r_debug_32->r_map());
+    }
 
    if (!link_elm->is_valid()) {
       result = true;
@@ -553,6 +712,11 @@ bool AddressTranslateSysV::refresh()
       if (!link_elm->l_name())
          continue;
       string obj_name(link_elm->l_name());
+
+      // Don't re-add the executable, it has already been added
+      if( getExecName() == string(deref_link(obj_name.c_str())) )
+          continue;
+
       Address text = (Address) link_elm->l_addr();
       if (obj_name == "" && !text)
          continue;
@@ -615,6 +779,8 @@ FCNode::FCNode(string f, dev_t d, ino_t i, SymbolReaderFactory *factory_) :
    parsed_file(false),
    parse_error(false),
    is_interpreter(false),
+   r_debug_offset(0),
+   r_trap_offset(0),
    symreader(NULL),
    factory(factory_)
 {
@@ -650,9 +816,9 @@ Offset FCNode::get_r_debug() {
 }
 
 Offset FCNode::get_r_trap() {
-   parsefile();
+    parsefile();
 
-   return r_trap_offset;
+    return r_trap_offset;
 }
 
 void FCNode::markInterpreter() {
@@ -684,6 +850,7 @@ void FCNode::parsefile()
    }
 
    if (is_interpreter) {
+#if !defined(os_freebsd)
       //We're parsing the interpreter, don't confuse this with
       // parsing the interpreter link info (which happens below).
       Symbol_t r_debug_sym = symreader->getSymbolByName(R_DEBUG_NAME);
@@ -693,20 +860,20 @@ void FCNode::parsefile()
          parse_error = true;
       }
       r_debug_offset = symreader->getSymbolOffset(r_debug_sym);
-      
-      bool found_it = false;
-      for (unsigned i=0; i<NUM_DBG_BREAK_NAMES; i++) {
-         Symbol_t r_brk_sym = symreader->getSymbolByName(dbg_break_names[i]);
-         if (symreader->isValidSymbol(r_brk_sym)) {
-            r_trap_offset = symreader->getSymbolOffset(r_brk_sym);
-            found_it = true;
-            break;
-         }
+#endif
+      r_trap_offset = 0;
+      for(unsigned i = 0; i < NUM_DBG_BREAK_NAMES; ++i) {
+          Symbol_t r_trap_sym = symreader->getSymbolByName(dbg_break_names[i]);
+          if( symreader->isValidSymbol(r_trap_sym) ) {
+              r_trap_offset = symreader->getSymbolOffset(r_trap_sym);
+              break;
+          }
       }
-      if (!found_it) {
-         translate_printf("[%s:%u] - Failed to find r_debug symbol in %s\n",
-                          __FILE__, __LINE__, filename.c_str());
-         parse_error = true;
+
+      if( !r_trap_offset ) {
+          translate_printf("[%s:%u] - Failed to find debugging trap symbol in %s\n",
+                  __FILE__, __LINE__, filename.c_str());
+          parse_error = true;
       }
    }
 
@@ -726,8 +893,8 @@ void FCNode::parsefile()
       
       regions.push_back(sr);
    }
-   factory->closeSymbolReader(symreader);
-   symreader = NULL;
+   /*factory->closeSymbolReader(symreader);
+     symreader = NULL;*/
 }
 
 FCNode *FileCache::getNode(const string &filename, SymbolReaderFactory *factory)

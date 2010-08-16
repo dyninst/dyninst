@@ -131,17 +131,6 @@ template class pdvector<void *>;
 template class pdvector<eventType>;
 template class pdvector<dyn_lwp *>;
 template class pdvector<SignalHandler *>;
-#if defined( arch_ia64 )
-class int_basicBlock;
-#include <list>
-template class std::list< int_basicBlock *>;
-template class dictionary_hash< Address, void * >;
-template class pdvector< dictionary_hash< Address, void * >::entry >;
-#endif /* defined( arch_ia64 ) */
-
-//template class pdvector< Symbol >;
-//template class dictionary_hash< std::string, pdvector< Symbol > >;
-//template class pdvector<dictionary_hash < std::string, pdvector <Symbol> >::entry>;
 
 template class dictionary_hash< std::string, bool >;
 template class pdvector< dictionary_hash< std::string, bool >::entry >;

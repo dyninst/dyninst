@@ -26,11 +26,8 @@ include ../../make.config
 SRCS =          ../src/vxworks.C \
 		../src/dynamiclinking.C \
                 ../src/inst-power.C \
-                ../src/arch-power.C \
-		../src/InstrucIter-power.C \
-		../src/InstrucIter-xplat.C \
+                ../src/codegen-power.C \
 		../src/InstrucIter-Function.C \
-		../src/IA_InstrucIter.C \
 		../src/image-power.C \
 		../src/syscall-vxworks.C
 #               ../src/unix.C \

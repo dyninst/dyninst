@@ -329,14 +329,16 @@ SYMTAB_EXPORT Symtab::Symtab(MappedFile *mf_) :
    AnnotatableSparse(),
    mf(mf_), 
    mfForDebugInfo(mf_),
-   obj_private(NULL)
+   obj_private(NULL),
+   _ref_cnt(1)
 {   
     init_debug_symtabAPI();
 }   
 
 
 SYMTAB_EXPORT Symtab::Symtab() :
-   obj_private(NULL)
+   obj_private(NULL),
+   _ref_cnt(1)
 {
     init_debug_symtabAPI();
     create_printf("%s[%d]: Created symtab via default constructor\n", FILE__, __LINE__);
@@ -350,7 +352,7 @@ SYMTAB_EXPORT bool Symtab::isExec() const
 
 SYMTAB_EXPORT bool Symtab::isStripped() 
 {
-#if defined(os_linux) || defined(os_solaris)
+#if defined(os_linux) || defined(os_freebsd) || defined(os_solaris)
     Region *sec;
     return !findRegion(sec,".symtab");
 #else
@@ -648,9 +650,11 @@ bool Symtab::createAggregates()
     // In VxWorks, symbol offsets are not complete until object is loaded.
 
     for (unsigned i = 0; i < everyDefinedSymbol.size(); i++) 
-	{
-        addSymbolToAggregates(everyDefinedSymbol[i]);
-    }
+      {
+	if (!doNotAggregate(everyDefinedSymbol[i])) {
+	  addSymbolToAggregates(everyDefinedSymbol[i]);
+	}
+      }
 #endif
 
     return true;
@@ -768,6 +772,7 @@ bool Symtab::addSymbolToIndices(Symbol *&sym)
 
 bool Symtab::addSymbolToAggregates(Symbol *&sym) 
 {
+
     switch(sym->getType()) {
     case Symbol::ST_FUNCTION: {
         // We want to do the following:
@@ -850,6 +855,23 @@ bool Symtab::addSymbolToAggregates(Symbol *&sym)
     }
     }
     return true;
+}
+
+// A hacky override for specially treating symbols that appear
+// to be functions or variables but aren't.
+//
+// Example: IA-32/AMD-64 libc (and others compiled with libc headers)
+// uses outlined locking primitives. These are named _L_lock_<num>
+// and _L_unlock_<num> and labelled as functions. We explicitly do
+// not include them in function scope.
+bool Symtab::doNotAggregate(Symbol *&sym) {
+  if (sym->getMangledName().compare(0, strlen("_L_lock_"), "_L_lock_") == 0) {
+    return true;
+  }
+  if (sym->getMangledName().compare(0, strlen("_L_unlock_"), "_L_unlock_") == 0) {
+    return true;
+  }
+  return false;
 }
 
 /* Add the new name to the appropriate symbol index */
@@ -1066,7 +1088,8 @@ Symtab::Symtab(std::string filename,bool &err) :
    nativeCompiler(false), 
    isLineInfoValid_(false), 
    isTypeInfoValid_(false),
-   obj_private(NULL)
+   obj_private(NULL),
+   _ref_cnt(1)
 {
     init_debug_symtabAPI();
    // Initialize error parameter
@@ -1114,7 +1137,8 @@ Symtab::Symtab(char *mem_image, size_t image_size, bool &err) :
    nativeCompiler(false),
    isLineInfoValid_(false),
    isTypeInfoValid_(false),
-   obj_private(NULL)
+   obj_private(NULL),
+   _ref_cnt(1)
 {
    // Initialize error parameter
    err = false;
@@ -1161,7 +1185,8 @@ Symtab::Symtab(std::string filename, std::string member_name, Offset offset,
    nativeCompiler(false), 
    isLineInfoValid_(false),
    isTypeInfoValid_(false), 
-   obj_private(NULL)
+   obj_private(NULL),
+   _ref_cnt(1)
 {
    mf = MappedFile::createMappedFile(filename);
    assert(mf);
@@ -1192,7 +1217,8 @@ Symtab::Symtab(char *mem_image, size_t image_size, std::string member_name,
    main_call_addr_(0),
    nativeCompiler(false), 
    isLineInfoValid_(false), 
-   isTypeInfoValid_(false)
+   isTypeInfoValid_(false),
+   _ref_cnt(1)
 {
    mf = MappedFile::createMappedFile(mem_image, image_size);
    assert(mf);
@@ -1289,6 +1315,10 @@ bool Symtab::extractInfo(Object *linkedFile)
         if ( regions_[index]->isLoadable() ) 
         {
            if (     (regions_[index]->getRegionPermissions() == Region::RP_RX) 
+// KEVINTODO: find a better solution for this
+#if defined(_MSC_VER) // added this to deal with obfuscated programs (e.g. aspack)
+                 || (regions_[index]->getRegionPermissions() == Region::RP_RW)
+#endif
                  || (regions_[index]->getRegionPermissions() == Region::RP_RWX)) 
            {
               codeRegions_.push_back(regions_[index]);
@@ -1311,7 +1341,7 @@ bool Symtab::extractInfo(Object *linkedFile)
             hasRela_ = true;
         }
 
-#if defined(os_linux) || defined(os_solaris)
+#if defined(os_linux) || defined(os_solaris) || defined(os_freebsd)
         hasReldyn_ = linkedFile->hasReldyn();
 	hasReladyn_ = linkedFile->hasReladyn();
         hasRelplt_ = linkedFile->hasRelplt();
@@ -1352,7 +1382,7 @@ bool Symtab::extractInfo(Object *linkedFile)
     linkedFile->get_line_info(nlines_, lines_, fdptr_);
 #endif
 
-#if defined(os_solaris) || defined(os_aix) || defined(os_linux)
+#if defined(os_solaris) || defined(os_aix) || defined(os_linux) || defined(os_freebsd)
     // make sure we're using the right demangler
     
     nativeCompiler = parseCompilerType(linkedFile);
@@ -1469,7 +1499,8 @@ bool Symtab::extractInfo(Object *linkedFile)
 Symtab::Symtab(const Symtab& obj) :
    LookupInterface(),
    Serializable(),
-   AnnotatableSparse()
+   AnnotatableSparse(),
+   _ref_cnt(1)
 {
     create_printf("%s[%d]: Creating symtab 0x%p from symtab 0x%p\n", FILE__, __LINE__, this, &obj);
   
@@ -1898,16 +1929,20 @@ bool Symtab::closeSymtab(Symtab *st)
 	bool found = false;
 	if (!st) return false;
 
+    --(st->_ref_cnt);
+
 	std::vector<Symtab *>::reverse_iterator iter;
 	for (iter = allSymtabs.rbegin(); iter != allSymtabs.rend() ; iter++)
 	{
 		if (*iter == st)
 		{
-			allSymtabs.erase(iter.base() -1);
+            if(0 == st->_ref_cnt)
+			    allSymtabs.erase(iter.base() -1);
 			found = true;
 		}
 	}
-	delete(st);
+    if(0 == st->_ref_cnt)
+	    delete(st);
 	return found;
 }
 
@@ -1920,6 +1955,7 @@ Symtab *Symtab::findOpenSymtab(std::string filename)
 		if (filename == allSymtabs[u]->file() && 
           allSymtabs[u]->mf->canBeShared()) 
 		{
+            allSymtabs[u]->_ref_cnt++;
 			// return it
 			return allSymtabs[u];
 		}
@@ -1974,6 +2010,7 @@ bool Symtab::openFile(Symtab *&obj, std::string filename)
 #endif
 
    obj = new Symtab(filename, err);
+
 #if defined(TIMED_PARSE)
    struct timeval endtime;
    gettimeofday(&endtime, NULL);
@@ -2202,6 +2239,26 @@ SYMTAB_EXPORT bool Symtab::getSourceLines(std::vector<Statement *> &lines, Offse
 
 }
 
+SYMTAB_EXPORT bool Symtab::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRange)
+{
+   unsigned int originalSize = lines.size();
+   
+   /* Iteratate over the modules, looking for ranges in each. */
+   for ( unsigned int i = 0; i < _mods.size(); i++ ) 
+   {
+      LineInformation *lineInformation = _mods[i]->getLineInformation();
+      
+      if (lineInformation)
+         lineInformation->getSourceLines( addressInRange, lines );
+      
+   } /* end iteration over modules */
+   
+   if ( lines.size() != originalSize )
+      return true;
+   
+   return false;
+}
+
 SYMTAB_EXPORT bool Symtab::addLine(std::string lineSource, unsigned int lineNo,
       unsigned int lineOffset, Offset lowInclAddr,
       Offset highExclAddr)
@@ -2251,6 +2308,15 @@ SYMTAB_EXPORT bool Symtab::addAddressRange( Offset lowInclusiveAddr, Offset high
             lineSource.c_str(), lineNo, lineOffset));
 }
 
+void Symtab::setTruncateLinePaths(bool value)
+{
+   getObject()->setTruncateLinePaths(value);
+}
+
+bool Symtab::getTruncateLinePaths()
+{
+   return getObject()->getTruncateLinePaths();
+}
 
 void Symtab::parseTypes()
 {
@@ -2612,7 +2678,9 @@ SYMTAB_EXPORT bool Symtab::fixup_SymbolAddr(const char* name, Offset newOffset)
         symsByOffset[newOffset].push_back(sym);
 
     // Update aggregates.
-    addSymbolToAggregates(sym);
+    if (!doNotAggregate(sym)) {
+      addSymbolToAggregates(sym);
+    }
 
 #if 0
     if (funcsByOffset.count(oldOffset) > 0) {
@@ -2741,6 +2809,20 @@ SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size)
 
 #else
 	unsigned pgSize = P_getpagesize();
+
+#if defined(os_linux)
+        // Bluegene compute nodes have a 1MB alignment restructions on PT_LOAD section
+	Object *obj = getObject();
+	if (!obj)
+	{
+		fprintf(stderr, "%s[%d]:  getObject failed here\n", FILE__, __LINE__);
+		return 0;
+	}
+	bool isBlueGene = obj->isBlueGene();
+	bool hasNoteSection = obj->hasNoteSection();
+	if (isBlueGene && hasNoteSection)
+		pgSize = 0x100000; 
+#endif	
 	Offset newaddr = highWaterMark  - (highWaterMark & (pgSize-1));
 	if(newaddr < highWaterMark)
 		newaddr += pgSize;
@@ -2752,6 +2834,11 @@ SYMTAB_EXPORT Offset Symtab::getFreeOffset(unsigned size)
 SYMTAB_EXPORT ObjectType Symtab::getObjectType() const 
 {
    return object_type_;
+}
+
+SYMTAB_EXPORT Dyninst::Architecture Symtab::getArchitecture()
+{
+   return getObject()->getArch();
 }
 
 SYMTAB_EXPORT char *Symtab::mem_image() const 
@@ -3432,7 +3519,7 @@ SYMTAB_EXPORT void nonpublic_free_bin_symtab_serializer(SerializerBase *sb)
 
 SYMTAB_EXPORT Offset Symtab::getElfDynamicOffset()
 {
-#if defined(os_linux)
+#if defined(os_linux) || defined(os_freebsd)
 	Object *obj = getObject();
 	if (!obj)
 	{
@@ -3447,7 +3534,7 @@ SYMTAB_EXPORT Offset Symtab::getElfDynamicOffset()
 
 SYMTAB_EXPORT bool Symtab::addLibraryPrereq(std::string name)
 {
-#if defined(os_linux)
+#if defined(os_linux) || defined(os_freebsd)
 	Object *obj = getObject();
 	if (!obj)
 	{
@@ -3463,7 +3550,7 @@ SYMTAB_EXPORT bool Symtab::addLibraryPrereq(std::string name)
 
 SYMTAB_EXPORT bool Symtab::addSysVDynamic(long name, long value)
 {
-#if defined(os_linux)
+#if defined(os_linux) || defined(os_freebsd)
 	Object *obj = getObject();
 	if (!obj)
 	{
@@ -3480,6 +3567,9 @@ SYMTAB_EXPORT bool Symtab::addSysVDynamic(long name, long value)
 SYMTAB_EXPORT bool Symtab::addExternalSymbolReference(Symbol *externalSym, Region *localRegion,
         relocationEntry localRel)
 {
+    // Adjust this to the correct value
+    localRel.setRegionType(getObject()->getRelType());
+
     // Create placeholder Symbol for external Symbol reference
     Symbol *symRef = new Symbol(externalSym->getName(),
                                 externalSym->getType(),
@@ -3521,7 +3611,7 @@ SYMTAB_EXPORT bool Symtab::getLinkingResources(std::vector<Archive *> &libs) {
 
 SYMTAB_EXPORT Address Symtab::getLoadAddress()
 {
-#if defined(os_linux) || defined(os_aix)
+#if defined(os_linux) || defined(os_freebsd) || defined(os_aix)
    return getObject()->getLoadAddress();
 #else
    return 0x0;
@@ -3535,7 +3625,7 @@ SYMTAB_EXPORT bool Symtab::canBeShared()
 
 SYMTAB_EXPORT Offset Symtab::getInitOffset()
 {
-#if defined(os_linux) || defined(os_solaris)
+#if defined(os_linux) || defined(os_freebsd) || defined(os_solaris)
    return getObject()->getInitAddr();
 #else
    return 0x0;
@@ -3545,7 +3635,7 @@ SYMTAB_EXPORT Offset Symtab::getInitOffset()
 
 SYMTAB_EXPORT Offset Symtab::getFiniOffset()
 {
-#if defined(os_linux) || defined(os_solaris)
+#if defined(os_linux) || defined(os_freebsd) || defined(os_solaris)
    return getObject()->getFiniAddr();
 #else
    return 0x0;

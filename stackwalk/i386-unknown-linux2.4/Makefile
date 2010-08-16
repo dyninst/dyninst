@@ -27,6 +27,20 @@ SRCS += 	../src/linux-swk.C \
 			../src/x86-wanderer.C
 
 
+ifdef LIBELF_INC
+MYFLAGS += -I$(LIBELF_INC)
+endif
+ifdef LIBDWARF_INC
+MYFLAGS += -I$(LIBDWARF_INC)
+endif
+
+ifdef LIBELF_LIB
+LDFLAGS += -L$(LIBELF_LIB) -lelf
+endif
+ifdef LIBDWARF_LIB
+LDFLAGS += -L$(LIBDWARF_LIB) -ldwarf
+endif
+
 LIBS	+=
 CFLAGS  += -fno-omit-frame-pointer -Dcap_sw_catchfaults -fno-inline $(MYFLAGS)
 CXXFLAGS  += -fno-omit-frame-pointer -Dcap_sw_catchfaults -fno-inline $(MYFLAGS)

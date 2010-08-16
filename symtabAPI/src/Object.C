@@ -537,3 +537,12 @@ bool AObject::hasError() const
 {
   return has_error;
 }
+
+void AObject::setTruncateLinePaths(bool)
+{
+}
+
+bool AObject::getTruncateLinePaths()
+{
+   return false;
+}

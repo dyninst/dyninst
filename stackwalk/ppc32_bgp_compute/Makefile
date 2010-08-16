@@ -22,11 +22,9 @@ CXXFLAGS    += -I/bgsys/drivers/ppcfloor/arch/include
 CFLAGS          += $(MYFLAGS)
 TFLAGS          += $(MYFLAGS)
 
-SRCS = ../../common/src/timing-linux.C \
-       ../../common/src/parseauxv.C \
-       ../../common/src/bluegeneKludges.C \
-       ../../common/src/BG_AuxvReader.C \
-       ../../common/src/auxvtypes.C
+SRCS = ../src/ppc-swk.C \
+		 ../src/firstparty.C \
+		 ../src/bg_firstparty.C
 
 # Tradeoff: adding -g to TFLAGS aids gdb but uses gobs of disk space
 #TFLAGS                += -g
@@ -35,10 +33,6 @@ SYSLIBS                = -ldl
 LIBS    += -lgcc
 AS             = /usr/bin/as
 
-
-# Add preprocessor and special link information for G++
-G_PTHREAD      = -pthread
-G_PTHREAD_LD   = -pthread
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

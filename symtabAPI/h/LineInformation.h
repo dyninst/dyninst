@@ -38,6 +38,8 @@
 #include "Annotatable.h"
 #include "Module.h"
 
+#define NEW_GETSOURCELINES_INTERFACE
+
 namespace Dyninst{
 namespace SymtabAPI{
 
@@ -69,6 +71,8 @@ class LineInformation : public AnnotationContainer<Statement>,
 
       /* You MUST NOT deallocate the strings returned. */
       SYMTAB_EXPORT bool getSourceLines( Offset addressInRange, std::vector< Statement *> & lines );
+      SYMTAB_EXPORT bool getSourceLines( Offset addressInRange, std::vector< LineNoTuple > & lines);
+
       SYMTAB_EXPORT bool getAddressRanges( const char * lineSource, unsigned int LineNo, std::vector< AddressRange > & ranges );
 
       SYMTAB_EXPORT const_iterator begin() const;

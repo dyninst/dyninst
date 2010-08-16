@@ -58,7 +58,7 @@ TESTLIB_DLL_EXPORT TestOutputDriver *loadOutputDriver(char *odname, void * data)
   TestOutputDriver *(*factory)(void *);
   dlerror();
   factory = (TestOutputDriver *(*)(void *)) dlsym(odhandle, "outputDriver_factory");
-  char *errmsg = dlerror();
+  const char *errmsg = const_cast<const char *>(dlerror());
   if (errmsg != NULL) {
     // TODO Handle error
     fprintf(stderr, "[%s:%u] - Error loading output driver: '%s'\n", __FILE__, __LINE__, errmsg);

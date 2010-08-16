@@ -35,6 +35,8 @@
 #define TEST_PTR_32BIT	((void*)0x1234faceUL)
 #define TEST_PTR_48BIT	((void *)0x4321abcd8967UL)
 #define TEST_PTR_64BIT	((void *)0x5678bbcb9541dabaUL)
+#define TEST_VAL_64BIT  (0x5678bbcb9541dabaUL)
+#define TEST_VAL_32BIT  (0x1234faceUL)
 
 #if defined(alpha_dec_osf4_0_test)	/* Always 64 bits, 48 bit addresses. */
 #define TEST_PTR_SIZE	8
@@ -52,20 +54,31 @@
 #elif defined(ia64_unknown_linux2_4_test)
 #define	TEST_PTR_SIZE	8
 #define	TEST_PTR		TEST_PTR_64BIT
+#define TEST_VAL     TEST_VAL_64BIT
 
 #elif defined(i386_unknown_linux2_4)
 #define TEST_PTR_SIZE	4
 #define TEST_PTR	TEST_PTR_32BIT
+#define TEST_VAL     TEST_VAL_32BIT
 #elif defined(x86_64_unknown_linux2_4_test)
 #define	TEST_PTR_SIZE	8
 #define	TEST_PTR		TEST_PTR_64BIT
+#define TEST_VAL     TEST_VAL_64BIT
 #elif defined (ppc64_linux_test)
 #define	TEST_PTR_SIZE	8
 #define	TEST_PTR		TEST_PTR_64BIT
-
+#define TEST_VAL     TEST_VAL_64BIT
+#define TEST_PTR_SIZE   4
+#define TEST_PTR                TEST_PTR_32BIT
+#define TEST_VAL     TEST_VAL_32BIT
+#elif defined(os_freebsd_test) && defined(arch_x86_64_test)
+#define TEST_PTR_SIZE   8
+#define TEST_PTR                TEST_PTR_64BIT
+#define TEST_VAL     TEST_VAL_64BIT
 #else /* Others are 32 bits. */
 #define TEST_PTR_SIZE	4
 #define TEST_PTR	TEST_PTR_32BIT
+#define TEST_VAL  TEST_VAL_32BIT
 #endif
 
 #if defined(os_windows_test)

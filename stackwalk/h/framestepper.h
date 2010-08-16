@@ -66,6 +66,7 @@ public:
   virtual void newLibraryNotification(LibAddrPair *libaddr, 
                                       lib_change_t change);
   virtual void registerStepperGroup(StepperGroup *group);
+  virtual const char *getName() const = 0;
   
   virtual ~FrameStepper();
 
@@ -111,6 +112,7 @@ public:
   virtual unsigned getPriority() const;
   virtual ~FrameFuncStepper();
   virtual void registerStepperGroup(StepperGroup *group);
+  virtual const char *getName() const;
 };
 
 class DebugStepperImpl;
@@ -123,6 +125,7 @@ public:
   virtual unsigned getPriority() const;
   virtual void registerStepperGroup(StepperGroup *group);
   virtual ~DebugStepper();  
+  virtual const char *getName() const;
 };
 
 class WandererHelper
@@ -147,6 +150,7 @@ class StepperWanderer : public FrameStepper {
    virtual unsigned getPriority() const;
    virtual void registerStepperGroup(StepperGroup *group);
    virtual ~StepperWanderer();
+   virtual const char *getName() const;
 };
 
 class SigHandlerStepperImpl;
@@ -157,8 +161,10 @@ class SigHandlerStepper : public FrameStepper {
    SigHandlerStepper(Walker *w);
    virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
    virtual unsigned getPriority() const;
+   virtual void newLibraryNotification(LibAddrPair *la, lib_change_t change);
    virtual void registerStepperGroup(StepperGroup *group);
    virtual ~SigHandlerStepper();  
+   virtual const char *getName() const;
 };
 
 class BottomOfStackStepperImpl;
@@ -169,8 +175,10 @@ class BottomOfStackStepper : public FrameStepper {
    BottomOfStackStepper(Walker *w);
    virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
    virtual unsigned getPriority() const;
+   virtual void newLibraryNotification(LibAddrPair *la, lib_change_t change);
    virtual void registerStepperGroup(StepperGroup *group);
    virtual ~BottomOfStackStepper();
+   virtual const char *getName() const;
 };
 
 class DyninstInstrStepperImpl;
@@ -183,6 +191,7 @@ class DyninstInstrStepper : public FrameStepper {
    virtual unsigned getPriority() const;
    virtual void registerStepperGroup(StepperGroup *group);
    virtual ~DyninstInstrStepper();
+   virtual const char *getName() const;
 };
 
 }

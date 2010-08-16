@@ -49,7 +49,7 @@
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/function.h"
-#include "dyninstAPI/src/arch.h"
+#include "dyninstAPI/src/codegen.h"
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/baseTramp.h"
@@ -64,7 +64,6 @@
 #include "dyninstAPI/src/instP.h" // class returnInstance
 #include "dyninstAPI/src/rpcMgr.h"
 #include "dyninstAPI/src/dyn_thread.h"
-//#include "InstrucIter.h"
 #include "mapped_module.h"
 #include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
 #include "IAPI_to_AST.h"
@@ -219,6 +218,12 @@ void registerSpace::initialize32() {
 
     callRead_ = getBitArray();
     // CallRead reads no registers
+    // We wish...
+    callRead_[REGNUM_ECX] = true;
+    callRead_[REGNUM_EDX] = true;
+
+    // PLT entries use ebx
+    callRead_[REGNUM_EBX] = true;
 
     // TODO: Fix this for platform-specific calling conventions
 
@@ -462,7 +467,7 @@ void registerSpace::initialize64() {
 					 registerSlot::liveAlways,
 					 registerSlot::FPR));
     registers.push_back(new registerSlot(REGNUM_XMM1,
-					 "XMM1)",
+					 "XMM1",
 					 true,
 					 registerSlot::liveAlways,
 					 registerSlot::FPR));
@@ -592,7 +597,7 @@ int cpuidCall() {
     return result;
 }
 #endif
-#if !defined(x86_64_unknown_linux2_4)
+#if !defined(x86_64_unknown_linux2_4) && !(defined(os_freebsd) && defined(arch_x86_64))
 bool xmmCapable()
 {
   int features = cpuidCall();
@@ -1417,7 +1422,7 @@ codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, Register dest,
          // dest is the displacement from the current value of insn
          // this will need to work for both 32-bits and 64-bits
          // (since there is no JMP rel64)
-         instruction::generateBranch(gen, dest);
+         insnCodeGen::generateBranch(gen, dest);
          retval = gen.getIndex();
          break;
       }
@@ -1484,15 +1489,27 @@ void EmitterIA32::emitPushFlags(codeGen &gen) {
     emitSimpleInsn(PUSHFD, gen);
 }
 
-void EmitterIA32::emitRestoreFlags(codeGen &gen, unsigned offset)
+void EmitterIA32::emitRestoreFlags(codeGen &, unsigned )
 {
-   emitOpRMReg(PUSH_RM_OPC1, RealRegister(REGNUM_ESP), offset*4, RealRegister(PUSH_RM_OPC2), gen);
-    emitSimpleInsn(POPFD, gen); // popfd
+    assert(!"never use this!");
+    return;
+//   emitOpRMReg(PUSH_RM_OPC1, RealRegister(REGNUM_ESP), offset*4, RealRegister(PUSH_RM_OPC2), gen);
+//    emitSimpleInsn(POPFD, gen); // popfd
 }
 
 void EmitterIA32::emitRestoreFlagsFromStackSlot(codeGen &gen)
 {
-    emitRestoreFlags(gen, SAVED_EFLAGS_OFFSET);
+    // if the flags aren't on the stack, they're already restored...
+    if((*gen.rs())[IA32_FLAG_VIRTUAL_REGISTER]->liveState == registerSlot::spilled)
+    {
+        stackItemLocation loc = getHeightOf(stackItem(RealRegister(IA32_FLAG_VIRTUAL_REGISTER)), gen);
+        assert(loc.offset % 4 == 0);
+        ::emitPush(RealRegister(REGNUM_EAX), gen);
+        emitMovRMToReg(RealRegister(REGNUM_EAX), loc.reg, loc.offset, gen);
+        emitRestoreO(gen);
+        emitSimpleInsn(0x9E, gen); // SAHF
+        ::emitPop(RealRegister(REGNUM_EAX), gen);
+    }
 }
 
 // VG(8/15/02): Emit the jcc over a conditional snippet
@@ -1538,6 +1555,10 @@ stackItemLocation getHeightOf(stackItem sitem, codeGen &gen)
                r = regs[i];
                break;
             }
+         }
+         if((unsigned)sitem.reg.reg() == IA32_FLAG_VIRTUAL_REGISTER)
+         {
+             r = (*gen.rs())[sitem.reg.reg()];
          }
          if (!r && addr_width == 8) {
             r = (*gen.rs())[sitem.reg.reg()];
@@ -1653,6 +1674,10 @@ Register restoreGPRtoReg(RealRegister reg, codeGen &gen, RealRegister *dest_to_u
 
    //Load register from its saved location
    stackItemLocation loc = getHeightOf(stackItem(reg), gen);
+   if(dest_r.reg() == -1)
+   {
+       dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
+   }
    emitMovRMToReg(dest_r, loc.reg, loc.offset, gen);
    return dest;
 }
@@ -1677,7 +1702,7 @@ void emitASload(const BPatch_addrSpec_NP *as, Register dest, codeGen &gen, bool 
 
 void EmitterIA32::emitASload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen)
 {
-   bool havera = ra > -1, haverb = rb > -1;
+    bool havera = ra > -1, haverb = rb > -1;
    
    // assuming 32-bit addressing (for now)
    
@@ -1700,6 +1725,7 @@ void EmitterIA32::emitASload(int ra, int rb, int sc, long imm, Register dest, co
    if (havera) {
       src1 = restoreGPRtoReg(RealRegister(ra), gen);
       src1_r = gen.rs()->loadVirtual(src1, gen);
+      gen.rs()->markKeptRegister(src1);
    }
 
    RealRegister src2_r(-1);
@@ -1711,12 +1737,14 @@ void EmitterIA32::emitASload(int ra, int rb, int sc, long imm, Register dest, co
       else {
          src2 = restoreGPRtoReg(RealRegister(rb), gen);
          src2_r = gen.rs()->loadVirtual(src2, gen);
+         gen.rs()->markKeptRegister(src2);
       }
    }
    
    if (havera && !haverb && !sc && !imm) {
       //Optimized case, just use the existing src1_r
-      gen.rs()->freeRegister(src1);
+       gen.rs()->unKeepRegister(src1);
+       gen.rs()->freeRegister(src1);
       gen.rs()->noteVirtualInReal(dest, src1_r);
       return;
    }
@@ -1724,13 +1752,17 @@ void EmitterIA32::emitASload(int ra, int rb, int sc, long imm, Register dest, co
    // Emit the lea to do the math for us:
    // e.g. lea eax, [eax + edx * sc + imm] if both ra and rb had to be
    // restored
-   RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);      
-   emitLEA(src1_r, src2_r, sc, (long) imm, dest_r, gen);   
+   RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
+   emitLEA(src1_r, src2_r, sc, (long) imm, dest_r, gen);
 
-   if (src1 != REG_NULL)
-      gen.rs()->freeRegister(src1);
-   if (src2 != REG_NULL)
-      gen.rs()->freeRegister(src2);
+   if (src1 != REG_NULL) {
+       gen.rs()->unKeepRegister(src1);
+       gen.rs()->freeRegister(src1);
+   }
+   if (src2 != REG_NULL) {
+       gen.rs()->unKeepRegister(src2);
+       gen.rs()->freeRegister(src2);
+   }
 }
 
 void emitCSload(const BPatch_countSpec_NP *as, Register dest,
@@ -1754,18 +1786,6 @@ void EmitterIA32::emitCSload(int ra, int rb, int sc, long imm, Register dest, co
             ((imm == 0) && (rb == 1 /*REGNUM_ECX */ || rb >= IA32_EMULATE))));
 
    if(rb >= IA32_EMULATE) {
-      //Calculate the location of the flags register.  Flags are saved
-      //one stack slot above the first saved original register.
-      int max_saved = 0;
-      pdvector<registerSlot *> &regs = gen.rs()->trampRegs();
-      for (int i=regs.size()-1; i>=0; i--) {
-         registerSlot *reg = regs[i];          
-         if (reg->spilledState != registerSlot::unspilled &&
-             max_saved < reg->saveOffset)
-            max_saved = reg->saveOffset;
-      }
-      int flags_slot = max_saved + 1;
-           
       bool neg = false;
       //bperr( "!!!In case rb >= IA32_EMULATE!!!\n");
       switch(rb) {
@@ -1780,12 +1800,8 @@ void EmitterIA32::emitCSload(int ra, int rb, int sc, long imm, Register dest, co
            gen.rs()->makeRegisterAvail(RealRegister(REGNUM_EDI), gen);
            
            // mov eax<-offset[ebp]
-           emitMovRMToReg(RealRegister(REGNUM_EAX), RealRegister(REGNUM_EBP), 
-                          flags_slot, gen);
-
-           emitSimpleInsn(0x50, gen);  // push eax
-           emitSimpleInsn(POPFD, gen); // popfd
-           restoreGPRtoGPR(RealRegister(REGNUM_EAX), RealRegister(REGNUM_EAX), gen); 
+           emitRestoreFlagsFromStackSlot(gen);
+           restoreGPRtoGPR(RealRegister(REGNUM_EAX), RealRegister(REGNUM_EAX), gen);
            restoreGPRtoGPR(RealRegister(REGNUM_ECX), RealRegister(REGNUM_ECX), gen);
            restoreGPRtoGPR(RealRegister(REGNUM_EDI), RealRegister(REGNUM_EDI), gen);
            gen.markRegDefined(REGNUM_EAX);
@@ -1825,11 +1841,7 @@ void EmitterIA32::emitCSload(int ra, int rb, int sc, long imm, Register dest, co
            gen.rs()->makeRegisterAvail(RealRegister(REGNUM_ECX), gen);
            
            // mov eax<-offset[ebp]
-           emitMovRMToReg(RealRegister(REGNUM_EAX), RealRegister(REGNUM_EBP), 
-                          flags_slot, gen);
-
-           emitSimpleInsn(0x50, gen);  // push eax
-           emitSimpleInsn(POPFD, gen); // popfd
+           emitRestoreFlagsFromStackSlot(gen);
            restoreGPRtoGPR(RealRegister(REGNUM_ECX), RealRegister(REGNUM_ECX), gen);
            gen.markRegDefined(REGNUM_ECX);
            restoreGPRtoGPR(RealRegister(REGNUM_ESI), RealRegister(REGNUM_ESI), gen);
@@ -2312,7 +2324,7 @@ void EmitterIA32::emitFuncJump(int_function *f, instPointType_t /*ptType*/, bool
        SET_PTR(insn, gen);
     }
 
-    instruction::generateIllegal(gen);
+    insnCodeGen::generateIllegal(gen);
 }
 
 bool EmitterIA32::emitPush(codeGen &gen, Register reg) {
@@ -2478,12 +2490,6 @@ Emitter *AddressSpace::getEmitter()
    }
 }
 
-bool image::isAligned(const Address/* where*/) const 
-{
-   return true;
-}
-
-
 #if defined(arch_x86_64)
 int registerSpace::framePointer() { 
    return addr_width == 8 ? REGNUM_RBP : REGNUM_EBP; 
@@ -2605,3 +2611,53 @@ void emitJump(unsigned disp32, codeGen &gen)
    insn += sizeof(int);
    SET_PTR(insn, gen);
 }
+
+#if defined(os_linux) || defined(os_freebsd)
+
+// These functions were factored from linux-x86.C because
+// they are identical on Linux and FreeBSD
+
+int EmitterIA32::emitCallParams(codeGen &gen, 
+                              const pdvector<AstNodePtr> &operands,
+                              int_function */*target*/, 
+                              pdvector<Register> &/*extra_saves*/, 
+                              bool noCost)
+{
+    pdvector <Register> srcs;
+    unsigned frame_size = 0;
+    unsigned u;
+    for (u = 0; u < operands.size(); u++) {
+        Address unused = ADDR_NULL;
+        Register reg = REG_NULL;
+        if (!operands[u]->generateCode_phase2(gen,
+                                              noCost,
+                                              unused,
+                                              reg)) assert(0); // ARGH....
+        assert (reg != REG_NULL); // Give me a real return path!
+        srcs.push_back(reg);
+    }
+    
+    // push arguments in reverse order, last argument first
+    // must use int instead of unsigned to avoid nasty underflow problem:
+    for (int i=srcs.size() - 1; i >= 0; i--) {
+       RealRegister r = gen.rs()->loadVirtual(srcs[i], gen);
+       ::emitPush(r, gen);
+       frame_size += 4;
+       if (operands[i]->decRefCount())
+          gen.rs()->freeRegister(srcs[i]);
+    }
+    return frame_size;
+}
+
+bool EmitterIA32::emitCallCleanup(codeGen &gen,
+                                int_function * /*target*/, 
+                                int frame_size, 
+                                pdvector<Register> &/*extra_saves*/)
+{
+   if (frame_size)
+      emitOpRegImm(0, RealRegister(REGNUM_ESP), frame_size, gen); // add esp, frame_size
+   gen.rs()->incStack(-1 * frame_size);
+   return true;
+}
+
+#endif

@@ -29,6 +29,7 @@ NATIVE_CC = pgcc
 NATIVE_CXX = pgCC
 COMPILERT_NATIVE_CC = $(shell $(NATIVE_CC) -V 2>/dev/null | grep '^pg' | head -1)
 COMPILERT_NATIVE_CXX = $(shell $(NATIVE_CXX) -V 2>/dev/null | grep '^pg' | head -1)
+MUTATEE_LDFLAGS_NATIVE += -Wl,-E
 endif
 
 GNU_WARNING_FLAGS = -W -Wall
@@ -46,7 +47,7 @@ MUTATEE_LDFLAGS_NATIVE += -Wl,-export-dynamic
 
 COMMA=,
 MUTATEE_G77_FFLAGS += -Di386_unknown_linux2_0 -DF77 -fno-second-underscore -ffixed-line-length-none -fno-range-check -g
-MUTATEE_G77_CFLAGS += $(filter-out -Wl$(COMMA)-export-dynamic, $(MUTATEE_CFLAGS_GNU)) 
+MUTATEE_G77_CFLAGS += $(filter-out -Wl$(COMMA)-export-dynamic, $(MUTATEE_CFLAGS_GNU))
 MUTATEE_G77_CFLAGS += -DF77 -DFortran -g $(MUTATEE_FFLAGS) -c -I../src
 TEST1_FORTRAN_CSOURCE = test1.mutateeFortC.c
 

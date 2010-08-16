@@ -36,6 +36,7 @@
 #define BPATCH_FILE
 
 #include "process.h"
+#include "function.h"
 #include "debug.h"
 #include "BPatch.h"
 #include "BPatch_module.h"
@@ -49,9 +50,7 @@
 #include "mapped_object.h"
 #include "instPoint.h"
 
-#if defined(arch_ia64)
-#include "arch-ia64.h"
-#endif
+using namespace SymtabAPI;
 
 std::string current_func_name;
 std::string current_mangled_func_name;
@@ -235,7 +234,7 @@ bool BPatch_module::parseTypesIfNecessary()
 	if (!isValid())
 		return false;
 
-	bool is64 = (mod->pmod()->imExec()->getAddressWidth() == 8);
+	bool is64 = (mod->pmod()->imExec()->codeObject()->cs()->getAddressWidth() == 8);
 
 	if (sizeof(void *) == 8 && !is64) 
 	{
@@ -337,7 +336,7 @@ bool BPatch_module::getProceduresInt(BPatch_Vector<BPatch_function*> &funcs,
    if (!isValid())
       return false;
 
-   if (!full_func_parse) {
+   if (!full_func_parse || func_map.size() != mod->getFuncVectorSize()) {
       const pdvector<int_function*> &funcs = mod->getAllFunctions();
       for (unsigned i=0; i<funcs.size(); i++) {
          if (!func_map.count(funcs[i])) {
@@ -773,33 +772,7 @@ void BPatch_module::setDefaultNamespacePrefix(char * /*name*/)
 bool BPatch_module::isSystemLib() 
 {
    if (!mod) return false;
-   string str = mod->fileName();
-
-   // Solaris 2.8... we don't grab the initial func always,
-   // so fix up this code as well...
-#if defined(os_solaris)
-   if (strstr(str.c_str(), "libthread"))
-      return true;
-#endif
-#if defined(os_linux)
-   if (strstr(str.c_str(), "libc.so"))
-      return true;
-   if (strstr(str.c_str(), "libpthread"))
-      return true;
-#endif
-
-   if (strstr(str.c_str(), "libdyninstAPI_RT"))
-      return true;
-#if defined(os_windows)
-   if (strstr(str.c_str(), "kernel32.dll"))
-      return true;
-   if (strstr(str.c_str(), "user32.dll"))
-      return true;
-   if (strstr(str.c_str(), "ntdll.dll"))
-      return true;
-#endif
-
-   return false;
+   return mod->obj()->isSystemLib(mod->obj()->fullName());
 }
 
 AddressSpace *BPatch_module::getAS()
@@ -807,76 +780,96 @@ AddressSpace *BPatch_module::getAS()
    return lladdSpace;
 }
 
-/* Build up a vector of control flow instructions with suspicious targets
- * 1. Gather all instructions with static targets that leave the low-level
- *    mapped_object's image and check to see if they jump into another
- *    existing module
- * 2. Add all dynamic call instructions to the vector
- * 3. Add all dynamic jump instructions to the vector
- */
-BPatch_Vector<BPatch_point *> *BPatch_module::getUnresolvedControlFlowInt()
+BPatch_hybridMode BPatch_module::getHybridModeInt()
 {
-    if (unresolvedCF.size()) {
-        unresolvedCF.clear();
+    if (!mod || !getAS()->proc()) {
+        return BPatch_normalMode;
     }
-    std::set<image_instPoint*> ctrlTransfers 
-        = lowlevel_mod()->pmod()->getUnresolvedControlFlow();
-
-    std::set<image_instPoint*>::iterator cIter = ctrlTransfers.begin();
-    while (cIter != ctrlTransfers.end()) {
-        image_instPoint *curPoint = *cIter;
-        Address curAddr = curPoint->offset() 
-            + curPoint->func()->img()->desc().loadAddr();
-        // if this is a static CT skip if target leads to known code
-        if ( ! curPoint->isDynamic() && 
-             getAS()->findOrigByAddr(curPoint->callTarget())) {
-            continue;
-        }
-        // find or create BPatch_point from image_instPoint
-        BPatch_point *bpPoint = NULL;
-        BPatch_function *func = img->findFunctionInt
-            ((unsigned long)curAddr); // takes absolute address
-        if (func) {
-            // Create the vector of call points in the low-level func
-            if (curPoint->getPointType() == callSite) {
-                func->lowlevel_func()->funcCalls();
-            }
-            // takes absolute address
-            instPoint *intPt = func->lowlevel_func()
-                ->findInstPByAddr(curAddr);
-            if (!intPt) {// instPoint does not exist, create it
-                intPt = instPoint::createParsePoint
-                    (func->lowlevel_func(), curPoint);
-            }
-            if (!intPt) {
-                fprintf(stderr,"%s[%d] Did not find instPoint for "
-                        "unresolved control transfer at %lx\n",
-                        __FILE__,__LINE__, (long)curAddr);
-                continue;
-            }
-            if (intPt->getPointType() == callSite) {
-                bpPoint = addSpace->findOrCreateBPPoint
-                    (func, intPt, BPatch_locSubroutine);
-            } else {
-                bpPoint = addSpace->findOrCreateBPPoint
-                    (func, intPt, BPatch_locLongJump);
-            }
-        } else {
-            fprintf(stderr,"%s[%d] Could not find function corresponding to "
-                    "unresolved control transfer at %lx\n",
-                    __FILE__,__LINE__, (long)curAddr);
-        } 
-        // add BPatch_point to vector of unresolved control transfers
-        if (bpPoint == NULL) {
-            fprintf(stderr,"%s[%d] Control transfer at %lx not instrumentable\n",
-                    __FILE__,__LINE__, (long)curAddr);
-        } else {
-            unresolvedCF.push_back(bpPoint);
-        }
-        cIter++;
-    }
-    return &unresolvedCF;
+    return mod->obj()->getHybridMode();
 }
+
+bool BPatch_module::isExploratoryModeOn()
+{ 
+    if (!mod || !getAS()->proc()) {
+        return false;
+    }
+
+    BPatch_hybridMode mode = mod->obj()->getHybridMode();
+    if (BPatch_exploratoryMode == mode || BPatch_defensiveMode == mode) 
+        return true;
+
+    return false;
+}
+
+/* Protect analyzed code in the module that has been loaded into the 
+ * process's address space.  Returns false if failure, true even 
+ * if there's no analyzed code in the module and it doesn't
+ * actually wind up protecting anything, doesn't trigger analysis
+ * in the module
+ */ 
+bool BPatch_module::protectAnalyzedCode()
+{
+    assert( getAS()->proc() ); // only implemented for processes
+
+    std::set<Address> pageAddrs;
+    int pageSize = getAS()->proc()->getMemoryPageSize();
+    if ( ! lowlevel_mod()->getFuncVectorSize() 
+        || lowlevel_mod()->obj()->isSharedLib()) {
+        return true; // don't trigger new analysis on the module
+    }
+    // build up list of memory pages that contain analyzed code
+    const pdvector<int_function *> funcs = lowlevel_mod()->getAllFunctions();
+    for (unsigned fidx=0; fidx < funcs.size(); fidx++) {
+        const std::set< int_basicBlock* , int_basicBlock::compare >&
+            blocks = funcs[fidx]->blocks();
+        set< int_basicBlock* , int_basicBlock::compare >::const_iterator bIter;
+        for (bIter = blocks.begin(); 
+            bIter != blocks.end(); 
+            bIter++) 
+        {
+            Address bStart, bEnd, pageStart, pageEnd;
+            bStart = (*bIter)->origInstance()->firstInsnAddr();
+            bEnd = (*bIter)->origInstance()->endAddr();
+            pageStart = (bStart / pageSize) * pageSize;
+            pageEnd = (bEnd / pageSize) * pageSize;
+            while (pageStart < bEnd) {
+                pageAddrs.insert(pageStart);
+                pageStart += pageSize;
+            }
+        }
+    }
+    // get lwp from which we can call changeMemoryProtections
+    process *proc = ((BPatch_process*)addSpace)->lowlevel_process();
+    dyn_lwp *stoppedlwp = proc->query_for_stopped_lwp();
+    if ( ! stoppedlwp ) {
+        bool wasRunning = true;
+        stoppedlwp = proc->stop_an_lwp(&wasRunning);
+        if ( ! stoppedlwp ) {
+            return false;
+        }
+    }
+    // aggregate adjacent pages into regions and apply protection
+    std::set<Address>::iterator piter = pageAddrs.begin();
+    std::set<Address>::iterator endIter;
+    Address start;
+    Address end;
+    while (piter != pageAddrs.end()) {
+        start = (*piter);
+        end = start + pageSize;
+        endIter = piter;
+        while (endIter != pageAddrs.end() && (*endIter) == end) {
+            end += pageSize;
+            endIter++;
+        }
+        piter++;
+#if defined(os_windows)
+        stoppedlwp->changeMemoryProtections(start, end - start, 
+                                            PAGE_EXECUTE_READ);
+#endif
+    }
+    return true;
+}
+
 
 Address BPatch_module::getLoadAddrInt()
 {

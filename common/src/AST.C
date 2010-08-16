@@ -48,3 +48,7 @@ AST::Ptr AST::substitute(AST::Ptr in, AST::Ptr a, AST::Ptr b) {
   return in;
 }
 
+AST::Ptr AST::accept(ASTVisitor *v) {
+  return v->visit(this);
+}
+

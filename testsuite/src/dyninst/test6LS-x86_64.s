@@ -1,4 +1,4 @@
-.file	"test6LS.s"
+.file	"test6LS.S"
 		
 .text
 .align 16
@@ -9,7 +9,12 @@
 	.global rip_relative_load_address
 	.type rip_relative_load_address,@object
 	.size rip_relative_load_address,8
+        .global ia32features
+.type ia32features,@function
+        .global amd_features
+                .type amd_featuresm,@function                            
 
+                
 rip_relative_load_address:
 	.long rip_relative_load
 	.long 0
@@ -125,7 +130,10 @@ rip_relative_load:
 	idivl divarw		/* L45 A54 - s1RW2RW3R */
 
 	/* MMX */
-	rex64 movd divarw, %mm0	/* L46 A55, size = 8 */
+        call ia32features
+        test $0x800000, %eax    /* 1<<23 */
+        jz   .bail          /* assuming it cannot do sse/sse2*/
+        rex64 movd divarw, %mm0	/* L46 A55, size = 8 */
 	pmaddwd divarw+8, %mm0  /* L47 A56, size = 8 */
 	psraw $2, %mm0
 	movntq %mm0, divarw	/* LS14 A57, size = 8 */
@@ -137,17 +145,25 @@ rip_relative_load:
 	prefetcht0 divarw	/* P1 A60 */
 
 	/* SSE2 */
-	movapd dfvart, %xmm1	/* L50 A61, size = 16 */
+        call ia32features
+        test $0x4000000, %eax    /* 1<<26 */
+        jz   .bail
+        movapd dfvart, %xmm1	/* L50 A61, size = 16 */
 	cmpeqsd dfvart, %xmm0	/* L51 A62, size = 8 */
 	psrldq $2, %xmm0
 
-	/* 3DNow! */
+.bail:
+        /* 3DNow! */
+        call amd_features
+        test $0x80000000, %eax
+        jz   .bail2
 	movq dfvard, %mm0	/* L52 A63, size = 8 */
 	pfmin dfvard+8, %mm0	/* L53 A64, size = 8 */
 	prefetch divarw		/* P2 A65 */
 	femms
 	
 	/* REP prefixes */
+.bail2:
 
 	/* store 3 dword-sized "10"s to divarw */
 	mov $3, %ecx
@@ -226,3 +242,28 @@ rip_relative_load:
 	/* we still have a decoding bug that does't count these instruction as loads */
 	leave
 	ret
+
+ia32features:
+        mov $1, %eax
+        push %rbx                    /* cpuid changes ebx as well, but ebx "belongs" to the caller */
+        cpuid
+        mov %edx,%eax
+        pop %rbx
+        ret
+
+
+amd_features:
+        mov $0x80000000, %eax
+        push %rbx                    /* cpuid changes ebx as well, but ebx "belongs" to the caller */
+        cpuid
+        cmp $0x80000000, %eax
+        jbe .noext
+        mov $0x80000001, %eax
+        cpuid
+        mov %edx,%eax
+        jmp .done
+.noext:
+        mov $0, %eax
+.done:
+        pop %rbx
+        ret

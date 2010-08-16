@@ -39,6 +39,7 @@
 #include "stackwalk/src/linux-swk.h"
 #include "stackwalk/src/sw.h"
 #include "stackwalk/src/symtab-swk.h"
+#include "stackwalk/src/libstate.h"
 
 #include "common/h/linuxKludges.h"
 #include "common/h/parseauxv.h"
@@ -59,17 +60,12 @@
 #include <fcntl.h>
 #include <poll.h>
 
+#include "common/h/SymLite-elf.h"
+#include "common/h/parseauxv.h"
+#include "dynutil/h/dyn_regs.h"
+
 using namespace Dyninst;
 using namespace Dyninst::Stackwalker;
-
-#if defined(cap_stackwalker_use_symtab)
-
-#include "common/h/parseauxv.h"
-#include "symtabAPI/h/Symtab.h"
-#include "symtabAPI/h/Symbol.h"
-#include "dynutil/h/dyn_regs.h"
-using namespace Dyninst::SymtabAPI;
-#endif
 
 #ifndef SYS_tkill
 #define SYS_tkill 238
@@ -123,6 +119,23 @@ static bool t_kill(int pid, int sig)
   }
 
   return (result == 0);
+}
+
+SymbolReaderFactory *Dyninst::Stackwalker::getDefaultSymbolReader()
+{
+   static SymElfFactory symelffact;
+   return &symelffact;
+}
+
+class Elf_X;
+Elf_X *getElfHandle(std::string s)
+{
+   SymbolReaderFactory *fact = getDefaultSymbolReader();
+   SymReader *reader = fact->openSymbolReader(s);
+   SymElf *symelf = dynamic_cast<SymElf *>(reader);
+   if (symelf)
+      return symelf->getElfHandle();
+   return NULL;
 }
 
 static void registerLibSpotterSelf(ProcSelf *pself);
@@ -266,8 +279,8 @@ DebugEvent ProcDebug::debug_get_event(bool block)
    int flags = __WALL;
    if (!block)
      flags |= WNOHANG;
-   sw_printf("[%s:%u] - Calling waitpid(-1, %p, %d)\n",
-             __FILE__, __LINE__, &status, flags);
+   sw_printf("[%s:%u] - Calling waitpid(-1, %p, %s)\n",
+             __FILE__, __LINE__, &status, block ? "WALL|WNOHANG" : "WALL");
    p = waitpid(-1, &status, flags);
    sw_printf("[%s:%u] - waitpid returned status = 0x%x, p = %d\n",
              __FILE__, __LINE__, status, p);
@@ -410,14 +423,13 @@ bool ProcDebugLinux::debug_handle_event(DebugEvent ev)
         }
 #endif
         
-        if (ev.data.idata != SIGSTOP) {
-           result = debug_handle_signal(&ev);
-           if (!result) {
-              sw_printf("[%s:%u] - Debug continue failed on %d/%d with %d\n", 
-                        __FILE__, __LINE__, pid, thr->getTid(), ev.data.idata);
-              return false;
-           }
-        }
+	result = debug_handle_signal(&ev);
+	if (!result) {
+	  sw_printf("[%s:%u] - Debug continue failed on %d/%d with %d\n", 
+		    __FILE__, __LINE__, pid, thr->getTid(), ev.data.idata);
+	  return false;
+	}
+
         return true;
     case dbg_libraryload: 
     {
@@ -427,7 +439,20 @@ bool ProcDebugLinux::debug_handle_event(DebugEvent ev)
        LibraryState *ls = getLibraryTracker();
        assert(ls);
        ls->notifyOfUpdate();
-       
+
+#if defined(arch_power)
+       /**
+	* Forward over the trap instruction
+	**/
+       Dyninst::MachRegisterVal newpc = ls->getLibTrapAddress() + 4;
+       bool result = setRegValue(Dyninst::ReturnAddr, thr->getTid(), newpc);
+       if (!result) {
+	 sw_printf("[%s:%u] - Error! Could not set PC past trap!\n",
+		   __FILE__, __LINE__);
+	 setLastError(err_internal, "Could not set PC after trap\n");
+	 return false;
+       }
+#endif
        result = debug_continue_with(thr, 0);
        if (!result) {
           sw_printf("[%s:%u] - Debug continue failed on %d/%d with %d\n", 
@@ -457,13 +482,29 @@ bool ProcDebugLinux::debug_handle_event(DebugEvent ev)
 bool ProcDebugLinux::debug_handle_signal(DebugEvent *ev)
 {
    assert(ev->dbg == dbg_stopped);
+   int sig = ev->data.idata;
+   ThreadState *thr = ev->thr;
    if (sigfunc) {
-      bool user_stopped = ev->thr->userIsStopped();
-      ev->thr->setUserStopped(true);
-      sigfunc(ev->data.idata, ev->thr);
-      ev->thr->setUserStopped(user_stopped);
+      bool user_stopped = thr->userIsStopped();
+      thr->setUserStopped(true);
+      sigfunc(sig, thr);
+      thr->setUserStopped(user_stopped);
    }
-   return debug_continue_with(ev->thr, ev->data.idata);
+
+   if (sig == SIGSTOP)
+   {
+     if (thr->hasPendingStop()) {
+       //Leave process as is, no need to handle.
+       sw_printf("Clearing pending SIGSTOP\n");
+       thr->clearPendingStop();
+       return true;
+     }
+     sw_printf("Dropping SIGSTOP and continuing process\n");
+     //Continue past sigstop with-out a signal
+     sig = 0;
+   }
+
+   return debug_continue_with(thr, sig);
 }
 
 #if defined(cap_ptrace_setoptions)   
@@ -563,6 +604,7 @@ bool ProcDebugLinux::debug_pause(ThreadState *thr)
                    "stopping");
       return false;
    }
+   thr->markPendingStop();
    
    return true;
 }
@@ -925,9 +967,82 @@ bool ProcDebugLinux::debug_create(const std::string &executable,
    return true;
 }
 
+vsys_info *Dyninst::Stackwalker::getVsysInfo(ProcessState *ps)
+{
+#if defined(arch_x86_64)
+   return NULL;
+#endif
+
+   static std::map<ProcessState *, vsys_info *> vsysmap;
+   vsys_info *ret = NULL;
+   Address start, end;
+   char *buffer = NULL;
+   SymReader *reader = NULL;
+   SymbolReaderFactory *fact = NULL;
+   bool result;
+
+   std::map<ProcessState *, vsys_info *>::iterator i = vsysmap.find(ps);
+   if (i != vsysmap.end())
+      return i->second;
+   
+   AuxvParser *parser = AuxvParser::createAuxvParser(ps->getProcessId(),
+                                                     ps->getAddressWidth());
+   if (!parser) {
+      sw_printf("[%s:%u] - Unable to parse auxv for %d\n", __FILE__, __LINE__,
+                ps->getProcessId());
+      goto done;
+   }
+
+   start = parser->getVsyscallBase();
+   end = parser->getVsyscallEnd();
+   sw_printf("[%s:%u] - Registering signal handler stepper over range %lx to %lx\n",
+             __FILE__, __LINE__, start, end);   
+   parser->deleteAuxvParser();
+   
+   if (!start || !end || end == start)
+   {
+      sw_printf("[%s:%u] - Error collecting vsyscall base and end\n",
+                __FILE__, __LINE__);
+      goto done;
+   }
+
+   ret = new vsys_info();
+   assert(ret);
+   ret->start = start;
+   ret->end = end;
+
+   buffer = (char *) malloc(end - start);
+   assert(buffer);
+   result = ps->readMem(buffer, start, end - start);
+   if (!result) {
+      sw_printf("[%s:%u] - Error reading vsys memory\n", __FILE__, __LINE__);
+      goto done;
+   }
+   ret->vsys_mem = buffer;
+
+   fact = getDefaultSymbolReader();
+   if (!fact) {
+      sw_printf("[%s:%u] - No symbol reading capability\n",
+                __FILE__, __LINE__);
+      goto done;
+   }   
+   reader = fact->openSymbolReader(buffer, end - start);
+   if (!reader) {
+      sw_printf("[%s:%u] - Error reading symbol info\n");
+      goto done;
+   }
+   ret->syms = reader;
+
+  done:
+   vsysmap[ps] = ret;
+   return ret;
+}
+
 SigHandlerStepperImpl::SigHandlerStepperImpl(Walker *w, SigHandlerStepper *parent) :
    FrameStepper(w),
-   parent_stepper(parent)
+   parent_stepper(parent),
+   init_libc(false),
+   init_libthread(false)
 {
 }
 
@@ -936,126 +1051,16 @@ unsigned SigHandlerStepperImpl::getPriority() const
    return sighandler_priority;
 }
 
-void SigHandlerStepperImpl::registerStepperGroupNoSymtab(StepperGroup *group)
-{
-   /**
-    * We don't have symtabAPI loaded, and we want to figure out where 
-    * the SigHandler trampolines are.  If we're a first-party stackwalker
-    * we can just use the entire vsyscall page.  
-    *
-    * We're not in danger of confusing the location with a regular system call,
-    * as we're not running in a system call right now.  I can't
-    * make that guarentee for a third-party stackwalker.  
-    *
-    * Alt, we may have symtabAPI loaded, but don't have access to read the
-    * vsyscall page.  We can check if the signal restores are in libc.
-    **/   
-   ProcessState *ps = getProcessState();
-   assert(ps);
-
-   if (!dynamic_cast<ProcSelf *>(ps)) {
-      //Not a first-party stackwalker
-      return;
-   }
-      
-   AuxvParser *parser = AuxvParser::createAuxvParser(ps->getProcessId(),
-                                                     ps->getAddressWidth());
-   if (!parser) {
-      sw_printf("[%s:%u] - Unable to parse auxv for %d\n", __FILE__, __LINE__,
-                ps->getProcessId());
-      return;
-   }
-
-   Address start = parser->getVsyscallBase();
-   Address end = parser->getVsyscallEnd();
-   sw_printf("[%s:%u] - Registering signal handler stepper over range %lx to %lx\n",
-             __FILE__, __LINE__, start, end);
-   
-   parser->deleteAuxvParser();
-   
-   if (!start || !end)
-   {
-      sw_printf("[%s:%u] - Error collecting vsyscall base and end\n",
-                __FILE__, __LINE__);
-      return;
-   }
-
-   group->addStepper(parent_stepper, start, end);
-
-#if defined(cap_stackwalker_use_symtab)
-   LibraryState *libs = getProcessState()->getLibraryTracker();
-   SymtabLibState *symtab_libs = dynamic_cast<SymtabLibState *>(libs);
-   if (!symtab_libs) {
-      sw_printf("[%s:%u] - Custom library tracker.  Don't know how to"
-                " to get libc\n", __FILE__, __LINE__);
-      return;
-   }
-
-   std::vector<SymtabAPI::Function *> syms;
-   /**
-    * Get __restore_rt out of libc
-    **/
-   LibAddrPair libc_addr;
-   Symtab *libc = NULL;
-   bool result = symtab_libs->getLibc(libc_addr);
-   if (!result) {
-      sw_printf("[%s:%u] - Unable to find libc, not registering restore_rt"
-                "tracker.\n", __FILE__, __LINE__);
-   }
-   if (result) {
-      libc = SymtabWrapper::getSymtab(libc_addr.first);
-      if (!libc) {
-         sw_printf("[%s:%u] - Unable to open libc, not registering restore_rt\n",
-                   __FILE__, __LINE__);
-      }   
-   }
-   if (libc) {
-      result = libc->findFunctionsByName(syms, std::string("__restore_rt"));
-      if (!result) {
-         sw_printf("[%s:%u] - Unable to find restore_rt in libc\n",
-                   __FILE__, __LINE__);
-      }
-   }
-
-   /**
-    * Get __restore_rt out of libpthread
-    **/
-   LibAddrPair libpthread_addr;
-   Symtab *libpthread = NULL;
-   result = symtab_libs->getLibpthread(libpthread_addr);
-   if (!result) {
-      sw_printf("[%s:%u] - Unable to find libpthread, not registering restore_rt"
-                "pthread tracker.\n", __FILE__, __LINE__);
-   }
-   if (result) {
-      libpthread = SymtabWrapper::getSymtab(libpthread_addr.first);
-      if (!libpthread) {
-         sw_printf("[%s:%u] - Unable to open libc, not registering restore_rt\n",
-                   __FILE__, __LINE__);
-      }   
-   }
-   if (libpthread) {
-      result = libpthread->findFunctionsByName(syms, std::string("__restore_rt"));
-      if (!result) {
-         sw_printf("[%s:%u] - Unable to find restore_rt in libc\n",
-                   __FILE__, __LINE__);
-      }
-   }   
-
-   std::vector<SymtabAPI::Function *>::iterator i;
-   for (i = syms.begin(); i != syms.end(); i++) {
-      Function *f = *i;
-      Dyninst::Address start = f->getOffset() + libc_addr.second;
-      Dyninst::Address end = start + f->getSize();
-      sw_printf("[%s:%u] - Registering restore_rt as at %lx to %lx\n",
-                __FILE__, __LINE__, start, end);
-      group->addStepper(parent_stepper, start, end);
-   }
-#endif
-}
-
 SigHandlerStepperImpl::~SigHandlerStepperImpl()
 {
+}
+
+void SigHandlerStepperImpl::newLibraryNotification(LibAddrPair *, lib_change_t change)
+{
+   if (change == library_unload)
+      return;
+   StepperGroup *group = getWalker()->getStepperGroup();
+   registerStepperGroup(group);
 }
 
 void ProcDebugLinux::registerLibSpotter()
@@ -1273,155 +1278,29 @@ static void registerLibSpotterSelf(ProcSelf *pself)
             __FILE__, __LINE__, lib_trap_addr_self);
 }
 
-#if defined(cap_stackwalker_use_symtab)
-
-bool SymtabLibState::updateLibsArch()
+bool TrackLibState::updateLibsArch()
 {
-   if (vsyscall_page_set == vsys_set)
-   {
-      return true;
-   }
-   else if (vsyscall_page_set == vsys_error)
-   {
+   vsys_info *vsys = getVsysInfo(procstate);
+   if (!vsys) {
       return false;
    }
-   else if (vsyscall_page_set == vsys_none)
-   {
-      return true;
-   }
-   assert(vsyscall_page_set == vsys_unset);
-
-   AuxvParser *parser = AuxvParser::createAuxvParser(procstate->getProcessId(), 
-                                                     procstate->getAddressWidth());
-   if (!parser) {
-      sw_printf("[%s:%u] - Unable to parse auxv", __FILE__, __LINE__);
-      vsyscall_page_set = vsys_error;
-      return false;
-   }
-
-   Address start = parser->getVsyscallBase();
-   Address end = parser->getVsyscallEnd();
-
-   vsyscall_mem = malloc(end - start);
-   bool result = procstate->readMem(vsyscall_mem, start, end - start);
-   if (!result) {
-     sw_printf("[%s:%u] - Error reading from vsyscall page from %lx to %lx\n", __FILE__, __LINE__, start, end - start);
-      vsyscall_page_set = vsys_error;
-      return false;
-   }
-   
    std::stringstream ss;
    ss << "[vsyscall-" << procstate->getProcessId() << "]";
    LibAddrPair vsyscall_page;
    vsyscall_page.first = ss.str();
-   vsyscall_page.second = start;
+   vsyscall_page.second = vsys->start;
    
-   result = Symtab::openFile(vsyscall_symtab, (char *) vsyscall_mem, end - start);
-   if (!result || !vsyscall_symtab) {
-      //TODO
-      vsyscall_page_set = vsys_error;
-      return false;
-   }
-
-   SymtabWrapper::notifyOfSymtab(vsyscall_symtab, vsyscall_page.first);
-   parser->deleteAuxvParser();
+   SymbolReaderFactory *fact = getDefaultSymbolReader();
+   SymReader *reader = fact->openSymbolReader((char *) vsys->vsys_mem, vsys->end - vsys->start);
+   if (reader)
+      LibraryWrapper::registerLibrary(reader, vsyscall_page.first);
 
    std::pair<LibAddrPair, unsigned int> vsyscall_lib_pair;
    vsyscall_lib_pair.first = vsyscall_page;
-   vsyscall_lib_pair.second = static_cast<unsigned int>(end - start);
-   vsyscall_libaddr = vsyscall_page;
-
+   vsyscall_lib_pair.second = static_cast<unsigned int>(vsys->end - vsys->start);
    arch_libs.push_back(vsyscall_lib_pair);
-   vsyscall_page_set = vsys_set;
 
    return true;
-}
-
-Symtab *SymtabLibState::getVsyscallSymtab()
-{
-   refresh();
-   if (vsyscall_page_set == vsys_set)
-      return vsyscall_symtab;
-   return NULL;
-}
-
-bool SymtabLibState::getVsyscallLibAddr(LibAddrPair &vsys)
-{
-   refresh();
-   if (vsyscall_page_set == vsys_set) {
-      vsys = vsyscall_libaddr;
-      return true;
-   }
-   return false;
-}
-
-
-static bool libNameMatch(const char *s, const char *libname)
-{
-   // A poor-man's regex match for */lib<s>[0123456789-.]*.so*
-   const char *filestart = strrchr(libname, '/');
-   if (!filestart)
-      filestart = libname;
-   const char *lib_start = strstr(filestart, "lib");
-   if (lib_start != filestart+1)
-      return false;
-   const char *libname_start = lib_start+3;
-   int s_len = strlen(s);
-   if (strncmp(s, libname_start, s_len) != 0) {
-      return false;
-   }
-
-   const char *cur = libname_start + s_len;
-   const char *valid_chars = "0123456789-.";
-   while (*cur) {
-      if (!strchr(valid_chars, *cur)) {
-         cur--;
-         if (strstr(cur, ".so") == cur) {
-            return true;
-         }
-         return false;
-      }
-      cur++;
-   }
-   return false;
-}
-
-bool SymtabLibState::getLibc(LibAddrPair &addr_pair)
-{
-   std::vector<LibAddrPair> libs;
-   getLibraries(libs);
-   if (libs.size() == 1) {
-      //Static binary.
-      addr_pair = libs[0];
-      return true;
-   }
-   for (std::vector<LibAddrPair>::iterator i = libs.begin(); i != libs.end(); i++)
-   {
-      if (libNameMatch("c", i->first.c_str())) {
-         addr_pair = *i;
-         return true;
-      }
-   }
-   return false;
-}
-
-bool SymtabLibState::getLibpthread(LibAddrPair &addr_pair)
-{
-   std::vector<LibAddrPair> libs;
-   getLibraries(libs);
-   if (libs.size() == 1) {
-      //Static binary.
-      addr_pair = libs[0];
-      return true;
-   }
-   for (std::vector<LibAddrPair>::iterator i = libs.begin(); i != libs.end(); i++)
-   {
-      if (libNameMatch("pthread", i->first.c_str())) {
-         addr_pair = *i;
-         return true;
-      }
-   }
-   return false;
 }
 
 #define NUM_VSYS_SIGRETURNS 3
@@ -1433,72 +1312,137 @@ static const char* vsys_sigreturns[] = {
 
 void SigHandlerStepperImpl::registerStepperGroup(StepperGroup *group)
 {
+   ProcessState *ps = getProcessState();
+   assert(ps);
+
    LibraryState *libs = getProcessState()->getLibraryTracker();
-   SymtabLibState *symtab_libs = dynamic_cast<SymtabLibState *>(libs);
-   bool result;
-   if (!symtab_libs) {
+   if (!libs) {
       sw_printf("[%s:%u] - Custom library tracker.  Don't know how to"
-                " to get vsyscall page\n", __FILE__, __LINE__);
-      registerStepperGroupNoSymtab(group);
+                " to get libc\n", __FILE__, __LINE__);
       return;
    }
-   Symtab *vsyscall = symtab_libs->getVsyscallSymtab();
-   if (!vsyscall)
-   {
-      sw_printf("[%s:%u] - Odd.  Couldn't find vsyscall page. Signal handler"
-                " stepping may not work\n", __FILE__, __LINE__);
-      registerStepperGroupNoSymtab(group);
+   SymbolReaderFactory *fact = getDefaultSymbolReader();
+   if (!fact) {
+      sw_printf("[%s:%u] - Failed to get symbol reader\n", __FILE__, __LINE__);
       return;
    }
 
-   Dyninst::Address vsyscall_base = 0;
-   bool vsyscall_base_set = false;
-   for (unsigned i=0; i<NUM_VSYS_SIGRETURNS; i++)
-   {
-      std::vector<SymtabAPI::Symbol *> syms;
-      result = vsyscall->findSymbolByType(syms, vsys_sigreturns[i], 
-                                          SymtabAPI::Symbol::ST_FUNCTION,
-                                          false, false, false);
-      if (!result || !syms.size()) {
-         continue;
+   if (!init_libc) {
+      /**
+       * Get __restore_rt out of libc
+       **/
+      LibAddrPair libc_addr;
+      Dyninst::SymReader *libc = NULL;
+      Symbol_t libc_restore;
+      bool result = libs->getLibc(libc_addr);
+      if (!result) {
+         sw_printf("[%s:%u] - Unable to find libc, not registering restore_rt"
+                   "tracker.\n", __FILE__, __LINE__);
       }
-
-      Address addr = syms[0]->getAddr();
-      unsigned long size = syms[0]->getSize();
-      if (!size)
-         size = getProcessState()->getAddressWidth();
-
-      if (!vsyscall_base_set) {
-         LibAddrPair vsyscall_libaddr;
-         result = symtab_libs->getVsyscallLibAddr(vsyscall_libaddr);
-         if (result && addr < vsyscall_libaddr.second) {
-            sw_printf("[%s:%u] - Setting vsyscall base address to %lx, " 
-                      "sym = %lx\n", __FILE__, __LINE__,
-                      vsyscall_libaddr.second, addr);
-            vsyscall_base = vsyscall_libaddr.second;
+      if (result) {
+         init_libc = true;
+         libc = fact->openSymbolReader(libc_addr.first);
+         if (!libc) {
+            sw_printf("[%s:%u] - Unable to open libc, not registering restore_rt\n",
+                      __FILE__, __LINE__);
+         }   
+      }
+      if (libc) {
+         libc_restore = libc->getSymbolByName("__restore_rt");
+         if (!libc->isValidSymbol(libc_restore)) {
+            sw_printf("[%s:%u] - Unable to find restore_rt in libc\n",
+                      __FILE__, __LINE__);
          }
          else {
-            sw_printf("[%s:%u] - Setting vsyscall base address to 0, " 
-                      "sym = %lx\n", __FILE__, __LINE__, addr);
+            Dyninst::Address start = libc->getSymbolOffset(libc_restore);
+            Dyninst::Address end = libc->getSymbolSize(libc_restore) + start;
+            if (start == end)
+               end = start + 16; //Estimate--annoying
+            sw_printf("[%s:%u] - Registering libc restore_rt as at %lx to %lx\n",
+                      __FILE__, __LINE__, start, end);
+            group->addStepper(parent_stepper, start, end);
          }
-         vsyscall_base_set = true;
       }
+   }
 
-      sw_printf("[%s:%u] - Registering signal handler stepper %s to run between"
-                " %lx and %lx\n", __FILE__, __LINE__, vsys_sigreturns[i], 
-                addr + vsyscall_base, addr+size+vsyscall_base);
+   if (!init_libthread) {
+      /**
+       * Get __restore_rt out of libpthread
+       **/
+      LibAddrPair libpthread_addr;
+      Dyninst::SymReader *libpthread = NULL;
+      Symbol_t libpthread_restore;
+      bool result  = libs->getLibthread(libpthread_addr);
+      if (!result) {
+         sw_printf("[%s:%u] - Unable to find libpthread, not registering restore_rt"
+                   "pthread tracker.\n", __FILE__, __LINE__);
+      }
+      if (result) {
+         libpthread = fact->openSymbolReader(libpthread_addr.first);
+         if (!libpthread) {
+            sw_printf("[%s:%u] - Unable to open libc, not registering restore_rt\n",
+                      __FILE__, __LINE__);
+         }
+         init_libthread = true;
+      }
+      if (libpthread) {
+         libpthread_restore = libpthread->getSymbolByName("__restore_rt");
+         if (!result) {
+            sw_printf("[%s:%u] - Unable to find restore_rt in libc\n",
+                      __FILE__, __LINE__);
+         }
+         else {
+            Dyninst::Address start = libpthread->getSymbolOffset(libpthread_restore);
+            Dyninst::Address end = libpthread->getSymbolSize(libpthread_restore) + start;
+            if (start == end)
+               end = start + 16; //Estimate--annoying
+            sw_printf("[%s:%u] - Registering libpthread restore_rt as at %lx to %lx\n",
+                      __FILE__, __LINE__, start, end);
+            group->addStepper(parent_stepper, start, end);
+         }
+      }   
+   }
 
-      group->addStepper(parent_stepper, addr + vsyscall_base, 
-                        addr + size + vsyscall_base);
+   /**
+    * Get symbols out of vsyscall page
+    **/
+   vsys_info *vsyscall = getVsysInfo(ps);
+   if (!vsyscall)
+   {
+#if !defined(arch_x86_64)
+      sw_printf("[%s:%u] - Odd.  Couldn't find vsyscall page. Signal handler"
+                " stepping may not work\n", __FILE__, __LINE__);
+#endif
+   }
+   else
+   {
+      SymReader *vsys_syms = vsyscall->syms;
+      if (!vsys_syms) {
+         sw_printf("[%s:%u] - Vsyscall page wasn't parsed\n", __FILE__, __LINE__);
+      }
+      else {
+         for (unsigned i=0; i<NUM_VSYS_SIGRETURNS; i++)
+         {
+            Symbol_t sym;
+            sym = vsys_syms->getSymbolByName(vsys_sigreturns[i]);
+            if (!vsys_syms->isValidSymbol(sym))
+               continue;
+            
+            Dyninst::Offset offset = vsys_syms->getSymbolOffset(sym);
+            Dyninst::Address addr;
+            if (offset < vsyscall->start)
+               addr = offset + vsyscall->start;
+            else
+               addr = offset;
+            unsigned long size = vsys_syms->getSymbolSize(sym);
+            if (!size) 
+               size = ps->getAddressWidth();
+            
+            group->addStepper(parent_stepper, addr, addr + size);
+         }
+      }
    }
 }
-
-#else
-void SigHandlerStepperImpl::registerStepperGroup(StepperGroup *group)
-{
-   registerStepperGroupNoSymtab(group);
-}
-#endif
 
 ThreadState* ThreadState::createThreadState(ProcDebug *parent,
                                             Dyninst::THR_ID id,
@@ -1590,159 +1534,80 @@ ThreadState* ThreadState::createThreadState(ProcDebug *parent,
 
 void BottomOfStackStepperImpl::initialize()
 {
-#if defined(cap_stackwalker_use_symtab)
-   std::vector<LibAddrPair> libs;
    ProcessState *proc = walker->getProcessState();
    assert(proc);
 
    sw_printf("[%s:%u] - Initializing BottomOfStackStepper\n", __FILE__, __LINE__);
-   initialized = true;
    
-   LibraryState *ls = proc->getLibraryTracker();
-   if (!ls) {
+   LibraryState *libs = proc->getLibraryTracker();
+   if (!libs) {
       sw_printf("[%s:%u] - Error initing StackBottom.  No library state for process.\n",
                 __FILE__, __LINE__);
       return;
    }
-   SymtabLibState *symtab_ls = dynamic_cast<SymtabLibState *>(ls);
-   if (!symtab_ls) {
-      sw_printf("[%s:%u] - Error initing StackBottom. Unknown library state.\n",
-                __FILE__, __LINE__);
-   }
-   bool result = false;
-   std::vector<Function *> funcs;
-   std::vector<Function *>::iterator i;
-
-   //Find _start in a.out
-   LibAddrPair aout_libaddr = symtab_ls->getAOut();
-   Symtab *aout = SymtabWrapper::getSymtab(aout_libaddr.first);
-   if (!aout) {
-      sw_printf("[%s:%u] - Error. Could not locate a.out\n", __FILE__, __LINE__);
-   }
-   else {
-      result = aout->findFunctionsByName(funcs, "_start");
-      if (!result || !funcs.size()) {
-         sw_printf("[%s:%u] - Error. Could not locate _start\n", __FILE__, __LINE__);
-      }
-   }
-   for (i = funcs.begin(); i != funcs.end(); i++) {
-      Address start = (*i)->getOffset() + aout_libaddr.second;
-      Address end = start + (*i)->getSize();
-      sw_printf("[%s:%u] - Adding _start stack bottom [0x%lx, 0x%lx]\n",
-                __FILE__, __LINE__, start, end);
-      ra_stack_tops.push_back(std::pair<Address, Address>(start, end));
-   }
-
-   //Find clone in libc.
-   LibAddrPair clone_libaddr;
-   Symtab *clone_symtab = NULL;
-
-   LibAddrPair start_thread_libaddr;
-   Symtab *start_thread_symtab = NULL;
-
-   LibAddrPair ld_libaddr;
-   Symtab *ld_symtab = NULL;
-   
-   //Find __clone function in libc
-   libs.clear();
-   result = symtab_ls->getLibraries(libs);
-   if (!result) {
-      sw_printf("[%s:%u] - Error. Failed to get libraries.\n", 
-                __FILE__, __LINE__);
+   SymbolReaderFactory *fact = getDefaultSymbolReader();
+   if (!fact) {
+      sw_printf("[%s:%u] - Failed to get symbol reader\n");
       return;
    }
-   
-   if (libs.size() == 1) {
-      //Static binary
-      sw_printf("[%s:%u] - Think binary is static\n", __FILE__, __LINE__);
-      clone_libaddr = aout_libaddr;
-      clone_symtab = aout;
-      start_thread_libaddr = aout_libaddr;
-      start_thread_symtab = aout;
-   }
-   else {
-      std::vector<LibAddrPair>::iterator i;
-      for (i = libs.begin(); i != libs.end(); i++) {
-         if (strstr((*i).first.c_str(), "libc.so") ||
-             strstr((*i).first.c_str(), "libc-"))
-         {
-            clone_libaddr = (*i);
-            sw_printf("[%s:%u] - Looking for clone in %s\n", 
-                      __FILE__, __LINE__, clone_libaddr.first.c_str());
-            clone_symtab = SymtabWrapper::getSymtab(clone_libaddr.first);
-         }
-         if (strstr((*i).first.c_str(), "libpthread"))
-         {
-            start_thread_libaddr = (*i);
-            sw_printf("[%s:%u] - Looking for start_thread in %s\n", 
-                      __FILE__, __LINE__, start_thread_libaddr.first.c_str());
-            start_thread_symtab = SymtabWrapper::getSymtab(start_thread_libaddr.first);
-         }
-         if (strstr((*i).first.c_str(), "ld-"))
-         {
-            ld_libaddr = (*i);
-            sw_printf("[%s:%u] - Looking for _start in %s\n", 
-                      __FILE__, __LINE__, ld_libaddr.first.c_str());
-            ld_symtab = SymtabWrapper::getSymtab(ld_libaddr.first);
-         }
-      }
-      if (!clone_symtab) {
-         sw_printf("[%s:%u] - Looking for clone in a.out\n", __FILE__, __LINE__);
-         clone_symtab = aout;
-         clone_libaddr = aout_libaddr;
-      }
-      if (!start_thread_symtab) {
-         sw_printf("[%s:%u] - Looking for start_thread in a.out\n",  __FILE__, __LINE__);
-         start_thread_symtab = aout;
-         start_thread_libaddr = aout_libaddr;
-      }
-   }
 
-   if (ld_symtab) {
-      std::vector<Symbol *> syms;
-      std::vector<Symbol *>::iterator si;
-      result = ld_symtab->findSymbol(syms, "_start");
+   if (!aout_init)
+   {
+      LibAddrPair aout_addr;
+      SymReader *aout = NULL;
+      Symbol_t start_sym;
+      bool result = libs->getAOut(aout_addr);
       if (result) {
-        for (si = syms.begin(); si != syms.end(); si++)
-        {
-          Address start = (*si)->getOffset() + ld_libaddr.second;
-          // TODO There should be a better way of getting the size.
-          Address end = start + 8;
-          sw_printf("[%s:%u] - Adding ld _start stack bottom [0x%lx, 0x%lx]\n",
-                    __FILE__, __LINE__, start, end);
-          ra_stack_tops.push_back(std::pair<Address, Address>(start, end));
-        }
+         aout = fact->openSymbolReader(aout_addr.first);
+         aout_init = true;
+      }
+      if (aout) {
+         start_sym = aout->getSymbolByName("_start");
+         if (aout->isValidSymbol(start_sym)) {
+            Dyninst::Address start = aout->getSymbolOffset(start_sym)+aout_addr.second;
+            Dyninst::Address end = aout->getSymbolSize(start_sym) + start;
+            if (start == end)
+               end = start + 43;
+            ra_stack_tops.push_back(std::pair<Address, Address>(start, end));
+         }
       }
    }
 
-   if (clone_symtab) {
-      funcs.clear();
-      result = clone_symtab->findFunctionsByName(funcs, "__clone");
-      if (!result)
-         return;
-      for (i = funcs.begin(); i != funcs.end(); i++) {
-         Address start = (*i)->getOffset() + clone_libaddr.second;
-         Address end = start + (*i)->getSize();
-         sw_printf("[%s:%u] - Adding __clone stack bottom [0x%lx, 0x%lx]\n",
-                   __FILE__, __LINE__, start, end);
-         ra_stack_tops.push_back(std::pair<Address, Address>(start, end));
+   if (!libthread_init)
+   {
+      LibAddrPair libthread_addr;
+      SymReader *libthread = NULL;
+      Symbol_t clone_sym, startthread_sym;
+      bool result = libs->getLibthread(libthread_addr);
+      if (result) {
+         libthread = fact->openSymbolReader(libthread_addr.first);
+         libthread_init = true;
+      }
+      if (libthread) {
+         clone_sym = libthread->getSymbolByName("__clone");
+         if (libthread->isValidSymbol(clone_sym)) {
+            Dyninst::Address start = libthread->getSymbolOffset(clone_sym) + 
+               libthread_addr.second;
+            Dyninst::Address end = libthread->getSymbolSize(clone_sym) + start;
+            ra_stack_tops.push_back(std::pair<Address, Address>(start, end));
+         }
+         startthread_sym = libthread->getSymbolByName("start_thread");
+         if (libthread->isValidSymbol(startthread_sym)) {
+            Dyninst::Address start = libthread->getSymbolOffset(startthread_sym) + 
+               libthread_addr.second;
+            Dyninst::Address end = libthread->getSymbolSize(startthread_sym) + start;
+            ra_stack_tops.push_back(std::pair<Address, Address>(start, end));
+         }
       }
    }
-
-   if (start_thread_symtab) {
-      funcs.clear();
-      result = start_thread_symtab->findFunctionsByName(funcs, "start_thread");
-      if (!result)
-         return;
-      for (i = funcs.begin(); i != funcs.end(); i++) {
-         Address start = (*i)->getOffset() + start_thread_libaddr.second;
-         Address end = start + (*i)->getSize();
-         sw_printf("[%s:%u] - Adding start_thread stack bottom [0x%lx, 0x%lx]\n",
-                   __FILE__, __LINE__, start, end);
-         ra_stack_tops.push_back(std::pair<Address, Address>(start, end));
-      }
-   }
-#endif
 }
 
+void BottomOfStackStepperImpl::newLibraryNotification(LibAddrPair *, lib_change_t change)
+{
+   if (change == library_unload)
+      return;
+   if (!libthread_init || !aout_init) {
+      initialize();
+   }
+}
 

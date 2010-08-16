@@ -69,9 +69,9 @@ LDFLAGS		+= -binitfini:libdyninstAPI_RT_init
 libDyninstText.a: space.o
 #	rm -f libSpace.o 
 #	rm -f libDyninstText.a 
-	ld -o space_lib.o -bexpall -bnoentry -bM:SRE space.o 
-	ar crv libDyninstText.a space_lib.o 
-	rm -f space_lib.o
+	@ld -o space_lib.o -bexpall -bnoentry -bM:SRE space.o 
+	@ar crv libDyninstText.a space_lib.o 
+	@rm -f space_lib.o
 #	rm -f space.o
 
 
@@ -83,7 +83,7 @@ LD		= $(GCC) -shared
 LDFLAGS		+= -Wl,-binitfini:libdyninstAPI_RT_init
 
 libDyninstText.a: space.o
-	gcc -shared -o libDyninstText.a space.o
+	@gcc -shared -o libDyninstText.a space.o
 
 endif
 
@@ -92,13 +92,15 @@ libDyninstAPI_RT.so.1: libDyninstText.a
 # ... and uses default AIX link line
 
 RTthread-power-asm.o:
-	$(GCC) -c $(CFLAGS) ../src/RTthread-power-asm.s
+	@echo "Compiling $<"
+	@$(GCC) -c $(CFLAGS) ../src/RTthread-power-asm.s
 
 space.o: 
-	$(GCC) -c -o space.o ../src/libSpace.s
+	@echo "Compiling $<"
+	@$(GCC) -c -o space.o ../src/libSpace.s
 
 install: install_generic libDyninstText.a
-	-chmod 640 $(DEST)/$(TARGET)
-	-$(CP) libDyninstText.a $(DEST)
-	-chmod 755 $(DEST)/libDyninstText.a
-	-ln -sf $(TARGET) $(DEST)/$(TARGET_SYMLINK)
+	@-chmod 640 $(DEST)/$(TARGET)
+	@-$(CP) libDyninstText.a $(DEST)
+	@-chmod 755 $(DEST)/libDyninstText.a
+	@-ln -sf $(TARGET) $(DEST)/$(TARGET_SYMLINK)

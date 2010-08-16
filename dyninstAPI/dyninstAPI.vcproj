@@ -1,133 +1,180 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="7.10"
+	Version="9.00"
 	Name="dyninstAPI"
 	ProjectGUID="{33F95814-6383-4480-A3F5-B9DC73B1DA1A}"
 	RootNamespace="dyninstAPI"
-	Keyword="ManagedCProj">
+	Keyword="ManagedCProj"
+	TargetFrameworkVersion="131072"
+	>
 	<Platforms>
 		<Platform
-			Name="Win32"/>
+			Name="Win32"
+		/>
 	</Platforms>
+	<ToolFiles>
+	</ToolFiles>
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
 			OutputDirectory="i386-unknown-nt4.0"
 			IntermediateDirectory="i386-unknown-nt4.0"
 			ConfigurationType="2"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
 			CharacterSet="2"
-			ManagedExtensions="FALSE">
+			ManagedExtensions="0"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="./h;..;../external;../dynutil/h;../symtabAPI/h;../instructionAPI/h"
 				PreprocessorDefinitions="WIN32;os_windows;arch_x86;cap_instruction_api;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_async_events;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_tramp_liveness;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;BPATCH_LIBRARY;BPATCH_DLL_BUILD;DLL_BUILD;snprintf=_snprintf"
-				MinimalRebuild="FALSE"
+				MinimalRebuild="false"
 				BasicRuntimeChecks="0"
 				RuntimeLibrary="3"
-				RuntimeTypeInfo="TRUE"
+				RuntimeTypeInfo="true"
 				WarningLevel="3"
 				DebugInformationFormat="3"
-				DisableSpecificWarnings="4251"/>
+				DisableSpecificWarnings="4251"
+			/>
 			<Tool
-				Name="VCCustomBuildTool"/>
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="Psapi.lib dbghelp.lib Ws2_32.lib libcommon.lib libsymtabAPI.lib"
 				OutputFile="$(OutDir)\libdyninstAPI.dll"
 				LinkIncremental="2"
-				SuppressStartupBanner="TRUE"
+				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="../../i386-unknown-nt4.0/lib"
-				IgnoreAllDefaultLibraries="FALSE"
+				IgnoreAllDefaultLibraries="false"
 				IgnoreDefaultLibraryNames=""
-				GenerateDebugInformation="TRUE"
+				GenerateDebugInformation="true"
 				AssemblyDebug="1"
-				ResourceOnlyDLL="FALSE"/>
+				ResourceOnlyDLL="false"
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="0"
+			/>
 			<Tool
-				Name="VCMIDLTool"/>
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCManifestTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCAppVerifierTool"
+			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="echo mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0
-mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0
-echo mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
-mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
-echo copy $(TargetDir)libdyninstAPI.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
-copy $(TargetDir)libdyninstAPI.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
-echo copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
-copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
-"/>
-			<Tool
-				Name="VCPreBuildEventTool"/>
-			<Tool
-				Name="VCPreLinkEventTool"/>
-			<Tool
-				Name="VCResourceCompilerTool"/>
-			<Tool
-				Name="VCWebServiceProxyGeneratorTool"/>
-			<Tool
-				Name="VCXMLDataGeneratorTool"/>
-			<Tool
-				Name="VCWebDeploymentTool"/>
-			<Tool
-				Name="VCManagedWrapperGeneratorTool"/>
-			<Tool
-				Name="VCAuxiliaryManagedWrapperGeneratorTool"/>
+				CommandLine="echo mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0&#x0D;&#x0A;mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0&#x0D;&#x0A;echo mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;echo copy $(TargetDir)libdyninstAPI.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;copy $(TargetDir)libdyninstAPI.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;echo copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;echo mkdir $(TargetDir)..\..\..\include&#x0D;&#x0A;mkdir $(TargetDir)..\..\..\include&#x0D;&#x0A;echo copy $(InputDir)h\*.h $(TargetDir)..\..\..\include&#x0D;&#x0A;copy $(InputDir)h\*.h $(TargetDir)..\..\..\include&#x0D;&#x0A;&#x0D;&#x0A;"
+			/>
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
 			OutputDirectory="i386-unknown-nt4.0"
 			IntermediateDirectory="i386-unknown-nt4.0"
 			ConfigurationType="2"
+			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
 			CharacterSet="2"
-			ManagedExtensions="FALSE">
+			ManagedExtensions="0"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
 			<Tool
 				Name="VCCLCompilerTool"
 				AdditionalIncludeDirectories="./h;..;../external;../dynutil/h;../symtabAPI/h;../instructionAPI/h"
-				PreprocessorDefinitions="WIN32;os_windows;arch_x86;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_async_events;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_tramp_liveness;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;BPATCH_LIBRARY;BPATCH_DLL_BUILD;snprintf=_snprintf"
-				MinimalRebuild="FALSE"
+				PreprocessorDefinitions="WIN32;os_windows;arch_x86;cap_relocation;cap_dynamic_heap;cap_stripped_binaries;cap_instruction_api;cap_async_events;cap_threads;cap_fixpoint_gen;cap_noaddr_gen;cap_tramp_liveness;i386_unknown_nt4_0;_WIN32_WINNT=0x500;DO_INLINE_F=inline;DO_INLINE_P=inline;i386-unknown-nt4.0;BPATCH_LIBRARY;BPATCH_DLL_BUILD;snprintf=_snprintf"
+				MinimalRebuild="false"
 				RuntimeLibrary="0"
 				WarningLevel="3"
-				DebugInformationFormat="3"/>
+				DebugInformationFormat="3"
+			/>
 			<Tool
-				Name="VCCustomBuildTool"/>
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="Psapi.lib dbghelp.lib Ws2_32.lib"
 				OutputFile="$(OutDir)\libdyninstAPI.dll"
 				LinkIncremental="2"
-				SuppressStartupBanner="TRUE"
+				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="../../i386-unknown-nt4.0/lib"
-				GenerateDebugInformation="TRUE"/>
+				GenerateDebugInformation="true"
+				RandomizedBaseAddress="1"
+				DataExecutionPrevention="0"
+			/>
 			<Tool
-				Name="VCMIDLTool"/>
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCManifestTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCAppVerifierTool"
+			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="echo mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0
-mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0
-echo mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
-mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
-echo copy $(TargetDir)libdyninstAPI.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
-copy $(TargetDir)libdyninstAPI.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
-echo copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
-copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
-"/>
-			<Tool
-				Name="VCPreBuildEventTool"/>
-			<Tool
-				Name="VCPreLinkEventTool"/>
-			<Tool
-				Name="VCResourceCompilerTool"/>
-			<Tool
-				Name="VCWebServiceProxyGeneratorTool"/>
-			<Tool
-				Name="VCXMLDataGeneratorTool"/>
-			<Tool
-				Name="VCWebDeploymentTool"/>
-			<Tool
-				Name="VCManagedWrapperGeneratorTool"/>
-			<Tool
-				Name="VCAuxiliaryManagedWrapperGeneratorTool"/>
+				CommandLine="echo mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0&#x0D;&#x0A;mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0&#x0D;&#x0A;echo mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;mkdir $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;echo copy $(TargetDir)libdyninstAPI.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;copy $(TargetDir)libdyninstAPI.dll $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;echo copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib&#x0D;&#x0A;"
+			/>
 		</Configuration>
 	</Configurations>
 	<References>
@@ -136,1619 +183,2354 @@ copy $(TargetDir)libdyninstAPI.lib $(TargetDir)..\..\..\i386-unknown-nt4.0\lib
 		<Filter
 			Name="Source Files"
 			Filter="cpp;c;cxx;def;odl;idl;hpj;bat;asm;asmx"
-			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}">
+			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
+			>
 			<File
-				RelativePath=".\src\addLibrary.C">
+				RelativePath=".\src\addLibrary.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32">
+					Name="Release|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\addressSpace.C">
+				RelativePath=".\src\addressSpace.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\arch-x86.C">
+				RelativePath=".\src\ast.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32">
+					Name="Release|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\arch.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\ast.C">
+				RelativePath=".\src\baseTramp.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32">
+					Name="Release|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\baseTramp.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\binaryEdit.C">
+				RelativePath=".\src\binaryEdit.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\BPatch.C">
+				RelativePath=".\src\BPatch.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32">
+					Name="Release|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\BPatch_addressSpace.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\BPatch_addressSpace.C">
+				RelativePath=".\src\BPatch_addressSpace.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\BPatch_asyncEventHandler.C">
+				RelativePath=".\src\BPatch_addressSpace.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32">
+					Name="Release|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\BPatch_basicBlock.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\BPatch_basicBlockLoop.C">
+				RelativePath=".\src\BPatch_asyncEventHandler.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32">
+					Name="Release|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\BPatch_binaryEdit.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\BPatch_binaryEdit.C">
+				RelativePath=".\src\BPatch_basicBlock.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\BPatch_collections.C">
+				RelativePath=".\src\BPatch_basicBlockLoop.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32">
+					Name="Release|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\BPatch_edge.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\BPatch_eventLock.C">
+				RelativePath=".\src\BPatch_binaryEdit.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32">
+					Name="Release|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\BPatch_flowGraph.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\BPatch_frame.C">
+				RelativePath=".\src\BPatch_binaryEdit.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32">
+					Name="Release|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\BPatch_function.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\BPatch_image.C">
+				RelativePath=".\src\BPatch_collections.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\BPatch_instruction.C">
+				RelativePath=".\src\BPatch_edge.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32">
+					Name="Release|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\BPatch_loopTreeNode.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\BPatch_memoryAccessAdapter.C">
+				RelativePath=".\src\BPatch_eventLock.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						AdditionalOptions="/TP"/>
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\BPatch_module.C">
+				RelativePath=".\src\BPatch_flowGraph.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\BPatch_parRegion.C">
+				RelativePath=".\src\BPatch_frame.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32">
+					Name="Release|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\BPatch_point.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\BPatch_process.C">
+				RelativePath=".\src\BPatch_function.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\BPatch_snippet.C">
+				RelativePath=".\src\BPatch_image.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32">
+					Name="Release|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\BPatch_sourceBlock.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\BPatch_statement.C">
+				RelativePath=".\src\BPatch_instruction.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\BPatch_templates.C">
+				RelativePath=".\src\BPatch_loopTreeNode.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32">
+					Name="Release|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\BPatch_thread.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\BPatch_type.C">
+				RelativePath=".\src\BPatch_memoryAccessAdapter.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\callbacks.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\codeRange.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\debug.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="..\common\src\Dictionary.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\dominator.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\dummy.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\dyn_lwp.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\dyn_thread.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\dynamiclinking.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\emit-x86.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\eventgate.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\EventHandler.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\frame.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\frameChecker.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\function.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\Ia_iapi.c">
-				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
 						AdditionalOptions="/TP"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\IA_x86.C">
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Release|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\IAPI_to_AST.C">
+				RelativePath=".\src\BPatch_module.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\BPatch_parRegion.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\BPatch_point.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\BPatch_process.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\BPatch_snippet.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\BPatch_sourceBlock.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\BPatch_statement.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\BPatch_templates.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\BPatch_thread.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\BPatch_type.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\callbacks.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\codegen-x86.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\codegen.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\codeRange.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\debug.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\common\src\Dictionary.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\dominator.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\dummy.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\dyn_lwp.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\dyn_thread.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\dynamiclinking.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\emit-x86.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\eventgate.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\EventHandler.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\frame.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\frameChecker.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\function.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\hybridCallbacks.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\hybridInstrumentation.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\hybridOverwrites.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\IAPI_to_AST.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
 						AdditionalOptions="/TP"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="..\common\src\Ident.C">
+				RelativePath="..\common\src\Ident.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32">
+					Name="Release|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\image-flowGraph.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\image-func.C">
+				RelativePath=".\src\image-func.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32">
+					Name="Release|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\image-x86.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\infHeap.C">
+				RelativePath=".\src\image-x86.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\inst-winnt.C">
+				RelativePath=".\src\infHeap.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32">
+					Name="Release|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\inst-x86.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\inst.C">
+				RelativePath=".\src\inst-winnt.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32">
+					Name="Release|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\instPoint.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\InstructionAdapter.C">
+				RelativePath=".\src\inst-x86.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\inst.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\instPoint.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\InstructionCache.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\common\src\List.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\mailbox.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\mapped_module.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\mapped_object.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\MapSymbols.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\MemoryAccess.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\miniTramp.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\multiTramp.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\parRegion.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\Parsing-arch.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\Parsing.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\pdwinnt.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\pdwinntDL.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\process.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\RegisterConversion-x86.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
 						AdditionalOptions="/TP"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\InstructionCache.C">
+				RelativePath=".\src\registerSpace.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="..\common\src\List.C">
+				RelativePath=".\src\reloc-func.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						GeneratePreprocessedFile="0"
+						KeepComments="false"
+						CompileAs="2"
+						ShowIncludes="false"
+					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32">
+					Name="Release|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\mailbox.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\mapped_module.C">
+				RelativePath=".\src\replacedInstruction.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32">
+					Name="Release|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\mapped_object.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\MapSymbols.C">
+				RelativePath=".\src\rpcMgr-lwp.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32">
+					Name="Release|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\MemoryAccess.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\miniTramp.C">
+				RelativePath=".\src\rpcMgr-thr.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32">
+					Name="Release|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\multiTramp.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\parRegion.C">
+				RelativePath=".\src\rpcMgr.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32">
+					Name="Release|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\pdwinnt.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\pdwinntDL.C">
+				RelativePath=".\src\signalgenerator.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32">
+					Name="Release|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\process.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\RegisterConversion-x86.C">
+				RelativePath=".\src\signalhandler.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						AdditionalOptions="/TP"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\registerSpace.C">
+				RelativePath=".\src\stackwalk-x86.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\reloc-func.C">
+				RelativePath="..\common\src\String.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32">
+					Name="Release|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\replacedInstruction.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\rpcMgr-lwp.C">
+				RelativePath=".\src\symtab.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32">
+					Name="Release|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\rpcMgr-thr.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\rpcMgr.C">
+				RelativePath=".\src\syscall-nt.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32">
+					Name="Release|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\signalgenerator.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\signalhandler.C">
+				RelativePath=".\src\templates-nt.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32">
+					Name="Release|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\stackwalk-x86.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="..\common\src\String.C">
+				RelativePath=".\src\util.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32">
+					Name="Release|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\symtab.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\syscall-nt.C">
+				RelativePath=".\src\variable.C"
+				>
 				<FileConfiguration
-					Name="Debug|Win32">
+					Name="Debug|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 				<FileConfiguration
-					Name="Release|Win32">
+					Name="Release|Win32"
+					>
 					<Tool
 						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\templates-nt.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\util.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath=".\src\variable.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="TRUE"
-						CompileAs="2"/>
+						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
 				</FileConfiguration>
 			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
-			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}">
+			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
+			>
 			<File
-				RelativePath=".\src\addLibrary.h">
+				RelativePath=".\src\addLibrary.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\addressSpace.h">
+				RelativePath=".\src\addressSpace.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\arch-x86.h">
+				RelativePath=".\src\arch-forward-decl.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\arch.h">
+				RelativePath=".\src\ast.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\ast.h">
+				RelativePath=".\src\baseTramp.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\baseTramp.h">
+				RelativePath=".\h\baseTrampTemplate.h"
+				>
 			</File>
 			<File
-				RelativePath=".\h\baseTrampTemplate.h">
+				RelativePath=".\src\binaryEdit.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\binaryEdit.h">
+				RelativePath=".\h\BPatch.h"
+				>
 			</File>
 			<File
-				RelativePath=".\h\BPatch.h">
+				RelativePath=".\h\BPatch_addressSpace.h"
+				>
 			</File>
 			<File
-				RelativePath=".\h\BPatch_addressSpace.h">
+				RelativePath=".\h\BPatch_addressSpace.h"
+				>
 			</File>
 			<File
-				RelativePath=".\h\BPatch_addressSpace.h">
+				RelativePath=".\src\BPatch_asyncEventHandler.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\BPatch_asyncEventHandler.h">
+				RelativePath=".\h\BPatch_basicBlock.h"
+				>
 			</File>
 			<File
-				RelativePath=".\h\BPatch_basicBlock.h">
+				RelativePath=".\h\BPatch_basicBlockLoop.h"
+				>
 			</File>
 			<File
-				RelativePath=".\h\BPatch_basicBlockLoop.h">
+				RelativePath=".\h\BPatch_binaryEdit.h"
+				>
 			</File>
 			<File
-				RelativePath=".\h\BPatch_binaryEdit.h">
+				RelativePath=".\src\BPatch_collections.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\BPatch_collections.h">
+				RelativePath=".\h\BPatch_dll.h"
+				>
 			</File>
 			<File
-				RelativePath=".\h\BPatch_dll.h">
+				RelativePath=".\h\BPatch_edge.h"
+				>
 			</File>
 			<File
-				RelativePath=".\h\BPatch_edge.h">
+				RelativePath=".\h\BPatch_eventLock.h"
+				>
 			</File>
 			<File
-				RelativePath=".\h\BPatch_eventLock.h">
+				RelativePath=".\h\BPatch_flowGraph.h"
+				>
 			</File>
 			<File
-				RelativePath=".\h\BPatch_flowGraph.h">
+				RelativePath=".\h\BPatch_frame.h"
+				>
 			</File>
 			<File
-				RelativePath=".\h\BPatch_frame.h">
+				RelativePath=".\h\BPatch_function.h"
+				>
 			</File>
 			<File
-				RelativePath=".\h\BPatch_function.h">
+				RelativePath=".\h\BPatch_hybridAnalysis.h"
+				>
 			</File>
 			<File
-				RelativePath=".\h\BPatch_image.h">
+				RelativePath=".\h\BPatch_image.h"
+				>
 			</File>
 			<File
-				RelativePath=".\h\BPatch_instruction.h">
+				RelativePath=".\h\BPatch_instruction.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\BPatch_libInfo.h">
+				RelativePath=".\src\BPatch_libInfo.h"
+				>
 			</File>
 			<File
-				RelativePath=".\h\BPatch_loopTreeNode.h">
+				RelativePath=".\h\BPatch_loopTreeNode.h"
+				>
 			</File>
 			<File
-				RelativePath=".\h\BPatch_memoryAccess_NP.h">
+				RelativePath=".\h\BPatch_memoryAccess_NP.h"
+				>
 			</File>
 			<File
-				RelativePath=".\h\BPatch_module.h">
+				RelativePath=".\h\BPatch_module.h"
+				>
 			</File>
 			<File
-				RelativePath=".\h\BPatch_parRegion.h">
+				RelativePath=".\h\BPatch_parRegion.h"
+				>
 			</File>
 			<File
-				RelativePath=".\h\BPatch_point.h">
+				RelativePath=".\h\BPatch_point.h"
+				>
 			</File>
 			<File
-				RelativePath=".\h\BPatch_process.h">
+				RelativePath=".\h\BPatch_process.h"
+				>
 			</File>
 			<File
-				RelativePath=".\h\BPatch_Set.h">
+				RelativePath=".\h\BPatch_Set.h"
+				>
 			</File>
 			<File
-				RelativePath=".\h\BPatch_snippet.h">
+				RelativePath=".\h\BPatch_snippet.h"
+				>
 			</File>
 			<File
-				RelativePath=".\h\BPatch_sourceBlock.h">
+				RelativePath=".\h\BPatch_sourceBlock.h"
+				>
 			</File>
 			<File
-				RelativePath=".\h\BPatch_sourceObj.h">
+				RelativePath=".\h\BPatch_sourceObj.h"
+				>
 			</File>
 			<File
-				RelativePath=".\h\BPatch_thread.h">
+				RelativePath=".\h\BPatch_thread.h"
+				>
 			</File>
 			<File
-				RelativePath=".\h\BPatch_type.h">
+				RelativePath=".\h\BPatch_type.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\BPatch_typePrivate.h">
+				RelativePath=".\src\BPatch_typePrivate.h"
+				>
 			</File>
 			<File
-				RelativePath=".\h\BPatch_Vector.h">
+				RelativePath=".\h\BPatch_Vector.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\callbacks.h">
+				RelativePath=".\src\callbacks.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\clock.h">
+				RelativePath=".\src\clock.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\codeRange.h">
+				RelativePath=".\src\codegen-x86.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\debug.h">
+				RelativePath=".\src\codegen.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\debuggerinterface.h">
+				RelativePath=".\src\codeRange.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\deviceStructs.h">
+				RelativePath=".\src\debug.h"
+				>
 			</File>
 			<File
-				RelativePath="..\common\h\Dictionary.h">
+				RelativePath=".\src\debuggerinterface.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\dominator.h">
+				RelativePath=".\src\deviceStructs.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\dyn_lwp.h">
+				RelativePath="..\common\h\Dictionary.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\dyn_thread.h">
+				RelativePath=".\src\dominator.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\dynamiclinking.h">
+				RelativePath=".\src\dyn_lwp.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\dyninst.h">
+				RelativePath=".\src\dyn_thread.h"
+				>
 			</File>
 			<File
-				RelativePath="..\dynutil\h\dyntypes.h">
+				RelativePath=".\src\dynamiclinking.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\editSharedLibrary.h">
+				RelativePath=".\src\dyninst.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\emit-x86.h">
+				RelativePath="..\dynutil\h\dyntypes.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\eventgate.h">
+				RelativePath=".\src\editSharedLibrary.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\EventHandler.h">
+				RelativePath=".\src\emit-x86.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\frame.h">
+				RelativePath=".\src\eventgate.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\frameChecker.h">
+				RelativePath=".\src\EventHandler.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\function.h">
+				RelativePath=".\src\frame.h"
+				>
 			</File>
 			<File
-				RelativePath="..\common\h\Ident.h">
+				RelativePath=".\src\frameChecker.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\image-func.h">
+				RelativePath=".\src\function.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\imageUpdate.h">
+				RelativePath=".\src\hybridAnalysis.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\inferiorRPC.h">
+				RelativePath="..\common\h\Ident.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\infHeap.h">
+				RelativePath=".\src\image-func.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\inst-x86.h">
+				RelativePath=".\src\imageUpdate.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\inst.h">
+				RelativePath=".\src\inferiorRPC.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\instP.h">
+				RelativePath=".\src\infHeap.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\instPoint.h">
+				RelativePath=".\src\inst-x86.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\InstrucIter-Function.h">
+				RelativePath=".\src\inst.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\InstructionCache.h">
+				RelativePath=".\src\instP.h"
+				>
 			</File>
 			<File
-				RelativePath="..\common\h\List.h">
+				RelativePath=".\src\instPoint.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\mailbox.h">
+				RelativePath=".\src\InstrucIter-Function.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\mapped_module.h">
+				RelativePath=".\src\InstructionCache.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\mapped_object.h">
+				RelativePath="..\common\h\List.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\MapSymbols.h">
+				RelativePath=".\src\mailbox.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\miniTramp.h">
+				RelativePath=".\src\mapped_module.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\multiTramp.h">
+				RelativePath=".\src\mapped_object.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\nt_signal_emul.h">
+				RelativePath=".\src\MapSymbols.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\ntDL.h">
+				RelativePath=".\src\miniTramp.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\NTTypes.h">
+				RelativePath=".\src\multiTramp.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\os.h">
+				RelativePath=".\src\nt_signal_emul.h"
+				>
 			</File>
 			<File
-				RelativePath="..\common\h\Pair.h">
+				RelativePath=".\src\ntDL.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\parRegion.h">
+				RelativePath=".\src\NTTypes.h"
+				>
 			</File>
 			<File
-				RelativePath="..\common\h\pathName.h">
+				RelativePath=".\src\os.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\pdwinnt.h">
+				RelativePath="..\common\h\Pair.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\process.h">
+				RelativePath=".\src\parRegion.h"
+				>
 			</File>
 			<File
-				RelativePath="..\common\h\refCounter.h">
+				RelativePath=".\src\Parsing.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\registerSpace.h">
+				RelativePath="..\common\h\pathName.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\reloc-func.h">
+				RelativePath=".\src\pdwinnt.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\replacedInstruction.h">
+				RelativePath=".\src\process.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\rpcMgr.h">
+				RelativePath="..\common\h\refCounter.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\saveSharedLibrary.h">
+				RelativePath=".\src\registerSpace.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\showerror.h">
+				RelativePath=".\src\reloc-func.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\signalgenerator-winnt.h">
+				RelativePath=".\src\replacedInstruction.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\signalgenerator.h">
+				RelativePath=".\src\rpcMgr.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\signalhandler-winnt.h">
+				RelativePath=".\src\saveSharedLibrary.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\signalhandler.h">
+				RelativePath=".\src\showerror.h"
+				>
 			</File>
 			<File
-				RelativePath="..\common\h\String.h">
+				RelativePath=".\src\signalgenerator-winnt.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\symtab.h">
+				RelativePath=".\src\signalgenerator.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\syscallNotification.h">
+				RelativePath=".\src\signalhandler-winnt.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\syscalltrap.h">
+				RelativePath=".\src\signalhandler.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\trapMappings.h">
+				RelativePath="..\common\h\String.h"
+				>
 			</File>
 			<File
-				RelativePath="..\dynutil\h\util.h">
+				RelativePath=".\src\symtab.h"
+				>
 			</File>
 			<File
-				RelativePath="..\common\h\Vector.h">
+				RelativePath=".\src\syscallNotification.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\w32CONTEXT.h">
+				RelativePath=".\src\syscalltrap.h"
+				>
 			</File>
 			<File
-				RelativePath=".\src\wincetypes.h">
+				RelativePath=".\src\trapMappings.h"
+				>
+			</File>
+			<File
+				RelativePath="..\dynutil\h\util.h"
+				>
+			</File>
+			<File
+				RelativePath="..\common\h\Vector.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\w32CONTEXT.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\wincetypes.h"
+				>
 			</File>
 		</Filter>
 	</Files>

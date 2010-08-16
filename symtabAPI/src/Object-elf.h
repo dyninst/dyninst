@@ -69,6 +69,7 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 
+class DwarfSW;
 
 namespace Dyninst{
 namespace SymtabAPI{
@@ -286,35 +287,23 @@ class Symtab;
 class Region;
 class Object;
 
-typedef struct {
-  Dwarf_Fde *fde_data;
-  Dwarf_Signed fde_count;
-  Dwarf_Cie *cie_data;
-  Dwarf_Signed cie_count;   
-} fde_cie_data;
-
 class DwarfHandle {
    friend class Object;
  private:
+   DwarfSW *sw;
+   Object *obj;
    typedef enum {
       dwarf_status_uninitialized,
       dwarf_status_error,
       dwarf_status_ok
    } dwarf_status_t;
-   dwarf_status_t fde_dwarf_status;
    dwarf_status_t init_dwarf_status;
-
-   std::vector<fde_cie_data> fde_data;
    Dwarf_Debug dbg_data;
-   Object *obj;
-
  public:
   DwarfHandle(Object *obj_);
   ~DwarfHandle();
 
-
   Dwarf_Debug *dbg();
-  void setupFdeData();
 };
 
 class Object : public AObject {
@@ -370,9 +359,7 @@ class Object : public AObject {
 
 //TODO Later - change this #ifdef later.. make getTOCoffset available for all platforms  
 
-#if defined(arch_ia64)
-  Offset getTOCoffset() const { return gp; }
-#elif defined(os_linux) && defined(arch_power) && defined(arch_64bit)
+#if defined(os_linux) && defined(arch_power) && defined(arch_64bit)
   // 64-bit PowerPC ELF ABI Supplement, Version 1.9, 2004-10-23:
   //   The TOC section contains a conventional ELF GOT, and may optionally
   //   contain a small data area.
@@ -409,6 +396,8 @@ class Object : public AObject {
 	    return false;
 	}
 
+   Dyninst::Architecture getArch();
+
 	bool is_offset_in_plt(Offset offset) const;
     Elf_X_Shdr *getRegionHdrByAddr(Offset addr);
     int getRegionHdrIndexByAddr(Offset addr);
@@ -420,7 +409,7 @@ class Object : public AObject {
                             Dyninst::MachRegisterVal &reg_result,
                             MemRegReader *reader);
     bool hasFrameDebugInfo();
-
+    
     bool convertDebugOffset(Offset off, Offset &new_off);
 
     std::vector< std::vector<Offset> > getMoveSecAddrRange() const {return moveSecAddrRange;};
@@ -430,6 +419,9 @@ class Object : public AObject {
     bool hasReladyn() const {return hasReladyn_;}
     bool hasRelplt() const {return hasRelplt_;}
     bool hasRelaplt() const {return hasRelaplt_;}
+    bool isBlueGene() const {return isBlueGene_;}
+    bool hasNoteSection() const {return hasNoteSection_;}
+    Region::RegionType getRelType() const { return relType_; }
 
     Offset getTextAddr() const {return text_addr_;}
     Offset getSymtabAddr() const {return symtab_addr_;}
@@ -449,6 +441,9 @@ class Object : public AObject {
     Offset getInitAddr() const {return init_addr_; }
     Offset getFiniAddr() const { return fini_addr_; }
 
+    virtual void setTruncateLinePaths(bool value);
+    virtual bool getTruncateLinePaths();
+
   private:
   static void log_elferror (void (*)(const char *), const char *);
     
@@ -465,6 +460,10 @@ class Object : public AObject {
   bool hasReladyn_;
   bool hasRelplt_;
   bool hasRelaplt_;
+  Region::RegionType relType_;
+
+  bool isBlueGene_;
+  bool hasNoteSection_;
 
   Offset   elf_hash_addr_; 	 //.hash section 
   Offset   gnu_hash_addr_; 	 //.gnu.hash section 
@@ -513,9 +512,6 @@ class Object : public AObject {
 
   DwarfHandle dwarf;
 
-#if defined(arch_ia64)
-  Offset   gp;			 // The gp for this object.
-#endif
   bool      EEL;                 // true if EEL rewritten
   bool 	    did_open;		// true if the file has been mmapped
   ObjectType obj_type_;

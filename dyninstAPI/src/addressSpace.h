@@ -36,10 +36,11 @@
 
 #include "infHeap.h"
 #include "codeRange.h"
-#include "InstructionSource.h"
 #include "ast.h"
 #include "symtabAPI/h/Symtab.h"
 #include "dyninstAPI/src/trapMappings.h"
+
+#include "parseAPI/h/InstructionSource.h"
 
 class codeRange;
 class multiTramp;
@@ -61,7 +62,7 @@ class generatedCodeObject;
 class fileDescriptor;
 
 using namespace Dyninst;
-using namespace SymtabAPI;
+//using namespace SymtabAPI;
 
 class int_function;
 class int_symbol;
@@ -142,9 +143,6 @@ class AddressSpace : public InstructionSource {
 
     bool isInferiorAllocated(Address block);
 
-    // Get the pointer size of the app we're modifying
-    virtual unsigned getAddressWidth() const = 0;
-
     // We need a mechanism to track what exists at particular addresses in the
     // address space - both for lookup and to ensure that there are no collisions.
     // We have a multitude of ways to "muck with" the application (function replacement,
@@ -162,9 +160,16 @@ class AddressSpace : public InstructionSource {
 
     bool getDyninstRTLibName();
 
-    virtual void *getPtrToInstruction(Address) const;
-    virtual bool isValidAddress(const Address &) const;
-    virtual bool isExecutableAddress(const Address &) const;
+    // InstructionSource 
+    virtual bool isValidAddress(const Address) const;
+    virtual void *getPtrToInstruction(const Address) const;
+    virtual void *getPtrToData(const Address) const;
+    virtual unsigned getAddressWidth() const = 0;
+    virtual bool isCode(const Address) const;
+    virtual bool isData(const Address) const;
+    virtual Address offset() const = 0;
+    virtual Address length() const = 0;
+    virtual Architecture getArch() const = 0;
 
     // Trap address to base tramp address (for trap instrumentation)
     trampTrapMappings trapMapping;
@@ -247,6 +252,9 @@ class AddressSpace : public InstructionSource {
     // checks if 'addr' is a jump to a function.
     int_function *findJumpTargetFuncByAddr(Address addr);
     
+    // true if the addrs are in the same object and region within the object
+    bool sameRegion(Dyninst::Address addr1, Dyninst::Address addr2);
+
     // findModule: returns the module associated with "mod_name" 
     // this routine checks both the a.out image and any shared object 
     // images for this module
@@ -272,7 +280,7 @@ class AddressSpace : public InstructionSource {
     const pdvector<mapped_object *> &mappedObjects() { return mapped_objects;  } 
 
     // And a shortcut pointer
-    pdvector<mapped_object *> runtime_lib;
+    std::set<mapped_object *> runtime_lib;
     // ... and keep the name around
     std::string dyninstRT_name;
     
@@ -303,7 +311,7 @@ class AddressSpace : public InstructionSource {
                                 pdvector<AstNodePtr> &args);
 
     // Default to "nope"
-    virtual bool hasBeenBound(const relocationEntry &, 
+    virtual bool hasBeenBound(const SymtabAPI::relocationEntry &, 
                               int_function *&, 
                               Address) { return false; }
     

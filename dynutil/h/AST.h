@@ -65,7 +65,7 @@ class ASTVisitor;
  class AST;
 
  // SymEval...
- namespace SymbolicEvaluation {
+ namespace DataflowAPI {
  class BottomAST;
  class ConstantAST;
  class VariableAST;
@@ -78,19 +78,11 @@ class ASTVisitor;
 
  // Codegen...
 
- class ASTVisitor {
- public:
-   typedef dyn_detail::boost::shared_ptr<AST> ASTPtr;
-   virtual ASTPtr visit(AST *) = 0;
-   virtual ASTPtr visit(SymbolicEvaluation::BottomAST *) = 0;
-   virtual ASTPtr visit(SymbolicEvaluation::ConstantAST *) = 0;
-   virtual ASTPtr visit(SymbolicEvaluation::VariableAST *) = 0;
-   virtual ASTPtr visit(SymbolicEvaluation::RoseAST *) = 0;
-   virtual ASTPtr visit(StackAST *) = 0;
-
-   virtual ~ASTVisitor() {};
- };
-
+ // Concolic execution...
+ class InputVariableAST;
+ class ReferenceAST;
+ class StpAST;
+ class YicesAST;
 
 #define DEF_AST_LEAF_TYPE(name, type)					\
 class name : public AST {						\
@@ -165,7 +157,7 @@ class name : public AST {						\
   Children kids_;							\
  };									\
 
-class AST : public dyn_detail::boost::enable_shared_from_this<AST> {
+class COMMON_EXPORT AST : public dyn_detail::boost::enable_shared_from_this<AST> {
  public:
 
   // This is a global list of all AST types, including those that are not
@@ -180,7 +172,12 @@ class AST : public dyn_detail::boost::enable_shared_from_this<AST> {
     V_VariableAST,
     V_RoseAST,
     // Stack analysis
-    V_StackAST } ID;
+    V_StackAST,
+    // Concolic execution
+    V_InputVariableAST,
+    V_ReferenceAST,
+    V_StpAST,
+    V_YicesAST } ID;
 
   typedef dyn_detail::boost::shared_ptr<AST> Ptr;
   typedef std::vector<AST::Ptr> Children;      
@@ -210,7 +207,7 @@ class AST : public dyn_detail::boost::enable_shared_from_this<AST> {
   virtual ID getID() const { return V_AST; };
 
   // VISITOR wooo....
-  virtual Ptr accept(ASTVisitor *v) { return v->visit(this); }
+  virtual Ptr accept(ASTVisitor *);
 
   Ptr ptr() { return shared_from_this(); }
 
@@ -221,6 +218,23 @@ class AST : public dyn_detail::boost::enable_shared_from_this<AST> {
  protected:
   virtual bool isStrictEqual(const AST &rhs) const = 0;
 };
+
+ class COMMON_EXPORT ASTVisitor {
+ public:
+   typedef dyn_detail::boost::shared_ptr<AST> ASTPtr;
+   virtual ASTPtr visit(AST *) {return AST::Ptr();};
+   virtual ASTPtr visit(DataflowAPI::BottomAST *) {return AST::Ptr();};
+   virtual ASTPtr visit(DataflowAPI::ConstantAST *) {return AST::Ptr();};
+   virtual ASTPtr visit(DataflowAPI::VariableAST *) {return AST::Ptr();};
+   virtual ASTPtr visit(DataflowAPI::RoseAST *) {return AST::Ptr();};
+   virtual ASTPtr visit(StackAST *) {return AST::Ptr();};
+   virtual ASTPtr visit(InputVariableAST *) {return AST::Ptr();};
+   virtual ASTPtr visit(ReferenceAST *) {return AST::Ptr();};
+   virtual ASTPtr visit(StpAST *) {return AST::Ptr();};
+   virtual ASTPtr visit(YicesAST *) {return AST::Ptr();};
+
+   virtual ~ASTVisitor() {};
+ };
 
 }
 #endif // AST_H

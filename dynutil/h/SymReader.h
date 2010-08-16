@@ -55,6 +55,13 @@ typedef struct {
 } Symbol_t;
 
 typedef struct {
+   void *v1;
+   void *v2;
+   int i1;
+   int i2;
+} Section_t;
+
+typedef struct {
    Dyninst::Offset file_offset;
    Dyninst::Address mem_addr;
    size_t file_size;
@@ -84,7 +91,15 @@ class SymReader
 
    virtual Dyninst::Offset getSymbolOffset(const Symbol_t &sym) = 0;
    virtual std::string getSymbolName(const Symbol_t &sym) = 0;
+   virtual std::string getDemangledName(const Symbol_t &sym) = 0;
+   virtual unsigned long getSymbolSize(const Symbol_t &sym) = 0;
    virtual bool isValidSymbol(const Symbol_t &sym) = 0;
+
+   virtual Section_t getSectionByName(std::string name) = 0;
+   virtual Section_t getSectionByAddress(Dyninst::Address addr) = 0;
+   virtual Dyninst::Address getSectionAddress(Section_t sec) = 0;
+   virtual std::string getSectionName(Section_t sec) = 0;
+   virtual bool isValidSection(Section_t sec) = 0;
 
    virtual Dyninst::Offset imageOffset() = 0;
    virtual Dyninst::Offset dataOffset() = 0;
@@ -96,6 +111,7 @@ class SymbolReaderFactory
    SymbolReaderFactory() {};
    virtual ~SymbolReaderFactory() {};
    virtual SymReader *openSymbolReader(std::string pathname) = 0;
+   virtual SymReader *openSymbolReader(const char *buffer, unsigned long size) = 0;
    virtual bool closeSymbolReader(SymReader *sr) = 0;
 };
 

@@ -168,6 +168,7 @@ static void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type) {
                 thread, parentThread, childThread);
         assert(0 && "Unexpected BPatch_thread in exitFunc");
     }
+    thread->continueExecution();
     return;
 }
 
@@ -202,6 +203,7 @@ static test_results_t mutatorTest(BPatch *bpatch, BPatch_thread *appThread)
     {
        bpatch->waitForStatusChange();
     }
+    //parentThread->getProcess()->terminateExecution();
 
     // At this point if childThread == NULL the postfork handler failed
     // to run.  Fail gracefully instead of segfaulting on 
@@ -216,6 +218,7 @@ static test_results_t mutatorTest(BPatch *bpatch, BPatch_thread *appThread)
     {
        bpatch->waitForStatusChange();
     }
+    //childThread->getProcess()->terminateExecution();
 
     if (passedTest) {
       return PASSED;

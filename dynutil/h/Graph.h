@@ -53,7 +53,7 @@ class Node;
 class NodeIterator;
 class EdgeIterator;
     
-class Graph : public AnnotatableSparse {
+class COMMON_EXPORT Graph : public AnnotatableSparse {
     friend class Edge;
     friend class Node;
     friend class Creator;
@@ -115,6 +115,9 @@ class Graph : public AnnotatableSparse {
     
     virtual void insertEntryNode(NodePtr entry);
     virtual void insertExitNode(NodePtr exit);
+
+    virtual void markAsEntryNode(NodePtr entry);
+    virtual void markAsExitNode(NodePtr exit);
 
     void deleteNode(NodePtr node);
 

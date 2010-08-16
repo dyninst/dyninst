@@ -58,9 +58,9 @@
 #include "BPatch_function.h"
 #include "callbacks.h"
 #include "BPatch_module.h"
-
+#include "hybridAnalysis.h"
 #include "BPatch_private.h"
-
+#include "parseAPI/h/CFG.h"
 #include "ast.h"
 #include "debug.h"
 
@@ -95,14 +95,15 @@ int BPatch_process::getPidInt()
  *              environment variables for the new process, terminated by a
  *              NULL pointer.  If NULL, the default environment will be used.
  */
-BPatch_process::BPatch_process(const char *path, const char *argv[], const char **envp,
+BPatch_process::BPatch_process(const char *path, const char *argv[], 
+                               BPatch_hybridMode mode, const char **envp,
                                int stdin_fd, int stdout_fd, int stderr_fd)
    : llproc(NULL), lastSignal(-1), exitCode(-1), 
      exitedNormally(false), exitedViaSignal(false), mutationsActive(true), 
      createdViaAttach(false), detached(false), unreportedStop(false), 
      unreportedTermination(false), terminated(false), reportedExit(false),
      unstartedRPC(false), activeOneTimeCodes_(0),
-     resumeAfterCompleted_(false)    
+     resumeAfterCompleted_(false), hybridAnalysis_(NULL)
 {
    image = NULL;
    pendingInsertions = NULL;
@@ -177,7 +178,7 @@ BPatch_process::BPatch_process(const char *path, const char *argv[], const char 
    }
    
    std::string spath(path);
-   llproc = ll_createProcess(spath, &argv_vec, (envp ? &envp_vec : NULL), 
+   llproc = ll_createProcess(spath, &argv_vec, mode, (envp ? &envp_vec : NULL),
                              directoryName, stdin_fd, stdout_fd, stderr_fd);
    if (llproc == NULL) { 
       BPatch::bpatch->reportError(BPatchFatal, 68, 
@@ -207,6 +208,11 @@ BPatch_process::BPatch_process(const char *path, const char *argv[], const char 
    image = new BPatch_image(this);
 
    assert(llproc->isBootstrappedYet());
+
+   assert(BPatch_heuristicMode != llproc->getHybridMode());
+   if ( BPatch_normalMode != mode ) {
+       hybridAnalysis_ = new HybridAnalysis(llproc->getHybridMode(),this);
+   }
 
    // Let's try to profile memory usage
 #if defined(PROFILE_MEM_USAGE)
@@ -275,12 +281,14 @@ bool LinuxConsideredHarmful(pid_t pid)
  * path		Pathname of the executable file for the process.
  * pid		Process ID of the target process.
  */
-BPatch_process::BPatch_process(const char *path, int pid)
+BPatch_process::BPatch_process
+(const char *path, int pid, BPatch_hybridMode mode)
    : llproc(NULL), lastSignal(-1), exitCode(-1), 
      exitedNormally(false), exitedViaSignal(false), mutationsActive(true), 
      createdViaAttach(true), detached(false), unreportedStop(false), 
      unreportedTermination(false), terminated(false), reportedExit(false),
-     unstartedRPC(false), activeOneTimeCodes_(0), resumeAfterCompleted_(false)
+     unstartedRPC(false), activeOneTimeCodes_(0), resumeAfterCompleted_(false),
+     hybridAnalysis_(NULL)
 {
    image = NULL;
    pendingInsertions = NULL;
@@ -314,7 +322,7 @@ BPatch_process::BPatch_process(const char *path, int pid)
    std::string spath = path ? std::string(path) : std::string();
     startup_printf("%s[%d]:  attaching to process %s/%d\n", FILE__, __LINE__, 
           path ? path : "no_path", pid);
-   llproc = ll_attachProcess(spath, pid, this);
+   llproc = ll_attachProcess(spath, pid, this, mode);
    if (!llproc) {
       BPatch::bpatch->unRegisterProcess(pid, this);
       BPatch::bpatch->reportError(BPatchFatal, 68, 
@@ -336,6 +344,11 @@ BPatch_process::BPatch_process(const char *path, int pid)
    assert(llproc->status() == stopped);
 
    isAttemptingAStop = false;
+
+   assert(BPatch_heuristicMode != llproc->getHybridMode());
+   if ( BPatch_normalMode != mode ) {
+       hybridAnalysis_ = new HybridAnalysis(llproc->getHybridMode(),this);
+   }
 }
 
 /*
@@ -352,7 +365,7 @@ BPatch_process::BPatch_process(process *nProc)
      createdViaAttach(true), detached(false),
      unreportedStop(false), unreportedTermination(false), terminated(false),
      reportedExit(false), unstartedRPC(false), activeOneTimeCodes_(0),
-     resumeAfterCompleted_(false)
+     resumeAfterCompleted_(false), hybridAnalysis_(NULL)
 {
    // Add this object to the list of threads
    assert(BPatch::bpatch != NULL);
@@ -441,6 +454,10 @@ void BPatch_process::BPatch_process_dtor()
        }
    }
    
+   if (NULL != hybridAnalysis_) {
+       delete hybridAnalysis_;
+   }
+
    delete llproc;
    llproc = NULL;
    assert(BPatch::bpatch != NULL);
@@ -1178,13 +1195,19 @@ bool BPatch_process::finalizeInsertionSetInt(bool atomic, bool *modified)
    // as it modifies stacks.
 
     if (modified) *modified = false; 
-    for (unsigned ptIter = 0; ptIter < pts.size(); ptIter++) {
-        instPoint *pt = pts[ptIter];
-        for (unsigned thrIter = 0; thrIter < stacks.size(); thrIter++) {
-            for (unsigned sIter = 0; sIter < stacks[thrIter].size(); sIter++) {
-                if (pt->instrSideEffect(stacks[thrIter][sIter]))
+    for (unsigned thrIter = 0; thrIter < stacks.size(); thrIter++) {
+        for (unsigned sIter = 0; sIter < stacks[thrIter].size(); sIter++) {
+            bool fixedFrame = false;
+            for (unsigned ptIter = 0; 
+                 !fixedFrame && ptIter < pts.size(); 
+                 ptIter++) 
+            {
+                instPoint *pt = pts[ptIter];
+                if (pt->instrSideEffect(stacks[thrIter][sIter])) {
                     if (modified) *modified = true;
-             }
+                    fixedFrame = true;
+                }
+            }
         }
     }
 
@@ -1303,6 +1326,8 @@ bool BPatch_process::finalizeInsertionSetWithCatchupInt(bool atomic, bool *modif
                    case functionExit: point_type = "funcExit"; break;
                    case callSite: point_type = "callSite"; break;
                    case otherPoint: point_type = "otherPoint"; break;
+                   case abruptEnd: point_type = "abruptEnd"; break;
+                   default: assert(0);
                    }
                    int_function *f = pt->func();
                    const char *point_func = f->prettyName().c_str();
@@ -2036,11 +2061,7 @@ BPatch_thread *BPatch_process::createOrUpdateBPThread(
       threads.push_back(bpthr);
 
    BPatch_function *initial_func = NULL;
-#if defined(arch_ia64)
-   bpthr->llthread->update_sfunc_indir(start_addr);
-#else
    initial_func = getImage()->findFunction(start_addr);
-#endif
 
    if (!initial_func) {
      //fprintf(stderr, "%s[%d][%s]:  WARNING:  no function at %p found for thread\n",
@@ -2160,6 +2181,17 @@ BPatch_thread *BPatch_process::handleThreadCreate(unsigned index, int lwpid,
   return newthr;
 }
 
+
+// Return true if any sub-minitramp uses a trap? Other option
+// is "if all"...
+bool BPatchSnippetHandle::usesTrapInt() {
+    for (unsigned i = 0; i < mtHandles_.size(); i++) {
+        if (mtHandles_[i]->instrumentedViaTrap())
+            return true;
+    }
+    return false;
+}
+
 /* BPatch::triggerStopThread
  *
  * Causes the execution of a callback in the mutator that was
@@ -2187,18 +2219,17 @@ bool BPatch_process::triggerStopThread(instPoint *intPoint,
 {
     // find the BPatch_point corresponding to the instrumentation point
     BPatch_function *bpFunc = findOrCreateBPFunc(intFunc, NULL);
-    BPatch_point *bpPoint;
-    if (intPoint->getPointType() == callSite) {
-        bpPoint = findOrCreateBPPoint(bpFunc, intPoint, BPatch_locSubroutine);
-    } else {
-        bpPoint = findOrCreateBPPoint(bpFunc, intPoint, BPatch_locLongJump);
+    BPatch_procedureLocation bpPointType = 
+        BPatch_point::convertInstPointType_t(intPoint->getPointType());
+    BPatch_point *bpPoint = findOrCreateBPPoint(bpFunc, intPoint, bpPointType);
+    if (!bpPoint) { 
+        return false; 
     }
-    if (!bpPoint) { return false; }
 
     // trigger all callbacks matching the snippet and event type
     pdvector<CallbackBase *> cbs;
     getCBManager()->dispenseCallbacksMatching(evtStopThread,cbs);
-    BPatch::bpatch->signalNotificationFD();
+    BPatch::bpatch->signalNotificationFD();//KEVINTODO: is this necessary for synchronous callbacks?
     StopThreadCallback *cb;    
     for (unsigned i = 0; i < cbs.size(); ++i) {
         cb = dynamic_cast<StopThreadCallback *>(cbs[i]);
@@ -2228,12 +2259,9 @@ bool BPatch_process::triggerSignalHandlerCB(instPoint *intPoint,
 {
     // find the BPatch_point corresponding to the exception-raising instruction
     BPatch_function *bpFunc = findOrCreateBPFunc(intFunc, NULL);
-    BPatch_point *bpPoint;
-    if (intPoint->getPointType() == callSite) {
-        bpPoint = findOrCreateBPPoint(bpFunc, intPoint, BPatch_locSubroutine);
-    } else {
-        bpPoint = findOrCreateBPPoint(bpFunc, intPoint, BPatch_locLongJump);
-    }
+    BPatch_procedureLocation bpPointType = 
+        BPatch_point::convertInstPointType_t(intPoint->getPointType());
+    BPatch_point *bpPoint = findOrCreateBPPoint(bpFunc, intPoint, bpPointType);
     if (!bpPoint) { return false; }
     // trigger all callbacks for this signal
     pdvector<CallbackBase *> cbs;
@@ -2251,14 +2279,39 @@ bool BPatch_process::triggerSignalHandlerCB(instPoint *intPoint,
     return foundCallback;
 }
 
-// Return true if any sub-minitramp uses a trap? Other option
-// is "if all"...
-bool BPatchSnippetHandle::usesTrapInt() {
-    for (unsigned i = 0; i < mtHandles_.size(); i++) {
-        if (mtHandles_[i]->instrumentedViaTrap())
-            return true;
+/* BPatch::triggerCodeOverwriteCB
+ *
+ * Grabs BPatch level objects for the instPoint and enclosing function
+ * and triggers a registered callback if there is one 
+ *
+ * @intPoint: the instPoint at which the event occurred, will be
+ * wrapped in a BPatch_point and sent to the callback as a parameter
+ *
+ * Return Value: true if a matching callback was found and no error occurred
+ */
+bool BPatch_process::triggerCodeOverwriteCB(Address fault_instr, Address viol_target)
+{
+    // trigger the callback if it exists
+    pdvector<CallbackBase *> cbs;
+    if ( ! getCBManager()->dispenseCallbacksMatching(evtCodeOverwrite,cbs) ) {
+        return false;
     }
-    return false;
+    BPatch::bpatch->signalNotificationFD();
+    bool foundCallback = false;
+    for (unsigned int i = 0; i < cbs.size(); ++i) {
+        CodeOverwriteCallback *cb = 
+            dynamic_cast<CodeOverwriteCallback *>(cbs[i]);
+        if (cb) { // found the callback
+            foundCallback = true;
+            BPatch_function *func = findOrCreateBPFunc
+                (llproc->findActiveFuncByAddr(fault_instr),NULL);
+            assert(func);
+            BPatch_point *fault_point = image->createInstPointAtAddr
+                ((void*)fault_instr, NULL, func);
+            (*cb)(fault_point, viol_target, lowlevel_process());
+        }
+    }
+    return foundCallback;
 }
 
 /* This is a Windows only function that sets the user-space
@@ -2268,12 +2321,439 @@ bool BPatchSnippetHandle::usesTrapInt() {
  * will say that it is not because they merely return the value of the
  * user-space beingDebugged flag. 
  */
-bool BPatch_process::setBeingDebuggedFlagInt(bool debuggerPresent)
+bool BPatch_process::hideDebuggerInt()
 {
-#if defined (os_windows)
-    return llproc->setBeingDebuggedFlag(debuggerPresent);
-#else
-    return false && debuggerPresent; // using arg to remove compiler warning :)
-#endif
+    bool retval = llproc->hideDebugger();
+    // disable API calls
+    BPatch_module *kern = image->findModule("kernel32.dll");
+    if (kern) { // should only succeed on windows
+        // CheckRemoteDebuggerPresent
+        vector<BPatch_function*> funcs;
+        kern->findFunction(
+            "CheckRemoteDebuggerPresent",
+            funcs, false, false, true);
+        assert (funcs.size());
+        Address entry = (Address)funcs[0]->getBaseAddr();
+        unsigned char patch[3];
+        patch[0] = 0x33; //xor eax,eax
+        patch[1] = 0xc0;
+        patch[2] = 0xc3; // retn
+        llproc->writeDataSpace((void*)entry,3,&patch);
+        funcs.clear();
+
+        // OutputDebugStringA
+        kern->findFunction("OutputDebugStringA",
+            funcs, false, false, true);
+        assert(funcs.size());
+        vector<BPatch_function*> sle_funcs;
+        kern->findFunction(
+            "SetLastError",
+            sle_funcs, false, false, true);
+        if ( sle_funcs.size() ) {
+            // KEVINTODO: I'm not finding this function, so I'm not safe from 
+            // the anti-debug tactic
+            vector<BPatch_snippet*> args;
+            BPatch_constExpr lasterr(1);
+            args.push_back(&lasterr);
+            BPatch_funcCallExpr callSLE (*(sle_funcs[0]), args);
+            vector<BPatch_point*> *exitPoints = sle_funcs[0]->findPoint(BPatch_exit);
+            beginInsertionSet();
+            for (unsigned i=0; i < exitPoints->size(); i++) {
+                insertSnippet( callSLE, *((*exitPoints)[i]) );
+            }
+            finalizeInsertionSet(false);
+        }
+    } 
+    return retval;
 }
 
+bool BPatch_process::setMemoryAccessRights
+(Address start, Address size, int rights)
+{
+    mal_printf("setMemoryAccessRights to %d [%lx %lx]\n", rights, start, start+size);
+    // get lwp from which we can call changeMemoryProtections
+    dyn_lwp *stoppedlwp = llproc->query_for_stopped_lwp();
+    if ( ! stoppedlwp ) {
+        bool wasRunning = true;
+        stoppedlwp = llproc->stop_an_lwp(&wasRunning);
+        if ( ! stoppedlwp ) {
+        return false;
+        }
+    }
+    stoppedlwp->changeMemoryProtections(start, size, rights);
+    return true;
+}
+
+unsigned char * BPatch_process::makeShadowPage(Dyninst::Address pageAddress)
+{
+    unsigned pagesize = llproc->getMemoryPageSize();
+    unsigned char* buf = (unsigned char*) ::malloc(pagesize);
+    pageAddress = (pageAddress / pagesize) * pagesize;
+    llproc->readDataSpace((void*)pageAddress, pagesize, buf,true);
+    return buf;
+}
+
+
+// return true if the analysis changed
+// 
+void BPatch_process::overwriteAnalysisUpdate
+    ( std::map<Dyninst::Address,unsigned char*>& owPages, //input
+      std::vector<Dyninst::Address>& deadBlockAddrs, //output
+      std::vector<BPatch_function*>& owFuncs, //output: overwritten & modified
+      bool &changedPages, bool &changedCode) //output
+{
+    std::map<Address,Address> owRegions;
+    std::set<bblInstance *>   owBBIs;
+    std::set<int_function*>   owIntFuncs;
+    std::set<int_function*>   deadFuncs;
+
+    //1.  get the overwritten blocks and regions
+    llproc->getOverwrittenBlocks(owPages, owRegions, owBBIs);
+    changedPages = (bool) owRegions.size();
+    changedCode = (bool) owBBIs.size();
+
+    if ( !changedCode ) {
+        return;
+    }
+
+    /*2. update the analysis */
+
+    llproc->updateActiveMultis();
+
+    //2. update the mapped data for the overwritten ranges
+    llproc->updateMappedFile(owPages,owRegions);
+
+    //2. create stub list
+    std::vector<image_basicBlock*> stubSourceBlocks;
+    std::vector<Address> stubTargets;
+    std::vector<EdgeTypeEnum> stubEdgeTypes;
+    std::set<bblInstance*>::iterator deadIter = owBBIs.begin();
+    for (;deadIter != owBBIs.end(); deadIter++) 
+    {
+        using namespace ParseAPI;
+        
+        SingleContext epred_((*deadIter)->func()->ifunc(),true,true);
+        Intraproc epred(&epred_);
+        image_basicBlock *curImgBlock = (*deadIter)->block()->llb();
+        Block::edgelist & sourceEdges = curImgBlock->sources();
+        Block::edgelist::iterator eit = sourceEdges.begin(&epred);
+
+        Address baseAddr = (*deadIter)->firstInsnAddr() 
+            - curImgBlock->firstInsnOffset();
+
+        // being careful not to add the source block if it is also dead
+        for( ; eit != sourceEdges.end(); ++eit) {
+            image_basicBlock *sourceBlock = 
+                dynamic_cast<image_basicBlock*>((*eit)->src());
+            int_basicBlock *sourceIntB = llproc->findBasicBlockByAddr
+                ( baseAddr + sourceBlock->firstInsnOffset() );
+            if (owBBIs.end() == owBBIs.find(sourceIntB->origInstance()) ) {
+                stubSourceBlocks.push_back(sourceBlock);
+                stubTargets.push_back(curImgBlock->firstInsnOffset()+baseAddr);
+                stubEdgeTypes.push_back((*eit)->type());
+            }
+        }
+        if ((*deadIter)->block()->getHighLevelBlock()) {
+            ((BPatch_basicBlock*)(*deadIter)->block()->getHighLevelBlock())
+                ->setlowlevel_block(NULL);
+        }
+    }
+
+    //2. identify the dead code 
+    llproc->getDeadCodeFuncs(owBBIs,owIntFuncs,deadFuncs); // initializes owIntFuncs
+
+    // remove instrumentation from affected funcs
+    std::set<int_function*>::iterator fIter = owIntFuncs.begin();
+    for(; fIter != owIntFuncs.end(); fIter++) {
+        BPatch_function *bpfunc = findOrCreateBPFunc(*fIter,NULL);
+        bpfunc->removeInstrumentation();
+    }
+
+    // if stubSrcBlocks and owBBIs overlap, replace overwritten stub  
+    // blocks with ones that haven't been overwritten 
+    unsigned sidx=0; 
+    vector<ParseAPI::Function *> stubfuncs;
+    while(sidx < stubSourceBlocks.size()) {
+
+        // find the stub's bblInstance and function
+        using namespace ParseAPI;
+        stubSourceBlocks[sidx]->getFuncs(stubfuncs);
+        image_func *stubfunc = (image_func*)stubfuncs[0];
+        stubfuncs.clear();
+        Address baseAddr = stubfunc->img()->desc().loadAddr();
+        bblInstance *curBBI = llproc->findOrigByAddr
+            (stubSourceBlocks[sidx]->firstInsnOffset() + baseAddr)->
+             is_basicBlockInstance();
+        assert(curBBI);
+
+        // continue if the block hasn't been overwritten
+        if (owBBIs.end() == owBBIs.find(curBBI)) {
+            sidx++;
+            continue;
+        }
+
+        // the stub's been overwritten, choose a non-overwritten source
+        // block on a non-call edge as the new stub with which to replace it
+        SingleContext epred_(stubfunc,true,true);
+        Intraproc epred(&epred_);
+        Block::edgelist inEdges = stubSourceBlocks[sidx]->sources();
+        Block::edgelist::iterator eit = inEdges.begin(&epred);
+        bool foundNewStub = false;
+
+        for( ; !foundNewStub && eit != inEdges.end(); ++eit) 
+        {
+            if (CALL == (*eit)->type()) {
+                continue;
+            }
+            bblInstance *srcBBI = llproc->findOrigByAddr
+                (stubSourceBlocks[sidx]->firstInsnOffset() + baseAddr)->
+                is_basicBlockInstance();
+            if (owBBIs.end() == owBBIs.find(srcBBI)) {
+                stubSourceBlocks[sidx] = 
+                    dynamic_cast<image_basicBlock*>((*eit)->src());
+                stubTargets[sidx] = stubSourceBlocks[sidx]->firstInsnOffset()
+                    + baseAddr;
+                stubEdgeTypes[sidx] = (*eit)->type();
+                foundNewStub = true;
+            }
+        }
+        if (!foundNewStub) {
+            // all input blocks are dead. Search backwards through whole 
+            // function for a non-call edge we haven't tried
+            set<image_basicBlock*> visitedBlocks;
+            std::queue<Edge*> worklist;
+            visitedBlocks.insert(stubSourceBlocks[sidx]);
+            Block::edgelist & inEdges = stubSourceBlocks[sidx]->sources();
+            for(eit=inEdges.begin(&epred); eit != inEdges.end(); ++eit) {
+                if (CALL != (*eit)->type() && 
+                    visitedBlocks.end() == 
+                    visitedBlocks.find
+                      (static_cast<image_basicBlock*>((*eit)->src())))
+                {
+                    worklist.push(*eit);
+                }
+            }
+            while (worklist.size()) {
+                Edge *curEdge = worklist.front();
+                worklist.pop();
+                image_basicBlock *srcBlock = 
+                    static_cast<image_basicBlock*>(curEdge->src());
+                bblInstance *srcBBI = llproc->findOrigByAddr
+                    ( srcBlock->firstInsnOffset() + baseAddr )->
+                    is_basicBlockInstance();
+                assert(srcBBI);
+                if (owBBIs.end() == owBBIs.find(srcBBI)) {
+                    // found a valid stub block
+                    stubSourceBlocks[sidx] = srcBlock;
+                    stubTargets[sidx] = srcBBI->firstInsnAddr();
+                    stubEdgeTypes[sidx] = curEdge->type();
+                    foundNewStub = true;
+                    break;
+                }
+                else if (visitedBlocks.end() == visitedBlocks.find(srcBlock)) {
+                    Block::edgelist & edges = srcBlock->sources();
+                    for(eit=edges.begin(&epred); eit != edges.end(); ++eit) {
+                        if (CALL != (*eit)->type() && 
+                            visitedBlocks.end() == 
+                            visitedBlocks.find
+                              (static_cast<image_basicBlock*>((*eit)->src())))
+                        {
+                            worklist.push(*eit);
+                        }
+                    }
+                }
+                visitedBlocks.insert(srcBlock);
+            }
+            if (!foundNewStub) {
+                fprintf(stderr,"WARNING: failed to find stub to replace "
+                        "the overwritten stub [%lx %lx] for overwritten "
+                        "block at %lx %s[%d]\n",
+                        stubSourceBlocks[sidx]->firstInsnOffset(), 
+                        stubSourceBlocks[sidx]->endOffset(), 
+                        stubTargets[sidx],FILE__,__LINE__);
+                assert(0); // the whole function should be gone in this case
+            }
+        }
+        sidx++;
+    }
+
+    // now traverse stub lists to remove any duplicates that were introduced by 
+    // overwritten stub replacement
+    for(unsigned i=0; i < stubSourceBlocks.size()-1; i++) {
+        for(unsigned j=i+1; j < stubSourceBlocks.size(); j++) {
+            if (stubSourceBlocks[i] == stubSourceBlocks[j]) {
+                if (j < stubSourceBlocks.size()-1) {
+                    stubSourceBlocks[j] = 
+                        stubSourceBlocks[stubSourceBlocks.size()-1];
+                }
+                stubSourceBlocks.pop_back();
+            }
+        }
+    }
+
+    // remove dead blocks belonging to affected funcs, but not dead funcs
+    std::set<bblInstance*>::iterator bIter = owBBIs.begin();
+    vector<ParseAPI::Block*> owImgBs;
+    for (; bIter != owBBIs.end(); bIter++) {
+        if (deadFuncs.end() == deadFuncs.find((*bIter)->func())) {
+            (*bIter)->func()->deleteBlock((*bIter)->block());
+            owImgBs.push_back((*bIter)->block()->llb());
+            (*bIter)->func()->ifunc()->deleteBlocks(owImgBs,NULL);
+            owImgBs.clear();
+        }
+    }
+
+
+    for(fIter = deadFuncs.begin(); fIter != deadFuncs.end(); fIter++) {
+
+        using namespace ParseAPI;
+        Address funcAddr = (*fIter)->getAddress();
+
+        // grab callers
+        vector<image_basicBlock*> callBlocks; 
+        Block::edgelist & callEdges = (*fIter)->ifunc()->entryBlock()->sources();
+        Block::edgelist::iterator eit = callEdges.begin();
+        for( ; eit != callEdges.end(); ++eit) {
+            if (CALL == (*eit)->type()) {
+                callBlocks.push_back
+                    (dynamic_cast<image_basicBlock*>((*eit)->src()));
+            }
+        }
+
+        //remove instrumentation and the function itself
+        BPatch_function *bpfunc = findOrCreateBPFunc(*fIter,NULL);
+        bpfunc->removeInstrumentation();
+        (*fIter)->removeFromAll();
+
+        // only add to deadBlockAddrs if the dead function is not reachable, 
+        // i.e., it's the entry point of the a.out, and we've already
+        // executed it
+        if ((*fIter)->obj()->parse_img()->isAOut() && 
+            0 == strncmp("main",(*fIter)->symTabName().c_str(),5)) 
+        {
+            const std::set< int_basicBlock* , int_basicBlock::compare >& 
+                deadBlocks = (*fIter)->blocks();
+            std::set<int_basicBlock* ,int_basicBlock::compare>::const_iterator
+                    bIter= deadBlocks.begin();
+            for (; bIter != deadBlocks.end(); bIter++) {
+                deadBlockAddrs.push_back
+                    ((*bIter)->origInstance()->firstInsnAddr());
+            }
+        }
+        else {
+
+            // the function is still reachable, reparse it
+            vector<BPatch_module*> dontcare; 
+            vector<Address> targVec; 
+            targVec.push_back(funcAddr);
+            if (getImage()->parseNewFunctions(dontcare, targVec)) {
+                // add function to output vector
+                bpfunc = findFunctionByAddr((void*)funcAddr);
+                assert(bpfunc);
+                owFuncs.push_back(bpfunc);
+                // re-instate call edges to the function
+                for (unsigned bidx=0; bidx < callBlocks.size(); bidx++) {
+                    ParseAPI::Block *src = callBlocks[bidx];
+                    ParseAPI::Block *trg = 
+                        bpfunc->lowlevel_func()->ifunc()->entryBlock();
+                    ParseAPI::Edge *callEdge = new Edge
+                        (src, trg, ParseAPI::CALL);
+                    callEdge->install();
+                }
+            } else {
+                // the function really is dead
+                const std::set< int_basicBlock* , int_basicBlock::compare >& 
+                    deadBlocks = (*fIter)->blocks();
+                std::set<int_basicBlock* ,int_basicBlock::compare>::const_iterator
+                        bIter= deadBlocks.begin();
+                for (; bIter != deadBlocks.end(); bIter++) {
+                    deadBlockAddrs.push_back
+                        ((*bIter)->origInstance()->firstInsnAddr());
+                }
+            }
+        }
+    }
+
+    //2. parse new code, one overwritten function at a time
+    for(fIter = owIntFuncs.begin(); fIter != owIntFuncs.end(); fIter++) {
+        // find subset of stubs that correspond to this function
+        int_function *curFunc = *fIter;
+        std::vector<ParseAPI::Block*> cur_ssb;
+        std::vector<Address> cur_st;
+        std::vector<EdgeTypeEnum> cur_set;
+        for(unsigned idx=0; idx < stubSourceBlocks.size(); idx++) {
+            image_basicBlock *curblock = stubSourceBlocks[idx];
+            vector<ParseAPI::Function *> sharefuncs;
+            curblock->getFuncs(sharefuncs);
+            for (vector<ParseAPI::Function *>::iterator fit= sharefuncs.begin();
+                 sharefuncs.end() != fit;
+                 fit++) 
+            {
+                if ((*fit) == curFunc->ifunc()) {
+                    cur_ssb.push_back(curblock);
+                    cur_st.push_back(stubTargets[idx]);
+                    cur_set.push_back(stubEdgeTypes[idx]);
+                }
+            }
+        }
+
+        // parse new edges in the function
+        if (cur_ssb.size()) {
+            curFunc->parseNewEdges(cur_ssb,cur_st,cur_set);
+        } else {
+            cur_ssb.push_back(NULL);
+            cur_st.push_back(curFunc->ifunc()->getOffset());
+            cur_set.push_back(ParseAPI::NOEDGE);
+		    curFunc->parseNewEdges(cur_ssb,cur_st,cur_set);
+        }
+        // else, this is the entry point of the function, do nothing, 
+        // we'll parse this anyway through recursive traversal if there's
+        // code at this address
+
+        // add curFunc to owFuncs, and clear the function's BPatch_flowGraph
+        BPatch_function *bpfunc = findOrCreateBPFunc(curFunc,NULL);
+        bpfunc->removeCFG();
+        owFuncs.push_back(bpfunc);
+    }
+}
+
+
+bool BPatch_process::removeFunctionSubRange
+                 ( BPatch_function &func, 
+                   Dyninst::Address startAddr, 
+                   Dyninst::Address endAddr, 
+                   std::vector<Dyninst::Address> &deadBlockAddrs )
+{
+    int_basicBlock *newEntryBlock = NULL;
+
+    bool success = func.lowlevel_func()->removeFunctionSubRange(
+                                                  startAddr, 
+                                                  endAddr, 
+                                                  deadBlockAddrs,
+                                                  newEntryBlock);
+    if (success) {
+        func.cfg->invalidate();
+    }
+
+    return success;
+}
+
+
+/* Protect analyzed code without protecting relocated code in the 
+ * runtime library and for now only protect code in the aOut,
+ * also don't protect code that hasn't been analyzed
+ */ 
+bool BPatch_process::protectAnalyzedCode()
+{
+    bool ret = true;
+    BPatch_Vector<BPatch_module *> *bpMods = image->getModules();
+    for (unsigned midx=0; midx < bpMods->size(); midx++) {
+       mapped_module *curMod = (*bpMods)[midx]->lowlevel_mod();
+       if ( ! curMod->getFuncVectorSize() 
+           || curMod->obj()->isSharedLib()) {
+          continue; // don't trigger analysis and don't protect shared libraries
+       }
+       ret = (*bpMods)[midx]->protectAnalyzedCode() && ret;
+    }
+    return false;
+}

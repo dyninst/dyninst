@@ -11,6 +11,7 @@
 #include <sys/types.h>
 #include <sys/ptrace.h>
 #include <linux/ptrace.h>
+#include <asm/ldt.h>
 
 using namespace Dyninst;
 using namespace ProcControlAPI;
@@ -61,7 +62,7 @@ class DecoderLinux : public Decoder
 class linux_process : public sysv_process
 {
  public:
-   linux_process(Dyninst::PID p, std::string e, std::vector<std::string> a);
+   linux_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int,int> f);
    linux_process(Dyninst::PID pid_, int_process *p);
    virtual ~linux_process();
 
@@ -82,10 +83,8 @@ class linux_process : public sysv_process
    virtual bool needIndividualThreadAttach();
    virtual bool getThreadLWPs(std::vector<Dyninst::LWP> &lwps);
    virtual Dyninst::Architecture getTargetArch();
-   virtual unsigned getTargetPageSize();
-   virtual Dyninst::Address plat_mallocExecMemory(Dyninst::Address, unsigned size);
-   virtual bool independentLWPControl();
    virtual bool plat_individualRegAccess();
+   virtual bool plat_contProcess() { return true; }
 };
 
 class linux_thread : public int_thread
@@ -104,7 +103,12 @@ class linux_thread : public int_thread
    virtual bool plat_setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val);
    virtual bool attach();
 
+   // Needed by HybridLWPControl, unused on Linux
+   virtual bool plat_resume() { return true; }
+   virtual bool plat_suspend() { return true; }
+
    void setOptions();
+   bool getSegmentBase(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val);
 };
 
 class LinuxPtrace

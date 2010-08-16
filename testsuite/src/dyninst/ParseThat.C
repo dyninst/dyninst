@@ -31,8 +31,10 @@
 #include "ParseThat.h"
 #include "util.h"
 #include "dyninst_comp.h"
+#include "test_lib.h"
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 using namespace Dyninst;
 
 std::string ParseThat::emptyString("");
@@ -340,13 +342,14 @@ test_results_t ParseThat::operator()(std::string exec_path, std::vector<std::str
 {
 	
 	struct stat statbuf;
-	int result = stat(BINEDIT_DIR, &statbuf);
+	char *binedit_dir = get_binedit_dir();
+	int result = stat(binedit_dir, &statbuf);
 	if (-1 == result)
 	{
-		result = mkdir(BINEDIT_DIR, 0700);
+		result = mkdir(binedit_dir, 0700);
 		if (result == -1) {
 			logerror("%s[%d]: Could not mkdir %s: %s\n ", FILE__, __LINE__, 
-					BINEDIT_DIR,strerror(errno) );
+					binedit_dir,strerror(errno) );
 			return FAILED;
 		}
 	}

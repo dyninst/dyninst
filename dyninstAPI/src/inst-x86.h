@@ -145,69 +145,6 @@
 
 #endif
 
-// The general machine registers.
-// These values are taken from the Pentium manual and CANNOT be changed.
-
-// 32-bit
-#define REGNUM_EAX 0
-#define REGNUM_ECX 1
-#define REGNUM_EDX 2
-#define REGNUM_EBX 3
-#define REGNUM_ESP 4
-#define REGNUM_EBP 5
-#define REGNUM_ESI 6
-#define REGNUM_EDI 7
-
-// 64-bit
-enum AMD64_REG_NUMBERS {
-    REGNUM_RAX = 0,
-    REGNUM_RCX,
-    REGNUM_RDX,
-    REGNUM_RBX,
-    REGNUM_RSP,
-    REGNUM_RBP,
-    REGNUM_RSI,
-    REGNUM_RDI,
-    REGNUM_R8,
-    REGNUM_R9,
-    REGNUM_R10,
-    REGNUM_R11,
-    REGNUM_R12,
-    REGNUM_R13,
-    REGNUM_R14,
-    REGNUM_R15,
-    REGNUM_DUMMYFPR,
-    REGNUM_OF,
-    REGNUM_SF,
-    REGNUM_ZF,
-    REGNUM_AF,
-    REGNUM_PF,
-    REGNUM_CF,
-    REGNUM_TF,
-    REGNUM_IF,
-    REGNUM_DF,
-    REGNUM_NT,
-    REGNUM_RF,
-    REGNUM_MM0,
-    REGNUM_MM1,
-    REGNUM_MM2,
-    REGNUM_MM3,
-    REGNUM_MM4,
-    REGNUM_MM5,
-    REGNUM_MM6,
-    REGNUM_MM7,
-    REGNUM_XMM0,
-    REGNUM_XMM1,
-    REGNUM_XMM2,
-    REGNUM_XMM3,
-    REGNUM_XMM4,
-    REGNUM_XMM5,
-    REGNUM_XMM6,
-    REGNUM_XMM7,
-    REGNUM_EFLAGS,
-    REGNUM_IGNORED
-}
-;
 
 class codeGen;
 

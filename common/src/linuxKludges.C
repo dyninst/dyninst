@@ -31,6 +31,7 @@
 
 #include "common/h/headers.h"
 #include "common/h/parseauxv.h"
+#include "common/h/linuxKludges.h"
 
 #include <elf.h>
 
@@ -478,10 +479,6 @@ bool AuxvParser::readAuxvInfo()
 #if defined(arch_x86) 
   guessed_addrs.push_back(0xffffe000); //Many early 2.6 systems
   guessed_addrs.push_back(0xffffd000); //RHEL4
-#elif defined(arch_ia64)
-  guessed_addrs.push_back(0xa000000000000000); 
-  guessed_addrs.push_back(0xa000000000010000); 
-  guessed_addrs.push_back(0xa000000000020000); //Juniper & Hogan
 #endif
 #if defined(arch_x86_64)
   guessed_addrs.push_back(0xffffffffff600000);

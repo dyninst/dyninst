@@ -183,6 +183,20 @@ bool Module::getSourceLines(std::vector<Statement *> &lines, Offset addressInRan
    return false;
 }
 
+bool Module::getSourceLines(std::vector<LineNoTuple> &lines, Offset addressInRange)
+{
+   unsigned int originalSize = lines.size();
+   
+   LineInformation *lineInformation = getLineInformation();
+   if (lineInformation)
+      lineInformation->getSourceLines( addressInRange, lines );
+
+   if ( lines.size() != originalSize )
+      return true;
+   
+   return false;
+}
+
 bool Module::getStatements(std::vector<Statement *> &statements)
 {
 	unsigned initial_size = statements.size();

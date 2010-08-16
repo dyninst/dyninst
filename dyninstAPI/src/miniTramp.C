@@ -219,15 +219,9 @@ unsigned miniTrampInstance::maxSizeRequired() {
 /* Note that out-of-line minitramps imply that they only
    add their /inline/ regions (jumps) to the unwindInformation
    chain, and register their /out-of-line/ regions on their own. */
-#if defined(cap_unwind) && defined(arch_ia64)
-bool miniTrampInstance::generateCode(codeGen &gen,
-                                     Address baseInMutatee,
-                                     UNW_INFO_TYPE ** unwindInformation )
-#else
 bool miniTrampInstance::generateCode(codeGen &gen,
                                      Address baseInMutatee,
                                      UNW_INFO_TYPE ** /* unwindInformation */ )
-#endif
 {
     inst_printf("miniTrampInstance(%p)::generateCode(%p, 0x%x, %d)\n",
                 this, gen.start_ptr(), baseInMutatee, gen.used());
@@ -267,6 +261,14 @@ bool miniTrampInstance::safeToFree(codeRange *range) {
 void miniTrampInstance::removeCode(generatedCodeObject *subObject) {
 
     baseTrampInstance *delBTI = dynamic_cast<baseTrampInstance *>(subObject);
+    if (baseTI && baseTI->multiT->getIsActive()) {
+        mal_printf("removing miniTrampInstance at %lx for point %lx in ACTIVE multiTramp"
+                "(instaddr=%lx [%lx %lx]) %s[%d]\n", baseTI->multiT->instAddr(),
+                baseTI->baseT->instP()->addr(), 
+                baseTI->multiT->instAddr(), baseTI->multiT->get_address(),
+                baseTI->multiT->get_address() + baseTI->multiT->get_size(), 
+                FILE__,__LINE__);
+    }
 
     assert((subObject == NULL) || delBTI);
 

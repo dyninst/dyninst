@@ -37,15 +37,18 @@
 #include <string>
 #include "common/h/Types.h"
 #include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/h/BPatch_hybridAnalysis.h"
 
 //  we really do not want to have this defined, but I'm defining it for the moment to get thru paradyn seperation
 #define CHECK_ALL_CALL_POINTS  // we depend on this for Paradyn
+
+using namespace Dyninst;
 
 class mapped_module;
 
 class int_symbol {
  public:
-    int_symbol(Symbol *sym, Address base) : addr_(base + sym->getOffset()), sym_(sym) {}
+    int_symbol(SymtabAPI::Symbol *sym, Address base) : addr_(base + sym->getOffset()), sym_(sym) {}
     int_symbol() : addr_(0), sym_(NULL) {};
 
     Address getAddr() const { return addr_; }
@@ -53,11 +56,11 @@ class int_symbol {
     const string &symTabName() const { return sym_->getMangledName(); }
     const string &prettyName() const { return sym_->getPrettyName(); }
     const string &typedName() const { return sym_->getTypedName(); }
-    const Symbol *sym() const { return sym_; }
+    const SymtabAPI::Symbol *sym() const { return sym_; }
 
  private:
     Address addr_;
-    const Symbol *sym_;
+    const SymtabAPI::Symbol *sym_;
 };
 
 
@@ -115,12 +118,14 @@ class mapped_object : public codeRange {
     mapped_object();
     mapped_object(fileDescriptor fileDesc, 
                   image *img,
-		  AddressSpace *proc);
+                  AddressSpace *proc,
+                  BPatch_hybridMode mode = BPatch_normalMode);
 
  public:
     // We need a way to check for errors; hence a "get" method
     static mapped_object *createMappedObject(fileDescriptor &desc,
                                              AddressSpace *p,
+                                             BPatch_hybridMode m = BPatch_normalMode,
 #if defined (os_windows)
                                              bool parseGaps = false);
 #else 
@@ -157,6 +162,7 @@ class mapped_object : public codeRange {
     image *parse_img() const { return image_; }
     bool isSharedLib() const;
     bool isStaticExec() const;
+    static bool isSystemLib(const std::string &name);
 
     // Return an appropriate identification string for debug purposes.
     // Will eventually be required by a debug base class.
@@ -188,6 +194,32 @@ class mapped_object : public codeRange {
     bool getAllVariables(pdvector<int_variable *> &vars);
 
     const pdvector<mapped_module *> &getModules();
+
+    // begin exploratory and defensive mode functions //
+    BPatch_hybridMode getHybridMode() { return analysisMode_; }
+    bool parseNewFunctions(std::vector<Address> &funcEntryAddrs);
+    void updateMappedFileIfNeeded(Address entryAddr, SymtabAPI::Region* reg);
+    void updateMappedFile( std::map<Address,Address> owRanges ); 
+    void clearUpdatedRegions();
+    void removeFunction(int_function *func);
+    void removeRange(codeRange *range);
+    bool splitIntLayer();
+    void findBBIsByRange(Address startAddr,
+                          Address endAddr,
+                          std::vector<bblInstance*> &pageBlocks);
+    void findFuncsByRange(Address startAddr,
+                          Address endAddr,
+                          std::set<int_function*> &pageFuncs);
+    bool isExploratoryModeOn();
+private:
+    // helper functions
+    void updateMappedFile(SymtabAPI::Region *reg);// updates region unconditionally
+    bool isUpdateNeeded(Address entryAddr,SymtabAPI::Region* reg=NULL);
+    bool isExpansionNeeded(Address entryAddr,SymtabAPI::Region* reg=NULL);
+    void expandMappedFile(SymtabAPI::Region *reg);
+    // end exploratory and defensive mode functions //
+public:
+
 
 #if defined(cap_save_the_world)
     bool isinText(Address addr){ 
@@ -292,6 +324,10 @@ private:
     AddressSpace *proc_; // Parent process
 
     bool analyzed_; // Prevent multiple adds
+
+    // exploratory and defensive mode variables
+    BPatch_hybridMode analysisMode_;
+    std::set<SymtabAPI::Region*> updatedRegions;
 
     mapped_module *getOrCreateForkedModule(mapped_module *mod);
 

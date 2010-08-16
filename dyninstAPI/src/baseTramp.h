@@ -40,7 +40,7 @@
 #include "inst.h" // callWhen
 #include "dyninstAPI/src/codeRange.h"
 #include "instPoint.h"
-#include "arch.h"
+//#include "arch.h"
 #include "multiTramp.h" // generatedCodeObject
 #include "ast.h"
 
@@ -169,7 +169,7 @@ class baseTrampInstance : public generatedCodeObject {
     // don't do it twice!!!
     bool alreadyDeleted_;
 
-    Symbol *createBTSymbol();
+    SymtabAPI::Symbol *createBTSymbol();
  private:
     //Information about code generated in this tramp
     bool hasOptInfo_;
@@ -300,6 +300,10 @@ class baseTramp {
 
     // Easier to do logic this way...
     bool guarded() const { return (guardState_ == guarded_BTR); }
+
+    // tells us how far up the stack to look for
+    // saved register addresses 
+    unsigned savedFlagSize;
 
  private:
     

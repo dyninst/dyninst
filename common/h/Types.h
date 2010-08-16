@@ -71,12 +71,14 @@ WindowsNT    nonexistant
 */
 
 #if defined(os_windows)
-   typedef __int64 int64_t;
-   typedef __int32 int32_t;
-   typedef __int16 int16_t;
+   typedef signed __int64 int64_t;
+   typedef signed __int32 int32_t;
+   typedef signed __int16 int16_t;
+   typedef signed __int8 int8_t;
    typedef unsigned __int64 uint64_t;
    typedef unsigned __int32 uint32_t;
    typedef unsigned __int16 uint16_t;
+   typedef unsigned __int8 uint8_t;
 
 #elif defined(os_aix)  
 #if defined (arch_power)
@@ -117,7 +119,7 @@ WindowsNT    nonexistant
 #define __STDC_LIMIT_MACROS
 #endif
 #include <stdint.h>
-#if defined(arch_x86_64) || defined(arch_ia64) || defined(arch_64bit)
+#if defined(arch_x86_64) || defined(arch_64bit)
 #define TYPE64BIT
 #endif
 #if defined(os_cnl) && defined(arch_x86_64)
@@ -133,6 +135,7 @@ WindowsNT    nonexistant
 #endif
 #endif
 typedef long double double128_t;
+
 #elif defined(os_bg)
 #include <stdint.h>
 #if !defined(INT64_C)
@@ -144,6 +147,19 @@ typedef long double double128_t;
 #if !defined(INT64_MAX)
 #define INT64_MAX 0xfffffffffffffffll
 #endif
+
+#elif defined(os_freebsd)
+#if !defined(__STDC_CONSTANT_MACROS)
+#define __STDC_CONSTANT_MACROS
+#endif
+#if !defined(__STDC_LIMIT_MACROS)
+#define __STDC_LIMIT_MACROS
+#endif
+#include <stdint.h>
+typedef long double double128_t;
+
+/* FreeBSD doesn't define this */
+typedef int64_t off64_t;
 
 #elif defined(os_irix)
 #define TYPE64BIT
@@ -257,6 +273,24 @@ typedef unsigned int Register;  /* a register number, e.g., [0..31]  */
 static const Register Null_Register = (Register)(-1);   /* '255' */
 /* Easily noticeable name... */
 static const Register REG_NULL = (Register)(-1);
+
+// Virtual Memory Map -- shared between platforms
+#define PREMS_PRIVATE (1 << 4)
+#define PREMS_SHARED  (1 << 3)
+#define PREMS_READ    (1 << 2)
+#define PREMS_WRITE   (1 << 1)
+#define PREMS_EXEC    (1 << 0)
+
+typedef struct maps_entries {
+   Address start;
+   Address end;
+   unsigned prems;
+   Address offset;
+   int dev_major;
+   int dev_minor;
+   int inode;
+   char path[512];
+} map_entries;
 
 #ifdef __cplusplus
 

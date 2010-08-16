@@ -58,6 +58,7 @@ protected:
    SymbolReaderFactory *factory;
 
    void parsefile();
+
 public:
    FCNode(string f, dev_t d, ino_t i, SymbolReaderFactory *factory_);
 
@@ -98,19 +99,14 @@ struct LibCmp
 class AddressTranslateSysV : public AddressTranslate
 {
 public:
-   bool setInterpreter();
-   bool setAddressSize();
-   bool setInterpreterBase();
-   
    bool init();
    virtual bool refresh();
-   
    virtual Address getLibraryTrapAddrSysV();
 
-   LoadedLib *getAOut();
    AddressTranslateSysV(int pid, ProcessReader *reader_, 
                         SymbolReaderFactory *reader_fact);
    AddressTranslateSysV();
+
 private:
    ProcessReader *reader;
    Address interpreter_base;
@@ -123,15 +119,28 @@ private:
 
    Address r_debug_addr;
    Address trap_addr;
+   Address getTrapAddrFromRdebug();
 
-   std::string exec_name;   // access this through get_exec_name()
-   const std::string& getExecName();
+   std::string exec_name;   // access this through getExecName()
 
    LoadedLib *getLoadedLibByNameAddr(Address addr, std::string name);
    typedef std::map<std::pair<Address, std::string>, LoadedLib *, LibCmp> sorted_libs_t;
    sorted_libs_t sorted_libs;
 
+   /* platform-specific functions */
+   std::string getExecName();
    ProcessReader *createDefaultDebugger(int pid);
+
+   /* 
+    * These functions need to set r_debug_addr, trap_addr and address_size
+    */
+   bool parseDTDebug();
+   bool parseInterpreter();
+
+   bool setInterpreter();
+   bool setAddressSize();
+   bool setInterpreterBase();
+   LoadedLib *getAOut();
 };
 
 }

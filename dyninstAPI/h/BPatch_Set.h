@@ -88,6 +88,7 @@ typedef enum { RED, BLACK } bpatch_entry_color_type;
 template<class T,class Compare = comparison<T> >
 class BPATCH_DLL_EXPORT BPatch_Set {
 
+ private:
 
 	/** tree implementation structure. Used to implement the RB tree */
 	typedef struct entry {

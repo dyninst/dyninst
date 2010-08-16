@@ -146,7 +146,7 @@ BPatch_memoryAccess* BPatch_memoryAccess::init_tables()
 }
 
 // initializes only the first access; #bytes is a constant
-BPatch_memoryAccess::BPatch_memoryAccess(instruction *insn, Address _addr,
+BPatch_memoryAccess::BPatch_memoryAccess(internal_instruction *insn, Address _addr,
                                          bool _isLoad, bool _isStore, unsigned int _bytes,
                                          long _imm, int _ra, int _rb, unsigned int _scale,
                                          int _cond, bool _nt) : 
@@ -159,7 +159,7 @@ BPatch_memoryAccess::BPatch_memoryAccess(instruction *insn, Address _addr,
 }
 
 // initializes only the first access; #bytes is an expression w/scale
-BPatch_memoryAccess::BPatch_memoryAccess(instruction *insn, Address _addr,
+BPatch_memoryAccess::BPatch_memoryAccess(internal_instruction *insn, Address _addr,
                     bool _isLoad, bool _isStore, long _imm_s, int _ra_s, int _rb_s,
                     unsigned int _scale_s, long _imm_c, int _ra_c, int _rb_c, 
                     unsigned int _scale_c, int _cond, bool _nt, int _preFcn) : 
@@ -172,7 +172,7 @@ BPatch_memoryAccess::BPatch_memoryAccess(instruction *insn, Address _addr,
 }
 
 // initializes only the first access; #bytes is an expression
-BPatch_memoryAccess::BPatch_memoryAccess(instruction *insn, Address _addr,
+BPatch_memoryAccess::BPatch_memoryAccess(internal_instruction *insn, Address _addr,
                     bool _isLoad, bool _isStore, bool _isPrefetch, long _imm_s, 
                     int _ra_s, int _rb_s, long _imm_c, int _ra_c, int _rb_c,
                     unsigned short _preFcn) : 
@@ -186,7 +186,7 @@ BPatch_memoryAccess::BPatch_memoryAccess(instruction *insn, Address _addr,
 }
 
   // initializes only the first access; #bytes is an expression & not a prefetch
-BPatch_memoryAccess::BPatch_memoryAccess(instruction *insn, Address _addr,
+BPatch_memoryAccess::BPatch_memoryAccess(internal_instruction *insn, Address _addr,
 	       bool _isLoad, bool _isStore, long _imm_s, int _ra_s, int _rb_s,
 	       long _imm_c, int _ra_c, int _rb_c) : 
    BPatch_instruction(insn, _addr)
@@ -232,7 +232,7 @@ void BPatch_memoryAccess::set2nd(bool _isLoad, bool _isStore,
 }
 
 // initializes both accesses; #bytes is a constant
-BPatch_memoryAccess::BPatch_memoryAccess(instruction *insn, Address _addr,
+BPatch_memoryAccess::BPatch_memoryAccess(internal_instruction *insn, Address _addr,
 		      bool _isLoad, bool _isStore, unsigned int _bytes,
             long _imm, int _ra, int _rb, unsigned int _scale,
             bool _isLoad2, bool _isStore2, unsigned int _bytes2,
@@ -246,7 +246,7 @@ BPatch_memoryAccess::BPatch_memoryAccess(instruction *insn, Address _addr,
 }
 
   // initializes both accesses; #bytes is an expression & not a prefetch
-BPatch_memoryAccess::BPatch_memoryAccess(instruction *insn, Address _addr,
+BPatch_memoryAccess::BPatch_memoryAccess(internal_instruction *insn, Address _addr,
          bool _isLoad, bool _isStore, long _imm_s, int _ra_s, int _rb_s, 
          unsigned int _scale_s, long _imm_c, int _ra_c, int _rb_c, 
          unsigned int _scale_c, bool _isLoad2, bool _isStore2, long _imm2_s, 

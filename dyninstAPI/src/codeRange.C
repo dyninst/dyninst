@@ -84,6 +84,7 @@ int_function *codeRange::is_function() {
 }
 
 image_func *codeRange::is_image_func() {
+    fprintf(stderr, "ZOMG ZOMG ZOMG!\n");
    return dynamic_cast<image_func *>(this);
 }
 

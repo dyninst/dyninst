@@ -128,7 +128,7 @@ struct is_class_impl
 
 # ifdef __EDG_VERSION__
 DYN_DETAIL_BOOST_TT_AUX_BOOL_TRAIT_DEF1(
-   is_class,T, dyn_detail::boost::detail::is_class_impl<typename dyn_detail::boost::remove_cv<T>::type>::value)
+   is_class,T, ::dyn_detail::boost::detail::is_class_impl<typename ::dyn_detail::boost::remove_cv<T>::type>::value)
 # else 
 DYN_DETAIL_BOOST_TT_AUX_BOOL_TRAIT_DEF1(is_class,T,::dyn_detail::boost::detail::is_class_impl<T>::value)
 # endif

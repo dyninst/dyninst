@@ -164,9 +164,7 @@ test_results_t test_mem_3_Mutator::executeTest() {
   BPatch_Vector<BPatch_function *> found_funcs;
   const char *inFunction = "loadsnstores";
   if ((NULL == appImage->findFunction(inFunction, found_funcs, 1)) || !found_funcs.size()) {
-    logerror("    Unable to find function %s\n",
-	    inFunction);
-    return FAILED;
+      failtest(testnum, testdesc, "Unable to find function \"loadsnstores\".\n");
   }
        
   if (1 < found_funcs.size()) {
@@ -188,10 +186,11 @@ test_results_t test_mem_3_Mutator::executeTest() {
   if(!validate(res1, prefeList, "prefetch"))
     failtest(testnum, testdesc, "Prefetch sequence failed validation.\n");
 
-  if (instCall(appThread, "Prefetch", res1) < 0) {
-    return FAILED;
+  if (instCall(appAddrSpace, "Prefetch", res1) < 0) {
+      failtest(testnum, testdesc, "Unable to instrument prefetches.\n");
   }
 
+  //appThread->continueExecution();
   return PASSED;
 #endif
 }

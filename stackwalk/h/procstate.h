@@ -122,7 +122,7 @@ typedef enum {
   ps_attached,
   ps_running,
   ps_exited,
-  ps_errorstate,              // 5
+  ps_errorstate               // 5
 } proc_state;
 
 typedef enum {
@@ -139,8 +139,10 @@ typedef enum {
   dbg_setmem_ack,
   dbg_reg_ack,      // 10
   dbg_allregs_ack,
+  dbg_setreg_ack,
   dbg_attached,
   dbg_thread_info,
+  dbg_detached      // 15
 } dbg_t;
 
 class ProcDebug;
@@ -295,6 +297,9 @@ class LibraryState {
    virtual bool getLibraries(std::vector<LibAddrPair> &libs) = 0;
    virtual void notifyOfUpdate() = 0;
    virtual Address getLibTrapAddress() = 0;
+   virtual bool getLibc(LibAddrPair &lc) = 0;
+   virtual bool getLibthread(LibAddrPair &lt) = 0;
+   virtual bool getAOut(LibAddrPair &ao) = 0;
    virtual ~LibraryState();
 };
 
@@ -320,7 +325,12 @@ class ThreadState {
    void setState(proc_state s);
    
    ProcDebug *proc();
- protected:
+
+   //For internal use only
+   void markPendingStop();
+   void clearPendingStop();
+   bool hasPendingStop();
+protected:
    ThreadState(ProcDebug *p, Dyninst::THR_ID id);
    bool is_stopped;
    bool user_stopped;
@@ -328,6 +338,7 @@ class ThreadState {
    Dyninst::THR_ID tid;
    proc_state thr_state;
    ProcDebug *parent;
+   unsigned pending_sigstops;
 };
 
 // ----- Useful functors for dealing with ThreadStates. -----

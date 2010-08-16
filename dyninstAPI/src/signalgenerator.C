@@ -1352,10 +1352,11 @@ SignalGenerator *SignalGeneratorCommon::newSignalGenerator(std::string file, int
 }
 
 process *SignalGeneratorCommon::newProcess(std::string file_, std::string dir, 
-                                                     pdvector<std::string> *argv,
-                                                     pdvector<std::string> *envp,
-                                                     int stdin_fd, int stdout_fd, 
-                                                     int stderr_fd)
+                                           pdvector<std::string> *argv,
+                                           pdvector<std::string> *envp,
+                                           int stdin_fd, int stdout_fd, 
+                                           int stderr_fd,
+                                           BPatch_hybridMode mode)
 {
    // Verify existence of exec file
    std::string file = createExecPath(file_, dir);
@@ -1409,7 +1410,7 @@ process *SignalGeneratorCommon::newProcess(std::string file_, std::string dir,
   }
 
 
-  process *theProc = new process(sg);
+  process *theProc = new process(sg,mode);
   assert(theProc);
   sg->setProcess(theProc);
   //  finally, create the signal handler thread -- this creates the process
@@ -1472,7 +1473,8 @@ void SignalGeneratorCommon::deleteSignalGenerator(SignalGenerator *sg)
 }
 
 
-process *SignalGeneratorCommon::newProcess(std::string &progpath, int pid)
+process *SignalGeneratorCommon::newProcess
+(std::string &progpath, int pid, BPatch_hybridMode mode)
 {
   SignalGenerator *sg = newSignalGenerator(progpath, pid);
 
@@ -1484,7 +1486,7 @@ process *SignalGeneratorCommon::newProcess(std::string &progpath, int pid)
   }
 
 
-  process *theProc = new process(sg);
+  process *theProc = new process(sg,mode);
   assert(theProc);
   sg->setProcess(theProc);
   //  finally, create the signal handler thread -- this creates the process

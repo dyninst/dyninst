@@ -38,12 +38,14 @@
 #include "common/h/Vector.h"
 #include "common/h/Types.h"
 #include "common/h/Pair.h"
+#include "codegen.h"
 #include "codeRange.h"
-#include "arch.h" // instruction
 #include "util.h"
 #include "image-func.h"
 
 #include "bitArray.h"
+
+#include "dyn_detail/boost/shared_ptr.hpp"
 
 class process;
 class mapped_module;
@@ -55,10 +57,6 @@ class BPatch_basicBlock;
 class BPatch_basicBlockLoop;
 
 class instPointInstance;
-
-#if defined(arch_ia64)
-#include "dyninstAPI/h/BPatch_Set.h"
-#endif
 
 #include "dyninstAPI/src/ast.h"
 
@@ -101,8 +99,11 @@ class bblInstance : public codeRange {
     Address endAddr() const { return blockEndAddr_; }
     Address getSize() const { return blockEndAddr_ - firstInsnAddr_; }
 
+    void setLastInsnAddr( Address newLast ) { lastInsnAddr_ = newLast; }
+    void setEndAddr( Address newEnd ) { blockEndAddr_ = newEnd; }
+
     // And equivalence in addresses...
-    Address equivAddr(bblInstance *otherBBL, Address otherAddr) const;
+    Address equivAddr(int newVersion, Address addr) const;
 
     // As a note: do _NOT_ create an address-based comparison of this
     // class unless you just need some sort of ordering. We may create these
@@ -126,6 +127,11 @@ class bblInstance : public codeRange {
     int_function *func() const;
     int_basicBlock *block() const;
     int version() const;
+
+#if defined(cap_instruction_api)
+    void getInsnInstances(std::vector<std::pair<InstructionAPI::Instruction::Ptr,
+			  Address> > &instances) const;
+#endif
 
 #if defined(cap_relocation)
     // Get the most space necessary to relocate this basic block,
@@ -153,6 +159,8 @@ class bblInstance : public codeRange {
 
     unsigned &maxSize();
     unsigned &minSize();
+    Address getFuncRelocBase() { return reloc_info->funcRelocBase_; }
+    void setFuncRelocBase(Address frb) { reloc_info->funcRelocBase_ = frb; }
 #endif
 
 #if defined(cap_relocation)
@@ -165,6 +173,7 @@ class bblInstance : public codeRange {
        codeGen generatedBlock_; // Kept so we can quickly iterate over the block
        // in the future.
        functionReplacement *jumpToBlock_; // Kept here between generate->link
+       Address funcRelocBase_;
 
        struct relocInsn {
           // Where we ended up; can derive size from next - this one
@@ -174,9 +183,11 @@ class bblInstance : public codeRange {
           const void *origPtr;
           Address relocTarget;
           unsigned relocSize;
+
+          typedef dyn_detail::boost::shared_ptr<relocInsn> Ptr;
        };
        
-       pdvector<relocInsn *> relocs_;
+       pdvector<relocInsn::Ptr> relocs_;
 
        reloc_info_t();
        reloc_info_t(reloc_info_t *parent, int_basicBlock *block);
@@ -186,14 +197,14 @@ class bblInstance : public codeRange {
  private:
 
     //Setter functions for relocation information
-    pdvector<reloc_info_t::relocInsn *> &relocs();
+    pdvector<reloc_info_t::relocInsn::Ptr> &relocs();
     bblInstance *&origInstance();
     pdvector<funcMod *> &appliedMods();
     codeGen &generatedBlock();
     functionReplacement *&jumpToBlock();
 
 
-    pdvector<reloc_info_t::relocInsn *> &get_relocs() const;
+    pdvector<reloc_info_t::relocInsn::Ptr> &get_relocs() const;
 
     unsigned getMaxSize() const;
     bblInstance *getOrigInstance() const;
@@ -229,21 +240,28 @@ class int_basicBlock {
 
     image_basicBlock * llb() const { return ib_; }
     
-    static int compare(int_basicBlock *&b1,
-                       int_basicBlock *&b2) {
-        // First instance: original bbl.
-        if (b1->instances_[0]->firstInsnAddr() < b2->instances_[0]->firstInsnAddr())
-            return -1;
-        if (b2->instances_[0]->firstInsnAddr() < b1->instances_[0]->firstInsnAddr())
-            return 1;
-        assert(b1 == b2);
-        return 0;
-    }
+    struct compare {
+        bool operator()(int_basicBlock * const &b1,
+                        int_basicBlock * const &b2) const {
+            if(b1->instances_[0]->firstInsnAddr() < b2->instances_[0]->firstInsnAddr())
+                return true;
+            if(b2->instances_[0]->firstInsnAddr() < b1->instances_[0]->firstInsnAddr())
+                return false;
+
+            if(b1 != b2) 
+                fprintf(stderr,"error: two blocks (0x%p,0x%p) at 0x%lx \n",
+                        b1,b2,b1->instances_[0]->firstInsnAddr());
+
+            assert(b1 == b2);
+            return false;
+        }
+    };
 
     const pdvector<bblInstance *> &instances() const;
     bblInstance *origInstance() const;
     bblInstance *instVer(unsigned index) const;
-    void removeVersion(unsigned index);
+    void removeVersion(unsigned index,bool deleteInstance=true);
+    unsigned numInstances() { return instances_.size(); }
 
     void debugPrint();
 
@@ -252,6 +270,7 @@ class int_basicBlock {
     EdgeTypeEnum getSourceEdgeType(int_basicBlock *source) const;
     EdgeTypeEnum getTargetEdgeType(int_basicBlock *target) const;
 
+    bool containsCall();
     int_basicBlock *getFallthrough() const;
 
     int id() const { return id_; }
@@ -269,35 +288,12 @@ class int_basicBlock {
     //process *proc() const;
     AddressSpace *proc() const;
 
-#if defined(arch_ia64)
-    // Data flow... for register analysis. Right now just used for 
-    // IA64 alloc calculations
-    // We need a set...
-    void setDataFlowIn(BPatch_Set<int_basicBlock *> *in);
-    void setDataFlowOut(BPatch_Set<int_basicBlock *> *out);
-    void setDataFlowGen(int_basicBlock *gen);
-    void setDataFlowKill(int_basicBlock *kill);
-
-    BPatch_Set<int_basicBlock *> *getDataFlowOut();
-    BPatch_Set<int_basicBlock *> *getDataFlowIn();
-    int_basicBlock *getDataFlowGen();
-    int_basicBlock *getDataFlowKill();    
-#endif
-
     void setHighLevelBlock(void *newb);
     void *getHighLevelBlock() const;
 
  private:
     void *highlevel_block; //Should point to a BPatch_basicBlock, if they've
                            //been created.
-#if defined(arch_ia64)
-    BPatch_Set<int_basicBlock *> *dataFlowIn;
-    BPatch_Set<int_basicBlock *> *dataFlowOut;
-    int_basicBlock *dataFlowGen;
-    int_basicBlock *dataFlowKill;
-#endif
-
-
     int_function *func_;
     image_basicBlock *ib_;
 
@@ -383,24 +379,29 @@ class int_function : public patchTarget {
    ////////////////////////////////////////////////
    // Process-dependent (inter-module) parsing
    ////////////////////////////////////////////////
-   void checkCallPoints();
 
    ////////////////////////////////////////////////
    // CFG and other function body methods
    ////////////////////////////////////////////////
 
-   const std::vector< int_basicBlock* > &blocks();
+   const std::set< int_basicBlock* , int_basicBlock::compare > &blocks();
 
    // Perform a lookup (either linear or log(n)).
    int_basicBlock *findBlockByAddr(Address addr);
    int_basicBlock *findBlockByOffset(Address offset) { return findBlockByAddr(offset + getAddress()); }
    bblInstance *findBlockInstanceByAddr(Address addr);
 
+   void findBlocksByRange(std::vector<int_basicBlock*> &funcs, 
+                          Address start, Address end);
+
+   void addMissingBlock(image_basicBlock & imgBlock);
+   void addMissingBlocks();
+   void addMissingPoints();
+
    Offset addrToOffset(const Address addr) const;
 
 
    bool hasNoStackFrame() const {return ifunc_->hasNoStackFrame();}
-   bool makesNoCalls() const {return ifunc_->makesNoCalls();}
    bool savesFramePointer() const {return ifunc_->savesFramePointer();}
 
    //BPatch_flowGraph * getCFG();
@@ -417,8 +418,24 @@ class int_function : public patchTarget {
    const pdvector<instPoint*> &funcExits();
    const pdvector<instPoint*> &funcCalls();
    const pdvector<instPoint*> &funcArbitraryPoints();
-   
+   const std::set<instPoint*> &funcUnresolvedControlFlow();
+   const std::set<instPoint*> &funcAbruptEnds();
+   bool setPointResolved(instPoint* resolvedPt);
+
+   bool parseNewEdges( std::vector<ParseAPI::Block*>& sources, 
+                       std::vector<Address>& targets, 
+                       std::vector<EdgeTypeEnum>& edgeTypes);
+
+   const bool isSignalHandler() {return handlerFaultAddr_ != 0;} 
+   const Address getHandlerFaultAddr() {return handlerFaultAddr_;} 
+   const Address getHandlerFaultAddrAddr() {return handlerFaultAddrAddr_;} 
+   void fixHandlerReturnAddr(Address newAddr);
+   void setHandlerFaultAddr(Address fa);
+   void setHandlerFaultAddrAddr(Address faa, bool set);
+
    instPoint *findInstPByAddr(Address addr);
+   // get instPoints of function that are known to call into this one
+   void getCallerPoints(std::vector<instPoint*>& callerPoints);
 
    // And for adding... we map by address to instPoint
    // as a single instPoint may have multiple instances
@@ -454,7 +471,6 @@ class int_function : public patchTarget {
    ////////////////////////////////////////////////
 
    bool canBeRelocated() const { return ifunc_->canBeRelocated(); }
-   bool needsRelocation() const { return ifunc_->needsRelocation(); }
    int version() const { return version_; }
 
 
@@ -486,7 +502,7 @@ class int_function : public patchTarget {
    const pdvector< int_parRegion* > &parRegions();
 
    bool containsSharedBlocks() const { return ifunc_->containsSharedBlocks(); }
-
+   void deleteBBLInstance(bblInstance *instance);
    unsigned getNumDynamicCalls();
 
     // Fill the <callers> vector with pointers to the statically-determined
@@ -494,42 +510,16 @@ class int_function : public patchTarget {
     void getStaticCallers(pdvector <int_function *> &callers);
 
    codeRange *copy() const;
-    
-#if defined(arch_alpha)
-   int frame_size() const { return ifunc_->frame_size; };
-
-#endif
 
 #if defined(sparc_sun_solaris2_4)
    bool is_o7_live(){ return ifunc_->is_o7_live(); }
 #endif
 
-   void updateForFork(process *childProcess, const process *parentProcess);
-
-#if defined(arch_ia64)
-   // We need to know where all the alloc instructions in the
-   // function are to do a reasonable job of register allocation
-   // in the base tramp.
-   
- private:
-   Address baseAddr_;
-   pdvector< Address > cachedAllocs;
-    
- public:
-   // Accessor function that ensures that the cachedAllocs are
-   // up-to-date.  Necessary because of delayed parsing.
-   pdvector< Address > & getAllocs();
-   
-   // Since the IA-64 ABI does not define a frame pointer register,
-   // we use DWARF debug records (DW_AT_frame_base entries) to 
-   // construct an AST which calculates the frame pointer.
-   AstNodePtr getFramePointerCalculator();
-   
-   // Place to store the results of doFloatingPointStaticAnalysis().
-   // This way, if they are ever needed in a mini-tramp, emitFuncJump()
-   // for example, the expensive operation doesn't need to happen again.
-   bool * getUsedFPregs();
+#if defined(arch_power)
+   bool savesReturnAddr() const { return ifunc_->savesReturnAddr(); }
 #endif
+
+   void updateForFork(process *childProcess, const process *parentProcess);
 
 #if defined(cap_relocation)
    // These are defined in reloc-func.C to keep large chunks of
@@ -551,6 +541,18 @@ class int_function : public patchTarget {
 
    // Cleanup code: remove (back to) the latest installed version...
    bool relocationInvalidate();
+   // Invalidates all relocated versions for the program
+   bool relocationInvalidateAll();
+   bool removePoint(instPoint*);
+   void deleteBlock(int_basicBlock* block);
+   void removeFromAll();
+   Address setNewEntryPoint(int_basicBlock *& newEntry);
+   bool removeFunctionSubRange
+       ( Address startAddr, 
+         Address endAddr, 
+         std::vector<Address> &deadBlockAddrs, // output
+         int_basicBlock *&entryBlock);         // output
+
 
    // A top-level function; for each instPoint, see if we need to 
    // relocate the function.
@@ -567,7 +569,6 @@ class int_function : public patchTarget {
    void setParamSize(int s) { paramSize = s; }
 #endif
 
-
  private:
 
    ///////////////////// Basic func info
@@ -579,7 +580,7 @@ class int_function : public patchTarget {
 			// image_funcs to int_funcs
 
    ///////////////////// CFG and function body
-   std::vector< int_basicBlock* > blockList;
+   std::set< int_basicBlock* , int_basicBlock::compare > blockList; 
 
    // Added to support translation between function-specific int_basicBlocks
    // and potentially shared image_basicBlocks
@@ -592,15 +593,24 @@ class int_function : public patchTarget {
    pdvector<instPoint*> entryPoints_;	/* place to instrument entry (often not addr) */
    pdvector<instPoint*> exitPoints_;	/* return point(s). */
    pdvector<instPoint*> callPoints_;	/* pointer to the calls */
-   pdvector<instPoint*> arbitraryPoints_;	       /* pointer to the calls */
+   pdvector<instPoint*> arbitraryPoints_;  /* arbitrary points */
+   std::set<instPoint*> unresolvedPoints_; /* statically unresolved control flow */
+   std::set<instPoint*> abruptEnds_; /* block endpoints that end abruptly by running up
+                                      against the end of valid memory region or by reaching
+                                      an invalid instruction (i.e. 
+                                      false == archIsValidInsn(insnIter.peekNext) ) */
+
+   Address handlerFaultAddr_; /* if this is a signal handler, faultAddr_ is 
+                                 set to -1, or to the address of the fault 
+                                 that last caused the handler to be invoked. */
+   Address handlerFaultAddrAddr_; 
+
+   bool isBeingInstrumented_;
 
    dictionary_hash<Address, instPoint *> instPsByAddr_;
 
    //////////////////////////  Parallel Regions 
    pdvector<int_parRegion*> parallelRegions_; /* pointer to the parallel regions */
-
-
-   bool isBeingInstrumented_;
 
 #if defined(cap_relocation)
    // Status tracking variables
@@ -629,23 +639,26 @@ class int_function : public patchTarget {
 
    codeRangeTree blocksByAddr_;
    void addBBLInstance(bblInstance *instance);
-   void deleteBBLInstance(bblInstance *instance);
 
 #if defined(os_windows) 
    callType callingConv;
    int paramSize;
 #endif
 
+    // the number of blocks in a function can go up or down, I need 
+    // to keep track of the next block ID to use
+    int nextBlockID;
+
     // 
     // Local instrumentation-based auxiliary functions
-    void getNewInstrumentation(pdvector<instPoint *> &);
-    void getAnyInstrumentation(pdvector<instPoint *> &);
-    void generateInstrumentation(pdvector<instPoint *> &input,
+    void getNewInstrumentation(std::set<instPoint *> &);
+    void getAnyInstrumentation(std::set<instPoint *> &);
+    void generateInstrumentation(std::set<instPoint *> &input,
                                  pdvector<instPoint *> &failed,
                                  bool &relocationRequired);
-    void installInstrumentation(pdvector<instPoint *> &input,
+    void installInstrumentation(std::set<instPoint *> &input,
                                 pdvector<instPoint *> &failed);
-    void linkInstrumentation(pdvector<instPoint *> &input,
+    void linkInstrumentation(std::set<instPoint *> &input,
                              pdvector<instPoint *> &failed);
 
 };

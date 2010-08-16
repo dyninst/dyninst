@@ -43,6 +43,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "common/h/headers.h"
+#include "instructionAPI/h/InstructionDecoder.h"
 
 #if defined(os_windows)
 #define caddr_t unsigned* //Fixes very odd windows compilation issue
@@ -138,36 +139,134 @@ static frameStatus_t getFrameStatus(process *p, unsigned long pc, int &extra_hei
      return frame_no_use_fp;
 }
 
-static bool isPrevInstrACall(Address addr, process *p, int_function **callee)
+
+// Returns true if it's a call, and returns the callee function.
+// 
+// The code is very different version for defensiveMode as the parsing
+// often assumes calls not to return, which makes determining whether the 
+// previous instruction is a call much more difficult.
+static bool isPrevInstrACall(Address addr, process *proc, int_function **callee)
 {
-   codeRange *range = p->findOrigByAddr(addr);
-   pdvector<instPoint *> callsites;
+    if (BPatch_defensiveMode != proc->getHybridMode()) {
+        codeRange *range = proc->findOrigByAddr(addr);
+        pdvector<instPoint *> callsites;
 
-   if (range == NULL)
-     return false;
+        if (range == NULL)
+            return false;
    
-   int_function *func_ptr = range->is_function();
+        int_function *func_ptr = range->is_function();
 
-   if (func_ptr != NULL)
-     callsites = func_ptr->funcCalls();
-   else
-     return false;
+        if (func_ptr != NULL)
+            callsites = func_ptr->funcCalls();
+        else
+            return false;
       
-   for (unsigned i = 0; i < callsites.size(); i++)
-   {
-     instPoint *site = callsites[i];
+        for (unsigned i = 0; i < callsites.size(); i++)
+            {
+                instPoint *site = callsites[i];
 
-     // Argh. We need to check for each call site in each
-     // instantiation of the function.
-     if (site->match(addr - site->insn()->size())) {
-    *callee = site->findCallee();
-        return true;
-     }
-   }   
+                // Argh. We need to check for each call site in each
+                // instantiation of the function.
+                if (site->match(addr - site->insn()->size())) {
+                    *callee = site->findCallee();
+                    return true;
+                }
+            }   
    
-   return false; 
-}
+        return false; 
+    }
+    else { // in defensive mode 
 
+        /*In defensive mode calls may be deemed to be non-returning at
+          parse time and there may be two additional complications:
+          1st, the addr may be in a multiTramp. 2nd, the block may
+          have been split, meaning that block->containsCall()
+          is not a reliable test.
+
+          General approach: 
+          find block at addr-1, then translate back to original
+          address and see if the block's last instruction is a call
+        */
+
+        codeRange *callRange = proc->findOrigByAddr(addr-1);
+        bblInstance *callBBI = callRange->is_basicBlockInstance();
+        Address callAddr = 0; //address of call in original block instance
+
+        if (callRange->is_mapped_object()) {
+            callRange->is_mapped_object()->analyze();
+            callRange = proc->findOrigByAddr(addr-1);
+            callBBI = callRange->is_basicBlockInstance();
+        }
+        if (!callRange) {
+            return false;
+        }
+
+        // if the range is a multi, set the callBBI and its post-call address
+        multiTramp *callMulti = callRange->is_multitramp();
+        if (callMulti) {
+            using namespace InstructionAPI;
+            addr = callMulti->instToUninstAddr(addr-1);//sets to addr of prev insn
+            callBBI = proc->findOrigByAddr(addr)->is_basicBlockInstance();
+            if (!callBBI) {
+                return false; //stackwalking has gone bad
+            }
+            // get back to orig instruction addr
+            mapped_object *obj = callBBI->func()->obj();
+            InstructionDecoder dec(obj->getPtrToInstruction(addr),
+                                   InstructionDecoder::maxInstructionLength,
+                                   proc->getArch());
+            Instruction::Ptr insn = dec.decode();
+            assert(insn);
+            addr += insn->size(); 
+        }
+
+        // if the range is a bbi, and it contains a call, and the call instruction
+        // matches the address, set callee and return true
+        if (callBBI && addr == callBBI->endAddr()) {
+
+            // if the block has no call, make sure it's not due to block splitting
+            if ( !callBBI->block()->containsCall() ) {
+                Address origAddr = callBBI->equivAddr(0,callBBI->lastInsnAddr());
+                callBBI = proc->findOrigByAddr(origAddr)->is_basicBlockInstance();
+                if (callBBI && callBBI->block()->containsCall()) {
+                    callAddr = origAddr;//addr of orig call instruction
+                }
+            }
+            // if the block does contain a call, set callAddr if we haven't yet
+            if ( !callAddr && callBBI->block()->containsCall() ) {
+                callAddr = callBBI->equivAddr(0, callBBI->lastInsnAddr());
+            }
+        }
+
+        if (callAddr) {
+            instPoint *callPoint = callBBI->func()->findInstPByAddr( callAddr );
+            if (!callPoint) { // this is necessary, at least the first time
+                callBBI->func()->funcCalls();
+                callPoint = callBBI->func()->findInstPByAddr( callAddr );
+            }
+            if (!callPoint) {
+                assert(callBBI->func()->obj()->parse_img()->codeObject()->
+                       defensiveMode());
+                mal_printf("Warning, call at %lx, found while "
+                           "stackwalking, has no callpoint attached, does "
+                           "the target tamper with the call stack? %s[%d]\n", 
+                           callAddr, FILE__,__LINE__);
+                *callee = callBBI->func();
+            } else {
+                *callee = callPoint->findCallee();
+            }
+            if (NULL == *callee && 
+                string::npos == callBBI->func()->get_name().find("DYNINSTbreakPoint"))
+                {
+                    mal_printf("WARNING: didn't find a callee for callPoint at "
+                               "%lx when stackwalking %s[%d]\n", callAddr, 
+                               FILE__,__LINE__);
+                }
+            return true;
+        }
+        return false;
+    }
+}
 
 
 /**
@@ -184,7 +283,7 @@ static bool hasAllocatedFrame(Address addr, process *proc, int &offset)
         range->is_basicBlockInstance()) {
       frameChecker fc((const unsigned char*)(proc->getPtrToInstruction(addr)),
 		      range->get_size() - (addr - range->get_address()),
-		      proc->getAOut()->parse_img()->getArch());
+		      proc->getAOut()->parse_img()->codeObject()->cs()->getArch());
       if(fc.isReturn() || fc.isStackPreamble())
       {
 	offset = 0;
@@ -349,7 +448,7 @@ Frame Frame::getCallerFrame()
    if (status == frame_vsyscall)
    {
 #if defined(os_linux)
-      Symtab *vsys_obj;
+      SymtabAPI::Symtab *vsys_obj;
 
       if ((vsys_obj = getProc()->getVsyscallObject()) == NULL ||
           !vsys_obj->hasStackwalkDebugInfo())
@@ -653,6 +752,7 @@ Frame Frame::getCallerFrame()
            continue;
          }
 
+         pcLoc = estimated_sp;
          newPC = estimated_ip;
          newFP = estimated_fp;
          newSP = estimated_sp + getProc()->getAddressWidth();

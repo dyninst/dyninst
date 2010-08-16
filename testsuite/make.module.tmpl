@@ -54,18 +54,24 @@ BLANK:=$(EMPTY) $(EMPTY)
 LPAREN:=(
 RPAREN:=)
 COMMA=,
+RSQBRACK:=[
+LSQBRACK:=]
 
 COMPILERT_GCC = $(shell $(M_GCC) -v 2>&1 | grep version | head -1)
 COMPILER1_GCC = $(subst $(BLANK),_,$(COMPILERT_GCC))
 COMPILER2_GCC = $(subst $(LPAREN),_,$(COMPILER1_GCC))
-COMPILER_GCC = $(subst $(RPAREN),_,$(COMPILER2_GCC))
+COMPILER3_GCC = $(subst $(RSQBRACK),_,$(COMPILER2_GCC))
+COMPILER4_GCC = $(subst $(LSQBRACK),_,$(COMPILER3_GCC))
+COMPILER_GCC = $(subst $(RPAREN),_,$(COMPILER4_GCC))
 MUTATEE_CFLAGS_GNU += -DCOMPILER='"$(COMPILER_GCC)"'
 MUTATEE_LDFLAGS_GNU += -L.
 
 COMPILERT_GXX = $(shell $(M_GCC) -v 2>&1 | grep version | head -1)
 COMPILER1_GXX = $(subst $(BLANK),_,$(COMPILERT_GXX))
 COMPILER2_GXX = $(subst $(LPAREN),_,$(COMPILER1_GXX))
-COMPILER_GXX = $(subst $(RPAREN),_,$(COMPILER2_GXX))
+COMPILER3_GXX = $(subst $(RSQBRACK),_,$(COMPILER2_GXX))
+COMPILER4_GXX = $(subst $(LSQBRACK),_,$(COMPILER3_GXX))
+COMPILER_GXX = $(subst $(RPAREN),_,$(COMPILER4_GXX))
 MUTATEE_CXXFLAGS_GNU += -DCOMPILER='"$(COMPILER_GXX)"'
 
 COMPILER1_NATIVE_CC = $(subst $(BLANK),_,$(COMPILERT_NATIVE_CC))
@@ -363,76 +369,102 @@ drivers: test_driver runTests
 #######################################################################
 
 $(dyninst_OBJS_ALL_MUTATORS): %.o : dyninst/%.C $(DEPENDDIR)/%.dep
-	$(CXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ -I../src/dyninst ../src/dyninst/$*.C
+	@echo Compiling $<
+	@$(CXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ -I../src/dyninst ../src/dyninst/$*.C
 $(symtab_OBJS_ALL_MUTATORS): %.o : symtab/%.C $(DEPENDDIR)/%.dep
-	$(CXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ -I../src/symtab ../src/symtab/$*.C
+	@echo Compiling $<
+	@$(CXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ -I../src/symtab ../src/symtab/$*.C
 $(instruction_OBJS_ALL_MUTATORS): %.o : instruction/%.C $(DEPENDDIR)/%.dep
-	$(CXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ -I../src/instruction ../src/instruction/$*.C
+	@echo Compiling $<
+	@$(CXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ -I../src/instruction ../src/instruction/$*.C
 $(proccontrol_OBJS_ALL_MUTATORS): %.o : proccontrol/%.C $(DEPENDDIR)/%.dep
-	$(CXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ -I../src/proccontrol ../src/proccontrol/$*.C
+	@echo Compiling $<
+	@$(CXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ -I../src/proccontrol ../src/proccontrol/$*.C
 
 $(DYNINST_TESTLIBS): %.so : dyninst/%.c $(DEPENDDIR)/%.dep
 ifdef MAKE_SHARED_LIB
-	$(CC) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
-	$(MAKE_SHARED_LIB) $(TESTLIB_FLAGS) $*.o -o $@
+	@echo Compiling $<
+	@$(CC) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
+	@$(MAKE_SHARED_LIB) $(TESTLIB_FLAGS) $*.o -o $@
 else
-	$(CC) $(TESTLIB_FLAGS) -I../src/ $(filter %.c,$^) -o $@
+	@echo Compiling $<
+	@$(CC) $(TESTLIB_FLAGS) -I../src/ $(filter %.c,$^) -o $@
 endif
 
 $(DYNINST_STATIC_TESTLIBS): %.a : dyninst/%.c $(DEPENDDIR)/%.dep
-	$(CC) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
-	$(AR) rcs $@ $*.o
+	@echo Compiling $<
+	@$(CC) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
+	@$(AR) rcs $@ $*.o
 
 ifdef M_ABI
 $(DYNINST_TESTLIBS_ABI): %_$(M_ABI).so : dyninst/%.c $(DEPENDDIR)/%.dep
 ifdef MAKE_SHARED_LIB
-	$(CC) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
-	$(MAKE_SHARED_LIB) $(TESTLIB_FLAGS) $*.o -o $@
+	@echo Compiling $<
+	@$(CC) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
+	@$(MAKE_SHARED_LIB) $(TESTLIB_FLAGS) $*.o -o $@
 else
-	$(CC) $(M_ABI_FLAG) $(TESTLIB_FLAGS) -I../src/ $(filter %.c,$^) -o $@
+	@echo Compiling $<
+	@$(CC) $(M_ABI_FLAG) $(TESTLIB_FLAGS) -I../src/ $(filter %.c,$^) -o $@
+endif
+
+ifdef cap_instruction_api
+    INSNAPI_LINK = -linstructionAPI
 endif
 
 $(DYNINST_STATIC_TESTLIBS_ABI): %_$(M_ABI).a : dyninst/%.c $(DEPENDDIR)/%.dep
-	$(CC) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
-	$(AR) rcs $@ $*.o
+	@echo Compiling $<
+	@$(CC) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
+	@$(AR) rcs $@ $*.o
 endif
 
 $(OBJS_TEMPLATES): %.o : ../src/%.C
-	$(M_GXX) -c -o $@ $(CXXTFLAGS) -I../src/ ../src/$*.C
+	@echo Compiling $<
+	@$(M_GXX) -c -o $@ $(CXXTFLAGS) -I../src/ ../src/$*.C
 
 test_lib_templates.o : ../src/test_lib_templates.C
-	$(M_GXX) -c -o $@ -fPIC $(CXXTFLAGS) -I../src/ ../src/$*.C
+	@echo Compiling $<
+	@$(M_GXX) -c -o $@ -fPIC $(CXXTFLAGS) -I../src/ ../src/$*.C
 
 $(OBJS_DYNINSTCOMP_LIB): %.o : ../src/dyninst/%.C $(DEPENDDIR)/%.dep
-	$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/dyninst/$*.C
+	@echo Compiling $<
+	@$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/dyninst/$*.C
 
 $(OBJS_SYMTABCOMP_LIB): %.o : ../src/symtab/%.C $(DEPENDDIR)/%.dep
-	$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/symtab/$*.C
+	@echo Compiling $<
+	@$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/symtab/$*.C
 
 $(OBJS_INSTRUCTIONCOMP_LIB): %.o : ../src/instruction/%.C $(DEPENDDIR)/%.dep
-	$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/instruction/$*.C
+	@echo Compiling $<
+	@$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/instruction/$*.C
 
 $(OBJS_PROCCONTROLCOMP_LIB): %.o : ../src/proccontrol/%.C $(DEPENDDIR)/%.dep
-	$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/proccontrol/$*.C
+	@echo Compiling $<
+	@$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/proccontrol/$*.C
 
 $(OBJS_LIBTESTSUITE): %.o : ../src/%.C $(DEPENDDIR)/%.dep
-	$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/$*.C
+	@echo Compiling $<
+	@$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/$*.C
 
 $(LIBDYNINSTCOMP) : $(OBJS_DYNINSTCOMP_LIB) $(LIBTESTSUITE)
-	$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_DYNINSTCOMP_LIB) -o $@ -L. -ltestSuite -ldyninstAPI -lsymtabAPI \
--lcommon
+	@echo Compiling $<
+	@$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_DYNINSTCOMP_LIB) -o $@ -L. -ltestSuite -ldyninstAPI -lsymtabAPI \
+-lcommon -linstructionAPI
 
 $(LIBSYMTABCOMP) : $(OBJS_SYMTABCOMP_LIB) $(LIBTESTSUITE)
-	$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_SYMTABCOMP_LIB) -o $@ -L. -ltestSuite -lsymtabAPI -lcommon
+	@echo Compiling $<
+	@$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_SYMTABCOMP_LIB) -o $@ -L. -ltestSuite -lsymtabAPI -lcommon
 
 $(LIBINSTRUCTIONCOMP) : $(OBJS_INSTRUCTIONCOMP_LIB) $(LIBTESTSUITE)
-	$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_INSTRUCTIONCOMP_LIB) -o $@ -L. -ltestSuite -linstructionAPI -lcommon
+	@echo Compiling $<
+	@$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_INSTRUCTIONCOMP_LIB) -o $@ -L. -ltestSuite -linstructionAPI -lcommon
 
 $(LIBPROCCONTROLCOMP) : $(OBJS_PROCCONTROLCOMP_LIB) $(LIBTESTSUITE)
-	$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_PROCCONTROLCOMP_LIB) -o $@ -L. -ltestSuite -lpcontrol -lcommon
+	@echo Compiling $<
+	@$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_PROCCONTROLCOMP_LIB) -o $@ -L. -ltestSuite -lpcontrol -lcommon
 
 $(LIBTESTSUITE) : $(OBJS_LIBTESTSUITE) test_lib_templates.o test_lib.h
-	$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(LIBS_LIBTESTSUITE) $(OBJS_LIBTESTSUITE) test_lib_templates.o -o $@
+	@echo Compiling $<
+	@$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(LIBS_LIBTESTSUITE) $(OBJS_LIBTESTSUITE) test_lib_templates.o -o $@
 
 #
 # Native Fortran mutatees
@@ -503,26 +535,35 @@ MUTATEE_DEFS += -Dnative_fc=_$(NATIVE_FC)
 endif
 
 runTests.o: ../src/runTests.C $(DEPENDDIR)/runTests.dep
-	$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/runTests.C
+	@echo Compiling $<
+	@$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/runTests.C
 runTests_static.o: ../src/runTests.C $(DEPENDDIR)/runTests.dep
-	$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) -DSTATIC_TEST_DRIVER ../src/runTests.C
+	@echo Compiling $<
+	@$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) -DSTATIC_TEST_DRIVER ../src/runTests.C
 
 runTests-utils.o: ../src/runTests-utils.C $(DEPENDDIR)/runTests-utils.dep
-	$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/runTests-utils.C
+	@echo Compiling $<
+	@$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/runTests-utils.C
 
 runTests: runTests.o runTests-utils.o test_driver_templates.o 
-	$(CXX) $(CXXFLAGS) -o $@ runTests.o runTests-utils.o test_driver_templates.o 
+	@echo Linking $@
+	@$(CXX) $(CXXFLAGS) -o $@ runTests.o runTests-utils.o test_driver_templates.o 
 runTests_static: runTests_static.o runTests-utils.o test_driver_templates.o 
-	$(CXX) $(CXXFLAGS) -o runTests runTests_static.o runTests-utils.o test_driver_templates.o 
+	@echo Linking $@
+	@$(CXX) $(CXXFLAGS) -o runTests runTests_static.o runTests-utils.o test_driver_templates.o 
 
 test_driver.o: ../src/test_driver.C $(DEPENDDIR)/test_driver.dep
-	$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/test_driver.C
+	@echo Compiling $<
+	@$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/test_driver.C
 
 test_driver_static.o: ../src/test_driver.C $(DEPENDDIR)/test_driver_static.dep
-	$(CXX) -c -o $@ -DSTATIC_TEST_DRIVER $(CXXFLAGS) $(MUTATEE_DEFS) ../src/test_driver.C
+	@echo Compiling $<
+	@$(CXX) -c -o $@ -DSTATIC_TEST_DRIVER $(CXXFLAGS) $(MUTATEE_DEFS) ../src/test_driver.C
 
 test_driver: test_driver.o test_driver_templates.o test_info_new.gen.o $(DEPENDDIR)/test_driver.dep $(LIBTESTSUITE)
-	$(CXX) -o $@ test_driver.o test_driver_templates.o test_info_new.gen.o -L. -ltestSuite $(MUTATOR_LDFLAGS) $(LIBS) $(TESTDRIVER_LDFLAGS) -lcommon
+	@echo Linking $@
+	@$(CXX) -o $@ test_driver.o test_driver_templates.o test_info_new.gen.o -L. -ltestSuite $(MUTATOR_LDFLAGS) $(LIBS) \
+$(TESTDRIVER_LDFLAGS) -lcommon
 
 ######################################################################
 ### Output Drivers
@@ -531,10 +572,12 @@ test_driver: test_driver.o test_driver_templates.o test_info_new.gen.o $(DEPENDD
 OUTPUT_DRIVERS = DatabaseOutputDriver.so
 
 DatabaseOutputDriver.o : ../src/DatabaseOutputDriver.C # $(DEPENDDIR)/DatabaseOutputDriver.dep
-	$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/$*.C
+	@echo Compiling $<
+	@$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/$*.C
 
 DatabaseOutputDriver.so: DatabaseOutputDriver.o $(LIBTESTSUITE) # $(DEPENDDIR)/DatabaseOutputDriver.dep
-	$(CXX) -o $@ -shared $(filter %.o,$^) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -L. -ltestSuite
+	@echo Linking $@
+	@$(CXX) -o $@ -shared $(filter %.o,$^) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -L. -ltestSuite
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@

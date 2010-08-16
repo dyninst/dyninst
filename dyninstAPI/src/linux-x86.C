@@ -51,6 +51,7 @@
 #include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -62,7 +63,6 @@
 #include "dyninstAPI/src/inst-x86.h"
 #include "dyninstAPI/src/emit-x86.h"
 #include "dyninstAPI/src/dyn_thread.h"
-//#include "dyninstAPI/src/InstrucIter.h"
 
 #include "dyninstAPI/src/mapped_object.h" 
 #include "dyninstAPI/src/signalgenerator.h" 
@@ -86,6 +86,9 @@
 
 #include "instructionAPI/h/InstructionDecoder.h"
 #include "instructionAPI/h/Instruction.h"
+
+using namespace Dyninst;
+using namespace Dyninst::SymtabAPI;
 
 #define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
 
@@ -389,7 +392,7 @@ bool process::insertTrapAtEntryPointOfMain()
    }
 
    codeGen gen(1);
-   instruction::generateTrap(gen);
+   insnCodeGen::generateTrap(gen);
 
    if (!writeDataSpace((void *)addr, gen.used(), gen.start_ptr())) {
       fprintf(stderr, "%s[%d][%s]:  failing insertTrapAtEntryPointOfMain\n",
@@ -741,7 +744,7 @@ bool process::instrumentLibcStartMain()
          FILE__, __LINE__, sizeof(savedCodeBuffer));
    // insert trap
    codeGen gen(1);
-   instruction::generateTrap(gen);
+   insnCodeGen::generateTrap(gen);
    if (!writeDataSpace((void *)addr, gen.used(), gen.start_ptr())) {
       fprintf(stderr, "%s[%d][%s]:  failing instrumentLibcStartMain\n",
             __FILE__, __LINE__, getThreadStr(getExecThreadID()));
@@ -867,7 +870,7 @@ bool process::handleTrapAtLibcStartMain(dyn_lwp *trappingLWP)
                 (int)a_out->getFileDesc().loadAddr(),
                 (int)(a_out->getFileDesc().loadAddr() + a_out->imageSize()));
         // add function stub and parsed object
-        a_out->parse_img()->addFunctionStub(mainaddr, "main");
+        a_out->parse_img()->addFunction(mainaddr, "main");
         a_out->analyze(); 
     }
 
@@ -1458,7 +1461,7 @@ bool process::loadDYNINSTlib_hidden() {
       
       startup_printf("(%d): emitting call from 0x%x to 0x%x\n",
 		     getPid(), codeBase + scratchCodeBuffer.used(), dlopen_addr);
-      instruction::generateCall(scratchCodeBuffer, scratchCodeBuffer.used() + codeBase, dlopen_addr);
+      insnCodeGen::generateCall(scratchCodeBuffer, scratchCodeBuffer.used() + codeBase, dlopen_addr);
       
 
 #if defined(cap_32_64)
@@ -1491,7 +1494,7 @@ bool process::loadDYNINSTlib_hidden() {
 
   // And the break point
   dyninstlib_brk_addr = codeBase + scratchCodeBuffer.used();
-  instruction::generateTrap(scratchCodeBuffer);
+  insnCodeGen::generateTrap(scratchCodeBuffer);
 
   if(mprotect_call_addr != 0) {
     startup_printf("(%d) mprotect call addr at 0x%lx\n", getPid(), mprotect_call_addr);
@@ -1615,13 +1618,13 @@ bool process::loadDYNINSTlib_exported(const char *dlopen_name)
 		// Push string addr
 		emitPushImm(dyninstlib_str_addr, scratchCodeBuffer);
 
-		instruction::generateCall(scratchCodeBuffer,
+		insnCodeGen::generateCall(scratchCodeBuffer,
 				scratchCodeBuffer.used() + codeBase,
 				dlopen_addr);
 
 		// And the break point
 		dyninstlib_brk_addr = codeBase + scratchCodeBuffer.used();
-		instruction::generateTrap(scratchCodeBuffer);
+		insnCodeGen::generateTrap(scratchCodeBuffer);
 	}
 	else 
 	{
@@ -1637,7 +1640,7 @@ bool process::loadDYNINSTlib_exported(const char *dlopen_name)
 
 		// And the break point
 		dyninstlib_brk_addr = codeBase + scratchCodeBuffer.used();
-		instruction::generateTrap(scratchCodeBuffer);
+		insnCodeGen::generateTrap(scratchCodeBuffer);
 	}
 
 	if (!readDataSpace((void *)codeBase,
@@ -1739,7 +1742,7 @@ Address process::tryUnprotectStack(codeGen &buf, Address codeBase)
      
       startup_printf("(%d): emitting call for mprotect from 0x%x to 0x%x\n",
 		     getPid(), codeBase + buf.used(), func_addr);
-      instruction::generateCall(buf, buf.used() + codeBase, func_addr);
+      insnCodeGen::generateCall(buf, buf.used() + codeBase, func_addr);
 #if defined(arch_x86_64)
   } else {
       // Push caller
@@ -1765,48 +1768,7 @@ Address process::tryUnprotectStack(codeGen &buf, Address codeBase)
     return ret_addr;
 }
 
-int EmitterIA32::emitCallParams(codeGen &gen, 
-                              const pdvector<AstNodePtr> &operands,
-                              int_function */*target*/, 
-                              pdvector<Register> &/*extra_saves*/, 
-                              bool noCost)
-{
-    pdvector <Register> srcs;
-    unsigned frame_size = 0;
-    unsigned u;
-    for (u = 0; u < operands.size(); u++) {
-        Address unused = ADDR_NULL;
-        Register reg = REG_NULL;
-        if (!operands[u]->generateCode_phase2(gen,
-                                              noCost,
-                                              unused,
-                                              reg)) assert(0); // ARGH....
-        assert (reg != REG_NULL); // Give me a real return path!
-        srcs.push_back(reg);
-    }
-    
-    // push arguments in reverse order, last argument first
-    // must use int instead of unsigned to avoid nasty underflow problem:
-    for (int i=srcs.size() - 1; i >= 0; i--) {
-       RealRegister r = gen.rs()->loadVirtual(srcs[i], gen);
-       ::emitPush(r, gen);
-       frame_size += 4;
-       if (operands[i]->decRefCount())
-          gen.rs()->freeRegister(srcs[i]);
-    }
-    return frame_size;
-}
 
-bool EmitterIA32::emitCallCleanup(codeGen &gen,
-                                int_function * /*target*/, 
-                                int frame_size, 
-                                pdvector<Register> &/*extra_saves*/)
-{
-   if (frame_size)
-      emitOpRegImm(0, RealRegister(REGNUM_ESP), frame_size, gen); // add esp, frame_size
-   gen.rs()->incStack(-1 * frame_size);
-   return true;
-}
 
 Frame process::preStackWalkInit(Frame startFrame) 
 {
@@ -1833,227 +1795,11 @@ void print_regs(dyn_lwp *lwp)
 }
 #endif
 
-static const std::string LIBC_CTOR_HANDLER("__do_global_ctors_aux");
-static const std::string LIBC_DTOR_HANDLER("__do_global_dtors_aux");
-static const std::string DYNINST_CTOR_HANDLER("DYNINSTglobal_ctors_handler");
-static const std::string DYNINST_CTOR_LIST("DYNINSTctors_addr");
-static const std::string DYNINST_DTOR_HANDLER("DYNINSTglobal_dtors_handler");
-static const std::string DYNINST_DTOR_LIST("DYNINSTdtors_addr");
-static const std::string SYMTAB_CTOR_LIST_REL("__SYMTABAPI_CTOR_LIST__");
-static const std::string SYMTAB_DTOR_LIST_REL("__SYMTABAPI_DTOR_LIST__");
-
-static bool replaceHandler(int_function *origHandler, int_function *newHandler, 
-        int_symbol *newList, const std::string &listRelName)
-{
-    // Add instrumentation to replace the function
-    const pdvector<instPoint *> &entries = origHandler->funcEntries();
-    AstNodePtr funcJump = AstNode::funcReplacementNode(const_cast<int_function *>(newHandler));
-    for(unsigned j = 0; j < entries.size(); ++j) {
-        miniTramp *mini = entries[j]->addInst(funcJump,
-                callPreInsn, orderFirstAtPoint, true, false);
-        if( !mini ) {
-            return false;
-        }
-
-        // XXX the func jumps are not being generated properly if this is set
-        mini->baseT->setCreateFrame(false);
-
-        pdvector<instPoint *> ignored;
-        entries[j]->func()->performInstrumentation(false, ignored);
-    }
-
-    /* create the special relocation for the new list -- search the RT library for
-     * the symbol
-     */
-    Symbol *newListSym = const_cast<Symbol *>(newList->sym());
-    
-    std::vector<Region *> allRegions;
-    if( !newListSym->getSymtab()->getAllRegions(allRegions) ) {
-        return false;
-    }
-
-    bool success = false;
-    std::vector<Region *>::iterator reg_it;
-    for(reg_it = allRegions.begin(); reg_it != allRegions.end(); ++reg_it) {
-        std::vector<relocationEntry> &region_rels = (*reg_it)->getRelocations();
-        vector<relocationEntry>::iterator rel_it;
-        for( rel_it = region_rels.begin(); rel_it != region_rels.end(); ++rel_it) {
-            if( rel_it->getDynSym() == newListSym ) {
-                relocationEntry *rel = &(*rel_it);
-                rel->setName(listRelName);
-                success = true;
-            }
-        }
-    }
-
-    return success;
-}
-
-bool BinaryEdit::doStaticBinarySpecialCases() {
-    Symtab *origBinary = mobj->parse_img()->getObject();
-
-    /* Special Case 1: Handling global constructor and destructor Regions
-     *
-     * Replace global ctors function with special ctors function,
-     * and create a special relocation for the ctors list used by the special
-     * ctors function
-     *
-     * Replace global dtors function with special dtors function,
-     * and create a special relocation for the dtors list used by the special
-     * dtors function
-     */
-    if( !mobj->parse_img()->findGlobalConstructorFunc() ) {
-        return false;
-    }
-
-    if( !mobj->parse_img()->findGlobalDestructorFunc() ) {
-        return false;
-    }
-
-    // First, find all the necessary symbol info.
-    int_function *globalCtorHandler = findOnlyOneFunction(LIBC_CTOR_HANDLER);
-    if( !globalCtorHandler ) {
-        logLine("failed to find libc constructor handler\n");
-        return false;
-    }
-
-    int_function *dyninstCtorHandler = findOnlyOneFunction(DYNINST_CTOR_HANDLER);
-    if( !dyninstCtorHandler ) {
-        logLine("failed to find Dyninst constructor handler\n");
-        return false;
-    }
-
-    int_function *globalDtorHandler = findOnlyOneFunction(LIBC_DTOR_HANDLER);
-    if( !globalDtorHandler ) {
-        logLine("failed to find libc destructor handler\n");
-        return false;
-    }
-
-    int_function *dyninstDtorHandler = findOnlyOneFunction(DYNINST_DTOR_HANDLER);
-    if( !dyninstDtorHandler ) {
-        logLine("failed to find Dyninst destructor handler\n");
-        return false;
-    }
-
-    int_symbol ctorsListInt;
-    int_symbol dtorsListInt;
-    bool ctorFound = false, dtorFound = false; 
-    std::vector<BinaryEdit *>::iterator rtlib_it;
-    for(rtlib_it = rtlib.begin(); rtlib_it != rtlib.end(); ++rtlib_it) {
-        if( (*rtlib_it)->getSymbolInfo(DYNINST_CTOR_LIST, ctorsListInt) ) {
-            ctorFound = true;
-            if( dtorFound ) break;
-        }
-
-        if( (*rtlib_it)->getSymbolInfo(DYNINST_DTOR_LIST, dtorsListInt) ) {
-            dtorFound = true;
-            if( ctorFound ) break;
-        }
-    }
-
-    if( !ctorFound ) {
-         logLine("failed to find ctors list symbol\n");
-         return false;
-    }
-
-    if( !dtorFound ) {
-        logLine("failed to find dtors list symbol\n");
-        return false;
-    }
-
-    /*
-     * Replace the libc ctor and dtor handlers with our special handlers
-     */
-    if( !replaceHandler(globalCtorHandler, dyninstCtorHandler,
-                &ctorsListInt, SYMTAB_CTOR_LIST_REL) ) {
-        logLine("Failed to replace libc ctor handler with special handler");
-        return false;
-    }else{
-        inst_printf("%s[%d]: replaced ctor function %s with %s\n",
-                FILE__, __LINE__, LIBC_CTOR_HANDLER.c_str(),
-                DYNINST_CTOR_HANDLER.c_str());
-    }
-
-    if( !replaceHandler(globalDtorHandler, dyninstDtorHandler,
-                &dtorsListInt, SYMTAB_DTOR_LIST_REL) ) {
-        logLine("Failed to replace libc dtor handler with special handler");
-        return false;
-    }else{
-        inst_printf("%s[%d]: replaced dtor function %s with %s\n",
-                FILE__, __LINE__, LIBC_DTOR_HANDLER.c_str(),
-                DYNINST_DTOR_HANDLER.c_str());
-    }
-
-    /*
-     * Special Case 2: Issue a warning if attempting to link pthreads into a binary
-     * that originally did not support it or into a binary that is stripped. This
-     * scenario is not supported with the initial release of the binary rewriter for
-     * static binaries.
-     *
-     * The other side of the coin, if working with a binary that does have pthreads
-     * support, it is a good idea to load pthreads.
-     */
-    bool isMTCapable = isMultiThreadCapable();
-    bool foundPthreads = false;
-
-    vector<Archive *> libs;
-    vector<Archive *>::iterator libIter;
-    if( origBinary->getLinkingResources(libs) ) {
-        for(libIter = libs.begin(); libIter != libs.end(); ++libIter) {
-            if( (*libIter)->name().find("libpthread") != std::string::npos ) {
-                foundPthreads = true;
-                break;
-            }
-        }
-    }
-
-    if( foundPthreads && (!isMTCapable || origBinary->isStripped()) ) {
-        fprintf(stderr,
-            "\nWARNING: the pthreads library has been loaded and\n"
-            "the original binary is not multithread-capable or\n"
-            "it is stripped. Currently, the combination of these two\n"
-            "scenarios is unsupported and unexpected behavior may occur.\n");
-    }else if( !foundPthreads && isMTCapable ) {
-        fprintf(stderr,
-            "\nWARNING: the pthreads library has not been loaded and\n"
-            "the original binary is multithread-capable. Unexpected\n"
-            "behavior may occur because some pthreads routines are\n"
-            "unavailable in the original binary\n");
-    }
-
-    /* 
-     * Special Case 3:
-     * The RT library has some dependencies -- Symtab always needs to know
-     * about these dependencies. So if the dependencies haven't already been
-     * loaded, load them.
-     */
-    bool loadLibc = true;
-
-    for(libIter = libs.begin(); libIter != libs.end(); ++libIter) {
-        if( (*libIter)->name().find("libc.a") != std::string::npos ) {
-            loadLibc = false;
-        }
-    }
-
-    if( loadLibc ) {
-        std::map<std::string, BinaryEdit *> res = openResolvedLibraryName("libc.a");
-        std::map<std::string, BinaryEdit *>::iterator bedit_it;
-        for(bedit_it = res.begin(); bedit_it != res.end(); ++bedit_it) {
-            if( bedit_it->second == NULL ) {
-                logLine("Failed to load DyninstAPI_RT library dependency (libc.a)");
-                return false;
-            }
-        }
-    }
-
-    return true;
-}
-
-bool image::findGlobalConstructorFunc() {
+bool image::findGlobalConstructorFunc(const std::string &ctorHandler) {
     using namespace Dyninst::InstructionAPI;
 
     vector<Function *> funcs;
-    if( linkedFile->findFunctionsByName(funcs, LIBC_CTOR_HANDLER) ) {
+    if( linkedFile->findFunctionsByName(funcs, ctorHandler) ) {
         return true;
     }
 
@@ -2066,7 +1812,7 @@ bool image::findGlobalConstructorFunc() {
      * ...
      * call call_gmon_start
      * call frame_dummy
-     * call __do_global_ctors_aux
+     * call ctor_handler
      */
     Region *initRegion = NULL;
     if( !linkedFile->findRegion(initRegion, ".init") ) {
@@ -2087,13 +1833,13 @@ bool image::findGlobalConstructorFunc() {
      * If the function associated with the .init Region doesn't exist, it needs to
      * be created
      */
+
     if( !findFuncByEntry(initRegion->getRegionAddr()) ) {
-        image_func *initStub = addFunctionStub(initRegion->getRegionAddr(), "_init");
+        image_func *initStub = addFunction(initRegion->getRegionAddr(), "_init");
         if( initStub == NULL ) {
             logLine("unable to create function for .init \n");
             return false;
         }else{
-            initStub->parse();
             inst_printf("%s[%d]: set _init function address to 0x%lx\n", FILE__, __LINE__,
                 initRegion->getRegionAddr());
         }
@@ -2105,7 +1851,8 @@ bool image::findGlobalConstructorFunc() {
     unsigned numCalls = 0;
     const unsigned char *p = reinterpret_cast<const unsigned char *>(initRegion->getPtrToRawData());
 
-    InstructionDecoder decoder(p, initRegion->getRegionSize(), getArch());
+    InstructionDecoder decoder(p, initRegion->getRegionSize(),
+        codeObject()->cs()->getArch()); 
 
     Instruction::Ptr curInsn = decoder.decode();
     while(numCalls < 3 && curInsn && curInsn->isValid() &&
@@ -2128,7 +1875,8 @@ bool image::findGlobalConstructorFunc() {
 
     Address callAddress = initRegion->getRegionAddr() + bytesSeen;
 
-    RegisterAST thePC = RegisterAST(Dyninst::MachRegister::getPC(getArch()));
+    RegisterAST thePC = RegisterAST(
+        Dyninst::MachRegister::getPC(codeObject()->cs()->getArch()));
 
     Expression::Ptr callTarget = curInsn->getControlFlowTarget();
     if( !callTarget.get() ) {
@@ -2146,12 +1894,12 @@ bool image::findGlobalConstructorFunc() {
         return false;
     }
 
-    if( !ctorAddress || !isValidAddress(ctorAddress) ) {
+    if( !ctorAddress || !codeObject()->cs()->isValidAddress(ctorAddress) ) {
         logLine("invalid address for global constructor function\n");
         return false;
     }
 
-    if( addFunctionStub(ctorAddress, LIBC_CTOR_HANDLER.c_str()) == NULL ) {
+    if( addFunction(ctorAddress, ctorHandler.c_str()) == NULL ) {
         logLine("unable to create representation for global constructor function\n");
         return false;
     }else{
@@ -2162,11 +1910,11 @@ bool image::findGlobalConstructorFunc() {
     return true;
 }
 
-bool image::findGlobalDestructorFunc() {
+bool image::findGlobalDestructorFunc(const std::string &dtorHandler) {
     using namespace Dyninst::InstructionAPI;
 
     vector<Function *> funcs;
-    if( linkedFile->findFunctionsByName(funcs, LIBC_DTOR_HANDLER) ) {
+    if( linkedFile->findFunctionsByName(funcs, dtorHandler) ) {
         return true;
     }
 
@@ -2180,7 +1928,7 @@ bool image::findGlobalDestructorFunc() {
      *
      * ... some code ...
      *
-     * call LIBC_DTOR_HANDLER
+     * call dtor_handler
      *
      * ... prologue ...
      */
@@ -2203,13 +1951,13 @@ bool image::findGlobalDestructorFunc() {
      * If the function associated with the .fini Region doesn't exist, it needs to
      * be created
      */
+
     if( !findFuncByEntry(finiRegion->getRegionAddr()) ) {
-        image_func *finiStub = addFunctionStub(finiRegion->getRegionAddr(), "_fini");
+        image_func *finiStub = addFunction(finiRegion->getRegionAddr(), "_fini");
         if( finiStub == NULL ) {
             logLine("unable to create function for .fini \n");
             return false;
         }else{
-            finiStub->parse();
             inst_printf("%s[%d]: set _fini function address to 0x%lx\n", FILE__, __LINE__,
                 finiRegion->getRegionAddr());
         }
@@ -2220,7 +1968,8 @@ bool image::findGlobalDestructorFunc() {
     unsigned bytesSeen = 0;
     const unsigned char *p = reinterpret_cast<const unsigned char *>(finiRegion->getPtrToRawData());
 
-    InstructionDecoder decoder(p, finiRegion->getRegionSize(), getArch());
+    InstructionDecoder decoder(p, finiRegion->getRegionSize(),
+        codeObject()->cs()->getArch());
 
     Instruction::Ptr lastCall;
     Instruction::Ptr curInsn = decoder.decode();
@@ -2231,6 +1980,7 @@ bool image::findGlobalDestructorFunc() {
         InsnCategory category = curInsn->getCategory();
         if( category == c_CallInsn ) {
             lastCall = curInsn;
+            break;
         }
             bytesSeen += curInsn->size();
             curInsn = decoder.decode();
@@ -2243,7 +1993,8 @@ bool image::findGlobalDestructorFunc() {
 
     Address callAddress = finiRegion->getRegionAddr() + bytesSeen;
 
-    RegisterAST thePC = RegisterAST(Dyninst::MachRegister::getPC(getArch()));
+    RegisterAST thePC = RegisterAST(
+        Dyninst::MachRegister::getPC(codeObject()->cs()->getArch()));
 
     Expression::Ptr callTarget = lastCall->getControlFlowTarget();
     if( !callTarget.get() ) {
@@ -2261,12 +2012,12 @@ bool image::findGlobalDestructorFunc() {
         return false;
     }
 
-    if( !dtorAddress || !isValidAddress(dtorAddress) ) {
+    if( !dtorAddress || !codeObject()->cs()->isValidAddress(dtorAddress) ) {
         logLine("invalid address for global destructor function\n");
         return false;
     }
 
-    if( addFunctionStub(dtorAddress, LIBC_DTOR_HANDLER.c_str()) == NULL ) {
+    if( addFunction(dtorAddress, dtorHandler.c_str()) == NULL ) {
         logLine("unable to create representation for global destructor function\n");
         return false;
     }else{

@@ -35,6 +35,7 @@
 #include "BPatch_Vector.h"
 #include "BPatch_sourceObj.h"
 #include "BPatch_eventLock.h"
+#include "BPatch_hybridAnalysis.h"
 #include "dyntypes.h"
 #include <vector>
 #include <map>
@@ -106,7 +107,9 @@ public:
     char *parseStabStringSymbol(int line, char *stabstr, void *stabptr);
     void setDefaultNamespacePrefix(char *name);    
     void handleUnload();
-
+    bool isExploratoryModeOn();// true if exploratory or defensive mode is on
+    bool protectAnalyzedCode();// pages that have analyzed code become read-only
+    bool isSystemLib();
     // End functions for internal use only
   
     // BPatch_module::getName
@@ -250,14 +253,9 @@ public:
     API_EXPORT(Int, (), 
                bool, isValid, ());
 
-    //  BPatch_module::GetUnresolvedControlFlow
-    //
-    //  Every call instruction that calls into a region of memory that
-    //  is not recognized by Dyninst as pertaining to a code region in
-    //  an existing program module is tracked. This function returns
-    //  a list of all such calls being made in this module
-    API_EXPORT(Int, (), 
-    BPatch_Vector<BPatch_point *> *,getUnresolvedControlFlow, ());
+    // BPastch_module::getHybridMode
+    // returns the hybrid Analysis mode: normal, exploratory, defensive
+    API_EXPORT(Int, (), BPatch_hybridMode, getHybridMode,());
     
     API_EXPORT(Int, (callback),
                BPatchSnippetHandle*, insertInitCallback, (BPatch_snippet& callback));
@@ -306,9 +304,6 @@ private:
     // in both DWARF and STABS format.
     void parseStabTypes();
     void parseDwarfTypes();
-    bool isSystemLib();
-	// vector of unresolved control flow instructions
-	BPatch_Vector<BPatch_point *> unresolvedCF;
 
    BPatch_funcMap func_map;
    BPatch_instpMap instp_map;

@@ -33,6 +33,7 @@ using namespace DebuggerInterface;
 
 #include "stackwalk/src/bluegenel-swk.h"
 #include "stackwalk/src/bluegenep-swk.h"
+#include "stackwalk/src/sw.h"
 
 #include "stackwalk/h/swk_errors.h"
 #include "stackwalk/h/symlookup.h"
@@ -300,7 +301,10 @@ namespace Dyninst {
         ev.dbg = dbg_attached;
         sw_printf("[%s:%u] - Process %d acknowledged attach\n", __FILE__, __LINE__, pid);
         break;
-
+      case DETACH_ACK:
+	ev.dbg = dbg_detached;
+	sw_printf("[%s:%u] - Process %d acknowledged detach\n", __FILE__, __LINE__, pid);
+	break;
       case CONTINUE_ACK:
         ev.dbg = dbg_continued;
         sw_printf("[%s:%u] - Process %d acknowledged continue\n", __FILE__, __LINE__, pid);
@@ -321,6 +325,12 @@ namespace Dyninst {
           sw_printf("[%s:%u] - RegisterAll ACK on pid %d\n", __FILE__, __LINE__, pid);
         }
         break;
+      case SET_REG_ACK:
+	{
+	  ev.dbg = dbg_setreg_ack;
+	  sw_printf("[%s:%u] - SET_REG ACK on pid %d\n", __FILE__, __LINE__, pid);
+	  break;
+	}
 
       case GET_MEM_ACK:
         ev.dbg = dbg_mem_ack;
@@ -407,7 +417,9 @@ namespace Dyninst {
         mem_data(NULL),
         read_cache(NULL),
         read_cache_start(0x0),
-        read_cache_size(0x0)
+        read_cache_size(0x0),
+	detached(false),
+	write_ack(false)
     {
     }
 
@@ -514,6 +526,10 @@ namespace Dyninst {
         for_all_threads(set_state(ps_attached_intermediate));
         //debug_pause(NULL); //immediately after debug_attach, pause the process.
         break;
+      case dbg_detached:
+	sw_printf("[%s:%u] - Process %d detached\n", __FILE__, __LINE__, pid);
+	detached = true;
+	break;
 
       case dbg_mem_ack:
         sw_printf("[%s:%u] - Process %d returned a memory chunk of size %u\n", 
@@ -525,6 +541,7 @@ namespace Dyninst {
       case dbg_setmem_ack:
         sw_printf("[%s:%u] - Process %d set a chunk of memory of size %u\n", 
                   __FILE__, __LINE__, pid, ev.size);
+	write_ack = true;
         break;
 
       case dbg_allregs_ack:
@@ -538,7 +555,13 @@ namespace Dyninst {
           delete data;
         }
         break;
-
+      case dbg_setreg_ack:
+	{
+	  sw_printf("[%s:%u] - Handling set reg ack on process %d\n", 
+		    __FILE__, __LINE__, pid);
+	  thr->write_ack = true;
+	  break;
+	}
       case dbg_other:
         sw_printf("[%s:%u] - Skipping unimportant event\n", __FILE__, __LINE__);
         break;
@@ -613,9 +636,45 @@ namespace Dyninst {
       return result;
     }
 
+    bool ProcDebugBG::cleanOnDetach() {
+      //Overridden on BG/P
+      return true;
+    }
 
-    bool ProcDebugBG::detach(bool /* leave_stopped */) {
+    bool ProcDebugBG::detach(bool /*leave_stopped*/) {
       // TODO: send detach message
+      sw_printf("[%s:%u] - Detaching from process %d\n", __FILE__, __LINE__, 
+		pid);
+      bool result = cleanOnDetach();
+      if (!result) {
+	sw_printf("[%s:%u] - Failed to clean process %d\n", 
+		  __FILE__, __LINE__, pid);
+	return false;
+      }
+      
+      result = resume();
+      if (!result) {
+	sw_printf("[%s:%u] - Error resuming process before detach\n");
+      }
+
+      BG_Debugger_Msg msg(DETACH, pid, 0, 0, 0);
+      msg.header.dataLength = sizeof(msg.dataArea.DETACH);
+      result = BG_Debugger_Msg::writeOnFd(BG_DEBUGGER_WRITE_PIPE, msg);
+      if (!result) {
+	sw_printf("[%s:%u] - Failed to write detach to process %d\n",
+		  __FILE__, __LINE__, pid);
+	setLastError(err_internal, "Could not write to debug pipe\n");
+	return false;
+      }
+      while (!detached) {
+	bool handled;
+	bool result = debug_wait_and_handle(true, false, handled);
+	if (!result) {
+	  sw_printf("[%s:%u] - Error while waiting for detach\n", 
+		    __FILE__, __LINE__);
+	    return false;
+	}
+      }
       return true;
     }
 
@@ -710,6 +769,53 @@ namespace Dyninst {
       return true;
     }
 
+
+
+    bool ProcDebugBG::setRegValue(MachRegister reg, THR_ID tid, MachRegisterVal val) {
+      assert(threads.count(tid));
+      BGThreadState *thr = dynamic_cast<BGThreadState*>(threads[tid]);
+
+      BG_Debugger_Msg msg(SET_REG, pid, tid, 0, 0);
+      msg.header.dataLength = sizeof(msg.dataArea.SET_REG);
+      msg.dataArea.SET_REG.value = val;
+      switch(reg)
+      {
+      case Dyninst::MachRegFrameBase:
+        msg.dataArea.SET_REG.registerNumber = BG_GPR1;
+        break;
+      case Dyninst::MachRegPC:
+	msg.dataArea.SET_REG.registerNumber = BG_IAR;
+        break;
+      default:
+        sw_printf("[%s:%u] - Request for unsupported register %d\n", __FILE__, __LINE__, reg);
+        setLastError(err_badparam, "Unknown register passed in reg field");
+        return false;
+      }  
+      thr->write_ack = false;
+      bool result = BG_Debugger_Msg::writeOnFd(BG_DEBUGGER_WRITE_PIPE, msg);
+      if (!result) {
+	sw_printf("[%s:%u] - Unable to set reg to process %d, thread %d\n",
+		  __FILE__, __LINE__, pid, tid);
+	return true;
+      }
+      
+      //Wait for the read to return
+      sw_printf("[%s:%u] - Waiting for set reg to return on pid %d, tid %d\n",
+		__FILE__, __LINE__, pid, tid);
+        
+      do {
+	bool handled, result;
+	result = debug_wait_and_handle(true, false, handled);
+	if (!result)
+          {
+            sw_printf("[%s:%u] - Error while waiting for read to return\n",
+                      __FILE__, __LINE__);
+            return false;
+          }
+      } while (!thr->write_ack);
+   
+      return true;
+    }
 
     bool ProcDebugBG::readMem(void *dest, Address source, size_t size)
     {
@@ -857,6 +963,10 @@ namespace Dyninst {
       }
       BGThreadState *ts = new BGThreadState(parent, thread_id);
       return ts;
+    }
+
+    void BottomOfStackStepperImpl::initialize()
+    {
     }
 
   } // namespace Stackwalker

@@ -282,7 +282,7 @@ bool MappedFile::map_file()
    // next, map the file to our address space
 
    map_addr = MapViewOfFileEx( hMap,             // mapping object
-         FILE_MAP_READ,  // desired access
+         FILE_MAP_COPY,  // desired access
          0,              // loc to map - hi DWORD
          0,              // loc to map - lo DWORD
          0,              // #bytes to map - 0=all

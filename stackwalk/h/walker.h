@@ -36,6 +36,10 @@
 #include <vector>
 #include <list>
 
+#define SW_MAJOR 1
+#define SW_MINOR 4
+#define SW_BETA  5
+
 namespace Dyninst {
 namespace Stackwalker {
 

@@ -37,6 +37,10 @@
 #include <sstream>
 #include <string>
 #include <cstring>
+#include <cassert>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include "runTests-utils.h"
 
@@ -89,20 +93,110 @@ static void sigint_action(int sig, siginfo_t *siginfo, void *context) {
 }
 
 void generateTestArgs(char **exec_args[], bool resume, bool useLog,
-		      bool staticTests, string &logfile, int testLimit,
-            vector<char *> &child_argv, char *pidFilename,
-            const char *memcpu_name);
+                      bool staticTests, string &logfile, int testLimit,
+                      vector<char *> &child_argv, const char *pidFilename,
+                      const char *memcpu_name, std::string hostname);
 
-int RunTest(unsigned int iteration, bool useLog, bool staticTests,
+int CollectTestResults(vector<test_driver_t> &test_drivers, int parallel_copies)
+{
+   // Install signal handler for a timer
+   struct sigaction sigalrm_a;
+   struct sigaction old_sigalrm_a;
+   struct sigaction sigint_a;
+   struct sigaction old_sigint_a;
+   int retval;
+
+   timed_out = false;
+   sigalrm_a.sa_sigaction = sigalrm_action;
+   sigemptyset(&(sigalrm_a.sa_mask));
+   sigalrm_a.sa_flags = SA_SIGINFO;
+   sigaction(SIGALRM, &sigalrm_a, &old_sigalrm_a);
+   alarm(timeout);
+   
+   interrupted = false;
+   sigint_a.sa_sigaction = sigint_action;
+   sigemptyset(&(sigint_a.sa_mask));
+   sigint_a.sa_flags = SA_SIGINFO;
+   sigaction(SIGINT, &sigint_a, &old_sigint_a);
+   
+   // I think I want to use wait() here instead of using a sleep loop
+   // - There are issues with using sleep() and alarm()..
+   // - I'll wait() and if the alarm goes off it will interrupt the waiting,
+   //   so the end result should be the same
+   
+   // Wait for one of the signals to fire
+   for (;;) 
+   {
+      // Wait for child to exit
+      pid_t waiting_pid;
+      int child_status;
+      //fprintf(stderr, "%s[%d]:  before waitpid(%d)\n", __FILE__, __LINE__, child_pid);
+      if (!timed_out && !interrupted) {
+         // BUG I fear there's a race condition here, where I may not catch a
+         // timeout if it occurs between the timed_out check and the call to
+         // waitpid().  I'm not sure what to do about that.
+         waiting_pid = wait(&child_status);
+      }
+      
+      if (timed_out || interrupted) {
+         // Timed out..  timer.pl sets the return value to -1 for this case
+         if (timed_out)
+            fprintf(stderr, "*** Process exceeded time limit.  Reaping children.\n");
+         else
+            fprintf(stderr, "*** SIGINT received.  Reaping children.\n");
+
+         for (unsigned i = 0; i < parallel_copies; i++) {
+            if (!test_drivers[i].pid)
+               continue;
+            kill(test_drivers[i].pid, SIGKILL);
+            waitpid(test_drivers[i].pid, NULL, 0);
+         }
+         retval = interrupted ? -3 : -1;
+         break;
+      }
+      if (WIFSIGNALED(child_status) || WIFEXITED(child_status))
+      {
+         int child_ret = 0;
+         if (WIFSIGNALED(child_status)) {
+            fprintf(stderr, "*** Child terminated abnormally via signal %d.\n", WTERMSIG(child_status));
+            child_ret = -2;
+         } else {
+            child_ret = (signed char) WEXITSTATUS(child_status);
+         }
+         for (unsigned i=0; i<parallel_copies; i++)
+         {
+            if (test_drivers[i].pid == waiting_pid) {
+               test_drivers[i].pid = 0;
+               test_drivers[i].last_result = child_ret;
+               retval = i;
+               break;
+            }
+         }
+         break;
+      }
+   }
+   alarm(0); // Cancel alarm
+   
+   // Uninstall handlers
+   sigaction(SIGALRM, &old_sigalrm_a, NULL);
+   sigaction(SIGINT, &old_sigint_a, NULL);
+
+   return retval;
+}
+
+test_pid_t RunTest(unsigned int iteration, bool useLog, bool staticTests,
             string logfile, int testLimit, vector<char *> child_argv,
-            char *pidFilename, const char *memcpu_name) {
-   // TODO Fill in this function
+            const char *pidFilename, const char *memcpu_name,
+            std::string hostname) {
    int retval = -1;
 
    char **exec_args = NULL;
 
    generateTestArgs(&exec_args, iteration > 0, useLog, staticTests, logfile,
-                    testLimit, child_argv, pidFilename, memcpu_name);
+                    testLimit, child_argv, pidFilename, memcpu_name, hostname);
+
+   if (hostname.length())
+      sleep(1);
 
    // Fork and execute test_driver in the child process
    int child_pid = fork();
@@ -110,125 +204,47 @@ int RunTest(unsigned int iteration, bool useLog, bool staticTests,
       return -4;
    } else if (0 == child_pid) {
       // Child
-      execvp("test_driver", exec_args);
-      execvp("./test_driver", exec_args);
+      execvp(exec_args[0], exec_args);
+      std::string newexec = std::string("./") + exec_args[0];
+      execvp(newexec.c_str(), exec_args);
       exit(-4);
-   } else {
-	  // fprintf(stderr, "%s[%d]:  forked new process %d\n", __FILE__, __LINE__, child_pid);
-      // Parent
-      // Install signal handler for a timer
-      struct sigaction sigalrm_a;
-      struct sigaction old_sigalrm_a;
-      struct sigaction sigint_a;
-      struct sigaction old_sigint_a;
-
-      timed_out = false;
-      sigalrm_a.sa_sigaction = sigalrm_action;
-      sigemptyset(&(sigalrm_a.sa_mask));
-      sigalrm_a.sa_flags = SA_SIGINFO;
-      sigaction(SIGALRM, &sigalrm_a, &old_sigalrm_a);
-      alarm(timeout);
-
-      interrupted = false;
-      sigint_a.sa_sigaction = sigint_action;
-      sigemptyset(&(sigint_a.sa_mask));
-      sigint_a.sa_flags = SA_SIGINFO;
-      sigaction(SIGINT, &sigint_a, &old_sigint_a);
-
-      // I think I want to use wait() here instead of using a sleep loop
-      // - There are issues with using sleep() and alarm()..
-      // - I'll wait() and if the alarm goes off it will interrupt the waiting,
-      //   so the end result should be the same
-
-      // Wait for one of the signals to fire
-      do {
-         // Wait for child to exit
-         pid_t waiting_pid;
-         int child_status;
-		 //fprintf(stderr, "%s[%d]:  before waitpid(%d)\n", __FILE__, __LINE__, child_pid);
-         if (!timed_out && !interrupted) {
-            // BUG I fear there's a race condition here, where I may not catch a
-            // timeout if it occurs between the timed_out check and the call to
-            // waitpid().  I'm not sure what to do about that.
-            waiting_pid = waitpid(child_pid, &child_status, 0);
-         }
-
-#if 0
-		 fprintf(stderr, "%s[%d]:  waitpid (%d): %s with %d\n", __FILE__, __LINE__, child_pid,
-				 WIFEXITED(child_status) ? "exited" : 
-				 WIFSIGNALED(child_status) ? "signaled" : "unknown",
-				 WIFEXITED(child_status) ? WEXITSTATUS(child_status) : 
-				 WIFSIGNALED(child_status) ? WTERMSIG(child_status) : -1);
-#endif
-
-		 if (timed_out) {
-			 // Timed out..  timer.pl sets the return value to -1 for this case
-            fprintf(stderr,
-                    "*** Process exceeded time limit.  Reaping children.\n");
-            kill(child_pid, SIGKILL);
-            // I need to call waitpid also, so we don't leave zombie processes
-            // around
-            wait(NULL);
-            retval = -1;
-         } else if (interrupted) {
-            fprintf(stderr, "*** SIGINT received.  Reaping children.\n");
-            kill(child_pid, SIGKILL);
-            wait(NULL);
-            retval = -3;
-         } else {
-            // Do something with child_status
-            if (WIFSIGNALED(child_status)) {
-               fprintf(stderr, "*** Child terminated abnormally via signal %d.\n",
-               WTERMSIG(child_status));
-               retval = -2;
-               break;
-            } else if (WIFEXITED(child_status)) {
-               retval = WEXITSTATUS(child_status);
-               break;
-            } // I don't care about stops or continues
-         }
-      } while (!timed_out && !interrupted);
-      alarm(0); // Cancel alarm
-
-      // Uninstall handlers
-      sigaction(SIGALRM, &old_sigalrm_a, NULL);
-      sigaction(SIGINT, &old_sigint_a, NULL);
-
-      //Clean-up process group
-      if (-1 == kill(-1 * child_pid, SIGKILL))
-	  {
-		  //fprintf(stderr, "%s[%d]:  ERROR:  failed to kill %d: %s\n", 
-		//		  __FILE__, __LINE__, child_pid, strerror(errno));
-	  }
    }
 
-   return retval; // FIXME Return the real return value
+   return child_pid;
 }
 
 string ReplaceAllWith(const string &in, const string &replace, const string &with);
 
 void generateTestArgs(char **exec_args[], bool resume, bool useLog,
-		      bool staticTests, string &logfile, int testLimit,
-            vector<char *> &child_argv, char *pidFilename,
-            const char *memcpu_name) {
+                      bool staticTests, string &logfile, int testLimit,
+                      vector<char *> &child_argv, const char *pidFilename,
+                      const char *memcpu_name, std::string hostname) 
+{
   vector<const char *> args;
 
-  if (staticTests) {
-    args.push_back("test_driver_static");
-  } else {
-    args.push_back("test_driver");
+  if (hostname.size())
+  {
+     args.push_back("ssh");
+     args.push_back(hostname.c_str());
+     assert(scriptname);
+     args.push_back(scriptname);
   }
+  else
+  {
+     args.push_back("test_driver");
+  }
+
   args.push_back("-under-runtests");
   args.push_back("-enable-resume");
   args.push_back("-limit");
   char *limit_str = new char[12];
   snprintf(limit_str, 12, "%d", testLimit);
   args.push_back(limit_str);
-  if (pidFilename != NULL) {
+  if (pidFilename != NULL && strlen(pidFilename)) {
     args.push_back("-pidfile");
     args.push_back(pidFilename);
   }
-  if (memcpu_name)
+  if (memcpu_name && strlen(memcpu_name))
   {
      args.push_back("-memcpu");
      args.push_back(memcpu_name);
@@ -277,7 +293,6 @@ void generateTestString(bool resume, bool useLog, bool staticTests,
      testString << "test_driver";
    }
    testString << " -under-runtests -enable-resume -limit " << testLimit;
-   testString << " -pidfile " << pidFilename;
 
    if ( resume )
    {
@@ -457,4 +472,32 @@ void setupVars(bool useLog, string &logfile)
          cout << "File.gz exists" << endl;
       }
    }
+}
+
+#define SCRIPT_NAME "parallel_testdriver"
+
+char *createParallelScript()
+{
+   char cwd[4096];
+   memset(cwd, 0, 4096);
+   char *result = getcwd(cwd, 4096);
+   if (!result) {
+      perror("Could not getcwd for parallel script");
+      exit(-1);
+   }
+
+   FILE *f = fopen(SCRIPT_NAME, "w");
+   fprintf(f, "#!/bin/sh\n");
+   fprintf(f, "cd %s\n", cwd);
+   fprintf(f, "./test_driver $*\n");
+   fclose(f);
+   
+   chmod(SCRIPT_NAME, 0750);
+   
+   char *fullname = (char *) malloc(strlen(cwd) + strlen(SCRIPT_NAME) + 3);
+   strcpy(fullname, cwd);
+   strcat(fullname, "/");
+   strcat(fullname, SCRIPT_NAME);
+
+   return fullname;
 }

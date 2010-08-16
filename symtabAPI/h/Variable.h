@@ -141,7 +141,7 @@ class localVar : public Serializable, public AnnotatableSparse
 	// Copy constructor
 	localVar(localVar &lvar);
 	bool addLocation(VariableLocation &location);
-	~localVar();
+	SYMTAB_EXPORT ~localVar();
 	SYMTAB_EXPORT void fixupUnknown(Module *);
 
 	public:

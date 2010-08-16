@@ -52,12 +52,12 @@ using namespace Dyninst::InstructionAPI;
 Dyninst::Architecture instPointBase::arch = Dyninst::Arch_none;
 
 #else
-#include "dyninstAPI/src/InstrucIter.h"
+#include "parseAPI/src/InstrucIter.h"
 #endif // defined(cap_instruction_api)
 
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/image-func.h"
-#include "dyninstAPI/src/arch.h"
+#include "common/h/arch.h"
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/emitter.h"
 #if defined(arch_x86_64)
@@ -240,7 +240,7 @@ instPoint *instPoint::createArbitraryInstPoint(Address addr,
     if (!proc->isValidAddress(bbl->firstInsnAddr())) return NULL;
 
     const unsigned char* buffer = reinterpret_cast<unsigned char*>(proc->getPtrToInstruction(bbl->firstInsnAddr()));
-    InstructionDecoder decoder(buffer, bbl->getSize(), func->ifunc()->img()->getArch());
+    InstructionDecoder decoder(buffer, bbl->getSize(), proc->getArch());
     Instruction::Ptr i;
     Address currentInsn = bbl->firstInsnAddr();
     while((i = decoder.decode()) && (currentInsn < addr))
@@ -261,7 +261,7 @@ instPoint *instPoint::createArbitraryInstPoint(Address addr,
 #error "Instruction API not yet implemented for SPARC, cap_instruction_api is illegal"
 #endif // defined(arch_sparc)
 #else
-    InstrucIter newIter(bbl);
+    InstrucIter newIter(bbl->firstInsnAddr(),bbl->getSize(),bbl->proc());
     while ((*newIter) < addr) newIter++;
     if (*newIter != addr) {
         inst_printf("Unaligned try for instruction iterator, ret null\n");
@@ -375,11 +375,11 @@ bool instPoint::updateInstancesBatch() {
         for (i = instances.size(); i < bbls.size(); i++) {
             bblInstance *bblI = bbls[i];
             
-            Address newAddr = bblI->equivAddr(block()->origInstance(), addr());
+            Address newAddr = bblI->equivAddr(0, addr());
 
             // However, check if we can do a multiTramp at this point (as we may have
             // overwritten with a jump). If we can't, then skip the instance.
-            unsigned multiID_ = multiTramp::findOrCreateMultiTramp(newAddr, proc());
+            unsigned multiID_ = multiTramp::findOrCreateMultiTramp(newAddr, bblI);
             reloc_printf("... found multi ID %d for addl instance %d\n",
                          multiID_, i);
             if (multiID_) {
@@ -413,9 +413,10 @@ bool instPoint::updateInstancesFinalize() {
     // Check whether there's something at my address...
     for (unsigned i = 0; i < instances.size(); i++) {
         if (!instances[i]->multi()) {
-            instances[i]->multiID_ = multiTramp::findOrCreateMultiTramp(instances[i]->addr(),
-                                                                        proc());
+            instances[i]->multiID_ = multiTramp::findOrCreateMultiTramp
+                ( instances[i]->addr() , instances[i]->block() );
             if (instances[i]->multi()) {
+                assert( instances[i]->func() == instances[i]->multi()->func() );
                 if (shouldGenerateNewInstances_) {
                     instances[i]->multi()->generateMultiTramp();
                 }
@@ -690,7 +691,8 @@ instPoint::instPoint(AddressSpace *proc,
     shouldInstallNewInstances_(false),
     shouldLinkNewInstances_(false),
     hasNewInstrumentation_(false),
-    hasAnyInstrumentation_(false)
+    hasAnyInstrumentation_(false),
+    savedTarget_(0)
 {
 #if defined(ROUGH_MEMORY_PROFILE)
     instPoint_count++;
@@ -723,7 +725,8 @@ instPoint::instPoint(AddressSpace *proc,
     shouldInstallNewInstances_(false),
     shouldLinkNewInstances_(false),
     hasNewInstrumentation_(false),
-    hasAnyInstrumentation_(false)
+    hasAnyInstrumentation_(false),
+    savedTarget_(0)
 {
 #if defined(ROUGH_MEMORY_PROFILE)
     instPoint_count++;
@@ -755,7 +758,8 @@ instPoint::instPoint(instPoint *parP,
     shouldInstallNewInstances_(parP->shouldInstallNewInstances_),
     shouldLinkNewInstances_(parP->shouldLinkNewInstances_),
     hasNewInstrumentation_(parP->hasNewInstrumentation_),
-    hasAnyInstrumentation_(parP->hasAnyInstrumentation_)
+    hasAnyInstrumentation_(parP->hasAnyInstrumentation_),
+    savedTarget_(parP->savedTarget_)
 {
 }
                   
@@ -769,8 +773,19 @@ instPoint *instPoint::createParsePoint(int_function *func,
                 func->symTabName().c_str(),
                 img_p->getPointType());
 
-
-    Address offsetInFunc = img_p->offset() - img_p->func()->getOffset();
+   // Madhavi 2010: This condition is no longer true. We could have
+   // instPoints above the function entry point that belongs to a function
+   // (especially with shared code)
+#if 0
+    //assert(img_p->offset() >= func->ifunc->getOffset());
+    if(img_p->offset() < func->ifunc()->getOffset()) {
+        inst_printf("  -- Failed: image_instPoint offset %lx preceeds "
+                    "image_func offset %lx: untested case\n",
+                    img_p->offset(),func->ifunc()->getOffset());
+        return NULL;
+    }
+#endif 
+    Address offsetInFunc = img_p->offset() - func->ifunc()->getOffset();
     Address absAddr = offsetInFunc + func->getAddress();
 
     instPoint *newIP = func->findInstPByAddr(absAddr);
@@ -785,7 +800,7 @@ instPoint *instPoint::createParsePoint(int_function *func,
                 absAddr);
     
     int_basicBlock *block = func->findBlockByAddr(absAddr);
-    if (!block) return false; // Not in the function...
+    if (!block) return NULL; // Not in the function...
     assert(block);
 
     newIP = new instPoint(func->proc(),
@@ -913,7 +928,12 @@ bool instPoint::instrSideEffect(Frame &frame)
 
         Address newPC = target->multi()->uninstToInstAddr(frame.getPC());
         if (newPC) {
-            if (frame.setPC(newPC))
+            if (!frame.setPC(newPC)) {
+                mal_printf("setting active frame's PC from %lx to %lx %s[%d]\n", 
+                           frame.getPC(), newPC, FILE__,__LINE__);
+                frame.getLWP()->changePC(newPC,NULL);
+            }
+            if (frame.setPC(newPC)) 
                 modified = true;
         }
         // That's if we want to move into instrumentation. Mental note:
@@ -1032,9 +1052,9 @@ instPointInstance::result_t instPointInstance::generateInst() {
     // want one. I'm going to look that up here, since the state of the
     // data structures is _weird_ in this case. 
 
-    if (!multi()) {
-        multiID_ = multiTramp::findOrCreateMultiTramp(addr(),
-                                                      proc());
+    if (!multi()) {//UNSAFE? this can retrieve the wrong multiTramp if there's 
+                   //shared code
+        multiID_ = multiTramp::findOrCreateMultiTramp(addr(),block());
     }
     if (!multi()) {
         if (multiID_ != 0) {
@@ -1162,8 +1182,15 @@ multiTramp *instPointInstance::multi() const {
 void instPointInstance::updateMulti(unsigned id) {
     if (multiID_)
         assert(id == multiID_);
-    else
+    else {
         multiID_ = id;
+        if (func() != multi()->func()) {
+            multiTramp *mt = multi();
+            fprintf(stderr,"ERROR: mismatch, func %p at %lx != multifunc %p "
+                    "at %lx %s[%d]\n", func(), func()->getAddress(), 
+                    mt->func(), mt->func()->getAddress(),FILE__,__LINE__);
+        }
+    }
 }
 
 AddressSpace *instPointInstance::proc() const {
@@ -1202,3 +1229,111 @@ std::string instPoint::getCalleeName()
       return f->symTabName();
    return img_p_->getCalleeName();
 }
+
+
+void instPoint::setBlock( int_basicBlock* newBlock )
+{
+    // update block (not sure what to do with instPointInstance block mappings)
+    block_ = newBlock;
+    while (instances.size()) {
+        // leave the original instPoint addr registered
+        if (instances.size() != 1) {
+            func()->unregisterInstPointAddr(instances.back()->addr(), this);
+        }
+        // but we don't want instPointInstances registered, the instrumentation
+        //  should be gone and the instance will have incorrect block info
+        instances.pop_back();
+        
+    }
+    funcVersion = -1;
+}
+
+Address instPoint::getSavedTarget()
+{
+    if (0 == savedTarget_) { 
+        // if the target is not set, see if there's a point at this
+        // address in another function whose target has been saved,
+        // retrieve that
+        vector<ParseAPI::Function *> allfuncs;
+        image_basicBlock *imgBlock = func()->findBlockByAddr(addr())->llb();
+        imgBlock->getFuncs(allfuncs);
+        if (allfuncs.size() > 1) {
+            for(vector<ParseAPI::Function*>::iterator fIter = allfuncs.begin();
+                fIter != allfuncs.end(); 
+                fIter++) 
+            {
+                instPoint *curPoint = proc()->
+                    findFuncByInternalFunc(dynamic_cast<image_func*>(*fIter))->
+                    findInstPByAddr(addr());
+                if (savedTarget_ !=0 && curPoint != NULL &&
+                    savedTarget_ != curPoint->savedTarget_) 
+                {
+                    savedTarget_ = (Address) -1;
+                }
+                else if (curPoint != NULL) { 
+                    savedTarget_ = curPoint->savedTarget_;
+                }
+            }
+        }
+    }
+    return savedTarget_;
+}
+
+void instPoint::setSavedTarget(Address st_)
+{
+    Address newVal = st_;
+    // savedTarget_ == 0 means it hasn't been set yet
+    if (0 != savedTarget_ && savedTarget_ != st_) {
+        mal_printf("WARNING!!! instPoint at %lx resolves to more than "
+                "one target, %lx and now %lx, setting target to -1 %s[%d]\n", 
+                addr_, savedTarget_, st_, FILE__,__LINE__);
+        newVal = (Address)-1;
+    }
+    savedTarget_ = newVal;
+}
+
+bool instPoint::isReturnInstruction()
+{
+    if (ipType_ != functionExit) {
+        return false;
+    }
+    if ( ! instances.size() ) {
+        updateInstances();
+    }
+
+#if defined(cap_instruction_api)
+    using namespace InstructionAPI;
+    InstructionDecoder decoder
+        ( func()->obj()->getPtrToInstruction(addr()),
+          ( func()->obj()->codeAbs() + func()->obj()->imageSize() ) - addr(),
+          func()->proc()->getArch() );
+    Instruction::Ptr curInsn = decoder.decode();
+    return c_ReturnInsn == curInsn->getCategory();
+#else
+    InstrucIter iter(addr(),proc());
+    return iter.isAReturnInstruction();
+#endif
+}
+
+// returns false if the point was already resolved
+bool instPoint::setResolved()
+{
+    if (img_p_->isUnresolved()) {
+        img_p_->setResolved();
+        func()->setPointResolved( this );
+        return true;
+    }
+
+    return false;
+}
+
+void instPoint::removeMultiTramps()
+{
+    for (unsigned iIdx=0; iIdx < instances.size(); iIdx++) {
+        instPointInstance *curInst = instances[iIdx];
+        if (curInst->multi()) {
+            curInst->multi()->removeCode(NULL);
+        }
+    }
+}
+
