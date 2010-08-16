@@ -311,7 +311,7 @@ ac_includes_default="\
 # include <unistd.h>
 #endif"
 
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS CXX CXXFLAGS LDFLAGS CPPFLAGS ac_ct_CXX EXEEXT OBJEXT _ICC_ _ICPC_ _PGC_ _PGCXX_ _CC_ _CXX_ USE_TCL83 TCLTK_INC_DIR TCLTK_LIB_DIR build build_cpu build_vendor build_os host host_cpu host_vendor host_os CXXCPP EGREP LIBELF_INC_DIR LIBELF_LIB_DIR LIBELF_STATIC LIBELF_DYNAMIC LIBIBERTY_LIB_DIR LIBIBERTY_STATIC LIBIBERTY_DYNAMIC HAVE_LIBIBERTY BUILD_XLC LIBDWARF_INC_DIR LIBDWARF_LIB_DIR LIBDWARF_STATIC LIBDWARF_DYNAMIC LIBDWARF_HAS_SET_FRAME LIBXML2_INC_DIR LIBXML2_LIB_DIR LIBUNWIND_INC_DIR LIBUNWIND_LIB_DIR LIBFLEX_LIB_DIR NASM STACKPROT BUILD32 MMTIMER TESTSUITE LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS CXX CXXFLAGS LDFLAGS CPPFLAGS ac_ct_CXX EXEEXT OBJEXT _ICC_ _ICPC_ _PGC_ _PGCXX_ _CC_ _CXX_ USE_TCL83 TCLTK_INC_DIR TCLTK_LIB_DIR build build_cpu build_vendor build_os host host_cpu host_vendor host_os ARG_WRAPPER_LIBS CXXCPP EGREP LIBELF_INC_DIR LIBELF_LIB_DIR LIBELF_STATIC LIBELF_DYNAMIC LIBIBERTY_LIB_DIR LIBIBERTY_STATIC LIBIBERTY_DYNAMIC HAVE_LIBIBERTY BUILD_XLC LIBDWARF_INC_DIR LIBDWARF_LIB_DIR LIBDWARF_STATIC LIBDWARF_DYNAMIC LIBDWARF_HAS_SET_FRAME LIBXML2_INC_DIR LIBXML2_LIB_DIR LIBUNWIND_INC_DIR LIBUNWIND_LIB_DIR LIBFLEX_LIB_DIR NASM STACKPROT BUILD32 MMTIMER TESTSUITE LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -857,6 +857,7 @@ Optional Packages:
   --with-tcl83            Use Tcl/Tk 8.3
   --with-tcltk-incdir     TCL/TK include directory
   --with-tcltk-libdir     TCL/TK library directory
+  --with-wrapper-libs     Comman seperated list of archive to wrap
   --with-libelf-incdir    LIBELF include directory
   --with-libelf-libdir    LIBELF library directory
   --with-libiberty-libdir LIBIBERTY library directory
@@ -2178,6 +2179,7 @@ if test "${with_package_base+set}" = set; then
             LIBELF_LIB_DIR="${PACKAGE_BASE}/libelf/lib";
             LIBDWARF_INC_DIR="${PACKAGE_BASE}/libdwarf/include";
             LIBDWARF_LIB_DIR="${PACKAGE_BASE}/libdwarf/lib";
+            ARG_WRAPPER_LIBS="";
             LIBXML2_INC_DIR="${PACKAGE_BASE}/libxml2/include/libxml2"
             LIBXML2_LIB_DIR="${PACKAGE_BASE}/libxml2/lib";
             LIBUNWIND_INC_DIR="${PACKAGE_BASE}/libunwind/include";
@@ -2192,6 +2194,7 @@ else
             TCLTK_LIB_DIR="/usr/lib";
             LIBELF_INC_DIR="/usr/include";
             LIBELF_LIB_DIR="/usr/lib";
+            ARG_WRAPPER_LIBS="";
             LIBDWARF_INC_DIR="/usr/include";
             LIBDWARF_LIB_DIR="/usr/lib";
             LIBXML2_INC_DIR="/usr/include/libxml2"
@@ -2592,6 +2595,14 @@ host_cpu=`echo $ac_cv_host | sed 's/^\([^-]*\)-\([^-]*\)-\(.*\)$/\1/'`
 host_vendor=`echo $ac_cv_host | sed 's/^\([^-]*\)-\([^-]*\)-\(.*\)$/\2/'`
 host_os=`echo $ac_cv_host | sed 's/^\([^-]*\)-\([^-]*\)-\(.*\)$/\3/'`
 
+
+
+
+# Check whether --with-wrapper-libs or --without-wrapper-libs was given.
+if test "${with_wrapper_libs+set}" = set; then
+  withval="$with_wrapper_libs"
+  ARG_WRAPPER_LIBS="${withval}";
+fi;
 
 
 if test "`echo $host_os | cut -b-3`" = "aix" ; then
@@ -5034,7 +5045,6 @@ fi
 
 
 
-
 if test "$host_cpu" != "ia64" ; then
    { echo "$as_me:$LINENO: Not IA-64, skipping libunwind..." >&5
 echo "$as_me: Not IA-64, skipping libunwind..." >&6;}
@@ -6213,6 +6223,7 @@ s,@host@,$host,;t t
 s,@host_cpu@,$host_cpu,;t t
 s,@host_vendor@,$host_vendor,;t t
 s,@host_os@,$host_os,;t t
+s,@ARG_WRAPPER_LIBS@,$ARG_WRAPPER_LIBS,;t t
 s,@CXXCPP@,$CXXCPP,;t t
 s,@EGREP@,$EGREP,;t t
 s,@LIBELF_INC_DIR@,$LIBELF_INC_DIR,;t t

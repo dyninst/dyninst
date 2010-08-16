@@ -51,10 +51,36 @@ SRCS	     +=	../src/frame.C \
       ../src/symlookup.C \
 		../src/walker.C \
       ../src/procstate.C \
-      ../src/steppergroup.C
+      ../src/steppergroup.C \
+		../src/sw_c.C
 
 
 IFLAGS       += -I../$(PLATFORM) -I../src -I../h
 
 # All that, and we finally get a target...
 all: $(TARGET) $(EXTRA_LIBS)
+
+ifdef WRAPPER_LIBS
+all: libstackwalk_c.so
+install: $(DEST)/libstackwalk_c.so
+endif
+
+SWOBJS = $(filter-out sw_c.o, $(OBJS))
+SWOBJS += $(wildcard $(TO_CORE)/common/$(PLATFORM)/*.o)
+
+comma:=,
+empty:=
+space:= $(empty) $(empty)
+WRAPPER_LIBS_NOCOMMA = $(subst $(comma),$(space),$(WRAPPER_LIBS))
+
+echo2:
+	@echo $(WRAPPER_LIBS_NOCOMMA)
+
+libsw.a: $(SWOBJS)
+	ar rs $@ $(SWOBJS)
+
+libstackwalk_c.so: libsw.a sw_c.o
+	g++ -o $@ -shared sw_c.o -Wl,--exclude-libs -Wl,ALL libsw.a $(WRAPPER_LIBS_NOCOMMA)
+
+$(DEST)/libstackwalk_c.so: libstackwalk_c.so
+	-$(CP) libstackwalk_c.so $(DEST)

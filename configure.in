@@ -32,6 +32,7 @@ AC_ARG_WITH(package-base,
             LIBELF_LIB_DIR="${PACKAGE_BASE}/libelf/lib";
             LIBDWARF_INC_DIR="${PACKAGE_BASE}/libdwarf/include";
             LIBDWARF_LIB_DIR="${PACKAGE_BASE}/libdwarf/lib";
+            ARG_WRAPPER_LIBS="";
             LIBXML2_INC_DIR="${PACKAGE_BASE}/libxml2/include/libxml2"
             LIBXML2_LIB_DIR="${PACKAGE_BASE}/libxml2/lib";
             LIBUNWIND_INC_DIR="${PACKAGE_BASE}/libunwind/include";
@@ -44,6 +45,7 @@ AC_ARG_WITH(package-base,
             TCLTK_LIB_DIR="/usr/lib";
             LIBELF_INC_DIR="/usr/include";
             LIBELF_LIB_DIR="/usr/lib";
+            ARG_WRAPPER_LIBS="";
             LIBDWARF_INC_DIR="/usr/include";
             LIBDWARF_LIB_DIR="/usr/lib";
             LIBXML2_INC_DIR="/usr/include/libxml2"
@@ -74,6 +76,11 @@ AC_SUBST(TCLTK_INC_DIR)
 AC_SUBST(TCLTK_LIB_DIR)
 
 AC_CANONICAL_HOST
+
+AC_ARG_WITH(wrapper-libs, 
+            [AS_HELP_STRING([--with-wrapper-libs],[Comman seperated list of archive to wrap])],
+            [ARG_WRAPPER_LIBS="${withval}";],)
+AC_SUBST(ARG_WRAPPER_LIBS)
 
 if test "`echo $host_os | cut -b-3`" = "aix" ; then
    AC_MSG_NOTICE([AIX system, skipping libelf...])
@@ -208,7 +215,6 @@ PD_SOFT_CHECK_INC_DIR($LIBXML2_INC_DIR, [libxml/xmlschemas.h], [libxml])
 PD_SOFT_CHECK_LIB_DIR($LIBXML2_LIB_DIR,[xml2],[xmlAddID])
 AC_SUBST(LIBXML2_INC_DIR)
 AC_SUBST(LIBXML2_LIB_DIR)
-
 
 if test "$host_cpu" != "ia64" ; then
    AC_MSG_NOTICE([Not IA-64, skipping libunwind...])
