@@ -75,9 +75,6 @@ empty:=
 space:= $(empty) $(empty)
 WRAPPER_LIBS_NOCOMMA = $(subst $(comma),$(space),$(WRAPPER_LIBS))
 
-echo2:
-	@echo $(WRAPPER_LIBS_NOCOMMA)
-
 libsw.a: $(SWOBJS)
 	ar rs $@ $(SWOBJS)
 
