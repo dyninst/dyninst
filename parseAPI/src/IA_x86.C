@@ -400,8 +400,23 @@ bool IA_IAPI::parseJumpTable(Block* currBlk,
         }
     }
     Address tableBase = getTableAddress(tableInsn, tableInsnAddr, thunkOffset);
+    std::map<Address, Instruction::Ptr>::const_iterator findSubtract =
+            allInsns.find(tableInsnAddr);
+    int offsetMultiplier = 1;
+    while(findSubtract->first < current)
+    {
+        if(findSubtract->second && findSubtract->second->getOperation().getID() == e_sub)
+        {
+            parsing_printf("\tsuspect table contains negative offsets, revising\n");
+            offsetMultiplier = -1;
+            break;
+        }
+        findSubtract++;
+    }
+    
+
     return fillTableEntries(thunkOffset, tableBase,
-                            tableSize, tableStride, outEdges);
+                            tableSize, tableStride, offsetMultiplier, outEdges);
 }
 namespace detail
 {
@@ -733,6 +748,7 @@ Address IA_IAPI::getTableAddress(Instruction::Ptr tableInsn,
         return 0;
     }
 
+
     // in AMD64 rip-relative LEA case, jumpTable and thunkOffset are
     // calculated from the same instruction (FIXME this indicates
     // a flaw in the overall logic which is corrected here)
@@ -763,6 +779,7 @@ bool IA_IAPI::fillTableEntries(Address thunkOffset,
                                Address tableBase,
                                unsigned tableSize,
                                unsigned tableStride,
+                               int offsetMultiplier,
                                std::vector<std::pair< Address, EdgeTypeEnum> >& outEdges) const
 {
     if( !_isrc->isValidAddress(tableBase) )
@@ -801,12 +818,22 @@ bool IA_IAPI::fillTableEntries(Address thunkOffset,
 #if defined(os_windows)
         jumpAddress -= _obj->cs()->loadAddress();
 #endif
-        if(thunkOffset && _isrc->isCode(jumpAddress + thunkOffset))
+        if(thunkOffset)
         {
+            Address candidate = thunkOffset + jumpAddress * offsetMultiplier;
             // XXX We assume that if thunkOffset is set that
             //     entries in the table are relative, but only
             //     if the absolute address would be valid
-            jumpAddress += thunkOffset;
+            if(_isrc->isCode(candidate))
+            {
+                jumpAddress = candidate;
+            }
+            else
+            {
+                parsing_printf("\tcandidate relative entry %d [0x%lx] -> 0x%lx, invalid, skipping\n",
+                               i, tableEntry, candidate);
+                
+            }
         }
         else if(!(_isrc->isCode(jumpAddress))) {
             parsing_printf("\tentry %d [0x%lx] -> 0x%lx, invalid, skipping\n",
