@@ -29,40 +29,20 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+/************************************************************************
+ * String.h: a simple character string class.
+ * $Id: String.h,v 1.35 2008/06/11 22:48:15 legendre Exp $
+************************************************************************/
 
-// pathName.h
+#if !defined(_String_h_)
+#define _String_h_
 
-#ifndef _PATH_NAME_H_
-#define _PATH_NAME_H_
-
-#include "headers.h"
+bool regexEquiv(const char *str_,  const char *s, bool checkCase );
 
 #include <string>
-
-
-std::string expand_tilde_pathname(const std::string &dir);
-   // e.g. convert "~tamches/hello" to "/u/t/a/tamches/hello",
-   // or convert "~/hello" to same.
-   // In the spirit of Tcl_TildeSubst
-
-std::string concat_pathname_components(const std::string &part1, const std::string &part2);
-   // concatenate path1 and part2, adding a "/" between them if neither
-   // part1 ends in a "/" or part2 begins in one.
-
-bool extractNextPathElem(const char * &ptr, std::string &result);
-   // assumes that "ptr" points to the value of the PATH environment
-   // variable.  Extracts the next element (writing to result, updating
-   // ptr, returning true) if available else returns false;
-
-bool exists_executable(const std::string &fullpathname);
-
-
-
-bool executableFromArgv0AndPathAndCwd(std::string &result,
-				      const std::string &i_argv0,
-				      const std::string &path,
-				      const std::string &cwd);
-COMMON_EXPORT std::string extract_pathname_tail(const std::string &path);
-
-COMMON_EXPORT char *resolve_file_path(const char *fname, char *resolved_name);
-#endif
+const std::string nullString("");
+bool prefixed_by(std::string &haystack, std::string &prefix);
+bool prefixed_by(std::string &haystack, const char *prefix);
+bool suffixed_by(std::string &haystack, std::string &suffix);
+bool suffixed_by(std::string &haystack, const char *suffix);
+#endif /* !defined(_String_h_) */

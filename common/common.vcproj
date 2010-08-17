@@ -555,7 +555,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\String.C"
+				RelativePath=".\src\string-regex.C"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
@@ -831,7 +831,7 @@
 				>
 			</File>
 			<File
-				RelativePath=".\h\String.h"
+				RelativePath=".\h\string-regex.h"
 				>
 			</File>
 			<File
