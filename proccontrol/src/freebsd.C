@@ -488,7 +488,6 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
                     event = Event::ptr(new EventChangePCStop());
                     break;
                 }
-#if 0
                 //Debugging code
                 if (stopsig == SIGSEGV) {
                    Dyninst::MachRegisterVal addr;
@@ -498,17 +497,17 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
                    }
                    fprintf(stderr, "Got crash at %lx\n", addr);
 
-                   /*
-                   fprintf(stderr, "Sending SIGABRT to %d\n", proc->getPid());
-                   ptrace(PT_CONTINUE, proc->getPid(), (caddr_t)1, SIGABRT);
-                   */
-                   fprintf(stderr, "Detaching from %d\n", proc->getPid());
-                   ptrace(PT_DETACH, proc->getPid(), (caddr_t)1, 0);
+                   unsigned char bytes[10];
+                   proc->readMem((void *)bytes, addr, 10);
+
+                   for(int i = 0; i < 10; i++) {
+                       fprintf(stderr, "%#hx ", bytes[i]);
+                   }
+                   fprintf(stderr, "\n");
 
                    //assert(!"Received SIGSEGV");
                    while(1) sleep(1);
                 }
-#endif
                 event = Event::ptr(new EventSignal(stopsig));
                 break;
         }
@@ -1146,8 +1145,6 @@ bool freebsd_process::post_attach() {
                 return false;
             }
 
-            thrd->setResumed(false);
-
             pthrd_printf("attach workaround: continuing whole process\n");
             if( !plat_contProcess() ) {
                 return false;
@@ -1222,6 +1219,29 @@ bool t_kill(pid_t pid, long lwp, int sig) {
 }
 
 bool freebsd_process::plat_contProcess() {
+
+    ProcPool()->condvar()->lock();
+
+    for(int_threadPool::iterator i = threadPool()->begin();
+        i != threadPool()->end(); ++i)
+    {
+        if( (*i)->isResumed() ) {
+            (*i)->setInternalState(int_thread::running);
+            (*i)->setHandlerState(int_thread::running);
+            (*i)->setGeneratorState(int_thread::running);
+            (*i)->setResumed(false);
+        }else{
+            if( !(*i)->plat_suspend() ) {
+                perr_printf("failed to suspend thread %d/%d\n",
+                        getPid(), (*i)->getLWP());
+                setLastError(err_internal, "low-level continue failed");
+                return false;
+            }
+        }
+    }
+    ProcPool()->condvar()->signal();
+    ProcPool()->condvar()->unlock();
+
     /* Single-stepping is enabled/disabled using PT_SETSTEP
      * and PT_CLEARSTEP instead of continuing the process
      * with PT_STEP. See plat_setStep.
@@ -1244,8 +1264,6 @@ bool freebsd_process::plat_contProcess() {
         if( thrd->hasPCBugCondition() ) {
             if( !thrd->hasPendingPCBugSignal() ) {
                 pcBugThrd = thrd;
-            }else{
-                pcBugThrd = thrd;
                 break;
             }
         }
@@ -1262,6 +1280,7 @@ bool freebsd_process::plat_contProcess() {
         }
     }
 #endif
+
 
 #if defined(bug_freebsd_missing_sigstop) 
     // XXX this workaround doesn't always work
@@ -1410,7 +1429,7 @@ static void init_dynreg_to_user() {
     init_lock.unlock();
 }
 
-#if 0 
+#if 0
 // Debugging
 static void dumpRegisters(struct reg *regs) {
 #if defined(arch_x86)
@@ -1429,8 +1448,6 @@ static void dumpRegisters(struct reg *regs) {
     fprintf(stderr, "r_esp = 0x%x\n", regs->r_esp);
     fprintf(stderr, "r_ss = 0x%x\n", regs->r_ss);
     fprintf(stderr, "r_gs = 0x%x\n", regs->r_gs);
-    fprintf(stderr, "r_trapno = 0x%x\n", regs->r_trapno);
-    fprintf(stderr, "r_err = 0x%x\n", regs->r_err);
 #endif
 }
 #endif
@@ -1596,11 +1613,12 @@ bool freebsd_thread::plat_setRegister(Dyninst::MachRegister, Dyninst::MachRegist
 }
 
 // iRPC snippets
-const unsigned int x86_64_mmap_flags_position = 17;
-const unsigned int x86_64_mmap_size_position = 30;
-const unsigned int x86_64_mmap_addr_position = 40;
-const unsigned int x86_64_mmap_start_position = 0;
+const unsigned int x86_64_mmap_flags_position = 21;
+const unsigned int x86_64_mmap_size_position = 34;
+const unsigned int x86_64_mmap_addr_position = 44;
+const unsigned int x86_64_mmap_start_position = 4;
 const unsigned char x86_64_call_mmap[] = {
+0x90, 0x90, 0x90, 0x90,                         //nop sled
 0x49, 0xc7, 0xc1, 0x00, 0x00, 0x00, 0x00,       //mov    $0x0,%r9 (offset)
 0x49, 0xc7, 0xc0, 0xff, 0xff, 0xff, 0xff,       //mov    $0xffffffffffffffff,%r8 (fd)
 0x49, 0xc7, 0xc2, 0x12, 0x10, 0x00, 0x00,       //mov    $0x1012,%r10 (flags)
@@ -1616,10 +1634,11 @@ const unsigned char x86_64_call_mmap[] = {
 };
 const unsigned int x86_64_call_mmap_size = sizeof(x86_64_call_mmap);
 
-const unsigned int x86_64_munmap_size_position = 2;
-const unsigned int x86_64_munmap_addr_position = 12;
-const unsigned int x86_64_munmap_start_position = 0;
+const unsigned int x86_64_munmap_size_position = 6;
+const unsigned int x86_64_munmap_addr_position = 16;
+const unsigned int x86_64_munmap_start_position = 4;
 const unsigned char x86_64_call_munmap[] = {
+0x90, 0x90, 0x90, 0x90,                         //nop sled
 0x48, 0xbe, 0x00, 0x00, 0x00, 0x00, 0x00,       //mov    $0x0000000000000000,%rsi
 0x00, 0x00, 0x00,                               //
 0x48, 0xbf, 0x00, 0x00, 0x00, 0x00, 0x00,       //mov    $0x0000000000000000,%rdi
@@ -1631,11 +1650,12 @@ const unsigned char x86_64_call_munmap[] = {
 };
 const unsigned int x86_64_call_munmap_size = sizeof(x86_64_call_munmap);
 
-const unsigned int x86_mmap_flags_position = 5;
-const unsigned int x86_mmap_size_position = 12;
-const unsigned int x86_mmap_addr_position = 17;
-const unsigned int x86_mmap_start_position = 0;
+const unsigned int x86_mmap_flags_position = 9;
+const unsigned int x86_mmap_size_position = 16;
+const unsigned int x86_mmap_addr_position = 21;
+const unsigned int x86_mmap_start_position = 4;
 const unsigned char x86_call_mmap[] = {
+0x90, 0x90, 0x90, 0x90,                         //nop sled
 0x6a, 0x00,                                     //push   $0x0 (offset)
 0x6a, 0xff,                                     //push   $0xffffffff (fd)
 0x68, 0x12, 0x10, 0x00, 0x00,                   //push   $0x1012 (flags)
@@ -1651,10 +1671,11 @@ const unsigned char x86_call_mmap[] = {
 };
 const unsigned int x86_call_mmap_size = sizeof(x86_call_mmap);
 
-const unsigned int x86_munmap_size_position = 1;
-const unsigned int x86_munmap_addr_position = 6;
-const unsigned int x86_munmap_start_position = 0;
+const unsigned int x86_munmap_size_position = 5;
+const unsigned int x86_munmap_addr_position = 10;
+const unsigned int x86_munmap_start_position = 4;
 const unsigned char x86_call_munmap[] = {
+0x90, 0x90, 0x90, 0x90,                         //nop sled
 0x68, 0x00, 0x00, 0x00, 0x00,                   //push   $0x0 (size)    
 0x68, 0x00, 0x00, 0x00, 0x00,                   //push   $0x0 (addr)
 0xb8, 0x49, 0x00, 0x00, 0x00,                   //mov    $0x49,%eax (SYS_munmap)

@@ -2,6 +2,7 @@
 #include "proccontrol/h/Event.h"
 #include "proccontrol/src/irpc.h"
 #include "proccontrol/src/int_process.h"
+#include "proccontrol/h/Mailbox.h"
 
 #include <cstring>
 #include <cassert>
@@ -647,6 +648,11 @@ bool iRPCMgr::prepNextRPC(int_thread *thr, bool sync_prep, bool &user_error)
 
    if( useHybridLWPControl(thr) ) {
        needsProcStop = false;
+       
+       // Handle any pending events, to ensure a consistent state when prepping the RPC
+       if( sync_prep && mbox()->size() ) {
+           int_process::waitAndHandleEvents(false);
+       }
    }
 
    if (needsProcStop) {

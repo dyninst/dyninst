@@ -34,6 +34,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <sys/syscall.h>
+
 thread_t threads[MAX_POSSIBLE_THREADS];
 int thread_results[MAX_POSSIBLE_THREADS];
 int num_threads;
@@ -259,8 +261,10 @@ int recv_message(unsigned char *msg, size_t msg_size)
  */
 #if defined(os_freebsd_test)
        if( result != msg_size ) {
-           fprintf(stderr, "Received message of unexpected size %d (expected %d)\n",
-                   result, msg_size);
+           long lwp_id;
+           syscall(SYS_thr_self, &lwp_id);
+           fprintf(stderr, "[%d:%d] Received message of unexpected size %d (expected %d)\n",
+                   getpid(), lwp_id, result, msg_size);
        }
 #endif
 
