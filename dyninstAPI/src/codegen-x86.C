@@ -429,12 +429,11 @@ unsigned pcRelJCC::apply(Address addr)
 {
    const unsigned char *origInsn = orig_instruc.ptr();
    unsigned insnType = orig_instruc.type();
-   unsigned char *orig_loc;
    Address target = get_target();
    Address potential;
    signed long disp;
+   codeBufIndex_t start = gen->getIndex();
    GET_PTR(newInsn, *gen);
-   orig_loc = newInsn;
 
    copy_prefixes_nosize(origInsn, newInsn, insnType); 
    
@@ -445,7 +444,7 @@ unsigned pcRelJCC::apply(Address addr)
       convert_to_rel8(origInsn, newInsn);
       *newInsn++ = (signed char) disp;
       SET_PTR(newInsn, *gen);
-      return (unsigned) (newInsn - orig_loc);
+      return (unsigned) gen->getIndex() - start;
    }
 
    //Can't convert short E0-E3 loops/jumps to 32-bit equivalents
@@ -471,7 +470,7 @@ unsigned pcRelJCC::apply(Address addr)
          *((signed int *) newInsn) = (signed int) disp;
          newInsn += 4;
          SET_PTR(newInsn, *gen);
-         return (unsigned) (newInsn - orig_loc);
+         return (unsigned) gen->getIndex() - start;
       }
    }
    
@@ -488,24 +487,32 @@ unsigned pcRelJCC::apply(Address addr)
    // We now want a 2-byte branch past the branch at B
    *newInsn++ = 2;
    
-   // Now for the branch at B- <jumpSize> unconditional branch
+   // Now for the branch to C - <jumpSize> unconditional branch
    *newInsn++ = 0xEB; 
-   unsigned char *fill_in_jumpsize = newInsn++;
-   //*newInsn++ = (char) jumpSize(newDisp);
-   
-   // And the branch at C
    SET_PTR(newInsn, *gen);
+    // We now want to 1) move forward a byte (the offset we haven't filled
+   // in yet) and track that we want to fill it in once we're done.
+   codeBufIndex_t jump_to_c_offset_index = gen->getIndex();
+   gen->moveIndex(1);
+   codeBufIndex_t jump_from_index = gen->getIndex();
+
    // Original address is a little skewed... 
    // We've moved past the original address (to the tune of nPrefixes + 2 (JCC) + 2 (J))
-   Address currAddr = addr + (unsigned) (newInsn - orig_loc);
+   Address currAddr = addr + (unsigned) gen->getIndex() - start;
    insnCodeGen::generateBranch(*gen, currAddr, target);
+   codeBufIndex_t done = gen->getIndex();
+
+   // Go back and generate the branch _around_ the offset we just calculated
+   gen->setIndex(jump_to_c_offset_index);
    REGET_PTR(newInsn, *gen);
 
    //Go back and fill in the size of the jump at B into the 'jump <C>'
-   signed char tmp = (signed char) (newInsn - fill_in_jumpsize) - 1;
-   *fill_in_jumpsize = tmp;
+   // The -1 is because 
+   *newInsn = gen->getDisplacement(jump_from_index, done);
+   SET_PTR(newInsn, *gen);
+   gen->setIndex(done);
 
-   return (unsigned) (newInsn - orig_loc);
+   return gen->getIndex() - start;
 }
 
 unsigned pcRelJCC::maxSize()
