@@ -43,7 +43,7 @@
 
 #include "parseAPI/h/InstructionSource.h"
 #include "Relocation/Relocation.h"
-#include "Relocation/AddressMapper.h"
+#include "Relocation/CodeTracker.h"
 
 class codeRange;
 class multiTramp;
@@ -416,6 +416,10 @@ class AddressSpace : public InstructionSource {
     void getRelocAddrs(Address orig, std::list<Address> &relocs) const;
     void getRelocAddrPairs(Address first, Address second,
 			   std::list<std::pair<Address, Address> > &pairs) const;
+
+    bool getRelocInfo(Address relocAddr,
+		      Address &origAddr,
+		      baseTrampInstance *&baseTramp);
 			   
 
     void causeTemplateInstantiations();
@@ -465,8 +469,8 @@ class AddressSpace : public InstructionSource {
     Address costAddr_;
 
     /////// New instrumentation system
-    typedef std::list<AddressMapper> AddressMapperCollection;
-    AddressMapperCollection instAddrMappers_;
+    typedef std::list<Relocation::CodeTracker> CodeTrackers;
+    CodeTrackers relocatedCode_;
 
     bool transform(Dyninst::Relocation::CodeMoverPtr cm);
     Address generateCode(Dyninst::Relocation::CodeMoverPtr cm, Address near);

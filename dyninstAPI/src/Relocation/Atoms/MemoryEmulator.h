@@ -47,6 +47,7 @@ DecisionTree(Register a) : effAddr_(a) {};
   
   bool generate(codeGen &gen);
 
+
   codeBufIndex_t generateSkip(codeGen &gen);
   codeBufIndex_t generateOrig(codeGen &gen);
   codeBufIndex_t generateInst(codeGen &gen);
@@ -75,6 +76,9 @@ class MemEmulator : public Atom {
    static void initTranslators(TranslatorMap &t); 
 
    virtual bool generate(GenStack &);
+
+   virtual TrackerElement *tracker() const;
+
    virtual ~MemEmulator() {};
    virtual std::string format() const;
 
@@ -152,6 +156,8 @@ class MemEmulatorTranslator : public Atom {
     typedef dyn_detail::boost::shared_ptr<MemEmulatorTranslator> Ptr;
     static Ptr create(Register r);
     virtual bool generate(GenStack &);
+    virtual TrackerElement *tracker() const;
+
     virtual ~MemEmulatorTranslator() {};
     virtual std::string format() const;
     

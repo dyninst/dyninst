@@ -57,14 +57,15 @@ class Inst : public Atom {
 
   bool generate(GenStack &);
   
+  virtual TrackerElement *tracker() const;
+
   virtual ~Inst() {};
 
   virtual std::string format() const;
 
  private:
 
-  std::list<baseTramp *> baseTramps_;
-
+  std::list<baseTrampInstance *> baseTramps_;
 };
 
 struct InstPatch : public Patch {

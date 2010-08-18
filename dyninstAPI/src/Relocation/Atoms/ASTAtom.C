@@ -33,6 +33,9 @@
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/registerSpace.h"
+#include "dyninstAPI/src/instPoint.h"
+
+#include "../CodeTracker.h"
 
 using namespace Dyninst;
 using namespace Relocation;
@@ -45,6 +48,11 @@ bool ASTAtom::generate(GenStack &gens) {
   AstPatch *patch = new AstPatch(ast_, point_);
   gens.addPatch(patch);
   return true;
+}
+
+TrackerElement *ASTAtom::tracker() const {
+  OriginalTracker *e = new OriginalTracker(point_->addr());
+  return e;
 }
 
 string ASTAtom::format() const {

@@ -50,6 +50,8 @@ class ASTAtom : public Atom {
 
   bool generate(GenStack &);
   
+  virtual TrackerElement *tracker() const;
+
   virtual ~ASTAtom() {};
 
   virtual std::string format() const;

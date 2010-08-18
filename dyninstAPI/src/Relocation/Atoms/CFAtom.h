@@ -60,6 +60,8 @@ class CFAtom : public Atom {
 
   bool generate(GenStack &);
 
+  virtual TrackerElement *tracker() const;
+
   // Factory function... we create these first,
   // then fill them in.
   static Ptr create();

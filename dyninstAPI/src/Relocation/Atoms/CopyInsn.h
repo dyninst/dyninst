@@ -43,6 +43,8 @@ class CopyInsn : public Atom {
 
   virtual bool generate(GenStack &);
 
+  virtual TrackerElement *tracker() const;
+
   static Ptr create(InstructionAPI::Instruction::Ptr insn,
 		    Address addr);
 

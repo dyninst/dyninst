@@ -39,70 +39,43 @@
 #include "dyninstAPI/src/addressSpace.h" // Also for debug
 
 #include "dyninstAPI/src/debug.h"
+#include "CodeTracker.h"
 
 using namespace std;
 using namespace Dyninst;
 using namespace InstructionAPI;
 using namespace Relocation;
 
-CodeMover::Ptr CodeMover::create() {
+CodeMover::Ptr CodeMover::create(CodeTracker &t) {
   // Make a CodeMover
-  Ptr ret = Ptr(new CodeMover());
+  Ptr ret = Ptr(new CodeMover(t));
   if (!ret) 
     return Ptr();
 
   return ret;
 }  
 
-template <typename TraceIter>
-CodeMover::Ptr CodeMover::create(TraceIter begin,
-				 TraceIter end) {
-  Ptr ret = create();
-  if (!ret) return Ptr();
-  
-  // Now for the hard part. We need to turn the vector of
-  // int_basicTraces into a vector of Relocation::Traces.  Those take
-  // bblInstances as inputs. I'm going to assume no multiple
-  // relocation, and so we can just use the primary bblInstance for
-  // each int_basicTrace.
-  
-  if (!ret->addTraces(begin, end))
-    return Ptr();
-  
-  return ret;
-};
-
-
-CodeMover::Ptr CodeMover::createFunc(FuncSet::const_iterator begin, FuncSet::const_iterator end) {
-  Ptr ret = create();
-  if (!ret) return Ptr();
-
-  static int count = 0;
-
+bool CodeMover::addFunctions(FuncSet::const_iterator begin, 
+			     FuncSet::const_iterator end) {
   // A vector of Functions is just an extended vector of basic blocks...
   for (; begin != end; ++begin) {
     int_function *func = *begin;
-    relocation_cerr << "Adding function " << func->symTabName() << endl;
-
-    count++;
 
     if (!func->isInstrumentable()) {
       cerr << "Skipping func " << func->symTabName() << " that's uninstrumentable" << endl;
       continue;
     }
 
-    if (!ret->addTraces(func->blocks().begin(), func->blocks().end())) {
-      return Ptr();
+    if (!addTraces(func->blocks().begin(), func->blocks().end())) {
+      return false;
     }
-
+    
     // Add the function entry as Required in the priority map
     bblInstance *entry = func->entryBlock()->origInstance();
-    ret->priorityMap_[entry] = Required;
+    priorityMap_[entry] = Required;
   }
 
-
-  //cerr << "Count is " << count << endl;
-  return ret;
+  return true;
 }
 
 template <typename TraceIter>
@@ -249,23 +222,11 @@ bool CodeMover::relocate(Address addr) {
   for (TraceList::iterator i = blocks_.begin(); 
        i != blocks_.end(); ++i) {
     entryMap_[(*i)->origAddr()] = (*i)->curAddr();
+    (*i)->extractTrackers(tracker_);
   }
 
   return true;
 }
-
-void CodeMover::extractAddressMap(AddressMapper &addrMap, Address baseAddr) {
-
-  AddressMapper::accumulatorList accumulators;
-
-  for (TraceList::iterator i = blocks_.begin(); 
-       i != blocks_.end(); ++i) {
-    (*i)->extractAddressMap(accumulators);
-  }
-
-  addrMap.createTrees(accumulators, baseAddr);
-}
-
 
 void CodeMover::disassemble() const {
   // InstructionAPI to the rescue!!!

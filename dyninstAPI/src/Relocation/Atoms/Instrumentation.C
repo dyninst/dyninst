@@ -33,6 +33,8 @@
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/debug.h"
 
+#include "../CodeTracker.h"
+
 using namespace Dyninst;
 using namespace Relocation;
 
@@ -45,11 +47,21 @@ void Inst::addBaseTramp(baseTramp *b) {
   // We should make this an on-the-fly operation.
   b->doOptimizations();
 
-  baseTramps_.push_back(b);
+  baseTrampInstance *bti = new baseTrampInstance(b, NULL);
+  assert(bti->baseT);
+  baseTramps_.push_back(bti);
 }
 
 bool Inst::empty() const {
   return baseTramps_.empty();
+}
+
+TrackerElement *Inst::tracker() const {
+  if (baseTramps_.empty()) return NULL;
+  
+  baseTrampInstance *bt = (*baseTramps_.begin());
+  InstTracker *e = new InstTracker(bt->baseT->instP()->addr(), bt);
+  return e;
 }
 
 bool Inst::generate(GenStack &gens) {
@@ -67,10 +79,9 @@ bool Inst::generate(GenStack &gens) {
   // someone is crazy enough to do post-instruction + pre-successor
   // instrumentation.
 
-  for (std::list<baseTramp *>::iterator b_iter = baseTramps_.begin();
+  for (std::list<baseTrampInstance *>::iterator b_iter = baseTramps_.begin();
        b_iter != baseTramps_.end(); ++b_iter) {
-    InstPatch *patch = new InstPatch(new baseTrampInstance(*b_iter, NULL));
-    patch->base->updateMTInstances();
+    InstPatch *patch = new InstPatch(*b_iter);
     gens.addPatch(patch);
   }
 
@@ -100,5 +111,6 @@ bool InstPatch::preapply(codeGen &gen) {
 }
 
 InstPatch::~InstPatch() {
-  if (base) delete base;
+  // Don't delete the bti because it belongs to our
+  // parent
 }

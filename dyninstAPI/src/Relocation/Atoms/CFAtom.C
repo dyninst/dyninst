@@ -35,8 +35,9 @@
 
 #include "instructionAPI/h/Instruction.h"
 
-
 #include "dyninstAPI/src/debug.h"
+
+#include "../CodeTracker.h"
 
 using namespace Dyninst;
 using namespace Relocation;
@@ -183,7 +184,6 @@ bool CFAtom::generate(GenStack &gens) {
       // one and its fallthrough due to edge instrumentation
       // So if there's the possibility for a return put in
       // a fallthrough branch
-
       if (destMap_.find(Fallthrough) != destMap_.end()) {
 	if (!generateBranch(gens,
 			    destMap_[Fallthrough],
@@ -214,6 +214,12 @@ CFAtom::~CFAtom() {
        i != destMap_.end(); ++i) {
     delete i->second;
   }
+}
+
+TrackerElement *CFAtom::tracker() const {
+  assert(addr_ != 1);
+  EmulatorTracker *e = new EmulatorTracker(addr_);
+  return e;
 }
 
 void CFAtom::addDestination(Address index, TargetInt *dest) {
@@ -269,6 +275,7 @@ void CFAtom::updateInsn(Instruction::Ptr insn) {
 }
 
 void CFAtom::updateAddr(Address addr) {
+  assert(addr != 1);
   addr_ = addr;
 }
 
@@ -405,6 +412,7 @@ bool CFAtom::generateAddressTranslator(codeGen &,
 std::string CFAtom::format() const {
   stringstream ret;
   ret << "CFAtom(" << std::hex;
+  ret << addr_;
   if (isIndirect_) ret << "<ind>";
   if (isConditional_) ret << "<cond>";
   if (isCall_) ret << "<call>";

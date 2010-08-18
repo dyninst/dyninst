@@ -45,14 +45,21 @@ class codeRange;
 class instPoint;
 class miniTramp;
 class int_function;
-
-typedef enum { FRAME_unset, FRAME_instrumentation, FRAME_signalhandler, FRAME_normal, FRAME_syscall, FRAME_iRPC, FRAME_unknown } frameType_t;
+class baseTramp;
 
 class Frame {
   friend class dyn_lwp;
   friend class dyn_thread;
  public:
-  
+
+  typedef enum { unset, 
+		 instrumentation, 
+		 signalhandler, 
+		 normal, 
+		 syscall, 
+		 iRPC, 
+		 unknown } frameType_t;
+
   // default ctor (zero frame)
   Frame();
 
@@ -81,7 +88,6 @@ class Frame {
       proc_(f.proc_),
       thread_(f.thread_),
       lwp_(f.lwp_),
-      range_(f.range_),
       pcAddr_(f.pcAddr_) {};
 
   const Frame &operator=(const Frame &f) {
@@ -94,7 +100,6 @@ class Frame {
       proc_ = f.proc_;
       thread_ = f.thread_;
       lwp_ = f.lwp_;
-      range_ = f.range_;
       pcAddr_ = f.pcAddr_;
       return *this;
   }
@@ -120,24 +125,19 @@ class Frame {
   dyn_thread *getThread() const { return thread_; }
   dyn_lwp  *getLWP() const { return lwp_;}
   bool     isUppermost() const { return uppermost_; }
+
+
+  instPoint *getPoint();
+  baseTramp *getBaseTramp();
+  int_function *getFunc();
+
   bool	   isSignalFrame();
   bool 	   isInstrumentation();
   bool     isSyscall();
   Address  getPClocation() { return pcAddr_; }
 
-  instPoint *getPoint(); // If we're in instrumentation returns the appropriate point
-  int_function *getFunc(); // As above
-
-  codeRange *getRange();
-  void setRange (codeRange *range); 
   friend std::ostream & operator << ( std::ostream & s, Frame & m );
-
   bool setPC(Address newpc);
-
-#if defined(arch_power)
-  // We store the actual return addr in a word on the stack
-  bool setRealReturnAddr(Address retaddr);
-#endif
 
   // check for zero frame
   bool isLastFrame() const;
@@ -159,10 +159,8 @@ class Frame {
   process *		proc_;				// We're only valid for a single process anyway
   dyn_thread *	thread_;			// user-level thread
   dyn_lwp *		lwp_;				// kernel-level thread (LWP)
-  codeRange *	range_;				// If we've done a by-address lookup, keep it here
 
-  Address		pcAddr_;
-  
+  Address		pcAddr_;  
 };
 
 class int_stackwalk {

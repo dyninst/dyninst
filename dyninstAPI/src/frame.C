@@ -44,7 +44,7 @@
 
 
 Frame::Frame() : 
-  frameType_(FRAME_unset), 
+  frameType_(unset), 
   uppermost_(false), 
   pc_(0), 
   fp_(0), 
@@ -53,7 +53,6 @@ Frame::Frame() :
   proc_(NULL), 
   thread_(NULL), 
   lwp_(NULL), 
-  range_(0), 
   pcAddr_(0) {
     stackwalk_cerr << "*** Null frame ***" << endl;
 }
@@ -64,42 +63,24 @@ Frame::Frame(Address pc, Address fp, Address sp,
 	     dyn_thread *thread, dyn_lwp *lwp, 
 	     bool uppermost,
 	     Address pcAddr ) :
-  frameType_(FRAME_unset),
+  frameType_(unset),
   uppermost_(uppermost),
   pc_(pc), fp_(fp), sp_(sp),
   pid_(pid), proc_(proc), thread_(thread), lwp_(lwp), 
-  range_(0), 
   pcAddr_(pcAddr) {
   stackwalk_cerr << "Base frame:   " << (*this) << endl;
 };
 
 Frame::Frame(Address pc, Address fp, Address sp,
 	     Address pcAddr, Frame *f) : 
-    frameType_(FRAME_unset),
+  frameType_(unset),
   uppermost_(false),
   pc_(pc), fp_(fp), 
   sp_(sp),
   pid_(f->pid_), proc_(f->proc_),
   thread_(f->thread_), lwp_(f->lwp_),
-  range_(0), 
-pcAddr_(pcAddr) {
+  pcAddr_(pcAddr) {
   stackwalk_cerr << "Called frame: " << (*this) << endl;
-}
-
-codeRange *Frame::getRange() {
-  if (!range_) {
-    // First time... so get it and cache
-    if (!getProc())
-      return NULL;
-    range_ = getProc()->findOrigByAddr(getPC());
-  }
-  return range_;
-}
-
-void Frame::setRange(codeRange *range) {
-  assert(!range_ ||
-	 (range == range_));
-  range_ = range;
 }
 
 bool Frame::isLastFrame() const
@@ -117,246 +98,184 @@ extern void calcVSyscallFrame(process *p);
 
 void Frame::calcFrameType()
 {
-    // Can be called multiple times...
-    if (frameType_ != FRAME_unset) {
-        return;
-    }
-
-   int_function *func;
-   miniTrampInstance *mini;
-   multiTramp *multi;
-
-   // Without a process pointer, we're not going to get far.
-   if (!getProc())
-       return;
-
-   // Checking for a signal handler must go before the vsyscall check
-   // since (on Linux) the signal handler is _inside_ the vsyscall page.
-   if (getProc()->isInSignalHandler(pc_)) {
-     frameType_ = FRAME_signalhandler;
-     return;
-   }
-
-   // Better to have one function that has platform-specific IFDEFs
-   // than a stack of 90% equivalent functions
+  // Can be called multiple times...
+  if (frameType_ != unset) {
+    return;
+  }
+  
+  // Without a process pointer, we're not going to get far.
+  if (!getProc()) {
+    cerr << "\t no process" << endl;
+    return;
+  }
+  
+  // Checking for a signal handler must go before the vsyscall check
+  // since (on Linux) the signal handler is _inside_ the vsyscall page.
+  if (getProc()->isInSignalHandler(pc_)) {
+    frameType_ = signalhandler;
+    return;
+  }
+  
+  // Better to have one function that has platform-specific IFDEFs
+  // than a stack of 90% equivalent functions
 #if defined(os_linux) && defined(arch_x86)
-   calcVSyscallFrame(getProc());
-   if ((pc_ >= getProc()->getVsyscallStart() && pc_ < getProc()->getVsyscallEnd()) || /* Hack for RH9 */ (pc_ >= 0xffffe000 && pc_ < 0xfffff000)) {
-     frameType_ = FRAME_syscall;
-     return;
-   }
+  calcVSyscallFrame(getProc());
+  if ((pc_ >= getProc()->getVsyscallStart() && pc_ < getProc()->getVsyscallEnd()) || /* Hack for RH9 */ (pc_ >= 0xffffe000 && pc_ < 0xfffff000)) {
+    frameType_ = syscall;
+    return;
+  }
 #endif   
-   
-   codeRange *range = getRange();
+  
+  codeRange *range = getProc()->findOrigByAddr(pc_);
+  if (range) {
+    // We're in original code
+    frameType_ = normal;
+    return;
+  }
+ 
+  // Check for instrumentation
 
-   func = range->is_function();
-   multi = range->is_multitramp();
-   mini = range->is_minitramp();
+  baseTrampInstance *bti;
+  Address origPC = 42;
+  if (getProc()->getRelocInfo(pc_,
+			      origPC,
+			      bti)) {
+    if (bti) {
+      frameType_ = instrumentation;
+    }
+    else {
+      frameType_ = normal;
+    }
+    return;
+  }
 
-   if (mini != NULL) {
-       frameType_ = FRAME_instrumentation;
-       return;
-   }
-   else if (multi != NULL) {
-       frameType_ = FRAME_instrumentation;
-       return;
-   }
-   else if (func != NULL) {
-     frameType_ = FRAME_normal;
-     return;
-   }
-   else if (range->is_inferior_rpc()) {
-       frameType_ = FRAME_iRPC;
-       return;
-   }
-   else {
-     frameType_ = FRAME_unknown;
-     return;
-   }
-   assert(0 && "Unreachable");
-   frameType_ = FRAME_unset;
-   return;
+  frameType_ = unset;
+  return;
 }
 
 // Get the instPoint corresponding with this frame
 instPoint *Frame::getPoint() {
-    // Easy check:
-    if (getPC() == getUninstAddr())
-        return NULL;
-
-    codeRange *range = getRange();
-    
-    multiTramp *m_ptr = range->is_multitramp();
-    miniTrampInstance *mt_ptr = range->is_minitramp();
-
-    if (mt_ptr) {
-        return mt_ptr->mini->instP();
-    }
-    else if (m_ptr) {
-        // We're in a multiTramp, so between instPoints. 
-        // However, we're in a multiTramp and not the original code, so 
-        // we do need to discover an instpoint. We're not in a baseTramp,
-        // so that's not a problem; other options are relocated instruction
-        // or trampEnd.
-        return m_ptr->findInstPointByAddr(getPC());
-    }
-    return NULL;
+  baseTramp *bt = getBaseTramp();
+  if (!bt) return NULL;
+  return bt->instP();
 }
-            
-int_function *Frame::getFunc() {
-    codeRange *range = getRange();
-    if (range->is_function())
-        return range->is_function();
-    else if (range->is_multitramp())
-        return range->is_multitramp()->func();
-    else if (range->is_minitramp())
-        return range->is_minitramp()->baseTI->multiT->func();
-    else if (BPatch_defensiveMode == getProc()->getHybridMode() && 
-             range->is_mapped_object()) {
-        // in defensive mode, return the function at getPC-1, since
-        // the PC could be at the fallthrough address of a call
-        // instruction that was assumed to be non-returning
-        range = getProc()->findModByAddr(getPC()-1);
-        if (range == NULL) 
-            return NULL;
-        if (range->is_function())
-            return range->is_function();
-        else if (range->is_multitramp())
-            return range->is_multitramp()->func();
-        else if (range->is_minitramp())
-            return range->is_minitramp()->baseTI->multiT->func();
-    }
 
-    return NULL;
+baseTramp *Frame::getBaseTramp() {
+  baseTrampInstance *bti;
+  Address origPC;
+  if (getProc()->getRelocInfo(pc_,
+			      origPC,
+			      bti)) {
+    if (bti) {
+      return bti->baseT;
+    }
+  }
+  return NULL;
+}  
+
+int_function *Frame::getFunc() {
+  Address uninst = getUninstAddr();
+  codeRange *range = getProc()->findOrigByAddr(uninst);
+  
+  if (range->is_function())
+    return range->is_function();
+  else if (range->is_multitramp())
+    return range->is_multitramp()->func();
+  else if (range->is_minitramp())
+    return range->is_minitramp()->mini->baseT->instP()->func();
+  else if (BPatch_defensiveMode == getProc()->getHybridMode() && 
+	   range->is_mapped_object()) {
+    // in defensive mode, return the function at getPC-1, since
+    // the PC could be at the fallthrough address of a call
+    // instruction that was assumed to be non-returning
+    range = getProc()->findModByAddr(getPC()-1);
+    if (range == NULL) 
+      return NULL;
+    if (range->is_function())
+      return range->is_function();
+    else if (range->is_multitramp())
+      return range->is_multitramp()->func();
+    else if (range->is_minitramp())
+      return range->is_minitramp()->baseTI->multiT->func();
+  }
+  
+  return NULL;
 }
 
 Address Frame::getUninstAddr() {
-    codeRange *range = getRange();
-    multiTramp *m_ptr = range->is_multitramp();
-    miniTrampInstance *mt_ptr = range->is_minitramp();
-    baseTrampInstance *bt_ptr = range->is_basetramp_multi();
-    bblInstance *bbl_ptr = range->is_basicBlockInstance();
-    Address uninst =0;
-
-    if (m_ptr) {
-        // Figure out where in the multiTramp we are
-        uninst = m_ptr->instToUninstAddr(getPC());
-    }
-    else if (mt_ptr) {
-        // Don't need the actual PC for minitramps
-        uninst = mt_ptr->uninstrumentedAddr();
-    }
-    else if (bt_ptr) {
-        // Don't need actual PC here either
-        uninst = bt_ptr->uninstrumentedAddr();
-    }
-
-    if (0 != uninst) {
-        range = proc_->findOrigByAddr(uninst);
-        if (!range) {
-            return uninst;
-        }
-        bbl_ptr = range->is_basicBlockInstance();
-        if (!bbl_ptr) {
-            return uninst;
-        }
-    }
-
-    if (bbl_ptr) {
-        // Relocated function... back-track
-        assert(range->is_basicBlock());
-        return bbl_ptr->equivAddr(0, getPC());
-    }
-    else {
-        // Where are we?
-        return getPC();
-    }
+  
+  baseTrampInstance *bti;
+  Address origPC;
+  if (getProc()->getRelocInfo(pc_,
+			      origPC,
+			      bti)) {
+    return origPC;
+  }
+  return pc_;
 }
 
 
 ostream & operator << ( ostream & s, Frame & f ) {
-    f.calcFrameType();
-	codeRange * range = f.getRange();
-	int_function * func_ptr = range->is_function();
-        multiTramp *multi_ptr = range->is_multitramp();
-	miniTrampInstance * minitramp_ptr = range->is_minitramp();
+  f.calcFrameType();
+  
+  s << "PC: 0x" << std::hex << f.getPC() << " ";
+  switch (f.frameType_) {
+  case Frame::unset:
+    s << "[UNSET FRAME TYPE]";
+    break;
+  case Frame::instrumentation:
+    s << "[Instrumentation:";
 
-	s << "PC: 0x" << std::hex << f.getPC() << " ";
-	switch (f.frameType_) {
-	case FRAME_unset:
-	  s << "[UNSET FRAME TYPE]";
-	  break;
-	case FRAME_instrumentation:
-	  s << "[Instrumentation:";
-	  if (minitramp_ptr) {
-	    s << "mt from "
-	      << minitramp_ptr->baseTI->multiT->func()->prettyName();
-	  }
-	  else if (multi_ptr) {
-              baseTrampInstance *bti = multi_ptr->getBaseTrampInstanceByAddr(f.getPC());
-              if (bti) {
-                  s << "bt from ";
-              }
-              else {
-                  s << "multitramp from ";
-              }
-              
-              s << multi_ptr->func()->prettyName();
-	  }
-
-          // And the address
-          s << std::hex << "/0x" << f.getUninstAddr();
-          s << "]" << std::dec;
-          
-	  break;
-	case FRAME_signalhandler:
-	  s << "[SIGNAL HANDLER]";
-	  break;
-	case FRAME_normal:
-	  if( func_ptr ) {
-	    s << "[" << func_ptr->prettyName() << "]";
-	  }
-	  break;
-	case FRAME_syscall:
-	  s << "[SYSCALL]";
-	  break;
-        case FRAME_iRPC:
-            s << "[iRPC]";
-            break;
-	case FRAME_unknown:
-	  s << "[UNKNOWN]";
-	  break;
-        default:
-            s << "[ERROR!]";
-            break;
-	}
-	s << " FP: 0x" << std::hex << f.getFP() << " SP: 0x" << f.getSP() << " PID: " << std::dec << f.getPID() << " "; 
-	if( f.getThread() ) {
-   		s << "TID: " << f.getThread()->get_tid() << " ";
-   		}
-   	if( f.getLWP() ) {
-   		s << "LWP: " << f.getLWP()->get_lwp_id() << " ";
-   		}
-	
-	return s;
-	}
+    // And the address
+    s << std::hex << "/0x" << f.getUninstAddr();
+    s << "]" << std::dec;
+    
+    break;
+  case Frame::signalhandler:
+    s << "[SIGNAL HANDLER]";
+    break;
+  case Frame::normal:
+    break;
+  case Frame::syscall:
+    s << "[SYSCALL]";
+    break;
+  case Frame::iRPC:
+    s << "[iRPC]";
+    break;
+  case Frame::unknown:
+    s << "[UNKNOWN]";
+    break;
+  default:
+    s << "[ERROR!]";
+    break;
+  }
+  s << " FP: 0x" << std::hex << f.getFP() << " SP: 0x" << f.getSP() << " PID: " << std::dec << f.getPID() << " "; 
+  if( f.getThread() ) {
+    s << "TID: " << f.getThread()->get_tid() << " ";
+  }
+  if( f.getLWP() ) {
+    s << "LWP: " << f.getLWP()->get_lwp_id() << " ";
+  }
+  
+  return s;
+}
 
 bool Frame::isSignalFrame()
 { 
     calcFrameType();
-    return frameType_ == FRAME_signalhandler;
+    return frameType_ == signalhandler;
 }
 
 bool Frame::isInstrumentation()
 { 
     calcFrameType();
-    return frameType_ == FRAME_instrumentation;
+    return frameType_ == instrumentation;
 }
 
 bool Frame::isSyscall()
 { 
     calcFrameType();
-    return frameType_ == FRAME_syscall;
+    return frameType_ == syscall;
 }
 
 int_stackwalk::int_stackwalk() { 
