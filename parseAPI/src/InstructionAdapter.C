@@ -64,9 +64,10 @@ void InstructionAdapter::advance()
 
 }
 
-void InstructionAdapter::retreat()
+bool InstructionAdapter::retreat()
 {
     // anything? FIXME
+    return false;
 }
 
 Address InstructionAdapter::getAddr() const

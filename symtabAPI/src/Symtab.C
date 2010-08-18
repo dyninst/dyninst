@@ -1113,7 +1113,8 @@ Symtab::Symtab(std::string filename, bool defensive_bin, bool &err) :
       return;
    }
 
-   obj_private = new Object(mf, mfForDebugInfo, symtab_log_perror, true);
+   obj_private = new Object(mf, mfForDebugInfo, defensive_bin, 
+                            symtab_log_perror, true);
    if (obj_private->hasError()) {
      err = true;
      return;
@@ -1159,7 +1160,8 @@ Symtab::Symtab(char *mem_image, size_t image_size,
       return;
    }
 
-   obj_private = new Object(mf, mfForDebugInfo, symtab_log_perror, true);
+   obj_private = new Object(mf, mfForDebugInfo, defensive_bin, 
+                            symtab_log_perror, true);
    if (obj_private->hasError()) {
      err = true;
      return;

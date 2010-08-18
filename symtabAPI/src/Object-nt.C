@@ -680,7 +680,7 @@ Region::RegionType getRegionType(DWORD flags){
         return Region::RT_OTHER;
 }
 
-void Object::FindInterestingSections(bool alloc_syms)
+void Object::FindInterestingSections(bool alloc_syms, bool defensive)
 {
    // now that we have the file mapped, look for 
    // the .text and .data sections
@@ -695,7 +695,8 @@ void Object::FindInterestingSections(bool alloc_syms)
       code_len_ = (Offset) GetFileSize(hFile, NULL);
       is_aout_ = false;
       fprintf(stderr,"Adding Symtab object with no program header, will " 
-              "designate it as code, code_ptr_=%lx code_len_=%lx\n",code_ptr_,code_len_);
+              "designate it as code, code_ptr_=%lx code_len_=%lx\n",
+              code_ptr_,code_len_);
       if (alloc_syms) {
           Region *bufReg = new Region
                     (0, //region number
@@ -813,9 +814,9 @@ void Object::FindInterestingSections(bool alloc_syms)
       pScnHdr += 1;
    } // end section for loop
 
-   if (0 == code_len_) {
-       code_len_ = prov_len;
-       code_off_ = prov_offset;
+   if (0 == code_len_ || defensive) {
+       code_off_ = (code_off_ < prov_offset) ? code_off_ : prov_offset;
+       code_len_ = (code_len_ > prov_len) ? code_len_ : prov_len;
    }
 }
 
@@ -894,12 +895,13 @@ void fixup_filename(std::string &filename)
 
 Object::Object(MappedFile *mf_,
                MappedFile *mfd,
+               bool defensive, 
                void (*err_func)(const char *), bool alloc_syms) :
     AObject(mf_, mfd, err_func),
     curModule( NULL ),
     peHdr( NULL )
 {
-   FindInterestingSections(alloc_syms);
+   FindInterestingSections(alloc_syms, defensive);
    ParseSymbolInfo(alloc_syms);
 }
 

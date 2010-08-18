@@ -75,7 +75,7 @@ void IA_IAPI::initASTs()
     }
 }
 
-IA_IAPI::IA_IAPI(InstructionDecoder dec_, 
+IA_IAPI::IA_IAPI(InstructionDecoder &dec_, 
         Address where_,
         CodeObject * o,
         CodeRegion * r,
@@ -110,12 +110,12 @@ void IA_IAPI::advance()
     tailCall.first = false;
 }
 
-void IA_IAPI::retreat()
+bool IA_IAPI::retreat()
 {
     if(!curInsn()) {
         parsing_printf("..... WARNING: failed to retreat InstructionAdapter at 0x%lx, allInsns.size() = %d\n", current,
                        allInsns.size());
-        return;
+        return false;
     }
     InstructionAdapter::retreat();
     std::map<Address,Instruction::Ptr>::iterator remove = curInsnIter;
@@ -132,12 +132,14 @@ void IA_IAPI::retreat()
         }
     } else {
         parsing_printf("..... WARNING: cowardly refusal to retreat past first instruction at 0x%lx\n", current);
+        return false;
     }
 
     /* blind duplication -- nate */
     validCFT = false;
     hascftstatus.first = false;
     tailCall.first = false;
+    return true;
 } 
     
     

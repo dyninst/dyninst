@@ -83,7 +83,7 @@ const;
     virtual bool isNopJump() const { return false; }
     virtual bool simulateJump() const= 0;
     virtual void advance() = 0;
-    virtual void retreat() = 0;
+    virtual bool retreat() = 0;
     virtual bool isNop() const = 0;
     virtual bool isLeave() const = 0;
     virtual bool isDelaySlot() const = 0;

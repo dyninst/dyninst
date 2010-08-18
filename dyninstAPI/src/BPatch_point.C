@@ -306,7 +306,9 @@ Address BPatch_point::getCallFallThroughAddr()
 #if defined(cap_instruction_api)
     using namespace InstructionAPI;
     mapped_object *obj = point->func()->obj();
-    InstructionDecoder dec(obj->getPtrToInstruction(point->addr()),
+    void *ptr = obj->getPtrToInstruction(point->addr());
+    assert(ptr);
+    InstructionDecoder dec(ptr,
                            InstructionDecoder::maxInstructionLength,
                            point->proc()->getArch());
     Instruction::Ptr insn = dec.decode();
