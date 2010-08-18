@@ -30,7 +30,9 @@
  */
 
 #include "CopyInsn.h"
+#include "Atom.h"
 #include "instructionAPI/h/Instruction.h"
+#include "../CodeTracker.h"
 
 using namespace Dyninst;
 using namespace Relocation;
@@ -38,9 +40,14 @@ using namespace InstructionAPI;
 
 /////////////////////////
 
-bool CopyInsn::generate(Trace &, GenStack &gens) {
+bool CopyInsn::generate(GenStack &gens) {
   gens().copy(insn_->ptr(), insn_->size());
   return true;
+}
+
+TrackerElement *CopyInsn::tracker() const {
+  OriginalTracker *e = new OriginalTracker(addr_, insn_->size());
+  return e;
 }
 
 CopyInsn::Ptr CopyInsn::create(Instruction::Ptr insn,

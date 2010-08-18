@@ -1107,7 +1107,7 @@ bool Frame::setPC(Address newpc) {
    //__FILE__, __LINE__, pcAddr_, newpc);
    getProc()->writeDataSpace((void*)pcAddr_, sizeof(Address), &newpc);
    pc_ = newpc;
-   range_ = NULL;
+   frameType_ = unset;
 
    return false;
 }

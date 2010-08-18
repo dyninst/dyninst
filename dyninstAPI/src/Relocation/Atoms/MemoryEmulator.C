@@ -68,7 +68,12 @@ void MemEmulator::initTranslators(TranslatorMap &t) {
   translators_ = t;
 }
 
-bool MemEmulator::generate(Trace &,  GenStack &gens) {
+TrackerElement *MemEmulator::tracker() const {
+  EmulatorTracker *e = new EmulatorTracker(addr_);
+  return e;
+}
+
+bool MemEmulator::generate(GenStack &gens) {
   codeGen &prepatch = gens();
 
   // We want to ensure that a memory operation produces its
@@ -324,6 +329,7 @@ bool MemEmulator::restoreFlags(codeGen &gen) {
   return true;
 }
 
+
 bool MemEmulator::generateOrigAccess(codeGen &gen) {
   // Okay, theoretically effAddr_ holds the memory address.
   // Should do a compare here; for now, just drop out the instruction
@@ -395,7 +401,13 @@ MemEmulatorTranslator::Ptr MemEmulatorTranslator::create(Register r) {
   return Ptr(new MemEmulatorTranslator(r));
 }
 
-bool MemEmulatorTranslator::generate(Trace &, GenStack &gens) {
+TrackerElement *MemEmulatorTranslator::tracker() const {
+  // This is a funny one... 
+  EmulatorTracker *e = new EmulatorTracker(0);
+  return e;
+}
+
+bool MemEmulatorTranslator::generate(GenStack &gens) {
   DecisionTree dt(reg_);
   codeGen &gen = gens();
 

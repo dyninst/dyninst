@@ -35,8 +35,9 @@
 
 #include "instructionAPI/h/Instruction.h"
 
-
 #include "dyninstAPI/src/debug.h"
+
+#include "../CodeTracker.h"
 
 using namespace Dyninst;
 using namespace Relocation;
@@ -49,7 +50,7 @@ using namespace InstructionAPI;
 const Address CFAtom::Fallthrough(1);
 const Address CFAtom::Taken(2);
 
-bool CFAtom::generate(Trace &block, GenStack &gens) {
+bool CFAtom::generate(GenStack &gens) {
   // We need to create jumps to wherever our successors are
   // We can assume the addresses returned by our Targets
   // are valid, since we'll fixpoint until those stabilize. 
@@ -112,8 +113,7 @@ bool CFAtom::generate(Trace &block, GenStack &gens) {
       if (!generateBranch(gens,
 			  target,
 			  insn_,
-			  fallthrough,
-			  block)) {
+			  fallthrough)) {
 	return false;
       }
     }
@@ -131,8 +131,7 @@ bool CFAtom::generate(Trace &block, GenStack &gens) {
       relocation_cerr << "  ... generating call" << endl;
       if (!generateCall(gens,
 			destMap_[Taken],
-			insn_, 
-			block))
+			insn_))
 	return false;
     }
     else {
@@ -140,8 +139,7 @@ bool CFAtom::generate(Trace &block, GenStack &gens) {
       relocation_cerr << "  ... generating conditional branch" << endl;
       if (!generateConditionalBranch(gens,
 				     destMap_[Taken],
-				     insn_,
-				     block))
+				     insn_))
 	return false;
     }
 
@@ -155,8 +153,7 @@ bool CFAtom::generate(Trace &block, GenStack &gens) {
 	if (!generateBranch(gens, 
 			    ft,
 			    insn_,
-			    true,
-			    block)) {
+			    true)) {
 	  return false;
 	}
       }
@@ -181,25 +178,22 @@ bool CFAtom::generate(Trace &block, GenStack &gens) {
       if (!generateIndirectCall(gens, 
 				reg, 
 				insn_, 
-				addr_, 
-				block))
+				addr_)) 
 	return false;
       // We may be putting another block in between this
       // one and its fallthrough due to edge instrumentation
       // So if there's the possibility for a return put in
       // a fallthrough branch
-
       if (destMap_.find(Fallthrough) != destMap_.end()) {
 	if (!generateBranch(gens,
 			    destMap_[Fallthrough],
 			    Instruction::Ptr(),
-			    true, 
-			    block))
+			    true)) 
 	  return false;
       }
     }
     else {
-      if (!generateIndirect(gens, reg, insn_, block))
+      if (!generateIndirect(gens, reg, insn_))
 	return false;
     }
     break;
@@ -220,6 +214,12 @@ CFAtom::~CFAtom() {
        i != destMap_.end(); ++i) {
     delete i->second;
   }
+}
+
+TrackerElement *CFAtom::tracker() const {
+  assert(addr_ != 1);
+  EmulatorTracker *e = new EmulatorTracker(addr_);
+  return e;
 }
 
 void CFAtom::addDestination(Address index, TargetInt *dest) {
@@ -275,14 +275,14 @@ void CFAtom::updateInsn(Instruction::Ptr insn) {
 }
 
 void CFAtom::updateAddr(Address addr) {
+  assert(addr != 1);
   addr_ = addr;
 }
 
 bool CFAtom::generateBranch(GenStack &gens,
-			       TargetInt *to,
-			       Instruction::Ptr insn,
-			       bool,
-			       Trace &) {
+			    TargetInt *to,
+			    Instruction::Ptr insn,
+			    bool) {
   assert(to);
 
   // We can put in an unconditional branch as an ender for 
@@ -300,9 +300,8 @@ bool CFAtom::generateBranch(GenStack &gens,
 }
 
 bool CFAtom::generateCall(GenStack &gens,
-			     TargetInt *to,
-			     Instruction::Ptr insn,
-			     Trace &) {
+			  TargetInt *to,
+			  Instruction::Ptr insn) {
   if (!to) {
     // This can mean an inter-module branch...
     relocation_cerr << "    ... skipping call with no target!" << endl;
@@ -316,9 +315,8 @@ bool CFAtom::generateCall(GenStack &gens,
 }
 
 bool CFAtom::generateConditionalBranch(GenStack &gens,
-					  TargetInt *to,
-					  Instruction::Ptr insn,
-					  Trace &) {
+				       TargetInt *to,
+				       Instruction::Ptr insn) {
   assert(to);
 
   CFPatch *newPatch = new CFPatch(CFPatch::JCC, insn, to, padded_, addr_);
@@ -329,8 +327,7 @@ bool CFAtom::generateConditionalBranch(GenStack &gens,
 
 bool CFAtom::generateIndirect(GenStack &gens,
 				 Register,
-				 Instruction::Ptr insn,
-				 Trace &) {
+			      Instruction::Ptr insn) {
   // Two possibilities here: either copying an indirect jump w/o
   // changes, or turning an indirect call into an indirect jump because
   // we've had the isCall_ flag overridden.
@@ -390,8 +387,7 @@ bool CFAtom::generateIndirect(GenStack &gens,
 bool CFAtom::generateIndirectCall(GenStack &gens,
 				     Register,
 				     Instruction::Ptr insn,
-				     Address /*origAddr*/,
-				     Trace &) {
+				  Address /*origAddr*/) {
   // Check this to see if it's RIP-relative
   instruction ugly_insn(insn->ptr());
   if (ugly_insn.type() & REL_D_DATA) {
@@ -416,6 +412,7 @@ bool CFAtom::generateAddressTranslator(codeGen &,
 std::string CFAtom::format() const {
   stringstream ret;
   ret << "CFAtom(" << std::hex;
+  ret << addr_;
   if (isIndirect_) ret << "<ind>";
   if (isConditional_) ret << "<cond>";
   if (isCall_) ret << "<call>";

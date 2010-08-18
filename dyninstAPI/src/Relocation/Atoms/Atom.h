@@ -57,9 +57,14 @@ class CFAtom;
 class Trace;
 
 class Patch;
+class TrackerElement;
+class CodeTracker;
 
 class GenStack {
  public:
+
+  typedef std::map<Offset, TrackerElement *> Trackers;
+
   struct GenObj {
     bool apply(codeGen &current, unsigned &size, int iteration, int shift);
   GenObj() : patch(NULL), index(0) {};
@@ -67,10 +72,14 @@ class GenStack {
     codeGen gen;
     Patch *patch;
     codeBufIndex_t index;
+
+    void *ptr() { return this; }
     
     // For building the address map.
-    std::list<std::pair<Address, Offset> > addrMap;
+    Trackers trackers;
     Offset offset;
+    
+    
   };
 
   typedef std::list<GenObj> GenList;
@@ -83,6 +92,7 @@ class GenStack {
   codeGen &operator() () { return gens_.back().gen; }
   void inc();
   unsigned size(); 
+  unsigned stacksize() const { return gens_.size(); }
 
   iterator begin() { return gens_.begin(); }
   iterator end() { return gens_.end(); }
@@ -112,8 +122,9 @@ class Atom {
   // Make binary from the thing
   // Current address (if we need it)
   // is in the codeGen object.
-  virtual bool generate(Trace &block,
-			GenStack &) = 0;
+  virtual bool generate(GenStack &) = 0;
+
+  virtual TrackerElement *tracker() const = 0;
 
   virtual std::string format() const = 0;
 
@@ -135,7 +146,7 @@ class Trace {
   friend class Transformer;
 
   static int TraceID;
-
+  
   typedef std::list<Atom::Ptr> AtomList;
   typedef dyn_detail::boost::shared_ptr<Trace> Ptr;
 
@@ -172,14 +183,14 @@ class Trace {
 
   std::string format() const;
 
-  const bblInstance *bbl() const { return bbl_; }
+  bblInstance *bbl() const { return bbl_; }
 
   bool applyPatches(codeGen &gen, bool &regenerate, unsigned &totalSize, int &shift);
 
   int iteration() const { return iteration_; }
   void resetIteration() { iteration_ = 0; }
 
-  bool extractAddressMap(AddressMapper::accumulatorList &accumulators);
+  bool extractTrackers(CodeTracker &);
 
  private:
 

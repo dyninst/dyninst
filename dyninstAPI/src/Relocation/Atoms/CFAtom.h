@@ -58,8 +58,9 @@ class CFAtom : public Atom {
   typedef dyn_detail::boost::shared_ptr<CFAtom> Ptr;
   typedef std::map<Address, TargetInt *> DestinationMap;
 
-  bool generate(Trace &,
-		GenStack &);
+  bool generate(GenStack &);
+
+  virtual TrackerElement *tracker() const;
 
   // Factory function... we create these first,
   // then fill them in.
@@ -123,28 +124,25 @@ class CFAtom : public Atom {
   bool generateBranch(GenStack &gens,
 		      TargetInt *to,
 		      InstructionAPI::Instruction::Ptr insn,
-		      bool fallthrough,
-		      Trace &);
+		      bool fallthrough);
+
   bool generateCall(GenStack &gens,
 		    TargetInt *to,
-		    InstructionAPI::Instruction::Ptr insn,
-		    Trace &);
+		    InstructionAPI::Instruction::Ptr insn); 
+
   bool generateConditionalBranch(GenStack &gens,
 				 TargetInt *to,
-				 InstructionAPI::Instruction::Ptr insn,
-				 Trace &);
+				 InstructionAPI::Instruction::Ptr insn); 
   // The Register holds the translated destination (if any)
   // TODO replace with the register IDs that Bill's building
   typedef unsigned Register;
   bool generateIndirect(GenStack &gens,
 			Register reg,
-			InstructionAPI::Instruction::Ptr insn,
-			Trace &);
+			InstructionAPI::Instruction::Ptr insn);
   bool generateIndirectCall(GenStack &gens,
 			    Register reg,
 			    InstructionAPI::Instruction::Ptr insn,
-			    Address origAddr,
-			    Trace &);
+			    Address origAddr);
   
   bool generateAddressTranslator(codeGen &gen,
 				 Register &reg);  

@@ -53,7 +53,7 @@
 #include "Relocation/CodeMover.h"
 #include "Relocation/Springboard.h"
 #include "Relocation/Transformers/Include.h"
-#include "Relocation/AddressMapper.h"
+#include "Relocation/CodeTracker.h"
 
 // Implementations of non-virtual functions in the address space
 // class.
@@ -1560,7 +1560,12 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
   // Create a CodeMover covering these functions
   //cerr << "Creating a CodeMover" << endl;
   
-  CodeMover::Ptr cm = CodeMover::createFunc(begin, end);
+  CodeTracker t;
+  relocatedCode_.push_back(t);
+  // Attempting to reduce copies...
+  CodeMover::Ptr cm = CodeMover::create(relocatedCode_.back());
+  if (!cm->addFunctions(begin, end)) return false;
+
   SpringboardBuilder::Ptr spb = SpringboardBuilder::createFunc(begin, end, this);
 
   transform(cm);
@@ -1589,14 +1594,10 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
   if (!patchCode(cm, spb))
     return false;
 
+  // Build the address mapping index
+  relocatedCode_.back().createIndices();
     
-  // Create the address map
-  // We create first because there's less copying this way.
-  AddressMapper addrMap;
-  instAddrMappers_.push_back(AddressMapper());
-
-  cm->extractAddressMap(instAddrMappers_.back(), baseAddr);
-  
+  // Kevin's stuff
   cm->extractPostCallPads(this);
   
   return true;
@@ -1742,8 +1743,8 @@ void AddressSpace::causeTemplateInstantiations() {
 }
 
 void AddressSpace::getRelocAddrs(Address orig, std::list<Address> &relocs) const {
-  for (AddressMapperCollection::const_iterator iter = instAddrMappers_.begin();
-       iter != instAddrMappers_.end(); ++iter) {
+  for (CodeTrackers::const_iterator iter = relocatedCode_.begin();
+       iter != relocatedCode_.end(); ++iter) {
     Address reloc;
     if (iter->origToReloc(orig, reloc)) {
       relocs.push_back(reloc);
@@ -1753,19 +1754,31 @@ void AddressSpace::getRelocAddrs(Address orig, std::list<Address> &relocs) const
 
 void AddressSpace::getRelocAddrPairs(Address from, Address to,
 				     std::list<std::pair<Address, Address> > &pairs) const {
-  for (AddressMapperCollection::const_iterator iter = instAddrMappers_.begin();
-       iter != instAddrMappers_.end(); ++iter) {
-    Address tmp1;
-    if (iter->origToReloc(from, tmp1)) {
-      Address tmp2;
-      bool ret = iter->origToReloc(to, tmp2);
+  for (CodeTrackers::const_iterator iter = relocatedCode_.begin();
+       iter != relocatedCode_.end(); ++iter) {
+    Address reloc1;
+    if (iter->origToReloc(from, reloc1)) {
+      Address reloc2;
+      bool ret = iter->origToReloc(to, reloc2);
       assert(ret);
-      pairs.push_back(std::make_pair<Address, Address>(tmp1, tmp2));
+      pairs.push_back(make_pair<Address, Address>(reloc1, reloc2));
     }
   }
 }
-    
 
+bool AddressSpace::getRelocInfo(Address relocAddr,
+				Address &origAddr,
+				baseTrampInstance *&baseT) {
+
+  for (CodeTrackers::const_iterator iter = relocatedCode_.begin();
+       iter != relocatedCode_.end(); ++iter) {
+    if (iter->relocToOrig(relocAddr, origAddr)) {
+      baseT = iter->getBaseT(relocAddr);
+      return true;
+    }
+  }
+  return false;
+}
 
 void AddressSpace::addModifiedFunction(int_function *func) {
   assert(func->obj());

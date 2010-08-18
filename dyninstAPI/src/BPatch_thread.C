@@ -84,71 +84,56 @@ bool BPatch_thread::getCallStackInt(BPatch_Vector<BPatch_frame>& stack)
 
       Frame frame = stackWalk[i];
       frame.calcFrameType();
-      if (frame.frameType_ != FRAME_unset) {
-         isSignalFrame = frame.isSignalFrame();
-         isInstrumentation = frame.isInstrumentation();
+      if (frame.frameType_ != Frame::unset) {
+	isSignalFrame = frame.isSignalFrame();
+	isInstrumentation = frame.isInstrumentation();
       }
 
       if (isInstrumentation) {
-         // This is a bit of a slog, actually. We want to only show
+	// This is a bit of a slog, actually. We want to only show
          // bpatch points that exist, not describe internals to the
          // user. So instead of calling findOrCreateBPPoint, we manually
          // poke through the mapping table. If there isn't a point, we
          // skip this instrumentation frame instead
-
-         instPoint *iP = frame.getPoint();
-         if (iP) {
-            point = proc->findOrCreateBPPoint(NULL, iP);
-         }
-         if (point) {
-            stack.push_back(BPatch_frame(this,
-                                         (void*)stackWalk[i].getPC(),
-                                         (void*)stackWalk[i].getFP(),
-                                         false,
-                                         true,
-                                         point));
-
-            // And the "top-level function" one.
-            Address origPC = frame.getUninstAddr();
-            bblInstance *bbi = proc->lowlevel_process()->
-                findOrigByAddr(origPC)->is_basicBlockInstance();
-            if (bbi && 0 != bbi->version()) {
-                origPC = bbi->equivAddr(0, origPC);
-            }
-            stack.push_back(BPatch_frame(this,
-                                         (void *)origPC,
-                                         (void *)stackWalk[i].getFP(),
-                                         false, // not signal handler,
-                                         false, // not inst.
-                                         NULL, // No point
-                                         true)); // Synthesized frame
-         }
-         else {
-            // No point = internal instrumentation, make it go away.
-            Address origPC = frame.getUninstAddr();
-            bblInstance *bbi = proc->lowlevel_process()->
-                findOrigByAddr(origPC)->is_basicBlockInstance();
-            if (bbi && 0 != bbi->version()) {
-                origPC = bbi->equivAddr(0, origPC);
-            }
-            stack.push_back(BPatch_frame(this,
-                                         (void *)origPC,
-                                         (void *)stackWalk[i].getFP(),
-                                         false, // not signal handler,
-                                         false, // not inst.
-                                         NULL, // No point
-                                         false)); // Synthesized frame
-                
-         }
+	
+	instPoint *iP = frame.getPoint();
+	if (iP) {
+	  point = proc->findOrCreateBPPoint(NULL, iP);
+	}
+	if (point) {
+	  stack.push_back(BPatch_frame(this,
+				       (void*)stackWalk[i].getPC(),
+				       (void*)stackWalk[i].getFP(),
+				       false,
+				       true,
+				       point));
+	  
+	  // And the "top-level function" one.
+	  Address origPC = frame.getUninstAddr();
+	  stack.push_back(BPatch_frame(this,
+				       (void *)origPC,
+				       (void *)stackWalk[i].getFP(),
+				       false, // not signal handler,
+				       false, // not inst.
+				       NULL, // No point
+				       true)); // Synthesized frame
+	}
+	else {
+	  // No point = internal instrumentation, make it go away.
+	  Address origPC = frame.getUninstAddr();
+	  stack.push_back(BPatch_frame(this,
+				       (void *)origPC,
+				       (void *)stackWalk[i].getFP(),
+				       false, // not signal handler,
+				       false, // not inst.
+				       NULL, // No point
+				       false)); // Synthesized frame
+	  
+	}
       }
       else {
          // Not instrumentation, normal case
          Address origPC = frame.getPC();
-         bblInstance *bbi = proc->lowlevel_process()->
-             findOrigByAddr(frame.getPC())->is_basicBlockInstance();
-         if (bbi && 0 != bbi->version()) {
-             origPC = bbi->equivAddr(0, origPC);
-         }
          stack.push_back(BPatch_frame(this,
                                       (void *)origPC,
                                       (void *)frame.getFP(),

@@ -102,31 +102,27 @@ static frameStatus_t getFrameStatus(process *p, unsigned long pc, int &extra_hei
       return frame_vsyscall;
 #endif
 
-   range = p->findOrigByAddr(pc);
+   // See if we're in instrumentation
+   Address origAddr = pc;
+   baseTrampInstance *bti;
+   if (p->getRelocInfo(pc, 
+		       origAddr,
+		       bti)) {
+     // Find out whether we've got a saved
+     // state or not
+     if (bti) {
+       extra_height = bti->trampStackHeight();
+       if (bti->baseT->createFrame()) {
+	 return frame_tramp;
+       }
+       else {
+	 return frameless_tramp;
+       }
+     }
+   }
+   
+   range = p->findOrigByAddr(origAddr);
    func = range->is_function();
-   multi = range->is_multitramp();
-   mini = range->is_minitramp();
-   if (multi)
-       base = multi->getBaseTrampInstanceByAddr(pc);
-
-   if (base) {
-      if (base->isInInstru(pc)) {
-         extra_height = base->trampStackHeight();
-         if (base->baseT->createFrame())
-            return frame_tramp;
-         else
-            return frameless_tramp;
-      }
-      else
-         func = base->multiT->func();
-   }
-   else if (multi) {
-       // Not in base tramp instrumented... we're effectively in the func
-       func = multi->func();
-   }
-   else if (mini) {
-       return frame_tramp;
-   }
    
    if (func == NULL) {
       return frame_unknown;
@@ -305,27 +301,14 @@ static bool hasAllocatedFrame(Address addr, process *proc, int &offset)
  **/
 static bool isInEntryExitInstrumentation(Frame f)
 {
-   codeRange *range = f.getRange();
-   miniTrampInstance *miniTI = range->is_minitramp();
-   multiTramp *multi = range->is_multitramp();
-   baseTrampInstance *baseTI = NULL;
-   if (multi) baseTI = multi->getBaseTrampInstanceByAddr(f.getPC());
-
-   if (baseTI == NULL)
-   {
-      if (miniTI == NULL)
-         return false;
-      baseTI = miniTI->baseTI;
-   }
-   const instPoint *instP = baseTI->baseT->instP();
-   if (!instP) return false; // Could be iRPC
-
-   if (instP->getPointType() == functionEntry ||
-       instP->getPointType() == functionExit)
-       // Not sure yet if function exit will be preInst or postInst...
-       return true;
-
-   return false;
+  instPoint *p = f.getPoint();
+  if (!p) return false;
+  
+  if (p->getPointType() == functionEntry ||
+      p->getPointType() == functionExit)
+    // Not sure yet if function exit will be preInst or postInst...
+    return true;
+  return false;
 }
 
 class DyninstMemRegReader : public Dyninst::SymtabAPI::MemRegReader
@@ -406,6 +389,8 @@ extern int tramp_pre_frame_size_64;
 
 Frame Frame::getCallerFrame()
 {
+  stackwalk_printf("Entry to getCallerFrame, cur pc 0x%lx\n", pc_);
+
     int_function *cur_func = getProc()->findFuncByAddr(pc_);
     int addr_size = getProc()->getAddressWidth();
     int extra_height = 0;
@@ -444,6 +429,9 @@ Frame Frame::getCallerFrame()
    addrs.rtn = 0;
 
    status = getFrameStatus(getProc(), getPC(), extra_height);
+
+   stackwalk_printf("%s[%d]: frame status is %d\n",
+		    FILE__, __LINE__, status);
 
    if (status == frame_vsyscall)
    {
@@ -570,14 +558,15 @@ Frame Frame::getCallerFrame()
    }   
    else if (status == frame_allocates_frame || status == frame_tramp)
    {
-     stackwalk_printf("%s[%d]: walking with allocated frame\n", FILE__, __LINE__);      
+     int offset = 0;
+     // FIXME: for tramps, we need to check if we've saved the FP yet
+
      /**
       * The function that created this frame uses the standard 
       * prolog: push %ebp; mov %esp->ebp .  We can read the 
       * appropriate data from the frame pointer.
       **/
-     int offset = 0;
-     // FIXME: for tramps, we need to check if we've saved the FP yet
+    
      if ((status != frame_tramp && 
           !hasAllocatedFrame(pc_, getProc(), offset)) || 
          (prevFrameValid && isInEntryExitInstrumentation(prevFrame)))

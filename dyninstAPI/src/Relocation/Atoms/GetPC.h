@@ -49,7 +49,10 @@ class GetPC : public Atom {
 		     Address addr,
 		     Absloc a,
 		     Address thunk = 0);
-   virtual bool generate(Trace &, GenStack &);
+   virtual bool generate(GenStack &);
+
+  virtual TrackerElement *tracker() const;
+
    virtual ~GetPC() {};
    virtual std::string format() const;
    virtual unsigned size() const { return insn_->size(); }

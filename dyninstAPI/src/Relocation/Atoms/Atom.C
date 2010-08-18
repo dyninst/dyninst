@@ -38,7 +38,7 @@
 #include "CopyInsn.h" // Default Atom in each Trace
 #include "Instrumentation.h" // For instrumentation Traces
 #include "dyninstAPI/src/debug.h"
-
+#include "../CodeTracker.h"
 #include <sstream>
 
 using namespace Dyninst;
@@ -88,7 +88,7 @@ Trace::Ptr Trace::create(bblInstance *bbl) {
 		    << std::hex << insns[i].second << std::dec
 		    << " " << insns[i].first->format() << endl;
     Atom::Ptr ptr = CopyInsn::create(insns[i].first,
-					 insns[i].second);
+				     insns[i].second);
     if (!ptr) {
       // And this will clean up all of the created elements. Nice. 
       return Ptr();
@@ -142,29 +142,21 @@ bool Trace::generate(codeGen &templ,
 
   relocation_cerr << "Generating block " << id() << " orig @ " << hex << origAddr() << dec << endl;
 
-  Address last = 0;
-
   // Simple form: iterate over every Atom, in order, and generate it.
   for (AtomList::iterator iter = elements_.begin(); iter != elements_.end(); ++iter) {
-    if ((*iter)->addr() &&
-	(*iter)->size()) {
-      last = (*iter)->addr() + (*iter)->size();
-    }  
 
-    gens_.cur().addrMap.push_back(std::make_pair<Address, Offset>((*iter)->addr(),
-								  gens_().used()));
-    
-    if (!(*iter)->generate(*this, gens_)) {
-      cerr << "Error: failed to generate element " << (*iter)->format() << endl;
+    unsigned presize = gens_().used();
+
+    TrackerElement *e = (*iter)->tracker();
+    if (e) {
+      gens_.cur().trackers[presize] = e;
+    }
+
+    if (!(*iter)->generate(gens_)) {
       return false;
       // This leaves the block in an inconsistent state and should only be used
       // for fatal failures.
     }
-  }
-  
-  if (last) {
-    gens_.cur().addrMap.push_back(std::make_pair<Address, Offset>(last,
-								  gens_().used()));
   }
   
   size_ = gens_.size();
@@ -216,54 +208,57 @@ bool Trace::applyPatches(codeGen &gen, bool &regenerate, unsigned &totalSize, in
   return true;
 }  
 
-bool Trace::extractAddressMap(AddressMapper::accumulatorList &accumulators) {
-  // Each GenStack element has a set of point pairs <origAddr, relocAddr>
-  // For a given n, 0 <= n < max, we want to create an accumulator that is the range
-  // between adjacent points; that is
-  // (n.first, n.second, (n+1).first - n.first, (n+1).second - n.second)
-  // where the 2nd point also has the accumulated Offset from the stack element added in.
+bool Trace::extractTrackers(CodeTracker &t) {
+  // Each GenStack element has a set of point pairs <curOffset, TrackerElement *>
+  // where curOffset is some magic pointer into the GenStack structure
+  // that is a) unique and b) can be converted to an absolute address.
+  //
+  // We need to update it to make up for patches and get the size field right.
 
-  Address lastAddr = 0;
-  Offset lastOffset = (Offset) -1;
-  Address nextAddr = lastAddr;
-  Offset nextOffset = lastOffset;
-  
-  for (GenStack::iterator i = gens_.begin(); i != gens_.end(); ++i) {
-    for (std::list<std::pair<Address, Offset> >::iterator j = i->addrMap.begin();
-	 j != i->addrMap.end(); ++j) {
+  if (gens_.begin() == gens_.end()) return true;
+  // There's a math problem here; the offset from the first generator in the stack
+  // is also included in the curAddr_ address we're handed. So add in a correcting
+  // factor
+  unsigned corrective_factor = gens_.begin()->offset;
 
-      // Initialize lastOffset to the first thing we see
-      if (nextOffset == ((Offset) -1)) {
-	nextOffset = j->second + i->offset;
+  for (GenStack::iterator gen = gens_.begin(); gen != gens_.end(); ++gen) {
+    for (GenStack::Trackers::iterator tmap = gen->trackers.begin();
+	 tmap != gen->trackers.end(); ++tmap) {
+      
+      TrackerElement *e = tmap->second;
+      assert(e);
+
+      unsigned size = 0;
+      // Work out the size
+      GenStack::Trackers::iterator next = tmap;
+      ++next;
+      if (next != gen->trackers.end()) {
+	size = next->first - tmap->first;
       }
-
-      if (j->first) {
-	nextAddr = j->first;
-	if (lastAddr) {
-	  nextOffset = j->second + i->offset;
-	  accumulators.push_back(AddressMapper::accumulator(lastAddr,
-							    lastOffset,
-							    nextAddr - lastAddr,
-							    nextOffset - lastOffset));
-	}
-	lastAddr = nextAddr;
-	lastOffset = nextOffset;
+      else {
+	size = (*gen).gen.used() - tmap->first;
       }
+      if (!size) continue;
+
+      Address relocAddr = tmap->first + gen->offset + curAddr_ - corrective_factor;
+      
+      assert(e);
+
+      e->setReloc(relocAddr);
+      e->setSize(size);
+      
+      t.addTracker(e);
     }
   }
   
   return true;
 }
-			       
-
-
-
 
 std::string Trace::format() const {
   stringstream ret;
   ret << "Trace(" 
       << std::hex << origAddr() << std::dec
-      << "" << id() 
+      << "/" << id() 
       << ") {" << endl;
   for (AtomList::const_iterator iter = elements_.begin();
        iter != elements_.end(); ++iter) {
@@ -337,7 +332,8 @@ void GenStack::addPatch(Patch *patch) {
   gens_.back().patch = patch;
   gens_.back().index = cur().gen.getIndex();
   
-  relocation_cerr << "\t\t Adding patch to codeGen stack; cur at " << gens_.back().gen.used() << endl;
+  relocation_cerr << "\t\t Adding patch to codeGen stack; cur at " << gens_.back().gen.used() 
+		  << " in stack " << gens_.back().ptr() << endl;
 
   patch->preapply(gens_.back().gen);
   relocation_cerr << " and after preapply " << gens_.back().gen.used() << endl;

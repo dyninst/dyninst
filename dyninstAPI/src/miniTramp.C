@@ -110,23 +110,6 @@ bool miniTramp::uninstrument() {
         // Correcting of jumps will be handled by removeCode calls
     }
     
-    
-    // DON'T delete the miniTramp. When it is deleted, the callback
-    // is made... which should only happen when the memory is freed.
-    // Place it on the list to be deleted.
-    topDownDelete_ = true;
-    for (int i = instances.size() ; i > 0 ; i--)
-        instances[i-1]->removeCode(NULL);
-
-    // When all instances are successfully deleted, the miniTramp
-    // will be deleted as well.
-    
-    if(BPatch::bpatch->baseTrampDeletion())
-        {
-	  if (baseT) 
-	    baseT->deleteIfEmpty();
-      }
-
     // Inform the AddressSpace that we have modified a particular function.
     proc()->addModifiedFunction(func());
     
