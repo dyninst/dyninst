@@ -1373,7 +1373,7 @@ Object::Object(const Object& obj) :
 }
 
 
-Object::Object(MappedFile *mf_, MappedFile *mfd, void (*err_func)(const char *), Offset offset, bool alloc_syms) :
+Object::Object(MappedFile *mf_, MappedFile *mfd, bool, void (*err_func)(const char *), Offset offset, bool alloc_syms) :
    AObject(mf_, mfd, err_func), offset_(offset)
 {    
    fo_ = fileOpener::openFile((void *)mf_->base_addr(), mf_->size());

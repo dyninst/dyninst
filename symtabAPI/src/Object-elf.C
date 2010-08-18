@@ -3098,7 +3098,7 @@ stab_entry *Object::get_stab_info() const
   return new stab_entry_64();
 }
 
-Object::Object(MappedFile *mf_, MappedFile *mfd, void (*err_func)(const char *), 
+Object::Object(MappedFile *mf_, MappedFile *mfd, bool, void (*err_func)(const char *), 
 	       bool alloc_syms) :
   AObject(mf_, mfd, err_func), 
   hasReldyn_(false),
