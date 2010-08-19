@@ -34,7 +34,6 @@
 #include "process.h"
 #include "function.h"
 #include "binaryEdit.h"
-
 #include "miniTramp.h"
 #include "baseTramp.h"
 #include "multiTramp.h" // multiTramp and instArea

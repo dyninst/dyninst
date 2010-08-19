@@ -356,7 +356,7 @@ bool baseTrampInstance::generateCode(codeGen &gen,
        regalloc_printf("[%s:%u] - Beginning baseTramp generate iteration # %d\n",
                        __FILE__, __LINE__, ++count);
        codeBufIndex_t start = gen.getIndex();
-       
+
        unsigned int num_patches = gen.allPatches().size();
 
        gen.beginTrackRegDefs();
@@ -368,8 +368,9 @@ bool baseTrampInstance::generateCode(codeGen &gen,
 
        definedRegs = gen.getRegsDefined();
        setHasOptInfo(true);
-       if (!spilledRegisters())
+       if (!spilledRegisters()) {
           setSpilledRegisters(gen.rs()->spilledAnything());
+       }
 
        if (!shouldRegenBaseTramp(gen.rs())) {
           break;
@@ -386,6 +387,7 @@ bool baseTrampInstance::generateCode(codeGen &gen,
     }
 
     gen.setBTI(NULL);
+
     return true;
 }
 

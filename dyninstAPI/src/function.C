@@ -663,15 +663,17 @@ Address int_function::setNewEntryPoint(int_basicBlock *& newEntry)
 /* 0. The target and source must be in the same mapped region, make sure memory
  *    for the target is up to date
  * 1. Parse from target address, add new edge at image layer
- * 2. Add image blocks as int_basicBlocks
- * 3. Add image points, as instPoints, fix up mapping of split blocks with points
- * 4. Register all newly created functions as a result of new edge parsing
+ * 2. Register all newly created functions as a result of new edge parsing
+ * 3. Add image blocks as int_basicBlocks
+ * 4. fix up mapping of split blocks with points
+ * 5. Add image points, as instPoints 
 */
 bool int_function::parseNewEdges( std::vector<ParseAPI::Block*> &sources, 
                                   std::vector<Address> &targets, 
                                   std::vector<EdgeTypeEnum> &edgeTypes)
 {
     using namespace SymtabAPI;
+    using namespace ParseAPI;
 
 /* 0. The target and source must be in the same mapped region, make sure memory
       for the target is up to date */
@@ -681,16 +683,18 @@ bool int_function::parseNewEdges( std::vector<ParseAPI::Block*> &sources,
         proc()->proc()->updateActiveMultis();
     }
 
+    // Do various checks and set edge types, if necessary
     Address loadAddr = getAddress() - ifunc()->getOffset();
     std::set<Region*> targRegions;
     for (unsigned idx=0; idx < targets.size(); idx++) {
         Region *targetRegion = ifunc()->img()->getObject()->
             findEnclosingRegion( targets[idx]-loadAddr );
+        ParseAPI::Block *cursrc = sources[idx];
 
         // same region check
-        if (NULL != sources[idx]) {
+        if (NULL != cursrc) {
             Region *sourceRegion = ifunc()->img()->getObject()->
-                findEnclosingRegion( sources[idx]->start() );
+                findEnclosingRegion( cursrc->start() );
             assert(targetRegion == sourceRegion );
 
         }
@@ -699,31 +703,76 @@ bool int_function::parseNewEdges( std::vector<ParseAPI::Block*> &sources,
             obj()->updateMappedFileIfNeeded(targets[idx],targetRegion);
             targRegions.insert(targetRegion);
         }
+
         // translate targets to memory offsets rather than absolute addrs
         targets[idx] -= loadAddr;
+
+        // figure out edge types if they have not been set yet
+        if (ParseAPI::NOEDGE == edgeTypes[idx]) {
+            ParseAPI::Block::edgelist & edges = cursrc->targets();
+            ParseAPI::Block::edgelist::iterator eit = edges.begin();
+            bool isIndir = false;
+            bool isCondl = false;
+            for (; eit != edges.end(); eit++) {
+                if ((*eit)->trg()->start() == targets[idx]) {
+                    edgeTypes[idx] = (*eit)->type();
+                    break;
+                } 
+                if (ParseAPI::INDIRECT == (*eit)->type()) {
+                    isIndir = true;
+                } else if (ParseAPI::COND_NOT_TAKEN == (*eit)->type()
+                            || ParseAPI::COND_TAKEN == (*eit)->type()) {
+                    isCondl = true;
+                }
+            }
+            if (ParseAPI::NOEDGE == edgeTypes[idx]) {
+                bool isCall = false;
+                funcCalls();
+                instPoint *pt = findInstPByAddr(cursrc->lastInsnAddr()+loadAddr);
+                if (pt && callSite == pt->getPointType()) {
+                    isCall = true;
+                }
+                if (cursrc->end() == targets[idx]) {
+                    if (isCall) {
+                        edgeTypes[idx] = CALL_FT;
+                    } else if (isCondl) {
+                        edgeTypes[idx] = ParseAPI::COND_NOT_TAKEN;
+                    } else {
+                        edgeTypes[idx] = ParseAPI::FALLTHROUGH;
+                    }
+                } else if (isCall) {
+                    edgeTypes[idx] = ParseAPI::CALL;
+                } else if (isIndir) {
+                    edgeTypes[idx] = ParseAPI::INDIRECT;
+                } else if (isCondl) {
+                    edgeTypes[idx] = ParseAPI::COND_TAKEN;
+                } else {
+                    edgeTypes[idx] = ParseAPI::DIRECT;
+                }
+            }
+        }
     }
 
 /* 1. Parse from target address, add new edge at image layer  */
     assert( !ifunc()->img()->hasSplitBlocks() && 
             !ifunc()->img()->hasNewBlocks());
-    // parses and adds new blocks to image-layer datastructures
     ifunc()->img()->codeObject()->parseNewEdges(sources, targets, edgeTypes);
 
-/* 2. Add function blocks to int-level datastructures         */
-    //vector<int_basicBlock*> newBlocks;
-    addMissingBlocks(); // also adds to mapped_object and re-sizes function
+/* 2. Register all newly created image_funcs as a result of new edge parsing */
+    pdvector<int_function*> dontcare;
+    obj()->getAllFunctions(dontcare);
 
-/* 3. Add image points to int-level datastructures, fix up mapping of split blocks with points */
+/* 3. Add img-level blocks to int-level datastructures */
+    addMissingBlocks();
+
+/* 5. Add image points to int-level datastructures */
     addMissingPoints();
-    // See if block splitting has caused problems with existing points
+
+/* 4. fix mapping of split blocks that have points */
     if (ifunc()->img()->hasSplitBlocks()) {
         obj()->splitIntLayer();
         ifunc()->img()->clearSplitBlocks();
     }
-
-/* 4. Register all newly created image_funcs as a result of new edge parsing */
-    pdvector<int_function*> intfuncs;
-    obj()->getAllFunctions(intfuncs);
 
     return true;
 }
@@ -883,77 +932,64 @@ void int_function::removeFromAll()
     ifunc()->img()->deleteFunc(ifunc());
 }
 
-void int_function::addMissingBlock(image_basicBlock & imgBlock)
+void int_function::addMissingBlock(image_basicBlock & missingB)
 {
-  Address baseAddr = this->getAddress() - ifunc()->getOffset();
-    int_basicBlock *intBlock = findBlockByAddr( 
-        imgBlock.firstInsnOffset() + baseAddr );
+  Address baseAddr = getAddress() - ifunc()->getOffset();
+    bblInstance *bbi = findBlockInstanceByAddr( 
+        missingB.firstInsnOffset() + baseAddr );
 
-    if ( intBlock && &imgBlock != intBlock->llb() ) 
+    if ( bbi && &missingB != bbi->block()->llb() ) 
     {
         // the block was split during parsing, (or there's real block 
-        // overlapping) adjust the end and lastInsn fields of both 
+        // overlapping), adjust the end and lastInsn fields of both 
         // bblInstances 
-        bblInstance *curInst = intBlock->origInstance();
-        image_basicBlock *curImgB = intBlock->llb();
-        Address blockBaseAddr = curInst->firstInsnAddr() - 
-            curImgB->firstInsnOffset();
-        curInst->setEndAddr( curImgB->endOffset() + blockBaseAddr );
-        curInst->setLastInsnAddr( curImgB->lastInsnOffset() + blockBaseAddr );
+        image_basicBlock *imgB = bbi->block()->llb();
+        Address blockBaseAddr = bbi->firstInsnAddr() - 
+            imgB->firstInsnOffset();
+        assert(baseAddr == blockBaseAddr);
+        mal_printf("adjusting boundaries of split block %lx (split at %lx)\n",
+                   imgB->start(), missingB.start());
+        bbi->setEndAddr( imgB->endOffset() + blockBaseAddr );
+        bbi->setLastInsnAddr( imgB->lastInsnOffset() + blockBaseAddr );
         // instance 2
         bblInstance *otherInst = findBlockInstanceByAddr
-                        (imgBlock.firstInsnOffset() + baseAddr);
-        if (otherInst && otherInst != curInst) {
-            curInst = otherInst;
-            curImgB = intBlock->llb();
-            blockBaseAddr = curInst->firstInsnAddr() - 
-                curImgB->firstInsnOffset();
-            curInst->setEndAddr( curImgB->endOffset() + blockBaseAddr );
-            curInst->setLastInsnAddr(curImgB->lastInsnOffset() + blockBaseAddr);
+                        (missingB.firstInsnOffset() + blockBaseAddr);
+        if (otherInst && otherInst != bbi) {
+            bbi = otherInst;
+            imgB = bbi->block()->llb();
+            blockBaseAddr = bbi->firstInsnAddr() - 
+                imgB->firstInsnOffset();
+            assert(baseAddr == blockBaseAddr);
+            bbi->setEndAddr( imgB->endOffset() + blockBaseAddr );
+            bbi->setLastInsnAddr(imgB->lastInsnOffset() + blockBaseAddr);
         }
 
         // now try and find the block again
-        int_basicBlock *newIntBlock = findBlockByAddr( 
-            imgBlock.firstInsnOffset() + baseAddr );
-        if (intBlock == newIntBlock) {
-            // there's real overlapping going on, find the intBlock 
-            // that starts at the right address (if there is one) 
+        bblInstance *newbbi = findBlockInstanceByAddr( 
+            missingB.firstInsnOffset() + blockBaseAddr );
+        if (bbi == newbbi) {
+            // there's real overlapping going on
             mal_printf("WARNING: overlapping blocks, major obfuscation or "
                     "bad parse [%lx %lx] [%lx %lx] %s[%d]\n",
-                    intBlock->origInstance()->firstInsnAddr(), 
-                    intBlock->origInstance()->endAddr(), 
-                    baseAddr + imgBlock.firstInsnOffset(), 
-                    baseAddr + imgBlock.endOffset(), 
+                    bbi->firstInsnAddr(), 
+                    bbi->endAddr(), 
+                    baseAddr + missingB.firstInsnOffset(), 
+                    baseAddr + missingB.endOffset(), 
                     FILE__,__LINE__);
-            
-            intBlock = NULL;
-            for (set<int_basicBlock*,int_basicBlock::compare>::iterator 
-                 bIter = blockList.begin();
-                 bIter != blockList.end(); 
-                 bIter++) 
-            {
-                if ( (baseAddr + imgBlock.firstInsnOffset()) == 
-                     (*bIter)->origInstance()->firstInsnAddr() )
-                {
-                    intBlock = (*bIter);
-                    break;
-                }
-            }
-        } else {
-            intBlock = newIntBlock;
         }
+        bbi = newbbi;
     }
 
-    if ( ! intBlock ) {
+    if ( ! bbi ) {
         // create new int_basicBlock and add it to our datastructures
-        intBlock = new int_basicBlock
-            ( &imgBlock, baseAddr, this, nextBlockID );
+        int_basicBlock *intBlock = new int_basicBlock
+            ( &missingB, baseAddr, this, nextBlockID );
         bblInstance *bbi = intBlock->origInstance();
         assert(bbi);
         blocksByAddr_.insert(bbi);
         nextBlockID++;
         blockList.insert(intBlock);
-        blockIDmap[imgBlock.id()] = blockIDmap.size();
+        blockIDmap[missingB.id()] = blockIDmap.size();
     } 
 }
 
@@ -970,11 +1006,25 @@ void int_function::addMissingBlocks()
 {
     if ( blockList.empty() ) 
         blocks();
-
-    Function::blocklist & imgBlocks = ifunc_->blocks();
-    Function::blocklist::iterator sit = imgBlocks.begin();
-    for( ; sit != imgBlocks.end(); ++sit) {
-        addMissingBlock( *dynamic_cast<image_basicBlock*>(*sit) );
+    
+    // iterate through whichever of blockList and img->newBlocks_ is smaller
+    if (blockList.size() < ifunc_->img()->getNewBlocks().size()) {
+        Function::blocklist & imgBlocks = ifunc_->blocks();
+        Function::blocklist::iterator sit = imgBlocks.begin();
+        for( ; sit != imgBlocks.end(); ++sit) {
+            image_basicBlock *blk = dynamic_cast<image_basicBlock*>(*sit);
+            addMissingBlock( *dynamic_cast<image_basicBlock*>(*sit) );
+        }
+    }
+    else {
+        const vector<image_basicBlock*> & nblocks = 
+            ifunc()->img()->getNewBlocks();
+        vector<image_basicBlock*>::const_iterator nit = nblocks.begin();
+        for( ; nit != nblocks.end(); ++nit) {
+            if ( ifunc()->contains( *nit ) ) {
+                addMissingBlock( **nit );
+            }
+        }
     }
 }
 

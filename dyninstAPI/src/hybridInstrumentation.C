@@ -660,8 +660,8 @@ bool HybridAnalysis::analyzeNewFunction( Address target , bool doInstrumentation
             }
             bpatchCodeDiscoveryCB(newfuncs,modfuncs);
         }
-        proc()->getImage()->clearNewCodeRegions();
     }
+    proc()->getImage()->clearNewCodeRegions();
 
     // instrument all of the new modules and protect their code
     for (unsigned i=0; i < affectedMods.size(); i++) {
@@ -718,7 +718,7 @@ void HybridAnalysis::parseNewEdgeInFunction(BPatch_point *sourcePoint, Address t
             }
         } 
 
-        // remove ctrl transfer instrumentation, and remove the func from the 
+        // remove the function's instrumentation, and remove the func from the 
         // instrumented functions list
         removeInstrumentation(sourceFunc);
         std::set< Address >::iterator iFuncIter = 
@@ -762,8 +762,8 @@ void HybridAnalysis::parseNewEdgeInFunction(BPatch_point *sourcePoint, Address t
             }
             // invoke callback
             bpatchCodeDiscoveryCB(newfuncs,modfuncs);
-            proc()->getImage()->clearNewCodeRegions();
         }
+        proc()->getImage()->clearNewCodeRegions();
     } 
 	// 2. parse the new edge
     else {

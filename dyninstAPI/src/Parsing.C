@@ -267,7 +267,7 @@ DynParseCallback::block_split(Block *first_, Block *second_)
 {
     if (BPatch_normalMode != _img->hybridMode()) {
         image_basicBlock *second = (image_basicBlock*) second_;
-        static_cast<image_basicBlock*>(first_)->img()->addSplitBlock(second);
+        _img->addSplitBlock(second);
     }
 }
 

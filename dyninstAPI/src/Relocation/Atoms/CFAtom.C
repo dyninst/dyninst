@@ -435,7 +435,7 @@ std::string CFAtom::format() const {
 /////////////////////////
 
 bool CFPatch::apply(codeGen &gen, int iteration, int shift) {
-  relocation_cerr << "\t\t CFPatch::apply, type " << type << endl;
+  relocation_cerr << "\t\t CFPatch::apply, type " << type << " origAddr " << hex << origAddr_ << endl;
   if (orig_insn) {
     instruction ugly_insn(orig_insn->ptr());
     switch(type) {
@@ -487,8 +487,8 @@ bool CFPatch::apply(codeGen &gen, int iteration, int shift) {
 
   if (postCFPadding_) {
     gen.registerPostCallPad(origAddr_);
-    //gen.fill(10, codeGen::cgIllegal);
-    gen.fill(10, codeGen::cgNOP);
+    gen.fill(10, codeGen::cgIllegal);
+    //gen.fill(10, codeGen::cgNOP);
   }
 
   return true;

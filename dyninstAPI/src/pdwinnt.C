@@ -634,12 +634,12 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
             // detach so we can see what's going on 
             //ev.proc->detachProcess(true);
         }
-
+        break;
     case 8: // no execute permissions
         fprintf(stderr, "ERROR: executing code that lacks executable "
                 "permissions in pdwinnt.C at %lx, evt.addr=%lx [%d]\n",
                 ev.address, violationAddr,__LINE__);
-
+        break;
     default:
         assert(0);
     }

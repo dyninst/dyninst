@@ -291,7 +291,9 @@ bool GenStack::GenObj::apply(codeGen &current, unsigned &size, int iteration, in
     gen.setIndex(index);
     relocation_cerr << "\t\t Using patch: setting gen to index " << index << " and " 
 	 << gen.used() << " bytes used" << endl;
-    if (!patch->apply(gen, iteration, shift)) return false;
+    if (!patch->apply(gen, iteration, shift)) {
+        return false;
+    }
   }
 
   

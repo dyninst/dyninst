@@ -1173,7 +1173,7 @@ bool mapped_object::splitIntLayer()
     // not implemented (or needed, for now) on non-instruction API platforms
     return false;
 #else
-
+    Address baseAddr = this->parse_img()->desc().loadAddr();
     using namespace InstructionAPI;
     // iterates through the blocks that were created during block splitting
     std::set< image_basicBlock* > splits = parse_img()->getSplitBlocks();
@@ -1182,10 +1182,9 @@ bool mapped_object::splitIntLayer()
     for (bIter = splits.begin(); bIter != splits.end(); bIter++) 
     {
         // foreach function corresponding to the block
-        image_basicBlock *imgBlock = (*bIter);
-
+        image_basicBlock *splitImgB = (*bIter);
         vector<Function *> funcs;
-        imgBlock->getFuncs(funcs);
+        splitImgB->getFuncs(funcs);
         for (std::vector<Function*>::iterator fIter = funcs.begin();
              fIter != funcs.end(); 
              fIter++) 
@@ -1193,53 +1192,52 @@ bool mapped_object::splitIntLayer()
             image_func *imgFunc = dynamic_cast<image_func*>(*fIter);
             splitfuncs.insert(imgFunc);
             int_function   * intFunc  = findFunction(imgFunc);
-            int_basicBlock * intBlock = intFunc->findBlockByOffsetInFunc
-                ( imgBlock->firstInsnOffset() - imgFunc->getOffset() );
+            int_basicBlock * splitIntB = intFunc->findBlockByOffsetInFunc
+                ( splitImgB->firstInsnOffset() - imgFunc->getOffset() );
 
             // add block to new int_function if necessary
-            if (!intBlock || intBlock->llb() != imgBlock) {
+            if (!splitIntB || splitIntB->llb() != splitImgB) {
                 // this will adjust the previous block's length if necessary
-                intFunc->addMissingBlock(*imgBlock);
+                intFunc->addMissingBlock(*splitImgB);
             }
 
-            //warning: intBlock might still be null if we deemed this
-            // function uninstrumentable (probably because it is very
-            // short), keep that in mind
-            if (intBlock) {
+            // splitIntB is null if its function is uninstrumentable 
+            // (because it is very short or has indirect jumps)
+            if (splitIntB) {
 
                 // make point fixes
                 instPoint *point = NULL;
-                Address current = intBlock->origInstance()->firstInsnAddr();
+                Address current = splitIntB->origInstance()->firstInsnAddr();
                 InstructionDecoder dec
                     (getPtrToInstruction(current),
-                     intBlock->origInstance()->get_size(),
+                     splitIntB->origInstance()->get_size(),
                      proc()->getArch());
                 Instruction::Ptr insn;
                 while(insn = dec.decode()) 
                 {
-                    point = intFunc->findInstPByAddr( current );
-                    if ( point && point->block() != intBlock ) {
-                        point->setBlock( intBlock );
+                    point = intFunc->findInstPByAddr( current - baseAddr );
+                    if ( point && point->block() != splitIntB ) {
+                        point->setBlock( splitIntB );
                     } 
                     current += insn->size();
                 }
                 // we're at the last instruction, create a point if needed
-                if ( !point ) {
-                    if ( parse_img()->getInstPoint
-                         (intBlock->origInstance()->lastInsnAddr()) ) 
-                    {
-                        intFunc->addMissingPoints();
-                        point = intFunc->findInstPByAddr
-                            ( intBlock->origInstance()->lastInsnAddr() );
-                        if (!point) {
-                            fprintf(stderr,"WARNING: failed to find point for "
-                                    "block [%lx %lx] at the"
-                                    " block's lastInsnAddr = %lx %s[%d]\n", 
-                                    intBlock->origInstance()->firstInsnAddr(), 
-                                    intBlock->origInstance()->endAddr(),
-                                    intBlock->origInstance()->lastInsnAddr(),
-                                    FILE__,__LINE__);
-                        }
+                if ( !point && 
+                     parse_img()->getInstPoint
+                         (splitIntB->origInstance()->lastInsnAddr() - baseAddr) ) 
+                {
+                    intFunc->addMissingPoints();
+                    point = intFunc->findInstPByAddr
+                        ( splitIntB->origInstance()->lastInsnAddr() );
+
+                    if (!point) {
+                        fprintf(stderr,"WARNING: failed to find point for "
+                                "block [%lx %lx] at the"
+                                " block's lastInsnAddr = %lx %s[%d]\n", 
+                                splitIntB->origInstance()->firstInsnAddr(), 
+                                splitIntB->origInstance()->endAddr(),
+                                splitIntB->origInstance()->lastInsnAddr(),
+                                FILE__,__LINE__);
                     }
                 }
             }

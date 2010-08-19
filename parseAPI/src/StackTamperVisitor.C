@@ -40,7 +40,7 @@ using namespace Dyninst;
 using namespace DataflowAPI;
 using namespace ParseAPI;
 
-StackTamperVisitor::StackTamperVisitor(const AbsRegion &a) :
+StackTamperVisitor::StackTamperVisitor(const AbsRegion &) :
   tamper_(TAMPER_NONE),
   modpc_(0)
 {

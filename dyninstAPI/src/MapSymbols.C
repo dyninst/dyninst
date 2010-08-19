@@ -53,8 +53,6 @@
 #include <windows.h>
 #include "MapSymbols.h"
 
-#define _CRT_SECURE_NO_WARNINGS
-
 MapSymbols::MapSymbols():fp(NULL), filename(NULL), headSymbols(NULL), currSymbols(NULL), 
 headSection(NULL), currSection(NULL), headDLL(NULL), currDLL(NULL),numberOfDLL(0)
 {

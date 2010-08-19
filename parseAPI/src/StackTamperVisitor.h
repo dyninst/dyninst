@@ -233,7 +233,7 @@ namespace SymbolicEvaluation {
 
 class StackTamperVisitor : public ASTVisitor {
  public:
-  StackTamperVisitor(const AbsRegion &a);
+  StackTamperVisitor(const AbsRegion &);
 
   virtual AST::Ptr visit(AST *);
   virtual AST::Ptr visit(DataflowAPI::BottomAST *);
