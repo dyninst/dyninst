@@ -381,6 +381,13 @@ bool CFAtom::generateIndirect(GenStack &gens,
   // easy - we just copy 'em.
   gens().copy(buffer, insn->size());
   free(buffer);
+
+  if (postCFPadding_) {
+    gen.registerPostCallPad(origAddr_);
+    //gen.fill(10, codeGen::cgIllegal);
+    gen.fill(10, codeGen::cgNOP);
+  }
+
   return true;
 }
 
