@@ -2,7 +2,10 @@
 
 my %testResults;
 
-my $crashed, $failed, $skipped, $passed;
+my $crashed = 0;
+my $failed = 0;
+my $skipped = 0;
+my $passed = 0;
 
 while(<>)
 {
