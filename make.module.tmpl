@@ -88,6 +88,8 @@ MUTATEE_CXXFLAGS_NATIVE += -DCOMPILER='"$(COMPILER_NATIVE_CXX)"'
 TEST_DEST = $(TO_CORE)/$(PROGRAM_DEST)/testprogs_new2
 LIB_DEST = $(TO_CORE)/$(LIBRARY_DEST)
 
+LIBDIR += -L$(LIBRARY_DEST)
+
 #######################################################################
 ###  Basic definitions (filename prefixes)
 #######################################################################
