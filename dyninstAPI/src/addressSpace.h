@@ -424,7 +424,8 @@ class AddressSpace : public InstructionSource {
 
     void causeTemplateInstantiations();
 
-    void addPostCallPad(Address from, Address to); 
+    void addDefensivePad(Address from, Address to);
+    //void unregisterDefensivePad(Address from, Address to);
 
     Address heapBase() const { return 0x8050000; }
     Address instBase() const { return 0x804a000; }
@@ -483,8 +484,8 @@ class AddressSpace : public InstructionSource {
     bool relocateInt(FuncSet::const_iterator begin, FuncSet::const_iterator end, Address near);
 
     // Kevin code
-    std::map<Address, std::set<Address> > forwardCallPadMap_;
-    IntervalTree<Address, Address> reverseCallPadMap_;
+    std::map<Address, std::set<Address> > forwardDefensiveMap_;
+    IntervalTree<Address, Address> reverseDefensiveMap_;
 
     // Track desired function replacements/removals/call replacements
     typedef std::map<instPoint *, int_function *> CallReplaceMap;

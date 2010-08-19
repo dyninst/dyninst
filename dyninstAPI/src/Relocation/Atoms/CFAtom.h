@@ -158,9 +158,8 @@ struct CFPatch : public Patch {
   // Data: RIP-relative expression for the destination
 
  CFPatch(Type a, InstructionAPI::Instruction::Ptr b, TargetInt *c,
-	 bool d = false, Address e = 0) :
-  type(a), orig_insn(b), target(c),
-    postCFPadding_(d), origAddr_(e) {};
+	 Address d = 0) :
+  type(a), orig_insn(b), target(c), origAddr_(d) {};
   
   virtual bool apply(codeGen &gen, int iteration, int shift);
   virtual bool preapply(codeGen &gen);
@@ -169,9 +168,25 @@ struct CFPatch : public Patch {
   Type type;
   InstructionAPI::Instruction::Ptr orig_insn;
   TargetInt *target;
-  bool postCFPadding_;
+  Address origAddr_;  
+};
+
+struct PaddingPatch : public Patch {
+  // For Kevin's defensive Dyninst, we want to append a
+  // padding area past the return point of calls that don't
+  // necessarily return to the normal places. This requires
+  // both a) an empty space in code gen and b) tracking that
+  // address in the process. The first is easy enough to
+  // do statically, but the second requires a patch so that
+  // we get notified of address finickiness.
+
+ PaddingPatch(Address a) : origAddr_(a), prevAddr_(0) {};
+  virtual bool apply(codeGen &gen, int, int);
+  virtual bool preapply(codeGen &gen);
+  virtual ~PaddingPatch() {};
+
   Address origAddr_;
-  
+  Address prevAddr_;
 };
 
 };

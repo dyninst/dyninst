@@ -102,7 +102,7 @@ class CodeMover {
   // Aaand debugging functionality
   void disassemble() const;
 
-  void extractPostCallPads(AddressSpace *);
+  void extractDefensivePads(AddressSpace *);
 
   // Get a map from original addresses to new addresses
   // for all blocks

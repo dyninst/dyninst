@@ -678,10 +678,10 @@ Dyninst::Architecture codeGen::getArch() const {
   return Arch_none;
 }
 
-void codeGen::registerPostCallPad(Address addr) {
+void codeGen::registerDefensivePad(Address from, Address to) {
   // Register a match between a call instruction
   // and a padding area post-reloc-call for
   // control flow interception purposes.
   // This is kind of hacky, btw.
-  postCallPads_.insert(std::make_pair<Address, Address>(addr, currAddr()));
+  defensivePads_[from] = to;
 }

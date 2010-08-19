@@ -1597,7 +1597,7 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
   relocatedCode_.back().createIndices();
     
   // Kevin's stuff
-  cm->extractPostCallPads(this);
+  cm->extractDefensivePads(this);
   
   return true;
 }
@@ -1785,7 +1785,7 @@ void AddressSpace::addModifiedFunction(int_function *func) {
   modifiedFunctions_[func->obj()].insert(func);
 }
 
-void AddressSpace::addPostCallPad(Address from, Address to) {
-  forwardCallPadMap_[from].insert(to);
-  reverseCallPadMap_.insert(to, to+10, from);
+void AddressSpace::addDefensivePad(Address from, Address to) {
+  forwardDefensiveMap_[from].insert(to);
+  reverseDefensiveMap_.insert(to, to+10, from);
 }

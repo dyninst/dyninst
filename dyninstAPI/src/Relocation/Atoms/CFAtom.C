@@ -201,6 +201,10 @@ bool CFAtom::generate(GenStack &gens) {
   default:
     assert(0);
   }
+  if (padded_) {
+    gens.addPatch(new PaddingPatch(addr_));
+  }
+
   return true;
 }
 
@@ -293,7 +297,7 @@ bool CFAtom::generateBranch(GenStack &gens,
   // the next instruction. So if we ever see that (a branch of offset
   // == size) back up the codeGen and shrink us down.
 
-  CFPatch *newPatch = new CFPatch(CFPatch::Jump, insn, to, padded_, addr_);
+  CFPatch *newPatch = new CFPatch(CFPatch::Jump, insn, to, addr_);
   gens.addPatch(newPatch);
 
   return true;
@@ -308,7 +312,7 @@ bool CFAtom::generateCall(GenStack &gens,
     return true;
   }
 
-  CFPatch *newPatch = new CFPatch(CFPatch::Call, insn, to, padded_, addr_);
+  CFPatch *newPatch = new CFPatch(CFPatch::Call, insn, to, addr_);
   gens.addPatch(newPatch);
 
   return true;
@@ -319,7 +323,7 @@ bool CFAtom::generateConditionalBranch(GenStack &gens,
 				       Instruction::Ptr insn) {
   assert(to);
 
-  CFPatch *newPatch = new CFPatch(CFPatch::JCC, insn, to, padded_, addr_);
+  CFPatch *newPatch = new CFPatch(CFPatch::JCC, insn, to, addr_);
   gens.addPatch(newPatch);
 
   return true;
@@ -401,7 +405,7 @@ bool CFAtom::generateIndirectCall(GenStack &gens,
     // We don't know our final address, so use the patching system
     assert(0 && "Unimplemented!");
     // This target better not be NULL...
-    CFPatch *newPatch = new CFPatch(CFPatch::Data, insn, NULL, padded_, addr_);
+    CFPatch *newPatch = new CFPatch(CFPatch::Data, insn, NULL, addr_);
     gens.addPatch(newPatch);
   }
   else {
@@ -511,6 +515,19 @@ bool CFPatch::preapply(codeGen &gen) {
   }
 
   // Hopefully a fallthrough which will be skipped.
+  return true;
+}
 
+bool PaddingPatch::apply(codeGen &gen, int, int) {
+
+  prevAddr_ = gen.currAddr();
+  gen.registerDefensivePad(origAddr_, gen.currAddr());
+  //gen.fill(10, codeGen::cgIllegal);
+  gen.fill(10, codeGen::cgNOP);
+  return true;
+}
+
+bool PaddingPatch::preapply(codeGen &gen) {
+  gen.moveIndex(10);
   return true;
 }

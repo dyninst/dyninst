@@ -440,7 +440,7 @@ unsigned pcRelJCC::apply(Address addr)
    //8-bit jump
    potential = addr + 2;
    disp = target - potential;
-   if (is_disp8(disp)) {
+   if (0 && is_disp8(disp)) {
       convert_to_rel8(origInsn, newInsn);
       *newInsn++ = (signed char) disp;
       SET_PTR(newInsn, *gen);

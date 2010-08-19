@@ -5444,7 +5444,7 @@ void process::getActivePatchAreas(AddrPairSet &patches,
 				  AddrSet &pcs) {
   for (std::set<Address>::iterator pc = pcs.begin(); pc != pcs.end(); ++pc) {
     Address tmp1, tmp2, from;
-    if (reverseCallPadMap_.find(*pc, tmp1, tmp2, from)) {
+    if (reverseDefensiveMap_.find(*pc, tmp1, tmp2, from)) {
       // From holds the address of the _call_ associated with
       // this patch area. 
       patches.insert(std::make_pair<Address, Address>(from, *pc));
@@ -5511,7 +5511,7 @@ void process::generatePatchBranches(AddrPairSet &branchesNeeded) {
 
     // Safety check: make sure we didn't overrun the patch area
     Address lb, ub, tmp;
-    if (!reverseCallPadMap_.find(from, lb, ub, tmp)) {
+    if (!reverseDefensiveMap_.find(from, lb, ub, tmp)) {
       // WTF? This worked before!
       assert(0);
     }
