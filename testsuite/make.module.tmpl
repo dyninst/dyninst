@@ -33,7 +33,7 @@ IFLAGS += $(BOOST_INCDIR)
 ### Strip away most of it.
 #######################################################################
 
-CFLAGS = $(UNIFIED_TEST_DEF:%=%_test) $(AC_DEF) $(FIRST_INCLUDE) -I../../../include -I../src -g $(BOOST_INCDIR)
+CFLAGS = $(UNIFIED_TEST_DEF:%=%_test) $(AC_DEF) $(FIRST_INCLUDE) -I$(INCLUDE_DEST) -I../src -g $(BOOST_INCDIR)
 CXXFLAGS = $(CFLAGS)
 CXXFLAGS += $(PLATFORM_CXXFLAGS)
 CFLAGS_NATIVE = $(CFLAGS)
