@@ -33,6 +33,8 @@
 #include "instructionAPI/h/Instruction.h"
 #include "dyninstAPI/src/debug.h"
 
+#include "../CodeTracker.h"
+
 using namespace Dyninst;
 using namespace Relocation;
 using namespace InstructionAPI;
@@ -44,7 +46,12 @@ PCRelativeData::Ptr PCRelativeData::create(Instruction::Ptr insn,
   return Ptr(new PCRelativeData(insn, addr, target));
 }
 
-bool PCRelativeData::generate(Trace &, GenStack &gens) {
+TrackerElement *PCRelativeData::tracker() const {
+  EmulatorTracker *e = new EmulatorTracker(addr_);
+  return e;
+}
+
+bool PCRelativeData::generate(GenStack &gens) {
   // We want to take the original instruction and emulate
   // it at whatever our new address is. 
 

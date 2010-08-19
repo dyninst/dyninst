@@ -102,6 +102,7 @@ bool adhocMovementTransformer::processTrace(TraceList::iterator &b_iter) {
 	if (dest != cf->destMap_.end()) {
 	  CFAtom::Ptr newCF = CFAtom::create();
 	  // Explicitly do _NOT_ reuse old information - this is just a branch
+	  newCF->updateAddr(cf->addr());
 
 	  newCF->destMap_[CFAtom::Fallthrough] = dest->second;
 

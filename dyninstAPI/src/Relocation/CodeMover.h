@@ -43,6 +43,7 @@
 
 #include "Springboard.h"
 
+
 class int_function;
 class int_basicTrace;
 class codeGen;
@@ -55,6 +56,7 @@ namespace Relocation {
 class Trace;
 class Transformer;
 class CodeMover;
+  class CodeTracker;
 
 
 class CodeMover {
@@ -64,6 +66,7 @@ class CodeMover {
   typedef std::list<TracePtr> TraceList;
   typedef std::map<bblInstance *, TracePtr> TraceMap;
   typedef std::set<int_function *> FuncSet;
+  typedef std::set<bblInstance *> BlockSet;
 
   // A generic mover of code; an instruction, a basic block, or
   // a function. This is the algorithm (fixpoint) counterpart
@@ -76,16 +79,12 @@ class CodeMover {
   //
   // Output: a buffer containing the moved code 
 
-  static Ptr create();
+  // We take a CodeTracker as a reference parameter so that we don't 
+  // have to copy it on output; CodeMovers are designed to be discarded
+  // while CodeTrackers survive.
+  static Ptr create(CodeTracker &);
 
-  template<typename TraceIter>
-    static Ptr create(TraceIter begin, TraceIter end);
- 
-  // Needs a different name to get the arguments
-  // right.
-  static Ptr createFunc(FuncSet::const_iterator begin, FuncSet::const_iterator end);
-
-  static void causeTemplateInstantiations();
+  bool addFunctions(FuncSet::const_iterator begin, FuncSet::const_iterator end);
 
   // Apply the given Transformer to all blocks in the Mover
   bool transform(Transformer &t);
@@ -102,8 +101,6 @@ class CodeMover {
 
   // Aaand debugging functionality
   void disassemble() const;
-
-  void extractAddressMap(AddressMapper &addrMap, Address baseAddr);
 
   void extractPostCallPads(AddressSpace *);
 
@@ -132,8 +129,7 @@ class CodeMover {
 
  private:
     
-
- CodeMover() : addr_(0), size_(0) {};
+ CodeMover(CodeTracker &t) : addr_(0), size_(0), tracker_(t) {};
 
   
   void setAddr(Address &addr) { addr_ = addr; }
@@ -159,6 +155,8 @@ class CodeMover {
   SpringboardMap sboardMap_;
 
   unsigned size_;
+
+  CodeTracker &tracker_;
 };
 
 

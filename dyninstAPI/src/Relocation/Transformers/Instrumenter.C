@@ -180,9 +180,9 @@ bool Instrumenter::postprocess(TraceList &bl) {
 
 
 bool Instrumenter::addEdgeInstrumentation(baseTramp *tramp,
-					     CFAtom::Ptr cf,
-					     Address dest,
-					     Trace::Ptr cur) {
+					  CFAtom::Ptr cf,
+					  Address dest,
+					  Trace::Ptr cur) {
   // We handle edge instrumentation by creating a new Trace and
   // wiring it in in the appropriate place. The actual adding is
   // done later, since we can't modify the list from here. 
@@ -211,6 +211,8 @@ bool Instrumenter::addEdgeInstrumentation(baseTramp *tramp,
   TargetInt *target = d_iter->second;
 
   CFAtom::Ptr postCF = CFAtom::create();
+  // Give this a valid destination
+  postCF->updateAddr(cf->addr());
   postCF->addDestination(CFAtom::Fallthrough, target);
   inst->elements().push_back(postCF);
 

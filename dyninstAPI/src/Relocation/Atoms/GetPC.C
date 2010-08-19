@@ -47,7 +47,13 @@ GetPC::Ptr GetPC::create(Instruction::Ptr insn,
   return Ptr(new GetPC(insn, addr, a, thunk));
 }
 
-bool GetPC::generate(Trace &, GenStack &gens) {
+TrackerElement *GetPC::tracker() const {
+  assert(addr_ != 1);
+  EmulatorTracker *e = new EmulatorTracker(addr_);
+  return e;
+}
+
+bool GetPC::generate(GenStack &gens) {
   // Two options: top of stack (push origAddr) 
   // or into a register (/w/ a mov)
 

@@ -5488,8 +5488,8 @@ void process::generateRequiredPatches(AddrPairSet &patches,
     // 3
     // We want the most recent map from original addresses
     // to relocated addresses
-    assert(!instAddrMappers_.empty());
-    AddressMapper &mapper = instAddrMappers_.back();
+    assert(!relocatedCode_.empty());
+    Relocation::CodeTracker &mapper = relocatedCode_.back();
     if (!mapper.origToReloc(target->firstInsnAddr(),
 			    to)) {
       assert(0);
@@ -5904,6 +5904,8 @@ void process::gcInstrumentation()
 // garbage collect instrumentation
 void process::gcInstrumentation(pdvector<pdvector<Frame> > &stackWalks)
 {
+  return;
+#if 0
   // Go through the list and try to clear out any
   // instInstances that are freeable.
   if (status() == exited) return;
@@ -5976,6 +5978,7 @@ void process::gcInstrumentation(pdvector<pdvector<Frame> > &stackWalks)
           delete deletedInst;
       }
   }
+#endif
 }
 
 dyn_thread *process::createInitialThread() 

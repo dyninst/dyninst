@@ -43,7 +43,10 @@ class PCRelativeData : public Atom {
  public:
    typedef dyn_detail::boost::shared_ptr<PCRelativeData> Ptr;
 
-   virtual bool generate(Trace &b, GenStack &);
+   virtual bool generate(GenStack &);
+
+  virtual TrackerElement *tracker() const;
+  
    static Ptr create(InstructionAPI::Instruction::Ptr insn,
 		     Address addr,
 		     Address target);

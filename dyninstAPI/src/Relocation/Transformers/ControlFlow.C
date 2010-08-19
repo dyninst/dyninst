@@ -120,6 +120,8 @@ bool CFAtomCreator::processTrace(TraceList::iterator &iter) {
 
   Instruction::Ptr insn = reloc->insn();
   Address addr = reloc->addr();
+  assert(addr);
+  ender->updateAddr(addr);
 
   if ((insn->getCategory() != c_CompareInsn) &&
       (insn->getCategory() != c_NoCategory)) {
@@ -129,7 +131,6 @@ bool CFAtomCreator::processTrace(TraceList::iterator &iter) {
     // We want to shove this into the CFAtom so it'll know how to regenerate the
     // branch/call/whatever
     ender->updateInsn(insn);
-    ender->updateAddr(addr);
   } 
 
   (*iter)->elements().push_back(ender);
