@@ -1258,7 +1258,7 @@ bool IA_IAPI::isFakeCall() const
     return false;
 }
 
-bool IA_IAPI::isIATcall() const
+bool IA_IAPI::isIATcall(std::string & callee) const
 {
     if (!isDynamicCall()) {
         return false;
@@ -1314,6 +1314,8 @@ bool IA_IAPI::isIATcall() const
     if (cur != 0 || count <= 1) 
         return false;
 
+    mal_printf("found IAT call at %lx to %s\n", current, funcAsciiPtr);
+    callee = funcAsciiPtr;
     return true;
 }
 

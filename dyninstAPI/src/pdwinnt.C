@@ -905,7 +905,6 @@ bool Frame::setPC(Address newpc) {
                                  &newpc) ) 
   {
       this->pc_ = newpc;
-      this->range_ = NULL;
       return true;
   }
 

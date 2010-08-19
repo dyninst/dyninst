@@ -303,18 +303,31 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
                 }
             }
         }
-        if ( _obj->defensiveMode() &&
-             ((!isDynamicCall() && !_isrc->isValidAddress(target)) ||
-              (isDynamicCall() && !isIATcall())) )
-        {
+        bool addFallthrough = true;
+        if (unlikely(_obj->defensiveMode())) {
             // don't add fallthrough edge if we're in defensive mode 
             // and we see a direct call to an invalid address or an
             // indirect call that doesn't pass through the 
-            // Import Address Table (i.e., the IAT)
-            mal_printf("Unres call at %lx in getNewEdges %d\n", 
-                       current, __LINE__);
+            // Import Address Table (i.e., the IAT) and doesn't call
+            // a non-returning function
+            if (!isDynamicCall() && !_isrc->isValidAddress(target)) {
+                addFallthrough = false;
+            }
+            if (isDynamicCall()) {
+                std::string callee;
+                if (dynamic_cast<CodeSource*>(_isrc) && 
+                    isIATcall(callee) && 
+                    static_cast<CodeSource*>(_isrc)->nonReturning(callee)) 
+                {
+                    addFallthrough = false;
+                }
+            }
+            if (!addFallthrough) {
+                mal_printf("Unres call at %lx in getNewEdges %d\n", 
+                           current, __LINE__);
+            }
         } 
-        else {
+        if (likely(addFallthrough)) {
             outEdges.push_back(std::make_pair(getAddr() + getSize(),CALL_FT));
         }
         return;

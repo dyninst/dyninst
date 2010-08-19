@@ -384,8 +384,8 @@ bool CFAtom::generateIndirect(GenStack &gens,
 
   if (padded_) {
     gens().registerPostCallPad(addr_);
-    //gen.fill(10, codeGen::cgIllegal);
-    gens().fill(10, codeGen::cgNOP);
+    gens().fill(10, codeGen::cgIllegal);
+    //gens().fill(10, codeGen::cgNOP);
   }
 
   return true;
@@ -409,9 +409,9 @@ bool CFAtom::generateIndirectCall(GenStack &gens,
   }
 
   if (padded_) {
-    gens().registerPostCallPad(addr_);
-    //gen.fill(10, codeGen::cgIllegal);
-    gens().fill(10, codeGen::cgNOP);
+    //gens().registerPostCallPad(addr_);
+    gens().fill(10, codeGen::cgIllegal);
+    //gens().fill(10, codeGen::cgNOP);
   }
 
   return true;

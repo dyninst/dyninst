@@ -123,7 +123,7 @@ private:
         bool isFrameSetupInsn(Dyninst::InstructionAPI::Instruction::Ptr i) const;
         virtual bool isReturn() const;
         bool isFakeCall() const;
-        bool isIATcall() const;
+        bool isIATcall(std::string & callee) const;
 
 
         Dyninst::InstructionAPI::InstructionDecoder & dec;

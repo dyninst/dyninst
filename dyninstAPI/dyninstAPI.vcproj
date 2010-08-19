@@ -209,27 +209,6 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\AddressMapper.C"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						RuntimeTypeInfo="true"
-						CompileAs="2"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath=".\src\addressSpace.C"
 				>
 				<FileConfiguration
@@ -1030,6 +1009,18 @@
 					<Tool
 						Name="VCCLCompilerTool"
 						RuntimeTypeInfo="true"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\CodeTracker.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
 						CompileAs="2"
 					/>
 				</FileConfiguration>
@@ -2327,10 +2318,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\AddressMapper.h"
-				>
-			</File>
-			<File
 				RelativePath=".\src\addressSpace.h"
 				>
 			</File>
@@ -2527,6 +2514,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\Relocation\CodeTracker.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\Relocation\Transformers\ControlFlow.h"
 				>
 			</File>
@@ -2631,11 +2622,11 @@
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Transformers\Include.h"
+				RelativePath=".\src\Relocation\Atoms\Include.h"
 				>
 			</File>
 			<File
-				RelativePath=".\src\Relocation\Atoms\Include.h"
+				RelativePath=".\src\Relocation\Transformers\Include.h"
 				>
 			</File>
 			<File
