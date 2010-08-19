@@ -240,8 +240,8 @@ class codeGen {
 
     // SD-DYNINST
     // 
-    void registerPostCallPad(Address addr);
-    std::set<std::pair<Address, Address> > &getPostCallPads() { return postCallPads_; }
+    void registerDefensivePad(Address from, Address to);
+    std::map<Address, Address> &getDefensivePads() { return defensivePads_; }
     
  private:
     void realloc(unsigned newSize); 
@@ -275,7 +275,7 @@ class codeGen {
     std::vector<relocPatch> patches_;
     std::vector<pcRelRegion *> pcrels_;
 
-    std::set<std::pair<Address, Address> > postCallPads_;
+    std::map<Address, Address> defensivePads_;
 };
 
 #endif

@@ -302,9 +302,9 @@ string CodeMover::format() const {
 
 }
 
-void CodeMover::extractPostCallPads(AddressSpace *AS) {
-  for (std::set<std::pair<Address, Address> >::iterator iter = gen_.getPostCallPads().begin();
-       iter != gen_.getPostCallPads().end(); ++iter) {
-    AS->addPostCallPad(iter->first, iter->second);
+void CodeMover::extractDefensivePads(AddressSpace *AS) {
+  for (std::map<Address,Address>::iterator iter = gen_.getDefensivePads().begin();
+       iter != gen_.getDefensivePads().end(); ++iter) {
+    AS->addDefensivePad(iter->first, iter->second);
   }
 }
