@@ -29,15 +29,43 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-// Convenience header file so we don't have to pull in each one individually.
+#if !defined (_R_E_PADDING_H_)
+#define _R_E_PADDING_H_
 
-#include "Transformer.h"
-#include "Movement-adhoc.h"
-#include "ControlFlow.h"
-#include "Instrumenter.h"
-#include "CF_Localization.h"
-#include "EmulateMemory.h"
-#include "Movement-analysis.h"
-#include "Fallthroughs.h"
-#include "Modification.h"
-#include "Defensive.h"
+#include "Atom.h"
+
+namespace Dyninst {
+namespace Relocation {
+
+class Padding : public Atom {
+ public:
+  typedef dyn_detail::boost::shared_ptr<Padding> Ptr;
+
+  virtual bool generate(GenStack &);
+
+  virtual TrackerElement *tracker() const;
+
+  static Ptr create(Address addr, unsigned size);
+
+  virtual ~Padding() {};
+
+  virtual std::string format() const;
+
+  virtual Address addr() const { return addr_; }
+  virtual unsigned size() const { return size_; }
+
+ private:
+  Padding(Address addr, unsigned size) : 
+  addr_(addr), size_(size) {};
+
+  // Our address
+  Address addr_;
+
+  // size
+  unsigned size_;
+};
+
+};
+};
+
+#endif

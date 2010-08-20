@@ -29,15 +29,31 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-// Convenience header file so we don't have to pull in each one individually.
+#if !defined(_R_T_DEFENSIVE_H_)
+#define _R_T_DEFENSIVE_H_
 
 #include "Transformer.h"
-#include "Movement-adhoc.h"
-#include "ControlFlow.h"
-#include "Instrumenter.h"
-#include "CF_Localization.h"
-#include "EmulateMemory.h"
-#include "Movement-analysis.h"
-#include "Fallthroughs.h"
-#include "Modification.h"
-#include "Defensive.h"
+
+namespace Dyninst {
+namespace Relocation {
+
+class Defensive : public Transformer {
+ public:
+  virtual bool processTrace(TraceList::iterator &);
+
+
+  Defensive(PriorityMap &p) : pMap_(p) {};
+
+  virtual ~Defensive() {};
+
+ private:
+  bool followsCall(const bblInstance *);
+
+  PriorityMap &pMap_;
+};
+
+};
+};
+
+
+#endif
