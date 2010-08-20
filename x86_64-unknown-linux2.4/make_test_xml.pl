@@ -31,10 +31,15 @@ foreach $k(keys %testResults)
 	{
 	    print "\t\t<failure>FAILED</failure>\n";
 	}
+	elsif($r eq "SKIPPED")
+	{
+	    print "\t\t<skipped message=\"$r\"/>\n";
+	}
 	elsif($r ne "PASSED")
 	{
 	    print "\t\t<error>$r</error>\n";
 	}
+
     }
     print "\t</testcase>\n";
 }
