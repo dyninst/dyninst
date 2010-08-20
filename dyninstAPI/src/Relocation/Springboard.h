@@ -47,8 +47,13 @@ struct SpringboardReq {
   Address from;
   Address to;
   Priority priority;
-SpringboardReq(const Address a, const Address b, const Priority c) : from(a), to(b), priority(c) {};
-SpringboardReq() : from(0), to(0), priority(NotRequired) {};
+  bool includeAllVersions;
+SpringboardReq(const Address a, const Address b, const Priority c, bool d = true) : 
+  from(a), to(b), 
+    priority(c), includeAllVersions(d) {};
+SpringboardReq() : from(0), to(0), priority(NotRequired), 
+    includeAllVersions(false) {};
+  
 };
 
  class SpringboardMap {
@@ -63,8 +68,8 @@ SpringboardReq() : from(0), to(0), priority(NotRequired) {};
      return sBoardMap_.empty();
    }
 
-   void add(Address a, Address b, Priority c) {
-     sBoardMap_[a] = SpringboardReq(a, b, c);
+   void add(Address a, Address b, Priority c, bool d = true) {
+     sBoardMap_[a] = SpringboardReq(a, b, c, d);
    }
 
    const_iterator begin() const { return sBoardMap_.begin(); };

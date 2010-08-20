@@ -151,8 +151,10 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
   registerBranch(r.from, r.from + gen.used());
   springboards.push_back(gen);
 
-  // Now catch all the previously relocated copies.
-  generateReplacements(springboards, r, usedTrap);
+  if (r.includeAllVersions) {
+    // Now catch all the previously relocated copies.
+    generateReplacements(springboards, r, usedTrap);
+  }
 
   return Succeeded;
 }
@@ -235,29 +237,19 @@ bool SpringboardBuilder::conflict(Address start, Address end) {
 
 
   if (!validRanges_.find(start, startLB, startUB, tmp1)) {
-    cerr << "Looking for start " << hex << start  
-	 << " in valid ranges, failed, ret conflict" << dec << endl;
     return true;
   }
   if (!validRanges_.find(end-1, endLB, endUB, tmp2)) {
-    cerr << "Looking for end " << hex << end
-	 << " in valid ranges, failed , ret conflict" << dec << endl;
     return true;
   }
   
   if (tmp1 == Allocated) {
-    cerr << "Looking for " << hex << start << "->" << end
-	 << " in valid ranges, starting range allocated, ret conflict" << dec << endl;
     return true;
   }
   if (tmp2 == Allocated) {
-    cerr << "Looking for " << hex << start << "->" << end
-	 << " in valid ranges, ending range allocated, ret conflict" << dec << endl;
     return true;
   }
   if (startLB != endLB) {
-    cerr << "Looking for " << hex << start << "->" << end
-	 << " in valid ranges, range spans another range, ret conflict" << dec << endl;
     return true;
   }
   return false;

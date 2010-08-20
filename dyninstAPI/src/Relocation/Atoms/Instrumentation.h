@@ -59,13 +59,15 @@ class Inst : public Atom {
   
   virtual TrackerElement *tracker() const;
 
-  virtual ~Inst() {};
+  virtual ~Inst();
 
   virtual std::string format() const;
 
  private:
 
   std::list<baseTrampInstance *> baseTramps_;
+
+  std::list<baseTramp *> removedTramps_;
 };
 
 struct InstPatch : public Patch {
@@ -78,6 +80,14 @@ struct InstPatch : public Patch {
   baseTrampInstance *base;
 };
 
+struct RemovedInstPatch : public Patch {
+ RemovedInstPatch(baseTramp *a) : base(a) {};
+  virtual bool apply(codeGen &gen, int, int);
+  virtual bool preapply(codeGen &gen);
+  virtual ~RemovedInstPatch() {};
+
+  baseTramp *base;
+};
 
 
 };

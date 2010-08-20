@@ -77,6 +77,7 @@ class pcRelRegion;
 class int_function;
 class generatedCodeObject;
 class baseTrampInstance;
+class baseTramp;
 
 // Code generation
 // This class wraps the actual code generation mechanism: we keep a buffer
@@ -243,6 +244,13 @@ class codeGen {
     void registerDefensivePad(Address from, Address to);
     std::map<Address, Address> &getDefensivePads() { return defensivePads_; }
     
+    // Immediate uninstrumentation
+    void registerInstrumentation(baseTramp *bt, Address loc) { instrumentation_[bt] = loc; }
+    std::map<baseTramp *, Address> &getInstrumentation() { return instrumentation_; }
+    
+    void registerRemovedInstrumentation(baseTramp *bt, Address loc) { removedInstrumentation_[bt] = loc; }
+    std::map<baseTramp *, Address> &getRemovedInstrumentation() { return removedInstrumentation_; }
+
  private:
     void realloc(unsigned newSize); 
 
@@ -276,6 +284,8 @@ class codeGen {
     std::vector<pcRelRegion *> pcrels_;
 
     std::map<Address, Address> defensivePads_;
+    std::map<baseTramp *, Address> instrumentation_;
+    std::map<baseTramp *, Address> removedInstrumentation_;
 };
 
 #endif

@@ -1716,7 +1716,7 @@ Address AddressSpace::generateCode(CodeMover::Ptr cm, Address nearTo) {
 bool AddressSpace::patchCode(CodeMover::Ptr cm,
 			     SpringboardBuilder::Ptr spb) {
 
-  const SpringboardMap &p = cm->sBoardMap();
+  const SpringboardMap &p = cm->sBoardMap(this);
   
   // A SpringboardMap has three priority sets: Required, Suggested, and
   // NotRequired. We care about:
@@ -1794,4 +1794,17 @@ void AddressSpace::addModifiedFunction(int_function *func) {
 void AddressSpace::addDefensivePad(Address from, Address to) {
   forwardDefensiveMap_[from].insert(to);
   reverseDefensiveMap_.insert(to, to+10, from);
+}
+
+void AddressSpace::getPreviousInstrumentationInstances(baseTramp *bt,
+						       std::set<Address>::iterator &b,
+						       std::set<Address>::iterator &e) {
+  b = instrumentationInstances_[bt].begin();
+  e = instrumentationInstances_[bt].end();
+  return;
+}
+
+void AddressSpace::addInstrumentationInstance(baseTramp *bt,
+					      Address a) {
+  instrumentationInstances_[bt].insert(a);
 }

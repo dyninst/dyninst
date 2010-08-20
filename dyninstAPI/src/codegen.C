@@ -685,3 +685,4 @@ void codeGen::registerDefensivePad(Address from, Address to) {
   // This is kind of hacky, btw.
   defensivePads_[from] = to;
 }
+

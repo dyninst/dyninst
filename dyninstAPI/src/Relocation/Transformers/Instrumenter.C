@@ -91,11 +91,9 @@ bool Instrumenter::processTrace(TraceList::iterator &iter) {
 		    << ((pre && !pre->empty()) ? "<PRE>" : "") << endl;
     
     Inst::Ptr inst = Inst::create();
-    if (post && !post->empty())
-      inst->addBaseTramp(post);
+    inst->addBaseTramp(post);
 
-    if (pre && !pre->empty())
-      inst->addBaseTramp(pre);
+    inst->addBaseTramp(pre);
 
     if (!inst->empty())
       elements.insert(e_iter, inst);

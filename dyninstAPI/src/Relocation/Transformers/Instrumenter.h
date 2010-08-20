@@ -62,7 +62,6 @@ class Instrumenter : public Transformer {
 			      Address dest,
 			      TracePtr cur);
 
-
 };
 
 };

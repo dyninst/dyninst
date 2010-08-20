@@ -427,6 +427,12 @@ class AddressSpace : public InstructionSource {
     void addDefensivePad(Address from, Address to);
     //void unregisterDefensivePad(Address from, Address to);
 
+    void getPreviousInstrumentationInstances(baseTramp *bt,
+					     std::set<Address>::iterator &b,
+					     std::set<Address>::iterator &e);
+    void addInstrumentationInstance(baseTramp *bt, Address addr);
+
+
     Address heapBase() const { return 0x8050000; }
     Address instBase() const { return 0x804a000; }
     Address dataBase() const { return 0x8048608; }
@@ -486,6 +492,9 @@ class AddressSpace : public InstructionSource {
     // Kevin code
     std::map<Address, std::set<Address> > forwardDefensiveMap_;
     IntervalTree<Address, Address> reverseDefensiveMap_;
+
+    // Tracking instrumentation for fast removal
+    std::map<baseTramp *, std::set<Address> > instrumentationInstances_;
 
     // Track desired function replacements/removals/call replacements
     typedef std::map<instPoint *, int_function *> CallReplaceMap;

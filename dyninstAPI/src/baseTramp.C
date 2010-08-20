@@ -219,7 +219,8 @@ baseTramp::baseTramp(instPoint *iP, callWhen when) :
     savedFlagSize(0), 
     createFrame_(true),
     instVersion_(),
-    when_(when)
+    when_(when),
+    wasNonEmpty_(false)
 {
 }
 
@@ -665,6 +666,8 @@ bool baseTramp::inSavedRegion (Address addr) {
 // Add a miniTramp to the appropriate place: at the start or end of
 // its instPoint minis.
 bool baseTramp::addMiniTramp(miniTramp *newMT, callOrder order) {
+  wasNonEmpty_ = true;
+  
     if (firstMini == NULL) {
         // Life is easy...
         assert(lastMini == NULL);

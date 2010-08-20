@@ -83,9 +83,6 @@ static frameStatus_t getFrameStatus(process *p, unsigned long pc, int &extra_hei
    codeRange *range;
 
    int_function *func = NULL;
-   miniTrampInstance *mini = NULL;
-   multiTramp *multi = NULL;
-   baseTrampInstance *base = NULL;
    extra_height = 0;
 
    mapped_object *mobj = p->findObject(pc);
