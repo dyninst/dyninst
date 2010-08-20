@@ -308,7 +308,7 @@ BPatch_process *test_thread_6_Mutator::getProcess()
          return NULL;
       }
       BPatch_image *appimg = proc->getImage();
-      signalAttached(NULL, appimg);    
+      signalAttached(appimg);
    }
    return proc;
 }
