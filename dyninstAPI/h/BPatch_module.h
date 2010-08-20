@@ -206,10 +206,6 @@ public:
 
     bool,isNativeCompiler,());
 
-	// This function should be deprecated.
-	API_EXPORT(Int, (lineNo, buffer, exactMatch),
-	
-	bool,getLineToAddr,(unsigned int lineNo, BPatch_Vector<unsigned long> & buffer, bool exactMatch = true ));
 
     // BPatch_module::getAddressRanges
     // 

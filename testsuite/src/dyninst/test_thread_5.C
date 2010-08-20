@@ -114,7 +114,7 @@ test_thread_5_Mutator::at(BPatch_point * pt, BPatch_function *call,
   else assert(0);
 
   BPatchSnippetHandle *ret;
-  ret = appThread->insertSnippet(snip, *pt,when);
+  ret = appProc->insertSnippet(snip, *pt,when);
 
   if (!ret) {
     FAIL_MES(testno, testname);
@@ -259,7 +259,7 @@ test_results_t test_thread_5_Mutator::executeTest() {
       libname = "./libTest12_m32.so";
 #endif
     dprintf("%s[%d]:  loading test library: %s\n", __FILE__, __LINE__, libname);
-    if (!appThread->loadLibrary(libname)) {
+    if (!appProc->loadLibrary(libname)) {
       logerror("%s[%d]:  failed to load library %s, cannot proceed\n", 
 	      __FILE__, __LINE__, libname);
       appThread->getProcess()->terminateExecution();

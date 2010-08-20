@@ -45,7 +45,7 @@ typedef struct msgSt ipcMsg;
 /* Test7 Functions */
 bool setupMessaging(int *msgid);
 bool doError(bool *passedTest, bool cond, const char *str);
-bool verifyProcMemory(BPatch_thread *appThread, const char *name,
+bool verifyProcMemory(BPatch_process *appThread, const char *name,
                       int expectedVal, procType proc_type);
 bool verifyProcMemory(const char *name, BPatch_variableExpr *var,
                       int expectedVal, procType proc_type);

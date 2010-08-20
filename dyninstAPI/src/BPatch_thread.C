@@ -648,25 +648,7 @@ bool BPatch_thread::isDeadOnArrivalInt()
 {
    return doa;
 }
-
-/* This function should be deprecated. */
-bool BPatch_thread::getLineAndFile( unsigned long addr, 
-                                    unsigned short & lineNo, 
-                                    char * fileName, 
-                                    int length ) 
-{
-   BPatch_Vector< BPatch_statement > lines;
-   if ( ! getSourceLines( addr, lines ) ) { return false; }
-	
-   if ( lines.size() > 0 ) {
-      lineNo = (unsigned short) lines[0].lineNumber();
-      strncpy( fileName, lines[0].fileName(), length );
-      return true;
-   }
-		
-return false;
-} /* end getLineAndFile() */
-    
+   
 void BPatch_thread::setDynThread(dyn_thread *thr)
 {
   llthread = thr;

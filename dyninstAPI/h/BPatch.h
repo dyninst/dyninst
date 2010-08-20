@@ -408,12 +408,8 @@ public:
         (BPatchCodeOverwriteBeginCallback cbBegin,
          BPatchCodeOverwriteEndCallback cbEnd));
 
-    //  BPatch::getThreads:
-    //  Get a vector of all threads
-    API_EXPORT(Int, (),
-    BPatch_Vector<BPatch_thread*> *,getThreads,());
 
-    //  BPatch::getThreads:
+    //  BPatch::getProcesses:
     //  Get a vector of all processes 
     API_EXPORT(Int, (),
     BPatch_Vector<BPatch_process*> *,getProcesses,());
@@ -513,15 +509,6 @@ public:
     BPatch_process *,processAttach,(const char *path, int pid, 
                                     BPatch_hybridMode mode=BPatch_normalMode));
 
-    // BPatch::createProcess:
-    // Create a new mutatee process
-    API_EXPORT(Int, (path, argv, envp, stdin_fd, stdout_fd, stderr_fd),
-    BPatch_thread *,createProcess,(const char *path,
-                                   const char *argv[],
-                                   const char **envp = NULL,
-                                   int stdin_fd=0,
-                                   int stdout_fd=1,
-                                   int stderr_fd=2));
 
     // BPatch::openBinary
     // Open a binary for static instrumentation
@@ -532,11 +519,6 @@ public:
     // 
     API_EXPORT(Int, (path, openDependencies), 
                BPatch_binaryEdit *, openBinary, (const char *path, bool openDependencies = false));
-
-    // BPatch::attachProcess:
-    // Attach to mutatee process
-    API_EXPORT(Int, (path, pid),
-    BPatch_thread *,attachProcess,(const char *path, int pid));
 
     // BPatch::createEnum:
     // Create Enum types. 

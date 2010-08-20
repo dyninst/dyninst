@@ -72,7 +72,7 @@ test_results_t test2_7_Mutator::executeTest() {
 #else
     test_results_t result;
 
-    if (!appThread->loadLibrary(TEST_DYNAMIC_LIB2)) {
+    if (!appProc->loadLibrary(TEST_DYNAMIC_LIB2)) {
     	logerror("**Failed** test #7 (load a dynamically linked library from the mutator)\n");
 	logerror("    BPatch_thread::loadLibrary returned an error\n");
         result = FAILED;
@@ -127,28 +127,3 @@ test_results_t test2_7_Mutator::executeTest() {
     return result;
 #endif
 }
-
-// extern "C" TEST_DLL_EXPORT int test2_7_mutatorMAIN(ParameterDict &param)
-// {
-//     bool useAttach = param["useAttach"]->getInt();
-//     BPatch *bpatch = (BPatch *)(param["bpatch"]->getPtr());
-
-//     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
-
-//     // Read the program's image and get an associated image object
-//     BPatch_image *appImage = appThread->getImage();
-
-//     // Get log file pointers
-//     FILE *outlog = (FILE *)(param["outlog"]->getPtr());
-//     FILE *errlog = (FILE *)(param["errlog"]->getPtr());
-//     setOutputLog(outlog);
-//     setErrorLog(errlog);
-
-//     // Signal the child that we've attached
-//     if (useAttach) {
-// 	signalAttached(appThread, appImage);
-//     }
-
-//     // This calls the actual test to instrument the mutatee
-//     return mutatorTest(appThread, appImage);
-// }
