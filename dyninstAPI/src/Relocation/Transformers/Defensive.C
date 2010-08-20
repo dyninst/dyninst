@@ -29,15 +29,52 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-// Convenience header file so we don't have to pull in each one individually.
+
 
 #include "Transformer.h"
-#include "Movement-adhoc.h"
-#include "ControlFlow.h"
-#include "Instrumenter.h"
-#include "CF_Localization.h"
-#include "EmulateMemory.h"
-#include "Movement-analysis.h"
-#include "Fallthroughs.h"
-#include "Modification.h"
 #include "Defensive.h"
+#include "dyninstAPI/src/debug.h"
+#include "../Atoms/Atom.h"
+#include "dyninstAPI/src/function.h"
+#include "../Atoms/Padding.h"
+
+using namespace std;
+using namespace Dyninst;
+using namespace Relocation;
+using namespace InstructionAPI;
+
+bool Defensive::processTrace(TraceList::iterator &iter) {
+  relocation_cerr << "DefensiveMode, processing block " 
+		  << std::hex << (*iter)->origAddr() << std::dec << endl;
+  bblInstance *bbl = (*iter)->bbl();
+  if (!bbl) return true;
+
+  if (!followsCall(bbl)) return true;
+
+  // Ah, we're a call follower. Nice to be us. 
+  pMap_[bbl] = Required;
+
+  // And let's make sure the block is big enough to drop a branch in in the future
+  // It will be at least as big as the current block, possibly larger
+  if (bbl->getSize() < 5) {
+    Padding::Ptr pad = Padding::create(bbl->firstInsnAddr(), 5-bbl->getSize());
+    (*iter)->elements().push_front(pad);
+  }
+
+  return true;
+}
+
+bool Defensive::followsCall(const bblInstance *bbl) {
+  // If we're the fallthrough from a call block, then
+  // we need to make sure we can put a branch in should this block be
+  // relocated again.
+  int_basicBlock *block = bbl->block();
+  
+  const ParseAPI::Block::edgelist &sources = block->llb()->sources();
+  ParseAPI::Block::edgelist::iterator iter = sources.begin();
+  for (; iter != sources.end(); ++iter) {
+    if ((*iter)->type() == ParseAPI::CALL_FT)
+      return true;
+  }
+  return false;
+}

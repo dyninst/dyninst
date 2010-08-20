@@ -29,15 +29,35 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-// Convenience header file so we don't have to pull in each one individually.
+#include "Padding.h"
+#include "Atom.h"
+#include "instructionAPI/h/Instruction.h"
+#include "../CodeTracker.h"
 
-#include "Transformer.h"
-#include "Movement-adhoc.h"
-#include "ControlFlow.h"
-#include "Instrumenter.h"
-#include "CF_Localization.h"
-#include "EmulateMemory.h"
-#include "Movement-analysis.h"
-#include "Fallthroughs.h"
-#include "Modification.h"
-#include "Defensive.h"
+using namespace Dyninst;
+using namespace Relocation;
+using namespace InstructionAPI;
+
+/////////////////////////
+
+bool Padding::generate(GenStack &gens) {
+  gens().fill(size_, codeGen::cgNOP);
+  return true;
+}
+
+TrackerElement *Padding::tracker() const {
+  EmulatorTracker *e = new EmulatorTracker(addr_, size_);
+  return e;
+}
+
+Padding::Ptr Padding::create(Address addr, unsigned size) {
+  return Ptr(new Padding(addr, size));
+}
+
+string Padding::format() const {
+  stringstream ret;
+  ret << "Padding(" << size_ << ")";
+  return ret.str();
+}
+
+

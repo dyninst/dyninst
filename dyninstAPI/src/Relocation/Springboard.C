@@ -159,14 +159,14 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
 
 bool SpringboardBuilder::generateMultiSpringboard(std::list<codeGen> &input,
 						  const SpringboardReq &r) {
-  cerr << "Request to generate multi-branch springboard skipped @ " << hex << r.from << dec << endl;
-  // FIXME Override
+  //debugRanges();
+  //cerr << "Request to generate multi-branch springboard skipped @ " << hex << r.from << dec << endl;
+  // For now we give up and hope it all works out for the best. 
   return true;
 
   // Much like the above, except try to do it in multiple steps. This works 
   // well on x86 where we have 2-byte dinky jumps. Less so on fixed-length
   // architectures...
-  Address from = r.from;
   
   // Let's assume that r.from is not really available. Let's find somewhere that
   // is.
@@ -235,20 +235,29 @@ bool SpringboardBuilder::conflict(Address start, Address end) {
 
 
   if (!validRanges_.find(start, startLB, startUB, tmp1)) {
+    cerr << "Looking for start " << hex << start  
+	 << " in valid ranges, failed, ret conflict" << dec << endl;
     return true;
   }
   if (!validRanges_.find(end-1, endLB, endUB, tmp2)) {
-
+    cerr << "Looking for end " << hex << end
+	 << " in valid ranges, failed , ret conflict" << dec << endl;
     return true;
   }
   
   if (tmp1 == Allocated) {
+    cerr << "Looking for " << hex << start << "->" << end
+	 << " in valid ranges, starting range allocated, ret conflict" << dec << endl;
     return true;
   }
   if (tmp2 == Allocated) {
+    cerr << "Looking for " << hex << start << "->" << end
+	 << " in valid ranges, ending range allocated, ret conflict" << dec << endl;
     return true;
   }
   if (startLB != endLB) {
+    cerr << "Looking for " << hex << start << "->" << end
+	 << " in valid ranges, range spans another range, ret conflict" << dec << endl;
     return true;
   }
   return false;

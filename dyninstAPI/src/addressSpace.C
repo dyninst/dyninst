@@ -1640,6 +1640,11 @@ bool AddressSpace::transform(CodeMover::Ptr cm) {
   // And remove unnecessary jumps. This needs to be last.
   Fallthroughs f;
   cm->transform(f);
+
+  // Kevin's stuff
+  Defensive d(cm->priorityMap());
+  cm->transform(d);
+
   return true;
 
 }
