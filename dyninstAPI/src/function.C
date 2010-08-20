@@ -679,9 +679,9 @@ bool int_function::parseNewEdges( std::vector<ParseAPI::Block*> &sources,
       for the target is up to date */
 
     // Update set of active multiTramps before parsing 
-    if (NULL != proc()->proc()) {// if it's a process and not a binEdit
-        proc()->proc()->updateActiveMultis();
-    }
+    //if (NULL != proc()->proc()) {// if it's a process and not a binEdit
+    //    proc()->proc()->updateActiveMultis();
+    //}
 
     // Do various checks and set edge types, if necessary
     Address loadAddr = getAddress() - ifunc()->getOffset();

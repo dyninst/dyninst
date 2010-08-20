@@ -324,7 +324,7 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
                 }
             }
             if (!addFallthrough) {
-                mal_printf("Unres call at %lx in getNewEdges %d\n", 
+                mal_printf("Unres call at %lx in getNewEdges[%d]\n", 
                            current, __LINE__);
             }
         } 

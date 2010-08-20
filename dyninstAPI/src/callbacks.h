@@ -85,7 +85,7 @@ class SyncCallback : public CallbackBase
    void setSynchronous(bool flag = true) {synchronous = flag;}
    static void signalCompletion(CallbackBase *cb); 
    virtual bool execute(void); 
-   process *getProcess();
+   virtual process *getProcess();
   protected:
    virtual bool execute_real(void) = 0;
    virtual bool waitForCompletion(); 

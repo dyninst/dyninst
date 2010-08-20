@@ -113,10 +113,10 @@ static frameStatus_t getFrameStatus(process *p, unsigned long pc, int &extra_hei
      if (bti) {
        extra_height = bti->trampStackHeight();
        if (bti->baseT->createFrame()) {
-	 return frame_tramp;
+         return frame_tramp;
        }
        else {
-	 return frameless_tramp;
+         return frameless_tramp;
        }
      }
    }
@@ -174,9 +174,8 @@ static bool isPrevInstrACall(Address addr, process *proc, int_function **callee)
     else { // in defensive mode 
 
         /*In defensive mode calls may be deemed to be non-returning at
-          parse time and there may be two additional complications:
-          1st, the addr may be in a multiTramp. 2nd, the block may
-          have been split, meaning that block->containsCall()
+          parse time and there is an additional complication, the block 
+          may have been split, meaning that block->containsCall()
           is not a reliable test.
 
           General approach: 
@@ -194,27 +193,23 @@ static bool isPrevInstrACall(Address addr, process *proc, int_function **callee)
             callBBI = callRange->is_basicBlockInstance();
         }
         if (!callRange) {
+            // see if we're in instrumentation
+            baseTrampInstance *bti = NULL;
+            Address origAddr = 0;
+            bool success = proc->getRelocInfo(addr, origAddr, bti);
+            if (success) {
+                // actually, this is possible, if we're searching for the
+                // return address of a frameless function and happen to 
+                // run over an instrumentation address
+                mal_printf("Stackwalked into instrumentation "
+                           "[%lx from origAddr %lx], which should "
+                           "not be possible as we're in defensive mode, "
+                           "where we disable frameless tramps %s[%d]\n",
+                           addr, origAddr, FILE__,__LINE__);
+            }
             return false;
         }
 
-        // if the range is a multi, set the callBBI and its post-call address
-        multiTramp *callMulti = callRange->is_multitramp();
-        if (callMulti) {
-            using namespace InstructionAPI;
-            addr = callMulti->instToUninstAddr(addr-1);//sets to addr of prev insn
-            callBBI = proc->findOrigByAddr(addr)->is_basicBlockInstance();
-            if (!callBBI) {
-                return false; //stackwalking has gone bad
-            }
-            // get back to orig instruction addr
-            mapped_object *obj = callBBI->func()->obj();
-            InstructionDecoder dec(obj->getPtrToInstruction(addr),
-                                   InstructionDecoder::maxInstructionLength,
-                                   proc->getArch());
-            Instruction::Ptr insn = dec.decode();
-            assert(insn);
-            addr += insn->size(); 
-        }
 
         // if the range is a bbi, and it contains a call, and the call instruction
         // matches the address, set callee and return true
@@ -612,16 +607,14 @@ Frame Frame::getCallerFrame()
    }
    else if (status == frameless_tramp)
    {
-      codeRange *range = getProc()->findOrigByAddr(pc_);
-      multiTramp *mtramp = range->is_multitramp();
-      assert(mtramp);
-      baseTrampInstance *tramp = mtramp->getBaseTrampInstanceByAddr(pc_);
-      assert(tramp);
-
-      newPC = tramp->baseT->origInstAddr();
-      newFP = fp_;
-      newSP = sp_; //Not really correct, but difficult to compute and unlikely to matter
-      pcLoc = 0x0;
+       baseTrampInstance *bti = NULL;
+       Address origAddr = 0;
+       bool success = getProc()->getRelocInfo(pc_, origAddr, bti);
+       assert(success);
+       newPC = origAddr;
+       newFP = fp_;
+       newSP = sp_; //Not really correct, but difficult to compute and unlikely to matter
+       pcLoc = 0x0;
    }
    else if (status ==  frame_saves_fp_noframe || status == frame_no_use_fp ||
             status == frame_unknown)

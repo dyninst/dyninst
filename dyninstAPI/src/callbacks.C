@@ -187,6 +187,7 @@ bool SyncCallback::do_it()
          enableDelete();
    }
 
+#if 0 //KEVINTODO: delete
    // invoke trampEnd and return address fixup after any callback
    // that could update the analysis of the code
    if ( synchronous && getProcess() && 
@@ -201,6 +202,7 @@ bool SyncCallback::do_it()
    {
        getProcess()->fixupActiveStackTargets();
    }
+#endif
 
    return true;
 }

@@ -381,9 +381,9 @@ bool BPatch_function::removeInstrumentation()
     }
 
     // invalidate relocations
-    bool invalidationOK = func->relocationInvalidateAll(); 
+    //bool invalidationOK = func->relocationInvalidateAll(); 
 
-    return invalidationOK && removedAll;
+    return removedAll;
 }
 
 /* Gets unresolved instPoints from int_function and converts them to

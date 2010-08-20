@@ -252,7 +252,7 @@ bool BPatch_addressSpace::deleteSnippetInt(BPatchSnippetHandle *handle)
    // if this is a process, check to see if the instrumentation is
    // executing on the call stack
    if ( handle->getProcess() ) {
-     handle->getProcess()->lowlevel_process()->updateActiveMultis();
+     //handle->getProcess()->lowlevel_process()->updateActiveMultis();
      if (handle->mtHandles_.size() > 1) {
        mal_printf("ERROR: Removing snippet that is installed in "
 		  "multiple miniTramps %s[%d]\n",FILE__,__LINE__);

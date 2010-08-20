@@ -1847,7 +1847,9 @@ bool multiTramp::replaceMultiTramp(multiTramp *oldMulti,
             oldMulti->stompMulti_ = newMulti;
             if (oldMulti->isActive_) {
                 newMulti->setIsActive(true);
-                newMulti->proc()->proc()->addActiveMulti(newMulti);
+                //commented out because we no longer use multiTramps and
+                //therefore don't need to track them 
+                //  newMulti->proc()->proc()->addActiveMulti(newMulti);
             }
         }
 

@@ -675,23 +675,24 @@ class process : public AddressSpace {
 
   // active instrumentation tracking stuff
   int_function *findActiveFuncByAddr(Address addr);
-  bool isBBIactive(bblInstance *bbi) 
-    { return activeBBIs.end() != activeBBIs.find(bbi); }
-  void updateActiveMultis();
-  void fixupActiveStackTargets();
+
+  //bool isBBIactive(bblInstance *bbi) 
+  //  { return activeBBIs.end() != activeBBIs.find(bbi); }
+  //void updateActiveMultis();
+  //void fixupActiveStackTargets();
 
   typedef std::pair<Address, Address> AddrPair;
   typedef std::set<AddrPair> AddrPairSet;
   typedef std::set<Address> AddrSet;
 
-  void getActivePCs(AddrSet &);
-  void getActivePatchAreas(AddrPairSet &, AddrSet &);
-  void generateRequiredPatches(AddrPairSet &, AddrPairSet &);
-  void generatePatchBranches(AddrPairSet &);
+  //void getActivePCs(AddrSet &);
+  //void getActivePatchAreas(AddrPairSet &, AddrSet &);
+  //void generateRequiredPatches(AddrPairSet &, AddrPairSet &);
+  //void generatePatchBranches(AddrPairSet &);
 
-  void getActiveMultiMap(std::map<Address,multiTramp*> &map);
-  void invalidateActiveMultis() { isAMcacheValid = false; }
-  void addActiveMulti(multiTramp* multi);
+  //void getActiveMultiMap(std::map<Address,multiTramp*> &map);
+  //void invalidateActiveMultis() { isAMcacheValid = false; }
+  //void addActiveMulti(multiTramp* multi);
 
   // code overwrites 
   bool getOverwrittenBlocks
@@ -727,11 +728,11 @@ class process : public AddressSpace {
   static int stopThread_ID_counter;
   static dictionary_hash< Address, unsigned > stopThread_callbacks;
 
-  // active instrumentation tracking
-  bool isAMcacheValid;
-  std::set<multiTramp*> activeMultis;
-  std::map<bblInstance*,Address> activeBBIs;
-  std::map<int_function*,std::set<Address>*> am_funcRelocs;
+  //// active instrumentation tracking
+  //bool isAMcacheValid;
+  //std::set<multiTramp*> activeMultis;
+  //std::map<bblInstance*,Address> activeBBIs;
+  //std::map<int_function*,std::set<Address>*> am_funcRelocs;
 
   // runtime library stuff 
   Address RT_address_cache_addr;

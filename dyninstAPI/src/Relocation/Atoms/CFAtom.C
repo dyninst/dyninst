@@ -386,12 +386,6 @@ bool CFAtom::generateIndirect(GenStack &gens,
   gens().copy(buffer, insn->size());
   free(buffer);
 
-  if (padded_) {
-    gens().registerPostCallPad(addr_);
-    gens().fill(10, codeGen::cgIllegal);
-    //gens().fill(10, codeGen::cgNOP);
-  }
-
   return true;
 }
 
@@ -410,12 +404,6 @@ bool CFAtom::generateIndirectCall(GenStack &gens,
   }
   else {
     gens().copy(insn->ptr(), insn->size());
-  }
-
-  if (padded_) {
-    //gens().registerPostCallPad(addr_);
-    gens().fill(10, codeGen::cgIllegal);
-    //gens().fill(10, codeGen::cgNOP);
   }
 
   return true;
@@ -500,12 +488,6 @@ bool CFPatch::apply(codeGen &gen, int iteration, int shift) {
     }
   }
 
-  if (postCFPadding_) {
-    gen.registerPostCallPad(origAddr_);
-    gen.fill(10, codeGen::cgIllegal);
-    //gen.fill(10, codeGen::cgNOP);
-  }
-
   return true;
 }
 
@@ -522,8 +504,8 @@ bool PaddingPatch::apply(codeGen &gen, int, int) {
 
   prevAddr_ = gen.currAddr();
   gen.registerDefensivePad(origAddr_, gen.currAddr());
-  //gen.fill(10, codeGen::cgIllegal);
-  gen.fill(10, codeGen::cgNOP);
+  gen.fill(10, codeGen::cgIllegal);
+  //gen.fill(10, codeGen::cgNOP);
   return true;
 }
 

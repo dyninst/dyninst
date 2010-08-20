@@ -505,6 +505,9 @@ bool int_function::relocationInvalidate() {
     // installedVersion_++;
     // version_++; -- so that instpoints will be updated
     // linkedVersion_++;
+    assert(0 && "kevin: I think we don't do this anymore"); 
+    return false;
+#if 0
     reloc_printf("%s[%d]: relocationInvalidate for %s: linkedVersion %d, "
                  "installedVersion %d, generatedVersion %d, version %d\n",
                  FILE__, __LINE__, symTabName().c_str(), 
@@ -677,13 +680,16 @@ bool int_function::relocationInvalidate() {
     }
 
     return true;
+#endif
 }
 
 bool int_function::relocationInvalidateAll()
 {
+    assert(0 && "kevin: I think we don't do this anymore");
+    return false;
+#if 0
     mal_printf("%s[%d] in relocationInvalidateAll for function %lx\n",
                FILE__,__LINE__,getAddress());
-
     while (version() > 0) {
         mal_printf("%s[%d]: invalidating reloc version %d of the function\n",
                    FILE__,__LINE__,linkedVersion_);
@@ -726,6 +732,7 @@ bool int_function::relocationInvalidateAll()
     }
 
     return true;
+#endif
 }
 
 

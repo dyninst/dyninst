@@ -1607,7 +1607,7 @@ process::~process()
 process::process(SignalGenerator *sh_, BPatch_hybridMode mode) :
     cached_result(not_cached), // MOVE ME
     analysisMode_(mode),
-    isAMcacheValid(false),
+    //isAMcacheValid(false),
     RT_address_cache_addr(0),
     parent(NULL),
     sh(sh_),
@@ -2145,7 +2145,7 @@ process::process(process *parentProc, SignalGenerator *sg_, int childTrace_fd) :
     cached_result(parentProc->cached_result), // MOVE ME
     analysisMode_(parentProc->analysisMode_),
     memoryPageSize_(parentProc->memoryPageSize_),
-    isAMcacheValid(parentProc->isAMcacheValid),
+    //isAMcacheValid(parentProc->isAMcacheValid),
     RT_address_cache_addr(parentProc->RT_address_cache_addr),
     parent(parentProc),
     sh(sg_),
@@ -5094,6 +5094,7 @@ int_function *process::findActiveFuncByAddr(Address addr)
     return func;
 }
 
+#if 0
 /* This function does the following:
  * 
  * walk the stacks 
@@ -5153,280 +5154,6 @@ void process::fixupActiveStackTargets()
   // Generate a pile of branches.
   generatePatchBranches(branchesNeeded);
 
-#if 0
-
-  map<Address,Address> pcUpdates;
-
-    /* Update the trampEnds of active multiTramps */
-    for (set<multiTramp*>::iterator mIter = activeMultis.begin();
-         mIter != activeMultis.end();
-         mIter++)  
-    {
-        multiTramp *multi = *mIter;
-
-        // figure out what the target should be
-        int_basicBlock *targBlock = findBasicBlockByAddr
-            ( multi->instAddr() + multi->instSize() );
-        bblInstance *targBBI = NULL;
-        if (targBlock) {
-            targBBI = targBlock->instVer( targBlock->func()->version() );
-        }
-        else { 
-            // No block after the [instAddr instAddr+instSize] block, 
-            // one possibility is that we've updated the analysis
-            // and removed other bblInstances for this function,
-            // Start at tramp install block and move to whatever is at
-            // instAddr+instSize
-            // (they're not the same block, because if the install size is
-            // smaller than the block size, we would not have left the block)
-            long instSize = multi->instSize();
-            targBBI = findOrigByAddr( multi->instAddr() )->
-                is_basicBlockInstance();
-            assert(targBBI);
-            int bbiVersion = targBBI->version();
-            mal_printf("finding multi targ block, going from source block: "
-                       "[%lx %lx][%lx %lx] ",
-                       targBBI->block()->origInstance()->firstInsnAddr(),
-                       targBBI->block()->origInstance()->endAddr(), 
-                       targBBI->firstInsnAddr(), targBBI->endAddr());
-            // move to the next block if instSize is smaller than the block size
-            while ( targBBI && instSize >= (long)(targBBI->getSize()) )
-            {   
-                int sizeDiff = 0;
-                // if other bbi's in this function have been deleted
-                // and we've switched to origBBIs, the block may have 
-                // been expanded in the relocated versions, so instSize
-                // should be adjusted according to the expanded size
-                if (0 == targBBI->version() && 0 < bbiVersion && 
-                    instruction::maxJumpSize(getAddressWidth()) < targBBI->getSize())
-                {
-                    sizeDiff = instruction::maxJumpSize(getAddressWidth());
-                } else {
-                    sizeDiff = targBBI->getSize();
-                }
-                bblInstance *nextBBI = targBBI->getFallthroughBBL();
-                // getFallthroughBBI may have returned to version 0 if the 
-                // function relocation is gone, in which we should adjust by 
-                // the size of the origInstance block
-                if (nextBBI && targBBI->version() != nextBBI->version()) {
-                    mal_printf("switching function relocation versions in "
-                               "fixUpActiveTramps for func at %lx block %lx "
-                               "%s[%d]\n", targBBI->func()->getAddress(), 
-                               targBBI->firstInsnAddr(), FILE__,__LINE__);
-                }
-                targBBI = nextBBI;
-                instSize -= sizeDiff;
-            }
-            if (!targBBI) { //could be sign of bad stackwalk, as in case of FSG
-                mal_printf("WARNING: Couldn't fix target of trampEnd for "
-                        "active multiTramp installed at [%lx %lx], originally "
-                        "[%lx], it has no fallthrough block %s[%d]\n", 
-                        multi->instAddr(), 
-                        multi->instAddr() + multi->instSize(),
-                        findOrigByAddr(multi->instAddr())->
-                            is_basicBlockInstance()->block()->
-                            origInstance()->firstInsnAddr(), 
-                        FILE__,__LINE__);
-                continue;
-            }
-
-            targBBI = targBBI->block()->instVer(targBBI->func()->version());
-            targBlock = targBBI->block();
-
-            mal_printf("to targBlock [%lx %lx][%lx %lx] %s[%d]\n",
-                       targBBI->block()->origInstance()->firstInsnAddr(),
-                       targBBI->block()->origInstance()->endAddr(), 
-                       targBBI->firstInsnAddr(), targBBI->endAddr(), 
-                       FILE__,__LINE__);
-        }
-
-        // update the trampEnd's target, if it's wrong
-        do { // loop through the chain of multis that stomp the current multi
-            trampEnd *end = multi->getTrampEnd();
-		    assert(NULL != end);
-            if ( end->target() < targBBI->firstInsnAddr() || 
-                 end->target() >= targBBI->endAddr() ) 
-            {
-                bblInstance *oldTargBBI = findOrigByAddr(end->target())->
-                    is_basicBlockInstance();
-                Address newTarget = targBBI->firstInsnAddr();
-                // if the target is not to the beginning of the block, set
-                // newTarget to point to the equivalent address in the block
-                if (oldTargBBI && oldTargBBI->firstInsnAddr() != end->target())
-                {
-                    newTarget = 
-                        oldTargBBI->equivAddr(targBBI->version(), newTarget);
-                }
-                mal_printf("updating trampEnd at %lx in multi [%lx %lx][%lx "
-                           "%lx]: oldTarget=%lx, newTarget=%lx to block "
-                           "originally at [%lx %lx] now at [%lx %lx] %s[%d]\n",
-                           end->get_address(), 
-                           multi->instAddr(), multi->instSize(),
-                           multi->get_address(), 
-                           multi->get_address() + multi->get_size(),
-                           end->target(), newTarget, 
-                           targBlock->origInstance()->firstInsnAddr(), 
-                           targBlock->origInstance()->endAddr(), 
-                           targBBI->firstInsnAddr(),
-                           targBBI->endAddr(),
-                           FILE__,__LINE__);
-                // trigger new code generation for the trampEnd
-                end->changeTarget( newTarget );
-                codeGen endGen(multi->getAddress() 
-                               + multi->get_size() 
-                               - end->get_address());
-                end->generateCode(endGen, end->get_address(), NULL);
-                // copy the newly generated code to the mutatee
-                writeTextSpace((void*)end->get_address(), 
-                               end->get_size(), 
-                               endGen.start_ptr());
-            }
-
-            // keep changing trampEnds if this multitramp was stomped by 
-            // a newer multi
-            if (multi->getStompMulti()) {
-                Address jumpTarg = 0;
-                codeRange *range = findModByAddr(multi->instAddr());
-                instArea *jump = dynamic_cast<instArea*>(range);
-                functionReplacement *fjump = range->is_function_replacement();
-                if (jump) {
-                    jumpTarg = jump->multi->getAddress();
-                } else if (fjump) {
-                    jumpTarg = fjump->target()->instVer
-                        (fjump->targetVersion())->firstInsnAddr();
-                }
-                mal_printf("multi at %lx is stomped, jump is to instAddr=%lx, "
-                           "trampAddr=%lx\n",
-                           multi->getAddress(), multi->instAddr(), 
-                           jumpTarg);
-            }
-            multi = multi->getStompMulti();
-        } while( NULL != multi );
-    }
-
-    /* Iterate through activeBBIs to detect if we are planning to 
-       return to an activeBBI in an invalidated function relocation */
-    for (map<bblInstance*,Address>::iterator bIter = activeBBIs.begin();
-         bIter != activeBBIs.end();
-         bIter++) 
-    {
-        /* We start out with the old target BBI, but it may have been 
-         * overwritten, its relocation may have been invalidated, or
-         * it may have been split.  
-         * So: safeguard against overwrites by translating back to the
-         * original address, deal with splits by traversing to the latter
-         * half of split blocks, while keeping in mind that the relocation
-         * may have been invalidated
-         */
-
-        const bblInstance *oldTargBBI = bIter->first;
-        bblInstance *bbi = bIter->first;
-        mal_printf("fixing activeBlock [%lx %lx][%lx %lx] with PC=%lx %s[%d]\n",
-                   bbi->block()->origInstance()->firstInsnAddr(),
-                   bbi->block()->origInstance()->endAddr(), 
-                   bbi->firstInsnAddr(), bbi->endAddr(), bIter->second, 
-                   FILE__,__LINE__);
-
-        // if the block was overwritten, switch to the original instance
-        if (NULL == bbi->block()) {
-            if (bbi->version() == 0) {
-                bbi = findOrigByAddr(bIter->second)->is_basicBlockInstance();
-            } else {
-                bbi = findOrigByAddr(bbi->equivAddr(0,bIter->second))->
-                    is_basicBlockInstance();
-            }
-
-        } else { // account for block splitting and relocation invalidations
-
-            Address prevStart = 0; //used to check for reverting to origInst
-            while (bbi && bbi->endAddr() < bIter->second &&
-                   prevStart < bbi->firstInsnAddr()) 
-            { 
-                prevStart = bbi->firstInsnAddr();
-                bbi = bbi->getFallthroughBBL();
-                mal_printf("activeBlock split response, moving to block "
-                           "[%lx %lx][%lx %lx]\n",
-                           bbi->block()->origInstance()->firstInsnAddr(),
-                           bbi->block()->origInstance()->endAddr(), 
-                           bbi->firstInsnAddr(), bbi->endAddr(), bIter->second,
-                           FILE__,__LINE__);
-            } 
-
-            if (!bbi) {
-                mal_printf("WARNING: bbi[%lx %lx] on stack does not contain or "
-                        "immediately precede the PC and has no fallthrough "
-                        "block %s[%d]\n", bIter->first->firstInsnAddr(), 
-                        bIter->first->endAddr(), FILE__,__LINE__);
-                continue;
-            }
-            // if all we did was account for block splitting, w/o switching 
-            // from one relocation to another, set oldTargBBI to bbi
-            if (bbi->firstInsnAddr() > oldTargBBI->firstInsnAddr()) {
-                oldTargBBI = bbi;
-            }
-        }
-
-        // find a valid bbi to return to if there's been a change
-        bblInstance *newbbi = bbi->block()->instVer( bbi->func()->version() );
-        if ( oldTargBBI != newbbi ) {
-            // if we're returning after a call BBI
-            if (oldTargBBI->endAddr() == bIter->second) {
-                assert(bbi->block()->containsCall());
-                while ( ! newbbi->block()->containsCall() ) {
-                    newbbi = newbbi->getFallthroughBBL();
-                } 
-                pcUpdates[bIter->second] = newbbi->endAddr();
-            } else {
-                // we're returning after a fault bbi, most likely
-                assert(bbi->firstInsnAddr() <= bIter->second && 
-                       bIter->second < bbi->endAddr() && newbbi);
-                Address translAddr = 
-                    bbi->equivAddr(newbbi->version(), bIter->second);
-                pcUpdates[bIter->second] = translAddr;
-            }
-        }
-    }
-
-    /* Update return addresses that used to point to invalidated function 
-       relocations */
-    if ( ! pcUpdates.empty() ) {
-
-        // walk the stacks 
-        pdvector<pdvector<Frame> >  stacks;
-        if ( false == walkStacks(stacks) ) {
-            fprintf(stderr,"ERROR: %s[%d], walkStacks failed\n", 
-                    FILE__, __LINE__);
-            assert(0);
-        }
-
-        // match pcUpdate pairs to the pc's on the call stack
-        for(map<Address,Address>::iterator pIter = pcUpdates.begin();
-            pIter != pcUpdates.end();
-            pIter++)
-        {
-            bool foundBlock = false;
-            for (unsigned int i = 0; !foundBlock && i < stacks.size(); ++i) {
-                pdvector<Frame> &stack = stacks[i];
-                mal_printf("fixupActiveMultis stackwalk:\n");
-                for (unsigned int j=0; !foundBlock && j < stack.size(); ++j) {
-                    mal_printf(" stackpc[%d]=0x%lx fp %lx sp %lx pcloc %lx\n", 
-                               j, stack[j].getPC(),stack[j].getFP(), 
-                               stack[j].getSP(), stack[j].getPClocation());
-                    if ( pIter->first == stack[j].getPC() ) {
-                        stack[j].setPC( pIter->second ); //update pc
-                        foundBlock = true;
-                    }
-                }
-            }
-            if ( ! foundBlock ) {
-                fprintf(stderr,"failed to find block pc in need of update "
-                        "from %lx to %lx %s[%d]\n",pIter->first, pIter->second,
-                        FILE__,__LINE__);
-                assert(0);
-            }
-        }
-    }
-#endif
 }
 
 void process::getActivePCs(AddrSet &pcs) {
@@ -5436,6 +5163,7 @@ void process::getActivePCs(AddrSet &pcs) {
   for (unsigned i = 0; i < stacks.size(); ++i) {
     for (unsigned j = 0; j < stacks[i].size(); ++j) {
       pcs.insert(stacks[i][j].getPC());
+      mal_printf("stacks[%d][%d] = %lx\n",i,j,stacks[i][j].getPC());
     }
   }
 }
@@ -5539,6 +5267,7 @@ void process::addActiveMulti(multiTramp* multi)
 {
     activeMultis.insert(multi);
 }
+#endif
 
 bool process::isExploratoryModeOn() 
 { 

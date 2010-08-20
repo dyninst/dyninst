@@ -1133,7 +1133,7 @@ bool BPatch_image::parseNewFunctionsInt
         return false;
     }
 
-    getProcessInt()->lowlevel_process()->updateActiveMultis();
+    //getProcessInt()->lowlevel_process()->updateActiveMultis();
 
 /* 1. Assign entry points to mapped_objects or existing functions */
     std::vector<AddressSpace*> asv;

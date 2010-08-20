@@ -126,7 +126,7 @@ BPatch_process::BPatch_process(const char *path, const char *argv[],
    
    std::string directoryName = "";
 
-#if !defined(os_windows)
+ #if !defined(os_windows)
    // this fixes a problem on linux and alpha platforms where pathless
    // filenames are searched for either in a standard, predefined path, or
    // in $PATH by execvp.  thus paths that should resolve to "./" are
@@ -211,6 +211,7 @@ BPatch_process::BPatch_process(const char *path, const char *argv[],
 
    assert(BPatch_heuristicMode != llproc->getHybridMode());
    if ( BPatch_normalMode != mode ) {
+       BPatch::bpatch->setInstrStackFrames(true);
        hybridAnalysis_ = new HybridAnalysis(llproc->getHybridMode(),this);
    }
 
@@ -1756,7 +1757,7 @@ void BPatch_process::overwriteAnalysisUpdate
 
     /*2. update the analysis */
 
-    llproc->updateActiveMultis();
+    //llproc->updateActiveMultis();
 
     //2. update the mapped data for the overwritten ranges
     llproc->updateMappedFile(owPages,owRegions);
