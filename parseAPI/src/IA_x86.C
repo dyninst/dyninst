@@ -299,9 +299,12 @@ bool IA_IAPI::parseJumpTable(Block* currBlk,
                 allInsns.find(thunkInsnAddr);
         if(thunkLoc != allInsns.end())
         {
-            tableLoc = thunkLoc;
-            tableInsnAddr = thunkInsnAddr;
-            tableInsn = thunkLoc->second;
+            if(thunkLoc->second && thunkLoc->second->getOperation().getID() == e_lea)
+            {
+                tableLoc = thunkLoc;
+                tableInsnAddr = thunkInsnAddr;
+                tableInsn = thunkLoc->second;
+            }
         }
     }
     parsing_printf("\ttableInsn %s at 0x%lx\n",tableInsn->format().c_str(), tableInsnAddr);
