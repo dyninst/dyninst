@@ -264,7 +264,7 @@ PriorityMap &CodeMover::priorityMap() {
 
 ///////////////////////
 
-const SpringboardMap &CodeMover::sBoardMap() {
+const SpringboardMap &CodeMover::sBoardMap(AddressSpace *as) {
   // Take the current PriorityMap, digest it,
   // and return a sorted list of where we need 
   // patches (from and to)
@@ -280,9 +280,12 @@ const SpringboardMap &CodeMover::sBoardMap() {
       TraceMap::const_iterator b_iter = blockMap_.find(from);
       if (b_iter != blockMap_.end()) {
 	const Address &to = b_iter->second->curAddr();
-	sboardMap_.add(from->firstInsnAddr(), to, p);
+	sboardMap_.add(from->firstInsnAddr(), to, p, from);
       }
     }
+
+    // And instrumentation that needs updating
+    createInstrumentationSpringboards(as);
   }
 
   return sboardMap_;
@@ -303,8 +306,35 @@ string CodeMover::format() const {
 }
 
 void CodeMover::extractDefensivePads(AddressSpace *AS) {
-  for (std::map<Address,Address>::iterator iter = gen_.getDefensivePads().begin();
+  for (std::map<bblInstance *, codeGen::Extent>::iterator iter = gen_.getDefensivePads().begin();
        iter != gen_.getDefensivePads().end(); ++iter) {
-    AS->addDefensivePad(iter->first, iter->second);
+    AS->addDefensivePad(iter->first, iter->second.first, iter->second.second);
+  }
+}
+
+void CodeMover::createInstrumentationSpringboards(AddressSpace *as) {
+  for (std::map<baseTramp *, Address>::iterator iter = gen_.getInstrumentation().begin();
+       iter != gen_.getInstrumentation().end(); ++iter) {
+    std::set<Address>::iterator begin, end;
+    as->getPreviousInstrumentationInstances(iter->first, begin, end);
+    for (; begin != end; ++begin) {
+      sboardMap_.add(*begin,
+		     iter->second,
+		     Suggested,
+		     false);
+    }
+    as->addInstrumentationInstance(iter->first, iter->second);
+  }
+  for (std::map<baseTramp *, Address>::iterator iter = gen_.getRemovedInstrumentation().begin();
+       iter != gen_.getRemovedInstrumentation().end(); ++iter) {
+    // As above, without the add
+    std::set<Address>::iterator begin, end;
+    as->getPreviousInstrumentationInstances(iter->first, begin, end);
+    for (; begin != end; ++begin) {
+      sboardMap_.add(*begin,
+		     iter->second,
+		     Suggested,
+		     false);
+    }
   }
 }

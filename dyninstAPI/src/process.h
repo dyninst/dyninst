@@ -676,23 +676,25 @@ class process : public AddressSpace {
   // active instrumentation tracking stuff
   int_function *findActiveFuncByAddr(Address addr);
 
-  //bool isBBIactive(bblInstance *bbi) 
-  //  { return activeBBIs.end() != activeBBIs.find(bbi); }
-  //void updateActiveMultis();
-  //void fixupActiveStackTargets();
+  typedef std::pair<Address, Address> AddrPair;
+  typedef std::set<AddrPair> AddrPairSet;
+  typedef std::set<Address> AddrSet;
 
-  //typedef std::pair<Address, Address> AddrPair;
-  //typedef std::set<AddrPair> AddrPairSet;
-  //typedef std::set<Address> AddrSet;
-  //void getActivePCs(AddrSet &);
-  //void getActiveMultiMap(std::map<Address,multiTramp*> &map);
-  //void invalidateActiveMultis() { isAMcacheValid = false; }
-  //void addActiveMulti(multiTramp* multi);
-  //void getActivePatchAreas(AddrPairSet &, AddrSet &);
-  bool patchPostCallArea(instPoint *call);
-  private: // helper func
-  //void generatePostCallBranches(AddrPairSet &);
-  public:
+  struct ActiveDefensivePad {
+    Address activePC;
+    Address padStart;
+    bblInstance *callBlock;
+    bblInstance *ftBlock;
+  ActiveDefensivePad(Address a, Address b, bblInstance *c, bblInstance *d) : 
+    activePC(a), padStart(b), callBlock(c), ftBlock(d) {};
+  };
+  typedef std::list<ActiveDefensivePad> ADPList;
+  
+  void getActivePCs(AddrSet &);
+  void getActiveDefensivePads(AddrSet &, ADPList &);
+  void generateRequiredPatches(ADPList &, AddrPairSet &);
+  void generatePatchBranches(AddrPairSet &);
+  void fixupActiveStackTargets();
 
   // code overwrites 
   bool getOverwrittenBlocks

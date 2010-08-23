@@ -249,6 +249,8 @@ class baseTramp {
 
     bool empty() const { return firstMini == NULL; };
 
+    bool wasNonEmpty() const { return wasNonEmpty_; };
+
     // Normal constructor
     baseTramp(instPoint *iP, callWhen when);
     // Fork constructor
@@ -312,6 +314,7 @@ class baseTramp {
     bool createFrame_;
     unsigned instVersion_;
     callWhen when_;
+    bool wasNonEmpty_; 
 };
 
 extern baseTramp baseTemplate;

@@ -5094,93 +5094,80 @@ int_function *process::findActiveFuncByAddr(Address addr)
     return func;
 }
 
-#if 0
-/* This function does the following:
- * 
- * walk the stacks 
- * build up set of currently active tramps
- * find multiTramps that are no longer active
- * for every multiTramp that has become inactive
- *     mark the tramp as inactive (is this flag necessary any more?)
- *     if the multitramp is partlyGone 
- *         then delete it
- * update process's set of currently active tramps
- */
-void process::updateActiveMultis()
+void process::fixupActiveStackTargets()
 {
-  // For now it will suffice to leak like crazy. 
+  // We've gone through and detected return addresses from
+  // calls that weren't parsed past initially. Since our
+  // initial instrumentation left these dangling, we want
+  // to patch in branches to the new relocated copy.
   //
-  // TODO:
-  //   1) Relocate each function individually (?)
-  //      or be able to deallocate a chunk of alloc
-  //      memory
-  //   2) Determine which versions of functions have
-  //      been obsoleted. X
-  //   3) Compare those with the functions on the stack
-  //      to see which ones can be freed.
+  // Step 1: walk the stack
+  // Step 2: determine which return addresses are in these patch
+  //         areas left behind
+  // Step 3: for each such, determine where the return address
+  //         should be.
+  // Step 4: write in a jump from old to new. 
 
+
+  AddrSet activeAddrs;
+  getActivePCs(activeAddrs);
+
+  ADPList activePads;
+  getActiveDefensivePads(activeAddrs, activePads);
+
+  // [cur addr, new addr] set
+  AddrPairSet branchesNeeded;
+  generateRequiredPatches(activePads, branchesNeeded);
+
+  // Generate a pile of branches.
+  generatePatchBranches(branchesNeeded);
 }
-#endif 
 
-bool process::patchPostCallArea(instPoint *call)
-{
-    assert(!relocatedCode_.empty());
-    
-    bblInstance *target = NULL;
-    vector<int_basicBlock *> outs;
-    call->block()->getTargets(outs);
-    for (unsigned i = 0; i < outs.size(); ++i) {
-        if (call->block()->getTargetEdgeType(outs[i]) == ParseAPI::CALL_FT) {
-            target = outs[i]->origInstance();
+void process::getActiveDefensivePads(AddrSet &pcs, 
+				     ADPList &activePads) {
+  for (std::set<Address>::iterator pc = pcs.begin(); pc != pcs.end(); ++pc) {
+    Address padStart, tmp2;
+    bblInstance *callBlock;
+    if (reverseDefensiveMap_.find(*pc, padStart, tmp2, callBlock)) {
+      // From holds the block containing the call. We now need to look
+      // up the address of its fall-through successor.
+      assert(callBlock);
+      bblInstance *ft = callBlock->getFallthroughBBL();
+      if (ft) {
+	activePads.push_back(ActiveDefensivePad(*pc, padStart, callBlock, ft));
       }
     }
-    assert(target);
-
-    Address to = -1;
-    Relocation::CodeTracker &mapper = relocatedCode_.back();
-    if (!mapper.origToReloc(target->firstInsnAddr(),
-			    to)) {
-      assert(0);
-    }
-
-    // Generate a pile of branches.
-    // generatePatchBranch(branchesNeeded);
-    return true;
+  }
 }
 
-#if 0
-void process::generateRequiredPatches(AddrPairSet &patches,
+void process::generateRequiredPatches(ADPList &activePads,
 				      AddrPairSet &requests) {
-  for (AddrPairSet::iterator iter = patches.begin();
-       iter != patches.end(); ++iter) 
-  {
-    Address call = iter->first;
-    Address current = iter->second;
-    Address to = -1;
+  for (ADPList::iterator iter = activePads.begin();
+       iter != activePads.end(); ++iter) {
+    assert(iter->activePC >= iter->padStart);
+    unsigned offsetInPad = iter->activePC - iter->padStart;
+    
+    // We need to figure out where this patch should branch to.
+    // To do that, we're going to:
+    // 1) Forward map the entry of the ft block to
+    //    its most recent relocated version (if that exists)
+    // 2) For each padding area p, create a branch from p 
+    //    to addr(ft)
 
-    // 2
-    bblInstance *target = NULL;
-    vector<int_basicBlock *> outs;
-    bbi->block()->getTargets(outs);
-    for (unsigned i = 0; i < outs.size(); ++i) {
-      if (bbi->block()->getTargetEdgeType(outs[i]) == ParseAPI::CALL_FT) {
-	target = outs[i]->origInstance();
-      }
-    }
-    assert(target);
-
-    // 3
-    // We want the most recent map from original addresses
-    // to relocated addresses
-    assert(!relocatedCode_.empty());
-    Relocation::CodeTracker &mapper = relocatedCode_.back();
-    if (!mapper.origToReloc(target->firstInsnAddr(),
-			    to)) {
+    // 1)
+    Address to;
+    if (relocatedCode_.back().origToReloc(iter->ftBlock->firstInsnAddr(),
+					  iter->ftBlock,
+					  to)) {
       assert(0);
     }
     
-    // 4 ;)
-    requests.insert(std::make_pair<Address, Address>(current, to));
+    // 2) 
+    for (std::set<DefensivePad>::iterator d_iter = forwardDefensiveMap_[iter->callBlock].begin();
+	 d_iter != forwardDefensiveMap_[iter->callBlock].end(); ++d_iter) {
+      Address jumpAddr = d_iter->first + offsetInPad;
+      requests.insert(std::make_pair(jumpAddr, to));
+    }
   }
 }
 
@@ -5194,7 +5181,8 @@ void process::generatePatchBranches(AddrPairSet &branchesNeeded) {
     insnCodeGen::generateBranch(gen, from, to);
 
     // Safety check: make sure we didn't overrun the patch area
-    Address lb, ub, tmp;
+    Address lb, ub;
+    bblInstance *tmp;
     if (!reverseDefensiveMap_.find(from, lb, ub, tmp)) {
       // WTF? This worked before!
       assert(0);
@@ -5220,34 +5208,6 @@ void process::getActivePCs(AddrSet &pcs) {
     }
   }
 }
-
-void process::getActivePatchAreas(AddrPairSet &patches,
-				  AddrSet &pcs) {
-  for (std::set<Address>::iterator pc = pcs.begin(); pc != pcs.end(); ++pc) {
-    Address tmp1, tmp2, from;
-    if (reverseDefensiveMap_.find(*pc, tmp1, tmp2, from)) {
-      // From holds the address of the _call_ associated with
-      // this patch area. 
-      patches.insert(std::make_pair<Address, Address>(from, *pc));
-    }
-  }
-}
-
-void process::getActiveMultiMap(std::map<Address,multiTramp*> &map)
-{
-    for(set<multiTramp*>::iterator mIter = activeMultis.begin();
-        mIter != activeMultis.end();
-        mIter++)
-    {
-        map[(*mIter)->instAddr()] = *mIter;
-    }
-}
-
-void process::addActiveMulti(multiTramp* multi)
-{
-    activeMultis.insert(multi);
-}
-#endif
 
 bool process::isExploratoryModeOn() 
 { 
@@ -5611,7 +5571,7 @@ void process::gcInstrumentation()
 }
 
 // garbage collect instrumentation
-void process::gcInstrumentation(pdvector<pdvector<Frame> > &stackWalks)
+void process::gcInstrumentation(pdvector<pdvector<Frame> > &)
 {
   return;
 #if 0

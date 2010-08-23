@@ -114,7 +114,7 @@ class CodeMover {
   // so they can refer to blocks other than those
   // they are transforming.
   const TraceMap &blockMap() const { return blockMap_; }
-  const SpringboardMap &sBoardMap();
+  const SpringboardMap &sBoardMap(AddressSpace *as);
   // Not const so that Transformers can modify it...
   PriorityMap &priorityMap();
 
@@ -137,6 +137,8 @@ class CodeMover {
     bool addTraces(TraceIter begin, TraceIter end);
 
   bool addTrace(bblInstance *block);
+
+  void createInstrumentationSpringboards(AddressSpace *as);
 
   TraceList blocks_;
   // We also want to have a map from a bblInstance

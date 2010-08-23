@@ -64,7 +64,7 @@ class CFAtom : public Atom {
 
   // Factory function... we create these first,
   // then fill them in.
-  static Ptr create();
+  static Ptr create(bblInstance *);
 		    
   void updateInsn(InstructionAPI::Instruction::Ptr insn);
   void updateAddr(Address addr);
@@ -84,14 +84,16 @@ class CFAtom : public Atom {
   virtual Address addr() const { return addr_; }
   virtual InstructionAPI::Instruction::Ptr insn() const { return insn_; }
   virtual unsigned size() const { return insn_->size(); }
-
+  bblInstance *block() const { return block_; }
+  
  private:
-  CFAtom() :
+  CFAtom(bblInstance *block) :
   isCall_(false),
     isConditional_(false),
     isIndirect_(false),
     padded_(false),
-    addr_(0) {};
+    addr_(0),
+    block_(block) {};
 
   bool isCall_;
   bool isConditional_;
@@ -115,6 +117,8 @@ class CFAtom : public Atom {
   // TBD: PPC has conditional indirect control flow, so we may want
   // to split these up.
   DestinationMap destMap_;
+
+  bblInstance *block_;
 
   //
   // These should move to a CodeGenerator class or something...
@@ -180,13 +184,12 @@ struct PaddingPatch : public Patch {
   // do statically, but the second requires a patch so that
   // we get notified of address finickiness.
 
- PaddingPatch(Address a) : origAddr_(a), prevAddr_(0) {};
+ PaddingPatch(bblInstance *b) : block_(b) {};
   virtual bool apply(codeGen &gen, int, int);
   virtual bool preapply(codeGen &gen);
   virtual ~PaddingPatch() {};
 
-  Address origAddr_;
-  Address prevAddr_;
+  bblInstance *block_;
 };
 
 };

@@ -41,7 +41,7 @@ using namespace DataflowAPI;
 using namespace ParseAPI;
 
 StackTamperVisitor::StackTamperVisitor(const AbsRegion &) :
-  tamper_(TAMPER_NONE),
+  tamper_(TAMPER_UNSET),
   modpc_(0)
 {
 }

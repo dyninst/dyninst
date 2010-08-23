@@ -83,9 +83,6 @@ static frameStatus_t getFrameStatus(process *p, unsigned long pc, int &extra_hei
    codeRange *range;
 
    int_function *func = NULL;
-   miniTrampInstance *mini = NULL;
-   multiTramp *multi = NULL;
-   baseTrampInstance *base = NULL;
    extra_height = 0;
 
    mapped_object *mobj = p->findObject(pc);
@@ -104,9 +101,11 @@ static frameStatus_t getFrameStatus(process *p, unsigned long pc, int &extra_hei
 
    // See if we're in instrumentation
    Address origAddr = pc;
-   baseTrampInstance *bti;
+   baseTrampInstance *bti = NULL;
+   bblInstance *inst = NULL;
    if (p->getRelocInfo(pc, 
 		       origAddr,
+		       inst,
 		       bti)) {
      // Find out whether we've got a saved
      // state or not
@@ -196,7 +195,8 @@ static bool isPrevInstrACall(Address addr, process *proc, int_function **callee)
             // see if we're in instrumentation
             baseTrampInstance *bti = NULL;
             Address origAddr = 0;
-            bool success = proc->getRelocInfo(addr, origAddr, bti);
+            bblInstance *bbi=NULL;
+            bool success = proc->getRelocInfo(addr, origAddr, bbi, bti);
             if (success) {
                 // actually, this is possible, if we're searching for the
                 // return address of a frameless function and happen to 
@@ -609,7 +609,8 @@ Frame Frame::getCallerFrame()
    {
        baseTrampInstance *bti = NULL;
        Address origAddr = 0;
-       bool success = getProc()->getRelocInfo(pc_, origAddr, bti);
+       bblInstance *bbi=NULL;
+       bool success = getProc()->getRelocInfo(pc_, origAddr, bbi, bti);
        assert(success);
        newPC = origAddr;
        newFP = fp_;

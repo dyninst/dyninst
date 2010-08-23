@@ -44,16 +44,23 @@ Inst::Ptr Inst::create() {
 }
 
 void Inst::addBaseTramp(baseTramp *b) {
-  // We should make this an on-the-fly operation.
-  b->doOptimizations();
-
-  baseTrampInstance *bti = new baseTrampInstance(b, NULL);
-  assert(bti->baseT);
-  baseTramps_.push_back(bti);
+  if (!b) return;
+  if (!b->empty()) { 
+    // We should make this an on-the-fly operation.
+    b->doOptimizations();
+    
+    baseTrampInstance *bti = new baseTrampInstance(b, NULL);
+    assert(bti->baseT);
+    baseTramps_.push_back(bti);
+  }
+  else if (b->wasNonEmpty()) {
+    // We want to mark our existence here
+    removedTramps_.push_back(b);
+  }
 }
 
 bool Inst::empty() const {
-  return baseTramps_.empty();
+  return (baseTramps_.empty() && removedTramps_.empty());
 }
 
 TrackerElement *Inst::tracker() const {
@@ -62,6 +69,16 @@ TrackerElement *Inst::tracker() const {
   baseTrampInstance *bt = (*baseTramps_.begin());
   InstTracker *e = new InstTracker(bt->baseT->instP()->addr(), bt);
   return e;
+}
+
+Inst::~Inst() {
+#if 0
+  // don't do this - we kinda need these later for stackwalking etc.
+  for (std::list<baseTrampInstance *>::iterator iter = baseTramps_.begin();
+       iter != baseTramps_.end(); ++iter) {
+    delete (*iter);
+  }
+#endif
 }
 
 bool Inst::generate(GenStack &gens) {
@@ -98,7 +115,10 @@ string Inst::format() const {
 bool InstPatch::apply(codeGen &gen, int, int) {
   relocation_cerr << "\t\t InstPatch::apply" << endl;
 
+  gen.registerInstrumentation(base->baseT, gen.currAddr());
+
   return base->generateCode(gen, gen.currAddr(), NULL);
+
 }
 
 bool InstPatch::preapply(codeGen &gen) {
@@ -113,4 +133,14 @@ bool InstPatch::preapply(codeGen &gen) {
 InstPatch::~InstPatch() {
   // Don't delete the bti because it belongs to our
   // parent
+}
+
+bool RemovedInstPatch::apply(codeGen &gen, int, int) {
+  // Just want to leave a marker here for later.
+  gen.registerRemovedInstrumentation(base, gen.currAddr());
+  return true;
+}
+
+bool RemovedInstPatch::preapply(codeGen &) {
+  return true;
 }

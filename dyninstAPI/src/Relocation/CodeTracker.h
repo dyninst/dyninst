@@ -36,8 +36,12 @@
 #define _R_CODE_TRACKER_H_
 
 #include "dynutil/h/dyntypes.h"
+#include <vector>
+#include <set>
 #include <list>
 #include "common/h/IntervalTree.h"
+// Remove when I'm done debugging this...
+#include "dyninstAPI/src/baseTramp.h"
 
 class bblInstance;
 class baseTrampInstance;
@@ -126,8 +130,10 @@ class EmulatorTracker : public TrackerElement {
 
 class InstTracker : public TrackerElement {
  public:
- InstTracker(Address orig, baseTrampInstance *baseT) :
-  TrackerElement(orig), baseT_(baseT) {};
+ InstTracker(Address orig, baseTrampInstance *baseT, unsigned size = 0) :
+  TrackerElement(orig, size), baseT_(baseT) {
+    assert(baseT_->baseT);
+  };
   virtual ~InstTracker() {};
 
   virtual Address relocToOrig(Address reloc) const {
@@ -149,21 +155,23 @@ class InstTracker : public TrackerElement {
 
 class CodeTracker {
  public:
-  typedef std::vector<TrackerElement *> TrackerList;
-  typedef class IntervalTree<Address, TrackerElement *> Ranges;
+  typedef std::list<TrackerElement *> TrackerList;
+  typedef class IntervalTree<Address, TrackerElement *> NonBlockRange;
+  typedef std::map<bblInstance *, NonBlockRange> BlockRange;
+
 
   CodeTracker() {};
   ~CodeTracker() {};
 
-  bool origToReloc(Address origAddr, Address &relocAddr) const;
-  bool relocToOrig(Address relocAddr, Address &origAddr) const;
+  bool origToReloc(Address origAddr, bblInstance *origBBL, Address &reloc) const;
+  bool relocToOrig(Address relocAddr, Address &orig, bblInstance *&origBBL) const;
 
   baseTrampInstance *getBaseT(Address relocAddr) const;
 
-  Address lowOrigAddr() const { return origToReloc_.lowest(); }    
-  Address highOrigAddr() const { return origToReloc_.highest(); }
-  Address lowRelocAddr() const { return relocToOrig_.lowest(); }
-  Address highRelocAddr() const { return relocToOrig_.highest(); }
+  Address lowOrigAddr() const;
+  Address highOrigAddr() const;
+  Address lowRelocAddr() const;
+  Address highRelocAddr() const;
 
   void addTracker(TrackerElement *);
 
@@ -174,8 +182,8 @@ class CodeTracker {
 
  private:
 
-  Ranges origToReloc_;
-  Ranges relocToOrig_;
+  BlockRange origToReloc_;
+  NonBlockRange relocToOrig_;
 
   TrackerList trackers_;
 };

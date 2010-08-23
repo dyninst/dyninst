@@ -149,6 +149,7 @@ bool Trace::generate(codeGen &templ,
 
     TrackerElement *e = (*iter)->tracker();
     if (e) {
+      e->setBlock(bbl());
       gens_.cur().trackers[presize] = e;
     }
 

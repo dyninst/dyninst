@@ -45,12 +45,12 @@ using namespace InstructionAPI;
 using namespace ParseAPI;
 
 bool CFAtomCreator::processTrace(TraceList::iterator &iter) {
-  const bblInstance *bbl = (*iter)->bbl();
+  bblInstance *bbl = (*iter)->bbl();
 
   // Can be true if we see an instrumentation block...
   if (!bbl) return true;
 
-  CFAtom::Ptr ender = CFAtom::create();
+  CFAtom::Ptr ender = CFAtom::create(bbl);
   // Okay, now we need to construct a CFAtom matching this block's successors.
   // The CFAtom contains a certain amount of modelling *when* an edge is taken,
   // so we need to reconstruct that. We can do that via edge types. Here
@@ -174,8 +174,11 @@ void CFAtomCreator::getInterproceduralSuccessors(const bblInstance *bbl,
     // We have an image_basicBlock... now we need to map up
     // to both an int_basicBlock and an bblInstance.
     image_basicBlock *ib = static_cast<image_basicBlock *>((*iter)->trg());
-
-    if (out.second != CALL) {
+    
+    if (out.second == RET) {
+        continue;
+    }
+    else if (out.second != CALL) {
       int_basicBlock *targ = func->findBlockByImage(ib);
       assert(targ);
       out.first = new Target<bblInstance *>(targ->origInstance());

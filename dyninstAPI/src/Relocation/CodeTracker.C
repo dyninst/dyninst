@@ -37,24 +37,31 @@ using namespace Dyninst;
 using namespace Relocation;
 using namespace std;
 
-bool CodeTracker::origToReloc(Address origAddr, Address &relocAddr) const {
-  TrackerElement *e = NULL;
-  if (!origToReloc_.find(origAddr, e))
+bool CodeTracker::origToReloc(Address origAddr,
+			      bblInstance *origBBL, 
+			      Address &reloc) const {
+  TrackerElement *e;
+  BlockRange::const_iterator iter = origToReloc_.find(origBBL);
+  if (iter == origToReloc_.end()) return false;
+  if (!iter->second.find(origAddr, e))
     return false;
-  relocAddr = e->origToReloc(origAddr);
+  reloc = e->origToReloc(origAddr);
   return true;
 }
 
-bool CodeTracker::relocToOrig(Address relocAddr, Address &origAddr) const {
-  TrackerElement *e = NULL;
+bool CodeTracker::relocToOrig(Address relocAddr, 
+			      Address &orig, 
+			      bblInstance *&origBBL) const {
+  TrackerElement *e;
   if (!relocToOrig_.find(relocAddr, e))
     return false;
-  origAddr = e->relocToOrig(relocAddr);
+  orig = e->relocToOrig(relocAddr);
+  origBBL = e->block();
   return true;
 }
 
 baseTrampInstance *CodeTracker::getBaseT(Address relocAddr) const {
-  TrackerElement *e = NULL;
+  TrackerElement *e;
   if (!relocToOrig_.find(relocAddr, e))
     return NULL;
 
@@ -63,7 +70,6 @@ baseTrampInstance *CodeTracker::getBaseT(Address relocAddr) const {
 
   InstTracker *i = static_cast<InstTracker *>(e);
   return i->baseT();
-
 }
 
 void CodeTracker::addTracker(TrackerElement *e) {
@@ -75,18 +81,17 @@ void CodeTracker::addTracker(TrackerElement *e) {
 void CodeTracker::createIndices() {
   // Take each thing in trackers_ and add it to 
   // the origToReloc_ and relocToOrig_ mapping trees
-
-  for (unsigned i = 0; i < trackers_.size(); ++i) {
-    TrackerElement *e = trackers_[i];
-
+  for (TrackerList::iterator iter = trackers_.begin();
+       iter != trackers_.end(); ++iter) {
+    TrackerElement *e = *iter;
     if (e->type() == TrackerElement::original) {
       // This is a 1:1 element
-      origToReloc_.insert(e->orig(), e->orig() + e->size(), e);
+      origToReloc_[e->block()].insert(e->orig(), e->orig() + e->size(), e);
       relocToOrig_.insert(e->reloc(), e->reloc() + e->size(), e);
     }
     else {
       // This is a 1:n element
-      origToReloc_.insert(e->orig(), e->orig() + 1, e);
+      origToReloc_[e->block()].insert(e->orig(), e->orig() + 1, e);
       relocToOrig_.insert(e->reloc(), e->reloc() + e->size(), e);
     }
   }

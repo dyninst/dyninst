@@ -203,14 +203,14 @@ bool BPatch_binaryEdit::writeFileInt(const char * outFile)
     assert(pendingInsertions);
 
     // This should be a parameter...
-    bool atomic = false;
+    //bool atomic = false;
    
     // Define up here so we don't have gotos causing issues
     std::set<int_function *> instrumentedFunctions;
     
     // Two loops: first addInst, then generate/install/link
     pdvector<miniTramp *> workDone;
-    bool err = false;
+    //bool err = false;
 
     // Iterate over our AddressSpaces, triggering relocation
     // in each one.

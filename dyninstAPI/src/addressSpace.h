@@ -413,19 +413,33 @@ class AddressSpace : public InstructionSource {
     
     bool relocate();
 		   
-    void getRelocAddrs(Address orig, std::list<Address> &relocs) const;
+
+    // Get the list of addresses an address (in a block) 
+    // has been relocated to.
+    void getRelocAddrs(Address orig, 
+		       bblInstance *inst, 
+		       std::list<Address> &relocs) const;
+
+#if 0
     void getRelocAddrPairs(Address first, Address second,
 			   std::list<std::pair<Address, Address> > &pairs) const;
+#endif
 
     bool getRelocInfo(Address relocAddr,
 		      Address &origAddr,
+		      bblInstance *&origInst,
 		      baseTrampInstance *&baseTramp);
 			   
 
     void causeTemplateInstantiations();
 
-    void addDefensivePad(Address from, Address to);
-    //void unregisterDefensivePad(Address from, Address to);
+    void addDefensivePad(bblInstance *callBlock, Address padStart, unsigned size);
+
+    void getPreviousInstrumentationInstances(baseTramp *bt,
+					     std::set<Address>::iterator &b,
+					     std::set<Address>::iterator &e);
+    void addInstrumentationInstance(baseTramp *bt, Address addr);
+
 
     Address heapBase() const { return 0x8050000; }
     Address instBase() const { return 0x804a000; }
@@ -484,8 +498,12 @@ class AddressSpace : public InstructionSource {
     bool relocateInt(FuncSet::const_iterator begin, FuncSet::const_iterator end, Address near);
 
     // Kevin code
-    std::map<Address, std::set<Address> > forwardDefensiveMap_;
-    IntervalTree<Address, Address> reverseDefensiveMap_;
+    typedef std::pair<Address, unsigned> DefensivePad;
+    std::map<bblInstance *, std::set<DefensivePad> > forwardDefensiveMap_;
+    IntervalTree<Address, bblInstance *> reverseDefensiveMap_;
+
+    // Tracking instrumentation for fast removal
+    std::map<baseTramp *, std::set<Address> > instrumentationInstances_;
 
     // Track desired function replacements/removals/call replacements
     typedef std::map<instPoint *, int_function *> CallReplaceMap;

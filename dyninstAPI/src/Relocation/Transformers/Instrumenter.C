@@ -91,11 +91,9 @@ bool Instrumenter::processTrace(TraceList::iterator &iter) {
 		    << ((pre && !pre->empty()) ? "<PRE>" : "") << endl;
     
     Inst::Ptr inst = Inst::create();
-    if (post && !post->empty())
-      inst->addBaseTramp(post);
+    inst->addBaseTramp(post);
 
-    if (pre && !pre->empty())
-      inst->addBaseTramp(pre);
+    inst->addBaseTramp(pre);
 
     if (!inst->empty())
       elements.insert(e_iter, inst);
@@ -210,7 +208,7 @@ bool Instrumenter::addEdgeInstrumentation(baseTramp *tramp,
   // Keep this info for later...
   TargetInt *target = d_iter->second;
 
-  CFAtom::Ptr postCF = CFAtom::create();
+  CFAtom::Ptr postCF = CFAtom::create(cf->block());
   // Give this a valid destination
   postCF->updateAddr(cf->addr());
   postCF->addDestination(CFAtom::Fallthrough, target);

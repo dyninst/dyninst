@@ -315,7 +315,7 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
             }
             if (isDynamicCall()) {
                 std::string callee;
-                addFallthrough = true;
+                addFallthrough = false;
                 if (dynamic_cast<CodeSource*>(_isrc) && 
                     isIATcall(callee) && 
                     !static_cast<CodeSource*>(_isrc)->nonReturning(callee)) 

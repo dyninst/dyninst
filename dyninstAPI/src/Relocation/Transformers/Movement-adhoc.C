@@ -100,7 +100,7 @@ bool adhocMovementTransformer::processTrace(TraceList::iterator &b_iter) {
 	// required fallthrough edge
 	CFAtom::DestinationMap::iterator dest = cf->destMap_.find(CFAtom::Fallthrough);
 	if (dest != cf->destMap_.end()) {
-	  CFAtom::Ptr newCF = CFAtom::create();
+	  CFAtom::Ptr newCF = CFAtom::create((*b_iter)->bbl());
 	  // Explicitly do _NOT_ reuse old information - this is just a branch
 	  newCF->updateAddr(cf->addr());
 

@@ -627,10 +627,10 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
     }
 
     if (didSomeParsing) { // called parseNewEdge
+        // fill in the post-call area with a patch
+        bool success = callPoint->patchPostCallArea();
         // instrument all modules that have modified functions
         return instrumentModules();
-        // fill in the post-call area with a patch
-        callPoint->patchPostCallArea();
     }
     return false;
 }

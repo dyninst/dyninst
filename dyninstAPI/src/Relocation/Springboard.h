@@ -47,8 +47,17 @@ struct SpringboardReq {
   Address from;
   Address to;
   Priority priority;
-SpringboardReq(const Address a, const Address b, const Priority c) : from(a), to(b), priority(c) {};
-SpringboardReq() : from(0), to(0), priority(NotRequired) {};
+  bblInstance *bbl;
+  bool includeAllVersions;
+SpringboardReq(const Address a, const Address b, 
+	       const Priority c, bblInstance *d, bool e = true) : 
+  from(a), to(b), 
+    priority(c), 
+    bbl(d), includeAllVersions(e) {};
+SpringboardReq() : from(0), to(0), priority(NotRequired), 
+    bbl(NULL),
+    includeAllVersions(false) {};
+  
 };
 
  class SpringboardMap {
@@ -63,8 +72,8 @@ SpringboardReq() : from(0), to(0), priority(NotRequired) {};
      return sBoardMap_.empty();
    }
 
-   void add(Address a, Address b, Priority c) {
-     sBoardMap_[a] = SpringboardReq(a, b, c);
+   void add(Address a, Address b, Priority c, bblInstance *d, bool e = true) {
+     sBoardMap_[a] = SpringboardReq(a, b, c, d, e);
    }
 
    const_iterator begin() const { return sBoardMap_.begin(); };
@@ -130,9 +139,11 @@ class SpringboardBuilder {
   bool generateReplacements(std::list<codeGen> &input,
 			    const SpringboardReq &p,
 			    bool useTrap);
+#if 0
   bool generateReplacementPairs(std::list<codeGen> &input,
 				Address from,
 				Address to);
+#endif
 
   bool conflict(Address start, Address end);
   void registerBranch(Address start, Address end);
