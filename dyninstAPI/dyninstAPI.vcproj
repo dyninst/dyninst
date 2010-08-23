@@ -1070,6 +1070,18 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\Relocation\Transformers\Defensive.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath="..\common\src\Dictionary.C"
 				>
 				<FileConfiguration
@@ -1837,6 +1849,18 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\Relocation\Atoms\Padding.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\parRegion.C"
 				>
 				<FileConfiguration
@@ -2534,6 +2558,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\src\Relocation\Transformers\Defensive.h"
+				>
+			</File>
+			<File
 				RelativePath=".\src\deviceStructs.h"
 				>
 			</File>
@@ -2727,6 +2755,10 @@
 			</File>
 			<File
 				RelativePath=".\src\os.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\Atoms\Padding.h"
 				>
 			</File>
 			<File

@@ -5120,88 +5120,44 @@ void process::updateActiveMultis()
   //      to see which ones can be freed.
 
 }
+#endif 
 
-/* Update the trampEnds of active multiTramps
- * Update return addresses to invalidated function relocations
- */
-
-void process::fixupActiveStackTargets()
+bool process::patchPostCallArea(instPoint *call)
 {
-  // We've gone through and detected return addresses from
-  // calls that weren't parsed past initially. Since our
-  // initial instrumentation left these dangling, we want
-  // to patch in branches to the new relocated copy.
-  //
-  // Step 1: walk the stack
-  // Step 2: determine which return addresses are in these patch
-  //         areas left behind
-  // Step 3: for each such, determine where the return address
-  //         should be.
-  // Step 4: write in a jump from old to new. 
-
-
-  AddrSet activeAddrs;
-  getActivePCs(activeAddrs);
-
-  // [orig, cur addr] set
-  AddrPairSet activePatchAreas;
-  getActivePatchAreas(activePatchAreas, activeAddrs);
-
-  // [cur addr, new addr] set
-  AddrPairSet branchesNeeded;
-  generateRequiredPatches(activePatchAreas, branchesNeeded);
-
-  // Generate a pile of branches.
-  generatePatchBranches(branchesNeeded);
-
-}
-
-void process::getActivePCs(AddrSet &pcs) {
-  pdvector<pdvector<Frame> > stacks;
-  if (!walkStacks(stacks)) assert(0);
-
-  for (unsigned i = 0; i < stacks.size(); ++i) {
-    for (unsigned j = 0; j < stacks[i].size(); ++j) {
-      pcs.insert(stacks[i][j].getPC());
-      mal_printf("stacks[%d][%d] = %lx\n",i,j,stacks[i][j].getPC());
+    assert(!relocatedCode_.empty());
+    
+    bblInstance *target = NULL;
+    vector<int_basicBlock *> outs;
+    call->block()->getTargets(outs);
+    for (unsigned i = 0; i < outs.size(); ++i) {
+        if (call->block()->getTargetEdgeType(outs[i]) == ParseAPI::CALL_FT) {
+            target = outs[i]->origInstance();
+      }
     }
-  }
-}
+    assert(target);
 
-void process::getActivePatchAreas(AddrPairSet &patches,
-				  AddrSet &pcs) {
-  for (std::set<Address>::iterator pc = pcs.begin(); pc != pcs.end(); ++pc) {
-    Address tmp1, tmp2, from;
-    if (reverseDefensiveMap_.find(*pc, tmp1, tmp2, from)) {
-      // From holds the address of the _call_ associated with
-      // this patch area. 
-      patches.insert(std::make_pair<Address, Address>(from, *pc));
+    Address to = -1;
+    Relocation::CodeTracker &mapper = relocatedCode_.back();
+    if (!mapper.origToReloc(target->firstInsnAddr(),
+			    to)) {
+      assert(0);
     }
-  }
+
+    // Generate a pile of branches.
+    // generatePatchBranch(branchesNeeded);
+    return true;
 }
 
+#if 0
 void process::generateRequiredPatches(AddrPairSet &patches,
 				      AddrPairSet &requests) {
   for (AddrPairSet::iterator iter = patches.begin();
-       iter != patches.end(); ++iter) {
+       iter != patches.end(); ++iter) 
+  {
     Address call = iter->first;
     Address current = iter->second;
     Address to = -1;
 
-    // We need to figure out where this patch should branch to.
-    // To do that, we're going to:
-    // 1) Look up the basic block instance associated with the call address;
-    // 2) Look up its fallthrough block;
-    // 3) Forward map the entry of the block to
-    //    its most recent relocated version (if that exists)
-    // TODO: this is not shared code safe since we map back
-    // to the original call. We would need to preserve
-    // the function ID in addition. 
-
-    // 1
-    bblInstance *bbi = findOrigByAddr(call)->is_basicBlockInstance();
-    assert(bbi);
-    
     // 2
     bblInstance *target = NULL;
     vector<int_basicBlock *> outs;
@@ -5249,6 +5205,30 @@ void process::generatePatchBranches(AddrPairSet &branchesNeeded) {
 			gen.used(),
 			gen.start_ptr())) {
       assert(0);
+    }
+  }
+}
+
+void process::getActivePCs(AddrSet &pcs) {
+  pdvector<pdvector<Frame> > stacks;
+  if (!walkStacks(stacks)) assert(0);
+
+  for (unsigned i = 0; i < stacks.size(); ++i) {
+    for (unsigned j = 0; j < stacks[i].size(); ++j) {
+      pcs.insert(stacks[i][j].getPC());
+      mal_printf("stacks[%d][%d] = %lx\n",i,j,stacks[i][j].getPC());
+    }
+  }
+}
+
+void process::getActivePatchAreas(AddrPairSet &patches,
+				  AddrSet &pcs) {
+  for (std::set<Address>::iterator pc = pcs.begin(); pc != pcs.end(); ++pc) {
+    Address tmp1, tmp2, from;
+    if (reverseDefensiveMap_.find(*pc, tmp1, tmp2, from)) {
+      // From holds the address of the _call_ associated with
+      // this patch area. 
+      patches.insert(std::make_pair<Address, Address>(from, *pc));
     }
   }
 }

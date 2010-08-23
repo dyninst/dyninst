@@ -641,6 +641,7 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
                 ev.address, violationAddr,__LINE__);
         break;
     default:
+        ev.proc->detachProcess(true);
         assert(0);
     }
     return ret;

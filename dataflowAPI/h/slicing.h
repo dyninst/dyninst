@@ -63,11 +63,11 @@ class AssignNode : public Node {
   DATAFLOW_EXPORT virtual ~AssignNode() {};
       
   DATAFLOW_EXPORT void addAssignment(AssignNode::Ptr p, unsigned u) {
-    assignMap_[p] = u;
+      assignMap_[p] = u;
   }
       
   DATAFLOW_EXPORT unsigned getAssignmentIndex(AssignNode::Ptr p) {
-    return assignMap_[p];
+      return assignMap_[p];
   }
       
  private:
@@ -221,6 +221,9 @@ class Slicer {
   // that specifies both context and what to search for
   // in that context
   struct Element {
+      Element() {
+          usedIndex = -1;
+      };
     Location loc;
     Context con;
     AbsRegion reg;

@@ -869,10 +869,10 @@ void Slicer::findMatches(Element &current, Assignment::Ptr &assign, Direction di
     for (unsigned k = 0; k < assign->inputs().size(); ++k) {
       const AbsRegion &uReg = assign->inputs()[k];
       if (current.reg.contains(uReg)) {
-	// We make a copy of each Element for each Assignment...
-	current.ptr = assign;
-	current.usedIndex = k;
-	succ.push(current);
+        // We make a copy of each Element for each Assignment...
+        current.ptr = assign;
+        current.usedIndex = k;
+        succ.push(current);
       }
     }
   }
@@ -963,8 +963,8 @@ void Slicer::insertPair(Graph::Ptr ret,
       t->addAssignment(s, target.usedIndex);
   } else {
       ret->insertPair(t, s);
-      slicing_cerr << "adding assignment with usedIndex = " << target.usedIndex << endl;
-      s->addAssignment(t, source.usedIndex);
+      slicing_cerr << "adding assignment with usedIndex = " << source.usedIndex << endl;
+      s->addAssignment(t, target.usedIndex);
   }
 }
 

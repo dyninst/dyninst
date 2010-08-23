@@ -910,3 +910,10 @@ void BPatch_point::setResolved()
 {
     point->setResolved();
 }
+
+bool BPatch_point::patchPostCallArea()
+{
+    if (point->proc()->proc()) {
+        return point->proc()->proc()->patchPostCallArea(point);
+    }
+}

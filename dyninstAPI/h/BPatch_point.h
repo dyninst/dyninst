@@ -219,6 +219,7 @@ public:
     Dyninst::Address getCallFallThroughAddr();
     void setResolved();
     Dyninst::Address getSavedTarget();
+    bool patchPostCallArea();
     // End internal functions
 
 
