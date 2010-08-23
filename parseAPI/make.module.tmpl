@@ -13,7 +13,7 @@ RELEASE_NUM	= 6.1
 CFLAGS		     += $(USEFULWARNINGS) -I$(TO_CORE)/../include
 CXXFLAGS	     += $(USEFULWARNINGS) -I$(TO_CORE)/../include
 
-LDFLAGS += -lcommon -lsymtabAPI
+LDFLAGS += -L../../common/$(PLATFORM) -L../../symtabAPI/$(PLATFORM) -lcommon -lsymtabAPI
 
 LDFLAGS     += $(LIBDIR)
 ifndef USES_NATIVE_CC
@@ -28,7 +28,7 @@ endif #sparc
 endif #USES_NATIVE
 
 ifneq ($(findstring cap_instruction_api,$(CAP_DEF)),)
-    LDFLAGS += -linstructionAPI
+    LDFLAGS += -L../../instructionAPI/$(PLATFORM) -linstructionAPI
 endif
 
 TO_INC   = ../h

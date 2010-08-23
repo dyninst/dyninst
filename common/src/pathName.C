@@ -34,14 +34,13 @@
 #include <ctype.h>
 #include <assert.h>
 #include <limits.h>
-#include "common/h/String.h"
 #include "common/h/pathName.h"
 
 #if defined(os_windows) //ccw 20 july 2000 : 29 mar 2001
 
 #define S_ISDIR(x) ((x) & _S_IFDIR)
 
-pdstring expand_tilde_pathname(const pdstring &dir) {
+std::string expand_tilde_pathname(const std::string &dir) {
    return dir;
 }
 
@@ -53,7 +52,7 @@ pdstring expand_tilde_pathname(const pdstring &dir) {
 
 #include <pwd.h>
 
-pdstring expand_tilde_pathname(const pdstring &dir) {
+std::string expand_tilde_pathname(const std::string &dir) {
    // e.g. convert "~tamches/hello" to "/u/t/a/tamches/hello",
    // or convert "~/hello" to same.
    // In the spirit of Tcl_TildeSubst
@@ -75,18 +74,18 @@ pdstring expand_tilde_pathname(const pdstring &dir) {
          return dir; // yikes
 
       if (home_dir[strlen(home_dir)-1] == '/' && dir_cstr[1] != '\0')
-         return pdstring(home_dir) + &dir_cstr[2];
+         return std::string(home_dir) + &dir_cstr[2];
       else
-         return pdstring(home_dir) + &dir_cstr[1];
+         return std::string(home_dir) + &dir_cstr[1];
    }
 
    // It's the second case.  We need to find the username.  It starts at
    // dir_cstr[1] and ends at (but not including) the first '/' or '\0'.
-   pdstring userName;
+   std::string userName;
 
    const char *ptr = strchr(&dir_cstr[1], '/');
    if (ptr == NULL)
-      userName = pdstring(&dir_cstr[1]);
+      userName = std::string(&dir_cstr[1]);
    else {
       char user_name_buffer[200];
       unsigned user_name_len = ptr - &dir_cstr[1];
@@ -104,19 +103,19 @@ pdstring expand_tilde_pathname(const pdstring &dir) {
       return dir; // something better needed...
    }
 
-   pdstring result = pdstring(pwPtr->pw_dir) + pdstring(ptr);
+   std::string result = std::string(pwPtr->pw_dir) + std::string(ptr);
    endpwent();
    return result;
 }
 #endif
 
-static pdstring concat_pathname_components_simple(const pdstring &comp1, const pdstring &comp2) 
+static std::string concat_pathname_components_simple(const std::string &comp1, const std::string &comp2)
 {
-   pdstring result = (comp1.length() ? comp1 : comp2);
+   std::string result = (comp1.length() ? comp1 : comp2);
    return result;
 }
 
-pdstring concat_pathname_components(const pdstring &comp1, const pdstring &comp2) 
+std::string concat_pathname_components(const std::string &comp1, const std::string &comp2)
 {
    if (comp1.length() == 0 || comp2.length() == 0)
       return concat_pathname_components_simple(comp1, comp2);
@@ -136,7 +135,7 @@ pdstring concat_pathname_components(const pdstring &comp1, const pdstring &comp2
       needToAddSlash = false;
 #endif
 
-   pdstring result = comp1;
+   std::string result = comp1;
    if (needToAddSlash)
       result += "/";
    result += comp2;
@@ -144,7 +143,7 @@ pdstring concat_pathname_components(const pdstring &comp1, const pdstring &comp2
    return result;
 }
 
-bool extractNextPathElem(const char * &ptr, pdstring &result) 
+bool extractNextPathElem(const char * &ptr, std::string &result)
 {
    // assumes that "ptr" points to the value of the PATH environment
    // variable.  Extracts the next element (writing to result, updating
@@ -167,7 +166,7 @@ bool extractNextPathElem(const char * &ptr, pdstring &result)
 
    unsigned len = ptr - start_ptr;
 
-   result = pdstring(start_ptr, len);
+   result = std::string(start_ptr, len);
 
    // ptr now points at a ":" or end-of-string
    assert(*ptr == ':' || *ptr == '\0');
@@ -179,7 +178,7 @@ bool extractNextPathElem(const char * &ptr, pdstring &result)
    return true;
 }
 
-bool exists_executable(const pdstring &fullpathname) 
+bool exists_executable(const std::string &fullpathname)
 {
    struct stat stat_buffer;
    int result = stat(fullpathname.c_str(), &stat_buffer);
@@ -194,85 +193,6 @@ bool exists_executable(const pdstring &fullpathname)
 
    return true;
 }
-
-#if defined (cap_use_pdstring)
-bool executableFromArgv0AndPathAndCwd(pdstring &result,
-      const pdstring &i_argv0,
-      const pdstring &path,
-      const pdstring &cwd) 
-{
-   // return true iff successful.
-   // if successful, writes to result.
-   // "path" is the value of the PATH env var
-   // "cwd" is the current working directory, presumably from the PWD env var
-
-   // 0) if argv0 empty then forget it
-   if (i_argv0.length() == 0)
-      return false;
-
-   const pdstring &argv0 = expand_tilde_pathname(i_argv0);
-
-   // 1) If argv0 starts with a slash then we sink or swim with argv0
-
-   if ((argv0.c_str())[0] == '/') 
-   {
-      if (exists_executable(argv0)) 
-      {
-         result = argv0;
-         return true;
-      }
-   }
-
-   // 2) search the path, trying (dir + argv0) for each path component.
-   //    But only search the path if argv0 doesn't contain any slashes.
-   //    Why?  Because if it does contain a slash than at least one
-   //    directory component prefixes the executable name, and the path
-   //    is only supposed to be searched when an executable name is specifed
-   //    alone.
-   bool contains_slash = false;
-   const char *ptr = argv0.c_str();
-   while (*ptr != '\0')
-   {
-      if (*ptr++ == '/') 
-      {
-         contains_slash = true;
-         break;
-      }
-   }
-
-   if (!contains_slash) 
-   {
-      // search the path to see what directory argv0 came from.  If found, then
-      // use dir + argv0 else use argv0.
-      ptr = path.c_str();
-      pdstring pathelem;
-      while (extractNextPathElem(ptr, pathelem)) 
-      {
-         pdstring trystr = concat_pathname_components(pathelem, argv0);
-
-         if (exists_executable(trystr)) 
-         {
-            result = trystr;
-            return true;
-         }
-      }
-   }
-
-   // well, if we've gotten this far without success: couldn't find argv0 in the
-   // path and argv0 wasn't a full path.  Last resort: try current directory + argv0
-
-   pdstring trystr = concat_pathname_components(cwd, argv0);
-
-   if (exists_executable(trystr)) 
-   {
-      result = trystr;
-      return true;
-   }
-
-   return false;
-}
-#else
-
 
 bool executableFromArgv0AndPathAndCwd(std::string &result,
       const std::string &i_argv0,
@@ -350,7 +270,6 @@ bool executableFromArgv0AndPathAndCwd(std::string &result,
    }
    return false;
 }
-#endif
 
 #if defined(os_windows)
 #define PATH_SEP ('\\')
@@ -359,23 +278,6 @@ bool executableFromArgv0AndPathAndCwd(std::string &result,
 #define PATH_SEP ('/')
 #endif
 
-#if defined (cap_use_pdstring)
-pdstring extract_pathname_tail(const pdstring &path)
-{
-   const char *path_str = path.c_str();
-   const char *path_sep = P_strrchr(path_str, PATH_SEP);
-
-#if defined(SECOND_PATH_SEP)
-   const char *sec_path_sep = P_strrchr(path_str, SECOND_PATH_SEP);
-   if (sec_path_sep && (!path_sep || sec_path_sep > path_sep))
-      path_sep = sec_path_sep;
-#endif
-
-   pdstring ret = (path_sep) ? (path_sep + 1) : (path_str);
-   return ret;
-}
-
-#else
 std::string extract_pathname_tail(const std::string &path)
 {
 	if (!path.length())
@@ -402,7 +304,6 @@ std::string extract_pathname_tail(const std::string &path)
    std::string ret = (path_sep) ? (path_sep + 1) : (path_str);
    return ret;
 }
-#endif
 
 #if !defined (os_windows)
 char *resolve_file_path(const char *fname, char *resolved_path)
@@ -428,8 +329,8 @@ char *resolve_file_path(const char *fname, char *resolved_path)
 
    // (3) if it has a tilde, expand tilde pathname
    if (!strpbrk(resolved_path, "~")) {
-      pdstring td_pathname = pdstring(resolved_path);
-      pdstring no_td_pathname = expand_tilde_pathname(td_pathname);
+      std::string td_pathname = std::string(resolved_path);
+      std::string no_td_pathname = expand_tilde_pathname(td_pathname);
       strcpy(resolved_path, no_td_pathname.c_str());
    }
 
