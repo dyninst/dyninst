@@ -865,7 +865,6 @@ void Slicer::findMatches(Element &current, Assignment::Ptr &assign, Direction di
   if (dir == forward) {
     // We compare the AbsRegion in current to the inputs
     // of assign
-    
     for (unsigned k = 0; k < assign->inputs().size(); ++k) {
       const AbsRegion &uReg = assign->inputs()[k];
       if (current.reg.contains(uReg)) {
@@ -963,8 +962,8 @@ void Slicer::insertPair(Graph::Ptr ret,
       t->addAssignment(s, target.usedIndex);
   } else {
       ret->insertPair(t, s);
-      slicing_cerr << "adding assignment with usedIndex = " << target.usedIndex << endl;
-      s->addAssignment(t, source.usedIndex);
+      slicing_cerr << "adding assignment with usedIndex = " << source.usedIndex << endl;
+      s->addAssignment(t, target.usedIndex);
   }
 }
 
