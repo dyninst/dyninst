@@ -865,7 +865,6 @@ void Slicer::findMatches(Element &current, Assignment::Ptr &assign, Direction di
   if (dir == forward) {
     // We compare the AbsRegion in current to the inputs
     // of assign
-    
     for (unsigned k = 0; k < assign->inputs().size(); ++k) {
       const AbsRegion &uReg = assign->inputs()[k];
       if (current.reg.contains(uReg)) {
