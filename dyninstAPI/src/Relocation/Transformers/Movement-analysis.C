@@ -494,7 +494,7 @@ void PCSensitiveTransformer::handleThunkCall(TraceList::iterator &b_iter,
       dest = cf->destMap_.find(CFAtom::Taken);
     }
     if (dest != cf->destMap_.end()) {
-      CFAtom::Ptr newCF = CFAtom::create();
+      CFAtom::Ptr newCF = CFAtom::create((*b_iter)->bbl());
       // Explicitly do _NOT_ reuse old information - this is just a branch
       
       newCF->destMap_[CFAtom::Fallthrough] = dest->second;
@@ -556,7 +556,7 @@ void PCSensitiveTransformer::emulateInsn(TraceList::iterator &b_iter,
 
     // Indirect, we put in a push/jump <reg> combination.
 
-    CFAtom::Ptr newCF = CFAtom::create();
+    CFAtom::Ptr newCF = CFAtom::create((*b_iter)->bbl());
 
     CFAtom::DestinationMap::iterator dest = cf->destMap_.find(CFAtom::Taken);
     if (dest != cf->destMap_.end()) {

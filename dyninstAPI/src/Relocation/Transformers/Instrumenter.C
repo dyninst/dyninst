@@ -208,7 +208,7 @@ bool Instrumenter::addEdgeInstrumentation(baseTramp *tramp,
   // Keep this info for later...
   TargetInt *target = d_iter->second;
 
-  CFAtom::Ptr postCF = CFAtom::create();
+  CFAtom::Ptr postCF = CFAtom::create(cf->block());
   // Give this a valid destination
   postCF->updateAddr(cf->addr());
   postCF->addDestination(CFAtom::Fallthrough, target);

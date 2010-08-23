@@ -280,7 +280,7 @@ const SpringboardMap &CodeMover::sBoardMap(AddressSpace *as) {
       TraceMap::const_iterator b_iter = blockMap_.find(from);
       if (b_iter != blockMap_.end()) {
 	const Address &to = b_iter->second->curAddr();
-	sboardMap_.add(from->firstInsnAddr(), to, p);
+	sboardMap_.add(from->firstInsnAddr(), to, p, from);
       }
     }
 
@@ -306,9 +306,9 @@ string CodeMover::format() const {
 }
 
 void CodeMover::extractDefensivePads(AddressSpace *AS) {
-  for (std::map<Address,Address>::iterator iter = gen_.getDefensivePads().begin();
+  for (std::map<bblInstance *, codeGen::Extent>::iterator iter = gen_.getDefensivePads().begin();
        iter != gen_.getDefensivePads().end(); ++iter) {
-    AS->addDefensivePad(iter->first, iter->second);
+    AS->addDefensivePad(iter->first, iter->second.first, iter->second.second);
   }
 }
 

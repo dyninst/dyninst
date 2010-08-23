@@ -45,12 +45,12 @@ using namespace InstructionAPI;
 using namespace ParseAPI;
 
 bool CFAtomCreator::processTrace(TraceList::iterator &iter) {
-  const bblInstance *bbl = (*iter)->bbl();
+  bblInstance *bbl = (*iter)->bbl();
 
   // Can be true if we see an instrumentation block...
   if (!bbl) return true;
 
-  CFAtom::Ptr ender = CFAtom::create();
+  CFAtom::Ptr ender = CFAtom::create(bbl);
   // Okay, now we need to construct a CFAtom matching this block's successors.
   // The CFAtom contains a certain amount of modelling *when* an edge is taken,
   // so we need to reconstruct that. We can do that via edge types. Here

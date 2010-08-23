@@ -78,6 +78,7 @@ class int_function;
 class generatedCodeObject;
 class baseTrampInstance;
 class baseTramp;
+class bblInstance;
 
 // Code generation
 // This class wraps the actual code generation mechanism: we keep a buffer
@@ -241,8 +242,9 @@ class codeGen {
 
     // SD-DYNINST
     // 
-    void registerDefensivePad(Address from, Address to);
-    std::map<Address, Address> &getDefensivePads() { return defensivePads_; }
+    typedef std::pair<Address, unsigned> Extent;
+    void registerDefensivePad(bblInstance *, Address, unsigned);
+    std::map<bblInstance *, Extent> &getDefensivePads() { return defensivePads_; }
     
     // Immediate uninstrumentation
     void registerInstrumentation(baseTramp *bt, Address loc) { instrumentation_[bt] = loc; }
@@ -283,7 +285,7 @@ class codeGen {
     std::vector<relocPatch> patches_;
     std::vector<pcRelRegion *> pcrels_;
 
-    std::map<Address, Address> defensivePads_;
+    std::map<bblInstance *, Extent> defensivePads_;
     std::map<baseTramp *, Address> instrumentation_;
     std::map<baseTramp *, Address> removedInstrumentation_;
 };

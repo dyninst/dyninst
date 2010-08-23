@@ -202,14 +202,14 @@ bool CFAtom::generate(GenStack &gens) {
     assert(0);
   }
   if (padded_) {
-    gens.addPatch(new PaddingPatch(addr_));
+    gens.addPatch(new PaddingPatch(block_));
   }
 
   return true;
 }
 
-CFAtom::Ptr CFAtom::create() {
-  return Ptr(new CFAtom());
+CFAtom::Ptr CFAtom::create(bblInstance *b) {
+  return Ptr(new CFAtom(b));
 }
 
 CFAtom::~CFAtom() {
@@ -502,11 +502,9 @@ bool CFPatch::preapply(codeGen &gen) {
 }
 
 bool PaddingPatch::apply(codeGen &gen, int, int) {
-
-  prevAddr_ = gen.currAddr();
-  gen.registerDefensivePad(origAddr_, gen.currAddr());
-  //gen.fill(10, codeGen::cgIllegal);
-  gen.fill(10, codeGen::cgNOP);
+  gen.registerDefensivePad(block_, gen.currAddr(), 10);
+  gen.fill(10, codeGen::cgIllegal);
+  //gen.fill(10, codeGen::cgNOP);
   return true;
 }
 

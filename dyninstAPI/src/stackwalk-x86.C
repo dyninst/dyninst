@@ -102,8 +102,10 @@ static frameStatus_t getFrameStatus(process *p, unsigned long pc, int &extra_hei
    // See if we're in instrumentation
    Address origAddr = pc;
    baseTrampInstance *bti;
+   bblInstance *inst;
    if (p->getRelocInfo(pc, 
 		       origAddr,
+		       inst,
 		       bti)) {
      // Find out whether we've got a saved
      // state or not

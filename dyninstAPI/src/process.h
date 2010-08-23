@@ -684,9 +684,19 @@ class process : public AddressSpace {
   typedef std::set<AddrPair> AddrPairSet;
   typedef std::set<Address> AddrSet;
 
+  struct ActiveDefensivePad {
+    Address activePC;
+    Address padStart;
+    bblInstance *callBlock;
+    bblInstance *ftBlock;
+  ActiveDefensivePad(Address a, Address b, bblInstance *c, bblInstance *d) : 
+    activePC(a), padStart(b), callBlock(c), ftBlock(d) {};
+  };
+  typedef std::list<ActiveDefensivePad> ADPList;
+  
   void getActivePCs(AddrSet &);
-  void getActivePatchAreas(AddrPairSet &, AddrSet &);
-  void generateRequiredPatches(AddrPairSet &, AddrPairSet &);
+  void getActiveDefensivePads(AddrSet &, ADPList &);
+  void generateRequiredPatches(ADPList &, AddrPairSet &);
   void generatePatchBranches(AddrPairSet &);
 
   void getActiveMultiMap(std::map<Address,multiTramp*> &map);

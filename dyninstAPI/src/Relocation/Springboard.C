@@ -203,7 +203,7 @@ bool SpringboardBuilder::generateMultiSpringboard(std::list<codeGen> &input,
   registerBranch(tramp, tramp + gen.used());
   
   // And catch its relocated copies. Argh.
-  SpringboardReq tmp(tramp, r.to, r.priority);
+  SpringboardReq tmp(tramp, r.to, r.priority, r.bbl);
   generateReplacements(input, tmp, false);
 
   // Okay. Now we need to get _to_ the tramp jump.
@@ -217,7 +217,7 @@ bool SpringboardBuilder::generateMultiSpringboard(std::list<codeGen> &input,
   input.push_back(shortie);
   registerBranch(r.from, r.from + shortie.used());
 
-  SpringboardReq tmp2(r.from, tramp, r.priority);
+  SpringboardReq tmp2(r.from, tramp, r.priority, r.bbl);
   generateReplacements(input, tmp2, false);
 
   return true;
@@ -323,7 +323,7 @@ bool SpringboardBuilder::generateReplacements(std::list<codeGen> &springboards,
 					      bool useTrap) {
   bool ret = true;
   std::list<Address> relocAddrs;
-  addrSpace_->getRelocAddrs(r.from, relocAddrs);
+  addrSpace_->getRelocAddrs(r.from, r.bbl, relocAddrs);
   for (std::list<Address>::const_iterator iter = relocAddrs.begin();
        iter != relocAddrs.end(); ++iter) {
     if (*iter == r.to) {
@@ -344,6 +344,7 @@ bool SpringboardBuilder::generateReplacements(std::list<codeGen> &springboards,
   return ret;
 }
 
+#if 0
 // Used in generating multi-branch springboards
 bool SpringboardBuilder::generateReplacementPairs(std::list<codeGen> &springboards,
 						  Address from,
@@ -359,6 +360,7 @@ bool SpringboardBuilder::generateReplacementPairs(std::list<codeGen> &springboar
   }
   return ret;
 }
+#endif
 
 bool SpringboardBuilder::isLegalShortBranch(Address from, Address to) {
   // FIXME POWER...

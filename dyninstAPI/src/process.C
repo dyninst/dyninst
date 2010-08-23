@@ -5142,13 +5142,12 @@ void process::fixupActiveStackTargets()
   AddrSet activeAddrs;
   getActivePCs(activeAddrs);
 
-  // [orig, cur addr] set
-  AddrPairSet activePatchAreas;
-  getActivePatchAreas(activePatchAreas, activeAddrs);
+  ADPList activePads;
+  getActiveDefensivePads(activeAddrs, activePads);
 
   // [cur addr, new addr] set
   AddrPairSet branchesNeeded;
-  generateRequiredPatches(activePatchAreas, branchesNeeded);
+  generateRequiredPatches(activePads, branchesNeeded);
 
   // Generate a pile of branches.
   generatePatchBranches(branchesNeeded);
@@ -5440,63 +5439,51 @@ void process::getActivePCs(AddrSet &pcs) {
   }
 }
 
-void process::getActivePatchAreas(AddrPairSet &patches,
-				  AddrSet &pcs) {
+void process::getActiveDefensivePads(AddrSet &pcs, 
+				     ADPList &activePads) {
   for (std::set<Address>::iterator pc = pcs.begin(); pc != pcs.end(); ++pc) {
-    Address tmp1, tmp2, from;
-    if (reverseDefensiveMap_.find(*pc, tmp1, tmp2, from)) {
-      // From holds the address of the _call_ associated with
-      // this patch area. 
-      patches.insert(std::make_pair<Address, Address>(from, *pc));
+    Address padStart, tmp2;
+    bblInstance *callBlock;
+    if (reverseDefensiveMap_.find(*pc, padStart, tmp2, callBlock)) {
+      // From holds the block containing the call. We now need to look
+      // up the address of its fall-through successor.
+      assert(callBlock);
+      bblInstance *ft = callBlock->getFallthroughBBL();
+      if (ft) {
+	activePads.push_back(ActiveDefensivePad(*pc, padStart, callBlock, ft));
+      }
     }
   }
 }
 
-void process::generateRequiredPatches(AddrPairSet &patches,
+void process::generateRequiredPatches(ADPList &activePads,
 				      AddrPairSet &requests) {
-  for (AddrPairSet::iterator iter = patches.begin();
-       iter != patches.end(); ++iter) {
-    Address call = iter->first;
-    Address current = iter->second;
-    Address to = -1;
-
+  for (ADPList::iterator iter = activePads.begin();
+       iter != activePads.end(); ++iter) {
+    assert(iter->activePC >= iter->padStart);
+    unsigned offsetInPad = iter->activePC - iter->padStart;
+    
     // We need to figure out where this patch should branch to.
     // To do that, we're going to:
-    // 1) Look up the basic block instance associated with the call address;
-    // 2) Look up its fallthrough block;
-    // 3) Forward map the entry of the block to
+    // 1) Forward map the entry of the ft block to
     //    its most recent relocated version (if that exists)
-    // TODO: this is not shared code safe since we map back
-    // to the original call. We would need to preserve
-    // the function ID in addition. 
+    // 2) For each padding area p, create a branch from p 
+    //    to addr(ft)
 
-    // 1
-    bblInstance *bbi = findOrigByAddr(call)->is_basicBlockInstance();
-    assert(bbi);
-    
-    // 2
-    bblInstance *target = NULL;
-    vector<int_basicBlock *> outs;
-    bbi->block()->getTargets(outs);
-    for (unsigned i = 0; i < outs.size(); ++i) {
-      if (bbi->block()->getTargetEdgeType(outs[i]) == ParseAPI::CALL_FT) {
-	target = outs[i]->origInstance();
-      }
-    }
-    assert(target);
-
-    // 3
-    // We want the most recent map from original addresses
-    // to relocated addresses
-    assert(!relocatedCode_.empty());
-    Relocation::CodeTracker &mapper = relocatedCode_.back();
-    if (!mapper.origToReloc(target->firstInsnAddr(),
-			    to)) {
+    // 1)
+    Address to;
+    if (relocatedCode_.back().origToReloc(iter->ftBlock->firstInsnAddr(),
+					  iter->ftBlock,
+					  to)) {
       assert(0);
     }
     
-    // 4 ;)
-    requests.insert(std::make_pair<Address, Address>(current, to));
+    // 2) 
+    for (std::set<DefensivePad>::iterator d_iter = forwardDefensiveMap_[iter->callBlock].begin();
+	 d_iter != forwardDefensiveMap_[iter->callBlock].end(); ++d_iter) {
+      Address jumpAddr = d_iter->first + offsetInPad;
+      requests.insert(std::make_pair(jumpAddr, to));
+    }
   }
 }
 
@@ -5510,7 +5497,8 @@ void process::generatePatchBranches(AddrPairSet &branchesNeeded) {
     insnCodeGen::generateBranch(gen, from, to);
 
     // Safety check: make sure we didn't overrun the patch area
-    Address lb, ub, tmp;
+    Address lb, ub;
+    bblInstance *tmp;
     if (!reverseDefensiveMap_.find(from, lb, ub, tmp)) {
       // WTF? This worked before!
       assert(0);
@@ -5902,7 +5890,7 @@ void process::gcInstrumentation()
 }
 
 // garbage collect instrumentation
-void process::gcInstrumentation(pdvector<pdvector<Frame> > &stackWalks)
+void process::gcInstrumentation(pdvector<pdvector<Frame> > &)
 {
   return;
 #if 0
