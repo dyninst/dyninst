@@ -119,6 +119,7 @@ else
 LIBTESTSUITE = libtestSuite.so
 endif
 
+TESTDRIVER_LDFLAGS = $(DEMANGLER_EXEC_LINK)
 #######################################################
 # Dyninst infrastructure components
 #######################################################
@@ -563,9 +564,8 @@ test_driver_static.o: ../src/test_driver.C $(DEPENDDIR)/test_driver_static.dep
 	@$(CXX) -c -o $@ -DSTATIC_TEST_DRIVER $(CXXFLAGS) $(MUTATEE_DEFS) ../src/test_driver.C
 
 test_driver: test_driver.o test_driver_templates.o test_info_new.gen.o $(DEPENDDIR)/test_driver.dep $(LIBTESTSUITE)
-	@echo Linking $@
-	@$(CXX) -o $@ test_driver.o test_driver_templates.o test_info_new.gen.o -L. -ltestSuite $(MUTATOR_LDFLAGS) $(LIBS) \
-$(TESTDRIVER_LDFLAGS) -lcommon
+	@echo Linking $@ $(TESTDRIVER_LDFLAGS)
+	$(CXX) -o $@ test_driver.o test_driver_templates.o test_info_new.gen.o -L. -ltestSuite $(MUTATOR_LDFLAGS) $(LIBS) $(TESTDRIVER_LDFLAGS) -lcommon
 
 ######################################################################
 ### Output Drivers

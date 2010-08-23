@@ -7,7 +7,6 @@
 NO_IMPLICIT_TEMPLATES = true
 USES_DWARF_DEBUG = true
 USES_LIBELF = true
-DEBUG_FLAG = -g
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
@@ -41,7 +40,6 @@ SRCS =          ../src/Object-elf.C \
 #MYFLAGS	+= -DINFERIOR_RPC_DEBUG
 MYFLAGS		+= -DUSES_DWARF_DEBUG -I$(LIBDWARF_INC)
 MYFLAGS     += -I$(LIBELF_INC) 
-MYFLAGS		+= -I/usr/include/libelf
 
 CXXFLAGS        += $(MYFLAGS)
 CFLAGS          += $(MYFLAGS)
@@ -58,9 +56,6 @@ LIBS += -ldwarf
 endif
 ifndef LIBELF_STATIC
 LIBS += -lelf
-endif
-ifndef LIBIBERTY_STATIC
-LIBS	+= -liberty
 endif
 
 AS		= /usr/bin/as

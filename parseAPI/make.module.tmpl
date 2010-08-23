@@ -80,17 +80,6 @@ PUBLIC_H += Absloc.h \
 	 stackanalysis.h
 endif
 
-ifndef USES_NATIVE_CC
-ifdef CROSSCOMPILER
-SYSLIBS		+= -liberty -lg++ -lstdc++ -lm
-else
-SYSLIBS         += -liberty
-endif
-else
-SYSLIBS		+= -ldemangle
-endif
-
-
 IFLAGS       += -I../$(PLATFORM) -I../src -I../../dataflowAPI/src -I../../dataflowAPI/h -I../h -I../../dynutil/h -I../../symtabAPI/h -I../../common/h -I../../instructionAPI/h
 
 

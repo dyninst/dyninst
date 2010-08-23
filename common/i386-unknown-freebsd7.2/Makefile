@@ -40,12 +40,11 @@ SRCS =		../../common/src/timing-freebsd.C \
 CXXFLAGS        += $(MYFLAGS)
 CFLAGS          += $(MYFLAGS)
 TFLAGS          += $(MYFLAGS)
-LDFLAGS		+= -L$(LIBIBERTY_LIB)
 
 # Tradeoff: adding -g to TFLAGS aids gdb but uses gobs of disk space
 #TFLAGS		+= -g
 
-LIBS    += -lutil -liberty 
+LIBS    += -lutil
 
 AS		= /usr/bin/as
 
