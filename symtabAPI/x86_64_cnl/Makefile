@@ -60,7 +60,6 @@ TFLAGS          += $(MYFLAGS)
 LIBS	  +=  -L$(LIBDWARF_LIB) -L$(LIBELF_LIB)
 LIBS += -ldwarf
 LIBS += -lelf
-LIBS	+= -liberty
 
 AS		= /usr/bin/as
 

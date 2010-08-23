@@ -32,6 +32,7 @@
 #include "common/h/headers.h"
 #include "common/h/parseauxv.h"
 #include "common/h/linuxKludges.h"
+#include "common/h/Types.h"
 
 #include <elf.h>
 
@@ -39,6 +40,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <dirent.h>
+#include <string.h>
 
 typedef int (*intKludge)();
 
@@ -970,6 +972,7 @@ map_entries *getLinuxMaps(int pid, unsigned &maps_size) {
    } 
 
    maps = (map_entries *) malloc(sizeof(map_entries) * (no_lines+1));
+   memset(maps, 0, sizeof(map_entries) * (no_lines+1));
    if (!maps)
       goto done_err;
 
@@ -982,11 +985,11 @@ map_entries *getLinuxMaps(int pid, unsigned &maps_size) {
       while (buffer[next_end] != '\n' && next_end < file_size) next_end++;
       unsigned int line_size = (next_end - cur_pos) > LINE_LEN ? LINE_LEN : (next_end - cur_pos);
       memcpy(line, buffer+cur_pos, line_size);
+      line[line_size] = '\0';
       line[LINE_LEN - 1] = '\0';
       cur_pos = next_end+1;
 
-      maps[i].path[0] = '\0';
-      sscanf(line, "%lx-%lx %16s %lx %x:%x %u %512s\n", 
+      sscanf(line, "%lx-%lx %16s %lx %x:%x %u %" MAPENTRIES_PATH_SIZE_STR "s\n", 
              (Address *) &maps[i].start, (Address *) &maps[i].end, prems, 
              (Address *) &maps[i].offset, &maps[i].dev_major,
              &maps[i].dev_minor, &maps[i].inode, maps[i].path);

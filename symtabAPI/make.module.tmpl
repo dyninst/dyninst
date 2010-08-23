@@ -110,9 +110,7 @@ PUBLIC_H   = AddrLookup.h \
 
 ifndef USES_NATIVE_CC
 ifdef CROSSCOMPILER
-SYSLIBS		+= -liberty -lg++ -lstdc++ -lm
-else
-SYSLIBS         += -liberty
+SYSLIBS		+= -lg++ -lstdc++ -lm
 endif
 else
 SYSLIBS		+= -ldemangle

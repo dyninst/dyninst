@@ -63,9 +63,6 @@ endif
 ifndef LIBELFSTATIC
 LIBS += -lelf
 endif
-ifndef LIBIBERTYSTATIC
-LIBS	+= -liberty
-endif
 
 AS		= /usr/bin/as
 
