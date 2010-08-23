@@ -295,6 +295,11 @@ bool GenStack::GenObj::apply(codeGen &current, unsigned &size, int iteration, in
   current.copy(gen);
   size += gen.used();
 
+  for (std::map<bblInstance *, codeGen::Extent>::iterator iter = gen.getDefensivePads().begin();
+       iter != gen.getDefensivePads().end(); ++iter) {
+    current.registerDefensivePad(iter->first, iter->second.first, iter->second.second);
+  }
+
   relocation_cerr << "\t\t " << gen.used() << " bytes used" << endl;
 
   return true;
