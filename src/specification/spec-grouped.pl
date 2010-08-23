@@ -3118,7 +3118,10 @@ test_runs_everywhere(none).
 % All mutators need to be linked with dyninstAPI and iberty
 % All mutators also need to be linked with testSuite, for the TestMutator
 % superclass if nothing else.
-all_mutators_require_libs(['iberty', 'testSuite']).
+%
+% Remove liberty from the prolog--this is determined by autoconf
+all_mutators_require_libs(['testSuite']).
+
 
 module_required_libs('dyninst', ['dyninstAPI']).
 module_required_libs('symtab', ['symtabAPI']).

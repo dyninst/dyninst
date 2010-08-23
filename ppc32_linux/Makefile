@@ -55,7 +55,6 @@ TEST1_FORTRAN_CSOURCE = test1.mutateeFortC.c
 
 MUTATEE_G77_LDFLAGS += $(LDFLAGS)
 
-MUTATOR_LIBS += -liberty
 MUTATEE_CFLAGS_NATIVE 	= $(UNIFIED_DEF) -g
 MUTATEE_CXXFLAGS_NATIVE = $(UNIFIED_DEF) -g
 
@@ -83,8 +82,6 @@ MUTATEE_TEST9_EXTRA_LIB = 9.-L./ 9.-lInstMe
 LIBS_LIBTESTSUITE = -ldl
 
 STRIP_SO = strip -g
-
-TESTDRIVER_LDFLAGS = -liberty
 
 include ../make.module.tmpl
 
