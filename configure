@@ -2209,7 +2209,7 @@ else
 fi;
 # 3/15/09: We don't include libiberty in the cs.wisc.edu package-base.
 #          Why?  Putting these here for now...
-LIBIBERTY_LIB_DIR="/usr/lib";
+#LIBIBERTY_LIB_DIR="/usr/lib";
 
 
 
@@ -3727,7 +3727,9 @@ if test "${with_libiberty_libdir+set}" = set; then
   LIBIBERTY_LIB_DIR="${withval}";
 fi;
    LIBS_HOLD=$LIBS
-   LIBS="-L$LIBIBERTY_LIB_DIR"
+   if test "x$LIBIBERTY_LIB_DIR" != "x" ; then
+      LIBS="-L$LIBIBERTY_LIB_DIR"
+   fi
    echo "$as_me:$LINENO: checking for cplus_demangle in -liberty" >&5
 echo $ECHO_N "checking for cplus_demangle in -liberty... $ECHO_C" >&6
 if test "${ac_cv_lib_iberty_cplus_demangle+set}" = set; then
