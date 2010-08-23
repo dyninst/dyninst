@@ -40,6 +40,8 @@
 #include <set>
 #include <list>
 #include "common/h/IntervalTree.h"
+// Remove when I'm done debugging this...
+#include "dyninstAPI/src/baseTramp.h"
 
 class bblInstance;
 class baseTrampInstance;
@@ -128,8 +130,10 @@ class EmulatorTracker : public TrackerElement {
 
 class InstTracker : public TrackerElement {
  public:
- InstTracker(Address orig, baseTrampInstance *baseT) :
-  TrackerElement(orig), baseT_(baseT) {};
+ InstTracker(Address orig, baseTrampInstance *baseT, unsigned size = 0) :
+  TrackerElement(orig, size), baseT_(baseT) {
+    assert(baseT_->baseT);
+  };
   virtual ~InstTracker() {};
 
   virtual Address relocToOrig(Address reloc) const {

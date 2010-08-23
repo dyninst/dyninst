@@ -101,8 +101,8 @@ static frameStatus_t getFrameStatus(process *p, unsigned long pc, int &extra_hei
 
    // See if we're in instrumentation
    Address origAddr = pc;
-   baseTrampInstance *bti;
-   bblInstance *inst;
+   baseTrampInstance *bti = NULL;
+   bblInstance *inst = NULL;
    if (p->getRelocInfo(pc, 
 		       origAddr,
 		       inst,

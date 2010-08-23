@@ -72,10 +72,13 @@ TrackerElement *Inst::tracker() const {
 }
 
 Inst::~Inst() {
+#if 0
+  // don't do this - we kinda need these later for stackwalking etc.
   for (std::list<baseTrampInstance *>::iterator iter = baseTramps_.begin();
        iter != baseTramps_.end(); ++iter) {
     delete (*iter);
   }
+#endif
 }
 
 bool Inst::generate(GenStack &gens) {

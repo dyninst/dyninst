@@ -163,7 +163,7 @@ instPoint *Frame::getPoint() {
 }
 
 baseTramp *Frame::getBaseTramp() {
-  baseTrampInstance *bti;
+  baseTrampInstance *bti = NULL;
   Address origPC;
   bblInstance *bbl;
   if (getProc()->getRelocInfo(pc_,

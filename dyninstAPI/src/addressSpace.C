@@ -1779,7 +1779,7 @@ bool AddressSpace::getRelocInfo(Address relocAddr,
 				Address &origAddr,
 				bblInstance *&origInst,
 				baseTrampInstance *&baseT) {
-
+  baseT = NULL;
   for (CodeTrackers::const_iterator iter = relocatedCode_.begin();
        iter != relocatedCode_.end(); ++iter) {
     if (iter->relocToOrig(relocAddr, origAddr, origInst)) {
