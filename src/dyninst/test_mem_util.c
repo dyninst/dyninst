@@ -228,13 +228,13 @@ const struct reduction ccRed = { 0, 0, 0, 1, 87 };
 unsigned int loadExp=67;
 unsigned int storeExp=31;
 unsigned int prefeExp=2;
-unsigned int accessExp=95;
-unsigned int accessExpCC=94;
+unsigned int accessExp=98;
+unsigned int accessExpCC=97;
 
 const struct reduction mmxRed = { 2, 1, 0, 3, 50 };
-const struct reduction sseRed = { 2, 0, 1, 3, 55 };
-const struct reduction sse2Red = { 2, 0, 0, 2, 60 };
-const struct reduction amdRed = { 2, 0, 1, 3, 64 };
+const struct reduction sseRed = { 2, 1, 1, 4, 55 };
+const struct reduction sse2Red = { 2, 1, 0, 3, 60 };
+const struct reduction amdRed = { 2, 1, 1, 4, 64 };
 
 const struct reduction ccRed = { 0, 0, 0, 1, 91 };
 #endif

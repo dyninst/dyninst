@@ -97,7 +97,7 @@ static int threadFunc(int myid, void *data)
    return 0;
 }
 
-#if defined(os_linux_test)
+#if defined(os_linux_test) || defined(os_freebsd_test)
 #include <dlfcn.h>
 #include <assert.h>
 static void loadTestA()
