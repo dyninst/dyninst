@@ -530,6 +530,7 @@ bool IA_IAPI::fillTableEntries(Address,
                             Address,
                             unsigned,
                             unsigned,
+                            int,
                             std::vector<std::pair< Address, EdgeTypeEnum> >&) const
 {
     return false;

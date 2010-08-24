@@ -246,7 +246,8 @@ BPatch_binaryEdit *startBinaryTest(BPatch *bpatch, RunGroup *group)
 }
 
 
-#if defined(os_linux_test)
+#if defined(os_linux_test) || defined(os_freebsd_test)
+
 #include <dirent.h>
 #include <unistd.h>
 #include <sys/stat.h>
@@ -317,7 +318,12 @@ static bool cdBack()
 static bool waitForCompletion(int pid, bool &app_crash, int &app_return)
 {
    int result, status;
-   int options = __WALL;
+   int options = 0;
+
+#if defined(__WALL)
+   options = __WALL;
+#endif
+
    do {
       result = waitpid(pid, &status, options);
    } while (result == -1 && errno == EINTR);

@@ -46,7 +46,7 @@
 #include <ostream>
 //#include "debugOstream.h"
 #include "headers.h"
-#include "String.h"
+#include "string-regex.h"
 
 /************************************************************************
  * class Ident
@@ -75,14 +75,14 @@ class Ident {
     const char* builder () const { return builder_; }
 
     // capitalized versions are C++ "String" strings
-    pdstring Suite () const { return pdstring (suite_); }
-    pdstring Release () const { return pdstring (release_); }
-    pdstring BuildNum () const { return pdstring (buildnum_); }
-    pdstring Component () const { return pdstring (component_); }
-    pdstring Revision () const { return pdstring (revision_); }
-    pdstring Date () const { return pdstring (date_); }
-    pdstring Time () const { return pdstring (time_); }
-    pdstring Builder () const { return pdstring (builder_); }
+    std::string Suite () const { return std::string (suite_); }
+    std::string Release () const { return std::string (release_); }
+    std::string BuildNum () const { return std::string (buildnum_); }
+    std::string Component () const { return std::string (component_); }
+    std::string Revision () const { return std::string (revision_); }
+    std::string Date () const { return std::string (date_); }
+    std::string Time () const { return std::string (time_); }
+    std::string Builder () const { return std::string (builder_); }
 
     friend std::ostream& operator<< (std::ostream &os, const Ident &Id);  // output
 

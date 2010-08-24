@@ -50,6 +50,7 @@
 #include "proccontrol/src/irpc.h"
 #include "proccontrol/src/linux.h"
 #include "proccontrol/src/int_handler.h"
+#include "proccontrol/src/snippets.h"
 #include "common/h/linuxKludges.h"
 #include "common/h/parseauxv.h"
 using namespace Dyninst;
@@ -468,41 +469,6 @@ Dyninst::Architecture linux_process::getTargetArch()
    return arch;
 }
 
-unsigned linux_process::getTargetPageSize()
-{
-   static unsigned pgsize = 0;
-   if (!pgsize)
-      pgsize = getpagesize();
-   return pgsize;
-}
-
-Dyninst::Address linux_process::plat_mallocExecMemory(Dyninst::Address min, unsigned size)
-{
-   Dyninst::Address result = 0x0;
-   bool found_result = false;
-   unsigned maps_size;
-   map_entries *maps = getLinuxMaps(getPid(), maps_size);
-   assert(maps); //TODO, Perhaps go to libraries for address map if no /proc/
-   for (unsigned i=0; i<maps_size; i++) {
-      if (!(maps[i].prems & PREMS_EXEC)) 
-         continue;
-      if (min + size > maps[i].end)
-         continue;
-      if (maps[i].end - maps[i].start < size)
-         continue;
-
-      if (maps[i].start > min)
-         result = maps[i].start;
-      else 
-         result = min;
-      found_result = true;
-      break;
-   }
-   assert(found_result);
-   free(maps);
-   return result;
-}
-
 linux_process::linux_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int,int> f) :
    sysv_process(p, e, a, f)
 {
@@ -539,7 +505,6 @@ bool linux_process::plat_create_int()
    {
       //Child
       long int result = ptrace((pt_req) PTRACE_TRACEME, 0, 0, 0);
-      unsigned i;
       if (result == -1)
       {
          pthrd_printf("Failed to execute a PTRACE_TRACME.  Odd.\n");
@@ -547,52 +512,8 @@ bool linux_process::plat_create_int()
          exit(-1);
       }
 
-      typedef const char * const_str;
-      
-      const_str *new_argv = (const_str *) calloc(argv.size()+3, sizeof(char *));
-      new_argv[0] = executable.c_str();
-      for (i=1; i<argv.size()+1; i++) {
-         new_argv[i] = argv[i-1].c_str();
-      }
-      new_argv[i+1] = (char *) NULL;
-      
-      for(std::map<int,int>::iterator fdit = fds.begin(),
-          fdend = fds.end();
-          fdit != fdend;
-          ++fdit)
-      {
-        int oldfd = fdit->first;
-        int newfd = fdit->second;
-
-        result = close(newfd);
-        if (result == -1)
-        {
-          pthrd_printf("Could not close old file descriptor to redirect.\n");
-          setLastError(err_internal, "Unable to close file descriptor for redirection");
-          exit(-1);
-        }
-
-        result = dup2(oldfd, newfd);
-        if (result == -1)
-        {
-          pthrd_printf("Could not redirect file descriptor.\n");
-          setLastError(err_internal, "Failed dup2 call.");
-          exit(-1);
-        }
-        pthrd_printf("DEBUG redirected file!\n");
-      }
-
-      result = execv(executable.c_str(), const_cast<char * const*>(new_argv));
-      int errnum = errno;         
-      pthrd_printf("Failed to exec %s: %s\n", 
-                   executable.c_str(), strerror(errnum));
-      if (errnum == ENOENT)
-         setLastError(err_nofile, "No such file");
-      if (errnum == EPERM || errnum == EACCES)
-         setLastError(err_prem, "Premission denied");
-      else
-         setLastError(err_internal, "Unable to exec process");
-      exit(-1);
+      // Never returns
+      plat_execv();
    }
    return true;
 }
@@ -684,9 +605,8 @@ bool linux_process::getThreadLWPs(std::vector<Dyninst::LWP> &lwps)
    return findProcLWPs(pid, lwps);
 }
 
-bool linux_process::independentLWPControl()
-{
-   return true;
+int_process::ThreadControlMode int_process::getThreadControlMode() {
+    return int_process::IndependentLWPControl;
 }
 
 bool linux_thread::plat_cont()
@@ -880,49 +800,6 @@ bool linux_thread::getSegmentBase(Dyninst::MachRegister reg, Dyninst::MachRegist
    }
 }
 
-bool installed_breakpoint::plat_install(int_process *proc, bool should_save)
-{
-   pthrd_printf("Platform breakpoint install at %lx in %d\n", 
-                addr, proc->getPid());
-   if (should_save) {
-     switch (proc->getTargetArch())
-     {
-       case Arch_x86_64:
-       case Arch_x86:
-         buffer_size = 1;
-         break;
-       default:
-         assert(0);
-     }
-     assert((unsigned) buffer_size < sizeof(buffer));
-     
-     bool result = proc->readMem(&buffer, addr, buffer_size);
-     if (!result) {
-       pthrd_printf("Error reading from process\n");
-       return result;
-     }
-   }
-   
-   bool result;
-   switch (proc->getTargetArch())
-   {
-      case Arch_x86_64:
-      case Arch_x86: {
-         unsigned char trap_insn = 0xcc;
-         result = proc->writeMem(&trap_insn, addr, 1);
-         break;
-      }
-      default:
-         assert(0);
-   }
-   if (!result) {
-      pthrd_printf("Error writing breakpoint to process\n");
-      return result;
-   }
-
-   return true;
-}
-
 bool linux_process::plat_individualRegAccess()
 {
    return true;
@@ -960,7 +837,6 @@ bool linux_process::plat_terminate(bool &needs_sync)
    return true;
 }
 
-typedef std::map<Dyninst::MachRegister, std::pair<unsigned int, unsigned int> > dynreg_to_user_t;
 dynreg_to_user_t dynreg_to_user;
 static void init_dynreg_to_user()
 {
@@ -1381,78 +1257,6 @@ bool ProcessPool::LWPIDsAreUnique()
    return true;
 }
 
-void int_notify::writeToPipe()
-{
-   if (pipe_out == -1) 
-      return;
-
-   char c = 'e';
-   ssize_t result = write(pipe_out, &c, 1);
-   if (result == -1) {
-      int error = errno;
-      setLastError(err_internal, "Could not write to notification pipe\n");
-      perr_printf("Error writing to notification pipe: %s\n", strerror(error));
-      return;
-   }
-   pthrd_printf("Wrote to notification pipe %d\n", pipe_out);
-}
-
-void int_notify::readFromPipe()
-{
-   if (pipe_out == -1)
-      return;
-
-   char c;
-   ssize_t result;
-   int error;
-   do {
-      result = read(pipe_in, &c, 1);
-      error = errno;
-   } while (result == -1 && error == EINTR);
-   if (result == -1) {
-      int error = errno;
-      if (error == EAGAIN) {
-         pthrd_printf("Notification pipe had no data available\n");
-         return;
-      }
-      setLastError(err_internal, "Could not read from notification pipe\n");
-      perr_printf("Error reading from notification pipe: %s\n", strerror(error));
-   }
-   assert(result == 1 && c == 'e');
-   pthrd_printf("Cleared notification pipe %d\n", pipe_in);
-}
-
-bool int_notify::createPipe()
-{
-   if (pipe_in != -1 || pipe_out != -1)
-      return true;
-
-   int fds[2];
-   int result = pipe(fds);
-   if (result == -1) {
-      int error = errno;
-      setLastError(err_internal, "Error creating notification pipe\n");
-      perr_printf("Error creating notification pipe: %s\n", strerror(error));
-      return false;
-   }
-   assert(fds[0] != -1);
-   assert(fds[1] != -1);
-
-   result = fcntl(fds[0], F_SETFL, O_NONBLOCK);
-   if (result == -1) {
-      int error = errno;
-      setLastError(err_internal, "Error setting properties of notification pipe\n");
-      perr_printf("Error calling fcntl for O_NONBLOCK on %d: %s\n", fds[0], strerror(error));
-      return false;
-   }
-   pipe_in = fds[0];
-   pipe_out = fds[1];
-
-
-   pthrd_printf("Created notification pipe: in = %d, out = %d\n", pipe_in, pipe_out);
-   return true;
-}
-
 LinuxPtrace *LinuxPtrace::linuxptrace = NULL;
 
 long do_ptrace(pt_req request, pid_t pid, void *addr, void *data)
@@ -1614,11 +1418,11 @@ bool LinuxPtrace::ptrace_write(Dyninst::Address inTrace, unsigned size_,
 }
 
 
-static const unsigned int x86_64_mmap_flags_position = 26;
-static const unsigned int x86_64_mmap_size_position = 43;
-static const unsigned int x86_64_mmap_addr_position = 49;
-static const unsigned int x86_64_mmap_start_position = 4;
-static const unsigned char x86_64_call_mmap[] = {
+const unsigned int x86_64_mmap_flags_position = 26;
+const unsigned int x86_64_mmap_size_position = 43;
+const unsigned int x86_64_mmap_addr_position = 49;
+const unsigned int x86_64_mmap_start_position = 4;
+const unsigned char x86_64_call_mmap[] = {
 0x90, 0x90, 0x90, 0x90,                         //nop,nop,nop,nop
 0x48, 0x8d, 0x64, 0x24, 0x80,                   //lea    -128(%rsp),%rsp
 0x49, 0xc7, 0xc0, 0x00, 0x00, 0x00, 0x00,       //mov    $0x0,%r8
@@ -1635,11 +1439,12 @@ static const unsigned char x86_64_call_mmap[] = {
 0xcc,                                           //Trap
 0x90                                            //nop
 };
+const unsigned int x86_64_call_mmap_size = sizeof(x86_64_call_mmap);
 
-static const unsigned int x86_64_munmap_size_position = 15;
-static const unsigned int x86_64_munmap_addr_position = 21;
-static const unsigned int x86_64_munmap_start_position = 4;
-static const unsigned char x86_64_call_munmap[] = {
+const unsigned int x86_64_munmap_size_position = 15;
+const unsigned int x86_64_munmap_addr_position = 21;
+const unsigned int x86_64_munmap_start_position = 4;
+const unsigned char x86_64_call_munmap[] = {
 0x90, 0x90, 0x90, 0x90,                         //nop,nop,nop,nop
 0x48, 0x8d, 0x64, 0x24, 0x80,                   //lea    -128(%rsp),%rsp
 0x48, 0x31, 0xf6,                               //xor    %rsi,%rsi
@@ -1652,13 +1457,14 @@ static const unsigned char x86_64_call_munmap[] = {
 0xcc,                                           //Trap
 0x90                                            //nop
 };
+const unsigned int x86_64_call_munmap_size = sizeof(x86_64_call_munmap);
 
 
-static const unsigned int x86_mmap_flags_position = 20;
-static const unsigned int x86_mmap_size_position = 10;
-static const unsigned int x86_mmap_addr_position = 5;
-static const unsigned int x86_mmap_start_position = 4;
-static const unsigned char x86_call_mmap[] = {
+const unsigned int x86_mmap_flags_position = 20;
+const unsigned int x86_mmap_size_position = 10;
+const unsigned int x86_mmap_addr_position = 5;
+const unsigned int x86_mmap_start_position = 4;
+const unsigned char x86_call_mmap[] = {
    0x90, 0x90, 0x90, 0x90,                //nop; nop; nop; nop
    0xbb, 0x00, 0x00, 0x00, 0x00,          //mov    $0x0,%ebx  (addr)
    0xb9, 0x00, 0x00, 0x00, 0x00,          //mov    $0x0,%ecx  (size)
@@ -1671,11 +1477,12 @@ static const unsigned char x86_call_mmap[] = {
    0xcc,                                  //Trap
    0x90                                   //nop
 };
+const unsigned int x86_call_mmap_size = sizeof(x86_64_call_mmap);
 
-static const unsigned int x86_munmap_size_position = 10;
-static const unsigned int x86_munmap_addr_position = 5;
-static const unsigned int x86_munmap_start_position = 4;
-static const unsigned char x86_call_munmap[] = {
+const unsigned int x86_munmap_size_position = 10;
+const unsigned int x86_munmap_addr_position = 5;
+const unsigned int x86_munmap_start_position = 4;
+const unsigned char x86_call_munmap[] = {
    0x90, 0x90, 0x90, 0x90,                //nop; nop; nop; nop
    0xbb, 0x00, 0x00, 0x00, 0x00,          //mov    $0x0,%ebx  (addr)
    0xb9, 0x00, 0x00, 0x00, 0x00,          //mov    $0x0,%ecx  (size)
@@ -1684,132 +1491,4 @@ static const unsigned char x86_call_munmap[] = {
    0xcc,                                  //Trap
    0x90                                   //nop
 };
-
-bool iRPCMgr::createAllocationSnippet(int_process *proc, Dyninst::Address addr, 
-                                      bool use_addr, unsigned long size, 
-                                      void* &buffer, unsigned long &buffer_size, 
-                                      unsigned long &start_offset)
-{
-   const void *buf_tmp = NULL;
-   unsigned addr_size = 0;
-   unsigned addr_pos = 0;
-   unsigned flags_pos = 0;
-   unsigned size_pos = 0;
-
-   int flags = MAP_ANONYMOUS | MAP_PRIVATE;
-   if (use_addr) 
-      flags |= MAP_FIXED;
-   else
-      addr = 0x0;
-
-   switch (proc->getTargetArch())
-   {
-      case Arch_x86_64:
-         buf_tmp = x86_64_call_mmap;
-         buffer_size = sizeof(x86_64_call_mmap);
-         start_offset = x86_64_mmap_start_position;
-         addr_pos = x86_64_mmap_addr_position;
-         flags_pos = x86_64_mmap_flags_position;
-         size_pos = x86_64_mmap_size_position;
-         addr_size = 8;
-         break;
-      case Arch_x86:
-         buf_tmp = x86_call_mmap;
-         buffer_size = sizeof(x86_call_mmap);
-         start_offset = x86_mmap_start_position;
-         addr_pos = x86_mmap_addr_position;
-         flags_pos = x86_mmap_flags_position;
-         size_pos = x86_mmap_size_position;
-         addr_size = 4;
-         break;
-      default:
-         assert(0);
-   }
-   
-   buffer = malloc(buffer_size);
-   memcpy(buffer, buf_tmp, buffer_size);
-
-   //Assuming endianess of debugger and debugee match.
-   *((unsigned int *) (((char *) buffer)+size_pos)) = size;
-   *((unsigned int *) (((char *) buffer)+flags_pos)) = flags;
-   if (addr_size == 8)
-      *((unsigned long *) (((char *) buffer)+addr_pos)) = addr;
-   else if (addr_size == 4)
-      *((unsigned *) (((char *) buffer)+addr_pos)) = (unsigned) addr;
-   else 
-      assert(0);
-   return true;
-}
-
-bool iRPCMgr::createDeallocationSnippet(int_process *proc, Dyninst::Address addr, 
-                                        unsigned long size, void* &buffer, 
-                                        unsigned long &buffer_size, 
-                                        unsigned long &start_offset)
-{
-   const void *buf_tmp = NULL;
-   unsigned addr_size = 0;
-   unsigned addr_pos = 0;
-   unsigned size_pos = 0;
-
-   switch (proc->getTargetArch())
-   {
-      case Arch_x86_64:
-         buf_tmp = x86_64_call_munmap;
-         buffer_size = sizeof(x86_64_call_munmap);
-         start_offset = x86_64_munmap_start_position;
-         addr_pos = x86_64_munmap_addr_position;
-         size_pos = x86_64_munmap_size_position;
-         addr_size = 8;
-         break;
-      case Arch_x86:
-         buf_tmp = x86_call_munmap;
-         buffer_size = sizeof(x86_call_munmap);
-         start_offset = x86_munmap_start_position;
-         addr_pos = x86_munmap_addr_position;
-         size_pos = x86_munmap_size_position;
-         addr_size = 4;
-         break;
-      default:
-         assert(0);
-   }
-   
-   buffer = malloc(buffer_size);
-   memcpy(buffer, buf_tmp, buffer_size);
-
-   //Assuming endianess of debugger and debugee match.
-   *((unsigned int *) (((char *) buffer)+size_pos)) = size;
-   if (addr_size == 8)
-      *((unsigned long *) (((char *) buffer)+addr_pos)) = addr;
-   else if (addr_size == 4)
-      *((unsigned *) (((char *) buffer)+addr_pos)) = (unsigned) addr;
-   else 
-      assert(0);
-   return true;
-}
-
-bool iRPCMgr::collectAllocationResult(int_thread *thr, Dyninst::Address &addr, bool &err)
-{
-   switch (thr->llproc()->getTargetArch())
-   {
-      case Arch_x86_64: {
-         Dyninst::MachRegisterVal val = 0;
-         bool result = thr->getRegister(x86_64::rax, val);
-         assert(result);
-         addr = val;
-         break;
-      }
-      case Arch_x86: {
-         Dyninst::MachRegisterVal val = 0;
-         bool result = thr->getRegister(x86::eax, val);
-         assert(result);
-         addr = val;
-         break;
-      }
-      default:
-         assert(0);
-         break;
-   }
-   //TODO: check addr vs. possible mmap return values.
-   err = false;
-   return true;
-} 
+const unsigned int x86_call_munmap_size = sizeof(x86_call_munmap);

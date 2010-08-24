@@ -778,7 +778,10 @@ instPoint *instPoint::createParsePoint(int_function *func,
                 func->symTabName().c_str(),
                 img_p->getPointType());
 
-
+   // Madhavi 2010: This condition is no longer true. We could have
+   // instPoints above the function entry point that belongs to a function
+   // (especially with shared code)
+#if 0
     //assert(img_p->offset() >= func->ifunc->getOffset());
     if(img_p->offset() < func->ifunc()->getOffset()) {
         inst_printf("  -- Failed: image_instPoint offset %lx preceeds "
@@ -786,6 +789,7 @@ instPoint *instPoint::createParsePoint(int_function *func,
                     img_p->offset(),func->ifunc()->getOffset());
         return NULL;
     }
+#endif 
     Address offsetInFunc = img_p->offset() - func->ifunc()->getOffset();
     Address absAddr = offsetInFunc + func->getAddress();
 

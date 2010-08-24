@@ -606,7 +606,7 @@ int cpuidCall() {
     return result;
 }
 #endif
-#if !defined(x86_64_unknown_linux2_4)
+#if !defined(x86_64_unknown_linux2_4) && !(defined(os_freebsd) && defined(arch_x86_64))
 bool xmmCapable()
 {
   int features = cpuidCall();
@@ -2653,3 +2653,53 @@ void emitJump(unsigned disp32, codeGen &gen)
    insn += sizeof(int);
    SET_PTR(insn, gen);
 }
+
+#if defined(os_linux) || defined(os_freebsd)
+
+// These functions were factored from linux-x86.C because
+// they are identical on Linux and FreeBSD
+
+int EmitterIA32::emitCallParams(codeGen &gen, 
+                              const pdvector<AstNodePtr> &operands,
+                              int_function */*target*/, 
+                              pdvector<Register> &/*extra_saves*/, 
+                              bool noCost)
+{
+    pdvector <Register> srcs;
+    unsigned frame_size = 0;
+    unsigned u;
+    for (u = 0; u < operands.size(); u++) {
+        Address unused = ADDR_NULL;
+        Register reg = REG_NULL;
+        if (!operands[u]->generateCode_phase2(gen,
+                                              noCost,
+                                              unused,
+                                              reg)) assert(0); // ARGH....
+        assert (reg != REG_NULL); // Give me a real return path!
+        srcs.push_back(reg);
+    }
+    
+    // push arguments in reverse order, last argument first
+    // must use int instead of unsigned to avoid nasty underflow problem:
+    for (int i=srcs.size() - 1; i >= 0; i--) {
+       RealRegister r = gen.rs()->loadVirtual(srcs[i], gen);
+       ::emitPush(r, gen);
+       frame_size += 4;
+       if (operands[i]->decRefCount())
+          gen.rs()->freeRegister(srcs[i]);
+    }
+    return frame_size;
+}
+
+bool EmitterIA32::emitCallCleanup(codeGen &gen,
+                                int_function * /*target*/, 
+                                int frame_size, 
+                                pdvector<Register> &/*extra_saves*/)
+{
+   if (frame_size)
+      emitOpRegImm(0, RealRegister(REGNUM_ESP), frame_size, gen); // add esp, frame_size
+   gen.rs()->incStack(-1 * frame_size);
+   return true;
+}
+
+#endif

@@ -23,8 +23,6 @@ include ../make.module.tmpl
 # Override default of gcc -- need g++ on AIX
 LD = g++ 
 # On AIX all symbols must be resolved at link time, even for a library.
-# We need the cplus.demangle function from libiberty.
-LDFLAGS += -liberty 
 
 # Include the "standard library template".  This defines all the
 # common targets like "clean", "install", etc.

@@ -47,7 +47,6 @@ SRCS =          ../src/vxworks.C \
 #MYFLAGS	+= -DINFERIOR_RPC_DEBUG
 MYFLAGS         += -DUSES_DWARF_DEBUG -I$(LIBDWARF_INC)
 MYFLAGS         += -I$(LIBELF_INC)
-MYFLAGS		+= -I/usr/include/libelf
 MYFLAGS         += -I$(WIND_FOUNDATION_PATH)/include -DHOST
 
 CXXFLAGS        += $(MYFLAGS)

@@ -32,7 +32,7 @@
 #if !defined(STACK_ANALYSIS_H)
 #define STACK_ANALYSIS_H
 
-#if !defined(_MSC_VER)
+#if !defined(_MSC_VER) && !defined(os_freebsd)
 #include <values.h>
 #endif
 
@@ -57,6 +57,17 @@
 #define MINLONG INT64_MIN
 #else
 #define MINLONG INT32_MIN
+#endif
+#endif
+
+// FreeBSD is missing a MINLONG and MAXLONG
+#if defined(os_freebsd) 
+#if defined(arch_64bit)
+#define MINLONG INT64_MIN
+#define MAXLONG INT64_MAX
+#else
+#define MINLONG INT32_MIN
+#define MAXLONG INT32_MAX
 #endif
 #endif
 

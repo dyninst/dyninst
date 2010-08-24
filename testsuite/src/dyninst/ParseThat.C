@@ -34,6 +34,7 @@
 #include "test_lib.h"
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 using namespace Dyninst;
 
 std::string ParseThat::emptyString("");

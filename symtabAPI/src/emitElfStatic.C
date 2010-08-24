@@ -50,6 +50,10 @@
 #include "emitElfStatic.h"
 #include "debug.h"
 
+#if defined(os_freebsd)
+#define R_X86_64_JUMP_SLOT R_X86_64_JMP_SLOT
+#endif
+
 using namespace Dyninst;
 using namespace SymtabAPI;
 
@@ -1312,3 +1316,123 @@ emitElfUtils::orderLoadableSections(Symtab *obj, vector<Region*> & sections)
     return ret;
 }
 
+// There are also some known variables that point to the heap 
+bool emitElfUtils::updateHeapVariables(Symtab *obj, unsigned long newSecsEndAddress ) {
+    unsigned pgSize = (unsigned)getpagesize();
+    const std::string minbrk(".minbrk");
+    const std::string curbrk(".curbrk");
+    std::vector<Symbol *> heapSyms;
+    obj->findSymbol(heapSyms, minbrk, Symbol::ST_NOTYPE);
+    obj->findSymbol(heapSyms, curbrk, Symbol::ST_NOTYPE);
+
+    std::vector<Symbol *>::iterator heapSymsIter;
+    for(heapSymsIter = heapSyms.begin();
+      heapSymsIter != heapSyms.end();
+      ++heapSymsIter)
+    {
+        Region *symRegion = (*heapSymsIter)->getRegion();
+        Offset symOffset = (*heapSymsIter)->getOffset(); 
+        if( symOffset < symRegion->getRegionAddr() ) continue;
+
+        Offset regOffset = symOffset - symRegion->getRegionAddr();
+        unsigned char *regData = reinterpret_cast<unsigned char *>(symRegion->getPtrToRawData());
+        Offset heapAddr;
+        memcpy(&heapAddr, &regData[regOffset], sizeof(Offset));
+
+        heapAddr = (newSecsEndAddress & ~(pgSize-1)) + pgSize;
+
+        if( !symRegion->patchData(regOffset, &heapAddr, sizeof(Offset)) ) {
+            rewrite_printf("Failed to update heap address\n");
+            return false;
+        }
+    }
+
+    return true;
+}
+
+inline
+static bool adjustValInRegion(Region *reg, Offset offInReg, Offset addressWidth, int adjust) {
+    Offset newValue;
+    unsigned char *oldValues;
+
+    oldValues = reinterpret_cast<unsigned char *>(reg->getPtrToRawData());
+    memcpy(&newValue, &oldValues[offInReg], addressWidth);
+    newValue += adjust;
+    return reg->patchData(offInReg, &newValue, addressWidth);
+}
+
+bool emitElfUtils::updateRelocation(Symtab *obj, relocationEntry &rel, int library_adjust) {
+    // Currently, only verified on x86 and x86_64 -- this may work on other architectures
+#if defined(arch_x86) || defined(arch_x86_64)
+    Region *targetRegion = obj->findEnclosingRegion(rel.rel_addr());
+    if( NULL == targetRegion ) {
+        rewrite_printf("Failed to find enclosing Region for relocation");
+        return false;
+    }
+
+    // Used to update a Region
+    unsigned addressWidth = obj->getAddressWidth();
+    if( addressWidth == 8 ) {
+        switch(rel.getRelType()) {
+            case R_X86_64_RELATIVE:
+                rel.setAddend(rel.addend() + library_adjust);
+                break;
+            case R_X86_64_JUMP_SLOT:
+                if( !adjustValInRegion(targetRegion, 
+                           rel.rel_addr() - targetRegion->getRegionAddr(),
+                           addressWidth, library_adjust) )
+                {
+                    rewrite_printf("Failed to update relocation\n");
+                    return false;
+                }
+                break;
+            default:
+                // Do nothing
+                break;
+        }
+    }else{
+        switch(rel.getRelType()) {
+            case R_386_RELATIVE:
+                // On x86, addends are stored in their target location
+                if( !adjustValInRegion(targetRegion, 
+                           rel.rel_addr() - targetRegion->getRegionAddr(),
+                           addressWidth, library_adjust) )
+                {
+                    rewrite_printf("Failed to update relocation\n");
+                    return false;
+                }
+                break;
+            case R_386_JMP_SLOT:
+                if( !adjustValInRegion(targetRegion, 
+                           rel.rel_addr() - targetRegion->getRegionAddr(),
+                           addressWidth, library_adjust) )
+                {
+                    rewrite_printf("Failed to update relocation\n");
+                    return false;
+                }
+                break;
+            default:
+                // Do nothing
+                break;
+        }
+    }
+
+    // XXX The GOT also holds a pointer to the DYNAMIC segment -- this is currently not
+    // updated. However, this appears to be unneeded for regular shared libraries.
+    
+    // From the SYS V ABI x86 supplement
+    // "The table's entry zero is reserved to hold the address of the dynamic structure,
+    // referenced with the symbol _DYNAMIC. This allows a program, such as the
+    // dynamic linker, to find its own dynamic structure without having yet processed
+    // its relocation entries. This is especially important for the dynamic linker, because
+    // it must initialize itself without relying on other programs to relocate its memory
+    // image."
+    
+    // In order to implement this, would have determine the final address of a new .dynamic
+    // section before outputting the patched GOT data -- this will require some refactoring.
+#else
+    rewrite_printf("WARNING: updateRelocation is not implemented on this architecture\n");
+#endif
+
+    return true;
+}

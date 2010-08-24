@@ -904,7 +904,7 @@ bool SerDesBin::getDefaultCacheDir(std::string &path)
 #endif
    }
 
-   string cpath = dot_dyninst_dir + std::string("/") + std::string(DEFAULT_CACHE_DIR);
+   std::string cpath = dot_dyninst_dir + std::string("/") + std::string(DEFAULT_CACHE_DIR);
 
    if (0 != stat(cpath.c_str(), &statbuf)) 
    {
