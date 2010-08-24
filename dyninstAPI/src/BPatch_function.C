@@ -1119,3 +1119,13 @@ ParseAPI::Function * BPatch_function::getParseAPIFuncInt() {
 const std::string &BPatch_function::getNameStrInt() {
   return func->symTabName();
 }
+
+void BPatch_function::relocateFunction()
+{
+     lowlevel_func()->proc()->addModifiedFunction(lowlevel_func());
+     if (getAddSpace()->pendingInsertions == NULL) {
+        // Trigger it now
+        bool tmp;
+        getAddSpace()->finalizeInsertionSet(false, &tmp);
+     }
+}

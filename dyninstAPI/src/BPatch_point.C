@@ -914,7 +914,7 @@ void BPatch_point::setResolved()
 bool BPatch_point::patchPostCallArea()
 {
     if (point->proc()->proc()) {
-        //return point->proc()->proc()->patchPostCallArea(point);
+        return point->proc()->proc()->patchPostCallArea(point);
     }
     return false;
 }

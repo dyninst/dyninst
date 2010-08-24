@@ -690,11 +690,13 @@ class process : public AddressSpace {
   };
   typedef std::list<ActiveDefensivePad> ADPList;
   
-  void getActivePCs(AddrSet &);
-  void getActiveDefensivePads(AddrSet &, ADPList &);
-  void generateRequiredPatches(ADPList &, AddrPairSet &);
+  //void getActivePCs(AddrSet &);
+  //void getActiveDefensivePads(AddrSet &, ADPList &);
+  bool patchPostCallArea(instPoint *point);
+private:
+  bool generateRequiredPatches(instPoint *callPt, AddrPairSet &);
   void generatePatchBranches(AddrPairSet &);
-  void fixupActiveStackTargets();
+public:
 
   // code overwrites 
   bool getOverwrittenBlocks

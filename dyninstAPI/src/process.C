@@ -5094,59 +5094,27 @@ int_function *process::findActiveFuncByAddr(Address addr)
     return func;
 }
 
-void process::fixupActiveStackTargets()
+bool process::patchPostCallArea(instPoint *callPt)
 {
-  // We've gone through and detected return addresses from
-  // calls that weren't parsed past initially. Since our
-  // initial instrumentation left these dangling, we want
-  // to patch in branches to the new relocated copy.
-  //
-  // Step 1: walk the stack
-  // Step 2: determine which return addresses are in these patch
-  //         areas left behind
-  // Step 3: for each such, determine where the return address
-  //         should be.
-  // Step 4: write in a jump from old to new. 
+    // 1) Find all the post-call patch areas that correspond to this 
+    //    call point
+    // 2) Generate and install the branches that will be inserted into 
+    //    these patch areas
 
-
-  AddrSet activeAddrs;
-  getActivePCs(activeAddrs);
-
-  ADPList activePads;
-  getActiveDefensivePads(activeAddrs, activePads);
-
-  // [cur addr, new addr] set
-  AddrPairSet branchesNeeded;
-  generateRequiredPatches(activePads, branchesNeeded);
-
-  // Generate a pile of branches.
-  generatePatchBranches(branchesNeeded);
-}
-
-void process::getActiveDefensivePads(AddrSet &pcs, 
-				     ADPList &activePads) {
-  for (std::set<Address>::iterator pc = pcs.begin(); pc != pcs.end(); ++pc) {
-    Address padStart, tmp2;
-    bblInstance *callBlock;
-    if (reverseDefensiveMap_.find(*pc, padStart, tmp2, callBlock)) {
-      // From holds the block containing the call. We now need to look
-      // up the address of its fall-through successor.
-      assert(callBlock);
-      bblInstance *ft = callBlock->getFallthroughBBL();
-      if (ft) {
-	activePads.push_back(ActiveDefensivePad(*pc, padStart, callBlock, ft));
-      }
+    // 1...
+    AddrPairSet patchAreas;
+    if ( ! generateRequiredPatches(callPt, patchAreas) ) {
+        return false;
     }
-  }
+
+    // 2...
+    generatePatchBranches(patchAreas);
+    return true;
 }
 
-void process::generateRequiredPatches(ADPList &activePads,
-				      AddrPairSet &requests) {
-  for (ADPList::iterator iter = activePads.begin();
-       iter != activePads.end(); ++iter) {
-    assert(iter->activePC >= iter->padStart);
-    unsigned offsetInPad = iter->activePC - iter->padStart;
-    
+bool process::generateRequiredPatches(instPoint *callPt, 
+                                      AddrPairSet &patchAreas)
+{
     // We need to figure out where this patch should branch to.
     // To do that, we're going to:
     // 1) Forward map the entry of the ft block to
@@ -5155,25 +5123,32 @@ void process::generateRequiredPatches(ADPList &activePads,
     //    to addr(ft)
 
     // 1)
-    Address to;
-    if (relocatedCode_.back().origToReloc(iter->ftBlock->firstInsnAddr(),
-					  iter->ftBlock,
-					  to)) {
-      assert(0);
+    bblInstance *ftbbi = callPt->block()->origInstance()->getFallthroughBBL();
+
+    Address to = 0;
+    if (!relocatedCode_.back().origToReloc(ftbbi->firstInsnAddr(),
+					                       ftbbi,
+					                       to)) 
+    {
+        assert(0);
+        return false;
     }
     
     // 2) 
-    for (std::set<DefensivePad>::iterator d_iter = forwardDefensiveMap_[iter->callBlock].begin();
-	 d_iter != forwardDefensiveMap_[iter->callBlock].end(); ++d_iter) {
-      Address jumpAddr = d_iter->first + offsetInPad;
-      requests.insert(std::make_pair(jumpAddr, to));
+    bblInstance *callbbi = callPt->block()->origInstance();
+    set<DefensivePad>::iterator d_iter = forwardDefensiveMap_[callbbi].begin();
+    for (; d_iter != forwardDefensiveMap_[callbbi].end(); ++d_iter) 
+    {
+      Address jumpAddr = d_iter->first;
+      patchAreas.insert(std::make_pair(jumpAddr, to));
     }
-  }
+    return true;
 }
 
 void process::generatePatchBranches(AddrPairSet &branchesNeeded) {
   for (AddrPairSet::iterator iter = branchesNeeded.begin();
-       iter != branchesNeeded.end(); ++iter) {
+       iter != branchesNeeded.end(); ++iter) 
+  {
     Address from = iter->first;
     Address to = iter->second;
 
@@ -5193,18 +5168,6 @@ void process::generatePatchBranches(AddrPairSet &branchesNeeded) {
 			gen.used(),
 			gen.start_ptr())) {
       assert(0);
-    }
-  }
-}
-
-void process::getActivePCs(AddrSet &pcs) {
-  pdvector<pdvector<Frame> > stacks;
-  if (!walkStacks(stacks)) assert(0);
-
-  for (unsigned i = 0; i < stacks.size(); ++i) {
-    for (unsigned j = 0; j < stacks[i].size(); ++j) {
-      pcs.insert(stacks[i][j].getPC());
-      mal_printf("stacks[%d][%d] = %lx\n",i,j,stacks[i][j].getPC());
     }
   }
 }

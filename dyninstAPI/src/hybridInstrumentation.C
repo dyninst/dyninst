@@ -626,13 +626,19 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
         }
     }
 
+    bool success = false;
     if (didSomeParsing) { // called parseNewEdge
-        // fill in the post-call area with a patch
-        bool success = callPoint->patchPostCallArea();
+        // Ensure we relocate the re-parsed function
+        proc()->beginInsertionSet();
+        callPoint->getFunction()->relocateFunction();
+
         // instrument all modules that have modified functions
-        return instrumentModules();
+        success = instrumentModules();
+
+        // fill in the post-call area with a patch
+        success = callPoint->patchPostCallArea() && success;
     }
-    return false;
+    return success;
 }
 
 // parse, instrument, and write-protect code found by seeding at a new target address

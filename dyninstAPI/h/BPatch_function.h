@@ -137,6 +137,7 @@ public:
     void fixHandlerReturnAddr(Dyninst::Address addr);
     bool removeInstrumentation();
     bool parseNewEdge(Dyninst::Address source, Dyninst::Address target);
+    void relocateFunction();
 
     void addParam(Dyninst::SymtabAPI::localVar *lvar);
 
