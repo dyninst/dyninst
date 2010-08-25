@@ -82,10 +82,8 @@ test_results_t test1_14_Mutator::executeTest() {
     pointer_size = pointerSize(appImage);
 #endif
 
-    bool isStatic = false;
-    if( NULL != appBinEdit ) {
-        isStatic = appBinEdit->isStaticExecutable();
-    }
+    bool isStatic = appAddrSpace->isStaticExecutable();
+
     strncpy(libNameA, libNameAroot, 127);
     addLibArchExt(libNameA,127, pointer_size, isStatic);
 
