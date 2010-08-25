@@ -189,9 +189,9 @@ class Symbol : public Serializable,
    SYMTAB_EXPORT bool setSize(unsigned ns);
    SYMTAB_EXPORT bool setModule(Module *mod);
 
-   SYMTAB_EXPORT bool setMangledName(std::string &name); 
-   SYMTAB_EXPORT bool setPrettyName(std::string &name); 
-   SYMTAB_EXPORT bool setTypedName(std::string &name); 
+   SYMTAB_EXPORT bool setMangledName(std::string &name);
+   SYMTAB_EXPORT bool setPrettyName(std::string &name);
+   SYMTAB_EXPORT bool setTypedName(std::string &name);
 
    SYMTAB_EXPORT bool setSymbolType(SymbolType sType);
 

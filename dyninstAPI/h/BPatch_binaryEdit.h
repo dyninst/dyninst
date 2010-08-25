@@ -148,13 +148,6 @@ class BPATCH_DLL_EXPORT BPatch_binaryEdit : public BPatch_addressSpace {
 
     API_EXPORT_VIRT(Int, (libname, reload),
     bool, loadLibrary,(const char *libname, bool reload = false));
-
-    // BPatch_binaryEdit::isStaticExecutable
-    //
-    // Returns true if the original binary opened was a static executable
-    API_EXPORT_VIRT(Int, (),
-            bool, isStaticExecutable, ());
-    
 };    
 
 #endif /* BPatch_binaryEdit_h_ */

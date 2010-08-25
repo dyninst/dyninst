@@ -46,7 +46,7 @@ endif
 fullSystem += parseAPI
 
 allCoreSubdirs	= dyninstAPI_RT common dyninstAPI symtabAPI dynutil instructionAPI parseAPI
-allSubdirs	= $(allCoreSubdirs) parseThat testsuites valueAdded/sharedMem depGraphAPI stackwalk proccontrol
+allSubdirs	= $(allCoreSubdirs) parseThat testsuite valueAdded/sharedMem depGraphAPI stackwalk proccontrol 
 
 # We're not building the new test suite on all platforms yet
 

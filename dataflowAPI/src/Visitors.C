@@ -68,7 +68,8 @@ AST::Ptr StackVisitor::visit(VariableAST *v) {
     // Create a new ConstantAST
     return StackAST::create(stack_);
   }
-  else if (aloc.isFP()) {
+  // If we're bottom it means "the FP register isn't the logical FP"
+  else if (aloc.isFP() && (frame_ != StackAnalysis::Height::bottom)) {
     return StackAST::create(frame_);
   }
   else return v->ptr();
