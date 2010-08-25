@@ -45,7 +45,6 @@ SRCS =          ../src/Object-elf.C \
 #MYFLAGS	+= -DINFERIOR_RPC_DEBUG
 MYFLAGS		+= -DUSES_DWARF_DEBUG -I$(LIBDWARF_INC)
 MYFLAGS     	+= -I$(LIBELF_INC)
-MYFLAGS		+= -I/usr/include/libelf
 
 CXXFLAGS        += $(MYFLAGS)
 CFLAGS          += $(MYFLAGS)
@@ -62,9 +61,6 @@ LIBS += -ldwarf
 endif
 ifndef LIBELFSTATIC
 LIBS += -lelf
-endif
-ifndef LIBIBERTYSTATIC
-LIBS	+= -liberty
 endif
 
 AS		= /usr/bin/as

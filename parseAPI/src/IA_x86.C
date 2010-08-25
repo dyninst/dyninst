@@ -299,9 +299,12 @@ bool IA_IAPI::parseJumpTable(Block* currBlk,
                 allInsns.find(thunkInsnAddr);
         if(thunkLoc != allInsns.end())
         {
-            tableLoc = thunkLoc;
-            tableInsnAddr = thunkInsnAddr;
-            tableInsn = thunkLoc->second;
+            if(thunkLoc->second && thunkLoc->second->getOperation().getID() == e_lea)
+            {
+                tableLoc = thunkLoc;
+                tableInsnAddr = thunkInsnAddr;
+                tableInsn = thunkLoc->second;
+            }
         }
     }
     parsing_printf("\ttableInsn %s at 0x%lx\n",tableInsn->format().c_str(), tableInsnAddr);
@@ -464,34 +467,42 @@ Address IA_IAPI::findThunkInBlock(Block* curBlock, Address& thunkOffset) const
                     parsing_printf("\tinsn after thunk: %s\n", addInsn->format().c_str());
                 else
                     parsing_printf("\tNO INSN after thunk at 0x%lx\n", thunkOffset);
-                if(addInsn && (addInsn->getOperation().getID() == e_add))
+                if(addInsn)
                 {
-                    Result imm = addInsn->getOperand(1).getValue()->eval();
-                    Result imm2 = addInsn->getOperand(0).getValue()->eval();
-                    if(imm.defined)
+                    if(addInsn->getOperation().getID() == e_pop)
                     {
-                        Address thunkDiff = imm.convert<Address>();
-                        parsing_printf("\tsetting thunkOffset to 0x%lx (0x%lx + 0x%lx)\n",
-                                       thunkOffset+thunkDiff, thunkOffset, thunkDiff);
-                        Address ret = block.getPrevAddr();
-                        thunkOffset = thunkOffset + thunkDiff;
-                        delete blockptr;
-                        return ret;
+                        block.advance();
+                        addInsn = block.getInstruction();
                     }
-                    else if(imm2.defined)
+                    if(addInsn && addInsn->getOperation().getID() == e_add)
                     {
-                        Address thunkDiff = imm2.convert<Address>();
-                        parsing_printf("\tsetting thunkOffset to 0x%lx (0x%lx + 0x%lx)\n",
-                                       thunkOffset+thunkDiff, thunkOffset, thunkDiff);
-                        Address ret = block.getPrevAddr();
-                        thunkOffset = thunkOffset + thunkDiff;
-                        delete blockptr;
-                        return ret;
-                    }
-                    else
-                    {
-                        parsing_printf("\tadd insn %s found following thunk at 0x%lx, couldn't bind operands!\n",
-                                       addInsn->format().c_str(), thunkOffset);
+                        Result imm = addInsn->getOperand(1).getValue()->eval();
+                        Result imm2 = addInsn->getOperand(0).getValue()->eval();
+                        if(imm.defined)
+                        {
+                            Address thunkDiff = imm.convert<Address>();
+                            parsing_printf("\tsetting thunkOffset to 0x%lx (0x%lx + 0x%lx)\n",
+                                           thunkOffset+thunkDiff, thunkOffset, thunkDiff);
+                            Address ret = block.getPrevAddr();
+                            thunkOffset = thunkOffset + thunkDiff;
+                            delete blockptr;
+                            return ret;
+                        }
+                        else if(imm2.defined)
+                        {
+                            Address thunkDiff = imm2.convert<Address>();
+                            parsing_printf("\tsetting thunkOffset to 0x%lx (0x%lx + 0x%lx)\n",
+                                           thunkOffset+thunkDiff, thunkOffset, thunkDiff);
+                            Address ret = block.getPrevAddr();
+                            thunkOffset = thunkOffset + thunkDiff;
+                            delete blockptr;
+                            return ret;
+                        }
+                        else
+                        {
+                            parsing_printf("\tadd insn %s found following thunk at 0x%lx, couldn't bind operands!\n",
+                                           addInsn->format().c_str(), thunkOffset);
+                        }
                     }
                 }
                 thunkOffset = 0;

@@ -258,15 +258,34 @@ extern void erase(Name *);
 extern "C" char *cplus_demangle(char *, int);
 #endif
 
+#if defined(cap_gnu_demangler)
+#include <cxxabi.h>
+using namespace __cxxabiv1;
+#endif
+
 extern void dedemangle( char * demangled, char * dedemangled );
 
 char *P_cplus_demangle( const char * symbol, bool nativeCompiler, bool includeTypes ) {
    /* If the symbol isn't from the native compiler, or the native demangler
       isn't available, use the built-in. */
-#if defined(cap_liberty)
+#if defined(cap_liberty) || defined(cap_gnu_demangler)
    if( !nativeCompiler ) {
-      char * demangled = cplus_demangle( const_cast<char *>(symbol),
+#if defined(cap_gnu_demangler)
+   int status;
+   char *demangled = __cxa_demangle(symbol, NULL, NULL, &status);
+   if (status == -1) {
+      //Memory allocation failure.
+      return NULL;
+   }
+   if (status == -2) {
+      //Not a C++ name
+      return NULL;
+   }
+   assert(status == 0); //Success
+#else
+   char * demangled = cplus_demangle( const_cast<char *>(symbol),
                                          includeTypes ? DMGL_PARAMS | DMGL_ANSI : 0 );
+#endif
       if( demangled == NULL ) { return NULL; }
 
       if( ! includeTypes ) {

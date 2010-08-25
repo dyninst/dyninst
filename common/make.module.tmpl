@@ -88,15 +88,7 @@ SRCS	     +=	../../common/src/Ident.C \
 
 #IGEN_ISRCS    = 
 
-ifndef USES_NATIVE_CC
-ifdef CROSSCOMPILER
-SYSLIBS		+= -liberty -lg++ -lstdc++ -lm
-else
-SYSLIBS         += -liberty
-endif
-else
-SYSLIBS		+= -ldemangle
-endif
+LIBS += $(DEMANGLER_LINK)
 
 IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../instructionAPI/h
 
