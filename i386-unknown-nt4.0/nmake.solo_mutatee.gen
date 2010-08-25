@@ -285,13 +285,13 @@ symtab_SOLO_MUTATEES_native_cxx = symtab_group_test_mutatee_solo_VC++_32_high.ex
 
 # Now a list of rules for compiling the mutatees with VC++
 
-symtab_group_test_mutatee_solo_VC++_32_high.exe: symtab_group_test_group_VC++_32_high.obj test_lookup_func_mutatee_solo_VC++_32_high.obj test_lookup_var_mutatee_solo_VC++_32_high.obj test_line_info_mutatee_solo_VC++_32_high.obj test_module_mutatee_solo_VC++_32_high.obj test_relocations_mutatee_solo_VC++_32_high.obj test_symtab_ser_funcs_mutatee_solo_VC++_32_high.obj test_ser_anno_mutatee_solo_VC++_32_high.obj test_type_info_mutatee_solo_VC++_32_high.obj test_anno_basic_types_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
+symtab_group_test_mutatee_solo_VC++_32_high.exe: symtab_group_test_group_VC++_32_high.obj test_lookup_func_mutatee_solo_VC++_32_high.obj test_lookup_var_mutatee_solo_VC++_32_high.obj test_line_info_mutatee_solo_VC++_32_high.obj test_module_mutatee_solo_VC++_32_high.obj test_relocations_mutatee_solo_VC++_32_high.obj test_symtab_ser_funcs_mutatee_solo_VC++_32_high.obj test_ser_anno_mutatee_solo_VC++_32_high.obj test_type_info_mutatee_solo_VC++_32_high.obj test_anno_basic_types_mutatee_solo_VC++_32_high.obj test_add_symbols_mutatee_solo_VC++_32_high.obj mutatee_util_VC++_32_high.obj mutatee_driver_solo_VC++_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-symtab_group_test_mutatee_solo_VC++_32_low.exe: symtab_group_test_group_VC++_32_low.obj test_lookup_func_mutatee_solo_VC++_32_low.obj test_lookup_var_mutatee_solo_VC++_32_low.obj test_line_info_mutatee_solo_VC++_32_low.obj test_module_mutatee_solo_VC++_32_low.obj test_relocations_mutatee_solo_VC++_32_low.obj test_symtab_ser_funcs_mutatee_solo_VC++_32_low.obj test_ser_anno_mutatee_solo_VC++_32_low.obj test_type_info_mutatee_solo_VC++_32_low.obj test_anno_basic_types_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
+symtab_group_test_mutatee_solo_VC++_32_low.exe: symtab_group_test_group_VC++_32_low.obj test_lookup_func_mutatee_solo_VC++_32_low.obj test_lookup_var_mutatee_solo_VC++_32_low.obj test_line_info_mutatee_solo_VC++_32_low.obj test_module_mutatee_solo_VC++_32_low.obj test_relocations_mutatee_solo_VC++_32_low.obj test_symtab_ser_funcs_mutatee_solo_VC++_32_low.obj test_ser_anno_mutatee_solo_VC++_32_low.obj test_type_info_mutatee_solo_VC++_32_low.obj test_anno_basic_types_mutatee_solo_VC++_32_low.obj test_add_symbols_mutatee_solo_VC++_32_low.obj mutatee_util_VC++_32_low.obj mutatee_driver_solo_VC++_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-symtab_group_test_mutatee_solo_VC++_32_max.exe: symtab_group_test_group_VC++_32_max.obj test_lookup_func_mutatee_solo_VC++_32_max.obj test_lookup_var_mutatee_solo_VC++_32_max.obj test_line_info_mutatee_solo_VC++_32_max.obj test_module_mutatee_solo_VC++_32_max.obj test_relocations_mutatee_solo_VC++_32_max.obj test_symtab_ser_funcs_mutatee_solo_VC++_32_max.obj test_ser_anno_mutatee_solo_VC++_32_max.obj test_type_info_mutatee_solo_VC++_32_max.obj test_anno_basic_types_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
+symtab_group_test_mutatee_solo_VC++_32_max.exe: symtab_group_test_group_VC++_32_max.obj test_lookup_func_mutatee_solo_VC++_32_max.obj test_lookup_var_mutatee_solo_VC++_32_max.obj test_line_info_mutatee_solo_VC++_32_max.obj test_module_mutatee_solo_VC++_32_max.obj test_relocations_mutatee_solo_VC++_32_max.obj test_symtab_ser_funcs_mutatee_solo_VC++_32_max.obj test_ser_anno_mutatee_solo_VC++_32_max.obj test_type_info_mutatee_solo_VC++_32_max.obj test_anno_basic_types_mutatee_solo_VC++_32_max.obj test_add_symbols_mutatee_solo_VC++_32_max.obj mutatee_util_VC++_32_max.obj mutatee_driver_solo_VC++_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-symtab_group_test_mutatee_solo_VC++_32_none.exe: symtab_group_test_group_VC++_32_none.obj test_lookup_func_mutatee_solo_VC++_32_none.obj test_lookup_var_mutatee_solo_VC++_32_none.obj test_line_info_mutatee_solo_VC++_32_none.obj test_module_mutatee_solo_VC++_32_none.obj test_relocations_mutatee_solo_VC++_32_none.obj test_symtab_ser_funcs_mutatee_solo_VC++_32_none.obj test_ser_anno_mutatee_solo_VC++_32_none.obj test_type_info_mutatee_solo_VC++_32_none.obj test_anno_basic_types_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
+symtab_group_test_mutatee_solo_VC++_32_none.exe: symtab_group_test_group_VC++_32_none.obj test_lookup_func_mutatee_solo_VC++_32_none.obj test_lookup_var_mutatee_solo_VC++_32_none.obj test_line_info_mutatee_solo_VC++_32_none.obj test_module_mutatee_solo_VC++_32_none.obj test_relocations_mutatee_solo_VC++_32_none.obj test_symtab_ser_funcs_mutatee_solo_VC++_32_none.obj test_ser_anno_mutatee_solo_VC++_32_none.obj test_type_info_mutatee_solo_VC++_32_none.obj test_anno_basic_types_mutatee_solo_VC++_32_none.obj test_add_symbols_mutatee_solo_VC++_32_none.obj mutatee_util_VC++_32_none.obj mutatee_driver_solo_VC++_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CXXFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
 ######################################################################
 # Mutatees compiled with VC++ for instruction
@@ -976,6 +976,8 @@ test_lookup_func_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2  -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -Fo$@ $**
 test_anno_basic_types_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2  -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -Fo$@ $**
+test_add_symbols_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2  -DTEST_NAME=test_add_symbols -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_add_symbols_mutatee.c -Fo$@ $**
 test_symtab_ser_funcs_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O2  -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -Fo$@ $**
 test_relocations_mutatee_solo_VC++_32_high.obj: ../src/solo_mutatee_boilerplate.c
@@ -1000,6 +1002,8 @@ test_lookup_func_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox  -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -Fo$@ $**
 test_anno_basic_types_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox  -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -Fo$@ $**
+test_add_symbols_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox  -DTEST_NAME=test_add_symbols -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_add_symbols_mutatee.c -Fo$@ $**
 test_symtab_ser_funcs_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /Ox  -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -Fo$@ $**
 test_relocations_mutatee_solo_VC++_32_max.obj: ../src/solo_mutatee_boilerplate.c
@@ -1024,6 +1028,8 @@ test_lookup_func_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c    -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -Fo$@ $**
 test_anno_basic_types_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c    -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -Fo$@ $**
+test_add_symbols_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c    -DTEST_NAME=test_add_symbols -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_add_symbols_mutatee.c -Fo$@ $**
 test_symtab_ser_funcs_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c    -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -Fo$@ $**
 test_relocations_mutatee_solo_VC++_32_none.obj: ../src/solo_mutatee_boilerplate.c
@@ -1048,6 +1054,8 @@ test_lookup_func_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1  -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -Fo$@ $**
 test_anno_basic_types_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1  -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -Fo$@ $**
+test_add_symbols_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1  -DTEST_NAME=test_add_symbols -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_add_symbols_mutatee.c -Fo$@ $**
 test_symtab_ser_funcs_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cxx) -TP $(CXXFLAGS_NORM) -c  /O1  -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -Fo$@ $**
 test_relocations_mutatee_solo_VC++_32_low.obj: ../src/solo_mutatee_boilerplate.c
@@ -1351,13 +1359,13 @@ symtab_SOLO_MUTATEES_native_cc = symtab_group_test_mutatee_solo_VC_32_high.exe s
 
 # Now a list of rules for compiling the mutatees with VC
 
-symtab_group_test_mutatee_solo_VC_32_high.exe: symtab_group_test_group_VC_32_high.obj test_lookup_func_mutatee_solo_VC_32_high.obj test_lookup_var_mutatee_solo_VC_32_high.obj test_line_info_mutatee_solo_VC_32_high.obj test_module_mutatee_solo_VC_32_high.obj test_relocations_mutatee_solo_VC_32_high.obj test_symtab_ser_funcs_mutatee_solo_VC_32_high.obj test_ser_anno_mutatee_solo_VC_32_high.obj test_type_info_mutatee_solo_VC_32_high.obj test_anno_basic_types_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
+symtab_group_test_mutatee_solo_VC_32_high.exe: symtab_group_test_group_VC_32_high.obj test_lookup_func_mutatee_solo_VC_32_high.obj test_lookup_var_mutatee_solo_VC_32_high.obj test_line_info_mutatee_solo_VC_32_high.obj test_module_mutatee_solo_VC_32_high.obj test_relocations_mutatee_solo_VC_32_high.obj test_symtab_ser_funcs_mutatee_solo_VC_32_high.obj test_ser_anno_mutatee_solo_VC_32_high.obj test_type_info_mutatee_solo_VC_32_high.obj test_anno_basic_types_mutatee_solo_VC_32_high.obj test_add_symbols_mutatee_solo_VC_32_high.obj mutatee_util_VC_32_high.obj mutatee_driver_solo_VC_32_high.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-symtab_group_test_mutatee_solo_VC_32_low.exe: symtab_group_test_group_VC_32_low.obj test_lookup_func_mutatee_solo_VC_32_low.obj test_lookup_var_mutatee_solo_VC_32_low.obj test_line_info_mutatee_solo_VC_32_low.obj test_module_mutatee_solo_VC_32_low.obj test_relocations_mutatee_solo_VC_32_low.obj test_symtab_ser_funcs_mutatee_solo_VC_32_low.obj test_ser_anno_mutatee_solo_VC_32_low.obj test_type_info_mutatee_solo_VC_32_low.obj test_anno_basic_types_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
+symtab_group_test_mutatee_solo_VC_32_low.exe: symtab_group_test_group_VC_32_low.obj test_lookup_func_mutatee_solo_VC_32_low.obj test_lookup_var_mutatee_solo_VC_32_low.obj test_line_info_mutatee_solo_VC_32_low.obj test_module_mutatee_solo_VC_32_low.obj test_relocations_mutatee_solo_VC_32_low.obj test_symtab_ser_funcs_mutatee_solo_VC_32_low.obj test_ser_anno_mutatee_solo_VC_32_low.obj test_type_info_mutatee_solo_VC_32_low.obj test_anno_basic_types_mutatee_solo_VC_32_low.obj test_add_symbols_mutatee_solo_VC_32_low.obj mutatee_util_VC_32_low.obj mutatee_driver_solo_VC_32_low.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-symtab_group_test_mutatee_solo_VC_32_max.exe: symtab_group_test_group_VC_32_max.obj test_lookup_func_mutatee_solo_VC_32_max.obj test_lookup_var_mutatee_solo_VC_32_max.obj test_line_info_mutatee_solo_VC_32_max.obj test_module_mutatee_solo_VC_32_max.obj test_relocations_mutatee_solo_VC_32_max.obj test_symtab_ser_funcs_mutatee_solo_VC_32_max.obj test_ser_anno_mutatee_solo_VC_32_max.obj test_type_info_mutatee_solo_VC_32_max.obj test_anno_basic_types_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
+symtab_group_test_mutatee_solo_VC_32_max.exe: symtab_group_test_group_VC_32_max.obj test_lookup_func_mutatee_solo_VC_32_max.obj test_lookup_var_mutatee_solo_VC_32_max.obj test_line_info_mutatee_solo_VC_32_max.obj test_module_mutatee_solo_VC_32_max.obj test_relocations_mutatee_solo_VC_32_max.obj test_symtab_ser_funcs_mutatee_solo_VC_32_max.obj test_ser_anno_mutatee_solo_VC_32_max.obj test_type_info_mutatee_solo_VC_32_max.obj test_anno_basic_types_mutatee_solo_VC_32_max.obj test_add_symbols_mutatee_solo_VC_32_max.obj mutatee_util_VC_32_max.obj mutatee_driver_solo_VC_32_max.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
-symtab_group_test_mutatee_solo_VC_32_none.exe: symtab_group_test_group_VC_32_none.obj test_lookup_func_mutatee_solo_VC_32_none.obj test_lookup_var_mutatee_solo_VC_32_none.obj test_line_info_mutatee_solo_VC_32_none.obj test_module_mutatee_solo_VC_32_none.obj test_relocations_mutatee_solo_VC_32_none.obj test_symtab_ser_funcs_mutatee_solo_VC_32_none.obj test_ser_anno_mutatee_solo_VC_32_none.obj test_type_info_mutatee_solo_VC_32_none.obj test_anno_basic_types_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
+symtab_group_test_mutatee_solo_VC_32_none.exe: symtab_group_test_group_VC_32_none.obj test_lookup_func_mutatee_solo_VC_32_none.obj test_lookup_var_mutatee_solo_VC_32_none.obj test_line_info_mutatee_solo_VC_32_none.obj test_module_mutatee_solo_VC_32_none.obj test_relocations_mutatee_solo_VC_32_none.obj test_symtab_ser_funcs_mutatee_solo_VC_32_none.obj test_ser_anno_mutatee_solo_VC_32_none.obj test_type_info_mutatee_solo_VC_32_none.obj test_anno_basic_types_mutatee_solo_VC_32_none.obj test_add_symbols_mutatee_solo_VC_32_none.obj mutatee_util_VC_32_none.obj mutatee_driver_solo_VC_32_none.obj
 	link $(LDFLAGS) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -out:$@ $**  
 ######################################################################
 # Mutatees compiled with VC for instruction
@@ -2034,6 +2042,8 @@ test_lookup_func_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O2  -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -Fo$@ $**
 test_anno_basic_types_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O2  -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -Fo$@ $**
+test_add_symbols_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /O2  -DTEST_NAME=test_add_symbols -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_add_symbols_mutatee.c -Fo$@ $**
 test_symtab_ser_funcs_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O2  -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -Fo$@ $**
 test_relocations_mutatee_solo_VC_32_high.obj: ../src/solo_mutatee_boilerplate.c
@@ -2056,6 +2066,8 @@ test_lookup_func_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /Ox  -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -Fo$@ $**
 test_anno_basic_types_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /Ox  -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -Fo$@ $**
+test_add_symbols_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /Ox  -DTEST_NAME=test_add_symbols -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_add_symbols_mutatee.c -Fo$@ $**
 test_symtab_ser_funcs_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /Ox  -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -Fo$@ $**
 test_relocations_mutatee_solo_VC_32_max.obj: ../src/solo_mutatee_boilerplate.c
@@ -2078,6 +2090,8 @@ test_lookup_func_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c    -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -Fo$@ $**
 test_anno_basic_types_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c    -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -Fo$@ $**
+test_add_symbols_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c    -DTEST_NAME=test_add_symbols -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_add_symbols_mutatee.c -Fo$@ $**
 test_symtab_ser_funcs_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c    -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -Fo$@ $**
 test_relocations_mutatee_solo_VC_32_none.obj: ../src/solo_mutatee_boilerplate.c
@@ -2100,6 +2114,8 @@ test_lookup_func_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O1  -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -Fo$@ $**
 test_anno_basic_types_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O1  -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -Fo$@ $**
+test_add_symbols_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.c
+	$(M_native_cc) -TC $(CFLAGS) -c  /O1  -DTEST_NAME=test_add_symbols -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_add_symbols_mutatee.c -Fo$@ $**
 test_symtab_ser_funcs_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.c
 	$(M_native_cc) -TC $(CFLAGS) -c  /O1  -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -Fo$@ $**
 test_relocations_mutatee_solo_VC_32_low.obj: ../src/solo_mutatee_boilerplate.c

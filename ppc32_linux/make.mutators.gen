@@ -17,9 +17,9 @@ instruction_MUTATORS = power_decode power_cft
 instruction_OBJS_ALL_MUTATORS = power_decode.o power_cft.o 
 
 
-symtab_MUTATORS = test_lookup_func test_lookup_var test_line_info test_module test_relocations test_type_info test_symtab_ser_funcs test_ser_anno test_anno_basic_types 
+symtab_MUTATORS = test_lookup_func test_lookup_var test_add_symbols test_line_info test_module test_relocations test_type_info test_symtab_ser_funcs test_ser_anno test_anno_basic_types 
 
-symtab_OBJS_ALL_MUTATORS = test_lookup_func.o test_lookup_var.o test_line_info.o test_module.o test_relocations.o test_type_info.o test_symtab_ser_funcs.o test_ser_anno.o test_anno_basic_types.o 
+symtab_OBJS_ALL_MUTATORS = test_lookup_func.o test_lookup_var.o test_add_symbols.o test_line_info.o test_module.o test_relocations.o test_type_info.o test_symtab_ser_funcs.o test_ser_anno.o test_anno_basic_types.o 
 
 power_cft.so: power_cft.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/power_cft.dep $(LIBTESTSUITE) $(instruction_COMPONENT_LIB)
 	$(CXX) -o $@ -shared $(filter %.o,$^) $(instruction_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -linstructionAPI -ltestSuite 
@@ -615,6 +615,14 @@ endif
 
 test5_9.so: test5_9.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test5_9.dep $(LIBTESTSUITE) $(dyninst_COMPONENT_LIB)
 	$(CXX) -o $@ -shared $(filter %.o,$^) $(dyninst_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -ldyninstAPI -ltestSuite 
+ifndef NO_OPT_FLAG
+ifdef STRIP_SO
+	$(STRIP_SO) $@
+endif
+endif
+
+test_add_symbols.so: test_add_symbols.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test_add_symbols.dep $(LIBTESTSUITE) $(symtab_COMPONENT_LIB)
+	$(CXX) -o $@ -shared $(filter %.o,$^) $(symtab_MUTATOR_FLAGS) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -lsymtabAPI -ltestSuite 
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
