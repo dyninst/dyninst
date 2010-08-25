@@ -103,7 +103,7 @@ test_results_t test_add_symbols_Mutator::executeTest()
 
   // Now wasn't that nice. 
 
-  vector<Symbol *> syms;
+  std::vector<Symbol *> syms;
   f->getSymbols(syms);
   if (syms.size() != (oldSyms.size() + 1)) {
     logerror("[%s:%u] - function has %d symbols, expected %d\n",
