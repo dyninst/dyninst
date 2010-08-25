@@ -2237,6 +2237,7 @@ mutator('test_add_symbols', ['test_add_symbols.C']).
 test_runmode('test_add_symbols', 'createProcess').
 test_start_state('test_add_symbols', 'stopped').
 tests_module('test_add_symbols', 'symtab').
+test_platform('test_add_symbols', Platform) :- rewriteablePlatforms(Platform).
 % test_serializable('test_add_symbols').
 
 test('test_line_info', 'test_line_info', 'symtab_group_test').
@@ -2414,6 +2415,10 @@ pcPlatforms(P) :- platform('x86_64', 'linux', _, P).
 pcPlatforms(P) :- platform('i386', 'linux', _, P).
 pcPlatforms(P) :- platform('i386', 'freebsd', _,P).
 pcPlatforms(P) :- platform('x86_64', 'freebsd', _,P).
+
+% ELF platforms
+rewriteablePlatforms(P) :- platform(_, 'linux', _, P).
+rewriteablePlatforms(P) :- platform(_, 'freebsd', _, P).
 
 pcMutateeLibs(Libs) :-
    current_platform(P),
