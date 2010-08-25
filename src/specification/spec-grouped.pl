@@ -2231,7 +2231,6 @@ tests_module('test_lookup_var', 'symtab').
 
 test('test_add_symbols', 'test_add_symbols', 'symtab_group_test').
 test_description('test_add_symbols', 'Use SymtabAPI to add symbols to a file').
-test_runs_everywhere('test_add_symbols').
 groupable_test('test_add_symbols').
 mutator('test_add_symbols', ['test_add_symbols.C']).
 test_runmode('test_add_symbols', 'createProcess').
