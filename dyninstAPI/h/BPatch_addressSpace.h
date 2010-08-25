@@ -37,7 +37,6 @@
 #include "BPatch_Vector.h"
 #include "BPatch_eventLock.h"
 #include "BPatch_point.h"
-
 #include "BPatch_instruction.h" // for register type
 
 #include "BPatch_callbacks.h"
@@ -79,7 +78,7 @@ private:
     // low-level mappings for removal
     BPatch_Vector<miniTramp *> mtHandles_;
 
-    //  a flag for catchuo
+    //  a flag for catchup
     bool catchupNeeded;
     //  and a list of threads to apply catchup to
     BPatch_Vector<BPatch_thread *> catchup_threads;
@@ -160,7 +159,7 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
 
  protected:
   virtual void getAS(std::vector<AddressSpace *> &as) = 0;
-
+  
  public:
 
   BPatch_addressSpace();

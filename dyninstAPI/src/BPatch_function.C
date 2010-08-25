@@ -135,6 +135,14 @@ BPatch_function::~BPatch_function()
    assert(num_erased == 1);
 }
 
+
+//dynC internal:
+
+bool BPatch_function::hasParamDebugInfo(){
+   std::vector<Dyninst::SymtabAPI::localVar *>SymTabParams;
+   return lowlevel_func()->ifunc()->getSymtabFunction()->getParams(SymTabParams);
+}
+
 /* 
  * BPatch_function::getSourceObj()
  *

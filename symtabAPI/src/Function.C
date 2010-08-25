@@ -196,10 +196,14 @@ bool Function::getParams(std::vector<localVar *> &params)
    }
 
    params = *(lvs->getAllVars());
-
+//david temporary fix:
+/*
    if (params.size())
       return true;
    return false;
+*/
+//david switch back to false
+   return true;
 }
 
 bool Function::addLocalVar(localVar *locVar)

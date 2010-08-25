@@ -1,0 +1,5 @@
+//Hello from testStatements2
+
+int i;
+
+printf("Hello from testStatements2:%s\n", inst`str);

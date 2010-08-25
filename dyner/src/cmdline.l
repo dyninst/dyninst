@@ -1,13 +1,6 @@
-%{
-#if defined(i386_unknown_nt4_0)
-#define YY_SKIP_YYWRAP
-#define YY_NEVER_INTERACTIVE 1
+%option noyywrap
 
-int yywrap()
-{
-    return 1;
-}
-#endif
+%{
 
 #include <string.h>
 #include "BPatch_snippet.h"
@@ -25,6 +18,7 @@ static char *input_str = NULL;
 #define YY_INPUT(b,r,ms) (r = my_yyinput(b, ms))
 
 int my_yyinput(char *buf, int max_size);
+
 #else
 #undef input
 #undef unput
@@ -59,16 +53,16 @@ static int doubleQuote()
                     /* \" */
                     yytext[count++] = '"';
                 } else {
-                    yyleng--;
-                    yytext[count] = '\0';
-		    dynerlval.sval = strdup(yytext);
+                    --yyleng;
+                    yytext[count] = '\0'; // eating up the string
+                    dynerlval.sval = strdup(yytext);
                     return(STRING);
                 }
                 break;
 
             case '\n':
                 /* New line before end of string */
-                return(_ERROR);
+                return(_ERROR); // Why? Cant a string take up more than one line?
                 break;
 
 	    case '\\':
@@ -164,17 +158,10 @@ int my_yyinput(char *buf, int max_size)
     int sz = 0;
 
     while (*input_str != '\0' && sz < max_size) {
-	*buf++ = *input_str++;
-	sz++;
+       *buf++ = *input_str++;
+       sz++;
     }
 
     return sz;
-}
-#endif
-
-#if !defined(i386_unknown_nt4_0)
-int yywrap()
-{
-    return 1;
 }
 #endif

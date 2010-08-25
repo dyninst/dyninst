@@ -15,6 +15,7 @@ BUILD_ID = "$(SUITE_NAME) v$(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)"
 SymtabAPI 	= ready common symtabAPI dynutil
 StackwalkerAPI = ready common symtabAPI stackwalk
 DyninstAPI	= ready common symtabAPI instructionAPI parseAPI dyninstAPI_RT dyninstAPI dynutil
+DynC_API = ready common dyninstAPI dynC_API  dynutil
 InstructionAPI	= ready common instructionAPI dynutil
 ProcControlAPI = ready common proccontrol
 DepGraphAPI = depGraphAPI
@@ -45,7 +46,10 @@ endif
 
 fullSystem += parseAPI
 
-allCoreSubdirs	= dyninstAPI_RT common dyninstAPI symtabAPI dynutil instructionAPI parseAPI
+fullSystem += dynC_API
+Build_list += dynC_API
+
+allCoreSubdirs	= dyninstAPI_RT common dyninstAPI symtabAPI dynutil instructionAPI parseAPI dynC_API
 allSubdirs	= $(allCoreSubdirs) parseThat testsuites valueAdded/sharedMem depGraphAPI stackwalk proccontrol
 
 # We're not building the new test suite on all platforms yet
@@ -144,7 +148,7 @@ world: intro
 
 # "make Paradyn" and "make DyninstAPI" are also useful and valid build targets!
 
-DyninstAPI SymtabAPI StackwalkerAPI basicComps subSystems testsuites InstructionAPI ValueAdded DepGraphAPI ParseAPI DataflowAPI ProcControlAPI: 
+DyninstAPI SymtabAPI StackwalkerAPI basicComps subSystems testsuites InstructionAPI ValueAdded DepGraphAPI ParseAPI DynC_API DataflowAPI ProcControlAPI: 
 	$(MAKE) $($@)
 	@echo "Build of $@ complete."
 	@date
@@ -207,7 +211,7 @@ symtabAPI igen: common
 stackwalk: symtabAPI dynutil
 dyninstAPI: symtabAPI instructionAPI parseAPI
 symtabAPI dyninstAPI: dynutil
-dyner codeCoverage dyninstAPI/tests testsuite: dyninstAPI
+dyner dynC_API codeCoverage dyninstAPI/tests testsuite: dyninstAPI
 testsuite: $(coreSubdirs_explicitInstall)
 testsuite: parseThat
 parseThat: $(coreSubdirs_explicitInstall)

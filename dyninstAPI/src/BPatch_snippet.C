@@ -86,7 +86,6 @@ BPatch_snippet::BPatch_snippet() {
     ast_wrapper = AstNodePtr(AstNode::nullNode());
 }
 
-
 /*
  * BPatch_snippet::BPatch_snippet
  *
@@ -97,6 +96,10 @@ void BPatch_snippet::BPatch_snippetInt(const BPatch_snippet &src)
     ast_wrapper = src.ast_wrapper;
 }
 
+void BPatch_snippet::BPatch_snippetInt(const AstNodePtr &node)
+{
+   ast_wrapper = node;
+}
 
 /*
  * BPatch_snippet::operator=
@@ -116,6 +119,13 @@ BPatch_snippet &BPatch_snippet::operator_equals(const BPatch_snippet &src)
     return *this;
 }
 
+/* 
+ * BPatch_snippet::getType
+ */
+
+BPatch_type *BPatch_snippet::getTypeInt(){
+   return ast_wrapper->getType();
+}
 
 /*
  * BPatch_snippet:getCost
@@ -140,7 +150,6 @@ bool BPatch_snippet::is_trivialInt()
 {
   return (ast_wrapper == NULL);
 }
-
 
 /*
  * BPatch_snippet::~BPatch_snippet
@@ -191,7 +200,6 @@ AstNodePtr generateArrayRef(const BPatch_snippet &lOperand,
 	//  We have to be a little forgiving of the
 
 	typeArray *arrayType = lOperand.ast_wrapper->getType()->getSymtabType()->getArrayType();
-
 	if (!arrayType) 
 	{
 		if (lOperand.ast_wrapper->getType() == NULL) 
@@ -210,7 +218,6 @@ AstNodePtr generateArrayRef(const BPatch_snippet &lOperand,
 	}
 
 	Type *elementType = arrayType->getBaseType();
-
 	assert(elementType);
 	long int elementSize = elementType->getSize();
 
@@ -401,6 +408,8 @@ void BPatch_arithExpr::BPatch_arithExprBin(BPatch_binOp op,
 {
 	assert(BPatch::bpatch != NULL);
 
+   std::vector<BPatch_snippet *> argVect;
+   
 	opCode astOp = undefOp; // Quiet the compiler
 	switch(op) {
 		case BPatch_assign:
@@ -423,9 +432,9 @@ void BPatch_arithExpr::BPatch_arithExprBin(BPatch_binOp op,
 			assert(0);
 			break;
 		case BPatch_ref:
-			ast_wrapper = generateArrayRef(lOperand, rOperand);
-			if (ast_wrapper == NULL) {
-				BPatch_reportError(BPatchSerious, 100 /* what # to use? */,
+         ast_wrapper = generateArrayRef(lOperand, rOperand);
+			if (ast_wrapper == NULL) { 
+            BPatch_reportError(BPatchSerious, 100 /* what # to use? */,
 						"could not generate array reference.");
 				BPatch_reportError(BPatchSerious, 100,
 						"resulting snippet is invalid.");
@@ -1067,8 +1076,9 @@ unsigned int BPatch_variableExpr::getSizeInt() CONST_EXPORT
 */
 const BPatch_type *BPatch_variableExpr::getTypeInt()
 {
-  if (!type)
-    return BPatch::bpatch->type_Untyped;
+  if (!type){
+     return BPatch::bpatch->type_Untyped;
+  }
   return type;
 }
 #ifdef NOTDEF
@@ -1649,4 +1659,3 @@ void BPatch_dynamicTargetExpr::BPatch_dynamicTargetExprInt() {
     assert(type != NULL);
     ast_wrapper->setType(type);
 }
-

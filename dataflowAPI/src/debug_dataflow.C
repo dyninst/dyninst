@@ -45,7 +45,7 @@ int df_debug_stackanalysis = 0;
 int df_debug_convert = 0;
 int df_debug_expand = 0;
 
-bool init_debug() {
+bool init_debugData() {
   static bool init = false;
   if (init) return true;
   init = true;

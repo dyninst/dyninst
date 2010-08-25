@@ -1,0 +1,77 @@
+# 
+# Common makefile template for the dyninstAPI library.  This file is not
+# intended to be a useful Makefile in isolation; instead, it should be
+# included from within an architecture-specific Makefile.
+#
+# $Id: make.module.tmpl,v 1.4 2008/09/15 17:38:17 jaw Exp $
+#
+
+SUITE_NAME	= Dyninst
+RELEASE_NUM	= 6.1
+#BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
+
+DYNCNAME = dynC
+
+CFLAGS		     += $(USEFULWARNINGS) -I$(TO_CORE)/../include
+CXXFLAGS	     += $(USEFULWARNINGS) -I$(TO_CORE)/../include
+
+LDFLAGS += -lcommon -lsymtabAPI -ldyninstAPI
+
+LDFLAGS     += $(LIBDIR)
+ifndef USES_NATIVE_CC
+LD		= $(GXX)
+LDFLAGS		+= -shared $(G_PTHREAD_LD)
+CFLAGS		+= -fPIC
+CXXFLAGS	+= -fPIC $(G_PTHREAD)
+else
+ifeq (solaris,$(findstring solaris,$(PLATFORM)))
+LDFLAGS		+= -G
+endif #sparc
+endif #USES_NATIVE
+
+ifneq ($(findstring cap_instruction_api,$(CAP_DEF)),)
+    LDFLAGS += -linstructionAPI
+endif
+
+TO_INC   = ../h
+
+PUBLIC_H = \
+    ../h/dynC.h\
+    ../h/snippetGen.h
+
+SRCS += ../src/dynC.C lex.$(DYNCNAME).C $(DYNCNAME).tab.C ../src/snippetGen.C 
+
+
+ifndef USES_NATIVE_CC
+ifdef CROSSCOMPILER
+SYSLIBS		+= -liberty -lg++ -lstdc++ -lm
+else
+SYSLIBS         += -liberty
+endif
+else
+SYSLIBS		+= -ldemangle
+endif
+
+LEXFLAGS +=  -P$(DYNCNAME)
+YACCFLAGS += -d -b $(DYNCNAME) -p $(DYNCNAME)
+
+#verbose grammar:
+ifeq (0,0)
+YACCFLAGS += -v
+endif
+
+IFLAGS       += -I../$(PLATFORM) -I../src -I../h -I../../dynutil/h -I../../symtabAPI/h -I../../common/h -I../../instructionAPI/h -I../../dyninstAPI/src 
+
+#EXTRA_LIBS += lex.$(DYNCNAME).C
+
+# All that, and we finally get a target...
+all: $(TARGET) $(EXTRA_LIBS) 
+
+lex.$(DYNCNAME).C: ../src/C.l $(DYNCNAME).tab.h
+	$(LEX) $(LEXFLAGS) ../src/C.l
+	mv lex.$(DYNCNAME).c lex.$(DYNCNAME).C
+
+$(DYNCNAME).tab.h: $(DYNCNAME).tab.C
+$(DYNCNAME).tab.C: ../src/C.y
+	$(YACC) $(YACCFLAGS) ../src/C.y
+	mv $(DYNCNAME).tab.c $(DYNCNAME).tab.C

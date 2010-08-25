@@ -1,0 +1,2710 @@
+Terminals which are not used
+
+   KNOWN_ERROR_TOK
+   CONSTANT
+   EOL
+   SIZEOF
+   PTR_OP
+   LEFT_OP
+   RIGHT_OP
+   LEFT_ASSIGN
+   RIGHT_ASSIGN
+   AND_ASSIGN
+   XOR_ASSIGN
+   OR_ASSIGN
+   TYPE_NAME
+   TYPEDEF
+   EXTERN
+   CHAR
+   SHORT
+   INT
+   LONG
+   SIGNED
+   UNSIGNED
+   FLOAT
+   DOUBLE
+   VOID
+   STRUCT
+   UNION
+   ENUM
+   ELLIPSIS
+   NEWLINE
+   CASE
+   DEFAULT
+   SWITCH
+   RETURN
+   AMPERSAND
+   ASTERISK
+   DOT
+   NOT
+   COLON
+   END_BLOCK
+   START_BLOCK
+   DOLLAR
+   '!'
+   '~'
+   OR_OP
+   AND_OP
+
+
+Grammar
+
+    0 $accept: start $end
+
+    1 start: statement_list
+
+    2 var_declaration: var_decl_modifiers IDENTIFIER
+    3                | var_decl_modifiers IDENTIFIER ASSIGN arith_expression
+    4                | var_decl_modifiers IDENTIFIER '[' NUMBER ']'
+    5                | var_decl_modifiers IDENTIFIER '[' ']' ASSIGN '{' const_list '}'
+    6                | var_decl_modifiers IDENTIFIER '[' NUMBER ']' ASSIGN '{' const_list '}'
+
+    7 var_decl_modifiers: TYPE
+    8                   | STATIC var_decl_modifiers
+    9                   | CONST var_decl_modifiers
+   10                   | GLOBAL var_decl_modifiers
+   11                   | LOCAL var_decl_modifiers
+   12                   | THREAD var_decl_modifiers
+   13                   | MACHINE var_decl_modifiers
+
+   14 statement_list: statement
+   15               | statement_list statement
+   16               | NOPEN statement_list NCLOSE
+   17               | statement_list NOPEN statement_list NCLOSE
+
+   18 statement: error
+   19          | ERROR
+   20          | var_declaration SEMI
+   21          | arith_expression SEMI
+   22          | IF '(' bool_expression ')' block
+   23          | IF '(' bool_expression ')' block ELSE block
+
+   24 block: statement
+   25      | '{' statement_list '}'
+
+   26 func_call: DYNINST BACKTICK IDENTIFIER '(' param_list ')'
+   27          | IDENTIFIER '(' param_list ')'
+
+   28 param_list: /* empty */
+   29           | arith_expression
+   30           | param_list COMMA arith_expression
+
+   31 bool_constant: TRUE
+   32              | FALSE
+
+   33 bool_expression: bool_constant
+   34                | arith_expression '<' arith_expression
+   35                | arith_expression '>' arith_expression
+   36                | arith_expression EQ arith_expression
+   37                | arith_expression LESS_EQ arith_expression
+   38                | arith_expression GREATER_EQ arith_expression
+   39                | arith_expression NOT_EQ arith_expression
+   40                | bool_expression AND bool_expression
+   41                | bool_expression OR bool_expression
+
+   42 var_modifiers: GLOBAL
+   43              | LOCAL
+   44              | PARAM
+   45              | THREAD
+   46              | MACHINE
+
+   47 variable_expr: INST BACKTICK IDENTIFIER
+   48              | IDENTIFIER
+   49              | var_modifiers BACKTICK IDENTIFIER
+   50              | var_modifiers BACKTICK NUMBER
+   51              | variable_expr '[' arith_expression ']'
+
+   52 constant: NUMBER
+   53         | STRING
+
+   54 const_list: constant
+   55           | const_list COMMA constant
+
+   56 arith_expression: variable_expr
+   57                 | constant
+   58                 | NILL
+   59                 | DYNINST BACKTICK IDENTIFIER
+   60                 | arith_expression '*' arith_expression
+   61                 | func_call
+   62                 | variable_expr ASSIGN arith_expression
+   63                 | variable_expr ADD_ASSIGN arith_expression
+   64                 | variable_expr SUB_ASSIGN arith_expression
+   65                 | variable_expr MUL_ASSIGN arith_expression
+   66                 | variable_expr DIV_ASSIGN arith_expression
+   67                 | variable_expr MOD_ASSIGN arith_expression
+   68                 | arith_expression '/' arith_expression
+   69                 | arith_expression '%' arith_expression
+   70                 | arith_expression '+' arith_expression
+   71                 | arith_expression '-' arith_expression
+   72                 | arith_expression '|' arith_expression
+   73                 | '(' arith_expression ')'
+   74                 | inc_decr_expr
+
+   75 inc_decr_expr: variable_expr INC_OP
+   76              | INC_OP variable_expr
+   77              | variable_expr DEC_OP
+   78              | DEC_OP variable_expr
+
+
+Terminals, with rules where they appear
+
+$end (0) 0
+'!' (33)
+'%' (37) 69
+'(' (40) 22 23 26 27 73
+')' (41) 22 23 26 27 73
+'*' (42) 60
+'+' (43) 70
+'-' (45) 71
+'/' (47) 68
+'<' (60) 34
+'>' (62) 35
+'[' (91) 4 5 6 51
+']' (93) 4 5 6 51
+'{' (123) 5 6 25
+'|' (124) 72
+'}' (125) 5 6 25
+'~' (126)
+error (256) 18
+KNOWN_ERROR_TOK (258)
+IDENTIFIER (259) 2 3 4 5 6 26 27 47 48 49 59
+CONSTANT (260)
+STRING (261) 53
+TYPE (262) 7
+NUMBER (263) 4 6 50 52
+ERROR (264) 19
+EOL (265)
+SIZEOF (266)
+TRUE (267) 31
+FALSE (268) 32
+PTR_OP (269)
+INC_OP (270) 75 76
+DEC_OP (271) 77 78
+LEFT_OP (272)
+RIGHT_OP (273)
+LEFT_ASSIGN (274)
+RIGHT_ASSIGN (275)
+AND_ASSIGN (276)
+XOR_ASSIGN (277)
+OR_ASSIGN (278)
+TYPE_NAME (279)
+TYPEDEF (280)
+EXTERN (281)
+STATIC (282) 8
+CHAR (283)
+SHORT (284)
+INT (285)
+LONG (286)
+SIGNED (287)
+UNSIGNED (288)
+FLOAT (289)
+DOUBLE (290)
+CONST (291) 9
+VOID (292)
+STRUCT (293)
+UNION (294)
+ENUM (295)
+ELLIPSIS (296)
+IF (297) 22 23
+LOCAL (298) 11 43
+PARAM (299) 44
+THREAD (300) 12 45
+GLOBAL (301) 10 42
+MACHINE (302) 13 46
+DYNINST (303) 26 59
+INST (304) 47
+NEWLINE (305)
+CASE (306)
+DEFAULT (307)
+SWITCH (308)
+RETURN (309)
+NILL (310) 58
+COMMA (311) 30 55
+AMPERSAND (312)
+ASTERISK (313)
+DOT (314)
+NOT (315)
+OR (316) 41
+AND (317) 40
+NOT_EQ (318) 39
+EQ (319) 36
+GREATER_EQ (320) 38
+LESS_EQ (321) 37
+COLON (322)
+SEMI (323) 20 21
+END_BLOCK (324)
+START_BLOCK (325)
+DOLLAR (326)
+BACKTICK (327) 26 47 49 50 59
+ASSIGN (328) 3 5 6 62
+SUB_ASSIGN (329) 64
+ADD_ASSIGN (330) 63
+MOD_ASSIGN (331) 67
+DIV_ASSIGN (332) 66
+MUL_ASSIGN (333) 65
+OR_OP (334)
+AND_OP (335)
+NCLOSE (336) 16 17
+NOPEN (337) 16 17
+LOWER_THAN_ELSE (338)
+ELSE (339) 23
+
+
+Nonterminals, with rules where they appear
+
+$accept (101)
+    on left: 0
+start (102)
+    on left: 1, on right: 0
+var_declaration (103)
+    on left: 2 3 4 5 6, on right: 20
+var_decl_modifiers (104)
+    on left: 7 8 9 10 11 12 13, on right: 2 3 4 5 6 8 9 10 11 12 13
+statement_list (105)
+    on left: 14 15 16 17, on right: 1 15 16 17 25
+statement (106)
+    on left: 18 19 20 21 22 23, on right: 14 15 24
+block (107)
+    on left: 24 25, on right: 22 23
+func_call (108)
+    on left: 26 27, on right: 61
+param_list (109)
+    on left: 28 29 30, on right: 26 27 30
+bool_constant (110)
+    on left: 31 32, on right: 33
+bool_expression (111)
+    on left: 33 34 35 36 37 38 39 40 41, on right: 22 23 40 41
+var_modifiers (112)
+    on left: 42 43 44 45 46, on right: 49 50
+variable_expr (113)
+    on left: 47 48 49 50 51, on right: 51 56 62 63 64 65 66 67 75 76
+    77 78
+constant (114)
+    on left: 52 53, on right: 54 55 57
+const_list (115)
+    on left: 54 55, on right: 5 6 55
+arith_expression (116)
+    on left: 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73
+    74, on right: 3 21 29 30 34 35 36 37 38 39 51 60 62 63 64 65 66
+    67 68 69 70 71 72 73
+inc_decr_expr (117)
+    on left: 75 76 77 78, on right: 74
+
+
+state 0
+
+    0 $accept: . start $end
+
+    error       shift, and go to state 1
+    IDENTIFIER  shift, and go to state 2
+    STRING      shift, and go to state 3
+    TYPE        shift, and go to state 4
+    NUMBER      shift, and go to state 5
+    ERROR       shift, and go to state 6
+    INC_OP      shift, and go to state 7
+    DEC_OP      shift, and go to state 8
+    STATIC      shift, and go to state 9
+    CONST       shift, and go to state 10
+    IF          shift, and go to state 11
+    LOCAL       shift, and go to state 12
+    PARAM       shift, and go to state 13
+    THREAD      shift, and go to state 14
+    GLOBAL      shift, and go to state 15
+    MACHINE     shift, and go to state 16
+    DYNINST     shift, and go to state 17
+    INST        shift, and go to state 18
+    NILL        shift, and go to state 19
+    NOPEN       shift, and go to state 20
+    '('         shift, and go to state 21
+
+    start               go to state 22
+    var_declaration     go to state 23
+    var_decl_modifiers  go to state 24
+    statement_list      go to state 25
+    statement           go to state 26
+    func_call           go to state 27
+    var_modifiers       go to state 28
+    variable_expr       go to state 29
+    constant            go to state 30
+    arith_expression    go to state 31
+    inc_decr_expr       go to state 32
+
+
+state 1
+
+   18 statement: error .
+
+    $default  reduce using rule 18 (statement)
+
+
+state 2
+
+   27 func_call: IDENTIFIER . '(' param_list ')'
+   48 variable_expr: IDENTIFIER .
+
+    '('  shift, and go to state 33
+
+    $default  reduce using rule 48 (variable_expr)
+
+
+state 3
+
+   53 constant: STRING .
+
+    $default  reduce using rule 53 (constant)
+
+
+state 4
+
+    7 var_decl_modifiers: TYPE .
+
+    $default  reduce using rule 7 (var_decl_modifiers)
+
+
+state 5
+
+   52 constant: NUMBER .
+
+    $default  reduce using rule 52 (constant)
+
+
+state 6
+
+   19 statement: ERROR .
+
+    $default  reduce using rule 19 (statement)
+
+
+state 7
+
+   76 inc_decr_expr: INC_OP . variable_expr
+
+    IDENTIFIER  shift, and go to state 34
+    LOCAL       shift, and go to state 35
+    PARAM       shift, and go to state 13
+    THREAD      shift, and go to state 36
+    GLOBAL      shift, and go to state 37
+    MACHINE     shift, and go to state 38
+    INST        shift, and go to state 18
+
+    var_modifiers  go to state 28
+    variable_expr  go to state 39
+
+
+state 8
+
+   78 inc_decr_expr: DEC_OP . variable_expr
+
+    IDENTIFIER  shift, and go to state 34
+    LOCAL       shift, and go to state 35
+    PARAM       shift, and go to state 13
+    THREAD      shift, and go to state 36
+    GLOBAL      shift, and go to state 37
+    MACHINE     shift, and go to state 38
+    INST        shift, and go to state 18
+
+    var_modifiers  go to state 28
+    variable_expr  go to state 40
+
+
+state 9
+
+    8 var_decl_modifiers: STATIC . var_decl_modifiers
+
+    TYPE     shift, and go to state 4
+    STATIC   shift, and go to state 9
+    CONST    shift, and go to state 10
+    LOCAL    shift, and go to state 41
+    THREAD   shift, and go to state 42
+    GLOBAL   shift, and go to state 43
+    MACHINE  shift, and go to state 44
+
+    var_decl_modifiers  go to state 45
+
+
+state 10
+
+    9 var_decl_modifiers: CONST . var_decl_modifiers
+
+    TYPE     shift, and go to state 4
+    STATIC   shift, and go to state 9
+    CONST    shift, and go to state 10
+    LOCAL    shift, and go to state 41
+    THREAD   shift, and go to state 42
+    GLOBAL   shift, and go to state 43
+    MACHINE  shift, and go to state 44
+
+    var_decl_modifiers  go to state 46
+
+
+state 11
+
+   22 statement: IF . '(' bool_expression ')' block
+   23          | IF . '(' bool_expression ')' block ELSE block
+
+    '('  shift, and go to state 47
+
+
+state 12
+
+   11 var_decl_modifiers: LOCAL . var_decl_modifiers
+   43 var_modifiers: LOCAL .
+
+    TYPE     shift, and go to state 4
+    STATIC   shift, and go to state 9
+    CONST    shift, and go to state 10
+    LOCAL    shift, and go to state 41
+    THREAD   shift, and go to state 42
+    GLOBAL   shift, and go to state 43
+    MACHINE  shift, and go to state 44
+
+    $default  reduce using rule 43 (var_modifiers)
+
+    var_decl_modifiers  go to state 48
+
+
+state 13
+
+   44 var_modifiers: PARAM .
+
+    $default  reduce using rule 44 (var_modifiers)
+
+
+state 14
+
+   12 var_decl_modifiers: THREAD . var_decl_modifiers
+   45 var_modifiers: THREAD .
+
+    TYPE     shift, and go to state 4
+    STATIC   shift, and go to state 9
+    CONST    shift, and go to state 10
+    LOCAL    shift, and go to state 41
+    THREAD   shift, and go to state 42
+    GLOBAL   shift, and go to state 43
+    MACHINE  shift, and go to state 44
+
+    $default  reduce using rule 45 (var_modifiers)
+
+    var_decl_modifiers  go to state 49
+
+
+state 15
+
+   10 var_decl_modifiers: GLOBAL . var_decl_modifiers
+   42 var_modifiers: GLOBAL .
+
+    TYPE     shift, and go to state 4
+    STATIC   shift, and go to state 9
+    CONST    shift, and go to state 10
+    LOCAL    shift, and go to state 41
+    THREAD   shift, and go to state 42
+    GLOBAL   shift, and go to state 43
+    MACHINE  shift, and go to state 44
+
+    $default  reduce using rule 42 (var_modifiers)
+
+    var_decl_modifiers  go to state 50
+
+
+state 16
+
+   13 var_decl_modifiers: MACHINE . var_decl_modifiers
+   46 var_modifiers: MACHINE .
+
+    TYPE     shift, and go to state 4
+    STATIC   shift, and go to state 9
+    CONST    shift, and go to state 10
+    LOCAL    shift, and go to state 41
+    THREAD   shift, and go to state 42
+    GLOBAL   shift, and go to state 43
+    MACHINE  shift, and go to state 44
+
+    $default  reduce using rule 46 (var_modifiers)
+
+    var_decl_modifiers  go to state 51
+
+
+state 17
+
+   26 func_call: DYNINST . BACKTICK IDENTIFIER '(' param_list ')'
+   59 arith_expression: DYNINST . BACKTICK IDENTIFIER
+
+    BACKTICK  shift, and go to state 52
+
+
+state 18
+
+   47 variable_expr: INST . BACKTICK IDENTIFIER
+
+    BACKTICK  shift, and go to state 53
+
+
+state 19
+
+   58 arith_expression: NILL .
+
+    $default  reduce using rule 58 (arith_expression)
+
+
+state 20
+
+   16 statement_list: NOPEN . statement_list NCLOSE
+
+    error       shift, and go to state 1
+    IDENTIFIER  shift, and go to state 2
+    STRING      shift, and go to state 3
+    TYPE        shift, and go to state 4
+    NUMBER      shift, and go to state 5
+    ERROR       shift, and go to state 6
+    INC_OP      shift, and go to state 7
+    DEC_OP      shift, and go to state 8
+    STATIC      shift, and go to state 9
+    CONST       shift, and go to state 10
+    IF          shift, and go to state 11
+    LOCAL       shift, and go to state 12
+    PARAM       shift, and go to state 13
+    THREAD      shift, and go to state 14
+    GLOBAL      shift, and go to state 15
+    MACHINE     shift, and go to state 16
+    DYNINST     shift, and go to state 17
+    INST        shift, and go to state 18
+    NILL        shift, and go to state 19
+    NOPEN       shift, and go to state 20
+    '('         shift, and go to state 21
+
+    var_declaration     go to state 23
+    var_decl_modifiers  go to state 24
+    statement_list      go to state 54
+    statement           go to state 26
+    func_call           go to state 27
+    var_modifiers       go to state 28
+    variable_expr       go to state 29
+    constant            go to state 30
+    arith_expression    go to state 31
+    inc_decr_expr       go to state 32
+
+
+state 21
+
+   73 arith_expression: '(' . arith_expression ')'
+
+    IDENTIFIER  shift, and go to state 2
+    STRING      shift, and go to state 3
+    NUMBER      shift, and go to state 5
+    INC_OP      shift, and go to state 7
+    DEC_OP      shift, and go to state 8
+    LOCAL       shift, and go to state 35
+    PARAM       shift, and go to state 13
+    THREAD      shift, and go to state 36
+    GLOBAL      shift, and go to state 37
+    MACHINE     shift, and go to state 38
+    DYNINST     shift, and go to state 17
+    INST        shift, and go to state 18
+    NILL        shift, and go to state 19
+    '('         shift, and go to state 21
+
+    func_call         go to state 27
+    var_modifiers     go to state 28
+    variable_expr     go to state 29
+    constant          go to state 30
+    arith_expression  go to state 55
+    inc_decr_expr     go to state 32
+
+
+state 22
+
+    0 $accept: start . $end
+
+    $end  shift, and go to state 56
+
+
+state 23
+
+   20 statement: var_declaration . SEMI
+
+    SEMI  shift, and go to state 57
+
+
+state 24
+
+    2 var_declaration: var_decl_modifiers . IDENTIFIER
+    3                | var_decl_modifiers . IDENTIFIER ASSIGN arith_expression
+    4                | var_decl_modifiers . IDENTIFIER '[' NUMBER ']'
+    5                | var_decl_modifiers . IDENTIFIER '[' ']' ASSIGN '{' const_list '}'
+    6                | var_decl_modifiers . IDENTIFIER '[' NUMBER ']' ASSIGN '{' const_list '}'
+
+    IDENTIFIER  shift, and go to state 58
+
+
+state 25
+
+    1 start: statement_list .
+   15 statement_list: statement_list . statement
+   17               | statement_list . NOPEN statement_list NCLOSE
+
+    error       shift, and go to state 1
+    IDENTIFIER  shift, and go to state 2
+    STRING      shift, and go to state 3
+    TYPE        shift, and go to state 4
+    NUMBER      shift, and go to state 5
+    ERROR       shift, and go to state 6
+    INC_OP      shift, and go to state 7
+    DEC_OP      shift, and go to state 8
+    STATIC      shift, and go to state 9
+    CONST       shift, and go to state 10
+    IF          shift, and go to state 11
+    LOCAL       shift, and go to state 12
+    PARAM       shift, and go to state 13
+    THREAD      shift, and go to state 14
+    GLOBAL      shift, and go to state 15
+    MACHINE     shift, and go to state 16
+    DYNINST     shift, and go to state 17
+    INST        shift, and go to state 18
+    NILL        shift, and go to state 19
+    NOPEN       shift, and go to state 59
+    '('         shift, and go to state 21
+
+    $end  reduce using rule 1 (start)
+
+    var_declaration     go to state 23
+    var_decl_modifiers  go to state 24
+    statement           go to state 60
+    func_call           go to state 27
+    var_modifiers       go to state 28
+    variable_expr       go to state 29
+    constant            go to state 30
+    arith_expression    go to state 31
+    inc_decr_expr       go to state 32
+
+
+state 26
+
+   14 statement_list: statement .
+
+    $default  reduce using rule 14 (statement_list)
+
+
+state 27
+
+   61 arith_expression: func_call .
+
+    $default  reduce using rule 61 (arith_expression)
+
+
+state 28
+
+   49 variable_expr: var_modifiers . BACKTICK IDENTIFIER
+   50              | var_modifiers . BACKTICK NUMBER
+
+    BACKTICK  shift, and go to state 61
+
+
+state 29
+
+   51 variable_expr: variable_expr . '[' arith_expression ']'
+   56 arith_expression: variable_expr .
+   62                 | variable_expr . ASSIGN arith_expression
+   63                 | variable_expr . ADD_ASSIGN arith_expression
+   64                 | variable_expr . SUB_ASSIGN arith_expression
+   65                 | variable_expr . MUL_ASSIGN arith_expression
+   66                 | variable_expr . DIV_ASSIGN arith_expression
+   67                 | variable_expr . MOD_ASSIGN arith_expression
+   75 inc_decr_expr: variable_expr . INC_OP
+   77              | variable_expr . DEC_OP
+
+    INC_OP      shift, and go to state 62
+    DEC_OP      shift, and go to state 63
+    ASSIGN      shift, and go to state 64
+    SUB_ASSIGN  shift, and go to state 65
+    ADD_ASSIGN  shift, and go to state 66
+    MOD_ASSIGN  shift, and go to state 67
+    DIV_ASSIGN  shift, and go to state 68
+    MUL_ASSIGN  shift, and go to state 69
+    '['         shift, and go to state 70
+
+    $default  reduce using rule 56 (arith_expression)
+
+
+state 30
+
+   57 arith_expression: constant .
+
+    $default  reduce using rule 57 (arith_expression)
+
+
+state 31
+
+   21 statement: arith_expression . SEMI
+   60 arith_expression: arith_expression . '*' arith_expression
+   68                 | arith_expression . '/' arith_expression
+   69                 | arith_expression . '%' arith_expression
+   70                 | arith_expression . '+' arith_expression
+   71                 | arith_expression . '-' arith_expression
+   72                 | arith_expression . '|' arith_expression
+
+    '+'   shift, and go to state 71
+    '-'   shift, and go to state 72
+    '*'   shift, and go to state 73
+    '/'   shift, and go to state 74
+    '%'   shift, and go to state 75
+    '|'   shift, and go to state 76
+    SEMI  shift, and go to state 77
+
+
+state 32
+
+   74 arith_expression: inc_decr_expr .
+
+    $default  reduce using rule 74 (arith_expression)
+
+
+state 33
+
+   27 func_call: IDENTIFIER '(' . param_list ')'
+
+    IDENTIFIER  shift, and go to state 2
+    STRING      shift, and go to state 3
+    NUMBER      shift, and go to state 5
+    INC_OP      shift, and go to state 7
+    DEC_OP      shift, and go to state 8
+    LOCAL       shift, and go to state 35
+    PARAM       shift, and go to state 13
+    THREAD      shift, and go to state 36
+    GLOBAL      shift, and go to state 37
+    MACHINE     shift, and go to state 38
+    DYNINST     shift, and go to state 17
+    INST        shift, and go to state 18
+    NILL        shift, and go to state 19
+    '('         shift, and go to state 21
+
+    $default  reduce using rule 28 (param_list)
+
+    func_call         go to state 27
+    param_list        go to state 78
+    var_modifiers     go to state 28
+    variable_expr     go to state 29
+    constant          go to state 30
+    arith_expression  go to state 79
+    inc_decr_expr     go to state 32
+
+
+state 34
+
+   48 variable_expr: IDENTIFIER .
+
+    $default  reduce using rule 48 (variable_expr)
+
+
+state 35
+
+   43 var_modifiers: LOCAL .
+
+    $default  reduce using rule 43 (var_modifiers)
+
+
+state 36
+
+   45 var_modifiers: THREAD .
+
+    $default  reduce using rule 45 (var_modifiers)
+
+
+state 37
+
+   42 var_modifiers: GLOBAL .
+
+    $default  reduce using rule 42 (var_modifiers)
+
+
+state 38
+
+   46 var_modifiers: MACHINE .
+
+    $default  reduce using rule 46 (var_modifiers)
+
+
+state 39
+
+   51 variable_expr: variable_expr . '[' arith_expression ']'
+   76 inc_decr_expr: INC_OP variable_expr .
+
+    '['  shift, and go to state 70
+
+    $default  reduce using rule 76 (inc_decr_expr)
+
+
+state 40
+
+   51 variable_expr: variable_expr . '[' arith_expression ']'
+   78 inc_decr_expr: DEC_OP variable_expr .
+
+    '['  shift, and go to state 70
+
+    $default  reduce using rule 78 (inc_decr_expr)
+
+
+state 41
+
+   11 var_decl_modifiers: LOCAL . var_decl_modifiers
+
+    TYPE     shift, and go to state 4
+    STATIC   shift, and go to state 9
+    CONST    shift, and go to state 10
+    LOCAL    shift, and go to state 41
+    THREAD   shift, and go to state 42
+    GLOBAL   shift, and go to state 43
+    MACHINE  shift, and go to state 44
+
+    var_decl_modifiers  go to state 48
+
+
+state 42
+
+   12 var_decl_modifiers: THREAD . var_decl_modifiers
+
+    TYPE     shift, and go to state 4
+    STATIC   shift, and go to state 9
+    CONST    shift, and go to state 10
+    LOCAL    shift, and go to state 41
+    THREAD   shift, and go to state 42
+    GLOBAL   shift, and go to state 43
+    MACHINE  shift, and go to state 44
+
+    var_decl_modifiers  go to state 49
+
+
+state 43
+
+   10 var_decl_modifiers: GLOBAL . var_decl_modifiers
+
+    TYPE     shift, and go to state 4
+    STATIC   shift, and go to state 9
+    CONST    shift, and go to state 10
+    LOCAL    shift, and go to state 41
+    THREAD   shift, and go to state 42
+    GLOBAL   shift, and go to state 43
+    MACHINE  shift, and go to state 44
+
+    var_decl_modifiers  go to state 50
+
+
+state 44
+
+   13 var_decl_modifiers: MACHINE . var_decl_modifiers
+
+    TYPE     shift, and go to state 4
+    STATIC   shift, and go to state 9
+    CONST    shift, and go to state 10
+    LOCAL    shift, and go to state 41
+    THREAD   shift, and go to state 42
+    GLOBAL   shift, and go to state 43
+    MACHINE  shift, and go to state 44
+
+    var_decl_modifiers  go to state 51
+
+
+state 45
+
+    8 var_decl_modifiers: STATIC var_decl_modifiers .
+
+    $default  reduce using rule 8 (var_decl_modifiers)
+
+
+state 46
+
+    9 var_decl_modifiers: CONST var_decl_modifiers .
+
+    $default  reduce using rule 9 (var_decl_modifiers)
+
+
+state 47
+
+   22 statement: IF '(' . bool_expression ')' block
+   23          | IF '(' . bool_expression ')' block ELSE block
+
+    IDENTIFIER  shift, and go to state 2
+    STRING      shift, and go to state 3
+    NUMBER      shift, and go to state 5
+    TRUE        shift, and go to state 80
+    FALSE       shift, and go to state 81
+    INC_OP      shift, and go to state 7
+    DEC_OP      shift, and go to state 8
+    LOCAL       shift, and go to state 35
+    PARAM       shift, and go to state 13
+    THREAD      shift, and go to state 36
+    GLOBAL      shift, and go to state 37
+    MACHINE     shift, and go to state 38
+    DYNINST     shift, and go to state 17
+    INST        shift, and go to state 18
+    NILL        shift, and go to state 19
+    '('         shift, and go to state 21
+
+    func_call         go to state 27
+    bool_constant     go to state 82
+    bool_expression   go to state 83
+    var_modifiers     go to state 28
+    variable_expr     go to state 29
+    constant          go to state 30
+    arith_expression  go to state 84
+    inc_decr_expr     go to state 32
+
+
+state 48
+
+   11 var_decl_modifiers: LOCAL var_decl_modifiers .
+
+    $default  reduce using rule 11 (var_decl_modifiers)
+
+
+state 49
+
+   12 var_decl_modifiers: THREAD var_decl_modifiers .
+
+    $default  reduce using rule 12 (var_decl_modifiers)
+
+
+state 50
+
+   10 var_decl_modifiers: GLOBAL var_decl_modifiers .
+
+    $default  reduce using rule 10 (var_decl_modifiers)
+
+
+state 51
+
+   13 var_decl_modifiers: MACHINE var_decl_modifiers .
+
+    $default  reduce using rule 13 (var_decl_modifiers)
+
+
+state 52
+
+   26 func_call: DYNINST BACKTICK . IDENTIFIER '(' param_list ')'
+   59 arith_expression: DYNINST BACKTICK . IDENTIFIER
+
+    IDENTIFIER  shift, and go to state 85
+
+
+state 53
+
+   47 variable_expr: INST BACKTICK . IDENTIFIER
+
+    IDENTIFIER  shift, and go to state 86
+
+
+state 54
+
+   15 statement_list: statement_list . statement
+   16               | NOPEN statement_list . NCLOSE
+   17               | statement_list . NOPEN statement_list NCLOSE
+
+    error       shift, and go to state 1
+    IDENTIFIER  shift, and go to state 2
+    STRING      shift, and go to state 3
+    TYPE        shift, and go to state 4
+    NUMBER      shift, and go to state 5
+    ERROR       shift, and go to state 6
+    INC_OP      shift, and go to state 7
+    DEC_OP      shift, and go to state 8
+    STATIC      shift, and go to state 9
+    CONST       shift, and go to state 10
+    IF          shift, and go to state 11
+    LOCAL       shift, and go to state 12
+    PARAM       shift, and go to state 13
+    THREAD      shift, and go to state 14
+    GLOBAL      shift, and go to state 15
+    MACHINE     shift, and go to state 16
+    DYNINST     shift, and go to state 17
+    INST        shift, and go to state 18
+    NILL        shift, and go to state 19
+    NCLOSE      shift, and go to state 87
+    NOPEN       shift, and go to state 59
+    '('         shift, and go to state 21
+
+    var_declaration     go to state 23
+    var_decl_modifiers  go to state 24
+    statement           go to state 60
+    func_call           go to state 27
+    var_modifiers       go to state 28
+    variable_expr       go to state 29
+    constant            go to state 30
+    arith_expression    go to state 31
+    inc_decr_expr       go to state 32
+
+
+state 55
+
+   60 arith_expression: arith_expression . '*' arith_expression
+   68                 | arith_expression . '/' arith_expression
+   69                 | arith_expression . '%' arith_expression
+   70                 | arith_expression . '+' arith_expression
+   71                 | arith_expression . '-' arith_expression
+   72                 | arith_expression . '|' arith_expression
+   73                 | '(' arith_expression . ')'
+
+    '+'  shift, and go to state 71
+    '-'  shift, and go to state 72
+    '*'  shift, and go to state 73
+    '/'  shift, and go to state 74
+    '%'  shift, and go to state 75
+    '|'  shift, and go to state 76
+    ')'  shift, and go to state 88
+
+
+state 56
+
+    0 $accept: start $end .
+
+    $default  accept
+
+
+state 57
+
+   20 statement: var_declaration SEMI .
+
+    $default  reduce using rule 20 (statement)
+
+
+state 58
+
+    2 var_declaration: var_decl_modifiers IDENTIFIER .
+    3                | var_decl_modifiers IDENTIFIER . ASSIGN arith_expression
+    4                | var_decl_modifiers IDENTIFIER . '[' NUMBER ']'
+    5                | var_decl_modifiers IDENTIFIER . '[' ']' ASSIGN '{' const_list '}'
+    6                | var_decl_modifiers IDENTIFIER . '[' NUMBER ']' ASSIGN '{' const_list '}'
+
+    ASSIGN  shift, and go to state 89
+    '['     shift, and go to state 90
+
+    $default  reduce using rule 2 (var_declaration)
+
+
+state 59
+
+   17 statement_list: statement_list NOPEN . statement_list NCLOSE
+
+    error       shift, and go to state 1
+    IDENTIFIER  shift, and go to state 2
+    STRING      shift, and go to state 3
+    TYPE        shift, and go to state 4
+    NUMBER      shift, and go to state 5
+    ERROR       shift, and go to state 6
+    INC_OP      shift, and go to state 7
+    DEC_OP      shift, and go to state 8
+    STATIC      shift, and go to state 9
+    CONST       shift, and go to state 10
+    IF          shift, and go to state 11
+    LOCAL       shift, and go to state 12
+    PARAM       shift, and go to state 13
+    THREAD      shift, and go to state 14
+    GLOBAL      shift, and go to state 15
+    MACHINE     shift, and go to state 16
+    DYNINST     shift, and go to state 17
+    INST        shift, and go to state 18
+    NILL        shift, and go to state 19
+    NOPEN       shift, and go to state 20
+    '('         shift, and go to state 21
+
+    var_declaration     go to state 23
+    var_decl_modifiers  go to state 24
+    statement_list      go to state 91
+    statement           go to state 26
+    func_call           go to state 27
+    var_modifiers       go to state 28
+    variable_expr       go to state 29
+    constant            go to state 30
+    arith_expression    go to state 31
+    inc_decr_expr       go to state 32
+
+
+state 60
+
+   15 statement_list: statement_list statement .
+
+    $default  reduce using rule 15 (statement_list)
+
+
+state 61
+
+   49 variable_expr: var_modifiers BACKTICK . IDENTIFIER
+   50              | var_modifiers BACKTICK . NUMBER
+
+    IDENTIFIER  shift, and go to state 92
+    NUMBER      shift, and go to state 93
+
+
+state 62
+
+   75 inc_decr_expr: variable_expr INC_OP .
+
+    $default  reduce using rule 75 (inc_decr_expr)
+
+
+state 63
+
+   77 inc_decr_expr: variable_expr DEC_OP .
+
+    $default  reduce using rule 77 (inc_decr_expr)
+
+
+state 64
+
+   62 arith_expression: variable_expr ASSIGN . arith_expression
+
+    IDENTIFIER  shift, and go to state 2
+    STRING      shift, and go to state 3
+    NUMBER      shift, and go to state 5
+    INC_OP      shift, and go to state 7
+    DEC_OP      shift, and go to state 8
+    LOCAL       shift, and go to state 35
+    PARAM       shift, and go to state 13
+    THREAD      shift, and go to state 36
+    GLOBAL      shift, and go to state 37
+    MACHINE     shift, and go to state 38
+    DYNINST     shift, and go to state 17
+    INST        shift, and go to state 18
+    NILL        shift, and go to state 19
+    '('         shift, and go to state 21
+
+    func_call         go to state 27
+    var_modifiers     go to state 28
+    variable_expr     go to state 29
+    constant          go to state 30
+    arith_expression  go to state 94
+    inc_decr_expr     go to state 32
+
+
+state 65
+
+   64 arith_expression: variable_expr SUB_ASSIGN . arith_expression
+
+    IDENTIFIER  shift, and go to state 2
+    STRING      shift, and go to state 3
+    NUMBER      shift, and go to state 5
+    INC_OP      shift, and go to state 7
+    DEC_OP      shift, and go to state 8
+    LOCAL       shift, and go to state 35
+    PARAM       shift, and go to state 13
+    THREAD      shift, and go to state 36
+    GLOBAL      shift, and go to state 37
+    MACHINE     shift, and go to state 38
+    DYNINST     shift, and go to state 17
+    INST        shift, and go to state 18
+    NILL        shift, and go to state 19
+    '('         shift, and go to state 21
+
+    func_call         go to state 27
+    var_modifiers     go to state 28
+    variable_expr     go to state 29
+    constant          go to state 30
+    arith_expression  go to state 95
+    inc_decr_expr     go to state 32
+
+
+state 66
+
+   63 arith_expression: variable_expr ADD_ASSIGN . arith_expression
+
+    IDENTIFIER  shift, and go to state 2
+    STRING      shift, and go to state 3
+    NUMBER      shift, and go to state 5
+    INC_OP      shift, and go to state 7
+    DEC_OP      shift, and go to state 8
+    LOCAL       shift, and go to state 35
+    PARAM       shift, and go to state 13
+    THREAD      shift, and go to state 36
+    GLOBAL      shift, and go to state 37
+    MACHINE     shift, and go to state 38
+    DYNINST     shift, and go to state 17
+    INST        shift, and go to state 18
+    NILL        shift, and go to state 19
+    '('         shift, and go to state 21
+
+    func_call         go to state 27
+    var_modifiers     go to state 28
+    variable_expr     go to state 29
+    constant          go to state 30
+    arith_expression  go to state 96
+    inc_decr_expr     go to state 32
+
+
+state 67
+
+   67 arith_expression: variable_expr MOD_ASSIGN . arith_expression
+
+    IDENTIFIER  shift, and go to state 2
+    STRING      shift, and go to state 3
+    NUMBER      shift, and go to state 5
+    INC_OP      shift, and go to state 7
+    DEC_OP      shift, and go to state 8
+    LOCAL       shift, and go to state 35
+    PARAM       shift, and go to state 13
+    THREAD      shift, and go to state 36
+    GLOBAL      shift, and go to state 37
+    MACHINE     shift, and go to state 38
+    DYNINST     shift, and go to state 17
+    INST        shift, and go to state 18
+    NILL        shift, and go to state 19
+    '('         shift, and go to state 21
+
+    func_call         go to state 27
+    var_modifiers     go to state 28
+    variable_expr     go to state 29
+    constant          go to state 30
+    arith_expression  go to state 97
+    inc_decr_expr     go to state 32
+
+
+state 68
+
+   66 arith_expression: variable_expr DIV_ASSIGN . arith_expression
+
+    IDENTIFIER  shift, and go to state 2
+    STRING      shift, and go to state 3
+    NUMBER      shift, and go to state 5
+    INC_OP      shift, and go to state 7
+    DEC_OP      shift, and go to state 8
+    LOCAL       shift, and go to state 35
+    PARAM       shift, and go to state 13
+    THREAD      shift, and go to state 36
+    GLOBAL      shift, and go to state 37
+    MACHINE     shift, and go to state 38
+    DYNINST     shift, and go to state 17
+    INST        shift, and go to state 18
+    NILL        shift, and go to state 19
+    '('         shift, and go to state 21
+
+    func_call         go to state 27
+    var_modifiers     go to state 28
+    variable_expr     go to state 29
+    constant          go to state 30
+    arith_expression  go to state 98
+    inc_decr_expr     go to state 32
+
+
+state 69
+
+   65 arith_expression: variable_expr MUL_ASSIGN . arith_expression
+
+    IDENTIFIER  shift, and go to state 2
+    STRING      shift, and go to state 3
+    NUMBER      shift, and go to state 5
+    INC_OP      shift, and go to state 7
+    DEC_OP      shift, and go to state 8
+    LOCAL       shift, and go to state 35
+    PARAM       shift, and go to state 13
+    THREAD      shift, and go to state 36
+    GLOBAL      shift, and go to state 37
+    MACHINE     shift, and go to state 38
+    DYNINST     shift, and go to state 17
+    INST        shift, and go to state 18
+    NILL        shift, and go to state 19
+    '('         shift, and go to state 21
+
+    func_call         go to state 27
+    var_modifiers     go to state 28
+    variable_expr     go to state 29
+    constant          go to state 30
+    arith_expression  go to state 99
+    inc_decr_expr     go to state 32
+
+
+state 70
+
+   51 variable_expr: variable_expr '[' . arith_expression ']'
+
+    IDENTIFIER  shift, and go to state 2
+    STRING      shift, and go to state 3
+    NUMBER      shift, and go to state 5
+    INC_OP      shift, and go to state 7
+    DEC_OP      shift, and go to state 8
+    LOCAL       shift, and go to state 35
+    PARAM       shift, and go to state 13
+    THREAD      shift, and go to state 36
+    GLOBAL      shift, and go to state 37
+    MACHINE     shift, and go to state 38
+    DYNINST     shift, and go to state 17
+    INST        shift, and go to state 18
+    NILL        shift, and go to state 19
+    '('         shift, and go to state 21
+
+    func_call         go to state 27
+    var_modifiers     go to state 28
+    variable_expr     go to state 29
+    constant          go to state 30
+    arith_expression  go to state 100
+    inc_decr_expr     go to state 32
+
+
+state 71
+
+   70 arith_expression: arith_expression '+' . arith_expression
+
+    IDENTIFIER  shift, and go to state 2
+    STRING      shift, and go to state 3
+    NUMBER      shift, and go to state 5
+    INC_OP      shift, and go to state 7
+    DEC_OP      shift, and go to state 8
+    LOCAL       shift, and go to state 35
+    PARAM       shift, and go to state 13
+    THREAD      shift, and go to state 36
+    GLOBAL      shift, and go to state 37
+    MACHINE     shift, and go to state 38
+    DYNINST     shift, and go to state 17
+    INST        shift, and go to state 18
+    NILL        shift, and go to state 19
+    '('         shift, and go to state 21
+
+    func_call         go to state 27
+    var_modifiers     go to state 28
+    variable_expr     go to state 29
+    constant          go to state 30
+    arith_expression  go to state 101
+    inc_decr_expr     go to state 32
+
+
+state 72
+
+   71 arith_expression: arith_expression '-' . arith_expression
+
+    IDENTIFIER  shift, and go to state 2
+    STRING      shift, and go to state 3
+    NUMBER      shift, and go to state 5
+    INC_OP      shift, and go to state 7
+    DEC_OP      shift, and go to state 8
+    LOCAL       shift, and go to state 35
+    PARAM       shift, and go to state 13
+    THREAD      shift, and go to state 36
+    GLOBAL      shift, and go to state 37
+    MACHINE     shift, and go to state 38
+    DYNINST     shift, and go to state 17
+    INST        shift, and go to state 18
+    NILL        shift, and go to state 19
+    '('         shift, and go to state 21
+
+    func_call         go to state 27
+    var_modifiers     go to state 28
+    variable_expr     go to state 29
+    constant          go to state 30
+    arith_expression  go to state 102
+    inc_decr_expr     go to state 32
+
+
+state 73
+
+   60 arith_expression: arith_expression '*' . arith_expression
+
+    IDENTIFIER  shift, and go to state 2
+    STRING      shift, and go to state 3
+    NUMBER      shift, and go to state 5
+    INC_OP      shift, and go to state 7
+    DEC_OP      shift, and go to state 8
+    LOCAL       shift, and go to state 35
+    PARAM       shift, and go to state 13
+    THREAD      shift, and go to state 36
+    GLOBAL      shift, and go to state 37
+    MACHINE     shift, and go to state 38
+    DYNINST     shift, and go to state 17
+    INST        shift, and go to state 18
+    NILL        shift, and go to state 19
+    '('         shift, and go to state 21
+
+    func_call         go to state 27
+    var_modifiers     go to state 28
+    variable_expr     go to state 29
+    constant          go to state 30
+    arith_expression  go to state 103
+    inc_decr_expr     go to state 32
+
+
+state 74
+
+   68 arith_expression: arith_expression '/' . arith_expression
+
+    IDENTIFIER  shift, and go to state 2
+    STRING      shift, and go to state 3
+    NUMBER      shift, and go to state 5
+    INC_OP      shift, and go to state 7
+    DEC_OP      shift, and go to state 8
+    LOCAL       shift, and go to state 35
+    PARAM       shift, and go to state 13
+    THREAD      shift, and go to state 36
+    GLOBAL      shift, and go to state 37
+    MACHINE     shift, and go to state 38
+    DYNINST     shift, and go to state 17
+    INST        shift, and go to state 18
+    NILL        shift, and go to state 19
+    '('         shift, and go to state 21
+
+    func_call         go to state 27
+    var_modifiers     go to state 28
+    variable_expr     go to state 29
+    constant          go to state 30
+    arith_expression  go to state 104
+    inc_decr_expr     go to state 32
+
+
+state 75
+
+   69 arith_expression: arith_expression '%' . arith_expression
+
+    IDENTIFIER  shift, and go to state 2
+    STRING      shift, and go to state 3
+    NUMBER      shift, and go to state 5
+    INC_OP      shift, and go to state 7
+    DEC_OP      shift, and go to state 8
+    LOCAL       shift, and go to state 35
+    PARAM       shift, and go to state 13
+    THREAD      shift, and go to state 36
+    GLOBAL      shift, and go to state 37
+    MACHINE     shift, and go to state 38
+    DYNINST     shift, and go to state 17
+    INST        shift, and go to state 18
+    NILL        shift, and go to state 19
+    '('         shift, and go to state 21
+
+    func_call         go to state 27
+    var_modifiers     go to state 28
+    variable_expr     go to state 29
+    constant          go to state 30
+    arith_expression  go to state 105
+    inc_decr_expr     go to state 32
+
+
+state 76
+
+   72 arith_expression: arith_expression '|' . arith_expression
+
+    IDENTIFIER  shift, and go to state 2
+    STRING      shift, and go to state 3
+    NUMBER      shift, and go to state 5
+    INC_OP      shift, and go to state 7
+    DEC_OP      shift, and go to state 8
+    LOCAL       shift, and go to state 35
+    PARAM       shift, and go to state 13
+    THREAD      shift, and go to state 36
+    GLOBAL      shift, and go to state 37
+    MACHINE     shift, and go to state 38
+    DYNINST     shift, and go to state 17
+    INST        shift, and go to state 18
+    NILL        shift, and go to state 19
+    '('         shift, and go to state 21
+
+    func_call         go to state 27
+    var_modifiers     go to state 28
+    variable_expr     go to state 29
+    constant          go to state 30
+    arith_expression  go to state 106
+    inc_decr_expr     go to state 32
+
+
+state 77
+
+   21 statement: arith_expression SEMI .
+
+    $default  reduce using rule 21 (statement)
+
+
+state 78
+
+   27 func_call: IDENTIFIER '(' param_list . ')'
+   30 param_list: param_list . COMMA arith_expression
+
+    COMMA  shift, and go to state 107
+    ')'    shift, and go to state 108
+
+
+state 79
+
+   29 param_list: arith_expression .
+   60 arith_expression: arith_expression . '*' arith_expression
+   68                 | arith_expression . '/' arith_expression
+   69                 | arith_expression . '%' arith_expression
+   70                 | arith_expression . '+' arith_expression
+   71                 | arith_expression . '-' arith_expression
+   72                 | arith_expression . '|' arith_expression
+
+    '+'  shift, and go to state 71
+    '-'  shift, and go to state 72
+    '*'  shift, and go to state 73
+    '/'  shift, and go to state 74
+    '%'  shift, and go to state 75
+    '|'  shift, and go to state 76
+
+    $default  reduce using rule 29 (param_list)
+
+
+state 80
+
+   31 bool_constant: TRUE .
+
+    $default  reduce using rule 31 (bool_constant)
+
+
+state 81
+
+   32 bool_constant: FALSE .
+
+    $default  reduce using rule 32 (bool_constant)
+
+
+state 82
+
+   33 bool_expression: bool_constant .
+
+    $default  reduce using rule 33 (bool_expression)
+
+
+state 83
+
+   22 statement: IF '(' bool_expression . ')' block
+   23          | IF '(' bool_expression . ')' block ELSE block
+   40 bool_expression: bool_expression . AND bool_expression
+   41                | bool_expression . OR bool_expression
+
+    OR   shift, and go to state 109
+    AND  shift, and go to state 110
+    ')'  shift, and go to state 111
+
+
+state 84
+
+   34 bool_expression: arith_expression . '<' arith_expression
+   35                | arith_expression . '>' arith_expression
+   36                | arith_expression . EQ arith_expression
+   37                | arith_expression . LESS_EQ arith_expression
+   38                | arith_expression . GREATER_EQ arith_expression
+   39                | arith_expression . NOT_EQ arith_expression
+   60 arith_expression: arith_expression . '*' arith_expression
+   68                 | arith_expression . '/' arith_expression
+   69                 | arith_expression . '%' arith_expression
+   70                 | arith_expression . '+' arith_expression
+   71                 | arith_expression . '-' arith_expression
+   72                 | arith_expression . '|' arith_expression
+
+    NOT_EQ      shift, and go to state 112
+    EQ          shift, and go to state 113
+    GREATER_EQ  shift, and go to state 114
+    LESS_EQ     shift, and go to state 115
+    '+'         shift, and go to state 71
+    '-'         shift, and go to state 72
+    '*'         shift, and go to state 73
+    '/'         shift, and go to state 74
+    '%'         shift, and go to state 75
+    '|'         shift, and go to state 76
+    '<'         shift, and go to state 116
+    '>'         shift, and go to state 117
+
+
+state 85
+
+   26 func_call: DYNINST BACKTICK IDENTIFIER . '(' param_list ')'
+   59 arith_expression: DYNINST BACKTICK IDENTIFIER .
+
+    '('  shift, and go to state 118
+
+    $default  reduce using rule 59 (arith_expression)
+
+
+state 86
+
+   47 variable_expr: INST BACKTICK IDENTIFIER .
+
+    $default  reduce using rule 47 (variable_expr)
+
+
+state 87
+
+   16 statement_list: NOPEN statement_list NCLOSE .
+
+    $default  reduce using rule 16 (statement_list)
+
+
+state 88
+
+   73 arith_expression: '(' arith_expression ')' .
+
+    $default  reduce using rule 73 (arith_expression)
+
+
+state 89
+
+    3 var_declaration: var_decl_modifiers IDENTIFIER ASSIGN . arith_expression
+
+    IDENTIFIER  shift, and go to state 2
+    STRING      shift, and go to state 3
+    NUMBER      shift, and go to state 5
+    INC_OP      shift, and go to state 7
+    DEC_OP      shift, and go to state 8
+    LOCAL       shift, and go to state 35
+    PARAM       shift, and go to state 13
+    THREAD      shift, and go to state 36
+    GLOBAL      shift, and go to state 37
+    MACHINE     shift, and go to state 38
+    DYNINST     shift, and go to state 17
+    INST        shift, and go to state 18
+    NILL        shift, and go to state 19
+    '('         shift, and go to state 21
+
+    func_call         go to state 27
+    var_modifiers     go to state 28
+    variable_expr     go to state 29
+    constant          go to state 30
+    arith_expression  go to state 119
+    inc_decr_expr     go to state 32
+
+
+state 90
+
+    4 var_declaration: var_decl_modifiers IDENTIFIER '[' . NUMBER ']'
+    5                | var_decl_modifiers IDENTIFIER '[' . ']' ASSIGN '{' const_list '}'
+    6                | var_decl_modifiers IDENTIFIER '[' . NUMBER ']' ASSIGN '{' const_list '}'
+
+    NUMBER  shift, and go to state 120
+    ']'     shift, and go to state 121
+
+
+state 91
+
+   15 statement_list: statement_list . statement
+   17               | statement_list . NOPEN statement_list NCLOSE
+   17               | statement_list NOPEN statement_list . NCLOSE
+
+    error       shift, and go to state 1
+    IDENTIFIER  shift, and go to state 2
+    STRING      shift, and go to state 3
+    TYPE        shift, and go to state 4
+    NUMBER      shift, and go to state 5
+    ERROR       shift, and go to state 6
+    INC_OP      shift, and go to state 7
+    DEC_OP      shift, and go to state 8
+    STATIC      shift, and go to state 9
+    CONST       shift, and go to state 10
+    IF          shift, and go to state 11
+    LOCAL       shift, and go to state 12
+    PARAM       shift, and go to state 13
+    THREAD      shift, and go to state 14
+    GLOBAL      shift, and go to state 15
+    MACHINE     shift, and go to state 16
+    DYNINST     shift, and go to state 17
+    INST        shift, and go to state 18
+    NILL        shift, and go to state 19
+    NCLOSE      shift, and go to state 122
+    NOPEN       shift, and go to state 59
+    '('         shift, and go to state 21
+
+    var_declaration     go to state 23
+    var_decl_modifiers  go to state 24
+    statement           go to state 60
+    func_call           go to state 27
+    var_modifiers       go to state 28
+    variable_expr       go to state 29
+    constant            go to state 30
+    arith_expression    go to state 31
+    inc_decr_expr       go to state 32
+
+
+state 92
+
+   49 variable_expr: var_modifiers BACKTICK IDENTIFIER .
+
+    $default  reduce using rule 49 (variable_expr)
+
+
+state 93
+
+   50 variable_expr: var_modifiers BACKTICK NUMBER .
+
+    $default  reduce using rule 50 (variable_expr)
+
+
+state 94
+
+   60 arith_expression: arith_expression . '*' arith_expression
+   62                 | variable_expr ASSIGN arith_expression .
+   68                 | arith_expression . '/' arith_expression
+   69                 | arith_expression . '%' arith_expression
+   70                 | arith_expression . '+' arith_expression
+   71                 | arith_expression . '-' arith_expression
+   72                 | arith_expression . '|' arith_expression
+
+    $default  reduce using rule 62 (arith_expression)
+
+
+state 95
+
+   60 arith_expression: arith_expression . '*' arith_expression
+   64                 | variable_expr SUB_ASSIGN arith_expression .
+   68                 | arith_expression . '/' arith_expression
+   69                 | arith_expression . '%' arith_expression
+   70                 | arith_expression . '+' arith_expression
+   71                 | arith_expression . '-' arith_expression
+   72                 | arith_expression . '|' arith_expression
+
+    $default  reduce using rule 64 (arith_expression)
+
+
+state 96
+
+   60 arith_expression: arith_expression . '*' arith_expression
+   63                 | variable_expr ADD_ASSIGN arith_expression .
+   68                 | arith_expression . '/' arith_expression
+   69                 | arith_expression . '%' arith_expression
+   70                 | arith_expression . '+' arith_expression
+   71                 | arith_expression . '-' arith_expression
+   72                 | arith_expression . '|' arith_expression
+
+    $default  reduce using rule 63 (arith_expression)
+
+
+state 97
+
+   60 arith_expression: arith_expression . '*' arith_expression
+   67                 | variable_expr MOD_ASSIGN arith_expression .
+   68                 | arith_expression . '/' arith_expression
+   69                 | arith_expression . '%' arith_expression
+   70                 | arith_expression . '+' arith_expression
+   71                 | arith_expression . '-' arith_expression
+   72                 | arith_expression . '|' arith_expression
+
+    $default  reduce using rule 67 (arith_expression)
+
+
+state 98
+
+   60 arith_expression: arith_expression . '*' arith_expression
+   66                 | variable_expr DIV_ASSIGN arith_expression .
+   68                 | arith_expression . '/' arith_expression
+   69                 | arith_expression . '%' arith_expression
+   70                 | arith_expression . '+' arith_expression
+   71                 | arith_expression . '-' arith_expression
+   72                 | arith_expression . '|' arith_expression
+
+    $default  reduce using rule 66 (arith_expression)
+
+
+state 99
+
+   60 arith_expression: arith_expression . '*' arith_expression
+   65                 | variable_expr MUL_ASSIGN arith_expression .
+   68                 | arith_expression . '/' arith_expression
+   69                 | arith_expression . '%' arith_expression
+   70                 | arith_expression . '+' arith_expression
+   71                 | arith_expression . '-' arith_expression
+   72                 | arith_expression . '|' arith_expression
+
+    $default  reduce using rule 65 (arith_expression)
+
+
+state 100
+
+   51 variable_expr: variable_expr '[' arith_expression . ']'
+   60 arith_expression: arith_expression . '*' arith_expression
+   68                 | arith_expression . '/' arith_expression
+   69                 | arith_expression . '%' arith_expression
+   70                 | arith_expression . '+' arith_expression
+   71                 | arith_expression . '-' arith_expression
+   72                 | arith_expression . '|' arith_expression
+
+    '+'  shift, and go to state 71
+    '-'  shift, and go to state 72
+    '*'  shift, and go to state 73
+    '/'  shift, and go to state 74
+    '%'  shift, and go to state 75
+    '|'  shift, and go to state 76
+    ']'  shift, and go to state 123
+
+
+state 101
+
+   60 arith_expression: arith_expression . '*' arith_expression
+   68                 | arith_expression . '/' arith_expression
+   69                 | arith_expression . '%' arith_expression
+   70                 | arith_expression . '+' arith_expression
+   70                 | arith_expression '+' arith_expression .
+   71                 | arith_expression . '-' arith_expression
+   72                 | arith_expression . '|' arith_expression
+
+    '*'  shift, and go to state 73
+    '/'  shift, and go to state 74
+    '%'  shift, and go to state 75
+    '|'  shift, and go to state 76
+
+    $default  reduce using rule 70 (arith_expression)
+
+
+state 102
+
+   60 arith_expression: arith_expression . '*' arith_expression
+   68                 | arith_expression . '/' arith_expression
+   69                 | arith_expression . '%' arith_expression
+   70                 | arith_expression . '+' arith_expression
+   71                 | arith_expression . '-' arith_expression
+   71                 | arith_expression '-' arith_expression .
+   72                 | arith_expression . '|' arith_expression
+
+    '*'  shift, and go to state 73
+    '/'  shift, and go to state 74
+    '%'  shift, and go to state 75
+    '|'  shift, and go to state 76
+
+    $default  reduce using rule 71 (arith_expression)
+
+
+state 103
+
+   60 arith_expression: arith_expression . '*' arith_expression
+   60                 | arith_expression '*' arith_expression .
+   68                 | arith_expression . '/' arith_expression
+   69                 | arith_expression . '%' arith_expression
+   70                 | arith_expression . '+' arith_expression
+   71                 | arith_expression . '-' arith_expression
+   72                 | arith_expression . '|' arith_expression
+
+    '|'  shift, and go to state 76
+
+    $default  reduce using rule 60 (arith_expression)
+
+
+state 104
+
+   60 arith_expression: arith_expression . '*' arith_expression
+   68                 | arith_expression . '/' arith_expression
+   68                 | arith_expression '/' arith_expression .
+   69                 | arith_expression . '%' arith_expression
+   70                 | arith_expression . '+' arith_expression
+   71                 | arith_expression . '-' arith_expression
+   72                 | arith_expression . '|' arith_expression
+
+    '|'  shift, and go to state 76
+
+    $default  reduce using rule 68 (arith_expression)
+
+
+state 105
+
+   60 arith_expression: arith_expression . '*' arith_expression
+   68                 | arith_expression . '/' arith_expression
+   69                 | arith_expression . '%' arith_expression
+   69                 | arith_expression '%' arith_expression .
+   70                 | arith_expression . '+' arith_expression
+   71                 | arith_expression . '-' arith_expression
+   72                 | arith_expression . '|' arith_expression
+
+    '|'  shift, and go to state 76
+
+    $default  reduce using rule 69 (arith_expression)
+
+
+state 106
+
+   60 arith_expression: arith_expression . '*' arith_expression
+   68                 | arith_expression . '/' arith_expression
+   69                 | arith_expression . '%' arith_expression
+   70                 | arith_expression . '+' arith_expression
+   71                 | arith_expression . '-' arith_expression
+   72                 | arith_expression . '|' arith_expression
+   72                 | arith_expression '|' arith_expression .
+
+    $default  reduce using rule 72 (arith_expression)
+
+
+state 107
+
+   30 param_list: param_list COMMA . arith_expression
+
+    IDENTIFIER  shift, and go to state 2
+    STRING      shift, and go to state 3
+    NUMBER      shift, and go to state 5
+    INC_OP      shift, and go to state 7
+    DEC_OP      shift, and go to state 8
+    LOCAL       shift, and go to state 35
+    PARAM       shift, and go to state 13
+    THREAD      shift, and go to state 36
+    GLOBAL      shift, and go to state 37
+    MACHINE     shift, and go to state 38
+    DYNINST     shift, and go to state 17
+    INST        shift, and go to state 18
+    NILL        shift, and go to state 19
+    '('         shift, and go to state 21
+
+    func_call         go to state 27
+    var_modifiers     go to state 28
+    variable_expr     go to state 29
+    constant          go to state 30
+    arith_expression  go to state 124
+    inc_decr_expr     go to state 32
+
+
+state 108
+
+   27 func_call: IDENTIFIER '(' param_list ')' .
+
+    $default  reduce using rule 27 (func_call)
+
+
+state 109
+
+   41 bool_expression: bool_expression OR . bool_expression
+
+    IDENTIFIER  shift, and go to state 2
+    STRING      shift, and go to state 3
+    NUMBER      shift, and go to state 5
+    TRUE        shift, and go to state 80
+    FALSE       shift, and go to state 81
+    INC_OP      shift, and go to state 7
+    DEC_OP      shift, and go to state 8
+    LOCAL       shift, and go to state 35
+    PARAM       shift, and go to state 13
+    THREAD      shift, and go to state 36
+    GLOBAL      shift, and go to state 37
+    MACHINE     shift, and go to state 38
+    DYNINST     shift, and go to state 17
+    INST        shift, and go to state 18
+    NILL        shift, and go to state 19
+    '('         shift, and go to state 21
+
+    func_call         go to state 27
+    bool_constant     go to state 82
+    bool_expression   go to state 125
+    var_modifiers     go to state 28
+    variable_expr     go to state 29
+    constant          go to state 30
+    arith_expression  go to state 84
+    inc_decr_expr     go to state 32
+
+
+state 110
+
+   40 bool_expression: bool_expression AND . bool_expression
+
+    IDENTIFIER  shift, and go to state 2
+    STRING      shift, and go to state 3
+    NUMBER      shift, and go to state 5
+    TRUE        shift, and go to state 80
+    FALSE       shift, and go to state 81
+    INC_OP      shift, and go to state 7
+    DEC_OP      shift, and go to state 8
+    LOCAL       shift, and go to state 35
+    PARAM       shift, and go to state 13
+    THREAD      shift, and go to state 36
+    GLOBAL      shift, and go to state 37
+    MACHINE     shift, and go to state 38
+    DYNINST     shift, and go to state 17
+    INST        shift, and go to state 18
+    NILL        shift, and go to state 19
+    '('         shift, and go to state 21
+
+    func_call         go to state 27
+    bool_constant     go to state 82
+    bool_expression   go to state 126
+    var_modifiers     go to state 28
+    variable_expr     go to state 29
+    constant          go to state 30
+    arith_expression  go to state 84
+    inc_decr_expr     go to state 32
+
+
+state 111
+
+   22 statement: IF '(' bool_expression ')' . block
+   23          | IF '(' bool_expression ')' . block ELSE block
+
+    error       shift, and go to state 1
+    IDENTIFIER  shift, and go to state 2
+    STRING      shift, and go to state 3
+    TYPE        shift, and go to state 4
+    NUMBER      shift, and go to state 5
+    ERROR       shift, and go to state 6
+    INC_OP      shift, and go to state 7
+    DEC_OP      shift, and go to state 8
+    STATIC      shift, and go to state 9
+    CONST       shift, and go to state 10
+    IF          shift, and go to state 11
+    LOCAL       shift, and go to state 12
+    PARAM       shift, and go to state 13
+    THREAD      shift, and go to state 14
+    GLOBAL      shift, and go to state 15
+    MACHINE     shift, and go to state 16
+    DYNINST     shift, and go to state 17
+    INST        shift, and go to state 18
+    NILL        shift, and go to state 19
+    '{'         shift, and go to state 127
+    '('         shift, and go to state 21
+
+    var_declaration     go to state 23
+    var_decl_modifiers  go to state 24
+    statement           go to state 128
+    block               go to state 129
+    func_call           go to state 27
+    var_modifiers       go to state 28
+    variable_expr       go to state 29
+    constant            go to state 30
+    arith_expression    go to state 31
+    inc_decr_expr       go to state 32
+
+
+state 112
+
+   39 bool_expression: arith_expression NOT_EQ . arith_expression
+
+    IDENTIFIER  shift, and go to state 2
+    STRING      shift, and go to state 3
+    NUMBER      shift, and go to state 5
+    INC_OP      shift, and go to state 7
+    DEC_OP      shift, and go to state 8
+    LOCAL       shift, and go to state 35
+    PARAM       shift, and go to state 13
+    THREAD      shift, and go to state 36
+    GLOBAL      shift, and go to state 37
+    MACHINE     shift, and go to state 38
+    DYNINST     shift, and go to state 17
+    INST        shift, and go to state 18
+    NILL        shift, and go to state 19
+    '('         shift, and go to state 21
+
+    func_call         go to state 27
+    var_modifiers     go to state 28
+    variable_expr     go to state 29
+    constant          go to state 30
+    arith_expression  go to state 130
+    inc_decr_expr     go to state 32
+
+
+state 113
+
+   36 bool_expression: arith_expression EQ . arith_expression
+
+    IDENTIFIER  shift, and go to state 2
+    STRING      shift, and go to state 3
+    NUMBER      shift, and go to state 5
+    INC_OP      shift, and go to state 7
+    DEC_OP      shift, and go to state 8
+    LOCAL       shift, and go to state 35
+    PARAM       shift, and go to state 13
+    THREAD      shift, and go to state 36
+    GLOBAL      shift, and go to state 37
+    MACHINE     shift, and go to state 38
+    DYNINST     shift, and go to state 17
+    INST        shift, and go to state 18
+    NILL        shift, and go to state 19
+    '('         shift, and go to state 21
+
+    func_call         go to state 27
+    var_modifiers     go to state 28
+    variable_expr     go to state 29
+    constant          go to state 30
+    arith_expression  go to state 131
+    inc_decr_expr     go to state 32
+
+
+state 114
+
+   38 bool_expression: arith_expression GREATER_EQ . arith_expression
+
+    IDENTIFIER  shift, and go to state 2
+    STRING      shift, and go to state 3
+    NUMBER      shift, and go to state 5
+    INC_OP      shift, and go to state 7
+    DEC_OP      shift, and go to state 8
+    LOCAL       shift, and go to state 35
+    PARAM       shift, and go to state 13
+    THREAD      shift, and go to state 36
+    GLOBAL      shift, and go to state 37
+    MACHINE     shift, and go to state 38
+    DYNINST     shift, and go to state 17
+    INST        shift, and go to state 18
+    NILL        shift, and go to state 19
+    '('         shift, and go to state 21
+
+    func_call         go to state 27
+    var_modifiers     go to state 28
+    variable_expr     go to state 29
+    constant          go to state 30
+    arith_expression  go to state 132
+    inc_decr_expr     go to state 32
+
+
+state 115
+
+   37 bool_expression: arith_expression LESS_EQ . arith_expression
+
+    IDENTIFIER  shift, and go to state 2
+    STRING      shift, and go to state 3
+    NUMBER      shift, and go to state 5
+    INC_OP      shift, and go to state 7
+    DEC_OP      shift, and go to state 8
+    LOCAL       shift, and go to state 35
+    PARAM       shift, and go to state 13
+    THREAD      shift, and go to state 36
+    GLOBAL      shift, and go to state 37
+    MACHINE     shift, and go to state 38
+    DYNINST     shift, and go to state 17
+    INST        shift, and go to state 18
+    NILL        shift, and go to state 19
+    '('         shift, and go to state 21
+
+    func_call         go to state 27
+    var_modifiers     go to state 28
+    variable_expr     go to state 29
+    constant          go to state 30
+    arith_expression  go to state 133
+    inc_decr_expr     go to state 32
+
+
+state 116
+
+   34 bool_expression: arith_expression '<' . arith_expression
+
+    IDENTIFIER  shift, and go to state 2
+    STRING      shift, and go to state 3
+    NUMBER      shift, and go to state 5
+    INC_OP      shift, and go to state 7
+    DEC_OP      shift, and go to state 8
+    LOCAL       shift, and go to state 35
+    PARAM       shift, and go to state 13
+    THREAD      shift, and go to state 36
+    GLOBAL      shift, and go to state 37
+    MACHINE     shift, and go to state 38
+    DYNINST     shift, and go to state 17
+    INST        shift, and go to state 18
+    NILL        shift, and go to state 19
+    '('         shift, and go to state 21
+
+    func_call         go to state 27
+    var_modifiers     go to state 28
+    variable_expr     go to state 29
+    constant          go to state 30
+    arith_expression  go to state 134
+    inc_decr_expr     go to state 32
+
+
+state 117
+
+   35 bool_expression: arith_expression '>' . arith_expression
+
+    IDENTIFIER  shift, and go to state 2
+    STRING      shift, and go to state 3
+    NUMBER      shift, and go to state 5
+    INC_OP      shift, and go to state 7
+    DEC_OP      shift, and go to state 8
+    LOCAL       shift, and go to state 35
+    PARAM       shift, and go to state 13
+    THREAD      shift, and go to state 36
+    GLOBAL      shift, and go to state 37
+    MACHINE     shift, and go to state 38
+    DYNINST     shift, and go to state 17
+    INST        shift, and go to state 18
+    NILL        shift, and go to state 19
+    '('         shift, and go to state 21
+
+    func_call         go to state 27
+    var_modifiers     go to state 28
+    variable_expr     go to state 29
+    constant          go to state 30
+    arith_expression  go to state 135
+    inc_decr_expr     go to state 32
+
+
+state 118
+
+   26 func_call: DYNINST BACKTICK IDENTIFIER '(' . param_list ')'
+
+    IDENTIFIER  shift, and go to state 2
+    STRING      shift, and go to state 3
+    NUMBER      shift, and go to state 5
+    INC_OP      shift, and go to state 7
+    DEC_OP      shift, and go to state 8
+    LOCAL       shift, and go to state 35
+    PARAM       shift, and go to state 13
+    THREAD      shift, and go to state 36
+    GLOBAL      shift, and go to state 37
+    MACHINE     shift, and go to state 38
+    DYNINST     shift, and go to state 17
+    INST        shift, and go to state 18
+    NILL        shift, and go to state 19
+    '('         shift, and go to state 21
+
+    $default  reduce using rule 28 (param_list)
+
+    func_call         go to state 27
+    param_list        go to state 136
+    var_modifiers     go to state 28
+    variable_expr     go to state 29
+    constant          go to state 30
+    arith_expression  go to state 79
+    inc_decr_expr     go to state 32
+
+
+state 119
+
+    3 var_declaration: var_decl_modifiers IDENTIFIER ASSIGN arith_expression .
+   60 arith_expression: arith_expression . '*' arith_expression
+   68                 | arith_expression . '/' arith_expression
+   69                 | arith_expression . '%' arith_expression
+   70                 | arith_expression . '+' arith_expression
+   71                 | arith_expression . '-' arith_expression
+   72                 | arith_expression . '|' arith_expression
+
+    '+'  shift, and go to state 71
+    '-'  shift, and go to state 72
+    '*'  shift, and go to state 73
+    '/'  shift, and go to state 74
+    '%'  shift, and go to state 75
+    '|'  shift, and go to state 76
+
+    $default  reduce using rule 3 (var_declaration)
+
+
+state 120
+
+    4 var_declaration: var_decl_modifiers IDENTIFIER '[' NUMBER . ']'
+    6                | var_decl_modifiers IDENTIFIER '[' NUMBER . ']' ASSIGN '{' const_list '}'
+
+    ']'  shift, and go to state 137
+
+
+state 121
+
+    5 var_declaration: var_decl_modifiers IDENTIFIER '[' ']' . ASSIGN '{' const_list '}'
+
+    ASSIGN  shift, and go to state 138
+
+
+state 122
+
+   17 statement_list: statement_list NOPEN statement_list NCLOSE .
+
+    $default  reduce using rule 17 (statement_list)
+
+
+state 123
+
+   51 variable_expr: variable_expr '[' arith_expression ']' .
+
+    $default  reduce using rule 51 (variable_expr)
+
+
+state 124
+
+   30 param_list: param_list COMMA arith_expression .
+   60 arith_expression: arith_expression . '*' arith_expression
+   68                 | arith_expression . '/' arith_expression
+   69                 | arith_expression . '%' arith_expression
+   70                 | arith_expression . '+' arith_expression
+   71                 | arith_expression . '-' arith_expression
+   72                 | arith_expression . '|' arith_expression
+
+    '+'  shift, and go to state 71
+    '-'  shift, and go to state 72
+    '*'  shift, and go to state 73
+    '/'  shift, and go to state 74
+    '%'  shift, and go to state 75
+    '|'  shift, and go to state 76
+
+    $default  reduce using rule 30 (param_list)
+
+
+state 125
+
+   40 bool_expression: bool_expression . AND bool_expression
+   41                | bool_expression . OR bool_expression
+   41                | bool_expression OR bool_expression .
+
+    AND  shift, and go to state 110
+
+    $default  reduce using rule 41 (bool_expression)
+
+
+state 126
+
+   40 bool_expression: bool_expression . AND bool_expression
+   40                | bool_expression AND bool_expression .
+   41                | bool_expression . OR bool_expression
+
+    $default  reduce using rule 40 (bool_expression)
+
+
+state 127
+
+   25 block: '{' . statement_list '}'
+
+    error       shift, and go to state 1
+    IDENTIFIER  shift, and go to state 2
+    STRING      shift, and go to state 3
+    TYPE        shift, and go to state 4
+    NUMBER      shift, and go to state 5
+    ERROR       shift, and go to state 6
+    INC_OP      shift, and go to state 7
+    DEC_OP      shift, and go to state 8
+    STATIC      shift, and go to state 9
+    CONST       shift, and go to state 10
+    IF          shift, and go to state 11
+    LOCAL       shift, and go to state 12
+    PARAM       shift, and go to state 13
+    THREAD      shift, and go to state 14
+    GLOBAL      shift, and go to state 15
+    MACHINE     shift, and go to state 16
+    DYNINST     shift, and go to state 17
+    INST        shift, and go to state 18
+    NILL        shift, and go to state 19
+    NOPEN       shift, and go to state 20
+    '('         shift, and go to state 21
+
+    var_declaration     go to state 23
+    var_decl_modifiers  go to state 24
+    statement_list      go to state 139
+    statement           go to state 26
+    func_call           go to state 27
+    var_modifiers       go to state 28
+    variable_expr       go to state 29
+    constant            go to state 30
+    arith_expression    go to state 31
+    inc_decr_expr       go to state 32
+
+
+state 128
+
+   24 block: statement .
+
+    $default  reduce using rule 24 (block)
+
+
+state 129
+
+   22 statement: IF '(' bool_expression ')' block .
+   23          | IF '(' bool_expression ')' block . ELSE block
+
+    ELSE  shift, and go to state 140
+
+    $default  reduce using rule 22 (statement)
+
+
+state 130
+
+   39 bool_expression: arith_expression NOT_EQ arith_expression .
+   60 arith_expression: arith_expression . '*' arith_expression
+   68                 | arith_expression . '/' arith_expression
+   69                 | arith_expression . '%' arith_expression
+   70                 | arith_expression . '+' arith_expression
+   71                 | arith_expression . '-' arith_expression
+   72                 | arith_expression . '|' arith_expression
+
+    '+'  shift, and go to state 71
+    '-'  shift, and go to state 72
+    '*'  shift, and go to state 73
+    '/'  shift, and go to state 74
+    '%'  shift, and go to state 75
+    '|'  shift, and go to state 76
+
+    $default  reduce using rule 39 (bool_expression)
+
+
+state 131
+
+   36 bool_expression: arith_expression EQ arith_expression .
+   60 arith_expression: arith_expression . '*' arith_expression
+   68                 | arith_expression . '/' arith_expression
+   69                 | arith_expression . '%' arith_expression
+   70                 | arith_expression . '+' arith_expression
+   71                 | arith_expression . '-' arith_expression
+   72                 | arith_expression . '|' arith_expression
+
+    '+'  shift, and go to state 71
+    '-'  shift, and go to state 72
+    '*'  shift, and go to state 73
+    '/'  shift, and go to state 74
+    '%'  shift, and go to state 75
+    '|'  shift, and go to state 76
+
+    $default  reduce using rule 36 (bool_expression)
+
+
+state 132
+
+   38 bool_expression: arith_expression GREATER_EQ arith_expression .
+   60 arith_expression: arith_expression . '*' arith_expression
+   68                 | arith_expression . '/' arith_expression
+   69                 | arith_expression . '%' arith_expression
+   70                 | arith_expression . '+' arith_expression
+   71                 | arith_expression . '-' arith_expression
+   72                 | arith_expression . '|' arith_expression
+
+    '+'  shift, and go to state 71
+    '-'  shift, and go to state 72
+    '*'  shift, and go to state 73
+    '/'  shift, and go to state 74
+    '%'  shift, and go to state 75
+    '|'  shift, and go to state 76
+
+    $default  reduce using rule 38 (bool_expression)
+
+
+state 133
+
+   37 bool_expression: arith_expression LESS_EQ arith_expression .
+   60 arith_expression: arith_expression . '*' arith_expression
+   68                 | arith_expression . '/' arith_expression
+   69                 | arith_expression . '%' arith_expression
+   70                 | arith_expression . '+' arith_expression
+   71                 | arith_expression . '-' arith_expression
+   72                 | arith_expression . '|' arith_expression
+
+    '+'  shift, and go to state 71
+    '-'  shift, and go to state 72
+    '*'  shift, and go to state 73
+    '/'  shift, and go to state 74
+    '%'  shift, and go to state 75
+    '|'  shift, and go to state 76
+
+    $default  reduce using rule 37 (bool_expression)
+
+
+state 134
+
+   34 bool_expression: arith_expression '<' arith_expression .
+   60 arith_expression: arith_expression . '*' arith_expression
+   68                 | arith_expression . '/' arith_expression
+   69                 | arith_expression . '%' arith_expression
+   70                 | arith_expression . '+' arith_expression
+   71                 | arith_expression . '-' arith_expression
+   72                 | arith_expression . '|' arith_expression
+
+    '+'  shift, and go to state 71
+    '-'  shift, and go to state 72
+    '*'  shift, and go to state 73
+    '/'  shift, and go to state 74
+    '%'  shift, and go to state 75
+    '|'  shift, and go to state 76
+
+    $default  reduce using rule 34 (bool_expression)
+
+
+state 135
+
+   35 bool_expression: arith_expression '>' arith_expression .
+   60 arith_expression: arith_expression . '*' arith_expression
+   68                 | arith_expression . '/' arith_expression
+   69                 | arith_expression . '%' arith_expression
+   70                 | arith_expression . '+' arith_expression
+   71                 | arith_expression . '-' arith_expression
+   72                 | arith_expression . '|' arith_expression
+
+    '+'  shift, and go to state 71
+    '-'  shift, and go to state 72
+    '*'  shift, and go to state 73
+    '/'  shift, and go to state 74
+    '%'  shift, and go to state 75
+    '|'  shift, and go to state 76
+
+    $default  reduce using rule 35 (bool_expression)
+
+
+state 136
+
+   26 func_call: DYNINST BACKTICK IDENTIFIER '(' param_list . ')'
+   30 param_list: param_list . COMMA arith_expression
+
+    COMMA  shift, and go to state 107
+    ')'    shift, and go to state 141
+
+
+state 137
+
+    4 var_declaration: var_decl_modifiers IDENTIFIER '[' NUMBER ']' .
+    6                | var_decl_modifiers IDENTIFIER '[' NUMBER ']' . ASSIGN '{' const_list '}'
+
+    ASSIGN  shift, and go to state 142
+
+    $default  reduce using rule 4 (var_declaration)
+
+
+state 138
+
+    5 var_declaration: var_decl_modifiers IDENTIFIER '[' ']' ASSIGN . '{' const_list '}'
+
+    '{'  shift, and go to state 143
+
+
+state 139
+
+   15 statement_list: statement_list . statement
+   17               | statement_list . NOPEN statement_list NCLOSE
+   25 block: '{' statement_list . '}'
+
+    error       shift, and go to state 1
+    IDENTIFIER  shift, and go to state 2
+    STRING      shift, and go to state 3
+    TYPE        shift, and go to state 4
+    NUMBER      shift, and go to state 5
+    ERROR       shift, and go to state 6
+    INC_OP      shift, and go to state 7
+    DEC_OP      shift, and go to state 8
+    STATIC      shift, and go to state 9
+    CONST       shift, and go to state 10
+    IF          shift, and go to state 11
+    LOCAL       shift, and go to state 12
+    PARAM       shift, and go to state 13
+    THREAD      shift, and go to state 14
+    GLOBAL      shift, and go to state 15
+    MACHINE     shift, and go to state 16
+    DYNINST     shift, and go to state 17
+    INST        shift, and go to state 18
+    NILL        shift, and go to state 19
+    NOPEN       shift, and go to state 59
+    '}'         shift, and go to state 144
+    '('         shift, and go to state 21
+
+    var_declaration     go to state 23
+    var_decl_modifiers  go to state 24
+    statement           go to state 60
+    func_call           go to state 27
+    var_modifiers       go to state 28
+    variable_expr       go to state 29
+    constant            go to state 30
+    arith_expression    go to state 31
+    inc_decr_expr       go to state 32
+
+
+state 140
+
+   23 statement: IF '(' bool_expression ')' block ELSE . block
+
+    error       shift, and go to state 1
+    IDENTIFIER  shift, and go to state 2
+    STRING      shift, and go to state 3
+    TYPE        shift, and go to state 4
+    NUMBER      shift, and go to state 5
+    ERROR       shift, and go to state 6
+    INC_OP      shift, and go to state 7
+    DEC_OP      shift, and go to state 8
+    STATIC      shift, and go to state 9
+    CONST       shift, and go to state 10
+    IF          shift, and go to state 11
+    LOCAL       shift, and go to state 12
+    PARAM       shift, and go to state 13
+    THREAD      shift, and go to state 14
+    GLOBAL      shift, and go to state 15
+    MACHINE     shift, and go to state 16
+    DYNINST     shift, and go to state 17
+    INST        shift, and go to state 18
+    NILL        shift, and go to state 19
+    '{'         shift, and go to state 127
+    '('         shift, and go to state 21
+
+    var_declaration     go to state 23
+    var_decl_modifiers  go to state 24
+    statement           go to state 128
+    block               go to state 145
+    func_call           go to state 27
+    var_modifiers       go to state 28
+    variable_expr       go to state 29
+    constant            go to state 30
+    arith_expression    go to state 31
+    inc_decr_expr       go to state 32
+
+
+state 141
+
+   26 func_call: DYNINST BACKTICK IDENTIFIER '(' param_list ')' .
+
+    $default  reduce using rule 26 (func_call)
+
+
+state 142
+
+    6 var_declaration: var_decl_modifiers IDENTIFIER '[' NUMBER ']' ASSIGN . '{' const_list '}'
+
+    '{'  shift, and go to state 146
+
+
+state 143
+
+    5 var_declaration: var_decl_modifiers IDENTIFIER '[' ']' ASSIGN '{' . const_list '}'
+
+    STRING  shift, and go to state 3
+    NUMBER  shift, and go to state 5
+
+    constant    go to state 147
+    const_list  go to state 148
+
+
+state 144
+
+   25 block: '{' statement_list '}' .
+
+    $default  reduce using rule 25 (block)
+
+
+state 145
+
+   23 statement: IF '(' bool_expression ')' block ELSE block .
+
+    $default  reduce using rule 23 (statement)
+
+
+state 146
+
+    6 var_declaration: var_decl_modifiers IDENTIFIER '[' NUMBER ']' ASSIGN '{' . const_list '}'
+
+    STRING  shift, and go to state 3
+    NUMBER  shift, and go to state 5
+
+    constant    go to state 147
+    const_list  go to state 149
+
+
+state 147
+
+   54 const_list: constant .
+
+    $default  reduce using rule 54 (const_list)
+
+
+state 148
+
+    5 var_declaration: var_decl_modifiers IDENTIFIER '[' ']' ASSIGN '{' const_list . '}'
+   55 const_list: const_list . COMMA constant
+
+    COMMA  shift, and go to state 150
+    '}'    shift, and go to state 151
+
+
+state 149
+
+    6 var_declaration: var_decl_modifiers IDENTIFIER '[' NUMBER ']' ASSIGN '{' const_list . '}'
+   55 const_list: const_list . COMMA constant
+
+    COMMA  shift, and go to state 150
+    '}'    shift, and go to state 152
+
+
+state 150
+
+   55 const_list: const_list COMMA . constant
+
+    STRING  shift, and go to state 3
+    NUMBER  shift, and go to state 5
+
+    constant  go to state 153
+
+
+state 151
+
+    5 var_declaration: var_decl_modifiers IDENTIFIER '[' ']' ASSIGN '{' const_list '}' .
+
+    $default  reduce using rule 5 (var_declaration)
+
+
+state 152
+
+    6 var_declaration: var_decl_modifiers IDENTIFIER '[' NUMBER ']' ASSIGN '{' const_list '}' .
+
+    $default  reduce using rule 6 (var_declaration)
+
+
+state 153
+
+   55 const_list: const_list COMMA constant .
+
+    $default  reduce using rule 55 (const_list)

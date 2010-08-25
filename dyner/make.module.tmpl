@@ -6,20 +6,23 @@
 # $Id: make.module.tmpl,v 1.26 2008/02/20 08:31:02 jaw Exp $
 #
 
-SUITE_NAME	= Dyninst
-RELEASE_NUM	= 5.0b1
+SUITE_NAME	= dyner
+RELEASE_NUM	= 5.00
 #BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
 
 TARGET		= dyner
-TEST_TARGET	= testDyner
+#TEST_TARGET	= testDyner
 
 SRCS	     += ../src/$(TARGET).C lex.$(TARGET).C $(TARGET).tab.C
-TEST_SRC      = ../tests/$(TEST_TARGET).C
+#TEST_SRC      = ../tests/$(TEST_TARGET).C
 
-IFLAGS	     += -I$(TO_CORE)/dyninstAPI/h 
+IFLAGS	     += -I$(TO_CORE)/dyninstAPI/h
+IFLAGS	     += -I$(TO_CORE)/dyninstAPI/src 
 IFLAGS      += -I$(TO_CORE)/symtabAPI/h 
-IFLAGS      += -I$(TO_CORE)/dynutil/h 
+IFLAGS      += -I$(TO_CORE)/dynutil/h
+IFLAGS      += -I$(TO_CORE)/dynC_API/h
 IFLAGS      += -I../src
+IFLAGS	     += -I$(TO_CORE)/instructionAPI/h 
 
 CXXFLAGS     += $(BASICWARNINGS)
 CFLAGS       += $(BASICWARNINGS)
@@ -34,9 +37,9 @@ CFLAGS		+= -fno-squangle
 CXXFLAGS	+= -fno-squangle
 endif
 
-LIBS         += -ldyninstAPI -lsymtabAPI -lcommon
+LIBS         += -ldyninstAPI -lsymtabAPI -lcommon -ldynC_API
 
-SYSLIBS      += -liberty -L$(TCLTK_LIB_DIR) $(TCL_LIB)
+SYSLIBS      += -liberty -L$(TCLTK_LIB_DIR) $(TCL_LIB) 
 
 all: $(TARGET) $(TEST_TARGET)
 

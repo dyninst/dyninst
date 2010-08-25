@@ -38,11 +38,15 @@
 // Define a AST class for use in generating primitive and pred calls
 //
 
+
 #include <stdio.h>
 #include <string>
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
 #include "common/h/Types.h"
+
+
+#include "BPatch_snippet.h"
 
 // The great experiment: boost shared_ptr libraries
 #include <dyn_detail/boost/shared_ptr.hpp>
@@ -61,6 +65,9 @@ class codeRange;
 class BPatch_instruction; // Memory, etc. are at BPatch. Might want to move 'em.
 //class BPatch_type;
 class image_variable;
+
+
+
 
 // a register number, e.g. [0,31]
 // typedef int reg; // see new Register type in "common/h/Types.h"
@@ -137,7 +144,7 @@ public:
 class dataReqNode;
 class AstNode {
  public:
-   enum nodeType { sequenceNode_t, opCodeNode_t, operandNode_t, callNode_t };
+   enum nodeType { sequenceNode_t, opCodeNode_t, operandNode_t, callNode_t};
    enum operandType { Constant, 
                       ConstantString,
                       DataReg,
@@ -155,10 +162,36 @@ class AstNode {
                       variableValue,
                       undefOperandType };
 
+
+
    enum memoryType {
       EffectiveAddr,
       BytesAccessed };
 
+   //Error reporting for dynC_API
+  protected:
+   int lineNum;
+   int columnNum;
+   char *snippetName;
+
+   bool lineInfoSet;
+   bool columnInfoSet;
+   bool snippetNameSet;
+
+  public:
+
+   int getLineNum();
+   int getColumnNum();
+   char *getSnippetName();
+
+   void setLineNum(int ln);
+   void setColumnNum(int cn);
+   void setSnippetName(char *n);
+
+   bool hasLineInfo();
+   bool hasColumnInfo();
+   bool hasNameInfo();
+   
    AstNode(); // mdl.C
 
    // Factory methods....
@@ -193,7 +226,8 @@ class AstNode {
 
    // Acquire the thread index value - a 0...n labelling of threads.
    static AstNodePtr threadIndexNode();
-
+   
+   
    // TODO...
    // Needs some way of marking what to save and restore... should be a registerSpace, really
 
@@ -208,7 +242,7 @@ class AstNode {
    static AstNodePtr originalAddrNode();
    static AstNodePtr actualAddrNode();
    static AstNodePtr dynamicTargetNode();
- 
+
    AstNode(AstNodePtr src);
    //virtual AstNode &operator=(const AstNode &src);
         
@@ -258,6 +292,8 @@ class AstNode {
 
    virtual AstNodePtr operand() const { return AstNodePtr(); }
 
+
+
    virtual bool containsFuncCall() const = 0;
    virtual cfjRet_t containsFuncJump() const = 0;
    virtual bool usesAppRegister() const = 0;
@@ -277,7 +313,14 @@ class AstNode {
    void cleanUseCount(void);
    bool checkUseCount(registerSpace*, bool&);
    void printUseCount(void);
-	
+
+   virtual const std::vector<AstNodePtr> getArgs() { return std::vector<AstNodePtr>(); }; // to quiet compiler
+
+
+   virtual void setChildren(pdvector<AstNodePtr > &children);
+   virtual AstNodePtr deepCopy() { return AstNodePtr(this);};
+   
+
 	void debugPrint(unsigned level = 0);
 	// Occasionally, we do not call .generateCode_phase2 for the
 	// referenced node, but generate code by hand. This routine decrements
@@ -368,7 +411,7 @@ class AstNullNode : public AstNode {
     virtual bool containsFuncCall() const;
     virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
-
+    
     bool canBeKept() const { return true; }
  private:
     virtual bool generateCode_phase2(codeGen &gen,
@@ -411,10 +454,14 @@ class AstOperatorNode : public AstNode {
     virtual bool canBeKept() const;
 
     virtual void getChildren(pdvector<AstNodePtr> &children);
+    
+    virtual void setChildren(pdvector<AstNodePtr> &children);
+    virtual AstNodePtr deepCopy();
+
     virtual bool containsFuncCall() const;
     virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
-
+ 
 
     // We override initRegisters in the case of writing to an original register.
     virtual bool initRegisters(codeGen &gen);
@@ -479,12 +526,15 @@ class AstOperandNode : public AstNode {
         
     virtual void getChildren(pdvector<AstNodePtr> &children);
     
+    virtual void setChildren(pdvector<AstNodePtr> &children);
+    virtual AstNodePtr deepCopy();
+
     virtual void setVariableAST(codeGen &gen);
 
     virtual bool containsFuncCall() const;
     virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
-
+ 
     virtual void emitVariableStore(opCode op, Register src1, Register src2, codeGen& gen, 
 			   bool noCost, registerSpace* rs, 
 			   int size, const instPoint* point, AddressSpace* as);
@@ -524,12 +574,15 @@ class AstCallNode : public AstNode {
     virtual bool canBeKept() const;
 
     virtual void getChildren(pdvector<AstNodePtr> &children);
+    
+    virtual void setChildren(pdvector<AstNodePtr> &children);
+    virtual AstNodePtr deepCopy();
+
     virtual void setVariableAST(codeGen &gen);
     virtual bool containsFuncCall() const; 
     virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
-
-
+ 
     void setConstFunc(bool val) { constFunc_ = val; }
 
     virtual bool initRegisters(codeGen &gen);
@@ -566,7 +619,7 @@ class AstReplacementNode : public AstNode {
     virtual bool containsFuncCall() const;
     virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
-
+ 
 
  private:
     virtual bool generateCode_phase2(codeGen &gen,
@@ -593,11 +646,15 @@ class AstSequenceNode : public AstNode {
     virtual bool canBeKept() const;
 
     virtual void getChildren(pdvector<AstNodePtr> &children);
+    
+    virtual void setChildren(pdvector<AstNodePtr> &children);
+    virtual AstNodePtr deepCopy();
+
     virtual void setVariableAST(codeGen &gen);
     virtual bool containsFuncCall() const;
     virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
-
+ 
 
  private:
     virtual bool generateCode_phase2(codeGen &gen,
@@ -625,11 +682,16 @@ class AstVariableNode : public AstNode {
     virtual const void *getOValue() const { return ast_wrappers_[index]->getOValue(); };
 
     virtual void setVariableAST(codeGen &gen);
+
     virtual void getChildren(pdvector<AstNodePtr> &children);
+    
+    virtual void setChildren(pdvector<AstNodePtr> &children);
+    virtual AstNodePtr deepCopy();
+
     virtual bool containsFuncCall() const;
     virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
-
+ 
 
  private:
     virtual bool generateCode_phase2(codeGen &gen,
@@ -657,7 +719,7 @@ class AstInsnNode : public AstNode {
    virtual bool containsFuncCall() const;
    virtual cfjRet_t containsFuncJump() const;
    virtual bool usesAppRegister() const;
-
+ 
  protected:
     virtual bool generateCode_phase2(codeGen &gen,
                                      bool noCost,
@@ -678,6 +740,7 @@ class AstInsnBranchNode : public AstInsnNode {
     virtual bool containsFuncCall() const;
     virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
+ 
 
     virtual void setVariableAST(codeGen &gen);
     
@@ -699,7 +762,7 @@ class AstInsnMemoryNode : public AstInsnNode {
     virtual bool containsFuncCall() const;
     virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
-
+ 
     virtual void setVariableAST(codeGen &gen);
 
  protected:
@@ -730,11 +793,16 @@ class AstMiniTrampNode : public AstNode {
     virtual bool accessesParam(void) { return ast_->accessesParam(); } 
 
     virtual void getChildren(pdvector<AstNodePtr> &children);
+    
+    virtual void setChildren(pdvector<AstNodePtr> &children);
+    virtual AstNodePtr deepCopy();
+
     virtual void setVariableAST(codeGen &gen);
 
     virtual bool containsFuncCall() const;
     virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
+ 
 
     bool canBeKept() const;
 
@@ -753,6 +821,7 @@ class AstMemoryNode : public AstNode {
    virtual bool containsFuncCall() const;
    virtual cfjRet_t containsFuncJump() const;
    virtual bool usesAppRegister() const;
+ 
 
  private:
     virtual bool generateCode_phase2(codeGen &gen,
@@ -776,6 +845,7 @@ class AstOriginalAddrNode : public AstNode {
     virtual bool containsFuncCall() const;
     virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
+ 
 
  private:
     virtual bool generateCode_phase2(codeGen &gen,
@@ -795,7 +865,7 @@ class AstActualAddrNode : public AstNode {
     virtual bool containsFuncCall() const;
     virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
-
+ 
  private:
     virtual bool generateCode_phase2(codeGen &gen,
                                      bool noCost,
@@ -814,7 +884,7 @@ class AstDynamicTargetNode : public AstNode {
     virtual bool containsFuncCall() const;
     virtual cfjRet_t containsFuncJump() const;
     virtual bool usesAppRegister() const;
-
+ 
  private:
     virtual bool generateCode_phase2(codeGen &gen,
                                      bool noCost,

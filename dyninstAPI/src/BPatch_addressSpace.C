@@ -63,6 +63,7 @@
 #include "BPatch_instruction.h"
 
 #include <sstream>
+#include "Parsing.h"
 
 BPatch_addressSpace::BPatch_addressSpace() :
    image(NULL)
@@ -140,10 +141,12 @@ BPatch_variableExpr *BPatch_addressSpace::findOrCreateVariable(int_variable *v,
 
    if (!type) {
       SymtabAPI::Type *stype = v->ivar()->svar()->getType();
-      if (stype)
+
+      if (stype){
          type = BPatch_type::findOrCreateType(stype);
-      else
-         type = BPatch::bpatch->type_Untyped;
+      }else{
+         type = BPatch::bpatch->type_Untyped;	
+      }
    }
    
    BPatch_variableExpr *var = BPatch_variableExpr::makeVariableExpr(this, v, type);
@@ -512,7 +515,8 @@ BPatch_variableExpr *BPatch_addressSpace::mallocByType(const BPatch_type &type)
    std::stringstream namestr;
    namestr << "dyn_malloc_0x" << std::hex << mem << "_" << type.getName();
    std::string name = namestr.str();
-   return BPatch_variableExpr::makeVariableExpr(this, as[0], name, mem, &t);
+   BPatch_variableExpr *varExpr = BPatch_variableExpr::makeVariableExpr(this, as[0], name, mem, &t);
+   return varExpr;
 }
 
 
@@ -544,13 +548,25 @@ BPatch_variableExpr *BPatch_addressSpace::createVariableInt(std::string name,
     getAS(as);
     assert(as.size());
 
-    return BPatch_variableExpr::makeVariableExpr(this, 
+//dynC added feature
+    if(strstr(name.c_str(), "dynC") == name.c_str()){
+       void *mem = (void *) as[0]->inferiorMalloc(type->getSize(), dataHeap);
+       if (!mem) return NULL;
+       BPatch_variableExpr *varExpr = BPatch_variableExpr::makeVariableExpr(this, as[0], name, mem, type);
+       BPatch_module *mod = image->findOrCreateModule(varExpr->intvar->mod());
+       assert(mod);
+       mod->var_map[varExpr->intvar] = varExpr;
+       return varExpr;
+    }
+
+    BPatch_variableExpr *varExpr = BPatch_variableExpr::makeVariableExpr(this, 
                                                  as[0],
                                                  name,
                                                  (void *)addr, 
                                                  type);
-}
 
+    return varExpr;
+}
 
 /*
  * BPatch_addressSpace::findFunctionByAddr
@@ -718,13 +734,13 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetWhen(const BPatch_snippet
 {
    BPatch_Vector<BPatch_point *> points;
    points.push_back(&point);
-
    return insertSnippetAtPointsWhen(expr,
          points,
          when,
          order);
 }
 
+extern int dyn_debug_ast;   
 
 /*
  * BPatch_addressSpace::insertSnippet
@@ -743,8 +759,10 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
       BPatch_callWhen when,
       BPatch_snippetOrder order)
 {
+ 
+  BPatchSnippetHandle *retHandle = new BPatchSnippetHandle(this);
 
-   if (dyn_debug_inst) {
+  if (dyn_debug_inst) {
       BPatch_function *f;
       for (unsigned i=0; i<points.size(); i++) {
          f = points[i]->getFunction();
@@ -755,9 +773,9 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
                sname, points[i]->getAddress(), (int) when, (int) order);
 
       }
-   }
+  }
 
-   if (BPatch::bpatch->isTypeChecked()) {
+  if (BPatch::bpatch->isTypeChecked()) {
       if (expr.ast_wrapper->checkType() == BPatch::bpatch->type_Error) {
          inst_printf("[%s:%u] - Type error inserting instrumentation\n",
                FILE__, __LINE__);
@@ -776,9 +794,8 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
    rec->thread_ = NULL;
    rec->snip = expr;
    rec->trampRecursive_ = BPatch::bpatch->isTrampRecursive();
-
-   BPatchSnippetHandle *ret = new BPatchSnippetHandle(this);
-   rec->handle_ = ret;
+  
+   rec->handle_ = retHandle;
 
    for (unsigned i = 0; i < points.size(); i++) {
       BPatch_point *point = points[i];
@@ -789,6 +806,7 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
       }
 
       if (dynamic_cast<BPatch_addressSpace *>(point->addSpace) != this) {
+         printf("Pt's addSpace: %p this:%p\n", dynamic_cast<BPatch_addressSpace *>(point->addSpace), this);
          fprintf(stderr, "Error: attempt to use point specific to a different process\n");
          continue;
       }        
@@ -799,14 +817,14 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
       if (!BPatchToInternalArgs(point, when, order, ipWhen, ipOrder)) {
          inst_printf("[%s:%u] - BPatchToInternalArgs failed for point %d\n",
                FILE__, __LINE__, i);
-         return NULL;
+         return retHandle;
       }
 
       rec->points_.push_back(point);
       rec->when_.push_back(ipWhen);
       rec->order_ = ipOrder;
 
-      point->recordSnippet(when, order, ret);
+      point->recordSnippet(when, order, retHandle);
    }
 
    assert(rec->points_.size() == rec->when_.size());
@@ -823,7 +841,7 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
       // All the insertion work was moved here...
       proc->finalizeInsertionSetInt(false);
    }
-   return ret;
+   return retHandle;
 }
 
 
