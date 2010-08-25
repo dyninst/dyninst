@@ -847,6 +847,21 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPoints(
          order);
 }
 
+/*
+ * BPatch_addressSpace::isStaticExecutable
+ *
+ * Returns true if the underlying image represents a statically-linked executable, false otherwise.
+ */
+bool BPatch_addressSpace::isStaticExecutableInt() {
+   std::vector<AddressSpace *> as;
+   getAS(as);
+
+   if( !as.size() ) return false;
+
+   AddressSpace *aout = as[0];
+   return aout->getAOut()->isStaticExec();
+}
+
 #include "registerSpace.h"
 
 #if defined(cap_registers)

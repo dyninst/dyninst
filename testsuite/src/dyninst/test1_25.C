@@ -112,7 +112,8 @@ test_results_t test1_25_Mutator::executeTest()
 	&& !defined(ia64_unknown_linux2_4_test) \
 	&& !defined(i386_unknown_solaris2_5_test) \
 	&& !defined(ppc64_linux_test) \
-	&& !defined(i386_unknown_nt4_0_test)
+	&& !defined(i386_unknown_nt4_0_test) \
+        && !defined(os_freebsd_test)
 
 	// without type info need to inform
 	BPatch_type *type = appImage->findType("void *");

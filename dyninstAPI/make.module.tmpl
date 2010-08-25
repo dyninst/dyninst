@@ -206,16 +206,6 @@ PUBLIC_H = BPatch_addressSpace.h \
 
 #IGEN_ISRCS    = 
 
-ifndef USES_NATIVE_CC
-ifdef CROSSCOMPILER
-SYSLIBS		+= -liberty -lg++ -lstdc++ -lm
-else
-SYSLIBS         += -liberty
-endif
-else
-SYSLIBS		+= -ldemangle
-endif
-
 IFLAGS      += -I../$(PLATFORM) -I../src -I../h -I../../dynutil/h 
 IFLAGS      += -I../../symtabAPI/h -I../../instructionAPI/h
 IFLAGS      += -I../../parseAPI/h -I../../dataflowAPI/h
@@ -234,16 +224,16 @@ all: $(TARGET) $(EXTRA_LIBS)
     
 BPatch_templates.o: ../src/BPatch_templates.C
 	@echo "Building $<"
-	@$(CXX) $(TFLAGS) -c ../src/BPatch_templates.C
+	$(HIDE_COMP)$(CXX) $(TFLAGS) -c ../src/BPatch_templates.C
 
 templates0.o: ../src/templates0.C
 	@echo "Building $<"
-	@$(CXX) $(TFLAGS) -c ../src/templates0.C
+	$(HIDE_COMP)$(CXX) $(TFLAGS) -c ../src/templates0.C
 
 templates1.o: ../src/templates1.C
 	@echo "Building $<"
-	@$(CXX) $(TFLAGS) -c ../src/templates1.C
+	$(HIDE_COMP)$(CXX) $(TFLAGS) -c ../src/templates1.C
 
 templates2.o: ../src/templates2.C
 	@echo "Building $<"
-	@$(CXX) $(TFLAGS) -c ../src/templates2.C
+	$(HIDE_COMP)$(CXX) $(TFLAGS) -c ../src/templates2.C

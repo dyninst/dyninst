@@ -80,12 +80,9 @@ void SymEval::expand(Result_t &res, bool applyVisitors) {
     }
     Assignment::Ptr ptr = i->first;
     
-    //cerr << "Expand called for insn " << ptr->insn()->format() << endl;
-    
     expandInsn(ptr->insn(),
 	       ptr->addr(),
 	       res);
-    
   }
 
   if (applyVisitors) {
@@ -96,15 +93,16 @@ void SymEval::expand(Result_t &res, bool applyVisitors) {
         continue;
       }
       Assignment::Ptr ptr = i->first;
-
       // Let's experiment with simplification
       StackAnalysis sA(ptr->func());
       StackAnalysis::Height sp = sA.findSP(ptr->addr());
       StackAnalysis::Height fp = sA.findFP(ptr->addr());
 
       StackVisitor sv(ptr->addr(), ptr->func()->name(), sp, fp);
-      if (i->second)
-        i->second = i->second->accept(&sv);
+      if (i->second) {
+	AST::Ptr simplified = i->second->accept(&sv);
+	i->second = simplified;
+      }
     }
   }
 }
@@ -115,58 +113,43 @@ void SymEval::expand(Graph::Ptr slice, Result_t &res) {
     //cout << "Calling expand" << endl;
     // Other than the substitution this is pretty similar to the first example.
     NodeIterator gbegin, gend;
-    //slice->entryNodes(gbegin, gend);
-    slice->allNodes(gbegin, gend); /* add everything to the list */
+    slice->entryNodes(gbegin, gend);
 
-    //std::queue<Node::Ptr> worklist;
-    std::list<Node::Ptr> worklist;
+    std::queue<Node::Ptr> worklist;
     for (; gbegin != gend; ++gbegin) {
-        expand_cerr << "adding " << (*gbegin)->format() << " to worklist" << endl;
-        //worklist.push(*gbegin);
-        worklist.push_back(*gbegin);
+      expand_cerr << "adding " << (*gbegin)->format() << " to worklist" << endl;
+      worklist.push(*gbegin);
     }
-    std::set<Node::Ptr> processed;
 
     /* have a list
      * for each node, process
      * if processessing succeeded, remove the element
      * if the size of the list has changed, continue */
 
-    unsigned size = worklist.size();
-    while (size) {
-        expand_cerr << "Current worklist size = " << size << endl;
-        std::list<Node::Ptr>::iterator nit;
-        for (nit = worklist.begin(); nit != worklist.end(); ++nit) {
-            Node::Ptr ptr = *nit;
-            AssignNode::Ptr aNode = dyn_detail::boost::dynamic_pointer_cast<AssignNode>(ptr);
-            if (!aNode) continue; // They need to be AssignNodes
+    while (!worklist.empty()) {
+      Node::Ptr ptr = worklist.front(); worklist.pop();
+      AssignNode::Ptr aNode = dyn_detail::boost::dynamic_pointer_cast<AssignNode>(ptr);
+      if (!aNode) continue; // They need to be AssignNodes
+      
+      if (!aNode->assign()) continue; // Could be a widen point
+      
+      expand_cerr << "Visiting node " << aNode->assign()->format() << endl;
 
-            if (!aNode->assign()) continue; // Could be a widen point
+      AST::Ptr prev = res[aNode->assign()];
+      
+      process(aNode, res); 
+    
+      AST::Ptr post = res[aNode->assign()];
 
-            expand_cerr << "Visiting node " << aNode->assign()->format() << endl;
-
-            if (process(aNode, res)) {
-                expand_cerr << "Successfully processed " << aNode->assign()->format()
-                    << ", removing from worklist" << endl;
-                processed.insert(ptr);
-            }
-        }
-
-        /* Remove successfully processed elements */
-        std::set<Node::Ptr>::iterator pit;
-        for (pit = processed.begin(); pit != processed.end(); ++pit) {
-            worklist.remove(*pit);
-        }  
-
-        /* Check if we should continue processing */
-        unsigned cur_size = worklist.size();
-        if (cur_size == size) {
-            break;
-            expand_cerr << "Worklist did not change sizes, stopping" << endl; 
-        } else {
-            size = cur_size;
-        }
-    } 
+      if (post && !(post->equals(prev))) {
+	// Oy
+	NodeIterator oB, oE;
+	aNode->outs(oB, oE);
+	for (; oB != oE; ++oB) {
+	  worklist.push(*oB);
+	}
+      }
+    }
 }
 
 void SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,

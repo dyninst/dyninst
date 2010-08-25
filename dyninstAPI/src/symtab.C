@@ -167,7 +167,8 @@ void image::findMain()
 #if defined(i386_unknown_linux2_0) \
 || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
 || defined(i386_unknown_solaris2_5) \
-   
+|| (defined(os_freebsd) \
+    && (defined(arch_x86) || defined(arch_x86_64)))
     if(!desc_.isSharedObject())
     {
     	bool foundMain = false;
@@ -197,7 +198,6 @@ void image::findMain()
             const unsigned char* p;
 		                   
             p = (( const unsigned char * ) textsec->getPtrToRawData());
-            const unsigned char *lastP = 0;
 
             switch(linkedFile->getAddressWidth()) {
        	    	case 4:
@@ -218,7 +218,10 @@ void image::findMain()
 
             instruction insn;
             insn.setInstruction( p );
- 
+            Address mainAddress = 0;
+
+#if !defined(os_freebsd)
+            const unsigned char *lastP = 0;
             while( !insn.isCall() )
             {
             	lastP = p;
@@ -234,12 +237,50 @@ void image::findMain()
             instruction preCall;
             preCall.setInstruction(lastP);
 
-            Address mainAddress;
             mainAddress = get_immediate_operand(&preCall);
+#else
+            // Heuristic: main is the target of the 4th call in the text section
+            using namespace Dyninst::InstructionAPI;
+
+            unsigned bytesSeen = 0, numCalls = 0;
+            InstructionDecoder decoder(p, textsec->getRegionSize(), cs_->getArch());
+
+            Instruction::Ptr curInsn = decoder.decode();
+            while( numCalls < 4 && curInsn && curInsn->isValid() &&
+                   bytesSeen < textsec->getRegionSize())
+            {
+                InsnCategory category = curInsn->getCategory();
+                if( category == c_CallInsn ) {
+                    numCalls++;
+                }
+
+                if( numCalls < 4 ) {
+                    bytesSeen += curInsn->size();
+                    curInsn = decoder.decode();
+                }
+            }
+
+            if( numCalls != 4 ) {
+                logLine("heuristic for finding global constructor function failed\n");
+            }else{
+                Address callAddress = textsec->getRegionAddr() + bytesSeen;
+                RegisterAST thePC = RegisterAST(Dyninst::MachRegister::getPC(cs_->getArch()));
+
+                Expression::Ptr callTarget = curInsn->getControlFlowTarget();
+
+                if( callTarget.get() ) {
+                    callTarget->bind(&thePC, Result(s64, callAddress));
+                    Result actualTarget = callTarget->eval();
+                    if( actualTarget.defined ) {
+                        mainAddress = actualTarget.convert<Address>();
+                    }
+                }
+            }
+#endif
 
             if(!mainAddress || !cs_->isValidAddress(mainAddress)) {
                 startup_printf("%s[%u]:  invalid main address 0x%lx\n",
-                    mainAddress);   
+                    FILE__, __LINE__, mainAddress);   
             } else {
                 startup_printf("%s[%u]:  set main address to 0x%lx\n",
                     FILE__,__LINE__,mainAddress);
@@ -1203,7 +1244,7 @@ image::image(fileDescriptor &desc,
       }
    }
    startup_printf("%s[%d]:  opened file %s (or archive)\n", FILE__, __LINE__, file.c_str());
-#elif defined(os_linux) || defined(os_solaris)
+#elif defined(os_linux) || defined(os_solaris) || defined(os_freebsd)
    string file = desc_.file().c_str();
    if( desc_.member().empty() ) {
        startup_printf("%s[%d]:  opening file %s\n", FILE__, __LINE__, file.c_str());
@@ -1950,14 +1991,15 @@ image_variable* image::createImageVariable(Offset offset, std::string name, int 
     return ret;
 }
 
-#if !defined(os_linux) && !(defined(arch_x86) || defined(arch_x86_64))
-bool image::findGlobalConstructorFunc() {
-    assert("!Not implemented");
+#if !( (defined(os_linux) || defined(os_freebsd)) && \
+       (defined(arch_x86) || defined(arch_x86_64)) )
+bool image::findGlobalConstructorFunc(const std::string &) {
+    assert(!"Not implemented");
     return false;
 }
 
-bool image::findGlobalDestructorFunc() {
-    assert("!Not implemented");
+bool image::findGlobalDestructorFunc(const std::string &) {
+    assert(!"Not implemented");
     return false;
 }
 #endif

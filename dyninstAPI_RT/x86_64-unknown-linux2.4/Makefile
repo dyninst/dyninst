@@ -40,8 +40,8 @@ SRCS		+= ../src/RTposix.c \
 			../src/RTthread.c \
 			../src/RTthread-index.c \
 			../src/RTspace.S \
-			../src/RTstatic_ctors_dtors-linux-x86.c \
-			../src/RTtlsgetaddr-linux-x86_64.S
+			../src/RTstatic_ctors_dtors-x86.c \
+			../src/RTtlsgetaddr-x86_64.S
 #		   ../src/RTmutatedBinary.c \
 #		   ../src/RTmutatedBinary_ELF.c \
 
@@ -58,7 +58,7 @@ endif
 include ../make.module.tmpl
 
 # 32-bit runtime library
-ASM_SRCS_32  = ../src/RTspace.S ../src/RTsignal-x86.S ../src/RTtlsgetaddr-linux-x86.S
+ASM_SRCS_32  = ../src/RTspace.S ../src/RTsignal-x86.S ../src/RTtlsgetaddr-x86.S
 
 TARGET_32_SO = libdyninstAPI_RT_m32.so.1
 XTARGET_32   = $(basename $(basename $(TARGET_32_SO)))
@@ -72,21 +72,21 @@ LIBS_32      = -L/usr/lib $(LIBS)
 
 $(OBJS_32): %_m32.o: ../src/%.c
 	@echo "Compiling $< (32-bit)"
-	@$(CC) $(subst -m64,-m32,$(CFLAGS_32)) -c $< -o $@
+	$(HIDE_COMP)$(CC) $(subst -m64,-m32,$(CFLAGS_32)) -c $< -o $@
 $(ASM_OBJS_32): %_m32.o: ../src/%.S
 	@echo "Compiling $< (32-bit)"
-	@$(CC) $(subst -m64,-m32,$(CFLAGS_32)) -c $< -o $@
+	$(HIDE_COMP)$(CC) $(subst -m64,-m32,$(CFLAGS_32)) -c $< -o $@
 $(VOUCHER_32):
 	@echo Updating build voucher information: $(VOUCHER_32)
-	@$(BUILDSTAMP) $(BUILD_ID) $(XTARGET)
-	@$(MODCC) -m32 -c $(VOUCHER).c -o $(VOUCHER_32).o
+	$(HIDE_COMP)$(BUILDSTAMP) $(BUILD_ID) $(XTARGET)
+	$(HIDE_COMP)$(MODCC) -m32 -c $(VOUCHER).c -o $(VOUCHER_32).o
 $(TARGET_32_SO): $(OBJS_32) $(ASM_OBJS_32)
-	@$(RM) $(TARGET_32_SO)
-	@$(MAKE) $(VOUCHER_32)
-	$(LD) $(subst -m64,-m32,$(LDFLAGS_32)) -o $(TARGET_32_SO) $(VOUCHER_32).o $(OBJS_32) $(ASM_OBJS_32) $(LIBS_32)
+	$(HIDE_COMP)$(RM) $(TARGET_32_SO)
+	$(HIDE_COMP)$(MAKE) $(VOUCHER_32)
+	$(HIDE_COMP)$(LD) $(subst -m64,-m32,$(LDFLAGS_32)) -o $(TARGET_32_SO) $(VOUCHER_32).o $(OBJS_32) $(ASM_OBJS_32) $(LIBS_32)
 RTspace.o: ../src/RTspace.S
 	@echo "Compiling RTspace"
-	@$(CC) $(CFLAGS) -c $< -o $@
+	$(HIDE_COMP)$(CC) $(CFLAGS) -c $< -o $@
 
 $(DEST)/$(TARGET_32_SO): $(TARGET_32_SO)
 	-$(CP) $(TARGET_32_SO) $(DEST)
@@ -100,13 +100,13 @@ STATIC_CFLAGS_32    =  $(subst -DMUTATEE64,-DMUTATEE_32,$(STATIC_CFLAGS))
 
 $(STATIC_OBJS_32): %_nopic_m32.o: ../src/%.c
 	@echo "Compiling $< (static 32-bit)"
-	@$(CC) $(subst -m64,-m32,$(STATIC_CFLAGS_32)) -c $< -o $@
+	$(HIDE_COMP)$(CC) $(subst -m64,-m32,$(STATIC_CFLAGS_32)) -c $< -o $@
 $(STATIC_ASM_OBJS_32): %_nopic_m32.o: ../src/%.S
 	@echo "Compiling $< (static 32-bit)"
-	@$(CC) $(subst -m64,-m32,$(STATIC_CFLAGS_32)) -c $< -o $@
+	$(HIDE_COMP)$(CC) $(subst -m64,-m32,$(STATIC_CFLAGS_32)) -c $< -o $@
 $(STATIC_TARGET_32): $(STATIC_OBJS_32) $(STATIC_ASM_OBJS_32)
-	@$(RM) $(STATIC_TARGET_32)
-	@$(AR) rcs $(STATIC_TARGET_32) $(STATIC_OBJS_32) $(STATIC_ASM_OBJS_32)
+	$(HIDE_COMP)$(RM) $(STATIC_TARGET_32)
+	$(HIDE_COMP)$(AR) rcs $(STATIC_TARGET_32) $(STATIC_OBJS_32) $(STATIC_ASM_OBJS_32)
 
 $(DEST)/$(STATIC_TARGET_32): $(STATIC_TARGET_32)
 	-$(CP) $(STATIC_TARGET_32) $(DEST)

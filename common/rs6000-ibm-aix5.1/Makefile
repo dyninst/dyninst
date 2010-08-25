@@ -49,15 +49,6 @@ G_PTHREAD       = -pthread
 
 include ../make.module.tmpl
 
-ifdef HAVE_NATIVE_DEMANGLER
-  LDFLAGS += -ldemangle
-  CXXFLAGS += -Dcap_native_demangler
-endif
-ifdef HAVE_LIBIBERTY
-  LDFLAGS += -liberty
-  CXXFLAGS += -Dcap_liberty
-endif
-
 ifdef XLC_BUILD
   # should be building a static library in this case
   TARGET3_STATIC  = libdyninstAPI.a
@@ -65,8 +56,7 @@ ifdef XLC_BUILD
   AR = /usr/bin/ar
 else
   # On AIX all symbols must be resolved at link time, even for a library.
-  # We need the cplus.demangle function from libiberty.
-  LDFLAGS += -liberty -Wl,-bbigtoc,-bexpall -lgcc -lc -lstdc++
+  LDFLAGS += -Wl,-bbigtoc,-bexpall -lgcc -lc -lstdc++
   # Override default of gcc -- need g++ on AIX
   LD = $(GXX)
 endif
