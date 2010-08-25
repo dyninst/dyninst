@@ -51,7 +51,6 @@ MUTATEE_G77_CFLAGS += $(filter-out -Wl$(COMMA)-export-dynamic, $(MUTATEE_CFLAGS_
 MUTATEE_G77_CFLAGS += -DF77 -DFortran -g $(MUTATEE_FFLAGS) -c -I../src
 TEST1_FORTRAN_CSOURCE = test1.mutateeFortC.c
 
-MUTATOR_LIBS += -liberty
 MUTATEE_CFLAGS_NATIVE 	= $(UNIFIED_DEF) -g -I../src
 MUTATEE_CXXFLAGS_NATIVE = $(UNIFIED_DEF) -g -I../src
 
@@ -72,7 +71,5 @@ STRIP_SO = strip -g
 # .PHONY: force_default
 # force_default: make.vars.gen all
 # force_default: solo_mutatees # FIXME This is a temporary entry
-
-TESTDRIVER_LDFLAGS = -liberty
 
 include ../make.module.tmpl

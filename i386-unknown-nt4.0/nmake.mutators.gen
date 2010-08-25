@@ -18,11 +18,11 @@ instruction_MUTATORS_SO = test_instruction_read_write.dll test_instruction_farca
 
 instruction_OBJS_ALL_MUTATORS = test_instruction_read_write.obj test_instruction_farcall.obj test_instruction_bind_eval.obj power_decode.obj power_cft.obj fucompp.obj 
 
-symtab_MUTATORS = test_lookup_func test_lookup_var test_line_info test_module test_type_info test_symtab_ser_funcs test_ser_anno test_anno_basic_types 
+symtab_MUTATORS = test_lookup_func test_lookup_var test_add_symbols test_line_info test_module test_type_info test_symtab_ser_funcs test_ser_anno test_anno_basic_types 
 
-symtab_MUTATORS_SO = test_lookup_func.dll test_lookup_var.dll test_line_info.dll test_module.dll test_type_info.dll test_symtab_ser_funcs.dll test_ser_anno.dll test_anno_basic_types.dll 
+symtab_MUTATORS_SO = test_lookup_func.dll test_lookup_var.dll test_add_symbols.dll test_line_info.dll test_module.dll test_type_info.dll test_symtab_ser_funcs.dll test_ser_anno.dll test_anno_basic_types.dll 
 
-symtab_OBJS_ALL_MUTATORS = test_lookup_func.obj test_lookup_var.obj test_line_info.obj test_module.obj test_type_info.obj test_symtab_ser_funcs.obj test_ser_anno.obj test_anno_basic_types.obj 
+symtab_OBJS_ALL_MUTATORS = test_lookup_func.obj test_lookup_var.obj test_add_symbols.obj test_line_info.obj test_module.obj test_type_info.obj test_symtab_ser_funcs.obj test_ser_anno.obj test_anno_basic_types.obj 
 
 mutators: $(dyninst_MUTATORS_SO) $(instruction_MUTATORS_SO) $(symtab_MUTATORS_SO)
 
@@ -534,6 +534,12 @@ test_instruction_read_write.dll: test_instruction_read_write.obj $(LIBTESTSUITE)
 	$(LINK) $(LDFLAGS) -DLL -out:$@ test_instruction_read_write.obj $(MUTATOR_LIBS)
 
 test_instruction_read_write.obj: ../src/instruction/test_instruction_read_write.C
+	$(CXX) $(CXXFLAGS_NORM) -DDLL_BUILD -c -Fo$@ $**
+
+test_add_symbols.dll: test_add_symbols.obj $(LIBTESTSUITE)
+	$(LINK) $(LDFLAGS) -DLL -out:$@ test_add_symbols.obj $(MUTATOR_LIBS)
+
+test_add_symbols.obj: ../src/symtab/test_add_symbols.C
 	$(CXX) $(CXXFLAGS_NORM) -DDLL_BUILD -c -Fo$@ $**
 
 test_anno_basic_types.dll: test_anno_basic_types.obj $(LIBTESTSUITE)

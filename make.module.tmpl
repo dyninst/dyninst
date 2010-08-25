@@ -33,7 +33,7 @@ IFLAGS += $(BOOST_INCDIR)
 ### Strip away most of it.
 #######################################################################
 
-CFLAGS = $(UNIFIED_TEST_DEF:%=%_test) $(AC_DEF) $(FIRST_INCLUDE) -I../../../include -I../src -g $(BOOST_INCDIR)
+CFLAGS = $(UNIFIED_TEST_DEF:%=%_test) $(AC_DEF) $(FIRST_INCLUDE) -I$(INCLUDE_DEST) -I../src -g $(BOOST_INCDIR)
 CXXFLAGS = $(CFLAGS)
 CXXFLAGS += $(PLATFORM_CXXFLAGS)
 CFLAGS_NATIVE = $(CFLAGS)
@@ -88,6 +88,8 @@ MUTATEE_CXXFLAGS_NATIVE += -DCOMPILER='"$(COMPILER_NATIVE_CXX)"'
 TEST_DEST = $(TO_CORE)/$(PROGRAM_DEST)/testprogs_new2
 LIB_DEST = $(TO_CORE)/$(LIBRARY_DEST)
 
+LIBDIR += -L$(LIBRARY_DEST)
+
 #######################################################################
 ###  Basic definitions (filename prefixes)
 #######################################################################
@@ -117,6 +119,7 @@ else
 LIBTESTSUITE = libtestSuite.so
 endif
 
+TESTDRIVER_LDFLAGS = $(DEMANGLER_EXEC_LINK)
 #######################################################
 # Dyninst infrastructure components
 #######################################################
@@ -561,9 +564,8 @@ test_driver_static.o: ../src/test_driver.C $(DEPENDDIR)/test_driver_static.dep
 	@$(CXX) -c -o $@ -DSTATIC_TEST_DRIVER $(CXXFLAGS) $(MUTATEE_DEFS) ../src/test_driver.C
 
 test_driver: test_driver.o test_driver_templates.o test_info_new.gen.o $(DEPENDDIR)/test_driver.dep $(LIBTESTSUITE)
-	@echo Linking $@
-	@$(CXX) -o $@ test_driver.o test_driver_templates.o test_info_new.gen.o -L. -ltestSuite $(MUTATOR_LDFLAGS) $(LIBS) \
-$(TESTDRIVER_LDFLAGS) -lcommon
+	@echo Linking $@ $(TESTDRIVER_LDFLAGS)
+	$(CXX) -o $@ test_driver.o test_driver_templates.o test_info_new.gen.o -L. -ltestSuite $(MUTATOR_LDFLAGS) $(LIBS) $(TESTDRIVER_LDFLAGS) -lcommon
 
 ######################################################################
 ### Output Drivers
