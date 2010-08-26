@@ -2070,8 +2070,11 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt, baseTrampInstance *inst, codeGen &
    //Calculate the number of registers we'll save
    for (int i = 0; i < gen.rs()->numGPRs(); i++) {
       registerSlot *reg = gen.rs()->GPRs()[i];
-      if (shouldSaveReg(reg, inst))
-         num_to_save++;
+      if (!shouldSaveReg(reg, inst))
+         continue;
+      if (createFrame && reg->encoding() == REGNUM_RBP)
+         continue;
+      num_to_save++;
    }
    if (flagsSaved) {
       num_saved++;
@@ -2094,6 +2097,8 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt, baseTrampInstance *inst, codeGen &
    for (int i = 0; i < gen.rs()->numGPRs(); i++) {
       registerSlot *reg = gen.rs()->GPRs()[i];
       if (!shouldSaveReg(reg, inst))
+         continue;
+      if (createFrame && reg->encoding() == REGNUM_RBP)
          continue;
           
       emitPushReg64(reg->encoding(),gen);
@@ -2120,11 +2125,13 @@ bool EmitterAMD64::emitBTSaves(baseTramp* bt, baseTrampInstance *inst, codeGen &
       // pushl %rbp        (0x55)
       // movl  %rsp, %rbp  (0x48 0x89 0xe5)      
       emitSimpleInsn(0x55, gen);
+      gen.rs()->markSavedRegister(REGNUM_RBP, 0);
+      num_saved++;
+
       // And track where it went
       (*gen.rs())[REGNUM_RBP]->liveState = registerSlot::spilled;
       (*gen.rs())[REGNUM_RBP]->spilledState = registerSlot::framePointer;
       (*gen.rs())[REGNUM_RBP]->saveOffset = 0;
-      num_saved++;
 
       emitMovRegToReg64(REGNUM_RBP, REGNUM_RSP, true, gen);
    }
