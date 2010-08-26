@@ -364,7 +364,7 @@ Function::tampersStack(bool recalculate)
     ST_Predicates preds;
     _tamper = TAMPER_UNSET;
     Function::blocklist::iterator bit;
-    for (bit = retblks.begin(); retblks.end() != bit; bit++) {
+    for (bit = retblks.begin(); retblks.end() != bit; ++bit) {
         Address retnAddr = (*bit)->lastInsnAddr();
         InstructionDecoder retdec(this->isrc()->getPtrToInstruction( retnAddr ), 
                                   InstructionDecoder::maxInstructionLength, 
@@ -384,15 +384,17 @@ Function::tampersStack(bool recalculate)
                 if (dyn_debug_malware) {
                     stringstream graphDump;
                     graphDump << "sliceDump_" << this->name() 
-                              << "_" << retnAddr << ".dot";
+                              << "_" << hex << retnAddr << ".dot";
                     slGraph->printDOT(graphDump.str());
                 }
                 sliceAtRet = slRes[*ait];
+                mal_printf("assignment %s is %s\n", (*ait)->format().c_str(),
+                           sliceAtRet->format().c_str());
                 break;
             }
         }
         assert(sliceAtRet != NULL);
-        StackTamperVisitor vis((*ait)->out());
+        StackTamperVisitor vis(Absloc(-1 * isrc()->getAddressWidth(), 0, name()));
         Address curTamperAddr=0;
         StackTamper curtamper = vis.tampersStack(sliceAtRet, curTamperAddr);
         if (TAMPER_UNSET == _tamper || 

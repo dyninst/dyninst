@@ -151,6 +151,9 @@ void RoseInsnX86Factory::massageOperands(const InstructionAPI::Instruction::Ptr 
     // Nada
     operands.clear();
     break;
+  case e_popad:
+    operands.clear();
+    break;
   default:
     break;
   }

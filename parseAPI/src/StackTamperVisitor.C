@@ -40,9 +40,10 @@ using namespace Dyninst;
 using namespace DataflowAPI;
 using namespace ParseAPI;
 
-StackTamperVisitor::StackTamperVisitor(const AbsRegion &) :
+StackTamperVisitor::StackTamperVisitor(const Absloc &retaddr) :
   tamper_(TAMPER_UNSET),
-  modpc_(0)
+  modpc_(0),
+  origRetAddr_(retaddr)
 {
 }
 
@@ -65,19 +66,20 @@ AST::Ptr StackTamperVisitor::visit(ConstantAST *c) {
 AST::Ptr StackTamperVisitor::visit(VariableAST *v) {
   const AbsRegion &reg = v->val().reg;
   const Absloc &aloc = reg.absloc();
-  if (Absloc::Stack == aloc.type()) {
-    // Right on!
-    diffs_.push(DiffVar(0, 1));
+
+  if (aloc == origRetAddr_) {
+      diffs_.push(DiffVar(0, 1));
   }
   else {
-    diffs_.push(DiffVar(v->val(), 0));
+      tamper_ = TAMPER_NONZERO;
   }
+
   return v->ptr();
 }
 
 AST::Ptr StackTamperVisitor::visit(StackAST *s) {
-  // If we see one of these we're getting a weird "pc + esp", 
-  // so we can consider it a constant.
+  // This is a special case of the above; a StackAST is esp with
+  // a known (analyzed) value. 
   if (s->val().isBottom()) {
     tamper_ = TAMPER_NONZERO;
   }
@@ -154,10 +156,14 @@ AST::Ptr StackTamperVisitor::visit(RoseAST *r) {
 
 StackTamper StackTamperVisitor::tampersStack(AST::Ptr a, Address &newAddr) {
 
-    a->accept(this);
-
     if(tamper_ != TAMPER_UNSET) {
         newAddr = modpc_;
+        return tamper_;
+    }
+
+    a->accept(this);
+
+    if (tamper_ == TAMPER_NONZERO) {
         return tamper_;
     }
 
@@ -180,6 +186,7 @@ StackTamper StackTamperVisitor::tampersStack(AST::Ptr a, Address &newAddr) {
         tamper_ = TAMPER_NONZERO;
         break;
     }
+    newAddr = modpc_;
     return tamper_;
 }
 
