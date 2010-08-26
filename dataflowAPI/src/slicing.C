@@ -538,8 +538,8 @@ bool Slicer::getPredecessors(Element &current,
                     p,
                     err)) {
             slicing_cerr << " succeeded, err " << err << endl;
+            pred.push(newElement);
         }
-        pred.push(newElement);
         break;
       default:
 	Element newElement;
@@ -764,9 +764,10 @@ bool Slicer::handleReturnBackward(ParseAPI::Edge *edge,
             err = true;
             return false;
         }
+        return true;
     }
 
-    return true;
+    return false;
 }
 
 bool Slicer::search(Element &initial,
