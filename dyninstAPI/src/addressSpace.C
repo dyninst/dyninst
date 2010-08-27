@@ -806,12 +806,27 @@ bool AddressSpace::isData(const Address addr) const {
 }
 
 bool AddressSpace::isValidAddress(const Address addr) const{
-    // "Is this part of the process address space?"
-    codeRange *dontcare;
-    if (textRanges_.find(addr, dontcare))
+    // "Is this part of the process address space, and if so, 
+    //  does it correspond to an address that we can get a 
+    //  valid pointer to?"
+
+    codeRange *range;
+    if (textRanges_.find(addr, range)) {
+        mapped_object *obj = range->is_mapped_object();
+
+        if ( !obj ) 
+            return true;
+ 
+        if ( obj->parse_img()->getObject()->isCode(addr - obj->codeBase()) ||
+             obj->parse_img()->getObject()->isData(addr - obj->dataBase())   )
+            return true;
+ 
+        return false;
+    }
+
+    if (dataRanges_.find(addr, range))
         return true;
-    if (dataRanges_.find(addr, dontcare))
-        return true;
+
     return false;
 }        
 

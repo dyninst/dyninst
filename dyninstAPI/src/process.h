@@ -711,7 +711,7 @@ public:
 
   // synch modified mapped objects with current memory contents
   mapped_object *createObjectNoFile(Address addr);
-  void updateMappedFile
+  void updateCodeBytes
       ( std::map<Dyninst::Address,unsigned char*>& owPages,
         std::map<Address,Address> owRegions );
 

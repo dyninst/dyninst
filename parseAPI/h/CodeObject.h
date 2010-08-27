@@ -75,7 +75,7 @@ class CodeObject {
     // `exact-target' parsing; optinally recursive
     PARSER_EXPORT void parse(Address target, bool recursive);
 
-    // adds new edges to parsed functions
+    // parses new edges in already parsed functions
     PARSER_EXPORT bool parseNewEdges( vector<Block*> & sources, 
                                       vector<Address> & targets, 
                                       vector<EdgeTypeEnum> & edge_types);
@@ -102,6 +102,7 @@ class CodeObject {
     PARSER_EXPORT CFGFactory * fact() const { return _fact; }
     PARSER_EXPORT bool defensiveMode() { return defensive; }
     PARSER_EXPORT void deleteFunc(Function *);
+    PARSER_EXPORT bool expandSection(Address start, Address new_size);
 
     /*
      * Calling finalize() forces completion of all on-demand

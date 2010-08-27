@@ -1760,7 +1760,7 @@ void BPatch_process::overwriteAnalysisUpdate
     //llproc->updateActiveMultis();
 
     //2. update the mapped data for the overwritten ranges
-    llproc->updateMappedFile(owPages,owRegions);
+    llproc->updateCodeBytes(owPages,owRegions);
 
     //2. create stub list
     std::vector<image_basicBlock*> stubSourceBlocks;

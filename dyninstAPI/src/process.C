@@ -4706,7 +4706,7 @@ bool process::getOverwrittenBlocks
 
         mapped_object* obj = findObject(curPageAddr);
         if (owObjs.end() != owObjs.find(obj)) {
-            obj->clearUpdatedRegions();
+            obj->setCodeBytesUpdated(false);
         }
 
         // 1. Read the modified page in from memory
@@ -4773,7 +4773,7 @@ bool process::getOverwrittenBlocks
 
 // distribute the work to mapped_objects
 // currently asserts if there are overwrites to multiple objects
-void process::updateMappedFile
+void process::updateCodeBytes
     ( std::map<Dyninst::Address,unsigned char*>& owPages, //input
       std::map<Address,Address> owRanges )
 {
@@ -4791,7 +4791,7 @@ void process::updateMappedFile
         }
     }
 
-    curObj->updateMappedFile(objRanges);
+    curObj->updateCodeBytes(objRanges);
     objRanges.clear();
 }
 

@@ -196,11 +196,15 @@ class mapped_object : public codeRange {
     const pdvector<mapped_module *> &getModules();
 
     // begin exploratory and defensive mode functions //
-    BPatch_hybridMode getHybridMode() { return analysisMode_; }
+    BPatch_hybridMode hybridMode() { return analysisMode_; }
+    bool isExploratoryModeOn();
     bool parseNewFunctions(std::vector<Address> &funcEntryAddrs);
-    void updateMappedFileIfNeeded(Address entryAddr, SymtabAPI::Region* reg);
-    void updateMappedFile( std::map<Address,Address> owRanges ); 
-    void clearUpdatedRegions();
+    void registerNewFunctions(); // register funcs found by recursive parsing
+    bool updateCodeBytesIfNeeded(Address entryAddr); // ret true if was needed
+    void updateCodeBytes( std::map<Address,Address> owRanges );
+    void setCodeBytesUpdated(bool);
+    void addProtectedPage(Address pageAddr); // adds to protPages_
+    void removeProtectedPage(Address pageAddr);
     void removeFunction(int_function *func);
     void removeRange(codeRange *range);
     bool splitIntLayer();
@@ -210,13 +214,13 @@ class mapped_object : public codeRange {
     void findFuncsByRange(Address startAddr,
                           Address endAddr,
                           std::set<int_function*> &pageFuncs);
-    bool isExploratoryModeOn();
+
 private:
     // helper functions
-    void updateMappedFile(SymtabAPI::Region *reg);// updates region unconditionally
-    bool isUpdateNeeded(Address entryAddr,SymtabAPI::Region* reg=NULL);
-    bool isExpansionNeeded(Address entryAddr,SymtabAPI::Region* reg=NULL);
-    void expandMappedFile(SymtabAPI::Region *reg);
+    void updateCodeBytes(SymtabAPI::Region *reg = NULL);
+    bool isUpdateNeeded(Address entryAddr);
+    bool isExpansionNeeded(Address entryAddr);
+    void expandCodeBytes(SymtabAPI::Region *reg);
     // end exploratory and defensive mode functions //
 public:
 
@@ -247,10 +251,6 @@ public:
     const pdvector<int_variable *> *findVarVectorByMangled(const std::string &varname); 
     const int_variable *getVariable(const std::string &varname);
     
-    // After analysis has taken place, trigger control-flow traversal
-    // parsing of new function and add it to the mapped_object
-    bool analyzeNewFunctions(vector<image_func*> *func);
-
 	//this marks the shared object as dirty, mutated
 	//so it needs saved back to disk
 	void setDirty(){ dirty_=true;}
@@ -327,7 +327,9 @@ private:
 
     // exploratory and defensive mode variables
     BPatch_hybridMode analysisMode_;
-    std::set<SymtabAPI::Region*> updatedRegions;
+    set<Address> protPages_;
+    std::set<SymtabAPI::Region*> expansionCheckedRegions_;
+    bool pagesUpdated_;
 
     mapped_module *getOrCreateForkedModule(mapped_module *mod);
 

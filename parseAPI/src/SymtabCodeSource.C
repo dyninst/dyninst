@@ -591,3 +591,41 @@ SymtabCodeSource::length() const
 {
     return _symtab->imageLength();
 }
+
+
+void 
+SymtabCodeSource::removeRegion(CodeRegion &cr)
+{
+    _region_tree.remove( &cr );
+}
+
+// fails and returns false if it can't find a CodeRegion
+// to match the SymtabAPI::region
+// has to remove the region before modifying the region's size, 
+// otherwise the region can't be found
+bool
+SymtabCodeSource::resizeRegion(SymtabAPI::Region *sr, Address newDiskSize)
+{
+    // find region
+    std::set<CodeRegion*> regions;
+    findRegions(sr->getRegionAddr(), regions);
+    bool found_it = false;
+    set<CodeRegion*>::iterator rit = regions.begin();
+    for (; rit != regions.end(); rit++) {
+        if (sr == ((SymtabCodeRegion*)(*rit))->symRegion()) {
+            found_it = true;
+            break;
+        }
+    }
+
+    if (!found_it) {
+        return false;
+    }
+
+    // remove, resize, reinsert
+    removeRegion( **rit );
+    sr->setDiskSize( newDiskSize );
+    addRegion( *rit );
+    return true;
+}
+

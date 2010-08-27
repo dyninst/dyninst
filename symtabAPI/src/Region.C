@@ -276,9 +276,14 @@ void Region::setMemOffset(Offset newoff)
     memOff_ = newoff;
 }
 
-void Region::setMemSize(long newsize)
+void Region::setMemSize(unsigned long newsize)
 {
     memSize_ = newsize;
+}
+
+void Region::setDiskSize(unsigned long newsize)
+{
+    diskSize_ = newsize;
 }
 
 void *Region::getPtrToRawData() const

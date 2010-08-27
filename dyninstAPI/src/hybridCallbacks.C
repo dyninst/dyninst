@@ -432,7 +432,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
         BPatch_function *caller = proc()->findFunctionByAddr( 
             (void*)( (Address)returnAddr - 1 ) );
         if ( !caller ) {
-            mal_printf("straycalls.cpp[%d] Observed abuse of normal return "
+            mal_printf("hybridCallbacks.C[%d] Observed abuse of normal return "
                     "instruction semantics for insn at %lx target %lx\n",
                     __LINE__, point->getAddress(), returnAddr);
         }

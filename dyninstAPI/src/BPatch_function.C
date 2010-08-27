@@ -334,8 +334,8 @@ bool BPatch_function::parseNewEdge(Dyninst::Address source,
 
     // do it here and not in int_function, as that would cause double effort
     // for overwrites, which also call func->parseNewEdges
-    if (func->obj()->parse_img()->codeObject()->defensiveMode()) {
-        func->obj()->clearUpdatedRegions();
+    if (BPatch_defensiveMode == func->obj()->hybridMode()) {
+        func->obj()->setCodeBytesUpdated(false);
     }
 
     // set up arguments to lower level parseNewEdges and call it
@@ -402,7 +402,7 @@ void BPatch_function::getUnresolvedControlTransfers
             mal_printf("WARNING: ambiguous point type translation for "
                        "insn at %lx, setting to locLongJump %s[%d]\n",
                        (*bIter)->addr(), FILE__,__LINE__);
-                ptType = BPatch_locLongJump;
+            ptType = BPatch_locLongJump;
         }
         BPatch_point *curPoint = addSpace->findOrCreateBPPoint
             (this, const_cast<instPoint*>(*bIter), ptType);

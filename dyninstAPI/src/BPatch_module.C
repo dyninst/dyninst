@@ -785,7 +785,7 @@ BPatch_hybridMode BPatch_module::getHybridModeInt()
     if (!mod || !getAS()->proc()) {
         return BPatch_normalMode;
     }
-    return mod->obj()->getHybridMode();
+    return mod->obj()->hybridMode();
 }
 
 bool BPatch_module::isExploratoryModeOn()
@@ -794,7 +794,7 @@ bool BPatch_module::isExploratoryModeOn()
         return false;
     }
 
-    BPatch_hybridMode mode = mod->obj()->getHybridMode();
+    BPatch_hybridMode mode = mod->obj()->hybridMode();
     if (BPatch_exploratoryMode == mode || BPatch_defensiveMode == mode) 
         return true;
 
@@ -809,15 +809,23 @@ bool BPatch_module::isExploratoryModeOn()
  */ 
 bool BPatch_module::protectAnalyzedCode()
 {
-    assert( getAS()->proc() ); // only implemented for processes
+    // only implemented for processes and only needed for defensive 
+    // BPatch_modules
+    if ( !getAS()->proc() || BPatch_defensiveMode != getHybridMode() ) {
+        bperr("%s[%d]: ignoring request to protect analyzed code in module "
+              "%s that is either not in a live process or whose code is "
+              "not defensive\n", mod->fileName().c_str(), FILE__, __LINE__);
+        return false;
+    }
 
+    // see if we've analyzed code in the module without triggering analysis
+    if ( ! lowlevel_mod()->getFuncVectorSize() ) {
+        return true;
+    }
+
+    // build up list of memory pages that contain analyzed code
     std::set<Address> pageAddrs;
     int pageSize = getAS()->proc()->getMemoryPageSize();
-    if ( ! lowlevel_mod()->getFuncVectorSize() 
-        || lowlevel_mod()->obj()->isSharedLib()) {
-        return true; // don't trigger new analysis on the module
-    }
-    // build up list of memory pages that contain analyzed code
     const pdvector<int_function *> funcs = lowlevel_mod()->getAllFunctions();
     for (unsigned fidx=0; fidx < funcs.size(); fidx++) {
         const std::set< int_basicBlock* , int_basicBlock::compare >&
@@ -827,17 +835,17 @@ bool BPatch_module::protectAnalyzedCode()
             bIter != blocks.end(); 
             bIter++) 
         {
-            Address bStart, bEnd, pageStart, pageEnd;
+            Address bStart, bEnd, page;
             bStart = (*bIter)->origInstance()->firstInsnAddr();
             bEnd = (*bIter)->origInstance()->endAddr();
-            pageStart = (bStart / pageSize) * pageSize;
-            pageEnd = (bEnd / pageSize) * pageSize;
-            while (pageStart < bEnd) {
-                pageAddrs.insert(pageStart);
-                pageStart += pageSize;
+            page = bStart - (bStart % pageSize);
+            while (page < bEnd) { // account for blocks spanning multiple pages
+                pageAddrs.insert(page);
+                page += pageSize;
             }
         }
     }
+
     // get lwp from which we can call changeMemoryProtections
     process *proc = ((BPatch_process*)addSpace)->lowlevel_process();
     dyn_lwp *stoppedlwp = proc->query_for_stopped_lwp();
@@ -848,24 +856,38 @@ bool BPatch_module::protectAnalyzedCode()
             return false;
         }
     }
+
+    // add protected pages to the mapped_object's hash table, and
     // aggregate adjacent pages into regions and apply protection
     std::set<Address>::iterator piter = pageAddrs.begin();
-    std::set<Address>::iterator endIter;
-    Address start;
-    Address end;
     while (piter != pageAddrs.end()) {
+        Address start, end;
         start = (*piter);
         end = start + pageSize;
-        endIter = piter;
-        while (endIter != pageAddrs.end() && (*endIter) == end) {
+
+        while(1) // extend region if possible
+        {
+            // add the current page addr to mapped_object's hash table
+            // of protected code pages
+            mod->obj()->addProtectedPage( *piter );
+
+            piter++;
+
+            if (pageAddrs.end() == piter) {
+                break; // last region
+            }
+            if ( end != (*piter) ) {
+                break; // there's a gap, add new region
+            }
+            // extend current region
             end += pageSize;
-            endIter++;
-        }
-        piter++;
+        } 
+
 #if defined(os_windows)
         stoppedlwp->changeMemoryProtections(start, end - start, 
                                             PAGE_EXECUTE_READ);
 #endif
+
     }
     return true;
 }

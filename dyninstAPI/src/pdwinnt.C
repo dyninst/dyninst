@@ -852,7 +852,12 @@ int dyn_lwp::changeMemoryProtections(Address addr, Offset size, unsigned rights)
 {
     int oldRights=0;
     if (VirtualProtectEx((HANDLE)getProcessHandle(), (LPVOID)(addr), 
-                         (SIZE_T)size, (DWORD)rights, (PDWORD)&oldRights)) {
+                         (SIZE_T)size, (DWORD)rights, (PDWORD)&oldRights)) 
+    {
+        if (PAGE_EXECUTE_READWRITE == rights || PAGE_READWRITE == rights) {
+            mapped_object *obj = proc_->findObject(addr);
+            obj->removeProtectedPage(addr -(addr %proc_->getMemoryPageSize()));
+        }
         return oldRights;
     } else {
         return -1;

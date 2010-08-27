@@ -115,6 +115,7 @@ class ParseCallback {
   virtual void newfunction_retstatus(Function*) { }
   virtual void block_split(Block *, Block *) { }
   virtual void patch_nop_jump(Address) { }
+  virtual bool updateCodeBytes(Address) { return false; }
 };
 
 }

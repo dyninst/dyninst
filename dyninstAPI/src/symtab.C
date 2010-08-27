@@ -991,14 +991,6 @@ void image::deleteFunc(image_func *func)
 
 }
 
-extern void codeBytesUpdateCB(void *objCB, Region *reg, Address addr);
-void image::call_codeBytesUpdateCB(Region *reg, Address addr)
-{
-    assert(BPatch_normalMode != mode_);
-    codeBytesUpdateCB(cb_arg0_, reg, addr + desc().loadAddr());
-}
-
-
 #if 0   // FIXME ensure all necessary functionality preserved
 // Enter a function in all the appropriate tables
 void image::enterFunctionInTables(image_func *func) {

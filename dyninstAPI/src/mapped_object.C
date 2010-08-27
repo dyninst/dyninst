@@ -62,11 +62,10 @@ unsigned imgVarHash(const image_variable * const &func)
 }
 
 // triggered when parsing needs to check if the underlying data has changed
-void codeBytesUpdateCB(void *objCB, SymtabAPI::Region *reg, Address addr)
+bool codeBytesUpdateCB(void *objCB, Address targ)
 {
     mapped_object *obj = (mapped_object*) objCB;
-    assert(obj);
-    obj->updateMappedFileIfNeeded(addr,reg);
+    return obj->updateCodeBytesIfNeeded(targ);
 }
 
 mapped_object::mapped_object(fileDescriptor fileDesc,
@@ -87,7 +86,8 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
    dlopenUsed(false),
    proc_(proc),
    analyzed_(false),
-   analysisMode_(mode)
+   analysisMode_(mode),
+   pagesUpdated_(true)
 { 
    // Set occupied range (needs to be ranges)
    codeBase_ = fileDesc.code();
@@ -182,6 +182,7 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
 
    if (BPatch_defensiveMode == analysisMode) {
        // parsing in the gaps in defensive mode is a bad idea because
+       // we mark all binary regions as possible code-containing areas
        parseGaps = false;
    }
 
@@ -254,6 +255,9 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,
    // Adds exported functions and variables..
    startup_printf("%s[%d]:  creating mapped object\n", FILE__, __LINE__);
    mapped_object *obj = new mapped_object(desc, img, p, analysisMode);
+   if (BPatch_defensiveMode == analysisMode) {
+       img->register_codeBytesUpdateCB(obj);
+   }
    startup_printf("%s[%d]:  leaving createMappedObject(%s)\n", FILE__, __LINE__, desc.file().c_str());
 
    return obj;
@@ -278,7 +282,8 @@ mapped_object::mapped_object(const mapped_object *s, process *child) :
    dlopenUsed(s->dlopenUsed),
    proc_(child),
    analyzed_(s->analyzed_),
-   analysisMode_(s->analysisMode_)
+   analysisMode_(s->analysisMode_),
+   pagesUpdated_(true)
 {
    // Let's do modules
    for (unsigned k = 0; k < s->everyModule.size(); k++) {
@@ -309,6 +314,8 @@ mapped_object::mapped_object(const mapped_object *s, process *child) :
             mod);
       addVariable(newVar);
    }
+
+   assert(BPatch_defensiveMode != analysisMode_);
 
    image_ = s->image_->clone();
 }
@@ -400,55 +407,6 @@ bool mapped_object::analyze()
       findVariable(unmappedVars[vi]);
   }
   return true;
-}
-
-/* In the event that new functions are discovered after the analysis
- * phase, we need to trigger analysis and enter it into the
- * appropriate datastructures.
- */
-
-// FIXME has not been updated for ParseAPI
-bool mapped_object::analyzeNewFunctions(vector<image_func *> *funcs)
-{
-    if (!funcs || !funcs->size()) {
-        return false;
-    }
-
-    vector<image_func *>::iterator curfunc = funcs->begin();
-    while (curfunc != funcs->end()) {
-        if (everyUniqueFunction.defines(*curfunc)) {
-            curfunc = funcs->erase(curfunc);
-        } else {
-
-
-
-            // do control-flow traversal parsing starting from this function
-            /* FIXME IMPLEMENT for parseapi
-            if((*curfunc)->parse()) {
-                parse_img()->recordFunction(*curfunc);
-            } // FIXME else?
-            */
-
-            curfunc++;
-        }
-    }
-    if (! funcs->size()) {
-        return true;
-    }
-
-    // add the functions we created (non-HINT source) to our datastructures
-    CodeObject::funclist & allFuncs = parse_img()->getAllFunctions();
-    CodeObject::funclist::iterator fit = allFuncs.begin();
-    for( ; fit != allFuncs.end(); ++fit) {
-        image_func *curFunc = (image_func*)*fit;
-        if(curFunc->src() == HINT)
-            continue;
-        if ( ! everyUniqueFunction.defines(curFunc) ) { 
-            // add function to datastructures
-            findFunction(curFunc);
-        }
-    }
-    return true;
 }
 
 // TODO: this should probably not be a mapped_object method, but since
@@ -1337,6 +1295,21 @@ void mapped_object::findFuncsByRange(Address startAddr,
     }
 }
 
+// register functions found by recursive traversal parsing from 
+// new entry points that are discovered after the initial parse
+void mapped_object::registerNewFunctions()
+{
+    CodeObject::funclist newFuncs = parse_img()->getAllFunctions();
+    CodeObject::funclist::iterator fit = newFuncs.begin();
+    for( ; fit != newFuncs.end(); ++fit) {
+        image_func *curFunc = (image_func*) *fit;
+        if(curFunc->src() == HINT)
+            continue;
+        if ( ! everyUniqueFunction.defines(curFunc) ) { 
+            findFunction(curFunc); // does all the work
+        }
+    }
+}
 
 /* Re-trigger parsing in the object.  This function should
  * only be invoked if all funcEntryAddrs lie within the boundaries of
@@ -1356,8 +1329,9 @@ bool mapped_object::parseNewFunctions(vector<Address> &funcEntryAddrs)
     SymtabAPI::Region *reg;
     std::set<SymtabAPI::Region*> visitedRegions;
 
-    if (parse_img()->codeObject()->defensiveMode()) {
-        clearUpdatedRegions();
+    // code page bytes may need updating
+    if (BPatch_defensiveMode == analysisMode_) {
+        setCodeBytesUpdated(false);
     }
 
     assert( !parse_img()->hasSplitBlocks() && !parse_img()->hasNewBlocks());
@@ -1372,7 +1346,7 @@ bool mapped_object::parseNewFunctions(vector<Address> &funcEntryAddrs)
             if (parse_img()->codeObject()->defensiveMode() && 
                 visitedRegions.end() == visitedRegions.find(reg))
             {
-                updateMappedFileIfNeeded(*curEntry,reg);
+                updateCodeBytesIfNeeded(*curEntry);
                 visitedRegions.insert(reg);
             }
 
@@ -1416,17 +1390,8 @@ bool mapped_object::parseNewFunctions(vector<Address> &funcEntryAddrs)
         curEntry++;
     }
 
-
-
     // add the functions we created to mapped_object datastructures
-    CodeObject::funclist newFuncs = parse_img()->getAllFunctions();
-    CodeObject::funclist::iterator fit = newFuncs.begin();
-    for( ; fit != newFuncs.end(); ++fit) {
-        image_func *curFunc = (image_func*) *fit;
-        if ( ! everyUniqueFunction.defines(curFunc) ) { 
-            findFunction(curFunc); // does all the work
-        }
-    }
+    registerNewFunctions();
 
     // split int layer
     if (parse_img()->hasSplitBlocks()) {
@@ -1438,7 +1403,7 @@ bool mapped_object::parseNewFunctions(vector<Address> &funcEntryAddrs)
 }
 
 
-void mapped_object::expandMappedFile(SymtabAPI::Region *reg)
+void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
 {
     assert(reg);
     Address baseAddress = parse_img()->desc().loadAddr();
@@ -1446,10 +1411,8 @@ void mapped_object::expandMappedFile(SymtabAPI::Region *reg)
     Address regionStart = baseAddress + reg->getRegionAddr();
     codeRange *range=NULL;
 
-    void* regBuf = NULL;
     Address copySize = reg->getMemSize();
-
-    regBuf = malloc(copySize);
+    void* regBuf = malloc(copySize);
     if (!proc()->readDataSpace((void*)regionStart, copySize, regBuf, true)) 
     {
         fprintf(stderr, "%s[%d] Failed to read from region [%lX %lX]\n",
@@ -1459,14 +1422,14 @@ void mapped_object::expandMappedFile(SymtabAPI::Region *reg)
 
     // find the first code range in the region
     if ( ! codeRangesByAddr_.find(regionStart,range) &&
-            ! codeRangesByAddr_.successor(regionStart,range) ) 
+         ! codeRangesByAddr_.successor(regionStart,range) ) 
     {
         range = NULL;
     }
+    // copy code ranges from old mapped data into regBuf
     while (range != NULL && 
             range->get_address() < regionStart + copySize)
     {
-        // copy code ranges from mapped data into regBuf
         if ( ! memcpy((void*)((Address)regBuf 
                         + range->get_address()
                         - regionStart),
@@ -1493,23 +1456,31 @@ void mapped_object::expandMappedFile(SymtabAPI::Region *reg)
         free( mappedPtr );
     }
 
-    // KEVINTODO: This sets diskSize = memSize, but that's 
-    // disgusting, think of a cleaner solution than taking over 
-    // the mapped files, which won't work anyway for 
-    // VirtualAlloc'd and mmapped regions
+    // KEVINTODO: find a cleaner solution than taking over the mapped files
+    static_cast<SymtabCodeSource*>(parse_img()->codeObject()->cs())->
+        resizeRegion( reg, reg->getMemSize() );
     reg->setPtrToRawData( regBuf , copySize );
+
+    // now update all of the other regions
+    std::vector<SymtabAPI::Region*> regions;
+    parse_img()->getObject()->getCodeRegions(regions);
+    for(unsigned rIdx=0; rIdx < regions.size(); rIdx++) {
+        SymtabAPI::Region *curReg = regions[rIdx];
+        if (curReg != reg) {
+            updateCodeBytes(curReg);
+        }
+    }
 }
 
 // 1. use other update functions to update non-code areas of mapped files, 
 //    expanding them if we overwrote into unmapped areas
 // 2. copy overwritten regions into the mapped objects
-void mapped_object::updateMappedFile( std::map<Address,Address> owRanges )
+void mapped_object::updateCodeBytes( std::map<Address,Address> owRanges )
 {
 // 1. use other update functions to update non-code areas of mapped files, 
 //    expanding them if we overwrote into unmapped areas
 
     using namespace SymtabAPI;
-    std::set<Region *> updateregions;// so we don't update regions more than once
     std::set<Region *> expansionregions;// so we don't update regions more than once
     Address baseAddress = parse_img()->desc().loadAddr();
     // figure out which regions need expansion and which need updating
@@ -1520,23 +1491,22 @@ void mapped_object::updateMappedFile( std::map<Address,Address> owRanges )
                                                     ( lastChangeOffset );
         if ( lastChangeOffset - curReg->getRegionAddr() >= curReg->getDiskSize() ) {
             expansionregions.insert(curReg);
-        } else {
-            updateregions.insert(curReg);
-        }        
-        updatedRegions.insert(curReg);
+        }
     }
     // expand and update regions
-    set<Region*>::iterator regIter;
-    for (regIter = expansionregions.begin(); 
+    std::vector<Region *> allregions;
+    parse_img()->getObject()->getCodeRegions(allregions);
+    for (set<Region*>::iterator regIter = expansionregions.begin();
          regIter != expansionregions.end(); regIter++) 
     {
-        updateregions.erase(*regIter);//won't be necessary to update after expansion
-        expandMappedFile(*regIter);
+        expandCodeBytes(*regIter);
     }
-    for (regIter = updateregions.begin(); 
-         regIter != updateregions.end(); regIter++) 
+    for (unsigned int ridx=0; ridx < allregions.size(); ridx++) 
     {
-        updateMappedFile(*regIter);
+        Region *curreg = allregions[ridx];
+        if (expansionregions.end() == expansionregions.find(curreg)) {
+            updateCodeBytes(curreg);
+        }
     }
 
 // 2. copy overwritten regions into the mapped objects
@@ -1552,24 +1522,25 @@ void mapped_object::updateMappedFile( std::map<Address,Address> owRanges )
                                      regPtr, 
                                      true) );
     }
+    pagesUpdated_ = true;
 }
 
 // this is a helper function
 // 
-// update mapped data, if reg=NULL, update mapped data for whole object, otherwise just for the region
+// update mapped data for whole object, or just one region, if specified
 //
-//    Read non-code memory values into the mapped version
-//    (not code regions so we don't get instrumentation in our parse)
-void mapped_object::updateMappedFile(SymtabAPI::Region *reg=NULL)
+// Read unprotected pages into the mapped file
+// (not analyzed code regions so we don't get instrumentation in our parse)
+void mapped_object::updateCodeBytes(SymtabAPI::Region * reg)
 {
     using namespace SymtabAPI;
     Address baseAddress = parse_img()->desc().loadAddr();
 
     std::vector<Region *> regions;
-    if ( reg ) {
-        regions.push_back(reg);
-    } else {
+    if (NULL == reg) {
         parse_img()->getObject()->getCodeRegions(regions);
+    } else {
+        regions.push_back(reg);
     }
 
     codeRange *range=NULL;
@@ -1627,39 +1598,27 @@ void mapped_object::updateMappedFile(SymtabAPI::Region *reg=NULL)
     }
 }
 
-// not only checks if update is needed, but update gaps in-between 
-// code ranges for the code region that has an entry point into it, if necessary
-// Assumes that an expansion is not needed.
-// 
-// see if entry point has mapped data value or not, 
-// case 1: do nothing yet. 
-// case 2: see if memory needs to be updated by comparing non-code bytes, 
-//    if no change needed, return.
-// case 3:
-//    Uninitialized code in the region has been written to
-// 
-// case 1:  isCode(entryAddr) is false:
-//    We need to read the 
-//    [regStart+diskEnd, regStart+memEnd] from memory and
-//    expand the mapped rawData for the region to reach the
-//    end of memory.  This can only trigger once per region. 
-//    Copy code ranges from original mapped data into the region
-//    so that we don't have instrumentation in our parse
-// case 2:
-//    Read non-code memory values into the mapped version
-//    (not code regions so we don't get instrumentation in our parse)
-// case 3:
-//    Uninitialized code in the region has been written to
-bool mapped_object::isUpdateNeeded(Address entryAddr, SymtabAPI::Region* reg)
+// checks if update is needed by looking in the gap between the previous 
+// and next block for changes to the underlying bytes 
+//
+// should only be called if we've already checked that we're not on an
+// analyzed page that's been protected from overwrites
+bool mapped_object::isUpdateNeeded(Address entry)
 {
     void* regBuf = NULL;
-    Address baseAddress = parse_img()->desc().loadAddr();
+    Address base = parse_img()->desc().loadAddr();
     bool updateNeeded = false;
     assert( parse_img()->codeObject()->defensiveMode() );
-
-    if (!reg) {
-        reg = parse_img()->getObject()->findEnclosingRegion(entryAddr-baseAddress);
-        assert ( reg );
+    SymtabAPI::Region *reg = parse_img()->getObject()->
+        findEnclosingRegion( entry - base );
+    if ( !reg ) {
+        assert ( 0 && "why am I trying to update with an invalid addr?");
+        return false;
+    }
+    // update the range tree, if necessary
+    if (findCodeRangeByAddress(entry)) {
+        assert ( 0 && "shouldn't be checking for updates to protected code");
+        return false; // don't need to update if we correspond to code
     }
 
     // see if the underlying bytes have changed
@@ -1668,18 +1627,20 @@ bool mapped_object::isUpdateNeeded(Address entryAddr, SymtabAPI::Region* reg)
     // to make sure nothing has changed, otherwise we'll want to read 
     // the section in again
     codeRange *range = NULL;
-    unsigned COMPARE_BYTES; 
-    //KEVINTODO: fix this, it's sometimes comparing the content of basic blocks, which is not the intent
-    if (codeRangesByAddr_.successor(entryAddr,range)) {
-        COMPARE_BYTES = range->get_address() - entryAddr;
+    unsigned comparison_size = 0; 
+    if (codeRangesByAddr_.successor(entry,range)) {
+        comparison_size = range->get_address() - entry;
     } else {
-        COMPARE_BYTES = reg->getDiskSize() - 
-            ((entryAddr - baseAddress) - reg->getRegionAddr());
+        comparison_size = reg->getDiskSize() 
+                        - ( (entry - base) - reg->getRegionAddr() );
     }
-    regBuf = malloc(COMPARE_BYTES);
+    Address page_size = proc()->proc()->getMemoryPageSize();
+    comparison_size = ( comparison_size <  page_size) 
+                      ? comparison_size : page_size;
+    regBuf = malloc(comparison_size);
     mal_printf("%s[%d] Comparing %lx bytes starting at %lx\n",
-            FILE__,__LINE__,COMPARE_BYTES,entryAddr);
-    if (!proc()->readDataSpace((void*)entryAddr, COMPARE_BYTES, regBuf, true)) {
+            FILE__,__LINE__,comparison_size,entry);
+    if (!proc()->readDataSpace((void*)entry, comparison_size, regBuf, true)) {
         assert(0); 
     }
     // read until first difference, then see if the difference is to known
@@ -1687,10 +1648,10 @@ bool mapped_object::isUpdateNeeded(Address entryAddr, SymtabAPI::Region* reg)
     // have otherwise detected the overwrite
     void *mappedPtr = (void*)
                       ((Address)reg->getPtrToRawData() +
-                        entryAddr - 
+                        entry - 
                         reg->getRegionAddr() -
-                        baseAddress);
-    if (0 != memcmp(mappedPtr,regBuf,COMPARE_BYTES) ) {
+                        base);
+    if (0 != memcmp(mappedPtr,regBuf,comparison_size) ) {
         updateNeeded = true;
     }
     free(regBuf);
@@ -1700,28 +1661,35 @@ bool mapped_object::isUpdateNeeded(Address entryAddr, SymtabAPI::Region* reg)
 }
 
 // checks to see if expansion is needed 
-bool mapped_object::isExpansionNeeded(Address entryAddr, 
-                                      SymtabAPI::Region *reg) 
+bool mapped_object::isExpansionNeeded(Address entry) 
 {
-
-    assert(reg);
-
+    using namespace SymtabAPI;
+    Address base = parse_img()->desc().loadAddr();
+    Region * reg = parse_img()->getObject()->findEnclosingRegion(entry - base);
+    
     if (reg->getMemSize() <= reg->getDiskSize()) {
         return false;
     }
 
-    Address baseAddress = parse_img()->desc().loadAddr();
-    if ( ! parse_img()->getObject()->isCode(entryAddr - baseAddress) ) {
+    if ( ! parse_img()->getObject()->isCode(entry - base) ) {
         return true;
     } 
 
+    if (expansionCheckedRegions_.end() != 
+        expansionCheckedRegions_.find(reg)) {
+        return false;
+    }
+
+    expansionCheckedRegions_.insert(reg);
     // if there is uninitialized space in the region, 
     // see if the first few bytes have been updated
-    // KEVINTODO: make compareSize the maximum length of an instruction 
-    // on the current platform
     Address compareStart = 
-        baseAddress + reg->getRegionAddr() + reg->getDiskSize();
+        base + reg->getRegionAddr() + reg->getDiskSize();
+#if defined(cap_instruction_api)
+    unsigned compareSize = InstructionAPI::InstructionDecoder::maxInstructionLength;
+#else
     unsigned compareSize = 2 * proc()->getAddressWidth(); 
+#endif
     Address uninitSize = reg->getMemSize() - reg->getDiskSize();
     if (compareSize > uninitSize) {
         compareSize = uninitSize;
@@ -1746,51 +1714,49 @@ bool mapped_object::isExpansionNeeded(Address entryAddr,
     }
 }
 
-void mapped_object::updateMappedFileIfNeeded(Address entryAddr,
-                                             SymtabAPI::Region* reg)
+// updates the raw code bytes by fetching from memory, if needed
+// 
+// updates if we haven't updated since the last time code could have 
+// changed, and if the entry address is on an unprotected code page, 
+// or if the address is in an uninitialized memory, 
+bool mapped_object::updateCodeBytesIfNeeded(Address entry)
 {
-    // only update if this is an obfuscated object, AND the region has not 
-    // already been updated
-    if ( ! parse_img()->codeObject()->defensiveMode() ||
-         (reg && updatedRegions.end() != updatedRegions.find(reg)))
-    {
-        return;
+    assert( BPatch_defensiveMode == analysisMode_ );
+
+    Address pageAddr = entry - 
+        (entry % proc()->proc()->getMemoryPageSize());
+
+    if ( pagesUpdated_ ) {
+        return false;
     }
 
-    bool expandReg = isExpansionNeeded(entryAddr,reg);
-    if ( ! expandReg &&
-         ! isUpdateNeeded(entryAddr,reg) ) 
-    {
-        return;
+    if (protPages_.end() != protPages_.find(pageAddr)) {
+        return false;
     }
 
-    // only mark the region updated if we update the region, the update 
-    // checks are not thorough, but region updates are
-    updatedRegions.insert(reg); 
-
-    Address baseAddress = parse_img()->desc().loadAddr();
-
-    if (!reg) {
-        reg = parse_img()->getObject()->findEnclosingRegion(entryAddr-baseAddress);
+    bool expand = isExpansionNeeded(entry);
+    if ( ! expand ) {
+        if ( ! isUpdateNeeded(entry) ) {
+            return false;
+        }
     }
 
+    SymtabAPI::Region * reg = parse_img()->getObject()->findEnclosingRegion
+        (entry - parse_img()->desc().loadAddr());
     mal_printf("%s[%d] updating region [%lx %lx] for entry point %lx\n", 
-            FILE__,__LINE__,
-            reg->getRegionAddr(), 
-            reg->getRegionAddr()+reg->getDiskSize(),
-            entryAddr);
-
-    if ( expandReg ) {
-        expandMappedFile(reg);
+               FILE__,__LINE__,
+               reg->getRegionAddr(), 
+               reg->getRegionAddr()+reg->getDiskSize(),
+               entry);
+    
+    if ( expand ) {
+        expandCodeBytes(reg);
     } 
     else {
-        updateMappedFile(reg);
+        updateCodeBytes(reg);
     }
-}
-
-void mapped_object::clearUpdatedRegions()
-{ 
-    updatedRegions.clear(); 
+    pagesUpdated_ = true;
+    return true;
 }
 
 void mapped_object::removeFunction(int_function *func) {
@@ -1919,4 +1885,28 @@ bool mapped_object::isExploratoryModeOn()
 {
     return BPatch_exploratoryMode == analysisMode_ ||
            BPatch_defensiveMode == analysisMode_;
+}
+
+void mapped_object::addProtectedPage(Address pageAddr)
+{
+    protPages_.insert(pageAddr);
+}
+
+void mapped_object::removeProtectedPage(Address pageAddr)
+{
+    protPages_.erase(pageAddr);
+}
+
+void mapped_object::setCodeBytesUpdated(bool newval)
+{
+    if (BPatch_defensiveMode == analysisMode_) {
+        if (false == newval && newval != pagesUpdated_) {
+            expansionCheckedRegions_.clear();
+        }
+        pagesUpdated_ = newval;
+    } else {
+        cerr << "WARNING: requesting update of code bytes from memory "
+             <<  "on non-defensive mapped object, ignoring request " 
+             << fileName().c_str() << " " << __FILE__ << __LINE__ << endl;
+    }
 }

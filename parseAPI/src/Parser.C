@@ -877,7 +877,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             /** Particular instruction handling (calls, branches, etc) **/
             ++num_insns; 
             if(ah->hasCFT()) {
-                ProcessCFInsn(frame,cur,*ah);
+                ProcessCFInsn(frame,cur,ah);
                 break;
             }
             else if(func->_saves_fp && 
@@ -937,7 +937,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 delete ah;
                 delete dec;
                 dec = new InstructionDecoder
-                    (bufferBegin, size, frame.codereg->getArch());
+                    (bufferBegin, bufsize, frame.codereg->getArch());
                 ah = new InstructionAdapter_t(*dec, curAddr, func->obj(), 
                                                 func->region(), func->isrc());
 #else        

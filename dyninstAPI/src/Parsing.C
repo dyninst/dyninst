@@ -341,3 +341,12 @@ DynParseCallback::overlapping_blocks(Block*b1,Block*b2)
     static_cast<image_basicBlock*>(b1)->markAsNeedingRelocation();
     static_cast<image_basicBlock*>(b2)->markAsNeedingRelocation();
 }
+
+extern bool codeBytesUpdateCB(void *objCB, Address targ);
+bool 
+DynParseCallback::updateCodeBytes(Address target)
+{   // calls function that updates bytes if needed
+    assert(BPatch_normalMode != _img->hybridMode());
+    return codeBytesUpdateCB( _img->cb_arg0(), 
+                              target + _img->desc().loadAddr() );
+}

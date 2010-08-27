@@ -685,7 +685,6 @@ bool int_function::parseNewEdges( std::vector<ParseAPI::Block*> &sources,
 
     // Do various checks and set edge types, if necessary
     Address loadAddr = getAddress() - ifunc()->getOffset();
-    std::set<Region*> targRegions;
     for (unsigned idx=0; idx < targets.size(); idx++) {
         Region *targetRegion = ifunc()->img()->getObject()->
             findEnclosingRegion( targets[idx]-loadAddr );
@@ -698,10 +697,9 @@ bool int_function::parseNewEdges( std::vector<ParseAPI::Block*> &sources,
             assert(targetRegion == sourceRegion );
 
         }
-        // update target region
-        if (targRegions.end() == targRegions.find(targetRegion)) {
-            obj()->updateMappedFileIfNeeded(targets[idx],targetRegion);
-            targRegions.insert(targetRegion);
+        // update target region if needed
+        if (BPatch_defensiveMode == obj()->hybridMode()) {
+            obj()->updateCodeBytesIfNeeded(targets[idx]);
         }
 
         // translate targets to memory offsets rather than absolute addrs
@@ -759,8 +757,7 @@ bool int_function::parseNewEdges( std::vector<ParseAPI::Block*> &sources,
     ifunc()->img()->codeObject()->parseNewEdges(sources, targets, edgeTypes);
 
 /* 2. Register all newly created image_funcs as a result of new edge parsing */
-    pdvector<int_function*> dontcare;
-    obj()->getAllFunctions(dontcare);
+    obj()->registerNewFunctions();
 
 /* 3. Add img-level blocks to int-level datastructures */
     addMissingBlocks();

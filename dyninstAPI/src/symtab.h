@@ -387,7 +387,7 @@ class image : public codeRange {
    // callback that updates our view the binary's raw code bytes
    void register_codeBytesUpdateCB(void *cb_arg0)
        { cb_arg0_ = cb_arg0; }
-   void call_codeBytesUpdateCB(SymtabAPI::Region *reg, Address addr);
+   void * cb_arg0() const { return cb_arg0_; }
 
    // And when we parse, we might find more:
    // FIXME might be convenient to access HINT-only functions easily

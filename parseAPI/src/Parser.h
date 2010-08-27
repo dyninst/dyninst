@@ -191,7 +191,7 @@ class Parser {
     void ProcessCFInsn(
         ParseFrame&,
         Block*,
-        InstructionAdapter_t&);
+        InstructionAdapter_t*&);
 
     void finalize();
     void finalize_funcs(vector<Function *> & funcs);

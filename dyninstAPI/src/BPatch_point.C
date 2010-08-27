@@ -274,6 +274,7 @@ std::string BPatch_point::getCalledFunctionNameInt()
  */
 bool BPatch_point::getCFTargets(BPatch_Vector<Address> &targets)
 {
+    bool ret = true;
     if (point->isDynamic()) {
         if (point->getSavedTarget()) {
             return point->getSavedTarget();
@@ -281,17 +282,85 @@ bool BPatch_point::getCFTargets(BPatch_Vector<Address> &targets)
             return false;
         }
     }
-    // callTarget() works for branches as well as calls
-    Address targ = point->callTarget();
-    if (!targ) {
-        // see if this point is an abrupt end point
-        if (abruptEnd == point->getPointType()) {
-            targets.push_back(point->block()->origInstance()->endAddr());
+    switch(point->getPointType()) 
+    {
+      case callSite: 
+      {
+        Address targ = point->callTarget();
+        if (targ) {
+            targets.push_back(targ);
+        } else {
+            ret = false;
         }
-        return false;
+        break;
+      }
+      case abruptEnd:
+        targets.push_back( point->block()->origInstance()->endAddr() );
+        break;
+      default: 
+      { // branch or jump. 
+        // don't miss targets to invalid addresses 
+        // (these get linked to the sink block by ParseAPI)
+        using namespace ParseAPI;
+        Address baseAddr = point->block()->origInstance()->firstInsnAddr() 
+                         - point->block()->llb()->start();
+        Block::edgelist & trgs = point->block()->llb()->targets();
+        Block::edgelist::iterator iter = trgs.begin();
+        mapped_object *obj = point->func()->obj();
+        Architecture arch = point->proc()->getArch();
+
+        for ( ; iter != trgs.end(); iter++) {
+            if ( ! (*iter)->sinkEdge() ) {
+                targets.push_back( baseAddr + (*iter)->trg()->start() );
+            } else {
+                // if this is a cond'l branch taken or direct 
+                // edge, decode the instruction to get its target, 
+                // otherwise we won't find a target for this insn
+                switch((*iter)->type()) {
+                case INDIRECT:
+                    break;
+                case COND_NOT_TAKEN:
+                case FALLTHROUGH:
+                    if (point->proc()->proc() && 
+                        BPatch_defensiveMode == 
+                        point->proc()->proc()->getHybridMode()) 
+                    {
+                        assert( 0 && "should be an abrupt end point");
+                    }
+                    break;
+                default:
+                { // this is a cond'l taken or jump target
+#if defined(cap_instruction_api)
+                using namespace InstructionAPI;
+                RegisterAST::Ptr thePC = RegisterAST::Ptr
+                    ( new RegisterAST( MachRegister::getPC( arch ) ) );
+
+                void *ptr = obj->getPtrToInstruction(point->addr());
+                assert(ptr);
+                InstructionDecoder dec
+                    (ptr, InstructionDecoder::maxInstructionLength, arch);
+                Instruction::Ptr insn = dec.decode();
+                Expression::Ptr trgExpr = insn->getControlFlowTarget();
+                    // FIXME: templated bind()
+                trgExpr->bind(thePC.get(), 
+                              Result(s64, point->block()->llb()->lastInsnOffset()));
+                Result actualTarget = trgExpr->eval();
+                if(actualTarget.defined)
+                {
+                    Address targ = actualTarget.convert<Address>() + baseAddr;
+                    targets.push_back( targ );
+                }
+                break;
+                } // end default case
+                } // end edge-type switch
+#endif
+            }
+        }
+        break;
+      }
     }
-    targets.push_back(targ);
-    return true;
+
+    return ret;
 }
 
 Address BPatch_point::getCallFallThroughAddr()

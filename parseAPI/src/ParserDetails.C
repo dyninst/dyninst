@@ -119,6 +119,29 @@ void Parser::ProcessReturnInsn(
     _pcb.interproc_cf(frame.func,ah.getAddr(),&det);
 }
 
+inline 
+static
+InstructionAdapter_t * getNewAdapter(Function *func, Address addr)
+{
+    unsigned bufSize = func->region()->offset() 
+                     + func->region()->length() 
+                     - addr;
+#if defined(cap_instruction_api)
+    using namespace InstructionAPI;
+    const unsigned char* bufferBegin = (const unsigned char *)
+        (func->isrc()->getPtrToInstruction(addr));
+    InstructionDecoder * dec = new InstructionDecoder
+        (bufferBegin, bufSize, func->region()->getArch());
+    InstructionAdapter_t * ah = new InstructionAdapter_t
+        (*dec, addr, func->obj(), func->region(), func->isrc());
+#else        
+    InstrucIter iter(addr, bufSize, func->isrc());
+    InstructionAdapter_t ah(iter, 
+        func->obj(), func->region(), func->isrc());
+#endif
+    return ah;
+}
+
 /*
  * Extra handling for literal call instructions
  * as well as other instructions treated as calls
@@ -152,19 +175,19 @@ void Parser::ProcessCallInsn(
 void Parser::ProcessCFInsn(
     ParseFrame & frame,
     Block * cur,
-    InstructionAdapter_t & ah)
+    InstructionAdapter_t *& ah)
 {
     FuncReturnStatus insn_ret;
     Edges_t edges_out;
     ParseWorkBundle * bundle = NULL;
 
     // terminate the block at this address
-    end_block(cur,ah);
+    end_block(cur,*ah);
     
     // Instruction adapter provides edge estimates from an instruction
-    ah.getNewEdges(edges_out, frame.func, cur, frame.num_insns, &plt_entries); 
+    ah->getNewEdges(edges_out, frame.func, cur, frame.num_insns, &plt_entries); 
     
-    insn_ret = ah.getReturnStatus(frame.func,frame.num_insns); 
+    insn_ret = ah->getReturnStatus(frame.func,frame.num_insns); 
 
     // Update function return status if possible
     if(unlikely(insn_ret != UNSET && frame.func->_rs < RETURN))
@@ -172,11 +195,11 @@ void Parser::ProcessCFInsn(
 
     // Return instructions need extra processing
     if(insn_ret == RETURN)
-        ProcessReturnInsn(frame,cur,ah);
+        ProcessReturnInsn(frame,cur,*ah);
 
-    bool dynamic_call = ah.isDynamicCall();
-    bool absolute_call = ah.isAbsoluteCall();
-    bool unresolved = ah.hasUnresolvedControlFlow(frame.func,frame.num_insns);
+    bool dynamic_call = ah->isDynamicCall();
+    bool absolute_call = ah->isAbsoluteCall();
+    bool unresolved = ah->hasUnresolvedControlFlow(frame.func,frame.num_insns);
     bool isBranch = false;
 
     parsing_printf("\t\t%d edges:\n",edges_out.size());
@@ -195,25 +218,25 @@ void Parser::ProcessCFInsn(
                 resolvable_edge = false;
             }
         }
-
+        
         /*
          * Call case 
          */ 
         if(curEdge->second == NOEDGE)
         {
             // call callback
-            ProcessCallInsn(frame,cur,ah,dynamic_call,
+            ProcessCallInsn(frame,cur,*ah,dynamic_call,
                 absolute_call,curEdge->first);
 
             tailcall = !dynamic_call &&  
-                ah.isTailCall(frame.func,frame.num_insns);
+                ah->isTailCall(frame.func,frame.num_insns);
             if(!dynamic_call)
                 newedge = link_tempsink(cur,CALL);
             else {
                 resolvable_edge = false;
                 newedge = link(cur,_sink,CALL,true);
             }
-            if(!ah.isCall())
+            if(!ah->isCall())
                 newedge->_type._interproc = true;
         }
         /*
@@ -221,8 +244,16 @@ void Parser::ProcessCFInsn(
          */
         else
         {
-            if(resolvable_edge)
+            if(resolvable_edge) {
                 newedge = link_tempsink(cur,curEdge->second);
+                if(unlikely( _obj.defensiveMode() )) {
+                    if (_pcb.updateCodeBytes(curEdge->first)) {
+                        Address curAddr = ah->getAddr();
+                        delete(ah);
+                        ah = getNewAdapter(frame.func, curAddr);
+                    }
+                }
+            }
             else
                 newedge = link(cur,_sink,curEdge->second,true);
         }
@@ -232,7 +263,7 @@ void Parser::ProcessCFInsn(
             frame.work_bundles.push_back(bundle);
         }
 
-        verbose_log(ah.getAddr(),curEdge);
+        verbose_log(ah->getAddr(),curEdge);
 
         ParseWorkElem * we = 
           bundle->add(
@@ -262,14 +293,14 @@ void Parser::ProcessCFInsn(
     if(unresolved)
     {
         ParseCallback::default_details det(
-         (unsigned char*)frame.func->isrc()->getPtrToInstruction(ah.getAddr()),
-         ah.getSize(), isBranch);
-        _pcb.unresolved_cf(frame.func,ah.getAddr(),&det);
+         (unsigned char*)frame.func->isrc()->getPtrToInstruction(ah->getAddr()),
+         ah->getSize(), isBranch);
+        _pcb.unresolved_cf(frame.func,ah->getAddr(),&det);
     }
 
-    if(ah.isDelaySlot())
-        ah.advance();
+    if(ah->isDelaySlot())
+        ah->advance();
 
-    if(!frame.func->_cleans_stack && ah.cleansStack())
+    if(!frame.func->_cleans_stack && ah->cleansStack())
         frame.func->_cleans_stack = true;
 }

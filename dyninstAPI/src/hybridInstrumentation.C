@@ -212,13 +212,13 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                 // use the address cache, use the unconditional DYNINST_stopThread
                 dynamicTransferSnippet = new BPatch_stopThreadExpr(
                     badTransferCB_wrapper, dynTarget, false,BPatch_interpAsTarget);
-                mal_printf("straycalls.cpp[%d] unconditional monitoring at 0x%lx:"
+                mal_printf("hybridInstrumentation[%d] unconditional monitoring at 0x%lx:"
                             " call indirect\n", __LINE__,(long)curPoint->getAddress());
             }
             else {
                 dynamicTransferSnippet = new BPatch_stopThreadExpr(
                     badTransferCB_wrapper, dynTarget, true,BPatch_interpAsTarget);
-                mal_printf("straycalls.cpp[%d] monitoring at 0x%lx: indirect\n", 
+                mal_printf("hybridInstrumentation[%d] monitoring at 0x%lx: indirect\n", 
                             __LINE__,(long) curPoint->getAddress());
             }
 
@@ -251,11 +251,11 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
 
             //output message
             if (curPoint->getPointType() == BPatch_locSubroutine) {
-                mal_printf("straycalls.cpp[%d]monitoring at 0x%lx: call 0x%lx\n",
+                mal_printf("hybridInstrumentation[%d]monitoring at 0x%lx: call 0x%lx\n",
                             __LINE__,(long)curPoint->getAddress(), 
                             (long)targets[0]);
             } else {
-                mal_printf("straycalls.cpp[%d]monitoring at 0x%lx: jump 0x%lx\n",
+                mal_printf("hybridInstrumentation[%d]monitoring at 0x%lx: jump 0x%lx\n",
                             __LINE__,(long)curPoint->getAddress(), 
                             (long)targets[0]);
             }
@@ -290,7 +290,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
             continue;
         }
         BPatch_point *curPoint = points[pidx];
-        mal_printf("straycalls.cpp[%d]monitoring at 0x%lx: abruptEnd point\n",
+        mal_printf("hybridInstrumentation[%d]monitoring at 0x%lx: abruptEnd point\n",
                     __LINE__,(long)curPoint->getAddress());
 
         // set up args and instrument
