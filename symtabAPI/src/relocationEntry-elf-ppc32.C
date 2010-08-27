@@ -125,10 +125,13 @@ const char* relocationEntry::relType2Str(unsigned long r, unsigned /*addressWidt
         CASE_RETURN_STR(R_PPC_DIAB_RELSDA_LO);
         CASE_RETURN_STR(R_PPC_DIAB_RELSDA_HI);
         CASE_RETURN_STR(R_PPC_DIAB_RELSDA_HA);
+#ifdef R_PPC_REL16
+        // Older versions of elf.h may not have these defined.
         CASE_RETURN_STR(R_PPC_REL16);
         CASE_RETURN_STR(R_PPC_REL16_LO);
         CASE_RETURN_STR(R_PPC_REL16_HI);
         CASE_RETURN_STR(R_PPC_REL16_HA);
+#endif
         CASE_RETURN_STR(R_PPC_TOC16);
         default:
             return "?";

@@ -81,3 +81,8 @@ LIBS_LIBTESTSUITE = -ldl
 
 include ../make.module.tmpl
 
+# Some ppc32_linux distributions require _XOPEN_SOURCE to be defined as 600
+# to get the functions/types we require
+CFLAGS   += -D_XOPEN_SOURCE=600
+CXXFLAGS += -D_XOPEN_SOURCE=600
+F77FLAGS += -D_XOPEN_SOURCE=600
