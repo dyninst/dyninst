@@ -105,9 +105,10 @@ test_results_t test_add_symbols_Mutator::executeTest()
 
   std::vector<Symbol *> syms;
   f->getSymbols(syms);
-  if (syms.size() != (oldSyms.size() + 1)) {
-    logerror("[%s:%u] - function has %d symbols, expected %d\n",
-	     __FILE__, __LINE__, syms.size(), oldSyms.size() + 1);
+  if ((syms.size() != (oldSyms.size() + 1)) &&
+      (syms.size() != (oldSyms.size() + 2))) {
+    logerror("[%s:%u] - function has %d symbols, expected %d or %d\n",
+	     __FILE__, __LINE__, syms.size(), oldSyms.size() + 1, oldSyms.size() + 2);
     for (unsigned i = 0; i < syms.size(); ++i) {
       logerror("\t %s (%p) (0x%lx) (%s)\n",
 	       syms[i]->getMangledName().c_str(), 
