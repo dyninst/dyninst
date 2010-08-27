@@ -36,9 +36,7 @@ SRCS         +=
 endif
 
 ifdef CROSSCOMPILER
-SYSLIBS		+= -liberty -lg++ -lstdc++ -lm
-else
-SYSLIBS         += -liberty
+SYSLIBS		+= -lg++ -lstdc++ -lm
 endif
 
 SYSLIBS += -lcommon

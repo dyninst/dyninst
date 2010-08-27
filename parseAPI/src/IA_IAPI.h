@@ -116,6 +116,7 @@ private:
                               Address tableBase,
                               unsigned tableSize,
                               unsigned tableStride,
+                              int offsetMultiplier,
                               std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum> >& outEdges) const;
         Address getTableAddress(Dyninst::InstructionAPI::Instruction::Ptr tableInsn,
                                 Address tableInsnAddr,

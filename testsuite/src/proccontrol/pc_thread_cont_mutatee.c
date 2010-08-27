@@ -30,11 +30,33 @@
  */
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include "pcontrol_mutatee_tools.h"
+
+struct local_data {
+    testbarrier_t barrier;
+    testlock_t *myLocks;
+};
 
 static int threadFunc(int myid, void *data)
 {
-   return 0;
+    struct local_data *localData = (struct local_data *)data;
+
+    // Wait on the barrier
+    waitTestBarrier(&localData->barrier);
+
+    // Then wait on the lock
+    testLock(&localData->myLocks[myid]);
+    testUnlock(&localData->myLocks[myid]);
+
+    return 0;
+}
+
+
+static
+void freeLocalData(struct local_data *ld) {
+    free(ld->myLocks);
+    free(ld);
 }
 
 //Basic test for create/attach and exit.
@@ -42,11 +64,65 @@ int pc_thread_cont_mutatee()
 {
    int result;
    int error = 0;
-   
-   result = initProcControlTest(threadFunc, NULL);
+   int i;
+   struct local_data *localData = NULL;
+
+   for (i = 0; i < gargc; i++) {
+      if (strcmp(gargv[i], "-mt") == 0) {
+         num_threads = atoi(gargv[i+1]);
+         break;
+      }
+   }
+
+   if( num_threads > 0 ) {
+       // Each thread needs its own mutex and access to the barrier
+       localData = (struct local_data *)malloc(sizeof(struct local_data));
+       initBarrier(&localData->barrier, num_threads+1);
+       localData->myLocks = (testlock_t *)malloc(sizeof(testlock_t)*num_threads);
+       for(i = 0; i < num_threads; ++i) {
+           initLock(&localData->myLocks[i]);
+           testLock(&localData->myLocks[i]);
+       }
+   }
+
+   result = initProcControlTest(threadFunc, (void *)localData);
    if (result != 0) {
       output->log(STDERR, "Initialization failed\n");
+      if( num_threads > 0 ) freeLocalData(localData);
       return -1;
+   }
+
+   if( num_threads > 0 ) {
+       logstatus("initial thread: waiting on barrier\n");
+       waitTestBarrier(&localData->barrier);
+
+       // Alert the mutator that all the threads have gotten through the lock
+       // and can safely be stopped now
+       handshake can_stop;
+       can_stop.code = HANDSHAKE_CODE;
+       send_message((unsigned char *)&can_stop, sizeof(handshake));
+
+       // Wait for mutator to indicate that the stop finished
+       memset(&can_stop, 0, sizeof(handshake));
+       recv_message((unsigned char *)&can_stop, sizeof(handshake));
+       if (can_stop.code != HANDSHAKE_CODE) {
+           output->log(STDERR, "Received event that wasn't handshake\n");
+           error = 1;
+       }
+
+       logstatus("initial thread: received stop handshake, releasing threads\n");
+
+       // Release all the locks
+       for(i = 0; i < num_threads; ++i) {
+           testUnlock(&localData->myLocks[i]);
+       }
+
+       // Alert mutator that all threads can be continued when ready
+       memset(&can_stop, 0, sizeof(handshake));
+       can_stop.code = HANDSHAKE_CODE;
+       send_message((unsigned char *)&can_stop, sizeof(handshake));
+
+       logstatus("initial thread: all threads can be continued\n");
    }
 
    allow_exit can_exit;
@@ -59,13 +135,16 @@ int pc_thread_cont_mutatee()
    result = finiProcControlTest(0);
    if (result != 0) {
       output->log(STDERR, "Finalization failed\n");
+      if( num_threads > 0 ) freeLocalData(localData);
       return -1;
    }
 
    if (error) {
+      if( num_threads > 0 ) freeLocalData(localData);
       return -1;
    }
 
+   if( num_threads > 0 ) freeLocalData(localData);
    test_passes(testname);
    return 0;
 }

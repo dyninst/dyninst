@@ -51,6 +51,17 @@
 #include "log.h"
 #include "utils.h"
 
+/* These are missing on some platforms -- just use O_SYNC 
+ * This is the approach Linux uses 
+ */
+#ifndef O_RSYNC
+#define O_RSYNC O_SYNC
+#endif
+
+#ifndef O_DSYNC
+#define O_DSYNC O_SYNC
+#endif
+
 using namespace std;
 
 /*******************************************************************************

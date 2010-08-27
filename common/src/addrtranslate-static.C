@@ -34,35 +34,28 @@
 #include <vector>
 #include <string>
 
-#include "symtabAPI/h/Symtab.h"
+#include "common/h/headers.h"
 #include "addrtranslate.h"
 
 using namespace std;
-
-namespace Dyninst {
-namespace SymtabAPI {
 
 class AddressTranslateStatic : public AddressTranslate
 {
 public:
    virtual bool init();
    virtual bool refresh();
-   AddressTranslateStatic(PID pid);
+   AddressTranslateStatic(PID pid, PROC_HANDLE phand);
 };
 
-}
-}
-
 using namespace Dyninst;
-using namespace SymtabAPI;
 
-AddressTranslate *AddressTranslate::createAddressTranslator(PID pid_, ProcessReader *, PROC_HANDLE)
+AddressTranslate *AddressTranslate::createAddressTranslator(PID pid_, ProcessReader *, SymbolReaderFactory *, PROC_HANDLE phand)
 {
-	AddressTranslateStatic *new_translate = new AddressTranslateStatic(pid_);
+	AddressTranslateStatic *new_translate = new AddressTranslateStatic(pid_, phand);
 	return new_translate;
 }
 
-AddressTranslate *AddressTranslate::createAddressTranslator(ProcessReader *)
+AddressTranslate *AddressTranslate::createAddressTranslator(ProcessReader *, SymbolReaderFactory *)
 {
 	return createAddressTranslator(0, NULL);
 }
@@ -82,27 +75,7 @@ vector< pair<Address, unsigned long> > *LoadedLib::getMappedRegions()
    return &mapped_regions;
 }
 
-AddressTranslateStatic::AddressTranslateStatic(PID pid) :
-	AddressTranslate(pid)
-{
-}
-
-Symtab *LoadedLib::getSymtab()
-{
-   return NULL;
-}
-
-AddressTranslate *AddressTranslate::createAddressTranslator(const std::vector<LoadedLibrary> & /*name_addrs*/)
-{
-   return NULL;
-}
-
-ProcessReader::ProcessReader(int pid_, string exe) :
-   pid(pid_), executable(exe)
-{
-}
-
-ProcessReader::ProcessReader() :
-   pid(0)
+AddressTranslateStatic::AddressTranslateStatic(PID pid, PROC_HANDLE phand) :
+	AddressTranslate(pid, phand)
 {
 }

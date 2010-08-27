@@ -421,6 +421,7 @@ class Object : public AObject {
     bool hasRelaplt() const {return hasRelaplt_;}
     bool isBlueGene() const {return isBlueGene_;}
     bool hasNoteSection() const {return hasNoteSection_;}
+    Region::RegionType getRelType() const { return relType_; }
 
     Offset getTextAddr() const {return text_addr_;}
     Offset getSymtabAddr() const {return symtab_addr_;}
@@ -459,6 +460,7 @@ class Object : public AObject {
   bool hasReladyn_;
   bool hasRelplt_;
   bool hasRelaplt_;
+  Region::RegionType relType_;
 
   bool isBlueGene_;
   bool hasNoteSection_;

@@ -375,9 +375,14 @@ Parser::parse_frames(vector<ParseFrame *> & work, bool recursive)
                     getTamperFrames(pf->func, tamperFrames);
                     for (unsigned tidx=0; tidx < tamperFrames.size(); tidx++) {
                         ParseFrame *tf = tamperFrames[tidx];
-                        init_frame(*tf);
-                        frames.push_back(tf);
-                        _parse_data->record_frame(tf);
+                        if( ! _parse_data->findFrame(tf->func->region(),
+                                                     tf->func->addr()) ) 
+                        {
+                            init_frame(*tf);
+                            frames.push_back(tf);
+                            _parse_data->record_frame(tf);
+                        }
+                        work.push_back(tf);
                     }
                 }
                 pf->cleanup();

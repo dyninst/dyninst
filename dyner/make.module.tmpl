@@ -36,7 +36,8 @@ endif
 
 LIBS         += -ldyninstAPI -lsymtabAPI -lcommon
 
-SYSLIBS      += -liberty -L$(TCLTK_LIB_DIR) $(TCL_LIB)
+SYSLIBS      += $(DEMANGLER_EXEC_LINK)
+SYSLIBS      += -L$(TCLTK_LIB_DIR) $(TCL_LIB)
 
 all: $(TARGET) $(TEST_TARGET)
 

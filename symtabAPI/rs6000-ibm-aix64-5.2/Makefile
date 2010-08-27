@@ -55,15 +55,14 @@ G_PTHREAD       = -pthread
 include ../make.module.tmpl
 
 ifdef IBM_BPATCH_COMPAT
-  LDFLAGS += -liberty -bbigtoc -bexpall
+  LDFLAGS += -bbigtoc -bexpall
   # should be building a static library in this case
   TARGET3_STATIC  = libsymtabAPI.a
   TARGET_INSTALL  = $(TARGET3_STATIC)
   AR = /usr/bin/ar
 else
   # On AIX all symbols must be resolved at link time, even for a library.
-  # We need the cplus.demangle function from libiberty.
-  LDFLAGS += -liberty -Wl,-bbigtoc,-bexpall -lgcc 
+  LDFLAGS += -Wl,-bbigtoc,-bexpall -lgcc 
   # Override default of gcc -- need g++ on AIX
   LD = $(GXX)
 endif

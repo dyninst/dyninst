@@ -31,12 +31,16 @@
 
 #include "common/h/headers.h"
 #include "common/h/parseauxv.h"
+#include "common/h/linuxKludges.h"
+#include "common/h/Types.h"
 
 #include <elf.h>
 
 #include <vector>
 #include <sys/types.h>
+#include <unistd.h>
 #include <dirent.h>
+#include <string.h>
 
 typedef int (*intKludge)();
 
@@ -171,6 +175,11 @@ unsigned long long PDYN_mulMillion(unsigned long long in) {
    return result;
 }
 
+#if defined(cap_gnu_demangler)
+#include <cxxabi.h>
+using namespace __cxxabiv1;
+#endif
+
 char * P_cplus_demangle( const char * symbol, bool nativeCompiler,
 				bool includeTypes ) 
 {
@@ -182,7 +191,21 @@ char * P_cplus_demangle( const char * symbol, bool nativeCompiler,
    // documentation). I guess we'll demangle names with "some exceptions".
    opts |= nativeCompiler ? DMGL_ARM : 0;
 
+#if defined(cap_gnu_demangler)
+   int status;
+   char *demangled = __cxa_demangle(symbol, NULL, NULL, &status);
+   if (status == -1) {
+      //Memory allocation failure.
+      return NULL;
+   }
+   if (status == -2) {
+      //Not a C++ name
+      return NULL;
+   }
+   assert(status == 0); //Success
+#else
    char * demangled = cplus_demangle( const_cast< char *>(symbol), opts);
+#endif
    if( demangled == NULL ) { return NULL; }
 
    if( ! includeTypes ) {
@@ -197,7 +220,7 @@ char * P_cplus_demangle( const char * symbol, bool nativeCompiler,
         }
 
    return demangled;
-   } /* end P_cplus_demangle() */
+} /* end P_cplus_demangle() */
 
 bool PtraceBulkRead(Address inTraced, unsigned size, const void *inSelf, int pid)
 {
@@ -902,36 +925,71 @@ void *AuxvParser::readAuxvFromProc() {
 map_entries *getLinuxMaps(int pid, unsigned &maps_size) {
    char line[LINE_LEN], prems[16], *s;
    int result;
-   FILE *f;
+   int fd = -1;
    map_entries *maps = NULL;
-   unsigned i, no_lines = 0;
-   
+   unsigned i, no_lines = 0, cur_pos = 0, cur_size = 4096;
+   unsigned file_size = 0;
+   char *buffer = NULL;
   
    sprintf(line, "/proc/%d/maps", pid);
-   f = fopen(line, "r");
-   if (!f)
-      return NULL;
+   fd = open(line, O_RDONLY);
+   if (fd == -1)
+      goto done_err;
    
+   cur_pos = 0;
+   buffer = (char *) malloc(cur_size);
+   if (!buffer) {
+      goto done_err;
+   }
+   for (;;) {
+      result = read(fd, buffer+cur_pos, cur_size - cur_pos);
+      if (result == -1) {
+         goto done_err;
+      }
+      cur_pos += result;
+      if (result == 0) {
+         break;
+      }
+      assert(cur_pos <= cur_size);
+      if (cur_size == cur_pos) {
+         cur_size *= 2;
+         buffer = (char *) realloc(buffer, cur_size);
+         if (!buffer) {
+            goto done_err;
+         }
+      }
+   }
+   file_size = cur_pos;
+
+   close(fd);
+   fd = -1;
    //Calc num of entries needed and allocate the buffer.  Assume the 
    //process is stopped.
-   while (!feof(f)) {
-      fgets(line, LINE_LEN, f);
-      no_lines++;
-   }
+   no_lines = file_size ? 1 : 0;
+   for (i = 0; i < file_size; i++) {
+      if (buffer[i] == '\n')
+         no_lines++;
+   } 
+
    maps = (map_entries *) malloc(sizeof(map_entries) * (no_lines+1));
+   memset(maps, 0, sizeof(map_entries) * (no_lines+1));
    if (!maps)
-      goto done_err;
-   result = fseek(f, 0, SEEK_SET);
-   if (result == -1)
       goto done_err;
 
    //Read all of the maps entries
+   cur_pos = 0;
    for (i = 0; i < no_lines; i++) {
-      if (!fgets(line, LINE_LEN, f))
+      if (cur_pos >= file_size)
          break;
+      unsigned next_end = cur_pos;
+      while (buffer[next_end] != '\n' && next_end < file_size) next_end++;
+      unsigned int line_size = (next_end - cur_pos) > LINE_LEN ? LINE_LEN : (next_end - cur_pos);
+      memcpy(line, buffer+cur_pos, line_size);
+      line[line_size] = '\0';
       line[LINE_LEN - 1] = '\0';
-      maps[i].path[0] = '\0';
-      sscanf(line, "%lx-%lx %16s %lx %x:%x %u %512s\n", 
+      cur_pos = next_end+1;
+
+      sscanf(line, "%lx-%lx %16s %lx %x:%x %u %" MAPENTRIES_PATH_SIZE_STR "s\n", 
              (Address *) &maps[i].start, (Address *) &maps[i].end, prems, 
              (Address *) &maps[i].offset, &maps[i].dev_major,
              &maps[i].dev_minor, &maps[i].inode, maps[i].path);
@@ -959,14 +1017,17 @@ map_entries *getLinuxMaps(int pid, unsigned &maps_size) {
    //Zero out the last entry
    memset(&(maps[i]), 0, sizeof(map_entries));
    maps_size = i;
-   fclose(f);
+
+   free(buffer);
    return maps;
 
  done_err:
-   if (f)
-      fclose(f);
+   if (fd != -1)
+      close(fd);
    if (maps)
       free(maps);
+   if (buffer)
+      free(buffer);
    return NULL;
 }
 

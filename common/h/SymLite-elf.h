@@ -445,6 +445,7 @@ inline Symbol_t SymElf::lookupCachedSymbol(Dyninst::Offset off)
    }
    void *sym_ptr = cache[cur].symloc;
 
+   Symbol_t ret;
    for (unsigned i=0; i<sym_sections_size; i++) {
       Elf_X_Shdr &shdr = sym_sections[i];
       Elf_X_Data data = shdr.get_data();
@@ -465,12 +466,13 @@ inline Symbol_t SymElf::lookupCachedSymbol(Dyninst::Offset off)
       const char *str_buffer = (const char *) str_data.d_buf();
       const char *name = str_buffer + syms.st_name(sym_idx);
       
-      Symbol_t ret;
       MAKE_SYMBOL(name, sym_idx, shdr, ret);
       SET_SYM_CACHEINDEX(ret, cur);
       return ret;
    }
    assert(0);
+
+   return ret;
 }
 
 inline Section_t SymElf::getSectionByName(std::string name)

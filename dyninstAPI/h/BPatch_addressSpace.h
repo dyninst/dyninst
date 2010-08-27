@@ -362,6 +362,12 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
     API_EXPORT_VIRT(Int, (libname, reload),
     bool, loadLibrary,(const char *libname, bool reload = false));
 
+    // BPatch_addressSpace::isStaticExecutable
+    //
+    // Returns true if the underlying image represents a 
+    // statically-linked executable, false otherwise
+    API_EXPORT(Int, (),
+            bool, isStaticExecutable,());
 };
 
 #endif 

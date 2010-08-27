@@ -85,7 +85,8 @@ test_results_t test1_21_Mutator::mutatorTest21()
 	|| defined(os_osf_test) \
 	|| defined(os_solaris_test) \
 	|| defined(os_linux_test) \
-	|| defined(os_windows_test)
+	|| defined(os_windows_test) \
+        || defined(os_freebsd_test)
 
 	// Lookup the libtestA.so and libtestB.so modules that we've just loaded
 
@@ -202,10 +203,7 @@ test_results_t test1_21_Mutator::executeTest()
 	pointer_size = pointerSize(appImage);
 #endif
 
-        bool isStatic = false;
-        if( NULL != appBinEdit ) {
-            isStatic = appBinEdit->isStaticExecutable();
-        }
+        bool isStatic = appAddrSpace->isStaticExecutable();
 
 	strncpy(libNameA, libNameAroot, 127);
 	addLibArchExt(libNameA,127, pointer_size, isStatic);

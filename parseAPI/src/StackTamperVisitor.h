@@ -233,7 +233,7 @@ namespace SymbolicEvaluation {
 
 class StackTamperVisitor : public ASTVisitor {
  public:
-  StackTamperVisitor(const AbsRegion &);
+  StackTamperVisitor(const Absloc &);
 
   virtual AST::Ptr visit(AST *);
   virtual AST::Ptr visit(DataflowAPI::BottomAST *);
@@ -252,9 +252,9 @@ class StackTamperVisitor : public ASTVisitor {
  private:
   ParseAPI::StackTamper tamper_;
   Address modpc_;
+  Absloc origRetAddr_;
 
   typedef linVar<DataflowAPI::Variable> DiffVar;
-
   std::stack<DiffVar > diffs_;
 };
 

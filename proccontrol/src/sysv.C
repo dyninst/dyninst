@@ -32,6 +32,14 @@
 #include "dynutil/h/dyntypes.h"
 #include "common/h/SymLite-elf.h"
 #include "sysv.h"
+#include "irpc.h"
+#include "snippets.h"
+
+#if defined(os_linux)
+#include "common/h/linuxKludges.h"
+#elif defined(os_freebsd)
+#include "common/h/freebsdKludges.h"
+#endif
 
 #include <vector>
 #include <string>
@@ -55,7 +63,6 @@ sysv_process::sysv_process(Dyninst::PID pid_, int_process *p) :
    int_process(pid_, p)
 {
    sysv_process *sp = static_cast<sysv_process *>(p);
-   loaded_libs = sp->loaded_libs;
    breakpoint_addr = sp->breakpoint_addr;
    lib_initialized = sp->lib_initialized;
    if (sp->procreader)
@@ -244,7 +251,342 @@ bool sysv_process::plat_execed()
       procreader = NULL;
    }
    breakpoint_addr = 0x0;
-   loaded_libs.clear();
    lib_initialized = false;
    return initLibraryMechanism();
+}
+
+/*
+ * Note:
+ *
+ * The following functions are common to both Linux and FreeBSD.
+ *
+ * If there is another SysV platform that needs different versions of these
+ * functions, the following functions should be factored somehow.
+ */
+void sysv_process::plat_execv() {
+    // Never returns
+    typedef const char * const_str;
+
+    const_str *new_argv = (const_str *) calloc(argv.size()+3, sizeof(char *));
+    new_argv[0] = executable.c_str();
+    unsigned i;
+    for (i=1; i<argv.size()+1; i++) {
+        new_argv[i] = argv[i-1].c_str();
+    }
+    new_argv[i+1] = (char *) NULL;
+
+    for(std::map<int,int>::iterator fdit = fds.begin(),
+            fdend = fds.end();
+            fdit != fdend;
+            ++fdit) {
+        int oldfd = fdit->first;
+        int newfd = fdit->second;
+
+        int result = close(newfd);
+        if (result == -1) {
+            pthrd_printf("Could not close old file descriptor to redirect.\n");
+            setLastError(err_internal, "Unable to close file descriptor for redirection");
+            exit(-1);
+        }
+
+        result = dup2(oldfd, newfd);
+        if (result == -1) {
+            pthrd_printf("Could not redirect file descriptor.\n");
+            setLastError(err_internal, "Failed dup2 call.");
+            exit(-1);
+        }
+        pthrd_printf("DEBUG redirected file!\n");
+    }
+
+    execv(executable.c_str(), const_cast<char * const*>(new_argv));
+    int errnum = errno;         
+    pthrd_printf("Failed to exec %s: %s\n", 
+               executable.c_str(), strerror(errnum));
+    if (errnum == ENOENT)
+        setLastError(err_nofile, "No such file");
+    if (errnum == EPERM || errnum == EACCES)
+        setLastError(err_prem, "Permission denied");
+    else
+        setLastError(err_internal, "Unable to exec process");
+    exit(-1);
+}
+
+void int_notify::writeToPipe()
+{
+   if (pipe_out == -1) 
+      return;
+
+   char c = 'e';
+   ssize_t result = write(pipe_out, &c, 1);
+   if (result == -1) {
+      int error = errno;
+      setLastError(err_internal, "Could not write to notification pipe\n");
+      perr_printf("Error writing to notification pipe: %s\n", strerror(error));
+      return;
+   }
+   pthrd_printf("Wrote to notification pipe %d\n", pipe_out);
+}
+
+void int_notify::readFromPipe()
+{
+   if (pipe_out == -1)
+      return;
+
+   char c;
+   ssize_t result;
+   int error;
+   do {
+      result = read(pipe_in, &c, 1);
+      error = errno;
+   } while (result == -1 && error == EINTR);
+   if (result == -1) {
+      int error = errno;
+      if (error == EAGAIN) {
+         pthrd_printf("Notification pipe had no data available\n");
+         return;
+      }
+      setLastError(err_internal, "Could not read from notification pipe\n");
+      perr_printf("Error reading from notification pipe: %s\n", strerror(error));
+   }
+   assert(result == 1 && c == 'e');
+   pthrd_printf("Cleared notification pipe %d\n", pipe_in);
+}
+
+bool int_notify::createPipe()
+{
+   if (pipe_in != -1 || pipe_out != -1)
+      return true;
+
+   int fds[2];
+   int result = pipe(fds);
+   if (result == -1) {
+      int error = errno;
+      setLastError(err_internal, "Error creating notification pipe\n");
+      perr_printf("Error creating notification pipe: %s\n", strerror(error));
+      return false;
+   }
+   assert(fds[0] != -1);
+   assert(fds[1] != -1);
+
+   result = fcntl(fds[0], F_SETFL, O_NONBLOCK);
+   if (result == -1) {
+      int error = errno;
+      setLastError(err_internal, "Error setting properties of notification pipe\n");
+      perr_printf("Error calling fcntl for O_NONBLOCK on %d: %s\n", fds[0], strerror(error));
+      return false;
+   }
+   pipe_in = fds[0];
+   pipe_out = fds[1];
+
+
+   pthrd_printf("Created notification pipe: in = %d, out = %d\n", pipe_in, pipe_out);
+   return true;
+}
+
+unsigned sysv_process::getTargetPageSize() {
+    static unsigned pgSize = 0;
+    if( !pgSize ) pgSize = getpagesize();
+    return pgSize;
+}
+
+bool installed_breakpoint::plat_install(int_process *proc, bool should_save) {
+   pthrd_printf("Platform breakpoint install at %lx in %d\n", 
+                addr, proc->getPid());
+   if (should_save) {
+     switch (proc->getTargetArch())
+     {
+       case Arch_x86_64:
+       case Arch_x86:
+         buffer_size = 1;
+         break;
+       default:
+         assert(0);
+     }
+     assert((unsigned) buffer_size < sizeof(buffer));
+     
+     bool result = proc->readMem(&buffer, addr, buffer_size);
+     if (!result) {
+       pthrd_printf("Error reading from process\n");
+       return result;
+     }
+   }
+   
+   bool result;
+   switch (proc->getTargetArch())
+   {
+      case Arch_x86_64:
+      case Arch_x86: {
+         unsigned char trap_insn = 0xcc;
+         result = proc->writeMem(&trap_insn, addr, 1);
+         break;
+      }
+      default:
+         assert(0);
+   }
+   if (!result) {
+      pthrd_printf("Error writing breakpoint to process\n");
+      return result;
+   }
+
+   return true;
+}
+
+bool iRPCMgr::collectAllocationResult(int_thread *thr, Dyninst::Address &addr, bool &err)
+{
+   switch (thr->llproc()->getTargetArch())
+   {
+      case Arch_x86_64: {
+         Dyninst::MachRegisterVal val = 0;
+         bool result = thr->getRegister(x86_64::rax, val);
+         assert(result);
+         addr = val;
+         break;
+      }
+      case Arch_x86: {
+         Dyninst::MachRegisterVal val = 0;
+         bool result = thr->getRegister(x86::eax, val);
+         assert(result);
+         addr = val;
+         break;
+      }
+      default:
+         assert(0);
+         break;
+   }
+   //TODO: check addr vs. possible mmap return values.
+   err = false;
+   return true;
+}
+
+// For compatibility 
+#ifndef MAP_ANONYMOUS
+#define MAP_ANONYMOUS MAP_ANON
+#endif
+
+bool iRPCMgr::createAllocationSnippet(int_process *proc, Dyninst::Address addr, 
+                                      bool use_addr, unsigned long size, 
+                                      void* &buffer, unsigned long &buffer_size, 
+                                      unsigned long &start_offset)
+{
+   const void *buf_tmp = NULL;
+   unsigned addr_size = 0;
+   unsigned addr_pos = 0;
+   unsigned flags_pos = 0;
+   unsigned size_pos = 0;
+
+   int flags = MAP_ANONYMOUS | MAP_PRIVATE;
+   if (use_addr) 
+      flags |= MAP_FIXED;
+   else
+      addr = 0x0;
+
+   switch (proc->getTargetArch())
+   {
+      case Arch_x86_64:
+         buf_tmp = x86_64_call_mmap;
+         buffer_size = x86_64_call_mmap_size;
+         start_offset = x86_64_mmap_start_position;
+         addr_pos = x86_64_mmap_addr_position;
+         flags_pos = x86_64_mmap_flags_position;
+         size_pos = x86_64_mmap_size_position;
+         addr_size = 8;
+         break;
+      case Arch_x86:
+         buf_tmp = x86_call_mmap;
+         buffer_size = x86_call_mmap_size;
+         start_offset = x86_mmap_start_position;
+         addr_pos = x86_mmap_addr_position;
+         flags_pos = x86_mmap_flags_position;
+         size_pos = x86_mmap_size_position;
+         addr_size = 4;
+         break;
+      default:
+         assert(0);
+   }
+   
+   buffer = malloc(buffer_size);
+   memcpy(buffer, buf_tmp, buffer_size);
+
+   //Assuming endianess of debugger and debugee match.
+   *((unsigned int *) (((char *) buffer)+size_pos)) = size;
+   *((unsigned int *) (((char *) buffer)+flags_pos)) = flags;
+   if (addr_size == 8)
+      *((unsigned long *) (((char *) buffer)+addr_pos)) = addr;
+   else if (addr_size == 4)
+      *((unsigned *) (((char *) buffer)+addr_pos)) = (unsigned) addr;
+   else 
+      assert(0);
+   return true;
+}
+
+bool iRPCMgr::createDeallocationSnippet(int_process *proc, Dyninst::Address addr, 
+                                        unsigned long size, void* &buffer, 
+                                        unsigned long &buffer_size, 
+                                        unsigned long &start_offset)
+{
+   const void *buf_tmp = NULL;
+   unsigned addr_size = 0;
+   unsigned addr_pos = 0;
+   unsigned size_pos = 0;
+
+   switch (proc->getTargetArch())
+   {
+      case Arch_x86_64:
+         buf_tmp = x86_64_call_munmap;
+         buffer_size = x86_64_call_munmap_size;
+         start_offset = x86_64_munmap_start_position;
+         addr_pos = x86_64_munmap_addr_position;
+         size_pos = x86_64_munmap_size_position;
+         addr_size = 8;
+         break;
+      case Arch_x86:
+         buf_tmp = x86_call_munmap;
+         buffer_size = x86_call_munmap_size;
+         start_offset = x86_munmap_start_position;
+         addr_pos = x86_munmap_addr_position;
+         size_pos = x86_munmap_size_position;
+         addr_size = 4;
+         break;
+      default:
+         assert(0);
+   }
+   
+   buffer = malloc(buffer_size);
+   memcpy(buffer, buf_tmp, buffer_size);
+
+   //Assuming endianess of debugger and debugee match.
+   *((unsigned int *) (((char *) buffer)+size_pos)) = size;
+   if (addr_size == 8)
+      *((unsigned long *) (((char *) buffer)+addr_pos)) = addr;
+   else if (addr_size == 4)
+      *((unsigned *) (((char *) buffer)+addr_pos)) = (unsigned) addr;
+   else 
+      assert(0);
+   return true;
+}
+
+Dyninst::Address sysv_process::plat_mallocExecMemory(Dyninst::Address min, unsigned size) {
+    Dyninst::Address result = 0x0;
+    bool found_result = false;
+    unsigned maps_size;
+    map_entries *maps = getVMMaps(getPid(), maps_size);
+    assert(maps); //TODO, Perhaps go to libraries for address map if no /proc/
+    for (unsigned i=0; i<maps_size; i++) {
+        if (!(maps[i].prems & PREMS_EXEC))
+            continue;
+        if (min + size > maps[i].end)
+            continue;
+        if (maps[i].end - maps[i].start < size)
+            continue;
+
+        if (maps[i].start > min)
+            result = maps[i].start;
+        else
+            result = min;
+        found_result = true;
+        break;
+    }
+    assert(found_result);
+    free(maps);
+    return result;
 }

@@ -57,7 +57,6 @@ SRCS =          ../src/linux.C \
 #MYFLAGS	+= -DINFERIOR_RPC_DEBUG
 MYFLAGS         += -DUSES_DWARF_DEBUG -I$(LIBDWARF_INC)
 MYFLAGS         += -I$(LIBELF_INC)
-MYFLAGS		+= -I/usr/include/libelf
 
 CXXFLAGS        += $(MYFLAGS)
 CFLAGS          += $(MYFLAGS)

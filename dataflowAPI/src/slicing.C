@@ -510,9 +510,10 @@ bool Slicer::getPredecessors(Element &current,
 
     Element newElement;
     Elements newElements;
+    SingleContext epred(current.loc.func, true, true);
 
     const Block::edgelist &sources = current.loc.block->sources();
-    Block::edgelist::iterator eit = sources.begin();
+    Block::edgelist::iterator eit = sources.begin(&epred);
     for ( ; eit != sources.end(); ++eit) {   
       switch ((*eit)->type()) {
       case CALL:
@@ -537,33 +538,28 @@ bool Slicer::getPredecessors(Element &current,
                     p,
                     err)) {
             slicing_cerr << " succeeded, err " << err << endl;
-        }
-        pred.push(newElement);
-        break;
-      default:
-	Element newElement;
-        if ((*eit)->src()->lastInsnAddr() < current.loc.func->entry()->start() ||
-                (*eit)->src()->lastInsnAddr() > current.loc.func->entry()->end()) {
-            slicing_cerr << "Oops! Found a default edge that goes into a different function" << endl;
-            /* NOTE: this will cause us to leave a node unmarked as entry. This will get fixed during cleanGraph() */
-        } else {if (handleDefault((*eit),
-                    backward,
-                    current,
-                    newElement,
-                    p,
-                    err)) {
             pred.push(newElement);
         }
-        }
-      }     
+        break;
+      default:
+	    Element newElement;
+        if (handleDefault((*eit),
+                          backward,
+                          current,
+                          newElement,
+                          p,
+                          err)) {
+            pred.push(newElement);
+        }    
+      }
     }
-    
     if (err) {
       ret = false;
     }
-
     return ret;
+ 
 }
+
 
 bool Slicer::handleDefault(ParseAPI::Edge *e,
         Direction dir,
@@ -774,9 +770,10 @@ bool Slicer::handleReturnBackward(ParseAPI::Edge *edge,
             err = true;
             return false;
         }
+        return true;
     }
 
-    return true;
+    return false;
 }
 
 bool Slicer::search(Element &initial,

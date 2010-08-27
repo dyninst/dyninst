@@ -197,6 +197,11 @@ class COMMON_EXPORT AST : public dyn_detail::boost::enable_shared_from_this<AST>
     return AST::Ptr();							
   }								       
 
+  bool equals(AST::Ptr rhs) {
+    if (!rhs) return false;
+    return *this == (*rhs);
+  }
+
   virtual const std::string format() const = 0;
 
   // Substitutes every occurrence of a with b in

@@ -226,6 +226,7 @@ inline bool PredicateIterator<C,V,R,P>::equal(PredicateIterator const& o) const
     if(o.uninit() && uninit())
         return true;
     return (o.uninit() && _m_cur == _m_cont->_m_container.end()) ||
+           (uninit() && o._m_cur == o._m_cont->_m_container.end()) ||
            (_m_cont == o._m_cont && _m_cur == o._m_cur);
 }
 

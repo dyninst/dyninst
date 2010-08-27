@@ -47,7 +47,9 @@
 
 #include "debug.h"
 
-#if defined(x86_64_unknown_linux2_4) || defined(ppc64_linux)
+#if defined(x86_64_unknown_linux2_4) || \
+    defined(ppc64_linux) || \
+    (defined(os_freebsd) && defined(arch_x86_64))
 #include "emitElf-64.h"
 #endif
 
@@ -295,6 +297,25 @@ Region::RegionType getRegionType(unsigned long type, unsigned long flags, const 
   default:
     return Region::RT_OTHER;
   }
+}
+
+static Region::RegionType getRelTypeByElfMachine(Elf_X *localHdr) {
+    Region::RegionType ret;
+    switch(localHdr->e_machine()) {
+        case EM_SPARC:
+        case EM_SPARC32PLUS:
+        case EM_SPARCV9:
+        case EM_PPC:
+        case EM_PPC64:
+        case EM_X86_64:
+        case EM_IA_64:
+            ret = Region::RT_RELA;
+            break;
+        default:
+            ret = Region::RT_REL;
+            break;
+    }
+    return ret;
 }
 
 const char* EDITED_TEXT_NAME = ".edited.text";
@@ -932,7 +953,7 @@ bool Object::loaded_elf(Offset& txtaddr, Offset& dataddr,
   }
 
   loadAddress_ = 0x0;
-#if defined(os_linux)
+#if defined(os_linux) || defined(os_freebsd)
   /**
    * If the virtual address of the first PT_LOAD element in the
    * program table is 0, Linux loads the shared object into any
@@ -1494,7 +1515,7 @@ void Object::load_object(bool alloc_syms)
 
     //fprintf(stderr, "[%s:%u] - Exe Name\n", __FILE__, __LINE__);
 
-#if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))
+#if (defined(os_linux) || defined(os_freebsd)) && (defined(arch_x86) || defined(arch_x86_64))
     if (eh_frame_scnp != 0 && gcc_except != 0) 
       {
 	find_catch_blocks(eh_frame_scnp, gcc_except, 
@@ -1605,6 +1626,9 @@ void Object::load_object(bool alloc_syms)
         obj_type_ = obj_RelocatableFile;
     }
 
+    // Set rel type based on the ELF machine type
+    relType_ = getRelTypeByElfMachine(&elfHdr);
+
     return;
   } // end binding contour (for "goto cleanup2")
 
@@ -1660,7 +1684,7 @@ void Object::load_shared_object(bool alloc_syms)
 
     get_valid_memory_areas(elfHdr);
 
-#if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))
+#if (defined(os_linux) || defined(os_freebsd)) && (defined(arch_x86) || defined(arch_x86_64))
     //fprintf(stderr, "[%s:%u] - Mod Name is %s\n", __FILE__, __LINE__, name.c_str());
     if (eh_frame_scnp != 0 && gcc_except != 0) {
       find_catch_blocks(eh_frame_scnp, gcc_except, 
@@ -1736,6 +1760,9 @@ void Object::load_shared_object(bool alloc_syms)
     }else if( e_type == ET_REL ) {
         obj_type_ = obj_RelocatableFile;
     }
+
+    // Set rel type based on the ELF machine type
+    relType_ = getRelTypeByElfMachine(&elfHdr);
 
   } // end binding contour (for "goto cleanup2")
 
@@ -3105,6 +3132,7 @@ Object::Object(MappedFile *mf_, MappedFile *mfd, bool, void (*err_func)(const ch
   hasReladyn_(false),
   hasRelplt_(false),
   hasRelaplt_(false),
+  relType_(Region::RT_REL),
   dwarf(this),
   EEL(false),
   DbgSectionMapSorted(false)
@@ -3186,6 +3214,7 @@ Object::Object(const Object& obj)
   elfHdr = obj.elfHdr;
   deps_ = obj.deps_;
   DbgSectionMapSorted = obj.DbgSectionMapSorted;
+  relType_ = obj.relType_;
 }
 
 Object::~Object()
@@ -3378,7 +3407,7 @@ bool parseCompilerType(Object *objPtr)
 #endif
 
 
-#if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))
+#if (defined(os_linux) || defined(os_freebsd)) && (defined(arch_x86) || defined(arch_x86_64))
 
 static unsigned long read_uleb128(const unsigned char *data, unsigned *bytes_read)
 {
@@ -4264,7 +4293,9 @@ bool Object::emitDriver(Symtab *obj, string fName,
       if( !em->createSymbolTables(obj, allSymbols) ) return false;
       return em->driver(obj, fName);
     }
-#if defined(x86_64_unknown_linux2_4) || defined(ppc64_linux)
+#if defined(x86_64_unknown_linux2_4) || \
+    defined(ppc64_linux) || \
+    (defined(os_freebsd) && defined(arch_x86_64))
   else if (elfHdr.e_ident()[EI_CLASS] == ELFCLASS64) 
     {
       emitElf64 *em = new emitElf64(elfHdr, isStripped, this, err_func_);
