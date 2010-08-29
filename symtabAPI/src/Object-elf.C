@@ -1222,9 +1222,9 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
           }
 
           if (!glink) {
-              fprintf(stderr, "*** Cound not find .glink section for '%s'.\n",
-                      mf->pathname().c_str());
-              fprintf(stderr, "*** It may not be a ppc32 elf object.\n");
+//              fprintf(stderr, "*** Cound not find .glink section for '%s'.\n",
+//                      mf->pathname().c_str());
+//              fprintf(stderr, "*** It may not be a ppc32 elf object.\n");
               return false;
           }
 
