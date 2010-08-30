@@ -152,7 +152,7 @@ static void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type) {
                 thread, parentThread, childThread);
         assert(0 && "Unexpected BPatch_thread in exitFunc");
     }
-    thread->continueExecution();
+    //thread->continueExecution();
     return;
 }
 
@@ -162,7 +162,7 @@ static void initialPreparation(BPatch_thread *parent)
    assert(parent->isStopped());
 
    //cerr << "ok, inserting instr\n";
-   prepareTestCase6(Parent_p, parent, PreFork);
+   //prepareTestCase6(Parent_p, parent, PreFork);
 }
 
 static int mutatorTest(BPatch *bpatch, BPatch_thread *appThread)
