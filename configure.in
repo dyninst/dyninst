@@ -163,14 +163,17 @@ if test "x$BUILD_XLC" = "x" ; then
 
    LIBS_BAK=$LIBS
    LDFLAGS_BAK=$LDFLAGS
+   CXXFLAGS_BAK=$CXXFLAGS
    LIBS="$LIBS -liberty"
    LDFLAGS="$LDFLAGS -shared"
+   CXXFLAGS="-fPIC"
    AC_LINK_IFELSE([AC_LANG_PROGRAM([[extern "C" { char *cplus_demangle(char *s, int opts); }]],
                                    [[cplus_demangle("", 0);]])],
                                    [LIBIBERTY_LINK="true"],
                                    [LIBIBERTY_LINK="false"])
    LDFLAGS=$LDFLAGS_BAK
    LIBS=$LIBS_BAK
+   CXXFLAGS=$CXXFLAGS_BAK
 
    if test "x$HAVE_LIBIBERTY" = "xtrue" ; then
       if test "x$LIBIBERTY_LINK" = "xtrue" ; then
