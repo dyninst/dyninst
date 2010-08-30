@@ -947,7 +947,7 @@ map_entries *getLinuxMaps(int pid, unsigned &maps_size) {
          goto done_err;
       }
       cur_pos += result;
-      if (result < (int) (cur_size - cur_pos)) {
+      if (result == 0) {
          break;
       }
       assert(cur_pos <= cur_size);
