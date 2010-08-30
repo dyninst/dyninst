@@ -64,7 +64,12 @@ typedef int testbarrier_t;
 #include <unistd.h>
 typedef pthread_mutex_t testlock_t;
 typedef pthread_t thread_t;
+
+#if defined(os_aix_test)
+typedef int testbarrier_t; // Older versions of AIX don't define pthread_barrier_t
+#else
 typedef pthread_barrier_t testbarrier_t;
+#endif
 
 #endif
 
