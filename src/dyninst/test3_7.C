@@ -155,7 +155,7 @@ test_results_t test3_7_Mutator::executeTest() {
       if (NULL == appImage->findFunction(funcname, bpfv) || !bpfv.size()
           || NULL == bpfv[0]){
         logerror("    Unable to find function %s\n", funcname);
-	MopUpMutatees(Mutatees,appThread);
+	MopUpMutatees(Mutatees,appProc);
         return FAILED;
       }
       BPatch_function *call7_1 = bpfv[0];
