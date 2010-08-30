@@ -110,27 +110,27 @@ test_results_t test3_7_Mutator::executeTest() {
     child_argv[n++] = const_cast<char*>("test3_7"); // run test1 in mutatee
     child_argv[n++] = NULL;
 
-    BPatch_thread *appThread[MAX_MUTATEES];
+    BPatch_process *appProc[MAX_MUTATEES];
 
-    for (n=0; n<MAX_MUTATEES; n++) appThread[n]=NULL;
+    for (n=0; n<MAX_MUTATEES; n++) appProc[n]=NULL;
 
     num_callbacks_issued = 0;
 
     // Start the mutatees
     for (n=0; n<Mutatees; n++) {
         dprintf("Starting \"%s\" %d/%d\n", pathname, n, Mutatees);
-        appThread[n] = bpatch->createProcess(pathname, child_argv, NULL);
-        if (!appThread[n]) {
+        appProc[n] = bpatch->processCreate(pathname, child_argv, NULL);
+        if (!appProc[n]) {
             logerror("*ERROR*: unable to create handle%d for executable\n", n);
             logerror("**Failed** test #7 (simultaneous multiple-process management - oneTimeCode)\n");
 			if( n > 0 ) {
-				MopUpMutatees(n-1,appThread);
+                            MopUpMutatees(n-1,appProc);
 			}
             return FAILED;
         }
-        dprintf("Mutatee %d started, pid=%d\n", n, appThread[n]->getPid());
+        dprintf("Mutatee %d started, pid=%d\n", n, appProc[n]->getPid());
 	// Register for cleanup
-	registerPID(appThread[n]->getProcess()->getPid());
+        registerPID(appProc[n]->getPid());
     }
 
 	// Register a callback that we will use to check for done-ness
@@ -138,7 +138,7 @@ test_results_t test3_7_Mutator::executeTest() {
         bpatch->registerOneTimeCodeCallback(test7_oneTimeCodeCallback);
 
     dprintf("Letting mutatee processes run a short while (2s).\n");
-    for (n=0; n<Mutatees; n++) appThread[n]->continueExecution();
+    for (n=0; n<Mutatees; n++) appProc[n]->continueExecution();
 
    ////////////////////////////
    ////////////////////////////
@@ -148,14 +148,14 @@ test_results_t test3_7_Mutator::executeTest() {
 
     // Build snippets for each mutatee
     for (unsigned i = 0; i < Mutatees; i++) {
-      BPatch_image *appImage = appThread[i]->getImage();
+        BPatch_image *appImage = appProc[i]->getImage();
       //  our oneTimeCode will just be a simple call to a function that increment
       BPatch_Vector<BPatch_function *> bpfv;
       char *funcname = "test3_7_call1";
       if (NULL == appImage->findFunction(funcname, bpfv) || !bpfv.size()
           || NULL == bpfv[0]){
         logerror("    Unable to find function %s\n", funcname);
-	MopUpMutatees(Mutatees,appThread);
+	MopUpMutatees(Mutatees,appProc);
         return FAILED;
       }
       BPatch_function *call7_1 = bpfv[0];
@@ -166,18 +166,18 @@ test_results_t test3_7_Mutator::executeTest() {
 	}
 
     dprintf("Pausing apps pre-iRPC...\n");
-    for (n=0; n<Mutatees; n++) appThread[n]->stopExecution();
+    for (n=0; n<Mutatees; n++) appProc[n]->stopExecution();
 
 	//  Submit inferior RPCs to all of our mutatees equally...
     unsigned doneFlag = 0;
     for (unsigned int i = 0; i < TEST7_NUM_ONETIMECODE; ++i) {
       int index = i % (Mutatees);
       dprintf("%s[%d]:  issuing oneTimeCode to thread %d\n", __FILE__, __LINE__, index);
-      appThread[index]->oneTimeCodeAsync(*(irpcSnippets[index]), (void *)&doneFlag);
+      appProc[index]->oneTimeCodeAsync(*(irpcSnippets[index]), (void *)&doneFlag);
     }
 
     dprintf("Running mutatees post-iRPC...\n");
-    for (n=0; n<Mutatees; n++) appThread[n]->continueExecution();
+    for (n=0; n<Mutatees; n++) appProc[n]->continueExecution();
 
    ////////////////////////////
    ////////////////////////////
@@ -201,18 +201,18 @@ test_results_t test3_7_Mutator::executeTest() {
 
     unsigned int numTerminated=0;
     for (n=0; n<Mutatees; n++) {
-        bool dead = appThread[n]->terminateExecution();
-        if (!dead || !(appThread[n]->isTerminated())) {
+        bool dead = appProc[n]->terminateExecution();
+        if (!dead || !(appProc[n]->isTerminated())) {
             logerror("**Failed** test #7 (simultaneous multiple-process management - oneTimeCode)\n");
             logerror("    mutatee process [%d] was not terminated\n", n);
             continue;
         }
-        if(appThread[n]->terminationStatus() != expectedSignal) {
+        if(appProc[n]->terminationStatus() != expectedSignal) {
             logerror("**Failed** test #7 (simultaneous multiple-process management - oneTimeCode)\n");
             logerror("    mutatee process [%d] didn't get notice of termination\n", n);
             continue;
         }
-        int signalNum = appThread[n]->getExitSignal();
+        int signalNum = appProc[n]->getExitSignal();
         dprintf("Terminated mutatee [%d] from signal 0x%x\n", n, signalNum);
         numTerminated++;
     }

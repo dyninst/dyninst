@@ -190,6 +190,7 @@ test_results_t test1_40_Mutator::setup(ParameterDict &param)
 {
 	bool useAttach = param["useAttach"]->getInt() == USEATTACH;
 	appThread = (BPatch_thread *)(param["appThread"]->getPtr());
+        appProc = appThread->getProcess();
 	int mutateeXLC = param["mutateeXLC"]->getInt();
 
 	// xlc does not produce the intended dynamic call points for this example
@@ -199,7 +200,7 @@ test_results_t test1_40_Mutator::setup(ParameterDict &param)
 	}
 
 	// Read the program's image and get an associated image object
-	appImage = appThread->getImage();
+        appImage = appProc->getImage();
 
 	if (isMutateeFortran(appImage)) 
 	{
@@ -208,7 +209,7 @@ test_results_t test1_40_Mutator::setup(ParameterDict &param)
 
 	if ( useAttach )
 	{
-		if ( ! signalAttached(appThread, appImage) )
+		if ( ! signalAttached(appImage) )
 			return FAILED;
 	}
 

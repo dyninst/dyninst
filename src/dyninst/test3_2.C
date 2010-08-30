@@ -83,28 +83,28 @@ test_results_t test3_2_Mutator::executeTest() {
     child_argv[n++] = const_cast<char*>("test3_2"); // run test2 in mutatee
     child_argv[n++] = NULL;
 
-    BPatch_thread *appThread[MAX_MUTATEES];
+    BPatch_process *appProc[MAX_MUTATEES];
 
-    for (n=0; n<MAX_MUTATEES; n++) appThread[n]=NULL;
+    for (n=0; n<MAX_MUTATEES; n++) appProc[n]=NULL;
 
     // Start the mutatees
     for (n=0; n<Mutatees; n++) {
         dprintf("Starting \"%s\" %d/%d\n", pathname, n, Mutatees);
-        appThread[n] = bpatch->createProcess(pathname, child_argv, NULL);
-        if (!appThread[n]) {
+        appProc[n] = bpatch->processCreate(pathname, child_argv, NULL);
+        if (!appProc[n]) {
             logerror("*ERROR*: unable to create handle%d for executable\n", n);
             logerror("**Failed** test #2 (simultaneous multiple-process management - exit)\n");
 			if(n > 0) {
-				MopUpMutatees(n-1,appThread);
+                            MopUpMutatees(n-1,appProc);
 			}
             return FAILED;
         }
-        dprintf("Mutatee %d started, pid=%d\n", n, appThread[n]->getPid());
+        dprintf("Mutatee %d started, pid=%d\n", n, appProc[n]->getPid());
 	// Register for mutatee cleanup
-	registerPID(appThread[n]->getProcess()->getPid());
+        registerPID(appProc[n]->getPid());
     }
     dprintf("Letting %d mutatee processes run.\n", Mutatees);
-    for (n=0; n<Mutatees; n++) appThread[n]->continueExecution();
+    for (n=0; n<Mutatees; n++) appProc[n]->continueExecution();
 
     unsigned int numTerminated=0;
     bool terminated[MAX_MUTATEES];
@@ -115,15 +115,15 @@ test_results_t test3_2_Mutator::executeTest() {
         bpatch->waitForStatusChange();
         dprintf("%s[%d]:  got status change\n", __FILE__, __LINE__);
         for (n=0; n<Mutatees; n++)
-            if (!terminated[n] && (appThread[n]->isTerminated())) {
-                if(appThread[n]->terminationStatus() == ExitedNormally) {
-                    int exitCode = appThread[n]->getExitCode();
+            if (!terminated[n] && (appProc[n]->isTerminated())) {
+            if(appProc[n]->terminationStatus() == ExitedNormally) {
+                int exitCode = appProc[n]->getExitCode();
                     if (exitCode || debugPrint)
                         dprintf("Mutatee %d exited with exit code 0x%x\n", n,
                                 exitCode);
                 }
-                else if(appThread[n]->terminationStatus() == ExitedViaSignal) {
-                    int signalNum = appThread[n]->getExitSignal();
+                else if(appProc[n]->terminationStatus() == ExitedViaSignal) {
+                    int signalNum = appProc[n]->getExitSignal();
                     if (signalNum || debugPrint)
                         dprintf("Mutatee %d exited from signal 0x%d\n", n,
                                 signalNum);
@@ -131,8 +131,8 @@ test_results_t test3_2_Mutator::executeTest() {
                 terminated[n]=true;
                 numTerminated++;
             }
-            else if (!terminated[n] && (appThread[n]->isStopped())) {
-                appThread[n]->continueExecution();
+            else if (!terminated[n] && (appProc[n]->isStopped())) {
+                appProc[n]->continueExecution();
             }
     }
 
