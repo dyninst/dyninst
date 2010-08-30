@@ -435,7 +435,7 @@ struct syncRunStateRet_t {
 
 // Used by HybridLWPControl
 static
-bool doPlatContProcess(int_process *p, syncRunStateRet_t *ret) {
+bool doPlatContProcess(int_process *p) {
     bool foundResumedThread = false;
     bool foundPendingStop = false;
     bool foundSyncOperation = false;
@@ -451,7 +451,6 @@ bool doPlatContProcess(int_process *p, syncRunStateRet_t *ret) {
             pthrd_printf("Found resumed thread %d/%d\n",
                     p->getPid(), (*i)->getLWP());
             foundResumedThread = true;
-            ret->hasRunningThread = true;
         }
 
         if( (*i)->clearingPendingStop() ) {
@@ -467,15 +466,10 @@ bool doPlatContProcess(int_process *p, syncRunStateRet_t *ret) {
             foundSyncOperation = true;
             (*i)->setSyncingState(false);
         }
-
-        if( (*i)->hasSyncRPC() ) {
-            pthrd_printf("Found sync RPC for %d/%d\n",
-                    p->getPid(), (*i)->getLWP());
-        }
     }
 
-    if( foundPendingStop || foundSyncOperation ||
-            (foundResumedThread && !p->hasPendingProcStop()) ) 
+    if( (foundPendingStop || foundSyncOperation ||
+            (foundResumedThread && !p->hasPendingProcStop()) ) && !mbox()->size() ) 
     {
         if( !p->plat_contProcess() ) {
             perr_printf("Failed to continue whole process\n");
@@ -519,22 +513,25 @@ bool syncRunState(int_process *p, void *r)
     * RPC Handling. 
     **/
    bool force_leave_stopped = false;
-   if( !useHybridLWPControl(tp) ) {
-       for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++)
-       {
-          int_thread *thr = *i;
-          thr->handleNextPostedIRPC(false);
+   for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++)
+   {
+      int_thread *thr = *i;
 
+      if( !useHybridLWPControl(tp) ) {
+        thr->handleNextPostedIRPC(false);
+      }
+
+      if( !p->hasPendingProcStop() ) {
           int_iRPC::ptr rpc = thr->hasRunningProcStopperRPC();
-          if (!rpc)
-             continue;
+          if (!rpc) continue;
+
           ret->hasProcStopRPC = true;
           if (rpc->getState() >= int_iRPC::Prepping) {
              pthrd_printf("Thread %d/%d has pending proc stopper RPC(%lu), leaving other threads stopped\n",
                           p->getPid(), thr->getLWP(), rpc->id());
              force_leave_stopped = true;            
           }
-       }
+      }
    }
 
    for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++)
@@ -559,7 +556,7 @@ bool syncRunState(int_process *p, void *r)
       }
       else if (thr->getInternalState() == int_thread::stopped && pstop_rpc && 
                (pstop_rpc->getState() == int_iRPC::Running ||
-                pstop_rpc->getState() == int_iRPC::Ready))
+                pstop_rpc->getState() == int_iRPC::Ready) && !p->hasPendingProcStop() )
       {
          pthrd_printf("Continuing thread %d/%d due to pending procstop iRPC\n",
                       p->getPid(), thr->getLWP());
@@ -587,11 +584,15 @@ bool syncRunState(int_process *p, void *r)
       }
 
       if (thr->getInternalState() == int_thread::running || 
-          thr->getInternalState() == int_thread::neonatal_intermediate) {
+          thr->getInternalState() == int_thread::neonatal_intermediate ||
+          thr->isResumed() ) 
+      {
          //Keep track if any threads are running and running synchronous RPCs
          ret->hasRunningThread = true;
-         if (thr->hasSyncRPC()&& !p->hasPendingProcStop()) {
+         if (thr->hasSyncRPC()&& !p->hasPendingProcStop() && thr->runningRPC()) {
             ret->hasSyncRPC = true;
+            pthrd_printf("Thread %d/%d has sync RPC\n",
+                    p->getPid(), thr->getLWP());
          }
       }
    }
@@ -609,7 +610,7 @@ bool syncRunState(int_process *p, void *r)
    }
 
    if( useHybridLWPControl() ) {
-       return doPlatContProcess(p, ret);
+       return doPlatContProcess(p);
    }
 
    return true;
@@ -677,7 +678,7 @@ bool int_process::waitAndHandleEvents(bool block)
       /**
        * Check for possible error combinations from syncRunState
        **/
-      if (!ret.hasRunningThread) {
+      if (!ret.hasRunningThread && !mbox()->size()) {
          if (gotEvent) {
             //We've successfully handled an event, but no longer have any running threads
             pthrd_printf("Returning after handling events, no threads running\n");
@@ -1353,12 +1354,6 @@ bool int_threadPool::cont(bool user_cont)
        // desync'd during the stop and restored after.
        pthrd_printf("Stopping all threads to perform continue\n");
 
-       if( user_cont && mbox()->size() ) {
-           pthrd_printf("Attempting to handle pending events before stopping process\n");
-           int_process::waitAndHandleEvents(false);
-       }
-
-
        proc()->setPendingProcStop(true);
        for(iterator i = begin(); i != end(); ++i) {
            if( !(*i)->setUserState(int_thread::running) ) {
@@ -1378,10 +1373,32 @@ bool int_threadPool::cont(bool user_cont)
 
        proc()->setPendingProcStop(false);
 
-       if( !proc()->plat_contProcess() ) {
-           perr_printf("Failed to continue whole process\n");
-           setLastError(err_internal, "Failed to continue whole process");
-           return false;
+       bool anyThreadResumed = false;
+       for(iterator i = begin(); i != end(); ++i) 
+       {
+           // Continue any threads that have running proc stopper RPCs that
+           // were postponed during the process stop that just occurred
+           int_iRPC::ptr pstop_rpc = (*i)->hasRunningProcStopperRPC();
+           if ((*i)->getInternalState() == int_thread::stopped && pstop_rpc &&
+               (pstop_rpc->getState() == int_iRPC::Running ||
+                pstop_rpc->getState() == int_iRPC::Ready) ) 
+           {
+               (*i)->intCont();
+           }
+
+           if( (*i)->isResumed() ) {
+               anyThreadResumed = true;
+           }
+       }
+
+       // It is possible that the internal state has been desync'd from the user
+       // state and all the threads remain stopped
+       if( anyThreadResumed ) {
+           if( !proc()->plat_contProcess() ) {
+               perr_printf("Failed to continue whole process\n");
+               setLastError(err_internal, "Failed to continue whole process");
+               return false;
+           }
        }
 
        return true;
@@ -1462,8 +1479,8 @@ bool int_thread::cont(bool user_cont)
       }
    }
 
-   if( useHybridLWPControl(proc_) && user_cont && 
-       !proc_->threadPool()->allStopped() )
+   if( useHybridLWPControl(llproc()) && user_cont && 
+       !llproc()->threadPool()->allStopped() )
    {
        // This thread control mode requires that all threads are stopped before
        // continuing a single thread. To peform these stops while still 
@@ -1471,32 +1488,59 @@ bool int_thread::cont(bool user_cont)
        // desync'd during the stop and restored after.
        pthrd_printf("Stopping all threads to perform continue\n");
 
-       if( user_cont && mbox()->size() ) {
-           pthrd_printf("Attempting to handle pending events before stopping process\n");
-           int_process::waitAndHandleEvents(false);
-       }
-
        if( !setUserState(int_thread::running) ) {
            perr_printf("Failed to change user state\n");
            setLastError(err_internal, "Failed to change user state");
        }
 
-       proc_->setPendingProcStop(true);
+       // In the process of readying a new RPC in handleThreadContinue above, 
+       // the thread could already be set running, in which case the work
+       // has already been done
+       if( getInternalState() == running ) {
+           pthrd_printf("Thread %d/%d already running, not stopping threads\n",
+                   llproc()->getPid(), lwp);
+           return true;
+       }
 
-       proc_->threadPool()->desyncInternalState();
-       if( !proc_->threadPool()->intStop(true) ) {
+       llproc()->setPendingProcStop(true);
+
+       llproc()->threadPool()->desyncInternalState();
+       if( !llproc()->threadPool()->intStop(true) ) {
            perr_printf("Failed to stop all running threads\n");
            setLastError(err_internal, "Failed to stop all running threads");
            return false;
        }
-       proc_->threadPool()->restoreInternalState(false);
+       llproc()->threadPool()->restoreInternalState(false);
 
-       proc_->setPendingProcStop(false);
+       llproc()->setPendingProcStop(false);
 
-       if( !proc_->plat_contProcess() ) {
-           perr_printf("Failed to continue whole process\n");
-           setLastError(err_internal, "Failed to continue whole process");
-           return false;
+       bool anyThreadResumed = false;
+       for(int_threadPool::iterator i = llproc()->threadPool()->begin();
+           i != llproc()->threadPool()->end(); ++i)
+       {
+           // Continue any threads that have running proc stopper RPCs that
+           // were postponed during the process stop that just occurred
+           int_iRPC::ptr pstop_rpc = (*i)->hasRunningProcStopperRPC();
+           if ((*i)->getInternalState() == stopped && pstop_rpc &&
+               (pstop_rpc->getState() == int_iRPC::Running ||
+                pstop_rpc->getState() == int_iRPC::Ready) ) 
+           {
+               (*i)->intCont();
+           }
+
+           if( (*i)->isResumed() ) {
+               anyThreadResumed = true;
+           }
+       }
+
+       // It is possible that the internal state has been desync'd from the user
+       // state and all the threads remain stopped
+       if( anyThreadResumed ) {
+           if( !llproc()->plat_contProcess() ) {
+               perr_printf("Failed to continue whole process\n");
+               setLastError(err_internal, "Failed to continue whole process");
+               return false;
+           }
        }
 
        return true;
@@ -1534,7 +1578,7 @@ bool int_thread::cont(bool user_cont)
 
    if( useHybridLWPControl() ) {
         if( user_cont && ret != sc_error ) {
-            if( !proc_->plat_contProcess() ) {
+            if( !llproc()->plat_contProcess() ) {
                perr_printf("Failed to continue whole process\n");
                setLastError(err_internal, "Failed to continue whole process");
                return false;
@@ -2369,7 +2413,7 @@ int_iRPC::ptr int_thread::nextPostedIRPC() const
 bool int_thread::handleNextPostedIRPC(bool block)
 {
    int_iRPC::ptr posted_rpc = nextPostedIRPC();
-   if (!posted_rpc || runningRPC() || proc_->hasPendingProcStop() )
+   if (!posted_rpc || runningRPC() || llproc()->hasPendingProcStop() )
       return true;
 
    bool ret_result = false;
@@ -2409,11 +2453,13 @@ int_iRPC::ptr int_thread::hasRunningProcStopperRPC() const
    if (running && running->isProcStopRPC()) {
       return running;
    }
-   int_iRPC::ptr nextposted = nextPostedIRPC();
-   if (!running && nextposted && nextposted->isProcStopRPC() && 
-       nextposted->getState() != int_iRPC::Posted) 
-   {
-      return nextposted;
+   if( !useHybridLWPControl(llproc()) ) {
+       int_iRPC::ptr nextposted = nextPostedIRPC();
+       if (!running && nextposted && nextposted->isProcStopRPC() && 
+           nextposted->getState() != int_iRPC::Posted) 
+       {
+          return nextposted;
+       }
    }
    return int_iRPC::ptr();
 }

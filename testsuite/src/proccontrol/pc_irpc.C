@@ -635,10 +635,10 @@ test_results_t pc_irpcMutator::executeTest()
 
    //Change these values for debugging
    unsigned allocation_mode_start = 0;
-   unsigned post_time_start = 2;
+   unsigned post_time_start = 0;
    unsigned post_to_start = 0;
    unsigned rpc_sync_start = 0;
-   unsigned thread_start_start = 1;
+   unsigned thread_start_start = 0;
 
    unsigned allocation_mode_end = 1;
    unsigned post_time_end = 2;
@@ -657,7 +657,7 @@ test_results_t pc_irpcMutator::executeTest()
                   post_to = (post_to_t) c;
                   rpc_sync = (rpc_sync_t) d;
                   thread_start = (thread_start_t) e;
-                  fprintf(stderr, "Running: allocation_mode=%s post_time=%s post_to=%s " 
+                  logerror("Running: allocation_mode=%s post_time=%s post_to=%s " 
                           "rpc_sync=%s thread_start=%s\n", am_str(), pti_str(), pto_str(), 
                           rs_str(), ts_str());
                   runIRPCs();

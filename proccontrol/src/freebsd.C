@@ -142,7 +142,40 @@ using namespace ProcControlAPI;
  *  
  * See the ChangePCHandler as well for more info.
  *
- * TODO submit a problem report to FreeBSD devs for this
+ * TODO submit a problem report (or possibly a feature request) to 
+ * FreeBSD devs for this
+ *
+ * --- bug_freebsd_lost_signal ---
+ * 
+ * Here is the scenario:
+ *
+ * 1) A signal (such as a SIGTRAP) is delivered to a specific thread, which
+ * stops the whole process.
+ *
+ * 2) The user (or handler) thread wishes to make a specific thread stop. Not
+ * knowing that the process has already been stopped, a SIGSTOP is sent to the
+ * thread. The user (or handler) thread then waits for the stop event.
+ *
+ * 3) The generator observes the SIGTRAP event (via waitpid) and generates the
+ * event for it.  
+ *
+ * 4) The user (or handler) thread handle the SIGTRAP event but continues to
+ * wait on the pending stop.
+ *
+ * At this point, the user (or handler) thread could wait indefinitely for the
+ * pending stop, if the debuggee is blocked in the kernel. The problem is that
+ * when the process is continued after the SIGSTOP is sent to the stopped 
+ * process, the thread blocked in the kernel does not wakeup to handle the
+ * new signal that was delivered to it while it was stopped.
+ *
+ * Unfortunately, I was not able to come up with a solid workaround for this bug
+ * because there wasn't a race-free way to determine if the process was stopped
+ * before sending it a signal (i.e., after checking whether the process was stopped,
+ * the OS could deschedule the ProcControl process and the debuggee could hit a
+ * breakpoint or finish an iRPC, resulting in ProcControl's model of the debuggee
+ * being inconsistent).
+ *
+ * TODO sumbit a problem report to FreeBSD devs for this.
  */
 
 Generator *Generator::getDefaultGenerator() {
@@ -330,6 +363,13 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
         const int stopsig = WSTOPSIG(status);
 
         lthread->setSignalStopped(true);
+        for(int_threadPool::iterator i = proc->threadPool()->begin();
+            i != proc->threadPool()->end(); ++i)
+        {
+            if( (*i) != lthread ) {
+                static_cast<freebsd_thread *>(*i)->setSignalStopped(false);
+            }
+        }
 
         pthrd_printf("Decoded to signal %s\n", strsignal(stopsig));
         switch( stopsig ) {
@@ -488,6 +528,7 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
                     event = Event::ptr(new EventChangePCStop());
                     break;
                 }
+#if 0
                 //Debugging code
                 if (stopsig == SIGSEGV) {
                    Dyninst::MachRegisterVal addr;
@@ -505,9 +546,10 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
                    }
                    fprintf(stderr, "\n");
 
-                   //assert(!"Received SIGSEGV");
-                   while(1) sleep(1);
+                   ptrace(PT_CONTINUE, proc->getPid(), (caddr_t)1, SIGABRT);
+                   assert(!"Received SIGSEGV");
                 }
+#endif
                 event = Event::ptr(new EventSignal(stopsig));
                 break;
         }
@@ -561,6 +603,28 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
     delete archevent;
 
     return true;
+}
+
+static 
+bool tkill(pid_t pid, long lwp, int sig) {
+    static bool has_tkill = true;
+    int result = 0;
+
+    pthrd_printf("Sending %d to %d/%ld\n", sig, pid, lwp);
+
+    if( has_tkill ) {
+        result = syscall(SYS_thr_kill2, pid, lwp, sig);
+        if( 0 != result && ENOSYS == errno ) {
+            pthrd_printf("Using kill instead of tkill on this system\n");
+            has_tkill = false;
+        }
+    }
+
+    if( !has_tkill ) {
+        result = kill(pid, sig);
+    }
+
+    return (result == 0);
 }
 
 int_process *int_process::createProcess(Dyninst::PID pid_, std::string exec) {
@@ -1150,11 +1214,13 @@ bool freebsd_process::post_attach() {
                 return false;
             }
 
+#if defined(bug_freebsd_lost_signal)
             pthrd_printf("attach workaround: sending stop to %d/%d\n",
                     getPid(), thrd->getLWP());
             if( !thrd->plat_stop() ) {
                 return false;
             }
+#endif
 
             pthrd_printf("attach workaround: handling stop of %d/%d\n",
                     getPid(), thrd->getLWP());
@@ -1176,6 +1242,7 @@ FreeBSDChangePCHandler::FreeBSDChangePCHandler()
 FreeBSDChangePCHandler::~FreeBSDChangePCHandler()
 {}
 
+
 bool FreeBSDChangePCHandler::handleEvent(Event::ptr ev) {
     freebsd_thread *lthread = static_cast<freebsd_thread *>(ev->getThread()->llthrd());
 
@@ -1196,32 +1263,8 @@ void FreeBSDChangePCHandler::getEventTypesHandled(std::vector<EventType> &etypes
 }
 #endif
 
-static 
-bool t_kill(pid_t pid, long lwp, int sig) {
-    static bool has_tkill = true;
-    int result = 0;
-
-    pthrd_printf("Sending %d to %d/%ld\n", sig, pid, lwp);
-
-    if( has_tkill ) {
-        result = syscall(SYS_thr_kill2, pid, lwp, sig);
-        if( 0 != result && ENOSYS == errno ) {
-            pthrd_printf("Using kill instead of tkill on this system\n");
-            has_tkill = false;
-        }
-    }
-
-    if( !has_tkill ) {
-        result = kill(pid, sig);
-    }
-
-    return (result == 0);
-}
-
 bool freebsd_process::plat_contProcess() {
-
     ProcPool()->condvar()->lock();
-
     for(int_threadPool::iterator i = threadPool()->begin();
         i != threadPool()->end(); ++i)
     {
@@ -1230,9 +1273,11 @@ bool freebsd_process::plat_contProcess() {
             (*i)->setHandlerState(int_thread::running);
             (*i)->setGeneratorState(int_thread::running);
             (*i)->setResumed(false);
-        }else{
+        }else if( (*i)->getInternalState() == int_thread::stopped ) {
+            pthrd_printf("Suspending before continue %d/%d\n",
+                    getPid(), (*i)->getLWP());
             if( !(*i)->plat_suspend() ) {
-                perr_printf("failed to suspend thread %d/%d\n",
+                perr_printf("Failed to suspend thread %d/%d\n",
                         getPid(), (*i)->getLWP());
                 setLastError(err_internal, "low-level continue failed");
                 return false;
@@ -1241,6 +1286,38 @@ bool freebsd_process::plat_contProcess() {
     }
     ProcPool()->condvar()->signal();
     ProcPool()->condvar()->unlock();
+
+#if defined(bug_freebsd_change_pc)
+    freebsd_thread *pcBugThrd = NULL;
+
+    for(int_threadPool::iterator i = threadPool()->begin();
+        i != threadPool()->end(); ++i)
+    {
+        freebsd_thread *thrd = static_cast<freebsd_thread *>(*i);
+        if( thrd->hasPCBugCondition() && thrd->getInternalState() == int_thread::running ) {
+            // Only wait for one PC bug signal at a time
+            if( !thrd->hasPendingPCBugSignal() ) {
+                pcBugThrd = thrd;
+            }else{
+                pthrd_printf("Waiting for PC bug signal for thread %d/%d\n",
+                        getPid(), thrd->getLWP());
+                pcBugThrd = NULL;
+                break;
+            }
+        }
+    }
+
+    if( NULL != pcBugThrd ) {
+        pthrd_printf("Attempting to handle change PC bug condition for %d/%d\n",
+                getPid(), pcBugThrd->getLWP());
+        pcBugThrd->setPendingPCBugSignal(true);
+        if( !tkill(getPid(), pcBugThrd->getLWP(), PC_BUG_SIGNAL) ) {
+            perr_printf("Failed to handle change PC bug condition\n");
+            setLastError(err_internal, "sending signal failed");
+            return false;
+        }
+    }
+#endif
 
     /* Single-stepping is enabled/disabled using PT_SETSTEP
      * and PT_CLEARSTEP instead of continuing the process
@@ -1254,35 +1331,7 @@ bool freebsd_process::plat_contProcess() {
         return false;
     }
 
-#if defined(bug_freebsd_change_pc)
-    freebsd_thread *pcBugThrd = NULL;
-
-    for(int_threadPool::iterator i = threadPool()->begin();
-        i != threadPool()->end(); ++i)
-    {
-        freebsd_thread *thrd = static_cast<freebsd_thread *>(*i);
-        if( thrd->hasPCBugCondition() ) {
-            if( !thrd->hasPendingPCBugSignal() ) {
-                pcBugThrd = thrd;
-                break;
-            }
-        }
-    }
-
-    if( NULL != pcBugThrd && mbox()->peek() == Event::ptr() ) {
-        pthrd_printf("Attempting to handle change PC bug condition for %d/%d\n",
-                getPid(), pcBugThrd->getLWP());
-        pcBugThrd->setPendingPCBugSignal(true);
-        if( !t_kill(getPid(), pcBugThrd->getLWP(), PC_BUG_SIGNAL) ) {
-            perr_printf("Failed to handle change PC bug condition\n");
-            setLastError(err_internal, "sending signal failed");
-            return false;
-        }
-    }
-#endif
-
-
-#if defined(bug_freebsd_missing_sigstop) 
+#if defined(bug_freebsd_missing_sigstop)
     // XXX this workaround doesn't always work
     sched_yield();
 #endif
@@ -1291,17 +1340,17 @@ bool freebsd_process::plat_contProcess() {
 }
 
 bool freebsd_thread::plat_stop() {
-    Dyninst::PID pid = proc_->getPid();
+    Dyninst::PID pid = llproc()->getPid();
 
-    if( !t_kill(pid, lwp, SIGSTOP) ) {
+    if( !tkill(pid, lwp, SIGSTOP) ) {
         int errnum = errno;
         if( ESRCH == errnum ) {
-            pthrd_printf("t_kill failed for %d/%d, thread/process doesn't exist\n", lwp, pid);
+            pthrd_printf("tkill failed for %d/%d, thread/process doesn't exist\n", lwp, pid);
             setLastError(err_noproc, "Thread no longer exists");
             return false;
         }
-        pthrd_printf("t_kill failed on %d/%d: %s\n", lwp, pid, strerror(errnum));
-        setLastError(err_internal, "Could not send signal to process while stopping");
+        pthrd_printf("tkill failed on %d/%d: %s\n", lwp, pid, strerror(errnum));
+        setLastError(err_internal, "Could not send signal to process");
         return false;
     }
 
@@ -1310,20 +1359,20 @@ bool freebsd_thread::plat_stop() {
 
 bool freebsd_thread::plat_cont() {
     pthrd_printf("Continuing thread %d/%d\n", 
-            proc_->getPid(), lwp);
+            llproc()->getPid(), lwp);
 
     if( !plat_setStep() ) return false;
 
     // Calling resume only makes sense for processes with multiple threads
     setSignalStopped(false);
-    if( proc_->threadPool()->size() > 1 ) {
+    if( llproc()->threadPool()->size() > 1 ) {
         if( !plat_resume() ) return false;
     }
 
     // Because all signals stop the whole process, only one thread should
     // have a non-zero continue signal
     if( continueSig_ ) {
-        proc_->setContSignal(continueSig_);
+        llproc()->setContSignal(continueSig_);
     }
 
     return true;
@@ -1337,11 +1386,11 @@ bool freebsd_thread::plat_setStep() {
     int result;
     if( singleStep() ) {
         pthrd_printf("Calling PT_SETSTEP on %d/%d\n", 
-                proc_->getPid(), lwp);
+                llproc()->getPid(), lwp);
         result = ptrace(PT_SETSTEP, lwp, (caddr_t)1, 0);
     }else{
         pthrd_printf("Calling PT_CLEARSTEP on %d/%d\n", 
-                proc_->getPid(), lwp);
+                llproc()->getPid(), lwp);
         result = ptrace(PT_CLEARSTEP, lwp, (caddr_t)1, 0);
     }
 
@@ -1462,7 +1511,7 @@ bool freebsd_thread::plat_getAllRegisters(int_registerPool &regpool) {
 
     if( 0 != ptrace(PT_GETREGS, lwp, (caddr_t)regPtr, 0) ) {
         perr_printf("Error reading registers from %d/%d: %s\n", 
-                proc_->getPid(), lwp, strerror(errno));
+                llproc()->getPid(), lwp, strerror(errno));
         setLastError(err_internal, "Could not read registers from thread");
         return false;
     }
@@ -1568,7 +1617,7 @@ bool freebsd_thread::plat_setAllRegisters(int_registerPool &regpool) {
         if( EINVAL == errno ) {
             // This usually means that the flag register would change some system status bits
             pthrd_printf("Attempting to handle EINVAL caused by PT_SETREGS for %d/%d\n", 
-                    proc_->getPid(), lwp);
+                    llproc()->getPid(), lwp);
 
             if( validateRegisters(&registers, lwp) ) {
                 if( !ptrace(PT_SETREGS, lwp, (caddr_t)&registers, 0) ) {
@@ -1587,17 +1636,17 @@ bool freebsd_thread::plat_setAllRegisters(int_registerPool &regpool) {
         }
     }
 
-    pthrd_printf("Successfully set the values of all registers for LWP %d\n", lwp);
-
 #if defined(bug_freebsd_change_pc)
-    if( proc_->threadPool()->size() > 1 && !isSignalStopped() && 
+    if( llproc()->threadPool()->size() > 1 && !isSignalStopped() && 
             (runningRPC() || int_process::isInCB()) ) 
     {
         pthrd_printf("Setting change PC bug condition for %d/%d\n",
-                proc_->getPid(), lwp);
+                llproc()->getPid(), lwp);
         setPCBugCondition(true);
     }
 #endif
+
+    pthrd_printf("Successfully set the values of all registers for LWP %d\n", lwp);
 
     return true;
 }
