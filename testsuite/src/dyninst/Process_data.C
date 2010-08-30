@@ -53,11 +53,11 @@ BPatch_thread *Process_data::getThread()
 bool Process_data::terminate()
 {
    /* alpha workaround - terminateExecution did not exit on a stopped process */
-   if ( bp_process->isStopped() )
+    if ( bp_process->getProcess()->isStopped() )
    {
-      bp_process->continueExecution();
+       bp_process->getProcess()->continueExecution();
    }
-   return bp_process->terminateExecution();
+   return bp_process->getProcess()->terminateExecution();
 }
 
 void ProcessList::insertThread(BPatch_thread *appThread)

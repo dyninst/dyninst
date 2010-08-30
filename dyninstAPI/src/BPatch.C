@@ -706,32 +706,6 @@ BPatch_thread *BPatch::getThreadByPid(int pid, bool *exists)
 }
 
 
-/*
- * BPatch::getThreads
- *
- * Returns a vector of all threads that are currently defined.  Includes
- * threads created directly using the library and those created with UNIX fork
- * or Windows NT spawn system calls.  The caller is responsible for deleting
- * the vector when it is no longer needed.
- */
-BPatch_Vector<BPatch_thread *> *BPatch::getThreadsInt()
-{
-    BPatch_Vector<BPatch_thread *> *result = new BPatch_Vector<BPatch_thread *>;
-
-    dictionary_hash_iter<int, BPatch_process *> ti(info->procsByPid);
-
-    int pid;
-    BPatch_process *proc;
-
-    while (ti.next(pid, proc))
-    {
-       assert(proc);
-       assert(proc->threads.size() > 0);
-       result->push_back(proc->threads[0]);
-    }
-
-    return result;
-}
 
 /*
  * BPatch::getProcs
@@ -1364,22 +1338,6 @@ BPatch_process *BPatch::processCreateInt(const char *path, const char *argv[],
    return ret;
 }
 
-/*
- * BPatch::createProcess
- * This function is deprecated, see processCreate
- */
-BPatch_thread *BPatch::createProcessInt(const char *path, const char *argv[], 
-                                         const char **envp, int stdin_fd, 
-                                         int stdout_fd, int stderr_fd)
-{
-   BPatch_process *ret = processCreateInt(path, argv, envp, stdin_fd, 
-                                          stdout_fd, stderr_fd);
-   if (!ret)
-      return NULL;
-
-   assert(ret->threads.size() > 0);
-   return ret->threads[0];
-}
 
 /*
  * BPatch::processAttach
@@ -1426,20 +1384,6 @@ BPatch_process *BPatch::processAttachInt
    if (!ret->updateThreadInfo()) return false;
 
    return ret;
-}
-
-/*
- * BPatch::attachProcess
- * This function is deprecated, see processAttach
- */
-BPatch_thread *BPatch::attachProcessInt(const char *path, int pid)
-{
-   BPatch_process *proc = processAttachInt(path, pid);
-   if (!proc)
-      return NULL;
-   
-   assert(proc->threads.size() > 0);
-   return proc->threads[0];
 }
 
 /*
@@ -1829,7 +1773,7 @@ bool BPatch::waitUntilStoppedInt(BPatch_thread *appThread){
 
    while (1) {
      __LOCK;
-     if (!appThread->isStopped() && !appThread->isTerminated()) {
+     if (!appThread->getProcess()->isStopped() && !appThread->getProcess()->isTerminated()) {
        __UNLOCK;
        this->waitForStatusChange();
      }
@@ -1841,7 +1785,7 @@ bool BPatch::waitUntilStoppedInt(BPatch_thread *appThread){
 
    __LOCK;
 
-	if (!appThread->isStopped())
+   if (!appThread->getProcess()->isStopped())
 	{
 		cerr << "ERROR : process did not signal mutator via stop"
 		     << endl;
@@ -1850,8 +1794,8 @@ bool BPatch::waitUntilStoppedInt(BPatch_thread *appThread){
 	}
 #if defined(i386_unknown_nt4_0) || \
     defined(mips_unknown_ce2_11)
-	else if((appThread->stopSignal() != EXCEPTION_BREAKPOINT) && 
-		(appThread->stopSignal() != -1))
+	else if((appThread->getProcess()->stopSignal() != EXCEPTION_BREAKPOINT) && 
+		(appThread->getProcess()->stopSignal() != -1))
 	{
 		cerr << "ERROR : process stopped on signal different"
 		     << " than SIGTRAP" << endl;
@@ -1859,11 +1803,11 @@ bool BPatch::waitUntilStoppedInt(BPatch_thread *appThread){
  		goto done;
 	}
 #else
-	else if ((appThread->stopSignal() != SIGSTOP) &&
+	else if ((appThread->getProcess()->stopSignal() != SIGSTOP) &&
 #if defined(bug_irix_broken_sigstop)
-		 (appThread->stopSignal() != SIGEMT) &&
+		 (appThread->getProcess()->stopSignal() != SIGEMT) &&
 #endif 
-		 (appThread->stopSignal() != SIGHUP)) {
+		 (appThread->getProcess()->stopSignal() != SIGHUP)) {
 		cerr << "ERROR :  process stopped on signal "
 		     << "different than SIGSTOP" << endl;
 		ret =  false;

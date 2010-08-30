@@ -831,6 +831,7 @@ test_start_state('test2_13', 'stopped').
 groupable_test('test2_13').
 tests_module('test2_13', 'dyninst').
 
+% test2_14 used getThreads(), which has been deprecated forever and is now gone.
 test('test2_14', 'test2_14', 'test2_14').
 test_runs_everywhere('test2_14').
 mutator('test2_14', ['test2_14.C']).

@@ -66,8 +66,8 @@ extern "C" DLLEXPORT  TestMutator *test2_6_factory() {
 //
 // static int mutatorTest(BPatch_thread *thread, BPatch_image *img)
 test_results_t test2_6_Mutator::executeTest() {
-    appThread->continueExecution();
-    waitUntilStopped(bpatch, appThread, 6, "load a dynamically linked library");
+    appProc->continueExecution();
+    waitUntilStopped(bpatch, appProc, 6, "load a dynamically linked library");
     bool found = false;
 
     // see if the dlopen happened.
@@ -90,16 +90,16 @@ test_results_t test2_6_Mutator::executeTest() {
     if (found) {
     	logerror("Passed test #6 (load a dynamically linked library from the mutatee)\n");
 	
-	appThread->continueExecution();
-	while (!appThread->getProcess()->isTerminated()) {
+	appProc->continueExecution();
+	while (!appProc->isTerminated()) {
 	  bpatch->waitForStatusChange();
 	}
         return PASSED;
     } else {
     	logerror("**Failed** test #6 (load a dynamically linked library from the mutatee)\n");
 	logerror("    image::getModules() did not indicate that the library had been loaded\n");
-	appThread->continueExecution();
-	while (!appThread->getProcess()->isTerminated()) {
+	appProc->continueExecution();
+        while (!appProc->isTerminated()) {
 	  bpatch->waitForStatusChange();
 	}
         return FAILED;

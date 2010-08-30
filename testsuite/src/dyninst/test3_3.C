@@ -111,23 +111,23 @@ test_results_t test3_3_Mutator::executeTest() {
     child_argv[n++] = NULL;
 
     int pid[MAX_MUTATEES];
-    BPatch_thread *appThread[MAX_MUTATEES];
+    BPatch_process *appProc[MAX_MUTATEES];
 
-    for (n=0; n<MAX_MUTATEES; n++) appThread[n]=NULL;
+    for (n=0; n<MAX_MUTATEES; n++) appProc[n]=NULL;
 
     // Start the mutatees
     for (n=0; n<Mutatees; n++) {
         dprintf("Starting \"%s\" %d/%d\n", pathname, n, Mutatees);
-        appThread[n] = bpatch->createProcess(pathname, child_argv, NULL);
-        if (!appThread[n]) {
+        appProc[n] = bpatch->processCreate(pathname, child_argv, NULL);
+        if (!appProc[n]) {
             logerror("*ERROR*: unable to create handle%d for executable\n", n);
             logerror("**Failed** test #3 (instrument multiple processes)\n");
 			if(n > 0) {
-	            MopUpMutatees(n-1,appThread);
+                            MopUpMutatees(n-1,appProc);
 			}
             return FAILED;
         }
-        pid[n] = appThread[n]->getPid();
+        pid[n] = appProc[n]->getPid();
         dprintf("Mutatee %d started, pid=%d\n", n, pid[n]);
 	registerPID(pid[n]); // Register for cleanup
     }
@@ -139,7 +139,7 @@ test_results_t test3_3_Mutator::executeTest() {
         const char *Func="test3_3_mutatee";
         const char *Var = "test3_3_ret";
         const char *Call="test3_3_call1";
-        BPatch_image *img = appThread[n]->getImage();
+        BPatch_image *img = appProc[n]->getImage();
 
   BPatch_Vector<BPatch_function *> found_funcs;
     if ((NULL == img->findFunction(Func, found_funcs, 1)) || !found_funcs.size()) {
@@ -158,14 +158,14 @@ test_results_t test3_3_Mutator::executeTest() {
         if (!point || (*point).size() == 0) {
             logerror("  Unable to find entry point to \"%s\".\n", Func);
             logerror("**Failed** test #3 (instrument multiple processes)\n");
-            MopUpMutatees(Mutatees,appThread);
+            MopUpMutatees(Mutatees,appProc);
             return FAILED;
         }
         BPatch_variableExpr *var = img->findVariable(Var);
         if (var == NULL) {
             logerror("  Unable to find variable \"%s\".\n", Var);
             logerror("**Failed** test #3 (instrument multiple processes)\n");
-            MopUpMutatees(Mutatees,appThread);
+            MopUpMutatees(Mutatees,appProc);
             return FAILED;
         }
 
@@ -181,11 +181,11 @@ test_results_t test3_3_Mutator::executeTest() {
 
         // start with a simple snippet
         BPatch_arithExpr snip(BPatch_assign, *var, BPatch_constExpr((int)n));
-        BPatchSnippetHandle *inst = appThread[n]->insertSnippet(snip, *point);
+        BPatchSnippetHandle *inst = appProc[n]->insertSnippet(snip, *point);
         if (inst == NULL) {
             logerror("  Failed to insert simple snippet.\n");
             logerror("**Failed** test #3 (instrument multiple processes)\n");
-            MopUpMutatees(Mutatees,appThread);
+            MopUpMutatees(Mutatees,appProc);
             return FAILED;
         }
 
@@ -195,17 +195,17 @@ test_results_t test3_3_Mutator::executeTest() {
         BPatch_constExpr arg2((int)n); callArgs.push_back(&arg2);
         BPatch_funcCallExpr callExpr(*callFunc, callArgs);
         BPatchSnippetHandle *call = 
-                appThread[n]->insertSnippet(callExpr, *point);
+                appProc[n]->insertSnippet(callExpr, *point);
         if (call == NULL) {
             logerror("  Failed to insert call snippet.\n");
             logerror("**Failed** test #3 (instrument multiple processes)\n");
-            MopUpMutatees(Mutatees,appThread);
+            MopUpMutatees(Mutatees,appProc);
             return FAILED;
         }
     }
 
     dprintf("Letting %d mutatee processes run.\n", Mutatees);
-    for (n=0; n<Mutatees; n++) appThread[n]->continueExecution();
+    for (n=0; n<Mutatees; n++) appProc[n]->continueExecution();
 
     unsigned int numTerminated=0;
     bool terminated[MAX_MUTATEES];
@@ -215,15 +215,15 @@ test_results_t test3_3_Mutator::executeTest() {
     while (numTerminated < Mutatees) {
 	bpatch->waitForStatusChange();
         for (n=0; n<Mutatees; n++)
-            if (!terminated[n] && (appThread[n]->isTerminated())) {
-                if(appThread[n]->terminationStatus() == ExitedNormally) {
-                    int exitCode = appThread[n]->getExitCode();
+            if (!terminated[n] && (appProc[n]->isTerminated())) {
+            if(appProc[n]->terminationStatus() == ExitedNormally) {
+                int exitCode = appProc[n]->getExitCode();
                     if (exitCode || debugPrint)
                         dprintf("Mutatee %d exited with exit code 0x%x\n", n,
                                 exitCode);
                 }
-                else if(appThread[n]->terminationStatus() == ExitedViaSignal) {
-                    int signalNum = appThread[n]->getExitSignal();
+                else if(appProc[n]->terminationStatus() == ExitedViaSignal) {
+                    int signalNum = appProc[n]->getExitSignal();
                     if (signalNum || debugPrint)
                         dprintf("Mutatee %d exited from signal 0x%d\n", n,
                                 signalNum);

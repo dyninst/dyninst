@@ -96,7 +96,7 @@ int test2_8_Mutator::test8a() {
 
     BPatch_breakPointExpr bp;
 
-    if (appThread->insertSnippet(bp, *points) == NULL) {
+    if (appProc->insertSnippet(bp, *points) == NULL) {
 	logerror("**Failed** test #8 (BPatch_breakPointExpr)\n");
 	logerror("    unable to insert breakpoint snippet\n");
         return -1;
@@ -108,7 +108,7 @@ int test2_8_Mutator::test8a() {
 int test2_8_Mutator::test8b()
 {
   // Wait for process to finish
-  if (0 == waitUntilStopped(bpatch, appThread, 8, "BPatch_breakPointExpr")) {
+    if (0 == waitUntilStopped(bpatch, appProc, 8, "BPatch_breakPointExpr")) {
     // waitUntilStopped finished successfully
     logerror("Passed test #8 (BPatch_breakPointExpr)\n");
     return 0;
@@ -127,7 +127,7 @@ test_results_t test2_8_Mutator::executeTest() {
      return FAILED;
    }
    // Let the mutatee run until it hits the breakpoint.
-   appThread->continueExecution();
+   appProc->continueExecution();
 
    if (test8b() < 0) {
      // Something went wrong in test8b.  Probably we got the wrong signal code
@@ -145,7 +145,7 @@ test_results_t test2_8_Mutator::executeTest() {
       int pvalue = 1;
       passed_expr->writeValue(&pvalue);
       // Continue the mutatee from the breakpoint so it can exit
-      appThread->continueExecution();
+      appProc->continueExecution();
       return PASSED;
    }
 }
@@ -156,11 +156,12 @@ test_results_t test2_8_Mutator::setup(ParameterDict &param) {
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
 
     appThread = (BPatch_thread *)(param["appThread"]->getPtr());
-
+    appProc = appThread->getProcess();
+    
     // Read the program's image and get an associated image object
-    appImage = appThread->getImage();
-  if ( useAttach ) {
-	  if ( ! signalAttached(appThread, appImage) ) {
+    appImage = appProc->getImage();
+    if ( useAttach ) {
+	  if ( ! signalAttached(appImage) ) {
 		  return FAILED;
 	  }
   }

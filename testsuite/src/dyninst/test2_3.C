@@ -66,7 +66,7 @@ extern "C" DLLEXPORT  TestMutator *test2_3_factory() {
 test_results_t test2_3_Mutator::executeTest() {
     // attach to an an invalid pid
     clearError();
-    BPatch_thread *ret = bpatch->attachProcess(NULL, 65539);
+    BPatch_process *ret = bpatch->processAttach(NULL, 65539);
     int gotError = getError();
     if (ret || !gotError) {
 	logerror("**Failed** test #3 (attach to an invalid pid)\n");

@@ -426,9 +426,9 @@ class int_function : public patchTarget {
                        std::vector<Address>& targets, 
                        std::vector<EdgeTypeEnum>& edgeTypes);
 
-   const bool isSignalHandler() {return handlerFaultAddr_ != 0;} 
-   const Address getHandlerFaultAddr() {return handlerFaultAddr_;} 
-   const Address getHandlerFaultAddrAddr() {return handlerFaultAddrAddr_;} 
+   bool isSignalHandler() {return handlerFaultAddr_ != 0;}
+   Address getHandlerFaultAddr() {return handlerFaultAddr_;}
+   Address getHandlerFaultAddrAddr() {return handlerFaultAddrAddr_;}
    void fixHandlerReturnAddr(Address newAddr);
    void setHandlerFaultAddr(Address fa);
    void setHandlerFaultAddrAddr(Address faa, bool set);

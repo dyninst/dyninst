@@ -101,28 +101,3 @@ test_results_t test2_5_Mutator::executeTest()
 
     return result;
 }
-
-// extern "C" TEST_DLL_EXPORT int test2_5_mutatorMAIN(ParameterDict &param)
-// {
-//     bool useAttach = param["useAttach"]->getInt();
-//     BPatch *bpatch = (BPatch *)(param["bpatch"]->getPtr());
-
-//     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
-
-//     // Read the program's image and get an associated image object
-//     BPatch_image *appImage = appThread->getImage();
-
-//     // Get log file pointers
-//     FILE *outlog = (FILE *)(param["outlog"]->getPtr());
-//     FILE *errlog = (FILE *)(param["errlog"]->getPtr());
-//     setOutputLog(outlog);
-//     setErrorLog(errlog);
-
-//     // Signal the child that we've attached
-//     if (useAttach) {
-// 	signalAttached(appThread, appImage);
-//     }
-
-//     // This calls the actual test to instrument the mutatee
-//     return mutatorTest(appThread, appImage);
-// }
