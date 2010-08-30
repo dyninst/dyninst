@@ -1087,12 +1087,6 @@ bool FreeBSDStopHandler::handleEvent(Event::ptr ev) {
             return false;
         }
 
-        if( !lthread->plat_setStep() ) {
-            perr_printf("Failed to set single step setting for thread %d/%d\n",
-                    lproc->getPid(), lthread->getLWP());
-            return false;
-        }
-
         // Since the default thread stop handler is being wrapped, set this flag
         // here so the default handler doesn't have problems
         if( lthread->hasBootstrapStop() ) {
