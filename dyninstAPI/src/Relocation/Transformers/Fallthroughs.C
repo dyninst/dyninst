@@ -85,12 +85,12 @@ bool Fallthroughs::process(TraceList::iterator &iter, TracePtr next) {
 
     if (target->matches(next)) {
       relocation_cerr << "\t " << d_iter->first << ": target " << target->format()
-		      << " and next block " << next->id() << ", setting false" << endl;
+		      << " and next block " << next->id() << ", setting branch not required" << endl;
       target->setNecessary(false);
     }
     else {
       relocation_cerr << "\t " << d_iter->first << ": target " << target->format()
-		      << " and next block " << next->id() << ", setting true" << endl;
+		      << " and next block " << next->id() << ", setting branch required" << endl;
       target->setNecessary(true);
     }
   }
