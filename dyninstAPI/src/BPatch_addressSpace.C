@@ -813,6 +813,7 @@ BPatchSnippetHandle *BPatch_addressSpace::insertSnippetAtPointsWhen(const BPatch
 
       if (mini) {
 	ret->mtHandles_.push_back(mini);
+	bppoint->recordSnippet(when, order, ret);
       }
    }
 
