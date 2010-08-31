@@ -159,8 +159,10 @@ bool HybridAnalysis::setMode(BPatch_hybridMode mode)
 
 // return number of instrumented points, 1 or 0, if the handle is NULL
 int HybridAnalysis::saveInstrumentationHandle(Address pointAddr, 
-                                             BPatchSnippetHandle *handle) 
+                                              BPatchSnippetHandle *handle) 
 {
+    assert(instrumentedPoints->end() == instrumentedPoints->find(pointAddr));
+
     if (handle != NULL) {
         (*instrumentedPoints)[pointAddr] = handle;
         return 1;
@@ -614,8 +616,8 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
         }
         // if the point is dynamic, re-instrument it to use the cache
         if (callPoint->isDynamic()) {
-            mal_printf("replaced instrumentation at indirect call "
-                        "point %lx instrumentation that uses the cache "
+            mal_printf("replacing instrumentation at indirect call point "
+                        "%lx with instrumentation that uses the cache "
                         "%s[%d]\n", callPoint->getAddress(),FILE__,__LINE__);
             BPatch_stopThreadExpr newSnippet (
                     badTransferCB_wrapper, BPatch_dynamicTargetExpr(), 

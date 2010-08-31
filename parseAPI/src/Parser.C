@@ -367,10 +367,9 @@ Parser::parse_frames(vector<ParseFrame *> & work, bool recursive)
             case ParseFrame::PARSED:
                 parsing_printf("[%s] frame %lx complete, return status: %d\n",
                     FILE__,pf->func->addr(),pf->func->_rs);
-                if (unlikely(_obj.defensiveMode() && 
-                             (TAMPER_ABS == pf->func->tampersStack() ||
-                              TAMPER_REL == pf->func->tampersStack())))
-                {
+                if (unlikely( _obj.defensiveMode() && 
+                              TAMPER_NONZERO != pf->func->tampersStack() ))
+                {   // add a fallthrough / tamper-target edge if there is one
                     vector<ParseFrame*> tamperFrames;
                     getTamperFrames(pf->func, tamperFrames);
                     for (unsigned tidx=0; tidx < tamperFrames.size(); tidx++) {
@@ -431,10 +430,10 @@ Parser::finalize(Function *f)
     // finish delayed parsing and sorting
     vector<Block*> const& blocks = f->blocks_int();
 
-    // if this is the first time we've parsed in this function, trigger
-    // new function callback
-    if (0 == f->_extents.size()) {
-        _pcb.newfunction_retstatus( f );
+    // is this the first time we've parsed this function?
+    bool firstParse = true;
+    if (unlikely( f->_extents.size() )) {
+        firstParse = false;
     }
     
     // extents
@@ -468,6 +467,11 @@ Parser::finalize(Function *f)
     f->_extents.push_back(ext);
 
     f->_cache_valid = true;
+
+    if (unlikely( f->obj()->defensiveMode() && firstParse )) {
+        f->tampersStack();
+        _pcb.newfunction_retstatus( f );
+    }
 }
 
 void
@@ -1364,40 +1368,142 @@ Parser::remove_block(Dyninst::ParseAPI::Block *block)
     _parse_data->remove_block(block);
 }
 
-void Parser::getTamperFrames(Function *func, std::vector<ParseFrame*> & frames)
+void 
+Parser::getTamperFrames(Function *func, std::vector<ParseFrame*> & frames)
 {
-    vector<Address> targs;
-    if (TAMPER_ABS == func->tampersStack()) {
-        targs.push_back(func->_tamper_addr);
-    } else if (TAMPER_REL == func->tampersStack()) {
+    // edge (optional), and target function pairs
+    struct frame_info {
+        frame_info(Address t, Edge *e, Function *f) {
+            target = t;
+            edge = e;
+            tfunc = f;
+        }
+        Address target;
+        Edge *edge;
+        Function *tfunc;
+    };
+    vector<frame_info*> finfo;
+    switch (func->tampersStack()) {
+    case (TAMPER_NONE): {
+        // add a fallthrough edge
+        Block *entry = func->entry();
+        assert(entry);
+        Block::edgelist calls = entry->sources();
+        for (Block::edgelist::iterator cit = calls.begin(); 
+             cit != calls.end(); cit++) 
+        {
+            if (CALL != (*cit)->type()) {
+                continue;
+            }
+            bool hasFallthrough = false;
+            Block *caller = (*cit)->src();
+            Block::edgelist outs = caller->targets();
+            for (Block::edgelist::iterator oit = outs.begin(); 
+                 oit != outs.end(); oit++) 
+            {
+                if (CALL_FT == (*oit)->type()) {
+                    hasFallthrough = true;
+                    break;
+                }
+            }
+            if (!hasFallthrough) {
+                Edge *tedge = link_tempsink(caller,CALL_FT);
+                vector<Function*> funcs;
+                caller->getFuncs(funcs);
+                finfo.push_back( 
+                    new frame_info(
+                        func->addr(), 
+                        tedge, 
+                        funcs.front() )
+                    );
+            }
+        }
+        break;
+    }
+    case (TAMPER_ABS): {
+        Function * tfunc = NULL;
+        Address target = func->_tamper_addr;
+        // for the target to be valid, it must be greater than the binary's 
+        // load addr, which should be subtracted from it
+        if (func->_tamper_addr > func->obj()->cs()->loadAddress()) {
+            target -= func->obj()->cs()->loadAddress();
+            tfunc = _parse_data->get_func
+                (func->region(), 
+                 target, 
+                 func->src());
+        }
+        finfo.push_back( 
+            new frame_info(
+                target, 
+                NULL, 
+                tfunc )
+            );
+        break;
+    }
+    case (TAMPER_REL): {
         Block *eblk = func->entry();
         Block::edgelist el = eblk->sources();
         for (Block::edgelist::iterator eit = el.begin(); 
              eit != el.end(); 
              eit++)
         {
-            targs.push_back((*eit)->src()->end() + func->_tamper_addr);
+            if (CALL != (*eit)->type()) {
+                continue;
+            }
+            Address targ = (*eit)->src()->end() + func->_tamper_addr;
+            Edge *tedge = link_tempsink((*eit)->src(),CALL_FT);
+            Function * tfunc = _parse_data->get_func(
+                  func->region(), 
+                  targ, 
+                  func->src() );
+            finfo.push_back( 
+                new frame_info(
+                    targ, 
+                    tedge, 
+                    tfunc )
+                );
         }
+        break;
     }
-    for (unsigned tidx=0; tidx < targs.size(); tidx++) {
-        Function * tfunc = _parse_data->get_func
-            (func->region(), targs[tidx], func->src());
-        if(!tfunc) {
-            mal_printf("   could not create function at %lx\n",targs[tidx]);
+    default:
+        assert(0);
+    }
+    for (unsigned fidx=0; fidx < finfo.size(); fidx++) {
+        if(NULL == finfo[fidx]->tfunc) {
+            mal_printf("couldn't create function at tamper(%d) addr %lx "
+                       "%s[%d]\n", func->tampersStack(), finfo[fidx]->target,
+                       FILE__,__LINE__);
+            delete finfo[fidx];
             continue;
         }
 
-        ParseFrame::Status exist = _parse_data->frameStatus(tfunc->region(), 
-                                                            targs[tidx]);
+        ParseFrame::Status exist = _parse_data->frameStatus(
+            finfo[fidx]->tfunc->region(), finfo[fidx]->target);
         if(exist != ParseFrame::BAD_LOOKUP && exist != ParseFrame::UNPARSED) {
             mal_printf("   function at %lx already parsed, status %d\n",
-                           targs[tidx], exist);
+                           finfo[fidx]->target, exist);
+            delete finfo[fidx];
             continue;
         }
-        ParseFrame *pf = _parse_data->findFrame(tfunc->region(),targs[tidx]);
+
+        ParseFrame *pf = _parse_data->findFrame(
+            finfo[fidx]->tfunc->region(),finfo[fidx]->target);
         if( !pf ) {
-            pf = new ParseFrame(tfunc,_parse_data);
-        } 
+            pf = new ParseFrame(finfo[fidx]->tfunc,_parse_data);
+        }
+
+        ParseWorkBundle *bundle = new ParseWorkBundle();
+        pf->work_bundles.push_back(bundle);
+        bundle->add(
+            new ParseWorkElem(
+                bundle,
+                finfo[fidx]->edge,
+                finfo[fidx]->target,
+                true, 
+                false)
+          );
+
         frames.push_back(pf);
+        delete finfo[fidx];
     }
 }

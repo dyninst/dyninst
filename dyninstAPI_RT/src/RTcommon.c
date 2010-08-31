@@ -440,21 +440,24 @@ void DYNINST_stopThread (void * pointAddr, void *callBackID,
     RT_Boolean isInCache = RT_FALSE;
 
     tc_lock_lock(&DYNINST_trace_lock);
-
+    rtdebug_printf("pt[%lx] flags[%lx] calc[%lx] ", 
+                   (long)pointAddr, (long)flags, (long)calculation);
     // KEVINTODO: assumes there is always a pushf at the start of the basetramp
     // if this is a return insn, we want to look up the address differently
     if (5 == (((long)flags) & 0x05) ) { // mask stackAddr flag bit
         lookupAddr = (void*)* ( ((unsigned long*)calculation) + 1 );
+        rtdebug_printf("ret-addr lookup at %lx", lookupAddr);
+    }
+
+    if (0 != (((long)flags) & 0x03)) {
+        // do the lookup if the useCache bit is set, or if it represents 
+        // the address of real code, so that we add the address to the cache 
+        // even if we will stop the thread if there's a cache hit
+        isInCache = cacheLookup(lookupAddr);
     }
 
     // if the cache flag bit is not set, or if we get a cache miss, 
     // stop the thread so that we can call back to the mutatee
-    if (0 != (((long)flags) & 0x03)) {
-        // do the lookup if the useCache bit is set, or if it represents 
-        // the address of real code, so that we cache the address in the
-        // latter instance even we will stop the thread in event of a hit
-        isInCache = cacheLookup(lookupAddr);
-    }
     if (0 == (((long)flags) & 0x01) || 
         ! isInCache ) 
     {
@@ -472,6 +475,7 @@ void DYNINST_stopThread (void * pointAddr, void *callBackID,
                 (void*) (-1 * (long)DYNINST_synch_event_arg2);
         }
 
+        rtdebug_printf("stopping! isInCache=%d\n", isInCache);
 
         /* Stop ourselves */
         DYNINSTbreakPoint();

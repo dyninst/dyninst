@@ -256,7 +256,7 @@ bool Trace::extractTrackers(CodeTracker &t) {
 }
 
 std::string Trace::format() const {
-  stringstream ret;
+    stringstream ret;
   ret << "Trace(" 
       << std::hex << origAddr() << std::dec
       << "/" << id() 

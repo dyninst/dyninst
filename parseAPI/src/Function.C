@@ -342,10 +342,6 @@ Function::tampersStack(bool recalculate)
 {
     using namespace SymbolicEvaluation;
     using namespace InstructionAPI;
-    // want to re-calculate the tamper address
-    if (!recalculate && TAMPER_UNSET != _tamper) {
-        return _tamper;
-    }
 
     if ( ! obj()->defensiveMode() ) { 
         assert(0);
@@ -353,9 +349,16 @@ Function::tampersStack(bool recalculate)
         return _tamper;
     }
 
+    // this is above the cond'n below b/c it finalizes the function, 
+    // which could in turn call this function
     Function::blocklist & retblks = returnBlocks();
     if ( retblks.begin() == retblks.end() ) {
         _tamper = TAMPER_NONE;
+        return _tamper;
+    }
+
+    // if we want to re-calculate the tamper address
+    if (!recalculate && TAMPER_UNSET != _tamper) {
         return _tamper;
     }
 
@@ -408,7 +411,7 @@ Function::tampersStack(bool recalculate)
                  (TAMPER_REL == curtamper || TAMPER_ABS == curtamper))
         {
             if (_tamper != curtamper || _tamper_addr != curTamperAddr) {
-                fprintf(stderr, "WARNING! Unhandled case in stackTmaper "
+                fprintf(stderr, "WARNING! Unhandled case in stackTamper "
                         "analysis, func at %lx has distinct tamperAddrs "
                         "%d:%lx %d:%lx at different return instructions, "
                         "discarding second tamperAddr %s[%d]\n", 
@@ -417,6 +420,17 @@ Function::tampersStack(bool recalculate)
             }
         }
         assgns.clear();
+    }
+    if (TAMPER_ABS == _tamper && false == obj()->cs()->isCode(_tamper_addr)) {
+        mal_printf("WARNING: function at %lx tampers its stack to point at "
+                   "invalid address 0x%lx %s[%d]\n", _start, _tamper_addr);
+        _tamper = TAMPER_NONZERO;
+    }
+    if ( TAMPER_NONE != _tamper && RETURN == _rs ) {
+        _rs = NORETURN;
+        if ( !recalculate ) { // this is the first time we've been called
+
+        }
     }
     return _tamper;
 }

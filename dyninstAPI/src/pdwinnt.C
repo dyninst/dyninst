@@ -539,19 +539,9 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
                 mal_printf("bad read in pdwinnt.C %lx[%lx]=>%lx [%d]\n",
                            ev.address,bbi->equivAddr(0,ev.address),
                            violationAddr,__LINE__);
-            } else if (range->is_multitramp()) {
-                Address bbiAddr = 
-                    range->is_multitramp()->instToUninstAddr(ev.address);
-                bbi = ev.proc->findOrigByAddr(bbiAddr)->is_basicBlockInstance();
-                if (bbi) {
-                    mal_printf("bad read in pdwinnt.C (realAddrInMulti=%lx,"
-                               "blockAddr=%lx,origAddr=%lx)=>%lx [%d]\n",
-                               ev.address,bbiAddr, bbi->equivAddr(0,bbiAddr),
-                               violationAddr,__LINE__);
-                }
             } 
             if (!bbi) {
-                mal_printf("bad read in pdwinnt.C, not in multi or block "
+                mal_printf("bad read in pdwinnt.C, not in an orig block "
                            "%lx=>%lx [%d]\n",
                            ev.address,violationAddr,__LINE__);
             }
@@ -565,12 +555,6 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
                 codeRange *range = ev.proc->findOrigByAddr(ev.address);
                 bblInstance *writeInsnBBI = range->is_basicBlockInstance();
                 Address faultAddr = ev.address;
-                if (!writeInsnBBI && range->is_multitramp()) {
-                    faultAddr = 
-                        range->is_multitramp()->instToUninstAddr(ev.address);
-                    writeInsnBBI = ev.proc->findOrigByAddr(faultAddr)->
-                        is_basicBlockInstance();
-                }
                 if (writeInsnBBI) {
                     fprintf(stderr,"---%s[%d] overwrite insn at %lx[%lx] in "
                             "function\"%s\" [%lx] orig[%lx], writing to "
@@ -581,7 +565,7 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
                             + func->ifunc()->img()->desc().loadAddr(), 
                             violationAddr);
                 }
-                else { // KEVINTODO: this case should never happen
+                else { 
                     fprintf(stderr,"---%s[%d] overwrite insn at %lx in function"
                             "\"%s\" [%lx] orig[%lx], writing to %lx \n",
                             __FILE__,__LINE__,ev.address, 
