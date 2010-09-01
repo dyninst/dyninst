@@ -146,8 +146,19 @@ static bool isPrevInstrACall(Address addr, process *proc, int_function **callee)
         codeRange *range = proc->findOrigByAddr(addr);
         pdvector<instPoint *> callsites;
 
-        if (range == NULL)
+        if (range == NULL) {
+            baseTrampInstance *bti = NULL;
+            Address origAddr = 0;
+            bblInstance *bbi=NULL;
+            bool success = proc->getRelocInfo(addr, origAddr, bbi, bti);
+            if (success) {
+                addr = origAddr;
+                range = proc->findOrigByAddr(origAddr);
+            }
+        }
+        if (range == NULL) {
             return false;
+        }
    
         int_function *func_ptr = range->is_function();
 
@@ -186,7 +197,8 @@ static bool isPrevInstrACall(Address addr, process *proc, int_function **callee)
         bblInstance *callBBI = callRange->is_basicBlockInstance();
         Address callAddr = 0; //address of call in original block instance
 
-        if (callRange->is_mapped_object()) {
+        if (callRange && callRange->is_mapped_object()) 
+        {
             callRange->is_mapped_object()->analyze();
             callRange = proc->findOrigByAddr(addr-1);
             callBBI = callRange->is_basicBlockInstance();
@@ -198,7 +210,7 @@ static bool isPrevInstrACall(Address addr, process *proc, int_function **callee)
             bblInstance *bbi=NULL;
             bool success = proc->getRelocInfo(addr, origAddr, bbi, bti);
             if (success) {
-                // actually, this is possible, if we're searching for the
+                // this is possible if we're searching for the
                 // return address of a frameless function and happen to 
                 // run over an instrumentation address
                 mal_printf("Stackwalked into instrumentation "

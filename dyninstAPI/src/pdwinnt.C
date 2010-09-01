@@ -550,44 +550,21 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
 
     case 1: // bad write
         if (dyn_debug_malware) {
-            int_function *func = ev.proc->findFuncByAddr(ev.address);
-            if (func) {//overwrite instruction is in function body
-                codeRange *range = ev.proc->findOrigByAddr(ev.address);
-                bblInstance *writeInsnBBI = range->is_basicBlockInstance();
-                Address faultAddr = ev.address;
-                if (writeInsnBBI) {
-                    fprintf(stderr,"---%s[%d] overwrite insn at %lx[%lx] in "
-                            "function\"%s\" [%lx] orig[%lx], writing to "
-                            "%lx \n",FILE__,__LINE__,ev.address, 
-                            writeInsnBBI->equivAddr(0,faultAddr),
-                            func->get_name().c_str(), func->get_address(), 
-                            func->ifunc()->addr() 
-                            + func->ifunc()->img()->desc().loadAddr(), 
-                            violationAddr);
-                }
-                else { 
-                    fprintf(stderr,"---%s[%d] overwrite insn at %lx in function"
-                            "\"%s\" [%lx] orig[%lx], writing to %lx \n",
-                            __FILE__,__LINE__,ev.address, 
-                            func->get_name().c_str(), func->get_address(), 
-                            func->ifunc()->addr()
-                            + func->ifunc()->img()->desc().loadAddr(), 
-                            violationAddr);
-                }
-            } else { // overwrite from outside a function block 
-                     // (probably generated code in multitramp)
-                codeRange *range = ev.proc->findOrigByAddr(ev.address);
-                if (range) {
-                    fprintf(stderr,"---%s[%d] overwrite insn at %lx in range "
-                            "[%lx %lx], writing to %lx \n",
-                            FILE__,__LINE__, ev.address, range->get_address(),
-                            range->get_address()+range->get_size(), 
-                            violationAddr);
-                } else {
-                    fprintf(stderr,"---%s[%d] overwrite insn at %lx, not "
-                            "contained in any range, writing to %lx \n",
-                            __FILE__,__LINE__, ev.address, violationAddr);
-                }
+            Address origAddr = ev.address;
+            bblInstance *writebbi = NULL;
+            baseTrampInstance *bti = NULL;
+            bool success = ev.proc->getRelocInfo(ev.address, origAddr, writebbi, bti);
+            if (success) {
+                fprintf(stderr,"---%s[%d] overwrite insn at %lx[%lx] in "
+                        "function\"%s\" [%lx], writing to %lx \n",
+                        FILE__,__LINE__, ev.address, origAddr,
+                        writebbi->func()->get_name().c_str(), 
+                        writebbi->func()->get_address(), 
+                        violationAddr);
+            } else { 
+                fprintf(stderr,"---%s[%d] overwrite insn at %lx, not "
+                        "contained in any range, writing to %lx \n",
+                        __FILE__,__LINE__, ev.address, violationAddr);
             }
         }
 
@@ -2414,16 +2391,30 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
     }
 
     // 2. create instPoint at faulting instruction & trigger callback
-    codeRange *violRange = proc->findOrigByAddr(ev.address);
-    bblInstance *violBBI = NULL;
+    Address origAddr = ev.address;
+    bblInstance *faultBBI = NULL;
+    baseTrampInstance *bti = NULL;
+    bool success = ev.proc->getRelocInfo(ev.address, origAddr, faultBBI, bti);
+    if (!success) {
+        fprintf(stderr,"ERROR: Failed to find a valid instruction for fault "
+            "at %lx %s[%d] \n", ev.address, FILE__,__LINE__);
+        return false;
+    }
+    if (faultBBI->block()->llb()->isShared()) {
+        faultBBI = ev.proc->findActiveFuncByAddr(ev.address)->findBlockInstanceByAddr(origAddr);
+    }
+
+#if 0 //KEVINTODO: delete this old, heinously complicated way of getting the faulting bbi
+    codeRange *faultRange = proc->findOrigByAddr(ev.address);
+    bblInstance *faultBBI = NULL;
     Address inbbiAddr = ev.address;
-    if (violRange) {
-        violBBI = violRange->is_basicBlockInstance();
-        if (!violBBI) {
-            multiTramp *violMulti = violRange->is_multitramp();
-            if (violMulti) {
-                inbbiAddr = violMulti->instToUninstAddr(ev.address);
-                violBBI = proc->findOrigByAddr( inbbiAddr )->
+    if (faultRange) {
+        faultBBI = faultRange->is_basicBlockInstance();
+        if (!faultBBI) {
+            multiTramp *faultMulti = faultRange->is_multitramp();
+            if (faultMulti) {
+                inbbiAddr = faultMulti->instToUninstAddr(ev.address);
+                faultBBI = proc->findOrigByAddr( inbbiAddr )->
                     is_basicBlockInstance();
             }
         }
@@ -2431,37 +2422,39 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
         // function relocations (getFallthroughBBI can return a block in a 
         // different relocation)
         Address prevStart = 0;
-        while (violBBI && 
-               violBBI->endAddr() <= inbbiAddr && 
-               prevStart < violBBI->firstInsnAddr()) //check for reloc version switch
+        while (faultBBI && 
+               faultBBI->endAddr() <= inbbiAddr && 
+               prevStart < faultBBI->firstInsnAddr()) //check for reloc version switch
         {
-            prevStart = violBBI->firstInsnAddr();
-            violBBI = violBBI->getFallthroughBBL();
+            prevStart = faultBBI->firstInsnAddr();
+            faultBBI = faultBBI->getFallthroughBBL();
         }
     }
-    if (!violBBI) {
+
+    if (!faultBBI) {
         fprintf(stderr,"ERROR: Failed to find a valid codeRange for faulting "
             "instruction at %lx %s[%d] \n",
             ev.address, FILE__,__LINE__);
         return false;
     }
 
-    Address origAddr = violBBI->equivAddr(0,inbbiAddr);
-    instPoint *point = violBBI->func()->findInstPByAddr(origAddr);
+    Address origAddr = faultBBI->equivAddr(0,inbbiAddr);
+#endif
+    instPoint *point = faultBBI->func()->findInstPByAddr(origAddr);
     if (!point) {
         point = instPoint::createArbitraryInstPoint
-                    (origAddr, proc, violBBI->func());                
+                    (origAddr, proc, faultBBI->func());                
     }
     if (!point) {
         fprintf(stderr,"Failed to create an instPoint for faulting "
             "instruction at %lx[%lx] in function at %lx %s[%d]\n",
-            ev.address,origAddr,violBBI->func()->getAddress(),FILE__,__LINE__);
+            ev.address,origAddr,faultBBI->func()->getAddress(),FILE__,__LINE__);
         return false;
     }
 
     //3. cause callbacks registered for this event to be triggered, if any.
     ((BPatch_process*)proc->up_ptr())->triggerSignalHandlerCB
-            (point, violBBI->func(), ev.what, &handlers);
+            (point, faultBBI->func(), ev.what, &handlers);
 
     //4. mark parsed handlers as such, store fault addr info in the handlers
     for (vector<Address>::iterator hIter=handlers.begin(); 
@@ -2495,13 +2488,48 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
 bool SignalHandler::handleCodeOverwrite(EventRecord &ev)
 {
     //1. Get violation address
-    Address violationAddr = 
+    Address writtenAddr = 
         ev.info.u.Exception.ExceptionRecord.ExceptionInformation[1];
     SymtabAPI::Region *reg = (SymtabAPI::Region*) ev.info2;
 
     // 2. Flush the runtime cache if we overwrote any code
     // Produce warning message if we've overwritten weird types of code: 
-    codeRange *range = ev.proc->findOrigByAddr(violationAddr);
+    Address origWritten = writtenAddr;
+    bblInstance *writtenbbi = NULL;
+    baseTrampInstance *bti = NULL;
+    bool success = ev.proc->getRelocInfo(writtenAddr, 
+                                         origWritten, 
+                                         writtenbbi, 
+                                         bti);
+    if (success) {
+        if (writtenbbi && 
+            writtenbbi->firstInsnAddr() <= origWritten && 
+            origWritten < writtenbbi->endAddr()) 
+        {
+            //KEVINTODO: caught overwrite of code in the basic block
+            //that is currently executing, haven't implemented this
+            //case yet.
+            //
+            // Strategy will be to single step the instruction, no
+            // other approach can deal with the possibility that the
+            // same or very next instruction will be overwritten
+            assert(0 && "unimplemented code overwrite scenario");
+        }
+        // flush all addresses matching the mapped object and the
+        // runtime library heaps
+        ev.proc->flushAddressCache_RT(writtenbbi->func()->obj());
+    }
+    else {
+        mapped_object *writtenObj = ev.proc->findObject(writtenAddr);
+        assert(writtenObj);
+        mal_printf("%s[%d] Insn at %lx wrote to %lx on a page containing "
+                "code, but no code was overwritten\n",
+                FILE__,__LINE__,ev.address,writtenAddr);
+
+    }
+
+#if 0 //KEVINTODO: delete this code
+    codeRange *range = ev.proc->findOrigByAddr(writtenAddr);
     if (range && ! range->is_mapped_object()) { // we overwrote code
 
         mapped_object *mobj = NULL;
@@ -2511,7 +2539,7 @@ bool SignalHandler::handleCodeOverwrite(EventRecord &ev)
             block = (bblInstance*) range;
             mobj = block->func()->obj();
         } else if (range->is_function()) {
-            block = ((int_function*)range)->findBlockInstanceByAddr(violationAddr);
+            block = ((int_function*)range)->findBlockInstanceByAddr(writtenAddr);
             mobj = block->func()->obj();
         } else {
             assert(0);
@@ -2537,12 +2565,30 @@ bool SignalHandler::handleCodeOverwrite(EventRecord &ev)
         // contains code, but didn't overwrite any code
         mal_printf("%s[%d] Insn at %lx wrote to %lx on a page containing code,"
                 " but no code was overwritten\n",
-                FILE__,__LINE__,ev.address,violationAddr);
+                FILE__,__LINE__,ev.address,writtenAddr);
     }
+#endif
 
     // 3. Find the instruction that caused the violation and determine 
     //    its address in unrelocated code
-    Address origAddress = 0;
+    Address origWrite = ev.address;
+    bblInstance *writebbi = NULL;
+    success = ev.proc->getRelocInfo(ev.address, origWrite, writebbi, bti);
+    if (!success) {
+        // this is an error case, meaning that we're executing 
+        // uninstrumented code. It has been a sign that:
+        //  - we invalidated relocated code that we were executing in
+        //  - we removed code-discovery instrumentation, because of an 
+        //    overwrite in a block that ends with an indirect ctrl 
+        //    transfer that should be instrumented, and are executing
+        // sometimes arises as a race condition
+        fprintf(stderr, "ERROR: found no code to match instruction at %lx,"
+                " which writes to %lx on page containing analyzed code\n",
+                ev.address, writtenAddr);
+        assert(0 && "couldn't find the overwrite instruction"); 
+    }
+#if 0
+    Address origWrite = 0;
     codeRange *causeRange = ev.proc->findOrigByAddr(ev.address);
     multiTramp *multi = causeRange->is_multitramp();
     mapped_object *mobj = causeRange->is_mapped_object();
@@ -2554,7 +2600,7 @@ bool SignalHandler::handleCodeOverwrite(EventRecord &ev)
     bblInstance *causeBBI = causeRange->is_basicBlockInstance();
 
     if (causeBBI) {
-        origAddress = causeBBI->equivAddr(0,ev.address);
+        origWrite = causeBBI->equivAddr(0,ev.address);
     } else {
         miniTrampInstance *mini = causeRange->is_minitramp();
         if (multi) {
@@ -2564,11 +2610,11 @@ bool SignalHandler::handleCodeOverwrite(EventRecord &ev)
             baseTrampInstance *base = 
                 multi->getBaseTrampInstanceByAddr(ev.address);
             assert ( ! base ); // make sure we're not in the basetramp
-            origAddress = multi->instToUninstAddr(ev.address);
+            origWrite = multi->instToUninstAddr(ev.address);
             causeBBI = 
-                ev.proc->findOrigByAddr(origAddress)->is_basicBlockInstance();
+                ev.proc->findOrigByAddr(origWrite)->is_basicBlockInstance();
             assert(causeBBI);
-            origAddress = causeBBI->equivAddr(0,origAddress);
+            origWrite = causeBBI->equivAddr(0,origWrite);
 
         } else {
             // this is an error case, meaning that we're executing 
@@ -2580,15 +2626,17 @@ bool SignalHandler::handleCodeOverwrite(EventRecord &ev)
             // sometimes arises as a race condition
             fprintf(stderr, "ERROR: found no code to match instruction at %lx,"
                     " which writes to %lx on page containing analyzed code\n",
-                    ev.address, violationAddr);
+                    ev.address, writtenAddr);
             assert(0 && "couldn't find the overwrite instruction"); 
         }
     }
+#endif
 
     // 4. Trigger user-mode callback to respond to the overwrite
-    assert (((BPatch_process*)ev.proc->up_ptr())->triggerCodeOverwriteCB
-            (origAddress, violationAddr));
-
+    success = (((BPatch_process*)ev.proc->up_ptr())->
+        triggerCodeOverwriteCB(origWrite, writtenAddr));
+    assert(success);
+    
     return true;
 }
 

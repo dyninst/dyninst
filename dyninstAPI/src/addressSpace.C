@@ -1796,8 +1796,19 @@ void AddressSpace::getRelocAddrPairs(Address from, Address to,
 bool AddressSpace::getRelocInfo(Address relocAddr,
 				Address &origAddr,
 				bblInstance *&origInst,
-				baseTrampInstance *&baseT) {
+				baseTrampInstance *&baseT) 
+{
   baseT = NULL;
+  int_basicBlock *blk = findBasicBlockByAddr(relocAddr);
+  if (blk) {
+    if (blk->llb()->isShared()) {
+        mal_printf("WARNING: picking arbitrary bbi for shared block at %lx "
+                   "%s[%d]\n",blk->origInstance()->firstInsnAddr(),
+                   FILE__,__LINE__);
+    }
+    origAddr = relocAddr;
+    origInst = blk->origInstance();
+  }
   for (CodeTrackers::const_iterator iter = relocatedCode_.begin();
        iter != relocatedCode_.end(); ++iter) {
     if (iter->relocToOrig(relocAddr, origAddr, origInst)) {

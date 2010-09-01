@@ -802,17 +802,15 @@ void int_function::setHandlerFaultAddrAddr(Address faa, bool set)
     // that translation was necessary, save it to the faultAddrAddr in the 
     // CONTEXT struct
     if (proc()->proc()->isRuntimeHeapAddr(faultAddr)) {
-        codeRange *range = proc()->findOrigByAddr(faultAddr);
-        if (range->is_multitramp()) {
-            faultAddr = range->is_multitramp()->instToUninstAddr(faultAddr);
-            range = proc()->findOrigByAddr( faultAddr );
-        }
-        bblInstance *curbbi = range->is_basicBlockInstance();
-        assert(curbbi);
-        faultAddr = curbbi->equivAddr(0,faultAddr);
+
+        Address origAddr = faultAddr;
+        bblInstance *curbbi = NULL;
+        baseTrampInstance *bti = NULL;
+        bool success = proc()->getRelocInfo(faultAddr, origAddr, curbbi, bti);
+        assert(success);
         assert( proc()->writeDataSpace((void*)faa, 
                                        sizeof(Address), 
-                                       (void*)&faultAddr) );
+                                       (void*)&origAddr) );
     }
 }
 

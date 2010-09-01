@@ -4520,6 +4520,11 @@ Address process::stopThreadCtrlTransfer
        (instPoint* intPoint, 
         Address target)
 {
+/*
+todo: 
+    everywhere I call getRelocInfo, check for shared code
+    update this beastie
+*/
     int_function *pointfunc = intPoint->func();
     Address pointAddress = intPoint->addr();
 
@@ -5060,9 +5065,17 @@ int_function *process::findActiveFuncByAddr(Address addr)
                 Frame *curFrame = &stack[j];
                 Address framePC = curFrame->getPC();
                 codeRange *pcRange = findOrigByAddr(framePC);
-                // if we're in instrumentation, use the multiTramp function
-                if (pcRange->is_multitramp() || pcRange->is_minitramp()) {
-                    frameFunc = curFrame->getFunc();
+                if (!pcRange) {
+                    // if we're at a relocated address, we can translate 
+                    // back to the right function
+                    Address origAddr = curFrame->getPC();
+                    bblInstance *framebbi = NULL;
+                    baseTrampInstance *bti = NULL;
+                    bool success = getRelocInfo(curFrame->getPC(), 
+                                                origAddr, framebbi, bti);
+                    if (success) {
+                        frameFunc = framebbi->func();
+                    }
                 } else if (bbi->firstInsnAddr() <= framePC && 
                            framePC <= bbi->lastInsnAddr() && 
                            j < stack.size()-1) {
