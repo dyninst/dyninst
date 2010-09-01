@@ -80,17 +80,17 @@ int test1_15_Mutator::mutatorTest15a()
 
 int test1_15_Mutator::mutatorTest15b() 
 {
-	RETURNONFAIL(waitUntilStopped(BPatch::bpatch, appThread, 15, "setMutationsActive"));
+    RETURNONFAIL(waitUntilStopped(BPatch::bpatch, appProc, 15, "setMutationsActive"));
 
 	// disable mutations and continue process
-	appThread->setMutationsActive(false);
-	appThread->continueExecution();
+        appProc->setMutationsActive(false);
+        appProc->continueExecution();
 
-	RETURNONFAIL(waitUntilStopped(BPatch::bpatch, appThread, 15, "setMutationsActive"));
+        RETURNONFAIL(waitUntilStopped(BPatch::bpatch, appProc, 15, "setMutationsActive"));
 
 	// re-enable mutations and continue process
-	appThread->setMutationsActive(true);
-	appThread->continueExecution();
+        appProc->setMutationsActive(true);
+        appProc->continueExecution();
 
 	return 0;
 }
@@ -102,12 +102,12 @@ test_results_t test1_15_Mutator::executeTest()
 		return FAILED;
 	}
 
-	while (!appThread->isStopped()) 
+        while (!appProc->isStopped())
 	{
 		BPatch::bpatch->waitForStatusChange();
 	}
 
-	appThread->continueExecution();
+        appProc->continueExecution();
 
 	if (mutatorTest15b() != 0) 
 	{

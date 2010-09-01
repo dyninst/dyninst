@@ -41,7 +41,7 @@
 
 #define failtest(i,d,r) { fprintf(stderr, "**Failed** test #%d (%s)\n", (i), (d)); \
                           fprintf(stderr, "    %s\n", (r)); \
-                          appThread->continueExecution(); \
+                          if(appProc) appProc->continueExecution(); \
                           return FAILED; \
                          }
 
