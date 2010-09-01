@@ -64,7 +64,7 @@ public:
     // returns false if conversion has no effect or is not possible
     bool setMode(BPatch_hybridMode mode);
 
-    HybridAnalysisOW * const hybridOW() { return hybridow_; };
+    HybridAnalysisOW * hybridOW() { return hybridow_; };
     BPatch_process *proc() { return proc_; };
     static InternalSignalHandlerCallback getSignalHandlerCB();
     BPatch_module *getRuntimeLib() { return sharedlib_runtime; }

@@ -742,7 +742,7 @@ thread_db_thread::~thread_db_thread()
 bool thread_db_thread::initThreadHandle() {
     if( NULL != threadHandle ) return true;
 
-    thread_db_process *lproc = static_cast<thread_db_process *>(proc_);
+    thread_db_process *lproc = static_cast<thread_db_process *>(llproc());
     if( NULL == lproc->getThreadDBAgent() ) return false;
 
     threadHandle = new td_thrhandle_t;
@@ -806,7 +806,7 @@ bool thread_db_thread::plat_resume() {
 
     if( TD_OK != errVal ) {
         perr_printf("Failed to resume %d/%d: %s(%d)\n",
-                proc_->getPid(), lwp, tdErr2Str(errVal), errVal);
+                llproc()->getPid(), lwp, tdErr2Str(errVal), errVal);
         setLastError(err_internal, "Failed to resume LWP");
         return false;
     }
@@ -821,7 +821,7 @@ bool thread_db_thread::plat_suspend() {
 
     if( TD_OK != errVal ) {
         perr_printf("Failed to suspend %d/%d: %s(%d)\n",
-                proc_->getPid(), lwp, tdErr2Str(errVal), errVal);
+                llproc()->getPid(), lwp, tdErr2Str(errVal), errVal);
         setLastError(err_internal, "Failed to suspend LWP");
         return false;
     }

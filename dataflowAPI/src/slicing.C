@@ -287,7 +287,7 @@ void Slicer::shiftAbsRegion(AbsRegion &callerReg,
         //<< " and setting to function " << callee->name() << endl;
 	calleeReg = AbsRegion(Absloc(callerAloc.off() - stack_depth,
 				     0, // Entry point has region 0 by definition
-				     callee->name()));
+				     callee));
       }
     }
   }
@@ -511,9 +511,10 @@ bool Slicer::getPredecessors(Element &current,
 
     Element newElement;
     Elements newElements;
+    SingleContext epred(current.loc.func, true, true);
 
     const Block::edgelist &sources = current.loc.block->sources();
-    Block::edgelist::iterator eit = sources.begin();
+    Block::edgelist::iterator eit = sources.begin(&epred);
     for ( ; eit != sources.end(); ++eit) {   
       switch ((*eit)->type()) {
       case CALL:
@@ -542,29 +543,24 @@ bool Slicer::getPredecessors(Element &current,
         }
         break;
       default:
-	Element newElement;
-        if ((*eit)->src()->lastInsnAddr() < current.loc.func->entry()->start() ||
-                (*eit)->src()->lastInsnAddr() > current.loc.func->entry()->end()) {
-            slicing_cerr << "Oops! Found a default edge that goes into a different function" << endl;
-            /* NOTE: this will cause us to leave a node unmarked as entry. This will get fixed during cleanGraph() */
-        } else {if (handleDefault((*eit),
-                    backward,
-                    current,
-                    newElement,
-                    p,
-                    err)) {
+	    Element newElement;
+        if (handleDefault((*eit),
+                          backward,
+                          current,
+                          newElement,
+                          p,
+                          err)) {
             pred.push(newElement);
-        }
-        }
-      }     
+        }    
+      }
     }
-    
     if (err) {
       ret = false;
     }
-
     return ret;
+ 
 }
+
 
 bool Slicer::handleDefault(ParseAPI::Edge *e,
         Direction dir,
@@ -882,6 +878,12 @@ bool Slicer::kills(Element &current, Assignment::Ptr &assign) {
   // TBD: overlaps ins't quite the right thing here. "contained
   // by" would be better, but we need to get the AND/OR
   // of abslocs hammered out.
+
+  if (assign->out().type() != Absloc::Unknown) {
+    // A region assignment can never kill
+    return false; 
+  }
+
   return current.reg.contains(assign->out());
 }
 

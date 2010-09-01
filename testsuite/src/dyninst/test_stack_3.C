@@ -67,7 +67,7 @@ test_results_t test_stack_3_Mutator::executeTest() {
   bool passedTest;
 
   BPatch::bpatch->setInstrStackFrames(true);
-  appThread->continueExecution();
+  appProc->continueExecution();
   static const frameInfo_t correct_frame_info[] = {
 	
 #if defined( os_linux_test ) && (defined( arch_x86_test ) || defined( arch_x86_64_test ))
@@ -102,8 +102,8 @@ test_results_t test_stack_3_Mutator::executeTest() {
   };
 	
   /* Wait for the mutatee to stop in test_stack_3_func1(). */
-  if (waitUntilStopped( bpatch, appThread, 1, "getCallStack through instrumentation") < 0) {
-    appThread->getProcess()->terminateExecution();
+  if (waitUntilStopped( bpatch, appProc, 1, "getCallStack through instrumentation") < 0) {
+      appProc->terminateExecution();
     return FAILED;
   }
 	
@@ -115,7 +115,7 @@ test_results_t test_stack_3_Mutator::executeTest() {
     // FIXME Print out a useful error message
     logerror("**Failed** test_stack_3\n");
     logerror("    Unable to find function '%s'\n", fName);
-    appThread->getProcess()->terminateExecution();
+    appProc->terminateExecution();
     return FAILED;
   }
 	
@@ -124,7 +124,7 @@ test_results_t test_stack_3_Mutator::executeTest() {
     // FIXME Print out a useful error message
     logerror("**Failed** test_stack_3\n");
     logerror("    Unable to find entry point to function '%s'\n", fName);
-    appThread->getProcess()->terminateExecution();
+    appProc->terminateExecution();
     return FAILED;
   }
 	
@@ -135,33 +135,33 @@ test_results_t test_stack_3_Mutator::executeTest() {
     //FIXME Print out a useful error message
     logerror("**Failed** test_stack_3\n");
     logerror("    Unable to find function '%s'\n", fName2);
-    appThread->getProcess()->terminateExecution();
+    appProc->terminateExecution();
     return FAILED;
   }
 	
   BPatch_Vector<BPatch_snippet *> functionArguments;
   BPatch_funcCallExpr functionCall( * calledFunctions[0], functionArguments );
 	
-  appThread->insertSnippet( functionCall, functionEntryPoints[0] );
+  appProc->insertSnippet( functionCall, functionEntryPoints[0] );
 
   /* Repeat for all three types of instpoints. */
   BPatch_Vector<BPatch_point *> * functionCallPoints = instrumentedFunctions[0]->findPoint( BPatch_subroutine );
   if (functionCallPoints->size() != 1) {
     logerror("**Failed** test_stack_3\n");
     logerror("    Unable to find subroutine call points in '%s'\n", fName);
-    appThread->getProcess()->terminateExecution();
+    appProc->terminateExecution();
     return FAILED;
   }
-  appThread->insertSnippet( functionCall, functionCallPoints[0] );
+  appProc->insertSnippet( functionCall, functionCallPoints[0] );
 	
   BPatch_Vector<BPatch_point *> * functionExitPoints = instrumentedFunctions[0]->findPoint( BPatch_exit );
   if (functionExitPoints->size() != 1) {
     logerror("**Failed** test_stack_3\n");
     logerror("    Unable to find exit points in '%s'\n", fName);
-    appThread->getProcess()->terminateExecution();
+    appProc->terminateExecution();
     return FAILED;
   }
-  appThread->insertSnippet( functionCall, functionExitPoints[0] );
+  appProc->insertSnippet( functionCall, functionExitPoints[0] );
 
 #if defined( DEBUG )
   for( int i = 0; i < 80; i++ ) { ptrace( PTRACE_SINGLESTEP, appThread->getPid(), NULL, NULL ); }
@@ -187,11 +187,11 @@ test_results_t test_stack_3_Mutator::executeTest() {
 #endif /* defined( DEBUG ) */		
 
   /* After inserting the instrumentation, let it be called. */
-  appThread->continueExecution();
+  appProc->continueExecution();
 	  
   /* Wait for the mutatee to stop because of the instrumentation we just inserted. */
-  if (waitUntilStopped( bpatch, appThread, 1, "getCallStack through instrumentation (entry)") < 0) {
-    appThread->getProcess()->terminateExecution();
+  if (waitUntilStopped( bpatch, appProc, 1, "getCallStack through instrumentation (entry)") < 0) {
+      appProc->terminateExecution();
     return FAILED;
   }
 
@@ -203,11 +203,11 @@ test_results_t test_stack_3_Mutator::executeTest() {
   }
 
   /* Repeat for other two types of instpoints. */
-  appThread->continueExecution();	
+  appProc->continueExecution();
 
   /* Wait for the mutatee to stop because of the instrumentation we just inserted. */
-  if (waitUntilStopped( bpatch, appThread, 1, "getCallStack through instrumentation (call)") < 0) {
-    appThread->getProcess()->terminateExecution();
+  if (waitUntilStopped( bpatch, appProc, 1, "getCallStack through instrumentation (call)") < 0) {
+      appProc->terminateExecution();
     return FAILED;
   }
 
@@ -217,11 +217,11 @@ test_results_t test_stack_3_Mutator::executeTest() {
     passedTest = false;
   }
     	
-  appThread->continueExecution();	
+  appProc->continueExecution();
 
   /* Wait for the mutatee to stop because of the instrumentation we just inserted. */
-  if (waitUntilStopped( bpatch, appThread, 1, "getCallStack through instrumentation (exit)") < 0) {
-    appThread->getProcess()->terminateExecution();
+  if (waitUntilStopped( bpatch, appProc, 1, "getCallStack through instrumentation (exit)") < 0) {
+      appProc->terminateExecution();
     return FAILED;
   }
 
@@ -235,9 +235,9 @@ test_results_t test_stack_3_Mutator::executeTest() {
     logerror("Passed test #3 (unwind through base and mini tramps)\n");
 
   /* Return the mutatee to its normal state. */
-  appThread->continueExecution();	
+  appProc->continueExecution();
 
-  while (!appThread->isTerminated()) {
+  while (!appProc->isTerminated()) {
     // Workaround for issue with pgCC_high mutatee
     bpatch->waitForStatusChange();
   }

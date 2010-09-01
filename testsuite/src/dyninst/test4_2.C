@@ -69,7 +69,7 @@ test4_2_Mutator::test4_2_Mutator()
 
 static bool passedTest;
 static int threadCount;
-static BPatch_thread *mythreads[25];
+static BPatch_process *mythreads[25];
 static BPatch_thread *test2Child;
 static BPatch_thread *test2Parent;
 static int exited;
@@ -81,12 +81,12 @@ static void forkFunc(BPatch_thread *parent, BPatch_thread *child)
     BPatch_Vector<BPatch_function *> bpfv;
     BPatch_Vector<BPatch_snippet *> nullArgs;
 
-    if (child) mythreads[threadCount++] = child;
+    if (child) mythreads[threadCount++] = child->getProcess();
 
     if (!child) {
-       dprintf("in prefork for %d\n", parent->getPid());
+        dprintf("in prefork for %d\n", parent->getProcess()->getPid());
     } else {
-       dprintf("in fork of %d to %d\n", parent->getPid(), child->getPid());
+        dprintf("in fork of %d to %d\n", parent->getProcess()->getPid(), child->getProcess()->getPid());
     }
 
     if (!child) return;	// skip prefork case
@@ -99,7 +99,7 @@ static void forkFunc(BPatch_thread *parent, BPatch_thread *child)
     // That'll make erroneous continues break...
 
     // insert code into parent
-    appImage = parent->getImage();
+    appImage = parent->getProcess()->getImage();
     assert(appImage);
 
     char *fn = "test4_2_func3";
@@ -124,11 +124,11 @@ static void forkFunc(BPatch_thread *parent, BPatch_thread *child)
     BPatch_Vector<BPatch_point *> *point2 = func2_parent->findPoint(BPatch_exit);
     assert(point2);
 
-    parent->insertSnippet(callExpr2, *point2);
+    parent->getProcess()->insertSnippet(callExpr2, *point2);
 
-    dprintf("MUTATEE:  after insert in fork of %d to %d\n", parent->getPid(), child->getPid());
+    dprintf("MUTATEE:  after insert in fork of %d to %d\n", parent->getProcess()->getPid(), child->getProcess()->getPid());
     // insert different code into child
-    appImage = child->getImage();
+    appImage = child->getProcess()->getImage();
     assert(appImage);
 
     bpfv.clear();
@@ -154,9 +154,9 @@ static void forkFunc(BPatch_thread *parent, BPatch_thread *child)
     BPatch_Vector<BPatch_point *> *point1 = func2_child->findPoint(BPatch_exit);
     assert(point1);
 
-    child->insertSnippet(callExpr1, *point1);
+    child->getProcess()->insertSnippet(callExpr1, *point1);
 
-    dprintf("MUTATEE:  after insert2 in fork of %d to %d\n", parent->getPid(), child->getPid());
+    dprintf("MUTATEE:  after insert2 in fork of %d to %d\n", parent->getProcess()->getPid(), child->getProcess()->getPid());
     test2Child = child;
     test2Parent = parent;
 }
@@ -166,29 +166,29 @@ static void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type)
   dprintf("exitFunc called\n");
   bool failedTest = false;
     // Read out the values of the variables.
-    int exitCode = thread->getExitCode();
+  int exitCode = thread->getProcess()->getExitCode();
 
-    assert(thread->terminationStatus() == exit_type);
+  assert(thread->getProcess()->terminationStatus() == exit_type);
     // Read out the values of the variables.
     exited++;
     if(exit_type == ExitedViaSignal) {
         logerror("Failed test #2 (fork callback)\n");
         logerror("    a process terminated via signal %d\n",
-               thread->getExitSignal());
+                 thread->getProcess()->getExitSignal());
         exited = 0;
-    } else if (thread->getPid() != exitCode) {
+    } else if (thread->getProcess()->getPid() != exitCode) {
         logerror("Failed test #2 (fork callback)\n");
         logerror("    exit code was not equal to pid (%d != %d)\n",
-		 thread->getPid(), exitCode);
+                 thread->getProcess()->getPid(), exitCode);
         exited = 0;
     } else {
         dprintf("test #2, pid %d exited\n", exitCode);
         if ((test2Parent == thread) &&
-            !verifyChildMemory(test2Parent, "test4_2_global1", 2000002)) {
+             !verifyChildMemory(test2Parent->getProcess(), "test4_2_global1", 2000002)) {
             failedTest = true;
         }
         if ((test2Child == thread) &&
-            !verifyChildMemory(test2Child, "test4_2_global1", 2000003)) {
+             !verifyChildMemory(test2Child->getProcess(), "test4_2_global1", 2000003)) {
             failedTest = true;
         }
 
@@ -236,16 +236,16 @@ test_results_t test4_2_Mutator::mutatorTest() {
     // Start the mutatee
     logerror("Starting \"%s\"\n", pathname);
 
-    BPatch_thread *appThread = bpatch->createProcess(pathname, child_argv,NULL);
-    dprintf("Process %p created", appThread);
-    if (appThread == NULL) {
+    appProc = bpatch->processCreate(pathname, child_argv,NULL);
+    dprintf("Process %p created", appProc);
+    if (appProc == NULL) {
        logerror("Unable to run test program.\n");
         return FAILED;
     }
     // Register for cleanup
-    registerPID(appThread->getProcess()->getPid());
+    registerPID(appProc->getPid());
 
-    contAndWaitForAllThreads(bpatch, appThread, mythreads, &threadCount);
+    contAndWaitForAllProcs(bpatch, appProc, mythreads, &threadCount);
 
     if ( !passedTest )
     {

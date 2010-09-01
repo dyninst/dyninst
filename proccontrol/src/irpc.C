@@ -2,6 +2,7 @@
 #include "proccontrol/h/Event.h"
 #include "proccontrol/src/irpc.h"
 #include "proccontrol/src/int_process.h"
+#include "proccontrol/h/Mailbox.h"
 
 #include <cstring>
 #include <cassert>
@@ -645,11 +646,7 @@ bool iRPCMgr::prepNextRPC(int_thread *thr, bool sync_prep, bool &user_error)
    bool isStopped;
    bool needsProcStop = rpc->isProcStopRPC();
 
-   if( useHybridLWPControl(thr) ) {
-       needsProcStop = false;
-   }
-
-   if (needsProcStop) {
+   if (needsProcStop && !useHybridLWPControl(thr) ) {
       //Need to make sure entire process is stopped.
       pthrd_printf("iRPC %lu needs a process stop on %d\n", rpc->id(), 
                    thr->llproc()->getPid());
@@ -662,6 +659,11 @@ bool iRPCMgr::prepNextRPC(int_thread *thr, bool sync_prep, bool &user_error)
         pthrd_printf("iRPC %lu needs a process stop on %d\n", rpc->id(),
                 thr->llproc()->getPid());
         isStopped = thr->llproc()->threadPool()->allStopped();
+
+        if( needsProcStop && isStopped ) {
+            rpc->setNeedsDesync(true);
+            thr->llproc()->threadPool()->desyncInternalState();
+        }
       }else{
         //Need to stop a single thread.
         pthrd_printf("iRPC %lu needs a thread stop on %d/%d\n", rpc->id(),
@@ -677,7 +679,7 @@ bool iRPCMgr::prepNextRPC(int_thread *thr, bool sync_prep, bool &user_error)
    }
 
    bool result;
-   if (needsProcStop) {
+   if (needsProcStop && !useHybridLWPControl(thr) ) {
       pthrd_printf("Stopping process %d for iRPC setup\n", thr->llproc()->getPid());
       result = stopNeededThreads(thr->llproc(), sync_prep);
    }
@@ -793,12 +795,26 @@ bool iRPCMgr::runNextRPC(int_thread *thr, bool block)
    assert(result);
 
    if (rpc->needsToDesync() ) {
-      if( useHybridLWPControl(thr) ) {
-        rpc->setNeedsDesync(false);
-        thr->llproc()->threadPool()->restoreInternalState(block);
-      }else if( !rpc->isProcStopRPC() ) {
-        rpc->setNeedsDesync(false);
-        thr->restoreInternalState(block);
+      if( !rpc->isProcStopRPC() ) {
+          if( useHybridLWPControl(thr) ) {
+            rpc->setNeedsDesync(false);
+            thr->llproc()->threadPool()->restoreInternalState(block);
+          }else{
+            rpc->setNeedsDesync(false);
+            thr->restoreInternalState(block);
+          }
+      }else if( useHybridLWPControl(thr) && block && !mbox()->size() ) {
+          if( !thr->intCont() ) {
+              pthrd_printf("Failed to continue thread %d/%d for run RPC\n",
+                      thr->llproc()->getPid(), thr->getLWP());
+              return false;
+          }
+
+          if( !thr->llproc()->plat_contProcess() ) {
+              pthrd_printf("Failed to continue thread %d/%d to run RPC\n",
+                      thr->llproc()->getPid(), thr->getLWP());
+              return false;
+          }
       }
    }
 
@@ -1024,17 +1040,15 @@ bool iRPCHandler::handleEvent(Event::ptr ev)
       thr->llproc()->freeExecMemory(rpc->addr());
    }
 
+   if (rpc->isProcStopRPC() && rpc->needsToDesync()) {
+      pthrd_printf("Restoring state for threads stopped by mem management rpc\n");
+      thr->llproc()->threadPool()->restoreInternalState(false);
+   }
+
    if (rpc->isMemManagementRPC()) 
    {
       pthrd_printf("Freeing exec memory at %lx\n", rpc->addr());
       thr->llproc()->freeExecMemory(rpc->addr());
-   }
-   
-   if ( !useHybridLWPControl(thr) ) {
-       if (rpc->isProcStopRPC() && rpc->needsToDesync()) {
-          pthrd_printf("Restoring state for threads stopped by mem management rpc\n");
-          thr->llproc()->threadPool()->restoreInternalState(false);
-       }
    }
 
    pthrd_printf("Restoring all registers\n");

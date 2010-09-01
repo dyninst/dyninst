@@ -1189,7 +1189,10 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
               unsigned int count = dynamic->getRegionSize() / sizeof(Elf32_Dyn);
 
               for (unsigned int i = 0; i < count; ++i) {
-                  if (dyn[i].d_tag == DT_PPC_GOT) {
+                  // Use DT_LOPROC instead of DT_PPC_GOT to circumvent problems
+                  // caused by early versions of libelf where DT_PPC_GOT has
+                  // yet to be defined.
+                  if (dyn[i].d_tag == DT_LOPROC) {
                       unsigned int g_o_t = dyn[i].d_un.d_val;
                       if (got != NULL) {
                           unsigned char *data =
@@ -1219,9 +1222,9 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
           }
 
           if (!glink) {
-              fprintf(stderr, "*** Cound not find .glink section for '%s'.\n",
-                      mf->pathname().c_str());
-              fprintf(stderr, "*** It may not be a ppc32 elf object.\n");
+//              fprintf(stderr, "*** Cound not find .glink section for '%s'.\n",
+//                      mf->pathname().c_str());
+//              fprintf(stderr, "*** It may not be a ppc32 elf object.\n");
               return false;
           }
 
