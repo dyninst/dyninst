@@ -406,7 +406,7 @@ bool PCSensitiveTransformer::insnIsThunkCall(InstructionAPI::Instruction::Ptr in
 
   // Check for a call to a thunk function
   if (target == (addr + insn->size())) {
-    destination = Absloc(0, 0, "func");
+    destination = Absloc(0, 0, NULL);
     cerr << "      ... call next insn, ret true" << endl;
     return true;
   }
@@ -535,7 +535,7 @@ void PCSensitiveTransformer::emulateInsn(TraceList::iterator &b_iter,
   assert(insn->getOperation().getID() == e_call);
 
   // Construct a new Atom that will emulate the original instruction here. 
-  static Absloc stack_loc(0, 0, "dummy_func");
+  static Absloc stack_loc(0, 0, NULL);
   Atom::Ptr replacement = GetPC::create(insn, addr, stack_loc);
 
   // Okay, now wire this in as appropriate.

@@ -218,7 +218,7 @@ bool adhocMovementTransformer::isGetPC(Atom::Ptr ptr,
   Address target = res.convert<Address>();
 
   if (target == (ptr->addr() + ptr->insn()->size())) {
-    aloc = Absloc(0, 0, "func");
+    aloc = Absloc(0, 0, NULL);
     relocation_cerr << "      ... call next insn, ret true" << endl;
     return true;
   }
