@@ -91,8 +91,8 @@ class Absloc {
   type_(Heap),
     addr_(addr) {};
  DATAFLOW_EXPORT Absloc(int o,
-	int r,
-	const std::string &f) :
+			int r,
+			ParseAPI::Function *f) :
     type_(Stack),
       off_(o),
       region_(r),
@@ -106,7 +106,7 @@ class Absloc {
 
   DATAFLOW_EXPORT int off() const { assert(type_ == Stack); return off_; };
   DATAFLOW_EXPORT int region() const { assert(type_ == Stack); return region_; };
-  DATAFLOW_EXPORT const std::string &func() const { assert(type_ == Stack); return func_; };
+  DATAFLOW_EXPORT ParseAPI::Function *func() const { assert(type_ == Stack); return func_; };
 
   DATAFLOW_EXPORT Address addr() const { assert(type_ == Heap); return addr_; };
   
@@ -170,7 +170,7 @@ class Absloc {
 
   int off_;
   int region_;  
-  std::string func_;
+  ParseAPI::Function *func_;
 
   Address addr_;
 };

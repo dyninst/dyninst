@@ -615,26 +615,6 @@ bool BPatch_module::getVariablesInt(BPatch_Vector<BPatch_variableExpr *> &vars)
    return true;
 }
 
-/* This function should be deprecated. */
-bool BPatch_module::getLineToAddrInt( unsigned int lineNo, 
-      BPatch_Vector< unsigned long > & buffer, bool ) 
-{
-   if (!isValid()) {
-      fprintf(stderr, "%s[%d]: module is not valid\n", FILE__, __LINE__);
-      return false;
-   }
-
-   std::vector< std::pair< Address, Address > > ranges;
-   if ( ! getAddressRangesInt( NULL, lineNo, ranges ) ) { 
-      return false; 
-   }
-
-   for ( unsigned int i = 0; i < ranges.size(); ++i ) {
-      buffer.push_back( ranges[i].first + mod->obj()->codeBase());
-   }
-
-   return true;
-} /* end getLineToAddr() */
 
 bool BPatch_module::getSourceLinesInt(unsigned long addr, 
       BPatch_Vector< BPatch_statement> &lines) 

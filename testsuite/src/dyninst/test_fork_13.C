@@ -91,8 +91,8 @@ static void prepareTestCase9(procType proc_type, BPatch_thread *thread, forkWhen
 {
 
    if(proc_type == Parent_p  &&  when == PreFork) {
-      BPatch_image *parImage = thread->getImage();
-      var7_9p = thread->malloc(*(parImage->findType("int")));
+       BPatch_image *parImage = thread->getProcess()->getImage();
+       var7_9p = thread->getProcess()->malloc(*(parImage->findType("int")));
       if(doError(&passedTest, (var7_9p==NULL),
 		 "  Unable to malloc variable in parent\n")) return;
 
@@ -103,10 +103,10 @@ static void prepareTestCase9(procType proc_type, BPatch_thread *thread, forkWhen
       // can't delete var7_9p here, since then the getInheritedVariable
       // would be operating on a freed variable
    } else if(proc_type == Child_p  &&  when == PostFork) {
-      var7_9c = thread->getInheritedVariable(*var7_9p);
-      parentThread->free(*var7_9p);
+       var7_9c = thread->getProcess()->getInheritedVariable(*var7_9p);
+       parentThread->getProcess()->free(*var7_9p);
 
-      BPatch_image *childImage = thread->getImage();
+       BPatch_image *childImage = thread->getProcess()->getImage();
 
       BPatch_Vector<BPatch_function *> found_funcs;
       const char *inFunction = "test_fork_13_func1";
@@ -130,7 +130,7 @@ static void prepareTestCase9(procType proc_type, BPatch_thread *thread, forkWhen
       BPatch_arithExpr a_expr7_9c(BPatch_plus, *var7_9c, BPatch_constExpr(5));
       BPatch_arithExpr b_expr7_9c(BPatch_assign, *var7_9c, a_expr7_9c);
 
-      thread->insertSnippet(b_expr7_9c, *point7_9c, BPatch_callBefore);
+      thread->getProcess()->insertSnippet(b_expr7_9c, *point7_9c, BPatch_callBefore);
    }
 }
 
@@ -178,14 +178,13 @@ static void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type) {
                 thread, parentThread, childThread);
         assert(0 && "Unexpected BPatch_thread in exitFunc");
     }
-    thread->continueExecution();
     return;
 }
 
 static void initialPreparation(BPatch_thread *parent)
 {
    //cerr << "in initialPreparation\n";
-   assert(parent->isStopped());
+    assert(parent->getProcess()->isStopped());
 
    //cerr << "ok, inserting instr\n";
    prepareTestCase9(Parent_p, parent, PreFork);
@@ -203,13 +202,13 @@ static int mutatorTest(BPatch *bpatch, BPatch_thread *appThread)
 
     initialPreparation(parentThread);
     /* ok, do the fork */;
-    parentThread->continueExecution();
+                         parentThread->getProcess()->continueExecution();
 
     /* the rest of the execution occurs in postForkFunc() */
     /* Secondary test: we should not have to manually continue
        either parent or child at any point */
 
-    while ( !parentThread->isTerminated() ) 
+                         while ( !parentThread->getProcess()->isTerminated() )
     {
        bpatch->waitForStatusChange();
     }
@@ -223,7 +222,7 @@ static int mutatorTest(BPatch *bpatch, BPatch_thread *appThread)
        return passedTest;
     }
     
-    if ( !childThread->isTerminated() )
+    if ( !childThread->getProcess()->isTerminated() )
     {
        bpatch->waitForStatusChange();
     }

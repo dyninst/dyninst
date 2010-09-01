@@ -3719,7 +3719,7 @@ if test "`echo $host_os | cut -b-3`" = "aix" ; then
 
 fi
 
-if test "x$BUILD_XLC" == "x" ; then
+if test "x$BUILD_XLC" = "x" ; then
 
 # Check whether --with-libiberty-libdir or --without-libiberty-libdir was given.
 if test "${with_libiberty_libdir+set}" = set; then
@@ -3803,8 +3803,10 @@ fi
 
    LIBS_BAK=$LIBS
    LDFLAGS_BAK=$LDFLAGS
+   CXXFLAGS_BAK=$CXXFLAGS
    LIBS="$LIBS -liberty"
    LDFLAGS="$LDFLAGS -shared"
+   CXXFLAGS="-fPIC"
    cat >conftest.$ac_ext <<_ACEOF
 /* confdefs.h.  */
 _ACEOF
@@ -3853,9 +3855,10 @@ rm -f conftest.err conftest.$ac_objext \
       conftest$ac_exeext conftest.$ac_ext
    LDFLAGS=$LDFLAGS_BAK
    LIBS=$LIBS_BAK
+   CXXFLAGS=$CXXFLAGS_BAK
 
-   if test "x$HAVE_LIBIBERTY" == "xtrue" ; then
-      if test "x$LIBIBERTY_LINK" == "xtrue" ; then
+   if test "x$HAVE_LIBIBERTY" = "xtrue" ; then
+      if test "x$LIBIBERTY_LINK" = "xtrue" ; then
          USE_LIBERTY=true
          LINK_LIBERTY=true
       elif test "x$_PGC_" != "x" ; then
@@ -3868,7 +3871,7 @@ rm -f conftest.err conftest.$ac_objext \
       GNU_DEMANGLER=true
    fi
 
-   if test "x$GNU_DEMANGLER" == "xtrue" ; then
+   if test "x$GNU_DEMANGLER" = "xtrue" ; then
       USE_LIBIBERTY=""
       LINK_LIBIBERTY=""
    fi

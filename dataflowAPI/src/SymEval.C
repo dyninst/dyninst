@@ -88,21 +88,9 @@ void SymEval::expand(Result_t &res, bool applyVisitors) {
   if (applyVisitors) {
     // Must apply the visitor to each filled in element
     for (Result_t::iterator i = res.begin(); i != res.end(); ++i) {
-      if (i->second == AST::Ptr()) {
-        // Must not have been filled in above
-        continue;
-      }
-      Assignment::Ptr ptr = i->first;
-      // Let's experiment with simplification
-      StackAnalysis sA(ptr->func());
-      StackAnalysis::Height sp = sA.findSP(ptr->addr());
-      StackAnalysis::Height fp = sA.findFP(ptr->addr());
-
-      StackVisitor sv(ptr->addr(), ptr->func()->name(), sp, fp);
-      if (i->second) {
-	AST::Ptr simplified = i->second->accept(&sv);
-	i->second = simplified;
-      }
+      if (!i->second) continue;
+      AST::Ptr tmp = simplifyStack(i->second, i->first->addr(), i->first->func());
+      i->second = tmp;
     }
   }
 }
@@ -185,7 +173,7 @@ void SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,
 
 
 bool SymEval::process(AssignNode::Ptr ptr,
-			 Result_t &dbase) {
+		      Result_t &dbase) {
     bool ret = false;
     
     std::map<unsigned, Assignment::Ptr> inputMap;
@@ -235,7 +223,7 @@ bool SymEval::process(AssignNode::Ptr ptr,
             //cerr << "Skipping subsitution for input " << iter->first << endl;
             continue;
         }
-        //cerr << "Substituting input " << iter->first << endl;
+        expand_cerr << "Substituting input " << iter->first << " with assignment " << iter->second->format() << endl;
         // The region used by the current assignment...
         const AbsRegion &reg = ptr->assign()->inputs()[iter->first];
 
@@ -246,7 +234,6 @@ bool SymEval::process(AssignNode::Ptr ptr,
         AST::Ptr definition = dbase[iter->second];
 
         if (!definition) {
-            expand_cerr << "Odd; no expansion for " << iter->second->format() << endl;
             // Can happen if we're expanding out of order, and is generally harmless.
             continue;
         }
@@ -258,12 +245,30 @@ bool SymEval::process(AssignNode::Ptr ptr,
         } else {
             ast = AST::substitute(ast, use, definition);
             ret = true;
-        }
+        }	
         //expand_cerr << "\t result is " << res->format() << endl;
     }
-    expand_cerr << "Result of subsitution: " << ptr->assign()->format() << " == " << (ast ? ast->format() : "<NULL AST>") << endl;
+    expand_cerr << "Result of substitution: " << ptr->assign()->format() << " == " << (ast ? ast->format() : "<NULL AST>") << endl;
+
+    // And attempt simplification again
+    ast = simplifyStack(ast, ptr->addr(), ptr->func());
+    expand_cerr << "Result of post-substitution simplification: " << ptr->assign()->format() << " == " 
+		<< (ast ? ast->format() : "<NULL AST>") << endl;
+    
     dbase[ptr->assign()] = ast;
     return ret;
 }
 
+AST::Ptr SymEval::simplifyStack(AST::Ptr ast, Address addr, ParseAPI::Function *func) {
+  if (!ast) return ast;
+  // Let's experiment with simplification
+  StackAnalysis sA(func);
+  StackAnalysis::Height sp = sA.findSP(addr);
+  StackAnalysis::Height fp = sA.findFP(addr);
+  
+  StackVisitor sv(addr, func, sp, fp);
 
+  AST::Ptr simplified = ast->accept(&sv);
+
+  return simplified;
+}

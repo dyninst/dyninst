@@ -61,7 +61,7 @@ extern "C" DLLEXPORT TestMutator *test_stack_1_factory() {
 
 // static int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 test_results_t test_stack_1_Mutator::executeTest() {
-    appThread->continueExecution();
+    appProc->continueExecution();
     static const frameInfo_t correct_frame_info[] = {
 #if defined( os_linux_test ) && (defined( arch_x86_test ) || defined( arch_x86_64_test ))
 	{ true, true, BPatch_frameNormal, "_dl_sysinfo_int80" },
@@ -79,8 +79,8 @@ test_results_t test_stack_1_Mutator::executeTest() {
 	{ true,  false, BPatch_frameNormal, "main" },
     };
 
-    if (waitUntilStopped(bpatch, appThread, 1, "getCallStack") < 0) {
-      appThread->getProcess()->terminateExecution();
+    if (waitUntilStopped(bpatch, appProc, 1, "getCallStack") < 0) {
+      appProc->terminateExecution();
       return FAILED;
     }
 
@@ -91,12 +91,12 @@ test_results_t test_stack_1_Mutator::executeTest() {
 	logerror("Passed test #1 (getCallStack)\n");
 
     } else {
-      appThread->getProcess()->terminateExecution();
+      appProc->terminateExecution();
        return FAILED;
     }
 
-    appThread->continueExecution();
-    while (!appThread->getProcess()->isTerminated()) {
+    appProc->continueExecution();
+    while (!appProc->isTerminated()) {
       bpatch->waitForStatusChange();
     }
 

@@ -1594,22 +1594,25 @@ stackItemLocation getHeightOf(stackItem sitem, codeGen &gen)
             offset += STACK_PAD_CONSTANT;
          if (!gen.bti() || gen.bti()->flagsSaved()) {
             offset += addr_width;
-	 }
+         int regs_saved = 0;
          pdvector<registerSlot *> &regs = gen.rs()->trampRegs();
          for (unsigned i=0; i<regs.size(); i++) {
             registerSlot *reg = regs[i];
-            if (reg->spilledState != registerSlot::unspilled) {
-	      offset += addr_width;
-	    }
+            if (reg->spilledState == registerSlot::unspilled) 
+               continue;
+            offset += addr_width;
+            regs_saved++;
          }
-         offset += (gen.bti()->funcJumpSlotSize() * addr_width); 
-	 if (gen.bti()->funcJumpSlotSize()) {
-	 }
-	 if (gen.bti()->hasStackFrame()) {
-            //Save of EBP adds addr_width--ebp may have been counted once above
-            // and here again if a pusha and frame were created, but that's
-            // okay.
-            offset += addr_width; 
+         offset += (gen.bti()->funcJumpSlotSize() * addr_width);
+         if (gen.bti()->hasStackFrame()) 
+         {
+            //Count the return address and frame save
+            offset += addr_width*2;
+            //We mis-counted the save of ebp above, it's not part of the regular
+            // register saves.  We should only count it it was saved by a pusha
+            if (addr_width == 4 && regs_saved != 8) {
+               offset -= addr_width;                
+            }
             return stackItemLocation(plat_bp, offset);
          }
          if (gen.bti()->hasLocalSpace()) {

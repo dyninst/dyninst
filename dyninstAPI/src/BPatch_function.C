@@ -1041,43 +1041,6 @@ const char *BPatch_function::addNameInt(const char *name,
     return name;
 }
 
-/* This function should be deprecated. */
-bool BPatch_function::getLineAndFileInt( unsigned int & start, 
-                                         unsigned int & end, 
-                                         char * filename, 
-                                         unsigned int max ) 
-{
-   Address startAddress = func->getAddress();
-   Address endAddress = startAddress + func->getSize_NP();
-	
-   BPatch_Vector<BPatch_statement> startLines;
-   if ( ! mod->getSourceLines( startAddress, startLines ) ) { return false; }
-   if ( startLines.size() == 0 ) { return false; }
-   start = startLines[0].lineNumber();
-	
-   /* Arbitrarily... */
-   strncpy( filename, startLines[0].fileName(), max );
-	
-   BPatch_Vector<BPatch_statement> endLines;
-   if ( ! mod->getSourceLines( endAddress, endLines ) ) { return false; }
-   if ( endLines.size() == 0 ) { return false; }
-   end = endLines[0].lineNumber();
-
-return true;
-} /* end getLineAndFile() */
-
-/* This function should be deprecated. */
-bool BPatch_function::getLineToAddrInt( unsigned short lineNo, BPatch_Vector< unsigned long > & buffer, bool /* exactMatch */ ) {
-	std::vector< std::pair< unsigned long, unsigned long > > ranges;
-	if( ! mod->getAddressRanges( NULL, lineNo, ranges ) ) { return false; }
-	
-	for( unsigned int i = 0; i < ranges.size(); ++i ) {
-		buffer.push_back( ranges[i].first );
-		}
-	
-	return true;
-	} /* end getLineToAddr() */
-
 unsigned int BPatch_function::getContiguousSizeInt() {
    Address start, end;
    start = func->getAddress();

@@ -117,7 +117,7 @@ test_callback_2_Mutator::at(BPatch_point * pt, BPatch_function *call,
   else assert(0);
 
   BPatchSnippetHandle *ret;
-  ret = appThread->insertSnippet(snip, *pt,when);
+  ret = appProc->insertSnippet(snip, *pt,when);
 
   if (!ret) 
   {
@@ -251,17 +251,17 @@ test_results_t test_callback_2_Mutator::executeTest()
 	elog.resize(0);
 
 #if defined(arch_x86_64_test)
-	if (appThread->getProcess()->getAddressWidth() == 4)
+	if (appProc->getAddressWidth() == 4)
 		libname = "./libTest12_m32.so";
 #endif
 
 	dprintf("%s[%d]:  loading test library: %s\n", __FILE__, __LINE__, libname);
 
-	if (!appThread->loadLibrary(libname)) 
+	if (!appProc->loadLibrary(libname))
 	{
 		logerror("%s[%d]:  failed to load library %s, cannot proceed\n", 
 				__FILE__, __LINE__, libname);
-		appThread->getProcess()->terminateExecution();
+                appProc->terminateExecution();
 		return FAILED;
 	}
 
@@ -272,7 +272,7 @@ test_results_t test_callback_2_Mutator::executeTest()
 	{
 		FAIL_MES(TESTNAME, TESTDESC);
 		logerror("%s[%d]: could not register callback\n", __FILE__, __LINE__);
-		appThread->getProcess()->terminateExecution();
+                appProc->terminateExecution();
 		return FAILED;
 	}
 
@@ -289,7 +289,7 @@ test_results_t test_callback_2_Mutator::executeTest()
 		logerror("%s[%d]: Unable to find entry point to function %s\n", 
 				__FILE__, __LINE__, call1name);
 		bpatch->removeUserEventCallback(test7cb);
-		appThread->getProcess()->terminateExecution();
+                appProc->terminateExecution();
 		return FAILED;
 	}
 
@@ -300,7 +300,7 @@ test_results_t test_callback_2_Mutator::executeTest()
 		logerror("%s[%d]:  Unable to find exit point to function %s\n", 
 				__FILE__, __LINE__, call1name);
 		bpatch->removeUserEventCallback(test7cb);
-		appThread->getProcess()->terminateExecution();
+                appProc->terminateExecution();
 		return FAILED;
 	}
 
@@ -311,7 +311,7 @@ test_results_t test_callback_2_Mutator::executeTest()
 		logerror("%s[%d]:  Unable to find subroutine call point in function %s\n",
 				__FILE__, __LINE__, call1name);
 		bpatch->removeUserEventCallback(test7cb);
-		appThread->getProcess()->terminateExecution();
+                appProc->terminateExecution();
 		return FAILED;
 	}
 
@@ -326,21 +326,21 @@ test_results_t test_callback_2_Mutator::executeTest()
 	{
 		logerror("%s[%d]:  reportEntry = NULL\n", FILE__, __LINE__);
 		bpatch->removeUserEventCallback(test7cb);
-		appThread->getProcess()->terminateExecution();
+                appProc->terminateExecution();
 		return FAILED;
 	}
 	if (!reportExit)
 	{
 		logerror("%s[%d]:  reportExit = NULL\n", FILE__, __LINE__);
 		bpatch->removeUserEventCallback(test7cb);
-		appThread->getProcess()->terminateExecution();
+                appProc->terminateExecution();
 		return FAILED;
 	}
 	if (!reportCallsite)
 	{
 		logerror("%s[%d]:  reportCallsite = NULL\n", FILE__, __LINE__);
 		bpatch->removeUserEventCallback(test7cb);
-		appThread->getProcess()->terminateExecution();
+                appProc->terminateExecution();
 		return FAILED;
 	}
 
@@ -371,7 +371,7 @@ test_results_t test_callback_2_Mutator::executeTest()
 			logerror("%s[%d]:  Error setting variable '%s' in mutatee\n", 
 					FILE__, __LINE__, varName);
 			bpatch->removeUserEventCallback(test7cb);
-			appThread->getProcess()->terminateExecution();
+                        appProc->terminateExecution();
 			return FAILED;
 		}
 	}
@@ -382,7 +382,7 @@ test_results_t test_callback_2_Mutator::executeTest()
 
 	int timeout = 0;
 
-	appThread->getProcess()->continueExecution();
+        appProc->continueExecution();
 
 	dprintf("%s[%d]:  continued process...: %s\n", 
 			__FILE__, __LINE__, libname);
@@ -395,18 +395,18 @@ test_results_t test_callback_2_Mutator::executeTest()
 		timeout += SLEEP_INTERVAL;
 		bpatch->pollForStatusChange();
 
-		if (appThread->getProcess()->isTerminated())
+                if (appProc->isTerminated())
 		{
-			BPatch_exitType et = appThread->getProcess()->terminationStatus();
+			BPatch_exitType et = appProc->terminationStatus();
 			if (et == ExitedNormally)
 			{
-				int ecode = appThread->getProcess()->getExitCode();
+				int ecode = appProc->getExitCode();
 				logerror("%s[%d]:  normal exit with code %d\n",
 						__FILE__, __LINE__, ecode);
 			}
 			if (et == ExitedViaSignal)
 			{
-				int ecode = appThread->getProcess()->getExitSignal();
+				int ecode = appProc->getExitSignal();
 				logerror("%s[%d]:  caught signal %d\n",
 						__FILE__, __LINE__, ecode);
 			}
@@ -427,7 +427,7 @@ test_results_t test_callback_2_Mutator::executeTest()
 		test7err = true;
 	}
 
-	if (!appThread->getProcess()->stopExecution())
+	if (!appProc->stopExecution())
 	{
 		logerror("%s[%d]:  stopExecution failed\n",
 				__FILE__, __LINE__);
@@ -442,14 +442,14 @@ test_results_t test_callback_2_Mutator::executeTest()
 		FAIL_MES(TESTNAME, TESTDESC);
 		logerror("%s[%d]:  failed to remove callback\n",
 				__FILE__, __LINE__);
-		appThread->getProcess()->terminateExecution();
+		appProc->terminateExecution();
 		log_res();
 		return FAILED;
 	}
 
 	dprintf("%s[%d]:  removed callback...\n", 
 			__FILE__, __LINE__ );
-	if (!appThread->getProcess()->terminateExecution())
+	if (!appProc->terminateExecution())
 	{
 		//  don't care
 		//fprintf(stderr, "%s[%d]:  terminateExecution failed\n", FILE__, __LINE__);
@@ -463,7 +463,7 @@ test_results_t test_callback_2_Mutator::executeTest()
 	{
 		logerror("Error setting variable 'test_callback_2_idle' in mutatee\n");
 		test7err = true;
-		appThread->getProcess()->terminateExecution();
+		appProc->terminateExecution();
 	}
 #endif
 
@@ -471,7 +471,7 @@ test_results_t test_callback_2_Mutator::executeTest()
 	// And let it run out
 	if (!appThread->isTerminated()) 
 	{
-		appThread->getProcess()->continueExecution();
+		appProc->continueExecution();
 	}
 
 	while (!appThread->isTerminated()) 
