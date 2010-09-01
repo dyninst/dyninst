@@ -78,6 +78,10 @@ bool Instrumenter::processTrace(TraceList::iterator &iter) {
     // Assertion: we have no Inst elements already
     Address addr = (*e_iter)->addr();
     if (addr == 0) continue;
+    // CFAtoms can have an address even if they were invented.
+    // We need a "virtual" boolean... but for now just check whether
+    // there's an instruction there. 
+    if (!(*e_iter)->insn()) continue;
     relocation_cerr << "  Checking for point at " << std::hex << addr << std::dec << endl;
 
     point = (*iter)->bbl()->func()->findInstPByAddr(addr);

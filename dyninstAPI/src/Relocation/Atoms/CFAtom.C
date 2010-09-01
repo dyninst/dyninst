@@ -418,7 +418,7 @@ bool CFAtom::generateAddressTranslator(codeGen &,
 std::string CFAtom::format() const {
   stringstream ret;
   ret << "CFAtom(" << std::hex;
-  ret << addr_;
+  ret << addr_ << ",";
   if (isIndirect_) ret << "<ind>";
   if (isConditional_) ret << "<cond>";
   if (isCall_) ret << "<call>";
@@ -426,7 +426,18 @@ std::string CFAtom::format() const {
   for (DestinationMap::const_iterator iter = destMap_.begin();
        iter != destMap_.end();
        ++iter) {
-    ret << iter->first << "->" << iter->second->format() << ",";
+    switch (iter->first) {
+    case Fallthrough:
+      ret << "FT";
+      break;
+    case Taken:
+      ret << "T";
+      break;
+    default:
+      ret << iter->first;
+      break;
+    }
+    ret << "->" << iter->second->format() << ",";
   }
   ret << std::dec << ")";
   return ret.str();
