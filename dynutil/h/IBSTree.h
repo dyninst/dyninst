@@ -705,6 +705,11 @@ void IBSTree<ITYPE>::removeInterval(IBSNode<ITYPE> *R, ITYPE *range)
     if(low <= R->value() && high > R->value()) {
         R->equal.erase(range);
     }
+    else if(low == R->value() && high == R->value()) {
+        // XXX explicitly allow zero-length intervals
+        //     to `match' the starting value
+        R->equal.erase(range);
+    }
 }
 
 template<class ITYPE>
