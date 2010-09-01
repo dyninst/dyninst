@@ -565,7 +565,8 @@ test_driver_static.o: ../src/test_driver.C $(DEPENDDIR)/test_driver_static.dep
 
 test_driver: test_driver.o test_driver_templates.o test_info_new.gen.o $(DEPENDDIR)/test_driver.dep $(LIBTESTSUITE)
 	@echo Linking $@ $(TESTDRIVER_LDFLAGS)
-	$(CXX) -o $@ test_driver.o test_driver_templates.o test_info_new.gen.o -L. -ltestSuite $(MUTATOR_LDFLAGS) $(LIBS) $(TESTDRIVER_LDFLAGS) -lcommon
+	$(CXX) -o $@ test_driver.o test_driver_templates.o test_info_new.gen.o -L. -ltestSuite $(MUTATOR_LDFLAGS) $(LIBS) $(TESTDRIVER_LDFLAGS) -lcommon; $(TESTDRIVER_EXTRA_LINK_STEP)
+        
 
 ######################################################################
 ### Output Drivers
