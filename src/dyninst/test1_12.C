@@ -95,7 +95,7 @@ int test1_12_Mutator::mutatorTesta()
 		return -1;
 	}
 
-	varExpr12_1 = appThread->malloc(100);
+	varExpr12_1 = appProc->malloc(100);
 
 	if (!varExpr12_1) 
 	{
@@ -113,7 +113,7 @@ int test1_12_Mutator::mutatorTesta()
 
 	for (count = 0; count < 2000; count++) 
 	{
-		temp = appThread->malloc(HEAP_TEST_UNIT_SIZE);
+		temp = appProc->malloc(HEAP_TEST_UNIT_SIZE);
 
 		if (!temp) 
 		{
@@ -130,11 +130,11 @@ int test1_12_Mutator::mutatorTesta()
 
 	for (int i =0; i < count; i++) 
 	{
-		appThread->free(*memStuff[i]);
+		appProc->free(*memStuff[i]);
 		freeCount++;
 	}
 
-	temp = appThread->malloc(500); 
+        temp = appProc->malloc(500);
 
 	if (!temp) 
 	{
@@ -157,7 +157,7 @@ int test1_12_Mutator::mutatorTesta()
 	BPatch_funcCallExpr call12_1Expr(*call12_1_func, nullArgs);
 
 	checkCost(call12_1Expr);
-	snippetHandle12_1 = appThread->insertSnippet(call12_1Expr, *point12_2);
+        snippetHandle12_1 = appProc->insertSnippet(call12_1Expr, *point12_2);
 
 	if (!snippetHandle12_1) 
 	{
@@ -171,20 +171,20 @@ int test1_12_Mutator::mutatorTesta()
 
 int test1_12_Mutator::mutatorTestb() 
 {
-	waitUntilStopped(BPatch::bpatch, appThread, 12, "insert/remove and malloc/free");
+	waitUntilStopped(BPatch::bpatch, appProc, 12, "insert/remove and malloc/free");
 
 	// remove instrumentation and free memory
-	if (!appThread->deleteSnippet(snippetHandle12_1)) 
+        if (!appProc->deleteSnippet(snippetHandle12_1))
 	{
 		logerror("**Failed test #12 (insert/remove and malloc/free)\n");
 		logerror("    deleteSnippet returned an error\n");
 		return -1;
 	}
 
-	appThread->free(*varExpr12_1);
+        appProc->free(*varExpr12_1);
 
 	// Try removing NULL as a snippet
-	if (appThread->deleteSnippet(NULL)) 
+        if (appProc->deleteSnippet(NULL))
 	{
 		logerror("**Failed test #12 (insert/remove and malloc/free)\n");
 		logerror("    deleteSnippet returned success when deleting NULL\n");
@@ -192,7 +192,7 @@ int test1_12_Mutator::mutatorTestb()
 	}
 
 	// continue process
-	appThread->continueExecution();
+        appProc->continueExecution();
 
 	return 0;
 }
@@ -208,7 +208,7 @@ test_results_t test1_12_Mutator::executeTest()
 		return FAILED;
 	}
 
-	appThread->continueExecution();
+        appProc->continueExecution();
 	result = mutatorTestb();
 
 	if (result != 0) 

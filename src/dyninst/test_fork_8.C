@@ -84,7 +84,7 @@ static void prepareTestCase4(procType proc_type, BPatch_thread *thread, forkWhen
    static BPatchSnippetHandle *parSnippetHandle4;
 
    if(proc_type == Child_p  &&  when == PostFork) {
-      BPatch_image *childImage = thread->getImage();
+       BPatch_image *childImage = thread->getProcess()->getImage();
 
       BPatch_Vector<BPatch_function *> found_funcs;
       const char *inFunction = "test_fork_8_func1";
@@ -112,17 +112,17 @@ static void prepareTestCase4(procType proc_type, BPatch_thread *thread, forkWhen
       BPatch_arithExpr a_expr7_4c(BPatch_plus, *var7_4c,BPatch_constExpr(211));
       BPatch_arithExpr b_expr7_4c(BPatch_assign, *var7_4c, a_expr7_4c);
       parSnippetHandle4 =
-	thread->insertSnippet(b_expr7_4c, *point7_4c, BPatch_callBefore);
+              thread->getProcess()->insertSnippet(b_expr7_4c, *point7_4c, BPatch_callBefore);
    }
 }
 
 static void checkTestCase4(procType proc_type, BPatch_thread *thread) {
    if(proc_type == Parent_p) {
-      if(! verifyProcMemory(thread, "test_fork_8_global1", 789, proc_type)) {
+       if(! verifyProcMemory(thread->getProcess(), "test_fork_8_global1", 789, proc_type)) {
 	 passedTest = false;
       }
    } else if(proc_type == Child_p) {
-      if(! verifyProcMemory(thread, "test_fork_8_global1", 1000, proc_type)) {
+       if(! verifyProcMemory(thread->getProcess(), "test_fork_8_global1", 1000, proc_type)) {
 	 passedTest = false;
       }
    }
@@ -162,14 +162,13 @@ static void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type) {
                 thread, parentThread, childThread);
         assert(0 && "Unexpected BPatch_thread in exitFunc");
     }
-    thread->continueExecution();
     return;
 }
 
 static void initialPreparation(BPatch_thread *parent)
 {
    //cerr << "in initialPreparation\n";
-   assert(parent->isStopped());
+    assert(parent->getProcess()->isStopped());
 
    //cerr << "ok, inserting instr\n";
    prepareTestCase4(Parent_p, parent, PreFork);
@@ -187,13 +186,13 @@ static int mutatorTest(BPatch *bpatch, BPatch_thread *appThread)
 
     initialPreparation(parentThread);
     /* ok, do the fork */;
-    parentThread->continueExecution();
+                         parentThread->getProcess()->continueExecution();
 
     /* the rest of the execution occurs in postForkFunc() */
     /* Secondary test: we should not have to manually continue
        either parent or child at any point */
 
-    while ( !parentThread->isTerminated() ) 
+                         while ( !parentThread->getProcess()->isTerminated() )
     {
        bpatch->waitForStatusChange();
     }
@@ -207,7 +206,7 @@ static int mutatorTest(BPatch *bpatch, BPatch_thread *appThread)
        return passedTest;
     }
     
-    if ( !childThread->isTerminated() )
+    if ( !childThread->getProcess()->isTerminated() )
     {
        bpatch->waitForStatusChange();
     }

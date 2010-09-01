@@ -72,7 +72,7 @@ static int debugPrint;
 template class BPatch_Vector<void *>;
 static BPatch_Vector<BPatch_point *> test2handles;
 static BPatch_Vector<BPatch_point *> dyncalls;
-static BPatch_thread *globalThread = NULL;
+static BPatch_process *globalThread = NULL;
 extern BPatch *bpatch;
   static int counter = 0;
   static int counter2 = 0;
@@ -133,7 +133,7 @@ static void dynSiteCB(BPatch_point *dyn_site, BPatch_function *called_function)
 test_results_t test_callback_1_Mutator::executeTest() {
   dprintf("%s[%d]:  welcome to test12_2\n", __FILE__, __LINE__);
   int timeout = 0;
-  globalThread = appThread;
+  globalThread = appProc;
   test2done = 0;
   test2err = 0;
   dyncalls.clear();
@@ -145,7 +145,7 @@ test_results_t test_callback_1_Mutator::executeTest() {
     // Why are we continuing the mutatee?  Doesn't it just start looping
     // forever when we do this?
     //appThread->continueExecution();
-     appThread->terminateExecution();
+      appProc->terminateExecution();
      SKIP(TESTNAME, TESTDESC);
      logerror("\txlc optimizes out dynamic call sites for this test\n");
      sleep_ms(100);
@@ -155,18 +155,18 @@ test_results_t test_callback_1_Mutator::executeTest() {
   if (!bpatch->registerDynamicCallCallback(dynSiteCB)) {
      FAIL_MES(TESTNAME, TESTDESC);
      logerror("  failed to register callsite callback\n");
-     appThread->terminateExecution();
+     appProc->terminateExecution();
      return FAILED;
   }
 
-  BPatch_function *func2_1 = findFunction("call2_dispatch", appThread->getImage(), TESTNO, TESTNAME);
+  BPatch_function *func2_1 = findFunction("call2_dispatch", appImage, TESTNO, TESTNAME);
   BPatch_function *targetFunc = func2_1;
 
   BPatch_Vector<BPatch_point *> *calls = targetFunc->findPoint(BPatch_subroutine);
   if (!calls) {
      FAIL_MES(TESTNAME, TESTDESC);
      logerror("  cannot find call points for func1_1\n");
-     appThread->terminateExecution();
+     appProc->terminateExecution();
      return FAILED;
   }
 
@@ -178,7 +178,7 @@ test_results_t test_callback_1_Mutator::executeTest() {
       if (!ret) {
         FAIL_MES(TESTNAME, TESTDESC);
         logerror("  failed monitorCalls\n");
-	appThread->terminateExecution();
+        appProc->terminateExecution();
 	return FAILED;
       }
       test2handles.push_back(pt);
@@ -191,11 +191,11 @@ test_results_t test_callback_1_Mutator::executeTest() {
      logerror("  wrong number of dynamic points found (%d -- not 3)\n",
              dyncalls.size());
      logerror("  total number of calls found: %d\n", calls->size());
-     appThread->terminateExecution();
+     appProc->terminateExecution();
      return FAILED;
   }
 
-  appThread->continueExecution();
+  appProc->continueExecution();
 
   //  wait until we have received the desired number of events
   //  (or timeout happens)
@@ -214,10 +214,10 @@ test_results_t test_callback_1_Mutator::executeTest() {
   }
 
   if (test2err) {
-    appThread->terminateExecution();
+      appProc->terminateExecution();
     return FAILED;
   } else {
-    appThread->terminateExecution();
+      appProc->terminateExecution();
     return PASSED;
   }
 }

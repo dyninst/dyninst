@@ -144,7 +144,7 @@ BPatch_process *test_thread_7_Mutator::getProcess() {
       }
       dprintf(stderr, "%s[%d]: attached to process\n", __FILE__, __LINE__);
       BPatch_image *appimg = proc->getImage();
-      signalAttached(NULL, appimg);
+      signalAttached(appimg);
    }
    return proc;
 }
