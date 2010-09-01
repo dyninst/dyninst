@@ -55,22 +55,22 @@ bool df_init_debug() {
   char *p;
 
   if ((p=getenv("DATAFLOW_DEBUG_STACKANALYSIS"))) {
-    fprintf(stderr, "Enabling SymEval stack analysis debugging\n");
+    fprintf(stderr, "Enabling DataflowAPI stack analysis debugging\n");
     df_debug_stackanalysis = 1;
   }
 
   if ((p=getenv("DATAFLOW_DEBUG_SLICING"))) {
-    fprintf(stderr, "Enabling SymEval slicing debugging\n");
+    fprintf(stderr, "Enabling DataflowAPI slicing debugging\n");
     df_debug_slicing = 1;
   }
 
   if ((p=getenv("DATAFLOW_DEBUG_CONVERT"))) {
-    fprintf(stderr, "Enabling SymEval->ROSE conversion debugging\n");
+    fprintf(stderr, "Enabling DataflowAPI->ROSE conversion debugging\n");
     df_debug_convert = 1;
   }
 
   if ((p=getenv("DATAFLOW_DEBUG_EXPAND"))) {
-    fprintf(stderr, "Enabling SymEval symbolic expansion debugging\n");
+    fprintf(stderr, "Enabling DataflowAPI symbolic expansion debugging\n");
     df_debug_expand = 1;
   }
   return true;

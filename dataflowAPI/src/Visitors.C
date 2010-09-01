@@ -130,9 +130,12 @@ AST::Ptr StackVisitor::visit(RoseAST *r) {
     case AST::V_StackAST:
       // NewKids[0] is a constant; is the newKids[1] something we can add?
       switch (newKids[1]->getID()) {
-      case AST::V_ConstantAST:
+      case AST::V_ConstantAST: {
+	cerr << "Caught stackAST + constAST: " << StackAST::convert(newKids[0])->val() << " + " 
+	     << ConstantAST::convert(newKids[1])->val().val << endl;
 	return StackAST::create(StackAST::convert(newKids[0])->val() +
 				ConstantAST::convert(newKids[1])->val().val);
+      }
       default:
 	return RoseAST::create(r->val(), newKids);
       }

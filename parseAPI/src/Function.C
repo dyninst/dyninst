@@ -394,7 +394,7 @@ Function::tampersStack(bool recalculate)
             }
         }
         assert(sliceAtRet != NULL);
-        StackTamperVisitor vis(Absloc(-1 * isrc()->getAddressWidth(), 0, name()));
+        StackTamperVisitor vis(Absloc(-1 * isrc()->getAddressWidth(), 0, this));
         Address curTamperAddr=0;
         StackTamper curtamper = vis.tampersStack(sliceAtRet, curTamperAddr);
         if (TAMPER_UNSET == _tamper || 

@@ -286,7 +286,7 @@ void Slicer::shiftAbsRegion(AbsRegion &callerReg,
         //<< " and setting to function " << callee->name() << endl;
 	calleeReg = AbsRegion(Absloc(callerAloc.off() - stack_depth,
 				     0, // Entry point has region 0 by definition
-				     callee->name()));
+				     callee));
       }
     }
   }
@@ -888,6 +888,12 @@ bool Slicer::kills(Element &current, Assignment::Ptr &assign) {
   // TBD: overlaps ins't quite the right thing here. "contained
   // by" would be better, but we need to get the AND/OR
   // of abslocs hammered out.
+
+  if (assign->out().type() != Absloc::Unknown) {
+    // A region assignment can never kill
+    return false; 
+  }
+
   return current.reg.contains(assign->out());
 }
 
