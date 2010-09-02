@@ -131,6 +131,10 @@ void SymEval::expand(Graph::Ptr slice, Result_t &res) {
 
       if (post && !(post->equals(prev))) {
 	// Oy
+	expand_cerr << "Adding successors to list, as new expansion " << endl
+		    << "\t" << post->format() << endl 
+		    << " != " << endl
+		    << "\t" << (prev ? prev->format() : "<NULL>") << endl;
 	NodeIterator oB, oE;
 	aNode->outs(oB, oE);
 	for (; oB != oE; ++oB) {
