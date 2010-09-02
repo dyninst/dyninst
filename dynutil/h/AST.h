@@ -35,6 +35,7 @@
 #include <vector>
 #include <string>
 #include <sstream>
+#include <iostream>
 #include <dyn_detail/boost/shared_ptr.hpp>
 #include <dyn_detail/boost/enable_shared_from_this.hpp>
 #include "util.h"
@@ -150,8 +151,12 @@ class name : public AST {						\
   };									\
  name(type t, Children kids) : t_(t), kids_(kids) {};			\
   virtual bool isStrictEqual(const AST &rhs) const {			\
-    const name &other(dynamic_cast<const name&>(rhs));			\
-    return ((t_ == other.t_) && (kids_ == other.kids_));		\
+    const name &other(dynamic_cast<const name&>(rhs));                  \
+    if (!(t_ == other.t_)) return false;				\
+    if (kids_.size() != other.kids_.size()) return false;               \
+    for (unsigned i = 0; i < kids_.size(); ++i)                         \
+      if (!(kids_[i]->equals(other.kids_[i]))) return false;            \
+    return true;                                                        \
   }									\
   const type t_;							\
   Children kids_;							\
