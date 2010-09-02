@@ -5148,9 +5148,8 @@ bool process::generateRequiredPatches(instPoint *callPt,
     }
     
     // 2) 
-    bblInstance *callbbi = callPt->block()->origInstance();
-    set<DefensivePad>::iterator d_iter = forwardDefensiveMap_[callbbi].begin();
-    for (; d_iter != forwardDefensiveMap_[callbbi].end(); ++d_iter) 
+    set<DefensivePad>::iterator d_iter = forwardDefensiveMap_[callPt].begin();
+    for (; d_iter != forwardDefensiveMap_[callPt].end(); ++d_iter) 
     {
       Address jumpAddr = d_iter->first;
       patchAreas.insert(std::make_pair(jumpAddr, to));
@@ -5170,7 +5169,7 @@ void process::generatePatchBranches(AddrPairSet &branchesNeeded) {
 
     // Safety check: make sure we didn't overrun the patch area
     Address lb, ub;
-    bblInstance *tmp;
+    instPoint *tmp;
     if (!reverseDefensiveMap_.find(from, lb, ub, tmp)) {
       // WTF? This worked before!
       assert(0);
