@@ -533,18 +533,14 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
     switch(ev.info.u.Exception.ExceptionRecord.ExceptionInformation[0]) {
     case 0: // bad read
         if (dyn_debug_malware) {
-            codeRange *range = ev.proc->findOrigByAddr(ev.address);
-            bblInstance *bbi = range->is_basicBlockInstance();
-            if (bbi) {
-                mal_printf("bad read in pdwinnt.C %lx[%lx]=>%lx [%d]\n",
-                           ev.address,bbi->equivAddr(0,ev.address),
-                           violationAddr,__LINE__);
-            } 
-            if (!bbi) {
-                mal_printf("bad read in pdwinnt.C, not in an orig block "
-                           "%lx=>%lx [%d]\n",
-                           ev.address,violationAddr,__LINE__);
-            }
+            Address origAddr = ev.address;
+            bblInstance *bbi = NULL;
+            baseTrampInstance *bti = NULL;
+            ev.proc->getRelocInfo(ev.address, origAddr, bbi, bti);
+            mal_printf("bad read in pdwinnt.C %lx[%lx]=>%lx [%d]\n",
+                       ev.address, origAddr, violationAddr,__LINE__);
+            // detach so we can see what's going on 
+            //ev.proc->detachProcess(true);
         }
         break;
 
@@ -2513,7 +2509,16 @@ bool SignalHandler::handleCodeOverwrite(EventRecord &ev)
             // Strategy will be to single step the instruction, no
             // other approach can deal with the possibility that the
             // same or very next instruction will be overwritten
+            fprintf(stderr, "ERROR: unimplemented code overwrite scenario, "
+                    "overwriting the executing block %lx->%lx[%lx] %s[%d]\n", 
+                    ev.address, writtenAddr, origWritten, FILE__,__LINE__);
             assert(0 && "unimplemented code overwrite scenario");
+        }
+        if (writtenbbi && writtenbbi->block()->llb()->isShared()) {
+            fprintf(stderr, "WARNING: overwrote shared code, we may not "
+                    "handle this correctly %lx->%lx[%lx] %s[%d]\n",
+                    ev.address, writtenAddr, origWritten, FILE__,__LINE__);
+            //assert(0 && "overwrote shared code");
         }
         // flush all addresses matching the mapped object and the
         // runtime library heaps

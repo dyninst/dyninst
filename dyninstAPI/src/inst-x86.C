@@ -1593,7 +1593,7 @@ stackItemLocation getHeightOf(stackItem sitem, codeGen &gen)
          if (addr_width == 8)
             offset += STACK_PAD_CONSTANT;
          if (!gen.bti() || gen.bti()->flagsSaved())
-	   offset += addr_width;
+            offset += addr_width;
          int regs_saved = 0;
          pdvector<registerSlot *> &regs = gen.rs()->trampRegs();
          for (unsigned i=0; i<regs.size(); i++) {

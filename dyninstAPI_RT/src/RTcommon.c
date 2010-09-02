@@ -438,6 +438,7 @@ void DYNINST_stopThread (void * pointAddr, void *callBackID,
 {
     void* lookupAddr = calculation;
     RT_Boolean isInCache = RT_FALSE;
+    unsigned bidx=0;
 
     tc_lock_lock(&DYNINST_trace_lock);
     rtdebug_printf("pt[%lx] flags[%lx] calc[%lx] ", 
@@ -447,6 +448,15 @@ void DYNINST_stopThread (void * pointAddr, void *callBackID,
     if (5 == (((long)flags) & 0x05) ) { // mask stackAddr flag bit
         lookupAddr = (void*)* ( ((unsigned long*)calculation) + 1 );
         rtdebug_printf("ret-addr lookup at %lx", lookupAddr);
+
+        for (bidx=0; bidx < 0x80; bidx+=4) {
+            printf("0x%x:  ", (int)calculation+bidx);
+            printf("%02hhx", *(unsigned char*)(unsigned)calculation+bidx+3);
+            printf("%02hhx", *(unsigned char*)calculation+bidx+2);
+            printf("%02hhx", *(unsigned char*)calculation+bidx+1);
+            printf("%02hhx", *(unsigned char*)calculation+bidx+0);
+            printf("\n");
+        }
     }
 
     if (0 != (((long)flags) & 0x03)) {

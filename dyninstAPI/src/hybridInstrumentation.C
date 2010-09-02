@@ -107,8 +107,9 @@ bool HybridAnalysis::init()
                         __FILE__,__LINE__,namebuf);
                 ret = false;
             }
-
-        } else if (!strncmp(namebuf,"msvcrt.dll",64)) {
+        } 
+#if 0
+        else if (!strncmp(namebuf,"msvcrt.dll",64)) {
             // instrument msvcrt initterm, since it calls into the application
             vector<BPatch_function*> funcs;
             (*allmods)[midx]->findFunction("initterm",funcs,false,false);
@@ -118,6 +119,7 @@ bool HybridAnalysis::init()
             }
             proc()->finalizeInsertionSet(false);
         }
+#endif
     }
 
     mal_printf("   post-inst ");

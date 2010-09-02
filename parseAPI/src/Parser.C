@@ -368,6 +368,7 @@ Parser::parse_frames(vector<ParseFrame *> & work, bool recursive)
                 parsing_printf("[%s] frame %lx complete, return status: %d\n",
                     FILE__,pf->func->addr(),pf->func->_rs);
                 if (unlikely( _obj.defensiveMode() && 
+                              NORETURN != pf->func->_rs && 
                               TAMPER_NONZERO != pf->func->tampersStack() ))
                 {   // add a fallthrough / tamper-target edge if there is one
                     vector<ParseFrame*> tamperFrames;
@@ -705,18 +706,20 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
 		            }
                 }
                 // Call-stack tampering tests
-                if (frame.func->obj()->defensiveMode() && ct) {
-                    StackTamper tamper = ct->tampersStack();
-                    if (TAMPER_NONE != tamper) {
-                        mal_printf("Disallowing FT edge: function at %lx "
-                                   "tampers with its stack\n", ct->addr());
-                        parsing_printf("\t Disallowing FT edge: function "
-                                       "tampers with its stack\n");
-                        is_nonret = true;
+                if (unlikely(!is_nonret && frame.func->obj()->defensiveMode() && ct)) {
+                    is_nonret |= (ct->retstatus() == UNKNOWN);
+                    if (is_nonret) {
+                        parsing_printf("\t Disallowing FT edge: function in "
+                                       "defensive binary may not return\n");
+                        mal_printf("Disallowing FT edge: function in "
+                                   "defensive binary may not return\n");
                     } else {
-                        Function::blocklist & retblks = ct->returnBlocks();
-                        if ( retblks.begin() == retblks.end() ) {
-                            is_nonret = true;
+                        is_nonret |= (TAMPER_NONE != ct->tampersStack());
+                        if (is_nonret) {
+                            mal_printf("Disallowing FT edge: function at %lx "
+                                       "tampers with its stack\n", ct->addr());
+                            parsing_printf("\t Disallowing FT edge: function "
+                                           "tampers with its stack\n");
                         }
                     }
                 }
@@ -1368,10 +1371,15 @@ Parser::remove_block(Dyninst::ParseAPI::Block *block)
     _parse_data->remove_block(block);
 }
 
+/* called in defensive mode to create parseFrames at tampered addresses 
+   for functions that return TAMPER_REL and TAMPER_ABS.  Normal fallthrough
+   edges have been added already and will be disallowed if the function 
+   doesn't return or tampers with its stack (see Parser::parse_frame) */
 void 
 Parser::getTamperFrames(Function *func, std::vector<ParseFrame*> & frames)
 {
-    // edge (optional), and target function pairs
+    // saves info needed to create a parseFrame:
+    // edge is null for TAMPER_ABS
     struct frame_info {
         frame_info(Address t, Edge *e, Function *f) {
             target = t;
@@ -1382,10 +1390,15 @@ Parser::getTamperFrames(Function *func, std::vector<ParseFrame*> & frames)
         Edge *edge;
         Function *tfunc;
     };
+
     vector<frame_info*> finfo;
     switch (func->tampersStack()) {
-    case (TAMPER_NONE): {
-        // add a fallthrough edge
+    case (TAMPER_NONE): 
+#if 0 // do nothing, the edge is already there
+        {
+        // find calling blocks by following call edges up from the func's 
+        // entry block, creating a frame for the fallthrough edge, if the
+        // block has not been parse already
         Block *entry = func->entry();
         assert(entry);
         Block::edgelist calls = entry->sources();
@@ -1395,6 +1408,7 @@ Parser::getTamperFrames(Function *func, std::vector<ParseFrame*> & frames)
             if (CALL != (*cit)->type()) {
                 continue;
             }
+
             bool hasFallthrough = false;
             Block *caller = (*cit)->src();
             Block::edgelist outs = caller->targets();
@@ -1406,20 +1420,25 @@ Parser::getTamperFrames(Function *func, std::vector<ParseFrame*> & frames)
                     break;
                 }
             }
-            if (!hasFallthrough) {
+
+            if (!hasFallthrough) { 
+                // there is no fallthrough edge, but the fallthrough block
+                // may exist.  I hope I'm not causing problems in that case
+                // by creating a parse frame
                 Edge *tedge = link_tempsink(caller,CALL_FT);
-                vector<Function*> funcs;
-                caller->getFuncs(funcs);
+                Function *tfunc = _parse_data->findFunc(caller->region(), 
+                                                        caller->start());
                 finfo.push_back( 
                     new frame_info(
-                        func->addr(), 
+                        tfunc->addr(), 
                         tedge, 
-                        funcs.front() )
+                        tfunc )
                     );
             }
         }
+        }
+#endif
         break;
-    }
     case (TAMPER_ABS): {
         Function * tfunc = NULL;
         Address target = func->_tamper_addr;
@@ -1479,19 +1498,45 @@ Parser::getTamperFrames(Function *func, std::vector<ParseFrame*> & frames)
 
         ParseFrame::Status exist = _parse_data->frameStatus(
             finfo[fidx]->tfunc->region(), finfo[fidx]->target);
-        if(exist != ParseFrame::BAD_LOOKUP && exist != ParseFrame::UNPARSED) {
-            mal_printf("   function at %lx already parsed, status %d\n",
-                           finfo[fidx]->target, exist);
-            delete finfo[fidx];
-            continue;
+        ParseFrame * pf = NULL;
+        switch(exist) {
+            case ParseFrame::FRAME_ERROR:
+            case ParseFrame::PROGRESS:
+                fprintf(stderr,"ERROR: function frame at %lx in bad state, can't "
+                        "add edge; status=%d\n",finfo[fidx]->target, exist);
+                break;
+            case ParseFrame::PARSED:
+                fprintf(stderr,"ERROR: function frame at %lx already parsed, can't "
+                        "add edge; status=%d\n",finfo[fidx]->target, exist);
+                break;
+            case ParseFrame::BAD_LOOKUP:
+                // create new frame
+                pf = _parse_data->findFrame(finfo[fidx]->tfunc->region(),
+                                            finfo[fidx]->target);
+                if ( !pf ) {
+                    pf = new ParseFrame(finfo[fidx]->tfunc,_parse_data);
+                    frames.push_back(pf);
+                } else {
+                    fprintf(stderr,"ERROR: function frame at %lx already "
+                            "parsed, can't add edge; status=%d\n",
+                            finfo[fidx]->target, exist);
+                }
+                break;
+            case ParseFrame::UNPARSED:
+            case ParseFrame::CALL_BLOCKED:
+                pf = _parse_data->findFrame(finfo[fidx]->tfunc->region(),
+                                            finfo[fidx]->target);
+                if ( !pf ) {
+                    fprintf(stderr,"ERROR: no function frame at %lx for frame "
+                            "that should exist, can't add edge; status=%d\n",
+                            finfo[fidx]->target, exist);
+                }
+                break;
+            default:
+                assert(0);
         }
-
-        ParseFrame *pf = _parse_data->findFrame(
-            finfo[fidx]->tfunc->region(),finfo[fidx]->target);
-        if( !pf ) {
-            pf = new ParseFrame(finfo[fidx]->tfunc,_parse_data);
-        }
-
+        
+        // create new bundle since we're not adding CALL,CALL_FT edge pairs
         ParseWorkBundle *bundle = new ParseWorkBundle();
         pf->work_bundles.push_back(bundle);
         bundle->add(
@@ -1503,7 +1548,6 @@ Parser::getTamperFrames(Function *func, std::vector<ParseFrame*> & frames)
                 false)
           );
 
-        frames.push_back(pf);
         delete finfo[fidx];
     }
 }

@@ -4399,6 +4399,210 @@ int process::getStopThreadCB_ID(const Address cb)
     }
 }
 
+bool process::isRuntimeHeapAddr(Address addr)
+{
+    for (unsigned hidx=0; hidx < dyninstRT_heaps.size(); hidx++) {
+        if (addr >= dyninstRT_heaps[hidx]->addr &&
+            addr < dyninstRT_heaps[hidx]->addr + dyninstRT_heaps[hidx]->length) {
+            return true;
+        }
+    }
+    return false;
+}
+
+Address process::resolveJumpIntoRuntimeLib(instPoint *srcPt, Address reloc)
+{
+    Address orig = 0;
+    std::list<Address> srcRelocs;
+    getRelocAddrs(srcPt->addr(), srcPt->block()->origInstance(), srcRelocs);
+    for(list<Address>::iterator rit= srcRelocs.begin(); 
+        rit != srcRelocs.end(); 
+        rit++) 
+    {
+        Offset adjustment;
+        if ( (*rit) > srcPt->addr() ) {
+            adjustment = (*rit) - srcPt->addr();
+        } else {
+            adjustment = srcPt->addr() - (*rit);
+        }
+        mal_printf("translated indir target %lx to %lx %s[%d]\n",
+                   reloc, reloc - adjustment, FILE__,__LINE__);
+        if (srcPt->func()->obj() == findObject(reloc - adjustment)) {
+            orig = reloc - adjustment;
+        }
+    }
+    return orig;
+}
+
+
+/*    If calculation is a relocated address, translate it to the original addr
+ *    case 1: The point is at a return instruction
+ *    case 2: The point is a control transfer into the runtime library
+ *    Mark returning functions as returning
+ *    Save the targets of indirect control transfers (not regular returns)
+ */
+Address process::stopThreadCtrlTransfer
+       (instPoint* intPoint, 
+        Address target)
+{
+    int_function *pointfunc = intPoint->func();
+    Address pointAddress = intPoint->addr();
+
+    // if the point is a real return instruction and its target is a stack 
+    // address, get the return address off of the stack 
+    Address returnAddrAddr=0;
+    if ( intPoint->isReturnInstruction() && 
+         ! intPoint->func()->isSignalHandler() &&
+         NULL == findObject(target) ) 
+    {
+        returnAddrAddr = target + intPoint->preBaseTramp()->savedFlagSize;
+        //assert (getAddressWidth() == // otherwise the RTLIB cache value is wrong
+        //        intPoint->preBaseTramp()->savedFlagSize); 
+        if (!readDataSpace((void *)returnAddrAddr, 
+                           getAddressWidth(), &target, false)) 
+        {
+            fprintf(stderr, "%s[%d] WARNING: reading from the stopthread "
+                    "return addr addr %lx failed\n",FILE__,__LINE__,target);
+            assert(0);
+        }
+        mal_printf("%s[%d]: return address address %lx contains %lx\n", FILE__,
+                __LINE__,returnAddrAddr,target);
+
+        if (dyn_debug_malware) {
+            const int BUFSIZE = 0x40;
+            unsigned char *buf= (unsigned char*) malloc(BUFSIZE);
+            printf("STOPTHREAD HANDLING point=%lx target=%lx\n", pointAddress, 
+                   (Address)target);
+            if (!readDataSpace((void *)(returnAddrAddr), 
+                                     BUFSIZE, buf, true)) {
+                fprintf(stderr, "%s[%d]:  readDataSpace failed\n", FILE__, __LINE__);
+                return false;
+            }
+            for (unsigned bidx=0; bidx < BUFSIZE; bidx+=4) {
+                printf("0x%x:  ", returnAddrAddr+bidx);
+                printf("%02hhx", buf[bidx+3]);
+                printf("%02hhx", buf[bidx+2]);
+                printf("%02hhx", buf[bidx+1]);
+                printf("%02hhx", buf[bidx]);
+                printf("\n");
+            }
+        }
+
+    }
+
+    Address unrelocTarget = target;
+
+    if ( isRuntimeHeapAddr( target ) ) {
+        // case 1: The point is at a return instruction
+        if (intPoint->getPointType() == functionExit) {
+
+            // get unrelocated target address
+            Address unrelocTarget = target;
+            bblInstance *targBBI = NULL;
+            baseTrampInstance *bti = NULL;
+            bool success = getRelocInfo(target, unrelocTarget, targBBI, bti);
+
+            if (! intPoint->func()->isSignalHandler()) {
+
+                if (success) {
+                    // check that we hadn't tampered with the stack, targBBI should 
+                    // contain a call and it should call this function or have an 
+                    // indirect call
+                    targBBI->func()->funcCalls();
+                    instPoint *callPt = targBBI->func()->findInstPByAddr
+                        (targBBI->lastInsnAddr());
+                    if (!callPt) {
+                        success = false;
+                    } else if (!callPt->isDynamic()) {
+                        // make sure we call the function that the ret is in
+                        success = false; // presume false until we find a matching call edge
+                        ParseAPI::Block::edgelist & edges = targBBI->block()->llb()->targets();
+                        ParseAPI::Block::edgelist::iterator eit = edges.begin();
+                        for (; eit != edges.end(); eit++) {
+                            if (ParseAPI::CALL == (*eit)->type()) {
+                                if ((*eit)->trg() == targBBI->func()->ifunc()->entry()) 
+                                    success = true;
+                                break; // we found the call edge, break whether it matches or not
+                            }
+                        }
+                    }
+                }
+        
+                // resolve target subtracting the difference between the address 
+                // of the relocated intPoint and its original counterpart
+                if (!success) {
+                    unrelocTarget = resolveJumpIntoRuntimeLib(intPoint, target);
+                    if (0 == unrelocTarget) {
+                        mal_printf("ERROR: stopThread caught a return target in "
+                                   "the rtlib heap that it couldn't translate "
+                                   "%lx=>%lx %s[%d]\n", pointAddress, 
+                                   target, FILE__, __LINE__);
+                        assert(0);
+                    }
+                }
+            } 
+            else if (!success) {
+                // case 1b: this is a signal handler whose return target we
+                // couldn't resolve, output an error message
+                mal_printf("ERROR: stopThread caught a return target "
+                           "from a signal handler into "
+                           "the rtlib heap that it couldn't translate "
+                           "%lx=>%lx %s[%d]\n", pointAddress, 
+                           target, FILE__, __LINE__);
+                assert(0);
+            }
+        }
+        // case 2: The point is a control transfer into the runtime library
+        else {
+            // This is an indirect jump or call into the dyninst runtime 
+            // library heap, meaning that the indirect target is calculated 
+            // by basing off of the program counter at the source block, so
+            // adjust the target by comparing to the uninstrumented address of
+            // the source instruction
+            unrelocTarget = resolveJumpIntoRuntimeLib(intPoint, target);
+            if (0 == unrelocTarget) {
+                mal_printf("%s[%d] WARNING: stopThread caught an indirect "
+                        "call or jump whose target is an unresolved "
+                        "runtime library heap address %lx=>%lx %s[%d]\n",
+                        pointAddress, target, FILE__, __LINE__);
+                assert(0);
+            }
+        }
+        mal_printf("translated target %lx to %lx %s[%d]\n",
+                   target, unrelocTarget, FILE__, __LINE__);
+    }
+    else { // target is not relocated, nothing to do but find the 
+           // mapped_object, creating one if necessary, for transfers
+           // into memory regions that are allocated at runtime
+        mapped_object *obj = findObject(target);
+        if (!obj) {
+            obj = createObjectNoFile(target);
+            if (!obj) {
+                fprintf(stderr,"ERROR, point %lx has target %lx that responds "
+                        "to no object %s[%d]\n", pointAddress, target, 
+                        FILE__,__LINE__);
+                assert(0 && "stopThread snippet has an invalid target");
+                return 0;
+            }
+        }
+    }
+
+    // save the targets of indirect control transfers, save them in the point
+    if (intPoint->isDynamic() && ! intPoint->isReturnInstruction()) {
+        intPoint->setSavedTarget(unrelocTarget);
+    }
+    else if ( ! intPoint->isDynamic() && 
+              functionExit != intPoint->getPointType()) 
+    {
+        // remove unresolved status from point if it is a static ctrl transfer
+        if ( ! intPoint->setResolved() ) {
+            fprintf(stderr,"We seem to have tried resolving this point[0x%lx] "
+                    "twice, why? %s[%d]\n", pointAddress, FILE__,__LINE__);
+        }
+    }
+    return unrelocTarget;
+} 
+
 /* This is the simple version
  * 1. Need three pieces of information: 
  * 1a. The instrumentation point that triggered the stopThread event
@@ -4489,6 +4693,8 @@ bool process::handleStopThread(EventRecord &ev)
         return false;
     }
 
+    mal_printf("handling stopThread %lx=>%lx %s[%d]\n", 
+               pointAddress, (int)calculation, FILE__,__LINE__); 
 /* 2. If the callbackID is negative, the calculation is meant to be
       interpreted as the address of code, so we call stopThreadCtrlTransfer
       to translate the target to an unrelocated address */
@@ -4509,175 +4715,6 @@ bool process::handleStopThread(EventRecord &ev)
 
 } // handleStopThread
 
-
-/*    If calculation is a relocated address, translate it to the original addr
- *    case 1: The point is at a return instruction
- *    case 2: The point is a control transfer into the runtime library
- *    Mark returning functions as returning
- *    Save the targets of indirect control transfers (not regular returns)
- */
-Address process::stopThreadCtrlTransfer
-       (instPoint* intPoint, 
-        Address target)
-{
-/*
-todo: 
-    everywhere I call getRelocInfo, check for shared code
-    update this beastie
-*/
-    int_function *pointfunc = intPoint->func();
-    Address pointAddress = intPoint->addr();
-
-    // if the point is a real return instruction and its target is a stack 
-    // address, get the return address off of the stack 
-    Address returnAddrAddr=0;
-    if ( intPoint->isReturnInstruction() && 
-         ! intPoint->func()->isSignalHandler() &&
-         NULL == findObject(target) ) 
-    {
-        returnAddrAddr = target + intPoint->preBaseTramp()->savedFlagSize;
-        assert (getAddressWidth() == // otherwise we'll have cached the wrong address in the runtime library
-                intPoint->preBaseTramp()->savedFlagSize); 
-        if (!readDataSpace((void *)returnAddrAddr, 
-                           getAddressWidth(), &target, false)) 
-        {
-            fprintf(stderr, "%s[%d] WARNING: reading from the stopthread "
-                    "return addr addr %lx failed\n",FILE__,__LINE__,target);
-            assert(0);
-        }
-        mal_printf("%s[%d]: return address address %lx contains %lx\n", FILE__,
-                __LINE__,returnAddrAddr,target);
-    }
-
-    Address unrelocTarget = target;
-    bblInstance *pointBBI = intPoint->block()->instVer(pointfunc->version());
-
-    if ( isRuntimeHeapAddr( target ) ) {
-        // case 1: The point is at a return instruction
-        if (intPoint->getPointType() == functionExit && 
-            ! intPoint->func()->isSignalHandler()) 
-        {
-            // case 1a: at return instruction not in signal handler
-            bblInstance *callBBI = NULL;
-            // set callBBI 
-            codeRange *callRange = findOrigByAddr(target-1);
-            if (! callRange ) {
-                fprintf(stderr,"ERROR STOPTHREAD FOUND NO MATCH FOR RUNTIME "
-                        "HEAP ADDR %lx %s[%d]\n",target,FILE__,__LINE__);
-                assert(0 && "stopThread target is unmatched rt-lib heap addr");
-            }
-            callBBI = callRange->is_basicBlockInstance();
-            if ( ! callBBI ) {
-                multiTramp *callMulti = callRange->is_multitramp();
-                if (callMulti) {
-                    Address uninstrumented = 
-                        callMulti->instToUninstAddr(target-1)+1;
-                    callRange = findOrigByAddr(uninstrumented-1);
-                    if ( callRange ) {
-                        callBBI = callRange->is_basicBlockInstance();
-                    }
-                    assert(callBBI);
-                }
-            }
-            while ( callBBI && ! callBBI->block()->containsCall() ) {
-				if ( ! callBBI->block()->getFallthrough() ) {
-					break;
-				}
-                callBBI = callBBI->block()->getFallthrough()->
-                    instVer(callBBI->version());
-            }
-            assert( callBBI );
-
-            // Translate the address
-            unrelocTarget = callBBI->block()->origInstance()->endAddr();
-
-            // Set the return status of the function containing the 
-            // return instPoint to returning
-            pointfunc->ifunc()->set_retstatus(ParseAPI::RETURN);
-        } 
-        else if (intPoint->getPointType() == functionExit && 
-                 intPoint->func()->isSignalHandler()) 
-        {
-            // case 1a: at return instruction in signal handler
-            bblInstance *targBBI = findOrigByAddr(target)->
-                is_basicBlockInstance();
-            multiTramp *targMulti = findOrigByAddr(target)->is_multitramp();
-            if (targMulti) {
-                Address uninstrumented = 
-                    targMulti->instToUninstAddr(target);
-                targBBI = findOrigByAddr(uninstrumented)->is_basicBlockInstance();
-            }
-            assert(targBBI);
-            unrelocTarget = targBBI->equivAddr(0, target);
-        }
-        // case 2: The point is a control transfer into the runtime library
-        else {
-            // This is an indirect jump or call into the dyninst runtime 
-            // library heap, meaning that the indirect target is calculated 
-            // by basing off of the program counter at the source block, so
-            // adjust the target by determining the uninstrumented address of
-            // the source instruction
-            bblInstance *origPointBBI = intPoint->block()->origInstance();
-            assert(pointAddress >= origPointBBI->firstInsnAddr() &&
-                   pointAddress < origPointBBI->endAddr());
-            Address relocPointAddr = origPointBBI->equivAddr
-                (pointBBI->version(), pointAddress);
-            Address adjustment;
-            if (relocPointAddr > pointAddress) {
-                adjustment = relocPointAddr - pointAddress;
-            } else {
-                adjustment = pointAddress - relocPointAddr;
-            }
-            unrelocTarget = target - adjustment;
-            mal_printf("%s[%d] WARNING: stopThread caught transfer "
-                    "%lx[%lx]=>%lx[%lx] whose target is "
-                    "in runtime library heap, will translate target addr\n",
-                    FILE__, __LINE__, relocPointAddr, pointAddress, 
-                    target, target);
-        }
-        mal_printf("%s[%d] translated %lx to %lx\n",
-                FILE__, __LINE__, target, unrelocTarget);
-    }
-    else { // target is not relocated, find the mapped_object
-        mapped_object *obj = findObject(target);
-        if (!obj) {
-            obj = createObjectNoFile(target);
-            if (!obj) {
-                fprintf(stderr,"ERROR, point %lx has target %lx that responds "
-                        "to no object %s[%d]\n", pointAddress, target, 
-                        FILE__,__LINE__);
-                assert(0 && "stopThread snippet has an invalid target");
-                return 0;
-            }
-        }
-    }
-
-    // save the targets of indirect control transfers, save them in the point
-    if (intPoint->isDynamic() && ! intPoint->isReturnInstruction()) {
-        intPoint->setSavedTarget(unrelocTarget);
-    }
-    else if ( ! intPoint->isDynamic() && 
-              functionExit != intPoint->getPointType()) 
-    {
-        // remove unresolved status from point if it is a static ctrl transfer
-        if ( false == intPoint->setResolved() ) {
-            fprintf(stderr,"We seem to have tried resolving this point[0x%lx] "
-                    "twice, why? %s[%d]\n", pointAddress, FILE__,__LINE__);
-        }
-    }
-    return unrelocTarget;
-} 
-
-bool process::isRuntimeHeapAddr(Address addr)
-{
-    for (unsigned hidx=0; hidx < dyninstRT_heaps.size(); hidx++) {
-        if (addr >= dyninstRT_heaps[hidx]->addr &&
-            addr < dyninstRT_heaps[hidx]->addr + dyninstRT_heaps[hidx]->length) {
-            return true;
-        }
-    }
-    return false;
-}
 
 /* returns true if blocks were overwritten, initializes overwritten
  * blocks and ranges by contrasting shadow pages with current memory
@@ -5136,8 +5173,9 @@ bool process::generateRequiredPatches(instPoint *callPt,
     //    to addr(ft)
 
     // 1)
-    bblInstance *ftbbi = callPt->block()->origInstance()->getFallthroughBBL();
-
+    bblInstance *callbbi = callPt->block()->origInstance();
+    assert(callPt->addr() <= callbbi->lastInsnAddr());
+    bblInstance *ftbbi = callbbi->getFallthroughBBL();
     Address to = 0;
     if (!relocatedCode_.back().origToReloc(ftbbi->firstInsnAddr(),
 					                       ftbbi,
@@ -5148,12 +5186,13 @@ bool process::generateRequiredPatches(instPoint *callPt,
     }
     
     // 2) 
-    bblInstance *callbbi = callPt->block()->origInstance();
     set<DefensivePad>::iterator d_iter = forwardDefensiveMap_[callbbi].begin();
     for (; d_iter != forwardDefensiveMap_[callbbi].end(); ++d_iter) 
     {
       Address jumpAddr = d_iter->first;
       patchAreas.insert(std::make_pair(jumpAddr, to));
+      mal_printf("patching post-call pad for %lx[%lx] with %lx %s[%d]\n",
+                 callbbi->lastInsnAddr(), jumpAddr, to, FILE__,__LINE__);
     }
     return true;
 }

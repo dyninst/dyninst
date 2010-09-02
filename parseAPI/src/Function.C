@@ -382,21 +382,27 @@ Function::tampersStack(bool recalculate)
             if ( outReg.absloc().isPC() ) {
                 Slicer slicer(*ait,*bit,this);
                 Graph::Ptr slGraph = slicer.backwardSlice(preds);
-                DataflowAPI::Result_t slRes;
-                DataflowAPI::SymEval::expand(slGraph,slRes);
                 if (dyn_debug_malware) {
                     stringstream graphDump;
-                    graphDump << "sliceDump_" << this->name() 
-                              << "_" << hex << retnAddr << ".dot";
+                    graphDump << "sliceDump_" << this->name() << "_" 
+                              << hex << retnAddr << dec << ".dot";
                     slGraph->printDOT(graphDump.str());
                 }
+                DataflowAPI::Result_t slRes;
+                DataflowAPI::SymEval::expand(slGraph,slRes);
                 sliceAtRet = slRes[*ait];
-                mal_printf("assignment %s is %s\n", (*ait)->format().c_str(),
-                           sliceAtRet->format().c_str());
+                if (dyn_debug_malware && sliceAtRet != NULL) {
+                    cout << "assignment " << (*ait)->format() << " is "
+                         << sliceAtRet->format() << "\n";
+                }
                 break;
             }
         }
-        assert(sliceAtRet != NULL);
+        if (sliceAtRet == NULL) {
+            mal_printf("Failed to produce a slice for retn at %x %s[%d]\n",
+                       retnAddr, FILE__,__LINE__);
+            continue;
+        } 
         StackTamperVisitor vis(Absloc(-1 * isrc()->getAddressWidth(), 0, this));
         Address curTamperAddr=0;
         StackTamper curtamper = vis.tampersStack(sliceAtRet, curTamperAddr);
@@ -421,16 +427,21 @@ Function::tampersStack(bool recalculate)
         }
         assgns.clear();
     }
-    if (TAMPER_ABS == _tamper && false == obj()->cs()->isCode(_tamper_addr)) {
+
+    if ( TAMPER_UNSET == _tamper ) {
+        mal_printf("WARNING: we found no valid slices for function at %lx "
+                   "%s[%d]\n", _start, _tamper_addr, FILE__,__LINE__);
+        _tamper = TAMPER_NONZERO;
+    }
+
+    if (TAMPER_ABS == _tamper && ! obj()->cs()->isCode(_tamper_addr)) {
         mal_printf("WARNING: function at %lx tampers its stack to point at "
-                   "invalid address 0x%lx %s[%d]\n", _start, _tamper_addr);
+                   "invalid address 0x%lx %s[%d]\n", _start, _tamper_addr,
+                   FILE__,__LINE__);
         _tamper = TAMPER_NONZERO;
     }
     if ( TAMPER_NONE != _tamper && RETURN == _rs ) {
         _rs = NORETURN;
-        if ( !recalculate ) { // this is the first time we've been called
-
-        }
     }
     return _tamper;
 }

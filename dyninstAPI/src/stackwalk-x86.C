@@ -210,14 +210,15 @@ static bool isPrevInstrACall(Address addr, process *proc, int_function **callee)
             bblInstance *bbi=NULL;
             bool success = proc->getRelocInfo(addr, origAddr, bbi, bti);
             if (success) {
-                // this is possible if we're searching for the
-                // return address of a frameless function and happen to 
-                // run over an instrumentation address
-                mal_printf("Stackwalked into instrumentation "
-                           "[%lx from origAddr %lx], which should "
-                           "not be possible as we're in defensive mode, "
-                           "where we disable frameless tramps %s[%d]\n",
-                           addr, origAddr, FILE__,__LINE__);
+                callBBI = bbi;
+                //// this is possible if we're searching for the
+                //// return address of a frameless function and happen to 
+                //// run over an instrumentation address
+                //mal_printf("Stackwalked into relocated code "
+                //           "[%lx from origAddr %lx], which should "
+                //           "not be possible as we're in defensive mode, "
+                //           "where we disable frameless tramps %s[%d]\n",
+                //           addr, origAddr, FILE__,__LINE__);
             }
             return false;
         }
@@ -254,7 +255,7 @@ static bool isPrevInstrACall(Address addr, process *proc, int_function **callee)
                            "stackwalking, has no callpoint attached, does "
                            "the target tamper with the call stack? %s[%d]\n", 
                            callAddr, FILE__,__LINE__);
-                *callee = callBBI->func();
+                *callee = callBBI->func(); // wrong function here, but what can we do?
             } else {
                 *callee = callPoint->findCallee();
             }

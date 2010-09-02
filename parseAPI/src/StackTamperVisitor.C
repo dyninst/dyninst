@@ -169,9 +169,9 @@ StackTamper StackTamperVisitor::tampersStack(AST::Ptr a, Address &newAddr) {
 
     assert(diffs_.size() == 1);
 
-    modpc_ = diffs_.top().b.x;
+    modpc_ = diffs_.top().a.x;
 
-    switch(diffs_.top().a.x) {
+    switch(diffs_.top().b.x) {
     case 0:
         tamper_ = TAMPER_ABS;
         break;

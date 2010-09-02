@@ -727,8 +727,8 @@ public:
   int memoryPageSize_;
 
   //stopThread instrumentation
-  Address stopThreadCtrlTransfer  
-      (instPoint* intPoint, Address target);
+  Address stopThreadCtrlTransfer(instPoint* intPoint, Address target);
+  Address resolveJumpIntoRuntimeLib(instPoint* srcPoint, Address target);
   static int stopThread_ID_counter;
   static dictionary_hash< Address, unsigned > stopThread_callbacks;
 

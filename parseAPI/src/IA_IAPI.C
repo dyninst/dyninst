@@ -305,7 +305,10 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
         }
         bool addFallthrough = true;
         if (unlikely(_obj->defensiveMode())) {
-#if 0
+            // we add fallthrough edges for now, unless we're sure the
+            // function can't return because Parser::parse_frame rejects
+            // edges from non-returning and call-stack tampering functions
+            // 
             // don't add fallthrough edge if we're in defensive mode 
             // and we see a direct call to an invalid address 
             //      or 
@@ -318,20 +321,6 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
             if (isDynamicCall()) {
                 std::string callee;
                 addFallthrough = false;
-                if (dynamic_cast<CodeSource*>(_isrc) && 
-                    isIATcall(callee) && 
-                    !static_cast<CodeSource*>(_isrc)->nonReturning(callee)) 
-                {
-                    addFallthrough = true;
-                }
-            }
-#endif
-            addFallthrough = false;
-            // add an edge only if we're sure the function returns before 
-            // actually parsing the called function, i.e., if this is a 
-            // call through the IAT/PLT
-            if (isDynamicCall()) {
-                std::string callee;
                 if (dynamic_cast<CodeSource*>(_isrc) && 
                     isIATcall(callee) && 
                     !static_cast<CodeSource*>(_isrc)->nonReturning(callee)) 

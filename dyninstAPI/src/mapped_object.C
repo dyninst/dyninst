@@ -1124,6 +1124,8 @@ mapped_module* mapped_object::getDefaultModule()
 // splits int-layer blocks in response to block-splitting at the image-layer,
 // adds the split image-layer blocks that are newly created, 
 // and adjusts point->block pointers accordingly 
+//
+// KEVINTODO: this would be much cheaper if we stored pairs of split blocks, 
 bool mapped_object::splitIntLayer()
 {
 
@@ -1140,7 +1142,7 @@ bool mapped_object::splitIntLayer()
     for (bIter = splits.begin(); bIter != splits.end(); bIter++) 
     {
         // foreach function corresponding to the block
-        image_basicBlock *splitImgB = (*bIter);
+        image_basicBlock *splitImgB = (*bIter); //latter half
         vector<Function *> funcs;
         splitImgB->getFuncs(funcs);
         for (std::vector<Function*>::iterator fIter = funcs.begin();
@@ -1173,7 +1175,7 @@ bool mapped_object::splitIntLayer()
                 Instruction::Ptr insn;
                 while(insn = dec.decode()) 
                 {
-                    point = intFunc->findInstPByAddr( current - baseAddr );
+                    point = intFunc->findInstPByAddr( current );
                     if ( point && point->block() != splitIntB ) {
                         point->setBlock( splitIntB );
                     } 
