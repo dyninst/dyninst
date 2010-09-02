@@ -499,8 +499,8 @@ class AddressSpace : public InstructionSource {
 
     // Kevin code
     typedef std::pair<Address, unsigned> DefensivePad;
-    std::map<bblInstance *, std::set<DefensivePad> > forwardDefensiveMap_;
-    IntervalTree<Address, bblInstance *> reverseDefensiveMap_;
+    std::map<instPoint *, std::set<DefensivePad> > forwardDefensiveMap_;
+    IntervalTree<Address, instPoint *> reverseDefensiveMap_;
 
     // Tracking instrumentation for fast removal
     std::map<baseTramp *, std::set<Address> > instrumentationInstances_;
