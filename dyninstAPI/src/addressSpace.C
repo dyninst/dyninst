@@ -1800,8 +1800,15 @@ void AddressSpace::addModifiedFunction(int_function *func) {
 }
 
 void AddressSpace::addDefensivePad(bblInstance *callBlock, Address padStart, unsigned size) {
-  forwardDefensiveMap_[callBlock].insert(std::make_pair(padStart, size));
-  reverseDefensiveMap_.insert(padStart, padStart+size, callBlock);
+  // We want to register these in terms of a bblInstance that the pad ends, but 
+  // the CFG can change out from under us; therefore, for lookup we use an instPoint
+  // as they are invariant. 
+
+  instPoint *point = callBlock->func()->findInstPByAddr(callBlock->lastInsnAddr());
+  assert(point);
+
+  forwardDefensiveMap_[point].insert(std::make_pair(padStart, size));
+  reverseDefensiveMap_.insert(padStart, padStart+size, point);
 }
 
 void AddressSpace::getPreviousInstrumentationInstances(baseTramp *bt,
