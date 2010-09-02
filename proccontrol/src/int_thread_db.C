@@ -259,16 +259,12 @@ thread_db_process::~thread_db_process()
 // A callback passed to td_ta_thr_iter
 // A non-zero return value is an error
 static
-int bootstrap_cb(const td_thrhandle_t *handle, void *arg) {
-    bool suspend = *(bool *)arg;
+int bootstrap_cb(const td_thrhandle_t *handle, void * /* unused */) {
+    td_err_e errVal = td_thr_dbsuspend(handle);
 
-    if( suspend ) {
-        td_err_e errVal = td_thr_dbsuspend(handle);
+    if( TD_OK != errVal ) return 1;
 
-        if( TD_OK != errVal ) return 1;
-    }
-
-    td_err_e errVal = td_thr_event_enable(handle, 1);
+    errVal = td_thr_event_enable(handle, 1);
 
     if( TD_OK != errVal ) return 1;
 
@@ -325,14 +321,7 @@ bool thread_db_process::initThreadDB() {
         return false;
     }
 
-    bool suspend = false;
-
-    // Enable events for all threads, possibly suspending them
-    if( useHybridLWPControl(threadPool()) ) {
-        suspend = true;
-    }
-
-    errVal = td_ta_thr_iter(threadAgent, bootstrap_cb, &suspend,
+    errVal = td_ta_thr_iter(threadAgent, bootstrap_cb, NULL,
                 TD_THR_ANY_STATE, TD_THR_LOWEST_PRIORITY, TD_SIGNO_MASK,
                 TD_THR_ANY_USER_FLAGS);
 
@@ -678,16 +667,13 @@ bool ThreadDBCreateHandler::handleEvent(Event::ptr ev) {
     assert(thread && "Thread was not initialized before calling this handler");
 
     // Because the new thread was created during a Breakpoint, it is already
-    // out of sync with the user state
+    // out of sync with the user state and the thread is in the stopped state
     thread->desyncInternalState();
+
+    thread->setInternalState(int_thread::stopped);
 
     // Explicitly ignore errors here
     thread->setEventReporting(true);
-
-    if( useHybridLWPControl(thread) ) {
-        // The initial generator state is stopped, explicitly ignore errors
-        thread->plat_suspend();
-    }
 
     return true;
 }
@@ -715,7 +701,10 @@ bool ThreadDBDestroyHandler::handleEvent(Event::ptr ev) {
         pthrd_printf("Marking LWP %d destroyed\n", thrd->getLWP());
         thrd->markDestroyed();
     }else if( ev->getEventType().time() == EventType::Post) {
-        thrd->setGeneratorState(int_thread::exited);
+        // TODO this needs to be reworked -- it isn't quite right
+        // Need to make sure that the thread actually finishes and is cleaned up
+        // by the OS
+        thrd->plat_resume();
     }
 
     return true;

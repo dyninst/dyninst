@@ -803,6 +803,7 @@ bool iRPCMgr::runNextRPC(int_thread *thr, bool block)
             rpc->setNeedsDesync(false);
             thr->restoreInternalState(block);
           }
+      // TODO this condition is incorrect
       }else if( useHybridLWPControl(thr) && block && !mbox()->size() ) {
           if( !thr->intCont() ) {
               pthrd_printf("Failed to continue thread %d/%d for run RPC\n",

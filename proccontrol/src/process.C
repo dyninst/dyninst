@@ -434,50 +434,50 @@ struct syncRunStateRet_t {
 };
 
 // Used by HybridLWPControl
-static
-bool doPlatContProcess(int_process *p) {
+bool int_process::continueProcess() {
     bool foundResumedThread = false;
     bool foundPendingStop = false;
     bool foundSyncOperation = false;
 
-    if( p->hasPendingProcStop() ) {
+    if( hasPendingProcStop() ) {
         pthrd_printf("Found pending proc stop for %d\n",
-                p->getPid());
+                getPid());
     }
 
     int_threadPool::iterator i;
-    for(i = p->threadPool()->begin(); i != p->threadPool()->end(); ++i) {
+    for(i = threadPool()->begin(); i != threadPool()->end(); ++i) {
         if( (*i)->isResumed() ) {
             pthrd_printf("Found resumed thread %d/%d\n",
-                    p->getPid(), (*i)->getLWP());
+                    getPid(), (*i)->getLWP());
             foundResumedThread = true;
         }
 
         if( (*i)->clearingPendingStop() ) {
             pthrd_printf("Found clear of pending stop for %d/%d\n",
-                    p->getPid(), (*i)->getLWP());
+                    getPid(), (*i)->getLWP());
             foundPendingStop = true;
             (*i)->setClearingPendingStop(false);
         }
 
         if( (*i)->isSyncingState() ) {
             pthrd_printf("Found sync operation for %d/%d\n",
-                    p->getPid(), (*i)->getLWP());
+                    getPid(), (*i)->getLWP());
             foundSyncOperation = true;
             (*i)->setSyncingState(false);
         }
     }
 
+    // TODO rethink why we need to check the mailbox
     if( (foundPendingStop || foundSyncOperation ||
-            (foundResumedThread && !p->hasPendingProcStop()) ) && !mbox()->size() ) 
+            (foundResumedThread && !hasPendingProcStop()) ) && !mbox()->size() ) 
     {
-        if( !p->plat_contProcess() ) {
+        if( !plat_contProcess() ) {
             perr_printf("Failed to continue whole process\n");
             return false;
         }
     }else{
         pthrd_printf("Did not find sufficient conditions to continue process %d\n",
-                p->getPid());
+                getPid());
     }
 
     return true;
@@ -517,6 +517,7 @@ bool syncRunState(int_process *p, void *r)
    {
       int_thread *thr = *i;
 
+      // TODO is this necessary?
       if( !useHybridLWPControl(tp) ) {
         thr->handleNextPostedIRPC(false);
       }
@@ -610,7 +611,7 @@ bool syncRunState(int_process *p, void *r)
    }
 
    if( useHybridLWPControl() ) {
-       return doPlatContProcess(p);
+       return p->continueProcess();
    }
 
    return true;
@@ -678,6 +679,7 @@ bool int_process::waitAndHandleEvents(bool block)
       /**
        * Check for possible error combinations from syncRunState
        **/
+      // TODO rethink why we need to check the mbox
       if (!ret.hasRunningThread && (!useHybridLWPControl() || !mbox()->size()) ) {
          if (gotEvent) {
             //We've successfully handled an event, but no longer have any running threads
@@ -2404,6 +2406,7 @@ int_iRPC::ptr int_thread::hasRunningProcStopperRPC() const
    if (running && running->isProcStopRPC()) {
       return running;
    }
+   // TODO why is this necessary?
    if( !useHybridLWPControl(llproc()) ) {
        int_iRPC::ptr nextposted = nextPostedIRPC();
        if (!running && nextposted && nextposted->isProcStopRPC() && 

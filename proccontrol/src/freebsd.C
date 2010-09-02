@@ -146,7 +146,10 @@ using namespace ProcControlAPI;
  * FreeBSD devs for this
  *
  * --- bug_freebsd_lost_signal ---
- * 
+ *
+ * This bug is documented in FreeBSD problem report kern/150138 -- it also
+ * includes a patch that fixes the problem.
+ *
  * Here is the scenario:
  *
  * 1) A signal (such as a SIGTRAP) is delivered to a specific thread, which
@@ -174,8 +177,6 @@ using namespace ProcControlAPI;
  * the OS could deschedule the ProcControl process and the debuggee could hit a
  * breakpoint or finish an iRPC, resulting in ProcControl's model of the debuggee
  * being inconsistent).
- *
- * TODO sumbit a problem report to FreeBSD devs for this.
  */
 
 Generator *Generator::getDefaultGenerator() {
@@ -476,6 +477,7 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
                             vector<Event::ptr>::iterator eventIter;
                             for(eventIter = destroyEvents.begin(); eventIter != destroyEvents.end(); ++eventIter) {
                                 event->addSubservientEvent(*eventIter);
+                                (*eventIter)->getThread()->llthrd()->setGeneratorState(int_thread::exited);
                             }
                         }
                     }else{
@@ -516,7 +518,7 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
                         break;
                     }
                 }
-                /* Relying on fallthrough to handle any other SIGTRAPs or SIGSTOPS*/
+                /* Relying on fallthrough to handle any other signals */
                 pthrd_printf("No special events found for this signal\n");
             }
             default:
@@ -833,14 +835,12 @@ bool freebsd_process::plat_attach() {
 }
 
 bool freebsd_process::plat_forked() {
-    // TODO
-    // This needs to be tested
+    // TODO This needs to be tested
     return true;
 }
 
 bool freebsd_process::post_forked() {
-    // TODO
-    // This needs to be tested
+    // TODO This needs to be tested
 
     ProcPool()->condvar()->lock();
 
@@ -1011,6 +1011,8 @@ bool freebsd_process::plat_getLWPInfo(lwpid_t lwp, void *lwpInfo) {
 }
 
 bool freebsd_process::plat_contThread(lwpid_t lwp) {
+    if( threadPool()->size() <= 1 ) return true;
+
     pthrd_printf("Calling PT_RESUME on %d\n", lwp);
     if( 0 != ptrace(PT_RESUME, lwp, (caddr_t)1, 0) ) {
         perr_printf("Failed to resume lwp %d: %s\n",
@@ -1023,6 +1025,8 @@ bool freebsd_process::plat_contThread(lwpid_t lwp) {
 }
 
 bool freebsd_process::plat_stopThread(lwpid_t lwp) {
+    if( threadPool()->size() <= 1 ) return true;
+
     pthrd_printf("Calling PT_SUSPEND on %d\n", lwp);
     if( 0 != ptrace(PT_SUSPEND, lwp, (caddr_t)1, 0) ) {
         perr_printf("Failed to suspend lwp %d: %s\n",
@@ -1357,8 +1361,9 @@ bool freebsd_thread::plat_cont() {
 
     if( !plat_setStep() ) return false;
 
-    // Calling resume only makes sense for processes with multiple threads
     setSignalStopped(false);
+
+    // Calling resume only makes sense for processes with multiple threads
     if( llproc()->threadPool()->size() > 1 ) {
         if( !plat_resume() ) return false;
     }
