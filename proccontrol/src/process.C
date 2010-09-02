@@ -387,14 +387,6 @@ int int_process::getContSignal() const {
     return continueSig;
 }
 
-void int_process::setPendingProcStop(bool b) {
-    pendingProcStop = b;
-}
-
-bool int_process::hasPendingProcStop() const {
-    return pendingProcStop;
-}
-
 void int_process::setPid(Dyninst::PID p)
 {
    pthrd_printf("Setting int_process %p to pid %d\n", this, p);
@@ -438,11 +430,7 @@ bool int_process::continueProcess() {
     bool foundResumedThread = false;
     bool foundPendingStop = false;
     bool foundSyncOperation = false;
-
-    if( hasPendingProcStop() ) {
-        pthrd_printf("Found pending proc stop for %d\n",
-                getPid());
-    }
+    bool foundHandlerRunning = false;
 
     int_threadPool::iterator i;
     for(i = threadPool()->begin(); i != threadPool()->end(); ++i) {
@@ -465,11 +453,15 @@ bool int_process::continueProcess() {
             foundSyncOperation = true;
             (*i)->setSyncingState(false);
         }
+
+        if( (*i)->getHandlerState() == int_thread::running ) {
+            foundHandlerRunning = true;
+            break;
+        }
     }
 
-    // TODO rethink why we need to check the mailbox
-    if( (foundPendingStop || foundSyncOperation ||
-            (foundResumedThread && !hasPendingProcStop()) ) && !mbox()->size() ) 
+    if( (foundPendingStop || foundSyncOperation || foundResumedThread) 
+            && !foundHandlerRunning )
     {
         if( !plat_contProcess() ) {
             perr_printf("Failed to continue whole process\n");
@@ -517,21 +509,16 @@ bool syncRunState(int_process *p, void *r)
    {
       int_thread *thr = *i;
 
-      // TODO is this necessary?
-      if( !useHybridLWPControl(tp) ) {
-        thr->handleNextPostedIRPC(false);
-      }
+      thr->handleNextPostedIRPC(false);
 
-      if( !p->hasPendingProcStop() ) {
-          int_iRPC::ptr rpc = thr->hasRunningProcStopperRPC();
-          if (!rpc) continue;
+      int_iRPC::ptr rpc = thr->hasRunningProcStopperRPC();
+      if (!rpc) continue;
 
-          ret->hasProcStopRPC = true;
-          if (rpc->getState() >= int_iRPC::Prepping) {
-             pthrd_printf("Thread %d/%d has pending proc stopper RPC(%lu), leaving other threads stopped\n",
-                          p->getPid(), thr->getLWP(), rpc->id());
-             force_leave_stopped = true;            
-          }
+      ret->hasProcStopRPC = true;
+      if (rpc->getState() >= int_iRPC::Prepping) {
+         pthrd_printf("Thread %d/%d has pending proc stopper RPC(%lu), leaving other threads stopped\n",
+                      p->getPid(), thr->getLWP(), rpc->id());
+         force_leave_stopped = true;            
       }
    }
 
@@ -557,7 +544,7 @@ bool syncRunState(int_process *p, void *r)
       }
       else if (thr->getInternalState() == int_thread::stopped && pstop_rpc && 
                (pstop_rpc->getState() == int_iRPC::Running ||
-                pstop_rpc->getState() == int_iRPC::Ready) && !p->hasPendingProcStop() )
+                pstop_rpc->getState() == int_iRPC::Ready) )
       {
          pthrd_printf("Continuing thread %d/%d due to pending procstop iRPC\n",
                       p->getPid(), thr->getLWP());
@@ -590,7 +577,7 @@ bool syncRunState(int_process *p, void *r)
       {
          //Keep track if any threads are running and running synchronous RPCs
          ret->hasRunningThread = true;
-         if (thr->hasSyncRPC()&& !p->hasPendingProcStop() && thr->runningRPC()) {
+         if (thr->hasSyncRPC() && thr->runningRPC()) {
             ret->hasSyncRPC = true;
             pthrd_printf("Thread %d/%d has sync RPC\n",
                     p->getPid(), thr->getLWP());
@@ -679,8 +666,7 @@ bool int_process::waitAndHandleEvents(bool block)
       /**
        * Check for possible error combinations from syncRunState
        **/
-      // TODO rethink why we need to check the mbox
-      if (!ret.hasRunningThread && (!useHybridLWPControl() || !mbox()->size()) ) {
+      if (!ret.hasRunningThread) {
          if (gotEvent) {
             //We've successfully handled an event, but no longer have any running threads
             pthrd_printf("Returning after handling events, no threads running\n");
@@ -876,8 +862,7 @@ int_process::int_process(Dyninst::PID p, std::string e,
    forceGenerator(false),
    exitCode(0),
    mem(NULL),
-   continueSig(0),
-   pendingProcStop(false)
+   continueSig(0)
 {
    //Put any object initialization in 'initializeProcess', below.
 }
@@ -894,8 +879,7 @@ int_process::int_process(Dyninst::PID pid_, int_process *p) :
    forceGenerator(false),
    exitCode(p->exitCode),
    exec_mem_cache(exec_mem_cache),
-   continueSig(p->continueSig),
-   pendingProcStop(p->pendingProcStop)
+   continueSig(p->continueSig)
 {
    Process::ptr hlproc = Process::ptr(new Process());
    mem = new mem_state(*p->mem, this);
@@ -1320,8 +1304,6 @@ int_process::~int_process()
 
 static
 bool stopAllThenContinue(int_threadPool *tp) {
-    tp->proc()->setPendingProcStop(true);
-
     tp->desyncInternalState();
 
     if( !tp->intStop(true) ) {
@@ -1331,8 +1313,6 @@ bool stopAllThenContinue(int_threadPool *tp) {
     }
 
     tp->restoreInternalState(false);
-
-    tp->proc()->setPendingProcStop(false);
 
     bool anyThreadResumed = false;
     for(int_threadPool::iterator i = tp->begin(); i != tp->end(); ++i) {
@@ -2366,7 +2346,7 @@ int_iRPC::ptr int_thread::nextPostedIRPC() const
 bool int_thread::handleNextPostedIRPC(bool block)
 {
    int_iRPC::ptr posted_rpc = nextPostedIRPC();
-   if (!posted_rpc || runningRPC() || llproc()->hasPendingProcStop() )
+   if (!posted_rpc || runningRPC() )
       return true;
 
    bool ret_result = false;
@@ -2406,14 +2386,11 @@ int_iRPC::ptr int_thread::hasRunningProcStopperRPC() const
    if (running && running->isProcStopRPC()) {
       return running;
    }
-   // TODO why is this necessary?
-   if( !useHybridLWPControl(llproc()) ) {
-       int_iRPC::ptr nextposted = nextPostedIRPC();
-       if (!running && nextposted && nextposted->isProcStopRPC() && 
-           nextposted->getState() != int_iRPC::Posted) 
-       {
-          return nextposted;
-       }
+   int_iRPC::ptr nextposted = nextPostedIRPC();
+   if (!running && nextposted && nextposted->isProcStopRPC() && 
+       nextposted->getState() != int_iRPC::Posted) 
+   {
+      return nextposted;
    }
    return int_iRPC::ptr();
 }

@@ -75,8 +75,6 @@ class int_process
    int getContSignal() const;
    bool continueProcess();
    virtual bool plat_contProcess() = 0;
-   void setPendingProcStop(bool b);
-   bool hasPendingProcStop() const;
 
    bool forked();
   protected:
@@ -201,7 +199,6 @@ class int_process
    std::map<Dyninst::Address, unsigned> exec_mem_cache;
    std::queue<Event::ptr> proc_stoppers;
    int continueSig;
-   bool pendingProcStop;
 };
 
 /*
