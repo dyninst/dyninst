@@ -1024,7 +1024,7 @@ void Slicer::fastBackward(Location &loc, Address addr) {
 }
 
 void Slicer::cleanGraph(Graph::Ptr ret) {
-  
+  slicing_cerr << "Cleaning up the graph..." << endl;
   // Clean the graph up
   
   // TODO: make this more efficient by backwards traversing.
@@ -1040,22 +1040,27 @@ void Slicer::cleanGraph(Graph::Ptr ret) {
   for (; nbegin != nend; ++nbegin) {
     AssignNode::Ptr foozle =
       dyn_detail::boost::dynamic_pointer_cast<AssignNode>(*nbegin);
-    //cerr << "Checking " << foozle << "/" << foozle->format() << endl;
+    slicing_cerr << "Checking " << foozle << "/" << foozle->format() << endl;
     if ((*nbegin)->hasOutEdges()) {
-      //cerr << "\t has out edges, leaving in" << endl;
+      slicing_cerr << "\t has out edges, leaving in" << endl;
       
-        // This cleans up case where we ended a backward slice
-        // but never got to mark the node as an entry node
-        if (!(*nbegin)->hasInEdges()) {
-            ret->markAsEntryNode(foozle);
-        }
+      // This cleans up case where we ended a backward slice
+      // but never got to mark the node as an entry node
+      if (!(*nbegin)->hasInEdges()) {
+	ret->markAsEntryNode(foozle);
+      }
       continue;
     }
     if (ret->isExitNode(*nbegin)) {
-      //cerr << "\t is exit node, leaving in" << endl;
+
+      slicing_cerr << "\t is exit node, leaving in" << endl;
+      // A very odd case - a graph of 1 node. Yay!
+      if (!(*nbegin)->hasInEdges()) {
+	ret->markAsEntryNode(foozle);
+      }
       continue;
     }
-    //cerr << "\t deleting" << endl;
+    slicing_cerr << "\t deleting" << endl;
     toDelete.push_back(*nbegin);
   }
 
