@@ -1592,8 +1592,8 @@ stackItemLocation getHeightOf(stackItem sitem, codeGen &gen)
       {
          if (addr_width == 8)
             offset += STACK_PAD_CONSTANT;
-         if (!gen.bti() || gen.bti()->flagsSaved()) {
-            offset += addr_width;
+         if (!gen.bti() || gen.bti()->flagsSaved())
+	   offset += addr_width;
          int regs_saved = 0;
          pdvector<registerSlot *> &regs = gen.rs()->trampRegs();
          for (unsigned i=0; i<regs.size(); i++) {
@@ -1623,11 +1623,11 @@ stackItemLocation getHeightOf(stackItem sitem, codeGen &gen)
       }
       case stackItem::framebase: {
          if (!gen.bti() || gen.bti()->hasStackFrame()) {
-            return stackItemLocation(plat_bp, 0);
+	   return stackItemLocation(plat_bp, 0);
          }
          offset = gen.rs()->getStackHeight();
          if (gen.bti()->hasLocalSpace()) {
-            offset += TRAMP_FRAME_SIZE;
+	   offset += TRAMP_FRAME_SIZE;
          }
          return stackItemLocation(plat_sp, offset);
       }
