@@ -916,6 +916,22 @@ void BPatch_retExpr::BPatch_retExprInt()
 }
 
 /*
+ * BPatch_retExpr::BPatch_retExpr
+ *
+ * Construct a snippet representing a return value from the function in which
+ * the snippet is inserted.
+ *
+ */
+void BPatch_retAddrExpr::BPatch_retAddrExprInt()
+{
+    ast_wrapper = AstNodePtr(AstNode::operandNode(AstNode::ReturnAddr, (void *)0));
+
+    assert(BPatch::bpatch != NULL);
+    ast_wrapper->setTypeChecking(BPatch::bpatch->isTypeChecked());
+}
+
+
+/*
  * BPatch_registerExpr::BPatch_registerExpr
  *
  * Construct a snippet representing a register in original code. Can be read

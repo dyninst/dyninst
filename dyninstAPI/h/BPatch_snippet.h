@@ -396,6 +396,20 @@ class BPATCH_DLL_EXPORT BPatch_retExpr : public BPatch_snippet {
 #ifdef DYNINST_CLASS_NAME
 #undef DYNINST_CLASS_NAME
 #endif
+#define DYNINST_CLASS_NAME BPatch_retAddrExpr
+
+class BPATCH_DLL_EXPORT BPatch_retAddrExpr : public BPatch_snippet {
+
+    //  BPatch_retAddrExpr::BPatch_retAddrExpr
+    //  Represents the return address from the function in which the
+    //  snippet is inserted
+    API_EXPORT_CTOR(Int, (),
+    BPatch_retAddrExpr,());
+};
+
+#ifdef DYNINST_CLASS_NAME
+#undef DYNINST_CLASS_NAME
+#endif
 #define DYNINST_CLASS_NAME BPatch_registerExpr
 
 class BPATCH_DLL_EXPORT BPatch_registerExpr : public BPatch_snippet {
