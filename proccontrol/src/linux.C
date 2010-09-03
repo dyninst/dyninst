@@ -219,10 +219,11 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                      pthrd_printf("Decoded event to %s on %d/%d\n",
                                   ext == PTRACE_EVENT_FORK ? "fork" : "clone",
                                   proc->getPid(), thread->getLWP());
-                     pid_t cpid = 0;
+                     unsigned long cpid_l = 0x0;
                      do_ptrace((pt_req) PTRACE_GETEVENTMSG, 
                                (pid_t) thread->getLWP(), 
-                               NULL, &cpid);
+                               NULL, &cpid_l);
+                     pid_t cpid = (pid_t) cpid_l;                     
                      archevent->child_pid = cpid;
                      archevent->event_ext = ext;
                      if (!archevent->findPairedEvent(parent, child)) {

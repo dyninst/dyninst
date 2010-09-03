@@ -395,10 +395,11 @@ bool ProcDebugLinux::debug_handle_event(DebugEvent ev)
         if (ev.data.idata == (SIGTRAP | (PTRACE_EVENT_CLONE << 8))) {
            sw_printf("[%s:%u] - Discovered new thread in proc %d\n", 
                      __FILE__, __LINE__, pid);
-           pid_t newtid = 0x0;
            ThreadState *new_thread = NULL;
+           unsigned long newtid_l = 0x0;
            long iresult = ptrace((pt_req) PTRACE_GETEVENTMSG, thr->getTid(), 
-                                 NULL, &newtid);
+                                 NULL, &newtid_l);
+           pid_t newtid = (pid_t) newtid_l;
            if (iresult == -1) {
               sw_printf("[%s:%u] - Unexpected error getting new tid on %d\n"
                      __FILE__, __LINE__, pid);
