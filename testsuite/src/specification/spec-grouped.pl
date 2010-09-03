@@ -425,6 +425,22 @@ test_runmode('test_snip_remove', 'dynamic').
 test_start_state('test_snip_remove', 'stopped').
 tests_module('test_snip_remove', 'dyninst').
 
+% amd64_7_arg_call
+test('amd64_7_arg_call', 'amd64_7_arg_call', 'amd64_7_arg_call').
+test_description('amd64_7_arg_call', 'AMD64: verify that we can make calls using the stack and GPRs for parameter passing.').
+    test_platform('amd64_7_arg_call', Platform) :-
+    platform(Arch, _, _, Platform),
+    member(Arch, ['x86_64']).
+groupable_test('amd64_7_arg_call').
+mutator('amd64_7_arg_call', ['amd64_7_arg_call.C']).
+mutatee('amd64_7_arg_call', ['amd64_7_arg_call_mutatee.c']).
+compiler_for_mutatee('amd64_7_arg_call', Compiler) :-
+    comp_lang(Compiler, 'c').
+test_runmode('amd64_7_arg_call', 'staticdynamic').
+test_start_state('amd64_7_arg_call', 'stopped').
+tests_module('amd64_7_arg_call', 'dyninst').
+
+
 test('init_fini_callback', 'init_fini_callback', 'init_fini_callback').
 test_description('init_fini_callback', 'Adds callbacks for rewritten module on load/unload/entry/exit.').
 % ELF platforms only

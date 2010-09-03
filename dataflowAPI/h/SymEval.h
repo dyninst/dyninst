@@ -83,8 +83,9 @@ struct Variable {
 
   DATAFLOW_EXPORT const std::string format() const {
     std::stringstream ret;
-    ret << reg;
+    ret << "V(" << reg;
     if (addr) ret << ":" << std::hex << addr << std::dec;
+    ret << ")";
     return ret.str();
   }
 
@@ -340,7 +341,8 @@ public:
 			 Result_t& res);
 
   static bool process(AssignNodePtr ptr, Result_t &dbase);
-  
+
+  static AST::Ptr simplifyStack(AST::Ptr ast, Address addr, ParseAPI::Function *func);
 };
 
 };
