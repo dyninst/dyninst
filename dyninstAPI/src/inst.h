@@ -174,7 +174,7 @@ codeBufIndex_t emitA(opCode op, Register src1, Register src2, Register dst,
                      codeGen &gen, RegControl rc, bool noCost);
 
 // for operations requiring a Register to be returned
-// (e.g., getRetValOp, getParamOp, getSysRetValOp, getSysParamOp)
+// (e.g., getRetValOp, getRetAddrOp, getParamOp, getSysRetValOp, getSysParamOp)
 Register emitR(opCode op, Register src1, Register src2, Register dst, 
                codeGen &gen, bool noCost, 
                const instPoint *location, bool for_multithreaded);

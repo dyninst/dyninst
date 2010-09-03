@@ -63,6 +63,7 @@ typedef enum {
    orOp,
    andOp,
    getRetValOp,
+   getRetAddrOp,
    getSysRetValOp,
    getParamOp,
    getSysParamOp,	   

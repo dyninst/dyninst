@@ -96,6 +96,7 @@ class EmitterPOWER : public Emitter {
     //virtual bool emitPIC(codeGen& /*gen*/, Address, Address )=0;
 
     virtual void emitGetRetVal(Register, bool, codeGen &) { assert(0); }
+    virtual void emitGetRetAddr(Register, bool, codeGen &) { assert(0); }
     virtual void emitGetParam(Register, Register, instPointType_t, bool, codeGen &) { assert(0); }
     virtual void emitFuncJump(int_function*, instPointType_t, bool, codeGen &) { assert(0); }
     virtual void emitASload(int, int, int, long, Register, codeGen &) { assert(0); }

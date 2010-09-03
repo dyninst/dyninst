@@ -1303,6 +1303,10 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                      gen.addrSpace()->multithread_capable());
                loperand->decUseCount(gen);
                break;
+            case ReturnAddr:
+                emitR(getRetAddrOp, Null_Register,
+                      src1, src2, gen, noCost, gen.point(), 
+                      gen.addrSpace()->multithread_capable());
             default: {
                // Could be an error, could be an attempt to load based on an arithmetic expression
                // Generate the left hand side, store the right to that address
@@ -1475,6 +1479,16 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
      break;
    case ReturnVal:
        src = emitR(getRetValOp, 0, Null_Register, retReg, gen, noCost, gen.point(),
+                   gen.addrSpace()->multithread_capable());
+       REGISTER_CHECK(src);
+       if (src != retReg) {
+           // Move src to retReg. Can't simply return src, since it was not
+           // allocated properly
+           emitImm(orOp, src, 0, retReg, gen, noCost, gen.rs());
+       }
+       break;
+   case ReturnAddr:
+       src = emitR(getRetAddrOp, 0, Null_Register, retReg, gen, noCost, gen.point(),
                    gen.addrSpace()->multithread_capable());
        REGISTER_CHECK(src);
        if (src != retReg) {
@@ -2256,7 +2270,7 @@ BPatch_type *AstOperandNode::checkType()
         // XXX Should really be pointer to lType -- jkh 7/23/99
         ret = BPatch::bpatch->type_Untyped;
     } 
-    else if ((oType == Param) || (oType == ReturnVal)) {
+    else if ((oType == Param) || (oType == ReturnVal) || (oType == ReturnAddr)) {
             // XXX Params and ReturnVals untyped for now
         ret = BPatch::bpatch->type_Untyped; 
     }

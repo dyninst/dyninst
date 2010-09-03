@@ -447,16 +447,15 @@ void DYNINST_stopThread (void * pointAddr, void *callBackID,
     // if this is a return insn, we want to look up the address differently
     if (5 == (((long)flags) & 0x05) ) { // mask stackAddr flag bit
         lookupAddr = (void*)* ( ((unsigned long*)calculation) + 1 );
-        rtdebug_printf("ret-addr lookup at %lx", lookupAddr);
-
-        for (bidx=0; bidx < 0x80; bidx+=4) {
-            printf("0x%x:  ", (int)calculation+bidx);
-            printf("%02hhx", *(unsigned char*)(unsigned)calculation+bidx+3);
-            printf("%02hhx", *(unsigned char*)calculation+bidx+2);
-            printf("%02hhx", *(unsigned char*)calculation+bidx+1);
-            printf("%02hhx", *(unsigned char*)calculation+bidx+0);
-            printf("\n");
-        }
+        //rtdebug_printf("ret-addr lookup for %lx", lookupAddr);
+        //for (bidx=0; bidx < 0x80; bidx+=4) {
+        //    printf("0x%x:  ", (int)calculation+bidx);
+        //    printf("%02hhx", *(unsigned char*)(unsigned)calculation+bidx+3);
+        //    printf("%02hhx", *(unsigned char*)calculation+bidx+2);
+        //    printf("%02hhx", *(unsigned char*)calculation+bidx+1);
+        //    printf("%02hhx", *(unsigned char*)calculation+bidx+0);
+        //    printf("\n");
+        //}
     }
 
     if (0 != (((long)flags) & 0x03)) {

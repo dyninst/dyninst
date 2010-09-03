@@ -1211,8 +1211,8 @@ bool mapped_object::splitIntLayer()
             fIter++) 
     {
         int_function *f = findFuncByAddr(baseAddress + (*fIter)->getOffset());
-        pdvector<instPoint*> points = f->funcArbitraryPoints();
-        for (pdvector<instPoint*>::iterator pIter = points.begin(); 
+        const pdvector<instPoint*> & points = f->funcArbitraryPoints();
+        for (pdvector<instPoint*>::const_iterator pIter = points.begin(); 
              pIter != points.end(); pIter++) 
         {
             Address pointAddr = (*pIter)->addr();

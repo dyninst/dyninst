@@ -381,6 +381,13 @@ void EmitterIA32::emitGetRetVal(Register dest, bool addr_of, codeGen &gen)
    emitLEA(loc.reg, RealRegister(Null_Register), 0, loc.offset, dest_r, gen);
 }
 
+void EmitterIA32::emitGetRetAddr(Register dest, codeGen &gen)
+{
+   RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
+   stackItemLocation loc = getHeightOf(stackItem::stacktop, gen);
+   emitMovIRegToReg(dest_r, loc.reg, gen);
+}
+
 void EmitterIA32::emitGetParam(Register dest, Register param_num, instPointType_t pt_type, bool addr_of, codeGen &gen)
 {
    // Parameters are addressed by a positive offset from ebp,
@@ -1708,6 +1715,13 @@ void EmitterAMD64::emitGetRetVal(Register dest, bool addr_of, codeGen &gen)
    registerSlot *rax = (*gen.rs())[REGNUM_RAX];
    assert(rax);
    loc.offset += (rax->saveOffset * 8);
+   emitLEA64(loc.reg.reg(), REG_NULL, 0, loc.offset, dest, true, gen);
+}
+
+
+void EmitterAMD64::emitGetRetAddr(Register dest, codeGen &gen)
+{
+   stackItemLocation loc = getHeightOf(stackItem::stacktop, gen);
    emitLEA64(loc.reg.reg(), REG_NULL, 0, loc.offset, dest, true, gen);
 }
 

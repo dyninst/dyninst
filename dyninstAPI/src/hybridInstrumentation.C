@@ -316,6 +316,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
     // functions
     vector<Address> targets;
     vector<BPatch_point *> *retPoints = func->findPoint(BPatch_exit);
+    BPatch_retAddrExpr retAddrSnippet;
     if (retPoints && retPoints->size() && 
         (instrumentReturns || 
          ParseAPI::RETURN != func->lowlevel_func()->ifunc()->init_retstatus() || 
@@ -348,58 +349,65 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
 
             // create instrumentation snippet
             BPatch_stopThreadExpr *returnSnippet;
+            BPatch_snippet * calcSnippet = NULL;
+            BPatch_stInterpret interp;
             if (handlerFunctions.end() != 
                 handlerFunctions.find((Address)func->getBaseAddr()) &&
                 0 != handlerFunctions[(Address)func->getBaseAddr()])
             {
+                // case 0: signal handler return address
                 // for handlers, instrument their exit point with a snippet 
                 // that reads the address to which the program will return 
                 // from the CONTEXT of the exception, which is the 3rd argument
                 // to windows structured exception handlers
                 Address contextPCaddr = 
                     handlerFunctions[ (Address)func->getBaseAddr() ];
-                BPatch_arithExpr modifiedPC(BPatch_deref, 
-                                            BPatch_constExpr(contextPCaddr));
-                returnSnippet = new BPatch_stopThreadExpr // could opt to use the cache
-                    ( signalHandlerExitCB_wrapper, modifiedPC, false, BPatch_interpAsTarget );
+                calcSnippet = new BPatch_arithExpr
+                    ( BPatch_deref, BPatch_constExpr(contextPCaddr) );
+                interp = BPatch_interpAsTarget;
             }
-            else
-            {
-                // set interp type
-                BPatch_stInterpret interp;
+            else if (curPoint->isReturnInstruction()) {
                 // case 1: the point is at a return instruction
-                if (curPoint->isReturnInstruction()) {
-                    interp = BPatch_interpAsReturnAddr;
-                    mal_printf("monitoring return from func[%lx %lx] at %lx\n", 
-                                (long)func->getBaseAddr(), 
-                                (long)func->getBaseAddr() + func->getSize(), 
-                                (long)curPoint->getAddress());
-                } 
-
+                interp = BPatch_interpAsReturnAddr;
+                calcSnippet = & retAddrSnippet;
+                mal_printf("monitoring return from func[%lx %lx] at %lx\n", 
+                            (long)func->getBaseAddr(), 
+                            (long)func->getBaseAddr() + func->getSize(), 
+                            (long)curPoint->getAddress());
+            }
+            else if (curPoint->isDynamic()) {
                 // case 2: above check ensures that this is not a return 
                 // instruction but that it is dynamic and therefore it's a jump 
                 // that leaves the region housing the rest of the function
-                else if (curPoint->isDynamic()) {
                     interp = BPatch_interpAsTarget;
+                    calcSnippet = & dynTarget;
                     mal_printf("instrumenting indirect non-return exit "
-                        "at 0x%lx %s[%d]\n", curPoint->getAddress(), 
-                        FILE__,__LINE__);
-                }
-                else { // tail call, do nothing?
-                    continue;
-                }
-
-                returnSnippet = new BPatch_stopThreadExpr
-                    ( badTransferCB_wrapper, dynTarget, true, interp ); 
+                               "at 0x%lx %s[%d]\n", curPoint->getAddress(), 
+                               FILE__,__LINE__);
+            }
+            else { // tail call, do nothing?
+                calcSnippet = & dynTarget;
+                fprintf(stderr,"WARNING: exit point at %lx that isn't "
+                        "a return or indirect control transfer, what "
+                        "kind of point is this? not instrumenting %s[%d]\n", 
+                        curPoint->getAddress(), FILE__,__LINE__);
+                continue;
             }
 
+            returnSnippet = new BPatch_stopThreadExpr
+                ( badTransferCB_wrapper, *calcSnippet, true, interp ); 
 
             // insert the instrumentation
             handle = proc()->insertSnippet
                 (*returnSnippet, *(curPoint), BPatch_lastSnippet);
             pointCount += saveInstrumentationHandle
                 ((Address)curPoint->getAddress(),handle);
+
+            // clean up
             delete returnSnippet;
+            if (dynamic_cast<BPatch_arithExpr*>(calcSnippet)) {
+                delete calcSnippet;
+            }
         }
     }
     
@@ -589,6 +597,7 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
         mal_printf("New function target addr at 0x%lx is returning, "
                     "adding edge after call at 0x%lx %s[%d]\n", calledAddr,
                     (long)callPoint->getAddress(), FILE__, __LINE__);
+
 
         parseNewEdgeInFunction( callPoint , fallThroughAddr );
         parsedAfterCallPoint = true;

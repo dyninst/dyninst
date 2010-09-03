@@ -1464,6 +1464,11 @@ Register emitR(opCode op, Register src1, Register src2, Register dest,
           if (!get_addr_of)
              return dest;
           break;
+       case getRetAddrOp: 
+          // dest is a register where we can store the return address
+          gen.codeEmitter()->emitGetRetAddr(dest, gen);
+          return dest;
+          break;
        case getParamOp:
           // src1 is the number of the argument
           // dest is a register where we can store the value
@@ -2006,7 +2011,8 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
     
     assert ((op!=branchOp) && (op!=ifOp) &&
             (op!=trampPreamble));         // !emitA
-    assert ((op!=getRetValOp) && (op!=getParamOp));             // !emitR
+    assert ((op!=getRetValOp) && (op!=getRetAddrOp) && 
+            (op!=getParamOp));                                  // !emitR
     assert ((op!=loadOp) && (op!=loadConstOp));                 // !emitVload
     assert ((op!=storeOp));                                     // !emitVstore
     assert ((op!=updateCostOp));                                // !emitVupdate
@@ -2181,6 +2187,8 @@ int getInsnCost(opCode op)
       return(1);
    } else if (op == getRetValOp) {
       return (1+1);
+   } else if (op == getRetAddrOp) { 
+      return (1); //kevintodo: is this right?
    } else if (op == getParamOp) {
       return(1+1);
    } else {

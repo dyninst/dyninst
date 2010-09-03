@@ -307,7 +307,6 @@ void SpringboardBuilder::generateBranch(Address from, Address to, codeGen &gen) 
 }
 
 void SpringboardBuilder::generateTrap(Address from, Address to, codeGen &gen) {
-  assert(0);
   gen.invalidate();
   gen.allocate(4);
   gen.setAddrSpace(addrSpace_);

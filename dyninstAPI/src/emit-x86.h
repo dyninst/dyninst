@@ -99,6 +99,7 @@ public:
     bool emitCallCleanup(codeGen &gen, int_function *target, 
                          int frame_size, pdvector<Register> &extra_saves);
     void emitGetRetVal(Register dest, bool addr_of, codeGen &gen);
+    void emitGetRetAddr(Register dest, codeGen &gen);
     void emitGetParam(Register dest, Register param_num, instPointType_t pt_type, bool addr_of, codeGen &gen);
     void emitFuncJump(int_function *f, instPointType_t ptType, bool callOp, codeGen &gen);
     void emitASload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen);

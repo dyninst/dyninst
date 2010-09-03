@@ -729,28 +729,37 @@ void Object::FindInterestingSections(bool alloc_syms, bool defensive)
    SecAlignment = peHdr ->OptionalHeader.SectionAlignment;
    unsigned int nSections = peHdr->FileHeader.NumberOfSections;
    no_of_sections_ = nSections;
+   Address prov_begin = (Address)-1;
+   Address prov_end = (Address)-1;
+   code_off_ = (Address)-1;
+   code_len_ = (Address)-1;
+
+   if (defensive) {
+       // add section for peHdr, determine the size taken up by the section 
+       // in the program's address space.  
+       unsigned long secSize = ( peHdr->OptionalHeader.SizeOfHeaders 
+                                 / peHdr->OptionalHeader.SectionAlignment ) 
+                              * peHdr->OptionalHeader.SectionAlignment;
+       if (  peHdr->OptionalHeader.SizeOfHeaders 
+           % peHdr->OptionalHeader.SectionAlignment ) 
+       {
+          secSize += peHdr->OptionalHeader.SectionAlignment;
+       }
+       prov_begin = 0;
+       prov_end = prov_begin + secSize;
+       regions_.push_back(
+           new Region(
+            0, "PROGRAM_HEADER", 0, peHdr->OptionalHeader.SizeOfHeaders, 
+            0, secSize, (char*)mapAddr,
+            getRegionPerms(IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_MEM_WRITE), 
+            getRegionType(IMAGE_SCN_CNT_CODE | IMAGE_SCN_CNT_INITIALIZED_DATA),
+            true));
+   }
+
    PIMAGE_SECTION_HEADER pScnHdr = (PIMAGE_SECTION_HEADER)(((char*)peHdr) + 
                                  sizeof(DWORD) + sizeof(IMAGE_FILE_HEADER) +
                                  peHdr->FileHeader.SizeOfOptionalHeader);
-   // add section for peHdr, determine the size taken up by the section in the program's address space.  
-   unsigned long secSize = ( peHdr->OptionalHeader.SizeOfHeaders 
-                             / peHdr->OptionalHeader.SectionAlignment ) 
-                          * peHdr->OptionalHeader.SectionAlignment;
-   if (  peHdr->OptionalHeader.SizeOfHeaders 
-       % peHdr->OptionalHeader.SectionAlignment ) 
-   {
-      secSize += peHdr->OptionalHeader.SectionAlignment;
-   }
-   regions_.push_back
-       (new Region
-        (0, "PROGRAM_HEADER", 0, peHdr->OptionalHeader.SizeOfHeaders, 
-         0, secSize, (char*)mapAddr,
-         getRegionPerms(IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_MEM_WRITE), 
-         getRegionType(IMAGE_SCN_CNT_CODE | IMAGE_SCN_CNT_INITIALIZED_DATA), 
-         true));
    bool foundText = false;
-   Address prov_offset=0;
-   Address prov_len = 0;
    for( unsigned int i = 0; i < nSections; i++ ) {
       // rawDataPtr should be set to be zero if the amount of raw data
       // for the section is zero
@@ -762,7 +771,7 @@ void Object::FindInterestingSections(bool alloc_syms, bool defensive)
              ((pScnHdr->PointerToRawData / peHdr->OptionalHeader.FileAlignment) 
               * peHdr->OptionalHeader.FileAlignment + (unsigned long) mapAddr);
       }
-      secSize = (pScnHdr->Misc.VirtualSize >= pScnHdr->SizeOfRawData) ? 
+      Offset secSize = (pScnHdr->Misc.VirtualSize > pScnHdr->SizeOfRawData) ? 
           pScnHdr->Misc.VirtualSize : pScnHdr->SizeOfRawData;
       if (alloc_syms)
           regions_.push_back
@@ -790,7 +799,19 @@ void Object::FindInterestingSections(bool alloc_syms, bool defensive)
          //code_len_    = pScnHdr->Misc.VirtualSize;
          code_len_ = ((pScnHdr->SizeOfRawData < pScnHdr->Misc.VirtualSize) ?
                       pScnHdr->SizeOfRawData : pScnHdr->Misc.VirtualSize);
+
          foundText = true;
+         if (prov_begin == -1) {
+             prov_begin = code_off_;
+             prov_end = code_off_ + code_len_;
+         } else {
+             if (prov_begin > code_off_) {
+                 prov_begin = code_off_;
+             }
+             if ( prov_end < (code_off_ + code_len_) ) {
+                  prov_end = (code_off_ + code_len_);
+             }
+         }
       }
       else if( strncmp( (const char*)pScnHdr->Name, ".data", 8 ) == 0 ) {
          // note that section numbers are one-based
@@ -800,23 +821,54 @@ void Object::FindInterestingSections(bool alloc_syms, bool defensive)
          data_off_    = pScnHdr->VirtualAddress;
          data_len_ = (pScnHdr->SizeOfRawData < pScnHdr->Misc.VirtualSize ?
                       pScnHdr->SizeOfRawData : pScnHdr->Misc.VirtualSize);
+         if (defensive) { // don't parse .data in a non-defensive binary
+             if (prov_begin == -1) {
+                prov_begin = data_off_;
+                prov_end = data_off_ + data_len_;
+             } else {
+                 if (prov_begin > data_off_) {
+                     prov_begin = data_off_;
+                 }
+                 if (prov_end < (data_off_ + data_len_)) {
+                     prov_end = (data_off_ + data_len_);
+                 }
+             }
+         }
       }
       else {
-         if (i == 0 || pScnHdr->VirtualAddress < prov_offset) {
-            prov_offset = pScnHdr->VirtualAddress;
-         }
-         Address sec_len = (pScnHdr->SizeOfRawData < pScnHdr->Misc.VirtualSize ?
-                            pScnHdr->SizeOfRawData : pScnHdr->Misc.VirtualSize);
-         if (i == 0 || (prov_offset + prov_len) < (pScnHdr->VirtualAddress + sec_len)) {
-            prov_len = pScnHdr->VirtualAddress + sec_len - prov_offset;
+         Offset sec_len = (pScnHdr->SizeOfRawData < pScnHdr->Misc.VirtualSize) ?
+                           pScnHdr->SizeOfRawData : pScnHdr->Misc.VirtualSize;
+         if (-1 == prov_begin) {
+            prov_begin = pScnHdr->VirtualAddress;
+            prov_end = prov_begin + sec_len;
+         } else {
+             if (prov_begin > pScnHdr->VirtualAddress) {
+                 prov_begin = pScnHdr->VirtualAddress;
+             }
+             if (prov_end < (pScnHdr->VirtualAddress + sec_len)) {
+                 prov_end = (pScnHdr->VirtualAddress + sec_len);
+             }
          }
       }
       pScnHdr += 1;
    } // end section for loop
 
-   if (0 == code_len_ || defensive) {
-       code_off_ = (code_off_ < prov_offset) ? code_off_ : prov_offset;
-       code_len_ = (code_len_ > prov_len) ? code_len_ : prov_len;
+   if (-1 == code_len_ || defensive) {
+       // choose the smaller/larger of the two offsets/lengths, 
+       // if both are initialized (i.e., are not equal to -1)
+       if (code_off_ == -1)
+           code_off_ = prov_begin;
+       else if (prov_begin != -1 && 
+                code_off_ > prov_begin) 
+           code_off_ = prov_begin;
+
+       if (code_len_ == -1)
+           code_len_ = prov_end - code_off_;
+       else if (prov_end != -1 &&
+                code_len_ < (prov_end - code_off_))
+           code_len_ = (prov_end - code_off_);
+
+       assert(code_off_ != -1 && code_len_ != -1); // no sections in binary? 
    }
 }
 

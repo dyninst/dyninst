@@ -92,6 +92,7 @@ class Emitter {
 			      bool noCost, int_function *callee) = 0;
 
     virtual void emitGetRetVal(Register dest, bool addr_of, codeGen &gen) = 0;
+    virtual void emitGetRetAddr(Register dest, codeGen &gen) = 0;
     virtual void emitGetParam(Register dest, Register param_num, instPointType_t pt_type, bool addr_of, codeGen &gen) = 0;
     virtual void emitFuncJump(int_function *f, instPointType_t ptType, bool callOp, codeGen &gen) = 0;
     virtual void emitASload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen) = 0;
