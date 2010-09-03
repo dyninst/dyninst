@@ -106,8 +106,8 @@ private:
     bool parseAfterCallAndInstrument(BPatch_point *callPoint, 
                         Dyninst::Address calledAddr, 
                         BPatch_function *calledFunc) ;
-    void removeInstrumentation(BPatch_function *func/*, removalType rmType*/);
-    int saveInstrumentationHandle(Dyninst::Address pointAddr, 
+    void removeInstrumentation(BPatch_function *func);
+    int saveInstrumentationHandle(BPatch_point *point, 
                                   BPatchSnippetHandle *handle);
 
     // parsing
@@ -116,8 +116,8 @@ private:
 
     // variables
     std::map<Dyninst::Address,Dyninst::Address> handlerFunctions; 
-    std::set<Dyninst::Address> *instrumentedFuncs;
-    std::map<Dyninst::Address,BPatchSnippetHandle*> *instrumentedPoints;
+    std::map < BPatch_function*, 
+               std::map<BPatch_point*,BPatchSnippetHandle*> *> * instrumentedFuncs;
     BPatch_module *sharedlib_runtime;
     BPatch_hybridMode mode_;
     BPatch_process *proc_;

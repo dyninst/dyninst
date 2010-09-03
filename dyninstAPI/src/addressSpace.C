@@ -1799,6 +1799,8 @@ bool AddressSpace::getRelocInfo(Address relocAddr,
 				baseTrampInstance *&baseT) 
 {
   baseT = NULL;
+  bool ret = false;
+  // first check unrelocated blocks
   int_basicBlock *blk = findBasicBlockByAddr(relocAddr);
   if (blk) {
     if (blk->llb()->isShared()) {
@@ -1808,15 +1810,30 @@ bool AddressSpace::getRelocInfo(Address relocAddr,
     }
     origAddr = relocAddr;
     origInst = blk->origInstance();
+    ret = true;
   }
-  for (CodeTrackers::const_iterator iter = relocatedCode_.begin();
-       iter != relocatedCode_.end(); ++iter) {
-    if (iter->relocToOrig(relocAddr, origAddr, origInst)) {
-      baseT = iter->getBaseT(relocAddr);
-      return true;
-    }
+  if (!ret) {
+      // address is relocated (or bad), check relocation maps
+      for (CodeTrackers::const_iterator iter = relocatedCode_.begin();
+           iter != relocatedCode_.end(); ++iter) 
+      {
+          if (iter->relocToOrig(relocAddr, origAddr, origInst)) {
+              baseT = iter->getBaseT(relocAddr);
+              ret = true;
+              break;
+          }
+      }
   }
-  return false;
+  if (ret) {
+      assert(origInst);
+      // ensure that origAddr is in origInst, it may not be due to
+      // block splitting
+      while (origAddr >= origInst->endAddr()) {
+          origInst = origInst->getFallthroughBBL();
+          assert(origInst);
+      }
+  }
+  return ret;
 }
 
 void AddressSpace::addModifiedFunction(int_function *func) {

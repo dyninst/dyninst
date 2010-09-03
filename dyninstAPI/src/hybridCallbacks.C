@@ -60,29 +60,27 @@ void HybridAnalysis::signalHandlerEntryCB(BPatch_point *point, void *pcAddr)
                 point->getAddress(), (Address)pcAddr);
 
     // save address of context information for the exit point handler
-    Address funcAddr = (Address)point->getFunction()->getBaseAddr();
-
+    BPatch_function *func = point->getFunction();
     if (firstHandlerEntry) {
-        point->getFunction()->setHandlerFaultAddrAddr((Address)pcAddr,false);
+        func->setHandlerFaultAddrAddr((Address)pcAddr,false);
     } else {
-        point->getFunction()->setHandlerFaultAddrAddr((Address)pcAddr,true);
-        handlerFunctions[funcAddr] = (Address)pcAddr;
-        // remove any exit-point instrumentation and add new instrumentation at 
-        // exit points
-        std::set< Address >::iterator fIter = instrumentedFuncs->find( funcAddr );
-        if ( fIter != instrumentedFuncs->end() ) {
-            instrumentedFuncs->erase( funcAddr );
-        }
-        std::vector<BPatch_point*> *exitPoints = point->getFunction()->findPoint(BPatch_exit);
-        for (unsigned pIdx=0; pIdx < exitPoints->size(); pIdx++) {
-            std::map<Address,BPatchSnippetHandle*>::iterator hIter = 
-                instrumentedPoints->find((Address)(*exitPoints)[pIdx]->getAddress());
-            if (instrumentedPoints->end() != hIter) {
-                proc()->deleteSnippet(hIter->second);
-                instrumentedPoints->erase(hIter);
+        func->setHandlerFaultAddrAddr((Address)pcAddr,true);
+        handlerFunctions[(Address)func->getBaseAddr()] = (Address)pcAddr;
+        // remove any exit-point instrumentation and add new instrumentation 
+        // at exit points
+        if ( instrumentedFuncs->end() != instrumentedFuncs->find(func) ) {
+            std::map<BPatch_point*, BPatchSnippetHandle*>::iterator pit;
+            for (pit  = (*instrumentedFuncs)[func]->begin(); 
+                 pit != (*instrumentedFuncs)[func]->end(); 
+                 pit++) 
+            {
+                if ( BPatch_exit == (*pit).first->getPointType() ) {
+                    proc()->deleteSnippet((*pit).second);
+                    (*instrumentedFuncs)[func]->erase( (*pit).first );
+                }
             }
         }
-        instrumentFunction(point->getFunction(),true,true);
+        instrumentFunction(func, true, true);
     }
     firstHandlerEntry = !firstHandlerEntry;
 }
@@ -471,14 +469,18 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
 
 // 4. else case: the point is a jump/branch 
 
-    // 4.1 if the point is a direct branch, remove instrumentation
+    // 4.1 if the point is a direct branch, remove any instrumentation
     vector<Address> *targets = new vector<Address>;
     if ( point->getCFTargets(*targets) ) {
-        std::map<Address,BPatchSnippetHandle*>::iterator pIter = 
-            instrumentedPoints->find( (Address)point->getAddress() );
-        if (instrumentedPoints->end() != pIter) {
-            proc()->deleteSnippet( pIter->second );
-            instrumentedPoints->erase(pIter);
+        BPatch_function *func = point->getFunction();
+        if ((*instrumentedFuncs)[func]
+            &&
+            (*instrumentedFuncs)[func]->end() != 
+            (*instrumentedFuncs)[func]->find(point))
+        {
+            proc()->deleteSnippet(
+                (*(*instrumentedFuncs)[func])[point] );
+            (*instrumentedFuncs)[func]->erase(point);
         }
         //KEVINTODO: currently don't need to resolve the point here, it happens in handleStopThread, what's the better place for it?
         //point->setResolved();

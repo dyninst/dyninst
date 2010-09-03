@@ -90,8 +90,7 @@ bool HybridAnalysis::init()
     //mal_printf("   pre-inst  "); proc()->printKTimer();
 
     // instrument a.out module & protect analyzed code
-    instrumentedPoints = new std::map<Address,BPatchSnippetHandle*>();
-    instrumentedFuncs = new std::set<Address>();
+    instrumentedFuncs = new map<BPatch_function*,map<BPatch_point*,BPatchSnippetHandle*>*>();
     vector<BPatch_module *> *allmods = proc()->getImage()->getModules();
     for (unsigned midx =0; midx < allmods->size(); midx++) {
 
@@ -160,18 +159,23 @@ bool HybridAnalysis::setMode(BPatch_hybridMode mode)
 }
 
 // return number of instrumented points, 1 or 0, if the handle is NULL
-int HybridAnalysis::saveInstrumentationHandle(Address pointAddr, 
+int HybridAnalysis::saveInstrumentationHandle(BPatch_point *point, 
                                               BPatchSnippetHandle *handle) 
 {
-    assert(instrumentedPoints->end() == instrumentedPoints->find(pointAddr));
+    BPatch_function *func = point->getFunction();
+    if (NULL == (*instrumentedFuncs)[func]) {
+        (*instrumentedFuncs)[func] = new map<BPatch_point*,BPatchSnippetHandle*>();
+    }
+    assert((*instrumentedFuncs)[func]->end() == // don't add point twice
+           (*instrumentedFuncs)[func]->find(point));
 
     if (handle != NULL) {
-        (*instrumentedPoints)[pointAddr] = handle;
+        (*(*instrumentedFuncs)[func])[point] = handle;
         return 1;
     }
 
     mal_printf("FAILED TO INSTRUMENT at point %lx %s[%d]\n", 
-            (long) pointAddr,FILE__,__LINE__);
+               (long) point->getAddress(),FILE__,__LINE__);
     return 0;
 }
 
@@ -187,6 +191,11 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
     mal_printf("instfunc at %lx\n", funcAddr);
     int pointCount = 0;
 
+    if (!(*instrumentedFuncs)[func]) {
+        (*instrumentedFuncs)[func] = new 
+            std::map<BPatch_point*,BPatchSnippetHandle*>();
+    }
+
     // grab all unresolved control transfer points in the function
     vector<BPatch_point*> points;
     func->getUnresolvedControlTransfers(points);
@@ -197,8 +206,8 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
         BPatchSnippetHandle *handle;
 
         // check that we don't instrument the same point multiple times
-        if ( instrumentedPoints->end() != 
-             instrumentedPoints->find((Address)curPoint->getAddress()) ) 
+        if ( (*instrumentedFuncs)[func]->end() != 
+             (*instrumentedFuncs)[func]->find(curPoint) ) 
         {
             continue;
         }
@@ -278,8 +287,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                 (staticTransferSnippet, *curPoint, BPatch_lastSnippet);
         }
 
-        pointCount += saveInstrumentationHandle
-                        ((Address)curPoint->getAddress(),handle);
+        pointCount += saveInstrumentationHandle(curPoint, handle);
 
     } // end point loop
     points.clear();
@@ -288,8 +296,8 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
     func->getAbruptEndPoints(points);
 
     for (unsigned pidx=0; pidx < points.size(); pidx++) {
-        if ( instrumentedPoints->end() != 
-             instrumentedPoints->find((Address)points[pidx]->getAddress()) ) 
+        if ( (*instrumentedFuncs)[func]->end() != 
+             (*instrumentedFuncs)[func]->find(points[pidx]) ) 
         {
             continue;
         }
@@ -307,8 +315,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
              false,BPatch_noInterp);
         BPatchSnippetHandle *handle = proc()->insertSnippet
             (staticTransferSnippet, *curPoint, BPatch_lastSnippet);
-        pointCount += saveInstrumentationHandle
-                        ((Address)curPoint->getAddress(),handle);
+        pointCount += saveInstrumentationHandle(curPoint,handle);
     }
     points.clear();
 
@@ -328,14 +335,14 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
 			BPatch_point *curPoint = (*retPoints)[j];
             BPatchSnippetHandle *handle;
 
-            // check that we don't instrument the same point multiple times, 
-            // that we don't instrument non-"retn" static exit instructions,
+            // check that we don't instrument the same point multiple times
             // and that we don't instrument the return instruction if it's got 
             // a fixed, known target, e.g., it's a static target push-return 
-            if ( instrumentedPoints->end() != 
-                 instrumentedPoints->find((Address)curPoint->getAddress()) && 
-                 (curPoint->isReturnInstruction() || curPoint->isDynamic()) &&
-                 ! curPoint->getCFTargets(targets) ) 
+            if ( (*instrumentedFuncs)[func]->end() != 
+                 (*instrumentedFuncs)[func]->find(curPoint) 
+                ||
+                 ( ( curPoint->isReturnInstruction() || curPoint->isDynamic()) &&
+                   ! curPoint->getCFTargets(targets) ) ) 
             {
                 continue;
             }
@@ -400,8 +407,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
             // insert the instrumentation
             handle = proc()->insertSnippet
                 (*returnSnippet, *(curPoint), BPatch_lastSnippet);
-            pointCount += saveInstrumentationHandle
-                ((Address)curPoint->getAddress(),handle);
+            pointCount += saveInstrumentationHandle(curPoint,handle);
 
             // clean up
             delete returnSnippet;
@@ -411,8 +417,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
         }
     }
     
-    // housekeeping: mark func as instrumented, close insertion set
-    instrumentedFuncs->insert( (Address) func->getBaseAddr() );
+    // close insertion set
     if (pointCount) {
         mal_printf("instrumented %d points in function at %lx\n", 
                     pointCount,func->getBaseAddr());
@@ -424,8 +429,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
     return false;
 }// end instrumentFunction
 
-// 1a. Removes elements from instrumentedPoints 
-// 1b. Removes function from instrumentedFuncs 
+// 1. Removes elements from instrumentedFuncs
 // 2. Relegates actual work to BPatch_function::removeInstrumentation(), which:
 //    saves live tramps
 //    calls BPatch_point::deleteAllSnippets() for all function points, which:
@@ -444,25 +448,13 @@ void HybridAnalysis::removeInstrumentation(BPatch_function *func /*, removalType
         }
     }
 
-// 1a. Remove elements from instrumentedPoints 
-    std::vector<BPatch_point*> funcPoints;
-    func->getAllPoints(funcPoints);
-    for (unsigned pidx=0; pidx < funcPoints.size(); pidx++) 
-    {
-        Address pointAddr = (Address)funcPoints[pidx]->getAddress();
-        std::map<Address,BPatchSnippetHandle*>::iterator ipIter = 
-            instrumentedPoints->find( pointAddr );
-        if (ipIter != instrumentedPoints->end()) {
-            // remove point from instrumentedPoints
-            instrumentedPoints->erase(ipIter);
-        }
+// 1. Remove elements from instrumentedFuncs
+    if (instrumentedFuncs->end() != instrumentedFuncs->find(func)) {
+        (*instrumentedFuncs)[func]->clear();
+        delete (*instrumentedFuncs)[func];
+        instrumentedFuncs->erase(func);
     }
-// 1b. Remove elements from instrumentedFuncs
-    std::set<Address>::iterator fIter = instrumentedFuncs->find(
-            (Address)func->getBaseAddr());
-    if (fIter != instrumentedFuncs->end()) {
-        instrumentedFuncs->erase(fIter);
-    }
+
 // 2. Relegate actual work to BPatch_function::removeInstrumentation()
     func->removeInstrumentation();
 }
@@ -495,10 +487,7 @@ bool HybridAnalysis::instrumentModule(BPatch_module *mod, bool useInsertionSet)
     vector<BPatch_function*>::iterator fIter = modFuncs->begin();
     for (; fIter != modFuncs->end(); fIter++) 
     {
-        Address baseAddr = (Address)(*fIter)->getBaseAddr();
-        if ( instrumentedFuncs->find(baseAddr) == 
-             instrumentedFuncs->end() ) 
-        {
+        if ( instrumentedFuncs->find(*fIter) == instrumentedFuncs->end() ) {
             didInstrument = instrumentFunction(*fIter,false) || didInstrument;
         }
     }
@@ -603,11 +592,7 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
         parsedAfterCallPoint = true;
         didSomeParsing = true;
 
-        BPatch_function *callFunc = callPoint->getFunction();
-        callerMods.insert(callFunc->getModule());
-
-        //instrumentFunction(callFunc,true); 
-        //instrumentedFuncs->insert((Address) callFunc->getBaseAddr());
+        callerMods.insert(callPoint->getFunction()->getModule());
     } 
     // if we parsed at the fallthrough addr and there is no active loop
     // instrumentation in this function (in which case changing the 
@@ -618,12 +603,14 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
     if ( fallThroughFunc && hybridOW() &&
          ! hybridOW()->hasLoopInstrumentation(true, *fallThroughFunc) )
     {
+        BPatch_function *callFunc = callPoint->getFunction();
         // remove the ctrl-transfer instrumentation for this point 
-        std::map<Address,BPatchSnippetHandle*>::iterator pIter = 
-            instrumentedPoints->find( (Address)callPoint->getAddress() );
-        if (instrumentedPoints->end() != pIter) {
-            proc()->deleteSnippet(pIter->second);
-            instrumentedPoints->erase(pIter);
+        if ((*instrumentedFuncs)[callFunc] && 
+            (*instrumentedFuncs)[callFunc]->end() !=
+            (*instrumentedFuncs)[callFunc]->find(callPoint)) 
+        {
+            proc()->deleteSnippet( (*(*instrumentedFuncs)[callFunc])[callPoint] );
+            (*instrumentedFuncs)[callFunc]->erase(callPoint);
         }
         // if the point is dynamic, re-instrument it to use the cache
         if (callPoint->isDynamic()) {
@@ -635,7 +622,7 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
                     true, BPatch_interpAsTarget);
             BPatchSnippetHandle *handle = proc()->insertSnippet
                 (newSnippet, *callPoint, BPatch_lastSnippet);
-            saveInstrumentationHandle((Address)callPoint->getAddress(),handle);
+            saveInstrumentationHandle(callPoint, handle);
         }
     }
 
@@ -739,14 +726,8 @@ void HybridAnalysis::parseNewEdgeInFunction(BPatch_point *sourcePoint, Address t
             }
         } 
 
-        // remove the function's instrumentation, and remove the func from the 
-        // instrumented functions list
+        // remove the function's instrumentation
         removeInstrumentation(sourceFunc);
-        std::set< Address >::iterator iFuncIter = 
-            instrumentedFuncs->find( (Address)sourceFunc->getBaseAddr() );
-        if ( iFuncIter != instrumentedFuncs->end() ) {
-            instrumentedFuncs->erase( (Address)sourceFunc->getBaseAddr() );
-        }
 
         // 2. parse the new edge
         if ( ! sourceFunc->parseNewEdge( (Address)sourcePoint->getAddress() , 

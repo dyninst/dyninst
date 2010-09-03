@@ -4450,12 +4450,11 @@ Address process::stopThreadCtrlTransfer
 
     // if the point is a real return instruction and its target is a stack 
     // address, get the return address off of the stack 
-    Address returnAddrAddr=0;
     if ( intPoint->isReturnInstruction() && 
-         ! intPoint->func()->isSignalHandler() &&
-         NULL == findObject(target) ) 
+         ! intPoint->func()->isSignalHandler() ) 
     {
-        returnAddrAddr = target + intPoint->preBaseTramp()->savedFlagSize;
+#if 0
+        Address returnAddrAddr=target + intPoint->preBaseTramp()->savedFlagSize;
         //assert (getAddressWidth() == // otherwise the RTLIB cache value is wrong
         //        intPoint->preBaseTramp()->savedFlagSize); 
         if (!readDataSpace((void *)returnAddrAddr, 
@@ -4465,14 +4464,15 @@ Address process::stopThreadCtrlTransfer
                     "return addr addr %lx failed\n",FILE__,__LINE__,target);
             assert(0);
         }
-        mal_printf("%s[%d]: return address address %lx contains %lx\n", FILE__,
-                __LINE__,returnAddrAddr,target);
-
+#endif
+        mal_printf("%s[%d]: return address is %lx\n", FILE__,
+                    __LINE__,target);
+#if 0
         if (dyn_debug_malware) {
             const int BUFSIZE = 0x40;
             unsigned char *buf= (unsigned char*) malloc(BUFSIZE);
             printf("STOPTHREAD HANDLING point=%lx target=%lx\n", pointAddress, 
-                   (Address)target);
+                   (Address)returnAddrAddr);
             if (!readDataSpace((void *)(returnAddrAddr), 
                                      BUFSIZE, buf, true)) {
                 fprintf(stderr, "%s[%d]:  readDataSpace failed\n", FILE__, __LINE__);
@@ -4488,6 +4488,7 @@ Address process::stopThreadCtrlTransfer
             }
         }
 
+#endif
     }
 
     Address unrelocTarget = target;
@@ -4497,7 +4498,6 @@ Address process::stopThreadCtrlTransfer
         if (intPoint->getPointType() == functionExit) {
 
             // get unrelocated target address
-            Address unrelocTarget = target;
             bblInstance *targBBI = NULL;
             baseTrampInstance *bti = NULL;
             bool success = getRelocInfo(target, unrelocTarget, targBBI, bti);
@@ -5101,8 +5101,8 @@ int_function *process::findActiveFuncByAddr(Address addr)
                 int_function *frameFunc = NULL;
                 Frame *curFrame = &stack[j];
                 Address framePC = curFrame->getPC();
-                codeRange *pcRange = findOrigByAddr(framePC);
-                if (!pcRange) {
+                int_basicBlock *frameBlock = findBasicBlockByAddr(framePC);
+                if (!block) {
                     // if we're at a relocated address, we can translate 
                     // back to the right function
                     Address origAddr = curFrame->getPC();

@@ -400,8 +400,8 @@ class BPATCH_DLL_EXPORT BPatch_retExpr : public BPatch_snippet {
 
 class BPATCH_DLL_EXPORT BPatch_retAddrExpr : public BPatch_snippet {
 
-    //  BPatch_retExpr::BPatch_retAddrExpr
-    //  Represents the return address from the function in which the 
+    //  BPatch_retAddrExpr::BPatch_retAddrExpr
+    //  Represents the return address from the function in which the
     //  snippet is inserted
     API_EXPORT_CTOR(Int, (),
     BPatch_retAddrExpr,());

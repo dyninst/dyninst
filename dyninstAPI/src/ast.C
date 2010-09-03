@@ -2117,6 +2117,8 @@ void AstNode::print() const {
 	fprintf(stderr," param[%d]", (int)(Address) oValue);
       } else if (oType == ReturnVal) {
 	fprintf(stderr,"retVal");
+      } else if (oType == ReturnAddr) {
+	fprintf(stderr, "retAddr");
       } else if (oType == DataAddr)  {
 	if(!oVar)
 	{
@@ -2272,6 +2274,7 @@ BPatch_type *AstOperandNode::checkType()
     } 
     else if ((oType == Param) || (oType == ReturnVal) || (oType == ReturnAddr)) {
             // XXX Params and ReturnVals untyped for now
+      // ReturnAddr should be void *, probably
         ret = BPatch::bpatch->type_Untyped; 
     }
     else if ((oType == origRegister)) {
@@ -2858,8 +2861,8 @@ bool AstOperandNode::usesAppRegister() const {
       return true;
    }
 
-	if (operand_ && operand_->usesAppRegister()) return true;
-	return false;
+   if (operand_ && operand_->usesAppRegister()) return true;
+   return false;
 }
 
 bool AstMiniTrampNode::usesAppRegister() const {

@@ -385,7 +385,8 @@ void EmitterIA32::emitGetRetAddr(Register dest, codeGen &gen)
 {
    RealRegister dest_r = gen.rs()->loadVirtualForWrite(dest, gen);
    stackItemLocation loc = getHeightOf(stackItem::stacktop, gen);
-   emitMovIRegToReg(dest_r, loc.reg, gen);
+//   emitMovIRegToReg(dest_r, loc.reg, gen);
+    emitMovRMToReg(dest_r, loc.reg, loc.offset, gen);
 }
 
 void EmitterIA32::emitGetParam(Register dest, Register param_num, instPointType_t pt_type, bool addr_of, codeGen &gen)
