@@ -144,6 +144,7 @@ class AstNode {
                       DataIndir,
                       Param,
                       ReturnVal, 
+		      ReturnAddr,
                       DataAddr,  // Used to represent a variable in memory
                       FrameAddr, // Calculate FP 
                       RegOffset, // Calculate *reg + offset; oValue is reg, loperand->oValue is offset. 

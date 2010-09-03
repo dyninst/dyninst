@@ -1303,6 +1303,11 @@ bool AstOperatorNode::generateCode_phase2(codeGen &gen, bool noCost,
                      gen.addrSpace()->multithread_capable());
                loperand->decUseCount(gen);
                break;
+	 case ReturnAddr:
+	   emitR(getRetAddrOp, Null_Register,
+		 src1, src2, gen, noCost, gen.point(),
+		 gen.addrSpace()->multithread_capable());
+	   break;
             default: {
                // Could be an error, could be an attempt to load based on an arithmetic expression
                // Generate the left hand side, store the right to that address
@@ -1483,6 +1488,14 @@ bool AstOperandNode::generateCode_phase2(codeGen &gen, bool noCost,
            emitImm(orOp, src, 0, retReg, gen, noCost, gen.rs());
        }
        break;
+   case ReturnAddr:
+     src = emitR(getRetAddrOp, 0, Null_Register, retReg, gen, noCost, gen.point(),
+		 gen.addrSpace()->multithread_capable());
+     REGISTER_CHECK(src);
+     if (src != retReg) {
+       emitImm(orOp, src, 0, retReg, gen, noCost, gen.rs());
+     }
+     break;
    case Param:
        src = emitR(getParamOp, (Address)oValue, Null_Register,
                    retReg, gen, noCost, gen.point(),
@@ -2103,6 +2116,8 @@ void AstNode::print() const {
 	fprintf(stderr," param[%d]", (int)(Address) oValue);
       } else if (oType == ReturnVal) {
 	fprintf(stderr,"retVal");
+      } else if (oType == ReturnAddr) {
+	fprintf(stderr, "retAddr");
       } else if (oType == DataAddr)  {
 	if(!oVar)
 	{
@@ -2256,8 +2271,9 @@ BPatch_type *AstOperandNode::checkType()
         // XXX Should really be pointer to lType -- jkh 7/23/99
         ret = BPatch::bpatch->type_Untyped;
     } 
-    else if ((oType == Param) || (oType == ReturnVal)) {
+    else if ((oType == Param) || (oType == ReturnVal) || oType == ReturnAddr) {
             // XXX Params and ReturnVals untyped for now
+      // ReturnAddr should be void *, probably
         ret = BPatch::bpatch->type_Untyped; 
     }
     else if ((oType == origRegister)) {
@@ -2844,8 +2860,8 @@ bool AstOperandNode::usesAppRegister() const {
       return true;
    }
 
-	if (operand_ && operand_->usesAppRegister()) return true;
-	return false;
+   if (operand_ && operand_->usesAppRegister()) return true;
+   return false;
 }
 
 bool AstMiniTrampNode::usesAppRegister() const {

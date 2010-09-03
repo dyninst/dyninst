@@ -79,6 +79,7 @@ typedef enum {
    branchOp,
    ifMCOp,
    breakOp,
+   getRetAddrOp,
    undefOp
 } opCode;
 
