@@ -134,8 +134,8 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
   generateBranch(r.from, r.to, gen);
 
   if (conflict(r.from, r.from + gen.used())) {
-    return MultiNeeded;
-#if 0
+    //return MultiNeeded;
+
     // Errr...
     // Fine. Let's do the trap thing. 
     usedTrap = true;
@@ -145,7 +145,6 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
       debugRanges();
       assert(0);
     }
-#endif
   }
 
   registerBranch(r.from, r.from + gen.used());
