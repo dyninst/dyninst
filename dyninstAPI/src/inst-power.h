@@ -156,14 +156,14 @@
 #define STK_CR_32    (STK_LR      + 4)
 #define STK_CTR_32   (STK_CR_32   + 4)
 #define STK_XER_32   (STK_CTR_32  + 4)
-#define STK_SPR0_32  (STK_XER_32  + 4)
-#define STK_FP_CR_32 (STK_SPR0_32 + 4)
+#define STK_FP_CR_32 (STK_XER_32  + 4)
+#define STK_SPR0_32  (STK_FP_CR_32+ 8)
 
 #define STK_CR_64    (STK_LR      + 8)
 #define STK_CTR_64   (STK_CR_64   + 8)
 #define STK_XER_64   (STK_CTR_64  + 8)
-#define STK_SPR0_64  (STK_XER_64  + 8)
-#define STK_FP_CR_64 (STK_SPR0_64 + 8)
+#define STK_FP_CR_64 (STK_XER_64  + 8)
+#define STK_SPR0_64  (STK_FP_CR_64+ 8)
 
 #define TRAMP_FPR_OFFSET_32 (TRAMP_SPR_OFFSET + SPRSAVE_32)
 #define TRAMP_GPR_OFFSET_32 (TRAMP_FPR_OFFSET_32 + FPRSAVE)

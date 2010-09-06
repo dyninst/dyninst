@@ -1065,14 +1065,14 @@ unsigned saveSPRegisters(codeGen &gen,
 	cr_off    = STK_CR_32;
 	ctr_off   = STK_CTR_32;
 	xer_off   = STK_XER_32;
-	spr0_off  = STK_SPR0_32;
 	fpscr_off = STK_FP_CR_32;
+	spr0_off  = STK_SPR0_32;
     } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
 	cr_off    = STK_CR_64;
 	ctr_off   = STK_CTR_64;
 	xer_off   = STK_XER_64;
-	spr0_off  = STK_SPR0_64;
 	fpscr_off = STK_FP_CR_64;
+	spr0_off  = STK_SPR0_64;
     }
     
     saveCR(gen, 10, save_off + cr_off); num_saved++;
@@ -1081,6 +1081,7 @@ unsigned saveSPRegisters(codeGen &gen,
     gen.rs()->markSavedRegister(registerSpace::ctr, save_off + ctr_off);
     saveSPR(gen, 10, SPR_XER, save_off + xer_off); num_saved++;
     gen.rs()->markSavedRegister(registerSpace::xer, save_off + xer_off);
+    saveFPSCR(gen, 10, save_off + fpscr_off); num_saved++;
     
     // MQ only exists on POWER, not PowerPC. Right now that's correlated
     // to AIX vs Linux, but we _really_ should fix that...
@@ -1100,7 +1101,6 @@ unsigned saveSPRegisters(codeGen &gen,
     }
 #endif
 
-    saveFPSCR(gen, 10, save_off + fpscr_off); num_saved++;
     return num_saved;
 }
 
@@ -1123,19 +1123,20 @@ unsigned restoreSPRegisters(codeGen &gen,
 	cr_off    = STK_CR_32;
 	ctr_off   = STK_CTR_32;
 	xer_off   = STK_XER_32;
-	spr0_off  = STK_SPR0_32;
 	fpscr_off = STK_FP_CR_32;
+	spr0_off  = STK_SPR0_32;
     } else /* gen.addrSpace()->getAddressWidth() == 8 */ {
 	cr_off    = STK_CR_64;
 	ctr_off   = STK_CTR_64;
 	xer_off   = STK_XER_64;
-	spr0_off  = STK_SPR0_64;
 	fpscr_off = STK_FP_CR_64;
+	spr0_off  = STK_SPR0_64;
     }
 
     restoreCR(gen, 10, save_off + cr_off); num_restored++;
     restoreSPR(gen, 10, SPR_CTR, save_off + ctr_off); num_restored++;
     restoreSPR(gen, 10, SPR_XER, save_off + xer_off); num_restored++;
+    restoreFPSCR(gen, 10, save_off + fpscr_off); num_restored++;
 
 #if defined(os_aix) && !defined(arch_64bit)
     // See comment in saveSPRegisters
@@ -1145,7 +1146,6 @@ unsigned restoreSPRegisters(codeGen &gen,
     }
 #endif
 
-    restoreFPSCR(gen, 10, save_off + fpscr_off); num_restored++;
     return num_restored;
 }
 
