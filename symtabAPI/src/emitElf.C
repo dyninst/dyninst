@@ -1857,7 +1857,7 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
   Elf32_Sym *sym = new Elf32_Sym();
   symbolStrs.push_back("");
   // See comment in emitElf-64.C
-  symbolNamesLength++;
+  //symbolNamesLength++;
   sym->st_name = 0;
   sym->st_value = 0;
   sym->st_size = 0;
