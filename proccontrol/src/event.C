@@ -28,7 +28,8 @@ Event::Event(EventType etype_, Thread::ptr thread_) :
    thread(thread_),
    proc(thread ? thread->getProcess() : Process::ptr()),
    stype(unset),
-   master_event(Event::ptr())
+   master_event(Event::ptr()),
+   suppress_cb(false)
 {
 }
 
@@ -64,7 +65,7 @@ void Event::setSyncType(SyncType s)
 
 bool Event::suppressCB() const
 {
-   return false;
+   return suppress_cb;
 }
 
 bool Event::triggersCB() const
@@ -78,6 +79,11 @@ bool Event::triggersCB() const
          return true;
    }
    return false;
+}
+
+void Event::setSuppressCB(bool b)
+{
+   suppress_cb = b;
 }
 
 Event::SyncType Event::getSyncType() const
@@ -250,6 +256,7 @@ installed_breakpoint *EventBreakpoint::installedbp() const
 
 bool EventBreakpoint::suppressCB() const
 {
+   if (Event::suppressCB()) return true;
    return ibp->hl_bps.empty();
 }
 
@@ -351,6 +358,7 @@ IRPC::const_ptr EventRPC::getIRPC() const
 
 bool EventRPC::suppressCB() const
 {
+   if (Event::suppressCB()) return true;
    return (wrapper->rpc->getIRPC().lock() == IRPC::ptr());
 }
 

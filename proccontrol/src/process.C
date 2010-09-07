@@ -795,6 +795,9 @@ bool int_process::detach(bool &should_delete)
       goto done;
    }
 
+   setState(int_process::exited);
+   ProcPool()->rmProcess(this);
+
    had_error = false;
   done:
    ProcPool()->condvar()->signal();
@@ -816,6 +819,7 @@ bool int_process::terminate(bool &needs_sync)
       pthrd_printf("plat_terminate failed on %d\n", getPid());
       goto done;
    }
+   forcedTermination = true;
    setForceGeneratorBlock(true);
    had_error = false;
   done:
@@ -840,6 +844,7 @@ int_process::int_process(Dyninst::PID p, std::string e,
    crashSignal(0),
    hasExitCode(false),
    forceGenerator(false),
+   forcedTermination(false),
    exitCode(0),
    mem(NULL),
    continueSig(0)
@@ -857,6 +862,7 @@ int_process::int_process(Dyninst::PID pid_, int_process *p) :
    crashSignal(p->crashSignal),
    hasExitCode(p->hasExitCode),
    forceGenerator(false),
+   forcedTermination(false),
    exitCode(p->exitCode),
    exec_mem_cache(exec_mem_cache),
    continueSig(p->continueSig)
@@ -1194,6 +1200,11 @@ bool int_process::getCrashSignal(int &s)
    return hasCrashSignal;
 }
 
+bool int_process::wasForcedTerminated() const
+{
+   return forcedTermination;
+}
+
 bool int_process::isInCB()
 {
    return in_callback;
@@ -1214,13 +1225,22 @@ void int_process::updateSyncState(Event::ptr ev, bool gen)
          break;
       case Event::sync_thread: {
          int_thread *thrd = ev->getThread()->llthrd();
-         if (!thrd)
+         if (!thrd) {
+            pthrd_printf("No thread for sync thread event, assuming thread exited\n");
             return;
+         }
+         int_thread::State old_state = gen ? thrd->getGeneratorState() : thrd->getHandlerState();
+         if (old_state == int_thread::exited) {
+            //Silly, linux.  Giving us events on processes that have exited.
+            pthrd_printf("Recieved events for exited thread, not chaning thread state\n");
+            break;
+         }
          pthrd_printf("Event %s is thread synchronous, marking thread %d stopped\n", 
                       etype.name().c_str(), thrd->getLWP());
-         int_thread::State old_state = gen ? thrd->getGeneratorState() : thrd->getHandlerState();
          assert(old_state == int_thread::running ||
-                old_state == int_thread::neonatal_intermediate);
+                old_state == int_thread::neonatal_intermediate ||
+                thrd->llproc()->wasForcedTerminated());
+
          if (old_state == int_thread::errorstate)
             break;
          if (gen)
@@ -1254,6 +1274,7 @@ void int_process::updateSyncState(Event::ptr ev, bool gen)
 
 int_process::~int_process()
 {
+   pthrd_printf("Deleting int_process at %p\n", this);
    if (up_proc != Process::ptr())
    {
       proc_exitstate *exitstate = new proc_exitstate();
@@ -3542,23 +3563,26 @@ bool Process::stopProc()
 bool Process::detach()
 {
    MTLock lock_this_func(MTLock::deliver_callbacks);
+
    if (!llproc_) {
       perr_printf("detach on deleted process\n");
       setLastError(err_exited, "Process is exited\n");
       return false;
    }
+
    bool should_delete;
    bool result = llproc_->detach(should_delete);
    if (!result) {
       pthrd_printf("Failed to detach from process\n");
       return false;
    }
-   if (should_delete) {
+   else if (should_delete) {
       HandlerPool *hp = llproc_->handlerPool();
       delete llproc_;
       delete hp;
       assert(!llproc_);
    }
+  
    return true;
 }
 
@@ -3582,7 +3606,7 @@ bool Process::terminate()
    if (needsSync) {
       bool proc_exited = false;
       while (!proc_exited) {
-         bool result = int_process::waitAndHandleForProc(true, llproc(), proc_exited);
+         bool result = int_process::waitAndHandleForProc(true, llproc_, proc_exited);
          if (!result) {
             perr_printf("Error waiting for process to terminate\n");
             return false;
