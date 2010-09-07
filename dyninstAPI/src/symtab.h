@@ -492,6 +492,7 @@ class image : public codeRange {
    // ParseAPI
    ParseAPI::CodeObject * obj_;
    ParseAPI::SymtabCodeSource * cs_;
+   ParseAPI::SymtabCodeSource::hint_filt *filt;
    DynCFGFactory * img_fact_;
    DynParseCallback * parse_cb_;
    void *cb_arg0_; // argument for mapped_object callback
