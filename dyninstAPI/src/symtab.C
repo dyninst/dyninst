@@ -220,6 +220,12 @@ void image::findMain()
             insn.setInstruction( p );
             Address mainAddress = 0;
 
+	    // Create a temporary SymtabCodeSource that we can use for parsing. 
+	    // We're going to throw it away when we're done so that we can re-sync
+	    // with the new symbols we're going to add shortly. 
+	    bool parseInAllLoadableRegions = (BPatch_normalMode != mode_);
+	    SymtabCodeSource scs(linkedFile, filt, parseInAllLoadableRegions);
+
 #if !defined(os_freebsd)
             const unsigned char *lastP = 0;
             while( !insn.isCall() )
@@ -243,7 +249,7 @@ void image::findMain()
             using namespace Dyninst::InstructionAPI;
 
             unsigned bytesSeen = 0, numCalls = 0;
-            InstructionDecoder decoder(p, textsec->getRegionSize(), cs_->getArch());
+            InstructionDecoder decoder(p, textsec->getRegionSize(), scs.getArch());
 
             Instruction::Ptr curInsn = decoder.decode();
             while( numCalls < 4 && curInsn && curInsn->isValid() &&
@@ -264,7 +270,7 @@ void image::findMain()
                 logLine("heuristic for finding global constructor function failed\n");
             }else{
                 Address callAddress = textsec->getRegionAddr() + bytesSeen;
-                RegisterAST thePC = RegisterAST(Dyninst::MachRegister::getPC(cs_->getArch()));
+                RegisterAST thePC = RegisterAST(Dyninst::MachRegister::getPC(scs.getArch()));
 
                 Expression::Ptr callTarget = curInsn->getControlFlowTarget();
 
@@ -278,7 +284,7 @@ void image::findMain()
             }
 #endif
 
-            if(!mainAddress || !cs_->isValidAddress(mainAddress)) {
+            if(!mainAddress || !scs.isValidAddress(mainAddress)) {
                 startup_printf("%s[%u]:  invalid main address 0x%lx\n",
                     FILE__, __LINE__, mainAddress);   
             } else {
@@ -1138,7 +1144,7 @@ void image::analyzeImage() {
        for( ; rit != cs_->regions().end(); ++rit)
        {
         SymtabCodeRegion * scr = static_cast<SymtabCodeRegion*>(*rit);
-        if(scr->symRegion()->isText()) {
+        if(parseGaps_ && scr->symRegion()->isText()) {
             obj_->parseGaps(scr);
         }
        } 
@@ -1317,7 +1323,7 @@ image::image(fileDescriptor &desc,
    }
 
    // Initialize ParseAPI 
-   SymtabCodeSource::hint_filt * filt = NULL;
+   filt = NULL;
 
    /** Optionally eliminate some hints in which Dyninst is not
        interested **/
@@ -1339,6 +1345,11 @@ image::image(fileDescriptor &desc,
     } nuke_heap;
     filt = &nuke_heap;
 #endif
+   //Now add Main and Dynamic Symbols if they are not present
+   startup_printf("%s[%d]:  before findMain\n", FILE__, __LINE__);
+   findMain();
+
+
    bool parseInAllLoadableRegions = (BPatch_normalMode != mode_);
    cs_ = new SymtabCodeSource(linkedFile,filt,parseInAllLoadableRegions);
    // XXX FIXME having this static member in instPointBase
@@ -1356,9 +1367,6 @@ image::image(fileDescriptor &desc,
 
    statusLine(msg.c_str());
 
-   //Now add Main and Dynamic Symbols if they are not present
-   startup_printf("%s[%d]:  before findMain\n", FILE__, __LINE__);
-   findMain();
 
    // look for `main' or something similar to recognize a.outs
    startup_printf("%s[%d]:  before determineImageType\n", FILE__, __LINE__);

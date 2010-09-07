@@ -255,6 +255,11 @@ int recv_message(unsigned char *msg, size_t msg_size)
    while( result != msg_size && result != 0 ) {
        result = recv(sockfd, msg, msg_size, MSG_WAITALL);
 
+       if (result == -1 && errno != EINTR ) {
+          perror("Mutatee unable to recieve message");
+          return -1;
+       }
+
 #if defined(os_freebsd_test)
        /* Sometimes the recv system call is not restarted properly after a
         * signal and an iRPC. TODO a workaround for this bug
@@ -264,11 +269,6 @@ int recv_message(unsigned char *msg, size_t msg_size)
                    result, msg_size);
        }
 #endif
-
-       if (result == -1 && errno != EINTR ) {
-          perror("Mutatee unable to recieve message");
-          return -1;
-       }
    }
    return 0;
 }

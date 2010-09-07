@@ -1856,6 +1856,8 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
   // recreate a "dummy symbol"
   Elf32_Sym *sym = new Elf32_Sym();
   symbolStrs.push_back("");
+  // See comment in emitElf-64.C
+  symbolNamesLength++;
   sym->st_name = 0;
   sym->st_value = 0;
   sym->st_size = 0;
@@ -1944,9 +1946,8 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
   Elf32_Sym *syms = (Elf32_Sym *)malloc(symbols.size()* sizeof(Elf32_Sym));
   for(i=0;i<symbols.size();i++)
     syms[i] = *(symbols[i]);
-    
-  --symbolNamesLength;
-  char *str = (char *)malloc(symbolNamesLength+1);
+
+  char *str = (char *)malloc(symbolNamesLength);
   unsigned cur=0;
   for(i=0;i<symbolStrs.size();i++)
     {

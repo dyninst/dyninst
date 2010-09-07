@@ -1315,10 +1315,6 @@ bool Symtab::extractInfo(Object *linkedFile)
         if ( regions_[index]->isLoadable() ) 
         {
            if (     (regions_[index]->getRegionPermissions() == Region::RP_RX) 
-// KEVINTODO: find a better solution for this
-#if defined(_MSC_VER) // added this to deal with obfuscated programs (e.g. aspack)
-                 || (regions_[index]->getRegionPermissions() == Region::RP_RW)
-#endif
                  || (regions_[index]->getRegionPermissions() == Region::RP_RWX)) 
            {
               codeRegions_.push_back(regions_[index]);
