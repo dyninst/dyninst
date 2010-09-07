@@ -89,13 +89,13 @@ namespace Dyninst
     {
       if(m_isRead && dyn_detail::boost::dynamic_pointer_cast<Dereference>(op_value))
       {
-	std::vector<InstructionAST::Ptr> tmp;
+	std::vector<Expression::Ptr> tmp;
 	op_value->getChildren(tmp);
-	for(std::vector<InstructionAST::Ptr>::const_iterator curKid = tmp.begin();
+        for(std::vector<Expression::Ptr>::const_iterator curKid = tmp.begin();
 	    curKid != tmp.end();
 	    ++curKid)
 	{
-	  memAccessors.insert(dyn_detail::boost::dynamic_pointer_cast<Expression>(*curKid));
+	  memAccessors.insert(*curKid);
 	}
       }
     }
@@ -103,13 +103,13 @@ namespace Dyninst
     {
       if(m_isWritten && dyn_detail::boost::dynamic_pointer_cast<Dereference>(op_value))
       {
-	std::vector<InstructionAST::Ptr> tmp;
+	std::vector<Expression::Ptr> tmp;
 	op_value->getChildren(tmp);
-	for(std::vector<InstructionAST::Ptr>::const_iterator curKid = tmp.begin();
+        for(std::vector<Expression::Ptr>::const_iterator curKid = tmp.begin();
 	    curKid != tmp.end();
 	    ++curKid)
 	{
-	  memAccessors.insert(dyn_detail::boost::dynamic_pointer_cast<Expression>(*curKid));
+	  memAccessors.insert(*curKid);
 	}
       }
     }
