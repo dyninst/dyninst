@@ -374,6 +374,7 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
 
         pthrd_printf("Decoded to signal %s\n", strsignal(stopsig));
         switch( stopsig ) {
+            case SIGUSR2:
             case SIGSTOP: {
                 if( lthread->hasPendingStop() || lthread->hasBootstrapStop() ) {
                     pthrd_printf("Received pending stop on %d/%d\n",
@@ -1340,7 +1341,7 @@ bool freebsd_process::plat_contProcess() {
 bool freebsd_thread::plat_stop() {
     Dyninst::PID pid = llproc()->getPid();
 
-    if( !tkill(pid, lwp, SIGSTOP) ) {
+    if( !tkill(pid, lwp, SIGUSR2) ) {
         int errnum = errno;
         if( ESRCH == errnum ) {
             pthrd_printf("tkill failed for %d/%d, thread/process doesn't exist\n", lwp, pid);
