@@ -1543,8 +1543,8 @@ bool freebsd_thread::plat_getAllRegisters(int_registerPool &regpool) {
     return true;
 }
 
-static bool validateRegisters(struct reg *regs, Dyninst::LWP lwp) {
 #if defined(arch_x86)
+static bool validateRegisters(struct reg *regs, Dyninst::LWP lwp) {
     struct reg old_regs;
     if( 0 != ptrace(PT_GETREGS, lwp, (caddr_t)&old_regs, 0) ) {
         perr_printf("Error reading registers from %d\n", lwp);
@@ -1559,9 +1559,14 @@ static bool validateRegisters(struct reg *regs, Dyninst::LWP lwp) {
         if( old_regs.r_eflags & PSL_RF ) regs->r_eflags |= PSL_RF;
         else regs->r_eflags &= ~PSL_RF;
     }
-#endif
+    
     return true;
 }
+#else
+static bool validateRegisters(struct reg *, Dyninst::LWP) {
+    return true;
+}
+#endif
 
 bool freebsd_thread::plat_setAllRegisters(int_registerPool &regpool) {
     init_dynreg_to_user();

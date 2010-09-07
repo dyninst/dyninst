@@ -355,10 +355,6 @@ class int_thread
    bool hasPendingStop() const;
    void setResumed(bool b);
    bool isResumed() const;
-   void setClearingPendingStop(bool b);
-   bool clearingPendingStop() const;
-   void setSyncingState(bool b);
-   bool isSyncingState() const;
 
    // Needed for HybridLWPControl thread control mode
    // These can be no-ops for other modes
@@ -430,8 +426,6 @@ class int_thread
    bool pending_user_stop;
    bool pending_stop;
    bool resumed;
-   bool clearing_pending_stop;
-   bool syncing_state;
    int num_locked_stops;
    bool user_single_step;
    bool single_step;

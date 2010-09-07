@@ -913,9 +913,11 @@ bool iRPCMgr::checkIfNeedsProcStop(int_process *p)
       int_thread *thr = *i;
       if (thr->getInternalState() != int_thread::running)
          continue;
-      int_iRPC::ptr running = thr->runningRPC();
-      if (running && running->isProcStopRPC())
-         continue;
+      if( !useHybridLWPControl() ) {
+          int_iRPC::ptr running = thr->runningRPC();
+          if (running && running->isProcStopRPC())
+             continue;
+      }
       return true;
    }
    return false;
@@ -931,9 +933,11 @@ bool iRPCMgr::stopNeededThreads(int_process *p, bool sync)
       int_thread *thr = *i;
       if (thr->getInternalState() != int_thread::running)
          continue;
-      int_iRPC::ptr running = thr->runningRPC();
-      if (running && running->isProcStopRPC())
-         continue;
+      if( !useHybridLWPControl() ) {
+          int_iRPC::ptr running = thr->runningRPC();
+          if (running && running->isProcStopRPC())
+             continue;
+      }
       bool result = thr->intStop(false);
       if (!result) {
          perr_printf("Error stopping thread %d/%d\n", p->getPid(), thr->getLWP());

@@ -52,10 +52,10 @@ ps_err_e ps_pglobal_lookup(struct ps_prochandle *handle, const char *objName,
 
 ps_err_e ps_pread(struct ps_prochandle *handle, psaddr_t remote, void *local, size_t size) {
     pthrd_printf("thread_db reading from %#lx to %#lx, size = %d on %d\n",
-            (unsigned long)remote, (unsigned long)local, size, handle->thread_db_proc->getPid());
+            (unsigned long)remote, (unsigned long)local, (int)size, handle->thread_db_proc->getPid());
     if( !handle->thread_db_proc->plat_readProcMem(local, (Dyninst::Address)remote, size) )  {
         pthrd_printf("Failed to read from %#lx to %#lx, size = %d on %d: %s\n",
-                    (unsigned long)remote, (unsigned long)local, size, handle->thread_db_proc->getPid(),
+                    (unsigned long)remote, (unsigned long)local, (int)size, handle->thread_db_proc->getPid(),
                     strerror(errno));
         return PS_ERR;
     }
@@ -65,10 +65,10 @@ ps_err_e ps_pread(struct ps_prochandle *handle, psaddr_t remote, void *local, si
 
 ps_err_e ps_pwrite(struct ps_prochandle *handle, psaddr_t remote, const void *local, size_t size) {
     pthrd_printf("thread_db writing to %#lx from %#lx, size = %d on %d\n",
-            (unsigned long)remote, (unsigned long)local, size, handle->thread_db_proc->getPid());
+            (unsigned long)remote, (unsigned long)local, (int)size, handle->thread_db_proc->getPid());
     if( !handle->thread_db_proc->plat_writeProcMem(const_cast<void *>(local), (Dyninst::Address)remote, size) ) {
         pthrd_printf("Failed to write to %#lx from %#lx, size = %d on %d: %s\n",
-                (unsigned long)remote, (unsigned long)local, size, handle->thread_db_proc->getPid(),
+                (unsigned long)remote, (unsigned long)local, (int)size, handle->thread_db_proc->getPid(),
                 strerror(errno));
         return PS_ERR;
     }

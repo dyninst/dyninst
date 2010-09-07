@@ -428,8 +428,6 @@ struct syncRunStateRet_t {
 // Used by HybridLWPControl
 bool int_process::continueProcess() {
     bool foundResumedThread = false;
-    bool foundPendingStop = false;
-    bool foundSyncOperation = false;
     bool foundHandlerRunning = false;
 
     int_threadPool::iterator i;
@@ -440,29 +438,13 @@ bool int_process::continueProcess() {
             foundResumedThread = true;
         }
 
-        if( (*i)->clearingPendingStop() ) {
-            pthrd_printf("Found clear of pending stop for %d/%d\n",
-                    getPid(), (*i)->getLWP());
-            foundPendingStop = true;
-            (*i)->setClearingPendingStop(false);
-        }
-
-        if( (*i)->isSyncingState() ) {
-            pthrd_printf("Found sync operation for %d/%d\n",
-                    getPid(), (*i)->getLWP());
-            foundSyncOperation = true;
-            (*i)->setSyncingState(false);
-        }
-
         if( (*i)->getHandlerState() == int_thread::running ) {
             foundHandlerRunning = true;
             break;
         }
     }
 
-    if( (foundPendingStop || foundSyncOperation || foundResumedThread) 
-            && !foundHandlerRunning )
-    {
+    if( foundResumedThread && !foundHandlerRunning ) { 
         if( !plat_contProcess() ) {
             perr_printf("Failed to continue whole process\n");
             return false;
@@ -539,7 +521,6 @@ bool syncRunState(int_process *p, void *r)
          pthrd_printf("Continuing thread %d/%d to clear out pending stop\n", 
                       thr->llproc()->getPid(), thr->getLWP());
 
-         thr->setClearingPendingStop(true);
          thr->intCont();
       }
       else if (thr->getInternalState() == int_thread::stopped && pstop_rpc && 
@@ -567,7 +548,6 @@ bool syncRunState(int_process *p, void *r)
          // handling a sync event). Go ahead and continue the thread.
          pthrd_printf("Continuing thread %d/%d to match internal state after events\n",
                       p->getPid(), thr->getLWP());
-         thr->setSyncingState(true);
          thr->intCont();
       }
 
@@ -1306,32 +1286,39 @@ static
 bool stopAllThenContinue(int_threadPool *tp) {
     tp->desyncInternalState();
 
-    if( !tp->intStop(true) ) {
-        perr_printf("Failed to stop all running threads\n");
-        setLastError(err_internal, "Failed to stop all running threads\n");
-        return false;
-    }
+    // XXX
+    // This loop is necessary because there exists a case where the following
+    // intStop will leave some threads running due to a proc stop RPC being
+    // prepped and run while performing the stop.  
+    //
+    // While prepping the proc stop RPC, the state is desync'd to run a single
+    // thread. When the proc stop RPC completes, the state is restored;
+    // however, the restore doesn't move the thread to a stopped state because
+    // two levels of desync have occurred. After the RPC is handled,
+    // syncRunState continues the process (to match the internal state of
+    // affairs). The following restore then fails to resume any threads that
+    // were stopped because the process is running and therefore, ptrace
+    // commands cannot be run on the process.
 
-    tp->restoreInternalState(false);
+    do {
+        pthrd_printf("Stopping %d for thread continue\n", tp->proc()->getPid());
+        if( !tp->intStop(true) ) {
+            perr_printf("Failed to stop all running threads\n");
+            setLastError(err_internal, "Failed to stop all running threads\n");
+            return false;
+        }
+    }while( !tp->allStopped() );
+
+    tp->restoreInternalState(true);
 
     bool anyThreadResumed = false;
     for(int_threadPool::iterator i = tp->begin(); i != tp->end(); ++i) {
-        // Continue any threads that have running proc stopper RPCs that
-        // were postponed during the process stop that just occurred
-        int_iRPC::ptr pstop_rpc = (*i)->hasRunningProcStopperRPC();
-        if ((*i)->getInternalState() == int_thread::stopped && pstop_rpc &&
-                (pstop_rpc->getState() == int_iRPC::Running ||
-                 pstop_rpc->getState() == int_iRPC::Ready) ) {
-            (*i)->intCont();
-        }
-
         if( (*i)->isResumed() ) {
             anyThreadResumed = true;
+            break;
         }
     }
 
-    // It is possible that the internal state has been desync'd from the user
-    // state and all the threads remain stopped
     if( anyThreadResumed ) {
         if( !tp->proc()->plat_contProcess() ) {
             perr_printf("Failed to continue whole process\n");
@@ -1625,22 +1612,7 @@ bool int_threadPool::stop(bool user_stop, bool sync)
                 pthrd_printf("int_thread::stop on %d/%d return sc_success_pending\n",
                              proc()->getPid(), thr->getLWP());
                 stopped_something = true;
-                if( useHybridLWPControl() && sync ) {
-                    // The sync needs to happen immediately
-                    bool proc_exited;
-                    bool result = int_process::waitAndHandleForProc(true, proc(), proc_exited);
-                    if (proc_exited) {
-                        pthrd_printf("Process exited during stop\n");
-                        setLastError(err_exited, "Process exited during stop\n");
-                        return false;
-                    }
-                    if (!result) {
-                        perr_printf("Error waiting for events after stop on %d\n", proc()->getPid());
-                        return false;
-                    }
-                }else{
-                    needs_sync = true;
-                }
+                needs_sync = true;
                 break;
              case int_thread::sc_success:
                 pthrd_printf("int_thread::stop on %d/%d returned sc_success\n", 
@@ -1707,7 +1679,7 @@ int_thread::stopcont_ret_t int_thread::stop(bool user_stop)
 
    if (pending_stop) {
       pthrd_printf("thread %d has in-progress stop on process %d\n", getLWP(), pid);
-      return sc_success;
+      return sc_success_pending;
    }
    if (getHandlerState() == stopped) {         
       pthrd_printf("thread %d on process %d is already handler stopped, leaving\n", 
@@ -1846,26 +1818,6 @@ void int_thread::setResumed(bool b)
 bool int_thread::isResumed() const
 {
     return resumed;
-}
-
-void int_thread::setClearingPendingStop(bool b)
-{
-    clearing_pending_stop = b;
-}
-
-bool int_thread::clearingPendingStop() const
-{
-    return clearing_pending_stop;
-}
-
-void int_thread::setSyncingState(bool b)
-{
-    syncing_state = b;
-}
-
-bool int_thread::isSyncingState() const
-{
-    return syncing_state;
 }
 
 Process::ptr int_thread::proc() const
@@ -2071,8 +2023,6 @@ int_thread::int_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    pending_user_stop(false),
    pending_stop(false),
    resumed(false),
-   clearing_pending_stop(false),
-   syncing_state(false),
    num_locked_stops(0),
    user_single_step(false),
    single_step(false),
