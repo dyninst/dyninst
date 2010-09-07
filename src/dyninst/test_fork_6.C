@@ -195,6 +195,7 @@ static void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type) {
                 thread, parentThread, childThread);
         assert(0 && "Unexpected BPatch_thread in exitFunc");
     }
+    thread->getProcess()->continueExecution();
     return;
 }
 
@@ -225,7 +226,7 @@ static bool mutatorTest(BPatch *bpatch, BPatch_thread *appThread)
     /* Secondary test: we should not have to manually continue
        either parent or child at any point */
 
-                         while ( !parentThread->getProcess()->isTerminated() )
+    while ( !parentThread->getProcess()->isTerminated() )
     {
        bpatch->waitForStatusChange();
     }
@@ -239,7 +240,7 @@ static bool mutatorTest(BPatch *bpatch, BPatch_thread *appThread)
        return passedTest;
     }
     
-    if ( !childThread->getProcess()->isTerminated() )
+    while ( !childThread->getProcess()->isTerminated() )
     {
        bpatch->waitForStatusChange();
     }
