@@ -254,10 +254,9 @@ class image : public codeRange {
    friend class image_variable;
    friend class DynCFGFactory;
  public:
-   static image *parseImage(const std::string file);
    static image *parseImage(fileDescriptor &desc, 
-                            BPatch_hybridMode mode = BPatch_normalMode,
-                            bool parseGaps=false);
+                            BPatch_hybridMode mode,
+                            bool parseGaps);
 
    // And to get rid of them if we need to re-parse
    static void removeImage(image *img);
@@ -271,7 +270,7 @@ class image : public codeRange {
 
    image(fileDescriptor &desc, bool &err, 
          BPatch_hybridMode mode,
-         bool parseGaps=false);
+         bool parseGaps);
 
    void analyzeIfNeeded();
 

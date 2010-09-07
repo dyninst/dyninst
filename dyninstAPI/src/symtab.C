@@ -1144,7 +1144,7 @@ void image::analyzeImage() {
        for( ; rit != cs_->regions().end(); ++rit)
        {
         SymtabCodeRegion * scr = static_cast<SymtabCodeRegion*>(*rit);
-        if(scr->symRegion()->isText()) {
+        if(parseGaps_ && scr->symRegion()->isText()) {
             obj_->parseGaps(scr);
         }
        } 
