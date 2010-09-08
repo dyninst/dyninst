@@ -16,6 +16,7 @@ TARGET = libpcontrol.so
 LDFLAGS     += $(LIBDIR) -lcommon
 
 SRCS = ../src/sysv.C \
+		 ../src/unix.C \
        ../src/freebsd.C \
        ../src/int_thread_db.C \
        ../../common/src/dthread-unix.C

@@ -41,6 +41,8 @@
 #include "common/h/freebsdKludges.h"
 #endif
 
+#include "proccontrol/src/response.h"
+
 #include <vector>
 #include <string>
 #include <set>
@@ -62,7 +64,7 @@ sysv_process::sysv_process(Dyninst::PID p, string e, vector<string> a, map<int,i
 sysv_process::sysv_process(Dyninst::PID pid_, int_process *p) :
    int_process(pid_, p)
 {
-   sysv_process *sp = static_cast<sysv_process *>(p);
+   sysv_process *sp = dynamic_cast<sysv_process *>(p);
    breakpoint_addr = sp->breakpoint_addr;
    lib_initialized = sp->lib_initialized;
    if (sp->procreader)
@@ -85,13 +87,15 @@ sysv_process::~sysv_process()
    }
 }
 
-PCProcReader::PCProcReader(int_process *proc_) :
-   proc(proc_)
+PCProcReader::PCProcReader(sysv_process *proc_) :
+   proc(proc_),
+   pending_addr(0)
 {
 }
 
 PCProcReader::~PCProcReader()
 {
+   clearBuffers();
 }
 
 bool PCProcReader::start()
@@ -106,26 +110,155 @@ bool PCProcReader::done()
    return true;
 }
 
+bool PCProcReader::isAsync()
+{
+   return (memresult != NULL);
+}
+
+bool PCProcReader::handleAsyncCompletion()
+{
+   if (!memresult->isReady()) {
+      //We still have to wait for the read to finish.
+      pthrd_printf("ProcReader waiting for async read at %lx\n", pending_addr);
+      return false;
+   }
+
+   if (memresult->hasError()) {
+      //The read failed, mark this with a NULL buffer entry at the address
+      pthrd_printf("Async read at %lx failed, marking as such\n", pending_addr);
+      free(memresult->getBuffer());
+      async_read_buffers[pending_addr] = NULL;
+   }
+   else {
+      pthrd_printf("ProcReader found completed async read at %lx\n", pending_addr);
+      async_read_buffers[pending_addr] = memresult->getBuffer();
+   }
+   memresult = mem_response::ptr();
+   pending_addr = 0;
+   
+   return true;
+}
+
+void PCProcReader::clearBuffers()
+{
+   map<Address, char *>::iterator i;
+   for (i = async_read_buffers.begin(); i != async_read_buffers.end(); i++) {
+      if (i->second)
+         free(i->second);
+   }
+   async_read_buffers.clear();
+}
+
+bool PCProcReader::postAsyncRead(Dyninst::Address addr)
+{
+   //Reading from an unknown page, post an async read and
+   // return 'false'.  isAsync() will latter return true,
+   // letting the caller know that this was an async error
+   // rather than a real one.
+   assert(!memresult);
+   char *new_buffer = (char *) malloc(async_read_align);
+   memresult = mem_response::createMemResponse(new_buffer, async_read_align);
+   pending_addr = addr;
+
+   assert(memresult);
+   bool result = proc->readMem(addr, memresult);
+
+   if (!result) {
+      pthrd_printf("Failure to async read process %d memory at %lx\n",
+                   proc->getPid(), addr);
+      memresult = mem_response::ptr();
+      return false;
+   }
+   return handleAsyncCompletion();
+}
+
+bool PCProcReader::ReadMemAsync(Address addr, void *buffer, unsigned size)
+{
+   //If we're on an Async IO platform (BlueGene) then we may do
+   // this read as multiple async reads, caching memory as we go.
+   // Once we've completed all async reads, then we'll finally 
+   // return success from this function.
+   //
+   //The page aligned caching may seem weird (and could produce
+   // unnecessary extra reads), but I' think it'll provide a better
+   // access pattern in most cases.
+   Dyninst::Address aligned_addr = addr & ~(async_read_align-1);
+   int buffer_offset = 0;
+
+   if (!proc->translator) {
+      //Can happen if we read during initialization.  We'll fail to read,
+      // and the addrtranslate layer will handle things properly.
+      return false;
+   }
+
+   Dyninst::Address cur_addr = aligned_addr;
+   for (; cur_addr < addr+size; cur_addr += async_read_align) {
+      map<Address, char *>::iterator i = async_read_buffers.find(cur_addr);
+      if (i == async_read_buffers.end()) {
+         bool result = postAsyncRead(cur_addr);
+         if (!result) {
+            //Need to wait for the async read to complete
+            pthrd_printf("Returning async from read\n");
+            proc->translator->setReadAbort(true);
+            return false;
+         }
+         i = async_read_buffers.find(cur_addr);
+         assert(i != async_read_buffers.end());
+      }
+      //We have a buffer cached, copy the correct parts of
+      // its contents to the target buffer.
+      char *cached_buffer = i->second;
+      if (!cached_buffer) {
+         //This read had resulted in an error.  Return as such.
+         pthrd_printf("Returning error from read\n");
+         proc->translator->setReadAbort(false);
+         return false;
+      }
+      int start_offset = (addr > cur_addr) ? (addr - cur_addr) : 0;
+      int end_offset = (addr+size < cur_addr+async_read_align) ? 
+         addr+size - cur_addr : async_read_align;
+      memcpy(((char *) buffer) + buffer_offset, 
+             cached_buffer + start_offset, 
+             end_offset - start_offset);
+   }
+   //All reads completed succfully.  Phew.
+   pthrd_printf("Returning success from read\n");
+   static_cast<sysv_process *>(proc)->translator->setReadAbort(false);
+   return true;
+}
+
 bool PCProcReader::ReadMem(Address addr, void *buffer, unsigned size)
 {
+   if (proc->plat_needsAsyncIO()) {
+      return ReadMemAsync(addr, buffer, size);
+   }
+
    if (size != 1) {
-      bool result = proc->readMem(buffer, addr, size);
+      mem_response::ptr memresult = mem_response::createMemResponse((char *) buffer, size);
+      bool result = proc->readMem(addr, memresult);
       if (!result) {
          pthrd_printf("Failed to read memory for proc reader\n");
+         return true;
       }
-      return result;
+      result = memresult->isReady();
+      assert(result);
+      return true;
    }
 
    //Try to optimially handle a case where the calling code
-   // reads a string one char at a time.
+   // reads a string one char at a time.  This is mostly for
+   // ptrace platforms, but won't harm any others.
    assert(size == 1);
    Address aligned_addr = addr - (addr % sizeof(word_cache));
    if (!word_cache_valid || aligned_addr != word_cache_addr) {
-      bool result = proc->readMem(&word_cache, aligned_addr, sizeof(word_cache));
+      mem_response::ptr memresult = mem_response::createMemResponse((char *) &word_cache, sizeof(word_cache));
+      bool result = proc->readMem(aligned_addr, memresult);
       if (!result) {
          pthrd_printf("Failed to read memory for proc reader\n");
          return false;
       }
+      result = memresult->isReady();
+      assert(result);
       word_cache_addr = aligned_addr;
       word_cache_valid = true;
    }
@@ -147,17 +280,23 @@ bool sysv_process::initLibraryMechanism()
    lib_initialized = true;
 
    pthrd_printf("Initializing library mechanism for process %d\n", getPid());
-   assert(!procreader);
-   procreader = new PCProcReader(this);
-   if (!symreader_factory) {
+
+   if (!procreader)
+      procreader = new PCProcReader(this);
+   assert(procreader);
+
+   if (!symreader_factory)
       symreader_factory = (SymbolReaderFactory *) new SymElfFactory();
-      assert(symreader_factory);
-   }
+   assert(symreader_factory);
 
    assert(!translator);
    translator = AddressTranslate::createAddressTranslator(getPid(), 
                                                           procreader,
                                                           symreader_factory);
+   if (!translator && procreader->isAsync()) {
+      pthrd_printf("Waiting for async read to finish initializing\n");
+      return false;
+   }
    if (!translator) {
       perr_printf("Error creating address translator object\n");
       return false;
@@ -178,20 +317,40 @@ bool sysv_process::initLibraryMechanism()
 }
 
 bool sysv_process::refresh_libraries(set<int_library *> &added_libs,
-                                     set<int_library *> &rmd_libs)
+                                     set<int_library *> &rmd_libs,
+                                     set<response::ptr> &async_responses)
 {
    pthrd_printf("Refreshing list of loaded libraries\n");
+
+   if (procreader && procreader->isAsync()) {
+      //We (may) have a posted async completion.  Handle it.
+      bool result = procreader->handleAsyncCompletion();
+      if (!result) {
+         return false;
+      }
+   }
+   assert(!procreader || !procreader->isAsync());
+
    bool result = initLibraryMechanism();
+   if (!result && procreader && procreader->isAsync()) {
+      async_responses.insert(procreader->memresult);
+      pthrd_printf("Waiting for async result to init libraries\n");
+      return false;
+   }
    if (!result) {
       pthrd_printf("refresh_libraries failed to init the libraries\n");
       return false;
    }
 
    result = translator->refresh();
+   if (!result && procreader->isAsync()) {
+      async_responses.insert(procreader->memresult);
+      pthrd_printf("Waiting for async result to read libraries\n");
+      return false;
+   }
    if (!result) {
       pthrd_printf("Failed to refresh library list for %d\n", getPid());
    }
-
 
    for (set<int_library *>::iterator i = mem->libs.begin(); 
         i != mem->libs.end(); i++) 
@@ -231,6 +390,7 @@ bool sysv_process::refresh_libraries(set<int_library *> &added_libs,
       mem->libs.erase(i++);
    }
 
+   procreader->clearBuffers();
    return true;
 }
 
@@ -253,340 +413,4 @@ bool sysv_process::plat_execed()
    breakpoint_addr = 0x0;
    lib_initialized = false;
    return initLibraryMechanism();
-}
-
-/*
- * Note:
- *
- * The following functions are common to both Linux and FreeBSD.
- *
- * If there is another SysV platform that needs different versions of these
- * functions, the following functions should be factored somehow.
- */
-void sysv_process::plat_execv() {
-    // Never returns
-    typedef const char * const_str;
-
-    const_str *new_argv = (const_str *) calloc(argv.size()+3, sizeof(char *));
-    new_argv[0] = executable.c_str();
-    unsigned i;
-    for (i=1; i<argv.size()+1; i++) {
-        new_argv[i] = argv[i-1].c_str();
-    }
-    new_argv[i+1] = (char *) NULL;
-
-    for(std::map<int,int>::iterator fdit = fds.begin(),
-            fdend = fds.end();
-            fdit != fdend;
-            ++fdit) {
-        int oldfd = fdit->first;
-        int newfd = fdit->second;
-
-        int result = close(newfd);
-        if (result == -1) {
-            pthrd_printf("Could not close old file descriptor to redirect.\n");
-            setLastError(err_internal, "Unable to close file descriptor for redirection");
-            exit(-1);
-        }
-
-        result = dup2(oldfd, newfd);
-        if (result == -1) {
-            pthrd_printf("Could not redirect file descriptor.\n");
-            setLastError(err_internal, "Failed dup2 call.");
-            exit(-1);
-        }
-        pthrd_printf("DEBUG redirected file!\n");
-    }
-
-    execv(executable.c_str(), const_cast<char * const*>(new_argv));
-    int errnum = errno;         
-    pthrd_printf("Failed to exec %s: %s\n", 
-               executable.c_str(), strerror(errnum));
-    if (errnum == ENOENT)
-        setLastError(err_nofile, "No such file");
-    if (errnum == EPERM || errnum == EACCES)
-        setLastError(err_prem, "Permission denied");
-    else
-        setLastError(err_internal, "Unable to exec process");
-    exit(-1);
-}
-
-void int_notify::writeToPipe()
-{
-   if (pipe_out == -1) 
-      return;
-
-   char c = 'e';
-   ssize_t result = write(pipe_out, &c, 1);
-   if (result == -1) {
-      int error = errno;
-      setLastError(err_internal, "Could not write to notification pipe\n");
-      perr_printf("Error writing to notification pipe: %s\n", strerror(error));
-      return;
-   }
-   pthrd_printf("Wrote to notification pipe %d\n", pipe_out);
-}
-
-void int_notify::readFromPipe()
-{
-   if (pipe_out == -1)
-      return;
-
-   char c;
-   ssize_t result;
-   int error;
-   do {
-      result = read(pipe_in, &c, 1);
-      error = errno;
-   } while (result == -1 && error == EINTR);
-   if (result == -1) {
-      int error = errno;
-      if (error == EAGAIN) {
-         pthrd_printf("Notification pipe had no data available\n");
-         return;
-      }
-      setLastError(err_internal, "Could not read from notification pipe\n");
-      perr_printf("Error reading from notification pipe: %s\n", strerror(error));
-   }
-   assert(result == 1 && c == 'e');
-   pthrd_printf("Cleared notification pipe %d\n", pipe_in);
-}
-
-bool int_notify::createPipe()
-{
-   if (pipe_in != -1 || pipe_out != -1)
-      return true;
-
-   int fds[2];
-   int result = pipe(fds);
-   if (result == -1) {
-      int error = errno;
-      setLastError(err_internal, "Error creating notification pipe\n");
-      perr_printf("Error creating notification pipe: %s\n", strerror(error));
-      return false;
-   }
-   assert(fds[0] != -1);
-   assert(fds[1] != -1);
-
-   result = fcntl(fds[0], F_SETFL, O_NONBLOCK);
-   if (result == -1) {
-      int error = errno;
-      setLastError(err_internal, "Error setting properties of notification pipe\n");
-      perr_printf("Error calling fcntl for O_NONBLOCK on %d: %s\n", fds[0], strerror(error));
-      return false;
-   }
-   pipe_in = fds[0];
-   pipe_out = fds[1];
-
-
-   pthrd_printf("Created notification pipe: in = %d, out = %d\n", pipe_in, pipe_out);
-   return true;
-}
-
-unsigned sysv_process::getTargetPageSize() {
-    static unsigned pgSize = 0;
-    if( !pgSize ) pgSize = getpagesize();
-    return pgSize;
-}
-
-bool installed_breakpoint::plat_install(int_process *proc, bool should_save) {
-   pthrd_printf("Platform breakpoint install at %lx in %d\n", 
-                addr, proc->getPid());
-   if (should_save) {
-     switch (proc->getTargetArch())
-     {
-       case Arch_x86_64:
-       case Arch_x86:
-         buffer_size = 1;
-         break;
-       default:
-         assert(0);
-     }
-     assert((unsigned) buffer_size < sizeof(buffer));
-     
-     bool result = proc->readMem(&buffer, addr, buffer_size);
-     if (!result) {
-       pthrd_printf("Error reading from process\n");
-       return result;
-     }
-   }
-   
-   bool result;
-   switch (proc->getTargetArch())
-   {
-      case Arch_x86_64:
-      case Arch_x86: {
-         unsigned char trap_insn = 0xcc;
-         result = proc->writeMem(&trap_insn, addr, 1);
-         break;
-      }
-      default:
-         assert(0);
-   }
-   if (!result) {
-      pthrd_printf("Error writing breakpoint to process\n");
-      return result;
-   }
-
-   return true;
-}
-
-bool iRPCMgr::collectAllocationResult(int_thread *thr, Dyninst::Address &addr, bool &err)
-{
-   switch (thr->llproc()->getTargetArch())
-   {
-      case Arch_x86_64: {
-         Dyninst::MachRegisterVal val = 0;
-         bool result = thr->getRegister(x86_64::rax, val);
-         assert(result);
-         addr = val;
-         break;
-      }
-      case Arch_x86: {
-         Dyninst::MachRegisterVal val = 0;
-         bool result = thr->getRegister(x86::eax, val);
-         assert(result);
-         addr = val;
-         break;
-      }
-      default:
-         assert(0);
-         break;
-   }
-   //TODO: check addr vs. possible mmap return values.
-   err = false;
-   return true;
-}
-
-// For compatibility 
-#ifndef MAP_ANONYMOUS
-#define MAP_ANONYMOUS MAP_ANON
-#endif
-
-bool iRPCMgr::createAllocationSnippet(int_process *proc, Dyninst::Address addr, 
-                                      bool use_addr, unsigned long size, 
-                                      void* &buffer, unsigned long &buffer_size, 
-                                      unsigned long &start_offset)
-{
-   const void *buf_tmp = NULL;
-   unsigned addr_size = 0;
-   unsigned addr_pos = 0;
-   unsigned flags_pos = 0;
-   unsigned size_pos = 0;
-
-   int flags = MAP_ANONYMOUS | MAP_PRIVATE;
-   if (use_addr) 
-      flags |= MAP_FIXED;
-   else
-      addr = 0x0;
-
-   switch (proc->getTargetArch())
-   {
-      case Arch_x86_64:
-         buf_tmp = x86_64_call_mmap;
-         buffer_size = x86_64_call_mmap_size;
-         start_offset = x86_64_mmap_start_position;
-         addr_pos = x86_64_mmap_addr_position;
-         flags_pos = x86_64_mmap_flags_position;
-         size_pos = x86_64_mmap_size_position;
-         addr_size = 8;
-         break;
-      case Arch_x86:
-         buf_tmp = x86_call_mmap;
-         buffer_size = x86_call_mmap_size;
-         start_offset = x86_mmap_start_position;
-         addr_pos = x86_mmap_addr_position;
-         flags_pos = x86_mmap_flags_position;
-         size_pos = x86_mmap_size_position;
-         addr_size = 4;
-         break;
-      default:
-         assert(0);
-   }
-   
-   buffer = malloc(buffer_size);
-   memcpy(buffer, buf_tmp, buffer_size);
-
-   //Assuming endianess of debugger and debugee match.
-   *((unsigned int *) (((char *) buffer)+size_pos)) = size;
-   *((unsigned int *) (((char *) buffer)+flags_pos)) = flags;
-   if (addr_size == 8)
-      *((unsigned long *) (((char *) buffer)+addr_pos)) = addr;
-   else if (addr_size == 4)
-      *((unsigned *) (((char *) buffer)+addr_pos)) = (unsigned) addr;
-   else 
-      assert(0);
-   return true;
-}
-
-bool iRPCMgr::createDeallocationSnippet(int_process *proc, Dyninst::Address addr, 
-                                        unsigned long size, void* &buffer, 
-                                        unsigned long &buffer_size, 
-                                        unsigned long &start_offset)
-{
-   const void *buf_tmp = NULL;
-   unsigned addr_size = 0;
-   unsigned addr_pos = 0;
-   unsigned size_pos = 0;
-
-   switch (proc->getTargetArch())
-   {
-      case Arch_x86_64:
-         buf_tmp = x86_64_call_munmap;
-         buffer_size = x86_64_call_munmap_size;
-         start_offset = x86_64_munmap_start_position;
-         addr_pos = x86_64_munmap_addr_position;
-         size_pos = x86_64_munmap_size_position;
-         addr_size = 8;
-         break;
-      case Arch_x86:
-         buf_tmp = x86_call_munmap;
-         buffer_size = x86_call_munmap_size;
-         start_offset = x86_munmap_start_position;
-         addr_pos = x86_munmap_addr_position;
-         size_pos = x86_munmap_size_position;
-         addr_size = 4;
-         break;
-      default:
-         assert(0);
-   }
-   
-   buffer = malloc(buffer_size);
-   memcpy(buffer, buf_tmp, buffer_size);
-
-   //Assuming endianess of debugger and debugee match.
-   *((unsigned int *) (((char *) buffer)+size_pos)) = size;
-   if (addr_size == 8)
-      *((unsigned long *) (((char *) buffer)+addr_pos)) = addr;
-   else if (addr_size == 4)
-      *((unsigned *) (((char *) buffer)+addr_pos)) = (unsigned) addr;
-   else 
-      assert(0);
-   return true;
-}
-
-Dyninst::Address sysv_process::plat_mallocExecMemory(Dyninst::Address min, unsigned size) {
-    Dyninst::Address result = 0x0;
-    bool found_result = false;
-    unsigned maps_size;
-    map_entries *maps = getVMMaps(getPid(), maps_size);
-    assert(maps); //TODO, Perhaps go to libraries for address map if no /proc/
-    for (unsigned i=0; i<maps_size; i++) {
-        if (!(maps[i].prems & PREMS_EXEC))
-            continue;
-        if (min + size > maps[i].end)
-            continue;
-        if (maps[i].end - maps[i].start < size)
-            continue;
-
-        if (maps[i].start > min)
-            result = maps[i].start;
-        else
-            result = min;
-        found_result = true;
-        break;
-    }
-    assert(found_result);
-    free(maps);
-    return result;
 }

@@ -17,6 +17,7 @@ LDFLAGS     += $(LIBDIR) -lcommon
 
 SRCS = ../src/sysv.C \
        ../src/freebsd.C \
+		 ../src/unix.C \
        ../src/int_thread_db.C \
        ../../common/src/dthread-unix.C
 

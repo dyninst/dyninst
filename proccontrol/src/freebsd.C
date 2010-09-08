@@ -836,28 +836,6 @@ bool freebsd_process::plat_attach() {
 }
 
 bool freebsd_process::plat_forked() {
-    // TODO This needs to be tested
-    return true;
-}
-
-bool freebsd_process::post_forked() {
-    // TODO This needs to be tested
-
-    ProcPool()->condvar()->lock();
-
-    int_thread *thrd = threadPool()->initialThread();
-    //The new process is currently stopped, but should be moved to
-    // a running state when handlers complete.
-    pthrd_printf("Setting state of initial thread after fork in %d\n",
-                 getPid());
-    thrd->setGeneratorState(int_thread::stopped);
-    thrd->setHandlerState(int_thread::stopped);
-    thrd->setInternalState(int_thread::running);
-    thrd->setUserState(int_thread::running);
-
-    ProcPool()->condvar()->broadcast();
-    ProcPool()->condvar()->unlock();
-
     return true;
 }
 

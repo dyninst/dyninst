@@ -15,6 +15,7 @@ LDFLAGS     += $(LIBDIR) -lcommon
 
 SRCS = 	../src/linux.C \
          ../src/sysv.C \
+			../src/unix.C \
 			../../common/src/dthread-unix.C
 
 ifdef LIBELF_INC

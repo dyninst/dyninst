@@ -5,6 +5,8 @@
 #include "proccontrol/src/int_handler.h"
 #include "proccontrol/src/procpool.h"
 #include "proccontrol/src/irpc.h"
+#include "proccontrol/src/response.h"
+#include "proccontrol/src/int_event.h"
 #include "dynutil/h/dyn_regs.h"
 
 using namespace Dyninst;
@@ -35,7 +37,8 @@ std::string Handler::getName() const
    return name;
 }
 
-HandlerPool::HandlerPool()
+HandlerPool::HandlerPool(int_process *p) :
+   proc(p)
 {
 }
 
@@ -95,8 +98,17 @@ struct eh_cmp_func
    bool operator()(const pair<Event::ptr, Handler*> &a,
                    const pair<Event::ptr, Handler*> &b)
    {
+      //Async events go first
+      if (a.first->getEventType().code() == EventType::Async)
+         return true;
+      if (b.first->getEventType().code() == EventType::Async)
+         return false;
+      
+      //Others are run via handler priority
       if (a.second->getPriority() != b.second->getPriority())
          return a.second->getPriority() < b.second->getPriority();
+
+      //Subservient events run latter in handler tie
       if (a.first->subservientTo().lock() == b.first)
          return false;
       if (b.first->subservientTo().lock() == a.first)
@@ -106,11 +118,147 @@ struct eh_cmp_func
    }
 };
 
+Event::ptr HandlerPool::curEvent() const
+{
+   return cur_event;
+}
+
+Event::ptr HandlerPool::getRealParent(Event::ptr ev) const
+{
+   Event::ptr master_ev = ev;
+   for (;;) {
+      Event::ptr parent = master_ev->subservientTo().lock();
+      if (!parent || parent->getEventType().code() == EventType::Async)
+         break;
+      master_ev = parent;
+   }
+   return master_ev;
+}
+
+void HandlerPool::notifyOfPendingAsyncs(const std::set<response::ptr> &asyncs, Event::ptr ev)
+{
+   Event::ptr master_ev = getRealParent(ev);
+      
+   for (set<response::ptr>::iterator i = asyncs.begin(); i != asyncs.end(); i++) {
+      (*i)->setEvent(master_ev);
+   }
+}
+
+void HandlerPool::notifyOfPendingAsyncs(response::ptr async, Event::ptr ev)
+{
+   async->setEvent(getRealParent(ev));
+}
+
+bool HandlerPool::isEventAsyncPostponed(Event::ptr ev) const
+{
+   return (pending_async_events.find(ev) != pending_async_events.end());
+}
+
+bool HandlerPool::hasAsyncEvent() const
+{
+   return !pending_async_events.empty();
+}
+
+void HandlerPool::markEventAsyncPending(Event::ptr ev)
+{
+   set<Event::ptr>::iterator i = pending_async_events.find(ev);
+   if (i != pending_async_events.end()) {
+      pthrd_printf("Async event %s on %d/%d has already been marked, leaving alone.\n",
+                   ev->name().c_str(), ev->getProcess()->llproc()->getPid(), 
+                   ev->getThread()->llthrd()->getLWP());
+      return;
+   }
+   bool was_empty = pending_async_events.empty();  
+   pending_async_events.insert(ev);
+   pthrd_printf("Event %s async marked.  pending_async_size = %d, (was_empty = %s)\n", 
+                ev->name().c_str(),
+                (int) pending_async_events.size(),
+                was_empty ? "true" : "false");
+   for (set<Event::ptr>::iterator j = pending_async_events.begin(); j != pending_async_events.end(); j++) {
+      pthrd_printf("\tEvent %s (%p)\n", (*j)->name().c_str(), (*j).get());
+   }
+
+   if (was_empty) {
+      markProcAsyncPending(this);
+   }
+
+   pthrd_printf("Async event %s on %d/%d, moving process/threads to stopped\n",
+                ev->name().c_str(), ev->getProcess()->llproc()->getPid(), 
+                ev->getThread()->llthrd()->getLWP());
+   switch (ev->getSyncType()) {
+      case Event::unset:
+      case Event::async:
+         break;
+      case Event::sync_thread: {
+         int_thread *thr = ev->getThread()->llthrd();
+         thr->desyncInternalState();
+         //Soundn't trigger block--thread should already be handler stopped
+         thr->intStop(false);
+         break;
+      }
+      case Event::sync_process: {
+         int_threadPool *tp = ev->getProcess()->llproc()->threadPool();
+         tp->desyncInternalState();
+         //Soundn't trigger block--proc should already be handler stopped
+         tp->intStop(false);
+         break;
+      }
+   }
+}
+
+void HandlerPool::clearEventAsync(Event::ptr ev)
+{
+   set<Event::ptr>::iterator i = pending_async_events.find(ev);
+   if (i == pending_async_events.end())
+      return;
+   pthrd_printf("Erasing event %s (%p) from list\n", ev->name().c_str(), ev.get());
+   pending_async_events.erase(i);
+   pthrd_printf("pending_async_size = %d, (is_empty = %s):\n", (int) pending_async_events.size(),
+                pending_async_events.empty() ? "true" : "false");
+   for (set<Event::ptr>::iterator j = pending_async_events.begin(); j != pending_async_events.end(); j++) {
+      pthrd_printf("\tEvent %s (%p)\n", (*j)->name().c_str(), (*j).get());
+   }
+
+   if (pending_async_events.empty()) {
+      clearProcAsyncPending(this);
+   }
+
+   pthrd_printf("Async event %s on %d/%d is complete, restoring\n",
+                ev->name().c_str(), ev->getProcess()->llproc()->getPid(), 
+                ev->getThread()->llthrd()->getLWP());   
+   switch (ev->getSyncType()) {
+      case Event::unset:
+      case Event::async:
+         break;
+      case Event::sync_thread: {
+         int_thread *thr = ev->getThread()->llthrd();
+         thr->restoreInternalState(false);
+         break;
+      }
+      case Event::sync_process: {
+         int_threadPool *tp = ev->getProcess()->llproc()->threadPool();
+         tp->restoreInternalState(false);
+         break;
+      }
+   }
+}
+
+void HandlerPool::addEventToSet(Event::ptr ev, set<Event::ptr> &ev_set) const
+{
+   ev_set.insert(ev);
+   for (vector<Event::ptr>::iterator i = ev->subservient_events.begin(); 
+        i != ev->subservient_events.end(); i++)
+   {
+      addEventToSet(*i, ev_set);
+   }
+}
+
+
 bool HandlerPool::handleEvent(Event::ptr ev)
 {
    EventType etype = ev->getEventType();
    Event::ptr cb_replacement_ev = Event::ptr();
-   
+
    /**
     * An event and its subservient events are a set of events that
     * are processed at the same time.  As an example, on SysV systems
@@ -123,15 +271,10 @@ bool HandlerPool::handleEvent(Event::ptr ev)
     * for all of them.
     **/
    set<Event::ptr> all_events;
-   all_events.insert(ev);      
-   for (vector<Event::ptr>::iterator i = ev->subservient_events.begin();
-        i != ev->subservient_events.end(); i++)
-   {
-      all_events.insert(*i);
-   }
+   addEventToSet(ev, all_events);
 
    typedef set<pair<Event::ptr, Handler *>, eh_cmp_func > ev_hndler_set_t;
-   ev_hndler_set_t events_and_handlers;      
+   ev_hndler_set_t events_and_handlers;
    for (set<Event::ptr>::iterator i = all_events.begin(); i != all_events.end(); i++)
    {
       Event::ptr ev = *i;
@@ -145,6 +288,11 @@ bool HandlerPool::handleEvent(Event::ptr ev)
       for (HandlerSet_t::iterator k = hset->begin(); k != hset->end(); k++)
       {
          Handler *hnd = *k;
+         if (ev->handled_by.find(hnd) != ev->handled_by.end()) {
+            pthrd_printf("Event %s has already been handled by %s\n",
+                         ev->name().c_str(), hnd->getName().c_str());
+            continue;
+         }
          events_and_handlers.insert(pair<Event::ptr, Handler*>(ev, hnd));
       }
    }
@@ -155,25 +303,79 @@ bool HandlerPool::handleEvent(Event::ptr ev)
     * Now it's finally time to run the handlers.
     **/
    bool handled_something = false;
+   bool had_error = true;
+
    ev_hndler_set_t::iterator i;
    for (i = events_and_handlers.begin(); i != events_and_handlers.end(); i++)
    {
       handled_something = true;
       Event::ptr event = i->first;
       Handler *handler = i->second;
-      EventType etype = ev->getEventType();
+      EventType etype = event->getEventType();
+
+      if (handler->getPriority() != Handler::CallbackPriority) {
+         //We don't want the callback handler getting async events
+         // from user operations in the callback.
+         cur_event = getRealParent(event);
+      }
 
       pthrd_printf("Handling event '%s' with handler '%s'\n", etype.name().c_str(), 
                    handler->getName().c_str());
-      
-      bool result = handler->handleEvent(event);
-      if (!result) {
+      Handler::handler_ret_t result = handler->handleEvent(event);
+
+      cur_event = Event::ptr();
+      if (result == Handler::ret_async) {
+         pthrd_printf("Handler %s did not complete due to pending asyncs\n",
+                      handler->getName().c_str());
+         markEventAsyncPending(event);
+         return true;
+      }
+      event->handled_by.insert(handler);
+      if (result == Handler::ret_error) {
          pthrd_printf("Error handling event %s with %s\n", etype.name().c_str(), 
                       handler->getName().c_str());
-         return false;
+         had_error = true;
       }
    }
-   return handled_something;
+
+   for (set<Event::ptr>::iterator i = all_events.begin(); i != all_events.end(); i++)
+   {
+      Event::ptr event = *i;
+      clearEventAsync(event); //nop if ev wasn't async
+   }
+
+   return !had_error && handled_something;
+}
+
+std::set<HandlerPool *> HandlerPool::procsAsyncPending;
+Mutex HandlerPool::asyncPendingLock;
+
+void HandlerPool::markProcAsyncPending(HandlerPool *p)
+{
+   asyncPendingLock.lock();
+   assert(procsAsyncPending.find(p) == procsAsyncPending.end());
+   procsAsyncPending.insert(p);
+   asyncPendingLock.unlock();
+}
+
+void HandlerPool::clearProcAsyncPending(HandlerPool *p)
+{
+   asyncPendingLock.lock();
+   std::set<HandlerPool *>::iterator i = procsAsyncPending.find(p);
+   assert(i != procsAsyncPending.end());
+   procsAsyncPending.erase(i);
+   asyncPendingLock.unlock();
+}
+
+bool HandlerPool::hasProcAsyncPending()
+{
+   asyncPendingLock.lock();
+   bool result = !procsAsyncPending.empty();
+   if (result) {
+      pthrd_printf("Pending async proc: %d\n", (*procsAsyncPending.begin())->proc->getPid());
+   }
+   asyncPendingLock.unlock();
+   return result;
 }
 
 HandleBootstrap::HandleBootstrap() :
@@ -190,14 +392,14 @@ void HandleBootstrap::getEventTypesHandled(std::vector<EventType> &etypes)
    etypes.push_back(EventType(EventType::None, EventType::Bootstrap));
 }
 
-bool HandleBootstrap::handleEvent(Event::ptr ev)
+Handler::handler_ret_t HandleBootstrap::handleEvent(Event::ptr ev)
 {
    int_process *p = ev->getProcess()->llproc();
    assert(p);
    pthrd_printf("Handling bootstrap for %d\n", p->getPid());
 
    if (p->getState() != int_process::neonatal_intermediate)
-      return true;
+      return ret_success;
    
    bool all_bootstrapped = true;
    int_threadPool *tp = ev->getProcess()->llproc()->threadPool();
@@ -215,7 +417,7 @@ bool HandleBootstrap::handleEvent(Event::ptr ev)
       p->setState(int_process::running);
    }
 
-   return true;
+   return ret_success;
 }
 
 HandleSignal::HandleSignal() :
@@ -232,14 +434,14 @@ void HandleSignal::getEventTypesHandled(std::vector<EventType> &etypes)
    etypes.push_back(EventType(EventType::None, EventType::Signal));
 }
 
-bool HandleSignal::handleEvent(Event::ptr ev)
+Handler::handler_ret_t HandleSignal::handleEvent(Event::ptr ev)
 {
    int_thread *thrd = ev->getThread()->llthrd();
    
    EventSignal *sigev = static_cast<EventSignal *>(ev.get());
    thrd->setContSignal(sigev->getSignal());
 
-   return true;
+   return ret_success;
 }
 
 HandlePostExit::HandlePostExit() :
@@ -256,7 +458,7 @@ void HandlePostExit::getEventTypesHandled(std::vector<EventType> &etypes)
    etypes.push_back(EventType(EventType::Post, EventType::Exit));
 }
 
-bool HandlePostExit::handleEvent(Event::ptr ev)
+Handler::handler_ret_t HandlePostExit::handleEvent(Event::ptr ev)
 {
    int_process *proc = ev->getProcess()->llproc();
    int_thread *thrd = ev->getThread()->llthrd();
@@ -281,7 +483,7 @@ bool HandlePostExit::handleEvent(Event::ptr ev)
       delete proc;
    }
 
-   return true;
+   return ret_success;
 }
 
 HandleCrash::HandleCrash() :
@@ -298,7 +500,7 @@ void HandleCrash::getEventTypesHandled(std::vector<EventType> &etypes)
    etypes.push_back(EventType(EventType::None, EventType::Crash));
 }
 
-bool HandleCrash::handleEvent(Event::ptr ev)
+Handler::handler_ret_t HandleCrash::handleEvent(Event::ptr ev)
 {
    int_process *proc = ev->getProcess()->llproc();
    int_thread *thrd = ev->getThread()->llthrd();
@@ -330,7 +532,7 @@ bool HandleCrash::handleEvent(Event::ptr ev)
       delete proc;
    }
 
-   return true;
+   return ret_success;
 }
 
 HandlePreExit::HandlePreExit() :
@@ -347,7 +549,7 @@ void HandlePreExit::getEventTypesHandled(std::vector<EventType> &etypes)
    etypes.push_back(EventType(EventType::Pre, EventType::Exit));
 }
 
-bool HandlePreExit::handleEvent(Event::ptr ev)
+Handler::handler_ret_t HandlePreExit::handleEvent(Event::ptr ev)
 {
    int_process *proc = ev->getProcess()->llproc();
    int_thread *thread = ev->getThread()->llthrd();
@@ -366,7 +568,7 @@ bool HandlePreExit::handleEvent(Event::ptr ev)
       }
    }
 
-   return true;
+   return ret_success;
 }
 
 HandleThreadCreate::HandleThreadCreate() :
@@ -383,7 +585,7 @@ void HandleThreadCreate::getEventTypesHandled(std::vector<EventType> &etypes)
    etypes.push_back(EventType(EventType::None, EventType::ThreadCreate));
 }
 
-bool HandleThreadCreate::handleEvent(Event::ptr ev)
+Handler::handler_ret_t HandleThreadCreate::handleEvent(Event::ptr ev)
 {
    int_process *proc = ev->getProcess()->llproc();
    int_thread *thrd = ev->getThread()->llthrd();
@@ -405,7 +607,7 @@ bool HandleThreadCreate::handleEvent(Event::ptr ev)
    ProcPool()->condvar()->signal();
    ProcPool()->condvar()->unlock();
 
-   return true;
+   return ret_success;
 }
 
 HandleThreadDestroy::HandleThreadDestroy() :
@@ -422,13 +624,13 @@ void HandleThreadDestroy::getEventTypesHandled(std::vector<EventType> &etypes)
    etypes.push_back(EventType(EventType::Any, EventType::ThreadDestroy));
 }
 
-bool HandleThreadDestroy::handleEvent(Event::ptr ev)
+Handler::handler_ret_t HandleThreadDestroy::handleEvent(Event::ptr ev)
 {
    int_thread *thrd = ev->getThread()->llthrd();
    int_process *proc = ev->getProcess()->llproc();
    if (ev->getEventType().time() == EventType::Pre) {
       pthrd_printf("Handling pre-thread destroy for %d\n", thrd->getLWP());
-      return true;
+      return ret_success;
    }
 
    pthrd_printf("Handling post-thread destroy for %d\n", thrd->getLWP());
@@ -451,7 +653,7 @@ bool HandleThreadDestroy::handleEvent(Event::ptr ev)
 
    ProcPool()->condvar()->signal();
    ProcPool()->condvar()->unlock();
-   return true;
+   return ret_success;
 }
 
 HandleThreadStop::HandleThreadStop() :
@@ -468,7 +670,7 @@ void HandleThreadStop::getEventTypesHandled(std::vector<EventType> &etypes)
    etypes.push_back(EventType(EventType::None, EventType::Stop));
 }
 
-bool HandleThreadStop::handleEvent(Event::ptr ev)
+Handler::handler_ret_t HandleThreadStop::handleEvent(Event::ptr ev)
 {
    int_thread *thrd = ev->getThread()->llthrd();
    int_process *proc = ev->getProcess()->llproc();
@@ -483,7 +685,7 @@ bool HandleThreadStop::handleEvent(Event::ptr ev)
       thrd->setPendingUserStop(false);
    }
 
-   return true;
+   return ret_success;
 }
 
 HandlePostFork::HandlePostFork() :
@@ -500,7 +702,7 @@ void HandlePostFork::getEventTypesHandled(std::vector<EventType> &etypes)
    etypes.push_back(EventType(EventType::Post, EventType::Fork));
 }
 
-bool HandlePostFork::handleEvent(Event::ptr ev)
+Handler::handler_ret_t HandlePostFork::handleEvent(Event::ptr ev)
 {
    EventFork *efork = static_cast<EventFork *>(ev.get());
    Dyninst::PID child_pid = efork->getPID();
@@ -510,7 +712,7 @@ bool HandlePostFork::handleEvent(Event::ptr ev)
 
    int_process *child_proc = int_process::createProcess(child_pid, parent_proc);
    assert(child_proc);
-   return child_proc->forked();
+   return child_proc->forked() ? ret_success : ret_error;
 }
 
 HandlePostExec::HandlePostExec() :
@@ -527,7 +729,7 @@ void HandlePostExec::getEventTypesHandled(std::vector<EventType> &etypes)
    etypes.push_back(EventType(EventType::Post, EventType::Exec));
 }
 
-bool HandlePostExec::handleEvent(Event::ptr ev)
+Handler::handler_ret_t HandlePostExec::handleEvent(Event::ptr ev)
 {
    EventExec *eexec = static_cast<EventExec *>(ev.get());
    int_process *proc = ev->getProcess()->llproc();
@@ -536,11 +738,11 @@ bool HandlePostExec::handleEvent(Event::ptr ev)
 
    bool result = proc->execed();
    if (!result) 
-      return false;
+      return ret_error;
    
    eexec->setExecPath(proc->getExecutable());
    eexec->setThread(proc->threadPool()->initialThread()->thread());
-   return true;
+   return ret_success;
 }
 
 HandleSingleStep::HandleSingleStep() :
@@ -557,14 +759,14 @@ void HandleSingleStep::getEventTypesHandled(vector<EventType> &etypes)
    etypes.push_back(EventType(EventType::None, EventType::SingleStep));
 }
 
-bool HandleSingleStep::handleEvent(Event::ptr ev)
+Handler::handler_ret_t HandleSingleStep::handleEvent(Event::ptr ev)
 {
    pthrd_printf("Handling event single step on %d/%d\n", 
                 ev->getProcess()->llproc()->getPid(),
                 ev->getThread()->llthrd()->getLWP());
    ev->getThread()->llthrd()->setUserState(int_thread::stopped);
    ev->getThread()->llthrd()->setInternalState(int_thread::stopped);
-   return true;
+   return ret_success;
 }
 
 HandleBreakpoint::HandleBreakpoint() :
@@ -581,7 +783,7 @@ void HandleBreakpoint::getEventTypesHandled(vector<EventType> &etypes)
    etypes.push_back(EventType(EventType::None, EventType::Breakpoint));
 }
 
-bool HandleBreakpoint::handleEvent(Event::ptr ev)
+Handler::handler_ret_t HandleBreakpoint::handleEvent(Event::ptr ev)
 {
    pthrd_printf("Handling breakpoint\n");
    int_process *proc = ev->getProcess()->llproc();
@@ -599,7 +801,7 @@ bool HandleBreakpoint::handleEvent(Event::ptr ev)
       }
    }
 
-   return true;
+   return ret_success;
 }
 
 HandlePostBreakpoint::HandlePostBreakpoint() :
@@ -616,7 +818,7 @@ void HandlePostBreakpoint::getEventTypesHandled(vector<EventType> &etypes)
    etypes.push_back(EventType(EventType::None, EventType::Breakpoint));
 }
 
-bool HandlePostBreakpoint::handleEvent(Event::ptr ev)
+Handler::handler_ret_t HandlePostBreakpoint::handleEvent(Event::ptr ev)
 {
    int_process *proc = ev->getProcess()->llproc();
    int_thread *thrd = ev->getThread()->llthrd();
@@ -633,29 +835,71 @@ bool HandlePostBreakpoint::handleEvent(Event::ptr ev)
                 proc->getPid());
    int_threadPool *pool = proc->threadPool();
    for (int_threadPool::iterator i = pool->begin(); i != pool->end(); i++) {
-      if ((*i)->getInternalState() == int_thread::running)
+      if ((*i)->getInternalState() == int_thread::running && (*i)->getHandlerState() == int_thread::stopped)
          (*i)->setInternalState(int_thread::stopped);
    }
 
    EventBreakpoint *evbp = static_cast<EventBreakpoint *>(ev.get());
    installed_breakpoint *bp = evbp->installedbp();
+   int_eventBreakpoint *ibp = evbp->getInternal();
 
-   pthrd_printf("Setting breakpoint thread to single step mode\n");
-   thrd->setSingleStepMode(true);
-   thrd->markClearingBreakpoint(bp);
+   if (!ibp->set_singlestep) {
+      pthrd_printf("Setting breakpoint thread to single step mode\n");
+      thrd->setSingleStepMode(true);
+      thrd->markClearingBreakpoint(bp);
+      ibp->set_singlestep = true;
+   }
 
-   pthrd_printf("Removing breakpoint from memory\n");
-   bool result = bp->suspend(proc);
-   assert(result);
+   if (!ibp->memwrite_bp_suspend) {
+      pthrd_printf("Removing breakpoint from memory\n");
+      ibp->memwrite_bp_suspend = result_response::createResultResponse();
+      bool result = bp->suspend(proc, ibp->memwrite_bp_suspend);
+      assert(result);
+   }
 
-   pthrd_printf("Restoring PC to original location location at %lx\n", bp->getAddr());
-   MachRegister pcreg = MachRegister::getPC(proc->getTargetArch());
-   result = thrd->setRegister(pcreg, (MachRegisterVal) bp->getAddr());
-   assert(result);
+   if (!ibp->pc_regset) 
+   {
+      ibp->pc_regset = result_response::createResultResponse();
+      pthrd_printf("Restoring PC to original location location at %lx\n",
+                   bp->getAddr());
+      MachRegister pcreg = MachRegister::getPC(proc->getTargetArch());
+      bool result = thrd->setRegister(pcreg, (MachRegisterVal) bp->getAddr(), 
+                                      ibp->pc_regset);
+      assert(result);
+   }
+
+   bool needs_async_ret = false;
+   assert(ibp->memwrite_bp_suspend);
+   if (ibp->memwrite_bp_suspend->isPosted() && !ibp->memwrite_bp_suspend->isReady()) {
+      pthrd_printf("Suspending breakpoint handling for memory write\n");
+      proc->handlerPool()->notifyOfPendingAsyncs(ibp->memwrite_bp_suspend, ev);
+      needs_async_ret = true;
+   }
+
+   assert(ibp->pc_regset);
+   if (ibp->pc_regset->isPosted() && !ibp->pc_regset->isReady()) {
+      pthrd_printf("Suspending breakpoint handling for pc set\n");
+      proc->handlerPool()->notifyOfPendingAsyncs(ibp->pc_regset, ev);
+      needs_async_ret = true;      
+   }
+
+   if (needs_async_ret) {
+      return ret_async;
+   }
+
+   if (ibp->memwrite_bp_suspend->hasError()) {
+      pthrd_printf("Error suspending breakpoint\n");
+      return ret_error;
+   }
+
+   if (ibp->pc_regset->hasError()) {
+      pthrd_printf("Error setting PC register\n");
+      return ret_error;
+   }
 
    thrd->setInternalState(int_thread::running);
 
-   return true;
+   return ret_success;
 }
 
 HandleBreakpointClear::HandleBreakpointClear() :
@@ -672,16 +916,38 @@ void HandleBreakpointClear::getEventTypesHandled(vector<EventType> &etypes)
    etypes.push_back(EventType(EventType::None, EventType::BreakpointClear));
 }
 
-bool HandleBreakpointClear::handleEvent(Event::ptr ev)
+Handler::handler_ret_t HandleBreakpointClear::handleEvent(Event::ptr ev)
 {
    int_process *proc = ev->getProcess()->llproc();
    int_thread *thrd = ev->getThread()->llthrd();
    EventBreakpointClear *bpc = static_cast<EventBreakpointClear *>(ev.get());
    installed_breakpoint *bp = bpc->bp();
+   int_eventBreakpointClear *int_bpc = bpc->getInternal();
 
    pthrd_printf("Resuming breakpoint at %lx\n", bp->getAddr());
-   bp->resume(proc);
-  
+   bool result;
+
+   if (!int_bpc->memwrite_bp_resume) {
+      int_bpc->memwrite_bp_resume = result_response::createResultResponse();
+      result = bp->resume(proc, int_bpc->memwrite_bp_resume);
+      if (!result) {
+         pthrd_printf("Error resuming breakpoint in handler\n");
+         return ret_error;
+      }
+   }
+
+   assert(int_bpc->memwrite_bp_resume);
+   if (int_bpc->memwrite_bp_resume->isPosted() && !int_bpc->memwrite_bp_resume->isReady()) {
+      pthrd_printf("Postponing breakpoint clear while waiting for memwrite\n");
+      proc->handlerPool()->notifyOfPendingAsyncs(int_bpc->memwrite_bp_resume, ev);
+      return ret_async;
+   }
+
+   if (int_bpc->memwrite_bp_resume->hasError()) {
+      pthrd_printf("Error resuming breakpoint\n");
+      return ret_error;
+   }
+
    pthrd_printf("Restoring process state\n");
    thrd->setSingleStepMode(false);
    thrd->markClearingBreakpoint(NULL);
@@ -689,7 +955,7 @@ bool HandleBreakpointClear::handleEvent(Event::ptr ev)
 
    proc->threadPool()->restoreInternalState(false);
 
-   return true;
+   return ret_success;
 }
 
 int HandlePostBreakpoint::getPriority() const
@@ -706,21 +972,26 @@ HandleLibrary::~HandleLibrary()
 {
 }
 
-bool HandleLibrary::handleEvent(Event::ptr ev)
+Handler::handler_ret_t HandleLibrary::handleEvent(Event::ptr ev)
 {
    pthrd_printf("Handling library load/unload\n");
    EventLibrary *lev = static_cast<EventLibrary *>(ev.get());
 
    int_process *proc = ev->getProcess()->llproc();
    set<int_library *> ll_added, ll_rmd;
-   bool result = proc->refresh_libraries(ll_added, ll_rmd);
+   set<response::ptr> async_responses;
+   bool result = proc->refresh_libraries(ll_added, ll_rmd, async_responses);
+   if (!result && !async_responses.empty()) {
+      proc->handlerPool()->notifyOfPendingAsyncs(async_responses, ev);
+      return ret_async;
+   }
    if (!result) {
       pthrd_printf("Failed to refresh library list\n");
-      return false;
+      return ret_error;
    }
    if (ll_added.empty() && ll_rmd.empty()) {
       pthrd_printf("Could not find actual changes in lib state\n");
-      return true;
+      return ret_success;
    }
 
    set<Library::ptr> added, rmd;
@@ -731,12 +1002,59 @@ bool HandleLibrary::handleEvent(Event::ptr ev)
       rmd.insert((*i)->getUpPtr());
    }
    lev->setLibs(added, rmd);
-   return true;
+   return ret_success;
 }
 
 void HandleLibrary::getEventTypesHandled(std::vector<EventType> &etypes)
 {
    etypes.push_back(EventType(EventType::None, EventType::Library));
+}
+
+HandleRPCInternal::HandleRPCInternal() :
+   Handler("RPC Internal")
+{
+}
+
+HandleRPCInternal::~HandleRPCInternal()
+{
+}
+   
+Handler::handler_ret_t HandleRPCInternal::handleEvent(Event::ptr)
+{
+   return ret_success;
+}
+
+void HandleRPCInternal::getEventTypesHandled(std::vector<EventType> &etypes)
+{
+   etypes.push_back(EventType(EventType::None, EventType::RPCInternal));
+}
+
+HandleAsync::HandleAsync() :
+   Handler("Async")
+{
+}
+
+HandleAsync::~HandleAsync()
+{
+}
+   
+Handler::handler_ret_t HandleAsync::handleEvent(Event::ptr ev)
+{
+   EventAsync::ptr eAsync = ev->getEventAsync();
+   response::ptr resp = eAsync->getInternal()->getResponse();
+   pthrd_printf("Handling Async event for %s on %d/%d\n", resp->name().c_str(),
+                eAsync->getProcess()->llproc()->getPid(),
+                eAsync->getThread()->llthrd()->getLWP());
+
+   assert(eAsync->getProcess()->llproc()->plat_needsAsyncIO());
+   resp->markReady();
+   resp->setEvent(Event::ptr());
+   return ret_success;
+}
+
+void HandleAsync::getEventTypesHandled(std::vector<EventType> &etypes)
+{
+   etypes.push_back(EventType(EventType::None, EventType::Async));
 }
 
 HandleCallbacks::HandleCallbacks() : 
@@ -754,7 +1072,7 @@ HandleCallbacks *HandleCallbacks::getCB()
    if (!cb) {
       cb = new HandleCallbacks();
       assert(cb);
-      HandlerPool *hp = createDefaultHandlerPool();
+      HandlerPool *hp = createDefaultHandlerPool(NULL);
       delete hp;
    }
    return cb;
@@ -780,13 +1098,13 @@ bool HandleCallbacks::requiresCB(Event::const_ptr ev)
    return hasCBs(ev) && !ev->suppressCB();
 }
 
-bool HandleCallbacks::handleEvent(Event::ptr ev)
+Handler::handler_ret_t HandleCallbacks::handleEvent(Event::ptr ev)
 {
    EventType evtype = ev->getEventType();
    std::map<EventType, std::set<Process::cb_func_t>, eventtype_cmp>::iterator i = cbfuncs.find(evtype);
    if (i == cbfuncs.end()) {
       pthrd_printf("No callback registered for event type '%s'\n", ev->name().c_str());
-      return true;
+      return ret_success;
    }
    int_process *proc = ev->getProcess()->llproc();
    if (proc &&
@@ -794,11 +1112,11 @@ bool HandleCallbacks::handleEvent(Event::ptr ev)
         proc->getState() == int_process::neonatal_intermediate))
    {
       pthrd_printf("No callback for neonatal process %d\n", proc->getPid());
-      return true;
+      return ret_success;
    }
    const std::set<Process::cb_func_t> &cbs = i->second;
 
-   return deliverCallback(ev, cbs);
+   return deliverCallback(ev, cbs) ? ret_success : ret_error;
 }
 
 static const char *action_str(Process::cb_action_t action)
@@ -817,7 +1135,6 @@ static const char *action_str(Process::cb_action_t action)
       default:
          return "cbInvalid";
    }
-
    return NULL;
 }
 
@@ -1080,7 +1397,7 @@ bool HandleCallbacks::removeCallback(Process::cb_func_t func)
    return true;
 }
 
-HandlerPool *createDefaultHandlerPool()
+HandlerPool *createDefaultHandlerPool(int_process *p)
 {
    static bool initialized = false;
    static HandleBootstrap *hbootstrap = NULL;
@@ -1098,6 +1415,8 @@ HandlerPool *createDefaultHandlerPool()
    static HandleLibrary *hlibrary = NULL;
    static HandlePostFork *hpostfork = NULL;
    static HandlePostExec *hpostexec = NULL;
+   static HandleRPCInternal *hrpcinternal = NULL;
+   static HandleAsync *hasync = NULL;
    static iRPCHandler *hrpc = NULL;
    if (!initialized) {
       hbootstrap = new HandleBootstrap();
@@ -1116,9 +1435,11 @@ HandlerPool *createDefaultHandlerPool()
       hlibrary = new HandleLibrary();
       hpostfork = new HandlePostFork();
       hpostexec = new HandlePostExec();
+      hasync = new HandleAsync();
+      hrpcinternal = new HandleRPCInternal();
       initialized = true;
    }
-   HandlerPool *hpool = new HandlerPool();
+   HandlerPool *hpool = new HandlerPool(p);
    hpool->addHandler(hbootstrap);
    hpool->addHandler(hsignal);
    hpool->addHandler(hpostexit);
@@ -1135,6 +1456,8 @@ HandlerPool *createDefaultHandlerPool()
    hpool->addHandler(hlibrary);
    hpool->addHandler(hpostfork);
    hpool->addHandler(hpostexec);
+   hpool->addHandler(hrpcinternal);
+   hpool->addHandler(hasync);
    plat_createDefaultHandlerPool(hpool);
    return hpool;
 }
