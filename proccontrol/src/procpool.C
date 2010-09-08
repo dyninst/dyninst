@@ -43,6 +43,13 @@ void ProcessPool::rmProcess(int_process *proc)
    std::map<Dyninst::PID, int_process *>::iterator i = procs.find(proc->getPid());
    assert(i != procs.end());
    procs.erase(i);
+
+   int_threadPool *tpool = proc->threadPool();
+   if (!tpool)
+      return;
+   for (int_threadPool::iterator i = tpool->begin(); i != tpool->end(); i++) {
+      rmThread(*i);
+   }
 }
 
 bool ProcessPool::for_each(ifunc f, void *data)

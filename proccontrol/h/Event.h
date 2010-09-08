@@ -73,6 +73,7 @@ class Event : public dyn_detail::boost::enable_shared_from_this<Event>
    void setProcess(Process::const_ptr p);
    void setSyncType(SyncType t);
 
+   void setSuppressCB(bool b);
    virtual bool suppressCB() const;
    virtual bool triggersCB() const;
    virtual bool canFastHandle() const;
@@ -135,6 +136,7 @@ class Event : public dyn_detail::boost::enable_shared_from_this<Event>
    SyncType stype;
    std::vector<Event::ptr> subservient_events;
    Event::weak_ptr master_event;
+   bool suppress_cb;
 };
 
 class EventTerminate : public Event

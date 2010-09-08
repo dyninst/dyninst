@@ -271,14 +271,13 @@ bool HandlePostExit::handleEvent(Event::ptr ev)
 
    proc->setState(int_process::exited);
    ProcPool()->rmProcess(proc);
-   ProcPool()->rmThread(thrd);
 
    ProcPool()->condvar()->signal();
    ProcPool()->condvar()->unlock();
 
    if (int_process::in_waitHandleProc == proc) {
       pthrd_printf("Postponing delete due to being in waitAndHandleForProc\n");
-   }else{
+   } else {
       delete proc;
    }
 
@@ -308,7 +307,14 @@ bool HandleCrash::handleEvent(Event::ptr ev)
    pthrd_printf("Handling crash for process %d on thread %d\n",
                 proc->getPid(), thrd->getLWP());
    EventCrash *event = static_cast<EventCrash *>(ev.get());
-   proc->setCrashSignal(event->getTermSignal());
+
+   if (proc->wasForcedTerminated()) {
+      pthrd_printf("Crash was due to process::terminate, not reporting\n");
+      event->setSuppressCB(true);
+   }
+   else {
+      proc->setCrashSignal(event->getTermSignal());
+   }
    
    ProcPool()->condvar()->lock();
 
@@ -318,7 +324,11 @@ bool HandleCrash::handleEvent(Event::ptr ev)
    ProcPool()->condvar()->signal();
    ProcPool()->condvar()->unlock();
 
-   delete proc;
+   if (int_process::in_waitHandleProc == proc) {
+      pthrd_printf("Postponing delete due to being in waitAndHandleForProc\n");
+   } else {
+      delete proc;
+   }
 
    return true;
 }
@@ -339,9 +349,22 @@ void HandlePreExit::getEventTypesHandled(std::vector<EventType> &etypes)
 
 bool HandlePreExit::handleEvent(Event::ptr ev)
 {
+   int_process *proc = ev->getProcess()->llproc();
+   int_thread *thread = ev->getThread()->llthrd();
    pthrd_printf("Handling pre-exit for process %d on thread %d\n",
-                ev->getProcess()->llproc()->getPid(), 
-                ev->getThread()->llthrd()->getLWP());
+                proc->getPid(), thread->getLWP());
+
+   if (proc->wasForcedTerminated()) {
+      //Linux sometimes throws an extraneous exit after
+      // calling ptrace(PTRACE_KILL, ...).  It's not a real exit
+      pthrd_printf("Proc pre-exit was due to process::terminate, not reporting\n");
+      ev->setSuppressCB(true);
+      if (thread->getInternalState() == int_thread::stopped)
+      {
+         thread->desyncInternalState();
+         thread->setInternalState(int_thread::running);
+      }
+   }
 
    return true;
 }
@@ -410,6 +433,13 @@ bool HandleThreadDestroy::handleEvent(Event::ptr ev)
 
    pthrd_printf("Handling post-thread destroy for %d\n", thrd->getLWP());
    ProcPool()->condvar()->lock();
+
+   if (proc->wasForcedTerminated()) {
+      //Linux sometimes throws an extraneous thread terminate after
+      // calling ptrace(PTRACE_KILL, ...).  It's not a real thread terminate.
+      pthrd_printf("Thread terminate was due to process::terminate, not reporting\n");
+      ev->setSuppressCB(true);
+   }
 
    thrd->setHandlerState(int_thread::exited);
    thrd->setInternalState(int_thread::exited);
@@ -785,7 +815,7 @@ static const char *action_str(Process::cb_action_t action)
       case Process::cbDefault:
          return "cbDefault";
       default:
-         assert(0);
+         return "cbInvalid";
    }
 
    return NULL;

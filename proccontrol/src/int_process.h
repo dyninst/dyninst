@@ -132,6 +132,7 @@ class int_process
    void setCrashSignal(int s);
    bool getExitCode(int &c);
    bool getCrashSignal(int &s);
+   bool wasForcedTerminated() const;
 
    virtual bool plat_individualRegAccess() = 0;
 
@@ -193,6 +194,7 @@ class int_process
    int crashSignal;
    bool hasExitCode;
    bool forceGenerator;
+   bool forcedTermination;
    int exitCode;
    static bool in_callback;
    mem_state::ptr mem;
