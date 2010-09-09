@@ -129,7 +129,7 @@ static void threadCreateCB(BPatch_process * proc, BPatch_thread *thr)
   assert(thr);  
   if (debugPrint)
      dprintf("%s[%d]:  thread %lu start event for pid %d\n", __FILE__, __LINE__,
-               thr->getTid(), thr->getPid());
+               thr->getTid(), proc->getPid());
   test3_threadCreateCounter++;
   callback_tids.push_back(thr->getTid());
   if (thr->isDeadOnArrival()) {
@@ -180,14 +180,14 @@ test_results_t test_thread_3_Mutator::executeTest() {
             __FILE__, __LINE__, TESTNO, active_threads);
     sleep_ms(SLEEP_INTERVAL/*ms*/);
     timeout += SLEEP_INTERVAL;
-    if (appThread->isTerminated()) {
+    if (appProc->isTerminated()) {
        dprintf("%s[%d]:  BAD NEWS:  somehow the process died\n", __FILE__, __LINE__);
        err = 1;
        break;
     }
     bpatch->pollForStatusChange();
-    if (appThread->isStopped()) {
-       appThread->continueExecution();
+    if (appProc->isStopped()) {
+        appProc->continueExecution();
     }
     appProc->getThreads(threads);
     active_threads = threads.size();
@@ -205,7 +205,7 @@ test_results_t test_thread_3_Mutator::executeTest() {
   dprintf("%s[%d]: ending test %d, num active threads = %d\n",
             __FILE__, __LINE__, TESTNO, active_threads);
   dprintf("%s[%d]:  stop execution for test %d\n", __FILE__, __LINE__, TESTNO);
-  appThread->stopExecution();
+  appProc->stopExecution();
 
   //   read all tids from the mutatee and verify that we got them all
   unsigned long mutatee_tids[TEST3_THREADS];
@@ -253,10 +253,10 @@ test_results_t test_thread_3_Mutator::executeTest() {
 
   if (!err)  {
     PASS_MES(TESTNAME, TESTDESC);
-    appThread->getProcess()->terminateExecution();
+    appProc->terminateExecution();
     return PASSED;
   }
-  appThread->getProcess()->terminateExecution();
+  appProc->terminateExecution();
   return FAILED;
 }
 

@@ -156,7 +156,8 @@ mutatee('symtab_group_test', [
 	'test_symtab_ser_funcs_mutatee.c',
 	'test_ser_anno_mutatee.c',
 	'test_type_info_mutatee.c',
-   'test_anno_basic_types_mutatee.c'
+        'test_anno_basic_types_mutatee.c',
+        'test_add_symbols_mutatee.c'
    ]).
 compiler_for_mutatee('symtab_group_test', Compiler) :-
     comp_lang(Compiler, 'c').
@@ -423,6 +424,22 @@ compiler_for_mutatee('test_snip_remove', Compiler) :-
 test_runmode('test_snip_remove', 'dynamic').
 test_start_state('test_snip_remove', 'stopped').
 tests_module('test_snip_remove', 'dyninst').
+
+% amd64_7_arg_call
+test('amd64_7_arg_call', 'amd64_7_arg_call', 'amd64_7_arg_call').
+test_description('amd64_7_arg_call', 'AMD64: verify that we can make calls using the stack and GPRs for parameter passing.').
+    test_platform('amd64_7_arg_call', Platform) :-
+    platform(Arch, _, _, Platform),
+    member(Arch, ['x86_64']).
+groupable_test('amd64_7_arg_call').
+mutator('amd64_7_arg_call', ['amd64_7_arg_call.C']).
+mutatee('amd64_7_arg_call', ['amd64_7_arg_call_mutatee.c']).
+compiler_for_mutatee('amd64_7_arg_call', Compiler) :-
+    comp_lang(Compiler, 'c').
+test_runmode('amd64_7_arg_call', 'staticdynamic').
+test_start_state('amd64_7_arg_call', 'stopped').
+tests_module('amd64_7_arg_call', 'dyninst').
+
 
 test('init_fini_callback', 'init_fini_callback', 'init_fini_callback').
 test_description('init_fini_callback', 'Adds callbacks for rewritten module on load/unload/entry/exit.').
@@ -830,6 +847,7 @@ test_start_state('test2_13', 'stopped').
 groupable_test('test2_13').
 tests_module('test2_13', 'dyninst').
 
+% test2_14 used getThreads(), which has been deprecated forever and is now gone.
 test('test2_14', 'test2_14', 'test2_14').
 test_runs_everywhere('test2_14').
 mutator('test2_14', ['test2_14.C']).
@@ -2228,6 +2246,16 @@ test_start_state('test_lookup_var', 'stopped').
 tests_module('test_lookup_var', 'symtab').
 % test_serializable('test_lookup_var').
 
+test('test_add_symbols', 'test_add_symbols', 'symtab_group_test').
+test_description('test_add_symbols', 'Use SymtabAPI to add symbols to a file').
+groupable_test('test_add_symbols').
+mutator('test_add_symbols', ['test_add_symbols.C']).
+test_runmode('test_add_symbols', 'createProcess').
+test_start_state('test_add_symbols', 'stopped').
+tests_module('test_add_symbols', 'symtab').
+test_platform('test_add_symbols', Platform) :- rewriteablePlatforms(Platform).
+% test_serializable('test_add_symbols').
+
 test('test_line_info', 'test_line_info', 'symtab_group_test').
 test_description('test_line_info', 'SymtabAPI Line Information').
 test_runs_everywhere('test_line_info').
@@ -2403,6 +2431,10 @@ pcPlatforms(P) :- platform('x86_64', 'linux', _, P).
 pcPlatforms(P) :- platform('i386', 'linux', _, P).
 pcPlatforms(P) :- platform('i386', 'freebsd', _,P).
 pcPlatforms(P) :- platform('x86_64', 'freebsd', _,P).
+
+% ELF platforms
+rewriteablePlatforms(P) :- platform(_, 'linux', _, P).
+rewriteablePlatforms(P) :- platform(_, 'freebsd', _, P).
 
 pcMutateeLibs(Libs) :-
    current_platform(P),
@@ -3118,7 +3150,10 @@ test_runs_everywhere(none).
 % All mutators need to be linked with dyninstAPI and iberty
 % All mutators also need to be linked with testSuite, for the TestMutator
 % superclass if nothing else.
-all_mutators_require_libs(['iberty', 'testSuite']).
+%
+% Remove liberty from the prolog--this is determined by autoconf
+all_mutators_require_libs(['testSuite']).
+
 
 module_required_libs('dyninst', ['dyninstAPI']).
 module_required_libs('symtab', ['symtabAPI']).

@@ -1315,10 +1315,6 @@ bool Symtab::extractInfo(Object *linkedFile)
         if ( regions_[index]->isLoadable() ) 
         {
            if (     (regions_[index]->getRegionPermissions() == Region::RP_RX) 
-// KEVINTODO: find a better solution for this
-#if defined(_MSC_VER) // added this to deal with obfuscated programs (e.g. aspack)
-                 || (regions_[index]->getRegionPermissions() == Region::RP_RW)
-#endif
                  || (regions_[index]->getRegionPermissions() == Region::RP_RWX)) 
            {
               codeRegions_.push_back(regions_[index]);
@@ -3571,13 +3567,16 @@ SYMTAB_EXPORT bool Symtab::addExternalSymbolReference(Symbol *externalSym, Regio
     localRel.setRegionType(getObject()->getRelType());
 
     // Create placeholder Symbol for external Symbol reference
+    // Bernat, 7SEP2010 - according to Matt, these symbols should have
+    // type "undefined", which means a region of NULL. Changing
+    // from "localRegion" to NULL. 
     Symbol *symRef = new Symbol(externalSym->getName(),
                                 externalSym->getType(),
                                 Symbol::SL_GLOBAL,
                                 Symbol::SV_DEFAULT,
                                 (Address)0,
                                 getDefaultModule(),
-                                localRegion,
+                                NULL, // localRegion,
                                 externalSym->getSize(),
                                 true,
                                 false);

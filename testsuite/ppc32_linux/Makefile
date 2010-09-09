@@ -55,7 +55,6 @@ TEST1_FORTRAN_CSOURCE = test1.mutateeFortC.c
 
 MUTATEE_G77_LDFLAGS += $(LDFLAGS)
 
-MUTATOR_LIBS += -liberty
 MUTATEE_CFLAGS_NATIVE 	= $(UNIFIED_DEF) -g
 MUTATEE_CXXFLAGS_NATIVE = $(UNIFIED_DEF) -g
 
@@ -84,7 +83,10 @@ LIBS_LIBTESTSUITE = -ldl
 
 STRIP_SO = strip -g
 
-TESTDRIVER_LDFLAGS = -liberty
-
 include ../make.module.tmpl
 
+# Some ppc32_linux distributions require _XOPEN_SOURCE to be defined as 600
+# to get the functions/types we require
+CFLAGS   += -D_XOPEN_SOURCE=600
+CXXFLAGS += -D_XOPEN_SOURCE=600
+F77FLAGS += -D_XOPEN_SOURCE=600

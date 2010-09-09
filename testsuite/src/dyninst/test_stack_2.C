@@ -66,7 +66,7 @@ test_results_t test_stack_2_Mutator::executeTest() {
  || defined(sparc_sun_solaris2_4_test) \
  || defined(ia64_unknown_linux2_4_test)
 
-    appThread->continueExecution();
+    appProc->continueExecution();
 
     static const frameInfo_t correct_frame_info[] = {
 
@@ -87,8 +87,8 @@ test_results_t test_stack_2_Mutator::executeTest() {
 	{ true,  false, BPatch_frameNormal, "main" }
     };
 
-    if (waitUntilStopped(bpatch, appThread, 2, "getCallStack in signal handler") < 0) {
-      appThread->getProcess()->terminateExecution();
+    if (waitUntilStopped(bpatch, appProc, 2, "getCallStack in signal handler") < 0) {
+        appProc->terminateExecution();
       return FAILED;
     }
 
@@ -98,12 +98,12 @@ test_results_t test_stack_2_Mutator::executeTest() {
 		   2, "getCallStack in signal handler")) {
 	logerror("Passed test #2 (getCallStack in signal handler)\n");
     } else {
-      appThread->getProcess()->terminateExecution();
+        appProc->terminateExecution();
       return FAILED;
     }
 
-    appThread->continueExecution();
-    while (!appThread->getProcess()->isTerminated()) {
+    appProc->continueExecution();
+    while (!appProc->isTerminated()) {
       bpatch->waitForStatusChange();
     }
 #else

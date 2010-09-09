@@ -29,8 +29,6 @@ SRCS =  ../src/InstructionSource-x86.C \
 		../src/IA_IAPI.C \
         ../src/IA_x86.C
 
-LIBS    += -lgcc
-
 AS		= /usr/bin/as
 
 TARGET = libparseAPI.so

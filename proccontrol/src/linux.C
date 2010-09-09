@@ -175,7 +175,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 
    pthrd_printf("Decoding event for %d/%d\n", proc ? proc->getPid() : -1,
                 thread ? thread->getLWP() : -1);
-                
+
    const int status = archevent->status;
    if (WIFSTOPPED(status))
    {
@@ -206,6 +206,10 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
             if (ext) {
                switch (ext) {
                   case PTRACE_EVENT_EXIT:
+                     if (!proc || !thread) {
+                        //Legacy event on old process. 
+                        return true;
+                     }
                      pthrd_printf("Decoded event to pre-exit on %d/%d\n",
                                   proc->getPid(), thread->getLWP());
                      if (thread->getLWP() == proc->getPid())
@@ -219,10 +223,14 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                      pthrd_printf("Decoded event to %s on %d/%d\n",
                                   ext == PTRACE_EVENT_FORK ? "fork" : "clone",
                                   proc->getPid(), thread->getLWP());
-                     pid_t cpid = 0;
-                     do_ptrace((pt_req) PTRACE_GETEVENTMSG, 
-                               (pid_t) thread->getLWP(), 
-                               NULL, &cpid);
+                     if (!proc || !thread) {
+                        //Legacy event on old process. 
+                        return true;
+                     }
+                     unsigned long cpid_l = 0x0;
+                     do_ptrace((pt_req) PTRACE_GETEVENTMSG, (pid_t) thread->getLWP(), 
+                               NULL, &cpid_l);
+                     pid_t cpid = (pid_t) cpid_l;                     
                      archevent->child_pid = cpid;
                      archevent->event_ext = ext;
                      if (!archevent->findPairedEvent(parent, child)) {
@@ -236,6 +244,10 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                   case PTRACE_EVENT_EXEC: {
                      pthrd_printf("Decoded event to exec on %d/%d\n",
                                   proc->getPid(), thread->getLWP());
+                     if (!proc || !thread) {
+                        //Legacy event on old process. 
+                        return true;
+                     }
                      event = Event::ptr(new EventExec(EventType::Post));
                      event->setSyncType(Event::sync_process);
                      break;
@@ -299,7 +311,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
          default:
             pthrd_printf("Decoded event to signal %d on %d/%d\n",
                          stopsig, proc->getPid(), thread->getLWP());
-#if 0
+#if 1
             //Debugging code
             if (stopsig == 11) {
                Dyninst::MachRegisterVal addr;
@@ -315,6 +327,19 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
       }
       if (event && event->getSyncType() == Event::unset)
          event->setSyncType(Event::sync_thread);
+   }
+   else if ((WIFEXITED(status) || WIFSIGNALED(status)) && 
+            (!proc || !thread || thread->getGeneratorState() == int_thread::exited)) 
+   {
+      //This can happen if the debugger process spawned the 
+      // child, but then detached.  We recieve the child process
+      // exit (because we're the parent), but are no longer debugging it.
+      // We'll just drop this event on the ground.
+      //Also seen when multiple termination signals hit a multi-threaded process
+      // we're debugging.  We'll keep pulling termination signals from the
+      // a defunct process.  Similar to above, we'll drop this event
+      // on the ground.
+      return true;
    }
    else if (WIFEXITED(status) && proc->getPid() != thread->getLWP())
    {
@@ -826,13 +851,22 @@ bool linux_process::plat_detach()
 bool linux_process::plat_terminate(bool &needs_sync)
 {
    //ProcPool lock should be held.
+   //I had been using PTRACE_KILL here, but that was proving to be inconsistent.
+   
    pthrd_printf("Terminating process %d\n", getPid());
-   long result = do_ptrace((pt_req) PTRACE_KILL, getPid(), 0, 0);
+   int result = kill(getPid(), SIGKILL);
    if (result == -1) {
-      perr_printf("Failed to PTRACE_KILL process %d\n", getPid());
-      setLastError(err_internal, "PTRACE_KILL operation failed\n");
-      return false;
+      if (errno == ESRCH) {
+         perr_printf("Process %d no longer exists\n", getPid());
+         setLastError(err_noproc, "Process no longer exists");
+      }
+      else {
+         perr_printf("Failed to kill(%d, SIGKILL) process\n", getPid());
+         setLastError(err_internal, "Unexpected failure of kill\n");
+         return false;
+      }
    }
+
    needs_sync = true;
    return true;
 }

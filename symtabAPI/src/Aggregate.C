@@ -207,8 +207,36 @@ SYMTAB_EXPORT bool Aggregate::addMangledName(string name, bool isPrimary)
     else
         mangledNames_.push_back(name);
 
-    if (addMangledNameInt(name, isPrimary) == false) return false;
-     return true;
+    bool isStaticSymtab = false;
+    bool isDynamicSymtab = false;
+    for (unsigned i = 0; i < symbols_.size(); ++i) {
+      if (symbols_[i]->isInDynSymtab()) {
+	isDynamicSymtab = true;
+      }
+      if (symbols_[i]->isInSymtab()) {
+	isStaticSymtab = true;
+      }
+    }
+
+    // Add a symbol representing this name
+    // We only do this for mangled names since we don't have access
+    // to a name mangler
+    if (isStaticSymtab) {
+      Symbol *newSym = new Symbol(*(symbols_[0]));
+      newSym->mangledName_ = name;
+      module_->exec()->demangleSymbol(newSym);
+      newSym->isDynamic_ = false;
+      module_->exec()->addSymbol(newSym);
+    }
+    if (isDynamicSymtab) {
+      Symbol *newSym = new Symbol(*(symbols_[0]));
+      newSym->mangledName_ = name;
+      module_->exec()->demangleSymbol(newSym);
+      newSym->isDynamic_ = true;
+      module_->exec()->addSymbol(newSym);
+    }
+
+    return true;
  }																	
  
  SYMTAB_EXPORT bool Aggregate::addPrettyName(string name, bool isPrimary) 
@@ -225,75 +253,25 @@ SYMTAB_EXPORT bool Aggregate::addMangledName(string name, bool isPrimary)
     }
     else
         prettyNames_.push_back(name);
-    if (addPrettyNameInt(name, isPrimary) == false) return false;
-     return true;
+
+    return true;
  }																	
  
- SYMTAB_EXPORT bool Aggregate::addTypedName(string name, bool isPrimary) 
- {
-    // Check to see if we're duplicating
-    for (unsigned i = 0; i < typedNames_.size(); i++) {
-        if (typedNames_[i] == name)
-            return false;
-    }
-    if (addTypedNameInt(name, isPrimary) == false) return false;
-
-    if (isPrimary) {
-        std::vector<std::string>::iterator iter = typedNames_.begin();
-        typedNames_.insert(iter, name);
-    }
-    else
-        typedNames_.push_back(name);
-	return true;
- }
-
-bool Aggregate::addMangledNameInt(string name, bool isPrimary) {
-    // Check to see if we're duplicating
-    for (unsigned i = 0; i < mangledNames_.size(); i++) {
-        if (mangledNames_[i] == name)
-            return false;
-    }
-
-    if (isPrimary) {
-        std::vector<std::string>::iterator iter = mangledNames_.begin();
-        mangledNames_.insert(iter, name);
-    }
-    else
-        mangledNames_.push_back(name);
-    return true;
-}
-
-bool Aggregate::addPrettyNameInt(string name, bool isPrimary) {
-    // Check to see if we're duplicating
-    for (unsigned i = 0; i < prettyNames_.size(); i++) {
-        if (prettyNames_[i] == name)
-            return false;
-    }
-
-    if (isPrimary) {
-        std::vector<std::string>::iterator iter = prettyNames_.begin();
-        prettyNames_.insert(iter, name);
-    }
-    else
-        prettyNames_.push_back(name);
-    return true;
-}
-
-bool Aggregate::addTypedNameInt(string name, bool isPrimary) 
+SYMTAB_EXPORT bool Aggregate::addTypedName(string name, bool isPrimary) 
 {
-    // Check to see if we're duplicating
-    for (unsigned i = 0; i < typedNames_.size(); i++) {
-        if (typedNames_[i] == name)
-            return false;
-    }
-
-    if (isPrimary) {
-        std::vector<std::string>::iterator iter = typedNames_.begin();
-        typedNames_.insert(iter, name);
-    }
-    else
-        typedNames_.push_back(name);
-    return true;
+  // Check to see if we're duplicating
+  for (unsigned i = 0; i < typedNames_.size(); i++) {
+    if (typedNames_[i] == name)
+      return false;
+  }
+  
+  if (isPrimary) {
+    std::vector<std::string>::iterator iter = typedNames_.begin();
+    typedNames_.insert(iter, name);
+  }
+  else
+    typedNames_.push_back(name);
+  return true;
 }
 
 bool Aggregate::changeSymbolOffset(Symbol *sym) 

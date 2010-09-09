@@ -617,7 +617,7 @@ bool int_function::relocationInvalidate() {
             for(bIter = blockList.begin(); 
                 bIter != blockList.end() && 
                 generatedVersion_ >= (int)(*bIter)->instances().size();
-                bIter++);
+                bIter++) ;
             assert(bIter != blockList.end());
 
             proc()->inferiorFree((*bIter)->

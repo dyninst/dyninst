@@ -12,8 +12,6 @@ include ../../make.config
 
 SRCS =          
 
-MYFLAGS          += -I/usr/include/libelf
-
 CXXFLAGS         += $(MYFLAGS)
 CFLAGS           += $(MYFLAGS)
 TFLAGS           += $(MYFLAGS)

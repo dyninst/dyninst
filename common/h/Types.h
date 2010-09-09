@@ -281,6 +281,8 @@ static const Register REG_NULL = (Register)(-1);
 #define PREMS_WRITE   (1 << 1)
 #define PREMS_EXEC    (1 << 0)
 
+#define MAPENTRIES_PATH_SIZE 512
+#define MAPENTRIES_PATH_SIZE_STR "512"
 typedef struct maps_entries {
    Address start;
    Address end;
@@ -289,7 +291,7 @@ typedef struct maps_entries {
    int dev_major;
    int dev_minor;
    int inode;
-   char path[512];
+   char path[MAPENTRIES_PATH_SIZE];
 } map_entries;
 
 #ifdef __cplusplus

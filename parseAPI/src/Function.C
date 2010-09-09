@@ -148,14 +148,14 @@ Function::blocks_int()
                 continue;
             }
 
-            /* sink edges receive no further processing */
-            if(e->sinkEdge())
-                continue;
-
             if(e->type() == RET) {
                 link_return = true;
                 continue;
             }
+
+            /* sink edges receive no further processing */
+            if(e->sinkEdge())
+                continue;
 
             if(!HASHDEF(visited,t->start())) {
                 worklist.push_back(t);

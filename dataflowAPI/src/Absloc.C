@@ -39,6 +39,8 @@
 
 #include "dataflowAPI/h/stackanalysis.h"
 
+#include "parseAPI/h/CFG.h"
+
 #include <sstream>
 
 using namespace Dyninst;
@@ -88,7 +90,7 @@ std::string Absloc::format() const {
     ret << reg_.name();
     break;
   case Stack: {
-    ret << "S[" << func_ << "," << off_ << "," << region_ << "]";
+    ret << "S[" << func_->name() << "," << off_ << "," << region_ << "]";
     break;
   }
   case Heap:

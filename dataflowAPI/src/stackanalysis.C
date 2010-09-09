@@ -1074,6 +1074,6 @@ StackAnalysis::Height StackAnalysis::findFP(Address addr) {
 }
 
 std::ostream &operator<<(std::ostream &os, const Dyninst::StackAnalysis::Height &h) {
-  os << h.format();
+  os << "STACK_SLOT[" << h.format() << "]";
   return os;
 }

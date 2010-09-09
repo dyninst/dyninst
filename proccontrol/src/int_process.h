@@ -73,9 +73,8 @@ class int_process
   public:
    void setContSignal(int sig);
    int getContSignal() const;
+   bool continueProcess();
    virtual bool plat_contProcess() = 0;
-   void setPendingProcStop(bool b);
-   bool hasPendingProcStop() const;
 
    bool forked();
   protected:
@@ -133,6 +132,7 @@ class int_process
    void setCrashSignal(int s);
    bool getExitCode(int &c);
    bool getCrashSignal(int &s);
+   bool wasForcedTerminated() const;
 
    virtual bool plat_individualRegAccess() = 0;
 
@@ -194,13 +194,13 @@ class int_process
    int crashSignal;
    bool hasExitCode;
    bool forceGenerator;
+   bool forcedTermination;
    int exitCode;
    static bool in_callback;
    mem_state::ptr mem;
    std::map<Dyninst::Address, unsigned> exec_mem_cache;
    std::queue<Event::ptr> proc_stoppers;
    int continueSig;
-   bool pendingProcStop;
 };
 
 /*
@@ -357,10 +357,6 @@ class int_thread
    bool hasPendingStop() const;
    void setResumed(bool b);
    bool isResumed() const;
-   void setClearingPendingStop(bool b);
-   bool clearingPendingStop() const;
-   void setSyncingState(bool b);
-   bool isSyncingState() const;
 
    // Needed for HybridLWPControl thread control mode
    // These can be no-ops for other modes
@@ -432,8 +428,6 @@ class int_thread
    bool pending_user_stop;
    bool pending_stop;
    bool resumed;
-   bool clearing_pending_stop;
-   bool syncing_state;
    int num_locked_stops;
    bool user_single_step;
    bool single_step;

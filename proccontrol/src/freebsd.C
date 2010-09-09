@@ -142,7 +142,41 @@ using namespace ProcControlAPI;
  *  
  * See the ChangePCHandler as well for more info.
  *
- * TODO submit a problem report to FreeBSD devs for this
+ * TODO submit a problem report (or possibly a feature request) to 
+ * FreeBSD devs for this
+ *
+ * --- bug_freebsd_lost_signal ---
+ *
+ * This bug is documented in FreeBSD problem report kern/150138 -- it also
+ * includes a patch that fixes the problem.
+ *
+ * Here is the scenario:
+ *
+ * 1) A signal (such as a SIGTRAP) is delivered to a specific thread, which
+ * stops the whole process.
+ *
+ * 2) The user (or handler) thread wishes to make a specific thread stop. Not
+ * knowing that the process has already been stopped, a SIGSTOP is sent to the
+ * thread. The user (or handler) thread then waits for the stop event.
+ *
+ * 3) The generator observes the SIGTRAP event (via waitpid) and generates the
+ * event for it.  
+ *
+ * 4) The user (or handler) thread handle the SIGTRAP event but continues to
+ * wait on the pending stop.
+ *
+ * At this point, the user (or handler) thread could wait indefinitely for the
+ * pending stop, if the debuggee is blocked in the kernel. The problem is that
+ * when the process is continued after the SIGSTOP is sent to the stopped 
+ * process, the thread blocked in the kernel does not wakeup to handle the
+ * new signal that was delivered to it while it was stopped.
+ *
+ * Unfortunately, I was not able to come up with a solid workaround for this bug
+ * because there wasn't a race-free way to determine if the process was stopped
+ * before sending it a signal (i.e., after checking whether the process was stopped,
+ * the OS could deschedule the ProcControl process and the debuggee could hit a
+ * breakpoint or finish an iRPC, resulting in ProcControl's model of the debuggee
+ * being inconsistent).
  */
 
 Generator *Generator::getDefaultGenerator() {
@@ -330,9 +364,17 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
         const int stopsig = WSTOPSIG(status);
 
         lthread->setSignalStopped(true);
+        for(int_threadPool::iterator i = proc->threadPool()->begin();
+            i != proc->threadPool()->end(); ++i)
+        {
+            if( (*i) != lthread ) {
+                static_cast<freebsd_thread *>(*i)->setSignalStopped(false);
+            }
+        }
 
         pthrd_printf("Decoded to signal %s\n", strsignal(stopsig));
         switch( stopsig ) {
+            case SIGUSR2:
             case SIGSTOP: {
                 if( lthread->hasPendingStop() || lthread->hasBootstrapStop() ) {
                     pthrd_printf("Received pending stop on %d/%d\n",
@@ -436,6 +478,7 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
                             vector<Event::ptr>::iterator eventIter;
                             for(eventIter = destroyEvents.begin(); eventIter != destroyEvents.end(); ++eventIter) {
                                 event->addSubservientEvent(*eventIter);
+                                (*eventIter)->getThread()->llthrd()->setGeneratorState(int_thread::exited);
                             }
                         }
                     }else{
@@ -476,7 +519,7 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
                         break;
                     }
                 }
-                /* Relying on fallthrough to handle any other SIGTRAPs or SIGSTOPS*/
+                /* Relying on fallthrough to handle any other signals */
                 pthrd_printf("No special events found for this signal\n");
             }
             default:
@@ -498,15 +541,16 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
                    }
                    fprintf(stderr, "Got crash at %lx\n", addr);
 
-                   /*
-                   fprintf(stderr, "Sending SIGABRT to %d\n", proc->getPid());
-                   ptrace(PT_CONTINUE, proc->getPid(), (caddr_t)1, SIGABRT);
-                   */
-                   fprintf(stderr, "Detaching from %d\n", proc->getPid());
-                   ptrace(PT_DETACH, proc->getPid(), (caddr_t)1, 0);
+                   unsigned char bytes[10];
+                   proc->readMem((void *)bytes, addr, 10);
 
-                   //assert(!"Received SIGSEGV");
-                   while(1) sleep(1);
+                   for(int i = 0; i < 10; i++) {
+                       fprintf(stderr, "%#hx ", bytes[i]);
+                   }
+                   fprintf(stderr, "\n");
+
+                   ptrace(PT_CONTINUE, proc->getPid(), (caddr_t)1, SIGABRT);
+                   assert(!"Received SIGSEGV");
                 }
 #endif
                 event = Event::ptr(new EventSignal(stopsig));
@@ -562,6 +606,28 @@ bool DecoderFreeBSD::decode(ArchEvent *ae, std::vector<Event::ptr> &events) {
     delete archevent;
 
     return true;
+}
+
+static 
+bool tkill(pid_t pid, long lwp, int sig) {
+    static bool has_tkill = true;
+    int result = 0;
+
+    pthrd_printf("Sending %d to %d/%ld\n", sig, pid, lwp);
+
+    if( has_tkill ) {
+        result = syscall(SYS_thr_kill2, pid, lwp, sig);
+        if( 0 != result && ENOSYS == errno ) {
+            pthrd_printf("Using kill instead of tkill on this system\n");
+            has_tkill = false;
+        }
+    }
+
+    if( !has_tkill ) {
+        result = kill(pid, sig);
+    }
+
+    return (result == 0);
 }
 
 int_process *int_process::createProcess(Dyninst::PID pid_, std::string exec) {
@@ -770,14 +836,12 @@ bool freebsd_process::plat_attach() {
 }
 
 bool freebsd_process::plat_forked() {
-    // TODO
-    // This needs to be tested
+    // TODO This needs to be tested
     return true;
 }
 
 bool freebsd_process::post_forked() {
-    // TODO
-    // This needs to be tested
+    // TODO This needs to be tested
 
     ProcPool()->condvar()->lock();
 
@@ -948,6 +1012,8 @@ bool freebsd_process::plat_getLWPInfo(lwpid_t lwp, void *lwpInfo) {
 }
 
 bool freebsd_process::plat_contThread(lwpid_t lwp) {
+    if( threadPool()->size() <= 1 ) return true;
+
     pthrd_printf("Calling PT_RESUME on %d\n", lwp);
     if( 0 != ptrace(PT_RESUME, lwp, (caddr_t)1, 0) ) {
         perr_printf("Failed to resume lwp %d: %s\n",
@@ -960,6 +1026,8 @@ bool freebsd_process::plat_contThread(lwpid_t lwp) {
 }
 
 bool freebsd_process::plat_stopThread(lwpid_t lwp) {
+    if( threadPool()->size() <= 1 ) return true;
+
     pthrd_printf("Calling PT_SUSPEND on %d\n", lwp);
     if( 0 != ptrace(PT_SUSPEND, lwp, (caddr_t)1, 0) ) {
         perr_printf("Failed to suspend lwp %d: %s\n",
@@ -1020,12 +1088,6 @@ bool FreeBSDStopHandler::handleEvent(Event::ptr ev) {
                 lproc->getPid(), lthread->getLWP());
         if( !lthread->plat_suspend() ) {
             perr_printf("Failed to suspend thread %d/%d\n", 
-                    lproc->getPid(), lthread->getLWP());
-            return false;
-        }
-
-        if( !lthread->plat_setStep() ) {
-            perr_printf("Failed to set single step setting for thread %d/%d\n",
                     lproc->getPid(), lthread->getLWP());
             return false;
         }
@@ -1146,18 +1208,18 @@ bool freebsd_process::post_attach() {
                 return false;
             }
 
-            thrd->setResumed(false);
-
             pthrd_printf("attach workaround: continuing whole process\n");
             if( !plat_contProcess() ) {
                 return false;
             }
 
+#if defined(bug_freebsd_lost_signal)
             pthrd_printf("attach workaround: sending stop to %d/%d\n",
                     getPid(), thrd->getLWP());
             if( !thrd->plat_stop() ) {
                 return false;
             }
+#endif
 
             pthrd_printf("attach workaround: handling stop of %d/%d\n",
                     getPid(), thrd->getLWP());
@@ -1179,6 +1241,7 @@ FreeBSDChangePCHandler::FreeBSDChangePCHandler()
 FreeBSDChangePCHandler::~FreeBSDChangePCHandler()
 {}
 
+
 bool FreeBSDChangePCHandler::handleEvent(Event::ptr ev) {
     freebsd_thread *lthread = static_cast<freebsd_thread *>(ev->getThread()->llthrd());
 
@@ -1199,29 +1262,62 @@ void FreeBSDChangePCHandler::getEventTypesHandled(std::vector<EventType> &etypes
 }
 #endif
 
-static 
-bool t_kill(pid_t pid, long lwp, int sig) {
-    static bool has_tkill = true;
-    int result = 0;
+bool freebsd_process::plat_contProcess() {
+    ProcPool()->condvar()->lock();
+    for(int_threadPool::iterator i = threadPool()->begin();
+        i != threadPool()->end(); ++i)
+    {
+        if( (*i)->isResumed() ) {
+            (*i)->setInternalState(int_thread::running);
+            (*i)->setHandlerState(int_thread::running);
+            (*i)->setGeneratorState(int_thread::running);
+            (*i)->setResumed(false);
+        }else if( (*i)->getInternalState() == int_thread::stopped ) {
+            pthrd_printf("Suspending before continue %d/%d\n",
+                    getPid(), (*i)->getLWP());
+            if( !(*i)->plat_suspend() ) {
+                perr_printf("Failed to suspend thread %d/%d\n",
+                        getPid(), (*i)->getLWP());
+                setLastError(err_internal, "low-level continue failed");
+                return false;
+            }
+        }
+    }
+    ProcPool()->condvar()->signal();
+    ProcPool()->condvar()->unlock();
 
-    pthrd_printf("Sending %d to %d/%ld\n", sig, pid, lwp);
+#if defined(bug_freebsd_change_pc)
+    freebsd_thread *pcBugThrd = NULL;
 
-    if( has_tkill ) {
-        result = syscall(SYS_thr_kill2, pid, lwp, sig);
-        if( 0 != result && ENOSYS == errno ) {
-            pthrd_printf("Using kill instead of tkill on this system\n");
-            has_tkill = false;
+    for(int_threadPool::iterator i = threadPool()->begin();
+        i != threadPool()->end(); ++i)
+    {
+        freebsd_thread *thrd = static_cast<freebsd_thread *>(*i);
+        if( thrd->hasPCBugCondition() && thrd->getInternalState() == int_thread::running ) {
+            // Only wait for one PC bug signal at a time
+            if( !thrd->hasPendingPCBugSignal() ) {
+                pcBugThrd = thrd;
+            }else{
+                pthrd_printf("Waiting for PC bug signal for thread %d/%d\n",
+                        getPid(), thrd->getLWP());
+                pcBugThrd = NULL;
+                break;
+            }
         }
     }
 
-    if( !has_tkill ) {
-        result = kill(pid, sig);
+    if( NULL != pcBugThrd ) {
+        pthrd_printf("Attempting to handle change PC bug condition for %d/%d\n",
+                getPid(), pcBugThrd->getLWP());
+        pcBugThrd->setPendingPCBugSignal(true);
+        if( !tkill(getPid(), pcBugThrd->getLWP(), PC_BUG_SIGNAL) ) {
+            perr_printf("Failed to handle change PC bug condition\n");
+            setLastError(err_internal, "sending signal failed");
+            return false;
+        }
     }
+#endif
 
-    return (result == 0);
-}
-
-bool freebsd_process::plat_contProcess() {
     /* Single-stepping is enabled/disabled using PT_SETSTEP
      * and PT_CLEARSTEP instead of continuing the process
      * with PT_STEP. See plat_setStep.
@@ -1234,36 +1330,7 @@ bool freebsd_process::plat_contProcess() {
         return false;
     }
 
-#if defined(bug_freebsd_change_pc)
-    freebsd_thread *pcBugThrd = NULL;
-
-    for(int_threadPool::iterator i = threadPool()->begin();
-        i != threadPool()->end(); ++i)
-    {
-        freebsd_thread *thrd = static_cast<freebsd_thread *>(*i);
-        if( thrd->hasPCBugCondition() ) {
-            if( !thrd->hasPendingPCBugSignal() ) {
-                pcBugThrd = thrd;
-            }else{
-                pcBugThrd = thrd;
-                break;
-            }
-        }
-    }
-
-    if( NULL != pcBugThrd && mbox()->peek() == Event::ptr() ) {
-        pthrd_printf("Attempting to handle change PC bug condition for %d/%d\n",
-                getPid(), pcBugThrd->getLWP());
-        pcBugThrd->setPendingPCBugSignal(true);
-        if( !t_kill(getPid(), pcBugThrd->getLWP(), PC_BUG_SIGNAL) ) {
-            perr_printf("Failed to handle change PC bug condition\n");
-            setLastError(err_internal, "sending signal failed");
-            return false;
-        }
-    }
-#endif
-
-#if defined(bug_freebsd_missing_sigstop) 
+#if defined(bug_freebsd_missing_sigstop)
     // XXX this workaround doesn't always work
     sched_yield();
 #endif
@@ -1272,17 +1339,17 @@ bool freebsd_process::plat_contProcess() {
 }
 
 bool freebsd_thread::plat_stop() {
-    Dyninst::PID pid = proc_->getPid();
+    Dyninst::PID pid = llproc()->getPid();
 
-    if( !t_kill(pid, lwp, SIGSTOP) ) {
+    if( !tkill(pid, lwp, SIGUSR2) ) {
         int errnum = errno;
         if( ESRCH == errnum ) {
-            pthrd_printf("t_kill failed for %d/%d, thread/process doesn't exist\n", lwp, pid);
+            pthrd_printf("tkill failed for %d/%d, thread/process doesn't exist\n", lwp, pid);
             setLastError(err_noproc, "Thread no longer exists");
             return false;
         }
-        pthrd_printf("t_kill failed on %d/%d: %s\n", lwp, pid, strerror(errnum));
-        setLastError(err_internal, "Could not send signal to process while stopping");
+        pthrd_printf("tkill failed on %d/%d: %s\n", lwp, pid, strerror(errnum));
+        setLastError(err_internal, "Could not send signal to process");
         return false;
     }
 
@@ -1291,20 +1358,21 @@ bool freebsd_thread::plat_stop() {
 
 bool freebsd_thread::plat_cont() {
     pthrd_printf("Continuing thread %d/%d\n", 
-            proc_->getPid(), lwp);
+            llproc()->getPid(), lwp);
 
     if( !plat_setStep() ) return false;
 
-    // Calling resume only makes sense for processes with multiple threads
     setSignalStopped(false);
-    if( proc_->threadPool()->size() > 1 ) {
+
+    // Calling resume only makes sense for processes with multiple threads
+    if( llproc()->threadPool()->size() > 1 ) {
         if( !plat_resume() ) return false;
     }
 
     // Because all signals stop the whole process, only one thread should
     // have a non-zero continue signal
     if( continueSig_ ) {
-        proc_->setContSignal(continueSig_);
+        llproc()->setContSignal(continueSig_);
     }
 
     return true;
@@ -1318,11 +1386,11 @@ bool freebsd_thread::plat_setStep() {
     int result;
     if( singleStep() ) {
         pthrd_printf("Calling PT_SETSTEP on %d/%d\n", 
-                proc_->getPid(), lwp);
+                llproc()->getPid(), lwp);
         result = ptrace(PT_SETSTEP, lwp, (caddr_t)1, 0);
     }else{
         pthrd_printf("Calling PT_CLEARSTEP on %d/%d\n", 
-                proc_->getPid(), lwp);
+                llproc()->getPid(), lwp);
         result = ptrace(PT_CLEARSTEP, lwp, (caddr_t)1, 0);
     }
 
@@ -1410,7 +1478,7 @@ static void init_dynreg_to_user() {
     init_lock.unlock();
 }
 
-#if 0 
+#if 0
 // Debugging
 static void dumpRegisters(struct reg *regs) {
 #if defined(arch_x86)
@@ -1429,8 +1497,6 @@ static void dumpRegisters(struct reg *regs) {
     fprintf(stderr, "r_esp = 0x%x\n", regs->r_esp);
     fprintf(stderr, "r_ss = 0x%x\n", regs->r_ss);
     fprintf(stderr, "r_gs = 0x%x\n", regs->r_gs);
-    fprintf(stderr, "r_trapno = 0x%x\n", regs->r_trapno);
-    fprintf(stderr, "r_err = 0x%x\n", regs->r_err);
 #endif
 }
 #endif
@@ -1445,7 +1511,7 @@ bool freebsd_thread::plat_getAllRegisters(int_registerPool &regpool) {
 
     if( 0 != ptrace(PT_GETREGS, lwp, (caddr_t)regPtr, 0) ) {
         perr_printf("Error reading registers from %d/%d: %s\n", 
-                proc_->getPid(), lwp, strerror(errno));
+                llproc()->getPid(), lwp, strerror(errno));
         setLastError(err_internal, "Could not read registers from thread");
         return false;
     }
@@ -1478,8 +1544,8 @@ bool freebsd_thread::plat_getAllRegisters(int_registerPool &regpool) {
     return true;
 }
 
-static bool validateRegisters(struct reg *regs, Dyninst::LWP lwp) {
 #if defined(arch_x86)
+static bool validateRegisters(struct reg *regs, Dyninst::LWP lwp) {
     struct reg old_regs;
     if( 0 != ptrace(PT_GETREGS, lwp, (caddr_t)&old_regs, 0) ) {
         perr_printf("Error reading registers from %d\n", lwp);
@@ -1494,9 +1560,14 @@ static bool validateRegisters(struct reg *regs, Dyninst::LWP lwp) {
         if( old_regs.r_eflags & PSL_RF ) regs->r_eflags |= PSL_RF;
         else regs->r_eflags &= ~PSL_RF;
     }
-#endif
+    
     return true;
 }
+#else
+static bool validateRegisters(struct reg *, Dyninst::LWP) {
+    return true;
+}
+#endif
 
 bool freebsd_thread::plat_setAllRegisters(int_registerPool &regpool) {
     init_dynreg_to_user();
@@ -1551,7 +1622,7 @@ bool freebsd_thread::plat_setAllRegisters(int_registerPool &regpool) {
         if( EINVAL == errno ) {
             // This usually means that the flag register would change some system status bits
             pthrd_printf("Attempting to handle EINVAL caused by PT_SETREGS for %d/%d\n", 
-                    proc_->getPid(), lwp);
+                    llproc()->getPid(), lwp);
 
             if( validateRegisters(&registers, lwp) ) {
                 if( !ptrace(PT_SETREGS, lwp, (caddr_t)&registers, 0) ) {
@@ -1570,17 +1641,17 @@ bool freebsd_thread::plat_setAllRegisters(int_registerPool &regpool) {
         }
     }
 
-    pthrd_printf("Successfully set the values of all registers for LWP %d\n", lwp);
-
 #if defined(bug_freebsd_change_pc)
-    if( proc_->threadPool()->size() > 1 && !isSignalStopped() && 
+    if( llproc()->threadPool()->size() > 1 && !isSignalStopped() && 
             (runningRPC() || int_process::isInCB()) ) 
     {
         pthrd_printf("Setting change PC bug condition for %d/%d\n",
-                proc_->getPid(), lwp);
+                llproc()->getPid(), lwp);
         setPCBugCondition(true);
     }
 #endif
+
+    pthrd_printf("Successfully set the values of all registers for LWP %d\n", lwp);
 
     return true;
 }
@@ -1596,11 +1667,12 @@ bool freebsd_thread::plat_setRegister(Dyninst::MachRegister, Dyninst::MachRegist
 }
 
 // iRPC snippets
-const unsigned int x86_64_mmap_flags_position = 17;
-const unsigned int x86_64_mmap_size_position = 30;
-const unsigned int x86_64_mmap_addr_position = 40;
-const unsigned int x86_64_mmap_start_position = 0;
+const unsigned int x86_64_mmap_flags_position = 21;
+const unsigned int x86_64_mmap_size_position = 34;
+const unsigned int x86_64_mmap_addr_position = 44;
+const unsigned int x86_64_mmap_start_position = 4;
 const unsigned char x86_64_call_mmap[] = {
+0x90, 0x90, 0x90, 0x90,                         //nop sled
 0x49, 0xc7, 0xc1, 0x00, 0x00, 0x00, 0x00,       //mov    $0x0,%r9 (offset)
 0x49, 0xc7, 0xc0, 0xff, 0xff, 0xff, 0xff,       //mov    $0xffffffffffffffff,%r8 (fd)
 0x49, 0xc7, 0xc2, 0x12, 0x10, 0x00, 0x00,       //mov    $0x1012,%r10 (flags)
@@ -1616,10 +1688,11 @@ const unsigned char x86_64_call_mmap[] = {
 };
 const unsigned int x86_64_call_mmap_size = sizeof(x86_64_call_mmap);
 
-const unsigned int x86_64_munmap_size_position = 2;
-const unsigned int x86_64_munmap_addr_position = 12;
-const unsigned int x86_64_munmap_start_position = 0;
+const unsigned int x86_64_munmap_size_position = 6;
+const unsigned int x86_64_munmap_addr_position = 16;
+const unsigned int x86_64_munmap_start_position = 4;
 const unsigned char x86_64_call_munmap[] = {
+0x90, 0x90, 0x90, 0x90,                         //nop sled
 0x48, 0xbe, 0x00, 0x00, 0x00, 0x00, 0x00,       //mov    $0x0000000000000000,%rsi
 0x00, 0x00, 0x00,                               //
 0x48, 0xbf, 0x00, 0x00, 0x00, 0x00, 0x00,       //mov    $0x0000000000000000,%rdi
@@ -1631,11 +1704,12 @@ const unsigned char x86_64_call_munmap[] = {
 };
 const unsigned int x86_64_call_munmap_size = sizeof(x86_64_call_munmap);
 
-const unsigned int x86_mmap_flags_position = 5;
-const unsigned int x86_mmap_size_position = 12;
-const unsigned int x86_mmap_addr_position = 17;
-const unsigned int x86_mmap_start_position = 0;
+const unsigned int x86_mmap_flags_position = 9;
+const unsigned int x86_mmap_size_position = 16;
+const unsigned int x86_mmap_addr_position = 21;
+const unsigned int x86_mmap_start_position = 4;
 const unsigned char x86_call_mmap[] = {
+0x90, 0x90, 0x90, 0x90,                         //nop sled
 0x6a, 0x00,                                     //push   $0x0 (offset)
 0x6a, 0xff,                                     //push   $0xffffffff (fd)
 0x68, 0x12, 0x10, 0x00, 0x00,                   //push   $0x1012 (flags)
@@ -1651,10 +1725,11 @@ const unsigned char x86_call_mmap[] = {
 };
 const unsigned int x86_call_mmap_size = sizeof(x86_call_mmap);
 
-const unsigned int x86_munmap_size_position = 1;
-const unsigned int x86_munmap_addr_position = 6;
-const unsigned int x86_munmap_start_position = 0;
+const unsigned int x86_munmap_size_position = 5;
+const unsigned int x86_munmap_addr_position = 10;
+const unsigned int x86_munmap_start_position = 4;
 const unsigned char x86_call_munmap[] = {
+0x90, 0x90, 0x90, 0x90,                         //nop sled
 0x68, 0x00, 0x00, 0x00, 0x00,                   //push   $0x0 (size)    
 0x68, 0x00, 0x00, 0x00, 0x00,                   //push   $0x0 (addr)
 0xb8, 0x49, 0x00, 0x00, 0x00,                   //mov    $0x49,%eax (SYS_munmap)
