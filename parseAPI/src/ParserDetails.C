@@ -54,6 +54,8 @@ verbose_log(Address /* currAddr */, Edges_t::iterator & /* curEdge */)
 #else
 verbose_log(Address currAddr, Edges_t::iterator & curEdge)
 {
+  using namespace Dyninst::ParseAPI;
+  
     switch(curEdge->second)
     {
         case CALL:
@@ -75,7 +77,7 @@ verbose_log(Address currAddr, Edges_t::iterator & curEdge)
             parsing_printf("%s[%d]: adding conditional not taken edge %x->%x\n",
                            FILE__, __LINE__, currAddr, curEdge->first);
             break;
-        case INDIR:
+        case INDIRECT:
             parsing_printf("%s[%d]: adding indirect edge %x->%x\n",
                            FILE__, __LINE__, currAddr, curEdge->first);
             break;

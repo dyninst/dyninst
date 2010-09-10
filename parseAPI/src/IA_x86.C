@@ -231,11 +231,11 @@ std::map<Address, Instruction::Ptr>::const_iterator IA_IAPI::findTableInsn() con
     Expression::Ptr cft = curInsn()->getControlFlowTarget();
     if(cft)
     {
-        std::vector<InstructionAST::Ptr> tmp;
+        std::vector<Expression::Ptr> tmp;
         cft->getChildren(tmp);
         if(tmp.size() == 1)
         {
-            Expression::Ptr cftAddr = dyn_detail::boost::dynamic_pointer_cast<Expression>(tmp[0]);
+            Expression::Ptr cftAddr = tmp[0];
             zeroAllGPRegisters z(current);
             cftAddr->apply(&z);
             parsing_printf("\tChecking indirect jump %s for table insn\n", curInsn()->format().c_str());
@@ -696,7 +696,7 @@ Address IA_IAPI::getTableAddress(Instruction::Ptr tableInsn,
     if(tableInsn->getCategory() == c_BranchInsn)
     {
         Expression::Ptr op = tableInsn->getOperand(0).getValue();
-        std::vector<InstructionAST::Ptr> tmp;
+        std::vector<Expression::Ptr> tmp;
         op->getChildren(tmp);
         if(tmp.empty())
         {
@@ -704,13 +704,13 @@ Address IA_IAPI::getTableAddress(Instruction::Ptr tableInsn,
         }
         else
         {
-            displacementSrc = dyn_detail::boost::dynamic_pointer_cast<Expression>(tmp[0]);
+            displacementSrc = tmp[0];
         }
     }
     else
     {
         parsing_printf("\tcracking table instruction %s\n", tableInsn->format().c_str());
-        std::vector<InstructionAST::Ptr> tmp;
+        std::vector<Expression::Ptr> tmp;
         Expression::Ptr op = tableInsn->getOperand(1).getValue();
         if(!op)
         {
@@ -725,7 +725,7 @@ Address IA_IAPI::getTableAddress(Instruction::Ptr tableInsn,
                 parsing_printf("\ttable insn BAD! (not LEA, second operand not a deref)\n");
                 return 0;
             }
-            displacementSrc = dyn_detail::boost::dynamic_pointer_cast<Expression>(tmp[0]);
+            displacementSrc = tmp[0];
         }
         else
         {

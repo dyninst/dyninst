@@ -85,6 +85,7 @@ namespace Dyninst
 
       /// By definition, an %Immediate has no children.
       virtual void getChildren(vector<InstructionAST::Ptr>& /*children*/) const;
+      virtual void getChildren(vector<Expression::Ptr>& /*children*/) const;
 
       /// By definition, an %Immediate uses no registers.
       virtual void getUses(set<InstructionAST::Ptr>& /*uses*/);
