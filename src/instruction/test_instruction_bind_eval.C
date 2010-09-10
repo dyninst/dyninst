@@ -149,14 +149,14 @@ test_results_t test_instruction_bind_eval_Mutator::executeTest()
   {
     return FAILED;
   }
-  vector<InstructionAST::Ptr> tmp;
+  vector<Expression::Ptr> tmp;
   theCFT->getChildren(tmp);
   if(tmp.size() != 1)
   {
     logerror("FAILED: expected dereference with one child, got %d children\n", tmp.size());
     return FAILED;
   }
-  Expression::Ptr memRef = dyn_detail::boost::dynamic_pointer_cast<Expression>(tmp[0]);
+  Expression::Ptr memRef = tmp[0];
   if(!memRef) {
     logerror("FAILED: memRef was not an expression\n");
     return FAILED;
