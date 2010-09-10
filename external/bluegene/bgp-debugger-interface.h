@@ -185,8 +185,7 @@ typedef enum { GET_REG = 0,
                CONTINUE,		// tell compute node to continue running
                KILL,			// send a signal w/ implicit continue
                ATTACH,			// mark compute node
-	       DETACH,			// unmark compute node
-
+               DETACH,			// unmark compute node
                GET_REG_ACK,
                GET_ALL_REGS_ACK,	// sent when compute node responds
                SET_REG_ACK,		// send when compute node responds
@@ -199,7 +198,7 @@ typedef enum { GET_REG = 0,
                CONTINUE_ACK,		// sent when compute node is told
                KILL_ACK,		// send when signal is sent
                ATTACH_ACK,		// sent after compute node is marked
-	       DETACH_ACK,		// sent after compute node is unmarked
+               DETACH_ACK,		// sent after compute node is unmarked
 
                SIGNAL_ENCOUNTERED,	// sent when a signal is encountered
 

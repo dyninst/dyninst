@@ -43,6 +43,7 @@
 
 #include "dynutil/h/dyn_regs.h"
 #include "dynutil/h/dyntypes.h"
+#include "common/h/SymLite-elf.h"
 #include "proccontrol/h/PCErrors.h"
 #include "proccontrol/h/Generator.h"
 #include "proccontrol/h/Event.h"
@@ -504,14 +505,16 @@ Dyninst::Architecture linux_process::getTargetArch()
 linux_process::linux_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int,int> f) :
    int_process(p, e, a, f),
    sysv_process(p, e, a, f),
-   unix_process(p, e, a, f)
+   unix_process(p, e, a, f),
+   x86_process(p, e, a, f)
 {
 }
 
 linux_process::linux_process(Dyninst::PID pid_, int_process *p) :
    int_process(pid_, p),
    sysv_process(pid_, p),
-   unix_process(pid_, p)
+   unix_process(pid_, p),
+   x86_process(pid_, p)
 {
 }
 
@@ -732,7 +735,7 @@ bool linux_process::getThreadLWPs(std::vector<Dyninst::LWP> &lwps)
    return findProcLWPs(pid, lwps);
 }
 
-int_process::ThreadControlMode int_process::getThreadControlMode() {
+int_process::ThreadControlMode linux_process::plat_getThreadControlMode() const {
     return int_process::IndependentLWPControl;
 }
 
@@ -943,9 +946,10 @@ bool linux_process::plat_individualRegAccess()
    return true;
 }
 
-bool linux_process::plat_detach()
+bool linux_process::plat_detach(bool &needs_sync)
 {
    //ProcPool lock should be held.
+   needs_sync = false;
    int_threadPool *tp = threadPool();
    bool had_error = false;
    for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++) {

@@ -1029,6 +1029,36 @@ void HandleRPCInternal::getEventTypesHandled(std::vector<EventType> &etypes)
    etypes.push_back(EventType(EventType::None, EventType::RPCInternal));
 }
 
+HandleDetached::HandleDetached() :
+   Handler("Detached")
+{
+}
+
+HandleDetached::~HandleDetached()
+{
+}
+
+Handler::handler_ret_t HandleDetached::handleEvent(Event::ptr ev)
+{
+   int_process *proc = ev->getProcess()->llproc();
+   pthrd_printf("Handle process detached\n");
+
+   ProcPool()->condvar()->lock();
+
+   proc->setState(int_process::exited);
+   ProcPool()->rmProcess(proc);
+
+   ProcPool()->condvar()->signal();
+   ProcPool()->condvar()->unlock();
+   return ret_success;
+}
+
+void HandleDetached::getEventTypesHandled(std::vector<EventType> &etypes)
+{
+   etypes.push_back(EventType(EventType::None, EventType::Detached));
+}
+
+
 HandleAsync::HandleAsync() :
    Handler("Async")
 {

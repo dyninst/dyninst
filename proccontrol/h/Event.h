@@ -45,6 +45,7 @@ class EventLibrary;
 class EventRPCInternal;
 class EventAsync;
 class EventChangePCStop;
+class EventDetached;
 
 class Event : public dyn_detail::boost::enable_shared_from_this<Event>
 {
@@ -139,6 +140,8 @@ class Event : public dyn_detail::boost::enable_shared_from_this<Event>
    dyn_detail::boost::shared_ptr<EventChangePCStop> getEventChangePCStop();
    dyn_detail::boost::shared_ptr<const EventChangePCStop> getEventChangePCStop() const;
 
+   dyn_detail::boost::shared_ptr<EventDetached> getEventDetached();
+   dyn_detail::boost::shared_ptr<const EventDetached> getEventDetached() const;
  protected:
    EventType etype;
    Thread::const_ptr thread;
@@ -417,6 +420,17 @@ class EventChangePCStop : public Event
    typedef dyn_detail::boost::shared_ptr<const EventChangePCStop> const_ptr;
    EventChangePCStop();
    ~EventChangePCStop();
+};
+
+class EventDetached : public Event
+{
+   friend void dyn_detail::boost::checked_delete<EventDetached>(EventDetached *);
+   friend void dyn_detail::boost::checked_delete<const EventDetached>(const EventDetached *);
+ public:
+   typedef dyn_detail::boost::shared_ptr<EventDetached> ptr;
+   typedef dyn_detail::boost::shared_ptr<const EventDetached> const_ptr;
+   EventDetached();
+   ~EventDetached();
 };
 
 }

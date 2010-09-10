@@ -170,6 +170,7 @@ std::string EventType::name() const
       STR_CASE(RPCInternal);
       STR_CASE(Async);
       STR_CASE(ChangePCStop);
+      STR_CASE(Detached);
       default: return prefix + std::string("Unknown");
    }
 }
@@ -584,6 +585,15 @@ EventChangePCStop::~EventChangePCStop()
 {
 }
 
+EventDetached::EventDetached() :
+   Event(EventType(EventType::None, EventType::Detached))
+{
+}
+
+EventDetached::~EventDetached()
+{
+}
+
 #define DEFN_EVENT_CAST(NAME, TYPE) \
    NAME::ptr Event::get ## NAME() {  \
      if (etype.code() != EventType::TYPE) return NAME::ptr();  \
@@ -622,4 +632,4 @@ DEFN_EVENT_CAST(EventLibrary, Library)
 DEFN_EVENT_CAST(EventRPCInternal, RPCInternal)
 DEFN_EVENT_CAST(EventAsync, Async)
 DEFN_EVENT_CAST(EventChangePCStop, ChangePCStop)
-
+DEFN_EVENT_CAST(EventDetached, Detached)

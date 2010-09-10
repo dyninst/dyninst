@@ -456,26 +456,12 @@ Process::ptr int_process::proc() const
    return up_proc;
 }
 
-struct syncRunStateRet_t {
-   bool hasRunningThread;
-   bool hasSyncRPC;
-   bool hasStopPending;
-   bool hasClearingBP;
-   bool hasProcStopRPC;
-   bool hasAsyncEvent;
-   std::vector<int_process *> readyProcStoppers;
-   syncRunStateRet_t() :
-      hasRunningThread(false),
-      hasSyncRPC(false),
-      hasStopPending(false),
-      hasClearingBP(false),
-      hasProcStopRPC(false),
-      hasAsyncEvent(false)
-   {
-   }
-};
-
 // Used by HybridLWPControl
+bool int_process::plat_contProcess()
+{
+   return true;
+}
+
 bool int_process::continueProcess() {
     bool foundResumedThread = false;
     bool foundHandlerRunning = false;
@@ -506,6 +492,26 @@ bool int_process::continueProcess() {
 
     return true;
 }
+
+
+struct syncRunStateRet_t {
+   bool hasRunningThread;
+   bool hasSyncRPC;
+   bool hasStopPending;
+   bool hasClearingBP;
+   bool hasProcStopRPC;
+   bool hasAsyncEvent;
+   std::vector<int_process *> readyProcStoppers;
+   syncRunStateRet_t() :
+      hasRunningThread(false),
+      hasSyncRPC(false),
+      hasStopPending(false),
+      hasClearingBP(false),
+      hasProcStopRPC(false),
+      hasAsyncEvent(false)
+   {
+   }
+};
 
 bool syncRunState(int_process *p, void *r)
 {
@@ -631,7 +637,7 @@ bool syncRunState(int_process *p, void *r)
       }
    }
 
-   if( useHybridLWPControl() ) {
+   if (p->useHybridLWPControl(false)) {
        return p->continueProcess();
    }
 
@@ -875,14 +881,36 @@ bool int_process::detach(bool &should_delete)
 
    ProcPool()->condvar()->lock();
 
-   result = plat_detach();
+   bool needs_sync;
+   result = plat_detach(needs_sync);
    if (!result) {
       pthrd_printf("Error performing lowlevel detach\n");
       goto done;
    }
+   
+   if (needs_sync) 
+   {
+      ProcPool()->condvar()->signal();
+      ProcPool()->condvar()->unlock();
 
-   setState(int_process::exited);
-   ProcPool()->rmProcess(this);
+      setForceGeneratorBlock(true);
+      bool proc_exited = false;
+      while (!proc_exited) 
+      {
+         bool result = int_process::waitAndHandleForProc(true, this, proc_exited);
+         if (!result) {
+            perr_printf("Error waiting for events after detach on %d\n", proc()->getPid());
+            return false;
+         }
+      }
+      should_delete = false;
+      return true;
+   }
+   else 
+   {
+      setState(int_process::exited);
+      ProcPool()->rmProcess(this);
+   }
 
    had_error = false;
   done:
@@ -1608,7 +1636,7 @@ bool int_threadPool::cont(bool user_cont)
    bool had_error = false;
    bool cont_something = false;
 
-   if( useHybridLWPControl(this) && user_cont && !allStopped() ) {
+   if( useHybridLWPControl() && user_cont && !allStopped() ) {
        // This thread control mode requires that all threads are stopped before
        // continuing a single thread. To peform these stops while still 
        // maintaining the internal state, each thread's internal state is
@@ -1715,7 +1743,7 @@ bool int_thread::cont(bool user_cont)
       return true;
    }
 
-   if ( int_process::getThreadControlMode() == int_process::NoLWPControl ) {
+   if ( llproc()->plat_getThreadControlMode() == int_process::NoLWPControl ) {
       pthrd_printf("%s continuing entire process %d on thread operation on %d\n",
                    user_cont ? "User" : "Int", llproc()->getPid(), getLWP());
       if (user_cont) {
@@ -1726,7 +1754,7 @@ bool int_thread::cont(bool user_cont)
       }
    }
 
-   if( useHybridLWPControl(llproc()) && user_cont && 
+   if( llproc()->useHybridLWPControl() && user_cont && 
        !llproc()->threadPool()->allStopped() )
    {
        // This thread control mode requires that all threads are stopped before
@@ -1782,7 +1810,7 @@ bool int_thread::cont(bool user_cont)
       }
    }
 
-   if( useHybridLWPControl() ) {
+   if( useHybridLWPControl(false) ) {
         if( user_cont && ret != sc_error ) {
             if( !llproc()->plat_contProcess() ) {
                perr_printf("Failed to continue whole process\n");
@@ -1836,7 +1864,7 @@ int_thread::stopcont_ret_t int_thread::cont(bool user_cont, bool have_proc_lock)
 
    bool result = plat_cont();
    if (result) {
-      if( !useHybridLWPControl() ) {
+      if( !useHybridLWPControl(false) ) {
           setInternalState(running);
           setHandlerState(running);
           setGeneratorState(running);
@@ -2016,7 +2044,7 @@ int_thread::stopcont_ret_t int_thread::stop(bool user_stop)
 
 bool int_thread::stop(bool user_stop, bool sync)
 {
-   if ( int_process::getThreadControlMode() == int_process::NoLWPControl ) {
+   if (llproc()->plat_getThreadControlMode() == int_process::NoLWPControl) {
       if (user_stop) {
          pthrd_printf("User stopping entire process %d on thread operation on %d\n",
                       llproc()->getPid(), getLWP());
@@ -5214,21 +5242,20 @@ void MTManager::endWork()
    work_lock.unlock();
 }
 
-bool useHybridLWPControl(int_threadPool *tp) {
-    return (   int_process::getThreadControlMode() == int_process::HybridLWPControl 
-            && tp->size() > 1 );
+bool int_threadPool::useHybridLWPControl(bool check_mt) const
+{
+   return proc_->useHybridLWPControl(check_mt);
 }
 
-bool useHybridLWPControl(int_process *p) {
-    return (   int_process::getThreadControlMode() == int_process::HybridLWPControl 
-            && p->threadPool()->size() > 1 );
+bool int_process::useHybridLWPControl(bool check_mt) const 
+{
+   return (plat_getThreadControlMode() == int_process::HybridLWPControl && 
+           (!check_mt || (threadPool()->size() > 1)));
 }
 
-bool useHybridLWPControl(int_thread *thrd) {
-    return (   int_process::getThreadControlMode() == int_process::HybridLWPControl 
-            && thrd->llproc()->threadPool()->size() > 1 );
+bool int_thread::useHybridLWPControl(bool check_mt) const
+{
+   return proc_->useHybridLWPControl(check_mt);
 }
 
-bool useHybridLWPControl() {
-    return ( int_process::getThreadControlMode() == int_process::HybridLWPControl );
-}
+

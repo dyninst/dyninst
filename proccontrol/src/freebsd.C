@@ -869,8 +869,9 @@ bool freebsd_process::plat_execed() {
     return true;
 }
 
-bool freebsd_process::plat_detach() {
+bool freebsd_process::plat_detach(bool &needs_sync) {
     pthrd_printf("PT_DETACH on %d\n", getPid());
+    needs_sync = false;
     if( 0 != ptrace(PT_DETACH, getPid(), (caddr_t)1, 0) ) {
         perr_printf("Failed to PT_DETACH on %d\n", getPid());
         setLastError(err_internal, "PT_DETACH operation failed\n");

@@ -94,7 +94,7 @@ public:
     virtual bool plat_attach();
     virtual bool plat_forked();
     virtual bool plat_execed();
-    virtual bool plat_detach();
+    virtual bool plat_detach(bool &needs_sync);
     virtual bool plat_terminate(bool &needs_sync);
 
     virtual bool plat_readMem(int_thread *thr, void *local,
