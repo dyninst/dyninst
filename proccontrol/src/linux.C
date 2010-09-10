@@ -43,6 +43,7 @@
 
 #include "dynutil/h/dyn_regs.h"
 #include "dynutil/h/dyntypes.h"
+#include "common/h/SymLite-elf.h"
 #include "proccontrol/h/PCErrors.h"
 #include "proccontrol/h/Generator.h"
 #include "proccontrol/h/Event.h"
@@ -60,6 +61,7 @@
 
 #include "common/h/linuxKludges.h"
 #include "common/h/parseauxv.h"
+
 using namespace Dyninst;
 using namespace std;
 
@@ -504,14 +506,16 @@ Dyninst::Architecture linux_process::getTargetArch()
 linux_process::linux_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int,int> f) :
    int_process(p, e, a, f),
    sysv_process(p, e, a, f),
-   unix_process(p, e, a, f)
+   unix_process(p, e, a, f),
+   x86_process(p, e, a, f)
 {
 }
 
 linux_process::linux_process(Dyninst::PID pid_, int_process *p) :
    int_process(pid_, p),
    sysv_process(pid_, p),
-   unix_process(pid_, p)
+   unix_process(pid_, p),
+   x86_process(pid_, p)
 {
 }
 

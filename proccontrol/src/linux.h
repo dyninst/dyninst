@@ -98,6 +98,7 @@ class linux_process : public sysv_process, public unix_process, public x86_proce
    virtual Dyninst::Architecture getTargetArch();
    virtual bool plat_individualRegAccess();
    virtual bool plat_contProcess() { return true; }
+   virtual Dyninst::Address plat_mallocExecMemory(Dyninst::Address min, unsigned size);
 };
 
 class linux_thread : public int_thread
