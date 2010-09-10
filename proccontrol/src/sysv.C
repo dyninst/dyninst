@@ -30,7 +30,6 @@
  */
 #include "dynutil/h/SymReader.h"
 #include "dynutil/h/dyntypes.h"
-#include "common/h/SymLite-elf.h"
 #include "sysv.h"
 #include "irpc.h"
 #include "snippets.h"
@@ -50,7 +49,6 @@
 using namespace Dyninst;
 using namespace std;
 
-SymbolReaderFactory *sysv_process::symreader_factory = NULL;
 int_breakpoint *sysv_process::lib_trap = NULL;
 
 sysv_process::sysv_process(Dyninst::PID p, string e, vector<string> a, map<int,int> f) :
@@ -72,7 +70,7 @@ sysv_process::sysv_process(Dyninst::PID pid_, int_process *p) :
    if (sp->translator)
       translator = AddressTranslate::createAddressTranslator(pid_,
                                                              procreader,
-                                                             symreader_factory);
+                                                             plat_defaultSymReader());
 }
 
 sysv_process::~sysv_process()
@@ -285,14 +283,10 @@ bool sysv_process::initLibraryMechanism()
       procreader = new PCProcReader(this);
    assert(procreader);
 
-   if (!symreader_factory)
-      symreader_factory = (SymbolReaderFactory *) new SymElfFactory();
-   assert(symreader_factory);
-
    assert(!translator);
    translator = AddressTranslate::createAddressTranslator(getPid(), 
                                                           procreader,
-                                                          symreader_factory);
+                                                          plat_defaultSymReader());
    if (!translator && procreader->isAsync()) {
       pthrd_printf("Waiting for async read to finish initializing\n");
       return false;
@@ -413,4 +407,9 @@ bool sysv_process::plat_execed()
    breakpoint_addr = 0x0;
    lib_initialized = false;
    return initLibraryMechanism();
+}
+
+bool sysv_process::plat_isStaticBinary()
+{
+  return (breakpoint_addr == 0);
 }

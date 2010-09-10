@@ -10,6 +10,7 @@
 #include "proccontrol/src/int_process.h"
 #include "proccontrol/src/sysv.h"
 #include "proccontrol/src/unix.h"
+#include "proccontrol/src/x86_process.h"
 #include "common/h/dthread.h"
 #include <sys/types.h>
 #include <sys/ptrace.h>
@@ -62,7 +63,7 @@ class DecoderLinux : public Decoder
    Dyninst::Address adjustTrapAddr(Dyninst::Address address, Dyninst::Architecture arch);
 };
 
-class linux_process : virtual public sysv_process, virtual public unix_process
+class linux_process : public sysv_process, public unix_process, public x86_process
 {
  public:
    linux_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int,int> f);
@@ -91,17 +92,12 @@ class linux_process : virtual public sysv_process, virtual public unix_process
                              Dyninst::Address remote, size_t size);
    virtual bool plat_writeMem(int_thread *thr, void *local, 
                               Dyninst::Address remote, size_t size);
-
-   virtual unsigned plat_breakpointSize();
-   virtual void plat_breakpointBytes(char *buffer);
-
+   virtual SymbolReaderFactory *plat_defaultSymReader();
    virtual bool needIndividualThreadAttach();
    virtual bool getThreadLWPs(std::vector<Dyninst::LWP> &lwps);
    virtual Dyninst::Architecture getTargetArch();
    virtual bool plat_individualRegAccess();
    virtual bool plat_contProcess() { return true; }
-
-   virtual Dyninst::Address plat_mallocExecMemory(Dyninst::Address, unsigned size);
 };
 
 class linux_thread : public int_thread

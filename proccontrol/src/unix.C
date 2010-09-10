@@ -39,6 +39,14 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 
+#include "common/h/Types.h"
+#if defined(os_linux)
+#include "common/h/linuxKludges.h"
+#elif defined(os_freebsd)
+#include "common/h/freebsdKludges.h"
+#endif
+
+
 void int_notify::writeToPipe()
 {
    if (pipe_out == -1) 
@@ -323,3 +331,28 @@ bool unix_process::plat_createDeallocationSnippet(Dyninst::Address addr,
    return true;
 }
 
+Dyninst::Address unix_process::plat_mallocExecMemory(Dyninst::Address min, unsigned size) {
+    Dyninst::Address result = 0x0;
+    bool found_result = false;
+    unsigned maps_size;
+    map_entries *maps = getVMMaps(getPid(), maps_size);
+    assert(maps); //TODO, Perhaps go to libraries for address map if no /proc/
+    for (unsigned i=0; i<maps_size; i++) {
+        if (!(maps[i].prems & PREMS_EXEC))
+            continue;
+        if (min + size > maps[i].end)
+            continue;
+        if (maps[i].end - maps[i].start < size)
+            continue;
+
+        if (maps[i].start > min)
+            result = maps[i].start;
+        else
+            result = min;
+        found_result = true;
+        break;
+    }
+    assert(found_result);
+    free(maps);
+    return result;
+}

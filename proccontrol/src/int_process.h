@@ -39,6 +39,7 @@
 #include "proccontrol/src/response.h"
 
 #include "dynutil/h/dyn_regs.h"
+#include "dynutil/h/SymReader.h"
 #include "common/h/dthread.h"
 
 #include <vector>
@@ -194,6 +195,7 @@ class int_process
                                              unsigned long &start_offset) = 0;
    virtual bool plat_collectAllocationResult(int_thread *thr, reg_response::ptr resp) = 0;
 
+   virtual SymbolReaderFactory *plat_defaultSymReader();
    Dyninst::Address infMalloc(unsigned long size, bool use_addr = false, Dyninst::Address addr = 0x0);
    bool infFree(Dyninst::Address addr);
 
@@ -230,6 +232,7 @@ class int_process
                                   std::set<int_library *> &rmd_libs,
                                   std::set<response::ptr> &async_responses) = 0;
    virtual bool initLibraryMechanism() = 0;
+   virtual bool plat_isStaticBinary() = 0;
 
    bool forceGeneratorBlock() const;
    void setForceGeneratorBlock(bool b);
