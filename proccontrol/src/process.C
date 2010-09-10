@@ -1083,6 +1083,11 @@ void int_process::freeExecMemory(Dyninst::Address addr)
    exec_mem_cache.erase(i);
 }
 
+SymbolReaderFactory *int_process::plat_defaultSymReader()
+{
+  return NULL;
+}
+
 Dyninst::Address int_process::infMalloc(unsigned long size, bool use_addr, Dyninst::Address addr)
 {
    pthrd_printf("Process %d is allocating memory of size %lu at 0x%lx\n", getPid(), size, addr);
@@ -1440,12 +1445,14 @@ bool int_process::plat_readMemAsync(int_thread *, Dyninst::Address,
                                     mem_response::ptr )
 {
    assert(0);
+   return false;
 }
 
 bool int_process::plat_writeMemAsync(int_thread *, void *, Dyninst::Address,
                                      size_t, result_response::ptr )
 {
    assert(0);
+   return false;
 }
 
 void int_process::updateSyncState(Event::ptr ev, bool gen)
@@ -2615,18 +2622,21 @@ void int_thread::updateRegCache(Dyninst::MachRegister reg,
 bool int_thread::plat_getAllRegistersAsync(allreg_response::ptr)
 {
    assert(0);
+   return false;
 }
 
 bool int_thread::plat_getRegisterAsync(Dyninst::MachRegister, 
                                        reg_response::ptr)
 {
    assert(0);
+   return false;
 }
 
 bool int_thread::plat_setAllRegistersAsync(int_registerPool &,
                                            result_response::ptr)
 {
    assert(0);
+   return false;
 }
 
 bool int_thread::plat_setRegisterAsync(Dyninst::MachRegister, 
@@ -2634,6 +2644,7 @@ bool int_thread::plat_setRegisterAsync(Dyninst::MachRegister,
                                        result_response::ptr)
 {
    assert(0);
+   return false;
 }
 
 void int_thread::addPostedRPC(int_iRPC::ptr rpc_)

@@ -54,6 +54,7 @@ class unix_process : virtual public int_process
                                                unsigned long size, void* &buffer, 
                                                unsigned long &buffer_size, 
                                                unsigned long &start_offset);
+   virtual Dyninst::Address plat_mallocExecMemory(Dyninst::Address, unsigned size);
 };
 
 #endif

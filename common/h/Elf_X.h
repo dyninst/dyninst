@@ -720,10 +720,10 @@ class Elf_X_Data {
 class Elf_X_Shdr {
   public:
     Elf_X_Shdr()
-       : scn(NULL), shdr32(NULL), shdr64(NULL), is64(false), fromDebugFile(false) { }
+      : scn(NULL), data(NULL), shdr32(NULL), shdr64(NULL), is64(false), fromDebugFile(false) { }
 
     Elf_X_Shdr(bool is64_, Elf_Scn *input)
-       : scn(input), shdr32(NULL), shdr64(NULL), is64(is64_), fromDebugFile(false) {
+      : scn(input), data(NULL), shdr32(NULL), shdr64(NULL), is64(is64_), fromDebugFile(false) {
 
 	if (input) {
 	    first_data();

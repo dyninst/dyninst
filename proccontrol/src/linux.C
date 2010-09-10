@@ -775,6 +775,17 @@ bool linux_thread::plat_cont()
    return true;
 }
 
+SymbolReaderFactory *linux_process::plat_defaultSymReader()
+{
+  static SymbolReaderFactory *symreader_factory = NULL;
+  if (symreader_factory)
+    return symreader_factory;
+
+  symreader_factory = (SymbolReaderFactory *) new SymElfFactory();
+  return symreader_factory;
+}
+
+
 #ifndef SYS_tkill
 #define SYS_tkill 238
 #endif
@@ -921,34 +932,6 @@ bool linux_thread::getSegmentBase(Dyninst::MachRegister reg, Dyninst::MachRegist
          val = entryDesc.base_addr;
          pthrd_printf("Got segment base: 0x%lx\n", val);
          return true;
-      }
-      default:
-         assert(0);
-   }
-}
-
-
-unsigned linux_process::plat_breakpointSize()
-{
-   switch (getTargetArch())
-   {
-      case Arch_x86_64:
-      case Arch_x86:
-         return 1;
-      default:
-         assert(0);
-         return 0;
-   }
-}
-
-void linux_process::plat_breakpointBytes(char *buffer)
-{
-   switch (getTargetArch())
-   {
-      case Arch_x86_64:
-      case Arch_x86: {
-         buffer[0] = 0xcc;
-         break;
       }
       default:
          assert(0);

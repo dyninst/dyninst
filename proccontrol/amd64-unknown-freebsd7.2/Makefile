@@ -19,6 +19,7 @@ SRCS = ../src/sysv.C \
        ../src/freebsd.C \
 		 ../src/unix.C \
        ../src/int_thread_db.C \
+       ../src/x86_process.C \
        ../../common/src/dthread-unix.C
 
 ifdef LIBELF_DIR
