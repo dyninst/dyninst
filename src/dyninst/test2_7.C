@@ -72,7 +72,7 @@ test_results_t test2_7_Mutator::executeTest() {
 #else
     test_results_t result;
 
-    if (!appThread->loadLibrary(TEST_DYNAMIC_LIB2)) {
+    if (!appProc->loadLibrary(TEST_DYNAMIC_LIB2)) {
     	logerror("**Failed** test #7 (load a dynamically linked library from the mutator)\n");
 	logerror("    BPatch_thread::loadLibrary returned an error\n");
         result = FAILED;
@@ -127,4 +127,3 @@ test_results_t test2_7_Mutator::executeTest() {
     return result;
 #endif
 }
-

@@ -84,6 +84,12 @@ typedef enum {
    no_launch
 } mutatee_runtime_t;
 
+typedef enum
+{
+   nonPIC = 0,
+   PIC
+} test_pictype_t;
+
 class TestInfo {
 public:
   const char *name;
@@ -127,23 +133,30 @@ public:
   test_threadstate_t threadmode;
   test_procstate_t procmode;
   test_linktype_t linktype;
+  test_pictype_t pic;
   const char *compiler;
   const char *optlevel;
   const char *abi;
-
+  
   TESTLIB_DLL_EXPORT RunGroup(const char *mutatee_name, start_state_t state_init,
                               create_mode_t attach_init, 
                               test_threadstate_t threads_, test_procstate_t procs_, 
                               run_location_t mutator_location, run_location_t mutatee_location, 
                               mutatee_runtime_t mutator_run_time,
                               test_linktype_t linktype_,
-                              bool ex, TestInfo *test_init,
+                              bool ex,
+                              test_pictype_t pic_,
+                              TestInfo *test_init,
                               const char *modname_, const char *compiler_, const char *optlevel_, 
                               const char *abi_);
-  TESTLIB_DLL_EXPORT RunGroup(const char *mutatee_name, start_state_t state_init,
+  TESTLIB_DLL_EXPORT RunGroup(const char *mutatee_name,
+                              start_state_t state_init,
                               create_mode_t attach_init,
-                              bool ex, const char *modname_, 
-                              const char *compiler_, const char *optlevel_,
+                              bool ex, 
+                              const char *modname_, 
+                              test_pictype_t pic_,
+                              const char *compiler_,
+                              const char *optlevel_,
                               const char *abi);
   TESTLIB_DLL_EXPORT RunGroup(const char *mutatee_name, start_state_t state_init,
                               create_mode_t attach_init, 
@@ -151,7 +164,9 @@ public:
                               run_location_t mutator_location_, run_location_t mutatee_location_,
                               mutatee_runtime_t mutator_run_time_,
                               test_linktype_t linktype_,
-                              bool ex, const char *modname_,
+                              bool ex,
+                              test_pictype_t pic_,
+                              const char *modname_,
                               const char *compiler_, const char *optlevel_, 
                               const char *abi_);
   TESTLIB_DLL_EXPORT ~RunGroup();

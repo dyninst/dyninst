@@ -122,19 +122,20 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
       return false;
    }
    
+   SymbolReaderFactory *factory = NULL;
    for (unsigned i=0; i<num_processes; i++) {
       Process::ptr proc = startMutatee(group, param);
       if (proc == NULL) {
          error = true;
          continue;
       }
+      if (!factory) factory = proc->getDefaultSymbolReader();
    }
 
    {
       /**
        * Set the socket name in each process
        **/
-      SymbolReaderFactory *factory = getDefaultSymbolReader();
       assert(factory);
       SymReader *reader = NULL;
       Dyninst::Offset sym_offset = 0;
@@ -203,7 +204,7 @@ bool ProcControlComponent::startMutatees(RunGroup *group, ParameterDict &param)
       while (eventsRecieved[thread_create].size() < num_procs*num_threads) {
          bool result = Process::handleEvents(true);
          if (!result) {
-            logerror("Failed to handle events during thread create");
+            logerror("Failed to handle events during thread create\n");
             error = true;
          }
       }
@@ -265,6 +266,10 @@ test_results_t ProcControlComponent::group_setup(RunGroup *group, ParameterDict 
    eventsRecieved.clear();
    sockfd = 0;
    sockname = NULL;
+   curgroup_self_cleaning = false;
+
+   me.setPtr(this);
+   params["ProcControlComponent"] = &me;
 
    bool result = startMutatees(group, params);
    if (!result) {
@@ -272,9 +277,6 @@ test_results_t ProcControlComponent::group_setup(RunGroup *group, ParameterDict 
       return FAILED;
    }
 
-   me.setPtr(this);
-   params["ProcControlComponent"] = &me;
-      
    return PASSED;
 }
 
@@ -287,7 +289,10 @@ test_results_t ProcControlComponent::group_teardown(RunGroup *group, ParameterDi
 {
    bool error = false;
    bool hasRunningProcs;
-   
+
+   if (curgroup_self_cleaning)
+      return PASSED;
+
    Process::registerEventCallback(EventType(EventType::Exit), on_exit);
    do {
       hasRunningProcs = false;
@@ -319,7 +324,7 @@ test_results_t ProcControlComponent::group_teardown(RunGroup *group, ParameterDi
          continue;
       }
       if (!p->isExited()) {
-         logerror("Process is not exited\n");
+         logerror("Process did not report as exited\n");
          error = true;
          continue;
       }
@@ -560,7 +565,7 @@ bool ProcControlComponent::recv_broadcast(unsigned char *msg, unsigned msg_size)
 
 bool ProcControlComponent::send_message(unsigned char *msg, unsigned msg_size, int sfd)
 {
-   int result = send(sfd, msg, msg_size, 0);
+   int result = send(sfd, msg, msg_size, MSG_NOSIGNAL);
    if (result == -1) {
       char error_str[1024];
       snprintf(error_str, 1024, "Mutator unable to send message: %s\n", strerror(errno));

@@ -80,7 +80,7 @@ static void llErrorFunc(BPatchErrorLevel level, int num, const char * const *par
 // static int mutatorTest( BPatch_thread * appThread, BPatch_image * appImage )
 test_results_t test2_13_Mutator::executeTest() {
   test_results_t retval;
-  if (appThread->isTerminated()) {
+  if (appProc->isTerminated()) {
     logerror( "**Failed** test #13 (dlopen failure reporting test)\n" );
     logerror("%s[%d]: mutatee in unexpected (terminated) state\n", __FILE__, __LINE__);
     return FAILED;
@@ -88,7 +88,7 @@ test_results_t test2_13_Mutator::executeTest() {
 
   BPatchErrorCallback oldErrorFunc = bpatch->registerErrorCallback(llErrorFunc);
   
-  if (appThread->loadLibrary("noSuchLibrary.Ever")) {
+  if (appProc->loadLibrary("noSuchLibrary.Ever")) {
     logerror("**Failed** test #13 (failure reporting for loadLibrary)\n");
     retval = FAILED;
   }
@@ -125,13 +125,14 @@ test_results_t test2_13_Mutator::setup(ParameterDict &param) {
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
 
     appThread = (BPatch_thread *)(param["appThread"]->getPtr());
+    appProc = appThread->getProcess();
 
     // Read the program's image and get an associated image object
-    appImage = appThread->getImage();
+    appImage = appProc->getImage();
 
     // Signal the child that we've attached
     if (createmode == USEATTACH) {
-       signalAttached(appThread, appImage);
+       signalAttached(appImage);
     }
 
     return PASSED;

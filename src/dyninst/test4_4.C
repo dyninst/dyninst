@@ -69,7 +69,7 @@ test4_4_Mutator::test4_4_Mutator()
 
 static bool passedTest;
 static int threadCount;
-static BPatch_thread *mythreads[25];
+static BPatch_process *mythreads[25];
 
 static BPatch_thread *test4Child;
 static BPatch_thread *test4Parent;
@@ -81,17 +81,17 @@ static void forkFunc(BPatch_thread *parent, BPatch_thread *child)
     BPatch_Vector<BPatch_function *> bpfv;
     BPatch_Vector<BPatch_snippet *> nullArgs;
 
-    if (child) mythreads[threadCount++] = child;
+    if (child) mythreads[threadCount++] = child->getProcess();
 
     if (!child) {
-       dprintf("in prefork for %d\n", parent->getPid());
+        dprintf("in prefork for %d\n", parent->getProcess()->getPid());
     } else {
-       dprintf("in fork of %d to %d\n", parent->getPid(), child->getPid());
+        dprintf("in fork of %d to %d\n", parent->getProcess()->getPid(), child->getProcess()->getPid());
     }
        if (!child) return;	// skip prefork case
 
        // insert code into parent
-       appImage = parent->getImage();
+       appImage = parent->getProcess()->getImage();
        assert(appImage);
 
        char *fn5 = "test4_4_func3";
@@ -116,7 +116,7 @@ static void forkFunc(BPatch_thread *parent, BPatch_thread *child)
        BPatch_function *func2_parent = bpfv[0];
        BPatch_Vector<BPatch_point *> *point2 = func2_parent->findPoint(BPatch_exit);
        assert(point2);
-       parent->insertSnippet(callExpr2, *point2);
+       parent->getProcess()->insertSnippet(callExpr2, *point2);
 
        // code goes into child after in-exec in this test.
 
@@ -128,9 +128,9 @@ static void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type)
   dprintf("exitFunc called\n");
   bool failedTest = false;
     // Read out the values of the variables.
-    int exitCode = thread->getExitCode();
+  int exitCode = thread->getProcess()->getExitCode();
 
-    assert(thread->terminationStatus() == exit_type);
+  assert(thread->getProcess()->terminationStatus() == exit_type);
     // Read out the values of the variables.
     // FIXME I'm not happy about this static variable.  Make sure it is working
     // right, and maybe try to figure out a different way to do this.
@@ -139,20 +139,20 @@ static void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type)
     if (exit_type == ExitedViaSignal) {
         logerror("Failed test #4 (fork callback)\n");
         logerror("    process exited via signal %d\n",
-               thread->getExitSignal());
+                 thread->getProcess()->getExitSignal());
         failedTest = true;            
-    } else if (thread->getPid() != exitCode) {
+    } else if (thread->getProcess()->getPid() != exitCode) {
         logerror("Failed test #4 (fork callback)\n");
         logerror("    exit code was not equal to pid\n");
         failedTest = true;
     } else if (test4Parent == thread) {
         dprintf("test #4, pid %d exited\n", exitCode);
-        if (!verifyChildMemory(test4Parent,"test4_4_global1",4000002)){
+        if (!verifyChildMemory(test4Parent->getProcess(),"test4_4_global1",4000002)){
             failedTest = true;
         }
     } else if (test4Child == thread) {
         dprintf("test #4, pid %d exited\n", exitCode);
-        if (!verifyChildMemory(test4Child, "test4_4_global1", 4000003)) {
+        if (!verifyChildMemory(test4Child->getProcess(), "test4_4_global1", 4000003)) {
             failedTest = true;
         }
     } else {
@@ -176,11 +176,11 @@ static void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type)
 static void execFunc(BPatch_thread *thread)
 {
   BPatch_Vector<BPatch_function *> bpfv;
-	dprintf("in exec callback for %d\n", thread->getPid());
+  dprintf("in exec callback for %d\n", thread->getProcess()->getPid());
 
         // insert code into child
 	BPatch_Vector<BPatch_snippet *> nullArgs;
-        BPatch_image *appImage = thread->getImage();
+        BPatch_image *appImage = thread->getProcess()->getImage();
         assert(appImage);
 
 	char *fn3 = "test4_4_func4";
@@ -207,7 +207,7 @@ static void execFunc(BPatch_thread *thread)
 	BPatch_Vector<BPatch_point *> *point1 = func2_child->findPoint(BPatch_exit);
 
 	assert(point1);
-        thread->insertSnippet(callExpr1, *point1);
+        thread->getProcess()->insertSnippet(callExpr1, *point1);
 }
 
 test_results_t test4_4_Mutator::mutatorTest() {
@@ -231,13 +231,13 @@ test_results_t test4_4_Mutator::mutatorTest() {
     // Start the mutatee
     logerror("Starting \"%s\"\n", pathname);
 
-    test4Parent = bpatch->createProcess(pathname, child_argv);
-    if (test4Parent == NULL) {
+    appProc = bpatch->processCreate(pathname, child_argv);
+    if (appProc == NULL) {
 	logerror("Unable to run test program: %s.\n", pathname);
         return FAILED;
     }
 
-    contAndWaitForAllThreads(bpatch, test4Parent, mythreads, &threadCount);
+    contAndWaitForAllProcs(bpatch, appProc, mythreads, &threadCount);
 
     if ( !passedTest )
     {

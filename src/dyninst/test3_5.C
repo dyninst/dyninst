@@ -82,33 +82,31 @@ test_results_t test3_5_Mutator::executeTest() {
     child_argv[n++] = const_cast<char*>("test3_5"); // run test5 in mutatee
     child_argv[n++] = NULL;
 
-    BPatch_thread *appThread;
-
     for (n=0; n<Mutatees; n++) {
         // Start the mutatee
         dprintf("Starting \"%s\" %d/%d\n", pathname, n, Mutatees);
-        appThread = bpatch->createProcess(pathname, child_argv, NULL);
-        if (!appThread) {
+        appProc = bpatch->processCreate(pathname, child_argv, NULL);
+        if (!appProc) {
             logerror("*ERROR*: unable to create handle%d for executable\n", n);
             logerror("**Failed** Test #5 (sequential multiple-process management - abort)\n");
             return FAILED;
         }
-        dprintf("Mutatee %d started, pid=%d\n", n, appThread->getPid());
+        dprintf("Mutatee %d started, pid=%d\n", n, appProc->getPid());
 
-        appThread->continueExecution();
+        appProc->continueExecution();
 
-        while (!appThread->isTerminated()) {
-            if (appThread->isStopped())
-               appThread->continueExecution();
+        while (!appProc->isTerminated()) {
+            if (appProc->isStopped())
+                appProc->continueExecution();
             bpatch->waitForStatusChange();
         }
 
-        if(appThread->terminationStatus() == ExitedNormally) {
-           int exitCode = appThread->getExitCode();
+        if(appProc->terminationStatus() == ExitedNormally) {
+            int exitCode = appProc->getExitCode();
            if (exitCode || debugPrint)
                dprintf("Mutatee %d exited with exit code 0x%x\n", n, exitCode);
-        } else if(appThread->terminationStatus() == ExitedViaSignal) {
-           int signalNum = appThread->getExitSignal();
+        } else if(appProc->terminationStatus() == ExitedViaSignal) {
+            int signalNum = appProc->getExitSignal();
            if (signalNum || debugPrint)
                dprintf("Mutatee %d exited from signal 0x%d\n", n, signalNum);
         }

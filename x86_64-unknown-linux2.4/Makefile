@@ -61,7 +61,6 @@ MUTATEE_TEST9_EXTRA_LIB = 9.-L./ 9.-lInstMe
 
 LIBS_LIBTESTSUITE = -ldl
 
-TESTDRIVER_LDFLAGS = -liberty
 
 include ../make.module.tmpl
 

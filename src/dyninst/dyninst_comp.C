@@ -201,7 +201,7 @@ test_results_t DyninstComponent::group_setup(RunGroup *group,
             pid = getMutateePid(group);
          }
          assert(pid);
-         
+
          appProc = BPatch::bpatch->processAttach(group->mutatee, pid);
          if (!appProc) {
             logerror("Error attaching to process\n");
@@ -294,7 +294,7 @@ test_results_t DyninstComponent::group_teardown(RunGroup *group,
    {
       // All tests failed or skipped in executeTest(), so I didn't execute the
       // mutatee.  I should kill it so it doesn't run in attach mode
-      appThread->getProcess()->terminateExecution();
+      appProc->terminateExecution();
       return FAILED;
    }
    if (appThread == NULL) {
@@ -305,24 +305,24 @@ test_results_t DyninstComponent::group_teardown(RunGroup *group,
 
    do {
        //fprintf(stderr, "continuing mutatee...\n");
-      appThread->continueExecution();
+      appProc->continueExecution();
       bpatch->waitForStatusChange();
-   } while (appThread && !appThread->isTerminated());
+   } while (appProc && !appProc->isTerminated());
 
-   if (appThread->terminationStatus() == ExitedNormally &&
-       appThread->getExitCode() == 0)
+   if (appProc->terminationStatus() == ExitedNormally &&
+       appProc->getExitCode() == 0)
    {
       return PASSED;
    }
 
    bool mutateeExitedViaSignal = false;
-   if(appThread->terminationStatus() == ExitedViaSignal) {
+   if(appProc->terminationStatus() == ExitedViaSignal) {
       mutateeExitedViaSignal = true;
-      int signalNum = appThread->getExitSignal();
+      int signalNum = appProc->getExitSignal();
       getOutput()->log(LOGINFO, "Mutatee exited from signal 0x%x\n", signalNum);
    }
    else {
-      int exitCode = appThread->getExitCode();
+       int exitCode = appProc->getExitCode();
       getOutput()->log(LOGINFO, "Mutatee exit code 0x%x\n", exitCode);
    }
 
@@ -431,7 +431,7 @@ test_results_t DyninstMutator::setup(ParameterDict &param)
 
   if ( createmode ) 
   {
-	  if ( ! signalAttached(appThread, appImage) ) 
+	  if ( ! signalAttached(appImage) )
 	  {
 		  return FAILED;
 	  }
@@ -447,33 +447,33 @@ int expectError = DYNINST_NO_ERROR;
 //
 // Wait for the mutatee to stop.
 //
-int waitUntilStopped(BPatch *bpatch, BPatch_thread *appThread, int testnum,
+int waitUntilStopped(BPatch *bpatch, BPatch_process *appProc, int testnum,
                       const char *testname)
 {
-  while (!appThread->isStopped() && !appThread->isTerminated()) {
+    while (!appProc->isStopped() && !appProc->isTerminated()) {
         bpatch->waitForStatusChange();
   }
 
-    if (!appThread->isStopped()) {
+  if (!appProc->isStopped()) {
         logerror("**Failed test #%d (%s)\n", testnum, testname);
         logerror("    process did not signal mutator via stop\n");
         logerror("thread is not stopped\n");
         return -1;
     }
 #if defined(os_windows_test) //ccw 10 apr 2001
-    else if (appThread->stopSignal() != EXCEPTION_BREAKPOINT && appThread->stopSignal() != -1) {
+    else if (appProc->stopSignal() != EXCEPTION_BREAKPOINT && appProc->stopSignal() != -1) {
 	logerror("**Failed test #%d (%s)\n", testnum, testname);
 	logerror("    process stopped on signal %d, not SIGTRAP\n", 
-		appThread->stopSignal());
+                 appProc->stopSignal());
         return -1;
     }
 #else
-    else if ((appThread->stopSignal() != SIGSTOP) &&
-	     (appThread->stopSignal() != SIGBUS) &&
-	     (appThread->stopSignal() != SIGHUP)) {
+    else if ((appProc->stopSignal() != SIGSTOP) &&
+	     (appProc->stopSignal() != SIGBUS) &&
+	     (appProc->stopSignal() != SIGHUP)) {
 	logerror("**Failed test #%d (%s)\n", testnum, testname);
  	logerror("    process stopped on signal %d, not SIGSTOP\n", 
-		 appThread->stopSignal());
+                 appProc->stopSignal());
         return -1;
     }
 #endif
@@ -487,7 +487,7 @@ int waitUntilStopped(BPatch *bpatch, BPatch_thread *appThread, int testnum,
 // "isAttached."  We add instrumentation to "checkIfAttached" to set
 // "isAttached" to 1.
 //
-bool signalAttached(BPatch_thread* /*appThread*/, BPatch_image *appImage)
+bool signalAttached(BPatch_image *appImage)
 {
     BPatch_variableExpr *isAttached = appImage->findVariable("isAttached");
     if (isAttached == NULL) {
@@ -939,13 +939,13 @@ void instrument_exit_points( BPatch_addressSpace * app_thread,
 }
 
 // NOTE: What are the benefits of this over appThread->terminateProcess?
-void killMutatee(BPatch_thread *appThread)
+void killMutatee(BPatch_process *appProc)
 {
-	int pid = appThread->getPid();
+    int pid = appProc->getPid();
 
-	appThread->terminateExecution();
-	dprintf("Mutatee process %d killed.\n", pid);
-	return;
+    appProc->terminateExecution();
+    dprintf("Mutatee process %d killed.\n", pid);
+    return;
 }
 
 // Tests to see if the mutatee has defined the mutateeCplusplus flag
@@ -998,19 +998,19 @@ int isMutateeF77(BPatch_image *appImage) {
 }
 
 
-void MopUpMutatees(const unsigned int mutatees, BPatch_thread *appThread[])
+void MopUpMutatees(const unsigned int mutatees, BPatch_process *appProc[])
 {
 	unsigned int n=0;
 	dprintf("MopUpMutatees(%d)\n", mutatees);
 	for (n=0; n<mutatees; n++) {
-		if (appThread[n]) {
-			if (appThread[n]->terminateExecution()) {
-				assert(appThread[n]->terminationStatus() == ExitedViaSignal);
-				int signalNum = appThread[n]->getExitSignal();
+            if (appProc[n]) {
+                if (appProc[n]->terminateExecution()) {
+                    assert(appProc[n]->terminationStatus() == ExitedViaSignal);
+                    int signalNum = appProc[n]->getExitSignal();
 				dprintf("Mutatee terminated from signal 0x%x\n", signalNum);
 			} else {
 				fprintf(stderr, "Failed to mop up mutatee %d (pid=%d)!\n",
-						n, appThread[n]->getPid());
+                                        n, appProc[n]->getPid());
 			}
 		} else {
 			fprintf(stderr, "Mutatee %d already terminated?\n", n);
@@ -1019,19 +1019,19 @@ void MopUpMutatees(const unsigned int mutatees, BPatch_thread *appThread[])
 	dprintf("MopUpMutatees(%d) done\n", mutatees);
 }
 
-TEST_DLL_EXPORT void contAndWaitForAllThreads(BPatch *bpatch, BPatch_thread *appThread, 
-		BPatch_thread **mythreads, int *threadCount)
+TEST_DLL_EXPORT void contAndWaitForAllProcs(BPatch *bpatch, BPatch_process *appProc,
+		BPatch_process **myprocs, int *threadCount)
 {
 
-	dprintf("Thread %d is pointer %p\n", *threadCount, appThread);
-	mythreads[(*threadCount)++] = appThread;
-	appThread->continueExecution();
+    dprintf("Proc %d is pointer %p\n", *threadCount, appProc);
+	myprocs[(*threadCount)++] = appProc;
+        appProc->continueExecution();
 
 	while (1) {
 		int i;
 		dprintf("Checking %d threads for terminated status\n", *threadCount);
 		for (i=0; i < *threadCount; i++) {
-			if (!mythreads[i]->isTerminated()) {
+                    if (!myprocs[i]->isTerminated()) {
 				dprintf("Thread %d is not terminated\n", i);
 				break;
 			}
@@ -1046,9 +1046,9 @@ TEST_DLL_EXPORT void contAndWaitForAllThreads(BPatch *bpatch, BPatch_thread *app
 		bpatch->waitForStatusChange();
 
 		for (i=0; i < *threadCount; i++) {
-			if (mythreads[i]->isStopped()) {
+                    if (myprocs[i]->isStopped()) {
 				dprintf("Thread %d marked stopped, continuing\n", i);
-				mythreads[i]->continueExecution();
+                                myprocs[i]->continueExecution();
 			}
 		}
 	}
@@ -1061,7 +1061,7 @@ TEST_DLL_EXPORT void contAndWaitForAllThreads(BPatch *bpatch, BPatch_thread *app
  *    in the child process, and verify that the value matches.
  *
  */
-bool verifyChildMemory(BPatch_thread *appThread, 
+bool verifyChildMemory(BPatch_process *appThread,
 		const char *name, int expectedVal)
 {
 	BPatch_image *appImage = appThread->getImage();
@@ -1520,7 +1520,7 @@ bool checkStack(BPatch_thread *appThread,
 				func->getName(name, name_max);
 
 			BPatch_function *func2 =
-				appThread->findFunctionByAddr(stack[j].getPC());
+                                appThread->getProcess()->findFunctionByAddr(stack[j].getPC());
 			if (func2 != NULL)
 				func2->getName(name2, name_max);
 
@@ -1602,28 +1602,9 @@ void buildArgs(const char** child_argv, char *pathname, int testNo){
 
 }
 
-
-bool createNewProcess(BPatch *bpatch, BPatch_thread *&appThread, BPatch_image *&appImage, 
-		char *pathname, const char** child_argv)
+int instrumentToCallZeroArg(BPatch_process *appThread, BPatch_image *appImage, char *instrumentee,
+                            char*patch, int testNo, char *testName)
 {
-
-
-	appThread = bpatch->createProcess(pathname, child_argv,NULL);
-
-	if (appThread == NULL) {
-		fprintf(stderr, "Unable to run test program.\n");
-		return false;
-	}
-	appThread->enableDumpPatchedImage();
-
-	// Read the program's image and get an associated image object
-	appImage = appThread->getImage();
-
-	return true;
-}
-
-
-int instrumentToCallZeroArg(BPatch_thread *appThread, BPatch_image *appImage, char *instrumentee, char*patch, int testNo, char *testName){
 
 	BPatch_Vector<BPatch_function *> found_funcs;
 	if ((NULL == appImage->findFunction(instrumentee, found_funcs)) || !found_funcs.size()) {
@@ -1664,21 +1645,7 @@ int instrumentToCallZeroArg(BPatch_thread *appThread, BPatch_image *appImage, ch
 	return 0;
 }
 
-char* saveWorld(BPatch_thread *appThread){
-
-	char *mutatedName = new char[strlen("test9_mutated") +1];
-	memset(mutatedName, '\0',strlen("test9_mutated") +1);
-	strcat(mutatedName, "test9_mutated");
-	// FIXME dumpPatchedImage returns bool, not char *(?)
-	char* dirName = appThread->dumpPatchedImage(mutatedName);
-	if(!dirName){
-		logerror("Error: No directory name returned\n");
-	}
-
-	return dirName;
-}
-
-int letOriginalMutateeFinish(BPatch_thread *appThread){
+int letOriginalMutateeFinish(BPatch_process *appThread){
 	/* finish original mutatee to see if it runs */
 
 	/*fprintf(stderr,"\n************************\n");	
