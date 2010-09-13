@@ -83,7 +83,8 @@ IA_IAPI::IA_IAPI(InstructionDecoder dec_,
     InstructionAdapter(where_, o, r, isrc), 
     dec(dec_),
     validCFT(false), 
-    cachedCFT(0)
+    cachedCFT(0),
+    validLinkerStubState(false)
 {
     hascftstatus.first = false;
     tailCall.first = false;
@@ -106,6 +107,7 @@ void IA_IAPI::advance()
         parsing_printf("......WARNING: after advance at 0x%lx, curInsn() NULL\n", current);
     }
     validCFT = false;
+    validLinkerStubState = false;
     hascftstatus.first = false;
     tailCall.first = false;
 }
@@ -136,6 +138,7 @@ void IA_IAPI::retreat()
 
     /* blind duplication -- nate */
     validCFT = false;
+    validLinkerStubState = false;
     hascftstatus.first = false;
     tailCall.first = false;
 } 
@@ -431,9 +434,14 @@ bool IA_IAPI::isRealCall() const
     }
     if(!_isrc->isValidAddress(getCFT()))
     {
-        parsing_printf(" isREalCall whacked by _isrc->isVAlidAddress(%lx)\n",
-            getCFT());
-        return false;
+        CodeSource *_csrc = dynamic_cast<CodeSource *>(_isrc);
+        assert(_csrc);
+
+        if (_csrc->linkage().find(getCFT()) == _csrc->linkage().end()) {
+            parsing_printf(" isRealCall failed _isrc->isValidAddress(%lx)\n",
+                           getCFT());
+            return false;
+        }
     }
     if(isThunk()) {
         return false;
@@ -477,9 +485,16 @@ Address IA_IAPI::getCFT() const
     else
     {
         cachedCFT = 0;
-        parsing_printf("FAIL (CFT=0x%x), callTarget exp: %s\n", cachedCFT,callTarget->format().c_str());
+        parsing_printf("FAIL (CFT=0x%x), callTarget exp: %s\n",
+                       cachedCFT,callTarget->format().c_str());
     }
     validCFT = true;
+
+    if(isLinkerStub()) {
+        parsing_printf("Linker stub detected: Correcting CFT.  (CFT=0x%x)\n",
+                       cachedCFT);
+    }
+
     return cachedCFT;
 }
 

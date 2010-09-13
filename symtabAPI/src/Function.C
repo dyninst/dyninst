@@ -88,6 +88,32 @@ bool Function::setFramePtrRegnum(int regnum)
     return true;
 }
 
+Offset Function::getPtrOffset() const
+{
+    Offset retval = 0;
+    for (unsigned i = 0; i < symbols_.size(); ++i) {
+        Offset tmp_off = symbols_[i]->getPtrOffset();
+        if (tmp_off) {
+           if (retval == 0) retval = tmp_off;
+           assert(retval == tmp_off);
+        }
+    }
+    return retval;
+}
+
+Offset Function::getTOCOffset() const
+{
+    Offset retval = 0;
+    for (unsigned i = 0; i < symbols_.size(); ++i) {
+        Offset tmp_toc = symbols_[i]->getLocalTOC();
+        if (tmp_toc) {
+            if (retval == 0) retval = tmp_toc;
+            assert(retval == tmp_toc);
+        }
+    }
+    return retval;
+}
+
 static std::vector<Dyninst::SymtabAPI::VariableLocation> emptyLocVec;
 std::vector<Dyninst::SymtabAPI::VariableLocation> &Function::getFramePtr() 
 {

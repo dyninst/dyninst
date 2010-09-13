@@ -1313,3 +1313,9 @@ bool IA_IAPI::isIATcall() const
 
     return true;
 }
+
+bool IA_IAPI::isLinkerStub() const
+{
+    // No need for linker stubs on x86 platforms.
+    return false;
+}

@@ -439,6 +439,17 @@ SymtabCodeSource::loadAddress() const
     return _symtab->getLoadOffset();
 }
 
+Address
+SymtabCodeSource::getTOC(Address addr) const
+{
+    SymtabAPI::Function *func;
+
+    if (_symtab->getContainingFunction(addr, func)) {
+        return func->getTOCOffset();
+    }
+    return _table_of_contents;
+}
+
 inline CodeRegion *
 SymtabCodeSource::lookup_region(const Address addr) const
 {

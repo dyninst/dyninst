@@ -871,6 +871,13 @@ bool Symtab::doNotAggregate(Symbol *&sym) {
   if (sym->getMangledName().compare(0, strlen("_L_unlock_"), "_L_unlock_") == 0) {
     return true;
   }
+
+  // PPC64 Linux symbols in the .opd section appear to be functions,
+  // but are not.
+  if (sym->getRegion() && sym->getRegion()->getRegionName() == ".opd") {
+      return true;
+  }
+
   return false;
 }
 
