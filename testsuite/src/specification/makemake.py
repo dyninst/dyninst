@@ -88,20 +88,22 @@ def mutatee_cto_component(mutatee):
    compiler = info['compilers'][mutatee['compiler']]
    return fullspec_cto_component(compiler,
                           mutatee['abi'],
-                          mutatee['optimization'])
+                          mutatee['optimization'], mutatee['pic'])
 
 # Returns a string containing the mutatee's compile-time options filename
 # component for mutatees compiled with an auxilliary compiler
 def auxcomp_cto_component(compiler, mutatee):
    return fullspec_cto_component(compiler,
                           mutatee['abi'],
-                          mutatee['optimization'])
+                          mutatee['optimization'],
+                          mutatee['pic'])
 
 # Returns a string containing the mutatee's compile-time options filename
 # component for a fully specified set of build-time options
-def fullspec_cto_component(compiler, abi, optimization):
-   retval = "_%s_%s_%s" % (compiler['executable'],
+def fullspec_cto_component(compiler, abi, optimization, pic):
+   retval = "_%s_%s_%s_%s" % (compiler['executable'],
                      abi,
+                     pic,
                      optimization)
    return retval
 
@@ -125,8 +127,8 @@ def auxcomp_lto_component(compiler, mutatee):
 
 # Returns a string containing the build-time options component for a fully-
 # specified set of build-time options
-def fullspec_bto_component(compiler, abi, optimization):
-   return "%s%s" % (fullspec_cto_component(compiler, abi, optimization),
+def fullspec_bto_component(compiler, abi, optimization, pic):
+   return "%s%s" % (fullspec_cto_component(compiler, abi, optimization, pic),
                 fullspec_lto_component())
 
 # Returns a string containing the build-time options component for a mutatee's
@@ -287,7 +289,8 @@ def mutatee_filename(rungroup, compilers):
       mutatee = rungroup['mutatee']
       bto = fullspec_bto_component(compiler,
                             rungroup['abi'],
-                            rungroup['optimization'])
+                            rungroup['optimization'],
+                            rungroup['pic'])
       platform = find_platform(os.environ.get('PLATFORM'))
       format = mutatee_format(rungroup['format'])
       es = platform['filename_conventions']['executable_suffix']
@@ -391,9 +394,13 @@ void initialize_mutatees(std::vector<RunGroup *> &tests) {
                 else:
                         out.write('DynamicLink, ')
 		if group['groupable'] == 'true':
-			out.write('false') # !groupable
+			out.write('false, ') # !groupable
 		else:
-			out.write('true') # !groupable
+			out.write('true, ') # !groupable
+                if group['pic'] == 'pic':
+                        out.write('PIC')
+                else:
+                        out.write('nonPIC')
 		try:
 			testobj = filter(lambda t: t['name'] == group['tests'][0], info['tests'])
 			if len(testobj) < 1:
@@ -575,7 +582,7 @@ def print_mutatee_rules(out, mutatees, compiler, module):
 				# in the specification file.
 				aux_comp = platform['auxilliary_compilers'][lang['name']]
 				cto = fullspec_cto_component(info['compilers'][aux_comp],
-											 m['abi'], 'none')
+											 m['abi'], 'none', 'none')
 				out.write("%s " % (replace_extension(f, '%s%s'
 													 % (cto, ObjSuffix))))
 		# FIXME Check whether the current compiler compiles C files and if not
@@ -651,12 +658,13 @@ def print_special_object_rules(compiler, out):
 
 # Produces a string of compiler flags for compiling mutatee object files with
 # the specified build-time options
-def object_flag_string(platform, compiler, abi, optimization):
-   return "%s %s %s %s %s" % (compiler['flags']['std'],
+def object_flag_string(platform, compiler, abi, optimization, pic):
+   return "%s %s %s %s %s %s" % (compiler['flags']['std'],
                         compiler['flags']['mutatee'],
                         compiler['parameters']['partial_compile'],
                         compiler['abiflags'][platform['name']][abi],
-                        compiler['optimization'][optimization])
+                        compiler['optimization'][optimization],
+                        compiler['pic'][pic])
 
 
 def print_patterns_wildcards(c, out, module):
@@ -666,20 +674,21 @@ def print_patterns_wildcards(c, out, module):
    
    for abi in platform['abis']:
       for o in compiler['optimization']:
-         cto = fullspec_cto_component(compiler, abi, o)
-         for l in compiler['languages']:
-            lang = find_language(l) # Get language dictionary from name
-            for e in lang['extensions']:
-               if (module == None):
-                  out.write("%%%s%s: ../src/%%%s\n"
-                            % (cto, ObjSuffix, e))
-               else:
-                  out.write("%%%s%s: ../src/%s/%%%s\n"
-                            % (cto, ObjSuffix, module, e))
-               out.write("\t$(M_%s) $(SOLO_MUTATEE_DEFS) %s -o $@ $<\n"
-                         % (compiler['defstring'],
-                            object_flag_string(platform, compiler,
-                                               abi, o)))
+        for p in compiler['pic']:
+            cto = fullspec_cto_component(compiler, abi, o, p)
+            for l in compiler['languages']:
+                lang = find_language(l) # Get language dictionary from name
+                for e in lang['extensions']:
+                    if (module == None):
+                        out.write("%%%s%s: ../src/%%%s\n"
+                                    % (cto, ObjSuffix, e))
+                    else:
+                        out.write("%%%s%s: ../src/%s/%%%s\n"
+                                    % (cto, ObjSuffix, module, e))
+                    out.write("\t$(M_%s) $(SOLO_MUTATEE_DEFS) %s -o $@ $<\n"
+                                % (compiler['defstring'],
+                                    object_flag_string(platform, compiler,
+                                                    abi, o, p)))
 
 def is_groupable(mutatee):
 	 if(mutatee['groupable'] == 'false'):
@@ -713,8 +722,9 @@ def print_patterns(c, out, module):
 
 	for abi in platform['abis']:
 		for o in compiler['optimization']:
+                    for p in compiler['pic']:
 			# Rules for compiling source files to .o files
-			cto = fullspec_cto_component(compiler, abi, o)
+			cto = fullspec_cto_component(compiler, abi, o, p)
 
 			#FIXME this prints out one rule for every mutatee preprocessed source for EVERY optimization
 			#      I don't know whether the previous targets require every combination of source/opt
@@ -728,7 +738,7 @@ def print_patterns(c, out, module):
 						% (basename, cto, ObjSuffix, boilerplate, module, sourcefile))
 				out.write("\t$(M_%s) $(%s_SOLO_MUTATEE_DEFS) %s -I../src/%s -DTEST_NAME=%s -DGROUPABLE=0 -DMUTATEE_SRC=../src/%s/%s -o $@ $<\n"
 						% (compiler['defstring'], module,
-						   object_flag_string(platform, compiler, abi, o),
+						   object_flag_string(platform, compiler, abi, o, p),
 						   module,
 						   basename, module, sourcefile))
 			for sourcefile in g_sources:
@@ -740,7 +750,7 @@ def print_patterns(c, out, module):
 						% (basename, cto, ObjSuffix, boilerplate, module, sourcefile))
 				out.write("\t$(M_%s) $(%s_SOLO_MUTATEE_DEFS) %s -I../src/%s -DTEST_NAME=%s -DGROUPABLE=1 -DMUTATEE_SRC=../src/%s/%s -o $@ $<\n"
 						% (compiler['defstring'], module,
-						   object_flag_string(platform, compiler, abi, o),
+						   object_flag_string(platform, compiler, abi, o, p),
 
 						   module,
 						   basename, module, sourcefile))
@@ -750,14 +760,15 @@ def print_patterns(c, out, module):
 	group_boilerplates = uniq(map(lambda g: g['mutatee'] + '_group.c', groups_for_module))
 	for abi in platform['abis']:
 		for o in compiler['optimization']:
-			cto = fullspec_cto_component(compiler, abi, o)
-			for sourcefile in group_boilerplates:
-				ext = extension(sourcefile)
-				basename = sourcefile[0:-len(ext)]
-				out.write("%s%s%s: %s\n" % (basename, cto, ObjSuffix, sourcefile))
-				out.write("\t$(M_%s) $(%s_SOLO_MUTATEE_DEFS) %s -DGROUPABLE=1 -o $@ $<\n" 
-							 % (compiler['defstring'], module, 
-								 object_flag_string(platform, compiler, abi, o)))
+                    for p in compiler['pic']:
+			cto = fullspec_cto_component(compiler, abi, o, p)
+                        for sourcefile in group_boilerplates:
+                                    ext = extension(sourcefile)
+                                    basename = sourcefile[0:-len(ext)]
+                                    out.write("%s%s%s: %s\n" % (basename, cto, ObjSuffix, sourcefile))
+                                    out.write("\t$(M_%s) $(%s_SOLO_MUTATEE_DEFS) %s -DGROUPABLE=1 -o $@ $<\n"
+                                                            % (compiler['defstring'], module,
+                                                                    object_flag_string(platform, compiler, abi, o, p)))
 
 	out.write("\n")
 
@@ -777,7 +788,8 @@ def print_aux_patterns(out, platform, comps, module):
 		for ext in lang['extensions']:
 			for abi in platform['abis']:
 				for o in comp['optimization']:
-					cto = fullspec_cto_component(comp, abi, o)
+                                    for p in comp['pic']:
+					cto = fullspec_cto_component(comp, abi, o, p)
 					out.write("%%%s%s: ../src/%%%s\n"
 							  % (cto,
 								 platform['filename_conventions']['object_suffix'],
@@ -786,8 +798,7 @@ def print_aux_patterns(out, platform, comps, module):
 					# compiler tuple (output file parameter flag)
 					out.write("\t$(M_%s) %s -o $@ $<\n\n"
 							  % (comp['defstring'],
-								 object_flag_string(platform, comp,
-													abi, o)))
+								 object_flag_string(platform, comp, abi, o, p)))
 
 					if (module != None):
 						 out.write("%%%s%s: ../src/%s/%%%s\n"
@@ -801,8 +812,7 @@ def print_aux_patterns(out, platform, comps, module):
 					# compiler tuple (output file parameter flag)
 					out.write("\t$(M_%s) %s -o $@ $<\n\n"
 							  % (comp['defstring'],
-								 object_flag_string(platform, comp,
-													abi, o)))
+								 object_flag_string(platform, comp, abi, o, p)))
 
 
 # Prints the footer for make.solo_mutatee.gen
@@ -1090,6 +1100,10 @@ void initialize_mutatees_%s(std::vector<RunGroup *> &tests) {
 			ex = 'false'
 		else:
 			ex = 'true'
+                if group['pic'] == 'pic':
+                        pic = 'PIC'
+                else:
+                        pic = 'nonPIC'
 
 		group_empty = 'true'
 		for test in group['tests']:
@@ -1110,7 +1124,7 @@ void initialize_mutatees_%s(std::vector<RunGroup *> &tests) {
 		if(group_empty == 'false'):
 			rungroup_params.append({'presencevar': presencevar, 'mutatee_name': mutatee_name, 'state_init': state_init, 
 				'attach_init': attach_init, 'ex': ex, 'compiler': group['compiler'], 'optimization': group['optimization'],
-				'abi': group['abi']})
+				'abi': group['abi'], 'pic': pic})
 
 	body = """struct {
 
@@ -1123,13 +1137,19 @@ void initialize_mutatees_%s(std::vector<RunGroup *> &tests) {
     char* compiler;
     char* optimization;
     char* abi;
+    test_pictype_t pic;
   } rungroup_params[] = {"""
 	out.write(body)
 
-	
-	out.write(' {"%s", %s, %s, %s, %s, "%s", "%s", "%s", "%s"}' % (rungroup_params[0]['mutatee_name'], rungroup_params[0]['state_init'], rungroup_params[0]['attach_init'], rungroup_params[0]['ex'], rungroup_params[0]['presencevar'], module, rungroup_params[0]['compiler'], rungroup_params[0]['optimization'], rungroup_params[0]['abi']))
-	for i in range(1, len(rungroup_params)):
-		out.write(',\n {"%s", %s, %s, %s, %s, "%s", "%s", "%s", "%s"}' % (rungroup_params[i]['mutatee_name'], rungroup_params[i]['state_init'], rungroup_params[i]['attach_init'], rungroup_params[i]['ex'], rungroup_params[i]['presencevar'], module, rungroup_params[i]['compiler'], rungroup_params[i]['optimization'], rungroup_params[i]['abi']))
+        out.write(' {"%s", %s, %s, %s, %s, "%s", "%s", "%s", "%s", %s}' % (rungroup_params[0]['mutatee_name'], \
+                rungroup_params[0]['state_init'], rungroup_params[0]['attach_init'], rungroup_params[0]['ex'], \
+                rungroup_params[0]['presencevar'], module, rungroup_params[0]['compiler'], \
+                rungroup_params[0]['optimization'], rungroup_params[0]['abi'], rungroup_params[0]['pic']))
+        for i in range(1, len(rungroup_params)):
+	        out.write(',\n {"%s", %s, %s, %s, %s, "%s", "%s", "%s", "%s", %s}' % (rungroup_params[i]['mutatee_name'], \
+                        rungroup_params[i]['state_init'], rungroup_params[i]['attach_init'], rungroup_params[i]['ex'], \
+                        rungroup_params[i]['presencevar'], module, rungroup_params[i]['compiler'], \
+                        rungroup_params[i]['optimization'], rungroup_params[i]['abi'], rungroup_params[i]['pic']))
 	body = """ };
 
   struct {
@@ -1154,7 +1174,7 @@ void initialize_mutatees_%s(std::vector<RunGroup *> &tests) {
   for (int i = 0; i < %d; i++) {
     test_count = 0;
     rg = new RunGroup(rungroup_params[i].mutatee_name, rungroup_params[i].state_init, rungroup_params[i].attach_init, 
-			rungroup_params[i].ex, rungroup_params[i].module, rungroup_params[i].compiler, 
+			rungroup_params[i].ex, rungroup_params[i].pic, rungroup_params[i].module, rungroup_params[i].compiler,
 			rungroup_params[i].optimization, rungroup_params[i].abi);
     
     do {
@@ -1414,7 +1434,8 @@ def print_mutatee_rules_nt(out, mutatees, compiler, unique_target_dict, module):
 					dependency_sources[rs_name]
 				except KeyError:
 					dependency_sources[rs_name] = {'src': f, 'abi': m['abi'],
-							'optimization': opt, 'suffix': ObjSuffix, 'compiler': comp, 'groupable': m['groupable']}
+							'optimization': opt, 'suffix': ObjSuffix, 'compiler': comp,
+                                                        'groupable': m['groupable'], 'pic': 'none'}
 		# FIXME Check whether the current compiler compiles C files and if not
 		# then use the aux compiler for this platform for the mutatee driver
 		# object.
@@ -1449,6 +1470,7 @@ def print_mutatee_rules_nt(out, mutatees, compiler, unique_target_dict, module):
 		abi = options['abi']
 		o = options['optimization']
 		comp = options['compiler']
+                pic = options['pic']
 
 		if src.startswith("mutatee_util"):
 			out.write("%s: ../src/%s\n" % (object, src))
@@ -1458,7 +1480,7 @@ def print_mutatee_rules_nt(out, mutatees, compiler, unique_target_dict, module):
 		#	but not for .asm files. the masm compiler accepts the -D parameter,
 		#	but it's unnecessary
 		out.write("\t$(M_%s) %s -Dsnprintf=_snprintf -Fo$@ $**\n"
-					% (comp['defstring'], object_flag_string(platform, comp, abi, o)))
+					% (comp['defstring'], object_flag_string(platform, comp, abi, o, pic)))
 
 		# now add the object to the unique target list. this prevents the same
 		# target from being specified in a different invocation of this function
@@ -1498,7 +1520,7 @@ def print_patterns_nt(c, out, module):
 						% (basename, cto, ObjSuffix, boilerplate))
 				out.write("\t$(M_%s) %s -DTEST_NAME=%s -DGROUPABLE=0 -DMUTATEE_SRC=../src/%s/%s -Fo$@ $**\n"
 						% (compiler['defstring'],
-						   object_flag_string(platform, compiler, abi, o),
+						   object_flag_string(platform, compiler, abi, o, "none"),
 						   basename, module, sourcefile))
 
 			for sourcefile in g_sources:
@@ -1510,7 +1532,7 @@ def print_patterns_nt(c, out, module):
 						% (basename, cto, ObjSuffix, boilerplate))
 				out.write("\t$(M_%s) %s -DTEST_NAME=%s -DGROUPABLE=1 -DMUTATEE_SRC=../src/%s/%s -Fo$@ $**\n"
 						% (compiler['defstring'],
-						   object_flag_string(platform, compiler, abi, o),
+						   object_flag_string(platform, compiler, abi, o, "none"),
 						   basename, module, sourcefile))
 
 
@@ -1520,7 +1542,7 @@ def print_patterns_nt(c, out, module):
 				out.write("%s%s%s: ../%s/%s\n" % (basename, cto, ObjSuffix, os.environ.get('PLATFORM'), sourcefile))
 				out.write("\t$(M_%s) $(%s_SOLO_MUTATEE_DEFS) %s -DGROUPABLE=1 -Fo$@ $**\n" 
 					% (compiler['defstring'], module, 
-					object_flag_string(platform, compiler, abi, o)))
+					object_flag_string(platform, compiler, abi, o, "none")))
 			for l in compiler['languages']:	
 				lang = find_language(l) # Get language dictionary from name
 				for e in lang['extensions']:
@@ -1530,7 +1552,7 @@ def print_patterns_nt(c, out, module):
 					out.write("%%%s%s: {../src/%s/}%%%s\n"
 							  % (cto, ObjSuffix, module, e))
 					out.write("\t$(M_%s) %s -Fo$@ $**\n"
-							  % (compiler['defstring'], object_flag_string(platform, compiler, abi, o)))
+                                                % (compiler['defstring'], object_flag_string(platform, compiler, abi, o, "none")))
 	out.write("\n")
 
 # Main function for generating nmake.solo_mutatee.gen

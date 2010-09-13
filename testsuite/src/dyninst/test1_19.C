@@ -72,14 +72,14 @@ test_results_t test1_19_Mutator::executeTest()
 {
     // Avoid a race condition in fast & loose mode
 
-    while (!appThread->isStopped()) 
+    while (!appProc->isStopped())
 	{
 		BPatch::bpatch->waitForStatusChange();
     }
 
-    appThread->continueExecution();
+    appProc->continueExecution();
 
-    if (waitUntilStopped(BPatch::bpatch, appThread, 19, "oneTimeCode") < 0) 
+    if (waitUntilStopped(BPatch::bpatch, appProc, 19, "oneTimeCode") < 0)
 	{
       return FAILED;
     }
@@ -103,11 +103,11 @@ test_results_t test1_19_Mutator::executeTest()
     appThread->oneTimeCode(call19_1Expr);
 
     // Let the mutatee run to check the result
-    appThread->continueExecution();
+    appProc->continueExecution();
 
     // Wait for the next test
 
-    if (waitUntilStopped(BPatch::bpatch, appThread, 19, "oneTimeCode") < 0) 
+    if (waitUntilStopped(BPatch::bpatch, appProc, 19, "oneTimeCode") < 0)
 	{
       return FAILED;
     }
@@ -135,16 +135,16 @@ test_results_t test1_19_Mutator::executeTest()
 
     appThread->oneTimeCodeAsync(call19_2Expr, (void *)&callbackFlag);
 
-    while (!appThread->isTerminated() && !appThread->isStopped() )
+    while (!appProc->isTerminated() && !appProc->isStopped() )
     {
 		BPatch::bpatch->waitForStatusChange();
     }
     
     // Continue mutatee after one-time code runs
-    appThread->continueExecution();
+    appProc->continueExecution();
 
     // Wait for the callback to be called
-    while (!appThread->isTerminated() && !callbackFlag) ;
+    while (!appProc->isTerminated() && !callbackFlag) ;
 
     // Restore old callback (if there was one)
 	BPatch::bpatch->registerOneTimeCodeCallback(oldCallback);

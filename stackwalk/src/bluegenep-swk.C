@@ -143,6 +143,12 @@ namespace Dyninst {
 	sw_printf("[%s:%u] - Failed to pause process for detach clean\n");
       }
 
+      if (!wrote_trap)
+      {
+         sw_printf("[%s:%u] - Skipping trap clean\n", __FILE__, __LINE__);
+         return true;
+      }
+
       lib_load_trap = library_tracker->getLibTrapAddress();
       if (!lib_load_trap) {
         sw_printf("[%s:%u] - Couldn't get trap addr, couldn't set up "
@@ -235,7 +241,8 @@ namespace Dyninst {
 	  break;
 	}
       }
-      
+ 
+      wrote_trap = true;
       sw_printf("[%s:%u] - Successfully wrote BG library trap at %lx\n",
                 __FILE__, __LINE__, lib_load_trap);
     }

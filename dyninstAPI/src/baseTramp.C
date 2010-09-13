@@ -762,9 +762,13 @@ Address baseTrampInstance::miniTrampReturnAddr() {
 
 bool baseTramp::isConservative() {
     if (instP() && (instP()->getPointType() == otherPoint))
-    return true;
+    {
+        return true;
+    }
   if (rpcMgr_)
-    return true;
+  {
+      return true;
+  }
   return false;
 }
 

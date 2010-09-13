@@ -468,7 +468,7 @@ PDSOCKET BPatch_asyncEventHandler::setup_socket(int mutatee_pid, std::string &so
 
   //  bind socket to port (windows) or temp file in the /tmp dir (unix)
 
-  if (PDSOCKET_ERROR == bind(sock, (struct sockaddr *) &saddr, 
+  if (PDSOCKET_ERROR == ::bind(sock, (struct sockaddr *) &saddr, 
                              sizeof(saddr))) 
   { 
     bperr("%s[%d]:  bind socket to %s failed\n", FILE__, __LINE__, path);

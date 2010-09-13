@@ -35,7 +35,8 @@
  || defined(i386_unknown_solaris2_5_test) \
  || defined(ia64_unknown_linux2_4_test) \
  || defined(os_aix_test) \
- || defined(os_linux_test) /* better off using os #defines than whole platforms */
+ || defined(os_linux_test) \
+ || defined(os_freebsd_test) /* better off using os #defines than whole platforms */
 #include <dlfcn.h> /* For replaceFunction test */
 #endif
 
@@ -75,7 +76,7 @@ static volatile int unused; /* move decl here to dump compiler warning - jkh */
 #define MAGIC22_6   2200600
 #define MAGIC22_7   2200700
 
-#if defined(x86_64_unknown_linux2_4_test) && (__WORDSIZE == 32)
+#if (defined(x86_64_unknown_linux2_4_test) || (defined(os_freebsd_test) && defined(arch_x86_64_test))) && (__WORDSIZE == 32)
 static const char *libNameA = "libtestA_m32.so";
 #elif defined(os_windows_test)
 static const char *libNameA = "libtestA.dll";
@@ -162,7 +163,8 @@ int test1_22_mutatee()
 #if defined(os_solaris_test) \
  || defined(alpha_dec_osf4_0_test) \
  || defined(os_linux_test) \
- || defined(os_windows_test)
+ || defined(os_windows_test) \
+ || defined(os_freebsd_test)
     /* libtestA.so should already be loaded (by the mutator), but we
        need to use the dl interface to get pointers to the functions
        it defines. */

@@ -51,6 +51,17 @@
 #include "log.h"
 #include "utils.h"
 
+/* These are missing on some platforms -- just use O_SYNC 
+ * This is the approach Linux uses 
+ */
+#ifndef O_RSYNC
+#define O_RSYNC O_SYNC
+#endif
+
+#ifndef O_DSYNC
+#define O_DSYNC O_SYNC
+#endif
+
 using namespace std;
 
 /*******************************************************************************
@@ -631,11 +642,11 @@ void printSummary(BPatch_thread *proc, BPatch_exitType exit_type)
                }
             }
          }
-         sendMsg(config.outfd, ID_EXIT_CODE, INFO, ID_INFO, proc->getExitCode());
+         sendMsg(config.outfd, ID_EXIT_CODE, INFO, ID_INFO, proc->getProcess()->getExitCode());
          break;
 
       case ExitedViaSignal:
-         sendMsg(config.outfd, ID_EXIT_SIGNAL, INFO, ID_INFO, proc->getExitSignal());
+          sendMsg(config.outfd, ID_EXIT_SIGNAL, INFO, ID_INFO, proc->getProcess()->getExitSignal());
          if (config.hunt_crashes) {
             sendMsg(config.outfd, ID_CRASH_HUNT_NUM_ACTIONS, INFO, ID_INFO, numInstsAllowed);
          }
@@ -656,7 +667,7 @@ void printSummary(BPatch_thread *proc, BPatch_exitType exit_type)
 
 void reportNewProcess(BPatch_thread *parent, BPatch_thread *child)
 {
-   sendMsg(config.outfd, ID_POST_FORK, INFO, ID_INFO, child->getPid());
+    sendMsg(config.outfd, ID_POST_FORK, INFO, ID_INFO, child->getProcess()->getPid());
 }
 
 //

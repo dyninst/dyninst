@@ -91,7 +91,7 @@ class SignalGenerator : public SignalGeneratorCommon
   //  eg. procSysFork.  returns false if there is no available mapping.
   virtual bool decodeSyscall(EventRecord &ev);
 
-#if !defined (os_linux) 
+#if !defined (os_linux) && !defined(os_freebsd)
    bool decodeProcStatus(procProcStatus_t status, EventRecord &ev);
 #endif
 

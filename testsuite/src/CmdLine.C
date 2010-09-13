@@ -90,6 +90,7 @@ static bool fileExists(std::string f);
 #define THRDMODE  (1 << 6)
 #define PROCMODE  (1 << 7)
 #define LINKMODE  (1 << 8)
+#define PICMODE   (1 << 9)
 //If you add more modes here, then update the lists in "-all" and "-full" parsing below
 
 ModeGroup mode_args[] = {
@@ -132,6 +133,8 @@ ModeGroup mode_args[] = {
    { "mp",          PROCMODE,  defaultOff },
    { "dynamiclink", LINKMODE,  defaultOn  },
    { "staticlink",  LINKMODE,  defaultOff },
+   { "pic",         PICMODE,   defaultOn  },
+   { "nonpic",       PICMODE,   defaultOn  },
    { NULL,          NONE,      defaultOff } };
 
 static std::vector<char *> mutatee_list;
@@ -756,6 +759,13 @@ static void disableUnwantedTests(std::vector<RunGroup *> &groups)
          continue;
       }
 #endif
+      if ((groups[i]->pic == nonPIC && !paramOn("nonpic")) ||
+          (groups[i]->pic == PIC && !paramOn("pic")))
+      {
+         groups[i]->disabled = true;
+         continue;
+      }
+
       for (unsigned j=0; j<groups[i]->tests.size(); j++) 
       {
          if (!test_list.empty() && !testListContains(groups[i]->tests[j], test_list)) 

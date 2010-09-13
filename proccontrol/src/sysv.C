@@ -30,8 +30,17 @@
  */
 #include "dynutil/h/SymReader.h"
 #include "dynutil/h/dyntypes.h"
-#include "common/h/SymLite-elf.h"
 #include "sysv.h"
+#include "irpc.h"
+#include "snippets.h"
+
+#if defined(os_linux)
+#include "common/h/linuxKludges.h"
+#elif defined(os_freebsd)
+#include "common/h/freebsdKludges.h"
+#endif
+
+#include "proccontrol/src/response.h"
 
 #include <vector>
 #include <string>
@@ -40,7 +49,6 @@
 using namespace Dyninst;
 using namespace std;
 
-SymbolReaderFactory *sysv_process::symreader_factory = NULL;
 int_breakpoint *sysv_process::lib_trap = NULL;
 
 sysv_process::sysv_process(Dyninst::PID p, string e, vector<string> a, map<int,int> f) :
@@ -54,8 +62,7 @@ sysv_process::sysv_process(Dyninst::PID p, string e, vector<string> a, map<int,i
 sysv_process::sysv_process(Dyninst::PID pid_, int_process *p) :
    int_process(pid_, p)
 {
-   sysv_process *sp = static_cast<sysv_process *>(p);
-   loaded_libs = sp->loaded_libs;
+   sysv_process *sp = dynamic_cast<sysv_process *>(p);
    breakpoint_addr = sp->breakpoint_addr;
    lib_initialized = sp->lib_initialized;
    if (sp->procreader)
@@ -63,7 +70,7 @@ sysv_process::sysv_process(Dyninst::PID pid_, int_process *p) :
    if (sp->translator)
       translator = AddressTranslate::createAddressTranslator(pid_,
                                                              procreader,
-                                                             symreader_factory);
+                                                             plat_defaultSymReader());
 }
 
 sysv_process::~sysv_process()
@@ -78,13 +85,15 @@ sysv_process::~sysv_process()
    }
 }
 
-PCProcReader::PCProcReader(int_process *proc_) :
-   proc(proc_)
+PCProcReader::PCProcReader(sysv_process *proc_) :
+   proc(proc_),
+   pending_addr(0)
 {
 }
 
 PCProcReader::~PCProcReader()
 {
+   clearBuffers();
 }
 
 bool PCProcReader::start()
@@ -99,26 +108,155 @@ bool PCProcReader::done()
    return true;
 }
 
+bool PCProcReader::isAsync()
+{
+   return (memresult != NULL);
+}
+
+bool PCProcReader::handleAsyncCompletion()
+{
+   if (!memresult->isReady()) {
+      //We still have to wait for the read to finish.
+      pthrd_printf("ProcReader waiting for async read at %lx\n", pending_addr);
+      return false;
+   }
+
+   if (memresult->hasError()) {
+      //The read failed, mark this with a NULL buffer entry at the address
+      pthrd_printf("Async read at %lx failed, marking as such\n", pending_addr);
+      free(memresult->getBuffer());
+      async_read_buffers[pending_addr] = NULL;
+   }
+   else {
+      pthrd_printf("ProcReader found completed async read at %lx\n", pending_addr);
+      async_read_buffers[pending_addr] = memresult->getBuffer();
+   }
+   memresult = mem_response::ptr();
+   pending_addr = 0;
+   
+   return true;
+}
+
+void PCProcReader::clearBuffers()
+{
+   map<Address, char *>::iterator i;
+   for (i = async_read_buffers.begin(); i != async_read_buffers.end(); i++) {
+      if (i->second)
+         free(i->second);
+   }
+   async_read_buffers.clear();
+}
+
+bool PCProcReader::postAsyncRead(Dyninst::Address addr)
+{
+   //Reading from an unknown page, post an async read and
+   // return 'false'.  isAsync() will latter return true,
+   // letting the caller know that this was an async error
+   // rather than a real one.
+   assert(!memresult);
+   char *new_buffer = (char *) malloc(async_read_align);
+   memresult = mem_response::createMemResponse(new_buffer, async_read_align);
+   pending_addr = addr;
+
+   assert(memresult);
+   bool result = proc->readMem(addr, memresult);
+
+   if (!result) {
+      pthrd_printf("Failure to async read process %d memory at %lx\n",
+                   proc->getPid(), addr);
+      memresult = mem_response::ptr();
+      return false;
+   }
+   return handleAsyncCompletion();
+}
+
+bool PCProcReader::ReadMemAsync(Address addr, void *buffer, unsigned size)
+{
+   //If we're on an Async IO platform (BlueGene) then we may do
+   // this read as multiple async reads, caching memory as we go.
+   // Once we've completed all async reads, then we'll finally 
+   // return success from this function.
+   //
+   //The page aligned caching may seem weird (and could produce
+   // unnecessary extra reads), but I' think it'll provide a better
+   // access pattern in most cases.
+   Dyninst::Address aligned_addr = addr & ~(async_read_align-1);
+   int buffer_offset = 0;
+
+   if (!proc->translator) {
+      //Can happen if we read during initialization.  We'll fail to read,
+      // and the addrtranslate layer will handle things properly.
+      return false;
+   }
+
+   Dyninst::Address cur_addr = aligned_addr;
+   for (; cur_addr < addr+size; cur_addr += async_read_align) {
+      map<Address, char *>::iterator i = async_read_buffers.find(cur_addr);
+      if (i == async_read_buffers.end()) {
+         bool result = postAsyncRead(cur_addr);
+         if (!result) {
+            //Need to wait for the async read to complete
+            pthrd_printf("Returning async from read\n");
+            proc->translator->setReadAbort(true);
+            return false;
+         }
+         i = async_read_buffers.find(cur_addr);
+         assert(i != async_read_buffers.end());
+      }
+      //We have a buffer cached, copy the correct parts of
+      // its contents to the target buffer.
+      char *cached_buffer = i->second;
+      if (!cached_buffer) {
+         //This read had resulted in an error.  Return as such.
+         pthrd_printf("Returning error from read\n");
+         proc->translator->setReadAbort(false);
+         return false;
+      }
+      int start_offset = (addr > cur_addr) ? (addr - cur_addr) : 0;
+      int end_offset = (addr+size < cur_addr+async_read_align) ? 
+         addr+size - cur_addr : async_read_align;
+      memcpy(((char *) buffer) + buffer_offset, 
+             cached_buffer + start_offset, 
+             end_offset - start_offset);
+   }
+   //All reads completed succfully.  Phew.
+   pthrd_printf("Returning success from read\n");
+   static_cast<sysv_process *>(proc)->translator->setReadAbort(false);
+   return true;
+}
+
 bool PCProcReader::ReadMem(Address addr, void *buffer, unsigned size)
 {
+   if (proc->plat_needsAsyncIO()) {
+      return ReadMemAsync(addr, buffer, size);
+   }
+
    if (size != 1) {
-      bool result = proc->readMem(buffer, addr, size);
+      mem_response::ptr memresult = mem_response::createMemResponse((char *) buffer, size);
+      bool result = proc->readMem(addr, memresult);
       if (!result) {
          pthrd_printf("Failed to read memory for proc reader\n");
+         return true;
       }
-      return result;
+      result = memresult->isReady();
+      assert(result);
+      return true;
    }
 
    //Try to optimially handle a case where the calling code
-   // reads a string one char at a time.
+   // reads a string one char at a time.  This is mostly for
+   // ptrace platforms, but won't harm any others.
    assert(size == 1);
    Address aligned_addr = addr - (addr % sizeof(word_cache));
    if (!word_cache_valid || aligned_addr != word_cache_addr) {
-      bool result = proc->readMem(&word_cache, aligned_addr, sizeof(word_cache));
+      mem_response::ptr memresult = mem_response::createMemResponse((char *) &word_cache, sizeof(word_cache));
+      bool result = proc->readMem(aligned_addr, memresult);
       if (!result) {
          pthrd_printf("Failed to read memory for proc reader\n");
          return false;
       }
+      result = memresult->isReady();
+      assert(result);
       word_cache_addr = aligned_addr;
       word_cache_valid = true;
    }
@@ -140,14 +278,19 @@ bool sysv_process::initLibraryMechanism()
    lib_initialized = true;
 
    pthrd_printf("Initializing library mechanism for process %d\n", getPid());
-   assert(!procreader);
-   procreader = new PCProcReader(this);
-   symreader_factory = getDefaultSymbolReader();
+
+   if (!procreader)
+      procreader = new PCProcReader(this);
+   assert(procreader);
 
    assert(!translator);
    translator = AddressTranslate::createAddressTranslator(getPid(), 
                                                           procreader,
-                                                          symreader_factory);
+                                                          plat_defaultSymReader());
+   if (!translator && procreader->isAsync()) {
+      pthrd_printf("Waiting for async read to finish initializing\n");
+      return false;
+   }
    if (!translator) {
       perr_printf("Error creating address translator object\n");
       return false;
@@ -168,20 +311,40 @@ bool sysv_process::initLibraryMechanism()
 }
 
 bool sysv_process::refresh_libraries(set<int_library *> &added_libs,
-                                     set<int_library *> &rmd_libs)
+                                     set<int_library *> &rmd_libs,
+                                     set<response::ptr> &async_responses)
 {
    pthrd_printf("Refreshing list of loaded libraries\n");
+
+   if (procreader && procreader->isAsync()) {
+      //We (may) have a posted async completion.  Handle it.
+      bool result = procreader->handleAsyncCompletion();
+      if (!result) {
+         return false;
+      }
+   }
+   assert(!procreader || !procreader->isAsync());
+
    bool result = initLibraryMechanism();
+   if (!result && procreader && procreader->isAsync()) {
+      async_responses.insert(procreader->memresult);
+      pthrd_printf("Waiting for async result to init libraries\n");
+      return false;
+   }
    if (!result) {
       pthrd_printf("refresh_libraries failed to init the libraries\n");
       return false;
    }
 
    result = translator->refresh();
+   if (!result && procreader->isAsync()) {
+      async_responses.insert(procreader->memresult);
+      pthrd_printf("Waiting for async result to read libraries\n");
+      return false;
+   }
    if (!result) {
       pthrd_printf("Failed to refresh library list for %d\n", getPid());
    }
-
 
    for (set<int_library *>::iterator i = mem->libs.begin(); 
         i != mem->libs.end(); i++) 
@@ -221,6 +384,7 @@ bool sysv_process::refresh_libraries(set<int_library *> &added_libs,
       mem->libs.erase(i++);
    }
 
+   procreader->clearBuffers();
    return true;
 }
 
@@ -241,17 +405,11 @@ bool sysv_process::plat_execed()
       procreader = NULL;
    }
    breakpoint_addr = 0x0;
-   loaded_libs.clear();
    lib_initialized = false;
    return initLibraryMechanism();
 }
 
-SymbolReaderFactory *Dyninst::ProcControlAPI::getDefaultSymbolReader()
+bool sysv_process::plat_isStaticBinary()
 {
-   static SymbolReaderFactory *symreader_factory = NULL;
-   if (!symreader_factory) {
-      symreader_factory = (SymbolReaderFactory *) new SymElfFactory();
-      assert(symreader_factory);
-   }
-   return symreader_factory;
+  return (breakpoint_addr == 0);
 }

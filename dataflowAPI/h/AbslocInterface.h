@@ -29,45 +29,45 @@ class AbsRegionConverter {
   // registers used in this expression.
 
   DATAFLOW_EXPORT void convertAll(InstructionAPI::Expression::Ptr expr,
-		  Address addr,
-		  ParseAPI::Function *func,
-		  std::vector<AbsRegion> &regions);
-
+				  Address addr,
+				  ParseAPI::Function *func,
+				  std::vector<AbsRegion> &regions);
+  
   DATAFLOW_EXPORT void convertAll(InstructionAPI::Instruction::Ptr insn,
-		  Address addr,
-		  ParseAPI::Function *func,
-		  std::vector<AbsRegion> &used,
-		  std::vector<AbsRegion> &defined);
+				  Address addr,
+				  ParseAPI::Function *func,
+				  std::vector<AbsRegion> &used,
+				  std::vector<AbsRegion> &defined);
 
   // Single converters
   
   DATAFLOW_EXPORT AbsRegion convert(InstructionAPI::RegisterAST::Ptr reg);
 
   DATAFLOW_EXPORT AbsRegion convert(InstructionAPI::Expression::Ptr expr,
-		    Address addr,
-		    ParseAPI::Function *func);
+				    Address addr,
+				    ParseAPI::Function *func);
 
   // Cons up a stack reference at the current addr
   DATAFLOW_EXPORT AbsRegion stack(Address addr,
-		  ParseAPI::Function *func,
-		  bool push);
-
+				  ParseAPI::Function *func,
+				  bool push);
+  
   DATAFLOW_EXPORT AbsRegion frame(Address addr,
-		  ParseAPI::Function *func,
-		  bool push);
-
+				  ParseAPI::Function *func,
+				  bool push);
+  
  private:
-    // Returns false if the current height is unknown.
+  // Returns false if the current height is unknown.
   bool getCurrentStackHeight(ParseAPI::Function *func,
 			     Address addr, 
 			     long &height, int &region);
   bool getCurrentFrameHeight(ParseAPI::Function *func,
 			     Address addr, 
 			     long &height, int &region);
-
+  
   bool convertResultToAddr(const InstructionAPI::Result &res, Address &addr);
   bool convertResultToSlot(const InstructionAPI::Result &res, int &slot);
-
+  
   bool usedCache(Address, ParseAPI::Function *, std::vector<AbsRegion> &used);
   bool definedCache(Address, ParseAPI::Function *, std::vector<AbsRegion> &defined);
 

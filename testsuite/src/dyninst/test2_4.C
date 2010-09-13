@@ -70,7 +70,7 @@ extern "C" DLLEXPORT  TestMutator *test2_4_factory() {
 test_results_t test2_4_Mutator::executeTest() {
     // attach to an a protected pid
     clearError();
-    BPatch_thread *ret = bpatch->attachProcess(NULL, 1);
+    BPatch_process *ret = bpatch->processAttach(NULL, 1);
     int gotError = getError();
     if (ret || !gotError) {
 	logerror("**Failed** test #4 (attach to a protected pid)\n");

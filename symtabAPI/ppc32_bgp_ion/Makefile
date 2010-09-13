@@ -41,9 +41,6 @@ endif
 ifndef LIBELFSTATIC
 LIBS += -lelf
 endif
-ifndef LIBIBERTYSTATIC
-LIBS   += -liberty
-endif
 
 LIBS     +=  -L$(LIBDWARF_LIB) -L$(LIBELF_LIB)
 

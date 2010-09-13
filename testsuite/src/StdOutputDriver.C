@@ -160,7 +160,15 @@ void StdOutputDriver::logResult(test_results_t result, int stage) {
       thread_str[3] = 'T';
       thread_str[4] = '\0';
    }
-
+   const char* picStr = NULL;
+   if(last_group->pic == nonPIC)
+   {
+       picStr = "nonPIC";
+   } else
+   {
+       picStr = "PIC";
+   }
+   
    assert(last_test && last_group);
 
    char name_align_buffer[name_len+1];
@@ -170,22 +178,22 @@ void StdOutputDriver::logResult(test_results_t result, int stage) {
    if (needs_header)
       printHeader(out);
 #if defined(cap_32_64_test)
-   fprintf(out, "%-*s %-*s %-*s %-*s %-*s %-*s %-*s ", 
+   fprintf(out, "%-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s", 
            name_len, name_align_buffer, 
            compiler_len, last_group->compiler,
            opt_len, last_group->optlevel, 
            abi_len, last_group->abi, 
            mode_len, run_mode_str, 
            thread_len, thread_str, 
-           link_len, linkage_str);
+           link_len, linkage_str, picStr);
 #else
-   fprintf(out, "%-*s %-*s %-*s %-*s %-*s %-*s ", 
+   fprintf(out, "%-*s %-*s %-*s %-*s %-*s %-*s %-*s", 
            name_len, name_align_buffer, 
            compiler_len, last_group->compiler,
            opt_len, last_group->optlevel, 
            mode_len, run_mode_str, 
            thread_len, thread_str, 
-           link_len, linkage_str);
+           link_len, linkage_str, picStr);
 #endif
 
 

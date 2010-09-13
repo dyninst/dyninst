@@ -1,6 +1,38 @@
+/*
+ * Copyright (c) 1996-2009 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
+
 #include "dynutil/h/dyntypes.h"
 #include "proccontrol/src/int_process.h"
 #include "proccontrol/src/int_handler.h"
+#include "proccontrol/src/int_event.h"
 #include "proccontrol/src/procpool.h"
 #include "proccontrol/src/irpc.h"
 #include "proccontrol/h/Event.h"
@@ -28,7 +60,8 @@ Event::Event(EventType etype_, Thread::ptr thread_) :
    thread(thread_),
    proc(thread ? thread->getProcess() : Process::ptr()),
    stype(unset),
-   master_event(Event::ptr())
+   master_event(Event::ptr()),
+   suppress_cb(false)
 {
 }
 
@@ -64,7 +97,7 @@ void Event::setSyncType(SyncType s)
 
 bool Event::suppressCB() const
 {
-   return false;
+   return suppress_cb;
 }
 
 bool Event::triggersCB() const
@@ -78,6 +111,11 @@ bool Event::triggersCB() const
          return true;
    }
    return false;
+}
+
+void Event::setSuppressCB(bool b)
+{
+   suppress_cb = b;
 }
 
 Event::SyncType Event::getSyncType() const
@@ -129,6 +167,9 @@ std::string EventType::name() const
       STR_CASE(SingleStep);
       STR_CASE(Library);
       STR_CASE(BreakpointClear);
+      STR_CASE(RPCInternal);
+      STR_CASE(Async);
+      STR_CASE(ChangePCStop);
       default: return prefix + std::string("Unknown");
    }
 }
@@ -216,10 +257,16 @@ EventBreakpoint::EventBreakpoint(Dyninst::Address addr_, installed_breakpoint *i
    ibp(ibp_),
    addr(addr_)
 {
+   int_bp = new int_eventBreakpoint();
 }
 
 EventBreakpoint::~EventBreakpoint()
 {
+   if (int_bp) {
+      delete int_bp;
+      int_bp = NULL;
+   }
+   
 }
 
 Dyninst::Address EventBreakpoint::getAddress() const
@@ -249,7 +296,13 @@ installed_breakpoint *EventBreakpoint::installedbp() const
 
 bool EventBreakpoint::suppressCB() const
 {
+   if (Event::suppressCB()) return true;
    return ibp->hl_bps.empty();
+}
+
+int_eventBreakpoint *EventBreakpoint::getInternal() const
+{
+   return int_bp;
 }
 
 EventSignal::EventSignal(int sig_) :
@@ -331,15 +384,20 @@ Process::const_ptr EventFork::getChildProcess() const
 
 EventRPC::EventRPC(rpc_wrapper *wrapper_) :
    Event(EventType(EventType::None, EventType::RPC)),
-   wrapper(wrapper_)
+   wrapper(new rpc_wrapper(wrapper_))
 {
+   int_rpc = new int_eventRPC();
 }
 
 EventRPC::~EventRPC()
 {
-   if (wrapper->rpc->getIRPC().lock() == IRPC::ptr()) {
-      delete wrapper;
-      wrapper = NULL;
+   memset(wrapper, 0, sizeof(wrapper));
+   delete wrapper;
+   wrapper = NULL;
+
+   if (int_rpc) {
+      delete int_rpc;
+      int_rpc = NULL;
    }
 }
 
@@ -350,12 +408,32 @@ IRPC::const_ptr EventRPC::getIRPC() const
 
 bool EventRPC::suppressCB() const
 {
+   if (Event::suppressCB()) return true;
    return (wrapper->rpc->getIRPC().lock() == IRPC::ptr());
 }
 
 rpc_wrapper *EventRPC::getllRPC()
 {
    return wrapper;
+}
+
+int_eventRPC *EventRPC::getInternal() const
+{
+   return int_rpc;
+}
+
+bool EventRPCInternal::suppressCB() const
+{
+   return true;
+}
+
+EventRPCInternal::EventRPCInternal() :
+   Event(EventType(EventType::None, EventType::RPCInternal))
+{
+}
+
+EventRPCInternal::~EventRPCInternal()
+{
 }
 
 EventSingleStep::EventSingleStep() :
@@ -371,15 +449,24 @@ EventBreakpointClear::EventBreakpointClear(installed_breakpoint *bp) :
   Event(EventType(EventType::None, EventType::BreakpointClear)),
   bp_(bp)
 {
+   int_bpc = new int_eventBreakpointClear();
 }
 
 EventBreakpointClear::~EventBreakpointClear()
 {
+   assert(int_bpc);
+   delete int_bpc;
+   int_bpc = NULL;
 }
 
-installed_breakpoint *EventBreakpointClear::bp()
+installed_breakpoint *EventBreakpointClear::bp() const
 {
   return bp_;
+}
+
+int_eventBreakpointClear *EventBreakpointClear::getInternal() const
+{
+   return int_bpc;
 }
 
 EventLibrary::EventLibrary(const std::set<Library::ptr> &added_libs_,
@@ -414,6 +501,87 @@ const std::set<Library::ptr> &EventLibrary::libsAdded() const
 const std::set<Library::ptr> &EventLibrary::libsRemoved() const
 {
    return rmd_libs;
+}
+
+int_eventBreakpointClear::int_eventBreakpointClear() 
+{
+}
+
+int_eventBreakpointClear::~int_eventBreakpointClear()
+{
+}
+
+int_eventBreakpoint::int_eventBreakpoint() :
+   set_singlestep(false)
+{
+}
+
+int_eventBreakpoint::~int_eventBreakpoint()
+{
+}
+
+int_eventRPC::int_eventRPC()
+{
+}
+
+int_eventRPC::~int_eventRPC()
+{
+}
+
+void int_eventRPC::getPendingAsyncs(std::set<response::ptr> &pending)
+{
+   if (alloc_regresult && !alloc_regresult->isReady()) {
+      pending.insert(alloc_regresult);
+   }
+   if (memrestore_response && !memrestore_response->isReady()) {
+      pending.insert(memrestore_response);
+   }
+   if (regrestore_response && !regrestore_response->isReady()) {
+      pending.insert(regrestore_response);
+   }
+}
+
+int_eventAsync::int_eventAsync(response::ptr r) :
+   resp(r)
+{
+}
+
+int_eventAsync::~int_eventAsync()
+{
+}
+
+response::ptr int_eventAsync::getResponse() const
+{
+   return resp;
+}
+
+EventAsync::EventAsync(int_eventAsync *ievent) :
+   Event(EventType(EventType::None, EventType::Async)),
+   internal(ievent)
+{
+}
+
+EventAsync::~EventAsync()
+{
+   if (internal) {
+      delete internal;
+      internal = NULL;
+   }
+}
+
+int_eventAsync *EventAsync::getInternal() const
+{
+   return internal;
+}
+
+
+EventChangePCStop::EventChangePCStop() :
+   Event(EventType(EventType::None, EventType::ChangePCStop))
+{
+}
+
+EventChangePCStop::~EventChangePCStop()
+{
 }
 
 #define DEFN_EVENT_CAST(NAME, TYPE) \
@@ -451,3 +619,7 @@ DEFN_EVENT_CAST(EventRPC, RPC)
 DEFN_EVENT_CAST(EventSingleStep, SingleStep)
 DEFN_EVENT_CAST(EventBreakpointClear, BreakpointClear)
 DEFN_EVENT_CAST(EventLibrary, Library)
+DEFN_EVENT_CAST(EventRPCInternal, RPCInternal)
+DEFN_EVENT_CAST(EventAsync, Async)
+DEFN_EVENT_CAST(EventChangePCStop, ChangePCStop)
+

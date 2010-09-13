@@ -68,7 +68,7 @@ test4_3_Mutator::test4_3_Mutator()
 
 static bool passedTest = false;
 static int threadCount = 0;
-static BPatch_thread *mythreads[25];
+static BPatch_process *mythreads[25];
 static int debugPrint;
 
 static void forkFunc(BPatch_thread *parent, BPatch_thread *child)
@@ -80,12 +80,12 @@ static void forkFunc(BPatch_thread *parent, BPatch_thread *child)
     BPatch_Vector<BPatch_function *> bpfv;
     BPatch_Vector<BPatch_snippet *> nullArgs;
 
-    if (child) mythreads[threadCount++] = child;
+    if (child) mythreads[threadCount++] = child->getProcess();
 
     if (!child) {
-       dprintf("in prefork for %d\n", parent->getPid());
+        dprintf("in prefork for %d\n", parent->getProcess()->getPid());
     } else {
-       dprintf("in fork of %d to %d\n", parent->getPid(), child->getPid());
+        dprintf("in fork of %d to %d\n", parent->getProcess()->getPid(), child->getProcess()->getPid());
     }
 }
 
@@ -94,14 +94,14 @@ static void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type)
   dprintf("exitFunc called\n");
     // Read out the values of the variables.
 
-    assert(thread->terminationStatus() == exit_type);
+  assert(thread->getProcess()->terminationStatus() == exit_type);
     // Read out the values of the variables.
 
     // simple exec 
     if(exit_type == ExitedViaSignal) {
         logerror("Failed test #3 (exec callback), exited via signal %d\n",
-               thread->getExitSignal());
-    } else if (!verifyChildMemory(thread, "globalVariable3_1", 3000002)) {
+                 thread->getProcess()->getExitSignal());
+    } else if (!verifyChildMemory(thread->getProcess(), "globalVariable3_1", 3000002)) {
         logerror("Failed test #3 (exec callback)\n");
     } else {
         logerror("Passed test #3 (exec callback)\n");
@@ -112,11 +112,11 @@ static void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type)
 static void execFunc(BPatch_thread *thread)
 {
         BPatch_Vector<BPatch_function *> bpfv;
-	dprintf("in exec callback for %d\n", thread->getPid());
+        dprintf("in exec callback for %d\n", thread->getProcess()->getPid());
 
 	// insert code into parent
 	BPatch_Vector<BPatch_snippet *> nullArgs;
-        BPatch_image *appImage = thread->getImage();
+        BPatch_image *appImage = thread->getProcess()->getImage();
         assert(appImage);
 
 	char *fn = "test4_3_func2";
@@ -150,8 +150,9 @@ static void execFunc(BPatch_thread *thread)
 	// correct process / address space.
 
         assert(point);
-        thread->insertSnippet(callExpr, *point);
-	dprintf("%s[%d]:  MUTATEE: exec callback for %d, done with insert snippet\n", __FILE__, __LINE__, thread->getPid());
+        thread->getProcess()->insertSnippet(callExpr, *point);
+	dprintf("%s[%d]:  MUTATEE: exec callback for %d, done with insert snippet\n", __FILE__, __LINE__,
+                thread->getProcess()->getPid());
 }
 
 test_results_t test4_3_Mutator::mutatorTest() {
@@ -176,13 +177,13 @@ test_results_t test4_3_Mutator::mutatorTest() {
     // Start the mutatee
     logerror("Starting \"%s\"\n", pathname);
 
-    BPatch_thread *appThread = bpatch->createProcess(pathname, child_argv,NULL);
-    if (appThread == NULL) {
+    appProc = bpatch->processCreate(pathname, child_argv,NULL);
+    if (appProc == NULL) {
 	logerror("Unable to run test program.\n");
         return FAILED;
     }
 
-    contAndWaitForAllThreads(bpatch, appThread, mythreads, &threadCount);
+    contAndWaitForAllProcs(bpatch, appProc, mythreads, &threadCount);
 
     if ( !passedTest )
     {

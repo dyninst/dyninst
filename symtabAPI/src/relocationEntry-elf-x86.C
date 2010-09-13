@@ -35,6 +35,10 @@
 #include "annotations.h"
 #include <elf.h>
 
+#if defined(os_freebsd)
+#define R_X86_64_JUMP_SLOT R_X86_64_JMP_SLOT
+#endif
+
 static const unsigned X86_64_WIDTH = 8;
 
 const char* relocationEntry::relType2Str(unsigned long r, unsigned addressWidth) {
@@ -47,7 +51,6 @@ const char* relocationEntry::relType2Str(unsigned long r, unsigned addressWidth)
             CASE_RETURN_STR(R_X86_64_PLT32);
             CASE_RETURN_STR(R_X86_64_COPY);
             CASE_RETURN_STR(R_X86_64_GLOB_DAT);
-            CASE_RETURN_STR(R_X86_64_JUMP_SLOT);
             CASE_RETURN_STR(R_X86_64_RELATIVE);
             CASE_RETURN_STR(R_X86_64_GOTPCREL);
             CASE_RETURN_STR(R_X86_64_32);
@@ -64,6 +67,7 @@ const char* relocationEntry::relType2Str(unsigned long r, unsigned addressWidth)
             CASE_RETURN_STR(R_X86_64_DTPOFF32);
             CASE_RETURN_STR(R_X86_64_GOTTPOFF);
             CASE_RETURN_STR(R_X86_64_TPOFF32);
+            CASE_RETURN_STR(R_X86_64_JUMP_SLOT);
             default:
                 return "?";
         }
@@ -80,17 +84,12 @@ const char* relocationEntry::relType2Str(unsigned long r, unsigned addressWidth)
             CASE_RETURN_STR(R_386_RELATIVE);
             CASE_RETURN_STR(R_386_GOTOFF);
             CASE_RETURN_STR(R_386_GOTPC);
-            CASE_RETURN_STR(R_386_32PLT);
             CASE_RETURN_STR(R_386_TLS_TPOFF);
             CASE_RETURN_STR(R_386_TLS_IE);
             CASE_RETURN_STR(R_386_TLS_GOTIE);
             CASE_RETURN_STR(R_386_TLS_LE);
             CASE_RETURN_STR(R_386_TLS_GD);
             CASE_RETURN_STR(R_386_TLS_LDM);
-            CASE_RETURN_STR(R_386_16);
-            CASE_RETURN_STR(R_386_PC16);
-            CASE_RETURN_STR(R_386_8);
-            CASE_RETURN_STR(R_386_PC8);
             CASE_RETURN_STR(R_386_TLS_GD_32);
             CASE_RETURN_STR(R_386_TLS_GD_PUSH);
             CASE_RETURN_STR(R_386_TLS_GD_CALL);
@@ -105,6 +104,13 @@ const char* relocationEntry::relType2Str(unsigned long r, unsigned addressWidth)
             CASE_RETURN_STR(R_386_TLS_DTPMOD32);
             CASE_RETURN_STR(R_386_TLS_DTPOFF32);
             CASE_RETURN_STR(R_386_TLS_TPOFF32);
+#if !defined(os_freebsd)
+            CASE_RETURN_STR(R_386_16);
+            CASE_RETURN_STR(R_386_PC16);
+            CASE_RETURN_STR(R_386_8);
+            CASE_RETURN_STR(R_386_PC8);
+            CASE_RETURN_STR(R_386_32PLT);
+#endif
             default:
                 return "?";
         }

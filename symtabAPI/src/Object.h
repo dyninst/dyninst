@@ -138,6 +138,7 @@ public:
     
     virtual void setTruncateLinePaths(bool value);
     virtual bool getTruncateLinePaths();
+    virtual Region::RegionType getRelType() const { return Region::RT_INVALID; }
 
 protected:
     SYMTAB_EXPORT virtual ~AObject();
@@ -207,7 +208,7 @@ private:
  * include the architecture-operating system specific object files.
 ************************************************************************/
 
-#if defined(os_solaris) || defined(os_linux) || defined(os_bg_ion) || defined(os_vxworks)
+#if defined(os_solaris) || defined(os_linux) || defined(os_bg_ion) || defined(os_freebsd) || defined(os_vxworks)
 #include "Object-elf.h"
 #elif defined(os_aix)
 #include "Object-xcoff.h"

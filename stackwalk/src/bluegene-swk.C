@@ -418,8 +418,9 @@ namespace Dyninst {
         read_cache(NULL),
         read_cache_start(0x0),
         read_cache_size(0x0),
-	detached(false),
-	write_ack(false)
+        detached(false),
+        write_ack(false),
+        wrote_trap(false)
     {
     }
 

@@ -60,9 +60,9 @@ extern "C" {
 	TEST_DLL_EXPORT TestMutator *TestMutator_factory();
 }
 
-COMPLIB_DLL_EXPORT int waitUntilStopped(BPatch *, BPatch_thread *appThread, 
+COMPLIB_DLL_EXPORT int waitUntilStopped(BPatch *, BPatch_process *appThread,
                       int testnum, const char *testname);
-COMPLIB_DLL_EXPORT bool signalAttached(BPatch_thread *appThread, BPatch_image *appImage);
+COMPLIB_DLL_EXPORT bool signalAttached(BPatch_image *appImage);
 
 COMPLIB_DLL_EXPORT void checkCost(BPatch_snippet snippet);
 
@@ -133,17 +133,17 @@ COMPLIB_DLL_EXPORT int isMutateeFortran(BPatch_image *appImage);
 // Tests to see if the mutatee has defined the mutateeF77 flag
 int isMutateeF77(BPatch_image *appImage);
 
-COMPLIB_DLL_EXPORT void MopUpMutatees(const unsigned int mutatees, BPatch_thread *appThread[]);
+COMPLIB_DLL_EXPORT void MopUpMutatees(const unsigned int mutatees, BPatch_process *appProc[]);
 
-COMPLIB_DLL_EXPORT void contAndWaitForAllThreads(BPatch *bpatch, BPatch_thread *appThread, 
-      BPatch_thread **mythreads, int *threadCount);
+COMPLIB_DLL_EXPORT void contAndWaitForAllProcs(BPatch *bpatch, BPatch_process *appThread,
+        BPatch_process **mythreads, int *threadCount);
 
 /*
  * Given a string variable name and an expected value, lookup the varaible
  *    in the child process, and verify that the value matches.
  *
  */
-COMPLIB_DLL_EXPORT bool verifyChildMemory(BPatch_thread *appThread, 
+COMPLIB_DLL_EXPORT bool verifyChildMemory(BPatch_process *appThread,
                        const char *name, int expectedVal);
 
 
@@ -183,18 +183,11 @@ COMPLIB_DLL_EXPORT bool checkStack(BPatch_thread *appThread,
 COMPLIB_DLL_EXPORT void buildArgs(const char** child_argv, char *pathname, int testNo);
 
 
-COMPLIB_DLL_EXPORT bool createNewProcess(BPatch *bpatch, BPatch_thread *&appThread, 
-                                         BPatch_image *&appImage, char *pathname, 
-                                         const char** child_argv);
-
-
 COMPLIB_DLL_EXPORT int instrumentToCallZeroArg(BPatch_thread *appThread, 
                                                BPatch_image *appImage, 
                                                char *instrumentee, char*patch, 
                                                int testNo, char *testName);
 
-
-COMPLIB_DLL_EXPORT char* saveWorld(BPatch_thread *appThread);
 
 COMPLIB_DLL_EXPORT int letOriginalMutateeFinish(BPatch_thread *appThread);
 
@@ -208,13 +201,15 @@ COMPLIB_DLL_EXPORT bool getVar(BPatch_image *appImage, const char *vname, void *
 //           or test_lib_dllExecution.C
 
 // Function in MutateeStart.C
-COMPLIB_DLL_EXPORT BPatch_thread *startMutateeTestGeneric(BPatch *bpatch, const char *pathname, const char **child_argv, bool createmode);
+COMPLIB_DLL_EXPORT BPatch_process *startMutateeTestGeneric(BPatch *bpatch, const char *pathname, const char **child_argv, bool createmode);
 
-COMPLIB_DLL_EXPORT BPatch_thread *startMutateeTest(BPatch *bpatch, const char *mutatee, const char *testname, bool createmode, char *logfilename, char *humanlogname);
+COMPLIB_DLL_EXPORT BPatch_process *startMutateeTest(BPatch *bpatch, const char *mutatee, const char *testname, bool createmode, char *logfilename, char *humanlogname);
 
-COMPLIB_DLL_EXPORT BPatch_thread *startMutateeTest(BPatch *bpatch, RunGroup *group, char *logfilename, char *humanlogname, bool verboseFormat, bool printLabels, int debugPrint, char *pidfilename, char *mutatee_resumelog, int unique);
+COMPLIB_DLL_EXPORT BPatch_process *startMutateeTest(BPatch *bpatch, RunGroup *group, char *logfilename, char *humanlogname, bool
+verboseFormat, bool printLabels, int debugPrint, char *pidfilename, char *mutatee_resumelog, int unique);
 
-COMPLIB_DLL_EXPORT BPatch_thread *startMutateeTest(BPatch *bpatch, RunGroup *group, char *logfilename, char *humanlogname, bool verboseFormat, bool printLabels, int debugPrint, char *pidfilename, char *mutatee_resumelog, int unique);
+COMPLIB_DLL_EXPORT BPatch_process *startMutateeTest(BPatch *bpatch, RunGroup *group, char *logfilename, char *humanlogname, bool
+verboseFormat, bool printLabels, int debugPrint, char *pidfilename, char *mutatee_resumelog, int unique);
 
 COMPLIB_DLL_EXPORT BPatch_binaryEdit *startBinaryTest(BPatch *bpatch, RunGroup *group);
 
@@ -229,7 +224,7 @@ COMPLIB_DLL_EXPORT bool runBinaryTest(RunGroup *group, ParameterDict &params, te
 
 // COMPLIB_DLL_EXPORT BPatch_thread *startMutateeEnabledTests(BPatch *bpatch, char *pathname, bool createmode, test_data_t tests[], unsigned int num_tests, int oldtest, char *logfilename);
 
-COMPLIB_DLL_EXPORT void killMutatee(BPatch_thread *appThread);
+COMPLIB_DLL_EXPORT void killMutatee(BPatch_process *appThread);
 
 #endif
 

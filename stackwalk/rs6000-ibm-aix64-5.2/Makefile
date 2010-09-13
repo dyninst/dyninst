@@ -23,7 +23,6 @@ SRCS =  ../src/aix-swk.C \
 include ../make.module.tmpl
 
 # On AIX all symbols must be resolved at link time, even for a library.
-# We need the cplus.demangle function from libiberty.
 LDFLAGS += -Wl,-bbigtoc,-bexpall -lsymtabAPI
 # Override default of gcc -- need g++ on AIX
 LD = $(GXX)

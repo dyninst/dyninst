@@ -720,10 +720,10 @@ class Elf_X_Data {
 class Elf_X_Shdr {
   public:
     Elf_X_Shdr()
-       : scn(NULL), shdr32(NULL), shdr64(NULL), is64(false), fromDebugFile(false) { }
+      : scn(NULL), data(NULL), shdr32(NULL), shdr64(NULL), is64(false), fromDebugFile(false) { }
 
     Elf_X_Shdr(bool is64_, Elf_Scn *input)
-       : scn(input), shdr32(NULL), shdr64(NULL), is64(is64_), fromDebugFile(false) {
+      : scn(input), data(NULL), shdr32(NULL), shdr64(NULL), is64(is64_), fromDebugFile(false) {
 
 	if (input) {
 	    first_data();
@@ -938,10 +938,11 @@ class Elf_X {
              elf = elf_begin(input, cmd, ref->e_elfp());
           else
              elf = elf_begin(input, cmd, NULL);
-          int err;
-          if ((err = elf_errno()) != 0)
+          int errnum;
+          if ((errnum = elf_errno()) != 0)
           {
-             //const char *msg = elf_errmsg(err);
+             //const char *msg = elf_errmsg(errnum);
+             //fprintf(stderr, "Elf error: %s\n", msg);
           }
           if (elf) {
              if (elf_kind(elf) == ELF_K_ELF) {

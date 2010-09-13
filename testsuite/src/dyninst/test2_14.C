@@ -63,16 +63,16 @@ extern "C" DLLEXPORT  TestMutator *test2_14_factory() {
 
 // static int mutatorTest(BPatch_thread *thread, BPatch_image *appImage)
 test_results_t test2_14_Mutator::executeTest() {
-    killMutatee(appThread); // FIXME Uses deprecated BPatch_thread::terminateExecution()
-    delete appThread;
+    killMutatee(appProc);
+    delete appProc;
    
     bool failed_this = false;
-    BPatch_Vector<BPatch_thread *> *threads = bpatch->getThreads();
+    BPatch_Vector<BPatch_process *> *threads = bpatch->getProcesses();
     for (unsigned int i=0; i < threads->size(); i++) {
-	if ((*threads)[i] == appThread) {
+	if ((*threads)[i] == appProc) {
 	    logerror("**Failed** test #14 (delete thread)\n"); 
-	    logerror("    thread %d was deleted, but getThreads found it\n",
-		appThread->getPid());
+	    logerror("    thread %p was deleted, but getThreads found it\n",
+                     appProc); // DO NOT try to dereference here...
 	    failed_this = true;
 	}
     }
@@ -98,13 +98,14 @@ test_results_t test2_14_Mutator::setup(ParameterDict &param) {
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
 
     appThread = (BPatch_thread *)(param["appThread"]->getPtr());
+    appProc = appThread->getProcess();
 
     // Read the program's image and get an associated image object
-    appImage = appThread->getImage();
+    appImage = appProc->getImage();
 
     // Signal the child that we've attached
     if (createmode == USEATTACH) {
-	signalAttached(appThread, appImage);
+       signalAttached(appImage);
     }
 
     return PASSED;

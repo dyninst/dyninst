@@ -543,7 +543,7 @@ void reportTestResult(RunGroup *group, TestInfo *test)
 }
 
 #if defined(os_solaris_test) || defined(os_linux_test)
-
+#if !defined(cap_gnu_demangler_test)
 /**
  * Many linkers don't want to link the static libiberty.a unless
  * we have a reference to it.  It's really needed by libtestdyninst.so
@@ -562,6 +562,7 @@ void use_liberty()
 {
    cplus_demangle("a", 0);
 }
+#endif
 #endif
 
 #if defined (os_solaris_test) || defined (os_windows_test)

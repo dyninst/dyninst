@@ -53,7 +53,9 @@ RunGroup::RunGroup(const char *mutatee_name, start_state_t state_init,
                    run_location_t mutator_location_, run_location_t mutatee_location_, 
                    mutatee_runtime_t mutatee_runtime_,
                    test_linktype_t linktype_,
-                   bool ex, TestInfo *test_init,
+                   bool ex,
+                   test_pictype_t pic_,
+                   TestInfo *test_init,
                    const char *modname_, const char *compiler_, const char *optlevel_, 
                    const char *abi_)
   : mutatee(mutatee_name), state(state_init), createmode(attach_init),
@@ -62,6 +64,7 @@ RunGroup::RunGroup(const char *mutatee_name, start_state_t state_init,
     mutator_location(mutator_location_), mutatee_location(mutatee_location_),
     mutatee_runtime(mutatee_runtime_),
     linktype(linktype_),
+    pic(pic_),
     compiler(compiler_), optlevel(optlevel_), abi(abi_)
 {
   tests.push_back(test_init);
@@ -74,7 +77,9 @@ RunGroup::RunGroup(const char *mutatee_name, start_state_t state_init,
                    run_location_t mutator_location_, run_location_t mutatee_location_, 
                    mutatee_runtime_t mutatee_runtime_,
                    test_linktype_t linktype_,
-                   bool ex, const char *modname_,
+                   bool ex,
+                   test_pictype_t pic_,
+                   const char *modname_,
                    const char *compiler_, const char *optlevel_, 
                    const char *abi_)
   : mutatee(mutatee_name), state(state_init), createmode(attach_init),
@@ -83,20 +88,26 @@ RunGroup::RunGroup(const char *mutatee_name, start_state_t state_init,
     mutator_location(mutator_location_), mutatee_location(mutatee_location_),
     mutatee_runtime(mutatee_runtime_),
     linktype(linktype_),
+    pic(pic_),
     compiler(compiler_), optlevel(optlevel_), abi(abi_)
 {
 }
 
 // Constructor for RunGroup with no initial test specified
-RunGroup::RunGroup(const char *mutatee_name, start_state_t state_init,
+RunGroup::RunGroup(const char *mutatee_name, 
+                   start_state_t state_init,
                    create_mode_t attach_init, 
-                   bool ex, const char *modname_,
-                   const char *compiler_, const char *optlevel_, 
+                   bool ex,
+                   const char *modname_, 
+                   test_pictype_t pic_,
+                   const char *compiler_, 
+                   const char *optlevel_, 
                    const char *abi_)
   : mutatee(mutatee_name), state(state_init), createmode(attach_init),
     customExecution(ex), disabled(false), mod(NULL), modname(modname_),
     threadmode(TNone), procmode(PNone),
     linktype(DynamicLink),
+    pic(pic_),
     compiler(compiler_), optlevel(optlevel_), abi(abi_)
 {
 }

@@ -23,12 +23,12 @@ void AbsRegionConverter::convertAll(InstructionAPI::Expression::Ptr expr,
   // If we're a memory dereference, then convert us and all
   // used registers.
   if (dyn_detail::boost::dynamic_pointer_cast<Dereference>(expr)) {
-    std::vector<InstructionAST::Ptr> tmp;
+    std::vector<Expression::Ptr> tmp;
     // Strip dereference...
     expr->getChildren(tmp);
-    for (std::vector<InstructionAST::Ptr>::const_iterator i = tmp.begin();
+    for (std::vector<Expression::Ptr>::const_iterator i = tmp.begin();
 	 i != tmp.end(); ++i) {
-      regions.push_back(convert(dyn_detail::boost::dynamic_pointer_cast<Expression>(*i), addr, func));
+      regions.push_back(convert(*i, addr, func));
     }
   }
   
@@ -176,15 +176,19 @@ AbsRegion AbsRegionConverter::convert(Expression::Ptr exp,
     
     // We currently have to try and bind _every_ _single_ _alias_
     // of the stack pointer...
-    if (exp->bind(theStackPtr.get(), Result(s32, spHeight)) ||
-	exp->bind(theStackPtr64.get(), Result(s64, spHeight))) {
-      isStack = true;
+    if (stackDefined) {
+      if (exp->bind(theStackPtr.get(), Result(s32, spHeight)) ||
+	  exp->bind(theStackPtr64.get(), Result(s64, spHeight))) {
+	isStack = true;
+      }
     }
-    if (exp->bind(theFramePtr.get(), Result(s32, fpHeight)) ||
-	exp->bind(theFramePtr64.get(), Result(s64, fpHeight))) {
-      isFrame = true;
+    if (frameDefined) {
+      if (exp->bind(theFramePtr.get(), Result(s32, fpHeight)) ||
+	  exp->bind(theFramePtr64.get(), Result(s64, fpHeight))) {
+	isFrame = true;
+      }
     }
-    
+
     // Bind the IP, why not...
     exp->bind(thePC.get(), Result(u32, addr));
     exp->bind(thePC64.get(), Result(u64, addr));
@@ -195,7 +199,7 @@ AbsRegion AbsRegionConverter::convert(Expression::Ptr exp,
       if (res.defined && frameDefined) {
 	return AbsRegion(Absloc(res.convert<Address>(),
 				fpRegion,
-				func->name()));
+				func));
       }
       else {
 	return AbsRegion(Absloc::Stack);
@@ -206,7 +210,7 @@ AbsRegion AbsRegionConverter::convert(Expression::Ptr exp,
       if (res.defined && stackDefined) {
 	return AbsRegion(Absloc(res.convert<Address>(),
 				spRegion,
-				func->name()));
+				func));
       }
       else {
 	return AbsRegion(Absloc::Stack);
@@ -242,7 +246,7 @@ AbsRegion AbsRegionConverter::stack(Address addr,
 
     return AbsRegion(Absloc(spHeight,
 			    spRegion,
-			    func->name()));
+			    func));
 }
 
 AbsRegion AbsRegionConverter::frame(Address addr,
@@ -265,7 +269,7 @@ AbsRegion AbsRegionConverter::frame(Address addr,
     
     return AbsRegion(Absloc(fpHeight,
 			    fpRegion,
-			    func->name()));
+			    func));
 }
 
 bool AbsRegionConverter::getCurrentStackHeight(ParseAPI::Function *func,
@@ -479,7 +483,7 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
     /*
       AbsRegion stackTop(Absloc(0,
       0,
-      func->name()));
+      func));
     */
     // Actually, I think this is ebp = pop esp === ebp = pop ebp
     Assignment::Ptr fpA = Assignment::Ptr(new Assignment(I,

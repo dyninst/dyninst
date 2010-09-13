@@ -423,7 +423,8 @@ SymtabCodeSource::nonReturning(string name)
             name == "ExitProcess" ||
             /* bernat, 5/2010 */
             name == "_ZSt17__throw_bad_allocv" ||
-            name == "_ZSt20__throw_length_errorPKc");
+            name == "_ZSt20__throw_length_errorPKc") ||
+            name == "_Unwind_Resume";
 }
 
 Address

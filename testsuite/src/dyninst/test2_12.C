@@ -104,4 +104,3 @@ test_results_t test2_12_Mutator::executeTest() {
       return PASSED;
     }
 }
-

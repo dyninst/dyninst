@@ -84,16 +84,16 @@ test_results_t test1_41_Mutator::executeTest() {
    // Run the mutatee twice, querying line info each time & store the info
    for (n = 0; n < iterations; n++) {
       dprintf("Starting \"%s\"\n", pathname);
-      BPatch_thread *thread = bpatch->createProcess(pathname, child_argv,
+      BPatch_process *proc = bpatch->processCreate(pathname, child_argv,
                                                     NULL);
-      if (!thread) {
+      if (!proc) {
          logerror("*ERROR*: unable to create handle for executable\n", n);
          logerror("**Failed** test #41 (repeated line information)\n");
          return FAILED;
       }
-      dprintf("Mutatee started, pid=%d\n", n, thread->getPid());
+      dprintf("Mutatee started, pid=%d\n", n, proc->getPid());
 
-      BPatch_image *image = thread->getImage();
+      BPatch_image *image = proc->getImage();
       if (!image) {
          logerror("*ERROR*: unable to get image from thread\n");
          logerror("**Failed** test #41 (repeated line information)\n");
@@ -101,7 +101,7 @@ test_results_t test1_41_Mutator::executeTest() {
       }
       if (isMutateeFortran(image)) {
          // This shouldn't happen..
-         thread->getProcess()->terminateExecution();
+         proc->terminateExecution();
          logerror("Skipped test #41 (repeated line information)\n");
          return SKIPPED;
       }
@@ -162,7 +162,7 @@ test_results_t test1_41_Mutator::executeTest() {
       counts[n] = statements.size();
       dprintf("Trial %d: found %d statements\n", n, statements.size());
 
-      thread->getProcess()->terminateExecution();
+      proc->terminateExecution();
    }
 
    // Make sure we got the same info each time we ran the mutatee

@@ -62,6 +62,7 @@ namespace Dyninst
       /// By definition, a %RegisterAST object has no children.
       /// \param children Since a %RegisterAST has no children, the \c children parameter is unchanged by this method.
       virtual void getChildren(vector<InstructionAST::Ptr>& children) const;
+      virtual void getChildren(vector<Expression::Ptr>& children) const;
 
       /// By definition, the use set of a %RegisterAST object is itself.
       /// \param uses This %RegisterAST will be inserted into \c uses.

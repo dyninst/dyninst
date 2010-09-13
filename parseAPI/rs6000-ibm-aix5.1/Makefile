@@ -46,8 +46,7 @@ ifdef XLC_BUILD
   AR = /usr/bin/ar
 else
   # On AIX all symbols must be resolved at link time, even for a library.
-  # We need the cplus.demangle function from libiberty.
-  LDFLAGS += -liberty -Wl,-bbigtoc,-bexpall -lgcc
+  LDFLAGS += -Wl,-bbigtoc,-bexpall -lgcc
   # Override default of gcc -- need g++ on AIX
   LD = $(GXX)
 endif

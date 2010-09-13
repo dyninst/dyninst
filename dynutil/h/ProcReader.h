@@ -39,6 +39,7 @@ namespace Dyninst {
 class ProcessReader {
  public:
    virtual bool start() = 0;
+   virtual bool isAsync() { return false; }
    virtual bool ReadMem(Dyninst::Address addr, void *buffer, unsigned size) = 0;
    virtual bool GetReg(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val) = 0;
    virtual bool done() = 0;

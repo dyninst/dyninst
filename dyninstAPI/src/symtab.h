@@ -58,7 +58,7 @@
 #include "common/h/List.h"
 #include "common/h/Types.h"
 
-#if defined(rs6000_ibm_aix4_1)||defined(rs6000_ibm_aix5_1)||defined(os_linux)||defined(os_solaris)
+#if defined(rs6000_ibm_aix4_1)||defined(rs6000_ibm_aix5_1)||defined(os_linux)||defined(os_solaris)||defined(os_freebsd)
 #include "symtabAPI/h/Archive.h"
 #endif
 
@@ -254,10 +254,9 @@ class image : public codeRange {
    friend class image_variable;
    friend class DynCFGFactory;
  public:
-   static image *parseImage(const std::string file);
    static image *parseImage(fileDescriptor &desc, 
-                            BPatch_hybridMode mode = BPatch_normalMode,
-                            bool parseGaps=false);
+                            BPatch_hybridMode mode,
+                            bool parseGaps);
 
    // And to get rid of them if we need to re-parse
    static void removeImage(image *img);
@@ -271,7 +270,7 @@ class image : public codeRange {
 
    image(fileDescriptor &desc, bool &err, 
          BPatch_hybridMode mode,
-         bool parseGaps=false);
+         bool parseGaps);
 
    void analyzeIfNeeded();
 
@@ -412,8 +411,8 @@ class image : public codeRange {
 
    // This method is invoked to find the global constructors function and add a
    // symbol for the function if the image has no symbols
-   bool findGlobalConstructorFunc();
-   bool findGlobalDestructorFunc();
+   bool findGlobalConstructorFunc(const std::string &ctorHandler);
+   bool findGlobalDestructorFunc(const std::string &dtorHandler);
 
  private:
    void findModByAddr (const SymtabAPI::Symbol *lookUp, vector<SymtabAPI::Symbol *> &mods,
@@ -485,13 +484,14 @@ class image : public codeRange {
 
    // data from the symbol table 
    SymtabAPI::Symtab *linkedFile;
-#if defined (os_aix) || defined(os_linux) || defined(os_solaris)
+#if defined (os_aix) || defined(os_linux) || defined(os_solaris) || defined(os_freebsd)
    SymtabAPI::Archive *archive;
 #endif
 
    // ParseAPI
    ParseAPI::CodeObject * obj_;
    ParseAPI::SymtabCodeSource * cs_;
+   ParseAPI::SymtabCodeSource::hint_filt *filt;
    DynCFGFactory * img_fact_;
    DynParseCallback * parse_cb_;
    void *cb_arg0_; // argument for mapped_object callback

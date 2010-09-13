@@ -60,13 +60,13 @@ const char *procName[2] = { "parent", "child" };
  *    in the process, and verify that the value matches.
  *
  */
-bool verifyProcMemory(BPatch_thread *appThread, const char *name,
+bool verifyProcMemory(BPatch_process *appProc, const char *name,
                       int expectedVal, procType proc_type)
 {
-   BPatch_image *appImage = appThread->getImage();
+    BPatch_image *appImage = appProc->getImage();
 
    if (!appImage) {
-      dprintf("unable to locate image for %d\n", appThread->getPid());
+       dprintf("unable to locate image for %d\n", appProc->getPid());
       return false;
    }
    

@@ -69,22 +69,18 @@ test4_1_Mutator::test4_1_Mutator()
 }
 
 static bool passedTest = false;
-static BPatch_thread *mythreads[25];
+static BPatch_process *myprocs[25];
 static int threadCount = 0;
 
 static void forkFunc(BPatch_thread *parent, BPatch_thread *child)
 {
-  dprintf("forkFunc called with parent %p, child %p\n", parent, child);
-    BPatch_image *appImage;
-    BPatch_Vector<BPatch_function *> bpfv;
-    BPatch_Vector<BPatch_snippet *> nullArgs;
-
-    if (child) mythreads[threadCount++] = child;
+    dprintf("forkFunc called with parent %p, child %p\n", parent, child);
+    if (child) myprocs[threadCount++] = child->getProcess();
 
     if (!child) {
-       dprintf("in prefork for %d\n", parent->getPid());
+        dprintf("in prefork for %d\n", parent->getProcess()->getPid());
     } else {
-       dprintf("in fork of %d to %d\n", parent->getPid(), child->getPid());
+        dprintf("in fork of %d to %d\n", parent->getProcess()->getPid(), child->getProcess()->getPid());
     }
 }
 
@@ -92,13 +88,13 @@ static void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type)
 {
   dprintf("exitFunc called\n");
     // Read out the values of the variables.
-    int exitCode = thread->getExitCode();
+  int exitCode = thread->getProcess()->getExitCode();
 
-    assert(thread->terminationStatus() == exit_type);
+  assert(thread->getProcess()->terminationStatus() == exit_type);
     // Read out the values of the variables.
     if (exit_type == ExitedNormally) {
-        if(thread->getPid() == exitCode) {
-            if (verifyChildMemory(thread, "test4_1_global1", 1000001)) {
+        if(thread->getProcess()->getPid() == exitCode) {
+            if (verifyChildMemory(thread->getProcess(), "test4_1_global1", 1000001)) {
                 logerror("Passed test #1 (exit callback)\n");
                 passedTest = true;
             } else {
@@ -113,7 +109,7 @@ static void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type)
         }
     } else if (exit_type == ExitedViaSignal) {
        logerror("**Failed** test #1 (exit callback), exited via signal %d\n",
-               thread->getExitSignal());
+                thread->getProcess()->getExitSignal());
         passedTest = false;
     } else assert(false);
 }
@@ -140,13 +136,13 @@ test_results_t test4_1_Mutator::mutatorTest() {
     // Start the mutatee
     logerror("Starting \"%s\"\n", pathname);
 
-    BPatch_thread *appThread = bpatch->createProcess(pathname, child_argv,NULL);
-    dprintf("Test 1: using thread %p\n", appThread);
-    if (appThread == NULL) {
+    appProc = bpatch->processCreate(pathname, child_argv,NULL);
+    dprintf("Test 1: using thread %p\n", appProc);
+    if (appProc == NULL) {
 	logerror("Unable to run test program.\n");
         return FAILED;
     }
-    contAndWaitForAllThreads(bpatch, appThread, mythreads, &threadCount);
+    contAndWaitForAllProcs(bpatch, appProc, myprocs, &threadCount);
 
     if ( !passedTest )
     {

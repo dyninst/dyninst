@@ -135,6 +135,7 @@ namespace Dyninst {
       unsigned read_cache_size;
       bool detached;
       bool write_ack;
+      bool wrote_trap;
     };
 
     // helper for dealing with filehandles
