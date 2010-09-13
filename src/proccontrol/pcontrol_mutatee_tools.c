@@ -264,7 +264,7 @@ int recv_message(unsigned char *msg, size_t msg_size)
        /* Sometimes the recv system call is not restarted properly after a
         * signal and an iRPC. TODO a workaround for this bug
         */
-       if( result && result != msg_size ) {
+       if( result > 0 && result != msg_size ) {
            logerror("Received message of unexpected size %d (expected %d)\n",
                    result, msg_size);
        }
