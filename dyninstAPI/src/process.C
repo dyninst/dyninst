@@ -5102,7 +5102,7 @@ int_function *process::findActiveFuncByAddr(Address addr)
                 Frame *curFrame = &stack[j];
                 Address framePC = curFrame->getPC();
                 int_basicBlock *frameBlock = findBasicBlockByAddr(framePC);
-                if (!block) {
+                if (!frameBlock) {
                     // if we're at a relocated address, we can translate 
                     // back to the right function
                     Address origAddr = curFrame->getPC();
@@ -5132,8 +5132,9 @@ int_function *process::findActiveFuncByAddr(Address addr)
                         }
                     }
                 }
-                if (frameFunc && bbi->block() == frameFunc->findBlockByAddr
-                        (bbi->block()->origInstance()->firstInsnAddr())) {
+                if (frameFunc && 
+                    bbi->block() == frameFunc->findBlockByAddr(bbi->firstInsnAddr()))
+                {
                     foundFrame = true;
                     func = frameFunc;
                 }

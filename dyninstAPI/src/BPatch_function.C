@@ -1092,3 +1092,25 @@ void BPatch_function::relocateFunction()
         getAddSpace()->finalizeInsertionSet(false, &tmp);
      }
 }
+
+bool BPatch_function::getSharedFuncs(set<BPatch_function*> &sharedFuncs)
+{
+    if (!func->containsSharedBlocks()) {
+        return false;
+    }
+    const set<int_basicBlock*,int_basicBlock::compare> blocks = func->blocks();
+    std::set<int_basicBlock*,int_basicBlock::compare>::const_iterator bit;
+    for (bit = blocks.begin(); bit != blocks.end(); bit++) {
+        if((*bit)->hasSharedBase()) {
+            vector<ParseAPI::Function*> papiFuncs;
+            (*bit)->llb()->getFuncs(papiFuncs);
+            vector<ParseAPI::Function*>::iterator fit;
+            for (fit = papiFuncs.begin(); fit != papiFuncs.end(); fit++) {
+                int_function *intFunc = func->proc()->findFuncByInternalFunc
+                    ( static_cast<image_func*>(*fit) );
+                sharedFuncs.insert(getAddSpace()->
+                    findOrCreateBPFunc(intFunc, getModule()));
+            }
+        }
+    }
+}

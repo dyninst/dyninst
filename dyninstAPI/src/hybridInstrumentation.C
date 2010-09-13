@@ -726,8 +726,17 @@ void HybridAnalysis::parseNewEdgeInFunction(BPatch_point *sourcePoint, Address t
             }
         } 
 
-        // remove the function's instrumentation
+        // remove the function's instrumentation (and from shared funcs)
         removeInstrumentation(sourceFunc);
+        set<BPatch_function*> sharedFuncs;
+        if (sourceFunc->getSharedFuncs(sharedFuncs)) {
+            set<BPatch_function*>::iterator fit;
+            for (fit = sharedFuncs.begin(); fit != sharedFuncs.end(); fit++) {
+                if ( *fit != sourceFunc) {
+                    removeInstrumentation(*fit);
+                }
+            }
+        }
 
         // 2. parse the new edge
         if ( ! sourceFunc->parseNewEdge( (Address)sourcePoint->getAddress() , 

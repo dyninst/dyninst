@@ -131,13 +131,14 @@ public:
     void removeCFG() { cfg = NULL; }
     void getUnresolvedControlTransfers(BPatch_Vector<BPatch_point *> &unresolvedCF);
     void getAbruptEndPoints(BPatch_Vector<BPatch_point *> &abruptEnds);
-    void getCallerPoints(std::vector<BPatch_point*>& callerPoints);
-    void getAllPoints(std::vector<BPatch_point*>& allPoints);
+    void getCallerPoints(BPatch_Vector<BPatch_point*>& callerPoints);
+    void getAllPoints(BPatch_Vector<BPatch_point*>& allPoints);
     bool setHandlerFaultAddrAddr(Dyninst::Address addr, bool set);
     void fixHandlerReturnAddr(Dyninst::Address addr);
     bool removeInstrumentation();
     bool parseNewEdge(Dyninst::Address source, Dyninst::Address target);
     void relocateFunction();
+    bool getSharedFuncs(std::set<BPatch_function*> &funcs);
 
     void addParam(Dyninst::SymtabAPI::localVar *lvar);
 
