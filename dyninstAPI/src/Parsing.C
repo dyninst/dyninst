@@ -221,7 +221,7 @@ DynCFGFactory::mkedge(Block * src, Block * trg, EdgeTypeEnum type) {
 }
 
 void
-DynParseCallback::unresolved_cf(Function *f,Address addr,default_details*det)
+DynParseCallback::unresolved_cf(Function *f,Address addr,unresolved_details*det)
 {
     image_instPoint * p =
         new image_instPoint(
@@ -229,6 +229,9 @@ DynParseCallback::unresolved_cf(Function *f,Address addr,default_details*det)
             det->ibuf,
             det->isize,
             _img,
+            det->data.call.target,
+            det->data.call.dynamic_call,
+            det->data.call.absolute_address,
             otherPoint,
             true);
 
@@ -305,7 +308,19 @@ DynParseCallback::interproc_cf(Function*f,Address addr,interproc_details*det)
                     det->data.call.dynamic_call,
                     det->data.call.absolute_address,
                     callSite,
-                    det->data.call.dynamic_call && !det->data.call.target);
+                    false);
+            break;
+        case interproc_details::unresolved:
+            p = new image_instPoint(
+                    addr,
+                    det->ibuf,
+                    det->isize,
+                    _img,
+                    det->data.unres.target,
+                    det->data.unres.dynamic,
+                    det->data.unres.absolute_address,
+                    callSite,
+                    true);
             break;
         case interproc_details::branch_interproc:
             p = new image_instPoint(

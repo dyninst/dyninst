@@ -161,10 +161,18 @@ void Parser::ProcessCallInsn(
     det.isize = ah.getSize();
     
     if(ah.isCall()) {
-        det.type = ParseCallback::interproc_details::call; 
-        det.data.call.absolute_address = isAbsolute;
-        det.data.call.dynamic_call = isDynamic;
-        det.data.call.target = target;
+        if (isDynamic && !target) {
+            det.type = ParseCallback::interproc_details::unresolved; 
+            det.data.unres.absolute_address = isAbsolute;
+            det.data.unres.dynamic = isDynamic;
+            det.data.unres.target = target;
+        }
+        else {
+            det.type = ParseCallback::interproc_details::call; 
+            det.data.call.absolute_address = isAbsolute;
+            det.data.call.dynamic_call = isDynamic;
+            det.data.call.target = target;
+        }
     }
     else
         det.type = ParseCallback::interproc_details::branch_interproc;
@@ -247,6 +255,8 @@ void Parser::ProcessCFInsn(
             if(resolvable_edge) {
                 newedge = link_tempsink(cur,curEdge->second);
                 if(unlikely( _obj.defensiveMode() )) {
+                    // see if we need to update the underlying code bytes, 
+                    // and if so, create a new instruction adapter
                     if (_pcb.updateCodeBytes(curEdge->first)) {
                         Address curAddr = ah->getAddr();
                         delete(ah);
@@ -290,12 +300,17 @@ void Parser::ProcessCFInsn(
     /*
      * Notification callback
      */
-    if(unresolved)
-    {
-        ParseCallback::default_details det(
-         (unsigned char*)frame.func->isrc()->getPtrToInstruction(ah->getAddr()),
-         ah->getSize(), isBranch);
-        _pcb.unresolved_cf(frame.func,ah->getAddr(),&det);
+    if(unresolved) 
+    {//all indirect calls, branches, and direct calls/branches with bad targets
+        ParseCallback::interproc_details det;
+        det.ibuf = (unsigned char*)
+           frame.func->isrc()->getPtrToInstruction(ah.getAddr());
+        det.isize = ah.getSize();
+        det.type = ParseCallback::interproc_details::unresolved;
+        det.data.unres.absolute_address = isAbsolute;
+        det.data.unres.dynamic = isDynamic;
+        det.data.unres.target = target;
+        _pcb.interproc_cf(frame.func,ah.getAddr(),&det);
     }
 
     if(ah->isDelaySlot())

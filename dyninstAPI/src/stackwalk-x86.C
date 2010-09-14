@@ -101,23 +101,25 @@ static frameStatus_t getFrameStatus(process *p, unsigned long pc, int &extra_hei
 
    // See if we're in instrumentation
    Address origAddr = pc;
-   baseTrampInstance *bti = NULL;
-   bblInstance *inst = NULL;
-   if (p->getRelocInfo(pc, 
-		       origAddr,
-		       inst,
-		       bti)) {
-     // Find out whether we've got a saved
-     // state or not
-     if (bti) {
-       extra_height = bti->trampStackHeight();
-       if (bti->baseT->createFrame()) {
-         return frame_tramp;
+   if (p->isRuntimeHeapAddr(pc)) {
+       baseTrampInstance *bti = NULL;
+       bblInstance *inst = NULL;
+       if (p->getRelocInfo(pc, 
+		           origAddr,
+		           inst,
+		           bti)) {
+         // Find out whether we've got a saved
+         // state or not
+         if (bti) {
+           extra_height = bti->trampStackHeight();
+           if (bti->baseT->createFrame()) {
+             return frame_tramp;
+           }
+           else {
+             return frameless_tramp;
+           }
+         }
        }
-       else {
-         return frameless_tramp;
-       }
-     }
    }
    
    range = p->findOrigByAddr(origAddr);

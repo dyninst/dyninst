@@ -248,7 +248,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
     time( &tstruct );
     tmstruct = localtime( &tstruct );
     strftime(timeStr, 64, "%X", tmstruct);
-    mal_printf("\nbadTransferCB %lx=>%lx %s\n", point->getAddress(), target, timeStr);
+    mal_printf("badTransferCB %lx=>%lx %s\n\n", point->getAddress(), target, timeStr);
 
     // 1. the target address is in a shared library
     BPatch_module * targMod = proc()->findModuleByAddr(target);

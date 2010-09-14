@@ -72,7 +72,9 @@ class ParseCallback {
         ret,
         call,
         branch_interproc, // tail calls, branches to plts
-        syscall
+        syscall,
+        unres_call,
+        unres_branch
     } type_t;
     unsigned char * ibuf;
     size_t isize;
@@ -83,6 +85,11 @@ class ParseCallback {
             bool absolute_address;
             bool dynamic_call;
         } call;
+        struct {
+            Address target;
+            bool absolute_address;
+            bool dynamic;
+        } unres;
     } data;
   };
   virtual void interproc_cf(Function*,Address,interproc_details*) { }

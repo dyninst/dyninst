@@ -4528,9 +4528,13 @@ Address process::stopThreadCtrlTransfer
                     }
                 }
         
-                // resolve target subtracting the difference between the address 
-                // of the relocated intPoint and its original counterpart
-                if (!success) {
+                if (success) {
+                    // move the translated address from the call instruction 
+                    // to its fallthrough addr
+                    unrelocTarget = targBBI->endAddr();
+                } else {
+                    // resolve target subtracting the difference between the address 
+                    // of the relocated intPoint and its original counterpart
                     unrelocTarget = resolveJumpIntoRuntimeLib(intPoint, target);
                     if (0 == unrelocTarget) {
                         mal_printf("ERROR: stopThread caught a return target in "
@@ -5105,10 +5109,10 @@ int_function *process::findActiveFuncByAddr(Address addr)
                 if (!frameBlock) {
                     // if we're at a relocated address, we can translate 
                     // back to the right function
-                    Address origAddr = curFrame->getPC();
+                    Address origAddr = framePC;
                     bblInstance *framebbi = NULL;
                     baseTrampInstance *bti = NULL;
-                    bool success = getRelocInfo(curFrame->getPC(), 
+                    bool success = getRelocInfo(framePC, 
                                                 origAddr, framebbi, bti);
                     if (success) {
                         frameFunc = framebbi->func();
@@ -5127,14 +5131,13 @@ int_function *process::findActiveFuncByAddr(Address addr)
                         if (callPt && callPt->callTarget()) {
                             image *img = callPt->func()->obj()->parse_img();
                             frameFunc = findFuncByInternalFunc(
-                                img->findFuncByEntry
-                                (callPt->callTarget()-img->desc().loadAddr()));
+                                img->findFuncByEntry(
+                                    callPt->callTarget() 
+                                    - img->desc().loadAddr()));
                         }
                     }
                 }
-                if (frameFunc && 
-                    bbi->block() == frameFunc->findBlockByAddr(bbi->firstInsnAddr()))
-                {
+                if (frameFunc) {
                     foundFrame = true;
                     func = frameFunc;
                 }
