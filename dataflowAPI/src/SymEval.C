@@ -95,6 +95,34 @@ void SymEval::expand(Result_t &res, bool applyVisitors) {
   }
 }
 
+void dfs(Node::Ptr source, Node::Ptr node,
+        set<Node::Ptr> & dfs_nodes,
+        map<Node::Ptr, unsigned> & cycles) {
+    // If we've already encountered this node, we've found a loop!
+    // Mark as a circularity and break
+    if (dfs_nodes.find(node) != dfs_nodes.end()) {
+        expand_cerr << "Found cycle at " << node->format()
+            << ", marking node as not for substitution" << endl;
+
+        AssignNode::Ptr in = dyn_detail::boost::dynamic_pointer_cast<AssignNode>(source);
+        Assignment::Ptr assign = in->assign();
+        AssignNode::Ptr cur_node = dyn_detail::boost::dynamic_pointer_cast<AssignNode>(node);
+        
+        unsigned index = cur_node->getAssignmentIndex(in);
+        cycles.insert(make_pair(node, index));
+        return;
+    } else {
+        dfs_nodes.insert(node);
+    }   
+
+    // Continue DFS by following out-edges
+    NodeIterator gbegin, gend;
+    node->outs(gbegin, gend);
+    for (; gbegin != gend; ++gbegin) {
+        dfs(node, *gbegin, dfs_nodes, cycles);
+    }
+}
+
 // Do the previous, but use a Graph as a guide for
 // performing forward substitution on the AST results
 void SymEval::expand(Graph::Ptr slice, Result_t &res) {
@@ -104,9 +132,25 @@ void SymEval::expand(Graph::Ptr slice, Result_t &res) {
     slice->entryNodes(gbegin, gend);
 
     std::queue<Node::Ptr> worklist;
+    std::queue<Node::Ptr> dfs_worklist;
     for (; gbegin != gend; ++gbegin) {
       expand_cerr << "adding " << (*gbegin)->format() << " to worklist" << endl;
       worklist.push(*gbegin);
+    }
+
+    /* First, we'll do DFS to check for circularities in the graph;
+     * if so, mark them so we don't do infinite substitution */
+    set<Node::Ptr> dfs_nodes;
+    map<Node::Ptr, unsigned> cycles;
+    while (!dfs_worklist.empty()) {
+        Node::Ptr ptr = dfs_worklist.front(); dfs_worklist.pop();
+
+        NodeIterator nbegin, nend;
+        ptr->outs(nbegin, nend);
+
+        for (; nbegin != nend; ++nbegin) {
+            dfs(ptr, *nbegin, dfs_nodes, cycles);
+        }
     }
 
     /* have a list
@@ -125,7 +169,7 @@ void SymEval::expand(Graph::Ptr slice, Result_t &res) {
 
       AST::Ptr prev = res[aNode->assign()];
       
-      process(aNode, res); 
+      process(aNode, res, cycles); 
     
       AST::Ptr post = res[aNode->assign()];
 
@@ -177,7 +221,8 @@ void SymEval::expandInsn(const InstructionAPI::Instruction::Ptr insn,
 
 
 bool SymEval::process(AssignNode::Ptr ptr,
-		      Result_t &dbase) {
+		      Result_t &dbase,
+                      map<Node::Ptr, unsigned> & cycles) {
     bool ret = false;
     
     std::map<unsigned, Assignment::Ptr> inputMap;
@@ -247,6 +292,16 @@ bool SymEval::process(AssignNode::Ptr ptr,
         if (!ast) {
             expand_cerr << "Skipping substitution because of null AST" << endl;
         } else {
+            // Check if we have a circular dependency here; if yes, don't substitute
+            map<Node::Ptr, unsigned>::iterator cit;
+            cit = cycles.find(ptr);
+            if (cit != cycles.end()) {
+                if (cit->second == iter->first) {
+                    expand_cerr << "Found in-edge that's a cycle, skipping substitution" << endl;
+                    break;
+                }
+            }
+
             ast = AST::substitute(ast, use, definition);
             ret = true;
         }	
