@@ -136,6 +136,7 @@ void SymEval::expand(Graph::Ptr slice, Result_t &res) {
     for (; gbegin != gend; ++gbegin) {
       expand_cerr << "adding " << (*gbegin)->format() << " to worklist" << endl;
       worklist.push(*gbegin);
+      dfs_worklist.push(*gbegin);
     }
 
     /* First, we'll do DFS to check for circularities in the graph;
