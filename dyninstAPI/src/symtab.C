@@ -345,17 +345,18 @@ void image::findMain()
     	}
     	if( !foundFini )
     	{
-	    Region *finisec;
-	    linkedFile->findRegion(finisec,".fini");
-            Symbol *finiSym = new Symbol( "_fini",
-                                          Symbol::ST_FUNCTION,
-                                          Symbol::SL_GLOBAL, 
-                                          Symbol::SV_DEFAULT, 
-                                          finisec->getRegionAddr(),
-                                          linkedFile->getDefaultModule(),
-                                          finisec, 
-                                          0 );
-	    linkedFile->addSymbol(finiSym);		
+	  Region *finisec = NULL;
+	  if (linkedFile->findRegion(finisec,".fini")) {
+	    Symbol *finiSym = new Symbol( "_fini",
+					  Symbol::ST_FUNCTION,
+					  Symbol::SL_GLOBAL, 
+					  Symbol::SV_DEFAULT, 
+					  finisec->getRegionAddr(),
+					  linkedFile->getDefaultModule(),
+					  finisec, 
+					  0 );
+	    linkedFile->addSymbol(finiSym);	
+	  }	
     	}
     }
 
@@ -388,10 +389,10 @@ void image::findMain()
        linkedFile->findFunctionsByName(funcs, "usla_main"))
        foundMain = true;
 
-   Region *sec;
-   linkedFile->findRegion(sec, ".text"); 	
+   Region *sec = NULL;
+   bool found = linkedFile->findRegion(sec, ".text"); 	
 
-   if( !foundMain && linkedFile->isExec() && sec )
+   if( !foundMain && linkedFile->isExec() && found )
    {
        //we havent found a symbol for main therefore we have to parse _start
        //to find the address of main
