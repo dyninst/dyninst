@@ -1095,6 +1095,20 @@ Parser::split_block(
     b->_end = addr;
     b->_lastInsn = previnsn;
     rd->blocksByRange.insert(b); 
+    // Any functions holding b that have already been finalized
+    // need to have their caches invalidated so that they will
+    // find out that they have this new 'ret' block
+    std::set<Function*> prev_owners;
+    rd->findFuncs(b->start(),prev_owners);
+    for(std::set<Function*>::iterator oit = prev_owners.begin();
+        oit != prev_owners.end(); ++oit)
+    {
+        Function * po = *oit;
+        po->_cache_valid = false;
+        parsing_printf("[%s:%d] split of [%lx,%lx) invalidates cache of "
+                "func at %lx\n",
+        FILE__,__LINE__,b->start(),b->end(),po->addr());
+    }
 
     // if we're re-parsing in this function, inform user program of the split
     if (owner->_extents.size()) {
