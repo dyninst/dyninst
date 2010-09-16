@@ -108,10 +108,24 @@ bool IA_IAPI::isFrameSetupInsn(Instruction::Ptr i) const
 {
     if(i->getOperation().getID() == e_mov)
     {
+        if(i->readsMemory() || i->writesMemory())
+        {
+            parsing_printf("%s[%d]: discarding insn %s as stack frame preamble, not a reg-reg move\n",
+                           FILE__, __LINE__, i->format().c_str());
+            //return false;
+        }
         if(i->isRead(stackPtr[_isrc->getArch()]) &&
            i->isWritten(framePtr[_isrc->getArch()]))
         {
-            return true;
+            if(i->getOperand(0).getValue()->size() == _isrc->getAddressWidth())
+            {
+                return true;
+            }
+            else
+            {
+                parsing_printf("%s[%d]: discarding insn %s as stack frame preamble, size mismatch for %d-byte addr width\n",
+                               FILE__, __LINE__, i->format().c_str(), _isrc->getAddressWidth());
+            }
         }
     }
     return false;
