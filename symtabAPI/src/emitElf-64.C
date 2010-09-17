@@ -60,6 +60,10 @@ extern const char *SYMTAB_NAME;
 extern const char *INTERP_NAME;
 extern unsigned int elfHash(const char *name);
 
+// Error reporting
+extern void setSymtabError(SymtabError new_err);
+extern void symtab_log_perror(const char *msg);
+
 struct sortByIndex
 {
   bool operator ()(Symbol * lhs, Symbol* rhs) {
@@ -1916,9 +1920,12 @@ bool emitElf64::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
           std::string errMsg;
           linkedStaticData = linker.linkStatic(obj, err, errMsg);
           if ( !linkedStaticData ) {
-               fprintf(stderr, "Failed to link in static library code: %s = %s\n",
-                     emitElfStatic::printStaticLinkError(err).c_str(), errMsg.c_str());
-               log_elferror(err_func_, "Failed to link in static library code.");
+               std::string linkStaticError = 
+                   std::string("Failed to link static library code into the binary: ") +
+                   emitElfStatic::printStaticLinkError(err) + std::string(" = ")
+                   + errMsg;
+               setSymtabError(Emit_Error);
+               symtab_log_perror(linkStaticError.c_str());
                return false;
           }
 
