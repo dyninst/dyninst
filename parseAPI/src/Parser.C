@@ -619,6 +619,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 work->mark_call();
             } else {
                 ct = _parse_data->findFunc(frame.codereg,work->target());
+                ce = work->edge();
             }
 
             if(recursive && ct &&
@@ -626,10 +627,8 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 frame_status(ct->region(),ct->addr())==ParseFrame::BAD_LOOKUP))
             {
                 // suspend this frame and parse the next
-                parsing_printf("    [suspend frame %lx]\n",
-                   func->addr()); 
+                parsing_printf("    [suspend frame %lx]\n", func->addr()); 
                 frame.call_target = ct;
-                frame.caller_block = cur;
                 frame.set_status(ParseFrame::CALL_BLOCKED);
                 // need to re-visit this edge
                 frame.pushWork(work);
@@ -638,6 +637,30 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
             else if(ct && work->tailcall()) {
                 if(func->_rs != RETURN && ct->_rs > NORETURN)
                     func->_rs = ct->_rs;
+            }
+
+            // check for catch blocks after non-returning calls
+            if(ct && ct->_rs == NORETURN) {
+                Address catchStart;
+                Block * caller = ce->src();
+                if(frame.codereg->findCatchBlock(caller->end(),catchStart)) {
+                    parsing_printf("[%s] found post-return catch block %lx\n",
+                        FILE__,catchStart);
+
+                    // make an edge
+                    Edge * catch_edge = link_tempsink(caller,CATCH);
+                
+                    // push on worklist
+                    ParseWorkElem * catch_work = 
+                       work->bundle()->add(
+                        new ParseWorkElem(
+                            work->bundle(),
+                            catch_edge,
+                            catchStart,
+                            true, false)
+                       );
+                    frame.pushWork(catch_work);
+                }
             }
     
             continue;
