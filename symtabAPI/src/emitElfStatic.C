@@ -372,7 +372,7 @@ bool emitElfStatic::resolveSymbols(Symtab *target,
                             linkedSet.insert(containingSymtab);
                         }
 
-                        rewrite_printf("Found external symbol %s in module %s(%s)\n",
+                        rewrite_printf("Found external symbol %s in object %s(%s)\n",
                                 extSymbol->getPrettyName().c_str(),
                                 containingSymtab->getParentArchive()->name().c_str(),
                                 containingSymtab->memberName().c_str());
@@ -392,7 +392,7 @@ bool emitElfStatic::resolveSymbols(Symtab *target,
 
                 err = Symbol_Resolution_Failure;
                 errMsg = "failed to locate symbol '" + curUndefSym->getMangledName()
-                    + "' for module '" + curObjFile->memberName() + "'";
+                    + "' for object '" + curObjFile->memberName() + "'";
                 return false;
             }
 
@@ -409,7 +409,7 @@ bool emitElfStatic::resolveSymbols(Symtab *target,
             }   /* else
                  *
                  * Some libraries define a reference to a symbol and then never
-                 * use it in order to ensure that the module that defines the
+                 * use it in order to ensure that the object that defines the
                  * symbol is linked. Therefore, it is not an error if a symbol doesn't
                  * have a relocation.
                  */
@@ -1142,7 +1142,7 @@ bool emitElfStatic::hasRewrittenTLS() const {
  * +----+---- +----------+---------+---------+
  *
  * where TCB = thread control block, and each image is the
- * TLS initialization image for a module (in this context an executable or 
+ * TLS initialization image for an object (in this context an executable or 
  * shared library).
  *
  * ========================

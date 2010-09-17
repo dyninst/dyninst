@@ -56,7 +56,8 @@ const char DL_OPEN_FUNC_NAME[] = "do_dlopen";
 
 #define P_offsetof(s, m) (Address) &(((s *) NULL)->m)
 
-#if defined(arch_64bit)
+#if defined(arch_64bit) && 0 // XXX FIXME - Need a configure variable to see
+                             //             if struct pt_regs32 exists.
 #define PT_REGS_OFFSET(m, mutatee_address_width)           \
         (                                                  \
             ((mutatee_address_width) == sizeof(uint64_t))  \

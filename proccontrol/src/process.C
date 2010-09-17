@@ -1,7 +1,39 @@
+/*
+ * Copyright (c) 1996-2009 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
+
 #include "proccontrol/src/int_process.h"
 #include "proccontrol/src/irpc.h"
 #include "proccontrol/src/procpool.h"
 #include "proccontrol/src/int_handler.h"
+#include "proccontrol/src/response.h"
 #include "proccontrol/h/Mailbox.h"
 #include "proccontrol/h/PCErrors.h"
 #include "proccontrol/h/Generator.h"
@@ -10,8 +42,10 @@
 
 #include <cstring>
 #include <cassert>
+#include <map>
 
 using namespace Dyninst;
+using namespace ProcControlAPI;
 using namespace std;
 
 const map<int,int> Process::emptyFDs;
@@ -313,9 +347,23 @@ bool int_process::post_attach()
    }
 
    std::set<int_library*> added, rmd;
-   result = refresh_libraries(added, rmd);
-   
-   return true;
+   for (;;) {
+      std::set<response::ptr> async_responses;
+      result = refresh_libraries(added, rmd, async_responses);
+      if (!result && !async_responses.empty()) {
+         result = waitForAsyncEvent(async_responses);
+         if (!result) {
+            pthrd_printf("Failure waiting for async completion\n");
+            return false;
+         }
+         continue;
+      }
+      if (!result) {
+         pthrd_printf("Failure refreshing libraries for %d\n", getPid());
+         return false;
+      }
+      return true;
+   }
 }
 
 bool int_process::post_create()
@@ -414,13 +462,15 @@ struct syncRunStateRet_t {
    bool hasStopPending;
    bool hasClearingBP;
    bool hasProcStopRPC;
+   bool hasAsyncEvent;
    std::vector<int_process *> readyProcStoppers;
    syncRunStateRet_t() :
       hasRunningThread(false),
       hasSyncRPC(false),
       hasStopPending(false),
       hasClearingBP(false),
-      hasProcStopRPC(false)
+      hasProcStopRPC(false),
+      hasAsyncEvent(false)
    {
    }
 };
@@ -471,6 +521,10 @@ bool syncRunState(int_process *p, void *r)
       ret->hasRunningThread = true;
    }
 
+   if (p->handlerPool()->hasAsyncEvent()) {
+      ret->hasAsyncEvent = true;
+   }
+
    if (dyninst_debug_proccontrol) {
       for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++)
       {
@@ -491,7 +545,7 @@ bool syncRunState(int_process *p, void *r)
    {
       int_thread *thr = *i;
 
-      thr->handleNextPostedIRPC(false);
+      thr->handleNextPostedIRPC(int_thread::hnp_no_stop, false);
 
       int_iRPC::ptr rpc = thr->hasRunningProcStopperRPC();
       if (!rpc) continue;
@@ -584,6 +638,23 @@ bool syncRunState(int_process *p, void *r)
    return true;
 }
 
+bool int_process::waitForAsyncEvent(response::ptr resp)
+{
+   return getResponses().waitFor(resp);
+}
+
+bool int_process::waitForAsyncEvent(std::set<response::ptr> resp)
+{
+   bool has_error = false;
+   for (set<response::ptr>::iterator i = resp.begin(); i != resp.end(); i++) {
+      bool result = waitForAsyncEvent(*i);
+      if (!result)
+         has_error = true;
+   }
+
+   return !has_error;
+}
+
 int_process *int_process::in_waitHandleProc = NULL;
 bool int_process::waitAndHandleForProc(bool block, int_process *proc, bool &proc_exited)
 {
@@ -646,7 +717,8 @@ bool int_process::waitAndHandleEvents(bool block)
       /**
        * Check for possible error combinations from syncRunState
        **/
-      if (!ret.hasRunningThread) {
+      bool hasAsyncPending = HandlerPool::hasProcAsyncPending();
+      if (!ret.hasRunningThread && !hasAsyncPending) {
          if (gotEvent) {
             //We've successfully handled an event, but no longer have any running threads
             pthrd_printf("Returning after handling events, no threads running\n");
@@ -689,11 +761,12 @@ bool int_process::waitAndHandleEvents(bool block)
        * Check for new events
        **/
       bool should_block = ((block && !gotEvent) || ret.hasStopPending || 
-                            ret.hasSyncRPC || ret.hasClearingBP || ret.hasProcStopRPC );
-      pthrd_printf("%s for events (%d %d %d %d %d %d)\n", 
+                           ret.hasSyncRPC || ret.hasClearingBP || ret.hasProcStopRPC || hasAsyncPending);
+      pthrd_printf("%s for events (%d %d %d %d %d %d %d)\n", 
                    should_block ? "Blocking" : "Polling",
                    (int) block, (int) gotEvent, (int) ret.hasStopPending, 
-                   (int) ret.hasSyncRPC, (int) ret.hasClearingBP, (int) ret.hasProcStopRPC);
+                   (int) ret.hasSyncRPC, (int) ret.hasClearingBP, 
+                   (int) ret.hasProcStopRPC, (int) hasAsyncPending);
       Event::ptr ev = mbox()->dequeue(should_block);
 
       if (ev == Event::ptr())
@@ -725,8 +798,9 @@ bool int_process::waitAndHandleEvents(bool block)
       }
       gotEvent = true;
 
+      HandlerPool *hpool = ev->getProcess()->llproc()->handlerpool;
+      
       ev->getProcess()->llproc()->updateSyncState(ev, false);
-
       if (ev->procStopper()) {
          /**
           * This event wants the process stopped before it gets handled.
@@ -746,10 +820,9 @@ bool int_process::waitAndHandleEvents(bool block)
          }
          continue;
       }
-
-      HandlerPool *hpool = ev->getProcess()->llproc()->handlerpool;
+    
       hpool->handleEvent(ev);
-
+      
       if (!ev->getProcess()->llproc())
       {
          //Special case event handling, the process cleaned itself
@@ -767,7 +840,7 @@ bool int_process::waitAndHandleEvents(bool block)
 bool int_process::detach(bool &should_delete)
 {
    should_delete = false;
-   bool had_error = true;
+   bool had_error = false;
    bool result;
    int_threadPool *tp = threadPool();
    pthrd_printf("Detach requested on %d\n", getPid());
@@ -776,16 +849,29 @@ bool int_process::detach(bool &should_delete)
       tp->intStop(true);
    }
    
+   std::set<response::ptr> async_responses;
    while (!mem->breakpoints.empty())
-   {      
+   {
       std::map<Dyninst::Address, installed_breakpoint *>::iterator i = mem->breakpoints.begin();
-      bool result = i->second->uninstall(this);
+      result_response::ptr resp = result_response::createResultResponse();
+      bool result = i->second->uninstall(this, resp);
       if (!result) {
          perr_printf("Error removing breakpoint at %lx\n", i->first);
          setLastError(err_internal, "Error removing breakpoint before detach\n");
-         goto done;
+         had_error = true;
+      }
+      async_responses.insert(resp);
+   }
+
+   waitForAsyncEvent(async_responses);
+   for (set<response::ptr>::iterator i = async_responses.begin(); i != async_responses.end(); i++) {
+      if ((*i)->hasError()) {
+         perr_printf("Failed to remove breakpoints\n");
+         setLastError(err_internal, "Error removing breakpoint before detach\n");
+         had_error = true;
       }
    }
+   async_responses.clear();
 
    ProcPool()->condvar()->lock();
 
@@ -877,7 +963,7 @@ void int_process::initializeProcess(Process::ptr p)
    p->llproc_ = this;
    up_proc = p;
    threadpool = new int_threadPool(this);
-   handlerpool = createDefaultHandlerPool();
+   handlerpool = createDefaultHandlerPool(this);
    libpool.proc = this;
    if (!mem)
       mem = new mem_state(this);
@@ -903,7 +989,7 @@ int_thread *int_process::findStoppedThread()
    return result;
 }
 
-bool int_process::readMem(void *local, Dyninst::Address remote, size_t size)
+bool int_process::readMem(Dyninst::Address remote, mem_response::ptr result)
 {
    int_thread *thr = findStoppedThread();
    if (!thr) {
@@ -911,12 +997,35 @@ bool int_process::readMem(void *local, Dyninst::Address remote, size_t size)
       perr_printf("Unable to find a stopped thread for read in process %d\n", getPid());
       return false;
    }
-   pthrd_printf("Reading from remote memory %lx to %p, size = %lu on %d/%d\n",
-                remote, local, (unsigned long) size, getPid(), thr->getLWP());
-   return plat_readMem(thr, local, remote, size);
+
+   bool bresult;
+   if (!plat_needsAsyncIO()) {
+      pthrd_printf("Reading from remote memory %lx to %p, size = %lu on %d/%d\n",
+                   remote, result->getBuffer(), (unsigned long) result->getSize(),
+                   getPid(), thr->getLWP());
+
+      bresult = plat_readMem(thr, result->getBuffer(), remote, result->getSize());
+      if (!bresult) {
+         result->markError();
+      }
+      result->setResponse();
+   }
+   else {
+      pthrd_printf("Async read from remote memory %lx to %p, size = %lu on %d/%d\n",
+                   remote, result->getBuffer(), (unsigned long) result->getSize(), 
+                   getPid(), thr->getLWP());
+
+      getResponses().lock();
+      bresult = plat_readMemAsync(thr, remote, result);
+      if (bresult) {
+         getResponses().addResponse(result, this);
+      }
+      getResponses().unlock();
+   }
+   return bresult;      
 }
 
-bool int_process::writeMem(void *local, Dyninst::Address remote, size_t size)
+bool int_process::writeMem(void *local, Dyninst::Address remote, size_t size, result_response::ptr result)
 {
    int_thread *thr = findStoppedThread();
    if (!thr) {
@@ -924,9 +1033,32 @@ bool int_process::writeMem(void *local, Dyninst::Address remote, size_t size)
       perr_printf("Unable to find a stopped thread for write in process %d\n", getPid());
       return false;
    }
-   pthrd_printf("Writing to remote memory %lx from %p, size = %lu on %d/%d\n",
-                remote, local, (unsigned long) size, getPid(), thr->getLWP());
-   return plat_writeMem(thr, local, remote, size);
+
+   bool bresult;
+   if (!plat_needsAsyncIO()) {
+      pthrd_printf("Writing to remote memory %lx from %p, size = %lu on %d/%d\n",
+                   remote, local, (unsigned long) size,
+                   getPid(), thr->getLWP());
+
+      bresult = plat_writeMem(thr, local, remote, size);
+      if (!bresult) {
+         result->markError();
+      }
+      result->setResponse(bresult);
+   }
+   else {
+      pthrd_printf("Async writing to remote memory %lx from %p, size = %lu on %d/%d\n",
+                   remote, local, (unsigned long) size,
+                   getPid(), thr->getLWP());
+
+      getResponses().lock();
+      bresult = plat_writeMemAsync(thr, local, remote, size, result);
+      if (bresult) {
+         getResponses().addResponse(result, this);
+      }
+      getResponses().unlock();
+   }
+   return bresult;
 }
 
 Dyninst::Address int_process::mallocExecMemory(unsigned size)
@@ -951,6 +1083,11 @@ void int_process::freeExecMemory(Dyninst::Address addr)
    exec_mem_cache.erase(i);
 }
 
+SymbolReaderFactory *int_process::plat_defaultSymReader()
+{
+  return NULL;
+}
+
 Dyninst::Address int_process::infMalloc(unsigned long size, bool use_addr, Dyninst::Address addr)
 {
    pthrd_printf("Process %d is allocating memory of size %lu at 0x%lx\n", getPid(), size, addr);
@@ -959,23 +1096,26 @@ Dyninst::Address int_process::infMalloc(unsigned long size, bool use_addr, Dynin
    rpcMgr()->postRPCToProc(this, rpc);
 
    int_thread *thr = rpc->thread();
-   bool result = thr->handleNextPostedIRPC(true);
-   if (!result) {
-      pthrd_printf("Failed to handleNextPostedIRPC\n");
-      return 0;
-   }
+   bool block = true;
+   while (rpc->getState() != int_iRPC::Finished) {
+      pthrd_printf("RPC State is %s\n", rpc->getStrState());
+      bool result = thr->handleNextPostedIRPC(int_thread::hnp_allow_stop, true);
+      if (!result) {
+         pthrd_printf("Failed to handleNextPostedIRPC\n");
+         return 0;
+      }
+      if (rpc->getState() == int_iRPC::Finished)
+         block = false;
 
-   if (rpc->getState() != int_iRPC::Finished) 
-   {
       bool proc_exited;
-      result = waitAndHandleForProc(true, this, proc_exited);
+      result = waitAndHandleForProc(block, this, proc_exited);
       if (proc_exited) {
          perr_printf("Process exited during infMalloc\n");
          setLastError(err_exited, "Process exited during infMalloc\n");
          return 0;
       }
-      if (!result) {
-         pthrd_printf("Error in waitAndHandleEvents");
+      if (!result && block) {
+         pthrd_printf("Error in waitAndHandleEvents\n");
          return 0;
       }
    }
@@ -1004,22 +1144,24 @@ bool int_process::infFree(Dyninst::Address addr)
    rpcMgr()->postRPCToProc(this, rpc);
 
    int_thread *thr = rpc->thread();
-   bool result = thr->handleNextPostedIRPC(true);
-   if (!result) {
-      pthrd_printf("Failed to handleNextPostedIRPC\n");
-      return 0;
-   }
+   bool block = true;
+   while (rpc->getState() != int_iRPC::Finished) {
+      bool result = thr->handleNextPostedIRPC(int_thread::hnp_allow_stop, true);
+      if (!result) {
+         pthrd_printf("Failed to handleNextPostedIRPC\n");
+         return 0;
+      }
+      if (rpc->getState() == int_iRPC::Finished)
+         block = false;
 
-   if (rpc->getState() != int_iRPC::Finished) 
-   {
       bool proc_exited;
-      result = waitAndHandleForProc(true, this, proc_exited);
+      result = waitAndHandleForProc(block, this, proc_exited);
       if (proc_exited) {
          perr_printf("Process exited during infFree\n");
          setLastError(err_exited, "Process exited during infFree\n");
          return false;
       }
-      if (!result) {
+      if (!result && block) {
          pthrd_printf("Error in waitAndHandleEvents");
          return false;
       }
@@ -1093,17 +1235,50 @@ bool int_process::addBreakpoint(Dyninst::Address addr, int_breakpoint *bp)
    if (i == mem->breakpoints.end()) {
       pthrd_printf("Adding new breakpoint to %d\n", getPid());
       ibp = new installed_breakpoint(mem, addr);
-      ibp->addBreakpoint(this, bp);
-      bool result = ibp->install(this);
+
+      mem_response::ptr mem_resp = mem_response::createMemResponse();
+      mem_resp->markSyncHandled();
+      bool result = ibp->prepBreakpoint(this, mem_resp);
+      if (!result) {
+         pthrd_printf("Failed to prep breakpoint\n");
+         delete ibp;
+         return false;
+      }
+
+      result = waitForAsyncEvent(mem_resp);
+      if (!result || mem_resp->hasError()) {
+         pthrd_printf("Error prepping breakpoint\n");
+         delete ibp;
+         return false;
+      }
+
+      result_response::ptr res_resp = result_response::createResultResponse();
+      res_resp->markSyncHandled();
+      result = ibp->insertBreakpoint(this, res_resp);
+      if (!result) {
+         pthrd_printf("Error writing new breakpoint\n");
+         delete ibp;
+         return false;
+      }
+
+      result = waitForAsyncEvent(res_resp);
+      if (!result || res_resp->hasError()) {
+         pthrd_printf("Error writing new breakpoint\n");
+         delete ibp;
+         return false;
+      }
+
+      ibp->addBreakpoint(bp);
       if (!result) {
          pthrd_printf("Failed to install new breakpoint\n");
+         delete ibp;
          return false;
       }
       return true;
    }
    ibp = i->second;
    assert(ibp && ibp->isInstalled());
-   bool result = ibp->addBreakpoint(this, bp);
+   bool result = ibp->addBreakpoint(bp);
    if (!result) {
       pthrd_printf("Failed to install new breakpoint\n");
       return false;
@@ -1112,7 +1287,7 @@ bool int_process::addBreakpoint(Dyninst::Address addr, int_breakpoint *bp)
    return true;
 }
 
-bool int_process::rmBreakpoint(Dyninst::Address addr, int_breakpoint *bp)
+bool int_process::rmBreakpoint(Dyninst::Address addr, int_breakpoint *bp, result_response::ptr async_resp)
 {
    map<Address, installed_breakpoint *>::iterator i = mem->breakpoints.find(addr);
    if (i == mem->breakpoints.end()) {
@@ -1123,7 +1298,7 @@ bool int_process::rmBreakpoint(Dyninst::Address addr, int_breakpoint *bp)
    assert(ibp && ibp->isInstalled());
 
    bool empty;
-   bool result = ibp->rmBreakpoint(this, bp, empty);
+   bool result = ibp->rmBreakpoint(this, bp, empty, async_resp);
    if (!result) {
       pthrd_printf("rmBreakpoint failed on breakpoint at %lx in %d\n", addr, getPid());
       return false;
@@ -1174,6 +1349,51 @@ mem_state::ptr int_process::memory() const
    return mem;
 }
 
+/**
+ * The below code involving InternalRPCEvents is to work around an
+ * annoyance with Async systems and iRPCs.  When posting an iRPC from
+ * handleNextPostedIRPC we may want to create EventRPCInternal events
+ * to associate with async responses.  However, this needs to be done
+ * at the constructor of the response, which is far removed from the
+ * handleNextPostedIRPC function.
+ *
+ * Rather than passing event pointers around through all the low-level
+ * functions, we'll just set AllowInternalRPCEvents for the process while
+ * in handleNextPostedIRPC, and the response constructor will check this
+ * when building a response.
+ *
+ * This should be okay since we shouldn't ever call handleNextPostedIRPC
+ * recursively or in parallel.
+ **/
+void int_process::setAllowInternalRPCEvents(int_thread *thr)
+{
+   if (thr) {
+      allowInternalRPCEvents.push(thr);
+   }
+   else {
+      allowInternalRPCEvents.pop();
+   }
+}
+
+EventRPCInternal::ptr int_process::getInternalRPCEvent()
+{
+   if (allowInternalRPCEvents.empty())
+      return EventRPCInternal::ptr();
+
+   EventRPCInternal::ptr new_ev = EventRPCInternal::ptr(new EventRPCInternal());
+#if defined(os_linux)
+   //Linux has a mode where it fakes async for testing purposes.  Since the
+   // events are fake, they don't have a proper generator filling in this info.
+   // Thus we fill it in here.
+   new_ev->setProcess(this->proc());
+   new_ev->setThread(allowInternalRPCEvents.top()->thread());
+   new_ev->setSyncType(Event::async);
+#endif               
+   handlerPool()->markEventAsyncPending(new_ev);
+
+   return new_ev;
+}
+
 void int_process::setExitCode(int c)
 {
    assert(!hasCrashSignal);
@@ -1216,6 +1436,25 @@ void int_process::setInCB(bool b)
    in_callback = b;
 }
 
+bool int_process::plat_needsAsyncIO() const
+{
+   return false;
+}
+
+bool int_process::plat_readMemAsync(int_thread *, Dyninst::Address, 
+                                    mem_response::ptr )
+{
+   assert(0);
+   return false;
+}
+
+bool int_process::plat_writeMemAsync(int_thread *, void *, Dyninst::Address,
+                                     size_t, result_response::ptr )
+{
+   assert(0);
+   return false;
+}
+
 void int_process::updateSyncState(Event::ptr ev, bool gen)
 {
    EventType etype = ev->getEventType();
@@ -1239,8 +1478,8 @@ void int_process::updateSyncState(Event::ptr ev, bool gen)
                       etype.name().c_str(), thrd->getLWP());
          assert(old_state == int_thread::running ||
                 old_state == int_thread::neonatal_intermediate ||
+                thrd->llproc()->plat_needsAsyncIO() || 
                 thrd->llproc()->wasForcedTerminated());
-
          if (old_state == int_thread::errorstate)
             break;
          if (gen)
@@ -1412,7 +1651,7 @@ bool int_threadPool::cont(bool user_cont)
 
    if (!cont_something) {
       perr_printf("Failed to continue exited process %d\n", pid);
-      setLastError(err_exited, "Continue attempted on exited process\n");
+      setLastError(err_exited, "Continue attempted on exite/d process\n");
       return false;
    }
 
@@ -1444,10 +1683,36 @@ bool int_thread::cont(bool user_cont)
    pthrd_printf("%s continuing single thread %d/%d\n", user_cont ? "User" : "Int",
                 llproc()->getPid(), getLWP());
 
-   bool result = rpcMgr()->handleThreadContinue(this, user_cont);
+   bool completed_rpc = true;
+   bool result = rpcMgr()->handleThreadContinue(this, user_cont, completed_rpc);
    if (!result) {
       pthrd_printf("Error handling IRPC during continue\n");
       return false;
+   }
+   if (!completed_rpc && !hasPendingStop()) {
+      /**
+       * A thread has an RPC being prepped and has been asked to continue.
+       * We'll postpone this continue until the RPC is prepped.  This should
+       * only happen on an async system (BlueGene), in which case we'll
+       * generate RPCInternal events to move the system along until everything is complete.
+       *
+       * We'll still allow a continue on a thread with a pending stop, since the thread
+       * will move to a proper stop state before actually running.
+       **/
+      pthrd_printf("Unable to complete post of RPC, postponing continue\n");
+      if (user_cont) {
+         bool result = setUserState(int_thread::running);
+         if (!result) {
+            setLastError(err_exited, "Attempted thread continue on exited thread\n");
+            perr_printf("Failed to continue thread %d/%d--bad state\n", llproc()->getPid(), getLWP());
+            return false;
+         }
+      }
+      if (!postponed_continue) {
+         desyncInternalState();
+         postponed_continue = true;
+      }
+      return true;
    }
 
    if ( int_process::getThreadControlMode() == int_process::NoLWPControl ) {
@@ -1548,6 +1813,10 @@ int_thread::stopcont_ret_t int_thread::cont(bool user_cont, bool have_proc_lock)
 
    if (user_cont) {
       setUserState(running);
+      /*if (num_locked_stops) {
+         pthrd_printf("Thread is desync'd.  Not doing low level continue\n");
+         return sc_success;
+         }*/
    }
 
    if (getHandlerState() != stopped) {
@@ -2040,6 +2309,7 @@ int_thread::int_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    user_state(neonatal),
    generator_state(neonatal),
    internal_state(neonatal),
+   regpool_lock(true),
    sync_rpc_count(0),
    pending_user_stop(false),
    pending_stop(false),
@@ -2047,6 +2317,7 @@ int_thread::int_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
    num_locked_stops(0),
    user_single_step(false),
    single_step(false),
+   postponed_continue(false),
    clearing_breakpoint(false)
 {
    Thread::ptr new_thr(new Thread());
@@ -2092,74 +2363,136 @@ int_thread *int_thread::createThread(int_process *proc,
    return newthr;
 }
 
+bool int_thread::hasPostponedContinue() const
+{
+   return postponed_continue;
+}
+
+void int_thread::setPostponedContinue(bool b)
+{
+   postponed_continue = b;
+}
+
 Thread::ptr int_thread::thread()
 {
    return up_thread;
 }
 
-bool int_thread::getAllRegisters(int_registerPool &pool)
+bool int_thread::getAllRegisters(allreg_response::ptr response)
 {
    bool result = false;
+   response->setThread(this);
 
    pthrd_printf("Reading registers for thread %d\n", getLWP());
    regpool_lock.lock();
    if (cached_regpool.full) {
-      pool = cached_regpool;
+      *response->getRegPool() = cached_regpool;
+      response->getRegPool()->thread = this;
+      response->markReady();
       pthrd_printf("Returning cached register set\n");
       result = true;
       goto done;
    }
-   result = plat_getAllRegisters(cached_regpool);
-   if (!result) {
-      pthrd_printf("plat_getAllRegisters returned error on %d\n", getLWP());
-      goto done;
+
+   if (!llproc()->plat_needsAsyncIO())
+   {
+      pthrd_printf("plat_getAllRegisters on %d/%d\n", llproc()->getPid(), getLWP());
+      result = plat_getAllRegisters(cached_regpool);
+      if (!result) {
+         pthrd_printf("plat_getAllRegisters returned error on %d\n", getLWP());
+         response->markError();
+         goto done;
+      }
+      cached_regpool.full = true;
+      *(response->getRegPool()) = cached_regpool;
+      response->getRegPool()->thread = this;
+      response->markReady();
+      pthrd_printf("Successfully retrieved all registers for %d\n", getLWP());
    }
-   cached_regpool.full = true;
-   pool = cached_regpool;
-   pool.thread = this;
-   pthrd_printf("Successfully retrieved all registers for %d\n", getLWP());
+   else
+   {
+      pthrd_printf("Async plat_getAllRegisters on %d/%d\n", llproc()->getPid(), 
+                   getLWP());
+      getResponses().lock();
+      result = plat_getAllRegistersAsync(response);
+      if (result) {
+         getResponses().addResponse(response, llproc());
+      }
+      getResponses().unlock();
+      if (!result) {
+         pthrd_printf("plat_getAllRegistersAsync returned error on %d\n", getLWP());
+         goto done;
+      }
+   }
+
    result = true;
   done:
    regpool_lock.unlock();
    return result;
 }
 
-bool int_thread::setAllRegisters(int_registerPool &pool)
+bool int_thread::setAllRegisters(int_registerPool &pool, result_response::ptr response)
 {
    assert(getHandlerState() == int_thread::stopped);
    assert(getGeneratorState() == int_thread::stopped);
    regpool_lock.lock();
 
-   pthrd_printf("Setting registers for thread %d\n", getLWP());
-   bool result = plat_setAllRegisters(pool);
-   if (!result) {
-      pthrd_printf("plat_setAllRegisters returned error on %d\n", getLWP());
-      goto done;
+   bool ret_result = false;
+   if (!llproc()->plat_needsAsyncIO()) {
+      pthrd_printf("Setting registers for thread %d\n", getLWP());
+      bool result = plat_setAllRegisters(pool);
+      response->setResponse(result);
+      if (!result) {
+         pthrd_printf("plat_setAllRegisters returned error on %d\n", getLWP());
+         goto done;
+      }
+
+      pthrd_printf("Successfully set all registers for %d\n", getLWP());
    }
+   else {
+      pthrd_printf("Async setting registers for thread %d\n", getLWP());
+      getResponses().lock();
+      bool result = plat_setAllRegistersAsync(pool, response);
+      if (result) {
+         getResponses().addResponse(response, llproc());
+      }
+      getResponses().unlock();
+      if (!result) {
+         pthrd_printf("Error async setting registers on %d\n", getLWP());
+         goto done;
+      }
+   }
+
    cached_regpool = pool;
    cached_regpool.full = true;
-   pthrd_printf("Successfully set all registers for %d\n", getLWP());
+
+   ret_result = true;
   done:
    regpool_lock.unlock();
-   return result;
+   return ret_result;
 }
 
-bool int_thread::getRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val)
+bool int_thread::getRegister(Dyninst::MachRegister reg, reg_response::ptr response)
 {
-   bool result = false;
+   bool ret_result = false;
    pthrd_printf("Get register value for thread %d, register %s\n", lwp, reg.name());
+   response->setRegThread(reg, this);
 
    if (!llproc()->plat_individualRegAccess())
    {
       pthrd_printf("Platform does not support individual register access, " 
                    "getting everything\n");
+      assert(!llproc()->plat_needsAsyncIO());
+
       int_registerPool pool;
-      result = getAllRegisters(pool);
-      if (!result) {
+      allreg_response::ptr allreg_resp = allreg_response::createAllRegResponse(&pool);
+      bool result = getAllRegisters(allreg_resp);
+      assert(allreg_resp->isReady());
+      if (!result || allreg_resp->hasError()) {
          pthrd_printf("Unable to access full register set\n");
          return false;
       }
-      val = pool.regs[reg];
+      response->setResponse(pool.regs[reg]);
       return true;
    }
 
@@ -2167,64 +2500,151 @@ bool int_thread::getRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal
 
    int_registerPool::reg_map_t::iterator i = cached_regpool.regs.find(reg);
    if (i != cached_regpool.regs.end()) {
-      val = i->second;
-      pthrd_printf("Returning cached register value %lx for register %s on %d\n", 
-                   val, reg.name(), lwp);
-      result = true;
-      goto done;
+      pthrd_printf("Had cached register value\n");
+      response->setResponse(i->second);
    }
-
-   result = plat_getRegister(reg, val);
-   if (!result) {
-      pthrd_printf("Error reading register value for %s on %d\n", reg.name(), lwp);
+   else if (!llproc()->plat_needsAsyncIO()) {
+      MachRegisterVal val = 0;
+      bool result = plat_getRegister(reg, val);
+      if (!result) {
+         pthrd_printf("Error reading register value for %s on %d\n", reg.name(), lwp);
+         response->markError(getLastError());
+         goto done;
+      }
+      response->setResponse(val);
+   }
+   else {      
+      pthrd_printf("Async getting register for thread %d\n", getLWP());
+      getResponses().lock();
+      bool result = plat_getRegisterAsync(reg, response);
+      if (result) {
+         getResponses().addResponse(response, llproc());
+      }
+      getResponses().unlock();
+      if (!result) {
+         pthrd_printf("Error getting async register for thread %d\n", getLWP());
+         goto done;
+      }
+      ret_result = true;
       goto done;
    }
 
    pthrd_printf("Returning register value %lx for register %s on %d\n", 
-                val, reg.name(), lwp);
+                response->getResult(), reg.name(), lwp);
+
+   ret_result = true;
   done:
    regpool_lock.unlock();
-   return result;
+   return ret_result;
 }
 
-bool int_thread::setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val)
+bool int_thread::setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val,
+                             result_response::ptr response)
 {
    assert(getHandlerState() == int_thread::stopped);
    assert(getGeneratorState() == int_thread::stopped);
-
+   bool ret_result = false;
+   
    if (!llproc()->plat_individualRegAccess())
    {
       pthrd_printf("Platform does not support individual register access, " 
                    "setting everything\n");
+      assert(!llproc()->plat_needsAsyncIO());
       int_registerPool pool;
-      bool result = getAllRegisters(pool);
-      if (!result) {
+      allreg_response::ptr allreg_resp = allreg_response::createAllRegResponse(&pool);
+      bool result = getAllRegisters(allreg_resp);
+      assert(allreg_resp->isReady());
+      if (!result || allreg_resp->hasError()) {
          pthrd_printf("Unable to access full register set\n");
          return false;
       }
       pool.regs[reg] = val;
-      result = setAllRegisters(pool);
-      if (!result) {
+      result = setAllRegisters(pool, response);
+      assert(response->isReady());
+      if (!result || response->hasError()) {
          pthrd_printf("Unable to set full register set\n");
          return false;
       }
       return true;
    }
 
+   pthrd_printf("Setting register %s for thread %d to %lx\n", reg.name(), getLWP(), val);
    regpool_lock.lock();
 
-   pthrd_printf("Setting register %s for thread %d to %lx\n", reg.name(), getLWP(), val);
    MachRegister base_register = reg.getBaseRegister();
-   bool result = plat_setRegister(base_register, val);
-   if (!result) {
-      pthrd_printf("Error setting register %s\n", base_register.name());
-      goto done;
+   if (!llproc()->plat_needsAsyncIO())
+   {   
+      bool result = plat_setRegister(base_register, val);
+      response->setResponse(result);
+      if (!result) {
+         pthrd_printf("Error setting register %s\n", base_register.name());
+         goto done;
+      }
+   }
+   else {
+      pthrd_printf("Async setting register for thread %d\n", getLWP());
+      getResponses().lock();
+      bool result = plat_setRegisterAsync(reg, val, response);
+      if (result) {
+         getResponses().addResponse(response, llproc());
+      }
+      getResponses().unlock();
+      if (!result) {
+         pthrd_printf("Error setting async register for thread %d\n", getLWP());
+         goto done;
+      }
    }
 
    cached_regpool.regs[base_register] = val;
+
+   ret_result = true;
   done:
    regpool_lock.unlock();
-   return true;
+   return ret_result;
+}
+
+void int_thread::updateRegCache(int_registerPool &pool)
+{
+   regpool_lock.lock();
+   pool.full = true;
+   cached_regpool = pool;
+   regpool_lock.unlock();
+}
+
+void int_thread::updateRegCache(Dyninst::MachRegister reg,
+                                Dyninst::MachRegisterVal val)
+{
+   regpool_lock.lock();
+   cached_regpool.regs[reg] = val;
+   regpool_lock.unlock();
+}
+
+bool int_thread::plat_getAllRegistersAsync(allreg_response::ptr)
+{
+   assert(0);
+   return false;
+}
+
+bool int_thread::plat_getRegisterAsync(Dyninst::MachRegister, 
+                                       reg_response::ptr)
+{
+   assert(0);
+   return false;
+}
+
+bool int_thread::plat_setAllRegistersAsync(int_registerPool &,
+                                           result_response::ptr)
+{
+   assert(0);
+   return false;
+}
+
+bool int_thread::plat_setRegisterAsync(Dyninst::MachRegister, 
+                                       Dyninst::MachRegisterVal,
+                                       result_response::ptr)
+{
+   assert(0);
+   return false;
 }
 
 void int_thread::addPostedRPC(int_iRPC::ptr rpc_)
@@ -2258,16 +2678,18 @@ void int_thread::clearRunningRPC()
 {
    running_rpc = int_iRPC::ptr();
 }
-bool int_thread::saveRegsForRPC()
+
+bool int_thread::saveRegsForRPC(allreg_response::ptr response)
 {
    assert(!rpc_regs.full);
-   return getAllRegisters(rpc_regs);
+   response->setRegPool(&rpc_regs);
+   return getAllRegisters(response);
 }
 
-bool int_thread::restoreRegsForRPC(bool clear)
+bool int_thread::restoreRegsForRPC(bool clear, result_response::ptr response)
 {
    assert(rpc_regs.full);
-   bool result = setAllRegisters(rpc_regs);
+   bool result = setAllRegisters(rpc_regs, response);
    if (clear && result) {
       rpc_regs.regs.clear();
       rpc_regs.full = false;
@@ -2314,24 +2736,25 @@ int_iRPC::ptr int_thread::nextPostedIRPC() const
    return posted_rpcs.front();
 }
 
-bool int_thread::handleNextPostedIRPC(bool block)
+bool int_thread::handleNextPostedIRPC(hnp_stop_t allow_stop, bool is_sync)
 {
    int_iRPC::ptr posted_rpc = nextPostedIRPC();
    if (!posted_rpc || runningRPC() )
       return true;
 
+   if (!is_sync) {
+      llproc()->setAllowInternalRPCEvents(this);
+   }
+
    bool ret_result = false;
    pthrd_printf("Handling next postd irpc %lu on %d/%d of type %s in state %s\n",
                 posted_rpc->id(), llproc()->getPid(), getLWP(), 
                 posted_rpc->getStrType(), posted_rpc->getStrState());
-   assert(posted_rpc->getState() == int_iRPC::Posted ||
-          posted_rpc->getState() == int_iRPC::Prepping ||
-          posted_rpc->getState() == int_iRPC::Prepped);
    
    if (posted_rpc->getState() == int_iRPC::Posted) {
       bool error = false;
       pthrd_printf("Prepping next rpc to run on %d/%d\n", llproc()->getPid(), getLWP());
-      bool result = rpcMgr()->prepNextRPC(this, block, error);
+      bool result = rpcMgr()->prepNextRPC(this, allow_stop == hnp_allow_stop, error);
       if (!result && error) {
          perr_printf("Failed to prep RPC\n");
          goto done;
@@ -2339,15 +2762,56 @@ bool int_thread::handleNextPostedIRPC(bool block)
    }
    if (posted_rpc->getState() == int_iRPC::Prepping) {
       pthrd_printf("Checking if rpc is prepped on %d/%d\n", llproc()->getPid(), getLWP());
-      posted_rpc->isRPCPrepped();
+      if (!posted_rpc->isRPCPrepped())
+         pthrd_printf("RPC not yet prepped\n");
    }
+
    if (posted_rpc->getState() == int_iRPC::Prepped) {
-      pthrd_printf("Running next RPC on %d/%d\n", llproc()->getPid(), getLWP());
-      rpcMgr()->runNextRPC(this, block);
+      pthrd_printf("Saving RPC state on %d/%d\n", llproc()->getPid(), getLWP());
+      posted_rpc->saveRPCState();
+   }
+
+   posted_rpc->syncAsyncResponses(is_sync);
+   
+   if (posted_rpc->getState() == int_iRPC::Saving) {
+      pthrd_printf("Checking if RPC on %d/%d has finished save\n", 
+                   llproc()->getPid(), getLWP());
+      if (!posted_rpc->checkRPCFinishedSave()) {
+         pthrd_printf("RPC has not yet finished save\n");
+      }
+   }
+
+   posted_rpc->syncAsyncResponses(is_sync);
+
+   if (posted_rpc->getState() == int_iRPC::Saved) {
+      pthrd_printf("Writing RPC on %d/%d\n", llproc()->getPid(), getLWP());
+      posted_rpc->writeToProc();
+   }
+
+   posted_rpc->syncAsyncResponses(is_sync);
+
+   if (posted_rpc->getState() == int_iRPC::Writing) {
+      pthrd_printf("Checking if RPC on %d/%d has finished write\n",
+                   llproc()->getPid(), getLWP());
+      if (!posted_rpc->checkRPCFinishedWrite()) {
+         pthrd_printf("RPC has not yet finished write\n");
+      }
+   }
+
+   posted_rpc->syncAsyncResponses(is_sync);
+
+   if (posted_rpc->getState() == int_iRPC::Ready)
+   {
+      pthrd_printf("Readying next RPC on %d/%d\n", llproc()->getPid(), getLWP());
+      posted_rpc->runIRPC(allow_stop == hnp_allow_stop);
    }
 
    ret_result = true;
   done:
+   if (!is_sync) {
+      llproc()->setAllowInternalRPCEvents(NULL);
+   }
+
    return ret_result;
 }
 
@@ -2562,6 +3026,7 @@ Breakpoint::weak_ptr int_breakpoint::upBreakpoint() const
 installed_breakpoint::installed_breakpoint(mem_state::ptr memory_, Address addr_) :
    memory(memory_),
    buffer_size(0),
+   prepped(false),
    installed(false),
    suspend_count(0),
    addr(addr_)
@@ -2574,6 +3039,7 @@ installed_breakpoint::installed_breakpoint(mem_state::ptr memory_,
    bps(ip->bps),
    hl_bps(ip->hl_bps),
    buffer_size(ip->buffer_size),
+   prepped(ip->prepped),
    installed(ip->installed),
    suspend_count(ip->suspend_count),
    addr(ip->addr)
@@ -2590,34 +3056,47 @@ bool installed_breakpoint::isInstalled() const
    return installed;
 }
 
-bool installed_breakpoint::install(int_process *proc)
+bool installed_breakpoint::writeBreakpoint(int_process *proc, result_response::ptr write_response)
 {
-   if (installed)
-      return true;
-   assert(bps.size());
-
-   bool result = plat_install(proc, true);
-   if (!result) {
-      pthrd_printf("Error installing breakpoint\n");
-      return false;
-   }
-   assert(buffer && buffer_size);
-   installed = true;
-   memory->breakpoints[addr] = this;
-   return true;
+   assert(buffer_size != 0);
+   char bp_insn[BP_BUFFER_SIZE];
+   proc->plat_breakpointBytes(bp_insn);
+   return proc->writeMem(bp_insn, addr, buffer_size, write_response);
 }
 
-bool installed_breakpoint::uninstall(int_process *proc)
+bool installed_breakpoint::saveBreakpointData(int_process *proc, mem_response::ptr read_response)
+{
+   if (buffer_size != 0) {
+      return true;
+   }
+
+   buffer_size = proc->plat_breakpointSize();
+   pthrd_printf("Saving original data for breakpoint insertion at %lx +%u\n", addr, (unsigned) buffer_size);
+   assert(buffer_size <= BP_BUFFER_SIZE);   
+
+   read_response->setBuffer(buffer, buffer_size);
+   return proc->readMem(addr, read_response);
+}
+
+bool installed_breakpoint::restoreBreakpointData(int_process *proc, result_response::ptr res_resp)
+{
+   assert(buffer_size != 0);
+
+   pthrd_printf("Restoring original code over breakpoint at %lx\n", addr);
+   return proc->writeMem(buffer, addr, buffer_size, res_resp);
+}
+
+bool installed_breakpoint::uninstall(int_process *proc, result_response::ptr async_resp)
 {
    assert(installed);
-
+   bool had_failure = false;
    if (proc->getState() != int_process::exited)
    {
-      bool result = proc->writeMem(&buffer, addr, buffer_size);
+      bool result = proc->writeMem(&buffer, addr, buffer_size, async_resp);
       if (!result) {
          pthrd_printf("Failed to remove breakpoint at %lx from process %d\n", 
                       addr, proc->getPid());
-         return false;
+         had_failure = true;
       }
    }
    installed = false;
@@ -2631,10 +3110,10 @@ bool installed_breakpoint::uninstall(int_process *proc)
    }
    memory->breakpoints.erase(i);
 
-   return true;
+   return had_failure;
 }
 
-bool installed_breakpoint::suspend(int_process *proc)
+bool installed_breakpoint::suspend(int_process *proc, result_response::ptr result_resp)
 {
    suspend_count++;
    if (suspend_count > 1) {
@@ -2642,7 +3121,8 @@ bool installed_breakpoint::suspend(int_process *proc)
                    suspend_count);
       return true;
    }
-   bool result = proc->writeMem(&buffer, addr, buffer_size);
+
+   bool result = restoreBreakpointData(proc, result_resp);
    if (!result) {
       pthrd_printf("Failed to suspend breakpoint at %lx from process %d\n", 
                    addr, proc->getPid());
@@ -2651,7 +3131,7 @@ bool installed_breakpoint::suspend(int_process *proc)
    return true;
 }
 
-bool installed_breakpoint::resume(int_process *proc)
+bool installed_breakpoint::resume(int_process *proc, result_response::ptr async_resp)
 {
    suspend_count--;
    assert(suspend_count >= 0);
@@ -2659,23 +3139,24 @@ bool installed_breakpoint::resume(int_process *proc)
       pthrd_printf("Breakpoint remaining suspended, suspend_count = %d\n", suspend_count);
       return true;
    }
-   bool result = plat_install(proc, false);
+   
+   bool result = writeBreakpoint(proc, async_resp);
    if (!result) {
       pthrd_printf("Failed to install breakpoint at %lx in process %d\n",
                    addr, proc->getPid());
       return false;
    }
+
    return true;
 }
 
-bool installed_breakpoint::addBreakpoint(int_process *proc, int_breakpoint *bp)
+bool installed_breakpoint::addBreakpoint(int_breakpoint *bp)
 {
-   pthrd_printf("Adding breakpoint at %lx\n", addr);
    if (bp->isCtrlTransfer()) {
       for (set<int_breakpoint *>::iterator i = bps.begin(); i != bps.end(); i++)
       {
          if ((*i)->isCtrlTransfer()) {
-            perr_printf("Error.  Attempted to add to control transfer breakpoints " 
+            perr_printf("Error.  Attempted to add two control transfer breakpoints " 
                         "at same place");
             setLastError(err_badparam, "Attempted two control transfer breakpoints at " 
                          "same location\n");
@@ -2684,26 +3165,52 @@ bool installed_breakpoint::addBreakpoint(int_process *proc, int_breakpoint *bp)
       }
    }
 
-   bps.insert(bp);
    Breakpoint::ptr upbp = bp->upBreakpoint().lock();
    if (upbp != Breakpoint::ptr()) {
-      //We keep the set of installed Breakpoints  to keep the breakpoint shared
+      //We keep the set of installed Breakpoints to keep the breakpoint shared
       // pointer reference counter from cleaning a Breakpoint while installed.
       hl_bps.insert(upbp);
    }
+   bps.insert(bp);
 
-   if (!installed) {
-      bool result = install(proc);
-      if (!result) {
-         pthrd_printf("Error failed to install breakpoint at %lx\n", addr);
-         return false;
-      }
-   }
+   memory->breakpoints[addr] = this;
 
    return true;
 }
 
-bool installed_breakpoint::rmBreakpoint(int_process *proc, int_breakpoint *bp, bool &empty)
+bool installed_breakpoint::prepBreakpoint(int_process *proc, mem_response::ptr mem_resp)
+{
+   assert(!prepped);
+   assert(!installed);
+
+   pthrd_printf("Prepping breakpoint at %lx\n", addr);
+   bool result = saveBreakpointData(proc, mem_resp);
+   if (!result) {
+      pthrd_printf("Error, failed to save breakpoint data at %lx\n", addr);
+      return false;
+   }
+
+   prepped = true;
+   return true;
+}
+
+bool installed_breakpoint::insertBreakpoint(int_process *proc, result_response::ptr res_resp)
+{
+   assert(prepped);
+   assert(!installed);
+
+   bool result = writeBreakpoint(proc, res_resp);
+   if (!result) {
+      pthrd_printf("Error writing breakpoint\n");
+      return false;
+   }
+
+   installed = true;
+   return true;
+}
+
+bool installed_breakpoint::rmBreakpoint(int_process *proc, int_breakpoint *bp, bool &empty, 
+                                        result_response::ptr async_resp)
 {
    pthrd_printf("Removing breakpoint at %lx\n", addr);
    empty = false;
@@ -2723,7 +3230,7 @@ bool installed_breakpoint::rmBreakpoint(int_process *proc, int_breakpoint *bp, b
 
    if (bps.empty()) {
       empty = true;
-      bool result = uninstall(proc);
+      bool result = uninstall(proc, async_resp);
       if (!result) {
          perr_printf("Failed to remove breakpoint at %lx\n", addr);
          setLastError(err_internal, "Could not remove breakpoint\n");
@@ -3166,7 +3673,7 @@ Library::ptr LibraryPool::getLibraryByName(std::string s)
    return int_lib->up_lib;
 }
 
-const Library::ptr LibraryPool::getLibraryByName(std::string s) const
+Library::ptr LibraryPool::getLibraryByName(std::string s) const
 {
    int_library *int_lib = proc->getLibraryByName(s);
    if (!int_lib)
@@ -3246,7 +3753,7 @@ LibraryPool::const_iterator::~const_iterator()
 {
 }
 
-const Library::const_ptr LibraryPool::const_iterator::operator*() const
+Library::const_ptr LibraryPool::const_iterator::operator*() const
 {
    return (*int_iter)->up_lib;
 }
@@ -3724,7 +4231,7 @@ Thread::ptr Process::postIRPC(IRPC::ptr irpc) const
    int_thread *thr = rpc->thread();
    if (thr->getInternalState() == int_thread::running) {
       //The thread is running, let's go ahead and start the RPC going.
-      bool result = thr->handleNextPostedIRPC(true);
+      bool result = thr->handleNextPostedIRPC(int_thread::hnp_allow_stop, true);
       if (!result) {
          pthrd_printf("handleNextPostedIRPC failed\n");
          return Thread::ptr();
@@ -3829,7 +4336,19 @@ bool Process::writeMemory(Dyninst::Address addr, void *buffer, size_t size) cons
 
    pthrd_printf("User wants to write memory from 0x%lx to 0x%p of size %lu\n", 
                 addr, buffer, (unsigned long) size);
-   return llproc_->writeMem(buffer, addr, size);
+   result_response::ptr resp = result_response::createResultResponse();
+   bool result = llproc_->writeMem(buffer, addr, size, resp);
+   if (!result) {
+      pthrd_printf("Error writing to memory\n");
+      return false;
+   }
+
+   int_process::waitForAsyncEvent(resp);
+   if (!resp->getResult() || resp->hasError()) {
+      pthrd_printf("Error writing to memory async\n");
+      return false;
+   }
+   return true;
 }
 
 bool Process::readMemory(void *buffer, Dyninst::Address addr, size_t size) const
@@ -3843,7 +4362,22 @@ bool Process::readMemory(void *buffer, Dyninst::Address addr, size_t size) const
 
    pthrd_printf("User wants to read memory from 0x%lx to 0x%p of size %lu\n", 
                 addr, buffer, (unsigned long) size);
-   return llproc_->readMem(buffer, addr, size);
+   mem_response::ptr memresult = mem_response::createMemResponse((char *) buffer, size);
+   bool result = llproc_->readMem(addr, memresult);
+   if (!result) {
+      pthrd_printf("Error reading from memory %lx on target process %d\n",
+                   addr, llproc_->getPid());
+      return false;
+   }
+
+   int_process::waitForAsyncEvent(memresult);
+
+   if (memresult->hasError()) {
+      pthrd_printf("Error reading from memory %lx on target process %d\n",
+                   addr, llproc_->getPid());
+      return false;
+   }
+   return true;
 }
 
 bool Process::addBreakpoint(Address addr, Breakpoint::ptr bp) const
@@ -3873,11 +4407,27 @@ bool Process::rmBreakpoint(Dyninst::Address addr, Breakpoint::ptr bp) const
    }
 
    if (hasRunningThread()) {
-      perr_printf("User attempted to add breakpoint to running process\n");
-      setLastError(err_notstopped, "Attempted to insert breakpoint into running process\n");
+      perr_printf("User attempted to remove breakpoint on running process\n");
+      setLastError(err_notstopped, "Attempted to remove breakpoint on running process\n");
       return false;
    }
-   return llproc_->rmBreakpoint(addr, bp->llbp());
+
+   result_response::ptr resp = result_response::createResultResponse();   
+   bool result = llproc_->rmBreakpoint(addr, bp->llbp(), resp);
+   if (!result) {
+      pthrd_printf("Failed to rmBreakpoint\n");
+      return false;
+   }
+
+   int_process::waitForAsyncEvent(resp);
+
+   if (resp->hasError() || !resp->getResult()) {
+      pthrd_printf("Error removing breakpoint\n");
+      return false;
+   }
+   
+   return true;
+   
 }
 
 Thread::Thread() :
@@ -3991,7 +4541,25 @@ bool Thread::getAllRegisters(RegisterPool &pool) const
       perr_printf("User called getAllRegisters on running thread %d\n", llthread_->getLWP());
       return false;
    }
-   return llthread_->getAllRegisters(*pool.llregpool);
+   
+   allreg_response::ptr response = allreg_response::createAllRegResponse(pool.llregpool);   
+   bool result = llthread_->getAllRegisters(response);
+   if (!result) {
+      pthrd_printf("Error getting all registers\n");
+      return false;
+   }
+
+   result = llthread_->llproc()->waitForAsyncEvent(response);
+   if (!result) {
+      pthrd_printf("Error waiting for async events\n");
+      return false;
+   }
+   assert(response->isReady());
+   if (response->hasError()) {
+      pthrd_printf("Async error reading registers\n");
+      return false;
+   }
+   return true;
 }
 
 bool Thread::setAllRegisters(RegisterPool &pool) const
@@ -4007,7 +4575,25 @@ bool Thread::setAllRegisters(RegisterPool &pool) const
       perr_printf("User called setAllRegisters on running thread %d\n", llthread_->getLWP());
       return false;
    }
-   return llthread_->setAllRegisters(*pool.llregpool);
+   
+   result_response::ptr response = result_response::createResultResponse();
+   bool result = llthread_->setAllRegisters(*pool.llregpool, response);
+   if (!result) {
+      pthrd_printf("Error setting all registers\n");
+      return false;
+   }
+   result = llthread_->llproc()->waitForAsyncEvent(response);
+   if (!result) {
+      pthrd_printf("Error waiting for async events\n");
+      return false;
+   }
+   assert(response->isReady());
+   if (response->hasError()) {
+      pthrd_printf("Async error setting registers\n");
+      return false;
+   }
+
+   return true;
 }
 
 bool Thread::getRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val) const
@@ -4023,7 +4609,25 @@ bool Thread::getRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &va
       perr_printf("User called getRegister on running thread %d\n", llthread_->getLWP());
       return false;
    }
-   return llthread_->getRegister(reg, val);
+
+   reg_response::ptr response = reg_response::createRegResponse();
+   bool result = llthread_->getRegister(reg, response);
+   if (!result) {
+      pthrd_printf("Error getting register\n");
+      return false;
+   }
+   result = llthread_->llproc()->waitForAsyncEvent(response);
+   if (!result) {
+      pthrd_printf("Error waiting for async events\n");
+      return false;
+   }
+   assert(response->isReady());
+   if (response->hasError()) {
+      pthrd_printf("Async error getting register\n");
+      return false;
+   }
+   val = response->getResult();
+   return true;
 }
 
 bool Thread::setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val) const
@@ -4039,7 +4643,23 @@ bool Thread::setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val
       perr_printf("User called setRegister on running thread %d\n", llthread_->getLWP());
       return false;
    }
-   return llthread_->setRegister(reg, val);
+   result_response::ptr response = result_response::createResultResponse();
+   bool result = llthread_->setRegister(reg, val, response);
+   if (!result) {
+      pthrd_printf("Error setting register value\n");
+      return false;
+   }
+   result = llthread_->llproc()->waitForAsyncEvent(response);
+   if (!result) {
+      pthrd_printf("Error waiting for async events\n");
+      return false;
+   }
+   assert(response->isReady());
+   if (response->hasError()) {
+      pthrd_printf("Async error reading registers\n");
+      return false;
+   }
+   return true;   
 }
 
 bool Thread::isInitialThread() const
@@ -4109,7 +4729,7 @@ bool Thread::postIRPC(IRPC::ptr irpc) const
    }
    if (thr->getInternalState() == int_thread::running) {
       //The thread is running, let's go ahead and start the RPC going.
-      bool result = thr->handleNextPostedIRPC(true);
+      bool result = thr->handleNextPostedIRPC(int_thread::hnp_allow_stop, true);
       if (!result) {
          pthrd_printf("handleNextPostedIRPC failed\n");
          return false;

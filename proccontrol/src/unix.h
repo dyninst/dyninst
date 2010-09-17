@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2010 Barton P. Miller
+ * Copyright (c) 1996-2009 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -29,11 +29,32 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "process.h"
+#if !defined(UNIX_H_)
+#define UNIX_H_
 
-#if defined(arch_x86_64)
-void print_regs(dyn_lwp *lwp)
+#include "int_process.h"
+
+class unix_process : virtual public int_process
 {
-    // XXX this is a debugging function
-}
+  public:
+   unix_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int,int> f);
+   unix_process(Dyninst::PID pid_, int_process *p);
+   virtual ~unix_process();
+
+   virtual void plat_execv();
+   virtual bool post_forked();
+   virtual unsigned getTargetPageSize();
+
+
+   virtual bool plat_collectAllocationResult(int_thread *thr, reg_response::ptr resp);
+   virtual bool plat_createAllocationSnippet(Dyninst::Address addr, bool use_addr, unsigned long size, 
+                                             void* &buffer, unsigned long &buffer_size, 
+                                             unsigned long &start_offset);
+   virtual bool plat_createDeallocationSnippet(Dyninst::Address addr, 
+                                               unsigned long size, void* &buffer, 
+                                               unsigned long &buffer_size, 
+                                               unsigned long &start_offset);
+   virtual Dyninst::Address plat_mallocExecMemory(Dyninst::Address, unsigned size);
+};
+
 #endif

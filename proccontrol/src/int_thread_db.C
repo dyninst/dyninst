@@ -38,6 +38,7 @@
 using std::set;
 
 #include "common/h/dthread.h"
+#include "dynutil/h/SymReader.h"
 #include "int_thread_db.h"
 
 /* 
@@ -221,20 +222,22 @@ Event::ptr decodeThreadEvent(td_event_msg_t *eventMsg) {
 volatile bool thread_db_process::thread_db_initialized = false;
 Mutex thread_db_process::thread_db_init_lock;
 
-thread_db_process::thread_db_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int, int> f)
-    : sysv_process(p, e, a, f), threadAgent(NULL)
+thread_db_process::thread_db_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int, int> f) :
+  int_process(p, e, a, f),
+  threadAgent(NULL)
 {
-    self = new ps_prochandle();
-    assert(self);
-    self->thread_db_proc = this;
+  self = new ps_prochandle();
+  assert(self);
+  self->thread_db_proc = this;
 }
 
-thread_db_process::thread_db_process(Dyninst::PID pid_, int_process *p) 
-    : sysv_process(pid_, p), threadAgent(NULL)
+thread_db_process::thread_db_process(Dyninst::PID pid_, int_process *p) :
+  int_process(pid_, p), 
+  threadAgent(NULL)
 {
-    self = new ps_prochandle();
-    assert(self);
-    self->thread_db_proc = this;
+  self = new ps_prochandle();
+  assert(self);
+  self->thread_db_proc = this;
 }
 
 thread_db_process::~thread_db_process() 
@@ -243,14 +246,6 @@ thread_db_process::~thread_db_process()
     map<Dyninst::Address, pair<int_breakpoint *, EventType> >::iterator brkptIter;
     for(brkptIter = addr2Event.begin(); brkptIter != addr2Event.end(); ++brkptIter) {
         delete brkptIter->second.first;
-    }
-
-    // Close all the symbol readers used
-    map<string, pair<LoadedLib *, SymReader *> >::iterator symReaderIter;
-    for(symReaderIter = symReaders.begin(); symReaderIter != symReaders.end(); 
-            ++symReaderIter)
-    {
-        symreader_factory->closeSymbolReader(symReaderIter->second.second);
     }
 
     delete self;
@@ -471,82 +466,39 @@ ps_err_e thread_db_process::getSymbolAddr(const char *objName, const char *symNa
         psaddr_t *symbolAddr)
 {
     SymReader *objSymReader = NULL;
-    LoadedLib *lib = NULL;
-
-    // For static executables, we need to search the executable instead of the
-    // thread library. 
-
-    // For static executables, breakpoint_addr isn't set
-    if( !breakpoint_addr ) {
-        lib = translator->getExecutable();
-        if( NULL == lib ) {
-            perr_printf("Failed to get loaded version of executable\n");
-            setLastError(err_internal, "Failed to get loaded version of executable");
-            return PS_ERR;
-        }
-
-        map<string, pair<LoadedLib *, SymReader *> >::iterator symReaderIter;
-        symReaderIter = symReaders.find(lib->getName());
-        if( symReaderIter == symReaders.end() ) {
-            objSymReader = symreader_factory->openSymbolReader(lib->getName());
-            if( NULL == objSymReader ) {
-                perr_printf("Failed to open symbol reader for %s\n",
-                        lib->getName().c_str());
-                setLastError(err_internal, "Failed to open executable for symbol reading");
-                return PS_ERR;
-            }
-            symReaders.insert(make_pair(lib->getName(), make_pair(lib, objSymReader)));
-        }else{
-            objSymReader = symReaderIter->second.second;
-        }
-    }else{
+    int_library *lib = NULL;
+    
+    if (plat_isStaticBinary()) {
+      // For static executables, we need to search the executable instead of the
+      // thread library. 
+       assert(memory()->libs.size() == 1);
+       lib = *memory()->libs.begin();
+    }
+    else
+    {
         // FreeBSD implementation doesn't set objName
-        string objNameStr;
-        if( NULL == objName ) {
-            objNameStr = getThreadLibName(symName);
-        }else{
-            objNameStr = objName;
-        }
+        string name = objName ? objName : getThreadLibName(symName);
+	for (set<int_library *>::iterator i = memory()->libs.begin(); i != memory()->libs.end(); i++) {
+           int_library *l = *i;
+	   if (strstr(l->getName().c_str(), name.c_str())) {
+	      lib = l;
+	      break;
+	   }
+	}
+    }
 
-        map<string, pair<LoadedLib *, SymReader *> >::iterator symReaderIter;
-        symReaderIter = symReaders.find(objNameStr);
-        if( symReaderIter == symReaders.end() ) {
-            vector<LoadedLib *> libs;
-            if( !translator->getLibs(libs) ) {
-                perr_printf("Failed to retrieve loaded libraries\n");
-                setLastError(err_internal, "Failed to retrieve loaded libraries");
-                return PS_ERR;
-            }
+    if( NULL == lib ) {
+       perr_printf("Failed to find loaded library\n");
+       setLastError(err_internal, "Failed to find loaded library");
+       return PS_ERR;
+    }
 
-            vector<LoadedLib *>::iterator loadedLibIter;
-            for(loadedLibIter = libs.begin(); loadedLibIter != libs.end();
-                    ++loadedLibIter)
-            {
-                if( (*loadedLibIter)->getName().find(objNameStr) != string::npos ) {
-                    lib = (*loadedLibIter);
-                    break;
-                }
-            }
-
-            if( NULL == lib ) {
-                perr_printf("Failed to find loaded library for %s\n", objNameStr.c_str());
-                setLastError(err_internal, "Failed to find loaded library");
-                return PS_ERR;
-            }
-
-            objSymReader = symreader_factory->openSymbolReader(lib->getName());
-
-            if( NULL == objSymReader ) {
-                perr_printf("Failed to open symbol reader for %s\n", objNameStr.c_str());
-                setLastError(err_internal, "Failed to open library for symbol reading");
-                return PS_ERR;
-            }
-
-            symReaders.insert(make_pair(objNameStr, make_pair(lib, objSymReader)));
-        }else{
-            lib = symReaderIter->second.first;
-            objSymReader = symReaderIter->second.second;
-        }
+    objSymReader = plat_defaultSymReader()->openSymbolReader(lib->getName());
+    if( NULL == objSymReader ) {
+        perr_printf("Failed to open symbol reader for %s\n",
+		    lib->getName().c_str());
+	setLastError(err_internal, "Failed to open executable for symbol reading");
+	return PS_ERR;
     }
 
     Symbol_t lookupSym = objSymReader->getSymbolByName(string(symName));
@@ -555,8 +507,8 @@ ps_err_e thread_db_process::getSymbolAddr(const char *objName, const char *symNa
         return PS_NOSYM;
     }
 
-    *symbolAddr = (psaddr_t)lib->offToAddress(
-            objSymReader->getSymbolOffset(lookupSym));
+    *symbolAddr = (psaddr_t) (lib->getAddr() + 
+			      objSymReader->getSymbolOffset(lookupSym));
 
     return PS_OK;
 }
@@ -618,10 +570,10 @@ ThreadDBLibHandler::~ThreadDBLibHandler()
 {
 }
 
-bool ThreadDBLibHandler::handleEvent(Event::ptr ev) {
+Handler::handler_ret_t ThreadDBLibHandler::handleEvent(Event::ptr ev) {
     EventLibrary::const_ptr libEv = ev->getEventLibrary();
 
-    thread_db_process *proc = static_cast<thread_db_process *>(ev->getProcess()->llproc());
+    thread_db_process *proc = dynamic_cast<thread_db_process *>(ev->getProcess()->llproc());
 
     const set<Library::ptr> &addLibs = libEv->libsAdded();
 
@@ -633,13 +585,13 @@ bool ThreadDBLibHandler::handleEvent(Event::ptr ev) {
             if( !proc->initThreadDB() ) {
                 pthrd_printf("Failed to initialize thread_db for pid %d\n",
                         proc->getPid());
-                return false;
+                return Handler::ret_error;
             }
             break;
         }
     }
 
-    return true;
+    return Handler::ret_success;
 }
 
 int ThreadDBLibHandler::getPriority() const {
@@ -659,7 +611,7 @@ ThreadDBCreateHandler::~ThreadDBCreateHandler()
 {
 }
 
-bool ThreadDBCreateHandler::handleEvent(Event::ptr ev) {
+Handler::handler_ret_t ThreadDBCreateHandler::handleEvent(Event::ptr ev) {
     EventNewThread::const_ptr threadEv = ev->getEventNewThread();
 
     thread_db_thread *thread = static_cast<thread_db_thread *>(threadEv->getNewThread()->llthrd());
@@ -675,7 +627,7 @@ bool ThreadDBCreateHandler::handleEvent(Event::ptr ev) {
     // Explicitly ignore errors here
     thread->setEventReporting(true);
 
-    return true;
+    return Handler::ret_success;
 }
 
 int ThreadDBCreateHandler::getPriority() const {
@@ -695,7 +647,7 @@ ThreadDBDestroyHandler::~ThreadDBDestroyHandler()
 {
 }
 
-bool ThreadDBDestroyHandler::handleEvent(Event::ptr ev) {
+Handler::handler_ret_t ThreadDBDestroyHandler::handleEvent(Event::ptr ev) {
     thread_db_thread *thrd = static_cast<thread_db_thread *>(ev->getThread()->llthrd());
     if( ev->getEventType().time() == EventType::Pre) {
         pthrd_printf("Marking LWP %d destroyed\n", thrd->getLWP());
@@ -707,7 +659,7 @@ bool ThreadDBDestroyHandler::handleEvent(Event::ptr ev) {
         thrd->plat_resume();
     }
 
-    return true;
+    return Handler::ret_success;
 }
 
 int ThreadDBDestroyHandler::getPriority() const {
@@ -731,7 +683,7 @@ thread_db_thread::~thread_db_thread()
 bool thread_db_thread::initThreadHandle() {
     if( NULL != threadHandle ) return true;
 
-    thread_db_process *lproc = static_cast<thread_db_process *>(llproc());
+    thread_db_process *lproc = dynamic_cast<thread_db_process *>(llproc());
     if( NULL == lproc->getThreadDBAgent() ) return false;
 
     threadHandle = new td_thrhandle_t;

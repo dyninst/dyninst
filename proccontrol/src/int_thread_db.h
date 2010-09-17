@@ -57,7 +57,7 @@ using namespace ProcControlAPI;
 
 class thread_db_thread;
 
-class thread_db_process : public sysv_process
+class thread_db_process : virtual public int_process
 {
 public:
     thread_db_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int, int> f);
@@ -103,7 +103,6 @@ protected:
     static Mutex thread_db_init_lock;
 
     map<Dyninst::Address, pair<int_breakpoint *, EventType> > addr2Event;
-    map<string, pair<LoadedLib *, SymReader *> > symReaders;
     td_thragent_t *threadAgent;
 
     struct ps_prochandle *self;
@@ -153,7 +152,7 @@ class ThreadDBCreateHandler : public Handler
 public:
     ThreadDBCreateHandler();
     virtual ~ThreadDBCreateHandler();
-    virtual bool handleEvent(Event::ptr ev);
+    virtual Handler::handler_ret_t handleEvent(Event::ptr ev);
     virtual int getPriority() const;
     void getEventTypesHandled(vector<EventType> &etypes);
 };
@@ -163,7 +162,7 @@ class ThreadDBLibHandler : public Handler
 public:
     ThreadDBLibHandler();
     virtual ~ThreadDBLibHandler();
-    virtual bool handleEvent(Event::ptr ev);
+    virtual Handler::handler_ret_t handleEvent(Event::ptr ev);
     virtual int getPriority() const;
     void getEventTypesHandled(std::vector<EventType> &etypes);
 };
@@ -173,8 +172,9 @@ class ThreadDBDestroyHandler : public Handler
 public:
     ThreadDBDestroyHandler();
     virtual ~ThreadDBDestroyHandler();
-    virtual bool handleEvent(Event::ptr ev);
+    virtual Handler::handler_ret_t handleEvent(Event::ptr ev);
     virtual int getPriority() const;
     void getEventTypesHandled(std::vector<EventType> &etypes);
 };
+
 #endif

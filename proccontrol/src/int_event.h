@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2010 Barton P. Miller
+ * Copyright (c) 1996-2009 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -29,11 +29,51 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "process.h"
+#include "response.h"
 
-#if defined(arch_x86_64)
-void print_regs(dyn_lwp *lwp)
+namespace Dyninst {
+namespace ProcControlAPI {
+
+class int_eventBreakpointClear
 {
-    // XXX this is a debugging function
+  public:
+   int_eventBreakpointClear();
+   ~int_eventBreakpointClear();
+
+   result_response::ptr memwrite_bp_resume;
+};
+
+class int_eventBreakpoint
+{
+  public:
+   int_eventBreakpoint();
+   ~int_eventBreakpoint();
+
+   result_response::ptr memwrite_bp_suspend;
+   result_response::ptr pc_regset;
+   bool set_singlestep;
+};
+
+class int_eventRPC {
+  public:
+   int_eventRPC();
+   ~int_eventRPC();
+   reg_response::ptr alloc_regresult;
+   result_response::ptr memrestore_response;
+   result_response::ptr regrestore_response;
+
+   void getPendingAsyncs(std::set<response::ptr> &pending);
+};
+
+class int_eventAsync {
+  private:
+   response::ptr resp;
+  public:
+   int_eventAsync(response::ptr r);
+   ~int_eventAsync();
+
+   response::ptr getResponse() const;
+};
+
 }
-#endif
+}

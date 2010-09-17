@@ -164,6 +164,7 @@ typedef int64_t off64_t;
 #elif defined(os_irix)
 #define TYPE64BIT
 #include <inttypes.h>
+
 #elif defined(os_solaris)
 #include <inttypes.h>
 

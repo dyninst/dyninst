@@ -54,6 +54,8 @@ verbose_log(Address /* currAddr */, Edges_t::iterator & /* curEdge */)
 #else
 verbose_log(Address currAddr, Edges_t::iterator & curEdge)
 {
+  using namespace Dyninst::ParseAPI;
+  
     switch(curEdge->second)
     {
         case CALL:
@@ -75,7 +77,7 @@ verbose_log(Address currAddr, Edges_t::iterator & curEdge)
             parsing_printf("%s[%d]: adding conditional not taken edge %x->%x\n",
                            FILE__, __LINE__, currAddr, curEdge->first);
             break;
-        case INDIR:
+        case INDIRECT:
             parsing_printf("%s[%d]: adding indirect edge %x->%x\n",
                            FILE__, __LINE__, currAddr, curEdge->first);
             break;
@@ -161,7 +163,6 @@ void Parser::ProcessCFInsn(
     
     // Instruction adapter provides edge estimates from an instruction
     ah.getNewEdges(edges_out, frame.func, cur, frame.num_insns, &plt_entries); 
-    
     insn_ret = ah.getReturnStatus(frame.func,frame.num_insns); 
 
     // Update function return status if possible
@@ -185,7 +186,8 @@ void Parser::ProcessCFInsn(
         bool resolvable_edge = true;
         bool tailcall = false;
 
-        if(!is_code(frame.func,curEdge->first)) 
+        if(!is_code(frame.func,curEdge->first) &&
+           !HASHDEF(plt_entries,curEdge->first))
         {
             if(curEdge->second != NOEDGE || !dynamic_call) {
                 unresolved = true;

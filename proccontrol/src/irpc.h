@@ -1,12 +1,45 @@
+/*
+ * Copyright (c) 1996-2009 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
+
 #if !defined(IRPC_H_)
 #define IRPC_H_
 
 #include <map>
 #include <list>
+#include <set>
 
 #include "dynutil/h/dyntypes.h"
 #include "proccontrol/h/Handler.h"
-#include "int_process.h"
+#include "proccontrol/src/int_process.h"
+#include "proccontrol/src/response.h"
 #include <stdlib.h>
 
 using namespace Dyninst;
@@ -14,9 +47,45 @@ using namespace ProcControlAPI;
 
 class int_process;
 class int_thread;
+/*
+ * Copyright (c) 1996-2009 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
+
 class iRPCAllocation;
 class int_iRPC;
-class Dyninst::ProcControlAPI::IRPC;
+
+namespace Dyninst {
+namespace ProcControlAPI {
+class IRPC;
+}
+}
 
 class iRPCAllocation
 {
@@ -64,10 +133,13 @@ class int_iRPC : public dyn_detail::boost::enable_shared_from_this<int_iRPC>
       Posted = 1,     //RPC is in queue to run
       Prepping = 2,   //Thread/Process is being stopped to setup RPC
       Prepped = 3,    //Thread/Process has been stopped to setup RPC
-      Ready = 4,      //RPC is setup on thread and needs continue
-      Running = 5,    //RPC is running
-      Cleaning = 6,   //RPC is complete and is being remove
-      Finished = 7    //RPC ran
+      Saving = 4,     //Process state is being saved
+      Saved = 5,      //Process state has been saved
+      Writing = 6,    //RPC is being written into the process
+      Ready = 7,      //RPC is setup on thread and needs continue
+      Running = 8,    //RPC is running
+      Cleaning = 9,   //RPC is complete and is being remove
+      Finished = 10   //RPC ran
    } State;
    typedef enum {
       NoType,
@@ -113,6 +185,13 @@ class int_iRPC : public dyn_detail::boost::enable_shared_from_this<int_iRPC>
    bool needsToDesync() const; 
    bool isRPCPrepped();
 
+   bool saveRPCState();
+   bool checkRPCFinishedSave();
+   bool writeToProc();
+   bool checkRPCFinishedWrite();
+   bool runIRPC(bool block);
+
+
    void setNeedsDesync(bool b);
    void setState(State s);
    void setType(Type t);
@@ -129,8 +208,9 @@ class int_iRPC : public dyn_detail::boost::enable_shared_from_this<int_iRPC>
    void setShouldSaveData(bool b);
    bool fillInAllocation();
 
-   void markReady();
-   void markRunning();
+   void getPendingResponses(std::set<response::ptr> &resps);
+   void syncAsyncResponses(bool is_sync);
+
    int_iRPC::ptr newAllocationRPC();
    int_iRPC::ptr newDeallocationRPC();
    
@@ -155,6 +235,11 @@ class int_iRPC : public dyn_detail::boost::enable_shared_from_this<int_iRPC>
    int lock_live;
    bool needs_clean;
    Dyninst::Address malloc_result;
+
+   mem_response::ptr memsave_result;
+   allreg_response::ptr regsave_result;
+   result_response::ptr rpcwrite_result;
+   result_response::ptr pcset_result;
 };
 
 //Singleton class, only one of these across all processes.
@@ -172,17 +257,6 @@ class iRPCMgr
    bool postRPCToProc(int_process *proc, int_iRPC::ptr rpc);
    bool postRPCToThread(int_thread *thread, int_iRPC::ptr rpc);
    bool prepNextRPC(int_thread *thr, bool sync_prep, bool &user_error);
-   bool runNextRPC(int_thread *thread, bool block);
-
-   bool createAllocationSnippet(int_process *proc, Dyninst::Address addr,
-                                bool use_addr,
-                                unsigned long size, void* &buffer, 
-                                unsigned long &buffer_size,
-                                unsigned long &start_offset);
-   bool createDeallocationSnippet(int_process *proc, Dyninst::Address addr, 
-                                  unsigned long size, void* &buffer, 
-                                  unsigned long &buffer_size, unsigned long &start_offset);
-   bool collectAllocationResult(int_thread *thr, Dyninst::Address &addr, bool &err);
 
    int_iRPC::ptr createInfMallocRPC(int_process *proc, unsigned long size, bool use_addr, Dyninst::Address addr);
    int_iRPC::ptr createInfFreeRPC(int_process *proc, unsigned long size, Dyninst::Address addr);
@@ -190,7 +264,7 @@ class iRPCMgr
    bool checkIfNeedsProcStop(int_process *p);
    bool stopNeededThreads(int_process *p, bool sync);
 
-   bool handleThreadContinue(int_thread *thr, bool user_cont);
+   bool handleThreadContinue(int_thread *thr, bool user_cont, bool &completed);
    bool isRPCTrap(int_thread *thr, Dyninst::Address addr);
 };
 
@@ -199,10 +273,10 @@ iRPCMgr *rpcMgr();
 //Runs after user callback
 class iRPCHandler : public Handler
 {
- public:
+  public:
    iRPCHandler();
    virtual ~iRPCHandler();
-   virtual bool handleEvent(Event::ptr ev);
+   virtual handler_ret_t handleEvent(Event::ptr ev);
    virtual void getEventTypesHandled(std::vector<EventType> &etypes);
    virtual int getPriority() const;
 };
@@ -212,15 +286,20 @@ class iRPCHandler : public Handler
 class rpc_wrapper
 {
   public:
-   rpc_wrapper(int_iRPC::ptr rpc_) :
-     rpc(rpc_)
-   {
-   }
+  rpc_wrapper(int_iRPC::ptr rpc_) :
+   rpc(rpc_)
+  {
+  }
     
-   ~rpc_wrapper()
-   {
-   }
+  rpc_wrapper(rpc_wrapper *w) :
+   rpc(w->rpc)
+  {
+  }
+
+  ~rpc_wrapper()
+  {
+  }
    
-   int_iRPC::ptr rpc;
+  int_iRPC::ptr rpc;
 };
 #endif

@@ -2020,10 +2020,10 @@ int_function *instPoint::findCallee() {
     if(insns[5]->getOperation().getID() != power_op_bcctr) return NULL;
     if(insns[0]->isWritten(r12) && insns[0]->isRead(r2))
     {
-        std::vector<InstructionAST::Ptr> tmp;
+        std::vector<Expression::Ptr> tmp;
         insns[0]->getOperand(1).getValue()->getChildren(tmp);
         assert(tmp.size() == 1);
-        Expression::Ptr child_as_expr = dyn_detail::boost::dynamic_pointer_cast<Expression>(tmp[0]);
+        Expression::Ptr child_as_expr = tmp[0];
         assert(child_as_expr);
         child_as_expr->bind(r2.get(), Result(u32, 0));
         toc_offset = child_as_expr->eval().convert<Address>();

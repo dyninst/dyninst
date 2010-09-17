@@ -148,6 +148,13 @@ namespace Dyninst
 	children.push_back(m_arg2);
 	return;
       }
+      virtual void getChildren(vector<Expression::Ptr>& children) const
+      {
+          children.push_back(m_arg1);
+          children.push_back(m_arg2);
+          return;
+      }
+      
       /// The use set of a %BinaryFunction is the union of the use sets of its children.
       /// \param uses Appends the use set of this %BinaryFunction to \c uses.
       virtual void getUses(set<InstructionAST::Ptr>& uses)

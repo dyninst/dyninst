@@ -160,7 +160,7 @@ bool ProcControlComponent::launchMutatees(RunGroup *group, ParameterDict &param)
    bool error = false;
    bool result = setupServerSocket();
    if (!result) {
-      logerror("Failed to setup server side socket");
+      logerror("Failed to setup server side socket\n");
       return FAILED;
    }
    
@@ -197,7 +197,7 @@ bool ProcControlComponent::launchMutatees(RunGroup *group, ParameterDict &param)
       while (eventsRecieved[thread_create].size() < num_procs*num_threads) {
          bool result = Process::handleEvents(true);
          if (!result) {
-            logerror("Failed to handle events during thread create");
+            logerror("Failed to handle events during thread create\n");
             error = true;
          }
       }
