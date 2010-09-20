@@ -435,9 +435,8 @@ bool IA_IAPI::isRealCall() const
     if(!_isrc->isValidAddress(getCFT()))
     {
         CodeSource *_csrc = dynamic_cast<CodeSource *>(_isrc);
-        assert(_csrc);
-
-        if (_csrc->linkage().find(getCFT()) == _csrc->linkage().end()) {
+        if (!_csrc ||
+             _csrc->linkage().find(getCFT()) == _csrc->linkage().end()) {
             parsing_printf(" isRealCall failed _isrc->isValidAddress(%lx)\n",
                            getCFT());
             return false;

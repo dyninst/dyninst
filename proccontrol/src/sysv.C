@@ -42,6 +42,7 @@
 
 #include "proccontrol/src/response.h"
 
+#include <cstring>
 #include <vector>
 #include <string>
 #include <set>
