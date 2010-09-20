@@ -109,7 +109,6 @@ class DynParseCallback : public ParseAPI::ParseCallback {
   ~DynParseCallback() { }
 
   // defensive and exploratory mode callbacks
-  void unresolved_cf(ParseAPI::Function*,Address,interproc_details*);
   void abruptEnd_cf(Address,default_details*);
   void newfunction_retstatus(ParseAPI::Function*);
   void block_split(ParseAPI::Block *first, ParseAPI::Block *second);

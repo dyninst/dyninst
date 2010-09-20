@@ -200,8 +200,7 @@ class image_instPoint : public instPointBase {
                     unsigned char * insn_buf,
                     size_t insn_len,
                     image * img,
-                    instPointType_t type, 
-                    bool isUnresolved=false);
+                    instPointType_t type);
     // Call site or otherPoint that has a target
     image_instPoint(Address offset,
                     unsigned char * insn_buf,

@@ -243,8 +243,7 @@ image_instPoint::image_instPoint(Address offset,
                                  unsigned char * insn_buf,
                                  size_t insn_len,
                                  image * img,
-                                 instPointType_t type,
-                                 bool isUnresolved) :
+                                 instPointType_t type) :
     instPointBase(insn_buf,
                   insn_len,
                   type),
@@ -252,7 +251,7 @@ image_instPoint::image_instPoint(Address offset,
     image_(img),
     callee_(NULL),
     callTarget_(0),
-    isUnres_(isUnresolved),
+    isUnres_(false),
     isDynamic_(0)
 {
 #if defined(ROUGH_MEMORY_PROFILE)

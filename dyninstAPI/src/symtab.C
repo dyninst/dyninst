@@ -740,8 +740,19 @@ bool
 image::addInstPoint(image_instPoint *p)
 {
     if(inst_pts_.find(p->offset()) != inst_pts_.end()) {   
+        // this can happen because of code sharing or if there's a 
+        // call at a function entry or exit
         parsing_printf("  attempt to add duplicate instpoint at %lx\n",
             p->offset());
+        if (codeObject()->defensiveMode() && 
+            p->getPointType() != inst_pts_.find(p->offset())->second->getPointType()) 
+        {
+            fprintf(stderr,"WARNING: not creating imgPoint at %lx, type "
+                    "%d. Existing point has type %d %s[%d]\n", p->offset(), 
+                    p->getPointType(), 
+                    inst_pts_.find(p->offset())->second->getPointType(),
+                    FILE__,__LINE__);
+        }
         return false;
     }
     inst_pts_[p->offset()] = p;

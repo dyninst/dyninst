@@ -162,7 +162,7 @@ void Parser::ProcessCallInsn(
     
     if(ah.isCall()) {
         if (isDynamic && !target) {
-            det.type = ParseCallback::interproc_details::unresolved; 
+            det.type = ParseCallback::interproc_details::unres_call; 
             det.data.unres.absolute_address = isAbsolute;
             det.data.unres.dynamic = isDynamic;
             det.data.unres.target = target;
@@ -207,8 +207,9 @@ void Parser::ProcessCFInsn(
 
     bool dynamic_call = ah->isDynamicCall();
     bool absolute_call = ah->isAbsoluteCall();
-    bool unresolved = ah->hasUnresolvedControlFlow(frame.func,frame.num_insns);
-    bool isBranch = false;
+    // unresolved is true for indirect calls, unresolved indirect branches, 
+    // and later on is set set to true for transfers to bad addresses
+    bool has_unres = ah->hasUnresolvedControlFlow(frame.func,frame.num_insns);
 
     parsing_printf("\t\t%d edges:\n",edges_out.size());
     for(Edges_t::iterator curEdge = edges_out.begin();
@@ -221,8 +222,7 @@ void Parser::ProcessCFInsn(
         if(!is_code(frame.func,curEdge->first)) 
         {
             if(curEdge->second != NOEDGE || !dynamic_call) {
-                unresolved = true;
-                isBranch = true;
+                has_unres = true;
                 resolvable_edge = false;
             }
         }
@@ -294,23 +294,32 @@ void Parser::ProcessCFInsn(
                 mal_printf("new block at %lx\n", we->target());
             }
             frame.pushWork(we);
+        } 
+        else if( unlikely(_obj.defensiveMode() && has_unres) ) {
+            // invoke callback for: 
+            // indirect calls, unresolved indirect branches, 
+            // direct ctrl transfers with bad targets
+            ParseCallback::interproc_details det;
+            det.ibuf = (unsigned char*)
+               frame.func->isrc()->getPtrToInstruction(ah->getAddr());
+            det.isize = ah->getSize();
+            det.data.unres.target = curEdge->first;
+            if (curEdge->second == NOEDGE) { // call
+                det.type = ParseCallback::interproc_details::unres_call;
+                det.data.unres.absolute_address = absolute_call;
+                det.data.unres.dynamic = dynamic_call;
+            } else { // branch
+                det.type = ParseCallback::interproc_details::unres_branch;
+                if (0 == ah->getCFT()) {
+                    det.data.unres.dynamic = true;
+                    det.data.unres.absolute_address = true;
+                } else {
+                    det.data.unres.dynamic = false;
+                    det.data.unres.absolute_address = false;
+                }
+            }
+            _pcb.interproc_cf(frame.func,ah->getAddr(),&det);
         }
-    }
-
-    /*
-     * Notification callback
-     */
-    if(unresolved) 
-    {//all indirect calls, branches, and direct calls/branches with bad targets
-        ParseCallback::interproc_details det;
-        det.ibuf = (unsigned char*)
-           frame.func->isrc()->getPtrToInstruction(ah.getAddr());
-        det.isize = ah.getSize();
-        det.type = ParseCallback::interproc_details::unresolved;
-        det.data.unres.absolute_address = isAbsolute;
-        det.data.unres.dynamic = isDynamic;
-        det.data.unres.target = target;
-        _pcb.interproc_cf(frame.func,ah.getAddr(),&det);
     }
 
     if(ah->isDelaySlot())

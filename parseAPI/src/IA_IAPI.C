@@ -162,9 +162,7 @@ bool IA_IAPI::hasCFT() const
   hascftstatus.second = false;
   if(c == c_BranchInsn ||
      c == c_ReturnInsn) {
-     if ( unlikely(_obj->defensiveMode() && isNopJump()) ) {
-     } 
-     else {
+     if ( likely ( ! (_obj->defensiveMode() && isNopJump()) ) ) {
         parsing_cerr << "\t branch or return, ret true" << endl;
         hascftstatus.second = true;
      }
@@ -227,6 +225,10 @@ bool IA_IAPI::isAbsoluteCall() const
         if(cft && dyn_detail::boost::dynamic_pointer_cast<Immediate>(cft))
         {
             return true;
+        }
+        if (isDynamicCall()) {
+            return true; // indirect call targets are absolute 
+                         // (though unknown for now)
         }
     }
     return false;

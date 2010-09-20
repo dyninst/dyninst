@@ -220,6 +220,7 @@ DynCFGFactory::mkedge(Block * src, Block * trg, EdgeTypeEnum type) {
     return ret;
 }
 
+#if 0
 void
 DynParseCallback::unresolved_cf(Function *f,Address addr,unresolved_details*det)
 {
@@ -240,6 +241,7 @@ DynParseCallback::unresolved_cf(Function *f,Address addr,unresolved_details*det)
 
     _img->addInstPoint(p);
 }
+#endif
 
 void
 DynParseCallback::abruptEnd_cf(Address addr,default_details*det)
@@ -250,8 +252,7 @@ DynParseCallback::abruptEnd_cf(Address addr,default_details*det)
             det->ibuf,
             det->isize,
             _img,
-            abruptEnd,
-            false);
+            abruptEnd);
 
     // check for instrumentability? FIXME
     // ah.getInstLevel or something
@@ -310,7 +311,8 @@ DynParseCallback::interproc_cf(Function*f,Address addr,interproc_details*det)
                     callSite,
                     false);
             break;
-        case interproc_details::unresolved:
+        case interproc_details::unres_call:
+        case interproc_details::unres_branch:
             p = new image_instPoint(
                     addr,
                     det->ibuf,
@@ -319,7 +321,7 @@ DynParseCallback::interproc_cf(Function*f,Address addr,interproc_details*det)
                     det->data.unres.target,
                     det->data.unres.dynamic,
                     det->data.unres.absolute_address,
-                    callSite,
+                    (det->type == interproc_details::unres_call) ? callSite : otherPoint,
                     true);
             break;
         case interproc_details::branch_interproc:

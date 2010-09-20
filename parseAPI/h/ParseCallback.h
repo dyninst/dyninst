@@ -61,7 +61,6 @@ class ParseCallback {
     size_t isize;
     bool isbranch;
   };
-  virtual void unresolved_cf(Function *,Address,default_details*) { }
   virtual void abruptEnd_cf(Address,default_details*) { }
 
   /*
