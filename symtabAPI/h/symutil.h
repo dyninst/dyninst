@@ -88,6 +88,7 @@ typedef enum {
 	       Not_An_Archive,
                Duplicate_Symbol,
 	       Export_Error,
+               Emit_Error,
 	       Invalid_Flags,
    Bad_Frame_Data,
    No_Frame_Entry,

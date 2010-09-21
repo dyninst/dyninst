@@ -246,9 +246,9 @@ unsigned saveFPRegisters(codeGen &gen,
 unsigned restoreFPRegisters(codeGen &gen,
                             registerSpace *theRegSpace,
                             int save_off);
-unsigned saveSPRegisters(codeGen &gen, 
-                         int save_off);
-unsigned restoreSPRegisters(codeGen &gen, 
-                            int save_off);
+unsigned saveSPRegisters(codeGen &gen, registerSpace *,
+                         int save_off, int force_save);
+unsigned restoreSPRegisters(codeGen &gen, registerSpace *,
+                            int save_off, int force_save);
 
 #endif

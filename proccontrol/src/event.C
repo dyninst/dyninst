@@ -40,6 +40,7 @@
 #include "proccontrol/h/PCErrors.h"
 #include <assert.h>
 #include <stdlib.h>
+#include <string.h>
 
 ArchEvent::ArchEvent(std::string name_) :
    name(name_)

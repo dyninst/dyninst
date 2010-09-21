@@ -115,6 +115,8 @@ std::string Symtab::printError(SymtabError serr)
            return "Not an Archive. Call openFile()";
        case Export_Error:
            return "Error Constructing XML"+errMsg;
+       case Emit_Error:
+           return "Error rewriting binary: " + errMsg;
        case Invalid_Flags:
           return "Flags passed are invalid.";
        case No_Error:
