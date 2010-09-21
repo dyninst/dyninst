@@ -94,7 +94,7 @@ extern int debugPrint;
    points.  The following macro is used to flesh out these
    functions. (expanded to use on all platforms for non-gcc compilers jkh 10/99)
  */
-static volatile int dummy3__;
+static volatile int dummy3__ = 0;
 #define DUMMY_FN_BODY \
   int dummy1__ = 1; \
   int dummy2__ = 2; \

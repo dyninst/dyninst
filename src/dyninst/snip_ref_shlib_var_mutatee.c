@@ -43,8 +43,6 @@
  * group.
  */
 
-static volatile int _unused; /* move decl here to dump compiler warning - jkh */
-
 #if 0
 //  from libtestB -- the expected end values
 int snip_ref_shlib_var1 = 5;

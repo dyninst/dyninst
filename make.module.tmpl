@@ -33,7 +33,7 @@ IFLAGS += $(BOOST_INCDIR)
 ### Strip away most of it.
 #######################################################################
 
-CFLAGS = $(UNIFIED_TEST_DEF:%=%_test) $(AC_DEF) $(FIRST_INCLUDE) -I$(INCLUDE_DEST) -I../src -g $(BOOST_INCDIR)
+CFLAGS = $(UNIFIED_TEST_DEF:%=%_test) $(ARCH_FLAGS) $(AC_DEF) $(FIRST_INCLUDE) -I$(INCLUDE_DEST) -I../src -g $(BOOST_INCDIR)
 CXXFLAGS = $(CFLAGS)
 CXXFLAGS += $(PLATFORM_CXXFLAGS)
 CFLAGS_NATIVE = $(CFLAGS)
@@ -64,7 +64,7 @@ COMPILER3_GCC = $(subst $(RSQBRACK),_,$(COMPILER2_GCC))
 COMPILER4_GCC = $(subst $(LSQBRACK),_,$(COMPILER3_GCC))
 COMPILER_GCC = $(subst $(RPAREN),_,$(COMPILER4_GCC))
 MUTATEE_CFLAGS_GNU += -DCOMPILER='"$(COMPILER_GCC)"'
-MUTATEE_LDFLAGS_GNU += -L.
+MUTATEE_LDFLAGS_GNU += $(LDFLAGS) -L.
 
 COMPILERT_GXX = $(shell $(M_GCC) -v 2>&1 | grep version | head -1)
 COMPILER1_GXX = $(subst $(BLANK),_,$(COMPILERT_GXX))
@@ -78,7 +78,7 @@ COMPILER1_NATIVE_CC = $(subst $(BLANK),_,$(COMPILERT_NATIVE_CC))
 COMPILER2_NATIVE_CC = $(subst $(LPAREN),_,$(COMPILER1_NATIVE_CC))
 COMPILER_NATIVE_CC = $(subst $(RPAREN),_,$(COMPILER2_NATIVE_CC))
 MUTATEE_CFLAGS_NATIVE += -DCOMPILER='"$(COMPILER_NATIVE_CC)"'
-MUTATEE_LDFLAGS_NATIVE += -L.
+MUTATEE_LDFLAGS_NATIVE += $(LDFLAGS) -L.
 
 COMPILER1_NATIVE_CXX = $(subst $(BLANK),_,$(COMPILERT_NATIVE_CXX))
 COMPILER2_NATIVE_CXX = $(subst $(LPAREN),_,$(COMPILER1_NATIVE_CXX))
@@ -248,9 +248,11 @@ CXXTFLAGS := $(filter-out -fno-implicit-templates, $(CXXFLAGS))
 ###  High level targets
 #######################################################################
 
-MUTATOR_LDFLAGS := $(LIBDIR) $(MUTATOR_LIBS) $(MUTATOR_LDFLAGS) -lpthread
+MUTATOR_LDFLAGS := $(LDFLAGS) $(LIBDIR) $(MUTATOR_LIBS) $(MUTATOR_LDFLAGS) -lpthread
 MUTATOR_SO_LDFLAGS = $(filter-out -liberty, $(MUTATOR_LDFLAGS))
-
+MUTATEE_NATIVE_FC_LDFLAGS += $(LDFLAGS)
+MUTATEE_NATIVE_CXX_OMP_LDFLAGS += $(LDFLAGS)
+TESTDRIVER_LDFLAGS += $(LDFLAGS)
 
 # all: testlibs mutators mutatees drivers
 # See also an addition to the 'all' rule at the end of the file
@@ -565,7 +567,8 @@ test_driver_static.o: ../src/test_driver.C $(DEPENDDIR)/test_driver_static.dep
 
 test_driver: test_driver.o test_driver_templates.o test_info_new.gen.o $(DEPENDDIR)/test_driver.dep $(LIBTESTSUITE)
 	@echo Linking $@ $(TESTDRIVER_LDFLAGS)
-	$(CXX) -o $@ test_driver.o test_driver_templates.o test_info_new.gen.o -L. -ltestSuite $(MUTATOR_LDFLAGS) $(LIBS) $(TESTDRIVER_LDFLAGS) -lcommon
+	$(CXX) -o $@ test_driver.o test_driver_templates.o test_info_new.gen.o -L. -ltestSuite $(MUTATOR_LDFLAGS) $(LIBS) $(TESTDRIVER_LDFLAGS) -lcommon; $(TESTDRIVER_EXTRA_LINK_STEP)
+        
 
 ######################################################################
 ### Output Drivers
@@ -579,7 +582,7 @@ DatabaseOutputDriver.o : ../src/DatabaseOutputDriver.C # $(DEPENDDIR)/DatabaseOu
 
 DatabaseOutputDriver.so: DatabaseOutputDriver.o $(LIBTESTSUITE) # $(DEPENDDIR)/DatabaseOutputDriver.dep
 	@echo Linking $@
-	@$(CXX) -o $@ -shared $(filter %.o,$^) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -L. -ltestSuite
+	@$(CXX) -o $@ -shared $(filter %.o,$^) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) -L. -ltestSuite
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
