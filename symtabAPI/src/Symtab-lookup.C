@@ -263,14 +263,15 @@ bool Symtab::findFunctionsByName(std::vector<Function *> &ret, const std::string
 
     std::vector<Function *> unsortedFuncs;
     for (unsigned i = 0; i < funcSyms.size(); i++) 
-	{
-		if (!funcSyms[i]->getFunction())
-		{
-			fprintf(stderr, "%s[%d]:  WARNING:  internal inconsistency\n", FILE__, __LINE__);
-			fprintf(stderr, "%s[%d]:  WARNING:  %s is %s a function\n", FILE__, __LINE__, name.c_str(), funcSyms[i]->isFunction() ? "" : "not");
-			fprintf(stderr, "%s[%d]:  WARNING:  %s is %s a variable\n", FILE__, __LINE__, name.c_str(), funcSyms[i]->isVariable() ? "" : "not");
-			continue;
-		}
+    {
+        if (doNotAggregate(funcSyms[i])) continue;
+        if (!funcSyms[i]->getFunction())
+        {
+            fprintf(stderr, "%s[%d]:  WARNING:  internal inconsistency\n", FILE__, __LINE__);
+            fprintf(stderr, "%s[%d]:  WARNING:  %s is %s a function\n", FILE__, __LINE__, name.c_str(), funcSyms[i]->isFunction() ? "" : "not");
+            fprintf(stderr, "%s[%d]:  WARNING:  %s is %s a variable\n", FILE__, __LINE__, name.c_str(), funcSyms[i]->isVariable() ? "" : "not");
+            continue;
+        }
         unsortedFuncs.push_back(funcSyms[i]->getFunction());
     }
 
@@ -317,6 +318,7 @@ bool Symtab::findVariablesByName(std::vector<Variable *> &ret, const std::string
 
     std::vector<Variable *> unsortedVars;
     for (unsigned i = 0; i < varSyms.size(); i++) {
+        if (doNotAggregate(varSyms[i])) continue;
         unsortedVars.push_back(varSyms[i]->getVariable());
     }
 

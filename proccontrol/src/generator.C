@@ -117,10 +117,7 @@ bool Generator::getAndQueueEventInt(bool block)
 
 static bool allStopped(int_process *proc, void *)
 {
-   if (proc->forceGeneratorBlock()) {
-      pthrd_printf("Process %d is forcing generator input\n", proc->getPid());
-      return false;
-   }
+   bool all_exited = true;
    int_threadPool *tp = proc->threadPool();
    assert(tp);
    for (int_threadPool::iterator i = tp->begin(); i != tp->end(); i++) {
@@ -132,6 +129,18 @@ static bool allStopped(int_process *proc, void *)
                       int_thread::stateStr((*i)->getGeneratorState()));
          return false;
       }
+      if ((*i)->getGeneratorState() != int_thread::exited) {
+         all_exited = false;
+      }
+   }
+   if (all_exited) {
+      pthrd_printf("All threads are exited for %d, treating as stopped\n",
+                   proc->getPid());
+      return true;
+   }
+   if (proc->forceGeneratorBlock()) {
+      pthrd_printf("Process %d is forcing generator input\n", proc->getPid());
+      return false;
    }
    pthrd_printf("Checking for running process: %d is stopped\n", proc->getPid());
    return true;

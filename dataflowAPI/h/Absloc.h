@@ -232,7 +232,7 @@ class AbsRegion {
 			 ParseAPI::Function *callee);
 
   DATAFLOW_EXPORT const Absloc absloc() const { return absloc_; }
-  DATAFLOW_EXPORT const Absloc::Type type() const { return type_; }
+  DATAFLOW_EXPORT Absloc::Type type() const { return type_; }
   DATAFLOW_EXPORT size_t size() const { return size_; }
   DATAFLOW_EXPORT AST::Ptr generator() const { return generator_; }
 
@@ -262,7 +262,7 @@ class Assignment {
   DATAFLOW_EXPORT std::vector<AbsRegion> &inputs() { return inputs_; }
 
   DATAFLOW_EXPORT const InstructionAPI::Instruction::Ptr insn() const { return insn_; }
-  DATAFLOW_EXPORT const Address addr() const { return addr_; }
+  DATAFLOW_EXPORT Address addr() const { return addr_; }
 
   DATAFLOW_EXPORT const AbsRegion &out() const { return out_; }
   DATAFLOW_EXPORT AbsRegion &out() { return out_; }

@@ -56,6 +56,8 @@ verbose_log(Address /* currAddr */, Edges_t::iterator & /* curEdge */)
 #else
 verbose_log(Address currAddr, Edges_t::iterator & curEdge)
 {
+  using namespace Dyninst::ParseAPI;
+  
     switch(curEdge->second)
     {
         case CALL:
@@ -219,7 +221,8 @@ void Parser::ProcessCFInsn(
         bool resolvable_edge = true;
         bool tailcall = false;
 
-        if(!is_code(frame.func,curEdge->first)) 
+        if(!is_code(frame.func,curEdge->first) &&
+           !HASHDEF(plt_entries,curEdge->first))
         {
             if(curEdge->second != NOEDGE || !dynamic_call) {
                 has_unres = true;

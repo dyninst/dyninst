@@ -17,7 +17,13 @@ class Handler
    Handler(std::string name_ = std::string(""));
    virtual ~Handler();
 
-   virtual bool handleEvent(Event::ptr ev) = 0;
+   typedef enum {
+      ret_success,
+      ret_async,
+      ret_error
+   } handler_ret_t;
+
+   virtual handler_ret_t handleEvent(Event::ptr ev) = 0;
    virtual void getEventTypesHandled(std::vector<EventType> &etypes) = 0;
    virtual int getPriority() const;
    virtual Event::ptr convertEventForCB(Event::ptr orig);

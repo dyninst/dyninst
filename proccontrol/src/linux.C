@@ -39,20 +39,29 @@
 #include <errno.h>
 #include <string.h>
 #include <assert.h>
+#include <time.h>
 
 #include "dynutil/h/dyn_regs.h"
 #include "dynutil/h/dyntypes.h"
+#include "common/h/SymLite-elf.h"
 #include "proccontrol/h/PCErrors.h"
 #include "proccontrol/h/Generator.h"
 #include "proccontrol/h/Event.h"
 #include "proccontrol/h/Handler.h"
+#include "proccontrol/h/Mailbox.h"
+
 #include "proccontrol/src/procpool.h"
 #include "proccontrol/src/irpc.h"
 #include "proccontrol/src/linux.h"
 #include "proccontrol/src/int_handler.h"
+#include "proccontrol/src/response.h"
+#include "proccontrol/src/int_event.h"
+
 #include "proccontrol/src/snippets.h"
+
 #include "common/h/linuxKludges.h"
 #include "common/h/parseauxv.h"
+
 using namespace Dyninst;
 using namespace std;
 
@@ -166,7 +175,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
       lthread = static_cast<linux_thread *>(thread);
    }
    if (proc) {
-      lproc = static_cast<linux_process *>(proc);
+      lproc = dynamic_cast<linux_process *>(proc);
    }
 
    Event::ptr event = Event::ptr();
@@ -175,7 +184,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
 
    pthrd_printf("Decoding event for %d/%d\n", proc ? proc->getPid() : -1,
                 thread ? thread->getLWP() : -1);
-                
+
    const int status = archevent->status;
    if (WIFSTOPPED(status))
    {
@@ -206,6 +215,10 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
             if (ext) {
                switch (ext) {
                   case PTRACE_EVENT_EXIT:
+                     if (!proc || !thread) {
+                        //Legacy event on old process. 
+                        return true;
+                     }
                      pthrd_printf("Decoded event to pre-exit on %d/%d\n",
                                   proc->getPid(), thread->getLWP());
                      if (thread->getLWP() == proc->getPid())
@@ -219,10 +232,14 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                      pthrd_printf("Decoded event to %s on %d/%d\n",
                                   ext == PTRACE_EVENT_FORK ? "fork" : "clone",
                                   proc->getPid(), thread->getLWP());
-                     pid_t cpid = 0;
-                     do_ptrace((pt_req) PTRACE_GETEVENTMSG, 
-                               (pid_t) thread->getLWP(), 
-                               NULL, &cpid);
+                     if (!proc || !thread) {
+                        //Legacy event on old process. 
+                        return true;
+                     }
+                     unsigned long cpid_l = 0x0;
+                     do_ptrace((pt_req) PTRACE_GETEVENTMSG, (pid_t) thread->getLWP(), 
+                               NULL, &cpid_l);
+                     pid_t cpid = (pid_t) cpid_l;                     
                      archevent->child_pid = cpid;
                      archevent->event_ext = ext;
                      if (!archevent->findPairedEvent(parent, child)) {
@@ -236,6 +253,10 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
                   case PTRACE_EVENT_EXEC: {
                      pthrd_printf("Decoded event to exec on %d/%d\n",
                                   proc->getPid(), thread->getLWP());
+                     if (!proc || !thread) {
+                        //Legacy event on old process. 
+                        return true;
+                     }
                      event = Event::ptr(new EventExec(EventType::Post));
                      event->setSyncType(Event::sync_process);
                      break;
@@ -251,7 +272,7 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
             }
             Dyninst::MachRegisterVal addr;
             Dyninst::Address adjusted_addr;
-            result = thread->getRegister(MachRegister::getPC(proc->getTargetArch()), addr);
+            result = thread->plat_getRegister(MachRegister::getPC(proc->getTargetArch()), addr);
             if (!result) {
                perr_printf("Failed to read PC address upon SIGTRAP\n");
                return false;
@@ -299,11 +320,11 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
          default:
             pthrd_printf("Decoded event to signal %d on %d/%d\n",
                          stopsig, proc->getPid(), thread->getLWP());
-#if 0
+#if 1
             //Debugging code
             if (stopsig == 11) {
                Dyninst::MachRegisterVal addr;
-               result = thread->getRegister(MachRegister::getPC(proc->getTargetArch()), addr);
+               result = thread->plat_getRegister(MachRegister::getPC(proc->getTargetArch()), addr);
                if (!result) {
                   fprintf(stderr, "Failed to read PC address upon crash\n");
                }
@@ -315,6 +336,19 @@ bool DecoderLinux::decode(ArchEvent *ae, std::vector<Event::ptr> &events)
       }
       if (event && event->getSyncType() == Event::unset)
          event->setSyncType(Event::sync_thread);
+   }
+   else if ((WIFEXITED(status) || WIFSIGNALED(status)) && 
+            (!proc || !thread || thread->getGeneratorState() == int_thread::exited)) 
+   {
+      //This can happen if the debugger process spawned the 
+      // child, but then detached.  We recieve the child process
+      // exit (because we're the parent), but are no longer debugging it.
+      // We'll just drop this event on the ground.
+      //Also seen when multiple termination signals hit a multi-threaded process
+      // we're debugging.  We'll keep pulling termination signals from the
+      // a defunct process.  Similar to above, we'll drop this event
+      // on the ground.
+      return true;
    }
    else if (WIFEXITED(status) && proc->getPid() != thread->getLWP())
    {
@@ -470,12 +504,18 @@ Dyninst::Architecture linux_process::getTargetArch()
 }
 
 linux_process::linux_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int,int> f) :
-   sysv_process(p, e, a, f)
+   int_process(p, e, a, f),
+   sysv_process(p, e, a, f),
+   unix_process(p, e, a, f),
+   x86_process(p, e, a, f)
 {
 }
 
 linux_process::linux_process(Dyninst::PID pid_, int_process *p) :
-   sysv_process(pid_, p)
+   int_process(pid_, p),
+   sysv_process(pid_, p),
+   unix_process(pid_, p),
+   x86_process(pid_, p)
 {
 }
 
@@ -566,23 +606,6 @@ bool linux_process::plat_forked()
    return true;
 }
 
-bool linux_process::post_forked()
-{
-   ProcPool()->condvar()->lock();
-   int_thread *thrd = threadPool()->initialThread();
-   //The new process is currently stopped, but should be moved to 
-   // a running state when handlers complete.
-   pthrd_printf("Setting state of initial thread after fork in %d\n",
-                getPid());
-   thrd->setGeneratorState(int_thread::stopped);
-   thrd->setHandlerState(int_thread::stopped);
-   thrd->setInternalState(int_thread::running);
-   thrd->setUserState(int_thread::running);
-   ProcPool()->condvar()->broadcast();
-   ProcPool()->condvar()->unlock();
-   return true;
-}
-
 bool linux_process::plat_readMem(int_thread *thr, void *local, 
                                  Dyninst::Address remote, size_t size)
 {
@@ -593,6 +616,114 @@ bool linux_process::plat_writeMem(int_thread *thr, void *local,
                                   Dyninst::Address remote, size_t size)
 {
    return LinuxPtrace::getPtracer()->ptrace_write(remote, size, local, thr->getLWP());
+}
+
+static std::vector<unsigned int> fake_async_msgs;
+void linux_thread::fake_async_main(void *)
+{
+   for (;;) {
+      //Sleep for a small amount of time.
+      struct timespec sleep_time;
+      sleep_time.tv_sec = 0;
+      sleep_time.tv_nsec = 1000000; //One milisecond
+      nanosleep(&sleep_time, NULL);
+
+      if (fake_async_msgs.empty())
+         continue;
+
+      getResponses().lock();
+      
+      //Pick a random async response to fill.
+      int size = fake_async_msgs.size();
+      int elem = rand() % size;
+      unsigned int id = fake_async_msgs[elem];
+      fake_async_msgs[elem] = fake_async_msgs[size-1];
+      fake_async_msgs.pop_back();
+      
+      pthrd_printf("Faking response for event %d\n", id);
+      //Pull the response from the list
+      response::ptr resp = getResponses().rmResponse(id);
+      assert(resp != response::ptr());
+      
+      //Add data to the response.
+      reg_response::ptr regr = resp->getRegResponse();
+      allreg_response::ptr allr = resp->getAllRegResponse();
+      result_response::ptr resr = resp->getResultResponse();
+      mem_response::ptr memr = resp->getMemResponse();
+      if (regr)
+         regr->postResponse(regr->val);
+      else if (allr)
+         allr->postResponse();
+      else if (resr)
+         resr->postResponse(resr->b);
+      else if (memr)
+         memr->postResponse();
+      else
+         assert(0);
+      
+      Event::ptr ev = resp->getEvent();
+      if (ev == Event::ptr()) {
+         //Someone is blocking for this response, mark it ready
+         pthrd_printf("Marking response %s ready\n", resp->name().c_str());
+         resp->markReady();
+      }
+      else {
+         //An event triggered this async, create a new Async event
+         // with the original event as subservient.
+         int_eventAsync *internal = new int_eventAsync(resp);
+         EventAsync::ptr async_ev(new EventAsync(internal));
+         async_ev->setProcess(ev->getProcess());
+         async_ev->setThread(ev->getThread());
+         async_ev->setSyncType(Event::async);
+         async_ev->addSubservientEvent(ev);
+         
+         pthrd_printf("Enqueueing Async event with subservient %s to mailbox\n", ev->name().c_str());
+         mbox()->enqueue(async_ev, true);
+         MTManager::eventqueue_cb_wrapper();
+      }
+      
+      getResponses().signal();
+      getResponses().unlock();
+   }
+}
+
+bool linux_process::plat_needsAsyncIO() const
+{
+#if !defined(debug_async_simulate)
+   return false;
+#endif
+   static DThread *fake_async_thread = NULL;
+   if (!fake_async_thread) {
+      fake_async_thread = new DThread();
+      bool result = fake_async_thread->spawn(linux_thread::fake_async_main, NULL);
+      assert(result);
+   }
+   return true;
+}
+
+bool linux_process::plat_readMemAsync(int_thread *thr, Dyninst::Address addr, mem_response::ptr result)
+{
+   bool b = plat_readMem(thr, result->getBuffer(), addr, result->getSize());
+   if (!b) {
+      result->markError(getLastError());      
+   }
+   fake_async_msgs.push_back(result->getID());
+   return true;
+}
+
+bool linux_process::plat_writeMemAsync(int_thread *thr, void *local, Dyninst::Address addr, size_t size, 
+                                       result_response::ptr result)
+{
+   bool b = plat_writeMem(thr, local, addr, size);
+   if (!b) {
+      result->markError(getLastError());
+      result->b = false;
+   }
+   else {
+      result->b = true;
+   }
+   fake_async_msgs.push_back(result->getID());
+   return true;
 }
 
 bool linux_process::needIndividualThreadAttach()
@@ -647,6 +778,17 @@ bool linux_thread::plat_cont()
 
    return true;
 }
+
+SymbolReaderFactory *linux_process::plat_defaultSymReader()
+{
+  static SymbolReaderFactory *symreader_factory = NULL;
+  if (symreader_factory)
+    return symreader_factory;
+
+  symreader_factory = (SymbolReaderFactory *) new SymElfFactory();
+  return symreader_factory;
+}
+
 
 #ifndef SYS_tkill
 #define SYS_tkill 238
@@ -826,15 +968,50 @@ bool linux_process::plat_detach()
 bool linux_process::plat_terminate(bool &needs_sync)
 {
    //ProcPool lock should be held.
+   //I had been using PTRACE_KILL here, but that was proving to be inconsistent.
+   
    pthrd_printf("Terminating process %d\n", getPid());
-   long result = do_ptrace((pt_req) PTRACE_KILL, getPid(), 0, 0);
+   int result = kill(getPid(), SIGKILL);
    if (result == -1) {
-      perr_printf("Failed to PTRACE_KILL process %d\n", getPid());
-      setLastError(err_internal, "PTRACE_KILL operation failed\n");
-      return false;
+      if (errno == ESRCH) {
+         perr_printf("Process %d no longer exists\n", getPid());
+         setLastError(err_noproc, "Process no longer exists");
+      }
+      else {
+         perr_printf("Failed to kill(%d, SIGKILL) process\n", getPid());
+         setLastError(err_internal, "Unexpected failure of kill\n");
+         return false;
+      }
    }
+
    needs_sync = true;
    return true;
+}
+
+Dyninst::Address linux_process::plat_mallocExecMemory(Dyninst::Address min, unsigned size) {
+    Dyninst::Address result = 0x0;
+    bool found_result = false;
+    unsigned maps_size;
+    map_entries *maps = getVMMaps(getPid(), maps_size);
+    assert(maps); //TODO, Perhaps go to libraries for address map if no /proc/
+    for (unsigned i=0; i<maps_size; i++) {
+        if (!(maps[i].prems & PREMS_EXEC))
+            continue;
+        if (min + size > maps[i].end)
+            continue;
+        if (maps[i].end - maps[i].start < size)
+            continue;
+
+        if (maps[i].start > min)
+            result = maps[i].start;
+        else
+            result = min;
+        found_result = true;
+        break;
+    }
+    assert(found_result);
+    free(maps);
+    return result;
 }
 
 dynreg_to_user_t dynreg_to_user;
@@ -1110,6 +1287,60 @@ bool linux_thread::plat_setRegister(Dyninst::MachRegister reg, Dyninst::MachRegi
    return true;
 }
 
+bool linux_thread::plat_getAllRegistersAsync(allreg_response::ptr result)
+{
+   bool b = plat_getAllRegisters(*result->getRegPool());
+   if (!b) {
+      result->markError(getLastError());
+   }
+   fake_async_msgs.push_back(result->getID());
+   return true;
+}
+
+bool linux_thread::plat_getRegisterAsync(Dyninst::MachRegister reg, 
+                                         reg_response::ptr result)
+{
+   Dyninst::MachRegisterVal val = 0;
+   bool b = plat_getRegister(reg, val);
+   result->val = val;
+   if (!b) {
+      result->markError(getLastError());
+   }
+   fake_async_msgs.push_back(result->getID());
+   return true;
+}
+
+bool linux_thread::plat_setAllRegistersAsync(int_registerPool &pool,
+                                             result_response::ptr result)
+{
+   bool b = plat_setAllRegisters(pool);
+   if (!b) {
+      result->markError(getLastError());
+      result->b = false;
+   }
+   else {
+      result->b = true;
+   }
+   fake_async_msgs.push_back(result->getID());
+   return true;
+}
+
+bool linux_thread::plat_setRegisterAsync(Dyninst::MachRegister reg, 
+                                         Dyninst::MachRegisterVal val,
+                                         result_response::ptr result)
+{
+   bool b = plat_setRegister(reg, val);
+   if (!b) {
+      result->markError(getLastError());
+      result->b = false;
+   }
+   else {
+      result->b = true;
+   }
+   fake_async_msgs.push_back(result->getID());
+   return true;
+}
+
 bool linux_thread::attach()
 {
    if (llproc()->threadPool()->initialThread() == this) {
@@ -1210,7 +1441,7 @@ LinuxHandleNewThr::~LinuxHandleNewThr()
 {
 }
 
-bool LinuxHandleNewThr::handleEvent(Event::ptr ev)
+Handler::handler_ret_t LinuxHandleNewThr::handleEvent(Event::ptr ev)
 {
    linux_thread *thr = NULL;
    if (ev->getEventType().code() == EventType::Bootstrap) {
@@ -1226,7 +1457,7 @@ bool LinuxHandleNewThr::handleEvent(Event::ptr ev)
                                         
    pthrd_printf("Setting ptrace options for new thread %d\n", thr->getLWP());
    thr->setOptions();
-   return true;
+   return ret_success;
 }
 
 int LinuxHandleNewThr::getPriority() const
@@ -1492,3 +1723,4 @@ const unsigned char x86_call_munmap[] = {
    0x90                                   //nop
 };
 const unsigned int x86_call_munmap_size = sizeof(x86_call_munmap);
+

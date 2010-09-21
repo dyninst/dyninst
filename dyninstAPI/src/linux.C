@@ -2180,7 +2180,7 @@ int WaitpidMux::waitpid(SignalGenerator *me, int *status)
          }
       }
 
-      if (WIFSTOPPED(status) && WSTOPSIG(status) == 0 && !event_owner) {
+      if (WIFSTOPPED(*status) && WSTOPSIG(*status) == 0 && !event_owner) {
         /**
          * Kernel bug.  See the comment in dyn_lwp::representativeLWP_attach_()
          * The code that handles this in attach will notice that the process

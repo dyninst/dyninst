@@ -75,6 +75,10 @@ class Function : public Aggregate, public Serializable, public AnnotatableSparse
    SYMTAB_EXPORT bool  setFramePtrRegnum(int regnum);
    SYMTAB_EXPORT int   getFramePtrRegnum() const;
    
+   /***** PPC64 Linux Specific Information *****/
+   SYMTAB_EXPORT Offset getPtrOffset() const;
+   SYMTAB_EXPORT Offset getTOCOffset() const;
+   
    /***** Frame Pointer Information *****/
    SYMTAB_EXPORT bool  setFramePtr(std::vector<VariableLocation> *locs);
    SYMTAB_EXPORT std::vector<VariableLocation> &getFramePtr();

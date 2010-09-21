@@ -111,10 +111,24 @@ bool IA_IAPI::isFrameSetupInsn(Instruction::Ptr i) const
 {
     if(i->getOperation().getID() == e_mov)
     {
+        if(i->readsMemory() || i->writesMemory())
+        {
+            parsing_printf("%s[%d]: discarding insn %s as stack frame preamble, not a reg-reg move\n",
+                           FILE__, __LINE__, i->format().c_str());
+            //return false;
+        }
         if(i->isRead(stackPtr[_isrc->getArch()]) &&
            i->isWritten(framePtr[_isrc->getArch()]))
         {
-            return true;
+            if(i->getOperand(0).getValue()->size() == _isrc->getAddressWidth())
+            {
+                return true;
+            }
+            else
+            {
+                parsing_printf("%s[%d]: discarding insn %s as stack frame preamble, size mismatch for %d-byte addr width\n",
+                               FILE__, __LINE__, i->format().c_str(), _isrc->getAddressWidth());
+            }
         }
     }
     return false;
@@ -234,11 +248,11 @@ std::map<Address, Instruction::Ptr>::const_iterator IA_IAPI::findTableInsn() con
     Expression::Ptr cft = curInsn()->getControlFlowTarget();
     if(cft)
     {
-        std::vector<InstructionAST::Ptr> tmp;
+        std::vector<Expression::Ptr> tmp;
         cft->getChildren(tmp);
         if(tmp.size() == 1)
         {
-            Expression::Ptr cftAddr = dyn_detail::boost::dynamic_pointer_cast<Expression>(tmp[0]);
+            Expression::Ptr cftAddr = tmp[0];
             zeroAllGPRegisters z(current);
             cftAddr->apply(&z);
             parsing_printf("\tChecking indirect jump %s for table insn\n", curInsn()->format().c_str());
@@ -702,7 +716,7 @@ Address IA_IAPI::getTableAddress(Instruction::Ptr tableInsn,
     if(tableInsn->getCategory() == c_BranchInsn)
     {
         Expression::Ptr op = tableInsn->getOperand(0).getValue();
-        std::vector<InstructionAST::Ptr> tmp;
+        std::vector<Expression::Ptr> tmp;
         op->getChildren(tmp);
         if(tmp.empty())
         {
@@ -710,13 +724,13 @@ Address IA_IAPI::getTableAddress(Instruction::Ptr tableInsn,
         }
         else
         {
-            displacementSrc = dyn_detail::boost::dynamic_pointer_cast<Expression>(tmp[0]);
+            displacementSrc = tmp[0];
         }
     }
     else
     {
         parsing_printf("\tcracking table instruction %s\n", tableInsn->format().c_str());
-        std::vector<InstructionAST::Ptr> tmp;
+        std::vector<Expression::Ptr> tmp;
         Expression::Ptr op = tableInsn->getOperand(1).getValue();
         if(!op)
         {
@@ -731,7 +745,7 @@ Address IA_IAPI::getTableAddress(Instruction::Ptr tableInsn,
                 parsing_printf("\ttable insn BAD! (not LEA, second operand not a deref)\n");
                 return 0;
             }
-            displacementSrc = dyn_detail::boost::dynamic_pointer_cast<Expression>(tmp[0]);
+            displacementSrc = tmp[0];
         }
         else
         {
@@ -1363,5 +1377,11 @@ bool IA_IAPI::isNopJump() const
     if(c_BranchInsn == cat && current+1 == getCFT()) {
         return true;
     }
+    return false;
+}
+
+bool IA_IAPI::isLinkerStub() const
+{
+    // No need for linker stubs on x86 platforms.
     return false;
 }

@@ -254,10 +254,9 @@ class image : public codeRange {
    friend class image_variable;
    friend class DynCFGFactory;
  public:
-   static image *parseImage(const std::string file);
    static image *parseImage(fileDescriptor &desc, 
-                            BPatch_hybridMode mode = BPatch_normalMode,
-                            bool parseGaps=false);
+                            BPatch_hybridMode mode,
+                            bool parseGaps);
 
    // And to get rid of them if we need to re-parse
    static void removeImage(image *img);
@@ -271,7 +270,7 @@ class image : public codeRange {
 
    image(fileDescriptor &desc, bool &err, 
          BPatch_hybridMode mode,
-         bool parseGaps=false);
+         bool parseGaps);
 
    void analyzeIfNeeded();
 
@@ -412,11 +411,7 @@ class image : public codeRange {
    bool updatePltFunc(image_func *caller_func, Address stub_targ);
 #endif
 
-   // This method is invoked to find the global constructors function and add a
-   // symbol for the function if the image has no symbols
-   bool findGlobalConstructorFunc(const std::string &ctorHandler);
-   bool findGlobalDestructorFunc(const std::string &dtorHandler);
-
+   
  private:
    void findModByAddr (const SymtabAPI::Symbol *lookUp, vector<SymtabAPI::Symbol *> &mods,
                        string &modName, Address &modAddr, 
@@ -494,6 +489,7 @@ class image : public codeRange {
    // ParseAPI
    ParseAPI::CodeObject * obj_;
    ParseAPI::SymtabCodeSource * cs_;
+   ParseAPI::SymtabCodeSource::hint_filt *filt;
    DynCFGFactory * img_fact_;
    DynParseCallback * parse_cb_;
    void *cb_arg0_; // argument for mapped_object callback

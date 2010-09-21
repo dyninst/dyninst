@@ -81,5 +81,7 @@ LIBS_LIBTESTSUITE = -ldl -lpthread
 USE_LIBTESTSUITE_EXT_A = true
 STRIP_SO = strip
 
+TESTDRIVER_EXTRA_LINK_STEP = ldedit -bmaxdata:0x80000000/dsa test_driver 
+
 include ../make.module.tmpl
 

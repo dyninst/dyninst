@@ -667,6 +667,8 @@ bool BinaryEdit::writeFile(const std::string &newFileName)
       // And now we generate the new binary
       //if (!symObj->emit(newFileName.c_str())) {
       if (!symObj->emit(newFileName.c_str())) {
+         SymtabError lastError = Symtab::getLastSymtabError();
+         showErrorCallback(109, Symtab::printError(lastError));
          return false;
       }
    return true;

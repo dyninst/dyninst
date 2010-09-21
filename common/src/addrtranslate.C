@@ -40,7 +40,9 @@ AddressTranslate::AddressTranslate(PID pid_, PROC_HANDLE phand) :
    pid(pid_),
    phandle(phand),
    creation_error(false),
-   exec(NULL)
+   exec(NULL),
+   symfactory(NULL),
+   read_abort(false)
 {
 }
 
@@ -89,6 +91,11 @@ LoadedLib *AddressTranslate::getLoadedLib(std::string name)
       }
    }
    return NULL;
+}
+
+void AddressTranslate::setReadAbort(bool b)
+{
+   read_abort = b;
 }
 
 AddressTranslate::~AddressTranslate()

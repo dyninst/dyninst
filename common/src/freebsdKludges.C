@@ -36,13 +36,32 @@
 #include <sys/ptrace.h>
 #include <libutil.h>
 
+#if defined(cap_gnu_demangler)
+#include <cxxabi.h>
+using namespace __cxxabiv1;
+#endif
+
 char * P_cplus_demangle( const char * symbol, bool,
 				bool includeTypes ) 
 {
    int opts = 0;
    opts |= includeTypes ? DMGL_PARAMS | DMGL_ANSI : 0;
 
+#if defined(cap_gnu_demangler)
+   int status;
+   char *demangled = __cxa_demangle(symbol, NULL, NULL, &status);
+   if (status == -1) {
+      //Memory allocation failure.
+      return NULL;
+   }
+   if (status == -2) {
+      //Not a C++ name
+      return NULL;
+   }
+   assert(status == 0); //Success
+#else
    char * demangled = cplus_demangle( const_cast< char *>(symbol), opts);
+#endif
    if( demangled == NULL ) { return NULL; }
 
    if( ! includeTypes ) {
