@@ -12,6 +12,19 @@ ABS_INCLUDE_DEST := $(shell cd $(INCLUDE_DEST); pwd)
 ABS_LIBDWARF_DEST := $(shell cd $(LIBDWARF_LIB); pwd)
 ABS_LIBELF_DEST := $(shell cd $(LIBELF_LIB); pwd)
 
+CONFIG_ARGS = "--with-dyninst-lib=$(ABS_LIBRARY_DEST)"
+CONFIG_ARGS += "--with-dyninst-include=$(ABS_INCLUDE_DEST)"
+CONFIG_ARGS += "--with-dwarf-lib=$(ABS_LIBDWARF_DEST)"
+CONFIG_ARGS += "--with-elf-lib=$(ABS_LIBELF_DEST)"
+
+ifdef LINK_LIBERTY
+	CONFIG_LD_FLAGS += "-liberty"
+ifdef LIBIBERTY_LIB
+	CONFIG_LD_FLAGS += "-L$(LIBIBERTY_LIB)"
+endif
+endif
+
+
 all:  $(PLATFORM)/parseThat
 
 $(PLATFORM)/parseThat: $(PLATFORM)/Makefile
@@ -25,9 +38,9 @@ $(PLATFORM)/Makefile: Makefile.in
 	fi; \
    cd $(PLATFORM); \
    if [ -d $(ABS_PROGRAM_DEST) ]; then \
-	 	../configure --with-elf-lib=$(ABS_LIBELF_DEST) --with-dwarf-lib=$(ABS_LIBDWARF_DEST) --with-dyninst-lib=$(ABS_LIBRARY_DEST) --with-dyninst-include=$(ABS_INCLUDE_DEST) --prefix=$(ABS_PROGRAM_DEST); \
+	LDFLAGS="$(CONFIG_LD_FLAGS)" ../configure $(CONFIG_ARGS) --prefix=$(ABS_PROGRAM_DEST); \
    else \
-	 	../configure --with-elf-lib=$(ABS_LIBELF_DEST) --with-dwarf-lib=$(ABS_LIBDWARF_DEST) --with-dyninst-lib=$(ABS_LIBRARY_DEST) --with-dyninst-include=$(ABS_INCLUDE_DEST); \
+	LDFLAGS="$(CONFIG_LD_FLAGS)" ../configure $(CONFIG_ARGS);\
    fi; \
 
 clean:

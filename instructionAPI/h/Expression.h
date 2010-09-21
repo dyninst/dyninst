@@ -162,6 +162,12 @@ namespace Dyninst
       /// at each node of the tree.
       virtual void apply(Visitor*) {}
 
+      /// \c getChildren may be called on an %Expression taking a vector of %Expression::Ptrs,
+      /// rather than %InstructionAST::Ptrs.  All children which are %Expressions will be appended to \c children.
+      virtual void getChildren(std::vector<Expression::Ptr>& children) const = 0;
+      using InstructionAST::getChildren;
+      
+      
     protected:
       virtual bool isFlag() const;
       Result userSetValue;
@@ -171,6 +177,7 @@ namespace Dyninst
     {
         public:
             virtual void getChildren(vector<InstructionAST::Ptr>& ) const {};
+            virtual void getChildren(vector<Expression::Ptr>& ) const {};
             virtual void getUses(set<InstructionAST::Ptr>& ) {};
             virtual bool isUsed(InstructionAST::Ptr ) const { return true;};
             virtual std::string format(formatStyle) const { return "[WILDCARD]";};

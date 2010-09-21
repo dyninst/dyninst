@@ -158,6 +158,8 @@ r_debug_dyn<r_debug_X>::r_debug_dyn(ProcessReader *proc_, Address addr)
    : proc(proc_) 
 {
    valid = proc->ReadMem(addr, &debug_elm, sizeof(debug_elm));
+   if (!valid)
+      return;
 
    translate_printf("[%s:%u] - r_debug_dyn valid = %d\n", __FILE__, __LINE__, valid?1:0);
    translate_printf("[%s:%u] -     Read rdebug structure.  Values were:\n", __FILE__, __LINE__);
@@ -545,7 +547,9 @@ bool AddressTranslateSysV::parseInterpreter() {
             if( trap_addr == 0 ) {
                 trap_addr = interpreter->get_r_trap() + interpreter_base;
             }
-        }else{
+        }
+        else
+        {
             r_debug_addr = 0;
             trap_addr = interpreter->get_r_trap() + interpreter_base;
         }
@@ -673,44 +677,70 @@ bool AddressTranslateSysV::refresh()
    translate_printf("[%s:%u] -       trap_addr:    %lx\n", __FILE__, __LINE__, trap_addr);
    translate_printf("[%s:%u] -       r_debug_addr: %lx\n", __FILE__, __LINE__, r_debug_addr);
 
-    if (address_size == sizeof(void*)) {
-        r_debug_native = new r_debug_dyn<r_debug>(reader, r_debug_addr);
-        if (!r_debug_native) {
-            result = true;
-            goto done;
-        } else if (!r_debug_native->is_valid()) {
-            if( interpreter ) {
-                libs.push_back(getLoadedLibByNameAddr(interpreter_base,
-                                                      interpreter->getFilename()));
-            }
-            result = true;
-            goto done;
-        }
-        link_elm = new link_map_dyn<link_map>(reader, r_debug_native->r_map());
-    }else{ //64-bit mutator, 32-bit mutatee
-        r_debug_32 = new r_debug_dyn<r_debug_dyn32>(reader, r_debug_addr);
-        if (!r_debug_32) {
-            result = true;
-            goto done;
-        } else if (!r_debug_32->is_valid()) {
-            if( interpreter ) {
-                libs.push_back(getLoadedLibByNameAddr(interpreter_base,
-                                                      interpreter->getFilename()));
-            }
-            result = true;
-            goto done;
-        }
-        link_elm = new link_map_dyn<link_map_dyn32>(reader, r_debug_32->r_map());
-    }
+   if (address_size == sizeof(void*)) {
+      r_debug_native = new r_debug_dyn<r_debug>(reader, r_debug_addr);
+      if (!r_debug_native)
+      {
+        result = true;
+        goto done;
+      }
+      else if (!r_debug_native->is_valid() && read_abort)
+      {
+         result = false;
+         goto all_done;
+      }
+      else if (!r_debug_native->is_valid())
+      {
+         if (interpreter) {
+            libs.push_back(getLoadedLibByNameAddr(interpreter_base,
+                                                  interpreter->getFilename()));
+         }
+         result = true;
+         goto done;
+      }
+      link_elm = new link_map_dyn<link_map>(reader, r_debug_native->r_map());
+   }
+   else {//64-bit mutator, 32-bit mutatee
+      r_debug_32 = new r_debug_dyn<r_debug_dyn32>(reader, r_debug_addr);
+      if (!r_debug_32)
+      {
+         result = true;
+         goto done;
+      }
+      else if (!r_debug_32->is_valid() && read_abort)
+      {
+         result = false;
+         goto all_done;
+      }
+      else if (!r_debug_32->is_valid())
+      {
+         if (interpreter) {
+            libs.push_back(getLoadedLibByNameAddr(interpreter_base,
+                                                  interpreter->getFilename()));
+         }
+         result = true;
+         goto done;
+      }
+      link_elm = new link_map_dyn<link_map_dyn32>(reader, r_debug_32->r_map());
+   }
 
+   if (!link_elm->is_valid() && read_abort) {
+      result = false;
+      goto all_done;
+   }
    if (!link_elm->is_valid()) {
       result = true;
       goto done;
    }
 
    do {
-      if (!link_elm->l_name())
+      if (!link_elm->l_name()) {
+         if (read_abort) {
+            result = false;
+            goto all_done;
+         }
          continue;
+      }
       string obj_name(link_elm->l_name());
 
       // Don't re-add the executable, it has already been added
@@ -746,6 +776,11 @@ bool AddressTranslateSysV::refresh()
 
       libs.push_back(ll);
    } while (link_elm->load_next());
+   
+   if (read_abort) {
+      result = false;
+      goto all_done;
+   }
 
    translate_printf("[%s:%u] - Found %d libraries.\n", __FILE__, __LINE__, loaded_lib_count);
 
@@ -760,7 +795,12 @@ bool AddressTranslateSysV::refresh()
       LoadedLib *ll = *i;
       sorted_libs[pair<Address, string>(ll->getCodeLoadAddr(), ll->getName())] = ll;
    }
-   
+
+  all_done:
+
+   if (read_abort) {
+      translate_printf("[%s:%u] - refresh aborted due to async read\n", __FILE__, __LINE__);
+   }
    if (link_elm)
       delete link_elm;
    if (r_debug_32)

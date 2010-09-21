@@ -148,127 +148,127 @@ bool IA_IAPI::parseJumpTable(Block* currBlk,
     std::vector<std::pair< Address, EdgeTypeEnum> >& outEdges) const
 {
 
-Address initialAddress = current;
-static RegisterAST::Ptr toc_reg(new RegisterAST(ppc32::r2));
+    Address initialAddress = current;
+    static RegisterAST::Ptr toc_reg(new RegisterAST(ppc32::r2));
 
-Address TOC_address = _obj->cs()->getTOC();
-detail::TOCandOffsetExtractor toc_visitor(TOC_address);
+    Address TOC_address = _obj->cs()->getTOC();
+    detail::TOCandOffsetExtractor toc_visitor(TOC_address);
     
-// If there are no prior instructions then we can't be looking at a
-// jump through a jump table.
-if(allInsns.size() < 2) {
-    parsing_printf("%s[%d]: allInsns.size() == %d, ret false", FILE__, __LINE__, allInsns.size());
-    return false;
-}
-
-
-// Check if the previous instruction is a move to CTR or LR;
-// if it is, then this is the pattern we're familiar with.  The
-// register being moved into CTR or LR has the address to jump to.
-std::map<Address, Instruction::Ptr>::const_iterator patternIter = curInsnIter;
-patternIter--;
-RegisterAST::Ptr jumpAddrReg;
-static RegisterAST::Ptr linkReg(new RegisterAST(ppc32::lr));
-static RegisterAST::Ptr countReg(new RegisterAST(ppc32::ctr));
-std::set<RegisterAST::Ptr> regs;
-if(patternIter->second->getOperation().getID() == power_op_mtspr &&
-    (patternIter->second->isWritten(linkReg) ||
-    patternIter->second->isWritten(countReg)))
-{
-    regs.clear();
-    patternIter->second->getReadSet(regs);
-    if(regs.size() != 1) {
-        fprintf(stderr, "expected mtspr to read 1 register, insn is %s\n", patternIter->second->format().c_str());
+    // If there are no prior instructions then we can't be looking at a
+    // jump through a jump table.
+    if(allInsns.size() < 2) {
+        parsing_printf("%s[%d]: allInsns.size() == %d, ret false", FILE__, __LINE__, allInsns.size());
         return false;
     }
-    jumpAddrReg = *(regs.begin());
-}
-else
-{
-    parsing_printf("%s[%d]: couldn't find mtspr at prev insn %s, ret false", FILE__, __LINE__,
-                    patternIter->second->format().c_str());
-    return false;
-}
-// In the pattern we've seen, if the instruction previous to this is
-// an add with a result that ends up being used as the jump address,
-// then we're adding a relative value we got from the table to a base
-// address to get the jump address; in other words, the contents of
-// the jump table are relative.
-bool tableIsRelative = false;
-if(patternIter != allInsns.begin())
-{
-    patternIter--;
-    if(patternIter->second->getOperation().getID() == power_op_add &&
-        patternIter->second->isWritten(*(regs.begin())))
-    {
-        tableIsRelative = true;
-    }
-}
 
-patternIter = curInsnIter;
-    
-Address jumpStartAddress = 0;
-Address adjustEntry = 0;
-Address tableStartAddress = 0;
-if(!TOC_address)
-{
-    while(patternIter != allInsns.begin())
-    {
+
+    // Check if the previous instruction is a move to CTR or LR;
+    // if it is, then this is the pattern we're familiar with.  The
+    // register being moved into CTR or LR has the address to jump to.
+    std::map<Address, Instruction::Ptr>::const_iterator patternIter = curInsnIter;
     patternIter--;
-    if(patternIter->second->getOperation().getID() == power_op_addi)
+    RegisterAST::Ptr jumpAddrReg;
+    static RegisterAST::Ptr linkReg(new RegisterAST(ppc32::lr));
+    static RegisterAST::Ptr countReg(new RegisterAST(ppc32::ctr));
+    std::set<RegisterAST::Ptr> regs;
+    if(patternIter->second->getOperation().getID() == power_op_mtspr &&
+       (patternIter->second->isWritten(linkReg) ||
+        patternIter->second->isWritten(countReg)))
     {
         regs.clear();
         patternIter->second->getReadSet(regs);
         if(regs.size() != 1) {
-        continue;
+            fprintf(stderr, "expected mtspr to read 1 register, insn is %s\n", patternIter->second->format().c_str());
+            return false;
         }
-        parsing_printf("\tfound 0x%lx: %s, checking for addis previous\n",
-                    patternIter->first,
-                    patternIter->second->format().c_str());
-        toc_visitor.clear();
-        patternIter->second->getOperand(2).getValue()->apply(&toc_visitor);
-        tableStartAddress = toc_visitor.result;
-        patternIter--;
-        if(patternIter->second->getOperation().getID() == power_op_addis &&
-        patternIter->second->isWritten(*(regs.begin())))
-        {
-            parsing_printf("\tfound 0x%lx: %s, setting tableStartAddress\n",
-                        patternIter->first,
-                        patternIter->second->format().c_str());
-            toc_visitor.clear();
-            patternIter->second->getOperand(2).getValue()->apply(&toc_visitor);
-            tableStartAddress += (toc_visitor.result * 0x10000) & 0xFFFF0000;
-            parsing_printf("\ttableStartAddress = 0x%lx\n",
-                        tableStartAddress);
-            break;
-        }
-        tableStartAddress = 0;
+        jumpAddrReg = *(regs.begin());
     }
-    else if(patternIter->second->getOperation().getID() == power_op_addis)
+    else
     {
-        regs.clear();
-        patternIter->second->getReadSet(regs);
-        if(regs.size() != 1) {
-            continue;
-        }
-        parsing_printf("\tfound 0x%lx: %s, checking for addi previous\n",
-                        patternIter->first,
-                        patternIter->second->format().c_str());
-        toc_visitor.clear();
-        patternIter->second->getOperand(2).getValue()->apply(&toc_visitor);
-        tableStartAddress = toc_visitor.result;
-        tableStartAddress *= 10000;
-        tableStartAddress &= 0xFFFF0000;
+        parsing_printf("%s[%d]: couldn't find mtspr at prev insn %s, ret false", FILE__, __LINE__,
+                       patternIter->second->format().c_str());
+        return false;
+    }
+    // In the pattern we've seen, if the instruction previous to this is
+    // an add with a result that ends up being used as the jump address,
+    // then we're adding a relative value we got from the table to a base
+    // address to get the jump address; in other words, the contents of
+    // the jump table are relative.
+    bool tableIsRelative = false;
+    if(patternIter != allInsns.begin())
+    {
         patternIter--;
-        if(patternIter->second->getOperation().getID() == power_op_addi &&
-            patternIter->second->isWritten(*(regs.begin())))
+        if(patternIter->second->getOperation().getID() == power_op_add &&
+           patternIter->second->isWritten(*(regs.begin())))
         {
-            parsing_printf("\tfound 0x%lx: %s, setting tableStartAddress\n",
-                            patternIter->first,
-                            patternIter->second->format().c_str());
-            toc_visitor.clear();
-            patternIter->second->getOperand(2).getValue()->apply(&toc_visitor);
-            tableStartAddress += toc_visitor.result;
+            tableIsRelative = true;
+        }
+    }
+
+    patternIter = curInsnIter;
+    
+    Address jumpStartAddress = 0;
+    Address adjustEntry = 0;
+    Address tableStartAddress = 0;
+    if(!TOC_address)
+    {
+        while(patternIter != allInsns.begin())
+        {
+            patternIter--;
+            if(patternIter->second->getOperation().getID() == power_op_addi)
+            {
+                regs.clear();
+                patternIter->second->getReadSet(regs);
+                if(regs.size() != 1) {
+                    continue;
+                }
+                parsing_printf("\tfound 0x%lx: %s, checking for addis previous\n",
+                               patternIter->first,
+                               patternIter->second->format().c_str());
+                toc_visitor.clear();
+                patternIter->second->getOperand(2).getValue()->apply(&toc_visitor);
+                tableStartAddress = toc_visitor.result;
+                patternIter--;
+                if(patternIter->second->getOperation().getID() == power_op_addis &&
+                   patternIter->second->isWritten(*(regs.begin())))
+                {
+                    parsing_printf("\tfound 0x%lx: %s, setting tableStartAddress\n",
+                                   patternIter->first,
+                                   patternIter->second->format().c_str());
+                    toc_visitor.clear();
+                    patternIter->second->getOperand(2).getValue()->apply(&toc_visitor);
+                    tableStartAddress += (toc_visitor.result * 0x10000) & 0xFFFF0000;
+                    parsing_printf("\ttableStartAddress = 0x%lx\n",
+                                   tableStartAddress);
+                    break;
+                }
+                tableStartAddress = 0;
+            }
+            else if(patternIter->second->getOperation().getID() == power_op_addis)
+            {
+                regs.clear();
+                patternIter->second->getReadSet(regs);
+                if(regs.size() != 1) {
+                    continue;
+                }
+                parsing_printf("\tfound 0x%lx: %s, checking for addi previous\n",
+                               patternIter->first,
+                               patternIter->second->format().c_str());
+                toc_visitor.clear();
+                patternIter->second->getOperand(2).getValue()->apply(&toc_visitor);
+                tableStartAddress = toc_visitor.result;
+                tableStartAddress *= 10000;
+                tableStartAddress &= 0xFFFF0000;
+                patternIter--;
+                if(patternIter->second->getOperation().getID() == power_op_addi &&
+                   patternIter->second->isWritten(*(regs.begin())))
+                {
+                    parsing_printf("\tfound 0x%lx: %s, setting tableStartAddress\n",
+                                   patternIter->first,
+                                   patternIter->second->format().c_str());
+                    toc_visitor.clear();
+                    patternIter->second->getOperand(2).getValue()->apply(&toc_visitor);
+                    tableStartAddress += toc_visitor.result;
                     parsing_printf("\ttableStartAddress = 0x%lx\n", tableStartAddress);
                     break;
                 }
@@ -299,7 +299,7 @@ if(!TOC_address)
                            FILE__, __LINE__);
             return false;
         }
-    // Anyone know what this does?
+        // Anyone know what this does?
         patternIter--;
         if((patternIter->second->getOperation().getID() == power_op_lwz ||
             patternIter->second->getOperation().getID() == power_op_ld))
@@ -623,7 +623,392 @@ bool IA_IAPI::isIATcall() const
     return false;
 }
 
-static ParseAPI::StackTamper 
+const unsigned int B_UNCOND      = 0x48000000;
+const unsigned int ADDIS_R12_R12 = 0x3d8c0000;
+const unsigned int ADDIS_R12_R2  = 0x3d820000;
+const unsigned int ADDIS_R2_R2   = 0x3c420000;
+const unsigned int ADDI_R12_R12  = 0x398c0000;
+const unsigned int ADDI_R2_R2    = 0x38420000;
+const unsigned int STD_R2_40R1   = 0xf8410028;
+const unsigned int LD_R2_40R1    = 0xe8410028;
+const unsigned int LD_R2_0R2     = 0xe8420000;
+const unsigned int LD_R2_0R12    = 0xe84c0000;
+const unsigned int LD_R11_0R12   = 0xe96c0000;
+const unsigned int LD_R11_0R2    = 0xe9620000;
+const unsigned int MTCTR_R11     = 0x7d6903a6;
+const unsigned int BCTR          = 0x4e800420;
+
+typedef enum {
+    STUB_UNKNOWN,
+    STUB_LONG_BRANCH,
+    STUB_TOC_BRANCH,
+    STUB_PLT_CALL
+} linker_stub_t;
+
+linker_stub_t checkLinkerStub(void *insn_buf, Offset &off)
+{
+    instruction *insn = static_cast<instruction *>(insn_buf);
+
+#if defined(ppc64_linux)
+    /*
+     * Linker stubs seen from GNU's binutils.
+     * (see the following functions in binutils' bfd/elf64-ppc.c:
+     *     ppc_build_one_stub()
+     *     build_plt_stub()
+     *     build_tls_get_addr_stub()
+     *
+     * We could be clever and create some sort of state machine that will
+     * determine the correct signature by only reading each instruction
+     * once.  However, I assume this will also make the code harder to
+     * maintain, and so I've gone the dumb route.  We can re-code this
+     * section if it's determined to be a performance bottleneck.
+     *
+     * Add stub signatures as we see more.
+     */
+
+    // ----------------------------------------------
+    // ppc_stub_plt_call:
+    //
+
+    // binutils >= 2.18 PLT stub signatures look like this:
+    // if (PPC_HA (off) != 0)
+    //   ADDIS_R12_R2 | PPC_HA (off)
+    //   STD_R2_40R1
+    //   LD_R11_0R12  | PPC_LO (off)
+    //   ADDI_R12_R12 | PPC_LO (off) if (PPC_HA (off + 16) != PPC_HA (off))
+    //   MTCTR_R11
+    //   LD_R2_0R12   | PPC_LO (off + 8)
+    //   LD_R11_0R12  | PPC_LO (off + 16)
+    //   BCTR
+    // else
+    //   STD_R2_40R1
+    //   LD_R11_0R2   | PPC_LO (off)
+    //   ADDI_R2_R2   | PPC_LO (off)
+    //   MTCTR_R11
+    //   LD_R11_0R2   | PPC_LO (off + 16)
+    //   LD_R2_0R2    | PPC_LO (off + 8)
+    //   BCTR
+    // endif
+    //
+    // This results in three possible stubs:
+
+    if (   (insn[0].asInt() & 0xffff0000) == ADDIS_R12_R2
+        &&  insn[1].asInt()               == STD_R2_40R1
+        && (insn[2].asInt() & 0xffff0000) == LD_R11_0R12
+        && (insn[2].asInt() & 0xffff0000) == ADDI_R12_R12
+        &&  insn[4].asInt()               == MTCTR_R11
+        && (insn[3].asInt() & 0xffff0000) == LD_R2_0R12
+        && (insn[5].asInt() & 0xffff0000) == LD_R11_0R12
+        &&  insn[6].asInt()               == BCTR)
+    {
+        off = (DFORM_SI(insn[0]) << 16) + DFORM_SI(insn[2]);
+        return STUB_PLT_CALL;
+    }
+
+    if (   (insn[0].asInt() & 0xffff0000) == ADDIS_R12_R2
+        &&  insn[1].asInt()               == STD_R2_40R1
+        && (insn[2].asInt() & 0xffff0000) == LD_R11_0R12
+        &&  insn[4].asInt()               == MTCTR_R11
+        && (insn[3].asInt() & 0xffff0000) == LD_R2_0R12
+        && (insn[5].asInt() & 0xffff0000) == LD_R11_0R12
+        &&  insn[6].asInt()               == BCTR)
+    {
+        off = (DFORM_SI(insn[0]) << 16) + DFORM_SI(insn[2]);
+        return STUB_PLT_CALL;
+    }
+    
+    if (    insn[1].asInt()               == STD_R2_40R1
+        && (insn[2].asInt() & 0xffff0000) == LD_R11_0R2
+        && (insn[2].asInt() & 0xffff0000) == ADDI_R2_R2
+        &&  insn[4].asInt()               == MTCTR_R11
+        && (insn[3].asInt() & 0xffff0000) == LD_R11_0R12
+        && (insn[5].asInt() & 0xffff0000) == LD_R2_0R12
+        &&  insn[6].asInt()               == BCTR)
+    {
+        off = DFORM_SI(insn[1]);
+        return STUB_PLT_CALL;
+    }
+
+    // binutils from 1.15 -> 2.18 PLT stub signatures look like this:
+    // ADDIS_R12_R2  | PPC_HA (off)
+    // STD_R2_40R1
+    // LD_R11_0R12   | PPC_LO (off)
+    // ADDIS_R12_R12 | 1            if (PPC_HA (off + 8) != PPC_HA (off))
+    // LD_R2_0R12    | PPC_LO (off)
+    // ADDIS_R12_R12 | 1            if (PPC_HA (off + 16) != PPC_HA (off))
+    // MTCTR_R11
+    // LD_R11_0R12   | PPC_LO (off)
+    // BCTR
+    //
+    // This results in three possible stubs:
+
+    if (   (insn[0].asInt() & 0xffff0000) ==  ADDIS_R12_R2
+        &&  insn[1].asInt()               ==  STD_R2_40R1
+        && (insn[2].asInt() & 0xffff0000) ==  LD_R11_0R12
+        && (insn[3].asInt() & 0xffff0000) ==  LD_R2_0R12
+        &&  insn[4].asInt()               ==  MTCTR_R11
+        && (insn[5].asInt() & 0xffff0000) ==  LD_R11_0R12
+        &&  insn[6].asInt()               ==  BCTR)
+    {
+        off = (DFORM_SI(insn[0]) << 16) + DFORM_SI(insn[2]);
+        return STUB_PLT_CALL;
+    }
+
+    if (   (insn[0].asInt() & 0xffff0000) ==  ADDIS_R12_R2
+        &&  insn[1].asInt()               ==  STD_R2_40R1
+        && (insn[2].asInt() & 0xffff0000) ==  LD_R11_0R12
+        && (insn[3].asInt() & 0xffff0000) ==  LD_R2_0R12
+        &&  insn[4].asInt()               == (ADDIS_R12_R12 | 1)
+        &&  insn[5].asInt()               ==  MTCTR_R11
+        && (insn[6].asInt() & 0xffff0000) ==  LD_R11_0R12
+        &&  insn[7].asInt()               ==  BCTR)
+    {
+        off = (DFORM_SI(insn[0]) << 16) + DFORM_SI(insn[2]);
+        return STUB_PLT_CALL;
+    }
+
+    if (   (insn[0].asInt() & 0xffff0000) ==  ADDIS_R12_R2
+        &&  insn[1].asInt()               ==  STD_R2_40R1
+        && (insn[2].asInt() & 0xffff0000) ==  LD_R11_0R12
+        &&  insn[3].asInt()               == (ADDIS_R12_R12 | 1)
+        && (insn[4].asInt() & 0xffff0000) ==  LD_R2_0R12
+        &&  insn[5].asInt()               == (ADDIS_R12_R12 | 1)
+        &&  insn[6].asInt()               ==  MTCTR_R11
+        && (insn[7].asInt() & 0xffff0000) ==  LD_R11_0R12
+        &&  insn[8].asInt()               ==  BCTR)
+    {
+        off = (DFORM_SI(insn[0]) << 16) + DFORM_SI(insn[2]);
+        return STUB_PLT_CALL;
+    }
+
+    // binutils < 1.15 PLT stub signatures look like this:
+    // LD_R2_40R1                   if (glink)
+    // ADDIS_R12_R2  | PPC_HA (off)
+    // STD_R2_40R1                  if (!glink)
+    // LD_R11_0R12   | PPC_LO (off)
+    // ADDIS_R12_R12 | 1            if (PPC_HA (off + 8) != PPC_HA (off))
+    // LD_R2_0R12    | PPC_LO (off)
+    // ADDIS_R12_R12 | 1            if (PPC_HA (off + 16) != PPC_HA (off))
+    // MTCTR_R11
+    // LD_R11_0R12   | PPC_LO (off)
+    // BCTR
+    //
+    // The non-glink case is identical to the cases above, so we need only
+    // handle the three glink cases:
+
+    /* Ugg.  The toc register is pulled off the stack for these cases.
+       This is most likely the toc for the callee, but we don't know
+       who the callee is yet.
+    */
+
+    if (    insn[0].asInt()               ==  LD_R2_40R1
+        && (insn[1].asInt() & 0xffff0000) ==  ADDIS_R12_R2
+        && (insn[2].asInt() & 0xffff0000) ==  LD_R11_0R12
+        && (insn[3].asInt() & 0xffff0000) ==  LD_R2_0R12
+        &&  insn[4].asInt()               ==  MTCTR_R11
+        && (insn[5].asInt() & 0xffff0000) ==  LD_R11_0R12
+        &&  insn[6].asInt()               ==  BCTR)
+    {
+        fprintf(stderr, "WARNING: Pre-binutils 1.15 linker detected. PLT call stubs may not be handled properly.\n");
+        return STUB_UNKNOWN;
+        //off = (DFORM_SI(insn[0]) << 16) + DFORM_SI(insn[2]);
+        //return STUB_PLT_CALL;
+    }
+
+    if (    insn[0].asInt()               ==  LD_R2_40R1
+        && (insn[1].asInt() & 0xffff0000) ==  ADDIS_R12_R2
+        && (insn[2].asInt() & 0xffff0000) ==  LD_R11_0R12
+        && (insn[3].asInt() & 0xffff0000) ==  LD_R2_0R12
+        &&  insn[4].asInt()               == (ADDIS_R12_R12 | 1)
+        &&  insn[5].asInt()               ==  MTCTR_R11
+        && (insn[6].asInt() & 0xffff0000) ==  LD_R11_0R12
+        &&  insn[7].asInt()               ==  BCTR)
+    {
+        fprintf(stderr, "WARNING: Pre-binutils 1.15 linker detected. PLT call stubs may not be handled properly.\n");
+        return STUB_UNKNOWN;
+        //off = (DFORM_SI(insn[0]) << 16) + DFORM_SI(insn[2]);
+        //return STUB_PLT_CALL;
+    }
+
+    if (    insn[0].asInt()               ==  LD_R2_40R1
+        && (insn[1].asInt() & 0xffff0000) ==  ADDIS_R12_R2
+        && (insn[2].asInt() & 0xffff0000) ==  LD_R11_0R12
+        &&  insn[3].asInt()               == (ADDIS_R12_R12 | 1)
+        && (insn[4].asInt() & 0xffff0000) ==  LD_R2_0R12
+        &&  insn[5].asInt()               == (ADDIS_R12_R12 | 1)
+        &&  insn[6].asInt()               ==  MTCTR_R11
+        && (insn[7].asInt() & 0xffff0000) ==  LD_R11_0R12
+        &&  insn[8].asInt()               ==  BCTR)
+    {
+        fprintf(stderr, "WARNING: Pre-binutils 1.15 linker detected. PLT call stubs may not be handled properly.\n");
+        return STUB_UNKNOWN;
+        //off = (DFORM_SI(insn[0]) << 16) + DFORM_SI(insn[2]);
+        //return STUB_PLT_CALL;
+    }
+
+    // ----------------------------------------------
+    // ppc_stub_long_branch:
+    // ppc_stub_long_branch_r2off:
+    if (   (insn[0].asInt() & 0xfc000000) == B_UNCOND)
+    {
+        off = IFORM_LI(insn[0]) << 2;
+        return STUB_LONG_BRANCH;
+    }
+
+    if (    insn[0].asInt()               == STD_R2_40R1
+        && (insn[1].asInt() & 0xffff0000) == ADDIS_R2_R2
+        && (insn[2].asInt() & 0xffff0000) == ADDI_R2_R2
+        && (insn[3].asInt() & 0xfc000003) == B_UNCOND)
+    {
+        off = (3 * 4) + (IFORM_LI(insn[3]) << 2);
+        return STUB_LONG_BRANCH;
+    }
+
+    if (    insn[0].asInt()               == STD_R2_40R1
+        && (insn[1].asInt() & 0xffff0000) == ADDI_R2_R2
+        && (insn[2].asInt() & 0xfc000003) == B_UNCOND)
+    {
+        off = (2 * 4) + (IFORM_LI(insn[2]) << 2);
+        return STUB_LONG_BRANCH;
+    }
+
+    // ----------------------------------------------
+    // ppc_stub_plt_branch:
+    //
+    if (   (insn[0].asInt() & 0xffff0000) == ADDIS_R12_R2
+        && (insn[1].asInt() & 0xffff0000) == LD_R11_0R12
+        &&  insn[2].asInt()               == MTCTR_R11
+        &&  insn[3].asInt()               == BCTR)
+    {
+        off = (DFORM_SI(insn[0]) << 16) + DFORM_SI(insn[1]);
+        return STUB_TOC_BRANCH;
+    }
+
+    if (   (insn[0].asInt() & 0xffff0000) == LD_R11_0R2
+        &&  insn[1].asInt()               == MTCTR_R11
+        &&  insn[2].asInt()               == BCTR)
+    {
+        off = DFORM_SI(insn[0]);
+        return STUB_TOC_BRANCH;
+    }
+
+    // ----------------------------------------------
+    // ppc_stub_plt_branch_r2off:
+    //
+
+    // With offset > 16 bits && r2offset > 16 bits
+    if (    insn[0].asInt()               == STD_R2_40R1
+        && (insn[1].asInt() & 0xffff0000) == ADDIS_R12_R2
+        && (insn[2].asInt() & 0xffff0000) == LD_R11_0R12
+        && (insn[3].asInt() & 0xffff0000) == ADDIS_R2_R2
+        && (insn[4].asInt() & 0xffff0000) == ADDI_R2_R2
+        &&  insn[5].asInt()               == MTCTR_R11
+        &&  insn[6].asInt()               == BCTR)
+    {
+        off = (DFORM_SI(insn[1]) << 16) + DFORM_SI(insn[2]);
+        return STUB_TOC_BRANCH;
+    }
+
+    // With offset > 16 bits && r2offset <= 16 bits
+    if (    insn[0].asInt()               == STD_R2_40R1
+        && (insn[1].asInt() & 0xffff0000) == ADDIS_R12_R2
+        && (insn[2].asInt() & 0xffff0000) == LD_R11_0R12
+        && (insn[3].asInt() & 0xffff0000) == ADDI_R2_R2
+        &&  insn[4].asInt()               == MTCTR_R11
+        &&  insn[5].asInt()               == BCTR)
+    {
+        off = (DFORM_SI(insn[1]) << 16) + DFORM_SI(insn[2]);
+        return STUB_TOC_BRANCH;
+    }
+
+    // With offset <= 16 bits && r2offset > 16 bits
+    if (    insn[0].asInt()               == STD_R2_40R1
+        && (insn[1].asInt() & 0xffff0000) == LD_R11_0R2
+        && (insn[2].asInt() & 0xffff0000) == ADDIS_R2_R2
+        && (insn[3].asInt() & 0xffff0000) == ADDI_R2_R2
+        &&  insn[4].asInt()               == MTCTR_R11
+        &&  insn[5].asInt()               == BCTR)
+    {
+        off = DFORM_SI(insn[1]);
+        return STUB_TOC_BRANCH;
+    }
+
+    // With offset <= 16 bits && r2offset <= 16 bits
+    if (    insn[0].asInt()               == STD_R2_40R1
+        && (insn[1].asInt() & 0xffff0000) == LD_R11_0R2
+        && (insn[2].asInt() & 0xffff0000) == ADDI_R2_R2
+        &&  insn[3].asInt()               == MTCTR_R11
+        &&  insn[4].asInt()               == BCTR)
+    {
+        off = DFORM_SI(insn[1]);
+        return STUB_TOC_BRANCH;
+    }
+#endif
+
+    return STUB_UNKNOWN;
+}
+
+bool IA_IAPI::isLinkerStub() const
+{
+    if (validLinkerStubState)
+        return cachedLinkerStubState;
+
+    if (!validCFT)
+        return false;
+
+    if (!isCall()) {
+        cachedLinkerStubState = false;
+        validLinkerStubState = true;
+        return cachedLinkerStubState;
+    }
+
+    void *insn_buf = _isrc->getPtrToInstruction(cachedCFT);
+    if (!insn_buf)
+        return false;
+
+    Offset off;
+    linker_stub_t stub_type = checkLinkerStub(insn_buf, off);
+
+    switch (stub_type) {
+      case STUB_UNKNOWN:
+        // It's not a linker stub (that we know of).  Allow processing to
+        // continue unmodified, probably leading to the eventual creation
+        // of a targXXXXX function.
+        break;
+
+      case STUB_LONG_BRANCH:
+        cachedCFT += off;
+        break;
+
+      case STUB_TOC_BRANCH:
+        cachedCFT += off;
+        assert(0 && "STUB_TOC_BRANCH not implemented yet.");
+
+        // Although tempting, we cannot just read the word directly from the
+        // mutatee, and find the symbol that matches.  There may be no
+        // child process to read from.
+        //
+        // In theory, we can use the relocations to determine the final
+        // address/symbol.  But, I can't get binutils to actually generate
+        // this kind of stub.  Let's deal with this once we find a binary
+        // that uses it.
+        break;
+
+      case STUB_PLT_CALL:
+        CodeSource *_csrc = dynamic_cast<CodeSource *>(_isrc);
+        assert(_csrc);
+
+        cachedCFT = _csrc->getTOC(current) + off;
+        break;
+    }
+
+    cachedLinkerStubState = (stub_type != STUB_UNKNOWN);
+    validLinkerStubState = true;
+
+    return cachedLinkerStubState;
+}
+
+ParseAPI::StackTamper 
 IA_IAPI::tampersStack(ParseAPI::Function *, Address &) const
 {
     return TAMPER_NONE;

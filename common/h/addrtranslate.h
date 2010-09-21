@@ -104,6 +104,7 @@ class AddressTranslate {
    vector<LoadedLib *> libs;
    LoadedLib *exec;
    SymbolReaderFactory *symfactory;
+   bool read_abort;
  public:
 
    COMMON_EXPORT static AddressTranslate *createAddressTranslator(PID pid_,
@@ -125,6 +126,8 @@ class AddressTranslate {
    COMMON_EXPORT LoadedLib *getExecutable();
 
    COMMON_EXPORT virtual Address getLibraryTrapAddrSysV();
+   
+   void setReadAbort(bool b);
 };
 
 }

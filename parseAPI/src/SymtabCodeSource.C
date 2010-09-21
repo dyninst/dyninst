@@ -425,7 +425,8 @@ SymtabCodeSource::nonReturning(string name)
             name == "ExitProcess" ||
             /* bernat, 5/2010 */
             name == "_ZSt17__throw_bad_allocv" ||
-            name == "_ZSt20__throw_length_errorPKc");
+            name == "_ZSt20__throw_length_errorPKc") ||
+            name == "_Unwind_Resume";
 }
 
 Address
@@ -438,6 +439,17 @@ Address
 SymtabCodeSource::loadAddress() const
 {
     return _symtab->getLoadOffset();
+}
+
+Address
+SymtabCodeSource::getTOC(Address addr) const
+{
+    SymtabAPI::Function *func;
+
+    if (_symtab->getContainingFunction(addr, func)) {
+        return func->getTOCOffset();
+    }
+    return _table_of_contents;
 }
 
 inline CodeRegion *

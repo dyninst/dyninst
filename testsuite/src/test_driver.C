@@ -85,7 +85,7 @@ compiler_t compilers[] = {
    { "-g++", "g++", true },
    { "-gfortran", "gfortran", true },
    { "-icc", "icc", false },
-   { "-icpc", "icpc", false },
+   { "-icpc", "iCC", false },
    { "-pgcc", "pgcc", false },
    { "-pgCC", "pgCC", false },
    { "-cc", "cc", false },

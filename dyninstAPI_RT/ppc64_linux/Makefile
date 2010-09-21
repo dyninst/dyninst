@@ -17,17 +17,17 @@ endif
 
 # Now make any necessary architecture specific changes to variables:
 LD		= $(GCC)
-LDFLAGS         += -shared -nostdlib
+LDFLAGS         += -shared
 
 # Automatic init routine
-LDFLAGS		+= -Wl,-init -Wl,libdyninstAPI_RT_init
+#LDFLAGS		+= -Wl,-init -Wl,libdyninstAPI_RT_init
 
 CFLAGS		+= -O2 
 
 # if we want to produce a shared object...
 CC              = $(GCC)
 LD              = $(GCC)
-STATIC_CFLAGS   := -I. -I../.. -DDYNINST_RT_STATIC_LIB
+STATIC_CFLAGS  := $(CFLAGS) -DDYNINST_RT_STATIC_LIB -I. -I../..
 CFLAGS          += -I. -I../.. -fpic
 
 LIBS 		+= -ldl

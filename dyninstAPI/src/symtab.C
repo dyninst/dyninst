@@ -220,6 +220,12 @@ void image::findMain()
             insn.setInstruction( p );
             Address mainAddress = 0;
 
+	    // Create a temporary SymtabCodeSource that we can use for parsing. 
+	    // We're going to throw it away when we're done so that we can re-sync
+	    // with the new symbols we're going to add shortly. 
+	    bool parseInAllLoadableRegions = (BPatch_normalMode != mode_);
+	    SymtabCodeSource scs(linkedFile, filt, parseInAllLoadableRegions);
+
 #if !defined(os_freebsd)
             const unsigned char *lastP = 0;
             while( !insn.isCall() )
@@ -243,7 +249,7 @@ void image::findMain()
             using namespace Dyninst::InstructionAPI;
 
             unsigned bytesSeen = 0, numCalls = 0;
-            InstructionDecoder decoder(p, textsec->getRegionSize(), cs_->getArch());
+            InstructionDecoder decoder(p, textsec->getRegionSize(), scs.getArch());
 
             Instruction::Ptr curInsn = decoder.decode();
             while( numCalls < 4 && curInsn && curInsn->isValid() &&
@@ -264,7 +270,7 @@ void image::findMain()
                 logLine("heuristic for finding global constructor function failed\n");
             }else{
                 Address callAddress = textsec->getRegionAddr() + bytesSeen;
-                RegisterAST thePC = RegisterAST(Dyninst::MachRegister::getPC(cs_->getArch()));
+                RegisterAST thePC = RegisterAST(Dyninst::MachRegister::getPC(scs.getArch()));
 
                 Expression::Ptr callTarget = curInsn->getControlFlowTarget();
 
@@ -278,7 +284,7 @@ void image::findMain()
             }
 #endif
 
-            if(!mainAddress || !cs_->isValidAddress(mainAddress)) {
+            if(!mainAddress || !scs.isValidAddress(mainAddress)) {
                 startup_printf("%s[%u]:  invalid main address 0x%lx\n",
                     FILE__, __LINE__, mainAddress);   
             } else {
@@ -339,17 +345,18 @@ void image::findMain()
     	}
     	if( !foundFini )
     	{
-	    Region *finisec;
-	    linkedFile->findRegion(finisec,".fini");
-            Symbol *finiSym = new Symbol( "_fini",
-                                          Symbol::ST_FUNCTION,
-                                          Symbol::SL_GLOBAL, 
-                                          Symbol::SV_DEFAULT, 
-                                          finisec->getRegionAddr(),
-                                          linkedFile->getDefaultModule(),
-                                          finisec, 
-                                          0 );
-	    linkedFile->addSymbol(finiSym);		
+	  Region *finisec = NULL;
+	  if (linkedFile->findRegion(finisec,".fini")) {
+	    Symbol *finiSym = new Symbol( "_fini",
+					  Symbol::ST_FUNCTION,
+					  Symbol::SL_GLOBAL, 
+					  Symbol::SV_DEFAULT, 
+					  finisec->getRegionAddr(),
+					  linkedFile->getDefaultModule(),
+					  finisec, 
+					  0 );
+	    linkedFile->addSymbol(finiSym);	
+	  }	
     	}
     }
 
@@ -382,10 +389,10 @@ void image::findMain()
        linkedFile->findFunctionsByName(funcs, "usla_main"))
        foundMain = true;
 
-   Region *sec;
-   linkedFile->findRegion(sec, ".text"); 	
+   Region *sec = NULL;
+   bool found = linkedFile->findRegion(sec, ".text"); 	
 
-   if( !foundMain && linkedFile->isExec() && sec )
+   if( !foundMain && linkedFile->isExec() && found )
    {
        //we havent found a symbol for main therefore we have to parse _start
        //to find the address of main
@@ -1333,7 +1340,7 @@ image::image(fileDescriptor &desc,
    findMain();
 
    // Initialize ParseAPI 
-   SymtabCodeSource::hint_filt * filt = NULL;
+   filt = NULL;
 
    /** Optionally eliminate some hints in which Dyninst is not
        interested **/
@@ -1355,6 +1362,11 @@ image::image(fileDescriptor &desc,
     } nuke_heap;
     filt = &nuke_heap;
 #endif
+   //Now add Main and Dynamic Symbols if they are not present
+   startup_printf("%s[%d]:  before findMain\n", FILE__, __LINE__);
+   findMain();
+
+
    bool parseInAllLoadableRegions = (BPatch_normalMode != mode_);
    cs_ = new SymtabCodeSource(linkedFile,filt,parseInAllLoadableRegions);
    // XXX FIXME having this static member in instPointBase
@@ -1371,6 +1383,7 @@ image::image(fileDescriptor &desc,
    msg = string("Parsing object file: ") + desc.file();
 
    statusLine(msg.c_str());
+
 
    // look for `main' or something similar to recognize a.outs
    startup_printf("%s[%d]:  before determineImageType\n", FILE__, __LINE__);
@@ -1994,18 +2007,6 @@ image_variable* image::createImageVariable(Offset offset, std::string name, int 
     return ret;
 }
 
-#if !( (defined(os_linux) || defined(os_freebsd)) && \
-       (defined(arch_x86) || defined(arch_x86_64)) )
-bool image::findGlobalConstructorFunc(const std::string &) {
-    assert(!"Not implemented");
-    return false;
-}
-
-bool image::findGlobalDestructorFunc(const std::string &) {
-    assert(!"Not implemented");
-    return false;
-}
-#endif
 
 const set<image_basicBlock*> & image::getSplitBlocks() const
 {

@@ -96,7 +96,6 @@ class ParseFrame {
 
     /* These are set when status goes to CALL_BLOCKED */
     Function * call_target;     // discovered callee
-    Block * caller_block;       // calling block -- needs edge fixup
 
     Function * func;
     CodeRegion * codereg;
@@ -107,7 +106,6 @@ class ParseFrame {
         curAddr(0),
         num_insns(0),
         call_target(NULL),
-        caller_block(NULL),
         func(f),
         codereg(f->region()),
         seed(NULL),

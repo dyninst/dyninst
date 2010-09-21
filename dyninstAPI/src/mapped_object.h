@@ -126,11 +126,7 @@ class mapped_object : public codeRange {
     static mapped_object *createMappedObject(fileDescriptor &desc,
                                              AddressSpace *p,
                                              BPatch_hybridMode m = BPatch_normalMode,
-#if defined (os_windows)
-                                             bool parseGaps = false);
-#else 
                                              bool parseGaps = true);
-#endif
 
     // Copy constructor: for forks
     mapped_object(const mapped_object *par_obj, process *child);
@@ -270,6 +266,11 @@ public:
 
     int_function *findFunction(image_func *img_func);
     int_variable *findVariable(image_variable *img_var);
+
+    // These methods should be invoked to find the global constructor and
+    // destructor functions in stripped, static binaries
+    int_function *findGlobalConstructorFunc(const std::string &ctorHandler);
+    int_function *findGlobalDestructorFunc(const std::string &dtorHandler);
 
     //
     //     PRIVATE DATA MEMBERS

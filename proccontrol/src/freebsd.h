@@ -37,6 +37,10 @@
 #include "proccontrol/h/Handler.h"
 #include "proccontrol/src/int_process.h"
 #include "proccontrol/src/int_thread_db.h"
+#include "proccontrol/src/unix.h"
+#include "proccontrol/src/sysv.h"
+#include "proccontrol/src/x86_process.h"
+
 #include "common/h/dthread.h"
 
 using namespace Dyninst;
@@ -79,7 +83,7 @@ public:
     Dyninst::Address adjustTrapAddr(Dyninst::Address address, Dyninst::Architecture arch);
 };
 
-class freebsd_process : public thread_db_process
+class freebsd_process : public thread_db_process, public sysv_process, public unix_process, public x86_process
 {
 public:
     freebsd_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int, int> f);
@@ -89,7 +93,6 @@ public:
     virtual bool plat_create();
     virtual bool plat_attach();
     virtual bool plat_forked();
-    virtual bool post_forked();
     virtual bool plat_execed();
     virtual bool plat_detach();
     virtual bool plat_terminate(bool &needs_sync);
@@ -109,7 +112,8 @@ public:
     virtual bool post_create();
     virtual int getEventQueue();
     virtual bool initKQueueEvents();
-    
+    virtual SymbolReaderFactory *plat_defaultSymReader();
+
     /* thread_db_process methods */
     virtual string getThreadLibName(const char *symName);
     virtual bool isSupportedThreadLib(const string &libName);
@@ -164,7 +168,7 @@ class FreeBSDStopHandler : public Handler
 public:
     FreeBSDStopHandler();
     virtual ~FreeBSDStopHandler();
-    virtual bool handleEvent(Event::ptr ev);
+    virtual Handler::handler_ret_t handleEvent(Event::ptr ev);
     virtual int getPriority() const;
     void getEventTypesHandled(std::vector<EventType> &etypes);
 };
@@ -175,7 +179,7 @@ class FreeBSDPostStopHandler : public Handler
 public:
     FreeBSDPostStopHandler();
     virtual ~FreeBSDPostStopHandler();
-    virtual bool handleEvent(Event::ptr ev);
+    virtual Handler::handler_ret_t handleEvent(Event::ptr ev);
     virtual int getPriority() const;
     void getEventTypesHandled(std::vector<EventType> &etypes);
 };
@@ -185,7 +189,7 @@ class FreeBSDBootstrapHandler : public Handler
 public:
     FreeBSDBootstrapHandler();
     virtual ~FreeBSDBootstrapHandler();
-    virtual bool handleEvent(Event::ptr ev);
+    virtual Handler::handler_ret_t handleEvent(Event::ptr ev);
     virtual int getPriority() const;
     void getEventTypesHandled(std::vector<EventType> &etypes);
 };
@@ -197,7 +201,7 @@ class FreeBSDChangePCHandler : public Handler
 public:
     FreeBSDChangePCHandler();
     virtual ~FreeBSDChangePCHandler();
-    virtual bool handleEvent(Event::ptr ev);
+    virtual Handler::handler_ret_t handleEvent(Event::ptr ev);
     virtual int getPriority() const;
     void getEventTypesHandled(std::vector<EventType> &etypes);
 };

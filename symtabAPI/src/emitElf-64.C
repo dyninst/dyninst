@@ -60,6 +60,10 @@ extern const char *SYMTAB_NAME;
 extern const char *INTERP_NAME;
 extern unsigned int elfHash(const char *name);
 
+// Error reporting
+extern void setSymtabError(SymtabError new_err);
+extern void symtab_log_perror(const char *msg);
+
 struct sortByIndex
 {
   bool operator ()(Symbol * lhs, Symbol* rhs) {
@@ -1647,6 +1651,9 @@ bool emitElf64::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
   // recreate a "dummy symbol"
   Elf64_Sym *sym = new Elf64_Sym();
   symbolStrs.push_back("");
+  // We should increment this here, but for reasons I don't understand we create it with a size of
+  // 1. 
+  //symbolNamesLength++;
   sym->st_name = 0;
   sym->st_value = 0;
   sym->st_size = 0;
@@ -1736,8 +1743,7 @@ bool emitElf64::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
   for(i=0;i<symbols.size();i++)
     syms[i] = *(symbols[i]);
     
-  --symbolNamesLength;
-  char *str = (char *)malloc(symbolNamesLength+1);
+  char *str = (char *)malloc(symbolNamesLength);
   unsigned cur=0;
   for(i=0;i<symbolStrs.size();i++)
     {
@@ -1914,9 +1920,12 @@ bool emitElf64::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
           std::string errMsg;
           linkedStaticData = linker.linkStatic(obj, err, errMsg);
           if ( !linkedStaticData ) {
-               fprintf(stderr, "Failed to link in static library code: %s = %s\n",
-                     emitElfStatic::printStaticLinkError(err).c_str(), errMsg.c_str());
-               log_elferror(err_func_, "Failed to link in static library code.");
+               std::string linkStaticError = 
+                   std::string("Failed to link static library code into the binary: ") +
+                   emitElfStatic::printStaticLinkError(err) + std::string(" = ")
+                   + errMsg;
+               setSymtabError(Emit_Error);
+               symtab_log_perror(linkStaticError.c_str());
                return false;
           }
 

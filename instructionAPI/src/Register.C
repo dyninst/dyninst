@@ -66,6 +66,10 @@ namespace Dyninst
     {
       return;
     }
+    void RegisterAST::getChildren(vector<Expression::Ptr>& /*children*/) const
+    {
+        return;
+    }
     void RegisterAST::getUses(set<InstructionAST::Ptr>& uses)
     {
         uses.insert(shared_from_this());
