@@ -4410,6 +4410,7 @@ bool process::isRuntimeHeapAddr(Address addr)
     return false;
 }
 
+/* resolves jump and return transfers into rtlib */
 Address process::resolveJumpIntoRuntimeLib(instPoint *srcPt, Address reloc)
 {
     Address orig = 0;
@@ -4497,32 +4498,141 @@ Address process::stopThreadCtrlTransfer
         // case 1: The point is at a return instruction
         if (intPoint->getPointType() == functionExit) {
 
-            // get unrelocated target address
+            // get unrelocated target address, there are three possibilities
+            // a. We're in the fallthrough block
+            // b. We're in post-call padding, and targBBI is the call block
+            // c. The stack was tampered with and we need the (mod_pc - pc) 
+            //    offset to figure out where we should be
+
+            instPoint *callPt = NULL;
+            bblInstance *callBBI = NULL;
+            bool tampered = false;
+            if ( NULL == reverseDefensiveMap_.find(target,callPt) ) {
+                // a. 
+                // if we're in the fallthrough block, get the call block
+                bblInstance *targBBI = NULL;
+                baseTrampInstance *bti = NULL;
+                tampered = ! getRelocInfo(target, unrelocTarget, targBBI, bti);
+                if (!tampered) {
+                    ParseAPI::Block::edgelist & edges = targBBI->block()->llb()->sources();
+                    ParseAPI::Block::edgelist::iterator eit = edges.begin();
+                    for (; eit != edges.end(); eit++) {
+                        if (ParseAPI::CALL_FT == (*eit)->type()) {
+                            callBBI = targBBI->func()->findBlockInstanceByAddr
+                                ((*eit)->src()->start() + targBBI->func()->obj()->codeBase());
+                            callPt = targBBI->func()->findInstPByAddr(callBBI->lastInsnAddr());
+                            if (!callPt) {
+                                targBBI->func()->funcCalls();
+                                callPt = targBBI->func()->findInstPByAddr(callBBI->lastInsnAddr());
+                            }
+                            break;
+                        }
+                    }
+                    if (!callBBI || eit == edges.end()) {
+                        tampered = true;
+                    }
+                }
+            }
+            else {
+                // b. 
+                callBBI = callPt->block()->origInstance();
+            }
+
+            if (!tampered) {
+                // see if we're in case 1c by checking that 
+                // we hadn't tampered with the stack. targBBI should 
+                // contain a call and it should call the return's function 
+                // or have an indirect call, in which case we can't tell
+                if (!callPt->isDynamic()) {
+                    // make sure we call the function that the ret is in
+                    tampered = true; // presume tampered until we find a matching call edge
+                    ParseAPI::Block::edgelist & edges = callBBI->block()->llb()->targets();
+                    ParseAPI::Block::edgelist::iterator eit = edges.begin();
+                    for (; eit != edges.end(); eit++) {
+                        if (ParseAPI::CALL == (*eit)->type()) {
+                            if ((*eit)->trg() == pointfunc->ifunc()->entry()) {
+                                tampered = false;
+                            }
+                            break; // found the call edge, break whether it matches or not
+                        }
+                    }
+                }
+            }
+
+            if (!tampered) {
+                unrelocTarget = callBBI->endAddr();
+            } 
+            else {
+                // resolve target subtracting the difference between the address 
+                // of the relocated intPoint and its original counterpart
+                unrelocTarget = resolveJumpIntoRuntimeLib(intPoint, target);
+                if (0 == unrelocTarget) {
+                    mal_printf("ERROR: stopThread caught a return target in "
+                               "the rtlib heap that it couldn't translate "
+                               "%lx=>%lx %s[%d]\n", pointAddress, 
+                               target, FILE__, __LINE__);
+                    assert(0);
+                }
+            }
+
+#if 0
             bblInstance *targBBI = NULL;
             baseTrampInstance *bti = NULL;
             bool success = getRelocInfo(target, unrelocTarget, targBBI, bti);
-
-            if (! intPoint->func()->isSignalHandler()) {
+            
+            if ( intPoint->func()->isSignalHandler() ) {
+                if (!success) {
+                    // we should be returning to an uninstrumented system library, 
+                    // if we're in this case something went very wrong
+                    mal_printf("ERROR: stopThread caught a return target "
+                               "from a signal handler into "
+                               "the rtlib heap that it couldn't translate "
+                               "%lx=>%lx %s[%d]\n", pointAddress, 
+                               target, FILE__, __LINE__);
+                    assert(0);
+                }
+            }
+            else {
 
                 if (success) {
-                    // check that we hadn't tampered with the stack, targBBI should 
-                    // contain a call and it should call this function or have an 
-                    // indirect call
-                    targBBI->func()->funcCalls();
-                    instPoint *callPt = targBBI->func()->findInstPByAddr
-                        (targBBI->lastInsnAddr());
-                    if (!callPt) {
-                        success = false;
-                    } else if (!callPt->isDynamic()) {
-                        // make sure we call the function that the ret is in
-                        success = false; // presume false until we find a matching call edge
-                        ParseAPI::Block::edgelist & edges = targBBI->block()->llb()->targets();
+                    instPoint *dontcare = NULL;
+                    if (NULL == reverseDefensiveMap_.find(target,dontcare)) {
+                        // we're in the fallthrough block, get the call block
+                        ParseAPI::Block::edgelist & edges = targBBI->block()->llb()->sources();
                         ParseAPI::Block::edgelist::iterator eit = edges.begin();
                         for (; eit != edges.end(); eit++) {
-                            if (ParseAPI::CALL == (*eit)->type()) {
-                                if ((*eit)->trg() == targBBI->func()->ifunc()->entry()) 
-                                    success = true;
-                                break; // we found the call edge, break whether it matches or not
+                            if (ParseAPI::CALL_FT == (*eit)->type()) {
+                                targBBI = targBBI->func()->findBlockInstanceByAddr
+                                    ((*eit)->src()->start() + targBBI->func()->obj()->codeBase());
+                                break;
+                            }
+                        }
+                        if (!targBBI || eit == edges.end()) {
+                            success = false;
+                        }
+                    }
+
+                    if (success) {
+                        // re-evaluate whether we've succeeded by checking that 
+                        // we hadn't tampered with the stack, targBBI should 
+                        // contain a call and it should call the return's function 
+                        // or have an indirect call, in which case we can't tell
+                        targBBI->func()->funcCalls();
+                        instPoint *callPt = targBBI->func()->findInstPByAddr(targBBI->lastInsnAddr());
+                        if (!callPt) {
+                            success = false;
+                        } else if (!callPt->isDynamic()) {
+                            // make sure we call the function that the ret is in
+                            success = false; // presume false until we find a matching call edge
+                            ParseAPI::Block::edgelist & edges = targBBI->block()->llb()->targets();
+                            ParseAPI::Block::edgelist::iterator eit = edges.begin();
+                            for (; eit != edges.end(); eit++) {
+                                if (ParseAPI::CALL == (*eit)->type()) {
+                                    if ((*eit)->trg() == pointfunc->ifunc()->entry()) {
+                                        success = true;
+                                    }
+                                    break; // we found the call edge, break whether it matches or not
+                                }
                             }
                         }
                     }
@@ -4545,16 +4655,7 @@ Address process::stopThreadCtrlTransfer
                     }
                 }
             } 
-            else if (!success) {
-                // case 1b: this is a signal handler whose return target we
-                // couldn't resolve, output an error message
-                mal_printf("ERROR: stopThread caught a return target "
-                           "from a signal handler into "
-                           "the rtlib heap that it couldn't translate "
-                           "%lx=>%lx %s[%d]\n", pointAddress, 
-                           target, FILE__, __LINE__);
-                assert(0);
-            }
+#endif
         }
         // case 2: The point is a control transfer into the runtime library
         else {

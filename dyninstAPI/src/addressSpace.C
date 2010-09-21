@@ -1794,9 +1794,10 @@ void AddressSpace::getRelocAddrPairs(Address from, Address to,
 #endif
 
 bool AddressSpace::getRelocInfo(Address relocAddr,
-				Address &origAddr,
-				bblInstance *&origInst,
-				baseTrampInstance *&baseT) 
+                                Address &origAddr,
+                                bblInstance *&origInst,
+                                baseTrampInstance *&baseT,
+                                bool *) 
 {
   baseT = NULL;
   bool ret = false;
@@ -1848,6 +1849,10 @@ void AddressSpace::addDefensivePad(bblInstance *callBlock, Address padStart, uns
   // as they are invariant. 
 
   instPoint *point = callBlock->func()->findInstPByAddr(callBlock->lastInsnAddr());
+  if (!point) {
+      callBlock->func()->funcCalls();
+      point = callBlock->func()->findInstPByAddr(callBlock->lastInsnAddr());
+  }
   assert(point);
 
   forwardDefensiveMap_[point].insert(std::make_pair(padStart, size));

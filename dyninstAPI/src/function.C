@@ -355,6 +355,8 @@ const pdvector<instPoint*> &int_function::funcExits() {
 
 const pdvector<instPoint*> &int_function::funcCalls() {
     if (callPoints_.size() == 0 || obj()->isExploratoryModeOn()) {
+        //KEVINTODO: exploratory mode can be made more efficient by making 
+        // callPoints a set and not clearing it in that mode
         callPoints_.clear();
         pdvector<image_instPoint *> img_calls;
         ifunc_->funcCalls(img_calls);
