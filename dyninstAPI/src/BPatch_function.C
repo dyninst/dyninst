@@ -1113,4 +1113,5 @@ bool BPatch_function::getSharedFuncs(set<BPatch_function*> &sharedFuncs)
             }
         }
     }
+    return true;
 }

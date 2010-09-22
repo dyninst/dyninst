@@ -1412,9 +1412,6 @@ Parser::remove_block(Dyninst::ParseAPI::Block *block)
    for functions that return TAMPER_REL and TAMPER_ABS.  Normal fallthrough
    edges have been added already and will be disallowed if the function 
    doesn't return or tampers with its stack (see Parser::parse_frame) */
-void 
-Parser::getTamperFrames(Function *func, std::vector<ParseFrame*> & frames)
-{
     // saves info needed to create a parseFrame:
     // edge is null for TAMPER_ABS
     struct frame_info {
@@ -1427,6 +1424,10 @@ Parser::getTamperFrames(Function *func, std::vector<ParseFrame*> & frames)
         Edge *edge;
         Function *tfunc;
     };
+
+void 
+Parser::getTamperFrames(Function *func, std::vector<ParseFrame*> & frames)
+{
 
     vector<frame_info*> finfo;
     switch (func->tampersStack()) {
