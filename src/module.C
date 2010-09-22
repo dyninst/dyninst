@@ -57,7 +57,7 @@ bool Module::registerGroupInModule(std::string modname, RunGroup *group, bool re
 {
    assert(group);
    Module *mod = NULL;
-   if (mods(remote).count(modname)) {
+   if (mods(remote).count(modname) && !remote) {
       mod = mods(remote)[modname];
    }
    else {

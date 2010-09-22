@@ -41,6 +41,12 @@ CXXFLAGS_NATIVE = $(CXXFLAGS)
 MUTATEE_CFLAGS_NATIVE ?= $(CFLAGS)
 MUTATEE_CXXFLAGS_NATIVE ?= $(CXXFLAGS)
 
+
+LAUNCHMON_FE_LINK = -L/p/paradyn/packages/launchmon-0.7/lib -lmonfeapi
+LAUNCHMON_FE_CFLAGS = -I/p/paradyn/packages/launchmon-0.7/include -Dcap_launchmon
+LAUNCHMON_BE_LINK = -L/p/paradyn/packages/launchmon-0.7/lib -lmonbeapi
+LAUNCHMON_BE_CFLAGS = -I/p/paradyn/packages/launchmon-0.7/include -Dcap_launchmon
+
 #######################################################################
 ###  Generate compiler id strings
 ###
@@ -575,11 +581,11 @@ test_driver.o: ../src/test_driver.C $(DEPENDDIR)/test_driver.dep
 	@echo Compiling $<
 	@$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/test_driver.C
 
-test_driver_be.o: ../src/testdriver_be.C $(DEPENDDIR)/testdriver_be.dep
-	$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/testdriver_be.C
+testdriver_be.o: ../src/testdriver_be.C $(DEPENDDIR)/testdriver_be.dep
+	$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) $(LAUNCHMON_BE_CFLAGS) ../src/testdriver_be.C
 
 dynlmon.o: ../src/dynlmon.C $(DEPENDDIR)/dynlmon.dep
-	$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/dynlmon.C
+	$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) $(LAUNCHMON_FE_CFLAGS) ../src/dynlmon.C
 
 test_driver_static.o: ../src/test_driver.C $(DEPENDDIR)/test_driver_static.dep
 	@echo Compiling $<
@@ -587,11 +593,11 @@ test_driver_static.o: ../src/test_driver.C $(DEPENDDIR)/test_driver_static.dep
 
 test_driver: test_driver.o test_driver_templates.o dynlmon.o $(DEPENDDIR)/test_driver.dep $(LIBTESTSUITE) $(LIBTESTLAUNCH)
 	@echo Linking $@
-	@$(CXX) -o $@ test_driver.o test_driver_templates.o test_info_new.gen.o dynlmon.o -L. -ltestSuite $(MUTATOR_LDFLAGS) $(LIBS) $(TESTDRIVER_LDFLAGS) -lcommon -ltestlaunch
+	@$(CXX) -o $@ test_driver.o test_driver_templates.o test_info_new.gen.o dynlmon.o -L. -ltestSuite $(MUTATOR_LDFLAGS) $(LIBS) $(TESTDRIVER_LDFLAGS) -lcommon -ltestlaunch $(LAUNCHMON_FE_LINK)
 
 testdriver_be: testdriver_be.o $(LIBTESTSUITE) $(LIBTESTLAUNCH)
 	@echo Linking $@
-	@$(CXX) -o $@ testdriver_be.o test_info_new.gen.o -L. -ltestSuite $(MUTATOR_LDFLAGS) $(LIBS) $(TESTDRIVER_LDFLAGS) -lcommon -ltestlaunch
+	@$(CXX) -o $@ testdriver_be.o test_info_new.gen.o -L. -ltestSuite $(MUTATOR_LDFLAGS) $(LIBS) $(TESTDRIVER_LDFLAGS) -lcommon -ltestlaunch $(LAUNCHMON_BE_LINK)
 
 ######################################################################
 ### Output Drivers

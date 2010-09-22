@@ -8,18 +8,19 @@ class Connection
   private:
    static const int accept_timeout = 60;
    static const int recv_timeout = 60;
-   int sockfd;
+   static int sockfd;
+   static std::string hostname;
+   static int port;
+   static bool has_hostport;
+
    int fd;
    bool has_error;
-
-   std::string hostname;
-   int port;
-   bool has_hostport;
 
    bool waitForAvailData(int sock, int timeout, bool &sock_error);
   public:
    Connection();
    Connection(std::string host, int port);
+   ~Connection();
 
    bool server_accept();
    bool server_setup(std::string &hostname, int &port);
@@ -81,6 +82,7 @@ class RemoteBE {
    void dispatchComp(char *message);
    void dispatchTest(char *message);
    void dispatchLoad(char *message);
+   void dispatchExit(char *message);
 
    ComponentTester *getComponentBE(std::string name);
    TestMutator *getTestBE(int group_index, int test_index);
