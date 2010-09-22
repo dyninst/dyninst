@@ -1770,28 +1770,19 @@ void AddressSpace::getRelocAddrs(Address orig,
 				 std::list<Address> &relocs) const {
   for (CodeTrackers::const_iterator iter = relocatedCode_.begin();
        iter != relocatedCode_.end(); ++iter) {
-    Address reloc;
+    Relocation::CodeTracker::RelocatedElements reloc;
     if (iter->origToReloc(orig, inst, reloc)) {
-      relocs.push_back(reloc);
+      // Pick instrumentation if it's there, otherwise use the reloc instruction
+      if (reloc.instrumentation) {
+	relocs.push_back(reloc.instrumentation);
+      }
+      else {
+	assert(reloc.instruction);
+	relocs.push_back(reloc.instruction);
+      }
     }
   }
 }      
-
-#if 0
-void AddressSpace::getRelocAddrPairs(Address from, Address to,
-				     std::list<std::pair<Address, Address> > &pairs) const {
-  for (CodeTrackers::const_iterator iter = relocatedCode_.begin();
-       iter != relocatedCode_.end(); ++iter) {
-    Address reloc1;
-    if (iter->origToReloc(from, reloc1)) {
-      Address reloc2;
-      bool ret = iter->origToReloc(to, reloc2);
-      assert(ret);
-      pairs.push_back(make_pair<Address, Address>(reloc1, reloc2));
-    }
-  }
-}
-#endif
 
 bool AddressSpace::getRelocInfo(Address relocAddr,
 				Address &origAddr,

@@ -5180,15 +5180,16 @@ bool process::generateRequiredPatches(instPoint *callPt,
     bblInstance *callbbi = callPt->block()->origInstance();
     assert(callPt->addr() <= callbbi->lastInsnAddr());
     bblInstance *ftbbi = callbbi->getFallthroughBBL();
-    Address to = 0;
+    Relocation::CodeTracker::RelocatedElements reloc;
     if (!relocatedCode_.back().origToReloc(ftbbi->firstInsnAddr(),
-					                       ftbbi,
-					                       to)) 
+					   ftbbi,
+					   reloc)) 
     {
         assert(0);
         return false;
     }
-    
+    Address to = (reloc.instrumentation ? reloc.instrumentation : reloc.instruction);
+
     // 2) 
     set<DefensivePad>::iterator d_iter = forwardDefensiveMap_[callPt].begin();
     for (; d_iter != forwardDefensiveMap_[callPt].end(); ++d_iter) 
