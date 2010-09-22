@@ -2402,42 +2402,6 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
         faultBBI = ev.proc->findActiveFuncByAddr(ev.address)->findBlockInstanceByAddr(origAddr);
     }
 
-#if 0 //KEVINTODO: delete this old, heinously complicated way of getting the faulting bbi
-    codeRange *faultRange = proc->findOrigByAddr(ev.address);
-    bblInstance *faultBBI = NULL;
-    Address inbbiAddr = ev.address;
-    if (faultRange) {
-        faultBBI = faultRange->is_basicBlockInstance();
-        if (!faultBBI) {
-            multiTramp *faultMulti = faultRange->is_multitramp();
-            if (faultMulti) {
-                inbbiAddr = faultMulti->instToUninstAddr(ev.address);
-                faultBBI = proc->findOrigByAddr( inbbiAddr )->
-                    is_basicBlockInstance();
-            }
-        }
-        // account for block splitting, and the possibility of invalidated 
-        // function relocations (getFallthroughBBI can return a block in a 
-        // different relocation)
-        Address prevStart = 0;
-        while (faultBBI && 
-               faultBBI->endAddr() <= inbbiAddr && 
-               prevStart < faultBBI->firstInsnAddr()) //check for reloc version switch
-        {
-            prevStart = faultBBI->firstInsnAddr();
-            faultBBI = faultBBI->getFallthroughBBL();
-        }
-    }
-
-    if (!faultBBI) {
-        fprintf(stderr,"ERROR: Failed to find a valid codeRange for faulting "
-            "instruction at %lx %s[%d] \n",
-            ev.address, FILE__,__LINE__);
-        return false;
-    }
-
-    Address origAddr = faultBBI->equivAddr(0,inbbiAddr);
-#endif
     instPoint *point = faultBBI->func()->findInstPByAddr(origAddr);
     if (!point) {
         point = instPoint::createArbitraryInstPoint

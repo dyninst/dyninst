@@ -580,17 +580,18 @@ namespace {
      * fallthrough edges into existing blocks.
      */
     inline std::pair<Address, Block*> get_next_block(
-        ParseFrame &frame, 
+        Address addr,
+        CodeRegion * codereg, 
         ParseData * _parse_data)
     {
         Block * nextBlock = NULL;
         Address nextBlockAddr;
 
         nextBlockAddr = numeric_limits<Address>::max();
-        region_data * rd = _parse_data->findRegion(frame.codereg);
+        region_data * rd = _parse_data->findRegion(codereg);
 
-        if((nextBlock = rd->blocksByRange.successor(frame.curAddr)) &&
-           nextBlock->start() > frame.curAddr)
+        if((nextBlock = rd->blocksByRange.successor(addr)) &&
+           nextBlock->start() > addr)
         {
             nextBlockAddr = nextBlock->start();   
         }
@@ -824,7 +825,8 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
 #endif        
 
         using boost::tuples::tie;
-        tie(nextBlockAddr,nextBlock) = get_next_block(frame,_parse_data);
+        tie(nextBlockAddr,nextBlock) = get_next_block(
+            frame.curAddr, frame.codereg, _parse_data);
 
         bool isNopBlock = ah->isNop();
 
@@ -874,7 +876,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                 _pcb.overlapping_blocks(cur,nextBlock);
 
                 tie(nextBlockAddr,nextBlock) = 
-                    get_next_block(frame,_parse_data);
+                    get_next_block(frame.curAddr, frame.codereg, _parse_data);
             }
 
             // per-instruction callback notification 

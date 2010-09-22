@@ -931,7 +931,7 @@ void int_function::removeFromAll()
 
 void int_function::addMissingBlock(image_basicBlock & missingB)
 {
-  Address baseAddr = getAddress() - ifunc()->getOffset();
+    Address baseAddr = getAddress() - ifunc()->getOffset();
     bblInstance *bbi = findBlockInstanceByAddr( 
         missingB.firstInsnOffset() + baseAddr );
 
@@ -1171,6 +1171,9 @@ const std::set<int_basicBlock*,int_basicBlock::compare> &int_function::blocks()
     int i = 0;
 
     if (blockList.empty()) {
+        // defensiveMode triggers premature block list creation when it
+        // checks that the targets of control transfers have not been
+        // tampered with.  
         Address base = getAddress() - ifunc_->getOffset();
 
         Function::blocklist & img_blocks = ifunc_->blocks();

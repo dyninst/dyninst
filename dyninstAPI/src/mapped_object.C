@@ -1614,12 +1614,36 @@ bool mapped_object::isUpdateNeeded(Address entry)
     SymtabAPI::Region *reg = parse_img()->getObject()->
         findEnclosingRegion( entry - base );
     if ( !reg ) {
-        assert ( 0 && "why am I trying to update with an invalid addr?");
+        mal_printf("Object update request has invalid addr[%lx] %s[%d]\n",
+                   entry, FILE__,__LINE__);
         return false;
     }
+
     // update the range tree, if necessary
-    if (findCodeRangeByAddress(entry)) {
-        assert ( 0 && "shouldn't be checking for updates to protected code");
+
+    set<ParseAPI::Block *> analyzedBlocks;
+    if (parse_img()->findBlocksByAddr(entry,analyzedBlocks)) {
+        return false; // don't need to update if target is in analyzed code
+    }
+
+    // see if the underlying bytes have changed
+    // 
+    // read until the next basic block or until the end of the region
+    // to make sure nothing has changed, otherwise we'll want to read 
+    // the section in again
+    parse_img
+    codeRange *nextRange = NULL;
+    unsigned comparison_size = 0; 
+    if (codeRangesByAddr_.successor(entry,range)) {
+        comparison_size = range->get_address() - entry;
+    } else {
+        comparison_size = reg->getDiskSize() 
+                        - ( (entry - base) - reg->getRegionAddr() );
+    }
+#if 0
+    // update the range tree, if necessary
+    codeRange *existingCode = findCodeRangeByAddress(entry);
+    if (existingCode) {
         return false; // don't need to update if we correspond to code
     }
 
@@ -1636,6 +1660,8 @@ bool mapped_object::isUpdateNeeded(Address entry)
         comparison_size = reg->getDiskSize() 
                         - ( (entry - base) - reg->getRegionAddr() );
     }
+#endif
+
     Address page_size = proc()->proc()->getMemoryPageSize();
     comparison_size = ( comparison_size <  page_size) 
                       ? comparison_size : page_size;
