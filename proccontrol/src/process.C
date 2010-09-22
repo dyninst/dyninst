@@ -3089,14 +3089,14 @@ bool installed_breakpoint::restoreBreakpointData(int_process *proc, result_respo
 bool installed_breakpoint::uninstall(int_process *proc, result_response::ptr async_resp)
 {
    assert(installed);
-   bool had_failure = false;
+   bool had_success = true;
    if (proc->getState() != int_process::exited)
    {
       bool result = proc->writeMem(&buffer, addr, buffer_size, async_resp);
       if (!result) {
          pthrd_printf("Failed to remove breakpoint at %lx from process %d\n", 
                       addr, proc->getPid());
-         had_failure = true;
+         had_success = false;
       }
    }
    installed = false;
@@ -3110,7 +3110,7 @@ bool installed_breakpoint::uninstall(int_process *proc, result_response::ptr asy
    }
    memory->breakpoints.erase(i);
 
-   return had_failure;
+   return had_success;
 }
 
 bool installed_breakpoint::suspend(int_process *proc, result_response::ptr result_resp)
