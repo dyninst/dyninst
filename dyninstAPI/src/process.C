@@ -5274,8 +5274,7 @@ bool process::generateRequiredPatches(instPoint *callPt,
     // To do that, we're going to:
     // 1) Forward map the entry of the ft block to
     //    its most recent relocated version (if that exists)
-    // 2) For each padding area p, create a branch from p 
-    //    to addr(ft)
+    // 2) For each padding area, create a (padAddr,target) pair
 
     // 1)
     bblInstance *callbbi = callPt->block()->origInstance();
@@ -5299,6 +5298,9 @@ bool process::generateRequiredPatches(instPoint *callPt,
       mal_printf("patching post-call pad for %lx[%lx] with %lx %s[%d]\n",
                  callbbi->lastInsnAddr(), jumpAddr, to, FILE__,__LINE__);
     }
+    if (!patchAreas.size()) {
+        mal_printf("no relocs to patch for call at %lx\n", callPt->addr());
+    }
     return true;
 }
 
@@ -5316,11 +5318,10 @@ void process::generatePatchBranches(AddrPairSet &branchesNeeded) {
     Address lb, ub;
     instPoint *tmp;
     if (!reverseDefensiveMap_.find(from, lb, ub, tmp)) {
-      // WTF? This worked before!
+      // Huh? This worked before!
       assert(0);
     }
     assert((from + gen.used()) <= ub);
-    
     if (!writeTextSpace((void *)from, 
 			gen.used(),
 			gen.start_ptr())) {

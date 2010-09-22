@@ -575,7 +575,7 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
             if (reg && (reg->getRegionPermissions() == Region::RP_RW ||
                         reg->getRegionPermissions() == Region::RP_RWX  ) &&
                 getCBManager()->dispenseCallbacksMatching
-                    (evtCodeOverwrite, callbacks))
+                    (evtCodeOverwrite, callbacks)) //checks for CBs, doesn't call them
                 {
                     ev.info2 = reg;
                     ev.type = evtCodeOverwrite;
@@ -596,6 +596,8 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
         fprintf(stderr, "ERROR: executing code that lacks executable "
                 "permissions in pdwinnt.C at %lx, evt.addr=%lx [%d]\n",
                 ev.address, violationAddr,__LINE__);
+        ev.proc->detachProcess(true);
+        assert(0);
         break;
     default:
         ev.proc->detachProcess(true);

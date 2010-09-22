@@ -133,16 +133,13 @@ void HybridAnalysis::signalHandlerCB(BPatch_point *point, long signum,
     {
         BPatch_function *func = proc()->findFunctionByAddr((void*)*it);
         BPatch_module *mod = proc()->findModuleByAddr(*it);
-        if (func) {
-            handlerAddrs.push_back((Address)func->getBaseAddr());
-        }
 
         if (mod->isSystemLib()) {
             it = handlers.erase(it);
             continue;
         } 
 
-        this->handlerFunctions[*it] = 0;
+        handlerFunctions[*it] = 0;
         if (func) {
             it = handlers.erase(it);
             continue;
@@ -152,10 +149,14 @@ void HybridAnalysis::signalHandlerCB(BPatch_point *point, long signum,
         mal_printf("found handler at %x %s[%d]\n", *it,FILE__,__LINE__);
         onlySysHandlers = false;
         analyzeNewFunction(*it,true);
-
-        proc()->beginInsertionSet();
-        // get relative position of fields in the EXCEPTION_RECORD struct
         BPatch_function *handlerFunc = proc()->findFunctionByAddr((void*)*it);
+        assert(handlerFunc);
+        handlerAddrs.push_back(*it);
+
+        // instrument the handler at its entry point
+        proc()->beginInsertionSet();
+
+        // get relative position of fields in the EXCEPTION_RECORD struct
         EXCEPTION_RECORD *tmpRec = (EXCEPTION_RECORD*)mod; //bogus pointer, but I won't write to it
         CONTEXT *tmpCtxt         = (CONTEXT*)         mod; //bogus pointer, but I won't write to it
         Address excAddrPosition = (Address)(&(tmpRec->ExceptionAddress)) - (Address)tmpRec;
@@ -176,7 +177,6 @@ void HybridAnalysis::signalHandlerCB(BPatch_point *point, long signum,
             (signalHandlerEntryCB_wrapper,excSrcAddr,false,BPatch_noInterp);
         proc()->insertSnippet(sThread2, 
                                *(*handlerFunc->findPoint(BPatch_entry))[0]);
-
 
         proc()->finalizeInsertionSet(false);
         it++;
@@ -433,6 +433,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
             mal_printf("hybridCallbacks.C[%d] Observed abuse of normal return "
                     "instruction semantics for insn at %lx target %lx\n",
                     __LINE__, point->getAddress(), returnAddr);
+            assert(0 && "need to change return address if it's a relocated addr");
         }
         else {
             // find the call point whose fallthrough address matches the return address
