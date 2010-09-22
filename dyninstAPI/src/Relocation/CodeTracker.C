@@ -40,19 +40,23 @@ using namespace std;
 bool CodeTracker::origToReloc(Address origAddr,
 			      bblInstance *origBBL, 
 			      Address &reloc) const {
-  TrackerElement *e;
-  BlockRange::const_iterator iter = origToReloc_.find(origBBL);
+  BFM_citer iter = origToReloc_.find(origBBL);
   if (iter == origToReloc_.end()) return false;
-  if (!iter->second.find(origAddr, e))
-    return false;
-  reloc = e->origToReloc(origAddr);
+
+  const ForwardsMap &fm = iter->second;
+  FM_citer iter2 = fm.find(origAddr);
+  if (iter2 == fm.end()) return false;
+
+  const TrackerList &l = iter2->second;
+  reloc = l.front()->origToReloc(origAddr);
+
   return true;
 }
 
 bool CodeTracker::relocToOrig(Address relocAddr, 
 			      Address &orig, 
 			      bblInstance *&origBBL) const {
-  TrackerElement *e;
+  TrackerElement *e = NULL;
   if (!relocToOrig_.find(relocAddr, e))
     return false;
   orig = e->relocToOrig(relocAddr);
@@ -75,6 +79,11 @@ baseTrampInstance *CodeTracker::getBaseT(Address relocAddr) const {
 void CodeTracker::addTracker(TrackerElement *e) {
   // We should look into being more efficient by collapsing ranges
   // of relocated code into a single OriginalTracker
+
+  // If that happens, the assumption origToReloc makes that we can
+  // get away without an IntervalTree will be violated and a lot
+  // of code will need to be rewritten.
+
   trackers_.push_back(e);
 }
 
@@ -84,16 +93,11 @@ void CodeTracker::createIndices() {
   for (TrackerList::iterator iter = trackers_.begin();
        iter != trackers_.end(); ++iter) {
     TrackerElement *e = *iter;
-    if (e->type() == TrackerElement::original) {
-      // This is a 1:1 element
-      origToReloc_[e->block()].insert(e->orig(), e->orig() + e->size(), e);
-      relocToOrig_.insert(e->reloc(), e->reloc() + e->size(), e);
-    }
-    else {
-      // This is a 1:n element
-      origToReloc_[e->block()].insert(e->orig(), e->orig() + 1, e);
-      relocToOrig_.insert(e->reloc(), e->reloc() + e->size(), e);
-    }
+
+    // Since the origToReloc is based off start address only, there is no difference
+    // in how we handle original relocated code or added code. 
+    origToReloc_[e->block()][e->orig()].push_back(e);
+    relocToOrig_.insert(e->reloc(), e->reloc() + e->size(), e);
   }
 }
 
