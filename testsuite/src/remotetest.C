@@ -39,6 +39,9 @@
 
 using namespace std;
 
+//#define debug_printf(format, args...) fprintf(stderr, format, ## args)
+#define debug_printf(format, args...) 
+
 #define PARAMETER_ARG "PARAMETER"
 #define TESTRESULT_ARG "TESTRESULT"
 #define STRING_ARG "STRING"
@@ -65,6 +68,9 @@ using namespace std;
 #define LOAD_COMPONENT "LOAD_COMPONENT"
 #define RETURN "RETURN"
 #define LOG "LOG"
+#define EXIT_MSG "EXIT"
+
+static char *my_strtok(char *str, const char *delim);
 
 class MessageBuffer
 {
@@ -127,6 +133,9 @@ static void encodeParams(ParameterDict &params, MessageBuffer &buf)
          if (i->second->getString() == NULL) {
             result += "<NULL>" + std::string(":");
          }
+         else if (*i->second->getString() == '\0') {
+            result += "<EMPTY>" + std::string(":");
+         }
          else {
             result += i->second->getString() + std::string(":");
          }
@@ -153,23 +162,26 @@ static void encodeParams(ParameterDict &params, MessageBuffer &buf)
 static char *decodeParams(ParameterDict &params, char *buffer)
 {
    params.clear();
-   char *cur = strtok(buffer, ":");
+   char *cur = my_strtok(buffer, ":");
    assert(strcmp(cur, PARAMETER_ARG) == 0);
    
    for (;;) {
-      cur = strtok(NULL, ":");
+      cur = my_strtok(NULL, ":");
       if (*cur == ';')
          break;
       char *key = strdup(cur);
-      cur = strtok(NULL, ":");
+      cur = my_strtok(NULL, ":");
       char *type = strdup(cur);
-      cur = strtok(NULL, ":");
+      cur = my_strtok(NULL, ":");
       char *value = strdup(cur);
+      char *orig_value = value;
 
       switch (*type) {
          case 's': {
             if (strcmp(value, "<NULL>") == 0)
                value = NULL;
+            else if (strcmp(value, "<EMPTY>") == 0)
+               value = "";
             params[key] = new ParamString(value);
             break;
          }
@@ -190,7 +202,7 @@ static char *decodeParams(ParameterDict &params, char *buffer)
       }
       free(key);
       free(type);
-      free(value);
+      free(orig_value);
    }
    char *next = strchr(buffer, ';');
    return next+1;
@@ -205,9 +217,9 @@ static void encodeTestResult(test_results_t res, MessageBuffer &buf)
 
 static char *decodeTestResult(test_results_t &res, char *buffer)
 {
-   char *cur = strtok(buffer, ":;");
+   char *cur = my_strtok(buffer, ":;");
    assert(strcmp(cur, TESTRESULT_ARG) == 0);
-   cur = strtok(NULL, ":;");
+   cur = my_strtok(NULL, ":;");
    sscanf(cur, "%d", (int *) &res);
    return strchr(buffer, ';')+1;
 }
@@ -221,9 +233,9 @@ static void encodeInt(int i, MessageBuffer &buf)
 
 static char *decodeInt(int i, char *buffer)
 {
-   char *cur = strtok(buffer, ":;");
+   char *cur = my_strtok(buffer, ":;");
    assert(strcmp(cur, INT_ARG) == 0);
-   cur = strtok(NULL, ":;");
+   cur = my_strtok(NULL, ":;");
    sscanf(cur, "%d", (int *) &i);
    return strchr(buffer, ';')+1;
 }
@@ -232,17 +244,23 @@ static void encodeString(std::string str, MessageBuffer &buf)
 {
    buf.add(STRING_ARG, strlen(STRING_ARG));
    buf.add(":", 1);
-   buf.add(str.c_str(), str.length());
+   if (!str.length())
+      buf.add("<EMPTY>", strlen("<EMPTY>"));
+   else
+      buf.add(str.c_str(), str.length());
    buf.add(";", 1);
 }
 
 static char *decodeString(std::string &str, char *buffer)
 {
-   char *cur = strtok(buffer, ":;");
-   assert(strcmp(cur, STRING_ARG) == 0);
-   cur = strtok(NULL, ":;");
-   str = std::string(cur);
-   return strchr(buffer, ';')+1;
+   assert(strncmp(buffer, STRING_ARG, strlen(STRING_ARG)) == 0);
+   char *cur = my_strtok(buffer, ";");
+   cur += strlen(STRING_ARG)+1;
+   if (strncmp(cur, "<EMPTY>", strlen("<EMPTY>")) == 0)
+      str = std::string();
+   else
+      str = std::string(cur);
+   return strchr(cur, ';')+1;
 }
 
 static void encodeBool(bool b, MessageBuffer &buf)
@@ -256,9 +274,9 @@ static void encodeBool(bool b, MessageBuffer &buf)
 
 static char *decodeBool(bool &b, char *buffer)
 {
-   char *cur = strtok(buffer, ":;");
+   char *cur = my_strtok(buffer, ":;");
    assert(strcmp(cur, BOOL_ARG) == 0);
-   cur = strtok(NULL, ":;");
+   cur = my_strtok(NULL, ":;");
    string str = std::string(cur);
    if (str == "true") {
       b = true;
@@ -281,10 +299,10 @@ static void encodeGroup(RunGroup *group, MessageBuffer &buf)
 
 static char *decodeGroup(RunGroup* &group, vector<RunGroup *> &groups, char *buffer)
 {
-   char *cur = strtok(buffer, ":;");
+   char *cur = my_strtok(buffer, ":;");
    assert(strcmp(cur, GROUP_ARG) == 0);
    int group_index;
-   cur = strtok(NULL, ":;");
+   cur = my_strtok(NULL, ":;");
    sscanf(cur, "%d", &group_index);
    assert(group_index >= 0 && group_index < groups.size());
    group = groups[group_index];
@@ -300,16 +318,16 @@ static void encodeTest(TestInfo *test, MessageBuffer &buf)
 
 static char *decodeTest(TestInfo* &test, vector<RunGroup *> &groups, char *buffer)
 {
-   char *cur = strtok(buffer, ":;");
+   char *cur = my_strtok(buffer, ":;");
    assert(strcmp(cur, TESTINFO_ARG) == 0);
    int group_index, test_index;
 
-   cur = strtok(NULL, ":;");
+   cur = my_strtok(NULL, ":;");
    sscanf(cur, "%d", &group_index);
    assert(group_index >= 0 && group_index < groups.size());
    RunGroup *group = groups[group_index];
 
-   cur = strtok(NULL, ":;");
+   cur = my_strtok(NULL, ":;");
    sscanf(cur, "%d", &test_index);
    assert(test_index >= 0 && test_index < group->tests.size());
    
@@ -342,6 +360,12 @@ static void load_header(MessageBuffer &buffer, std::string name)
    buffer.add("L;", 2);
    buffer.add(name.c_str(), name.length());
    buffer.add(";", 1);
+}
+
+static void exit_header(MessageBuffer &buffer)
+{
+   buffer.add("X;", 2);
+   buffer.add(EXIT_MSG, strlen(EXIT_MSG));
 }
 
 static void return_header(MessageBuffer &buffer)
@@ -640,6 +664,9 @@ void RemoteBE::dispatch(char *message)
    else if (*message == 'L') {
       dispatchLoad(message_begin);
    }
+   else if (*message == 'X') {
+      dispatchExit(message_begin);
+   }
    else {
       assert(0);
    }
@@ -660,14 +687,16 @@ void RemoteBE::dispatchLoad(char *message)
 
 void RemoteBE::dispatchTest(char *message)
 {
-   char *tag = strdup(strtok(message, ":;"));
-   char *test_s = strdup(strtok(NULL, ":;"));
+   char *tag = strdup(my_strtok(message, ":;"));
+   char *group_s = strdup(my_strtok(NULL, ":;"));
+   char *test_s = strdup(my_strtok(NULL, ":;"));
 
    char *args = strchr(message, ';')+1;
    args = strchr(args, ';')+1;
 
    int group_index, test_index;
-   sscanf(test_s, "%d:%d", &group_index, test_index);
+   sscanf(group_s, "%d", &group_index);
+   sscanf(test_s, "%d", &test_index);
    
    TestMutator *test = getTestBE(group_index, test_index);
 
@@ -708,8 +737,8 @@ void RemoteBE::dispatchTest(char *message)
 
 void RemoteBE::dispatchComp(char *message)
 {
-   char *tag = strdup(strtok(message, ":;"));
-   char *name = strdup(strtok(NULL, ":;"));
+   char *tag = strdup(my_strtok(message, ":;"));
+   char *name = strdup(my_strtok(NULL, ":;"));
 
    char *args = strchr(message, ';')+1;
    args = strchr(args, ';')+1;
@@ -768,9 +797,24 @@ void RemoteBE::dispatchComp(char *message)
    free(name);
 }
 
+void RemoteBE::dispatchExit(char *message)
+{
+   exit(0);
+}
+
+static std::string getLocalComponentName(std::string modname)
+{
+   int prefix_length = strlen("remote::");
+   if (strncmp(modname.c_str(), "remote::", prefix_length) == 0) {
+      return std::string(modname.c_str()+prefix_length);
+   }
+   return modname;
+}
+
+
 ComponentTester *RemoteBE::getComponentBE(std::string name)
 {
-   map<string, ComponentTester *>::iterator i = nameToComponent.find(name);
+   map<string, ComponentTester *>::iterator i = nameToComponent.find(getLocalComponentName(name));
    assert(i != nameToComponent.end());
    return i->second;
 }
@@ -791,13 +835,15 @@ void RemoteBE::loadModule(char *message) {
 
    string modname;
    decodeString(modname, args);
+   modname = getLocalComponentName(modname);
+
    map<string, ComponentTester *>::iterator i;
    i = nameToComponent.find(modname);
 
    if (i == nameToComponent.end()) {
       ComponentTester *comp = NULL;
       for (unsigned j=0; j<groups.size(); j++) {
-         RunGroup *group;
+         RunGroup *group = groups[j];
          if (group->modname == modname) {
             bool result = Module::registerGroupInModule(modname, group, false);
             if (!result) {
@@ -910,8 +956,7 @@ static void handle_message(char *buffer) {
 
    buffer = decodeInt(stream, buffer);
    decodeString(string, buffer);
-   
-   getOutput()->log(stream, string.c_str());
+   logerror(string.c_str());
 }
 
 #define SOCKTYPE_UNIX
@@ -943,22 +988,35 @@ bool Connection::recv_return(char* &buffer) {
 #include <arpa/inet.h>
 #include <netdb.h>
 
+int Connection::sockfd = -1;
+std::string Connection::hostname;
+int Connection::port;
+bool Connection::has_hostport = false;
+
 Connection::Connection() :
-   sockfd(-1),
    fd(-1),
-   has_error(false),
-   has_hostport(false)
+   has_error(false)
 {
 }
 
 Connection::Connection(std::string hostname_, int port_) :
-   sockfd(-1),
-   fd(-1),
-   hostname(hostname_),
-   port(port_),
-   has_hostport(true)
+   fd(-1)
 {
+   hostname = hostname_;
+   port = port_;
+   has_hostport = true;
+
    has_error = !client_connect();
+}
+
+Connection::~Connection()
+{
+   MessageBuffer buf;
+   exit_header(buf);
+   send_message(buf);
+
+   if (fd != -1)
+      close(fd);
 }
 
 bool Connection::hasError()
@@ -976,18 +1034,18 @@ bool Connection::send_message(MessageBuffer &buffer)
 
    ssize_t result = send(fd, &msg_size, sizeof(uint32_t), 0);
    if (result == -1) {
-      fprintf(stderr, "Error sending data count on socket\n");
+      debug_printf("Error sending data count on socket\n");
       return false;
    }
-   fprintf(stderr, "[%d] - Send size of %lu, (encoded 0x%lx)\n", 
+   debug_printf("[%d] - Send size of %lu, (encoded 0x%lx)\n", 
            getpid(), (unsigned long) msg_size_unenc, (unsigned long) msg_size);
    
    result = send(fd, buffer.get_buffer(), msg_size_unenc, 0);
    if (result == -1) {
-      fprintf(stderr, "Error sending raw data on socket\n");
+     debug_printf("Error sending raw data on socket\n");
       return false;
    }
-   fprintf(stderr, "[%d] - Sent buffer %s\n", getpid(), buffer.get_buffer());
+  debug_printf("[%d] - Sent buffer %s\n", getpid(), buffer.get_buffer());
    return true;
 }
 
@@ -1000,19 +1058,24 @@ bool Connection::recv_message(char* &buffer)
    if (!waitForAvailData(fd, recv_timeout, sock_error))
       return false;
    if (sock_error) {
-      fprintf(stderr, "[%d] - Recv sock exception\n", getpid());
+     debug_printf("[%d] - Recv sock exception\n", getpid());
    }
    
    uint32_t msg_size = 0, enc_msg_size = 0;
-   ssize_t result = recv(fd, &enc_msg_size, sizeof(uint32_t), MSG_WAITALL);
+   ssize_t result;
+   result = recv(fd, &enc_msg_size, sizeof(uint32_t), MSG_WAITALL);
    if (result == -1) {
       int errornum = errno;
-      fprintf(stderr, "Error receiving data size on socket: %s\n", strerror(errornum));
+      debug_printf("Error receiving data size on socket: %s\n", strerror(errornum));
+      return false;
+   }
+   if (result == 0) {
+      debug_printf("[%d] - Recv zero, other size shutdown.\n", getpid());
       return false;
    }
    msg_size = ntohl(enc_msg_size);
-   fprintf(stderr, "[%d] - Recv size of %lu, (encoded 0x%lx)\n", 
-           getpid(), (unsigned long) msg_size, enc_msg_size);
+   debug_printf("[%d] - Recv size of %lu, (encoded 0x%lx, result = %d)\n", 
+                getpid(), (unsigned long) msg_size, enc_msg_size, (int) result);
 
    assert(msg_size < (1024*1024)); //No message over 1MB--should be plenty
    
@@ -1034,29 +1097,12 @@ bool Connection::recv_message(char* &buffer)
 
    result = recv(fd, cur_buffer, msg_size, MSG_WAITALL);
    if (result == -1) {
-      fprintf(stderr, "Error receiving data on socket\n");
+     debug_printf("Error receiving data on socket\n");
       return false;
    }
 
-   //MATT DEBUG --- delete me
-   /*
-   int count = 0;
-   while (waitForAvailData(fd, 0, sock_error)) {
-      unsigned char c = 0xcd;
-      result = recv(fd, &c, 1, MSG_WAITALL);
-      count++;
-      if (result == -1) {
-         fprintf(stderr, "recv error\n");
-         break;
-      }
-      fprintf(stderr, "%d: c = %x, result = %d\n", count, (unsigned int) c, result);
-      if (count == 128)
-         break;
-   }
-   */
-
    buffer = cur_buffer;
-   fprintf(stderr, "[%d] - Recv of buffer %s\n", getpid(), buffer);
+  debug_printf("[%d] - Recv of buffer %s\n", getpid(), buffer);
 
    return true;
 }
@@ -1082,11 +1128,11 @@ bool Connection::waitForAvailData(int sock, int timeout_s, bool &sock_error)
       if (result == -1 && errno == EINTR) 
          continue;
       else if (result == -1) {
-         fprintf(stderr, "Error selecting to accept connections\n");
+        debug_printf("Error selecting to accept connections\n");
          return false;
       }
       else if (result == 0) {
-         fprintf(stderr, "Timeout accepting connections\n");
+        debug_printf("Timeout accepting connections\n");
          return false;
       }
       else if (result >= 1) {
@@ -1122,7 +1168,7 @@ bool Connection::server_accept()
 
    fd = accept(sockfd, (sockaddr *) &addr, &socklen);
    if (fd == -1) {
-      fprintf(stderr, "Error accepting connection\n");
+     debug_printf("Error accepting connection\n");
       return false;
    }
    
@@ -1134,19 +1180,19 @@ bool Connection::client_connect()
    assert(has_hostport);
    fd = socket(PF_INET, SOCK_STREAM, 0);
    if (fd == -1) {
-      fprintf(stderr, "Unable to create client socket: %s\n", strerror(errno));
+     debug_printf("Unable to create client socket: %s\n", strerror(errno));
       return false;
    }
 
    struct hostent *host = gethostbyname2(hostname.c_str(), AF_INET);
    if (!host) {
-      fprintf(stderr, "Error looking up hostname %s\n", hostname.c_str());
+     debug_printf("Error looking up hostname %s\n", hostname.c_str());
       return false;
    }
    assert(host->h_addrtype = AF_INET);
 
    if (host->h_length == 0) {
-      fprintf(stderr, "No addresses with hostname %s\n", hostname.c_str());
+     debug_printf("No addresses with hostname %s\n", hostname.c_str());
       return false;
    }
    
@@ -1159,7 +1205,7 @@ bool Connection::client_connect()
 
    int result = connect(fd, (struct sockaddr *) &addr, socklen);
    if (result == -1) {
-      fprintf(stderr, "Error connecting to server\n");
+     debug_printf("Error connecting to server\n");
       return false;
    }
 
@@ -1171,45 +1217,46 @@ bool Connection::server_setup(string &hostname_, int &port_)
    if (has_hostport) {
       hostname_ = hostname;
       port_ = port;
+      assert(sockfd != -1);
       return true;
    }
 
    sockfd = socket(PF_INET, SOCK_STREAM, 0);
    if (sockfd == -1) {
-      fprintf(stderr, "Unable to create socket: %s\n", strerror(errno));
+     debug_printf("Unable to create socket: %s\n", strerror(errno));
       return false;
    }
-
+   
    struct sockaddr_in addr;
    socklen_t socklen = sizeof(struct sockaddr_in);
-
+   
    memset(&addr, 0, socklen);
    addr.sin_family = AF_INET;
    addr.sin_port = 0;
    addr.sin_addr.s_addr = INADDR_ANY;
-
+   
    int result = bind(sockfd, (struct sockaddr *) &addr, socklen);
    if (result != 0){
-      fprintf(stderr, "Unable to bind socket: %s\n", strerror(errno));
+     debug_printf("Unable to bind socket: %s\n", strerror(errno));
       return false;
    }
-
+   
    result = listen(sockfd, 16);
    if (result == -1) {
-      fprintf(stderr, "Unable to listen on socket: %s\n", strerror(errno));
+     debug_printf("Unable to listen on socket: %s\n", strerror(errno));
       return false;
    }
 
    result = getsockname(sockfd, (sockaddr *) &addr, &socklen);
    if (result != 0) {
-      fprintf(stderr, "Unable to getsockname on socket\n");
+     debug_printf("Unable to getsockname on socket\n");
       return false;
    }
 
    char name_buffer[1024];
    result = gethostname(name_buffer, 1024);
    if (result != 0) {
-      fprintf(stderr, "Unable to get hostname\n");
+     debug_printf("Unable to get hostname\n");
       return false;
    }
 
@@ -1231,4 +1278,22 @@ Connection *getConnection()
 void setConnection(Connection *c)
 {
    con = c;
+}
+
+static char *my_strtok(char *str, const char *delim)
+{
+   static char *my_str = NULL;
+   static char *save_ptr = NULL;
+   
+   if (str) {
+      char *backup_str = strdup(str);
+      if (my_str)
+         free(my_str);
+      my_str = backup_str;
+   }
+   else {
+      my_str = NULL;
+   }
+   
+   return strtok_r(my_str, delim, &save_ptr);
 }

@@ -41,18 +41,36 @@
 
 using namespace std;
 
+#if defined(cap_launchmon)
+#include "lmon_api/lmon_be.h"
+
+void init_lmon(int *argc, char ***argv)
+{
+   lmon_rc_e rc;
+   rc = LMON_be_init(LMON_VERSION, argc, argv);
+
+   LMON_be_finalize();
+}
+
+#else
+void init_lmon(int *argc, char ***argv)
+{
+}
+#endif
 int main(int argc, char *argv[])
 {
    ParameterDict params;
    vector<RunGroup *> groups;
 
-   static volatile int spin = 1;
-   fprintf(stderr, "testdriver_be running as %d\n", getpid());
+   static volatile int spin = 0;
+   /*fprintf(stderr, "testdriver_be running as %d\n", getpid());
    while (!spin)
    {
       sleep(1);
-   }
+      }*/
    
+   init_lmon(&argc, &argv);
+
    parseArgs(argc, argv, params);
    getGroupList(groups, params);
 
@@ -71,6 +89,9 @@ int main(int argc, char *argv[])
               __FILE__, __LINE__);
       return -1;
    }
+   
+   RemoteOutputDriver remote_output(&connection);
+   setOutput(&remote_output);
 
    RemoteBE remotebe(groups, &connection);
    for (;;) {

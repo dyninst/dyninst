@@ -357,11 +357,78 @@ void tests_breakpoint()
   //Breakpoint here to get a binary with test libraries loaded.
 }
 
+static void clearConnection()
+{
+   Connection *con = getConnection();
+   if (!con)
+      return;
+   delete con;
+   setConnection(NULL);
+}
+
+bool setupConnectionToRemote(RunGroup *group, ParameterDict &params)
+{
+   clearConnection();
+   Connection *con = new Connection();
+   setConnection(con);
+
+   //Setup connection
+   std::string hostname;
+   int port;
+   bool result = con->server_setup(hostname, port);
+   if (!result) {
+      fprintf(stderr, "Could not setup server socket\n");
+      return false;
+   }
+
+   //Mutatee params
+   string mutatee_exec;
+   vector<string> mutatee_args;
+   result = getMutateeParams(group, params, mutatee_exec, mutatee_args);
+   if (!result) {
+      fprintf(stderr, "Failed to collect mutatee params\n");
+   }
+   char **c_mutatee_args = getCParams(mutatee_exec, mutatee_args);
+
+   //driver params;
+   vector<string> driver_args;
+#if defined(RUN_IN_VALGRIND) 
+   string driver_exec = "valgrind";
+   driver_args.push_back("--tool=memcheck");
+   driver_args.push_back("testdriver_be");
+#else
+   string driver_exec = "testdriver_be";
+#endif
+   char port_s[32];
+   snprintf(port_s, 32, "%d", port);
+   driver_args.push_back("-hostname");
+   driver_args.push_back(hostname);
+   driver_args.push_back("-port");
+   driver_args.push_back(port_s);
+   for (unsigned i=0; i<gargc; i++) {
+      driver_args.push_back(gargv[i]);
+   }
+   char **c_driver_args = getCParams(driver_exec, driver_args);
+
+   bool attach_mode = (group->createmode == USEATTACH);
+   int result_i = LMONInvoke(group, params, c_mutatee_args, c_driver_args, attach_mode);
+
+   result = con->server_accept();
+   if (!result) {
+      fprintf(stderr, "Failed to accept connection from client\n");
+      return false;
+   }
+}
+
 void executeGroup(RunGroup *group,
                   vector<RunGroup *> &groups,
                   ParameterDict param)
 {
    setMutateeDict(group, param);
+
+   bool is_remote = (group->mutator_location == remote);
+   if (is_remote && !group->disabled)
+      setupConnectionToRemote(group, param);
 
    initModuleIfNecessary(group, groups, param);
 
@@ -457,57 +524,6 @@ void executeGroup(RunGroup *group,
    }
 }
 
-bool setupConnectionToRemote(RunGroup *group, ParameterDict &params)
-{
-
-   static Connection *con = NULL;
-   if (!con) {
-      con = new Connection();
-      setConnection(con);
-   }
-
-   //Setup connection
-   std::string hostname;
-   int port;
-   bool result = con->server_setup(hostname, port);
-   if (!result) {
-      fprintf(stderr, "Could not setup server socket\n");
-      return false;
-   }
-
-   //Mutatee params
-   string mutatee_exec;
-   vector<string> mutatee_args;
-   result = getMutateeParams(group, params, mutatee_exec, mutatee_args);
-   if (!result) {
-      fprintf(stderr, "Failed to collect mutatee params\n");
-   }
-   char **c_mutatee_args = getCParams(mutatee_exec, mutatee_args);
-
-   //driver params;
-   string driver_exec = "testdriver_be";
-   vector<string> driver_args;
-   char port_s[32];
-   snprintf(port_s, 32, "%d", port);
-   driver_args.push_back("-hostname");
-   driver_args.push_back(hostname);
-   driver_args.push_back("-port");
-   driver_args.push_back(port_s);
-   for (unsigned i=0; i<gargc; i++) {
-      driver_args.push_back(gargv[i]);
-   }
-   char **c_driver_args = getCParams(driver_exec, driver_args);
-
-   bool attach_mode = (group->createmode == USEATTACH);
-   int result_i = LMONInvoke(group, params, c_mutatee_args, c_driver_args, attach_mode);
-
-   result = con->server_accept();
-   if (!result) {
-      fprintf(stderr, "Failed to accept connection from client\n");
-      return false;
-   }
-}
-
 void initModuleIfNecessary(RunGroup *group, std::vector<RunGroup *> &groups, 
                            ParameterDict &params)
 {
@@ -515,17 +531,21 @@ void initModuleIfNecessary(RunGroup *group, std::vector<RunGroup *> &groups,
       return;
 
    bool is_remote = (group->mutator_location == remote);
-   if (is_remote)
-      setupConnectionToRemote(group, params);
-
    Module::registerGroupInModule(group->modname, group, is_remote);
 
-   bool initModule = false;
-   for (unsigned j=0; j<group->tests.size(); j++)
-   {
-      if (group->mod && !group->mod->setupRun() && !group->tests[j]->disabled)
-         initModule = true;
+   bool hasEnabledTest = false;
+   for (unsigned j=0; j<group->tests.size(); j++) {
+      if (!group->tests[j]->disabled)
+         hasEnabledTest = true;
    }
+   if (!hasEnabledTest)
+      return;
+
+   bool initModule = false;
+   if (group->mod && !group->mod->setupRun())
+      initModule = true;
+   if (group->mutator_location == remote)
+      initModule = true;
    if (!initModule)
       return;
 
@@ -537,6 +557,8 @@ void initModuleIfNecessary(RunGroup *group, std::vector<RunGroup *> &groups,
 
    for (unsigned i=0; i<groups.size(); i++) {
       if (groups[i]->disabled || groups[i]->modname != group->modname)
+         continue;
+      if (groups[i]->mutator_location == remote && groups[i] != group)
          continue;
       for (unsigned j=0; j<groups[i]->tests.size(); j++) {
          if (groups[i]->tests[j]->disabled)
@@ -644,6 +666,7 @@ void startAllTests(std::vector<RunGroup *> &groups, ParameterDict &param)
      }
    }
       
+   clearConnection();
    measureEnd(param);
 
    return;
@@ -856,7 +879,3 @@ int setupLogs(ParameterDict &params)
    
    return 0;
 }
-
-
-
-

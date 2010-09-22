@@ -85,7 +85,7 @@ void StdOutputDriver::printHeader(FILE *out) {
       return;
    printed_header = true;
 #if defined(cap_32_64_test)
-   fprintf(out, "%-*s %-*s %-*s %-*s %-*s %-*s %-*s %s\n", 
+   fprintf(out, "%-*s %-*s %-*s %-*s %-*s %-*s %-*s %-*s %s\n", 
            name_len, "TEST", 
            compiler_len, "COMP", 
            opt_len, "OPT", 
@@ -93,15 +93,17 @@ void StdOutputDriver::printHeader(FILE *out) {
            mode_len, "MODE", 
            thread_len, "THREAD", 
            link_len, "LINK", 
+           pic_len, "PIC",
            "RESULT");
 #else
-   fprintf(out, "%-*s %-*s %-*s %-*s %-*s %-*s %s\n", 
+   fprintf(out, "%-*s %-*s %-*s %-*s %-*s %-*s %-*s %s\n", 
            name_len, "TEST", 
            compiler_len, "COMP", 
            opt_len, "OPT", 
            mode_len, "MODE", 
            thread_len, "THREAD", 
            link_len, "LINK", 
+           pic_len, "PIC",
            "RESULT");
 #endif
 }
@@ -185,7 +187,8 @@ void StdOutputDriver::logResult(test_results_t result, int stage) {
            abi_len, last_group->abi, 
            mode_len, run_mode_str, 
            thread_len, thread_str, 
-           link_len, linkage_str, picStr);
+           link_len, linkage_str, 
+           pic_len, picStr);
 #else
    fprintf(out, "%-*s %-*s %-*s %-*s %-*s %-*s %-*s", 
            name_len, name_align_buffer, 
@@ -193,7 +196,8 @@ void StdOutputDriver::logResult(test_results_t result, int stage) {
            opt_len, last_group->optlevel, 
            mode_len, run_mode_str, 
            thread_len, thread_str, 
-           link_len, linkage_str, picStr);
+           link_len, linkage_str, 
+           pic_len, picStr);
 #endif
 
 

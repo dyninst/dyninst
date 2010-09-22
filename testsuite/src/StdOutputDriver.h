@@ -51,6 +51,7 @@ private:
   static const int mode_len = 7;
   static const int thread_len = 7;
   static const int link_len = 7;
+  static const int pic_len = 8;
 
   bool printed_header;
   void printHeader(FILE *out);

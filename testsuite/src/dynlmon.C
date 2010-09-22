@@ -46,10 +46,10 @@ static pid_t run_local(char **args)
 }
 
 #if defined(cap_launchmon)
-#include "lmon_fe.h"
+#include "lmon_api/lmon_fe.h"
 
-static char **getLaunchParams(char *executable, char *args[], int num);
-static void init_lmon();
+static char **getLaunchParams(char *executable, char *args[], const char *num);
+static bool init_lmon();
 
 int LMONInvoke(RunGroup *, ParameterDict params, char *test_args[], char *daemon_args[], bool attach)
 {
@@ -63,7 +63,7 @@ int LMONInvoke(RunGroup *, ParameterDict params, char *test_args[], char *daemon
       return -1;
    }
 
-   char **new_test_args = getLaunchParams(test_args[0], test_args+1, 1);
+   char **new_test_args = getLaunchParams(test_args[0], test_args+1, "1");
 
    rc = LMON_fe_createSession(&session);
    if (rc != LMON_OK) {
@@ -88,10 +88,10 @@ int LMONInvoke(RunGroup *, ParameterDict params, char *test_args[], char *daemon
    else {
       rc = LMON_fe_launchAndSpawnDaemons(session, 
                                          launcher_host,
-                                         daemon_args[0],
-                                         daemon_args,
                                          new_test_args[0],
                                          new_test_args,
+                                         daemon_args[0],
+                                         daemon_args,
                                          NULL, NULL);
    }
    
@@ -102,6 +102,8 @@ int LMONInvoke(RunGroup *, ParameterDict params, char *test_args[], char *daemon
 
 static bool init_lmon()
 {
+   lmon_rc_e rc;
+
    static bool initialized = false;
    if (initialized)
       return true;
@@ -111,7 +113,7 @@ static bool init_lmon()
    return (rc == LMON_OK);
 }
 
-#if defined(os_cnl)
+#if defined(os_cnl_test)
 static char **getLaunchParams(char *executable, char *args[], int num)
 {
    
@@ -126,6 +128,20 @@ static char **getLaunchParams(char *executable, char *args[], int num)
    new_args[3] = executable;
    for (unsigned i=0; i<=count; i++)
       new_args[4+i] = args[i];
+   return new_args;
+}
+#elif defined(os_linux_test)
+static char **getLaunchParams(char *executable, char *args[], const char *num)
+{
+   
+   int count = 0;
+   for (char **counter = args; *counter; counter++, count++);
+   char **new_args = (char **) malloc(sizeof(char *) * (count+5));
+   new_args[0] = "orterun";
+   new_args[1] = "-n";
+   new_args[2] = const_cast<char *>(num);
+   for (unsigned i=0; i<=count; i++)
+      new_args[3+i] = args[i];
    return new_args;
 }
 #endif
