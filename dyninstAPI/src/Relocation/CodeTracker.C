@@ -39,7 +39,7 @@ using namespace std;
 
 bool CodeTracker::origToReloc(Address origAddr,
 			      bblInstance *origBBL, 
-			      Address &reloc) const {
+			      RelocatedElements &reloc) const {
   BFM_citer iter = origToReloc_.find(origBBL);
   if (iter == origToReloc_.end()) return false;
 
@@ -47,8 +47,7 @@ bool CodeTracker::origToReloc(Address origAddr,
   FM_citer iter2 = fm.find(origAddr);
   if (iter2 == fm.end()) return false;
 
-  const TrackerList &l = iter2->second;
-  reloc = l.front()->origToReloc(origAddr);
+  reloc = iter2->second;
 
   return true;
 }
@@ -94,10 +93,15 @@ void CodeTracker::createIndices() {
        iter != trackers_.end(); ++iter) {
     TrackerElement *e = *iter;
 
-    // Since the origToReloc is based off start address only, there is no difference
-    // in how we handle original relocated code or added code. 
-    origToReloc_[e->block()][e->orig()].push_back(e);
     relocToOrig_.insert(e->reloc(), e->reloc() + e->size(), e);
+
+    if (e->type() == TrackerElement::instrumentation) {
+      origToReloc_[e->block()][e->orig()].instrumentation = e->reloc();
+    }
+    else {
+      origToReloc_[e->block()][e->orig()].instruction = e->reloc();
+    }
+
   }
 }
 

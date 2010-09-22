@@ -155,8 +155,14 @@ class InstTracker : public TrackerElement {
 
 class CodeTracker {
  public:
+  struct RelocatedElements {
+    Address instruction;
+    Address instrumentation;
+  RelocatedElements() : instruction(0), instrumentation(0) {};
+  };
+
   typedef std::list<TrackerElement *> TrackerList;
-  typedef std::map<Address, TrackerList> ForwardsMap;
+  typedef std::map<Address, RelocatedElements> ForwardsMap;
   typedef ForwardsMap::const_iterator FM_citer;
   typedef std::map<bblInstance *, ForwardsMap> BlockForwardsMap;
   typedef BlockForwardsMap::const_iterator BFM_citer;
@@ -166,7 +172,7 @@ class CodeTracker {
   CodeTracker() {};
   ~CodeTracker() {};
 
-  bool origToReloc(Address origAddr, bblInstance *origBBL, Address &reloc) const;
+  bool origToReloc(Address origAddr, bblInstance *origBBL, RelocatedElements &relocs) const;
   bool relocToOrig(Address relocAddr, Address &orig, bblInstance *&origBBL) const;
 
   baseTrampInstance *getBaseT(Address relocAddr) const;
