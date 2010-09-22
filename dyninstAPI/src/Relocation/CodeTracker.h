@@ -156,8 +156,11 @@ class InstTracker : public TrackerElement {
 class CodeTracker {
  public:
   typedef std::list<TrackerElement *> TrackerList;
-  typedef class IntervalTree<Address, TrackerElement *> NonBlockRange;
-  typedef std::map<bblInstance *, NonBlockRange> BlockRange;
+  typedef std::map<Address, TrackerList> ForwardsMap;
+  typedef ForwardsMap::const_iterator FM_citer;
+  typedef std::map<bblInstance *, ForwardsMap> BlockForwardsMap;
+  typedef BlockForwardsMap::const_iterator BFM_citer;
+  typedef class IntervalTree<Address, TrackerElement *> ReverseMap;
 
 
   CodeTracker() {};
@@ -182,8 +185,10 @@ class CodeTracker {
 
  private:
 
-  BlockRange origToReloc_;
-  NonBlockRange relocToOrig_;
+  // We make this bblInstance specific to handle shared
+  // code
+  BlockForwardsMap origToReloc_;
+  ReverseMap relocToOrig_;
 
   TrackerList trackers_;
 };
