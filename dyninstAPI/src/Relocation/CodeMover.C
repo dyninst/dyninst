@@ -94,6 +94,7 @@ bool CodeMover::addTraces(TraceIter begin, TraceIter end) {
 		    << std::hex << bbl->firstInsnAddr() << std::dec
 		    << "->" << block.get() << endl;
 
+    priorityMap_[bbl] = Suggested;
   }
   return true;
 }
