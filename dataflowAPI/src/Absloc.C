@@ -148,8 +148,11 @@ bool AbsRegion::contains(const AbsRegion &rhs) const {
   // Stack slots operate kinda... odd...
   if ((absloc_.type() == Absloc::Stack) &&
       (rhs.absloc_.type() == Absloc::Stack)) {
+    // Testing: assume regions do not overlap
+    return false;
+
     // Return true if we're in the same function but different
-    // regions
+    // regions    
     if ((absloc_.func() == rhs.absloc_.func()) &&
 	(absloc_.region() != rhs.absloc_.region())) return true;
   }
