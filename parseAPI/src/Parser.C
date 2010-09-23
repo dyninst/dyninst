@@ -1305,6 +1305,18 @@ Parser::findBlockByEntry(CodeRegion *r, Address entry)
     return _parse_data->findBlock(r,entry);
 }
 
+Block *
+Parser::findNextBlock(CodeRegion *r, Address addr)
+{
+    if(_parse_state < PARTIAL) {
+        parsing_printf("[%s:%d] Parser::findBlockByEntry([%lx,%lx),%lx) "
+                       "forced parsing\n",
+            FILE__,__LINE__,r->low(),r->high(),addr);
+        parse();
+    }
+    return _parse_data->findRegion(r)->get_next_block(addr).second;
+}
+
 int
 Parser::findBlocks(CodeRegion *r, Address addr, set<Block *> & blocks)
 {

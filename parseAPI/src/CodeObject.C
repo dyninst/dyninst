@@ -117,6 +117,12 @@ CodeObject::findBlockByEntry(CodeRegion * cr, Address addr)
     return parser->findBlockByEntry(cr, addr);
 }
 
+Block *
+CodeObject::findNextBlock(CodeRegion * cr, Address addr)
+{
+    return parser->findNextBlock(cr, addr);
+}
+
 int
 CodeObject::findBlocks(CodeRegion * cr, Address addr, set<Block*> & blocks)
 {
