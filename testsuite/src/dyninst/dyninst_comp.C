@@ -44,10 +44,14 @@
 #include "test_lib.h"
 #include "ResumeLog.h"
 #include "dyninst_comp.h"
+#include "MutateeStart.h"
 
 #if defined(os_windows_test)
 #define snprintf _snprintf
 #endif
+
+using namespace std;
+
 class DyninstComponent : public ComponentTester
 {
 private:
@@ -155,7 +159,6 @@ test_results_t DyninstComponent::group_setup(RunGroup *group,
    }
 #endif
 
-   params["useAttach"]->setInt(group->useAttach);
    appThread = NULL;
    appProc = NULL;
    appAddrSpace = NULL;
@@ -163,75 +166,92 @@ test_results_t DyninstComponent::group_setup(RunGroup *group,
    char *mutatee_resumelog = params["mutatee_resumelog"]->getString();
    clear_mutateelog(mutatee_resumelog);
 
-   /*   if (group->customExecution)
-   {
-      return PASSED;
-      }*/
-
-   if (group->mutatee && group->state != SELFSTART)
-   {
-      // If test requires mutatee, start it up for the test
-      // The mutatee doesn't need to print a test label for complex tests
-      if (group->useAttach != DISK)
-      {
-         //Create or attach
-         char *logfilename = params["logfilename"]->getString();
-         bool verboseFormat = (bool) params["verbose"]->getInt();
-         bool humanlog = (bool) params["usehumanlog"]->getInt();
-         bool printLabels = (bool) params["printlabels"]->getInt();
-         bool debugPrint = (bool) params["debugPrint"]->getInt();
-         char *humanlogname = params["humanlogname"]->getString();
-         int uniqueid = params["unique_id"]->getInt();
-         
-         appProc = startMutateeTest(bpatch, group, logfilename,
-                                      (humanlog) ? humanlogname : NULL,
-                                      verboseFormat, printLabels, debugPrint,
-                                      getPIDFilename(),
-                                      mutatee_resumelog, uniqueid);
-         if (!appProc) {
-            getOutput()->log(STDERR, "Skipping test because startup failed\n");
-            err_msg = std::string("Unable to run test program: ") + 
-               std::string(group->mutatee) + std::string("\n");
-            return SKIPPED;
-         }
-         appAddrSpace = (BPatch_addressSpace *) appProc;
-         appBinEdit = NULL;
-         appThread = appProc->getThreadByIndex(0);
-         
-         if (group->state == RUNNING)
-         {
-            appProc->continueExecution();
-         }
-      }
-      else
-      {
-         //Binary rewriter
-         appBinEdit  = startBinaryTest(bpatch, group);
-         if (!appBinEdit) {
-            getOutput()->log(STDERR, "Skipping test because startup failed\n");
-            return SKIPPED;
-         }
-
-         appThread = NULL;
-         appProc = NULL;
-         appAddrSpace = (BPatch_addressSpace*) appBinEdit;         
-      }
-
-      bp_appThread.setPtr(appThread);
-      params["appThread"] = &bp_appThread;
-      
-      bp_appAddrSpace.setPtr(appAddrSpace);
-      params["appAddrSpace"] = &bp_appAddrSpace;
-      
-      bp_appProc.setPtr(appProc);
-      params["appProcess"] = &bp_appProc;
-      
-      bp_appBinEdit.setPtr(appBinEdit);
-      params["appBinaryEdit"] = &bp_appBinEdit;
-   }
-
    is_xlc.setInt((int) isMutateeXLC(group->mutatee));
    params["mutateeXLC"] = &is_xlc;
+
+   if (!group->mutatee || group->state == SELFSTART)
+      return PASSED;
+   
+   switch (group->createmode) {
+      case CREATE:
+      {
+         std::string exec_name;
+         std::vector<std::string> args;
+
+         getMutateeParams(group, params, exec_name, args);
+         char **argv = getCParams(string(""), args);
+         appProc = BPatch::bpatch->processCreate(exec_name.c_str(), (const char**) argv, NULL);
+         free(argv);
+         if (!appProc) {
+            logerror("Error creating process\n");
+            return FAILED;
+         }
+         break;
+      }
+      case USEATTACH:
+      {
+         int pid = getMutateePid(group);
+         if (!pid) {
+            std::string mutateeString = launchMutatee(group, params);
+            if (mutateeString == string("")) {
+               logerror("Error creating attach process\n");
+               return FAILED;
+            }
+            registerMutatee(mutateeString);
+            pid = getMutateePid(group);
+         }
+         assert(pid);
+
+         appProc = BPatch::bpatch->processAttach(group->mutatee, pid);
+         if (!appProc) {
+            logerror("Error attaching to process\n");
+            return FAILED;
+         }
+         break;
+      }
+      case DISK:
+      {
+         appBinEdit = BPatch::bpatch->openBinary(group->mutatee, true);
+         if (!appBinEdit) {
+            logerror("Error opening binary for rewriting\n");
+            return FAILED;
+         }
+         break;
+      }
+      case DESERIALIZE:
+      {
+         assert(0); //Don't know how to handle this;
+         break;
+      }
+   }
+   
+
+   if (appProc) {
+      BPatch_Vector<BPatch_thread *> thrds;
+      appProc->getThreads(thrds);
+      appThread = thrds[0];
+      appAddrSpace = (BPatch_addressSpace *) appProc;
+   }
+   else if (appBinEdit) {
+      appAddrSpace = (BPatch_addressSpace *) appBinEdit;
+   }
+
+   if (group->state == RUNNING && appProc) 
+   {
+      appProc->continueExecution();
+   }
+   
+   bp_appThread.setPtr(appThread);
+   params["appThread"] = &bp_appThread;
+   
+   bp_appAddrSpace.setPtr(appAddrSpace);
+   params["appAddrSpace"] = &bp_appAddrSpace;
+   
+   bp_appProc.setPtr(appProc);
+   params["appProcess"] = &bp_appProc;
+   
+   bp_appBinEdit.setPtr(appBinEdit);
+   params["appBinaryEdit"] = &bp_appBinEdit;
 
    return PASSED;
 }
@@ -239,6 +259,7 @@ test_results_t DyninstComponent::group_setup(RunGroup *group,
 test_results_t DyninstComponent::group_teardown(RunGroup *group,
                                                 ParameterDict &params)
 {
+
     if (group->customExecution) {
         // We don't care about pass/fail here but we most definitely care about mutatee cleanup.
         // Just kill the process...
@@ -249,7 +270,8 @@ test_results_t DyninstComponent::group_teardown(RunGroup *group,
         }      
         return PASSED;
     }
-   bool someTestPassed;
+   bool someTestPassed = false;
+
    for (unsigned i=0; i<group->tests.size(); i++)
    {
       if (shouldRunTest(group, group->tests[i]))
@@ -259,22 +281,12 @@ test_results_t DyninstComponent::group_teardown(RunGroup *group,
    }
    char *mutatee_resumelog = params["mutatee_resumelog"]->getString();
 
-   if (group->useAttach == DISK) {
+   if (group->createmode == DISK) {
       if (!someTestPassed)
          return FAILED;
-      char *logfilename = params["logfilename"]->getString();
-      bool verboseFormat = (bool) params["verbose"]->getInt();
-      bool humanlog = (bool) params["usehumanlog"]->getInt();
-      bool printLabels = (bool) params["printlabels"]->getInt();
-      bool debugPrint = (bool) params["debugPrint"]->getInt();
-      char *humanlogname = params["humanlogname"]->getString();
-      bool noClean = (bool) params["noClean"]->getInt();
-      int unique_id = params["unique_id"]->getInt();
-      
+
       test_results_t test_result;
-      runBinaryTest(bpatch, group, appBinEdit,
-                    logfilename, humanlogname, verboseFormat, printLabels,
-                    debugPrint, getPIDFilename(), mutatee_resumelog, unique_id, noClean, test_result);
+      runBinaryTest(group, params, test_result);
       return test_result;
    }
 
@@ -399,9 +411,9 @@ DyninstMutator::~DyninstMutator() {
 
 test_results_t DyninstMutator::setup(ParameterDict &param) 
 {
-  runmode = (create_mode_t) param["useAttach"]->getInt();
+  runmode = (create_mode_t) param["createmode"]->getInt();
 
-  bool useAttach = param["useAttach"]->getInt() == USEATTACH;
+  bool createmode = param["createmode"]->getInt() == USEATTACH;
 
   if (param["appThread"] == NULL)
   {
@@ -417,7 +429,7 @@ test_results_t DyninstMutator::setup(ParameterDict &param)
   // Read the program's image and get an associated image object
   appImage = appAddrSpace->getImage();
 
-  if ( useAttach ) 
+  if ( createmode ) 
   {
 	  if ( ! signalAttached(appImage) )
 	  {

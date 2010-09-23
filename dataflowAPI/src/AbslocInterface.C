@@ -348,6 +348,7 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
                                   const Address &addr,
 				  ParseAPI::Function *func,
 				  std::vector<Assignment::Ptr> &assignments) {
+  assignments.clear();
   if (cache(func, addr, assignments)) return;
 
   // Decompose the instruction into a set of abstract assignments.

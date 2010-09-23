@@ -1908,3 +1908,16 @@ bool mapped_object::isExploratoryModeOn()
     return BPatch_exploratoryMode == analysisMode_ ||
            BPatch_defensiveMode == analysisMode_;
 }
+
+#if !( (defined(os_linux) || defined(os_freebsd)) && \
+       (defined(arch_x86) || defined(arch_x86_64)) )
+int_function *mapped_object::findGlobalConstructorFunc(const std::string &) {
+    assert(!"Not implemented");
+    return NULL;
+}
+
+int_function *mapped_object::findGlobalDestructorFunc(const std::string &) {
+    assert(!"Not implemented");
+    return NULL;
+}
+#endif

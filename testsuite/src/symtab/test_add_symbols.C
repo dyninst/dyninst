@@ -53,9 +53,6 @@ extern "C" DLLEXPORT TestMutator* test_add_symbols_factory()
 
 test_results_t test_add_symbols_Mutator::executeTest()
 {
-  if (useAttach == DESERIALIZE)
-    return SKIPPED;
-
   // Test 1 of 2: add a name to a function
   // Test 2 of 2: directly add a symbol into the image
   

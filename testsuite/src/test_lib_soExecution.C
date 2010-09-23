@@ -44,6 +44,7 @@
 #include "TestMutator.h"
 #include "test_info_new.h"
 #include "comptester.h"
+#include "module.h"
 
 TESTLIB_DLL_EXPORT TestOutputDriver *loadOutputDriver(char *odname, void * data) {
   std::stringstream fname;
@@ -96,9 +97,12 @@ int setupMutatorsForRunGroup(RunGroup *group)
 {
   int tests_found = 0;
   for (int i = 0; i < group->tests.size(); i++) {
-    if (group->tests[i]->disabled)
-       continue;
     TestInfo *test = group->tests[i];
+    if (test->disabled)
+       continue;
+    if (test->mutator)
+       continue;
+    
     const char *soname = test->soname;
 
     void *handle = openSO(soname);
@@ -143,7 +147,6 @@ ComponentTester *Module::loadModuleLibrary()
 #else   
    snprintf(libname, 256, "libtest%s.so", name.c_str());
 #endif
-   //TODO: Open the so that goes with this group.
    libhandle = openSO(libname);
    if (!libhandle)
       return NULL;

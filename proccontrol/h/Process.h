@@ -57,6 +57,9 @@ class int_notify;
 class HandlerPool;
 
 namespace Dyninst {
+
+class SymbolReaderFactory;
+
 namespace ProcControlAPI {
 
 class Process;
@@ -152,6 +155,9 @@ class LibraryPool
   const_iterator end() const;
 
   size_t size() const;
+
+  Library::ptr getExecutable();
+  const Library::ptr getExecutable() const;
 
   Library::ptr getLibraryByName(std::string s);
   Library::ptr getLibraryByName(std::string s) const;
@@ -309,6 +315,11 @@ class Process
     **/
    dyn_detail::boost::shared_ptr<Thread> postIRPC(IRPC::ptr irpc) const;
    bool getPostedIRPCs(std::vector<IRPC::ptr> &rpcs) const;
+
+   /**
+    * Symbol access
+    **/
+   SymbolReaderFactory *getDefaultSymbolReader();
 };
 
 class Thread

@@ -3117,14 +3117,14 @@ bool installed_breakpoint::restoreBreakpointData(int_process *proc, result_respo
 bool installed_breakpoint::uninstall(int_process *proc, result_response::ptr async_resp)
 {
    assert(installed);
-   bool had_failure = false;
+   bool had_success = true;
    if (proc->getState() != int_process::exited)
    {
       bool result = proc->writeMem(&buffer, addr, buffer_size, async_resp);
       if (!result) {
          pthrd_printf("Failed to remove breakpoint at %lx from process %d\n", 
                       addr, proc->getPid());
-         had_failure = true;
+         had_success = false;
       }
    }
    installed = false;
@@ -3138,7 +3138,7 @@ bool installed_breakpoint::uninstall(int_process *proc, result_response::ptr asy
    }
    memory->breakpoints.erase(i);
 
-   return had_failure;
+   return had_success;
 }
 
 bool installed_breakpoint::suspend(int_process *proc, result_response::ptr result_resp)
@@ -3695,6 +3695,7 @@ size_t LibraryPool::size() const
 
 Library::ptr LibraryPool::getLibraryByName(std::string s)
 {
+   MTLock lock_this_func;
    int_library *int_lib = proc->getLibraryByName(s);
    if (!int_lib)
       return NULL;
@@ -3703,10 +3704,21 @@ Library::ptr LibraryPool::getLibraryByName(std::string s)
 
 Library::ptr LibraryPool::getLibraryByName(std::string s) const
 {
+   MTLock lock_this_func;
    int_library *int_lib = proc->getLibraryByName(s);
    if (!int_lib)
       return NULL;
    return int_lib->up_lib;
+}
+
+Library::ptr LibraryPool::getExecutable()
+{
+   return getLibraryByName(proc->getExecutable());
+}
+
+const Library::ptr LibraryPool::getExecutable() const
+{
+   return getLibraryByName(proc->getExecutable());
 }
 
 LibraryPool::iterator::iterator()
@@ -4456,6 +4468,18 @@ bool Process::rmBreakpoint(Dyninst::Address addr, Breakpoint::ptr bp) const
    
    return true;
    
+}
+
+SymbolReaderFactory *Process::getDefaultSymbolReader()
+{
+   MTLock lock_this_func;
+   if (!llproc_) {
+      perr_printf("getDefaultSymbolReader on deleted process\n");
+      setLastError(err_exited, "Process is exited\n");
+      return NULL;
+   }
+
+   return llproc()->plat_defaultSymReader();
 }
 
 Thread::Thread() :

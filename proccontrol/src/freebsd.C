@@ -1571,7 +1571,7 @@ static bool validateRegisters(struct reg *regs, Dyninst::LWP lwp) {
 }
 #else
 static bool validateRegisters(struct reg *, Dyninst::LWP) {
-    return true;
+    return false;
 }
 #endif
 
@@ -1648,9 +1648,7 @@ bool freebsd_thread::plat_setAllRegisters(int_registerPool &regpool) {
     }
 
 #if defined(bug_freebsd_change_pc)
-    if( llproc()->threadPool()->size() > 1 && !isSignalStopped() && 
-            (runningRPC() || int_process::isInCB()) ) 
-    {
+    if( !isSignalStopped() ) {
         pthrd_printf("Setting change PC bug condition for %d/%d\n",
                 llproc()->getPid(), lwp);
         setPCBugCondition(true);

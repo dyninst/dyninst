@@ -11,7 +11,7 @@ M_GXX ?= $(GXX)
 DEPCC ?= $(GCC)
 DEPENDFLAGS ?= -MM -MT
 DEPENDDIR = ./depends
-VPATH 	= ../src $(DEPENDDIR)
+VPATH 	= ../src $(DEPENDDIR) ../src/dyninst
 
 IFLAGS += ../../../include
 #DYNINST_INCDIR = -I../../dyninstAPI/h
@@ -33,13 +33,19 @@ IFLAGS += $(BOOST_INCDIR)
 ### Strip away most of it.
 #######################################################################
 
-CFLAGS = $(UNIFIED_TEST_DEF:%=%_test) $(AC_DEF) $(FIRST_INCLUDE) -I$(INCLUDE_DEST) -I../src -g $(BOOST_INCDIR)
+CFLAGS = $(UNIFIED_TEST_DEF:%=%_test) $(ARCH_FLAGS) $(AC_DEF) $(FIRST_INCLUDE) -I$(INCLUDE_DEST) -I../src -g $(BOOST_INCDIR)
 CXXFLAGS = $(CFLAGS)
 CXXFLAGS += $(PLATFORM_CXXFLAGS)
 CFLAGS_NATIVE = $(CFLAGS)
 CXXFLAGS_NATIVE = $(CXXFLAGS)
 MUTATEE_CFLAGS_NATIVE ?= $(CFLAGS)
 MUTATEE_CXXFLAGS_NATIVE ?= $(CXXFLAGS)
+
+
+LAUNCHMON_FE_LINK = -L/p/paradyn/packages/launchmon-0.7/lib -lmonfeapi
+LAUNCHMON_FE_CFLAGS = -I/p/paradyn/packages/launchmon-0.7/include -Dcap_launchmon
+LAUNCHMON_BE_LINK = -L/p/paradyn/packages/launchmon-0.7/lib -lmonbeapi
+LAUNCHMON_BE_CFLAGS = -I/p/paradyn/packages/launchmon-0.7/include -Dcap_launchmon
 
 #######################################################################
 ###  Generate compiler id strings
@@ -64,7 +70,7 @@ COMPILER3_GCC = $(subst $(RSQBRACK),_,$(COMPILER2_GCC))
 COMPILER4_GCC = $(subst $(LSQBRACK),_,$(COMPILER3_GCC))
 COMPILER_GCC = $(subst $(RPAREN),_,$(COMPILER4_GCC))
 MUTATEE_CFLAGS_GNU += -DCOMPILER='"$(COMPILER_GCC)"'
-MUTATEE_LDFLAGS_GNU += -L.
+MUTATEE_LDFLAGS_GNU += $(LDFLAGS) -L.
 
 COMPILERT_GXX = $(shell $(M_GCC) -v 2>&1 | grep version | head -1)
 COMPILER1_GXX = $(subst $(BLANK),_,$(COMPILERT_GXX))
@@ -78,7 +84,7 @@ COMPILER1_NATIVE_CC = $(subst $(BLANK),_,$(COMPILERT_NATIVE_CC))
 COMPILER2_NATIVE_CC = $(subst $(LPAREN),_,$(COMPILER1_NATIVE_CC))
 COMPILER_NATIVE_CC = $(subst $(RPAREN),_,$(COMPILER2_NATIVE_CC))
 MUTATEE_CFLAGS_NATIVE += -DCOMPILER='"$(COMPILER_NATIVE_CC)"'
-MUTATEE_LDFLAGS_NATIVE += -L.
+MUTATEE_LDFLAGS_NATIVE += $(LDFLAGS) -L.
 
 COMPILER1_NATIVE_CXX = $(subst $(BLANK),_,$(COMPILERT_NATIVE_CXX))
 COMPILER2_NATIVE_CXX = $(subst $(LPAREN),_,$(COMPILER1_NATIVE_CXX))
@@ -100,13 +106,21 @@ FORALL_MUTATEES = mutatee_util
 
 SRCS_LIBTESTSUITE = test_lib.C \
                     test_lib_soExecution.C \
-                    ParameterDict.C \
                     TestData.C \
                     TestMutator.C \
                     TestOutputDriver.C \
                     StdOutputDriver.C \
-                    ResumeLog.C \
-                    test_info_new.C
+						  remotetest.C \
+						  module.C
+
+SRCS_LIBTESTLAUNCH = CmdLine.C \
+							ParameterDict.C \
+						  	ResumeLog.C \
+							MutateeStart.C \
+							test_info_new.C
+# test_info_new.gen.C is also part of LIBTESTLAUNCH, but has special build rules
+
+OBJS_LIBTESTLAUNCH = $(SRCS_LIBTESTLAUNCH:%.C=%.o)
 
 SRCS_TEMPLATES = test_driver_templates.C 
 
@@ -115,8 +129,10 @@ OBJS_TEMPLATES = $(SRCS_TEMPLATES:%.C=%.o)
 
 ifdef USE_LIBTESTSUITE_EXT_A
 LIBTESTSUITE = libtestSuite.a
+LIBTESTLAUNCH = libtestlaunch.a
 else
 LIBTESTSUITE = libtestSuite.so
+LIBTESTLAUNCH = libtestlaunch.so
 endif
 
 TESTDRIVER_LDFLAGS = $(DEMANGLER_EXEC_LINK)
@@ -131,8 +147,8 @@ SRCS_DYNINSTCOMP_LIB = dyninst/dyninst_comp.C \
                        dyninst/test_lib_test7.C \
                        dyninst/test_lib_test9.C
 OBJS_DYNINSTCOMP_LIB = $(notdir $(SRCS_DYNINSTCOMP_LIB:%.C=%.o))
-SRCS_DYNINSTTESTLIB = dyninst/libtestA.c \
-                      dyninst/libtestB.c \
+SRCS_DYNINSTTESTLIB = libtestA.c \
+                      libtestB.c \
                       dyninst/libTest12.c
 
 #                      dyninst/libInstMe.c \
@@ -225,12 +241,6 @@ default: testlibs mutators mutatees_minimum drivers output_drivers components
 
 all: testlibs mutators mutatees drivers output_drivers components
 
-# test_info_new.gen.o is special-cased because it makes use of the
-# COMPILER_CONTROL_DEFS to determine which mutatees to enable for compilers
-# that are not present at all sites.
-test_info_new.gen.o: test_info_new.gen.C
-	$(CXX) -c -o $@ $(CXXFLAGS) $(COMPILER_CONTROL_DEFS) -I../src/ test_info_new.gen.C
-
 #######################################################################
 ###  A list of all the targets we're building, for install purposes
 #######################################################################
@@ -248,9 +258,11 @@ CXXTFLAGS := $(filter-out -fno-implicit-templates, $(CXXFLAGS))
 ###  High level targets
 #######################################################################
 
-MUTATOR_LDFLAGS := $(LIBDIR) $(MUTATOR_LIBS) $(MUTATOR_LDFLAGS) -lpthread
+MUTATOR_LDFLAGS := $(LDFLAGS) $(LIBDIR) $(MUTATOR_LIBS) $(MUTATOR_LDFLAGS) -lpthread
 MUTATOR_SO_LDFLAGS = $(filter-out -liberty, $(MUTATOR_LDFLAGS))
-
+MUTATEE_NATIVE_FC_LDFLAGS += $(LDFLAGS)
+MUTATEE_NATIVE_CXX_OMP_LDFLAGS += $(LDFLAGS)
+TESTDRIVER_LDFLAGS += $(LDFLAGS)
 
 # all: testlibs mutators mutatees drivers
 # See also an addition to the 'all' rule at the end of the file
@@ -363,7 +375,7 @@ endif
 
 testlibs: $(LIBTESTSUITE)
 
-drivers: test_driver runTests
+drivers: test_driver runTests testdriver_be
 
 .PHONY: clean install distclean mutators mutatees testlibs gnu_mutatees native_mutatees echo all
 
@@ -384,7 +396,7 @@ $(proccontrol_OBJS_ALL_MUTATORS): %.o : proccontrol/%.C $(DEPENDDIR)/%.dep
 	@echo Compiling $<
 	@$(CXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ -I../src/proccontrol ../src/proccontrol/$*.C
 
-$(DYNINST_TESTLIBS): %.so : dyninst/%.c $(DEPENDDIR)/%.dep
+$(DYNINST_TESTLIBS): %.so : %.c $(DEPENDDIR)/%.dep
 ifdef MAKE_SHARED_LIB
 	@echo Compiling $<
 	@$(CC) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
@@ -394,13 +406,13 @@ else
 	@$(CC) $(TESTLIB_FLAGS) -I../src/ $(filter %.c,$^) -o $@
 endif
 
-$(DYNINST_STATIC_TESTLIBS): %.a : dyninst/%.c $(DEPENDDIR)/%.dep
+$(DYNINST_STATIC_TESTLIBS): %.a : %.c $(DEPENDDIR)/%.dep
 	@echo Compiling $<
 	@$(CC) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
 	@$(AR) rcs $@ $*.o
 
 ifdef M_ABI
-$(DYNINST_TESTLIBS_ABI): %_$(M_ABI).so : dyninst/%.c $(DEPENDDIR)/%.dep
+$(DYNINST_TESTLIBS_ABI): %_$(M_ABI).so : %.c $(DEPENDDIR)/%.dep
 ifdef MAKE_SHARED_LIB
 	@echo Compiling $<
 	@$(CC) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
@@ -414,7 +426,7 @@ ifdef cap_instruction_api
     INSNAPI_LINK = -linstructionAPI
 endif
 
-$(DYNINST_STATIC_TESTLIBS_ABI): %_$(M_ABI).a : dyninst/%.c $(DEPENDDIR)/%.dep
+$(DYNINST_STATIC_TESTLIBS_ABI): %_$(M_ABI).a : %.c $(DEPENDDIR)/%.dep
 	@echo Compiling $<
 	@$(CC) -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
 	@$(AR) rcs $@ $*.o
@@ -448,6 +460,15 @@ $(OBJS_LIBTESTSUITE): %.o : ../src/%.C $(DEPENDDIR)/%.dep
 	@echo Compiling $<
 	@$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/$*.C
 
+# test_info_new.gen.o is special-cased because it makes use of the
+# COMPILER_CONTROL_DEFS to determine which mutatees to enable for compilers
+# that are not present at all sites.
+test_info_new.gen.o: test_info_new.gen.C
+	$(CXX) -c -fPIC -o $@ $(CXXFLAGS) $(COMPILER_CONTROL_DEFS) -I../src/ test_info_new.gen.C
+
+$(OBJS_LIBTESTLAUNCH): %.o :  ../src/%.C ../src/%.h $(DEPENDDIR)/%.dep
+	$(M_GXX) -c -fPIC -o $@ $(CXXFLAGS) -I../src/ ../src/$*.C
+
 $(LIBDYNINSTCOMP) : $(OBJS_DYNINSTCOMP_LIB) $(LIBTESTSUITE)
 	@echo Compiling $<
 	@$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_DYNINSTCOMP_LIB) -o $@ -L. -ltestSuite -ldyninstAPI -lsymtabAPI \
@@ -465,10 +486,12 @@ $(LIBPROCCONTROLCOMP) : $(OBJS_PROCCONTROLCOMP_LIB) $(LIBTESTSUITE)
 	@echo Compiling $<
 	@$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(OBJS_PROCCONTROLCOMP_LIB) -o $@ -L. -ltestSuite -lpcontrol -lcommon
 
-$(LIBTESTSUITE) : $(OBJS_LIBTESTSUITE) test_lib_templates.o test_lib.h
+$(LIBTESTSUITE) : $(OBJS_LIBTESTSUITE) test_lib_templates.o test_lib.h $(LIBTESTLAUNCH)
 	@echo Compiling $<
-	@$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(LIBS_LIBTESTSUITE) $(OBJS_LIBTESTSUITE) test_lib_templates.o -o $@
+	$(CXX) -shared $(TESTSUITE_FLAGS) $(LIBDIR) $(LIBS_LIBTESTSUITE) $(OBJS_LIBTESTSUITE) -L. -ltestlaunch test_lib_templates.o -o $@
 
+$(LIBTESTLAUNCH) : $(OBJS_LIBTESTLAUNCH) test_info_new.gen.o
+	$(CXX) -shared $(TESTUITE_FLAGS) $(LIBDIR) -o $@ $^
 #
 # Native Fortran mutatees
 # 
@@ -548,9 +571,10 @@ runTests-utils.o: ../src/runTests-utils.C $(DEPENDDIR)/runTests-utils.dep
 	@echo Compiling $<
 	@$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/runTests-utils.C
 
-runTests: runTests.o runTests-utils.o test_driver_templates.o 
+runTests: runTests.o runTests-utils.o test_driver_templates.o  $(LIBTESTLAUNCH)
 	@echo Linking $@
-	@$(CXX) $(CXXFLAGS) -o $@ runTests.o runTests-utils.o test_driver_templates.o 
+	@$(CXX) $(CXXFLAGS) -o $@ runTests.o runTests-utils.o test_driver_templates.o -L. -ltestlaunch 
+
 runTests_static: runTests_static.o runTests-utils.o test_driver_templates.o 
 	@echo Linking $@
 	@$(CXX) $(CXXFLAGS) -o runTests runTests_static.o runTests-utils.o test_driver_templates.o 
@@ -559,14 +583,23 @@ test_driver.o: ../src/test_driver.C $(DEPENDDIR)/test_driver.dep
 	@echo Compiling $<
 	@$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/test_driver.C
 
+testdriver_be.o: ../src/testdriver_be.C $(DEPENDDIR)/testdriver_be.dep
+	$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) $(LAUNCHMON_BE_CFLAGS) ../src/testdriver_be.C
+
+dynlmon.o: ../src/dynlmon.C $(DEPENDDIR)/dynlmon.dep
+	$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) $(LAUNCHMON_FE_CFLAGS) ../src/dynlmon.C
+
 test_driver_static.o: ../src/test_driver.C $(DEPENDDIR)/test_driver_static.dep
 	@echo Compiling $<
 	@$(CXX) -c -o $@ -DSTATIC_TEST_DRIVER $(CXXFLAGS) $(MUTATEE_DEFS) ../src/test_driver.C
 
-test_driver: test_driver.o test_driver_templates.o test_info_new.gen.o $(DEPENDDIR)/test_driver.dep $(LIBTESTSUITE)
-	@echo Linking $@ $(TESTDRIVER_LDFLAGS)
-	$(CXX) -o $@ test_driver.o test_driver_templates.o test_info_new.gen.o -L. -ltestSuite $(MUTATOR_LDFLAGS) $(LIBS) $(TESTDRIVER_LDFLAGS) -lcommon; $(TESTDRIVER_EXTRA_LINK_STEP)
-        
+test_driver: test_driver.o test_driver_templates.o dynlmon.o $(DEPENDDIR)/test_driver.dep $(LIBTESTSUITE) $(LIBTESTLAUNCH)
+	@echo Linking $@
+	@$(CXX) -o $@ test_driver.o test_driver_templates.o test_info_new.gen.o dynlmon.o -L. -ltestSuite $(MUTATOR_LDFLAGS) $(LIBS) $(TESTDRIVER_LDFLAGS) -lcommon -ltestlaunch $(LAUNCHMON_FE_LINK)
+
+testdriver_be: testdriver_be.o $(LIBTESTSUITE) $(LIBTESTLAUNCH)
+	@echo Linking $@
+	@$(CXX) -o $@ testdriver_be.o test_info_new.gen.o -L. -ltestSuite $(MUTATOR_LDFLAGS) $(LIBS) $(TESTDRIVER_LDFLAGS) -lcommon -ltestlaunch $(LAUNCHMON_BE_LINK)
 
 ######################################################################
 ### Output Drivers
@@ -580,7 +613,7 @@ DatabaseOutputDriver.o : ../src/DatabaseOutputDriver.C # $(DEPENDDIR)/DatabaseOu
 
 DatabaseOutputDriver.so: DatabaseOutputDriver.o $(LIBTESTSUITE) # $(DEPENDDIR)/DatabaseOutputDriver.dep
 	@echo Linking $@
-	@$(CXX) -o $@ -shared $(filter %.o,$^) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) -L. -ltestSuite
+	@$(CXX) -o $@ -shared $(filter %.o,$^) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) -L. -ltestSuite
 ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
@@ -595,6 +628,8 @@ output_drivers: $(OUTPUT_DRIVERS)
 #######################################################################
 
 DEPS_MUTATORS           += $(DEPENDDIR)/test_driver.dep
+DEPS_MUTATORS           += $(DEPENDDIR)/testdriver_be.dep
+DEPS_MUTATORS           += $(DEPENDDIR)/dynlmon.dep
 DEPS_MUTATORS           += $(DEPENDDIR)/runTests.dep $(DEPENDDIR)/runTests-utils.dep
 DEPS_SYMTAB_MUTATORS    += $(addprefix $(DEPENDDIR)/,$(symtab_OBJS_ALL_MUTATORS:%.o=%.dep))
 DEPS_DYNINST_MUTATORS    += $(addprefix $(DEPENDDIR)/,$(dyninst_OBJS_ALL_MUTATORS:%.o=%.dep))
@@ -606,6 +641,7 @@ DEPS_MUTATEES_GXX	+= $(addprefix $(DEPENDDIR)/,$(addsuffix _g++.dep, $(MUTATEES_
 DEPS_MUTATEES_GXX	+= $(addprefix $(DEPENDDIR)/,$(addsuffix _g++.dep, $(MUTATEES_CXX_ONLY)))
 DEPS_DYNINST_TESTLIBS	= $(addprefix $(DEPENDDIR)/,$(DYNINST_TESTLIBS:%.so=%.dep))
 DEPS_LIBTESTSUITE        = $(addprefix $(DEPENDDIR)/,$(SRCS_LIBTESTSUITE:%.C=%.dep))
+DEPS_LIBTESTLAUNCH        = $(addprefix $(DEPENDDIR)/,$(SRCS_LIBTESTLAUNCH:%.C=%.dep))
 DEPS_DYNINSTCOMP       =  $(addprefix $(DEPENDDIR)/,$(notdir $(SRCS_DYNINSTCOMP_LIB:%.C=%.dep)))
 DEPS_SYMTABCOMP        = $(addprefix $(DEPENDDIR)/,$(notdir $(SRCS_SYMTABCOMP_LIB:%.C=%.dep)))
 DEPS_INSTRUCTIONCOMP        = $(addprefix $(DEPENDDIR)/,$(notdir $(SRCS_INSTRUCTIONCOMP_LIB:%.C=%.dep)))
@@ -707,11 +743,11 @@ $(DEPS_MUTATEES_NATIVE_CXX_OMP): $(DEPENDDIR)/test%.mutatee_$(NATIVE_CXX_OMP).de
 endif
 
 
-$(DEPS_DYNINST_TESTLIBS): $(DEPENDDIR)/lib%.dep : ../src/dyninst/lib%.c 
+$(DEPS_DYNINST_TESTLIBS): $(DEPENDDIR)/lib%.dep : lib%.c 
 	@mkdir -p $(DEPENDDIR)
 	$(DEPCC) $(CXXFLAGS) $< $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) lib$*.so > $@
 
-$(DEPS_LIBTESTSUITE): $(DEPENDDIR)/%.dep : %.C
+$(DEPS_LIBTESTLAUNCH) $(DEPS_LIBTESTSUITE): $(DEPENDDIR)/%.dep : %.C
 	@mkdir -p $(DEPENDDIR)
 	$(DEPCC) $(CXXFLAGS) -I../src $< $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) $*.o > $@
 
