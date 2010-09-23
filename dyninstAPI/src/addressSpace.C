@@ -1632,7 +1632,36 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
     
   // Kevin's stuff
   cm->extractDefensivePads(this);
-  
+
+#if 0 // KEVINTODO: remove this dead code
+  // adjust PC if active frame is in a modified function
+  if (proc()) {
+      vector<dyn_thread*>::const_iterator titer;
+      for (titer=proc()->threads.begin();
+           titer != proc()->threads.end(); 
+           titer++) 
+      {
+          // translate thread's active PC to orig addr
+          Frame tframe = (*titer)->getActiveFrame();
+          Address pcOrig;
+          bblInstance *origbbi;
+          baseTrampInstance *bti;
+          if (!getRelocInfo(tframe.getPC(), &pcOrig, origInst, bti)) {
+              assert(0 && "can't be executing at an invalid addr");
+          }
+          // if the PC matches a modified function, change the PC
+          for (FuncSet::const_iterator fit = begin; fit != end; fit++) {
+              if ((*fit)->findBlockInstanceByAddr(pcOrig)) {
+                  list<Address> relocPCs;
+                  getRelocAddrs(pcOrig, origbbi, relocPCs);
+                  (*titer)->get_lwp()->changePC(relocPCs.back());
+                  break;
+              }
+          }
+      }
+  }
+#endif
+
   return true;
 }
 
@@ -1802,8 +1831,7 @@ void AddressSpace::getRelocAddrs(Address orig,
 bool AddressSpace::getRelocInfo(Address relocAddr,
                                 Address &origAddr,
                                 bblInstance *&origInst,
-                                baseTrampInstance *&baseT,
-                                bool *) 
+                                baseTrampInstance *&baseT) 
 {
   baseT = NULL;
   bool ret = false;

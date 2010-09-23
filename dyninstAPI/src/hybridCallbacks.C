@@ -433,7 +433,6 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
             mal_printf("hybridCallbacks.C[%d] Observed abuse of normal return "
                     "instruction semantics for insn at %lx target %lx\n",
                     __LINE__, point->getAddress(), returnAddr);
-            assert(0 && "need to change return address if it's a relocated addr");
         }
         else {
             // find the call point whose fallthrough address matches the return address

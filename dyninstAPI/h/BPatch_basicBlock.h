@@ -127,6 +127,7 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
 
    void setlowlevel_block(int_basicBlock *b)  { iblock = b; }
    void  getAllPoints(std::vector<BPatch_point*>& allPoints);
+   BPatch_point *convertPoint(instPoint *pt);
    BPatch_function *getCallTarget();
    // end internal functions
 

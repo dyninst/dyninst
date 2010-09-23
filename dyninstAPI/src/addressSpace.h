@@ -428,8 +428,7 @@ class AddressSpace : public InstructionSource {
     bool getRelocInfo(Address relocAddr,
 		      Address &origAddr,
 		      bblInstance *&origInst,
-		      baseTrampInstance *&baseTramp,
-              bool *isPadding=NULL);
+		      baseTrampInstance *&baseTramp);
 			   
 
     void causeTemplateInstantiations();

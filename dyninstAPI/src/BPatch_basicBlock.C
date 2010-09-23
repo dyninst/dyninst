@@ -505,6 +505,21 @@ BPatch_Vector<BPatch_point*> *BPatch_basicBlock::findPointInt(bool(*filter)(Inst
 }
 #endif
 
+// returns BPatch_point for an instPoint, unless the point isn't in this block
+BPatch_point *BPatch_basicBlock::convertPoint(instPoint *pt)
+{
+    BPatch_point *bpPt = NULL;
+    if (iblock->origInstance()->firstInsnAddr() <= pt->addr()
+        && iblock->origInstance()->endAddr() > pt->addr()) 
+    {
+        bpPt = addSpace->findOrCreateBPPoint
+            ( flowGraph->getBFunction(), 
+              pt, 
+              BPatch_point::convertInstPointType_t(pt->getPointType()) );
+    }
+    return bpPt;
+}
+
 // does not return duplicates even if some points belong to multiple categories
 //
 void BPatch_basicBlock::getAllPoints(std::vector<BPatch_point*>& bpPoints)
@@ -514,101 +529,53 @@ void BPatch_basicBlock::getAllPoints(std::vector<BPatch_point*>& bpPoints)
     pdvector<instPoint*> blockPoints = iblock->func()->funcEntries();
     unsigned pIdx;
     for (pIdx=0; pIdx < blockPoints.size(); pIdx++) {
-        if (iblock->origInstance()->firstInsnAddr() <= blockPoints[pIdx]->addr()
-            && iblock->origInstance()->endAddr() > blockPoints[pIdx]->addr()) 
-        {
-            BPatch_point *point = addSpace->findOrCreateBPPoint
-                ( flowGraph->getBFunction(), 
-                  blockPoints[pIdx], 
-                  BPatch_point::convertInstPointType_t
-                  (blockPoints[pIdx]->getPointType()) );
+        BPatch_point *point = convertPoint(blockPoints[pIdx]);
+        if (point && dupCheck.end() != dupCheck.find(point)) {
             dupCheck.insert(point);
             bpPoints.push_back(point);
         }
     }
+
     blockPoints = iblock->func()->funcExits();
     for (pIdx=0; pIdx < blockPoints.size(); pIdx++) {
-        if (iblock->origInstance()->firstInsnAddr() <= blockPoints[pIdx]->addr()
-            && iblock->origInstance()->endAddr() > blockPoints[pIdx]->addr()) 
-        {
-            BPatch_point *point = addSpace->findOrCreateBPPoint
-                ( flowGraph->getBFunction(), 
-                  blockPoints[pIdx], 
-                  BPatch_point::convertInstPointType_t
-                  (blockPoints[pIdx]->getPointType()) );
-            if (point && dupCheck.end() != dupCheck.find(point)) {
-                dupCheck.insert(point);
-                bpPoints.push_back(point);
-            }
+        BPatch_point *point = convertPoint(blockPoints[pIdx]);
+        if (point && dupCheck.end() != dupCheck.find(point)) {
+            dupCheck.insert(point);
+            bpPoints.push_back(point);
         }
     }
     blockPoints = iblock->func()->funcCalls();
     for (pIdx=0; pIdx < blockPoints.size(); pIdx++) {
-        if (iblock->origInstance()->firstInsnAddr() <= blockPoints[pIdx]->addr()
-            && iblock->origInstance()->endAddr() > blockPoints[pIdx]->addr()) 
-        {
-            BPatch_point *point = addSpace->findOrCreateBPPoint
-                ( flowGraph->getBFunction(), 
-                  blockPoints[pIdx], 
-                  BPatch_point::convertInstPointType_t
-                  (blockPoints[pIdx]->getPointType()) );
-            if (point && dupCheck.end() != dupCheck.find(point)) {
-                dupCheck.insert(point);
-                bpPoints.push_back(point);
-            }
+        BPatch_point *point = convertPoint(blockPoints[pIdx]);
+        if (point && dupCheck.end() != dupCheck.find(point)) {
+            dupCheck.insert(point);
+            bpPoints.push_back(point);
         }
     }
     blockPoints = iblock->func()->funcArbitraryPoints();
     for (pIdx=0; pIdx < blockPoints.size(); pIdx++) {
-        if (iblock->origInstance()->firstInsnAddr() <= blockPoints[pIdx]->addr()
-            && iblock->origInstance()->endAddr() > blockPoints[pIdx]->addr()) 
-        {
-            BPatch_point *point = addSpace->findOrCreateBPPoint
-                ( flowGraph->getBFunction(), 
-                  blockPoints[pIdx], 
-                  BPatch_point::convertInstPointType_t
-                  (blockPoints[pIdx]->getPointType()) );
-            if (point && dupCheck.end() != dupCheck.find(point)) {
-                dupCheck.insert(point);
-                bpPoints.push_back(point);
-            }
+        BPatch_point *point = convertPoint(blockPoints[pIdx]);
+        if (point && dupCheck.end() != dupCheck.find(point)) {
+            dupCheck.insert(point);
+            bpPoints.push_back(point);
         }
     }
-    std::set<instPoint*> pointSet = iblock->func()->funcUnresolvedControlFlow();
-    std::set<instPoint*>::iterator pIter = pointSet.begin();
-    while (pIter != pointSet.end()) {
-        if (iblock->origInstance()->firstInsnAddr() <= (*pIter)->addr()
-            && iblock->origInstance()->endAddr() > (*pIter)->addr()) 
-        {
-            BPatch_point *point = addSpace->findOrCreateBPPoint
-                ( flowGraph->getBFunction(), 
-                  *pIter, 
-                  BPatch_point::convertInstPointType_t
-                  (blockPoints[pIdx]->getPointType()) );
-            if (point && dupCheck.end() != dupCheck.find(point)) {
-                dupCheck.insert(point);
-                bpPoints.push_back(point);
-            }
+    set<instPoint*> pointSet = iblock->func()->funcUnresolvedControlFlow();
+    set<instPoint*>::iterator pIter = pointSet.begin();
+    for (; pIter != pointSet.end(); pIter++) {
+        BPatch_point *point = convertPoint(*pIter);
+        if (point && dupCheck.end() != dupCheck.find(point)) {
+            dupCheck.insert(point);
+            bpPoints.push_back(point);
         }
-        pIter++;
     }
     pointSet = iblock->func()->funcAbruptEnds();
-    pIter = pointSet.begin();
-    while (pIter != pointSet.end()) {
-        if (iblock->origInstance()->firstInsnAddr() <= (*pIter)->addr()
-            && iblock->origInstance()->endAddr() > (*pIter)->addr()) 
-        {
-            BPatch_point *point = addSpace->findOrCreateBPPoint
-                ( flowGraph->getBFunction(), 
-                  *pIter, 
-                  BPatch_point::convertInstPointType_t
-                  (blockPoints[pIdx]->getPointType()) );
-            if (point && dupCheck.end() != dupCheck.find(point)) {
-                dupCheck.insert(point);
-                bpPoints.push_back(point);
-            }
+    for (pIter = pointSet.begin(); pIter != pointSet.end(); pIter++) {
+        BPatch_point *point = convertPoint(*pIter);
+        if (point && dupCheck.end() != dupCheck.find(point)) {
+            dupCheck.insert(point);
+            bpPoints.push_back(point);
         }
-        pIter++;
     }
 }
 

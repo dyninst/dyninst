@@ -4571,91 +4571,9 @@ Address process::stopThreadCtrlTransfer
                                "the rtlib heap that it couldn't translate "
                                "%lx=>%lx %s[%d]\n", pointAddress, 
                                target, FILE__, __LINE__);
-                    assert(0);
+                    assert(0 && "need to change relocated return addr to orig");
                 }
             }
-
-#if 0
-            bblInstance *targBBI = NULL;
-            baseTrampInstance *bti = NULL;
-            bool success = getRelocInfo(target, unrelocTarget, targBBI, bti);
-            
-            if ( intPoint->func()->isSignalHandler() ) {
-                if (!success) {
-                    // we should be returning to an uninstrumented system library, 
-                    // if we're in this case something went very wrong
-                    mal_printf("ERROR: stopThread caught a return target "
-                               "from a signal handler into "
-                               "the rtlib heap that it couldn't translate "
-                               "%lx=>%lx %s[%d]\n", pointAddress, 
-                               target, FILE__, __LINE__);
-                    assert(0);
-                }
-            }
-            else {
-
-                if (success) {
-                    instPoint *dontcare = NULL;
-                    if (NULL == reverseDefensiveMap_.find(target,dontcare)) {
-                        // we're in the fallthrough block, get the call block
-                        ParseAPI::Block::edgelist & edges = targBBI->block()->llb()->sources();
-                        ParseAPI::Block::edgelist::iterator eit = edges.begin();
-                        for (; eit != edges.end(); eit++) {
-                            if (ParseAPI::CALL_FT == (*eit)->type()) {
-                                targBBI = targBBI->func()->findBlockInstanceByAddr
-                                    ((*eit)->src()->start() + targBBI->func()->obj()->codeBase());
-                                break;
-                            }
-                        }
-                        if (!targBBI || eit == edges.end()) {
-                            success = false;
-                        }
-                    }
-
-                    if (success) {
-                        // re-evaluate whether we've succeeded by checking that 
-                        // we hadn't tampered with the stack, targBBI should 
-                        // contain a call and it should call the return's function 
-                        // or have an indirect call, in which case we can't tell
-                        targBBI->func()->funcCalls();
-                        instPoint *callPt = targBBI->func()->findInstPByAddr(targBBI->lastInsnAddr());
-                        if (!callPt) {
-                            success = false;
-                        } else if (!callPt->isDynamic()) {
-                            // make sure we call the function that the ret is in
-                            success = false; // presume false until we find a matching call edge
-                            ParseAPI::Block::edgelist & edges = targBBI->block()->llb()->targets();
-                            ParseAPI::Block::edgelist::iterator eit = edges.begin();
-                            for (; eit != edges.end(); eit++) {
-                                if (ParseAPI::CALL == (*eit)->type()) {
-                                    if ((*eit)->trg() == pointfunc->ifunc()->entry()) {
-                                        success = true;
-                                    }
-                                    break; // we found the call edge, break whether it matches or not
-                                }
-                            }
-                        }
-                    }
-                }
-        
-                if (success) {
-                    // move the translated address from the call instruction 
-                    // to its fallthrough addr
-                    unrelocTarget = targBBI->endAddr();
-                } else {
-                    // resolve target subtracting the difference between the address 
-                    // of the relocated intPoint and its original counterpart
-                    unrelocTarget = resolveJumpIntoRuntimeLib(intPoint, target);
-                    if (0 == unrelocTarget) {
-                        mal_printf("ERROR: stopThread caught a return target in "
-                                   "the rtlib heap that it couldn't translate "
-                                   "%lx=>%lx %s[%d]\n", pointAddress, 
-                                   target, FILE__, __LINE__);
-                        assert(0);
-                    }
-                }
-            } 
-#endif
         }
         // case 2: The point is a control transfer into the runtime library
         else {
@@ -4671,6 +4589,12 @@ Address process::stopThreadCtrlTransfer
                         "runtime library heap address %lx=>%lx %s[%d]\n",
                         pointAddress, target, FILE__, __LINE__);
                 assert(0);
+            } else {
+                fprintf(stderr,"ERROR: jump %lx=>[%lx][%lx] is going to jump/"
+                        "call to the rtlib heap address where there is no "
+                        "code, need to modify the target somehow %s[%d]\n", 
+                        intPoint->addr(), unrelocTarget, 
+                        target, FILE__, __LINE__);
             }
         }
         mal_printf("translated target %lx to %lx %s[%d]\n",
@@ -4810,6 +4734,11 @@ bool process::handleStopThread(EventRecord &ev)
         calculation = (void*) 
             stopThreadCtrlTransfer(intPoint, (Address)calculation);
     }
+
+    list<Address> pointRelocs;
+    unsigned pointRelocCount=0;
+    getRelocAddrs(pointAddress, intPoint->block()->origInstance(),pointRelocs);
+    pointRelocCount = pointRelocs.size();
 
 /* 3. Trigger the callback for the stopThread
       using the correct snippet instance ID & event type */
