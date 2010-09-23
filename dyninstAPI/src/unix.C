@@ -1812,49 +1812,53 @@ int_function *instPoint::findCallee() {
         fbt.push_back(fbtvector[index]);
   
    Address base_addr = func()->obj()->codeBase();
+   dictionary_hash<Address, std::string> *pltFuncs =
+       func()->ifunc()->img()->getPltFuncs();
 
    // find the target address in the list of relocationEntries
-   for (u_int i=0; i < fbt.size(); i++) {
-      if (fbt[i].target_addr() == target_addr) 
-      {
-         // check to see if this function has been bound yet...if the
-         // PLT entry for this function has been modified by the runtime
-         // linker
-         int_function *target_pdf = 0;
-         if (proc()->hasBeenBound(fbt[i], target_pdf, base_addr)) {
-            callee_ = target_pdf;
-            img_p_->setCalleeName(target_pdf->symTabName());
-            //fprintf(stderr, "%s[%d]:  returning %p\n", FILE__, __LINE__, callee_);
-            return callee_;  // target has been bound
-         } 
+   if (pltFuncs->defines(target_addr)) {
+      for (u_int i=0; i < fbt.size(); i++) {
+         if (fbt[i].target_addr() == target_addr) 
+         {
+            // check to see if this function has been bound yet...if the
+            // PLT entry for this function has been modified by the runtime
+            // linker
+            int_function *target_pdf = 0;
+            if (proc()->hasBeenBound(fbt[i], target_pdf, base_addr)) {
+               callee_ = target_pdf;
+               img_p_->setCalleeName(target_pdf->symTabName());
+               //fprintf(stderr, "%s[%d]:  returning %p\n", FILE__, __LINE__, callee_);
+               return callee_;  // target has been bound
+            }
+         }
+      }
 
-         const char *target_name = fbt[i].name().c_str();
-         process *dproc = dynamic_cast<process *>(proc());
-         BinaryEdit *bedit = dynamic_cast<BinaryEdit *>(proc());
-         img_p_->setCalleeName(std::string(target_name));
-         pdvector<int_function *> pdfv;
-         if (dproc) {
-            bool found = proc()->findFuncsByMangled(target_name, pdfv);
+      const char *target_name = (*pltFuncs)[target_addr].c_str();
+      process *dproc = dynamic_cast<process *>(proc());
+      BinaryEdit *bedit = dynamic_cast<BinaryEdit *>(proc());
+      img_p_->setCalleeName(std::string(target_name));
+      pdvector<int_function *> pdfv;
+      if (dproc) {
+         bool found = proc()->findFuncsByMangled(target_name, pdfv);
+         if (found) {
+            return pdfv[0];
+         }
+      }
+      else if (bedit) {
+         std::vector<BinaryEdit *>::iterator i;
+         for (i = bedit->getSiblings().begin(); i != bedit->getSiblings().end(); i++)
+         {
+            bool found = (*i)->findFuncsByMangled(target_name, pdfv);
             if (found) {
                return pdfv[0];
             }
          }
-         else if (bedit) {
-            std::vector<BinaryEdit *>::iterator i;
-            for (i = bedit->getSiblings().begin(); i != bedit->getSiblings().end(); i++)
-            {
-               bool found = (*i)->findFuncsByMangled(target_name, pdfv);
-               if (found) {
-                  return pdfv[0];
-               }
-            }
-         }
-         else 
-            assert(0);
-         break;
       }
+      else 
+         assert(0);
    }
-       //fprintf(stderr, "%s[%d]:  returning NULL: target addr = %p\n", FILE__, __LINE__, (void *)target_addr);
+
+   //fprintf(stderr, "%s[%d]:  returning NULL: target addr = %p\n", FILE__, __LINE__, (void *)target_addr);
    return NULL;
 }
 

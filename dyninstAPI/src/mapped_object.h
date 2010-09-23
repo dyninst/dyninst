@@ -267,6 +267,11 @@ public:
     int_function *findFunction(image_func *img_func);
     int_variable *findVariable(image_variable *img_var);
 
+    // These methods should be invoked to find the global constructor and
+    // destructor functions in stripped, static binaries
+    int_function *findGlobalConstructorFunc(const std::string &ctorHandler);
+    int_function *findGlobalDestructorFunc(const std::string &dtorHandler);
+
     //
     //     PRIVATE DATA MEMBERS
     //				

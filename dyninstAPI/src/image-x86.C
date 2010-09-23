@@ -183,17 +183,9 @@ static bool replaceHandler(int_function *origHandler, int_function *newHandler,
     const pdvector<instPoint *> &entries = origHandler->funcEntries();
     AstNodePtr funcJump = AstNode::funcReplacementNode(const_cast<int_function *>(newHandler));
     for(unsigned j = 0; j < entries.size(); ++j) {
-        miniTramp *mini = entries[j]->addInst(funcJump,
+        miniTramp *mini = entries[j]->instrument(funcJump,
                 callPreInsn, orderFirstAtPoint, true, false);
-        if( !mini ) {
-            return false;
-        }
-
-        // XXX the func jumps are not being generated properly if this is set
-        mini->baseT->setCreateFrame(false);
-
-        pdvector<instPoint *> ignored;
-        entries[j]->func()->performInstrumentation(false, ignored);
+        if( !mini ) return false;
     }
 
     /* create the special relocation for the new list -- search the RT library for
@@ -236,16 +228,9 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
      * and create a special relocation for the dtors list used by the special
      * dtors function
      */
-    if( !mobj->parse_img()->findGlobalConstructorFunc(LIBC_CTOR_HANDLER) ) {
-        return false;
-    }
-
-    if( !mobj->parse_img()->findGlobalDestructorFunc(LIBC_DTOR_HANDLER) ) {
-        return false;
-    }
 
     // First, find all the necessary symbol info.
-    int_function *globalCtorHandler = findOnlyOneFunction(LIBC_CTOR_HANDLER);
+    int_function *globalCtorHandler = mobj->findGlobalConstructorFunc(LIBC_CTOR_HANDLER);
     if( !globalCtorHandler ) {
         logLine("failed to find libc constructor handler\n");
         return false;
@@ -257,7 +242,7 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
         return false;
     }
 
-    int_function *globalDtorHandler = findOnlyOneFunction(LIBC_DTOR_HANDLER);
+    int_function *globalDtorHandler = mobj->findGlobalDestructorFunc(LIBC_DTOR_HANDLER);
     if( !globalDtorHandler ) {
         logLine("failed to find libc destructor handler\n");
         return false;
@@ -334,7 +319,9 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
     vector<Archive *>::iterator libIter;
     if( origBinary->getLinkingResources(libs) ) {
         for(libIter = libs.begin(); libIter != libs.end(); ++libIter) {
-            if( (*libIter)->name().find("libpthread") != std::string::npos ) {
+            if( (*libIter)->name().find("libpthread") != std::string::npos ||
+                (*libIter)->name().find("libthr") != std::string::npos ) 
+            {
                 foundPthreads = true;
                 break;
             }
@@ -381,6 +368,225 @@ bool BinaryEdit::doStaticBinarySpecialCases() {
     }
 
     return true;
+}
+
+int_function *mapped_object::findGlobalConstructorFunc(const std::string &ctorHandler) {
+    using namespace Dyninst::InstructionAPI;
+
+    const pdvector<int_function *> *funcs = findFuncVectorByMangled(ctorHandler);
+    if( funcs != NULL ) {
+        return funcs->at(0);
+    }
+
+    /* If the symbol isn't found, try looking for it in a call instruction in
+     * the .init section
+     *
+     * On Linux, the instruction sequence is:
+     * ...
+     * some instructions
+     * ...
+     * call call_gmon_start
+     * call frame_dummy
+     * call ctor_handler
+     *
+     * On FreeBSD, the instruction sequence is:
+     * ...
+     * some instructions
+     * ...
+     * call frame_dummy
+     * call ctor_handler
+     */
+    Symtab *linkedFile = parse_img()->getObject();
+    Region *initRegion = NULL;
+    if( !linkedFile->findRegion(initRegion, ".init") ) {
+        vector<Dyninst::SymtabAPI::Function *> symFuncs;
+        if( linkedFile->findFunctionsByName(symFuncs, "_init") ) {
+            initRegion = symFuncs[0]->getRegion();
+        }else{
+            logLine("failed to locate .init Region or _init function\n");
+            return NULL;
+        }
+    }
+
+    if( initRegion == NULL ) {
+        logLine("failed to locate .init Region or _init function\n");
+        return NULL;
+    }
+
+    // Search for last of a fixed number of calls
+#if defined(os_freebsd)
+    const unsigned CTOR_NUM_CALLS = 2;
+#else
+    const unsigned CTOR_NUM_CALLS = 3;
+#endif
+
+    Address ctorAddress = 0;
+    unsigned bytesSeen = 0;
+    unsigned numCalls = 0;
+    const unsigned char *p = reinterpret_cast<const unsigned char *>(initRegion->getPtrToRawData());
+
+    InstructionDecoder decoder(p, initRegion->getRegionSize(),
+        parse_img()->codeObject()->cs()->getArch()); 
+
+    Instruction::Ptr curInsn = decoder.decode();
+    while(numCalls < CTOR_NUM_CALLS && curInsn && curInsn->isValid() &&
+          bytesSeen < initRegion->getRegionSize()) 
+    {
+        InsnCategory category = curInsn->getCategory();
+        if( category == c_CallInsn ) {
+            numCalls++;
+        }
+        if( numCalls < CTOR_NUM_CALLS ) {
+            bytesSeen += curInsn->size();
+            curInsn = decoder.decode();
+        }
+    }
+
+    if( numCalls != CTOR_NUM_CALLS ) {
+        logLine("heuristic for finding global constructor function failed\n");
+        return NULL;
+    }
+
+    Address callAddress = initRegion->getRegionAddr() + bytesSeen;
+
+    RegisterAST thePC = RegisterAST(
+        Dyninst::MachRegister::getPC(parse_img()->codeObject()->cs()->getArch()));
+
+    Expression::Ptr callTarget = curInsn->getControlFlowTarget();
+    if( !callTarget.get() ) {
+        logLine("failed to find global constructor function\n");
+        return NULL;
+    }
+    callTarget->bind(&thePC, Result(s64, callAddress));
+
+    Result actualTarget = callTarget->eval();
+    if( actualTarget.defined ) {
+        ctorAddress = actualTarget.convert<Address>();
+    }else{
+        logLine("failed to find global constructor function\n");
+        return NULL;
+    }
+
+    if( !ctorAddress || !parse_img()->codeObject()->cs()->isValidAddress(ctorAddress) ) {
+        logLine("invalid address for global constructor function\n");
+        return NULL;
+    }
+
+    int_function *ret;
+    if( (ret = findFuncByAddr(ctorAddress)) == NULL ) {
+        logLine("unable to create representation for global constructor function\n");
+        return NULL;
+    }
+
+    inst_printf("%s[%d]: set global constructor address to 0x%lx\n", FILE__, __LINE__,
+            ctorAddress);
+
+    return ret;
+}
+
+int_function *mapped_object::findGlobalDestructorFunc(const std::string &dtorHandler) {
+    using namespace Dyninst::InstructionAPI;
+
+    const pdvector<int_function *> *funcs = findFuncVectorByMangled(dtorHandler);
+    if( funcs != NULL ) {
+        return funcs->at(0);
+    }
+
+    /*
+     * If the symbol isn't found, try looking for it in a call in the
+     * .fini section. It is the last call in .fini.
+     *
+     * The pattern is:
+     *
+     * _fini:
+     *
+     * ... some code ...
+     *
+     * call dtor_handler
+     *
+     * ... prologue ...
+     */
+    Symtab *linkedFile = parse_img()->getObject();
+    Region *finiRegion = NULL;
+    if( !linkedFile->findRegion(finiRegion, ".fini") ) {
+        vector<Dyninst::SymtabAPI::Function *> symFuncs;
+        if( linkedFile->findFunctionsByName(symFuncs, "_fini") ) {
+            finiRegion = symFuncs[0]->getRegion();
+        }else{
+            logLine("failed to locate .fini Region or _fini function\n");
+            return NULL;
+        }
+    }
+
+    if( finiRegion == NULL ) {
+        logLine("failed to locate .fini Region or _fini function\n");
+        return NULL;
+    }
+
+    // Search for last call in the function
+    Address dtorAddress = 0;
+    unsigned bytesSeen = 0;
+    const unsigned char *p = reinterpret_cast<const unsigned char *>(finiRegion->getPtrToRawData());
+
+    InstructionDecoder decoder(p, finiRegion->getRegionSize(),
+        parse_img()->codeObject()->cs()->getArch());
+
+    Instruction::Ptr lastCall;
+    Instruction::Ptr curInsn = decoder.decode();
+
+    while(curInsn && curInsn->isValid() &&
+          bytesSeen < finiRegion->getRegionSize()) 
+    {
+        InsnCategory category = curInsn->getCategory();
+        if( category == c_CallInsn ) {
+            lastCall = curInsn;
+            break;
+        }
+
+        bytesSeen += curInsn->size();
+        curInsn = decoder.decode();
+    }
+
+    if( !lastCall.get() || !lastCall->isValid() ) {
+        logLine("heuristic for finding global destructor function failed\n");
+        return NULL;
+    }
+
+    Address callAddress = finiRegion->getRegionAddr() + bytesSeen;
+
+    RegisterAST thePC = RegisterAST(
+        Dyninst::MachRegister::getPC(parse_img()->codeObject()->cs()->getArch()));
+
+    Expression::Ptr callTarget = lastCall->getControlFlowTarget();
+    if( !callTarget.get() ) {
+        logLine("failed to find global destructor function\n");
+        return NULL;
+    }
+    callTarget->bind(&thePC, Result(s64, callAddress));
+
+    Result actualTarget = callTarget->eval();
+    if( actualTarget.defined ) {
+        dtorAddress = actualTarget.convert<Address>();
+    }else{
+        logLine("failed to find global destructor function\n");
+        return NULL;
+    }
+
+    if( !dtorAddress || !parse_img()->codeObject()->cs()->isValidAddress(dtorAddress) ) {
+        logLine("invalid address for global destructor function\n");
+        return NULL;
+    }
+
+    // A targ stub should have been created at the address
+    int_function *ret = NULL;
+    if( (ret = findFuncByAddr(dtorAddress)) == NULL ) {
+        logLine("unable to find global destructor function\n");
+        return NULL;
+    }
+    inst_printf("%s[%d]: set global destructor address to 0x%lx\n", FILE__, __LINE__,
+            dtorAddress);
+
+    return ret;
 }
 
 #endif

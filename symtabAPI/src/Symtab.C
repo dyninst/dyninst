@@ -115,6 +115,8 @@ std::string Symtab::printError(SymtabError serr)
            return "Not an Archive. Call openFile()";
        case Export_Error:
            return "Error Constructing XML"+errMsg;
+       case Emit_Error:
+           return "Error rewriting binary: " + errMsg;
        case Invalid_Flags:
           return "Flags passed are invalid.";
        case No_Error:
@@ -871,6 +873,13 @@ bool Symtab::doNotAggregate(Symbol *&sym) {
   if (sym->getMangledName().compare(0, strlen("_L_unlock_"), "_L_unlock_") == 0) {
     return true;
   }
+
+  // PPC64 Linux symbols in the .opd section appear to be functions,
+  // but are not.
+  if (sym->getRegion() && sym->getRegion()->getRegionName() == ".opd") {
+      return true;
+  }
+
   return false;
 }
 

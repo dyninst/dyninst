@@ -163,7 +163,6 @@ void Parser::ProcessCFInsn(
     
     // Instruction adapter provides edge estimates from an instruction
     ah.getNewEdges(edges_out, frame.func, cur, frame.num_insns, &plt_entries); 
-    
     insn_ret = ah.getReturnStatus(frame.func,frame.num_insns); 
 
     // Update function return status if possible
@@ -187,7 +186,8 @@ void Parser::ProcessCFInsn(
         bool resolvable_edge = true;
         bool tailcall = false;
 
-        if(!is_code(frame.func,curEdge->first)) 
+        if(!is_code(frame.func,curEdge->first) &&
+           !HASHDEF(plt_entries,curEdge->first))
         {
             if(curEdge->second != NOEDGE || !dynamic_call) {
                 unresolved = true;

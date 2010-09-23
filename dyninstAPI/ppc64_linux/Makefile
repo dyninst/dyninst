@@ -7,11 +7,11 @@
 #USES_SHM_SAMPLING = true
 #USES_PAPI = true
 #DEBUG_FLAG = -g
+AUTO_TEMPLATES=true
 #NO_IMPLICIT_TEMPLATES = true
 USES_DWARF_DEBUG = true
 USES_LIBELF = true
 USES_BOOST = true
-AUTO_TEMPLATES=true
 
 # For debugging.
 #NO_OPT_FLAG = true
@@ -23,18 +23,18 @@ include ../../make.config
 
 # Now make any necessary architecture specific changes to variables:
 
-SRCS =          ../src/linux.C \
+SRCS =		../src/linux.C \
 		../src/linux-power.C \
 		../src/linuxDL.C \
 		../src/dynamiclinking.C \
 		../src/linuxMT.C \
-                ../src/inst-linux.C \
-                ../src/inst-power.C \
-                ../src/codegen-power.C \
-                ../src/unix.C \
-		../src/InstrucIter-power.C \
+		../src/inst-linux.C \
+		../src/inst-power.C \
+		../src/unix.C \
+		../src/codegen-power.C \
 		../src/image-power.C \
-		../src/syscall-linux.C
+		../src/syscall-linux.C \
+		../src/BPatch_memoryAccessAdapter.C
 #		../src/addLibraryLinux.C \
 #		../src/writeBackElf.C \
 #		../src/saveSharedLibrary.C \

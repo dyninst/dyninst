@@ -47,7 +47,8 @@ namespace InsnAdapter {
 
 class IA_IAPI : public InstructionAdapter
 {
-  friend class image_func;
+    friend class image_func;
+        
     public:
         IA_IAPI(Dyninst::InstructionAPI::InstructionDecoder dec_,
                 Address start_, 
@@ -125,6 +126,7 @@ private:
         virtual bool isReturn() const;
         bool isFakeCall() const;
         bool isIATcall() const;
+        bool isLinkerStub() const;
 
 
         Dyninst::InstructionAPI::InstructionDecoder dec;
@@ -133,6 +135,8 @@ private:
         std::map<Address, Dyninst::InstructionAPI::Instruction::Ptr>::iterator curInsnIter;
         mutable bool validCFT;
         mutable Address cachedCFT;
+        mutable bool validLinkerStubState;
+        mutable bool cachedLinkerStubState;
         mutable std::pair<bool, bool> hascftstatus;
         mutable std::pair<bool, bool> tailCall;
         static std::map<Architecture, Dyninst::InstructionAPI::RegisterAST::Ptr> framePtr;

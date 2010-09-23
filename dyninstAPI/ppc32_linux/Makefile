@@ -28,10 +28,10 @@ SRCS =          ../src/linux.C \
 		../src/linuxDL.C \
 		../src/dynamiclinking.C \
 		../src/linuxMT.C \
-                ../src/inst-linux.C \
-                ../src/inst-power.C \
-                ../src/unix.C \
-        ../src/codegen-power.C\
+		../src/inst-linux.C \
+		../src/inst-power.C \
+		../src/unix.C \
+		../src/codegen-power.C \
 		../src/image-power.C \
 		../src/syscall-linux.C \
 		../src/BPatch_memoryAccessAdapter.C
