@@ -334,7 +334,7 @@ SymtabCodeSource::init_hints(dyn_hash_map<void*, CodeRegion*> & rmap,
         {
             parsing_printf("    == filtered hint %s [%lx] ==\n",
                 FILE__,__LINE__,(*fsit)->getOffset(),
-                (*fsit)->getFirstSymbol()->getName().c_str());
+                (*fsit)->getFirstSymbol()->getPrettyName().c_str());
             continue;
         }
 
@@ -346,7 +346,7 @@ SymtabCodeSource::init_hints(dyn_hash_map<void*, CodeRegion*> & rmap,
            parsing_printf("[%s:%d] duplicate function at address %lx: %s\n",
                 FILE__,__LINE__,
                 (*fsit)->getOffset(),
-                (*fsit)->getFirstSymbol()->getName().c_str());
+                (*fsit)->getFirstSymbol()->getPrettyName().c_str());
             ++dupes;
         }
         seen[(*fsit)->getOffset()] = true;
@@ -371,10 +371,10 @@ SymtabCodeSource::init_hints(dyn_hash_map<void*, CodeRegion*> & rmap,
         } else {
             _hints.push_back( Hint((*fsit)->getOffset(),
                                cr,
-                               (*fsit)->getFirstSymbol()->getName()) );
+                               (*fsit)->getFirstSymbol()->getPrettyName()) );
             parsing_printf("\t<%lx,%s,[%lx,%lx)>\n",
                 (*fsit)->getOffset(),
-                (*fsit)->getFirstSymbol()->getName().c_str(),
+                (*fsit)->getFirstSymbol()->getPrettyName().c_str(),
                 cr->offset(),
                 cr->offset()+cr->length());
         }
@@ -404,7 +404,7 @@ SymtabCodeSource::nonReturning(Address addr)
 
     if(f) {
         SymtabAPI::Symbol * s = f->getFirstSymbol();
-        string st_name = s->getName();
+        string st_name = s->getMangledName();
         ret = nonReturning(st_name);
     }
 
