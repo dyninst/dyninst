@@ -1598,6 +1598,21 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
     return false;
   }
 
+  if (dyn_debug_relocation) {
+      using namespace InstructionAPI;
+      // Print out the buffer we just created
+      cerr << "DUMPING RELOCATION BUFFER" << endl;
+      InstructionDecoder dec
+        (cm->ptr(),cm->size(),getArch());
+      Instruction::Ptr insn = dec.decode();
+      while(insn) {
+        cerr << "\t" << insn->format() << endl;
+        insn = dec.decode();
+      }
+  }
+
+
+
   // Copy it in
   relocation_cerr << "  Writing " << cm->size() << " bytes of data into program at "
 		  << std::hex << baseAddr << std::dec << endl;

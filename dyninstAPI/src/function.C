@@ -711,7 +711,7 @@ bool int_function::parseNewEdges( std::vector<ParseAPI::Block*> &sources,
         if (ParseAPI::NOEDGE == edgeTypes[idx]) {
             ParseAPI::Block::edgelist & edges = cursrc->targets();
             ParseAPI::Block::edgelist::iterator eit = edges.begin();
-            bool isIndir = false;
+            bool isIndirJmp = false;
             bool isCondl = false;
             for (; eit != edges.end(); eit++) {
                 if ((*eit)->trg()->start() == targets[idx]) {
@@ -719,7 +719,7 @@ bool int_function::parseNewEdges( std::vector<ParseAPI::Block*> &sources,
                     break;
                 } 
                 if (ParseAPI::INDIRECT == (*eit)->type()) {
-                    isIndir = true;
+                    isIndirJmp = true;
                 } else if (ParseAPI::COND_NOT_TAKEN == (*eit)->type()
                             || ParseAPI::COND_TAKEN == (*eit)->type()) {
                     isCondl = true;
@@ -742,7 +742,7 @@ bool int_function::parseNewEdges( std::vector<ParseAPI::Block*> &sources,
                     }
                 } else if (isCall) {
                     edgeTypes[idx] = ParseAPI::CALL;
-                } else if (isIndir) {
+                } else if (isIndirJmp) {
                     edgeTypes[idx] = ParseAPI::INDIRECT;
                 } else if (isCondl) {
                     edgeTypes[idx] = ParseAPI::COND_TAKEN;
