@@ -119,7 +119,7 @@ class int_process
   public:
    bool execed();
   protected:
-   virtual bool plat_execed() = 0;
+   virtual bool plat_execed();
    virtual bool plat_detach(bool &needs_sync) = 0;
    virtual bool plat_terminate(bool &needs_sync) = 0;
 

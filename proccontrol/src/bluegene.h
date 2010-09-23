@@ -34,6 +34,18 @@
 
 #include "proccontrol/h/Generator.h"
 #include "proccontrol/h/Decoder.h"
+#include "proccontrol/src/int_process.h"
+#include "proccontrol/src/sysv.h"
+#include "proccontrol/src/ppc_process.h"
+#include "proccontrol/src/procpool.h"
+
+#if defined(os_bgl)
+#include "external/bluegene/bgl-debugger-interface.h"
+#elif defined (os_bgp)
+#include "external/bluegene/bgp-debugger-interface.h"
+#else
+#error "ERROR: No suitable debug interface for this BG ION."
+#endif
 
 class bg_process : public sysv_process, public ppc_process
 {
@@ -48,21 +60,33 @@ class bg_process : public sysv_process, public ppc_process
    virtual bool plat_attach();   
    virtual bool plat_forked();
    virtual bool post_forked();
-   virtual bool plat_execed();
-   virtual bool plat_detach();
+   virtual bool plat_detach(bool &needs_sync);
    virtual bool plat_terminate(bool &needs_sync);
 
+   virtual bool plat_needsAsyncIO() const;
+   virtual bool plat_readMemAsync(int_thread *, Dyninst::Address addr, 
+                                  mem_response::ptr result);
+   virtual bool plat_writeMemAsync(int_thread *thr, void *local, Dyninst::Address addr,
+                                   size_t size, result_response::ptr result);
    virtual bool plat_readMem(int_thread *thr, void *local, 
                              Dyninst::Address remote, size_t size);
    virtual bool plat_writeMem(int_thread *thr, void *local, 
                               Dyninst::Address remote, size_t size);
 
    virtual bool needIndividualThreadAttach();
-   virtual bool getThreadLWPs(std::vector<Dyninst::LWP> &lwps);
    virtual Dyninst::Architecture getTargetArch();
    virtual unsigned getTargetPageSize();
    virtual Dyninst::Address plat_mallocExecMemory(Dyninst::Address, unsigned size);
    virtual bool plat_individualRegAccess();   
+
+   virtual bool plat_createDeallocationSnippet(Dyninst::Address addr, unsigned long size, void* &buffer,
+                                               unsigned long &buffer_size, unsigned long &start_offset);
+   virtual bool plat_createAllocationSnippet(Dyninst::Address addr, bool use_addr, unsigned long size, 
+                                             void* &buffer, unsigned long &buffer_size, 
+                                             unsigned long &start_offset);
+   virtual bool plat_collectAllocationResult(int_thread *thr, reg_response::ptr resp);
+
+   int_process::ThreadControlMode plat_getThreadControlMode() const;
 };
 
 class bg_thread : public int_thread
@@ -78,16 +102,19 @@ class bg_thread : public int_thread
    virtual bool plat_setAllRegisters(int_registerPool &reg);
    virtual bool plat_setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val);
    virtual bool attach();   
+
+   virtual bool plat_suspend() { return true; }
+   virtual bool plat_resume() { return true; }
 };
 
 class ArchEventBlueGene : public ArchEvent
 {
   private:
-   BG_Debugger_Msg *msg;
+   DebuggerInterface::BG_Debugger_Msg *msg;
   public:
-   ArchEventBlueGene(BG_Debugger_Msg *m);
+   ArchEventBlueGene(DebuggerInterface::BG_Debugger_Msg *m);
    virtual ~ArchEventBlueGene();
-   BG_Debugger_Msg *getMsg() const;
+   DebuggerInterface::BG_Debugger_Msg *getMsg() const;
 };
 
 class GeneratorBlueGene : public GeneratorMT
@@ -107,14 +134,14 @@ class DecoderBlueGene : public Decoder
    DecoderBlueGene();
    virtual ~DecoderBlueGene();
 
-   virtual bool getProcAndThread(bg_process* &p, bg_thread* &t) = 0;
+   virtual bool getProcAndThread(ArchEventBlueGene *archbg, bg_process* &p, bg_thread* &t);
    virtual unsigned getPriority() const;
    virtual bool decode(ArchEvent *archE, std::vector<Event::ptr> &events);
-
-   Event::ptr decodeGetRegAck(BG_Debugger_Msg *msg);
-   Event::ptr decodeGetAllRegAck(BG_Debugger_Msg *msg);
-   Event::ptr decodeGetMemAck(BG_Debugger_Msg *msg);
-   Event::ptr decodeResultAck(BG_Debugger_Msg *msg);
+   
+   Event::ptr decodeGetRegAck(DebuggerInterface::BG_Debugger_Msg *msg);
+   Event::ptr decodeGetAllRegAck(DebuggerInterface::BG_Debugger_Msg *msg);
+   Event::ptr decodeGetMemAck(DebuggerInterface::BG_Debugger_Msg *msg);
+   Event::ptr decodeResultAck(DebuggerInterface::BG_Debugger_Msg *msg);
    
 
    Event::ptr decodeAsyncAck(response::ptr resp);

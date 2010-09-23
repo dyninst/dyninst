@@ -289,6 +289,12 @@ bool int_process::execed()
    return result;
 }
 
+bool int_process::plat_execed()
+{
+   return true;
+}
+
+
 bool int_process::forked()
 {
    ProcPool()->condvar()->lock();

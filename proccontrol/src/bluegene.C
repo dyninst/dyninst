@@ -29,16 +29,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#if   defined(os_bgl)
-#include "external/bluegene/bgl-debugger-interface.h"
-#elif defined (os_bgp)
-#include "external/bluegene/bgp-debugger-interface.h"
-#else
-#error "ERROR: No suitable debug interface for this BG ION."
-#endif
+#include "proccontrol/h/Event.h"
+#include "proccontrol/src/bluegene.h"
+#include "proccontrol/src/int_event.h"
+
+#include <signal.h>
+#include <poll.h>
 
 using namespace DebuggerInterface;
 using namespace Dyninst;
+using namespace ProcControlAPI;
 using namespace std;
 
 static BG_GPR_Num_t DynToBGGPRReg(Dyninst::MachRegister reg);
@@ -87,17 +87,16 @@ bool GeneratorBlueGene::canFastHandle()
 
 ArchEvent *GeneratorBlueGene::getEvent(bool block)
 {
-   DebugEvent ev;   
    BG_Debugger_Msg *msg;
    
    if (!block && !bg_fdHasData(BG_DEBUGGER_READ_PIPE)) {
       return NULL;
    }
    
-   msg = new BG_Debugger_msg();
+   msg = new BG_Debugger_Msg();
    // Read an event from the debug filehandle.
    pthrd_printf("Reading event from BG file descriptor %d\n", BG_DEBUGGER_READ_PIPE);
-   bool result = BG_Debugger_Msg::readFromFd(BG_DEBUGGER_READ_PIPE, msg);
+   bool result = BG_Debugger_Msg::readFromFd(BG_DEBUGGER_READ_PIPE, *msg);
    if (!result) {
       pthrd_printf("Failure waiting for debug event\n");
       delete msg;
@@ -105,23 +104,34 @@ ArchEvent *GeneratorBlueGene::getEvent(bool block)
    }
    
    // extract process and thread id from the BG message.
-   pid_t pid = msg.header.nodeNumber;   
-   THR_ID tid = msg.header.thread;
-   int returnCode = msg.header.returnCode;
+   pid_t pid = msg->header.nodeNumber;   
+   THR_ID tid = msg->header.thread;
+   int returnCode = msg->header.returnCode;
    pthrd_printf("Received debug event %s from pid %d, tid %d, rc %d\n",
-             BG_Debugger_Msg::getMessageName(msg.header.messageType), pid, tid, returnCode);
+             BG_Debugger_Msg::getMessageName(msg->header.messageType), pid, tid, returnCode);
    
    if (returnCode > 0) {
       // Print out a message if we get a return code we don't expect.  Consult the debugger header
       // for the meanings of these.
       pthrd_printf("Warning. Return code for %s on pid %d, tid %d was non-zero: %d\n",
-                BG_Debugger_Msg::getMessageName(msg.header.messageType), pid, tid,
-                msg.header.returnCode);
+                BG_Debugger_Msg::getMessageName(msg->header.messageType), pid, tid,
+                msg->header.returnCode);
    }
 
    ArchEvent *aevent = new ArchEventBlueGene(msg);
    assert(aevent);
    return aevent;
+}
+
+Generator *Generator::getDefaultGenerator()
+{
+   static GeneratorBlueGene *gen = NULL;
+   if (!gen) {
+      gen = new GeneratorBlueGene();
+      assert(gen);
+      gen->launch();
+   }
+   return static_cast<Generator *>(gen);
 }
 
 DecoderBlueGene::DecoderBlueGene()
@@ -137,6 +147,23 @@ unsigned DecoderBlueGene::getPriority() const
    return default_priority;
 }
 
+bool DecoderBlueGene::getProcAndThread(ArchEventBlueGene *archbg, bg_process* &proc_out, bg_thread* &thread_out)
+{
+   int_process *proc = NULL;
+   int_thread *thread = NULL;
+
+   ProcPool()->condvar()->lock();
+   proc = ProcPool()->findProcByPid(archbg->getMsg()->header.nodeNumber);
+   if (proc) {
+      thread->llproc()->threadPool()->findThreadByLWP(archbg->getMsg()->header.thread);
+   }
+   ProcPool()->condvar()->unlock();
+
+   proc_out = dynamic_cast<bg_process *>(proc);
+   thread_out = static_cast<bg_thread *>(thread);
+   return true;
+}
+
 Event::ptr DecoderBlueGene::decodeGetRegAck(BG_Debugger_Msg *msg)
 {
    pthrd_printf("Decode get reg ack\n");
@@ -144,9 +171,9 @@ Event::ptr DecoderBlueGene::decodeGetRegAck(BG_Debugger_Msg *msg)
    
    response::ptr resp = getResponses().rmResponse(msg->header.sequence);
    assert(resp);
-   reg_response reg_resp = resp->getRegResponse();
+   reg_response::ptr reg_resp = resp->getRegResponse();
    assert(reg_resp);
-   reg_resp->postResponse(msg->dataArea.value);
+   reg_resp->postResponse(msg->dataArea.GET_REG_ACK.value);
          
    if (msg->header.returnCode > 0)
       resp->markError(msg->header.returnCode);
@@ -166,20 +193,20 @@ Event::ptr DecoderBlueGene::decodeGetAllRegAck(BG_Debugger_Msg *msg)
    
    response::ptr resp = getResponses().rmResponse(msg->header.sequence);
    assert(resp);
-   allreg_response areg_resp = resp->getRegResponse();
+   allreg_response::ptr areg_resp = resp->getAllRegResponse();
    assert(areg_resp);
 
    int_registerPool *pool = areg_resp->getRegPool();
    BG_GPR_t *reg_values = (BG_GPR_t *) &(msg->dataArea.GET_ALL_REGS_ACK.gprs);
    pool->regs.clear();
    for (unsigned i=0; i<NUM_GPRS; i++) {
-      Dyninst::MachRegister dyn_reg = BGGPRToDynReg(i);
-      if (dyn_reg == Dyninst::InvalidRegister)
+      Dyninst::MachRegister dyn_reg = BGGPRToDynReg((BG_GPR_Num_t) i);
+      if (dyn_reg == Dyninst::InvalidReg)
          continue;
       pool->regs[dyn_reg] = reg_values[i];
    }
 
-   reg_resp->postResponse();
+   areg_resp->postResponse();
          
    if (msg->header.returnCode > 0)
       resp->markError(msg->header.returnCode);
@@ -199,10 +226,10 @@ Event::ptr DecoderBlueGene::decodeGetMemAck(BG_Debugger_Msg *msg)
    
    response::ptr resp = getResponses().rmResponse(msg->header.sequence);
    assert(resp);
-   mem_response mem_resp = resp->getMemResponse();
+   mem_response::ptr mem_resp = resp->getMemResponse();
    assert(mem_resp);
 
-   mem_resp->postResponse(msg->dataArea.GET_MEM_ACK.data, msg->dataArea.GET_MEM_ACK.len);
+   mem_resp->postResponse((char *) msg->dataArea.GET_MEM_ACK.data, msg->dataArea.GET_MEM_ACK.len);
          
    if (msg->header.returnCode > 0)
       resp->markError(msg->header.returnCode);
@@ -222,11 +249,11 @@ Event::ptr DecoderBlueGene::decodeResultAck(BG_Debugger_Msg *msg)
    
    response::ptr resp = getResponses().rmResponse(msg->header.sequence);
    assert(resp);
-   result_response result_resp = resp->getMemResponse();
+   result_response::ptr result_resp = resp->getResultResponse();
    assert(result_resp);
 
    bool has_error = msg->header.returnCode;
-   mem_resp->postResponse(!has_error)
+   result_resp->postResponse(!has_error);
          
    if (has_error)
       resp->markError(msg->header.returnCode);
@@ -263,13 +290,14 @@ Event::ptr DecoderBlueGene::decodeAsyncAck(response::ptr resp)
 bool DecoderBlueGene::decode(ArchEvent *archE, std::vector<Event::ptr> &events)
 {
    assert(archE);
+   ArchEventBlueGene *archbg = static_cast<ArchEventBlueGene *>(archbg);
    Event::ptr event = Event::ptr();
 
-   BG_Debugger_Msg *msg = archE->getMsg();
+   BG_Debugger_Msg *msg = archbg->getMsg();
    
    bg_process *proc = NULL;
    bg_thread *thread = NULL;
-   bool result = getProcAndThread(proc, thread);
+   bool result = getProcAndThread(archbg, proc, thread);
    if (!result)
       return false;
    
@@ -307,16 +335,117 @@ bool DecoderBlueGene::decode(ArchEvent *archE, std::vector<Event::ptr> &events)
          pthrd_printf("Decoded ATTACH_ACK, creating bootstrap event\n");
          assert(proc->getState() == int_process::neonatal_intermediate);
          new_event = EventBootstrap::ptr(new EventBootstrap());         
+         new_event->setSyncType(Event::sync_process);
          break;
       case DETACH_ACK:
          pthrd_printf("Decoded DETACH_ACK, creating Detached event\n");
          new_event = EventDetached::ptr(new EventDetached());
+         new_event->setSyncType(Event::sync_process);
          break;
       case PROGRAM_EXITED:
       case VERSION_MSG_ACK:
       case SIGNAL_ENCOUNTERED:
+         assert(0); //TODO
+         break;
+      case SET_THREAD_OPS_ACK:
+      case GET_REGS_AND_FLOATS_ACK:
+      case GET_THREAD_ID_ACK:
+      case THREAD_ALIVE_ACK:
+      case SET_DEBUG_REGS_ACK:
+      case GET_DEBUG_REGS_ACK:
+      case GET_THREAD_INFO_ACK:
+      case GET_AUX_VECTORS_ACK:
+      case GET_STACK_TRACE_ACK:
+      case GET_PROCESS_DATA_ACK:
+      case END_DEBUG_ACK:
+      case GET_THREAD_DATA_ACK:
+         assert(0); //TODO
+         break;
+      case GET_REG:
+      case GET_ALL_REGS:
+      case SET_REG:
+      case GET_MEM:
+      case SET_MEM:
+      case GET_FLOAT_REG:
+      case GET_ALL_FLOAT_REGS:
+      case SET_FLOAT_REG:
+      case SINGLE_STEP:
+      case CONTINUE:
+      case KILL:
+      case ATTACH:
+      case DETACH:
+      case VERSION_MSG:
+      case GET_DEBUG_REGS:
+      case SET_DEBUG_REGS:
+      case GET_THREAD_INFO:
+      case THREAD_ALIVE:
+      case GET_THREAD_ID:
+      case SET_THREAD_OPS:
+      case GET_REGS_AND_FLOATS:
+      case GET_AUX_VECTORS:
+      case GET_STACK_TRACE:
+      case END_DEBUG:
+      case GET_PROCESS_DATA:
+      case GET_THREAD_DATA:
+      case THIS_SPACE_FOR_RENT:
+         //We should never get these from the debugger.  They're included here
+         // to keep the compiler from throwing missing case statement warnings.
+         // I could have used a 'default' entry, but would like to see the warnings
+         // when the interface next changes.
+         assert(0);
+         break;
    }
 
+   if (!new_event) {
+      pthrd_printf("No new event created, droping\n");
+      return true;
+   }
+
+   new_event->setProcess(proc->proc());
+   new_event->setThread(thread->thread());
+   events.push_back(new_event);
+   return true;
+}
+
+int_process *int_process::createProcess(Dyninst::PID p, std::string e)
+{
+   std::map<int,int> f;
+   std::vector<std::string> a;
+   bg_process *bgproc = new bg_process(p, e, a, f);
+   assert(bgproc);
+   return static_cast<int_process *>(bgproc);
+}
+
+int_process *int_process::createProcess(std::string e, std::vector<std::string> a, std::map<int,int> f)
+{
+   bg_process *bgproc = new bg_process(0, e, a, f);
+   assert(bgproc);
+   return static_cast<int_process *>(bgproc);
+}
+
+int_process *int_process::createProcess(Dyninst::PID, int_process *)
+{
+   assert(0); //No fork on BlueGene
+   return NULL;
+}
+
+bg_process::bg_process(Dyninst::PID p, std::string e, std::vector<std::string> a, std::map<int, int> f) :
+   int_process(p, e, a, f),
+   sysv_process(p, e, a, f),
+   ppc_process(p, e, a, f)
+{
+}
+
+bg_process::bg_process(Dyninst::PID pid_, int_process *proc_) :
+   int_process(pid_, proc_),
+   sysv_process(pid_, proc_),
+   ppc_process(pid_, proc_)
+{
+   assert(0); //No fork
+}
+
+bg_process::~bg_process()
+{
 }
 
 bool bg_process::plat_create()
@@ -361,7 +490,7 @@ bool bg_process::post_forked()
    return false;
 }
 
-bool bg_process::plat_detach()
+bool bg_process::plat_detach(bool &needs_sync)
 {
    pthrd_printf("Continuing process %d for plat detach", getPid());
    int_threadPool *tp = threadPool();
@@ -376,18 +505,20 @@ bool bg_process::plat_detach()
    msg.header.dataLength = sizeof(msg.dataArea.DETACH);
    
    pthrd_printf("Sending DETACH message to %d\n", getPid());
-   bool result = BG_Debugger_Msg::writeOnFd(BG_DEBUGGER_WRITE_PIPE, msg);
+   result = BG_Debugger_Msg::writeOnFd(BG_DEBUGGER_WRITE_PIPE, msg);
    if (!result) {
       pthrd_printf("Error sending DETACH message\n");
       return false;
    }
+
+   needs_sync = true;
    return true;   
 }
 
 bool bg_process::plat_terminate(bool &needs_sync)
 {
    BG_Debugger_Msg msg(KILL, getPid(), 0, 0, 0);
-   msgs.dataArea.KILL.signal = SIGKILL;
+   msg.dataArea.KILL.signal = SIGKILL;
    msg.header.dataLength = sizeof(msg.dataArea.KILL);
    
    pthrd_printf("Sending KILL-9 message to %d\n", getPid());
@@ -406,15 +537,15 @@ bool bg_process::plat_needsAsyncIO() const
 }
 
 bool bg_process::plat_readMemAsync(int_thread *, Dyninst::Address addr, 
-                                  mem_response::ptr result)
+                                  mem_response::ptr resp)
 {
    pthrd_printf("Reading from memory %lx +%lx on %d with response ID %d\n", 
-                addr, result->getSize(), getPid(), result->getID());
-   assert(size < BG_Debugger_Msg_MAX_MEM_SIZE); //MATT TODO
+                addr, (unsigned long) resp->getSize(), getPid(), resp->getID());
+   assert(resp->getSize() < BG_Debugger_Msg_MAX_MEM_SIZE); //MATT TODO
 
-   BG_Debugger_Msg msg(GET_MEM, getPid(), 0, result->getID(), 0);
+   BG_Debugger_Msg msg(GET_MEM, getPid(), 0, resp->getID(), 0);
    msg.dataArea.GET_MEM.addr = addr;
-   msg.dataArea.GET_MEM.len = result->getSize();
+   msg.dataArea.GET_MEM.len = resp->getSize();
    msg.header.dataLength = sizeof(msg.dataArea.GET_MEM);
    
    bool result = BG_Debugger_Msg::writeOnFd(BG_DEBUGGER_WRITE_PIPE, msg);
@@ -425,14 +556,14 @@ bool bg_process::plat_readMemAsync(int_thread *, Dyninst::Address addr,
    return true;   
 }
 
-bool bg_process::plat_writeMemAsync(int_thread *thr, void *local, Dyninst::Address addr,
-                                   size_t size, result_response::ptr result)
+bool bg_process::plat_writeMemAsync(int_thread *, void *local, Dyninst::Address addr,
+                                   size_t size, result_response::ptr resp)
 {
    pthrd_printf("Writing memory %lx +%lx on %d with response ID %d\n", 
-                addr, size, getPid(), result->getID());
+                addr, (unsigned long) size, getPid(), resp->getID());
    assert(size < BG_Debugger_Msg_MAX_MEM_SIZE); //MATT TODO
 
-   BG_Debugger_Msg msg(SET_MEM, getPid(), 0, result->getID(), 0);
+   BG_Debugger_Msg msg(SET_MEM, getPid(), 0, resp->getID(), 0);
    msg.dataArea.SET_MEM.addr = addr;
    msg.dataArea.SET_MEM.len = size;
    memcpy(msg.dataArea.SET_MEM.data, local, size);
@@ -473,9 +604,9 @@ unsigned bg_process::getTargetPageSize()
    return 4092;
 }
 
-Dyninst::Address bg_process::plat_mallocExecMemory(Dyninst::Address, unsigned size)
+Dyninst::Address bg_process::plat_mallocExecMemory(Dyninst::Address addr, unsigned size)
 {
-   assert(0); //TODO: Figure this one out.
+   return 0;
 }
 
 bool bg_process::plat_individualRegAccess()
@@ -483,8 +614,46 @@ bool bg_process::plat_individualRegAccess()
    return true;
 }
 
+bool bg_process::plat_createDeallocationSnippet(Dyninst::Address addr, unsigned long size, void* &buffer,
+                                                unsigned long &buffer_size, unsigned long &start_offset)
+{
+   return false;
+}
 
-bg_thread::bg_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l)
+bool bg_process::plat_createAllocationSnippet(Dyninst::Address addr, bool use_addr, unsigned long size, 
+                                              void* &buffer, unsigned long &buffer_size, 
+                                              unsigned long &start_offset)
+{
+   return false;
+}
+
+bool bg_process::plat_collectAllocationResult(int_thread *thr, reg_response::ptr resp)
+{
+   return false;
+}
+
+int_process::ThreadControlMode bg_process::plat_getThreadControlMode() const
+{
+   return int_process::NoLWPControl;
+}
+
+bool ProcessPool::LWPIDsAreUnique()
+{
+   return false;
+}
+
+int_thread *int_thread::createThreadPlat(int_process *proc, 
+                                         Dyninst::THR_ID thr_id, 
+                                         Dyninst::LWP lwp_id,
+                                         bool initial_thrd)
+{
+   bg_thread *bgthrd = new bg_thread(proc, thr_id, initial_thrd ? 0 : lwp_id);
+   assert(bgthrd);
+   return static_cast<int_thread *>(bgthrd);
+}
+
+bg_thread::bg_thread(int_process *p, Dyninst::THR_ID t, Dyninst::LWP l) :
+   int_thread(p, t, l)
 {
 }
 
@@ -504,24 +673,34 @@ bool bg_thread::plat_stop()
    return false;
 }
 
-bool bg_thread::plat_getAllRegisters(int_registerPool &reg)
+bool bg_thread::plat_getAllRegisters(int_registerPool &)
 {
+   assert(0);
+   return false;
 }
 
-bool bg_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val)
+bool bg_thread::plat_getRegister(Dyninst::MachRegister, Dyninst::MachRegisterVal &)
 {
+   assert(0);
+   return false;
 }
 
-bool bg_thread::plat_setAllRegisters(int_registerPool &reg)
+bool bg_thread::plat_setAllRegisters(int_registerPool &)
 {
+   assert(0);
+   return false;
 }
 
-bool bg_thread::plat_setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val)
+bool bg_thread::plat_setRegister(Dyninst::MachRegister, Dyninst::MachRegisterVal)
 {
+   assert(0);
+   return false;
 }
 
 bool bg_thread::attach()
 {
+   assert(0);
+   return false;
 }
 
 
@@ -534,8 +713,7 @@ static bool bg_fdHasData(int fd) {
    result = poll(&fds, 1, 0);
    if (result == -1) {
       int errnum = errno;
-      sw_printf("[%s:%u] - Unable to poll fd %d: %s\n", __FILE__, __LINE__, 
-                fd, strerror(errnum));
+      pthrd_printf("Unable to poll fd %d: %s\n", fd, strerror(errnum));
       return false;
    }
    return (bool) (fds.revents & POLLIN);
@@ -568,8 +746,9 @@ static Dyninst::MachRegister BGGPRToDynReg(BG_GPR_Num_t bg_regnum)
 {
 #undef CASE_GPR
 #undef CASE_SPEC
+#define DOUBLE_SEMI ::
 #define CASE_GPR(NUM) case BG_GPR ## NUM: return Dyninst::ppc32::r ## NUM
-#define CASE_SPEC(BLUEG, DYN) case BG_ ## BLUEG : return Dyninst::ppc32:: ## DYN
+#define CASE_SPEC(BLUEG, DYN) case BG_ ## BLUEG : return Dyninst::ppc32:: DYN
    switch (bg_regnum)
    {
       CASE_GPR(0);      CASE_GPR(1);      CASE_GPR(2);      CASE_GPR(3);
@@ -583,7 +762,14 @@ static Dyninst::MachRegister BGGPRToDynReg(BG_GPR_Num_t bg_regnum)
       CASE_SPEC(FPSCR, fpscw);            CASE_SPEC(LR, lr);
       CASE_SPEC(CR, cr);                  CASE_SPEC(XER, xer);
       CASE_SPEC(CTR, ctr);                CASE_SPEC(IAR, pc);
-      CASE_SPEC(MSR, msr);                
+      CASE_SPEC(MSR, msr);
+      default:
       return Dyninst::InvalidReg;
    }
 }
+
+HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool)
+{
+   return hpool;
+}
+
