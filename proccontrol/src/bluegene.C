@@ -494,18 +494,36 @@ bg_thread::~bg_thread()
 
 bool bg_thread::plat_cont()
 {
+   assert(0); //No individual thread control
+   return false;
 }
 
-virtual bool bg_thread::plat_stop()
+bool bg_thread::plat_stop()
+{
+   assert(0); //No individual thread control
+   return false;
+}
+
+bool bg_thread::plat_getAllRegisters(int_registerPool &reg)
 {
 }
 
-   virtual bool plat_getAllRegisters(int_registerPool &reg);
-   virtual bool plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val);
-   virtual bool plat_setAllRegisters(int_registerPool &reg);
-   virtual bool plat_setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val);
-   virtual bool attach();   
-};
+bool bg_thread::plat_getRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val)
+{
+}
+
+bool bg_thread::plat_setAllRegisters(int_registerPool &reg)
+{
+}
+
+bool bg_thread::plat_setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val)
+{
+}
+
+bool bg_thread::attach()
+{
+}
+
 
 static bool bg_fdHasData(int fd) {
    int result;
