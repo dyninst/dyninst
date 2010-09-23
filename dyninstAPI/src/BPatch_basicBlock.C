@@ -512,7 +512,7 @@ BPatch_point *BPatch_basicBlock::convertPoint(instPoint *pt)
     if (iblock->origInstance()->firstInsnAddr() <= pt->addr()
         && iblock->origInstance()->endAddr() > pt->addr()) 
     {
-        bpPt = addSpace->findOrCreateBPPoint
+        bpPt = flowGraph->getBFunction()->getAddSpace()->findOrCreateBPPoint
             ( flowGraph->getBFunction(), 
               pt, 
               BPatch_point::convertInstPointType_t(pt->getPointType()) );

@@ -1602,13 +1602,16 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
       using namespace InstructionAPI;
       // Print out the buffer we just created
       cerr << "DUMPING RELOCATION BUFFER" << endl;
-      InstructionDecoder dec
+      Address base = baseAddr;
+      InstructionDecoder deco
         (cm->ptr(),cm->size(),getArch());
-      Instruction::Ptr insn = dec.decode();
+      Instruction::Ptr insn = deco.decode();
       while(insn) {
-        cerr << "\t" << insn->format() << endl;
-        insn = dec.decode();
+        cerr << "\t" << hex << base << ": " << insn->format() << endl;
+        base += insn->size();
+        insn = deco.decode();
       }
+      cerr << dec;
   }
 
 

@@ -4507,7 +4507,7 @@ Address process::stopThreadCtrlTransfer
             instPoint *callPt = NULL;
             bblInstance *callBBI = NULL;
             bool tampered = false;
-            if ( NULL == reverseDefensiveMap_.find(target,callPt) ) {
+            if ( ! reverseDefensiveMap_.find(target,callPt) ) {
                 // a. 
                 // if we're in the fallthrough block, get the call block
                 bblInstance *targBBI = NULL;
