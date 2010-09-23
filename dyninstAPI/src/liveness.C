@@ -55,7 +55,7 @@ using namespace Dyninst::InstructionAPI;
 #include "Parsing.h"
 using namespace Dyninst::ParseAPI;
 
-ReadWriteInfo calcRWSets(Instruction::Ptr insn, image_basicBlock* blk, unsigned width);
+ReadWriteInfo calcRWSets(Instruction::Ptr insn, image_basicBlock* blk, unsigned width, Address a);
 InstructionCache image_basicBlock::cachedLivenessInfo = InstructionCache();
 
   
@@ -168,7 +168,7 @@ void image_basicBlock::summarizeBlockLivenessInfo(image_func *context)
      ReadWriteInfo curInsnRW;
      if(!cachedLivenessInfo.getLivenessInfo(current, context, curInsnRW))
      {
-       curInsnRW = calcRWSets(curInsn, this, width);
+       curInsnRW = calcRWSets(curInsn, this, width, current);
        cachedLivenessInfo.insertInstructionInfo(current, curInsnRW, context);
      }
 
@@ -310,7 +310,7 @@ void instPoint::calcLiveness() {
      if(!block()->llb()->cachedLivenessInfo.getLivenessInfo(curInsnAddr, func()->ifunc(), rw))
      {
        Instruction::Ptr tmp = decoder.decode(insnBuffer);
-       rw = calcRWSets(tmp, block()->llb(), width);
+       rw = calcRWSets(tmp, block()->llb(), width, curInsnAddr);
        block()->llb()->cachedLivenessInfo.insertInstructionInfo(curInsnAddr, rw, func()->ifunc());
      }
      blockAddrs.push_back(curInsnAddr);
@@ -354,7 +354,7 @@ void instPoint::calcLiveness() {
       else
       {
 	Instruction::Ptr tmp = decoder.decode((const unsigned char*)(block()->origInstance()->getPtrToInstruction(*current)));
-	rwAtCurrent = calcRWSets(tmp, block()->llb(), width);
+	rwAtCurrent = calcRWSets(tmp, block()->llb(), width, *current);
 	assert(!"SERIOUS ERROR: read/write info cache state inconsistent");
 	liveness_printf("%s[%d] Calculating liveness for iP 0x%lx, insn at 0x%lx\n",
 			FILE__, __LINE__, addr(), *current);
@@ -414,7 +414,7 @@ bitArray instPoint::liveRegisters(callWhen when) {
             func()->ifunc()->isrc()->getArch());
       Instruction::Ptr currentInsn = decoder.decode(bufferToDecode);
 
-      curInsnRW = calcRWSets(currentInsn, block()->llb(), width);
+      curInsnRW = calcRWSets(currentInsn, block()->llb(), width, addr());
 
     }
     
@@ -475,7 +475,8 @@ int convertRegID(int in)
 
 #endif
 
-ReadWriteInfo calcRWSets(Instruction::Ptr curInsn, image_basicBlock* blk, unsigned int width)
+ReadWriteInfo calcRWSets(Instruction::Ptr curInsn, image_basicBlock* blk, unsigned int width,
+                        Address a)
 {
   ReadWriteInfo ret;
   ret.read = registerSpace::getBitArray();
@@ -560,8 +561,13 @@ ReadWriteInfo calcRWSets(Instruction::Ptr curInsn, image_basicBlock* blk, unsign
   switch(category)
   {
   case c_CallInsn:
-    ret.read |= (registerSpace::getRegisterSpace(width)->getCallReadRegisters());
-    ret.written |= (registerSpace::getRegisterSpace(width)->getCallWrittenRegisters());
+      // Call instructions not at the end of a block are thunks, which are not ABI-compliant.
+      // So make conservative assumptions about what they may read (ABI) but don't assume they write anything.
+      ret.read |= (registerSpace::getRegisterSpace(width)->getCallReadRegisters());
+      if(blk->end() == a)
+      {
+          ret.written |= (registerSpace::getRegisterSpace(width)->getCallWrittenRegisters());
+      }
     break;
   case c_ReturnInsn:
     ret.read |= (registerSpace::getRegisterSpace(width)->getReturnReadRegisters());

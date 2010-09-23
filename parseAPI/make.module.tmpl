@@ -53,7 +53,10 @@ SRCS +=	../src/ParserDetails.C \
         ../src/SymtabCodeSource.C \
         ../src/ParseData.C\
         ../src/InstructionAdapter.C\
-        ../src/Parser-speculative.C
+        ../src/Parser-speculative.C\
+        ../src/IA_x86Details.C \
+        ../src/IA_powerDetails.C \
+        ../src/IA_platformDetailsFactory.C
         
 ifneq ($(findstring cap_instruction_api,$(CAP_DEF)),)
 SRCS +=	../../dataflowAPI/src/Absloc.C \
