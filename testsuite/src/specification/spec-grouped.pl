@@ -38,7 +38,8 @@
                   compiler_static_link/3, compiler_dynamic_link/3,
                   compiler_platform_abi/3, tests_module/2, mutator_requires_libs/2, 
                   test_exclude_compiler/2, remote_platform/1, remote_runmode_mutator/2,
-                  remote_runmode_mutatee/2, mutatee_launchtime/2, runmode_launch_params/5]).
+                  remote_runmode_mutatee/2, mutatee_launchtime/2, runmode_launch_params/5,
+                  platform_module/2]).
 
 %%%%%%%%%%
 %
@@ -68,6 +69,17 @@ module('stackwalker').
 module('instruction').
 module('proccontrol').
 
+platform_module(P, 'dyninst') :- platform(_, S, _, P),
+ S \= 'bluegene'.
+platform_module(_, 'symtab').
+platform_module(P, 'instruction') :- platform('i386', _, _, P).
+platform_module(P, 'instruction') :- platform('x86_64', _, _, P).
+platform_module(P, 'instruction') :- platform('power', _, _, P).
+platform_module(P, 'proccontrol') :- platform('i386', 'linux', _, P).
+platform_module(P, 'proccontrol') :- platform('x86_64', 'linux', _, P).
+platform_module(P, 'proccontrol') :- platform(_, 'freebsd', _, P).
+platform_module(P, 'proccontrol') :- platform(_, 'bluegene', _, P).
+   
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Below are specifications for the standard Dyninst test suite
 %
@@ -2438,6 +2450,7 @@ pcPlatforms(P) :- platform('x86_64', 'linux', _, P).
 pcPlatforms(P) :- platform('i386', 'linux', _, P).
 pcPlatforms(P) :- platform('i386', 'freebsd', _,P).
 pcPlatforms(P) :- platform('x86_64', 'freebsd', _,P).
+pcPlatforms(P) :- platform(_, 'bluegene', _, P).
 
 % ELF platforms
 rewriteablePlatforms(P) :- platform(_, 'linux', _, P).
@@ -2620,6 +2633,8 @@ platform('power', 'linux', 'linux2.6', 'ppc32_linux').
 platform('x86_64', 'linux', 'cnl', 'x86_64_cnl').
 platform('i386', 'freebsd', 'freebsd7.2', 'i386-unknown-freebsd7.2').
 platform('x86_64', 'freebsd', 'freebsd7.2', 'amd64-unknown-freebsd7.2').
+platform('power', 'bluegene', 'bluegenep', 'ppc32_bgp_ion').
+platform('power', 'bluegene', 'bluegenel', 'ppc32_bgl_ion').
 
 % Platform Defns
 % platform/1
@@ -2639,11 +2654,13 @@ mutatee_abi(32).
 mutatee_abi(64).
 
 % platform_format (Platform, Format)
-platform_format(_, 'dynamicMutatee').
+platform_format(P, 'dynamicMutatee') :- platform(_, _, S, P),
+   S \= 'bluegenel'.
 platform_format(P, 'staticMutatee') :- platform('i386', 'linux', _, P).
 platform_format(P, 'staticMutatee') :- platform('x86_64', 'linux', _, P).
 platform_format(P, 'staticMutatee') :- platform('i386', 'freebsd', _, P).
 platform_format(P, 'staticMutatee') :- platform('x86_64', 'freebsd', _, P).
+platform_format(P, 'staticMutatee') :- platform(_, 'bluegene', _, P).
 
 % compiler_format (Compiler, Format)
 compiler_format(_, 'dynamicMutatee').
@@ -2699,7 +2716,7 @@ runmode_launch_params(Runmode, Platform, Mutator, Mutatee, Launchtime) :-
 % Matt TODO: Fix this to be CrayXT and BlueGene/P--leaving all platforms on for testing only
 remote_platform(P) :- 
    platform(_, OS, _, P),
-   member(OS, ['linux']).
+   member(OS, ['bluegene']).
 
 % Mutator and mutatee run remotely, test will launch mutatee
 remote_runmode_mutator('createProcess', 'remote').

@@ -1,0 +1,1526 @@
+# Define variables for our compilers, if they aren't already defined
+M_gnu_cc ?= gcc
+M_gnu_cxx ?= g++
+
+######################################################################
+# Mutatees compiled with g++ for symtab
+######################################################################
+
+symtab_SOLO_MUTATEES_gnu_cxx = symtab_group_test.mutatee_solo_dynamic_g++_32_none_high symtab_group_test.mutatee_solo_dynamic_g++_32_pic_high symtab_group_test.mutatee_solo_dynamic_g++_32_none_low symtab_group_test.mutatee_solo_dynamic_g++_32_pic_low symtab_group_test.mutatee_solo_dynamic_g++_32_none_max symtab_group_test.mutatee_solo_dynamic_g++_32_pic_max symtab_group_test.mutatee_solo_dynamic_g++_32_none_none symtab_group_test.mutatee_solo_dynamic_g++_32_pic_none 
+
+# Now a list of rules for compiling the mutatees with g++
+
+symtab_group_test.mutatee_solo_dynamic_g++_32_none_high: symtab_group_test_group_g++_32_none_high.o test_lookup_func_mutatee_solo_g++_32_none_high.o test_lookup_var_mutatee_solo_g++_32_none_high.o test_line_info_mutatee_solo_g++_32_none_high.o test_module_mutatee_solo_g++_32_none_high.o test_relocations_mutatee_solo_g++_32_none_high.o test_symtab_ser_funcs_mutatee_solo_g++_32_none_high.o test_ser_anno_mutatee_solo_g++_32_none_high.o test_type_info_mutatee_solo_g++_32_none_high.o test_anno_basic_types_mutatee_solo_g++_32_none_high.o test_add_symbols_mutatee_solo_g++_32_none_high.o mutatee_util_g++_32_none_high.o mutatee_driver_solo_g++_32.o
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ltestA 
+symtab_group_test.mutatee_solo_dynamic_g++_32_pic_high: symtab_group_test_group_g++_32_pic_high.o test_lookup_func_mutatee_solo_g++_32_pic_high.o test_lookup_var_mutatee_solo_g++_32_pic_high.o test_line_info_mutatee_solo_g++_32_pic_high.o test_module_mutatee_solo_g++_32_pic_high.o test_relocations_mutatee_solo_g++_32_pic_high.o test_symtab_ser_funcs_mutatee_solo_g++_32_pic_high.o test_ser_anno_mutatee_solo_g++_32_pic_high.o test_type_info_mutatee_solo_g++_32_pic_high.o test_anno_basic_types_mutatee_solo_g++_32_pic_high.o test_add_symbols_mutatee_solo_g++_32_pic_high.o mutatee_util_g++_32_pic_high.o mutatee_driver_solo_g++_32.o
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ltestA 
+symtab_group_test.mutatee_solo_dynamic_g++_32_none_low: symtab_group_test_group_g++_32_none_low.o test_lookup_func_mutatee_solo_g++_32_none_low.o test_lookup_var_mutatee_solo_g++_32_none_low.o test_line_info_mutatee_solo_g++_32_none_low.o test_module_mutatee_solo_g++_32_none_low.o test_relocations_mutatee_solo_g++_32_none_low.o test_symtab_ser_funcs_mutatee_solo_g++_32_none_low.o test_ser_anno_mutatee_solo_g++_32_none_low.o test_type_info_mutatee_solo_g++_32_none_low.o test_anno_basic_types_mutatee_solo_g++_32_none_low.o test_add_symbols_mutatee_solo_g++_32_none_low.o mutatee_util_g++_32_none_low.o mutatee_driver_solo_g++_32.o
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ltestA 
+symtab_group_test.mutatee_solo_dynamic_g++_32_pic_low: symtab_group_test_group_g++_32_pic_low.o test_lookup_func_mutatee_solo_g++_32_pic_low.o test_lookup_var_mutatee_solo_g++_32_pic_low.o test_line_info_mutatee_solo_g++_32_pic_low.o test_module_mutatee_solo_g++_32_pic_low.o test_relocations_mutatee_solo_g++_32_pic_low.o test_symtab_ser_funcs_mutatee_solo_g++_32_pic_low.o test_ser_anno_mutatee_solo_g++_32_pic_low.o test_type_info_mutatee_solo_g++_32_pic_low.o test_anno_basic_types_mutatee_solo_g++_32_pic_low.o test_add_symbols_mutatee_solo_g++_32_pic_low.o mutatee_util_g++_32_pic_low.o mutatee_driver_solo_g++_32.o
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ltestA 
+symtab_group_test.mutatee_solo_dynamic_g++_32_none_max: symtab_group_test_group_g++_32_none_max.o test_lookup_func_mutatee_solo_g++_32_none_max.o test_lookup_var_mutatee_solo_g++_32_none_max.o test_line_info_mutatee_solo_g++_32_none_max.o test_module_mutatee_solo_g++_32_none_max.o test_relocations_mutatee_solo_g++_32_none_max.o test_symtab_ser_funcs_mutatee_solo_g++_32_none_max.o test_ser_anno_mutatee_solo_g++_32_none_max.o test_type_info_mutatee_solo_g++_32_none_max.o test_anno_basic_types_mutatee_solo_g++_32_none_max.o test_add_symbols_mutatee_solo_g++_32_none_max.o mutatee_util_g++_32_none_max.o mutatee_driver_solo_g++_32.o
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ltestA 
+symtab_group_test.mutatee_solo_dynamic_g++_32_pic_max: symtab_group_test_group_g++_32_pic_max.o test_lookup_func_mutatee_solo_g++_32_pic_max.o test_lookup_var_mutatee_solo_g++_32_pic_max.o test_line_info_mutatee_solo_g++_32_pic_max.o test_module_mutatee_solo_g++_32_pic_max.o test_relocations_mutatee_solo_g++_32_pic_max.o test_symtab_ser_funcs_mutatee_solo_g++_32_pic_max.o test_ser_anno_mutatee_solo_g++_32_pic_max.o test_type_info_mutatee_solo_g++_32_pic_max.o test_anno_basic_types_mutatee_solo_g++_32_pic_max.o test_add_symbols_mutatee_solo_g++_32_pic_max.o mutatee_util_g++_32_pic_max.o mutatee_driver_solo_g++_32.o
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ltestA 
+symtab_group_test.mutatee_solo_dynamic_g++_32_none_none: symtab_group_test_group_g++_32_none_none.o test_lookup_func_mutatee_solo_g++_32_none_none.o test_lookup_var_mutatee_solo_g++_32_none_none.o test_line_info_mutatee_solo_g++_32_none_none.o test_module_mutatee_solo_g++_32_none_none.o test_relocations_mutatee_solo_g++_32_none_none.o test_symtab_ser_funcs_mutatee_solo_g++_32_none_none.o test_ser_anno_mutatee_solo_g++_32_none_none.o test_type_info_mutatee_solo_g++_32_none_none.o test_anno_basic_types_mutatee_solo_g++_32_none_none.o test_add_symbols_mutatee_solo_g++_32_none_none.o mutatee_util_g++_32_none_none.o mutatee_driver_solo_g++_32.o
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ltestA 
+symtab_group_test.mutatee_solo_dynamic_g++_32_pic_none: symtab_group_test_group_g++_32_pic_none.o test_lookup_func_mutatee_solo_g++_32_pic_none.o test_lookup_var_mutatee_solo_g++_32_pic_none.o test_line_info_mutatee_solo_g++_32_pic_none.o test_module_mutatee_solo_g++_32_pic_none.o test_relocations_mutatee_solo_g++_32_pic_none.o test_symtab_ser_funcs_mutatee_solo_g++_32_pic_none.o test_ser_anno_mutatee_solo_g++_32_pic_none.o test_type_info_mutatee_solo_g++_32_pic_none.o test_anno_basic_types_mutatee_solo_g++_32_pic_none.o test_add_symbols_mutatee_solo_g++_32_pic_none.o mutatee_util_g++_32_pic_none.o mutatee_driver_solo_g++_32.o
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ltestA 
+######################################################################
+# Mutatees compiled with g++ for proccontrol
+######################################################################
+
+proccontrol_SOLO_MUTATEES_gnu_cxx = pc_breakpoint.mutatee_solo_dynamic_g++_32_none_none pc_breakpoint.mutatee_solo_dynamic_g++_32_pic_none pc_irpc.mutatee_solo_dynamic_g++_32_none_none pc_irpc.mutatee_solo_dynamic_g++_32_pic_none pc_launch.mutatee_solo_dynamic_g++_32_none_none pc_launch.mutatee_solo_dynamic_g++_32_pic_none pc_library.mutatee_solo_dynamic_g++_32_none_none pc_library.mutatee_solo_dynamic_g++_32_pic_none pc_singlestep.mutatee_solo_dynamic_g++_32_none_none pc_singlestep.mutatee_solo_dynamic_g++_32_pic_none pc_thread_cont.mutatee_solo_dynamic_g++_32_none_none pc_thread_cont.mutatee_solo_dynamic_g++_32_pic_none 
+
+# Now a list of rules for compiling the mutatees with g++
+
+pc_breakpoint.mutatee_solo_dynamic_g++_32_none_none: pc_breakpoint_mutatee_solo_g++_32_none_none.o mutatee_util_g++_32_none_none.o mutatee_util_mt_g++_32_none_none.o pcontrol_mutatee_tools_g++_32_none_none.o mutatee_driver_solo_g++_32.o
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
+pc_breakpoint.mutatee_solo_dynamic_g++_32_pic_none: pc_breakpoint_mutatee_solo_g++_32_pic_none.o mutatee_util_g++_32_pic_none.o mutatee_util_mt_g++_32_pic_none.o pcontrol_mutatee_tools_g++_32_pic_none.o mutatee_driver_solo_g++_32.o
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
+pc_irpc.mutatee_solo_dynamic_g++_32_none_none: pc_irpc_mutatee_solo_g++_32_none_none.o mutatee_util_g++_32_none_none.o mutatee_util_mt_g++_32_none_none.o pcontrol_mutatee_tools_g++_32_none_none.o mutatee_driver_solo_g++_32.o
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
+pc_irpc.mutatee_solo_dynamic_g++_32_pic_none: pc_irpc_mutatee_solo_g++_32_pic_none.o mutatee_util_g++_32_pic_none.o mutatee_util_mt_g++_32_pic_none.o pcontrol_mutatee_tools_g++_32_pic_none.o mutatee_driver_solo_g++_32.o
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
+pc_launch.mutatee_solo_dynamic_g++_32_none_none: pc_launch_mutatee_solo_g++_32_none_none.o mutatee_util_g++_32_none_none.o mutatee_util_mt_g++_32_none_none.o pcontrol_mutatee_tools_g++_32_none_none.o mutatee_driver_solo_g++_32.o
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
+pc_launch.mutatee_solo_dynamic_g++_32_pic_none: pc_launch_mutatee_solo_g++_32_pic_none.o mutatee_util_g++_32_pic_none.o mutatee_util_mt_g++_32_pic_none.o pcontrol_mutatee_tools_g++_32_pic_none.o mutatee_driver_solo_g++_32.o
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
+pc_library.mutatee_solo_dynamic_g++_32_none_none: pc_library_mutatee_solo_g++_32_none_none.o mutatee_util_g++_32_none_none.o mutatee_util_mt_g++_32_none_none.o pcontrol_mutatee_tools_g++_32_none_none.o mutatee_driver_solo_g++_32.o
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
+pc_library.mutatee_solo_dynamic_g++_32_pic_none: pc_library_mutatee_solo_g++_32_pic_none.o mutatee_util_g++_32_pic_none.o mutatee_util_mt_g++_32_pic_none.o pcontrol_mutatee_tools_g++_32_pic_none.o mutatee_driver_solo_g++_32.o
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
+pc_singlestep.mutatee_solo_dynamic_g++_32_none_none: pc_singlestep_mutatee_solo_g++_32_none_none.o mutatee_util_g++_32_none_none.o mutatee_util_mt_g++_32_none_none.o pcontrol_mutatee_tools_g++_32_none_none.o mutatee_driver_solo_g++_32.o
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
+pc_singlestep.mutatee_solo_dynamic_g++_32_pic_none: pc_singlestep_mutatee_solo_g++_32_pic_none.o mutatee_util_g++_32_pic_none.o mutatee_util_mt_g++_32_pic_none.o pcontrol_mutatee_tools_g++_32_pic_none.o mutatee_driver_solo_g++_32.o
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
+pc_thread_cont.mutatee_solo_dynamic_g++_32_none_none: pc_thread_cont_mutatee_solo_g++_32_none_none.o mutatee_util_g++_32_none_none.o mutatee_util_mt_g++_32_none_none.o pcontrol_mutatee_tools_g++_32_none_none.o mutatee_driver_solo_g++_32.o
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
+pc_thread_cont.mutatee_solo_dynamic_g++_32_pic_none: pc_thread_cont_mutatee_solo_g++_32_pic_none.o mutatee_util_g++_32_pic_none.o mutatee_util_mt_g++_32_pic_none.o pcontrol_mutatee_tools_g++_32_pic_none.o mutatee_driver_solo_g++_32.o
+	$(M_gnu_cxx) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
+
+# Exceptional rules for mutatees compiled with g++
+
+
+
+# Generic rules for g++'s mutatees and varying optimization levels for symtab
+test_type_info_mutatee_solo_g++_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_type_info_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
+test_lookup_var_mutatee_solo_g++_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
+test_ser_anno_mutatee_solo_g++_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_ser_anno_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/symtab -DTEST_NAME=test_ser_anno -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_ser_anno_mutatee.c -o $@ $<
+test_line_info_mutatee_solo_g++_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
+test_module_mutatee_solo_g++_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
+test_lookup_func_mutatee_solo_g++_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_anno_basic_types_mutatee_solo_g++_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_add_symbols_mutatee_solo_g++_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_add_symbols_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/symtab -DTEST_NAME=test_add_symbols -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_add_symbols_mutatee.c -o $@ $<
+test_symtab_ser_funcs_mutatee_solo_g++_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
+test_relocations_mutatee_solo_g++_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/symtab -DTEST_NAME=test_relocations -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_relocations_mutatee.c -o $@ $<
+test_type_info_mutatee_solo_g++_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_type_info_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
+test_lookup_var_mutatee_solo_g++_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
+test_ser_anno_mutatee_solo_g++_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_ser_anno_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/symtab -DTEST_NAME=test_ser_anno -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_ser_anno_mutatee.c -o $@ $<
+test_line_info_mutatee_solo_g++_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
+test_module_mutatee_solo_g++_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
+test_lookup_func_mutatee_solo_g++_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_anno_basic_types_mutatee_solo_g++_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_add_symbols_mutatee_solo_g++_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_add_symbols_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/symtab -DTEST_NAME=test_add_symbols -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_add_symbols_mutatee.c -o $@ $<
+test_symtab_ser_funcs_mutatee_solo_g++_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
+test_relocations_mutatee_solo_g++_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/symtab -DTEST_NAME=test_relocations -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_relocations_mutatee.c -o $@ $<
+test_type_info_mutatee_solo_g++_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_type_info_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
+test_lookup_var_mutatee_solo_g++_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
+test_ser_anno_mutatee_solo_g++_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_ser_anno_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -I../src/symtab -DTEST_NAME=test_ser_anno -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_ser_anno_mutatee.c -o $@ $<
+test_line_info_mutatee_solo_g++_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
+test_module_mutatee_solo_g++_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
+test_lookup_func_mutatee_solo_g++_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_anno_basic_types_mutatee_solo_g++_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_add_symbols_mutatee_solo_g++_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_add_symbols_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -I../src/symtab -DTEST_NAME=test_add_symbols -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_add_symbols_mutatee.c -o $@ $<
+test_symtab_ser_funcs_mutatee_solo_g++_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
+test_relocations_mutatee_solo_g++_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -I../src/symtab -DTEST_NAME=test_relocations -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_relocations_mutatee.c -o $@ $<
+test_type_info_mutatee_solo_g++_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_type_info_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
+test_lookup_var_mutatee_solo_g++_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
+test_ser_anno_mutatee_solo_g++_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_ser_anno_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/symtab -DTEST_NAME=test_ser_anno -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_ser_anno_mutatee.c -o $@ $<
+test_line_info_mutatee_solo_g++_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
+test_module_mutatee_solo_g++_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
+test_lookup_func_mutatee_solo_g++_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_anno_basic_types_mutatee_solo_g++_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_add_symbols_mutatee_solo_g++_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_add_symbols_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/symtab -DTEST_NAME=test_add_symbols -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_add_symbols_mutatee.c -o $@ $<
+test_symtab_ser_funcs_mutatee_solo_g++_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
+test_relocations_mutatee_solo_g++_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/symtab -DTEST_NAME=test_relocations -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_relocations_mutatee.c -o $@ $<
+test_type_info_mutatee_solo_g++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_type_info_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
+test_lookup_var_mutatee_solo_g++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
+test_ser_anno_mutatee_solo_g++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_ser_anno_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -I../src/symtab -DTEST_NAME=test_ser_anno -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_ser_anno_mutatee.c -o $@ $<
+test_line_info_mutatee_solo_g++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
+test_module_mutatee_solo_g++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
+test_lookup_func_mutatee_solo_g++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_anno_basic_types_mutatee_solo_g++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_add_symbols_mutatee_solo_g++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_add_symbols_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -I../src/symtab -DTEST_NAME=test_add_symbols -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_add_symbols_mutatee.c -o $@ $<
+test_symtab_ser_funcs_mutatee_solo_g++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
+test_relocations_mutatee_solo_g++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -I../src/symtab -DTEST_NAME=test_relocations -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_relocations_mutatee.c -o $@ $<
+test_type_info_mutatee_solo_g++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_type_info_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
+test_lookup_var_mutatee_solo_g++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
+test_ser_anno_mutatee_solo_g++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_ser_anno_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -I../src/symtab -DTEST_NAME=test_ser_anno -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_ser_anno_mutatee.c -o $@ $<
+test_line_info_mutatee_solo_g++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
+test_module_mutatee_solo_g++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
+test_lookup_func_mutatee_solo_g++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_anno_basic_types_mutatee_solo_g++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_add_symbols_mutatee_solo_g++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_add_symbols_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -I../src/symtab -DTEST_NAME=test_add_symbols -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_add_symbols_mutatee.c -o $@ $<
+test_symtab_ser_funcs_mutatee_solo_g++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
+test_relocations_mutatee_solo_g++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -I../src/symtab -DTEST_NAME=test_relocations -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_relocations_mutatee.c -o $@ $<
+test_type_info_mutatee_solo_g++_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_type_info_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
+test_lookup_var_mutatee_solo_g++_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
+test_ser_anno_mutatee_solo_g++_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_ser_anno_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -I../src/symtab -DTEST_NAME=test_ser_anno -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_ser_anno_mutatee.c -o $@ $<
+test_line_info_mutatee_solo_g++_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
+test_module_mutatee_solo_g++_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
+test_lookup_func_mutatee_solo_g++_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_anno_basic_types_mutatee_solo_g++_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_add_symbols_mutatee_solo_g++_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_add_symbols_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -I../src/symtab -DTEST_NAME=test_add_symbols -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_add_symbols_mutatee.c -o $@ $<
+test_symtab_ser_funcs_mutatee_solo_g++_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
+test_relocations_mutatee_solo_g++_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -I../src/symtab -DTEST_NAME=test_relocations -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_relocations_mutatee.c -o $@ $<
+test_type_info_mutatee_solo_g++_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_type_info_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
+test_lookup_var_mutatee_solo_g++_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
+test_ser_anno_mutatee_solo_g++_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_ser_anno_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/symtab -DTEST_NAME=test_ser_anno -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_ser_anno_mutatee.c -o $@ $<
+test_line_info_mutatee_solo_g++_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
+test_module_mutatee_solo_g++_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
+test_lookup_func_mutatee_solo_g++_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_anno_basic_types_mutatee_solo_g++_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_add_symbols_mutatee_solo_g++_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_add_symbols_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/symtab -DTEST_NAME=test_add_symbols -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_add_symbols_mutatee.c -o $@ $<
+test_symtab_ser_funcs_mutatee_solo_g++_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
+test_relocations_mutatee_solo_g++_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/symtab -DTEST_NAME=test_relocations -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_relocations_mutatee.c -o $@ $<
+symtab_group_test_group_g++_32_none_high.o: symtab_group_test_group.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -DGROUPABLE=1 -o $@ $<
+symtab_group_test_group_g++_32_pic_high.o: symtab_group_test_group.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -DGROUPABLE=1 -o $@ $<
+symtab_group_test_group_g++_32_none_max.o: symtab_group_test_group.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -DGROUPABLE=1 -o $@ $<
+symtab_group_test_group_g++_32_pic_max.o: symtab_group_test_group.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -DGROUPABLE=1 -o $@ $<
+symtab_group_test_group_g++_32_none_none.o: symtab_group_test_group.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -DGROUPABLE=1 -o $@ $<
+symtab_group_test_group_g++_32_pic_none.o: symtab_group_test_group.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -DGROUPABLE=1 -o $@ $<
+symtab_group_test_group_g++_32_none_low.o: symtab_group_test_group.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -DGROUPABLE=1 -o $@ $<
+symtab_group_test_group_g++_32_pic_low.o: symtab_group_test_group.c
+	$(M_gnu_cxx) $(symtab_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -DGROUPABLE=1 -o $@ $<
+
+%_g++_32_none_high.o: ../src/symtab/%.c
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+%_g++_32_none_high.o: ../src/symtab/%.C
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+%_g++_32_pic_high.o: ../src/symtab/%.c
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+%_g++_32_pic_high.o: ../src/symtab/%.C
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+%_g++_32_none_max.o: ../src/symtab/%.c
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+%_g++_32_none_max.o: ../src/symtab/%.C
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+%_g++_32_pic_max.o: ../src/symtab/%.c
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+%_g++_32_pic_max.o: ../src/symtab/%.C
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+%_g++_32_none_none.o: ../src/symtab/%.c
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -o $@ $<
+%_g++_32_none_none.o: ../src/symtab/%.C
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -o $@ $<
+%_g++_32_pic_none.o: ../src/symtab/%.c
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+%_g++_32_pic_none.o: ../src/symtab/%.C
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+%_g++_32_none_low.o: ../src/symtab/%.c
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+%_g++_32_none_low.o: ../src/symtab/%.C
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+%_g++_32_pic_low.o: ../src/symtab/%.c
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+%_g++_32_pic_low.o: ../src/symtab/%.C
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+
+# Generic rules for g++'s mutatees and varying optimization levels for instruction
+
+%_g++_32_none_high.o: ../src/instruction/%.c
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+%_g++_32_none_high.o: ../src/instruction/%.C
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+%_g++_32_pic_high.o: ../src/instruction/%.c
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+%_g++_32_pic_high.o: ../src/instruction/%.C
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+%_g++_32_none_max.o: ../src/instruction/%.c
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+%_g++_32_none_max.o: ../src/instruction/%.C
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+%_g++_32_pic_max.o: ../src/instruction/%.c
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+%_g++_32_pic_max.o: ../src/instruction/%.C
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+%_g++_32_none_none.o: ../src/instruction/%.c
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -o $@ $<
+%_g++_32_none_none.o: ../src/instruction/%.C
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -o $@ $<
+%_g++_32_pic_none.o: ../src/instruction/%.c
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+%_g++_32_pic_none.o: ../src/instruction/%.C
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+%_g++_32_none_low.o: ../src/instruction/%.c
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+%_g++_32_none_low.o: ../src/instruction/%.C
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+%_g++_32_pic_low.o: ../src/instruction/%.c
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+%_g++_32_pic_low.o: ../src/instruction/%.C
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+
+# Generic rules for g++'s mutatees and varying optimization levels for proccontrol
+pc_singlestep_mutatee_solo_g++_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
+pc_launch_mutatee_solo_g++_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_library_mutatee_solo_g++_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/proccontrol -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -o $@ $<
+pc_irpc_mutatee_solo_g++_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_irpc_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/proccontrol -DTEST_NAME=pc_irpc -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_irpc_mutatee.c -o $@ $<
+pc_breakpoint_mutatee_solo_g++_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_breakpoint_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
+pc_thread_cont_mutatee_solo_g++_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
+pc_singlestep_mutatee_solo_g++_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
+pc_launch_mutatee_solo_g++_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_library_mutatee_solo_g++_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/proccontrol -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -o $@ $<
+pc_irpc_mutatee_solo_g++_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_irpc_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/proccontrol -DTEST_NAME=pc_irpc -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_irpc_mutatee.c -o $@ $<
+pc_breakpoint_mutatee_solo_g++_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_breakpoint_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
+pc_thread_cont_mutatee_solo_g++_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
+pc_singlestep_mutatee_solo_g++_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
+pc_launch_mutatee_solo_g++_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_library_mutatee_solo_g++_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -I../src/proccontrol -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -o $@ $<
+pc_irpc_mutatee_solo_g++_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_irpc_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -I../src/proccontrol -DTEST_NAME=pc_irpc -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_irpc_mutatee.c -o $@ $<
+pc_breakpoint_mutatee_solo_g++_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_breakpoint_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
+pc_thread_cont_mutatee_solo_g++_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
+pc_singlestep_mutatee_solo_g++_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
+pc_launch_mutatee_solo_g++_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_library_mutatee_solo_g++_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/proccontrol -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -o $@ $<
+pc_irpc_mutatee_solo_g++_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_irpc_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/proccontrol -DTEST_NAME=pc_irpc -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_irpc_mutatee.c -o $@ $<
+pc_breakpoint_mutatee_solo_g++_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_breakpoint_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
+pc_thread_cont_mutatee_solo_g++_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
+pc_singlestep_mutatee_solo_g++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
+pc_launch_mutatee_solo_g++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_library_mutatee_solo_g++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -I../src/proccontrol -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -o $@ $<
+pc_irpc_mutatee_solo_g++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_irpc_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -I../src/proccontrol -DTEST_NAME=pc_irpc -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_irpc_mutatee.c -o $@ $<
+pc_breakpoint_mutatee_solo_g++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_breakpoint_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
+pc_thread_cont_mutatee_solo_g++_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
+pc_singlestep_mutatee_solo_g++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
+pc_launch_mutatee_solo_g++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_library_mutatee_solo_g++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -I../src/proccontrol -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -o $@ $<
+pc_irpc_mutatee_solo_g++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_irpc_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -I../src/proccontrol -DTEST_NAME=pc_irpc -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_irpc_mutatee.c -o $@ $<
+pc_breakpoint_mutatee_solo_g++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_breakpoint_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
+pc_thread_cont_mutatee_solo_g++_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
+pc_singlestep_mutatee_solo_g++_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
+pc_launch_mutatee_solo_g++_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_library_mutatee_solo_g++_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -I../src/proccontrol -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -o $@ $<
+pc_irpc_mutatee_solo_g++_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_irpc_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -I../src/proccontrol -DTEST_NAME=pc_irpc -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_irpc_mutatee.c -o $@ $<
+pc_breakpoint_mutatee_solo_g++_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_breakpoint_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
+pc_thread_cont_mutatee_solo_g++_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
+pc_singlestep_mutatee_solo_g++_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
+pc_launch_mutatee_solo_g++_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_library_mutatee_solo_g++_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/proccontrol -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -o $@ $<
+pc_irpc_mutatee_solo_g++_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_irpc_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/proccontrol -DTEST_NAME=pc_irpc -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_irpc_mutatee.c -o $@ $<
+pc_breakpoint_mutatee_solo_g++_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_breakpoint_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
+pc_thread_cont_mutatee_solo_g++_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
+	$(M_gnu_cxx) $(proccontrol_SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
+
+%_g++_32_none_high.o: ../src/proccontrol/%.c
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+%_g++_32_none_high.o: ../src/proccontrol/%.C
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+%_g++_32_pic_high.o: ../src/proccontrol/%.c
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+%_g++_32_pic_high.o: ../src/proccontrol/%.C
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+%_g++_32_none_max.o: ../src/proccontrol/%.c
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+%_g++_32_none_max.o: ../src/proccontrol/%.C
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+%_g++_32_pic_max.o: ../src/proccontrol/%.c
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+%_g++_32_pic_max.o: ../src/proccontrol/%.C
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+%_g++_32_none_none.o: ../src/proccontrol/%.c
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -o $@ $<
+%_g++_32_none_none.o: ../src/proccontrol/%.C
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -o $@ $<
+%_g++_32_pic_none.o: ../src/proccontrol/%.c
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+%_g++_32_pic_none.o: ../src/proccontrol/%.C
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+%_g++_32_none_low.o: ../src/proccontrol/%.c
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+%_g++_32_none_low.o: ../src/proccontrol/%.C
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+%_g++_32_pic_low.o: ../src/proccontrol/%.c
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+%_g++_32_pic_low.o: ../src/proccontrol/%.C
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+%_g++_32_none_high.o: ../src/%.c
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+%_g++_32_none_high.o: ../src/%.C
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+%_g++_32_pic_high.o: ../src/%.c
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+%_g++_32_pic_high.o: ../src/%.C
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+%_g++_32_none_max.o: ../src/%.c
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+%_g++_32_none_max.o: ../src/%.C
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+%_g++_32_pic_max.o: ../src/%.c
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+%_g++_32_pic_max.o: ../src/%.C
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+%_g++_32_none_none.o: ../src/%.c
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -o $@ $<
+%_g++_32_none_none.o: ../src/%.C
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c    -o $@ $<
+%_g++_32_pic_none.o: ../src/%.c
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+%_g++_32_pic_none.o: ../src/%.C
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+%_g++_32_none_low.o: ../src/%.c
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+%_g++_32_none_low.o: ../src/%.C
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+%_g++_32_pic_low.o: ../src/%.c
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+%_g++_32_pic_low.o: ../src/%.C
+	$(M_gnu_cxx) $(SOLO_MUTATEE_DEFS) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+# Rules for building the driver and utility objects
+mutatee_driver_solo_g++_32.o: ../src/mutatee_driver.c
+	$(M_gnu_cxx) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src  -o $@ -c $<
+mutatee_util_g++_32.o: ../src/mutatee_util.c
+	$(M_gnu_cxx) $(CXXFLAGS) -DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src  -o $@ -c $<
+
+######################################################################
+# Mutatees compiled with gcc for symtab
+######################################################################
+
+symtab_SOLO_MUTATEES_gnu_cc = symtab_group_test.mutatee_solo_dynamic_gcc_32_none_high symtab_group_test.mutatee_solo_dynamic_gcc_32_pic_high symtab_group_test.mutatee_solo_dynamic_gcc_32_none_low symtab_group_test.mutatee_solo_dynamic_gcc_32_pic_low symtab_group_test.mutatee_solo_dynamic_gcc_32_none_max symtab_group_test.mutatee_solo_dynamic_gcc_32_pic_max symtab_group_test.mutatee_solo_dynamic_gcc_32_none_none symtab_group_test.mutatee_solo_dynamic_gcc_32_pic_none 
+
+# Now a list of rules for compiling the mutatees with gcc
+
+symtab_group_test.mutatee_solo_dynamic_gcc_32_none_high: symtab_group_test_group_gcc_32_none_high.o test_lookup_func_mutatee_solo_gcc_32_none_high.o test_lookup_var_mutatee_solo_gcc_32_none_high.o test_line_info_mutatee_solo_gcc_32_none_high.o test_module_mutatee_solo_gcc_32_none_high.o test_relocations_mutatee_solo_gcc_32_none_high.o test_symtab_ser_funcs_mutatee_solo_gcc_32_none_high.o test_ser_anno_mutatee_solo_gcc_32_none_high.o test_type_info_mutatee_solo_gcc_32_none_high.o test_anno_basic_types_mutatee_solo_gcc_32_none_high.o test_add_symbols_mutatee_solo_gcc_32_none_high.o mutatee_util_gcc_32_none_high.o mutatee_driver_solo_gcc_32.o
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ltestA 
+symtab_group_test.mutatee_solo_dynamic_gcc_32_pic_high: symtab_group_test_group_gcc_32_pic_high.o test_lookup_func_mutatee_solo_gcc_32_pic_high.o test_lookup_var_mutatee_solo_gcc_32_pic_high.o test_line_info_mutatee_solo_gcc_32_pic_high.o test_module_mutatee_solo_gcc_32_pic_high.o test_relocations_mutatee_solo_gcc_32_pic_high.o test_symtab_ser_funcs_mutatee_solo_gcc_32_pic_high.o test_ser_anno_mutatee_solo_gcc_32_pic_high.o test_type_info_mutatee_solo_gcc_32_pic_high.o test_anno_basic_types_mutatee_solo_gcc_32_pic_high.o test_add_symbols_mutatee_solo_gcc_32_pic_high.o mutatee_util_gcc_32_pic_high.o mutatee_driver_solo_gcc_32.o
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ltestA 
+symtab_group_test.mutatee_solo_dynamic_gcc_32_none_low: symtab_group_test_group_gcc_32_none_low.o test_lookup_func_mutatee_solo_gcc_32_none_low.o test_lookup_var_mutatee_solo_gcc_32_none_low.o test_line_info_mutatee_solo_gcc_32_none_low.o test_module_mutatee_solo_gcc_32_none_low.o test_relocations_mutatee_solo_gcc_32_none_low.o test_symtab_ser_funcs_mutatee_solo_gcc_32_none_low.o test_ser_anno_mutatee_solo_gcc_32_none_low.o test_type_info_mutatee_solo_gcc_32_none_low.o test_anno_basic_types_mutatee_solo_gcc_32_none_low.o test_add_symbols_mutatee_solo_gcc_32_none_low.o mutatee_util_gcc_32_none_low.o mutatee_driver_solo_gcc_32.o
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ltestA 
+symtab_group_test.mutatee_solo_dynamic_gcc_32_pic_low: symtab_group_test_group_gcc_32_pic_low.o test_lookup_func_mutatee_solo_gcc_32_pic_low.o test_lookup_var_mutatee_solo_gcc_32_pic_low.o test_line_info_mutatee_solo_gcc_32_pic_low.o test_module_mutatee_solo_gcc_32_pic_low.o test_relocations_mutatee_solo_gcc_32_pic_low.o test_symtab_ser_funcs_mutatee_solo_gcc_32_pic_low.o test_ser_anno_mutatee_solo_gcc_32_pic_low.o test_type_info_mutatee_solo_gcc_32_pic_low.o test_anno_basic_types_mutatee_solo_gcc_32_pic_low.o test_add_symbols_mutatee_solo_gcc_32_pic_low.o mutatee_util_gcc_32_pic_low.o mutatee_driver_solo_gcc_32.o
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ltestA 
+symtab_group_test.mutatee_solo_dynamic_gcc_32_none_max: symtab_group_test_group_gcc_32_none_max.o test_lookup_func_mutatee_solo_gcc_32_none_max.o test_lookup_var_mutatee_solo_gcc_32_none_max.o test_line_info_mutatee_solo_gcc_32_none_max.o test_module_mutatee_solo_gcc_32_none_max.o test_relocations_mutatee_solo_gcc_32_none_max.o test_symtab_ser_funcs_mutatee_solo_gcc_32_none_max.o test_ser_anno_mutatee_solo_gcc_32_none_max.o test_type_info_mutatee_solo_gcc_32_none_max.o test_anno_basic_types_mutatee_solo_gcc_32_none_max.o test_add_symbols_mutatee_solo_gcc_32_none_max.o mutatee_util_gcc_32_none_max.o mutatee_driver_solo_gcc_32.o
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ltestA 
+symtab_group_test.mutatee_solo_dynamic_gcc_32_pic_max: symtab_group_test_group_gcc_32_pic_max.o test_lookup_func_mutatee_solo_gcc_32_pic_max.o test_lookup_var_mutatee_solo_gcc_32_pic_max.o test_line_info_mutatee_solo_gcc_32_pic_max.o test_module_mutatee_solo_gcc_32_pic_max.o test_relocations_mutatee_solo_gcc_32_pic_max.o test_symtab_ser_funcs_mutatee_solo_gcc_32_pic_max.o test_ser_anno_mutatee_solo_gcc_32_pic_max.o test_type_info_mutatee_solo_gcc_32_pic_max.o test_anno_basic_types_mutatee_solo_gcc_32_pic_max.o test_add_symbols_mutatee_solo_gcc_32_pic_max.o mutatee_util_gcc_32_pic_max.o mutatee_driver_solo_gcc_32.o
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ltestA 
+symtab_group_test.mutatee_solo_dynamic_gcc_32_none_none: symtab_group_test_group_gcc_32_none_none.o test_lookup_func_mutatee_solo_gcc_32_none_none.o test_lookup_var_mutatee_solo_gcc_32_none_none.o test_line_info_mutatee_solo_gcc_32_none_none.o test_module_mutatee_solo_gcc_32_none_none.o test_relocations_mutatee_solo_gcc_32_none_none.o test_symtab_ser_funcs_mutatee_solo_gcc_32_none_none.o test_ser_anno_mutatee_solo_gcc_32_none_none.o test_type_info_mutatee_solo_gcc_32_none_none.o test_anno_basic_types_mutatee_solo_gcc_32_none_none.o test_add_symbols_mutatee_solo_gcc_32_none_none.o mutatee_util_gcc_32_none_none.o mutatee_driver_solo_gcc_32.o
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ltestA 
+symtab_group_test.mutatee_solo_dynamic_gcc_32_pic_none: symtab_group_test_group_gcc_32_pic_none.o test_lookup_func_mutatee_solo_gcc_32_pic_none.o test_lookup_var_mutatee_solo_gcc_32_pic_none.o test_line_info_mutatee_solo_gcc_32_pic_none.o test_module_mutatee_solo_gcc_32_pic_none.o test_relocations_mutatee_solo_gcc_32_pic_none.o test_symtab_ser_funcs_mutatee_solo_gcc_32_pic_none.o test_ser_anno_mutatee_solo_gcc_32_pic_none.o test_type_info_mutatee_solo_gcc_32_pic_none.o test_anno_basic_types_mutatee_solo_gcc_32_pic_none.o test_add_symbols_mutatee_solo_gcc_32_pic_none.o mutatee_util_gcc_32_pic_none.o mutatee_driver_solo_gcc_32.o
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ltestA 
+######################################################################
+# Mutatees compiled with gcc for proccontrol
+######################################################################
+
+proccontrol_SOLO_MUTATEES_gnu_cc = pc_breakpoint.mutatee_solo_dynamic_gcc_32_none_none pc_breakpoint.mutatee_solo_dynamic_gcc_32_pic_none pc_irpc.mutatee_solo_dynamic_gcc_32_none_none pc_irpc.mutatee_solo_dynamic_gcc_32_pic_none pc_launch.mutatee_solo_dynamic_gcc_32_none_none pc_launch.mutatee_solo_dynamic_gcc_32_pic_none pc_library.mutatee_solo_dynamic_gcc_32_none_none pc_library.mutatee_solo_dynamic_gcc_32_pic_none pc_singlestep.mutatee_solo_dynamic_gcc_32_none_none pc_singlestep.mutatee_solo_dynamic_gcc_32_pic_none pc_thread_cont.mutatee_solo_dynamic_gcc_32_none_none pc_thread_cont.mutatee_solo_dynamic_gcc_32_pic_none 
+
+# Now a list of rules for compiling the mutatees with gcc
+
+pc_breakpoint.mutatee_solo_dynamic_gcc_32_none_none: pc_breakpoint_mutatee_solo_gcc_32_none_none.o mutatee_util_gcc_32_none_none.o mutatee_util_mt_gcc_32_none_none.o pcontrol_mutatee_tools_gcc_32_none_none.o mutatee_driver_solo_gcc_32.o
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
+pc_breakpoint.mutatee_solo_dynamic_gcc_32_pic_none: pc_breakpoint_mutatee_solo_gcc_32_pic_none.o mutatee_util_gcc_32_pic_none.o mutatee_util_mt_gcc_32_pic_none.o pcontrol_mutatee_tools_gcc_32_pic_none.o mutatee_driver_solo_gcc_32.o
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
+pc_irpc.mutatee_solo_dynamic_gcc_32_none_none: pc_irpc_mutatee_solo_gcc_32_none_none.o mutatee_util_gcc_32_none_none.o mutatee_util_mt_gcc_32_none_none.o pcontrol_mutatee_tools_gcc_32_none_none.o mutatee_driver_solo_gcc_32.o
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
+pc_irpc.mutatee_solo_dynamic_gcc_32_pic_none: pc_irpc_mutatee_solo_gcc_32_pic_none.o mutatee_util_gcc_32_pic_none.o mutatee_util_mt_gcc_32_pic_none.o pcontrol_mutatee_tools_gcc_32_pic_none.o mutatee_driver_solo_gcc_32.o
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
+pc_launch.mutatee_solo_dynamic_gcc_32_none_none: pc_launch_mutatee_solo_gcc_32_none_none.o mutatee_util_gcc_32_none_none.o mutatee_util_mt_gcc_32_none_none.o pcontrol_mutatee_tools_gcc_32_none_none.o mutatee_driver_solo_gcc_32.o
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
+pc_launch.mutatee_solo_dynamic_gcc_32_pic_none: pc_launch_mutatee_solo_gcc_32_pic_none.o mutatee_util_gcc_32_pic_none.o mutatee_util_mt_gcc_32_pic_none.o pcontrol_mutatee_tools_gcc_32_pic_none.o mutatee_driver_solo_gcc_32.o
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
+pc_library.mutatee_solo_dynamic_gcc_32_none_none: pc_library_mutatee_solo_gcc_32_none_none.o mutatee_util_gcc_32_none_none.o mutatee_util_mt_gcc_32_none_none.o pcontrol_mutatee_tools_gcc_32_none_none.o mutatee_driver_solo_gcc_32.o
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
+pc_library.mutatee_solo_dynamic_gcc_32_pic_none: pc_library_mutatee_solo_gcc_32_pic_none.o mutatee_util_gcc_32_pic_none.o mutatee_util_mt_gcc_32_pic_none.o pcontrol_mutatee_tools_gcc_32_pic_none.o mutatee_driver_solo_gcc_32.o
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
+pc_singlestep.mutatee_solo_dynamic_gcc_32_none_none: pc_singlestep_mutatee_solo_gcc_32_none_none.o mutatee_util_gcc_32_none_none.o mutatee_util_mt_gcc_32_none_none.o pcontrol_mutatee_tools_gcc_32_none_none.o mutatee_driver_solo_gcc_32.o
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
+pc_singlestep.mutatee_solo_dynamic_gcc_32_pic_none: pc_singlestep_mutatee_solo_gcc_32_pic_none.o mutatee_util_gcc_32_pic_none.o mutatee_util_mt_gcc_32_pic_none.o pcontrol_mutatee_tools_gcc_32_pic_none.o mutatee_driver_solo_gcc_32.o
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
+pc_thread_cont.mutatee_solo_dynamic_gcc_32_none_none: pc_thread_cont_mutatee_solo_gcc_32_none_none.o mutatee_util_gcc_32_none_none.o mutatee_util_mt_gcc_32_none_none.o pcontrol_mutatee_tools_gcc_32_none_none.o mutatee_driver_solo_gcc_32.o
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
+pc_thread_cont.mutatee_solo_dynamic_gcc_32_pic_none: pc_thread_cont_mutatee_solo_gcc_32_pic_none.o mutatee_util_gcc_32_pic_none.o mutatee_util_mt_gcc_32_pic_none.o pcontrol_mutatee_tools_gcc_32_pic_none.o mutatee_driver_solo_gcc_32.o
+	$(M_gnu_cc) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU)  -ldl -lpthread 
+
+# Exceptional rules for mutatees compiled with gcc
+
+test1_1F_mutatee_solo_gcc_none.o: test1_1F_solo_me.c 
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) -DSOLO_MUTATEE $(MUTATEE_G77_CFLAGS) -I../src -o $@ -c test1_1F_solo_me.c 
+test1_2F_mutatee_solo_gcc_none.o: test1_2F_solo_me.c 
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) -DSOLO_MUTATEE $(MUTATEE_G77_CFLAGS) -I../src -o $@ -c test1_2F_solo_me.c 
+test1_3F_mutatee_solo_gcc_none.o: test1_3F_solo_me.c 
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) -DSOLO_MUTATEE $(MUTATEE_G77_CFLAGS) -I../src -o $@ -c test1_3F_solo_me.c 
+test1_4F_mutatee_solo_gcc_none.o: test1_4F_solo_me.c 
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) -DSOLO_MUTATEE $(MUTATEE_G77_CFLAGS) -I../src -o $@ -c test1_4F_solo_me.c 
+test1_5F_mutatee_solo_gcc_none.o: test1_5F_solo_me.c 
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) -DSOLO_MUTATEE $(MUTATEE_G77_CFLAGS) -I../src -o $@ -c test1_5F_solo_me.c 
+test1_6F_mutatee_solo_gcc_none.o: test1_6F_solo_me.c 
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) -DSOLO_MUTATEE $(MUTATEE_G77_CFLAGS) -I../src -o $@ -c test1_6F_solo_me.c 
+test1_7F_mutatee_solo_gcc_none.o: test1_7F_solo_me.c 
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) -DSOLO_MUTATEE $(MUTATEE_G77_CFLAGS) -I../src -o $@ -c test1_7F_solo_me.c 
+test1_8F_mutatee_solo_gcc_none.o: test1_8F_solo_me.c 
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) -DSOLO_MUTATEE $(MUTATEE_G77_CFLAGS) -I../src -o $@ -c test1_8F_solo_me.c 
+test1_9F_mutatee_solo_gcc_none.o: test1_9F_solo_me.c 
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) -DSOLO_MUTATEE $(MUTATEE_G77_CFLAGS) -I../src -o $@ -c test1_9F_solo_me.c 
+test1_10F_mutatee_solo_gcc_none.o: test1_10F_solo_me.c 
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) -DSOLO_MUTATEE $(MUTATEE_G77_CFLAGS) -I../src -o $@ -c test1_10F_solo_me.c 
+test1_11F_mutatee_solo_gcc_none.o: test1_11F_solo_me.c 
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) -DSOLO_MUTATEE $(MUTATEE_G77_CFLAGS) -I../src -o $@ -c test1_11F_solo_me.c 
+test1_12F_mutatee_solo_gcc_none.o: test1_12F_solo_me.c 
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) -DSOLO_MUTATEE $(MUTATEE_G77_CFLAGS) -I../src -o $@ -c test1_12F_solo_me.c 
+test1_13F_mutatee_solo_gcc_none.o: test1_13F_solo_me.c 
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) -DSOLO_MUTATEE $(MUTATEE_G77_CFLAGS) -I../src -o $@ -c test1_13F_solo_me.c 
+test1_14F_mutatee_solo_gcc_none.o: test1_14F_solo_me.c 
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) -DSOLO_MUTATEE $(MUTATEE_G77_CFLAGS) -I../src -o $@ -c test1_14F_solo_me.c 
+test1_15F_mutatee_solo_gcc_none.o: test1_15F_solo_me.c 
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) -DSOLO_MUTATEE $(MUTATEE_G77_CFLAGS) -I../src -o $@ -c test1_15F_solo_me.c 
+test1_16F_mutatee_solo_gcc_none.o: test1_16F_solo_me.c 
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) -DSOLO_MUTATEE $(MUTATEE_G77_CFLAGS) -I../src -o $@ -c test1_16F_solo_me.c 
+test1_17F_mutatee_solo_gcc_none.o: test1_17F_solo_me.c 
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) -DSOLO_MUTATEE $(MUTATEE_G77_CFLAGS) -I../src -o $@ -c test1_17F_solo_me.c 
+test1_18F_mutatee_solo_gcc_none.o: test1_18F_solo_me.c 
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) -DSOLO_MUTATEE $(MUTATEE_G77_CFLAGS) -I../src -o $@ -c test1_18F_solo_me.c 
+test1_19F_mutatee_solo_gcc_none.o: test1_19F_solo_me.c 
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) -DSOLO_MUTATEE $(MUTATEE_G77_CFLAGS) -I../src -o $@ -c test1_19F_solo_me.c 
+test1_20F_mutatee_solo_gcc_none.o: test1_20F_solo_me.c 
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) -DSOLO_MUTATEE $(MUTATEE_G77_CFLAGS) -I../src -o $@ -c test1_20F_solo_me.c 
+test1_25F_mutatee_solo_gcc_none.o: test1_25F_solo_me.c 
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) -DSOLO_MUTATEE $(MUTATEE_G77_CFLAGS) -I../src -o $@ -c test1_25F_solo_me.c 
+test1_29F_mutatee_solo_gcc_none.o: test1_29F_solo_me.c 
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) -DSOLO_MUTATEE $(MUTATEE_G77_CFLAGS) -I../src -o $@ -c test1_29F_solo_me.c 
+test1_31F_mutatee_solo_gcc_none.o: test1_31F_solo_me.c 
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) -DSOLO_MUTATEE $(MUTATEE_G77_CFLAGS) -I../src -o $@ -c test1_31F_solo_me.c 
+test1_32F_mutatee_solo_gcc_none.o: test1_32F_solo_me.c 
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) -DSOLO_MUTATEE $(MUTATEE_G77_CFLAGS) -I../src -o $@ -c test1_32F_solo_me.c 
+test1_34F_mutatee_solo_gcc_none.o: test1_34F_solo_me.c 
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) -DSOLO_MUTATEE $(MUTATEE_G77_CFLAGS) -I../src -o $@ -c test1_34F_solo_me.c 
+test1_36F_mutatee_solo_gcc_none.o: test1_36F_solo_me.c 
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) -DSOLO_MUTATEE $(MUTATEE_G77_CFLAGS) -I../src -o $@ -c test1_36F_solo_me.c 
+
+
+# Generic rules for gcc's mutatees and varying optimization levels for symtab
+test_type_info_mutatee_solo_gcc_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_type_info_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
+test_lookup_var_mutatee_solo_gcc_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
+test_ser_anno_mutatee_solo_gcc_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_ser_anno_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/symtab -DTEST_NAME=test_ser_anno -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_ser_anno_mutatee.c -o $@ $<
+test_line_info_mutatee_solo_gcc_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
+test_module_mutatee_solo_gcc_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
+test_lookup_func_mutatee_solo_gcc_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_anno_basic_types_mutatee_solo_gcc_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_add_symbols_mutatee_solo_gcc_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_add_symbols_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/symtab -DTEST_NAME=test_add_symbols -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_add_symbols_mutatee.c -o $@ $<
+test_symtab_ser_funcs_mutatee_solo_gcc_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
+test_relocations_mutatee_solo_gcc_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/symtab -DTEST_NAME=test_relocations -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_relocations_mutatee.c -o $@ $<
+test_type_info_mutatee_solo_gcc_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_type_info_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
+test_lookup_var_mutatee_solo_gcc_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
+test_ser_anno_mutatee_solo_gcc_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_ser_anno_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/symtab -DTEST_NAME=test_ser_anno -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_ser_anno_mutatee.c -o $@ $<
+test_line_info_mutatee_solo_gcc_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
+test_module_mutatee_solo_gcc_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
+test_lookup_func_mutatee_solo_gcc_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_anno_basic_types_mutatee_solo_gcc_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_add_symbols_mutatee_solo_gcc_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_add_symbols_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/symtab -DTEST_NAME=test_add_symbols -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_add_symbols_mutatee.c -o $@ $<
+test_symtab_ser_funcs_mutatee_solo_gcc_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
+test_relocations_mutatee_solo_gcc_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/symtab -DTEST_NAME=test_relocations -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_relocations_mutatee.c -o $@ $<
+test_type_info_mutatee_solo_gcc_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_type_info_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
+test_lookup_var_mutatee_solo_gcc_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
+test_ser_anno_mutatee_solo_gcc_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_ser_anno_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -I../src/symtab -DTEST_NAME=test_ser_anno -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_ser_anno_mutatee.c -o $@ $<
+test_line_info_mutatee_solo_gcc_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
+test_module_mutatee_solo_gcc_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
+test_lookup_func_mutatee_solo_gcc_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_anno_basic_types_mutatee_solo_gcc_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_add_symbols_mutatee_solo_gcc_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_add_symbols_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -I../src/symtab -DTEST_NAME=test_add_symbols -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_add_symbols_mutatee.c -o $@ $<
+test_symtab_ser_funcs_mutatee_solo_gcc_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
+test_relocations_mutatee_solo_gcc_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -I../src/symtab -DTEST_NAME=test_relocations -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_relocations_mutatee.c -o $@ $<
+test_type_info_mutatee_solo_gcc_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_type_info_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
+test_lookup_var_mutatee_solo_gcc_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
+test_ser_anno_mutatee_solo_gcc_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_ser_anno_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/symtab -DTEST_NAME=test_ser_anno -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_ser_anno_mutatee.c -o $@ $<
+test_line_info_mutatee_solo_gcc_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
+test_module_mutatee_solo_gcc_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
+test_lookup_func_mutatee_solo_gcc_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_anno_basic_types_mutatee_solo_gcc_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_add_symbols_mutatee_solo_gcc_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_add_symbols_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/symtab -DTEST_NAME=test_add_symbols -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_add_symbols_mutatee.c -o $@ $<
+test_symtab_ser_funcs_mutatee_solo_gcc_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
+test_relocations_mutatee_solo_gcc_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/symtab -DTEST_NAME=test_relocations -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_relocations_mutatee.c -o $@ $<
+test_type_info_mutatee_solo_gcc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_type_info_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
+test_lookup_var_mutatee_solo_gcc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
+test_ser_anno_mutatee_solo_gcc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_ser_anno_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -I../src/symtab -DTEST_NAME=test_ser_anno -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_ser_anno_mutatee.c -o $@ $<
+test_line_info_mutatee_solo_gcc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
+test_module_mutatee_solo_gcc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
+test_lookup_func_mutatee_solo_gcc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_anno_basic_types_mutatee_solo_gcc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_add_symbols_mutatee_solo_gcc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_add_symbols_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -I../src/symtab -DTEST_NAME=test_add_symbols -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_add_symbols_mutatee.c -o $@ $<
+test_symtab_ser_funcs_mutatee_solo_gcc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
+test_relocations_mutatee_solo_gcc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -I../src/symtab -DTEST_NAME=test_relocations -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_relocations_mutatee.c -o $@ $<
+test_type_info_mutatee_solo_gcc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_type_info_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
+test_lookup_var_mutatee_solo_gcc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
+test_ser_anno_mutatee_solo_gcc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_ser_anno_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -I../src/symtab -DTEST_NAME=test_ser_anno -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_ser_anno_mutatee.c -o $@ $<
+test_line_info_mutatee_solo_gcc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
+test_module_mutatee_solo_gcc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
+test_lookup_func_mutatee_solo_gcc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_anno_basic_types_mutatee_solo_gcc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_add_symbols_mutatee_solo_gcc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_add_symbols_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -I../src/symtab -DTEST_NAME=test_add_symbols -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_add_symbols_mutatee.c -o $@ $<
+test_symtab_ser_funcs_mutatee_solo_gcc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
+test_relocations_mutatee_solo_gcc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -I../src/symtab -DTEST_NAME=test_relocations -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_relocations_mutatee.c -o $@ $<
+test_type_info_mutatee_solo_gcc_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_type_info_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
+test_lookup_var_mutatee_solo_gcc_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
+test_ser_anno_mutatee_solo_gcc_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_ser_anno_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -I../src/symtab -DTEST_NAME=test_ser_anno -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_ser_anno_mutatee.c -o $@ $<
+test_line_info_mutatee_solo_gcc_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
+test_module_mutatee_solo_gcc_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
+test_lookup_func_mutatee_solo_gcc_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_anno_basic_types_mutatee_solo_gcc_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_add_symbols_mutatee_solo_gcc_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_add_symbols_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -I../src/symtab -DTEST_NAME=test_add_symbols -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_add_symbols_mutatee.c -o $@ $<
+test_symtab_ser_funcs_mutatee_solo_gcc_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
+test_relocations_mutatee_solo_gcc_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -I../src/symtab -DTEST_NAME=test_relocations -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_relocations_mutatee.c -o $@ $<
+test_type_info_mutatee_solo_gcc_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_type_info_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/symtab -DTEST_NAME=test_type_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_type_info_mutatee.c -o $@ $<
+test_lookup_var_mutatee_solo_gcc_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_var_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/symtab -DTEST_NAME=test_lookup_var -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_var_mutatee.c -o $@ $<
+test_ser_anno_mutatee_solo_gcc_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_ser_anno_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/symtab -DTEST_NAME=test_ser_anno -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_ser_anno_mutatee.c -o $@ $<
+test_line_info_mutatee_solo_gcc_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_line_info_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/symtab -DTEST_NAME=test_line_info -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_line_info_mutatee.c -o $@ $<
+test_module_mutatee_solo_gcc_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_module_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/symtab -DTEST_NAME=test_module -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_module_mutatee.c -o $@ $<
+test_lookup_func_mutatee_solo_gcc_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_lookup_func_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/symtab -DTEST_NAME=test_lookup_func -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_lookup_func_mutatee.c -o $@ $<
+test_anno_basic_types_mutatee_solo_gcc_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_anno_basic_types_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/symtab -DTEST_NAME=test_anno_basic_types -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_anno_basic_types_mutatee.c -o $@ $<
+test_add_symbols_mutatee_solo_gcc_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_add_symbols_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/symtab -DTEST_NAME=test_add_symbols -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_add_symbols_mutatee.c -o $@ $<
+test_symtab_ser_funcs_mutatee_solo_gcc_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_symtab_ser_funcs_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/symtab -DTEST_NAME=test_symtab_ser_funcs -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_symtab_ser_funcs_mutatee.c -o $@ $<
+test_relocations_mutatee_solo_gcc_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/symtab/test_relocations_mutatee.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/symtab -DTEST_NAME=test_relocations -DGROUPABLE=1 -DMUTATEE_SRC=../src/symtab/test_relocations_mutatee.c -o $@ $<
+symtab_group_test_group_gcc_32_none_high.o: symtab_group_test_group.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -DGROUPABLE=1 -o $@ $<
+symtab_group_test_group_gcc_32_pic_high.o: symtab_group_test_group.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -DGROUPABLE=1 -o $@ $<
+symtab_group_test_group_gcc_32_none_max.o: symtab_group_test_group.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -DGROUPABLE=1 -o $@ $<
+symtab_group_test_group_gcc_32_pic_max.o: symtab_group_test_group.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -DGROUPABLE=1 -o $@ $<
+symtab_group_test_group_gcc_32_none_none.o: symtab_group_test_group.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -DGROUPABLE=1 -o $@ $<
+symtab_group_test_group_gcc_32_pic_none.o: symtab_group_test_group.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -DGROUPABLE=1 -o $@ $<
+symtab_group_test_group_gcc_32_none_low.o: symtab_group_test_group.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -DGROUPABLE=1 -o $@ $<
+symtab_group_test_group_gcc_32_pic_low.o: symtab_group_test_group.c
+	$(M_gnu_cc) $(symtab_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -DGROUPABLE=1 -o $@ $<
+
+%_gcc_32_none_high.o: ../src/symtab/%.c
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+%_gcc_32_none_high.o: ../src/symtab/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+%_gcc_32_none_high.o: ../src/symtab/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+%_gcc_32_pic_high.o: ../src/symtab/%.c
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+%_gcc_32_pic_high.o: ../src/symtab/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+%_gcc_32_pic_high.o: ../src/symtab/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+%_gcc_32_none_max.o: ../src/symtab/%.c
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+%_gcc_32_none_max.o: ../src/symtab/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+%_gcc_32_none_max.o: ../src/symtab/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+%_gcc_32_pic_max.o: ../src/symtab/%.c
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+%_gcc_32_pic_max.o: ../src/symtab/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+%_gcc_32_pic_max.o: ../src/symtab/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+%_gcc_32_none_none.o: ../src/symtab/%.c
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -o $@ $<
+%_gcc_32_none_none.o: ../src/symtab/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -o $@ $<
+%_gcc_32_none_none.o: ../src/symtab/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -o $@ $<
+%_gcc_32_pic_none.o: ../src/symtab/%.c
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+%_gcc_32_pic_none.o: ../src/symtab/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+%_gcc_32_pic_none.o: ../src/symtab/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+%_gcc_32_none_low.o: ../src/symtab/%.c
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+%_gcc_32_none_low.o: ../src/symtab/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+%_gcc_32_none_low.o: ../src/symtab/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+%_gcc_32_pic_low.o: ../src/symtab/%.c
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+%_gcc_32_pic_low.o: ../src/symtab/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+%_gcc_32_pic_low.o: ../src/symtab/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+
+# Generic rules for gcc's mutatees and varying optimization levels for instruction
+
+%_gcc_32_none_high.o: ../src/instruction/%.c
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+%_gcc_32_none_high.o: ../src/instruction/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+%_gcc_32_none_high.o: ../src/instruction/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+%_gcc_32_pic_high.o: ../src/instruction/%.c
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+%_gcc_32_pic_high.o: ../src/instruction/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+%_gcc_32_pic_high.o: ../src/instruction/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+%_gcc_32_none_max.o: ../src/instruction/%.c
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+%_gcc_32_none_max.o: ../src/instruction/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+%_gcc_32_none_max.o: ../src/instruction/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+%_gcc_32_pic_max.o: ../src/instruction/%.c
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+%_gcc_32_pic_max.o: ../src/instruction/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+%_gcc_32_pic_max.o: ../src/instruction/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+%_gcc_32_none_none.o: ../src/instruction/%.c
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -o $@ $<
+%_gcc_32_none_none.o: ../src/instruction/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -o $@ $<
+%_gcc_32_none_none.o: ../src/instruction/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -o $@ $<
+%_gcc_32_pic_none.o: ../src/instruction/%.c
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+%_gcc_32_pic_none.o: ../src/instruction/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+%_gcc_32_pic_none.o: ../src/instruction/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+%_gcc_32_none_low.o: ../src/instruction/%.c
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+%_gcc_32_none_low.o: ../src/instruction/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+%_gcc_32_none_low.o: ../src/instruction/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+%_gcc_32_pic_low.o: ../src/instruction/%.c
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+%_gcc_32_pic_low.o: ../src/instruction/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+%_gcc_32_pic_low.o: ../src/instruction/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+
+# Generic rules for gcc's mutatees and varying optimization levels for proccontrol
+pc_singlestep_mutatee_solo_gcc_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
+pc_launch_mutatee_solo_gcc_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_library_mutatee_solo_gcc_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/proccontrol -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -o $@ $<
+pc_irpc_mutatee_solo_gcc_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_irpc_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/proccontrol -DTEST_NAME=pc_irpc -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_irpc_mutatee.c -o $@ $<
+pc_breakpoint_mutatee_solo_gcc_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_breakpoint_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
+pc_thread_cont_mutatee_solo_gcc_32_none_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
+pc_singlestep_mutatee_solo_gcc_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
+pc_launch_mutatee_solo_gcc_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_library_mutatee_solo_gcc_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/proccontrol -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -o $@ $<
+pc_irpc_mutatee_solo_gcc_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_irpc_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/proccontrol -DTEST_NAME=pc_irpc -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_irpc_mutatee.c -o $@ $<
+pc_breakpoint_mutatee_solo_gcc_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_breakpoint_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
+pc_thread_cont_mutatee_solo_gcc_32_pic_high.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
+pc_singlestep_mutatee_solo_gcc_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
+pc_launch_mutatee_solo_gcc_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_library_mutatee_solo_gcc_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -I../src/proccontrol -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -o $@ $<
+pc_irpc_mutatee_solo_gcc_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_irpc_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -I../src/proccontrol -DTEST_NAME=pc_irpc -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_irpc_mutatee.c -o $@ $<
+pc_breakpoint_mutatee_solo_gcc_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_breakpoint_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
+pc_thread_cont_mutatee_solo_gcc_32_none_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
+pc_singlestep_mutatee_solo_gcc_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
+pc_launch_mutatee_solo_gcc_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_library_mutatee_solo_gcc_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/proccontrol -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -o $@ $<
+pc_irpc_mutatee_solo_gcc_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_irpc_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/proccontrol -DTEST_NAME=pc_irpc -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_irpc_mutatee.c -o $@ $<
+pc_breakpoint_mutatee_solo_gcc_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_breakpoint_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
+pc_thread_cont_mutatee_solo_gcc_32_pic_max.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
+pc_singlestep_mutatee_solo_gcc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
+pc_launch_mutatee_solo_gcc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_library_mutatee_solo_gcc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -I../src/proccontrol -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -o $@ $<
+pc_irpc_mutatee_solo_gcc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_irpc_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -I../src/proccontrol -DTEST_NAME=pc_irpc -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_irpc_mutatee.c -o $@ $<
+pc_breakpoint_mutatee_solo_gcc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_breakpoint_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
+pc_thread_cont_mutatee_solo_gcc_32_none_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
+pc_singlestep_mutatee_solo_gcc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
+pc_launch_mutatee_solo_gcc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_library_mutatee_solo_gcc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -I../src/proccontrol -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -o $@ $<
+pc_irpc_mutatee_solo_gcc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_irpc_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -I../src/proccontrol -DTEST_NAME=pc_irpc -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_irpc_mutatee.c -o $@ $<
+pc_breakpoint_mutatee_solo_gcc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_breakpoint_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
+pc_thread_cont_mutatee_solo_gcc_32_pic_none.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
+pc_singlestep_mutatee_solo_gcc_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
+pc_launch_mutatee_solo_gcc_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_library_mutatee_solo_gcc_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -I../src/proccontrol -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -o $@ $<
+pc_irpc_mutatee_solo_gcc_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_irpc_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -I../src/proccontrol -DTEST_NAME=pc_irpc -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_irpc_mutatee.c -o $@ $<
+pc_breakpoint_mutatee_solo_gcc_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_breakpoint_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
+pc_thread_cont_mutatee_solo_gcc_32_none_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
+pc_singlestep_mutatee_solo_gcc_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_singlestep_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/proccontrol -DTEST_NAME=pc_singlestep -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_singlestep_mutatee.c -o $@ $<
+pc_launch_mutatee_solo_gcc_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_launch_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/proccontrol -DTEST_NAME=pc_launch -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_launch_mutatee.c -o $@ $<
+pc_library_mutatee_solo_gcc_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_library_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/proccontrol -DTEST_NAME=pc_library -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_library_mutatee.c -o $@ $<
+pc_irpc_mutatee_solo_gcc_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_irpc_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/proccontrol -DTEST_NAME=pc_irpc -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_irpc_mutatee.c -o $@ $<
+pc_breakpoint_mutatee_solo_gcc_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_breakpoint_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/proccontrol -DTEST_NAME=pc_breakpoint -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_breakpoint_mutatee.c -o $@ $<
+pc_thread_cont_mutatee_solo_gcc_32_pic_low.o: ../src/solo_mutatee_boilerplate.c ../src/proccontrol/pc_thread_cont_mutatee.c
+	$(M_gnu_cc) $(proccontrol_SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -I../src/proccontrol -DTEST_NAME=pc_thread_cont -DGROUPABLE=0 -DMUTATEE_SRC=../src/proccontrol/pc_thread_cont_mutatee.c -o $@ $<
+
+%_gcc_32_none_high.o: ../src/proccontrol/%.c
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+%_gcc_32_none_high.o: ../src/proccontrol/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+%_gcc_32_none_high.o: ../src/proccontrol/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+%_gcc_32_pic_high.o: ../src/proccontrol/%.c
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+%_gcc_32_pic_high.o: ../src/proccontrol/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+%_gcc_32_pic_high.o: ../src/proccontrol/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+%_gcc_32_none_max.o: ../src/proccontrol/%.c
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+%_gcc_32_none_max.o: ../src/proccontrol/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+%_gcc_32_none_max.o: ../src/proccontrol/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+%_gcc_32_pic_max.o: ../src/proccontrol/%.c
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+%_gcc_32_pic_max.o: ../src/proccontrol/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+%_gcc_32_pic_max.o: ../src/proccontrol/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+%_gcc_32_none_none.o: ../src/proccontrol/%.c
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -o $@ $<
+%_gcc_32_none_none.o: ../src/proccontrol/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -o $@ $<
+%_gcc_32_none_none.o: ../src/proccontrol/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -o $@ $<
+%_gcc_32_pic_none.o: ../src/proccontrol/%.c
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+%_gcc_32_pic_none.o: ../src/proccontrol/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+%_gcc_32_pic_none.o: ../src/proccontrol/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+%_gcc_32_none_low.o: ../src/proccontrol/%.c
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+%_gcc_32_none_low.o: ../src/proccontrol/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+%_gcc_32_none_low.o: ../src/proccontrol/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+%_gcc_32_pic_low.o: ../src/proccontrol/%.c
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+%_gcc_32_pic_low.o: ../src/proccontrol/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+%_gcc_32_pic_low.o: ../src/proccontrol/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+%_gcc_32_none_high.o: ../src/%.c
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+%_gcc_32_none_high.o: ../src/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+%_gcc_32_none_high.o: ../src/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+%_gcc_32_pic_high.o: ../src/%.c
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+%_gcc_32_pic_high.o: ../src/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+%_gcc_32_pic_high.o: ../src/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+%_gcc_32_none_max.o: ../src/%.c
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+%_gcc_32_none_max.o: ../src/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+%_gcc_32_none_max.o: ../src/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+%_gcc_32_pic_max.o: ../src/%.c
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+%_gcc_32_pic_max.o: ../src/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+%_gcc_32_pic_max.o: ../src/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+%_gcc_32_none_none.o: ../src/%.c
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -o $@ $<
+%_gcc_32_none_none.o: ../src/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -o $@ $<
+%_gcc_32_none_none.o: ../src/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -o $@ $<
+%_gcc_32_pic_none.o: ../src/%.c
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+%_gcc_32_pic_none.o: ../src/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+%_gcc_32_pic_none.o: ../src/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+%_gcc_32_none_low.o: ../src/%.c
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+%_gcc_32_none_low.o: ../src/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+%_gcc_32_none_low.o: ../src/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+%_gcc_32_pic_low.o: ../src/%.c
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+%_gcc_32_pic_low.o: ../src/%.S
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+%_gcc_32_pic_low.o: ../src/%.s
+	$(M_gnu_cc) $(SOLO_MUTATEE_DEFS) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+# Rules for building the driver and utility objects
+mutatee_driver_solo_gcc_32.o: ../src/mutatee_driver.c
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src  -o $@ -c $<
+mutatee_util_gcc_32.o: ../src/mutatee_util.c
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src  -o $@ -c $<
+
+
+# Generic rules for this platform's auxilliary compilers
+
+%_gcc_32_none_high.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+
+%_gcc_32_none_high.o: ../src/symtab/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+
+%_gcc_32_pic_high.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+
+%_gcc_32_pic_high.o: ../src/symtab/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+
+%_gcc_32_none_max.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+
+%_gcc_32_none_max.o: ../src/symtab/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+
+%_gcc_32_pic_max.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+
+%_gcc_32_pic_max.o: ../src/symtab/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+
+%_gcc_32_none_none.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -o $@ $<
+
+%_gcc_32_none_none.o: ../src/symtab/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -o $@ $<
+
+%_gcc_32_pic_none.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+
+%_gcc_32_pic_none.o: ../src/symtab/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+
+%_gcc_32_none_low.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+
+%_gcc_32_none_low.o: ../src/symtab/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+
+%_gcc_32_pic_low.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+
+%_gcc_32_pic_low.o: ../src/symtab/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+
+%_gcc_32_none_high.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+
+%_gcc_32_none_high.o: ../src/symtab/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+
+%_gcc_32_pic_high.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+
+%_gcc_32_pic_high.o: ../src/symtab/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+
+%_gcc_32_none_max.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+
+%_gcc_32_none_max.o: ../src/symtab/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+
+%_gcc_32_pic_max.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+
+%_gcc_32_pic_max.o: ../src/symtab/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+
+%_gcc_32_none_none.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -o $@ $<
+
+%_gcc_32_none_none.o: ../src/symtab/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -o $@ $<
+
+%_gcc_32_pic_none.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+
+%_gcc_32_pic_none.o: ../src/symtab/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+
+%_gcc_32_none_low.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+
+%_gcc_32_none_low.o: ../src/symtab/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+
+%_gcc_32_pic_low.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+
+%_gcc_32_pic_low.o: ../src/symtab/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+
+
+# Generic rules for this platform's auxilliary compilers
+
+%_gcc_32_none_high.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+
+%_gcc_32_none_high.o: ../src/instruction/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+
+%_gcc_32_pic_high.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+
+%_gcc_32_pic_high.o: ../src/instruction/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+
+%_gcc_32_none_max.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+
+%_gcc_32_none_max.o: ../src/instruction/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+
+%_gcc_32_pic_max.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+
+%_gcc_32_pic_max.o: ../src/instruction/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+
+%_gcc_32_none_none.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -o $@ $<
+
+%_gcc_32_none_none.o: ../src/instruction/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -o $@ $<
+
+%_gcc_32_pic_none.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+
+%_gcc_32_pic_none.o: ../src/instruction/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+
+%_gcc_32_none_low.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+
+%_gcc_32_none_low.o: ../src/instruction/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+
+%_gcc_32_pic_low.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+
+%_gcc_32_pic_low.o: ../src/instruction/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+
+%_gcc_32_none_high.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+
+%_gcc_32_none_high.o: ../src/instruction/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+
+%_gcc_32_pic_high.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+
+%_gcc_32_pic_high.o: ../src/instruction/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+
+%_gcc_32_none_max.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+
+%_gcc_32_none_max.o: ../src/instruction/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+
+%_gcc_32_pic_max.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+
+%_gcc_32_pic_max.o: ../src/instruction/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+
+%_gcc_32_none_none.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -o $@ $<
+
+%_gcc_32_none_none.o: ../src/instruction/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -o $@ $<
+
+%_gcc_32_pic_none.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+
+%_gcc_32_pic_none.o: ../src/instruction/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+
+%_gcc_32_none_low.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+
+%_gcc_32_none_low.o: ../src/instruction/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+
+%_gcc_32_pic_low.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+
+%_gcc_32_pic_low.o: ../src/instruction/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+
+
+# Generic rules for this platform's auxilliary compilers
+
+%_gcc_32_none_high.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+
+%_gcc_32_none_high.o: ../src/proccontrol/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+
+%_gcc_32_pic_high.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+
+%_gcc_32_pic_high.o: ../src/proccontrol/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+
+%_gcc_32_none_max.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+
+%_gcc_32_none_max.o: ../src/proccontrol/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+
+%_gcc_32_pic_max.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+
+%_gcc_32_pic_max.o: ../src/proccontrol/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+
+%_gcc_32_none_none.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -o $@ $<
+
+%_gcc_32_none_none.o: ../src/proccontrol/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -o $@ $<
+
+%_gcc_32_pic_none.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+
+%_gcc_32_pic_none.o: ../src/proccontrol/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+
+%_gcc_32_none_low.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+
+%_gcc_32_none_low.o: ../src/proccontrol/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+
+%_gcc_32_pic_low.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+
+%_gcc_32_pic_low.o: ../src/proccontrol/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+
+%_gcc_32_none_high.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+
+%_gcc_32_none_high.o: ../src/proccontrol/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+
+%_gcc_32_pic_high.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+
+%_gcc_32_pic_high.o: ../src/proccontrol/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+
+%_gcc_32_none_max.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+
+%_gcc_32_none_max.o: ../src/proccontrol/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+
+%_gcc_32_pic_max.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+
+%_gcc_32_pic_max.o: ../src/proccontrol/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+
+%_gcc_32_none_none.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -o $@ $<
+
+%_gcc_32_none_none.o: ../src/proccontrol/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -o $@ $<
+
+%_gcc_32_pic_none.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+
+%_gcc_32_pic_none.o: ../src/proccontrol/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+
+%_gcc_32_none_low.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+
+%_gcc_32_none_low.o: ../src/proccontrol/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+
+%_gcc_32_pic_low.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+
+%_gcc_32_pic_low.o: ../src/proccontrol/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+
+
+# Generic rules for this platform's auxilliary compilers
+
+%_gcc_32_none_high.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+
+%_gcc_32_none_high.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+
+%_gcc_32_pic_high.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+
+%_gcc_32_pic_high.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+
+%_gcc_32_none_max.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+
+%_gcc_32_none_max.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+
+%_gcc_32_pic_max.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+
+%_gcc_32_pic_max.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+
+%_gcc_32_none_none.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -o $@ $<
+
+%_gcc_32_none_none.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -o $@ $<
+
+%_gcc_32_pic_none.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+
+%_gcc_32_pic_none.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+
+%_gcc_32_none_low.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+
+%_gcc_32_none_low.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+
+%_gcc_32_pic_low.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+
+%_gcc_32_pic_low.o: ../src/%.S
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+
+%_gcc_32_none_high.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+
+%_gcc_32_none_high.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2  -o $@ $<
+
+%_gcc_32_pic_high.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+
+%_gcc_32_pic_high.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O2 -fPIC -o $@ $<
+
+%_gcc_32_none_max.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+
+%_gcc_32_none_max.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3  -o $@ $<
+
+%_gcc_32_pic_max.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+
+%_gcc_32_pic_max.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O3 -fPIC -o $@ $<
+
+%_gcc_32_none_none.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -o $@ $<
+
+%_gcc_32_none_none.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c    -o $@ $<
+
+%_gcc_32_pic_none.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+
+%_gcc_32_pic_none.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c   -fPIC -o $@ $<
+
+%_gcc_32_none_low.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+
+%_gcc_32_none_low.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1  -o $@ $<
+
+%_gcc_32_pic_low.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+
+%_gcc_32_pic_low.o: ../src/%.s
+	$(M_gnu_cc) $(CFLAGS) -DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src -c  -O1 -fPIC -o $@ $<
+
+# And a rule to build all of the mutatees
+.PHONY: symtab_solo_mutatees
+symtab_solo_mutatees: $(symtabSOLO_MUTATEES_gnu_cxx) $(symtabSOLO_MUTATEES_gnu_cc) 
+
+.PHONY: clean_solo_mutatees
+symtab_clean_solo_mutatees:
+	-$(RM) $(symtab_SOLO_MUTATEES_gnu_cxx)
+	-$(RM) $(symtab_SOLO_MUTATEES_gnu_cc)
+	-$(RM) *_none.o
+	-$(RM) *_low.o
+	-$(RM) *_high.o
+	-$(RM) *_max.o
+
+
+symtab_SOLO_MUTATEES = $(symtab_SOLO_MUTATEES_gnu_cxx) $(symtab_SOLO_MUTATEES_gnu_cc)
+
+### COMPILER_CONTROL_DEFS is used to determine which compilers are present
+### when compiling the list of mutatees to test against
+COMPILER_CONTROL_DEFS =
+
+# And a rule to build all of the mutatees
+.PHONY: instruction_solo_mutatees
+instruction_solo_mutatees: $(instructionSOLO_MUTATEES_gnu_cxx) $(instructionSOLO_MUTATEES_gnu_cc) 
+
+.PHONY: clean_solo_mutatees
+instruction_clean_solo_mutatees:
+	-$(RM) $(instruction_SOLO_MUTATEES_gnu_cxx)
+	-$(RM) $(instruction_SOLO_MUTATEES_gnu_cc)
+	-$(RM) *_none.o
+	-$(RM) *_low.o
+	-$(RM) *_high.o
+	-$(RM) *_max.o
+
+
+instruction_SOLO_MUTATEES = $(instruction_SOLO_MUTATEES_gnu_cxx) $(instruction_SOLO_MUTATEES_gnu_cc)
+
+### COMPILER_CONTROL_DEFS is used to determine which compilers are present
+### when compiling the list of mutatees to test against
+COMPILER_CONTROL_DEFS =
+
+# And a rule to build all of the mutatees
+.PHONY: proccontrol_solo_mutatees
+proccontrol_solo_mutatees: $(proccontrolSOLO_MUTATEES_gnu_cxx) $(proccontrolSOLO_MUTATEES_gnu_cc) 
+
+.PHONY: clean_solo_mutatees
+proccontrol_clean_solo_mutatees:
+	-$(RM) $(proccontrol_SOLO_MUTATEES_gnu_cxx)
+	-$(RM) $(proccontrol_SOLO_MUTATEES_gnu_cc)
+	-$(RM) *_none.o
+	-$(RM) *_low.o
+	-$(RM) *_high.o
+	-$(RM) *_max.o
+
+
+proccontrol_SOLO_MUTATEES = $(proccontrol_SOLO_MUTATEES_gnu_cxx) $(proccontrol_SOLO_MUTATEES_gnu_cc)
+
+### COMPILER_CONTROL_DEFS is used to determine which compilers are present
+### when compiling the list of mutatees to test against
+COMPILER_CONTROL_DEFS =
+
