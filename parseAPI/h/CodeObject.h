@@ -96,6 +96,7 @@ class CodeObject {
     PARSER_EXPORT Block * findBlockByEntry(CodeRegion * cr, Address entry);
     PARSER_EXPORT int findBlocks(CodeRegion * cr, 
         Address addr, std::set<Block*> & blocks);
+    PARSER_EXPORT Block * findNextBlock(CodeRegion * cr, Address addr);
 
     /* Misc */
     PARSER_EXPORT CodeSource * cs() const { return _cs; }

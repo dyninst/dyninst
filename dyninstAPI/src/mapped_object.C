@@ -1607,19 +1607,48 @@ void mapped_object::updateCodeBytes(SymtabAPI::Region * reg)
 // analyzed page that's been protected from overwrites
 bool mapped_object::isUpdateNeeded(Address entry)
 {
-    void* regBuf = NULL;
-    Address base = parse_img()->desc().loadAddr();
+    using namespace ParseAPI;
     bool updateNeeded = false;
-    assert( parse_img()->codeObject()->defensiveMode() );
-    SymtabAPI::Region *reg = parse_img()->getObject()->
-        findEnclosingRegion( entry - base );
-    if ( !reg ) {
-        assert ( 0 && "why am I trying to update with an invalid addr?");
+    void* regBuf = NULL;
+    Address base = codeBase();
+
+    assert( BPatch_defensiveMode == hybridMode() );
+
+    set<CodeRegion*> cregs;
+    CodeObject *co = parse_img()->codeObject();
+    co->cs()->findRegions(entry-base, cregs);
+    assert( ! co->cs()->regionsOverlap() );
+    if (0 == cregs.size()) {
+        mal_printf("Object update request has invalid addr[%lx] %s[%d]\n",
+                   entry, FILE__,__LINE__);
         return false;
     }
+    SymtabCodeRegion *creg = static_cast<SymtabCodeRegion*>( * cregs.begin() );
+
     // update the range tree, if necessary
-    if (findCodeRangeByAddress(entry)) {
-        assert ( 0 && "shouldn't be checking for updates to protected code");
+
+    set<ParseAPI::Block *> analyzedBlocks;
+    if (parse_img()->findBlocksByAddr(entry-base, analyzedBlocks)) {
+        return false; // don't need to update if target is in analyzed code
+    }
+
+    // see if the underlying bytes have changed
+    // 
+    // read until the next basic block or until the end of the region
+    // to make sure nothing has changed, otherwise we'll want to read 
+    // the section in again
+    Block *nextBlk = co->findNextBlock(creg, entry-base);
+    unsigned comparison_size = 0; 
+    if (nextBlk) {
+        comparison_size = nextBlk->start() - (entry-base);
+    } else {
+        comparison_size = creg->symRegion()->getDiskSize() 
+            - ( (entry - base) - creg->symRegion()->getRegionAddr() );
+    }
+#if 0 //KEVINTODO: delete old codeRange-based method that triggers premature parseAPI finalization
+    // update the range tree, if necessary
+    codeRange *existingCode = findCodeRangeByAddress(entry);
+    if (existingCode) {
         return false; // don't need to update if we correspond to code
     }
 
@@ -1636,6 +1665,8 @@ bool mapped_object::isUpdateNeeded(Address entry)
         comparison_size = reg->getDiskSize() 
                         - ( (entry - base) - reg->getRegionAddr() );
     }
+#endif
+
     Address page_size = proc()->proc()->getMemoryPageSize();
     comparison_size = ( comparison_size <  page_size) 
                       ? comparison_size : page_size;
@@ -1649,10 +1680,8 @@ bool mapped_object::isUpdateNeeded(Address entry)
     // in which case the difference is due to instrumentation, as we would 
     // have otherwise detected the overwrite
     void *mappedPtr = (void*)
-                      ((Address)reg->getPtrToRawData() +
-                        entry - 
-                        reg->getRegionAddr() -
-                        base);
+                      ((Address)creg->symRegion()->getPtrToRawData() +
+                        (entry - base - creg->symRegion()->getRegionAddr()) );
     if (0 != memcmp(mappedPtr,regBuf,comparison_size) ) {
         updateNeeded = true;
     }

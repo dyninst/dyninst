@@ -142,6 +142,25 @@ class region_data {
     Block * findBlock(Address entry);
     int findFuncs(Address addr, set<Function *> & funcs);
     int findBlocks(Address addr, set<Block *> & blocks);
+
+    /* 
+     * Look up the next block for detection of straight-line
+     * fallthrough edges into existing blocks.
+     */
+    inline std::pair<Address, Block*> get_next_block(Address addr)
+    {
+        Block * nextBlock = NULL;
+        Address nextBlockAddr = numeric_limits<Address>::max();
+
+        if((nextBlock = blocksByRange.successor(addr)) &&
+           nextBlock->start() > addr)
+        {
+            nextBlockAddr = nextBlock->start();   
+        }
+
+        return std::pair<Address,Block*>(nextBlockAddr,nextBlock);
+    }
+    
 };
 
 /** region_data inlines **/
