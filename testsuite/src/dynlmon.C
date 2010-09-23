@@ -114,20 +114,17 @@ static bool init_lmon()
 }
 
 #if defined(os_cnl_test)
-static char **getLaunchParams(char *executable, char *args[], int num)
+static char **getLaunchParams(char *executable, char *args[], char *num)
 {
    
    int count = 0;
    for (char *counter[] = args; *counter; counter++, count++);
    char **new_args = (char **) malloc(sizeof(char *) * (count+5));
-   char num_str[32];
-   snprintf(num_str, 32, "%d", num);
    new_args[0] = "aprun";
    new_args[1] = "-n";
-   new_args[2] = num_str;
-   new_args[3] = executable;
+   new_args[2] = num;
    for (unsigned i=0; i<=count; i++)
-      new_args[4+i] = args[i];
+      new_args[3+i] = args[i];
    return new_args;
 }
 #elif defined(os_linux_test)
