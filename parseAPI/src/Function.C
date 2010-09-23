@@ -380,7 +380,20 @@ Function::tampersStack(bool recalculate)
         for (ait = assgns.begin(); assgns.end() != ait; ait++) {
             AbsRegion & outReg = (*ait)->out();
             if ( outReg.absloc().isPC() ) {
-                Slicer slicer(*ait,*bit,this);
+	      // First check to see if an input is an unresolved stack slot 
+	      // (or worse, the heap) - since if that's the case there's no use
+	      // in spending a lot of time slicing.
+	      std::vector<AbsRegion>::const_iterator in_iter;
+	      for (in_iter = (*ait)->inputs().begin();
+		   in_iter != (*ait)->inputs().end(); ++in_iter) {
+		if (in_iter->type() != Absloc::Unknown) {
+		  _tamper = TAMPER_NONZERO;
+		  _tamper_addr = 0;
+		  return _tamper;
+		}     
+	      }
+
+	      Slicer slicer(*ait,*bit,this);
                 Graph::Ptr slGraph = slicer.backwardSlice(preds);
                 if (dyn_debug_malware) {
                     stringstream graphDump;
@@ -445,3 +458,4 @@ Function::tampersStack(bool recalculate)
     }
     return _tamper;
 }
+
