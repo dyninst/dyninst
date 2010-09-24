@@ -192,6 +192,7 @@ mutatee_tuple(Name, PreprocessedSources, RawSources, Libraries, Platform,
     mutatee_requires_libs(Name, Libraries),
     compiler_for_mutatee(Name, Compiler),
     compiler_platform(Compiler, Platform),
+    \+ mutatee_compiler_platform_exclude(Compiler, Platform),
     compiler_pic(Compiler, PIC),
     (
         \+ optimization_for_mutatee(Name, _, _) ->
@@ -218,6 +219,7 @@ mutatee_tuple(Name, PreprocessedSources, RawSources, Libraries, Platform,
     mutatee_format(Name, Format),
     compiler_format(Compiler, Format),
     compiler_platform(Compiler, Platform),
+    \+ mutatee_compiler_platform_exclude(Compiler, Platform),
     compiler_pic(Compiler, PIC),
     (
         \+ optimization_for_mutatee(Name, _, _) ->
@@ -271,6 +273,7 @@ rungroup_tuple(Mutatee, Compiler, Optimization, RunMode, StartState,
     format_runmode(Platform, RunMode, Format),
     platform_format(Platform, Format),
     compiler_format(Compiler, Format),
+    \+ mutatee_compiler_platform_exclude(Compiler, Platform),
     mutatee_format(Mutatee, Format),
     compiler_pic(Compiler, PIC),
     % Enumerate / verify values for run-time options

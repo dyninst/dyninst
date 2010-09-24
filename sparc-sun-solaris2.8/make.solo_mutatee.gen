@@ -1,8 +1,8 @@
 # Define variables for our compilers, if they aren't already defined
 M_gnu_cc ?= gcc
 M_native_cc ?= cc
-M_native_cxx ?= CC
 M_gnu_cxx ?= g++
+M_native_cxx ?= CC
 
 ######################################################################
 # Mutatees compiled with CC for dyninst
