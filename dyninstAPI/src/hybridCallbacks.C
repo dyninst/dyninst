@@ -257,7 +257,7 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
                 target,FILE__,__LINE__);
         assert(0);
     }
-    if ( targMod->isSharedLib() ) {
+    if ( targMod != point->getFunction()->getModule() ) {
         vector<BPatch_function*> targFuncs;
         targMod->findFunctionByAddress((void*)target,targFuncs,false,true);
         char modName[16]; 

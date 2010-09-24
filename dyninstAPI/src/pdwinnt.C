@@ -615,6 +615,7 @@ bool SignalGenerator::decodeException(EventRecord &ev)
         ret = decodeBreakpoint(ev);
         break;
      case EXCEPTION_ILLEGAL_INSTRUCTION:
+        signal_printf("ILLEGAL INSTRUCTION\n");
      case EXCEPTION_ACCESS_VIOLATION:
      {
          requested_wait_until_active = true;
