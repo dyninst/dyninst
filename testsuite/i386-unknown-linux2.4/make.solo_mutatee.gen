@@ -1,18 +1,18 @@
 # Define variables for our compilers, if they aren't already defined
-ifdef ICC
-M_intel_CC ?= icpc
-endif
 M_gnu_cc ?= gcc
-M_gnu_fc ?= gfortran
 ifdef ICC
 M_intel_cc ?= icc
 endif
 M_gnu_cxx ?= g++
 ifdef PGI
-M_pg_cc ?= pgcc
+M_pg_cxx ?= pgCC
+endif
+M_gnu_fc ?= gfortran
+ifdef ICC
+M_intel_CC ?= icpc
 endif
 ifdef PGI
-M_pg_cxx ?= pgCC
+M_pg_cc ?= pgcc
 endif
 M_nasm ?= nasm
 

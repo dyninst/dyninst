@@ -39,7 +39,7 @@
                   compiler_platform_abi/3, tests_module/2, mutator_requires_libs/2, 
                   test_exclude_compiler/2, remote_platform/1, remote_runmode_mutator/2,
                   remote_runmode_mutatee/2, mutatee_launchtime/2, runmode_launch_params/5,
-                  platform_module/2]).
+                  platform_module/2, mutatee_compiler_platform_exclude/2]).
 
 %%%%%%%%%%
 %
@@ -2468,7 +2468,7 @@ pcMutateeLibs(Libs) :-
 compiler_for_mutatee(Mutatee, Compiler) :-
            test(T, _, Mutatee),
     tests_module(T, 'proccontrol'),
-    member(Compiler, ['gcc', 'g++']).
+    member(Compiler, ['gcc', 'g++', 'bg_gcc', 'bg_g++']).
 
 test('pc_launch', 'pc_launch', 'pc_launch').
 test_description('pc_launch', 'Launch a process').
@@ -2669,6 +2669,10 @@ compiler_format('g++', 'staticMutatee').
 compiler_format('gcc', 'staticMutatee').
 compiler_format('gfortran', 'staticMutatee').
 
+compiler_format('bg_gcc', 'staticMutatee').
+compiler_format('bg_g++', 'staticMutatee').
+compiler_format('bg_gfortran', 'staticMutatee').
+
 % format_runmode (Platform, RunMode, Format)
 format_runmode(_, 'binary', 'staticMutatee').
 format_runmode(_, 'binary', 'dynamicMutatee').
@@ -2817,6 +2821,14 @@ compiler_platform('icc', Plat) :-
     platform(Arch, OS, _, Plat), Arch == 'x86_64', OS == 'linux'.
 compiler_platform('iCC', Plat) :-
     platform(Arch, OS, _, Plat), Arch == 'x86_64', OS == 'linux'.
+% BlueGene gets its own versions of GNU compilers
+compiler_platform('bg_gcc', Plat) :- platform(_, 'bluegene', _, Plat).
+compiler_platform('bg_g++', Plat) :- platform(_, 'bluegene', _, Plat).
+compiler_platform('bg_gfortran', Plat) :- platform(_, 'bluegene', _, Plat).
+mutatee_compiler_platform_exclude('gcc', Plat) :- platform(_, 'bluegene', _, Plat).
+mutatee_compiler_platform_exclude('g++', Plat) :- platform(_, 'bluegene', _, Plat).
+mutatee_compiler_platform_exclude('gfortran', Plat) :- platform(_, 'bluegene', _, Plat).
+
 
 % linker/2
 % linker(?Platform, ?Linker)
@@ -2908,10 +2920,10 @@ insane('Too many compilers on platform P1 for extension P2',
 % Compiler/language constraints
 comp_lang('gfortran', 'fortran').
 comp_lang(Compiler, 'c') :-
-    member(Compiler, ['gcc', 'pgcc', 'VC', 'cc', 'sun_cc', 'xlc', 'icc']);
-    member(Compiler, ['g++', 'pgCC', 'VC++', 'cxx', 'CC', 'xlC', 'iCC']).
+    member(Compiler, ['gcc', 'pgcc', 'VC', 'cc', 'sun_cc', 'xlc', 'icc', 'bg_gcc']);
+    member(Compiler, ['g++', 'pgCC', 'VC++', 'cxx', 'CC', 'xlC', 'iCC', 'bg_g++']).
 comp_lang(Compiler, 'c++') :-
-    member(Compiler, ['g++', 'pgCC', 'VC++', 'cxx', 'CC', 'xlC', 'iCC']).
+    member(Compiler, ['g++', 'pgCC', 'VC++', 'cxx', 'CC', 'xlC', 'iCC', 'bg_g++']).
 comp_lang('gcc', 'att_asm') :-
     % We dont use gcc for assembly files on AIX
     current_platform(Platform),
@@ -2934,6 +2946,9 @@ mutatee_comp('xlc').
 mutatee_comp('xlC').
 mutatee_comp('icc').
 mutatee_comp('iCC').
+mutatee_comp('bg_gcc').
+mutatee_comp('bg_g++').
+mutatee_comp('bg_gfortran').
 
 % compiler_presence_def/2
 % compiler_presence_def(Compiler, EnvironmentVariable)
@@ -2964,6 +2979,9 @@ compiler_define_string('xlC', 'native_cxx').
 compiler_define_string('gfortran', 'gnu_fc').
 compiler_define_string('icc', 'intel_cc').
 compiler_define_string('iCC', 'intel_CC').
+compiler_define_string('bg_gcc', 'gnu_cc').
+compiler_define_string('bg_g++', 'gnu_xx').
+compiler_define_string('bg_gfortran', 'gnu_fc').
 
 %%%%%%%%%%
 % *_s relations translate various internal atoms into strings than are
@@ -2987,6 +3005,9 @@ compiler_s('VC', 'cl').
 compiler_s('VC++', 'cl').
 compiler_s('icc', 'icc').
 compiler_s('iCC', 'icpc').
+compiler_s('bg_gcc', 'powerpc-bgp-linux-gcc').
+compiler_s('bg_g++', 'powerpc-bgp-linux-g++').
+compiler_s('bg_gfortran', 'powerpc-bgp-linux-gfortran').
 
 
 % Translation for Optimization Level
@@ -2996,21 +3017,21 @@ compiler_s('iCC', 'icpc').
 % FIXME Im also not sure that all these compilers default to no optimization
 compiler_opt_trans(_, 'none', '').
 compiler_opt_trans(Comp, 'low', '-O1') :-
-    member(Comp, ['gcc', 'g++', 'pgcc', 'pgCC', 'cc', 'cxx', 'gfortran', 'icc', 'iCC']).
+    member(Comp, ['gcc', 'g++', 'pgcc', 'pgCC', 'cc', 'cxx', 'gfortran', 'icc', 'iCC', 'bg_gcc', 'bg_g++', 'bg_gfortran']).
 compiler_opt_trans(Comp, 'low', '/O1') :- Comp == 'VC++'; Comp == 'VC'.
 compiler_opt_trans(SunWorkshop, 'low', '-O') :-
     member(SunWorkshop, ['sun_cc', 'CC']).
 compiler_opt_trans(IBM, 'low', '-O') :-
     member(IBM, ['xlc', 'xlC']).
 compiler_opt_trans(Comp, 'high', '-O2') :-
-    member(Comp, ['gcc', 'g++', 'pgcc', 'pgCC', 'cc', 'cxx', 'gfortran', 'icc', 'iCC']).
+    member(Comp, ['gcc', 'g++', 'pgcc', 'pgCC', 'cc', 'cxx', 'gfortran', 'icc', 'iCC', 'bg_gcc', 'bg_g++', 'bg_gfortran']).
 compiler_opt_trans(Comp, 'high', '/O2') :- Comp == 'VC++'; Comp == 'VC'.
 compiler_opt_trans(SunWorkshop, 'high', '-xO3') :-
     member(SunWorkshop, ['sun_cc', 'CC']).
 compiler_opt_trans(IBM, 'high', '-O3') :-
     member(IBM, ['xlc', 'xlC']).
 compiler_opt_trans(Comp, 'max', '-O3') :-
-    member(Comp, ['gcc', 'g++', 'cc', 'cxx', 'icc', 'iCC']).
+    member(Comp, ['gcc', 'g++', 'cc', 'cxx', 'icc', 'iCC', 'bg_gcc', 'bg_g++', 'bg_gfortran']).
 compiler_opt_trans(SunWorkshop, 'max', '-xO5') :-
     member(SunWorkshop, ['sun_cc', 'CC']).
 compiler_opt_trans(IBM, 'max', '-O5') :-
@@ -3019,7 +3040,7 @@ compiler_opt_trans(Comp, 'max', '/Ox') :- Comp == 'VC++'; Comp == 'VC'.
 
 compiler_pic_trans(_, 'none', '').
 compiler_pic_trans(Comp, 'pic', '-fPIC') :-
-    member(Comp, ['gcc', 'g++', 'gfortran', 'icc', 'iCC']).
+    member(Comp, ['gcc', 'g++', 'gfortran', 'icc', 'iCC', 'bg_gcc', 'bg_g++', 'bg_gfortran']).
 compiler_pic_trans(Comp, 'pic', '-KPIC') :-
     member(Comp, ['pgcc', 'pgCC']).
 compiler_pic_trans(Comp, 'pic', '') :-
@@ -3032,6 +3053,9 @@ compiler_pic('pgcc', 'pic').
 compiler_pic('iCC', 'pic').
 compiler_pic('icc', 'pic').
 compiler_pic('gfortran', 'pic').
+compiler_pic('bg_gcc', 'pic').
+compiler_pic('bg_g++', 'pic').
+compiler_pic('bg_gfortran', 'pic').
 compiler_pic(C, 'none') :-
         mutatee_comp(C).
         
@@ -3046,7 +3070,8 @@ insane('P1 not defined as a compiler, but has optimization translation defined',
 % partial_compile: compile to an object file rather than an executable
 compiler_parm_trans(Comp, 'partial_compile', '-c') :-
     member(Comp, ['gcc', 'g++', 'pgcc', 'pgCC', 'cc', 'sun_cc', 'CC',
-                  'xlc', 'xlC', 'cxx', 'gfortran', 'VC', 'VC++', 'icc', 'iCC']).
+                  'xlc', 'xlC', 'cxx', 'gfortran', 'VC', 'VC++', 'icc', 'iCC',
+                  'bg_gcc', 'bg_g++', 'bg_gfortran']).
 
 % Mutator compiler defns
 mutator_comp('g++').
@@ -3070,6 +3095,8 @@ compiler_static_link('g++', P, '-static') :- platform(_,'linux', _, P).
 compiler_static_link('gcc', P, '-static') :- platform(_,'linux', _, P).
 compiler_static_link('g++', P, '-static') :- platform(_,'freebsd', _,P).
 compiler_static_link('gcc', P, '-static') :- platform(_,'freebsd', _,P).
+compiler_static_link('bg_g++', P, '-static') :- platform(_,'bluegene', _, P).
+compiler_static_link('bg_gcc', P, '-static') :- platform(_,'bluegene', _, P).
 compiler_dynamic_link(_, _, '').
 
 % Specify the standard flags for each compiler
@@ -3084,6 +3111,8 @@ comp_std_flags_str('CC', '$(CXXFLAGS_NATIVE)').
 comp_std_flags_str('cxx', '$(CXXFLAGS_NATIVE)').
 comp_std_flags_str('xlC', '$(CXXFLAGS_NATIVE)').
 comp_std_flags_str('pgCC', '$(CXXFLAGS_NATIVE)').
+comp_std_flags_str('bg_gcc', '$(CFLAGS)').
+comp_std_flags_str('bg_g++', '$(CXXFLAGS)').
 % FIXME Tear out the '-DSOLO_MUTATEE' from these and make it its own thing
 comp_mutatee_flags_str('gcc', '-DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src').
 comp_mutatee_flags_str('g++', '-DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src').
@@ -3092,6 +3121,8 @@ comp_mutatee_flags_str('sun_cc', '$(MUTATEE_CFLAGS_NATIVE) -I../src').
 comp_mutatee_flags_str('xlc', '$(MUTATEE_CFLAGS_NATIVE) -I../src').
 comp_mutatee_flags_str('pgcc', '-DSOLO_MUTATEE $(MUTATEE_CFLAGS_NATIVE) -I../src').
 comp_mutatee_flags_str('CC', '$(MUTATEE_CXXFLAGS_NATIVE) -I../src').
+comp_mutatee_flags_str('bg_gcc', '-DSOLO_MUTATEE $(MUTATEE_CFLAGS_GNU) -I../src').
+comp_mutatee_flags_str('bg_g++', '-DSOLO_MUTATEE $(MUTATEE_CXXFLAGS_GNU) -I../src').
 % FIXME Make sure that these flags for cxx are correct, or tear out cxx (Alpha)
 comp_mutatee_flags_str('cxx', '$(MUTATEE_CXXFLAGS_NATIVE) -I../src').
 comp_mutatee_flags_str('xlC', '$(MUTATEE_CXXFLAGS_NATIVE) -I../src').
