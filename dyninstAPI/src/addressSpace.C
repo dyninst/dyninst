@@ -1598,7 +1598,7 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
     return false;
   }
 
-  if (dyn_debug_relocation) {
+  if (dyn_debug_relocation /*|| dyn_debug_write*/) {
       using namespace InstructionAPI;
       // Print out the buffer we just created
       cerr << "DUMPING RELOCATION BUFFER" << endl;

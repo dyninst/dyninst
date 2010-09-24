@@ -16,6 +16,10 @@ V_*
 *.exp
 *.lib
 *.idb
+*.manifest
+*.manifest.res
+*.user
+*.dep
 BuildLog.htm
 *resumelog*
 ._*

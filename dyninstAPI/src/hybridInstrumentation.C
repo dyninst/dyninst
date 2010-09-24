@@ -327,7 +327,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
     if (retPoints && retPoints->size() && 
         (instrumentReturns || 
          ParseAPI::RETURN != func->lowlevel_func()->ifunc()->init_retstatus() || 
-         ParseAPI::RETURN == func->lowlevel_func()->ifunc()->retstatus() ||
+         ParseAPI::TAMPER_NONZERO == func->lowlevel_func()->ifunc()->tampersStack() || 
          handlerFunctions.end() != 
          handlerFunctions.find((Address)funcAddr) ))
     {
@@ -634,10 +634,11 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
 
         // instrument all modules that have modified functions
         success = instrumentModules();
-
-        // fill in the post-call area with a patch
-        success = callPoint->patchPostCallArea() && success;
     }
+
+    // fill in the post-call area with a patch 
+    // (even if we didn't parse, we have to do this to get rid of the illegal instructions in the pad)
+    success = callPoint->patchPostCallArea() && success;
     return success;
 }
 
