@@ -69,6 +69,11 @@ LIBS_LIBTESTSUITE = -ldl
 
 STRIP_SO = strip -g
 
+LAUNCHMON_FE_LINK = -L$(LAUNCHMON_LIB) -lmonfeapi
+LAUNCHMON_FE_CFLAGS = -I$(LAUNCHMON_INC) -Dcap_launchmon
+LAUNCHMON_BE_LINK = -L$(LAUNCHMON_LIB) -lmonbeapi
+LAUNCHMON_BE_CFLAGS = -I$(LAUNCHMON_INC) -Dcap_launchmon
+
 include ../make.module.tmpl
 
 CFLAGS   += -D_XOPEN_SOURCE=600
