@@ -552,7 +552,7 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
         while (cIter != callerPoints.end()) 
         {
             Address curFallThroughAddr = (*cIter)->getCallFallThroughAddr();
-            if ( ! proc()->findFunctionByAddr((void*)curFallThroughAddr) &&
+            if ( ! hasEdge(*cIter, curFallThroughAddr) &&
                 dupFuncCheck.find((*cIter)->getFunction()) == dupFuncCheck.end())
             {
                 mal_printf("%s[%d] Function call 0x%lx is returning, adding edge "
@@ -576,17 +576,15 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
         }
     }
 
-    // make sure that the instruction following the call hasn't
-    // already been parsed 
+    // make sure that the edge hasn't already been parsed 
     Address fallThroughAddr = callPoint->getCallFallThroughAddr();
     BPatch_function *fallThroughFunc = proc()->findFunctionByAddr
         ((void*)fallThroughAddr);
-    if (! parsedAfterCallPoint && NULL == fallThroughFunc) 
-    {
+
+    if (! parsedAfterCallPoint && !hasEdge(callPoint, fallThroughAddr)) {
         mal_printf("New function target addr at 0x%lx is returning, "
                     "adding edge after call at 0x%lx %s[%d]\n", calledAddr,
                     (long)callPoint->getAddress(), FILE__, __LINE__);
-
 
         parseNewEdgeInFunction( callPoint , fallThroughAddr );
         parsedAfterCallPoint = true;
@@ -634,10 +632,11 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
 
         // instrument all modules that have modified functions
         success = instrumentModules();
-
-        // fill in the post-call area with a patch
-        success = callPoint->patchPostCallArea() && success;
     }
+
+    // fill in the post-call area with a patch 
+    // (even if we didn't parse, we have to do this to get rid of the illegal instructions in the pad)
+    success = callPoint->patchPostCallArea() && success;
     return success;
 }
 
@@ -686,6 +685,22 @@ bool HybridAnalysis::analyzeNewFunction( Address target , bool doInstrumentation
 }
 
 
+bool HybridAnalysis::hasEdge(BPatch_point * sourcePoint, Address target)
+{
+    // 0. first see if the edge needs to be parsed
+    BPatch_function *sourceFunc = sourcePoint->getFunction();
+    int_basicBlock *block = sourceFunc->lowlevel_func()->
+        findBlockByAddr((Address)sourcePoint->getAddress());
+    pdvector<int_basicBlock *> targBlocks; 
+    block->getTargets(targBlocks);
+    for (unsigned bidx=0; bidx < targBlocks.size(); bidx++) {
+        if (target == targBlocks[bidx]->origInstance()->firstInsnAddr()) {
+            return true; // already parsed this edge, we're done!
+        }
+    }
+    return false;
+}
+
 // Does not reinsert instrumentation.  
 //
 // Adds new edge to the parse of the function, removes existing instrumentation
@@ -697,16 +712,11 @@ bool HybridAnalysis::analyzeNewFunction( Address target , bool doInstrumentation
 void HybridAnalysis::parseNewEdgeInFunction(BPatch_point *sourcePoint, Address target)
 {
     // 0. first see if the edge needs to be parsed
-    BPatch_function *sourceFunc = sourcePoint->getFunction();
-    int_basicBlock *block = sourceFunc->lowlevel_func()->
-        findBlockByAddr((Address)sourcePoint->getAddress());
-    pdvector<int_basicBlock *> targBlocks; 
-    block->getTargets(targBlocks);
-    for (unsigned bidx=0; bidx < targBlocks.size(); bidx++) {
-        if (target == targBlocks[bidx]->origInstance()->firstInsnAddr()) {
-            return; // already parsed this edge, we're done!
-        }
+    if (hasEdge(sourcePoint,target)) {
+        return;
     }
+
+    BPatch_function *sourceFunc = sourcePoint->getFunction();
 
     // 1. if the target is in the same section as the source func, 
     //    remove instrumentation from the source function 

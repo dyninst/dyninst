@@ -288,6 +288,7 @@ bool CFAtom::generateBranch(GenStack &gens,
 			    Instruction::Ptr insn,
 			    bool) {
   assert(to);
+  if (!to->necessary()) return true;
 
   // We can put in an unconditional branch as an ender for 
   // a block that doesn't have a real branch. So if we don't have

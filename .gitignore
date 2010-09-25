@@ -21,6 +21,8 @@ V_*
 *.user
 *.rsp
 *.dep
+*.dep
+*_none
 BuildLog.htm
 *resumelog*
 ._*
