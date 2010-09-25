@@ -20,6 +20,7 @@ V_*
 *.manifest.res
 *.user
 *.dep
+*_none
 BuildLog.htm
 *resumelog*
 ._*
