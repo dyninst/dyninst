@@ -1625,7 +1625,7 @@ void BPatch_stopThreadExpr::BPatch_stopThreadExprInt
     
     // set up funcCall args
     pdvector<AstNodePtr> ast_args;
-    ast_args.push_back(AstNode::originalAddrNode());
+    ast_args.push_back(AstNode::actualAddrNode());
     ast_args.push_back(idNode);
     ast_args.push_back(icNode);
     ast_args.push_back(calculation.ast_wrapper);

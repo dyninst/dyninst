@@ -204,6 +204,8 @@ bool process::walkStackFromFrame(Frame startFrame,
   if (!isStopped())
       return false;
 
+  mal_printf("Invoked a stackwalk %s[%d]\n",FILE__,__LINE__);
+
   Frame currentFrame = preStackWalkInit(startFrame);
 
   while (!currentFrame.isLastFrame()) {
@@ -4447,7 +4449,7 @@ Address process::stopThreadCtrlTransfer
         Address target)
 {
     int_function *pointfunc = intPoint->func();
-    Address pointAddress = intPoint->addr();
+    Address pointAddr = intPoint->addr();
 
     // if the point is a real return instruction and its target is a stack 
     // address, get the return address off of the stack 
@@ -4499,45 +4501,55 @@ Address process::stopThreadCtrlTransfer
         if (intPoint->getPointType() == functionExit) {
 
             // get unrelocated target address, there are three possibilities
-            // a. We're in the fallthrough block
-            // b. We're in post-call padding, and targBBI is the call block
+            // a. We're in post-call padding, and targBBI is the call block
+            // b. We're in an analyzed fallthrough block
             // c. The stack was tampered with and we need the (mod_pc - pc) 
             //    offset to figure out where we should be
 
             instPoint *callPt = NULL;
             bblInstance *callBBI = NULL;
             bool tampered = false;
-            if ( ! reverseDefensiveMap_.find(target,callPt) ) {
+            if ( reverseDefensiveMap_.find(target,callPt) ) {
                 // a. 
-                // if we're in the fallthrough block, get the call block
-                bblInstance *targBBI = NULL;
-                baseTrampInstance *bti = NULL;
-                tampered = ! getRelocInfo(target, unrelocTarget, targBBI, bti);
-                if (!tampered) {
-                    ParseAPI::Block::edgelist & edges = targBBI->block()->llb()->sources();
-                    ParseAPI::Block::edgelist::iterator eit = edges.begin();
-                    for (; eit != edges.end(); eit++) {
-                        if (ParseAPI::CALL_FT == (*eit)->type()) {
-                            callBBI = targBBI->func()->findBlockInstanceByAddr
-                                ((*eit)->src()->start() + targBBI->func()->obj()->codeBase());
-                            callPt = targBBI->func()->findInstPByAddr(callBBI->lastInsnAddr());
-                            if (!callPt) {
-                                targBBI->func()->funcCalls();
-                                callPt = targBBI->func()->findInstPByAddr(callBBI->lastInsnAddr());
-                            }
-                            break;
-                        }
-                    }
-                    if (!callBBI || eit == edges.end()) {
-                        tampered = true;
-                    }
-                }
+                callBBI = callPt->block()->origInstance();
             }
             else {
                 // b. 
-                callBBI = callPt->block()->origInstance();
+                // if we're in the fallthrough block, match to call block, 
+                // and if necessary, add fallthrough edge
+                bblInstance *targBBI = NULL;
+                baseTrampInstance *bti = NULL;
+                bool hasFT = getRelocInfo(target, unrelocTarget, targBBI, bti);
+                assert(hasFT); // otherwise we should be in the defensive map
+                
+                // fallthrough block already parsed
+                callBBI = targBBI->func()->findBlockInstanceByAddr(
+                            targBBI->firstInsnAddr()-1);
+                if (callBBI) {
+                    // if necessary, add the fallthrough edge
+                    using namespace ParseAPI;
+                    Block::edgelist &edges = callBBI->block()->llb()->targets();
+                    Block::edgelist::iterator eit = edges.begin();
+                    for (; eit != edges.end(); eit++)
+                        if (CALL_FT == (*eit)->type())
+                            break;
+                    if (eit == edges.end()) {
+                        // add ft edge
+                        vector<Block*>  srcs; 
+                        vector<Address> trgs;
+                        vector<EdgeTypeEnum> etypes;
+                        srcs.push_back(callBBI->block()->llb());
+                        trgs.push_back(callBBI->block()->llb()->end());
+                        etypes.push_back(CALL_FT);
+                        callBBI->func()->ifunc()->img()->codeObject()->
+                            parseNewEdges(srcs,trgs,etypes);
+                    }
+                } 
+                else { 
+                    tampered = true;
+                }
             }
-
+#if 0
             if (!tampered) {
                 // see if we're in case 1c by checking that 
                 // we hadn't tampered with the stack. targBBI should 
@@ -4557,8 +4569,32 @@ Address process::stopThreadCtrlTransfer
                         }
                     }
                 }
-            }
-
+                    ParseAPI::Block::edgelist & edges = targBBI->block()->llb()->sources();
+                    ParseAPI::Block::edgelist::iterator eit = edges.begin();
+                    for (; eit != edges.end(); eit++) {
+                        if (ParseAPI::CALL_FT == (*eit)->type()) {
+                            callBBI = targBBI->func()->findBlockInstanceByAddr
+                                ((*eit)->src()->start() + targBBI->func()->obj()->codeBase());
+                            callPt = targBBI->func()->findInstPByAddr(callBBI->lastInsnAddr());
+                            if (!callPt) {
+                                targBBI->func()->funcCalls();
+                                callPt = targBBI->func()->findInstPByAddr(callBBI->lastInsnAddr());
+                            }
+                            break;
+                        }
+                    }
+                    if (!callBBI) {
+                        callBBI = targBBI->func()->findBlockInstanceByAddr(targBBI->firstInsnAddr()-1);
+                        if (callBBI) {
+                            ParseAPI::Edge ftEdge(callBBI->block()->llb(), 
+                                                  targBBI->block()->llb(),
+                                                  ParseAPI::CALL_FT);
+                            callBBI->block()->llb()->addTarget(ftEdge);
+                        }
+                        tampered = true;
+                    }
+                }
+#endif
             if (!tampered) {
                 unrelocTarget = callBBI->endAddr();
             } 
@@ -4569,7 +4605,7 @@ Address process::stopThreadCtrlTransfer
                 if (0 == unrelocTarget) {
                     mal_printf("ERROR: stopThread caught a return target in "
                                "the rtlib heap that it couldn't translate "
-                               "%lx=>%lx %s[%d]\n", pointAddress, 
+                               "%lx=>%lx %s[%d]\n", pointAddr, 
                                target, FILE__, __LINE__);
                     assert(0 && "need to change relocated return addr to orig");
                 }
@@ -4587,7 +4623,7 @@ Address process::stopThreadCtrlTransfer
                 mal_printf("%s[%d] WARNING: stopThread caught an indirect "
                         "call or jump whose target is an unresolved "
                         "runtime library heap address %lx=>%lx %s[%d]\n",
-                        pointAddress, target, FILE__, __LINE__);
+                        pointAddr, target, FILE__, __LINE__);
                 assert(0);
             } else {
                 fprintf(stderr,"ERROR: jump %lx=>[%lx][%lx] is going to jump/"
@@ -4608,7 +4644,7 @@ Address process::stopThreadCtrlTransfer
             obj = createObjectNoFile(target);
             if (!obj) {
                 fprintf(stderr,"ERROR, point %lx has target %lx that responds "
-                        "to no object %s[%d]\n", pointAddress, target, 
+                        "to no object %s[%d]\n", pointAddr, target, 
                         FILE__,__LINE__);
                 assert(0 && "stopThread snippet has an invalid target");
                 return 0;
@@ -4626,7 +4662,7 @@ Address process::stopThreadCtrlTransfer
         // remove unresolved status from point if it is a static ctrl transfer
         if ( ! intPoint->setResolved() ) {
             fprintf(stderr,"We seem to have tried resolving this point[0x%lx] "
-                    "twice, why? %s[%d]\n", pointAddress, FILE__,__LINE__);
+                    "twice, why? %s[%d]\n", pointAddr, FILE__,__LINE__);
         }
     }
     return unrelocTarget;
@@ -4647,19 +4683,24 @@ bool process::handleStopThread(EventRecord &ev)
     // 1. Need three pieces of information: 
 
     /* 1a. The instrumentation point that triggered the stopThread event */
-    Address pointAddress = // arg1
+    Address relocPointAddr = // arg1
 #if defined (os_windows)
        (Address) ev.fd;
 #else
        (Address) ev.info;
 #endif
-    // get instPoint from point address
-    int_function *pointfunc = findActiveFuncByAddr(pointAddress);
-    if (!pointfunc) { 
+
+    bblInstance *pointbbi = NULL;
+    Address pointAddr = relocPointAddr;
+    baseTrampInstance *pointbti = NULL;
+    bool success = getRelocInfo(relocPointAddr, pointAddr, pointbbi, pointbti);
+    if (!success) {
         assert(0);
-        return false; 
+        return false;
     }
-    instPoint *intPoint = pointfunc->findInstPByAddr(pointAddress);
+    
+    int_function *pointfunc = pointbbi->func();
+    instPoint *intPoint = pointfunc->findInstPByAddr(pointAddr);
     if (!intPoint) { 
         assert(0);
         return false; 
@@ -4723,7 +4764,7 @@ bool process::handleStopThread(EventRecord &ev)
     }
 
     mal_printf("handling stopThread %lx=>%lx %s[%d]\n", 
-               pointAddress, (long)calculation, FILE__,__LINE__); 
+               pointAddr, (long)calculation, FILE__,__LINE__); 
 /* 2. If the callbackID is negative, the calculation is meant to be
       interpreted as the address of code, so we call stopThreadCtrlTransfer
       to translate the target to an unrelocated address */
@@ -4737,7 +4778,7 @@ bool process::handleStopThread(EventRecord &ev)
 
     list<Address> pointRelocs;
     unsigned pointRelocCount=0;
-    getRelocAddrs(pointAddress, intPoint->block()->origInstance(),pointRelocs);
+    getRelocAddrs(pointAddr, intPoint->block()->origInstance(),pointRelocs);
     pointRelocCount = pointRelocs.size();
 
 /* 3. Trigger the callback for the stopThread
@@ -5112,70 +5153,77 @@ void process::flushAddressCache_RT(codeRange *flushRange)
 int_function *process::findActiveFuncByAddr(Address addr)
 {
     bblInstance *bbi = findOrigByAddr(addr)->is_basicBlockInstance();
-    assert(bbi);
-    int_function *func = findFuncByAddr(addr);
-    if (!func) {
-        return NULL;
-    }
-    int_basicBlock *block = func->findBlockByAddr(addr);
-    if (!block) {
-        return NULL;
-    }
-    if (block->llb()->isShared()) {
-        bool foundFrame = false;
-        pdvector<pdvector<Frame> >  stacks;
-        if ( false == walkStacks(stacks) ) {
-            fprintf(stderr,"ERROR: %s[%d], walkStacks failed\n", 
-                    FILE__, __LINE__);
-            assert(0);
+
+    if (!bbi) { // addr is a relocated address, use relocation map
+        Address origAddr = addr;
+        baseTrampInstance *bti = NULL;
+        bool success = getRelocInfo(addr, origAddr, bbi, bti);
+        if (success) {
+            return bbi->func();
         }
-        for (unsigned int i = 0; !foundFrame && i < stacks.size(); ++i) {
-            pdvector<Frame> &stack = stacks[i];
-            for (unsigned int j = 0; !foundFrame && j < stack.size(); ++j) {
-                int_function *frameFunc = NULL;
-                Frame *curFrame = &stack[j];
-                Address framePC = curFrame->getPC();
-                int_basicBlock *frameBlock = findBasicBlockByAddr(framePC);
-                if (!frameBlock) {
-                    // if we're at a relocated address, we can translate 
-                    // back to the right function
-                    Address origAddr = framePC;
-                    bblInstance *framebbi = NULL;
-                    baseTrampInstance *bti = NULL;
-                    bool success = getRelocInfo(framePC, 
-                                                origAddr, framebbi, bti);
-                    if (success) {
-                        frameFunc = framebbi->func();
-                    }
-                } else if (bbi->firstInsnAddr() <= framePC && 
-                           framePC <= bbi->lastInsnAddr() && 
-                           j < stack.size()-1) {
-                    // find the function by looking at the previous stack 
-                    // frame's call target
-                    Address callerPC = stack[j+1].getPC();
-                    bblInstance *callerBBI = findOrigByAddr(callerPC-1)->
-                        is_basicBlockInstance();
-                    if (callerBBI) {
-                        instPoint *callPt = callerBBI->func()->findInstPByAddr
-                            (callerBBI->block()->origInstance()->endAddr());
-                        if (callPt && callPt->callTarget()) {
-                            image *img = callPt->func()->obj()->parse_img();
-                            frameFunc = findFuncByInternalFunc(
-                                img->findFuncByEntry(
-                                    callPt->callTarget() 
-                                    - img->desc().loadAddr()));
-                        }
-                    }
+        return NULL;
+    }
+
+    if ( ! bbi->block()->llb()->isShared() ) {
+        return bbi->func();
+    }
+
+    // unrelocated shared function address, do a stack walk to figure 
+    // out which of the shared functions is on the call stack
+    bool foundFrame = false;
+    int_function *activeFunc = NULL;
+    pdvector<pdvector<Frame> >  stacks;
+    if ( false == walkStacks(stacks) ) {
+        fprintf(stderr,"ERROR: %s[%d], walkStacks failed\n", 
+                FILE__, __LINE__);
+        assert(0);
+    }
+    for (unsigned int i = 0; !foundFrame && i < stacks.size(); ++i) {
+        pdvector<Frame> &stack = stacks[i];
+        for (unsigned int j = 0; !foundFrame && j < stack.size(); ++j) {
+            int_function *frameFunc = NULL;
+            Frame *curFrame = &stack[j];
+            Address framePC = curFrame->getPC();
+            int_basicBlock *frameBlock = findBasicBlockByAddr(framePC);
+            if (!frameBlock) {
+                // if we're at a relocated address, we can translate 
+                // back to the right function
+                Address origAddr = framePC;
+                bblInstance *framebbi = NULL;
+                baseTrampInstance *bti = NULL;
+                bool success = getRelocInfo(framePC, 
+                                            origAddr, framebbi, bti);
+                if (success) {
+                    frameFunc = framebbi->func();
                 }
-                if (frameFunc) {
-                    foundFrame = true;
-                    func = frameFunc;
+            } else if (bbi->firstInsnAddr() <= framePC && 
+                       framePC <= bbi->lastInsnAddr() && 
+                       j < stack.size()-1) {
+                // find the function by looking at the previous stack 
+                // frame's call target
+                Address callerPC = stack[j+1].getPC();
+                bblInstance *callerBBI = findOrigByAddr(callerPC-1)->
+                    is_basicBlockInstance();
+                if (callerBBI) {
+                    instPoint *callPt = callerBBI->func()->findInstPByAddr
+                        (callerBBI->block()->origInstance()->endAddr());
+                    if (callPt && callPt->callTarget()) {
+                        image *img = callPt->func()->obj()->parse_img();
+                        frameFunc = findFuncByInternalFunc(
+                            img->findFuncByEntry(
+                                callPt->callTarget() 
+                                - img->desc().loadAddr()));
+                    }
                 }
             }
+            if (frameFunc) {
+                foundFrame = true;
+                activeFunc = frameFunc;
+            }
         }
-        assert(foundFrame);
     }
-    return func;
+    assert(foundFrame);
+    return activeFunc;
 }
 
 bool process::patchPostCallArea(instPoint *callPt)

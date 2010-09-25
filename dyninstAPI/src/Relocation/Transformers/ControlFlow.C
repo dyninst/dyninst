@@ -215,8 +215,7 @@ void CFAtomCreator::getInterproceduralSuccessors(const bblInstance *bbl,
 }
 
 bool CFAtomCreator::unparsedFallthrough(const bblInstance *inst) {
-  // I'm not sure if Kevin marks these in the parseAPI. I'm guessing not,
-  // so if we see a call edge without a call_ft edge return yes.
+  // if we see a call edge whose 
 
   bool seen_call = false;
   bool seen_ft = false;
@@ -227,12 +226,9 @@ bool CFAtomCreator::unparsedFallthrough(const bblInstance *inst) {
     if ((*iter)->type() == ParseAPI::CALL) {
       seen_call = true;
     }
-    if ((*iter)->type() == ParseAPI::CALL_FT) {
-      seen_ft = true;
-    }
   }
   
-  if (seen_call && !seen_ft) {
+  if (seen_call && !inst->func()->findBlockInstanceByAddr(inst->endAddr())) {
     return true;
   }
   else {

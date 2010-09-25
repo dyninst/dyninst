@@ -2496,49 +2496,7 @@ bool SignalHandler::handleCodeOverwrite(EventRecord &ev)
         mal_printf("%s[%d] Insn at %lx wrote to %lx on a page containing "
                 "code, but no code was overwritten\n",
                 FILE__,__LINE__,ev.address,writtenAddr);
-
     }
-
-#if 0 //KEVINTODO: delete this code
-    codeRange *range = ev.proc->findOrigByAddr(writtenAddr);
-    if (range && ! range->is_mapped_object()) { // we overwrote code
-
-        mapped_object *mobj = NULL;
-        // see if the the range is the block we currently inhabit
-        bblInstance *block = NULL;
-        if (range->is_basicBlockInstance()) {
-            block = (bblInstance*) range;
-            mobj = block->func()->obj();
-        } else if (range->is_function()) {
-            block = ((int_function*)range)->findBlockInstanceByAddr(writtenAddr);
-            mobj = block->func()->obj();
-        } else {
-            assert(0);
-        }
-        if (block && block->firstInsnAddr() <= ev.address
-            && block->lastInsnAddr() >= ev.address) {
-            //KEVINTODO: caught overwrite of code in the basic block
-            //that is currently executing, haven't implemented this
-            //case yet.
-            //
-            // Strategy will be to single step the instruction, no
-            // other approach can deal with the possibility that the
-            // same or very next instruction will be overwritten
-            assert(0);
-        }
-         // flush all addresses matching the mapped object and the
-         // runtime library heaps
-         ev.proc->flushAddressCache_RT(mobj);
-
-    } 
-    else if (range) { // range is a mapped_object
-        // We overwrote inside a mapped object's range, on a page that
-        // contains code, but didn't overwrite any code
-        mal_printf("%s[%d] Insn at %lx wrote to %lx on a page containing code,"
-                " but no code was overwritten\n",
-                FILE__,__LINE__,ev.address,writtenAddr);
-    }
-#endif
 
     // 3. Find the instruction that caused the violation and determine 
     //    its address in unrelocated code
@@ -2558,56 +2516,12 @@ bool SignalHandler::handleCodeOverwrite(EventRecord &ev)
                 ev.address, writtenAddr);
         assert(0 && "couldn't find the overwrite instruction"); 
     }
-#if 0
-    Address origWrite = 0;
-    codeRange *causeRange = ev.proc->findOrigByAddr(ev.address);
-    multiTramp *multi = causeRange->is_multitramp();
-    mapped_object *mobj = causeRange->is_mapped_object();
-
-    if ( mobj ) {// means we haven't parsed the object yet
-        mobj->analyze(); 
-        causeRange = ev.proc->findOrigByAddr(ev.address);
-    }
-    bblInstance *causeBBI = causeRange->is_basicBlockInstance();
-
-    if (causeBBI) {
-        origWrite = causeBBI->equivAddr(0,ev.address);
-    } else {
-        miniTrampInstance *mini = causeRange->is_minitramp();
-        if (multi) {
-            // it could be in relocated or replaced code, instrumentation, 
-            // or (multi|base)tramp code, but something's wrong if it's not 
-            // in relocated code
-            baseTrampInstance *base = 
-                multi->getBaseTrampInstanceByAddr(ev.address);
-            assert ( ! base ); // make sure we're not in the basetramp
-            origWrite = multi->instToUninstAddr(ev.address);
-            causeBBI = 
-                ev.proc->findOrigByAddr(origWrite)->is_basicBlockInstance();
-            assert(causeBBI);
-            origWrite = causeBBI->equivAddr(0,origWrite);
-
-        } else {
-            // this is an error case, meaning that we're executing 
-            // uninstrumented code. It has been a sign that:
-            //  - we invalidated relocated code that we were executing in
-            //  - we removed code-discovery instrumentation, because of an 
-            //    overwrite in a block that ends with an indirect ctrl 
-            //    transfer that should be instrumented, and are executing
-            // sometimes arises as a race condition
-            fprintf(stderr, "ERROR: found no code to match instruction at %lx,"
-                    " which writes to %lx on page containing analyzed code\n",
-                    ev.address, writtenAddr);
-            assert(0 && "couldn't find the overwrite instruction"); 
-        }
-    }
-#endif
 
     // 4. Trigger user-mode callback to respond to the overwrite
     success = (((BPatch_process*)ev.proc->up_ptr())->
         triggerCodeOverwriteCB(origWrite, writtenAddr));
     assert(success);
-    
+
     return true;
 }
 

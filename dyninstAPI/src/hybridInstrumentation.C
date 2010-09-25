@@ -327,7 +327,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
     if (retPoints && retPoints->size() && 
         (instrumentReturns || 
          ParseAPI::RETURN != func->lowlevel_func()->ifunc()->init_retstatus() || 
-         ParseAPI::RETURN == func->lowlevel_func()->ifunc()->retstatus() ||
+         ParseAPI::TAMPER_NONZERO == func->lowlevel_func()->ifunc()->tampersStack() ||
          handlerFunctions.end() != 
          handlerFunctions.find((Address)funcAddr) ))
     {

@@ -1636,9 +1636,9 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
   // Kevin's stuff
   cm->extractDefensivePads(this);
 
-#if 0 // KEVINTODO: remove this dead code
-  // adjust PC if active frame is in a modified function
-  if (proc()) {
+  if (proc() && BPatch_defensiveMode == proc()->getHybridMode()) {
+      // adjust PC if active frame is in a modified function,
+      // this is an important case for code overwrites
       vector<dyn_thread*>::const_iterator titer;
       for (titer=proc()->threads.begin();
            titer != proc()->threads.end(); 
@@ -1646,24 +1646,25 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
       {
           // translate thread's active PC to orig addr
           Frame tframe = (*titer)->getActiveFrame();
-          Address pcOrig;
-          bblInstance *origbbi;
-          baseTrampInstance *bti;
-          if (!getRelocInfo(tframe.getPC(), &pcOrig, origInst, bti)) {
-              assert(0 && "can't be executing at an invalid addr");
+          Address pcOrig=0;
+          bblInstance *origbbi=NULL;
+          baseTrampInstance *bti=NULL;
+          if (!getRelocInfo(tframe.getPC(), pcOrig, origbbi, bti)) {
+              mal_printf("ERROR: active frame PC %lx does not correspond "
+                         "to code %s[%d]\n",tframe.getPC(), FILE__,__LINE__);
+              continue;
           }
           // if the PC matches a modified function, change the PC
           for (FuncSet::const_iterator fit = begin; fit != end; fit++) {
               if ((*fit)->findBlockInstanceByAddr(pcOrig)) {
                   list<Address> relocPCs;
                   getRelocAddrs(pcOrig, origbbi, relocPCs);
-                  (*titer)->get_lwp()->changePC(relocPCs.back());
+                  (*titer)->get_lwp()->changePC(relocPCs.back(),NULL);
                   break;
               }
           }
       }
   }
-#endif
 
   return true;
 }
