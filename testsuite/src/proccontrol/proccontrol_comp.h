@@ -61,6 +61,8 @@ public:
    int num_processes;
    int num_threads;
 
+   bool curgroup_self_cleaning;
+
    std::map<Process::ptr, int> process_socks;
    std::map<Dyninst::PID, Process::ptr> process_pids;
    std::vector<Process::ptr> procs;

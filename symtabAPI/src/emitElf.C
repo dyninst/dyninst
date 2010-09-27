@@ -63,6 +63,10 @@ extern const char *STRTAB_NAME;
 extern const char *SYMTAB_NAME;
 extern const char *INTERP_NAME;
 
+// Error reporting
+extern void setSymtabError(SymtabError new_err);
+extern void symtab_log_perror(const char *msg);
+
 struct sortByIndex
 {
   bool operator ()(Symbol * lhs, Symbol* rhs) {
@@ -1856,6 +1860,8 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
   // recreate a "dummy symbol"
   Elf32_Sym *sym = new Elf32_Sym();
   symbolStrs.push_back("");
+  // See comment in emitElf-64.C
+  //symbolNamesLength++;
   sym->st_name = 0;
   sym->st_value = 0;
   sym->st_size = 0;
@@ -1944,9 +1950,8 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
   Elf32_Sym *syms = (Elf32_Sym *)malloc(symbols.size()* sizeof(Elf32_Sym));
   for(i=0;i<symbols.size();i++)
     syms[i] = *(symbols[i]);
-    
-  --symbolNamesLength;
-  char *str = (char *)malloc(symbolNamesLength+1);
+
+  char *str = (char *)malloc(symbolNamesLength);
   unsigned cur=0;
   for(i=0;i<symbolStrs.size();i++)
     {
@@ -2126,9 +2131,12 @@ bool emitElf::createSymbolTables(Symtab *obj, vector<Symbol *>&allSymbols)
           std::string errMsg;
           linkedStaticData = linker.linkStatic(obj, err, errMsg);
           if ( !linkedStaticData ) {
-               fprintf(stderr, "Failed to link in static library code: %s = %s\n",
-                     emitElfStatic::printStaticLinkError(err).c_str(), errMsg.c_str());
-               log_elferror(err_func_, "Failed to link in static library code.");   
+               std::string linkStaticError = 
+                   std::string("Failed to link to static library code into the binary: ") +
+                   emitElfStatic::printStaticLinkError(err) + std::string(" = ")
+                   + errMsg;
+               setSymtabError(Emit_Error);
+               symtab_log_perror(linkStaticError.c_str());
                return false;
           }
 

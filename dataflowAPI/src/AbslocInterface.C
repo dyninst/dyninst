@@ -23,12 +23,12 @@ void AbsRegionConverter::convertAll(InstructionAPI::Expression::Ptr expr,
   // If we're a memory dereference, then convert us and all
   // used registers.
   if (dyn_detail::boost::dynamic_pointer_cast<Dereference>(expr)) {
-    std::vector<InstructionAST::Ptr> tmp;
+    std::vector<Expression::Ptr> tmp;
     // Strip dereference...
     expr->getChildren(tmp);
-    for (std::vector<InstructionAST::Ptr>::const_iterator i = tmp.begin();
+    for (std::vector<Expression::Ptr>::const_iterator i = tmp.begin();
 	 i != tmp.end(); ++i) {
-      regions.push_back(convert(dyn_detail::boost::dynamic_pointer_cast<Expression>(*i), addr, func));
+      regions.push_back(convert(*i, addr, func));
     }
   }
   
@@ -348,6 +348,7 @@ void AssignmentConverter::convert(const Instruction::Ptr I,
                                   const Address &addr,
 				  ParseAPI::Function *func,
 				  std::vector<Assignment::Ptr> &assignments) {
+  assignments.clear();
   if (cache(func, addr, assignments)) return;
 
   // Decompose the instruction into a set of abstract assignments.

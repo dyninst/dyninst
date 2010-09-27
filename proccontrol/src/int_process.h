@@ -1,3 +1,34 @@
+/*
+ * Copyright (c) 1996-2009 Barton P. Miller
+ * 
+ * We provide the Paradyn Parallel Performance Tools (below
+ * described as "Paradyn") on an AS IS basis, and do not warrant its
+ * validity or performance.  We reserve the right to update, modify,
+ * or discontinue this software at any time.  We shall have no
+ * obligation to supply such updates or modifications or any other
+ * form of support to you.
+ * 
+ * By your use of Paradyn, you understand and agree that we (or any
+ * other person or entity with proprietary rights in Paradyn) are
+ * under no obligation to provide either maintenance services,
+ * update services, notices of latent defects, or correction of
+ * defects for Paradyn.
+ * 
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
+
 #if !defined(INT_PROCESS_H_)
 #define INT_PROCESS_H_
 
@@ -5,7 +36,10 @@
 #include "proccontrol/h/PCErrors.h"
 #include "proccontrol/h/Event.h"
 
+#include "proccontrol/src/response.h"
+
 #include "dynutil/h/dyn_regs.h"
+#include "dynutil/h/SymReader.h"
 #include "common/h/dthread.h"
 
 #include <vector>
@@ -14,6 +48,7 @@
 #include <set>
 #include <utility>
 #include <queue>
+#include <stack>
 
 using namespace Dyninst;
 using namespace ProcControlAPI;
@@ -73,9 +108,8 @@ class int_process
   public:
    void setContSignal(int sig);
    int getContSignal() const;
+   bool continueProcess();
    virtual bool plat_contProcess() = 0;
-   void setPendingProcStop(bool b);
-   bool hasPendingProcStop() const;
 
    bool forked();
   protected:
@@ -126,6 +160,9 @@ class int_process
 
    static bool waitAndHandleEvents(bool block);
    static bool waitAndHandleForProc(bool block, int_process *proc, bool &proc_exited);
+   static bool waitForAsyncEvent(response::ptr resp);
+   static bool waitForAsyncEvent(std::set<response::ptr> resp);
+
    static const char *stateName(State s);
    void initializeProcess(Process::ptr p);
 
@@ -133,6 +170,7 @@ class int_process
    void setCrashSignal(int s);
    bool getExitCode(int &c);
    bool getCrashSignal(int &s);
+   bool wasForcedTerminated() const;
 
    virtual bool plat_individualRegAccess() = 0;
 
@@ -144,18 +182,40 @@ class int_process
    HandlerPool *handlerPool() const;
 
    bool addBreakpoint(Dyninst::Address addr, int_breakpoint *bp);
-   bool rmBreakpoint(Dyninst::Address addr, int_breakpoint *bp);
+   bool rmBreakpoint(Dyninst::Address addr, int_breakpoint *bp, result_response::ptr async_resp);
    installed_breakpoint *getBreakpoint(Dyninst::Address addr);
 
+   virtual unsigned plat_breakpointSize() = 0;
+   virtual void plat_breakpointBytes(char *buffer) = 0;
+
+   virtual bool plat_createDeallocationSnippet(Dyninst::Address addr, unsigned long size, void* &buffer, 
+                                               unsigned long &buffer_size, unsigned long &start_offset) = 0;
+   virtual bool plat_createAllocationSnippet(Dyninst::Address addr, bool use_addr, unsigned long size, 
+                                             void* &buffer, unsigned long &buffer_size, 
+                                             unsigned long &start_offset) = 0;
+   virtual bool plat_collectAllocationResult(int_thread *thr, reg_response::ptr resp) = 0;
+
+   virtual SymbolReaderFactory *plat_defaultSymReader();
    Dyninst::Address infMalloc(unsigned long size, bool use_addr = false, Dyninst::Address addr = 0x0);
    bool infFree(Dyninst::Address addr);
 
-   bool readMem(void *local, Dyninst::Address remote, size_t size);
-   bool writeMem(void *local, Dyninst::Address remote, size_t size);
+   bool readMem(Dyninst::Address remote, mem_response::ptr result);
+   bool writeMem(void *local, Dyninst::Address remote, size_t size, result_response::ptr result);
+
    virtual bool plat_readMem(int_thread *thr, void *local, 
                              Dyninst::Address remote, size_t size) = 0;
    virtual bool plat_writeMem(int_thread *thr, void *local, 
                               Dyninst::Address remote, size_t size) = 0;
+
+   //For a platform, if plat_needsAsyncIO returns true then the async
+   // set of functions need to be implemented.  Currently needsAsyncIO_plat 
+   // only returns true for bluegene family.  By default these are otherwise
+   // unimplemented.
+   virtual bool plat_needsAsyncIO() const;
+   virtual bool plat_readMemAsync(int_thread *thr, Dyninst::Address addr, 
+                                  mem_response::ptr result);
+   virtual bool plat_writeMemAsync(int_thread *thr, void *local, Dyninst::Address addr,
+                                   size_t size, result_response::ptr result);
    
    typedef enum {
        NoLWPControl = 0,
@@ -169,12 +229,17 @@ class int_process
    int_library *getLibraryByName(std::string s) const;
    size_t numLibs() const;
    virtual bool refresh_libraries(std::set<int_library *> &added_libs,
-                                  std::set<int_library *> &rmd_libs) = 0;
+                                  std::set<int_library *> &rmd_libs,
+                                  std::set<response::ptr> &async_responses) = 0;
    virtual bool initLibraryMechanism() = 0;
+   virtual bool plat_isStaticBinary() = 0;
 
    bool forceGeneratorBlock() const;
    void setForceGeneratorBlock(bool b);
 
+   void setAllowInternalRPCEvents(int_thread *thr);
+   EventRPCInternal::ptr getInternalRPCEvent();
+   
    std::string getExecutable() const;
    static bool isInCallback();
 
@@ -194,13 +259,14 @@ class int_process
    int crashSignal;
    bool hasExitCode;
    bool forceGenerator;
+   std::stack<int_thread *> allowInternalRPCEvents;
+   bool forcedTermination;
    int exitCode;
    static bool in_callback;
    mem_state::ptr mem;
    std::map<Dyninst::Address, unsigned> exec_mem_cache;
    std::queue<Event::ptr> proc_stoppers;
    int continueSig;
-   bool pendingProcStop;
 };
 
 /*
@@ -268,7 +334,7 @@ class proc_exitstate
  * ON THREADING STATES:
  *
  * Each thread has four different states, which mostly monitor running/stopped
- * status:
+ * status :
  *   GeneratorState - Thread state as seen by the generator object
  *   HandlerState - Thread state as seen by the handler object
  *   InternalState - Target thread state desired by int_* layer
@@ -293,7 +359,7 @@ class proc_exitstate
  * set up the iRPC, and then return it to the UserState value when the iRPC is ready.
  *
  * There are a couple of important assertions about the relationship between these thread
- * states:
+ * states :
  *  (GeneratorState == running) implies (HandlerState == running)
  *  (HandlerState == running)  implies (InternalState == running)
  *  (InternalState == stopped)  implies (HandlerState == stopped)
@@ -357,10 +423,6 @@ class int_thread
    bool hasPendingStop() const;
    void setResumed(bool b);
    bool isResumed() const;
-   void setClearingPendingStop(bool b);
-   bool clearingPendingStop() const;
-   void setSyncingState(bool b);
-   bool isSyncingState() const;
 
    // Needed for HybridLWPControl thread control mode
    // These can be no-ops for other modes
@@ -383,28 +445,56 @@ class int_thread
    void setRunningRPC(int_iRPC_ptr rpc_);
    void clearRunningRPC();
    int_iRPC_ptr runningRPC() const;
-   bool saveRegsForRPC();
-   bool restoreRegsForRPC(bool clear);
+   int_iRPC_ptr writingRPC() const;
+   void setWritingRPC(int_iRPC_ptr rpc);
+   bool saveRegsForRPC(allreg_response::ptr response);
+   bool restoreRegsForRPC(bool clear, result_response::ptr response);
    bool hasSavedRPCRegs();
    bool runningInternalRPC() const;
    void incSyncRPCCount();
    void decSyncRPCCount();
    bool hasSyncRPC();
    int_iRPC_ptr nextPostedIRPC() const;
-   bool handleNextPostedIRPC(bool block);
    int_iRPC_ptr hasRunningProcStopperRPC() const;
 
+   typedef enum {
+      hnp_post_async,
+      hnp_post_sync
+   } hnp_sync_t;
+   typedef enum {
+      hnp_allow_stop,
+      hnp_no_stop
+   } hnp_stop_t;
+
+   bool handleNextPostedIRPC(hnp_stop_t allow_stop, bool is_sync);
+
    //Register Management
-   bool getAllRegisters(int_registerPool &pool);
-   bool getRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal &val);
-   bool setAllRegisters(int_registerPool &pool);
-   bool setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val);
+   bool getAllRegisters(allreg_response::ptr result);
+   bool getRegister(Dyninst::MachRegister reg, reg_response::ptr result);
+   bool setAllRegisters(int_registerPool &pool, result_response::ptr result);
+   bool setRegister(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val, result_response::ptr result);
+
    virtual bool plat_getAllRegisters(int_registerPool &pool) = 0;
    virtual bool plat_getRegister(Dyninst::MachRegister reg, 
                                  Dyninst::MachRegisterVal &val) = 0;
    virtual bool plat_setAllRegisters(int_registerPool &pool) = 0;
    virtual bool plat_setRegister(Dyninst::MachRegister reg, 
                                  Dyninst::MachRegisterVal val) = 0;
+
+   virtual bool plat_getAllRegistersAsync(allreg_response::ptr result);
+   virtual bool plat_getRegisterAsync(Dyninst::MachRegister reg, 
+                                      reg_response::ptr result);
+   virtual bool plat_setAllRegistersAsync(int_registerPool &pool,
+                                          result_response::ptr result);
+   virtual bool plat_setRegisterAsync(Dyninst::MachRegister reg, 
+                                      Dyninst::MachRegisterVal val,
+                                      result_response::ptr result);
+
+   void updateRegCache(int_registerPool &pool);
+   void updateRegCache(Dyninst::MachRegister reg, Dyninst::MachRegisterVal val);
+
+   bool hasPostponedContinue() const;
+   void setPostponedContinue(bool b);
 
    //Misc
    virtual bool attach() = 0;
@@ -426,18 +516,19 @@ class int_thread
    int_registerPool cached_regpool;
    Mutex regpool_lock;
    int_iRPC_ptr running_rpc;
+   int_iRPC_ptr writing_rpc;
    rpc_list_t posted_rpcs;
    int_registerPool rpc_regs;
    unsigned sync_rpc_count;
    bool pending_user_stop;
    bool pending_stop;
    bool resumed;
-   bool clearing_pending_stop;
-   bool syncing_state;
    int num_locked_stops;
    bool user_single_step;
    bool single_step;
+   bool postponed_continue;
    installed_breakpoint *clearing_breakpoint;
+
 
    bool setAnyState(int_thread::State *from, int_thread::State to);
 
@@ -548,6 +639,8 @@ class int_breakpoint
    Breakpoint::weak_ptr upBreakpoint() const;
 };
 
+//At least as large as any arch's trap instruction
+#define BP_BUFFER_SIZE 4
 class installed_breakpoint
 {
    friend class Dyninst::ProcControlAPI::EventBreakpoint;
@@ -556,24 +649,35 @@ class installed_breakpoint
    std::set<int_breakpoint *> bps;
    std::set<Breakpoint::ptr> hl_bps;
 
-   unsigned char buffer[4]; //At least as large as any arch's trap instruction
+   char buffer[BP_BUFFER_SIZE];
    int buffer_size;
+   bool prepped;
    bool installed;
    int suspend_count;
    Dyninst::Address addr;
+
+   result_response::ptr write_response;
+   mem_response::ptr read_response;
+
+   bool writeBreakpoint(int_process *proc, result_response::ptr write_response);
+   bool saveBreakpointData(int_process *proc, mem_response::ptr read_response);
+   bool restoreBreakpointData(int_process *proc, result_response::ptr res_resp);
+
+
  public:
    installed_breakpoint(mem_state::ptr memory_, Dyninst::Address addr_);
    installed_breakpoint(mem_state::ptr memory_, const installed_breakpoint *ip);
    ~installed_breakpoint();
 
-   bool addBreakpoint(int_process *proc, int_breakpoint *bp);
-   bool rmBreakpoint(int_process *proc, int_breakpoint *bp, bool &empty);
-   bool install(int_process *proc);
-   bool uninstall(int_process *proc);
-   bool plat_install(int_process *proc, bool should_save);
+   //Use these three functions to add a breakpoint
+   bool prepBreakpoint(int_process *proc, mem_response::ptr mem_resp);
+   bool insertBreakpoint(int_process *proc, result_response::ptr res_resp);
+   bool addBreakpoint(int_breakpoint *bp);
 
-   bool suspend(int_process *proc);
-   bool resume(int_process *proc);
+   bool rmBreakpoint(int_process *proc, int_breakpoint *bp, bool &empty, result_response::ptr async_resp);
+   bool uninstall(int_process *proc, result_response::ptr async_resp);
+   bool suspend(int_process *proc, result_response::ptr result_resp);
+   bool resume(int_process *proc, result_response::ptr async_resp);
 
    bool isInstalled() const;
    Dyninst::Address getAddr() const;
@@ -609,7 +713,7 @@ extern void setGeneratorThread(long t);
 void setHandlerThread(long t);
 bool isGeneratorThread();
 bool isHandlerThread();
-HandlerPool *createDefaultHandlerPool();
+HandlerPool *createDefaultHandlerPool(int_process *p);
 HandlerPool *plat_createDefaultHandlerPool(HandlerPool *hpool);
 
 class MTManager {
@@ -628,7 +732,6 @@ private:
   void evhandler_main();
   static void evhandler_main_wrapper(void *);
   void eventqueue_cb();
-  static void eventqueue_cb_wrapper();
   
 public:
   static const Process::thread_mode_t default_thread_mode = Process::HandlerThreading;
@@ -644,6 +747,8 @@ public:
   bool handlerThreading();
   Process::thread_mode_t getThreadMode();
   bool setThreadMode(Process::thread_mode_t tm, bool init = false);
+
+  static void eventqueue_cb_wrapper();
 }; 
 
 inline MTManager *mt() { 

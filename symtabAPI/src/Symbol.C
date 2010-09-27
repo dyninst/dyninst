@@ -200,6 +200,12 @@ bool Symbol::setPtrOffset(Offset newOffset)
     return true;
 }
 
+bool Symbol::setLocalTOC(Offset toc)
+{
+    localTOC_ = toc;
+    return true;
+}
+
 SYMTAB_EXPORT bool Symbol::setModule(Module *mod) 
 {
     module_ = mod; 
@@ -240,9 +246,15 @@ SYMTAB_EXPORT Variable * Symbol::getVariable() const
     return dynamic_cast<Variable *>(aggregate_);
 }
 
-SYMTAB_EXPORT bool	Symbol::setSize(unsigned ns)
+SYMTAB_EXPORT bool Symbol::setSize(unsigned ns)
 {
 	size_ = ns;
+	return true;
+}
+
+SYMTAB_EXPORT bool Symbol::setRegion(Region *r)
+{
+	region_ = r;
 	return true;
 }
 
@@ -375,7 +387,7 @@ Serializable *Symbol::serialize_impl(SerializerBase *s, const char *tag) THROW_S
 	std::string modname = "";
 	if (!module_) {
 		//fprintf(stderr, "%s[%d]:  WARN:  NULL module\n", FILE__, __LINE__);
-   }
+	}
 	else
 	    modname = module_->fullName();
 
@@ -385,6 +397,8 @@ Serializable *Symbol::serialize_impl(SerializerBase *s, const char *tag) THROW_S
 		gtranslate(s, tag_, symbolTag2Str, "tag");
 		gtranslate(s, visibility_, symbolVisibility2Str, "visibility");
 		gtranslate(s, offset_, "offset");
+                gtranslate(s, ptr_offset_, "ptr_offset");
+                gtranslate(s, localTOC_, "localTOC");
 		gtranslate(s, size_, "size");
 		gtranslate(s, index_, "index");
 		gtranslate(s, isDynamic_, "isDynamic");
@@ -483,6 +497,7 @@ std::ostream& Dyninst::SymtabAPI::operator<< (ostream &os, const Symbol &s)
               << " linkage=" << s.symbolLinkage2Str(s.linkage_)
               << " offset=0x"    << hex << s.offset_ << dec
               << " ptr_offset=0x"    << hex << s.ptr_offset_ << dec
+              << " localTOC=0x"    << hex << s.localTOC_ << dec
         //<< " tag="     << (unsigned) s.tag_
               << " tag="     << s.symbolTag2Str(s.tag_)
               << " isAbs="   << s.isAbsolute_
@@ -554,6 +569,7 @@ Symbol::Symbol () :
   visibility_(SV_UNKNOWN),
   offset_(0),
   ptr_offset_(0),
+  localTOC_(0),
   region_(NULL),
   referring_(NULL),
   size_(0),
@@ -591,6 +607,7 @@ Symbol::Symbol(const std::string name,
   visibility_(v),
   offset_(o),
   ptr_offset_(0),
+  localTOC_(0),
   region_(r),
   referring_(NULL),
   size_(s),

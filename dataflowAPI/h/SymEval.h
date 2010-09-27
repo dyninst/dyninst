@@ -340,7 +340,7 @@ public:
 			 const uint64_t addr,
 			 Result_t& res);
 
-  static bool process(AssignNodePtr ptr, Result_t &dbase);
+  static bool process(AssignNodePtr ptr, Result_t &dbase, std::map<Node::Ptr, unsigned> & cycles);
 
   static AST::Ptr simplifyStack(AST::Ptr ast, Address addr, ParseAPI::Function *func);
 };

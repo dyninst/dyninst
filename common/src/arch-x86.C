@@ -863,9 +863,9 @@ list_of(x86::of)(x86::sf)(x86::zf)(x86::af)(x86::pf)(x86::cf)(x86::tf)(x86::if_)
   flagTable[e_verw] = flagInfo(vector<Dyninst::MachRegister>(), list_of(x86::zf));
   flagTable[e_xadd] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
   flagTable[e_xor] = flagInfo(vector<Dyninst::MachRegister>(), standardFlags);
-  flagTable[e_scasb] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
-  flagTable[e_scasw] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
-  flagTable[e_scasd] = flagInfo(list_of(x86::df), vector<Dyninst::MachRegister>());
+  flagTable[e_scasb] = flagInfo(list_of(x86::df), standardFlags);
+  flagTable[e_scasw] = flagInfo(list_of(x86::df), standardFlags);
+  flagTable[e_scasd] = flagInfo(list_of(x86::df), standardFlags);
 }
 
 bool ia32_entry::flagsUsed(std::set<MachRegister>& flagsRead, std::set<MachRegister>& flagsWritten, ia32_locations* locs)

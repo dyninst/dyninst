@@ -92,6 +92,11 @@ ifneq (, $(findstring ppc32_linux, $(PLATFORM)))
 LIBS        += -linstructionAPI
 endif
 
+ifneq (, $(findstring ppc64_linux, $(PLATFORM)))
+LIBS        += -linstructionAPI
+CXXFLAGS    += -m64
+endif
+
 ifneq (, $(findstring alpha, $(PLATFORM)))
 CXXFLAGS    += -pthread
 endif

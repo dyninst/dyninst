@@ -163,7 +163,7 @@ bool Aggregate::addSymbol(Symbol *sym) {
             break;
         }
     }
-    if (!found) typedNames_.push_back(sym->getTypedName());;
+    if (!found) typedNames_.push_back(sym->getTypedName());
 
     return true;
 }

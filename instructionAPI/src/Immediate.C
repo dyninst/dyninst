@@ -66,6 +66,10 @@ namespace Dyninst
     {
       return;
     }
+    void Immediate::getChildren(vector<Expression::Ptr>&) const
+    {
+        return;
+    }
 
     bool Immediate::isUsed(InstructionAST::Ptr findMe) const
     {
