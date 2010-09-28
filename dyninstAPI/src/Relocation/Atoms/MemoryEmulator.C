@@ -50,6 +50,8 @@
 #include "dyninstAPI/src/debug.h"
 #include "dyninstAPI/src/registerSpace.h"
 
+#include "../CodeBuffer.h"
+
 using namespace Dyninst;
 using namespace Relocation;
 using namespace InstructionAPI;
@@ -68,13 +70,15 @@ void MemEmulator::initTranslators(TranslatorMap &t) {
   translators_ = t;
 }
 
-TrackerElement *MemEmulator::tracker() const {
-  EmulatorTracker *e = new EmulatorTracker(addr_);
+TrackerElement *MemEmulator::tracker(int_function *f) const {
+   EmulatorTracker *e = new EmulatorTracker(addr_, f);
   return e;
 }
 
-bool MemEmulator::generate(GenStack &gens) {
-  codeGen &prepatch = gens();
+bool MemEmulator::generate(const codeGen &,
+                           const Trace *t,
+                           CodeBuffer &buffer) {
+   codeGen prepatch(128);
 
   // We want to ensure that a memory operation produces its
   // original result in the face of overwriting the text
@@ -124,36 +128,27 @@ bool MemEmulator::generate(GenStack &gens) {
 	 << std::hex << addr_ << std::dec
 	 << ", no dead registers" << endl;
     */
-    prepatch.copy(insn_->ptr(), insn_->size());
-    return true;
+     buffer.addPIC(insn_->ptr(), insn_->size(), tracker(t->bbl()->func()));
+     return true;
   }
     
   if (!computeEffectiveAddress(prepatch)) {
     cerr << "Error: failed to compute eff. addr. of memory operation!" << endl;
     return false;
   }
-
+  
   if (!saveFlags(prepatch)) { 
-    cerr << "Error failed to save live flags!" << endl;
+     cerr << "Error failed to save live flags!" << endl;
   }
-
-#if 0
-  assert(translators_[effAddr_]);
-  // Call the appropriate translator for our particular effective address.
-  TargetInt *targ = new Target<Trace::Ptr>(translators_[effAddr_]);
-  CFPatch *patch = new CFPatch(CFPatch::Call,
-			       Instruction::Ptr(),
-			       targ);
-  gens.addPatch(patch);
-#endif
   
   DecisionTree dt(effAddr_);
   dt.generate(prepatch);
+  
+  restoreFlags(prepatch);
 
-  codeGen &postpatch = gens();
-  restoreFlags(postpatch);
+  generateOrigAccess(prepatch);
 
-  generateOrigAccess(postpatch);
+  buffer.addPIC(prepatch, tracker(t->bbl()->func()));
 
   return true;
 }
@@ -403,18 +398,21 @@ MemEmulatorTranslator::Ptr MemEmulatorTranslator::create(Register r) {
 
 TrackerElement *MemEmulatorTranslator::tracker() const {
   // This is a funny one... 
-  EmulatorTracker *e = new EmulatorTracker(0);
-  return e;
+   EmulatorTracker *e = new EmulatorTracker(0, NULL);
+   return e;
 }
 
-bool MemEmulatorTranslator::generate(GenStack &gens) {
+bool MemEmulatorTranslator::generate(const codeGen &,
+                                     const Trace *,
+                                     CodeBuffer &buffer) {
   DecisionTree dt(reg_);
-  codeGen &gen = gens();
+  codeGen gen;
 
   dt.generate(gen);
 
   generateReturn(gen);
 
+  buffer.addPIC(gen, tracker());
   return true;
 }
 

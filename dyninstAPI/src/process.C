@@ -5259,7 +5259,7 @@ bool process::generateRequiredPatches(instPoint *callPt,
     bblInstance *ftbbi = callbbi->getFallthroughBBL();
     Relocation::CodeTracker::RelocatedElements reloc;
     if (!relocatedCode_.back().origToReloc(ftbbi->firstInsnAddr(),
-					   ftbbi,
+					   ftbbi->func(),
 					   reloc)) 
     {
         assert(0);

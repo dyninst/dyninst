@@ -40,6 +40,10 @@
 #include "dyninstAPI/src/debug.h"
 #include "../CodeTracker.h"
 #include <sstream>
+#include "Target.h"
+#include "../CodeBuffer.h"
+#include "dyninstAPI/src/baseTramp.h"
+
 
 using namespace Dyninst;
 using namespace InstructionAPI;
@@ -111,14 +115,14 @@ Trace::Ptr Trace::create(baseTramp *base) {
   if (!inst) return Ptr();
   inst->addBaseTramp(base);
 
-  Ptr newTrace = Ptr(new Trace(inst));
+  Ptr newTrace = Ptr(new Trace(inst, base->instP()->addr()));
 
   return newTrace;
 }
   
-Trace::Ptr Trace::create(Atom::Ptr a) {
+Trace::Ptr Trace::create(Atom::Ptr a, Address addr) {
   if (!a) return Ptr();
-  Ptr newTrace = Ptr(new Trace(a));
+  Ptr newTrace = Ptr(new Trace(a, addr));
   return newTrace;
 }
 
@@ -136,123 +140,25 @@ Trace::Ptr Trace::create(Atom::Ptr a) {
 // So basically if the incoming start address is different or if the
 // block size changed.
 
-bool Trace::generate(codeGen &templ,
-		     unsigned &sizeEstimate) {
-  gens_.initialize(templ);
+bool Trace::generate(const codeGen &templ,
+                     CodeBuffer &buffer) {
+   relocation_cerr << "Generating block " << id() << " orig @ " << hex << origAddr() << dec << endl;
+   
+   // Register ourselves with the CodeBuffer and get a label
+   label_ = buffer.getLabel();
 
-  relocation_cerr << "Generating block " << id() << " orig @ " << hex << origAddr() << dec << endl;
-
-  // Simple form: iterate over every Atom, in order, and generate it.
-  for (AtomList::iterator iter = elements_.begin(); iter != elements_.end(); ++iter) {
-
-    unsigned presize = gens_().used();
-
-    TrackerElement *e = (*iter)->tracker();
-    if (e) {
-      e->setBlock(bbl());
-      gens_.cur().trackers[presize] = e;
-    }
-
-    if (!(*iter)->generate(gens_)) {
-      return false;
-      // This leaves the block in an inconsistent state and should only be used
-      // for fatal failures.
-    }
-  }
-  
-  size_ = gens_.size();
-  relocation_cerr << "... block done, size " << size_ << endl;
-
-  sizeEstimate += size_;
-
-  return true;
-}
-
-// Go through the list of patches and apply each patch to the appropriate
-// codeGen object in our GenStack. Check to see if the total size of said
-// has increased; if so, we'll need to regenerate at some point (and
-// allocate more room). 
-
-bool Trace::applyPatches(codeGen &gen, bool &regenerate, unsigned &totalSize, int &shift) {
-  relocation_cerr << "Trace " << hex << origAddr() << ", now @" 
-		  << curAddr_ << " and moving to " << gen.currAddr() << ", shift " << shift << dec << endl;
-
-  iteration_++;
-
-  curAddr_ = gen.currAddr();
-
-  unsigned size = 0;
-
-  for (GenStack::iterator i = gens_.begin(); i != gens_.end(); ++i) {
-    i->offset = totalSize + size;
-    if (!i->apply(gen, size, iteration_, shift)) {
-      return false;
-    }
-    relocation_cerr << "\t After patch: " << gen.currAddr() - curAddr_ << " bytes used" << endl;
-  }
-
-  relocation_cerr << "\t Old size " << size_ << " new size " << size << endl;
-
-  if (size < size_) {
-    // Oops...
-    relocation_cerr << "WARNING: padding /w/ noops @ " << hex << curAddr_ << " from " << origAddr() << dec << endl;
-    gen.fill(size_ - size, codeGen::cgNOP);
-  }
-  else if (size > size_) {
-    shift += (size - size_);
-    regenerate = true;
-    size_ = size;
-  }
-
-  totalSize += size_;
-  
-  return true;
-}  
-
-bool Trace::extractTrackers(CodeTracker &t) {
-  // Each GenStack element has a set of point pairs <curOffset, TrackerElement *>
-  // where curOffset is some magic pointer into the GenStack structure
-  // that is a) unique and b) can be converted to an absolute address.
-  //
-  // We need to update it to make up for patches and get the size field right.
-
-  if (gens_.begin() == gens_.end()) return true;
-  // There's a math problem here; the offset from the first generator in the stack
-  // is also included in the curAddr_ address we're handed. So add in a correcting
-  // factor
-  unsigned corrective_factor = gens_.begin()->offset;
-
-  for (GenStack::iterator gen = gens_.begin(); gen != gens_.end(); ++gen) {
-    for (GenStack::Trackers::iterator tmap = gen->trackers.begin();
-	 tmap != gen->trackers.end(); ++tmap) {
-      
-      TrackerElement *e = tmap->second;
-      assert(e);
-
-      unsigned size = 0;
-      // Work out the size
-      GenStack::Trackers::iterator next = tmap;
-      ++next;
-      if (next != gen->trackers.end()) {
-	size = next->first - tmap->first;
+   // Simple form: iterate over every Atom, in order, and generate it.
+   for (AtomList::iterator iter = elements_.begin(); iter != elements_.end(); ++iter) {
+      if (!(*iter)->generate(templ, 
+                             this,
+                             buffer)) {
+         return false;
+         // This leaves the block in an inconsistent state and should only be used
+         // for fatal failures.
       }
-      else {
-	size = (*gen).gen.used() - tmap->first;
-      }
-      if (!size) continue;
-
-      Address relocAddr = tmap->first + gen->offset + curAddr_ - corrective_factor;
-      
-      assert(e);
-
-      e->setReloc(relocAddr);
-      e->setSize(size);
-      
-      t.addTracker(e);
-    }
-  }
-  
-  return true;
+   }
+   
+   return true;
 }
 
 std::string Trace::format() const {
@@ -269,84 +175,11 @@ std::string Trace::format() const {
   return ret.str();
 }
 
-/////////////////////////
-
-GenStack::GenObj::~GenObj() {
-  if (patch) delete patch;
+int Target<bblInstance *>::label(CodeBuffer *buf) const {
+   return buf->defineLabel(t_->firstInsnAddr());
 }
 
-
-bool GenStack::GenObj::apply(codeGen &current, unsigned &size, int iteration, int shift) {
-  gen.setAddr(current.currAddr());
-
-  relocation_cerr << "\t\t Setting local gen to addr " 
-		  << hex << current.currAddr() << dec << endl;
-
-  // Generate our patch
-  if (patch) {
-    gen.setIndex(index);
-    relocation_cerr << "\t\t Using patch: setting gen to index " << index << " and " 
-	 << gen.used() << " bytes used" << endl;
-    if (!patch->apply(gen, iteration, shift)) {
-        return false;
-    }
-  }
-
-  
-  // And copy it into the master codeGen
-  current.copy(gen);
-  size += gen.used();
-
-  for (std::map<bblInstance *, codeGen::Extent>::iterator iter = gen.getDefensivePads().begin();
-       iter != gen.getDefensivePads().end(); ++iter) {
-    current.registerDefensivePad(iter->first, iter->second.first, iter->second.second);
-  }
-
-  relocation_cerr << "\t\t " << gen.used() << " bytes used" << endl;
-
-  return true;
+int Target<Address>::label(CodeBuffer *buf) const {
+   return buf->defineLabel(t_);
 }
-
-void GenStack::initialize(codeGen &gen) {
-  assert(gen.codeEmitter());
-  gens_.clear();
-  gens_.push_back(GenObj());
-  cur().gen.applyTemplate(gen);
-  cur().gen.allocate(16);
-}
-
-void GenStack::inc() {
-  assert(!gens_.empty());
-  GenObj &old = gens_.back();
-  gens_.push_back(GenObj());
-  cur().gen.applyTemplate(old.gen);
-  assert(cur().gen.codeEmitter());
-  cur().gen.allocate(16);
-}
-
-unsigned GenStack::size() {
-  unsigned ret = 0;
-  for (iterator i = begin(); i != end(); ++i) {
-    ret += i->gen.used();
-  }
-  return ret;
-}
-
-void GenStack::addPatch(Patch *patch) {
-  // Tack the given patch onto the end
-  // of the current GenObj, then roll the stack over
-  assert(gens_.back().patch == NULL);
-
-  gens_.back().patch = patch;
-  gens_.back().index = cur().gen.getIndex();
-  
-  relocation_cerr << "\t\t Adding patch to codeGen stack; cur at " << gens_.back().gen.used() 
-		  << " in stack " << gens_.back().ptr() << endl;
-
-  patch->preapply(gens_.back().gen);
-  relocation_cerr << " and after preapply " << gens_.back().gen.used() << endl;
-
-  inc();
-}
-
-
+   

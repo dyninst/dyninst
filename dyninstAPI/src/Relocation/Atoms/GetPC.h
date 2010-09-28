@@ -49,9 +49,9 @@ class GetPC : public Atom {
 		     Address addr,
 		     Absloc a,
 		     Address thunk = 0);
-   virtual bool generate(GenStack &);
+   virtual bool generate(const codeGen &, const Trace *, CodeBuffer &);
 
-  virtual TrackerElement *tracker() const;
+   TrackerElement *tracker(int_function *) const;
 
    virtual ~GetPC() {};
    virtual std::string format() const;
@@ -68,8 +68,8 @@ class GetPC : public Atom {
      thunkAddr_(thunkAddr) {};
 
 
-   bool PCtoStack(GenStack &gens);
-   bool PCtoReg(GenStack &gens);
+   bool PCtoStack(const codeGen &templ, const Trace *, CodeBuffer &);
+   bool PCtoReg(const codeGen &templ, const Trace *, CodeBuffer &);
 
    InstructionAPI::Instruction::Ptr insn_;
    Address addr_;
@@ -87,8 +87,8 @@ struct IPPatch : public Patch {
  IPPatch(Type a, Address b, Register c, Address d) :
   type(a), orig_value(b), reg(c), thunk(d) {};
 
-  virtual bool apply(codeGen &gen, int iteration, int shift);
-  virtual bool preapply(codeGen &gen);
+  virtual bool apply(codeGen &gen, CodeBuffer *buf);
+  virtual unsigned estimate(codeGen &templ);
   virtual ~IPPatch() {};
   
   Type type;

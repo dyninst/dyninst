@@ -309,6 +309,8 @@ class baseTramp {
     // saved register addresses 
     unsigned savedFlagSize;
 
+    callWhen when() const { return when_; }
+
  private:
     
     bool createFrame_;

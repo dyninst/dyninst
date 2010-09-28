@@ -41,9 +41,9 @@ class Padding : public Atom {
  public:
   typedef dyn_detail::boost::shared_ptr<Padding> Ptr;
 
-  virtual bool generate(GenStack &);
+  virtual bool generate(const codeGen &, const Trace *, CodeBuffer &);
 
-  virtual TrackerElement *tracker() const;
+  TrackerElement *tracker(int_function *) const;
 
   static Ptr create(Address addr, unsigned size);
 

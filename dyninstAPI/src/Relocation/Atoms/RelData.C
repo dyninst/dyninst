@@ -34,6 +34,7 @@
 #include "dyninstAPI/src/debug.h"
 
 #include "../CodeTracker.h"
+#include "../CodeBuffer.h"
 
 using namespace Dyninst;
 using namespace Relocation;
@@ -46,12 +47,14 @@ PCRelativeData::Ptr PCRelativeData::create(Instruction::Ptr insn,
   return Ptr(new PCRelativeData(insn, addr, target));
 }
 
-TrackerElement *PCRelativeData::tracker() const {
-  EmulatorTracker *e = new EmulatorTracker(addr_);
+TrackerElement *PCRelativeData::tracker(int_function *f) const {
+   EmulatorTracker *e = new EmulatorTracker(addr_, f);
   return e;
 }
 
-bool PCRelativeData::generate(GenStack &gens) {
+bool PCRelativeData::generate(const codeGen &, 
+                              const Trace *t, 
+                              CodeBuffer &buffer) {
   // We want to take the original instruction and emulate
   // it at whatever our new address is. 
 
@@ -65,7 +68,7 @@ bool PCRelativeData::generate(GenStack &gens) {
 		  <<"," << target_ << std::dec << ")" << endl;
 
   RelDataPatch *newPatch = new RelDataPatch(insn_, target_);
-  gens.addPatch(newPatch);
+  buffer.addPatch(newPatch, tracker(t->bbl()->func()));
 
   return true;
 }
@@ -76,7 +79,7 @@ string PCRelativeData::format() const {
   return ret.str();
 }
 
-bool RelDataPatch::apply(codeGen &gen, int, int) {
+bool RelDataPatch::apply(codeGen &gen, CodeBuffer *) {
   instruction ugly_insn(orig_insn->ptr());
   pcRelData pcr(target_addr, ugly_insn);
   pcr.gen = &gen;
@@ -84,7 +87,7 @@ bool RelDataPatch::apply(codeGen &gen, int, int) {
   return true;
 }
 
-bool RelDataPatch::preapply(codeGen &) {
-  // Possible push/mov 64 -> reg / orig insn -> pop
-  return 2+10+7+2;
+unsigned RelDataPatch::estimate(codeGen &) {
+   // Underestimate if possible
+   return orig_insn->size();
 }

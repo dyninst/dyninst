@@ -249,18 +249,23 @@ void codeGen::copy(const void *b, const unsigned size, const codeBufIndex_t inde
 
 void codeGen::copy(const void *b, const unsigned size) {
   assert(buffer_);
-
-  if ((used() + size) >= size_) {
-    realloc(used() + size); 
-  }
+  
+  realloc(used() + size);
 
   memcpy(cur_ptr(), b, size);
-  // "Upgrade" to next index side
-  int disp = size;
-  if (disp % CODE_GEN_OFFSET_SIZE) {
-    disp += (CODE_GEN_OFFSET_SIZE - (disp % CODE_GEN_OFFSET_SIZE));
-  }
-  moveIndex(disp);
+
+  moveIndex(size);
+}
+
+void codeGen::copy(const std::vector<unsigned char> &buf) {
+   assert(buffer_);
+
+   realloc(used() + buf.size());
+   
+   unsigned char * ptr = (unsigned char *)cur_ptr();
+   std::copy(buf.begin(), buf.end(), ptr);
+
+   moveIndex(buf.size());
 }
 
 void codeGen::copy(codeGen &gen) {
@@ -430,10 +435,12 @@ void codeGen::setAddrSpace(AddressSpace *a)
 }
 
 void codeGen::realloc(unsigned newSize) {  
-  size_ = newSize;
-  max_ = size_ + codeGenPadding;
-  buffer_ = (codeBuf_t *)::realloc(buffer_, max_);
-  assert(buffer_);
+   if (newSize <= size_) return;
+
+   size_ = newSize;
+   max_ = size_ + codeGenPadding;
+   buffer_ = (codeBuf_t *)::realloc(buffer_, max_);
+   assert(buffer_);
 }
 
 void codeGen::addPCRelRegion(pcRelRegion *reg) {
@@ -674,6 +681,10 @@ Dyninst::Architecture codeGen::getArch() const {
   if (func()) {
     return func()->ifunc()->isrc()->getArch();
   }
+  if (addrSpace()) {
+     return addrSpace()->getArch();
+  }
+
   assert(0);
   return Arch_none;
 }

@@ -41,10 +41,11 @@
 #include <list>
 #include "common/h/IntervalTree.h"
 // Remove when I'm done debugging this...
-#include "dyninstAPI/src/baseTramp.h"
+//#include "dyninstAPI/src/baseTramp.h"
 
 class bblInstance;
 class baseTrampInstance;
+class int_function;
 
 namespace Dyninst {
 namespace Relocation {
@@ -58,8 +59,8 @@ class TrackerElement {
     emulated,
     instrumentation
   } type_t;
- TrackerElement(Address o, unsigned s = 0) :
-  orig_(o), reloc_(0), size_(s), block_(NULL) {assert(o);};
+  TrackerElement(Address o, int_function *f) :
+  orig_(o), reloc_(0), size_(0), func_(f) {assert(o);};
   virtual ~TrackerElement() {};
 
   virtual Address relocToOrig(Address reloc) const = 0;
@@ -69,24 +70,23 @@ class TrackerElement {
   Address orig() const { return orig_; };
   Address reloc() const { return reloc_; };
   unsigned size() const { return size_; };
-  bblInstance *block() const { return block_; };
+  int_function *func() const { return func_; };
 
   void setReloc(Address reloc) { reloc_ = reloc; };
   void setSize(unsigned size) { size_ = size; }
-  void setBlock(bblInstance *b) { block_ = b; }
 
  protected:
   TrackerElement() {};
   Address orig_;
   Address reloc_;
   unsigned size_;
-  bblInstance *block_;
+  int_function *func_;
 };
 
 class OriginalTracker : public TrackerElement {
  public:
- OriginalTracker(Address orig, unsigned size = 0) :
-  TrackerElement(orig, size) {};
+  OriginalTracker(Address orig, int_function *f) :
+  TrackerElement(orig, f) {};
   virtual ~OriginalTracker() {};
 
   virtual Address relocToOrig(Address reloc) const {
@@ -108,8 +108,8 @@ class OriginalTracker : public TrackerElement {
 
 class EmulatorTracker : public TrackerElement {
  public:
- EmulatorTracker(Address orig, unsigned size = 0) : 
-  TrackerElement(orig, size) {};
+ EmulatorTracker(Address orig, int_function *f) : 
+  TrackerElement(orig, f) {};
   virtual ~EmulatorTracker() {};
 
   virtual Address relocToOrig(Address reloc) const {
@@ -130,10 +130,8 @@ class EmulatorTracker : public TrackerElement {
 
 class InstTracker : public TrackerElement {
  public:
- InstTracker(Address orig, baseTrampInstance *baseT, unsigned size = 0) :
-  TrackerElement(orig, size), baseT_(baseT) {
-    assert(baseT_->baseT);
-  };
+  InstTracker(Address orig, baseTrampInstance *baseT, int_function *f) :
+   TrackerElement(orig, f), baseT_(baseT) {};
   virtual ~InstTracker() {};
 
   virtual Address relocToOrig(Address reloc) const {
@@ -149,6 +147,7 @@ class InstTracker : public TrackerElement {
 
   virtual type_t type() const { return TrackerElement::instrumentation; };
   baseTrampInstance *baseT() const { return baseT_; };
+
  private:
   baseTrampInstance *baseT_;
 };
@@ -164,7 +163,7 @@ class CodeTracker {
   typedef std::list<TrackerElement *> TrackerList;
   typedef std::map<Address, RelocatedElements> ForwardsMap;
   typedef ForwardsMap::const_iterator FM_citer;
-  typedef std::map<bblInstance *, ForwardsMap> BlockForwardsMap;
+  typedef std::map<int_function *, ForwardsMap> BlockForwardsMap;
   typedef BlockForwardsMap::const_iterator BFM_citer;
   typedef class IntervalTree<Address, TrackerElement *> ReverseMap;
 
@@ -172,10 +171,8 @@ class CodeTracker {
   CodeTracker() {};
   ~CodeTracker() {};
 
-  bool origToReloc(Address origAddr, bblInstance *origBBL, RelocatedElements &relocs) const;
-  bool relocToOrig(Address relocAddr, Address &orig, bblInstance *&origBBL) const;
-
-  baseTrampInstance *getBaseT(Address relocAddr) const;
+  bool origToReloc(Address origAddr, int_function *func, RelocatedElements &relocs) const;
+  bool relocToOrig(Address relocAddr, Address &orig, int_function *&func, baseTrampInstance *&baseT) const;
 
   Address lowOrigAddr() const;
   Address highOrigAddr() const;
@@ -191,7 +188,7 @@ class CodeTracker {
 
  private:
 
-  // We make this bblInstance specific to handle shared
+  // We make this int_function specific to handle shared
   // code
   BlockForwardsMap origToReloc_;
   ReverseMap relocToOrig_;
