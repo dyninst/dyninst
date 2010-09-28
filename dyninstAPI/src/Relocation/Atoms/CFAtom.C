@@ -38,6 +38,7 @@
 #include "dyninstAPI/src/debug.h"
 
 #include "../CodeTracker.h"
+#include "../CodeBuffer.h"
 
 using namespace Dyninst;
 using namespace Relocation;
@@ -50,7 +51,9 @@ using namespace InstructionAPI;
 const Address CFAtom::Fallthrough(1);
 const Address CFAtom::Taken(2);
 
-bool CFAtom::generate(GenStack &gens) {
+bool CFAtom::generate(const codeGen &,
+                      const Trace *,
+                      CodeBuffer &buffer) {
   // We need to create jumps to wherever our successors are
   // We can assume the addresses returned by our Targets
   // are valid, since we'll fixpoint until those stabilize. 
@@ -110,7 +113,7 @@ bool CFAtom::generate(GenStack &gens) {
     assert(target);
 
     if (target->necessary()) {
-      if (!generateBranch(gens,
+      if (!generateBranch(buffer,
 			  target,
 			  insn_,
 			  fallthrough)) {
@@ -129,7 +132,7 @@ bool CFAtom::generate(GenStack &gens) {
       // Well, that kinda explains things
       assert(!isConditional_);
       relocation_cerr << "  ... generating call" << endl;
-      if (!generateCall(gens,
+      if (!generateCall(buffer,
 			destMap_[Taken],
 			insn_))
 	return false;
@@ -137,7 +140,7 @@ bool CFAtom::generate(GenStack &gens) {
     else {
       assert(!isCall_);
       relocation_cerr << "  ... generating conditional branch" << endl;
-      if (!generateConditionalBranch(gens,
+      if (!generateConditionalBranch(buffer,
 				     destMap_[Taken],
 				     insn_))
 	return false;
@@ -150,7 +153,7 @@ bool CFAtom::generate(GenStack &gens) {
     if (destMap_.find(Fallthrough) != destMap_.end()) {
       TargetInt *ft = destMap_[Fallthrough];
       if (ft->necessary()) {
-	if (!generateBranch(gens, 
+	if (!generateBranch(buffer, 
 			    ft,
 			    insn_,
 			    true)) {
@@ -162,30 +165,32 @@ bool CFAtom::generate(GenStack &gens) {
   }
   case Indirect: {
     bool requireTranslation = false;
-    for (DestinationMap::iterator iter = destMap_.begin();
-	 iter != destMap_.end(); ++iter) {
-      if (iter->first != iter->second->addr()) {
-	requireTranslation = true;
-	break;
-      }
-    }
-    Register reg; /* = originalRegister... */
+/*
+  for (DestinationMap::iterator iter = destMap_.begin();
+  iter != destMap_.end(); ++iter) {
+  if (iter->second->type() == TargetInt::TraceTarget) {
+  requireTranslation = true;
+  break;
+  }
+  }
+*/
+    Register reg = 0; /* = originalRegister... */
     if (requireTranslation) {
-      if (!generateAddressTranslator(gens(), reg))
-	return false;
+       if (!generateAddressTranslator(buffer, reg))
+          return false;
     }
     if (isCall_) {
-      if (!generateIndirectCall(gens, 
-				reg, 
-				insn_, 
-				addr_)) 
+       if (!generateIndirectCall(buffer, 
+                                 reg, 
+                                 insn_, 
+                                 addr_)) 
 	return false;
       // We may be putting another block in between this
       // one and its fallthrough due to edge instrumentation
       // So if there's the possibility for a return put in
       // a fallthrough branch
       if (destMap_.find(Fallthrough) != destMap_.end()) {
-	if (!generateBranch(gens,
+	if (!generateBranch(buffer,
 			    destMap_[Fallthrough],
 			    Instruction::Ptr(),
 			    true)) 
@@ -193,7 +198,7 @@ bool CFAtom::generate(GenStack &gens) {
       }
     }
     else {
-      if (!generateIndirect(gens, reg, insn_))
+      if (!generateIndirect(buffer, reg, insn_))
 	return false;
     }
     break;
@@ -202,9 +207,9 @@ bool CFAtom::generate(GenStack &gens) {
     assert(0);
   }
   if (padded_) {
-    gens.addPatch(new PaddingPatch(block_));
+     buffer.addPatch(new PaddingPatch(block_), addrTracker(addr_ + size()));
   }
-
+  
   return true;
 }
 
@@ -222,8 +227,35 @@ CFAtom::~CFAtom() {
 
 TrackerElement *CFAtom::tracker() const {
   assert(addr_ != 1);
-  EmulatorTracker *e = new EmulatorTracker(addr_);
+  EmulatorTracker *e = new EmulatorTracker(addr_, block()->func());
   return e;
+}
+
+TrackerElement *CFAtom::destTracker(TargetInt *dest) const {
+   if (dest->origAddr() == 0) {
+      cerr << "Error: no original address for target " << dest->format() << endl;
+      assert(0);
+   }
+
+   int_function *destFunc = NULL;
+   switch (dest->type()) {
+      case TargetInt::TraceTarget:
+         destFunc = (static_cast<Target<Trace::Ptr> *>(dest))->t()->bbl()->func();
+         break;
+      case TargetInt::BlockTarget:
+         destFunc = (static_cast<Target<bblInstance *> *>(dest))->t()->func();
+         break;
+      default:
+         break;
+   }
+
+   EmulatorTracker *e = new EmulatorTracker(dest->origAddr(), destFunc);
+   return e;
+}
+
+TrackerElement *CFAtom::addrTracker(Address addr) const {
+   EmulatorTracker *e = new EmulatorTracker(addr, block()->func());
+   return e;
 }
 
 void CFAtom::addDestination(Address index, TargetInt *dest) {
@@ -283,11 +315,12 @@ void CFAtom::updateAddr(Address addr) {
   addr_ = addr;
 }
 
-bool CFAtom::generateBranch(GenStack &gens,
+bool CFAtom::generateBranch(CodeBuffer &buffer,
 			    TargetInt *to,
 			    Instruction::Ptr insn,
-			    bool) {
+			    bool fallthrough) {
   assert(to);
+  if (!to->necessary()) return true;
 
   // We can put in an unconditional branch as an ender for 
   // a block that doesn't have a real branch. So if we don't have
@@ -298,12 +331,17 @@ bool CFAtom::generateBranch(GenStack &gens,
   // == size) back up the codeGen and shrink us down.
 
   CFPatch *newPatch = new CFPatch(CFPatch::Jump, insn, to, addr_);
-  gens.addPatch(newPatch);
-
+  if (fallthrough) {
+     buffer.addPatch(newPatch, destTracker(to));
+  }
+  else {
+     buffer.addPatch(newPatch, tracker());
+  }
+  
   return true;
 }
 
-bool CFAtom::generateCall(GenStack &gens,
+bool CFAtom::generateCall(CodeBuffer &buffer,
 			  TargetInt *to,
 			  Instruction::Ptr insn) {
   if (!to) {
@@ -313,23 +351,23 @@ bool CFAtom::generateCall(GenStack &gens,
   }
 
   CFPatch *newPatch = new CFPatch(CFPatch::Call, insn, to, addr_);
-  gens.addPatch(newPatch);
+  buffer.addPatch(newPatch, tracker());
 
   return true;
 }
 
-bool CFAtom::generateConditionalBranch(GenStack &gens,
+bool CFAtom::generateConditionalBranch(CodeBuffer &buffer,
 				       TargetInt *to,
 				       Instruction::Ptr insn) {
   assert(to);
 
   CFPatch *newPatch = new CFPatch(CFPatch::JCC, insn, to, addr_);
-  gens.addPatch(newPatch);
+  buffer.addPatch(newPatch, tracker());
 
   return true;
 }
 
-bool CFAtom::generateIndirect(GenStack &gens,
+bool CFAtom::generateIndirect(CodeBuffer &buffer,
 				 Register,
 			      Instruction::Ptr insn) {
   // Two possibilities here: either copying an indirect jump w/o
@@ -343,55 +381,53 @@ bool CFAtom::generateIndirect(GenStack &gens,
 
   ia32_instruction orig_instr(memacc, &cond, &loc);
   ia32_decode(IA32_FULL_DECODER, (unsigned char *)insn->ptr(), orig_instr);
+  const unsigned char *ptr = (const unsigned char *)insn->ptr();
 
-  char *buffer = (char *)malloc(insn->size());
+  std::vector<unsigned char> raw (ptr,
+                                  ptr + insn->size());
 
-  // Copy prefixes untouched.
-  for (int i = 0; i < loc.num_prefixes; ++i) {
-    buffer[i] = ugly_insn.ptr()[i];
-  }
-  
   // Opcode might get modified;
   // 0xe8 -> 0xe9 (call Jz -> jmp Jz)
   // 0xff xx010xxx -> 0xff xx100xxx (call Ev -> jmp Ev)
   // 0xff xx011xxx -> 0xff xx101xxx (call Mp -> jmp Mp)
 
   bool fiddle_mod_rm = false;
-  for (int i = loc.num_prefixes; i < loc.num_prefixes + (int) loc.opcode_size; ++i) {
-    if (ugly_insn.ptr()[i] == 0xe8) {
-      buffer[i] = 0xe9;
-    }
-    else if (ugly_insn.ptr()[i] == 0xff) {
-      buffer[i] = 0xff;
-      fiddle_mod_rm = true;
-    }
-    else {
-      buffer[i] = ugly_insn.ptr()[i];
-    }
+  for (unsigned i = loc.num_prefixes; 
+       i < loc.num_prefixes + (unsigned) loc.opcode_size;
+       ++i) {
+     switch(raw[i]) {
+        case 0xE8:
+           raw[i] = 0xE9;
+           break;
+        case 0xFF:
+           fiddle_mod_rm = true;
+           break;
+        default:
+           break;
+     }
   }
-  
-  for (int i = loc.num_prefixes + (int) loc.opcode_size; 
-       i < (int) insn->size(); ++i) {
-    buffer[i] = ugly_insn.ptr()[i];
-    if ((i == loc.modrm_position) &&
-	fiddle_mod_rm) {
-      buffer[i] |= 0x20;
-      buffer[i] &= ~0x10;
-    }
-  } 
 
+  for (int i = loc.num_prefixes + (int) loc.opcode_size; 
+       i < (int) insn->size(); 
+       ++i) {
+     if ((i == loc.modrm_position) &&
+         fiddle_mod_rm) {
+        raw[i] |= 0x20;
+        raw[i] &= ~0x10;
+     }
+  } 
+  
   // TODO: don't ignore reg...
   // Indirect branches don't use the PC and so are
   // easy - we just copy 'em.
-  gens().copy(buffer, insn->size());
-  free(buffer);
+  buffer.addPIC(raw, tracker());
 
   return true;
 }
 
-bool CFAtom::generateIndirectCall(GenStack &gens,
-				     Register,
-				     Instruction::Ptr insn,
+bool CFAtom::generateIndirectCall(CodeBuffer &buffer,
+                                  Register,
+                                  Instruction::Ptr insn,
 				  Address /*origAddr*/) {
   // Check this to see if it's RIP-relative
   instruction ugly_insn(insn->ptr());
@@ -400,17 +436,17 @@ bool CFAtom::generateIndirectCall(GenStack &gens,
     assert(0 && "Unimplemented!");
     // This target better not be NULL...
     CFPatch *newPatch = new CFPatch(CFPatch::Data, insn, NULL, addr_);
-    gens.addPatch(newPatch);
+    buffer.addPatch(newPatch, tracker());
   }
   else {
-    gens().copy(insn->ptr(), insn->size());
+     buffer.addPIC(insn->ptr(), insn->size(), tracker());
   }
 
   return true;
 }
 
-bool CFAtom::generateAddressTranslator(codeGen &,
-					  Register &) {
+bool CFAtom::generateAddressTranslator(CodeBuffer &,
+                                       Register &) {
   // Do nothing...
   return true;
 }
@@ -448,78 +484,75 @@ std::string CFAtom::format() const {
 // Patching!
 /////////////////////////
 
-bool CFPatch::apply(codeGen &gen, int iteration, int shift) {
-  relocation_cerr << "\t\t CFPatch::apply, type " << type << " origAddr " << hex << origAddr_ << endl;
+bool CFPatch::apply(codeGen &gen, CodeBuffer *buf) {
+   int targetLabel = target->label(buf);
+
+   relocation_cerr << "\t\t CFPatch::apply, type " << type << ", origAddr " << hex << origAddr_ 
+                   << ", and label " << dec << targetLabel << endl;
+   if (orig_insn) {
+      instruction ugly_insn(orig_insn->ptr());
+      switch(type) {
+         case CFPatch::Jump: {
+            pcRelJump pcr(buf->predictedAddr(targetLabel), ugly_insn);
+            pcr.gen = &gen;
+            pcr.apply(gen.currAddr());
+            relocation_cerr << "\t\t\t Generating CFPatch::Jump from " 
+                            << hex << gen.currAddr() << " to " << buf->predictedAddr(targetLabel) << dec << endl;
+            break;
+         }
+         case CFPatch::JCC: {
+            pcRelJCC pcr(buf->predictedAddr(targetLabel), ugly_insn);
+            pcr.gen = &gen;
+            pcr.apply(gen.currAddr());
+            
+            relocation_cerr << "\t\t\t Generating CFPatch::JCC from " 
+                            << hex << gen.currAddr() << " to " << buf->predictedAddr(targetLabel) << dec << endl;            
+            break;
+         }
+         case CFPatch::Call: {
+            pcRelCall pcr(buf->predictedAddr(targetLabel), ugly_insn);
+            pcr.gen = &gen;
+            pcr.apply(gen.currAddr());
+            break;
+         }
+         case CFPatch::Data: {
+            pcRelData pcr(buf->predictedAddr(targetLabel), ugly_insn);
+            pcr.gen = &gen;
+            pcr.apply(gen.currAddr());
+            break;
+         }
+      }
+   }
+   else {
+      switch(type) {
+         case CFPatch::Jump:
+            insnCodeGen::generateBranch(gen, gen.currAddr(), buf->predictedAddr(targetLabel));
+            break;
+         case CFPatch::Call:
+            insnCodeGen::generateCall(gen, gen.currAddr(), buf->predictedAddr(targetLabel));
+            break;
+         default:
+            assert(0);
+      }
+   }
+   
+   return true;
+}
+
+unsigned CFPatch::estimate(codeGen &) {
   if (orig_insn) {
-    instruction ugly_insn(orig_insn->ptr());
-    switch(type) {
-    case CFPatch::Jump: {
-      pcRelJump pcr(target->adjAddr(iteration, shift), ugly_insn);
-      pcr.gen = &gen;
-      pcr.apply(gen.currAddr());
-      relocation_cerr << "\t\t\t Generating CFPatch::Jump from " 
-		      << hex << gen.currAddr() << " to " << target->adjAddr(iteration, shift) << dec << endl;
-      break;
-    }
-    case CFPatch::JCC: {
-      pcRelJCC pcr(target->adjAddr(iteration, shift), ugly_insn);
-      pcr.gen = &gen;
-      pcr.apply(gen.currAddr());
-
-      relocation_cerr << "\t\t\t Generating CFPatch::JCC from " 
-		      << hex << gen.currAddr() << " to " << target->adjAddr(iteration, shift) << dec
-		      << "(" << shift << "), with unmod addr" << hex << target->addr() << dec << endl;
-      
-      break;
-    }
-    case CFPatch::Call: {
-      pcRelCall pcr(target->adjAddr(iteration, shift), ugly_insn);
-      pcr.gen = &gen;
-      pcr.apply(gen.currAddr());
-      break;
-    }
-    case CFPatch::Data: {
-      pcRelData pcr(target->adjAddr(iteration, shift), ugly_insn);
-      pcr.gen = &gen;
-      pcr.apply(gen.currAddr());
-      break;
-    }
-    }
+     return orig_insn->size();
   }
-  else {
-    switch(type) {
-    case CFPatch::Jump:
-      insnCodeGen::generateBranch(gen, gen.currAddr(), target->adjAddr(iteration, shift));
-      break;
-    case CFPatch::Call:
-      insnCodeGen::generateCall(gen, gen.currAddr(), target->adjAddr(iteration, shift));
-      break;
-    default:
-      assert(0);
-    }
-  }
-
-  return true;
+  return 0;
 }
 
-bool CFPatch::preapply(codeGen &gen) {
-  if (orig_insn) {
-    gen.copy(orig_insn->ptr(), orig_insn->size());
-  }
-
-  // Hopefully a fallthrough which will be skipped.
-  return true;
+bool PaddingPatch::apply(codeGen &gen, CodeBuffer *) {
+   gen.registerDefensivePad(block_, gen.currAddr(), 10);
+   gen.fill(10, codeGen::cgIllegal);
+   //gen.fill(10, codeGen::cgNOP);
+   return true;
 }
 
-bool PaddingPatch::apply(codeGen &gen, int, int) {
-
-  gen.registerDefensivePad(block_, gen.currAddr(), 10);
-  gen.fill(10, codeGen::cgIllegal);
-  //gen.fill(10, codeGen::cgNOP);
-  return true;
-}
-
-bool PaddingPatch::preapply(codeGen &gen) {
-  gen.moveIndex(10);
-  return true;
+unsigned PaddingPatch::estimate(codeGen &) {
+   return 10;
 }

@@ -35,6 +35,8 @@
 #include "dyninstAPI/src/RegisterConversion-x86.h"
 #include "dyninstAPI/src/debug.h"
 
+#include "../CodeBuffer.h"
+
 using namespace Dyninst;
 using namespace Relocation;
 using namespace InstructionAPI;
@@ -47,72 +49,66 @@ GetPC::Ptr GetPC::create(Instruction::Ptr insn,
   return Ptr(new GetPC(insn, addr, a, thunk));
 }
 
-TrackerElement *GetPC::tracker() const {
+TrackerElement *GetPC::tracker(int_function *f) const {
   assert(addr_ != 1);
-  EmulatorTracker *e = new EmulatorTracker(addr_);
+  EmulatorTracker *e = new EmulatorTracker(addr_, f);
   return e;
 }
 
-bool GetPC::generate(GenStack &gens) {
+bool GetPC::generate(const codeGen &templ, const Trace *trace, CodeBuffer &buffer) {
   // Two options: top of stack (push origAddr) 
   // or into a register (/w/ a mov)
 
   switch (a_.type()) {
   case Absloc::Stack:
-    return PCtoStack(gens);
+     return PCtoStack(templ, trace, buffer);
   case Absloc::Register:
-    return PCtoReg(gens);
+     return PCtoReg(templ, trace, buffer);
   default:
     cerr << "Error: getPC has unknown Absloc type " << a_.format() << endl;
     return false;
   }
 }
 
-bool GetPC::PCtoStack(GenStack &gens) {
-
-  if(gens().addrSpace()->proc()) {
-    GET_PTR(newInsn, gens());
-    *newInsn = 0x68; // Push; we're replacing "call 0" with "push original IP"
-    newInsn++;	  
-    Address EIP = addr_ + insn_->size();
-    unsigned int *temp = (unsigned int *) newInsn;
-    *temp = EIP;
-    // No 9-byte jumps...
-    assert(sizeof(unsigned int) == 4); // should be a compile-time assert
-    newInsn += sizeof(unsigned int);
-    SET_PTR(newInsn, gens());
-  }
-  else {
-    IPPatch *newPatch = new IPPatch(IPPatch::Push, addr_ + insn_->size());
-    gens.addPatch(newPatch);
-  }	
-
+bool GetPC::PCtoStack(const codeGen &templ, const Trace *t, CodeBuffer &buffer) {
+   if(templ.addrSpace()->proc()) {
+      std::vector<unsigned char> newInsn;
+      newInsn.push_back(0x68); // push
+      Address EIP = addr_ + insn_->size();
+      unsigned char *tmp = (unsigned char *) &EIP;
+      newInsn.insert(newInsn.end(),
+                     tmp,
+                     tmp+sizeof(unsigned int));
+      buffer.addPIC(newInsn, tracker(t->bbl()->func()));
+   }
+   else {
+      IPPatch *newPatch = new IPPatch(IPPatch::Push, addr_ + insn_->size());
+      buffer.addPatch(newPatch, tracker(t->bbl()->func()));
+   }	
+   
   return true;
 }
 
-bool GetPC::PCtoReg(GenStack &gens) {
-
+bool GetPC::PCtoReg(const codeGen &templ, const Trace *t, CodeBuffer &buffer) {
   bool ignored;
   Register reg = convertRegID(a_.reg(), ignored);
 
-  if(gens().addrSpace()->proc()) {
-    GET_PTR(newInsn, gens());
-    // Okay, put the PC into the 'reg'
-    Address EIP = addr_ + insn_->size();
-    *newInsn = static_cast<unsigned char>(0xb8 + reg); 
-    // MOV family, destination of the register encoded by
-    // 'reg', source is an Iv immediate
-    newInsn++;
-    unsigned int *temp = (unsigned int *)newInsn;
-    *temp = EIP;
-    //assert(sizeof(unsigned int *)==4);
-    //newInsn += sizeof(unsigned int *);
-    newInsn += 4;  // fix for AMD64
-    SET_PTR(newInsn, gens());
+  if(templ.addrSpace()->proc()) {
+     std::vector<unsigned char> newInsn;
+     newInsn.push_back(static_cast<unsigned char>(0xb8 + reg));
+     // MOV family, destination of the register encoded by
+     // 'reg', source is an Iv immediate
+     
+     Address EIP = addr_ + insn_->size();
+     unsigned char *tmp = (unsigned char *) &EIP;
+     newInsn.insert(newInsn.end(),
+                    tmp,
+                    tmp + sizeof(unsigned int));
+     buffer.addPIC(newInsn, tracker(t->bbl()->func()));
   }
   else {
     IPPatch *newPatch = new IPPatch(IPPatch::Reg, addr_ + insn_->size(), reg, thunkAddr_);
-    gens.addPatch(newPatch);
+    buffer.addPatch(newPatch, tracker(t->bbl()->func()));
   }
   return true;
 }
@@ -128,7 +124,7 @@ string GetPC::format() const {
 #include "dyninstAPI/src/registerSpace.h"
 #include "dyninstAPI/src/inst-x86.h"
 
-bool IPPatch::apply(codeGen &gen, int, int) {
+bool IPPatch::apply(codeGen &gen, CodeBuffer *) {
   relocation_cerr << "\t\t IPPatch::apply" << endl;
 
   // We want to generate orig_value into the appropriate location.
@@ -183,9 +179,14 @@ bool IPPatch::apply(codeGen &gen, int, int) {
   return true;
 }
 
-bool IPPatch::preapply(codeGen &gen) {
-  // It's gonna be a big one...
-  gen.moveIndex(1+4+1+1+1+4 + ((type == Reg) ? 1 : 0));
-  return true;
+unsigned IPPatch::estimate(codeGen &) {
+   // should be the minimum required since we expand
+   // but never contract
+
+   // In the process case we always just generate it 
+   // straight out, because we know the original address.
+
+   // It's gonna be a big one...
+   return 1+4+1+1+1+4 + ((type == Reg) ? 1 : 0);
 }
 

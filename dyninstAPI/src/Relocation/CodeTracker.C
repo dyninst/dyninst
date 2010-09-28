@@ -30,6 +30,8 @@
  */
 
 #include "CodeTracker.h"
+#include "dyninstAPI/src/function.h" // for debug purposes
+#include "dyninstAPI/src/debug.h"
 
 #include <iostream>
 
@@ -38,9 +40,9 @@ using namespace Relocation;
 using namespace std;
 
 bool CodeTracker::origToReloc(Address origAddr,
-			      bblInstance *origBBL, 
+			      int_function *func,
 			      RelocatedElements &reloc) const {
-  BFM_citer iter = origToReloc_.find(origBBL);
+  BFM_citer iter = origToReloc_.find(func);
   if (iter == origToReloc_.end()) return false;
 
   const ForwardsMap &fm = iter->second;
@@ -54,25 +56,19 @@ bool CodeTracker::origToReloc(Address origAddr,
 
 bool CodeTracker::relocToOrig(Address relocAddr, 
 			      Address &orig, 
-			      bblInstance *&origBBL) const {
+			      int_function *&func,
+                              baseTrampInstance *&bti) const {
   TrackerElement *e = NULL;
   if (!relocToOrig_.find(relocAddr, e))
     return false;
   orig = e->relocToOrig(relocAddr);
-  origBBL = e->block();
+  func = e->func();
+  if (e->type() == TrackerElement::instrumentation) {
+     InstTracker *i = static_cast<InstTracker *>(e);
+     bti = i->baseT();
+  }
+
   return true;
-}
-
-baseTrampInstance *CodeTracker::getBaseT(Address relocAddr) const {
-  TrackerElement *e;
-  if (!relocToOrig_.find(relocAddr, e))
-    return NULL;
-
-  if (e->type() != TrackerElement::instrumentation) 
-    return NULL;
-
-  InstTracker *i = static_cast<InstTracker *>(e);
-  return i->baseT();
 }
 
 void CodeTracker::addTracker(TrackerElement *e) {
@@ -82,7 +78,7 @@ void CodeTracker::addTracker(TrackerElement *e) {
   // If that happens, the assumption origToReloc makes that we can
   // get away without an IntervalTree will be violated and a lot
   // of code will need to be rewritten.
-
+   cerr << "Adding tracker " << *e << endl;
   trackers_.push_back(e);
 }
 
@@ -95,18 +91,47 @@ void CodeTracker::createIndices() {
 
     relocToOrig_.insert(e->reloc(), e->reloc() + e->size(), e);
 
-    if (e->type() == TrackerElement::instrumentation) {
-      origToReloc_[e->block()][e->orig()].instrumentation = e->reloc();
+    if (e->func()) {
+       if (e->type() == TrackerElement::instrumentation) {
+          origToReloc_[e->func()][e->orig()].instrumentation = e->reloc();
+       }
+       else {
+          origToReloc_[e->func()][e->orig()].instruction = e->reloc();
+       }
     }
     else {
-      origToReloc_[e->block()][e->orig()].instruction = e->reloc();
+       cerr << "WARNING: ignoring tracker entry " << (*e) << endl;
     }
-
   }
+
+  if (dyn_debug_relocation) debug();
 }
 
 void CodeTracker::debug() {
   cerr << "************ FORWARD MAPPING ****************" << endl;
+
+  for (BlockForwardsMap::iterator bfm_iter = origToReloc_.begin(); 
+       bfm_iter != origToReloc_.end(); ++bfm_iter) {
+     cerr << "\t" << bfm_iter->first->symTabName() << endl;
+     for (ForwardsMap::iterator fm_iter = bfm_iter->second.begin();
+          fm_iter != bfm_iter->second.end(); ++fm_iter) {
+        cerr << "\t\t" << hex << fm_iter->first << " -> "
+             << fm_iter->second.instrumentation << "(instrumentation), " 
+             << fm_iter->second.instruction << "(instruction)" << dec << endl;
+     }
+  }
+
+  cerr << "************ REVERSE MAPPING ****************" << endl;
+
+  std::vector<ReverseMap::Entry> reverseEntries;
+  relocToOrig_.elements(reverseEntries);
+  
+  for (unsigned i = 0; i < reverseEntries.size(); ++i) {
+     cerr << "\t" << hex << reverseEntries[i].first.first << "-" 
+          << reverseEntries[i].first.second << ": " 
+          << *(reverseEntries[i].second) << dec << endl;
+  }
+
   cerr << endl;
 }
 

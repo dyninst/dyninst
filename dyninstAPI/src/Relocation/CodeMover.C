@@ -47,72 +47,72 @@ using namespace InstructionAPI;
 using namespace Relocation;
 
 CodeMover::Ptr CodeMover::create(CodeTracker &t) {
-  // Make a CodeMover
-  Ptr ret = Ptr(new CodeMover(t));
-  if (!ret) 
-    return Ptr();
+   // Make a CodeMover
+   Ptr ret = Ptr(new CodeMover(t));
+   if (!ret) 
+      return Ptr();
 
-  return ret;
+   return ret;
 }  
 
 bool CodeMover::addFunctions(FuncSet::const_iterator begin, 
 			     FuncSet::const_iterator end) {
-  // A vector of Functions is just an extended vector of basic blocks...
-  for (; begin != end; ++begin) {
-    int_function *func = *begin;
+   // A vector of Functions is just an extended vector of basic blocks...
+   for (; begin != end; ++begin) {
+      int_function *func = *begin;
 
-    if (!func->isInstrumentable()) {
-      cerr << "Skipping func " << func->symTabName() << " that's uninstrumentable" << endl;
-      continue;
-    }
+      if (!func->isInstrumentable()) {
+         cerr << "Skipping func " << func->symTabName() << " that's uninstrumentable" << endl;
+         continue;
+      }
 
-    if (!addTraces(func->blocks().begin(), func->blocks().end())) {
-      return false;
-    }
+      if (!addTraces(func->blocks().begin(), func->blocks().end())) {
+         return false;
+      }
     
-    // Add the function entry as Required in the priority map
-    bblInstance *entry = func->entryBlock()->origInstance();
-    priorityMap_[entry] = Required;
-  }
+      // Add the function entry as Required in the priority map
+      bblInstance *entry = func->entryBlock()->origInstance();
+      priorityMap_[entry] = Required;
+   }
 
-  return true;
+   return true;
 }
 
 template <typename TraceIter>
 bool CodeMover::addTraces(TraceIter begin, TraceIter end) {
-  for (; begin != end; ++begin) {
-    bblInstance *bbl = (*begin)->origInstance();
-    relocation_cerr << "Creating Trace for bbl at " 
-		    << std::hex << bbl->firstInsnAddr() << std::dec
-		    << endl;
-    Trace::Ptr block = Trace::create(bbl);
-    if (!block)
-      return false;
-    blocks_.push_back(block);
-    blockMap_[bbl] = block;
-    relocation_cerr << "  Updated block map: " 
-		    << std::hex << bbl->firstInsnAddr() << std::dec
-		    << "->" << block.get() << endl;
+   for (; begin != end; ++begin) {
+      bblInstance *bbl = (*begin)->origInstance();
+      relocation_cerr << "Creating Trace for bbl at " 
+                      << std::hex << bbl->firstInsnAddr() << std::dec
+                      << endl;
+      Trace::Ptr block = Trace::create(bbl);
+      if (!block)
+         return false;
+      blocks_.push_back(block);
+      blockMap_[bbl] = block;
+      relocation_cerr << "  Updated block map: " 
+                      << std::hex << bbl->firstInsnAddr() << std::dec
+                      << "->" << block.get() << endl;
 
-    priorityMap_[bbl] = Suggested;
-  }
-  return true;
+      priorityMap_[bbl] = Suggested;
+   }
+   return true;
 }
 
 bool CodeMover::addTrace(bblInstance *bbl) {
-  relocation_cerr << "Creating Trace for bbl at " 
-		  << std::hex << bbl->firstInsnAddr() << std::dec
-		  << endl;
-  Trace::Ptr block = Trace::create(bbl);
-  if (!block)
-    return false;
-  blocks_.push_back(block);
-  blockMap_[bbl] = block;
-  relocation_cerr << "  Updated block map: " 
-		  << std::hex << bbl->firstInsnAddr() << std::dec
-		  << "->" << block.get() << endl;
+   relocation_cerr << "Creating Trace for bbl at " 
+                   << std::hex << bbl->firstInsnAddr() << std::dec
+                   << endl;
+   Trace::Ptr block = Trace::create(bbl);
+   if (!block)
+      return false;
+   blocks_.push_back(block);
+   blockMap_[bbl] = block;
+   relocation_cerr << "  Updated block map: " 
+                   << std::hex << bbl->firstInsnAddr() << std::dec
+                   << "->" << block.get() << endl;
   
-  return true;
+   return true;
 }
 
 
@@ -120,39 +120,35 @@ bool CodeMover::addTrace(bblInstance *bbl) {
 
 
 bool CodeMover::transform(Transformer &t) {
-  bool ret = true; 
+   bool ret = true; 
 
-  t.preprocess(blocks_);
-  for (TraceList::iterator i = blocks_.begin(); 
-       i != blocks_.end(); ++i) {
-    if (!t.processTrace(i))
-      ret = false;
-  }
-  t.postprocess(blocks_);
+   t.preprocess(blocks_);
+   for (TraceList::iterator i = blocks_.begin(); 
+        i != blocks_.end(); ++i) {
+      if (!t.processTrace(i))
+         ret = false;
+   }
+   t.postprocess(blocks_);
 
-  return ret;
+   return ret;
 }
 
-bool CodeMover::initialize(const codeGen &t) {
-  // Accumulate initial size guess
-  // We'll expand this as necessary...
-  size_ = 0;
+bool CodeMover::initialize(const codeGen &templ) {
+   buffer_.initialize(templ);
 
-  gen_.applyTemplate(t);
-
-  // Tell all the blocks to do their generation thang...
-  for (TraceList::iterator i = blocks_.begin(); 
-       i != blocks_.end(); ++i) {
-    // Grab the next block
-    TraceList::iterator tmp = i; tmp++;
-    Trace::Ptr next;
-    if (tmp != blocks_.end()) 
-      next = *tmp;
-
-    if (!(*i)->generate(gen_, size_))
-      return false; // Catastrophic failure
-  }
-  return true;
+   // Tell all the blocks to do their generation thang...
+   for (TraceList::iterator i = blocks_.begin(); 
+        i != blocks_.end(); ++i) {
+      // Grab the next block
+      TraceList::iterator tmp = i; tmp++;
+      Trace::Ptr next;
+      if (tmp != blocks_.end()) 
+         next = *tmp;
+      
+      if (!(*i)->generate(templ, buffer_))
+         return false; // Catastrophic failure
+   }
+   return true;
 }
 
 // And now the fun begins
@@ -170,172 +166,126 @@ bool CodeMover::initialize(const codeGen &t) {
 //      to increase the corresponding branch instruction sizes.
 
 bool CodeMover::relocate(Address addr) {
-  addr_ = addr;
-  gen_.setAddr(addr);
+   addr_ = addr;
 
-  int globalChanged = 0;
-  int pass = 1;
+   if (!buffer_.generate(addr)) return false;
+   
+   buffer_.extractTrackers(tracker_);
 
-  // Priming pass; assuming each block has its current size
-  Address tmpAddr = addr;
-
-  for (TraceList::iterator i = blocks_.begin(); 
-       i != blocks_.end(); ++i) {
-    (*i)->setAddr(tmpAddr);
-    tmpAddr += (*i)->size();
-    (*i)->resetIteration();
-  }
-
-  do {
-    // Reset the flag...
-    globalChanged = 0;
-
-    gen_.allocate(size_);
-    
-    unsigned newSize = 0;
-
-    int shift = 0;
-
-    for (TraceList::iterator i = blocks_.begin(); 
-	 i != blocks_.end(); ++i) {
-      bool blockChanged = false;
-      if (!(*i)->applyPatches(gen_, blockChanged, newSize, shift))
-	return false; // Catastrophic failure
-      if (blockChanged) {
-	globalChanged++;
-      }
-      relocation_cerr << "    ... post patching, local " 
-		      << blockChanged << " and global " 
-		      << globalChanged << endl;
-    }
-    
-    if (newSize > size_) {
-      // Should have been caught in the blocks, so assert...
-      assert(globalChanged > 0);
-      size_ = newSize;
-    }
-
-    pass++;
-  } 
-  while (globalChanged);
-
-  // Update the entry map
-  for (TraceList::iterator i = blocks_.begin(); 
-       i != blocks_.end(); ++i) {
-    entryMap_[(*i)->origAddr()] = (*i)->curAddr();
-    (*i)->extractTrackers(tracker_);
-  }
-
-  return true;
+   return true;
 }
 
 void CodeMover::disassemble() const {
-  // InstructionAPI to the rescue!!!
-  InstructionAPI::InstructionDecoder decoder(gen_.start_ptr(),
-				       gen_.used(),
-				       gen_.getArch());
-  Address addr = gen_.startAddr();
-
-  Instruction::Ptr cur = decoder.decode();
-  while (cur && cur->isValid()) {
-    cerr << std::hex << addr << std::dec << " " << cur->format() << endl;
-    addr += cur->size();
-    cur = decoder.decode();
-  }
+   buffer_.disassemble();
 }
 
 unsigned CodeMover::size() const {
-  if (gen_.used()) return gen_.used();
+   return buffer_.size();
+}
 
-  // Try and get an estimate of the block sizes.... ugh.
-  unsigned size = 0;
+void *CodeMover::ptr() const {
+   return buffer_.ptr();
+}
 
-  for (TraceList::const_iterator i = blocks_.begin(); 
-       i != blocks_.end(); ++i) {
-    size += (*i)->estimateSize();
-  }
-  return size;
+codeGen &CodeMover::gen() {
+   return buffer_.gen();
 }
 
 ///////////////////////
 
 PriorityMap &CodeMover::priorityMap() {
-  return priorityMap_;
+   return priorityMap_;
 }
 
 ///////////////////////
 
 const SpringboardMap &CodeMover::sBoardMap(AddressSpace *as) {
-  // Take the current PriorityMap, digest it,
-  // and return a sorted list of where we need 
-  // patches (from and to)
+   // Take the current PriorityMap, digest it,
+   // and return a sorted list of where we need 
+   // patches (from and to)
 
-  if (sboardMap_.empty()) {
-    for (PriorityMap::const_iterator iter = priorityMap_.begin();
-	 iter != priorityMap_.end(); ++iter) {
-      bblInstance *from = iter->first;
-      const Priority &p = iter->second;
+   relocation_cerr << "Creating springboard request map" << endl;
 
-      // the priority map may include things not in the block
-      // map...
-      TraceMap::const_iterator b_iter = blockMap_.find(from);
-      if (b_iter != blockMap_.end()) {
-	const Address &to = b_iter->second->curAddr();
-	sboardMap_.add(from->firstInsnAddr(), to, p, from);
+   if (sboardMap_.empty()) {
+      for (PriorityMap::const_iterator iter = priorityMap_.begin();
+           iter != priorityMap_.end(); ++iter) {
+         bblInstance *from = iter->first;
+         const Priority &p = iter->second;
+
+         // the priority map may include things not in the block
+         // map...
+         TraceMap::const_iterator b_iter = blockMap_.find(from);
+         if (b_iter != blockMap_.end()) {
+            TracePtr trace = b_iter->second;
+            int labelID = trace->getLabel();
+            Address to = buffer_.getLabelAddr(labelID);
+
+            sboardMap_.add(from->firstInsnAddr(), to, p, from, true, true);
+            relocation_cerr << "Added map " << hex
+                            << from->firstInsnAddr() << " -> " 
+                            << to << ", " << p << dec << endl;
+         }
       }
-    }
 
-    // And instrumentation that needs updating
-    createInstrumentationSpringboards(as);
-  }
+      // And instrumentation that needs updating
+      createInstrumentationSpringboards(as);
+   }
 
-  return sboardMap_;
+   return sboardMap_;
 }
 
 string CodeMover::format() const {
-  stringstream ret;
+   stringstream ret;
   
-  ret << "CodeMover() {" << endl;
+   ret << "CodeMover() {" << endl;
 
-  for (TraceList::const_iterator iter = blocks_.begin();
-       iter != blocks_.end(); ++iter) {
-    ret << (*iter)->format();
-  }
-  ret << "}" << endl;
-  return ret.str();
+   for (TraceList::const_iterator iter = blocks_.begin();
+        iter != blocks_.end(); ++iter) {
+      ret << (*iter)->format();
+   }
+   ret << "}" << endl;
+   return ret.str();
 
 }
 
 void CodeMover::extractDefensivePads(AddressSpace *AS) {
-  for (std::map<bblInstance *, codeGen::Extent>::iterator iter = gen_.getDefensivePads().begin();
-       iter != gen_.getDefensivePads().end(); ++iter) {
-    AS->addDefensivePad(iter->first, iter->second.first, iter->second.second);
-  }
+   for (std::map<bblInstance *, codeGen::Extent>::iterator iter = gen().getDefensivePads().begin();
+        iter != gen().getDefensivePads().end(); ++iter) {
+      AS->addDefensivePad(iter->first, iter->second.first, iter->second.second);
+   }
 }
 
 void CodeMover::createInstrumentationSpringboards(AddressSpace *as) {
-  for (std::map<baseTramp *, Address>::iterator iter = gen_.getInstrumentation().begin();
-       iter != gen_.getInstrumentation().end(); ++iter) {
-    std::set<Address>::iterator begin, end;
-    as->getPreviousInstrumentationInstances(iter->first, begin, end);
-    for (; begin != end; ++begin) {
-      sboardMap_.add(*begin,
-		     iter->second,
-		     Suggested,
-		     false);
-    }
-    as->addInstrumentationInstance(iter->first, iter->second);
-  }
-  for (std::map<baseTramp *, Address>::iterator iter = gen_.getRemovedInstrumentation().begin();
-       iter != gen_.getRemovedInstrumentation().end(); ++iter) {
-    // As above, without the add
-    std::set<Address>::iterator begin, end;
-    as->getPreviousInstrumentationInstances(iter->first, begin, end);
-    for (; begin != end; ++begin) {
-      sboardMap_.add(*begin,
-		     iter->second,
-		     Suggested,
-		     false);
-    }
-  }
+   for (std::map<baseTramp *, Address>::iterator iter = gen().getInstrumentation().begin();
+        iter != gen().getInstrumentation().end(); ++iter) {
+      std::set<Address>::iterator begin, end;
+      as->getPreviousInstrumentationInstances(iter->first, begin, end);
+      for (; begin != end; ++begin) {
+         sboardMap_.add(*begin,
+                        iter->second,
+                        Suggested,
+                        NULL,
+                        false, 
+                        false);
+         relocation_cerr << "\t Added inst SB " << hex
+                         << *begin << " -> " << iter->second << dec << endl;
+      }
+      as->addInstrumentationInstance(iter->first, iter->second);
+   }
+   for (std::map<baseTramp *, Address>::iterator iter = gen().getRemovedInstrumentation().begin();
+        iter != gen().getRemovedInstrumentation().end(); ++iter) {
+      // As above, without the add
+      std::set<Address>::iterator begin, end;
+      as->getPreviousInstrumentationInstances(iter->first, begin, end);
+      for (; begin != end; ++begin) {
+         sboardMap_.add(*begin,
+                        iter->second,
+                        Suggested,
+                        NULL,
+                        false, 
+                        false);
+         relocation_cerr << "\t Added inst SB " << hex
+                         << *begin << " -> " << iter->second << dec << endl;
+      }
+   }
 }

@@ -419,6 +419,9 @@ class AddressSpace : public InstructionSource {
     void getRelocAddrs(Address orig, 
 		       bblInstance *inst, 
 		       std::list<Address> &relocs) const;
+    void getRelocAddrs(Address orig,
+                       int_function *func,
+                       std::list<Address> &relocs) const;
 
 #if 0
     void getRelocAddrPairs(Address first, Address second,
@@ -427,7 +430,7 @@ class AddressSpace : public InstructionSource {
 
     bool getRelocInfo(Address relocAddr,
 		      Address &origAddr,
-		      bblInstance *&origInst,
+		      int_function *&origFunc,
 		      baseTrampInstance *&baseTramp);
 			   
 

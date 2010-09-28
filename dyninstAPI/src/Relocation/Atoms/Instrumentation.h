@@ -55,9 +55,9 @@ class Inst : public Atom {
   void addBaseTramp(baseTramp *b);
   bool empty() const;
 
-  bool generate(GenStack &);
+  bool generate(const codeGen &, const Trace *, CodeBuffer &);
   
-  virtual TrackerElement *tracker() const;
+  TrackerElement *tracker(baseTrampInstance *) const;
 
   virtual ~Inst();
 
@@ -73,20 +73,20 @@ class Inst : public Atom {
 struct InstPatch : public Patch {
   InstPatch(baseTrampInstance *a) : base(a) {};
   
-  virtual bool apply(codeGen &gen, int iteration, int shift);
-  virtual bool preapply(codeGen &gen);
+   virtual bool apply(codeGen &gen, CodeBuffer *buf);
+  virtual unsigned estimate(codeGen &templ);
   virtual ~InstPatch();
 
   baseTrampInstance *base;
 };
 
 struct RemovedInstPatch : public Patch {
- RemovedInstPatch(baseTramp *a) : base(a) {};
-  virtual bool apply(codeGen &gen, int, int);
-  virtual bool preapply(codeGen &gen);
-  virtual ~RemovedInstPatch() {};
-
-  baseTramp *base;
+  RemovedInstPatch(baseTramp *a) : base(a) {};
+   virtual bool apply(codeGen &gen, CodeBuffer *);
+   virtual unsigned estimate(codeGen &templ);
+   virtual ~RemovedInstPatch() {};
+   
+   baseTramp *base;
 };
 
 

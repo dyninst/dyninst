@@ -33,6 +33,7 @@
 #include "Atom.h"
 #include "instructionAPI/h/Instruction.h"
 #include "../CodeTracker.h"
+#include "../CodeBuffer.h"
 
 using namespace Dyninst;
 using namespace Relocation;
@@ -40,13 +41,18 @@ using namespace InstructionAPI;
 
 /////////////////////////
 
-bool Padding::generate(GenStack &gens) {
-  gens().fill(size_, codeGen::cgNOP);
+bool Padding::generate(const codeGen &,
+                       const Trace *t,
+                       CodeBuffer &buffer) {
+   codeGen gen(size_);
+   gen.fill(size_, codeGen::cgNOP);
+
+   buffer.addPIC(gen, tracker(t->bbl()->func()));
   return true;
 }
 
-TrackerElement *Padding::tracker() const {
-  EmulatorTracker *e = new EmulatorTracker(addr_, size_);
+TrackerElement *Padding::tracker(int_function *f) const {
+  EmulatorTracker *e = new EmulatorTracker(addr_, f);
   return e;
 }
 

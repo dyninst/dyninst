@@ -296,8 +296,8 @@ const pdvector<instPoint *> &int_function::funcEntries() {
 
             instPoint *point = instPoint::createParsePoint(this,
                                                            img_entries[i]);
-			if (!point) continue; // Can happen if we double-create
-			assert(point);
+            if (!point) continue; // Can happen if we double-create
+            assert(point);
             entryPoints_.push_back(point);
         }
     }
@@ -305,7 +305,7 @@ const pdvector<instPoint *> &int_function::funcEntries() {
     entryPoints_.reserve_exact(entryPoints_.size());
 #endif
     if (entryPoints_.size() != 1) {
-      cerr << "Error: function " << prettyName() << ":" << obj()->fullName() <<" has " << entryPoints_.size() << " points!" << endl;
+       cerr << "Error: function " << prettyName() << ":" << obj()->fullName() <<" has " << entryPoints_.size() << " points!" << endl;
     }
     assert(entryPoints_.size() == 1);
     return entryPoints_;
@@ -804,9 +804,9 @@ void int_function::setHandlerFaultAddrAddr(Address faa, bool set)
     if (proc()->proc()->isRuntimeHeapAddr(faultAddr)) {
 
         Address origAddr = faultAddr;
-        bblInstance *curbbi = NULL;
+        int_function *tmp = NULL;
         baseTrampInstance *bti = NULL;
-        bool success = proc()->getRelocInfo(faultAddr, origAddr, curbbi, bti);
+        bool success = proc()->getRelocInfo(faultAddr, origAddr, tmp, bti);
         assert(success);
         assert( proc()->writeDataSpace((void*)faa, 
                                        sizeof(Address), 
@@ -2441,7 +2441,17 @@ void bblInstance::getInsnInstances(std::vector<std::pair<InstructionAPI::Instruc
     instances[i].second += firstInsnAddr_ - block()->llb()->start();
   }
 }
+
+void bblInstance::disassemble() const {
+   std::vector<std::pair<InstructionAPI::Instruction::Ptr, Address> > instances;
+   getInsnInstances(instances);
+   for (unsigned i = 0; i < instances.size(); ++i) {
+      cerr << "\t" << hex << instances[i].second << ": " << instances[i].first->format() << dec << endl;
+   }
+}
+
 #endif
+
 
 int_basicBlock *int_function::findBlockByImage(image_basicBlock *block) {
   return findBlockByOffset(block->start());

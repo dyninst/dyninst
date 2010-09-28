@@ -36,6 +36,7 @@
 #include "dyninstAPI/src/instPoint.h"
 
 #include "../CodeTracker.h"
+#include "../CodeBuffer.h"
 
 using namespace Dyninst;
 using namespace Relocation;
@@ -44,14 +45,16 @@ ASTAtom::Ptr ASTAtom::create(AstNodePtr a, instPoint *b) {
   return Ptr(new ASTAtom(a, b));
 }
 
-bool ASTAtom::generate(GenStack &gens) {
+bool ASTAtom::generate(const codeGen &,
+                       const Trace *,
+                       CodeBuffer &buffer) {
   AstPatch *patch = new AstPatch(ast_, point_);
-  gens.addPatch(patch);
+  buffer.addPatch(patch, tracker());
   return true;
 }
 
 TrackerElement *ASTAtom::tracker() const {
-  OriginalTracker *e = new OriginalTracker(point_->addr());
+   OriginalTracker *e = new OriginalTracker(point_->addr(), point_->func());
   return e;
 }
 
@@ -60,7 +63,7 @@ string ASTAtom::format() const {
 }
 
 // Could be a lot smarter here...
-bool AstPatch::apply(codeGen &gen, int, int) {
+bool AstPatch::apply(codeGen &gen, CodeBuffer *) {
   relocation_cerr << "\t\t AstPatch::apply" << endl;
   registerSpace *localRegSpace = registerSpace::actualRegSpace(point, callPreInsn);
   gen.setRegisterSpace(localRegSpace);
@@ -68,13 +71,10 @@ bool AstPatch::apply(codeGen &gen, int, int) {
   return ast->generateCode(gen, true);
 }
 
-bool AstPatch::preapply(codeGen &gen) {
-  if (gen.startAddr() == (Address) -1) {
-    // baseTramps don't liiiiike this...
-    gen.setAddr(0);
-  }
-
-  return apply(gen, 0, 0);
+unsigned AstPatch::estimate(codeGen &) {
+   // Will force an extra run of codeGen,
+   // but that's okay
+   return 0;
 }
 
 AstPatch::~AstPatch() {}

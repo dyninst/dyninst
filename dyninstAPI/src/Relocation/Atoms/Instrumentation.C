@@ -34,6 +34,7 @@
 #include "dyninstAPI/src/debug.h"
 
 #include "../CodeTracker.h"
+#include "../CodeBuffer.h"
 
 using namespace Dyninst;
 using namespace Relocation;
@@ -63,12 +64,17 @@ bool Inst::empty() const {
   return (baseTramps_.empty() && removedTramps_.empty());
 }
 
-TrackerElement *Inst::tracker() const {
-  if (baseTramps_.empty()) return NULL;
-  
-  baseTrampInstance *bt = (*baseTramps_.begin());
-  InstTracker *e = new InstTracker(bt->baseT->instP()->addr(), bt);
-  return e;
+TrackerElement *Inst::tracker(baseTrampInstance *bti) const {
+   assert(bti);
+
+   InstTracker *e = NULL;
+   // Addr depends on the tramp type - pre, post, etc.
+   // But we can't actually determine that with at-insn
+   // instPs; fix when Wenbin fixes the instP data structure.
+   
+   e = new InstTracker(bti->baseT->instP()->addr(), bti, bti->baseT->instP()->func());
+   
+   return e;
 }
 
 Inst::~Inst() {
@@ -81,7 +87,9 @@ Inst::~Inst() {
 #endif
 }
 
-bool Inst::generate(GenStack &gens) {
+bool Inst::generate(const codeGen &,
+                    const Trace *,
+                    CodeBuffer &buffer) {
   // Fun for the whole family!
   // Okay. This (initially) is going to hork
   // up all of our address/structure tracking because
@@ -98,8 +106,8 @@ bool Inst::generate(GenStack &gens) {
 
   for (std::list<baseTrampInstance *>::iterator b_iter = baseTramps_.begin();
        b_iter != baseTramps_.end(); ++b_iter) {
-    InstPatch *patch = new InstPatch(*b_iter);
-    gens.addPatch(patch);
+     InstPatch *patch = new InstPatch(*b_iter);
+     buffer.addPatch(patch, tracker(*b_iter));
   }
 
   return true;
@@ -112,7 +120,7 @@ string Inst::format() const {
 }
 
 // Could be a lot smarter here...
-bool InstPatch::apply(codeGen &gen, int, int) {
+bool InstPatch::apply(codeGen &gen, CodeBuffer *) {
   relocation_cerr << "\t\t InstPatch::apply" << endl;
 
   gen.registerInstrumentation(base->baseT, gen.currAddr());
@@ -121,13 +129,8 @@ bool InstPatch::apply(codeGen &gen, int, int) {
 
 }
 
-bool InstPatch::preapply(codeGen &gen) {
-  if (gen.startAddr() == (Address) -1) {
-    // baseTramps don't liiiiike this...
-    gen.setAddr(0);
-  }
-
-  return apply(gen, 0, 0);
+unsigned InstPatch::estimate(codeGen &) {
+   return 0;
 }
 
 InstPatch::~InstPatch() {
@@ -135,12 +138,12 @@ InstPatch::~InstPatch() {
   // parent
 }
 
-bool RemovedInstPatch::apply(codeGen &gen, int, int) {
+bool RemovedInstPatch::apply(codeGen &gen, CodeBuffer *) {
   // Just want to leave a marker here for later.
   gen.registerRemovedInstrumentation(base, gen.currAddr());
   return true;
 }
 
-bool RemovedInstPatch::preapply(codeGen &) {
-  return true;
+unsigned RemovedInstPatch::estimate(codeGen &) {
+   return 0;
 }

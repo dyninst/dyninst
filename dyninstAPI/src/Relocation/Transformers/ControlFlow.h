@@ -50,7 +50,15 @@ class CFAtomCreator : public Transformer {
 
  private:
 
-  typedef std::pair<TargetInt *, EdgeTypeEnum> Succ;
+  struct Succ {
+     TargetInt *targ;
+     EdgeTypeEnum type;
+     Address addr;
+     Succ(TargetInt *a, EdgeTypeEnum b, Address c)
+     : targ(a), type(b), addr(c) {};
+     Succ() 
+     : targ(NULL), type(ParseAPI::NOEDGE), addr(0) {};
+  };
   typedef std::vector<Succ> SuccVec;
 
   // Determine who the successors of a block are

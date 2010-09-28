@@ -43,9 +43,9 @@ class PCRelativeData : public Atom {
  public:
    typedef dyn_detail::boost::shared_ptr<PCRelativeData> Ptr;
 
-   virtual bool generate(GenStack &);
+   virtual bool generate(const codeGen &, const Trace *, CodeBuffer &);
 
-  virtual TrackerElement *tracker() const;
+   TrackerElement *tracker(int_function *) const;
   
    static Ptr create(InstructionAPI::Instruction::Ptr insn,
 		     Address addr,
@@ -74,8 +74,8 @@ struct RelDataPatch : public Patch {
  RelDataPatch(InstructionAPI::Instruction::Ptr a, Address b) :
   orig_insn(a), target_addr(b) {};
   
-  virtual bool apply(codeGen &gen, int iteration, int shift);
-  virtual bool preapply(codeGen &gen);
+  virtual bool apply(codeGen &gen, CodeBuffer *buffer);
+  virtual unsigned estimate(codeGen &templ);
   virtual ~RelDataPatch() {};
   
   InstructionAPI::Instruction::Ptr orig_insn;

@@ -79,27 +79,28 @@ bool CFAtomCreator::processTrace(TraceList::iterator &iter) {
   }
 
   for (unsigned i = 0; i < successors.size(); ++i) {
-    TargetInt *targ = successors[i].first;
-    EdgeTypeEnum type = successors[i].second;
+    TargetInt *targ = successors[i].targ;
+    EdgeTypeEnum type = successors[i].type;
+    Address addr = successors[i].addr;
     switch(type) {
     case INDIRECT: {
       relocation_cerr << "Adding indirect destination: "
-		      << std::hex << targ->addr() << std::dec << endl;
-      ender->addDestination(targ->addr(), targ);
+		      << std::hex << addr << std::dec << endl;
+      ender->addDestination(addr, targ);
       break;
     }
     case CALL:
     case DIRECT:
     case COND_TAKEN:
       relocation_cerr << "Adding taken destination: "
-		      << std::hex << targ->addr() << std::dec << endl;
+		      << std::hex << addr << std::dec << endl;
       ender->addDestination(CFAtom::Taken, targ);
       break;
     case COND_NOT_TAKEN:
     case FALLTHROUGH:
     case CALL_FT:
       relocation_cerr << "Adding fallthrough destination: "
-		      << std::hex << targ->addr() << std::dec << endl;
+		      << std::hex << addr << std::dec << endl;
       ender->addDestination(CFAtom::Fallthrough, targ);
       break;
     case NOEDGE:
@@ -140,7 +141,7 @@ bool CFAtomCreator::processTrace(TraceList::iterator &iter) {
 
 
 void CFAtomCreator::getInterproceduralSuccessors(const bblInstance *bbl,
-						    SuccVec &succ) {
+                                                 SuccVec &succ) {
   int_basicBlock *block = bbl->block();
   int_function *func = block->func();
 
@@ -167,21 +168,20 @@ void CFAtomCreator::getInterproceduralSuccessors(const bblInstance *bbl,
   for (; iter != targets.end(); ++iter) {
     if ((*iter)->sinkEdge()) continue;
 
-    Succ out;
-    out.first = NULL;
-    out.second = (*iter)->type();
+    Succ out(NULL, (*iter)->type(), 0);
     
     // We have an image_basicBlock... now we need to map up
     // to both an int_basicBlock and an bblInstance.
     image_basicBlock *ib = static_cast<image_basicBlock *>((*iter)->trg());
     
-    if (out.second == RET) {
+    if (out.type == RET) {
         continue;
     }
-    else if (out.second != CALL) {
+    else if (out.type != CALL) {
       int_basicBlock *targ = func->findBlockByImage(ib);
       assert(targ);
-      out.first = new Target<bblInstance *>(targ->origInstance());
+      out.targ = new Target<bblInstance *>(targ->origInstance());
+      out.addr = targ->origInstance()->firstInsnAddr();
     }
     else {
       // Trace must be an entry point since we reach it with
@@ -194,7 +194,8 @@ void CFAtomCreator::getInterproceduralSuccessors(const bblInstance *bbl,
 	callee->blocks();
 	// Same as above
 	int_basicBlock *targ = callee->findBlockByImage(ib);
-	out.first = new Target<bblInstance *>(targ->origInstance());
+	out.targ = new Target<bblInstance *>(targ->origInstance());
+        out.addr = targ->origInstance()->firstInsnAddr();
       }
       else {
 	// Okay. This is obviously (really) a call to a PLT
@@ -206,10 +207,11 @@ void CFAtomCreator::getInterproceduralSuccessors(const bblInstance *bbl,
 	// First, assert that our offset is 0. If it isn't we're in
 	// real trouble since we can't upcast.
 	assert(bbl->firstInsnAddr() == block->llb()->firstInsnOffset());
-	out.first = new Target<Address>(ib->firstInsnOffset());
+	out.targ = new Target<Address>(ib->firstInsnOffset());
+        out.addr = ib->firstInsnOffset();
       }
     }
-    assert(out.first);
+    assert(out.targ);
     succ.push_back(out);
   }
 }

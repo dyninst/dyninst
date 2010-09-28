@@ -59,49 +59,7 @@ class Trace;
 class Patch;
 class TrackerElement;
 class CodeTracker;
-
-class GenStack {
- public:
-
-  typedef std::map<Offset, TrackerElement *> Trackers;
-
-  struct GenObj {
-    bool apply(codeGen &current, unsigned &size, int iteration, int shift);
-  GenObj() : patch(NULL), index(0) {};
-    ~GenObj();
-    codeGen gen;
-    Patch *patch;
-    codeBufIndex_t index;
-
-    void *ptr() { return this; }
-    
-    // For building the address map.
-    Trackers trackers;
-    Offset offset;
-    
-    
-  };
-
-  typedef std::list<GenObj> GenList;
-
-  typedef GenList::iterator iterator;
-
-  GenStack() {};
-  void initialize(codeGen &gen);
-  GenObj &cur() { return gens_.back(); }
-  codeGen &operator() () { return gens_.back().gen; }
-  void inc();
-  unsigned size(); 
-  unsigned stacksize() const { return gens_.size(); }
-
-  iterator begin() { return gens_.begin(); }
-  iterator end() { return gens_.end(); }
-
-  void addPatch(Patch *);
-
- private:
-  GenList gens_;
-};
+class CodeBuffer;
 
 // Atom code generation class
 class Atom {
@@ -122,9 +80,9 @@ class Atom {
   // Make binary from the thing
   // Current address (if we need it)
   // is in the codeGen object.
-  virtual bool generate(GenStack &) = 0;
-
-  virtual TrackerElement *tracker() const = 0;
+  virtual bool generate(const codeGen &templ,
+                        const Trace *trace,
+                        CodeBuffer &buffer) = 0;
 
   virtual std::string format() const = 0;
 
@@ -133,9 +91,9 @@ class Atom {
 
  // A generic code patching mechanism
 struct Patch {
-  virtual bool apply(codeGen &gen, int iteration, int shift) = 0;
-  virtual bool preapply(codeGen &gen) = 0;
-  virtual ~Patch() {};
+   virtual bool apply(codeGen &gen, CodeBuffer *buf) = 0;
+   virtual unsigned estimate(codeGen &templ) = 0;
+   virtual ~Patch() {};
 };
 
 class CFAtom;
@@ -143,6 +101,9 @@ typedef dyn_detail::boost::shared_ptr<CFAtom> CFAtomPtr;
 
 class Trace {
  public:
+   // Needs to track the definition in CodeBuffer.h
+   typedef int Label;
+
   friend class Transformer;
 
   static int TraceID;
@@ -157,20 +118,13 @@ class Trace {
   static Ptr create(baseTramp *base);
   
   // Creation via a single Atom
-  static Ptr create(Atom::Ptr atom);
+  static Ptr create(Atom::Ptr atom, Address a);
 
-  // Generate code for this block
-  // Return: whether generation was successful
-  // gen: a codeGen object (AKA wrapper for all sorts
-  //      of state we need)
-  // changed: whether something in this block changed
-  //          necessitating regeneration of the container
-  bool generate(codeGen &templ,
-		unsigned &sizeEstimate);
+  bool generate(const codeGen &templ,
+                CodeBuffer &buffer);
 
-  unsigned size() const { return size_; }
   Address origAddr() const { return origAddr_; }
-  Address curAddr() const { return curAddr_; }
+  //Address curAddr() const { return curAddr_; }
   void setAddr(Address addr) { curAddr_ = addr; }
 
   int id() const { return id_; }
@@ -178,39 +132,33 @@ class Trace {
   // Non-const for use by transformer classes
   AtomList &elements() { return elements_; }
 
-  // TODO get a more appropriate estimate...
-  unsigned estimateSize() const { return size_; }
-
   std::string format() const;
 
   bblInstance *bbl() const { return bbl_; }
 
   bool applyPatches(codeGen &gen, bool &regenerate, unsigned &totalSize, int &shift);
 
-  int iteration() const { return iteration_; }
-  void resetIteration() { iteration_ = 0; }
-
   bool extractTrackers(CodeTracker &);
+
+  Label getLabel() { assert(label_ != -1);  return label_; };
 
  private:
 
-  Trace(bblInstance *bbl) :
-  curAddr_(0),
-    size_(bbl->getSize()),
-    origAddr_(bbl->firstInsnAddr()),
-    bbl_(bbl),
-    iteration_(0),
-    id_(TraceID++) {};
- Trace(Atom::Ptr a) :
-  curAddr_(0),
-    size_(0), // Should estimate here
-    origAddr_(0), // No original address...
-    bbl_(NULL),
-    iteration_(0),
-    id_(TraceID++) { 
-    elements_.push_back(a);
+  Trace(bblInstance *bbl)
+     : curAddr_(0),
+     origAddr_(bbl->firstInsnAddr()),
+     bbl_(bbl),
+     id_(TraceID++),
+     label_(-1) {};
+  Trace(Atom::Ptr a, Address origAddr)
+     : curAddr_(0),
+     origAddr_(origAddr),
+     bbl_(NULL),
+     id_(TraceID++),
+     label_(-1) { 
+     elements_.push_back(a);
   };
-
+  
 
   typedef std::pair<InstructionAPI::Instruction::Ptr, Address> InsnInstance;
   typedef std::vector<InsnInstance> InsnVec;
@@ -227,7 +175,6 @@ class Trace {
   AtomList elements_;
 
   Address curAddr_;
-  unsigned size_;
   Address origAddr_;
 
   bblInstance *bbl_;
@@ -236,11 +183,9 @@ class Trace {
 
   Patches patches_;
 
-  GenStack gens_;
-
-  int iteration_;
-
   int id_;
+
+  Label label_;
 };
 
 };

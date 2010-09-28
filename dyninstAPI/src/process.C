@@ -4498,22 +4498,23 @@ Address process::stopThreadCtrlTransfer
         if (intPoint->getPointType() == functionExit) {
 
             // get unrelocated target address
+           int_function *targFunc = NULL;
             bblInstance *targBBI = NULL;
             baseTrampInstance *bti = NULL;
-            bool success = getRelocInfo(target, unrelocTarget, targBBI, bti);
+            bool success = getRelocInfo(target, unrelocTarget, targFunc, bti);
 
             if (! intPoint->func()->isSignalHandler()) {
 
                 if (success) {
-                    // check that we hadn't tampered with the stack, targBBI should 
-                    // contain a call and it should call this function or have an 
-                    // indirect call
-                    targBBI->func()->funcCalls();
-                    instPoint *callPt = targBBI->func()->findInstPByAddr
-                        (targBBI->lastInsnAddr());
-                    if (!callPt) {
-                        success = false;
-                    } else if (!callPt->isDynamic()) {
+                   // check that we hadn't tampered with the stack, targBBI should 
+                   // contain a call and it should call this function or have an 
+                   // indirect call
+                   targFunc->funcCalls();
+                   targBBI = targFunc->findBlockInstanceByAddr(target);
+                   instPoint *callPt = targFunc->findInstPByAddr(targBBI->lastInsnAddr());
+                   if (!callPt) {
+                      success = false;
+                   } else if (!callPt->isDynamic()) {
                         // make sure we call the function that the ret is in
                         success = false; // presume false until we find a matching call edge
                         ParseAPI::Block::edgelist & edges = targBBI->block()->llb()->targets();
@@ -5110,13 +5111,11 @@ int_function *process::findActiveFuncByAddr(Address addr)
                     // if we're at a relocated address, we can translate 
                     // back to the right function
                     Address origAddr = framePC;
-                    bblInstance *framebbi = NULL;
                     baseTrampInstance *bti = NULL;
                     bool success = getRelocInfo(framePC, 
-                                                origAddr, framebbi, bti);
-                    if (success) {
-                        frameFunc = framebbi->func();
-                    }
+                                                origAddr, 
+                                                frameFunc, 
+                                                bti);
                 } else if (bbi->firstInsnAddr() <= framePC && 
                            framePC <= bbi->lastInsnAddr() && 
                            j < stack.size()-1) {
@@ -5182,7 +5181,7 @@ bool process::generateRequiredPatches(instPoint *callPt,
     bblInstance *ftbbi = callbbi->getFallthroughBBL();
     Relocation::CodeTracker::RelocatedElements reloc;
     if (!relocatedCode_.back().origToReloc(ftbbi->firstInsnAddr(),
-					   ftbbi,
+					   ftbbi->func(),
 					   reloc)) 
     {
         assert(0);
