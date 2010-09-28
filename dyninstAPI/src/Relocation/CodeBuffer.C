@@ -82,7 +82,6 @@ void CodeBuffer::BufferElement::setLabelID(int id) {
 }
 
 void CodeBuffer::BufferElement::addTracker(TrackerElement *tracker) {
-   cerr << "Buffer: adding tracker " << *tracker << endl;
    trackers_[buffer_.size()] = tracker;
 }
 
@@ -128,7 +127,7 @@ bool CodeBuffer::BufferElement::generate(CodeBuffer *buf,
       gen.fill(size_ - newSize, codeGen::cgNOP);
    }
 
-   cerr << "BufferElement::generate, new size " << size_ << endl;
+   relocation_cerr << "BufferElement::generate, new size " << size_ << endl;
 
    return true;
 }
@@ -146,11 +145,11 @@ bool CodeBuffer::BufferElement::extractTrackers(CodeTracker &t) {
       unsigned size = 0;
       Trackers::iterator next = iter; ++next;
       if (next != trackers_.end()) {
-         cerr << "\t\t\t Size calc: " << next->first << " - " << iter->first << endl;
+         relocation_cerr << "\t\t\t Size calc: " << next->first << " - " << iter->first << endl;
          size = next->first - iter->first;
       }
       else {
-         cerr << "\t\t\t Size calc: " << size_ << " - " << iter->first << endl;
+         relocation_cerr << "\t\t\t Size calc: " << size_ << " - " << iter->first << endl;
          size = size_ - iter->first;
       }
       relocation_cerr << "\t\t Calculated size: " << size << endl;
