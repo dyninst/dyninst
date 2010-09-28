@@ -137,10 +137,10 @@ void Frame::calcFrameType()
 
   baseTrampInstance *bti;
   Address origPC = 42;
-  bblInstance *bbl;
+  int_function *tmp;
   if (getProc()->getRelocInfo(pc_,
 			      origPC,
-			      bbl,
+                              tmp,
 			      bti)) {
     if (bti) {
       frameType_ = instrumentation;
@@ -165,10 +165,10 @@ instPoint *Frame::getPoint() {
 baseTramp *Frame::getBaseTramp() {
   baseTrampInstance *bti = NULL;
   Address origPC;
-  bblInstance *bbl;
+  int_function *tmp;
   if (getProc()->getRelocInfo(pc_,
 			      origPC,
-			      bbl,
+                              tmp,
 			      bti)) {
     if (bti) {
       return bti->baseT;
@@ -210,10 +210,10 @@ Address Frame::getUninstAddr() {
   
   baseTrampInstance *bti;
   Address origPC;
-  bblInstance *bbl;
+  int_function *tmp;
   if (getProc()->getRelocInfo(pc_,
 			      origPC,
-			      bbl,
+                              tmp,
 			      bti)) {
     return origPC;
   }

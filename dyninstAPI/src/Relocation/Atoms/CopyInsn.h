@@ -41,9 +41,11 @@ class CopyInsn : public Atom {
  public:
   typedef dyn_detail::boost::shared_ptr<CopyInsn> Ptr;
 
-  virtual bool generate(GenStack &);
+  virtual bool generate(const codeGen &,
+                        const Trace *,
+                        CodeBuffer &);
 
-  virtual TrackerElement *tracker() const;
+  TrackerElement *tracker(int_function *) const;
 
   static Ptr create(InstructionAPI::Instruction::Ptr insn,
 		    Address addr);

@@ -48,9 +48,11 @@ class ASTAtom : public Atom {
 
   ASTAtom(AstNodePtr a, instPoint *p) : ast_(a), point_(p) {};
 
-  bool generate(GenStack &);
+  bool generate(const codeGen &,
+                const Trace *,
+                CodeBuffer &);
   
-  virtual TrackerElement *tracker() const;
+  TrackerElement *tracker() const;
 
   virtual ~ASTAtom() {};
 
@@ -64,14 +66,14 @@ class ASTAtom : public Atom {
 };
 
 struct AstPatch : public Patch {
- AstPatch(AstNodePtr a, instPoint *b) : ast(a), point(b) {};
-  
-  virtual bool apply(codeGen &gen, int iteration, int shift);
-  virtual bool preapply(codeGen &gen);
-  virtual ~AstPatch();
-
-  AstNodePtr ast;
-  instPoint *point;
+  AstPatch(AstNodePtr a, instPoint *b) : ast(a), point(b) {};
+   
+   virtual bool apply(codeGen &gen, CodeBuffer *buf);
+   virtual unsigned estimate(codeGen &templ);
+   virtual ~AstPatch();
+   
+   AstNodePtr ast;
+   instPoint *point;
 };
 
 

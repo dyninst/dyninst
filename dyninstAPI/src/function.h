@@ -163,6 +163,7 @@ class bblInstance : public codeRange {
 
 #if defined(cap_instruction_api)
     void getInsnInstances(std::vector<std::pair<InstructionAPI::Instruction::Ptr, Address> >&instances) const;
+    void disassemble() const;
 #endif
 
 #if defined(cap_relocation)

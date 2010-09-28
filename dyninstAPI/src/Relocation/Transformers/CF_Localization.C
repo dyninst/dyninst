@@ -72,14 +72,10 @@ bool LocalizeCF::processTrace(TraceList::iterator &iter) {
        d_iter != cf->destMap_.end(); ++d_iter) {
 
     assert(d_iter->second);
-    if (d_iter->second->valid() == false) {
-      // Whatnow?
-      continue;
-    }
 
     TargetInt *target = d_iter->second;
 
-    if (target->type() != TargetInt::BBLTarget) {
+    if (target->type() != TargetInt::BlockTarget) {
       continue;
     }
 

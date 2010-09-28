@@ -133,7 +133,7 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
 
   generateBranch(r.from, r.to, gen);
 
-  if (conflict(r.from, r.from + gen.used())) {
+  if (r.checkConflicts && conflict(r.from, r.from + gen.used())) {
     //return MultiNeeded;
 
     // Errr...
@@ -147,7 +147,8 @@ SpringboardBuilder::generateSpringboard(std::list<codeGen> &springboards,
     }
   }
 
-  registerBranch(r.from, r.from + gen.used());
+  if (r.checkConflicts) 
+     registerBranch(r.from, r.from + gen.used());
   springboards.push_back(gen);
 
   if (r.includeAllVersions) {
@@ -202,7 +203,7 @@ bool SpringboardBuilder::generateMultiSpringboard(std::list<codeGen> &input,
   registerBranch(tramp, tramp + gen.used());
   
   // And catch its relocated copies. Argh.
-  SpringboardReq tmp(tramp, r.to, r.priority, r.bbl);
+  SpringboardReq tmp(tramp, r.to, r.priority, r.bbl, false, true);
   generateReplacements(input, tmp, false);
 
   // Okay. Now we need to get _to_ the tramp jump.
@@ -216,7 +217,7 @@ bool SpringboardBuilder::generateMultiSpringboard(std::list<codeGen> &input,
   input.push_back(shortie);
   registerBranch(r.from, r.from + shortie.used());
 
-  SpringboardReq tmp2(r.from, tramp, r.priority, r.bbl);
+  SpringboardReq tmp2(r.from, tramp, r.priority, r.bbl, false, true);
   generateReplacements(input, tmp2, false);
 
   return true;
@@ -236,19 +237,24 @@ bool SpringboardBuilder::conflict(Address start, Address end) {
 
 
   if (!validRanges_.find(start, startLB, startUB, tmp1)) {
+     relocation_cerr << "\t Conflict: unable to find entry for start" << endl;
     return true;
   }
   if (!validRanges_.find(end-1, endLB, endUB, tmp2)) {
+     relocation_cerr << "\t Conflict: unable to find entry for end" << endl;
     return true;
   }
   
   if (tmp1 == Allocated) {
+     relocation_cerr << "\t Conflict: start is allocated" << endl;
     return true;
   }
   if (tmp2 == Allocated) {
+     relocation_cerr << "\t Conflict: end is allocated" << endl;
     return true;
   }
   if (startLB != endLB) {
+     relocation_cerr << "\t Possible conflict: span of multiple blocks" << endl;
     return true;
   }
   return false;
@@ -262,9 +268,8 @@ void SpringboardBuilder::registerBranch(Address start, Address end) {
   int tmp;
   Address lb, ub;
   if (!validRanges_.find(start, lb, ub, tmp)) {
-    assert(0);
+     assert(0);
   }
-  
 
   assert(tmp != Allocated);
 
@@ -319,6 +324,8 @@ void SpringboardBuilder::generateTrap(Address from, Address to, codeGen &gen) {
 bool SpringboardBuilder::generateReplacements(std::list<codeGen> &springboards,
 					      const SpringboardReq &r, 
 					      bool useTrap) {
+   if (!r.includeAllVersions) return true;
+
   bool ret = true;
   std::list<Address> relocAddrs;
   addrSpace_->getRelocAddrs(r.from, r.bbl, relocAddrs);

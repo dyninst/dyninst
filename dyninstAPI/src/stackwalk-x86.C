@@ -101,30 +101,29 @@ static frameStatus_t getFrameStatus(process *p, unsigned long pc, int &extra_hei
 
    // See if we're in instrumentation
    Address origAddr = pc;
-   if (p->isRuntimeHeapAddr(pc)) {
-       baseTrampInstance *bti = NULL;
-       bblInstance *inst = NULL;
-       if (p->getRelocInfo(pc, 
-		           origAddr,
-		           inst,
-		           bti)) {
-         // Find out whether we've got a saved
-         // state or not
-         if (bti) {
-           extra_height = bti->trampStackHeight();
-           if (bti->baseT->createFrame()) {
-             return frame_tramp;
-           }
-           else {
-             return frameless_tramp;
-           }
+
+   baseTrampInstance *bti = NULL;
+   if (p->getRelocInfo(pc, 
+                       origAddr,
+                       func,
+                       bti)) {
+      // Find out whether we've got a saved
+      // state or not
+      if (bti) {
+         extra_height = bti->trampStackHeight();
+         if (bti->baseT->createFrame()) {
+            return frame_tramp;
          }
-       }
+         else {
+            return frameless_tramp;
+         }
+      }
    }
-   
-   range = p->findOrigByAddr(origAddr);
-   func = range->is_function();
-   
+   else {
+      range = p->findOrigByAddr(origAddr);
+      func = range->is_function();
+   }
+
    if (func == NULL) {
       return frame_unknown;
    }
@@ -151,8 +150,8 @@ static bool isPrevInstrACall(Address addr, process *proc, int_function **callee)
         if (range == NULL) {
             baseTrampInstance *bti = NULL;
             Address origAddr = 0;
-            bblInstance *bbi=NULL;
-            bool success = proc->getRelocInfo(addr, origAddr, bbi, bti);
+            int_function *tmp=NULL;
+            bool success = proc->getRelocInfo(addr, origAddr, tmp, bti);
             if (success) {
                 addr = origAddr;
                 range = proc->findOrigByAddr(origAddr);
@@ -209,18 +208,19 @@ static bool isPrevInstrACall(Address addr, process *proc, int_function **callee)
             // see if we're in instrumentation
             baseTrampInstance *bti = NULL;
             Address origAddr = 0;
-            bblInstance *bbi=NULL;
-            bool success = proc->getRelocInfo(addr, origAddr, bbi, bti);
+            int_function *tmp = NULL;
+            bool success = proc->getRelocInfo(addr, origAddr, tmp, bti);
             if (success) {
-                callBBI = bbi;
-                //// this is possible if we're searching for the
-                //// return address of a frameless function and happen to 
-                //// run over an instrumentation address
-                //mal_printf("Stackwalked into relocated code "
-                //           "[%lx from origAddr %lx], which should "
-                //           "not be possible as we're in defensive mode, "
-                //           "where we disable frameless tramps %s[%d]\n",
-                //           addr, origAddr, FILE__,__LINE__);
+               
+               callBBI = tmp->findBlockInstanceByAddr(origAddr);
+               //// this is possible if we're searching for the
+               //// return address of a frameless function and happen to 
+               //// run over an instrumentation address
+               //mal_printf("Stackwalked into relocated code "
+               //           "[%lx from origAddr %lx], which should "
+               //           "not be possible as we're in defensive mode, "
+               //           "where we disable frameless tramps %s[%d]\n",
+               //           addr, origAddr, FILE__,__LINE__);
             }
             return false;
         }
@@ -624,8 +624,8 @@ Frame Frame::getCallerFrame()
    {
        baseTrampInstance *bti = NULL;
        Address origAddr = 0;
-       bblInstance *bbi=NULL;
-       bool success = getProc()->getRelocInfo(pc_, origAddr, bbi, bti);
+       int_function *tmp = NULL;
+       bool success = getProc()->getRelocInfo(pc_, origAddr, tmp, bti);
        assert(success);
        newPC = origAddr;
        newFP = fp_;

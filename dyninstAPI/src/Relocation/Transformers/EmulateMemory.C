@@ -46,13 +46,14 @@ using namespace InstructionAPI;
 
 bool MemEmulatorTransformer::preprocess(TraceList &t) {
   // For each Register create a translator object
+#if 0
   for (Register i = REGNUM_EAX; i <= REGNUM_EDI; ++i) {
     createTranslator(i);
     t.push_back(translators_[i]);
   }
 
   MemEmulator::initTranslators(translators_);
-
+#endif
   return true;
 }
 
@@ -171,9 +172,10 @@ bool MemEmulatorTransformer::isSensitive(CopyInsn::Ptr reloc,
   return false;
 }
 
+#if 0
 void MemEmulatorTransformer::createTranslator(Register r) {
-  Atom::Ptr translator = MemEmulatorTranslator::create(r);
-  Trace::Ptr newTrace = Trace::create(translator);
-  translators_[r] = newTrace;
+   Atom::Ptr translator = MemEmulatorTranslator::create(r);
+   Trace::Ptr newTrace = Trace::create(translator);
+   translators_[r] = newTrace;
 };
-
+#endif

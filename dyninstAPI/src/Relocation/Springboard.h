@@ -44,20 +44,22 @@ namespace Dyninst {
 namespace Relocation {
 
 struct SpringboardReq {
-  Address from;
-  Address to;
-  Priority priority;
-  bblInstance *bbl;
-  bool includeAllVersions;
-SpringboardReq(const Address a, const Address b, 
-	       const Priority c, bblInstance *d, bool e = true) : 
-  from(a), to(b), 
-    priority(c), 
-    bbl(d), includeAllVersions(e) {};
-SpringboardReq() : from(0), to(0), priority(NotRequired), 
-    bbl(NULL),
-    includeAllVersions(false) {};
-  
+   Address from;
+   Address to;
+   Priority priority;
+   bblInstance *bbl;
+   bool checkConflicts;
+   bool includeAllVersions;
+   SpringboardReq(const Address a, const Address b, 
+                  const Priority c, bblInstance *d, bool e, bool f)
+   : from(a), to(b), 
+      priority(c), 
+      bbl(d), checkConflicts(e), 
+      includeAllVersions(f) {};
+   SpringboardReq() 
+   : from(0), to(0), priority(NotRequired), 
+      bbl(NULL),
+      includeAllVersions(false) {};
 };
 
  class SpringboardMap {
@@ -72,8 +74,12 @@ SpringboardReq() : from(0), to(0), priority(NotRequired),
      return sBoardMap_.empty();
    }
 
-   void add(Address a, Address b, Priority c, bblInstance *d, bool e = true) {
-     sBoardMap_[a] = SpringboardReq(a, b, c, d, e);
+   void add(Address from, Address to, 
+            Priority p, bblInstance *bbl, 
+            bool checkConflicts, bool includeAllCopies) {
+      sBoardMap_[from] = SpringboardReq(from, to,
+                                        p, bbl,
+                                        checkConflicts, includeAllCopies);
    }
 
    const_iterator begin() const { return sBoardMap_.begin(); };

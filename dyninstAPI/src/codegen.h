@@ -99,6 +99,8 @@ class codeGen {
     codeGen(codeBuf_t *buf, int size);
     ~codeGen();
 
+    bool valid() { return buffer_ != NULL; }
+
     // Copy constructor. Deep-copy -- allocates
     // a new buffer
     codeGen(const codeGen &);
@@ -128,7 +130,9 @@ class codeGen {
     // Copy a buffer into here and move the offset
     void copy(const void *buf, const unsigned size);
     void copy(const void *buf, const unsigned size, const codeBufIndex_t index);
+    void copy(const std::vector<unsigned char> &buf);
     
+
     // Similar, but slurp from the start of the parameter
     void copy(codeGen &gen);
 
