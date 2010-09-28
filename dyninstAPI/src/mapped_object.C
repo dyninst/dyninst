@@ -87,6 +87,7 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
    proc_(proc),
    analyzed_(false),
    analysisMode_(mode),
+   memEnd_(-1),
    pagesUpdated_(true)
 { 
    // Set occupied range (needs to be ranges)
@@ -936,6 +937,23 @@ const std::string mapped_object::debugString() const
     return debug;
 }
 
+unsigned mapped_object::memorySize() const 
+{ 
+    if (memEnd_ != -1) {
+        return memEnd_;
+    }
+    memEnd_ = 0;
+    vector<SymtabAPI::Region*> regs;
+    parse_img()->getObject()->getMappedRegions(regs);
+    for (unsigned ridx=0; ridx < regs.size(); ridx++) {
+        if (memEnd_ < regs[ridx]->getMemOffset() + regs[ridx]->getMemSize()) {
+            memEnd_ = regs[ridx]->getMemOffset() + regs[ridx]->getMemSize();
+        }
+    }
+    return memEnd_;
+}
+
+
 // This gets called once per image. Poke through to the internals;
 // all we care about, amusingly, is symbol table information. 
 
@@ -1408,47 +1426,52 @@ bool mapped_object::parseNewFunctions(vector<Address> &funcEntryAddrs)
 void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
 {
     assert(reg);
-    Address baseAddress = parse_img()->desc().loadAddr();
     void *mappedPtr = reg->getPtrToRawData();
-    Address regionStart = baseAddress + reg->getRegionAddr();
-    codeRange *range=NULL;
-
+    Address regStart = reg->getRegionAddr();
+    ParseAPI::Block *cur = NULL;
+    ParseAPI::CodeObject *cObj = parse_img()->codeObject();
+    ParseAPI::CodeRegion *parseReg = NULL;
     Address copySize = reg->getMemSize();
     void* regBuf = malloc(copySize);
-    if (!proc()->readDataSpace((void*)regionStart, copySize, regBuf, true)) 
+    Address initializedEnd = regStart + copySize;
+    
+    set<ParseAPI::CodeRegion*> parseRegs;
+    cObj->cs()->findRegions(regStart, parseRegs);
+    parseReg = * parseRegs.begin();
+    parseRegs.clear();
+
+    // copy memory into regBuf
+    if (!proc()->readDataSpace((void*)(regStart+codeBase()), 
+                               copySize, 
+                               regBuf, 
+                               true)) 
     {
         fprintf(stderr, "%s[%d] Failed to read from region [%lX %lX]\n",
-                __FILE__, __LINE__, (long)regionStart, copySize);
+                __FILE__, __LINE__, (long)regStart+codeBase(), copySize);
         assert(0);
     }
 
-    // find the first code range in the region
-    if ( ! codeRangesByAddr_.find(regionStart,range) &&
-         ! codeRangesByAddr_.successor(regionStart,range) ) 
-    {
-        range = NULL;
+    // find the first block in the region
+    set<ParseAPI::Block*> analyzedBlocks;
+    cObj->findBlocks(parseReg, regStart, analyzedBlocks);
+    if (analyzedBlocks.size()) {
+        cur = * analyzedBlocks.begin();
+    } else {
+        cur = cObj->findNextBlock(parseReg, regStart);
     }
+
     // copy code ranges from old mapped data into regBuf
-    while (range != NULL && 
-            range->get_address() < regionStart + copySize)
+    while (cur != NULL && 
+           cur->start() < initializedEnd)
     {
-        if ( ! memcpy((void*)((Address)regBuf 
-                        + range->get_address()
-                        - regionStart),
-                        (void*)((Address)mappedPtr
-                        + range->get_address() 
-                        - regionStart),
-                        range->get_size()) )
+        if ( ! memcpy((void*)((Address)regBuf + cur->start() - regStart),
+                      (void*)((Address)mappedPtr + cur->start() - regStart),
+                      cur->size()) )
         {
             assert(0);
         }
-        // advance to the next region
-        if ( ! codeRangesByAddr_.successor(
-                    range->get_address() + range->get_size(), 
-                    range) ) 
-        {
-            range = NULL;
-        }
+        // advance to the next block
+        cur = cObj->findNextBlock(parseReg,cur->end());
     }
 
     if (reg->isDirty()) {
@@ -1459,19 +1482,21 @@ void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
     }
 
     // KEVINTODO: find a cleaner solution than taking over the mapped files
-    static_cast<SymtabCodeSource*>(parse_img()->codeObject()->cs())->
+    static_cast<SymtabCodeSource*>(cObj->cs())->
         resizeRegion( reg, reg->getMemSize() );
     reg->setPtrToRawData( regBuf , copySize );
 
-    // now update all of the other regions
-    std::vector<SymtabAPI::Region*> regions;
-    parse_img()->getObject()->getCodeRegions(regions);
-    for(unsigned rIdx=0; rIdx < regions.size(); rIdx++) {
-        SymtabAPI::Region *curReg = regions[rIdx];
-        if (curReg != reg) {
-            updateCodeBytes(curReg);
-        }
-    }
+    // KEVINTODO: what?  why is this necessary?, I've killed it for now, delete if no failures
+    // 
+    //// now update all of the other regions
+    //std::vector<SymtabAPI::Region*> regions;
+    //parse_img()->getObject()->getCodeRegions(regions);
+    //for(unsigned rIdx=0; rIdx < regions.size(); rIdx++) {
+    //    SymtabAPI::Region *curReg = regions[rIdx];
+    //    if (curReg != reg) {
+    //        updateCodeBytes(curReg);
+    //    }
+    //}
 }
 
 // 1. use other update functions to update non-code areas of mapped files, 
@@ -1480,11 +1505,11 @@ void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
 void mapped_object::updateCodeBytes( std::map<Address,Address> owRanges )
 {
 // 1. use other update functions to update non-code areas of mapped files, 
-//    expanding them if we overwrote into unmapped areas
-
+//    expanding them if we wrote in un-initialized memory
     using namespace SymtabAPI;
-    std::set<Region *> expansionregions;// so we don't update regions more than once
+    std::set<Region *> expandRegs;// so we don't update regions more than once
     Address baseAddress = parse_img()->desc().loadAddr();
+
     // figure out which regions need expansion and which need updating
     std::map<Address,Address>::iterator rIter = owRanges.begin();
     for(; rIter != owRanges.end(); rIter++) {
@@ -1492,21 +1517,21 @@ void mapped_object::updateCodeBytes( std::map<Address,Address> owRanges )
         Region *curReg = parse_img()->getObject()->findEnclosingRegion
                                                     ( lastChangeOffset );
         if ( lastChangeOffset - curReg->getRegionAddr() >= curReg->getDiskSize() ) {
-            expansionregions.insert(curReg);
+            expandRegs.insert(curReg);
         }
     }
     // expand and update regions
     std::vector<Region *> allregions;
     parse_img()->getObject()->getCodeRegions(allregions);
-    for (set<Region*>::iterator regIter = expansionregions.begin();
-         regIter != expansionregions.end(); regIter++) 
+    for (set<Region*>::iterator regIter = expandRegs.begin();
+         regIter != expandRegs.end(); regIter++) 
     {
         expandCodeBytes(*regIter);
     }
     for (unsigned int ridx=0; ridx < allregions.size(); ridx++) 
     {
         Region *curreg = allregions[ridx];
-        if (expansionregions.end() == expansionregions.find(curreg)) {
+        if (expandRegs.end() == expandRegs.find(curreg)) {
             updateCodeBytes(curreg);
         }
     }
@@ -1535,31 +1560,91 @@ void mapped_object::updateCodeBytes( std::map<Address,Address> owRanges )
 // (not analyzed code regions so we don't get instrumentation in our parse)
 void mapped_object::updateCodeBytes(SymtabAPI::Region * reg)
 {
-    using namespace SymtabAPI;
-    Address baseAddress = parse_img()->desc().loadAddr();
+    Address base = codeBase();
+    ParseAPI::CodeObject *cObj = parse_img()->codeObject();
 
-    std::vector<Region *> regions;
+    std::vector<SymtabAPI::Region *> regions;
     if (NULL == reg) {
         parse_img()->getObject()->getCodeRegions(regions);
     } else {
         regions.push_back(reg);
     }
 
+    Block *cur = NULL;
+    set<ParseAPI::Block *> analyzedBlocks;
+    set<ParseAPI::CodeRegion*> parseRegs;
+    for(unsigned rIdx=0; rIdx < regions.size(); rIdx++) {
+
+        SymtabAPI::Region *symReg = regions[rIdx];
+        void *mappedPtr = symReg->getPtrToRawData();
+        Address regStart = symReg->getRegionAddr();
+
+        cObj->cs()->findRegions(regStart, parseRegs);
+        ParseAPI::CodeRegion *parseReg = * parseRegs.begin();
+        parseRegs.clear();
+        
+        // find the first block in the region
+        cObj->findBlocks(parseReg, regStart, analyzedBlocks);
+        if (analyzedBlocks.size()) {
+            cur = * analyzedBlocks.begin();
+            analyzedBlocks.clear();
+        } else {
+            cur = cObj->findNextBlock(parseReg, regStart);
+        }
+
+        Address prevEndAddr = regStart;
+        while ( cur != NULL && 
+                cur->start() < regStart + symReg->getDiskSize() )
+        {
+            // if there's a gap between previous and current range
+            if (prevEndAddr < cur->start()) {
+                // update the mapped file
+                if (!proc()->readDataSpace(
+                        (void*)(prevEndAddr + base), 
+                        cur->start() - prevEndAddr, 
+                        (void*)((Address)mappedPtr + prevEndAddr - regStart),
+                        true)) 
+                {
+                    assert(0);//read failed
+                }
+            }
+            // set prevEndAddr
+            prevEndAddr = cur->end();
+
+            // advance to the next region
+            if ( ! cObj->findNextBlock(parseReg, prevEndAddr) ) {
+               cur = NULL;
+            }
+        }
+        // read in from prevEndAddr to the end of the region
+		// (will read in whole region if there are no ranges in the region)
+        if (prevEndAddr < regStart + symReg->getDiskSize() &&
+            !proc()->readDataSpace(
+                (void*)(prevEndAddr + base), 
+                regStart + symReg->getDiskSize() - prevEndAddr, 
+                (void*)((Address)mappedPtr + prevEndAddr - regStart), 
+                true)) 
+        {
+            assert(0);// read failed
+        }
+    }
+
+#if 0
     codeRange *range=NULL;
     for(unsigned rIdx=0; rIdx < regions.size(); rIdx++) {
         Region *curReg = regions[rIdx];
         void *mappedPtr = curReg->getPtrToRawData();
-        Address regionStart = baseAddress + curReg->getRegionAddr();
+        Address regStart = base + curReg->getRegionAddr();
 
         // find the first code range in the region
-        if ( ! codeRangesByAddr_.find(regionStart,range) &&
-             ! codeRangesByAddr_.successor(regionStart,range) ) 
+        if ( ! codeRangesByAddr_.find(regStart,range) &&
+             ! codeRangesByAddr_.successor(regStart,range) ) 
         {
             range = NULL;
         }
-        Address prevEndAddr = regionStart;
+        Address prevEndAddr = regStart;
         while ( range != NULL && 
-                range->get_address() < regionStart + curReg->getDiskSize() )
+                range->get_address() < regStart + curReg->getDiskSize() )
         {
             // if there's a gap between previous and current range
             if (prevEndAddr < range->get_address()) {
@@ -1569,7 +1654,7 @@ void mapped_object::updateCodeBytes(SymtabAPI::Region * reg)
                         range->get_address() - prevEndAddr, 
                         (void*)((Address)mappedPtr 
                             + prevEndAddr 
-                            - regionStart), 
+                            - regStart), 
                         true)) 
                 {
                     assert(0);//read failed
@@ -1586,18 +1671,19 @@ void mapped_object::updateCodeBytes(SymtabAPI::Region * reg)
         }
         // read in from prevEndAddr to the end of the region
 		// (will read in whole region if there are no ranges in the region)
-        if (prevEndAddr < regionStart + curReg->getDiskSize() &&
+        if (prevEndAddr < regStart + curReg->getDiskSize() &&
             !proc()->readDataSpace(
                 (void*)prevEndAddr, 
-                regionStart + curReg->getDiskSize() - prevEndAddr, 
+                regStart + curReg->getDiskSize() - prevEndAddr, 
                 (void*)((Address)mappedPtr 
                     + prevEndAddr 
-                    - regionStart), 
+                    - regStart), 
                 true)) 
         {
             assert(0);// read failed
         }
     }
+#endif
 }
 
 // checks if update is needed by looking in the gap between the previous 
@@ -1645,27 +1731,6 @@ bool mapped_object::isUpdateNeeded(Address entry)
         comparison_size = creg->symRegion()->getDiskSize() 
             - ( (entry - base) - creg->symRegion()->getRegionAddr() );
     }
-#if 0 //KEVINTODO: delete old codeRange-based method that triggers premature parseAPI finalization
-    // update the range tree, if necessary
-    codeRange *existingCode = findCodeRangeByAddress(entry);
-    if (existingCode) {
-        return false; // don't need to update if we correspond to code
-    }
-
-    // see if the underlying bytes have changed
-
-    // read until the next basic block or until the end of the region
-    // to make sure nothing has changed, otherwise we'll want to read 
-    // the section in again
-    codeRange *range = NULL;
-    unsigned comparison_size = 0; 
-    if (codeRangesByAddr_.successor(entry,range)) {
-        comparison_size = range->get_address() - entry;
-    } else {
-        comparison_size = reg->getDiskSize() 
-                        - ( (entry - base) - reg->getRegionAddr() );
-    }
-#endif
 
     Address page_size = proc()->proc()->getMemoryPageSize();
     comparison_size = ( comparison_size <  page_size) 

@@ -49,7 +49,7 @@ void newCodeCB(std::vector<BPatch_function*> &newFuncs,
 /* Invoked twice for every signal handler function, the first time we
  * just adjust the value of the saved fault address to its unrelocated 
  * counterpart (in the EXCEPTION_RECORD), the second time we do this
- * translation for the CONTEXT structure, which is the PC that is used
+ * translation for the CONTEXT structure, containing the PC that is used
  * when execution resumes, and we replace instrumentation at the handler's 
  * exit points because we didn't know the contextAddr before 
  */
@@ -66,23 +66,30 @@ void HybridAnalysis::signalHandlerEntryCB(BPatch_point *point, void *pcAddr)
     } else {
         func->setHandlerFaultAddrAddr((Address)pcAddr,true);
         handlerFunctions[(Address)func->getBaseAddr()] = (Address)pcAddr;
+
         // remove any exit-point instrumentation and add new instrumentation 
         // at exit points
-        if ( instrumentedFuncs->end() != instrumentedFuncs->find(func) ) {
+        proc()->beginInsertionSet();
+        std::map<BPatch_point*,BPatchSnippetHandle*> *funcPoints = 
+            (*instrumentedFuncs)[func];
+        if ( funcPoints ) {
             std::map<BPatch_point*, BPatchSnippetHandle*>::iterator pit;
-            for (pit  = (*instrumentedFuncs)[func]->begin(); 
-                 pit != (*instrumentedFuncs)[func]->end(); 
-                 pit++) 
+            pit = funcPoints->begin();
+            while (pit != funcPoints->end())
             {
                 if ( BPatch_exit == (*pit).first->getPointType() ) {
                     proc()->deleteSnippet((*pit).second);
-                    (*instrumentedFuncs)[func]->erase( (*pit).first );
+                    funcPoints->erase( (*pit).first );
+                    pit = funcPoints->begin();                    
+                } else {
+                    pit++;
                 }
             }
         }
         instrumentFunction(func, true, true);
+        proc()->finalizeInsertionSet(false);
     }
-    firstHandlerEntry = !firstHandlerEntry;
+    firstHandlerEntry = !firstHandlerEntry; // alternates between true-false
 }
 
 /* If the context of the exception has been changed so that execution
@@ -125,20 +132,19 @@ void HybridAnalysis::signalHandlerCB(BPatch_point *point, long signum,
                point->getAddress(), signum, handlers.size());
     bool onlySysHandlers = true;
     std::vector<Address> handlerAddrs;
-
+ 
     // eliminate any handlers in system libraries, and handlers that have 
     // already been parsed, add new handlers to handler function list
     std::vector<Address>::iterator it=handlers.begin();
     while (it < handlers.end())
     {
-        BPatch_function *func = proc()->findFunctionByAddr((void*)*it);
         BPatch_module *mod = proc()->findModuleByAddr(*it);
-
         if (mod->isSystemLib()) {
             it = handlers.erase(it);
             continue;
         } 
 
+        BPatch_function *func = proc()->findFunctionByAddr((void*)*it);
         handlerFunctions[*it] = 0;
         if (func) {
             it = handlers.erase(it);

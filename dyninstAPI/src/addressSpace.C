@@ -833,8 +833,13 @@ bool AddressSpace::isValidAddress(const Address addr) const{
 mapped_object *AddressSpace::findObject(Address addr) {
     for (unsigned i=0; i<mapped_objects.size(); i++)
     {
-        if (addr >= mapped_objects[i]->codeAbs() &&
-            addr < mapped_objects[i]->codeAbs() + mapped_objects[i]->imageSize())
+        Address objEnd;
+        if (mapped_objects[i]->hybridMode()) {
+            objEnd = mapped_objects[i]->codeAbs() + mapped_objects[i]->imageSize();
+        } else {
+            objEnd = mapped_objects[i]->memoryEnd();
+        }
+        if (addr >= mapped_objects[i]->codeAbs() && addr < objEnd)
         {
             return mapped_objects[i];
         }
@@ -1650,8 +1655,6 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
           bblInstance *origbbi=NULL;
           baseTrampInstance *bti=NULL;
           if (!getRelocInfo(tframe.getPC(), pcOrig, origbbi, bti)) {
-              mal_printf("ERROR: active frame PC %lx does not correspond "
-                         "to code %s[%d]\n",tframe.getPC(), FILE__,__LINE__);
               continue;
           }
           // if the PC matches a modified function, change the PC

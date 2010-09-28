@@ -383,6 +383,7 @@ namespace Dyninst
 	{
 	  std::stringstream ret;
 //	  ret << std::hex << "0x";
+	  ret << std::hex;
 	  switch(type)
 	  {
 	  case u8:
@@ -438,6 +439,7 @@ namespace Dyninst
 	    ret << "[ERROR: invalid type value!]";
 	    break;
 	  };
+      ret << std::dec;
 	  return ret.str();
 	}
       }

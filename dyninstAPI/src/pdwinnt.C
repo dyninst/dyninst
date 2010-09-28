@@ -2446,7 +2446,8 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
  * 2. Flush the runtime cache if we overwrote any code, else return
  * 3. Find the instruction that caused the violation and determine 
  *    its address in unrelocated code
- * 4. Trigger user-mode callback to respond to the overwrite
+ * 4. Create an instPoint for the write
+ * 5. Trigger user-mode callback to respond to the overwrite
  */
 bool SignalHandler::handleCodeOverwrite(EventRecord &ev)
 {
@@ -2464,6 +2465,7 @@ bool SignalHandler::handleCodeOverwrite(EventRecord &ev)
                                          origWritten, 
                                          writtenbbi, 
                                          bti);
+    assert(writtenAddr == origWritten); // something's wrong, otherwise
     if (success) {
         if (writtenbbi && 
             writtenbbi->firstInsnAddr() <= origWritten && 
@@ -2518,9 +2520,30 @@ bool SignalHandler::handleCodeOverwrite(EventRecord &ev)
         assert(0 && "couldn't find the overwrite instruction"); 
     }
 
-    // 4. Trigger user-mode callback to respond to the overwrite
+    // 4. Create an instPoint for the write
+    int_function *writeFunc = writebbi->func();
+    instPoint *writePoint = writeFunc->findInstPByAddr(origWrite);
+    if (!writePoint) {
+        // it can't be a call or exit point, if it exists it's an 
+        // entryPoint, or abruptEnd point (or an arbitrary point, but
+        // those aren't created lazily
+        if (origWrite == writeFunc->getAddress()) {
+            writeFunc->funcEntries();
+            writePoint = writeFunc->findInstPByAddr(origWrite);
+        } else {
+            writeFunc->funcAbruptEnds();
+            writePoint = writeFunc->findInstPByAddr(origWrite);
+        }
+    }
+    if (!writePoint) {
+        writePoint = instPoint::createArbitraryInstPoint(
+            origWrite, ev.proc, writeFunc);
+    }
+    assert(writePoint);
+
+    // 5. Trigger user-mode callback to respond to the overwrite
     success = (((BPatch_process*)ev.proc->up_ptr())->
-        triggerCodeOverwriteCB(origWrite, writtenAddr));
+        triggerCodeOverwriteCB(writePoint, writtenAddr));
     assert(success);
 
     return true;

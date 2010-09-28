@@ -926,9 +926,9 @@ bool BPatch_process::finalizeInsertionSetInt(bool, bool *)
     return false;
   }
   
-  if (!isStoppedInt()) {
-    stopExecutionInt();
+  if ( ! statusIsStopped() ) {
     shouldContinue = true;
+    stopExecutionInt();
   }
   
   bool ret = llproc->relocate();
@@ -1628,26 +1628,29 @@ bool BPatch_process::triggerSignalHandlerCB(instPoint *intPoint,
  *
  * Return Value: true if a matching callback was found and no error occurred
  */
-bool BPatch_process::triggerCodeOverwriteCB(Address fault_instr, Address viol_target)
+bool BPatch_process::triggerCodeOverwriteCB(instPoint *faultPoint, 
+                                            Address faultTarget)
 {
-    // trigger the callback if it exists
+    // does the callback exist?
     pdvector<CallbackBase *> cbs;
     if ( ! getCBManager()->dispenseCallbacksMatching(evtCodeOverwrite,cbs) ) {
         return false;
     }
+
+    // find the matching callbacks and trigger them
+    BPatch_function *bpFunc = findOrCreateBPFunc(faultPoint->func(),NULL);
+    BPatch_point *bpPoint = findOrCreateBPPoint(bpFunc,faultPoint);
     BPatch::bpatch->signalNotificationFD();
     bool foundCallback = false;
-    for (unsigned int i = 0; i < cbs.size(); ++i) {
+    for (unsigned int i = 0; i < cbs.size(); ++i) 
+    {
         CodeOverwriteCallback *cb = 
             dynamic_cast<CodeOverwriteCallback *>(cbs[i]);
-        if (cb) { // found the callback
+        if (cb) { 
             foundCallback = true;
-            BPatch_function *func = findOrCreateBPFunc
-                (llproc->findActiveFuncByAddr(fault_instr),NULL);
-            assert(func);
-            BPatch_point *fault_point = image->createInstPointAtAddr
-                ((void*)fault_instr, NULL, func);
-            (*cb)(fault_point, viol_target, lowlevel_process());
+
+            (*cb)(bpPoint, faultTarget, lowlevel_process());
+
         }
     }
     return foundCallback;
