@@ -432,13 +432,29 @@ Address IA_x86Details::findThunkInBlock(Block* curBlock, Address& thunkOffset)
                     parsing_printf("\tNO INSN after thunk at 0x%lx\n", thunkOffset);
                 if(addInsn)
                 {
+		  std::set<RegisterAST::Ptr> boundRegs;
+		  
                     if(addInsn->getOperation().getID() == e_pop)
                     {
+		      addInsn->getWriteSet(boundRegs);
                         block.advance();
                         addInsn = block.getInstruction();
                     }
-                    if(addInsn && addInsn->getOperation().getID() == e_add)
+                    if(addInsn && (addInsn->getOperation().getID() == e_add) ||
+		       (addInsn->getOperation().getID() == e_lea))
                     {
+		      Expression::Ptr op0 = addInsn->getOperand(0).getValue();
+		      Expression::Ptr op1 = addInsn->getOperand(1).getValue();
+		      for(std::set<RegisterAST::Ptr>::const_iterator curReg = boundRegs.begin();
+			  curReg != boundRegs.end();
+			  ++curReg)
+		      {
+			op0->bind(curReg->get(), Result(u64, 0));
+			op1->bind(curReg->get(), Result(u64, 0));
+			
+		      }
+		      
+
                         Result imm = addInsn->getOperand(1).getValue()->eval();
                         Result imm2 = addInsn->getOperand(0).getValue()->eval();
                         if(imm.defined)
