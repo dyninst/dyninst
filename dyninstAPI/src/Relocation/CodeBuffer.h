@@ -58,7 +58,7 @@
 
 #include "dynutil/h/dyntypes.h"
 #include <list>
-#include "codegen.h"
+#include "dyninstAPI/src/codegen.h"
 
 class codeGen;
 

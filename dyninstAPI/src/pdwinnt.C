@@ -534,9 +534,9 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
     case 0: // bad read
         if (dyn_debug_malware) {
             Address origAddr = ev.address;
-            bblInstance *bbi = NULL;
+            int_function *func = NULL;
             baseTrampInstance *bti = NULL;
-            ev.proc->getRelocInfo(ev.address, origAddr, bbi, bti);
+            ev.proc->getRelocInfo(ev.address, origAddr, func, bti);
             mal_printf("bad read in pdwinnt.C %lx[%lx]=>%lx [%d]\n",
                        ev.address, origAddr, violationAddr,__LINE__);
             // detach so we can see what's going on 
@@ -547,15 +547,15 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
     case 1: // bad write
         if (dyn_debug_malware) {
             Address origAddr = ev.address;
-            bblInstance *writebbi = NULL;
+            int_function *writefunc = NULL;
             baseTrampInstance *bti = NULL;
-            bool success = ev.proc->getRelocInfo(ev.address, origAddr, writebbi, bti);
+            bool success = ev.proc->getRelocInfo(ev.address, origAddr, writefunc, bti);
             if (success) {
                 fprintf(stderr,"---%s[%d] overwrite insn at %lx[%lx] in "
                         "function\"%s\" [%lx], writing to %lx \n",
                         FILE__,__LINE__, ev.address, origAddr,
-                        writebbi->func()->get_name().c_str(), 
-                        writebbi->func()->get_address(), 
+                        writefunc->get_name().c_str(), 
+                        writefunc->get_address(), 
                         violationAddr);
             } else { 
                 fprintf(stderr,"---%s[%d] overwrite insn at %lx, not "
@@ -600,6 +600,16 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
         assert(0);
         break;
     default:
+        if (dyn_debug_malware) {
+            Address origAddr = ev.address;
+            int_function *func = NULL;
+            baseTrampInstance *bti = NULL;
+            ev.proc->getRelocInfo(ev.address, origAddr, func, bti);
+            mal_printf("weird exception in pdwinnt.C illegal instruction or "
+                       "access violation w/ code (%lx) %lx[%lx]=>%lx [%d]\n",
+                       ev.info.u.Exception.ExceptionRecord.ExceptionInformation[0],
+                       ev.address, origAddr, violationAddr,__LINE__);
+        }
         ev.proc->detachProcess(true);
         assert(0);
     }
@@ -616,6 +626,7 @@ bool SignalGenerator::decodeException(EventRecord &ev)
         break;
      case EXCEPTION_ILLEGAL_INSTRUCTION:
         signal_printf("ILLEGAL INSTRUCTION\n");
+        mal_printf("ILLEGAL INSTRUCTION\n");
      case EXCEPTION_ACCESS_VIOLATION:
      {
          requested_wait_until_active = true;
@@ -2391,16 +2402,18 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
 
     // 2. create instPoint at faulting instruction & trigger callback
     Address origAddr = ev.address;
-    bblInstance *faultBBI = NULL;
+    int_function *faultFunc = NULL;
     baseTrampInstance *bti = NULL;
-    bool success = ev.proc->getRelocInfo(ev.address, origAddr, faultBBI, bti);
+    bool success = ev.proc->getRelocInfo(ev.address, origAddr, faultFunc, bti);
     if (!success) {
         fprintf(stderr,"ERROR: Failed to find a valid instruction for fault "
             "at %lx %s[%d] \n", ev.address, FILE__,__LINE__);
         return false;
     }
+    bblInstance *faultBBI = faultFunc->findBlockInstanceByAddr(origAddr);
     if (faultBBI->block()->llb()->isShared()) {
-        faultBBI = ev.proc->findActiveFuncByAddr(ev.address)->findBlockInstanceByAddr(origAddr);
+        faultBBI = ev.proc->findActiveFuncByAddr(ev.address)->
+            findBlockInstanceByAddr(origAddr);
     }
 
     instPoint *point = faultBBI->func()->findInstPByAddr(origAddr);
@@ -2417,7 +2430,7 @@ bool SignalHandler::handleSignalHandlerCallback(EventRecord &ev)
 
     //3. cause callbacks registered for this event to be triggered, if any.
     ((BPatch_process*)proc->up_ptr())->triggerSignalHandlerCB
-            (point, faultBBI->func(), ev.what, &handlers);
+            (point, faultFunc, ev.what, &handlers);
 
     //4. mark parsed handlers as such, store fault addr info in the handlers
     for (vector<Address>::iterator hIter=handlers.begin(); 
@@ -2459,17 +2472,17 @@ bool SignalHandler::handleCodeOverwrite(EventRecord &ev)
     // 2. Flush the runtime cache if we overwrote any code
     // Produce warning message if we've overwritten weird types of code: 
     Address origWritten = writtenAddr;
-    bblInstance *writtenbbi = NULL;
+    int_function *writtenFunc = NULL;
     baseTrampInstance *bti = NULL;
     bool success = ev.proc->getRelocInfo(writtenAddr, 
                                          origWritten, 
-                                         writtenbbi, 
+                                         writtenFunc, 
                                          bti);
-    assert(writtenAddr == origWritten); // something's wrong, otherwise
     if (success) {
-        if (writtenbbi && 
-            writtenbbi->firstInsnAddr() <= origWritten && 
-            origWritten < writtenbbi->endAddr()) 
+        bblInstance *writtenBBI = 
+            writtenFunc->findBlockInstanceByAddr(origWritten);
+        if (writtenBBI->firstInsnAddr() <= origWritten && 
+            origWritten < writtenBBI->endAddr()) 
         {
             //KEVINTODO: caught overwrite of code in the basic block
             //that is currently executing, haven't implemented this
@@ -2483,7 +2496,7 @@ bool SignalHandler::handleCodeOverwrite(EventRecord &ev)
                     ev.address, writtenAddr, origWritten, FILE__,__LINE__);
             assert(0 && "unimplemented code overwrite scenario");
         }
-        if (writtenbbi && writtenbbi->block()->llb()->isShared()) {
+        if (writtenBBI && writtenBBI->block()->llb()->isShared()) {
             fprintf(stderr, "WARNING: overwrote shared code, we may not "
                     "handle this correctly %lx->%lx[%lx] %s[%d]\n",
                     ev.address, writtenAddr, origWritten, FILE__,__LINE__);
@@ -2491,7 +2504,7 @@ bool SignalHandler::handleCodeOverwrite(EventRecord &ev)
         }
         // flush all addresses matching the mapped object and the
         // runtime library heaps
-        ev.proc->flushAddressCache_RT(writtenbbi->func()->obj());
+        ev.proc->flushAddressCache_RT(writtenBBI->func()->obj());
     }
     else {
         mapped_object *writtenObj = ev.proc->findObject(writtenAddr);
@@ -2504,8 +2517,8 @@ bool SignalHandler::handleCodeOverwrite(EventRecord &ev)
     // 3. Find the instruction that caused the violation and determine 
     //    its address in unrelocated code
     Address origWrite = ev.address;
-    bblInstance *writebbi = NULL;
-    success = ev.proc->getRelocInfo(ev.address, origWrite, writebbi, bti);
+    int_function *writeFunc = NULL;
+    success = ev.proc->getRelocInfo(ev.address, origWrite, writeFunc, bti);
     if (!success) {
         // this is an error case, meaning that we're executing 
         // uninstrumented code. It has been a sign that:
@@ -2521,7 +2534,6 @@ bool SignalHandler::handleCodeOverwrite(EventRecord &ev)
     }
 
     // 4. Create an instPoint for the write
-    int_function *writeFunc = writebbi->func();
     instPoint *writePoint = writeFunc->findInstPByAddr(origWrite);
     if (!writePoint) {
         // it can't be a call or exit point, if it exists it's an 

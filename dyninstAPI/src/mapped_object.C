@@ -87,8 +87,8 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
    proc_(proc),
    analyzed_(false),
    analysisMode_(mode),
-   memEnd_(-1),
-   pagesUpdated_(true)
+   pagesUpdated_(true),
+   memEnd_(-1)
 { 
    // Set occupied range (needs to be ranges)
    codeBase_ = fileDesc.code();
@@ -937,7 +937,7 @@ const std::string mapped_object::debugString() const
     return debug;
 }
 
-unsigned mapped_object::memorySize() const 
+unsigned mapped_object::memoryEnd() 
 { 
     if (memEnd_ != -1) {
         return memEnd_;
@@ -1608,13 +1608,18 @@ void mapped_object::updateCodeBytes(SymtabAPI::Region * reg)
                     assert(0);//read failed
                 }
             }
-            // set prevEndAddr
-            prevEndAddr = cur->end();
 
-            // advance to the next region
-            if ( ! cObj->findNextBlock(parseReg, prevEndAddr) ) {
-               cur = NULL;
+            // advance cur to last adjacent block and set prevEndAddr 
+            prevEndAddr = cur->end();
+            Block *ftBlock = cObj->findBlockByEntry(parseReg,cur->end());
+            while (ftBlock) {
+                cur = ftBlock;
+                prevEndAddr = cur->end();
+                ftBlock = cObj->findBlockByEntry(parseReg,prevEndAddr);
             }
+
+            cur = cObj->findNextBlock(parseReg, prevEndAddr);
+
         }
         // read in from prevEndAddr to the end of the region
 		// (will read in whole region if there are no ranges in the region)

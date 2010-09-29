@@ -1639,7 +1639,10 @@ bool BPatch_process::triggerCodeOverwriteCB(instPoint *faultPoint,
 
     // find the matching callbacks and trigger them
     BPatch_function *bpFunc = findOrCreateBPFunc(faultPoint->func(),NULL);
-    BPatch_point *bpPoint = findOrCreateBPPoint(bpFunc,faultPoint);
+    BPatch_point *bpPoint = findOrCreateBPPoint(
+        bpFunc,
+        faultPoint,
+        BPatch_point::convertInstPointType_t(faultPoint->getPointType()));
     BPatch::bpatch->signalNotificationFD();
     bool foundCallback = false;
     for (unsigned int i = 0; i < cbs.size(); ++i) 
@@ -1990,7 +1993,7 @@ void BPatch_process::overwriteAnalysisUpdate
             targVec.push_back(funcAddr);
             if (getImage()->parseNewFunctions(dontcare, targVec)) {
                 // add function to output vector
-                bpfunc = findFunctionByAddr((void*)funcAddr);
+                bpfunc = findFunctionByEntry(funcAddr);
                 assert(bpfunc);
                 owFuncs.push_back(bpfunc);
                 // re-instate call edges to the function

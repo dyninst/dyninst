@@ -223,17 +223,21 @@ private:
   Address callTarget_;
   bool targetIsAbsolute_;
   bool isUnres_;
+  bool isDynamic_; 
 public:
   Address callTarget() const { return callTarget_; }
   bool targetIsAbsolute() const { return targetIsAbsolute_; }
-  bool isDynamic_; 
   bool isDynamic() const { return isDynamic_; }
   bool isUnresolved() const { return isUnres_; }
-  void setResolved() { isUnres_ = false; }
+  void setUnresolved(bool isUnres) { isUnres_ = isUnres; }
   image_func *getCallee() const;
   void setCallee(image_func *f) { callee_ = f; }
   std::string getCalleeName() const { return callee_name_; }
   void setCalleeName(std::string s) { callee_name_ = s; }
+  // merge any otherP information that was unset in this point, we need 
+  // to do this since there can only be one point at a given address and
+  // we create entryPoints and exit points without initializing less information
+  void mergePoint(image_instPoint *otherP);
 
 #if defined (cap_use_pdvector)
   static int compare(image_instPoint *&ip1,

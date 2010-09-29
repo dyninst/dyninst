@@ -146,7 +146,7 @@ class mapped_object : public codeRange {
     Address codeBase() const { return codeBase_; }
     Address imageOffset() const { return parse_img()->imageOffset(); }
     unsigned imageSize() const { return parse_img()->imageLength(); }
-    unsigned memoryEnd() const; // largest allocated memory address + 1
+    unsigned memoryEnd(); // largest allocated memory address + 1
 
     // Deprecated...
     Address getBaseAddress() const { return codeBase(); }
@@ -333,7 +333,7 @@ private:
     std::set<SymtabAPI::Region*> expansionCheckedRegions_;
     bool pagesUpdated_;
 
-    bool memEnd_; // size of object in memory
+    Address memEnd_; // size of object in memory
 
     mapped_module *getOrCreateForkedModule(mapped_module *mod);
 

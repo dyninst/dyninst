@@ -1159,8 +1159,8 @@ bool IA_IAPI::isFakeCall() const
         Address entry = ah->getCFT();
         if ( ! _cr->contains(entry) || ! _isrc->isCode(entry) ) {
             mal_printf("WARNING: found call to function at %lx that "
-                    "redirects to invalid address %lx %s[%d]\n", current, 
-                    entry, FILE__,__LINE__);
+                       "leaves to %lx, out of the code region %s[%d]\n", 
+                       current, entry, FILE__,__LINE__);
             return false;
         }
         bufPtr = (const unsigned char *)(_isrc->getPtrToInstruction(entry));
@@ -1354,6 +1354,9 @@ bool IA_IAPI::isIATcall(std::string & callee) const
 
     // see if it's really a string that could be a function name
     char *funcAsciiPtr = (char*) _obj->cs()->getPtrToData(funcAsciiAddr);
+    if (!funcAsciiPtr) {
+        return false;
+    }
     char cur = 'a';
     int count=0;
     do {

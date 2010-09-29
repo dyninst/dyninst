@@ -33,13 +33,13 @@
 #include "CodeTracker.h"
 #include "Atoms/Atom.h" //  Currently Patch is defined here; we may want to move it.
 
-#include "debug.h"
-#include "codegen.h"
+#include "dyninstAPI/src/debug.h"
+#include "dyninstAPI/src/codegen.h"
 #include <iostream>
 
 #include "InstructionDecoder.h"
 #include "Instruction.h"
-#include "../addressSpace.h"
+#include "dyninstAPI/src/addressSpace.h"
 
 using namespace Dyninst;
 using namespace Relocation;

@@ -188,6 +188,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
 						bool instrumentReturns) 
 {
     Address funcAddr = (Address) func->getBaseAddr();
+    vector<BPatch_function*>dontcare;
     mal_printf("instfunc at %lx\n", funcAddr);
     int pointCount = 0;
 
@@ -218,8 +219,8 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
             //choose the type of snippet
             BPatch_stopThreadExpr *dynamicTransferSnippet; 
             if (curPoint->getPointType() == BPatch_locSubroutine &&
-                ! proc()->findFunctionByAddr(
-                    (void*)curPoint->getCallFallThroughAddr())) 
+                ! proc()->findFunctionsByAddr(
+                    curPoint->getCallFallThroughAddr(),dontcare)) 
             {   // If this indirect control transfer is a function call whose 
                 // return status is unknown, don't allow its instrumentation to 
                 // use the address cache, use the unconditional DYNINST_stopThread
@@ -263,14 +264,21 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
             }
 
             //output message
-            if (curPoint->getPointType() == BPatch_locSubroutine) {
-                mal_printf("hybridInstrumentation[%d]monitoring at 0x%lx: call 0x%lx\n",
-                            __LINE__,(long)curPoint->getAddress(), 
-                            (long)targets[0]);
+            Address target = 0;
+            if (targets.size()) { 
+                target = targets[0]; 
             } else {
-                mal_printf("hybridInstrumentation[%d]monitoring at 0x%lx: jump 0x%lx\n",
+                mal_printf("WARNING: instrumenting static transfer to "
+                           "unknown target %s[%d]\n",FILE__,__LINE__);
+            }
+            if (curPoint->getPointType() == BPatch_locSubroutine) {
+                mal_printf("hybridInstrumentation[%d] monitoring at 0x%lx: call 0x%lx\n",
                             __LINE__,(long)curPoint->getAddress(), 
-                            (long)targets[0]);
+                            target);
+            } else {
+                mal_printf("hybridInstrumentation[%d] monitoring at 0x%lx: jump 0x%lx\n",
+                            __LINE__,(long)curPoint->getAddress(), 
+                            target);
             }
 
             // instrument the point, 
@@ -281,7 +289,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
             }
             BPatch_stopThreadExpr staticTransferSnippet
                 (badTransferCB_wrapper,
-                 BPatch_constExpr((Address)targets[0]), 
+                 BPatch_constExpr(target), 
                  true,BPatch_interpAsTarget);
             handle = proc()->insertSnippet
                 (staticTransferSnippet, *curPoint, BPatch_lastSnippet);
@@ -578,8 +586,8 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
 
     // make sure that the edge hasn't already been parsed 
     Address fallThroughAddr = callPoint->getCallFallThroughAddr();
-    BPatch_function *fallThroughFunc = proc()->findFunctionByAddr
-        ((void*)fallThroughAddr);
+    vector<BPatch_function *> fallThroughFuncs;
+    proc()->findFunctionsByAddr(fallThroughAddr,fallThroughFuncs);
 
     if (! parsedAfterCallPoint && !hasEdge(callPoint, fallThroughAddr)) {
         mal_printf("New function target addr at 0x%lx is returning, "
@@ -598,29 +606,32 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
     // a false positive code overwrite) re-instrument the point to use
     // the cache, if it's an indirect transfer, or remove it altogether
     // if it's a static transfer. 
-    if ( fallThroughFunc && hybridOW() &&
-         ! hybridOW()->hasLoopInstrumentation(true, *fallThroughFunc) )
-    {
-        BPatch_function *callFunc = callPoint->getFunction();
-        // remove the ctrl-transfer instrumentation for this point 
-        if ((*instrumentedFuncs)[callFunc] && 
-            (*instrumentedFuncs)[callFunc]->end() !=
-            (*instrumentedFuncs)[callFunc]->find(callPoint)) 
+    for (unsigned ftidx=0; ftidx < fallThroughFuncs.size(); ftidx++) {
+        BPatch_function *fallThroughFunc = fallThroughFuncs[ftidx];
+        if ( hybridOW() &&
+             ! hybridOW()->hasLoopInstrumentation(true, *fallThroughFunc) )
         {
-            proc()->deleteSnippet( (*(*instrumentedFuncs)[callFunc])[callPoint] );
-            (*instrumentedFuncs)[callFunc]->erase(callPoint);
-        }
-        // if the point is dynamic, re-instrument it to use the cache
-        if (callPoint->isDynamic()) {
-            mal_printf("replacing instrumentation at indirect call point "
-                        "%lx with instrumentation that uses the cache "
-                        "%s[%d]\n", callPoint->getAddress(),FILE__,__LINE__);
-            BPatch_stopThreadExpr newSnippet (
-                    badTransferCB_wrapper, BPatch_dynamicTargetExpr(), 
-                    true, BPatch_interpAsTarget);
-            BPatchSnippetHandle *handle = proc()->insertSnippet
-                (newSnippet, *callPoint, BPatch_lastSnippet);
-            saveInstrumentationHandle(callPoint, handle);
+            BPatch_function *callFunc = callPoint->getFunction();
+            // remove the ctrl-transfer instrumentation for this point 
+            if ((*instrumentedFuncs)[callFunc] && 
+                (*instrumentedFuncs)[callFunc]->end() !=
+                (*instrumentedFuncs)[callFunc]->find(callPoint)) 
+            {
+                proc()->deleteSnippet( (*(*instrumentedFuncs)[callFunc])[callPoint] );
+                (*instrumentedFuncs)[callFunc]->erase(callPoint);
+            }
+            // if the point is dynamic, re-instrument it to use the cache
+            if (callPoint->isDynamic()) {
+                mal_printf("replacing instrumentation at indirect call point "
+                            "%lx with instrumentation that uses the cache "
+                            "%s[%d]\n", callPoint->getAddress(),FILE__,__LINE__);
+                BPatch_stopThreadExpr newSnippet (
+                        badTransferCB_wrapper, BPatch_dynamicTargetExpr(), 
+                        true, BPatch_interpAsTarget);
+                BPatchSnippetHandle *handle = proc()->insertSnippet
+                    (newSnippet, *callPoint, BPatch_lastSnippet);
+                saveInstrumentationHandle(callPoint, handle);
+            }
         }
     }
 
@@ -643,14 +654,14 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
 // parse, instrument, and write-protect code found by seeding at a new target address
 bool HybridAnalysis::analyzeNewFunction( Address target , bool doInstrumentation )
 {
-    bool parseFailed = false;
+    bool parsed = true;
     vector<BPatch_module *> affectedMods;
     vector<Address> targVec; // has only one element, used to conform to interface
     targVec.push_back(target);
     if (!proc()->getImage()->parseNewFunctions(affectedMods, targVec)) {
         fprintf(stderr, "WARNING: call to parseNewFunctions failed to parse region "
                 "containing target addr %lx  %s[%d]\n", (long)target, FILE__, __LINE__);
-        parseFailed = true;
+        parsed = false;
     }
 
     // inform the mutator of the new code
@@ -681,7 +692,7 @@ bool HybridAnalysis::analyzeNewFunction( Address target , bool doInstrumentation
             affectedMods[i]->protectAnalyzedCode(); 
         }
     }
-    return parseFailed;
+    return parsed;
 }
 
 

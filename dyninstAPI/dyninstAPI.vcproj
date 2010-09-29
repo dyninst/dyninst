@@ -941,6 +941,18 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\Relocation\CodeBuffer.C"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\codegen-x86.C"
 				>
 				<FileConfiguration
@@ -2499,6 +2511,10 @@
 			</File>
 			<File
 				RelativePath=".\src\clock.h"
+				>
+			</File>
+			<File
+				RelativePath=".\src\Relocation\CodeBuffer.h"
 				>
 			</File>
 			<File

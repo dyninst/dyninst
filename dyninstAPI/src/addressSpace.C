@@ -1652,16 +1652,16 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
           // translate thread's active PC to orig addr
           Frame tframe = (*titer)->getActiveFrame();
           Address pcOrig=0;
-          bblInstance *origbbi=NULL;
+          int_function *origFunc=NULL;
           baseTrampInstance *bti=NULL;
-          if (!getRelocInfo(tframe.getPC(), pcOrig, origbbi, bti)) {
+          if (!getRelocInfo(tframe.getPC(), pcOrig, origFunc, bti)) {
               continue;
           }
           // if the PC matches a modified function, change the PC
           for (FuncSet::const_iterator fit = begin; fit != end; fit++) {
               if ((*fit)->findBlockInstanceByAddr(pcOrig)) {
                   list<Address> relocPCs;
-                  getRelocAddrs(pcOrig, origbbi, relocPCs);
+                  getRelocAddrs(pcOrig, origFunc, relocPCs);
                   (*titer)->get_lwp()->changePC(relocPCs.back(),NULL);
                   break;
               }

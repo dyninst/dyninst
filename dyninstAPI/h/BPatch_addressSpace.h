@@ -278,7 +278,8 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
     
     API_EXPORT(Int, (fileName, lineNo, ranges),
     bool,getAddressRanges,(const char * fileName, unsigned int lineNo, std::vector< std::pair< unsigned long, unsigned long > > & ranges ));
-	
+
+    //  DEPRECATED:
     //  BPatch_addressSpace::findFunctionByAddr
     //  
     //  Returns the function containing an address
@@ -286,10 +287,18 @@ class BPATCH_DLL_EXPORT BPatch_addressSpace : public BPatch_eventLock {
     API_EXPORT(Int, (addr),
     BPatch_function *,findFunctionByAddr,(void *addr));
 
+    //  BPatch_addressSpace::findFunctionByEntry
+    //  
+    //  Returns the function starting at the given address
+
+    API_EXPORT(Int, (entry),
+    BPatch_function *,findFunctionByEntry,(Dyninst::Address entry));
+
     //  BPatch_addressSpace::findFunctionsByAddr
     //  
     //  Returns the functions containing an address 
-    //  (this is possible if there is shared code
+    //  (multiple functions are returned when code is shared)
+
     API_EXPORT(Int, (addr,funcs),
     bool, findFunctionsByAddr,(Dyninst::Address addr, 
                                std::vector<BPatch_function*> &funcs));

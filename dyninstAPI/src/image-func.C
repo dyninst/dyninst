@@ -348,6 +348,24 @@ image_instPoint::getCallee() const
     return callee_;
 }
 
+// merge any otherP information that was unset in this point, we need 
+// to do this since there can only be one point at a given address and
+// we create entryPoints and exit points without initializing CF info
+void image_instPoint::mergePoint(image_instPoint *otherP)
+{
+    isUnres_ = isUnres_ || otherP->isUnresolved();
+    isDynamic_ = isDynamic_ || otherP->isDynamic();
+    targetIsAbsolute_ = targetIsAbsolute_ || otherP->targetIsAbsolute();
+
+    if (!getCallee() && otherP->getCallee()) {
+        setCallee(otherP->getCallee());
+        setCalleeName(otherP->getCalleeName());
+    }
+    if (!callTarget() && otherP->callTarget()) {
+        callTarget_ = otherP->callTarget();
+    }
+}
+
 void *image_basicBlock::getPtrToInstruction(Address addr) const {
     if (addr < start()) return NULL;
     if (addr >= end()) return NULL;

@@ -4522,14 +4522,15 @@ Address process::stopThreadCtrlTransfer
                 // b. 
                 // if we're in the fallthrough block, match to call block, 
                 // and if necessary, add fallthrough edge
-                bblInstance *targBBI = NULL;
+                int_function *targFunc = NULL;
                 baseTrampInstance *bti = NULL;
-                bool hasFT = getRelocInfo(target, unrelocTarget, targBBI, bti);
+                bool hasFT = getRelocInfo(target, unrelocTarget, targFunc, bti);
                 assert(hasFT); // otherwise we should be in the defensive map
                 
-                // fallthrough block already parsed
-                callBBI = targBBI->func()->findBlockInstanceByAddr(
-                            targBBI->firstInsnAddr()-1);
+                bblInstance *targBBI = targFunc->findBlockInstanceByAddr
+                    (unrelocTarget);
+                callBBI = targFunc->findBlockInstanceByAddr
+                    (targBBI->firstInsnAddr() -1);
                 if (callBBI) {
                     // if necessary, add the fallthrough edge
                     using namespace ParseAPI;
@@ -4695,17 +4696,16 @@ bool process::handleStopThread(EventRecord &ev)
        (Address) ev.info;
 #endif
 
-    bblInstance *pointbbi = NULL;
+    int_function *pointFunc = NULL;
     Address pointAddr = relocPointAddr;
     baseTrampInstance *pointbti = NULL;
-    bool success = getRelocInfo(relocPointAddr, pointAddr, pointbbi, pointbti);
+    bool success = getRelocInfo(relocPointAddr, pointAddr, pointFunc, pointbti);
     if (!success) {
         assert(0);
         return false;
     }
     
-    int_function *pointfunc = pointbbi->func();
-    instPoint *intPoint = pointfunc->findInstPByAddr(pointAddr);
+    instPoint *intPoint = pointFunc->findInstPByAddr(pointAddr);
     if (!intPoint) { 
         assert(0);
         return false; 
@@ -4789,7 +4789,7 @@ bool process::handleStopThread(EventRecord &ev)
 /* 3. Trigger the callback for the stopThread
       using the correct snippet instance ID & event type */
     ((BPatch_process*)up_ptr())->triggerStopThread
-        (intPoint, pointfunc, callbackID, (void*)calculation);
+        (intPoint, pointFunc, callbackID, (void*)calculation);
 
     return true;
 
@@ -5157,26 +5157,28 @@ void process::flushAddressCache_RT(codeRange *flushRange)
  */
 int_function *process::findActiveFuncByAddr(Address addr)
 {
-    bblInstance *bbi = findOrigByAddr(addr)->is_basicBlockInstance();
+    int_function *activeFunc = findOrigByAddr(addr)->is_function();
+    bblInstance  *activeBBI  = findOrigByAddr(addr)->is_basicBlockInstance();
 
-    if (!bbi) { // addr is a relocated address, use relocation map
+    if (!activeFunc) { // addr is a relocated address, use relocation map
         Address origAddr = addr;
         baseTrampInstance *bti = NULL;
-        bool success = getRelocInfo(addr, origAddr, bbi, bti);
+        bool success = getRelocInfo(addr, origAddr, activeFunc, bti);
         if (success) {
-            return bbi->func();
+            return activeFunc;
         }
         return NULL;
     }
 
-    if ( ! bbi->block()->llb()->isShared() ) {
-        return bbi->func();
+    assert(activeBBI);
+    if ( ! activeBBI->block()->llb()->isShared() ) {
+        return activeFunc;
     }
 
     // unrelocated shared function address, do a stack walk to figure 
     // out which of the shared functions is on the call stack
     bool foundFrame = false;
-    int_function *activeFunc = NULL;
+    activeFunc = NULL; 
     pdvector<pdvector<Frame> >  stacks;
     if ( false == walkStacks(stacks) ) {
         fprintf(stderr,"ERROR: %s[%d], walkStacks failed\n", 
@@ -5192,17 +5194,13 @@ int_function *process::findActiveFuncByAddr(Address addr)
             int_basicBlock *frameBlock = findBasicBlockByAddr(framePC);
             if (!frameBlock) {
                 // if we're at a relocated address, we can translate 
-                // back to the right function
+                // back to the right function, if translation fails 
+                // frameFunc will still be NULL
                 Address origAddr = framePC;
-                bblInstance *framebbi = NULL;
                 baseTrampInstance *bti = NULL;
-                bool success = getRelocInfo(framePC, 
-                                            origAddr, framebbi, bti);
-                if (success) {
-                    frameFunc = framebbi->func();
-                }
-            } else if (bbi->firstInsnAddr() <= framePC && 
-                       framePC <= bbi->lastInsnAddr() && 
+                getRelocInfo(framePC, origAddr, frameFunc, bti);
+            } else if (activeBBI->firstInsnAddr() <= framePC && 
+                       framePC <= activeBBI->lastInsnAddr() && 
                        j < stack.size()-1) {
                 // find the function by looking at the previous stack 
                 // frame's call target

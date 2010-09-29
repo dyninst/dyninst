@@ -744,25 +744,27 @@ image::getInstPoints(Address start, Address end,
     }
 }
 bool
-image::addInstPoint(image_instPoint *p)
+image::addInstPoint(image_instPoint *newP)
 {
-    if(inst_pts_.find(p->offset()) != inst_pts_.end()) {   
+    if(inst_pts_.find(newP->offset()) != inst_pts_.end()) {   
         // this can happen because of code sharing or if there's a 
         // call at a function entry or exit
         parsing_printf("  attempt to add duplicate instpoint at %lx\n",
-            p->offset());
+            newP->offset());
+        image_instPoint *oldP = inst_pts_.find(newP->offset())->second;
         if (codeObject()->defensiveMode() && 
-            p->getPointType() != inst_pts_.find(p->offset())->second->getPointType()) 
+            newP->getPointType() != oldP->getPointType()) 
         {
-            fprintf(stderr,"WARNING: not creating imgPoint at %lx, type "
-                    "%d. Existing point has type %d %s[%d]\n", p->offset(), 
-                    p->getPointType(), 
-                    inst_pts_.find(p->offset())->second->getPointType(),
+            fprintf(stderr,"WARNING: merging imgPoint info at %lx, new point type "
+                    "is %d, existing point has type %d %s[%d]\n", newP->offset(), 
+                    newP->getPointType(), 
+                    inst_pts_.find(newP->offset())->second->getPointType(),
                     FILE__,__LINE__);
+            oldP->mergePoint(newP);
         }
         return false;
     }
-    inst_pts_[p->offset()] = p;
+    inst_pts_[newP->offset()] = newP;
     return true;
 }
 

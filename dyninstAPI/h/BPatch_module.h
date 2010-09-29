@@ -167,14 +167,21 @@ public:
                           bool incUninstrumentable =false,
                           bool dont_use_regex = false));
 
+
+    //  BPatch_addressSpace::findFunctionByEntry
+    //  Returns the function starting at the given address
+    API_EXPORT(Int, (entry),
+    BPatch_function *,findFunctionByEntry,(Dyninst::Address entry));
+
+
     // FIXME: This (undocumented) method only works for function entry addresses.
     API_EXPORT(Int, (addr, funcs, notify_on_failure, incUninstrumentable),
 
     BPatch_Vector<BPatch_function *> *,
-      findFunctionByAddress,(void *addr,
-                             BPatch_Vector<BPatch_function *> &funcs,
-                             bool notify_on_failure = true,
-                             bool incUninstrumentable = false));
+    findFunctionByAddress,(void *addr,
+                           BPatch_Vector<BPatch_function *> &funcs,
+                           bool notify_on_failure = true,
+                           bool incUninstrumentable = false));
 
     // get the module types member (instead of directly accessing)
     API_EXPORT(Int, (), BPatch_typeCollection *, getModuleTypes, ());

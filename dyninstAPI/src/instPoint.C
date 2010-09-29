@@ -1324,7 +1324,7 @@ bool instPoint::isReturnInstruction()
 bool instPoint::setResolved()
 {
     if (img_p_->isUnresolved()) {
-        img_p_->setResolved();
+        img_p_->setUnresolved(false);
         func()->setPointResolved( this );
         return true;
     }
