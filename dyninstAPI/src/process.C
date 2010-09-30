@@ -4763,8 +4763,8 @@ bool process::handleStopThread(EventRecord &ev)
         return false;
     }
 
-    mal_printf("handling stopThread %lx=>%lx %s[%d]\n", 
-               pointAddr, (long)calculation, FILE__,__LINE__); 
+    mal_printf("handling stopThread %lx[%lx]=>%lx %s[%d]\n", 
+               pointAddr, relocPointAddr, (long)calculation, FILE__,__LINE__); 
 /* 2. If the callbackID is negative, the calculation is meant to be
       interpreted as the address of code, so we call stopThreadCtrlTransfer
       to translate the target to an unrelocated address */
