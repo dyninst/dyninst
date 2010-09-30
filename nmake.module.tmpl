@@ -100,9 +100,10 @@ clean:
 	$(RM) *.exp 
 	$(RM) *.lib 
 	$(RM) *.obj 
-	$(RM)	$(TESTDRIVER_LIBS) libtestA.dll libtestB.dll
+	$(RM)	$(TESTDRIVER_LIBS) libtestA.dll libtestB.dll libtestsymtab.dll test*.dll
 	$(RM) *.exe 
 	$(RM) *.pdb
+	$(RM) *.manifest
 
 # Old Install commands if we actually want to install
 # -$(MKDIR) $(DEST)
