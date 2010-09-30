@@ -456,10 +456,14 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
 
         // 3.2.2 else parse the return addr as a new function
         else {
-            //KEVINTODO: we get false positives for tail-calls, but I don't understand why
-            mal_printf("hybridCallbacks.C[%d] Observed abuse of normal return "
-                    "instruction semantics for insn at %lx target %lx\n",
-                    __LINE__, point->getAddress(), returnAddr);
+            if ( point->getFunction()->getModule()->isExploratoryModeOn() ) {
+                // otherwise we've instrumented a function in trusted library
+                // because we want to catch its callbacks into our code, but in
+                // the process are catching calls into other modules
+                mal_printf("hybridCallbacks.C[%d] Observed abuse of normal return "
+                        "instruction semantics for insn at %lx target %lx\n",
+                        __LINE__, point->getAddress(), returnAddr);
+            }
             analyzeNewFunction( returnAddr, true );
         }
 

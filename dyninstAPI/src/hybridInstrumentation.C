@@ -549,6 +549,7 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
     std::set<BPatch_module*> callerMods; 
     bool parsedAfterCallPoint = false;//ensures we parse after the call point only once
     bool didSomeParsing = false; // if we parsed after another call point
+    proc()->beginInsertionSet();
 
     if (calledFunc) {
         // add fallthrough for any other calls to this function, iterate 
@@ -573,8 +574,8 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
                 callerMods.insert((*cIter)->getFunction()->getModule());
                 dupFuncCheck.insert((*cIter)->getFunction());
                 
-                // We have to make sure we parse the original call, it won't 
-                // be listed here if it's an indirect call
+                // We have to make sure we parse after the original call, it 
+                // won't be listed here if it's an indirect call
                 if ( ! parsedAfterCallPoint && (*cIter) == callPoint ) {
                     parsedAfterCallPoint = true;
                 }
@@ -599,14 +600,19 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
         didSomeParsing = true;
 
         callerMods.insert(callPoint->getFunction()->getModule());
-    } 
-    // if we parsed at the fallthrough addr and there is no active loop
+    }
+
+    // if we're not re-instrumenting the function because we'd already
+    // parsed the fallthrough addr and there is no active loop
     // instrumentation in this function (in which case changing the 
     // instrumentation would cause changes to the code, resulting in 
     // a false positive code overwrite) re-instrument the point to use
     // the cache, if it's an indirect transfer, or remove it altogether
     // if it's a static transfer. 
-    for (unsigned ftidx=0; ftidx < fallThroughFuncs.size(); ftidx++) {
+    for (unsigned ftidx=0; 
+         !parsedAfterCallPoint && ftidx < fallThroughFuncs.size(); 
+         ftidx++) 
+    {
         BPatch_function *fallThroughFunc = fallThroughFuncs[ftidx];
         if ( hybridOW() &&
              ! hybridOW()->hasLoopInstrumentation(true, *fallThroughFunc) )
@@ -642,12 +648,14 @@ bool HybridAnalysis::parseAfterCallAndInstrument(BPatch_point *callPoint,
         callPoint->getFunction()->relocateFunction();
 
         // instrument all modules that have modified functions
-        success = instrumentModules();
+        success = instrumentModules(false);
     }
 
     // fill in the post-call area with a patch 
     // (even if we didn't parse, we have to do this to get rid of the illegal instructions in the pad)
+    proc()->finalizeInsertionSet(false);
     success = callPoint->patchPostCallArea() && success;
+
     return success;
 }
 
