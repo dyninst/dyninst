@@ -58,9 +58,13 @@ class CFAtom : public Atom {
   typedef dyn_detail::boost::shared_ptr<CFAtom> Ptr;
   typedef std::map<Address, TargetInt *> DestinationMap;
 
-  bool generate(GenStack &);
+  bool generate(const codeGen &templ,
+                const Trace *,
+                CodeBuffer &buffer);
 
-  virtual TrackerElement *tracker() const;
+  TrackerElement *tracker() const;
+  TrackerElement *destTracker(TargetInt *dest) const;
+  TrackerElement *addrTracker(Address addr) const;
 
   // Factory function... we create these first,
   // then fill them in.
@@ -125,32 +129,32 @@ class CFAtom : public Atom {
   // But for now they can go here
   // The Instruction input allows pulling out ancillary data (e.g.,
   // conditions, prediction, etc.
-  bool generateBranch(GenStack &gens,
+  bool generateBranch(CodeBuffer &gens,
 		      TargetInt *to,
 		      InstructionAPI::Instruction::Ptr insn,
 		      bool fallthrough);
 
-  bool generateCall(GenStack &gens,
+  bool generateCall(CodeBuffer &gens,
 		    TargetInt *to,
 		    InstructionAPI::Instruction::Ptr insn); 
 
-  bool generateConditionalBranch(GenStack &gens,
+  bool generateConditionalBranch(CodeBuffer &gens,
 				 TargetInt *to,
 				 InstructionAPI::Instruction::Ptr insn); 
   // The Register holds the translated destination (if any)
   // TODO replace with the register IDs that Bill's building
   typedef unsigned Register;
-  bool generateIndirect(GenStack &gens,
+  bool generateIndirect(CodeBuffer &gens,
 			Register reg,
 			InstructionAPI::Instruction::Ptr insn);
-  bool generateIndirectCall(GenStack &gens,
+  bool generateIndirectCall(CodeBuffer &gens,
 			    Register reg,
 			    InstructionAPI::Instruction::Ptr insn,
 			    Address origAddr);
   
-  bool generateAddressTranslator(codeGen &gen,
+  bool generateAddressTranslator(CodeBuffer &buffer,
 				 Register &reg);  
- };
+};
 
 struct CFPatch : public Patch {
   // What type of patch are we?
@@ -161,12 +165,14 @@ struct CFPatch : public Patch {
     Data } Type;
   // Data: RIP-relative expression for the destination
 
- CFPatch(Type a, InstructionAPI::Instruction::Ptr b, TargetInt *c,
+ CFPatch(Type a, 
+         InstructionAPI::Instruction::Ptr b, 
+         TargetInt *c,
 	 Address d = 0) :
   type(a), orig_insn(b), target(c), origAddr_(d) {};
   
-  virtual bool apply(codeGen &gen, int iteration, int shift);
-  virtual bool preapply(codeGen &gen);
+  virtual bool apply(codeGen &gen, CodeBuffer *buf);
+  virtual unsigned estimate(codeGen &templ);
   virtual ~CFPatch() {};
 
   Type type;
@@ -185,11 +191,11 @@ struct PaddingPatch : public Patch {
   // we get notified of address finickiness.
 
  PaddingPatch(bblInstance *b) : block_(b) {};
-  virtual bool apply(codeGen &gen, int, int);
-  virtual bool preapply(codeGen &gen);
-  virtual ~PaddingPatch() {};
-
-  bblInstance *block_;
+   virtual bool apply(codeGen &gen, CodeBuffer *buf);
+   virtual unsigned estimate(codeGen &templ);
+   virtual ~PaddingPatch() {};
+   
+   bblInstance *block_;
 };
 
 };

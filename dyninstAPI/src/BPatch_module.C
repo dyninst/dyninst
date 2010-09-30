@@ -912,6 +912,16 @@ BPatchSnippetHandle* BPatch_module::insertFiniCallbackInt(BPatch_snippet& callba
     return NULL;
 }
 
+BPatch_function *BPatch_module::findFunctionByEntryInt(Dyninst::Address entry)
+{
+    BPatch_function* func = addSpace->findFunctionByEntry(entry);
+    if (func && func->getModule() == this) {
+        return func;
+    }
+
+    return NULL;
+}
+
 
 #ifdef IBM_BPATCH_COMPAT
 

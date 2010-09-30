@@ -33,6 +33,7 @@
 #include "Atom.h"
 #include "instructionAPI/h/Instruction.h"
 #include "../CodeTracker.h"
+#include "../CodeBuffer.h"
 
 using namespace Dyninst;
 using namespace Relocation;
@@ -40,13 +41,15 @@ using namespace InstructionAPI;
 
 /////////////////////////
 
-bool CopyInsn::generate(GenStack &gens) {
-  gens().copy(insn_->ptr(), insn_->size());
+bool CopyInsn::generate(const codeGen &, 
+                        const Trace *t,
+                        CodeBuffer &buffer) {
+   buffer.addPIC(insn_->ptr(), insn_->size(), tracker(t->bbl()->func()));
   return true;
 }
 
-TrackerElement *CopyInsn::tracker() const {
-  OriginalTracker *e = new OriginalTracker(addr_, insn_->size());
+TrackerElement *CopyInsn::tracker(int_function *func) const {
+  OriginalTracker *e = new OriginalTracker(addr_, func);
   return e;
 }
 

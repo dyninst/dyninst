@@ -42,7 +42,7 @@
 #include "Transformers/Transformer.h"
 
 #include "Springboard.h"
-
+#include "CodeBuffer.h"
 
 class int_function;
 class int_basicTrace;
@@ -123,13 +123,13 @@ class CodeMover {
   unsigned size() const;
 
   // (void *) to start of code
-  void *ptr() const { return gen_.start_ptr(); }
+  void *ptr() const;
 
   std::string format() const;
 
  private:
     
- CodeMover(CodeTracker &t) : addr_(0), size_(0), tracker_(t) {};
+  CodeMover(CodeTracker &t) : addr_(0), tracker_(t) {};
 
   
   void setAddr(Address &addr) { addr_ = addr; }
@@ -148,17 +148,17 @@ class CodeMover {
 
   Address addr_;
 
-  codeGen gen_;
-
   EntryMap entryMap_;
 
   PriorityMap priorityMap_;
   
   SpringboardMap sboardMap_;
 
-  unsigned size_;
-
   CodeTracker &tracker_;
+
+  CodeBuffer buffer_;
+  codeGen &gen();
+
 };
 
 

@@ -79,27 +79,28 @@ bool CFAtomCreator::processTrace(TraceList::iterator &iter) {
   }
 
   for (unsigned i = 0; i < successors.size(); ++i) {
-    TargetInt *targ = successors[i].first;
-    EdgeTypeEnum type = successors[i].second;
+    TargetInt *targ = successors[i].targ;
+    EdgeTypeEnum type = successors[i].type;
+    Address addr = successors[i].addr;
     switch(type) {
     case INDIRECT: {
       relocation_cerr << "Adding indirect destination: "
-		      << std::hex << targ->addr() << std::dec << endl;
-      ender->addDestination(targ->addr(), targ);
+		      << std::hex << addr << std::dec << endl;
+      ender->addDestination(addr, targ);
       break;
     }
     case CALL:
     case DIRECT:
     case COND_TAKEN:
       relocation_cerr << "Adding taken destination: "
-		      << std::hex << targ->addr() << std::dec << endl;
+		      << std::hex << addr << std::dec << endl;
       ender->addDestination(CFAtom::Taken, targ);
       break;
     case COND_NOT_TAKEN:
     case FALLTHROUGH:
     case CALL_FT:
       relocation_cerr << "Adding fallthrough destination: "
-		      << std::hex << targ->addr() << std::dec << endl;
+		      << std::hex << addr << std::dec << endl;
       ender->addDestination(CFAtom::Fallthrough, targ);
       break;
     case NOEDGE:
@@ -140,7 +141,7 @@ bool CFAtomCreator::processTrace(TraceList::iterator &iter) {
 
 
 void CFAtomCreator::getInterproceduralSuccessors(const bblInstance *bbl,
-						    SuccVec &succ) {
+                                                 SuccVec &succ) {
   int_basicBlock *block = bbl->block();
   int_function *func = block->func();
 
@@ -165,52 +166,96 @@ void CFAtomCreator::getInterproceduralSuccessors(const bblInstance *bbl,
   const ParseAPI::Block::edgelist &targets = block->llb()->targets();
   ParseAPI::Block::edgelist::iterator iter = targets.begin();
   for (; iter != targets.end(); ++iter) {
-    if ((*iter)->sinkEdge()) continue;
+     Succ out(NULL, (*iter)->type(), 0);
 
-    Succ out;
-    out.first = NULL;
-    out.second = (*iter)->type();
-    
-    // We have an image_basicBlock... now we need to map up
-    // to both an int_basicBlock and an bblInstance.
-    image_basicBlock *ib = static_cast<image_basicBlock *>((*iter)->trg());
-    
-    if (out.second == RET) {
-        continue;
-    }
-    else if (out.second != CALL) {
-      int_basicBlock *targ = func->findBlockByImage(ib);
-      assert(targ);
-      out.first = new Target<bblInstance *>(targ->origInstance());
-    }
-    else {
-      // Trace must be an entry point since we reach it with
-      // a call...
-      image_func *iCallee = ib->getEntryFunc();
-      int_function *callee = NULL;
-      if (iCallee) callee = bbl->proc()->findFuncByInternalFunc(iCallee);
-      if (callee) {
-	// Make sure it's parsed
-	callee->blocks();
-	// Same as above
-	int_basicBlock *targ = callee->findBlockByImage(ib);
-	out.first = new Target<bblInstance *>(targ->origInstance());
-      }
-      else {
-	// Okay. This is obviously (really) a call to a PLT
-	// entry. Now, calls to PLT entries are tricky, since
-	// we currently don't parse them. OTOH, that means that
-	// I don't have anything to find a bblInstance with.
-	// Instead we use a special-form Target
+     if ((*iter)->sinkEdge()) {
+        // Special case time
+        // A sink edge represents an unknown (or illegal/unparseable)
+        // successor. Unfortunately, Kevin sees these all the time.
+        // ParseAPI doesn't represent the destination, but should still
+        // have an edge type. So if we see a direct sink edge, we 
+        // need to do some extra work.
+        switch ((*iter)->type()) {
+           case ParseAPI::CALL:
+           case ParseAPI::COND_TAKEN:
+           case ParseAPI::DIRECT: {
+              // Okay, this must have had an unparseable target. We want
+              // it anyway, so figure out manually what the destination
+              // is by binding the PC to the address. Ugh. Ugh ugh ugh.
+              std::vector<std::pair<InstructionAPI::Instruction::Ptr, Address> > insns;
+              bbl->getInsnInstances(insns);
+              InstructionAPI::Instruction::Ptr insn = insns.back().first;
+              Expression::Ptr exp = insn->getControlFlowTarget();
+              assert(exp);
+              static Expression::Ptr thePC(new RegisterAST(MachRegister::getPC(Arch_x86)));
+              static Expression::Ptr thePC64(new RegisterAST(MachRegister::getPC(Arch_x86_64)));
+              exp->bind(thePC.get(), Result(u32, insns.back().second));
+              exp->bind(thePC64.get(), Result(u64, insns.back().second));
+              Result res = exp->eval();
+              if (res.defined) {
+                 out.targ = new Target<Address>(res.convert<Address>());
+                 out.addr = res.convert<Address>();
+              }
+              break;
+           }
+              
+           case ParseAPI::COND_NOT_TAKEN:
+           case ParseAPI::FALLTHROUGH:
+           case ParseAPI::CALL_FT: {
+              out.targ = new Target<Address>(bbl->endAddr());
+              out.addr = bbl->endAddr();
+              break;
+           }
 
-	// First, assert that our offset is 0. If it isn't we're in
-	// real trouble since we can't upcast.
-	assert(bbl->firstInsnAddr() == block->llb()->firstInsnOffset());
-	out.first = new Target<Address>(ib->firstInsnOffset());
-      }
-    }
-    assert(out.first);
-    succ.push_back(out);
+           default:
+              break;
+        }
+     }
+     else {
+        // We have an image_basicBlock... now we need to map up
+        // to both an int_basicBlock and an bblInstance.
+        image_basicBlock *ib = static_cast<image_basicBlock *>((*iter)->trg());
+        
+        if (out.type == RET) {
+           continue;
+        }
+        else if (out.type != CALL) {
+           int_basicBlock *targ = func->findBlockByImage(ib);
+           assert(targ);
+           out.targ = new Target<bblInstance *>(targ->origInstance());
+           out.addr = targ->origInstance()->firstInsnAddr();
+        }
+        else {
+           // Trace must be an entry point since we reach it with
+           // a call...
+           image_func *iCallee = ib->getEntryFunc();
+           int_function *callee = NULL;
+           if (iCallee) callee = bbl->proc()->findFuncByInternalFunc(iCallee);
+           if (callee) {
+              // Make sure it's parsed
+              callee->blocks();
+              // Same as above
+              int_basicBlock *targ = callee->findBlockByImage(ib);
+              out.targ = new Target<bblInstance *>(targ->origInstance());
+              out.addr = targ->origInstance()->firstInsnAddr();
+           }
+           else {
+              // Okay. This is obviously (really) a call to a PLT
+              // entry. Now, calls to PLT entries are tricky, since
+              // we currently don't parse them. OTOH, that means that
+              // I don't have anything to find a bblInstance with.
+              // Instead we use a special-form Target
+              
+              // First, assert that our offset is 0. If it isn't we're in
+              // real trouble since we can't upcast.
+              assert(bbl->firstInsnAddr() == block->llb()->firstInsnOffset());
+              out.targ = new Target<Address>(ib->firstInsnOffset());
+              out.addr = ib->firstInsnOffset();
+           }
+        }
+     }
+     if (out.targ)
+        succ.push_back(out);
   }
 }
 

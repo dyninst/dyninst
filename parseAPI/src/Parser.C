@@ -735,8 +735,9 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                     if (is_nonret) {
                         parsing_printf("\t Disallowing FT edge: function in "
                                        "defensive binary may not return\n");
-                        mal_printf("Disallowing FT edge: function in "
-                                   "defensive binary may not return\n");
+                        mal_printf("Disallowing FT edge: function %lx in "
+                                   "defensive binary may not return\n", 
+                                   ct->addr());
                     } else {
                         is_nonret |= (TAMPER_NONE != ct->tampersStack());
                         if (is_nonret) {

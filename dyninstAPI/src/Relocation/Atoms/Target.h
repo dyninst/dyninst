@@ -47,41 +47,43 @@ namespace Relocation {
 // Preliminary requirement: T must be persistent during the existence
 // of this class so we can use a reference to it. 
 
-// adjAddr is a hack during code generation so we can predict where a Target
-// will be off known data. Anything that's not being generated is static for
-// these purposes, but an element *within* code generation may move.
+// predictedAddr takes into account things moving during code generation
+
+class CodeBuffer;
 
 class TargetInt {
  public:
   typedef enum {
     Illegal,
     TraceTarget,
-    BBLTarget,
-    PLTTarget } type_t;
+    BlockTarget,
+    AddrTarget, } type_t;
 
-  virtual Address addr() const { return 0; }
-  virtual Address adjAddr(int, int) const { return 0; }
-  virtual bool valid() const { return false; }
- TargetInt() : necessary_(true) {};
+  TargetInt() : necessary_(true) {};
   virtual ~TargetInt() {};
   virtual std::string format() const { return "<INVALID>"; }
 
+  virtual Address origAddr() const = 0;
+
+  // It would be nice to eventually move these into the code generator loop, but
+  // for now it's okay to keep them here. 
   virtual bool necessary() const { return necessary_; };
   virtual void setNecessary(bool a) { necessary_ = a; };
 
   virtual type_t type() const { return Illegal; };
+  
+  virtual bool matches(Trace::Ptr) const { return false; }
+  virtual int label(CodeBuffer *) const { return -1; }
 
-  virtual bool matches(Trace::Ptr) const { return false; };
- private:
+  protected:
+
   bool necessary_;
 };
 
 template <typename T>
 class Target : public TargetInt{
  public:
-  Address addr() const;
-  Address adjAddr(int iteration, int shift) const;
-  bool valid() const;
+   //Address addr() const;
  Target(const T t) : t_(t) {};
   ~Target() {};
 
@@ -89,32 +91,30 @@ class Target : public TargetInt{
 
  private:
   const T &t_;
-
 };
 
 template <>
   class Target<Trace::Ptr> : public TargetInt {
  public:
-  Address addr() const { return t_->curAddr(); }
-  Address adjAddr(int iteration, int shift) const {
-    return ((t_->iteration() >= iteration) ? t_->curAddr() : (t_->curAddr() + shift));
-  }
+   //Address addr() const { return t_->curAddr(); }
 
-  bool valid() const { return addr() != 0; }
- Target(Trace::Ptr t) : t_(t) {}
+  Target(Trace::Ptr t) : t_(t) {}
   ~Target() {}
   const Trace::Ptr &t() const { return t_; };
-
+  Address origAddr() const { return t_->origAddr(); };
+  
   virtual type_t type() const { return TraceTarget; };
-
+  
   virtual string format() const { 
-    stringstream ret;
-    ret << "B{" << t_->id() << "" << (necessary() ? "T" : "S") << "}";
-    return ret.str();
+     stringstream ret;
+     ret << "B{" << t_->id() << "" << (necessary() ? "T" : "S") << "}";
+     return ret.str();
   }
+  
+  virtual bool matches(Trace::Ptr t) const { return (t_ == t); }
 
-  virtual bool matches(Trace::Ptr next) const { return t_ == next; }
-
+  int label(CodeBuffer *) const { return t_->getLabel(); };
+  
  private:
   const Trace::Ptr t_;
 };
@@ -122,15 +122,15 @@ template <>
 template <>
 class Target<bblInstance *> : public TargetInt {
  public:
-  Address addr() const { return t_->firstInsnAddr(); }
-  Address adjAddr(int, int) const { return addr(); }
-  bool valid() const { return true; }
+   //Address addr() const { return t_->firstInsnAddr(); }
  Target(bblInstance *t) : t_(t) {}
   ~Target() {}
 
   bblInstance *t() const { return t_; };
 
-  virtual type_t type() const { return BBLTarget; };
+  virtual type_t type() const { return BlockTarget; };
+
+  Address origAddr() const { return t_->firstInsnAddr(); };
   
   virtual string format() const { 
     stringstream ret;
@@ -138,24 +138,24 @@ class Target<bblInstance *> : public TargetInt {
     return ret.str();
   }
 
+  int label(CodeBuffer *) const;
+
  private:
   bblInstance *t_;
 };
 
 
-// This is a standin for a "PLT Entry" type
-typedef Address PLT_Entry;
 template <>
-class Target<PLT_Entry> : public TargetInt {
+class Target<Address> : public TargetInt {
  public:
-  Address addr() const { return t_; }
-  Address adjAddr(int, int) const { return addr(); }
-  bool valid() const { return true; }
- Target(PLT_Entry t) : t_(t) {}
+   //Address addr() const { return t_; }
+ Target(Address t) : t_(t) {}
   ~Target() {}
-  const PLT_Entry &t() const { return t_; }
+  const Address &t() const { return t_; }
 
-  virtual type_t type() const { return PLTTarget; };
+  virtual type_t type() const { return AddrTarget; };
+
+  Address origAddr() const { return t_; };
 
   virtual string format() const {
     stringstream ret;
@@ -163,8 +163,10 @@ class Target<PLT_Entry> : public TargetInt {
     return ret.str();
   }
 
+  int label(CodeBuffer *) const;
+
  private:
-  const PLT_Entry t_;
+  const Address t_;
 };
 
 };

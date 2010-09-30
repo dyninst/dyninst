@@ -185,6 +185,8 @@ bool Instrumenter::addEdgeInstrumentation(baseTramp *tramp,
 					  CFAtom::Ptr cf,
 					  Address dest,
 					  Trace::Ptr cur) {
+  if (tramp->empty()) return true;
+
   // We handle edge instrumentation by creating a new Trace and
   // wiring it in in the appropriate place. The actual adding is
   // done later, since we can't modify the list from here. 

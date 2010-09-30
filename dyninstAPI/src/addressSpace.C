@@ -833,8 +833,13 @@ bool AddressSpace::isValidAddress(const Address addr) const{
 mapped_object *AddressSpace::findObject(Address addr) {
     for (unsigned i=0; i<mapped_objects.size(); i++)
     {
-        if (addr >= mapped_objects[i]->codeAbs() &&
-            addr < mapped_objects[i]->codeAbs() + mapped_objects[i]->imageSize())
+        Address objEnd;
+        if (mapped_objects[i]->hybridMode()) {
+            objEnd = mapped_objects[i]->codeAbs() + mapped_objects[i]->imageSize();
+        } else {
+            objEnd = mapped_objects[i]->memoryEnd();
+        }
+        if (addr >= mapped_objects[i]->codeAbs() && addr < objEnd)
         {
             return mapped_objects[i];
         }
@@ -1647,18 +1652,16 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
           // translate thread's active PC to orig addr
           Frame tframe = (*titer)->getActiveFrame();
           Address pcOrig=0;
-          bblInstance *origbbi=NULL;
+          int_function *origFunc=NULL;
           baseTrampInstance *bti=NULL;
-          if (!getRelocInfo(tframe.getPC(), pcOrig, origbbi, bti)) {
-              mal_printf("ERROR: active frame PC %lx does not correspond "
-                         "to code %s[%d]\n",tframe.getPC(), FILE__,__LINE__);
+          if (!getRelocInfo(tframe.getPC(), pcOrig, origFunc, bti)) {
               continue;
           }
           // if the PC matches a modified function, change the PC
           for (FuncSet::const_iterator fit = begin; fit != end; fit++) {
               if ((*fit)->findBlockInstanceByAddr(pcOrig)) {
                   list<Address> relocPCs;
-                  getRelocAddrs(pcOrig, origbbi, relocPCs);
+                  getRelocAddrs(pcOrig, origFunc, relocPCs);
                   (*titer)->get_lwp()->changePC(relocPCs.back(),NULL);
                   break;
               }
@@ -1813,13 +1816,19 @@ bool AddressSpace::patchCode(CodeMover::Ptr cm,
 void AddressSpace::causeTemplateInstantiations() {
 }
 
+void AddressSpace::getRelocAddrs(Address orig,
+                                 bblInstance *bbl,
+                                 std::list<Address> &relocs) const {
+   return getRelocAddrs(orig, bbl->func(), relocs);
+}
+
 void AddressSpace::getRelocAddrs(Address orig, 
-				 bblInstance *inst,
+                                 int_function *func,
 				 std::list<Address> &relocs) const {
   for (CodeTrackers::const_iterator iter = relocatedCode_.begin();
        iter != relocatedCode_.end(); ++iter) {
     Relocation::CodeTracker::RelocatedElements reloc;
-    if (iter->origToReloc(orig, inst, reloc)) {
+    if (iter->origToReloc(orig, func, reloc)) {
       // Pick instrumentation if it's there, otherwise use the reloc instruction
       if (reloc.instrumentation) {
 	relocs.push_back(reloc.instrumentation);
@@ -1833,46 +1842,23 @@ void AddressSpace::getRelocAddrs(Address orig,
 }      
 
 bool AddressSpace::getRelocInfo(Address relocAddr,
-                                Address &origAddr,
-                                bblInstance *&origInst,
-                                baseTrampInstance *&baseT) 
+				Address &origAddr,
+				int_function *&origFunc,
+				baseTrampInstance *&baseT) 
 {
   baseT = NULL;
-  bool ret = false;
-  // first check unrelocated blocks
-  int_basicBlock *blk = findBasicBlockByAddr(relocAddr);
-  if (blk) {
-    if (blk->llb()->isShared()) {
-        mal_printf("WARNING: picking arbitrary bbi for shared block at %lx "
-                   "%s[%d]\n",blk->origInstance()->firstInsnAddr(),
-                   FILE__,__LINE__);
-    }
-    origAddr = relocAddr;
-    origInst = blk->origInstance();
-    ret = true;
+  origFunc = NULL;
+
+  // address is relocated (or bad), check relocation maps
+  for (CodeTrackers::const_iterator iter = relocatedCode_.begin();
+       iter != relocatedCode_.end(); ++iter) 
+  {
+     if (iter->relocToOrig(relocAddr, origAddr, origFunc, baseT)) {
+        return true;
+     }
   }
-  if (!ret) {
-      // address is relocated (or bad), check relocation maps
-      for (CodeTrackers::const_iterator iter = relocatedCode_.begin();
-           iter != relocatedCode_.end(); ++iter) 
-      {
-          if (iter->relocToOrig(relocAddr, origAddr, origInst)) {
-              baseT = iter->getBaseT(relocAddr);
-              ret = true;
-              break;
-          }
-      }
-  }
-  if (ret) {
-      assert(origInst);
-      // ensure that origAddr is in origInst, it may not be due to
-      // block splitting
-      while (origAddr >= origInst->endAddr()) {
-          origInst = origInst->getFallthroughBBL();
-          assert(origInst);
-      }
-  }
-  return ret;
+
+  return false;
 }
 
 void AddressSpace::addModifiedFunction(int_function *func) {
@@ -1885,16 +1871,19 @@ void AddressSpace::addDefensivePad(bblInstance *callBlock, Address padStart, uns
   // We want to register these in terms of a bblInstance that the pad ends, but 
   // the CFG can change out from under us; therefore, for lookup we use an instPoint
   // as they are invariant. 
-
-  instPoint *point = callBlock->func()->findInstPByAddr(callBlock->lastInsnAddr());
-  if (!point) {
-      callBlock->func()->funcCalls();
-      point = callBlock->func()->findInstPByAddr(callBlock->lastInsnAddr());
-  }
-  assert(point);
-
-  forwardDefensiveMap_[point].insert(std::make_pair(padStart, size));
-  reverseDefensiveMap_.insert(padStart, padStart+size, point);
+   
+   instPoint *point = callBlock->func()->findInstPByAddr(callBlock->lastInsnAddr());
+   if (!point) {
+       callBlock->func()->funcCalls();
+       point = callBlock->func()->findInstPByAddr(callBlock->lastInsnAddr());
+   }
+   if (!point) {
+       // Kevin didn't instrument it so we don't care :)
+       return;
+   }
+   
+   forwardDefensiveMap_[point].insert(std::make_pair(padStart, size));
+   reverseDefensiveMap_.insert(padStart, padStart+size, point);
 }
 
 void AddressSpace::getPreviousInstrumentationInstances(baseTramp *bt,

@@ -49,7 +49,7 @@ void newCodeCB(std::vector<BPatch_function*> &newFuncs,
 /* Invoked twice for every signal handler function, the first time we
  * just adjust the value of the saved fault address to its unrelocated 
  * counterpart (in the EXCEPTION_RECORD), the second time we do this
- * translation for the CONTEXT structure, which is the PC that is used
+ * translation for the CONTEXT structure, containing the PC that is used
  * when execution resumes, and we replace instrumentation at the handler's 
  * exit points because we didn't know the contextAddr before 
  */
@@ -66,23 +66,30 @@ void HybridAnalysis::signalHandlerEntryCB(BPatch_point *point, void *pcAddr)
     } else {
         func->setHandlerFaultAddrAddr((Address)pcAddr,true);
         handlerFunctions[(Address)func->getBaseAddr()] = (Address)pcAddr;
+
         // remove any exit-point instrumentation and add new instrumentation 
         // at exit points
-        if ( instrumentedFuncs->end() != instrumentedFuncs->find(func) ) {
+        proc()->beginInsertionSet();
+        std::map<BPatch_point*,BPatchSnippetHandle*> *funcPoints = 
+            (*instrumentedFuncs)[func];
+        if ( funcPoints ) {
             std::map<BPatch_point*, BPatchSnippetHandle*>::iterator pit;
-            for (pit  = (*instrumentedFuncs)[func]->begin(); 
-                 pit != (*instrumentedFuncs)[func]->end(); 
-                 pit++) 
+            pit = funcPoints->begin();
+            while (pit != funcPoints->end())
             {
                 if ( BPatch_exit == (*pit).first->getPointType() ) {
                     proc()->deleteSnippet((*pit).second);
-                    (*instrumentedFuncs)[func]->erase( (*pit).first );
+                    funcPoints->erase( (*pit).first );
+                    pit = funcPoints->begin();                    
+                } else {
+                    pit++;
                 }
             }
         }
         instrumentFunction(func, true, true);
+        proc()->finalizeInsertionSet(false);
     }
-    firstHandlerEntry = !firstHandlerEntry;
+    firstHandlerEntry = !firstHandlerEntry; // alternates between true-false
 }
 
 /* If the context of the exception has been changed so that execution
@@ -93,8 +100,9 @@ void HybridAnalysis::signalHandlerExitCB(BPatch_point *point, void *returnAddr)
 {
     mal_printf("\nAt signalHandlerExit(%lx , %lx)\n", 
         point->getAddress(), (Address)returnAddr);
-    BPatch_function *func = proc()->findFunctionByAddr(returnAddr);
-    if (!func) {
+    vector<BPatch_function *> funcs;
+    proc()->findFunctionsByAddr((Address)returnAddr,funcs);
+    if (0 == funcs.size()) {
         analyzeNewFunction((Address)returnAddr, true);
     }
     point->getFunction()->fixHandlerReturnAddr((Address)returnAddr);
@@ -125,22 +133,21 @@ void HybridAnalysis::signalHandlerCB(BPatch_point *point, long signum,
                point->getAddress(), signum, handlers.size());
     bool onlySysHandlers = true;
     std::vector<Address> handlerAddrs;
-
+ 
     // eliminate any handlers in system libraries, and handlers that have 
     // already been parsed, add new handlers to handler function list
     std::vector<Address>::iterator it=handlers.begin();
     while (it < handlers.end())
     {
-        BPatch_function *func = proc()->findFunctionByAddr((void*)*it);
         BPatch_module *mod = proc()->findModuleByAddr(*it);
-
         if (mod->isSystemLib()) {
             it = handlers.erase(it);
             continue;
         } 
 
+        BPatch_function *handlerFunc = proc()->findFunctionByEntry(*it);
         handlerFunctions[*it] = 0;
-        if (func) {
+        if (handlerFunc) {
             it = handlers.erase(it);
             continue;
         } 
@@ -149,7 +156,7 @@ void HybridAnalysis::signalHandlerCB(BPatch_point *point, long signum,
         mal_printf("found handler at %x %s[%d]\n", *it,FILE__,__LINE__);
         onlySysHandlers = false;
         analyzeNewFunction(*it,true);
-        BPatch_function *handlerFunc = proc()->findFunctionByAddr((void*)*it);
+        handlerFunc = proc()->findFunctionByEntry(*it);
         assert(handlerFunc);
         handlerAddrs.push_back(*it);
 
@@ -258,13 +265,12 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
         assert(0);
     }
     if ( targMod != point->getFunction()->getModule() ) {
-        vector<BPatch_function*> targFuncs;
-        targMod->findFunctionByAddress((void*)target,targFuncs,false,true);
+        BPatch_function* targFunc = targMod->findFunctionByEntry(target);
         char modName[16]; 
         char funcName[32];
         targMod->getName(modName,16);
-        if (targFuncs.size()) {
-            targFuncs[0]->getName(funcName,32);
+        if (targFunc) {
+            targFunc->getName(funcName,32);
             mal_printf("%lx => %lx, in module %s to known func %s\n",
                         point->getAddress(),target,modName,funcName);
         } else {
@@ -288,8 +294,8 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
                 mal_printf("stopThread instrumentation found call %lx=>%lx, "
                           "target is in module %s, parsing at fallthrough %s[%d]\n",
                           (long)point->getAddress(), target, modName,FILE__,__LINE__);
-                if (targFuncs.size()) {
-                    parseAfterCallAndInstrument(point, target, targFuncs[0]);
+                if (targFunc) {
+                    parseAfterCallAndInstrument(point, target, targFunc);
                 } else {
                     parseAfterCallAndInstrument(point, target, NULL);
                 }
@@ -314,8 +320,11 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
                 // function so we can find the code at the call instruction's
                 // fallthrough address
 				analyzeNewFunction(target,false);
-				BPatch_function *targFunc = proc()->findFunctionByAddr((void*)target);
-				assert(targFunc);
+				BPatch_function *targFunc = proc()->findFunctionByEntry(target);
+                if (!targFunc) {
+                    analyzeNewFunction(target,false);
+                    targFunc = proc()->findFunctionByEntry(target);
+                }
 				instrumentFunction(targFunc, true, true);
                 return;
             }
@@ -342,42 +351,25 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
 // 2. the point is a call: 
     if (point->getPointType() == BPatch_subroutine) {
 
-        // 2.1 if the target is new, parse at the target
-        BPatch_function *targFunc = proc()->findFunctionByAddr((void*)target);
-        if ( ! targFunc ) {
-            mal_printf("stopThread instrumentation found call %lx=>%lx, "
-                      "parsing at call target %s[%d]\n",
-                     (long)point->getAddress(), target,FILE__,__LINE__);
-            if (analyzeNewFunction( target,true )) {
-                //this happens for some single-instruction functions
-                targFunc = proc()->findFunctionByAddr((void*)target);
-            }
-        }
-
-        // if the target is a new entry point for the target function we'll
-        // split the function and wind up with two or more functions that share
-        // the target address, so make sure they're both instrumented
-        if ( targFunc && (Address)targFunc->getBaseAddr() != target ) {
-            // see if the function starting at the target address is 
-            // truly unparsed, or if the lookup is just masking its presence
-            vector<BPatch_function*> targFuncs;
-            proc()->getImage()->findFunction(target,targFuncs);
-            unsigned i=0;
-            for(; i < targFuncs.size() && 
-                  (Address)targFuncs[i]->getBaseAddr() != target; 
-                i++);
-
-            if (i == targFuncs.size()) //the function at target is REALLY unparsed
-            {
-                mal_printf("discovery instr. got new entry point for func\n");
-                std::set<HybridAnalysisOW::owLoop*> loops;
-                if ( hybridOW()->hasLoopInstrumentation(false, *targFunc, &loops) )
+        // if the target is in the body of an existing function we'll split 
+        // the function and wind up with two or more functions that share
+        // the target address, so make sure we're not in the middle of an
+        // overwrite loop; if we are, check for overwrites immediately
+        BPatch_function *targFunc = proc()->findFunctionByEntry(target);
+        vector<BPatch_function*> targFuncs;
+        proc()->findFunctionsByAddr(target, targFuncs);
+        if (!targFunc && targFuncs.size()) {
+            mal_printf("discovery instr. got new entry point for func\n");
+            std::set<HybridAnalysisOW::owLoop*> loops;
+            for (unsigned tidx=0; tidx < targFuncs.size(); tidx++) {
+                BPatch_function *curFunc = targFuncs[tidx];
+                if ( hybridOW()->hasLoopInstrumentation(false, *curFunc, &loops) )
                 {
                     /* Code sharing will change the loops, the appropriate response
                     is to trigger early exit analysis and remove the loops if 
                     the underlying code hasn't changed */
                     mal_printf("[%d] Removing loop instrumentation for func %lx\n", 
-                                __LINE__,targFunc->getBaseAddr());
+                                __LINE__,curFunc->getBaseAddr());
                     std::set<HybridAnalysisOW::owLoop*>::iterator lIter = 
                         loops.begin();
                     while (lIter != loops.end()) {
@@ -385,19 +377,25 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
                         lIter++;
                     }
                 }
-                //KEVINCOMMENT: not sure why I thought the following was necessary or a good idea 5/26/2010
-                ////remove instrumentation 
-                //removeInstrumentation(targFunc);
-
-                //analyze new function and re-instrument module
-                analyzeNewFunction(target,true);
-                proc()->finalizeInsertionSet(false);
             }
         }
 
-        // 2. if the target is a returning function, parse at the fallthrough address
-        if ( !targFunc || ParseAPI::RETURN == 
-                          targFunc->lowlevel_func()->ifunc()->retstatus() ) 
+        // 2.1 if the target is new, parse at the target
+        if ( ! targFunc ) {
+            mal_printf("stopThread instrumentation found call %lx=>%lx, "
+                      "parsing at call target %s[%d]\n",
+                     (long)point->getAddress(), target,FILE__,__LINE__);
+            if (!analyzeNewFunction( target,true )) {
+                //this happens for some single-instruction functions
+                mal_printf("WARNING: parse of call target %lx=>%lx failed %s[%d]\n",
+                         (long)point->getAddress(), target, FILE__,__LINE__);
+            }
+            targFunc = proc()->findFunctionByEntry(target);
+        }
+
+        // 2.2 if the target is a returning function, parse at the fallthrough
+        if ( ParseAPI::RETURN == 
+             targFunc->lowlevel_func()->ifunc()->retstatus() ) 
         {
             //mal_printf("stopThread instrumentation found returning call %lx=>%lx, "
             //          "parsing after call site\n",
@@ -415,7 +413,8 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
     if ( point->getPointType() == BPatch_locExit ) {
 
         // 3.1 if the return address has been parsed as code, return
-        if ( proc()->findFunctionByAddr( (void*)target ) ) {
+        vector<BPatch_function*> callFuncs;
+        if ( proc()->findFunctionsByAddr( target,callFuncs ) ) {
             return;
         }
         // 3.2 find the call point so we can parse after it
@@ -427,21 +426,22 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
         //   to the return address
         Address returnAddr = target;
         BPatch_point *callPoint = NULL;
-        BPatch_function *caller = proc()->findFunctionByAddr( 
-            (void*)( (Address)returnAddr - 1 ) );
-        if ( !caller ) {
-            mal_printf("hybridCallbacks.C[%d] Observed abuse of normal return "
-                    "instruction semantics for insn at %lx target %lx\n",
-                    __LINE__, point->getAddress(), returnAddr);
-        }
-        else {
-            // find the call point whose fallthrough address matches the return address
-            vector<BPatch_point *> *callPoints = caller->findPoint(BPatch_subroutine);
+        proc()->findFunctionsByAddr( ( (Address)returnAddr - 1 ) , callFuncs );
+        if ( callFuncs.size() ) {
+            // get the call point whose fallthrough addr matches the ret target
+            vector<BPatch_point *> *callPoints = 
+                callFuncs[0]->findPoint(BPatch_subroutine);
             for (int pIdx = callPoints->size() -1; pIdx >= 0; pIdx--) {
                 if ((*callPoints)[pIdx]->getCallFallThroughAddr() == returnAddr) {
                     callPoint = (*callPoints)[pIdx];
                     break;
                 }
+            }
+            assert(callPoint);
+            if (callFuncs.size() > 1) {
+                //KEVINTODO: implement this case
+                mal_printf("callPoint %lx is shared, test this case\n",
+                           callPoint->getAddress());
             }
         }
 
@@ -456,10 +456,10 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
 
         // 3.2.2 else parse the return addr as a new function
         else {
-            mal_printf("stopThread instrumentation found return at %lx, "
-                      "the return address %lx doesn't follow a call insn, "
-                      "parsing it as a new function %s[%d]\n",
-                      point->getAddress(),returnAddr,FILE__,__LINE__);
+            //KEVINTODO: we get false positives for tail-calls, but I don't understand why
+            mal_printf("hybridCallbacks.C[%d] Observed abuse of normal return "
+                    "instruction semantics for insn at %lx target %lx\n",
+                    __LINE__, point->getAddress(), returnAddr);
             analyzeNewFunction( returnAddr, true );
         }
 
@@ -487,12 +487,16 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
     } 
     delete(targets);
 
-    BPatch_function *targfunc = proc()->findFunctionByAddr( (void*)target );
+    bool newParsing;
+    BPatch_function *targfunc = proc()->findFunctionByEntry( target );
     if ( targfunc == NULL ) { 
+        newParsing = true;
+        targfunc = proc()->findFunctionByEntry( target );
         mal_printf("stopThread instrumentation found jump "
                 "at 0x%lx leading to an unparsed target at 0x%lx\n",
                 (long)point->getAddress(), target);
     } else {
+        newParsing = false;
         mal_printf("stopThread instrumentation added an edge for jump "
                 " at 0x%lx leading to a previously parsed target at 0x%lx\n",
                 (long)point->getAddress(), target);
@@ -501,10 +505,24 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
     // add the new edge to the program, parseNewEdgeInFunction will figure
     // out whether to extend the current function or parse as a new one. 
     parseNewEdgeInFunction(point, target);
+    if (!targfunc) {
+        targfunc = proc()->findFunctionByEntry( target );
+    }
 
-    // re-instrument the module if the target hadn't been parsed
-    if ( targfunc == NULL ) { 
+    // manipulate init_retstatus so that we will instrument the function's 
+    // return addresses, since this jump might be a tail call
+    image_func *imgfunc = targfunc->lowlevel_func()->ifunc();
+    FuncReturnStatus initStatus = imgfunc->init_retstatus();
+    if (ParseAPI::RETURN == initStatus) {
+        imgfunc->setinit_retstatus(ParseAPI::UNKNOWN);
+    } 
+
+    // re-instrument the function or the whole module, as needed
+    if (newParsing) {
         instrumentModules();
+    } else if (ParseAPI::RETURN == initStatus) {
+        removeInstrumentation(targfunc);
+        instrumentFunction(targfunc,true,true);
     }
 
 } // end badTransferCB

@@ -275,8 +275,8 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_addressSpace {
                             int cb_ID, void *retVal);
     bool triggerSignalHandlerCB(instPoint *point, int_function *func, long signum, 
                                BPatch_Vector<Dyninst::Address> *handlers); 
-    bool triggerCodeOverwriteCB(Dyninst::Address fault_instruc, 
-                                Dyninst::Address viol_target); 
+    bool triggerCodeOverwriteCB(instPoint * faultPoint,
+                                Dyninst::Address faultTarget); 
     bool setMemoryAccessRights(Dyninst::Address start, Dyninst::Address size, 
                                int rights);
     unsigned char *makeShadowPage(Dyninst::Address pageAddress);

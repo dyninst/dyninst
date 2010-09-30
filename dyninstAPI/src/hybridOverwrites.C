@@ -752,13 +752,15 @@ bool HybridAnalysisOW::setLoopBlocks(owLoop *loop,
                     mal_printf("loop %d has an indirect transfer at %lx with "
                               "target %lx\n", loop->getID(), (*pIter)->getAddress(), 
                               target);
-                    BPatch_function *targFunc = 
-                        proc()->findFunctionByAddr((void*)target);
-                    if (targFunc /*buggy*/ && targFunc->getModule()->isExploratoryModeOn()) {
-                        loopFuncs.insert(targFunc);
-                    } else if (targFunc) {
+                    vector<BPatch_function *> targFuncs;
+                    proc()->findFunctionsByAddr(target,targFuncs);
+                    if (targFuncs.size() && 
+                        targFuncs[0]->getModule()->isExploratoryModeOn()) 
+                    {
+                        loopFuncs.insert(targFuncs.begin(),targFuncs.end());
+                    } else if (targFuncs.size()) {
                         mal_printf("loop contains call to non-mal-func:%lx %d\n",
-                               targFunc->getBaseAddr(), __LINE__);
+                                   targFuncs[0]->getBaseAddr(), __LINE__);
                     }
                 }
             }

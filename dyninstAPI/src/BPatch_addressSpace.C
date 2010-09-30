@@ -561,16 +561,6 @@ BPatch_variableExpr *BPatch_addressSpace::createVariableInt(std::string name,
                                                  type);
 }
 
-
-/*
- * BPatch_addressSpace::findFunctionByAddr
- *
- * Returns the function that contains the specified address, or NULL if the
- * address is not within a function.
- *
- * addr		The address to use for the lookup.
- */
-
 BPatch_function *BPatch_addressSpace::findFunctionByAddrInt(void *addr)
 {
    int_function *func;   
@@ -595,7 +585,35 @@ BPatch_function *BPatch_addressSpace::findFunctionByAddrInt(void *addr)
       return NULL;
    }
 
+   if (func->findBlockByAddr((Address)addr)->llb()->isShared()) {
+       bpwarn("Warning: deprecated function findFunctionByAddr found "
+              "multiple functions sharing address 0x%lx, picking one at "
+              "random.  Use findFunctionByEntry or findFunctionsByAddr\n",
+              addr);
+   }
+
    return findOrCreateBPFunc(func, NULL);
+}
+
+/*
+ *  BPatch_addressSpace::findFunctionByEntry
+ *  
+ *  Returns the function starting at the given address, or NULL if the
+ *  address is not within a function.
+ *
+ *  entry       The address to use for the lookup.
+ */
+BPatch_function *BPatch_addressSpace::findFunctionByEntryInt(Address entry)
+{
+    vector<BPatch_function*> funcs;
+    findFunctionsByAddr(entry, funcs);
+    vector<BPatch_function*>::iterator fit;
+    for (fit = funcs.begin(); fit != funcs.end(); fit++) {
+        if (entry == (Address)(*fit)->getBaseAddrInt()) {
+            return *fit;
+        }
+    }
+    return NULL;
 }
 
 bool BPatch_addressSpace::findFuncsByRange(Address startAddr,
