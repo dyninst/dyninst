@@ -332,9 +332,9 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
         // 1.2 if targMod is a non-system library, then warn, and fall through into
         // handling the transfer as we would any other transfer
         else if ( targMod->isExploratoryModeOn() ) { 
-            mal_printf("WARNING: Transfer into non-instrumented module %s "
-                    "func %s at: %lx=>%lx %s[%d]\n", modName, funcName, (long)point->getAddress(), 
-                    target, FILE__,__LINE__);
+            mal_printf("WARNING: Transfer into instrumented module %s "
+                    "func %s at: %lx=>%lx %s[%d]\n", modName, funcName, 
+                    (long)point->getAddress(), target, FILE__,__LINE__);
         } else { // jumped or called into module that's not recognized as a 
                  // system library and is not instrumented
             if (pointAddr != 0x77c39d78) {
@@ -342,9 +342,10 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
                         "%s func %s that is not recognized as a system lib: "
                         "%lx=>%lx [%d]\n", modName, funcName, 
                         (long)point->getAddress(), target, FILE__,__LINE__);
+            } else {
+                return; // triggers for nspack's transfer into space that's 
+                        // allocated at runtime
             }
-            return; // triggers for nspack's transfer into space that's 
-                    // allocated at runtime
         }
     }
 
@@ -492,10 +493,10 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
     delete(targets);
 
     bool newParsing;
-    BPatch_function *targfunc = proc()->findFunctionByEntry( target );
-    if ( targfunc == NULL ) { 
+    vector<BPatch_function*> targFuncs;
+    proc()->findFunctionsByAddr(target, targFuncs);
+    if ( 0 == targFuncs.size() ) { 
         newParsing = true;
-        targfunc = proc()->findFunctionByEntry( target );
         mal_printf("stopThread instrumentation found jump "
                 "at 0x%lx leading to an unparsed target at 0x%lx\n",
                 (long)point->getAddress(), target);
@@ -509,24 +510,25 @@ void HybridAnalysis::badTransferCB(BPatch_point *point, void *returnValue)
     // add the new edge to the program, parseNewEdgeInFunction will figure
     // out whether to extend the current function or parse as a new one. 
     parseNewEdgeInFunction(point, target);
-    if (!targfunc) {
-        targfunc = proc()->findFunctionByEntry( target );
+    if (0 == targFuncs.size()) {
+        proc()->findFunctionsByAddr( target, targFuncs );
     }
 
     // manipulate init_retstatus so that we will instrument the function's 
     // return addresses, since this jump might be a tail call
-    image_func *imgfunc = targfunc->lowlevel_func()->ifunc();
-    FuncReturnStatus initStatus = imgfunc->init_retstatus();
-    if (ParseAPI::RETURN == initStatus) {
-        imgfunc->setinit_retstatus(ParseAPI::UNKNOWN);
-    } 
+    for (unsigned tidx=0; tidx < targFuncs.size(); tidx++) {
+        image_func *imgfunc = targFuncs[tidx]->lowlevel_func()->ifunc();
+        FuncReturnStatus initStatus = imgfunc->init_retstatus();
+        if (ParseAPI::RETURN == initStatus) {
+            imgfunc->setinit_retstatus(ParseAPI::UNKNOWN);
+            removeInstrumentation(targFuncs[tidx]);
+            instrumentFunction(targFuncs[tidx],true,true);
+        } 
+    }
 
     // re-instrument the function or the whole module, as needed
     if (newParsing) {
         instrumentModules();
-    } else if (ParseAPI::RETURN == initStatus) {
-        removeInstrumentation(targfunc);
-        instrumentFunction(targfunc,true,true);
     }
 
 } // end badTransferCB

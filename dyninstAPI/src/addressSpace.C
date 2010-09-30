@@ -1606,7 +1606,8 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
   if (dyn_debug_relocation || dyn_debug_write) {
       using namespace InstructionAPI;
       // Print out the buffer we just created
-      cerr << "DUMPING RELOCATION BUFFER" << endl;
+      cerr << "DUMPING RELOCATION BUFFER " << hex 
+           << cm->blockMap().begin()->first->firstInsnAddr() << dec << endl;
       Address base = baseAddr;
       InstructionDecoder deco
         (cm->ptr(),cm->size(),getArch());
@@ -1663,6 +1664,9 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
                   list<Address> relocPCs;
                   getRelocAddrs(pcOrig, origFunc, relocPCs);
                   (*titer)->get_lwp()->changePC(relocPCs.back(),NULL);
+                  mal_printf("Pulling active frame PC into newest relocation "
+                             "orig[%lx]cur[%lx]new[%lx] %s[%d]\n", pcOrig, 
+                             tframe.getPC(), relocPCs.back(),FILE__,__LINE__);
                   break;
               }
           }
