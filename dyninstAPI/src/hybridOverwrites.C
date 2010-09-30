@@ -204,6 +204,7 @@ bool HybridAnalysisOW::deleteLoop(owLoop *loop, bool checkForChanges)
     }
 
     // remove loop instrumentation
+    proc()->beginInsertionSet();
     std::set<BPatchSnippetHandle*>::iterator sIter = loop->snippets.begin();
     for (; sIter != loop->snippets.end(); sIter++) {
         proc()->deleteSnippet(*sIter);
@@ -228,6 +229,7 @@ bool HybridAnalysisOW::deleteLoop(owLoop *loop, bool checkForChanges)
     idToLoop.erase(idToLoop.find(loop->getID()));
     delete loop;
 
+    proc()->finalizeInsertionSet(true);
     return isLoopActive;
 }
 

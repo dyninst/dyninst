@@ -1977,6 +1977,8 @@ bool mapped_object::isSystemLib(const std::string &objname)
    if (std::string::npos != lowname.find("msvcrt") && 
        std::string::npos != lowname.find(".dll"))
       return true;
+   if (std::string::npos == lowname.find("\\"))
+       return true; //KEVINTODO: can't leave this in, but for now, anything without a path
 #endif
 
    return false;
