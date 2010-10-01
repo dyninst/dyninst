@@ -37,6 +37,7 @@
 #include "Immediate.h"
 #include "BinaryFunction.h"
 #include "debug_parse.h"
+#include "IA_platformDetails.h"
 
 #include <deque>
 #include <map>
@@ -518,6 +519,17 @@ bool IA_IAPI::isRelocatable(InstrumentableLevel lvl) const
     }
     return true;
 }
+
+bool IA_IAPI::parseJumpTable(Dyninst::ParseAPI::Block* currBlk,
+                    std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) const
+{
+    IA_platformDetails* jumpTableParser = makePlatformDetails(_isrc->getArch(), this);
+    bool ret = jumpTableParser->parseJumpTable(currBlk, outEdges);
+    delete jumpTableParser;
+    return ret;
+}
+
+
 
 InstrumentableLevel IA_IAPI::getInstLevel(Function * context, unsigned int num_insns) const
 {

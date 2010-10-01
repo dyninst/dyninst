@@ -137,7 +137,7 @@ namespace Dyninst
     INSTRUCTION_EXPORT Instruction::Instruction(const Instruction& o) :
       arch_decoded_from(o.arch_decoded_from)
     {
-        m_Operands.clear();
+        m_Operands = o.m_Operands;
       //m_Operands.reserve(o.m_Operands.size());
       //std::copy(o.m_Operands.begin(), o.m_Operands.end(), std::back_inserter(m_Operands));
       if(m_size > sizeof(unsigned int)) 
@@ -169,7 +169,7 @@ namespace Dyninst
 
     INSTRUCTION_EXPORT const Instruction& Instruction::operator=(const Instruction& rhs)
     {
-      m_Operands.clear();
+      m_Operands = rhs.m_Operands;
       //m_Operands.reserve(rhs.m_Operands.size());
       //std::copy(rhs.m_Operands.begin(), rhs.m_Operands.end(), std::back_inserter(m_Operands));
       if(m_size > sizeof(unsigned int)) 
@@ -550,11 +550,11 @@ memAccessors.begin()));
              ++cft)
           {
 	    if(cft->isCall)
-              {
+        {/*
 		long offset;
 		cft->target->bind(thePC, Result(u32, 0));
 		offset = cft->target->eval().convert<long>();
-                if(offset != (int)(size()))
+            if(offset != (int)(size()))*/
 		  return c_CallInsn;
               }
           }
