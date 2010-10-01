@@ -833,13 +833,15 @@ bool AddressSpace::isValidAddress(const Address addr) const{
 mapped_object *AddressSpace::findObject(Address addr) {
     for (unsigned i=0; i<mapped_objects.size(); i++)
     {
-        Address objEnd;
-        if (mapped_objects[i]->hybridMode()) {
-            objEnd = mapped_objects[i]->codeAbs() + mapped_objects[i]->imageSize();
-        } else {
+        Address objStart = mapped_objects[i]->codeAbs();
+        Address objEnd; // calculate objEnd
+        if (BPatch_defensiveMode == mapped_objects[i]->hybridMode()) {
             objEnd = mapped_objects[i]->memoryEnd();
+        } else {
+            objEnd = objStart + mapped_objects[i]->imageSize();
         }
-        if (addr >= mapped_objects[i]->codeAbs() && addr < objEnd)
+
+        if (addr >= objStart && addr < objEnd)
         {
             return mapped_objects[i];
         }

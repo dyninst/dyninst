@@ -585,8 +585,8 @@ static bool decodeAccessViolation_defensive(EventRecord &ev, bool &wait_until_ac
             callbacks.clear();
         }
         else {
-            fprintf(stderr,"%s[%d] WARNING, possible bug, overwrite insn at "
-                    "%lx overwrote at %lx\n",
+            fprintf(stderr,"%s[%d] WARNING, possible bug, write insn at "
+                    "%lx wrote to %lx\n",
                     __FILE__,__LINE__,ev.address, violationAddr);
             // detach so we can see what's going on 
             //ev.proc->detachProcess(true);
@@ -2630,7 +2630,7 @@ mapped_object *process::createObjectNoFile(Address addr)
                    + mapped_objects[i]->imageSize())
         {
             fprintf(stderr,"createObjectNoFile called for addr %lx, "
-                    "matching existing mapped_object %s %s[%d]\n",
+                    "matching existing mapped_object %s %s[%d]\n", addr,
                     mapped_objects[i]->fullName().c_str(), FILE__,__LINE__);
             return mapped_objects[i];
         }

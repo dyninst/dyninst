@@ -950,6 +950,7 @@ unsigned mapped_object::memoryEnd()
             memEnd_ = regs[ridx]->getMemOffset() + regs[ridx]->getMemSize();
         }
     }
+    memEnd_ += codeBase();
     return memEnd_;
 }
 
