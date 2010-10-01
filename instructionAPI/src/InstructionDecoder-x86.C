@@ -31,6 +31,7 @@
 
 #define INSIDE_INSTRUCTION_API
 
+#include "common/h/Types.h"
 #include "InstructionDecoder-x86.h"
 #include "Expression.h"
 #include "common/h/arch-x86.h"

@@ -29,6 +29,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+// Needs to be the first include.
+#include "common/h/Types.h"
+
 #include <stdio.h>
 #include <string>
 #include "../h/InstructionCategories.h"
@@ -65,6 +68,7 @@ namespace Dyninst
     {
 
         copyRaw(size, raw);
+
 #if defined(DEBUG_INSN_ALLOCATIONS)
         numInsnsAllocated++;
         if((numInsnsAllocated % 1000) == 0)
@@ -97,7 +101,7 @@ namespace Dyninst
 	m_RawInsn.small_insn = 0;
       }
     }
-    
+
     void Instruction::decodeOperands() const
     {
         //m_Operands.reserve(5);

@@ -38,6 +38,10 @@
 #include "dyninstAPI/src/emit-power.h"
 #include "dyninstAPI/src/function.h"
 
+#if defined(os_vxworks)
+#include "common/h/wtxKludges.h"
+#endif
+
 // "Casting" methods. We use a "base + offset" model, but often need to 
 // turn that into "current instruction pointer".
 codeBuf_t *insnCodeGen::insnPtr(codeGen &gen) {
@@ -753,7 +757,7 @@ bool insnCodeGen::generate(codeGen &gen,
 
         if (ABS(newOffset) >= MAX_CBRANCH) {
             if ((BFORM_BO(insn) & BALWAYSmask) == BALWAYScond) {
-                assert(BFORM_BO(insn) == BALWAYScond);
+                //assert(BFORM_BO(insn) == BALWAYScond);
 
                 bool link = (BFORM_LK(insn) == 1);
                 // Make sure to use the (to, from) version of generateBranch()

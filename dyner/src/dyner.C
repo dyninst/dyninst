@@ -48,7 +48,7 @@
 #include "BPatch.h"
 #include "BPatch_type.h"
 #include "BPatch_Vector.h"
-#include "BPatch_thread.h"
+#include "BPatch_process.h"
 #include "BPatch_snippet.h"
 #include "BPatch_function.h"
 #include "BPatch_statement.h"
@@ -80,22 +80,22 @@ bool verbose = false;
 
 class ListElem {
 public:
-    int			     number;
-    char		     *function;
-    BPatch_procedureLocation where;
-    BPatch_callWhen	     when;
-    BPatchSnippetHandle	     *handle;
+    int                       number;
+    char                     *function;
+    BPatch_procedureLocation  where;
+    BPatch_callWhen           when;
+    BPatchSnippetHandle      *handle;
 };
 
 class BPListElem: public ListElem {
 public:
-    char	         *condition;
-    int			     lineNum;
+    char *condition;
+    int   lineNum;
 
     BPListElem(int _number, const char *_function,
-           BPatch_procedureLocation _where,
-	       BPatch_callWhen _when, const char *_condition,
-	       BPatchSnippetHandle *_handle, int _lineNum);
+               BPatch_procedureLocation _where,
+               BPatch_callWhen _when, const char *_condition,
+               BPatchSnippetHandle *_handle, int _lineNum);
     ~BPListElem();
     void Print();
 };
@@ -126,7 +126,7 @@ public:
 };
 
 BPatch *bpatch;
-BPatch_thread *appThread = NULL;
+BPatch_process *appProc = NULL;
 BPatch_image *appImage = NULL;
 static BPatch_variableExpr *bpNumber = NULL;
 static int bpCtr = 1;
@@ -134,6 +134,7 @@ static int ipCtr = 1;
 static DynerList<BPListElem *> bplist;
 static DynerList<IPListElem *> iplist;
 static DynerList<runtimeVar *> varList;
+BPatch_thread *currThr = NULL;
 int whereAmINow = -1;/*ccw 10 mar 2004 : this holds the index of the current stackframe for where, up, down*/
 
 #if !defined(i386_unknown_nt4_0)
@@ -246,8 +247,8 @@ IPListElem::~IPListElem()
     free(function);
     free(statement);
     if (handle) {
-	if (appThread)
-		appThread->deleteSnippet(handle);
+	if (appProc)
+		appProc->deleteSnippet(handle);
 
 	delete handle;
     }
@@ -462,12 +463,12 @@ int help(ClientData, Tcl_Interp *, int argc, TCLCONST char **argv)
 
 bool haveApp()
 {
-    if (appThread == NULL) {
+    if (appProc == NULL) {
 	fprintf(stderr, "No application loaded.\n");
 	return false;
     }
 
-    if (appThread->isTerminated()) {
+    if (appProc->isTerminated()) {
 	fprintf(stderr, "The application has exited.\n");
 	return false;
     }
@@ -509,21 +510,21 @@ int loadApp(const char *pathname, TCLCONST char **args)
 {
     printf("Loading \"%s\"\n", pathname);
 
-    if (appThread != NULL) delete appThread;
+    if (appProc != NULL) delete appProc;
     bplist.clear();
     iplist.clear();
     varList.clear();
-    appThread = bpatch->createProcess((char*)pathname, (const char**)args);
+    appProc = bpatch->processCreate((char*)pathname, (const char**)args);
     bpNumber = NULL;
 
-    if (!appThread || appThread->isTerminated()) {
+    if (!appProc || appProc->isTerminated()) {
 	fprintf(stderr, "Unable to run test program.\n");
-	appThread = NULL;
+	appProc = NULL;
 	return TCL_ERROR;
     }
 
     // Read the program's image and get an associated image object
-    appImage = appThread->getImage();
+    appImage = appProc->getImage();
 
     if (!appImage) return TCL_ERROR;
 
@@ -546,7 +547,7 @@ int loadApp(const char *pathname, TCLCONST char **args)
 int loadLib(const char *libName) {
     if (!haveApp()) return TCL_ERROR;
 
-    if (appThread->loadLibrary(libName))
+    if (appProc->loadLibrary(libName))
 	return TCL_OK;
 
     return TCL_ERROR;
@@ -595,6 +596,78 @@ int loadSource(const char *inp) {
     return loadLib(fname);
 }
 
+// The following wtx*Command routines are using a temporary remote
+// debugging BPatch interface.  They may be removed without warning.
+static BPatch_remoteHost remote;
+int wtxConnectCommand(ClientData, Tcl_Interp *,
+                      int argc, TCLCONST char *argv[])
+{
+    if (argc < 2 || argc > 3) {
+        printf("Usage: wtxConnect <target_server_name> [hostname]\n");
+        return TCL_ERROR;
+    }
+
+    BPatch_remoteWtxInfo *info;
+    info = static_cast<BPatch_remoteWtxInfo *>(
+        malloc( sizeof(BPatch_remoteWtxInfo) ));
+
+    if (!info) {
+        printf("Could not allocate memory for debugger handle\n");
+        return TCL_ERROR;
+    }
+
+    info->target = const_cast<char *>(argv[1]);
+    info->tool   = "Dyner Tool";
+    info->host   = const_cast<char *>(argc == 3 ? argv[2] : NULL);
+
+    remote.type = BPATCH_REMOTE_DEBUG_WTX;
+    remote.info = static_cast<void *>( info );
+
+    if (!bpatch->remoteConnect(remote))
+        return TCL_ERROR;
+
+    return TCL_OK;
+}
+
+int wtxPsCommand(ClientData, Tcl_Interp *,
+                 int /*argc*/, TCLCONST char * /*argv[]*/)
+{
+    BPatch_Vector<unsigned int> tlist;
+
+    if (!bpatch->getPidList(remote, tlist)) {
+        return TCL_ERROR;
+    }
+
+    printf("Active processes (tasks):\n");
+    if (tlist.size()) {
+        for (unsigned int i = 0; i < tlist.size(); ++i) {
+            std::string pidstr;
+
+            printf("\t%d (0x%x): ", tlist[i], tlist[i]);
+            if (bpatch->getPidInfo(remote, tlist[i], pidstr))
+                printf("%s\n", pidstr.c_str());
+            else
+                printf("<getPidInfo failure>\n");
+        }
+    } else {
+        printf("\t<No active tasks found>\n");
+    }
+
+    fflush(stdout);
+    return TCL_OK;
+}
+
+int wtxDisconnectCommand(ClientData, Tcl_Interp *,
+                         int /*argc*/, TCLCONST char * /*argv[]*/)
+{
+    if (!bpatch->remoteDisconnect(remote))
+        return TCL_ERROR;
+
+    remote.type = BPATCH_REMOTE_DEBUG_END;
+    free(remote.info);
+    return TCL_OK;
+}
+
 int loadCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
 {
     if (argc == 3) {
@@ -624,25 +697,25 @@ int attachPid(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
 	return TCL_ERROR;
     }
 
-    if (appThread != NULL) delete appThread;
+    if (appProc != NULL) delete appProc;
     bplist.clear();
     iplist.clear();
     varList.clear();
 
-    pid = atoi(argv[1]);
+    pid = strtol(argv[1], NULL, 0);
     if (argc == 3) pathName = argv[2];
 
-    appThread = bpatch->attachProcess(pathName, pid);
+    appProc = bpatch->processAttach(pathName, pid);
     bpNumber = NULL;
 
-    if (!appThread || !appThread->getImage() || appThread->isTerminated()) {
+    if (!appProc || !appProc->getImage() || appProc->isTerminated()) {
 	fprintf(stderr, "Unable to attach to pid %d\n", pid);
-	appThread = NULL;
+	appProc = NULL;
 	return TCL_ERROR;
     }
 
     // Read the program's image and get an associated image object
-    appImage = appThread->getImage();
+    appImage = appProc->getImage();
 
     if (!appImage) return TCL_ERROR;
 
@@ -702,7 +775,7 @@ int deleteBreak(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
 	    printf("No such breakpoint: %d\n", n);
 	    ret = TCL_ERROR;
 	} else {
-	    appThread->deleteSnippet(i->handle);
+	    appProc->deleteSnippet(i->handle);
 	    delete i;
 	    printf("Breakpoint %d deleted.\n", n);
 	}
@@ -737,15 +810,23 @@ int deleteInstrument(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
     return ret;
 }
 
-void setWhereAmINow(){
-	BPatch_Vector<BPatch_frame> callStack;
+void getCallStack(BPatch_Vector<BPatch_frame> &callStack)
+{
+    if (currThr) currThr->getCallStack(callStack);
 
-	appThread->getCallStack(callStack);
+    BPatch_Vector<BPatch_thread *> threads;
+    appProc->getThreads(threads);
+    currThr = threads[0];
 
-	whereAmINow = callStack.size()-1;
-
+    currThr->getCallStack(callStack);
 }
 
+void setWhereAmINow() {
+    BPatch_Vector<BPatch_frame> callStack;
+
+    getCallStack(callStack);
+    whereAmINow = callStack.size()-1;
+}
 
 int runApp(ClientData, Tcl_Interp *, int, TCLCONST char **)
 {
@@ -758,11 +839,11 @@ int runApp(ClientData, Tcl_Interp *, int, TCLCONST char **)
 
     // Start of code to continue the process.
     dprintf("starting program execution.\n");
-    appThread->continueExecution();
+    appProc->continueExecution();
 	
 	whereAmINow = -1 ; //ccw 10 mar 2004 : i dont know where i will be when i stop
 
-    while (!appThread->isStopped() && !appThread->isTerminated() && !stopFlag)
+    while (!appProc->isStopped() && !appProc->isTerminated() && !stopFlag)
 #if defined(i386_unknown_nt4_0)
 	Sleep(1);
 #else
@@ -771,16 +852,16 @@ int runApp(ClientData, Tcl_Interp *, int, TCLCONST char **)
 
     if (stopFlag) {
 	stopFlag = false;
-	appThread->stopExecution();
+	appProc->stopExecution();
 	setWhereAmINow(); //ccw 10 mar 2004 : find myself
     }
 
     int bp = -1;
     if (bpNumber) bpNumber->readValue(&bp);
 
-    if (appThread->isTerminated()) {
+    if (appProc->isTerminated()) {
 	printf("\nApplication exited.\n");
-    } else if (appThread->isStopped() && bp > 0) {
+    } else if (appProc->isStopped() && bp > 0) {
 		printf("\nStopped at break point %d.\n", bp);
 		ListElem *i = findBP(bp);
 		if (i != NULL) {
@@ -798,7 +879,7 @@ int killApp(ClientData, Tcl_Interp *, int, TCLCONST char **)
 {
     if (!haveApp()) return TCL_ERROR;
 
-    appThread->terminateExecution();
+    appProc->terminateExecution();
 
     return TCL_OK;
 }
@@ -813,7 +894,7 @@ int saveStart(ClientData, Tcl_Interp *, int /* argc */, TCLCONST char ** /* argv
 
 
 	saveWorldStart=true;
-	appThread->enableDumpPatchedImage();
+	appProc->enableDumpPatchedImage();
 	return TCL_OK;
 
 }
@@ -827,7 +908,7 @@ int saveWorld(ClientData, Tcl_Interp *, int argc, TCLCONST char **argv){
 		printf("Call saveStart before issuing instrumentation to save\n");
 		return TCL_ERROR;
 	}
-	char* directoryName = appThread->dumpPatchedImage(argv[1]);
+	char* directoryName = appProc->dumpPatchedImage(argv[1]);
 	printf(" saved in %s \n", directoryName);
 	delete [] directoryName;
 	
@@ -847,7 +928,7 @@ int condBreak(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
     if (!haveApp()) return TCL_ERROR;
 
     if (bpNumber == NULL) {
-	bpNumber = appThread->malloc(*appImage->findType("int"));
+	bpNumber = appProc->malloc(*appImage->findType("int"));
 	if (bpNumber == NULL) {
 	    fprintf(stderr, "Unable to allocate memory in the inferior process.\n");
 	    exit(1);
@@ -982,7 +1063,7 @@ int condBreak(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
     }
 
     BPatchSnippetHandle *handle =
-	appThread->insertSnippet(*brSnippet, *points, when,BPatch_lastSnippet);
+	appProc->insertSnippet(*brSnippet, *points, when,BPatch_lastSnippet);
     if (handle == 0) {
 	fprintf(stderr, "Error inserting snippet.\n");
 	if (line_buf) delete line_buf;
@@ -1229,7 +1310,7 @@ int instStatement(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
     }
 
     BPatchSnippetHandle *handle =
-	appThread->insertSnippet(*parse_result, *points, when,BPatch_lastSnippet);
+	appProc->insertSnippet(*parse_result, *points, when,BPatch_lastSnippet);
     if (handle == 0) {
 	fprintf(stderr, "Error inserting snippet.\n");
 	delete line_buf;
@@ -1291,7 +1372,7 @@ int execStatement(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
 	return TCL_ERROR;
     }
 
-    appThread->oneTimeCode(*parse_result);
+    appProc->oneTimeCode(*parse_result);
     delete parse_result;
     delete line_buf;
 
@@ -1350,133 +1431,165 @@ void printVarRecursive(BPatch_variableExpr *var, int level)
 }
 
 #if defined(rs6000_ibm_aix4_1) || defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)  
-void printStackFrame(int index, BPatch_Vector<BPatch_frame> &callStack, const char *funcName){
-
-	printf("#%d: (0x%p)\t%s (fp: 0x%p)\n", index, (void *)callStack[index].getPC(),funcName , (void *)callStack[index].getFP());
-
+void printStackFrame(int index,
+                     BPatch_Vector<BPatch_frame> &callStack,
+                     const char *funcName)
+{
+    printf("#%d: (0x%p)\t%s (fp: 0x%p)\n",
+           index, (void *)callStack[index].getPC(),funcName,
+           (void *)callStack[index].getFP());
 }
 
 int whereUp(ClientData, Tcl_Interp *, int, TCLCONST char ** /* argv */)
 {
-	BPatch_Vector<BPatch_frame> callStack;
-	char funcName [1024];
-	int index=0;
+    BPatch_Vector<BPatch_frame> callStack;
+    char funcName[1024];
+    int index = 0;
 
+    getCallStack(callStack);
+    if ((unsigned) whereAmINow < (callStack.size()-1) ) {
+        whereAmINow++;
+    }
 
-	appThread->getCallStack(callStack);
+    printf("     ");
+    if (callStack[whereAmINow].findFunction()) {
+        BPatch_Vector<BPatch_point *> *points =
+            callStack[index].findFunction()->findPoint(BPatch_subroutine);
 
-	if((unsigned) whereAmINow < (callStack.size()-1) ){
-		whereAmINow++;
-	}
+        if ( points && points->size() > 0) {  //linux gets weird here
+            targetPoint = (*points)[0];
+        }
+        callStack[whereAmINow].findFunction()->getName(funcName, 1024);
+        printStackFrame(whereAmINow, callStack, funcName);
 
-	printf("     ");
-
-	if(callStack[whereAmINow].findFunction()){
-
-		BPatch_Vector<BPatch_point *> *points = callStack[index].findFunction()->findPoint(BPatch_subroutine);
-
-		if ( points  && points->size() > 0){  //linux gets weird here
-				
-			targetPoint = (*points)[0];
-		}
-		callStack[whereAmINow].findFunction()->getName(funcName, 1024);
-
-		printStackFrame(whereAmINow, callStack, funcName);
-
-
-	}else{
-		printStackFrame(whereAmINow, callStack, "<<FAILED TO FIND FUNCTION>>");
-	}
-	return TCL_OK;
+    } else {
+        printStackFrame(whereAmINow, callStack, "<<FAILED TO FIND FUNCTION>>");
+    }
+    return TCL_OK;
 }
 
 int whereDown(ClientData, Tcl_Interp *, int, TCLCONST char ** /* argv */)
 {
-	BPatch_Vector<BPatch_frame> callStack;
-	char funcName [1024];
-	int index=0;
+    BPatch_Vector<BPatch_frame> callStack;
+    char funcName[1024];
+    int index = 0;
 
-	if( whereAmINow > 1) {
-		whereAmINow-- ;
-	}
+    if ( whereAmINow > 1) {
+        whereAmINow-- ;
+    }
 
+    getCallStack(callStack);
+    printf("     ");
 
-	appThread->getCallStack(callStack);
-	printf("     ");
+    if (callStack[whereAmINow].findFunction()) {
+        BPatch_Vector<BPatch_point *> *points =
+            callStack[index].findFunction()->findPoint(BPatch_subroutine);
 
-	if(callStack[whereAmINow].findFunction()){
+        if (points && points->size() > 0) {  //linux gets weird here
+            targetPoint = (*points)[0];
+        }
 
-		BPatch_Vector<BPatch_point *> *points = callStack[index].findFunction()->findPoint(BPatch_subroutine);
+        callStack[whereAmINow].findFunction()->getName(funcName, 1024);
+        printStackFrame(whereAmINow, callStack, funcName);
 
-		if ( points  && points->size() > 0){  //linux gets weird here
-			
-			targetPoint = (*points)[0];
-		}
-
-		callStack[whereAmINow].findFunction()->getName(funcName, 1024);
-
-		printStackFrame(whereAmINow, callStack, funcName);
-
-
-	}else{
-		printStackFrame(whereAmINow, callStack, "<<FAILED TO FIND FUNCTION>>");
-	}
-	return TCL_OK;
+    } else {
+        printStackFrame(whereAmINow, callStack, "<<FAILED TO FIND FUNCTION>>");
+    }
+    return TCL_OK;
 }
 
-int where(ClientData, Tcl_Interp *, int, TCLCONST char ** /* argv */)
+int where(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
 {
-	BPatch_Vector<BPatch_frame> callStack;
-	char funcName [1024];
-	unsigned index=0;
+    BPatch_Vector<BPatch_thread *> threads;
+    char funcName[1024];
 
-   if (!appThread) {
-     printf("no application to get stack for\n");
-     return TCL_ERROR;
-   }
+    if (!appProc) {
+        printf("no application to get stack for\n");
+        return TCL_ERROR;
+    }
 
-   if (appThread->isTerminated()) {
-     printf("process is terminated, no stack\n");
-     return TCL_ERROR;
-   }
+    if (appProc->isTerminated()) {
+        printf("process is terminated, no stack\n");
+        return TCL_ERROR;
+    }
 
-   if (appThread->isDetached()) {
-     printf("process is detached, no stack available\n");
-     return TCL_ERROR;
-   }
+    if (appProc->isDetached()) {
+        printf("process is detached, no stack available\n");
+        return TCL_ERROR;
+    }
 
-	appThread->getCallStack(callStack);
-	index = 1; 
-	while(index < callStack.size() -1){
+    appProc->getThreads(threads);
+    if (threads.size() == 0) {
+        printf("no threads found to get stack for found in application\n");
+        currThr = NULL;
+        return TCL_ERROR;
 
-		if( (whereAmINow == -1 && index == 1) || ( (unsigned) whereAmINow == index ) ){
-			printf(" --> ");
-			whereAmINow = index;
-		}else{
-			printf("     ");
-		}
+    } else if (threads.size() == 1) {
+        currThr = threads[0];
 
-		if(callStack[index].findFunction()){
-			BPatch_Vector<BPatch_point *> *points = callStack[index].findFunction()->findPoint(BPatch_subroutine);
+    } else if (argc < 2) {
+        printf("Usage: where <thread_index>\n");
 
-			if ( points  && points->size() > 0){  //linux gets weird here
-				
-				targetPoint = (*points)[0];
-			}
+        for (unsigned i = 0; i < threads.size(); ++i) {
+            BPatch_function *func = threads[i]->getInitialFunc();
+            func->getName(funcName, sizeof(funcName));
+            if (!strlen(funcName)) strcpy(funcName, "<Empty Func Name>");
 
+            printf("\tIndex: %d (0x%x) Handle: %ld (0x%lx) Func: %s\n",
+                   threads[i]->getBPatchID(), threads[i]->getBPatchID(),
+                   threads[i]->os_handle(), threads[i]->os_handle(),
+                   funcName);
+        }
+        return TCL_OK;
 
-			callStack[index].findFunction()->getName(funcName, 1024);
+    } else {
+        currThr = appProc->getThreadByIndex( strtoul(argv[1], NULL, 0) );
+        if (!currThr) {
+            printf("Invalid thread index.  Valid threads include:\n");
+            for (unsigned i = 0; i < threads.size(); ++i) {
+                BPatch_function *func = threads[i]->getInitialFunc();
+                func->getName(funcName, sizeof(funcName));
+                if (!strlen(funcName)) strcpy(funcName, "<Empty Func Name>");
 
-			printStackFrame(index, callStack, funcName);
+                printf("\tIndex: %d (0x%x) Handle: %ld (0x%lx) Func: %s\n",
+                       threads[i]->getBPatchID(), threads[i]->getBPatchID(),
+                       threads[i]->os_handle(), threads[i]->os_handle(),
+                       funcName);
+            }
+            return TCL_ERROR;
+        }
+    }
 
+    BPatch_Vector<BPatch_frame> callStack;
+    currThr->getCallStack(callStack);
+    unsigned index = 1;
+    while (index < callStack.size() -1) {
 
-		}else{
-			
-			printStackFrame(index, callStack, "<<FAILED TO FIND FUNCTION>>");
-		}
-		index ++;
-	}
-	return TCL_OK;
+        if ((whereAmINow == -1 && index == 1) || ((unsigned) whereAmINow == index) ) {
+            printf(" --> ");
+            whereAmINow = index;
+        } else {
+            printf("     ");
+        }
+
+        if (callStack[index].findFunction()) {
+            BPatch_Vector<BPatch_point *> *points =
+                callStack[index].findFunction()->findPoint(BPatch_subroutine);
+
+            if ( points  && points->size() > 0) {  //linux gets weird here
+                targetPoint = (*points)[0];
+            }
+
+            callStack[index].findFunction()->getName(funcName,
+                                                     sizeof(funcName));
+            printStackFrame(index, callStack, funcName);
+
+        } else {
+            printStackFrame(index, callStack, "<<FAILED TO FIND FUNCTION>>");
+        }
+        index++;
+    }
+    return TCL_OK;
 }
 #endif
 
@@ -1509,7 +1622,7 @@ BPatch_variableExpr *findLocalVariable(const char *name, bool printError)
 	char funcName [1024];
 	BPatch_variableExpr *tmpVar;
 
-	appThread->getCallStack(callStack);
+	getCallStack(callStack);
 
 	if(	callStack[index].findFunction()){
 
@@ -1524,7 +1637,11 @@ BPatch_variableExpr *findLocalVariable(const char *name, bool printError)
 			tmpVar = appImage->findVariable(*targetPoint, name);
 			targetPoint = NULL;
 
+// Not sure what this once did, but it's old and we certainly
+// don't allow the external creation of BPatch_variableExpr's
+// anymore.
 
+#if 0
 			if (tmpVar && 
 #ifdef rs6000_ibm_aix4_1
 				(((int)tmpVar->getBaseAddr()) < 0x1000) ) {
@@ -1545,9 +1662,9 @@ BPatch_variableExpr *findLocalVariable(const char *name, bool printError)
 				   But i need to build a variable that points to a specific address, and I can not find
 				   a better way to do it right now
 				 */	
-                                BPatch_type *bptype = const_cast<BPatch_type *>(tmpVar->getType());
-				var = new BPatch_variableExpr(tmpVar->getName(), appThread->getProcess(),
-					(void*) ( ((CASTOFFSET) (callStack[index].getFP())) +offset), bptype );	
+//                                BPatch_type *bptype = const_cast<BPatch_type *>(tmpVar->getType());
+//				var = new BPatch_variableExpr(tmpVar->getName(), appProc->getProcess(),
+//					(void*) ( ((CASTOFFSET) (callStack[index].getFP())) +offset), bptype );	
 
 #ifdef sparc_sun_solaris2_4 
 				index --;  
@@ -1556,6 +1673,9 @@ BPatch_variableExpr *findLocalVariable(const char *name, bool printError)
 
 				return var;
 			}
+#endif  // End Dead Code
+
+                        if (tmpVar) return tmpVar;
 			
 		}
 
@@ -1618,7 +1738,7 @@ int newVar(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
 	return TCL_ERROR;
     }
 
-    BPatch_variableExpr *newVar = appThread->malloc(*type);
+    BPatch_variableExpr *newVar = appProc->malloc(*type);
     if (!newVar) {
 	printf("Unable to create variable.\n");
 	return TCL_ERROR;
@@ -2363,7 +2483,8 @@ int ShowGlobalVars() {
     }
 
     for(unsigned int i=0; i<vars->size(); ++i) {
-	PrintTypeInfo((*vars)[i]->getName(), (BPatch_type *) (*vars)[i]->getType());
+	PrintTypeInfo((char *) (*vars)[i]->getName(),
+                      (BPatch_type *) (*vars)[i]->getType());
     }
 
     return TCL_OK;
@@ -2478,8 +2599,7 @@ int countCommand(ClientData, Tcl_Interp *interp, int argc, TCLCONST char *argv[]
     if (Tcl_Eval(interp, cmdBuf) == TCL_ERROR)
 	return TCL_ERROR;
 
-    sprintf(cmdBuf, "at main exit { printf(\"%s called %%d times\\n\", _%s_cnt); } count", 
-									fcnName, fcnName);
+    sprintf(cmdBuf, "at main exit { printf(\"%s called %%d times\\n\", _%s_cnt); } count", fcnName, fcnName);
     if (Tcl_Eval(interp, cmdBuf) == TCL_ERROR)
 	return TCL_ERROR;
 
@@ -2527,7 +2647,7 @@ int repFunc(const char *name1, const char *name2) {
     return TCL_ERROR;
   }
 
-  if (appThread->replaceFunction(*func1, *func2))
+  if (appProc->replaceFunction(*func1, *func2))
     return TCL_OK;
   
   return TCL_ERROR;
@@ -2599,7 +2719,7 @@ int repCall(const char *func1, const char *func2) {
     if (n == -1) {
 	//Remove all function calls
 	for(unsigned int i=0; i<points->size(); ++i) {
-		if (!appThread->replaceFunctionCall(*((*points)[i]), *newFunc) ) {
+		if (!appProc->replaceFunctionCall(*((*points)[i]), *newFunc) ) {
 			printf("Unable to replace call %d !\n", i);
 			return TCL_ERROR;
 		}
@@ -2608,7 +2728,7 @@ int repCall(const char *func1, const char *func2) {
     }
 
     //Replace n'th function call
-    if (!appThread->replaceFunctionCall(*((*points)[n]), *newFunc) ) {
+    if (!appProc->replaceFunctionCall(*((*points)[n]), *newFunc) ) {
 	printf("Unable to replace call %d !\n", n);
 	return TCL_ERROR;
     }
@@ -2816,12 +2936,12 @@ int mutationsCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
     if (!haveApp()) return TCL_ERROR;
 
     if (!strcmp(argv[1], "enable")) {
-	appThread->setMutationsActive(true);
+	appProc->setMutationsActive(true);
 	return TCL_OK;
     }
 
     if (!strcmp(argv[1], "disable")) {
-	appThread->setMutationsActive(false);
+	appProc->setMutationsActive(false);
 	return TCL_OK;
     }
 
@@ -2884,7 +3004,7 @@ int removeCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
     if (n == -1) {
 	//Remove all function calls
 	for(unsigned int i=0; i<points->size(); ++i) {
-		if (!appThread->removeFunctionCall(*((*points)[i])) ) {
+		if (!appProc->removeFunctionCall(*((*points)[i])) ) {
 			printf("Unable to remove call %d !\n", i);
 			return TCL_ERROR;
 		}
@@ -2893,7 +3013,7 @@ int removeCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
     }
 
     //Remove n'th function call
-    if (!appThread->removeFunctionCall(*((*points)[n])) ) {
+    if (!appProc->removeFunctionCall(*((*points)[n])) ) {
 	printf("Unable to remove call %d !\n", n);
 	return TCL_ERROR;
     }
@@ -2913,7 +3033,7 @@ int dumpCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
 
     if (!haveApp()) return TCL_ERROR;
 
-    appThread->dumpImage(argv[1]);
+    appProc->dumpImage(argv[1]);
 
     return TCL_OK;
 }
@@ -2930,7 +3050,7 @@ int detachCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char **)
 
     if (!haveApp()) return TCL_ERROR;
 
-    appThread->detach(true);
+    appProc->detach(true);
 
     return TCL_OK;
 }
@@ -2972,7 +3092,7 @@ int exitDyner(ClientData, Tcl_Interp *, int, TCLCONST char **)
 
     if (haveApp()) {
 	// this forces terminatation if the app has not been detached
-	if (appThread) delete appThread;
+	if (appProc) delete appProc;
     }
     exit(0);
 }
@@ -3028,6 +3148,14 @@ int Tcl_AppInit(Tcl_Interp *interp)
     Tcl_CreateCommand(interp, "save", (Tcl_CmdProc*)saveWorld, NULL, NULL);
     Tcl_CreateCommand(interp, "saveStart", (Tcl_CmdProc*)saveStart, NULL, NULL);
 
+#endif
+
+#if defined(os_vxworks)
+    // These commands are specific to vxWorks, and will be replaced with
+    // a documented generalized remote debugging interface.
+    Tcl_CreateCommand(interp, "wtxConnect", (Tcl_CmdProc*)wtxConnectCommand, NULL, NULL);
+    Tcl_CreateCommand(interp, "wtxPs", (Tcl_CmdProc*)wtxPsCommand, NULL, NULL);
+    Tcl_CreateCommand(interp, "wtxDisconnect", (Tcl_CmdProc*)wtxDisconnectCommand, NULL, NULL);
 #endif
 
     Tcl_AllowExceptions(interp);

@@ -38,6 +38,9 @@
 
 // Note: Unless specified "book" refers to Intel's manual
 
+// This include *must* come first in the file.
+#include "common/h/Types.h"
+
 #include <assert.h>
 #include <stdio.h>
 #include <map>
@@ -48,7 +51,6 @@
 #include "boost/assign/std/vector.hpp"
 #include "boost/assign/std/set.hpp"
 
-#include "common/h/Types.h"
 #include "common/h/arch-x86.h"
 #include "instructionAPI/h/Register.h"
 #include "dyn_regs.h"

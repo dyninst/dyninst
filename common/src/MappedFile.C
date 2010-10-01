@@ -45,23 +45,35 @@ MappedFile *MappedFile::createMappedFile(std::string fullpath_)
       }
    }
 
-
    bool ok = false;
    MappedFile *mf = new MappedFile(fullpath_, ok);
-   if (!mf || !ok) {
-      if (mf)
-         delete mf;
+   if (!mf) return NULL;
+
+   if (!ok) {
+#if defined(os_vxworks)
+      // vxWorks may request to open files that exist only on the remote
+      // target.  Return a placeholder mapped file to hold filename only.
+      mf->remote_file = true;
+      mf->can_share = true;
+      mf->map_addr = 0x0;
+      mf->fd = -1;
+
+      ok = true;
+#else
+      delete mf;
       return NULL;
+#endif
    }
-   
+
    mapped_files[fullpath_] = mf;
-   
+
    //fprintf(stderr, "%s[%d]:  MMAPFILE %s: mapped_files.size() =  %d\n", FILE__, __LINE__, fullpath_.c_str(), mapped_files.size());
    return mf;
 }
 
 MappedFile::MappedFile(std::string fullpath_, bool &ok) :
    fullpath(fullpath_),
+   remote_file(false),
    did_mmap(false),
    did_open(false),
    can_share(true),
@@ -92,6 +104,7 @@ MappedFile *MappedFile::createMappedFile(void *loc, unsigned long size_)
 
 MappedFile::MappedFile(void *loc, unsigned long size_, bool &ok) :
    fullpath("in_memory_file"),
+   remote_file(false),
    did_mmap(false),
    did_open(false),
    can_share(true),
@@ -319,6 +332,10 @@ err:
 
 bool MappedFile::unmap_file()
 {
+   if (remote_file) {
+      return true;
+   }
+
 #if defined(os_windows)
 
    UnmapViewOfFile(map_addr);
@@ -338,6 +355,10 @@ bool MappedFile::unmap_file()
 
 bool MappedFile::close_file()
 {
+   if (remote_file) {
+      return true;
+   }
+
 #if defined (os_windows)
 
    CloseHandle(hFile);

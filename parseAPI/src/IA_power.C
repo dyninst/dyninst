@@ -463,6 +463,7 @@ linker_stub_t checkLinkerStub(void *insn_buf, Offset &off)
     }
 #endif
 
+    off = 0;
     return STUB_UNKNOWN;
 }
 
