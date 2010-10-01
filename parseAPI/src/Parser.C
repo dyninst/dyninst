@@ -292,9 +292,11 @@ Parser::parse_edges( vector< ParseWorkElem * > & work_elems )
             vector<Function*> funcs;
             src->getFuncs(funcs);
             frame = new ParseFrame(*funcs.begin(),_parse_data);
+            frame->pushWork(elem); // pushing before means no seed is added
             init_frame(*frame);
+        } else {
+            frame->pushWork(elem);
         }
-        frame->pushWork(elem);
         if (frameset.end() == frameset.find(frame)) {
             frameset.insert(frame);
             frames.push_back(frame);
@@ -736,8 +738,7 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
                         parsing_printf("\t Disallowing FT edge: function in "
                                        "defensive binary may not return\n");
                         mal_printf("Disallowing FT edge: function %lx in "
-                                   "defensive binary may not return\n", 
-                                   ct->addr());
+                                   "defensive binary may not return\n", ct->addr());
                     } else {
                         is_nonret |= (TAMPER_NONE != ct->tampersStack());
                         if (is_nonret) {
@@ -796,7 +797,9 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
         } else {
             parsing_printf("[%s] deferring parse of shared block %lx\n",
                 FILE__,cur->start());
-            func->_rs = UNKNOWN;
+            if (func->_rs < UNKNOWN) {
+                func->_rs = UNKNOWN;
+            }
             continue;
         }
 
