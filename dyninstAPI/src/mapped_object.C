@@ -1324,9 +1324,9 @@ void mapped_object::registerNewFunctions()
     CodeObject::funclist::iterator fit = newFuncs.begin();
     for( ; fit != newFuncs.end(); ++fit) {
         image_func *curFunc = (image_func*) *fit;
-        if(curFunc->src() == HINT)
-            continue;
         if ( ! everyUniqueFunction.defines(curFunc) ) { 
+            if(curFunc->src() == HINT)
+                mal_printf("adding function of source type hint\n");
             findFunction(curFunc); // does all the work
         }
     }
@@ -1486,6 +1486,19 @@ void mapped_object::expandCodeBytes(SymtabAPI::Region *reg)
     static_cast<SymtabCodeSource*>(cObj->cs())->
         resizeRegion( reg, reg->getMemSize() );
     reg->setPtrToRawData( regBuf , copySize );
+
+    // expand this mapped_object's codeRange
+    if (codeBase() + reg->getMemOffset() + reg->getMemSize() 
+        > 
+        codeAbs() + get_size())
+    {
+        proc()->removeOrigRange(this);
+        parse_img()->setImageLength( codeBase() 
+                                     + reg->getMemOffset()
+                                     + reg->getMemSize()
+                                     - codeAbs() );
+        proc()->addOrigRange(this);
+    }
 
     // KEVINTODO: what?  why is this necessary?, I've killed it for now, delete if no failures
     // 

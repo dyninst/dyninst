@@ -155,6 +155,7 @@ void Parser::ProcessCallInsn(
     InstructionAdapter_t & ah,
     bool isDynamic,
     bool isAbsolute,
+    bool isResolved,
     Address target)
 {
     ParseCallback::interproc_details det;
@@ -163,18 +164,13 @@ void Parser::ProcessCallInsn(
     det.isize = ah.getSize();
     
     if(ah.isCall()) {
-        if (isDynamic && !target) {
-            det.type = ParseCallback::interproc_details::unres_call; 
-            det.data.unres.absolute_address = isAbsolute;
-            det.data.unres.dynamic = isDynamic;
-            det.data.unres.target = target;
-        }
-        else {
+        det.data.call.absolute_address = isAbsolute;
+        det.data.call.dynamic_call = isDynamic;
+        det.data.call.target = target;
+        if (likely(isResolved))
             det.type = ParseCallback::interproc_details::call; 
-            det.data.call.absolute_address = isAbsolute;
-            det.data.call.dynamic_call = isDynamic;
-            det.data.call.target = target;
-        }
+        else
+            det.type = ParseCallback::interproc_details::unres_call; 
     }
     else
         det.type = ParseCallback::interproc_details::branch_interproc;
@@ -236,15 +232,15 @@ void Parser::ProcessCFInsn(
         if(curEdge->second == NOEDGE)
         {
             // call callback
+            resolvable_edge = resolvable_edge && !dynamic_call;
             ProcessCallInsn(frame,cur,*ah,dynamic_call,
-                absolute_call,curEdge->first);
+                absolute_call,resolvable_edge,curEdge->first);
 
-            tailcall = !dynamic_call &&  
+            tailcall = !dynamic_call && 
                 ah->isTailCall(frame.func,frame.num_insns);
-            if(!dynamic_call)
+            if(resolvable_edge)
                 newedge = link_tempsink(cur,CALL);
             else {
-                resolvable_edge = false;
                 newedge = link(cur,_sink,CALL,true);
             }
             if(!ah->isCall())
@@ -298,31 +294,27 @@ void Parser::ProcessCFInsn(
             }
             frame.pushWork(we);
         } 
-        else if( unlikely(_obj.defensiveMode() && has_unres) ) {
-            // invoke callback for: 
-            // indirect calls, unresolved indirect branches, 
-            // direct ctrl transfers with bad targets
+        else if( unlikely(_obj.defensiveMode() && 
+                          has_unres &&
+                          curEdge->second != NOEDGE) )
+        {   // invoke callback for: 
+            // unresolved indirect branches and direct ctrl transfers 
+            // with bad targets (calls will have been taken care of)
             ParseCallback::interproc_details det;
             det.ibuf = (unsigned char*)
                frame.func->isrc()->getPtrToInstruction(ah->getAddr());
             det.isize = ah->getSize();
             det.data.unres.target = curEdge->first;
-            if (curEdge->second == NOEDGE) { // call
-                det.type = ParseCallback::interproc_details::unres_call;
-                det.data.unres.absolute_address = absolute_call;
-                det.data.unres.dynamic = dynamic_call;
-            } else { // branch
-                det.type = ParseCallback::interproc_details::unres_branch;
-                if (-1 == det.data.unres.target) {
-                    det.data.unres.target = 0;
-                }
-                if (0 == ah->getCFT()) {
-                    det.data.unres.dynamic = true;
-                    det.data.unres.absolute_address = true;
-                } else {
-                    det.data.unres.dynamic = false;
-                    det.data.unres.absolute_address = false;
-                }
+            det.type = ParseCallback::interproc_details::unres_branch;
+            if (-1 == det.data.unres.target) {
+                det.data.unres.target = 0;
+            }
+            if (0 == ah->getCFT()) {
+                det.data.unres.dynamic = true;
+                det.data.unres.absolute_address = true;
+            } else {
+                det.data.unres.dynamic = false;
+                det.data.unres.absolute_address = false;
             }
             _pcb.interproc_cf(frame.func,ah->getAddr(),&det);
         }

@@ -428,6 +428,11 @@ class AddressSpace : public InstructionSource {
 			   std::list<std::pair<Address, Address> > &pairs) const;
 #endif
 
+    bool getAddrInfo(Address relocAddr,
+		      Address &origAddr,
+              std::vector<int_function *> &origFuncs,
+		      baseTrampInstance *&baseTramp);
+
     bool getRelocInfo(Address relocAddr,
 		      Address &origAddr,
 		      int_function *&origFunc,

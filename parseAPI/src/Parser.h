@@ -184,6 +184,7 @@ class Parser {
         InstructionAdapter_t&,
         bool,
         bool,
+        bool,
         Address);
     void ProcessReturnInsn(
         ParseFrame&,

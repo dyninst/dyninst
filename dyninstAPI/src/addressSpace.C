@@ -194,11 +194,13 @@ void AddressSpace::deleteAddressSpace() {
 
 void AddressSpace::addOrigRange(codeRange *range) {
     textRanges_.insert(range);
+#if 0
     if (range->is_mapped_object()) {
         // Hack... add data range
         mappedObjData *data = new mappedObjData(range->is_mapped_object());
         dataRanges_.insert(data);
     }
+#endif
 }
 
 void AddressSpace::removeOrigRange(codeRange *range) {
@@ -1655,10 +1657,19 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
           // translate thread's active PC to orig addr
           Frame tframe = (*titer)->getActiveFrame();
           Address pcOrig=0;
-          int_function *origFunc=NULL;
+          vector<int_function *> origFuncs;
           baseTrampInstance *bti=NULL;
-          if (!getRelocInfo(tframe.getPC(), pcOrig, origFunc, bti)) {
+          if (!getAddrInfo(tframe.getPC(), pcOrig, origFuncs, bti)) {
               continue;
+          }
+          int_function *origFunc;
+          if (origFuncs.size() == 1) {
+              origFunc = origFuncs[0];
+          } else {
+              mal_printf("WARNING: active pc %lx is in a shared function we've"
+                         " modified but we don't know which, stackwalking to "
+                         "find out %s[%d]\n", pcOrig, FILE__,__LINE__);
+              origFunc = proc()->findActiveFuncByAddr(pcOrig);
           }
           // if the PC matches a modified function, change the PC
           for (FuncSet::const_iterator fit = begin; fit != end; fit++) {
@@ -1837,15 +1848,41 @@ void AddressSpace::getRelocAddrs(Address orig,
     if (iter->origToReloc(orig, func, reloc)) {
       // Pick instrumentation if it's there, otherwise use the reloc instruction
       if (reloc.instrumentation) {
-	relocs.push_back(reloc.instrumentation);
+        relocs.push_back(reloc.instrumentation);
       }
       else {
-	assert(reloc.instruction);
-	relocs.push_back(reloc.instruction);
+        assert(reloc.instruction);
+        relocs.push_back(reloc.instruction);
       }
     }
   }
 }      
+
+bool AddressSpace::getAddrInfo(Address relocAddr,
+				Address &origAddr,
+				vector<int_function *> &origFuncs,
+				baseTrampInstance *&baseT) 
+{
+    // retrieve if unrelocated address
+    bblInstance *bbi = findOrigByAddr(relocAddr)->is_basicBlockInstance();
+    if ( bbi ) {
+        origAddr = relocAddr;
+        findFuncsByAddr(origAddr, origFuncs);
+        baseT = NULL;
+        return true;
+    }
+
+    // retrieve if relocated address
+    int_function *func;
+    if (getRelocInfo(relocAddr, origAddr, func, baseT)) {
+        origFuncs.push_back(func);
+        return true;
+    }
+
+    return false;
+
+}
+
 
 bool AddressSpace::getRelocInfo(Address relocAddr,
 				Address &origAddr,

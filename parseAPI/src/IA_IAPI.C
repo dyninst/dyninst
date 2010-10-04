@@ -171,16 +171,20 @@ bool IA_IAPI::hasCFT() const
      }
   }
   if(c == c_CallInsn) {
-    if(isRealCall()) {
-      parsing_cerr << "\t is real call, ret true" << endl;
-      hascftstatus.second = true;
-    }
     if(isDynamicCall()) {
       parsing_cerr << "\t is dynamic call, ret true" << endl;
       hascftstatus.second = true;
     }
     if(simulateJump()) {
       parsing_cerr << "\t is a simulated jump, ret true" << endl;
+      hascftstatus.second = true;
+    }
+    if(isRealCall()) {
+      parsing_cerr << "\t is real call, ret true" << endl;
+      hascftstatus.second = true;
+    }
+    else if (!hascftstatus.second) {
+      parsing_cerr << "\t is not real call, ret true" << endl;
       hascftstatus.second = true;
     }
   }
@@ -290,24 +294,33 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
     if(ci->getCategory() == c_CallInsn)
     {
         Address target = getCFT();
-        if(isRealCall() || isDynamicCall())
+        bool callEdge = false;
+        if(isDynamicCall())
+            callEdge = true;
+        if (!callEdge && !isRealCall())
+            callEdge = true; // target is invalid, will link to sink block
+        if (!callEdge) 
         {
+            if (!simulateJump())
+                callEdge = true; // doesn't pop ret addr off stack
+            else 
+                parsing_printf("[%s:%u] call at 0x%lx simulated as "
+                               "jump to 0x%lx\n",
+                               FILE__,__LINE__,getAddr(),getCFT());
+        }
+        if (callEdge) 
+        {
+            // add call edge and fallthrough edge 
+            // (fallthrough will be dropped if call is non-returning)
+            outEdges.push_back(std::make_pair(getAddr() + getSize(),CALL_FT));
             outEdges.push_back(std::make_pair(target, NOEDGE));
         }
-        else
+        else 
         {
-            if(_isrc->isValidAddress(target))
-            {
-                if(simulateJump())
-                {
-                    parsing_printf("[%s:%u] call at 0x%lx simulated as "
-                            "jump to 0x%lx\n",
-                    FILE__,__LINE__,getAddr(),getCFT());
-                    outEdges.push_back(std::make_pair(target, DIRECT));
-                    return;
-                }
-            }
+            // add target edge
+            outEdges.push_back(std::make_pair(target, DIRECT));
         }
+#if 0
         bool addFallthrough = true;
         if (unlikely(_obj->defensiveMode())) {
             // we add fallthrough edges for now, unless we're sure the
@@ -337,6 +350,7 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
         if (likely(addFallthrough)) {
             outEdges.push_back(std::make_pair(getAddr() + getSize(),CALL_FT));
         }
+#endif
         return;
       }
     else if(ci->getCategory() == c_BranchInsn)

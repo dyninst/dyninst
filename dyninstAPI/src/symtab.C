@@ -755,9 +755,9 @@ image::addInstPoint(image_instPoint *newP)
         if (codeObject()->defensiveMode() && 
             newP->getPointType() != oldP->getPointType()) 
         {
-            fprintf(stderr,"WARNING: merging imgPoint info at %lx, new point type "
-                    "is %d, existing point has type %d %s[%d]\n", newP->offset(), 
-                    newP->getPointType(), 
+            mal_printf("WARNING: merging imgPoint info at %lx, new point type "
+                    "is %d, existing point has type %d %s[%d]\n", 
+                    newP->offset(), newP->getPointType(), 
                     inst_pts_.find(newP->offset())->second->getPointType(),
                     FILE__,__LINE__);
             oldP->mergePoint(newP);
@@ -2027,3 +2027,7 @@ void image::clearNewBlocks()
     newBlocks_.clear();
 }
 
+void image::setImageLength(Address newlen)
+{
+    imageLen_ = newlen; 
+}

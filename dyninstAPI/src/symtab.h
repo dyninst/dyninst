@@ -338,6 +338,8 @@ class image : public codeRange {
    Address dataLength() const { return dataLen_;} 
    Address imageLength() const { return imageLen_;} 
 
+   void setImageLength(Address newlen);
+
    // codeRange interface implementation
    Address get_address() const { return imageOffset(); }
    unsigned get_size() const { return imageLength(); }

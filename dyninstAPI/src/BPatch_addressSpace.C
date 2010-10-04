@@ -264,7 +264,8 @@ bool BPatch_addressSpace::deleteSnippetInt(BPatchSnippetHandle *handle)
      {
        instPoint *iPoint = handle->mtHandles_[i]->instP();
        handle->mtHandles_[i]->uninstrument();
-       BPatch_point *bPoint = findOrCreateBPPoint(NULL, iPoint);
+       BPatch_point *bPoint = findOrCreateBPPoint(NULL, iPoint, 
+           BPatch_point::convertInstPointType_t(iPoint->getPointType()));
        assert(bPoint);
        bPoint->removeSnippet(handle);
      }

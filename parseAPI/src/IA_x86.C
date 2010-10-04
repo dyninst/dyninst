@@ -1135,7 +1135,11 @@ bool IA_IAPI::isFakeCall() const
     // get func entry
     bool tampers = false;
     Address entry = getCFT();
-    if ( ! _cr->contains(entry) || ! _isrc->isCode(entry) ) {
+    if ( ! _cr->contains(entry) ) {
+        return false;
+    }
+
+    if ( ! _isrc->isCode(entry) ) {
         mal_printf("WARNING: found function call at %lx "
                    "to invalid address %lx %s[%d]\n", current, 
                    entry, FILE__,__LINE__);
@@ -1144,11 +1148,12 @@ bool IA_IAPI::isFakeCall() const
 
     // get instruction at func entry
     const unsigned char* bufPtr =
-     (const unsigned char *)(_isrc->getPtrToInstruction(entry));
+     (const unsigned char *)(_cr->getPtrToInstruction(entry));
+    Offset entryOff = entry - _cr->offset();
     InstructionDecoder newdec( bufPtr,
-                              _isrc->offset() + _isrc->length() - entry,
+                              _cr->offset() + _cr->length() - entry,
                               _cr->getArch() );
-    IA_IAPI * ah = new IA_IAPI(newdec, entry, _obj, _cr, _isrc);
+    IA_IAPI * ah = new IA_IAPI(newdec, entryOff, _obj, _cr, _isrc);
     Instruction::Ptr insn = ah->curInsn();
 
     // follow ctrl transfers until you get a block containing non-ctrl 
@@ -1163,12 +1168,13 @@ bool IA_IAPI::isFakeCall() const
                        current, entry, FILE__,__LINE__);
             return false;
         }
-        bufPtr = (const unsigned char *)(_isrc->getPtrToInstruction(entry));
+        bufPtr = (const unsigned char *)(_cr->getPtrToInstruction(entry));
         newdec = InstructionDecoder(bufPtr, 
-                                    _isrc->offset() + _isrc->length() - entry, 
+                                    _cr->offset() + _cr->length() - entry, 
                                     _cr->getArch());
+        Offset entryOff = entry - _cr->offset();
         delete ah;
-        ah = new IA_IAPI(newdec, entry, _obj, _cr, _isrc);
+        ah = new IA_IAPI(newdec, entryOff, _obj, _cr, _isrc);
         insn = ah->curInsn();
     }
 
@@ -1256,22 +1262,20 @@ bool IA_IAPI::isFakeCall() const
                 return false;
                 break;
             case e_add: 
+                fprintf(stderr,"WARNING: in isFakeCall, add ins'n "
+                        "at %lx (in first block of function at "
+                        "%lx) modifies the sp. "
+                        "%s[%d]\n", ah->getAddr(), entry, 
+                        FILE__, __LINE__);
+                return true;
+                break; 
             default: {
+                //KEVINTODO: remove this assert
                 fprintf(stderr,"WARNING: in isFakeCall non-push/pop "
                         "ins'n at %lx (in first block of function at "
                         "%lx) modifies the sp by an unknown amount. "
                         "%s[%d]\n", ah->getAddr(), entry, 
                         FILE__, __LINE__);
-                //std::set<Expression::Ptr> writes;
-                //insn->getMemoryWriteOperands(writes);
-                //set<Expression::Ptr>::iterator wit;
-                //for (wit = writes.begin(); wit != writes.end; wit++) {
-                //    if (wit->assignsSP())
-                //        if (wit->eval().defined) {
-                //            break;
-                //        } 
-                //    }
-                //}
                 assert(0); // what stack-altering instruction is this?
                 break;
             } // end default block

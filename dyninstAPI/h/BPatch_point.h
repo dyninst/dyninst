@@ -38,7 +38,6 @@
 #include "BPatch_snippet.h" // snippetOrder
 #include "BPatch_Set.h"
 
-
 class InstrucIter;
 class process;
 class instPoint;

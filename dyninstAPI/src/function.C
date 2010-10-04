@@ -806,9 +806,9 @@ void int_function::setHandlerFaultAddrAddr(Address faa, bool set)
     if (proc()->proc()->isRuntimeHeapAddr(faultAddr)) {
 
         Address origAddr = faultAddr;
-        int_function *tmp = NULL;
+        vector<int_function *> tmps;
         baseTrampInstance *bti = NULL;
-        bool success = proc()->getRelocInfo(faultAddr, origAddr, tmp, bti);
+        bool success = proc()->getAddrInfo(faultAddr, origAddr, tmps, bti);
         assert(success);
         assert( proc()->writeDataSpace((void*)faa, 
                                        sizeof(Address), 
