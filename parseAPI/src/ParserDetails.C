@@ -253,15 +253,6 @@ void Parser::ProcessCFInsn(
         {
             if(resolvable_edge) {
                 newedge = link_tempsink(cur,curEdge->second);
-                if(unlikely( _obj.defensiveMode() )) {
-                    // see if we need to update the underlying code bytes, 
-                    // and if so, create a new instruction adapter
-                    if (_pcb.updateCodeBytes(curEdge->first)) {
-                        Address curAddr = ah->getAddr();
-                        delete(ah);
-                        ah = getNewAdapter(frame.func, curAddr);
-                    }
-                }
             }
             else
                 newedge = link(cur,_sink,curEdge->second,true);
@@ -289,10 +280,22 @@ void Parser::ProcessCFInsn(
         if(resolvable_edge) {
             parsing_printf("[%s:%d] pushing %lx onto worklist\n",
                 FILE__,__LINE__,we->target());
-            if (frame.func->obj()->defensiveMode()) {
+            frame.pushWork(we);
+
+            if (unlikely(_obj.defensiveMode())) {
+                // see if we need to update the underlying code bytes, 
+                // and if so, create a new instruction adapter
+                if ( (   CALL == curEdge->second
+                      || DIRECT == curEdge->second
+                      || COND_TAKEN != curEdge->second )
+                    && _pcb.updateCodeBytes(curEdge->first))
+                {
+                    Address curAddr = ah->getAddr();
+                    delete(ah);
+                    ah = getNewAdapter(frame.func, curAddr);
+                }
                 mal_printf("new block at %lx\n", we->target());
             }
-            frame.pushWork(we);
         } 
         else if( unlikely(_obj.defensiveMode() && 
                           has_unres &&

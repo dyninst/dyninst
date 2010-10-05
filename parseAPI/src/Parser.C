@@ -285,18 +285,64 @@ Parser::parse_edges( vector< ParseWorkElem * > & work_elems )
 
         ParseWorkElem *elem = work_elems[idx];
         Block *src = elem->edge()->src();
+
+        if (elem->order() == ParseWorkElem::call_fallthrough)
+        {
+            Edge *callEdge = NULL;
+            Block::edgelist trgs = src->targets();
+            for (Block::edgelist::iterator eit = trgs.begin(); 
+                 eit != trgs.end(); 
+                 eit++) 
+            {
+                if ((*eit)->type() == CALL) {
+                    callEdge = *eit;
+                    break;
+                }
+            }
+            // create a call work elem so that the bundle is complete
+            // and set the target function's return status and 
+            // tamper to RETURN and TAMPER_NONE, respectively
+            assert(callEdge);
+            bool isResolvable = false;
+            Address callTarget = 0;
+            if ( ! callEdge->sinkEdge() ) 
+            {
+                isResolvable = true;
+                callTarget = callEdge->trg()->start();
+                Function *callee = findFuncByEntry(
+                    callEdge->trg()->region(), callTarget);
+                assert(callee);
+                callee->set_retstatus(RETURN);
+                callee->_tamper = TAMPER_NONE;
+            }
+            elem->bundle()->add(new ParseWorkElem
+                ( elem->bundle(), 
+                  callEdge,
+                  callTarget,
+                  isResolvable,
+                  false ));
+        }
+
         ParseFrame *frame = _parse_data->findFrame
             ( src->region(), 
               src->lastInsnAddr() );
+        bool isNewFrame = false;
         if (!frame) {
             vector<Function*> funcs;
             src->getFuncs(funcs);
             frame = new ParseFrame(*funcs.begin(),_parse_data);
-            frame->pushWork(elem); // pushing before means no seed is added
-            init_frame(*frame);
-        } else {
-            frame->pushWork(elem);
+            isNewFrame = true;
         }
+
+        // push before frame init so no seed is added
+        if (elem->bundle()) {
+            frame->work_bundles.push_back(elem->bundle());
+        }
+        frame->pushWork(elem);
+        if (isNewFrame) {
+            init_frame(*frame);
+        }
+
         if (frameset.end() == frameset.find(frame)) {
             frameset.insert(frame);
             frames.push_back(frame);
@@ -522,17 +568,20 @@ Parser::init_frame(ParseFrame & frame)
     Block * b;
     Block * split = NULL;
 
-    // Find or create a block
-    b = block_at(frame.func, frame.func->addr(),split);
-    if(b) {
-        frame.leadersToBlock[frame.func->addr()] = b;
-        frame.func->_entry = b;
-        frame.seed = new ParseWorkElem(NULL,NULL,frame.func->addr(),true,false);
-        frame.pushWork(frame.seed);
-    } else {
-        parsing_printf("[%s] failed to initialize parsing frame\n",
-            FILE__);
-        return;
+    if ( ! frame.func->_entry ) 
+    {
+        // Find or create a block
+        b = block_at(frame.func, frame.func->addr(),split);
+        if(b) {
+            frame.leadersToBlock[frame.func->addr()] = b;
+            frame.func->_entry = b;
+            frame.seed = new ParseWorkElem(NULL,NULL,frame.func->addr(),true,false);
+            frame.pushWork(frame.seed);
+        } else {
+            parsing_printf("[%s] failed to initialize parsing frame\n",
+                FILE__);
+            return;
+        }
     }
 
     // FIXME these operations should move into the actual parsing

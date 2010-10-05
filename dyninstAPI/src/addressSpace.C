@@ -1659,7 +1659,7 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
           Address pcOrig=0;
           vector<int_function *> origFuncs;
           baseTrampInstance *bti=NULL;
-          if (!getAddrInfo(tframe.getPC(), pcOrig, origFuncs, bti)) {
+          if (! getAddrInfo(tframe.getPC(), pcOrig, origFuncs, bti)) {
               continue;
           }
           int_function *origFunc;

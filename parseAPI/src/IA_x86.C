@@ -1151,9 +1151,9 @@ bool IA_IAPI::isFakeCall() const
      (const unsigned char *)(_cr->getPtrToInstruction(entry));
     Offset entryOff = entry - _cr->offset();
     InstructionDecoder newdec( bufPtr,
-                              _cr->offset() + _cr->length() - entry,
+                              _cr->length() - entryOff,
                               _cr->getArch() );
-    IA_IAPI * ah = new IA_IAPI(newdec, entryOff, _obj, _cr, _isrc);
+    IA_IAPI * ah = new IA_IAPI(newdec, entry, _obj, _cr, _isrc);
     Instruction::Ptr insn = ah->curInsn();
 
     // follow ctrl transfers until you get a block containing non-ctrl 
@@ -1161,7 +1161,7 @@ bool IA_IAPI::isFakeCall() const
     while (insn->getCategory() == c_CallInsn ||
            insn->getCategory() == c_BranchInsn) 
     {
-        Address entry = ah->getCFT();
+        entry = ah->getCFT();
         if ( ! _cr->contains(entry) || ! _isrc->isCode(entry) ) {
             mal_printf("WARNING: found call to function at %lx that "
                        "leaves to %lx, out of the code region %s[%d]\n", 
@@ -1169,12 +1169,12 @@ bool IA_IAPI::isFakeCall() const
             return false;
         }
         bufPtr = (const unsigned char *)(_cr->getPtrToInstruction(entry));
+        entryOff = entry - _cr->offset();
         newdec = InstructionDecoder(bufPtr, 
-                                    _cr->offset() + _cr->length() - entry, 
+                                    _cr->length() - entryOff, 
                                     _cr->getArch());
-        Offset entryOff = entry - _cr->offset();
         delete ah;
-        ah = new IA_IAPI(newdec, entryOff, _obj, _cr, _isrc);
+        ah = new IA_IAPI(newdec, entry, _obj, _cr, _isrc);
         insn = ah->curInsn();
     }
 
@@ -1314,25 +1314,25 @@ bool IA_IAPI::isFakeCall() const
     return false;
 }
 
-bool IA_IAPI::isIATcall(std::string & callee) const
+const char* IA_IAPI::isIATcall() const
 {
     if (!isDynamicCall()) {
-        return false;
+        return NULL;
     }
 
     if (!curInsn()->readsMemory()) {
-        return false;
+        return NULL;
     }
 
     std::set<Expression::Ptr> memReads;
     curInsn()->getMemoryReadOperands(memReads);
     if (memReads.size() != 1) {
-        return false;
+        return NULL;
     }
 
     Result memref = (*memReads.begin())->eval();
     if (!memref.defined) {
-        return false;
+        return NULL;
     }
     Address entryAddr = memref.convert<Address>();
 
@@ -1342,24 +1342,24 @@ bool IA_IAPI::isIATcall(std::string & callee) const
     }
     
     if (!_obj->cs()->isValidAddress(entryAddr)) {
-        return false;
+        return NULL;
     }
 
     // calculate the address of the ASCII string pointer, 
     // skip over the IAT entry's two-byte hint
     void * asciiPtr = _obj->cs()->getPtrToInstruction(entryAddr);
     if (!asciiPtr) {
-        return false;
+        return NULL;
     }
     Address funcAsciiAddr = 2 + *(Address*) asciiPtr;
     if (!_obj->cs()->isValidAddress(funcAsciiAddr)) {
-        return false;
+        return NULL;
     }
 
     // see if it's really a string that could be a function name
     char *funcAsciiPtr = (char*) _obj->cs()->getPtrToData(funcAsciiAddr);
     if (!funcAsciiPtr) {
-        return false;
+        return NULL;
     }
     char cur = 'a';
     int count=0;
@@ -1371,11 +1371,10 @@ bool IA_IAPI::isIATcall(std::string & callee) const
             ((cur >= 'A' && cur <= 'z') ||
              (cur >= '0' && cur <= '9')));
     if (cur != 0 || count <= 1) 
-        return false;
+        return NULL;
 
     mal_printf("found IAT call at %lx to %s\n", current, funcAsciiPtr);
-    callee = funcAsciiPtr;
-    return true;
+    return funcAsciiPtr;
 }
 
 bool IA_IAPI::isNopJump() const

@@ -186,12 +186,13 @@ CodeObject::parseNewEdges( vector<Block*> & sources,
 
     vector< ParseWorkElem * > work_elems;
     for (unsigned idx=0; idx < sources.size(); idx++) {
-        ParseWorkElem *elem = new ParseWorkElem
-            ( NULL, 
+        ParseWorkBundle *bundle = new ParseWorkBundle();
+        ParseWorkElem *elem = bundle->add(new ParseWorkElem
+            ( bundle, 
               parser->link_tempsink(sources[idx], edge_types[idx]),
               targets[idx],
               true,
-              false );
+              false ));
         work_elems.push_back(elem);
 
         if (defensiveMode()) {

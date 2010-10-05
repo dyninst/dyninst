@@ -125,7 +125,7 @@ private:
         bool isFrameSetupInsn(Dyninst::InstructionAPI::Instruction::Ptr i) const;
         virtual bool isReturn() const;
         bool isFakeCall() const;
-        bool isIATcall(std::string & callee) const;
+        const char *isIATcall() const;
         bool isLinkerStub() const;
 
 

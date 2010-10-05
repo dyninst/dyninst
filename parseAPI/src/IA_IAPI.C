@@ -171,20 +171,16 @@ bool IA_IAPI::hasCFT() const
      }
   }
   if(c == c_CallInsn) {
+    if(isRealCall()) {
+      parsing_cerr << "\t is real call, ret true" << endl;
+      hascftstatus.second = true;
+    }
     if(isDynamicCall()) {
       parsing_cerr << "\t is dynamic call, ret true" << endl;
       hascftstatus.second = true;
     }
     if(simulateJump()) {
       parsing_cerr << "\t is a simulated jump, ret true" << endl;
-      hascftstatus.second = true;
-    }
-    if(isRealCall()) {
-      parsing_cerr << "\t is real call, ret true" << endl;
-      hascftstatus.second = true;
-    }
-    else if (!hascftstatus.second) {
-      parsing_cerr << "\t is not real call, ret true" << endl;
       hascftstatus.second = true;
     }
   }
@@ -294,65 +290,40 @@ void IA_IAPI::getNewEdges(std::vector<std::pair< Address, EdgeTypeEnum> >& outEd
     if(ci->getCategory() == c_CallInsn)
     {
         Address target = getCFT();
-        bool callEdge = false;
-        if(isDynamicCall())
-            callEdge = true;
-        if (!callEdge && !isRealCall())
-            callEdge = true; // target is invalid, will link to sink block
-        if (!callEdge) 
+        bool callEdge = true;
+        bool ftEdge = true;
+        if( ! isDynamicCall() )
         {
-            if (!simulateJump())
-                callEdge = true; // doesn't pop ret addr off stack
-            else 
-                parsing_printf("[%s:%u] call at 0x%lx simulated as "
-                               "jump to 0x%lx\n",
-                               FILE__,__LINE__,getAddr(),getCFT());
+            if ( ! isRealCall() )
+                callEdge = false;
+
+            if ( simulateJump() ) 
+            {
+                outEdges.push_back(std::make_pair(target, DIRECT));
+                callEdge = false;
+                ftEdge = false;
+            }
         }
-        if (callEdge) 
+
+        if ( unlikely(_obj->defensiveMode()) )
         {
-            // add call edge and fallthrough edge 
-            // (fallthrough will be dropped if call is non-returning)
-            outEdges.push_back(std::make_pair(getAddr() + getSize(),CALL_FT));
+            if (isDynamicCall()) 
+            {
+                if ( ! isIATcall() )
+                    ftEdge = false;
+            }
+            else if ( ! _isrc->isValidAddress(target) )
+            {
+                ftEdge = false;
+            }
+        }
+ 
+        if (callEdge)
             outEdges.push_back(std::make_pair(target, NOEDGE));
-        }
-        else 
-        {
-            // add target edge
-            outEdges.push_back(std::make_pair(target, DIRECT));
-        }
-#if 0
-        bool addFallthrough = true;
-        if (unlikely(_obj->defensiveMode())) {
-            // we add fallthrough edges for now, unless we're sure the
-            // function can't return because Parser::parse_frame rejects
-            // edges from non-returning and call-stack tampering functions
-            // 
-            // don't add fallthrough edge if we're in defensive mode 
-            // and we see a direct call to an invalid address 
-            //      or 
-            // an indirect call that doesn't pass through the 
-            // Import Address Table (i.e., the IAT) and doesn't call
-            // a non-returning function
-            if (!isDynamicCall() && !_isrc->isValidAddress(target)) {
-                addFallthrough = false;
-            }
-            if (isDynamicCall()) {
-                std::string callee;
-                addFallthrough = false;
-                if (dynamic_cast<CodeSource*>(_isrc) && 
-                    isIATcall(callee) && 
-                    !static_cast<CodeSource*>(_isrc)->nonReturning(callee)) 
-                {
-                    addFallthrough = true;
-                }
-            }
-        } 
-        if (likely(addFallthrough)) {
-            outEdges.push_back(std::make_pair(getAddr() + getSize(),CALL_FT));
-        }
-#endif
+        if (ftEdge)
+            outEdges.push_back(std::make_pair(getAddr() + getSize(), CALL_FT));
         return;
-      }
+    }
     else if(ci->getCategory() == c_BranchInsn)
     {
         Address target;
@@ -480,14 +451,13 @@ Instruction::Ptr IA_IAPI::getInstruction()
 
 bool IA_IAPI::isRealCall() const
 {
-#if 0
   // Obviated by simulateJump
     if(getCFT() == getNextAddr())
     {
         parsing_printf("... getting PC\n");
         return false;
     }
-#endif
+#if 0
     if(!_isrc->isValidAddress(getCFT()))
     {
         CodeSource *_csrc = dynamic_cast<CodeSource *>(_isrc);
@@ -498,6 +468,7 @@ bool IA_IAPI::isRealCall() const
             return false;
         }
     }
+#endif
     return true;
 }
 
