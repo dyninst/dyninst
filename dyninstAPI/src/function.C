@@ -1207,7 +1207,7 @@ EdgeTypeEnum int_basicBlock::getSourceEdgeType(int_basicBlock *source) const {
     Block::edgelist & ib_ins = ib_->sources();
     Block::edgelist::iterator eit = ib_ins.begin(&epred);
     for( ; eit != ib_ins.end(); ++eit)
-        if((*eit)->trg() == source->ib_)
+        if((*eit)->src() == source->ib_)
             return (*eit)->type();
     return NOEDGE;
 }
