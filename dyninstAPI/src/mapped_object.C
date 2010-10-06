@@ -935,7 +935,7 @@ const std::string mapped_object::debugString() const
 
 unsigned mapped_object::memoryEnd() 
 { 
-    if (memEnd_ != -1) {
+    if ((long)memEnd_ != -1) {
         return memEnd_;
     }
     memEnd_ = 0;

@@ -1009,7 +1009,6 @@ void int_function::addMissingBlocks()
         Function::blocklist & imgBlocks = ifunc_->blocks();
         Function::blocklist::iterator sit = imgBlocks.begin();
         for( ; sit != imgBlocks.end(); ++sit) {
-            image_basicBlock *blk = dynamic_cast<image_basicBlock*>(*sit);
             addMissingBlock( *dynamic_cast<image_basicBlock*>(*sit) );
         }
     }
@@ -2055,7 +2054,7 @@ bblInstance * bblInstance::getTargetBBL() {
                 }
             }
             if (hlTarget == NULL) {
-                fprintf(stderr, "targets:%d out_edges:%d src:0x%lx->0x%lx trg:0x%lx->0x%lx\n", targets.size(), out_edges.size(), (*eit)->src()->start(), (*eit)->src()->end(), (*eit)->trg()->start(), (*eit)->trg()->end());
+                fprintf(stderr, "targets:%d out_edges:%d src:0x%lx->0x%lx trg:0x%lx->0x%lx\n", (int)targets.size(), (int)out_edges.size(), (*eit)->src()->start(), (*eit)->src()->end(), (*eit)->trg()->start(), (*eit)->trg()->end());
             }
 
             assert(hlTarget != NULL);

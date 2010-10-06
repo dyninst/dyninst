@@ -463,24 +463,9 @@ bool IA_IAPI::isRealCall() const
         parsing_printf("... getting PC\n");
         return false;
     }
-<<<<<<< HEAD:parseAPI/src/IA_IAPI.C
-#if 0
-    if(!_isrc->isValidAddress(getCFT()))
-    {
-        CodeSource *_csrc = dynamic_cast<CodeSource *>(_isrc);
-        if (!_csrc ||
-             _csrc->linkage().find(getCFT()) == _csrc->linkage().end()) {
-            parsing_printf(" isRealCall failed _isrc->isValidAddress(%lx)\n",
-                           getCFT());
-            return false;
-        }
-    }
-#endif
-=======
     if(isThunk()) {
         return false;
     }
->>>>>>> d55625d7a784fbf802bfc77fe3ee76dc9af43a3d:parseAPI/src/IA_IAPI.C
     return true;
 }
 

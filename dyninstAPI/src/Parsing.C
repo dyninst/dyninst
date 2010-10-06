@@ -272,7 +272,7 @@ DynParseCallback::newfunction_retstatus(Function *func)
 }
 
 void
-DynParseCallback::block_split(Block *first_, Block *second_)
+DynParseCallback::block_split(Block */*first_*/, Block *second_)
 {
     if (BPatch_normalMode != _img->hybridMode()) {
         image_basicBlock *second = (image_basicBlock*) second_;

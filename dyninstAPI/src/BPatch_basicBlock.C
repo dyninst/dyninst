@@ -525,7 +525,6 @@ BPatch_point *BPatch_basicBlock::convertPoint(instPoint *pt)
 void BPatch_basicBlock::getAllPoints(std::vector<BPatch_point*>& bpPoints)
 {
     set<BPatch_point*> dupCheck;
-    BPatch_addressSpace *addSpace = flowGraph->getBFunction()->getAddSpace();
     pdvector<instPoint*> blockPoints = iblock->func()->funcEntries();
     unsigned pIdx;
     for (pIdx=0; pIdx < blockPoints.size(); pIdx++) {

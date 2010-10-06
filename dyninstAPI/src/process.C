@@ -4456,7 +4456,6 @@ Address process::stopThreadCtrlTransfer
        (instPoint* intPoint, 
         Address target)
 {
-    int_function *pointfunc = intPoint->func();
     Address pointAddr = intPoint->addr();
 
     // if the point is a real return instruction and its target is a stack 

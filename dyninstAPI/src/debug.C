@@ -236,7 +236,6 @@ int dyn_debug_liveness = 0;
 int dyn_debug_infmalloc = 0;
 int dyn_debug_crash = 0;
 char *dyn_debug_crash_debugger = NULL;
-int dyn_debug_relocation = 0;
 
 static char *dyn_debug_write_filename = NULL;
 static FILE *dyn_debug_write_file = NULL;
@@ -369,10 +368,6 @@ bool init_debug() {
      fprintf(stderr, "Enable DyninstAPI crash debugging\n");
      dyn_debug_crash = 1;
      dyn_debug_crash_debugger = p;
-  }
-  if ((p=getenv("DYNINST_DEBUG_RELOCATION"))) {
-    fprintf(stderr, "Enabling DyninstAPI relocation debugging\n");
-    dyn_debug_relocation = 1;
   }
 
   debugPrintLock = new eventLock();
