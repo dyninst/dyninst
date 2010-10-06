@@ -1911,12 +1911,5 @@ bool InstrucIter::isRealCall(CodeObject * obj,
     bool &validTarget,
     bool & /*simulateJump*/)
 {
-    Address callTarget;
-
-    if(isADynamicCallInstruction())
-        return true;
-
-    callTarget = getBranchTargetAddress();
-    validTarget = obj->isValidAddress(callTarget);
-    return validTarget;
+    return true;
 }
