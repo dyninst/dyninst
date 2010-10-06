@@ -735,7 +735,9 @@ Parser::parse_frame(ParseFrame & frame, bool recursive) {
         } else {
             parsing_printf("[%s] deferring parse of shared block %lx\n",
                 FILE__,cur->start());
-            func->_rs = UNKNOWN;
+            if (func->_rs < UNKNOWN) {
+                func->_rs = UNKNOWN;
+            }
             continue;
         }
 

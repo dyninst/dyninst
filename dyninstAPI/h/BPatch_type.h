@@ -331,9 +331,8 @@ public:
 #endif
   BPatch_dataClass getDataClass() const { return type_; }
 
-  //TODO - implement these functions later -- giri
-  const char *getLow() const;
-  const char *getHigh() const;
+  unsigned long getLow() const;
+  unsigned long getHigh() const;
   BPatch_Vector<BPatch_field *> * getComponents() const;
   API_EXPORT(Int, (otype),
 	bool, isCompatible, (BPatch_type * otype));

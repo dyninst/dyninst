@@ -202,15 +202,15 @@ void Parser::ProcessCFInsn(
         if(curEdge->second == NOEDGE)
         {
             // call callback
+            resolvable_edge = resolvable_edge && !dynamic_call;
             ProcessCallInsn(frame,cur,ah,dynamic_call,
                 absolute_call,curEdge->first);
 
             tailcall = !dynamic_call &&  
                 ah.isTailCall(frame.func,frame.num_insns);
-            if(!dynamic_call)
+            if(resolvable_edge)
                 newedge = link_tempsink(cur,CALL);
             else {
-                resolvable_edge = false;
                 newedge = link(cur,_sink,CALL,true);
                 if (frame.func->obj()->defensiveMode()) {
                     unresolved = true;

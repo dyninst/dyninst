@@ -38,6 +38,7 @@
 #include "BinaryFunction.h"
 #include "debug_parse.h"
 #include "IA_platformDetails.h"
+#include "util.h"
 
 #include <deque>
 #include <map>
@@ -282,27 +283,39 @@ void IA_IAPI::getNewEdges(
     if(ci->getCategory() == c_CallInsn)
     {
         Address target = getCFT();
-        if(isRealCall() || isDynamicCall())
+        bool callEdge = true;
+        bool ftEdge = true;
+        if( ! isDynamicCall() )
         {
-            outEdges.push_back(std::make_pair(target, NOEDGE));
-        }
-        else
-        {
-            if(_isrc->isValidAddress(target))
+            if ( ! isRealCall() )
+                callEdge = false;
+
+            if ( simulateJump() ) 
             {
-                if(simulateJump())
-                {
-                    parsing_printf("[%s:%u] call at 0x%lx simulated as "
-                            "jump to 0x%lx\n",
-                    FILE__,__LINE__,getAddr(),getCFT());
-                    outEdges.push_back(std::make_pair(target, DIRECT));
-                    return;
-                }
+                outEdges.push_back(std::make_pair(target, DIRECT));
+                callEdge = false;
+                ftEdge = false;
             }
         }
-        outEdges.push_back(std::make_pair(getAddr() + getSize(),
-                           CALL_FT));
-        return;
+
+        if ( unlikely(_obj->defensiveMode()) )
+        {
+            if (isDynamicCall()) 
+            {
+                if ( ! isIATcall() )
+                    ftEdge = false;
+            }
+            else if ( ! _isrc->isValidAddress(target) )
+            {
+                ftEdge = false;
+            }
+        }
+ 
+        if (callEdge)
+            outEdges.push_back(std::make_pair(target, NOEDGE));
+        if (ftEdge)
+            outEdges.push_back(std::make_pair(getAddr() + getSize(), CALL_FT));
+         return;
     }
     else if(ci->getCategory() == c_BranchInsn)
     {
@@ -436,16 +449,6 @@ bool IA_IAPI::isRealCall() const
     {
         parsing_printf("... getting PC\n");
         return false;
-    }
-    if(!_isrc->isValidAddress(getCFT()))
-    {
-        CodeSource *csrc = _obj->cs();
-        if (!csrc ||
-             csrc->linkage().find(getCFT()) == csrc->linkage().end()) {
-            parsing_printf(" isRealCall failed _isrc->isValidAddress(%lx)\n",
-                           getCFT());
-            return false;
-        }
     }
     if(isThunk()) {
         return false;

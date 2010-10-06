@@ -59,7 +59,7 @@ bool IA_IAPI::isFrameSetupInsn(Instruction::Ptr i) const
         if(i->isRead(stackPtr[_isrc->getArch()]) &&
            i->isWritten(framePtr[_isrc->getArch()]))
         {
-            if(i->getOperand(0).getValue()->size() == _isrc->getAddressWidth())
+            if((unsigned) i->getOperand(0).getValue()->size() == _isrc->getAddressWidth())
             {
                 return true;
             }
