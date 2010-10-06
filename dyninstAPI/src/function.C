@@ -2054,6 +2054,10 @@ bblInstance * bblInstance::getTargetBBL() {
                     break;
                 }
             }
+            if (hlTarget == NULL) {
+                fprintf(stderr, "targets:%d out_edges:%d src:0x%lx->0x%lx trg:0x%lx->0x%lx\n", targets.size(), out_edges.size(), (*eit)->src()->start(), (*eit)->src()->end(), (*eit)->trg()->start(), (*eit)->trg()->end());
+            }
+
             assert(hlTarget != NULL);
             return hlTarget->instVer(version_);
         }

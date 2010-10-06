@@ -1573,9 +1573,6 @@ void Object::load_object(bool alloc_syms)
     // find code and data segments....
     find_code_and_data(elfHdr, txtaddr, dataddr);
 
-#if !defined(os_vxworks)
-    // ET_REL doesn't quite mean the same thing in VxWorks.
-
     if (elfHdr.e_type() != ET_REL) 
       {
 	if (!code_ptr_ || !code_len_) 
@@ -1590,7 +1587,6 @@ void Object::load_object(bool alloc_syms)
             goto cleanup;
 	  }
       }
-#endif
     get_valid_memory_areas(elfHdr);
 
     //fprintf(stderr, "[%s:%u] - Exe Name\n", __FILE__, __LINE__);
@@ -1677,6 +1673,8 @@ void Object::load_object(bool alloc_syms)
 	  }
 
 #if defined(os_vxworks)
+        // Load relocations like they are PLT entries.
+        // Use the non-dynamic symbol tables.
         if (rel_plt_scnp && symscnp && strscnp) {
             if (!get_relocation_entries(rel_plt_scnp, symscnp, strscnp))
                 goto cleanup;
@@ -1818,6 +1816,15 @@ void Object::load_shared_object(bool alloc_syms)
       if(dynamic_addr_ && dynsym_scnp && dynstr_scnp) {
 	parseDynamic(dynamic_scnp, dynsym_scnp, dynstr_scnp);
       }
+
+#if defined(os_vxworks)
+      // Load relocations like they are PLT entries.
+      // Use the non-dynamic symbol tables.
+      if (rel_plt_scnp && symscnp && strscnp) {
+          if (!get_relocation_entries(rel_plt_scnp, symscnp, strscnp))
+              goto cleanup2;
+      }
+#endif
 
       if (rel_plt_scnp && dynsym_scnp && dynstr_scnp) {
 	if (!get_relocation_entries(rel_plt_scnp,dynsym_scnp,dynstr_scnp)) { 

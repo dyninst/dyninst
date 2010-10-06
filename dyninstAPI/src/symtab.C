@@ -49,6 +49,7 @@
 #include "common/h/Timer.h"
 #include "common/h/debugOstream.h"
 #include "common/h/pathName.h"
+#include "common/h/MappedFile.h"
 
 #include "dyninstAPI/h/BPatch_flowGraph.h"
 #include "dynutil/h/util.h"
@@ -85,6 +86,7 @@ using namespace std;
 using namespace Dyninst;
 using namespace Dyninst::ParseAPI;
 
+using Dyninst::SymtabAPI::Symtab;
 using Dyninst::SymtabAPI::Symbol;
 using Dyninst::SymtabAPI::Region;
 using Dyninst::SymtabAPI::Variable;
@@ -1278,9 +1280,22 @@ image::image(fileDescriptor &desc,
            return;
        }
    }
+#elif defined(os_vxworks)
+   string file = desc_.file();
+   startup_printf("%s[%d]: opening file %s\n", FILE__, __LINE__, file.c_str());
+   if( !Symtab::openFile(linkedFile, file) ) {
+       startup_printf("%s[%d]: %s unavailable. Building info from target.\n",
+                      FILE__, __LINE__, file.c_str());
+       MappedFile *mf = MappedFile::createMappedFile(file);
+       linkedFile = new Symtab::Symtab(mf);
+   }
+
+   // Fill in remaining unknown information from remote target.
+   fixup_offsets(file, linkedFile);
+
 #else
    string file = desc_.file();
-   startup_printf("%s[%d]:  opening file %s\n", FILE__, __LINE__, file.c_str());
+   startup_printf("%s[%d]: opening file %s\n", FILE__, __LINE__, file.c_str());
    if(desc.rawPtr()) {
        linkedFile = new SymtabAPI::Symtab((char*)desc.rawPtr(), 
                                           desc.length(), 
@@ -1295,10 +1310,6 @@ image::image(fileDescriptor &desc,
 #endif
 
    err = false;
-
-#if defined(os_vxworks)
-   fixup_offsets(file, linkedFile);
-#endif
 
    // fix isSharedObject flag in file descriptor
    desc.setIsShared(!linkedFile->isExec());
@@ -1346,24 +1357,13 @@ image::image(fileDescriptor &desc,
 
    /** Optionally eliminate some hints in which Dyninst is not
        interested **/
-#if defined(os_vxworks)
-   struct filt_all : SymtabCodeSource::hint_filt {
-        bool operator()(SymtabAPI::Function * /* f */) {
-            return true; // filter all
-        }
-   } nuke_hints;
-   // Don't include local functions for the VxWorks Kernel object -- rchen '10
-   if (desc_.member() == "<KERNEL>") {
-       filt = &nuke_hints;
-   }
-#else
    struct filt_heap : SymtabCodeSource::hint_filt {
         bool operator()(SymtabAPI::Function * f) {
             return f->getModule()->fullName() == "DYNINSTheap";
         }
     } nuke_heap;
     filt = &nuke_heap;
-#endif
+
    //Now add Main and Dynamic Symbols if they are not present
    startup_printf("%s[%d]:  before findMain\n", FILE__, __LINE__);
    findMain();

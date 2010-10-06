@@ -56,9 +56,8 @@ namespace Dyninst
             decodeOpcode(b);
             unsigned int decodedSize = b.start - start;
 
-            return make_shared(singleton_object_pool<Instruction>::construct(m_Operation, decodedSize,
-                                start, m_Arch));
-
+            return make_shared(singleton_object_pool<Instruction>::construct(
+                                   m_Operation, decodedSize, start, m_Arch));
         }
 
         std::map<Architecture, InstructionDecoderImpl::Ptr> InstructionDecoderImpl::impls;

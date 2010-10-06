@@ -237,8 +237,8 @@ class fieldListInterface {
 class rangedInterface {
  public:
    SYMTAB_EXPORT virtual ~rangedInterface() {};
-   SYMTAB_EXPORT virtual long getLow() const = 0;
-   SYMTAB_EXPORT virtual long getHigh() const  = 0;
+   SYMTAB_EXPORT virtual unsigned long getLow() const = 0;
+   SYMTAB_EXPORT virtual unsigned long getHigh() const  = 0;
 };  
 
 class derivedInterface{
@@ -282,22 +282,20 @@ class fieldListType : public Type, public fieldListInterface
 
 class rangedType : public Type, public rangedInterface {
  protected:
-   long low_;
-   long hi_;
-   //char *low;
-   //char *hi;
+   unsigned long low_;
+   unsigned long hi_;
  protected:
    //rangedType(const std::string &name, typeId_t ID, dataClass typeDes, int size, const char *low, const char *hi); 
-   SYMTAB_EXPORT rangedType(std::string &name, typeId_t ID, dataClass typeDes, int size, long low, long hi);
-   SYMTAB_EXPORT rangedType(std::string &name, dataClass typeDes, int size, long low, long hi);
+   SYMTAB_EXPORT rangedType(std::string &name, typeId_t ID, dataClass typeDes, int size, unsigned long low, unsigned long hi);
+   SYMTAB_EXPORT rangedType(std::string &name, dataClass typeDes, int size, unsigned long low, unsigned long hi);
    SYMTAB_EXPORT void serialize_ranged(SerializerBase *, 
 		   const char * = "rangedType") THROW_SPEC (SerializerError);
  public:
    SYMTAB_EXPORT rangedType();
    SYMTAB_EXPORT ~rangedType();
    SYMTAB_EXPORT bool operator==(const Type &) const;
-   SYMTAB_EXPORT long getLow() const { return low_; }
-   SYMTAB_EXPORT long getHigh() const { return hi_; }
+   SYMTAB_EXPORT unsigned long getLow() const { return low_; }
+   SYMTAB_EXPORT unsigned long getHigh() const { return hi_; }
 };
 
 class derivedType : public Type, public derivedInterface {

@@ -167,10 +167,6 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
 
    // Sets "fileName_"
    set_short_name();
-
-#if defined(os_vxworks)
-    launch_task(fileDesc.file(), this);
-#endif
 }
 
 mapped_object *mapped_object::createMappedObject(fileDescriptor &desc,

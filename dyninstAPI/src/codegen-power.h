@@ -131,7 +131,7 @@ class insnCodeGen {
                      Register newStoreReg);
 
    // Routines to create/remove a new stack frame for getting scratch registers
-   static int createStackFrame(codeGen &gen, int numRegs, pdvector<Register>&);
+   static int createStackFrame(codeGen &gen, int numRegs, pdvector<Register>& freeReg,  pdvector<Register>& excludeReg);
    static void removeStackFrame(codeGen &gen);
 };
 

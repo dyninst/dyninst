@@ -62,13 +62,13 @@ static int doubleQuote()
                     yyleng--;
                     yytext[count] = '\0';
 		    dynerlval.sval = strdup(yytext);
-                    return(STRING);
+                    return(STRING_T);
                 }
                 break;
 
             case '\n':
                 /* New line before end of string */
-                return(_ERROR);
+                return(_ERROR_T);
                 break;
 
 	    case '\\':
@@ -97,41 +97,41 @@ static int doubleQuote()
 
 %%
 
-if			{ return IF; }
+if			{ return IF_T; }
 
-else			{ return ELSE; }
+else			{ return ELSE_T; }
 
-[0-9]+			{ dynerlval.ival = atoi(yytext); return NUMBER; }
+[0-9]+			{ dynerlval.ival = atoi(yytext); return NUMBER_T; }
 
-[A-za-z][A-Za-z0-9_]*	{ dynerlval.sval = strdup(yytext); return IDENTIFIER; }
+[A-za-z][A-Za-z0-9_]*	{ dynerlval.sval = strdup(yytext); return IDENTIFIER_T; }
 
-\<=			{ return LESS_EQ; }
+\<=			{ return LESS_EQ_T; }
 
-\>=			{ return GREATER_EQ; }
+\>=			{ return GREATER_EQ_T; }
 
-==			{ return EQ; }
+==			{ return EQ_T; }
 
-,			{ return COMMA; }
+,			{ return COMMA_T; }
 
-=			{ return ASSIGN; }
+=			{ return ASSIGN_T; }
 
-!=			{ return NOT_EQ; }
+!=			{ return NOT_EQ_T; }
  
-\{			{ return START_BLOCK; }
+\{			{ return START_BLOCK_T; }
 
-\}			{ return END_BLOCK; }
+\}			{ return END_BLOCK_T; }
 
-\$			{ return DOLLAR; }
+\$			{ return DOLLAR_T; }
 
-\.			{ return DOT; }
+\.			{ return DOT_T; }
 
-;			{ return SEMI; }
+;			{ return SEMI_T; }
 
 [()<>+*/-]		{ return yytext[0]; }
 
-&&			{ return AND; }
+&&			{ return AND_T; }
 
-\|\|			{ return OR; }
+\|\|			{ return OR_T; }
 
 [ \t\n]+		{ /* Nothing */; }
 
@@ -140,11 +140,11 @@ else			{ return ELSE; }
 			  return(ret);
 			}
 
-"++"			{ return PLUSPLUS; }
+"++"			{ return PLUSPLUS_T; }
 
-"--"			{ return MINUSMINUS; }
+"--"			{ return MINUSMINUS_T; }
 
-.			{ return _ERROR; }
+.			{ return _ERROR_T; }
 
 %%
 

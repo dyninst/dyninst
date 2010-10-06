@@ -143,7 +143,12 @@ DynCFGFactory::mkfunc(
    insn_size = insn.size();
 #endif
 
+#if defined(os_vxworks)
+   // Relocatable objects (kernel modules) are instrumentable on VxWorks.
+    if(!ret->isInstrumentableByFunctionName())
+#else
     if(!ret->isInstrumentableByFunctionName() || _img->isRelocatableObj())
+#endif
         ret->setInstLevel(UNINSTRUMENTABLE);
     else {
         // Create instrumentation points for non-plt functions 
