@@ -80,7 +80,6 @@ extern int dyn_stats_instru;
 extern int dyn_stats_ptrace;
 extern int dyn_stats_parse;
 extern int dyn_debug_crash;
-extern int dyn_debug_relocation;
 
 extern char *dyn_debug_crash_debugger;
 
@@ -123,7 +122,7 @@ extern StatContainer stats_codegen;
 #define forkexec_cerr     if (dyn_debug_forkexec) cerr
 #define proccontrol_cerr  if (dyn_debug_proccontrol) cerr
 #define stackwalk_cerr    if (dyn_debug_stackwalk) cerr
-#define relocation_cerr   if (dyn_debug_relocation) cerr
+#define relocation_cerr   if (dyn_debug_reloc) cerr
 #define dyn_unw_cerr      if (dyn_debug_dyn_unw) cerr
 #define thread_cerr       if (dyn_debug_thread) cerr
 #define liveness_cerr     if (dyn_debug_liveness) cerr

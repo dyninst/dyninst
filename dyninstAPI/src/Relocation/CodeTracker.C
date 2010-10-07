@@ -104,7 +104,7 @@ void CodeTracker::createIndices() {
     }
   }
 
-  if (dyn_debug_relocation) debug();
+  if (dyn_debug_reloc) debug();
 }
 
 void CodeTracker::debug() {
