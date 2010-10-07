@@ -135,7 +135,6 @@ class BPatch_cblock;
 
 template class BPatch_Vector<BPatch_cblock*>;
 
-template struct comparison<BPatch_basicBlock*>;
 template class BPatch_Set<BPatch_basicBlock*>;
 template class BPatch_Set<BPatch_basicBlock*, BPatch_basicBlock::compare>; 
 template struct comparison<BPatch_basicBlockLoop*>;
