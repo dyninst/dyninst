@@ -136,7 +136,7 @@ bool IA_IAPI::isFakeCall() const
     return false;
 }
 
-bool IA_IAPI::isIATcall() const
+const char* IA_IAPI::isIATcall() const
 {
     return false;
 }
