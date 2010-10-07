@@ -1675,7 +1675,7 @@ bool AddressSpace::relocateInt(FuncSet::const_iterator begin, FuncSet::const_ite
           for (FuncSet::const_iterator fit = begin; fit != end; fit++) {
               if ((*fit)->findBlockInstanceByAddr(pcOrig)) {
                   list<Address> relocPCs;
-                  getRelocAddrs(pcOrig, origFunc, relocPCs);
+                  getRelocAddrs(pcOrig, origFunc, relocPCs, false);
                   (*titer)->get_lwp()->changePC(relocPCs.back(),NULL);
                   mal_printf("Pulling active frame PC into newest relocation "
                              "orig[%lx]cur[%lx]new[%lx] %s[%d]\n", pcOrig, 
@@ -1833,21 +1833,16 @@ bool AddressSpace::patchCode(CodeMover::Ptr cm,
 void AddressSpace::causeTemplateInstantiations() {
 }
 
-void AddressSpace::getRelocAddrs(Address orig,
-                                 bblInstance *bbl,
-                                 std::list<Address> &relocs) const {
-   return getRelocAddrs(orig, bbl->func(), relocs);
-}
-
 void AddressSpace::getRelocAddrs(Address orig, 
                                  int_function *func,
-				 std::list<Address> &relocs) const {
+                                 std::list<Address> &relocs,
+                                 bool getInstrumentationAddrs) const {
   for (CodeTrackers::const_iterator iter = relocatedCode_.begin();
        iter != relocatedCode_.end(); ++iter) {
     Relocation::CodeTracker::RelocatedElements reloc;
     if (iter->origToReloc(orig, func, reloc)) {
       // Pick instrumentation if it's there, otherwise use the reloc instruction
-      if (reloc.instrumentation) {
+      if (reloc.instrumentation && getInstrumentationAddrs) {
         relocs.push_back(reloc.instrumentation);
       }
       else {

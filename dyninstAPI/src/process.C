@@ -4425,7 +4425,7 @@ Address process::resolveJumpIntoRuntimeLib(instPoint *srcPt, Address reloc)
 {
     Address orig = 0;
     std::list<Address> srcRelocs;
-    getRelocAddrs(srcPt->addr(), srcPt->block()->origInstance(), srcRelocs);
+    getRelocAddrs(srcPt->addr(), srcPt->func(), srcRelocs, false);
     for(list<Address>::iterator rit= srcRelocs.begin(); 
         rit != srcRelocs.end(); 
         rit++) 
@@ -4782,11 +4782,6 @@ bool process::handleStopThread(EventRecord &ev)
         calculation = (void*) 
             stopThreadCtrlTransfer(intPoint, (Address)calculation);
     }
-
-    list<Address> pointRelocs;
-    unsigned pointRelocCount=0;
-    getRelocAddrs(pointAddr, intPoint->block()->origInstance(),pointRelocs);
-    pointRelocCount = pointRelocs.size();
 
 /* 3. Trigger the callback for the stopThread
       using the correct snippet instance ID & event type */
