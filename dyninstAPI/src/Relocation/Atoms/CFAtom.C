@@ -241,8 +241,7 @@ TrackerElement *CFAtom::destTracker(TargetInt *dest) const {
    switch (dest->type()) {
       case TargetInt::TraceTarget: {
          Target<Trace::Ptr> *targ = static_cast<Target<Trace::Ptr> *>(dest);
-         if (targ->t()->bbl())
-            destFunc = targ->t()->bbl()->func();
+         destFunc = targ->t()->func();
          break;
       }
       case TargetInt::BlockTarget:
