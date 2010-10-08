@@ -368,7 +368,11 @@ bool int_process::post_attach()
 
 bool int_process::post_create()
 {
-   return initLibraryMechanism();
+   bool result = initLibraryMechanism();
+   std::set<int_library*> added, rmd;
+   refresh_libraries(added, rmd);
+
+   return result;
 }
 
 bool int_process::getThreadLWPs(std::vector<Dyninst::LWP> &)
@@ -1336,7 +1340,7 @@ size_t int_process::numLibs() const
 
 std::string int_process::getExecutable() const
 {
-   return executable;
+   return executable; //The name of the exec passed to PC
 }
 
 bool int_process::isInCallback()
@@ -3246,23 +3250,14 @@ Dyninst::Address installed_breakpoint::getAddr() const
    return addr;
 }
 
-int_library::int_library(std::string n, Dyninst::Address load_addr) :
-   name(n),
-   load_address(load_addr),
-   data_load_address(0),
-   has_data_load(false),
-   marked(false)
-{
-   up_lib = new Library();
-   up_lib->lib = this;
-}
-
-int_library::int_library(std::string n, Dyninst::Address load_addr, Dyninst::Address data_load_addr) :
+int_library::int_library(std::string n, Dyninst::Address load_addr, Dyninst::Address dynamic_load_addr, Dyninst::Address data_load_addr, bool has_data_load_addr) :
    name(n),
    load_address(load_addr),
    data_load_address(data_load_addr),
-   has_data_load(true),
-   marked(false)
+   dynamic_address(dynamic_load_addr),
+   has_data_load(has_data_load_addr),
+   marked(false),
+   user_data(NULL)
 {
    up_lib = new Library();
    up_lib->lib = this;
@@ -3272,8 +3267,10 @@ int_library::int_library(int_library *l) :
    name(l->name),
    load_address(l->load_address),
    data_load_address(l->data_load_address),
+   dynamic_address(l->dynamic_address),
    has_data_load(l->has_data_load),
-   marked(l->marked)
+   marked(l->marked),
+   user_data(NULL)
 {
    up_lib = new Library();
    up_lib->lib = this;
@@ -3303,6 +3300,11 @@ bool int_library::hasDataAddr()
    return has_data_load;
 }
 
+Dyninst::Address int_library::getDynamicAddr()
+{
+   return dynamic_address;
+}
+
 void int_library::setMark(bool b)
 {
    marked = b;
@@ -3311,6 +3313,16 @@ void int_library::setMark(bool b)
 bool int_library::isMarked() const
 {
    return marked;
+}
+
+void int_library::setUserData(void *d)
+{
+   user_data = d;
+}
+
+void *int_library::getUserData()
+{
+   return user_data;
 }
 
 Library::ptr int_library::getUpPtr() const
@@ -3652,6 +3664,21 @@ Dyninst::Address Library::getDataLoadAddress() const
    return lib->getDataAddr();
 }
 
+Dyninst::Address Library::getDynamicAddress() const
+{
+   return lib->getDynamicAddr();
+}
+
+void *Library::getData() const
+{
+   return lib->getUserData();
+}
+
+void Library::setData(void *p) const
+{
+   lib->setUserData(p);
+}
+
 LibraryPool::LibraryPool()
 {
 }
@@ -3667,18 +3694,32 @@ size_t LibraryPool::size() const
 
 Library::ptr LibraryPool::getLibraryByName(std::string s)
 {
+   MTLock lock_this_func;
    int_library *int_lib = proc->getLibraryByName(s);
    if (!int_lib)
       return NULL;
    return int_lib->up_lib;
 }
 
-Library::ptr LibraryPool::getLibraryByName(std::string s) const
+Library::const_ptr LibraryPool::getLibraryByName(std::string s) const
 {
+   MTLock lock_this_func;
    int_library *int_lib = proc->getLibraryByName(s);
    if (!int_lib)
       return NULL;
    return int_lib->up_lib;
+}
+
+Library::ptr LibraryPool::getExecutable()
+{
+   MTLock lock_this_func;
+   return proc->getExecutableLib()->up_lib;
+}
+
+Library::const_ptr LibraryPool::getExecutable() const
+{
+   MTLock lock_this_func;
+   return proc->getExecutableLib()->up_lib;
 }
 
 LibraryPool::iterator::iterator()
@@ -4874,6 +4915,21 @@ ThreadPool::iterator ThreadPool::end()
    return i;
 }
 
+ThreadPool::iterator ThreadPool::find(Dyninst::LWP lwp)
+{
+   MTLock lock_this_func;
+   ThreadPool::iterator i;
+   int_thread *thread = threadpool->findThreadByLWP(lwp);
+   if (!thread)
+      return end();
+
+   i.curp = threadpool;
+   i.curh = thread->thread();
+   i.curi = threadpool->hl_threads.size()-1;
+
+   return i;
+}
+
 ThreadPool::const_iterator::const_iterator()
 {
    curp = NULL;
@@ -4954,6 +5010,21 @@ ThreadPool::const_iterator ThreadPool::end() const
    i.curp = threadpool;
    i.curi = (int) threadpool->hl_threads.size();
    i.curh = Thread::ptr();
+   return i;
+}
+
+ThreadPool::const_iterator ThreadPool::find(Dyninst::LWP lwp) const
+{
+   MTLock lock_this_func;
+   ThreadPool::const_iterator i;
+   int_thread *thread = threadpool->findThreadByLWP(lwp);
+   if (!thread)
+      return end();
+
+   i.curp = threadpool;
+   i.curh = thread->thread();
+   i.curi = threadpool->hl_threads.size()-1;
+
    return i;
 }
 

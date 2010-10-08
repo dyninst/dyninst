@@ -29,83 +29,50 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-//Hashing function for dictionary_hashes
+#if !defined(ANALYSIS_STEPPER_H_)
+#define ANALYSIS_STEPPER_H_
 
-#if !defined(_symtab_util_h_)
-#define _symtab_util_h_
+#include "stackwalk/h/framestepper.h"
+#include "symEval/h/stackanalysis.h"
 
-#include "dyntypes.h"
 #include <string>
 
-#if defined(_MSC_VER)	
-#include <set>
-#else
-#include <regex.h>
-#include <string>
-#endif
+namespace Dyninst {
+namespace ParseAPI {
+class CodeObject;
+class CodeSource;
+}
+}
 
-namespace Dyninst{
-namespace SymtabAPI{
+namespace Dyninst {
+namespace Stackwalker {
 
+class AnalysisStepperImpl : public FrameStepper
+{
+  private:
+   AnalysisStepper *parent;
+  public:
+   AnalysisStepperImpl(Walker *w, AnalysisStepper *p);
+   virtual ~AnalysisStepperImpl();
 
-typedef enum {
-    mangledName = 1,
-    prettyName = 2,
-    typedName = 4,
-    anyName = 7 } NameType;
+   typedef std::pair<StackAnalysis::Height, StackAnalysis::Height> height_pair_t;
+   static const height_pair_t err_height_pair;
 
-typedef enum { 
-   lang_Unknown,
-   lang_Assembly,
-   lang_C,
-   lang_CPlusPlus,
-   lang_GnuCPlusPlus,
-   lang_Fortran,
-   lang_Fortran_with_pretty_debug,
-   lang_CMFortran
-} supportedLanguages;
+   virtual gcframe_ret_t getCallerFrame(const Frame &in, Frame &out);
+   virtual unsigned getPriority() const;  
+   
+   virtual const char *getName() const;
+   
+  protected:
+   
+   static std::map<std::string, ParseAPI::CodeObject *> objs;
+   static ParseAPI::CodeObject *getCodeObject(std::string name);
+   static ParseAPI::CodeSource *getCodeSource(std::string name);
 
-const char *supportedLanguages2Str(supportedLanguages s);
+   height_pair_t analyzeFunction(std::string name, Offset off);
+   virtual gcframe_ret_t getCallerFrameArch(height_pair_t height, const Frame &in, Frame &out);
+};
 
-typedef enum {
-   obj_Unknown,
-   obj_SharedLib,
-   obj_Executable,
-   obj_RelocatableFile
-} ObjectType;
-
-typedef enum { 
-   Obj_Parsing,
-   Syms_To_Functions,
-   Build_Function_Lists,
-   No_Such_Function,
-   No_Such_Variable,
-   No_Such_Module,
-   No_Such_Region,
-   No_Such_Symbol,
-   No_Such_Member,
-   Not_A_File,
-   Not_An_Archive,
-   Duplicate_Symbol,
-   Export_Error,
-   Emit_Error,
-   Invalid_Flags,
-   Bad_Frame_Data,
-   No_Frame_Entry,
-   Frame_Read_Error,
-   No_Error
-} SymtabError;
-
-typedef struct{
-    void *data;
-    Offset loadaddr;
-    unsigned long size;
-    std::string name; 
-    unsigned segFlags;
-}Segment;
-
-}//namespace SymtabAPI
-}//namespace Dyninst
-
-
+}
+}
 #endif

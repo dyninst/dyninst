@@ -80,9 +80,6 @@ typedef enum __ptrace_request pt_req;
 #define cap_ptrace_traceclone
 #define cap_ptrace_setoptions
 
-ProcDebug::thread_map_t ProcDebugLinux::all_threads;
-std::map<pid_t, int> ProcDebugLinux::unknown_pid_events;
-
 static int P_gettid()
 {
   static int gettid_not_valid = 0;
@@ -100,27 +97,6 @@ static int P_gettid()
   return (int) result;
 }
 
-static bool t_kill(int pid, int sig)
-{
-  static bool has_tkill = true;
-  long int result = 0;
-  sw_printf("[%s:%u] - Sending %d to %d\n", __FILE__, __LINE__, sig, pid);
-  if (has_tkill) {
-     result = syscall(SYS_tkill, pid, sig);
-     if (result == -1 && errno == ENOSYS)
-     {
-        sw_printf("[%s:%d] - Using kill instead of tkill on this system\n", 
-                  __FILE__, __LINE__, sig, pid);
-        has_tkill = false;
-     }
-  }
-  if (!has_tkill) {
-     result = kill(pid, sig);
-  }
-
-  return (result == 0);
-}
-
 SymbolReaderFactory *Dyninst::Stackwalker::getDefaultSymbolReader()
 {
    static SymElfFactory symelffact;
@@ -130,8 +106,11 @@ SymbolReaderFactory *Dyninst::Stackwalker::getDefaultSymbolReader()
 class Elf_X;
 Elf_X *getElfHandle(std::string s)
 {
-   SymbolReaderFactory *fact = getDefaultSymbolReader();
-   SymReader *reader = fact->openSymbolReader(s);
+   SymReader *reader = LibraryWrapper::getLibrary(s);
+   if (!reader) {
+      SymbolReaderFactory *fact = getDefaultSymbolReader();
+      reader = fact->openSymbolReader(s);
+   }
    SymElf *symelf = dynamic_cast<SymElf *>(reader);
    if (symelf)
       return symelf->getElfHandle();
@@ -214,29 +193,6 @@ bool ProcSelf::getThreadIds(std::vector<THR_ID> &threads)
   threads.push_back(tid);
   return true;
 }
-
-bool ProcDebugLinux::isLibraryTrap(Dyninst::THR_ID thrd)
-{
-   LibraryState *ls = getLibraryTracker();
-   if (!ls)
-      return false;
-   Address lib_trap_addr = ls->getLibTrapAddress();
-   if (!lib_trap_addr)
-      return false;
-
-   MachRegisterVal cur_pc;
-   MachRegister reg = MachRegister::getPC(getArchitecture());
-   bool result = getRegValue(reg, thrd, cur_pc);
-   if (!result) {
-      sw_printf("[%s:%u] - Error getting PC value for thrd %d\n",
-                __FILE__, __LINE__, (int) thrd);
-      return false;
-   }
-   if (cur_pc == lib_trap_addr || cur_pc-1 == lib_trap_addr)
-      return true;
-   return false;
-}
-
 
 bool ProcSelf::getDefaultThread(THR_ID &default_tid)
 {
@@ -971,7 +927,8 @@ bool ProcDebugLinux::debug_create(const std::string &executable,
 vsys_info *Dyninst::Stackwalker::getVsysInfo(ProcessState *ps)
 {
 #if defined(arch_x86_64)
-   return NULL;
+   if (ps->getAddressWidth() == 8)
+      return NULL;
 #endif
 
    static std::map<ProcessState *, vsys_info *> vsysmap;
@@ -996,7 +953,7 @@ vsys_info *Dyninst::Stackwalker::getVsysInfo(ProcessState *ps)
 
    start = parser->getVsyscallBase();
    end = parser->getVsyscallEnd();
-   sw_printf("[%s:%u] - Registering signal handler stepper over range %lx to %lx\n",
+   sw_printf("[%s:%u] - Found vsyscall over range %lx to %lx\n",
              __FILE__, __LINE__, start, end);   
    parser->deleteAuxvParser();
    
@@ -1062,128 +1019,6 @@ void SigHandlerStepperImpl::newLibraryNotification(LibAddrPair *, lib_change_t c
       return;
    StepperGroup *group = getWalker()->getStepperGroup();
    registerStepperGroup(group);
-}
-
-void ProcDebugLinux::registerLibSpotter()
-{
-   bool result;
-
-   if (lib_load_trap)
-      return;
-
-   LibraryState *libs = getLibraryTracker();
-   if (!libs) {
-      sw_printf("[%s:%u] - Not using lib tracker, don't know how "
-                "to get library load address\n", __FILE__, __LINE__);
-      return;
-   }
-   
-   lib_load_trap = libs->getLibTrapAddress();
-   if (!lib_load_trap) {
-      sw_printf("[%s:%u] - Couldn't get trap addr, couldn't set up "
-                "library loading notification.\n", __FILE__, __LINE__);
-      trap_install_error = true;
-      return;
-   }
-
-   char trap_buffer[MAX_TRAP_LEN];
-   getTrapInstruction(trap_buffer, MAX_TRAP_LEN, trap_actual_len, true);
-
-   result = PtraceBulkRead(lib_load_trap, trap_actual_len, trap_overwrite_buffer, pid);
-   if (!result) {
-      sw_printf("[%s:%u] - Error reading trap bytes from %lx\n", 
-                __FILE__, __LINE__, lib_load_trap);
-      trap_install_error = true;
-      return;
-   }
-   result = PtraceBulkWrite(lib_load_trap, trap_actual_len, trap_buffer, pid);
-   if (!result) {
-      sw_printf("[%s:%u] - Error writing trap to %lx, couldn't set up library "
-                "load address\n", __FILE__, __LINE__, lib_load_trap);
-      trap_install_error = true;
-      return;
-   }
-   sw_printf("[%s:%u] - Successfully installed library trap at %lx\n",
-             __FILE__, __LINE__, lib_load_trap);
-}
-
-bool ProcDebugLinux::detach_thread(int tid, bool leave_stopped)
-{
-   sw_printf("[%s:%u] - Detaching from tid %d\n", __FILE__, __LINE__, tid);
-   long int iresult = ptrace((pt_req) PTRACE_DETACH, tid, NULL, NULL);
-   if (iresult == -1) {
-      int error = errno;
-      sw_printf("[%s:%u] - Error.  Couldn't detach from %d: %s\n",
-                __FILE__, __LINE__, tid, strerror(error));
-      if (error != ESRCH) {
-         setLastError(err_internal, "Could not detach from thread\n");
-         return false;
-      }
-   }
-
-   thread_map_t::iterator j = all_threads.find(tid);
-   if (j == all_threads.end()) {
-      sw_printf("[%s:%u] - Error.  Expected to find %d in all threads\n",
-                __FILE__, __LINE__, tid);
-      setLastError(err_internal, "Couldn't find thread in internal data structures");
-      return false;
-   }
-
-   if (!leave_stopped) {
-      t_kill(tid, SIGCONT);
-   }
-
-   all_threads.erase(j);
-   return true;
-}
-
-bool ProcDebugLinux::detach(bool leave_stopped)
-{
-   bool result;
-   bool error = false;
-   sw_printf("[%s:%u] - Detaching from process %d\n", 
-             __FILE__, __LINE__, getProcessId());
-   result = pause();
-   if (!result) {
-      sw_printf("[%s:%u] - Error pausing process before detach\n",
-                __FILE__, __LINE__);
-      return false;
-   }
-
-   if (lib_load_trap && !trap_install_error)
-   {
-      result = PtraceBulkWrite(lib_load_trap, trap_actual_len, 
-                               trap_overwrite_buffer, pid);
-      if (!result) {
-         sw_printf("[%s:%u] - Error.  Couldn't restore load trap bytes at %lx\n",
-                   __FILE__, __LINE__, lib_load_trap);
-         setLastError(err_internal, "Could not remove library trap");
-         return false;
-      }
-      lib_load_trap = 0x0;
-   }
-   
-   for (thread_map_t::iterator i = threads.begin(); i != threads.end(); i++)
-   {
-      Dyninst::THR_ID tid = (*i).first;
-      ThreadState *thread_state = (*i).second;
-      if (tid == getProcessId())
-         continue;
-      result = detach_thread(tid, leave_stopped);
-      if (!result)
-         error = true;
-
-      delete thread_state;
-   }
-   threads.clear();
-
-   result = detach_thread(getProcessId(), leave_stopped);
-   if (!result)
-      error = true;
-
-   detach_arch_cleanup();
-
-   return !error;
 }
 
 
@@ -1279,8 +1114,12 @@ static void registerLibSpotterSelf(ProcSelf *pself)
             __FILE__, __LINE__, lib_trap_addr_self);
 }
 
-bool TrackLibState::updateLibsArch()
+bool LibraryState::updateLibsArch(std::vector<std::pair<LibAddrPair, unsigned int> > &alibs)
 {
+   if (arch_libs.size()) {
+      alibs = arch_libs;
+      return true;
+   }
    vsys_info *vsys = getVsysInfo(procstate);
    if (!vsys) {
       return false;
@@ -1292,7 +1131,8 @@ bool TrackLibState::updateLibsArch()
    vsyscall_page.second = vsys->start;
    
    SymbolReaderFactory *fact = getDefaultSymbolReader();
-   SymReader *reader = fact->openSymbolReader((char *) vsys->vsys_mem, vsys->end - vsys->start);
+   SymReader *reader = fact->openSymbolReader((char *) vsys->vsys_mem,
+                                              vsys->end - vsys->start);
    if (reader)
       LibraryWrapper::registerLibrary(reader, vsyscall_page.first);
 
@@ -1300,6 +1140,7 @@ bool TrackLibState::updateLibsArch()
    vsyscall_lib_pair.first = vsyscall_page;
    vsyscall_lib_pair.second = static_cast<unsigned int>(vsys->end - vsys->start);
    arch_libs.push_back(vsyscall_lib_pair);
+   alibs = arch_libs;
 
    return true;
 }
@@ -1445,94 +1286,6 @@ void SigHandlerStepperImpl::registerStepperGroup(StepperGroup *group)
    }
 }
 
-ThreadState* ThreadState::createThreadState(ProcDebug *parent,
-                                            Dyninst::THR_ID id,
-                                            bool already_attached)
-{
-   assert(parent);
-   Dyninst::THR_ID tid = id;
-   if (id == NULL_THR_ID) {
-      tid = (Dyninst::THR_ID) parent->getProcessId();
-   }
-   else {
-      tid = id;
-   }
-   
-   ThreadState *newts = new ThreadState(parent, tid);
-   sw_printf("[%s:%u] - Creating new ThreadState %p for %d/%d\n",
-             __FILE__, __LINE__, newts, parent->getProcessId(), tid);
-   if (!newts || newts->state() == ps_errorstate) {
-      sw_printf("[%s:%u] - Error creating new thread\n",
-                __FILE__, __LINE__);
-      return NULL;
-   }
-   if (already_attached) {
-      newts->setState(ps_attached_intermediate);
-   }
-
-   std::map<pid_t, int>::iterator previous_event;
-   previous_event = ProcDebugLinux::unknown_pid_events.find(tid);
-   if (previous_event != ProcDebugLinux::unknown_pid_events.end()) {
-      int status = (*previous_event).second;
-      sw_printf("[%s:%u] - Matched new thread %d with old events with statis %lx\n",
-                __FILE__, __LINE__, tid, status);
-      if (WIFSTOPPED(status) && WSTOPSIG(status) == SIGSTOP) {
-         newts->setState(ps_running);
-      }
-      ProcDebugLinux::unknown_pid_events.erase(previous_event);
-   }
-
-   ProcDebug::thread_map_t::iterator i = ProcDebugLinux::all_threads.find(tid);
-   assert(i == ProcDebugLinux::all_threads.end() || 
-          (*i).second->state() == ps_exited);
-   ProcDebugLinux::all_threads[tid] = newts;
-   parent->threads[tid] = newts;
-
-   if (id == NULL_THR_ID) {
-      //Done with work for initial thread
-      return newts;
-   }
-
-   bool result;
-
-   if (newts->state() == ps_neonatal) {
-      result = parent->debug_attach(newts);
-      if (!result && getLastError() == err_procexit) {
-         sw_printf("[%s:%u] - Thread %d exited before attach\n", 
-                   __FILE__, __LINE__, tid);
-         newts->setState(ps_exited);
-         return NULL;
-      }
-      else if (!result) {
-         sw_printf("[%s:%u] - Unknown error attaching to thread %d\n",
-                   __FILE__, __LINE__, tid);
-         newts->setState(ps_errorstate);
-         return NULL;
-      }
-   }
-   result = parent->debug_waitfor_attach(newts);
-   if (!result) {
-      sw_printf("[%s:%u] - Error waiting for attach on %d\n", 
-                __FILE__, __LINE__, tid);
-      return NULL;
-   }
-
-   result = parent->debug_post_attach(newts);
-   if (!result) {
-      sw_printf("[%s:%u] - Error in post attach on %d\n",
-                __FILE__, __LINE__, tid);
-      return NULL;
-   }
-
-   result = parent->resume_thread(newts);
-   if (!result) {
-      sw_printf("[%s:%u] - Error resuming thread %d\n",
-                __FILE__, __LINE__, tid);
-   }
-   
-   return newts;
-}
-
 void BottomOfStackStepperImpl::initialize()
 {
    ProcessState *proc = walker->getProcessState();
@@ -1569,6 +1322,8 @@ void BottomOfStackStepperImpl::initialize()
             Dyninst::Address end = aout->getSymbolSize(start_sym) + start;
             if (start == end)
                end = start + 43;
+            sw_printf("[%s:%u] - Bottom stepper taking %lx to %lx for start\n", 
+                      __FILE__, __LINE__, start, end);
             ra_stack_tops.push_back(std::pair<Address, Address>(start, end));
          }
       }
@@ -1590,6 +1345,8 @@ void BottomOfStackStepperImpl::initialize()
             Dyninst::Address start = libthread->getSymbolOffset(clone_sym) + 
                libthread_addr.second;
             Dyninst::Address end = libthread->getSymbolSize(clone_sym) + start;
+            sw_printf("[%s:%u] - Bottom stepper taking %lx to %lx for clone\n", 
+                      __FILE__, __LINE__, start, end);
             ra_stack_tops.push_back(std::pair<Address, Address>(start, end));
          }
          startthread_sym = libthread->getSymbolByName("start_thread");
@@ -1597,6 +1354,8 @@ void BottomOfStackStepperImpl::initialize()
             Dyninst::Address start = libthread->getSymbolOffset(startthread_sym) + 
                libthread_addr.second;
             Dyninst::Address end = libthread->getSymbolSize(startthread_sym) + start;
+            sw_printf("[%s:%u] - Bottom stepper taking %lx to %lx for start_thread\n", 
+                      __FILE__, __LINE__, start, end);
             ra_stack_tops.push_back(std::pair<Address, Address>(start, end));
          }
       }

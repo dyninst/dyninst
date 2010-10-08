@@ -107,6 +107,10 @@ class Library
    std::string getName() const;
    Dyninst::Address getLoadAddress() const;
    Dyninst::Address getDataLoadAddress() const;
+   Dyninst::Address getDynamicAddress() const;
+   
+   void *getData() const;
+   void setData(void *p) const;
 };
 
 class LibraryPool
@@ -154,7 +158,10 @@ class LibraryPool
   size_t size() const;
 
   Library::ptr getLibraryByName(std::string s);
-  Library::ptr getLibraryByName(std::string s) const;
+  Library::const_ptr getLibraryByName(std::string s) const;
+
+  Library::ptr getExecutable();
+  Library::const_ptr getExecutable() const;
 };
 
 class IRPC

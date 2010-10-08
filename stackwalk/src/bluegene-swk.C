@@ -949,9 +949,10 @@ namespace Dyninst {
     // ============================================================ //
     // SymtabLibState -- need to differentiate for P
     // ============================================================ //
-    bool SymtabLibState::updateLibsArch() {
-      return true;
-    }
+     bool LibraryState::updateLibsArch(vector<pair<LibAddrPair, unsigned int> > &)
+     {
+        return true;
+     }
 
 
     // ============================================================ //
