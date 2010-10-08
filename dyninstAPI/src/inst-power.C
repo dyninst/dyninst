@@ -3389,7 +3389,8 @@ void EmitterPOWER::emitLoadShared(opCode op, Register dest, const image_variable
    Register scratchReg = gen.rs()->getScratchRegister(gen, true);
    if (scratchReg == REG_NULL) {
    	pdvector<Register> freeReg;
-   	stackSize = insnCodeGen::createStackFrame(gen, 1, freeReg);
+        pdvector<Register> excludeReg;
+   	stackSize = insnCodeGen::createStackFrame(gen, 1, freeReg, excludeReg);
    	assert (stackSize == 1);
    	scratchReg = freeReg[0];
    	inst_printf("emitLoadrelative - after new stack frame - addr 0x%lx curr adress 0x%lx offset %ld 0x%lx size %d\n", 
@@ -3444,7 +3445,8 @@ void EmitterPOWER::emitStoreShared(Register source, const image_variable * var, 
    Register scratchReg = gen.rs()->getScratchRegister(gen, true);
    if (scratchReg == REG_NULL) {
    	pdvector<Register> freeReg;
-   	stackSize = insnCodeGen::createStackFrame(gen, 1, freeReg);
+        pdvector<Register> excludeReg;
+   	stackSize = insnCodeGen::createStackFrame(gen, 1, freeReg, excludeReg);
 	assert (stackSize == 1);
 	scratchReg = freeReg[0];
 	

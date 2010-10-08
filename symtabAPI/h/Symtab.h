@@ -390,7 +390,7 @@ class Symtab : public LookupInterface,
  public:
    //Only valid on ELF formats
    SYMTAB_EXPORT Offset getElfDynamicOffset();
-   
+
  private:
    void createDefaultModule();
 

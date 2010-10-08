@@ -174,14 +174,14 @@ Type *BPatch_type::getSymtabType() const
     return typ;
 }    
 
-const char *BPatch_type::getLow() const 
+unsigned long BPatch_type::getLow() const 
 {
     rangedInterface *rangetype = dynamic_cast<rangedInterface *>(typ);
 
     if (!rangetype)
-        return NULL;
+        return 0;
 
-    return (const char *)(long)rangetype->getLow(); 
+    return rangetype->getLow();
 }
 
 bool BPatch_type::isCompatibleInt(BPatch_type *otype) 
@@ -280,11 +280,11 @@ BPatch_Vector<BPatch_cblock *> *BPatch_type::getCblocks() const
 	return ret;	
 }
 
-const char *BPatch_type::getHigh() const {
+unsigned long BPatch_type::getHigh() const {
     rangedInterface *rangetype = dynamic_cast<rangedInterface *>(typ);
     if(!rangetype)
-        return NULL;
-    return (const char *)(long)rangetype->getHigh(); 
+        return 0;
+    return rangetype->getHigh(); 
 }
 
 BPatch_dataClass BPatch_type::convertToBPatchdataClass(dataClass type) {

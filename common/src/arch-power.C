@@ -34,10 +34,10 @@
 using namespace NS_power;
 
 #if defined(os_vxworks)
-#include "vxworks.h"
+#include "common/h/wtxKludges.h"
 #endif
 
-unsigned int swapBytesIfNeeded(unsigned int i)
+unsigned int NS_power::swapBytesIfNeeded(unsigned int i)
 {
     static int one = 0x1;
 

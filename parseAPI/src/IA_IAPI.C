@@ -37,9 +37,15 @@
 #include "Immediate.h"
 #include "BinaryFunction.h"
 #include "debug_parse.h"
+#include "IA_platformDetails.h"
+#include "util.h"
 
 #include <deque>
 #include <map>
+
+#if defined(os_vxworks)
+#include "common/h/wtxKludges.h"
+#endif
 
 using namespace Dyninst;
 using namespace InstructionAPI;
@@ -457,18 +463,9 @@ bool IA_IAPI::isRealCall() const
         parsing_printf("... getting PC\n");
         return false;
     }
-#if 0
-    if(!_isrc->isValidAddress(getCFT()))
-    {
-        CodeSource *_csrc = dynamic_cast<CodeSource *>(_isrc);
-        if (!_csrc ||
-             _csrc->linkage().find(getCFT()) == _csrc->linkage().end()) {
-            parsing_printf(" isRealCall failed _isrc->isValidAddress(%lx)\n",
-                           getCFT());
-            return false;
-        }
+    if(isThunk()) {
+        return false;
     }
-#endif
     return true;
 }
 
@@ -500,7 +497,57 @@ Address IA_IAPI::getCFT() const
     callTarget->bind(thePC[_isrc->getArch()].get(), Result(s64, current));
     parsing_printf("%s[%d]: binding PC %s in %s to 0x%x...", FILE__, __LINE__,
                    thePC[_isrc->getArch()]->format().c_str(), curInsn()->format().c_str(), current);
+
     Result actualTarget = callTarget->eval();
+#if defined(os_vxworks)
+    if (actualTarget.convert<Address>() == current) {
+        // We have a zero offset branch.  Consider relocation information.
+        SymtabCodeRegion *scr = dynamic_cast<SymtabCodeRegion *>(_cr);
+        SymtabCodeSource *scs = dynamic_cast<SymtabCodeSource *>(_obj->cs());
+
+        if (!scr && scs) {
+            set<CodeRegion *> regions;
+            assert( scs->findRegions(current, regions) == 1 );
+            scr = dynamic_cast<SymtabCodeRegion *>(*regions.begin());
+        }
+
+        SymtabAPI::Symbol *sym = NULL;
+        if (scr) {
+            std::vector<SymtabAPI::relocationEntry> relocs =
+                scr->symRegion()->getRelocations();
+
+            for (unsigned i = 0; i < relocs.size(); ++i) {
+                if (relocs[i].rel_addr() == current) {
+                    sym = relocs[i].getDynSym();
+                    if (sym && sym->getOffset()) {
+                        parsing_printf(" <reloc hit> ");
+                        actualTarget = Result(s64, sym->getOffset());
+                    }
+                    break;
+                }
+            }
+        }
+
+        if (sym && sym->getOffset() == 0) {
+            // VxWorks external call.
+            // Need some external means to find the target.
+            Address found;
+            const std::string &sym_name = sym->getMangledName();
+            if (wtxFindFunction(sym_name.c_str(), 0x0, found)) {
+                parsing_printf(" <wtx search hit> ");
+                actualTarget = Result(s64, found);
+
+                // We've effectively found a plt call.  Update linkage table.
+                _obj->cs()->linkage()[found] = sym_name;
+
+            } else {
+                parsing_printf(" <wtx fail %s> ", sym_name.c_str());
+                actualTarget.defined = false;
+            }
+        }
+    }
+#endif
+
     if(actualTarget.defined)
     {
         cachedCFT = actualTarget.convert<Address>();
@@ -543,6 +590,17 @@ bool IA_IAPI::isRelocatable(InstrumentableLevel lvl) const
     }
     return true;
 }
+
+bool IA_IAPI::parseJumpTable(Dyninst::ParseAPI::Block* currBlk,
+                    std::vector<std::pair< Address, Dyninst::ParseAPI::EdgeTypeEnum > >& outEdges) const
+{
+    IA_platformDetails* jumpTableParser = makePlatformDetails(_isrc->getArch(), this);
+    bool ret = jumpTableParser->parseJumpTable(currBlk, outEdges);
+    delete jumpTableParser;
+    return ret;
+}
+
+
 
 InstrumentableLevel IA_IAPI::getInstLevel(Function * context, unsigned int num_insns) const
 {

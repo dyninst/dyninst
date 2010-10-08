@@ -97,6 +97,7 @@ class Function : public Aggregate, public Serializable, public AnnotatableSparse
    /* internal helper functions */
    bool addLocalVar(localVar *);
    bool addParam(localVar *);
+   bool setupParams();
  private:
    
    Type          *retType_;

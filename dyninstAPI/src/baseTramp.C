@@ -397,7 +397,7 @@ bool baseTrampInstance::generateCode(codeGen &gen,
 #include "BPatch_collections.h"
 
 bool baseTrampInstance::generateCodeInlined(codeGen &gen,
-                                            Address baseInMutatee,
+                                            Address,
                                             UNW_INFO_TYPE **
                                             ) {
 #if 0

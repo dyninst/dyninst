@@ -745,6 +745,30 @@ void parseArgs(int argc, char **argv)
                      userError();
                   }
 
+               } else if (strcmp(ptr, "-wtx-target") == 0) {
+                   BPatch_remoteWtxInfo *info;
+                   if (arg) {
+                       info = (BPatch_remoteWtxInfo *)
+                           malloc(sizeof(BPatch_remoteWtxInfo));
+                       memset(info, 0, sizeof(BPatch_remoteWtxInfo));
+
+                       if (!strchr(arg, ':')) {
+                           info->target = arg;
+
+                       } else {
+                           info->target = strchr(arg, ':') + 1;
+                           info->host   = arg;
+                           *(strchr(arg, ':')) = '\0';
+                       }
+                       info->tool = "parseThat";
+
+                       config.remoteHost = (BPatch_remoteHost *)
+                           malloc(sizeof(BPatch_remoteHost));
+                       config.remoteHost->type = BPATCH_REMOTE_DEBUG_WTX;
+                       config.remoteHost->info = info;
+                   }
+                   if (needShift) ++i;
+
                } else {
                   fprintf(stderr, "Unknown parameter: %s\n", ptr);
                   userError();

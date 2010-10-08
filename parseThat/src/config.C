@@ -100,6 +100,8 @@ void configInit()
     snprintf(config.pipe_filename, sizeof(config.pipe_filename), "%s/pipe-%d", 
              outdir, (int)getpid());
     config.curr_rec = record_init();
+
+    config.remoteHost = NULL;
 }
 
 bool getNextTarget()

@@ -51,11 +51,6 @@ static void abruptEndCB_wrapper(BPatch_point *point, void *calc)
     dynamic_cast<BPatch_process*>(point->getFunction()->getProc())->
         getHybridAnalysis()->abruptEndCB(point,calc); 
 }
-static void signalHandlerExitCB_wrapper(BPatch_point *point, void *returnAddr) 
-{ 
-    dynamic_cast<BPatch_process*>(point->getFunction()->getProc())->
-        getHybridAnalysis()->signalHandlerExitCB(point,returnAddr); 
-}
 static void signalHandlerCB_wrapper
     (BPatch_point *point, long snum, std::vector<Dyninst::Address> &handlers)
 { 
@@ -405,7 +400,7 @@ bool HybridAnalysis::instrumentFunction(BPatch_function *func,
                 fprintf(stderr,"WARNING: exit point at %lx that isn't "
                         "a return or indirect control transfer, what "
                         "kind of point is this? not instrumenting %s[%d]\n", 
-                        curPoint->getAddress(), FILE__,__LINE__);
+                        (Address)curPoint->getAddress(), FILE__,__LINE__);
                 continue;
             }
 

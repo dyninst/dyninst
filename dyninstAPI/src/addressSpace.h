@@ -416,17 +416,10 @@ class AddressSpace : public InstructionSource {
 
     // Get the list of addresses an address (in a block) 
     // has been relocated to.
-    void getRelocAddrs(Address orig, 
-		       bblInstance *inst, 
-		       std::list<Address> &relocs) const;
     void getRelocAddrs(Address orig,
                        int_function *func,
-                       std::list<Address> &relocs) const;
-
-#if 0
-    void getRelocAddrPairs(Address first, Address second,
-			   std::list<std::pair<Address, Address> > &pairs) const;
-#endif
+                       std::list<Address> &relocs,
+                       bool getInstrumentationAddrs) const;
 
     bool getAddrInfo(Address relocAddr,
 		      Address &origAddr,

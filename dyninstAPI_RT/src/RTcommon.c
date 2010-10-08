@@ -73,20 +73,21 @@ int DYNINSTstaticMode = 1;
 #define HEAP_LOCAL
 #endif
 
+HEAP_LOCAL HEAP_TYPE DYNINSTglobalData[SYN_INST_BUF_SIZE/sizeof(HEAP_TYPE)] ALIGN_ATTRIB;
 
 #if !defined(target_smallmem)
-HEAP_LOCAL HEAP_TYPE DYNINSTglobalData[SYN_INST_BUF_SIZE/sizeof(HEAP_TYPE)] ALIGN_ATTRIB;
 HEAP_LOCAL HEAP_TYPE DYNINSTstaticHeap_512K_lowmemHeap_1[512*1024/sizeof(HEAP_TYPE)] ALIGN_ATTRIB;
 HEAP_LOCAL HEAP_TYPE DYNINSTstaticHeap_16M_anyHeap_1[16*1024*1024/sizeof(HEAP_TYPE)] ALIGN_ATTRIB;
-#else
-HEAP_LOCAL HEAP_TYPE DYNINSTglobalData[SYN_INST_BUF_SIZE/sizeof(HEAP_TYPE)] ALIGN_ATTRIB;
-HEAP_LOCAL HEAP_TYPE DYNINSTstaticHeap_512K_lowmemHeap_1[4*1024/sizeof(HEAP_TYPE)] ALIGN_ATTRIB;
-HEAP_LOCAL HEAP_TYPE DYNINSTstaticHeap_16M_anyHeap_1[16*1024/sizeof(HEAP_TYPE)] ALIGN_ATTRIB;
-#endif
-
-/* These are necessary because of silly C-style 'extern'/linking conventions. */
+/* These are necessary due to silly C-style 'extern'/linking conventions. */
 const unsigned long sizeOfLowMemHeap1 = sizeof( DYNINSTstaticHeap_512K_lowmemHeap_1 );
 const unsigned long sizeOfAnyHeap1 = sizeof( DYNINSTstaticHeap_16M_anyHeap_1 );
+#else
+HEAP_LOCAL HEAP_TYPE DYNINSTstaticHeap_8K_lowmemHeap_1[8*1024/sizeof(HEAP_TYPE)] ALIGN_ATTRIB;
+HEAP_LOCAL HEAP_TYPE DYNINSTstaticHeap_32K_anyHeap_1[32*1024/sizeof(HEAP_TYPE)] ALIGN_ATTRIB;
+/* These are necessary due to silly C-style 'extern'/linking conventions. */
+const unsigned long sizeOfLowMemHeap1 = sizeof( DYNINSTstaticHeap_8K_lowmemHeap_1 );
+const unsigned long sizeOfAnyHeap1 = sizeof( DYNINSTstaticHeap_32K_anyHeap_1 );
+#endif
 
 /**
  * One some platforms we can tell when a fork or exec is occurring through 

@@ -85,7 +85,6 @@ enum InstType {
     DEFAULT 
 };
 
-
 enum RunState {
     NORMAL,
     SIGCHLD_WAIT,
@@ -105,7 +104,7 @@ struct Config {
 
     // For BATCH_FILE runMode.
     const char *config_file;
-	
+
     // For instrumenting with functions loaded from library
     // format library:function_name
     const char *inst_function;
@@ -180,6 +179,8 @@ struct Config {
     // Collection of libraries used for symbols when rewriting 
     // a static binary
     deque<string> symbol_libraries;
+
+    BPatch_remoteHost *remoteHost;
 };
 
 extern Config config;
