@@ -1,6 +1,6 @@
-.globl dyninstTrapHandler
-.type dyninstTrapHandler, @function
-dyninstTrapHandler:
+.globl dyninstTrapHandler2
+.type dyninstTrapHandler2, @function
+dyninstTrapHandler2:
         pushfq
         pushq %rbp
         mov %rsp, %rbp
