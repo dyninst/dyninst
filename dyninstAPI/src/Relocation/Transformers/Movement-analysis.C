@@ -153,7 +153,6 @@ bool PCSensitiveTransformer::processTrace(TraceList::iterator &b_iter) {
 				      bbl->block()->llb(),
 				      bbl->func()->ifunc());
       if (!slice) {
-	cerr << "\t slice failed, returning ext. sens." << endl;
 	// Safe assumption, as always
 	extSens = true;
 	intSens = true;
@@ -402,12 +401,9 @@ bool PCSensitiveTransformer::insnIsThunkCall(InstructionAPI::Instruction::Ptr in
 
   Address target = res.convert<Address>();
 
-  cerr << "Checking for thunk: CFT from " << hex << addr << " to " << target << dec << endl;
-
   // Check for a call to a thunk function
   if (target == (addr + insn->size())) {
     destination = Absloc(0, 0, NULL);
-    cerr << "      ... call next insn, ret true" << endl;
     return true;
   }
   
@@ -459,9 +455,6 @@ void PCSensitiveTransformer::handleThunkCall(TraceList::iterator &b_iter,
 					     Trace::AtomList::iterator &iter,
 					     Absloc &destination) {
 
-  cerr << "Handling thunk call at " << hex << (*iter)->addr() << dec << endl;
-  cerr << "\t from insn " << (*iter)->insn()->format() << endl;
-
   Atom::Ptr replacement = GetPC::create((*iter)->insn(),
 					   (*iter)->addr(),
 					   destination);
@@ -495,6 +488,7 @@ void PCSensitiveTransformer::handleThunkCall(TraceList::iterator &b_iter,
     }
     if (dest != cf->destMap_.end()) {
       CFAtom::Ptr newCF = CFAtom::create((*b_iter)->bbl());
+      newCF->updateAddr(cf->addr());
       // Explicitly do _NOT_ reuse old information - this is just a branch
       
       newCF->destMap_[CFAtom::Fallthrough] = dest->second;
@@ -557,6 +551,7 @@ void PCSensitiveTransformer::emulateInsn(TraceList::iterator &b_iter,
     // Indirect, we put in a push/jump <reg> combination.
 
     CFAtom::Ptr newCF = CFAtom::create((*b_iter)->bbl());
+    newCF->updateAddr(cf->addr());
 
     CFAtom::DestinationMap::iterator dest = cf->destMap_.find(CFAtom::Taken);
     if (dest != cf->destMap_.end()) {

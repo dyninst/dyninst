@@ -118,7 +118,7 @@ class Trace {
   static Ptr create(baseTramp *base);
   
   // Creation via a single Atom
-  static Ptr create(Atom::Ptr atom, Address a);
+  static Ptr create(Atom::Ptr atom, Address a, int_function *f);
 
   bool generate(const codeGen &templ,
                 CodeBuffer &buffer);
@@ -135,6 +135,10 @@ class Trace {
   std::string format() const;
 
   bblInstance *bbl() const { return bbl_; }
+  // Unlike basic blocks, _all_ traces must be
+  // created in the context of a function so we can correctly
+  // report which function we're from.
+  int_function *func() const { return func_; }
 
   bool applyPatches(codeGen &gen, bool &regenerate, unsigned &totalSize, int &shift);
 
@@ -149,13 +153,15 @@ class Trace {
      origAddr_(bbl->firstInsnAddr()),
      bbl_(bbl),
      id_(TraceID++),
-     label_(-1) {};
-  Trace(Atom::Ptr a, Address origAddr)
+     label_(-1),
+     func_(bbl->func()) {};
+  Trace(Atom::Ptr a, Address origAddr, int_function *f)
      : curAddr_(0),
      origAddr_(origAddr),
      bbl_(NULL),
      id_(TraceID++),
-     label_(-1) { 
+     label_(-1),
+     func_(f) { 
      elements_.push_back(a);
   };
   
@@ -186,6 +192,8 @@ class Trace {
   int id_;
 
   Label label_;
+
+  int_function *func_;
 };
 
 };

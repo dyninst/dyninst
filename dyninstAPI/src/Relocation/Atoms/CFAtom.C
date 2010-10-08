@@ -251,7 +251,6 @@ TrackerElement *CFAtom::destTracker(TargetInt *dest) const {
       default:
          break;
    }
-
    EmulatorTracker *e = new EmulatorTracker(dest->origAddr(), destFunc);
    return e;
 }
