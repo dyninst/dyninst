@@ -157,10 +157,10 @@ class LibraryPool
   size_t size() const;
 
   Library::ptr getExecutable();
-  const Library::ptr getExecutable() const;
+  Library::const_ptr getExecutable() const;
 
   Library::ptr getLibraryByName(std::string s);
-  Library::ptr getLibraryByName(std::string s) const;
+  Library::const_ptr getLibraryByName(std::string s) const;
 };
 
 class IRPC
@@ -404,7 +404,7 @@ class ThreadPool
    public:
       const_iterator();
       ~const_iterator();
-      const Thread::ptr operator*() const;
+      Thread::const_pitr operator*() const;
       bool operator==(const const_iterator &i);
       bool operator!=(const const_iterator &i);
       ThreadPool::const_iterator operator++();
@@ -415,9 +415,9 @@ class ThreadPool
    const_iterator find(Dyninst::LWP lwp) const;
 
    size_t size() const;
-   const Process::ptr getProcess() const;
+   Process::const_ptr getProcess() const;
    Process::ptr getProcess();
-   const Thread::ptr getInitialThread() const;
+   Thread::const_ptr getInitialThread() const;
    Thread::ptr getInitialThread();
 };
 
